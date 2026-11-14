@@ -108,6 +108,16 @@ type Static struct {
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
 	WardLife uint8
+	// Evasion: a StatContinuous grant of blocking-restriction keywords
+	// (CardDef.Evasion bits; only EvIntimidate is lowered: AddKeyword$
+	// Intimidate, CR 702.13a, Bellowing Tanglewurm, Vow of Malice). A
+	// layer-6 grant, read beside the printed bits by State.evasionAt
+	// (dirac/kw_kwmark.go). 0 = none.
+	Evasion uint8
+	// Infect: a StatContinuous grant of infect (AddKeyword$ Infect, CR
+	// 702.90; Grafted Exoskeleton, Phyresis): read beside CardDef.Infect by
+	// State.infectAt (dirac/kw_kwmark.go).
+	Infect bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
