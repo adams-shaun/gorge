@@ -10,18 +10,34 @@ import (
 // earlier player's choice, one block each in answer order; the last player's
 // answer flushes them all, first player first, then its own.
 
-// A held block is a header byte and maxDiscHeld pick bytes. discHeldWhole in
-// the header holds a player's whole hand, its seat in the first pick byte; any
-// other nonzero header is how many picks follow, in answer order; zero is an
-// empty block. maxDiscHeld is one per hand card: a discard picks at most the
-// whole hand, and the held picks must keep the answer order (CR 404.3). There
-// are MaxSeats-1 blocks: the last player's choice is never held.
+// A held block is a header byte, a seat byte and maxDiscHeld pick bytes.
+// discHeldWhole in the header holds the seat's whole hand; any other nonzero
+// header is how many picks follow, in answer order, each the pick's index in
+// the seat's hand; zero is an empty block. A pick is held by its hand index, a
+// byte at any object width, because nothing moves a card into or out of a hand
+// while the chain asks: the held hands are as they were held until the flush,
+// which reads every index back before it moves a card. A held discard picks
+// fewer cards than the hand holds (a whole hand is discHeldWhole), so
+// maxDiscHeld is one fewer than MaxHand, and the held picks must keep the
+// answer order (CR 404.3). There are MaxSeats-1 blocks: the last player's
+// choice is never held.
 const (
 	discHeldWhole = 255
-	maxDiscHeld   = MaxHand
-	discHeldBlock = 1 + maxDiscHeld
+	maxDiscHeld   = MaxHand - 1
+	discHeldBlock = 2 + maxDiscHeld
 	discHeldLen   = (MaxSeats - 1) * discHeldBlock
 )
+
+// A hand index is a byte (a build with a larger MaxHand fails here).
+const _ = uint8(MaxHand)
+
+// coldDiscHeld is the held discards, for a table with OpDiscard.
+var coldDiscHeld = newCold[uint8]("discHeld", func(g *genPrep) int {
+	if g.anyDiscard {
+		return discHeldLen
+	}
+	return 0
+}).view(func(c *coldArrays) *[]uint8 { return &c.discHeld })
 
 // startEachDiscard poses OpDiscard's "each player discards N" player by
 // player, controller first. A player whose whole hand goes poses no ask and the
@@ -89,7 +105,7 @@ func tableHasOp(t *kop.Table, op kop.Op) bool {
 }
 
 // heldBlock is the first empty held block.
-func (s *State) heldBlock() []Obj {
+func (s *State) heldBlock() []uint8 {
 	h := s.cold.discHeld
 	for i := 0; i+discHeldBlock <= len(h); i += discHeldBlock {
 		if h[i] == 0 {
@@ -99,24 +115,44 @@ func (s *State) heldBlock() []Obj {
 	return nil // unreachable: a chain holds at most MaxSeats-1 players
 }
 
-// holdDiscard keeps the answering player's picks until the last player has chosen.
-func (s *State) holdDiscard(picks []Obj) {
+// holdDiscard keeps player p's picks, cards in its hand, until the last
+// player has chosen.
+func (s *State) holdDiscard(p uint8, picks []Obj) {
 	b := s.heldBlock()
-	b[0] = Obj(len(picks))
-	copy(b[1:], picks)
+	pl := &s.pl[p]
+	n := 0
+	for _, o := range picks[:min(len(picks), maxDiscHeld)] {
+		for i, h := range pl.hand[:pl.handN] {
+			if h == o {
+				b[2+n] = uint8(i)
+				n++
+				break
+			}
+		}
+	}
+	b[0], b[1] = uint8(n), p
 }
 
 // holdWhole keeps player p's whole hand until the last player has chosen.
 func (s *State) holdWhole(p uint8) {
 	b := s.heldBlock()
-	b[0] = discHeldWhole
-	b[1] = Obj(p) // code-ok: a seat (the whole hand's player)
+	b[0], b[1] = discHeldWhole, p
 }
 
-// flushHeldDiscard moves every held discard, first player first.
+// flushHeldDiscard moves every held discard, first player first. Every held
+// pick is read back to its card before the first card moves.
 func (s *State) flushHeldDiscard(k *prep) {
 	h := s.cold.discHeld
-	for i := 0; i+discHeldBlock <= len(h) && h[i] != 0; i += discHeldBlock {
+	var picks [MaxSeats - 1][maxDiscHeld]Obj
+	for i, j := 0, 0; i+discHeldBlock <= len(h) && h[i] != 0; i, j = i+discHeldBlock, j+1 {
+		if n := h[i]; n != discHeldWhole {
+			pl := &s.pl[h[i+1]]
+			for x, at := range h[i+2 : i+2+int(n)] {
+				picks[j][x] = pl.hand[at]
+			}
+		}
+	}
+	for i, j := 0, 0; i+discHeldBlock <= len(h) && h[i] != 0; i, j = i+discHeldBlock, j+1 {
 		n := h[i]
 		h[i] = 0
 		if n == discHeldWhole {
@@ -125,9 +161,7 @@ func (s *State) flushHeldDiscard(k *prep) {
 			}
 			continue
 		}
-		var picks [maxDiscHeld]Obj
-		copy(picks[:], h[i+1:i+1+int(n)])
-		s.discardPicks(k, picks[:n], 0)
+		s.discardPicks(k, picks[j][:n], 0)
 	}
 }
 

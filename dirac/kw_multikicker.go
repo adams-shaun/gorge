@@ -28,6 +28,23 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cap. A real board's mana runs out first.
 const maxMultikick = 64
 
+// coldMk is the counts per battlefield slot, and coldMkObj per object while
+// the spell is on the stack, for a table with a Multikicker card.
+var (
+	coldMk = newCold[uint8]("mk", func(g *genPrep) int {
+		if g.anyMultikick {
+			return MaxPerm
+		}
+		return 0
+	}).view(func(c *coldArrays) *[]uint8 { return &c.mk }).perSlot()
+	coldMkObj = newCold[uint8]("mkObj", func(g *genPrep) int {
+		if g.anyMultikick {
+			return MaxObj
+		}
+		return 0
+	}).view(func(c *coldArrays) *[]uint8 { return &c.mkObj })
+)
+
 // multikickCount is the multikicker payment count of the spell e (0 for a
 // permanent or a table without Multikicker).
 func (s *State) multikickCount(e *stackEntry) int {

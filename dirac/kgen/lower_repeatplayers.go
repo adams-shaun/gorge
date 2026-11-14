@@ -26,6 +26,12 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		who = lRef{Kind: rEachPlayer}
 	case "Player.Opponent", "Opponent":
 		who = lRef{Kind: rEachOpp}
+	case "Player.YourTeam":
+		// gorge models no teams: YourTeam is the You qualifier
+		// (effects/player_filter.go), so repeatPlayers' filter arm lists the
+		// resolving controller alone. The kernel's eachPlayers reads RefYou
+		// as that one seat (playerRef). Azra Bladeseeker
+		who = lRef{Kind: rYou}
 	case "Targeted":
 		// gorge repeatPlayers' Targeted arm (choose_control.go): add the
 		// resolution's targets' players, the loop then reading them in

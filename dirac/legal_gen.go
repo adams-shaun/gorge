@@ -215,7 +215,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
 		}
 		s.g.mayPlayAny = anyMana
-		offers := s.gorgeOffersMay(p, o)
+		offers := s.gorgeOffersMay(p, o, anyColor)
 		s.g.mayPlayAny = false
 		if !s.altAddCastableFrom(k, c, p, o, &altCost, &pc.cost, true, anyMana, av) || !offers || s.castHeldOut(o) {
 			return
@@ -411,6 +411,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
+		}
+		if s.cfg&cfgCommander != 0 {
+			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj)) // CR 903.8: a free cast from the command zone still pays the tax
 		}
 		// the cost statics apply to what is left (CR 601.2f, 118.9d): a
 		// RaiseCost charges its generic, and a ReduceCost takes its generic
