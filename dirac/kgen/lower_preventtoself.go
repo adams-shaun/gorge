@@ -86,3 +86,22 @@ func (lc *lowerCtx) preventToSelf(rp *params, w *cards.SA, rl *lRepl) (bool, err
 	rl.Kind, rl.Bits = "PreventDamageToSelf", bits
 	return true, nil
 }
+
+// selfDamageRepl fills rp for a replacement on damage to the permanent itself:
+// ReplPreventDamageCounters (C kop.ReplPrevSelfRemoveOne: the Phantom body,
+// lower_replmult.go), ReplDamageHealFirst, or ReplPreventDamageToSelf (C the
+// scope bits, Filter the source).
+func (cb *cardBuilder) selfDamageRepl(rp *kop.Repl, r lRepl) (err error) {
+	switch r.Kind {
+	case "PreventDamageCounters":
+		rp.Kind, rp.C = kop.ReplPreventDamageCounters, int16(r.Bits)
+	case "DamageHealFirst":
+		rp.Kind = kop.ReplDamageHealFirst
+	default:
+		rp.Kind, rp.C = kop.ReplPreventDamageToSelf, int16(r.Bits)
+		if r.F != nil {
+			rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield)
+		}
+	}
+	return err
+}

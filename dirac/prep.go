@@ -429,11 +429,7 @@ func prepare(t *kop.Table) *prep {
 					pc.hasStat = true // scanned through statM (repl_uncounterable.go)
 					p.anyUncounter = true
 				case kop.ReplDoesntUntap:
-					if a.Repl.Cond == 0 {
-						pc.noUntap = untapPlain
-					} else if pc.noUntap == 0 {
-						pc.noUntap = untapGated
-					}
+					pc.noUntap = noUntapKind(pc.noUntap, a.Repl.Cond) // repl_untapself.go
 				case kop.ReplMayNotUntap:
 					pc.mayNotUntap = true
 				}

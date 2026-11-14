@@ -26,12 +26,27 @@ const (
 	untapGated = 2 // only conditional ones: Repl.Cond is read at the untap
 )
 
+// noUntapKind folds one ReplDoesntUntap (its Repl.Cond) into the card's
+// pcard.noUntap: a plain one wins over any number of conditional ones.
+func noUntapKind(cur uint8, cond kop.CondID) uint8 {
+	if cond == 0 {
+		return untapPlain
+	}
+	if cur == 0 {
+		return untapGated
+	}
+	return cur
+}
+
 // selfNoUntap reports whether the permanent at sl's own ReplDoesntUntap keeps
 // it tapped in its controller's untap step (the plain one always; a
 // conditional one while its Repl.Cond holds). The pcard carries only the
 // two-valued flag (a wider pcard costs the whole kernel instructions).
 func (s *State) selfNoUntap(k *prep, sl Slot) bool {
 	pc := &k.cards[s.cardAt(sl)]
+	if k.gen != nil && s.genLost(k, sl) {
+		return false // a lost "doesn't untap" (Witness Protection)
+	}
 	if pc.noUntap == untapPlain {
 		return true
 	}

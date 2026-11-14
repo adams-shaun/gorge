@@ -100,12 +100,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
-	if g.anyRepl&rbPrevToSelf != 0 && sl != NoSlot && s.prevToSelf(k, sl, srcCtrl, srcSl, srcCard, combat) {
-		return 0 // Istvan, Guardian Naga: prevented (repl_preventtoself.go)
-	}
 	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
-		if n = s.selfDamage(k, sl, combat, n); n <= 0 {
-			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed (repl_selfdamage.go)
+		if n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n); n <= 0 {
+			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
 		}
 	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {

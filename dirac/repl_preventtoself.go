@@ -58,3 +58,24 @@ func (s *State) prevToSelf(k *prep, sl Slot, srcCtrl uint8, srcSl Slot, srcCard 
 	}
 	return false
 }
+
+// selfDamageBit is the replBits bit of a replacement on damage to the
+// permanent itself (prepareGen).
+func selfDamageBit(kind kop.ReplKind) uint32 {
+	switch kind {
+	case kop.ReplPreventDamageCounters:
+		return rbPrevCtrSelf
+	case kop.ReplDamageHealFirst:
+		return rbHealSelf
+	}
+	return rbPrevToSelf
+}
+
+// selfDamageAll is replDamage's self-damage step: the permanent at sl's own
+// prevention (prevToSelf) first, then selfDamage; the amount dealt.
+func (s *State) selfDamageAll(k *prep, sl Slot, srcCtrl uint8, srcSl Slot, srcCard CardID, combat bool, n int) int {
+	if s.prevToSelf(k, sl, srcCtrl, srcSl, srcCard, combat) {
+		return 0
+	}
+	return s.selfDamage(k, sl, combat, n)
+}

@@ -158,7 +158,7 @@ func (s *State) beginStep(k *prep) {
 				s.touchSl(sl)
 				continue
 			}
-			blocked := k.cards[s.cardAt(sl)].noUntap != 0 && !(k.gen != nil && s.genLost(k, sl)) && s.selfNoUntap(k, sl) // a lost "doesn't untap" (Witness Protection)
+			blocked := k.cards[s.cardAt(sl)].noUntap != 0 && s.selfNoUntap(k, sl) // a lost "doesn't untap" (Witness Protection)
 			if p.flags&pfTapped != 0 && !blocked && p.ctrLow(int(kop.CtrStun)) > 0 {
 				p.seeCtr(s)
 				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d)

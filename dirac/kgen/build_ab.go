@@ -2644,17 +2644,9 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
-	case "PreventDamageCounters":
-		rp.Kind = kop.ReplPreventDamageCounters
-		rp.C = int16(r.Bits) // kop.ReplPrevSelfRemoveOne: the Phantom body (lower_replmult.go)
-	case "DamageHealFirst":
-		rp.Kind = kop.ReplDamageHealFirst
-	case "PreventDamageToSelf":
-		rp.Kind, rp.C = kop.ReplPreventDamageToSelf, int16(r.Bits)
-		if r.F != nil {
-			if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
-				return ka, err
-			}
+	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf":
+		if err = cb.selfDamageRepl(rp, r); err != nil { // lower_preventtoself.go
+			return ka, err
 		}
 	case "DoubleTokens":
 		rp.Kind = kop.ReplDoubleTokens

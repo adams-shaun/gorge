@@ -1175,14 +1175,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
-				case kop.ReplPreventDamageCounters:
-					g.replBits[i] |= rbPrevCtrSelf
-					pc.hasStat = true
-				case kop.ReplDamageHealFirst:
-					g.replBits[i] |= rbHealSelf
-					pc.hasStat = true
-				case kop.ReplPreventDamageToSelf:
-					g.replBits[i] |= rbPrevToSelf
+				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf:
+					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
 					g.replBits[i] |= rbDblTok
