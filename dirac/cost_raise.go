@@ -174,6 +174,43 @@ func (s *State) stackTgtDep(k *prep, c CardID) bool {
 	return s.stackRaiseOnStack(k)
 }
 
+// boardRaiseTgtDep reports that p's cast of spell c (object o) meets a
+// battlefield RaiseCost whose charge waits for the spell's target
+// (StTargetsFilter2 on a generic StatIncreaseCost: Esior, Wardwing Familiar's
+// "spells your opponents cast that target one or more commanders you control
+// cost {3} more"): every gate but the ValidTarget$ holds, so the price is the
+// announcement's (CR 601.2c before 601.2f). gorge's
+// paymentPlanTargetDependentFor drops the ValidTarget$ key and declines the
+// cast's witness when the rest applies ("shape:target_dependent_cost"), as
+// boardLifeTgtDep reads the life raises. A spell with no target never meets
+// the clause (gorge pay.PaymentPlanSpellTargets).
+func (s *State) boardRaiseTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
+	if k.gen == nil || !k.gen.anyRaise || tspec(k, c, spellAb(k, c), 0) == nil {
+		return false
+	}
+	hit := false
+	s.eachStatic(k, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatIncreaseCost || a.Static.Zone == kop.ZoneCommand || a.Static.Zone == kop.ZoneStack {
+			return true // the card's own raise is tgtDepCost's, the stack-source one stackTgtDep's
+		}
+		st := &a.Static
+		if st.StFlags&kop.StTargetsFilter2 == 0 || st.StFlags&kop.StRaiseLife != 0 {
+			return true // (a life raise: boardLifeTgtDep)
+		}
+		if f := st.StFlags; f&kop.StRaiseYou != 0 && stc.ctrl != p || f&kop.StRaiseOpp != 0 && stc.ctrl == p {
+			return true
+		}
+		ctx := s.ctxStatic(stc)
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+			return true
+		}
+		hit = true
+		return false
+	})
+	return hit
+}
+
 // tableRaises reports whether t has a generated StatIncreaseCost. A free cast
 // is charged the raise on what it still owes (CR 601.2f, 118.9d; gorge
 // manaToPay composes the modifiers on the empty cost): buildCostGenPre.
