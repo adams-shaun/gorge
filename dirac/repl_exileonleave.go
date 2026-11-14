@@ -40,7 +40,9 @@ func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) int {
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
 		sc := s.cardAt(b)
-		if g.replBits[sc]&rbExileOnLeave == 0 || !g.exileAnyC[sc] || s.genLost(k, b) {
+		// a departed seat's effects no longer apply (CR 800.4a; gorge's
+		// replacement walk visits only living seats' zones)
+		if g.replBits[sc]&rbExileOnLeave == 0 || !g.exileAnyC[sc] || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 			continue
 		}
 		if s.matchCardGen(k, g.exileOnLeave[sc], c, owner, s.perms[b].ctrl, o) {

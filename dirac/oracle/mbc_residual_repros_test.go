@@ -101,3 +101,16 @@ func TestMBCAnsweredCasualtyTokenCeaseReprosLockstep(t *testing.T) {
 	t.Parallel()
 	mbcResidualRepro(t, "answered_casualty_ceases_tokens_before_the_next_ask")
 }
+
+// TestMBCDepartedSeatReplacementInertReprosLockstep: gorge's replacement walks
+// (rules/object_query.go forEachObject) visit only living seats' zones, so a
+// departed seat's Rest in Peace no longer exiles other seats' casualties (CR
+// 800.4a) even before the leave sweep has moved its permanent. The kernel's
+// ExileOnLeave scans (exileOnLeaveN, exileAnyN, graveMoveSources) still
+// consulted it, so a creature dying after the seat's loss went to exile
+// instead of the graveyard (Graaz, Unstoppable Juggernaut; decision 1397 of
+// 1397; the 2026-11-13 4-seat MBC lock pool, pair 19).
+func TestMBCDepartedSeatReplacementInertReprosLockstep(t *testing.T) {
+	t.Parallel()
+	mbcResidualRepro(t, "departed_seat_replacement_inert")
+}

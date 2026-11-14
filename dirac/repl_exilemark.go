@@ -151,7 +151,9 @@ func (s *State) graveMoveSources(k *prep, o Obj, out *[MaxPerm]Obj) int {
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
 		sc := s.cardAt(b)
-		if g.replBits[sc]&rbExileOnLeave == 0 || s.genLost(k, b) {
+		// a departed seat's effects no longer apply (CR 800.4a; gorge's
+		// replacement walk visits only living seats' zones)
+		if g.replBits[sc]&rbExileOnLeave == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 			continue
 		}
 		var hit bool
