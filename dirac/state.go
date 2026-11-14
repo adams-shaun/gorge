@@ -861,7 +861,7 @@ type resCtx struct {
 	// chosenPl is the resolution's chosen player (gorge Ctx.Chosen's player
 	// entry, Forge's chosen player field): OpChoosePlayer's pick, seat, or
 	// 255 when the resolution recorded no choice (an empty pool). Read
-	// through RefChosenPlayer (Maddening Hex's Attach to the chosen player).
+	// through RefResChosenPlayer (Maddening Hex's Attach to the chosen player).
 	chosenPl uint8
 	remLK    int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }

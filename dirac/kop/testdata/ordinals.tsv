@@ -1004,7 +1004,6 @@ ReduceColorBits	untyped int	2
 RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
-RefChosenPlayer	Ref	38
 RefController	Ref	5
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
@@ -1024,6 +1023,7 @@ RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
 RefReplaced	Ref	20
+RefResChosenPlayer	Ref	41
 RefSacrificed	Ref	22
 RefSelf	Ref	4
 RefSrcOwner	Ref	246

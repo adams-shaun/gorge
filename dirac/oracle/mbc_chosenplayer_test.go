@@ -21,9 +21,9 @@ import (
 // pool's donors for the kernel side — the donors' compiled defs carry the
 // printed shapes (Curse of Opulence's Enchant:Player aura, Ajani's Mantra's
 // your-upkeep trigger record) with the lowered chain as the program, renamed
-// to the probe. The graft plays the runtime the lowering emits;
-// dirac/kgen's TestChoosePlayerRandomLowers and
-// TestChooseCardChosenPlayerChooserLowers prove the lowering emits it.
+// to the probe. The graft plays the runtime the lowering emits:
+// dirac/kgen's TestChosenPlayerProbesMatchTheGraft lowers these two probe
+// scripts and holds each built program to its graft below.
 //
 //   - Maddening Hex's re-attach chain (the Random$ True ChoosePlayer over
 //     Player.Opponent+!EnchantedBy and the Attach of its pick): the probe is
@@ -76,7 +76,7 @@ var mbcProbes = []struct {
 				Kind: kop.AbTriggered, Trig: trig,
 				Prog: []kop.Instr{
 					{Op: kop.OpChoosePlayer, Obj: kop.RefController, C: kop.ChPlRandom},
-					{Op: kop.OpAttach, W: kop.RefChosenPlayer},
+					{Op: kop.OpAttach, W: kop.RefResChosenPlayer},
 				},
 			}}
 			d.Cost, d.Colors, d.Identity = kop.ManaCost{Generic: 2}, 0, 0

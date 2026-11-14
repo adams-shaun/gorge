@@ -1,9 +1,11 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -151,5 +153,86 @@ func TestChooseCardChosenPlayerChooserLowers(t *testing.T) {
 	_, rs = kcpPhase(t, svars)
 	if !strings.Contains(strings.Join(rs, ";"), "ChooseCard Defined$") {
 		t.Errorf("a mandatory ChooseCard Defined$ Targeted: want the by-name refusal, got %v", rs)
+	}
+}
+
+// kcpProbeProg lowers and builds one probe script through kgen and returns
+// its one triggered ability's program and the pool's filter table.
+func kcpProbeProg(t *testing.T, name, src string) ([]kop.Instr, []kop.Filter) {
+	t.Helper()
+	d, pt, rs := kdiscfiltBuild(t, name, src)
+	if len(rs) > 0 {
+		t.Fatalf("%s refused: %v", name, rs)
+	}
+	var progs [][]kop.Instr
+	for _, a := range d.Abilities {
+		if a.Kind == kop.AbTriggered {
+			progs = append(progs, a.Prog)
+		}
+	}
+	if len(progs) != 1 {
+		t.Fatalf("%s: %d triggered abilities, want 1", name, len(progs))
+	}
+	return progs[0], pt.filters
+}
+
+// TestChosenPlayerProbesMatchTheGraft: the kernel programs dirac/oracle's
+// TestMBCChosenPlayerCard6Lowers grafts onto its donors (mbc_chosenplayer_test.go
+// mbcProbes) are exactly what kgen lowers the probe scripts to, so the lockstep
+// game exercises the lowering, not a hand-written stand-in for it.
+func TestChosenPlayerProbesMatchTheGraft(t *testing.T) {
+	const probeMaddening = `Name:Probe Maddening
+ManaCost:2
+Types:Enchantment Aura Curse
+K:Enchant:Player
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ Trig
+SVar:Trig:DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent+!EnchantedBy | Random$ True | SubAbility$ DBAttach
+SVar:DBAttach:DB$ Attach | Defined$ ChosenPlayer
+Oracle:At the beginning of your upkeep, attach CARDNAME to another one of your opponents chosen at random.
+`
+	const probePlargg = `Name:Probe Plargg
+ManaCost:2
+Types:Creature
+PT:2/2
+T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ Trig
+SVar:Trig:DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent | SubAbility$ DBChoose
+SVar:DBChoose:DB$ ChooseCard | Defined$ ChosenPlayer | Choices$ Land.YouCtrl | Mandatory$ True | SubAbility$ DBDest
+SVar:DBDest:DB$ Destroy | Defined$ ChosenCard
+Oracle:At the beginning of your upkeep, an opponent chooses a land you control. Destroy that land.
+`
+	type ins struct {
+		Op       kop.Op
+		Obj, W   kop.Ref
+		C        int16
+		hasFiltr bool
+	}
+	strip := func(prog []kop.Instr) []ins {
+		var out []ins
+		for _, in := range prog {
+			out = append(out, ins{in.Op, in.Obj, in.W, in.C, in.F != 0})
+		}
+		return out
+	}
+
+	prog, _ := kcpProbeProg(t, "Probe Maddening", probeMaddening)
+	want := []ins{
+		{Op: kop.OpChoosePlayer, Obj: kop.RefController, C: kop.ChPlRandom},
+		{Op: kop.OpAttach, W: kop.RefResChosenPlayer},
+	}
+	if got := strip(prog); !slices.Equal(got, want) {
+		t.Errorf("Probe Maddening lowers to %+v, the graft runs %+v", got, want)
+	}
+
+	prog, filters := kcpProbeProg(t, "Probe Plargg", probePlargg)
+	want = []ins{
+		{Op: kop.OpChooseCard, Obj: kop.RefEachOpponent, hasFiltr: true},
+		{Op: kop.OpDestroy, Obj: kop.RefChosen},
+	}
+	if got := strip(prog); !slices.Equal(got, want) {
+		t.Fatalf("Probe Plargg lowers to %+v, the graft runs %+v", got, want)
+	}
+	f := filters[prog[0].F]
+	if f.Types != kop.TLand || f.Ctrl != kop.CtrlYou {
+		t.Errorf("Probe Plargg's ChooseCard filter is %+v, the graft's is Land.YouCtrl {Types: TLand, Ctrl: CtrlYou}", f)
 	}
 }

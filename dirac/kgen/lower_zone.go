@@ -1589,9 +1589,11 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
-		// chooser's own objects. The kernel evaluates a ChooseCard's filter
-		// from the chooser's perspective (cardCands' p), so a YouCtrl clause
-		// is the chooser's control here (Flaming Gambit).
+		// chooser's own objects. The kernel evaluates this ChooseCard's filter
+		// from the chooser's perspective (chooseCardBase returns the asker for
+		// every chooser but RefEachOpponent, the chosen-player pick whose pool
+		// is the resolving controller's), so a YouCtrl clause is the chooser's
+		// control here (Flaming Gambit).
 		if cbp != "Chooser" {
 			return refuse("optional ChooseCard ControlledByPlayer$ %q", cbp)
 		}

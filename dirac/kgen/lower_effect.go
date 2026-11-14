@@ -3994,12 +3994,12 @@ func (lc *lowerCtx) attach(ps *params) error {
 	// branch walks the Defined$ player set — the resolution's chosen player —
 	// and attaches to the first legal seat (alive, the aura's Enchant word;
 	// the random pick already excluded the aura's bearer). The kernel's W arm
-	// is that walk over kop RefChosenPlayer; a resolution with no pick (the
+	// is that walk over kop RefResChosenPlayer; a resolution with no pick (the
 	// random ChoosePlayer's empty pool) attaches nothing.
 	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "ChosenPlayer" &&
 		lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab {
 		ps.consume("Defined")
-		in := lInstr{Op: "Attach", W: lRef{Kind: rChosenPlayer}}
+		in := lInstr{Op: "Attach", W: lRef{Kind: rResChosenPlayer}}
 		if v, ok := ps.m["RememberAttached"]; ok {
 			if v = strings.TrimSpace(v); v != "True" {
 				return refuse("Attach RememberAttached$ %q", v)

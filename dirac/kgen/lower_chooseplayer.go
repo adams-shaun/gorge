@@ -39,7 +39,7 @@ func (lc *lowerCtx) choosePlayer(ps *params) error {
 // rng.IntN(len(pool)) draw over the AliveFrom order), never a decision; an
 // empty pool draws nothing and records no choice. The bounds are choiceBounds'
 // default (min = max = Amount$ 1). The pick is the resolution's chosen player
-// (kop OpChoosePlayer, RefChosenPlayer), which this ability's ChosenPlayer
+// (kop OpChoosePlayer, RefResChosenPlayer), which this ability's ChosenPlayer
 // reads take — Maddening Hex's Attach to the chosen player.
 func (lc *lowerCtx) choosePlayerRandom(ps *params) error {
 	if v := ps.str("Defined"); v != "" && v != "You" {

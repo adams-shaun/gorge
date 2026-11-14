@@ -10,7 +10,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (!EnchantedBy is player.isEnchantedBy(source): a source off the battlefield
 // fails closed and excludes nobody). The engine rng picks ONE of them (gorge
 // randomChoices: rng.IntN(len(pool)) over the pool in that order) and the
-// pick is the resolution's chosen player (res.chosenPl, RefChosenPlayer).
+// pick is the resolution's chosen player (res.chosenPl, RefResChosenPlayer).
 // An empty pool draws nothing (gorge randomChoices clamps the pick count to
 // the pool) and records no choice: a following ChosenPlayer read — Maddening
 // Hex's Attach — resolves to none, and gorge's effAttach EnchantSelf walk

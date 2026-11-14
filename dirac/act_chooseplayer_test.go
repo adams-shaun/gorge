@@ -35,7 +35,7 @@ func choosePlayerProbe(t *testing.T) (*scen, Slot, []kop.Instr) {
 	o := sc.perm(id["Archnemesis"], 0) // the resolving controller is seat 0
 	prog := []kop.Instr{
 		{Op: kop.OpChoosePlayer, Obj: kop.RefController, C: kop.ChPlRandom},
-		{Op: kop.OpAttach, W: kop.RefChosenPlayer},
+		{Op: kop.OpAttach, W: kop.RefResChosenPlayer},
 	}
 	return sc, sc.s.objs[o].slot, prog
 }
