@@ -408,7 +408,9 @@ func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma 
 // indeterminate amount, or a source with no chosen colour.
 func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
-	if mp.Produced != "Chosen" && mp.Produced != "ChosenColor" { // Produced is already trimmed
+	bare := mp.Produced == "Chosen" || mp.Produced == "ChosenColor" // Produced is already trimmed
+	combo := !bare && potentialComboChosen(mp.Produced)
+	if !bare && !combo {
 		return false
 	}
 	o := e.G.Obj(id)
@@ -423,8 +425,42 @@ func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *card
 	if indeterminate {
 		return false
 	}
+	if combo {
+		// A "Combo R Chosen" source (Thriving lands, the Gates) makes one of
+		// its listed colours or the chosen one: bound each once, like a dual.
+		var seen [len(state.Mana{})]bool
+		seen[i] = true
+		for _, w := range strings.Fields(mp.Produced)[1:] {
+			if j := state.ManaIndex(w[0]); w != "Chosen" && w != "ChosenColor" && !seen[j] {
+				seen[j] = true
+				m[j] = saturatingPotentialMana(m[j], amt)
+			}
+		}
+	}
 	m[i] = saturatingPotentialMana(m[i], amt)
 	return true
+}
+
+// potentialComboChosen reports whether produced is "Combo <colours> Chosen":
+// a Combo list of single WUBRG colours that also names the chosen colour.
+// Any other word in the list (Any, ColorIdentity, C) is not priced exactly
+// here.
+func potentialComboChosen(produced string) bool {
+	f := strings.Fields(produced)
+	if len(f) < 2 || f[0] != "Combo" {
+		return false
+	}
+	chosen := false
+	for _, w := range f[1:] {
+		switch {
+		case w == "Chosen" || w == "ChosenColor":
+			chosen = true
+		case len(w) == 1 && state.ManaIndex(w[0]) != state.MC:
+		default:
+			return false
+		}
+	}
+	return chosen
 }
 
 // addPotentialIdentityColours adds a commander-identity ability's exact
