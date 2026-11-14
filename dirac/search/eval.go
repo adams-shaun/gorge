@@ -120,6 +120,16 @@ type VecEvaluator interface {
 	ValueVec(s *dirac.State, d *dirac.Decision, seat uint8, out *[dirac.MaxSeats]float64)
 }
 
+// VecReporter is an optional VecEvaluator extension: HasValueVec reports
+// whether the evaluator has a value vector for a game of seats seats (a
+// network evaluator has one only when its weights carry a K-way value head
+// of at least seats+1 outcomes). The search asks once per Search, at the
+// root; on false the leaves fall back to the scalar Value and splitVec. A
+// VecEvaluator without it always has a vector.
+type VecReporter interface {
+	HasValueVec(seats uint8) bool
+}
+
 // ValueVec is gorge's heuristicLeafVec (bots/azmcts env.go): a softmax over
 // the living seats' scores at Value's temperature, exp(s_i/20) / sum
 // exp(s_j/20), so with two living seats seat's entry is Value's sigmoid. A

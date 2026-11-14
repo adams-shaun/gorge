@@ -15,8 +15,13 @@ import (
 
 // objKey is a choice object's place in gorge's zone lists (dirac/feat
 // zoneOf): stack, battlefield, graveyard, exile, hand, library; seat; zone
-// position.
+// position. A player's code (a proliferate or Aura recipient, a defender)
+// follows every object, by seat, as gorge's proliferate and enchant asks
+// list players after permanents; it names no object, so it reads none.
 func (bt *Bot) objKey(s *dirac.State, o dirac.Obj) uint32 {
+	if p, ok := codePlayer(dirac.TCode(o)); ok {
+		return 6<<20 | uint32(p)<<16
+	}
 	var zone, seat, idx uint32
 	switch s.ObjZone(o) {
 	case kop.ZoneStack:
@@ -58,8 +63,31 @@ func (bt *Bot) firstBy(s *dirac.State, d *dirac.Decision, key func(a dirac.Actio
 	return best
 }
 
+// codePlayer is the seat a player's target code names.
+func codePlayer(c dirac.TCode) (uint8, bool) {
+	if c >= dirac.PlayerTarget0 && c < dirac.PlayerTarget0+dirac.MaxSeats {
+		return uint8(c - dirac.PlayerTarget0), true
+	}
+	return 0, false
+}
+
+// firstObj is gorge's first offer. Its order is objKey's, except where gorge
+// lists players first: a CR 508.4 defender ask (the fallback, then the rest
+// in enteringDefenders order, the kernel's FeatEnterDefenderIndex) and a
+// new-target census (legalTargetCandidates: players, then objects).
 func (bt *Bot) firstObj(s *dirac.State, d *dirac.Decision) int {
 	bt.b.fillPos(s)
+	switch d.Sub {
+	case dirac.ChGenEnterDefender:
+		return bt.firstBy(s, d, func(a dirac.Action) uint32 { return uint32(s.FeatEnterDefenderIndex(a.Source())) })
+	case dirac.ChKsrTarget, dirac.ChGenResTarget:
+		return bt.firstBy(s, d, func(a dirac.Action) uint32 {
+			if p, ok := codePlayer(a.Source()); ok {
+				return uint32(p)
+			}
+			return 1<<24 | bt.objKey(s, dirac.Obj(a.Source()))
+		})
+	}
 	return bt.firstBy(s, d, func(a dirac.Action) uint32 { return bt.objKey(s, dirac.Obj(a.Source())) })
 }
 

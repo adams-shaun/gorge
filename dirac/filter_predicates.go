@@ -18,7 +18,7 @@ func (s *State) predPermStats(k *prep, fl *kop.Filter, sl Slot) bool {
 	}
 	pw, t := s.ptGen(k, sl)
 	if fl.Pred == kop.PredPowerLTToughness {
-		return pw < t
+		return ptRel(fl.PredN, pw, t)
 	}
 	return t >= int(fl.PredN)
 }
@@ -30,14 +30,27 @@ func (s *State) predCardStats(k *prep, fl *kop.Filter, c CardID, owner uint8, o 
 	if fl.Pred == kop.PredHasXCost {
 		return s.hasXCostCard(k, c, o) // CR 708.4: false for a face-down spell
 	}
+	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	pw, t := int(pc.power), int(pc.tough)
 	if k.cda && k.gen.has(c, gfCDAPT) {
 		pw, t = s.cardCDAPT(k, c, owner, o)
 	}
 	if fl.Pred == kop.PredPowerLTToughness {
-		return pw < t
+		return ptRel(fl.PredN, pw, t)
 	}
 	return t >= int(fl.PredN)
+}
+
+// ptRel is PredPowerLTToughness's relation (kop.PTRel*) over power pw and
+// toughness t.
+func ptRel(rel int16, pw, t int) bool {
+	switch rel {
+	case kop.PTRelEQ:
+		return pw == t
+	case kop.PTRelNE:
+		return pw != t
+	}
+	return pw < t
 }
 
 // notTriggerObj: F2NotTriggerObj (gorge `NotDefinedTriggeredCard`): o is

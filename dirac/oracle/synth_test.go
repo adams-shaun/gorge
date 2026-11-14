@@ -294,6 +294,27 @@ func TestSynthDealsRooms(t *testing.T) {
 	}
 }
 
+// mbcSplitOf is the MBC draft split that holds name, and its set: the splits are
+// cut by hash (cardset.DraftSplitCards), so a test finds a card's split rather
+// than naming one. It fails when no split holds the card or one refuses it.
+func mbcSplitOf(t *testing.T, name string) (string, cardset.Set) {
+	t.Helper()
+	for _, pool := range cardsettest.SynthNames(t) {
+		if !strings.HasPrefix(pool, cardset.SynthDraftPrefix+"mbc-") {
+			continue
+		}
+		set := cardsettest.Synth(t, pool)
+		if i, ok := set.Lookup(name); ok {
+			if set.Status(i) == cardset.StatusRefused {
+				t.Fatalf("%s refuses %s: %s", pool, name, set.Reason(i))
+			}
+			return pool, set
+		}
+	}
+	t.Fatalf("no MBC draft split holds %s", name)
+	return "", nil
+}
+
 func setlistsDir(t *testing.T) string {
 	t.Helper()
 	dir, err := os.Getwd()

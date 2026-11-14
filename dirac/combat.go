@@ -22,7 +22,7 @@ func (s *State) canAttack(k *prep, sl Slot) bool {
 	if kw&kop.KwDefender != 0 && !(k.gen != nil && k.gen.anyCanAtkDef && s.canAttackDefender(k, sl)) {
 		return false
 	}
-	if p.flags&pfSick != 0 && kw&kop.KwHaste == 0 {
+	if p.flags&pfSick != 0 && kw&kop.KwHaste == 0 && !(k.gen != nil && k.gen.anyAtkHaste && s.atkHasteOK(k, sl, noHasteDef)) {
 		return false
 	}
 	if (s.statM.any() || k.embComb && s.anyEmb()) && s.staticFlag(k, kop.StatCantAttack, sl) {
@@ -90,7 +90,7 @@ func (s *State) anyAttacker(k *prep) bool {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canAttack(k, sl) {
+		if s.canAttack(k, sl) && !s.atkHasteNoPair(k, sl) {
 			return true
 		}
 	}
@@ -118,9 +118,12 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		if MaxSeats > 2 {
 			s.attackOffersN(k, d, o, sl, gd && s.goadedAt(k, sl))
 			if k.gen != nil && k.gen.anyBattle {
-				s.addBattleOffers(k, d, o) // CR 310.7
+				s.addBattleOffers(k, d, o, sl) // CR 310.7
 			}
 			continue
+		}
+		if s.atkHasteSick(k, sl) && !s.atkHasteOK(k, sl, def) {
+			continue // CanAttackIfHaste exempts it against no defender here (static_canattackifhaste.go)
 		}
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
@@ -135,7 +138,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 			}
 		}
 		if k.gen != nil && k.gen.anyBattle {
-			s.addBattleOffers(k, d, o) // CR 310.7
+			s.addBattleOffers(k, d, o, sl) // CR 310.7
 		}
 	}
 	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
@@ -166,12 +169,16 @@ func (s *State) mustAttackAsked() bool {
 //
 //go:noinline
 func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) {
+	sick := s.atkHasteSick(k, sl)
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
 			continue
 		}
 		if goaded && s.goadDefenderBanned(k, sl, q) {
 			continue
+		}
+		if sick && !s.atkHasteOK(k, sl, q) {
+			continue // CanAttackIfHaste exempts it against q's pairs no more (static_canattackifhaste.go)
 		}
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
 		if goaded {
@@ -262,6 +269,9 @@ func (s *State) finishAttacks(k *prep) {
 	m := s.ctrlM[s.active]
 	if k.anyOppsAtt {
 		s.noteOppsAttacked(m) // before any Attacks trigger reads it
+	}
+	if k.gen != nil && k.gen.anyAtkLast {
+		s.noteAtkSeats(k, m) // trig_atklastturn.go
 	}
 	for m.any() {
 		sl := m.first()
@@ -1065,7 +1075,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		kw := s.kw(k, a)
 		dt := kw&kop.KwDeathtouch != 0
-		if ap.flags&pfBlocked == 0 {
+		if ap.flags&pfBlocked == 0 || s.asUnblocked(k, a) { // ExtAsgnGrant: Outmaneuver (combat_asgngrant.go)
 			s.toDefender(k, &r, a, pw)
 			continue
 		}
@@ -1352,7 +1362,7 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 	if n <= 0 {
 		return
 	}
-	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife) {
+	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife, p) {
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {
@@ -1472,7 +1482,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		if ap.flags&pfAttacking == 0 || ap.flags&pfBlocked == 0 || s.combatArm().divDone.has(a) {
 			continue
 		}
-		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 {
+		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) {
 			continue
 		}
 		pw := s.power(k, a)
