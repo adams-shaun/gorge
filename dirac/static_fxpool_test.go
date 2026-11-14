@@ -105,5 +105,5 @@ const fxPoolHashPin = 0x653f405b2cffb158
 
 // fxPoolHashPinMP is the dirac_mp build's pin: ObjHash reads the permanent
 // whole, and its code fields are MaxSeats-dependent widths (TestPermSize), as
-// TestOverrideRecordsFitEight's ObjHash pin.
+// TestCapacityHashPins' ObjHash pin.
 const fxPoolHashPinMP = 0x5924b07694b5a87a
