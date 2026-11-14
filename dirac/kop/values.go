@@ -210,6 +210,7 @@ const (
 	CondAnd                 // both Sub[0] and Sub[1] hold
 	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
 	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
+	CondBlessing            // the controller has the city's blessing (CR 702.131; dirac/kw_ascend.go)
 	CondCount_
 )
 

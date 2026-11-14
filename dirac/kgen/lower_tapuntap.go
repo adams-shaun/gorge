@@ -121,6 +121,38 @@ func (lc *lowerCtx) tapAll(ps *params) error {
 	return nil
 }
 
+// tapOrUntapAll lowers api:TapOrUntapAll (gorge effTapOrUntapAll;
+// Turnabout) to OpExt ExtTapOrUntapAll: one tap-or-untap election, then
+// TapAll's or UntapAll's walk over every battlefield permanent matching
+// ValidCards$ ("Permanent" when absent). ValidTgts$ Player scopes the sweep
+// to the target player's permanents (sweepTgtPlayer, gorge
+// targetPlayerKindScope). ValidMessage$ is Forge's prompt text, consumed
+// unread. Defined$ refuses.
+func (lc *lowerCtx) tapOrUntapAll(ps *params) error {
+	if _, ok := ps.get("Defined"); ok {
+		return refuse("TapOrUntapAll Defined$")
+	}
+	ps.consume("ValidMessage")
+	spec := ps.str("ValidCards")
+	if spec == "" {
+		spec = "Permanent"
+	}
+	spec, err := lc.sweepTgtPlayer(ps, spec)
+	if err != nil {
+		return err
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return err
+	}
+	note := ""
+	if _, ok := ps.get("ValidTgts"); ok {
+		note = sweepTgtPlayerNote
+	}
+	lc.emit(lInstr{Op: "TapOrUntapAll", F: f, Note: note})
+	return nil
+}
+
 // tapOrUntap lowers api:TapOrUntap (gorge effTapOrUntap): for its one
 // object (a target or a Defined$ object) on the battlefield, the
 // controller chooses tap or untap. Several-object slots refuse. Tapper$ /

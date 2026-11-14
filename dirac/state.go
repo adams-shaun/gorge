@@ -824,6 +824,14 @@ const (
 	raChooseNumber // mid-resolution ChooseNumber (ExtChooseNumberMid; repl_choosenumber.go)
 )
 
+// resFlags is resCtx.flags: single-bit facts of the resolution in progress.
+type resFlags uint8
+
+const (
+	rfTrigGone resFlags = 1 << iota // the trigger's triggering permanent left and came back (CR 400.7)
+	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
+)
+
 // resCtx is a resolution in progress.
 type resCtx struct {
 	e       stackEntry
@@ -851,18 +859,23 @@ type resCtx struct {
 	// trigGone: the entry is a trigger whose triggering permanent had left and come back (two moves
 	// past its last known information) before the resolution began: a new object (CR 400.7). The one
 	// move a death trigger records, or a move this resolution makes itself, is no such change.
-	trigGone bool
-	bad      uint8  // targets illegal at resolution (bit per slot)
-	xbad     xtMask // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
+	// The flag is resFlags bit rfTrigGone; rfNoPrev is the damage op executing now
+	// that can't be prevented (kop.DmgNoPrevention, DealDamage NoPrevention$;
+	// static_cantprevent.go), set only around its damage. One byte for both: a
+	// further bool would grow State past its pinned layout (statelayout_test.go).
+	flags resFlags
+	bad   uint8  // targets illegal at resolution (bit per slot)
+	xbad  xtMask // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
 	// col is the resolution's mid-resolution ChooseColor answer (colour
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
 	col uint8
-	cpl uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
-	// noPrev: the damage op executing now can't be prevented (kop.DmgNoPrevention,
-	// DealDamage NoPrevention$; static_cantprevent.go), set only around its damage
-	noPrev bool
-	remLK  int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// chPl is the resolution's mid-resolution ChoosePlayer answer (seat + 1,
+	// 0 none; ExtChoosePlayerMid), which RefChosenPlayer reads while the
+	// resolution holds it (repl_chooseplayer.go resChosenPlayer)
+	chPl  uint8
+	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
+	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet
@@ -997,6 +1010,12 @@ type stateCore struct {
 
 	// Decisions counts the decisions answered (SeqNo).
 	Decisions uint32
+
+	// payHyb: a trigger's own hybrid PayMana cost's announced faces, three
+	// bits per pip from bit 0, colour+1 (cost_trighybrid.go). Cleared when
+	// the ask settles. It sits here, after Decisions, because genState's
+	// reserve has no byte left: the byte fills the padding before perms.
+	payHyb uint8
 }
 
 const (

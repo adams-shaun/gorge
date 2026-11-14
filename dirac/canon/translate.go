@@ -936,6 +936,12 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("tap"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("untap"), Ref(src), RefNone, 0), true
+	case dirac.ChGenTapOrUntapAll:
+		// gorge's taporuntapall: a KChoose of "tap" / "untap", no object
+		if mode == 1 {
+			return Pack(kind("tap"), RefNone, RefNone, 0), true
+		}
+		return Pack(kind("untap"), RefNone, RefNone, 0), true
 	case dirac.ChGenKeepTapped:
 		// gorge's untap-step election over the permanent: "untap" first,
 		// then "keep_tapped"
