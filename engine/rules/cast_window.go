@@ -428,14 +428,6 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 		if pay.ActivationTapCostUnavailable(o, &cost) {
 			continue
 		}
-		// An ability that yields nothing right now (a commander-identity
-		// production with no commander, CR 109.3) is never a unit inside
-		// this window either: manaWindowAsk's offer list withholds it
-		// (paymentSourceUseful), so its unpriced reach understates nothing,
-		// like the tap-blocked abilities the loop skips below.
-		if e.manaAbilityYieldsNothing(p, id, o.Face(), ma) {
-			continue
-		}
 		if mp.RestrictValid != "" {
 			if pay.RestrictValidMatches(asPayer(e), p, desc, mp.RestrictValid, id) {
 				return true
