@@ -59,6 +59,12 @@ func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
 	if s.occ.has(h) {
 		s.touchSl(h)
 	}
+	if k.gen != nil && k.gen.anyUnattach {
+		// gorge attachedKindIllegal's Unattached (CR 704.5p, attachmentSBAs):
+		// an attached creature or non-attachment detaches and stays, the
+		// publish carrying the bearer
+		s.fireUnattached(k, sl, h)
+	}
 	p.attached = NoSlot
 	s.touchSl(sl)
 	if k.gen != nil && k.gen.anyAegis {
