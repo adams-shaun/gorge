@@ -31,7 +31,8 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 		}
 	}
 	if k.gen != nil && k.gen.manaTaps {
-		s.fireTaps(k, sl)
+		p := &s.perms[sl]
+		s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(p.ctrl)|mtTapBit) // the tap pays a mana ability: TapsForMana lines fire too
 	}
 	if k.gen != nil && k.gen.anyManaRider {
 		s.manaRider(k, sl) // a counter rider resolves with the mana (mana_rider.go)

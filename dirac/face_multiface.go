@@ -20,7 +20,7 @@ func (s *State) offerFaceLand(k *prep, d *Decision, o Obj) {
 		return
 	}
 	if k.cards[cd.Faces[1]].land {
-		d.add(MakeAction(AkPlayLand, uint8(o), 0, 1))
+		d.add(MakeAction(AkPlayLand, TCode(o), 0, 1))
 	}
 }
 

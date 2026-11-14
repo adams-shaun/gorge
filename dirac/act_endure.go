@@ -50,8 +50,8 @@ func (s *State) askOptionsEndure(k *prep, d *Decision) bool {
 	}
 	o := s.objRefObj(s.prog(k)[s.res.pc].Obj)
 	d.Sub = ChGenEndure
-	d.add(MakeAction(AkChoose, uint8(o), 0, 0))
-	d.add(MakeAction(AkChoose, uint8(o), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(o), 0, 1))
 	return true
 }
 

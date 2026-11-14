@@ -49,7 +49,7 @@ func TestExplore(t *testing.T) {
 		}
 		var d Decision
 		s.resolveOptionsGen(sc.k, &d)
-		if d.Sub != ChGenExplore || d.N != 2 || d.Options[0].Source() != uint8(nl) || d.Options[0].Mode() != 0 {
+		if d.Sub != ChGenExplore || d.N != 2 || d.Options[0].Source() != TCode(uint8(nl)) || d.Options[0].Mode() != 0 {
 			t.Fatalf("explore ask: sub %d with %d options", d.Sub, d.N)
 		}
 		before := s.perms[sc.slot(lions)].ctrLow(int(kop.CtrP1P1))

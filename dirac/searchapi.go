@@ -17,7 +17,7 @@ func (s *State) notObj(o Obj) (e *stackEntry, ok bool) {
 	if int(o) < MaxObj {
 		return nil, false
 	}
-	if i, is := StackTargetIndex(uint8(o)); is && i < int(s.sp) {
+	if i, is := StackTargetIndex(TCode(o)); is && i < int(s.sp) {
 		return &s.stack[i], true
 	}
 	return nil, true
@@ -128,7 +128,7 @@ func (s *State) Hidden(o Obj, seat uint8) bool {
 // hand; you choose a nonland card"). A search world keeps such a hand as
 // it is: its cards are the choice's options.
 func (s *State) HandRevealed(p, seat uint8) bool {
-	return p != seat && s.ctl == ctlResolve && s.res.ask == raDiscard && s.res.chosen == p && s.res.askP == seat
+	return p != seat && s.ctl == ctlResolve && s.res.ask == raDiscard && s.res.chosen == objWord(p) && s.res.askP == seat
 }
 
 // DealLibrary deals pool (len = p's library size) to player p's library in

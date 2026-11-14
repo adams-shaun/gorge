@@ -36,7 +36,7 @@ func TestHybridFaceCountsRestrictedSource(t *testing.T) {
 		t.Fatal("Moonrise Cleric is not offered")
 	}
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			sc.s.Apply(a)
 			break
 		}

@@ -51,7 +51,7 @@ func isBasicLandChoose(in *kop.Instr) bool {
 //go:noinline
 func chooseBasicLandOptions(d *Decision) {
 	for _, h := range basicLandLabelH {
-		d.add(MakeAction(AkChoose, 0, uint8(h>>8), uint8(h)))
+		d.add(MakeAction(AkChoose, 0, TCode(h>>8), uint8(h)))
 	}
 }
 

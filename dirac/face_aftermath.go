@@ -51,7 +51,7 @@ func (s *State) offerAftermathCasts(k *prep, d *Decision, p uint8, sorc bool) {
 			continue
 		}
 		if s.faceCastable(k, p, o, k.t.Cards[c].Faces[1], sorc) {
-			d.add(MakeAction(AkCast, uint8(o), 1, castFace))
+			d.add(MakeAction(AkCast, TCode(o), 1, castFace))
 		}
 	}
 }

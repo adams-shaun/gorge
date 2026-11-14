@@ -36,7 +36,7 @@ func (s *State) loss6Rec(k *prep, sl Slot, ts uint16, lost bool) (uint16, bool) 
 func overridesUncreature(t *kop.Table) bool {
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
-		if o.HasTypes || (o.AddTypes|o.SetTypes)&kop.TCreature != 0 {
+		if o.HasTypes || o.RemoveTypes&kop.TCreature != 0 || (o.AddTypes|o.SetTypes)&kop.TCreature != 0 {
 			return true
 		}
 	}

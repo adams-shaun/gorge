@@ -35,9 +35,9 @@ func (s *State) supportOptions(k *prep, in *kop.Instr, d *Decision) {
 	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
-			o := uint8(s.perms[sl].obj)
-			if s.supportOK(k, in, sl) && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+			o := s.perms[sl].obj
+			if s.supportOK(k, in, sl) && !s.prolifPicked(TCode(o)) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}
