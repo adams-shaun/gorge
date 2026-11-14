@@ -400,7 +400,8 @@ func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma 
 
 // addPotentialChosenColour adds a Produced$ Chosen ability's exact
 // production -- its source's as-enters colour (Heraldic Banner's "Add one
-// mana of the chosen color") -- and reports whether it did. The plain
+// mana of the chosen color"; a gate land's "Combo U Chosen" adds the listed
+// colours beside it) -- and reports whether it did. The plain
 // PotentialMana over-bound prices Chosen unbounded in every colour; a
 // payment's bound (potentialManaFor) must not, or a triggered "you may pay
 // {R}" is offered to a seat whose only untapped source makes {W} (CR
@@ -408,10 +409,13 @@ func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma 
 // indeterminate amount, or a source with no chosen colour.
 func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
-	bare := mp.Produced == "Chosen" || mp.Produced == "ChosenColor" // Produced is already trimmed
-	listed, combo := potentialComboChosen(mp.Produced)
-	if !bare && !combo {
-		return false
+	// the colours a "Combo U Chosen" gate land lists beside the chosen one
+	fixed := ""
+	if mp.Produced != "Chosen" && mp.Produced != "ChosenColor" { // Produced is already trimmed
+		var ok bool
+		if fixed, ok = comboChosenColours(mp.Produced); !ok {
+			return false
+		}
 	}
 	o := e.G.Obj(id)
 	if o == nil || len(o.ChosenColor) != 1 {
@@ -425,49 +429,35 @@ func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *card
 	if indeterminate {
 		return false
 	}
-	// A "Combo R Chosen" source (Thriving lands, the Gates) makes one of its
-	// listed colours or the chosen one: bound each once, like a dual.
-	listed[i] = true
-	for c, ok := range listed {
-		if ok {
-			m[c] = saturatingPotentialMana(m[c], amt)
+	m[i] = saturatingPotentialMana(m[i], amt)
+	// a Combo gate land makes one mana of any listed colour or the chosen one:
+	// each colour is bounded as a dual's face is (the kernel's exact mask)
+	for k := 0; k < len(fixed); k++ {
+		if j := state.ManaIndex(fixed[k]); fixed[k] != ' ' && j != i {
+			m[j] = saturatingPotentialMana(m[j], amt)
 		}
 	}
 	return true
 }
 
-// potentialComboChosen parses "Combo <colours> Chosen": a Combo list of
-// single WUBRG colours that also names the chosen colour. It returns the
-// listed colours and whether produced has that shape; any other word in the
-// list (Any, ColorIdentity, C) is not priced exactly here. It scans by hand:
-// the strings.* census (internal/codeshape) counts every call.
-func potentialComboChosen(produced string) (listed [len(state.Mana{})]bool, ok bool) {
-	const prefix = "Combo"
-	if len(produced) <= len(prefix) || produced[:len(prefix)] != prefix {
-		return listed, false
+// comboChosenColours is the colours between "Combo " and " Chosen" in a gate
+// land's production ("Combo U Chosen": "U"; "Combo Chosen": ""), each a single
+// colour letter set apart by spaces; false for any other shape.
+func comboChosenColours(produced string) (string, bool) {
+	if produced == "Combo Chosen" {
+		return "", true
 	}
-	chosen := false
-	for rest := produced[len(prefix):]; rest != ""; {
-		for rest != "" && rest[0] == ' ' {
-			rest = rest[1:]
-		}
-		n := 0
-		for n < len(rest) && rest[n] != ' ' {
-			n++
-		}
-		w := rest[:n]
-		rest = rest[n:]
-		switch {
-		case w == "":
-		case w == "Chosen" || w == "ChosenColor":
-			chosen = true
-		case len(w) == 1 && state.ManaIndex(w[0]) != state.MC:
-			listed[state.ManaIndex(w[0])] = true
-		default:
-			return listed, false
+	n := len(produced)
+	if n < len("Combo X Chosen") || produced[:6] != "Combo " || produced[n-7:] != " Chosen" {
+		return "", false
+	}
+	mid := produced[6 : n-7]
+	for k := 0; k < len(mid); k++ {
+		if k%2 == 1 && mid[k] != ' ' || k%2 == 0 && state.ManaIndex(mid[k]) == state.MC {
+			return "", false
 		}
 	}
-	return listed, chosen
+	return mid, len(mid)%2 == 1
 }
 
 // addPotentialIdentityColours adds a commander-identity ability's exact
