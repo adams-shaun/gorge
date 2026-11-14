@@ -55,7 +55,7 @@ func (s *State) discardChain(k *prep, in *kop.Instr, p uint8) bool {
 				s.res.peekI = 0
 				s.res.askP = p
 				s.res.left = uint8(n)
-				s.res.chosen = p
+				s.res.chosen = objWord(p)
 				return false
 			}
 			if s.repPending() {
@@ -89,7 +89,7 @@ func tableHasOp(t *kop.Table, op kop.Op) bool {
 }
 
 // heldBlock is the first empty held block.
-func (s *State) heldBlock() []uint8 {
+func (s *State) heldBlock() []Obj {
 	h := s.cold.discHeld
 	for i := 0; i+discHeldBlock <= len(h); i += discHeldBlock {
 		if h[i] == 0 {
@@ -102,17 +102,15 @@ func (s *State) heldBlock() []uint8 {
 // holdDiscard keeps the answering player's picks until the last player has chosen.
 func (s *State) holdDiscard(picks []Obj) {
 	b := s.heldBlock()
-	b[0] = uint8(len(picks))
-	for i, o := range picks {
-		b[1+i] = uint8(o)
-	}
+	b[0] = Obj(len(picks))
+	copy(b[1:], picks)
 }
 
 // holdWhole keeps player p's whole hand until the last player has chosen.
 func (s *State) holdWhole(p uint8) {
 	b := s.heldBlock()
 	b[0] = discHeldWhole
-	b[1] = p
+	b[1] = Obj(p) // code-ok: a seat (the whole hand's player)
 }
 
 // flushHeldDiscard moves every held discard, first player first.
@@ -128,9 +126,7 @@ func (s *State) flushHeldDiscard(k *prep) {
 			continue
 		}
 		var picks [maxDiscHeld]Obj
-		for j, o := range h[i+1 : i+1+int(n)] {
-			picks[j] = Obj(o)
-		}
+		copy(picks[:], h[i+1:i+1+int(n)])
 		s.discardPicks(k, picks[:n], 0)
 	}
 }

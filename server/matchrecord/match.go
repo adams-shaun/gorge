@@ -33,7 +33,10 @@ type Match struct {
 	Format       string  `json:"format,omitempty"`
 	StartingLife int32   `json:"starting_life,omitempty"`
 	Commanders   [][]int `json:"commanders,omitempty"`
-	Mulligans    int     `json:"mulligans,omitempty"`
+	// DraftPartners is the Commander-draft pairing rule
+	// (rules.Config.DraftPartners).
+	DraftPartners bool `json:"draft_partners,omitempty"`
+	Mulligans     int  `json:"mulligans,omitempty"`
 	// StartChooser is the seat posed CR 103.1's starting-player choice in
 	// place of the toss winner; nil is the toss.
 	StartChooser *int `json:"start_chooser,omitempty"`
@@ -75,6 +78,7 @@ func MatchOf(cfg rules.Config) (Match, error) {
 		Mulligans:      cfg.Mulligans,
 		NameUniverse:   cfg.NameUniverse != nil,
 		PaidManaCensus: !cfg.DisablePaidManaCensus,
+		DraftPartners:  cfg.DraftPartners,
 	}
 	if cfg.Format == rules.FormatCommander {
 		m.Format = formatCommander
@@ -140,16 +144,17 @@ func (m Match) Config(reg *cards.Registry, tokens map[string]*cards.Card) (rules
 		return rules.Config{}, err
 	}
 	cfg := rules.Config{
-		Seed:         m.Seed,
-		Names:        m.Names,
-		PlayerNames:  m.PlayerNames,
-		Decks:        decks,
-		Sideboards:   sideboards,
-		PlanarDecks:  planar,
-		Mulligans:    m.Mulligans,
-		Tokens:       tokens,
-		StartingLife: m.StartingLife,
-		Commanders:   m.Commanders,
+		Seed:          m.Seed,
+		Names:         m.Names,
+		PlayerNames:   m.PlayerNames,
+		Decks:         decks,
+		Sideboards:    sideboards,
+		PlanarDecks:   planar,
+		Mulligans:     m.Mulligans,
+		Tokens:        tokens,
+		StartingLife:  m.StartingLife,
+		Commanders:    m.Commanders,
+		DraftPartners: m.DraftPartners,
 	}
 	switch m.Format {
 	case "", "constructed":

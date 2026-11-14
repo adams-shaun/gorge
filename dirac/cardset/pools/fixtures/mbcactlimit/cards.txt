@@ -1,0 +1,8 @@
+# the MBC ActivationLimit$ N pool: Fire-Belly Changeling ("activate no more
+# than twice each turn"), Sewer Rats and Vampire Bats (three and two times)
+# beside basics (dirac/oracle/mbc_api_params8_lowers_test.go)
+Fire-Belly Changeling
+Sewer Rats
+Vampire Bats
+Mountain
+Swamp

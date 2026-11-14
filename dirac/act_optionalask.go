@@ -18,7 +18,7 @@ import (
 func (s *State) optDiscard(k *prep, in *kop.Instr, p uint8, n int) bool {
 	pl := &s.pl[p]
 	if in.C&kop.OptAll != 0 { // Mode$ Hand: the whole-hand may-election
-		s.res.ask, s.res.askP, s.res.chosen = raOptDiscMay, p, p
+		s.res.ask, s.res.askP, s.res.chosen = raOptDiscMay, p, objWord(p)
 		s.ctl = ctlResolve
 		return false
 	}
@@ -32,7 +32,7 @@ func (s *State) optDiscard(k *prep, in *kop.Instr, p uint8, n int) bool {
 	if n < 1 {
 		return true // discardBounds keeps a resolved zero at zero: askMax == 0 skips the ask
 	}
-	s.res.ask, s.res.askP, s.res.chosen = raOptDiscMay, p, p // the may-election
+	s.res.ask, s.res.askP, s.res.chosen = raOptDiscMay, p, objWord(p) // the may-election
 	s.ctl = ctlResolve
 	return false
 }
@@ -105,7 +105,7 @@ func (s *State) optDiscardGen(k *prep, in *kop.Instr, e *stackEntry) (ok, done b
 		return true, true // discardBounds keeps a resolved zero at zero: askMax == 0 skips the ask
 	}
 	if in.C&kop.OptAny == 0 && in.C&kop.ChooseOpp == 0 {
-		s.res.ask, s.res.askP, s.res.chosen = raOptDiscMay, p, p // the may-election
+		s.res.ask, s.res.askP, s.res.chosen = raOptDiscMay, p, objWord(p) // the may-election
 		s.ctl = ctlResolve
 		return false, true
 	}
@@ -127,7 +127,7 @@ func (s *State) optDiscardGen(k *prep, in *kop.Instr, e *stackEntry) (ok, done b
 func (s *State) optDiscardAsk(askP, chosen uint8, maxv int) {
 	s.res.ask, s.res.peekI, s.res.peekN = raOptDisc, 0, 0
 	s.res.askP = askP
-	s.res.chosen = chosen
+	s.res.chosen = objWord(chosen)
 	s.res.left = uint8(min(maxv, 255))
 	s.ctl = ctlResolve
 }
@@ -138,7 +138,7 @@ func (s *State) optDiscardAsk(askP, chosen uint8, maxv int) {
 func (s *State) optDiscardAccept(k *prep) bool {
 	r := &s.res
 	in := &s.prog(k)[r.pc]
-	p := r.chosen
+	p := uint8(r.chosen) // a seat
 	pl := &s.pl[p]
 	if in.C&kop.OptAll != 0 { // Mode$ Hand: the whole hand
 		for pl.handN > 0 {

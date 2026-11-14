@@ -40,7 +40,7 @@ func oppScen(t *testing.T, gone int) (*rules.Engine, *scen, map[string]CardID) {
 		s.pl[gone].lost = true
 	}
 	if len(s.cold.discHeld) == 0 {
-		s.cold.discHeld = make([]uint8, discHeldLen)
+		s.cold.discHeld = make([]Obj, discHeldLen)
 	}
 	return e, sc, id
 }
@@ -234,7 +234,7 @@ func TestTargetedExilerAndMostCreatures(t *testing.T) {
 	_, sc, id := oppScen(t, -1)
 	s, k := sc.s, sc.k
 	s.res.e.ctrl = 0
-	s.res.e.tgt[0] = PlayerCode(2)
+	s.res.e.tgt[0] = TCode(PlayerCode(2))
 	if got := s.targetedExiler(0); got != 2 {
 		t.Fatalf("exiler %d, want the targeted seat 2", got)
 	}

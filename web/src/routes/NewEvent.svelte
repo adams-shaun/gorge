@@ -11,6 +11,8 @@
     FORMATS,
     PICK_TIMERS,
     RATINGS_17LANDS,
+    commanderLabel,
+    commanderSets,
     createRequest,
     defaultBestOf,
     defaultRebuild,
@@ -20,6 +22,7 @@
     inviteURL,
     maskToken,
     sealedFormat,
+    seriesFormat,
     setNote,
     timerOffered,
     type EventFormat,
@@ -35,7 +38,11 @@
    * a booster draft, a sealed pool, or a prerelease pool plus one promo —
    * and each format resets Matches and Deck changes to its server default.
    * A sealed format has no picks, so it hides the pick timer and names the
-   * persona a builder. Everything offered is the server's: the sets
+   * persona a builder. A Commander draft is offered only when the server
+   * reports a set it hosts one for (EventSetInfo.commander): it narrows the
+   * set list to those sets, and drops Matches and Deck changes (its rounds
+   * are free-for-all pod games) and the bot drafter choice (the server seats
+   * its Commander-draft drafter). Everything offered is the server's: the sets
    * (GET /api/events/sets), the pickbot personas (GET /api/events/personas)
    * and the bot game policies (/api/bot-policies, which never lists a
    * policy that reads opponents' decklists).
@@ -70,7 +77,13 @@
   let copied = $state<number | null>(null);
   let revealed = $state<number[]>([]);
 
-  const offered = $derived(eventPolicies(policies));
+  const offered = $derived(eventPolicies(policies, format));
+  const cmdSets = $derived(commanderSets(sets));
+  const commander = $derived(format === 'commander');
+  const series = $derived(seriesFormat(format));
+  // A Commander draft drafts only the sets the server hosts one for.
+  const shownSets = $derived(commander ? cmdSets : sets);
+  const modes = $derived(cmdSets.length > 0 ? [...FORMATS, { format: 'commander' as const, label: commanderLabel(sets) }] : FORMATS);
   const chosen = $derived(sets?.find((s) => s.code === set) ?? null);
   const defaultLabel = $derived(policies.find((p) => p.name === defaultPolicy)?.label ?? defaultPolicy);
   const humans = $derived(humanCount(seats));
@@ -87,10 +100,13 @@
         defaultPolicy = l.default;
       })
       .catch(() => (policies = []));
+    // The lobby's Commander-draft button arrives with ?mode=commander.
+    const wantCommander = typeof location !== 'undefined' && new URLSearchParams(location.search).get('mode') === 'commander';
     listEventSets()
       .then((l) => {
         sets = l ?? [];
         if (!sets.some((s) => s.code === set)) set = sets[0]?.code ?? '';
+        if (wantCommander && commanderSets(sets).length > 0) chooseFormat('commander');
       })
       .catch((e) => {
         sets = [];
@@ -115,6 +131,10 @@
     format = f;
     bestOf = defaultBestOf(f);
     rebuild = defaultRebuild(f);
+    if (f === 'commander' && !cmdSets.some((s) => s.code === set)) set = cmdSets[0]?.code ?? '';
+    // A bot's game policy must play the new format's games.
+    const plays = new Set(eventPolicies(policies, f).map((p) => p.name));
+    for (const seat of seats) if (seat.policy && !plays.has(seat.policy)) seat.policy = '';
   }
 
   function seatTitle(i: number): string {
@@ -223,7 +243,7 @@
       <div class="field">
         <span class="ev-h5">Mode</span>
         <div class="seg" role="group" aria-label="Mode">
-          {#each FORMATS as f (f.format)}
+          {#each modes as f (f.format)}
             <button
               type="button"
               class:on={format === f.format}
@@ -237,6 +257,12 @@
           <p class="dim small">Six Play Boosters per player, opened straight into your pool. Build a 40-card deck with any number of basic lands.</p>
         {:else if format === 'prerelease'}
           <p class="dim small">Six Play Boosters and one rare or mythic promo per player, opened straight into your pool. Build a 40-card deck with any number of basic lands.</p>
+        {:else if commander}
+          <p class="dim small" data-testid="commander-note">
+            Draft {chosen && chosen.pack_size > 0 ? `${chosen.pack_size}-card packs` : 'packs'}, taking more than one card from each pack before passing it.
+            Build a deck around one drafted commander, or two that can partner, with every card inside their colour identity and free basic lands.
+            The whole pod then plays one Commander free-for-all.
+          </p>
         {/if}
       </div>
       <div class="field">
@@ -253,6 +279,8 @@
                 <span class="data dim humannote">
                   {seatTitle(i) === 'You' ? 'human · you type your name next' : 'human · gets an invite link once the pod opens'}
                 </span>
+              {:else if commander}
+                <span class="data dim humannote">bot · drafts and builds as the server's Commander drafter</span>
               {:else}
                 <span class="persona">
                   <select aria-label={`Seat ${i + 1} ${sealed ? 'builds' : 'drafts'} as`} bind:value={seat.drafter} data-testid={`seat-${i + 1}-drafter`}>
@@ -263,6 +291,8 @@
                   </select>
                   <span class="data dim">Builder: {seat.drafter || DEFAULT_PERSONA}</span>
                 </span>
+              {/if}
+              {#if seat.kind === 'bot'}
                 <label class="plays">
                   <span class="sr">Seat {i + 1} plays</span>
                   <select aria-label={`Seat ${i + 1} plays`} bind:value={seat.policy} data-testid={`seat-${i + 1}-policy`}>
@@ -278,6 +308,7 @@
         </div>
         <p class="dim small">Only bots that cannot see your decklist are offered. Every human seat after yours gets its own invite link.</p>
       </div>
+      {#if series}
       <div class="field">
         <span class="ev-h5">Matches</span>
         <div class="seg" role="group" aria-label="Matches">
@@ -298,6 +329,7 @@
           Between rounds, keep your deck or rebuild it from your pool before each match (Magic Tournament Rules 7.3). Bots keep theirs.
         </p>
       </div>
+      {/if}
       {#if !sealed}
         <div class="field">
           <span class="ev-h5">Pick timer</span>
@@ -327,7 +359,7 @@
         {#if sets === null}
           <p class="dim small">Loading the sets…</p>
         {:else}
-          {#each sets as s (s.code)}
+          {#each shownSets ?? [] as s (s.code)}
             <label class="setopt" class:on={set === s.code}>
               <input type="radio" name="event-set" value={s.code} bind:group={set} />
               <span class="code data">{s.code}</span>

@@ -118,7 +118,7 @@ func (s *State) offerHarmonizeCasts(k *prep, d *Decision, p uint8, sorc bool, av
 			// pool pays the credited cost (the offspring cast's rule)
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, 2))
+		d.add(MakeAction(AkCast, TCode(o), 0, 2))
 	}
 }
 
@@ -148,7 +148,7 @@ func (s *State) harmonizeOptions(k *prep, d *Decision) bool {
 			s.capFull(StallConvoke)
 			break
 		}
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 7))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 7))
 	}
 	if d.N == 0 {
 		return false

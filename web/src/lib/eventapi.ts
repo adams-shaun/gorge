@@ -13,6 +13,7 @@ import type {
   CreateEventResponse,
   DeckCheck,
   DeckRequest,
+  DraftAdvice,
   DraftPack,
   ErrorBody,
   EventLog,
@@ -68,6 +69,8 @@ export interface EventApi {
   /** sideboard locks the seat's deck for its series' next game: keep last game's, or a new list. */
   sideboard(id: string, token: string, req: SideboardRequest): Promise<EventState>;
   log(id: string, token: string | null): Promise<EventLog>;
+  /** advice is the seat's own drafter's suggestion for the pack at its queue head; a 409 means this event's drafter gives none. */
+  advice?(id: string, token: string): Promise<DraftAdvice>;
   subscribe(id: string, token: string | null, session: string): Promise<void>;
 }
 
@@ -82,6 +85,7 @@ export const eventApi: EventApi = {
   ready: (id, token, rev) => call<EventState>('POST', eventURL(id, '/ready'), token, { rev }),
   sideboard: (id, token, req) => call<EventState>('POST', eventURL(id, '/sideboard'), token, req),
   log: (id, token) => call<EventLog>('GET', eventURL(id, '/log'), token),
+  advice: (id, token) => call<DraftAdvice>('GET', eventURL(id, '/advice'), token),
   subscribe: (id, token, session) => call<void>('POST', eventURL(id, '/subscribe'), token, { session }),
 };
 

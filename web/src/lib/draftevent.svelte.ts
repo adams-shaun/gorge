@@ -8,7 +8,7 @@ export const PHASES = ['LOBBY', 'DRAFT', 'BUILD', 'ROUND1', 'ROUND2', 'ROUND3', 
 export type Phase = (typeof PHASES)[number];
 
 /** isRound reports a ROUNDn phase. */
-export const isRound = (phase: string | undefined): boolean => !!phase && /^ROUND\d$/.test(phase);
+export const isRound = (phase: string | undefined): boolean => !!phase && /^ROUND\d+$/.test(phase);
 
 /**
  * EventClient is one event page's live state: the viewer's EventState, its

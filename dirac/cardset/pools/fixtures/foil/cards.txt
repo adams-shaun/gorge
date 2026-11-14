@@ -1,0 +1,11 @@
+# Foil's discard-an-Island-card-and-another-card alternative cost: Foil,
+# Islands to pitch, other cards to pitch and cast, spells to counter, and
+# the lands that pay them, for the oracle's constructed lockstep
+# (dirac/oracle/foil_test.go)
+Foil
+Counterspell
+Unsummon
+Grizzly Bears
+Shock
+Island
+Mountain

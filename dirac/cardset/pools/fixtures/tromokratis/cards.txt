@@ -1,0 +1,14 @@
+# the MinMaxBlocker Min$ All pool: Tromokratis ("can't be blocked unless all
+# creatures defending player controls block it", kop.MinBlockersAll) against
+# small creatures, some tapped from their own attacks, and burn that thins a
+# board, for the constructed lockstep in
+# dirac/oracle/tromokratis_minall_test.go
+Forest
+Grizzly Bears
+Island
+Llanowar Elves
+Mountain
+Plains
+Savannah Lions
+Shock
+Tromokratis

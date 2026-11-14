@@ -498,15 +498,54 @@ func suppressesOwnLibrary(ch Chars) bool {
 // empty projection like every other derived fact.
 func (p *projector) unorderedLibrary(buf []CardView, ids []state.ObjID, abilityPlayer state.PlayerID, alsoVisible *seatSet) []CardView {
 	cvs := p.cardViews(buf, ids, false, abilityPlayer, false, alsoVisible)
-	// (Name, ID) is a total order over distinct objects, and one object
-	// projects one CardView, so every correct sort leaves the same list.
-	slices.SortFunc(cvs, func(a, b CardView) int {
-		if c := strings.Compare(a.Name, b.Name); c != 0 {
+	sortByNameID(cvs, p.perm)
+	return cvs
+}
+
+// sortByNameID orders cvs by (Name, ID). (Name, ID) is a total order over
+// distinct objects, and one object projects one CardView, so every correct
+// sort leaves the same list. A CardView is a large struct, and a library is
+// the longest list a projection builds, so the sort runs over int32 indices
+// (perm, a reused scratch) and then moves each struct once, following the
+// permutation's cycles, instead of swapping structs O(n log n) times.
+func sortByNameID(cvs []CardView, perm *[]int32) {
+	n := len(cvs)
+	if n < 2 {
+		return
+	}
+	if cap(*perm) < n {
+		*perm = make([]int32, n)
+	}
+	ix := (*perm)[:n]
+	for i := range ix {
+		ix[i] = int32(i)
+	}
+	slices.SortFunc(ix, func(a, b int32) int {
+		if c := strings.Compare(cvs[a].Name, cvs[b].Name); c != 0 {
 			return c
 		}
-		return cmp.Compare(a.ID, b.ID)
+		return cmp.Compare(cvs[a].ID, cvs[b].ID)
 	})
-	return cvs
+	// Position k takes the struct at ix[k]. Each cycle is walked once; a
+	// visited position is marked by ix[k] = k, which a cycle of length one
+	// already is.
+	for start := range ix {
+		if int(ix[start]) == start {
+			continue
+		}
+		tmp := cvs[start]
+		k := start
+		for {
+			src := int(ix[k])
+			ix[k] = int32(k)
+			if src == start {
+				cvs[k] = tmp
+				break
+			}
+			cvs[k] = cvs[src]
+			k = src
+		}
+	}
 }
 
 // projectMode is the rule set one projection applies (ProjectForControlledInto

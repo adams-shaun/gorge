@@ -82,12 +82,12 @@ func TestFaceDownStackSpellHidesPrintedCharacteristics(t *testing.T) {
 		}
 	}
 	spec := kop.TargetSpec{Kind: kop.TgtSpell, Filter: named}
-	if sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, uint8(o)) {
+	if sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, TCode(o)) {
 		t.Error("TgtSpell accepted a face-down spell by its printed name")
 	}
 	sc.s.stack[0].mode = 0 // face up: the printed name is visible again
 	sc.s.objs[o].slot = NoSlot
-	if !sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, uint8(o)) {
+	if !sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, TCode(o)) {
 		t.Error("TgtSpell rejected a face-up spell by its printed name")
 	}
 }
@@ -171,7 +171,7 @@ func newKfacedownPoolScen(t *testing.T) (*scen, map[string]CardID) {
 func kfacedownWardTrigger(t *testing.T, s *State, src, target Obj) {
 	t.Helper()
 	e := stackEntry{kind: seSpell, obj: src, ctrl: 1, nt: 1}
-	e.tgt[0] = uint8(target)
+	e.tgt[0] = TCode(target)
 	s.checkWard(s.k(), &e)
 }
 

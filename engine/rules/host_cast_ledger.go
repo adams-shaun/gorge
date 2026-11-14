@@ -652,7 +652,8 @@ func castsThisTurnMatchingBy(log []events.Event, p state.PlayerID, exclude state
 // same name for Count$TotalCommanderCastFromCommandZone: how many times
 // player p has cast one of THEIR OWN commanders from the command zone this
 // game. It walks the whole log for PutOnStack events whose caster is p,
-// origin is the command zone and object is one of p's commanders — the
+// origin is the command zone and object is one of p's commanders, less the
+// ones abortCast reversed back to the command zone — the
 // exact criteria recordCmdCast (engine/rules/cast.go) applies when it maintains
 // the parallel CmdCasts slice, and commitCast's PutOnStack emit is the ONE
 // site that can produce such an event, so this head and the CR 903.8 tax
@@ -666,12 +667,19 @@ func (e *Engine) CommanderCastsFromCommandZone(p state.PlayerID) int32 {
 	}
 	var n int32
 	for _, ev := range e.L.Events {
-		if ev.Kind != events.PutOnStack || ev.Player != p || ev.From != state.ZCommand {
+		d := int32(1)
+		switch {
+		case ev.Kind == events.PutOnStack && ev.Player == p && ev.From == state.ZCommand:
+		case ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To == state.ZCommand && ev.Text == "reversed":
+			// abortCast's reversal of a pushed command-zone cast (CR 733.1),
+			// which uncounts it from CmdCasts too
+			d = -1
+		default:
 			continue
 		}
 		for _, cid := range e.G.Players[p].Commanders {
 			if cid == ev.Obj {
-				n++
+				n += d
 				break
 			}
 		}

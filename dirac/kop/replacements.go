@@ -1,7 +1,8 @@
 package kop
 
 // ReplDamagePlus recipient bits (Repl.C), relative to the replacement's
-// controller; ReplDmgNonCombat restricts it to noncombat damage.
+// controller; ReplDmgNonCombat restricts it to noncombat damage, ReplDmgCombat
+// to combat damage.
 const (
 	ReplDmgOppPlayer = 1 << iota // an opponent
 	ReplDmgOppPerm               // a permanent an opponent controls
@@ -12,6 +13,7 @@ const (
 	ReplDmgSrcInPlay             // ReplDoubleDamageToOpps: the source must be a permanent (ValidSource$ inZoneBattlefield)
 	ReplDmgCtrHost               // ReplDamagePlus: Repl.A is a counter kind; the amount added is the host's count of that kind at application time (Fated Firepower)
 	ReplDmgPowHost               // ReplDamagePlus: the amount added is the host's power at application time (Repl.A unused; Hawkeye, Young Avenger)
+	ReplDmgCombat                // ReplDoubleDamageToOpps: combat damage only (IsCombat$ True; Charging Tuskodon)
 )
 
 // ReplKind is a replacement-lite effect's kind (the kernel's narrow form of

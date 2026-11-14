@@ -30,9 +30,9 @@ func (s *State) rmctrOptions(k *prep, in *kop.Instr, d *Decision) int {
 	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
-			o := uint8(s.perms[sl].obj)
-			if s.matchPerm(k, in.F, sl, s.res.e.ctrl, src) && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+			o := s.perms[sl].obj
+			if s.matchPerm(k, in.F, sl, s.res.e.ctrl, src) && !s.prolifPicked(TCode(o)) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 				n++
 			}
 		}

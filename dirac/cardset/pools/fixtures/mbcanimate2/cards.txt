@@ -1,0 +1,18 @@
+# the MBC animate-2 family: an Animate staticAbilities$ grant whose single
+# body is one Mode$ Continuous self P/T set (Myth Realized), one whose body is
+# Mode$ CombatDamageToughness (Streetwise Negotiator's Backup rider), and an
+# override static whose AddType$ adds a basic land type beside the Land card
+# type (Ashaya, Soul of the Wild; the same shape as Life and Limb) -- beside
+# creatures to attack, block and tap for mana
+# (dirac/oracle/mbcanimate2_test.go)
+Myth Realized
+Pacifism
+Streetwise Negotiator
+Savannah Lions
+Ashaya, Soul of the Wild
+Craw Wurm
+Grizzly Bears
+Hill Giant
+Plains
+Forest
+Mountain

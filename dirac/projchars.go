@@ -70,12 +70,15 @@ func (s *State) ProjectChars(p *Projection) {
 			c.Kw |= s.colProtKw(k, sl) // static_colourprot.go
 		}
 		if k.gen != nil {
+			// one batch query for the slot (subsGen), not one hasSubGen per
+			// subtype: the per-slot reduction is i-independent
+			subs, subsAll := s.subsGen(k, sl)
 			for i := range k.t.Subtypes {
-				if i < kop.MaxSubtypes && s.hasSubGen(k, sl, uint8(i)) {
+				if i < kop.MaxSubtypes && subs.Has(i) {
 					c.Subs = c.Subs.With(i)
 				}
 			}
-			c.AllSub = s.hasSubGen(k, sl, subOutside)
+			c.AllSub = subsAll
 		} else {
 			c.Subs = k.t.Cards[s.cardAt(sl)].Subtypes
 		}

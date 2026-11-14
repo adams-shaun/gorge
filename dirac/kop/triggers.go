@@ -71,6 +71,37 @@ const (
 	// Tf5NotFirstCardInDrawStep: FirstCardInDrawStep$ False -- the draw is
 	// any card except that first one (Orcish Bowmasters, Xyris, Leela).
 	Tf5NotFirstCardInDrawStep TrigFlags5 = 1 << 1
+	// Tf5DmgAttackedYouLastTurn: a combat DamageDone line's damaged player
+	// declared an attack on the listener's controller (that player, a
+	// planeswalker they control or a battle they protect) during the damaged
+	// player's most recent completed turn (ValidTarget$
+	// Player.attackedYouTheirLastTurn, O-Kagachi, Vengeful Kami; gorge
+	// state.Player.AttackedSeatsLastTurn; kernel trig_atklastturn.go). The
+	// Drawn bits above are never on a DamageDone line.
+	Tf5DmgAttackedYouLastTurn TrigFlags5 = 1 << 3
+	// Tf5OppCause: Discarded with TfSelf (Zone graveyard): ValidCause$
+	// SpellAbility.OppCtrl -- the discard was caused by a resolving spell or
+	// ability an opponent of the discarded card's owner controls (gorge
+	// trigmatch.DiscardCauseAdmits: a cost discard has no cause). Orvar, the
+	// All-Form; Guerrilla Tactics.
+	Tf5OppCause TrigFlags5 = 1 << 2
+	// Tf5TapsForMana: a TrigTaps line lowered from Mode$ TapsForMana (a
+	// non-Static$ trigger, Price of Glory): it fires only for a permanent
+	// tapped as the cost of a mana ability (gorge trigmatch tapsMatches'
+	// forMana flag), never for an attack, cost or effect tap. Bit 4.
+	Tf5TapsForMana TrigFlags5 = 1 << 4
+	// Tf5TapperNonActive: with Tf5TapsForMana, Activator$ Player.NonActive --
+	// the tapping player is not the turn's active player (gorge
+	// effects.MatchesPlayerSpec over TapActor). Bit 5.
+	Tf5TapperNonActive TrigFlags5 = 1 << 5
+	// Tf5OptSrcCtrl: with TfOptional, a DamageDone line whose "may"
+	// belongs to the controller of the damage source (OptionalDecider$
+	// TriggeredSourceController): the CR 603.5 resolution ask goes to that
+	// seat, the controller of the entry's trigger object (the damage
+	// source, read live; the owner once it left), not to the listener's
+	// controller (gorge deciderFromSpecTriggeredSourceController). Edric,
+	// Spymaster of Trest.
+	Tf5OptSrcCtrl TrigFlags5 = 1 << 6
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens
@@ -128,6 +159,8 @@ const (
 	TrigFacesDilemma                // a player (Whose) chooses one or more modes for a spell or ability (gorge Mode$ FacesDilemma, trigmatch facesDilemmaMatches on the ModeChosen marker)
 	TrigEvolved                     // this creature evolves (CR 702.100b; gorge Mode$ Evolved, ValidCard$ Card.Self, trigmatch evolvedMatches on the events.Evolved marker its evolve ability emits once the +1/+1 counter lands): no slot subscription, fired as the evolve trigger finishes resolving (kw_evolve.go)
 	TrigBecomeMonarch               // a player (Whose) becomes the monarch (CR 725.3; gorge Mode$ BecomeMonarch, trigmatch BecomeMonarchMatches on events.MonarchChange; N TrigNMonarchBeganTurn: BeginTurn$ You); no slot subscription: the battlefield is scanned (act_monarch.go)
+	TrigExploited                   // a creature matching Filter exploits a creature matching Filter2 (CR 702.110b; gorge Mode$ Exploited, trigmatch exploitedMatches on the events.Exploit marker effExploit emits per sacrificed object: Filter = the exploiter, Filter2 = the exploited creature, type predicates only); no slot subscription: fired by ExtExploit over the battlefield (kw_exploit.go)
+	TrigUnattached                  // this attachment becomes unattached from a permanent (CR 701.3b/d; gorge Mode$ Unattached, ValidAttachment$ Card.Self, ValidObject$ Permanent, the Captain's Hook family): no slot subscription, fired by the detach arms on the attachment's own abilities; RefTriggerObj is the FORMER BEARER (trig_unattached.go)
 	TrigEventCount                  // number of trigger events; append above
 )
 
@@ -226,6 +259,7 @@ const (
 	TrigAbCastExhaust    int16 = 1 // Activated.Exhaust
 	TrigAbCastLoyalty    int16 = 2 // Activated.Loyalty
 	TrigAbCastLoyaltyOpp int16 = 3 // Activated.Loyalty+OppCtrl
+	TrigAbCastAny        int16 = 4 // ValidSA$ SpellAbility beside TargetsValid$ (Tf2TargetsFilter2 + Filter2): any activated ability whose chosen targets match, read once its targets are chosen (Ertha Jo, Frontier Mentor); the queued trigger carries the activated entry's stack identity in its trigAmt (ExtCopyAbility reads it)
 )
 
 // TokenRider flags (OpCreateToken's B.N).

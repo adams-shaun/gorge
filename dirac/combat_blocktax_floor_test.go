@@ -95,7 +95,7 @@ func TestBlockTaxEmptyDecisionStalls(t *testing.T) {
 	if n, _ := s.blkTaxCharge(k, sc.slot(blk), sc.slot(atk)); n <= s.manaBudget(k, 1) || s.g.stalled != 0 {
 		t.Fatalf("charge %d budget %d stalled %d, want charge > budget, no stall", n, s.manaBudget(k, 1), s.g.stalled)
 	}
-	d := Decision{Kind: DkBlockers, N: 1, Options: [MaxOptions]Action{MakeAction(AkBlock, uint8(blk), uint8(atk), 0)}}
+	d := Decision{Kind: DkBlockers, N: 1, Options: [MaxOptions]Action{MakeAction(AkBlock, TCode(blk), TCode(atk), 0)}}
 	s.blkTaxFilter(k, &d)
 	if d.N != 0 || d.Kind != DkNone || s.g.stalled != StallBlkTax || !s.over {
 		t.Fatalf("N %d kind %d stalled %s over %v, want an empty DkNone and a %s stall", d.N, d.Kind, StallName(s.g.stalled), s.over, StallName(StallBlkTax))

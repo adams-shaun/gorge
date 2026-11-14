@@ -57,7 +57,7 @@ func (s *State) offerOverloadHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	if s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castOverloadTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castOverloadTgt, 0))
 }
 
 // overloadProg is the program the resolving entry runs: the overloaded

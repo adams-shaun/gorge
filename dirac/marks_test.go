@@ -153,3 +153,39 @@ func BenchmarkViewHash(b *testing.B) {
 		}
 	})
 }
+
+// TestViewHashCachedEverySeat: along one line of play, the cached view hash
+// of every seat of the game equals the uncached one, at two seats and, in
+// the dirac_mp build, at three and four: the cache keeps one object part per
+// seat's view (a part cache of two seats panicked at seat 2, and folding a
+// seat onto another would hand it the other's hand).
+func TestViewHashCachedEverySeat(t *testing.T) {
+	var c ObjHashCache
+	for g := uint64(1); g <= 6; g++ {
+		n := uint8(2 + g%uint64(MaxSeats-1))
+		var decks [MaxSeats][]CardID
+		for i := uint8(0); i < n; i++ {
+			decks[i] = v.Decks[(int(g)+int(i))%len(v.Decks)]
+		}
+		var s State
+		s.InitN(v.Table, decks, n, g, Config{})
+		s.SetLine(g)
+		pol := NewRandomPolicy(g)
+		var d Decision
+		for i := 0; i < 300; i++ {
+			s.StepInto(&d)
+			if d.Kind == DkNone {
+				break
+			}
+			for seat := uint8(0); seat < n; seat++ {
+				want := s.ViewHash(seat, nil)
+				for k := 0; k < 2; k++ { // computed, then read from the cache
+					if got := s.ViewHashCached(seat, nil, &c); got != want {
+						t.Fatalf("game %d (%d seats) decision %d seat %d read %d: cached %x, uncached %x", g, n, i, seat, k, got, want)
+					}
+				}
+			}
+			s.Apply(pol.Pick(&d))
+		}
+	}
+}

@@ -151,7 +151,7 @@ func TestGrantManaPrefixPays(t *testing.T) {
 	sc, id, objs := tokScen(t, Config{GorgeLowering: true, NoElide: true}, "Springleaf Parade", tokToken, "Forest")
 	tok, forest := objs[1], objs[2]
 	ls := sc.hand(id["Lightning Strike"], 0)
-	sc.do(t, AkCast, uint8(ls), 0)
+	sc.do(t, AkCast, TCode(ls), 0)
 	for i := 0; i < 6; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkPriority {

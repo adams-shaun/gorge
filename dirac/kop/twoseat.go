@@ -33,3 +33,28 @@ func CardTwoSeat(c *CardDef) bool {
 	}
 	return false
 }
+
+// CardPodLimited reports whether a game of three or more seats holding c stops
+// at its start (the kernel's StallTwoSeat, dirac/stallclass.go prepTwoSeat):
+// c plays only two seats (CardTwoSeat), or it reads state the four-seat build
+// keeps for two seats only: speed (OpChangeSpeed, Start your engines), the
+// skip-untap marks (OpSkipUntap), a battle's one protector (TBattle), a static
+// goad's goader (StatGoad). The kernel's other two-seat-only reading, a
+// counter-added-this-turn condition on the card itself (ctr_addedthisturn.go),
+// needs the table's Exprs and stays a StallTwoSeat.
+func CardPodLimited(c *CardDef) bool {
+	if CardTwoSeat(c) || c.Engines || c.Types&TBattle != 0 {
+		return true
+	}
+	for i := range c.Abilities {
+		if a := &c.Abilities[i]; a.Kind == AbStatic && a.Static.Kind == StatGoad {
+			return true
+		}
+		for j := range c.Abilities[i].Prog {
+			if op := c.Abilities[i].Prog[j].Op; op == OpChangeSpeed || op == OpSkipUntap {
+				return true
+			}
+		}
+	}
+	return false
+}

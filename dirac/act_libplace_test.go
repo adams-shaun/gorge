@@ -89,7 +89,7 @@ func TestLibPlaceAskOwnerOrders(t *testing.T) {
 		if d.Sub != ChArrange || int(d.N) != 3-i {
 			t.Fatalf("pick %d: sub %d with %d options, want ChArrange over %d", i, d.Sub, d.N, 3-i)
 		}
-		s.applyAskCold2(sc.k, MakeAction(AkChoose, uint8(w), 0, 0))
+		s.applyAskCold2(sc.k, MakeAction(AkChoose, TCode(w), 0, 0))
 	}
 	if s.res.ask == raGenLibPlace {
 		t.Fatal("the ask is still posed after every card was ordered")

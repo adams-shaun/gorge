@@ -79,9 +79,9 @@ type seatInc struct {
 	occ   [TableRows / 64]uint64 // the rows with cnt > 0
 	fresh []Feature              // this encode's global entries, stably sorted by row
 	gen   uint32
-	live  []uint8 // the objects with a valid cache
+	live  []dirac.Obj // the objects with a valid cache
 	// entPos[i] is (obj, ver) of the entity card at output position i.
-	entObj []uint8
+	entObj []dirac.Obj
 	entVer []uint32
 	cards  []Card
 	sp     []Feature
@@ -313,11 +313,11 @@ func (e *Encoder) EncodeStateIncFor(s *dirac.State, d *dirac.Decision, seat uint
 	// object's cache version changed.
 	e.gen++
 	if e.gen == 0 {
-		e.seen = [256]uint32{}
+		e.seen = [objSlots]uint32{}
 		e.gen = 1
 	}
 	n := 0
-	place := func(o uint8, src *Card, ver uint32) {
+	place := func(o dirac.Obj, src *Card, ver uint32) {
 		if n < len(si.entObj) {
 			if si.entObj[n] != o || si.entVer[n] != ver || ver == 0 {
 				si.cards[n] = *src

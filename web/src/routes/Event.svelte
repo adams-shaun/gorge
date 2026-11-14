@@ -4,9 +4,10 @@
   import { session } from '../lib/session.svelte';
   import { EventClient, isRound } from '../lib/draftevent.svelte';
   import { DeckBuilder } from '../lib/deckbuild.svelte';
+  import { DraftAssist } from '../lib/draftassist.svelte';
   import { eventSeatFor, forgetEventSeat, rememberName, rememberedName } from '../lib/eventseat';
   import { eventApi, listEventSets } from '../lib/eventapi';
-  import { ratedBy17Lands, sealedFormat } from '../lib/newevent';
+  import { commanderFormat, ratedBy17Lands, sealedFormat } from '../lib/newevent';
   import { seatLabel } from '../lib/draftcards';
   import PhaseRail from '../components/event/PhaseRail.svelte';
   import LobbyView from '../components/event/LobbyView.svelte';
@@ -38,6 +39,8 @@
   let builder = $state<DeckBuilder | null>(null);
   let log = $state<unknown[] | null>(null);
   let name = $state(rememberedName());
+  // The bot-assist switch (off by default), shared by the draft and build screens.
+  const assist = new DraftAssist();
 
   const st = $derived(client.state);
   const you = $derived(client.you);
@@ -75,6 +78,7 @@
   $effect(() => {
     if (phase === 'BUILD' && you !== null && client.token && !builder) {
       const b = new DeckBuilder(event, client.token);
+      b.commanderMode = commanderFormat(client.state?.format);
       b.onstate = (s) => (client.state = s);
       builder = b;
       void b.load();
@@ -96,6 +100,9 @@
     if (await client.join(n)) rememberName(n);
   }
 
+  const commander = $derived(commanderFormat(st?.format));
+  // A Commander draft's rounds are pod games, one per round (EventState.pod).
+  const podGames = $derived(Math.max(st?.pod?.length ?? 0, st?.round ?? 0, 1));
   const phaseLabel = $derived(
     phase === 'LOBBY'
       ? 'lobby'
@@ -105,6 +112,10 @@
           : 'draft'
         : phase === 'BUILD'
           ? 'build'
+          : isRound(phase) && commander
+            ? podGames > 1
+              ? `pod game ${st?.round ?? ''} of ${podGames}`
+              : 'pod game'
           : isRound(phase)
             ? `round ${st?.round ?? ''} of 3 · Bo${st?.best_of === 3 ? 3 : 1}`
             : phase === 'COMPLETE'
@@ -117,7 +128,7 @@
   <header class="ev-topbar">
     <a class="brand" href="/">gorge</a>
     <span class="crumbs">
-      {st ? `${st.set} draft · ${event} · ${phaseLabel}` : `event ${event}`}
+      {st ? `${st.set} ${commander ? 'Commander draft' : 'draft'} · ${event} · ${phaseLabel}` : `event ${event}`}
       {#if you !== null && st} · seat {you + 1} of {st.seats.length}{:else if st} · spectating{/if}
     </span>
     <span class="sp"></span>
@@ -131,7 +142,7 @@
       {#if client.error}<p class="ev-error" role="alert">{client.error}</p>{:else}<p class="dim">Loading the event…</p>{/if}
     </section>
   {:else}
-    <PhaseRail phase={st.phase} format={st.format} />
+    <PhaseRail phase={st.phase} format={st.format} games={commander ? podGames : 0} />
     {#if client.unauthorised}
       <p class="ev-notice banner" role="status">This link's seat token is not valid for this event, so you are watching as a spectator.</p>
     {/if}
@@ -141,7 +152,7 @@
       <LobbyView ev={st} canJoin={you !== null && !client.joined} busy={client.busy} error={client.error} bind:name onjoin={join} />
     {:else if st.phase === 'DRAFT'}
       {#if you !== null}
-        <DraftView {client} {rated} />
+        <DraftView {client} {rated} {assist} />
       {:else}
         <section class="ev-main">
           <h2>Drafting</h2>
@@ -151,7 +162,7 @@
       {/if}
     {:else if st.phase === 'BUILD'}
       {#if you !== null && builder}
-        <BuildView {builder} ev={st} {rated} />
+        <BuildView {builder} ev={st} {rated} {assist} />
       {:else}
         <section class="ev-main">
           <h2>Building decks</h2>

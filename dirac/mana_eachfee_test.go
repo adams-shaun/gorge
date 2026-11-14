@@ -89,7 +89,7 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 		want[kop.G], want[kop.W] = 1, 1
 		sc2 := *sc
 		sc2.s = sc.s.fork()
-		sc2.s.scriptPrefix(sc.k, MakeAction(AkCast, uint8(wolf), 0, 0), 0)
+		sc2.s.scriptPrefix(sc.k, MakeAction(AkCast, TCode(wolf), 0, 0), 0)
 		if got := sc2.s.pl[0].pool; got != want {
 			t.Errorf("cfg %+v: the prefix leaves the pool %v, want {G}{W} (fee {C} paid)", cfg, got)
 		}
@@ -103,7 +103,7 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 		// colour is there to spend)
 		sc3, _, wolf3, _ := board(cfg, false)
 		sc3.s.pl[0].pool[kop.R], sc3.s.pl[0].pool[kop.G] = 1, 1
-		sc3.s.scriptPrefix(sc3.k, MakeAction(AkCast, uint8(wolf3), 0, 0), 0)
+		sc3.s.scriptPrefix(sc3.k, MakeAction(AkCast, TCode(wolf3), 0, 0), 0)
 		var want3 [kop.NumManaKinds]uint8
 		want3[kop.G], want3[kop.W] = 2, 1 // {R} paid the fee; {G} floated beside the Vista's {G}{W}
 		if got := sc3.s.pl[0].pool; got != want3 {
@@ -120,7 +120,7 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 	if !offersCast(sc.s, wolf) {
 		t.Fatal("Watchwolf not offered with a Bloom Tender on the board")
 	}
-	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, uint8(wolf), 0, 0), 0)
+	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, TCode(wolf), 0, 0), 0)
 	if !sc.tapped(vista) {
 		t.Error("the prefix left the Vista untapped: gorge's search taps it first")
 	}
@@ -139,7 +139,7 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 	if !offersCast(sc.s, wolf) {
 		t.Fatal("Watchwolf not offered with only a Bloom Tender")
 	}
-	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, uint8(wolf), 0, 0), 0)
+	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, TCode(wolf), 0, 0), 0)
 	var wantF [kop.NumManaKinds]uint8
 	wantF[kop.G], wantF[kop.W] = 1, 1
 	if !sc.tapped(tender) || sc.s.pl[0].pool != wantF {
@@ -163,7 +163,7 @@ func CheckEachColourFee(t *testing.T, tbl *kop.Table, id map[string]CardID) {
 	if !offersCast(sc.s, wolf) {
 		t.Fatal("Watchwolf not offered with three Vistas")
 	}
-	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, uint8(wolf), 0, 0), 0)
+	sc.s.scriptPrefix(sc.k, MakeAction(AkCast, TCode(wolf), 0, 0), 0)
 	var wantG [kop.NumManaKinds]uint8
 	wantG[kop.R], wantG[kop.G], wantG[kop.W] = 1, 1, 1
 	for i, v := range vistas {

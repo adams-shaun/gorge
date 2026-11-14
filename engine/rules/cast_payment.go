@@ -229,13 +229,11 @@ func (e *Engine) manaToPayXMods(pc *pendingCast, x int32) costMods {
 // manaToPayXUsing is manaToPayX with an explicit modifier composition.
 // xAsk's target-potential retry prices a candidate X under the reduction a
 // potential target would give (mods is then the potential composition); every
-// other caller passes manaToPayXMods. The commander tax is folded in the same
-// place as manaToPayX, so an alternative composition charges the identical
-// total.
+// other caller passes manaToPayXMods. The commander tax joins the total
+// before the modifiers compose, as in manaToPay, so an alternative
+// composition charges the identical total.
 func (e *Engine) manaToPayXUsing(pc *pendingCast, x int32, mods costMods) Cost {
-	m := mods.Apply(pc.resolvedManaX(x))
-	m.Generic += pc.taxGeneric
-	return m
+	return mods.ApplyTaxed(pc.resolvedManaX(x), pc.taxGeneric)
 }
 
 // announceCost is gone: its per-pip composition (mods applied to a cost that
@@ -251,8 +249,8 @@ func (e *Engine) manaToPayXUsing(pc *pendingCast, x int32, mods costMods) Cost {
 // committed (payColor/payLife/payGeneric on pc) and the candidate alt are
 // folded into the cost as their FINAL resolved faces, and the still-
 // unannounced pips are enumerated by the shared primitive with the CR 601.2f
-// modifiers composed onto each fully-resolved assignment, the CR 903.8
-// commander tax added after and (for a spell) the Delve credit taken off the
+// CR 903.8 commander tax joined to each fully-resolved assignment, the
+// modifiers composed over that total and (for a spell) the Delve credit taken off the
 // generic — exactly the composition manaToPay/payCast will charge once every
 // pip is settled. It is the CR 601.2b legality question: an announced payment
 // is offered only if SOME legal assignment of the remaining pips makes the
@@ -334,8 +332,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 			}
 			return false
 		}
-		charged := pc.mods.Apply(c)
-		charged.Generic = addClampedGeneric(charged.Generic, int64(pc.taxGeneric))
+		charged := pc.mods.ApplyTaxed(c, pc.taxGeneric)
 		charged.Generic -= delve
 		if charged.Generic < 0 {
 			charged.Generic = 0

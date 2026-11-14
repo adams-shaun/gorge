@@ -1,0 +1,14 @@
+{
+  "card": "Nylea's Presence",
+  "class": "unmodelled-landgrant",
+  "why": "gorge offers both productions of a land that is granted every basic land type (CR 305.6: the intrinsic {T}: Add ability of each type beside its own) and the kernel's one-ability pcard holds a single production: a Cabal Pit (pain on its {B}) or a Manor Gate (a chosen colour) under the grant stalls landgrant, 38 games in the dr-mbc-ba evidence sweep (stall landgrant, static_landtype.go blgPlain)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "granted_basic_types_over_a_pain_or_chosen_colour_land_unmodelled"
+  }
+}

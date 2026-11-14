@@ -1,0 +1,279 @@
+Abrade
+Adaptive Omnitool
+Aether Spellbomb
+Aetherize
+All Is Dust
+Always Watching
+Ambition's Cost
+Angel of Finality
+Angel of Vitality
+Angel of the Ruins
+Angelic Destiny
+Angelic Field Marshal
+Angelic Sleuth
+Arasta of the Endless Web
+Arcane Signet
+Army of the Damned
+Atsushi, the Blazing Sky
+Austere Command
+Ayara, First of Locthwain
+Bad Moon
+Barren Moor
+Basilisk Collar
+Beast Whisperer
+Beast Within
+Birds of Paradise
+Bishop of Wings
+Bite Down
+Bitter Reunion
+Blasphemous Act
+Bojuka Bog
+Bonders' Enclave
+Bontu's Monument
+Breaching Dragonstorm
+Breath Weapon
+Broodstar
+Buried Ruin
+Carnage Tyrant
+Carnelian Orb of Dragonkind
+Carrion Feeder
+Castle Locthwain
+Cemetery Reaper
+Cemetery Recruitment
+Chain Reaction
+Challenger Troll
+Champion of the Perished
+Chaos Warp
+Charcoal Diamond
+Chief of the Foundry
+Cleansing Nova
+Clifftop Lookout
+Colossal Majesty
+Commander's Sphere
+Consumed by Greed
+Consuming Corruption
+Count on Luck
+Counterspell
+Crucible of Fire
+Cryptbreaker
+Cultivator's Caravan
+Curious Altisaur
+Darksteel Citadel
+Darksteel Juggernaut
+Day of Judgment
+Dazzling Angel
+Death Baron
+Defy Death
+Destroy Evil
+Diregraf Colossus
+Dragon Tempest
+Dragonlord's Servant
+Dragonmaster Outcast
+Dragonspeaker Shaman
+Dragonstorm Globe
+Drakuseth, Maw of Flames
+Dungrove Elder
+Elder Gargaroth
+Elemental Bond
+Elvish Mystic
+Endless Ranks of the Dead
+Eternal Taskmaster
+Etherium Sculptor
+Exemplar of Light
+Exorcise
+Fire Diamond
+Firespitter Whelp
+Fleshbag Marauder
+Forest
+Forgotten Cave
+Forsaken Monument
+Foundry Inspector
+Foundry of the Consuls
+Fyndhorn Elves
+Garruk's Packleader
+Garruk's Uprising
+Geier Reach Sanitarium
+Ghalta, Primal Hunger
+Ghoulcaller Gisa
+Giada, Font of Hope
+Gigantosaurus
+Go for the Throat
+Goreclaw, Terror of Qal Sisma
+Graaz, Unstoppable Juggernaut
+Grasp of Fate
+Grave Titan
+Graveborn Muse
+Gravecrawler
+Gray Merchant of Asphodel
+Harmonize
+Hazoret's Monument
+Headless Rider
+Hedron Archive
+Hellkite Charger
+Herald of Eternal Dawn
+Herald of War
+Heraldic Banner
+Hulking Raptor
+Ichor Wellspring
+Ilysian Caryatid
+Infernal Idol
+Inspiring Overseer
+Invoke the Divine
+Island
+Josu Vess, Lich Knight
+Kappa Cannoneer
+Kenrith's Transformation
+Lathliss, Dragon Queen
+Launch Mishap
+Lightning Bolt
+Liliana's Mastery
+Liliana's Reaver
+Linvala, the Preserver
+Llanowar Elves
+Llanowar Tribe
+Lonely Sandbar
+Loot, Exuberant Explorer
+Lord of the Accursed
+Lord of the Undead
+Lyra Dawnbringer
+Magmaquake
+Mana Geyser
+Managorger Hydra
+Marble Diamond
+Master Transmuter
+Master of Etherium
+Mazemind Tome
+Memorial to Folly
+Memory Guardian
+Merchant of Truth
+Metallic Mimic
+Meteor Golem
+Metropolis Reformer
+Midnight Reaper
+Mind Stone
+Mind's Eye
+Minion of the Mighty
+Mire Triton
+Moan of the Unhallowed
+Monstrous Onslaught
+Mosswort Bridge
+Mountain
+Mutilate
+Myr Battlesphere
+Myr Retriever
+Necrotic Hex
+Negate
+Nettlecyst
+Nevinyrral's Disk
+Night's Whisper
+Nogi, Draco-Zealot
+Norn's Choirmaster
+Noxious Ghoul
+Open the Graves
+Ornithopter of Paradise
+Outpost Siege
+Oversold Cemetery
+Overwhelming Stampede
+Palladium Myr
+Paradise Druid
+Patchwork Banner
+Phyrexian Arena
+Plains
+Psychosis Crawler
+Pugnacious Hammerskull
+Pull from Tomorrow
+Radiant Fountain
+Rapacious Dragon
+Regal Imperiosaur
+Remote Isle
+Research Thief
+Reya Dawnbringer
+Rhonas the Indomitable
+Rhonas's Monument
+Righteous Valkyrie
+Ripjaw Raptor
+Rishkar's Expertise
+Rishkar, Peema Renegade
+Rogue's Passage
+Sai, Master Thopterist
+Sarkhan, Dragon Ascendant
+Scavenger Grounds
+Scavenging Ooze
+Scourge of Valkas
+Scrapshooter
+Scrawling Crawler
+Search the Premises
+Secluded Steppe
+Secret Rendezvous
+Segovian Angel
+Seraph Sanctuary
+Seraph of the Sword
+Serra Avenger
+Shamanic Revelation
+Shimmer Dragon
+Shimmer Myr
+Shivan Devastator
+Sign in Blood
+Silver Myr
+Skysovereign, Consul Flagship
+Sol Ring
+Soul-Guide Lantern
+Soulless One
+Speaker of the Heavens
+Spire Golem
+Spit Flame
+Starnheim Aspirant
+Steel Hellkite
+Steel Leaf Champion
+Steel Overseer
+Sunblast Angel
+Surrak and Goreclaw
+Surrak, the Hunt Caller
+Swamp
+Swiftfoot Boots
+Swords to Plowshares
+Syphon Flesh
+Tamiyo's Logbook
+Tamiyo's Safekeeping
+Taurean Mauler
+Temple of the False God
+Tendrils of Corruption
+Terrian, World Tyrant
+Terror of Mount Velus
+Thirst for Knowledge
+Thopter Fabricator
+Thopter Spy Network
+Thought Monitor
+Thought Vessel
+Thoughtcast
+Thraben Watcher
+Thrashing Brontodon
+Thrill of Possibility
+Thunderbreak Regent
+Tome of Legends
+Tranquil Thicket
+Tyrant's Familiar
+Undead Augur
+Undead Butler
+Undead Warchief
+Unexpected Windfall
+Unnatural Growth
+Utvara Hellkite
+Valorous Stance
+Vanguard Seraph
+Vanquisher's Banner
+Vedalken Archmage
+Vengeful Dead
+Verdant Sun's Avatar
+Warstorm Surge
+Whiptongue Hydra
+Whirler Rogue
+Whisperer of the Wilds
+Wight of Precinct Six
+Witch's Clinic
+Witch's Cottage
+Withering Torment
+Wojek Investigator
+Yeva, Nature's Herald
+Youthful Valkyrie
+Zul Ashur, Lich Lord

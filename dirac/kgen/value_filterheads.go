@@ -13,7 +13,7 @@ import (
 // the pin reads it (any other spelling refuses).
 
 // kvfHead lowers the PlayerCountPlayers$, TargetedController$ and
-// TriggeredTarget$ heads.
+// TriggeredTarget$ and TriggeredDefendingPlayer$ heads.
 func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 	switch head {
 	case "PlayerCountPlayers":
@@ -62,7 +62,22 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 			return lValue{}, refuse("TargetedController$%s of a slot that may name a player", rest)
 		}
 		return lValue{Kind: vPoisonOf, Ref: lRef{Kind: rTargetController, N: t}}, nil
+	case "TriggeredDefendingPlayer":
+		if rest != "CardsInHand" {
+			break
+		}
+		// gorge evalPlayerRefProperty's default arm: definedSpec(
+		// TriggeredDefendingPlayer), the player the controller's own
+		// attack trigger names (the Defined$ reading, lc.defined); its
+		// hand size is the cards in that player's hand. Mr. Foxglove.
+		if !lc.ownAttackTrigger() {
+			return lValue{}, refuse("TriggeredDefendingPlayer$%s outside an attack trigger of the controller's own attack", rest)
+		}
+		return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rDefending}}, nil
 	case "TriggeredTarget":
+		if rest == "CardsInHand" || strings.HasPrefix(rest, "Valid ") {
+			return lc.trigTargetPlayerValue(rest) // value_trigreferents.go
+		}
 		if rest != "LifeTotal" {
 			break
 		}

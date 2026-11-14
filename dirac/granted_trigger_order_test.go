@@ -19,8 +19,8 @@ func TestGrantedAttackTriggersQueueInAttachOrder(t *testing.T) {
 	sc.s.attachTo(sc.k, sc.slot(sail), sc.slot(bear))
 	sc.s.attachTo(sc.k, sc.slot(axe), sc.slot(bear))
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(bear), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(bear), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	d := sc.s.Step()
 	if d.Kind != DkTriggerOrder || sc.s.npend != 2 {
 		t.Fatalf("decision kind %d with %d pending, want a trigger order of 2", d.Kind, sc.s.npend)

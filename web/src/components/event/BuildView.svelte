@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import type { EventState } from '../../protocol';
+  import type { DraftCard, EventState } from '../../protocol';
   import { basicsTotal, STEPPER_MAX, type DeckBuilder, type Zone } from '../../lib/deckbuild.svelte';
   import { BASIC_NAMES, COLOUR_FILTERS, COLOURS, factsOf, passesFilter, seatLabel } from '../../lib/draftcards';
+  import { commanderChoices, identityColours, partnerChoices, PARTNER_RULE, unionIdentity } from '../../lib/commanderdraft';
+  import type { DraftAssist } from '../../lib/draftassist.svelte';
   import MvColumns from './MvColumns.svelte';
   import Attribution from './Attribution.svelte';
 
@@ -17,19 +19,60 @@
    *
    * `actions` replaces the Ready block: the between-games sheet
    * edits a sideboarding working copy with its own Keep / Submit buttons.
+   *
+   * A Commander draft (builder.commanderMode) adds the commander slots:
+   * the first offers every pool card that can lead a deck, the second opens
+   * only when the first can partner. Pool cards outside the commanders'
+   * colour identity are greyed out (or hidden) and refused, and only the
+   * identity's basics are offered. The minimum size is the server's
+   * (DeckCheck.size, else EventState.deck_size).
+   *
+   * `assist` is the page's bot-assist switch (off by default): while on,
+   * the rail shows the bot builder's suggested commanders and deck
+   * (EventPool.suggestion) with an Apply action that replaces the working
+   * copy. The plain load-suggestion button stays either way.
    */
-  let { builder, ev, rated = true, actions }: { builder: DeckBuilder; ev: EventState | null; rated?: boolean; actions?: Snippet } = $props();
+  let {
+    builder,
+    ev,
+    rated = true,
+    actions,
+    assist = null,
+  }: { builder: DeckBuilder; ev: EventState | null; rated?: boolean; actions?: Snippet; assist?: DraftAssist | null } = $props();
 
   const you = $derived(ev?.you ?? null);
-  const deckCards = $derived(builder.deckCards);
-  const sideCards = $derived(builder.sideCards.filter((c) => passesFilter(builder.filter, factsOf(c))));
+  const cmd = $derived(builder.commanderMode);
+  const commanderIds = $derived(builder.commanders);
+  // The commanders sit in their own slots, so the Deck zone lists the rest of main.
+  const deckCards = $derived(builder.deckCards.filter((c) => !commanderIds.includes(c.id)));
+  let hideOff = $state(false);
+  const sideCards = $derived(
+    builder.sideCards.filter((c) => passesFilter(builder.filter, factsOf(c)) && !(hideOff && builder.offIdentity(c))),
+  );
   const check = $derived(builder.check);
-  const spells = $derived(deckCards.filter((c) => !factsOf(c).land).length);
-  const lands = $derived(deckCards.length - spells + basicsTotal(builder.basics));
+  const minSize = $derived(check?.size ?? ev?.deck_size ?? 40);
+  const choices = $derived(cmd ? commanderChoices(builder.pool) : []);
+  const firstCard = $derived(builder.commanderCards[0] ?? null);
+  const partners = $derived(cmd ? partnerChoices(builder.pool, firstCard) : []);
+  const identity = $derived(builder.identity);
+  // The basics a Commander deck may run are its identity's (CR 903.5c);
+  // before a commander is chosen all five are shown.
+  const basicIdx = $derived(
+    BASIC_NAMES.map((_, i) => i).filter((i) => !cmd || identity === null || identity.includes(COLOURS[i])),
+  );
+  const offMain = $derived(cmd ? builder.offIdentityMain : []);
+  const suggested = $derived(builder.suggestion);
+  const suggestedCommanders = $derived(
+    (suggested?.commanders ?? []).map((id) => builder.pool.find((c) => c.id === id)).filter((c): c is DraftCard => c !== undefined),
+  );
+  const suggestedTotal = $derived(suggested ? (suggested.main?.length ?? 0) + basicsTotal(suggested.basics ?? []) : 0);
+  const muted = $derived(cmd && identity !== null ? (c: DraftCard) => builder.offIdentity(c) : null);
+  const spells = $derived(deckCards.filter((c) => !factsOf(c).land).length + commanderIds.length);
+  const lands = $derived(deckCards.length + commanderIds.length - spells + basicsTotal(builder.basics));
 
   const curve = $derived.by(() => {
     const out = [0, 0, 0, 0, 0, 0, 0];
-    for (const c of deckCards) {
+    for (const c of builder.deckCards) {
       const f = factsOf(c);
       if (f.land || f.mv === null) continue;
       out[Math.min(f.mv, 6)]++;
@@ -40,7 +83,7 @@
 
   const pips = $derived.by(() => {
     const out = [0, 0, 0, 0, 0];
-    for (const c of deckCards) {
+    for (const c of builder.deckCards) {
       const f = factsOf(c);
       if (f.land) continue;
       for (const tok of f.cost.split(' ')) for (const ch of tok) {
@@ -79,6 +122,59 @@
 <div class="ev-split build">
   <section class="ev-main">
     {#if builder.error}<p class="ev-error" role="alert" data-testid="build-error">{builder.error}</p>{/if}
+    {#if builder.notice}<p class="ev-notice" role="status" data-testid="build-notice">{builder.notice}</p>{/if}
+    {#if cmd}
+      <div class="cmdbox" data-testid="commander-slots">
+        <div class="zh">
+          <h3>Commander</h3>
+          <span class="idpips" aria-label={identity === null ? 'No commander chosen' : `Colour identity: ${identity || 'colourless'}`}>
+            {#if identity !== null}
+              {#each identityColours(identity) as col (col)}<span class="ev-pip {col}">{col}</span>{:else}<span class="data dim">colourless</span>{/each}
+            {/if}
+          </span>
+        </div>
+        {#if choices.length === 0}
+          <p class="check-error small" role="status">Your pool has no card that can be a commander.</p>
+        {:else}
+          <div class="slots">
+            <label class="slot">
+              <span class="ev-h5">Commander</span>
+              <select
+                data-testid="commander-1"
+                value={commanderIds[0] ?? ''}
+                onchange={(e) => builder.setCommander(0, e.currentTarget.value || null)}
+              >
+                <option value="">Choose a commander…</option>
+                {#each choices as c (c.id)}
+                  <option value={c.id}>{c.name}{c.identity ? ` (${c.identity})` : ' (colourless)'}{c.partner ? ' · can partner' : ''}</option>
+                {/each}
+              </select>
+            </label>
+            <label class="slot">
+              <span class="ev-h5">Partner</span>
+              <select
+                data-testid="commander-2"
+                value={commanderIds[1] ?? ''}
+                disabled={partners.length === 0}
+                onchange={(e) => builder.setCommander(1, e.currentTarget.value || null)}
+              >
+                <option value="">{firstCard?.partner ? 'No partner' : firstCard ? 'This commander cannot partner' : 'Choose a commander first'}</option>
+                {#each partners as c (c.id)}
+                  <option value={c.id}>{c.name}{c.identity ? ` (${c.identity})` : ' (colourless)'}</option>
+                {/each}
+              </select>
+            </label>
+          </div>
+        {/if}
+        <p class="dim small">{PARTNER_RULE} Every other card must be inside the commanders' colour identity.</p>
+        {#if offMain.length > 0}
+          <p class="check-error small" role="status" data-testid="off-identity">
+            {offMain.length} {offMain.length === 1 ? 'card' : 'cards'} in your deck {offMain.length === 1 ? 'is' : 'are'} outside this identity.
+            <button type="button" class="ev-btn sm" onclick={() => builder.dropOffIdentity()}>Move to pool</button>
+          </p>
+        {/if}
+      </div>
+    {/if}
     <div
       class="zone"
       class:over={over === 'deck'}
@@ -95,7 +191,7 @@
         <span class="data dim">{spells} spells · {lands} lands</span>
       </div>
       {#if deckCards.length === 0}<p class="dim small">Drag cards here, or tap one in the pool.</p>{/if}
-      <MvColumns cards={deckCards} draggable onactivate={(id) => builder.move(id, 'side')} label="Deck cards" />
+      <MvColumns cards={deckCards} draggable onactivate={(id) => builder.move(id, 'side')} label="Deck cards" {muted} mutedWhy="Outside your commanders' colour identity" />
     </div>
     <div
       class="zone"
@@ -114,9 +210,12 @@
           {#each COLOUR_FILTERS as f (f.key)}
             <button type="button" class="ev-chip" class:on={builder.filter === f.key} aria-pressed={builder.filter === f.key} onclick={() => builder.setFilter(f.key)}>{f.label}</button>
           {/each}
+          {#if cmd && identity !== null}
+            <button type="button" class="ev-chip" class:on={hideOff} aria-pressed={hideOff} data-testid="hide-off-identity" onclick={() => (hideOff = !hideOff)}>Identity only</button>
+          {/if}
         </div>
       </div>
-      <MvColumns cards={sideCards} draggable onactivate={(id) => builder.move(id, 'deck')} label="Pool cards" />
+      <MvColumns cards={sideCards} draggable onactivate={(id) => builder.move(id, 'deck')} label="Pool cards" {muted} mutedWhy="Outside your commanders' colour identity" />
     </div>
     {#if rated}<Attribution what="Pick ratings and the suggested deck" />{/if}
   </section>
@@ -125,7 +224,7 @@
     <div class="block">
       <h3 class="ev-h5">Deck size</h3>
       <div class="count" class:ok={check?.valid} data-testid="deck-count">
-        {check ? check.total : '…'} <small>/ 40 minimum</small>
+        {check ? check.total : '…'} <small>/ {minSize} minimum</small>
       </div>
       {#if check && !check.valid && check.error}
         <p class="check-error" role="status" data-testid="check-error">{check.error}</p>
@@ -140,7 +239,8 @@
         <button type="button" class="ev-btn sm" data-testid="auto-lands" onclick={() => void builder.autoLands()}>Auto</button>
       </div>
       <div class="lands">
-        {#each BASIC_NAMES as name, i (name)}
+        {#each basicIdx as i (i)}
+          {@const name = BASIC_NAMES[i]}
           <div class="landrow">
             <span class="ev-pip {COLOURS[i]}">{COLOURS[i]}</span>
             <span>{name}</span>
@@ -152,6 +252,9 @@
           </div>
         {/each}
       </div>
+      {#if cmd && identity === ''}
+        <p class="dim small">A colourless commander's deck takes no coloured basic lands.</p>
+      {/if}
       {#if check}
         <p class="dim small">Auto would add: {BASIC_NAMES.map((n, i) => (check.auto_lands[i] ? `${check.auto_lands[i]} ${n}` : '')).filter(Boolean).join(', ') || 'no basics'}</p>
       {/if}
@@ -175,8 +278,37 @@
       {/each}
     </div>
 
+    {#if assist}
+      <div class="block" data-testid="assist-build">
+        <div class="between">
+          <h3 class="ev-h5">Bot assist</h3>
+          <button type="button" class="ev-btn sm" role="switch" aria-checked={assist.on} data-testid="assist-toggle" onclick={() => assist?.toggle()}>{assist.on ? 'On' : 'Off'}</button>
+        </div>
+        {#if assist.on}
+          {#if !suggested}
+            <p class="dim small">The bot builder has no suggestion for this pool.</p>
+          {:else}
+            {#if cmd}
+              <p class="small" data-testid="assist-commanders">
+                {#if suggestedCommanders.length === 0}
+                  <span class="dim">The suggestion names no commander.</span>
+                {:else}
+                  Commander{suggestedCommanders.length > 1 ? 's' : ''}: <b>{suggestedCommanders.map((c) => c.name).join(' and ')}</b>
+                  {#each identityColours(unionIdentity(suggestedCommanders)) as col (col)}<span class="ev-pip {col}">{col}</span>{/each}
+                {/if}
+              </p>
+            {/if}
+            <p class="dim small">{suggestedTotal} cards, {basicsTotal(suggested.basics ?? [])} of them basic lands.</p>
+            <button type="button" class="ev-btn sm" data-testid="apply-suggestion" disabled={builder.busy} onclick={() => void builder.resetToSuggestion()}>Apply suggestion</button>
+          {/if}
+        {:else}
+          <p class="dim small">Turn it on to see the deck the bot builder would play from your pool.</p>
+        {/if}
+      </div>
+    {/if}
+
     <div class="block">
-      <button type="button" class="ev-btn sm" onclick={() => void builder.resetToSuggestion()} disabled={!builder.suggestion}>Reset to bot suggestion</button>
+      <button type="button" class="ev-btn sm" data-testid="load-suggestion" onclick={() => void builder.resetToSuggestion()} disabled={!builder.suggestion}>{cmd ? 'Load the bot\'s suggested deck' : 'Reset to bot suggestion'}</button>
     </div>
 
     {#if actions}
@@ -266,6 +398,37 @@
   }
   .check-ok {
     color: var(--verdigris);
+  }
+  .cmdbox {
+    border: 1px solid var(--gilt);
+    border-radius: var(--radius);
+    padding: var(--sp-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    background: color-mix(in srgb, var(--gilt) 6%, transparent);
+  }
+  .cmdbox p {
+    margin: 0;
+  }
+  .slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+    gap: var(--sp-2);
+  }
+  .slot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    min-width: 0;
+  }
+  .slot select {
+    width: 100%;
+  }
+  .idpips {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
   }
   .lands {
     display: flex;

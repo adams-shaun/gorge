@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"sync/atomic"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // DebugAnimAddColorsOff is TestAnimgMutation's switch: an AddColors record adds nothing.
 var DebugAnimAddColorsOff bool
@@ -23,6 +27,9 @@ func animLiveCtrl(s *State) (p, t int16) {
 	return int16(s.res.e.ctrl), 0
 }
 
+// LivePTStats counts liveP(T) reads.
+var LivePTStats struct{ Reads atomic.Int64 }
+
 // livePT evaluates the live P/T of override record o on the permanent at
 // sl: the granted static's SetPower$/SetToughness$ values, read at every
 // layer-7b check for the animating controller ctrl (gorge registers the
@@ -30,6 +37,7 @@ func animLiveCtrl(s *State) (p, t int16) {
 //
 //go:noinline
 func (s *State) livePT(k *prep, sl Slot, o *kop.Override, ctrl int16) (p, t int16) {
+	LivePTStats.Reads.Add(1)
 	pm := &s.perms[sl]
 	ctx := evalCtx{src: pm.obj, srcSl: sl, ctrl: uint8(ctrl)}
 	if !o.KeepP {

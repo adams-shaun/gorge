@@ -23,6 +23,34 @@ var wardPoisonRe = regexp.MustCompile(`^AddCounterYou<([0-9]+)/POISON>$`)
 // resUnlessTokenRe is an UnlessCost$ whose amount is the face's SVar:X.
 var resUnlessTokenRe = regexp.MustCompile(`^(DamageYou<X>|Draw<X/You>)$`)
 
+// resUnlessDiscardRe is an UnlessCost$ Discard<Name/Card> whose count names a
+// face SVar (Court of Ambition's Discard<Y/Card>, Y = Count$Monarch.2.1).
+var resUnlessDiscardRe = regexp.MustCompile(`^Discard<([A-Za-z][A-Za-z0-9]*)/Card>$`)
+
+// resUnlessDiscard lowers an UnlessCost$ Discard<Name/Card> of a non-delayed
+// body to the payer's discard of the SVar's count (kernel PayDiscard, its
+// amount evaluated as the ask is posed). gorge's UnlessCostResolved folds the
+// same SVar body into the token at that moment (engine/effects/unless.go
+// discardSVarToken); a count resolving to zero stays raw there, the
+// unpriceable decline the kernel's amount > 0 gate keeps.
+func (lc *lowerCtx) resUnlessDiscard(uc string) (lInstr, bool, error) {
+	m := resUnlessDiscardRe.FindStringSubmatch(uc)
+	if m == nil {
+		return lInstr{}, false, nil
+	}
+	if _, ok := lc.face.SVars[m[1]]; !ok {
+		return lInstr{}, false, nil // no SVar: the cost token refusal stands
+	}
+	if lc.ab.Kind == akLatent {
+		return lInstr{}, true, refuse("unless cost %q in a delayed body", uc)
+	}
+	v, err := lc.value(m[1])
+	if err != nil {
+		return lInstr{}, true, err
+	}
+	return lInstr{CS: "Discard", A: v}, true, nil
+}
+
 // wardPoison lowers a ward whose cost is AddCounterYou<N/POISON>.
 func (lc *lowerCtx) wardPoison(uc string) (lInstr, bool, error) {
 	m := wardPoisonRe.FindStringSubmatch(uc)

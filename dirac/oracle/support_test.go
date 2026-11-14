@@ -68,7 +68,7 @@ func refusedPolicy(t *testing.T, name string) func(uint64) Policy {
 
 // isSynthPool: the synthetic pools are dealt, a deck pool is read.
 func isSynthPool(name string) bool {
-	return strings.HasPrefix(name, "std-") || strings.HasPrefix(name, "tail-")
+	return cardset.IsSynthName(name)
 }
 
 // openRefusedRun opens the entry's pool. A tail pool is cut by hash over what lowers,

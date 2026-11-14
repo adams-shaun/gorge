@@ -63,7 +63,7 @@ func (s *State) returnCands(k *prep, p uint8, f kop.FilterID, src Obj, d *Decisi
 		}
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return n

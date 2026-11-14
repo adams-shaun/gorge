@@ -1140,6 +1140,9 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	// the mint's identity.
 	if pc.pushed && !pc.isAbility() {
 		e.emit(events.Event{Kind: events.SpellCastReversed, Player: pc.player})
+		if pc.from == state.ZCommand && e.format == FormatCommander {
+			addCmdCasts(e.G, pc.player, pc.card, -1) // the push's CR 903.8 count
+		}
 	}
 	if pc.pushed && pc.isAbility() {
 		m := pc.activationMintEvent(e)
@@ -1362,9 +1365,18 @@ func (e *Engine) recordCmdCast(p state.PlayerID, id state.ObjID) {
 	if e.format != FormatCommander {
 		return
 	}
-	for k, cid := range e.G.Players[p].Commanders {
+	addCmdCasts(e.G, p, id, 1)
+}
+
+// addCmdCasts adds n to the CmdCasts entry of p's commander id (none when id
+// is not one): +1 at the push (recordCmdCast), -1 when abortCast reverses
+// that pushed cast (CR 733.1: the reversed cast never happened, so it raises
+// no later tax), beside the SpellCastReversed event that undoes the push's
+// other folds.
+func addCmdCasts(g *state.Game, p state.PlayerID, id state.ObjID, n int32) {
+	for k, cid := range g.Players[p].Commanders {
 		if cid == id {
-			e.G.Players[p].CmdCasts[k]++
+			g.Players[p].CmdCasts[k] += n
 			return
 		}
 	}

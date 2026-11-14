@@ -44,7 +44,7 @@ func TestAnyNumberKickClosesAtEveryCandidate(t *testing.T) {
 	d0 := sc.s.Step()
 	cast := false
 	for i := 0; i < int(d0.N); i++ {
-		if a := d0.Options[i]; a.Kind() == AkCast && a.Source() == uint8(dr) && a.Mode() == 1 {
+		if a := d0.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(dr)) && a.Mode() == 1 {
 			sc.s.Apply(a)
 			cast = true
 			break

@@ -38,7 +38,7 @@ func TestXWitnessSkipsADeferredRiderSource(t *testing.T) {
 		t.Fatalf("precondition: the Doll entered with %d nest counters", n)
 	}
 	ride := sc.hand(id["The Rollercrusher Ride"], 0)
-	sc.do(t, AkCast, uint8(ride), 0xff)
+	sc.do(t, AkCast, TCode(ride), scAny)
 	if d := sc.s.Step(); d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("decision kind %d sub %d, want the X ask", d.Kind, d.Sub)
 	}

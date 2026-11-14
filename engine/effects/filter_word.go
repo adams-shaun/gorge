@@ -760,9 +760,11 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordControllerDealtCombatDamageBySource:
 		return dealtCombatDamageBySource(g, o, sc, source)
 	case wordColourSource:
-		return strings.Contains(ColorsOf(o), key)
+		// The current colours (CR 105.2), layer 5 included, as the bare
+		// colour words read them.
+		return strings.Contains(colorsCtx(o, &sc), key)
 	case wordColourSourceless:
-		return ColorsOf(o) == ""
+		return colorMaskCtx(o, &sc) == 0
 	case wordKickedIndex:
 		// The and/or Kicker's part bits (engine/state/object.go): the CastInfo
 		// provenance the kicked1/kicked2/kickedboth cast modes ride. A part

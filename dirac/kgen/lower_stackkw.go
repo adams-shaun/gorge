@@ -52,6 +52,15 @@ import (
 //     to exile toward its generic cost (CR 702.66a; kernel kw_delve.go), read
 //     as the spell is cast. A cast-from-hand restriction is legal; a printed
 //     K:Delve is CardDef.Delve and reads the same kernel path.
+//   - Demonstrate lowers to Kind "StackKw" too: gorge synthesizes the copy
+//     trigger when the cast spell is put on the stack
+//     (trigger_granted.go checkGrantedDemonstrateTriggers), so the kernel
+//     queues it as the cast completes, like Storm (kw_demonstrate.go). It is
+//     the one grant a Condition$ / CheckSVar$ gate may ride (Elda, Conjurer of
+//     Spectacle's "the first nonlegendary creature spell you cast each turn"):
+//     gorge reads the gate against the casts PRIOR to the in-flight one
+//     (hasKeywordPriorCasts), and the kernel evaluates the static's condition
+//     with that push hidden (queueDemonstrate).
 //   - Every other keyword has no printed form in the
 //     kernel and refuses by name.
 func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
@@ -59,15 +68,15 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	if kw == "" || strings.Contains(kw, " & ") {
 		return refuse("AffectedZone Stack grant of %q", kw)
 	}
-	if st.Cond.Kind != cNone {
+	head, param, _ := strings.Cut(kw, ":")
+	if st.Cond.Kind != cNone && head != "Demonstrate" {
 		return refuse("AffectedZone Stack grant with a Condition$ / IsPresent$ / CheckSVar$ gate")
 	}
 	if ez, ok := sp.get("EffectZone"); ok && strings.TrimSpace(ez) != "Battlefield" {
 		return refuse("AffectedZone Stack grant with EffectZone %q", ez)
 	}
-	head, param, _ := strings.Cut(kw, ":")
 	switch head {
-	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve":
+	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
 	default:
 		return refuse("AffectedZone Stack grant of %q", kw)
 	}
@@ -96,7 +105,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 			return err
 		}
 		return nil
-	case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Conspire", "Delve":
+	case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
 		if param != "" {
 			return refuse("AffectedZone Stack grant of %q", kw)
 		}
@@ -131,7 +140,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 // resolving spell deals damage) inverts the provenance rule: the alternative
 // must name YouCtrl and carry no cast word.
 func stackAffected(aff, head string) (string, bool, error) {
-	atDamage, atCast := head == "Lifelink" || head == "Split second", head == "Storm" || head == "Conspire" || head == "Delve"
+	atDamage, atCast := head == "Lifelink" || head == "Split second", head == "Storm" || head == "Conspire" || head == "Delve" || head == "Demonstrate"
 	var alts []string
 	hand, plain := false, false
 	for _, alt := range strings.Split(aff, ",") {

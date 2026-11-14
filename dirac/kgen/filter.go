@@ -590,6 +590,9 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 }
 
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
+	if q, ok := filterPropAlias(p); ok {
+		p = q
+	}
 	switch p {
 	case "nonLegendary":
 		c.NotTypes |= tLegendary
@@ -628,7 +631,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// twoSeat-at-caller: lowerCtx.filter marks the card)
 		c.Flags |= fAttacking
 		return c.setWho(&c.Ctrl, whoOpp)
-	case "YouCtrl":
+	case "YouCtrl", "YourTeamCtrl":
+		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
+		// teams, so a player's team is that player alone (Combo Attack)
 		return c.setWho(&c.Ctrl, whoYou)
 	case "OppCtrl", "YouDontCtrl":
 		return c.setWho(&c.Ctrl, whoOpp)
@@ -909,7 +914,22 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setCmp(cmpPowerGTBase, 0, 0, "", "")
 	}
 	if p == "powerLTtoughness" {
-		return c.setCmp(cmpPowerLTToughness, opLT, 0, "", "")
+		return c.setCmp(cmpPowerLTToughness, opLT, int(kop.PTRelLT), "", "")
+	}
+	if p == "equalPT" || p == "!equalPT" {
+		// gorge numericPred equalPT (Forge: net power == net toughness), and
+		// its '!' negation. A non-creature with no printed P/T has none to
+		// read (gorge lacksPT: the word fails, so the negation holds), which
+		// the kernel's P/T read cannot tell apart: only a creature-only head
+		// lowers
+		if c.Types == 0 || c.Types&^tCreature != 0 {
+			return fmt.Errorf("%q beside a non-creature head", p)
+		}
+		rel := kop.PTRelEQ
+		if p[0] == '!' {
+			rel = kop.PTRelNE
+		}
+		return c.setCmp(cmpPowerLTToughness, opEQ, int(rel), "", "")
 	}
 	if strings.HasPrefix(p, "named") {
 		// named<X> (gorge wordNamed, sharesName; CR 201.2): Name is X
@@ -999,6 +1019,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		if w == "BottomLibrary" {
 			return c.setCmp(cmpWord7, 0, int(kop.W7NotBottomLibrary), "", "") // lower_filterwords.go
+		}
+		if w == "blocking" {
+			// gorge's '!' of isBlocking (kop.W7NotBlocking: FilterFlags
+			// has no bit left for an FNotBlocking beside FNotAttacking)
+			return c.setCmp(cmpWord7, 0, int(kop.W7NotBlocking), "", "")
 		}
 		if i, ok := notF2Bit(w); ok {
 			return c.setCmp(cmpNotF2, 0, i, "", "") // lower_filterwords.go

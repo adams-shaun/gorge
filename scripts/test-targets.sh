@@ -26,8 +26,10 @@
 #
 # Runner: with the GORGE_REMOTE_* settings present, the mode runs on the gate box instead (the worktree's HEAD and
 # its uncommitted diff are shipped; the same verdict line and the same go test -json at the same local path come
-# back). An unreachable or busy box, or any infrastructure failure, runs it here as before, with one note: only a
-# test failure on the box is FAIL. Unset (the default) means local only.
+# back). An unreachable box, a busy one after GORGE_REMOTE_WAIT, or any infrastructure failure runs it here, with
+# one note and at the lower GORGE_REMOTE_FALLBACK_CPU cap: only a test failure (or a BUDGET) on the box is the answer.
+# GORGE_REMOTE_MODES picks the modes that go (e.g. "targeted smart", keeping test-one here). Unset (the default)
+# means local only.
 #
 # exit 0 PASS, 1 FAIL, 2 usage, 3 ENV, 4 EMPTY, 5 BUDGET, 75 BUSY. The full `go test -json` stream is kept
 # at .ds4/scratch/test/<mode>-<sha>.json. Never passes -count (the cache stays on).
@@ -71,16 +73,26 @@ usage() { echo "test-targets: $mode: $1" >&2; exit 2; }
 
 # ---- the runner: the gate box when it can, else here --------------------------------------------------
 remote_try
+# The local cap of the parallel steps (test-targeted's -p, test-smart's capped steps): 4 cores, or the fallback
+# cap when the configured box could not take the run.
+lp=4 lcpu=400% lprocs=4
+fcpu=${GORGE_REMOTE_FALLBACK_CPU:-200}
+case $fcpu in '' | *[!0-9]* | 0 | ?) fcpu=200 ;; esac
+fprocs=$((fcpu / 100))
+[ -z "${TEST_TARGETS_FALLBACK:-}" ] || [ -n "${TEST_TARGETS_REMOTE:-}" ] || { lp=$fprocs lcpu=$fcpu% lprocs=$fprocs; }
 
 # ---- the cap -----------------------------------------------------------------------------------------
 if [ -z "${TEST_TARGETS_SCOPED:-}" ]; then
 	export GORGE_TEST_WRAPPER=1
-	mem=4G lim=3GiB cpu=400%
+	mem=4G lim=3GiB cpu=400% procs=4
 	if [ "$mode" = targeted ] || [ "${PKG:-}" = ./dirac/oracle ]; then mem=8G lim=6GiB; fi
+	# A run that fell back from the configured gate box: the box is down, so every seat's heavy run lands here at
+	# once; cap it lower (test-remote.sh, GORGE_REMOTE_FALLBACK_CPU).
+	[ -z "${TEST_TARGETS_FALLBACK:-}" ] || { cpu=$fcpu%; procs=$fprocs; }
 	if [ "$mode" = list ] || [ "$mode" = smart ]; then
 		: # list runs go list only; smart caps each of its own steps
 	elif systemd-run --user --scope -q true >/dev/null 2>&1; then
-		exec systemd-run --user --scope -q -p MemoryMax=$mem -p CPUQuota=$cpu env TEST_TARGETS_SCOPED=1 GOMAXPROCS=4 GOMEMLIMIT=$lim bash "$top/scripts/test-targets.sh" "$@"
+		exec systemd-run --user --scope -q -p MemoryMax=$mem -p CPUQuota=$cpu env TEST_TARGETS_SCOPED=1 GOMAXPROCS=$procs GOMEMLIMIT=$lim bash "$top/scripts/test-targets.sh" "$@"
 	else
 		echo "test-targets: note: no user systemd; running uncapped" >&2
 	fi
@@ -110,7 +122,7 @@ capped() {
 	if [ -n "$have_sd" ]; then systemd-run --user --scope -q -p MemoryMax="$1" -p CPUQuota="$2" "${@:3}"; else "${@:3}"; fi
 }
 dirac_tables() { # needed before any dirac package plays a game; a no-op when the tables are current
-	local c=(); [ -n "${TEST_TARGETS_SCOPED:-}" ] || c=(capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB)
+	local c=(); [ -n "${TEST_TARGETS_SCOPED:-}" ] || c=(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB)
 	"${c[@]}" make -s dirac-tables >.ds4/scratch/test/dirac-tables.log 2>&1 || verdict ENV "make dirac-tables failed: .ds4/scratch/test/dirac-tables.log"
 }
 
@@ -157,8 +169,8 @@ if [ "$mode" = one ]; then
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
-		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | GORGE_POOLS) envs+=("$kv") ;;
-		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
+		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | GORGE_POOLS) envs+=("$kv") ;;
+		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN GORGE_POOLS (got ${kv%%=*})" ;;
 		esac
 	done
 	pkgs_label=$pkg
@@ -203,7 +215,7 @@ if [ "$mode" = targeted ]; then
 	fi
 	[ "$dirac" = 0 ] || dirac_tables
 	if [ "${#whole[@]}" -gt 0 ]; then
-		gojson 10m -p 4 "${whole[@]}" || finish ""
+		gojson 10m -p "$lp" "${whole[@]}" || finish ""
 	fi
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		gojson 5m -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
@@ -295,10 +307,10 @@ cpk=$({ git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go'; git grep -lE 
 ncpk=$(wc -w <<<"$cpk")
 if sel=$(printf '%s\n' $cpk | "${py[@]}" census --base "$BASE") && [ -n "$sel" ]; then cpk=$sel; fi
 echo "census packages: $(wc -w <<<"$cpk") of $ncpk"
-capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run "$C" -skip '^TestStd[A-Za-z]*ReprosLockstep' $cpk ./internal/archtest >>"$json" 2>&1
+capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run "$C" -skip '^TestStd[A-Za-z]*ReprosLockstep' $cpk ./internal/archtest >>"$json" 2>&1
 rc=$?
 if [ "$rc" = 0 ]; then
-	capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB KERNEL_UNREFUSE_BASE="$BASE" go test -json -failfast -timeout 5m -run '^TestUnrefusalNeedsProof$' ./dirac/oracle >>"$json" 2>&1
+	capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB KERNEL_UNREFUSE_BASE="$BASE" go test -json -failfast -timeout 5m -run '^TestUnrefusalNeedsProof$' ./dirac/oracle >>"$json" 2>&1
 	rc=$?
 fi
 [ "$rc" = 0 ] || finish ""
@@ -396,7 +408,7 @@ if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
 
 	if grep -q 'dirac gate: skipped' "$S/dg"; then
 		echo "== 4b repro tables (the dirac gate skipped)"
-		capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
 		rc=$?
 		[ "$rc" = 0 ] || finish ""
 	fi
@@ -404,7 +416,7 @@ else
 	echo "== 4 skipped (the lander runs the affected and dirac gates)"
 	if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/oracle/testdata/repro/')" ]; then
 		echo "== 4b repro tables (the diff touches dirac/oracle/testdata/repro/)"
-		capped 8G 400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
 		rc=$?
 		[ "$rc" = 0 ] || finish ""
 	fi

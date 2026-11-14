@@ -129,7 +129,7 @@ func (s *State) auraHostFor(k *prep, c CardID, ctrl uint8, aura bool) (Slot, uin
 	if !aura {
 		return NoSlot, hostOK
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	switch s.enchantCands(k, c, ctrl, &buf) {
 	case 0:
 		return NoSlot, hostNone

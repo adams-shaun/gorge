@@ -73,7 +73,7 @@ func TestReduceCostEquipTargetSelf(t *testing.T) {
 			t.Fatalf("decision kind %d, want priority", d.Kind)
 		}
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(x.sword) {
+			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(x.sword)) {
 				x.sc.s.Apply(a)
 				return true
 			}
@@ -90,7 +90,7 @@ func TestReduceCostEquipTargetSelf(t *testing.T) {
 			t.Fatalf("target ask has %d options %v, want %d", d.N, d.Options[:d.N], wantN)
 		}
 		for i := 0; i < int(d.N); i++ {
-			if d.Options[i].Target() == uint8(tgt) {
+			if d.Options[i].Target() == TCode(uint8(tgt)) {
 				x.sc.s.Apply(d.Options[i])
 				return
 			}

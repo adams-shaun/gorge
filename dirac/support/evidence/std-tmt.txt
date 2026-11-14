@@ -4,6 +4,7 @@ Anchovy & Banana Pizza
 April O'Neil, Hacktivist
 April O'Neil, Kunoichi Trainee
 April, Reporter of the Weird
+Armaggon, Future Shark
 Baxter Stockman
 Bebop & Rocksteady
 Bebop, Warthog Warrior
@@ -11,6 +12,7 @@ Bot Bashing Time
 Brilliance Unleashed
 Buzz Bots
 Casey Jones, Jury-Rig Justiciar
+Casey Jones, Vigilante
 Chrome Dome
 Cool but Rude
 Courier of Comestibles
@@ -35,6 +37,7 @@ Featherbrained Filcher
 Foot Elite
 Foot Headquarters
 Foot Mystic
+Foot Ninjas
 Forest
 Frog Butler
 Fugitive Droid
@@ -71,9 +74,12 @@ Leonardo, Sewer Samurai
 Lessons from Life
 Lita, Little Orphan Amphibian
 Lord Dregg, Insect Invader
+Madame Null, Power Broker
 Make Your Move
+Manhole Missile
 Mechanized Ninja Cavalry
 Metalhead
+Michelangelo's Technique
 Michelangelo, Game Master
 Michelangelo, Improviser
 Michelangelo, Mutant BFF
@@ -95,10 +101,12 @@ Mutant Town Musicians
 Negate
 New Generation's Technique
 Nobody
+North Wind Avatar
 Northampton Farm
 Novel Nunchaku
 Null Group Biological Assets
 Old Hob, Alleycat Blues
+Omni-Cheese Pizza
 Ooze Spill
 Oroku Saki, Shredder Rising
 Pain 101
@@ -118,6 +126,7 @@ Raph & Mikey, Troublemakers
 Raphael, Ninja Destroyer
 Raphael, Tough Turtle
 Raphael, the Nightwatcher
+Rat King, Verminister
 Ravenous Robots
 Ray Fillet, Man Ray
 Renet, Temporal Apprentice
@@ -150,7 +159,9 @@ TCRI Building
 Tainted Treats
 Technodrome
 Tenderize
+The Cloning of Shredder
 The Last Ronin
+The Last Ronin's Technique
 The Ooze
 Tokka & Rahzar, Terrible Twos
 Transdimensional Bovine
@@ -161,9 +172,11 @@ Turtle Blimp
 Turtle Lair
 Turtle Power!
 Turtle Van
+Turtles Forever
 Uneasy Alliance
 Utrom Scientists
 Venus, Torn Between Worlds
+Weather Maker
 West Wind Avatar
 Wingnut, Bat on the Belfry
 Zog, Triceraton Castaway

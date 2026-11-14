@@ -18,6 +18,7 @@ type EventService interface {
 	EventState(id, token string) (protocol.EventState, error)
 	JoinEvent(id, token string, req protocol.JoinEventRequest) (protocol.EventState, error)
 	DraftPack(id, token string) (protocol.DraftPack, error)
+	DraftAdvice(id, token string) (protocol.DraftAdvice, error)
 	Pick(id, token string, req protocol.PickRequest) (protocol.DraftPack, error)
 	EventPool(id, token string) (protocol.EventPool, error)
 	CheckDeck(id, token string, req protocol.DeckRequest) (protocol.DeckCheck, error)
@@ -51,6 +52,7 @@ func (h *handler) mountEvents(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/events/{id}", h.eventState)
 	mux.HandleFunc("POST /api/events/{id}/join", h.joinEvent)
 	mux.HandleFunc("GET /api/events/{id}/pack", h.eventPack)
+	mux.HandleFunc("GET /api/events/{id}/advice", h.eventAdvice)
 	mux.HandleFunc("POST /api/events/{id}/pick", h.eventPick)
 	mux.HandleFunc("GET /api/events/{id}/pool", h.eventPool)
 	mux.HandleFunc("POST /api/events/{id}/deck/check", h.eventCheckDeck)
@@ -76,6 +78,7 @@ func (h *handler) mountEvents(mux *http.ServeMux) {
 		"/api/events/{id}",
 		"/api/events/{id}/join",
 		"/api/events/{id}/pack",
+		"/api/events/{id}/advice",
 		"/api/events/{id}/pick",
 		"/api/events/{id}/pool",
 		"/api/events/{id}/deck/check",
@@ -139,6 +142,15 @@ func (h *handler) eventPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, pack)
+}
+
+func (h *handler) eventAdvice(w http.ResponseWriter, r *http.Request) {
+	adv, err := h.opts.Events.DraftAdvice(r.PathValue("id"), eventToken(r))
+	if err != nil {
+		writeEventError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, adv)
 }
 
 func (h *handler) eventPick(w http.ResponseWriter, r *http.Request) {

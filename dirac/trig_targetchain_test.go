@@ -21,23 +21,23 @@ func TestCastTargetsAll(t *testing.T) {
 	if sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a spell with no target matched")
 	}
-	e.nt, e.tgt[0] = 1, uint8(src)
+	e.nt, e.tgt[0] = 1, TCode(src)
 	if !sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a spell targeting only the source did not match")
 	}
-	e.nt, e.tgt[1] = 2, uint8(other)
+	e.nt, e.tgt[1] = 2, TCode(other)
 	if !sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a spell also targeting another creature did not match")
 	}
-	e.tgt[0], e.tgt[1] = uint8(other), uint8(src)
+	e.tgt[0], e.tgt[1] = TCode(other), TCode(src)
 	if !sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("the source in a later slot did not match")
 	}
-	e.nt, e.tgt[0] = 1, uint8(other)
+	e.nt, e.tgt[0] = 1, TCode(other)
 	if sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a spell targeting only another creature matched")
 	}
-	e.nt, e.tgt[0] = 1, PlayerTarget0
+	e.nt, e.tgt[0] = 1, TCode(PlayerTarget0)
 	if sc.s.castTargetsAll(sc.k, f, &e, l) {
 		t.Fatal("a player target matched")
 	}

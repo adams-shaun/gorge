@@ -27,10 +27,12 @@ const payPickBlight = 250
 func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID) bool {
 	switch kind {
 	case kop.PayMana:
-		if f != 0 && int(s.pl[p].life) < int(f) {
-			return false // a trigger's own mana-and-life cost: F is the life
+		if l := kop.PayManaLife(f); l != 0 && int(s.pl[p].life) < l {
+			return false // a trigger's own mana-and-life cost: F carries the life
 		}
 		c := manaOf(amt, pips)
+		kop.PayManaHyb(f, &c) // a trigger's own hybrid cost (cost_trighybrid.go)
+		s.announcedHyb(&c)
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
@@ -121,6 +123,10 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
 	pips := in.B.N
+	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
+		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
+		return true
+	}
 	if kind == kop.PayMana && amt > 255 && s.afterCumulative(k) {
 		amt = 255 // n age counters of a generic cost: no pool pays more, and the ask holds a byte (trig_cumulative.go)
 	}
@@ -167,6 +173,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayManaX {
 		return s.execTrigX(k, p, skip, amt) // trig_maypayx.go
 	}
+	if kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0 {
+		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
+	}
 	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
 	if stackSelfGone || !s.canPayGen(k, p, kind, amt, pips, in.F) && !s.windowPays(k, p, kind, skip, amt, pips) &&
 		!s.trigCostPotentialPays(k, p, kind, skip, amt, pips, in.F) {
@@ -199,7 +208,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if kind != kop.PayMana || skip&pfModes != 0 || s.res.e.kind != seTrigger {
 		return false
 	}
-	if life != 0 && int(s.pl[SeatIx(p)].life) < int(life) {
+	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
 	other := payDesc{class: pdOther}
@@ -207,6 +216,8 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 		return false
 	}
 	c := manaOf(amt, pips)
+	kop.PayManaHyb(life, &c) // cost_trighybrid.go
+	s.announcedHyb(&c)
 	var av avail
 	s.availPotentialFor(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
@@ -323,10 +334,15 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
+			break
+		}
 		for v := range k.t.TypeVocab {
-			d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+			d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 		}
 
+	case raGenPayPip:
+		s.payPipOptions(k, d) // cost_trighybrid.go
 	case raGenPay:
 		d.Sub = ChGenPay
 		if s.g.pickF&pfWard != 0 {
@@ -350,7 +366,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			for m := s.ctrlM[p]; m.any(); m = m.rest() {
 				sl := m.first()
 				if s.matchPermGen(k, f, sl, p, src, layerFull) {
-					d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+					d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 				}
 			}
 			break
@@ -362,7 +378,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				pp := &s.perms[sl]
 				for c := 0; c < int(kop.NumCounterKinds3); c++ {
 					if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
-						d.add(MakeAction(AkChoose, uint8(pp.obj), 0, uint8(c)))
+						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, uint8(c)))
 					}
 				}
 			}
@@ -391,7 +407,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
-				d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 			}
 			break
 		}
@@ -412,7 +428,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for m := s.ctrlM[p].andNot(s.g.sacM); m.any(); m = m.rest() {
 			sl := m.first()
 			if s.matchPermGen(k, f, sl, p, src, layerFull) && !(sac && s.sacBlocked(k, sl)) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		s.tapXVarDone(k, d) // closes a tapXType<X/Spec> pick (cost_tapxvar.go)
@@ -420,13 +436,13 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChArrange
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.g.lookSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(s.resArm().look[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.resArm().look[i]), 0, 0))
 			}
 		}
 	case raGenResTarget:
 		in := &s.prog(k)[r.pc]
 		t := tspecE(k, &r.e, int(in.C))
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.targetCands(k, t, r.e.ctrl, s.resSrcSlot(k), r.e.obj, &buf)
 		// gorge's mid-resolution target ask: a KChoose over the cards
 		// ("card"), closed by done for an up-to slot
@@ -439,7 +455,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 	case raGenDivide:
 		d.Sub = ChGenDivide
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		in := &s.prog(k)[r.pc]
 		m := s.divTargets(k, &r.e, uint8(tgtSlotOf(in.Obj)), &codes)
 		for i := 0; i < m; i++ {
@@ -485,7 +501,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for i := 0; i < int(s.g.nlook); i++ {
 			o := s.resArm().look[i]
 			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) && s.pickFits(k, f, o, true) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 		if d.N == 0 || s.digMayStop(k) {
@@ -501,7 +517,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChGenPileSplit
 		for i := 0; i < int(s.g.nrem); i++ {
 			if s.g.lookSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(s.g.rem[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.g.rem[i]), 0, 0))
 			}
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -528,7 +544,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 		}
 		for _, o := range buf[:n] {
-			d.add(MakeAction(AkChoose, uint8(o), 0, s.g.pickZ))
+			d.add(MakeAction(AkChoose, TCode(o), 0, s.g.pickZ))
 		}
 	case raGenCastFree:
 		d.Sub = ChGenCastFree
@@ -536,7 +552,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			if s.freeRepeated(i) {
 				continue // an AllowRepeats$ card is offered once, at its first place left (cast_freerepeat.go)
 			}
-			d.add(MakeAction(AkChoose, uint8(s.g.free[i]), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.g.free[i]), 0, 0))
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	case raGenChooseCard:
@@ -551,7 +567,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if s.prog(k)[r.pc].C == chooseFaceDownPick {
 			d.Sub = ChGenFaceDownPick // gorge's face_down_choice pick (CR 701.58a)
 		}
-		if s.prog(k)[r.pc].C == chooseCopyPick {
+		if c := s.prog(k)[r.pc].C; c == chooseCopyPick || c == choosePopulatePick {
 			d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
 		}
 		s.cardCands(k, s.prog(k)[r.pc].F, r.askP, d)
@@ -579,7 +595,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.copyTargetOptions(k, d, int(r.left))
 	case raGenEnchant:
 		d.Sub = ChGenEnchant
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.enchantCands(k, s.enchantingCard(k), r.askP, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
@@ -725,6 +741,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenBranch:
 		s.g.branch = a.Mode()
 		s.continueRes(k, 0)
+	case raGenPayPip:
+		s.applyPayPip(k, a) // cost_trighybrid.go
 	case raGenPay:
 		if a.Mode() == 0 {
 			s.payDone(k, false)
@@ -736,7 +754,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				s.startChainExile(k, ch) // a mana-and-exile cost (cost_exilepool.go)
 				return
 			}
-			c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[r.pc].B.N))
+			c := s.resPayCost(k) // cost_trighybrid.go
 			if s.g.pickF&(pfWard|pfModes) != 0 {
 				paused, short := s.payWindowAsk(k, s.g.pickP, &c, winPay) // gorge's ward / unless mana window
 				if paused {
@@ -934,7 +952,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenResTarget:
 		in := &s.prog(k)[r.pc]
 		i := int(in.C)
-		c := uint8(NoTarget)
+		c := NoTarget
 		if a.Kind() == AkChoose {
 			c = a.Source()
 		}
@@ -1003,10 +1021,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenDigArrange:
 		o := Obj(a.Source())
 		pl := &s.pl[s.g.pickP]
-		s.detach(o)
-		s.objs[o].zone = kop.ZoneLibrary
-		s.objs[o].ver++
-		pl.libBottom(o)
+		if s.digArrangeTop(k) {
+			s.digArrangeTopPick(o) // zone_digtoporder.go
+		} else {
+			s.detach(o)
+			s.objs[o].zone = kop.ZoneLibrary
+			s.objs[o].ver++
+			pl.libBottom(o)
+		}
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.resArm().look[i] == o {
 				s.g.lookSel |= 1 << i
@@ -1217,7 +1239,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
 			s.res.ask = raNone
-			s.g.pre.val = uint8(s.objs[a.Source()].slot)
+			s.g.pre.val = objWord(uint8(s.objs[a.Source()].slot))
 			s.g.pre.state = preDigEnchantDone
 			if s.rerunMove(k, &s.prog(k)[r.pc]) {
 				return // suspended again at another Aura's choice
@@ -1247,9 +1269,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.continueRes(k, 0)
 			return
 		}
-		s.g.pre.val = a.Mode()
+		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		if s.g.pre.state == preHideLand {
 			s.hideLandAnswer(k) // kw_hideaway.go
@@ -1281,12 +1303,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenTokChoice:
 		in := &s.prog(k)[r.pc]
-		s.g.pre.val = a.Mode()
+		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akClone {
 			s.g.pre.val = cloneAnswer(a) // a copy token's clone election (ctr_entryperkind.go)
 		}
 		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		s.g.pre.state = 2
 		t := r.lastTok
@@ -1382,6 +1404,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 // payDone finishes an unless / if-you-do / ward payment.
 func (s *State) payDone(k *prep, paid bool) {
 	s.noteExileTrigNewOutcome(paid) // the trigger-own ExileAnyGrave tally (trig_mayexile.go)
+	s.payHyb = 0                    // the announced hybrid faces (cost_trighybrid.go)
 	f := s.g.pickF
 	if f&pfWard != 0 {
 		s.res.ask = raNone
@@ -1408,8 +1431,8 @@ func (s *State) payDone(k *prep, paid bool) {
 		skip = uint8(f & 0x7ff)
 	}
 	if paid && s.g.pickZ == kop.PayMana && s.res.e.kind == seTrigger {
-		if life := s.prog(k)[s.res.pc].F; life != 0 {
-			s.loseLife(k, s.g.pickP, int(life)) // the mana-and-life cost's life (Zoraline)
+		if life := kop.PayManaLife(s.prog(k)[s.res.pc].F); life != 0 {
+			s.loseLife(k, s.g.pickP, life) // the mana-and-life cost's life (Zoraline)
 		}
 		s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
 	}
@@ -1754,12 +1777,13 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.shareLandTypeCands(k, in, d, list) // zone_sharelandtype.go
 		return
 	}
+	selfOnly := in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneGraveyard && in.F != 0 && k.t.Filters[in.F].Flags&kop.FSelf != 0 // Card.StrictlySelf: the resolving source's own card (Genju of the Fields)
 	for _, o := range list {
-		if s.picksHas(o) {
+		if s.picksHas(o) || selfOnly && o != s.res.e.obj {
 			continue
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -1878,8 +1902,11 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	attach := z == kop.ZoneBattlefield && in != nil && in.Op == kop.OpSearchEx &&
 		in.B.N&kop.SrSearchAttach != 0 && !DebugCzAttachOff
 	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
-	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
-		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
+	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&(kop.SrNoShuffle|kop.SrThenTop) != 0) {
+		// act_mayask.go: the first answered ends on top (an unshuffled
+		// search too, and a shuffled one's ThenTop cards: gorge
+		// placeLibraryObjects pins them in the answer order, Goblin Recruiter)
+		s.reverseLook()
 	}
 	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
 	// each one's enters check sees the whole batch (gorge's zone batch): Roiling
@@ -2265,7 +2292,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			if s.cmdZoneReplace(k, o, &zz, &bb) {
 				deferred = s.heldPark(hr)
 				// resume the take loop at this card after the answer
-				s.g.pre.val = uint8(i)
+				s.g.pre.val = objWord(uint8(i))
 				return true // a CR 903.9b commander move parked before it happens
 			}
 			s.detach(o)
@@ -2291,7 +2318,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
-		s.res.ask, s.res.askP = raGenDigArrange, p
+		s.res.ask, s.res.askP = raGenDigArrange, s.digArrangeAsker(k)
 		return true
 	}
 	if z == kop.ZoneBattlefield {
@@ -2343,7 +2370,7 @@ func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return NoSlot
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, c, p, &buf) != 1 {
 		return NoSlot
 	}
@@ -2361,7 +2388,7 @@ func (s *State) digAuraPark(k *prep, o Obj, p uint8) bool {
 		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, c, p, &buf) < 2 {
 		return false
 	}
@@ -2377,7 +2404,7 @@ func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.enchantCands(k, c, p, &buf) == 0
 }
 
@@ -2454,7 +2481,7 @@ func (s *State) digAuraPlayerPark(k *prep, o Obj, p uint8) bool {
 // or more unanswered candidates (whose choice the dig does not pose yet).
 func (s *State) digAuraPlayerHost(k *prep, o Obj, p uint8) (uint8, bool) {
 	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchPlayerDone {
-		return s.g.pre.val, true // the answered choice among two or more seats
+		return uint8(s.g.pre.val), true // the answered choice among two or more seats
 	}
 	c := s.objs[o].card
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtPlayer {
@@ -2533,7 +2560,7 @@ func (s *State) cardCands(k *prep, f kop.FilterID, p uint8, d *Decision) int {
 	add := func(o Obj) {
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	if z == kop.ZoneNone || z == kop.ZoneBattlefield {

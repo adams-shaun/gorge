@@ -44,7 +44,7 @@ func TestEnterCountersCountFromTheEnteringPermanent(t *testing.T) {
 	sc.perm(id["Elegy Acolyte"], 1)
 	g := sc.grave(id["Luxknight Breacher"], 1, 1)[0]
 	sc.s.res.e.obj, sc.s.res.e.ctrl = skiff, 0
-	sc.s.res.e.tgt[0] = uint8(g)
+	sc.s.res.e.tgt[0] = TCode(g)
 	sc.s.npend = 0
 	if sc.s.execReturn(sc.k, &kop.Instr{Op: kop.OpReturnEx, Obj: kop.RefTarget0, C: int16(kop.ZoneBattlefield)}, NoSlot) {
 		t.Fatal("execReturn asked for an Aura host")

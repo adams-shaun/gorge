@@ -8,13 +8,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // highest, or with OppExtLowest the lowest, of one figure per opponent
 // (gorge lifeExtreme, playerCountExtreme). An empty group reads 0: gorge
 // reports a life extreme unresolvable there, and the group is empty only at
-// the game's end, where no later read decides anything.
+// the game's end, where no later read decides anything. OppExtNonTrigPl
+// walks every living player but the trigger entry's trigger player instead
+// (gorge nonTriggeredTargetGroup: with no trigger entry, every living player).
 func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 	what := int(x.N) & 0xff
 	lowest := int(x.N)&kop.OppExtLowest != 0
+	skip := ctx.ctrl
+	if int(x.N)&kop.OppExtNonTrigPl != 0 {
+		skip = 255
+		if e := ctx.e; e != nil && e.kind == seTrigger {
+			skip = e.trigPl
+		}
+	}
 	best, seen := 0, false
 	for p := uint8(0); p < s.nSeats(); p++ {
-		if p == ctx.ctrl || s.out(p) {
+		if p == skip || s.out(p) {
 			continue
 		}
 		v := 1

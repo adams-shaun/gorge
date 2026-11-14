@@ -69,7 +69,7 @@ func (s *State) graveCands(k *prep, p uint8, f kop.FilterID, src, exclude Obj, d
 		}
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return n
@@ -123,7 +123,7 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		}
 		d.N = 0
 		if ob := &s.objs[e.obj]; ob.zone == kop.ZoneGraveyard {
-			d.add(MakeAction(AkChoose, uint8(e.obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(e.obj), 0, 0))
 		}
 		if d.N == 0 {
 			panic("kernel: put-to-library cost no longer payable") // unreachable after the offer gate
@@ -141,7 +141,7 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 			sl := m.first()
 			if s.sacMatch(k, pc.Filter, sl, e.ctrl, src) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 1)) // forage_food
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 1)) // forage_food
 			}
 		}
 		if d.N == 0 {
@@ -157,7 +157,7 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 			sl := m.first()
 			if s.matchPerm(k, pc.Filter, sl, e.ctrl, src) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		if d.N == 0 {
@@ -178,6 +178,9 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		return s.returnPickOptions(k, d, pc) // a Return<N/Spec> part (act_energy.go)
 	}
 	n, f := int(pc.N), pc.Filter
+	if exileXCost(pc) {
+		n = int(e.x) // ExileFromGrave<X/Spec>: the announced X (cost_exilex.go)
+	}
 	if pc.ExileGSelf {
 		// ExileFromGrave<1/CARDNAME> first (gorge exAsk's unasked singleton),
 		// then the N other cards: the source is the first exile pick.
@@ -308,7 +311,7 @@ func (s *State) graveActOK(k *prep, a *kop.Ability, p uint8, o Obj) bool {
 		if t.UpTo || t.TFlags&kop.TgfAtResolution != 0 || t.Kind != kop.TgtCard || t.Filter == 0 || k.t.Filters[t.Filter].Flags&kop.FOther == 0 {
 			continue
 		}
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if s.targetCands(k, t, p, NoSlot, o, &buf) < int(max8(t.Min, 1)) {
 			return false
 		}
@@ -377,7 +380,7 @@ func (s *State) forageResOptions(k *prep, d *Decision) {
 	f := s.genPickFilter(k)
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		if sl := m.first(); s.sacMatchGen(k, f, sl, p, NoSlot) {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 1))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 1))
 		}
 	}
 }
