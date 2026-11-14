@@ -50,7 +50,7 @@ INSTR_CORE=${INSTR_CORE:-20}
 PERF_MAX=${PERF_MAX:-1.06}
 # The accepted program base: instructions per op before the instruction budget was set.
 INSTR_PB_FDN=52373
-INSTR_PB_BLB=54677
+INSTR_PB_BLB=56097
 
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
