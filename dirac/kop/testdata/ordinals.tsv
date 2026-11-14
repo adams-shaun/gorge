@@ -5,6 +5,7 @@ AbReplacement	AbilityKind	5
 AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
+AdamantLiveRead	untyped int	32
 AddPhaseCombat	untyped int	0
 AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
