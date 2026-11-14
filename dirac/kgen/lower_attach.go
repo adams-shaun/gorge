@@ -1,5 +1,7 @@
 package kgen
 
+import "strings"
+
 // attachObject lowers an Attach whose Object$ names another object than
 // the source (gorge effAttach's definedSpec Object$, the first object it
 // resolves): one known object -- the node's own target (Targeted,
@@ -17,6 +19,9 @@ package kgen
 // which the kernel's AttachObj attaches each, and RememberAttached$ True
 // remembers each object attached (B = 1).
 func (lc *lowerCtx) attachObject(ps *params, o string) error {
+	if strings.HasPrefix(o, attachGroupPrefix) {
+		return lc.attachGroupChoices(ps, o) // lower_attachgroup.go
+	}
 	remember := false
 	if o == "ParentTarget" {
 		if v, ok := ps.get("RememberAttached"); ok {

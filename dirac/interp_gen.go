@@ -53,9 +53,9 @@ const (
 // The asks just above raGenManifestDread live in its free offsets (+4..+6),
 // not in the iota block above: the offset families that anchor at
 // raGenManifestDread (+1/+2 modal_activated.go, +3 zone_changezoneparams.go's
-// may-mill, +40.. act_mayask.go, ...) assign values by addition, so the next
-// iota value would alias one of them and its first handler would claim the
-// other family's election.
+// may-mill, +7 act_libplace.go, +8 repl_chooseplayer.go, +40.. act_mayask.go,
+// ...) assign values by addition, so the next iota value would alias one of
+// them and its first handler would claim the other family's election.
 const (
 	raGenDigAllOpt = raGenManifestDread + 4 // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 	raGenCmdZone   = raGenManifestDread + 5 // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
@@ -133,6 +133,7 @@ const (
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
+	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -977,6 +978,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
+		}
+		if in.C == chooseAttachDest {
+			return s.attachDest(k, p) // tgt_attachdest.go
 		}
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go
@@ -2420,7 +2424,8 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
-			s.notePlDamagedNC(k, code) // value_oppsdamaged.go
+			s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
+			s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {

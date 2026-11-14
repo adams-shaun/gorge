@@ -212,6 +212,9 @@ func (s *State) resolveTop(k *prep) {
 			s.afterResolve()
 			return
 		}
+		if k.ascend {
+			s.spellBlessing(k, &e) // CR 702.131a, before the program reads it (kw_ascend.go)
+		}
 	case seTrigger, seAbility:
 		if e.ab == abProwess {
 			ob := &s.objs[e.obj]
@@ -959,6 +962,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return n
 	}
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]

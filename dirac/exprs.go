@@ -427,6 +427,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = int(s.pl[ctx.ctrl].lifeGained)
 	case kop.ExOppLifeLostThisTurn:
 		v = s.oppsLifeLost(ctx.ctrl)
+	case kop.ExDmgOppsTaken:
+		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -687,6 +689,8 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.graveCards(ctx.ctrl) >= 7 // a token waiting to cease is no card (CR 111.7)
 	case kop.CondYourTurn:
 		r = s.active == ctx.ctrl
+	case kop.CondBlessing:
+		r = s.condBlessing(ctx.ctrl) // kw_ascend.go
 	case kop.CondRefMatches:
 		r = cmp(c.Op, s.countRefMatches(k, c.Ref, c.F, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondPromised:

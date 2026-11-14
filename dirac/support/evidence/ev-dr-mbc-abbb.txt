@@ -1,4 +1,5 @@
 Baird, Steward of Argive
+Citadel Gate
 Dauthi Trapper
 Daxos, Blessed by the Sun
 Dissenter's Deliverance
@@ -6,8 +7,11 @@ Elas il-Kor, Sadistic Pilgrim
 Errant Ephemeron
 Forest
 Forest Bear
+Heartless Act
 Humble
 Island
+Journey to Nowhere
+Lassoed by the Law
 Loot, Exuberant Explorer
 Lyna, Veil of Vengeance
 Masked Vandal
@@ -18,8 +22,10 @@ Overprotect
 Plains
 Rakdos, Patron of Chaos
 Serum Visions
+Sneering Shadewriter
 Strafe
 Swamp
+Torpor Orb
 Traveling Minister
 Up the Beanstalk
 Whirler Rogue

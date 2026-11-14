@@ -70,6 +70,11 @@ func (lc *lowerCtx) bareCondition(ps *params, c string) (lCond, error) {
 		return lc.optCostCond(ps) // lower_optcost.go
 	case "Threshold":
 		return lCond{Kind: cThreshold}, nil
+	case "Blessing":
+		// CR 702.131's city's blessing, the resolving controller's one-way
+		// latch (gorge effects/conditions.go's bare-Blessing arm: an
+		// out-of-range controller denies)
+		return lCond{Kind: cBlessing}, nil
 	case "Delirium":
 		return deliriumCond(), nil
 	case "Metalcraft":

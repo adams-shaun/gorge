@@ -863,8 +863,12 @@ type resCtx struct {
 	// 255 when the resolution recorded no choice (an empty pool). Read
 	// through RefResChosenPlayer (Maddening Hex's Attach to the chosen player).
 	chosenPl uint8
-	cpl      uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
-	remLK    int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// chPl is the resolution's mid-resolution ChoosePlayer answer (seat + 1,
+	// 0 none; ExtChoosePlayerMid), which RefChosenPlayer reads while the
+	// resolution holds it (repl_chooseplayer.go resChosenPlayer)
+	chPl  uint8
+	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
+	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet
@@ -999,6 +1003,12 @@ type stateCore struct {
 
 	// Decisions counts the decisions answered (SeqNo).
 	Decisions uint32
+
+	// payHyb: a trigger's own hybrid PayMana cost's announced faces, three
+	// bits per pip from bit 0, colour+1 (cost_trighybrid.go). Cleared when
+	// the ask settles. It sits here, after Decisions, because genState's
+	// reserve has no byte left: the byte fills the padding before perms.
+	payHyb uint8
 }
 
 const (
