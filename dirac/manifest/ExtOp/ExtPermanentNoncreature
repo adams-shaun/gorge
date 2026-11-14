@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtPermanentNoncreature
+value: 85
+forge: PermanentNoncreature
+census: api PermanentNoncreature all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

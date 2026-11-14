@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExCardBasePower
+value: 103
+forge: CardBasePower
+census: count CardBasePower all=2 std=1 mbc=0 sole=0
+state: code 0
+status: reserved

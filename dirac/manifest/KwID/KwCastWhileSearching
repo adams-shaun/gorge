@@ -1,0 +1,7 @@
+family: KwID
+name: KwCastWhileSearching
+value: 122
+forge: While you're searching your library, you may cast CARDNAME from your library.
+census: kw While you're searching your library, you may cast CARDNAME from your library. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

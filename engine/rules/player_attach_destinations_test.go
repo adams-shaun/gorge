@@ -13,17 +13,17 @@ import (
 
 // This file covers the ordinary DB$ Attach destination walk for the three
 // corpus carriers whose SVar names a PLAYER destination WITHOUT either a
-// `Keyword$ Enchant` param or a `PlayerChoices$` param -- so they cannot ride
+// Keyword$ Enchant param or a PlayerChoices$ param -- so they cannot ride
 // effAttach's Enchant:Player branch or its PlayerChoices$ branch and must be
 // admitted by the ordinary Defined$ destination walk itself:
 //
-//   - Archnemesis   `DB$ Attach | Object$ Self | Defined$ TriggeredAttackingPlayer`
-//   - Maddening Hex `DB$ Attach | Defined$ ChosenPlayer`
-//   - Ardenn        `DB$ Attach | Defined$ Targeted | ValidTgts$ Permanent,Player
-//                   | Object$ Valid Aura.YouCtrl,Equipment.YouCtrl | Optional$ True`
+//   - Archnemesis   attaches itself to the triggered attacking player
+//   - Maddening Hex attaches to the chosen player
+//   - Ardenn        optionally attaches any Auras and Equipment you control
+//                   to a targeted permanent or player
 //
 // and the fourth, Curse of Leeches, whose PlayerChoices$ Player pool is
-// delivered through a `R:Event$ Transform` replacement rather than a cast.
+// delivered through a Transform replacement rather than a cast.
 
 // drivePlayerAttach answers the decisions an Attach resolution poses --
 // priority passes, optional yes/no, a target or a player choice -- until the
@@ -139,9 +139,9 @@ func yesOption(d *decision.Decision) int {
 }
 
 // TestArdennAttachesPluralAurasToChosenPlayer drives Ardenn's begin-combat
-// trigger over the ordinary destination walk: `Object$ Valid
-// Aura.YouCtrl,Equipment.YouCtrl` resolves a PLURAL object list and `Defined$
-// Targeted | ValidTgts$ Permanent,Player` names the chosen player, so both the
+// trigger over the ordinary destination walk: its object list (any Auras and
+// Equipment you control) resolves PLURAL and its destination (a targeted
+// permanent or player) names the chosen player, so both the
 // plural walk and the player admission are exercised at once. The Aura is
 // Enchant:Player so it is admitted; the Equipment in the same pool must NOT
 // attach to the player.
@@ -201,11 +201,10 @@ func TestArdennAttachesPluralAurasToChosenPlayer(t *testing.T) {
 }
 
 // TestArchnemesisAttackTriggerAttachesToAttackingPlayer drives Archnemesis'
-// `T:Mode$ AttackersDeclared | AttackedTarget$ You` trigger, whose
-// `DB$ Attach | Object$ Self | Defined$ TriggeredAttackingPlayer` names a
-// player destination with neither Keyword$ nor PlayerChoices$. Seat 1 attacks
-// seat 0; accepting the may must attach the Aura to seat 1 through the
-// ordinary destination walk.
+// trigger on attackers being declared against you, whose Attach of itself to
+// the triggered attacking player names a player destination with neither
+// Keyword$ nor PlayerChoices$. Seat 1 attacks seat 0; accepting the may must
+// attach the Aura to seat 1 through the ordinary destination walk.
 func TestArchnemesisAttackTriggerAttachesToAttackingPlayer(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

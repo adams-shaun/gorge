@@ -11,9 +11,9 @@ import (
 )
 
 // Shire Shirriff is an example of the "you may <pay>. When you
-// do, <effect>" idiom: its ETB trigger's Execute is
-// `AB$ ImmediateTrigger | Cost$ Sac<1/Card.token/token> | Execute$ TrigExile`,
-// and the chained DB$ ChangeZone carries Duration$ UntilHostLeavesPlay. The
+// do, <effect>" idiom: its ETB trigger's Execute is an ImmediateTrigger whose
+// cost is sacrificing a token and whose effect is the exile trigger, and the
+// chained DB$ ChangeZone carries Duration$ UntilHostLeavesPlay. The
 // api:ImmediateTrigger primitive and the triggered-cost pay/decline window
 // were merged in 453f516d; these tests pin the reported card end to end on
 // the REAL corpus card (the licensing rule: no Forge script text is

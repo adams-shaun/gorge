@@ -7,8 +7,8 @@ import "github.com/adams-shaun/gorge/engine/cards"
 //
 //   - K:Start your engines is the CardDef.Engines flag (lower.go); the
 //     keyword's trigger and the speed start are the kernel's own.
-//   - A max-speed static `S:Mode$ Continuous | AffectedDefined$ Self (Affected$ Card.Self) |
-//     Condition$ MaxSpeed | AddAbility$|AddTrigger$ <svar>` (CR 702.179e,
+//   - A max-speed static (a continuous static on the card itself, gated
+//     on the MaxSpeed condition, granting an ability or trigger; CR 702.179e,
 //     gorge maxSpeedAbilities / the static walk's MaxSpeed condition)
 //     lowers as the card's own activated or triggered ability carrying a
 //     max-speed gate (Gate{CtrMaxSpeed}): it exists only while the

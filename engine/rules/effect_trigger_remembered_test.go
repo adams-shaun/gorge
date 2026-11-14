@@ -83,8 +83,8 @@ const (
 	howlerBearSrc = "Name:Howler Bear Fixture\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nK:Haste\nOracle:x\n"
 )
 
-// Captain Howler, Sea Scourge's DBEffect (`RememberObjects$ Targeted |
-// Triggers$ TrigDamage`, `ValidSource$ Creature.IsRemembered`) draws when the
+// Captain Howler, Sea Scourge's DBEffect (it remembers the target and carries a
+// damage trigger whose source must be the remembered creature) draws when the
 // pumped creature deals combat damage to a player: the Effect trigger reads
 // the Effect's own capture, not Howler's resolving memory.
 func TestCaptainHowlerDrawsOnCombatDamage(t *testing.T) {

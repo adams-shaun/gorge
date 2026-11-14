@@ -10,7 +10,7 @@ import (
 
 // The Skyclave Apparition class (CR 400.7 pending referents): a leave trigger
 // whose body returns the card its source's battlefield stint exiled
-// (`Defined$ Remembered | ConditionPresent$ Card.ExiledWithSource`). The
+// (the remembered card, on condition it is still exiled with the source). The
 // source dies, its leave trigger queues, and BEFORE the trigger resolves the
 // source re-enters the battlefield from the graveyard (removal resolving,
 // then a reanimation effect on top of it). Two things must hold at once:

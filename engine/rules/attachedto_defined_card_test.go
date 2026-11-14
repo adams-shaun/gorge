@@ -136,8 +136,9 @@ func TestFumbleGainsBothAndAttachesThemToAnotherCreature(t *testing.T) {
 			e.G.Obj(ids["aura"]).Controller, e.G.Obj(ids["equip"]).Controller)
 	}
 
-	// The attach-back leg: `Object$ AttachedTo Targeted.Aura,Equipment |
-	// Choices$ Creature` must attach BOTH resolved objects to the destination.
+	// The attach-back leg, attaching the Auras and Equipment that were attached
+	// to the target to a chosen creature, must attach BOTH resolved objects to
+	// the destination.
 	// The engine already CHAINS GainControl -> DBAttach (Fumble's
 	// `SubAbility$ DBAttach`), so resolving GainControl above has already run
 	// the attach-back leg: there is exactly ONE legal destination creature, so

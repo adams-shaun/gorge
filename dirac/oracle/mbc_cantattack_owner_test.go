@@ -12,8 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The MBC combat-7 spelling family: S:Mode$ CantAttack | ValidCard$ Card.Self
-// | Target$ Player.CardOwner,Planeswalker.ControlledBy Player.CardOwner
+// The MBC combat-7 spelling family: a CantAttack static on the card itself
+// whose Target is the card's owner and the planeswalkers that owner controls
 // (Xantcha, Sleeper Agent: it can't attack its owner or the planeswalkers its
 // owner controls). Xantcha itself also needs the ChoosePlayer replacement, a
 // param-Draw Activator$ and a CardController LoseLife, none of them lowered

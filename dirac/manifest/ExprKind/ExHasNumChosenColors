@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExHasNumChosenColors
+value: 106
+forge: HasNumChosenColors
+census: count HasNumChosenColors all=2 std=0 mbc=0 sole=0
+state: unbounded (remembered/imprinted sets)
+status: blocked unbounded:remembered/imprinted-sets

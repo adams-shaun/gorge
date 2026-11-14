@@ -79,8 +79,9 @@ A refused card still has a row in the table, as an **inert stand-in**: printed c
 abilities. `Matchup` refuses a deck holding one, so a game never plays such a card as vanilla by accident. The
 whole-pool table keeps the row, so a search world dealing hidden cards from a pool can still deal it.
 
-Two ratchets pin what lowers: a per-set count over each set's card list and a corpus-wide count. A fall fails, and a rise
-is re-pinned in the same commit. `kgen -census-std` prints the per-set table and ranks refusal classes by how many
+Two ratchets pin what lowers: a per-set count over each set's card list and a corpus-wide count, held as data in
+`dirac/kgen/testdata/acceptance.tsv`. A fall fails, and a rise is re-pinned; CI holds every pin exact
+(`DIRAC_PIN_STRICT=1`). `kgen -census-std` prints the per-set table and ranks refusal classes by how many
 Standard cards each one blocks.
 
 ## Lowered, refused, evidenced

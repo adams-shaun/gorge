@@ -13,13 +13,13 @@ import (
 // The cast-provenance gate family, pinned on real corpus
 // cards in both directions:
 //
-//   - Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
-//     Card.wasCastFromYourHandByYou` gate (engine/effects/conditions.go): the
+//   - Amped Raptor's gate on the triggered card having been cast from your
+//     hand by you (engine/effects/conditions.go): the
 //     exile-until DigUntil chain runs ONLY when the entering permanent was
 //     cast from its controller's hand — before the gate's defined group was
 //     enumerable the sub ran unconditionally, exiling on every entry.
-//   - Emperor Apatzec Intli IV's `ConditionDefined$ TriggeredCard |
-//     ConditionPresent$ Creature.powerGE4` gate, one of the 33 raw corpus
+//   - Emperor Apatzec Intli IV's gate on the triggered card being a creature
+//     with power 4 or greater, one of the 33 raw corpus
 //     lines the same change makes real: a creature entering at power 4 or
 //     more gains its perpetual haste, a smaller one does not.
 //

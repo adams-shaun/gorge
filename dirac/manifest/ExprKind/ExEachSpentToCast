@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExEachSpentToCast
+value: 93
+forge: EachSpentToCast
+census: count EachSpentToCast all=3 std=0 mbc=0 sole=3
+state: slotbyte 112 (cast facts)
+status: reserved

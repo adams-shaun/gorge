@@ -1,0 +1,6 @@
+family: mech
+name: mechSneaked
+value: 11
+state: slotbit 16/16
+status: active
+doc: slots whose permanent's spell was cast for its sneak cost (CR 702.190a; kw_sneak.go)

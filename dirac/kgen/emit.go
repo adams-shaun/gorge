@@ -358,6 +358,9 @@ func buildPool(lw *lowered) ([]*lCard, []built, *poolTables, error) {
 	if len(pt.missing) > 0 {
 		return nil, nil, nil, fmt.Errorf("subtype table incomplete after two passes: %v", pt.missing)
 	}
+	if err := refuseInactiveCodes(pt, all, bs); err != nil {
+		return nil, nil, nil, err
+	}
 	// A card whose token was refused at build time is refused too.
 	for i, c := range lw.cards {
 		for _, ti := range bs[i].tokens {

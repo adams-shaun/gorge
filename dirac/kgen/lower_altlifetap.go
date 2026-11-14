@@ -13,3 +13,10 @@ func altLifeOrTapShape(c *kop.Cost) bool {
 	}
 	return c.Flags == kop.CostPayLife || c.Flags == kop.CostTapX
 }
+
+// altSacGatedShape: the alternative cost shapes offered under the same card
+// gate as the sacrifice alternatives (cardBuilder.altSacOK): a discard, or
+// life or tapping alone.
+func altSacGatedShape(c *kop.Cost) bool {
+	return altDiscardShape(c) || altLifeOrTapShape(c)
+}

@@ -1,0 +1,7 @@
+family: KwID
+name: KwChampion
+value: 71
+forge: Champion
+census: kw Champion all=12 std=0 mbc=0 sole=10
+state: slotobj 112 (champion)
+status: reserved

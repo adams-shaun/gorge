@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExScryBottom
+value: 145
+forge: ScryBottom
+census: count ScryBottom all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

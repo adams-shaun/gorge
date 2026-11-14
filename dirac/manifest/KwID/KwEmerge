@@ -1,0 +1,7 @@
+family: KwID
+name: KwEmerge
+value: 58
+forge: Emerge
+census: kw Emerge all=15 std=0 mbc=0 sole=11
+state: code 0
+status: reserved

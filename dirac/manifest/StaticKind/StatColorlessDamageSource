@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatColorlessDamageSource
+value: 54
+forge: ColorlessDamageSource
+census: stat ColorlessDamageSource all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

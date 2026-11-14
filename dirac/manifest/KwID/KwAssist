@@ -1,0 +1,7 @@
+family: KwID
+name: KwAssist
+value: 54
+forge: Assist
+census: kw Assist all=16 std=0 mbc=0 sole=16
+state: code 0
+status: reserved

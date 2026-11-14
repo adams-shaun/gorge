@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCantChangeDayTime
+value: 47
+forge: CantChangeDayTime
+census: stat CantChangeDayTime all=1 std=0 mbc=0 sole=0
+state: global 1 (day/night)
+status: reserved

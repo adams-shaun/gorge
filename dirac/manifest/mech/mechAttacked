@@ -1,0 +1,6 @@
+family: mech
+name: mechAttacked
+value: 12
+state: slotbit 16/16
+status: active
+doc: slots whose permanent was declared an attacker this turn (filter_permmarks.go)

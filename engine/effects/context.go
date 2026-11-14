@@ -924,8 +924,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// entries only; a remembered CARD contributes no player (the plain
 		// Remembered family's getDefinedPlayers rule, the same one
 		// plainRememberedSelector and token.go's TokenAttacking reader encode).
-		// The Toymaker's Trap's `DB$ LoseLife | Defined$ RememberedPlayer`
-		// charges the opponent who guessed wrong -- before this case the
+		// The Toymaker's Trap's LoseLife on the remembered player charges the
+		// opponent who guessed wrong -- before this case the
 		// selector was unknown and Defined's plain-Remembered drop left it
 		// charging NOBODY. An empty remembered-player pool is the known-empty
 		// set (ok=true), never a fallback to the source.

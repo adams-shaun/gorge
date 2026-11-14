@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigNewGame
+value: 73
+forge: NewGame
+census: trig NewGame all=5 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

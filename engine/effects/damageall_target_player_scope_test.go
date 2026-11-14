@@ -24,7 +24,7 @@ func playerCtx(p state.PlayerID) *Ctx {
 }
 
 // TestDamageAllTargetPlayerScopeRestrictsSweep is the plain Aggravate shape:
-// ValidTgts$ Player | ValidCards$ Creature. Seat 1's creature must take the
+// target a player, damage each creature. Seat 1's creature must take the
 // damage; seat 0's creatures must take none.
 func TestDamageAllTargetPlayerScopeRestrictsSweep(t *testing.T) {
 	g, ids := board(t)
@@ -86,7 +86,7 @@ func TestDamageAllTargetPlayerScopeSpansCommaAlternatives(t *testing.T) {
 }
 
 // TestDamageAllOpponentScopeRestrictsSweep is the Simoon / Savage Alliance
-// shape: ValidTgts$ Opponent | ValidCards$ Creature.
+// shape: target an opponent, damage each creature.
 func TestDamageAllOpponentScopeRestrictsSweep(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}

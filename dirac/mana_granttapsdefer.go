@@ -74,7 +74,7 @@ func (g *grantSrch) tapsDeferTry(t *State, i int, sl Slot, ans uint8) bool {
 // actions run.
 func (s *State) tapsDeferApply(k *prep, p uint8, a Action, sl Slot, ans uint8) {
 	var spill [kop.NumManaKinds]uint8
-	s.scriptGapTap(k, p, a, sl, slotMask{}, slotMask{}, slotMask{}, slotMask{}.with(sl), int(ans), &spill)
+	s.scriptGapTap(k, p, a, sl, slotMask{}, slotMask{}, slotMask{}, slotMask{}.with(sl), slotMask{}, int(ans), &spill)
 	s.sba(k)
 }
 

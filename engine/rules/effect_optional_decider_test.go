@@ -15,9 +15,8 @@ import (
 // election is posed when the minted ability resolves (rules' resolveTop, the
 // CR 603.5 optional gate), to the seat the card names.
 //
-// The carrier is the real corpus card Beck (Beck // Call), whose
-// `A:SP$ Effect | Triggers$ CreatureEntered` names the optional ChangesZone
-// body. Its registration is an EffectRepeat one, so it survives each firing
+// The carrier is the real corpus card Beck (Beck // Call), whose spell is an
+// Effect carrying one trigger that names the optional ChangesZone body. Its registration is an EffectRepeat one, so it survives each firing
 // and the SAME game exercises both branches: an accepted election runs the
 // body (a draw), a declined one does not.
 func TestEffectOptionalDeciderElectionIsPosedAtResolution(t *testing.T) {

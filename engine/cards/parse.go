@@ -239,8 +239,8 @@ func normalizeImplicitTarget(api string, p map[string]string) {
 
 // splitStaticModes splits a Static's Mode$ value on commas. The corpus
 // prints compound statics as ONE S: line naming several modes over the same
-// parameters (Pacifism's "S:Mode$ CantAttack,CantBlock | ValidCard$
-// Creature.EnchantedBy"), and every Static.Mode consumer — primitive.go's
+// parameters (Pacifism's one static line naming both CantAttack and CantBlock
+// for the enchanted creature), and every Static.Mode consumer — primitive.go's
 // "stat:" capability token, activeStatics, staticEffects, collectAction/
 // collectCostStatics, face.go's CDA reads, compiled_catalog.go's
 // staticModeCode — compares Mode against ONE literal mode, so the raw comma

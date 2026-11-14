@@ -317,7 +317,7 @@ raises a ceiling.
 | `knownUnmodelledCountHeads` | `TestEveryRepoDeckCountHeadResolves` (`engine/rules/count_head_ratchet_test.go`) |
 | `effects.modelledValueHeads` vs the evaluator | `TestValueHeadRegistryMatchesEvaluator` |
 | the known approximations (`docs/agents/known-approximations/`, each file capped in `ALLOWED.txt`) | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) |
-| function-length and interface-width ceilings | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink` (`internal/codeshape`), currently skipped; the direction still holds |
+| interface-width and dispatch ceilings; per-function length and complexity ceilings over `engine/rules`, `engine/effects` and `dirac/` | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`, `TestComplexFunctionsOnlyShrink` (`internal/codeshape`); these fail on growth only |
 | test-budget exception lists | `cmd/testbudget`; see [its invariant](#every-test-fits-the-budget) |
 
 **Why.** "Supported" should only ever mean more. A two-way ratchet makes the
@@ -414,8 +414,8 @@ gorge's rules. It shows the two agree, not that they are right, so a bug in both
 ([what lockstep proves](dirac/oracle.md#what-lockstep-proves-and-what-it-doesnt)).
 
 **What goes red.** `scripts/dirac-gate.sh <base>`: lockstep on the committed FDN and BLB slices, both surfaces, the size bar,
-allocations and instructions per transition. CI runs `make dirac-slices` on every change and the whole of `dirac/oracle` on a
-pull request to `main`. A capacity stall is a declared limit and is always counted, not a failure.
+allocations and instructions per transition. CI runs `make dirac-slices` everywhere but a pull request to `main`, which
+runs the whole of `dirac/oracle` instead. A capacity stall is a declared limit and is always counted, not a failure.
 
 **To change.** Keep gorge's change, port it, and let the gate run. If a port doesn't fit the change, refuse the card by name.
 Raising the size bar is a deliberate decision of its own.

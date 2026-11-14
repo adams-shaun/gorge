@@ -89,5 +89,16 @@ class FailingPair(unittest.TestCase):
         self.assertEqual(pair, "30")
 
 
+class Step8(unittest.TestCase):
+    """Step 8 runs internal/archtest without its 386 cross-build (coverage audit 2026-11-14, item 6): the
+    91 s build moved to the affected side, off the gate's critical path."""
+
+    def test_archtest_runs_without_the_386_build(self):
+        with open(SCRIPT) as f:
+            lines = [ln for ln in f if re.search(r"\bgo test\b.*\./internal/archtest", ln)]
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn("-skip '^TestEngineCompilesFor32Bit$'", lines[0])
+
+
 if __name__ == "__main__":
     unittest.main()

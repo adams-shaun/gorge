@@ -1270,17 +1270,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.PayLife > 0 && c.LifeX {
 		return out, refuse("life cost: PayLife<N> beside PayLife<X>")
 	}
-	if c.PayLife > 0 && c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN {
-		// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
-		// lower_altexilehand.go): the two parts share Cost.N, one count
-		out.Flags |= kop.CostPayLife
-	} else if c.PayLife > 0 && lifeBesideSac(&c, &out) {
-		// PayLife<N> beside a sacrifice (Strands of Night): Cost.N stays the
-		// sacrifice's count and the life rides Cost.Ctr, as a may-play
-		// raise's does (raiseCost; kernel lifeCostOwed)
-		out.Flags |= kop.CostPayLife
-		out.Ctr = kop.CounterKind(c.PayLife)
-	} else if c.PayLife > 0 {
+	if !lifeSharesCount(&c, &out) && c.PayLife > 0 {
 		set(kop.CostPayLife, c.PayLife)
 	}
 	if c.LifeX {
@@ -1362,6 +1352,28 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		return out, fmt.Errorf("cost with two counted parts")
 	}
 	return out, nil
+}
+
+// lifeSharesCount sets out's PayLife part when c's PayLife<N> sits beside a
+// counted part that carries the life on a field of its own, and reports it.
+// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
+// lower_altexilehand.go): the two parts share Cost.N, one count. Beside a
+// sacrifice (Strands of Night): Cost.N stays the sacrifice's count and the
+// life rides Cost.Ctr, as a may-play raise's does (raiseCost; kernel
+// lifeCostOwed).
+func lifeSharesCount(c *lCost, out *kop.Cost) bool {
+	switch {
+	case c.PayLife == 0:
+		return false
+	case c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN:
+		out.Flags |= kop.CostPayLife
+	case lifeBesideSac(c, out):
+		out.Flags |= kop.CostPayLife
+		out.Ctr = kop.CounterKind(c.PayLife)
+	default:
+		return false
+	}
+	return true
 }
 
 // lifeBesideSac: c's PayLife<N> follows a plain Sac<N/Spec> and nothing else

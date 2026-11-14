@@ -11,7 +11,7 @@ import (
 
 // TestAnimateChosenColorResolvesTheRealChooseColorAnswer is the end-to-end pin
 // for Puca's Eye's real ETB chain: TrigDraw (draw a card) -> DBChooseColor
-// (choose a colour) -> DBAnimate (Colors$ ChosenColor | OverwriteColors$ True).
+// (choose a colour) -> DBAnimate (the chosen colour, replacing its colours).
 // It drives the actual mid-resolution ChooseColor ask the card poses and
 // answers GREEN -- deliberately not the first WUBRG option -- then reads the
 // animation off the battlefield object.

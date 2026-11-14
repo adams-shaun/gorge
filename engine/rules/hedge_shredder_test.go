@@ -2,9 +2,9 @@ package rules
 
 // Hedge Shredder's milled-lands batch trigger:
 // "Whenever one or more land cards are put into your graveyard from your
-// library, put them onto the battlefield tapped." Its body is
-// `DB$ ChangeZoneAll | ChangeType$ Card.TriggeredCards | Origin$ Graveyard |
-// Destination$ Battlefield | Tapped$ True` — the sweep must move exactly the
+// library, put them onto the battlefield tapped." Its body is a
+// ChangeZoneAll of the triggered cards from the graveyard onto the
+// battlefield tapped — the sweep must move exactly the
 // land cards the trigger CAPTURED (Ctx.Remembered), and only those: an
 // unrelated land already sitting in the same graveyard must stay put, because
 // the captured set (not the origin zone) bounds the sweep. This file is the

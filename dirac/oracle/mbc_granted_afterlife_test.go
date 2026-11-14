@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// TestMBCGrantedAfterlifeLowers plays Afterlife Insurance (MBC: PumpAll
-// ValidCards$ Creature.YouCtrl | KW$ Afterlife:1 | SubAbility$ DBDraw) in
+// TestMBCGrantedAfterlifeLowers plays Afterlife Insurance (MBC: a PumpAll
+// granting afterlife 1 to the creatures you control, then a draw) in
 // lockstep with gorge over the mbcafterlife fixture pool. The grant is a
 // latent dies trigger (the printed K:Afterlife expansion's shape, from
 // scriptfacts.GrantedKeywordTrigger) listed on each creature the PumpAll

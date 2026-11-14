@@ -196,8 +196,8 @@ type pendingTrigger struct {
 	Casualty bool
 	// CasPayload is the copy body's rider payload, in the StackCopy Counter
 	// grammar (events.StackCopyCounter): the Casualty:X carrier's script
-	// riders (Ob Nixilis, the Adversary's NonLegendary$ True |
-	// SetLoyalty$ Casualty:...), so the __kwCasualty: rebuild mints the
+	// riders (Ob Nixilis, the Adversary's nonlegendary and starting-loyalty
+	// riders), so the __kwCasualty: rebuild mints the
 	// identical copy body on replay. Empty for every numeric Casualty, whose
 	// copy is an exact copy. Plain data carried to the push's Counter.
 	CasPayload string
@@ -3277,9 +3277,9 @@ func init() {
 		// per non-flanking blocker, debuffing it -1/-1 until EOT via Pump.
 		"kw:Flanking",
 		// Bushido's expansion (engine/cards/kw_bushido.go) is TWO
-		// block-declaration triggers: Mode$ Blocks | ValidCard$ Card.Self
-		// ("blocks") and Mode$ AttackerBlocked | ValidCard$ Card.Self
-		// ("becomes blocked"), each a DB$ Pump of Defined$ Self +N/+N until
+		// block-declaration triggers: a Blocks trigger on itself
+		// ("blocks") and an AttackerBlocked trigger on itself
+		// ("becomes blocked"), each a Pump of itself +N/+N until
 		// end of turn (CR 702.45a).
 		"kw:Bushido",
 		// Afterlife's expansion (engine/cards/keywords.go) is a ChangesZone death

@@ -5,14 +5,16 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // extrablock: "can block an additional creature" (CanBlockAmount$ N) and
 // "can block any number of creatures" (CanBlockAny$ True) on a Continuous
 // static (CR 509.1a). gorge reads both (rules/combat/extrablock.go
-// BlockCapacity). dirac lowers exactly one shape, the creature's own
+// BlockCapacity). dirac lowers two shapes of amount 1: the creature's own
 // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (Ghastbark
-// Twins): CardDef.ExtraBlocks, a blocker of at most two attackers whose
+// Twins), CardDef.ExtraBlocks, and the grant S:Mode$ Continuous | Affected$
+// <creatures> | CanBlockAmount$ 1 (Brave the Sands), kop.StatExtraBlock over
+// the affected filter. Either makes a blocker of at most two attackers whose
 // controller divides its combat damage between them (CR 510.1d,
-// combat_extrablock.go). A Self static of amount 1 bounds every blocker's
-// capacity at two, because no other lowered card raises it. Every other
-// shape (CanBlockAny$, another amount, an Affected$ grant, a Condition$, an
-// extra key) is refused by name.
+// combat_extrablock.go); a blocker that two such sources reach (capacity
+// three) stops the kernel at StallExtraBlockCap. Every other shape
+// (CanBlockAny$, another amount, a Condition$, an extra key) is refused by
+// name.
 
 // extraBlockStatic lowers the self CanBlockAmount$ 1 static. It reports false
 // (and no error) for any other shape, which extraBlockRefusal then refuses.
@@ -20,8 +22,11 @@ func (lc *lowerCtx) extraBlockStatic(s cards.Static) (bool, error) {
 	ps := newParams(s.Params)
 	ps.consume("Mode", "Description")
 	// the card parser reads AffectedDefined$ Self as Affected$ Card.Self
-	if !ps.is("Affected", "Card.Self") && !ps.is("AffectedDefined", "Self") || !ps.is("CanBlockAmount", "1") {
+	if !ps.is("CanBlockAmount", "1") {
 		return false, nil
+	}
+	if !ps.is("Affected", "Card.Self") && !ps.is("AffectedDefined", "Self") {
+		return lc.extraBlockGrant(ps)
 	}
 	ps.consume("Affected", "AffectedDefined", "CanBlockAmount")
 	if len(ps.unread()) > 0 {
@@ -39,4 +44,38 @@ func extraBlockRefusal(sp *params) error {
 		}
 	}
 	return nil
+}
+
+// extraBlockGrant lowers the Affected$ grant of one extra block: only the
+// Affected$ filter (over the static's controller) and CanBlockAmount$ 1 may
+// be present, since gorge BlockCapacity reads the static's gate and an
+// AffectedDefined$ scope too.
+func (lc *lowerCtx) extraBlockGrant(ps *params) (bool, error) {
+	v, ok := ps.get("Affected")
+	if _, scoped := ps.m["AffectedDefined"]; !ok || scoped {
+		return false, nil
+	}
+	ps.consume("Affected", "CanBlockAmount")
+	if len(ps.unread()) > 0 {
+		return false, nil
+	}
+	f, err := lc.filter(v)
+	if err != nil {
+		return false, err
+	}
+	if f == nil || len(f.Clauses) == 0 || f.Players != 0 {
+		return false, nil
+	}
+	for _, c := range f.Clauses {
+		// only the lockstep-verified shape lowers: creatures the static's
+		// controller controls, no attachment, counter or other qualifier
+		// (Brave the Sands, High Ground); Echo Circlet's equipped creature,
+		// Foriysian Totem's self filter and Cenn's Tactician's counter gate
+		// stay refused until a lockstep game reaches them
+		if c.Flags != 0 || c.CmpStat != cmpNone || c.Ctrl != whoYou || c.Types != tCreature || c.Subtype != "" || c.NotTypes != 0 || c.Colors != "" || c.NotColors != "" {
+			return false, nil
+		}
+	}
+	lc.out.Statics = append(lc.out.Statics, lStatic{Kind: "ExtraBlock", F: f})
+	return true, nil
 }
