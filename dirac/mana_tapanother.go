@@ -313,6 +313,7 @@ const (
 	tapXPass                // p passes with a trigger of the path on the stack
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
+	tapXDefer               // a planner-deferred gap (a depletion land) taps for the answer col (mana_granttapsdefer.go)
 )
 
 type tapXKey struct {
@@ -394,7 +395,7 @@ func tapXPairAt(n, qi int) (int, int) {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.scriptTapsDefer(k, p))
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -453,7 +454,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXDefer {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -628,6 +629,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	}
 	if st.kind == tapXPlain {
 		s.tapXPlainDo(k, p, st.sl, st.col)
+		return
+	}
+	if st.kind == tapXDefer {
+		s.tdTap(k, p, st.act, st.sl, int(st.col))
 		return
 	}
 	if st.cand == NoSlot {
@@ -828,6 +833,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
 	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
+	def := t.scriptTapsDefer(k, p)
 	var cols [5]uint8
 	rs.cols(&cols)
 	var order [MaxPerm]Slot
@@ -842,6 +848,21 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			// its own mana it is no longer there for a tap-another cost
 			if rs.try(k, t, tapXStep{kind: tapXEach, sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true
+			}
+			continue
+		}
+		if def.has(sl) {
+			// a planner-deferred gap (a depletion land): one ask node when its
+			// activation asks a colour, then each answer in the search's order
+			// (mana_granttapsdefer.go)
+			nans := int(t.deferGapAnswers(k, sl))
+			if nans > 1 && !rs.tick() {
+				return false
+			}
+			for ans := 0; ans < nans; ans++ {
+				if rs.try(k, t, tapXStep{kind: tapXDefer, sl: sl, cand: NoSlot, cand2: NoSlot, col: uint8(ans), act: rs.a}) {
+					return true
+				}
 			}
 			continue
 		}

@@ -2401,7 +2401,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
-			if c.SacX || c.SacExile {
+			if c.SacX || c.SacExile || c.Sac != nil {
 				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
