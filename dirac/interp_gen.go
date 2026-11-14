@@ -862,6 +862,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		// gorge's effCleanup clears the source's persistent remembered list
+		// with the resolution's own (events.Choose "clear-remembered"); the
+		// persistent mark dies with it (interp_gen.go rememberMarkClr).
+		s.rememberMarkClr()
 		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
@@ -1312,6 +1316,31 @@ func (s *State) remember(o Obj) {
 		}
 		s.g.rem[s.g.nrem] = o
 		s.g.nrem++
+	}
+	// The source's persistent remembered list (gorge's event-backed
+	// o.Remembered, the Choose "remembered" fold each RememberChanged-style
+	// write emits) is non-empty from this resolution on: the host half of a
+	// ConditionDefined$ Remembered group gate reads it (gorge
+	// rememberedWithSource; Forge's areMet reads host.getRemembered(), which
+	// survives the resolution). A mark, never a set: the gate only asks
+	// whether some earlier resolution wrote anything. No touch: the mark is
+	// not part of o's projected view, its reads gate actions instead.
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjSet(s.k(), mechRem, o)
+	}
+}
+
+// rememberMarkClr empties the resolving source's persistent-remembered mark:
+// the full clears of the remembered state (gorge's effCleanup
+// ClearRemembered$, forgetOther's ForgetOtherRemembered$/ForgetOtherTargets$
+// -- the Choose "clear-remembered" fold) empty the source's persistent
+// o.Remembered with the resolution's own set, and exprs.go CondRemMark reads
+// the mark in its place. A one-object forget (gorge forgetRememberedOne,
+// ForgetChanged$/Play's ForgetPlayed$) drops one list member and leaves the
+// mark standing: the mark holds no membership, only non-emptiness.
+func (s *State) rememberMarkClr() {
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjClr(s.k(), mechRem, o)
 	}
 }
 
