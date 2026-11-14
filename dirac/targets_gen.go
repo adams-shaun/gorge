@@ -25,8 +25,9 @@ type multiTgt struct {
 // multiSlot reports whether spec t needs the multi-object path.
 func multiSlot(t *kop.TargetSpec) bool {
 	// TgfDecl only marks a copy declaration; TgfTrigChooser only moves the
-	// ask's player (cast.go), a single-object slot's qualifier
-	return t.Min|t.Max != 0 || t.Divide != 0 || t.TFlags&^(kop.TgfDecl|kop.TgfTrigChooser) != 0
+	// ask's player (cast.go), a single-object slot's qualifier; the player
+	// comparison flags only narrow a TgtPlayer slot's candidates (targetOK)
+	return t.Min|t.Max != 0 || t.Divide != 0 || t.TFlags&^(kop.TgfDecl|kop.TgfTrigChooser|kop.TgfPlayerCompareOK) != 0
 }
 
 const (

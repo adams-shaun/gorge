@@ -36,11 +36,14 @@ func (e *stackEntry) promised() bool {
 // nSubEvents is the number of trigger events with a slot subscription
 // mask (State.subs). TrigGiveGift and the events after it
 // (TrigProliferate, TrigTokenCreated: act_proliferate.go; TrigBecomeMonstrous:
-// act_monstrosity.go) have none and must stay the last events: the
-// array below fails to compile otherwise.
+// act_monstrosity.go; TrigBecomeMonarch: act_monarch.go; TrigUnattached:
+// trig_unattached.go) have none and must stay the tail: prep.go subscribes
+// by value (1<<Event masked to 1<<nSubEvents-1), so appending one is safe
+// and only an INSERT before TrigGiveGift would break it. The array below
+// fails to compile while the tail's last event is not the one pinned.
 const nSubEvents = kop.TrigGiveGift
 
-var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigExploited]
+var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigUnattached]
 
 // giftOptions poses the gift election (gorge giftAsk: decline first, then
 // one option per opponent, AliveFrom(caster) without the caster): mode 0

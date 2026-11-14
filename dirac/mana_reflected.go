@@ -81,6 +81,24 @@ func loneManaAb(c *kop.CardDef) bool {
 	return n == 1
 }
 
+// potentialReflNone marks the reflected mana abilities of the source at sl
+// handled in availPotentialFor's walk when the source's live view lists none
+// (an imprint mox with nothing imprinted, a Command Tower with no commander,
+// CR 903.4f): gorge's potential-mana walk adds nothing for them, while the
+// walk's fixpoint would admit the printed any-colour ability as an open source.
+func (s *State) potentialReflNone(k *prep, sl Slot, done *[MaxPerm]uint16) {
+	c := s.cardAt(sl)
+	if !k.gen.has(c, gfManaRefl) {
+		return
+	}
+	cd := &k.t.Cards[c]
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; j < 16 && a.Kind == kop.AbMana && a.AFlags&kop.AfManaReflect != 0 {
+			done[sl] |= 1 << j
+		}
+	}
+}
+
 // reflColours is the colours the reflected ability of the source at sl
 // reads: those of its controller's permanents matching ManaAmong (gorge
 // effects.ManaReflectedObjects with ReflectProperty$ Is), or, with

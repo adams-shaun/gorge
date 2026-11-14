@@ -210,12 +210,10 @@ func substitute(rng *rand.Rand, name string, sheet setdata.Sheet, sc setdata.She
 }
 
 // deadSheet returns the first sheet (in sorted order) variant v draws from
-// whose every card is on spec.Unplayable, or "" when each has a playable
+// whose every card is on spec.Unplayable, or that has no card at all (a
+// spec a caller cut down to a card list), or "" when each has a playable
 // card.
 func deadSheet(spec setdata.Spec, v int) string {
-	if len(spec.Unplayable) == 0 {
-		return ""
-	}
 	for _, name := range sortedSheetNames(spec.Config.Variants[v].Contents) {
 		dead := true
 		for _, sc := range spec.Config.Sheets[name].Cards {

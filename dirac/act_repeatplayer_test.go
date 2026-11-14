@@ -17,21 +17,28 @@ func TestRepeatEachPlayerControllerFirst(t *testing.T) {
 	sc.s.res.e.ctrl = 1
 	in := kop.Instr{Op: kop.OpRepeatEachPlayer, Obj: kop.RefEachPlayer, A: kop.Const(0), C: 1}
 	sc.s.exec(sc.k, &in)
-	if sc.s.g.eachPl != 1 || sc.s.g.repNext != 0 {
+	if sc.s.g.eachPl != 1 || sc.s.g.repNext != repOne(0) {
 		t.Fatalf("C=1: first %d next %d, want the controller (1) then 0", sc.s.g.eachPl, sc.s.g.repNext)
 	}
 	in.C = 0
 	sc.s.exec(sc.k, &in)
-	if sc.s.g.eachPl != 0 || sc.s.g.repNext != 1 {
+	if sc.s.g.eachPl != 0 || sc.s.g.repNext != repOne(1) {
 		t.Fatalf("C=0: first %d next %d, want APNAP (0 then 1)", sc.s.g.eachPl, sc.s.g.repNext)
 	}
 	// The controller is the active player: APNAP still starts with seat 0,
 	// so the C=0 swap must not reverse it.
 	sc.s.res.e.ctrl = 0
 	sc.s.exec(sc.k, &in)
-	if sc.s.g.eachPl != 0 || sc.s.g.repNext != 1 {
+	if sc.s.g.eachPl != 0 || sc.s.g.repNext != repOne(1) {
 		t.Fatalf("C=0 ctrl==active: first %d next %d, want APNAP (0 then 1)", sc.s.g.eachPl, sc.s.g.repNext)
 	}
+}
+
+// repOne is the each-player chain (g.repNext) holding the one seat p still
+// to come, in the build's encoding (seatsPack: the seat itself at two seats,
+// packed under a count at more).
+func repOne(p uint8) uint8 {
+	return seatsPack(seatSeq{s: [MaxSeats]uint8{p}, n: 1}, 0)
 }
 
 // TestPlayersControllerFirst: every RefEachPlayer consumer (draw, life,

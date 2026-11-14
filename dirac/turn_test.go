@@ -10,6 +10,7 @@ import (
 // before regular damage (CR 500.4, 510.4), and the end of the step is what moves on.
 func TestFirstStrikeStepEmptiesPools(t *testing.T) {
 	var s State
+	s.g.nseat = 2 // a two-player game, as InitN sets it (the dirac_mp build reads the count)
 	s.step = kop.StepFirstStrikeDamage
 	s.pl[0].pool[kop.R] = 2
 	s.pl[1].pool[kop.G] = 1

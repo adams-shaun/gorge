@@ -24,6 +24,9 @@ func runSupported(pool string, w io.Writer) error { return runSupportedView(pool
 // (decks.py --four-seat) replaces it as it replaces a refused card.
 func runSupportedView(pool string, allowUnverified, fourSeat bool, w io.Writer) error {
 	s, err := cardset.ByName(pool)
+	if err != nil && cardset.IsSynthName(pool) {
+		s, err = cardset.SynthByName(pool)
+	}
 	if err != nil {
 		return err
 	}

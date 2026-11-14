@@ -160,6 +160,15 @@ func (s *State) execPutCounter(k *prep, in *kop.Instr) bool {
 		s.putContract(k, in) // a player's counter (ctr_contract.go)
 		return true
 	}
+	if in.W != kop.RefNone {
+		return s.execPutCounterBy(k, in) // the Placer$ adder (act_chooseplayerres.go)
+	}
+	return s.execPutCounterAt(k, in)
+}
+
+// execPutCounterAt is execPutCounter's placement under the adder already
+// published.
+func (s *State) execPutCounterAt(k *prep, in *kop.Instr) bool {
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		amt := s.value(k, in.A)
 		if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {

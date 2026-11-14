@@ -1,0 +1,13 @@
+# the Kaya's Ghostform pool: when the enchanted permanent dies or is put
+# into exile, return that card to the battlefield under your control
+# (ChangesZone Battlefield->Graveyard,Exile ValidCard$ Card.AttachedBy),
+# against burn and an exiling removal spell
+# (dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Kaya's Ghostform
+Walking Corpse
+Swamp
+Shock
+Swords to Plowshares
+Raging Goblin
+Mountain
+Plains

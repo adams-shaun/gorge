@@ -13,7 +13,8 @@
 #   cleanup  <repo> <run>        stop the scope, remove the worktree, the refs, the patch and the status
 #
 # Settings arrive as TT_* environment variables (set by the client from ~/.config/gorge/test-targets.env):
-# TT_MAXRUNS, TT_WEIGHT, TT_CPU (percent), TT_MEM, TT_PROCS, TT_CARDS (the corpus on this box), TT_GOROOT.
+# TT_MAXRUNS, TT_WEIGHT, TT_CPU (percent), TT_MEM, TT_PROCS, TT_CARDS (the corpus on this box), TT_GOROOT, TT_NICE
+# (the run's nice level, default 5: below the landing gate's 0 as well as under its CPUWeight).
 # Layout: <repo>/../tt-wt/<run> worktrees, <repo>/../gocache (the landing gate's build cache, kept warm),
 # <repo>/../pools (deck pools, when present).
 set -uo pipefail
@@ -101,7 +102,9 @@ run)
 	c0=0
 	! contended || c0=1
 	cd "$wd" || infra "cd $wd"
-	inner=(env BASE="refs/tt/$run/base" TEST_TARGETS_REMOTE=1 TEST_TARGETS_SCOPED=1 GOMAXPROCS="${TT_PROCS:-16}" GOMEMLIMIT="${TT_GOMEMLIMIT:-40GiB}" bash scripts/test-targets.sh "$mode")
+	nl=${TT_NICE:-5}
+	case $nl in '' | *[!0-9]*) nl=5 ;; esac
+	inner=(nice -n "$nl" env BASE="refs/tt/$run/base" TEST_TARGETS_REMOTE=1 TEST_TARGETS_SCOPED=1 GOMAXPROCS="${TT_PROCS:-16}" GOMEMLIMIT="${TT_GOMEMLIMIT:-40GiB}" bash scripts/test-targets.sh "$mode")
 	# One scope for the whole run: scopes the run opens inside would escape this CPUWeight and CPUQuota
 	# (test-targets.sh opens none when TEST_TARGETS_REMOTE is set).
 	if systemd-run --user --scope -q true >/dev/null 2>&1; then

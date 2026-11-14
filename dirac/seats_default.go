@@ -43,6 +43,11 @@ type Obj uint8
 // NoObj is no object.
 const NoObj Obj = 255
 
+// maxEntered is the zone entries one turn's ledger records
+// (value_enteredledger.go); the next stalls StallEntered. Synthetic Standard
+// pools reach 47 at 300 pairs; a loop can reach more, and stalls.
+const maxEntered = 64
+
 // object.acts packs the owner above this turn's activation count: one owner
 // bit for two seats.
 const (

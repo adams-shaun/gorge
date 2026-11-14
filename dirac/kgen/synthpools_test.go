@@ -134,9 +134,10 @@ func TestNoSynthPoolIsTracked(t *testing.T) {
 	}
 }
 
-// TestSynthDraftPoolBuildsSplit: draftpools.txt's MBC list becomes dr-mbc, too big
-// for one table's subtype masks, so it builds as hash halves that each fit and
-// together hold every name of the list.
+// TestSynthDraftPoolBuildsSplit: draftpools.txt's MBC list becomes dr-mbc, over a
+// draft split's card cap (cardset.DraftSplitCards), so it builds as hash splits
+// that each hold at most the cap and together hold every name of the list, the
+// 16 of a cut on four hash bits (dr-mbc-aaaa ... dr-mbc-bbbb).
 func TestSynthDraftPoolBuildsSplit(t *testing.T) {
 	cardsDir := ratchetCards(t)
 	lists, err := synthDraftLists(gorge.TableSources(), cardsDir)
@@ -150,8 +151,8 @@ func TestSynthDraftPoolBuildsSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ts) < 2 {
-		t.Fatalf("dr-mbc built as %d table, want a split", len(ts))
+	if len(ts) != 16 {
+		t.Fatalf("dr-mbc built as %d tables, want 16", len(ts))
 	}
 	var cards []string
 	for _, x := range ts {
@@ -166,6 +167,12 @@ func TestSynthDraftPoolBuildsSplit(t *testing.T) {
 			if !cardset.IsSynthBasic(n) {
 				cards = append(cards, n)
 			}
+		}
+		if n := pd.NumCards - len(cardset.SynthBasics); n > cardset.DraftSplitCards {
+			t.Errorf("%s holds %d cards, over the cap of %d", x.name, n, cardset.DraftSplitCards)
+		}
+		if len(x.name) != len("dr-mbc-aaaa") {
+			t.Errorf("%s: want a four-letter split suffix", x.name)
 		}
 		t.Logf("%s: %d cards", x.name, pd.NumCards)
 	}

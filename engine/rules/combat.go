@@ -1680,7 +1680,7 @@ func (e *Engine) beginCombatPass(pass bool) {
 	e.combatRound.active = true
 	e.combatRound.doneElect = nil
 	e.combatRound.electQueue = e.asUnblockedNeeding(pass)
-	e.combatRound.queue = e.divisionNeeding(pass)
+	e.combatRound.queue = e.withoutElected(e.divisionNeeding(pass))
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
@@ -1689,6 +1689,25 @@ func (e *Engine) beginCombatPass(pass bool) {
 		return // a combat decision is pending; Advance pauses on it
 	}
 	e.finishCombatPass()
+}
+
+// withoutElected drops from a pass's division queue the attackers whose
+// as-unblocked election asUnblockedNeeding already auto-accepted (a mandatory
+// match, Outmaneuver): their whole power goes to the defending player, so a
+// division among their blockers would be a decision whose answer is never
+// read. An optional election's accept drops its attacker the same way
+// (handleAsUnblockedElection).
+func (e *Engine) withoutElected(queue []state.ObjID) []state.ObjID {
+	if len(e.combatRound.doneElect) == 0 {
+		return queue
+	}
+	out := queue[:0]
+	for _, id := range queue {
+		if !e.chosenElection(id) {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // divisionNeeding returns the attackers of this pass whose combat damage must

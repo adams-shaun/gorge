@@ -64,6 +64,8 @@ func prepTurnTallies(t *kop.Table, p *prep, g *genPrep) {
 			g.anyCombatHit, g.cdLegOn = true, true
 		case x.Kind == kop.ExOppsLostLife && x.N == 2:
 			g.anyCombatHit, g.cdDamOn = true, true
+		case x.Kind == kop.ExOppsLostLife && x.N == 3:
+			g.anyCombatHit, g.plDmgOn = true, true // value_oppsdamaged.go
 		case x.Kind == kop.ExSacrificedThisTurn && x.N == kop.SacrificedFood && food >= 0:
 			for c := range t.Cards {
 				if t.Cards[c].Subtypes.Has(food) {
@@ -96,6 +98,7 @@ func (s *State) turnTalliesNewTurn(k *prep) {
 	}{}
 	s.g.ncdh = 0
 	s.g.cdLeg = 0
+	s.g.plDmg = 0
 	s.mObjZero(k, mechAttackedObj)
 }
 
@@ -163,6 +166,7 @@ func (s *State) noteCombatHits(k *prep, r *dmgRec) {
 		if k.gen.cdDamOn {
 			s.g.cdLeg |= 0x10 << pl // dealt combat damage by any source (Tymna)
 		}
+		s.notePlDamaged(k, pl) // value_oppsdamaged.go
 		if k.gen.cdLegOn {
 			if ty := s.typesAt(k, ev.src); ty&kop.TCreature != 0 && ty&kop.TLegendary != 0 {
 				s.g.cdLeg |= 1 << pl

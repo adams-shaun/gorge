@@ -234,15 +234,70 @@ def settle(top, out, rounds, resume):
     sys.exit(f"not settled after {rounds} rounds")
 
 
-def merged_coverage(out, only=None):
-    """card -> [plays, unused keys in every run, pools it was played in]. A pool with a run
-    that did not pass counts for nothing, so an unfinished corpus leaves cards unverified.
-    With only, count the named pools' own runs alone."""
-    dirty = set()
+SYNTH_POOLS = ("std-", "dr-", "tail-", "fx-", "ev-")  # pools dealt by kfuzz -synth, credited from clean games
+
+
+def run_finished(out, pool, form):
+    """For one run of a synthetic pool whose rc is not 0: the cards of its bad games when the run
+    finished and failed only on bad games it names (a verdict line, no error skip, no unknown option
+    kind, at least one bad game and a bad-game line for every divergent, unmodelled and hung game),
+    else None: a run that failed with no bad game to name failed for some other reason."""
+    if not pool.startswith(SYNTH_POOLS):
+        return None
+    path = os.path.join(out, f"{pool}.{form}.out")
+    if not os.path.exists(path):
+        return None
+    v, held, bad = None, set(), 0
+    with open(path) as f:
+        for line in f:
+            m = VERDICT.match(line)
+            if m and m.group(1) == pool and v is None:
+                v = m
+            elif line.startswith("bad-game\t"):
+                bad += 1
+                held |= set(names_of(line.rstrip("\n").split("\t")[7]))
+            elif line.startswith("unknown-game\t"):
+                return None
+    if v is None or int(v.group(5)) or not bad or bad != int(v.group(7)) + int(v.group(8)) + int(v.group(10)):
+        return None
+    return held
+
+
+def run_rcs(out):
+    """pool -> form -> the run's rc, as a string."""
+    rcs = collections.defaultdict(dict)
     for path in run_files(out, "rc"):
+        pool, surface, m = run_parts(path)
         with open(path) as f:
-            if f.read().strip() != "0":
-                dirty.add(run_parts(path)[0])
+            rcs[pool][f"{surface}.m{m}"] = f.read().strip()
+    return rcs
+
+
+def pool_credit(out):
+    """(pools that count for nothing, cards a counted pool's bad games hold). A run that passed counts;
+    so does a synthetic pool's run that finished with bad games only (run_finished): its coverage holds
+    clean games alone (oracle.Coverage.MergeClean), and every card of its bad games is held back, in
+    every pool, so a card is credited only when no bad game holds it. Any other run that did not pass
+    makes its pool count for nothing, as an unfinished corpus leaves cards unverified."""
+    dirty, held = set(), set()
+    for pool, forms in run_rcs(out).items():
+        for form, rc in forms.items():
+            if rc == "0":
+                continue
+            h = run_finished(out, pool, form)
+            if h is None:
+                dirty.add(pool)
+                break
+            held |= h
+    return dirty, held
+
+
+def merged_coverage(out, only=None):
+    """card -> [plays, unused keys in every run, pools it was played in], over clean games only. A pool
+    with a run that did not pass, other than a synthetic one that finished with bad games only, counts
+    for nothing, and a card any counted pool's bad game holds is left out (pool_credit). With only,
+    count the named pools' own runs alone."""
+    dirty, held = pool_credit(out)
     cards = {}
     for path in run_files(out, "coverage"):
         pool = run_parts(path)[0]
@@ -252,6 +307,8 @@ def merged_coverage(out, only=None):
             next(f)
             for line in f:
                 card, cast, land, _, _, unused = line.rstrip("\n").split("\t")
+                if card in held:
+                    continue
                 plays = int(cast) + int(land)
                 unused = set(filter(None, unused.split(",")))
                 c = cards.setdefault(card, [0, unused, set()])
@@ -272,7 +329,7 @@ def refused_names(top):
 
 def require_pool_runs(out, pools):
     """Refuse, writing nothing, unless every named pool has the four expected runs (autopay and
-    full, mulligans 0 and 1), each passed."""
+    full, mulligans 0 and 1), each passed, or, for a synthetic pool, finished with bad games only."""
     for pool in pools:
         rc = {}
         for path in run_files(out, "rc"):
@@ -285,7 +342,7 @@ def require_pool_runs(out, pools):
         failed = []
         for form in EVIDENCE_FORMS:
             with open(rc[form]) as f:
-                if f.read().strip() != "0":
+                if f.read().strip() != "0" and run_finished(out, pool, form) is None:
                     failed.append(form)
         if failed:
             refuse(f"{pool} runs {' '.join(failed)} did not pass")
@@ -361,7 +418,8 @@ def write_evidence(top, out, pools=None):
 
     With pools, only those pools' lists and evidence-games rows are written, each list the union of
     the one in the tree and the cards meeting the floor over that pool's own clean games, and every
-    expected run of every named pool must have passed first. A card is never removed: only a
+    expected run of every named pool must have passed first; a synthetic pool's run may instead have
+    finished with bad games only, and then no card those games hold is credited. A card is never removed: only a
     refusal does that. Everything else is left byte for byte as it was.
 
     Either way the write refuses, changing nothing, when a pool that passed would lose a card no

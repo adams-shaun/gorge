@@ -29,7 +29,7 @@ func (s *State) revoltHolds(p uint8) bool {
 	p = SeatIx(p)
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.from != uint8(kop.ZoneBattlefield) {
+		if e.from() != uint8(kop.ZoneBattlefield) {
 			continue
 		}
 		c := e.leftController()
@@ -51,7 +51,7 @@ func (s *State) leftZone(k *prep, x *kop.Expr, ctx evalCtx) int {
 	ns := 0
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.from != uint8(x.N) {
+		if e.from() != uint8(x.N) {
 			continue
 		}
 		dup := false
@@ -67,7 +67,7 @@ func (s *State) leftZone(k *prep, x *kop.Expr, ctx evalCtx) int {
 			continue
 		}
 		ob := &s.objs[e.o]
-		if e.from == uint8(kop.ZoneBattlefield) {
+		if e.from() == uint8(kop.ZoneBattlefield) {
 			if !s.matchDeparture(k, x.F, e, ctx) {
 				continue
 			}

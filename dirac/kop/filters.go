@@ -162,6 +162,11 @@ const (
 	// DB$ Mana: the clause admits every activated-ability payment and nothing
 	// else (gorge restrictValidTermMatches); never a CR 116.2 special action.
 	SpmActivated
+	// SpmNonSpell marks a resolving DB$ Mana's CantCastNonArtifactSpells: the
+	// batch's other clauses are the artifact spells it may pay, and this one
+	// adds every payment that is not a spell (gorge restrictValidTermMatches);
+	// never a CR 116.2 special action.
+	SpmNonSpell
 )
 
 // SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.
@@ -219,7 +224,7 @@ const (
 	PredCMCEQ            Pred = PredWithPowerLEX + 1 + iota // mana value == PredN
 	PredCMCLEV                                              // mana value <= the value PredV (== when PredN is 1)
 	PredCountersGE                                          // at least PredN>>8 counters of kind PredN&0xff
-	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV; PredN 2: a card in a graveyard whose printed power <= PredV (dirac/filter_ptvalue.go); PredN 3: a battlefield permanent's power == PredV (Amalia's powerEQ20)
+	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV; PredN 2: power <= PredV, a battlefield permanent's current power (Legacy's Allure's powerLEX) or a card off it by its printed or last known power (Ruthless Technomancer's graveyard powerLEX; dirac/filter_ptvalue.go); PredN 3: a battlefield permanent's power == PredV (Amalia's powerEQ20)
 	PredToughnessGE                                         // toughness >= PredN
 	PredHasXCost                                            // the printed mana cost contains {X}
 	PredPowerLTToughness                                    // power < toughness
@@ -493,6 +498,25 @@ const W7BlockingTrigObj int16 = 31
 // is not attacking, or gone (NoSlot), leaves the set empty; nothing off the
 // battlefield attacks. Kitesail Skirmisher.
 const W7AttackingSame int16 = 32
+
+// W7BlockingSrc (PredWord7 sub-kind 33): gorge's blockingSource, a
+// battlefield creature blocking the filter's source (the source's own
+// BlockedBy list names it). No source on the battlefield and a card off the
+// battlefield fail closed. Master of Arms, Cromat.
+const W7BlockingSrc int16 = 33
+
+// W7BlockedBySrc (PredWord7 sub-kind 34): gorge's blockedBySource, a
+// battlefield creature the filter's source is blocking (the candidate's own
+// BlockedBy list names the source). No source on the battlefield and a card
+// off the battlefield fail closed. Cromat.
+const W7BlockedBySrc int16 = 34
+
+// W7EnteredFromLib (PredWord7 sub-kind 35): W7EnteredFromBF's library
+// sibling, gorge's ThisTurnEnteredFrom_Library: the card was put into the
+// zone it is in now from a library this turn (the object's latest arrival,
+// read off the entered ledger). Read off the battlefield only: kgen refuses
+// it on a permanent. The Weaver King, Captain N'ghathrod.
+const W7EnteredFromLib int16 = 35
 
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT

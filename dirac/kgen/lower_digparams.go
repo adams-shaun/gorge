@@ -50,35 +50,49 @@ func digNoLooking(ps *params, who lRef) error {
 
 // digRestTop reads Dig's LibraryPosition2$ (gorge dig_params: an omitted
 // or Library DestinationZone2$ defaults it to -1, the bottom). "0" keeps
-// the rest on top (kop.DigRestTop) -- exact only while at most one card
-// can remain: with two or more still on top gorge poses its
-// digTopOrderAsk arrange, which the kernel's DigRestTop does not, so that
-// shape refuses. At most one remains when DigNum$ is 1, or when a
-// mandatory take of every card but one has no ChangeValid$ to miss.
-func digRestTop(ps *params, n, take lValue, dest2 int) (bool, error) {
+// the rest on top (kop.DigRestTop). While at most one card can remain --
+// DigNum$ 1, or a mandatory take of every card but one with no ChangeValid$
+// to miss -- there is no order to choose; otherwise gorge poses its
+// digTopOrderAsk arrange over the cards left on top (CR 701.29a), which the
+// kernel plays as kop.DigRestTopAsk (ask true). The ask needs the rest to
+// sit on top after the take, so a take put on top of the library
+// (LibraryPosition$ 0) refuses beside it. The kernel's dig over several
+// players takes no choices, so a Dig of each player refuses, and one of
+// each opponent is the one opponent's only in two seats (lc.twoSeat; Spin
+// into Myth's ChosenPlayer, lower_chooseplayer.go).
+func (lc *lowerCtx) digRestTop(ps *params, who lRef, n, take lValue, dest, dest2 int) (top, ask bool, err error) {
 	v, ok := ps.get("LibraryPosition2")
 	if !ok {
-		return false, nil
+		return false, false, nil
 	}
 	if dest2 != zLibrary {
-		return false, refuse("LibraryPosition2 %q without a library DestinationZone2", v)
+		return false, false, refuse("LibraryPosition2 %q without a library DestinationZone2", v)
 	}
 	switch v {
 	case "-1":
-		return false, nil
+		return false, false, nil
 	case "0":
 	default:
-		return false, refuse("LibraryPosition2 %q", v)
+		return false, false, refuse("LibraryPosition2 %q", v)
 	}
 	if n.Kind != vConst || ps.is("FromBottom", "True") || ps.is("RestRandomOrder", "True") {
-		return false, refuse("LibraryPosition2 0 of a non-constant or reordered window")
+		return false, false, refuse("LibraryPosition2 0 of a non-constant or reordered window")
 	}
 	_, cv := ps.m["ChangeValid"]
 	_, opt := ps.m["Optional"]
 	if n.N <= 1 || take.Kind == vConst && take.N >= 1 && !cv && !opt && n.N-take.N <= 1 {
-		return true, nil
+		return true, false, nil
 	}
-	return false, refuse("LibraryPosition2 0 with two or more cards left on top (gorge digTopOrderAsk)")
+	if dest == zLibrary && strings.TrimSpace(ps.m["LibraryPosition"]) == "0" {
+		return false, false, refuse("LibraryPosition2 0 beside a take put on top")
+	}
+	if who.Kind == rEachPlayer {
+		return false, false, refuse("LibraryPosition2 0 on an each-player Dig")
+	}
+	if who.Kind == rEachOpp {
+		lc.twoSeat("a Dig's rest ordered on top of each opponent's library as the one opponent's")
+	}
+	return true, true, nil
 }
 
 // digImprint reads Dig's Imprint$ True (gorge effDig: each nontoken card
