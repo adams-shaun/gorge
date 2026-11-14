@@ -1,5 +1,7 @@
 package kgen
 
+import "strings"
+
 // copyAbility lowers "copy target activated or triggered ability you control;
 // you may choose new targets for the copy" (gorge
 // effCopySpellAbility's targeted arm with TargetType$
@@ -45,5 +47,27 @@ func (lc *lowerCtx) copyAbility(ps *params) error {
 		return err
 	}
 	lc.emit(lInstr{Op: "CopyAbility", Obj: lRef{Kind: rTarget, N: t}, A: n, C: 1})
+	return nil
+}
+
+// copyTriggeringAbility lowers an AbilityCast trigger's "copy that ability"
+// (Ertha Jo, Frontier Mentor: Defined$ TriggeredSpellAbility, gorge
+// effCopySpellAbility): Amount$ copies of the activated ability whose
+// activation fired the trigger, as an ExtCopyAbility whose ability is the one
+// the trigger recorded (kop.CopyAbTriggering). MayChooseTarget$ True lets the
+// copy's controller choose new targets as the copy is about to resolve
+// (CR 707.10c); anything else refuses.
+func (lc *lowerCtx) copyTriggeringAbility(ps *params) error {
+	if !ps.is("MayChooseTarget", "True") {
+		return refuse("CopySpellAbility of the triggering ability without MayChooseTarget$ True")
+	}
+	if v, ok := ps.m["Controller"]; ok && strings.TrimSpace(v) == "You" {
+		ps.consume("Controller")
+	}
+	n, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "CopyAbility", Obj: lRef{Kind: rTriggered}, A: n, C: 1})
 	return nil
 }

@@ -343,10 +343,6 @@ type FeatStats struct {
 	Decisions, Options int
 	// IncFallback counts incremental encodes that took the full rebuild.
 	IncFallback int
-	// ObjOverflow counts the decisions not compared because the position
-	// held an object past the encoders' byte (feat.Encoder.ObjOverflow, a
-	// declared dirac_mp limit).
-	ObjOverflow int
 	// First is the first mismatch.
 	First *FeatMismatch
 	// Rel marks the relational entity slots seen nonzero (index i is raw
@@ -383,12 +379,7 @@ func FeatCheck(pool *feat.Pool, st *FeatStats) func(ref *GorgeSide, k Side) *Div
 			return nil
 		}
 		gd := ref.fr.d
-		over := enc.ObjOverflow()
 		kst := enc.EncodeState(&r.s, &r.d)
-		if enc.ObjOverflow() != over {
-			st.ObjOverflow++
-			return nil
-		}
 		// The incremental encoder must reproduce the full rebuild exactly.
 		if m := CompareFeat(kst, inc.EncodeStateInc(&r.s, &r.d)); m != nil {
 			m.Where = "incremental " + m.Where
@@ -461,7 +452,7 @@ func FeatCheck(pool *feat.Pool, st *FeatStats) func(ref *GorgeSide, k Side) *Div
 				fmt.Printf("  g%d %s obj=%d pl=%d ab=%d mode=%q amt=%d atk=%d %q\n", j, o.Kind, o.Obj, o.Player, o.Ability, o.Mode, o.Amount, o.Attacker, o.Label)
 			}
 			for i := 0; i < int(r.d.N); i++ {
-				fmt.Printf("  kopt %d: %08x canon %v %s gorge %s at %d, kernel at %d\n", i, uint32(r.d.Options[i]), r.opts[i], enc.DebugObj(uint8(r.d.Options[i].Target())), gopts[i].Kind, ref.GorgeNetPos(r.opts[i], list), enc.ListPos(i))
+				fmt.Printf("  kopt %d: %08x canon %v %s gorge %s at %d, kernel at %d\n", i, uint32(r.d.Options[i]), r.opts[i], enc.DebugObj(r.d.Options[i].Target()), gopts[i].Kind, ref.GorgeNetPos(r.opts[i], list), enc.ListPos(i))
 			}
 			for _, pe := range ref.fr.prio {
 				fmt.Printf("  prio %v kind %d\n", pe.a, pe.kind)

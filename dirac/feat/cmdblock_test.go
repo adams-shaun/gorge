@@ -71,7 +71,7 @@ func TestCommanderBlockRelativeSeats(t *testing.T) {
 				t.Fatalf("viewer %d block %d damage column = %v, want seat %d taking from seat %d: %v", viewer, blk, got, p, src, wantDmg)
 			}
 			wantField := float32(0)
-			if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(uint8(cmd)).Zone == kop.ZoneBattlefield {
+			if cmd := s.FeatCommander(p); cmd != dirac.NoObj && e.po(cmd).Zone == kop.ZoneBattlefield {
 				wantField = 1
 			}
 			if got := st.Dense[base+denseCmdOnField]; got != wantField {

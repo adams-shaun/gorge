@@ -271,8 +271,22 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
 	var sMask, sN uint8
+	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
+	tapsNot := false
+	if ownSac {
+		// the mirror shape: a printed sacrifice-only ability (Eldrazi Spawn's
+		// {C}) beside a granted {T} ability (Path of Annihilation's any
+		// colour) -- the tap makes its mana, then the sacrifice makes its own
+		// (CR 602.2b, 605.1a); a tapped or summoning-sick source has only the
+		// sacrifice (CR 302.6)
+		sMask, sN, mask, n = mask, n, 0, 0
+		tapsNot = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
+	}
 	for i := 0; i < ng; i++ {
 		pc := s.grantView(k.gen, gi[i], sl)
+		if tapsNot && !pc.grantSac {
+			continue
+		}
 		if pc.grantSac && s.grantSacLive(sl, pc) {
 			sMask |= s.srcMaskAt(pc, sl)
 			sN = max(sN, pc.manaN)
@@ -1746,6 +1760,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.DashCost), ex, need, true
 			case a.Target() == castOverloadTgt && cd.HasOverload:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.OverloadCost), ex, need, true
+			case a.Target() == castCleaveTgt && cd.CleaveAb != 0:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.CleaveCost), ex, need, true
 			case a.Target() == castSurgeTgt && cd.HasSurge:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.SurgeCost), ex, need, true
 			}
@@ -1829,7 +1845,7 @@ func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:
-		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt {
+		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
 			need = grantNeedColours(k.cards[s.objs[a.Source()].card].cost)
 		}
 	}

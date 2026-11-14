@@ -85,6 +85,23 @@ const (
 	// trigmatch.DiscardCauseAdmits: a cost discard has no cause). Orvar, the
 	// All-Form; Guerrilla Tactics.
 	Tf5OppCause TrigFlags5 = 1 << 2
+	// Tf5TapsForMana: a TrigTaps line lowered from Mode$ TapsForMana (a
+	// non-Static$ trigger, Price of Glory): it fires only for a permanent
+	// tapped as the cost of a mana ability (gorge trigmatch tapsMatches'
+	// forMana flag), never for an attack, cost or effect tap. Bit 4.
+	Tf5TapsForMana TrigFlags5 = 1 << 4
+	// Tf5TapperNonActive: with Tf5TapsForMana, Activator$ Player.NonActive --
+	// the tapping player is not the turn's active player (gorge
+	// effects.MatchesPlayerSpec over TapActor). Bit 5.
+	Tf5TapperNonActive TrigFlags5 = 1 << 5
+	// Tf5OptSrcCtrl: with TfOptional, a DamageDone line whose "may"
+	// belongs to the controller of the damage source (OptionalDecider$
+	// TriggeredSourceController): the CR 603.5 resolution ask goes to that
+	// seat, the controller of the entry's trigger object (the damage
+	// source, read live; the owner once it left), not to the listener's
+	// controller (gorge deciderFromSpecTriggeredSourceController). Edric,
+	// Spymaster of Trest.
+	Tf5OptSrcCtrl TrigFlags5 = 1 << 6
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens
@@ -241,6 +258,7 @@ const (
 	TrigAbCastExhaust    int16 = 1 // Activated.Exhaust
 	TrigAbCastLoyalty    int16 = 2 // Activated.Loyalty
 	TrigAbCastLoyaltyOpp int16 = 3 // Activated.Loyalty+OppCtrl
+	TrigAbCastAny        int16 = 4 // ValidSA$ SpellAbility beside TargetsValid$ (Tf2TargetsFilter2 + Filter2): any activated ability whose chosen targets match, read once its targets are chosen (Ertha Jo, Frontier Mentor); the queued trigger carries the activated entry's stack identity in its trigAmt (ExtCopyAbility reads it)
 )
 
 // TokenRider flags (OpCreateToken's B.N).

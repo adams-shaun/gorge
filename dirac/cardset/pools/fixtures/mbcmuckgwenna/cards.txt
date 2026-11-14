@@ -1,0 +1,12 @@
+# The Muckslinger Gang beside Gwenna, Eyes of Gaea: Gwenna's "creature spell
+# with power 5 or greater" cast trigger reads a creature spell's power on the
+# stack, which the Gang's off-battlefield grant boosts; the kernel stalls there
+# rather than read the printed power (dirac/oracle/mbc_zone_moves_four_lowers_test.go)
+The Muckslinger Gang
+Gwenna, Eyes of Gaea
+Grizzly Bears
+Swamp
+Mountain
+Forest
+Raging Goblin
+Shock

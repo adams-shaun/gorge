@@ -323,6 +323,9 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
+			break
+		}
 		for v := range k.t.TypeVocab {
 			d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 		}
@@ -1003,10 +1006,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenDigArrange:
 		o := Obj(a.Source())
 		pl := &s.pl[s.g.pickP]
-		s.detach(o)
-		s.objs[o].zone = kop.ZoneLibrary
-		s.objs[o].ver++
-		pl.libBottom(o)
+		if s.digArrangeTop(k) {
+			s.digArrangeTopPick(o) // zone_digtoporder.go
+		} else {
+			s.detach(o)
+			s.objs[o].zone = kop.ZoneLibrary
+			s.objs[o].ver++
+			pl.libBottom(o)
+		}
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.resArm().look[i] == o {
 				s.g.lookSel |= 1 << i
@@ -1754,8 +1761,9 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.shareLandTypeCands(k, in, d, list) // zone_sharelandtype.go
 		return
 	}
+	selfOnly := in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneGraveyard && in.F != 0 && k.t.Filters[in.F].Flags&kop.FSelf != 0 // Card.StrictlySelf: the resolving source's own card (Genju of the Fields)
 	for _, o := range list {
-		if s.picksHas(o) {
+		if s.picksHas(o) || selfOnly && o != s.res.e.obj {
 			continue
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
@@ -1873,8 +1881,11 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		}
 	}
 	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
-	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
-		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
+	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&(kop.SrNoShuffle|kop.SrThenTop) != 0) {
+		// act_mayask.go: the first answered ends on top (an unshuffled
+		// search too, and a shuffled one's ThenTop cards: gorge
+		// placeLibraryObjects pins them in the answer order, Goblin Recruiter)
+		s.reverseLook()
 	}
 	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
 	// each one's enters check sees the whole batch (gorge's zone batch): Roiling
@@ -2267,7 +2278,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
-		s.res.ask, s.res.askP = raGenDigArrange, p
+		s.res.ask, s.res.askP = raGenDigArrange, s.digArrangeAsker(k)
 		return true
 	}
 	if z == kop.ZoneBattlefield {

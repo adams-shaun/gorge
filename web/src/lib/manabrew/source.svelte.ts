@@ -34,6 +34,8 @@ export class ManaBrewMatch extends SnapshotMatch {
   private gv: GameViewDto | null = null;
   private binding: PromptBinding | null = null;
   private lastPromptId = -1;
+  /** The promptId this seat last answered: the server poses it again only after an undo. */
+  private answeredPromptId = -1;
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- private projection cache (last-known card faces), never rendered
   private known = new Map<number, CardView>();
   /** How many prompts the compat rule answered with a pass (diagnostics). */
@@ -168,10 +170,13 @@ export class ManaBrewMatch extends SnapshotMatch {
   }
 
   private acceptPrompt(p: AgentPrompt) {
-    const rewound = p.promptId < this.lastPromptId;
+    // A restored ask is an undo landing: a lower seq, or the very ask this
+    // seat just answered (an undo of its last answer, which the server sends
+    // again under the same promptId).
+    const rewound = p.promptId < this.lastPromptId || p.promptId === this.answeredPromptId;
     if (rewound) {
-      // A restored, lower-seq ask: an undo landed. The board's history
-      // stays in the ring; the panel re-bases its seq fences.
+      // The board's history stays in the ring; the panel re-bases its seq fences.
+      this.answeredPromptId = -1;
       this.onRewind?.();
       this.model.emit({ type: 'reset' });
     }
@@ -229,9 +234,13 @@ export class ManaBrewMatch extends SnapshotMatch {
 
   private async sendMsg(msg: ClientMessage) {
     if (this.match === null) throw new ApiError(409, 'conflict', 'no match');
+    // An undo request names the open ask without answering it.
+    if (msg.kind === 'response' && msg.action.output.type !== 'restoreSnapshot') this.answeredPromptId = msg.promptId;
     try {
       await this.deps.transport.send(this.table, this.match, this.seat.token, msg);
     } catch (e) {
+      // A refused answer leaves its ask open, so it never comes back as an undo.
+      if (msg.kind === 'response' && this.answeredPromptId === msg.promptId) this.answeredPromptId = -1;
       if (e instanceof WireError) {
         this.noteRefusal(e.code, e.message);
         throw new ApiError(e.status, e.code, e.message);
