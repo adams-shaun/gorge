@@ -1387,11 +1387,11 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	}
 	// api:Fog (gorge damageStep's fogActive): no damage pass at all; the
 	// damage divisions are still asked first (gorge asks them before its
-	// damageStep, which then returns at fogActive; kverify-c4)
-	fog := k.gen != nil && s.g.fog
-	if fog {
-		s.fogNoPrev(k) // static_cantprevent.go
-	}
+	// damageStep, which then returns at fogActive; kverify-c4). Under
+	// "damage can't be prevented" the Fog stops nothing (CR 615.12; gorge
+	// keeps the assignments fogUnpreventable selects, all of them for the
+	// kernel's blanket static): the ordinary pass runs (static_cantprevent.go).
+	fog := k.gen != nil && s.g.fog && !s.noPrev(k, true)
 	if s.cfg&cfgAutoDivide == 0 && s.nextDivision(k, first) {
 		s.ctl = ctlDivide
 		return
