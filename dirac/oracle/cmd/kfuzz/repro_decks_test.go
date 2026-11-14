@@ -34,7 +34,7 @@ func TestReproReplaysACustomDecksPool(t *testing.T) {
 		t.Fatalf("precondition: the mbc table names %q by its front face", front)
 	}
 	if _, ok := set.Lookup(full); !ok {
-		t.Skipf("the mbc table has no %q", full)
+		t.Skipf("the mbc tables have no %q (missing from the pool)", full)
 	}
 	// the custom pool: one deck file under -decks, as the lock pool's decks are
 	decks := t.TempDir()
