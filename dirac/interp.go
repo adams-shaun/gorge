@@ -1016,7 +1016,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 			r.chosen = objWord(cardTypeAnswer(a))
 			r.bad |= resChosenCard
 		} else if isBasicLandChoose(&s.prog(k)[r.pc]) {
-			r.chosen = basicLandAnswer(k, a) // act_choosebasicland.go
+			r.chosen = objWord(basicLandAnswer(k, a)) // act_choosebasicland.go
 		} else {
 			r.chosen = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
