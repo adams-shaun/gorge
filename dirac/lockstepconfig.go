@@ -264,6 +264,9 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		for i := 0; i < int(a.NTargets); i++ {
 			bound = bound || xBoundTarget(k.t, &a.Targets[i]) || xCountTarget(&a.Targets[i])
 		}
+		// a protection quality reads the spell's own mana value, X in it: the
+		// announced X can leave every candidate protected (protSpellXMV)
+		bound = bound || k.gen.anyProtF && e.kind == seSpell && k.cards[e.card].cost.X != 0 && a.NTargets != 0
 	}
 	picks := s.convokePickCount() > 0
 	wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0 // a Waterbend<X> pick pays one generic of X (act_waterbend.go)

@@ -32,6 +32,15 @@ var DebugExHasteOff bool
 // never a dropped restriction.
 const maxExH = 16
 
+// coldExH is the turn's records, for a table with ExtExHaste; an empty one is
+// simply full.
+var coldExH = newCold[exhRec]("exH", func(g *genPrep) int {
+	if g.anyExHaste {
+		return maxExH
+	}
+	return 0
+}).view(func(c *coldArrays) *[]exhRec { return &c.exH })
+
 // StallExHaste: a seventeenth Ext ExHaste record in one turn (State.cold.exH).
 const StallExHaste = 112
 

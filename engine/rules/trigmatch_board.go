@@ -51,6 +51,8 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 		FinishingLifeLossBatch: b.finishingLifeLossBatch,
 		TappedTurn:             b.tappedTurn,
 		PlayingLand:            b.playingLand(),
+		ReplacedAction:         b.replAction,
+		ReplacedObj:            b.replReplaced,
 	}
 }
 

@@ -17,6 +17,11 @@ func TestGorgeKwMapping(t *testing.T) {
 		{"Kicker:1 G", kop.KwKicker}, {"Flashback:3 R", kop.KwFlashback}, {"Hexproof:Instant", kop.KwHexproofFromInstants},
 		{"Protection from red", kop.KwProtRed}, {"Equip:1", 0}, {"Enchant:Creature", 0}, {"Cycling:2", 0}, {"TypeCycling:Basic:1 R", 0},
 		{"Job select", 0}, {"Battle cry", 0}, {"Gift", 0}, {"Annihilator:2", 0},
+		// the expandedKeywords heads on an MBC battlefield object: Transmute
+		// (Tolaria West, Drift of Phantasms), Madness (Arrogant Wurm, Reckless
+		// Wurm) and Fabricate (Marionette Apprentice) are printed keywords in
+		// gorge's derived list with no kernel bit
+		{"Transmute:1 U U", 0}, {"Madness:2 G", 0}, {"Madness:2 R", 0}, {"Fabricate:1", 0},
 	} {
 		got, ok := gorgeKw(c.kw)
 		if !ok || got != c.want {

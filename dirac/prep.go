@@ -228,6 +228,12 @@ type prep struct {
 	// (OpChangeSpeed); engines: some card carries Start your engines!
 	// (kw_speed.go): guard the life-loss and entry hooks
 	speed, engines bool
+	// ascend: some card prints Ascend: the city's blessing scans run
+	// (kw_ascend.go); a prep bool, not a genPrep one, so the hot hooks
+	// (enterNF, ctrlMove, sba, resolveTop) cost one byte load
+	ascend bool
+	// engAsc: engines || ascend, enterNF's single entry-hook guard
+	engAsc bool
 	// painMana: some card has a painful mana alternative (pcard.painCol;
 	// mana_pain.go): guards the planner's last-resort pain
 	// units and the window's pain riders
@@ -269,6 +275,8 @@ func prepare(t *kop.Table) *prep {
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
+	p.ascend = tableHasAscend(t)
+	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -463,7 +471,7 @@ func prepare(t *kop.Table) *prep {
 	// included. Both layouts are table-level, so Init and InitN of the same
 	// table with the same Config select the same pointer.
 	p.coldCmd = p.cold
-	p.coldCmd.partner = 1
+	coldPartner.set(&p.coldCmd, 1)
 	p.coldCmd.size()
 	return p
 }

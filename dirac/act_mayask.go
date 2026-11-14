@@ -64,7 +64,7 @@ func (s *State) mayAsk(k *prep, in *kop.Instr) bool {
 		if !s.suspectWouldChange(k, next) { // act_suspect.go
 			return true
 		}
-	case kop.MayGuardDraw:
+	case kop.MayGuardDraw, kop.MayGuardDigUntil:
 		if !s.drawAsks(k, in, next) { // act_optionaldecider.go
 			return true
 		}

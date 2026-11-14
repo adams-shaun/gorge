@@ -20,8 +20,9 @@ func TestStateLayoutPinnedMP(t *testing.T) {
 	// coldArrays.mk and mkObj, the multikicker counts; the sixteen-object
 	// xTargets; then Obj, TCode and objWord at sixteen bits (lkiRec runs its
 	// fields widest first, perm packs actUsed beside nblock), the sixteen-object
-	// free-cast arrays (maxFree, +48) and linkPad 48.
-	const want = 27960
+	// free-cast arrays (maxFree, +48) and linkPad 48; then genState.redir and
+	// the rest of the cache line they take it from (+64).
+	const want = 28024
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}
