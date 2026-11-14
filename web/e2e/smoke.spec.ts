@@ -1888,7 +1888,12 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
         test.setTimeout(WIRE_GAME_MS + 60_000);
         const b = base as string;
         const label = `[${engine} ${wire}]`;
-        const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed' } });
+        // POST /api/games deals a random deck from a random seed. gorge's pool holds decks whose lands
+        // pay for nothing the page can tap (fetch lands, Wasteland), so a deal of them plays lands and
+        // casts nothing (seen in CI): the seat plays one basic-land deck of cheap spells against another.
+        // dirac's pool is two-colour decks of basics, left to the server.
+        const decks = engine === 'gorge' ? { human_deck: 'mono-green-stompy', bot_deck: 'mono-white-equipment' } : {};
+        const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed', ...decks } });
         expect(resp.ok(), `${label} POST /api/games`).toBe(true);
         const g = (await resp.json()) as { join: string; seat: number; table: string; match: number; token: string };
         await settleStartingPlayer(request, b, g.table, g.match, g.seat, g.token);
