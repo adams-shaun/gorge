@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -33,7 +34,7 @@ func TestRiderBesideCtrGapReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	reg := synthReg(t)
-	set := globSet(t, r.Pool, r)
+	set := cardsettest.Set(t, "mbc") // the recording names dr-mbc-bb, which the 16-way MBC split replaced
 	m, err := r.Matchup(reg)
 	if err != nil {
 		t.Fatal(err)
