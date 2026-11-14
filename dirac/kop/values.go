@@ -32,8 +32,10 @@ func Const(n int) ValueRef { return ValueRef{K: VConst, N: int16(n)} }
 // VExpr: the amount is Table.Exprs[N].
 const VExpr VKind = VCountersTarget + 1
 
-// ExprKind is an Expr's computation. Append-only.
-type ExprKind uint8
+// ExprKind is an Expr's computation. Append-only. It is 16 bits wide for
+// room: Expr.Kind sits before N int16, so the wider kind fills what was a pad
+// byte and Expr keeps its size (TestExprSizeUnchanged).
+type ExprKind uint16
 
 const (
 	ExNone                ExprKind = iota
