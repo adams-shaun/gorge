@@ -186,7 +186,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	ob.slot = NoSlot // off a face-down spell's stack mark (slotFaceDownSpell)
 	s.g.zoneTurn.set(o)
 	if k != nil {
-		s.clearFB(k, o) // a new object: a granted flashback ends
+		s.clearFB(k, o)     // a new object: a granted flashback ends
+		s.encoreClear(k, o) // a new object: a granted encore ends
 	}
 	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)

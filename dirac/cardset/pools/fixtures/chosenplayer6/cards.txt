@@ -1,0 +1,11 @@
+# The chosen-player-card-6 spelling family's oracle probes
+# (dirac/oracle/mbc_chosenplayer_test.go). The probes themselves are
+# synthetic (inline scripts, grafted in the test onto real lowered defs —
+# the MBC cards stay refused by other families' blockers, cardset's
+# RefusedError): Ajani's Mantra is the trigger donor both probes' compiled
+# records copy, Curse of Opulence the Enchant:Player aura shape the
+# Maddening probe takes, and Islands fill the decks.
+Ajani's Mantra
+Curse of Opulence
+Plains
+Island

@@ -1154,6 +1154,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Command,Graveyard" {
+		return lc.originCommandGrave(ps) // lower_cmdsweep.go
+	}
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
 	}
@@ -1628,9 +1631,11 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
-		// chooser's own objects. The kernel evaluates a ChooseCard's filter
-		// from the chooser's perspective (cardCands' p), so a YouCtrl clause
-		// is the chooser's control here (Flaming Gambit).
+		// chooser's own objects. The kernel evaluates this ChooseCard's filter
+		// from the chooser's perspective (chooseCardBase returns the asker for
+		// every chooser but RefEachOpponent, the chosen-player pick whose pool
+		// is the resolving controller's), so a YouCtrl clause is the chooser's
+		// control here (Flaming Gambit).
 		if cbp != "Chooser" {
 			return refuse("optional ChooseCard ControlledByPlayer$ %q", cbp)
 		}
@@ -1642,24 +1647,41 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if err != nil {
 		return err
 	}
+	fromDefined := false
 	if !optional {
-		// A mandatory ChooseCard's chooser is the resolving controller and
-		// its pick count is one (gorge chooseCardChoosers, choiceBounds max
-		// default 1). ChoiceTitle$ is display-only (the decision's Prompt),
-		// so any value reads; Amount$ 1 and Defined$ You are exactly the
-		// defaults, and anything else stays refused by name.
+		// A mandatory ChooseCard's chooser is the resolving controller —
+		// gorge choiceChoosers' default — and its pick count is one
+		// (choiceBounds max default 1). Defined$ ChosenPlayer / Player.Chosen
+		// is the one exception: the resolution's chosen player, this
+		// ability's one-opponent ChoosePlayer's pick (gorge choiceChoosers'
+		// ChosenPlayer spelling; Plargg and Nassari's "an opponent choses",
+		// Demonic Hordes, Wake to Slaughter, Wormfang Crab). ChoiceTitle$ is
+		// display-only (the decision's Prompt), so any value reads; Amount$ 1
+		// and Defined$ You are exactly the defaults, and anything else stays
+		// refused by name.
 		ps.consume("ChoiceTitle")
 		if v := ps.str("Amount"); v != "" && v != "1" {
 			return refuse("ChooseCard Amount$ %q", v)
 		}
 		if v := ps.str("Defined"); v != "" && v != "You" {
-			return refuse("ChooseCard Defined$ %q", v)
+			// gorge choiceChoosers: Defined$ ChosenPlayer / Player.Chosen is
+			// the resolution's chosen player — this ability's one-opponent
+			// ChoosePlayer's pick, which the kernel poses as the opponent's
+			// ask (Plargg and Nassari's OppPickOne, Demonic Hordes, Wake to
+			// Slaughter, Wormfang Crab). Without the armed choice it is
+			// unresolved and refuses.
+			if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
+				(v != "ChosenPlayer" && v != "Player.Chosen") {
+				return refuse("ChooseCard Defined$ %q", v)
+			}
+			chooser = lRef{Kind: rEachOpp}
+			fromDefined = true
 		}
+		ps.consume("Defined")
 	}
 	if optional && zone == zLibrary {
 		return lc.chooseLibraryUpTo(ps, f)
 	}
-	fromDefined := false
 	if optional {
 		// the optional battlefield path: ChoiceTitle$ is display only (as
 		// the mandatory path's), Defined$ You is the default chooser, and
