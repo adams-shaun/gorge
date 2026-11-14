@@ -590,7 +590,7 @@ func TestFuzzCoverageMergesCleanGamesOnly(t *testing.T) {
 }
 
 func TestFuzzVerdictRanksImplicated(t *testing.T) {
-	ms := &oracle.Matchup{Table: []string{"Alpha", "Rockface Village"}, Deck: [2][]uint8{{0}, {1}}}
+	ms := &oracle.Matchup{Table: []string{"Alpha", "Rockface Village"}, Deck: [2][]oracle.CardIndex{{0}, {1}}}
 	div := func(opt string) played {
 		return played{m: ms, res: oracle.Result{Div: &oracle.Divergence{What: "options", Field: "options", RefOptions: []string{opt}}}}
 	}
@@ -601,7 +601,7 @@ func TestFuzzVerdictRanksImplicated(t *testing.T) {
 	var many []played
 	for i := 0; i < 12; i++ {
 		tbl := []string{fmt.Sprintf("Card %02d", i)}
-		many = append(many, played{m: &oracle.Matchup{Table: tbl, Deck: [2][]uint8{{0}}}, res: oracle.Result{Div: &oracle.Divergence{What: "options", RefOptions: []string{"cast(#0,-,0)"}}}})
+		many = append(many, played{m: &oracle.Matchup{Table: tbl, Deck: [2][]oracle.CardIndex{{0}}}, res: oracle.Result{Div: &oracle.Divergence{What: "options", RefOptions: []string{"cast(#0,-,0)"}}}})
 	}
 	_, stdout = reportOf(t, many, true)
 	if !strings.Contains(stdout, "Card 09=1\n") || strings.Contains(stdout, "Card 10") {

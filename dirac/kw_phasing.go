@@ -263,12 +263,19 @@ func (s *State) phaseUntap(k *prep) {
 // phasedHostLeft unattaches the phased-out attachments of the permanent at
 // sl, which is leaving; they are put in the graveyard (an Aura) or stay
 // (Equipment) when they phase in, as a visible attachment is at the next
-// state-based check.
+// state-based check. A hidden attachment's detach is one of gorge's queued
+// bearer-left detaches (the Move fold marks a phased-out attachment too;
+// attachmentSBAs publishes it once the attachment phases in), so an
+// Equipment or bestowed one fires its Mode$ Unattached trigger here (the
+// kernel's only detach boundary), RefTriggerObj the departed host.
 //
 //go:noinline
-func (s *State) phasedHostLeft(sl Slot, host Obj) {
+func (s *State) phasedHostLeft(k *prep, sl Slot, host Obj) {
 	for q := 0; q < MaxPerm; q++ {
 		if qs := Slot(q); s.perms[qs].attached == sl && s.hiddenAt(qs) {
+			if s.unattachedFires(k, qs) {
+				s.fireUnattached(k, qs, sl)
+			}
 			s.perms[qs].attached = NoSlot
 			s.touchSl(qs)
 			if s.g.on {

@@ -26,7 +26,7 @@ func TestLegendLosersEntryOrder(t *testing.T) {
 	if !sc.s.sba(sc.k) || sc.s.ctl != ctlLegend {
 		t.Fatalf("no legend ask (ctl %d)", sc.s.ctl)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(c), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(c), 0, 0))
 	if !sc.onBF(c) || sc.onBF(a) || sc.onBF(d) {
 		t.Fatalf("keep c: a %v c %v d %v on the battlefield", sc.onBF(a), sc.onBF(c), sc.onBF(d))
 	}

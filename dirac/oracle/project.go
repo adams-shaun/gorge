@@ -68,9 +68,9 @@ const (
 
 // CardProj is one card instance.
 type CardProj struct {
-	NameHash   uint32 // FNV-1a 32 of the front face name (tokens included)
-	Card       uint8  // deck table index (Matchup.Table); NoCardIndex for tokens and copies
-	Face       uint8  // the face up (gorge's Object.FaceIdx; a multi-face card'sb)
+	NameHash   uint32    // FNV-1a 32 of the front face name (tokens included)
+	Card       CardIndex // deck table index (Matchup.Table); NoCardIndex for tokens and copies
+	Face       uint8     // the face up (gorge's Object.FaceIdx; a multi-face card'sb)
 	Zone       uint8
 	Owner      uint8
 	Controller uint8
@@ -102,7 +102,7 @@ type StackProj struct {
 // Projection is the canonical state both sides are compared on after every
 // committed action (doc.go, "Projection").
 type Projection struct {
-	NInst  uint8
+	NInst  dirac.Obj
 	Cards  [MaxInst]CardProj
 	Life   [2]int32
 	Poison [2]int16
@@ -338,7 +338,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	g := e.G
 	id.sync(g)
 	*p = Projection{}
-	p.NInst = uint8(len(id.obj))
+	p.NInst = dirac.Obj(len(id.obj))
 	for i := range p.Cards {
 		p.Cards[i] = CardProj{Card: NoCardIndex, Zone: ZoneNone, Pos: 255, AttachedTo: RefNone, Blocks: RefNone}
 	}
@@ -355,7 +355,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		c.NameHash = nameHash(cardName(o.Card))
 		c.Face = o.FaceIdx
 		if inst < nDeck && !o.IsToken && !o.IsCopy {
-			c.Card = uint8(m.instanceTable(inst))
+			c.Card = CardIndex(m.instanceTable(inst))
 		}
 		c.Zone = uint8(o.Zone)
 		if o.Zone == state.ZCeased {

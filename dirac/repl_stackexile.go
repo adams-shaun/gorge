@@ -27,10 +27,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // lives as long as the permission (this turn), so a cast of the card by a
 // later permission would differ.
 const (
-	spellExileLeave uint8 = 1 << 4
-	spellExilePlot  uint8 = 1 << 5
+	spellExileLeave objWord = 1 << 4
+	spellExilePlot  objWord = 1 << 5
 	// spellExileResolved: spellExileLeave for the resolution exit only.
-	spellExileResolved uint8 = 1 << 6
+	spellExileResolved objWord = 1 << 6
 )
 
 // mayUntilStackExile marks a permission record whose cast carries

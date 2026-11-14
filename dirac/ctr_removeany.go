@@ -88,7 +88,7 @@ func (s *State) rcaStep(k *prep, in *kop.Instr, sl Slot) bool {
 			r.ask, r.askP = raRemCtrAny, r.e.ctrl
 			return false
 		}
-		r.peek[r.peekN] = Obj(kinds[0])
+		r.peek[r.peekN] = Obj(kinds[0]) // code-ok: a counter kind
 		r.peekN++
 		r.left--
 	}
@@ -158,7 +158,7 @@ func (s *State) applyAskRca(k *prep, a Action) bool {
 		s.continueRes(k, 0)
 		return true
 	}
-	r.peek[r.peekN] = Obj(a.Mode())
+	r.peek[r.peekN] = Obj(a.Mode()) // code-ok: a counter kind
 	r.peekN++
 	r.left--
 	if s.rcaStep(k, in, sl) {

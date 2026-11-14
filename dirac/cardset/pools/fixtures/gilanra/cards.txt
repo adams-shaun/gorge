@@ -1,0 +1,10 @@
+# Gilanra, Caller of Wirewood (TriggersWhenSpent$ draw rider on a planner-deferred
+# {G} source) and the spells that tell its arms apart
+# (dirac/oracle/triggerswhenspent_test.go)
+Gilanra, Caller of Wirewood
+Craw Wurm
+Grizzly Bears
+Giant Growth
+Forest
+Plains
+Hill Giant

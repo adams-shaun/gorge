@@ -91,7 +91,7 @@ func targetsValidZones(v string, f *lFilter, isType func(string) bool) (zones []
 	for _, alt := range splitAlternatives(v, isType) {
 		alt = strings.TrimSpace(alt)
 		switch alt {
-		case "You", "Opponent":
+		case "You", "Opponent", "Player":
 			continue
 		}
 		n++
@@ -118,4 +118,30 @@ func targetsValidZones(v string, f *lFilter, isType func(string) bool) (zones []
 		zones[i] = zone
 	}
 	return zones, true
+}
+
+// targetsValid lowers a trigger's TargetsValid$ spec v onto tr (gorge
+// TargetShapeMatches / targetMatchesTargetsValid: the trigger fires when ANY
+// target of the spell's or ability's chain matches ANY comma alternative; see
+// the SpellCast arm of lowerTrigger for the zone rules). A bare Player
+// alternative (every player) lowers only when both is set, on the AbilityCast
+// arm (Ertha Jo); a SpellCast one stays refused, since no corpus spell
+// trigger reads it.
+func (lc *lowerCtx) targetsValid(tr *lTrigger, v string, both bool) error {
+	if strings.ContainsAny(v, "<>") {
+		return refuse("TargetsValid %q", v)
+	}
+	f, err := lc.filter(v)
+	if err != nil {
+		return err
+	}
+	if f.Players != 0 && f.Players != plYou && f.Players != plOpp && !(both && f.Players == plBoth) || len(f.Clauses) == 0 {
+		return refuse("TargetsValid %q", v)
+	}
+	zones, ok := targetsValidZones(v, f, lc.p.isTypeWord)
+	if !ok {
+		return refuse("TargetsValid %q", v)
+	}
+	tr.F2, tr.F2Zones, tr.TargetsAll = f, zones, true
+	return nil
 }

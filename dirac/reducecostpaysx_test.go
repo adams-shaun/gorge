@@ -66,7 +66,7 @@ func (sc *scen) untapped(os []Obj) (n int) {
 // X=5), not the 3 that the cost floored to {U}{U} before X offers.
 func TestReduceCostPaysX(t *testing.T) {
 	sc, spring, _, isl := reducePaysXScen(t, 5)
-	sc.do(t, AkCast, uint8(spring), 0xff)
+	sc.do(t, AkCast, TCode(spring), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("decision kind %d sub %d, want the X ask", d.Kind, d.Sub)
@@ -99,7 +99,7 @@ func TestReduceCostPaysX(t *testing.T) {
 
 	// a smaller X leaves the rest: X=2 is UU only after the reduction
 	sc, spring, _, isl = reducePaysXScen(t, 5)
-	sc.do(t, AkCast, uint8(spring), 0xff)
+	sc.do(t, AkCast, TCode(spring), scAny)
 	d = sc.s.Step()
 	sc.s.Apply(d.Options[2])
 	for i := 0; i < 20 && !sc.paid(spring); i++ {
@@ -116,7 +116,7 @@ func TestReduceCostPaysX(t *testing.T) {
 	sc, spring, _, _ = reducePaysXScen(t, 1)
 	d = sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(spring) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(spring)) {
 			t.Fatalf("Mind Spring offered with one Island")
 		}
 	}
@@ -127,7 +127,7 @@ func TestReduceCostPaysX(t *testing.T) {
 // two Sprites charge one Island.
 func TestReduceCostNonXUnchanged(t *testing.T) {
 	sc, _, scour, isl := reducePaysXScen(t, 5)
-	sc.do(t, AkCast, uint8(scour), 0xff)
+	sc.do(t, AkCast, TCode(scour), scAny)
 	for i := 0; i < 20 && !sc.paid(scour); i++ {
 		d := sc.s.Step()
 		if d.N > 0 {

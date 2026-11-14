@@ -44,7 +44,7 @@ func TestReplPlusNoncombatPark(t *testing.T) {
 	src := sc.perm(v.GrizzlyBears, 0)
 	sc.perm(plus, 0)
 	sc.perm(plus, 0)
-	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, PlayerTarget1, 3, 0); !ok {
+	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), 3, 0); !ok {
 		t.Fatalf("two commuting plus-N replacements: park failed (stall %s)", StallName(sc.s.StallReason()))
 	}
 	if sc.s.Stalled() {
@@ -69,7 +69,7 @@ func TestReplPlusNoncombatRaiseStalls(t *testing.T) {
 	sc.perm(plus, 0)
 	sc.perm(plus, 0)
 	sc.perm(raise, 0)
-	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, PlayerTarget1, 3, 0); ok {
+	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), 3, 0); ok {
 		t.Fatalf("raise beside two additions parked %d candidates for %d damage, dropping the raise",
 			sc.s.g.ro.n, sc.s.g.nc.n)
 	}
@@ -79,7 +79,7 @@ func TestReplPlusNoncombatRaiseStalls(t *testing.T) {
 	if n := sc.s.g.nc.n; n != 0 {
 		t.Fatalf("raise beside two additions left a parked event of %d, want none", n)
 	}
-	if got := sc.s.replDamage(sc.k, 0, sc.slot(src), v.GrizzlyBears, PlayerTarget1, false, 3); got != 4 {
+	if got := sc.s.replDamage(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), false, 3); got != 4 {
 		t.Fatalf("raise beside two additions: replDamage %d, want 4", got)
 	}
 	if got := sc.s.StallReason(); got != StallReplPlus {

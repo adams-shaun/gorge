@@ -336,12 +336,12 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 
 func (s *State) entryTargets(e *stackEntry, o Obj) bool {
 	for i := 0; i < kop.MaxTargets; i++ {
-		if e.tgt[i] == uint8(o) {
+		if e.tgt[i] == TCode(o) {
 			return true
 		}
 	}
 	for i := 0; i < int(s.xtOf(e).n); i++ {
-		if s.xtOf(e).code[i] == uint8(o) {
+		if s.xtOf(e).code[i] == TCode(o) {
 			return true
 		}
 	}
@@ -367,6 +367,8 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	for i := 0; i < int(a.NTargets); i++ {
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
+	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
+	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
 	if !bound {
 		return true
 	}
@@ -696,6 +698,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	switch fl.Pred {
 	case kop.PredNone:
 	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+		s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 		pw, t := int(pc.power), int(pc.tough)
 		if fd {
 			pw, t = 2, 2
@@ -715,6 +718,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return t <= n
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
 		mv := s.cardMV(k, c, o, fd)
+		if ctx != nil {
+			mv += ctx.xmv
+		}
 		switch fl.Pred {
 		case kop.PredCMCLE:
 			return mv <= n
@@ -789,6 +795,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredSameNameT0 {
 			return s.sameNameT0Card(c, o, fd) // filter_samename.go
+		}
+		if fl.Pred == kop.PredPowerGTBase {
+			s.offZonePTRead(k, c, owner, o) // static_offzonept.go: the boost lifts power over base
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}

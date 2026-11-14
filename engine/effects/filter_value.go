@@ -347,6 +347,17 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		}
 		return isOdd(currentPower()) == wantOdd, true
 	}
+	if name == "equalPT" {
+		// Forge's equalPT (CardProperty startsWith "equalPT"; Gilt-Leaf
+		// Winnower's !equalPT): net power equals net toughness. Only the
+		// bare spelling is read here. An object with no P/T (lacksPT)
+		// has no value to equal, so the word fails closed like the
+		// comparison fields below.
+		if lacksPT(o, sc) {
+			return false, true
+		}
+		return currentPower() == currentToughness(), true
+	}
 	for _, field := range [...]string{"power", "toughness", "cmc", "basePower", "baseToughness", "totalPT"} {
 		// The P/T half of this vocabulary is ptNumericFields, which
 		// SpecReadsPT's dependency test reads through ptNumericField; cmc is

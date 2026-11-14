@@ -61,7 +61,7 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	if ai < 0 {
 		t.Fatal("Earthen Ally's Earthbend ability not found in the table")
 	}
-	a := MakeAction(AkActivate, uint8(s.perms[sl["Earthen Ally"]].obj), 0, uint8(ai))
+	a := MakeAction(AkActivate, TCode(s.perms[sl["Earthen Ally"]].obj), 0, uint8(ai))
 	cost, ex, need, ok := s.grantPlayCost(k, 0, a, true)
 	if !ok {
 		t.Fatal("grantPlayCost refused the Earthbend activation")

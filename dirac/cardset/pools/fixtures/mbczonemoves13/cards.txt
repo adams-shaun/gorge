@@ -1,0 +1,21 @@
+# the MBC zone-moves-13 family: Future Sight's library-top MayPlay beside
+# its look, Cunning Wish's revealed sideboard pick, Doomsday's two-zone
+# search, sweep and whole-library rearrange
+# (dirac/oracle/mbc_zonemoves13_test.go)
+Future Sight
+Cunning Wish
+Doomsday
+Dark Ritual
+Night's Whisper
+Walking Corpse
+Opt
+Unsummon
+Counterspell
+Brainstorm
+Divination
+Grizzly Bears
+Shock
+Island
+Swamp
+Mountain
+Forest

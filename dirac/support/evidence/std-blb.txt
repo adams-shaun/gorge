@@ -33,6 +33,7 @@ Caretaker's Talent
 Carrot Cake
 Charmed Sleep
 Cindering Cutthroat
+Clement, the Worrywort
 Clifftop Lookout
 Colossification
 Conduct Electricity
@@ -62,6 +63,7 @@ Essence Channeler
 Fabled Passage
 Feather of Flight
 Fecund Greenshell
+Feed the Cycle
 Fell
 Finch Formation
 Finneas, Ace Archer
@@ -109,11 +111,13 @@ Junkblade Bruiser
 Kastral, the Windcrested
 Keen-Eyed Curator
 Kindlespark Duo
+Kitsa, Otterball Elite
 Knightfisher
 Lifecreed Duo
 Lightshell Duo
 Lilypad Village
 Lilysplash Mentor
+Long River Lurker
 Long River's Pull
 Longstalk Brawl
 Lumra, Bellow of the Woods
@@ -178,6 +182,8 @@ Sazacap's Brew
 Scales of Shale
 Scavenger's Talent
 Scrapshooter
+Season of Gathering
+Season of Loss
 Seasoned Warrenguard
 Seedglaive Mentor
 Seedpod Squire
@@ -240,6 +246,7 @@ Vren, the Relentless
 Wandertale Mentor
 War Squeak
 Warren Elder
+Warren Warleader
 Waterspout Warden
 Wax-Wane Witness
 Wear Down

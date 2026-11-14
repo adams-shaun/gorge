@@ -164,14 +164,14 @@ var (
 type optIn struct {
 	kind   uint8
 	dk     int8 // decisionKinds index
-	obj    uint8
+	obj    dirac.Obj
 	player bool // names a player
 	// named is the seat (0 or 1) of the player the option names, -1 none:
 	// a player target, or an attack's defending player (policynet's
 	// odSeat0.. relative-seat one-hot)
 	named    int8
-	attacker uint8
-	battle   uint8
+	attacker dirac.Obj
+	battle   dirac.Obj
 	mode     uint8 // modeValues index; len(modeValues) = other
 	altCost  bool
 	amount   int32
@@ -194,9 +194,9 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		case dirac.AkPass:
 			o.kind = okPass
 		case dirac.AkPlayLand:
-			o.kind, o.obj = okPlayLand, src
+			o.kind, o.obj = okPlayLand, dirac.Obj(src)
 		case dirac.AkCast, dirac.AkCastCasualty, dirac.AkCastConspire:
-			o.kind, o.obj = okCast, src
+			o.kind, o.obj = okCast, dirac.Obj(src)
 			switch {
 			case a.Kind() == dirac.AkCastCasualty || a.Kind() == dirac.AkCastConspire:
 				o.mode = uint8(len(modeValues)) // gorge's "casualty" (the mode-other slot)
@@ -222,12 +222,12 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 				}
 			}
 		case dirac.AkActivate:
-			o.kind, o.obj = okAbility, src
+			o.kind, o.obj = okAbility, dirac.Obj(src)
 		}
 	case dirac.DkAttackers:
 		o.dk = dkAttackers
 		if a.Kind() == dirac.AkAttack {
-			o.kind, o.obj = okAttacker, src
+			o.kind, o.obj = okAttacker, dirac.Obj(src)
 			// gorge's attacker option names the defending player (Option.
 			// Player): with two seats, always the attacker's opponent --
 			// a planeswalker's controller or a battle's protector included
@@ -239,13 +239,13 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			// combat if able Required (rules mustAttackRequired)
 			o.required = e.st0.MustAttack(dirac.Obj(src))
 			if dirac.IsObjTarget(tgt) {
-				o.battle = tgt
+				o.battle = dirac.Obj(tgt)
 			}
 		}
 	case dirac.DkBlockers:
 		o.dk = dkBlockers
 		if a.Kind() == dirac.AkBlock {
-			o.kind, o.obj, o.attacker, o.group = okBlock, src, tgt, true
+			o.kind, o.obj, o.attacker, o.group = okBlock, dirac.Obj(src), dirac.Obj(tgt), true
 		}
 	case dirac.DkTarget:
 		o.dk = dkTarget
@@ -259,9 +259,9 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		default:
 			// gorge names every object target "permanent" except one on
 			// the stack ("spell").
-			o.obj = tgt
+			o.obj = dirac.Obj(tgt)
 			o.kind = okPermanent
-			if int(tgt) < int(e.kp.NObj) && e.po(tgt).Zone == kop.ZoneStack {
+			if int(tgt) < int(e.kp.NObj) && e.po(dirac.Obj(tgt)).Zone == kop.ZoneStack {
 				o.kind = okSpell
 			}
 		}
@@ -272,7 +272,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 		}
 	case dirac.DkTriggerOrder:
 		// AkOrder packs source = the trigger's source object, target = pending index.
-		o.dk, o.kind, o.obj = dkTriggerOrder, okTrigger, src
+		o.dk, o.kind, o.obj = dkTriggerOrder, okTrigger, dirac.Obj(src)
 	case dirac.DkMulligan:
 		o.dk = dkMulligan
 		if a.Kind() == dirac.AkKeep {
@@ -291,7 +291,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			}
 			break
 		}
-		o.obj = src
+		o.obj = dirac.Obj(src)
 		switch d.Sub {
 		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick:
 			o.kind, o.obj, o.amount = okX, noObj, int32(mode)
@@ -313,6 +313,8 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 				o.kind = okGraveyard
 			} else if e.st0.FeatArrangeDig() {
 				o.kind = okDigBottom
+			} else if e.st0.FeatArrangeDigTop() {
+				o.kind = okTop // gorge digTopOrderAsk's "top" options
 			}
 		case dirac.ChWardPay:
 			// gorge poses a ward cost as modes [pay, decline] (unless_pay /
@@ -340,7 +342,7 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 			}
 		case dirac.ChDivide:
 			o.kind = okDivision
-			o.amount = e.firstShare(src, int(mode))
+			o.amount = e.firstShare(dirac.Obj(src), int(mode))
 		case dirac.ChAltAdd:
 			// gorge's "altaddcost" option: Amount is the part's index in
 			// the card's either-or list (0 the spell's own, 1 the
@@ -355,13 +357,13 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 
 // firstShare is a damage split's first blocker share (gorge's division
 // option Amount): split idx of the attacker's power among its blockers.
-func (e *Encoder) firstShare(atk uint8, idx int) int32 {
+func (e *Encoder) firstShare(atk dirac.Obj, idx int) int32 {
 	if int(atk) < int(e.kp.NObj) && e.po(atk).Flags&dirac.ProjBlocking != 0 {
 		return int32(idx) // a two-attacker blocker's division: the first share is the option index
 	}
 	n := 0
 	for i := 0; i < int(e.kp.NObj); i++ {
-		if e.po(uint8(i)).Blocks == dirac.Obj(atk) {
+		if e.po(dirac.Obj(i)).Blocks == atk {
 			n++
 		}
 	}
@@ -388,19 +390,17 @@ type cref struct {
 }
 
 type optScratch struct {
-	keys  [dirac.MaxOptions]uint32
-	pos   [dirac.MaxOptions]int16
-	n     int
-	refs  []cref
-	ent   [256]int32
-	entOK bool
-	gen   uint32
+	keys [dirac.MaxOptions]uint32
+	pos  [dirac.MaxOptions]int16
+	n    int
+	refs []cref
+	gen  uint32
 }
 
 // lookup resolves obj in the card index's fixed order: my hand,
 // battlefield, graveyard, exile; the opponent's battlefield, graveyard,
 // exile; the stack's cards. First match wins.
-func (e *Encoder) lookup(o uint8) (cref, bool) {
+func (e *Encoder) lookup(o dirac.Obj) (cref, bool) {
 	if o == noObj {
 		return cref{}, false
 	}
@@ -432,7 +432,7 @@ func (e *Encoder) lookup(o uint8) (cref, bool) {
 }
 
 // entRef is 1 + o's index in the entity list (0 = none).
-func (e *Encoder) entRef(o uint8) int32 {
+func (e *Encoder) entRef(o dirac.Obj) int32 {
 	if o == noObj {
 		return 0
 	}
@@ -444,7 +444,7 @@ func (e *Encoder) entRef(o uint8) int32 {
 	var hit int32
 	e.gen++
 	if e.gen == 0 {
-		e.seen = [256]uint32{}
+		e.seen = [objSlots]uint32{}
 		e.gen = 1
 	}
 	visit := func(ci int32) bool {
@@ -489,7 +489,7 @@ func (e *Encoder) EncodeOptions(d *dirac.Decision, dst []Option) []Option {
 // legacy option is listed first among gorge's appended synthetic casts
 // when it is the bot's (azmcts botFirst).
 func (e *Encoder) EncodeOptionsBot(d *dirac.Decision, dst []Option, bot int) []Option {
-	e.source = uint8(e.st0.FeatSource())
+	e.source = e.st0.FeatSource()
 	n := int(d.N)
 	if cap(dst) < n {
 		dst = make([]Option, n)

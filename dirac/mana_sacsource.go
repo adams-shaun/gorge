@@ -74,7 +74,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		return false
 	}
 	if bestowed {
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) == 0 {
 			return true
 		}
@@ -164,7 +164,7 @@ func (s *State) smallerXWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost, 
 		found := pk.found
 		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
 		if ok && bestowed {
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
 		} else if ok && targeted {
 			ok = t.spellTargetsFeasible(k, c, p) && t.spellXBoundPayable(k, c, p, cost)
@@ -767,7 +767,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 // firstPlayerTgt is the player target a pre-cast trigger takes: the first
 // seat in seat order its target spec admits, else the last seat (at two
 // seats, seat 0 when legal, otherwise seat 1).
-func (s *State) firstPlayerTgt(k *prep, ts *kop.TargetSpec, pt *pendingTrig) uint8 {
+func (s *State) firstPlayerTgt(k *prep, ts *kop.TargetSpec, pt *pendingTrig) TCode {
 	q := uint8(0)
 	for ; q+1 < s.nSeats(); q++ {
 		if s.targetOK(k, ts, pt.ctrl, NoSlot, pt.obj, PlayerCode(q)) {

@@ -39,7 +39,7 @@ func prepMayWhileSrc(t *kop.Table, g *genPrep) {
 func (s *State) mayWhileSrcStamp(from uint8, src Obj) {
 	for i := int(from); i < int(s.g.nmay); i++ {
 		if r := s.mayAt(i); r.dur() == kop.DurWhileSrcMay {
-			r.turn = uint16(src) | uint16(s.objs[src].ver)<<8
+			r.turn = mayHeld(src, s.objs[src].ver)
 		}
 	}
 }
@@ -53,8 +53,8 @@ func (s *State) maySrcLive(r mayPlay) bool {
 	if DebugMayWhileSrcForever {
 		return true
 	}
-	src := &s.objs[uint8(r.turn)]
-	return src.zone == kop.ZoneBattlefield && (src.of&ofToken == 0 || src.ver == uint8(r.turn>>8)) &&
+	src := &s.objs[r.heldObj()]
+	return src.zone == kop.ZoneBattlefield && (src.of&ofToken == 0 || src.ver == r.heldVer()) &&
 		s.maySrcCtrlOK(r, src) // cast_aslongascontrol.go
 }
 
@@ -89,6 +89,6 @@ func (s *State) mayValidHolds(r mayPlay) bool {
 //
 //go:noinline
 func (s *State) mayWhileSrcKeep(r mayPlay) bool {
-	src := &s.objs[uint8(r.turn)]
-	return s.plotLive(r) && (src.of&ofToken == 0 || src.ver == uint8(r.turn>>8))
+	src := &s.objs[r.heldObj()]
+	return s.plotLive(r) && (src.of&ofToken == 0 || src.ver == r.heldVer())
 }

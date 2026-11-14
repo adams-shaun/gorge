@@ -118,7 +118,7 @@ func (s *State) winTapOptions(k *prep, p uint8, d *Decision) {
 		if s.g.winFirst != 0 && sl == Slot(s.g.winFirst-1) {
 			continue
 		}
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	}
 }
 

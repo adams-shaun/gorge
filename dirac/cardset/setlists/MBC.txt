@@ -144,6 +144,7 @@ Baffling End
 Baird, Steward of Argive
 Baldin, Century Herdmaster
 Balduvian Horde
+Balduvian Warlord
 Balefang the Unslayable
 Baleful Ammit
 Baleful Strix
@@ -382,6 +383,7 @@ Cloudkill
 Cloudreader Sphinx
 Cloudshift
 Clown Car
+Coalition Honor Guard
 Coastal Piracy
 Coastline Marauders
 Code of Constraint
@@ -860,6 +862,7 @@ Goldnight Commander
 Gonti, Lord of Luxury
 Gorehorn Minotaurs
 Gorilla Shaman
+Gorm the Great
 Gornog, the Red Reaper
 Graaz, Unstoppable Juggernaut
 Grab the Reins
@@ -1158,6 +1161,7 @@ Mardu Warshrieker
 Marionette Apprentice
 Markov Baron
 Marsh Flitter
+Masako the Humorless
 Mask of Law and Grace
 Masked Admirers
 Masked Vandal
@@ -1208,6 +1212,7 @@ Minimus Containment
 Ministrant of Obligation
 Miraculous Recovery
 Mirri's Guile
+Mirri, Weatherlight Duelist
 Mirror Image
 Mirrorshell Crab
 Mischievous Mystic
@@ -1323,6 +1328,7 @@ Ondu Champion
 One with Nature
 Oneirophage
 Onslaught
+Ophidian
 Ophidian Eye
 Opportunity
 Opt
@@ -1777,6 +1783,7 @@ Squelch
 Squirrel Nest
 Staggershock
 Stand Together
+Standard Bearer
 Standstill
 Starlit Angel
 Startle

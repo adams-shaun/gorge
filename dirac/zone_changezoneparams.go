@@ -92,13 +92,8 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		d.add(MakeAction(AkChoose, 0, 0, 0))
 	case raGenEnterDefender:
 		d.Sub = ChGenEnterDefender
-		var buf [MaxOptions]uint8
-		n := s.enteringDefenderCands(k, s.res.askP, &buf)
-		if MaxSeats > 2 && s.res.e.kind == seTrigger {
-			if fb := s.enterDefenderFallback(k, s.res.askP); fb != NoTarget {
-				n = enterDefenderOrder(&buf, n, fb) // gorge chooseEnteringDefender: fallback first
-			}
-		}
+		var buf [MaxOptions]TCode
+		n := s.enterDefenderOptions(k, &buf, true)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
@@ -106,6 +101,42 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		return false
 	}
 	return true
+}
+
+// enterDefenderOptions lists the pending raGenEnterDefender ask's defenders in
+// gorge's option order: past two seats a trigger's fallback first, the rest in
+// enteringDefenders order (chooseEnteringDefender). stall: a trigger with no
+// bound defending player stalls (enterDefenderFallback); false only reads.
+func (s *State) enterDefenderOptions(k *prep, buf *[MaxOptions]TCode, stall bool) int {
+	n := s.enteringDefenderCands(k, s.res.askP, buf)
+	if MaxSeats > 2 && s.res.e.kind == seTrigger {
+		fb, unbound := s.enterDefenderFallbackOf(k, s.res.askP)
+		if unbound && stall {
+			s.capFull(StallDefenderPW)
+		}
+		if fb != NoTarget {
+			n = enterDefenderOrder(buf, n, fb)
+		}
+	}
+	return n
+}
+
+// FeatEnterDefenderIndex is defender code c's position in gorge's
+// entering_defender ask (its option list, before the kernel's canonical
+// sort), so a bot answering in gorge's order reads it; -1 when no such ask is
+// pending or c is not offered.
+func (s *State) FeatEnterDefenderIndex(c TCode) int {
+	if s.res.ask != raGenEnterDefender {
+		return -1
+	}
+	var buf [MaxOptions]TCode
+	n := s.enterDefenderOptions(s.k(), &buf, false)
+	for i := 0; i < n; i++ {
+		if buf[i] == c {
+			return i
+		}
+	}
+	return -1
 }
 
 // applyAskCzParams applies an answer to this file's resolution asks; false:
@@ -171,7 +202,7 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 		s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.enteringDefenderCands(k, ctrl, &buf)
 	if n == 0 {
 		return false // no CR 508.4 defender: it enters but does not attack
@@ -181,7 +212,7 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 		return false
 	}
 	if n > 1 {
-		s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, uint8(sl)
+		s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, objWord(uint8(sl))
 		return true
 	}
 	s.setEnterAttacker(k, sl, buf[0])
@@ -190,7 +221,7 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 
 // setEnterAttacker applies the attacking entry to the permanent at sl, the
 // fold for Attacking$ True (CR 508.4).
-func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
+func (s *State) setEnterAttacker(k *prep, sl Slot, atk TCode) {
 	pp := &s.perms[sl]
 	if pp.flags&pfAttacking != 0 {
 		pp.atk = atk // already attacking (Kira's entry beside a token's own): no second slot
@@ -199,7 +230,7 @@ func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
 	}
 	pp.flags |= pfAttacking
 	pp.atk = atk
-	pp.bord = s.nAttackers
+	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)
 }
@@ -210,7 +241,7 @@ func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
 // front), then each face-up planeswalker the opponent controls, then every
 // battle it protects (gorge battleDefenders, CR 310.7), each seat's
 // battlefield in entry order.
-func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint8) int {
+func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]TCode) int {
 	n := 0
 	for opp := uint8(0); opp < s.nSeats(); opp++ {
 		if opp != ctrl && !s.pl[opp].lost {
@@ -235,7 +266,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 		c := s.battlefieldOrder(opp, m, order[:], 0)
 		for _, sl := range order[:c] {
 			if n < MaxOptions {
-				buf[n] = uint8(s.perms[sl].obj)
+				buf[n] = TCode(s.perms[sl].obj)
 				n++
 			}
 		}
@@ -252,7 +283,7 @@ func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint
 		}
 		c := s.battlefieldOrder(p, bm, order[:], 0)
 		for _, sl := range order[:c] {
-			buf[n] = uint8(s.perms[sl].obj)
+			buf[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}
@@ -290,7 +321,7 @@ next:
 			}
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

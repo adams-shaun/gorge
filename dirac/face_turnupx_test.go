@@ -37,7 +37,7 @@ func TestMorphTurnUpXAnnounced(t *testing.T) {
 	if n := sc.turnUpOffers(0); n != 1 {
 		t.Fatalf("turn-up offers = %d, want 1", n)
 	}
-	sc.s.Apply(MakeAction(AkTurnFaceUp, uint8(o), 0, 0))
+	sc.s.Apply(MakeAction(AkTurnFaceUp, TCode(o), 0, 0))
 	if !sc.s.faceDown(sc.k, sl) {
 		t.Fatal("the turn-up completed before X was announced")
 	}

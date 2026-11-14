@@ -53,6 +53,9 @@ type gnnRefFile struct {
 		NOpt       int       `json:"nopt"`
 		Scores     []float32 `json:"scores"`
 		ValueLogit float32   `json:"value_logit"`
+		// ValueK is the K-way value head's logits (dzg.gnnref on a value_k
+		// checkpoint); absent for a scalar network.
+		ValueK []float32 `json:"value_k,omitempty"`
 	} `json:"records"`
 }
 
@@ -77,6 +80,7 @@ type gnnCase struct {
 	opts   []policynet.Option
 	scores []float32 // python's option logits
 	value  float32   // python's value logit
+	valueK []float32 // python's K-way value logits (nil for a scalar network)
 }
 
 // loadGNNRef loads the network and the reference cases (GORGE_GNN_NET /
@@ -128,7 +132,10 @@ func loadGNNRef(tb testing.TB) (*Net, []gnnCase) {
 				BotPick: o.Bot > 0, EntA: int32(max(o.EA, -1) + 1), EntB: int32(max(o.EB, -1) + 1),
 			}
 		}
-		cases = append(cases, gnnCase{record: st.Record, state: state, opts: opts, scores: rec.Scores, value: rec.ValueLogit})
+		if len(rec.ValueK) != g.ValueK() {
+			tb.Fatalf("record %d: %d value_k logits, the network's head has %d", rec.Record, len(rec.ValueK), g.ValueK())
+		}
+		cases = append(cases, gnnCase{record: st.Record, state: state, opts: opts, scores: rec.Scores, value: rec.ValueLogit, valueK: rec.ValueK})
 	}
 	return g, cases
 }
@@ -153,7 +160,7 @@ func TestGNNParity(t *testing.T) {
 func gnnParity(t *testing.T) {
 	g, cases := loadGNNRef(t)
 	var worstScore, worstValue float64
-	optsChecked := 0
+	optsChecked, valueKChecked := 0, 0
 	for _, c := range cases {
 		scores := make([]float32, len(c.opts))
 		value := g.Eval(&c.state, c.opts, scores)
@@ -178,12 +185,27 @@ func gnnParity(t *testing.T) {
 		if got := g.Value(c.state); got != Sigmoid32(value) {
 			t.Errorf("record %d: Value %v, Eval %v", c.record, got, Sigmoid32(value))
 		}
+		if len(c.valueK) > 0 {
+			// the K-way head, logit for logit; its scalar answer is Eval's
+			vk := make([]float32, len(c.valueK))
+			if v := g.EvalValueVec(&c.state, vk); v != value {
+				t.Errorf("record %d: EvalValueVec's value logit %v, Eval's %v", c.record, v, value)
+			}
+			for i := range vk {
+				d := math.Abs(float64(vk[i] - c.valueK[i]))
+				worstValue = max(worstValue, d)
+				if d > gnnParityTol {
+					t.Errorf("record %d: value_k logit %d Go %.6f, python %.6f (|d| %.3g)", c.record, i, vk[i], c.valueK[i], d)
+				}
+			}
+			valueKChecked++
+		}
 	}
 	// a state with no cards, no sparse rows and no options still has a value
 	if v := g.Value(policynet.State{Dense: cases[0].state.Dense}); !(v > 0 && v < 1) {
 		t.Errorf("empty state: value %v", v)
 	}
-	t.Logf("%d states, %d option logits: worst |d| score %.3g, value logit %.3g (tol %g)", len(cases), optsChecked, worstScore, worstValue, gnnParityTol)
+	t.Logf("%d states (%d with a K-way value head), %d option logits: worst |d| score %.3g, value logit %.3g (tol %g)", len(cases), valueKChecked, optsChecked, worstScore, worstValue, gnnParityTol)
 }
 
 // TestGNNEvalBatchMatchesEval holds the batched forward to the single-state

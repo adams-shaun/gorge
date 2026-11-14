@@ -37,10 +37,10 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 	if ctrl != s.active || s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enteringDefenderCands(k, ctrl, &buf) < 2 {
 		return false
 	}
-	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, uint8(NoSlot)
+	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, objWord(uint8(NoSlot))
 	return true
 }

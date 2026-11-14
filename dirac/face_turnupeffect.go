@@ -11,13 +11,20 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // it (gorge's TurnFaceUp dispatch). C 0 turns up the target in Obj (Expose
 // the Culprit); C 1 is gorge setStateChoose's "setstate_pick": the
 // resolving controller picks up to one permanent matching F that would turn
-// up, or Done (Hustle // Bustle).
+// up, or Done (Hustle // Bustle). C 2 (turnUpPickTransform) is the same
+// "setstate_pick" for Mode$ Transform with Mandatory$ True: one mandatory pick
+// (Min = Max = 1, no Done; posed with one candidate too) over the permanents
+// matching F that would transform, and the pick transforms (Sunder the
+// Gateway's "transform an Incubator token you control").
+
+// turnUpPickTransform is ExtTurnFaceUp's C for the Transform pick.
+const turnUpPickTransform = 2
 
 // raGenTurnUpPick is ExtTurnFaceUp C 1's pick (ChGenTurnUpPick).
 const raGenTurnUpPick = raGenManifestDread + 45
 
 // ChGenTurnUpPick is ExtTurnFaceUp's pick (gorge's "setstate_pick" KChoose):
-// source = the permanent turned face up; AkDone declines.
+// source = the permanent turned face up (C 2: transformed); AkDone declines.
 const ChGenTurnUpPick ChoiceKind = 203
 
 // extTurnFaceUp runs one ExtTurnFaceUp instruction; false: it asks.
@@ -56,15 +63,26 @@ func (s *State) turnUpByEffect(k *prep, sl Slot) {
 	s.turnUpFlip(k, sl, pm.obj, pm.ctrl, 0) // face_facedown.go
 }
 
+// transformPickOK is gorge setStateObjWouldChange's Transform arm for a
+// battlefield permanent: its card has another face and it is not daybound or
+// nightbound (CR 702.145b/e). transformObj turns exactly these.
+func (s *State) transformPickOK(k *prep, sl Slot) bool {
+	o := s.perms[sl].obj
+	return len(k.t.Cards[s.objs[o].card].Faces) >= 2 && !(k.anyDayNight && s.dnBound(k, o))
+}
+
 // turnUpEffCands writes the permanents matching the op's filter that would
-// turn up, seat 0 first, each seat in battlefield order (gorge
-// setStateChoose's AliveFrom(0) walk).
+// turn up (C 2: transform), seat 0 first, each seat in battlefield order
+// (gorge setStateChoose's AliveFrom(0) walk).
 func (s *State) turnUpEffCands(k *prep, in *kop.Instr, buf *[MaxPerm]Slot) int {
 	var m slotMask
 	src := s.resSrcSlot(k)
 	for q := s.occ; q.any(); q = q.rest() {
 		sl := q.first()
-		if s.matchPerm(k, in.F, sl, s.res.e.ctrl, src) && s.turnUpEffOK(k, sl) {
+		if !s.matchPerm(k, in.F, sl, s.res.e.ctrl, src) {
+			continue
+		}
+		if in.C == turnUpPickTransform && s.transformPickOK(k, sl) || in.C != turnUpPickTransform && s.turnUpEffOK(k, sl) {
 			m = m.with(sl)
 		}
 	}
@@ -72,18 +90,22 @@ func (s *State) turnUpEffCands(k *prep, in *kop.Instr, buf *[MaxPerm]Slot) int {
 }
 
 // askOptionsTurnUpEff builds the pick's options: each candidate, then Done
-// (gorge's Min 0); false: not this ask.
+// (gorge's Min 0; none for the mandatory Transform pick); false: not this
+// ask.
 func (s *State) askOptionsTurnUpEff(k *prep, d *Decision) bool {
 	if s.res.ask != raGenTurnUpPick {
 		return false
 	}
 	d.Sub = ChGenTurnUpPick
 	var buf [MaxPerm]Slot
-	n := s.turnUpEffCands(k, &s.prog(k)[s.res.pc], &buf)
+	in := &s.prog(k)[s.res.pc]
+	n := s.turnUpEffCands(k, in, &buf)
 	for _, sl := range buf[:n] {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	}
-	d.add(MakeAction(AkDone, 0, 0, 0))
+	if in.C != turnUpPickTransform {
+		d.add(MakeAction(AkDone, 0, 0, 0))
+	}
 	return true
 }
 
@@ -95,7 +117,11 @@ func (s *State) applyAskTurnUpEff(k *prep, a Action) bool {
 	s.res.ask = raNone
 	if a.Kind() == AkChoose {
 		if ob := &s.objs[Obj(a.Source())]; ob.zone == kop.ZoneBattlefield {
-			s.turnUpByEffect(k, ob.slot)
+			if s.prog(k)[s.res.pc].C == turnUpPickTransform {
+				s.transformObj(k, Obj(a.Source())) // act_transform.go
+			} else {
+				s.turnUpByEffect(k, ob.slot)
+			}
 		}
 	}
 	s.continueRes(k, 0)

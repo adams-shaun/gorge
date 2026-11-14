@@ -52,7 +52,7 @@ func TestXAnnouncementCountsARiderSource(t *testing.T) {
 		sc.s.pl[0].pool[kop.G] = 1
 		sc.s.pl[0].pool[kop.B] = 1
 		r.vo = sc.hand(id["Valgavoth's Onslaught"], 0)
-		sc.do(t, AkCast, uint8(r.vo), 0xff)
+		sc.do(t, AkCast, TCode(r.vo), scAny)
 		r.d = sc.s.Step()
 		if r.d.Kind != DkChoose || r.d.Sub != ChX {
 			t.Fatalf("decision kind %d sub %d, want the X ask", r.d.Kind, r.d.Sub)

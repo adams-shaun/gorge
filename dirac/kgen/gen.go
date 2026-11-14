@@ -519,6 +519,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.ProtFrom != nil {
 			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
 		}
+		if s.ProtChosen {
+			fmt.Fprintf(w, " protchosen")
+		}
+		if s.ProtExc != nil {
+			fmt.Fprintf(w, " protexc=%s", s.ProtExc)
+		}
 		if s.Landwalk != nil {
 			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
 		}

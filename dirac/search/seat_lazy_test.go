@@ -10,8 +10,12 @@ import (
 // decide that a combat point's candidate set does not depend on the bot's
 // answer: exactly one source over every non-Done option, and a Done option.
 func TestLazyOneSource(t *testing.T) {
-	attack := func(src, tgt uint8) dirac.Action { return dirac.MakeAction(dirac.AkAttack, src, tgt, 0) }
-	block := func(src, tgt uint8) dirac.Action { return dirac.MakeAction(dirac.AkBlock, src, tgt, 0) }
+	attack := func(src, tgt dirac.TCode) dirac.Action {
+		return dirac.MakeAction(dirac.AkAttack, src, tgt, 0)
+	}
+	block := func(src, tgt dirac.TCode) dirac.Action {
+		return dirac.MakeAction(dirac.AkBlock, src, tgt, 0)
+	}
 	done := dirac.MakeAction(dirac.AkDone, 0, 0, 0)
 	pass := dirac.MakeAction(dirac.AkPass, 0, 0, 0)
 	tests := []struct {

@@ -16,9 +16,9 @@ func unionScen(t *testing.T) (*scen, Obj, Obj, Obj) {
 	sc.k.gen.anyUnion = true
 	e := &sc.s.res.e
 	e.ctrl, e.obj, e.card = 0, src, fc
-	e.tgt[0], e.tver[0] = uint8(a), sc.s.objs[a].ver
-	e.tgt[1], e.tver[1] = uint8(b), sc.s.objs[b].ver
-	e.tgt[2] = NoTarget
+	e.tgt[0], e.tver[0] = TCode(a), sc.s.objs[a].ver
+	e.tgt[1], e.tver[1] = TCode(b), sc.s.objs[b].ver
+	e.tgt[2] = TCode(NoTarget)
 	sc.s.res.bad = 0
 	return sc, src, a, b
 }
@@ -37,7 +37,7 @@ func TestUnionDestroysEverySlot(t *testing.T) {
 	if !sc.onBF(src) {
 		t.Fatal("the source was destroyed")
 	}
-	if sc.s.res.e.tgt[0] != uint8(a) || sc.s.res.e.tgt[1] != uint8(b) || sc.s.g.inLoop {
+	if sc.s.res.e.tgt[0] != TCode(uint8(a)) || sc.s.res.e.tgt[1] != TCode(uint8(b)) || sc.s.g.inLoop {
 		t.Fatal("the entry's targets or the loop flag were not restored")
 	}
 }
@@ -65,8 +65,8 @@ func TestUnionSkipsIllegalSlot(t *testing.T) {
 // nothing; slots outside the mask are not read.
 func TestUnionUpToNone(t *testing.T) {
 	sc, _, a, b := unionScen(t)
-	sc.s.res.e.tgt[1] = NoTarget
-	sc.s.res.e.tgt[2], sc.s.res.e.tver[2] = uint8(b), sc.s.objs[b].ver
+	sc.s.res.e.tgt[1] = TCode(NoTarget)
+	sc.s.res.e.tgt[2], sc.s.res.e.tver[2] = TCode(b), sc.s.objs[b].ver
 	in := kop.Instr{Op: kop.OpDestroy, Obj: kop.RefTargets01}
 	sc.s.exec(sc.k, &in)
 	if sc.onBF(a) || !sc.onBF(b) {

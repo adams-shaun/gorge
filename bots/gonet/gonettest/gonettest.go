@@ -74,6 +74,12 @@ func WriteShape(dir, name string, sh Shape, rawW int, extra map[string]any) (str
 // value_layers).
 type Layout struct {
 	Layers, PolicyLayers, ValueLayers int
+	// ValueK, when non-zero, adds a K-way value head (the trainer's value_k):
+	// value_k.0, value_k.2, ... with ValueLayers hidden layers and ValueK
+	// outputs, written after every other tensor, so the rest of the file's
+	// weights are the scalar layout's bit for bit, and the config key
+	// value_k. Zero writes no head and no key.
+	ValueK int
 }
 
 // DefaultLayout is every other Write*'s layout: one trunk block and one
@@ -240,20 +246,24 @@ func writeShape(dir, name string, sh Shape, rawW int, extra map[string]any, extI
 	rand("none_a", cd)
 	rand("none_b", cd)
 	norm("opt_norm", d)
-	head := func(name string, in, layers int) {
+	headN := func(name string, in, layers, last int) {
 		for i := 0; i <= layers; i++ {
 			out := hh
 			if i == layers {
-				out = 1
+				out = last
 			}
 			lin(fmt.Sprintf("%s.%d", name, 2*i), in, out, true)
 			in = out
 		}
 	}
+	head := func(name string, in, layers int) { headN(name, in, layers, 1) }
 	head("policy", 2*d, lay.PolicyLayers)
 	head("value", d, lay.ValueLayers)
 	if extIn != nil {
 		ts = append(ts, tensor{"ext_in.weight", []int{sh.D, len(extIn) / sh.D}, extIn})
+	}
+	if lay.ValueK != 0 {
+		headN("value_k", d, lay.ValueLayers, lay.ValueK)
 	}
 
 	var table []Entry
@@ -316,6 +326,9 @@ func headerShape(tensors []Entry, sh Shape, rawW int, extra map[string]any, lay 
 			"SLOT_ROWS": policynet.OptionSlotWidth, "GROUPS": grps},
 		"layernorm_eps": eps,
 		"tensors":       tensors,
+	}
+	if lay.ValueK != 0 {
+		h["config"].(map[string]float64)["value_k"] = float64(lay.ValueK)
 	}
 	for k, v := range extra {
 		if k == "EXT_W" || k == "OPT_DENSE_W" || k == "DENSE_W" { // a const of the net, not a top-level header key

@@ -273,10 +273,10 @@ type perm struct {
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
-	chosen   uint8           // "as this enters" choice
-	bord     uint8           // blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
-	actUsed  uint8           // OncePerTurn abilities activated this turn (bit per ability index)
-	atk      uint8           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
+	actUsed  uint8           // OncePerTurn abilities activated this turn (bit per ability index); beside nblock so the objWord and TCode fields below pack without a pad byte under dirac_mp
+	chosen   objWord         // "as this enters" choice; a last bearer's host (zones.go)
+	bord     objWord         // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
+	atk      TCode           // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
 	ck       [ctrSlots]uint8 // general counter slots' kinds (see p1)
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
@@ -439,7 +439,7 @@ const (
 // spell gained on the stack (OpGrantKeyword at a spell, Judith, Carnage
 // Connoisseur; grantSpellKw, srcKw). A copy does not keep them (CR 707.2).
 const (
-	spellGainedDeathtouch uint8 = 1 << iota
+	spellGainedDeathtouch objWord = 1 << iota
 	spellGainedLifelink
 )
 
@@ -461,10 +461,10 @@ type stackEntry struct {
 	ab     uint8  // ability index in the card's CardDef
 	ctrl   uint8
 	mode   uint8 // chosen modes bitmask
-	x      uint8
+	x      objWord
 	flags  uint8
 	nt     uint8
-	tgt    [kop.MaxTargets]uint8
+	tgt    [kop.MaxTargets]TCode
 	tver   [kop.MaxTargets]uint8
 	// crim is CR 700.13's pick-time verdicts for the root target slots
 	// (act_commitcrime.go): bit i says slot i's pick was a crime when it was
@@ -498,7 +498,7 @@ type stackEntry struct {
 	// A spell has no remembered object: see spellGainedDeathtouch. A granted
 	// trigger has none either, and keeps the permanent that granted it here
 	// instead: see trigHost.
-	remVer uint8
+	remVer objWord
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)
 	grp    uint8 // an AttackersDeclared trigger's attacker group: State.cold.atkGrp index + 1 (trig_attackers.go)
@@ -506,7 +506,7 @@ type stackEntry struct {
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when a SpellCast trigger is queued (value_spellmv.go): the
 	// triggering spell can leave the stack before the value is read.
-	trigMV uint8
+	trigMV objWord
 	// prov is a spell's cast provenance, recorded only for a
 	// table that reads it (genPrep.anyCastProv): bits 0-2 the zone it was
 	// cast from (kop.Zone), bits 3-7 the creatures that convoked it
@@ -551,14 +551,14 @@ type pendingTrig struct {
 	// A granted trigger has no remembered object and keeps the permanent that
 	// granted it here instead (stackEntry.trigHost)
 	// (the captured flag rides pendingTrig.skw's skwRem bit: no byte of its own)
-	remVer uint8
+	remVer objWord
 	// x is the trigger object's spell's paid X, bound as it triggered
 	// (Tf2XBound, CR 107.3m; trig_xpaid.go): the stack entry's x.
 	// It takes the struct's padding byte.
-	x uint8
+	x objWord
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when the trigger is queued (value_spellmv.go).
-	trigMV uint8
+	trigMV objWord
 	// wardSid is the stack identity of the ability a ward trigger answers,
 	// captured when checkWard queues the trigger. The stack at placement can
 	// hold a newer ability of the same source (two triggered abilities of one
@@ -583,8 +583,8 @@ type delayed struct {
 	act  uint8 // kop.Op to perform
 	ctrl uint8
 	obj  Obj
-	ver  uint8
-	when uint8 // 0 = next end step
+	ver  objWord // the object's version; a dlyLeaveGrave record's registering source
+	when uint8   // 0 = next end step
 	// creator is the spell/permanent that created an AtEOT$ rider, the
 	// trigger's stack source (CR 603.7d-e, trig_ateotcreator.go);
 	// NoObj on every other record (the source is obj).
@@ -829,9 +829,9 @@ type resCtx struct {
 	e       stackEntry
 	pc      uint8
 	ask     uint8
-	askP    uint8 // who answers
-	left    uint8 // remaining picks for a multi-pick op
-	chosen  uint8
+	askP    uint8   // who answers
+	left    uint8   // remaining picks for a multi-pick op
+	chosen  objWord // a choice: a seat, an index, or (RefChosen) an object
 	lastDmg int16
 	lastTok Obj
 	loopN   [2]uint8 // Repeat counters (nesting depth 2)
@@ -858,6 +858,7 @@ type resCtx struct {
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
 	col   uint8
+	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
@@ -895,7 +896,7 @@ type stateCore struct {
 
 	pl     [MaxSeats]player
 	objs   [MaxObj]object
-	nobj   uint8
+	nobj   Obj
 	permHi Slot              // one past the highest battlefield slot this game has used: perms[permHi:] is all zero
 	lstamp [MaxPerm]uint16   // CR 613.7e layer restamp on attach (static_attachtimestamp.go layerTs)
 	kwx    [maxKwRepX]kwRepX // until-end-of-turn keyword repeats past the third (grantEOT)
@@ -988,7 +989,7 @@ type stateCore struct {
 	// (with Config.NoElide off), per player: chiefly priority decisions
 	// where passing is the only legal action.
 	Skipped [MaxSeats]uint32
-	nlC     [4]uint8 // Braided Net locks 5..8 (genState.nlA; fills the padding before g; act_lockpermanent.go)
+	nlC     [4]Obj   // Braided Net locks 5..8 (genState.nlA; fills the padding before g; act_lockpermanent.go)
 	g       genState // the generated-table extension (gen.go)
 
 	// Decisions counts the decisions answered (SeqNo).

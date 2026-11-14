@@ -29,13 +29,13 @@ func TestCyclingFromHand(t *testing.T) {
 	sc.lands(0, plains, 1)
 	c := sc.hand(cyc, 0)
 	hand0 := sc.s.pl[0].handN
-	sc.do(t, AkActivate, uint8(c), 0)
+	sc.do(t, AkActivate, TCode(c), 0)
 	sc.s.Step() // the build completes: costs paid, the ability on the stack
 	if z := sc.s.objs[c].zone; z != kop.ZoneGraveyard || sc.s.sp != 1 {
 		t.Fatalf("the cycled card is in zone %d (stack %d), want the graveyard", z, sc.s.sp)
 	}
 	sc.s.Apply(MakeAction(AkPass, 0xff, 0xff, 0))
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkPass, scAny, scAny)
 	if sc.s.sp != 0 || sc.s.pl[0].handN != hand0 {
 		t.Fatalf("stack %d, hand %d (want %d: the cycler out, one card drawn)", sc.s.sp, sc.s.pl[0].handN, hand0)
 	}

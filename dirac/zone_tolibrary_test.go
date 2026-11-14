@@ -15,7 +15,7 @@ func TestToLibraryShuffle(t *testing.T) {
 	fc := id["Valley Floodcaller"]
 	a := sc.perm(fc, 1)
 	sc.s.res.e.ctrl, sc.s.res.e.obj, sc.s.res.e.card = 0, a, fc
-	sc.s.res.e.tgt[0], sc.s.res.e.nt, sc.s.res.e.tver[0] = uint8(a), 1, sc.s.objs[a].ver
+	sc.s.res.e.tgt[0], sc.s.res.e.nt, sc.s.res.e.tver[0] = TCode(a), 1, sc.s.objs[a].ver
 	pl := &sc.s.pl[1]
 	n0, d0 := pl.libLen(), sc.s.rng.Draws
 	in := kop.Instr{Op: kop.OpToLibrary, Obj: kop.RefTarget0, C: kop.LibTopShuffle}
