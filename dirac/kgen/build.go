@@ -435,6 +435,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
+	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -1965,7 +1966,9 @@ func tgtRefOf(n int) kop.Ref {
 // (kernel cardPowerGEV); > X lowers as >= X+1 (power is an integer; Ensign
 // Harry Kim, Operations' powerGTY over his own power). A battlefield power ==
 // a constant (Amalia Benavides Aguirre's powerEQ20) is PredPowerGEV with
-// PredN 3.
+// PredN 3. A power <= a value (Legacy's Allure's powerLEX, X the treasure
+// counters on it) is PredPowerGEV with PredN 2, the same reads with the
+// comparison flipped; < X lowers as <= X-1.
 func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
 	if c.CmpV == nil && c.CmpX == "" && c.CmpOp == opEQ && zone == kop.ZoneBattlefield {
 		kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 3, kop.Const(c.CmpN)
@@ -1975,9 +1978,16 @@ func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.
 		return false, nil
 	}
 	bound := *c.CmpV
-	if c.CmpOp == opGT && !bound.Neg {
+	le := false
+	switch {
+	case c.CmpOp == opGT && !bound.Neg:
 		bound.Add++
-	} else if c.CmpOp != opGE {
+	case c.CmpOp == opLT && !bound.Neg:
+		bound.Add--
+		le = true
+	case c.CmpOp == opLE:
+		le = true
+	case c.CmpOp != opGE:
 		return false, fmt.Errorf("power compare against a value")
 	}
 	if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
@@ -1988,6 +1998,9 @@ func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.
 		return false, err
 	}
 	kf.Pred, kf.PredV = kop.PredPowerGEV, v
+	if le {
+		kf.PredN = 2
+	}
 	return true, nil
 }
 

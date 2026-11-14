@@ -334,6 +334,9 @@ const (
 	// power and 1 toughness per counter (gorge state.CounterPTDelta), read
 	// only when some program can place one (genPrep.anyM2M1, ctr_hone.go).
 	CtrM2M1
+	// CtrTreasure is a treasure counter, a named counter with no inherent
+	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
+	CtrTreasure
 	NumCounterKinds3
 )
 
@@ -360,7 +363,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "COMPONENT", "DESCENT", "M2M1"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "COMPONENT", "DESCENT", "M2M1", "TREASURE"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

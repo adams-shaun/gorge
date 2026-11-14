@@ -148,12 +148,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +12 (MBC counters-1: the Experience player counter and Count$YourCountersExperience, the DESCENT counter kind, and DividedAsYouChoose$ over any counter kind: Aang, Airbending Master, Atreus, Impulsive Son, Daxos the Returned, Ezuri, Claw of Progress, Kalemne, Disciple of Iroas, Kelsien, the Plague, Kratos, Stoic Father, Otharri, Suns' Glory, Toph, Earthbending Master, Descent into Avernus, Contagion, Splendid Agony; Component Pouch's COMPONENT kind lowers; ALL 23407 -> 23419 measured).
 	// +200 (the dead mana-ability census gap, Component Pouch's "{T}, Remove a component counter from Component Pouch: Add two mana of different colors": kop.CtrDeadManaAb names the shape and ManaAbilityHonoured accepts it, so the card and the dead gap's boards lower; MBC 1721 -> 1770, ALL 23419 -> 23619 measured).
-	"ALL": {23619, 34442},
+	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
+	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
+	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
+	// merged against land (counters-1 + Component Pouch with land's MBC work): ALL 23657 -> 23671, MBC 1775 -> 1780 measured.
+	"ALL": {23671, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
 	"DFT": {255, 276},
-	"DMU": {198, 270},
+	"DMU": {199, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -165,9 +169,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +4 (MBC counters-1: Contagion, Descent into Avernus, Ezuri, Claw of Progress, Otharri, Suns' Glory; MBC 1717 -> 1721 measured).
 	// +49 (the dead mana-ability census gap lowers Component Pouch; MBC 1721 -> 1770 measured).
-	"MBC": {1770, 2188},
-	"MKM": {251, 279},
-	"MOM": {203, 296},
+	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
+	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
+	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
+	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
+	"MBC": {1780, 2195},
+	"MKM": {252, 279},
+	"MOM": {204, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},

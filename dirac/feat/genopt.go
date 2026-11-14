@@ -8,7 +8,7 @@ import "github.com/adams-shaun/gorge/dirac"
 // a free cast and a cost-in-an-effect pay as KModes.
 func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 	src, mode := a.Source(), a.Mode()
-	o.obj = uint8(src)
+	o.obj = dirac.Obj(src)
 	switch d.Sub {
 	case dirac.ChGenSearch:
 		o.kind = okSearch
