@@ -724,6 +724,13 @@ const CzBattleGrave = 8
 // tokenOwnersControllingAny walks AliveFrom(0)).
 const RepeatEachSeatOrder = 2
 
+// DmgFromEachCtrl is OpDealDamageFrom's B.N for the player mode whose
+// source is the object the enclosing OpRepeatEach binds (Obj RefEach) and
+// whose one recipient is that object's controller (gorge DealDamage
+// Defined$ RememberedController | DamageSource$ Remembered in a RepeatEach
+// card body: Rakdos Charm). B.N 1 is the trigger-object player mode.
+const DmgFromEachCtrl = 2
+
 // OpPumpAllEach's Obj bits: the amount read per creature from its own
 // derived power / toughness (NumAtt$ Double / NumDef$ Double).
 const (

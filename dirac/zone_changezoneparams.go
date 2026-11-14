@@ -346,7 +346,11 @@ func (s *State) clampDistinctNames(k *prep, in *kop.Instr) {
 	}
 	var seen [64]CardID
 	n := 0
+	elected := altOp(in) && s.g.lookSel&altElected != 0
 	for zi := range lists {
+		if elected && s.g.lookSel&(1<<uint(zi)) == 0 {
+			continue // the election settled: only the chosen zones are in the pool (gorge clamps after originAlternativeZones)
+		}
 		for _, o := range lists[zi] {
 			c := s.objs[o].card
 			dup := false

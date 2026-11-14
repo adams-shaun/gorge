@@ -68,7 +68,8 @@ func (s *State) turnUpByEffect(k *prep, sl Slot) {
 // nightbound (CR 702.145b/e). transformObj turns exactly these.
 func (s *State) transformPickOK(k *prep, sl Slot) bool {
 	o := s.perms[sl].obj
-	return len(k.t.Cards[s.objs[o].card].Faces) >= 2 && !(k.anyDayNight && s.dnBound(k, o))
+	cd := &k.t.Cards[s.objs[o].card]
+	return len(cd.Faces) >= 2 && cd.FaceMode != kop.FacePrototype && !(k.anyDayNight && s.dnBound(k, o))
 }
 
 // turnUpEffCands writes the permanents matching the op's filter that would

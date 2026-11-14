@@ -51,6 +51,9 @@ func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
 			c = addCost(c, cd.ModeCost[m])
 		}
 	}
+	if cd.HasEscalate {
+		c = escalateCost(cd, mode, c) // kw_escalate.go
+	}
 	return c
 }
 
@@ -61,6 +64,9 @@ func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
 //go:noinline
 func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	e := &s.bld().e
+	if k.t.Cards[e.card].HasEscalate {
+		return s.escalateModeAffordable(k, m) // kw_escalate.go
+	}
 	saved := e.mode
 	e.mode = e.mode&^0x0f | 1<<m
 	c := s.buildCost(k)
@@ -91,8 +97,29 @@ func (s *State) spreeAffordable(k *prep) bool {
 	}
 	c := s.buildCost(k)
 	var av avail
-	s.availForBuilt(k, &s.bld().e, &av)
+	s.availSpreeWindow(k, &s.bld().e, &av)
 	return s.faceReachable(k, ctrl, &av, &c, 0)
+}
+
+// availSpreeWindow is availForBuilt for the CR 601.2g window gorge's Spree
+// census walks (affordableTargetCandidates), which offers every source the
+// player could tap: a painful source counts whatever the life, its damage
+// being an effect and not a cost (CR 106.12, 605.3: Cabal Pit at 1 life, as
+// availCastWindowFor's announce gate counts it), and a deferred
+// TriggersWhenSpent$ source (Gilanra) counts its mana, which the planner's
+// census omits (mana_deferred.go) and the window offers.
+//
+//go:noinline
+func (s *State) availSpreeWindow(k *prep, e *stackEntry, av *avail) {
+	x := s.g.availX
+	if k.painMana {
+		s.g.availX |= availWinCol
+	}
+	s.availForBuilt(k, e, av)
+	s.g.availX = x
+	for b := s.scriptDeferred(k, e.ctrl); b.any(); b = b.rest() {
+		av.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
+	}
 }
 
 // spreeCastWindowAbort pays the stranded Spree cost through the window and
