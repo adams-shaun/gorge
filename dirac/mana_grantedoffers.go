@@ -271,8 +271,22 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
 	var sMask, sN uint8
+	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
+	tapsNot := false
+	if ownSac {
+		// the mirror shape: a printed sacrifice-only ability (Eldrazi Spawn's
+		// {C}) beside a granted {T} ability (Path of Annihilation's any
+		// colour) -- the tap makes its mana, then the sacrifice makes its own
+		// (CR 602.2b, 605.1a); a tapped or summoning-sick source has only the
+		// sacrifice (CR 302.6)
+		sMask, sN, mask, n = mask, n, 0, 0
+		tapsNot = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
+	}
 	for i := 0; i < ng; i++ {
 		pc := s.grantView(k.gen, gi[i], sl)
+		if tapsNot && !pc.grantSac {
+			continue
+		}
 		if pc.grantSac && s.grantSacLive(sl, pc) {
 			sMask |= s.srcMaskAt(pc, sl)
 			sN = max(sN, pc.manaN)

@@ -26,6 +26,25 @@ func (lc *lowerCtx) aiHintSVars(v string) bool {
 	return true
 }
 
+// inertAddSVar reports whether a Continuous static's AddSVar$ value names
+// SVars of this face whose body is NOT in the "SVar:<Name>:<Value>" grant shape:
+// gorge's layer walk (layers.go, parseSVarGrant) grants nothing for those, so
+// the parameter has no effect in gorge (Heliod's Punishment, Burning Anger: the
+// granted ability resolves its SVars off the grantor's face either way).
+func (lc *lowerCtx) inertAddSVar(v string) bool {
+	names := strings.FieldsFunc(v, func(r rune) bool { return r == '&' || r == ',' })
+	if len(names) == 0 {
+		return false
+	}
+	for _, n := range names {
+		body, ok := lc.face.SVars[strings.TrimSpace(n)]
+		if !ok || strings.HasPrefix(body, "SVar:") {
+			return false
+		}
+	}
+	return true
+}
+
 // bareCondition lowers a node's bare Condition$ (gorge conditionBareMet):
 // Kicked reads the resolving spell's cast provenance (the kernel's
 // CondKicked reads the resolving entry, so only a spell's own chain

@@ -280,7 +280,7 @@ func (s *State) draw(p uint8) {
 // draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
 func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl := &s.pl[p]
-	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw) {
+	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw, p) {
 		return // static_cantdraw.go: before the empty-library mark
 	}
 	if pl.libLo == pl.libHi {

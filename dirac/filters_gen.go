@@ -696,6 +696,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	switch fl.Pred {
 	case kop.PredNone:
 	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+		s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 		pw, t := int(pc.power), int(pc.tough)
 		if fd {
 			pw, t = 2, 2
@@ -789,6 +790,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredSameNameT0 {
 			return s.sameNameT0Card(c, o, fd) // filter_samename.go
+		}
+		if fl.Pred == kop.PredPowerGTBase {
+			s.offZonePTRead(k, c, owner, o) // static_offzonept.go: the boost lifts power over base
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}

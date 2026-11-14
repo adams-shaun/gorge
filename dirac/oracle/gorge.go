@@ -1378,9 +1378,12 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 // requiredCovered reports whether every creature an attackers decision
 // marks Required (CR 508.1d) that can still be declared is in the answer so
 // far: gorge's validateAttackers refuses a declaration that omits one.
+// A zero decision.RequiredQuota binds no creature: a lone required attacker
+// that can't attack alone and has no partner obeys its requirement by not
+// attacking (CR 508.1d, CR 506.5), the one rule gorge's validator reads.
 func requiredCovered(fr *frame, chosen []int) bool {
 	d := fr.d
-	if d.Kind != decision.KAttackers {
+	if d.Kind != decision.KAttackers || d.RequiredQuota() == 0 {
 		return true
 	}
 	for i := range d.Options {
