@@ -13,12 +13,7 @@ package scriptfacts
 // the compiled corpus cache on every machine. The synthesizer needs no
 // compiler state beyond cards' exported types, so this leaf is its home.
 
-import (
-	"strconv"
-	"strings"
-
-	"github.com/adams-shaun/gorge/engine/cards"
-)
+import "github.com/adams-shaun/gorge/engine/cards"
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
 // synthesize a TRIGGERED ability for: Prowess, Myriad, Extort and Evolve, whose
@@ -62,17 +57,26 @@ const GrantedExtortPayload = "__kwExtortGranted"
 const GrantedAfterlifePayloadPrefix = "__kwAfterlifeGranted:"
 
 // grantedAfterlifeCount reads N from an "Afterlife:N" keyword line: a bare
-// decimal literal of at least 1, the only form the corpus prints. Any other
-// spelling reports false (fail closed).
+// decimal literal of one to nine digits with no leading zero (so N is at
+// least 1), the only form the corpus prints. Any other spelling reports false
+// (fail closed). Read by hand: the rules-side strings ratchet counts every
+// strings.*/strconv.* call.
 func grantedAfterlifeCount(line string) (string, bool) {
-	_, param, ok := strings.Cut(line, ":")
-	if !ok {
+	i := 0
+	for i < len(line) && line[i] != ':' {
+		i++
+	}
+	if i == len(line) {
 		return "", false
 	}
-	param = strings.TrimSpace(param)
-	n, err := strconv.Atoi(param)
-	if err != nil || n < 1 || strconv.Itoa(n) != param {
+	param := line[i+1:]
+	if len(param) == 0 || len(param) > 9 || param[0] < '1' || param[0] > '9' {
 		return "", false
+	}
+	for j := 1; j < len(param); j++ {
+		if param[j] < '0' || param[j] > '9' {
+			return "", false
+		}
 	}
 	return param, true
 }
