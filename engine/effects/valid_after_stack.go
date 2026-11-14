@@ -23,7 +23,10 @@ const (
 // SVar Y = the controller's creature cards minus two) and controller -- over
 // q's graveyard, through the shared HasProperty zone-count evaluator
 // (hasPropertyStateBacked), so the grammar has one home. A spec this build
-// cannot evaluate admits nobody (fail closed); an empty spec admits everyone.
+// does not evaluate (the corpus also writes Player.hasMoreLife,
+// withMoreCreaturesThanYou and HasCardsInHand_ on other Keepers) admits
+// everyone, as before ValidAfterStack$ was read (fail open); so does an empty
+// spec.
 func PlayerAdmitsValidAfterStack(h Host, c *Ctx, spec string, q state.PlayerID) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -31,11 +34,11 @@ func PlayerAdmitsValidAfterStack(h Host, c *Ctx, spec string, q state.PlayerID) 
 	}
 	rest, ok := strings.CutPrefix(spec, validAfterStackTargetingPrefix)
 	if !ok {
-		return false
+		return true
 	}
 	rest, ok = strings.CutPrefix(strings.TrimSpace(rest), validAfterStackPlayerPrefix)
 	if !ok || !strings.HasPrefix(rest, validAfterStackGraveyardProp) {
-		return false
+		return true
 	}
 	n, ok := hasPropertyStateBacked(h, h.Game(), c, []state.PlayerID{q}, "HasProperty"+rest, "")
 	return ok && n == 1

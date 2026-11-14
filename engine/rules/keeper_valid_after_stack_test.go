@@ -25,7 +25,12 @@ const keeperDead = "Name:Dead Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 // whether the opponent is the offered target.
 func keeperOffersOpponent(t *testing.T, mine, theirs int) (offered, oppTarget bool) {
 	t.Helper()
-	e, _, id := newFixtureDeck(t, 41, keeperFixture)
+	return fixtureOffersOpponent(t, keeperFixture, mine, theirs)
+}
+
+func fixtureOffersOpponent(t *testing.T, fixture string, mine, theirs int) (offered, oppTarget bool) {
+	t.Helper()
+	e, _, id := newFixtureDeck(t, 41, fixture)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
 	for range mine {
 		putGraveyard(t, e, 0, keeperDead)
@@ -70,12 +75,36 @@ func TestKeeperOfTheDeadValidAfterStack(t *testing.T) {
 		{"one_behind", 3, 2, false},
 		{"empty_both", 0, 0, false},
 		{"two_behind", 3, 1, true},
+		{"two_ahead_of_empty", 2, 0, true},
 		{"far_behind", 4, 0, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			offered, opp := keeperOffersOpponent(t, tc.mine, tc.theirs)
 			if offered != tc.want || opp != tc.want {
 				t.Fatalf("mine=%d theirs=%d: offered=%v opponent-target=%v, want %v", tc.mine, tc.theirs, offered, opp, tc.want)
+			}
+		})
+	}
+}
+
+// A ValidAfterStack$ spelling this build does not evaluate (the other Keepers'
+// Player.hasMoreLife, withMoreCreaturesThanYou, HasCardsInHand_) must not
+// empty the player-candidate census: the ability is offered against the
+// opponent as it was before the key was read.
+func TestUnevaluatedValidAfterStackAdmitsOpponent(t *testing.T) {
+	t.Parallel()
+	for _, spelling := range []string{
+		"Player.hasMoreLife",
+		"Player.withMoreCreaturesThanYou",
+		"Player.HasCardsInHand_Card_GEY",
+	} {
+		t.Run(spelling, func(t *testing.T) {
+			fixture := "Name:Keeper Spelling Fixture\nManaCost:B B\nTypes:Creature Human Wizard\nPT:1/2\nK:Haste\n" +
+				"A:AB$ Pump | ValidTgts$ Opponent | Cost$ B T | ValidAfterStack$ Ability.IsTargeting " + spelling + " | SpellDescription$ Pick an opponent.\n" +
+				"Oracle:x\n"
+			offered, opp := fixtureOffersOpponent(t, fixture, 0, 0)
+			if !offered || !opp {
+				t.Fatalf("%s: offered=%v opponent-target=%v, want both true", spelling, offered, opp)
 			}
 		})
 	}
