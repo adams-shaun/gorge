@@ -14,7 +14,7 @@ var trigreferents11Forms = []formCase{
 	{card: "Xyris, the Writhing Storm", form: "Draw Defined$ You & TriggeredTarget (the controller draws, then the damaged player)", lir: "obj=You A=TriggerAmount\n     1 Draw obj=TriggeredPlayer A=TriggerAmount"},
 	{card: "Throat Slitter", form: "Creature.nonBlack+ControlledBy TriggeredTarget in its own combat-damage-to-a-player trigger (PredTrigPlayerCtrl beside a colour test)", lir: "cmp(16 0 0  )"},
 	{card: "Lightwielder Paladin", form: "Permanent.Black+ControlledBy TriggeredTarget,Permanent.Red+ControlledBy TriggeredTarget (one PredTrigPlayerCtrl clause per alternative)", lir: "cmp(16 0 0  )"},
-	{card: "Norwood Priestess", form: "ActivationFirstCombat$ True is read (the activation condition: combats begun <= 1); ActivationPhases$ keeps it refused", refused: "unread params [ActivationPhases]"},
+	{card: "Norwood Priestess", form: "ActivationFirstCombat$ True is read (the activation condition: combats begun <= 1) beside the ActivationPhases$ window", lir: "PhaseCount"},
 }
 
 func TestTrigReferents11Forms(t *testing.T) { checkForms(t, trigreferents11Forms) }
@@ -22,9 +22,9 @@ func TestTrigReferents11Forms(t *testing.T) { checkForms(t, trigreferents11Forms
 // TestActivationFirstCombatLowers: ActivationFirstCombat$ True on an
 // activated ability lowers to an activation condition on the combats begun
 // this turn (gorge activationPhasesOK withholds the offer once
-// CombatsThisTurn > 1); any other value, or a mana ability, refuses. No pool
-// card carries it without ActivationPhases$ (Norwood Priestess), so the
-// carrier is inline.
+// CombatsThisTurn > 1); any other value, or a mana ability, refuses. Norwood
+// Priestess carries it beside ActivationPhases$; the carrier here is inline
+// so the False and mana-ability refusals are reachable.
 func TestActivationFirstCombatLowers(t *testing.T) {
 	probe := func(fc string) *lCard {
 		t.Helper()
