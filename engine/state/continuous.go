@@ -89,8 +89,8 @@ type ContinuousEffect struct {
 
 	// FromEffect marks a registration created by the api:Effect primitive (the
 	// Ctx-side stand-in for Forge's implicit Command-zone effect object). The
-	// one-shot self-exile idiom (`DB$ ChangeZone | Defined$ Self | Origin$
-	// Command | Destination$ Exile`) ends exactly the source's Effect-created
+	// one-shot self-exile idiom (a ChangeZone moving the source from the
+	// Command zone to exile) ends exactly the source's Effect-created
 	// registrations (rules.Engine.EndEffectSource), so a printed static of the
 	// SAME source -- registered by the layer-5/6 static scan, not by an
 	// Effect -- is never a casualty. Rebuilt by re-execution on replay like
@@ -448,8 +448,8 @@ type ContinuousEffect struct {
 	// parameterised grant is removed by its head) that the affected object
 	// loses at layer 6 (CR 613.1f). Honoured in rules' LAbilities walk BEFORE
 	// AddKeywords on the SAME effect, so a modification that removes one
-	// keyword and grants another (CopyPermanent's RemoveKeywords$ Soulbond |
-	// AddKeywords$ Haste) applies in the order the card text reads whichever
+	// keyword and grants another (a CopyPermanent copy that loses soulbond
+	// and gains haste) applies in the order the card text reads whichever
 	// way the timestamps order independent effects. Empty on every effect
 	// that removes none.
 	RemoveKeywords []string
@@ -707,8 +707,8 @@ type ContinuousEffect struct {
 	// imprint is the link "this effect belongs to this card", never the
 	// remembered card itself. The corpus's dig-and-play family (Superior
 	// Foes of Spider-Man, Furious Rise, Unstable Amulet) ends the previous
-	// effect through its trigger's `DB$ ChangeZone | Defined$ Imprinted |
-	// Origin$ Command | Destination$ Exile` -- exiling the imprinted token
+	// effect through its trigger's ChangeZone moving the imprinted cards
+	// from the Command zone to exile -- exiling the imprinted token
 	// from the Command zone is exiling the effect, the "until you exile
 	// another card" lifetime -- and Word of Command / Semester's End use the
 	// same idiom inside one chain. This build has no effect-token object, so

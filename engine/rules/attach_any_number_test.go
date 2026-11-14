@@ -11,8 +11,8 @@ import (
 )
 
 // Ardenn's "attach any number of Auras and Equipment you control to target
-// permanent or player" (`Object$ Valid Aura.YouCtrl,Equipment.YouCtrl |
-// Optional$ True`) poses ONE subset ask over the objects with a legal
+// permanent or player" (an optional attach of any Auras and Equipment you
+// control) poses ONE subset ask over the objects with a legal
 // destination, and each picked object attaches.
 
 // ardennSubsetBoard builds Ardenn + two Equipment, fires the begin-combat

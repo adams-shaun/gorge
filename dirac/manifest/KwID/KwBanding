@@ -1,0 +1,7 @@
+family: KwID
+name: KwBanding
+value: 40
+forge: Banding
+census: kw Banding all=24 std=0 mbc=1 sole=20
+state: slotbyte 112 (banding)
+status: reserved

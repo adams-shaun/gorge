@@ -3,8 +3,8 @@ package rules
 // Sarkhan, Soul Aflame is the corpus-pinned carrier for api:Clone's
 // trigger-driven, RESOLVING shape: a Dragon
 // entering under your control fires the ChangesZone trigger whose Execute$
-// is `DB$ Clone | Defined$ TriggeredCardLKICopy | NewName$ Sarkhan, Soul
-// Aflame | AddTypes$ Legendary | Duration$ UntilEndOfTurn | Optional$ True`.
+// is an optional Clone of the triggering card's last-known copy, renamed
+// Sarkhan and made legendary until end of turn.
 // The election is a real yes/no ask; the accepted copy overrides the name,
 // keeps the copied characteristics, and expires at end-of-turn cleanup.
 

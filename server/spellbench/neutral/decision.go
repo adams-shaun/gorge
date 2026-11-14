@@ -2963,10 +2963,10 @@ func (s *Session) mayAttackThroughDefender(v2ID string, cv view.CardView) bool {
 
 // cantBlockAttacker reports whether a printed CantBlockBy static forbids this
 // (blocker, attacker) pair. Forge spells the static on either side of the
-// pair: a blocker's own "can't block <filter>" (Hinterland Drake:
-// ValidAttacker$ Creature.Artifact | ValidBlocker$ Creature.Self) and an
-// attacker's "can't be blocked by <filter>" (Azure Beastbinder:
-// ValidAttacker$ Creature.Self | ValidBlocker$ Creature.powerGE2). Native's
+// pair: a blocker's own "can't block <filter>" (Hinterland Drake: the attacker
+// filter names artifact creatures, the blocker filter the host) and an
+// attacker's "can't be blocked by <filter>" (Azure Beastbinder: the attacker
+// filter names the host, the blocker filter power 2 or greater). Native's
 // BlockRestricted reads ValidAttacker$ against the attacker and ValidBlocker$
 // against the blocker with the static's host as the Self referent, so both
 // host shapes are read here.

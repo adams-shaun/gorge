@@ -18,9 +18,9 @@ import (
 //     unattached and get swept by the CR 704.5m SBA.
 
 // TestChangeZoneOriginAlternativeGraveyardAuraEntersAttached is the Boonweaver
-// Giant carrier: `DB$ ChangeZone | Hidden$ True | Origin$ Library |
-// OriginAlternative$ Graveyard,Hand | Destination$ Battlefield |
-// ChangeType$ Aura.YouOwn | AttachedTo$ Self`. The Aura sits in the
+// Giant carrier: a hidden ChangeZone search of your library, graveyard or
+// hand (OriginAlternative$) for an Aura you own, put onto the battlefield
+// attached to the Giant itself. The Aura sits in the
 // GRAVEYARD; the search must offer it, move it onto the battlefield, and
 // attach it to the Giant. Without the rider an unattached Aura on the
 // battlefield is a CR 704.5m SBA casualty -- the exact failure this pin

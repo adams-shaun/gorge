@@ -1,0 +1,7 @@
+family: KwID
+name: KwOffering
+value: 89
+forge: Offering
+census: kw Offering all=6 std=0 mbc=0 sole=6
+state: code 0
+status: reserved

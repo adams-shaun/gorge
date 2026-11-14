@@ -10,7 +10,7 @@ import (
 
 // spell_ispresent_cast_gate_test.go pins CR 601.3 for a spell's top-level
 // IsPresent$: Confront the Assault ("Cast this spell only if a creature is
-// attacking you", A:SP$ Token | IsPresent$ Creature.attackingYou) is offered
+// attacking you", a Token spell gated on a creature attacking you) is offered
 // only while a creature attacks its caster. spellTimingPre applies
 // abilityPresentHolds to the spell's own SA, so every cast route that asks
 // spellTimingOK is gated.

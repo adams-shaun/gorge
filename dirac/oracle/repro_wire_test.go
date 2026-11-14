@@ -6,15 +6,15 @@ import (
 	"testing"
 )
 
-// wireWord is the default class's packing of a Canon with these fields: the
-// number a repro file holds in every build.
+// wireWord is the kernel's packing of a Canon with these fields: the number a
+// repro file holds.
 func wireWord(kind CanonKind, src, tgt, mode uint8) uint64 {
 	return uint64(kind)<<24 | uint64(src)<<16 | uint64(tgt)<<8 | uint64(mode)
 }
 
-// TestReproActionsWireIsTheDefaultPacking: a repro's actions are the default
-// class's packed numbers whichever size class wrote them, and read back as the
-// reader's own Refs: a seat, a stack ability and none keep their meaning.
+// TestReproActionsWireIsTheDefaultPacking: a repro's actions are the
+// kernel's packed numbers, and read back as the same Refs: a seat, a stack
+// ability and none keep their meaning.
 func TestReproActionsWireIsTheDefaultPacking(t *testing.T) {
 	as := []Canon{
 		Pack(3, 5, RefPlayer+1, 7),
@@ -52,9 +52,9 @@ func TestReproActionsWireIsTheDefaultPacking(t *testing.T) {
 	}
 }
 
-// TestReproActionsReadADefaultRecording: the recorded files are default-packed
-// numbers, and a build of the other size class reads the same actions from them
-// (a format-1 file's stack ability 0xE1 and seat 0xF1 included).
+// TestReproActionsReadADefaultRecording: the recorded files are packed
+// numbers, read back as the same actions (a format-1 file's stack ability
+// 0xE1 and seat 0xF1 included).
 func TestReproActionsReadADefaultRecording(t *testing.T) {
 	for _, tc := range []struct {
 		format string

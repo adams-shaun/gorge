@@ -122,8 +122,7 @@ func (s *State) ObjHash(o Obj) uint64 {
 	}
 	// the permanent, every byte (perm has no padding)
 	h = hbytes(h, unsafe.Pointer(&s.perms[ob.slot]), unsafe.Sizeof(s.perms[0]))
-	if r := s.xblkRecs(); len(r) > 0 && r[ob.slot] != (xblkRec{}) {
-		x := r[ob.slot]
+	if x := s.xblkFind(ob.slot); x != nil {
 		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
 	}
 	if s.g.on {
@@ -220,6 +219,9 @@ func (s *State) genViewHash(h uint64) uint64 {
 	}
 	if c := s.atkLastCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // trig_atklastturn.go
+	}
+	if c := s.contractCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // ctr_contract.go
 	}
 	if c := s.experCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // act_energy.go

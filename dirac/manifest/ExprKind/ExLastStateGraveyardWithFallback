@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExLastStateGraveyardWithFallback
+value: 96
+forge: LastStateGraveyardWithFallback
+census: count LastStateGraveyardWithFallback all=3 std=0 mbc=0 sole=1
+state: unbounded (remembered/imprinted sets)
+status: blocked unbounded:remembered/imprinted-sets

@@ -67,8 +67,8 @@ func TestRemorselessPunishmentRepeatsAfterAnsweredBody(t *testing.T) {
 }
 
 // TestCultivatorColossusRepeatGateRunsAfterAnsweredBody: Cultivator
-// Colossus's ETB is a GATED Repeat (RepeatDefined$ Remembered | RepeatPresent$
-// Card) whose body is a hand pick (ChangeZone Origin$ Hand) -- an ask in every
+// Colossus's ETB is a GATED Repeat (while a remembered card is present)
+// whose body is a hand pick (ChangeZone Origin$ Hand) -- an ask in every
 // iteration. Each answered pick must put the land in, draw, re-check the gate
 // and ask again; declining empties Remembered and the gate ends the loop.
 func TestCultivatorColossusRepeatGateRunsAfterAnsweredBody(t *testing.T) {

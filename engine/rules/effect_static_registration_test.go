@@ -8,10 +8,10 @@ package rules
 
 import "testing"
 
-// TestEffectStaticChandraFlameshaper: the +2's `Play:Mode$ Continuous |
-// MayPlay$ True | Affected$ Card.ChosenCard | AffectedZone$ Exile` grant (with
-// `ForgetOnMoved$ Exile`) is real: the card chosen during resolution is
-// castable from exile.
+// TestEffectStaticChandraFlameshaper: the +2's Effect grants a continuous static
+// that lets its controller play the chosen card from exile (forgotten once it
+// leaves exile), and it is real: the card chosen during resolution is castable
+// from exile.
 func TestEffectStaticChandraFlameshaper(t *testing.T) {
 	t.Parallel()
 	runInlineOracle(t, `{
@@ -56,10 +56,9 @@ func TestEffectStaticStrongboxRaider(t *testing.T) {
 	}`)
 }
 
-// TestEffectStaticKellanPlanarTrailblazer: the gained `STPlay: Mode$
-// Continuous | MayPlay$ True | Affected$ Card.IsRemembered | AffectedZone$
-// Exile` grant (with `ForgetOnMoved$ Exile`) lets the exiled top card be cast
-// this turn.
+// TestEffectStaticKellanPlanarTrailblazer: the gained Effect's continuous
+// static, which lets its controller play the remembered card from exile
+// (forgotten once it leaves exile), lets the exiled top card be cast this turn.
 func TestEffectStaticKellanPlanarTrailblazer(t *testing.T) {
 	t.Parallel()
 	runInlineOracle(t, `{
@@ -79,10 +78,10 @@ func TestEffectStaticKellanPlanarTrailblazer(t *testing.T) {
 	}`)
 }
 
-// TestEffectStaticZulAshurLichLord: the activated ability's `Play:Mode$
-// Continuous | MayPlay$ True | Affected$ Card.IsRemembered | AffectedZone$
-// Graveyard` grant (with `ExileOnMoved$ Graveyard`) lets the targeted Zombie be
-// cast from the graveyard.
+// TestEffectStaticZulAshurLichLord: the activated ability's Effect grants a
+// continuous static that lets its controller play the remembered card from the
+// graveyard (exiled if it would leave it), so the targeted Zombie can be cast
+// from the graveyard.
 func TestEffectStaticZulAshurLichLord(t *testing.T) {
 	t.Parallel()
 	runInlineOracle(t, `{
@@ -101,9 +100,9 @@ func TestEffectStaticZulAshurLichLord(t *testing.T) {
 	}`)
 }
 
-// TestEffectStaticKaitoCunningInfiltrator: the +1's `Unblockable: Mode$
-// CantBlockBy | ValidAttacker$ Card.IsRemembered` grant makes the targeted
-// creature unblockable this turn while another attacker still can be blocked.
+// TestEffectStaticKaitoCunningInfiltrator: the +1's Effect grants a CantBlockBy
+// static on the remembered attacker, which makes the targeted creature
+// unblockable this turn while another attacker still can be blocked.
 func TestEffectStaticKaitoCunningInfiltrator(t *testing.T) {
 	t.Parallel()
 	runInlineOracle(t, `{
@@ -145,10 +144,9 @@ func TestEffectStaticVampireGourmand(t *testing.T) {
 	}`)
 }
 
-// TestEffectStaticVivienReid: the -8 emblem's `Continuous | AddPower$ +2 |
-// AddToughness$ +2 | AddKeyword$ Vigilance & Trample & Indestructible` grant
-// (Duration$ Permanent) pumps the controller's creatures and survives Vivien
-// leaving the battlefield.
+// TestEffectStaticVivienReid: the -8 emblem's permanent-duration continuous
+// static (+2/+2, vigilance, trample and indestructible) pumps the controller's
+// creatures and survives Vivien leaving the battlefield.
 func TestEffectStaticVivienReid(t *testing.T) {
 	t.Parallel()
 	runInlineOracle(t, `{
@@ -179,9 +177,8 @@ func TestEffectStaticVivienReid(t *testing.T) {
 	}`)
 }
 
-// TestEffectStaticKaitoCunningInfiltratorEmblem: the -9 emblem's `Triggers$
-// CastTrig | Duration$ Permanent` grant (SVar CastTrig: Mode$ SpellCast) is
-// real. The +1 CantBlockBy grant is covered by the test above; this is the
+// TestEffectStaticKaitoCunningInfiltratorEmblem: the -9 emblem's
+// permanent-duration Effect, which carries a spell-cast trigger, is real. The +1 CantBlockBy grant is covered by the test above; this is the
 // second behaviour the card routes through Effect. After the emblem resolves,
 // casting a spell makes a 2/1 blue Ninja token, and the emblem keeps firing
 // after Kaito has left the battlefield (a permanent-duration Effect trigger,

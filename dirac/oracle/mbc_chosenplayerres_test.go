@@ -212,8 +212,7 @@ func checkGluntch(t *testing.T, y gluntchTally, acts []Canon) {
 // one player left and is taken in place, and the third choice and the
 // Treasures sit behind ConditionSVarCompare$ GE3, so none is made. The chosen
 // player draws, the first one puts the counters on a creature of theirs (asked
-// when they control two or more), and no Treasure is ever created. The
-// four-seat pods are TestFourSeatGluntchLockstep (build tag dirac_mp).
+// when they control two or more), and no Treasure is ever created.
 func TestMBCChosenPlayerLowers(t *testing.T) {
 	if isolate(t) {
 		return

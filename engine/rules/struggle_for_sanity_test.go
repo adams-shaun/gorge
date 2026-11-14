@@ -8,8 +8,8 @@ import (
 )
 
 // TestStruggleForSanityAlternatesAndReturnsTheOpponentsPicks: Struggle for
-// Sanity's target opponent reveals their hand (RevealHand RememberTargets$
-// True | RememberRevealed$ True), then the OPPONENT (ChooseCard Defined$
+// Sanity's target opponent reveals their hand (a RevealHand that remembers
+// the target and the revealed cards), then the OPPONENT (ChooseCard Defined$
 // Player.IsRemembered) and the caster (Defined$ You) alternately exile a card
 // from it until it is empty. The opponent's picks are imprinted (ChangeZone
 // Imprint$ True) and return to their hand; the caster's go to the graveyard.

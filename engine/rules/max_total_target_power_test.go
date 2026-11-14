@@ -418,8 +418,8 @@ func TestTotalPowerCapNegativeOffsetCannotSaveAnOverCapCandidate(t *testing.T) {
 // TestTotalPowerCapOnAnAbilityTargetAsk: the askTarget (ability) path --
 // Nethroi, Apex of Death's trigger carries the same parameter -- is pinned
 // on an authored activated-ability fixture carrying the identical parameter
-// shape (TargetMin$ 0 | TargetMax$ X | ValidTgts$ Creature.YouOwn |
-// MaxTotalTargetPower$ 10) so the two ask sites cannot drift.
+// shape (zero to X target creatures you own with total power at most 10) so
+// the two ask sites cannot drift.
 func TestTotalPowerCapOnAnAbilityTargetAsk(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

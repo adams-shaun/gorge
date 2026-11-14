@@ -1,0 +1,7 @@
+family: KwID
+name: KwAttacksAlone
+value: 103
+forge: CARDNAME can only attack alone.
+census: kw CARDNAME can only attack alone. all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

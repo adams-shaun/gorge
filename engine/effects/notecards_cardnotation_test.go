@@ -140,9 +140,8 @@ func TestCardNotedFoldIsIdempotentOrderedAndReplayable(t *testing.T) {
 }
 
 // TestCardNotationTriggeredSourceNotesTheTriggerCard drives Maelstrom
-// Archangel Avatar's real TrigNote body: the DamageDone trigger executes DB$
-// Pump | NoteCards$ TriggeredSource | NoteCardsFor$ MaelstromArchangelAvatar,
-// and the vanguard's actual TrigRepeatEach RepeatCards$ reader
+// Archangel Avatar's real TrigNote body: the DamageDone trigger executes a
+// Pump that notes the triggered source for the Avatar's notation, and the vanguard's actual TrigRepeatEach RepeatCards$ reader
 // (`Card.NotedForMaelstromArchangelAvatar`) must select exactly the creature
 // that dealt the damage.
 func TestCardNotationTriggeredSourceNotesTheTriggerCard(t *testing.T) {

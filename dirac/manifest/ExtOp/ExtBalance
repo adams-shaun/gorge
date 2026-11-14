@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtBalance
+value: 56
+forge: Balance
+census: api Balance all=4 std=0 mbc=0 sole=4
+state: code 0
+status: reserved

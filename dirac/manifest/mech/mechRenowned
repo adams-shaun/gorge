@@ -1,0 +1,6 @@
+family: mech
+name: mechRenowned
+value: 51
+state: slotbit 16/16
+status: active
+doc: slots whose permanent is renowned (CR 702.112b; act_renown.go)

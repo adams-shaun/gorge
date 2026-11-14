@@ -11,8 +11,8 @@ import (
 // battlefield-static grant of an attach-cost alternative: Kíli the
 // Resourceful's "As long as you have an enduring story, you may pay {0}
 // rather than pay the equip cost of the first equip ability you activate each
-// turn" (S:Mode$ AlternativeCost | ValidSA$ Activated.Equip | ValidPlayer$ You
-// | Cost$ 0 | Condition$ EnduringStory | CheckSVar$ X | SVarCompare$ EQ0).
+// turn" (an AlternativeCost static of {0} for your equip abilities, gated on
+// the enduring-story condition and an SVar count of zero).
 // The ability's own AlternateCost$ rider wins (it is printed on the ability
 // itself); otherwise the first applying static's Cost$ is the one alternative
 // (AltCostIndex 1), offered and charged through the same option the rider

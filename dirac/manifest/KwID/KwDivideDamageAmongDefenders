@@ -1,0 +1,7 @@
+family: KwID
+name: KwDivideDamageAmongDefenders
+value: 123
+forge: You may assign CARDNAME's combat damage divided as you choose among defending player and/or any number of creatures they control.
+census: kw You may assign CARDNAME's combat damage divided as you choose among defending player and/or any number of creatures they control. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved
