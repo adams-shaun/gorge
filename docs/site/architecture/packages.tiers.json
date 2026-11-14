@@ -644,6 +644,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/cmd/kmanifest": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/cmd/sbv2dirac": {
       "tier": "dirac",
       "status": "EXT"
