@@ -37,6 +37,8 @@ for it. `make deploy-demo` serves the demo (`deploy/demo.env.example`). The guid
 | `-bot-search-parallelism` | `1` | goroutines within one searched decision (latency only, never an answer; >= 1) |
 | `-bot-search-slots` | `max(1, GOMAXPROCS/2)` | maximum concurrent searched bot decisions across the process; decisions queue, never degrade (>= 1; default max(1, GOMAXPROCS/2)) |
 | `-cards` | `.cards` | corpus directory (ir.gob.gz / cardsfolder) |
+| `-commander-ratings` | none | card value file for Commander-draft events ({"Card": {"<field>": value}}, the draftsim -ratings-file format): bots draft and build by it and draft advice ranks by it; empty uses the built-in heuristic |
+| `-commander-ratings-field` | `blended` | which field of -commander-ratings to rate by |
 | `-commander-seats` | `0` | seats per commander table; 0 = -seats |
 | `-cooldown` | `5s` | pause between matches on a perpetual table |
 | `-decks directory` | `testkit/testutil/decks` | directory of deck JSON files; with -engine dirac the default is the first -dirac-sets set's bench decks |
