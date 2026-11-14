@@ -30,7 +30,7 @@ const castWarpPush uint8 = 8
 func (s *State) voidHolds(k *prep) bool {
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.from != uint8(kop.ZoneBattlefield) {
+		if e.from() != uint8(kop.ZoneBattlefield) {
 			continue
 		}
 		if DebugVoidLandToo || !s.voidLand(k, &s.objs[e.o]) {

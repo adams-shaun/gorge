@@ -177,6 +177,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			break
 		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			s.discardDefinedAll(k, p, in.F)
+			break
+		}
 		if n < 1 {
 			// gorge discardBounds keeps a resolved zero at zero: an X of 0
 			// (Last Rites, Death Cloud) discards nothing and asks nothing
@@ -560,12 +567,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// negative power must not wrap the uint8 pool or fbR
 			n = max(n, 0)
 			s.firebendAdd(p, n) // kw_firebend.go
-		} else if in.B.N == 2 && in.B.K == kop.VConst {
+		} else if in.B.N == 2 && in.B.K == kop.VConst && in.F == 0 {
 			n = max(n, 0) // PersistentMana$ True: the units are also tallied in State.pm (mana_persistent.go)
 			s.persistAdd(p, col, n)
 		}
 		if in.F != 0 {
-			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go
+			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go; PersistentMana$ True: its restriction kind persists (genPrep.restrPers)
 			break
 		}
 		s.poolAdd(p, col, n)
@@ -962,7 +969,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 		chained := s.discardChained(k, in)
 		if chained && s.repPending() {
 			// the next player chooses with these picks still in hand
-			s.holdDiscard(r.arr[:r.peekI])
+			s.holdDiscard(uint8(r.chosen), r.arr[:r.peekI])
 			r.peekI = 0
 			p := s.repPop()
 			if !s.discardChain(k, in, p) {

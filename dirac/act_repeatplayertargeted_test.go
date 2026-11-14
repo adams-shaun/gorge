@@ -30,7 +30,7 @@ func TestRepeatEachTargetedOrder(t *testing.T) {
 	xt.code[0] = TCode(PlayerTarget0) // the controller, picked second
 	s.g.repEnd = 0
 	s.exec(sc.k, &in)
-	if s.g.eachPl != 0 || s.g.repNext != 1 {
+	if s.g.eachPl != 0 || s.g.repNext != repOne(1) {
 		t.Fatalf("two targets picked 1,0: eachPl %d next %d, want the controller (0) first", s.g.eachPl, s.g.repNext)
 	}
 

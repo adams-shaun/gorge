@@ -178,7 +178,8 @@ func (s *State) shieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 // event is one of replOrderCandsFz's candidates, so the CR 616.1 ask can
 // model the shield too: a doubler of the source's controller, or the
 // recipient's combat-damage prevention. A plus-N or the source's prevention
-// is not a candidate, so shieldCombat still stalls on those.
+// is not a candidate here (the granted one is replOrderCandsFz's, but not
+// yet modelled with a shield), so shieldCombat still stalls on those.
 func (s *State) shieldOrderable(k *prep, src, dst Slot) bool {
 	g := k.gen
 	sc, rcp := s.perms[src].ctrl, s.perms[dst].ctrl

@@ -19,7 +19,15 @@ func auraProtRefusals(t *testing.T, static string) string {
 	if d := card.Link(); len(d) != 0 {
 		t.Fatalf("link: %v", d)
 	}
-	p := &pool{names: []string{"Probe"}, byName: map[string]*cards.Card{"Probe": card},
+	// a pool card carrying the Equipment subtype, as the corpus pool does
+	gear, diags := cards.ParseBytes("Gear.txt", []byte("Name:Gear\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:1"))
+	if gear == nil || len(diags) != 0 {
+		t.Fatalf("parse: %v", diags)
+	}
+	if d := gear.Link(); len(d) != 0 {
+		t.Fatalf("link: %v", d)
+	}
+	p := &pool{names: []string{"Probe", "Gear"}, byName: map[string]*cards.Card{"Probe": card, "Gear": gear},
 		nDecks: map[string]int{}, reg: &cards.Registry{}}
 	var out []string
 	for _, r := range lowerPool(p).cards[0].Refusals {
@@ -30,13 +38,17 @@ func auraProtRefusals(t *testing.T, static string) string {
 
 // TestAuraProtectionGrant: an Aura's Continuous AddKeyword$ Protection:
 // <spec> on the enchanted creature lowers like an Equipment's (Spirit Mantle,
-// Unquestioned Authority), while a chosen-colour quality and one with an
-// exception field (Pentarch Ward, Benevolent Blessing) stay refused: gorge
-// derives those keywords without the host's choice or exception.
+// Unquestioned Authority). The host's chosen colour lowers with its two
+// exception forms (Pentarch Ward, Benevolent Blessing); any other exception
+// field stays refused.
 func TestAuraProtectionGrant(t *testing.T) {
 	for _, c := range []struct{ name, static, want string }{
 		{"protection from creatures lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddPower$ 1 | AddToughness$ 1 | AddKeyword$ Protection:Creature | Description$ x", ""},
-		{"a chosen-colour quality refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor | Description$ x", "ChosenColor"},
+		{"a chosen-colour quality lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor | Description$ x", ""},
+		{"Pentarch Ward's host exception lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor:Card.CardUID_HostCardUID | Description$ x", ""},
+		{"Benevolent Blessing's attachment exception lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor:Aura.ControlledBy Player.PlayerUID_HostCardControllerUID,Equipment.ControlledBy Player.PlayerUID_HostCardControllerUID:SBA | Description$ x", ""},
+		{"an exception beside another term refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Creature & Protection:Card.ChosenColor:chosenColor:Card.CardUID_HostCardUID | Description$ x", "exception beside"},
+		{"an unreadable exception refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor:Creature.Red | Description$ x", "protection exception"},
 		{"an exception field refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Creature:creatures:Card.CardUID_HostCardUID | Description$ x", "exception field"},
 	} {
 		t.Run(c.name, func(t *testing.T) {

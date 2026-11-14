@@ -34,7 +34,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //	r.idx  bit 0 to, bit 1 prev, bit 2 you (the effect's controller),
 //	       bits 3-5 the duration (kop.Dur*), bit 6 static, bit 7 armed
-//	r.src  the source object | its ver << 8 (NoObj: none)
+//	r.src  the source object | its ver << 8 (NoObj: none); an object
+//	       wider than a byte (dirac_mp) keeps r.src the object and r.p
+//	       its ver
 //	r.fl   unused; r.ts the CR 613.7a timestamp (static: the source's
 //	       layerTs; API: s.ts at begin)
 
@@ -77,6 +79,9 @@ func (r *fxRec) cYou() uint8 {
 func (r *fxRec) cDur() uint8 { return r.r.idx & fcDurMask >> fcDurShift }
 func (r *fxRec) cSrc() Obj   { return Obj(r.r.src) }
 func (r *fxRec) cSrcVer() uint8 {
+	if NoObj > 0xff {
+		return uint8(r.r.p)
+	}
 	return uint8(r.r.src >> 8)
 }
 func (r *fxRec) setPrev(p uint8) {
@@ -155,7 +160,11 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 		// is the next one they take
 		r.r.idx |= fcArmed
 	}
-	r.r.src = CardID(src) | CardID(srcVer)<<8
+	if NoObj > 0xff {
+		r.r.src, r.r.p = CardID(src), int16(srcVer)
+	} else {
+		r.r.src = CardID(src) | CardID(srcVer)<<8
+	}
 	s.g.fx[s.g.nfx] = r
 	s.g.nfx++
 	s.fxM.set(sl)
@@ -186,6 +195,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	k := s.k()
 	if k.engines {
 		s.speedControl(k) // kw_speed.go
+	}
+	if k.ascend {
+		s.blessScan(k) // CR 702.131b (kw_ascend.go)
 	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
@@ -496,7 +508,18 @@ func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 func (s *State) opGainControl(k *prep, in *kop.Instr) {
 	var list [MaxPerm]Slot
 	n := 0
-	if in.Obj == kop.RefNone && in.F != 0 {
+	if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+		// Defined$ over a remembered group (Fumble's "gain control of all
+		// Auras and Equipment that were attached to it"): each battlefield
+		// member in remembered order, one effect apiece (gorge effGainControl
+		// walks its Defined set)
+		for _, o := range s.g.rem[:s.g.nrem] {
+			if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && n < len(list) {
+				list[n] = s.objs[o].slot
+				n++
+			}
+		}
+	} else if in.Obj == kop.RefNone && in.F != 0 {
 		n = s.gainControlAllHits(k, in.F, &list) // AllValid$ (act_gaincontrolall.go)
 	} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		list[0], n = sl, 1

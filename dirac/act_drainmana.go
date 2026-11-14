@@ -19,5 +19,6 @@ func (s *State) drainMana(k *prep, in *kop.Instr) {
 	s.fbR[p] = 0
 	s.g.poolArt[p] = 0
 	s.g.defSrc[p] = 0
+	s.setDefCol(p, 0)
 	s.g.poolTre[p] = [kop.NumManaKinds]uint8{}
 }

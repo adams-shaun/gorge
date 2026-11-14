@@ -276,6 +276,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
+		ct = lc.chosenCtrlImplied(ps, origin, ct) // lower_chooseplayermid.go
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
 		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
 		f, err := lc.pickFilter(ct) // lower_each.go
@@ -355,6 +356,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if dest == zLibrary {
 				if pos != 0 {
 					return refuse("library-to-library search position %d", pos)
+				}
+				// Reorder$ True: gorge placeLibraryObjects pins the found
+				// cards on top in the answer order, the same placement a
+				// top LibraryPosition$ makes without it (zone_library.go;
+				// Goblin Recruiter, Congregation at Dawn)
+				if v, ok := ps.get("Reorder"); ok && strings.TrimSpace(v) != "True" {
+					return refuse("search Reorder$ %q", v)
 				}
 				if !noShuffle {
 					flags = append(flags, "ThenTop")
@@ -487,8 +495,22 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
+			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
+			if err != nil {
+				return err
+			}
+			dpScope, err := graveDefinedPlayer(ps, lc, dest, flags, counterKind) // lower_gravedefinedplayer.go
+			if err != nil {
+				return err
+			}
 			for i := range f.Clauses {
-				if f.Clauses[i].Owner != whoAny {
+				if chosenPool || f.Clauses[i].Owner != whoAny {
+					continue
+				}
+				if dpScope != dpNone {
+					// DefinedPlayer$ names the fetch player: gorge's pool is that
+					// player's own graveyard (effHiddenPick, not gameWide), the
+					// kernel's plain walk
 					continue
 				}
 				if f.Clauses[i].Ctrl == whoYou {
@@ -543,8 +565,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
-			return nil
+			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -724,7 +745,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// third from the top (gorge libraryOrderPlacementAt), read exactly
 			// for the source leaving the battlefield (Braided Quipu); another
 			// object or origin is lockstep-unverified and stays refused
-			if obj.Kind != rSelf || origin != zBattlefield {
+			if !lc.libThirdOK(obj, origin) { // lower_libthird.go
 				return refuse("library position 2 of %s from %s", refNames[obj.Kind], zoneLabel[origin])
 			}
 			in.C = kop.LibThird
@@ -1089,6 +1110,9 @@ func overrideString(o *lOverride) string {
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
 	}
+	if len(o.CantHaveKw) > 0 {
+		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
+	}
 	if len(o.AddKw) > 0 {
 		p = append(p, "kw="+strings.Join(o.AddKw, "&"))
 	}
@@ -1290,13 +1314,13 @@ func (lc *lowerCtx) dig(ps *params) error {
 		}
 		flags = append(flags, "pos="+lp)
 	}
-	var restTop bool
+	var restTop, restAsk bool
 	if _, d2 := ps.m["DestinationZone2"]; !d2 && strings.TrimSpace(ps.m["SkipReorder"]) == "True" {
 		// gorge effDig's rest(): SkipReorder$ leaves the remainder in place
 		// before LibraryPosition2$ is read, so the position is moot (the
 		// Undercity's Throne of the Dead Three)
 		ps.consume("LibraryPosition2")
-	} else if restTop, err = digRestTop(ps, n, take, dest2); err != nil {
+	} else if restTop, restAsk, err = lc.digRestTop(ps, who, n, take, dest, dest2); err != nil {
 		return err
 	}
 	if v, ok := ps.get("SkipReorder"); ok {
@@ -1310,6 +1334,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 	}
 	if restTop {
 		flags = append(flags, "RestTop")
+	}
+	if restAsk {
+		flags = append(flags, "RestTopAsk") // lower_digparams.go digRestTop
 	}
 	noReveal, err := digNoReveal(ps)
 	if err != nil {
@@ -1462,6 +1489,10 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
+	optional, err := lc.digUntilOptional(ps, who) // lower_thanactive.go
+	if err != nil {
+		return err
+	}
 	if ps.is("ImprintFound", "True") {
 		if ps.is("RememberRevealed", "True") {
 			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
@@ -1478,6 +1509,9 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 			return refuse("RememberFound %q", v)
 		}
 		in.CS += "|RememberFound"
+	}
+	if optional {
+		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardDigUntil, Obj: who, Skip: 1, Note: "may reveal"})
 	}
 	lc.emit(in)
 	return nil
@@ -1972,7 +2006,12 @@ func (lc *lowerCtx) play(ps *params) error {
 	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
-	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
+	var saExpr string
+	var err error
+	if !playCommandZone(ps) {
+		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
+		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
+	}
 	lc.bluffPlay = false
 	if err != nil {
 		return err
@@ -2105,7 +2144,22 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
+	case "Command":
+		// P5: the resolving controller's own commanders in the command zone
+		// (Geode Golem; lower_playcommand.go)
+		if !playCommandZone(ps) || forget || replace {
+			return refuse("Play ValidZone$ Command with Valid$ %q", valid)
+		}
+		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
+		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
+			// the targeted player's hand (lower_playtgtplayer.go)
+			obj, err := lc.playTargetedPlayerHand()
+			if err != nil {
+				return err
+			}
+			return emit(obj, zHand, saExpr)
+		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
 		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
@@ -2331,6 +2385,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "CanAttackDefender":
+		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
 		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
 			return err
@@ -2353,6 +2409,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
+	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked":
+		if err := lc.asgnGrant(ps, sp, s.Mode, obj); err != nil { // lower_asgngrant.go
+			return err
+		}
 	case "Panharmonicon":
 		// (Lwaxana Troi, Charming Guest) "for as long as this remains tapped,
 		// if a triggered ability of that creature triggers, that ability
@@ -2887,6 +2947,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 		}
 	}
+	if err := lc.animateRemoveEnchantmentTypes(ps, o); err != nil { // lower_animateaura.go
+		return nil, "", false, err
+	}
 	if ps.is("AddAllCreatureTypes", "True") {
 		o.AllCreatureTypes = true
 	}
@@ -2977,7 +3040,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if k, ok := ps.get("Keywords"); ok {
-		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
+		k, err := lc.animateSelfEnchant(ps, k, o, obj, dur) // lower_animateaura.go
+		if err != nil {
+			return nil, "", false, err
+		}
+		k, err = lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
@@ -3262,6 +3329,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 }
 
 func (lc *lowerCtx) gainControl(ps *params) error {
+	if d := ps.str("Defined"); strings.HasPrefix(d, attachGroupPrefix) {
+		return lc.gainControlAttached(ps, d) // lower_attachgroup.go
+	}
 	// NewController$ first: ParentTarget names the earlier link's player
 	// target, not this node's own (Donate)
 	to := lRef{}
@@ -3420,15 +3490,17 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	var obj lRef
 	group := false
 	sacGroup := false
+	groupMany := false
 	lkiMany := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
 		}
-		if err := lc.groupDelayed(exec); err != nil {
+		many, err := lc.groupDelayed(exec)
+		if err != nil {
 			return err
 		}
-		group = true
+		group, groupMany = true, many
 	}
 	if !group && ro == "Remembered" && delayedGroupSac(exec) {
 		// a remembered set sacrificed as one group at the delayed step
@@ -3465,15 +3537,19 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	lat.DelayedSelf = delayedSelf(lc.ab.Trigger, ro)
 	if group || sacGroup {
 		lc.inGroup = true
+		lc.groupMany = groupMany
 	}
 	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
-	lc.inGroup = false
+	lc.inGroup, lc.groupMany = false, false
 	if err != nil {
 		return err
 	}
 	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
 	if group || sacGroup {
 		in.B = cst(1)
+		if groupMany {
+			in.B = cst(3) // the many-object program (dirac/trig_delayedmany.go)
+		}
 	}
 	if ro == "Remembered" && lc.czForgetSet {
 		// delayedRemember checked the body is one Bounce of the delayed set
@@ -3501,18 +3577,31 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 
 // groupDelayed checks a RememberChain$ False delayed trigger is Mobilize's
 // (CR 702.181a): the chain so far is exactly one remembering Token of the
-// constant 1 or 2 and the body one Sacrifice of the delayed-remembered set.
-func (lc *lowerCtx) groupDelayed(exec *cards.SA) error {
+// constant 1..4 and the body one Sacrifice of the delayed-remembered set.
+// many reports the group is of 3 or 4: the kernel's DpMany program carries up
+// to four objects where DpGroup carries two (dirac/kw_mobilize.go sacDelayed).
+func (lc *lowerCtx) groupDelayed(exec *cards.SA) (many bool, err error) {
 	pr := lc.ab.Prog
 	if len(pr) != 1 || pr[0].Op != "CreateToken" || pr[0].C&4 == 0 || !pr[0].A.isConst() ||
 		exec.API != "Sacrifice" || exec.Sub != nil || len(exec.Params) != 1 ||
 		exec.Params["Defined"] != "DelayTriggerRememberedLKI" {
-		return refuse("RememberChain$ False delayed trigger shape")
+		return false, refuse("RememberChain$ False delayed trigger shape")
 	}
-	if n := pr[0].A.N; n != 1 && n != 2 {
-		return refuse("Mobilize group of %d: a delayed program carries two objects", n)
+	n := pr[0].A.N
+	if n < 1 || n > 4 {
+		return false, refuse("Mobilize group of %d: a delayed program carries at most four objects", n)
 	}
-	return nil
+	return n > 2, nil
+}
+
+// emitSacDelayed emits the group program's body: the ExtSacDelayed batch over
+// the delayed-remembered set (the many-object form for Mobilize 3-4).
+func (lc *lowerCtx) emitSacDelayed() {
+	in := lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}}
+	if lc.groupMany {
+		in.CS = "Many"
+	}
+	lc.emit(in)
 }
 
 // delayedGroupSac reports whether a remembered-set delayed trigger's body is
@@ -3620,7 +3709,7 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	}
 	m.Split = split
 	prod := ps.str("Produced")
-	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
+	if v := ps.peek("TriggersWhenSpent"); v != "" && len(prod) == 1 && strings.Contains("WUBRG", prod) {
 		if err := lc.deferredMana(ab, ps, v); err != nil {
 			return err
 		}
