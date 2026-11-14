@@ -163,11 +163,13 @@ func CantAttackParamsReadableForRules(params map[string]string) bool {
 //   - `IsPoisoned`: the defender has a poison counter.
 //   - `isMonarch`: the defender is the monarch (CR 716.2).
 //
-// source is the static's source object (the object-spec matcher's Source
-// binding) and you is the static's controller. The evaluation is a pure read:
+// sc is the object-spec context of the static (its source and controller) with
+// the engine's layer tables bound, so a `controls<objSpec>` filter reads a
+// permanent's derived types (a land that became an Island, CR 305.7) and not
+// only its printed ones; you is the static's controller. The evaluation is a pure read:
 // no event, no state write, and the battlefield/zone walks are the engine's
 // one deterministic scan order.
-func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerID, source state.ObjID) bool {
+func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerID, sc SpecContext) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -176,7 +178,7 @@ func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerI
 	if neg {
 		spec = strings.TrimSpace(spec[1:])
 	}
-	holds, known := unlessDefenderProperty(g, spec, defender, you, source)
+	holds, known := unlessDefenderProperty(g, spec, defender, you, sc)
 	if !known {
 		return false
 	}
@@ -189,7 +191,7 @@ func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerI
 // unlessDefenderProperty evaluates ONE UnlessDefender$ property (no `!`). An
 // unknown or malformed property returns known=false so a leading `!` cannot
 // turn an unread predicate into permission to attack.
-func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, source state.ObjID) (holds, known bool) {
+func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, sc SpecContext) (holds, known bool) {
 	if int(defender) >= len(g.Players) {
 		return false, false
 	}
@@ -205,7 +207,6 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 		if objSpec == "" {
 			return false, false
 		}
-		sc := NewSpecContext(you, source)
 		n := int32(0)
 		for _, id := range g.Zone(state.ZBattlefield, defender) {
 			if MatchesObjectCtx(g, objSpec, g.Obj(id), sc) {

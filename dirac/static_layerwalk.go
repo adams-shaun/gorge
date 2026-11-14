@@ -285,6 +285,9 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 	if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 		c.subs, c.all = c.subs.AndNot(k.gen.creatSub), false
 	}
+	if o.SetLandSub {
+		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+	}
 	c.subs = c.subs.Or(o.AddSub)
 	if ovrAllCreat(o) {
 		c.all = true

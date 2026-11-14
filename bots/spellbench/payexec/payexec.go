@@ -174,6 +174,16 @@ type Execution struct {
 	// answered; Yields the foreign decisions handed back; Waits the stack
 	// passes made waiting for the play.
 	Taps, Asks, Yields, Waits int
+
+	// Prove, when set, settles a mana ask the labels leave ambiguous: when
+	// several options tie in the winning class (Itlimoc's plain {T}: Add {G}
+	// and its Amount$ X "Add {G} for each creature you control" both read
+	// "Add G", rules' manaAmountPips), each is offered to Prove, the leading
+	// one first, and the first that produces act.Produces is the answer. A
+	// caller holding the engine proves on a throwaway clone (Prover); nil, or
+	// no member proven, keeps the leading option and the pool check after
+	// the tap catches a wrong one.
+	Prove func(d *decision.Decision, act decision.PaymentActivation, choices []int) bool
 }
 
 // SelectPlan is the deterministic plan choice: the first offered plan none
@@ -339,7 +349,7 @@ func (x *Execution) priority(d *decision.Decision, s Surface) (decision.Intent, 
 // the witness's Produces.
 func (x *Execution) manaAsk(d *decision.Decision) (decision.Intent, Status) {
 	act := x.steps[x.cur]
-	choices, ok := matchMana(d, act)
+	choices, ok := matchManaProved(d, act, x.Prove)
 	if !ok {
 		x.abort(ReasonManaUnmatched, fmt.Sprintf("source %d wants %v: %s", act.Source, act.Produces, d.Prompt))
 		return decision.Intent{}, Aborted
@@ -419,6 +429,12 @@ func singleColour(m decision.ManaAmount) (int, bool) {
 // ("Sacrifice ...: Add B") agrees with whether the step discloses a Consequence
 // leads, then engine order.
 func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, bool) {
+	return matchManaProved(d, act, nil)
+}
+
+// matchManaProved is matchMana where prove (Execution.Prove), when set,
+// settles a tie within the winning class.
+func matchManaProved(d *decision.Decision, act decision.PaymentActivation, prove func(*decision.Decision, decision.PaymentActivation, []int) bool) ([]int, bool) {
 	want := act.Produces
 	if d.Min > 1 && d.Min == d.Max {
 		return matchAllocation(d, want)
@@ -497,35 +513,67 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 	// A granted option names an ability a payment plan cannot (it may carry a
 	// spend restriction the plan never priced): prefer any other option, and
 	// admit a granted one only when no class matches without it.
-	if pick, ok := pickManaClass(d, classes, costly, false); ok {
+	pc := manaPick{d: d, act: act, classes: classes, costly: costly, prove: prove}
+	if pick, ok := pc.pick(false); ok {
 		return pick, true
 	}
-	return pickManaClass(d, classes, costly, true)
+	return pc.pick(true)
 }
 
-// pickManaClass returns the first class's best option; granted options are
-// skipped unless admitGranted.
-func pickManaClass(d *decision.Decision, classes []func(o *decision.Option) bool, costly, admitGranted bool) ([]int, bool) {
-	for _, cls := range classes {
+// manaPick is one mana ask's class walk (matchMana).
+type manaPick struct {
+	d       *decision.Decision
+	act     decision.PaymentActivation
+	classes []func(o *decision.Option) bool
+	costly  bool
+	prove   func(*decision.Decision, decision.PaymentActivation, []int) bool
+}
+
+// pick returns the first class's best option; granted options are skipped
+// unless admitGranted. The best is the first member whose cost prefix
+// agrees with costly, else the first member. With several members and a
+// prove hook, the best is tried first and then the rest in engine order:
+// the first proven member wins, and with none proven the best stands.
+func (pc *manaPick) pick(admitGranted bool) ([]int, bool) {
+	for _, cls := range pc.classes {
 		best := -1
-		for i := range d.Options {
-			o := &d.Options[i]
+		var members []int
+		for i := range pc.d.Options {
+			o := &pc.d.Options[i]
 			if (o.Granted && !admitGranted) || !cls(o) {
 				continue
 			}
-			if best < 0 {
+			members = append(members, o.Index)
+			if best < 0 || hasCostPrefix(o.Label) == pc.costly && !pc.agrees(best) {
 				best = o.Index
 			}
-			if hasCostPrefix(o.Label) == costly {
-				best = o.Index
-				break
+		}
+		if best < 0 {
+			continue
+		}
+		if pc.prove != nil && len(members) > 1 {
+			if pc.prove(pc.d, pc.act, []int{best}) {
+				return []int{best}, true
+			}
+			for _, m := range members {
+				if m != best && pc.prove(pc.d, pc.act, []int{m}) {
+					return []int{m}, true
+				}
 			}
 		}
-		if best >= 0 {
-			return []int{best}, true
-		}
+		return []int{best}, true
 	}
 	return nil, false
+}
+
+// agrees reports whether option index i's cost prefix agrees with costly.
+func (pc *manaPick) agrees(i int) bool {
+	for j := range pc.d.Options {
+		if pc.d.Options[j].Index == i {
+			return hasCostPrefix(pc.d.Options[j].Label) == pc.costly
+		}
+	}
+	return false
 }
 
 // matchAllocation answers a unit-major colour allocation of Min units.

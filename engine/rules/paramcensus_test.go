@@ -1611,6 +1611,12 @@ var stringMapParams = map[string]string{
 	// effectStaticLineReaders instead -- rules has no printed read for them.)
 	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
 	"effects:animateSelfMayPlayGrant:params":      "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
+	// engine/effects/staticline.go addTriggerGrantFromLine: params is the same
+	// parseStaticLine-built static line (AddTrigger$ is read by rules' printed
+	// static walk too); svars is the effect's SVar table, read by the
+	// AddTrigger$ trigger name.
+	"effects:addTriggerGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:addTriggerGrantFromLine:svars":  "SVars table lookup by AddTrigger$ trigger name, not a card Params map",
 	// engine/effects/restrictions.go replacementRedirectsToExile: params is one
 	// ReplaceWith$ line parseReplacementLine built from the face's SVar
 	// table (the Fizzle$ rider the exile-redirect admission reads), not a

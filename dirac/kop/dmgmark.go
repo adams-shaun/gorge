@@ -13,6 +13,15 @@ package kop
 // every UntilYourNextTurn effect). dirac/repl_dmgmark.go.
 //
 // The ordinal is 317: 316 is ExtCopyPicked's.
+//
+// C = DmgMarkBySource (Quest for Pure Flame): the mark is on the sources the
+// resolving controller controls, not on a recipient: until end of turn, if
+// such a source would deal damage to any permanent or player, it deals double
+// that damage instead (Event$ DamageDone | ValidSource$ Card.YouCtrl,
+// Emblem.YouCtrl | ValidTarget$ Permanent,Player, Duration$ none). No Obj.
 const ExtDmgMark ExtOp = 317
+
+// DmgMarkBySource is ExtDmgMark's C bit for the source-controller mark.
+const DmgMarkBySource = 1
 
 func init() { extOpNames[ExtDmgMark] = "DmgMark" }

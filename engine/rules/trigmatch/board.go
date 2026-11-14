@@ -164,6 +164,14 @@ type Facts struct {
 	// from a graveyard or exile apart from one merely put onto the
 	// battlefield from there.
 	PlayingLand state.ObjID
+	// ReplacedAction and ReplacedObj are the in-flight replacement body's
+	// carried action (events.ActionMarker of the event it replaced, cause
+	// included) and the object that event moved. A body's substituted move
+	// is re-labelled with the action (events.CarryAction), but a cause the
+	// move cannot hold -- its Counter already stamped by
+	// events.MarkExileExiler -- is read from here instead.
+	ReplacedAction string
+	ReplacedObj    state.ObjID
 }
 
 // SpecOpts are a matcher's overrides on the filter context Board.MatchesSpec

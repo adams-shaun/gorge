@@ -128,7 +128,7 @@ const (
 	OpDealDamageFrom   // creature Obj deals A damage to the object in Ref C (DamageSource$ with an amount other than its power)
 	OpGiveGift         // the controller gives a gift (CR 702.174b): fires TrigGiveGift; the gift's effects follow as ordinary ops
 	OpClassLevelUp     // the source Class becomes level A (CR 716.2a; gorge effClassLevelUp): its CtrLevel count is set to A-1 and a "becomes level" trigger (TrigCounterAddedOnce, N = CtrLevel) fires
-	OpGainEnergy       // player(s) Obj get A energy counters (CR 122.1; gorge PutCounter CounterType$ ENERGY on a player)
+	OpGainEnergy       // player(s) Obj get A player counters of kind C (PlCtrEnergy / PlCtrExperience; CR 122.1; gorge PutCounter CounterType$ ENERGY / Experience on a player)
 	OpOverrideAll      // each battlefield permanent matching F gets Table.Overrides[C] for duration A.N (gorge effAnimateAll; seat 0 first, entry order)
 	OpRollDie          // the controller rolls a die with A sides (one rng.IntN(A) draw); the result, die + B.N, is ExRollResult (gorge effRollDice, one die)
 	OpBecomeCopy       // as-enters replacement program: the entering permanent enters as a copy of the battlefield permanent its controller chose as it entered (the clone ask over F's matches; CR 707.2, 614.1c); C>>1 = the copy exceptions' Table.Overrides index+1 (0: none; CR 707.9b); C&1: optional (it may enter as itself); A>0: the Table.Overrides index+1 of an ability grant applied to the copy from the entering card (AddAbilities$, Mercurial Pretender). Nothing without an answer (it entered without being cast).
