@@ -103,8 +103,8 @@ func chooseObj(t *testing.T, e *Engine, kind string, obj state.ObjID) {
 
 // TestPutAwaySubAsksGraveyardTarget pins the Counter-parent shape end to end
 // on the real corpus card: seat 0 casts Grizzly Bears, then Put Away
-// countering it. The sub (`DB$ ChangeZone | Origin$ Graveyard | ... |
-// Shuffle$ True | ShuffleNonMandatory$ True`) must pose its own graveyard
+// countering it. The sub (a ChangeZone from a graveyard with an optional
+// shuffle) must pose its own graveyard
 // target ask WITH THE CAST (CR 601.2c: a cast_sub KTarget, not a resolution
 // KChoose), the answered card -- deliberately a DIFFERENT card than the
 // countered spell, proving the answer decoupled from Ctx.Targets -- moves to

@@ -303,7 +303,7 @@ if [ -n "$files" ]; then
 fi
 echo "== 2 docs snapshot, history hygiene, oracle skip lint"
 python3 -m unittest scripts/docs_sets_test.py >.ds4/scratch/test/docs_sets.log 2>&1 ||
-	bad "docs_sets_test: python3 scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json --commit <base> --date <today> (.ds4/scratch/test/docs_sets.log)"
+	bad "docs_sets_test: scripts/docs_sets.py reads dirac/docs/support.md; regenerate that page (dirac/LANDGEN) (.ds4/scratch/test/docs_sets.log)"
 hyg=$(git log --format='%h %s' "$BASE..HEAD" | grep -iE '^[0-9a-f]+ (wip\b|fixup!|squash!)' | head -3)
 zz=$(git diff --name-only --diff-filter=A "$BASE" HEAD | grep -E '(^|/)zz_[^/]*$' | head -3)
 [ -z "$hyg$zz" ] || bad "history hygiene: reword or squash these commits and delete scratch files: $hyg $zz"

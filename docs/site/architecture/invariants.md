@@ -317,7 +317,7 @@ raises a ceiling.
 | `knownUnmodelledCountHeads` | `TestEveryRepoDeckCountHeadResolves` (`engine/rules/count_head_ratchet_test.go`) |
 | `effects.modelledValueHeads` vs the evaluator | `TestValueHeadRegistryMatchesEvaluator` |
 | the known approximations (`docs/agents/known-approximations/`, each file capped in `ALLOWED.txt`) | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) |
-| function-length and interface-width ceilings | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink` (`internal/codeshape`), currently skipped; the direction still holds |
+| interface-width and dispatch ceilings; per-function length and complexity ceilings over `engine/rules`, `engine/effects` and `dirac/` | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`, `TestComplexFunctionsOnlyShrink` (`internal/codeshape`); these fail on growth only |
 | test-budget exception lists | `cmd/testbudget`; see [its invariant](#every-test-fits-the-budget) |
 
 **Why.** "Supported" should only ever mean more. A two-way ratchet makes the

@@ -13,8 +13,8 @@ import (
 )
 
 // TestPathOfTheAnimistTiedVoteRunsTheTiedBranchKernel resolves Path of the
-// Animist's compiled DBVote SA (Choices$ DBPlaneswalk,DBChaos |
-// VoteTiedAbility$ DBChaos) under a kernel probe and answers each voter's
+// Animist's compiled DBVote SA (a vote between planeswalking and chaos, chaos
+// on a tie) under a kernel probe and answers each voter's
 // ballot: a 1-1 tie must run the tied branch (chaos), never the planeswalk
 // winner; the control (both voters on planeswalk) runs planeswalk and not
 // chaos, so the assertion discriminates tie from non-tie.

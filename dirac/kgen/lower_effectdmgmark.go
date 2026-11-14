@@ -4,11 +4,11 @@ import "strings"
 
 // effectDmgMark lowers the Effect that doubles the damage a player and their
 // permanents take until the controller's next turn (Lightning, Army of One's
-// Stagger): DB$ Effect | Duration$ UntilYourNextTurn | RememberObjects$
-// TriggeredTarget over one Event$ DamageDone | ActiveZones$ Command |
-// ValidSource$ Card,Emblem | ValidTarget$ Player.IsRemembered,Permanent.
-// ControlledBy Player.IsRemembered replacement whose body is DB$ ReplaceEffect |
-// VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Twice (gorge
+// Stagger): an Effect lasting until its controller's next turn that remembers
+// the triggered target and carries one DamageDone replacement, active in the
+// command zone, on damage from a card or emblem to the remembered player or a
+// permanent they control, whose body replaces the damage amount with twice
+// itself (gorge
 // replacement_damage.go reads Player.IsRemembered from the players the effect
 // captured). One OpExt ExtDmgMark over the damaged player the damage trigger
 // names (dirac/repl_dmgmark.go). Every other shape refuses by name.

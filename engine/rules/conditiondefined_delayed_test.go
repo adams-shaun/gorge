@@ -142,9 +142,9 @@ func gateGame(t *testing.T, seed uint64, defined, present string, extras ...stri
 	return e, cfg, probeID, ids
 }
 
-// TestConditionDefinedDelayTriggerRememberedLKI: Surtland Flinger's
-// `ConditionDefined$ DelayTriggerRememberedLKI | ConditionPresent$ Giant`
-// reads the delayed registration's own capture.
+// TestConditionDefinedDelayTriggerRememberedLKI: Surtland Flinger's condition
+// that the delayed trigger's remembered card (LKI) is a Giant reads the delayed
+// registration's own capture.
 func TestConditionDefinedDelayTriggerRememberedLKI(t *testing.T) {
 	t.Parallel()
 	e, cfg, probe, ids := gateGame(t, 453, "DelayTriggerRememberedLKI", "Giant", gateGiantSrc, gateBearSrc)
@@ -159,7 +159,7 @@ func TestConditionDefinedDelayTriggerRememberedLKI(t *testing.T) {
 }
 
 // TestConditionDefinedTriggeredNewCardLKICopy: Oathkeeper, Takeno's Daisho's
-// `ConditionDefined$ TriggeredNewCardLKICopy | ConditionPresent$ Card.Samurai`.
+// condition that the triggered new card's LKI copy is a Samurai.
 func TestConditionDefinedTriggeredNewCardLKICopy(t *testing.T) {
 	t.Parallel()
 	e, cfg, probe, ids := gateGame(t, 454, "TriggeredNewCardLKICopy", "Card.Samurai", gateSamSrc, gateBearSrc)
@@ -173,8 +173,8 @@ func TestConditionDefinedTriggeredNewCardLKICopy(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestConditionDefinedReplacedSource: Comeuppance's `ConditionDefined$
-// ReplacedSource | ConditionPresent$ Card.Creature`.
+// TestConditionDefinedReplacedSource: Comeuppance's condition that the
+// replaced source is a creature.
 func TestConditionDefinedReplacedSource(t *testing.T) {
 	t.Parallel()
 	e, cfg, probe, ids := gateGame(t, 455, "ReplacedSource", "Card.Creature", gateBearSrc)
@@ -188,8 +188,8 @@ func TestConditionDefinedReplacedSource(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestConditionDefinedTopOfLibrary: Vesuvan Drifter's `ConditionDefined$
-// TopOfLibrary | ConditionPresent$ Creature`, against a library of Mountains:
+// TestConditionDefinedTopOfLibrary: Vesuvan Drifter's condition that the top
+// card of the library is a creature, against a library of Mountains:
 // the Creature gate is unmet and the same group under a Land gate is met.
 func TestConditionDefinedTopOfLibrary(t *testing.T) {
 	t.Parallel()
@@ -211,8 +211,8 @@ func TestConditionDefinedTopOfLibrary(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestConditionDefinedRememberedCard: God-Eternal Kefnet's `ConditionDefined$
-// RememberedCard | ConditionPresent$ Instant,Sorcery`.
+// TestConditionDefinedRememberedCard: God-Eternal Kefnet's condition that the
+// remembered card is an instant or sorcery.
 func TestConditionDefinedRememberedCard(t *testing.T) {
 	t.Parallel()
 	probeCard, boltCard, bearCard := card(t, gateProbeSrc("RememberedCard", "Instant,Sorcery")), card(t, gateBoltSrc), card(t, gateBearSrc)
@@ -229,8 +229,8 @@ func TestConditionDefinedRememberedCard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestConditionDefinedExiledWith: The Creation of Avacyn's `ConditionDefined$
-// ExiledWith | ConditionPresent$ Creature`, over the cards the source exiled.
+// TestConditionDefinedExiledWith: The Creation of Avacyn's condition that a
+// card exiled with the source is a creature, over the cards the source exiled.
 func TestConditionDefinedExiledWith(t *testing.T) {
 	t.Parallel()
 	exiler := "Name:Gate Exiler\nTypes:Artifact\n" +
@@ -255,8 +255,8 @@ func TestConditionDefinedExiledWith(t *testing.T) {
 }
 
 // TestConditionDefinedOriginalHost: Heliod's Punishment's granted ability's
-// `ConditionDefined$ OriginalHost | ConditionPresent$ Card.counters_EQ0_TASK`
-// reads the GRANTOR when the ability was granted, else the source itself.
+// condition that its original host has no task counters reads the GRANTOR when
+// the ability was granted, else the source itself.
 func TestConditionDefinedOriginalHost(t *testing.T) {
 	t.Parallel()
 	e, cfg, probe, ids := gateGame(t, 460, "OriginalHost", "Card.counters_EQ0_TASK", gateBearSrc)

@@ -33,8 +33,8 @@ func corpusTargetFeasibleCard(t *testing.T, seed uint64, rel, wantTgts string) (
 }
 
 // TestIncriminateSameControllerSplitIsWithheld pins Incriminate
-// ("Choose two target creatures controlled by the same player"):
-// TargetMin$ 2 | TargetMax$ 2 | TargetsWithSameController$ True. With two
+// ("Choose two target creatures controlled by the same player"): exactly
+// two targets, which must share a controller. With two
 // legal creatures split across controllers no legal pair exists, so the cast
 // must not be offered. Before the shared rule the count-only census offered it
 // and the ask reversed it with "cast aborted: no legal target".

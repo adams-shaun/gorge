@@ -40,12 +40,8 @@ func inZoneCard(t *testing.T, e *Engine, p state.PlayerID, zone state.Zone, src 
 }
 
 // TestCantAttackPresentArtifactEQ0 drives Desperate Castaways' real corpus
-// static
-//
-//	S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Artifact.YouCtrl |
-//	PresentCompare$ EQ0
-//
-// ("can't attack unless you control an artifact"). With no artifact the gate
+// static, a CantAttack on itself gated on its controller controlling exactly
+// zero artifacts ("can't attack unless you control an artifact"). With no artifact the gate
 // holds and it is blocked; one artifact of its controller releases it.
 func TestCantAttackPresentArtifactEQ0(t *testing.T) {
 	t.Parallel()
@@ -69,10 +65,8 @@ func TestCantAttackPresentArtifactEQ0(t *testing.T) {
 	}
 }
 
-// TestCantAttackBarePresentEnchantment drives Wirecat's real corpus static
-//
-//	S:Mode$ CantAttack,CantBlock | ValidCard$ Card.Self | IsPresent$ Enchantment
-//
+// TestCantAttackBarePresentEnchantment drives Wirecat's real corpus static, a
+// CantAttack,CantBlock on itself gated on a bare IsPresent of an enchantment
 // ("can't attack or block if an enchantment is on the battlefield"). A BARE
 // IsPresent$ with no PresentCompare$ defaults to GE1, so the restriction bites
 // only while an enchantment is present -- the opposite direction from the EQ0
@@ -102,12 +96,8 @@ func TestCantAttackBarePresentEnchantment(t *testing.T) {
 }
 
 // TestCantAttackPresentCreatureGT1 drives Shauku, Endbringer's real corpus
-// static
-//
-//	S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Creature |
-//	PresentCompare$ GT1
-//
-// ("can't attack if another creature is on the battlefield"). Shauku itself is
+// static, a CantAttack on itself gated on more than one creature being on the
+// battlefield ("can't attack if another creature is on the battlefield"). Shauku itself is
 // a creature, so the count starts at 1 (not > 1) and it may attack; a second
 // creature tips it to 2 and blocks it. The precondition asserts both counts.
 func TestCantAttackPresentCreatureGT1(t *testing.T) {
@@ -132,12 +122,9 @@ func TestCantAttackPresentCreatureGT1(t *testing.T) {
 	}
 }
 
-// TestCantAttackPresentHandLE6 drives Kefnet the Mindful's real corpus static
-//
-//	S:Mode$ CantAttack,CantBlock | ValidCard$ Card.Self |
-//	IsPresent$ Card.YouOwn | PresentZone$ Hand | PresentCompare$ LE6
-//
-// ("can't attack or block unless you have seven or more cards in hand"). This
+// TestCantAttackPresentHandLE6 drives Kefnet the Mindful's real corpus static,
+// a CantAttack,CantBlock on itself gated on its owner holding six or fewer
+// cards in hand ("can't attack or block unless you have seven or more cards in hand"). This
 // is the PresentZone$ Hand half of countStaticPresent. Six cards block it;
 // the seventh releases it.
 func TestCantAttackPresentHandLE6(t *testing.T) {
@@ -171,12 +158,8 @@ func TestCantAttackPresentHandLE6(t *testing.T) {
 }
 
 // TestCantAttackPresentExileLT7 drives Ketramose, the New Dawn's real corpus
-// static
-//
-//	S:Mode$ CantAttack,CantBlock | ValidCard$ Card.Self |
-//	IsPresent$ Card | PresentZone$ Exile | PresentCompare$ LT7
-//
-// ("can't attack or block unless there are seven or more cards in exile").
+// static, a CantAttack,CantBlock on itself gated on fewer than seven cards
+// being in exile ("can't attack or block unless there are seven or more cards in exile").
 // This exercises BOTH the attack half (PresentZone$ Exile in
 // countStaticPresent) and the block half (blockRestricted's CantBlock loop
 // has no whitelist, so the same stuck-at-0 count already made Ketramose

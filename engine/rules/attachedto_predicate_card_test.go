@@ -18,8 +18,8 @@ import (
 //
 //	{T}: Destroy target Aura attached to a creature.
 //
-// Its compiled ability is `A:AB$ Destroy | Cost$ T | ValidTgts$
-// Aura.AttachedTo Creature`. With the whole "AttachedTo Creature" token
+// Its compiled ability is a tap-cost Destroy whose target filter is an Aura
+// "AttachedTo Creature". With the whole "AttachedTo Creature" token
 // failing closed as one unknown predicate (a space is not a spec delimiter,
 // so the token survives intact), the filter matched
 // NOTHING, so abilityTargetsAvailable saw zero legal targets and withheld the

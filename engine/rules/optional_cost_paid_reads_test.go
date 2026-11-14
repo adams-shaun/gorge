@@ -9,8 +9,8 @@
 //   - Vitu-Ghazi Inspector's intervening-if ETB gate
 //     `CheckSVar$ Z` with `Z:CastSA>Collected$Amount` (CR 603.4): the trigger
 //     fires only when the cast collected evidence;
-//   - Ruinous Waterbending's `Condition$ OptionalCost |
-//     ConditionOptionalPaid$ True` rider: "If this spell's additional cost was
+//   - Ruinous Waterbending's rider gated on its optional cost having been
+//     paid: "If this spell's additional cost was
 //     paid, whenever a creature dies this turn, you gain 1 life".
 //
 // Were the Collected ref unknown to the count evaluator, both counts would
@@ -180,8 +180,8 @@ func TestVituGhaziInspectorNoEvidenceNoTrigger(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestRuinousWaterbendingPaidRiderGainsOnDeath: the bare `Condition$
-// OptionalCost | ConditionOptionalPaid$ True` rider runs when the waterbend
+// TestRuinousWaterbendingPaidRiderGainsOnDeath: the bare optional-cost-paid
+// rider runs when the waterbend
 // was paid (CR 601.2b), so the foe's Bear dying to -2/-2 gains 1 life; the
 // plain cast gains nothing.
 func TestRuinousWaterbendingPaidRiderGainsOnDeath(t *testing.T) {

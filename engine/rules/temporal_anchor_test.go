@@ -12,18 +12,18 @@ import (
 // The Temporal Anchor is the corpus's one carrier of
 // "Whenever you choose to put one or more cards on the bottom of your
 // library while scrying, exile that many cards from the bottom of your
-// library." Its two halves are the scry trigger (`T:Mode$ Scry |
-// ValidPlayer$ You | ToBottom$ True`, matched against the completed
-// events.Scry record) and the amount (`X = TriggerCount$ScryBottom`,
-// read by `DB$ Dig | DigNum$ X | FromBottom$ True`).
+// library." Its two halves are the scry trigger (your scry that put cards
+// on the bottom, matched against the completed events.Scry record) and the
+// amount (X is the trigger's count of cards scried to the bottom, read by a
+// Dig of X from the bottom of the library).
 //
 // The tests pin the two answers a scry can give against the REAL card body:
 // keep every looked-at card on top -> the ToBottom$ True gate sees a
 // zero-card bottom pile and fires nothing; put one or more on the bottom ->
 // exactly one trigger, sized by the number bottomed (NOT the number looked
 // at), exiling that many from the BOTTOM of the library. The measured
-// corpus population at the pin is 1 file carrying `T:Mode$ Scry` with
-// `ToBottom$ True` and 20 files carrying `T:Mode$ Scry`
+// corpus population at the pin is 1 file with a Scry trigger gated on
+// ToBottom and 20 files with a Scry trigger
 // (`/usr/bin/grep -rlIE` over .cards/cardsfolder).
 
 // scryMarkers returns every events.Scry marker in the log (the completed

@@ -10,8 +10,8 @@ import (
 )
 
 // The Exile-head UnlessCost$. Grip of Amnesia is the corpus carrier:
-// `A:SP$ Counter | ... | UnlessCost$ ExileFromGrave<1/All> | SubAbility$
-// DBDraw` -- "Counter target spell unless its controller exiles all cards
+// a Counter whose unless-cost exiles the whole graveyard, then a Draw --
+// "Counter target spell unless its controller exiles all cards
 // from their graveyard. Draw a card." Without an Exile arm ParseUnlessCost
 // parses the whole cost to Cost{}, false, the resolution arm hard-declines,
 // and the target spell's controller is NEVER offered a way to save the spell.

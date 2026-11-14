@@ -41,7 +41,7 @@ func stepOnce(e *Engine, s state.Step) {
 }
 
 // TestLostMonarchOfIfnirPhaseCountSecondMain pins the card at the
-// gate: the real compiled `Mode$ Phase | Phase$ Main | PhaseCount$ 2` trigger
+// gate: the real compiled Phase trigger on the second main phase of the turn
 // passes the Phase/PhaseCount gate at the second main phase only -- NOT the
 // first, nor any other step.
 func TestLostMonarchOfIfnirPhaseCountSecondMain(t *testing.T) {

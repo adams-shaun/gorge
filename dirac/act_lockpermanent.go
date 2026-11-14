@@ -4,8 +4,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Braided Net's "tap another target nonland permanent; its
 // activated abilities can't be activated for as long as it remains tapped"
-// (gorge Effect Mode$ CantBeActivated | ValidCard$ Card.IsRemembered |
-// ValidSA$ Activated, Duration$ UntilTargetedUntaps; CR 602.5, 611.2b) and
+// (gorge: an Effect's CantBeActivated static on the remembered card's
+// activated abilities, lasting until the target untaps; CR 602.5, 611.2b) and
 // Braided Quipu's LibraryPosition$ 2.
 //
 // The lock is a short list of eight objects, kept in padding bytes
