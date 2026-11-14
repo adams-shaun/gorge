@@ -192,13 +192,6 @@ type genPrep struct {
 	blgSub          [5]uint8       // the Plains Island Swamp Mountain Forest subtype indexes (subOutside: not in the matchup)
 	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain-shaped land
 	blgPC           []pcard        // a plain land's planner view per granted colour mask
-	// landSet: some override is a CR 305.7 land-type setter
-	// (kop.Override.SetLandSub); landSub is the matchup's land subtypes it
-	// strips, and setPC the intrinsic-only views (static_landtypesetter.go)
-	landSet bool
-	landSub kop.SubMask
-	setIdx  []int16
-	setPC   []pcard
 	globGrant       bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist         bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom     bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
@@ -502,6 +495,14 @@ type genPrep struct {
 	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
 	// first spell each seat casts (cast_firstcast.go)
 	anyFirstCast bool
+	// landSet: some override is a CR 305.7 land-type setter
+	// (kop.Override.SetLandSub); landSub is the matchup's land subtypes it
+	// strips, setIdx per card its block of 32 intrinsic-only views in setPC
+	// (-1: not printed as a land; static_landtypesetter.go)
+	landSet bool
+	landSub kop.SubMask
+	setIdx  []int16
+	setPC   []pcard
 }
 
 // Replacement bits (genPrep.replBits).
