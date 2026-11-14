@@ -114,7 +114,12 @@ func TestImageFileRejected(t *testing.T) {
 		t.Fatal("image older than its cache served")
 	}
 	restore()
-	if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
+	// The cache goes back an hour, not to time.Now(): the image the gob route
+	// rewrites below takes the kernel's coarse file clock, which can read a
+	// few ms behind time.Now(), and an image even 1 ms older than its cache is
+	// rejected (a CI flake, 11-13 PR #329).
+	earlier := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(path, earlier, earlier); err != nil {
 		t.Fatal(err)
 	}
 	// A flipped byte in the rows.

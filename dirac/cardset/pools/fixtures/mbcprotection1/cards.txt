@@ -1,0 +1,23 @@
+# The MBC protection-1 lowerings for the oracle's constructed lockstep
+# (dirac/oracle/mbc_protection1_lowers_test.go): Protection Gains$ Choice,
+# Choices$ AnyColor (Mother of Runes, Gods Willing, Shelter, Benevolent
+# Bodyguard, Emerge Unscathed, Alseid of Life's Bounty, Aven Liberator),
+# beside coloured creatures, burn and removal on the other seat for the
+# chosen protection to block, prevent or fizzle.
+Mother of Runes
+Gods Willing
+Shelter
+Benevolent Bodyguard
+Emerge Unscathed
+Alseid of Life's Bounty
+Aven Liberator
+Savannah Lions
+Serra Angel
+Grizzly Bears
+Hill Giant
+Shock
+Lightning Bolt
+Terror
+Plains
+Mountain
+Swamp

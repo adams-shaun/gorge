@@ -192,7 +192,7 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 // path-like strings and NUL bytes.
 func DigestDir(dir string) (string, int, error) {
 	var paths []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(walkRoot(dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

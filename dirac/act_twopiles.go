@@ -33,23 +33,27 @@ func (s *State) pilesTooWide() bool {
 	return true
 }
 
-// pilesGraveOrder lists, in the order gorge's ChangeZone Defined$ Remembered body
-// moves them, the revealed cards still in the library that go to the graveyard
-// once the chosen pile has moved: an unchosen pile A in pick order under
-// kop.TpUnchosenPileOrder (Fact or Fiction, Steam Augury), then the rest in the
-// revealed order, the library order Curator's ChangeZoneAll sweep reads.
-func (s *State) pilesGraveOrder(in *kop.Instr, pickA bool, np int, out *[maxRem]Obj) int {
+// pilesToGraveyard sends the pile cards still in the library to the graveyard
+// in gorge's order: an unchosen pile A in pick order under
+// kop.TpUnchosenPileOrder (Fact or Fiction, Steam Augury), then the rest in
+// the revealed order (without the flag the revealed order is all, the library
+// order Curator's ChangeZoneAll sweep reads). Gorge moves them one at a time,
+// so from the first card whose move two exile-instead replacements compete
+// for (Rest in Peace twice, CR 616.1) that card and every later one park for
+// the order ask (parkPile); the resolution goes on after the last answer.
+func (s *State) pilesToGraveyard(k *prep, in *kop.Instr, np int, pickA bool) {
+	var ord [12]Obj // pileOrd's width bounds the split (pilesTooWide)
 	n := 0
 	add := func(o Obj) {
 		if s.objs[o].zone != kop.ZoneLibrary {
 			return
 		}
-		for _, q := range out[:n] {
-			if q == o {
+		for _, p := range ord[:n] {
+			if p == o {
 				return
 			}
 		}
-		out[n] = o
+		ord[n] = o
 		n++
 	}
 	if !pickA && in.B.N&kop.TpUnchosenPileOrder != 0 {
@@ -60,5 +64,22 @@ func (s *State) pilesGraveOrder(in *kop.Instr, pickA bool, np int, out *[maxRem]
 	for i := 0; i < int(s.g.nrem); i++ {
 		add(s.g.rem[i])
 	}
-	return n
+	first := n
+	if k.gen != nil {
+		for i, o := range ord[:n] {
+			if s.graveMoveCompetes(k, o) {
+				first = i
+				break
+			}
+		}
+	}
+	for _, o := range ord[:first] {
+		s.pileMove(o, kop.ZoneGraveyard)
+	}
+	for _, o := range ord[first:n] {
+		if !s.park(k, o, parkPile, 0) && !s.parkQuiet(o, parkPile, 0) {
+			s.capFull(StallReplCands)
+			return
+		}
+	}
 }
