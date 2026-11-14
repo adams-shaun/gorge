@@ -40,6 +40,9 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
 // non-spell payment.
 func (s *State) restrNonSpellKind(k *prep, kind uint8) bool {
 	// the SpmActivated marker batch holds no AfManaNonSpell ability: refused here on purpose
+	if s.restrNonSpellMark(k, kind) {
+		return true
+	}
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {

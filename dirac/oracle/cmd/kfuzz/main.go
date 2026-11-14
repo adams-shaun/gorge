@@ -218,6 +218,7 @@ func run() int {
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
 		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
+		onlyPath   = flag.String("only", "", "-synth: play the supported cards and, of the unverified ones, only those this file names (one a line): a targeted evidence run deals the cards it owes evidence among cards that have it")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 		cpuProf    = flag.String("cpuprofile", "", "write a CPU profile here")
@@ -298,8 +299,8 @@ func run() int {
 			return 2
 		}
 		*kernel = "fdn"
-	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] {
-		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach and -focus need -synth")
+	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] || explicit["only"] {
+		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach, -focus and -only need -synth")
 		return 2
 	}
 	*kernel, *setName, *decksDir, err = resolveKernel(*kernel, *setName, *decksDir, explicit)
@@ -383,7 +384,14 @@ func run() int {
 		// As -evidence: unverified cards play and decks are dealt without the refused
 		// ones, unless -play-refused asks for the games a settling run needs.
 		if set, err = cardset.SynthByName(*synth); err == nil && !*refusedIn {
-			set = cardset.AllowUnverified(set)
+			if *onlyPath != "" {
+				var names map[string]bool
+				if names, err = readNames(*onlyPath); err == nil {
+					set = cardset.AllowNamed(set, names)
+				}
+			} else {
+				set = cardset.AllowUnverified(set)
+			}
 		}
 	case *refusedIn:
 		set, err = cardset.RawByName(*setName)
@@ -846,6 +854,21 @@ func printBadGame(c *oracle.Corpus, p oracle.Pairing, outcome, class string, imp
 		return
 	}
 	fmt.Printf("bad-game\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", p.Index, p.Seed, outcome, class, strings.Join(implicated, "|"), strings.Join(recent, "|"), strings.Join(m.Table, "|"))
+}
+
+// readNames reads a name list, one a line, blank lines and "#" comments skipped.
+func readNames(path string) (map[string]bool, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	names := map[string]bool{}
+	for _, l := range strings.Split(string(b), "\n") {
+		if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "#") {
+			names[l] = true
+		}
+	}
+	return names, nil
 }
 
 // writeEvidence writes the names cov's games evidence to path, one a line, and

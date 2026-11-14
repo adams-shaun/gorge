@@ -23,6 +23,12 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 			// controller's spells included (gorge stack.go's recheck arm)
 			return false
 		}
+		if t := tspecE(s.k(), e, i); t != nil && t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+			// the Oath cycle's comparison with the active player is judged
+			// again at resolution (CR 608.2b; gorge's recheck of the full
+			// spec): the board may have changed since the target was chosen
+			return false // tgt_thanactive.go
+		}
 		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {
@@ -205,6 +211,9 @@ func (s *State) resolveTop(k *prep) {
 			s.res.active = false
 			s.afterResolve()
 			return
+		}
+		if k.ascend {
+			s.spellBlessing(k, &e) // CR 702.131a, before the program reads it (kw_ascend.go)
 		}
 	case seTrigger, seAbility:
 		if e.ab == abProwess {
@@ -727,6 +736,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.promisedSeat(k, e) // kw_gift.go
 	case kop.RefChosenPlayer:
 		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return s.chosenSeatRes() // act_chooseplayerres.go
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -811,6 +822,10 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VSelfPower, kop.VSelfToughness:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if e.obj != NoObj && (e.kind == seSpell || s.objs[e.obj].ver != e.srcVer+1) {
+				// not a departed source's last known P/T: the card itself
+				s.offZonePTRead(k, e.card, s.objs[e.obj].owner(), e.obj) // static_offzonept.go
+			}
 			c := &k.cards[e.card]
 			pw, t := int(c.power), int(c.tough)
 			if e.kind != seSpell && e.obj != NoObj {
@@ -945,6 +960,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return n
 	}
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
@@ -987,7 +1003,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
@@ -1012,6 +1028,8 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 	case kop.RefEachOpponent:
 		// gorge Defined$ Opponent: AliveFrom(controller) without it
 		return s.oppsFrom(s.res.e.ctrl)
+	case kop.RefTriggerOpponents:
+		return s.triggerOpps() // trig_triggeropps.go
 	}
 	return seatOne(s.playerRef(k, r))
 }

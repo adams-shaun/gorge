@@ -53,6 +53,8 @@ func TestViewsPlayWhatTheySay(t *testing.T) {
 		{"gated", viewOf(d, gated(false)), map[string]bool{"A Good": true, "D Unproven": true}},
 		{"enforced", viewOf(d, gated(true)), map[string]bool{"A Good": true}},
 		{"allow unverified", AllowUnverified(viewOf(d, gated(true))), map[string]bool{"A Good": true, "D Unproven": true}},
+		{"allow named", AllowNamed(viewOf(d, gated(true)), map[string]bool{"D Unproven": true, "C Refused": true}), map[string]bool{"A Good": true, "D Unproven": true}},
+		{"allow none named", AllowNamed(viewOf(d, gated(true)), nil), map[string]bool{"A Good": true}},
 		{"raw", viewOf(d, lowered), map[string]bool{"A Good": true, "C Refused": true, "D Unproven": true}},
 	}
 	for _, v := range views {
