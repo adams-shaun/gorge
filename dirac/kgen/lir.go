@@ -58,12 +58,13 @@ const (
 	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps", "ResChosenPlayer"}
 
 type lRef struct {
 	Kind refKind

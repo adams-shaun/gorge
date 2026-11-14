@@ -93,6 +93,7 @@ Kishla Trawlers
 Kishla Village
 Knockout Maneuver
 Krotiq Nestguard
+Krumar Initiate
 Lasyd Prowler
 Lightfoot Technique
 Loxodon Battle Priest
@@ -171,6 +172,7 @@ Sultai Devotee
 Sultai Monument
 Summit Intimidator
 Sunpearl Kirin
+Sunset Strikemaster
 Surrak, Elusive Hunter
 Swamp
 Swiftwater Cliffs

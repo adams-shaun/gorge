@@ -307,6 +307,9 @@ type lowerCtx struct {
 	// (Skrelv: the Pump DefinedKW$ ChosenColor, the CantBlockBy Effect, the
 	// ClearChosenColor Cleanup) are still to be lowered
 	colGrant bool
+	// landTypeGrant while a mid-resolution ChooseType Basic Land's
+	// Types$ ChosenType Animate is still to be lowered (lower_choosetype.go)
+	landTypeGrant bool
 	// clAt is 1 + the index of a CounterLose instruction whose following
 	// Effect (the host-bound loss of abilities) is still to be read.
 	clAt   int
@@ -318,6 +321,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenPlAb is the ability whose random-pool ChoosePlayer (kop
+	// OpChoosePlayer) is lowered: ChosenPlayer reads the resolution's chosen
+	// player (kop RefResChosenPlayer), not the opponent (Maddening Hex's Attach)
+	chosenPlAb *lAbility
 	// chosenMidAb is the ability whose mid-resolution ChoosePlayer is lowered
 	// (OpExt ExtChoosePlayerMid): the chain's ChosenPlayer readers read the
 	// resolution's choice, and only until the Cleanup clears it.
@@ -370,6 +377,12 @@ func (lc *lowerCtx) lowerFace() {
 			// face ("shape:mana_spent_reader")
 			lc.out.SpendRead = true
 		}
+	}
+	if lc.face.Mentions("ConditionManaSpent$") || lc.face.Mentions("ConditionManaNotSpent$") ||
+		lc.face.MentionsParam("ConditionManaSpent") || lc.face.MentionsParam("ConditionManaNotSpent") {
+		// gorge pay.FaceReadsManaSpent: the planner declines the face
+		// ("shape:mana_spent_reader"; Azorius Herald, lower_manaspentcond.go)
+		lc.out.SpendRead = true
 	}
 	for _, k := range lc.face.Keywords {
 		if cards.KeywordHead(k) == "Sunburst" {
@@ -2063,10 +2076,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
+	if c.DiscardF != nil && !lc.filteredDiscardHome(c) {
 		// a filtered discard is a battlefield activated ability's own cost
 		// (the candidates are that controller's hand cards; CR 118.3), or
-		// a spell alternative cost's two discard parts (lower_discardtwo.go)
+		// a spell's alternative or additional cost (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {
@@ -3083,6 +3096,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
 	// must not leak colGrant into the next ability's Pump/Animate reading
 	lc.colGrant = false
+	lc.landTypeGrant = false
 	lc.colTgt = lRef{}
 	lc.remTgt = 0
 	ps := newParams(sa.Params)
@@ -3964,6 +3978,22 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 		_, err := lc.value(v)
 		return err
 	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
+		if k == "ValidZone" {
+			// ValidZone$ is a zone list, never a filter: gorge reads it
+			// with ZoneFromString per comma part (effects/play.go), and
+			// every kgen reader of the key (play's Hand/Graveyard/Exile/
+			// Library cases, the counters' refusal, the drain-mana
+			// context) reads zone names. Probing it as a filter reported
+			// every zone-named value as `filter head "Hand"` and hid the
+			// real readers' refusals behind a spelling that is not one
+			// (Kuroki, Thief of Talents' DB$ Play ValidZone$ Hand).
+			for part := range strings.SplitSeq(v, ",") {
+				if _, ok := zoneNames[strings.TrimSpace(part)]; !ok {
+					return fmt.Errorf("unknown zone %q", strings.TrimSpace(part))
+				}
+			}
+			return nil
+		}
 		_, err := lc.filter(v)
 		return err
 	}

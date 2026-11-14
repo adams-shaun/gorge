@@ -32,6 +32,7 @@ var kmbcredirectDecks = [2][]cardset.Entry{
 // two kinds), and the games against gorge diverge nowhere.
 func TestMBCDamageRedirectLowers(t *testing.T) {
 	t.Parallel()
+	corpusDirOrSkip(t) // a fresh clone has no corpus: skip, as every lockstep sibling does
 	set, err := cardset.RawByName("mbcredirect")
 	if err != nil {
 		t.Fatal(err)

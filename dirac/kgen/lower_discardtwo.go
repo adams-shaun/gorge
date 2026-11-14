@@ -36,10 +36,23 @@ func (lc *lowerCtx) altDiscardTwo(c *lCost, parts []string, n int, t string) err
 	return nil
 }
 
-// altDiscardTwoShape: the built alternative cost is two discard parts and
-// nothing else (Foil; kernel dirac.altDiscardTwoCost): the CostDiscard part,
-// filtered or not, then Cost.Discard2N cards.
-func altDiscardTwoShape(c *kop.Cost) bool {
-	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 && c.Discard2N > 0 &&
+// filteredDiscardHome: a filtered Discard<N/Spec> part lowers in a spell's
+// own AlternativeCost (Abolish's Discard<1/Plains>, Foil's first part) or in
+// an instant's or sorcery's additional cost (Magmatic Insight's
+// Discard<1/Land>), where the cast card itself is never a candidate (gorge
+// pay.DiscardCandidates' casting flag; the kernel's costCands skips the
+// entry's own card). The second part of a spell cost stays alternative-only.
+func (lc *lowerCtx) filteredDiscardHome(c lCost) bool {
+	if lc.altCostHand {
+		return true
+	}
+	return lc.lifeXSpell && c.Discard2N == 0 && lc.out.Types&(tInstant|tSorcery) != 0
+}
+
+// altDiscardShape: the built alternative cost is one discard part, or two,
+// and nothing else (Abolish, Foil; kernel dirac.altDiscardCost): the
+// CostDiscard part, filtered or not, then Cost.Discard2N cards when set.
+func altDiscardShape(c *kop.Cost) bool {
+	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 &&
 		!c.DiscardHand && c.Mana == (kop.ManaCost{})
 }

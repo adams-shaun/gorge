@@ -313,7 +313,7 @@ type genPrep struct {
 	anyLandPlayed   bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair       bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave  bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
-	anyLibToGrave   bool           // a TrigToGraveyard line: a card put into a graveyard from a library (trig_libtograve.go)
+	anyToGrave      bool           // a trigger is TrigToGraveyard: N the origin mask, or From ZoneLibrary (trig_tograve.go)
 	anyKwAct        bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
@@ -557,6 +557,7 @@ const (
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
+	rbDestroyRegen                    // ReplDestroyRegenerate (repl_destroyheal.go destroyLine)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -1056,7 +1057,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				}
 				if a.Trig.Event == kop.TrigToGraveyard {
-					g.anyLibToGrave = true
+					g.anyToGrave = true
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
@@ -1199,6 +1200,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
 					}
 					g.destroyHeal[i] = a.Repl.Filter
+				case kop.ReplDestroyRegenerate:
+					g.replBits[i] |= rbDestroyRegen
+					pc.hasStat = true // scanned through statM with the destroy-heal lines (destroyLine)
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
 				case kop.ReplPayBeforeETB:

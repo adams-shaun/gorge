@@ -128,6 +128,10 @@ body() {
   echo "## Notes for reviewers"
   echo
   echo "_Risks, follow-ups, anything a reviewer should look at first._"
+
+  echo
+  echo "---"
+  echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"
 }
 
 BODY_FILE=$(mktemp)

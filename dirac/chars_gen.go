@@ -127,7 +127,7 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if r := &s.g.fx[i]; r.sl == sl && r.kind == fxOverride && k.t.Overrides[r.r.idx-1].LoseAbilities {
 				lost = true
-				ts = max(ts, r.r.ts)
+				ts = max(ts, lossTs(&k.t.Overrides[r.r.idx-1], r.r.ts))
 			}
 		}
 	}
@@ -1146,7 +1146,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		s.stall(StallTables)
 		return
 	}
-	if k.t.Overrides[idx].LoseAbilities {
+	if k.t.Overrides[idx].LoseAbilities && !k.t.Overrides[idx].SetLandSub { // a CR 305.7 setter's loss is layer 4's: no earlier grant is suppressed (static_landtypesetter.go)
 		s.loseAllOnset(k, NoSlot, sl)
 	}
 	s.subscribeGrants(k, sl)
