@@ -324,6 +324,9 @@ func (r *realSide) Project(p *Projection) {
 		if o.Flags2&dirac.ProjSuspected != 0 {
 			f |= FSuspected
 		}
+		if o.Flags2&dirac.ProjRenowned != 0 {
+			f |= FRenowned
+		}
 		if o.Zone.Phased() {
 			f |= FPhasedOut
 		}

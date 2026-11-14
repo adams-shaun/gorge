@@ -210,6 +210,7 @@ const (
 	CondAnd                 // both Sub[0] and Sub[1] hold
 	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
 	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
+	CondBlessing            // the controller has the city's blessing (CR 702.131; dirac/kw_ascend.go)
 	CondCount_
 )
 
@@ -485,7 +486,9 @@ const ExAttackedTurn ExprKind = 235
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
 // HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
 // opponent dealt combat damage this turn by any source (the bare head
-// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver), N 3 the living
+// opponents dealt any damage this turn, combat or not (gorge
+// PlayerCountOpponents$HasPropertywasDealtDamageThisTurn, Gnoll War Band).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1

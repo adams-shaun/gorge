@@ -478,16 +478,25 @@ func (r *Registry) IsSubset() bool { return r != nil && r.sub != nil }
 // exist and be no older than the cache it was written beside, cards.lock, or
 // the corpus folders -- the segment is a derived artifact of all of them, so
 // it shares corpusInputNewerThan with cacheFresh rather than a second copy of
-// the comparison.
+// the comparison. When the cache is present its digest sidecar is checked too
+// (tokens_digest.go): the segment carries every token script, so a segment
+// built beside a token-less cache must be rebuilt the same way the whole
+// corpus path rebuilds. The census sidecar (card_census.go) is checked in
+// both cases, since the segment carries every card script as well. With no
+// cache file the digest sidecar is unreadable, so the mtime rule and the
+// census decide.
 func segFresh(dir, cache, seg string) bool {
 	si, err := os.Stat(seg)
 	if err != nil {
 		return false
 	}
-	if ci, err := os.Stat(cache); err == nil && ci.ModTime().After(si.ModTime()) {
-		return false
+	if ci, err := os.Stat(cache); err == nil {
+		if ci.ModTime().After(si.ModTime()) {
+			return false
+		}
+		return !corpusInputNewerThan(dir, si) && tokenDigestFresh(dir, cache) && cardCensusFresh(dir, cache)
 	}
-	return !corpusInputNewerThan(dir, si)
+	return !corpusInputNewerThan(dir, si) && cardCensusFresh(dir, cache)
 }
 
 // refreshSegments rebuilds seg: from the gob cache when that is fresh (a raw

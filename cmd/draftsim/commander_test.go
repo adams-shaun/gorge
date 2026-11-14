@@ -165,3 +165,48 @@ func TestDraftsimCommanderDecksOut(t *testing.T) {
 		}
 	}
 }
+
+// TestDraftsimCommanderHundredCardDecks: MBC Commander drafts at -deck-size
+// 100 build and save every seat's deck. One draft's pool holds about 45 cards
+// a seat, so a 100-card deck is mostly basics, and a mono-coloured one passed
+// the limited deck's 40-per-type bound (draftsim stopped: "Swamp count 44
+// exceeds the 40-per-type limit"); a Commander-draft deck's bound is the
+// total (build.ValidateCommanderSize).
+func TestDraftsimCommanderHundredCardDecks(t *testing.T) {
+	dir := corpusReady(t)
+	out := t.TempDir()
+	o := options{set: "MBC", collation: "draft", format: event.FormatCommander, deckSize: 100,
+		structure: event.StructureNone, seed: 7700, events: 8, players: "bot",
+		drafter: "rating-colour", builder: "best23", verify: true, decksOut: out, dir: dir}
+	var log strings.Builder
+	res, err := run(o, &log)
+	if err != nil {
+		t.Fatalf("run: %v\n%s", err, log.String())
+	}
+	most := 0
+	for e, ev := range res.events {
+		rp, err := event.ReplayLog(ev.log)
+		if err != nil {
+			t.Fatalf("event %d: %v", e, err)
+		}
+		for s := 0; s < 4; s++ {
+			d, ok := rp.SavedDeck(s)
+			if !ok {
+				t.Fatalf("event %d seat %d saved no deck", e, s)
+			}
+			if n := d.Total(); n != 100 {
+				t.Fatalf("event %d seat %d: %d cards, want 100", e, s, n)
+			}
+			for _, n := range d.Basics {
+				most = max(most, n)
+			}
+		}
+	}
+	if names, _ := filepath.Glob(filepath.Join(out, "*.json")); len(names) != 32 {
+		t.Fatalf("-decks-out wrote %d files, want 32", len(names))
+	}
+	t.Logf("most basics of one type in a deck: %d", most)
+	if most <= build.MaxBasicsPerType {
+		t.Errorf("no deck passed %d of one basic: the draws did not reach the case", build.MaxBasicsPerType)
+	}
+}

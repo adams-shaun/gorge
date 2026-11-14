@@ -402,6 +402,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Engines {
 		fmt.Fprintf(w, " engines")
 	}
+	if c.Ascend {
+		fmt.Fprintf(w, " ascend")
+	}
 	if c.Evasion != 0 {
 		fmt.Fprintf(w, " evasion=%d", c.Evasion)
 	}
@@ -516,8 +519,20 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.ProtFrom != nil {
 			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
 		}
+		if s.ProtChosen {
+			fmt.Fprintf(w, " protchosen")
+		}
+		if s.ProtExc != nil {
+			fmt.Fprintf(w, " protexc=%s", s.ProtExc)
+		}
 		if s.Landwalk != nil {
 			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
+		}
+		if s.Evasion != 0 {
+			fmt.Fprintf(w, " evasion=%d", s.Evasion)
+		}
+		if s.Infect {
+			fmt.Fprintf(w, " infect")
 		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
