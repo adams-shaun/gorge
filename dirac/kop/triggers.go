@@ -259,6 +259,7 @@ const (
 	TrigAbCastExhaust    int16 = 1 // Activated.Exhaust
 	TrigAbCastLoyalty    int16 = 2 // Activated.Loyalty
 	TrigAbCastLoyaltyOpp int16 = 3 // Activated.Loyalty+OppCtrl
+	TrigAbCastAny        int16 = 4 // ValidSA$ SpellAbility beside TargetsValid$ (Tf2TargetsFilter2 + Filter2): any activated ability whose chosen targets match, read once its targets are chosen (Ertha Jo, Frontier Mentor); the queued trigger carries the activated entry's stack identity in its trigAmt (ExtCopyAbility reads it)
 )
 
 // TokenRider flags (OpCreateToken's B.N).
