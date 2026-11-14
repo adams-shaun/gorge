@@ -73,3 +73,21 @@ func buildEnterCtrPick(ki *kop.Instr, cs string) error {
 	ki.C = int16(k[1]) | int16(k[2])<<8
 	return nil
 }
+
+// etbPutCounter lowers an ETB replacement's PutCounter node: the chosen pair
+// of counter kinds (ChooseDifferent$) or the fixed counters the entrant
+// enters with. want is the Defined$ the node must name ("Self").
+func (lc *lowerCtx) etbPutCounter(ps *params, node, sa *cards.SA, other bool, cond *lCond, want string) error {
+	if _, ok := ps.m["ChooseDifferent"]; ok {
+		return lc.etbCounterPick(ps, node, sa, other, cond)
+	}
+	if d, hasD := ps.get("Defined"); !ps.is("ETB", "True") || hasD && strings.TrimSpace(d) != want {
+		return refuse("ETB counter shape")
+	}
+	n, err := lc.amount(ps, "CounterNum", 1)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "EnterWithCounters", Obj: lRef{Kind: rReplaced}, A: n, CS: ps.str("CounterType")})
+	return nil
+}

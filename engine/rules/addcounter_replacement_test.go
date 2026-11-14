@@ -251,10 +251,9 @@ func TestDoublingSeasonEffectOnlyIgnoresNonEffectPlacement(t *testing.T) {
 }
 
 // TestMeliraReplacementBodySubAbilityRunsTheLock pins that a ReplaceCounter
-// body's SubAbility$ chain now RUNS: Melira, the Living Cure's body is
-// `Amount$ 1 | SubAbility$ DBImmediateTrigger`, whose ImmediateTrigger
-// resolves `DB$ Effect | StaticAbilities$ NoMorePoison`, a real
-// `Mode$ CantPutCounter | ValidPlayer$ You | CounterType$ POISON` lock. Before
+// body's SubAbility$ chain now RUNS: Melira, the Living Cure's body sets the
+// amount to 1 and chains an ImmediateTrigger, which resolves an Effect whose
+// static is a real lock: no poison counters can be put on you. Before
 // cantputcounter1 the chain was dropped (one loud Note); now the lock is
 // installed, so a SECOND poison source in the same turn places nothing. The
 // amount rewrite itself still happens on the first source (3 -> 1). No loud

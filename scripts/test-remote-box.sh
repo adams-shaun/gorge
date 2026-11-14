@@ -4,17 +4,20 @@
 #
 #   probe    <repo>              janitor (scratch worktrees and refs older than a day), then one line:
 #                                probe idle=<cores> free=<run slots> lock=<corpus lock hash>
-#   run      <repo> <run> <mode> a detached scratch worktree of refs/tt/<run>/head (+ <repo>/../tt-wt/<run>.patch),
+#   run      <repo> <run> <mode> the run slot's worktree at refs/tt/<run>/head (+ <repo>/../tt-wt/<run>.patch),
 #                                the same scripts/test-targets.sh <mode> in a systemd scope whose CPUWeight is below
 #                                the landing gate's (rgate.scope runs at 100). It streams the output, writes
 #                                <repo>/../tt-wt/<run>.status and exits 0; 91 = no free run slot; 92 = the box could
 #                                not set the run up (the status file says why). Neither is a test result.
 #   finish   <repo> <run>        tar (status + .ds4/scratch/test) to stdout, then cleanup
-#   cleanup  <repo> <run>        stop the scope, remove the worktree, the refs, the patch and the status
+#   cleanup  <repo> <run>        stop the scope, remove the run's results, the refs, the patch and the status
+#                                (never the slot worktree: the next run in that slot reuses it)
 #
 # Settings arrive as TT_* environment variables (set by the client from ~/.config/gorge/test-targets.env):
-# TT_MAXRUNS, TT_WEIGHT, TT_CPU (percent), TT_MEM, TT_PROCS, TT_CARDS (the corpus on this box), TT_GOROOT.
-# Layout: <repo>/../tt-wt/<run> worktrees, <repo>/../gocache (the landing gate's build cache, kept warm),
+# TT_MAXRUNS, TT_WEIGHT, TT_CPU (percent), TT_MEM, TT_PROCS, TT_CARDS (the corpus on this box), TT_GOROOT, TT_NICE
+# (the run's nice level, default 5: below the landing gate's 0 as well as under its CPUWeight).
+# Layout: <repo>/../tt-wt/.slot<i>.wt, one worktree per run slot, reused; <repo>/../tt-wt/<run>/.ds4/scratch/test, a
+# run's results, copied out of the slot before its lock is released; <repo>/../gocache (the landing gate's build cache, kept warm),
 # <repo>/../pools (deck pools, when present).
 set -uo pipefail
 cmd=${1:-}
@@ -23,7 +26,7 @@ run=${3:-}
 mode=${4:-}
 parent=$(dirname "$repo")
 work=$parent/tt-wt
-wd=$work/$run
+wd=$work/$run # the run's results; the run itself works in its slot's worktree (slot_wt)
 unit=tt-${run//[^A-Za-z0-9_-]/_}
 status=$work/$run.status
 
@@ -80,7 +83,28 @@ run)
 		exec 8>&-
 	done
 	[ -n "$got" ] || { echo "busy=1" >"$status"; exit 91; }
-	git -C "$repo" worktree add -q --detach "$wd" "refs/tt/$run/head" || infra "git worktree add failed"
+	# One worktree per slot, reused, and only while this run holds the slot's flock (fd 8, open until this script
+	# exits), so two runs never share it. go's test cache keys PWD and the absolute path and mtime of every module
+	# file a test opens: a fresh worktree per run (the old tt-wt/<run>) could never hit, not even the same commit
+	# twice. `checkout --force` rewrites only the files that differ, so an unchanged package keeps its mtimes and
+	# its cached result (test-cache-audit 2026-11-14).
+	slot_wt() {
+		local w=$work/.slot$got.wt gd
+		if [ -f "$w/.git" ] && gd=$(git -C "$w" rev-parse --absolute-git-dir 2>/dev/null); then
+			# A run killed mid-checkout leaves the index lock; this slot's flock says nobody else holds it.
+			rm -f "$gd/index.lock"
+			if git -C "$w" checkout -q --force --detach "refs/tt/$run/head" && git -C "$w" clean -fdxq -e /.cards; then
+				echo "$w"
+				return 0
+			fi
+		fi
+		# Missing, broken or half-made (a run killed inside `worktree add` leaves it registered and locked): make it anew.
+		rm -rf -- "$w"
+		git -C "$repo" worktree prune >/dev/null 2>&1
+		git -C "$repo" worktree add -f -f -q --detach "$w" "refs/tt/$run/head" >/dev/null && echo "$w"
+	}
+	res=$wd
+	wd=$(slot_wt) || infra "the slot worktree could not be set to the run's head"
 	if [ -s "$work/$run.patch" ]; then
 		git -C "$wd" apply --binary "$work/$run.patch" || infra "the uncommitted diff does not apply"
 	fi
@@ -101,7 +125,9 @@ run)
 	c0=0
 	! contended || c0=1
 	cd "$wd" || infra "cd $wd"
-	inner=(env BASE="refs/tt/$run/base" TEST_TARGETS_REMOTE=1 TEST_TARGETS_SCOPED=1 GOMAXPROCS="${TT_PROCS:-16}" GOMEMLIMIT="${TT_GOMEMLIMIT:-40GiB}" bash scripts/test-targets.sh "$mode")
+	nl=${TT_NICE:-5}
+	case $nl in '' | *[!0-9]*) nl=5 ;; esac
+	inner=(nice -n "$nl" env BASE="refs/tt/$run/base" TEST_TARGETS_REMOTE=1 TEST_TARGETS_SCOPED=1 GOMAXPROCS="${TT_PROCS:-16}" GOMEMLIMIT="${TT_GOMEMLIMIT:-40GiB}" bash scripts/test-targets.sh "$mode")
 	# One scope for the whole run: scopes the run opens inside would escape this CPUWeight and CPUQuota
 	# (test-targets.sh opens none when TEST_TARGETS_REMOTE is set).
 	if systemd-run --user --scope -q true >/dev/null 2>&1; then
@@ -111,6 +137,8 @@ run)
 		"${inner[@]}"
 	fi
 	rc=$?
+	# The results leave the slot before its lock does: the next run in this slot cleans the worktree.
+	rm -rf -- "$res" && mkdir -p "$res/.ds4/scratch" && { [ ! -d "$wd/.ds4/scratch/test" ] || cp -R "$wd/.ds4/scratch/test" "$res/.ds4/scratch/"; }
 	c1=0
 	! contended || c1=1
 	printf 'rc=%s\ncontended=%s\n' "$rc" "$((c0 + c1))" >"$status"

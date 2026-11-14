@@ -1,0 +1,6 @@
+family: mech
+name: mechGoad0
+value: 0
+state: slotbit 16/16
+status: active
+doc: goad[0]: slots whose permanent player 0 goaded (CR 701.15; act_goad.go)

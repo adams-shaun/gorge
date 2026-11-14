@@ -90,6 +90,26 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		}
 		text = text[:i]
 	}
+	// An Effect-created trigger whose body reads Card.ChosenCard(Strict)
+	// snapshots the resolution's chosen-card set at registration
+	// ("|CC=<id>[,<id>...]", appended LAST so a later ClearChosenCard$ cannot
+	// retract the effect's referent). It strips FIRST, ahead of |CN=, whose
+	// LastIndex would otherwise swallow a bare "|CC=" into the name's tail; an
+	// EMPTY value is itself the frozen set (fail closed), never an unbound
+	// snapshot. An already-logged registration carries no such spelling and
+	// decodes with the snapshot unbound, exactly as before. A malformed id is
+	// dropped, never a panic.
+	frozenChosenCards := []state.ObjID(nil)
+	frozenChosenCardsBound := false
+	if i := strings.LastIndex(text, "|CC="); i >= 0 {
+		for _, part := range strings.Split(text[i+4:], ",") {
+			if n, err := strconv.ParseUint(strings.TrimSpace(part), 10, 32); err == nil {
+				frozenChosenCards = append(frozenChosenCards, state.ObjID(n))
+			}
+		}
+		frozenChosenCardsBound = true
+		text = text[:i]
+	}
 	// An Effect-created trigger whose body reads Card.NamedCard snapshots the
 	// host's chosen name at registration ("|CN=<name>", appended LAST so a
 	// later ClearNamedCard$ cannot retract the effect's referent). It strips
@@ -327,6 +347,8 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		OptionalSpec:        optionalSpec,
 		ChosenName:          frozenChosenName,
 		ChosenNameFrozen:    frozenChosenNameBound,
+		ChosenCard:          frozenChosenCards,
+		ChosenCardFrozen:    frozenChosenCardsBound,
 		EffectDuration:      duration,
 		BirthTurn:           g.Turn,
 		ForgetOnMoved:       forget,
@@ -607,6 +629,20 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		sa = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
 			"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
 	}
+	if sa == nil && e.Counter == "__kwLivingWeaponGranted" {
+		// A granted living weapon (CR 702.92a via a layer-6 AddKeyword$ Living
+		// Weapon, e.g. Ekthi, Contaminator Priest): rebuilt into the printed
+		// K:Living Weapon expansion's body (engine/cards/kw_livingweapon.go),
+		// the remembered Germ token and the source attached to it. Source is
+		// the granted Equipment, so Object$ Self attaches it.
+		sa = &cards.SA{Kind: "DB", API: "Token", Params: map[string]string{
+			"TokenScript": "b_0_0_phyrexian_germ", "TokenOwner": "You", "RememberTokens": "True"},
+			Sub: &cards.SA{Kind: "DB", API: "Attach", Params: map[string]string{
+				"Defined": "Remembered", "Object": "Self"}}}
+	}
+	if sa == nil {
+		sa = grantedAfterlifeBody(e.Counter)
+	}
 	if sa == nil {
 		return
 	}
@@ -619,6 +655,23 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 	// of the granted trigger names apart from the recipient (CR 613.1f).
 	o.GrantedBy = grantedBy
 	o.Remembered = rememberedFrom(e.IDs)
+}
+
+// grantedAfterlifeBody rebuilds the body of a granted Afterlife (CR 702.135a
+// via a layer-6 grant, e.g. Afterlife Insurance's PumpAll KW$ Afterlife:1) from
+// its "__kwAfterlifeGranted:N" payload name: the printed K:Afterlife
+// expansion's DB$ Token body (engine/cards/kw_afterlife.go) with N spliced in
+// as TokenAmount$. nil for any other name or a count that is not a positive
+// decimal literal.
+func grantedAfterlifeBody(name string) *cards.SA {
+	n, ok := strings.CutPrefix(name, "__kwAfterlifeGranted:")
+	if !ok {
+		return nil
+	}
+	if v, err := strconv.Atoi(n); err != nil || v < 1 || strconv.Itoa(v) != n {
+		return nil
+	}
+	return cards.ResolveSVar(map[string]string{"__kwAfterlifeGranted": "DB$ Token | TokenScript$ wb_1_1_spirit_flying | TokenAmount$ " + n}, "__kwAfterlifeGranted")
 }
 
 // foldGrantAbilityPush folds Kind GrantAbilityPush into state.

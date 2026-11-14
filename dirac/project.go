@@ -16,7 +16,7 @@ type ProjObj struct {
 	ZoneIdx  uint8 // position in an ordered zone: library from the top, hand/graveyard/exile in arrival order, battlefield in its controller's list (entry order)
 	Token    bool
 	Flags    uint8 // ProjTapped | ProjAttacking | ProjBlocking | ProjSick
-	Flags2   uint8 // ProjSuspected
+	Flags2   uint8 // ProjSuspected | ProjNameless | ProjRenowned
 	Damage   uint8
 	Counters [kop.NumCounterKinds2]uint16
 	// CountersX is the unfeaturized kinds' counts, CountersX[k-CtrCharge]
@@ -45,6 +45,7 @@ const (
 const (
 	ProjSuspected uint8 = 1 << iota // the permanent's CR 701.60 suspected designation (act_suspect.go)
 	ProjNameless                    // a token copy of a face-down permanent, which has no name (blankCopy)
+	ProjRenowned                    // the permanent's CR 702.112b renowned designation (act_renown.go)
 )
 
 // ProjStack is one stack entry.
@@ -215,7 +216,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	}
 	if k.gen != nil && k.gen.anySuspend && ob.zone == kop.ZoneExile {
 		if n := s.suspendTime(i); n != 0 {
-			projCtr(po, uint8(kop.CtrTime), uint16(n)) // a suspended card's time counters (kw_suspend.go)
+			projCtr(po, uint16(kop.CtrTime), uint16(n)) // a suspended card's time counters (kw_suspend.go)
 		}
 	}
 	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && ob.zone != kop.ZoneBattlefield {
@@ -274,6 +275,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 		if k.gen != nil && k.gen.anySuspect && s.suspected(k, sl) {
 			po.Flags2 |= ProjSuspected
+		}
+		if s.renownedAt(k, sl) {
+			po.Flags2 |= ProjRenowned
 		}
 		if s.faceDown(k, sl) {
 			if s.blankCopy(sl) {

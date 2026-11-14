@@ -8,8 +8,8 @@ import (
 )
 
 // TestChangeZoneOriginAlternativeSearchesEveryNamedZone is the
-// OriginAlternative$ concern: `Origin$ Library | OriginAlternative$
-// Graveyard,Hand` ("search your graveyard, hand, and/or library") must offer
+// OriginAlternative$ concern: a library search whose alternative origins are
+// the graveyard and hand ("search your graveyard, hand, and/or library") must offer
 // ONE candidate set spanning every named zone, not a library-only search.
 // Gate to the Afterlife is the corpus carrier; the pinned case puts
 // God-Pharaoh's Gift in the GRAVEYARD (not the library) and proves the search
@@ -20,7 +20,7 @@ func TestChangeZoneOriginAlternativeSearchesEveryNamedZone(t *testing.T) {
 	e, cfg := searchEngine(t, reg, "Gate to the Afterlife", "God-Pharaoh's Gift", "God-Pharaoh's Gift")
 	gate := searchMoveByName(t, e, "Gate to the Afterlife", state.ZBattlefield)
 	// The activation gate needs six creature cards in the graveyard
-	// (CheckSVar$ Count$ValidGraveyard Creature.YouOwn | SVarCompare$ GE6).
+	// (a count of creature cards you own in the graveyard, at least six).
 	// Grizzly Bears is the fixture's Creature filler.
 	for i := 0; i < 6; i++ {
 		searchMoveByName(t, e, "Grizzly Bears", state.ZGraveyard)

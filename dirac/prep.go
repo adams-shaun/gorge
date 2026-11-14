@@ -82,8 +82,8 @@ type pcard struct {
 	enterTap    bool  // ReplEntersTapped
 	enterCtr    int8  // ReplEntersWithCounters count (+1/+1 kind assumed when C=0)
 	enterCK     kop.CounterKind
+	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry; ahead of noCtr so the 16-bit enterCK leaves pcard no pad byte (92 bytes)
 	noCtr       bool       // ReplCantBeCountered
-	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry
 	noUntap     bool       // ReplDoesntUntap
 	mayNotUntap bool       // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
 	land        bool
@@ -102,6 +102,7 @@ type prep struct {
 	t        *kop.Table
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
+	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
@@ -228,6 +229,12 @@ type prep struct {
 	// (OpChangeSpeed); engines: some card carries Start your engines!
 	// (kw_speed.go): guard the life-loss and entry hooks
 	speed, engines bool
+	// ascend: some card prints Ascend: the city's blessing scans run
+	// (kw_ascend.go); a prep bool, not a genPrep one, so the hot hooks
+	// (enterNF, ctrlMove, sba, resolveTop) cost one byte load
+	ascend bool
+	// engAsc: engines || ascend, enterNF's single entry-hook guard
+	engAsc bool
 	// painMana: some card has a painful mana alternative (pcard.painCol;
 	// mana_pain.go): guards the planner's last-resort pain
 	// units and the window's pain riders
@@ -249,9 +256,9 @@ type prep struct {
 	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
 	tapXAb []int8
 	// ctrAb: per card, the index of its counter-cost mana ability (the first
-	// mana ability, kop.CtrManaAb, or a later {T} one beside a plain {T}
-	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
-	// (mana_countercost.go)
+	// mana ability, kop.CtrManaAb or the dead gap kop.CtrDeadManaAb, or a
+	// later {T} one beside a plain {T} first, kop.SecondCtrTapManaAb), -1
+	// none: cold, read through ctrAbOf (mana_countercost.go)
 	ctrAb []int8
 	// riderAb: per card, the index of its bounded mana-ability rider (the
 	// first kop.ManaRiderAb ability), -1 none. Cold; read through riderAbOf
@@ -269,6 +276,8 @@ func prepare(t *kop.Table) *prep {
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
+	p.ascend = tableHasAscend(t)
+	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -354,7 +363,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
-					if ctrManaAb(a) || kop.StoreManaAb(a) {
+					if ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
@@ -388,7 +397,7 @@ func prepare(t *kop.Table) *prep {
 			case kop.AbTriggered:
 				pc.trigMask |= 1 << a.Trig.Event & (1<<nSubEvents - 1) // TrigGiveGift: no subscription (kw_gift.go)
 			case kop.AbStatic:
-				pc.hasStat = true
+				pc.hasStat = battlefieldStatic(pc.hasStat, a) // a graveyard static is none (static_gycont.go)
 				if a.Static.Kind == kop.StatOverride || (a.Static.Kind == kop.StatContinuous && a.Static.Grant != 0) {
 					pc.grantStat = true // a source grantedAbilitiesN's static walk can reach
 				}
@@ -451,6 +460,7 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
+	p.gyCont = tableHasGyCont(t)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
@@ -463,7 +473,7 @@ func prepare(t *kop.Table) *prep {
 	// included. Both layouts are table-level, so Init and InitN of the same
 	// table with the same Config select the same pointer.
 	p.coldCmd = p.cold
-	p.coldCmd.partner = 1
+	coldPartner.set(&p.coldCmd, 1)
 	p.coldCmd.size()
 	return p
 }

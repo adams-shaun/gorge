@@ -1,0 +1,136 @@
+package kgen
+
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// The kop forms of the LIR ops for choices: players, colours, types, names and numbers (instr.go).
+func init() {
+	instrOp("ChooseColorRes", (*instrCtx).opChooseColorRes)
+	instrOp("Vote", (*instrCtx).opVote)
+	instrOp("ChoosePlayerRes", (*instrCtx).opChoosePlayerRes)
+	instrOp("RollDie", (*instrCtx).opRollDie)
+	instrOp("ChoosePlayer", (*instrCtx).opChoosePlayer)
+	instrOp("ChooseColor", (*instrCtx).opChooseColor)
+	instrOp("ChooseType", (*instrCtx).opChooseType)
+	instrOp("ChooseName", (*instrCtx).opChooseName)
+	instrOp("ChooseCardEnter", (*instrCtx).opChooseCardEnter)
+	instrOp("EnterCtrPick", (*instrCtx).opEnterCtrPick)
+	instrOp("ChoosePlayerEnter", (*instrCtx).opChoosePlayerEnter)
+	instrOp("ChoosePlayerMid", (*instrCtx).opChoosePlayerMid)
+	instrOp("ChooseNumber", (*instrCtx).opChooseNumber)
+	instrOp("ChooseNumberMid", (*instrCtx).opChooseNumberMid)
+}
+
+func (ic *instrCtx) opChooseColorRes() error {
+	ki := &ic.ki
+	// (Skrelv) OpExt ExtChooseColorRes
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes))
+	return nil
+}
+
+func (ic *instrCtx) opVote() error {
+	ki := &ic.ki
+	in := &ic.in
+	// OpExt ExtVote, F the ballot (battlefield permanents), C bit 0
+	// exile the most-voted
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtVote)), int16(in.C&1)
+	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ic *instrCtx) opChoosePlayerRes() error {
+	ki := &ic.ki
+	in := &ic.in
+	// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
+	// (act_chooseplayerres.go)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
+	return nil
+}
+
+func (ic *instrCtx) opRollDie() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op, ki.C = kop.OpRollDie, int16(in.C)
+	return nil
+}
+
+func (ic *instrCtx) opChoosePlayer() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op = kop.OpChoosePlayer
+	if in.CS != "Random" {
+		return fmt.Errorf("ChoosePlayer build %q", in.CS)
+	}
+	ki.C = kop.ChPlRandom
+	return nil
+}
+
+func (ic *instrCtx) opChooseColor() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op, ki.C = kop.OpChooseColor, int16(in.C) // in.C: the Exclude$ colours (W U B R G = bits 0..4)
+	return nil
+}
+
+func (ic *instrCtx) opChooseType() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	return nil
+}
+
+func (ic *instrCtx) opChooseName() error {
+	ki := &ic.ki
+	in := &ic.in
+	buildChooseName(ki, in.B.N) // an as-enters card name (lower_choosename.go)
+	return nil
+}
+
+func (ic *instrCtx) opChooseCardEnter() error {
+	ki := &ic.ki
+	buildChooseCardEnter(ki) // an as-enters object choice (lower_choosecardenter.go)
+	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ic *instrCtx) opChoosePlayerEnter() error {
+	ki := &ic.ki
+	// an as-enters opponent (lower_chooseplayerenter.go)
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayer))
+	return nil
+}
+
+func (ic *instrCtx) opChoosePlayerMid() error {
+	ki := &ic.ki
+	// a mid-resolution opponent choice (lower_chooseplayermid.go)
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid))
+	return nil
+}
+
+func (ic *instrCtx) opChooseNumber() error {
+	ki := &ic.ki
+	in := &ic.in
+	// an as-enters number from B to C (lower_choosenumber.go)
+	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)
+	return nil
+}
+
+func (ic *instrCtx) opChooseNumberMid() error {
+	ki := &ic.ki
+	in := &ic.in
+	// a resolution-time number (lower_choosenumber.go): B the Max$
+	// value, C the Min$ floor plus the has-Max / Random flags
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
+	return nil
+}
+
+func (ic *instrCtx) opEnterCtrPick() error {
+	return buildEnterCtrPick(&ic.ki, ic.in.CS) // an as-enters pair of counter kinds (lower_enterctrpick.go)
+}

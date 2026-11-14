@@ -1,0 +1,7 @@
+family: key
+name: keyPtSwitch
+value: 15
+forge: pt switch
+census: key pt switch classes=1 all=23
+state: slotbit 16
+status: reserved

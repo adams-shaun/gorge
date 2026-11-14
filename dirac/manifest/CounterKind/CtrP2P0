@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrP2P0
+value: 201
+forge: P2P0
+census: ctr P2P0 all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

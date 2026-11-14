@@ -19,8 +19,8 @@ import (
 //	{1}{W}: Target nonattacking, nonblocking creature gets +0/+2 until end of
 //	turn.
 //
-// Its compiled ability is `A:AB$ Pump | Cost$ 1 W | ValidTgts$
-// Creature.!attacking+!blocking`. With '!' unrecognised (it was only a
+// Its compiled ability is a {1}{W} activated Pump whose target filter is a
+// creature that is neither attacking nor blocking. With '!' unrecognised (it was only a
 // literal character inside the one hand-written "!token" map entry), both
 // predicates matched NOTHING, so the ability had zero legal targets and was
 // withheld entirely -- "{1}{W}: target a nonattacking, nonblocking creature"

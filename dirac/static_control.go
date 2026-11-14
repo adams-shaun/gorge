@@ -74,11 +74,9 @@ func (r *fxRec) cYou() uint8 {
 	}
 	return r.r.idx & fcYou >> 2
 }
-func (r *fxRec) cDur() uint8 { return r.r.idx & fcDurMask >> fcDurShift }
-func (r *fxRec) cSrc() Obj   { return Obj(r.r.src) }
-func (r *fxRec) cSrcVer() uint8 {
-	return uint8(r.r.src >> 8)
-}
+func (r *fxRec) cDur() uint8    { return r.r.idx & fcDurMask >> fcDurShift }
+func (r *fxRec) cSrc() Obj      { return Obj(r.r.src) }
+func (r *fxRec) cSrcVer() uint8 { return uint8(r.r.src >> 8) }
 func (r *fxRec) setPrev(p uint8) {
 	if MaxSeats > 2 {
 		r.r.fl = r.r.fl&^(3<<2) | (p&3)<<2
@@ -186,6 +184,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	k := s.k()
 	if k.engines {
 		s.speedControl(k) // kw_speed.go
+	}
+	if k.ascend {
+		s.blessScan(k) // CR 702.131b (kw_ascend.go)
 	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
@@ -494,8 +495,25 @@ func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 //
 //go:noinline
 func (s *State) opGainControl(k *prep, in *kop.Instr) {
-	sl := s.objRef(k, in.Obj)
-	if sl == NoSlot {
+	var list [MaxPerm]Slot
+	n := 0
+	if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+		// Defined$ over a remembered group (Fumble's "gain control of all
+		// Auras and Equipment that were attached to it"): each battlefield
+		// member in remembered order, one effect apiece (gorge effGainControl
+		// walks its Defined set)
+		for _, o := range s.g.rem[:s.g.nrem] {
+			if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && n < len(list) {
+				list[n] = s.objs[o].slot
+				n++
+			}
+		}
+	} else if in.Obj == kop.RefNone && in.F != 0 {
+		n = s.gainControlAllHits(k, in.F, &list) // AllValid$ (act_gaincontrolall.go)
+	} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		list[0], n = sl, 1
+	}
+	if n == 0 {
 		return
 	}
 	e := &s.res.e
@@ -520,8 +538,17 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 		src = s.perms[ssl].obj
 		ver = s.objs[src].ver
 	}
+	for _, sl := range list[:n] {
+		s.gainControlOne(k, in, sl, to, dur, src, ver)
+	}
+}
+
+// gainControlOne is opGainControl's grant to the permanent at sl, with its
+// Untap$ / haste / RememberControlled$ riders (gorge effGainControl's
+// per-target body).
+func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, src Obj, ver uint8) {
 	s.touchSl(sl)
-	if !s.gainControl(sl, to, e.ctrl, dur, src, ver, false) {
+	if !s.gainControl(sl, to, s.res.e.ctrl, dur, src, ver, false) {
 		return
 	}
 	p := &s.perms[sl]

@@ -4,14 +4,13 @@
 // The wall itself is CanAttack's Defender keyword check (attack.go); this
 // file is the READ that lifts it pair by pair:
 //
-//   - a face static (`S:Mode$ CanAttackDefender | ValidCard$ ...` — Felothar
+//   - a face CanAttackDefender static on some ValidCard$ filter (Felothar
 //     the Steadfast's Creature.YouCtrl, Weathered Sentinels' Card.Self) is
 //     enforced per (attacker, defender) pair through the Board.Statics walk
 //     with the shared gate grammar, the same shape attackPairCharge
 //     (engine/rules/attack_cost.go) uses for CantAttackUnless;
-//   - an Effect-granted body (Assault Formation's AB$ Effect delivering
-//     `SVar:CanAttack:Mode$ CanAttackDefender | ValidCard$
-//     Creature.IsRemembered`) registers as a ContinuousEffect with
+//   - an Effect-granted body (Assault Formation's AB$ Effect delivering a
+//     CanAttackDefender static on the remembered creature) registers as a ContinuousEffect with
 //     Restriction "CanAttackDefender" (engine/effects/misc.go's effEffect case) and
 //     is consulted through the same ContinuousEffect walk AttackBlocked's
 //     CantAttack loop takes, so the Board.RestrictionApplies machinery binds

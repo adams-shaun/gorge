@@ -113,6 +113,10 @@ derives each list from the set lists and the corpus on every build, and kfuzz de
   the tables names the rest of the corpus, so every card is accounted for.
 - A list too big for one table (over the 192 subtypes a table's masks hold) becomes `<pool>-a` and `<pool>-b`, split
   on the lowest bit of the name's hash that lets both halves build. Cards on opposite sides never meet.
+- `dr-<code>` is a draft pool of `dirac/cardset/draftpools.txt`. A draft list over `cardset.DraftSplitCards`
+  (200) cards splits the same way, so MBC plays as 16 splits of about 137 (`dr-mbc-aaaa` ... `dr-mbc-bbbb`):
+  a split's evidence counts only when every one of its games is clean, so a smaller split loses less to
+  one divergent card.
 
 `oracle.SynthPool` deals `oracle.SynthDecks` 40-card decks from `-seed`: two colours, 23 spells from a
 shuffled queue at most two of each, up to 4 nonbasic lands, basics to 40. A card of three or more colours
@@ -260,8 +264,10 @@ the same change, or makes kgen refuse the affected cards by name (`kgen -refuse`
 - rebuild the tables with `make dirac-tables`, since a change in the gorge packages kgen builds against
   moves the table key. If the accepted counts moved, rewrite `dirac/kgen`'s acceptance pins:
   `KGEN_REPIN=1 DIRAC_UPDATE_SUPPORT=1 go test -v -timeout 5m -run 'TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestSupportDocIsCurrent' ./dirac/kgen`.
-  That is not a parity fix and should only follow a real count change. A lower accepted count fails
-  unless `KGEN_REPIN_FALL=<reason>` is also set, and the reason is printed.
+  That rewrites rows of `dirac/kgen/testdata/acceptance.tsv` and `build_acceptance.tsv`. It is not a
+  parity fix and should only follow a real count change. A lower accepted count fails unless
+  `KGEN_REPIN_FALL=<reason>` is also set, and the reason is printed. By default the ratchets fail only
+  on a fall; `DIRAC_PIN_STRICT=1` (set in CI) holds every pin exact.
 
 ## Bot and transcript parity
 

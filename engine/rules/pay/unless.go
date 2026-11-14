@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"math"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -73,8 +74,15 @@ func CostAnnouncesSacX(c costvocab.Cost) bool {
 // here. The idempotence contract matters: offerCastable converts at the
 // gate, the payment sites convert again, and a converted cost (no LifeX
 // left) early-returns unchanged.
+//
+// An announced ExileFromGrave<X/Spec> part reads the same SVar:X and is
+// fixed the same way: Count$xPaid keeps the announcement (Harvest Pyre,
+// Skeletal Scrying), any other body fixes the count (Araumi of the Dead
+// Tide's SVar:X:PlayerCountOpponents$Amount -- "exile cards from your
+// graveyard equal to the number of opponents you have"), so the part
+// becomes an ordinary N-card graveyard exile and xAsk poses no X for it.
 func FixLifeXCost(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) (costvocab.Cost, bool) {
-	if len(c.LifeX) == 0 {
+	if !CostHasSVarX(c) {
 		return c, true
 	}
 	o := e.Game().Obj(id)
@@ -108,7 +116,39 @@ func FixLifeXCost(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) 
 	for range len(c.LifeX) {
 		out.Life = costvocab.AddClampedGeneric(out.Life, int64(n))
 	}
+	if announcesGraveExileX(c) {
+		// A fresh slice: c.Exile may alias the compiled (cached) cost.
+		out.Exile = append([]costvocab.CostPart(nil), c.Exile...)
+		for i := range out.Exile {
+			if isGraveExileX(out.Exile[i]) {
+				out.Exile[i].Announced = false
+				out.Exile[i].N = int32(min(n, math.MaxInt32))
+			}
+		}
+	}
 	return out, true
+}
+
+// CostHasSVarX reports whether c carries a part whose count SVar:X may fix
+// (FixLifeXCost's input): a PayLife<X> part or an announced
+// ExileFromGrave<X/Spec> part.
+func CostHasSVarX(c costvocab.Cost) bool {
+	return len(c.LifeX) != 0 || announcesGraveExileX(c)
+}
+
+// isGraveExileX is an announced ExileFromGrave<X/Spec> part (the
+// ExileCtrlOrGrave<X> part carries a ZoneSet and is not one).
+func isGraveExileX(part costvocab.CostPart) bool {
+	return part.Announced && part.ZoneSet == 0
+}
+
+func announcesGraveExileX(c costvocab.Cost) bool {
+	for _, part := range c.Exile {
+		if isGraveExileX(part) {
+			return true
+		}
+	}
+	return false
 }
 
 // DrawCostCount resolves one Draw cost part's count at payment time. A

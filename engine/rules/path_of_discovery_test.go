@@ -12,8 +12,8 @@ import (
 
 // Path of Discovery end to end (the named deck carrier):
 // "Whenever a creature you control enters, it explores." — an Enchantment
-// whose ChangesZone trigger body is `DB$ Explore | Defined$ TriggeredCardLKICopy`,
-// so the exploring creature is the one that just entered (the trigger's
+// whose ChangesZone trigger body is an Explore by the triggered card's
+// last-known copy, so the exploring creature is the one that just entered (the trigger's
 // captured TriggerCard / Remembered), not the Enchantment itself. Both
 // branches of CR 701.35a are pinned: a revealed land goes to the hand with no
 // counter; a revealed nonland puts a +1/+1 counter on the entering creature and

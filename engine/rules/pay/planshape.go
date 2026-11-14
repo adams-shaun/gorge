@@ -536,10 +536,10 @@ func paymentPlanStaticTapManaBody(f *cards.Face, t cards.Trigger, api string) *c
 	return body
 }
 
-// PaymentPlanReflectedTapMana classifies a `Mode$ TapsForMana | Static$ True`
-// trigger of face f whose body adds one mana of the type the tap produced
-// (`DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced`:
-// Lavaleaper, Mana Flare; CR 106.12a, 605.1b), closed-world as
+// PaymentPlanReflectedTapMana classifies a static TapsForMana trigger of
+// face f whose body adds one mana of the type the tap produced (a
+// ManaReflected of the produced type: Lavaleaper, Mana Flare; CR 106.12a,
+// 605.1b), closed-world as
 // PaymentPlanFoldableTapMana. Its mana is a read of the planned production,
 // not a literal: PaymentPlanReflectedMana sizes it per production. ToTapped
 // records a Defined$ naming the tapping player (TriggeredActivator) or the

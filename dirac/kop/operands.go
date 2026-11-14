@@ -71,6 +71,14 @@ const MayGuardPut = 10
 // asked and the move is skipped.
 const MayGuardMoveRemembered = 11
 
+// MayGuardDigUntil: the OpMayAsk guard of an Optional$ DigUntil (gorge
+// effects/diguntil.go digUntilMayReveal): asked only when the next DigUntil's
+// amount is above 0 and the dug player's library holds a card (drawAsks'
+// test); else the DigUntil is skipped unasked. Obj names the asked player
+// (the dug player; unset: the resolving controller). Oath of Druids,
+// Thicket Elemental.
+const MayGuardDigUntil = 12
+
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
 // animateWouldChange), else nothing is asked.
@@ -172,6 +180,13 @@ const (
 	OptAsk int16 = 1 << 2 // 4
 	OptAny       = 1 << 3 // 8
 	OptAll       = 1 << 4 // 16
+	// OptDefined: the discard takes every hand card matching F, no ask, and
+	// the amount is never read (gorge effDiscard's Mode$ Defined arm: the
+	// cards DefinedCards$ names that are still in the discarder's hand move;
+	// Fa'adiyah Seer's Remembered drawn card). Both core and gen arms run
+	// discardDefinedAll (act_discarddefined.go); a filter is mandatory (the
+	// defined cards are the filter's matches).
+	OptDefined = 1 << 5 // 32
 )
 
 // Duration of an OpOverride / OpMayPlay.
@@ -209,6 +224,11 @@ const (
 	MvEntryRiders                  // OpChangeZoneAllEx C>>3, onto the battlefield: each entrant gets A.N&255 counters of kind A.N>>8 (A.N 0 = none) and override uint16(B.N)-1 (B.N 0 = none) before its enters checks fire (WithCountersType$ / StaticEffect$; CR 122.6, 603.6b); bit 12 (ChangeZoneAllEx's C sign bit, kept readable by the arithmetic C>>3 shift; no other op reads it)
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
+
+// AttachUnattach (OpAttach C, beside MvRemember's bit 0): Reconfigure's
+// unattach half (CR 702.151a), "unattach from a creature": the source stops
+// being attached, to nothing if it was not attached.
+const AttachUnattach = 1 << 1
 
 // SurveilRememberKept (OpSurveil C): the cards the surveil leaves on top of the
 // library join the remembered set (RememberKept$), beside MvRemember's cards put
@@ -269,6 +289,18 @@ const SrAltAll = 1 << 3
 
 // SrAltZoneShift is the shift of SrAltOrigin's alternative zone in B.N.
 const SrAltZoneShift = 5
+
+// SrSearchAttach (OpSearchEx B, with W as the bearer Ref):
+// AttachedTo$ on a search (Boonweaver Giant's, Runed Crown's and Arachnus
+// Spinner's "put it onto the battlefield attached to ..."). The found card
+// enters attached to the bearer the W Ref names -- an Aura to it when it is
+// among the Aura's legal objects to enchant, else it stays in its zone (CR
+// 303.4f/g, gorge markChangeZoneAttach and the entry gate); anything else
+// enters, then attaches when the bearer is a creature on the battlefield
+// (gorge changeZoneAttachedTo). The named-bearer settle replaces the plain
+// CR 303.4f enchant ask (czAttachBearerHost), and no ask is posed. Read from
+// the instruction, never ORed into pickF.
+const SrSearchAttach = 1 << 8
 
 // SrAltGraveHand is the SrAltOrigin zone code for the OriginAlternative$
 // pair Graveyard then Hand (Agency Outfitter). The library is never an
@@ -408,6 +440,14 @@ const (
 	// without it for the controller as exiler (Vulcan Mind-Meld).
 	DigExilerOther = 1 << 12
 )
+
+// DigRestTopAsk (both bits; C has no free flag bit, and the pair is
+// otherwise unused: a random order is a bottom placement): the rest go on
+// top in the order the resolving controller picks, one card at a time, the
+// first pick on top (gorge digTopOrderAsk, CR 701.29a "the rest on top in
+// any order"; Spin into Myth's fateseal). DigRestTop alone keeps the window
+// order (SkipReorder$, or one card left).
+const DigRestTopAsk = DigRestTop | DigRandomOrder
 
 // DigUntilFlags (OpDigUntil C>>3): bits 0..2 the revealed rest's zone.
 const (
@@ -700,6 +740,13 @@ const CzBattleGrave = 8
 // seat order (seat 0 first) instead of the controller first (gorge
 // tokenOwnersControllingAny walks AliveFrom(0)).
 const RepeatEachSeatOrder = 2
+
+// DmgFromEachCtrl is OpDealDamageFrom's B.N for the player mode whose
+// source is the object the enclosing OpRepeatEach binds (Obj RefEach) and
+// whose one recipient is that object's controller (gorge DealDamage
+// Defined$ RememberedController | DamageSource$ Remembered in a RepeatEach
+// card body: Rakdos Charm). B.N 1 is the trigger-object player mode.
+const DmgFromEachCtrl = 2
 
 // OpPumpAllEach's Obj bits: the amount read per creature from its own
 // derived power / toughness (NumAtt$ Double / NumDef$ Double).

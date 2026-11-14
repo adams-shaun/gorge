@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Tromokratis: S:Mode$ MinMaxBlocker | ValidCard$ Card.Self | Min$ All
+// Tromokratis: a MinMaxBlocker static on itself with an all-blockers minimum
 // (CR 509.1b, kop.MinBlockersAll: "can't be blocked unless all creatures
 // defending player controls block it") against small creatures, some
 // tapped from their own attacks, and burn. gorge's blockPairScopeFor offers

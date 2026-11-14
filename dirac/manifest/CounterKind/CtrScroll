@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrScroll
+value: 224
+forge: SCROLL
+census: ctr SCROLL all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

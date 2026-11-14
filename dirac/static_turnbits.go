@@ -13,8 +13,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - bit turnExhaustShift+p: player p activated an Exhaust ability this
 //     turn (Elvish Refueler's Activations static).
 //
-// The two-seat class uses bits 0-1 for flips and 2-3 for Exhaust (4-7 free);
-// the four-seat class uses 0-3 and 4-7.
+// Bits 0-1 hold the flips and 2-3 Exhaust (4-7 free).
 const turnFlipShift = 0
 
 func turnFlipMask(p uint8) uint8 {
@@ -43,6 +42,35 @@ func (s *State) turnExhaustBit(p uint8) bool { return s.g.turnF&turnExhaustMask(
 
 // setTurnExhaust marks p's Exhaust activation for this turn.
 func (s *State) setTurnExhaust(p uint8) { s.g.turnF |= turnExhaustMask(p) }
+
+// rootTurnF is the turn facts of the State s forks from: s's own when s is
+// no live fork of its pool, else what the pool recorded when its outermost
+// fork was taken.
+func (s *State) rootTurnF() uint8 {
+	if p := s.pool; p != nil {
+		for i := 0; i < p.depth; i++ {
+			if p.forks[i] == s {
+				return p.rootF[i]
+			}
+		}
+	}
+	return s.g.turnF
+}
+
+// withRootExhaust sets p's Exhaust bit to the search root's and returns the
+// turn facts it replaced, for the caller to restore. A prefix search's step
+// that activates an Exhaust mana ability (Loot, the Pathfinder's, waived by
+// Elvish Refueler) marks the bit on the fork; the play it funds is still the
+// one p began at the root, where the waiver held: mana abilities are
+// activated while its cost is paid (CR 602.2b, 601.2g), after its legality was
+// checked, so gorge's prefix search prices it by the planner's payment verdict
+// alone (rules/potential_script.go scriptSearch.priced).
+func (s *State) withRootExhaust(p uint8) uint8 {
+	saved := s.g.turnF
+	m := turnExhaustMask(p)
+	s.g.turnF = saved&^m | s.rootTurnF()&m
+	return saved
+}
 
 // noteTurnExhaust records an Exhaust ability a activated for the source at
 // sl. Called from onceUse, the one payment mark every Exhaust activation

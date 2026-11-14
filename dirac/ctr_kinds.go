@@ -4,26 +4,35 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // kcounters: the unfeaturized counter kinds (kop.CtrCharge..) and Station.
 //
-// The new kinds share the perm's sparse counter slots (ck is a uint8 kind,
+// The new kinds share the perm's sparse counter slots (ck is a uint16 kind,
 // cn its count): no State field changes. They sit above kop.CtrLevel, so
 // seeCtr never marks them seen (perm.cseen and FeatCountersListed stay
 // inside the frozen feature layout) and ProjObj.Counters never carries them;
 // ProjObj.CountersX does, for the oracle and the search API.
 
-// projCtrX records n counters of unfeaturized kind c on po.
+// ctrMode is counter kind c as an Action's mode byte, which also keys a
+// CostSubAmong pick (subCtrPicked, recordSubCtr): those encodings are 8 bits
+// wide while perm.ck and kop.CounterKind are 16. Every kind kop.IsCounterKind
+// admits fits while kop.NumCounterKinds3 is at most 256, which the assert
+// below holds; a counter kind past 255 widens those encodings first.
+func ctrMode(c uint16) uint8 { return uint8(c) }
+
+var _ = [1]struct{}{}[(int(kop.NumCounterKinds3)-1)>>8]
+
+// projCtr records n counters of kind c on po.
 //
 //go:noinline
-func projCtr(po *ProjObj, c uint8, n uint16) {
-	if c != 0 && c < uint8(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
+func projCtr(po *ProjObj, c uint16, n uint16) {
+	if c != 0 && c < uint16(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
 		po.Counters[c] = n
-	} else if c >= uint8(kop.CtrCharge) {
+	} else if c >= uint16(kop.CtrCharge) {
 		projCtrX(po, c, n)
 	}
 }
 
-func projCtrX(po *ProjObj, c uint8, n uint16) {
-	if c < uint8(kop.NumCounterKinds3) {
-		po.CountersX[c-uint8(kop.CtrCharge)] = n
+func projCtrX(po *ProjObj, c uint16, n uint16) {
+	if c < uint16(kop.NumCounterKinds3) {
+		po.CountersX[c-uint16(kop.CtrCharge)] = n
 	}
 }
 

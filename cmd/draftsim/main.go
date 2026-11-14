@@ -34,7 +34,7 @@ func main() {
 	fs.IntVar(&o.seats, "seats", 4, "pod size: 4 or 8")
 	fs.IntVar(&o.seats, "pod", 4, "alias of -seats")
 	fs.StringVar(&o.format, "format", "", "construction format: empty (limited, 40-card decks and Bo1 series) or commander (a Commander Legends style draft: 60-card decks, or -deck-size, around drafted commanders, then 4-player free-for-all Commander games at 40 life; -rounds is the game count, default 1; -structure none builds only)")
-	fs.IntVar(&o.deckSize, "deck-size", 0, fmt.Sprintf("-format commander only: the deck size, commanders and basics included, %d..%d; 0 = %d (the lands scale with it: 17 at 60, 14 at 50)", build.MinCommanderDeckSize, build.MaxDeckSize, build.CommanderDeckSize))
+	fs.IntVar(&o.deckSize, "deck-size", 0, fmt.Sprintf("-format commander only: the deck size, commanders and basics included, %d..%d; 0 = %d (the lands scale with it: 23 at 60, 19 at 50)", build.MinCommanderDeckSize, build.MaxDeckSize, build.CommanderDeckSize))
 	fs.StringVar(&o.decksOut, "decks-out", "", "directory to write every seat's built deck to as a gorge deck JSON file, <set>_e<event seed>_s<seat>.json (a Commander-draft deck marks its commanders); works with -structure none")
 	fs.IntVar(&o.picks, "picks", 0, "cards each seat takes from a pack before passing it; 0 = the format's default (1, or 2 with -format commander)")
 	fs.StringVar(&o.mode, "mode", string(event.ModeDraft), "supply mode: draft (3 packs per seat, picked), sealed (6 packs per seat, unopened) or prerelease (sealed plus one rare/mythic promo per seat)")
@@ -55,6 +55,7 @@ func main() {
 	fs.StringVar(&o.gauntletPlayer, "gauntlet-player", "bot", "bot policy for BOTH gauntlet seats (an Env policy is refused, like the draft seats)")
 	fs.StringVar(&o.baseline, "baseline", "random", "gauntlet baseline deck per seat: random (23 random non-land pool cards + AutoLands) or none")
 	fs.StringVar(&o.valueLog, "valuelog", "", "path to append one JSON line per Commander pod game to: each seat's commanders, deck, in-hand cards and finish, the input of an offline card-value regression")
+	fs.StringVar(&o.only, "only", "", "deal only the cards this file names: one name a line, or kgen -supported's name<TAB>true|false lines (true rows only), so `kgen -supported mbc -four-seat` is dirac's 4-seat MBC list; a sheet the list cannot fill deals the same rarities' listed cards from the other sheets, and the run prints each sheet's fill rate")
 	fs.Float64Var(&o.pickExplore, "pick-explore", 0, "probability per pick that a seat takes a random pack card instead of its persona's pick (card-value sampling; 0 = off)")
 	fs.BoolVar(&o.verbose, "v", false, "print each seat's policy and deck summary")
 	dir := fs.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
@@ -117,6 +118,9 @@ type options struct {
 	// valueLog is -valuelog; pickExplore is -pick-explore (valuelog.go).
 	valueLog    string
 	pickExplore float64
+	// only is -only: the card-list file the packs are cut to (only.go),
+	// "" for the set's full sheets.
+	only string
 }
 
 // playerList splits the -players flag into its per-seat policies: one name

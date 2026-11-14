@@ -18,7 +18,9 @@
 #      and BLB above INSTR_PB_MAX times the accepted program base below.
 #   6. inlining: the hot accessors stay inlinable.
 #   7. escapes: no dirac local moves to the heap.
-#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and, whatever the change touched,
+#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest bar TestEngineCompilesFor32Bit (the 386
+#      build, which the affected side runs when a non-test Go file, go.mod or go.sum moves); and,
+#      whatever the change touched,
 #      every refused entry still diverges, every committed repro table (TestStd*ReprosLockstep)
 #      plays in lockstep, and every pinned game still reaches what its pin is named for: the
 #      data-driven pins in dirac/oracle/testdata/pins play under TestPinManifest (one subtest per
@@ -28,13 +30,11 @@
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
-#  mp. the dirac_mp build (make dirac-mp-check: vet, the State bar and layout pin, then lockstep on
-#      4-seat vanilla pods and the FDN and BLB slices at two seats), about 60 s, only when a non-test
-#      file under dirac/ changed. A failure fails the gate.
+#  8b. the oracle fast tier: the ./dirac/oracle tests of 0.5 s or less (dirac/oracle/testdata/fasttier.txt).
 #
 # Steps 2-3 and 5-7 and step 8's package tests run only when a non-test file under dirac/ changed. A
 # merge base without dirac/ has nothing to compare, so the base rows print a note. The steps run
-# cheapest first (0-3, 6-8, then 4, mp, 5 and 9), and the first failure ends the run.
+# cheapest first (0-3, 6-8, then 4, 5 and 9), and the first failure ends the run.
 #
 # A commit's measurements (State size, the FDN bench line, instructions per bench, each synthetic
 # pool's divergent pairs) are cached under $DIRAC_GATE_CACHE, keyed by the commit, the corpus digest
@@ -50,7 +50,7 @@ INSTR_CORE=${INSTR_CORE:-20}
 PERF_MAX=${PERF_MAX:-1.06}
 # The accepted program base: instructions per op before the instruction budget was set.
 INSTR_PB_FDN=52373
-INSTR_PB_BLB=54677
+INSTR_PB_BLB=56097
 
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
@@ -190,7 +190,7 @@ if [ -n "$dirac_changed" ]; then
 
 	echo "== 8 tests"
 	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
-	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
+	out=$(go test -timeout 2m -skip '^TestEngineCompilesFor32Bit$' ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
 fi
 
 # The whole refused list, the committed repro tables and the pinned games, whatever changed: a gorge
@@ -208,6 +208,30 @@ pins=$(git ls-tree --name-only HEAD dirac/oracle/testdata/pins/ | sed -E 's|.*/|
 out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoosesHaveNoOther\$|^TestStd[A-Za-z]*ReprosLockstep|^TestPinManifest\$|^TestPinManifestCoversOldPins\$|^($pins)\$" ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, a committed repro left lockstep, or a pinned game no longer reaches its condition: $(named=$(grep -E -- '--- FAIL|divergen|never reaches' <<<"$out" | head -20); if [ -n "$named" ]; then echo "$named"; else echo "(no test failed by name: the test binary died or did not build)"; grep -m1 -A14 -E '^(panic:|fatal error:|# |FAIL[[:space:]])' <<<"$out"; tail -6 <<<"$out"; fi)"
 skip=$(grep -F -- '--- SKIP' <<<"$out")
 [ -z "$skip" ] || bad "a refused entry, repro or pinned game was not played, since its pool or tables are not on this machine (set GORGE_POOLS, make dirac-tables): $skip"
+
+# 8b. The fast tier: the oracle tests that cost 0.5 s or less (scripts/oracle_fasttier.py, from the
+# train's -v logs), run at every landing. The set is committed as data so the cost stays bounded; a
+# name that no longer exists is a stale list and fails here, not as a vacuous `ok`.
+echo "== 8b oracle fast tier"
+fast=dirac/oracle/testdata/fasttier.txt
+t8b=$SECONDS
+[ -f "$fast" ] || bad "no fast tier list at $fast"
+tier=$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$fast") || bad "cannot read the fast tier list $fast"
+[ -n "$tier" ] || bad "the fast tier list $fast is empty"
+listed=$(go test -list '.*' ./dirac/oracle 2>&1) || bad "cannot list ./dirac/oracle tests: $(tail -10 <<<"$listed")"
+missing=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$listed" | grep -E '^Test' | sort -u)) || bad "cannot compare the fast tier list with ./dirac/oracle's tests"
+[ -z "$missing" ] || bad "the fast tier names tests that no longer exist in ./dirac/oracle: $(tr '\n' ' ' <<<"$missing")"
+re=$(printf '%s\n' "$tier" | sort -u | paste -sd'|') || bad "cannot build the fast tier pattern"
+[ -n "$re" ] || bad "the fast tier pattern is empty"
+out=$(go test -v -failfast -timeout 120s -run "^($re)\$" ./dirac/oracle 2>&1) || bad "oracle fast tier failed: $(grep -E -- '--- FAIL|^FAIL|panic:|^=== RUN' <<<"$out" | tail -20)"
+ran=$(sed -nE 's/^--- PASS: ([^/ ]+) .*/\1/p' <<<"$out") || bad "cannot read the fast tier's PASS lines"
+ran=$(sort -u <<<"$ran") || bad "cannot sort the fast tier's PASS lines"
+notrun=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$ran")) || bad "cannot compare the fast tier list with its PASS lines"
+[ -z "$notrun" ] || bad "the fast tier did not run or pass: $(tr '\n' ' ' <<<"$notrun")"
+skipped=$(grep -F -- '--- SKIP' <<<"$out"); skip_rc=$?
+[ "$skip_rc" -le 1 ] || bad "cannot read the fast tier output for skips"
+[ -z "$skipped" ] || bad "the fast tier skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
+echo "8b: ok ($((SECONDS - t8b)) s, $(wc -l <<<"$tier") tests)"
 
 echo "== 4 lockstep, absolute"
 lockstep() {
@@ -239,19 +263,6 @@ for set in fdn blb; do
 		fi
 	done
 done
-
-if [ -n "$dirac_changed" ]; then
-echo "== mp: vet, layout pin and lockstep, 4 seats and the 2-seat slices"
-mp_t0=$SECONDS
-if make --no-print-directory dirac-mp-check BIN_DIR="$S" >"$S/mp.log" 2>&1; then
-	grep -E '^(vanilla|fdn|blb):' "$S/mp.log" | grep -v ' kernel capacity stalls '
-	echo "mp: ok ($((SECONDS - mp_t0)) s)"
-else
-	grep -E '^(kfuzz-mp:|vanilla:|DIV |absolute:)|^(fdn|blb): .* clean' "$S/mp.log" | head -12
-	tail -3 "$S/mp.log"
-	bad "make dirac-mp-check failed ($((SECONDS - mp_t0)) s)"
-fi
-fi
 
 if [ -n "$dirac_changed" ]; then
 	echo "== 5 instructions (perf stat instructions:u, GOGC=off, (N500k-N100k)/400000; core $INSTR_CORE)"

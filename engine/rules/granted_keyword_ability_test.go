@@ -97,7 +97,7 @@ func TestGrantedSaddleAbilityIsOffered(t *testing.T) { grantedSaddleScenario(t) 
 func TestCR702GrantedSaddleAbilityIsOffered(t *testing.T) { grantedSaddleScenario(t) }
 
 // TestGrantedCrewAbilityIsOffered uses the REAL corpus carrier Kotori, Pilot
-// Prodigy (`Affected$ Vehicle.YouCtrl | AddKeyword$ Crew:2`) plus a
+// Prodigy (granting Crew 2 to Vehicles you control) plus a
 // hand-authored Vehicle that prints no Crew. The granted Crew:2 ability must
 // be offered for the Vehicle, and activating it must animate it into an
 // artifact creature (CR 702.172a).

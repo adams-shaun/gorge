@@ -27,11 +27,6 @@ var kcasefeastDecks = [2][]cardset.Entry{
 	},
 }
 
-// gorgeCaseFeastFixTime is gorge cr-animate-grants-graveyard-mayplay
-// (0be2d58dc): Animate staticAbilities$ grants a self MayPlay$ True
-// Continuous static to the graveyard cards it names.
-const gorgeCaseFeastFixTime = "20261026150640"
-
 // kcasefeastRun plays seeds 1..n and returns the divergent games and the
 // number of graveyard-to-stack casts on gorge's side.
 func kcasefeastRun(t *testing.T, n uint64, report bool, mut func(*kop.Table)) (div, grave int) {
@@ -108,9 +103,6 @@ func kcasefeastRun(t *testing.T, n uint64, report bool, mut func(*kop.Table)) (d
 
 func TestCasefeastLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeCaseFeastFixTime) {
-		t.Skip("gorge before the Animate self MayPlay grant (0be2d58dc)")
-	}
 	_, grave := kcasefeastRun(t, 600, true, nil)
 	t.Logf("600 games: %d creature casts from the graveyard", grave)
 	if grave < 300 {
@@ -122,9 +114,6 @@ func TestCasefeastLockstep(t *testing.T) {
 // diverges.
 func TestCasefeastLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeCaseFeastFixTime) {
-		t.Skip("gorge before the Animate self MayPlay grant (0be2d58dc)")
-	}
 	n, _ := kcasefeastRun(t, 300, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

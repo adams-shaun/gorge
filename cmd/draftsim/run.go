@@ -126,6 +126,18 @@ func run(o options, out io.Writer) (*result, error) {
 		// instead of an empty list.
 		return nil, fmt.Errorf("unknown set %q (known: %s)", o.set, strings.Join(setdata.Codes(), ", "))
 	}
+	if o.only != "" {
+		only, err := readOnly(o.only)
+		if err != nil {
+			return nil, fmt.Errorf("-only: %w", err)
+		}
+		var fills []sheetFill
+		spec, fills, err = restrictSpec(spec, only)
+		printFills(out, o.only, only, fills)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	reg, err := testutil.OpenCorpusRegistry(o.dir)
 	if err != nil {

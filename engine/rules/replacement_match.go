@@ -35,7 +35,7 @@ var replUntapStepControllerCodes = state.NewStrCodes(
 // a context read only -- which is what keeps every unrelated game's Draw
 // events byte-identical.
 func drawMatchAmount(ev events.Event) int32 {
-	if ev.Kind == events.Draw && ev.Amount == 0 {
+	if (ev.Kind == events.Draw || ev.Kind == events.DrawEmpty) && ev.Amount == 0 {
 		return 1
 	}
 	return ev.Amount
@@ -566,7 +566,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			if r.EventKind() != cards.ReplDrawCards {
 				return false
 			}
-		} else if ev.Kind != events.Draw {
+		} else if ev.Kind != events.Draw && !emptyDrawProposal(ev) {
 			return false
 		}
 		// Number$ <op><n> gates the class on the size of the draw being
@@ -832,8 +832,8 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplCascade:
 		// The cascade instruction's replacement boundary (CR 614.4;
-		// Averna, the Chaos Bloom's `ValidPlayer$ You | ActiveZones$
-		// Battlefield`). Only the synthetic proposal reaches here, so there
+		// Averna, the Chaos Bloom's replacement on its controller, active
+		// on the battlefield). Only the synthetic proposal reaches here, so there
 		// is no logged event and no ValidCard$: the caster is ev.Player and
 		// ValidPlayer$ scopes it exactly as the Draw/ProduceMana classes do.
 		if ev.Kind != events.Cascade {

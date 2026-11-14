@@ -5,48 +5,91 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // A creature with a printed "can block an additional creature each combat"
 // (CardDef.ExtraBlocks, CR 509.1a) is declared against at most two
 // attackers. perm.blocking and perm.bord keep the FIRST attacker and its
-// declaration order; the second lives in the cold array xblkRecs, sized
-// only for a pool with genPrep.anyExtraBlock (a nil array reads as "no
+// declaration order; the second lives in the cold table xblkRecs, sized
+// only for a pool with genPrep.anyExtraBlock (a nil table reads as "no
 // second attacker", so every other pool pays one length check). perm.nblock
 // counts blockers per attacker, so a two-attacker blocker adds one to each.
 //
 // Every reader of "what does this blocker block" goes through the accessors
 // here instead of reading perm.blocking.
 
-// xblkRec is a two-attacker blocker's second block (combat_extrablock.go),
-// indexed by the blocker's slot. a: the second attacker's slot + 1 (0 none);
+// xblkRec is a two-attacker blocker's second block (combat_extrablock.go).
+// b: the blocker's slot. a: the second attacker's slot + 1 (0: a free record);
 // ord: blockSeq at that pick (the pair's declaration order, beside perm.bord
 // for the first); div: the blocker's chosen damage to the lower-ts of its two
 // attackers, meaningful only while combatArm().divDone.has(blocker); adiv: the
 // damage the higher-ts attacker's division gave this blocker (divAmt holds the
 // lower-ts attacker's), meaningful only while that attacker's divDone is set.
-type xblkRec struct{ a, ord, div, adiv uint8 }
+type xblkRec struct{ b, a, ord, div, adiv uint8 }
 
 // blkPair is one declared (blocker, attacker) pair.
 type blkPair struct{ b, a Slot }
 
-// xblkRecs is the second-block records by blocker slot (nil when the pool has
-// no ExtraBlocks card). They sit in the cold buffer after the may, emblem and
-// creature-counter records, so State itself does not grow (TestStateLayoutPinned).
-func (s *State) xblkRecs() []xblkRec {
-	l := s.cold.layout
-	if l == nil || l.xblk == 0 {
-		return nil
+// maxXblk is how many blockers of two attackers one combat holds records for.
+// The table is small because the mbc pool sits against the State bar
+// (TestEveryPoolFitsTheStateBar); a blocker whose second block would need a
+// ninth record is not offered one (StallExtraBlockCap).
+const maxXblk = 8
+
+// xblkRecs is the second-block table (nil when the pool has no ExtraBlocks
+// card), a record to a blocker of two attackers, found by its b. It sits in the
+// cold buffer, so State itself does not grow (TestStateLayoutPinned). A slot's
+// record is dropped as the slot takes a new permanent (xblkDrop, from
+// arenaClrSlot).
+func (s *State) xblkRecs() []xblkRec { return coldXblk.of(s) }
+
+var coldXblk = newCold[xblkRec]("xblk", func(g *genPrep) int {
+	if g.anyExtraBlock {
+		return maxXblk
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[plusCreRec](nil, &at, l.ctrP)
-	return coldView[xblkRec](s.cold.buf, &at, l.xblk)
+	return 0
+})
+
+// xblkFind is blocker b's second-block record (nil when it has none).
+func (s *State) xblkFind(b Slot) *xblkRec {
+	r := s.xblkRecs()
+	for i := range r {
+		if r[i].a != 0 && r[i].b == uint8(b) {
+			return &r[i]
+		}
+	}
+	return nil
+}
+
+// xblkDrop ends blocker b's second block, if any.
+func (s *State) xblkDrop(b Slot) {
+	if r := s.xblkFind(b); r != nil {
+		*r = xblkRec{}
+	}
+}
+
+// xblkRoom: the table has a free record.
+func (s *State) xblkRoom() bool {
+	for _, r := range s.xblkRecs() {
+		if r.a == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// xblkAdd records attacker at as blocker b's second block, in declaration
+// order ord. It reports false when the table is full.
+func (s *State) xblkAdd(b, at Slot, ord uint8) bool {
+	r := s.xblkRecs()
+	for i := range r {
+		if r := &r[i]; r.a == 0 {
+			*r = xblkRec{b: uint8(b), a: uint8(at) + 1, ord: ord}
+			return true
+		}
+	}
+	return false
 }
 
 // xblkOf is blocker b's second attacker (NoSlot none).
 func (s *State) xblkOf(b Slot) Slot {
-	if l := s.cold.layout; l == nil || l.xblk == 0 {
-		return NoSlot
-	}
-	if a := s.xblkRecs()[b].a; a != 0 {
-		return Slot(a - 1)
+	if r := s.xblkFind(b); r != nil {
+		return Slot(r.a - 1)
 	}
 	return NoSlot
 }
@@ -61,7 +104,7 @@ func (s *State) blocks(b, a Slot) bool {
 // first attacker, xblk.ord for its second.
 func (s *State) blockKey(b, a Slot) uint8 {
 	if p := &s.perms[b]; p.blocking != a && s.xblkOf(b) == a {
-		return s.xblkRecs()[b].ord
+		return s.xblkFind(b).ord
 	}
 	return uint8(s.perms[b].bord)
 }
@@ -88,7 +131,7 @@ func (s *State) blockPairs(out *[2 * MaxPerm]blkPair) int {
 		}
 		add(b, p.blocking, uint8(p.bord))
 		if x := s.xblkOf(b); x != NoSlot {
-			add(b, x, s.xblkRecs()[b].ord)
+			add(b, x, s.xblkFind(b).ord)
 		}
 	}
 	return n
@@ -111,12 +154,12 @@ func (s *State) forgetBlocked(b, a Slot) bool {
 	p := &s.perms[b]
 	switch {
 	case s.xblkOf(b) == a:
-		s.xblkRecs()[b] = xblkRec{}
+		s.xblkDrop(b)
 	case p.blocking == a:
 		p.blocking = NoSlot
-		if x := s.xblkOf(b); x != NoSlot {
-			p.blocking, p.bord = x, objWord(s.xblkRecs()[b].ord)
-			s.xblkRecs()[b] = xblkRec{}
+		if r := s.xblkFind(b); r != nil {
+			p.blocking, p.bord = Slot(r.a-1), objWord(r.ord)
+			*r = xblkRec{}
 		}
 	default:
 		return false
@@ -134,7 +177,7 @@ func (s *State) releaseBlocked(b Slot) {
 	}
 	if x := s.xblkOf(b); x != NoSlot {
 		s.dropBlocker(x)
-		s.xblkRecs()[b] = xblkRec{}
+		s.xblkDrop(b)
 	}
 }
 
@@ -161,19 +204,78 @@ func (s *State) xblkClear() {
 }
 
 // StallExtraBlockReq: a requirement- or lure-maximising block declaration with
-// a two-attacker blocker ready. gorge offers the blocker's second block inside
-// such a declaration too, and dirac would silently under-offer it.
+// a two-attacker blocker ready. No longer reached: combat_mustbeblocked.go's
+// search offers the second block there (the number stays, stallNames and the
+// stall classes read it).
 const StallExtraBlockReq = 163
 
 func init() { stallNames[StallExtraBlockReq] = "extrablockreq" }
 
-// blockCap is how many attackers b may block (CR 509.1a): one, plus one for a
-// printed CanBlockAmount$ 1 on itself unless it has lost its abilities.
+// StallExtraBlockCap: a blocker that two CanBlockAmount$ 1 sources reach (a
+// printed one on itself and a grant, or two grants) and that already blocks two
+// attackers while a third is blockable: gorge's BlockCapacity sums the sources
+// to three attackers, and the kernel's second-block record holds two.
+// It is also the stall of a ninth blocker of two attackers in one combat: the
+// second-block table holds maxXblk records.
+const StallExtraBlockCap = 192
+
+func init() { stallNames[StallExtraBlockCap] = "extrablockcap" }
+
+// blockSources counts the CanBlockAmount$ 1 sources that reach b (CR 509.1a): a
+// printed one on itself unless it has lost its abilities, and each
+// StatExtraBlock grant. Each adds one to gorge's BlockCapacity.
+func (s *State) blockSources(k *prep, b Slot) int {
+	if k.gen == nil || !k.gen.anyExtraBlock {
+		return 0
+	}
+	n := 0
+	if k.t.Cards[s.cardAt(b)].ExtraBlocks != 0 && !s.genLost(k, b) {
+		n++
+	}
+	n += s.extraBlockGrants(k, b)
+	return n
+}
+
+// blockCap is how many attackers b may block (CR 509.1a), as far as the
+// kernel's records hold: one, or two with any extra-block source. A second
+// source makes gorge's capacity three; blockerRoom stalls the game when that
+// third block could be offered (StallExtraBlockCap).
 func (s *State) blockCap(k *prep, b Slot) int {
-	if k.gen != nil && k.gen.anyExtraBlock && k.t.Cards[s.cardAt(b)].ExtraBlocks != 0 && !s.genLost(k, b) {
+	if s.blockSources(k, b) > 0 {
 		return 2
 	}
 	return 1
+}
+
+// thirdBlock: the blocker b of two attackers could be declared against a
+// third (some other attacker it can block), which gorge offers under a
+// capacity of three.
+//
+//go:noinline
+func (s *State) thirdBlock(k *prep, b Slot) bool {
+	for am := s.blockAtkM(k); am.any(); am = am.rest() {
+		a := am.first()
+		if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) {
+			return true
+		}
+	}
+	return false
+}
+
+// extraBlockGrants counts the StatExtraBlock statics whose filter matches
+// blocker b (gorge BlockCapacity adds each matching static's amount).
+//
+//go:noinline
+func (s *State) extraBlockGrants(k *prep, b Slot) int {
+	n := 0
+	s.eachStatic(k, func(st statSrc) bool {
+		if a := st.a; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatExtraBlock && s.statCond(k, st) &&
+			s.matchPermGen(k, a.Static.Filter, b, st.ctrl, st.sl, layerFull) {
+			n++
+		}
+		return true
+	})
+	return n
 }
 
 // blockerRoom: b may be declared against an attacker now: a ready blocker, or
@@ -183,27 +285,22 @@ func (s *State) blockerRoom(k *prep, b Slot) bool {
 		return true
 	}
 	p := &s.perms[b]
-	return p.flags&pfBlocking != 0 && p.flags&pfTapped == 0 && s.isCreature(k, b) &&
-		s.kw(k, b)&kop.KwCantBlock == 0 && s.blockCap(k, b) == 2 && s.xblkOf(b) == NoSlot
-}
-
-// extraBlockReady: some ready blocker of the defender may block two attackers.
-func (s *State) extraBlockReady(k *prep) bool {
-	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
-		if b := bm.first(); s.blockerReady(k, b) && s.blockCap(k, b) == 2 {
-			return true
-		}
+	if p.flags&pfBlocking == 0 || p.flags&pfTapped != 0 || !s.isCreature(k, b) || s.kw(k, b)&kop.KwCantBlock != 0 {
+		return false
 	}
-	return false
-}
-
-// stallExtraBlockReq ends the game at StallExtraBlockReq, as optionsFull does.
-//
-//go:noinline
-func (s *State) stallExtraBlockReq(d *Decision) bool {
-	s.stall(StallExtraBlockReq)
-	d.N = 0
-	d.Kind = DkNone
+	if s.xblkOf(b) != NoSlot {
+		if s.blockSources(k, b) > 1 && s.thirdBlock(k, b) {
+			s.stall(StallExtraBlockCap) // capacity three: the kernel holds two
+		}
+		return false
+	}
+	if s.blockCap(k, b) != 2 {
+		return false
+	}
+	if !s.xblkRoom() {
+		s.stall(StallExtraBlockCap) // the table holds maxXblk blockers of two
+		return false
+	}
 	return true
 }
 
@@ -227,7 +324,7 @@ func (s *State) xblkDivReset() {
 func (s *State) divAmtFor(b, a Slot) *uint8 {
 	if s.xblkOf(b) != NoSlot {
 		if _, a2 := s.blockedPair(b); a == a2 {
-			return &s.xblkRecs()[b].adiv
+			return &s.xblkFind(b).adiv
 		}
 	}
 	return &s.combatArm().divAmt[b]
@@ -242,10 +339,12 @@ func (s *State) blockerTwoDamage(k *prep, r *dmgRec, b Slot, pw int) {
 	dt := s.kw(k, b)&kop.KwDeathtouch != 0
 	var n1 int
 	if s.combatArm().divDone.has(b) {
-		n1 = int(s.xblkRecs()[b].div)
+		if xr := s.xblkFind(b); xr != nil {
+			n1 = int(xr.div)
+		}
 	} else {
 		_, t := s.pt(k, a1)
-		lethal := t - int(s.perms[a1].damage) - int(r.toPerm[a1])
+		lethal := t - int(s.perms[a1].damage) // marked damage only, as gorge lethalDamageNeed
 		if dt {
 			if s.perms[a1].flags&pfDeathtouched != 0 {
 				lethal = 0
@@ -311,7 +410,15 @@ func (s *State) blockerDivideOptions(d *Decision) {
 func (s *State) applyBlockerDivide(a Action) {
 	var amt [2]uint8
 	SplitAt(int(s.divRem), 2, int(a.Mode()), amt[:])
-	s.xblkRecs()[s.divA].div = amt[0]
+	if r := s.xblkFind(s.divA); r != nil {
+		r.div = amt[0]
+	}
 	s.combatArm().divDone.set(s.divA)
 	s.divA = NoSlot
+}
+
+// A table with a StatExtraBlock grant takes a genPrep: anyExtraBlock is set in
+// prepareGen (gen.go).
+func init() {
+	genNeed(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatExtraBlock) })
 }

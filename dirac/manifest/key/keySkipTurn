@@ -1,0 +1,7 @@
+family: key
+name: keySkipTurn
+value: 21
+forge: skip turn
+census: key skip turn classes=1 all=12
+state: player 2
+status: reserved

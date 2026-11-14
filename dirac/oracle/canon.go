@@ -211,30 +211,8 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("convoke")
 			return Pack(ActChoose+CanonKind(code), ref(o.Obj), RefNone, 6), true
 		}
-		if d.ResumeKind == "counter_kind" {
-			// gorge removeCounterAny's per-counter kind pick
-			// (Glissa Sunslayer): the kind, by its kernel counter kind (the
-			// option order is the carrier's slice order, a presentation
-			// detail); Done is the declaration's ActDone
-			if o.Kind == "remove_counter_done" {
-				return Pack(ActDone, RefNone, RefNone, 0), true
-			}
-			c, ok := kernelCounterKind(o.Label)
-			if o.Kind != "counter" || !ok {
-				return 0, false
-			}
-			code, _ := chooseCode("counter")
-			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
-		}
-		if d.ResumeKind == "counter_kinds" {
-			// gorge's ChooseDifferent$ pick (putCounter, Grimdancer): two
-			// picks of a counter kind each, canonical by the kernel kind
-			c, ok := kernelCounterKind(o.Label)
-			if o.Kind != "counter_kinds" || !ok {
-				return 0, false
-			}
-			code, _ := chooseCode("counter")
-			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
+		if d.ResumeKind == "counter_kind" || d.ResumeKind == "counter_kinds" {
+			return counterKindAction(d, o)
 		}
 		code, known := chooseCode(cumulativeKindAlias(o.Kind))
 		if !known {
@@ -282,6 +260,10 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 				src = Ref(n) // two names that hash alike stay two options
 			}
 			return Pack(k, src, Ref(h>>8), uint8(h)), true
+		case "changetext_from", "changetext_to":
+			// gorge effChangeText's word picks: the word's index, colours
+			// WUBRG 0..4, basic land types 5..9 (the kernel's ChGenTextWord)
+			mode = changeTextWord(o.Label)
 		case "type", "creature_type", "land_type":
 			// A label-valued choice: the option order is state-dependent
 			// (rules.creatureTypeOptions puts the chooser's own types first),
@@ -419,4 +401,25 @@ func cumulativeKindAlias(kind string) string {
 		return "trigger_cost_decline"
 	}
 	return kind
+}
+
+// counterKindAction is a counter-kind pick, by its kernel counter kind (the
+// option order is the carrier's slice order, a presentation detail): gorge
+// removeCounterAny's per-counter pick (Glissa Sunslayer; Done is the
+// declaration's ActDone) and putCounter's ChooseDifferent$ pick (Grimdancer,
+// two picks of a kind each).
+func counterKindAction(d *decision.Decision, o *decision.Option) (Canon, bool) {
+	if d.ResumeKind == "counter_kind" && o.Kind == "remove_counter_done" {
+		return Pack(ActDone, RefNone, RefNone, 0), true
+	}
+	c, ok := kernelCounterKind(o.Label)
+	want := "counter"
+	if d.ResumeKind == "counter_kinds" {
+		want = d.ResumeKind
+	}
+	if o.Kind != want || !ok {
+		return 0, false
+	}
+	code, _ := chooseCode("counter")
+	return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
 }

@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigStickerPlaced
+value: 68
+forge: StickerPlaced
+census: trig StickerPlaced all=7 std=0 mbc=0 sole=2
+state: objbyte 236 (stickers)
+status: reserved

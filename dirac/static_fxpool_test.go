@@ -89,12 +89,13 @@ func TestFxPoolHashStable(t *testing.T) {
 	digest()
 	lose(w1, false)
 	digest()
-	if h != fxPoolHashPin {
-		t.Fatalf("hash digest %#x, want %#x", h, uint64(fxPoolHashPin))
+	if want := uint64(fxPoolHashPin); h != want {
+		t.Fatalf("hash digest %#x, want %#x", h, want)
 	}
 }
 
 // The pin moved when ovRec grew P/T and a repeated P/T setter became the
 // newest record: the hash covers the override records,
-// so the extra fields and their order change the digest.
-const fxPoolHashPin = 0x653f405b2cffb158
+// so the extra fields and their order change the digest. It moved again when
+// perm.ck widened to 16-bit counter kinds: ObjHash reads the permanent whole.
+const fxPoolHashPin = 0x3e29634684c92abb

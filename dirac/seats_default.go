@@ -1,9 +1,7 @@
-//go:build !dirac_mp
-
 package dirac
 
-// The default size class: two seats. The size knobs that depend on the seat
-// count live here and in seats_mp.go; every other file derives from them.
+// The kernel's size: two seats. The size knobs that depend on the seat count
+// live here; every other file derives from them.
 const MaxSeats = 2
 
 // turnExhaustShift is the first bit of a player's Exhaust-activation fact in
@@ -37,11 +35,16 @@ const (
 	NoTarget        TCode = 0xFF // no target
 )
 
-// Obj is a card instance (types.go): a byte in the default class.
+// Obj is a card instance (types.go): a byte.
 type Obj uint8
 
 // NoObj is no object.
 const NoObj Obj = 255
+
+// maxEntered is the zone entries one turn's ledger records
+// (value_enteredledger.go); the next stalls StallEntered. Synthetic Standard
+// pools reach 47 at 300 pairs; a loop can reach more, and stalls.
+const maxEntered = 64
 
 // object.acts packs the owner above this turn's activation count: one owner
 // bit for two seats.
@@ -80,10 +83,8 @@ type seatWord = uint8
 
 // objWord is a multi-use field that may hold an object (or object+1) as well
 // as a byte-sized value: a version, flags, a paid X. It is the object width,
-// a byte here and wider under dirac_mp, so an object stored in it is never
-// truncated; a conversion to or from it is no narrowing
-// (TestObjCodeCastsOnlyShrink). It is an alias, so the default class's code
-// is unchanged.
+// a byte, so an object stored in it is never truncated; a conversion to or
+// from it is no narrowing (TestObjCodeCastsOnlyShrink). It is an alias.
 type objWord = uint8
 
 // mayWord is mayPlay.turn: a turn number, a cost surcharge, or a source
@@ -91,3 +92,8 @@ type objWord = uint8
 type mayWord = uint16
 
 const mayVerShift = 8
+
+// maxFree is how many cast-without-paying candidates (genState.free, freeAll)
+// and queued casts (freeQ) one resolution holds; a larger pool stalls
+// StallFree.
+const maxFree = 8

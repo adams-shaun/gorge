@@ -9,7 +9,7 @@ import (
 // TestConditionGateTargetedCountersUseLKI pins the CR 608.2b/h counter
 // look-back the condition gate shares with the amount read: a target that has
 // left the battlefield since targeting is matched by
-// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters` against
+// a condition that the targeted card has counters, read against
 // the counters Resolve captured at the start of the chain
 // (Ctx.TargetCountersLKI), not the live object the Move fold has already
 // stripped. A live battlefield target keeps its live read (unchanged), and a

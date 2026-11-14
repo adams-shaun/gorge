@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExCardStickers
+value: 75
+forge: CardStickers
+census: count CardStickers all=6 std=0 mbc=0 sole=0
+state: objbyte 236 (stickers)
+status: reserved

@@ -7,7 +7,7 @@ package rules
 // the owner of the library (CR 109.5: "you" is the controller). Tahngarth's
 // Glare's second half names its chooser explicitly: "That player looks at
 // the top three cards of your library, then puts them back in any order"
-// (`Defined$ You | RearrangePlayer$ Targeted`).
+// (the library is yours and the rearranging player is the target).
 
 import (
 	"testing"

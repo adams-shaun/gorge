@@ -9,14 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgeMosswoodFixTime is gorge cr-mayplay-adventure-from-graveyard (merge
-// e28306134, 2026-10-26 09:17:16 -0600 = 15:17:16Z, on gorge main): before it
-// the graveyard "cast as an Adventure" permission offered no cast. gorgePinAtLeast
-// compares against a module pseudo-version's UTC stamp, so the constant is UTC
-// (every other gorge*FixTime is); at a pin whose develop tip does not carry the
-// merge the test must skip, not run against an unfixed gorge.
-const gorgeMosswoodFixTime = "20261026151716"
-
 // The Mosswood Dreadknight lockstep: "When it dies, you may cast it
 // from your graveyard as an Adventure until the end of your next turn"
 // (Effect MayPlay, Affected$ Card.IsRemembered+Adventure; the permission
@@ -78,9 +70,6 @@ func kmosswoodCheck(tal *kmosswoodTally) func(*GorgeSide, Side) *Divergence {
 
 func TestMosswoodLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeMosswoodFixTime) {
-		t.Skip("gorge before cr-mayplay-adventure-from-graveyard (e28306134)")
-	}
 	var tal kmosswoodTally
 	sonRun(t, "mosswood", kmosswoodMatchups, 300, true, nil, kmosswoodCheck(&tal))
 	t.Logf("%d games: %d Adventure casts from a graveyard", tal.games, tal.casts)
@@ -93,9 +82,6 @@ func TestMosswoodLockstep(t *testing.T) {
 // diverges.
 func TestMosswoodLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeMosswoodFixTime) {
-		t.Skip("gorge before cr-mayplay-adventure-from-graveyard (e28306134)")
-	}
 	n := sonRun(t, "mosswood", kmosswoodMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {
