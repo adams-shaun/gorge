@@ -541,7 +541,7 @@ default	field	genPrep.anyRaise	3439	1
 default	field	genPrep.anyRaiseLife	3440	1
 default	field	genPrep.anyRaiseTgt	3441	1
 default	field	genPrep.anyComboDyn	3442	1
-default	field	genPrep.anyComboAny	3443	1
+default	field	genPrep.anyComboOff	3443	1
 default	field	genPrep.anyCantCast	3444	1
 default	field	genPrep.anyCantAct	3445	1
 default	field	genPrep.anyCantSac	3446	1
@@ -713,11 +713,13 @@ default	field	genPrep.anyManaRider	3923	1
 default	field	genPrep.anyCondSplit	3924	1
 default	field	genPrep.anySelfTaps	3925	1
 default	field	genPrep.anyDiscHand	3926	1
-default	field	genPrep.dhMix	3927	1
-default	field	genPrep.anyEachCol	3928	1
-default	field	genPrep.anyRestr	3929	1
-default	field	genPrep.anyRestrScript	3930	1
-default	field	genPrep.anyRestrSrc	3931	1
+default	field	genPrep.anyComboAny	3927	1
+default	field	genPrep.dhMix	3928	1
+default	field	genPrep.caMix	3929	1
+default	field	genPrep.anyEachCol	3930	1
+default	field	genPrep.anyRestr	3931	1
+default	field	genPrep.anyRestrScript	3932	1
+default	field	genPrep.anyRestrSrc	3933	1
 default	field	genPrep.rs	3936	8
 default	field	genPrep.restrF	3944	16
 default	field	genPrep.restrV	3960	8
