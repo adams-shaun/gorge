@@ -13,6 +13,6 @@
 #
 # TestLandgenListed (dirac/landgen_test.go) holds every row to this.
 owned	dirac/docs/support.md	TestSupportDocIsCurrent	DIRAC_UPDATE_SUPPORT=1 go test -trimpath -timeout 20m -run '^TestSupportDocIsCurrent$' ./dirac/kgen
-regen	dirac/kgen/ratchet_test.go	-	KGEN_REPIN=1 go test -trimpath -timeout 20m -run '^(TestCorpusAcceptance|TestSetAcceptance)$' ./dirac/kgen
-regen	dirac/kgen/build_ratchet_test.go	-	KGEN_REPIN=1 go test -trimpath -timeout 20m -run '^TestCorpusBuildAcceptance$' ./dirac/kgen
+owned	dirac/kgen/testdata/acceptance.tsv	accepted	KGEN_REPIN=1 go test -trimpath -timeout 20m -run '^(TestCorpusAcceptance|TestSetAcceptance)$' ./dirac/kgen
+owned	dirac/kgen/testdata/build_acceptance.tsv	accepted	KGEN_REPIN=1 go test -trimpath -timeout 20m -run '^TestCorpusBuildAcceptance$' ./dirac/kgen
 regen	dirac/testdata/layout.tsv	TestStateLayoutPinned	DIRAC_UPDATE_LAYOUT=1 go test -trimpath -timeout 20m -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac && DIRAC_UPDATE_LAYOUT=1 go test -trimpath -timeout 20m -tags dirac_mp -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
