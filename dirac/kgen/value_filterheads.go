@@ -135,6 +135,15 @@ func kvfHalfUp(v lValue, m string, hasArg bool) (lValue, error) {
 	return lValue{Kind: vSum, Sub: []lValue{v, cst(1)}, Div: 2}, nil
 }
 
+// kvfThirdUp is the /ThirdUp modifier (gorge applyCountOp: v = (v+2)/3, Go's
+// truncating division), lowered like kvfHalfUp: Sub[0] + 2 under Div 3.
+func kvfThirdUp(v lValue, m string, hasArg bool) (lValue, error) {
+	if hasArg || v.Mul != 0 || v.Div != 0 || v.Add != 0 || v.Neg {
+		return lValue{}, fmt.Errorf("value modifier %q", m)
+	}
+	return lValue{Kind: vSum, Sub: []lValue{v, cst(2)}, Div: 3}, nil
+}
+
 // kvfTimesSVar is /Times.<SVar> (gorge applyCountOpOperand: the operand's
 // value, then applyCountOp's Times arm): the product of the two values.
 // Lunar Convocation's LifeLostThisTurn/Times.X.

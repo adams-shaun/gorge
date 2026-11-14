@@ -192,7 +192,7 @@ func TestKernelAskAttach(t *testing.T) {
 			src: "A:SP$ Attach | Object$ Valid Equipment.YouCtrl | Choices$ Creature.YouCtrl | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 		{name: "Tape Attach Object", kind: "attach_choice", board: append([]string{"Tape Sword", "Tape Axe"}, bothCreatures...),
 			src: "A:SP$ Attach | Optional$ True | Choices$ Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl+namedParentLink Bear | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
-		{name: "Tape Attach Maybe", kind: "attach_optional", board: append([]string{"Tape Sword"}, bothCreatures...),
+		{name: "Tape Attach Maybe", kind: "attach_subset", board: append([]string{"Tape Sword"}, bothCreatures...),
 			src: "A:SP$ Attach | Optional$ True | Object$ Valid Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 	}
 	for i, tc := range cases {

@@ -81,6 +81,12 @@ func protectedFromKW(e protectionOracle, g *state.Game, target, source state.Obj
 	kws = append([]string(nil), kws...)
 	for _, kw := range kws {
 		if q, ok := protectionQuality(kw); ok {
+			if q == protectionColorsYouCtrl {
+				if sourceSharesControlledColor(g, e, e.controllerOf(target), source) {
+					return true
+				}
+				continue
+			}
 			if e.sourceHasQuality(source, q) {
 				if effects.ProtectionExempt(kw, source, sba, e.controllerOf, func(spec string) bool { return e.sourceHasQuality(source, spec) }) {
 					continue
@@ -334,7 +340,7 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// object filter can safely guess.
 	if m := protectionCMC.FindStringSubmatch(q); m != nil {
 		n, _ := strconv.Atoi(m[2])
-		cmc := state.ManaValue(e.G, o)
+		cmc := e.protectionSourceMV(o)
 		return (m[1] == "GE" && cmc >= int32(n)) || (m[1] == "LE" && cmc <= int32(n))
 	}
 	if m := protectionCounter.FindStringSubmatch(q); m != nil {
@@ -583,3 +589,15 @@ var sourceQualityPluralCodes = state.NewStrCodes(
 	state.StrEntry[sourceQualityPluralCode]{Key: "instants", Val: sourceQualityPluralInstants},
 	state.StrEntry[sourceQualityPluralCode]{Key: "sorceries", Val: sourceQualityPluralSorceries},
 )
+
+// protectionSourceMV is the mana value a protection quality reads on source
+// o. A spell being cast has its X announced (CR 601.2b) before its targets
+// are chosen (601.2c), but Object.X is only written by the pay-time CastInfo,
+// so the target offer binds the announced X from the pending cast; every
+// other read is state.ManaValue, which carries the stored X on the stack.
+func (e *Engine) protectionSourceMV(o *state.Object) int32 {
+	if pc := e.cast; pc != nil && pc.card == o.ID && !pc.isAbility() && pc.xDone && o.Zone == state.ZStack {
+		return state.SpellManaValueAt(e.G, o, pc.x)
+	}
+	return state.ManaValue(e.G, o)
+}

@@ -127,6 +127,41 @@ var hiddenKeywordGrantKeys = state.NewNameSet(
 	"Mode", "Affected", "AffectedZone", "Description", "AddHiddenKeyword",
 )
 
+// addTriggerGrantFromLine reads an Effect-delivered Mode$ Continuous body whose
+// only grant is AddTrigger$ (Olinda the Oblivious's "each of those creatures
+// has 'At the beginning of your upkeep, you lose 2 life'", Obsidian
+// Fireheart's blaze land). Each name (" & "-joined, the printed-static route's
+// grammar via cards.SplitGrantNames) must be an SVar of the effect's table
+// that parses as a T:-shaped trigger, the same read the printed S: route
+// (engine/rules/layers.go) makes; a missing or unparseable body, a second
+// grant parameter, or a condition gate fails closed to the caller's honest
+// unimplemented Note. Only display metadata may sit alongside.
+func addTriggerGrantFromLine(params, svars map[string]string) (trigs []cards.Trigger, affected string, ok bool) {
+	raw := strings.TrimSpace(params["AddTrigger"])
+	if raw == "" {
+		return nil, "", false
+	}
+	for key := range params {
+		if !addTriggerGrantKeys.Has(key) {
+			return nil, "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		return nil, "", false
+	}
+	for _, name := range cards.SplitGrantNames(raw) {
+		t, parsed := cards.ParseTriggerLine(svars[name])
+		if !parsed {
+			return nil, "", false
+		}
+		trigs = append(trigs, t)
+	}
+	return trigs, affected, len(trigs) > 0
+}
+
+var addTriggerGrantKeys = state.NewNameSet("Mode", "Affected", "Description", "AddTrigger")
+
 // adjustLandPlaysGrantFromLine reads an Effect-delivered AdjustLandPlays$
 // grant (Explore, Scale the Heights, Urban Evolution, Summer Bloom): the
 // Effect path cannot evaluate a condition gate, so only the grant's own
@@ -873,6 +908,11 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				if c.TriggerCard != 0 && h.Game().Obj(c.TriggerCard) != nil {
 					out = append(out, c.TriggerCard)
 				}
+			case effectRememberedTriggeredCards:
+				// The plural batch capture (The Madcap Jester's ChangesZoneAll
+				// RememberObjects$ TriggeredCards): every card the batch moved,
+				// the same group Defined$ TriggeredCards names.
+				out = appendEffectRememberedObjects(h, out, triggeredCardGroup(c))
 			case effectRememberedChosenCard:
 				// Dauthi Voidwalker and the wider ChooseCard -> Effect family do
 				// not set RememberChosen$: the chosen card lives in Ctx.Chosen, or
@@ -1157,6 +1197,7 @@ const (
 	effectRememberedTriggeredCard
 	effectRememberedChosenCard
 	effectRememberedRememberedLKI
+	effectRememberedTriggeredCards
 )
 
 var effectRememberedCodes = state.NewStrCodes(
@@ -1175,6 +1216,7 @@ var effectRememberedCodes = state.NewStrCodes(
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredCard", Val: effectRememberedTriggeredCard},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredObject", Val: effectRememberedTriggeredCard},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredObjectLKICopy", Val: effectRememberedTriggeredCard},
+	state.StrEntry[effectRememberedCode]{Key: "TriggeredCards", Val: effectRememberedTriggeredCards},
 	state.StrEntry[effectRememberedCode]{Key: "ChosenCard", Val: effectRememberedChosenCard},
 	state.StrEntry[effectRememberedCode]{Key: "RememberedLKI", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredAttacker", Val: effectRememberedRememberedLKI},

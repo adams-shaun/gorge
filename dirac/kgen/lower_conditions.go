@@ -70,6 +70,11 @@ func (lc *lowerCtx) bareCondition(ps *params, c string) (lCond, error) {
 		return lc.optCostCond(ps) // lower_optcost.go
 	case "Threshold":
 		return lCond{Kind: cThreshold}, nil
+	case "Blessing":
+		// CR 702.131's city's blessing, the resolving controller's one-way
+		// latch (gorge effects/conditions.go's bare-Blessing arm: an
+		// out-of-range controller denies)
+		return lCond{Kind: cBlessing}, nil
 	case "Delirium":
 		return deliriumCond(), nil
 	case "Metalcraft":
@@ -130,17 +135,23 @@ var phaseStepBits = [state.StepCleanup + 1]int{
 // phase-name parser, state.ParsePhases: an unknown name, an empty resolved
 // set, or a step the kernel does not model refuses.
 func (lc *lowerCtx) phasesCondition(spec string) (lCond, error) {
+	return phasesCond("ConditionPhases", spec)
+}
+
+// phasesCond is phasesCondition for the parameter named key (an activation
+// window's ActivationPhases$ reads the same parser).
+func phasesCond(key, spec string) (lCond, error) {
 	set, unknown := state.ParsePhases(spec)
 	if len(unknown) > 0 {
-		return lCond{}, refuse("ConditionPhases$ %q: unknown phase %q", spec, unknown[0])
+		return lCond{}, refuse("%s$ %q: unknown phase %q", key, spec, unknown[0])
 	}
 	if set.Empty() {
-		return lCond{}, refuse("ConditionPhases$ %q names no step", spec)
+		return lCond{}, refuse("%s$ %q names no step", key, spec)
 	}
 	var mask int
 	for _, st := range set.Steps() {
 		if int(st) >= len(phaseStepBits) || phaseStepBits[st] == 0 {
-			return lCond{}, refuse("ConditionPhases$ step %d", st)
+			return lCond{}, refuse("%s$ step %d", key, st)
 		}
 		mask |= phaseStepBits[st]
 	}

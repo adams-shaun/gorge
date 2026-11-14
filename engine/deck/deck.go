@@ -164,20 +164,20 @@ func (f File) firstCommanderIndex() int {
 // cycle's legendary Spacecraft with printed P/T (Dawnsire, The Seriema,
 // Hearthhull) are.
 func IsCommanderEligible(c *cards.Card) bool {
-	for _, f := range c.Faces {
-		if !f.IsLegendary() {
-			continue
-		}
-		if f.IsCreature() || f.IsVehicle() || (f.IsSpacecraft() && hasPTBox(f)) {
-			return true
-		}
+	// CR 903.3 judges the card as it sits in the command zone, and for a
+	// flip card, a transform card or an MDFC that is its FRONT face (CR
+	// 712.8a) — Nezumi Graverobber is a non-legendary Rat Rogue there even
+	// though its flipped half, Nighteyes the Desecrator, is a legendary
+	// creature. So only c.Faces[0] is read here; judging the back half made
+	// flip cards with legendary backs eligible.
+	if len(c.Faces) == 0 {
+		return false
 	}
-	for _, f := range c.Faces {
-		if strings.Contains(f.Oracle, commanderOraclePhrase) {
-			return true
-		}
+	f := c.Faces[0]
+	if f.IsLegendary() && (f.IsCreature() || f.IsVehicle() || (f.IsSpacecraft() && hasPTBox(f))) {
+		return true
 	}
-	return false
+	return strings.Contains(f.Oracle, commanderOraclePhrase)
 }
 
 // hasPTBox reports whether a face is printed with a power/toughness box: any

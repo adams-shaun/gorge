@@ -1,0 +1,13 @@
+# the MBC costs-9 pool (dirac/oracle/mbc_costs9_lowers_test.go):
+# Zombie Cutthroat (Morph--Pay 5 life), cast face down from the {B}{B}{B}
+# Priest of Gix floats (a face-down cast is priced from the floating pool
+# alone), and Emiel the Blessed (a creature entering triggers "you may pay
+# {G/W}") beside Grizzly Bears and basics
+Zombie Cutthroat
+Priest of Gix
+Mox Jet
+Emiel the Blessed
+Grizzly Bears
+Swamp
+Forest
+Plains

@@ -76,7 +76,9 @@ type Board interface {
 	PlayerSpecCtx(source state.ObjID) effects.PlayerSpecCtx
 	// LandSpecCtx is the spec context a landwalk filter over the defender's
 	// lands is matched in, with the layer-3/4 tables refreshed and bound for
-	// the attacker's derivation.
+	// the attacker's derivation. UnlessDefender$ reads it as (you, source): the
+	// static's controller and source, so the defender's lands carry their
+	// derived types.
 	LandSpecCtx(defender state.PlayerID, attacker state.ObjID) effects.SpecContext
 }
 

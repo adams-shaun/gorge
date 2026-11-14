@@ -1803,6 +1803,15 @@ type Object struct {
 	// event encoding or chain head changes.
 	LastBearer ObjID
 
+	// LastBearerInc is the Incarnation LastBearer's permanent carried when the
+	// record was written (for a departure, the incarnation it left WITH: the
+	// one it holds once off the battlefield). A reader of "objects that were
+	// attached to it" accepts LastBearer only while the bearer still holds
+	// that incarnation: a bearer that re-entered since is a new object
+	// (CR 400.7) nothing was ever attached to. Written ONLY inside
+	// events.Apply, next to every LastBearer write.
+	LastBearerInc uint32
+
 	// UnattachPending marks an attachment whose bearer left the battlefield:
 	// the Move-leaves-battlefield fold queued the detach for publication by
 	// engine/rules/attach.go's attachmentSBAs (CR 400.7: a flicker can return

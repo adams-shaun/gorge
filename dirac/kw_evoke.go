@@ -125,6 +125,25 @@ func adamantOf(t *kop.Table, id kop.CondID, depth int) (*kop.Expr, bool) {
 	return nil, false
 }
 
+// abAdamantOf is the ExAdamant expression ability a reads: its trigger
+// condition's (an Adamant intervening-if), else a body SkipUnless gate's
+// (ConditionManaSpent$ / ConditionManaNotSpent$, kgen lower_manaspentcond.go;
+// Azorius Herald). Either reads the cast's spend bound into the trigger; the
+// body gate's carries kop.AdamantLiveRead (exAdamant).
+func abAdamantOf(t *kop.Table, a *kop.Ability) (*kop.Expr, bool) {
+	if x, ok := adamantOf(t, a.Trig.Cond, 0); ok {
+		return x, true
+	}
+	for i := range a.Prog {
+		if in := &a.Prog[i]; in.Op == kop.OpSkipUnless {
+			if x, ok := adamantOf(t, kop.CondID(in.C), 0); ok {
+				return x, true
+			}
+		}
+	}
+	return nil, false
+}
+
 // spcCount is colour col's (W U B R G = 0-4) saturating spend count in spc.
 func spcCount(spc uint16, col uint) int { return int(spc >> (2 * col) & 3) }
 
@@ -140,7 +159,7 @@ func (s *State) evokeEnter(k *prep, e *stackEntry) {
 		if pt.obj != e.obj || pt.srcVer != ver || pt.ab >= abCascade {
 			continue
 		}
-		if x, ok := adamantOf(k.t, k.t.Cards[pt.card].Abilities[pt.ab].Trig.Cond, 0); ok {
+		if x, ok := abAdamantOf(k.t, &k.t.Cards[pt.card].Abilities[pt.ab]); ok {
 			pt.x = objWord(spcCount(e.spc, uint(x.N&7)))
 		}
 	}
@@ -160,14 +179,16 @@ func (s *State) evokeEnter(k *prep, e *stackEntry) {
 
 // exAdamant is ExAdamant in ctx. Queueing a self-ETB trigger (ctx.e nil)
 // reads the entering spell's spend; the recheck at resolution (a trigger
-// entry) reads the bound count as gorge's snapshot-or-live rule does.
+// entry) reads the bound count as gorge's snapshot-or-live rule does, or for
+// a kop.AdamantLiveRead body gate only while the source is still the same
+// battlefield object (gorge conditionManaSpentMet reads the live, wiped spend).
 //
 //go:noinline
 func (s *State) exAdamant(k *prep, x *kop.Expr, ctx evalCtx) int {
 	n := 0
 	if e := ctx.e; e != nil && e.kind == seTrigger {
 		ob := &s.objs[e.obj]
-		stale := ob.zone == kop.ZoneBattlefield && ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield && DebugAdamantLiveOnly
+		stale := ob.zone == kop.ZoneBattlefield && ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield && (DebugAdamantLiveOnly || x.N&kop.AdamantLiveRead != 0)
 		if !stale {
 			n = int(e.x)
 		}

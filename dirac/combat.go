@@ -128,8 +128,8 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
-		if gd && s.goadedAt(k, sl) {
-			continue // a goad is satisfied by attacking a player only (act_goad.go)
+		if gd && s.goadedAt(k, sl) || s.attackPlayerOnly(k, sl) {
+			continue // a goad is satisfied by attacking a player only (act_goad.go), and so is Encore's duty (combat_attacksifable.go)
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
 			q := pm.first()
@@ -645,16 +645,13 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
 		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
-			if k.gen.anyExtraBlock && s.extraBlockReady(k) {
-				return s.stallExtraBlockReq(d) // combat_extrablock.go
-			}
 			return s.blockerOptionsReq(k, d, mb) // combat_mustbeblocked.go
 		}
 	}
 	if k.gen != nil && k.gen.anyLure {
 		if lure := s.lureAttackers(k); lure.any() {
-			if k.gen.anyExtraBlock && s.extraBlockReady(k) {
-				return s.stallExtraBlockReq(d) // combat_extrablock.go
+			if k.gen.anyExtraBlock && s.extraBlockInPlay(k) {
+				return s.blockerOptionsReq(k, d, slotMask{}) // a lure is a requirement of the same search (combat_mustbeblocked.go)
 			}
 			return s.blockerOptionsLure(k, d, lure) // combat_lure.go
 		}
@@ -1092,7 +1089,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			}
 		}
 		for i := 1; i < nb; i++ {
-			for j := i; j > 0 && s.perms[bl[j]].bord < s.perms[bl[j-1]].bord; j-- {
+			for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- { // a two-attacker blocker's pair order (combat_extrablock.go)
 				bl[j], bl[j-1] = bl[j-1], bl[j]
 			}
 		}
@@ -1387,11 +1384,11 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	}
 	// api:Fog (gorge damageStep's fogActive): no damage pass at all; the
 	// damage divisions are still asked first (gorge asks them before its
-	// damageStep, which then returns at fogActive; kverify-c4)
-	fog := k.gen != nil && s.g.fog
-	if fog {
-		s.fogNoPrev(k) // static_cantprevent.go
-	}
+	// damageStep, which then returns at fogActive; kverify-c4). Under
+	// "damage can't be prevented" the Fog stops nothing (CR 615.12; gorge
+	// keeps the assignments fogUnpreventable selects, all of them for the
+	// kernel's blanket static): the ordinary pass runs (static_cantprevent.go).
+	fog := k.gen != nil && s.g.fog && !s.noPrev(k, true)
 	if s.cfg&cfgAutoDivide == 0 && s.nextDivision(k, first) {
 		s.ctl = ctlDivide
 		return
@@ -1435,7 +1432,7 @@ func (s *State) liveBlockers(a Slot, bl *[MaxPerm]Slot) int {
 		}
 	}
 	for i := 1; i < nb; i++ {
-		for j := i; j > 0 && s.perms[bl[j]].bord < s.perms[bl[j-1]].bord; j-- {
+		for j := i; j > 0 && s.blockKey(bl[j], a) < s.blockKey(bl[j-1], a); j-- { // a two-attacker blocker's pair order (combat_extrablock.go)
 			bl[j], bl[j-1] = bl[j-1], bl[j]
 		}
 	}
