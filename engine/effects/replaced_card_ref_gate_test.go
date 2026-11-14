@@ -24,7 +24,7 @@ func TestReplacedCardRefOnlyReadsPT(t *testing.T) {
 	c.Repl.Replaced = victim.ID
 	c.Repl.ReplacedPower, c.Repl.ReplacedToughness, c.Repl.ReplacedPTValid = 5, 5, true
 
-	if n, ok := evalRefProperty(h, c, "ReplacedCardLKI$CardPower", 0); !ok || n != 5 {
+	if n, ok := evalCountExprOK(h, c, "ReplacedCardLKI$CardPower", 0); !ok || n != 5 {
 		t.Fatalf("ReplacedCardLKI$CardPower = %d,%v, want 5,true (the captured P/T read)", n, ok)
 	}
 	if n, ok := evalRefProperty(h, c, "ReplacedCard$CardPower", 0); !ok || n != 2 {

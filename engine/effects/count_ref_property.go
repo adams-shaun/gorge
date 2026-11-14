@@ -61,21 +61,6 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	var ts []state.Target
 	if ref == "TriggerObjectsCards" {
 		ts = c.Captured
-	} else if ref == "ReplacedCardLKI" {
-		// Only the P/T read of the replaced card resolves on the LKI ref
-		// (Ravenous Slime's X:ReplacedCardLKI$CardPower, the value replCtx
-		// captured at match time): Kalain's ReplacedCardLKI$CastTotalManaSpent
-		// keeps failing closed to 0 as it did before that capture existed.
-		// The plain ReplacedCard ref is untouched: it resolves through
-		// refTargets/definedSpec like it always did (Thunderous Velocipede's
-		// ReplacedCard$CardManaCost reads the live mana value).
-		if prop != "CardPower" && prop != "CardToughness" {
-			return 0, false
-		}
-		if c.Repl.Replaced == 0 {
-			return 0, true
-		}
-		ts = []state.Target{{Obj: c.Repl.Replaced}}
 	} else {
 		var ok bool
 		ts, ok = refTargets(h, c, ref)
@@ -133,8 +118,6 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		}
 		o := g.Obj(t.Obj)
 		lki := c.LKI != nil && c.LKI.ID == t.Obj
-		// ReplacedCardLKI reads the P/T captured when the replacement matched.
-		replLKI := ref == "ReplacedCardLKI" && c.Repl.ReplacedPTValid && t.Obj == c.Repl.Replaced
 		if lki {
 			// A zone-change trigger must read the causing object's snapshot,
 			// not the same id after Move has cleared its counters and removed
@@ -212,8 +195,6 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			if f != nil {
 				if sacLKI != nil {
 					n += sacLKI.Power
-				} else if replLKI {
-					n += c.Repl.ReplacedPower
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power
 				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
@@ -265,8 +246,6 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			if f != nil {
 				if sacLKI != nil {
 					n += sacLKI.Toughness
-				} else if replLKI {
-					n += c.Repl.ReplacedToughness
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Toughness
 				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
