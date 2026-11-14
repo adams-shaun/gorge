@@ -84,6 +84,9 @@ var stallCapacityReasons = [...]uint8{
 	StallDmgAmt,       // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
 	StallDmgMark,      // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 	StallChooseNumber, // a mid-resolution ChooseNumber's present Max$ resolves above the chosen byte's 254 (repl_choosenumber.go)
+	// a blocker of two attackers that two CanBlockAmount$ 1 sources reach:
+	// gorge's capacity is three, the second-block record holds two (combat_extrablock.go)
+	StallExtraBlockCap,
 }
 
 var stallUnmodelledReasons = [...]uint8{

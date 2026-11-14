@@ -1274,6 +1274,7 @@ StatControl	StaticKind	17
 StatCount	StaticKind	21
 StatDisableETB	StaticKind	234
 StatEscapeGrant	StaticKind	225
+StatExtraBlock	StaticKind	259
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinMod	StaticKind	226

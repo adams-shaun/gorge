@@ -2266,6 +2266,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.StFlags |= kop.StHasteOppDef
 		}
+	case "ExtraBlock":
+		st.Kind = kop.StatExtraBlock // combat_extrablock.go blockCap
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

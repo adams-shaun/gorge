@@ -167,13 +167,71 @@ const StallExtraBlockReq = 163
 
 func init() { stallNames[StallExtraBlockReq] = "extrablockreq" }
 
-// blockCap is how many attackers b may block (CR 509.1a): one, plus one for a
-// printed CanBlockAmount$ 1 on itself unless it has lost its abilities.
+// StallExtraBlockCap: a blocker that two CanBlockAmount$ 1 sources reach (a
+// printed one on itself and a grant, or two grants) and that already blocks two
+// attackers while a third is blockable: gorge's BlockCapacity sums the sources
+// to three attackers, and the kernel's second-block record holds two.
+const StallExtraBlockCap = 189
+
+func init() { stallNames[StallExtraBlockCap] = "extrablockcap" }
+
+// blockSources counts the CanBlockAmount$ 1 sources that reach b (CR 509.1a): a
+// printed one on itself unless it has lost its abilities, and each
+// StatExtraBlock grant. Each adds one to gorge's BlockCapacity.
+func (s *State) blockSources(k *prep, b Slot) int {
+	if k.gen == nil || !k.gen.anyExtraBlock {
+		return 0
+	}
+	n := 0
+	if k.t.Cards[s.cardAt(b)].ExtraBlocks != 0 && !s.genLost(k, b) {
+		n++
+	}
+	if k.gen.anyExBlockGrant {
+		n += s.extraBlockGrants(k, b)
+	}
+	return n
+}
+
+// blockCap is how many attackers b may block (CR 509.1a), as far as the
+// kernel's records hold: one, or two with any extra-block source. A second
+// source makes gorge's capacity three; blockerRoom stalls the game when that
+// third block could be offered (StallExtraBlockCap).
 func (s *State) blockCap(k *prep, b Slot) int {
-	if k.gen != nil && k.gen.anyExtraBlock && k.t.Cards[s.cardAt(b)].ExtraBlocks != 0 && !s.genLost(k, b) {
+	if s.blockSources(k, b) > 0 {
 		return 2
 	}
 	return 1
+}
+
+// thirdBlock: the blocker b of two attackers could be declared against a
+// third (some other attacker it can block), which gorge offers under a
+// capacity of three.
+//
+//go:noinline
+func (s *State) thirdBlock(k *prep, b Slot) bool {
+	for am := s.blockAtkM(k); am.any(); am = am.rest() {
+		a := am.first()
+		if s.perms[a].flags&pfAttacking != 0 && !s.blocks(b, a) && s.canBlock(k, b, a) {
+			return true
+		}
+	}
+	return false
+}
+
+// extraBlockGrants counts the StatExtraBlock statics whose filter matches
+// blocker b (gorge BlockCapacity adds each matching static's amount).
+//
+//go:noinline
+func (s *State) extraBlockGrants(k *prep, b Slot) int {
+	n := 0
+	s.eachStatic(k, func(st statSrc) bool {
+		if a := st.a; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatExtraBlock && s.statCond(k, st) &&
+			s.matchPermGen(k, a.Static.Filter, b, st.ctrl, st.sl, layerFull) {
+			n++
+		}
+		return true
+	})
+	return n
 }
 
 // blockerRoom: b may be declared against an attacker now: a ready blocker, or
@@ -183,8 +241,16 @@ func (s *State) blockerRoom(k *prep, b Slot) bool {
 		return true
 	}
 	p := &s.perms[b]
-	return p.flags&pfBlocking != 0 && p.flags&pfTapped == 0 && s.isCreature(k, b) &&
-		s.kw(k, b)&kop.KwCantBlock == 0 && s.blockCap(k, b) == 2 && s.xblkOf(b) == NoSlot
+	if p.flags&pfBlocking == 0 || p.flags&pfTapped != 0 || !s.isCreature(k, b) || s.kw(k, b)&kop.KwCantBlock != 0 {
+		return false
+	}
+	if s.xblkOf(b) != NoSlot {
+		if s.blockSources(k, b) > 1 && s.thirdBlock(k, b) {
+			s.stall(StallExtraBlockCap) // capacity three: the kernel holds two
+		}
+		return false
+	}
+	return s.blockCap(k, b) == 2
 }
 
 // extraBlockReady: some ready blocker of the defender may block two attackers.
