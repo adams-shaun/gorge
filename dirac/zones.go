@@ -263,6 +263,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
 		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
 	}
+	if from == kop.ZoneLibrary && z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLibToGrave {
+		s.fireLibToGrave(k, o) // trig_libtograve.go
+	}
 }
 
 // draw draws one card for p. Drawing from an empty library loses at once
@@ -277,7 +280,7 @@ func (s *State) draw(p uint8) {
 // draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
 func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl := &s.pl[p]
-	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw) {
+	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw, p) {
 		return // static_cantdraw.go: before the empty-library mark
 	}
 	if pl.libLo == pl.libHi {
@@ -356,7 +359,7 @@ func (s *State) checkOver() {
 // names any more (freeTokenObj, zone_objreuse.go).
 func (s *State) newToken(c CardID, p uint8) Obj {
 	if int(s.nobj) < MaxObj {
-		o := Obj(s.nobj)
+		o := s.nobj
 		s.nobj++
 		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift}
 		s.touch(o)
@@ -626,6 +629,16 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 			s.fireObj(k, kop.TrigLeaves, sl, p.obj, p.ctrl, czAmt(k, z))
 		}
 	}
+	if k.gen != nil && k.gen.anyUnattach {
+		// the attachment's own departure is its unattach (CR 701.3d, gorge
+		// CR 603.10a look-back walk's Mode$ Unattached arm): a permanent
+		// that leaves the battlefield ATTACHED fires it, RefTriggerObj the
+		// bearer. An unattached one fires nothing (no bearer, and a stale
+		// one whose detach an earlier departure already fired)
+		if h := p.attached; h != NoSlot {
+			s.fireUnattached(k, sl, h)
+		}
+	}
 	if s.subs[kop.TrigSacrificed].any() {
 		s.sacLeaveOrder(k, p.obj, n0) // one walk over a sacrifice's triggers (trig_sacqueueorder.go)
 	}
@@ -710,7 +723,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		host = Obj(p.bord)
 	}
 	if host != NoObj {
-		p.chosen = uint8(host)
+		p.chosen = objWord(host)
 		p.flags |= pfLastBear
 		s.recordLastBearLKI(o, host)
 	} else {
@@ -728,7 +741,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		}
 	}
 	if k.phasing {
-		s.phasedHostLeft(sl, o) // its phased-out attachments (kw_phasing.go)
+		s.phasedHostLeft(k, sl, o) // its phased-out attachments (kw_phasing.go)
 	}
 	// unattach whatever was attached to it; an Aura is then put into the
 	// graveyard by SBA, Equipment stays unattached.
@@ -741,6 +754,15 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		m = m.rest()
 		qp := &s.perms[q]
 		if qp.attached == sl {
+			if k.gen != nil && s.unattachedFires(k, q) {
+				// the bearer left: gorge's pending arm publishes the detach
+				// at the next SBA checkpoint with the bearer already gone
+				// (the body is a no-op, the trigger still goes on the
+				// stack). unattachedFires holds it to the arms gorge
+				// publishes: a bestowed card's and an Equipment's; an Aura
+				// takes its CR 704.5m graveyard arm, no Unattached
+				s.fireUnattached(k, q, sl)
+			}
 			qp.attached = NoSlot
 			s.touchSl(q)
 			if s.g.on {
@@ -849,8 +871,8 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 		return who == ctrl
 	case kop.WhoseOpp:
 		return who != ctrl
-	case kop.WhoseEnchCtrl:
-		return false // read with the listener's slot (enchCtrlIs); elsewhere it fails closed
+	case kop.WhoseEnchCtrl, kop.WhoseChosen:
+		return false // read with the listener's slot (enchCtrlIs, chosenIs); elsewhere it fails closed
 	}
 	return true
 }

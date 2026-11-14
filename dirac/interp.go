@@ -177,6 +177,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			break
 		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			s.discardDefinedAll(k, p, in.F)
+			break
+		}
 		if n < 1 {
 			// gorge discardBounds keeps a resolved zero at zero: an X of 0
 			// (Last Rites, Death Cloud) discards nothing and asks nothing
@@ -208,7 +215,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.res.askP = e.ctrl // the source's controller chooses (gorge discardChooser)
 		}
 		s.res.left = uint8(n)
-		s.res.chosen = p
+		s.res.chosen = objWord(p)
 		return false
 	case kop.OpScry, kop.OpSurveil:
 		p := s.playerRef(k, in.Obj)
@@ -475,7 +482,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 		}
 		for _, sl := range ord[:hi] {
-			s.damageTo(k, uint8(s.perms[sl].obj), n)
+			s.damageTo(k, TCode(s.perms[sl].obj), n)
 		}
 		if in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 			// then each player, the controller first (gorge validPlayers:
@@ -560,12 +567,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// negative power must not wrap the uint8 pool or fbR
 			n = max(n, 0)
 			s.firebendAdd(p, n) // kw_firebend.go
-		} else if in.B.N == 2 && in.B.K == kop.VConst {
+		} else if in.B.N == 2 && in.B.K == kop.VConst && in.F == 0 {
 			n = max(n, 0) // PersistentMana$ True: the units are also tallied in State.pm (mana_persistent.go)
 			s.persistAdd(p, col, n)
 		}
 		if in.F != 0 {
-			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go
+			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go; PersistentMana$ True: its restriction kind persists (genPrep.restrPers)
 			break
 		}
 		s.poolAdd(p, col, n)
@@ -640,7 +647,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if o == NoObj {
 			s.delayEmpty(e)
 		} else if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(in.C), ctrl: e.ctrl, obj: o, ver: s.objs[o].ver, creator: NoObj}
+			s.dly[s.ndly] = delayed{act: uint8(in.C), ctrl: e.ctrl, obj: o, ver: objWord(s.objs[o].ver), creator: NoObj}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)
@@ -830,7 +837,7 @@ func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 		s.firePlayer(k, kop.TrigDiscarded, s.objs[o].owner(), 1)
 	}
 	if k.gen != nil && k.gen.anySelfDisc {
-		s.fireSelfDisc(k, o) // trig_params.go
+		s.fireSelfDisc(k, o, effect) // trig_params.go
 	}
 	if k.gen != nil && k.gen.anyDiscAll {
 		s.discAllNote(k, o)
@@ -861,7 +868,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 				}
 			}
 			if !taken && s.objs[o].of&ofCopy == 0 && (k.gen == nil || s.discardOK(k, o)) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	case raScryTop, raSurveil:
@@ -877,7 +884,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		d.Kind, d.Sub = DkChoose, ChArrange
 		for i := 0; i < int(r.peekN); i++ {
 			if (r.peekSel|r.restSel)&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(r.peek[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(r.peek[i]), 0, 0))
 			}
 		}
 		if !r.restPh {
@@ -888,7 +895,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
 			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 	case raOptional, raGeneric:
@@ -913,7 +920,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
 			if !s.optaskPicked(s.perms[sl].obj) && s.sacMatch(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0)) // Min 0: Done is always offered
@@ -925,7 +932,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		for i := 0; i < int(pl.handN); i++ {
 			o := pl.hand[i]
 			if !s.optaskPicked(o) && s.discardOK(k, o) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 		if r.peekI >= uint8(s.optDiscardMin(k)) {
@@ -1013,16 +1020,16 @@ func (s *State) applyResolve(k *prep, a Action) {
 		s.storeChosenNumber(o, sl, int(a.Mode()))
 	case raChooseType:
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
-			r.chosen = cardTypeAnswer(a)
+			r.chosen = objWord(cardTypeAnswer(a))
 			r.bad |= resChosenCard
 		} else {
-			r.chosen = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			r.chosen = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		r.bad |= resChosenType
 		if o, sl := s.resolutionTypeSource(); sl != NoSlot {
 			s.perms[sl].chosen = r.chosen
 		} else if o != NoObj {
-			s.objs[o].chosen = r.chosen
+			s.objs[o].chosen = uint8(r.chosen)
 			s.touch(o)
 		}
 	case raSacrifice:

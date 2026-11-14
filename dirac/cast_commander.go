@@ -5,9 +5,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Casting a commander from the command zone (CR 903.8). A Commander game
 // offers the seat's own commander while it is in the command zone, at the
 // card's timing and with the card's plain-cast gates; the cost is the
-// card's mana cost after every cost static, plus the tax of {2} for each
-// earlier cast from the command zone. The tax is added after the cost
-// statics so a reduction never takes it off.
+// card's mana cost plus the tax of {2} for each earlier cast from the
+// command zone, with every cost static applied to that total: the tax is an
+// additional cost, part of the total cost a reduction takes generic off and
+// a floor measures (CR 601.2f; gorge pay.CostMods.ApplyTaxedTo).
 
 // offerCommanderCast offers each of p's commanders from the command zone
 // when it is there and the hand cast of the same card would be legal. A
@@ -36,12 +37,13 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 		return
 	}
 	cost := pc.cost
+	addCommanderTax(&cost, s.commanderTax(p, o))
 	if s.statM.any() || k.gen != nil {
-		// the same reduction the hand walk composes (adjustFit), then the tax
+		// the same reduction the hand walk composes (adjustFit), over the
+		// taxed total
 		av.delve = s.tbDelveCredit(k, p, c, o, true)
 		cost = s.adjustFit(k, av, p, c, o, cost, false)
 	}
-	addCommanderTax(&cost, s.commanderTax(p, o))
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) ||
 		!s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
@@ -52,7 +54,7 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 	if cost.X != 0 && !s.spellXBoundPayable(k, c, p, &cost) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), 0, 0))
+	d.add(MakeAction(AkCast, TCode(o), 0, 0))
 }
 
 // commanderTax is the CR 903.8 generic tax on o's cast by p: two per

@@ -145,7 +145,7 @@ func (s *State) exileTrigNewFirst() {
 //go:noinline
 func (s *State) evidenceXBind(k *prep) {
 	if in := &s.prog(k)[s.res.pc]; in.C&0xF == kop.PayManaX && in.B.N == kop.PayBSubEvidenceX {
-		s.res.e.x = s.g.pickLeft
+		s.res.e.x = objWord(s.g.pickLeft)
 	}
 }
 

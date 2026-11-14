@@ -19,7 +19,7 @@ func (s *State) recordDmgAmt(k *prep, sl Slot, n int) {
 	if n <= 0 || k.gen == nil || !k.gen.anyDmgAmt || !k.t.Cards[s.cardAt(sl)].DmgAmt {
 		return
 	}
-	o := uint8(s.perms[sl].obj) + 1
+	o := s.perms[sl].obj + 1
 	for i := range s.g.dmgAmt {
 		if s.g.dmgAmt[i].o == o {
 			s.g.dmgAmt[i].n = uint8(min(int(s.g.dmgAmt[i].n)+n, 255))
@@ -28,7 +28,7 @@ func (s *State) recordDmgAmt(k *prep, sl Slot, n int) {
 	}
 	for i := range s.g.dmgAmt {
 		if s.g.dmgAmt[i].o == 0 {
-			s.g.dmgAmt[i] = struct{ o, n uint8 }{o, uint8(min(n, 255))}
+			s.g.dmgAmt[i].o, s.g.dmgAmt[i].n = o, uint8(min(n, 255))
 			return
 		}
 	}
@@ -38,7 +38,7 @@ func (s *State) recordDmgAmt(k *prep, sl Slot, n int) {
 // dmgAmountReceived is the positive damage object o received this turn, 0 when
 // it holds no record (never a reader card, or a new turn).
 func (s *State) dmgAmountReceived(o Obj) int {
-	o1 := uint8(o) + 1
+	o1 := o + 1
 	for i := range s.g.dmgAmt {
 		if s.g.dmgAmt[i].o == o1 {
 			return int(s.g.dmgAmt[i].n)

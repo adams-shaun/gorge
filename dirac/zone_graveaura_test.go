@@ -57,7 +57,7 @@ func TestGravePickAuraWaitsForItsHost(t *testing.T) {
 	}
 
 	// Answer the pick with the Aura: two legal hosts, so the entry parks.
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(aura), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(aura), 0, 0))
 	if s.res.ask != raGenEnchant {
 		t.Fatalf("ask %d after the pick, want the Aura's enchant ask", s.res.ask)
 	}
@@ -70,7 +70,7 @@ func TestGravePickAuraWaitsForItsHost(t *testing.T) {
 
 	// Answer the enchant ask: the Aura enters attached, then the resolution
 	// finishes and the spell leaves the stack.
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h1), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(h1), 0, 0))
 	if !sc.onBF(aura) {
 		t.Fatalf("Aura zone %d after the answer, want the battlefield", s.objs[aura].zone)
 	}

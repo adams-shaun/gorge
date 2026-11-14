@@ -46,7 +46,7 @@ func arrangeRestRun(t *testing.T, op kop.Op, rest bool, picks []int) (*scen, [4]
 		posed++
 		a := MakeAction(AkDone, 0, 0, 0)
 		if pick >= 0 {
-			a = MakeAction(AkChoose, uint8(look[pick]), 0, 0)
+			a = MakeAction(AkChoose, TCode(look[pick]), 0, 0)
 		}
 		found := false
 		for i := 0; i < int(d.N); i++ {

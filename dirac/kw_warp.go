@@ -76,7 +76,7 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		if !s.altAddCastable(k, c, p, o, &wc, av) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), i, castWarp))
+		d.add(MakeAction(AkCast, TCode(o), TCode(i), castWarp)) // code-ok: a warp instance index
 	}
 }
 
@@ -110,7 +110,7 @@ func (s *State) offerWarpRecasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if !s.FeatPoolPays(p, o, 0) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, castWarpRecast))
+		d.add(MakeAction(AkCast, TCode(o), 0, castWarpRecast))
 	}
 }
 
@@ -121,7 +121,7 @@ func (s *State) warpRecastRecord(p uint8, o Obj) bool {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurWarp && s.turn > r.turn {
+		if r.obj == o && r.ctrl == p && r.ver == ob.ver && r.until == kop.DurWarp && mayWord(s.turn) > r.turn {
 			return true
 		}
 	}
@@ -156,7 +156,7 @@ func (s *State) registerWarpExile(o Obj, ctrl uint8) {
 		s.capFull(StallDelayed)
 		return
 	}
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpWarpExile), ctrl: ctrl, obj: o, ver: s.objs[o].ver, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpWarpExile), ctrl: ctrl, obj: o, ver: objWord(s.objs[o].ver), creator: NoObj}
 	s.ndly++
 }
 
@@ -168,7 +168,7 @@ func (s *State) warpRecastGrant(o Obj) {
 		s.capFull(StallMayPlay)
 		return
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurWarp, turn: s.turn}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurWarp, turn: mayWord(s.turn)}
 	s.g.nmay++
 }
 
@@ -181,7 +181,7 @@ func (s *State) warpRecastGrant(o Obj) {
 func (s *State) warpedPerm(o Obj) bool {
 	v := s.objs[o].ver
 	for i := 0; i < int(s.ndly); i++ {
-		if d := &s.dly[i]; d.obj == o && d.ver == v && kop.Op(d.act) == kop.OpWarpExile {
+		if d := &s.dly[i]; d.obj == o && d.ver == objWord(v) && kop.Op(d.act) == kop.OpWarpExile {
 			return true
 		}
 	}

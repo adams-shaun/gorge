@@ -121,6 +121,10 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
 	pips := in.B.N
+	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
+		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
+		return true
+	}
 	if kind == kop.PayMana && amt > 255 && s.afterCumulative(k) {
 		amt = 255 // n age counters of a generic cost: no pool pays more, and the ask holds a byte (trig_cumulative.go)
 	}
@@ -323,8 +327,11 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
+			break
+		}
 		for v := range k.t.TypeVocab {
-			d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+			d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 		}
 
 	case raGenPay:
@@ -350,7 +357,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			for m := s.ctrlM[p]; m.any(); m = m.rest() {
 				sl := m.first()
 				if s.matchPermGen(k, f, sl, p, src, layerFull) {
-					d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+					d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 				}
 			}
 			break
@@ -362,7 +369,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				pp := &s.perms[sl]
 				for c := 0; c < int(kop.NumCounterKinds3); c++ {
 					if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
-						d.add(MakeAction(AkChoose, uint8(pp.obj), 0, uint8(c)))
+						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, uint8(c)))
 					}
 				}
 			}
@@ -391,7 +398,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.handN); i++ {
-				d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 			}
 			break
 		}
@@ -412,7 +419,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for m := s.ctrlM[p].andNot(s.g.sacM); m.any(); m = m.rest() {
 			sl := m.first()
 			if s.matchPermGen(k, f, sl, p, src, layerFull) && !(sac && s.sacBlocked(k, sl)) {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 		s.tapXVarDone(k, d) // closes a tapXType<X/Spec> pick (cost_tapxvar.go)
@@ -420,13 +427,13 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChArrange
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.g.lookSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(s.resArm().look[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.resArm().look[i]), 0, 0))
 			}
 		}
 	case raGenResTarget:
 		in := &s.prog(k)[r.pc]
 		t := tspecE(k, &r.e, int(in.C))
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.targetCands(k, t, r.e.ctrl, s.resSrcSlot(k), r.e.obj, &buf)
 		// gorge's mid-resolution target ask: a KChoose over the cards
 		// ("card"), closed by done for an up-to slot
@@ -439,7 +446,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 	case raGenDivide:
 		d.Sub = ChGenDivide
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		in := &s.prog(k)[r.pc]
 		m := s.divTargets(k, &r.e, uint8(tgtSlotOf(in.Obj)), &codes)
 		for i := 0; i < m; i++ {
@@ -485,7 +492,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		for i := 0; i < int(s.g.nlook); i++ {
 			o := s.resArm().look[i]
 			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) && s.pickFits(k, f, o, true) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 		if d.N == 0 || s.digMayStop(k) {
@@ -501,7 +508,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChGenPileSplit
 		for i := 0; i < int(s.g.nrem); i++ {
 			if s.g.lookSel&(1<<i) == 0 {
-				d.add(MakeAction(AkChoose, uint8(s.g.rem[i]), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.g.rem[i]), 0, 0))
 			}
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -528,7 +535,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 		}
 		for _, o := range buf[:n] {
-			d.add(MakeAction(AkChoose, uint8(o), 0, s.g.pickZ))
+			d.add(MakeAction(AkChoose, TCode(o), 0, s.g.pickZ))
 		}
 	case raGenCastFree:
 		d.Sub = ChGenCastFree
@@ -536,7 +543,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			if s.freeRepeated(i) {
 				continue // an AllowRepeats$ card is offered once, at its first place left (cast_freerepeat.go)
 			}
-			d.add(MakeAction(AkChoose, uint8(s.g.free[i]), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.g.free[i]), 0, 0))
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	case raGenChooseCard:
@@ -551,7 +558,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		if s.prog(k)[r.pc].C == chooseFaceDownPick {
 			d.Sub = ChGenFaceDownPick // gorge's face_down_choice pick (CR 701.58a)
 		}
-		if s.prog(k)[r.pc].C == chooseCopyPick {
+		if c := s.prog(k)[r.pc].C; c == chooseCopyPick || c == choosePopulatePick {
 			d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
 		}
 		s.cardCandsBase(k, s.prog(k)[r.pc].F, r.askP, s.chooseCardBase(s.prog(k)[r.pc].Obj, r.askP), d)
@@ -579,7 +586,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		s.copyTargetOptions(k, d, int(r.left))
 	case raGenEnchant:
 		d.Sub = ChGenEnchant
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		n := s.enchantCands(k, s.enchantingCard(k), r.askP, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
@@ -934,7 +941,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenResTarget:
 		in := &s.prog(k)[r.pc]
 		i := int(in.C)
-		c := uint8(NoTarget)
+		c := NoTarget
 		if a.Kind() == AkChoose {
 			c = a.Source()
 		}
@@ -1003,10 +1010,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenDigArrange:
 		o := Obj(a.Source())
 		pl := &s.pl[s.g.pickP]
-		s.detach(o)
-		s.objs[o].zone = kop.ZoneLibrary
-		s.objs[o].ver++
-		pl.libBottom(o)
+		if s.digArrangeTop(k) {
+			s.digArrangeTopPick(o) // zone_digtoporder.go
+		} else {
+			s.detach(o)
+			s.objs[o].zone = kop.ZoneLibrary
+			s.objs[o].ver++
+			pl.libBottom(o)
+		}
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.resArm().look[i] == o {
 				s.g.lookSel |= 1 << i
@@ -1217,7 +1228,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
 			s.res.ask = raNone
-			s.g.pre.val = uint8(s.objs[a.Source()].slot)
+			s.g.pre.val = objWord(uint8(s.objs[a.Source()].slot))
 			s.g.pre.state = preDigEnchantDone
 			if s.rerunMove(k, &s.prog(k)[r.pc]) {
 				return // suspended again at another Aura's choice
@@ -1247,9 +1258,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.continueRes(k, 0)
 			return
 		}
-		s.g.pre.val = a.Mode()
+		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		if s.g.pre.state == preHideLand {
 			s.hideLandAnswer(k) // kw_hideaway.go
@@ -1281,12 +1292,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.continueRes(k, 0)
 	case raGenTokChoice:
 		in := &s.prog(k)[r.pc]
-		s.g.pre.val = a.Mode()
+		s.g.pre.val = objWord(a.Mode())
 		if s.g.pre.kind == akClone {
 			s.g.pre.val = cloneAnswer(a) // a copy token's clone election (ctr_entryperkind.go)
 		}
 		if s.g.pre.kind == akType {
-			s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+			s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}
 		s.g.pre.state = 2
 		t := r.lastTok
@@ -1754,12 +1765,13 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.shareLandTypeCands(k, in, d, list) // zone_sharelandtype.go
 		return
 	}
+	selfOnly := in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneGraveyard && in.F != 0 && k.t.Filters[in.F].Flags&kop.FSelf != 0 // Card.StrictlySelf: the resolving source's own card (Genju of the Fields)
 	for _, o := range list {
-		if s.picksHas(o) {
+		if s.picksHas(o) || selfOnly && o != s.res.e.obj {
 			continue
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -1873,8 +1885,11 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		}
 	}
 	handBottom := in != nil && in.Op == kop.OpChooseMove && in.B.N&kop.SrHandBottom != 0 && s.searchZone(k) == kop.ZoneHand
-	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&kop.SrNoShuffle != 0) {
-		s.reverseLook() // act_mayask.go: the first answered ends on top (an unshuffled search too)
+	if z == kop.ZoneLibrary && s.g.nlook > 1 && !handBottom && (s.searchZone(k) == kop.ZoneHand || fl&(kop.SrNoShuffle|kop.SrThenTop) != 0) {
+		// act_mayask.go: the first answered ends on top (an unshuffled
+		// search too, and a shuffled one's ThenTop cards: gorge
+		// placeLibraryObjects pins them in the answer order, Goblin Recruiter)
+		s.reverseLook()
 	}
 	// CR 603.6a: the cards a search puts onto the battlefield enter together, so
 	// each one's enters check sees the whole batch (gorge's zone batch): Roiling
@@ -2241,7 +2256,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			if s.cmdZoneReplace(k, o, &zz, &bb) {
 				deferred = s.heldPark(hr)
 				// resume the take loop at this card after the answer
-				s.g.pre.val = uint8(i)
+				s.g.pre.val = objWord(uint8(i))
 				return true // a CR 903.9b commander move parked before it happens
 			}
 			s.detach(o)
@@ -2267,7 +2282,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
-		s.res.ask, s.res.askP = raGenDigArrange, p
+		s.res.ask, s.res.askP = raGenDigArrange, s.digArrangeAsker(k)
 		return true
 	}
 	if z == kop.ZoneBattlefield {
@@ -2319,7 +2334,7 @@ func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return NoSlot
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, c, p, &buf) != 1 {
 		return NoSlot
 	}
@@ -2337,7 +2352,7 @@ func (s *State) digAuraPark(k *prep, o Obj, p uint8) bool {
 		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enchantCands(k, c, p, &buf) < 2 {
 		return false
 	}
@@ -2353,7 +2368,7 @@ func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.enchantCands(k, c, p, &buf) == 0
 }
 
@@ -2430,7 +2445,7 @@ func (s *State) digAuraPlayerPark(k *prep, o Obj, p uint8) bool {
 // or more unanswered candidates (whose choice the dig does not pose yet).
 func (s *State) digAuraPlayerHost(k *prep, o Obj, p uint8) (uint8, bool) {
 	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchPlayerDone {
-		return s.g.pre.val, true // the answered choice among two or more seats
+		return uint8(s.g.pre.val), true // the answered choice among two or more seats
 	}
 	c := s.objs[o].card
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtPlayer {
@@ -2527,7 +2542,7 @@ func (s *State) cardCandsBase(k *prep, f kop.FilterID, p, ctrl uint8, d *Decisio
 	add := func(o Obj) {
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	if z == kop.ZoneNone || z == kop.ZoneBattlefield {

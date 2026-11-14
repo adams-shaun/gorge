@@ -36,6 +36,7 @@ const (
 	// enters-with counters and the entrant's own prepared enter body, asked
 	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
 	akEtbOrder uint8 = 14
+	akPlayer   uint8 = 16 // an as-enters opponent (OpExt ExtChoosePlayer; repl_chooseplayer.go)
 )
 
 // placeEntryCounters places an entry-characteristic counter grant on the
@@ -208,7 +209,7 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 	// battlefield, never that effect's X (Mind into Matter's)
 	selfX := s.res.e.x
 	if s.res.active {
-		s.res.e.x = s.spellX(o)
+		s.res.e.x = objWord(s.spellX(o))
 	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
@@ -315,6 +316,10 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = akNumber
 				case kop.ExtChooseName:
 					kind = nameAskKind(in)
+				case kop.ExtChooseCardEnter:
+					kind = akCard // repl_choosecard.go
+				case kop.ExtChoosePlayer:
+					kind = akPlayer
 				default:
 					s.execGen(k, in)
 					continue
@@ -323,7 +328,25 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
 				continue // nothing nonland was revealed: gorge poses no ask
 			}
-			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
+			if kind == akCard && s.enterCardNone(k, sl, c) {
+				continue // no object to choose: gorge poses no ask (repl_choosecard.go)
+			}
+			if kind == akPlayer {
+				// gorge asks it with the permanent on the battlefield, never
+				// on the stack (repl_chooseplayer.go): queued, or answered
+				// in place for a single opponent
+				if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
+					s.perms[sl].chosen = objWord(p)
+					s.touchSl(sl)
+					continue
+				}
+				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
+				if !saved.active {
+					s.res = saved
+				}
+				return
+			}
+			if kind != akCard && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
 				s.touchSl(sl)
 				s.g.pre.state = 0
@@ -383,7 +406,7 @@ func (s *State) queueAskAt(sl Slot, kind uint8, c CardID, ab, pc uint8) {
 		s.g.askPrio = s.prio
 	}
 	a := &s.g.ask[s.g.nask]
-	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = sl, s.objs[s.perms[sl].obj].ver, kind, c, ab, pc, 0
+	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = sl, s.objs[s.perms[sl].obj].ver, kind, c, objWord(ab), pc, 0
 	s.g.nask++
 }
 
@@ -402,7 +425,7 @@ func (s *State) queueAskRet(o Obj) {
 		s.g.askPrio = s.prio
 	}
 	a := &s.g.ask[s.g.nask]
-	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = NoSlot, s.objs[o].ver, akEnchant, s.objs[o].card, uint8(o), 0, s.ts
+	a.sl, a.ver, a.kind, a.card, a.ab, a.pc, a.ts = NoSlot, s.objs[o].ver, akEnchant, s.objs[o].card, objWord(o), 0, s.ts
 	s.g.nask++
 }
 
@@ -412,7 +435,7 @@ func (s *State) queueAskRet(o Obj) {
 func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	o := Obj(a.ab)
 	x := &s.objs[o]
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := 0
 	if x.zone == kop.ZoneExile && x.ver == a.ver {
 		m := s.enchantCands(k, x.card, x.owner(), &buf)
@@ -583,7 +606,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 // in gorge's battlefield order (player 0's list, then player 1's, each in
 // entry order), NoSlot when none.
 func (s *State) firstHost(k *prep, o Obj) Slot {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	host := NoSlot
 	n := s.enchantCands(k, s.objs[o].card, s.objs[o].owner(), &buf)
 	for i := 0; i < n; i++ {
@@ -606,7 +629,7 @@ func (s *State) auraWithHosts(k *prep, o Obj) int {
 	if k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return 0
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.enchantCands(k, c, s.objs[o].owner(), &buf)
 }
 
@@ -629,7 +652,7 @@ func (s *State) newTurnGen() {
 	s.g.isCast = [MaxSeats]uint8{}
 	s.g.hist = [MaxSeats][3]uint8{}
 	clear(s.cold.castRing)
-	s.g.actRing = [MaxSeats][actRingN]uint8{}
+	s.g.actRing = [MaxSeats][actRingN]Obj{}
 	s.g.actN = [MaxSeats]uint8{}
 	if k := s.k(); k.gen != nil && k.gen.anyTurnF {
 		s.g.turnF = 0 // coin flips and Exhaust activations end with the turn (static_turnbits.go)
@@ -641,8 +664,8 @@ func (s *State) newTurnGen() {
 		s.g.nused = 0
 	}
 	s.g.zoneTurn = objBits{}
-	s.g.dmgTurn = objBits{}                      // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
-	s.g.dmgAmt = [dmgAmtN]struct{ o, n uint8 }{} // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
+	s.g.dmgTurn = objBits{} // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
+	clear(s.g.dmgAmt[:])    // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)
@@ -728,7 +751,7 @@ func (s *State) cleanupGen(k *prep) {
 	n := 0
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && s.turn > r.turn) ||
+		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && mayWord(s.turn) > r.turn) ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
@@ -770,7 +793,7 @@ func (s *State) fireDelayedGen(k *prep) {
 		s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
-			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
+			s.pend[m].remVer, s.pend[m].skw = objWord(remVer), s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
 			if d.n&dpMany != 0 {
 				s.dpManyCarry(&d, &s.pend[m]) // trig_delayedmany.go
 			}
@@ -1006,8 +1029,8 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		// (gorge's opening_yes / opening_no)
 		if o := s.leyCard(k, s.g.leyP, s.g.ley[1]); o != NoObj {
 			d.Kind, d.Sub, d.Player = DkChoose, ChGenLeyline, s.g.leyP
-			d.add(MakeAction(AkChoose, uint8(o), 0, 1))
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 1))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			return true
 		}
 		s.nextLeyline(k)
@@ -1088,7 +1111,7 @@ func (s *State) applyGen(k *prep, a Action) {
 			}
 			s.g.pre.kind = akClone
 		} else {
-			s.g.pre.val = a.Mode()
+			s.g.pre.val = objWord(a.Mode())
 			if s.g.pre.kind == akClone {
 				s.g.pre.val = cloneAnswer(a)
 				if !s.g.pre.land && s.cloneTemplateAsk(k) {
@@ -1096,7 +1119,7 @@ func (s *State) applyGen(k *prep, a Action) {
 				}
 			}
 			if s.g.pre.kind == akType {
-				s.g.pre.val = typeVocabSub(k, int(a.Target())<<8|int(a.Mode()))
+				s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 			}
 		}
 		s.g.pre.state = 2
@@ -1180,16 +1203,18 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber || isNameAsk(ask.kind) {
-		p.chosen = a.Mode()
+	} else if ask.kind == akCard {
+		p.chosen = objWord(a.Source()) // the chosen object rides the action's code (repl_choosecard.go)
+	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
+		p.chosen = objWord(a.Mode())
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
-		p.chosen = typeVocabSub(k, v)
+		p.chosen = objWord(typeVocabSub(k, v))
 	}
 	if ask.card != NoCard {
 		saveRep := s.g.replaced
 		s.g.replaced = p.obj
-		s.runReplProg(k, ask.sl, ask.card, ask.ab, ask.pc)
+		s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), ask.pc)
 		s.g.replaced = saveRep
 	}
 }
@@ -1202,7 +1227,7 @@ func (s *State) leylineStart(k *prep) bool {
 		return false
 	}
 	s.g.leyDn = true
-	if !s.hasLeyline(k, 0) && !s.hasLeyline(k, 1) {
+	if !s.anyLeyline(k) {
 		return false
 	}
 	s.g.leyP = s.startPl
@@ -1211,6 +1236,17 @@ func (s *State) leylineStart(k *prep) bool {
 	s.g.ctlRet = ctlStepBegin
 	s.ctl = ctlGenAsk
 	return true
+}
+
+// anyLeyline reports whether any seat holds a Leyline in its opening hand:
+// gorge's opening round asks every seat (AliveFrom the starting player).
+func (s *State) anyLeyline(k *prep) bool {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.hasLeyline(k, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) hasLeyline(k *prep, p uint8) bool {
@@ -1292,19 +1328,20 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	if kind == akEnchant {
 		d.Sub = ChGenEnchant
 		o := s.g.pre.obj
-		var buf [MaxOptions]uint8
 		who := s.objs[o].owner()
 		if s.g.pre.state == preDigEnchant {
 			who = s.res.askP
 		}
 		if s.g.pre.state == preDigEnchPlayer {
 			who = s.res.askP
-			n := s.playerEnchCands(k, s.objs[o].card, who, &buf)
+			var seats [MaxOptions]uint8
+			n := s.playerEnchCands(k, s.objs[o].card, who, &seats)
 			for i := 0; i < n; i++ {
-				d.add(MakeAction(AkChoose, PlayerCode(buf[i]), 0, 0))
+				d.add(MakeAction(AkChoose, PlayerCode(seats[i]), 0, 0))
 			}
 			return
 		}
+		var buf [MaxOptions]TCode
 		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
@@ -1315,8 +1352,16 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		s.numberOptions(k, d) // repl_choosenumber.go
 		return
 	}
+	if kind == akPlayer {
+		s.playerOptions(d) // repl_chooseplayer.go
+		return
+	}
 	if isNameAsk(kind) {
 		s.nameOptions(k, d, kind) // repl_choosename.go
+		return
+	}
+	if kind == akCard {
+		s.enterCardOptions(k, d) // repl_choosecard.go
 		return
 	}
 	if kind == akColor {
@@ -1334,7 +1379,7 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		return
 	}
 	for v := range k.t.TypeVocab {
-		d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+		d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 	}
 }
 

@@ -316,6 +316,14 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				}
 				counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
 			}
+			// A commander-identity production (Arcane Signet, Command Tower)
+			// makes one mana of a colour in its controller's commanders' colour
+			// identity (CR 903.4): one alt per identity colour, the same colours
+			// the activation's colour ask offers. The parse claims no mana for
+			// the word itself, and an empty identity makes none (CR 903.4f).
+			if pay.IsColourIdentityProduced(mp.Produced) {
+				counts, any = e.castWindowIdentityCounts(p), true
+			}
 			total := int32(0)
 			for _, n := range counts {
 				total += n
@@ -443,11 +451,21 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 			}
 			counts, _ = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
 		}
+		identity := pay.IsColourIdentityProduced(mp.Produced)
+		if identity {
+			counts = e.castWindowIdentityCounts(p)
+		}
 		total := int32(0)
 		for _, n := range counts {
 			total += n
 		}
 		if total <= 0 {
+			// A commander-identity production with no identity makes no mana
+			// (CR 903.4f): castWindowUnits priced it as nothing, so there is
+			// no production left unpriced.
+			if identity {
+				continue
+			}
 			return true
 		}
 		if free && !mp.CountsAny && availableAmountOf(mp) > 0 {
@@ -455,6 +473,20 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 		}
 	}
 	return false
+}
+
+// castWindowIdentityCounts is the mana a commander-identity production makes
+// per colour: one alt per colour of its controller's commanders' identity
+// (CR 903.4), none when the identity is empty (CR 903.4f).
+func (e *Engine) castWindowIdentityCounts(p state.PlayerID) (counts [6]int32) {
+	for _, c := range pay.CommanderIdentityColours(asPayer(e), p) {
+		for i := range 5 {
+			if c[0] == "WUBRG"[i] {
+				counts[i] = 1
+			}
+		}
+	}
+	return counts
 }
 
 // castWindowCensusComplete reports whether castWindowUnits priced every
@@ -988,8 +1020,7 @@ func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
 		for i := int(pc.striveUnits); i < n-1; i++ {
 			cost = cost.Plus(sc)
 		}
-		cost = pc.mods.Apply(cost)
-		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
+		cost = pc.mods.ApplyTaxed(cost, pc.taxGeneric)
 		cost.Generic -= int32(len(pc.delve))
 		if cost.Generic < 0 {
 			cost.Generic = 0

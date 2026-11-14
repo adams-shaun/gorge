@@ -1,4 +1,4 @@
-import type { EventSeries, EventState } from '../protocol';
+import type { EventPodGame, EventSeries, EventState } from '../protocol';
 
 /**
  * series.ts renders an EventSeries row's facts for the hub. Every value is
@@ -38,6 +38,18 @@ export function seriesStatus(s: EventSeries): string {
       return 'between games';
     case 'ended':
       return s.winner === null || s.winner === undefined ? 'draw' : 'final';
+    default:
+      return 'pending';
+  }
+}
+
+/** podStatus is a Commander-draft pod game's state line: pending, live, or how it ended. */
+export function podStatus(g: EventPodGame): string {
+  switch (g.state) {
+    case 'live':
+      return 'live';
+    case 'ended':
+      return g.winner === null || g.winner === undefined ? 'draw' : 'final';
     default:
       return 'pending';
   }

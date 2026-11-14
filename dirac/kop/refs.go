@@ -83,6 +83,12 @@ const (
 	// effChoosePlayer's random branch with an empty pool records nothing, so
 	// a following ChosenPlayer destination walk attaches nothing).
 	RefResChosenPlayer Ref = 42
+	// RefTriggerObjOwner is a player ref: the owner of the trigger's object
+	// (CR 108.3: an object's owner never changes, so the read is the same
+	// whether the object is still where it was or has since moved). Gorge
+	// Defined$ TriggeredCardOwner; Brainstealer Dragon's "they lose life
+	// equal to its mana value". None when the trigger binds no object.
+	RefTriggerObjOwner Ref = 40
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

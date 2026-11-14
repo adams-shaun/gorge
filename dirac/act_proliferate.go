@@ -18,14 +18,15 @@ import (
 // gorge's commit boundaries) and keeps the picks in res.arr then res.peek.
 // res.left counts the actions still owed. gorge emits one event per kind in
 // the recipient's insertion order while the kernel walks kinds ascending:
-// with a counter-added trigger in the table a two-kind recipient stalls
-// (StallProlif), as does a seventeenth pick.
+// a recipient with two kinds a counter-added trigger hears stalls
+// (StallProlif) unless ctrOrderObservable proves their order unseen
+// (prolifOrderObservable), as does a seventeenth pick.
 
 const prolifMaxPicks = 16
 
 // prolifPicked: recipient o (an Obj, or PlayerCode(p)) is picked in the
 // current action.
-func (s *State) prolifPicked(o uint8) bool {
+func (s *State) prolifPicked(o TCode) bool {
 	r := &s.res
 	for i := 0; i < int(r.peekN); i++ {
 		if s.prolifPick(i) == o {
@@ -35,11 +36,11 @@ func (s *State) prolifPicked(o uint8) bool {
 	return false
 }
 
-func (s *State) prolifPick(i int) uint8 {
+func (s *State) prolifPick(i int) TCode {
 	if i < len(s.res.arr) {
-		return uint8(s.res.arr[i])
+		return TCode(s.res.arr[i])
 	}
-	return uint8(s.res.peek[i-len(s.res.arr)])
+	return TCode(s.res.peek[i-len(s.res.arr)])
 }
 
 // permRealCtrs is the number of counter kinds the permanent at sl holds
@@ -64,9 +65,9 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
-			o := uint8(s.perms[sl].obj)
-			if s.permRealCtrs(sl) > 0 && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+			o := s.perms[sl].obj
+			if s.permRealCtrs(sl) > 0 && !s.prolifPicked(TCode(o)) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}
@@ -125,7 +126,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 			}
 			r.peekN++
 		}
-		s.prolifApply(k, o)
+		s.prolifApply(k, TCode(o))
 		var d Decision
 		s.prolifOptions(k, &d)
 		if d.N > 1 {
@@ -140,7 +141,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 }
 
 // prolifApply gives recipient o another counter of each kind it has.
-func (s *State) prolifApply(k *prep, o uint8) {
+func (s *State) prolifApply(k *prep, o TCode) {
 	if isPlayerOrNone(o) {
 		p := CodeSeat(o)
 		if s.g.poison[p] > 0 {
@@ -156,7 +157,7 @@ func (s *State) prolifApply(k *prep, o uint8) {
 		return
 	}
 	sl := ob.slot
-	if s.subs[kop.TrigCounterAddedOnce].any() && s.permRealCtrs(sl) > 1 {
+	if s.subs[kop.TrigCounterAddedOnce].any() && s.permRealCtrs(sl) > 1 && s.prolifOrderObservable(k, sl) {
 		s.capFull(StallProlif)
 	}
 	for c := 0; c < int(kop.NumCounterKinds3); c++ {
@@ -167,6 +168,24 @@ func (s *State) prolifApply(k *prep, o uint8) {
 			s.bolsterPut(k, sl, c, 1)
 		}
 	}
+}
+
+// prolifOrderObservable reports whether the per-kind order of proliferating
+// the permanent at sl (gorge's insertion order, the kernel's ascending kinds)
+// can reach a different stack: only the kinds a counter-added trigger hears
+// have a position anyone sees (ctrAddedHeard), and ctrOrderObservable decides
+// for those, as for a putCountersFrom copy. A Saga's chapters hear only lore,
+// so a creature with a +1/+1 and a lifelink counter beside a Saga does not stall.
+func (s *State) prolifOrderObservable(k *prep, sl Slot) bool {
+	var heard [ctrSlots + 1 + maxCtrOver]kop.CounterKind
+	n := 0
+	for c := 0; c < int(kop.NumCounterKinds3) && n < len(heard); c++ {
+		if kop.IsCounterKind(c) && s.perms[sl].ctrN(s, c) > 0 && s.ctrAddedHeard(k, kop.CounterKind(c)) {
+			heard[n] = kop.CounterKind(c)
+			n++
+		}
+	}
+	return n > 1 && s.ctrOrderObservable(k, heard[:n])
 }
 
 // fireProliferate fires "whenever <Whose> proliferates" (TrigProliferate:

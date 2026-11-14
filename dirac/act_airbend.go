@@ -86,7 +86,7 @@ func (s *State) airbend(k *prep, in *kop.Instr) {
 			s.capFull(StallMayPlay)
 			return
 		}
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurAirbend, turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurAirbend, turn: mayWord(s.turn)}
 		s.g.nmay++
 	}
 }
@@ -131,7 +131,7 @@ func (s *State) offerAirbendCasts(k *prep, d *Decision, p uint8, sorc bool) {
 		if !av.affords(&cost, pipMaskOf(&cost), 0) {
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, castAirbend))
+		d.add(MakeAction(AkCast, TCode(o), 0, castAirbend))
 	}
 }
 

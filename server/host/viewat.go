@@ -330,6 +330,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		gc.Format = game.FormatCommander
 		gc.StartingLife = sc.StartingLife
 		gc.Commanders = sc.Commanders
+		gc.DraftPartners = sc.DraftPartners
 	}
 	g, err := engine.Replay(l, gc)
 	if err != nil {
