@@ -797,6 +797,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
 			break
 		}
+		if in.B.N == kop.OvChosenType {
+			s.ovChosenType(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // act_choosebasicland.go
+			break
+		}
 		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
@@ -862,6 +866,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		// gorge's effCleanup clears the source's persistent remembered list
+		// with the resolution's own (events.Choose "clear-remembered"); the
+		// persistent mark dies with it (interp_gen.go rememberMarkClr).
+		s.rememberMarkClr()
 		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
@@ -940,18 +948,19 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if o := s.g.replaced; in.C == 0 && !isBasicLandChoose(in) && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, 2)
-		} else if _, sl := s.resolutionTypeSource(); sl != NoSlot && s.perms[sl].chosen != 255 {
-			// gorge effChooseType: a source that already carries a
-			// ChosenType keeps it (the second activation is no-op)
-			s.res.chosen = s.perms[sl].chosen
+		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
+			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
 			s.res.bad |= resChosenType | card
-		} else if o, sl := s.resolutionTypeSource(); sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
+		} else if o, sl := s.resolutionTypeSource(); s.res.e.kind == seSpell && sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
 			// a spell card keeps its ChosenType across the graveyard
 			// (gorge apply_zone.go only clears it on a battlefield
 			// leave), so a flashback re-cast reuses the first cast's
-			// answer instead of asking again
+			// answer instead of asking again. An activated or triggered
+			// ability's resolution always asks (CR 608.2; gorge
+			// effChooseType's resolvesAbility), its answer replacing the
+			// source's earlier one.
 			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
 		} else {
@@ -967,6 +976,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if DebugChooseCardAmount2 {
 			p = NextSeat(p) // TestKchoosecardparamsMutation: another player picks
 		}
+		// gorge cardChoices' filter tier reads You as the ACTIVATOR, never the
+		// chooser (engine/effects/choose_control.go cardChoicesIn: Demonic
+		// Hordes' "a land of an opponent's choice" offers the resolving
+		// controller's lands). Every chooser but the chosen-player one is the
+		// resolving controller, so the base differs only there (chooseCardBase).
+		base := p
+		if in.Obj == kop.RefEachOpponent {
+			base = e.ctrl
+		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
 		}
@@ -979,11 +997,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C == choosePopulatePick {
 			return s.populatePick(k, in, p) // copy_picked.go
 		}
-		if s.cardCands(k, in.F, p, nil) == 0 {
+		if s.cardCandsBase(k, in.F, p, base, nil) == 0 {
 			break
 		}
 		s.res.ask, s.res.askP = raGenChooseCard, p
 		return false, true
+	case kop.OpChoosePlayer:
+		s.choosePlayerOp(k, in) // act_chooseplayer.go
 	case kop.OpAttach:
 		if in.W != 0 {
 			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go
@@ -1313,6 +1333,31 @@ func (s *State) remember(o Obj) {
 		s.g.rem[s.g.nrem] = o
 		s.g.nrem++
 	}
+	// The source's persistent remembered list (gorge's event-backed
+	// o.Remembered, the Choose "remembered" fold each RememberChanged-style
+	// write emits) is non-empty from this resolution on: the host half of a
+	// ConditionDefined$ Remembered group gate reads it (gorge
+	// rememberedWithSource; Forge's areMet reads host.getRemembered(), which
+	// survives the resolution). A mark, never a set: the gate only asks
+	// whether some earlier resolution wrote anything. No touch: the mark is
+	// not part of o's projected view, its reads gate actions instead.
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjSet(s.k(), mechRem, o)
+	}
+}
+
+// rememberMarkClr empties the resolving source's persistent-remembered mark:
+// the full clears of the remembered state (gorge's effCleanup
+// ClearRemembered$, forgetOther's ForgetOtherRemembered$/ForgetOtherTargets$
+// -- the Choose "clear-remembered" fold) empty the source's persistent
+// o.Remembered with the resolution's own set, and exprs.go CondRemMark reads
+// the mark in its place. A one-object forget (gorge forgetRememberedOne,
+// ForgetChanged$/Play's ForgetPlayed$) drops one list member and leaves the
+// mark standing: the mark holds no membership, only non-emptiness.
+func (s *State) rememberMarkClr() {
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjClr(s.k(), mechRem, o)
+	}
 }
 
 // moveObj moves object o (named by ref r) to zone z of its owner; it
@@ -1383,6 +1428,10 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 			s.capFull(StallDmgMap)
 		}
 		return
+	}
+	if in.C&kop.DmgNoPrevention != 0 {
+		s.res.flags |= rfNoPrev // static_cantprevent.go: read by every prevention gate during this damage
+		defer func() { s.res.flags &^= rfNoPrev }()
 	}
 	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot

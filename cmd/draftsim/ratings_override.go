@@ -25,6 +25,16 @@ func applyRatingsOverride(o options, r *runner, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if cd, ok := r.drafter.(*pickbot.CommanderDrafter); ok {
+		cb, ok := r.builder.(*pickbot.CommanderBuilder)
+		if !ok {
+			return fmt.Errorf("-ratings-file needs a commander builder, got %T", r.builder)
+		}
+		cd.Value = ov.CommanderValue(pickbot.DefaultTuning)
+		cb.Value = cd.Value
+		printRatingsOverride(out, o, ov)
+		return nil
+	}
 	var setDrafter func()
 	switch d := r.drafter.(type) {
 	case *pickbot.RatingColour:
@@ -40,6 +50,10 @@ func applyRatingsOverride(o options, r *runner, out io.Writer) error {
 	}
 	setDrafter()
 	b.Ratings = ov
-	fmt.Fprintf(out, "ratings override: %s field %s; %d 17Lands-rated cards missing (neutral): %v\n", o.ratingsFile, o.ratingsField, len(ov.Missing), ov.Missing)
+	printRatingsOverride(out, o, ov)
 	return nil
+}
+
+func printRatingsOverride(out io.Writer, o options, ov *pickbot.RatingsOverride) {
+	fmt.Fprintf(out, "ratings override: %s field %s; %d 17Lands-rated cards missing (neutral): %v\n", o.ratingsFile, o.ratingsField, len(ov.Missing), ov.Missing)
 }

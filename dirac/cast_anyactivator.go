@@ -6,12 +6,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // {3}: put a +1/+1 counter on it; CR 602.2). gorge's offer walk visits every
 // seat's battlefield and keeps an ability whose Activator$ admits the player
 // (legal_walk_battlefield.go activatorAllows). The kernel models only the
-// narrow shape kgen lowers (lower_anyactivator.go): a battlefield ability
-// whose cost is plain mana and whose program reads nothing of the activator,
-// so the ability is offered to the permanent's controller by the ordinary
-// walk and to every other player here, priced against the activator's own
-// sources and pool. The stack entry's controller is s.prio (beginActivate),
-// the activator (CR 602.2a).
+// shape kgen lowers (lower_anyactivator.go): a battlefield non-mana ability
+// whose cost is plain mana, with no target and no window beyond "only as a
+// sorcery", so the ability is offered to the permanent's controller by the
+// ordinary walk and to every other player here, priced against the
+// activator's own sources and pool. The stack entry's controller is s.prio
+// (beginActivate), the activator (CR 602.2a), and the program's "you"
+// (RefController) reads that entry's controller (CR 109.5): Sash and
+// Waistcoat, Unmen's activator manifests from their own library.
 
 // prepAnyAct arms genPrep.anyAnyAct when some ability carries AnyActivator.
 func prepAnyAct(t *kop.Table, g *genPrep) {
@@ -57,11 +59,14 @@ func (s *State) offerAnyActivations(k *prep, d *Decision, p uint8, sorc bool, av
 }
 
 // canActivateAny is canActivate for an AnyActivator ability (plain mana
-// cost, no target, no limit: kgen's gate) of the permanent at sl, activated
-// by player who.
+// cost, no target, no limit or condition, at most sorcery speed: kgen's gate)
+// of the permanent at sl, activated by player who.
 func (s *State) canActivateAny(k *prep, sl Slot, a *kop.Ability, who uint8, sorc bool, av *avail) bool {
 	if !ownActivatable(a) || s.genLost(k, sl) {
 		return false
+	}
+	if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
+		return false // "only as a sorcery": the activator's main phase, empty stack (gorge's SorcerySpeed$ offer gate)
 	}
 	p := &s.perms[sl]
 	if k.gen.anyNetLock && s.netLocked(p.obj) {

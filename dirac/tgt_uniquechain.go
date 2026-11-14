@@ -19,7 +19,7 @@ func prepUniqueChain(t *kop.Table, g *genPrep) {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			for ti := 1; ti < int(a.NTargets); ti++ {
-				if ts := &a.Targets[ti]; ts.TFlags&kop.TgfDistinct != 0 && staticSlotMin(ts) > 0 {
+				if ts := &a.Targets[ti]; ts.TFlags&kop.TgfDistinct != 0 && (staticSlotMin(ts) > 0 || castSlotMin(ts, true) > 0) {
 					g.anyUniqLater = true
 					return
 				}

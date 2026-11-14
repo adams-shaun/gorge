@@ -59,6 +59,7 @@ Dramatic Accusation
 Due Diligence
 Elegant Parlor
 Eliminate the Impossible
+Escape Tunnel
 Evidence Examiner
 Expedited Inheritance
 Expose the Culprit
@@ -98,6 +99,7 @@ Island
 It Doesn't Add Up
 Izoni, Center of the Web
 Jaded Analyst
+Judith, Carnage Connoisseur
 Karlov Watchdog
 Kaya, Spirits' Justice
 Kellan, Inquisitive Prodigy
@@ -106,6 +108,7 @@ Kraul Whipcracker
 Krenko, Baron of Tin Street
 Krovod Haunch
 Lamplight Phoenix
+Lead Pipe
 Leering Onlooker
 Lightning Helix
 Long Goodbye
@@ -131,6 +134,7 @@ No More Lies
 No Witnesses
 Not on My Watch
 Novice Inspector
+Offender at Large
 Officious Interrogation
 On the Job
 Out Cold

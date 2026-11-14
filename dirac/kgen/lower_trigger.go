@@ -799,6 +799,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.Combat = -1
 			}
 		}
+		if err := lc.damageAmountGate(tp, tr, t); err != nil { // lower_damageamount.go
+			return err
+		}
 		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
 			return err
 		}
@@ -3767,8 +3770,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return err
 		}
 	case "Destroy":
-		if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+		if ok, err := lc.destroyRegenRepl(rp, r.With, &rl); err != nil { // lower_destroyregen.go
 			return err
+		} else if !ok {
+			if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+				return err
+			}
 		}
 	default:
 		return refuse("repl-hard: %s replacement", r.Event)

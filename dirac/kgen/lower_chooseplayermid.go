@@ -31,6 +31,12 @@ import (
 func chainReadsChosenPlayer(n *cards.SA) bool {
 	for ; n != nil; n = n.Sub {
 		for _, k := range []string{"Defined", "DefinedPlayer"} {
+			if k == "Defined" && n.API == "ChooseCard" {
+				// a mandatory ChooseCard's Defined$ ChosenPlayer is its chooser
+				// (Plargg and Nassari's OppPickOne): the one-opponent path
+				// lowers it (lower_zone.go), not a mid-resolution reader
+				continue
+			}
 			switch strings.TrimSpace(n.Params[k]) {
 			case "ChosenPlayer", "Player.Chosen":
 				return true
