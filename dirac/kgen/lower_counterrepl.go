@@ -122,16 +122,35 @@ func (lc *lowerCtx) putterDoubleCountersRepl(rp *params, w *cards.SA, rl *lRepl)
 	if left := bp.unread(); len(left) > 0 {
 		return refuse("repl-hard: AddCounter body params %v", left)
 	}
-	if lc.face.SVars[amt] != "ReplaceCount$CounterNum/Twice" {
+	// Twice reads the putter-gated doubler (ReplCtrAnyYou doubling); plus one
+	// reads the putter-gated plus one of each kind (Repl.A 1), the same
+	// counters the ValidCounterType$ one-kind form lowers (Lae'zel, Vlaakith's
+	// Champion beside Lt. Cmdr. Geordi La Forge).
+	switch amount := lc.face.SVars[amt]; amount {
+	case "ReplaceCount$CounterNum/Twice":
+		f, err := lc.filter(spec)
+		if err != nil {
+			return err
+		}
+		rp.consume("ValidSource", "ValidCard", "ValidObject", "ValidCounterType")
+		rl.Kind, rl.F, rl.Ctr, rl.Putter = "DoubleCountersOn", f, ck, true
+		return nil
+	case "ReplaceCount$CounterNum/Plus.1":
+		if ck != "" {
+			// the one-kind plus shape is the ValidCounterType$ arm of
+			// addCounterRepl (lower_trigger.go), not a putter line
+			return refuse("repl-hard: AddCounter body counter type")
+		}
+		f, err := lc.filter(spec)
+		if err != nil {
+			return err
+		}
+		rp.consume("ValidSource", "ValidCard", "ValidObject", "ValidCounterType")
+		rl.Kind, rl.N, rl.F, rl.Ctr, rl.Putter = "AddCountersOn", cst(1), f, "", true
+		return nil
+	default:
 		return refuse("repl-hard: AddCounter amount %q", lc.face.SVars[amt])
 	}
-	f, err := lc.filter(spec)
-	if err != nil {
-		return err
-	}
-	rp.consume("ValidSource", "ValidCard", "ValidObject", "ValidCounterType")
-	rl.Kind, rl.F, rl.Ctr, rl.Putter = "DoubleCountersOn", f, ck, true
-	return nil
 }
 
 // youPlusObject is Doc Samson's ValidObject$: a permanent its controller
@@ -139,17 +158,27 @@ func (lc *lowerCtx) putterDoubleCountersRepl(rp *params, w *cards.SA, rl *lRepl)
 const youPlusObject = "Permanent.YouCtrl+inZoneBattlefield"
 
 // anyKindCountersRepl lowers an unfiltered-kind R:Event$ AddCounter line whose
-// ValidCard$ vc scopes the recipient and whose body only doubles (Loading
-// Zone: ReplaceCount$CounterNum/Twice).
+// ValidCard$ vc scopes the recipient and whose body doubles (Loading Zone:
+// ReplaceCount$CounterNum/Twice) or adds one of each kind (Pir, Imaginative
+// Rascal and Winding Constrictor's permanent line:
+// ReplaceCount$CounterNum/Plus.1).
 func (lc *lowerCtx) anyKindCountersRepl(rp *params, w *cards.SA, rl *lRepl, vc string) error {
-	if err := lc.anyKindBody(rp, w, "ReplaceCount$CounterNum/Twice"); err != nil {
+	amount, err := lc.anyKindBody(rp, w)
+	if err != nil {
 		return err
 	}
 	f, err := lc.filter(vc)
 	if err != nil {
 		return err
 	}
-	rl.Kind, rl.F, rl.Ctr = "DoubleCountersOn", f, ""
+	switch amount {
+	case "ReplaceCount$CounterNum/Twice":
+		rl.Kind, rl.F, rl.Ctr = "DoubleCountersOn", f, ""
+	case "ReplaceCount$CounterNum/Plus.1":
+		rl.Kind, rl.N, rl.F, rl.Ctr = "AddCountersOn", cst(1), f, ""
+	default:
+		return refuse("repl-hard: AddCounter amount %q", amount)
+	}
 	return nil
 }
 
@@ -166,7 +195,7 @@ func (lc *lowerCtx) youPlusCountersRepl(rp *params, w *cards.SA, rl *lRepl) erro
 			return refuse("repl-hard: AddCounter putter with %s$", k)
 		}
 	}
-	if err := lc.anyKindBody(rp, w, "ReplaceCount$CounterNum/Plus.1"); err != nil {
+	if _, err := lc.anyKindBody(rp, w); err != nil {
 		return err
 	}
 	f, err := lc.filter(youPlusObject)
@@ -179,25 +208,27 @@ func (lc *lowerCtx) youPlusCountersRepl(rp *params, w *cards.SA, rl *lRepl) erro
 }
 
 // anyKindBody checks the DB$ ReplaceCounter body of an any-kind line: no
-// ValidCounterType$, Amount$ naming an SVar of exactly amount (ChooseCounter$
-// True is gorge-inert).
-func (lc *lowerCtx) anyKindBody(rp *params, w *cards.SA, amount string) error {
+// ValidCounterType$, Amount$ naming an SVar of the shape (ChooseCounter$ True
+// is gorge-inert) and returns that shape.
+func (lc *lowerCtx) anyKindBody(rp *params, w *cards.SA) (string, error) {
 	if w == nil || w.API != "ReplaceCounter" || w.Sub != nil {
-		return refuse("repl-hard: AddCounter body")
+		return "", refuse("repl-hard: AddCounter body")
 	}
 	bp := newParams(w.Params)
 	amt := bp.str("Amount")
 	if cc, ok := bp.get("ChooseCounter"); ok && cc != "True" {
-		return refuse("repl-hard: AddCounter ChooseCounter %q", cc)
+		return "", refuse("repl-hard: AddCounter ChooseCounter %q", cc)
 	}
 	bp.consume("Amount", "ChooseCounter")
 	if left := bp.unread(); len(left) > 0 {
-		return refuse("repl-hard: AddCounter body params %v", left)
+		return "", refuse("repl-hard: AddCounter body params %v", left)
 	}
-	if lc.face.SVars[amt] != amount {
-		return refuse("repl-hard: AddCounter amount %q", lc.face.SVars[amt])
+	switch amount := lc.face.SVars[amt]; amount {
+	case "ReplaceCount$CounterNum/Twice", "ReplaceCount$CounterNum/Plus.1":
+		return amount, nil
+	default:
+		return "", refuse("repl-hard: AddCounter amount %q", amount)
 	}
-	return nil
 }
 
 // replCtrKind is the Repl.C of a counter replacement: its kind, or the
