@@ -153,6 +153,13 @@ func (s *State) altCostOf(k *prep) kop.ManaCost {
 	return s.adjustCostGen(k, e.ctrl, e.card, e.obj, a.Cost.Mana)
 }
 
+// altBaseMana is the mana of the alternative cost the build pays, before the
+// cost statics (altCostOf adjusts it).
+func (s *State) altBaseMana(k *prep) kop.ManaCost {
+	e := &s.bld().e
+	return k.t.Cards[e.card].Abilities[k.gen.altFree[e.card]-1].Cost.Mana
+}
+
 // altFreeCast reports whether a castMayPlay|castFree cast of o is its own
 // free alternative cost from the hand (offerAltFreeHand), not a play
 // permission's.

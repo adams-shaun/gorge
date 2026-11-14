@@ -14,6 +14,10 @@ import (
 //   - alt-life: Snuff Out's "if you control a Swamp, you may pay 4 life rather
 //     than pay this spell's mana cost" (AltCostIndex 1 cast, CR 118.9; kernel
 //     cast_altfree.go altLifeCost);
+//   - alt-life-board-raise: the same cast beside Kasmina's target-dependent tax,
+//     its seat holding one land: the target menu prices each candidate with
+//     the cast's alternative cost, not the printed {1}{B} (kernel
+//     dropTargetsOwing, altBaseMana);
 //   - alt-tap: Ramosian Rally's "tap an untapped creature you control rather
 //     than pay this spell's mana cost" (kernel altTapCost);
 //   - life-sac: Strands of Night's {B}{B}, Pay 2 life, Sacrifice a Swamp
@@ -44,6 +48,7 @@ func TestMBCCosts4Lowers(t *testing.T) {
 		need  int
 	}{
 		{"alt-life", mbcSnuffOutDecks, altCast("Snuff Out"), 120, 20},
+		{"alt-life-board-raise", mbcSnuffOutKasminaDecks, altCast("Snuff Out"), 300, 10},
 		{"alt-tap", mbcRallyDecks, altCast("Ramosian Rally"), 120, 20},
 		{"life-sac", mbcStrandsDecks, activate("Strands of Night"), 120, 10},
 		{"discard-sac", mbcArtistDecks, activate("Dreamscape Artist"), 120, 10},
@@ -75,6 +80,26 @@ var mbcSnuffOutDecks = [2][]cardset.Entry{
 	{
 		{Name: "Snuff Out", Count: 4}, {Name: "Grizzly Bears", Count: 12},
 		{Name: "Swamp", Count: 12}, {Name: "Forest", Count: 12},
+	},
+}
+
+// mbcSnuffOutKasminaDecks: Kasmina taxes every spell its controller's
+// opponents cast at a creature she or her controller keeps ({2} more). The
+// Snuff Out seat has one Swamp and free Ornithopters: its two mana-less
+// targets are its own, untaxed, and the printed {1}{B} is out of reach of one
+// land, so only the cast's own alternative cost (4 life) leaves a target it
+// can pay for. gorge prices each candidate with the cast's alternative cost
+// (affordableTargetCandidates, CR 601.2c, 601.2f, 118.9); the kernel's menu
+// must as well. No tax is ever paid (one land cannot), so the lands tapped
+// stay out of the comparison.
+var mbcSnuffOutKasminaDecks = [2][]cardset.Entry{
+	{
+		{Name: "Kasmina, Enigmatic Mentor", Count: 4}, {Name: "Ornithopter", Count: 12},
+		{Name: "Island", Count: 24},
+	},
+	{
+		{Name: "Snuff Out", Count: 12}, {Name: "Ornithopter", Count: 27},
+		{Name: "Swamp", Count: 1},
 	},
 }
 

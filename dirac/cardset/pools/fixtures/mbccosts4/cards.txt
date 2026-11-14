@@ -15,3 +15,5 @@ Plains
 Island
 Forest
 Mountain
+Kasmina, Enigmatic Mentor
+Ornithopter
