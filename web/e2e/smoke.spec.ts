@@ -1651,11 +1651,48 @@ async function answerOpenAsk(page: Page): Promise<void> {
   }
 }
 
+/** The seat of a live match, as the native REST API addresses it. */
+interface SeatRef {
+  request: APIRequestContext;
+  base: string;
+  table: string;
+  match: number;
+  seat: number;
+  token: string;
+}
+
+/**
+ * nativeHand reads the engine ids of the seat's hand from the native view. A card id in the DOM
+ * does not outlive an undo on SpellBench v2: that wire numbers each seat's objects in the order the
+ * seat first saw them, and an undo restarts the numbering at the rewound state. A land drawn after
+ * other objects were seen comes back under another number (the live game's 9 is 11 after the undo),
+ * or the same number when it was in the opening hand, so what a deal puts in front of the land
+ * decides whether a DOM id compares equal. The engine id is the same on every wire.
+ */
+async function nativeHand(s: SeatRef): Promise<string> {
+  const r = await s.request.get(`${s.base}/api/tables/${s.table}/matches/${s.match}/view?seat=${s.seat}&token=${encodeURIComponent(s.token)}`);
+  expect(r.ok(), `view of ${s.table} seat ${s.seat} (status ${r.status()})`).toBe(true);
+  const v = (await r.json()) as { players: Array<{ seat: number; hand: Array<{ id: number }> | null }> };
+  const hand = v.players.find((p) => p.seat === s.seat)?.hand ?? [];
+  return hand.map((c) => c.id).sort((x, y) => x - y).join(',');
+}
+
+/**
+ * pendingSeq is the seq of the decision the seat is asked, or null while nothing is asked of it.
+ * It falls when an undo rewinds the match, and rises when the match moves on.
+ */
+async function pendingSeq(s: SeatRef): Promise<number | null> {
+  const r = await s.request.get(`${s.base}/api/tables/${s.table}/matches/${s.match}/pending?seat=${s.seat}&token=${encodeURIComponent(s.token)}`);
+  if (r.status() === 409 || r.status() === 404) return null;
+  expect(r.ok(), `pending of ${s.table} seat ${s.seat} (status ${r.status()})`).toBe(true);
+  return ((await r.json()) as { seq: number }).seq;
+}
+
 /**
  * playLandUndoAndSpell plays a seated game from the mulligan until the seat has played a land,
  * taken it back, played one again and cast a spell with auto-pay, playing a land each turn until then.
  */
-async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
+async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): Promise<void> {
   const deadline = Date.now() + WIRE_GAME_MS;
   const hand = page.locator('.handfan [data-obj]');
   const asked = page.locator(`${PAYMENT_ANSWERS}, ${PICKABLE}, ${FOOTER}`);
@@ -1674,10 +1711,10 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
       await answerOpenAsk(page);
     } else if (!land && (await visible(landCard))) {
       did.push('land');
-      const before = await hand.count();
       // The land itself must come back: a count alone is fooled by a draw, since the client may
       // pass on into the next turn before the undo lands, and each undo then takes back one pass.
-      const played = page.locator(`.handfan [data-obj="${await landCard.getAttribute('data-obj')}"]`);
+      // The hand is compared by engine id, which an undo keeps (see nativeHand).
+      const handBefore = await nativeHand(seat);
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
         if (undone) {
           land = true;
@@ -1696,9 +1733,17 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
               return false;
             }
             undos++;
-            await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).catch(() => {});
-            await page.waitForTimeout(500);
-            return (await played.count()) > 0 && (await hand.count()) >= before;
+            const asking = await pendingSeq(seat);
+            const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
+            if (!clicked) return false;
+            // The server answers an undo with 204 and rewinds later, on the match's own goroutine.
+            // The next click must wait for that rewind, or it queues a second undo behind the first and
+            // takes back one action too many, past the land. A rewind lowers the pending decision's seq.
+            const rewound = await expect.poll(async () => {
+              const now = await pendingSeq(seat);
+              return asking !== null && now !== null && now < asking;
+            }, { timeout: 5_000, intervals: [100] }).toBe(true).then(() => true, () => false);
+            return rewound && (await nativeHand(seat)) === handBefore;
           }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
           undone = true;
         }
@@ -1764,7 +1809,7 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
           // The rail offers the log switch during the mulligan round; later it moves into Options.
           await page.locator('[data-log-toggle]').click({ timeout: WAIT_MS });
 
-          await playLandUndoAndSpell(page, label);
+          await playLandUndoAndSpell(page, label, { request, base: b, table: g.table, match: g.match, seat: g.seat, token: g.token });
 
           expect(await page.locator('[data-wire-notice]').count(), `${label} the table plays over the wire it asked for`).toBe(0);
           expect(sent.filter((p) => WIRE_SEND[wire].test(p)).length, `${label} answers went over ${wire}: ${sent.join(' ')}`).toBeGreaterThan(0);
