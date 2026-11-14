@@ -1683,6 +1683,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if tp.is("Threshold", "True") {
 		conds = append(conds, lCond{Kind: cThreshold})
 	}
+	if v, ok := tp.get("Blessing"); ok {
+		// gorge trigger_condition.go: Blessing$ True, the trigger's
+		// controller's city's-blessing latch (CR 702.131), an intervening-if
+		// checked as it triggers and again at resolution, as Threshold$ True
+		// joins the conds
+		if v != "True" {
+			return refuse("Blessing$ %q", v)
+		}
+		conds = append(conds, lCond{Kind: cBlessing})
+	}
 	if v, ok := tp.get("Hellbent"); ok {
 		// gorge trigger_condition_hellbent.go: "you have no cards in hand",
 		// an intervening-if re-checked at resolution
@@ -1956,6 +1966,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 					st.Cond = deliriumCond() // gorge graveyardCardTypeCount >= 4
 				case c == "Hellbent" && s.Mode == "Continuous":
 					st.Cond = lCond{Kind: cValue, A: lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
+				case c == "Blessing" && (s.Mode == "Continuous" || s.Mode == "CantBlockBy"):
+					// gorge condBlessing: the controller's latch (CR 702.131).
+					// A CantBlockBy static's condition rides Static.Cond2,
+					// which the kernel's blockForbiddenGen consults through
+					// statCond with the static's controller, the same
+					// context gorge's BlockRestricted' StaticGateHolds walk
+					// reads the condition against.
+					st.Cond = lCond{Kind: cBlessing}
 				default:
 					return refuse("static Condition %q", c)
 				}
@@ -1975,6 +1993,11 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 				c.Op, c.B = op, b
 			}
 			st.Cond = andCond(st.Cond, c)
+		}
+		if s.Mode == "AlternativeCost" {
+			if err := altCostSecondSVar(lc, sp, &st); err != nil {
+				return err // lower_altcostsecondsvar.go
+			}
 		}
 		if ip, ok := sp.get("IsPresent"); ok {
 			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
@@ -2731,7 +2754,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	hard := false
-	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes"} {
+	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes", "RemoveLandTypes"} {
 		if _, ok := sp.m[k]; ok {
 			hard = true
 		}
@@ -2758,6 +2781,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		st.Override = &lOverride{RemoveKw: ks}
 		lc.out.overrides = append(lc.out.overrides, st.Override)
+		if err := cantHaveKeyword(sp, st); err != nil {
+			return nil, err // lower_canthavekw.go
+		}
 	}
 	if p, ok := sp.get("AddPower"); ok {
 		if st.Power, err = lc.value(p); err != nil {
@@ -3294,6 +3320,11 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		o.AddKw = ks
 	}
+	if v, ok := sp.get("RemoveLandTypes"); ok {
+		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
+			return nil, err
+		}
+	}
 	if removeCard {
 		o.HasSetTypes = true
 		o.HasSetSubtypes = true
@@ -3330,7 +3361,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 				// cover any plain-shaped card then. Without the Land type the
 				// intrinsic still applies in gorge but the kernel's blgMask
 				// reads only lands, so that shape stays refused.
-				if o.SetTypes&typeBits["Land"] == 0 {
+				if o.SetTypes&typeBits["Land"] == 0 && !o.SetLandSub {
 					return nil, refuse("override adds basic land type %q", w)
 				}
 			}
@@ -4240,7 +4271,7 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
 			}
-			if err := lc.choosePlayer(ps); err != nil {
+			if err := lc.choosePlayer(ps, false); err != nil {
 				return err
 			}
 		case "RevealHand":

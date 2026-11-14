@@ -53,9 +53,9 @@ const (
 // The asks just above raGenManifestDread live in its free offsets (+4..+6),
 // not in the iota block above: the offset families that anchor at
 // raGenManifestDread (+1/+2 modal_activated.go, +3 zone_changezoneparams.go's
-// may-mill, +40.. act_mayask.go, ...) assign values by addition, so the next
-// iota value would alias one of them and its first handler would claim the
-// other family's election.
+// may-mill, +7 act_libplace.go, +8 repl_chooseplayer.go, +40.. act_mayask.go,
+// ...) assign values by addition, so the next iota value would alias one of
+// them and its first handler would claim the other family's election.
 const (
 	raGenDigAllOpt = raGenManifestDread + 4 // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 	raGenCmdZone   = raGenManifestDread + 5 // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
@@ -862,6 +862,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		// gorge's effCleanup clears the source's persistent remembered list
+		// with the resolution's own (events.Choose "clear-remembered"); the
+		// persistent mark dies with it (interp_gen.go rememberMarkClr).
+		s.rememberMarkClr()
 		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
@@ -969,6 +973,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
+		}
+		if in.C == chooseAttachDest {
+			return s.attachDest(k, p) // tgt_attachdest.go
 		}
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go
@@ -1310,6 +1317,31 @@ func (s *State) remember(o Obj) {
 		s.g.rem[s.g.nrem] = o
 		s.g.nrem++
 	}
+	// The source's persistent remembered list (gorge's event-backed
+	// o.Remembered, the Choose "remembered" fold each RememberChanged-style
+	// write emits) is non-empty from this resolution on: the host half of a
+	// ConditionDefined$ Remembered group gate reads it (gorge
+	// rememberedWithSource; Forge's areMet reads host.getRemembered(), which
+	// survives the resolution). A mark, never a set: the gate only asks
+	// whether some earlier resolution wrote anything. No touch: the mark is
+	// not part of o's projected view, its reads gate actions instead.
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjSet(s.k(), mechRem, o)
+	}
+}
+
+// rememberMarkClr empties the resolving source's persistent-remembered mark:
+// the full clears of the remembered state (gorge's effCleanup
+// ClearRemembered$, forgetOther's ForgetOtherRemembered$/ForgetOtherTargets$
+// -- the Choose "clear-remembered" fold) empty the source's persistent
+// o.Remembered with the resolution's own set, and exprs.go CondRemMark reads
+// the mark in its place. A one-object forget (gorge forgetRememberedOne,
+// ForgetChanged$/Play's ForgetPlayed$) drops one list member and leaves the
+// mark standing: the mark holds no membership, only non-emptiness.
+func (s *State) rememberMarkClr() {
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjClr(s.k(), mechRem, o)
+	}
 }
 
 // moveObj moves object o (named by ref r) to zone z of its owner; it
@@ -1380,6 +1412,10 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 			s.capFull(StallDmgMap)
 		}
 		return
+	}
+	if in.C&kop.DmgNoPrevention != 0 {
+		s.res.flags |= rfNoPrev // static_cantprevent.go: read by every prevention gate during this damage
+		defer func() { s.res.flags &^= rfNoPrev }()
 	}
 	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot

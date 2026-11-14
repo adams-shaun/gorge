@@ -3006,6 +3006,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["NoRegenTarget"]; ok {
 			c |= kop.DmgNoRegenTarget
 		}
+		if _, ok := fl["NoPrevention"]; ok {
+			c |= kop.DmgNoPrevention // lower_noprevention.go
+		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped
 			cb.inDamageMap = true
@@ -3913,7 +3916,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "GiveGift":
 		ki.Op = kop.OpGiveGift
 	case "GainEnergy":
-		ki.Op = kop.OpGainEnergy
+		ki.Op, ki.C = kop.OpGainEnergy, int16(in.C) // C: kop.PlCtrEnergy / kop.PlCtrExperience
 	case "Proliferate":
 		ki.Op = kop.OpProliferate
 	case "Saddle":
@@ -4120,7 +4123,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtLibPlace)), int16(in.C)
 	case "AttacksIfAble":
 		// OpExt ExtAttacksIfAble, Obj the target that attacks this turn if able
-		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble))
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble)), int16(in.C)
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
@@ -4229,6 +4232,14 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("DividedCounters Obj %d", ki.Obj)
 		}
 		ki.Op, ki.A, ki.C, ki.Obj = kop.OpExt, kop.Const(int(kop.ExtDividedCounters)), int16(slot), kop.RefSelf
+		if in.CS != "" {
+			// the literal-N form's CounterType$ (Contagion's M2M1): B.N the kind
+			k, err := counterKind(in.CS)
+			if err != nil {
+				return ki, err
+			}
+			ki.B = kop.Const(int(k))
+		}
 	case "DrainMana":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDrainMana))
 	case "CounterLose":
@@ -4321,10 +4332,20 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.CS == "Many" {
 			ki.C = 1 // the DpMany program's up to four objects (Mobilize 3-4)
 		}
+	case "DmgRedirect":
+		// OpExt ExtDmgRedirect, Obj the recipient, C the kop.DmgRedirect* kind (dirac/repl_dmgredirect.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtDmgRedirect)), int16(in.C)
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "Renown":
+		// OpExt ExtRenown on Obj (the source), B the counter count (dirac/act_renown.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtRenown)), v
 	case "PreventNext":
 		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
 		v, err := cb.value(in.A)
@@ -4581,6 +4602,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			ki.C = 4 // chooseAttachPick: the object-side Attach pick, mandatory
 		case "AttachPickOpt":
 			ki.C = 5 // chooseAttachPickOpt: the same pick, up to one
+		case "AttachDest":
+			ki.C = 10 // chooseAttachDest: the destination-side Attach pick over the remembered group (Fumble)
 		case "PutCounterPick":
 			ki.C = 6 // choosePutCounterPick
 		case "FaceDownPick":
@@ -4952,6 +4975,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberSearcher)) // zone_remembersearcher.go
 	case "RememberAll":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberAll)) // lower_rememberwritersmass.go
+		if in.CS == "ObjOrder" {
+			ki.C = kop.RememberAllObjOrder // lower_attachgroup.go
+		}
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
@@ -4993,6 +5019,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "ChoosePlayerEnter":
 		// an as-enters opponent (lower_chooseplayerenter.go)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayer))
+	case "ChoosePlayerMid":
+		// a mid-resolution opponent choice (lower_chooseplayermid.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid))
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

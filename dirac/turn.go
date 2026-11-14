@@ -657,7 +657,10 @@ func (s *State) sba(k *prep) bool {
 			}
 		}
 		if k.ctrMana {
-			s.sbaCtrTough(k, &die, &gy) // -0/-1 counters (mana_countercost.go)
+			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
+		}
+		if k.gen != nil && k.gen.anyM2M1 {
+			s.sbaCtrTough(k, kop.CtrM2M1, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1)
 		}
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {
@@ -698,6 +701,9 @@ func (s *State) sba(k *prep) bool {
 					}
 				}
 			}
+		}
+		if k.ascend {
+			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
 		}
 		all := die.or(gy)
 		if k.gen != nil && k.gen.equipAnim && s.sbaAttachedCreatures(k, all) && !all.any() {
@@ -1117,6 +1123,9 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	case kop.OpSacrifice:
 		if s.sacBlocked(k, sl) {
 			return // gorge effSacrifice skips a permanent that can't be sacrificed (static_cantsacrifice.go)
+		}
+		if s.sacDelayPark(k, sl) {
+			return // the move's CR 616.1 order ask waits; runParkedMass makes the sacrifice with the move (repl_sacbatch.go)
 		}
 		s.fireSac(k, sl)
 		s.leave(k, sl, kop.ZoneGraveyard, false)

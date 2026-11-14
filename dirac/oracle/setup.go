@@ -112,6 +112,12 @@ func (m *Matchup) SeatCommanders(s int) (cmd, partner int) {
 
 // setSeatCommanders sets seat s's commander and partner.
 func (m *Matchup) setSeatCommanders(s, cmd, partner int) {
+	// A pair no constructed deck may play but a Commander draft may is why
+	// DraftPartners is set; deriving it here seats a replayed record (a
+	// repro, a game file) as the run that wrote it did.
+	if d := m.SeatDeck(s); cmd >= 0 && partner >= 0 && cmd < len(d) && partner < len(d) && !deck.IsCommanderPair(d[cmd], d[partner]) && deck.IsDraftCommanderPair(d[cmd], d[partner]) {
+		m.DraftPartners = true
+	}
 	if s < 2 {
 		m.Commanders[s], m.Partners[s] = cmd, partner
 		return
@@ -258,9 +264,6 @@ func (c *Corpus) readCommanders(m *Matchup) error {
 			p := -1
 			if len(ix) > 1 {
 				p = ix[1]
-				if d := m.SeatDeck(s); ix[0] < len(d) && p < len(d) && !deck.IsCommanderPair(d[ix[0]], d[p]) && deck.IsDraftCommanderPair(d[ix[0]], d[p]) {
-					m.DraftPartners = true
-				}
 			}
 			m.setSeatCommanders(s, ix[0], p)
 		}
