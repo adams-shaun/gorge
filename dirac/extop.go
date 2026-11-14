@@ -134,6 +134,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtMustBeBlocked:
 		s.mustBlockExt(k, in) // combat_mustbeblocked.go
 		return true, true
+	case kop.ExtKwMark:
+		s.kwMarkExt(k, in) // kw_kwmark.go
+		return true, true
 	case kop.ExtGrantKwAll:
 		s.grantKwAll(k, in) // act_grantkwall.go
 		return true, true
