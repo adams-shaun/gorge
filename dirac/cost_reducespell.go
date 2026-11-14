@@ -158,7 +158,11 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			cost = addCost(cost, cd.Kicker)
 		}
 		cost = cost.AtX(int(e.x))
-		if av.affords(&cost, pipMaskOf(&cost), 0) {
+		ok := av.affords(&cost, pipMaskOf(&cost), 0)
+		if s.bld().bfl&bflAnyColor != 0 {
+			ok = av.affordsAnyColor(&cost, 0) // the may-play any-colour rider prices each target too (CR 609.4b)
+		}
+		if ok {
 			buf[m] = buf[i]
 			m++
 		}

@@ -1,0 +1,6 @@
+family: mech
+name: mechHexUB
+value: 40
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has hexproof from blue and from black this turn (TurnReplHexUB; repl_turnrepl.go)

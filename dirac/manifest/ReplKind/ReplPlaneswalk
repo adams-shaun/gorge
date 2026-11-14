@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplPlaneswalk
+value: 52
+forge: Planeswalk
+census: repl Planeswalk all=2 std=0 mbc=0 sole=1
+state: objspace (planechase)
+status: blocked objspace:tcode

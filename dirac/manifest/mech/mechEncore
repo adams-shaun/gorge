@@ -1,0 +1,6 @@
+family: mech
+name: mechEncore
+value: 54
+state: objbit 32/64
+status: active
+doc: object mask: graveyard cards with a granted encore (Araumi of the Dead Tide; kw_encoregrant.go)

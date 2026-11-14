@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtActivateAbility
+value: 64
+forge: ActivateAbility
+census: api ActivateAbility all=2 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -3,8 +3,8 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Agility Bobblehead's "can't be blocked this turn except by creatures with
-// haste" (gorge Effect Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered |
-// ValidBlocker$ Creature.withoutHaste; CR 509.1b, 702.10a, 611.2c).
+// haste" (gorge: an Effect granting a CantBlockBy static on the remembered
+// attacker against blockers without haste; CR 509.1b, 702.10a, 611.2c).
 // ExtExHaste records, until the cleanup step, the attacker (obj, ver) in
 // State.cold.exH; canBlock refuses a blocker without haste (its CURRENT
 // keywords, so the same turn's KW$ Haste grant to the blocker's own side
@@ -31,6 +31,15 @@ var DebugExHasteOff bool
 // maxExH bounds the live records of a turn; a further one is a loud stall,
 // never a dropped restriction.
 const maxExH = 16
+
+// coldExH is the turn's records, for a table with ExtExHaste; an empty one is
+// simply full.
+var coldExH = newCold[exhRec]("exH", func(g *genPrep) int {
+	if g.anyExHaste {
+		return maxExH
+	}
+	return 0
+}).view(func(c *coldArrays) *[]exhRec { return &c.exH })
 
 // StallExHaste: a seventeenth Ext ExHaste record in one turn (State.cold.exH).
 const StallExHaste = 112

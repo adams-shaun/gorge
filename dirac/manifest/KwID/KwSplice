@@ -1,0 +1,7 @@
+family: KwID
+name: KwSplice
+value: 37
+forge: Splice
+census: kw Splice all=30 std=0 mbc=0 sole=24
+state: code 0
+status: reserved

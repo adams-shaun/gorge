@@ -1,0 +1,6 @@
+family: mech
+name: mechMustBlocked
+value: 17
+state: slotbit 16/16
+status: active
+doc: slots whose permanent must be blocked this turn if able (CR 509.1c; combat_mustbeblocked.go)

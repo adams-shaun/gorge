@@ -214,8 +214,8 @@ func (m effMem) apply(em *lEmblem, ce *lInstr) {
 }
 
 // effectPairCondition lowers the gate of an Effect that remembers both of the
-// chain's targets (T'Pring, Never Parted: ConditionDefined$ Targeted |
-// ConditionPresent$ Creature | ConditionCompare$ EQ2): the Effect is created
+// chain's targets (T'Pring, Never Parted: a condition that exactly two of the
+// targets are creatures): the Effect is created
 // only while both targets are still creatures, each read as gorge reads a
 // defined card (a moved card as a card in its new zone, countRefMatches).
 // found is false for any other gate.

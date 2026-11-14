@@ -204,7 +204,7 @@ func leaveCombatWithNoBlockers(t *testing.T, e *Engine) {
 
 // TestRestrictValidDotlessSpell pins the bare `Spell` term on its real corpus
 // producer: Klauth, Unrivaled Ancient's attack trigger
-// (`PersistentMana$ True | RestrictValid$ Spell`) — the persistent batch is
+// (persistent mana that only spells may spend) — the persistent batch is
 // admitted for a spell payment (and consumed from the restricted batch,
 // shrinking it), while an activated-ability payment never sees it, before or
 // after the spell spend.

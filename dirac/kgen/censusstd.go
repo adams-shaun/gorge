@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/manifest"
 )
 
 // setlistDir is the registered set-list directory, relative to the module
@@ -952,7 +954,8 @@ func stdSetCodes(flagValue string) ([]string, error) {
 }
 
 // runStdCensus prints the eight -census-std tables and, if asked, writes the
-// per-refusal TSV dump.
+// per-refusal TSV dump, whose manifest column reads dirac/manifest from the
+// working directory, the module root.
 func runStdCensus(dir, cardsDir string, std []string, tsvPath string, w io.Writer) error {
 	res, err := computeSetlistCensus(dir, cardsDir, std)
 	if err != nil {
@@ -960,11 +963,15 @@ func runStdCensus(dir, cardsDir string, std []string, tsvPath string, w io.Write
 	}
 	writeStdCensus(w, res)
 	if tsvPath != "" {
+		man, err := manifest.Read(os.DirFS("."))
+		if err != nil {
+			return err
+		}
 		f, err := os.Create(tsvPath)
 		if err != nil {
 			return err
 		}
-		if err := writeStdTSV(f, res); err != nil {
+		if err := writeStdTSV(f, res, man); err != nil {
 			f.Close()
 			return err
 		}
@@ -1074,17 +1081,20 @@ func writeJointSection(w io.Writer, title, noun string, j stdJoint, tierOf func(
 	fmt.Fprintln(w)
 }
 
-func writeStdTSV(w io.Writer, res *stdCensusResult) error {
+// writeStdTSV writes the per-refusal dump: set, card, via, node, class,
+// reason, label and manifest, the entry the refusal needs (manifestColumn;
+// "-" with no man). An accepted card's row has only set and card.
+func writeStdTSV(w io.Writer, res *stdCensusResult, man *manifest.Tree) error {
 	for _, r := range res.tsv {
 		if r.class == "" {
-			if _, err := fmt.Fprintf(w, "%s\t%s\t\t\t\t\t\n", tsvField(r.set), tsvField(r.card)); err != nil {
+			if _, err := fmt.Fprintf(w, "%s\t%s\t\t\t\t\t\t\n", tsvField(r.set), tsvField(r.card)); err != nil {
 				return err
 			}
 			continue
 		}
-		if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			tsvField(r.set), tsvField(r.card), tsvField(r.via), tsvField(r.node),
-			tsvField(r.class), tsvField(r.reason), tsvField(r.label)); err != nil {
+			tsvField(r.class), tsvField(r.reason), tsvField(r.label), manifestColumn(man, r.class, r.reason)); err != nil {
 			return err
 		}
 	}

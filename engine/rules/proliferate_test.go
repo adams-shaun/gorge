@@ -309,7 +309,7 @@ func TestProliferateZeroEligibleCompletesSilently(t *testing.T) {
 
 // TestProliferateAsLoyaltyAbilityIsOncePerTurn pins the CR 606 path on the
 // exact ability body Ichormoon Gauntlet grants its planeswalkers ("[0]:
-// Proliferate" -- `Cost$ AddCounter<0/LOYALTY> | Planeswalker$ True`): the
+// Proliferate", a zero-loyalty planeswalker ability): the
 // ability is classified a loyalty ability, offered, its free cost consumes
 // nothing, and the second activation in the same turn is withheld (CR 606.3).
 // The proliferate then asks and adds +1 loyalty to the walker it names.

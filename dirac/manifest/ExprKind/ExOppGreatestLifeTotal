@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExOppGreatestLifeTotal
+value: 98
+forge: OppGreatestLifeTotal
+census: count OppGreatestLifeTotal all=3 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

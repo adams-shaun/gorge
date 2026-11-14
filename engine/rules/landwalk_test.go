@@ -228,7 +228,7 @@ func TestLandwalkSnowQualifierForms(t *testing.T) {
 
 // TestLandwalkReadsGrantedLandType proves the rule reads the land's DERIVED
 // (layer-4) type, not only its printed type: Yavimaya, Cradle of Growth's
-// `S:Mode$ Continuous | Affected$ Land | AddType$ Forest` grants the Forest
+// continuous static that makes every land a Forest grants the Forest
 // type to the defending player's non-Forest land, and that granted type alone
 // must confer forestwalk. This exercises the DerivedTypes table landwalkEvades
 // binds through withNames; a printed-type-only read passes every other test in

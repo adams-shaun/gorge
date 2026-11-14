@@ -3,9 +3,9 @@ package rules
 // cantexile1: the CantExile half of The Master, Multiplied's reminder text --
 // "Triggered abilities you control can't cause you to sacrifice or exile
 // creature tokens you control." -- is evaluated, not skipped by the
-// parameter whitelist. The card's `S:Mode$ CantExile | ValidCard$
-// Creature.YouCtrl+token | ValidCause$ Triggered.YouCtrl | ForCost$ False`
-// line is read by rules.Engine.ExileBlocked (engine/rules/layers.go), the CantExile
+// parameter whitelist. The card's CantExile static (creature tokens you
+// control, when the cause is a triggered ability you control, not as a cost)
+// is read by rules.Engine.ExileBlocked (engine/rules/layers.go), the CantExile
 // sibling of the CantSacrifice walk master_multiplied_restriction_test.go
 // pins. BEFORE this fix effects.CantExileRestrictionParamsReadable did not
 // exist and no exile mover consulted a CantExile restriction, so a triggered

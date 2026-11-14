@@ -1,0 +1,7 @@
+family: key
+name: keyDayNight
+value: 12
+forge: day/night
+census: key day/night classes=5 all=26
+state: global 1
+status: reserved

@@ -191,8 +191,8 @@ func TestTocasiasWelcomeDrawsOncePerTurn(t *testing.T) {
 
 // TestMorbidOpportunistDrawsOncePerTurn is the sibling carrier end to end:
 // "Whenever one or more other creatures die, draw a card. This ability
-// triggers only once each turn." The spec is ValidCards$ Creature.Other |
-// Origin$ Battlefield | Destination$ Graveyard, where Other is Forge's
+// triggers only once each turn." The spec is another creature going from the
+// battlefield to the graveyard, where Other is Forge's
 // not-the-source predicate (engine/effects/filter.go) -- any creature other than
 // the Opportunist itself, either side's.
 //

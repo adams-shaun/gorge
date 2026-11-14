@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExManaPool
+value: 85
+forge: ManaPool
+census: count ManaPool all=4 std=1 mbc=0 sole=1
+state: code 0
+status: reserved

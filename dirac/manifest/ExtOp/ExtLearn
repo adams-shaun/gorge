@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtLearn
+value: 22
+forge: Learn
+census: api Learn all=23 std=0 mbc=0 sole=18
+state: code 0
+status: reserved

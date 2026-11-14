@@ -188,8 +188,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect belongs to this card", never the remembered card itself. The
 	// corpus's dig-and-play family (Superior Foes of Spider-Man, Furious
 	// Rise, Unstable Amulet) then ends the previous effect through its
-	// trigger's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
-	// Destination$ Exile` (exiling the imprinted token is exiling the
+	// trigger's ChangeZone of the imprinted token from the command zone to
+	// exile (exiling the imprinted token is exiling the
 	// effect -- the "until you exile another card" lifetime), and Word of
 	// Command / Semester's End run the same idiom inside one chain. This
 	// build has no effect-token object, so the marker rides every
@@ -204,9 +204,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	imprintOnHost := ep.ImprintOnHostTrue
 	// ForgetOnPhasedIn$ True (CR 702.25, the "phase out until CARDNAME leaves
 	// the battlefield" family: Out of Time, Oubliette, The Moment). The
-	// Effect's comeback trigger is a printed ChangesZone trigger
-	// (Origin$ Battlefield | Destination$ Any | ValidCard$ Card.IsImprinted,
-	// Static$ True) whose Duration$ Permanent lifetime has no turn ceiling:
+	// Effect's comeback trigger is a printed static ChangesZone trigger on
+	// the imprinted card leaving the battlefield, whose permanent lifetime has no turn ceiling:
 	// it lives until the Effect's own DBExileSelf body runs. The turn-ceiling
 	// registration below cannot express that, so a Permanent lifetime is
 	// allowed only for this marker and only for a ChangesZone body (the
@@ -414,7 +413,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if tr.Mode == "BecomeMonarch" {
 			// Palace Jailer's one-shot command-zone promise. It is CONSUMED
 			// by its own firing, not retired by a turn ceiling, and its
-			// `Duration$ Permanent | ForgetOnMoved$ Exile` lifetime is
+			// permanent lifetime (forgotten once the card leaves exile) is
 			// exactly what the promise already means, so the turn-bound
 			// lifetime guard below does not apply to it.
 			//
@@ -1120,8 +1119,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			} else if goadStaticGrantReadable(params) {
 				// A Goad$ True static delivered by the Effect (staticgoad1:
 				// Hot Pursuit's IsGoaded body, Immortal Obligation's Static --
-				// `Mode$ Continuous | Affected$ Creature.IsRemembered |
-				// Goad$ True`). Registered into the continuous registry as a
+				// a continuous static that goads the remembered creatures).
+				// Registered into the continuous registry as a
 				// Restriction ("Goad") the same shape the MustAttack and
 				// CanAttackDefender requirement grants use, so rules'
 				// combat.staticGoaders -- the reader BOTH routes share -- matches its
@@ -1148,6 +1147,42 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetCounter:  forgetCounter,
 					ImprintOnHost:  imprintOnHost,
 				})
+				registered = true
+			} else if trigs, affected, ok := addTriggerGrantFromLine(params, c.SVars); ok {
+				// AddTrigger$ (Olinda the Oblivious, Obsidian Fireheart): the
+				// Affected$ objects -- almost always Card.IsRemembered, the
+				// Effect's own captured set -- gain the named triggered
+				// ability for the Effect's lifetime, one registration per
+				// named trigger through the SAME ContinuousEffect.AddTrigger
+				// the printed S: route and the Animate Triggers$ grant feed
+				// (engine/rules/trigger_granted.go's granted walk matches it
+				// with the registered Remembered bound, and resolves its
+				// Execute$ off this source's SVar table). The counter and
+				// move lifetimes ride the registration, so "for as long as it
+				// has an odor counter" ends the grant when the last counter
+				// goes (effectCounterSweep).
+				for i := range trigs {
+					t := trigs[i]
+					effectContinuous(h, state.ContinuousEffect{
+						Source:            c.Source,
+						Controller:        c.Controller,
+						Layer:             state.LAbilities,
+						Affects:           affected,
+						AddTrigger:        &t,
+						Name:              effectName,
+						UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
+						Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+						Duration:          dur,
+						Remembered:        remembered,
+						RememberedPlayers: effectRememberedPlayers(h, c, sa),
+						ForgetOnMoved:     forgetOn,
+						ExileOnMoved:      exileOn,
+						ForgetCounter:     forgetCounter,
+						ImprintOnHost:     imprintOnHost,
+						ForgetOnCast:      forgetOnCast,
+						ChosenNumber:      chosenNumber,
+					})
+				}
 				registered = true
 			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant

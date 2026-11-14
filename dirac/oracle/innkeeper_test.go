@@ -28,17 +28,8 @@ var kinnkeeperDecks = [2][]cardset.Entry{
 	},
 }
 
-// gorgeInnkeeperFixTime is gorge cr-player-counter-doubling (4f1770faa), the
-// commit time in UTC: before it gorge never doubles a player's counters
-// (rules/replacement_match.go failed ValidObject$ ...,Player closed on a
-// PlayerCounterChange), so the lockstep diverged on poison.
-const gorgeInnkeeperFixTime = "20261026101743"
-
 func TestInnkeeperLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeInnkeeperFixTime) {
-		t.Skip("gorge pin predates cr-player-counter-doubling (4f1770faa): player counters are never doubled")
-	}
 	reg, set, decks, tbl := p3Setup(t, "innkeeper", kinnkeeperDecks)
 	p3Lockstep(t, "innkeeper", reg, set, decks, tbl, 600)
 }

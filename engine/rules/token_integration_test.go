@@ -29,8 +29,8 @@ import (
 // trigger its entry queues), and checks two things end to end: a token
 // actually lands on the battlefield under the casting player's control
 // (api:Token's own job), and Ctx.Remembered carries that token far enough
-// for the trigger's chained SubAbility$ -- __kwLWAttach, `DB$ Attach |
-// Defined$ Remembered | Object$ Self` -- to actually run and hit
+// for the trigger's chained SubAbility$ -- __kwLWAttach, attaching the
+// source to the remembered token -- to actually run and hit
 // Resolve's "unimplemented API" fallback (Attach is separate, not
 // registered yet). That Note is today's correct, honest outcome; once
 // Attach is registered, this test's last assertion should flip to checking

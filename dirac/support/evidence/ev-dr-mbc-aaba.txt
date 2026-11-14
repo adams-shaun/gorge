@@ -11,10 +11,12 @@ Crowned Ceratok
 Curse of Shallow Graves
 Daggerback Basilisk
 Dakmor Sorceress
+Daydream
 Deathreap Ritual
 Deglamer
 Dragon's Approach
 Embereth Shieldbreaker
+Ethereal Armor
 Falkenrath Celebrants
 Forest
 Gaea's Embrace
@@ -49,9 +51,11 @@ Order of Midnight
 Painter's Studio
 Plains
 Prosperous Innkeeper
+Rabbit Battery
 Rally the Monastery
 Reckless Rage
 Reckoner's Bargain
+Rest in Peace
 Ruination
 Ruthless Knave
 Sarkhan's Rage
@@ -80,3 +84,4 @@ Undead Augur
 Whispersilk Cloak
 Wing Splicer
 Wirewood Guardian
+Zulaport Enforcer

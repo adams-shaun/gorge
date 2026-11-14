@@ -1,0 +1,7 @@
+family: key
+name: keyCrewed
+value: 14
+forge: crewed
+census: key crewed classes=6 all=25
+state: slotbit 16
+status: reserved

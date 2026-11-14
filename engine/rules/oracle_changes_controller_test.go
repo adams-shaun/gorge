@@ -8,7 +8,8 @@ import (
 )
 
 // Zidane's "Whenever an opponent gains control of a permanent from you"
-// (ValidCard$ Card.OppCtrl | ValidOriginalController$ You): the two filters
+// (a card an opponent controls whose original controller is you): the two
+// filters
 // hold only POST-change, so the trigger fires on p1's Threaten taking a p0
 // creature and its Treasure resolves. CR 603.10 (the trigger reads the card
 // as the event left it, beside the original-controller filter).

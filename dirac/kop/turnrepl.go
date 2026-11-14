@@ -4,19 +4,19 @@ package kop
 // side of the board rather than one object. C selects which:
 //
 //	TurnReplExileOpp: "if a creature an opponent controls would die this turn,
-//	exile it instead" (Malicious Eclipse's Event$ Moved | ValidLKI$
-//	Creature.OppCtrl | Origin$ Battlefield | Destination$ Graveyard). It also
+//	exile it instead" (Malicious Eclipse's Moved replacement on an opposing
+//	creature going from the battlefield to the graveyard). It also
 //	catches an opposing creature that enters after the Effect resolved, which
 //	the per-slot ExtExileExMark cannot. The kernel keeps one scope record in
 //	its exile-instead table (cold exMark); dieZone reads it beside the marks.
 //	TurnReplPlusCreatureCtr: "if one or more +1/+1 counters would be put on a
 //	creature you control, put that many plus one +1/+1 counters on it instead"
-//	(Prairie Dog's Event$ AddCounter | ValidCard$ Creature.YouCtrl |
-//	ValidCounterType$ P1P1), a per-player count in the cold buffer beside
+//	(Prairie Dog's AddCounter replacement on +1/+1 counters put on a creature
+//	you control), a per-player count in the cold buffer beside
 //	ExtCounterPlusEOT's genState.plusCtr.
 //	TurnReplUncounter, TurnReplUncounterCreature: "spells you control can't be
-//	countered this turn" (Veil of Summer's Event$ Counter | ValidSA$
-//	Spell.YouCtrl | Layer$ CantHappen) and "creature spells you cast this turn
+//	countered this turn" (Veil of Summer's CantHappen Counter replacement on
+//	the spells you control) and "creature spells you cast this turn
 //	can't be countered" (Domri, Anarch of Bolas's ValidSA$
 //	Spell.Creature+wasCastByYou): a scope record in the exile-instead table
 //	(cold exMark) naming the controller; the kernel's uncounterable reads it

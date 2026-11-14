@@ -1,14 +1,17 @@
 package eventhost
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/adams-shaun/gorge/draft/event"
+	"github.com/adams-shaun/gorge/draft/limited"
 	"github.com/adams-shaun/gorge/draft/limited/build"
 	"github.com/adams-shaun/gorge/draft/limited/pickbot"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -283,12 +286,101 @@ func TestCommanderDeckSizeFollowsTheEvent(t *testing.T) {
 		if got := r.commanderDeckSize(); got != tc.want {
 			t.Errorf("EventCreated deck size %d: run deck size %d, want %d", tc.named, got, tc.want)
 		}
-		d, b := commanderPersona(nil, r.commanderDeckSize())
+		d, b := commanderPersona(nil, r.commanderDeckSize(), nil)
 		if got := d.(*pickbot.CommanderDrafter).DeckSize; got != tc.want {
 			t.Errorf("EventCreated deck size %d: drafter DeckSize %d, want %d", tc.named, got, tc.want)
 		}
 		if got := b.(*pickbot.CommanderBuilder).DeckSize; got != tc.want {
 			t.Errorf("EventCreated deck size %d: builder DeckSize %d, want %d", tc.named, got, tc.want)
 		}
+	}
+}
+
+// commanderFirstPicks creates a seeded one-human MBC Commander draft on a
+// host built with value (nil = Heuristic) and reads back the human's first
+// pack, its /advice for that pack, and bot seat 1's first pick (its name).
+func commanderFirstPicks(t *testing.T, value func(*cards.Card, limited.CardRef) float64) (protocol.DraftPack, protocol.DraftAdvice, string) {
+	t.Helper()
+	h, _ := newHost(t, func(o *Options) { o.CommanderValue = value })
+	resp := createOK(t, h, commanderReq())
+	tok, _ := humanToken(t, resp)
+	joinOK(t, h, resp.Event, tok, "Ann")
+	pk := packOf(t, h, resp.Event, tok)
+	adv, err := h.DraftAdvice(resp.Event, tok)
+	if err != nil || len(adv.Picks) == 0 {
+		t.Fatalf("advice %+v err %v", adv, err)
+	}
+	r := runOf(t, h, resp.Event)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, en := range r.ev.Log() {
+		if en.Kind == event.KindPicked && en.Seat == 1 && en.Round == 1 && en.PickNo == 1 {
+			for _, c := range r.ev.Pool(1) {
+				if c.ID == en.ID {
+					return pk, adv, c.Name
+				}
+			}
+		}
+	}
+	t.Fatal("bot seat 1 made no first pick")
+	return pk, adv, ""
+}
+
+// nameOfID is the pack card's name for an id.
+func nameOfID(pk protocol.DraftPack, id string) string {
+	for _, c := range pk.Pack {
+		if c.ID == id {
+			return c.Name
+		}
+	}
+	return ""
+}
+
+// TestCommanderValueReachesBotsAndAdvice: Options.CommanderValue (a ratings
+// table loaded as gorged's -commander-ratings does, through
+// pickbot.ParseRatingsOverride) replaces Heuristic for every Commander-draft
+// seat: a stub table that rates the default top picks lowest and the human's
+// other pack commanders highest changes a bot's first pick and the human's
+// /advice rank order, and the advice's Value is the table's.
+func TestCommanderValueReachesBotsAndAdvice(t *testing.T) {
+	pk, adv, botPick := commanderFirstPicks(t, nil)
+	top := nameOfID(pk, adv.Picks[0].ID)
+	table := map[string]map[string]float64{top: {"blended": 0}, botPick: {"blended": 0}}
+	for _, c := range pk.Pack {
+		if c.Commander && c.Name != top && c.Name != botPick {
+			table[c.Name] = map[string]float64{"blended": 1}
+		}
+	}
+	if len(table) < 3 {
+		t.Fatalf("seed 7's first pack holds no second commander: %d table entries", len(table))
+	}
+	raw, err := json.Marshal(table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ov, err := pickbot.ParseRatingsOverride(raw, "stub.json", "blended", "MBC")
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := ov.CommanderValue(pickbot.DefaultTuning)
+
+	pk2, adv2, botPick2 := commanderFirstPicks(t, value)
+	if nameOfID(pk2, pk2.Pack[0].ID) != nameOfID(pk, pk.Pack[0].ID) {
+		t.Fatal("the two hosts dealt different packs")
+	}
+	top2 := nameOfID(pk2, adv2.Picks[0].ID)
+	t.Logf("advice top %q -> %q; bot seat 1 first pick %q -> %q", top, top2, botPick, botPick2)
+	if top2 == top {
+		t.Errorf("advice top pick %q unchanged by the value table", top)
+	}
+	if table[top2]["blended"] != 1 {
+		t.Errorf("advice top pick %q is not a card the table rates highest", top2)
+	}
+	if botPick2 == botPick {
+		t.Errorf("bot seat 1's first pick %q unchanged by the value table", botPick)
+	}
+	want := value(nil, limited.CardRef{Name: top2})
+	if got := adv2.Picks[0].Value; got != want {
+		t.Errorf("advice value of %q = %v, want the table's %v", top2, got, want)
 	}
 }

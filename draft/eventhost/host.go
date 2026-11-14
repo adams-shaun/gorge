@@ -16,6 +16,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/draft/event"
+	"github.com/adams-shaun/gorge/draft/limited"
 	"github.com/adams-shaun/gorge/draft/limited/draft"
 	"github.com/adams-shaun/gorge/draft/limited/pickbot"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
@@ -65,6 +66,12 @@ type Options struct {
 	// Now is the clock the timeouts read; nil = time.Now (tests inject one
 	// and drive the sweep with checkTimeouts directly).
 	Now func() time.Time
+	// CommanderValue, when non-nil, replaces Heuristic as a nonland card's
+	// value for every Commander-draft seat: the bots' drafter and builder,
+	// and a human's /advice ranking and deck suggestion (a ratings table,
+	// e.g. pickbot.RatingsOverride.CommanderValue; gorged's
+	// -commander-ratings). nil keeps Heuristic.
+	CommanderValue func(c *cards.Card, ref limited.CardRef) float64
 }
 
 // The timeout defaults and the sweep cadence.
@@ -256,7 +263,7 @@ func (r *run) prepare(lookup pickbotCardLookup) error {
 			// Every Commander-draft seat drafts and builds with the
 			// Commander persona (a human's is its suggestion and its
 			// timed-out pick), scoring for the event's deck size.
-			r.drafters[s], r.builders[s] = commanderPersona(lookup, r.commanderDeckSize())
+			r.drafters[s], r.builders[s] = commanderPersona(lookup, r.commanderDeckSize(), r.h.opts.CommanderValue)
 			continue
 		}
 		persona := ms.Drafter

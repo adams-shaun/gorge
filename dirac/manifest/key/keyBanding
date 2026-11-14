@@ -1,0 +1,7 @@
+family: key
+name: keyBanding
+value: 8
+forge: banding
+census: key banding classes=2 all=46
+state: slotbyte 112
+status: reserved

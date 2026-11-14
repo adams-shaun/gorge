@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExCountersRemovedThisTurn
+value: 92
+forge: CountersRemovedThisTurn
+census: count CountersRemovedThisTurn all=3 std=0 mbc=0 sole=2
+state: player 4 (turn tallies)
+status: reserved

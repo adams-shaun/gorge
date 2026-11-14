@@ -130,10 +130,9 @@ func TestRandomNameCardResolvesSVarBodyFilter(t *testing.T) {
 }
 
 // TestRandomNameCardResolvesRuntimePublishedFilter pins Ornate Imitations'
-// shape: `Creature.cmcEQM` where M is published per-repeat by a
-// `DB$ StoreSVar | SVar$ M | Type$ CountSVar | Expression$ M/Plus.1` chain and
-// stored on the source object's RuntimeSVars. The resolver reads it through
-// runtimePublished, so the filter must too.
+// shape: `Creature.cmcEQM` where M is published per-repeat by a StoreSVar step
+// that increments M by one and stored on the source object's RuntimeSVars. The
+// resolver reads it through runtimePublished, so the filter must too.
 func TestRandomNameCardResolvesRuntimePublishedFilter(t *testing.T) {
 	h := &askHost{}
 	h.g = namecardGameWithMvUniverse(t)

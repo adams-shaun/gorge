@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrOdor
+value: 197
+forge: ODOR
+census: ctr ODOR all=1 std=0 mbc=1 sole=0
+state: code 0
+status: reserved

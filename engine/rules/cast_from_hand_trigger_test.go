@@ -1,8 +1,7 @@
 // The Card.wasCastFromHandByYou trigger-side split, pinned
 // end to end on real corpus carriers in both directions:
 //
-//   - Banish into Fable's `T:Mode$ SpellCast | ValidCard$
-//     Card.Self+wasCastFromYourHandByYou` copy trigger: fires for a cast from
+//   - Banish into Fable's copy trigger on casting itself from your hand: fires for a cast from
 //     the hand, never for a card cheated into play.
 //   - Epochrasite's etbCounter gate field `ValidCard$
 //     Card.Self+!wasCastFromYourHandByYou`: the negated shape denies the

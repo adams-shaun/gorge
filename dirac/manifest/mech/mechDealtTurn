@@ -1,0 +1,6 @@
+family: mech
+name: mechDealtTurn
+value: 13
+state: slotbit 16/16
+status: active
+doc: slots whose permanent dealt damage this turn

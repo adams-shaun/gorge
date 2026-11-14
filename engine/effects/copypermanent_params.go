@@ -45,8 +45,8 @@ type CopyPermanentParams struct {
 	// WithDifferentNames$ True that bare shape is the multi-pick loop
 	// (DifferentNames below); without it, it is the single pick. The pool is
 	// the battlefield filtered by Choices$, or, when Defined$ is also present,
-	// the Defined$ objects filtered by it (Mimic Vat's
-	// `Defined$ Imprinted.ExiledWithSource | Choices$ Card`).
+	// the Defined$ objects filtered by it (Mimic Vat choosing any card among
+	// its imprinted cards exiled with it).
 	// ChoiceFilter is the Choices$ filter the ask offers.
 	SupportsChoice    bool
 	ChooserRemembered bool
@@ -315,7 +315,7 @@ var copyPermanentKnownKeys = [...]string{
 	"UnlessPayer",
 	"UnlessResolveSubs",
 	"UnlessSwitched",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",

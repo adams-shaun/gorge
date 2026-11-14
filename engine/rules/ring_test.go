@@ -49,7 +49,7 @@ func declineTriggerCost(t *testing.T, e *Engine) {
 // exactly one RingTemptsYou event, the tempt count rises to 1, the first
 // creature in the controller's battlefield zone order is designated
 // (deterministic stand-in for CR 701.54a's choice), and the card's own
-// `T:Mode$ RingTemptsYou | ValidCard$ Creature.YouCtrl` payoff trigger fires
+// RingTemptsYou payoff trigger on a creature you control fires
 // on the designated bearer.
 func TestCR701RingTemptsYouCallOfTheRingUpkeep(t *testing.T) {
 	t.Parallel()

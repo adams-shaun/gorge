@@ -6,8 +6,13 @@
 #   make test-smart [BASE=land]           the steps a seat can act on, fail-fast, on a committed tree
 #   make precheck                         an alias for test-smart
 #
-# GORGE_TEST_SMART_GATES=1 adds the affected-package and dirac gates to test-smart; by default the
-# lander runs them, so a seat does not pay for them twice.
+# test-smart's step 4 is GORGE_TEST_SMART_GATES's:
+#   unset   narrow (the default): the affected packages plus the test groups -- test-targeted's selection with
+#           ./engine/rules whole when the change reaches it, the oracle's fast tier instead of its lockstep, the
+#           lint packages, and the census step widened by the pin/layout/lint/replay names (coverage audit
+#           2026-11-14, section 5). The prescreen and the lander run the affected and dirac gates.
+#   1       gates: the affected-package gate and the dirac gate side by side, as the lander runs them.
+#   0       off: neither; only the repro tables when the diff touches them.
 #
 # Each run sits in one user systemd scope (MemoryMax, CPUQuota, GOMAXPROCS, GOMEMLIMIT) and exports
 # GORGE_TEST_WRAPPER=1. With no user systemd it says so and runs uncapped.
@@ -161,7 +166,10 @@ if [ "$mode" = one ]; then
 			usage "$pkg is too big to run whole: name the exact tests in RUN (e.g. '^TestX\$'); got '$RUN'"
 		;;
 	esac
-	to=${TIMEOUT:-2m}
+	# 5m, the same -timeout as targeted's and smart's named and census steps: -timeout is part of go's test-cache key,
+	# so a test-one at 2m and the same -run at 5m were two cache entries and every test-one result re-ran in targeted
+	# (test-cache-audit 2026-11-14).
+	to=${TIMEOUT:-5m}
 	[[ $to =~ ^([0-9]+)([sm])$ ]] || usage "TIMEOUT is Ns or Nm"
 	secs=${BASH_REMATCH[1]}
 	[ "${BASH_REMATCH[2]}" = s ] || secs=$((secs * 60))
@@ -169,8 +177,8 @@ if [ "$mode" = one ]; then
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
-		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | GORGE_POOLS) envs+=("$kv") ;;
-		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN GORGE_POOLS (got ${kv%%=*})" ;;
+		case ${kv%%=*} in KGEN_REPIN | DIRAC_PIN_STRICT | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | MANAFLARE_CAST_RECORD | GORGE_POOLS) envs+=("$kv") ;;
+		*) usage "TESTENV allows only KGEN_REPIN DIRAC_PIN_STRICT DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN MANAFLARE_CAST_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
 		esac
 	done
 	pkgs_label=$pkg
@@ -214,27 +222,30 @@ if [ "$mode" = targeted ]; then
 		vo=$(go vet $vp 2>&1) || { tail -15 <<<"$vo"; verdict FAIL "go vet"; }
 	fi
 	[ "$dirac" = 0 ] || dirac_tables
-	if [ "${#whole[@]}" -gt 0 ]; then
-		gojson 10m -p "$lp" "${whole[@]}" || finish ""
-	fi
+	# The cheap named/census runs first: a whole-package BUDGET below must not hide their failures.
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		gojson 5m -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
 	done
+	if [ "${#whole[@]}" -gt 0 ]; then
+		gojson 10m -p "$lp" "${whole[@]}" || finish ""
+	fi
 	finish "$(IFS=,; echo "${named[*]-}")"
 fi
 
 # ---- test-smart --------------------------------------------------------------------------------------
 # The steps a seat can act on, fail-fast (fleet/land/tools/wland2.sh and g-land.sh): gofmt, the docs
-# snapshot, history hygiene, the oracle skip lint; the census tests; the repro tables when the diff touches
-# dirac/oracle/testdata/repro/; then the wire goldens. The affected-package gate (GATE_AFFECTED_REPO's
-# GATE_REF) and the dirac gate (BASE's scripts/dirac-gate.sh), side by side in a heavy lane, are the lander's
-# job: GORGE_TEST_SMART_GATES=1 opts back in to them, and then the repro tables also run when the dirac gate
-# skipped. precheck.sh's census, unrefusal and 3b repro steps stay in, so the alias loses nothing. Not run
-# here (follow-ups in the report): wland2's pinrise re-pin and g-land's remote/farm (rgate) path.
+# snapshot, history hygiene, the oracle skip lint; the census tests; step 4; then the wire goldens. Step 4 is
+# GORGE_TEST_SMART_GATES's (the header): by default the narrow affected-plus-groups set; =1 the
+# affected-package gate (GATE_AFFECTED_REPO's GATE_REF) and the dirac gate (BASE's scripts/dirac-gate.sh) side
+# by side in a heavy lane, the repro tables also running when the dirac gate skipped; =0 only the repro
+# tables when the diff touches dirac/oracle/testdata/repro/. precheck.sh's census, unrefusal and 3b repro
+# steps stay in, so the alias loses nothing. Not run here (follow-ups in the report): wland2's pinrise
+# re-pin and g-land's remote/farm (rgate) path.
 [ -z "$(git status --porcelain --untracked-files=no)" ] || verdict ENV "commit first: test-smart checks a commit, not a dirty tree"
 mb=$(git merge-base "$BASE" HEAD)
 bad() { echo "test-targets: smart: $*" >&2; verdict FAIL "$*"; }
-if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
+case ${GORGE_TEST_SMART_GATES:-} in 1) smart=gates ;; 0) smart=off ;; *) smart=narrow ;; esac
+if [ "$smart" = gates ]; then
 	# The affected-package gate lives in another repository; the operator's env file names it. With no
 	# setting, look for a local checkout one level under $HOME that carries the gate at GATE_REF, so
 	# `make precheck` still runs on a box whose environment file is not provisioned.
@@ -260,6 +271,9 @@ if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
 	fi
 	pkgs_label=affected@$aff_sha,dirac-gate@$dg_sha
 	echo "gate scripts: gate_affected=$aff_sha dirac-gate=$dg_sha"
+elif [ "$smart" = narrow ]; then
+	pkgs_label=affected=narrow,dirac-gate=skipped
+	echo "gate scripts: gate_affected=narrow dirac-gate=skipped"
 else
 	pkgs_label=affected=skipped,dirac-gate=skipped
 	echo "gate scripts: gate_affected=skipped dirac-gate=skipped"
@@ -289,16 +303,39 @@ if [ -n "$files" ]; then
 fi
 echo "== 2 docs snapshot, history hygiene, oracle skip lint"
 python3 -m unittest scripts/docs_sets_test.py >.ds4/scratch/test/docs_sets.log 2>&1 ||
-	bad "docs_sets_test: python3 scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json --commit <base> --date <today> (.ds4/scratch/test/docs_sets.log)"
+	bad "docs_sets_test: scripts/docs_sets.py reads dirac/docs/support.md; regenerate that page (dirac/LANDGEN) (.ds4/scratch/test/docs_sets.log)"
 hyg=$(git log --format='%h %s' "$BASE..HEAD" | grep -iE '^[0-9a-f]+ (wip\b|fixup!|squash!)' | head -3)
 zz=$(git diff --name-only --diff-filter=A "$BASE" HEAD | grep -E '(^|/)zz_[^/]*$' | head -3)
 [ -z "$hyg$zz" ] || bad "history hygiene: reword or squash these commits and delete scratch files: $hyg $zz"
 sk=$(git diff -U0 "$BASE" HEAD -- 'dirac/oracle/*_test.go' | grep -E '^\+[^+].*\bt\.Skip(f|Now)?\(' | grep -vE 'pool|Pool|tables|corpus' | head -3)
 [ -z "$sk" ] || bad "a new t.Skip in dirac/oracle that does not name a missing pool, table or corpus fails CI: $sk"
+# CI's lint runs fresh-clone-check: dirac with no corpus, tables or pools, where every corpus-dependent test must skip.
+# The landing gate always has the corpus, so a test that fails there reached the promote PR (11-13 PR #328 and #329,
+# TestMBCChangeTextReadsStall). About 20 s with a warm cache. A scratch directory with a .cards above it (TMPDIR inside a
+# checkout) cannot isolate the tree: that is noted, not failed.
+if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/' 'engine/' go.mod go.sum)" ]; then
+	echo "== 2b fresh clone (dirac with no corpus, as CI's lint)"
+	fo=$(capped 4G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB REF=HEAD bash scripts/fresh-clone-check.sh 2>&1)
+	case $fo in
+	*"fresh-clone-check: ok"*) ;;
+	*"is above the scratch directory"*) echo "test-targets: note: fresh-clone-check skipped: $(grep -m1 'above the scratch' <<<"$fo")" >&2 ;;
+	*)
+		printf '%s\n' "$fo" >.ds4/scratch/test/fresh-clone.log
+		grep -E -- '--- FAIL|^FAIL|panic:|_test\.go:[0-9]+:|fresh-clone-check:' <<<"$fo" | tail -15
+		bad "fresh-clone-check failed: a dirac test fails with no corpus (make fresh-clone-check; .ds4/scratch/test/fresh-clone.log)"
+		;;
+	esac
+fi
 
 echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables
 C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
+# The narrow precheck widens it to the audit's test groups (pins, layout, lint, replay) that C's names miss,
+# the ones with reds first: the State layout and size, enum values, ParamsAreRead and KnownUnsupported, the
+# generated-file freshness pins, the setdata and spellbench support pins, KnownKeys, the zero-alloc pins,
+# the kgen pool builds, the refused entries and the findings mirrors. With the gates the dirac and affected
+# gates run these.
+[ "$smart" != narrow ] || C="$C|StateLayoutPinned|StateSize|ColdArraysHoldNoPointers|EnumValuesUnique|ParamsAreRead|RepoDeckIsFullySupported|KnownUnsupportedFilesWellFormed|IsFresh|IsRendered|UpToDate|SupportHasNoScriptText|SupportEverySheetCard|PendingSetCards|ReportsUnsupportedCards|KnownKeys|AllocationFree|ZeroAlloc|AllocsNothing|PoolBuilds|RefusedEntriesStillDiverge|FindingsMirror"
 # The anchored names cannot match inside the Test[A-Za-z0-9_]*($C) grep, so their packages come from their own.
 cpk=$({ git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go'; git grep -lE '^func (TestKopOrdinalsUnchanged|TestReproCompactRoundTrip|TestReproGlobMatchesTable)\(' -- '*_test.go'; } | xargs -n1 dirname | sort -u | sed 's|^|./|')
 # Only the census packages the change can reach (test_targets.py census: importers of a changed package,
@@ -315,7 +352,7 @@ if [ "$rc" = 0 ]; then
 fi
 [ "$rc" = 0 ] || finish ""
 
-if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
+if [ "$smart" = gates ]; then
 	echo "== 4 affected gate and dirac gate, side by side"
 	lock=${GORGE_HEAVY_LOCK:-}
 	lanes=${GORGE_HEAVY_LANES:-3}
@@ -346,11 +383,17 @@ if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
 	cpu_a=$((ncpu * 100)); [ "$cpu_a" -le 1600 ] || cpu_a=1600
 	cpu_d=$((ncpu * 100)); [ "$cpu_d" -le 800 ] || cpu_d=800
 	U=tsmart-$$-$(date +%s)
+	# The 386 cross-build (TestEngineCompilesFor32Bit, about 90 s) left the dirac gate's step 8 for this, the
+	# affected side, which finishes well before the dirac gate (coverage audit 2026-11-14, item 6). It runs
+	# when the change can move a GOARCH=386 build: a non-test Go file, go.mod or go.sum.
+	A32=
+	[ -z "$(git diff --name-only "$mb" HEAD -- '*.go' go.mod go.sum ':(exclude)*_test.go')" ] || A32=1
+	export A32
 	{
 		if [ -n "$have_sd" ]; then
-			systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+			systemd-run --user --scope -q --unit="$U-aff" -p MemoryMax=16G -p CPUQuota=$cpu_a% env GOFLAGS=-trimpath T="$BASE" A32="$A32" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T" && { [ -z "$A32" ] || go test -timeout 5m -run "^TestEngineCompilesFor32Bit\$" ./internal/archtest; }' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 		else
-			GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T"' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
+			GOFLAGS=-trimpath T="$BASE" bash -c 'set -o pipefail; git -C "$0" show "$1:$2" | bash -s "$T" && { [ -z "$A32" ] || go test -timeout 5m -run "^TestEngineCompilesFor32Bit\$" ./internal/archtest; }' "$GATE_AFFECTED_REPO" "$GATE_REF" "$GATE_AFFECTED_PATH" >"$S/aff" 2>&1
 		fi
 		echo $? >"$S/aff.rc"
 	} 9>&- &
@@ -412,8 +455,41 @@ if [ "${GORGE_TEST_SMART_GATES:-}" = 1 ]; then
 		rc=$?
 		[ "$rc" = 0 ] || finish ""
 	fi
+elif [ "$smart" = narrow ]; then
+	echo "== 4 affected packages and the lint packages (the prescreen and the lander run the affected and dirac gates)"
+	sel=$("${py[@]}" select --base "$BASE" --narrow) || bad "selection failed: $sel"
+	whole=() runs=() named=()
+	while IFS=$'\t' read -r kind pkg rx; do
+		[ -n "$kind" ] || continue
+		case $kind in
+		whole) whole+=("$pkg"); echo "   whole  $pkg" ;;
+		wholeskip) runs+=("skip"$'\t'"$pkg"$'\t'"$rx"); echo "   whole  $pkg (-skip $(cut -c1-80 <<<"$rx"))" ;;
+		named) runs+=("run"$'\t'"$pkg"$'\t'"$rx"); named+=("$mod/${pkg#./}"); echo "   named  $pkg" ;;
+		census) runs+=("run"$'\t'"$pkg"$'\t'"$rx"); echo "   named  $pkg" ;;
+		excluded) echo "test-targets: note: $pkg imports a changed package but is over budget; it runs post-merge" >&2 ;;
+		esac
+	done <<<"$sel"
+	: >"$json"
+	rc=0
+	# The named runs first, then the light whole packages together, then ./engine/rules and archtest alone.
+	for r in "${runs[@]+"${runs[@]}"}"; do
+		IFS=$'\t' read -r how pkg rx <<<"$r"
+		[ "$how" = run ] || continue
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 5m -run "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
+	done
+	if [ "${#whole[@]}" -gt 0 ]; then
+		capped 12G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB go test -json -failfast -timeout 10m -p "$lp" "${whole[@]}" >>"$json" 2>&1 || { rc=$?; finish ""; }
+	fi
+	for r in "${runs[@]+"${runs[@]}"}"; do
+		IFS=$'\t' read -r how pkg rx <<<"$r"
+		[ "$how" = skip ] || continue
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB go test -json -failfast -timeout 15m -skip "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
+	done
+	# A named run that matched nothing is EMPTY, not a pass: classify the stream before step 5 replaces it.
+	nm=$(IFS=,; echo "${named[*]-}")
+	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" >/dev/null || finish "$nm"
 else
-	echo "== 4 skipped (the lander runs the affected and dirac gates)"
+	echo "== 4 skipped (GORGE_TEST_SMART_GATES=0: the lander runs the affected and dirac gates)"
 	if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/oracle/testdata/repro/')" ]; then
 		echo "== 4b repro tables (the diff touches dirac/oracle/testdata/repro/)"
 		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1

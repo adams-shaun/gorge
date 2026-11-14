@@ -86,8 +86,8 @@ func TestDefinedRememberedPlayerSelectors(t *testing.T) {
 }
 
 // TestToymakersTrapRememberedPlayerLoseLife resolves the real corpus script
-// (`DB$ LoseLife | Defined$ RememberedPlayer | LifeAmount$ Count$ChosenNumber
-// | SubAbility$ DBDraw`) with a bound chosen number and asserts the LifeChange
+// (the remembered player loses life equal to the chosen number, then a draw)
+// with a bound chosen number and asserts the LifeChange
 // recipient: the remembered opponent who guessed wrong, never the source's
 // controller.
 func TestToymakersTrapRememberedPlayerLoseLife(t *testing.T) {

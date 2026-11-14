@@ -1,0 +1,6 @@
+family: mech
+name: mechTappedTurn
+value: 25
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has become tapped this turn (Taps FirstTime$; filter_permmarks.go)

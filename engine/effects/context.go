@@ -381,6 +381,10 @@ func attachedToDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, boo
 		}
 	}
 	var out []state.Target
+	var bearerNow uint32
+	if b := g.Obj(bearer); b != nil {
+		bearerNow = b.Incarnation
+	}
 	for i := range g.Objs {
 		o := &g.Objs[i]
 		attached := o.AttachedTo == bearer
@@ -391,7 +395,11 @@ func attachedToDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, boo
 			// to anything (attached handles the live half) so a
 			// re-attached object, whose LastBearer the Attach fold cleared,
 			// cannot double-count.
-			wasAttached = o.AttachedTo == 0 && o.LastBearer == bearer
+			// A record stamped under an earlier incarnation of the bearer
+			// is stale (CR 400.7): the bearer left in an earlier resolution
+			// or re-entered since, and the new object had nothing attached.
+			wasAttached = o.AttachedTo == 0 && o.LastBearer == bearer &&
+				o.LastBearerInc == bearerNow
 		}
 		if !attached && !wasAttached {
 			continue
@@ -916,8 +924,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// entries only; a remembered CARD contributes no player (the plain
 		// Remembered family's getDefinedPlayers rule, the same one
 		// plainRememberedSelector and token.go's TokenAttacking reader encode).
-		// The Toymaker's Trap's `DB$ LoseLife | Defined$ RememberedPlayer`
-		// charges the opponent who guessed wrong -- before this case the
+		// The Toymaker's Trap's LoseLife on the remembered player charges the
+		// opponent who guessed wrong -- before this case the
 		// selector was unknown and Defined's plain-Remembered drop left it
 		// charging NOBODY. An empty remembered-player pool is the known-empty
 		// set (ok=true), never a fallback to the source.

@@ -113,7 +113,7 @@ SVar:Trig:DB$ PutCounter | CounterType$ P1P1 | CounterNum$ 1 | Defined$ Self
 }
 
 // TestSpecializeLukaminaGateBindsOnLands is the gate-binding pin: the real
-// corpus Lukamina's `IsPresent$ Land.YouCtrl | PresentCompare$ GE6` gate must
+// corpus Lukamina's gate (six or more lands you control) must
 // WITHHOLD the offer at five lands and grant it at six. The two boards differ
 // by exactly the counted value, so a build that ignored the gate cannot pass
 // both halves.
@@ -254,9 +254,9 @@ func TestSpecializeLukaminaCorpusEndToEnd(t *testing.T) {
 	// Death: the Crocodile death trigger runs the real compiled
 	// `Mode$ Unspecialize` SA body, which flips the card back to its FRONT
 	// face (Lukamina, Moon Druid) and then runs its chained DBReturn
-	// (`ChangeZone | ConditionDefined$ Remembered | ConditionPresent$ Card |
-	// Origin$ Graveyard | Destination$ Battlefield | Tapped$ True |
-	// Defined$ Remembered`) to return the card tapped. The SetState remembers
+	// (a ChangeZone of the remembered card from the graveyard to the
+	// battlefield, conditioned on the remembered card being present) to return
+	// the card tapped. The SetState remembers
 	// the changed object (`RememberChanged$ True`), which IS the resolving
 	// source; the plain-Remembered group now keeps that explicitly-remembered
 	// source occurrence (engine/effects/context.go rememberedWithSource == the one

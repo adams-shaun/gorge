@@ -1017,8 +1017,8 @@ func (e *Engine) payCast() {
 			Source: pc.card, Controller: pc.player, Casualty: true,
 			Ctx: effects.NewCtx(pc.card, pc.player, effects.CtxInit{Remembered: []state.Target{{Obj: pc.card}}}),
 		}
-		// Casualty:X's script riders (Ob Nixilis, the Adversary's
-		// NonLegendary$ True | SetLoyalty$ Casualty:...): the copy's
+		// Casualty:X's script riders (Ob Nixilis, the Adversary's copy is
+		// nonlegendary with its loyalty set from the casualty): the copy's
 		// characteristics ride the trigger event's payload, so the replay
 		// rebuilds the identical copy body. The loyalty value is the
 		// casualty amount resolved at payment: the sacrificed creature's

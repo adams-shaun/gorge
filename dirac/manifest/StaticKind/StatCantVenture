@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCantVenture
+value: 53
+forge: CantVenture
+census: stat CantVenture all=1 std=0 mbc=0 sole=1
+state: player 6 (dungeon)
+status: reserved

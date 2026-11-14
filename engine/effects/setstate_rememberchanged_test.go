@@ -124,8 +124,7 @@ func rememberedExactlyOne(t *testing.T, ctx *Ctx, id state.ObjID) {
 // TestSetStateRememberChangedTransformRemembersTheChangedFace pins the
 // Megatron, Tyrant carrier with the REAL compiled TrigConvert body: the
 // transformed object must sit in the resolution's Remembered, where the
-// chained DBMana gate (ConditionDefined$ Remembered | ConditionPresent$ Card)
-// reads it.
+// chained DBMana gate (a remembered card must be present) reads it.
 func TestSetStateRememberChangedTransformRemembersTheChangedFace(t *testing.T) {
 	h := newHost(t, 2)
 	id := megatronObject(t, h, 0)

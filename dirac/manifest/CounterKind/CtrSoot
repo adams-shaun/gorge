@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrSoot
+value: 234
+forge: SOOT
+census: ctr SOOT all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -652,7 +652,7 @@ var predicates = map[string]predFn{
 	// Enlist case) is compared against the live game clock, so a later combat
 	// in the same turn -- an extra combat phase -- no longer matches, which
 	// is what "this combat" means. Aradesh, the Founder's
-	// `Mode$ Attacks | ValidCard$ Creature.YouCtrl+enlistedThisCombat` is the
+	// attack trigger on a creature you control that enlisted this combat is the
 	// corpus's one carrier; the predicate is a recognised-shape entry (the
 	// compiled predicate layer marks an unlisted term `maybe` and falls
 	// through to this textual oracle, so no twin term is owed), and
@@ -692,8 +692,8 @@ var predicates = map[string]predFn{
 	},
 	// CrewedBySourceThisTurn is the reverse direction of CrewedThisTurn
 	// (Forge's Vehicle.CrewedBySourceThisTurn): the object was CREWED by the
-	// spec's source this turn -- Balthier and Fran's `Mode$ Attacks |
-	// ValidCard$ Vehicle.CrewedBySourceThisTurn`. SOURCE-RELATIVE the same
+	// spec's source this turn -- Balthier and Fran's attack trigger
+	// on a Vehicle it crewed this turn. SOURCE-RELATIVE the same
 	// way, but read from the source's own pairing (state.Object.CrewedTurn /
 	// CrewedVehicles, folded by events.Apply's Crew case): src paid a Crew
 	// cost this turn and the object is among the Vehicles it crewed. A

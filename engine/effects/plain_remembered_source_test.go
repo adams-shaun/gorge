@@ -13,12 +13,10 @@ import (
 // visible to every plain-Remembered reader.
 //
 // The real card is Lukamina, Moon Druid. Specialized into Crocodile Form, it
-// dies and its per-face trigger's `SVar:TrigUnspecialize` runs
-// `DB$ SetState | Defined$ TriggeredCard | Mode$ Unspecialize |
-// RememberChanged$ True | SubAbility$ DBReturn`, whose chained
-// `SVar:DBReturn:DB$ ChangeZone | ConditionDefined$ Remembered |
-// ConditionPresent$ Card | Origin$ Graveyard | Destination$ Battlefield |
-// Tapped$ True | Defined$ Remembered` returns it tapped. setstateRememberChanged
+// dies and its per-face trigger unspecializes the triggered card and remembers
+// what changed, then a chained ChangeZone, gated on a remembered card being
+// present, returns the remembered card from the graveyard to the battlefield
+// tapped. setstateRememberChanged
 // (engine/effects/misc.go) appends that same object to Ctx.Remembered; the object IS
 // Ctx.Source (the source changed its own state). An earlier build's blanket
 // `t.Obj != c.Source` guard in rememberedWithSource dropped that real memory,
