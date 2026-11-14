@@ -3,17 +3,19 @@ package dirac
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// sickSpawnScen builds p0's board from the dr-mbc-babb pool table: Path of
+// sickSpawnScen builds p0's board from an mbc matchup table: Path of
 // Annihilation ("Eldrazi you control have {T}: Add one mana of any color")
 // and one Eldrazi Spawn token, summoning-sick when sick, no other mana
 // source; the named card is in p0's hand.
 func sickSpawnScen(t *testing.T, sick bool, play string) (sc *scen, spawn Slot, card Obj) {
 	t.Helper()
-	tbl, err := cardsettest.Synth(t, "dr-mbc-babb").Pool()
+	deck := []cardset.Entry{{Name: "Path of Annihilation", Count: 1}, {Name: play, Count: 1}, {Name: "Swamp", Count: 30}}
+	tbl, _, _, err := cardsettest.Set(t, "mbc").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +27,7 @@ func sickSpawnScen(t *testing.T, sick bool, play string) (sc *scen, spawn Slot, 
 	}
 	for _, n := range []string{"Path of Annihilation", "c_0_1_eldrazi_spawn_sac", "Swamp", play} {
 		if _, ok := id[n]; !ok {
-			t.Fatalf("%s not in the dr-mbc-babb table", n)
+			t.Fatalf("%s not in the mbc matchup table", n)
 		}
 	}
 	sc = newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
@@ -44,7 +46,7 @@ func sickSpawnScen(t *testing.T, sick bool, play string) (sc *scen, spawn Slot, 
 // creature: Add {C}". A summoning-sick Spawn cannot activate the {T} ability
 // (CR 302.6) but can the sacrifice one (CR 602.2b), so the offer's census
 // credits it {C} only: Young Wolf ({G}) is not offered while the Spawn is
-// sick, is offered once it is not, and Grafdigger's Cage ({1}) is offered
+// sick, is offered once it is not, and Sensei's Divining Top ({1}) is offered
 // either way.
 func TestSickSpawnGrantedTapMana(t *testing.T) {
 	for _, v := range []struct {
@@ -53,7 +55,7 @@ func TestSickSpawnGrantedTapMana(t *testing.T) {
 	}{
 		{"sick-green", "Young Wolf", true, false},
 		{"untapped-green", "Young Wolf", false, true},
-		{"sick-colourless", "Grafdigger's Cage", true, true},
+		{"sick-colourless", "Sensei's Divining Top", true, true},
 	} {
 		t.Run(v.name, func(t *testing.T) {
 			sc, spawn, card := sickSpawnScen(t, v.sick, v.play)
