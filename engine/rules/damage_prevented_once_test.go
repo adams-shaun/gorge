@@ -261,33 +261,46 @@ func TestSelflessSquireOrderedAfterPartialPrevention(t *testing.T) {
 }
 
 // TestSelflessSquireOrderedPathStoresPrevention: two
-// same-controller Squires, damage 3, order answer = candidate 0 — the
-// effect-created match a bot's clamp fallback picks. The chosen full
-// prevention is terminal (the held event never lands), so its re-entrant
-// prevention Note is the occurrence's only log record: BOTH Squires grow +3
-// off it and no damage reaches life.
+// same-controller Squires and a Thunderstaff, combat damage 3, order answer =
+// a Squire's effect-created full prevention. Two bare full preventions alone
+// are applied without an order ask (allBarePreventions); Thunderstaff's
+// prevent-1 keeps the CR 616.1 choice posed. The chosen full prevention is
+// terminal (the held event never lands), so its re-entrant prevention Note is
+// the occurrence's only log record: BOTH Squires grow +3 off it and no damage
+// reaches life.
 func TestSelflessSquireOrderedPathStoresPrevention(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e, cfg := combatTriggerBoard(t, reg, []string{"Selfless Squire", "Selfless Squire"}, nil,
+	e, cfg := combatTriggerBoard(t, reg, []string{"Selfless Squire", "Selfless Squire", "Thunderstaff"}, nil,
 		nil, []string{damagePreventedOnceAggressor})
 	squireTurn(t, e)
 	squire0 := findBattlefield(t, e, 0, "Selfless Squire", 0)
 	squire1 := findBattlefield(t, e, 0, "Selfless Squire", 1)
+	staff := findBattlefield(t, e, 0, "Thunderstaff", 0)
 	drainTriggeredAbilities(t, e)
 	src := findBattlefield(t, e, 1, "Aggressor", 0)
 	life0 := e.G.Players[0].Life
 	// Clear the parked priority ask first, so the order choice is posed now
 	// (poseDamageReplacementChoice asks only when e.pending is nil).
 	e.pending = nil
-	e.damaging, e.combatDamaging = src, false
+	e.damaging, e.combatDamaging = src, true
 	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
 	e.damaging, e.combatDamaging = 0, false
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 {
-		t.Fatalf("pending = %+v, want a two-candidate CR 6.1 order choice", d)
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 3 {
+		t.Fatalf("pending = %+v, want a three-candidate CR 616.1 order choice (two Squires, Thunderstaff)", d)
 	}
-	submitChoices(t, e, 0)
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj != staff {
+			pick = o.Index
+			break
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("order options %+v offer no Squire prevention", d.Options)
+	}
+	submitChoices(t, e, pick)
 	drainTriggeredAbilities(t, e)
 	if got := e.G.Players[0].Life; got != life0 {
 		t.Fatalf("seat 0 life = %d, want %d", got, life0)

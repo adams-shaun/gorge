@@ -341,6 +341,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&kop.OptAsk != 0 { // Optional$ (act_optionalask.go)
 			return s.optDiscardGen(k, in, e)
 		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			if p := s.playerRef(k, in.Obj); p != 255 {
+				s.discardDefinedAll(k, p, in.F)
+			}
+			break
+		}
 		if in.F == 0 && in.C != kop.ChooseOpp {
 			return true, false
 		}

@@ -11,6 +11,7 @@ Blightbeetle
 Blood Knight
 Blot Out
 Bushmeat Poacher
+Carrion Feeder
 Cerulean Wisps
 Contagious Vorrac
 Cragsmasher Yeti
@@ -20,6 +21,8 @@ Destructive Tampering
 Dragon Mage
 Drift of Phantasms
 Elda, Conjurer of Spectacle
+Enclave Cryptologist
+Escape Tunnel
 Explore
 Fanatical Devotion
 Fell
@@ -34,6 +37,7 @@ Island
 Jewel Thief
 Kaya's Ghostform
 Looter il-Kor
+Make a Stand
 Marionette Apprentice
 Maular, the Next Evolution
 Meekstone
@@ -47,11 +51,13 @@ Pendrell Drake
 Plains
 Poison Dart Frog
 Propaganda
+Ramos, Dragon Engine
 Reckless Impulse
 Resolute Reinforcements
 Ringwarden Owl
 Saber Ants
 Season of Growth
+Sheltered by Ghosts
 Shroofus Sproutsire
 Silverglade Pathfinder
 Spore Frog

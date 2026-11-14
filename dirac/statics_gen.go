@@ -318,14 +318,22 @@ func (s *State) cantLoseFor(k *prep, p uint8, reason int16) bool {
 }
 
 // mayPlayStatics calls f for every StatMayPlayFrom static controlled by p
-// that lets p play card object o (with the static's flags).
+// that lets p play card object o (with the static's flags). A {0}
+// alternative (cast_mayzeroalt.go) is no permission and is walked apart.
 func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool) {
+	s.mayPlayStaticsOf(k, p, o, false, f)
+}
+
+// mayPlayStaticsOf is mayPlayStatics over the {0}-alternative statics
+// (zeroAlt) or the permissions. A free-only static on Weftwalking's hand
+// spelling reaches every zone; any other static reaches its own.
+func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(st statSrc) bool) {
 	ob := &s.objs[o]
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom ||
-			a.Static.StFlags&kop.StFreeOnly == 0 && !mayPlayFromZone(&a.Static, ob.zone) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || zeroAltStatic(&a.Static) != zeroAlt ||
+			(a.Static.StFlags&kop.StFreeOnly == 0 || zeroAlt) && !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&kop.StSeatActive != 0 {
@@ -354,7 +362,7 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 		return true
 	}
 	s.eachStaticC(k, sclsMayPlay, check)
-	if stopped {
+	if stopped || zeroAlt {
 		// f stopped the walk at a permanent's permission: the card's own
 		// graveyard permission is not offered again (Storied Veteran in the
 		// graveyard under Leonardo, Sewer Samurai: gorge lists one cast)

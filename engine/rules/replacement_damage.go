@@ -42,6 +42,25 @@ func damageReplacementPreventsWithRider(r cards.Repl) bool {
 		!damageReplacementPrevents(r) && r.With != nil
 }
 
+// allBarePreventions reports whether every competing damage replacement is
+// a bare "prevent all of it" line: Prevent$ True with no ReplaceWith$ body
+// (damageReplacementPrevents' first arm; a counted PreventionShield carries a
+// body) and not a shield counter (which is spent when it applies). Whichever
+// of them applies first prevents the whole event and logs the same
+// prevention Note, and the rest then have nothing to apply to (CR 616.1e), so
+// no order the affected player could pick differs: the competition is
+// applied in scan order without the CR 616.1 ask. Two Cephalid Illusionist
+// activations (or two Maze of Ith) on one attacker are the case. An
+// Optional$ line is still asked: the caller's hasOptionalReplacement arm.
+func allBarePreventions(matches []replMatch) bool {
+	for _, m := range matches {
+		if m.repl == shieldCounterDamageRepl || m.repl.With != nil || !damageReplacementPrevents(*m.repl) {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
 	out := matches[:0]
 	for _, m := range matches {
@@ -357,10 +376,14 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		if src == 0 {
 			return false
 		}
-		// nil remembered: only the chosen half is added here, so an
-		// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
-		// exact match it had before ChooseSource landed.
-		sc := e.rememberedSpecContextCap(ctrl, source, nil, cc)
+		// The Effect's own capture scopes the source half as it scopes the
+		// ValidTarget$ half below: Maze of Ith's and Cephalid Illusionist's
+		// `ValidSource$ Card.IsRemembered` names the creature the Effect
+		// remembered (RememberObjects$ Targeted), which the Effect never
+		// writes onto its host's own remembered list (CR 615.1: the combat
+		// damage that creature deals is prevented). A printed line passes no
+		// capture and reads the host's list as before.
+		sc := e.rememberedSpecContextCap(ctrl, source, remembered, cc)
 		sc.DamageSource = src
 		sc.DamageSourceLeft, sc.DamageSourceEntered = e.damageSourceLeftThisTurn(src)
 		if !e.matchesSpec(v, src, sc) {

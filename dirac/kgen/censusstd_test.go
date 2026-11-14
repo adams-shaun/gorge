@@ -159,14 +159,15 @@ func TestStdBundlesConstructed(t *testing.T) {
 	// distinct A+B cards besides c3 the dedupe is what keeps it at 3.
 }
 
-// TestStdCensusBuildPass pins the build pass: Aerie Mystics is refused only at emit
-// (PumpAll keyword above bit N; Forge, Neverwinter Charlatan's ward—sacrifice lowers since
+// TestStdCensusBuildPass pins the build pass: Assemble the Legion is refused only at emit
+// (PutCounter of a counter kind with no kop kind; Aerie Mystics' PumpAll above bit 15 lowers
+// since ExtGrantKwAll; Forge, Neverwinter Charlatan's ward—sacrifice lowers since
 // Maha's ward—discard), while Grizzly Bears and
 // Boros Charm build. Boros Charm's "target player or planeswalker" lowers since
 // so it no longer has an emit-refusal row.
 func TestStdCensusBuildPass(t *testing.T) {
 	dir := t.TempDir()
-	names := []string{"Aerie Mystics", "Boros Charm", "Grizzly Bears"}
+	names := []string{"Assemble the Legion", "Boros Charm", "Grizzly Bears"}
 	if err := os.WriteFile(filepath.Join(dir, "AAA.txt"), []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -177,11 +178,11 @@ func TestStdCensusBuildPass(t *testing.T) {
 	if len(res.sets) != 1 || res.sets[0].accepted != 2 {
 		t.Fatalf("sets = %+v, want AAA accepted 2", res.sets)
 	}
-	var mystics []stdTSVRow
+	var legion []stdTSVRow
 	for _, r := range res.tsv {
 		switch r.card {
-		case "Aerie Mystics":
-			mystics = append(mystics, r)
+		case "Assemble the Legion":
+			legion = append(legion, r)
 		case "Boros Charm":
 			if r.class != "" {
 				t.Fatalf("Boros Charm still refused: %+v", r)
@@ -189,13 +190,13 @@ func TestStdCensusBuildPass(t *testing.T) {
 		}
 	}
 	foundEmit := false
-	for _, r := range mystics {
-		if r.class == "other:instr N PumpAll: PumpAll keyword above bit N" {
+	for _, r := range legion {
+		if r.class == `other:instr N PutCounter: counter kind "_"` {
 			foundEmit = true
 		}
 	}
 	if !foundEmit {
-		t.Fatalf("Aerie Mystics rows = %+v, want the emit-stage PumpAll refusal", mystics)
+		t.Fatalf("Assemble the Legion rows = %+v, want the emit-stage PutCounter refusal", legion)
 	}
 }
 
