@@ -48,5 +48,5 @@ func (rs *tapXSearch) deferAsk(k *prep, t *State, sl Slot) (found, handled bool)
 // for answer st.col (scriptGapTap), priced against the searched play st.act.
 func (s *State) tapXDeferDo(k *prep, p uint8, st tapXStep) {
 	var spill [kop.NumManaKinds]uint8
-	s.scriptGapTap(k, p, st.act, st.sl, slotMask{}, slotMask{}, slotMask{}, slotMask{}.with(st.sl), int(st.col), &spill)
+	s.scriptGapTap(k, p, st.act, st.sl, slotMask{}, slotMask{}, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(st.col), &spill)
 }

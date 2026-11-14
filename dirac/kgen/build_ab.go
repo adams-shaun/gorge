@@ -1402,6 +1402,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if t.Attacked&atkOpp != 0 {
 			kt.Flags2 |= kop.Tf2AtkOpp
 		}
+		if t.Attacked&atkEnch != 0 {
+			kt.Flags4 |= kop.Tf4DefEnch // fireAtkGroup's Attacks arm (trig_attacksenchanted.go)
+		}
 	}
 	if t.PerCounter {
 		if t.Event != "CounterAdded" {
@@ -2305,6 +2308,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("CanAttackIfHaste flag %q", fl)
 			}
 			st.StFlags |= kop.StHasteOppDef
+		}
+	case "ExtraBlock":
+		st.Kind = kop.StatExtraBlock // combat_extrablock.go blockCap
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
 		}
 	case "CanAttackDefender":
 		st.Kind = kop.StatCanAttackDefender

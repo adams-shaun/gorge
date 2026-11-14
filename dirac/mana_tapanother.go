@@ -694,7 +694,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	if st.kind == tapXAnyR {
 		// an any-colour restricted gap: the anyR search's application of its answer
 		var spill [kop.NumManaKinds]uint8
-		s.scriptGapTap(k, p, st.act, st.sl, slotMask{}, slotMask{}, s.scriptAnyR(k, p), slotMask{}, int(st.col), &spill)
+		s.scriptGapTap(k, p, st.act, st.sl, slotMask{}, slotMask{}, s.scriptAnyR(k, p), slotMask{}, slotMask{}, int(st.col), &spill)
 		return
 	}
 	if st.kind == tapXRider {

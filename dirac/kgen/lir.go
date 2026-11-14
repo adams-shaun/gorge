@@ -816,6 +816,7 @@ const (
 	atkYou uint8 = 1 << iota
 	atkYourPW
 	atkOpp
+	atkEnch // Player.EnchantedBy: the defender is enchanted by this listener's Aura (kop.Tf4DefEnch)
 )
 
 type lAbility struct {

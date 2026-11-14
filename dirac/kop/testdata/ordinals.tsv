@@ -1796,6 +1796,7 @@ StatDevotion	StaticKind	56
 StatDisableETB	StaticKind	234
 StatDrawFromBottom	StaticKind	41
 StatEscapeGrant	StaticKind	225
+StatExtraBlock	StaticKind	69
 StatExtraLandPlay	StaticKind	12
 StatFbGrant	StaticKind	242
 StatFlipCoinDoubler	StaticKind	57

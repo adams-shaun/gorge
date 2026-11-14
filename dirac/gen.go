@@ -113,7 +113,7 @@ type genPrep struct {
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
-	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks (combat_extrablock.go)
+	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks or a StatExtraBlock static (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
@@ -243,7 +243,7 @@ type genPrep struct {
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
-	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
+	anyComboOff     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboanyplan.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -428,8 +428,12 @@ type genPrep struct {
 	anySelfTaps bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
+	// anyComboAny: some card carries gfComboAny (mana_comboany.go).
+	anyComboAny bool
 	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
 	dhMix bool
+	// caMix: a Combo Any source beside another census-gap kind (mana_comboany.go prepComboAnyMix): StallComboAnyMix
+	caMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -825,7 +829,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyRaiseTgt = tableRaiseTgt(t)
 	g.anyComboDyn = tableComboDyn(t)
-	g.anyComboAny = tableComboAny(t)
+	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -848,6 +852,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
 	g.anyAtkHaste = tableHasStatic(t, kop.StatCanAttackIfHaste)
+	if tableHasStatic(t, kop.StatExtraBlock) {
+		g.anyExtraBlock = true // the second-block records and the two-attacker readers (combat_extrablock.go)
+	}
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
 	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
@@ -1364,6 +1371,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
+				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
+					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1439,7 +1449,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// alternative): an autopay source of that colour
 					pc.manaChosen = true
 				} else {
-					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) {
+					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))
@@ -1451,7 +1461,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.varPC = append(g.varPC, vp)
 						}
 					}
-					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred) {
+					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred || comboAnyMana(a) && !DebugComboAnyPlanned) {
 						pc.manaAb = -1
 					}
 				}
@@ -1643,6 +1653,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
+	prepComboAnyMix(t, g, p)
 	g.anyPrevFrom = tableGrantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
@@ -2471,7 +2482,7 @@ const (
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
-	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	NumStall           = 193 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).
