@@ -47,7 +47,7 @@ func TestThisTurnCastProtection(t *testing.T) {
 	if !strings.Contains(sb.String(), "protfrom={types=0x9f CastByYou EnteredThisTurn}") {
 		t.Errorf("ProtFrom lacks the cast-this-turn flags:\n%s", sb.String())
 	}
-	for _, want := range []string{`a Spell head outside a ReduceCost ValidTarget$`, "unread params [AllValid]"} {
+	for _, want := range []string{`a Spell head outside a ReduceCost ValidTarget$`, "GainControl AllValid$ beside ValidTgts$"} {
 		found := false
 		for _, r := range c.Refusals {
 			if strings.Contains(r.Reason, want) {

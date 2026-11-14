@@ -1089,6 +1089,32 @@ func (s *State) planChosenTrial(k *prep, p uint8, pk *planner, exclude Obj, rv [
 	return true
 }
 
+// unitIrr is key 1's irreversible cost of one planned unit (gorge
+// pay.ConsequenceCost): 10 a sacrificed source, 20 a creature, 25 more for one
+// whose own printed "doesn't untap during your untap step" (Grim Monolith,
+// Basalt Monolith, Mana Vault; gorge paymentPlanSourceInterference over the
+// printed face, an ability loss does not lift it).
+func unitIrr(sac, creature, noUntap bool) uint8 {
+	irr := uint8(0)
+	if sac {
+		irr = 10
+		if creature {
+			irr = 20
+		}
+	}
+	if noUntap {
+		irr += 25
+	}
+	return irr
+}
+
+// lastResortUnit: a sacrificing or non-untapping source is planned last.
+func lastResortUnit(sac, noUntap bool) bool { return sac || noUntap }
+
+// sameRider: a planned unit type also matches on its float-restricted flag
+// and its irreversible cost (unitIrr).
+func (u *utype) sameRider(rb bool, irr uint8) bool { return u.rb == rb && u.irr == irr }
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1271,8 +1297,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
-				if phase == 0 && sac {
-					hasSac = true // last resort: a sacrificing source
+				noUntap := k.cards[s.cardAt(sl)].noUntap // last resort too (unitIrr)
+				if phase == 0 && lastResortUnit(sac, noUntap) {
+					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
 				if sac && pk.kept.any() && pk.kept.has(sl) {
@@ -1387,10 +1414,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				rb := pc.restrFloat
+				irr := unitIrr(sac, cr, noUntap)
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
@@ -1401,13 +1429,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb}
-					if sac {
-						pk.types[ti].irr = 10
-						if cr {
-							pk.types[ti].irr = 20
-						}
-					}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac || noUntap, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb, irr: irr}
 					pk.maxXt = pk.maxXt || xt != 0
 					if int(tn)+int(xt) > pk.maxN {
 						pk.maxN = int(tn) + int(xt)
@@ -1431,7 +1453,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
-				if sac {
+				if sac || noUntap {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7
 					// read the untapped NORMAL remainder in both phases
