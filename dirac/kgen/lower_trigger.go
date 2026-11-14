@@ -2925,6 +2925,22 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if aff == "You" {
 			return nil, refuse("player keyword")
 		}
+		// gorge playerkeywords.go's playerKeywords surface reads only the
+		// Shroud and Hexproof AddKeyword$ grants; any other keyword granted
+		// to a PLAYER spec is a ContinuousEffect nothing reads (the object
+		// keyword readers' player grammar fails closed, and the grant is
+		// gorge's granted-keyword-gaps ratchet: the card is playable while
+		// the grant is inert; the LimitSearchLibrary line in gorge's
+		// engine/rules/testdata/granted-keyword-gaps.txt records the gap, and
+		// this lowering goes when gorge models the grant). When the grant is the static's whole effect it
+		// lowers to nothing, exactly gorge's behaviour. Aven Mindcensor's
+		// "if an opponent would search a library, that player searches the
+		// top four cards instead" -- gorge models neither the search limit
+		// nor any other reader for the grant.
+		if strings.TrimSpace(k) == "LimitSearchLibrary" && st.F != nil && st.F.Players > 0 {
+			st.Kind = "" // view-only: lower to nothing
+			return nil, nil
+		}
 		rest, ward, wardLife, err := splitWardGrant(k)
 		if err != nil {
 			return nil, err

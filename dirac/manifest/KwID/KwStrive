@@ -1,0 +1,7 @@
+family: KwID
+name: KwStrive
+value: 49
+forge: Strive
+census: kw Strive all=20 std=0 mbc=0 sole=15
+state: stackbyte 48 (paid counts)
+status: reserved

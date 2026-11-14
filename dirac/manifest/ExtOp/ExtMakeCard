@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtMakeCard
+value: 11
+forge: MakeCard
+census: api MakeCard all=187 std=0 mbc=0 sole=75
+state: objspace (outside-game cards)
+status: blocked objspace:tcode

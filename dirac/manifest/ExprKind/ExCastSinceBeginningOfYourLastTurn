@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExCastSinceBeginningOfYourLastTurn
+value: 118
+forge: CastSinceBeginningOfYourLastTurn
+census: count CastSinceBeginningOfYourLastTurn all=1 std=0 mbc=0 sole=1
+state: player 4 (turn tallies)
+status: reserved

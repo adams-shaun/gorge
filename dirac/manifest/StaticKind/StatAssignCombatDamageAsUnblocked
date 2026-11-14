@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatAssignCombatDamageAsUnblocked
+value: 23
+forge: AssignCombatDamageAsUnblocked
+census: stat AssignCombatDamageAsUnblocked all=14 std=0 mbc=0 sole=13
+state: code 0
+status: reserved

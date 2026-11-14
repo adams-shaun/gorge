@@ -3527,6 +3527,24 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			sb |= kop.SrAuraEntry
 		}
+		if _, ok := fl["AttachTo"]; ok {
+			// AttachedTo$ on a library search
+			// (lower_zone.go's search path): the found card enters attached
+			// to the bearer the W Ref names (kop.SrSearchAttach); the named
+			// bearer replaces the plain CR 303.4f enchant ask
+			if in.Op != "Search" || zoneMap[in.C] != kop.ZoneBattlefield {
+				return ki, fmt.Errorf("AttachTo on a %s to zone %d", in.Op, zoneMap[in.C])
+			}
+			var r kop.Ref
+			if r, err = cb.ref(in.Obj2); err != nil {
+				return ki, err
+			}
+			if r > 7 {
+				return ki, fmt.Errorf("attach bearer ref %d", r)
+			}
+			sb |= kop.SrSearchAttach
+			ki.W = r
+		}
 		if _, ok := fl["UntilLeaves"]; ok {
 			// Duration$ UntilHostLeavesPlay on a hand exile
 			// (Deep-Cavern Bat): B.N bit 0, the kernel's hand-return link

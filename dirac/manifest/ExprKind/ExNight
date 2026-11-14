@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExNight
+value: 110
+forge: Night
+census: count Night all=2 std=0 mbc=0 sole=2
+state: player 4 (turn tallies)
+status: reserved

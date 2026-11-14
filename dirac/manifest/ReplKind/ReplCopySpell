@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplCopySpell
+value: 58
+forge: CopySpell
+census: repl CopySpell all=1 std=0 mbc=0 sole=1
+state: unbounded (layers/copy/text)
+status: blocked unbounded:layers/copy/text

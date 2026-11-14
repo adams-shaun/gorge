@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigElementalBend
+value: 112
+forge: ElementalBend
+census: trig ElementalBend all=1 std=1 mbc=0 sole=0
+state: code 0
+status: reserved

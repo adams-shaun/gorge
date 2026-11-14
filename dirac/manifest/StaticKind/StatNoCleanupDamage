@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatNoCleanupDamage
+value: 34
+forge: NoCleanupDamage
+census: stat NoCleanupDamage all=4 std=1 mbc=0 sole=2
+state: code 0
+status: reserved

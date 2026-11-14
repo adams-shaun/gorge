@@ -1,0 +1,7 @@
+family: KwID
+name: KwUmbraArmor
+value: 62
+forge: Umbra armor
+census: kw Umbra armor all=15 std=0 mbc=2 sole=14
+state: code 0
+status: reserved

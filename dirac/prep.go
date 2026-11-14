@@ -82,8 +82,8 @@ type pcard struct {
 	enterTap    bool  // ReplEntersTapped
 	enterCtr    int8  // ReplEntersWithCounters count (+1/+1 kind assumed when C=0)
 	enterCK     kop.CounterKind
+	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry; ahead of noCtr so the 16-bit enterCK leaves pcard no pad byte (92 bytes)
 	noCtr       bool       // ReplCantBeCountered
-	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry
 	noUntap     bool       // ReplDoesntUntap
 	mayNotUntap bool       // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
 	land        bool

@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/manifest"
 )
 
 // Refusal classes and tiers. refusalClasses normalises
@@ -42,6 +44,9 @@ func refusalClasses(reason string) []string {
 			api = strings.SplitN(m[1], " ", 2)[1]
 			r = r[len(m[0]):]
 		}
+	}
+	if strings.HasPrefix(r, "manifest:") { // the manifest guard (manifest_guard.go)
+		return []string{strings.Fields(r)[0]}
 	}
 	if strings.HasPrefix(r, "multi-face card") {
 		return []string{"faces"}
@@ -283,4 +288,53 @@ func refusalClassRows(refused []refusal) []classRow {
 		return rows[i].class < rows[j].class
 	})
 	return rows
+}
+
+// classFamily is the manifest family a class prefix's token is a code of:
+// the census kinds the manifest is seeded from.
+var classFamily = map[string]string{
+	"api":   "ExtOp",
+	"count": "ExprKind",
+	"kw":    "KwID",
+	"repl":  "ReplKind",
+	"stat":  "StaticKind",
+	"trig":  "TrigEvent",
+}
+
+// reCtrKind finds the counter type a counter refusal quotes (the class
+// replaces it with "_").
+var reCtrKind = regexp.MustCompile(`(?:counter kind|CounterType) "([^"]+)"`)
+
+// manifestNeed is the manifest family and forge token a refusal needs: the
+// API, keyword, trigger, static or replacement mode or Count$ head its class
+// names, or the counter type its reason quotes; "" when it names none.
+func manifestNeed(class, reason string) (family, tok string) {
+	if m := reCtrKind.FindStringSubmatch(reason); m != nil && strings.HasPrefix(class, "other:") {
+		return "CounterKind", m[1]
+	}
+	prefix, rest, ok := strings.Cut(class, ":")
+	if fam := classFamily[prefix]; ok && fam != "" && rest != "" {
+		if prefix == "repl" { // repl:<Event> <shape>
+			rest, _, _ = strings.Cut(rest, " ")
+		}
+		return fam, rest
+	}
+	return "", ""
+}
+
+// manifestColumn is the -census-std -tsv manifest column of a refusal: the
+// <Family>/<Name> of the manifest entry its vocabulary item has, or "-" for
+// a refusal that needs no new code (or no entry yet, or no man).
+func manifestColumn(man *manifest.Tree, class, reason string) string {
+	if man == nil {
+		return "-"
+	}
+	fam, tok := manifestNeed(class, reason)
+	if fam == "" {
+		return "-"
+	}
+	if e := man.ByForge(fam, tok); e != nil {
+		return e.Family + "/" + e.Name
+	}
+	return "-"
 }

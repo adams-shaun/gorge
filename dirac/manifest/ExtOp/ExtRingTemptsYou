@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtRingTemptsYou
+value: 14
+forge: RingTemptsYou
+census: api RingTemptsYou all=49 std=0 mbc=0 sole=33
+state: player 4 (ring)
+status: reserved

@@ -5,6 +5,17 @@ package kgen
 // kernel honors it on exactly four emitted ops, so any other op that carries
 // it is refused by name here, whichever helper emitted it.
 func (lc *lowerCtx) changeZone(ps *params) error {
+	// NonBasicSpell$ True is gorge cleaveSA's marker (engine/rules/cleave.go):
+	// the SECOND SP ability of a Cleave spell (CR 702.148a, every corpus
+	// carrier PrecostDesc$ Cleave), the bracket-free text a cleaved cast
+	// resolves. It has no reader on the body itself -- gorge's cast-level
+	// walk reads it only to find that ability and substitute it for
+	// f.SpellAbility() at the offer, the target ask and the resolution -- so
+	// the body lowering consumes it. The cleave cast itself is the ability's
+	// Cost$ (lower.go's spell-cost check refuses a Cost$ that differs from
+	// the printed mana cost, which every cleave ability states), so the
+	// card stays refused there until the cost family lowers.
+	ps.consume("NonBasicSpell")
 	atEOT, hasAtEOT, err := lc.changeZoneAtEOT(ps) // lower_ateot.go
 	if err != nil {
 		return err

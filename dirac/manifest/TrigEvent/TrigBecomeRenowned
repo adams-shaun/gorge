@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigBecomeRenowned
+value: 96
+forge: BecomeRenowned
+census: trig BecomeRenowned all=2 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

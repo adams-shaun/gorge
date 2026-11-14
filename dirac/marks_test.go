@@ -155,9 +155,8 @@ func BenchmarkViewHash(b *testing.B) {
 }
 
 // TestViewHashCachedEverySeat: along one line of play, the cached view hash
-// of every seat of the game equals the uncached one, at two seats and, in
-// the dirac_mp build, at three and four: the cache keeps one object part per
-// seat's view (a part cache of two seats panicked at seat 2, and folding a
+// of every seat of the game equals the uncached one, at every seat count up
+// to MaxSeats: the cache keeps one object part per seat's view (folding a
 // seat onto another would hand it the other's hand).
 func TestViewHashCachedEverySeat(t *testing.T) {
 	var c ObjHashCache
