@@ -1976,6 +1976,11 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			}
 			st.Cond = andCond(st.Cond, c)
 		}
+		if s.Mode == "AlternativeCost" {
+			if err := altCostSecondSVar(lc, sp, &st); err != nil {
+				return err // lower_altcostsecondsvar.go
+			}
+		}
 		if ip, ok := sp.get("IsPresent"); ok {
 			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
 				// a Level up band (lower_levelband.go): two Self presence tests
