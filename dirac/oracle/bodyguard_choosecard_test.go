@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -122,20 +121,13 @@ func bodyguardLowered(tbl *kop.Table) bool {
 func TestMBCChosenCardStrictLowers(t *testing.T) {
 	t.Parallel()
 	// the MBC draft pool plays the card, lowered
-	mbc := cardsettest.Synth(t, "dr-mbc-bb")
-	i, ok := mbc.Lookup(bodyguard)
-	if !ok {
-		t.Fatalf("%s is not in dr-mbc-bb", bodyguard)
-	}
-	if st := mbc.Status(i); st == cardset.StatusRefused {
-		t.Fatalf("dr-mbc-bb refuses %s: %s", bodyguard, mbc.Reason(i))
-	}
+	pool, mbc := mbcSplitOf(t, bodyguard)
 	mtbl, _, _, err := mbc.Matchup([]cardset.Entry{{Name: bodyguard, Count: 1}}, []cardset.Entry{{Name: bodyguard, Count: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bodyguardLowered(mtbl) {
-		t.Fatalf("dr-mbc-bb's %s carries no ExtChooseCardEnter beside a chosen-object keyword grant", bodyguard)
+		t.Fatalf("%s's %s carries no ExtChooseCardEnter beside a chosen-object keyword grant", pool, bodyguard)
 	}
 
 	cardsDir := corpusDirOrSkip(t)

@@ -326,6 +326,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vHighestOppPoison}
 		case strings.HasPrefix(rest, "Condition"):
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
+		case rest == oppsDealtDamageBody:
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -338,6 +340,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = hv // value_turntallies.go
 		} else if rest == oppsDealtCombatDamageBody {
 			v = lValue{Kind: vOppsLostLife, N: 2}
+		} else if rest == oppsDealtDamageBody {
+			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
 		} else {
 			err = fmt.Errorf("PlayerCountRegisteredOpponents$%s", rest)
 		}
@@ -1149,6 +1153,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vLifeOf, Ref: lRef{Kind: rYou}}, nil
 	case "CardsInYourHand":
 		return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, nil
+	case "TopOfLibraryCMC":
+		// gorge count_cov3.go evalCov3HeadTopOfLibraryCMC: the mana value of
+		// the top card of the resolving controller's library, 0 when it is
+		// empty (Counterbalance, Riddle of Lightning): ExMVOf RefLibTop
+		return lValue{Kind: vMVOf, Ref: lRef{Kind: rLibTop}}, nil
 	case "YourStartingLife":
 		return lValue{Kind: vStartingLife}, nil
 	case "CardPower":

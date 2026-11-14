@@ -190,6 +190,13 @@ func TestSubsetRebuildsMissingSegments(t *testing.T) {
 	if err := r.saveGob(cache); err != nil {
 		t.Fatal(err)
 	}
+	// saveGob writes the cache alone: the digest sidecar the staleness rule
+	// now reads (tokens_digest.go) is recorded by Save, which would also write
+	// the segment this test needs to be missing. dir has no tokenscripts
+	// directory, so record the empty digest the way Save would have.
+	if err := os.WriteFile(TokenDigestPath(cache), []byte(emptyTokenDigest), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	sub, err := OpenCorpusSubset(dir, []string{"beta"})
 	if err != nil {
 		t.Fatal(err)

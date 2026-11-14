@@ -32,6 +32,8 @@ var ignoredParams = map[string]bool{
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
+
+	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -164,6 +166,7 @@ type lowerCtx struct {
 	depth          int       // chain nesting (1: the ability's own chain)
 	head           bool      // the node being lowered heads its chain
 	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
@@ -409,6 +412,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = i, true
 		}
+		if len(out.Abilities) > n && out.Cleave != nil && out.CleaveAb == n+1 && lc.isCleaveSA(a) {
+			out.Abilities[n].Latent = true // the cleaved cast's own text, reached only through its cast (lower_cleave.go)
+		}
 	}
 	for i, t := range lc.face.Triggers {
 		t := t
@@ -422,7 +428,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if lc.imprintMox && i > 0 {
 			continue // the imprint mox's static Cleanup / ForgetImprinted$ bookkeeping: the kernel's exiled-with record (lower_imprintmox.go)
 		}
-		if t.Mode == "TapsForMana" {
+		if t.Mode == "TapsForMana" && strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
 		}
@@ -496,8 +502,9 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
-	lc.lowerOverload()     // lower_overload.go
-	lc.refuseSurgeCombos() // lower_surge.go
+	lc.lowerOverload()      // lower_overload.go
+	lc.refuseCleaveCombos() // lower_cleave.go
+	lc.refuseSurgeCombos()  // lower_surge.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -1045,6 +1052,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Flash = true
 		case head == "Decayed" && param == "":
 			lc.lowerDecayed() // lower_decayed.go
+		case head == "CantAttackOrBlock" && param == "":
+			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
 			// CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
 			lc.out.Infect = true
@@ -2362,6 +2371,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "RevealChosen" {
+			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -3047,6 +3062,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
+			// CR 205.4e: a legendary instant or sorcery is cast only while
+			// its caster controls a legendary creature or planeswalker
+			// (gorge legendarySpellLocked, on every cast route): the same
+			// cast restriction castForbidden withholds an IsPresent$ cast by
+			f, err := lc.filter("Creature.Legendary+YouCtrl,Planeswalker.Legendary+YouCtrl")
+			if err != nil {
+				return err
+			}
+			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+		}
 		if c, ok := ps.get("Cost"); ok {
 			lc.lifeXSpell = true
 			cost, err := lc.cost(c)
@@ -3057,7 +3083,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if cost.Energy != 0 {
 				return refuse("energy cost on a spell")
 			}
-			if cost.Return != nil {
+			if cost.Return != nil && !lc.spellReturnOnly(&cost) {
 				return refuse("return cost on a spell")
 			}
 			if cost.EvidenceX {
@@ -3071,13 +3097,29 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.EvidenceTargets = true
 				cost.EvidenceX = false
 			}
-			// The printed mana cost rides on the card record; the SP
-			// Cost$ adds the non-mana additional costs.
-			if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
-				return refuse("spell Cost$ %q differs from the printed cost", c)
+			if lc.isCleaveSA(sa) {
+				// Cleave's second line: its Cost$ is the whole alternative cost
+				// (CR 702.148a), mana only (lower_cleave.go)
+				if !cost.pureMana() || cost.Mana.None {
+					return refuse("cleave Cost$ %q is not a plain mana cost", c)
+				}
+				if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX || len(cost.Mana.Hybrid) != 0 || len(cost.Mana.Twobrid) != 0 || len(cost.Mana.Phyrexian) != 0 {
+					// the cleaved cast's X ask and symbol faces read the printed
+					// cost (Lantern Flare's {X}{R}{W}); only a plain cost is lowered
+					return refuse("cleave Cost$ %q has an {X}, hybrid or Phyrexian symbol", c)
+				}
+				mc := cost.Mana
+				lc.out.Cleave, lc.out.CleaveAb = &mc, ab.Index+1
+				ps.consume("NonBasicSpell")
+			} else {
+				// The printed mana cost rides on the card record; the SP
+				// Cost$ adds the non-mana additional costs.
+				if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
+					return refuse("spell Cost$ %q differs from the printed cost", c)
+				}
+				cost.Mana = manaCost{None: true}
+				lc.out.SpellCost = &cost
 			}
-			cost.Mana = manaCost{None: true}
-			lc.out.SpellCost = &cost
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.
@@ -3336,6 +3378,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err != nil {
 			return err
 		}
+		if err := lc.anyActivator(sa.API, ps, ab, cost); err != nil { // lower_anyactivator.go
+			return err
+		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
 			// -0/-1 mana-ability shape stays as it was (Wall of Roots; the
@@ -3459,6 +3504,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
 		ab.ActCond = andCond(ab.ActCond, actLimit)
+		ab.ActCond = andCond(ab.ActCond, revealChosenGate(cost)) // lower_revealchosen.go
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
