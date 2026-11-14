@@ -9,7 +9,8 @@ import (
 
 // The standard-meta pool (the 500 cards of 60 MTGGoldfish Standard decks) builds as
 // one table: its 146 subtypes are past the old 128-bit masks, so the widening to
-// kop.MaxSubtypes is what lets it build, and 53 of its cards stay refused.
+// kop.MaxSubtypes is what lets it build, and 52 of its cards stay refused
+// (Susur Secundi, Void Altar lowered with the MBC costs-4 PayLife-beside-Sac cost: 53 -> 52).
 func TestStdMetaPoolBuilds(t *testing.T) {
 	cards := tableCorpus(t)
 	p, _, prev, err := readPool(os.DirFS("../.."), "standard-meta", cards)
@@ -33,14 +34,14 @@ func TestStdMetaPoolBuilds(t *testing.T) {
 	if len(d.Subtypes) > kop.MaxSubtypes {
 		t.Errorf("%d subtypes, a table's masks hold %d", len(d.Subtypes), kop.MaxSubtypes)
 	}
-	if cv.cardsOK != 447 {
-		t.Errorf("%d cards supported, want 447 (53 refused)", cv.cardsOK)
+	if cv.cardsOK != 448 {
+		t.Errorf("%d cards supported, want 448 (52 refused)", cv.cardsOK)
 	}
 	refused := map[string]bool{}
 	for _, r := range cv.refused {
 		refused[r.Card] = true
 	}
-	if len(refused) != 53 {
-		t.Errorf("%d distinct refused cards, want 53", len(refused))
+	if len(refused) != 52 {
+		t.Errorf("%d distinct refused cards, want 52", len(refused))
 	}
 }
