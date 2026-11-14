@@ -11,17 +11,19 @@ const cfgxCantDraw uint8 = 1 << 6
 var DebugPlayerBanOff bool
 
 // playerBanned: a functioning static of kind sk (StatCantGainLife /
-// StatCantDraw, every player) is on the battlefield (gorge
-// lifeGainForbidden / drawForbidden with an empty ValidPlayer$).
+// StatCantDraw) is on the battlefield and bans player p: every player, or with
+// StBanOpp only the seats other than the static's controller (gorge
+// lifeGainForbidden / drawForbidden: an empty ValidPlayer$, or Opponent).
 //
 //go:noinline
-func (s *State) playerBanned(k *prep, sk kop.StaticKind) bool {
+func (s *State) playerBanned(k *prep, sk kop.StaticKind, p uint8) bool {
 	if DebugPlayerBanOff {
 		return false
 	}
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
-		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == sk && s.statCond(k, st) {
+		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == sk &&
+			(st.a.Static.StFlags&kop.StBanOpp == 0 || st.ctrl != p) && s.statCond(k, st) {
 			hit = true
 			return false
 		}

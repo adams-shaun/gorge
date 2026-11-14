@@ -516,6 +516,9 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	if g.anyDmgMark && s.dmgMarkCompetes(rcp, n) {
 		return 0 // repl_dmgmark.go
 	}
+	if barePrevOnly(n, ro.prev, ro.shld, ro.pnx, ro.plus) {
+		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
+	}
 	ro.p = rcp
 	return n
 }
@@ -1152,7 +1155,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, false) {
+		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false) {
 			s.capFull(StallPrevNext)
 			return false
 		}
@@ -1162,6 +1165,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	if c < 2 {
 		return false
+	}
+	if !parked && barePrevOnly(c, prev, shld, pnx, plus) {
+		return false // no order ask (repl_bareprev.go): replDamage prevents it
 	}
 	if parked {
 		// gorge asks this event's order after the parked one is answered and
