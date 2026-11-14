@@ -407,7 +407,10 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if !e.classBandGateHolds(sv.ParamStr(cards.PKClassBand), sv.Source) {
 		return false
 	}
-	if !presentGatesHold(sv, e.presentGate) {
+	if spec, ok := sv.Param(cards.PKIsPresent); ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if spec, ok := sv.Param(cards.PKIsPresent2); ok && !e.presentGate(sv, spec) {
 		return false
 	}
 	if !e.continuousConditionHolds(sv) {

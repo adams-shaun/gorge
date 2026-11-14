@@ -18,8 +18,8 @@ import (
 // MaxSpeed AddAbility$ (engine/rules/speed.go's maxSpeedAbilities owns the `granted`
 // priority offer). An IsPresent$ / IsPresent2$ gate (Forge's
 // StaticAbility.checkConditions: Joraga Treespeaker's "LEVEL 1-4" band,
-// counters_GE1_LEVEL+counters_LE4_LEVEL) is read through presentGatesHold, the
-// one reader the layer walk's continuousGateHolds uses; present is the
+// counters_GE1_LEVEL+counters_LE4_LEVEL) is read through presentGatesHold, which
+// mirrors the layer walk's continuousGateHolds reads; present is the
 // engine's presentGate. Every other Condition$ keeps the scan's pre-existing
 // behaviour: not read here.
 func manaGrantConditionHolds(g *state.Game, sv staticView, present func(staticView, string) bool) bool {
