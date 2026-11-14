@@ -117,7 +117,7 @@ func init() {
 		"kop.PredMultiColor", kop.PredMultiColor, "kop.PredHistoric", kop.PredHistoric, "kop.PredEquipped", kop.PredEquipped,
 		"kop.PredEnchanted", kop.PredEnchanted, "kop.PredAttached", kop.PredAttached, "kop.PredActiveCtrl", kop.PredActiveCtrl,
 		"kop.PredTypesAll", kop.PredTypesAll, "kop.PredTypesAllCMCLE", kop.PredTypesAllCMCLE, "kop.PredModified", kop.PredModified, "kop.PredHasCounters", kop.PredHasCounters,
-		"kop.PredMonstrous", kop.PredMonstrous, "kop.PredNoCounters", kop.PredNoCounters, "kop.PredLacksKeyword", kop.PredLacksKeyword,
+		"kop.PredMonstrous", kop.PredMonstrous, "kop.PredRenowned", kop.PredRenowned, "kop.PredNoCounters", kop.PredNoCounters, "kop.PredLacksKeyword", kop.PredLacksKeyword,
 		"kop.PredOutlaw", kop.PredOutlaw, "kop.PredMonoColor", kop.PredMonoColor,
 		"kop.PredSameNameT0", kop.PredSameNameT0, "kop.PredCountersLT", kop.PredCountersLT, "kop.PredToughnessLEV", kop.PredToughnessLEV,
 		"kop.PredTotalPT", kop.PredTotalPT, "kop.PredBlocked", kop.PredBlocked, "kop.PredSolved", kop.PredSolved,
@@ -148,11 +148,11 @@ func init() {
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExCmdGreatestMV", kop.ExCmdGreatestMV, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,
 		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExFirstCast", kop.ExFirstCast, "kop.ExIfCastOwnMain", kop.ExIfCastOwnMain, "kop.ExExiledWithN", kop.ExExiledWithN,
 		"kop.ExSacrificedThisTurn", kop.ExSacrificedThisTurn, "kop.ExDiscardedThisTurn", kop.ExDiscardedThisTurn,
-		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExMonarch", kop.ExMonarch, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn, "kop.ExOppExtreme", kop.ExOppExtreme, "kop.ExDmgAmountReceived", kop.ExDmgAmountReceived, "kop.ExPlExtreme", kop.ExPlExtreme, "kop.ExEnergyOf", kop.ExEnergyOf, "kop.ExJoinForces", kop.ExJoinForces, "kop.ExRemEachOwnNonLand", kop.ExRemEachOwnNonLand, "kop.ExDmgOppsTaken", kop.ExDmgOppsTaken)
+		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExMonarch", kop.ExMonarch, "kop.ExBlessing", kop.ExBlessing, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExNotOwnLibMV", kop.ExNotOwnLibMV, "kop.ExChromaOf", kop.ExChromaOf, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExChosenNumber", kop.ExChosenNumber, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant, "kop.ExCounterKinds", kop.ExCounterKinds, "kop.ExTargetPlayers", kop.ExTargetPlayers, "kop.ExTapPower", kop.ExTapPower, "kop.ExStepIn", kop.ExStepIn, "kop.ExOppExtreme", kop.ExOppExtreme, "kop.ExDmgAmountReceived", kop.ExDmgAmountReceived, "kop.ExPlExtreme", kop.ExPlExtreme, "kop.ExEnergyOf", kop.ExEnergyOf, "kop.ExJoinForces", kop.ExJoinForces, "kop.ExRemEachOwnNonLand", kop.ExRemEachOwnNonLand, "kop.ExDmgOppsTaken", kop.ExDmgOppsTaken)
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
 		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd, "kop.CondEchoOwed", kop.CondEchoOwed,
-		"kop.CondSourceZone", kop.CondSourceZone)
+		"kop.CondSourceZone", kop.CondSourceZone, "kop.CondBlessing", kop.CondBlessing, "kop.CondRemMark", kop.CondRemMark)
 	enum[kop.CmpOp]("kop.CmpNone", kop.CmpNone, "kop.CmpGE", kop.CmpGE, "kop.CmpLE", kop.CmpLE, "kop.CmpEQ", kop.CmpEQ,
 		"kop.CmpGT", kop.CmpGT, "kop.CmpLT", kop.CmpLT, "kop.CmpNE", kop.CmpNE, "kop.CmpPrime", kop.CmpPrime)
 	enum[kop.CounterKind]("kop.CtrP1P1", kop.CtrP1P1, "kop.CtrM1M1", kop.CtrM1M1, "kop.CtrLoyalty", kop.CtrLoyalty,
@@ -171,7 +171,8 @@ func init() {
 		"kop.CtrInvasion", kop.CtrInvasion, "kop.CtrLoot", kop.CtrLoot, "kop.CtrRev", kop.CtrRev, "kop.CtrPage", kop.CtrPage,
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
-		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage, "kop.CtrScream", kop.CtrScream, "kop.CtrComponent", kop.CtrComponent, "kop.CtrDescent", kop.CtrDescent, "kop.CtrM2M1", kop.CtrM2M1, "kop.CtrTreasure", kop.CtrTreasure, "kop.CtrTask", kop.CtrTask, "kop.CtrLevelUp", kop.CtrLevelUp,
+		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage, "kop.CtrScream", kop.CtrScream, "kop.CtrTreasure", kop.CtrTreasure, "kop.CtrTask", kop.CtrTask, "kop.CtrLevelUp", kop.CtrLevelUp,
+		"kop.CtrComponent", kop.CtrComponent, "kop.CtrDescent", kop.CtrDescent, "kop.CtrM2M1", kop.CtrM2M1,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive, "kop.WhoseChosen", kop.WhoseChosen)

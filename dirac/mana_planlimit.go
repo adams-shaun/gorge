@@ -234,6 +234,9 @@ func (pk *planner) sameClassType(a, b uint8) bool {
 // and then the intrinsic ability of each granted type (WUBRG); with both,
 // unitAltsChoice emits the census order instead.
 func (s *State) unitAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt, granted bool) int {
+	if n, ok := s.landSetAlts(k, pk, u, out); ok {
+		return n // its own abilities are gone (static_landtypesetter.go)
+	}
 	if granted {
 		if n, ok := s.unitAltsChoice(k, pk, u, out, true); ok {
 			return n

@@ -330,17 +330,6 @@ const (
 	// inherent rules meaning (CR 122.1); its count drives the aura's +N/+0
 	// (Count$CardCounters.SCREAM).
 	CtrScream
-	// CtrComponent is Component Pouch's component counter: a named counter
-	// with no inherent rules meaning (CR 122.1) that its mana ability removes.
-	CtrComponent
-	// CtrDescent is Descent into Avernus's descent counter: a named counter
-	// with no inherent rules meaning (CR 122.1); its count is the upkeep
-	// trigger's X (Count$CardCounters.DESCENT).
-	CtrDescent
-	// CtrM2M1 is a -2/-1 counter (CR 122.1a; Contagion): ptGen subtracts 2
-	// power and 1 toughness per counter (gorge state.CounterPTDelta), read
-	// only when some program can place one (genPrep.anyM2M1, ctr_hone.go).
-	CtrM2M1
 	// CtrTreasure is a treasure counter, a named counter with no inherent
 	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
 	CtrTreasure
@@ -352,6 +341,17 @@ const (
 	// no inherent rules meaning (CR 122.1), distinct from CtrLevel, a Class's
 	// level designation.
 	CtrLevelUp
+	// CtrComponent is Component Pouch's component counter: a named counter
+	// with no inherent rules meaning (CR 122.1) that its mana ability removes.
+	CtrComponent
+	// CtrDescent is Descent into Avernus's descent counter: a named counter
+	// with no inherent rules meaning (CR 122.1); its count is the upkeep
+	// trigger's X (Count$CardCounters.DESCENT).
+	CtrDescent
+	// CtrM2M1 is a -2/-1 counter (CR 122.1a; Contagion): ptGen subtracts 2
+	// power and 1 toughness per counter (gorge state.CounterPTDelta), read
+	// only when some program can place one (genPrep.anyM2M1, ctr_hone.go).
+	CtrM2M1
 	NumCounterKinds3
 )
 
@@ -378,7 +378,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "COMPONENT", "DESCENT", "M2M1", "TREASURE", "TASK", "LEVEL"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL", "COMPONENT", "DESCENT", "M2M1"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

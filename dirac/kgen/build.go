@@ -439,11 +439,11 @@ var counterKinds = map[string]kop.CounterKind{
 	"LEVEL":      kop.CtrLevelUp,    // Level up's level counter (CR 702.87; the level bands' counters_GEn_LEVEL)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
+	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
-	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
-	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -874,6 +874,17 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.AnimateEnchant != nil {
+		// the Licids' self-granted enchant: the kernel's Aura state-based
+		// action reads it once the card's own animation makes it an Aura
+		// (lower_animateaura.go)
+		if d.Enchant.Kind != kop.TgtNone {
+			return fmt.Errorf("a granted enchant beside a printed one")
+		}
+		if d.Enchant, err = cb.target(*c.AnimateEnchant); err != nil {
+			return err
+		}
+	}
 	if c.Convoke {
 		// CR 702.51a: printed convoke; the cast taps creatures for its
 		// mana cost (dirac/kw_convoke.go)
@@ -1030,6 +1041,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
+	d.Ascend = c.Ascend
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1779,6 +1791,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// off the battlefield nothing is solved (gorge clears Solved on
 		// the zone move)
 		kf.Pred, kf.PredN = kop.PredSolved, int16(c.CmpN)
+	case cmpRenowned:
+		// the arena designation bit (kernel act_renown.go); off the
+		// battlefield nothing is renowned (predCardCold)
+		kf.Pred, kf.PredN = kop.PredRenowned, int16(c.CmpN)
 	case cmpSuspected:
 		// the arena designation bit (kernel predPermCold); off
 		// the battlefield nothing is suspected (predCardCold)
@@ -2273,6 +2289,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
+	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
@@ -2387,7 +2404,8 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
+	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2480,6 +2498,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.RemoveTypes = typeMask(o.RemoveTypes)
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
+	ko.SetLandSub = o.SetLandSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
@@ -2494,6 +2513,9 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		return 0, err
 	}
 	if ko.RemoveKw, err = kwMask(o.RemoveKw); err != nil {
+		return 0, err
+	}
+	if ko.CantHaveKw, err = kwMask(o.CantHaveKw); err != nil {
 		return 0, err
 	}
 	if len(o.GrantAbility) > 2 {

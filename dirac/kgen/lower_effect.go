@@ -812,6 +812,28 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		if c, err = lc.nodeConditionZone(ps, c, cp); err != nil { // lower_condkeys.go
 			return lCond{}, err
 		}
+		// The plain ConditionDefined$ Remembered spelling: gorge's group is
+		// the source's persistent remembered list UNIONED with the
+		// resolution's own memory (rememberedWithSource, which
+		// rememberedLKIGroup answers; Forge's SpellAbilityCondition.areMet
+		// reads getDefinedObjects(host, "Remembered")). The kernel's
+		// RefRemembered reads the resolution's own set alone, so a chain that
+		// wrote nothing still meets the gate on an earlier resolution's write
+		// (Nezahal, Primal Tide's second discard-three activation,
+		// Aetherling's: the first exile's memory stands on the host). OR in
+		// the persistent mark for the default present compare; a written
+		// ConditionCompare$ keeps today's lowering. The mark is a bare
+		// non-empty test, so it is ORed in only when the present filter
+		// restricts nothing: a typed gate (Soul-Shackled Zombie's
+		// ConditionPresent$ Card.Creature over an instant it remembered)
+		// stays at today's per-resolution lowering.
+		if c.Kind == cRefMatches && c.Ref.Kind == rRemembered &&
+			c.Op == opGE && c.A.Kind == vConst && c.A.N == 1 && !c.Neg &&
+			filterAnyCard(c.F) {
+			if _, hasCmp := ps.get("ConditionCompare"); !hasCmp {
+				c = orCond(c, lCond{Kind: cRemMark})
+			}
+		}
 		// ConditionCheckSVar$ beside the present check is a conjunction
 		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
 		// the present group to decide). H.M.S. Bounty: ConditionPresent$
@@ -2208,7 +2230,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChooseCard":
 		return lc.chooseCard(ps)
 	case "ChoosePlayer":
-		return lc.choosePlayer(ps) // lower_definedheads.go
+		return lc.choosePlayer(ps, chainReadsChosenPlayer(sa.Sub)) // lower_definedheads.go, lower_chooseplayermid.go
 	case "GenericChoice":
 		return lc.genericChoice(ps)
 	case "ChangeText":
@@ -3435,6 +3457,11 @@ func pumpKeywords(kw string) ([]string, error) {
 			out = append(out, "CantBlock")
 		case k == "Prevent all combat damage that would be dealt to CARDNAME.":
 			out = append(out, "PreventCombatDamageTo")
+		case k == "Prevent all combat damage that would be dealt by CARDNAME.":
+			// a granted "dealt by" sentence (Hunter's Ambush's nongreen
+			// creatures, Feint's target): gorge's preventKWs by-combat head
+			// (rules/replacement_prevent_kw.go), the kernel's prevCombatFrom
+			out = append(out, "PreventCombatDamageFrom")
 		case k == "Wither":
 			out = append(out, "Wither") // CR 702.80 granted; not in simpleKeywords (that map also drives the printed K: switch)
 		case k == "Flashback":
@@ -3661,6 +3688,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	}
 	if mono, ok := ps.get("Monstrosity"); ok {
 		return lc.monstrosity(ps, obj, mono)
+	}
+	if rn, ok := ps.get("Renown"); ok {
+		return lc.renown(ps, obj, rn) // lower_renown.go
 	}
 	n, err := lc.amount(ps, "CounterNum", 1)
 	if err != nil {
@@ -4207,6 +4237,7 @@ func (lc *lowerCtx) attach(ps *params) error {
 	if err != nil {
 		return err
 	}
+	lc.attachSelfOther(obj) // lower_animateaura.go
 	if lc.ab.Kind == akActivated && ps.is("Keyword", "Equip") {
 		lc.ab.Name = "Equip"
 	}
