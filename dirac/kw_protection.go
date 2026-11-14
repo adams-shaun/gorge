@@ -62,7 +62,31 @@ func (s *State) protMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardI
 	if srcSl != NoSlot && s.occ.has(srcSl) {
 		return s.matchPermGen(k, f, srcSl, p, NoSlot, layerFull)
 	}
+	if x := s.protSpellXMV(k, srcCard); x != 0 {
+		ctx := s.ctxCur()
+		ctx.xmv = x
+		return s.matchCardChain(k, f, srcCard, p, p, NoObj, &ctx)
+	}
 	return s.matchCardGen(k, f, srcCard, p, p, NoObj)
+}
+
+// protSpellXMV is what the announced X of spell srcCard adds to the mana
+// value a protection quality reads on it (CR 202.3e, 601.2b: X is announced
+// before the targets; gorge protectionSourceMV): the X a feasibility sweep
+// is trying (probe.x, xAnswerable and xBoundPayable), else the X of the
+// spell being built or resolved. 0 for a card with no {X} or any other source.
+func (s *State) protSpellXMV(k *prep, srcCard CardID) int {
+	nx := int(k.cards[srcCard].cost.X)
+	if nx == 0 {
+		return 0
+	}
+	if p := &s.g.probe; p.kind == probeSpell && p.card == srcCard && p.x != 0 {
+		return (int(p.x) - 1) * nx
+	}
+	if e := s.curEntry(); e != nil && e.kind == seSpell && e.card == srcCard {
+		return int(e.x) * nx
+	}
+	return 0
 }
 
 // protGranted: a Continuous static's ProtFrom quality, granted to sl,

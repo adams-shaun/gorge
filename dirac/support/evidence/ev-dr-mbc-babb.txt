@@ -16,6 +16,7 @@ Island
 Knights of the Black Rose
 Kutzil, Malamet Exemplar
 Manor Gate
+Mistmeadow Skulk
 Mountain
 Pick Your Poison
 Plains
@@ -26,6 +27,9 @@ Shoreline Looter
 Snap
 Sting-Slinger
 Stir the Sands
+Surge of Salvation
 Swamp
 Take Up the Shield
+The Muckslinger Gang
 Unexpected Fangs
+Zombie Cutthroat

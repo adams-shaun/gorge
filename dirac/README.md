@@ -88,7 +88,9 @@ These are invariants, not style preferences:
 
 - **`State`'s core is a plain value.** `stateCore` holds no pointers, maps,
   slices, strings or interfaces; a field that needs a collection is a fixed array
-  plus a count, and rarely used arrays sit in `coldArrays`, sized to the table.
+  plus a count, and rarely used arrays sit in the cold buffer, sized to the table:
+  the feature's own file registers each one with `newCold` and reads it with
+  `.of(s)`, never by editing `statecopy.go` or `arena.go`.
   Clone with `CopyFrom`, and run a rules probe on `s.fork()`, paired with
   `s.unfork()`.
 - **No allocation in the transition loop.** `Step`/`Apply` and the interpreter

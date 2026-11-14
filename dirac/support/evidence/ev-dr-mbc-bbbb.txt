@@ -6,13 +6,16 @@ Collected Company
 Counterspell
 Dauntless Bodyguard
 Davvol, Evincar of Rath
+Elite Scaleguard
 Executioner's Capsule
+Fatal Push
 Fellwar Stone
 Fog Bank
 Footfall Crater
 Forest
 Fungal Infection
 Geistblast
+Glacier Godmaw
 Gloomfang Mauler
 Go for the Throat
 Goblin Bombardment
@@ -40,6 +43,7 @@ Seal of Fire
 Shimmerscale Drake
 Soul Warden
 Spellstutter Sprite
+Standstill
 Swamp
 The Rack
 Think Twice

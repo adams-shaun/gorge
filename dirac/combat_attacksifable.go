@@ -17,11 +17,25 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // attacksIfAbleExt is ExtAttacksIfAble: the battlefield object Obj is marked.
 func (s *State) attacksIfAbleExt(k *prep, in *kop.Instr) {
-	if sl := s.objRef(k, in.Obj); sl != NoSlot && !s.mSl(k, mechAttacksIfAble, sl) {
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		return
+	}
+	if !s.mSl(k, mechAttacksIfAble, sl) {
 		s.mSlSet(k, mechAttacksIfAble, sl)
 		s.touchSl(sl)
 	}
+	if in.C&kop.AttacksOpponent != 0 && !s.mSl(k, mechAttacksPlayer, sl) {
+		s.mSlSet(k, mechAttacksPlayer, sl)
+		s.touchSl(sl)
+	}
 }
+
+// attackPlayerOnly reports whether the attack duty on sl names the opponent
+// (kop.AttacksOpponent): only the player satisfies it, so no planeswalker or
+// battle is offered as its target, the way gorge's encoreAttackDefender names
+// the sole defender.
+func (s *State) attackPlayerOnly(k *prep, sl Slot) bool { return s.mSl(k, mechAttacksPlayer, sl) }
 
 // attackDutyOn reports whether the table can mark an attack duty at all.
 func attackDutyOn(k *prep) bool {

@@ -138,7 +138,9 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 				continue
 			}
 			lost = true
-			ts = max(ts, s.layerTs(src))
+			if !k.gen.landSet || !landSetCard(k, s.cardAt(src)) {
+				ts = max(ts, s.layerTs(src)) // a land-type setter's loss is layer 4's: no timestamp (static_landtypesetter.go)
+			}
 		}
 	}
 	if lost && p.ovr.walk&walkOn != 0 {
@@ -197,7 +199,8 @@ func (s *State) loseAllOnset(k *prep, src, dst Slot) {
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities &&
+				!k.t.Overrides[a.Static.Override-1].SetLandSub { // a layer-4 loss removes no later grant
 				lose = true
 			}
 		}
@@ -401,8 +404,8 @@ func typeVocabSub(k *prep, v int) uint8 {
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
-	if k.gen != nil && k.gen.anyBestow && k.gen.auraSub.Has(int(i)) && s.bestowAttached(k, sl) {
-		return true // an attached bestow permanent is an Aura (kw_bestow.go bestowSubs)
+	if k.gen != nil && k.gen.anyBestow && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
+		return true // CR 702.103b: an attached bestow card is an Aura (the subtype too; kw_bestow.go)
 	}
 	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
 		return false // CR 205.1a: gone with the creature type
@@ -443,6 +446,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		}
 		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
+		}
+		if o.SetLandSub {
+			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
 		m = m.Or(o.AddSub)
 		if ovrAllCreat(o) {
@@ -517,6 +523,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 					mAll = false
 				}
 			}
+			if o.SetLandSub {
+				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+			}
 			m = m.Or(o.AddSub)
 			if ovrAllCreat(o) {
 				mAll, allOut = true, true
@@ -561,7 +570,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		subs = subs.AndNot(k.gen.creatSub)
 		all = false
 	}
-	subs = s.bestowSubs(k, sl, subs)
+	if k.gen.anyBestow && k.gen.auraSub >= 0 && s.bestowAttached(k, sl) {
+		subs = subs.With(int(k.gen.auraSub)) // CR 702.103b: the Aura subtype with the Aura type (kw_bestow.go)
+	}
 	return subs, all
 }
 

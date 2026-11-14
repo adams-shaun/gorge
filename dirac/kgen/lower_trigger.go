@@ -1297,6 +1297,28 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Attached TriggerZones %d", tr.Zone)
 		}
 		tp.consume("ValidSource", "ValidTarget")
+	case "Unattached":
+		// gorge trigmatch unattachedMatches (CR 701.3b/d): the attachment's
+		// own "becomes unattached from a permanent" (ValidAttachment$
+		// Card.Self, ValidObject$ Permanent, the Captain's Hook family); the
+		// kernel's detach arms fire it (trig_unattached.go), RefTriggerObj
+		// the former bearer. gorge evaluates ValidAttachment$ against the
+		// event's Obj, the attachment the detach names, and Card.Self binds
+		// to the trigger's own source: the kernel queues only the attachment's
+		// own abilities, which is the same read for the corpus's Card.Self
+		// spelling. ValidObject$ is the bearer, matched against it as it last
+		// existed; the kernel's fire sites pass every bearer, so only the
+		// vacuous spellings lower.
+		if v := tp.str("ValidAttachment"); v != "Card.Self" {
+			return refuse("Unattached ValidAttachment$ %q", v)
+		}
+		if v := tp.str("ValidObject"); v != "" && v != "Permanent" {
+			return refuse("Unattached ValidObject$ %q", v)
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Unattached TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidAttachment", "ValidObject")
 	case "BecomesSaddled":
 		// gorge BecomesSaddledMatches / FirstTimeSaddled (trigmatch/
 		// saddled.go): the Mount's own Saddled grant, each resolution of
@@ -1661,6 +1683,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if tp.is("Threshold", "True") {
 		conds = append(conds, lCond{Kind: cThreshold})
 	}
+	if v, ok := tp.get("Blessing"); ok {
+		// gorge trigger_condition.go: Blessing$ True, the trigger's
+		// controller's city's-blessing latch (CR 702.131), an intervening-if
+		// checked as it triggers and again at resolution, as Threshold$ True
+		// joins the conds
+		if v != "True" {
+			return refuse("Blessing$ %q", v)
+		}
+		conds = append(conds, lCond{Kind: cBlessing})
+	}
 	if v, ok := tp.get("Hellbent"); ok {
 		// gorge trigger_condition_hellbent.go: "you have no cards in hand",
 		// an intervening-if re-checked at resolution
@@ -1934,6 +1966,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 					st.Cond = deliriumCond() // gorge graveyardCardTypeCount >= 4
 				case c == "Hellbent" && s.Mode == "Continuous":
 					st.Cond = lCond{Kind: cValue, A: lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
+				case c == "Blessing" && (s.Mode == "Continuous" || s.Mode == "CantBlockBy"):
+					// gorge condBlessing: the controller's latch (CR 702.131).
+					// A CantBlockBy static's condition rides Static.Cond2,
+					// which the kernel's blockForbiddenGen consults through
+					// statCond with the static's controller, the same
+					// context gorge's BlockRestricted' StaticGateHolds walk
+					// reads the condition against.
+					st.Cond = lCond{Kind: cBlessing}
 				default:
 					return refuse("static Condition %q", c)
 				}
@@ -1953,6 +1993,11 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 				c.Op, c.B = op, b
 			}
 			st.Cond = andCond(st.Cond, c)
+		}
+		if s.Mode == "AlternativeCost" {
+			if err := altCostSecondSVar(lc, sp, &st); err != nil {
+				return err // lower_altcostsecondsvar.go
+			}
 		}
 		if ip, ok := sp.get("IsPresent"); ok {
 			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
@@ -2709,7 +2754,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	hard := false
-	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes"} {
+	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes", "RemoveLandTypes"} {
 		if _, ok := sp.m[k]; ok {
 			hard = true
 		}
@@ -2736,6 +2781,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		st.Override = &lOverride{RemoveKw: ks}
 		lc.out.overrides = append(lc.out.overrides, st.Override)
+		if err := cantHaveKeyword(sp, st); err != nil {
+			return nil, err // lower_canthavekw.go
+		}
 	}
 	if p, ok := sp.get("AddPower"); ok {
 		if st.Power, err = lc.value(p); err != nil {
@@ -2775,6 +2823,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
+		rest, st.Evasion, st.Infect = splitStaticKwMarks(rest) // lower_kwmark.go
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err
@@ -3082,7 +3131,17 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		return refuse("MayPlay zone %q", z)
 	}
 	if dg, ok := sp.get("MayPlayDontGrantZonePermissions"); ok && (dg != "True" || zRaw != "All") {
-		return refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
+		if !exileZeroAltShape(sp, dg, zRaw) {
+			return refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
+		}
+		// Dragon's Smile: once during each of your turns, {0} instead of the
+		// mana cost of a spell cast from exile through another permission
+		// (gorge mayPlayAltCosts / mayPlayCastAlts: a non-granting
+		// alternative, AltCostIndex 1 beside the plain cast). A FreeOnly
+		// static on Exile is that alternative (dirac/cast_mayzeroalt.go);
+		// OncePerTurn and the PlayerTurn condition ride as for any static.
+		sp.consume("MayPlayAltManaCost")
+		st.Flags = append(st.Flags, "FreeOnly", "WithoutManaCost")
 	}
 	if mp, ok := sp.get("MayPlayPlayer"); ok {
 		if mp != "Player.Active" || zRaw != "All" {
@@ -3127,6 +3186,19 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		st.Amount = cst(n)
 	}
 	return nil
+}
+
+// exileZeroAltShape reports whether a MayPlayDontGrantZonePermissions$ static
+// is Dragon's Smile's exact "once during each of your turns, you may pay {0}
+// rather than pay the mana cost for a spell you cast from exile": the only
+// non-granting alternative-cost shape the kernel models.
+func exileZeroAltShape(sp *params, dg, zone string) bool {
+	_, mp := sp.get("MayPlayPlayer")
+	_, rc := sp.get("RaiseCost")
+	_, ez := sp.get("EffectZone")
+	return dg == "True" && zone == "Exile" && sp.is("MayPlayAltManaCost", "0") &&
+		sp.is("MayPlayLimit", "1") && sp.is("Condition", "PlayerTurn") &&
+		!mp && !rc && !ez && !sp.is("MayPlayWithoutManaCost", "True")
 }
 
 // overrideStatic lowers the layer-hard statics (Witness Protection,
@@ -3248,6 +3320,11 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		o.AddKw = ks
 	}
+	if v, ok := sp.get("RemoveLandTypes"); ok {
+		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
+			return nil, err
+		}
+	}
 	if removeCard {
 		o.HasSetTypes = true
 		o.HasSetSubtypes = true
@@ -3284,7 +3361,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 				// cover any plain-shaped card then. Without the Land type the
 				// intrinsic still applies in gorge but the kernel's blgMask
 				// reads only lands, so that shape stays refused.
-				if o.SetTypes&typeBits["Land"] == 0 {
+				if o.SetTypes&typeBits["Land"] == 0 && !o.SetLandSub {
 					return nil, refuse("override adds basic land type %q", w)
 				}
 			}
@@ -3481,8 +3558,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			// gorge replacementMatches: splitCompare/applyCompare on the
 			// value; read only for the converge count (Steel Exemplar),
 			// every other SVarCompare$ stays unread; the
-			// spend too (Freestrider Commando's EQ0)
-			if cmp, ok := rp.m["SVarCompare"]; ok && (v.Kind == vConverge || v.Kind == vCastManaSpent) {
+			// spend too (Freestrider Commando's EQ0), and bloodthirst's GT0
+			// (lower_bloodthirst.go)
+			if cmp, ok := rp.m["SVarCompare"]; ok && (v.Kind == vConverge || v.Kind == vCastManaSpent || v.Kind == vDmgOppsTaken) {
 				rp.used["SVarCompare"] = true
 				op, b, err := lc.cmpSpec(cmp)
 				if err != nil {
@@ -4193,7 +4271,7 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
 			}
-			if err := lc.choosePlayer(ps); err != nil {
+			if err := lc.choosePlayer(ps, false); err != nil {
 				return err
 			}
 		case "RevealHand":

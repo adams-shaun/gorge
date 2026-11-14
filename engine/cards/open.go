@@ -162,7 +162,8 @@ func loadFreshCache(dir, cache string) (*Registry, bool) {
 
 // cacheFresh reports whether cache is a usable IR cache for dir: it exists,
 // is at least as new as every corpus input that is present, and carries a
-// digest sidecar (tokens_digest.go) agreeing with the token scripts dir holds
+// digest sidecar (tokens_digest.go) and a census sidecar (card_census.go)
+// agreeing with the token and card scripts dir holds
 // now — the mtime rules compare one directory's timeline and cannot see a
 // cache written by another view of the corpus. It is the ONE home of the
 // staleness rule -- openCorpus and the segment path in subset.go
@@ -187,11 +188,12 @@ func cacheFresh(dir, cache string) bool {
 	if corpusInputNewerThan(dir, ci) {
 		return false
 	}
-	// The mtimes above compare one directory's timeline; the digest sidecar
+	// The mtimes above compare one directory's timeline. The digest sidecar
 	// (tokens_digest.go) compares the cache's recorded token scripts against
-	// the directory's actual ones, which is what catches a cache written by
+	// the directory's actual ones, and the census sidecar (card_census.go)
+	// does the same for the card scripts; either catches a cache written by
 	// another view of the corpus whose mtimes are all older.
-	return tokenDigestFresh(dir, cache)
+	return tokenDigestFresh(dir, cache) && cardCensusFresh(dir, cache)
 }
 
 // corpusInputNewerThan reports whether any corpus input for dir is newer than
@@ -279,6 +281,13 @@ func PruneCaches(dir, keepPath string) {
 	imgs, _ := filepath.Glob(filepath.Join(dir, "ir-*.img"))
 	for _, s := range imgs {
 		if _, err := os.Stat(s[:len(s)-len(".img")] + ".gob.gz"); os.IsNotExist(err) {
+			_ = os.Remove(s)
+		}
+	}
+	// And a card-census sidecar (cardCensusPath).
+	cens, _ := filepath.Glob(filepath.Join(dir, "ir-*.cen"))
+	for _, s := range cens {
+		if _, err := os.Stat(s[:len(s)-len(".cen")] + ".gob.gz"); os.IsNotExist(err) {
 			_ = os.Remove(s)
 		}
 	}
