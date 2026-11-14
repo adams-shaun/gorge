@@ -168,6 +168,7 @@ const (
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
 	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
+	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -692,6 +693,16 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		return c.setCmp(cmpSolved, 0, n, "", "")
 	}
+	if p == "IsRenowned" || p == "!IsRenowned" {
+		// the renowned designation (CR 702.112b; gorge filter.go IsRenowned:
+		// Object.Renowned, cleared off the battlefield): CmpN 1 renowned, 0
+		// not
+		n := 1
+		if p[0] == '!' {
+			n = 0
+		}
+		return c.setCmp(cmpRenowned, 0, n, "", "")
+	}
 	if p == "IsSuspected" || p == "!IsSuspected" {
 		// the suspected designation (CR 701.60; gorge filter.go IsSuspected:
 		// Object.Suspected, false off the battlefield): CmpN 1 suspected, 0
@@ -703,10 +714,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setCmp(cmpSuspected, 0, n, "", "")
 	}
 	if n, ok := permMarkWord(p); ok {
-		// the per-permanent attacked / dealt-damage marks and the renowned
-		// designation (kop.PredPermMark; gorge AttackedTurn,
-		// DamageDealtThisTurn, DealtDamageToAnyGame,
-		// DealtCombatDamageToAnyGame, IsRenowned): false off the battlefield, so the
+		// the per-permanent attacked / dealt-damage marks (kop.PredPermMark;
+		// gorge AttackedTurn, DamageDealtThisTurn, DealtDamageToAnyGame,
+		// DealtCombatDamageToAnyGame): false off the battlefield, so the
 		// negated word is true there
 		return c.setCmp(cmpPermMark, 0, n, "", "")
 	}

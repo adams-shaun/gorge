@@ -157,7 +157,7 @@ const (
 	OpPutCountersFrom  // battlefield permanent Obj gets, for each counter kind the object in Ref C had, that count times A counters of the kind (gorge putCounterEachFromSource, CounterType$ EachFromSource: the source's live positive counters, else the resolving entry's LKI snapshot of it)
 	OpSupport          // the controller supports A (CR 701.41a; gorge putCounterSupport): one counter of kind C&0xFF on each of up to A creatures (C&0x100: other than the source), an any-number pick (ChGenBolster, gorge's "counter_pick", closed by Done or the A-th pick); none eligible or A <= 0: nothing
 	OpUnlessSwitched   // player Obj may pay cost C&0xF of A (B.N pips, F filter); if NOT paid skip the next C>>4 instructions; always an unless choice (ChGenPayMode), never a trigger's own cost
-	OpMonstrosity      // battlefield permanent Obj becomes monstrous (CR 701.37): if it is not already, put A +1/+1 counters on it through OpPutCounter's path, set its monstrous bit and fire TrigBecomeMonstrous with amount A; A <= 0 does nothing (gorge effPutCounter's MonstrositySet arm). C = MonstrosityRenown is the CR 702.112 renown variant: the same counters, then the renowned designation (PermMarkRenowned), no event (gorge's RenownSet arm)
+	OpMonstrosity      // battlefield permanent Obj becomes monstrous (CR 701.37): if it is not already, put A +1/+1 counters on it through OpPutCounter's path, set its monstrous bit and fire TrigBecomeMonstrous with amount A; A <= 0 does nothing (gorge effPutCounter's MonstrositySet arm)
 	OpChangeSpeed      // each player in Obj changes speed (CR 702.179; gorge effChangeSpeed): C=1 +1 (from 0 it starts engines: B.N=1 only when speed is 0), C=2 -1 (never below 1; B.N=2: only if the player's speed is greater than every other player's); the 0..4 bounds hold
 	OpWarpExile        // the delayed warp trigger (CR 702.185a): exile battlefield permanent Obj (no LKI rider); when it reached exile this way its owner gets a DurWarp recast record (dirac/kw_warp.go)
 	OpMayShuffleMove   // player Obj (the effect's controller; RefNone when A.N=0) may (A.N=1; else must) put the legal chosen cards of target slot C on top of their owners' libraries in pick order, then shuffles each distinct owner's library once; no chosen card: nothing, and no ask (gorge objectPathMayShuffle + objectPathShuffleOwners, CR 701.24c)
@@ -378,12 +378,6 @@ var highOpNames = [OpHighEnd - OpHighFirst]string{
 func (o Op) Known() bool {
 	return o < OpCount || o >= OpHighFirst && o < OpHighEnd || o < OpHighFirst && opNames[o] != ""
 }
-
-// MonstrosityRenown marks Instr.C of an OpMonstrosity as the CR 702.112
-// renown variant (gorge's RenownSet arm of effPutCounter): the permanent gets
-// A +1/+1 counters and the renowned designation, only while it is not
-// renowned and is on the battlefield, and no event fires. C 0 is monstrosity.
-const MonstrosityRenown int16 = 1
 
 // RollDieCoin marks Instr.C of an OpRollDie as a coin flip (gorge's
 // effects.FlipCoin, one rng draw where heads is 1), not a die roll: the

@@ -21,7 +21,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugPermMarkNoReset bool
 
 // permMarkMech maps kop.PermMark* to the arena mechanic.
-var permMarkMech = [8]mech{mechAttacked, mechDealtTurn, mechDealtAny, mechDealtCombat, mechRenowned}
+var permMarkMech = [4]mech{mechAttacked, mechDealtTurn, mechDealtAny, mechDealtCombat}
 
 // prepPermMark sets anyPermMark: the table gives some mark an arena mask.
 func prepPermMark(g *genPrep) {
@@ -34,14 +34,14 @@ func prepPermMark(g *genPrep) {
 func permMarkUses(t *kop.Table, u *[numMech]bool) {
 	for i := range t.Filters {
 		if f := &t.Filters[i]; f.Pred == kop.PredPermMark {
-			u[permMarkMech[f.PredN&7]] = true
+			u[permMarkMech[f.PredN&3]] = true
 		}
 	}
 }
 
 // permMarkRead is PredPermMark on a battlefield permanent.
 func (s *State) permMarkRead(k *prep, fl *kop.Filter, sl Slot) bool {
-	return s.mSl(k, permMarkMech[fl.PredN&7], sl) != (fl.PredN&kop.PermMarkNot != 0)
+	return s.mSl(k, permMarkMech[fl.PredN&3], sl) != (fl.PredN&kop.PermMarkNot != 0)
 }
 
 // markAttackers stamps every declared attacker (finishAttacks, after the

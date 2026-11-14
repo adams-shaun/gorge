@@ -301,7 +301,7 @@ func spawnDamagedOpp(ab *lAbility) bool {
 	return c.Flags&fSelf != 0 && c.Ctrl == whoAny
 }
 
-// the five per-permanent mark words (kernel PredPermMark).
+// the four per-permanent mark words (kernel PredPermMark).
 
 // permMarkWord maps a filter property word, with or without the ! prefix,
 // to PredPermMark's PredN.
@@ -319,8 +319,6 @@ func permMarkWord(p string) (n int, ok bool) {
 		return kop.PermMarkDealtAny, true
 	case "dealtCombatDamagetoAny":
 		return kop.PermMarkDealtCombat, true
-	case "IsRenowned":
-		return kop.PermMarkRenowned, true // CR 702.112b; gorge Object.Renowned
 	}
 	return 0, false
 }

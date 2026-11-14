@@ -35,25 +35,15 @@ func (s *State) monstrousAt(sl Slot) bool {
 	return s.mSl(s.k(), mechMonstrous, sl)
 }
 
-// monstrosity is OpMonstrosity (gorge effPutCounter's MonstrositySet and
-// RenownSet arms). C picks the designation: monstrous by default, renowned
-// (CR 702.112, gorge Object.Renowned; the slot bit mechRenowned, read through
-// kop.PredPermMark, cleared when a new permanent takes the slot) when
-// C == kop.MonstrosityRenown. A permanent that does not hold the designation
-// gets A +1/+1 counters through OpPutCounter's path (the counter replacements
-// and CounterAddedOnce), then the designation; monstrosity then fires
-// BecomeMonstrous with amount A, renown touches the layer caches instead
-// (BecomeRenowned is not lowered). A source that left, or already holds the
-// designation, does nothing (gorge's resolve-time skip); A <= 0 places no
-// counters and never marks (gorge's n > 0 gate).
+// monstrosity is OpMonstrosity (gorge effPutCounter's MonstrositySet arm):
+// a permanent that is not monstrous gets A +1/+1 counters through
+// OpPutCounter's path (the counter replacements and CounterAddedOnce), then
+// the monstrous designation, then the BecomeMonstrous event with amount A.
+// An already-monstrous permanent does nothing (gorge's resolve-time skip);
+// A <= 0 places no counters and never marks (gorge's n > 0 gate).
 func (s *State) monstrosity(k *prep, in *kop.Instr) {
-	renown := in.C == kop.MonstrosityRenown
-	mech := mechMonstrous
-	if renown {
-		mech = mechRenowned
-	}
 	sl := s.objRef(k, in.Obj)
-	if sl == NoSlot || renown && s.mSl(k, mech, sl) || !renown && s.monstrousAt(sl) {
+	if sl == NoSlot || s.monstrousAt(sl) {
 		return
 	}
 	amt := s.value(k, in.A)
@@ -69,11 +59,7 @@ func (s *State) monstrosity(k *prep, in *kop.Instr) {
 	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
 	}
-	s.mSlSet(k, mech, sl)
-	if renown {
-		s.touchSl(sl) // the layer caches that read the designation see the change
-		return
-	}
+	s.mSlSet(k, mechMonstrous, sl)
 	s.fireBecomeMonstrous(k, sl, int16(amt))
 }
 

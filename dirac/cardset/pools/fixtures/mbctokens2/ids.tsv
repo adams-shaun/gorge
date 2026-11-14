@@ -1,0 +1,20 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Fae Offering
+1	card	Forest
+2	card	Gelatinous Genesis
+3	card	Giant Growth
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Island
+7	card	Mountain
+8	card	Murder
+9	card	Shock
+10	card	Specimen Collector
+11	card	Swamp
+12	token	c_a_clue_draw
+13	token	c_a_food_sac
+14	token	c_a_treasure_sac
+15	token	g_1_1_squirrel
+16	token	g_x_x_ooze
+17	token	u_0_3_crab
+18	card	Jolene, the Plunder Queen

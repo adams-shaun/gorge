@@ -527,8 +527,13 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 			}
 		}
 	}
-	if k.engines {
-		s.speedStart(k, SpeedCntStartEntry) // kw_speed.go
+	if k.engAsc { // engines || ascend: the one entry-hook test (a table with neither pays one byte load)
+		if k.engines {
+			s.speedStart(k, SpeedCntStartEntry) // kw_speed.go
+		}
+		if k.ascend {
+			s.blessScan(k) // CR 702.131b (kw_ascend.go)
+		}
 	}
 	s.g.entrySelf = savedEntrySelf
 	return sl
@@ -694,6 +699,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil && k.gen.anyMonstrosity {
 		s.mSlClr(k, mechMonstrous, sl) // act_monstrosity.go
 	}
+	s.mSlClr(k, mechRenowned, sl) // act_renown.go; a no-op without the mask
 	if goadOn(k) {
 		s.goadLeave(k, sl) // act_goad.go
 	}

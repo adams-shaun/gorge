@@ -1187,12 +1187,13 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		if c.Mana.X && lc.trigXMax != nil {
 			return lc.payManaX(c, in) // lower_triggerxcost.go
 		}
-		if c.Mana.X || len(c.Mana.Hybrid) > 0 || c.Mana.C > 0 {
+		if c.Mana.X || c.Mana.C > 0 || len(c.Mana.Hybrid) > 0 && !lc.trigHybridOK(c) {
 			return in, refuse("resolution mana cost %s", c.Mana)
 		}
 		in.CS = "Mana"
 		in.A = cst(c.Mana.Generic)
 		in.B = cst(packPips(c.Mana.Pips))
+		in.Hyb = c.Mana.Hybrid // lower_trighybrid.go
 	}
 	if c.DiscardN > 0 {
 		n++
@@ -1499,6 +1500,9 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			lc.trigXMax = nil
 			if err != nil {
 				return err
+			}
+			if chain != nil && len(in.Hyb) != 0 {
+				return refuse("resolution mana-and-exile cost with hybrid mana %s", cost.Mana) // the chain pays plain pips
 			}
 			if ownCost && in.CS == "SacrificeSelf" && strings.HasPrefix(c, "Mandatory") {
 				in.CS = "SacrificeSelfMust" // no "may": gorge settles it unasked (cost_mandatorysac.go)
@@ -3431,6 +3435,11 @@ func pumpKeywords(kw string) ([]string, error) {
 			out = append(out, "CantBlock")
 		case k == "Prevent all combat damage that would be dealt to CARDNAME.":
 			out = append(out, "PreventCombatDamageTo")
+		case k == "Prevent all combat damage that would be dealt by CARDNAME.":
+			// a granted "dealt by" sentence (Hunter's Ambush's nongreen
+			// creatures, Feint's target): gorge's preventKWs by-combat head
+			// (rules/replacement_prevent_kw.go), the kernel's prevCombatFrom
+			out = append(out, "PreventCombatDamageFrom")
 		case k == "Wither":
 			out = append(out, "Wither") // CR 702.80 granted; not in simpleKeywords (that map also drives the printed K: switch)
 		case k == "Flashback":
@@ -3659,7 +3668,7 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 		return lc.monstrosity(ps, obj, mono)
 	}
 	if rn, ok := ps.get("Renown"); ok {
-		return lc.renown(ps, obj, rn)
+		return lc.renown(ps, obj, rn) // lower_renown.go
 	}
 	n, err := lc.amount(ps, "CounterNum", 1)
 	if err != nil {
@@ -3812,33 +3821,6 @@ func (lc *lowerCtx) monstrosity(ps *params, obj lRef, raw string) error {
 		lc.ab.ActCond = none
 	}
 	lc.emit(lInstr{Op: "Monstrosity", Obj: obj, A: n})
-	return nil
-}
-
-// renown lowers the Renown$ N body of the K:Renown expansion (CR 702.112a;
-// gorge effPutCounter's RenownSet arm): N +1/+1 counters on the source if it
-// is not renowned, then the renowned designation, no event. It is
-// OpMonstrosity's C = MonstrosityRenown variant, whose guard (not renowned,
-// still on the battlefield) is the op's own, so the trigger's
-// `IsPresent$ Card.Self+!IsRenowned` intervening-if and the resolve-time read
-// agree. Only the source itself with CounterType$ P1P1 (the expansion's own
-// shape); any other recipient, a CounterNum$ beside it or another counter
-// kind refuses.
-func (lc *lowerCtx) renown(ps *params, obj lRef, raw string) error {
-	if obj.Kind != rSelf {
-		return refuse("Renown$ recipient %v", obj)
-	}
-	if _, ok := ps.m["CounterNum"]; ok {
-		return refuse("Renown$ with CounterNum$")
-	}
-	if ct := ps.str("CounterType"); ct != "P1P1" {
-		return refuse("Renown$ with CounterType$ %q", ct)
-	}
-	n, err := lc.value(raw)
-	if err != nil {
-		return err
-	}
-	lc.emit(lInstr{Op: "Monstrosity", Obj: obj, A: n, C: int(kop.MonstrosityRenown)})
 	return nil
 }
 
@@ -4230,6 +4212,7 @@ func (lc *lowerCtx) attach(ps *params) error {
 	if err != nil {
 		return err
 	}
+	lc.attachSelfOther(obj) // lower_animateaura.go
 	if lc.ab.Kind == akActivated && ps.is("Keyword", "Equip") {
 		lc.ab.Name = "Equip"
 	}
