@@ -81,6 +81,12 @@ func protectedFromKW(e protectionOracle, g *state.Game, target, source state.Obj
 	kws = append([]string(nil), kws...)
 	for _, kw := range kws {
 		if q, ok := protectionQuality(kw); ok {
+			if q == protectionColorsYouCtrl {
+				if sourceSharesControlledColor(g, e, e.controllerOf(target), source) {
+					return true
+				}
+				continue
+			}
 			if e.sourceHasQuality(source, q) {
 				if effects.ProtectionExempt(kw, source, sba, e.controllerOf, func(spec string) bool { return e.sourceHasQuality(source, spec) }) {
 					continue

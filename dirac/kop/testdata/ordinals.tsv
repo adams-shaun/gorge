@@ -43,6 +43,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToYouCtrl	untyped int	8
+AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
@@ -82,6 +83,7 @@ ChooseOpp	untyped int	2
 ChoosePlayerFresh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
+ChooseTypeBasicLand	untyped int	2
 CloneBatch	untyped int	64
 CloneEOT	untyped int	1
 CloneExclTmpl	untyped int	2
@@ -269,6 +271,7 @@ CtrlAny	CtrlSel	0
 CtrlEachPl	CtrlSel	3
 CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
+CtrlTgtOwner	untyped int	128
 CtrlYou	CtrlSel	1
 CzBattleGrave	untyped int	8
 CzGraveLibrary	untyped int	128
@@ -611,6 +614,7 @@ FTapped	FilterFlags	8
 FToken	FilterFlags	4
 FUntapped	FilterFlags	16
 FaceAdventure	untyped int	2
+FaceFlip	untyped int	9
 FaceModal	untyped int	1
 FaceNone	untyped int	0
 FaceOmen	untyped int	7
@@ -914,6 +918,7 @@ OptAny	untyped int	8
 OptAsk	int16	4
 OptDefined	untyped int	32
 OvChosenColor	untyped int	1
+OvChosenType	untyped int	3
 OvEnterWith	untyped int	2
 PTRelEQ	int16	1
 PTRelLT	int16	0
@@ -1332,6 +1337,7 @@ StatOverride	StaticKind	14
 StatPanharmonicon	StaticKind	18
 StatPlayerHexproof	StaticKind	15
 StatPlayerProtAll	StaticKind	20
+StatProtYourColors	StaticKind	259
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
@@ -1417,6 +1423,7 @@ Tf3ManaFromTreasure	TrigFlags3	4
 Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
+Tf4CauseSpellAb	TrigFlags4	8
 Tf4CounterCell	TrigFlags4	4
 Tf4DefEnch	TrigFlags4	128
 Tf4NamedCast	TrigFlags4	16
@@ -1544,6 +1551,8 @@ TrigLifeLost	TrigEvent	10
 TrigManaExpend	TrigEvent	21
 TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
+TrigNCauseSpellOppCtrl	int16	2
+TrigNCauseSpellYouCtrl	int16	1
 TrigNMonarchBeganTurn	int16	1
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
@@ -1598,6 +1607,7 @@ W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
+W7EnchPlayerCtrl	int16	36
 W7EnchantedByYours	int16	8
 W7EnteredFromBF	int16	24
 W7EnteredFromLib	int16	35
@@ -1642,5 +1652,3 @@ ZoneSideboard	Zone	10
 ZoneStack	Zone	6
 payFLifeBits	untyped int	6
 payFLifeMask	untyped int	63
-RefTriggerOpponents	Ref	247
-PayBSubSacSelfMust	untyped int	4

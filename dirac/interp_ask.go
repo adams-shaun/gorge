@@ -337,6 +337,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if isBasicLandChoose(&s.prog(k)[r.pc]) {
+			chooseBasicLandOptions(d) // act_choosebasicland.go
+			break
+		}
 		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
 			break
 		}

@@ -364,6 +364,11 @@ func (s dataSet) matchup(decks [][]Entry, inert bool) (*kop.Table, [][]kop.CardI
 					// (OpOverrideAll: gorge's AnimateAll type grants are compared
 					// by the projection too -- Breach the Multiverse's Phyrexian)
 					usesOverride[int(in.C)] = true
+					if in.Op == kop.OpOverride && in.B.N == kop.OvChosenType {
+						for n := 1; n < 5; n++ {
+							usesOverride[int(in.C)+n] = true // the other basic land types' records
+						}
+					}
 				case kop.OpEmpower:
 					if ov := int(uint16(in.B.N) & 0xfff); ov > 0 {
 						usesOverride[ov-1] = true // the Jace subtype grant

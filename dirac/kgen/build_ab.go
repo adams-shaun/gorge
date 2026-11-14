@@ -401,6 +401,15 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
 				return ts, err
 			}
+		case f.Players == plBoth && anyOtherTarget(f):
+			// "any other target" (Matoc, Lavamancer; Black Panther, Red
+			// Hulk, the Invasions of Tarkir and Ulgrotha): the "any target"
+			// walk with the object half not the source (gorge's .Other)
+			ts.Kind = kop.TgtAny
+			g := lFilter{Clauses: []lClause{{Flags: fOther}}}
+			if ts.Filter, err = cb.filter(&g, kop.ZoneBattlefield); err != nil {
+				return ts, err
+			}
 		default:
 			return ts, fmt.Errorf("mixed player/object target %s", f)
 		}
@@ -1205,7 +1214,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 						zone = kop.ZoneNone // it also tests the earlier pushes, wherever they now live
 					}
 				}
-				if t.Event == "Discarded" {
+				if t.Event == "Discarded" || t.Event == "ToGraveyard" {
 					zone = kop.ZoneGraveyard
 				}
 				old := cb.selfCast
@@ -1283,8 +1292,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.Event == "AbilityCast" {
 		kt.N = t.AbClass
 	}
-	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" {
-		kt.N = t.N // Leaves: the destination mask; BecomeMonarch: kop.TrigNMonarchBeganTurn
+	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" || t.Event == "ToGraveyard" {
+		kt.N = t.N // Leaves: the destination mask; BecomeMonarch: kop.TrigNMonarchBeganTurn; ToGraveyard: the origin mask
 	}
 	switch t.Combat {
 	case 1:
@@ -1502,6 +1511,14 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags2 |= kop.Tf2SrcInPlay
 	}
+	if t.InstGate != 0 {
+		// AtLeastOneInstance$ (lower_atleastone.go): a once-per-source
+		// DamageDealtOnce line, whose Trigger.N nothing else reads
+		if t.Event != "DamageDealtOnce" || t.PerRef || t.F2 != nil {
+			return kt, fmt.Errorf("AtLeastOneInstance gate on a %s trigger", t.Event)
+		}
+		kt.N = t.InstGate
+	}
 	if t.PerRef {
 		if t.Event != "DamageDone" || !t.Batch {
 			return kt, fmt.Errorf("per-referent flag on a %s trigger", t.Event)
@@ -1648,6 +1665,18 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			return kt, fmt.Errorf("cause-target flag on a %s trigger", t.Event)
 		}
 		kt.Flags4 |= kop.Tf4SingleCauseTarget
+	}
+	if t.CauseSpell != 0 {
+		if t.Event != "LifeLost" && t.Event != "LifeLostAll" {
+			return kt, fmt.Errorf("cause-spell flag on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4CauseSpellAb
+		switch t.CauseSpell {
+		case 2:
+			kt.N = kop.TrigNCauseSpellYouCtrl
+		case 3:
+			kt.N = kop.TrigNCauseSpellOppCtrl
+		}
 	}
 	if t.CounterCell {
 		kt.Flags4 |= kop.Tf4CounterCell
@@ -2204,6 +2233,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "ProtYourColors":
+		st.Kind = kop.StatProtYourColors // kw_protyours.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "HexproofOwnColors":
 		st.Kind = kop.StatHexproofOwnColors
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2538,7 +2572,15 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "OthersEnterWith":
 		rp.Kind = kop.ReplOthersEnterProgram
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+		// the entrant filter may carry the cast-provenance words: gorge
+		// matches the entering object while the spell that resolves into it
+		// is still on the stack, so the cast-provenance read is live there
+		// (cb.entrant widens build.go's battlefield refusal)
+		save := cb.entrant
+		cb.entrant = true
+		rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield)
+		cb.entrant = save
+		if err != nil {
 			return ka, err
 		}
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
@@ -3389,6 +3431,20 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, fmt.Errorf("GameGrave on a %s from %s", in.Op, fl["from"])
 			}
 			sb |= kop.SrGameGrave
+		}
+		if _, ok := fl["ChooserOpp"]; ok && in.Op == "ChooseMove" {
+			// Chooser$ Opponent on a pick (Tasigur's "of an opponent's
+			// choice"): the resolving controller's first living opponent
+			// answers (gorge hiddenPickChooser: chooserPlayer's first of the
+			// alive opponents); the kernel reads SrChooserOpp off the
+			// ChooseMove's B beside its other readers. B bit 0 is the
+			// UntilLeaves hand-exile link, which never co-occurs: the link
+			// is a host-gone arm with no Chooser$, and a search's ChooserOpp
+			// rides sideSearchFlags instead.
+			if _, leaves := fl["UntilLeaves"]; leaves {
+				return ki, fmt.Errorf("ChooserOpp beside UntilLeaves")
+			}
+			sb |= kop.SrChooserOpp
 		}
 		if _, ok := fl["Bottom"]; ok {
 			// LibraryPosition$ -1 on a hand move: the picked cards go to the
@@ -4447,6 +4503,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		case "":
 		case "Remember":
 			ki.C = int16(kop.MvRemember) // RememberAttached$
+		case "Unattach":
+			ki.C = int16(kop.AttachUnattach) // Reconfigure's unattach half (CR 702.151a)
 		default:
 			return ki, fmt.Errorf("Attach CS %q", in.CS)
 		}
@@ -4738,6 +4796,21 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			}
 			ki.B = kop.Const(kop.OvChosenColor)
 			if err := cb.chosenColorOverridesOK(i); err != nil {
+				return ki, err
+			}
+		}
+		if _, ok := fl["chosenType"]; ok {
+			// C names the FIRST of five records differing only in
+			// AddSub, one basic land type each (lower_choosetype.go
+			// emitChosenLandTypeAnimate); B marks the op for the
+			// kernel's pick of the chosen type's record.
+			for n := 1; n < 5; n++ {
+				if _, err := cb.override(cb.c.overrides[in.C+n]); err != nil {
+					return ki, err
+				}
+			}
+			ki.B = kop.Const(kop.OvChosenType)
+			if err := cb.chosenTypeOverridesOK(i); err != nil {
 				return ki, err
 			}
 		}

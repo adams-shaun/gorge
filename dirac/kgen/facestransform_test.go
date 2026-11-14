@@ -49,6 +49,9 @@ func TestGenBattleRefused(t *testing.T) {
 		// its back face's AffectedZone$ Stack Convoke grant (Invasion of
 		// Segovia lowers to a StackKw static)
 		"Invasion of Segovia": true,
+		// their ETB trigger's "any other target" (TgtAny with an Other
+		// filter)
+		"Invasion of Tarkir": true, "Invasion of Ulgrotha": true,
 		// its enters trigger's target, a non-Elf creature with power X or
 		// less (X the lands you control): PredPowerGEV PredN 2
 		"Invasion of Lorwyn": true,

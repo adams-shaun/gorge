@@ -51,6 +51,9 @@ func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
 			c = addCost(c, cd.ModeCost[m])
 		}
 	}
+	if cd.HasEscalate {
+		c = escalateCost(cd, mode, c) // kw_escalate.go
+	}
 	return c
 }
 
@@ -61,6 +64,9 @@ func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
 //go:noinline
 func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	e := &s.bld().e
+	if k.t.Cards[e.card].HasEscalate {
+		return s.escalateModeAffordable(k, m) // kw_escalate.go
+	}
 	saved := e.mode
 	e.mode = e.mode&^0x0f | 1<<m
 	c := s.buildCost(k)

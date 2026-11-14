@@ -264,8 +264,7 @@ import (
 // +2 (Mind Bend and Whim of Volrath: a GenericChoice whose DB$ ChangeText bodies lower to ExtChangeText; ALL build-level merged against land 23728 -> 23730 measured).
 // +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
 // +41 (this branch's lowerings merged against land 23802 -> 23843 measured; MBC 1814 -> 1820).
-// +14 (MBC costs-4: a PayLife<N>-only or tapXType-only alternative cost, PayLife<N> beside Sac<N/Spec>, and Discard<N> beside Sac<N/Spec> of the same count: Snuff Out, Ramosian Rally, Strands of Night, Dreamscape Artist, plus Ellie Vengeful Hunter, Falkenrath Pit Fighter, Orim's Cure, Razaketh the Foulblooded, Rouse, Ruthless Disposal, Susur Secundi Void Altar, The Lady of Otaria, Warren Soultrader, Yawgmoth Thran Physician; ALL build-level merged against land 24040 -> 24054 measured).
-var buildAcceptancePin = [2]int{24054, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{24138, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

@@ -561,11 +561,38 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			f = pickConstraintFilter(f, budget, hasBudget, false)
+			// DefinedPlayer$ names the fetch player whose graveyard the pool
+			// is (gorge effHiddenPick's players; the plain graveyard walk is
+			// that player's zone already); Chooser$ Opponent asks the
+			// resolving controller's first living opponent (gorge
+			// hiddenPickChooser: Chooser$ Opponent through chooserPlayer),
+			// the kernel's SrChooserOpp read. You is the default fetch
+			// player (Forge's getDefinedPlayers(null) is "You") and the
+			// default chooser.
+			pickOwner := owner // lRef{Kind: rYou}, or the chosen player (lower_chooseplayermid.go)
+			pickLoop := lRef{}
+			if dp := ps.str("DefinedPlayer"); dp != "" && dpScope == dpNone {
+				if pickOwner, pickLoop, err = lc.pickFetchPlayer(dp); err != nil {
+					return refuse("graveyard pick %v", err)
+				}
+			}
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
+			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
+				switch {
+				case ch == "You", ch == "":
+				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
+					cs += "|ChooserOpp"
+				default:
+					return refuse("graveyard pick Chooser$ %q", ch)
+				}
+			}
+			lc.pickEachLoop(pickLoop)
+			// dpScope You / Player (graveDefinedPlayer) already read the param, so
+			// pickOwner is You and emitGravePick opens the each-player loop for Player
+			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -1085,6 +1112,9 @@ func overrideString(o *lOverride) string {
 	}
 	if o.RemoveCreatureSub {
 		p = append(p, "rmcreaturesub")
+	}
+	if o.SetLandSub {
+		p = append(p, "setlandsub")
 	}
 	if o.AllCreatureTypes {
 		p = append(p, "allcreaturetypes")
@@ -2848,6 +2878,9 @@ func (lc *lowerCtx) animate(ps *params) error {
 		if err != nil {
 			return err
 		}
+	}
+	if lc.landTypeGrant && !selfDefined && strings.TrimSpace(ps.m["Types"]) == "ChosenType" {
+		return lc.animateChosenLandType(ps, obj) // lower_choosetype.go
 	}
 	_, optional := ps.m["Optional"]
 	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same

@@ -2,15 +2,29 @@ package kgen
 
 import (
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// stdMetaSupportedPin and stdMetaRefusedPin pin the standard-meta pool's
+// supported and refused counts (refused = 500 - supported: every card is one
+// or the other). KGEN_REPIN=1 re-pins a rise in place (repinFile in
+// ratchet_test.go); a fall is a lowering regression and is refused unless
+// KGEN_REPIN_FALL=<reason> says why it is acceptable. Both lowerings that lift
+// a standard-meta card edit this line, so two landings stack on it: the
+// mechanical re-pin is what lets the lander's re-pin step move it.
+const (
+	stdMetaSupportedPin, stdMetaRefusedPin = 448, 52
+)
+
+// stdMetaPinRow matches that const line; only the two numbers are replaced.
+var stdMetaPinRow = regexp.MustCompile(`(?m)^(\tstdMetaSupportedPin, stdMetaRefusedPin *= *)\d+, *\d+`)
+
 // The standard-meta pool (the 500 cards of 60 MTGGoldfish Standard decks) builds as
 // one table: its 146 subtypes are past the old 128-bit masks, so the widening to
-// kop.MaxSubtypes is what lets it build, and 52 of its cards stay refused
-// (Susur Secundi, Void Altar lowered with the MBC costs-4 PayLife-beside-Sac cost: 53 -> 52).
+// kop.MaxSubtypes is what lets it build, and 53 of its cards stay refused.
 func TestStdMetaPoolBuilds(t *testing.T) {
 	cards := tableCorpus(t)
 	p, _, prev, err := readPool(os.DirFS("../.."), "standard-meta", cards)
@@ -34,14 +48,24 @@ func TestStdMetaPoolBuilds(t *testing.T) {
 	if len(d.Subtypes) > kop.MaxSubtypes {
 		t.Errorf("%d subtypes, a table's masks hold %d", len(d.Subtypes), kop.MaxSubtypes)
 	}
-	if cv.cardsOK != 448 {
-		t.Errorf("%d cards supported, want 448 (52 refused)", cv.cardsOK)
-	}
 	refused := map[string]bool{}
 	for _, r := range cv.refused {
 		refused[r.Card] = true
 	}
-	if len(refused) != 52 {
-		t.Errorf("%d distinct refused cards, want 52", len(refused))
+	pin := [2]int{stdMetaSupportedPin, stdMetaRefusedPin}
+	got := [2]int{cv.cardsOK, len(refused)}
+	if got != pin && os.Getenv("KGEN_REPIN") == "1" {
+		repinMu.Lock()
+		msg, err := repinFile("stdmeta_test.go", stdMetaPinRow, "standard-meta", pin, got, os.Getenv("KGEN_REPIN_FALL"))
+		repinMu.Unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(msg)
+		return
+	}
+	if got != pin {
+		t.Errorf("%d cards supported, want %d (%d refused): a fall is a lowering regression; a rise is re-pinned in dirac/kgen/stdmeta_test.go in the same commit",
+			cv.cardsOK, stdMetaSupportedPin, stdMetaRefusedPin)
 	}
 }

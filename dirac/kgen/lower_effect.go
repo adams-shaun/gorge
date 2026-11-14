@@ -1673,6 +1673,22 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		// emits no reveal event, so the drawn card changes nothing a later
 		// node reads; the remembered card (RememberDrawn$) is the whole effect.
 		ps.consume("Reveal")
+		if who, ok, err := lc.manaSpenderYouAnd(ps); err != nil { // lower_manaspender.go
+			return err
+		} else if ok {
+			if remDrawn || remAll {
+				return refuse("RememberDrawn$ on a two-player draw")
+			}
+			if _, ok := ps.get("OptionalDecider"); ok {
+				return refuse("OptionalDecider$ on a two-player draw")
+			}
+			n, err := lc.amount(ps, "NumCards", 1)
+			if err != nil {
+				return err
+			}
+			lc.emit(lInstr{Op: "Draw", Obj: who, A: n})
+			return nil
+		}
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1985,7 +2001,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if listF != "" {
 			vt = listF
 		}
-		f, err := lc.filter(vt)
+		f, err := lc.counterTgtFilter(tt, vt) // lower_countertgtprov.go
 		if err != nil {
 			return err
 		}
@@ -3040,6 +3056,9 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
 	}
+	if ps.str("Type") == "Basic Land" {
+		return lc.chooseBasicLandType(ps) // lower_choosetype.go
+	}
 	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}
@@ -3553,6 +3572,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		in.Note = "only the target player's permanents"
 	}
 	mustBlock, eachColor, marks := false, false, 0
+	var afterlives []int
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
@@ -3567,6 +3587,14 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
 		}
 		if kw != "" {
+			if kw, afterlives, err = splitAfterlifeGrant(kw); err != nil {
+				return err
+			}
+			if len(afterlives) > 0 && scope.Kind != rNone {
+				return refuse("PumpAll KW$ Afterlife with a ValidTgts$ player scope")
+			}
+		}
+		if kw != "" {
 			ks, err := pumpKeywords(kw)
 			if err != nil {
 				return err
@@ -3579,8 +3607,11 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor || marks != 0) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	}
+	if err := lc.grantAfterlifeAll(f, afterlives); err != nil { // lower_afterlifegrant.go
+		return err
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
@@ -4218,6 +4249,9 @@ func (lc *lowerCtx) fight(ps *params) error {
 }
 
 func (lc *lowerCtx) attach(ps *params) error {
+	if v, ok := ps.get("Unattach"); ok {
+		return lc.unattachSelf(ps, v) // lower_reconfigure.go
+	}
 	if o, ok := ps.get("Object"); ok && o != "Self" {
 		return lc.attachObject(ps, o)
 	}
@@ -4281,6 +4315,7 @@ func (lc *lowerCtx) attach(ps *params) error {
 			return lc.attachChoices(ps)
 		}
 	}
+	lc.reconfigureOther(ps) // lower_reconfigure.go
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
 		return err
