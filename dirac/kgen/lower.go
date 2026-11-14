@@ -317,6 +317,11 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenResAb is the ability whose mid-resolution ChoosePlayer
+	// (Choices$ Player, RememberChosen$ True) is lowered: ChosenPlayer reads
+	// the resolution's chosen player in that ability only
+	// (lower_chooseplayerres.go).
+	chosenResAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
 	// TargetedController whose Defined$ Remembered reads the one opponent
 	// (lower_remembered.go pumpRememberOppController).
@@ -979,6 +984,9 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
+	// Level up (CR 702.87a): gorge kwLevelUp appends one sorcery-speed
+	// AB$ PutCounter LEVEL line; the level bands are ordinary statics
+	"Level up": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its

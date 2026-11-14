@@ -63,7 +63,7 @@ func eotCombatEmblemRefuse(ab *lAbility) error {
 func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, bool, bool, cards.Trigger, error) {
 	ro, ok := ps.m["RememberObjects"]
 	if !ok {
-		return lRef{}, false, false, t, nil
+		return lc.chosenCardCapture(t, eot)
 	}
 	if strings.TrimSpace(ro) == "TargetedPlayer" {
 		if !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
@@ -195,4 +195,42 @@ func effectSourceTrigger(ps *params, t cards.Trigger) (cards.Trigger, bool, erro
 	cp["ValidSource"] = "Card.IsRemembered"
 	t.Params = cp
 	return t, true, nil
+}
+
+// chosenCardCapture reads an until-end-of-turn Effect with no RememberObjects$
+// whose DamageDone trigger's ValidSource$ is exactly Card.ChosenCardStrict
+// (Azra Oddsmaker: "choose a creature. Whenever that creature deals combat
+// damage to a player this turn"). gorge registers the Effect's trigger over
+// the chosen creature as the resolution's chosen set stood at the Effect
+// (effectChosenSourceTrigger), so the chain's later ClearChosenCard$ cannot
+// erase it: the kernel's emblem captures that one object (rChosen, read when
+// the emblem is created, before the cleanup's ClearChosen) and the filter is
+// rewritten to the remembered spelling emblemCaptureFilter strips. The chain
+// must hold exactly one ChooseCard before the Effect, so the chosen set is the
+// one creature. Any other trigger is returned untouched with no capture.
+func (lc *lowerCtx) chosenCardCapture(t cards.Trigger, eot bool) (lRef, bool, bool, cards.Trigger, error) {
+	if t.Mode != "DamageDone" || strings.TrimSpace(t.Params["ValidSource"]) != "Card.ChosenCardStrict" {
+		return lRef{}, false, false, t, nil
+	}
+	if !eot {
+		return lRef{}, false, false, t, refuse("Effect trigger ValidSource$ Card.ChosenCardStrict beside a Duration$")
+	}
+	n := 0
+	if lc.ab != nil {
+		for _, in := range lc.ab.Prog {
+			if in.Op == "ChooseCard" {
+				n++
+			}
+		}
+	}
+	if n != 1 {
+		return lRef{}, false, false, t, refuse("Effect trigger ValidSource$ Card.ChosenCardStrict after %d ChooseCard links", n)
+	}
+	cp := make(map[string]string, len(t.Params))
+	for k, v := range t.Params {
+		cp[k] = v
+	}
+	cp["ValidSource"] = "Card.IsRemembered"
+	t.Params = cp
+	return lRef{Kind: rChosen}, true, false, t, nil
 }
