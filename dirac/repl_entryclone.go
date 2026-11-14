@@ -142,7 +142,7 @@ func (s *State) cloneEntryOrderOptions(k *prep, d *Decision) {
 	rest := c.unpicked(&s.g.pre)
 	for i := uint8(0); i < c.n; i++ {
 		if rest&(1<<i) != 0 {
-			d.add(MakeAction(AkChoose, uint8(c.cand[i]), 0, i)) // mode: the scan index
+			d.add(MakeAction(AkChoose, TCode(c.cand[i]), 0, i)) // mode: the scan index
 		}
 	}
 }

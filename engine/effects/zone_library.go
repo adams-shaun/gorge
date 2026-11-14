@@ -329,13 +329,17 @@ func libraryOrderPlacement(h Host, owner state.PlayerID, moved []state.ObjID, bo
 		selected[id] = true
 	}
 	lib := h.Game().Zone(state.ZLibrary, owner)
-	rest := make([]state.ObjID, 0, len(lib)-len(moved))
+	// placed is the subset of moved still in the library: a countered or
+	// ChangeZone'd commander spell can be replaced to the command zone
+	// (CR 903.9b) instead of the library, so len(moved) is not "moved cards
+	// now in the library". Build placed first and size rest from it.
 	placed := make([]state.ObjID, 0, len(moved))
 	for _, id := range moved {
 		if containsID(lib, id) {
 			placed = append(placed, id)
 		}
 	}
+	rest := make([]state.ObjID, 0, len(lib)-len(placed))
 	for _, id := range lib {
 		if !selected[id] {
 			rest = append(rest, id)
@@ -362,13 +366,16 @@ func libraryOrderPlacementAt(h Host, owner state.PlayerID, moved []state.ObjID, 
 		selected[id] = true
 	}
 	lib := h.Game().Zone(state.ZLibrary, owner)
-	rest := make([]state.ObjID, 0, len(lib)-len(moved))
+	// Same as libraryOrderPlacement: placed is the moved subset still in the
+	// library (a commander spell can be replaced to the command zone,
+	// CR 903.9b), so the rest cap sizes from placed, not moved.
 	placed := make([]state.ObjID, 0, len(moved))
 	for _, id := range moved {
 		if containsID(lib, id) {
 			placed = append(placed, id)
 		}
 	}
+	rest := make([]state.ObjID, 0, len(lib)-len(placed))
 	for _, id := range lib {
 		if !selected[id] {
 			rest = append(rest, id)

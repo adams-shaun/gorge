@@ -34,7 +34,7 @@ func (s *State) mayPlayGrave(k *prep, in *kop.Instr) {
 				s.capFull(StallMayPlay)
 				return
 			}
-			*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: ctrl, until: kop.DurEOT, turn: s.turn}
+			*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: ctrl, until: kop.DurEOT, turn: mayWord(s.turn)}
 			s.g.nmay++
 		}
 	}
@@ -45,7 +45,7 @@ func (s *State) mayPlayGrave(k *prep, in *kop.Instr) {
 func (s *State) mayHas(o Obj, ctrl uint8) bool {
 	for i := 0; i < int(s.g.nmay); i++ {
 		m := s.mayAt(i)
-		if m.obj == o && m.ver == s.objs[o].ver && m.ctrl == ctrl && m.dur() == kop.DurEOT && m.turn == s.turn {
+		if m.obj == o && m.ver == s.objs[o].ver && m.ctrl == ctrl && m.dur() == kop.DurEOT && m.turn == mayWord(s.turn) {
 			return true
 		}
 	}

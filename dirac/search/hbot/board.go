@@ -143,7 +143,9 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	for i := 0; i < s.StackLen() && i < len(b.stack); i++ {
 		kind, src, card, ctrl := s.StackEntry(i)
 		e := stackE{obj: src, ctrl: ctrl, isSpell: kind == 0, card: kop.NoCard}
-		if kind == 0 {
+		// A face-down spell has no mana cost (CR 708.4): only its
+		// controller sees the printed card (botpolicy's stack census).
+		if kind == 0 && (ctrl == me || !s.StackFaceDown(i)) {
 			e.card = card
 			e.cmc = int32(f.card(card).CMC)
 		}
@@ -219,6 +221,12 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 			cf := f.card(cid)
 			c := cardF{obj: o, f: cf, creature: b.creX[o] > 0, cmc: int32(cf.CMC), basic: cf.Basic,
 				activated: int32(s.FeatActivations(o)), attached: dirac.NoObj}
+			if s.FeatFaceDown(o) {
+				// Another seat's face-down permanent shows only its
+				// face-down characteristics (CR 708.2): no printed fact,
+				// as botpolicy's faceDownCard.
+				c.f, c.cmc, c.basic, c.activated = &zeroCard, 0, false, 0
+			}
 			if i := b.creX[o]; i > 0 {
 				c.power, c.tough = b.cre[i-1].power, b.cre[i-1].tough
 			}
@@ -298,7 +306,7 @@ func (b *board) cardOf(o dirac.Obj) *cardF {
 
 // creOf is obj's creature entry, nil when it is none.
 func (b *board) creOf(o dirac.Obj) *creature {
-	if dirac.IsObjTarget(uint8(o)) { // not NoObj, not a stack-ability target byte
+	if dirac.IsObjTarget(dirac.TCode(o)) { // not NoObj, not a stack-ability target byte
 		if i := b.creX[o]; i > 0 {
 			return &b.cre[i-1]
 		}

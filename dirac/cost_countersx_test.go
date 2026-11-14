@@ -55,7 +55,7 @@ func counterXScen(t *testing.T, lands, ctrs int) (sc *scen, tbl *kop.Table, sent
 // counters bound the ask to 0..2.
 func TestCounterXSharedWithManaX(t *testing.T) {
 	sc, _, _, _, _, src := counterXScen(t, 5, 2)
-	sc.do(t, AkActivate, uint8(src), 0xff)
+	sc.do(t, AkActivate, TCode(src), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("decision kind %d sub %d, want the X ask", d.Kind, d.Sub)
@@ -74,7 +74,7 @@ func TestCounterXSharedWithManaX(t *testing.T) {
 // mana window still bounds the shared X.
 func TestCounterXManaBoundsBelowCounters(t *testing.T) {
 	sc, _, _, _, _, src := counterXScen(t, 1, 4)
-	sc.do(t, AkActivate, uint8(src), 0xff)
+	sc.do(t, AkActivate, TCode(src), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("decision kind %d sub %d, want the X ask", d.Kind, d.Sub)

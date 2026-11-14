@@ -6,6 +6,7 @@ Anthropede
 Appendage Amalgam
 Arabella, Abandoned Doll
 Attack-in-the-Box
+Balemurk Leech
 Balustrade Wurm
 Baseball Bat
 Bashful Beastie
@@ -16,6 +17,7 @@ Betrayer's Bargain
 Blazemire Verge
 Bleeding Woods
 Boilerbilges Ripper
+Bottomless Pool
 Break Down the Door
 Broodspinner
 Cackling Slasher
@@ -36,8 +38,11 @@ Cursed Windbreaker
 Cynical Loner
 Daggermaw Megalodon
 Dashing Bloodsucker
+Dazzling Theater
 Defiant Survivor
+Defiled Crypt
 Demonic Counsel
+Derelict Attic
 Dissection Tools
 Disturbing Mirth
 Diversion Specialist
@@ -58,10 +63,12 @@ Etched Cornfield
 Ethereal Armor
 Exorcise
 Fanatic of the Harrowing
+Fear of Abduction
 Fear of Being Hunted
 Fear of Burning Alive
 Fear of Exposure
 Fear of Failed Tests
+Fear of Falling
 Fear of Immobility
 Fear of Impostors
 Fear of Lost Teeth
@@ -77,16 +84,20 @@ Found Footage
 Frantic Strength
 Friendly Ghost
 Friendly Teddy
+Funeral Room
 Get Out
 Ghost Vacuum
 Ghostly Keybearer
 Give In to Violence
+Glassworks
 Glimmer Seeker
 Glimmerburst
 Glimmerlight
 Gloomlake Verge
 Grab the Prize
+Grand Entryway
 Grasping Longneck
+Gremlin Tamer
 Hand That Feeds
 Hardened Escort
 Haunted Screen
@@ -118,13 +129,17 @@ Malevolent Chandelier
 Manifest Dread
 Marina Vendrell
 Marina Vendrell's Grimoire
+Meat Locker
 Meathook Massacre II
 Miasma Demon
 Midnight Mayhem
+Mirror Room
+Moldering Gym
 Most Valuable Slayer
 Mountain
 Murder
 Murky Sewer
+Nashi, Searcher in the Dark
 Neglected Manor
 Norin, Swift Survivalist
 Omnivorous Flytrap
@@ -133,6 +148,7 @@ Overlord of the Boilerbilges
 Overlord of the Floodpits
 Overlord of the Hauntwoods
 Overlord of the Mistmoors
+Painter's Studio
 Paranormal Analyst
 Patched Plaything
 Patchwork Beastie
@@ -150,9 +166,12 @@ Raucous Carnival
 Razorkin Hordecaller
 Razorkin Needlehead
 Razortrap Gorge
+Restricted Office
 Resurrected Cultist
+Rip, Spawn Hunter
 Ripchain Razorkin
 Rite of the Moth
+Roaring Furnace
 Rootwise Survivor
 Savior of the Small
 Saw
@@ -166,6 +185,7 @@ Shrewd Storyteller
 Shroudstomper
 Skullsnap Nuisance
 Slavering Branchsnapper
+Smoky Lounge
 Spectral Snatcher
 Spineseeker Centipede
 Split Up
@@ -174,6 +194,7 @@ Sporogenic Infection
 Stalked Researcher
 Stay Hidden, Stay Silent
 Strangled Cemetery
+Surgical Suite
 Swamp
 Terramorphic Expanse
 The Jolly Balloon Man
@@ -183,14 +204,19 @@ The Swarmweaver
 The Wandering Rescuer
 Thornspire Verge
 Threats Around Every Corner
+Ticket Booth
+Toby, Beastie Befriender
 Trapped in the Screen
 Tunnel Surveyor
 Turn Inside Out
 Twist Reality
+Twitching Doll
 Tyvar, the Pummeler
 Unable to Scream
 Undead Sprinter
 Under the Skin
+Underwater Tunnel
+Unholy Annex
 Unidentified Hovership
 Unnerving Grasp
 Unsettling Twins
@@ -213,5 +239,6 @@ Wary Watchdog
 Wickerfolk Thresher
 Wildfire Wickerfolk
 Winter's Intervention
+Winter, Misanthropic Guide
 Withering Torment
 Zimone, All-Questioning

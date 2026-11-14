@@ -29,7 +29,7 @@ const EntCastable = entCastable
 
 // PartObj is one listed object's cached value-1 sparse rows.
 type PartObj struct {
-	Obj  uint8
+	Obj  dirac.Obj
 	Idx  uint16 // the cache slot holding them (< PartSlots): a caller's per-slot cache checks Ver
 	Ver  uint32 // changes whenever Rows do (per seat); one version names one content
 	Rows []Feature
@@ -38,7 +38,7 @@ type PartObj struct {
 // PartEnt is one entity card, in entity order.
 type PartEnt struct {
 	Group    uint8
-	Obj      uint8
+	Obj      dirac.Obj
 	Idx      uint16 // the cache slot holding it (PartObj.Idx)
 	Ver      uint32 // 0: a card computed for this encode only (a stack card)
 	Castable bool   // a hand card's castable bit (raw[EntCastable])
@@ -375,7 +375,7 @@ func (e *Encoder) EncodeParts(s *dirac.State, d *dirac.Decision, seat uint8) *Pa
 	// entity cards in entity order
 	e.gen++
 	if e.gen == 0 {
-		e.seen = [256]uint32{}
+		e.seen = [objSlots]uint32{}
 		e.gen = 1
 	}
 	for li, l := range [3][]int32{me.bf, opp.bf, me.hand} {

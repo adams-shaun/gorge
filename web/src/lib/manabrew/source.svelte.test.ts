@@ -70,6 +70,19 @@ describe('ManaBrewMatch compat auto-pass', () => {
     expect(off.m.openPrompt?.promptId).toBe(9000);
   });
 
+  it('shows the ask it just passed when an undo sends it again under the same promptId', async () => {
+    const { m, f } = await started('cast', { compat: true });
+    let rewound = 0;
+    m.onRewind = () => rewound++;
+    f.emit(prompt(9003, [mana]));
+    await Promise.resolve();
+    expect(f.sent).toHaveLength(1);
+    f.emit(prompt(9003, [mana]));
+    expect(f.sent).toHaveLength(1);
+    expect(rewound).toBe(1);
+    expect(m.openPrompt?.promptId).toBe(9003);
+  });
+
   it('shows a rewound (undo) ask even when it has nothing to do', async () => {
     const { m, f } = await started('cast', { compat: true });
     f.emit(prompt(9005, [{ id: 'pay-5', type: 'cast', cardId: 'c5' }]));

@@ -42,7 +42,7 @@ func (s *State) drawUptoOptions(d *Decision) {
 			picked = picked || s.res.peek[j] == o
 		}
 		if !picked {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	d.add(MakeAction(AkDone, 0, 0, 0))

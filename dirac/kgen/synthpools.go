@@ -13,6 +13,7 @@ import (
 
 	"github.com/adams-shaun/gorge"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -27,10 +28,13 @@ const (
 	synthSetlistDir   = "dirac/cardset/setlists"
 )
 
-// synthList is one pool to build, before any split.
+// synthList is one pool to build, before any split. max, when not 0, is the most
+// cards one of its tables holds (cardset.DraftSplitCards): a longer list splits by
+// hash as if a table could not hold it.
 type synthList struct {
 	name  string
 	names []string
+	max   int
 }
 
 // frontNames resolves list names to the corpus's own (a card's front face), sorted
@@ -66,9 +70,14 @@ func synthStandardLists(src fs.FS, cardsDir string) ([]synthList, error) {
 }
 
 // synthDraftLists is one list per code in draftpools.txt, without basics: a draft
-// pool's dealt names, played as dr-<code>.
+// pool's dealt names, played as dr-<code>, each table at most
+// cardset.DraftSplitCards cards.
 func synthDraftLists(src fs.FS, cardsDir string) ([]synthList, error) {
-	return synthCodeLists(src, cardsDir, synthDraftList, cardset.SynthDraftPrefix)
+	lists, err := synthCodeLists(src, cardsDir, synthDraftList, cardset.SynthDraftPrefix)
+	for i := range lists {
+		lists[i].max = cardset.DraftSplitCards
+	}
+	return lists, err
 }
 
 // synthCodeLists reads a file of list codes and resolves each code's set list.
@@ -159,6 +168,12 @@ func buildOneTable(name string, names []string, cardsDir, key string) (synthTabl
 		return synthTable{}, fmt.Errorf("%s: %w", name, err)
 	}
 	d, cv, _, err := tableOf(p, name, nil)
+	if err == nil && len(d.Subtypes) > kop.MaxSubtypes {
+		// A synthetic pool stays within one game table's subtypes: its decks are
+		// drawn from the whole list, so a wider list splits (a deck pool may be
+		// wider, cardset.PoolMaxSubtypes: its games are its decks').
+		err = fmt.Errorf("refusing the pool: %s %d subtypes, a synthetic pool's table holds %d", tableLimitMark, len(d.Subtypes), kop.MaxSubtypes)
+	}
 	if err != nil {
 		return synthTable{}, fmt.Errorf("%s: %w", name, err)
 	}
@@ -171,11 +186,21 @@ func buildOneTable(name string, names []string, cardsDir, key string) (synthTabl
 		row: cardset.ManifestRow{Pool: name, NumCards: d.NumCards, NumTokens: d.NumTokens, Sum: sum}}, nil
 }
 
-// buildSynthList builds a list's table. A list too big for a table splits in two by
-// hash, into name-a and name-b, on the lowest hash bit whose two halves both build.
-// Where no bit does, it splits on the lowest bit that divides the list and each half
-// splits again (name-aa, name-ab). So the split is a pure function of the names and
-// of what a table can hold, and a list is cut as few times as the hash allows.
+// buildCappedTable is buildOneTable for a list with a card cap: a list over l.max
+// is refused as a table limit, before anything is lowered.
+func buildCappedTable(l synthList, name string, names []string, cardsDir, key string) (synthTable, error) {
+	if l.max > 0 && len(names) > l.max {
+		return synthTable{}, fmt.Errorf("%s: refusing the pool: %s %d cards, a draft split holds %d", name, tableLimitMark, len(names), l.max)
+	}
+	return buildOneTable(name, names, cardsDir, key)
+}
+
+// buildSynthList builds a list's table. A list too big for a table (or over its card
+// cap) splits in two by hash, into name-a and name-b, on the lowest hash bit whose two
+// halves both build. Where no bit does, it splits on the lowest bit that divides the
+// list and each half splits again (name-aa, name-ab). So the split is a pure function
+// of the names, the cap and what a table can hold, and a list is cut as few times as
+// the hash allows.
 func buildSynthList(l synthList, suffix string, cardsDir, key string) ([]synthTable, error) {
 	join := func(sfx string) string {
 		if sfx == "" {
@@ -183,7 +208,7 @@ func buildSynthList(l synthList, suffix string, cardsDir, key string) ([]synthTa
 		}
 		return l.name + "-" + sfx
 	}
-	t, err := buildOneTable(join(suffix), l.names, cardsDir, key)
+	t, err := buildCappedTable(l, join(suffix), l.names, cardsDir, key)
 	if err == nil {
 		return []synthTable{t}, nil
 	}
@@ -199,11 +224,11 @@ func buildSynthList(l synthList, suffix string, cardsDir, key string) ([]synthTa
 		if first < 0 {
 			first = bit
 		}
-		ta, ea := buildOneTable(join(suffix+"a"), a, cardsDir, key)
+		ta, ea := buildCappedTable(l, join(suffix+"a"), a, cardsDir, key)
 		if ea != nil && !isSizeRefusal(ea) {
 			return nil, ea
 		}
-		tb, eb := buildOneTable(join(suffix+"b"), b, cardsDir, key)
+		tb, eb := buildCappedTable(l, join(suffix+"b"), b, cardsDir, key)
 		if eb != nil && !isSizeRefusal(eb) {
 			return nil, eb
 		}
@@ -215,11 +240,11 @@ func buildSynthList(l synthList, suffix string, cardsDir, key string) ([]synthTa
 		return nil, fmt.Errorf("%d cards with one hash do not fit a table: %w", len(l.names), err)
 	}
 	a, b := cardset.SplitByHash(l.names, first)
-	ta, err := buildSynthList(synthList{l.name, a}, suffix+"a", cardsDir, key)
+	ta, err := buildSynthList(synthList{l.name, a, l.max}, suffix+"a", cardsDir, key)
 	if err != nil {
 		return nil, err
 	}
-	tb, err := buildSynthList(synthList{l.name, b}, suffix+"b", cardsDir, key)
+	tb, err := buildSynthList(synthList{l.name, b, l.max}, suffix+"b", cardsDir, key)
 	if err != nil {
 		return nil, err
 	}

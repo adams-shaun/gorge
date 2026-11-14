@@ -18,7 +18,7 @@ func TestReturnEntersWithCounterPair(t *testing.T) {
 	bear := v.GrizzlyBears
 	g := sc.grave(bear, 0, 1)[0]
 	sc.s.res.e.obj, sc.s.res.e.ctrl = g, 0
-	sc.s.res.e.tgt[0] = uint8(g)
+	sc.s.res.e.tgt[0] = TCode(g)
 	in := &kop.Instr{Op: kop.OpReturnEx, Obj: kop.RefTarget0, C: int16(kop.ZoneBattlefield),
 		A: kop.Const(1 | (int(kop.CtrIndestructible)+1)<<kop.RetCounterPairShift), B: kop.Const(int(kop.CtrHexproof))}
 	if sc.s.objs[g].zone != kop.ZoneGraveyard {
@@ -42,7 +42,7 @@ func TestReturnEntersWithCounterPair(t *testing.T) {
 
 	// the single-kind form is unchanged: one counter, no second kind
 	h := sc.grave(bear, 0, 1)[0]
-	sc.s.res.e.tgt[0] = uint8(h)
+	sc.s.res.e.tgt[0] = TCode(h)
 	one := &kop.Instr{Op: kop.OpReturnEx, Obj: kop.RefTarget0, C: int16(kop.ZoneBattlefield), A: kop.Const(1), B: kop.Const(int(kop.CtrHexproof))}
 	sc.s.execReturn(sc.k, one, NoSlot)
 	q := sc.s.objs[h].slot
@@ -65,7 +65,7 @@ func TestReturnCounterPairMergeWindow(t *testing.T) {
 	sc.k.gen.anyEntryMerge = true
 	g := sc.grave(v.GrizzlyBears, 0, 1)[0]
 	sc.s.res.e.obj, sc.s.res.e.ctrl = g, 0
-	sc.s.res.e.tgt[0] = uint8(g)
+	sc.s.res.e.tgt[0] = TCode(g)
 	in := &kop.Instr{Op: kop.OpReturnEx, Obj: kop.RefTarget0, C: int16(kop.ZoneBattlefield),
 		A: kop.Const(1 | (int(kop.CtrIndestructible)+1)<<kop.RetCounterPairShift), B: kop.Const(int(kop.CtrHexproof))}
 	sc.s.execReturn(sc.k, in, NoSlot)

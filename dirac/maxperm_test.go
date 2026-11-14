@@ -85,7 +85,7 @@ func TestMaxPerm128(t *testing.T) {
 	t.Run("land", func(t *testing.T) {
 		sc := maxPermScen(t)
 		land := sc.hand(v.Forest, 0)
-		sc.s.Apply(MakeAction(AkPlayLand, uint8(land), 0, 0))
+		sc.s.Apply(MakeAction(AkPlayLand, TCode(land), 0, 0))
 		if got := sc.s.StallReason(); got != StallBoard {
 			t.Fatalf("the %dth permanent (a land play): stall %q, want board", MaxPerm+1, StallName(got))
 		}
