@@ -89,8 +89,9 @@ const (
 func isCastKind(k ActionKind) bool { return k == AkCast || k == AkCastCasualty || k == AkCastConspire }
 
 // scriptPlayKinds is the set of kinds a scripted activation can fund: the
-// casts, an activation, a plot and a sneak (script_gen.go); one mask test.
-const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<AkActivate | 1<<AkPlot | 1<<AkSneak
+// casts, a bestowed cast, an activation, a plot and a sneak (script_gen.go);
+// one mask test.
+const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<AkBestow | 1<<AkActivate | 1<<AkPlot | 1<<AkSneak
 
 func isScriptPlayKind(k ActionKind) bool { return scriptPlayKinds>>k&1 != 0 }
 

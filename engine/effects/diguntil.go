@@ -197,6 +197,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		if len(lib) == 0 {
 			continue
 		}
+		if dp.Optional && amount > 0 && !digUntilMayReveal(h, c, sa, p) {
+			continue
+		}
 		var revealed, found []state.ObjID
 		// A zero Amount$ (an SVar tally of 0) reveals nothing: the loop's own
 		// `len(found) >= amount` would otherwise stop on the first card.
@@ -576,4 +579,22 @@ func auraEntryBearers(g *state.Game, id state.ObjID, p state.PlayerID) ([]state.
 		}
 	}
 	return bearers, true
+}
+
+// digUntilMayReveal is Optional$ True on a reveal-until: seat p, whose library
+// is about to be scanned (and holds a card), is asked yes/no whether to reveal
+// at all (Oath of Druids' "The first player may reveal cards from the top of
+// their library"). A no skips p's whole walk; an unserved ask keeps the
+// reveal, the answer a bot's option 0 gives.
+func digUntilMayReveal(h Host, c *Ctx, sa *cards.SA, p state.PlayerID) bool {
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source:     c.Source,
+		ResumeKind: "diguntil_optional", ResumeSA: sa,
+		Prompt: "Reveal cards from the top of your library?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes", Player: p},
+			{Index: 1, Kind: "no", Label: "No", Player: p},
+		}}
+	ans, ok := AskTape(h, d)
+	return !ok || answerYes(ans)
 }
