@@ -17,10 +17,10 @@ import (
 // fails here, so the lowering has to be a deliberate, reviewed change.
 func TestComponentPouchManaAbilityStaysRefused(t *testing.T) {
 	const src = "Name:Pouch Probe\nManaCost:3\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ T SubCounter<1/COMPONENT> | Amount$ 2 | Produced$ Combo AnyDifferent | SpellDescription$ Add two mana of different colors.\n" +
-		"A:AB$ RollDice | Cost$ T | Sides$ 20 | ResultSubAbilities$ 1-9:PutOne,10-20:PutTwo | SpellDescription$ Roll a d20.\n" +
-		"SVar:PutOne:DB$ PutCounter | Defined$ Self | CounterType$ COMPONENT | CounterNum$ 1 | SpellDescription$ Put a counter.\n" +
-		"SVar:PutTwo:DB$ PutCounter | Defined$ Self | CounterType$ COMPONENT | CounterNum$ 2 | SpellDescription$ Put two counters.\nOracle:x\n"
+		"A:AB$ Mana | Produced$ Combo AnyDifferent | Amount$ 2 | Cost$ T SubCounter<1/COMPONENT> | SpellDescription$ Two mana, differing in color.\n" +
+		"A:AB$ RollDice | Sides$ 20 | Cost$ T | ResultSubAbilities$ 1-9:PutOne,10-20:PutTwo | SpellDescription$ Roll.\n" +
+		"SVar:PutOne:DB$ PutCounter | CounterType$ COMPONENT | Defined$ Self | CounterNum$ 1 | SpellDescription$ Put a counter.\n" +
+		"SVar:PutTwo:DB$ PutCounter | CounterType$ COMPONENT | Defined$ Self | CounterNum$ 2 | SpellDescription$ Put two counters.\nOracle:x\n"
 	_, _, rs := mbcCounters1Build(t, "Pouch Probe", src)
 	if len(rs) != 1 {
 		t.Fatalf("refusals = %v, want exactly the mana ability's", rs)
