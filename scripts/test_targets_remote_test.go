@@ -354,29 +354,26 @@ func TestTestTargetsRemoteTestFailureIsFail(t *testing.T) {
 	r.boxIsClean()
 }
 
-// The box answers ENV or BUDGET for reasons that belong to it (its corpus, its load): rerun here.
-func TestTestTargetsRemoteBoxEnvOrBudgetFallsBack(t *testing.T) {
+// A BUDGET on the box stands: it has more cores than a run here, which would only run out of time again.
+func TestTestTargetsRemoteBoxBudgetStands(t *testing.T) {
 	r := newRig(t)
-	// The stub go on the box is the same file as here, so the first go test (the box's) reports a timeout and the
-	// second (here) passes: the marks file says which one is running.
 	write(t, filepath.Join(r.bin, "go"), `#!/bin/sh
 case "$1" in
 list) echo m ;;
 env) echo /usr/local/go ;;
 test)
-  n=$(cat "$MARKS" 2>/dev/null | wc -l)
   echo x >>"$MARKS"
-  if [ "$n" = 0 ]; then printf '%s\n' '{"Action":"output","Package":"m/p","Output":"panic: test timed out after 2m0s"}' '{"Action":"fail","Package":"m/p"}'; exit 2; fi
-  cat "$STREAM" ;;
+  printf '%s\n' '{"Action":"output","Package":"m/p","Output":"panic: test timed out after 2m0s"}' '{"Action":"fail","Package":"m/p"}'; exit 2 ;;
 esac
 `, 0o755)
 	out, errs, code := r.run("one")
-	if code != 0 || !strings.HasPrefix(verdictLines(t, out)[0], "test-one: PASS ") {
+	if code != 5 || !strings.HasPrefix(verdictLines(t, out)[0], "test-one: BUDGET ") {
 		t.Fatalf("exit %d\n%s\n%s", code, out, errs)
 	}
-	if !strings.Contains(errs, "the box answered BUDGET") || r.goTestRuns() != 2 {
-		t.Errorf("expected the box's BUDGET to rerun here (go test ran %d times):\n%s", r.goTestRuns(), errs)
+	if strings.Contains(errs, "running locally") || r.goTestRuns() != 1 {
+		t.Errorf("the box's BUDGET must stand, not rerun here (go test ran %d times):\n%s", r.goTestRuns(), errs)
 	}
+	r.boxIsClean()
 }
 
 func TestTestTargetsRemoteShipsTheUncommittedDiff(t *testing.T) {

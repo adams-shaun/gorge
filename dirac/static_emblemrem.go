@@ -22,7 +22,7 @@ const StallEmbRem = 161
 func init() { stallNames[StallEmbRem] = "embrem" }
 
 // embRemGet is slot j (0..3) of player p's emblem i: object + 1, 0 = none.
-func (s *State) embRemGet(p uint8, i, j int) uint8 {
+func (s *State) embRemGet(p uint8, i, j int) objWord {
 	if j == 0 {
 		return s.embNum(p, i)
 	}
@@ -33,13 +33,13 @@ func (s *State) embRemGet(p uint8, i, j int) uint8 {
 		return s.embRecAt(p, i).rem[j-1]
 	}
 	if j == 1 {
-		return uint8(s.g.embR[p][i])
+		return objWord(s.g.embR[p][i])
 	}
 	return s.g.embX[p][i][j-2]
 }
 
 // embRemSet sets slot j of player p's emblem i.
-func (s *State) embRemSet(p uint8, i, j int, v uint8) {
+func (s *State) embRemSet(p uint8, i, j int, v objWord) {
 	switch {
 	case j >= embRemSlots:
 	case j == 0:
@@ -56,7 +56,7 @@ func (s *State) embRemSet(p uint8, i, j int, v uint8) {
 // embRemHolds reports whether player p's emblem i remembers object o.
 func (s *State) embRemHolds(p uint8, i int, o Obj) bool {
 	for j := 0; j < embRemSlots; j++ {
-		if s.embRemGet(p, i, j) == uint8(o)+1 {
+		if s.embRemGet(p, i, j) == objWord(o)+1 {
 			return true
 		}
 	}
@@ -66,7 +66,7 @@ func (s *State) embRemHolds(p uint8, i int, o Obj) bool {
 // embRemDrop forgets object o in player p's emblem i.
 func (s *State) embRemDrop(p uint8, i int, o Obj) {
 	for j := 0; j < embRemSlots; j++ {
-		if s.embRemGet(p, i, j) == uint8(o)+1 {
+		if s.embRemGet(p, i, j) == objWord(o)+1 {
 			s.embRemSet(p, i, j, 0)
 		}
 	}
@@ -78,7 +78,7 @@ func (s *State) embRemDrop(p uint8, i int, o Obj) {
 func (s *State) embRemFill(e *kop.Emblem, r *embRec) bool {
 	if e.Capture2 != kop.RefNone {
 		if o := s.objRefObj(e.Capture2); o != NoObj {
-			r.rem[0] = uint8(o) + 1
+			r.rem[0] = objWord(o) + 1
 		}
 	}
 	if !e.CaptureRem {
@@ -89,7 +89,7 @@ func (s *State) embRemFill(e *kop.Emblem, r *embRec) bool {
 	}
 	r.num = 0
 	for j := 0; j < int(s.g.nrem); j++ {
-		v := uint8(s.g.rem[j]) + 1
+		v := objWord(s.g.rem[j]) + 1
 		if j == 0 {
 			r.num = v
 		} else {

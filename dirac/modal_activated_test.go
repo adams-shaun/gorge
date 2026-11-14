@@ -28,7 +28,7 @@ func TestModalActivatedAbility(t *testing.T) {
 	sc.perm(id("Forest"), 0)
 	sc.perm(id("Forest"), 0)
 	life := s.pl[0].life
-	sc.do(t, AkActivate, uint8(bow), 0xff)
+	sc.do(t, AkActivate, TCode(bow), scAny)
 	d := sc.expect(t, DkModes, 0)
 	if s.perms[sc.slot(bow)].flags&pfTapped != 0 {
 		t.Fatal("the cost was paid before the modes")
@@ -53,14 +53,14 @@ func TestModalActivatedTarget(t *testing.T) {
 	sc.perm(id("Forest"), 0)
 	a := sc.perm(id("Hardbristle Bandit"), 0)
 	b := sc.perm(id("Hardbristle Bandit"), 1)
-	sc.do(t, AkActivate, uint8(bow), 0xff)
+	sc.do(t, AkActivate, TCode(bow), scAny)
 	sc.expect(t, DkModes, 0)
 	sc.mode(t, 0) // +1/+1 counter on target creature
 	d := sc.expect(t, DkTarget, 0)
 	if d.N != 2 {
 		t.Fatalf("%d candidates, want both creatures", d.N)
 	}
-	s.Apply(MakeAction(AkTarget, 0, uint8(b), 0))
+	s.Apply(MakeAction(AkTarget, 0, TCode(b), 0))
 	s.Step()
 	if s.perms[sc.slot(b)].ctrLow(int(kop.CtrP1P1)) != 1 || s.perms[sc.slot(a)].ctrLow(int(kop.CtrP1P1)) != 0 {
 		t.Fatal("the counter did not land on the creature chosen")

@@ -136,15 +136,20 @@ func (lc *lowerCtx) putCounterAll(ps *params) error {
 	return nil
 }
 
-// gainEnergy lowers PutCounter CounterType$ ENERGY on a player (gorge: the
-// player's ENERGY counter) to OpGainEnergy. An object recipient refuses.
-func (lc *lowerCtx) gainEnergy(obj lRef, n lValue) error {
+// gainEnergy lowers PutCounter CounterType$ ENERGY or Experience on a player
+// (gorge: the player's ENERGY / Experience counter) to OpGainEnergy, C the
+// player counter kind (kop.PlCtrEnergy / kop.PlCtrExperience). An object
+// recipient refuses.
+func (lc *lowerCtx) gainEnergy(obj lRef, n lValue, kind int) error {
 	switch obj.Kind {
 	case rYou, rEachOpp, rEachPlayer:
 	default:
+		if kind == kop.PlCtrExperience {
+			return refuse("experience counters on %s", obj)
+		}
 		return refuse("energy counters on %s", obj)
 	}
-	lc.emit(lInstr{Op: "GainEnergy", Obj: obj, A: n})
+	lc.emit(lInstr{Op: "GainEnergy", Obj: obj, A: n, C: kind})
 	return nil
 }
 
@@ -166,7 +171,27 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 		return refuse("MoveCounter CounterType %q", kind)
 	}
 	var src lRef
+	var dst lRef
+	dstDone := false
 	switch sv := ps.str("Source"); sv {
+	case "":
+		// No Source$ and a Defined$ destination: gorge's moveCounterOrigin
+		// takes the chosen target as the origin (moveCounterNamesDestination:
+		// the whole chosen set, one slot here) and Defined$ is where it goes
+		// (Cytoplast Root-Kin: Defined$ Self, ValidTgts$ Creature.YouCtrl).
+		// Without Defined$ the 2-target shape stays refused.
+		if _, ok := ps.get("Defined"); !ok {
+			return refuse("MoveCounter Source %q", sv)
+		}
+		if _, ok := ps.get("ValidTgts"); !ok {
+			return refuse("MoveCounter Source %q", sv)
+		}
+		d, err := lc.objOrTarget(ps, "", zBattlefield)
+		if err != nil {
+			return err
+		}
+		dst, dstDone = d, true
+		src = lRef{Kind: rTarget, N: lc.lastTarget()}
 	case "Self":
 		src = lRef{Kind: rSelf}
 	case "ParentTarget":
@@ -193,9 +218,11 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 			return refuse("MoveCounter CounterNum %v", n)
 		}
 	}
-	dst, err := lc.objOrTarget(ps, "", zBattlefield)
-	if err != nil {
-		return err
+	if !dstDone {
+		var err error
+		if dst, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
+			return err
+		}
 	}
 	for _, r := range []lRef{src, dst} {
 		switch r.Kind {

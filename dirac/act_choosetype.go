@@ -15,14 +15,21 @@ const resChosenType uint8 = 0x80
 // chosenTypeSub is the subtype a filter's ChosenType test compares: the
 // source permanent's choice (an as-enters choice, or the answer a
 // triggered / activated ability's ChooseType recorded on it), or, for a
-// spell source, the resolution's mid-resolution ChooseType answer.
+// spell source, the resolution's mid-resolution ChooseType answer. A
+// resolving ability whose source already left (A Killer Among Us's
+// Sac<1/CARDNAME> cost) reads the source's last known choice (srcChosen;
+// gorge sourceChosen binds SourceChosenType, CR 608.2h).
 func (s *State) chosenTypeSub(src Slot) (uint8, bool) {
 	if src != NoSlot {
 		ch := s.perms[src].chosen
-		return ch, ch != 255
+		return uint8(ch), ch != 255
 	}
 	if s.res.active && s.res.bad&resChosenType != 0 {
-		return s.res.chosen, s.res.chosen != 255
+		return uint8(s.res.chosen), s.res.chosen != 255
+	}
+	if s.res.active && s.res.e.li != 0 {
+		ch := s.srcChosen(NoSlot, s.res.e.obj)
+		return ch, ch != 255
 	}
 	return 0, false
 }
@@ -91,13 +98,34 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		for j := range a.Prog {
 			if in := &a.Prog[j]; in.Op == kop.OpChooseType && in.B.N != 0 {
 				for _, v := range cd.TypeValid {
-					d.add(MakeAction(AkChoose, 0, uint8(v>>8), uint8(v)))
+					d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 				}
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// midTypeOptions fills a mid-resolution creature-type ask narrowed by
+// ValidTypes$ (A Killer Among Us's enters trigger: gorge effChooseType asks
+// over h.TypeChoices with the same filter as the as-enters ask): kgen marks
+// the OpChooseType with B = 1 and the resolving card carries the allowed
+// vocabulary indexes. false when the instruction is not narrowed.
+//
+//go:noinline
+func (s *State) midTypeOptions(k *prep, in *kop.Instr, d *Decision) bool {
+	if in.B.N == 0 || DebugChooseTypeAllVocab || int(s.res.e.card) >= len(k.t.Cards) {
+		return false
+	}
+	tv := k.t.Cards[s.res.e.card].TypeValid
+	if len(tv) == 0 {
+		return false
+	}
+	for _, v := range tv {
+		d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
+	}
+	return true
 }
 
 // prepChooseType sets the prep gates of this file.
@@ -144,7 +172,7 @@ func (s *State) chosenGrant(a *kop.Ability, src Slot) (uint8, bool) {
 		return 0, false
 	}
 	ch := s.perms[src].chosen
-	return ch, ch != 255
+	return uint8(ch), ch != 255
 }
 
 // chosenGrants reports whether a (at src) grants matchup subtype i.
@@ -207,10 +235,10 @@ func (s *State) curOutsideHas(k *prep, cur *dchars, src Slot) bool {
 	}
 	ch := s.perms[src].chosen
 	for i := uint8(0); i < cur.nOuts; i++ {
-		if cur.outs[i].code != ch {
+		if objWord(cur.outs[i].code) != ch {
 			continue
 		}
-		if !outsideAliased(k, ch) {
+		if !outsideAliased(k, uint8(ch)) {
 			return true
 		}
 		s.capFull(StallOutsideType) // another source's aliased outside type: equal or not is unknown
@@ -249,7 +277,7 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 				return false
 			}
 			if sc := s.perms[src].chosen; s.perms[st.sl].chosen == sc {
-				if !outsideAliased(k, sc) {
+				if !outsideAliased(k, uint8(sc)) {
 					found = true
 					return false
 				}
@@ -299,7 +327,7 @@ func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 // information of it (gorge sourceChosen reads SourceChosenType); 255 none.
 func (s *State) srcChosen(src Slot, self Obj) uint8 {
 	if src != NoSlot {
-		return s.perms[src].chosen
+		return uint8(s.perms[src].chosen)
 	}
 	if s.res.active && s.res.e.obj == self && self != NoObj && s.res.e.li != 0 {
 		if r := s.lk(s.res.e.li); r.obj == self {
@@ -403,7 +431,7 @@ var cardTypeLabelH = func() (h [len(cardTypeChoice)]uint16) {
 func chooseCardTypeOptions(d *Decision, m kop.TypeMask) {
 	for i, c := range cardTypeChoice {
 		if m&c.bit != 0 {
-			d.add(MakeAction(AkChoose, 0, uint8(cardTypeLabelH[i]>>8), uint8(cardTypeLabelH[i])))
+			d.add(MakeAction(AkChoose, 0, TCode(cardTypeLabelH[i]>>8), uint8(cardTypeLabelH[i])))
 		}
 	}
 }

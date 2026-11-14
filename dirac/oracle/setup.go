@@ -15,9 +15,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/rules"
 )
 
-// NoCardIndex is the table index of no card (a token, a copy).
-const NoCardIndex uint8 = 255
-
 // Matchup is one game's fixed inputs apart from the seed: the two deck lists,
 // resolved, and the card table both sides index.
 type Matchup struct {
@@ -25,15 +22,15 @@ type Matchup struct {
 	Decks [2][]*cards.Card // gorge's resolved decks, in decklist order
 	// Table is the matchup's distinct card names, sorted; the kernel's CardID
 	// for a deck card is its index here.
-	// NoCardIndex (255) is none.
+	// NoCardIndex is none.
 	Table []string
 	// Deck[s][i] is the table index of deck s's i-th card.
-	Deck [2][]uint8
+	Deck [2][]CardIndex
 	// Sideboards are the cards outside the game (CR 400.11), gorge's
 	// Config.Sideboards; Side[s][i] is the table index of seat s's i-th. A
 	// sideboard card is a card instance after both decks' (InstanceCard).
 	Sideboards [2][]*cards.Card
-	Side       [2][]uint8
+	Side       [2][]CardIndex
 	// Mulligans is Config.Mulligans: London mulligans each player may take
 	// (0 skips the round), as in a gorge self-play game.
 	Mulligans int
@@ -81,7 +78,7 @@ const MaxSeats = 4
 type MoreSeat struct {
 	Name               string
 	Deck               []*cards.Card
-	Ix                 []uint8
+	Ix                 []CardIndex
 	Commander, Partner int
 }
 
@@ -115,6 +112,12 @@ func (m *Matchup) SeatCommanders(s int) (cmd, partner int) {
 
 // setSeatCommanders sets seat s's commander and partner.
 func (m *Matchup) setSeatCommanders(s, cmd, partner int) {
+	// A pair no constructed deck may play but a Commander draft may is why
+	// DraftPartners is set; deriving it here seats a replayed record (a
+	// repro, a game file) as the run that wrote it did.
+	if d := m.SeatDeck(s); cmd >= 0 && partner >= 0 && cmd < len(d) && partner < len(d) && !deck.IsCommanderPair(d[cmd], d[partner]) && deck.IsDraftCommanderPair(d[cmd], d[partner]) {
+		m.DraftPartners = true
+	}
 	if s < 2 {
 		m.Commanders[s], m.Partners[s] = cmd, partner
 		return
@@ -123,7 +126,7 @@ func (m *Matchup) setSeatCommanders(s, cmd, partner int) {
 }
 
 // seatIx is seat s's deck as table indices.
-func (m *Matchup) seatIx(s int) []uint8 {
+func (m *Matchup) seatIx(s int) []CardIndex {
 	if s < 2 {
 		return m.Deck[s]
 	}
@@ -261,9 +264,6 @@ func (c *Corpus) readCommanders(m *Matchup) error {
 			p := -1
 			if len(ix) > 1 {
 				p = ix[1]
-				if d := m.SeatDeck(s); ix[0] < len(d) && p < len(d) && !deck.IsCommanderPair(d[ix[0]], d[p]) && deck.IsDraftCommanderPair(d[ix[0]], d[p]) {
-					m.DraftPartners = true
-				}
 			}
 			m.setSeatCommanders(s, ix[0], p)
 		}
@@ -331,9 +331,9 @@ func NewMatchupN(reg *cards.Registry, names []string, decks [][]*cards.Card, mul
 		return nil, fmt.Errorf("matchup %v: %d deck cards, a projection holds %d instances", names, n, MaxInst)
 	}
 	for s, d := range decks {
-		ix := make([]uint8, 0, len(d))
+		ix := make([]CardIndex, 0, len(d))
 		for _, c := range d {
-			ix = append(ix, uint8(sort.SearchStrings(m.Table, cardName(c))))
+			ix = append(ix, CardIndex(sort.SearchStrings(m.Table, cardName(c))))
 		}
 		if s < 2 {
 			m.Deck[s] = ix
@@ -376,12 +376,12 @@ func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][
 	}
 	for s, d := range decks {
 		for _, c := range d {
-			m.Deck[s] = append(m.Deck[s], uint8(sort.SearchStrings(m.Table, cardName(c))))
+			m.Deck[s] = append(m.Deck[s], CardIndex(sort.SearchStrings(m.Table, cardName(c))))
 		}
 	}
 	for s, d := range sideboards {
 		for _, c := range d {
-			m.Side[s] = append(m.Side[s], uint8(sort.SearchStrings(m.Table, cardName(c))))
+			m.Side[s] = append(m.Side[s], CardIndex(sort.SearchStrings(m.Table, cardName(c))))
 		}
 	}
 	return m, nil

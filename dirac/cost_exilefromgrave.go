@@ -35,7 +35,7 @@ func (s *State) graveExileOptions(k *prep, d *Decision, p uint8) {
 	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.graveN); i++ {
 		if o := pl.grave[i]; s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

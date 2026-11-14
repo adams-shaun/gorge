@@ -11,8 +11,8 @@ package kgen
 // there, so the filter lowers to none. An absent ValidSA$ filters nothing
 // in gorge, and a commander is never a land, so OpCastFree's land skip
 // drops nothing either. The free cast still pays the commander tax: the
-// kernel's buildCostPre adds it to every spell cast from the command zone,
-// free or not, as gorge's beginCast captures it for every mode.
+// kernel's buildCostGenPre adds it in its sfFree branch (legal_gen.go), as
+// gorge's beginCast captures it for every mode.
 
 // playCommandZone reports whether ps is the command-zone commander Play the
 // kernel's Command population reads exactly.

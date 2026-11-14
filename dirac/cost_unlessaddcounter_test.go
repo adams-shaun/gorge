@@ -43,7 +43,7 @@ func addCounterStart(sc *scen, synth CardID, source, target Obj) {
 		e.obj, e.srcVer, e.card, e.ctrl = source, sc.s.objs[source].ver, synth, 0
 		e.trigPl = 0
 		if target != NoObj {
-			e.nt, e.tgt[0], e.tver[0] = 1, uint8(target), sc.s.objs[target].ver
+			e.nt, e.tgt[0], e.tver[0] = 1, TCode(target), sc.s.objs[target].ver
 		}
 	})
 }

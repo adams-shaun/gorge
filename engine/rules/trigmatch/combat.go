@@ -376,10 +376,13 @@ func ExertedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 // match is the "both halves match" test, and checkTriggers' all-latch turns
 // the first such event in a batch into the single "one or more" instance.
 func DamageMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	return DamageMatchesWithCapture(e, t, source, ev, nil)
+	return DamageMatchesWithCapture(e, t, source, ev, nil, SpecOpts{})
 }
 
-func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, remembered []state.Target) bool {
+// extra carries the caller's SpecOpts overrides (a delayed registration's
+// frozen chosen-card set, SpecOpts.DelayedChosen); the remembered capture is
+// the separate parameter it always was.
+func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, remembered []state.Target, extra SpecOpts) bool {
 	// CR 120.8/603.2g: a non-positive Damage event is the marked-damage
 	// removal (cleanup, regeneration, HealDamage) or a hit reduced to zero --
 	// no damage was dealt.
@@ -415,7 +418,8 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 		if src == 0 {
 			return false
 		}
-		opts := SpecOpts{DelayedRemembered: remembered}
+		opts := extra
+		opts.DelayedRemembered = remembered
 		matched := false
 		// CR 113.7a: a source that left the battlefield while its ability
 		// waited is matched by the controller it last had there; its card

@@ -52,7 +52,7 @@ func TestCopiedFlingUsesTheOriginalSacrifice(t *testing.T) {
 		angel := sc.perm(id["Serra Angel"], 0)
 		f := sc.hand(id["Burst Lightning"], 0)
 		life := s.pl[1].life
-		sc.do(t, AkCast, uint8(f), 0xff)
+		sc.do(t, AkCast, TCode(f), scAny)
 		for i := 0; i < 40; i++ {
 			d := s.Step()
 			if d.Kind == DkNone || s.sp == 0 && i > 2 && d.Kind == DkPriority && s.pl[1].life != life {
@@ -100,8 +100,8 @@ func TestCopyOfAHastyCopyHasHaste(t *testing.T) {
 	lions := sc.perm(id["Savannah Lions"], 0)
 	s.pl[0].pool[kop.R] = 3
 	ed := sc.hand(id["Electroduplicate"], 0)
-	sc.do(t, AkCast, uint8(ed), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(lions))
+	sc.do(t, AkCast, TCode(ed), scAny)
+	sc.do(t, AkTarget, scAny, TCode(lions))
 	sc.resolveAll(t)
 	cs := sc.copiesOf(id["Savannah Lions"])
 	var hasty Obj = NoObj
@@ -120,8 +120,8 @@ func TestCopyOfAHastyCopyHasHaste(t *testing.T) {
 		for _, sl := range sc.copiesOf(id["Savannah Lions"]) {
 			before[s.perms[sl].obj] = true
 		}
-		sc.do(t, AkCast, uint8(sr), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(src))
+		sc.do(t, AkCast, TCode(sr), scAny)
+		sc.do(t, AkTarget, scAny, TCode(src))
 		sc.resolveAll(t)
 		var got Obj = NoObj
 		for _, sl := range sc.copiesOf(id["Savannah Lions"]) {
@@ -152,8 +152,8 @@ func TestCopyOfAHastyCopyListsHasteTwice(t *testing.T) {
 			before[s.perms[sl].obj] = true
 		}
 		s.pl[0].pool[kop.R] = 3
-		sc.do(t, AkCast, uint8(sc.hand(id["Electroduplicate"], 0)), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(src))
+		sc.do(t, AkCast, TCode(sc.hand(id["Electroduplicate"], 0)), scAny)
+		sc.do(t, AkTarget, scAny, TCode(src))
 		sc.resolveAll(t)
 		for _, sl := range sc.copiesOf(id["Savannah Lions"]) {
 			if o := s.perms[sl].obj; !before[o] {

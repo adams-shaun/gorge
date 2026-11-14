@@ -1,0 +1,20 @@
+# the MBC zone-moves-5 pool: Counterbalance (Count$TopOfLibraryCMC), Sensei's
+# Divining Top (RearrangeTopOfLibrary AIRespondsToOwnAbility$), Goblin
+# Recruiter (a library-to-top search with Reorder$), and Captain N'ghathrod
+# (the ThisTurnEnteredFrom_Library word)
+# beside creatures, burn and basics, for the oracle's constructed lockstep
+# (dirac/oracle/mbc_zonemoves_lowers_test.go)
+Counterbalance
+Sensei's Divining Top
+Goblin Recruiter
+Captain N'ghathrod
+Raging Goblin
+Goblin Piker
+Grizzly Bears
+Llanowar Elves
+Shock
+Opt
+Island
+Mountain
+Swamp
+Forest

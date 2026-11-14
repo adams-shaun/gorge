@@ -60,7 +60,7 @@ func TestPainBudgetBoundsTheGapsWalk(t *testing.T) {
 		if !castOffered(&d, spy) {
 			t.Fatalf("cfg %+v: Spy not offered at 4 life", cfg)
 		}
-		sc.s.Apply(MakeAction(AkCast, uint8(spy), 0, 0))
+		sc.s.Apply(MakeAction(AkCast, TCode(spy), 0, 0))
 		sc.s.Step() // the payment: no "autopay found no plan"
 		if sc.s.sp != 1 {
 			t.Fatalf("cfg %+v: stack %d after the Spy's cast, want 1", cfg, sc.s.sp)
@@ -96,7 +96,7 @@ func TestUnpayableCostIsNeverOffered(t *testing.T) {
 							t.Errorf("board %d life %d cfg %+v: the Spy was offered and its payment panicked: %v", bi, life, cfg, e)
 						}
 					}()
-					sc.s.Apply(MakeAction(AkCast, uint8(spy), 0, 0))
+					sc.s.Apply(MakeAction(AkCast, TCode(spy), 0, 0))
 					sc.s.Step()
 					if sc.s.sp != 1 && sc.s.ctl != ctlPriority {
 						t.Errorf("board %d life %d cfg %+v: stack %d after the cast", bi, life, cfg, sc.s.sp)

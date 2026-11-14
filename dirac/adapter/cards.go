@@ -74,7 +74,7 @@ func (g *Game) grantedSA(c dirac.CardID, ab uint8) (string, *cards.SA) {
 }
 
 // cardName is a kernel object's display name.
-func (g *Game) cardName(o uint8) string {
+func (g *Game) cardName(o canon.Ref) string {
 	if int(o) >= int(g.kp.NObj) {
 		return "object"
 	}

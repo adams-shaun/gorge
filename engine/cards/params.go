@@ -662,6 +662,8 @@ const (
 	PKEachFromSource
 	PKEffectOwner
 	PKExactly
+	PKExcessDamage
+	PKExcessDamageCondition
 	PKExcessSVar
 	PKExcessSVarCondition
 	PKExileFaceDown
@@ -880,6 +882,17 @@ const (
 	// Read by pay.WithSpellAbilityExtras / AbilityCompiledCost into
 	// rules/cost.Cost.XColors. Appended: earlier ordinals stay stable.
 	PKXColor
+	// ManaSpent$ / ManaNotSpent$ name the colours whose mana was (or was
+	// not) spent to cast the source (Forge's CardTraitBase.meetsRequirements
+	// ManaSpent/ManaNotSpent arms; Court Hussar's "sacrifice it unless {W}
+	// was spent to cast it", CR 601.2h). Read by triggerConditionHolds
+	// against the cast's per-colour spend. Appended: earlier ordinals stay
+	// stable.
+	PKManaSpent
+	PKManaNotSpent
+	// PKValidAfterStack is ValidAfterStack$ (Keeper of the Dead's activation-
+	// time target filter). Appended: earlier ordinals stay stable.
+	PKValidAfterStack
 	paramKeyCount
 )
 
@@ -1561,6 +1574,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKEachFromSource:                   "EachFromSource",
 	PKEffectOwner:                      "EffectOwner",
 	PKExactly:                          "Exactly",
+	PKExcessDamage:                     "ExcessDamage",
+	PKExcessDamageCondition:            "ExcessDamageCondition",
 	PKExcessSVar:                       "ExcessSVar",
 	PKExcessSVarCondition:              "ExcessSVarCondition",
 	PKExileFaceDown:                    "ExileFaceDown",
@@ -1695,6 +1710,9 @@ var paramKeyNames = [paramKeyCount]string{
 	PKCanBlockAmount:                   "CanBlockAmount",
 	PKCanBlockAny:                      "CanBlockAny",
 	PKXColor:                           "XColor",
+	PKManaSpent:                        "ManaSpent",
+	PKManaNotSpent:                     "ManaNotSpent",
+	PKValidAfterStack:                  "ValidAfterStack",
 }
 
 // String is the key's Forge text.

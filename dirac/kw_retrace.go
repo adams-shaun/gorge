@@ -109,7 +109,7 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 			// mayhem cast's rule)
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), retraceTgt, 2))
+		d.add(MakeAction(AkCast, TCode(o), TCode(retraceTgt), 2))
 	}
 }
 

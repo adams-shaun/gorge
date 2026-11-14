@@ -42,7 +42,7 @@ func (s *State) bargainCands(k *prep, p uint8, d *Decision) {
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.bargainCandAt(k, sl) && !s.picked(s.perms[sl].obj) {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
 }
@@ -109,6 +109,6 @@ func (s *State) offerBargainPlay(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.bargainOffers(k, p, o) {
-		d.add(MakeAction(AkCastCasualty, uint8(o), 0, mode))
+		d.add(MakeAction(AkCastCasualty, TCode(o), 0, mode))
 	}
 }

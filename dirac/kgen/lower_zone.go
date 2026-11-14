@@ -276,6 +276,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
+		ct = lc.chosenCtrlImplied(ps, origin, ct) // lower_chooseplayermid.go
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
 		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
 		f, err := lc.pickFilter(ct) // lower_each.go
@@ -355,6 +356,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if dest == zLibrary {
 				if pos != 0 {
 					return refuse("library-to-library search position %d", pos)
+				}
+				// Reorder$ True: gorge placeLibraryObjects pins the found
+				// cards on top in the answer order, the same placement a
+				// top LibraryPosition$ makes without it (zone_library.go;
+				// Goblin Recruiter, Congregation at Dawn)
+				if v, ok := ps.get("Reorder"); ok && strings.TrimSpace(v) != "True" {
+					return refuse("search Reorder$ %q", v)
 				}
 				if !noShuffle {
 					flags = append(flags, "ThenTop")
@@ -487,8 +495,22 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
+			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
+			if err != nil {
+				return err
+			}
+			dpScope, err := graveDefinedPlayer(ps, lc, dest, flags, counterKind) // lower_gravedefinedplayer.go
+			if err != nil {
+				return err
+			}
 			for i := range f.Clauses {
-				if f.Clauses[i].Owner != whoAny {
+				if chosenPool || f.Clauses[i].Owner != whoAny {
+					continue
+				}
+				if dpScope != dpNone {
+					// DefinedPlayer$ names the fetch player: gorge's pool is that
+					// player's own graveyard (effHiddenPick, not gameWide), the
+					// kernel's plain walk
 					continue
 				}
 				if f.Clauses[i].Ctrl == whoYou {
@@ -543,8 +565,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
-			return nil
+			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -724,7 +745,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// third from the top (gorge libraryOrderPlacementAt), read exactly
 			// for the source leaving the battlefield (Braided Quipu); another
 			// object or origin is lockstep-unverified and stays refused
-			if obj.Kind != rSelf || origin != zBattlefield {
+			if !lc.libThirdOK(obj, origin) { // lower_libthird.go
 				return refuse("library position 2 of %s from %s", refNames[obj.Kind], zoneLabel[origin])
 			}
 			in.C = kop.LibThird
@@ -1089,6 +1110,9 @@ func overrideString(o *lOverride) string {
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
 	}
+	if len(o.CantHaveKw) > 0 {
+		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
+	}
 	if len(o.AddKw) > 0 {
 		p = append(p, "kw="+strings.Join(o.AddKw, "&"))
 	}
@@ -1130,8 +1154,14 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
 	}
+	if strings.TrimSpace(ps.str("Origin")) == "Command,Graveyard" {
+		return lc.originCommandGrave(ps) // lower_cmdsweep.go
+	}
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
+	}
+	if strings.TrimSpace(ps.str("Origin")) == "Graveyard,Library" {
+		return lc.originGraveLibrary(ps) // lower_gravelibsweep.go
 	}
 	lc.exwOK = true // a ChangeZoneAll sweep is a resolution-time mover: ExiledWithSource reads the resolving source
 	f, err := lc.changeZoneAllFilter(ps)
@@ -1287,13 +1317,13 @@ func (lc *lowerCtx) dig(ps *params) error {
 		}
 		flags = append(flags, "pos="+lp)
 	}
-	var restTop bool
+	var restTop, restAsk bool
 	if _, d2 := ps.m["DestinationZone2"]; !d2 && strings.TrimSpace(ps.m["SkipReorder"]) == "True" {
 		// gorge effDig's rest(): SkipReorder$ leaves the remainder in place
 		// before LibraryPosition2$ is read, so the position is moot (the
 		// Undercity's Throne of the Dead Three)
 		ps.consume("LibraryPosition2")
-	} else if restTop, err = digRestTop(ps, n, take, dest2); err != nil {
+	} else if restTop, restAsk, err = lc.digRestTop(ps, who, n, take, dest, dest2); err != nil {
 		return err
 	}
 	if v, ok := ps.get("SkipReorder"); ok {
@@ -1307,6 +1337,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 	}
 	if restTop {
 		flags = append(flags, "RestTop")
+	}
+	if restAsk {
+		flags = append(flags, "RestTopAsk") // lower_digparams.go digRestTop
 	}
 	noReveal, err := digNoReveal(ps)
 	if err != nil {
@@ -1459,6 +1492,10 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
+	optional, err := lc.digUntilOptional(ps, who) // lower_thanactive.go
+	if err != nil {
+		return err
+	}
 	if ps.is("ImprintFound", "True") {
 		if ps.is("RememberRevealed", "True") {
 			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
@@ -1475,6 +1512,9 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 			return refuse("RememberFound %q", v)
 		}
 		in.CS += "|RememberFound"
+	}
+	if optional {
+		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardDigUntil, Obj: who, Skip: 1, Note: "may reveal"})
 	}
 	lc.emit(in)
 	return nil
@@ -1591,9 +1631,11 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
-		// chooser's own objects. The kernel evaluates a ChooseCard's filter
-		// from the chooser's perspective (cardCands' p), so a YouCtrl clause
-		// is the chooser's control here (Flaming Gambit).
+		// chooser's own objects. The kernel evaluates this ChooseCard's filter
+		// from the chooser's perspective (chooseCardBase returns the asker for
+		// every chooser but RefEachOpponent, the chosen-player pick whose pool
+		// is the resolving controller's), so a YouCtrl clause is the chooser's
+		// control here (Flaming Gambit).
 		if cbp != "Chooser" {
 			return refuse("optional ChooseCard ControlledByPlayer$ %q", cbp)
 		}
@@ -1605,24 +1647,41 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if err != nil {
 		return err
 	}
+	fromDefined := false
 	if !optional {
-		// A mandatory ChooseCard's chooser is the resolving controller and
-		// its pick count is one (gorge chooseCardChoosers, choiceBounds max
-		// default 1). ChoiceTitle$ is display-only (the decision's Prompt),
-		// so any value reads; Amount$ 1 and Defined$ You are exactly the
-		// defaults, and anything else stays refused by name.
+		// A mandatory ChooseCard's chooser is the resolving controller —
+		// gorge choiceChoosers' default — and its pick count is one
+		// (choiceBounds max default 1). Defined$ ChosenPlayer / Player.Chosen
+		// is the one exception: the resolution's chosen player, this
+		// ability's one-opponent ChoosePlayer's pick (gorge choiceChoosers'
+		// ChosenPlayer spelling; Plargg and Nassari's "an opponent choses",
+		// Demonic Hordes, Wake to Slaughter, Wormfang Crab). ChoiceTitle$ is
+		// display-only (the decision's Prompt), so any value reads; Amount$ 1
+		// and Defined$ You are exactly the defaults, and anything else stays
+		// refused by name.
 		ps.consume("ChoiceTitle")
 		if v := ps.str("Amount"); v != "" && v != "1" {
 			return refuse("ChooseCard Amount$ %q", v)
 		}
 		if v := ps.str("Defined"); v != "" && v != "You" {
-			return refuse("ChooseCard Defined$ %q", v)
+			// gorge choiceChoosers: Defined$ ChosenPlayer / Player.Chosen is
+			// the resolution's chosen player — this ability's one-opponent
+			// ChoosePlayer's pick, which the kernel poses as the opponent's
+			// ask (Plargg and Nassari's OppPickOne, Demonic Hordes, Wake to
+			// Slaughter, Wormfang Crab). Without the armed choice it is
+			// unresolved and refuses.
+			if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
+				(v != "ChosenPlayer" && v != "Player.Chosen") {
+				return refuse("ChooseCard Defined$ %q", v)
+			}
+			chooser = lRef{Kind: rEachOpp}
+			fromDefined = true
 		}
+		ps.consume("Defined")
 	}
 	if optional && zone == zLibrary {
 		return lc.chooseLibraryUpTo(ps, f)
 	}
-	fromDefined := false
 	if optional {
 		// the optional battlefield path: ChoiceTitle$ is display only (as
 		// the mandatory path's), Defined$ You is the default chooser, and
@@ -2115,6 +2174,14 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
+		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
+			// the targeted player's hand (lower_playtgtplayer.go)
+			obj, err := lc.playTargetedPlayerHand()
+			if err != nil {
+				return err
+			}
+			return emit(obj, zHand, saExpr)
+		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
 		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
@@ -2340,6 +2407,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			break
 		}
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
+	case "CanAttackDefender":
+		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
 		if err := lc.attacksIfAble(ps, sp, obj); err != nil { // lower_effectattacksifable.go
 			return err
@@ -2362,6 +2431,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
+	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked":
+		if err := lc.asgnGrant(ps, sp, s.Mode, obj); err != nil { // lower_asgngrant.go
+			return err
+		}
 	case "Panharmonicon":
 		// (Lwaxana Troi, Charming Guest) "for as long as this remains tapped,
 		// if a triggered ability of that creature triggers, that ability
@@ -2896,6 +2969,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 		}
 	}
+	if err := lc.animateRemoveEnchantmentTypes(ps, o); err != nil { // lower_animateaura.go
+		return nil, "", false, err
+	}
 	if ps.is("AddAllCreatureTypes", "True") {
 		o.AllCreatureTypes = true
 	}
@@ -2986,7 +3062,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if k, ok := ps.get("Keywords"); ok {
-		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
+		k, err := lc.animateSelfEnchant(ps, k, o, obj, dur) // lower_animateaura.go
+		if err != nil {
+			return nil, "", false, err
+		}
+		k, err = lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
@@ -3111,6 +3191,13 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		// the controller's one pick, copied (lower_copypicked.go)
 		picked = true
 		obj, err = lc.copyChoicePick(ps)
+		if err != nil {
+			return err
+		}
+	} else if ps.is("Populate", "True") {
+		// populate: the controller's creature token, copied (lower_populate.go)
+		picked = true
+		obj, err = lc.populatePick(ps)
 		if err != nil {
 			return err
 		}
@@ -3264,25 +3351,34 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 }
 
 func (lc *lowerCtx) gainControl(ps *params) error {
+	if d := ps.str("Defined"); strings.HasPrefix(d, attachGroupPrefix) {
+		return lc.gainControlAttached(ps, d) // lower_attachgroup.go
+	}
 	// NewController$ first: ParentTarget names the earlier link's player
 	// target, not this node's own (Donate)
 	to := lRef{}
-	if nc, ok := ps.get("NewController"); ok && nc != "You" {
-		r, err := lc.defined(nc)
-		if err != nil {
-			return err
-		}
-		if r.Kind != rTarget && r.Kind != rEachOpp {
-			return refuse("GainControl NewController %q", nc)
-		}
-		if r.Kind == rTarget {
-			t := lc.ab.Targets[r.N]
-			if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
-				return refuse("GainControl NewController %q: not a player target", nc)
+	ncYou := false
+	if nc, ok := ps.get("NewController"); ok {
+		if nc == "You" {
+			ncYou = true // gorge controlPlayerSimpleYou: the resolving controller
+		} else {
+			r, err := lc.defined(nc)
+			if err != nil {
+				return err
 			}
+			if r.Kind != rTarget && r.Kind != rEachOpp {
+				return refuse("GainControl NewController %q", nc)
+			}
+			if r.Kind == rTarget {
+				t := lc.ab.Targets[r.N]
+				if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
+					return refuse("GainControl NewController %q: not a player target", nc)
+				}
+			}
+			to = r
 		}
-		to = r
 	}
+	hadTgts := ps.peek("ValidTgts") != ""
 	// No ValidTgts$ and no Defined$: gorge's DefinedRef falls back to the
 	// source ("an ability declaring ValidTgts$ acts on its chosen targets,
 	// any other on its source"; effects/context.go DefinedRef), which is the
@@ -3292,6 +3388,27 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
 	if err != nil {
 		return err
+	}
+	// gorge controlPlayer (effects/choose_control.go): with no NewController$
+	// the new controller is the node's own chosen player target (Chaos Lord's
+	// ValidTgts$ Opponent: "target opponent gains control of CARDNAME"), else
+	// the resolving controller. The slot objOrTarget just added is the last
+	// one; a player slot only -- the kernel's RefTargetN player read.
+	if to.Kind == rNone && !ncYou && hadTgts {
+		slot := lc.lastTarget()
+		if slot < 0 {
+			return refuse("GainControl ValidTgts$ %q with no target slot", ps.str("ValidTgts"))
+		}
+		t := &lc.ab.Targets[slot]
+		if t.F != nil && t.F.Players != 0 && len(t.F.Clauses) == 0 {
+			if slot > 4 {
+				return refuse("GainControl ValidTgts$ %q: target slot %d beyond the kernel's player refs", ps.str("ValidTgts"), slot)
+			}
+			if !t.Min.isConst() || t.Min.N != 1 || !t.Max.isConst() || t.Max.N != 1 {
+				return refuse("GainControl ValidTgts$ %q: the new-controller target must be exactly one required player", ps.str("ValidTgts"))
+			}
+			to = lRef{Kind: rTarget, N: slot}
+		}
 	}
 	// LoseControl$ (gorge ParseControlDuration): the effect lasts until the
 	// first listed end; the kernel's layer-2 records (CR 613.1b) model
@@ -3390,15 +3507,17 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	var obj lRef
 	group := false
 	sacGroup := false
+	groupMany := false
 	lkiMany := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
 		}
-		if err := lc.groupDelayed(exec); err != nil {
+		many, err := lc.groupDelayed(exec)
+		if err != nil {
 			return err
 		}
-		group = true
+		group, groupMany = true, many
 	}
 	if !group && ro == "Remembered" && delayedGroupSac(exec) {
 		// a remembered set sacrificed as one group at the delayed step
@@ -3435,15 +3554,19 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	lat.DelayedSelf = delayedSelf(lc.ab.Trigger, ro)
 	if group || sacGroup {
 		lc.inGroup = true
+		lc.groupMany = groupMany
 	}
 	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
-	lc.inGroup = false
+	lc.inGroup, lc.groupMany = false, false
 	if err != nil {
 		return err
 	}
 	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
 	if group || sacGroup {
 		in.B = cst(1)
+		if groupMany {
+			in.B = cst(3) // the many-object program (dirac/trig_delayedmany.go)
+		}
 	}
 	if ro == "Remembered" && lc.czForgetSet {
 		// delayedRemember checked the body is one Bounce of the delayed set
@@ -3471,18 +3594,31 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 
 // groupDelayed checks a RememberChain$ False delayed trigger is Mobilize's
 // (CR 702.181a): the chain so far is exactly one remembering Token of the
-// constant 1 or 2 and the body one Sacrifice of the delayed-remembered set.
-func (lc *lowerCtx) groupDelayed(exec *cards.SA) error {
+// constant 1..4 and the body one Sacrifice of the delayed-remembered set.
+// many reports the group is of 3 or 4: the kernel's DpMany program carries up
+// to four objects where DpGroup carries two (dirac/kw_mobilize.go sacDelayed).
+func (lc *lowerCtx) groupDelayed(exec *cards.SA) (many bool, err error) {
 	pr := lc.ab.Prog
 	if len(pr) != 1 || pr[0].Op != "CreateToken" || pr[0].C&4 == 0 || !pr[0].A.isConst() ||
 		exec.API != "Sacrifice" || exec.Sub != nil || len(exec.Params) != 1 ||
 		exec.Params["Defined"] != "DelayTriggerRememberedLKI" {
-		return refuse("RememberChain$ False delayed trigger shape")
+		return false, refuse("RememberChain$ False delayed trigger shape")
 	}
-	if n := pr[0].A.N; n != 1 && n != 2 {
-		return refuse("Mobilize group of %d: a delayed program carries two objects", n)
+	n := pr[0].A.N
+	if n < 1 || n > 4 {
+		return false, refuse("Mobilize group of %d: a delayed program carries at most four objects", n)
 	}
-	return nil
+	return n > 2, nil
+}
+
+// emitSacDelayed emits the group program's body: the ExtSacDelayed batch over
+// the delayed-remembered set (the many-object form for Mobilize 3-4).
+func (lc *lowerCtx) emitSacDelayed() {
+	in := lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}}
+	if lc.groupMany {
+		in.CS = "Many"
+	}
+	lc.emit(in)
 }
 
 // delayedGroupSac reports whether a remembered-set delayed trigger's body is
@@ -3590,7 +3726,7 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	}
 	m.Split = split
 	prod := ps.str("Produced")
-	if v := ps.peek("TriggersWhenSpent"); v != "" && prod == "R" {
+	if v := ps.peek("TriggersWhenSpent"); v != "" && len(prod) == 1 && strings.Contains("WUBRG", prod) {
 		if err := lc.deferredMana(ab, ps, v); err != nil {
 			return err
 		}
@@ -3871,39 +4007,54 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
-		if m.Each && !stack {
-			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
-			// of a restriction (State.rb); several at once have no carrier
-			return refuse("loyalty ability adding several colours at once")
+		// UnlessCost$ with UnlessSwitched$ True (Thomil, the Destroyer's "you
+		// may sacrifice a creature. If you do, add {B}{B}{B}"): the resolution
+		// asks the payer and adds the mana only if they pay (lower_effect.go
+		// unless, the wrapper every resolving node's UnlessCost$ rides).
+		// Whatever follows the mana in a chain stays refused beside it, as
+		// gorge's unless gate covers the node's own effect only.
+		if _, ok := ps.get("UnlessCost"); ok && sa.Sub != nil {
+			return refuse("loyalty mana ability with UnlessCost$ and a sub-ability")
 		}
-		if m.Each {
-			// an unrestricted all-at-once production: one AddMana per colour
-			if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
-				return refuse("stack mana ability adding several colours under a restriction")
+		err := lc.unless(ps, func() error {
+			if m.Each && !stack {
+				// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
+				// of a restriction (State.rb); several at once have no carrier
+				return refuse("loyalty ability adding several colours at once")
 			}
-			for i := 0; i < len(m.Colors); i++ {
-				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+			if m.Each {
+				// an unrestricted all-at-once production: one AddMana per colour
+				if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
+					return refuse("stack mana ability adding several colours under a restriction")
+				}
+				for i := 0; i < len(m.Colors); i++ {
+					lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+				}
+			} else if m.Choice || len(m.Colors) > 1 {
+				// a colour choice at resolution (gorge askManaChoice): one pick
+				// per mana of a Combo, one for the whole amount of Any; the
+				// kernel's AddMana takes the mask's last colour, no choice
+				if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
+					return refuse("loyalty mana choice over %q", m.Colors)
+				}
+				if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
+					return refuse("loyalty mana choice amount or restriction")
+				}
+				mode := 0
+				if !m.Choice {
+					mode = 1
+				}
+				lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
+			} else {
+				// F: a spell restriction (CR 106.6), floated as restricted
+				// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
+				// of Compliance's noncreature-only {U})
+				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 			}
-		} else if m.Choice || len(m.Colors) > 1 {
-			// a colour choice at resolution (gorge askManaChoice): one pick
-			// per mana of a Combo, one for the whole amount of Any; the
-			// kernel's AddMana takes the mask's last colour, no choice
-			if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
-				return refuse("loyalty mana choice over %q", m.Colors)
-			}
-			if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
-				return refuse("loyalty mana choice amount or restriction")
-			}
-			mode := 0
-			if !m.Choice {
-				mode = 1
-			}
-			lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
-		} else {
-			// F: a spell restriction (CR 106.6), floated as restricted
-			// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
-			// of Compliance's noncreature-only {U})
-			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 	if sa.Sub != nil && m.Split == nil { // (a Condition-split's sub is folded into m.Split)
@@ -4136,6 +4287,9 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		}
 		return lc.animateLivePT(name, ss[0], o, obj)
 	}
+	if ok && len(ss) == 1 && ss[0].Mode == "CombatDamageToughness" {
+		return lc.animateGrantedStatic(ps, name, ss[0], o, obj)
+	}
 	if !ok || len(ss) != 1 || ss[0].Mode != "CantBlockBy" {
 		return refuse("Animate staticAbilities$ %q", name)
 	}
@@ -4151,6 +4305,52 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		return refuse("Animate staticAbilities$ with a host-bound duration")
 	}
 	o.AddKw = append(o.AddKw, "Unblockable")
+	return nil
+}
+
+// animateGrantedStatic lowers an Animate staticAbilities$ grant whose one
+// body is Mode$ CombatDamageToughness (Streetwise Negotiator's Backup rider:
+// SVar:BackupAbility = DB$ Animate | staticAbilities$ CDT, over CDT =
+// Mode$ CombatDamageToughness | ValidCard$ Card.Self; CR 702.165: the target
+// gains the following ability until end of turn). The static lowers as the
+// source's own assignment static (kop.StatCombatDmgToughness) with an OvGate
+// bit, and the Animate record on the animated object carries the matching
+// kop.Override.GrantStatics bit: the kernel reads it on the record's holder
+// (static_ovgate.go grantedStaticFlag) while the record is live. gorge
+// registerAnimateStaticAbilities registers the granted assignment static
+// scoped to the animated object, riding the animation's own lifetime, so
+// every duration the Animate accepts rides the record unchanged.
+func (lc *lowerCtx) animateGrantedStatic(ps *params, name string, st cards.Static, o *lOverride, obj lRef) error {
+	if obj.Kind != rSelf && obj.Kind != rTarget {
+		return refuse("Animate staticAbilities$ %q on a non-permanent object", name)
+	}
+	sp := newParams(st.Params)
+	sp.consume("Mode", "Description")
+	if sp.str("ValidCard") != "Card.Self" {
+		return refuse("Animate staticAbilities$ %q ValidCard$ %q", name, sp.str("ValidCard"))
+	}
+	if u := sp.unread(); len(u) > 0 {
+		return refuse("Animate staticAbilities$ %q unread params %v", name, u)
+	}
+	gated := 0
+	for _, ost := range lc.out.Statics {
+		if ost.OvGate != 0 {
+			gated++
+		}
+	}
+	if gated >= 8 {
+		return refuse("Animate staticAbilities$ grants more than 8 statics")
+	}
+	before := len(lc.out.Statics)
+	if err := lc.lowerStatic(st); err != nil {
+		return err
+	}
+	if len(lc.out.Statics) != before+1 {
+		return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
+	}
+	bit := uint8(1) << gated
+	lc.out.Statics[before].OvGate = bit
+	o.GrantStatics |= bit
 	return nil
 }
 
@@ -4420,12 +4620,15 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 
 // animateLivePT reads an Animate staticAbilities$ grant that is one
 // Mode$ Continuous static over the source itself setting its power and/or
-// toughness (Beorn's Hospitality's BeornStatic, Ms. Marvel's MsMarvelStatic;
-// gorge registerAnimateStaticAbilities). Unlike Animate Power$/Toughness$,
-// which gorge reads once at resolution, the granted static's values are read
-// live (layer 7b, every check): the override's LivePT. The Animate must reach
-// Self, set no P/T of its own and not be host-bound (anything else
-// refuses).
+// toughness (Beorn's Hospitality's BeornStatic, Ms. Marvel's MsMarvelStatic,
+// Myth Realized's Static; gorge registerAnimateStaticAbilities). Unlike
+// Animate Power$/Toughness$, which gorge reads once at resolution, the granted
+// static's values are read live (layer 7b, every check): the override's
+// LivePT. The Animate must reach Self, set no P/T of its own and not be
+// host-bound (anything else refuses). The body's EffectZone$ is the zone the
+// static would live in; gorge's self-grant whitelist admits the key and reads
+// it unread (the animated object is where the static applies), so the lowering
+// consumes it.
 func (lc *lowerCtx) animateLivePT(name string, st cards.Static, o *lOverride, obj lRef) error {
 	if obj.Kind != rSelf {
 		return refuse("Animate staticAbilities$ %q on a non-Self object", name)
@@ -4434,7 +4637,7 @@ func (lc *lowerCtx) animateLivePT(name string, st cards.Static, o *lOverride, ob
 		return refuse("Animate staticAbilities$ with a host-bound duration")
 	}
 	sp := newParams(st.Params)
-	sp.consume("Mode", "Description")
+	sp.consume("Mode", "Description", "EffectZone")
 	if d, ok := sp.get("AffectedDefined"); ok && d != "Self" {
 		return refuse("Animate staticAbilities$ %q AffectedDefined$ %q", name, d)
 	}

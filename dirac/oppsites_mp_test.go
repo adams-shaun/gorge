@@ -94,9 +94,9 @@ func TestHeldDiscardBlocksFlushInOrder(t *testing.T) {
 	sc.hand(id["Plains"], 3)
 	sc.hand(id["Plains"], 3)
 	b := sc.hand(id["Plains"], 0)
-	s.holdDiscard([]Obj{a})
+	s.holdDiscard(2, []Obj{a})
 	s.holdWhole(3)
-	s.holdDiscard([]Obj{b})
+	s.holdDiscard(0, []Obj{b})
 	if s.cold.discHeld[2*discHeldBlock] != 1 {
 		t.Fatal("the third player's picks did not get their own block")
 	}
@@ -234,7 +234,7 @@ func TestTargetedExilerAndMostCreatures(t *testing.T) {
 	_, sc, id := oppScen(t, -1)
 	s, k := sc.s, sc.k
 	s.res.e.ctrl = 0
-	s.res.e.tgt[0] = PlayerCode(2)
+	s.res.e.tgt[0] = TCode(PlayerCode(2))
 	if got := s.targetedExiler(0); got != 2 {
 		t.Fatalf("exiler %d, want the targeted seat 2", got)
 	}

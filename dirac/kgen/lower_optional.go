@@ -47,12 +47,12 @@ func (lc *lowerCtx) optDecider(ps *params, guard int) error {
 	in := lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may"}
 	switch spec := strings.TrimSpace(v); spec {
 	case "True", "You":
-	case "Opponent", "TargetedController":
+	case "Opponent", "TargetedController", "TriggeredCardController":
 		r, err := lc.defined(spec)
 		if err != nil {
 			return err
 		}
-		if r.Kind != rEachOpp && r.Kind != rTargetController {
+		if r.Kind != rEachOpp && r.Kind != rTargetController && r.Kind != rTriggeredPlayer {
 			return refuse("OptionalDecider %q as %s", v, r)
 		}
 		in.Obj = r

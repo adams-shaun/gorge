@@ -133,7 +133,7 @@ func TestSacShortReverses(t *testing.T) {
 	if !offersCast(sc.s, dd) {
 		t.Fatalf("Deadly Dispute not offered")
 	}
-	sc.do(t, AkCast, uint8(dd), 0xff)
+	sc.do(t, AkCast, TCode(dd), scAny)
 	if d := sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision %d after the cast, want priority (the reversal)", d.Kind)
 	}

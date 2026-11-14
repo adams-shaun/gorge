@@ -81,7 +81,7 @@ func TestReduceAbilityPowerUpOnly(t *testing.T) {
 	if !powerupActivation(&d, brawler) {
 		t.Fatalf("Brave Brawler's power-up not offered from two white (printed {4}{W}): %v", d.Options[:d.N])
 	}
-	sc.s.Apply(MakeAction(AkActivate, uint8(brawler), 0, 0))
+	sc.s.Apply(MakeAction(AkActivate, TCode(brawler), 0, 0))
 	d = sc.s.Step()
 	if d.Kind != DkPriority {
 		t.Fatalf("after the power-up activation: decision kind %d", d.Kind)

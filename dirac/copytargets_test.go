@@ -52,9 +52,9 @@ func TestCopyMultiTargetAsk(t *testing.T) {
 	a1 := sc.perm(id["Eager Trufflesnout"], 0)
 	b0 := sc.perm(id["Eager Trufflesnout"], 1)
 	b1 := sc.perm(id["Eager Trufflesnout"], 1)
-	sc.do(t, AkCast, uint8(rat), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(a0))
-	sc.do(t, AkTarget, 0xff, uint8(b0))
+	sc.do(t, AkCast, TCode(rat), scAny)
+	sc.do(t, AkTarget, scAny, TCode(a0))
+	sc.do(t, AkTarget, scAny, TCode(b0))
 	// Storm's trigger on the cast; it resolves and puts the copy above
 	d := passToCopyAsk(t, s)
 	if d.Kind != DkTarget || d.Sub != SubCopyTarget || d.Player != 0 {
@@ -67,26 +67,26 @@ func TestCopyMultiTargetAsk(t *testing.T) {
 		t.Fatalf("stack at the ask: %+v, want the copy above the resolving trigger", s.stack[:s.sp])
 	}
 	// inherited a0, b0 first; no Done below the minimum of two
-	if d.N != 4 || s.FeatCopyInherited(uint8(a0)) != 0 || s.FeatCopyInherited(uint8(b0)) != 1 || s.FeatCopyInherited(uint8(b1)) != -1 {
+	if d.N != 4 || s.FeatCopyInherited(TCode(a0)) != 0 || s.FeatCopyInherited(TCode(b0)) != 1 || s.FeatCopyInherited(TCode(b1)) != -1 {
 		t.Fatalf("first pick options %v, inherited positions %d %d %d", d.Options[:d.N],
-			s.FeatCopyInherited(uint8(a0)), s.FeatCopyInherited(uint8(b0)), s.FeatCopyInherited(uint8(b1)))
+			s.FeatCopyInherited(TCode(a0)), s.FeatCopyInherited(TCode(b0)), s.FeatCopyInherited(TCode(b1)))
 	}
 	for i := 0; i < int(d.N); i++ {
 		if d.Options[i].Kind() == AkDone {
 			t.Fatalf("Done offered below the minimum: %v", d.Options[:d.N])
 		}
 	}
-	s.Apply(MakeAction(AkTarget, 0, uint8(b1), 0))
+	s.Apply(MakeAction(AkTarget, 0, TCode(b1), 0))
 	d = s.Step()
 	if d.Kind != DkTarget || d.N != 2 {
 		t.Fatalf("second pick: kind %d options %v", d.Kind, d.Options[:d.N])
 	}
 	for i := 0; i < int(d.N); i++ {
-		if c := d.Options[i].Target(); c != uint8(a0) && c != uint8(a1) {
+		if c := d.Options[i].Target(); c != TCode(uint8(a0)) && c != TCode(uint8(a1)) {
 			t.Fatalf("second pick offers %d (same controller as the first)", c)
 		}
 	}
-	s.Apply(MakeAction(AkTarget, 0, uint8(a1), 0))
+	s.Apply(MakeAction(AkTarget, 0, TCode(a1), 0))
 	passToCopyResolved(t, s)
 	if sc.onBF(a1) || sc.onBF(b1) {
 		t.Fatalf("the copy did not return its new targets")

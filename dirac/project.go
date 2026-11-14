@@ -16,7 +16,7 @@ type ProjObj struct {
 	ZoneIdx  uint8 // position in an ordered zone: library from the top, hand/graveyard/exile in arrival order, battlefield in its controller's list (entry order)
 	Token    bool
 	Flags    uint8 // ProjTapped | ProjAttacking | ProjBlocking | ProjSick
-	Flags2   uint8 // ProjSuspected
+	Flags2   uint8 // ProjSuspected | ProjNameless | ProjRenowned
 	Damage   uint8
 	Counters [kop.NumCounterKinds2]uint16
 	// CountersX is the unfeaturized kinds' counts, CountersX[k-CtrCharge]
@@ -26,7 +26,7 @@ type ProjObj struct {
 	Tough     int16
 	Attached  Obj   // the object this Aura/Equipment is attached to
 	Blocks    Obj   // blocker: the attacker it blocks
-	Attacks   uint8 // attacker: the defender (PlayerTarget* or a planeswalker Obj); NoTarget otherwise
+	Attacks   TCode // attacker: the defender (PlayerTarget* or a planeswalker Obj); NoTarget otherwise
 }
 
 // Projection flag bits.
@@ -45,6 +45,7 @@ const (
 const (
 	ProjSuspected uint8 = 1 << iota // the permanent's CR 701.60 suspected designation (act_suspect.go)
 	ProjNameless                    // a token copy of a face-down permanent, which has no name (blankCopy)
+	ProjRenowned                    // the permanent's CR 702.112b renowned designation (act_renown.go)
 )
 
 // ProjStack is one stack entry.
@@ -54,10 +55,10 @@ type ProjStack struct {
 	Card    CardID
 	Ability uint8 // ability index in the CardDef; 255 = permanent spell
 	Ctrl    uint8
-	Targets [kop.MaxTargets]uint8
+	Targets [kop.MaxTargets]TCode
 	// a generated table's multi-object target slots: the objects beyond
 	// the first of slot ExtraSlot[i], in pick order
-	Extra     [maxXTgt]uint8
+	Extra     [maxXTgt]TCode
 	ExtraSlot [maxXTgt]uint8
 	NExtra    uint8
 	Mode      uint8
@@ -68,7 +69,7 @@ type ProjStack struct {
 // fixed arrays in a deterministic order (objects by Obj index, the stack
 // bottom to top). Two States in the same game position project equal.
 type Projection struct {
-	NObj   uint8
+	NObj   Obj
 	Objs   [MaxObj]ProjObj
 	Life   [MaxSeats]int16
 	NStack uint8
@@ -191,7 +192,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	ob := &s.objs[i]
 	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
-	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, NoTarget
+	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, TCode(NoTarget)
 	if po.Token && k.anyInit && ob.card == k.gen.dungeon {
 		po.Token = false // a dungeon is no token (act_initiative.go)
 	}
@@ -274,6 +275,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 		if k.gen != nil && k.gen.anySuspect && s.suspected(k, sl) {
 			po.Flags2 |= ProjSuspected
+		}
+		if s.renownedAt(k, sl) {
+			po.Flags2 |= ProjRenowned
 		}
 		if s.faceDown(k, sl) {
 			if s.blankCopy(sl) {
@@ -379,7 +383,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 	p.NStack = sp
 	for i := 0; i < int(sp); i++ {
 		e := &s.stack[i]
-		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: e.x}
+		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: uint8(e.x)}
 		if e.x != 0 && e.kind == seTrigger {
 			p.Stack[i].X = projTrigX(k, e) // a bound X is not the object's own (trig_xpaid.go)
 		}

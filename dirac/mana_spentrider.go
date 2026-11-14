@@ -22,7 +22,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // spellManaHaste is the spell entry's remVer bit 3 (bits 0-2:
 // spellGainedDeathtouch, spellGainedLifelink, spellFirstCast).
-const spellManaHaste uint8 = 1 << 3
+const spellManaHaste objWord = 1 << 3
 
 // DebugManaHasteOff drops the rider (mutation test only).
 var DebugManaHasteOff bool

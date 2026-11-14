@@ -144,12 +144,17 @@ func (s *State) evadesShadowFear(k *prep, b Slot, akw, bkw kop.KwMask) bool {
 }
 
 // evasionAt is the permanent at sl's printed CardDef.Evasion bits, none
-// once it has lost its abilities (gorge HasKW over the derived keywords).
+// once it has lost its abilities, plus its granted ones (gorge HasKW over
+// the derived keywords).
 func (s *State) evasionAt(k *prep, sl Slot) uint8 {
-	if ev := k.t.Cards[s.cardAt(sl)].Evasion; ev != 0 && !s.genLost(k, sl) {
-		return ev
+	var ev uint8
+	if p := k.t.Cards[s.cardAt(sl)].Evasion; p != 0 && !s.genLost(k, sl) {
+		ev = p
 	}
-	return 0
+	if k.gen != nil && k.gen.anyEvasionGrant {
+		ev |= s.evasionGranted(k, sl) // a static's or a mark's grant (kw_kwmark.go)
+	}
+	return ev
 }
 
 // evasionEvades: attacker a's printed horsemanship or intimidate forbids

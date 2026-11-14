@@ -49,6 +49,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtExHaste:
 		s.exHaste(k, in) // static_cantblockexcept.go
 		return true, true
+	case kop.ExtAsgnGrant:
+		s.asgnGrant(k, in) // combat_asgngrant.go
+		return true, true
 	case kop.ExtMayPlayGrave:
 		s.mayPlayGrave(k, in) // cast_graveyardgrant.go
 		return true, true
@@ -71,6 +74,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtStackExileMark:
 		s.stackExileMark(k, in) // repl_stackexile.go
 		return true, true
+	case kop.ExtDmgRedirect:
+		s.redirAdd(k, in) // repl_dmgredirect.go
+		return true, true
 	case kop.ExtDmgMark:
 		s.dmgMarkAdd(k, in) // repl_dmgmark.go
 		return true, true
@@ -78,7 +84,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.plotGrant(k) // kw_plot.go
 		return true, true
 	case kop.ExtSacDelayed:
-		s.sacDelayed(k) // kw_mobilize.go
+		s.sacDelayed(k, in) // kw_mobilize.go
 		return true, true
 	case kop.ExtCounterLose:
 		s.counterLose(k, in) // act_counterlose.go
@@ -131,11 +137,19 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtMustBeBlocked:
 		s.mustBlockExt(k, in) // combat_mustbeblocked.go
 		return true, true
+	case kop.ExtKwMark:
+		s.kwMarkExt(k, in) // kw_kwmark.go
+		return true, true
+	case kop.ExtGrantKwAll:
+		s.grantKwAll(k, in) // act_grantkwall.go
+		return true, true
 	case kop.ExtSpellToLib:
 		s.spellToLib(k) // act_spelltolib.go
 		return true, true
 	case kop.ExtVote:
 		return s.voteStart(k, in), true // act_vote.go
+	case kop.ExtChoosePlayerRes:
+		return s.choosePlayerResStart(in), true // act_chooseplayerres.go
 	case kop.ExtDrawUpto:
 		return s.drawUptoStart(k, in), true // act_drawupto.go
 	case kop.ExtAttacksIfAble:
@@ -149,6 +163,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.leaveCombat(sl) // combat_noncreature.go
 		}
 		return true, true
+	case kop.ExtChangeText:
+		return s.changeTextStart(k, in), true // act_changetext.go
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true
@@ -169,6 +185,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
+		return true, true
+	case kop.ExtRenown:
+		s.renown(k, in) // act_renown.go
 		return true, true
 	case kop.ExtCopyAllEach:
 		// the sweep's park halts the program at the OpExt (a copy's
@@ -232,13 +251,17 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			sl := s.objs[o].slot
 			if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
-				s.perms[sl].chosen = p
+				s.perms[sl].chosen = objWord(p)
 				s.touchSl(sl)
 			} else {
 				s.queueAsk(sl, akPlayer)
 			}
 		}
 		return true, true
+	case kop.ExtChoosePlayerMid:
+		// a mid-resolution opponent choice (repl_chooseplayer.go); false
+		// suspends the program at its ask
+		return s.choosePlayerMid(k), true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)
@@ -261,6 +284,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && !s.enterCardNone(k, s.objs[o].slot, s.cardAt(s.objs[o].slot)) {
 			s.queueAsk(s.objs[o].slot, akCard)
 		}
+		return true, true
+	case kop.ExtExploit:
+		s.exploitOp(k) // kw_exploit.go
 		return true, true
 	case kop.ExtTurnFaceUp:
 		return s.extTurnFaceUp(k, in), true // face_turnupeffect.go
@@ -290,6 +316,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtPreventNext:
 		s.prevNextAdd(k, in) // repl_prevnext.go
 		return true, true
+	case kop.ExtGrantEncore:
+		s.grantEncore(k, in) // kw_encoregrant.go
+		return true, true
+	case kop.ExtTapOrUntapAll:
+		return s.tapOrUntapAllStart(), true // act_taporuntapall.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
@@ -344,7 +375,7 @@ func (s *State) eachDamageSlots(k *prep, mask uint8, f kop.FilterID, out *[MaxPe
 	x := s.xtOf(e)
 	src := s.objRef(k, kop.RefSelf)
 	n := 0
-	add := func(c, ver uint8) {
+	add := func(c TCode, ver uint8) {
 		if c == NoTarget || !isObjTarget(c) {
 			return
 		}

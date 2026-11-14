@@ -54,7 +54,7 @@ func TestFixedTapsSpellPricedFromComposedCost(t *testing.T) {
 	if !spellFixedTapsOnly(k, id["Fear of Exposure"]) || spellFixedTapsOnly(k, id["Grizzly Bears"]) {
 		t.Fatal("spellFixedTapsOnly: Fear of Exposure only")
 	}
-	a := MakeAction(AkCast, uint8(fe), 0, 0)
+	a := MakeAction(AkCast, TCode(fe), 0, 0)
 	cost, _, _, ok := sc.s.grantPlayCost(k, 0, a, true)
 	if !ok {
 		t.Fatal("the granted-mana search declines Fear of Exposure's cast")

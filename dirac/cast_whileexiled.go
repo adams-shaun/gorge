@@ -27,7 +27,7 @@ func (s *State) partitionRecord(r *mayPlay, o Obj, ctrl uint8, raise int) {
 	r.ctrl = owner
 	if raise > 0 && owner != ctrl {
 		r.kind |= mayKindRaise
-		r.turn = uint16(raise)
+		r.turn = mayWord(raise)
 	}
 }
 

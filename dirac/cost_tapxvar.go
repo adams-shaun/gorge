@@ -73,6 +73,6 @@ func (s *State) applyTapXVarPick(k *prep, a Action) {
 //go:noinline
 func (s *State) tapXVarBind(k *prep) {
 	if s.prog(k)[s.res.pc].B.N == kop.PayBSubTapXVar {
-		s.res.e.x = s.g.pickLeft
+		s.res.e.x = objWord(s.g.pickLeft)
 	}
 }

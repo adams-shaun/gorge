@@ -63,7 +63,7 @@ func (s *State) offerDashHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 	if s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castDashTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castDashTgt, 0))
 }
 
 // dashEnter runs after the resolving permanent spell e entered at slot sl: a
@@ -87,6 +87,6 @@ func (s *State) dashEnter(sl Slot, e *stackEntry) {
 		s.capFull(StallDelayed)
 		return
 	}
-	s.dly[s.ndly] = delayed{act: opDashReturn, ctrl: e.ctrl, obj: e.obj, ver: ob.ver, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: opDashReturn, ctrl: e.ctrl, obj: e.obj, ver: objWord(ob.ver), creator: NoObj}
 	s.ndly++
 }

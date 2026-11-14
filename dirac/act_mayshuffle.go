@@ -16,7 +16,7 @@ var DebugShuffleOwnOnly bool
 // target chosen earlier in the same cast/resolution entry.
 //
 //go:noinline
-func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
+func (s *State) parentTargetOK(t *kop.TargetSpec, code TCode) bool {
 	e := s.curEntry()
 	if e == nil || t.Kind != kop.TgtCard {
 		return false
@@ -71,7 +71,7 @@ func (s *State) askOptionsOblige(k *prep, d *Decision) bool {
 		// gorge's manifest_dread options: the top-two window in library order
 		d.Sub = ChGenManifestDread
 		for i := 0; i < int(s.res.peekN); i++ {
-			d.add(MakeAction(AkChoose, uint8(s.res.peek[i]), 0, uint8(i)))
+			d.add(MakeAction(AkChoose, TCode(s.res.peek[i]), 0, uint8(i)))
 		}
 	default:
 		return s.askOptionsModalAct(k, d)

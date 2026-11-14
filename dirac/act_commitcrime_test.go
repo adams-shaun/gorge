@@ -61,21 +61,21 @@ func TestCrimeTargetKinds(t *testing.T) {
 	s.ctl = ctlPriority
 	cases := []struct {
 		name string
-		t    uint8
+		t    TCode
 		want bool
 	}{
-		{"the opponent", PlayerTarget0 + 1, true},
-		{"you", PlayerTarget0, false},
-		{"their permanent", uint8(theirPerm), true},
-		{"your permanent", uint8(myPerm), false},
-		{"their card you control", uint8(stolen), false},
-		{"their spell on the stack", uint8(theirSpell), true},
-		{"your spell on the stack", uint8(mySpell), false},
-		{"a card in their graveyard", uint8(theirGrave), true},
-		{"a card in your graveyard", uint8(myGrave), false},
-		{"your card in exile", uint8(myExile), false},
-		{"their card in exile", uint8(theirExile), false},
-		{"their card in hand", uint8(theirHand), false},
+		{"the opponent", TCode(PlayerTarget0 + 1), true},
+		{"you", TCode(PlayerTarget0), false},
+		{"their permanent", TCode(theirPerm), true},
+		{"your permanent", TCode(myPerm), false},
+		{"their card you control", TCode(stolen), false},
+		{"their spell on the stack", TCode(theirSpell), true},
+		{"your spell on the stack", TCode(mySpell), false},
+		{"a card in their graveyard", TCode(theirGrave), true},
+		{"a card in your graveyard", TCode(myGrave), false},
+		{"your card in exile", TCode(myExile), false},
+		{"their card in exile", TCode(theirExile), false},
+		{"their card in hand", TCode(theirHand), false},
 		{"no target", NoTarget, false},
 	}
 	for _, c := range cases {
@@ -89,7 +89,7 @@ func TestCrimeTargetKinds(t *testing.T) {
 	}
 	// the other seat: my permanent is theirs to attack
 	s.g.crime = 0
-	if !s.noteCrime(sc.k, 1, uint8(myPerm)) || s.g.crime != 2 {
+	if !s.noteCrime(sc.k, 1, TCode(myPerm)) || s.g.crime != 2 {
 		t.Errorf("player 1 targeting player 0's permanent: ledger %b, want 10", s.g.crime)
 	}
 }
@@ -106,7 +106,7 @@ func TestCrimeOncePerObject(t *testing.T) {
 	run := func() int {
 		s.npend, s.g.crime = 0, 0
 		e := stackEntry{kind: seAbility, ctrl: 0, nt: 2, obj: march, trigObj: NoObj}
-		e.tgt = [kop.MaxTargets]uint8{uint8(a), uint8(b), NoTarget}
+		e.tgt = [kop.MaxTargets]TCode{TCode(a), TCode(b), TCode(NoTarget)}
 		s.checkWard(sc.k, &e)
 		return int(s.npend)
 	}
@@ -156,7 +156,7 @@ func TestCrimeCopyRetarget(t *testing.T) {
 	burst := id("Burst Lightning")
 	o := sc.crimeStackSpell(burst, 0)
 	e := &s.stack[s.sp-1]
-	e.nt, e.tgt[0] = 1, PlayerTarget0 // aimed at its own controller
+	e.nt, e.tgt[0] = 1, TCode(PlayerTarget0) // aimed at its own controller
 	s.g.crime, s.npend = 0, 0
 	s.setCopyTargetsQ(sc.k, e, 0, []Obj{Obj(PlayerTarget0 + 1)})
 	s.crimeCopy(sc.k, e)
@@ -178,7 +178,7 @@ func TestCrimeResolutionTargetNotACrime(t *testing.T) {
 	s.res = resCtx{e: e, active: true, ask: raGenResTarget, lastTok: NoObj, eachObj: NoObj}
 	s.res.e.obj = o
 	s.g.crime = 0
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(opp), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(opp), 0, 0))
 	if s.g.crime != 0 {
 		t.Fatalf("a resolution-time pick set the ledger: %b", s.g.crime)
 	}
@@ -224,7 +224,7 @@ func TestCrimeModalAbilityFiresOnce(t *testing.T) {
 	a := sc.perm(id("Hardbristle Bandit"), 1)
 	s.npend, s.g.crime = 0, 0
 	e := stackEntry{kind: seAbility, ctrl: 0, nt: 1, mode: 1, obj: march, trigObj: NoObj}
-	e.tgt = [kop.MaxTargets]uint8{uint8(a), NoTarget, NoTarget, NoTarget, NoTarget}
+	e.tgt = [kop.MaxTargets]TCode{TCode(a), TCode(NoTarget), TCode(NoTarget), TCode(NoTarget), TCode(NoTarget)}
 	s.checkWard(sc.k, &e)
 	if s.npend != 1 || s.g.crime != 1 {
 		t.Fatalf("modal ability queued %d (ledger %b), want 1 (ledger 1)", s.npend, s.g.crime)

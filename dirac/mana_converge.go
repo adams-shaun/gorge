@@ -127,7 +127,7 @@ func (s *State) bindTrigConverge(a *kop.Ability, tobj Obj) {
 	}
 	n := spcColours(s.spellSpc(tobj))
 	if a.Trig.Flags3&kop.Tf3ConvergeBound != 0 {
-		s.pend[s.npend-1].x = uint8(n)
+		s.pend[s.npend-1].x = objWord(uint8(n))
 	}
 	if a.Trig.Flags3&kop.Tf3CastConverge != 0 {
 		s.pend[s.npend-1].trigAmt = int16(n)

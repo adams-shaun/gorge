@@ -49,7 +49,7 @@ func (s *State) attachPickScan(k *prep, pc uint8, p uint8, d *Decision) (n int, 
 		}
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return n, first

@@ -46,7 +46,7 @@ func TestWardLifeGranted(t *testing.T) {
 	spell := sc.obj(id["Sear"], 1)
 	e := &stackEntry{obj: spell, ctrl: 1}
 	s.npend = 0
-	s.targetedOne(k, e, uint8(battler))
+	s.targetedOne(k, e, TCode(battler))
 	if s.npend != 2 {
 		t.Fatalf("%d ward triggers, want the printed {2} and the granted pay 2 life", s.npend)
 	}

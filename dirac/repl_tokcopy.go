@@ -88,7 +88,7 @@ func (s *State) tokCopyHostStalls(k *prep, host Slot) bool {
 func (s *State) tokCopyOptions(d *Decision) {
 	d.Sub = ChGenTokCopy
 	d.add(MakeAction(AkChoose, 0, 0, 0))
-	d.add(MakeAction(AkChoose, uint8(s.tokCopyHost(s.k(), &s.g.tok)), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(s.tokCopyHost(s.k(), &s.g.tok)), 0, 1))
 }
 
 // tokCopyAnswer applies the election. The lone election (tokCopyOp) runs the

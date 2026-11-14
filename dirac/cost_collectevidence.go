@@ -155,7 +155,7 @@ func (s *State) evidenceOptions(k *prep, d *Decision, p uint8, need int) {
 	ex := s.evExcl(p)
 	for i := 0; i < int(pl.graveN); i++ {
 		if s.g.evSel&(1<<i) == 0 && i != ex {
-			d.add(MakeAction(AkChoose, uint8(pl.grave[i]), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(pl.grave[i]), 0, 0))
 		}
 	}
 	if s.g.evSel != 0 && (DebugCostEvidenceAnyDone || s.evSelTotal(k, p) >= need) {

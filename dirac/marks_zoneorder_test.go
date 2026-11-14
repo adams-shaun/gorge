@@ -24,8 +24,8 @@ func TestDecisionHashKeysPublicZoneOrder(t *testing.T) {
 		}
 		var d Decision
 		d.Kind, d.Player, d.N = DkTarget, 0, 2
-		d.Options[0] = MakeAction(AkTarget, 0, uint8(a), 0)
-		d.Options[1] = MakeAction(AkTarget, 0, uint8(b), 0)
+		d.Options[0] = MakeAction(AkTarget, 0, TCode(a), 0)
+		d.Options[1] = MakeAction(AkTarget, 0, TCode(b), 0)
 		vh, dh := sc.s.ViewHash(0, nil), sc.s.DecisionHash(&d)
 		pl := &sc.s.pl[0]
 		switch z {

@@ -232,7 +232,7 @@ var replaceEffectKnownKeys = [...]string{
 	"UnlessPayer",
 	"UnlessResolveSubs",
 	"UnlessSwitched",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",

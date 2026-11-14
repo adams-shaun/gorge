@@ -67,6 +67,31 @@ func effectChosenNameSuffix(h Host, source state.ObjID, body string) string {
 	return "|CN=" + o.ChosenName
 }
 
+// effectChosenCardSuffix is the "|CC=<id>[,<id>...]" tail an Effect-delivered
+// trigger registration carries when its body reads Card.ChosenCard
+// (ChosenCardStrict and nonChosenCard included): the resolution's chosen-card
+// set is snapshotted at registration (Forge's EffectEffect copies the host's
+// chosen cards onto the effect card it creates), so the chain's own
+// `DB$ Cleanup | ClearChosenCard$ True` cannot retract the trigger's referent
+// (Azra Oddsmaker's "whenever that creature deals combat damage to a player
+// this turn, you draw two cards"). Empty when the body does not read the
+// chosen set; a body that does ALWAYS emits the suffix -- an EMPTY chosen set
+// is itself the snapshot, so the fire-time read fails closed rather than
+// matching a card the source chooses later.
+func effectChosenCardSuffix(h Host, c *Ctx, body string) string {
+	if !strings.Contains(body, "ChosenCard") {
+		return ""
+	}
+	ids := make([]string, 0, 4)
+	for _, t := range resolutionChosenCards(h.Game(), c) {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		ids = append(ids, strconv.Itoa(int(t.Obj)))
+	}
+	return "|CC=" + strings.Join(ids, ",")
+}
+
 // effEffect creates a lasting effect object holding StaticAbilities$ for
 // Duration$. This is the part that turns a Note into a real
 // registration: a StaticAbilities$ entry naming a RESTRICTION static
@@ -303,6 +328,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// A body naming the chosen card snapshots it now, before the chain's
 		// own ClearNamedCard$ cleanup wipes the source (Medomai's Prophecy).
 		cnSuffix := effectChosenNameSuffix(h, c.Source, raw)
+		// The same for a body reading the chosen CARD: the resolution's
+		// chosen-card set rides the registration, before the chain's own
+		// ClearChosenCard$ cleanup wipes the source (Azra Oddsmaker).
+		ccSuffix := effectChosenCardSuffix(h, c, raw)
 		if effectSelfExileOnCastTrigger(h, c, tr) {
 			// The Effect's cast-driven lifetime, already consumed by the
 			// effectSelfExileOnCastSpec scan above. It is not a delayed
@@ -409,7 +438,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if jailed, ok := monarchJailRemembered(h.Game(), c.Remembered, refTargetUnion(c)); ok {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: c.Controller, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(jailed), Text: "BecomeMonarch:" + name + odSuffix + cnSuffix})
+					IDs: encodeRemembered(jailed), Text: "BecomeMonarch:" + name + odSuffix + cnSuffix + ccSuffix})
 			}
 			registered = true
 			continue
@@ -534,7 +563,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker + cnSuffix})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker + cnSuffix + ccSuffix})
 			}
 			registered = true
 		case cards.TriggerPhase:
@@ -611,7 +640,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
-					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix})
+					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix})
 			}
 			registered = true
 		default:
@@ -638,7 +667,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix})
+					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix + ccSuffix})
 			}
 			registered = true
 		}
@@ -1119,6 +1148,42 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetCounter:  forgetCounter,
 					ImprintOnHost:  imprintOnHost,
 				})
+				registered = true
+			} else if trigs, affected, ok := addTriggerGrantFromLine(params, c.SVars); ok {
+				// AddTrigger$ (Olinda the Oblivious, Obsidian Fireheart): the
+				// Affected$ objects -- almost always Card.IsRemembered, the
+				// Effect's own captured set -- gain the named triggered
+				// ability for the Effect's lifetime, one registration per
+				// named trigger through the SAME ContinuousEffect.AddTrigger
+				// the printed S: route and the Animate Triggers$ grant feed
+				// (engine/rules/trigger_granted.go's granted walk matches it
+				// with the registered Remembered bound, and resolves its
+				// Execute$ off this source's SVar table). The counter and
+				// move lifetimes ride the registration, so "for as long as it
+				// has an odor counter" ends the grant when the last counter
+				// goes (effectCounterSweep).
+				for i := range trigs {
+					t := trigs[i]
+					effectContinuous(h, state.ContinuousEffect{
+						Source:            c.Source,
+						Controller:        c.Controller,
+						Layer:             state.LAbilities,
+						Affects:           affected,
+						AddTrigger:        &t,
+						Name:              effectName,
+						UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
+						Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+						Duration:          dur,
+						Remembered:        remembered,
+						RememberedPlayers: effectRememberedPlayers(h, c, sa),
+						ForgetOnMoved:     forgetOn,
+						ExileOnMoved:      exileOn,
+						ForgetCounter:     forgetCounter,
+						ImprintOnHost:     imprintOnHost,
+						ForgetOnCast:      forgetOnCast,
+						ChosenNumber:      chosenNumber,
+					})
+				}
 				registered = true
 			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant

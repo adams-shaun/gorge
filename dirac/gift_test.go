@@ -42,7 +42,7 @@ func (sc *scen) castCard(t *testing.T, o Obj) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			sc.s.Apply(a)
 			return
 		}
@@ -100,8 +100,8 @@ func TestGiftWearDownPromised(t *testing.T) {
 	if sc.s.stack[sc.s.sp-1].flags&sfPromised == 0 {
 		t.Fatal("the promise is not on the stack entry")
 	}
-	sc.do(t, AkTarget, 0xff, uint8(bell))
-	sc.do(t, AkTarget, 0xff, uint8(bow))
+	sc.do(t, AkTarget, scAny, TCode(bell))
+	sc.do(t, AkTarget, scAny, TCode(bow))
 	sc.resolveAll(t)
 	if sc.onBF(bell) || sc.onBF(bow) {
 		t.Fatalf("bell alive=%v bow alive=%v; the promised Wear Down destroys both", sc.onBF(bell), sc.onBF(bow))
@@ -126,7 +126,7 @@ func TestGiftWearDownDeclined(t *testing.T) {
 	h0, h1 := sc.s.pl[0].handN, sc.s.pl[1].handN
 	sc.castCard(t, wd)
 	sc.gift(t, false)
-	sc.do(t, AkTarget, 0xff, uint8(bell))
+	sc.do(t, AkTarget, scAny, TCode(bell))
 	if d := sc.s.Step(); d.Kind == DkTarget {
 		t.Fatal("a second target asked without the gift")
 	}
