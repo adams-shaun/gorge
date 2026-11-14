@@ -186,7 +186,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	ob.slot = NoSlot // off a face-down spell's stack mark (slotFaceDownSpell)
 	s.g.zoneTurn.set(o)
 	if k != nil {
-		s.clearFB(k, o) // a new object: a granted flashback ends
+		s.clearFB(k, o)     // a new object: a granted flashback ends
+		s.encoreClear(k, o) // a new object: a granted encore ends
 	}
 	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)
@@ -263,8 +264,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
 		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
 	}
-	if from == kop.ZoneLibrary && z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLibToGrave {
-		s.fireLibToGrave(k, o) // trig_libtograve.go
+	if z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyToGrave {
+		s.fireToGrave(k, o, from) // trig_tograve.go
 	}
 }
 
@@ -689,6 +690,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	s.g.lingerM.clr(sl)
 	s.g.declM.clr(sl)
+	if k.gen != nil && k.gen.anyRedir {
+		s.redirDrop(o) // a redirect ends with its host or recipient (repl_dmgredirect.go)
+	}
 	s.setOnceBits(k, sl, 0)        // CR 400.7: the activate-only-once marks end with the permanent
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
 	if s.g.netAny() {

@@ -1,0 +1,14 @@
+# the MBC filters-6 family, the two cards the family lowers: View from
+# Above's and Molten Birth's sub-ability DB$ ChangeZone Origin$ Stack
+# Destination$ Hand Defined$ Parent reads gorge's definedSpecSelf alias and
+# returns the spell on the stack to its owner's hand
+# (dirac/oracle/mbc_filtersix_test.go)
+View from Above
+Molten Birth
+Savannah Lions
+Grizzly Bears
+Shock
+Island
+Plains
+Mountain
+Forest

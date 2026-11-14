@@ -206,8 +206,17 @@ func buildCard(pt *poolTables, c *lCard) built {
 		// the kernel's mana walk silently dropped a
 		// mana ability whose cost it does not read; refuse it instead
 		if a := &cb.out.def.Abilities[j]; !kop.ManaAbilityHonoured(&cb.out.def, j) {
+			why := "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"
+			if kop.CtrDeadManaAb(a) {
+				// the dead counter-cost shape outside the modelled gap: the
+				// census reason names the measured cause (gorge records an
+				// unrelaxable census gap whose resolution adds no mana;
+				// potential_plan.go paymentPlanRelaxedAlternatives
+				// enumerates no colour for the production)
+				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
+			}
 			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit mana ability",
-				Reason: "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"})
+				Reason: why})
 			cb.out.def.Abilities = nil
 			break
 		}
@@ -432,6 +441,9 @@ var counterKinds = map[string]kop.CounterKind{
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
 	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
+	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
+	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
+	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -1535,6 +1547,19 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	default:
 		kf.Owner = kop.CtrlSel(c.Owner)
 	}
+	if c.Owner == whoTgtCtrl {
+		// off the battlefield a card's controller is its owner, so the
+		// owner role is the only relation the card matcher reads
+		// (kop.CtrlTgtOwner)
+		if zone != kop.ZoneGraveyard && zone != kop.ZoneHand && zone != kop.ZoneLibrary && zone != kop.ZoneExile {
+			return kf, refuse("OwnedBy TargetedController on the battlefield or stack")
+		}
+		if c.Ctrl != whoAny || c.CtrlTgt == 0 {
+			return kf, refuse("OwnedBy TargetedController beside a controller role or without a target slot")
+		}
+		kf.CtrlTgt = c.CtrlTgt | kop.CtrlTgtOwner
+		kf.Owner = kop.CtrlAny
+	}
 	if c.Owner == whoTgtPlayer || c.Owner == whoDefending {
 		f2, err := ownerRoleF2(c, zone) // lower_filterreferents.go
 		if err != nil {
@@ -2136,6 +2161,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTaxedAttacker, nil
 	case rTriggerOpps:
 		return kop.RefTriggerOpponents, nil
+	case rResChosenPlayer:
+		return kop.RefResChosenPlayer, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggeredOwner:
@@ -2401,7 +2428,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
 	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
-	cBlessing: kop.CondBlessing}
+	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2494,6 +2521,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.RemoveTypes = typeMask(o.RemoveTypes)
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
+	ko.SetLandSub = o.SetLandSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT

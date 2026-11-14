@@ -280,6 +280,9 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if transform && dayNightBound(h, o.ID) {
 			continue
 		}
+		if setStateFlipMode(sa) && !setStateFlipGate(o) {
+			continue
+		}
 		next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
 		h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
@@ -367,7 +370,23 @@ func setStateObjWouldChange(h Host, c *Ctx, sa *cards.SA, o *state.Object, turnU
 	if transform && dayNightBound(h, o.ID) {
 		return false
 	}
+	if setStateFlipMode(sa) && !setStateFlipGate(o) {
+		return false
+	}
 	return o.Card != nil && len(o.Card.Faces) >= 2
+}
+
+// setStateFlipMode reports a SetState Mode$ Flip.
+func setStateFlipMode(sa *cards.SA) bool {
+	return strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKMode)), "Flip")
+}
+
+// setStateFlipGate is Mode$ Flip's per-object gate, shared by the emitting
+// loop and the would-change predicate: only a permanent flips (CR 710.1b,
+// 710.2), and flipping is one-way (CR 710.4), so an object off the
+// battlefield or already on its flipped face is left as it is.
+func setStateFlipGate(o *state.Object) bool {
+	return o.Zone == state.ZBattlefield && o.FaceIdx == 0
 }
 
 // setStateChoose is the Choices$ shape (Sunder the Gateway's "transform an

@@ -72,6 +72,7 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 		}
 	}
 	owner := lRef{Kind: rYou}
+	each := lRef{} // the RepeatEach loop's player set, when the pick walks players
 	if vt, ok := ps.get("ValidTgts"); ok {
 		pf, err := lc.filter(vt)
 		if err != nil {
@@ -91,37 +92,39 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 		if scoped {
 			cs = append(cs, "OwnZone")
 		}
-	} else if origin == zGraveyard {
-		// No target player: gorge's pool is game-wide when no fetch player
-		// was named (gameWide), else the DefinedPlayer$ spellings' zones --
-		// the same player a Ref already names, so the pool lowers through
-		// lc.definedPlayer and no target slot is declared here.
-		if dp := ps.str("DefinedPlayer"); dp != "" {
-			o, err := lc.definedPlayer(dp)
-			if err != nil {
-				return refuse("public pick DefinedPlayer$ %q: %v", dp, err)
-			}
-			switch o.Kind {
-			case rTarget:
-				owner = o
-			case rYou:
-				// gorge's fetch player is the controller: the pool is its own
-				// graveyard, the kernel's default
+	} else if dp := ps.str("DefinedPlayer"); dp != "" {
+		var err error
+		if owner, each, err = lc.pickFetchPlayer(dp); err != nil {
+			return refuse("public pick %v", err)
+		}
+		if origin == zBattlefield {
+			cs = append(cs, "OwnZone")
+		} else if origin == zGraveyard {
+			switch owner.Kind {
+			case rTarget, rYou, rEach:
 			default:
 				return refuse("public pick DefinedPlayer$ %q is not a player Ref", dp)
 			}
-		} else {
-			if dest != zExile {
-				return refuse("game-wide graveyard pick to %s", zoneLabel[dest])
-			}
-			cs = append(cs, "GameGrave")
 		}
+	} else if origin == zGraveyard {
+		// No target player and no DefinedPlayer$: gorge's pool is game-wide
+		// (gameWide), every player's graveyard in seat order.
+		if dest != zExile {
+			return refuse("game-wide graveyard pick to %s", zoneLabel[dest])
+		}
+		cs = append(cs, "GameGrave")
 	}
 	if ch, ok := ps.get("Chooser"); ok {
 		switch {
 		case ch == "You" && owner.Kind == rTarget:
 			cs = append(cs, "ChooserYou")
 		case ch == "Targeted" && owner.Kind == rTarget, ch == "You" && owner.Kind == rYou:
+		case ch == "Opponent" && owner.Kind == rYou:
+			// the resolving controller's first living opponent answers the
+			// pick (gorge hiddenPickChooser: Chooser$ Opponent through
+			// chooserPlayer, the first of the alive opponents); the kernel
+			// reads SrChooserOpp off the ChooseMove's B
+			cs = append(cs, "ChooserOpp")
 		default:
 			return refuse("public pick Chooser$ %q", ch)
 		}
@@ -133,8 +136,55 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 		cs = append(cs, "Confirm")
 	}
 	ps.consume("SelectPrompt")
+	lc.pickEachLoop(each)
 	lc.emit(lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
 	return nil
+}
+
+// pickFetchPlayer resolves a hidden pick's DefinedPlayer$ spelling: the
+// player whose zone the pool is (gorge effHiddenPick's players through the
+// shared selector grammar; gameWide is false whenever the param is present),
+// and the each-player loop that walks them when the spelling names a player
+// set. Player and Opponent walk a player set ("each player / each opponent
+// chooses from their own zone": Curfew, Sothera, the Supervoid) and lower as
+// the each-player loop's variable; Remembered is the RepeatEach body's bound
+// player (gorge cc.Remembered = base + subject: Tradewind Rider Avatar); the
+// other spellings are the player a Ref already names (TriggeredPlayer: Blood
+// Clock, Umbilicus, Sunken Hope).
+func (lc *lowerCtx) pickFetchPlayer(dp string) (owner, loop lRef, err error) {
+	switch strings.TrimSpace(dp) {
+	case "Player":
+		if lc.repeatPl > 0 || lc.repeatCard > 0 {
+			return owner, loop, refuse("pick DefinedPlayer$ Player inside a RepeatEach body")
+		}
+		return lRef{Kind: rEach}, lRef{Kind: rEachPlayer}, nil
+	case "Opponent", "Player.Opponent":
+		if lc.repeatPl > 0 || lc.repeatCard > 0 {
+			return owner, loop, refuse("pick DefinedPlayer$ Opponent inside a RepeatEach body")
+		}
+		return lRef{Kind: rEach}, lRef{Kind: rEachOpp}, nil
+	case "Remembered":
+		if lc.repeatPl == 0 {
+			return owner, loop, refuse("pick DefinedPlayer$ Remembered outside a RepeatEach body")
+		}
+		return lRef{Kind: rEach}, lRef{}, nil
+	}
+	o, err := lc.definedPlayer(strings.TrimSpace(dp))
+	if err != nil {
+		return owner, loop, refuse("DefinedPlayer$ %q: %v", dp, err)
+	}
+	return o, lRef{}, nil
+}
+
+// pickEachLoop opens the one-instruction each-player loop around the
+// ChooseMove emitted next when a pick's DefinedPlayer$ named a player set
+// (gorge effHiddenPick walks the fetch players -- searchPlayersFor:
+// AliveFrom(controller), the controller first -- and asks each from their own
+// zone; the kernel's OpRepeatEachPlayer walks the same order).
+func (lc *lowerCtx) pickEachLoop(loop lRef) {
+	if loop.Kind != rNone {
+		lc.emit(lInstr{Op: "RepeatEach", Obj: loop, C: 1, Skip: 1, Note: "each player picks from their own zone (opponents for EachOpp)"})
+	}
 }
 
 // onlyTargetedCtrl reports whether every clause of f is controlled by the

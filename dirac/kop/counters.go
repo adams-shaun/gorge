@@ -341,7 +341,26 @@ const (
 	// no inherent rules meaning (CR 122.1), distinct from CtrLevel, a Class's
 	// level designation.
 	CtrLevelUp
+	// CtrComponent is Component Pouch's component counter: a named counter
+	// with no inherent rules meaning (CR 122.1) that its mana ability removes.
+	CtrComponent
+	// CtrDescent is Descent into Avernus's descent counter: a named counter
+	// with no inherent rules meaning (CR 122.1); its count is the upkeep
+	// trigger's X (Count$CardCounters.DESCENT).
+	CtrDescent
+	// CtrM2M1 is a -2/-1 counter (CR 122.1a; Contagion): ptGen subtracts 2
+	// power and 1 toughness per counter (gorge state.CounterPTDelta), read
+	// only when some program can place one (genPrep.anyM2M1, ctr_hone.go).
+	CtrM2M1
 	NumCounterKinds3
+)
+
+// Player counter kinds: OpGainEnergy's C and ExEnergyOf's N name which of a
+// player's counters (CR 122.1) the op adds to or the expression reads. The
+// zero value is energy, so a table built before experience reads the same.
+const (
+	PlCtrEnergy     = 0 // energy counters (CR 107.14; gorge "ENERGY")
+	PlCtrExperience = 1 // experience counters (gorge "Experience"; Count$YourCountersExperience)
 )
 
 // CtrAll is no counter kind: an ExCountersOn reading it sums every counter
@@ -359,7 +378,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL", "COMPONENT", "DESCENT", "M2M1"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).
