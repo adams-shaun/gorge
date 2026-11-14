@@ -312,7 +312,7 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) uint8 {
 // read from a source of p's with that restriction and the batch's choice, and
 // a restriction with none admits as printed even if its source has left.
 func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
-	if s.restrActOnly(k, b.kind) {
+	if s.restrActOnly(k, b.kind) || s.restrNonSpellMark(k, b.kind) {
 		return true
 	}
 	for i := range k.t.Cards {
@@ -348,6 +348,18 @@ func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
 func (s *State) restrActOnly(k *prep, kind uint8) bool {
 	for f := k.gen.restrFOf(kind); f != 0; f = k.t.Filters[f].Or {
 		if k.t.Filters[f].Special&kop.SpmActivated != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// restrNonSpellMark: restriction batch kind kind is a resolving DB$ Mana's
+// CantCastNonArtifactSpells (kop.SpmNonSpell): its spell clauses name the
+// artifact spells it may pay and it admits every payment that is no spell.
+func (s *State) restrNonSpellMark(k *prep, kind uint8) bool {
+	for f := k.gen.restrFOf(kind); f != 0; f = k.t.Filters[f].Or {
+		if k.t.Filters[f].Special&kop.SpmNonSpell != 0 {
 			return true
 		}
 	}

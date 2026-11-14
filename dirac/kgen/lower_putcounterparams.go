@@ -18,7 +18,7 @@ const notePutRememberPut = "remember put"
 // counters through the ordinary CounterChange. ChoiceTitle$ is the prompt
 // only. Every shape beside the bare Min 1 / Max 1 controller pick refuses.
 func (lc *lowerCtx) putCounterChoices(ps *params) error {
-	for _, k := range []string{"ValidTgts", "MinChoiceAmount", "ChoiceAmount", "Chooser", "ForColor",
+	for _, k := range []string{"ValidTgts", "MinChoiceAmount", "ChoiceAmount", "ForColor",
 		"CounterTypes", "RememberPut", "RememberAmount", "CounterNumPerDefined", "Optional"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("PutCounter Choices$ with %s$", k)
@@ -35,6 +35,28 @@ func (lc *lowerCtx) putCounterChoices(ps *params) error {
 	// for decision.
 	ps.consume("Defined")
 	spec := ps.str("Choices")
+	// Chooser$ / Placer$ ChosenPlayer: the resolution's chosen player picks
+	// (gorge putCounterChooserFor: the first chosen player) and is the counters'
+	// adder (putCounterPlacerFor, emitPutCounterChange). Any other value, or one
+	// outside a mid-resolution ChoosePlayer's ability, refuses unread.
+	chooser, placer := lRef{Kind: rYou}, lRef{}
+	if v, ok := ps.get("Chooser"); ok {
+		r, ok := lc.chosenPlayerResDefined(v)
+		if !ok {
+			return refuse("PutCounter Choices$ with Chooser$ %q", v)
+		}
+		chooser = r
+		ps.consume("Chooser")
+		spec = chosenPlayerCtrlFilter(spec)
+	}
+	if v, ok := ps.get("Placer"); ok {
+		r, ok := lc.chosenPlayerResDefined(v)
+		if !ok {
+			return refuse("PutCounter Choices$ with Placer$ %q", v)
+		}
+		placer = r
+		ps.consume("Placer")
+	}
 	for _, a := range strings.Split(spec, ",") {
 		if strings.Contains(a, "inZone") && !strings.Contains(a, "inZoneBattlefield") {
 			return refuse("PutCounter Choices$ %q: not a battlefield filter", spec) // gorge scans the battlefield only
@@ -58,7 +80,7 @@ func (lc *lowerCtx) putCounterChoices(ps *params) error {
 	if err != nil {
 		return err
 	}
-	put := lInstr{Op: "PutCounter", Obj: lRef{Kind: rChosen}, A: n, CS: ct}
+	put := lInstr{Op: "PutCounter", Obj: lRef{Kind: rChosen}, A: n, CS: ct, W: placer}
 	if v, ok := ps.get("RememberCards"); ok {
 		// RememberCards$ names the recipient that took the counters (gorge
 		// rememberPlaced): the same B=2 arm RememberPut$ uses, remembered
@@ -70,7 +92,7 @@ func (lc *lowerCtx) putCounterChoices(ps *params) error {
 		ps.consume("RememberCards")
 	}
 	ps.consume("Choices", "ChoiceTitle")
-	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zBattlefield, CS: "PutCounterPick"})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zBattlefield, CS: "PutCounterPick"})
 	lc.emit(put)
 	return nil
 }

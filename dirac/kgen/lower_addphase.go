@@ -76,7 +76,9 @@ func finishedEndStepsValue() lValue {
 // gates. FirstAttack$ (gorge trigmatch firstAttackOK, AttacksThisTurn == 1 at
 // the fire) is a flag on an Attacks trigger. FirstCombat$ (gorge
 // trigger_match.go, CombatsThisTurn == 1 at the fire) is a fire-only
-// condition; it reports that, for the caller's CheckOnTriggerOnly.
+// condition on an Attacks or AttackersDeclared trigger (Karlach, Fury of
+// Avernus: both fire in the declare-attackers step of the combat the count
+// names); it reports that, for the caller's CheckOnTriggerOnly.
 func (lc *lowerCtx) firstAttackCombat(tp *params, tr *lTrigger, conds *[]lCond, mode string) (bool, error) {
 	if v, ok := tp.get("FirstAttack"); ok {
 		if strings.TrimSpace(v) != "True" || mode != "Attacks" || tr.Event != "Attacks" {
@@ -85,7 +87,7 @@ func (lc *lowerCtx) firstAttackCombat(tp *params, tr *lTrigger, conds *[]lCond, 
 		tr.FirstAttack = true
 	}
 	if v, ok := tp.get("FirstCombat"); ok {
-		if strings.TrimSpace(v) != "True" || mode != "Attacks" {
+		if strings.TrimSpace(v) != "True" || mode != "Attacks" && mode != "AttackersDeclared" {
 			return false, refuse("FirstCombat$ %q on a %s trigger", v, mode)
 		}
 		*conds = append(*conds, lCond{Kind: cValue, A: lValue{Kind: vPhaseCount, N: kop.PhaseCountCombats}, Op: opEQ, B: cst(1)})

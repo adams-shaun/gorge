@@ -562,6 +562,14 @@ type CardDef struct {
 	// printed spell's targeted instructions rewritten to their each-sweeps.
 	// Nil when the card cannot be modelled in bounded code.
 	OverloadProg []Instr
+	// CleaveAb is 1 + the index of a printed Cleave's second spell ability
+	// (CR 702.148a): the bracket-free text, with its own targets and program.
+	// The hand offers the cleaved cast at CleaveCost, and the stack entry
+	// carries that ability index in place of the printed one
+	// (dirac/kw_cleave.go).
+	CleaveAb uint8
+	// CleaveCost is the cleave cost (CleaveAb != 0).
+	CleaveCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,
@@ -691,6 +699,13 @@ type CardDef struct {
 	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
 	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
 	Identity ColorMask
+	// TextWords is the colour words (bits 0..4, WUBRG) and basic land type
+	// words (bits 5..9, Plains Island Swamp Mountain Forest) the face's text
+	// reads anywhere gorge's CR 612 rewrite would change them (the type line,
+	// keywords, Oracle text, SVars and every ability, trigger, static and
+	// replacement parameter; dirac/kgen textreach.go). Set only in a table
+	// that holds an ExtChangeText, so every other table is unchanged.
+	TextWords uint16
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

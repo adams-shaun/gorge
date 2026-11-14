@@ -170,6 +170,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"subset.go":               {true, "writeSegments: the .seg file written beside the cache"},
 	"svar_activator.go":       {false, "runtime query SVarGrantHasActivator"},
 	"tokens.go":               {true, "token scripts are compiled into the cache by CompileDir"},
+	"tokens_digest.go":        {false, "the digest sidecar beside the cache: read at open, written beside Save; never changes the cache or segment bytes"},
 	"twopiles_shape.go":       {true, "TwoPilesShapeSupported decides api:TwoPiles.OtherShape in Face.Primitives during compile"},
 	"universe.go":             {false, "runtime name-universe view over a registry"},
 	"validate.go":             {true, "Card.named is called by CompileDir"},

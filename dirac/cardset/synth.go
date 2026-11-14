@@ -34,6 +34,11 @@ const (
 	// TailBucket is how many cards a tail pool holds. It keeps tables under the
 	// limit on a table's subtypes, which refuses a big enough list outright.
 	TailBucket = 250
+	// DraftSplitCards is the most cards a draft pool's table holds: a longer
+	// draft list splits by hash (dr-mbc-aaaa ...). A split passes its evidence
+	// run only when every one of its games is clean, so one divergent card holds
+	// back its whole split; at 200, MBC's 2195 names are 16 splits of about 137.
+	DraftSplitCards = 200
 )
 
 // SynthBasics are the lands every synthetic pool holds, whatever its list says:
