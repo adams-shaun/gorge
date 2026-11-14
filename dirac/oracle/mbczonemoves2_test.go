@@ -16,15 +16,20 @@ import (
 // commanders you own from the command zone and from your graveyard into your
 // hand. Then shuffle your graveyard into your library." (no seat has a
 // commander, so the sweep moves nothing and the graveyard shuffles). The
-// expected answer at every decision is gorge's.
+// filtered-discard classes ride along: Flameshot (a Mountain) and Outbreak (a
+// Swamp) as alternative costs, Surge of Strength (a red or green card, which
+// the cast Surge itself is) as an additional cost. The expected answer at
+// every decision is gorge's.
 var kmbcZM2Decks = [2][]cardset.Entry{
 	{
-		{Name: "Abolish", Count: 6}, {Name: "Magmatic Insight", Count: 6}, {Name: "Campfire", Count: 4},
-		{Name: "Grizzly Bears", Count: 6}, {Name: "Plains", Count: 9}, {Name: "Mountain", Count: 9},
+		{Name: "Abolish", Count: 3}, {Name: "Magmatic Insight", Count: 3}, {Name: "Campfire", Count: 3},
+		{Name: "Flameshot", Count: 3}, {Name: "Surge of Strength", Count: 3}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Plains", Count: 6}, {Name: "Mountain", Count: 7}, {Name: "Forest", Count: 6},
 	},
 	{
-		{Name: "Abolish", Count: 4}, {Name: "Campfire", Count: 4}, {Name: "Grizzly Bears", Count: 10},
-		{Name: "Forest", Count: 12}, {Name: "Plains", Count: 10},
+		{Name: "Abolish", Count: 2}, {Name: "Campfire", Count: 3}, {Name: "Outbreak", Count: 3},
+		{Name: "Flameshot", Count: 3}, {Name: "Surge of Strength", Count: 3}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 7}, {Name: "Forest", Count: 4}, {Name: "Plains", Count: 3},
 	},
 }
 
