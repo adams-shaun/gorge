@@ -851,6 +851,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
@@ -1242,6 +1243,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
 	case kop.RefChosenPlayer:
 		return seatOne(s.chosenPlayerSeat(&s.res.e)) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return seatOne(s.chosenSeatRes()) // act_chooseplayerres.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:

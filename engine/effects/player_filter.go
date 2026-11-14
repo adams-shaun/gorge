@@ -398,6 +398,20 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			if p != g.Active {
 				return true
 			}
+		case playerSpecQualifierOpponentToActive:
+			// Forge PlayerProperty OpponentToActive: the seat is an opponent
+			// of the player whose turn it is (the Oath cycle's "and is their
+			// opponent", the first player being the active one at upkeep).
+			// Independent of `you`; the Player/Any base is what admits it.
+			if (base == "Player" || base == "Any") && p != g.Active {
+				return true
+			}
+		case playerSpecQualifierMoreCreaturesThanActive, playerSpecQualifierMoreLandsThanActive,
+			playerSpecQualifierMoreCardsInHandThanActive, playerSpecQualifierMoreLifeThanActive,
+			playerSpecQualifierFewerCreaturesInYardThanActive:
+			if (base == "Player" || base == "Any") && playerThanActive(g, p, a.qualCode, &pc) {
+				return true
+			}
 		case playerSpecQualifierMaxSpeed:
 			// CR 702.179e's max speed read as a player property (Forge's
 			// Player.MaxSpeed / Player.!MaxSpeed): Outpace Oblivion's
@@ -1049,6 +1063,12 @@ const (
 	playerSpecQualifierOpponentOfReplaced
 	playerSpecQualifierIsTriggerRemembered
 	playerSpecQualifierAttackedYouTheirLastTurn
+	playerSpecQualifierOpponentToActive
+	playerSpecQualifierMoreCreaturesThanActive
+	playerSpecQualifierMoreLandsThanActive
+	playerSpecQualifierMoreCardsInHandThanActive
+	playerSpecQualifierMoreLifeThanActive
+	playerSpecQualifierFewerCreaturesInYardThanActive
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(
@@ -1074,6 +1094,12 @@ var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouCtrlTheirCurrentTurn_Planeswalker", Val: playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "IsTriggerRemembered", Val: playerSpecQualifierIsTriggerRemembered},
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouTheirLastTurn", Val: playerSpecQualifierAttackedYouTheirLastTurn},
+	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentToActive", Val: playerSpecQualifierOpponentToActive},
+	state.StrEntry[playerSpecQualifierCode]{Key: "withMoreCreaturesThanActive", Val: playerSpecQualifierMoreCreaturesThanActive},
+	state.StrEntry[playerSpecQualifierCode]{Key: "withMoreLandsThanActive", Val: playerSpecQualifierMoreLandsThanActive},
+	state.StrEntry[playerSpecQualifierCode]{Key: "hasMoreCardsInHandThanActive", Val: playerSpecQualifierMoreCardsInHandThanActive},
+	state.StrEntry[playerSpecQualifierCode]{Key: "hasMoreLifeThanActive", Val: playerSpecQualifierMoreLifeThanActive},
+	state.StrEntry[playerSpecQualifierCode]{Key: "hasFewerCreaturesInYardThanActive", Val: playerSpecQualifierFewerCreaturesInYardThanActive},
 )
 
 type playerHasMostCode uint16
