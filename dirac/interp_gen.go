@@ -132,6 +132,7 @@ const (
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
+	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

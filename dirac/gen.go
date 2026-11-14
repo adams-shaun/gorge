@@ -74,6 +74,7 @@ type genPrep struct {
 	anyMayPlay      bool
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
 	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
+	anyZeroAlt      bool     // some MayPlayFrom static is a non-granting {0} alternative (cast_mayzeroalt.go)
 	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (static_emblemcold.go)
 	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
@@ -351,6 +352,7 @@ type genPrep struct {
 	exwRec          []uint8        // per card: its resolutions record the cards they exile (anyExW only): exwRecRead, exwRecRev
 	anyCloneCopy    bool           // some program is ExtCloneCopy: permanent copies record their source (fxCopyPerm; copy_clone.go)
 	anyAegis        bool           // some program is ExtAegisClone, or some card has a TrigAttached ability (zone_exilethenattach.go)
+	anyUnattach     bool           // some card has a TrigUnattached ability, the Mode$ Unattached family (trig_unattached.go)
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
@@ -746,6 +748,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExHaste(t, g) // static_cantblockexcept.go
 	prepHideaway(t, g)
 	prepAegis(t, g)
+	prepUnattach(t, g)
 	prepCloneCopy(t, g)
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)
@@ -808,6 +811,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
 	g.anyMayKind = tableMayPlayKinds(t)
+	g.anyZeroAlt = tableZeroAlt(t)
 	g.anyMayCold = tableMayPlayRemembered(t)
 	g.anyEmbCold = tableEmblemRepeats(t)
 	g.anyMayRaise = tableMayRaise(t)
@@ -1608,6 +1612,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepL6(t, g)
 	prepCtrl(t, g)
 	prepTokMana(t, g)
+	prepOvrManaGrant(t, g) // mana_grantedoffers.go: an override record's mana grant is the dual census too
 	prepMonstrosity(t, g)
 	prepAnyAct(t, g) // cast_anyactivator.go
 	prepDiscAll(t, g)

@@ -294,6 +294,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				idx = 1
 			}
 			cm |= uint8(idx) << 4
+		case mode&0x18 == 0x18 && r.S.FeatMayZeroAltCast(r.D.Player, dirac.Obj(src)):
+			// a non-granting static's {0} alternative (Dragon's Smile, CR
+			// 118.9): gorge's "mayplay" option at AltCostIndex 1 beside the
+			// plain cast (cast_mayzeroalt.go)
+			cm, _ = CastModeCode("mayplay")
+			cm |= 1 << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}
@@ -1023,6 +1029,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenPlayer:
 		// gorge effChoosePlayer's "player" option names the seat
 		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
+	case dirac.ChGenTextWord:
+		// gorge's changetext KChoose: one option per word, kind
+		// changetext_from / changetext_to, valued by the word index
+		if mode >= 16 {
+			return Pack(kind("changetext_to"), RefNone, RefNone, mode-16), true
+		}
+		return Pack(kind("changetext_from"), RefNone, RefNone, mode), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank
