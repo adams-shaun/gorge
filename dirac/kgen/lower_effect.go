@@ -1673,6 +1673,22 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		// emits no reveal event, so the drawn card changes nothing a later
 		// node reads; the remembered card (RememberDrawn$) is the whole effect.
 		ps.consume("Reveal")
+		if who, ok, err := lc.manaSpenderYouAnd(ps); err != nil { // lower_manaspender.go
+			return err
+		} else if ok {
+			if remDrawn || remAll {
+				return refuse("RememberDrawn$ on a two-player draw")
+			}
+			if _, ok := ps.get("OptionalDecider"); ok {
+				return refuse("OptionalDecider$ on a two-player draw")
+			}
+			n, err := lc.amount(ps, "NumCards", 1)
+			if err != nil {
+				return err
+			}
+			lc.emit(lInstr{Op: "Draw", Obj: who, A: n})
+			return nil
+		}
 		if who, ok, err := lc.targetedAndYou(ps, "Defined"); err != nil {
 			return err
 		} else if ok {
@@ -1985,7 +2001,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if listF != "" {
 			vt = listF
 		}
-		f, err := lc.filter(vt)
+		f, err := lc.counterTgtFilter(tt, vt) // lower_countertgtprov.go
 		if err != nil {
 			return err
 		}
@@ -3039,6 +3055,9 @@ func (lc *lowerCtx) discard(ps *params) error {
 func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
+	}
+	if ps.str("Type") == "Basic Land" {
+		return lc.chooseBasicLandType(ps) // lower_choosetype.go
 	}
 	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")

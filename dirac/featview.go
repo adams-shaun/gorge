@@ -1371,6 +1371,9 @@ func (s *State) FeatManaActivatable(o Obj) bool {
 func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 	k := s.k()
 	t := k.t
+	if i, ok := basicLandKey(v); ok {
+		return i // gorge's basic land type order (act_choosebasicland.go)
+	}
 	if v >= len(t.TypeVocab) {
 		return 1<<16 | uint32(v)
 	}

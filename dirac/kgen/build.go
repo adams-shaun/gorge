@@ -146,6 +146,7 @@ type cardBuilder struct {
 	markPerm    bool     // ThisTurnEntered's dest=Battlefield card form: mark Permanent-base clauses
 	keepOwner   bool     // a filter over this turn's departures: "you own" stays Owner, apart from "you control"
 	selfCast    bool     // building a SpellCast self trigger's stack filter: sneaked is readable
+	entrant     bool     // building an other-object ETB replacement's entrant filter: the cast-provenance words read the spell still resolving into it
 }
 
 func buildCard(pt *poolTables, c *lCard) built {
@@ -206,8 +207,17 @@ func buildCard(pt *poolTables, c *lCard) built {
 		// the kernel's mana walk silently dropped a
 		// mana ability whose cost it does not read; refuse it instead
 		if a := &cb.out.def.Abilities[j]; !kop.ManaAbilityHonoured(&cb.out.def, j) {
+			why := "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"
+			if kop.CtrDeadManaAb(a) {
+				// the dead counter-cost shape outside the modelled gap: the
+				// census reason names the measured cause (gorge records an
+				// unrelaxable census gap whose resolution adds no mana;
+				// potential_plan.go paymentPlanRelaxedAlternatives
+				// enumerates no colour for the production)
+				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
+			}
 			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit mana ability",
-				Reason: "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"})
+				Reason: why})
 			cb.out.def.Abilities = nil
 			break
 		}
@@ -644,6 +654,14 @@ func (cb *cardBuilder) record() error {
 			if d.ModeCost[i], err = manaCostOf(c.ModeCost[i]); err != nil {
 				return err
 			}
+		}
+	}
+	if c.Escalate != nil {
+		// Escalate rides Spree's per-mode-cost path (HasModeCost, every
+		// ModeCost zero) with the count-priced cost beside it (dirac/kw_escalate.go)
+		d.HasEscalate = true
+		if d.Escalate, err = manaCostOf(*c.Escalate); err != nil {
+			return err
 		}
 	}
 	if c.Kicker != nil {
@@ -1530,6 +1548,19 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	default:
 		kf.Owner = kop.CtrlSel(c.Owner)
 	}
+	if c.Owner == whoTgtCtrl {
+		// off the battlefield a card's controller is its owner, so the
+		// owner role is the only relation the card matcher reads
+		// (kop.CtrlTgtOwner)
+		if zone != kop.ZoneGraveyard && zone != kop.ZoneHand && zone != kop.ZoneLibrary && zone != kop.ZoneExile {
+			return kf, refuse("OwnedBy TargetedController on the battlefield or stack")
+		}
+		if c.Ctrl != whoAny || c.CtrlTgt == 0 {
+			return kf, refuse("OwnedBy TargetedController beside a controller role or without a target slot")
+		}
+		kf.CtrlTgt = c.CtrlTgt | kop.CtrlTgtOwner
+		kf.Owner = kop.CtrlAny
+	}
 	if c.Owner == whoTgtPlayer || c.Owner == whoDefending {
 		f2, err := ownerRoleF2(c, zone) // lower_filterreferents.go
 		if err != nil {
@@ -1820,6 +1851,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			// the word reads a card's latest arrival; a permanent has none to read
 			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
 		}
+		if c.CmpN == int(kop.W7EnchPlayerCtrl) && zone != kop.ZoneBattlefield {
+			// the kernel reads the source's enchanted seat against a permanent's controller
+			return kf, refuse("EnchantedPlayerCtrl off the battlefield")
+		}
 		if c.CmpN == int(kop.W7EnteredFromLib) && zone == kop.ZoneBattlefield {
 			return kf, refuse("ThisTurnEnteredFrom_Library on the battlefield")
 		}
@@ -1837,9 +1872,28 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred, kf.PredN = kop.PredWasCastEnter, int16(c.CmpN)
 	case cmpWasCastSpell:
 		// a spell on the stack (kernel wasCastSpell reads
-		// its entry); a permanent is never read here
-		if zone == kop.ZoneBattlefield {
+		// its entry); a permanent is never read here. The exception is an
+		// other-object ETB replacement's entrant filter (cb.entrant, the
+		// ReplOthersEnterProgram match): gorge matches the entering object
+		// and answers its own cast provenance from the log, the spell
+		// resolving into it when it IS one -- the kernel's permanent-side
+		// wasCastSpell reads the same entry through spellEntryOf (dirac
+		// filter_typesall.go), so a battlefield permanent that entered any
+		// other way (a token, a reanimation) reads not cast, as gorge's dead
+		// ledger record does. Only the spellings that read is exact on the
+		// entrant lower: the bare hand words, wasCastFromExile and their
+		// wasCast compositions (the caster is never scoped); ByYou would
+		// need the reading player, not the entrant's controller, and the
+		// Mayhem / MayPlaySource flags are spell-side words.
+		if zone == kop.ZoneBattlefield && !cb.entrant {
 			return kf, refuse("spell cast provenance on the battlefield")
+		}
+		if cb.entrant {
+			switch c.CmpN {
+			case spellHand, spellHand | spellNot, spellNotHand, spellExile:
+			default:
+				return kf, refuse("cast provenance %d on an entrant filter", c.CmpN)
+			}
 		}
 		kf.Pred, kf.PredN = kop.PredWasCastSpell, int16(c.CmpN)
 	case cmpTotalPT, cmpBlocked:

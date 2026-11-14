@@ -565,8 +565,12 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.CtrlTgt != 0 {
 		// a target's controller is a battlefield role; a card matcher has
 		// no live target to read, so it fails closed (kgen never lowers it
-		// off the battlefield)
-		return false
+		// off the battlefield), but for the owner role (kop.CtrlTgtOwner:
+		// OwnedBy TargetedController, the card's owner is the target's
+		// controller)
+		if fl.CtrlTgt&kop.CtrlTgtOwner == 0 || !s.ctrlRoleTgt(k, int(fl.CtrlTgt&^kop.CtrlTgtOwner)-1, owner) {
+			return false
+		}
 	}
 	if fl.Flags&kop.FPlayer != 0 {
 		// a target spec's player alternative (kgen filterPlayerAlt) names a

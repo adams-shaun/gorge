@@ -591,6 +591,11 @@ type CardDef struct {
 	// kw_spree.go).
 	HasModeCost bool
 	ModeCost    [4]ManaCost
+	// HasEscalate: Escalate (CR 702.120a) rides HasModeCost with every
+	// ModeCost zero: the chosen modes add Escalate once for each mode beyond
+	// the first (kernel kw_escalate.go).
+	HasEscalate bool
+	Escalate    ManaCost
 	// FbCost is a printed flashback cost's non-mana part (KwFlashback;
 	// AltCost holds its mana, {0} when none): Sac<N/Spec> or
 	// tapXType<N/Spec>, paid through the cast's pick stages in place of
@@ -772,6 +777,12 @@ const (
 	// object's card on the stack and on the battlefield only; every other
 	// zone shows the front (dirac/face_castface.go).
 	FacePrototype
+	// FaceFlip is a flip card (CR 710, gorge's "Flip"): it is cast and
+	// enters as its top half; a SetState Mode$ Flip turns a permanent that
+	// is not yet flipped to face 1 in place, one-way (CR 710.4), with no new
+	// layer timestamp and no Mode$ Transformed trigger; leaving the
+	// battlefield it is its top half again (CR 710.2).
+	FaceFlip
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

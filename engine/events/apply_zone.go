@@ -818,6 +818,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.Card.IsTransformingDFC() && o.FaceIdx != 0 {
 		o.SetFaceIdx(0)
 	}
+	// CR 710.4: a flipped flip card that leaves the battlefield retains no
+	// memory of its status; in every other zone it has only its normal
+	// characteristics (CR 710.2).
+	if wasBattlefield && to != state.ZBattlefield && o.Card != nil &&
+		o.Card.AlternateMode == "Flip" && o.FaceIdx != 0 {
+		o.SetFaceIdx(0)
+	}
 	// The incarnation stamp is used by promises tied to a particular
 	// permanent (evoke/dash/warp), so only crossing the battlefield
 	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
