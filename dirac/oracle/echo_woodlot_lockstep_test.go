@@ -56,7 +56,7 @@ func echoWoodlotPolicy(seed uint64, obs *echoWoodlotObs) Policy {
 	rnd := RandomPolicy(seed)
 	payCode, okPay := canon.ChooseCode("trigger_cost_pay")
 	declineCode, okDecline := canon.ChooseCode("trigger_cost_decline")
-	payKind, declineKind := canon.ActChoose + canon.CanonKind(payCode), canon.ActChoose + canon.CanonKind(declineCode)
+	payKind, declineKind := canon.ActChoose+canon.CanonKind(payCode), canon.ActChoose+canon.CanonKind(declineCode)
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if okPay && okDecline {
 			var pay, decline Canon
