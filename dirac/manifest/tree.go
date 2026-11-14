@@ -29,6 +29,8 @@ type Tree struct {
 	Ordinals []Ordinal
 
 	byName map[string]*Ordinal
+	// commit is the commit ReadGit read the tree at ("" for a working tree).
+	commit string
 }
 
 // Read reads the manifest and ordinals.tsv of fsys, a tree rooted at the

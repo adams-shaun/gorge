@@ -97,5 +97,6 @@ func ReadGit(repo, ref string) (*Tree, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ref, err)
 	}
+	t.commit = commit
 	return t, nil
 }

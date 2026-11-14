@@ -521,8 +521,10 @@ func (t *Tree) entryNamedIn(pkg, name string) *Entry {
 	return nil
 }
 
-// entryForging is t's entry of family whose forge tokens include tok
-// (without case), or nil.
+// ByForge is t's entry of family whose forge tokens include tok (without
+// case), or nil: the entry a census item or refusal names.
+func (t *Tree) ByForge(family, tok string) *Entry { return t.entryForging(family, tok) }
+
 func (t *Tree) entryForging(family, tok string) *Entry {
 	for _, e := range t.Entries {
 		if e.Family != family {

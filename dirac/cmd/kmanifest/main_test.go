@@ -176,3 +176,33 @@ func TestSeed(t *testing.T) {
 		t.Errorf("a second seed: exit %d, printed %q; want nothing new", code, out)
 	}
 }
+
+// TestAdopt: a unit with a hand constant the manifest lacks adopts it as a
+// value: next entry, and a second run finds nothing.
+func TestAdopt(t *testing.T) {
+	root := fixtureRoot(t)
+	gitT(t, root, "init", "-q", "-b", "land")
+	gitT(t, root, "add", ".")
+	gitT(t, root, "commit", "-q", "-m", "fixture")
+	if code, _, errs := run(t, "adopt", "--root", root); code != 2 || !strings.Contains(errs, "--base is required") {
+		t.Errorf("adopt without --base: exit %d, stderr %q", code, errs)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "dirac", "kop"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	src := "package kop\n\n// TrigBar fires on a bar.\nconst TrigBar TrigEvent = 9\n"
+	if err := os.WriteFile(filepath.Join(root, "dirac", "kop", "bar.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, out, errs := run(t, "adopt", "--root", root, "--base", "land")
+	if code != 0 || out != "adopted TrigBar -> dirac/manifest/TrigEvent/TrigBar (value: next, reserved)\n" {
+		t.Fatalf("adopt: exit %d, printed %q: %s", code, out, errs)
+	}
+	b, err := os.ReadFile(filepath.Join(root, "dirac", "manifest", "TrigEvent", "TrigBar"))
+	if err != nil || !strings.Contains(string(b), "value: next\n") {
+		t.Errorf("TrigBar's entry: %q, %v", b, err)
+	}
+	if code, out, _ = run(t, "adopt", "--root", root, "--base", "land"); code != 0 || out != "" {
+		t.Errorf("a second adopt: exit %d, printed %q", code, out)
+	}
+}

@@ -181,7 +181,7 @@ on 2026-11-08:
 | `-layer-census` | off | print the interim layer guard's reach |
 | `-census-std` | off | print refusal classes ranked by Standard-set carry |
 | `-sets LIST` | `standard.txt` | with `-census-std`, comma-separated set codes |
-| `-tsv FILE` | — | with `-census-std`, write a per-refusal TSV |
+| `-tsv FILE` | — | with `-census-std`, write a per-refusal TSV (set, card, via, node, class, reason, label, and the `dirac/manifest` entry the refusal needs or `-`) |
 
 `-card-list` and `-decks` choose the cards of an ad-hoc pool, which `-out` writes outside the tables
 directory. `-dump` is the raw-IR study aid; `-census` is the data source for
