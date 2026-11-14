@@ -93,3 +93,28 @@ func (lc *lowerCtx) chooseCardType(ps *params) error {
 	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, C: int(m), Note: "choice among card types"})
 	return nil
 }
+
+// chooseCreatureTypeMid lowers a mid-resolution creature-type ChooseType
+// (Kindred Charge; A Killer Among Us's enters trigger, "then secretly
+// choose Human, Merfolk, or Goblin"). gorge effChooseType: an absent
+// Defined$ is the controller, ValidTypes$ narrows the option list exactly as
+// the as-enters ask's (h.TypeChoices over the same filter), so it rides the
+// card's TypeValid list and B = 1 (the kernel's mid-resolution ask offers
+// only those, act_choosetype.go midTypeOptions). Secretly$ True changes no
+// decision: gorge marks the Choose event Secret so the view redacts the
+// answer from the other seats, and the options, the chooser and the stored
+// ChosenType are the public ask's.
+func (lc *lowerCtx) chooseCreatureTypeMid(ps *params) error {
+	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
+		return refuse("ChooseType shape")
+	}
+	if s, ok := ps.get("Secretly"); ok && !strings.EqualFold(strings.TrimSpace(s), "True") {
+		return refuse("ChooseType Secretly$ %q", s)
+	}
+	in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}}
+	if err := lc.chooseTypeValid(ps, &in); err != nil {
+		return err
+	}
+	lc.emit(in)
+	return nil
+}

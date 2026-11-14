@@ -93,12 +93,7 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 	case raGenEnterDefender:
 		d.Sub = ChGenEnterDefender
 		var buf [MaxOptions]TCode
-		n := s.enteringDefenderCands(k, s.res.askP, &buf)
-		if MaxSeats > 2 && s.res.e.kind == seTrigger {
-			if fb := s.enterDefenderFallback(k, s.res.askP); fb != NoTarget {
-				n = enterDefenderOrder(&buf, n, fb) // gorge chooseEnteringDefender: fallback first
-			}
-		}
+		n := s.enterDefenderOptions(k, &buf, true)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
@@ -106,6 +101,42 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		return false
 	}
 	return true
+}
+
+// enterDefenderOptions lists the pending raGenEnterDefender ask's defenders in
+// gorge's option order: past two seats a trigger's fallback first, the rest in
+// enteringDefenders order (chooseEnteringDefender). stall: a trigger with no
+// bound defending player stalls (enterDefenderFallback); false only reads.
+func (s *State) enterDefenderOptions(k *prep, buf *[MaxOptions]TCode, stall bool) int {
+	n := s.enteringDefenderCands(k, s.res.askP, buf)
+	if MaxSeats > 2 && s.res.e.kind == seTrigger {
+		fb, unbound := s.enterDefenderFallbackOf(k, s.res.askP)
+		if unbound && stall {
+			s.capFull(StallDefenderPW)
+		}
+		if fb != NoTarget {
+			n = enterDefenderOrder(buf, n, fb)
+		}
+	}
+	return n
+}
+
+// FeatEnterDefenderIndex is defender code c's position in gorge's
+// entering_defender ask (its option list, before the kernel's canonical
+// sort), so a bot answering in gorge's order reads it; -1 when no such ask is
+// pending or c is not offered.
+func (s *State) FeatEnterDefenderIndex(c TCode) int {
+	if s.res.ask != raGenEnterDefender {
+		return -1
+	}
+	var buf [MaxOptions]TCode
+	n := s.enterDefenderOptions(s.k(), &buf, false)
+	for i := 0; i < n; i++ {
+		if buf[i] == c {
+			return i
+		}
+	}
+	return -1
 }
 
 // applyAskCzParams applies an answer to this file's resolution asks; false:

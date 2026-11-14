@@ -129,5 +129,44 @@ class TestWriteEvidencePools(unittest.TestCase):
         self.assertEqual(self.tsv_bytes(), b"std-alpha\t20\nstd-beta\t30\n")
 
 
+def bad_game_line(pair, impl, held):
+    return f"bad-game\t{pair}\t{pair + 100}\tdivergent\tstate life\t{impl}\t{impl}\t{held}"
+
+
+class TestCleanGameCredit(TestWriteEvidencePools):
+    """A synthetic pool whose runs finished with bad games credits, over its clean games, the cards
+    no bad game holds, and nothing a bad game holds."""
+
+    def fail_with_bad_game(self, form="full.m0", extra=""):
+        with open(os.path.join(self.out, f"std-alpha.{form}.rc"), "w") as f:
+            f.write("1\n")
+        verdict = ("std-alpha: 20 games (0 refused-card, 0 refused-pair, 0 error), 19 clean, "
+                   "1 divergent, 0 unmodelled [], 0 capacity [], 0 hang")
+        with open(os.path.join(self.out, f"std-alpha.{form}.out"), "w") as f:
+            f.write(verdict + "\n" + bad_game_line(7, "AlphaNew", "AlphaNew|Island|Plains") + "\n" + extra)
+
+    def test_clean_game_credit(self):
+        played = {"AlphaOld": (1, 0), "AlphaNew": (1, 0), "AlphaClean": (1, 0)}
+        for surface in ("autopay", "full"):
+            for m in (0, 1):
+                with open(os.path.join(self.out, f"std-alpha.{surface}.m{m}.coverage"), "w") as f:
+                    f.write("\n".join(coverage_lines(played)) + "\n")
+        self.fail_with_bad_game()
+        self.write(["std-alpha"])
+        self.assertEqual(self.list_bytes("std-alpha"), b"AlphaClean\nAlphaOld\n",
+                         "the card the bad game holds stays unverified; the clean one is credited")
+        self.assertEqual(self.tsv_bytes(), b"std-alpha\t20\nstd-beta\t24\n")
+
+    def test_unnamed_failure_still_refuses(self):
+        before = self.snapshot()
+        self.fail_with_bad_game(extra="unknown-game\t9\t109\tchoose/x\n")
+        with self.assertRaises(SystemExit):
+            self.write(["std-alpha"])
+        self.assertEqual(self.snapshot(), before, "an unknown option kind must change nothing")
+
+    def test_deck_pool_keeps_the_all_clean_rule(self):
+        self.assertIsNone(self.mod.run_finished(self.out, "fdn", "full.m0"))
+
+
 if __name__ == "__main__":
     unittest.main()
