@@ -166,7 +166,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	"MBC": {1772, 2188},
+	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
+	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
+	"MBC": {1772, 2195},
 	"MKM": {252, 279},
 	"MOM": {204, 296},
 	"MSH": {246, 276},
