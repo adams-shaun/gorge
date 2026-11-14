@@ -69,7 +69,7 @@ func (e *entFix) tapped(o Obj) bool { return e.sc.tapped(o) }
 func (e *entFix) play(o Obj, p uint8) {
 	s := e.sc.s
 	s.prio = p
-	s.applyPriority(e.sc.k, MakeAction(AkPlayLand, uint8(o), 0, 0))
+	s.applyPriority(e.sc.k, MakeAction(AkPlayLand, TCode(o), 0, 0))
 }
 
 // ask returns the posed entry-order decision.

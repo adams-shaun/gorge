@@ -70,10 +70,10 @@ func (a advBot) Declaration(s *dirac.State, d *dirac.Decision, out []dirac.Actio
 		seen := map[uint8]bool{}
 		for i := 0; i < int(d.N); i++ {
 			o := d.Options[i]
-			if o.Kind() != dirac.AkAttack || seen[o.Source()] || s.MustAttack(dirac.Obj(o.Source())) {
+			if o.Kind() != dirac.AkAttack || seen[uint8(o.Source())] || s.MustAttack(dirac.Obj(o.Source())) {
 				continue
 			}
-			seen[o.Source()] = true
+			seen[uint8(o.Source())] = true
 			out = append(out, o)
 		}
 	case dirac.DkBlockers:
@@ -81,19 +81,19 @@ func (a advBot) Declaration(s *dirac.State, d *dirac.Decision, out []dirac.Actio
 		menaced := map[uint8]bool{} // one block per menace attacker
 		for i := 0; i < int(d.N); i++ {
 			o := d.Options[i]
-			if o.Kind() != dirac.AkBlock || seen[o.Source()] || !s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) || menaced[o.Target()] {
+			if o.Kind() != dirac.AkBlock || seen[uint8(o.Source())] || !s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) || menaced[uint8(o.Target())] {
 				continue
 			}
-			seen[o.Source()] = true
-			menaced[o.Target()] = true
+			seen[uint8(o.Source())] = true
+			menaced[uint8(o.Target())] = true
 			out = append(out, o)
 		}
 		for i := 0; i < int(d.N); i++ {
 			o := d.Options[i]
-			if o.Kind() != dirac.AkBlock || seen[o.Source()] || s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) {
+			if o.Kind() != dirac.AkBlock || seen[uint8(o.Source())] || s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) {
 				continue
 			}
-			seen[o.Source()] = true
+			seen[uint8(o.Source())] = true
 			out = append(out, o)
 		}
 	}
@@ -124,10 +124,10 @@ func (m menaceBot) Declaration(s *dirac.State, d *dirac.Decision, out []dirac.Ac
 		seen := map[uint8]bool{}
 		for i := 0; i < int(d.N); i++ {
 			o := d.Options[i]
-			if o.Kind() != dirac.AkBlock || !s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) || seen[o.Target()] {
+			if o.Kind() != dirac.AkBlock || !s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) || seen[uint8(o.Target())] {
 				continue
 			}
-			seen[o.Target()] = true
+			seen[uint8(o.Target())] = true
 			out = append(out, o)
 		}
 	}
@@ -224,10 +224,10 @@ func menacedTargets(s *dirac.State, d *dirac.Decision) int {
 		if o.Kind() != dirac.AkBlock || !s.HasKeyword(dirac.Obj(o.Target()), kop.KwMenace) {
 			continue
 		}
-		if byTarget[o.Target()] == nil {
-			byTarget[o.Target()] = map[uint8]bool{}
+		if byTarget[uint8(o.Target())] == nil {
+			byTarget[uint8(o.Target())] = map[uint8]bool{}
 		}
-		byTarget[o.Target()][o.Source()] = true
+		byTarget[uint8(o.Target())][uint8(o.Source())] = true
 	}
 	n := 0
 	for _, srcs := range byTarget {

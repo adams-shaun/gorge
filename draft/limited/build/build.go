@@ -17,10 +17,11 @@ import (
 // Basics array uses.
 var BasicNames = [5]string{"Plains", "Island", "Swamp", "Mountain", "Forest"}
 
-// MaxBasicsPerType is the most copies of one basic land type a built deck may
-// carry. MTR 7.1 imposes no maximum — basics are free and unlimited — so this
-// is a hosting bound: it caps an untrusted build request before the count can
-// reach the engine or the deck file.
+// MaxBasicsPerType is the most copies of one basic land type a built limited
+// deck may carry. MTR 7.1 imposes no maximum — basics are free and unlimited —
+// so this is a hosting bound: it caps an untrusted build request before the
+// count can reach the engine or the deck file. A Commander-draft deck's bound
+// is MaxDeckSize (ValidateCommanderSize).
 const MaxBasicsPerType = 40
 
 // MaxDeckSize is the most cards a built deck may contain, maindeck plus
@@ -42,14 +43,20 @@ type Deck struct {
 	// exactly as before the tags.
 	Basics [5]int `json:"basics"`
 	// Commanders names a Commander-draft deck's commander or commander
-	// pair, as IDs that Main also carries (CommanderDeckSize counts them).
+	// pair, as IDs that Main also carries (the deck size counts them).
 	// Empty in every other deck; omitempty keeps those lines unchanged.
 	Commanders []string `json:"commanders,omitempty"`
 }
 
-// CommanderDeckSize is a Commander-draft deck's minimum size, commanders
-// and basics included (Commander Legends draft: at least 60 cards).
+// CommanderDeckSize is a Commander-draft deck's default minimum size,
+// commanders and basics included (Commander Legends draft: at least 60
+// cards). An event may name another minimum (ValidateCommanderSize), between
+// MinCommanderDeckSize and MaxDeckSize.
 const CommanderDeckSize = 60
+
+// MinCommanderDeckSize is the smallest minimum a Commander-draft event may
+// name: the limited deck's 40.
+const MinCommanderDeckSize = 40
 
 // Total is the deck's card count: maindeck cards plus basics. It saturates at
 // the int limits rather than overflowing, so it is safe to call on an
@@ -77,16 +84,26 @@ func Validate(pool []limited.CardRef, d Deck) error {
 	if len(d.Commanders) > 0 {
 		return fmt.Errorf("build: a limited deck names no commanders")
 	}
-	return validate(pool, d, 40)
+	return validate(pool, d, 40, MaxBasicsPerType)
 }
 
-// ValidateCommander checks a Commander-draft deck against its pool: Validate's
-// pool, duplicate and hosting-bound checks with a CommanderDeckSize minimum,
-// plus one or two distinct commanders, each maindecked. Whether a commander
-// is eligible, whether two make a pair and whether every card fits their
+// ValidateCommander checks a Commander-draft deck against its pool with the
+// default CommanderDeckSize minimum (ValidateCommanderSize).
+func ValidateCommander(pool []limited.CardRef, d Deck) error {
+	return ValidateCommanderSize(pool, d, CommanderDeckSize)
+}
+
+// ValidateCommanderSize checks a Commander-draft deck against its pool:
+// Validate's pool, duplicate and hosting-bound checks with a minSize
+// minimum, plus one or two distinct commanders, each maindecked. minSize
+// must lie in MinCommanderDeckSize..MaxDeckSize. Whether a commander is
+// eligible, whether two make a pair and whether every card fits their
 // colour identity are card facts; the caller checks them where the card
 // data lives (the engine seats only a legal commander configuration).
-func ValidateCommander(pool []limited.CardRef, d Deck) error {
+func ValidateCommanderSize(pool []limited.CardRef, d Deck, minSize int) error {
+	if minSize < MinCommanderDeckSize || minSize > MaxDeckSize {
+		return fmt.Errorf("build: commander deck size %d, want %d..%d", minSize, MinCommanderDeckSize, MaxDeckSize)
+	}
 	switch len(d.Commanders) {
 	case 1:
 	case 2:
@@ -108,18 +125,22 @@ func ValidateCommander(pool []limited.CardRef, d Deck) error {
 			return fmt.Errorf("build: commander %q is not in the main deck", id)
 		}
 	}
-	return validate(pool, d, CommanderDeckSize)
+	return validate(pool, d, minSize, MaxDeckSize)
 }
 
-// validate is the shared body of Validate and ValidateCommander, with the
-// deck's minimum size.
-func validate(pool []limited.CardRef, d Deck, minSize int) error {
+// validate is the shared body of Validate and ValidateCommanderSize, with
+// the deck's minimum size and the most copies of one basic it may carry. A
+// Commander-draft deck's bound is MaxDeckSize, the total's own: a 100-card
+// deck built from one draft's pool is mostly basics (MBC at 100 cards: 44 to
+// 66 of them, more than 40 of one type in a mono-coloured deck), and the
+// total cap already bounds every count.
+func validate(pool []limited.CardRef, d Deck, minSize, perType int) error {
 	for i, n := range d.Basics {
 		if n < 0 {
 			return fmt.Errorf("build: %s count %d is negative", BasicNames[i], n)
 		}
-		if n > MaxBasicsPerType {
-			return fmt.Errorf("build: %s count %d exceeds the %d-per-type limit", BasicNames[i], n, MaxBasicsPerType)
+		if n > perType {
+			return fmt.Errorf("build: %s count %d exceeds the %d-per-type limit", BasicNames[i], n, perType)
 		}
 	}
 	inPool := make(map[string]struct{}, len(pool))
@@ -152,8 +173,14 @@ func validate(pool []limited.CardRef, d Deck, minSize int) error {
 // with no coloured pips — all colourless spells, or no land slots to fill —
 // splits its share over nothing and gets zero basics back.
 func AutoLands(main []string, colourOf func(id string) [5]int) [5]int {
+	return AutoLandsTo(main, colourOf, 40)
+}
+
+// AutoLandsTo is AutoLands filling the deck to size cards instead of 40 (a
+// Commander-draft deck's CommanderDeckSize).
+func AutoLandsTo(main []string, colourOf func(id string) [5]int, size int) [5]int {
 	var out [5]int
-	lands := 40 - len(main)
+	lands := size - len(main)
 	if lands <= 0 {
 		return out
 	}

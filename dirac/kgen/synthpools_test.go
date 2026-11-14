@@ -133,3 +133,51 @@ func TestNoSynthPoolIsTracked(t *testing.T) {
 		}
 	}
 }
+
+// TestSynthDraftPoolBuildsSplit: draftpools.txt's MBC list becomes dr-mbc, over a
+// draft split's card cap (cardset.DraftSplitCards), so it builds as hash splits
+// that each hold at most the cap and together hold every name of the list, the
+// 16 of a cut on four hash bits (dr-mbc-aaaa ... dr-mbc-bbbb).
+func TestSynthDraftPoolBuildsSplit(t *testing.T) {
+	cardsDir := ratchetCards(t)
+	lists, err := synthDraftLists(gorge.TableSources(), cardsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lists) != 1 || lists[0].name != "dr-mbc" || !cardset.IsSynthName(lists[0].name) {
+		t.Fatalf("draft lists %v, want dr-mbc alone", lists)
+	}
+	ts, err := buildSynthList(lists[0], "", cardsDir, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ts) != 16 {
+		t.Fatalf("dr-mbc built as %d tables, want 16", len(ts))
+	}
+	var cards []string
+	for _, x := range ts {
+		if !strings.HasPrefix(x.name, "dr-mbc-") {
+			t.Errorf("%s: want a dr-mbc-<half> name", x.name)
+		}
+		pd, _, err := cardset.DecodeTable(x.data.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, n := range pd.Names[:pd.NumCards] {
+			if !cardset.IsSynthBasic(n) {
+				cards = append(cards, n)
+			}
+		}
+		if n := pd.NumCards - len(cardset.SynthBasics); n > cardset.DraftSplitCards {
+			t.Errorf("%s holds %d cards, over the cap of %d", x.name, n, cardset.DraftSplitCards)
+		}
+		if len(x.name) != len("dr-mbc-aaaa") {
+			t.Errorf("%s: want a four-letter split suffix", x.name)
+		}
+		t.Logf("%s: %d cards", x.name, pd.NumCards)
+	}
+	slices.Sort(cards)
+	if want := slices.DeleteFunc(slices.Clone(lists[0].names), cardset.IsSynthBasic); !slices.Equal(cards, want) {
+		t.Errorf("the halves hold %d cards, the list %d", len(cards), len(want))
+	}
+}

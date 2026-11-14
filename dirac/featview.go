@@ -293,7 +293,7 @@ func (s *State) FeatArrangeGraveyard() bool {
 // FeatArrangeDig reports whether the ChArrange decision is a dig's rest
 // ordered onto the bottom (gorge's "dig_bottom" options).
 func (s *State) FeatArrangeDig() bool {
-	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange
+	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange && !s.digArrangeTop(s.k())
 }
 
 // FeatArrangePlace reports whether the ChArrange decision is an owner ordering
@@ -349,6 +349,11 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
+	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
+	// total cost the reductions apply to (CR 601.2f; gorge ApplyTaxedTo); the
+	// convoke credit came off the printed cost (gorge castOfferBase), the
+	// delve credit comes after
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
 		cost = s.bargainedPrice(k, SeatIx(p), c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
@@ -627,6 +632,13 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		reserved = s.improviseReserved(k, p, cost.Generic)
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
+	// gorge's planner prices a command-zone cast with its CR 903.8 tax
+	// (offerCostForUsing composes it), so a cast whose untaxed price the
+	// printed sources pay but whose taxed one needs a granted source is the
+	// grant search's, not the planner's (pairs 636, 789: Ghalta). The tax is
+	// part of the total the reductions apply to (CR 601.2f; gorge
+	// ApplyTaxedTo).
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, SeatIx(p), c, o, cost) // a flashback cost is reduced too
 	}
@@ -964,8 +976,14 @@ func (s *State) FeatZoneList(p uint8, z kop.Zone, dst []Obj) []Obj {
 }
 
 // FeatZoneIndex is object o's position in its owner's hand, library (from
-// the top), graveyard or exile; 255 elsewhere.
-func (s *State) FeatZoneIndex(o Obj) uint8 { return s.zoneIndex(o) }
+// the top), graveyard or exile; 255 elsewhere, and for a code that names no
+// object (a stack ability's or a player's, which a choice's source can be).
+func (s *State) FeatZoneIndex(o Obj) uint8 {
+	if int(o) >= MaxObj {
+		return 255
+	}
+	return s.zoneIndex(o)
+}
 
 // featCost is card c's cast cost for p after reductions, exactly as the
 // kernel's priority walk prices it (adjustCost).
@@ -1187,7 +1205,7 @@ func (s *State) FeatObjHash(o Obj, base *[MaxObj]uint64, c *ObjHashCache) uint64
 	if c.line != s.line {
 		c.line = s.line
 		c.ok = [MaxObj]bool{}
-		c.part = [2]objPart{}
+		c.part = [MaxSeats]objPart{}
 	}
 	if c.ok[o] && !s.ChangedSince(o, c.at[o]) {
 		return c.h[o]
@@ -1275,7 +1293,7 @@ func (s *State) FeatProjGlobals(p *Projection) {
 	p.NStack = s.sp
 	for i := 0; i < int(s.sp); i++ {
 		e := &s.stack[i]
-		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: e.x}
+		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: uint8(e.x)}
 		if e.x != 0 && e.kind == seTrigger {
 			p.Stack[i].X = projTrigX(s.k(), e) // a bound X is not the object's own (trig_xpaid.go)
 		}

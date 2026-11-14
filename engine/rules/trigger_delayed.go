@@ -835,7 +835,39 @@ func delayedSpecCtx(sc effects.SpecContext, dt *state.DelayedTrigger) effects.Sp
 	if dt.ChosenNameFrozen {
 		sc.FrozenChosenName, sc.ChosenNameBound = dt.ChosenName, true
 	}
+	if dt.ChosenCardFrozen {
+		// The registration's chosen-card snapshot IS the chosen list its
+		// body's Card.ChosenCard(Strict) reads (state.DelayedTrigger.
+		// ChosenCard, Forge's EffectEffect copies the host's chosen cards
+		// onto the effect card): the chain's own ClearChosenCard$ cleanup
+		// must not retract the referent an already-registered trigger copied
+		// (Azra Oddsmaker). A frozen EMPTY set binds too, so the read fails
+		// closed instead of falling back to a card the source chooses later.
+		sc.Chosen, sc.ChosenValid = delayedChosenTargets(dt.ChosenCard), true
+	}
 	return sc
+}
+
+// delayedChosenOpts is the SpecOpts an event-matched registration's matcher
+// carries beside its remembered capture: the frozen chosen-card snapshot, so
+// a ValidSource$/ValidCard$ Card.ChosenCard(Strict) reads the card chosen at
+// REGISTRATION (Azra Oddsmaker's DamageDone source gate), never the live
+// source's cleared list.
+func delayedChosenOpts(dt *state.DelayedTrigger) trigmatch.SpecOpts {
+	if !dt.ChosenCardFrozen {
+		return trigmatch.SpecOpts{}
+	}
+	return trigmatch.SpecOpts{DelayedChosen: delayedChosenTargets(dt.ChosenCard), DelayedChosenBound: true}
+}
+
+// delayedChosenTargets widens a snapshot's ids to the Target list the filter's
+// Chosen field carries.
+func delayedChosenTargets(ids []state.ObjID) []state.Target {
+	ts := make([]state.Target, 0, len(ids))
+	for _, id := range ids {
+		ts = append(ts, state.Target{Obj: id})
+	}
+	return ts
 }
 
 // delayedEventMatches dispatches the existing trigger matchers for an event
@@ -852,7 +884,7 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 	case cards.TriggerChangesController:
 		return e.delayedChangesControllerMatches(t, dt, ev, lki)
 	case cards.TriggerDamageDone:
-		return trigmatch.DamageMatchesWithCapture(boardOf(e), t, dt.Source, ev, dt.Remembered)
+		return trigmatch.DamageMatchesWithCapture(boardOf(e), t, dt.Source, ev, dt.Remembered, delayedChosenOpts(dt))
 	case cards.TriggerAttackersDeclared:
 		return trigmatch.AttackersDeclaredOneTargetMatches(boardOf(e), t, dt.Source, ev, dt.Remembered)
 	default:

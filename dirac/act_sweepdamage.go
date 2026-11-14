@@ -33,7 +33,7 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 	if src == NoSlot {
 		for i := 0; i < cnt; i++ {
 			if sl := ord[i]; s.isCreature(k, sl) {
-				s.damageTo(k, uint8(s.perms[sl].obj), n)
+				s.damageTo(k, TCode(s.perms[sl].obj), n)
 			}
 		}
 		return

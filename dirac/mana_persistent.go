@@ -107,6 +107,7 @@ func (s *State) persistEmpty(ec bool) {
 		}
 	}
 	s.g.poolArt, s.g.defSrc = restr, [MaxSeats]uint8{}
+	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 
@@ -122,6 +123,7 @@ func (s *State) persistTurn() {
 		s.rbClear(uint8(p))
 	}
 	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 

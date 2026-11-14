@@ -83,10 +83,10 @@ func (s *State) dpManyCarry(d *dprog, pt *pendingTrig) {
 		pt.trigAmt = int16(o) + 1
 	}
 	if o := s.dpManyObj(d, 2); o != NoObj {
-		pt.x = uint8(o) + 1
+		pt.x = objWord(o) + 1
 	}
 	if o := s.dpManyObj(d, 3); o != NoObj {
-		pt.trigMV = uint8(o) + 1
+		pt.trigMV = objWord(o) + 1
 	}
 }
 
@@ -114,7 +114,7 @@ func (s *State) dpManyVers(e *stackEntry) {
 func (e *stackEntry) dpManyCarrier(i int) (Obj, uint8) {
 	switch i {
 	case 0:
-		return e.trigObj, e.remVer
+		return e.trigObj, uint8(e.remVer)
 	case 1:
 		if e.trigAmt > 0 {
 			return Obj(e.trigAmt - 1), e.tver[0]

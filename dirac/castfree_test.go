@@ -42,8 +42,8 @@ func TestCastFreeIndexSkipsInfeasible(t *testing.T) {
 	sc.s.objs[archer].zone = kop.ZoneLibrary
 	sc.s.pl[1].libTop(archer)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(rem), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(rem), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	pass := func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			if d.Options[i].Kind() == AkPass {

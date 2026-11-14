@@ -99,7 +99,7 @@ func (s *State) subAmongOptions(k *prep, d *Decision) bool {
 			o := s.perms[sl].obj
 			if c == uint8(kop.CtrAll) {
 				if n := s.perms[sl].ctrLow(int(kop.CtrP1P1)); n > s.subCtrPicked(o, uint8(kop.CtrP1P1)) {
-					d.add(MakeAction(AkChoose, uint8(o), 0, uint8(kop.CtrP1P1)))
+					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(kop.CtrP1P1)))
 				}
 				for i := range s.perms[sl].ck {
 					kind := s.perms[sl].ck[i]
@@ -107,16 +107,16 @@ func (s *State) subAmongOptions(k *prep, d *Decision) bool {
 						continue
 					}
 					if kop.IsCounterKind(int(kind)) && s.perms[sl].ctrN(s, int(kind)) > s.subCtrPicked(o, kind) {
-						d.add(MakeAction(AkChoose, uint8(o), 0, kind))
+						d.add(MakeAction(AkChoose, TCode(o), 0, kind))
 					}
 				}
 				for _, e := range s.ctrOverOf(o, 0) {
 					if kop.IsCounterKind(int(e.kind)) && int(e.n) > s.subCtrPicked(o, e.kind) {
-						d.add(MakeAction(AkChoose, uint8(o), 0, e.kind))
+						d.add(MakeAction(AkChoose, TCode(o), 0, e.kind))
 					}
 				}
 			} else if s.perms[sl].ctrN(s, int(c)) > s.subCtrPicked(o, c) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, c))
+				d.add(MakeAction(AkChoose, TCode(o), 0, c))
 			}
 		}
 		if d.N == 0 {

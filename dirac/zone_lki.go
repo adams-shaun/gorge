@@ -45,27 +45,30 @@ const lkiInfect uint8 = 1 << 5
 
 // lkiRec is one snapshot: P/T, controller, every counter, and the derived
 // (layered) types, colours and keywords (CR 608.2h in full).
+//
+// The fields run widest first, so the record has no interior padding in
+// either size class (the object is one byte or two): 56 bytes in both.
 type lkiRec struct {
-	obj    Obj
-	ver    uint8 // the object's ver when snapshot
-	ref    uint8 // live holders at the last sweep (0 = free)
-	ctrl   uint8
-	power  int16
-	tough  int16
-	p1p1   uint16
-	cn     [ctrSlots]uint16
-	ck     [ctrSlots]uint8
-	col    kop.ColorMask
-	bits   uint8 // lkiFaceDown / lkiSuspected; the byte faceDown used
-	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go). The padding byte before types
-	types  kop.TypeMask
 	// subs is the derived subtype set at the snapshot, for the
 	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 192-bit
 	// mask does not fit the 16-bit types snapshot, so it is a field of its
 	// own. Zero unless the table lowers one of those reads.
-	subs kop.SubMask
-	kw   kop.KwMask
-	mv   uint8 // mana value, the copied card's on a copy (CR 707.2, 608.2h)
+	subs   kop.SubMask
+	kw     kop.KwMask
+	power  int16
+	tough  int16
+	p1p1   uint16
+	cn     [ctrSlots]uint16
+	types  kop.TypeMask
+	obj    Obj
+	ver    uint8 // the object's ver when snapshot
+	ref    uint8 // live holders at the last sweep (0 = free)
+	ctrl   uint8
+	ck     [ctrSlots]uint8
+	col    kop.ColorMask
+	bits   uint8 // lkiFaceDown / lkiSuspected; the byte faceDown used
+	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go)
+	mv     uint8 // mana value, the copied card's on a copy (CR 707.2, 608.2h)
 }
 
 var noLKI lkiRec // index 0: no snapshot (read-only)
@@ -117,7 +120,7 @@ func (s *State) snapLKI(o Obj) uint8 {
 	p := &s.perms[sl]
 	pw, t := s.pt(k, sl)
 	r := lkiRec{obj: o, ver: ob.ver, ctrl: p.ctrl, power: int16(pw), tough: int16(t), p1p1: p.p1,
-		col: s.colorsAt(k, sl), types: s.typesAt(k, sl), kw: s.kw(k, sl), chosen: p.chosen, mv: uint8(s.mvPerm(k, sl))}
+		col: s.colorsAt(k, sl), types: s.typesAt(k, sl), kw: s.kw(k, sl), chosen: uint8(p.chosen), mv: uint8(s.mvPerm(k, sl))}
 	if s.faceDown(k, sl) {
 		r.bits |= lkiFaceDown
 	}
@@ -261,7 +264,7 @@ const (
 func (s *State) snapResTarget(o Obj) {
 	e := &s.res.e
 	for i := 0; i < len(e.tgt); i++ {
-		if e.tgt[i] == uint8(o) {
+		if e.tgt[i] == TCode(o) {
 			if li := s.snapLKI(o); li != 0 {
 				s.g.tli = li
 			}

@@ -42,7 +42,7 @@ func courtScen(t *testing.T, chosen string) (sc *scen, court, hawk Obj) {
 	if d := sc.s.Step(); d.Kind == DkChoose { // its as-enters creature type: answered, then set
 		sc.s.Apply(d.Options[0])
 	}
-	sc.s.perms[sc.slot(court)].chosen = uint8(sub)
+	sc.s.perms[sc.slot(court)].chosen = objWord(uint8(sub))
 	hawk = sc.hand(id["Healer's Hawk"], 0)
 	if sc.s.scriptAnyR(sc.k, 0).any() || !sc.k.restrSrc {
 		t.Fatal("the Courtyard is an any-colour gap, not a restricted planner unit")
@@ -64,7 +64,7 @@ func TestCourtyardGap(t *testing.T) {
 	if !castOffered(&d, hawk) {
 		t.Fatalf("Hawk not offered (Bird chosen): decision kind %d, %d options", d.Kind, d.N)
 	}
-	s.Apply(MakeAction(AkCast, uint8(hawk), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(hawk), 0, 0))
 	s.Step()
 	if !sc.tapped(court) {
 		t.Fatal("the Courtyard is not tapped by the plan")
@@ -117,7 +117,7 @@ func TestVillageFundsCreature(t *testing.T) {
 	if castOffered(&d, savor) {
 		t.Fatal("Savor offered on a creature-only {B}")
 	}
-	s.Apply(MakeAction(AkCast, uint8(assassin), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(assassin), 0, 0))
 	s.Step()
 	if !sc.tapped(v1) || !sc.tapped(v2) || s.sp != 1 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("after the Assassin: Villages tapped %v %v, stack %d, pool %v; want both tapped and the Assassin on the stack", sc.tapped(v1), sc.tapped(v2), s.sp, s.pl[0].pool)
@@ -140,7 +140,7 @@ func TestCourtyardsKeepTheirOwnChoice(t *testing.T) {
 			bird = i
 		}
 	}
-	s.perms[sc.slot(other)].chosen = uint8(bird)
+	s.perms[sc.slot(other)].chosen = objWord(uint8(bird))
 	var f kop.FilterID
 	for _, a := range sc.k.t.Cards[s.objs[court].card].Abilities {
 		if a.Kind == kop.AbMana && a.ManaRestrict != 0 {

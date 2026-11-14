@@ -34,6 +34,11 @@ const (
 	// TailBucket is how many cards a tail pool holds. It keeps tables under the
 	// limit on a table's subtypes, which refuses a big enough list outright.
 	TailBucket = 250
+	// DraftSplitCards is the most cards a draft pool's table holds: a longer
+	// draft list splits by hash (dr-mbc-aaaa ...). A split passes its evidence
+	// run only when every one of its games is clean, so one divergent card holds
+	// back its whole split; at 200, MBC's 2195 names are 16 splits of about 137.
+	DraftSplitCards = 200
 )
 
 // SynthBasics are the lands every synthetic pool holds, whatever its list says:
@@ -51,6 +56,15 @@ func SynthNameHash(name string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(name))
 	return h.Sum32()
+}
+
+// SynthDraftPrefix names a draft pool's synthetic pool (dirac/cardset/draftpools.txt): dr-<code>.
+const SynthDraftPrefix = "dr-"
+
+// IsSynthName reports whether a pool name is a synthetic evidence pool's: std-<set>,
+// dr-<code> or tail-NN, each possibly with a split suffix.
+func IsSynthName(name string) bool {
+	return strings.HasPrefix(name, "std-") || strings.HasPrefix(name, SynthDraftPrefix) || strings.HasPrefix(name, "tail-")
 }
 
 // TailBuckets cuts names into runs of TailBucket in hash order, breaking a hash tie

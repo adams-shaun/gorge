@@ -33,7 +33,7 @@ func TestVizierConversionPaysExactColourFirst(t *testing.T) {
 	var cast Action
 	found := false
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Kind() == AkCast && d.Options[i].Source() == uint8(o) {
+		if d.Options[i].Kind() == AkCast && d.Options[i].Source() == TCode(uint8(o)) {
 			cast, found = d.Options[i], true
 		}
 	}

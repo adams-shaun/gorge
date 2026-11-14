@@ -93,7 +93,7 @@ func TestUnlessWaterbendPoolCoversTapsNothing(t *testing.T) {
 		unagi := sc.perm(id["The Unagi of Kyoshi Island"], 1)
 		sc.castCard(t, shock)
 		if d := sc.s.Step(); d.Kind != DkPriority {
-			sc.s.Apply(MakeAction(AkTarget, 0, uint8(unagi), 0))
+			sc.s.Apply(MakeAction(AkTarget, 0, TCode(unagi), 0))
 		}
 		sc.uwbPayFromPool(t, ChWardPay, 0, 4)
 		if !sc.onBF(orn) || sc.s.perms[sc.slot(orn)].flags&pfTapped != 0 {
