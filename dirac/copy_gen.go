@@ -279,6 +279,14 @@ type copyHold struct {
 	made, left uint8
 }
 
+// coldCopyHeld is the one held resolution, for a table whose copies elect.
+var coldCopyHeld = newCold[copyHold]("copyHeld", func(g *genPrep) int {
+	if g.anyCopyElect {
+		return 1
+	}
+	return 0
+}).view(func(c *coldArrays) *[]copyHold { return &c.copyHeld })
+
 // copyElect poses the new-target election of the copy just minted under the
 // resolving entry, which waits below it (gorge effects emitCopy -> AskCopyTargets); false = nothing to
 // ask. A declaration of several objects (Run Away Together, Macabre Waltz) is

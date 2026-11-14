@@ -1,0 +1,28 @@
+# The MBC mana-abilities-2 family: the pip-fee {T} filters beside no other mana
+# ability that kop.PipFeeManaAb now admits without an activation limit: Apprentice Wizard's
+# "{U}, {T}: add {C}{C}{C}", Ceta Disciple's and Necra Disciple's "{G}, {T}: add
+# one mana of any color", Fire Sprites' "{G}, {T}: add {R}", in decks over
+# artifacts, legendary creatures and expensive spells against a plain creature
+# deck (dirac/oracle/mbc_mana_abilities_test.go); Chromatic Lantern, the grant the Wizard
+# is also played beside (the grant search's {C}-only filter step). Krark-Clan Ironworks and Relic of Legends stay refused.
+Apprentice Wizard
+Ceta Disciple
+Fire Sprites
+Necra Disciple
+Chromatic Lantern
+Isamaru, Hound of Konda
+Mind Stone
+Sol Ring
+Juggernaut
+Air Elemental
+Serra Angel
+Grizzly Bears
+Doom Blade
+Lightning Bolt
+Wind Drake
+Hill Giant
+Forest
+Swamp
+Plains
+Mountain
+Island

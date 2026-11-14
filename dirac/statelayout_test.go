@@ -21,8 +21,9 @@ var (
 func TestStateLayoutPinned(t *testing.T) {
 	// +48: coldArrays.mk and mkObj, the multikicker counts (cast.go); +24:
 	// coldArrays.hexUB's slice header, Veil of Summer's per-slot grant
-	// timestamp (repl_turnrepl.go).
-	const want = 20112
+	// timestamp (repl_turnrepl.go); +64: genState.redir and the rest of the
+	// cache line they take it from (repl_dmgredirect.go).
+	const want = 20176
 	if sz := unsafe.Sizeof(State{}); sz != want {
 		t.Fatalf("State is %d bytes, pinned at %d", sz, want)
 	}
