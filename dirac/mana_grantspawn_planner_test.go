@@ -88,6 +88,7 @@ func TestPlannerPaysGrantedSpawnCast(t *testing.T) {
 	spawn := objs[1]
 	tm := sc.hand(id["Goblin Taskmaster"], 0)
 	sc.do(t, AkCast, TCode(tm), scAny)
+	sc.settle(t)
 	if sc.s.perms[sc.slot(spawn)].flags&pfTapped == 0 {
 		t.Errorf("the Spawn is untapped after the {R} cast, want the granted tap")
 	}
@@ -100,6 +101,7 @@ func TestPlannerPaysGrantedSpawnCast(t *testing.T) {
 	spawn2 := objs2[1]
 	ltl := sc2.hand(id2["Larger Than Life"], 0)
 	sc2.do(t, AkCast, TCode(ltl), scAny)
+	sc2.settle(t)
 	if sc2.onBF(spawn2) {
 		t.Errorf("the Spawn stayed on the battlefield paying {1}{G}, want it tapped then sacrificed")
 	}

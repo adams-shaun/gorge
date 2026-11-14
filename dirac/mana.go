@@ -608,12 +608,6 @@ type utype struct {
 	// last-resort unit, whose colours take nothing from the remainder
 	irr   uint8
 	nocol bool
-	// grantOwn: an own-sacrifice source's granted tap unit (planGrantUnit).
-	// Its irr sits at 255 so a plan never spends a second grant while a
-	// printed unit covers the remainder: gorge's prefix search stops at the
-	// first payable state, so its grants are the fewest that leave gorge's
-	// printed plan payable (mana_grantedoffers.go)
-	grantOwn bool
 	// first: 1 + the colour of a gated source's ability 0. gorge's witness
 	// compares a step's ability before what it produces, so such a source
 	// makes that colour whenever the rest stays payable (CompareSteps).
@@ -1274,21 +1268,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if phase > 0 {
 			pk.nu, pk.nt, pk.maxN, pk.colSrc = 0, 0, 0, [5]int{}
 		}
-		if phase == 2 {
-			// gorge's payment funds the census gaps first: its offer's prefix
-			// search activates them (potential_script.go) before the printed
-			// plan pays, and the payment re-plans from the floating pool after
-			// every activation. The granted {T} of a printed sacrifice-only
-			// source (the facts loop's ownSacGrantTap) is such a gap, so list
-			// the grants ahead of every printed unit, each in battlefield
-			// (entry) order, and let the printed plan cover only what the
-			// grants' floats leave.
-			for i := 0; i < no && pk.nu < maxUnits; i++ {
-				if grantTap[i] != nil {
-					s.planGrantUnit(k, p, pk, order[i], grantTap[i], s.isCreature(k, order[i]), i)
-				}
-			}
-		}
 		for pass := 0; pass < 3; pass++ {
 			for i := 0; i < no && pk.nu < maxUnits; i++ {
 				sl := order[i]
@@ -1468,6 +1447,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
+				if phase == 2 && grantTap[i] != nil {
+					// the granted {T} is this source's phase-2 unit beside the
+					// printed sacrifice (see the facts loop's ownSacGrantTap):
+					// gorge's planner never sees a granted ability, so a plan
+					// with one is the kernel's, reached only when the printed
+					// units have no plan
+					s.planGrantUnit(k, p, pk, sl, grantTap[i], cr)
+				}
 				if sac {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7
