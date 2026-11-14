@@ -271,7 +271,13 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 	}
 	if f&(kop.F2ChosenType|kop.F2ChosenColor|kop.F2SameNameAsSource) != 0 {
 		ch, ok := s.chosenTypeSub(src)
-		if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
+		if f&kop.F2ChosenType != 0 && ok && src == NoSlot && s.res.bad&resChosenCard != 0 {
+			// the resolution chose a card type (Turnabout): the
+			// permanent's own card types, not a creature type
+			if !s.chosenCardTypeHas(s.typesAt(k, sl)) {
+				return false
+			}
+		} else if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
