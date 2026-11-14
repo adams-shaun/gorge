@@ -1944,15 +1944,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		}
 		ep := p
 		if z == kop.ZoneBattlefield {
-			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
-				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
-			}
-			if fl&(kop.SrUnderYourControl|kop.SrOwnZone) == kop.SrUnderYourControl|kop.SrOwnZone {
-				ep = s.res.e.ctrl // GainControl$ from a fetch player's graveyard: under the resolving controller, not the fetch player
-			}
-			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
-				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
-			}
+			ep = s.pickEntryPlayer(o, p) // zone_hiddenpick.go
 			if attach {
 				// AttachedTo$ on a search (kop.SrSearchAttach): the named
 				// bearer replaces the plain CR 303.4f enchant ask -- the Aura
