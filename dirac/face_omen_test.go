@@ -40,7 +40,7 @@ func omenScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 // plainCasts reports whether the plain (front-face) cast of o is offered.
 func plainCasts(d *Decision, o Obj) bool {
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) && a.Mode()&castFace == 0 {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) && a.Mode()&castFace == 0 {
 			return true
 		}
 	}
@@ -108,7 +108,7 @@ func TestOmenResolveShuffles(t *testing.T) {
 	if got := faceCasts(&d, card); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("face casts %v, want [1]", got)
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(card), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(card), 1, castFace))
 	sc.buildToStack(t)
 	pl := &sc.s.pl[0]
 	before := append([]Obj(nil), pl.lib[pl.libLo:pl.libHi]...)
@@ -143,7 +143,7 @@ func TestOmenCounteredToGraveyard(t *testing.T) {
 	card := sc.hand(front, 0)
 	sc.s.pl[0].pool[kop.U] = 2
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(card), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(card), 1, castFace))
 	sc.buildToStack(t)
 	rngBefore := sc.s.rng
 	sc.s.counterAt(sc.k, 0)
@@ -188,7 +188,7 @@ func TestOmenReversalTurnsFront(t *testing.T) {
 	card := sc.hand(front, 0)
 	sc.s.pl[0].pool[kop.U] = 2
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(card), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(card), 1, castFace))
 	sc.s.Step()
 	sc.s.reverseCast(sc.k)
 	if ob := &sc.s.objs[card]; ob.zone != kop.ZoneHand || ob.card != front {

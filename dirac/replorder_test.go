@@ -31,17 +31,17 @@ func replScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]CardID) {
 
 // burnToAsk casts Burst Lightning (unkicked) from player 0 at target code,
 // lets it resolve and returns the next decision.
-func burnToAsk(t *testing.T, sc *scen, id map[string]CardID, code uint8) Decision {
+func burnToAsk(t *testing.T, sc *scen, id map[string]CardID, code TCode) Decision {
 	t.Helper()
 	s := sc.s
 	sc.lands(0, id["Mountain"], 1)
 	bl := sc.hand(id["Burst Lightning"], 0)
-	sc.do(t, AkCast, uint8(bl), 0xff)
+	sc.do(t, AkCast, TCode(bl), scAny)
 	for i := 0; i < 8; i++ {
 		d := s.Step()
 		switch {
 		case d.Kind == DkTarget:
-			sc.do(t, AkTarget, 0xff, code)
+			sc.do(t, AkTarget, scAny, code)
 			continue
 		case d.Kind == DkChoose && d.Sub != ChGenReplOrder:
 			s.Apply(d.Options[0]) // the kicker: not paid (option order: decline first)
@@ -68,7 +68,7 @@ func TestReplOrderNoncombatTwoTwinflames(t *testing.T) {
 	s := sc.s
 	t0 := sc.perm(id["Twinflame Tyrant"], 0)
 	t1 := sc.perm(id["Twinflame Tyrant"], 0)
-	d := burnToAsk(t, sc, id, PlayerTarget1)
+	d := burnToAsk(t, sc, id, TCode(PlayerTarget1))
 	if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
 		t.Fatalf("want the opponent's order ask over the two Twinflames, got kind %d sub %d player %d opts %v", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 	}
@@ -103,7 +103,7 @@ func TestReplOrderNoncombatBarricade(t *testing.T) {
 		sc.perm(id["Twinflame Tyrant"], 0)
 		sc.perm(id["Crystal Barricade"], 1)
 		c := sc.perm(id["Eager Trufflesnout"], 1)
-		d := burnToAsk(t, sc, id, uint8(c))
+		d := burnToAsk(t, sc, id, TCode(c))
 		if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
 			t.Fatalf("want the creature controller's order ask, got kind %d sub %d player %d opts %v", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 		}
@@ -133,7 +133,7 @@ func TestReplOrderEachPlayerTwoTwinflames(t *testing.T) {
 	t1 := sc.perm(id["Twinflame Tyrant"], 0)
 	sc.lands(0, id["Mountain"], 3)
 	sg := sc.hand(id["Slagstorm"], 0)
-	sc.do(t, AkCast, uint8(sg), 0xff)
+	sc.do(t, AkCast, TCode(sg), scAny)
 	var d Decision
 	for i := 0; i < 16; i++ {
 		d = s.Step()
@@ -179,24 +179,26 @@ func TestReplOrderEachPlayerTwoTwinflames(t *testing.T) {
 }
 
 // TestDamageAllReplOrderEveryEvent: Seismic Rupture sweeps a board where one
-// player has two Crystal Barricades. Gorge parks EVERY damage event two
-// replacements match, asking the affected player once per event in sweep
+// player has a Crystal Barricade and the caster a (flying) Twinflame Tyrant.
+// Gorge parks EVERY damage event two replacements match, asking the affected player once per event in sweep
 // order (CR 616.1), and the spell stays on the stack until the last answer.
 // The kernel's OpDamageAll must park and resume between events, not ask only
 // for the first one.
 func TestDamageAllReplOrderEveryEvent(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Seismic Rupture", Count: 1}, {Name: "Crystal Barricade", Count: 2},
-		{Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 10}}
+	// Two Barricades would be two bare preventions, which neither engine
+	// orders (repl_bareprev.go); the Tyrant's doubling does not commute.
+	deck := []cardset.Entry{{Name: "Seismic Rupture", Count: 1}, {Name: "Crystal Barricade", Count: 1},
+		{Name: "Twinflame Tyrant", Count: 1}, {Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 10}}
 	sc, id := replScen(t, deck)
 	s := sc.s
+	tyrant := sc.perm(id["Twinflame Tyrant"], 0)
 	b0 := sc.perm(id["Crystal Barricade"], 1)
 	l0 := sc.perm(id["Savannah Lions"], 1)
 	l1 := sc.perm(id["Savannah Lions"], 1)
-	b1 := sc.perm(id["Crystal Barricade"], 1)
 	sc.perm(id["Savannah Lions"], 0) // no Barricade: no ask for its event
 	sc.lands(0, id["Mountain"], 3)
 	sr := sc.hand(id["Seismic Rupture"], 0)
-	sc.do(t, AkCast, uint8(sr), 0xff)
+	sc.do(t, AkCast, TCode(sr), scAny)
 
 	var asked []Obj
 	for i := 0; i < 12; i++ {
@@ -209,8 +211,8 @@ func TestDamageAllReplOrderEveryEvent(t *testing.T) {
 			if d.Player != 1 || d.N != 2 {
 				t.Fatalf("ask: kind %d sub %d player %d opts %v, want the Barricade controller's two options", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 			}
-			if Obj(d.Options[0].Source()) != b0 || Obj(d.Options[1].Source()) != b1 {
-				t.Fatalf("ask options %d, %d, want the Barricades in entry order (%d, %d)", d.Options[0].Source(), d.Options[1].Source(), b0, b1)
+			if Obj(d.Options[0].Source()) != tyrant || Obj(d.Options[1].Source()) != b0 {
+				t.Fatalf("ask options %d, %d, want gorge's scan order: the Tyrant, then the Barricade (%d, %d)", d.Options[0].Source(), d.Options[1].Source(), tyrant, b0)
 			}
 			if s.sp != 1 || s.objs[sr].zone != kop.ZoneStack {
 				t.Fatalf("before the answer: stack %d spell zone %d, want the spell still resolving", s.sp, s.objs[sr].zone)
@@ -257,13 +259,13 @@ func TestReplOrderCombatNoDeathAtPause(t *testing.T) {
 	s.perms[sc.slot(w0)].eotKw |= kop.KwPreventCombatDamageTo
 
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(w0), 0xff)
-	sc.do(t, AkAttack, uint8(w1), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(w0), scAny)
+	sc.do(t, AkAttack, TCode(w1), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
-	sc.do(t, AkBlock, uint8(ty), uint8(w0))
-	sc.do(t, AkBlock, uint8(ba), uint8(w0))
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkBlock, TCode(ty), TCode(w0))
+	sc.do(t, AkBlock, TCode(ba), TCode(w0))
+	sc.do(t, AkDone, scAny, scAny)
 
 	var asks int
 	for i := 0; i < 40; i++ {
@@ -323,29 +325,33 @@ func TestReplOrderCombatNoDeathAtPause(t *testing.T) {
 	t.Fatal("no end of combat")
 }
 
-// TestDamageAllReplOrderCrossSeat: the same sweep with a parkable event on
+// TestDamageAllReplOrderCrossSeat: the same sweep with a competition on
 // BOTH battlefields, the permanents created so that slot order runs opposite
 // to gorge's sweep (p1's board entered first, p0 casts). Gorge's
-// effDamageAll walks seat 0's battlefield in entry order, then seat 1's, so
-// p0's Lion event asks before p1's although p1's slots are the lower ones.
+// effDamageAll walks seat 0's battlefield in entry order, then seat 1's. p0's
+// Lion is matched by two bare preventions (two Barricades), which neither
+// side orders (repl_bareprev.go), so the walk passes it unasked although its
+// event comes first; p1's Lion (one Barricade, the caster's Twinflame Tyrant)
+// is asked. No FDN card gives the caster's own creature a competition that
+// does not commute, so a second ask cannot be built here.
 func TestDamageAllReplOrderCrossSeat(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Seismic Rupture", Count: 1}, {Name: "Crystal Barricade", Count: 4},
-		{Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 10}}
+	deck := []cardset.Entry{{Name: "Seismic Rupture", Count: 1}, {Name: "Crystal Barricade", Count: 3},
+		{Name: "Twinflame Tyrant", Count: 1}, {Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 10}}
 	sc, id := replScen(t, deck)
 	s := sc.s
 	// p1's board first: its slots are lower than p0's
 	b10 := sc.perm(id["Crystal Barricade"], 1)
-	b11 := sc.perm(id["Crystal Barricade"], 1)
 	l1 := sc.perm(id["Savannah Lions"], 1)
-	b00 := sc.perm(id["Crystal Barricade"], 0)
-	b01 := sc.perm(id["Crystal Barricade"], 0)
+	sc.perm(id["Crystal Barricade"], 0)
+	sc.perm(id["Crystal Barricade"], 0)
 	l0 := sc.perm(id["Savannah Lions"], 0)
+	tyrant := sc.perm(id["Twinflame Tyrant"], 0)
 	if sc.slot(l1) > sc.slot(l0) {
 		t.Fatalf("probe shape: l1 slot %d l0 slot %d, want p1's slots lower", sc.slot(l1), sc.slot(l0))
 	}
 	sc.lands(0, id["Mountain"], 3)
 	sr := sc.hand(id["Seismic Rupture"], 0)
-	sc.do(t, AkCast, uint8(sr), 0xff)
+	sc.do(t, AkCast, TCode(sr), scAny)
 
 	var asked []Obj
 	for i := 0; i < 16; i++ {
@@ -355,24 +361,19 @@ func TestDamageAllReplOrderCrossSeat(t *testing.T) {
 			continue
 		}
 		if d.Kind == DkChoose && d.Sub == ChGenReplOrder {
-			want, wb0, wb1 := l0, b00, b01
-			wp := uint8(0)
-			if len(asked) == 1 {
-				want, wp, wb0, wb1 = l1, 1, b10, b11
+			if d.Player != 1 || d.N != 2 {
+				t.Fatalf("ask %d: kind %d sub %d player %d opts %v, want player 1's two options", len(asked), d.Kind, d.Sub, d.Player, d.Options[:d.N])
 			}
-			if d.Player != wp || d.N != 2 {
-				t.Fatalf("ask %d: kind %d sub %d player %d opts %v, want player %d's two Barricades", len(asked), d.Kind, d.Sub, d.Player, d.Options[:d.N], wp)
+			if Obj(s.g.nc.code) != l1 {
+				t.Fatalf("ask %d: event for %d, want p1's Lion %d (p0's has only bare preventions)", len(asked), s.g.nc.code, l1)
 			}
-			if Obj(s.g.nc.code) != want {
-				t.Fatalf("ask %d: event for %d, want %d (gorge sweeps seat %d first)", len(asked), s.g.nc.code, want, wp)
-			}
-			if Obj(d.Options[0].Source()) != wb0 || Obj(d.Options[1].Source()) != wb1 {
-				t.Fatalf("ask %d: options %d, %d, want that seat's Barricades in entry order (%d, %d)", len(asked), d.Options[0].Source(), d.Options[1].Source(), wb0, wb1)
+			if o0, o1 := Obj(d.Options[0].Source()), Obj(d.Options[1].Source()); !(o0 == tyrant && o1 == b10 || o0 == b10 && o1 == tyrant) {
+				t.Fatalf("ask %d: options %d, %d, want the Tyrant and p1's Barricade (%d, %d)", len(asked), o0, o1, tyrant, b10)
 			}
 			if s.sp != 1 || s.objs[sr].zone != kop.ZoneStack {
 				t.Fatalf("ask %d: stack %d spell zone %d, want the spell still resolving", len(asked), s.sp, s.objs[sr].zone)
 			}
-			asked = append(asked, want)
+			asked = append(asked, l1)
 			s.Apply(d.Options[0])
 			continue
 		}
@@ -381,8 +382,8 @@ func TestDamageAllReplOrderCrossSeat(t *testing.T) {
 		}
 		t.Fatalf("unexpected decision kind %d sub %d player %d", d.Kind, d.Sub, d.Player)
 	}
-	if len(asked) != 2 || asked[0] != l0 || asked[1] != l1 {
-		t.Fatalf("asks %v, want one per affected event in gorge's sweep order (%d, %d)", asked, l0, l1)
+	if len(asked) != 1 {
+		t.Fatalf("asks %v, want p1's Lion alone (%d)", asked, l1)
 	}
 	if s.objs[sr].zone != kop.ZoneGraveyard || s.sp != 0 {
 		t.Fatalf("after the answers: spell zone %d stack %d, want it resolved", s.objs[sr].zone, s.sp)

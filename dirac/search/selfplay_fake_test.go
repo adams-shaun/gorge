@@ -33,24 +33,31 @@ func (f *fakeNet) Priors(_ *dirac.State, d *dirac.Decision, _ []bool, out []floa
 			out[i] = 0
 			continue
 		}
-		out[i] = float32((uint32(twoSeatCodes(d.Options[i]))*2654435761>>7)%13) / 4
+		out[i] = float32((twoSeatCodes(d.Options[i])*2654435761>>7)%13) / 4
 	}
 }
 
-// twoSeatCodes renumbers an action's source and target bytes as the two-seat
-// build numbers them, so the fake prior, and every digest pinned over it, is
-// the same in both size classes: the four-seat class starts the stack and
-// player codes two lower (StackTarget0 0xEA, PlayerTarget0 0xFA). In the
-// two-seat build it returns a unchanged.
-func twoSeatCodes(a dirac.Action) dirac.Action {
-	const shift = 0xEC - dirac.StackTarget0
-	if src := a.Source(); src >= dirac.StackTarget0 && src < 0xFE {
-		a = a&^0xFF0000 | dirac.Action(src+shift)<<16
+// twoSeatCodes packs an action as the two-seat build packs it (kind<<24 |
+// source<<16 | target<<8 | mode, a byte a code), renumbering the stack and
+// player codes to the two-seat build's, so the fake prior, and every digest
+// pinned over it, is the same in both size classes: the four-seat class holds
+// sixteen-bit codes with its own code space (StackTarget0 488, PlayerTarget0
+// 504). In the two-seat build it returns uint32(a).
+func twoSeatCodes(a dirac.Action) uint32 {
+	code := func(c dirac.TCode) uint32 {
+		switch {
+		case c < dirac.StackTarget0:
+			return uint32(c)
+		case c < dirac.PlayerTarget0:
+			return uint32(c-dirac.StackTarget0) + 0xEC
+		case c == dirac.StackTargetGone:
+			return 0xFE
+		case c == dirac.NoTarget:
+			return 0xFF
+		}
+		return uint32(c-dirac.PlayerTarget0) + 0xFC
 	}
-	if t := a.Target(); t >= dirac.StackTarget0 && t < 0xFE {
-		a = a&^0xFF00 | dirac.Action(t+shift)<<8
-	}
-	return a
+	return uint32(a.Kind())<<24 | code(a.Source())<<16 | code(a.Target())<<8 | uint32(a.Mode())
 }
 
 // seatStep is one decision of a seat-search game: the searching seat's

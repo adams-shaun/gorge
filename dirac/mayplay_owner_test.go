@@ -17,12 +17,12 @@ func TestMayPlayOwnerKeepsGrantTurn(t *testing.T) {
 	s := sc.s
 	o := sc.obj(v.Island, 1)
 	s.place(o, kop.ZoneExile, false)
-	r := mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurYourNextTurn), turn: s.turn}
+	r := mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurYourNextTurn), turn: mayWord(s.turn)}
 	s.partitionRecord(&r, o, 0, 0)
 	if r.ctrl != 1 {
 		t.Fatalf("ctrl %d, want the card owner 1", r.ctrl)
 	}
-	if r.turn != s.turn {
+	if r.turn != mayWord(s.turn) {
 		t.Fatalf("turn %d, want the creation turn %d", r.turn, s.turn)
 	}
 	if r.kind&mayKindRaise != 0 {

@@ -256,8 +256,13 @@ import (
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
+// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
+// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
+// +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
+// +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
 // +7 (MBC keywords-4: a static-granted Saddle (Jandor), a static-granted Living Weapon (Ekthi), Escalate (Collective Resistance, Collective Defiance, Borrowed Grace/Hostility/Malevolence); ALL build-level 23437 -> 23444 measured).
-var buildAcceptancePin = [2]int{23444, 34442} // {built, cards}
+// the merge with land: the MBC keywords-4 lowerings against land's 23746; merged ALL build-level 23746 -> 23753 measured.
+var buildAcceptancePin = [2]int{23753, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

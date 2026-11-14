@@ -77,7 +77,11 @@ var gorgeKwExact = map[string]kop.KwMask{
 	"CARDNAME can't block.": kop.KwCantBlock,
 	// Decayed (CR 702.147a): kgen lowers it as KwCantBlock plus the
 	// Attacks trigger over the end-of-combat sacrifice (lower_decayed.go)
-	"Decayed":                      kop.KwCantBlock,
+	"Decayed": kop.KwCantBlock,
+	// a printed K:CantAttackOrBlock (Grakk the Pacifist): the kernel's
+	// KwCantBlock plus a self CantAttack static (lower_cantattackorblock.go),
+	// compared through the combat options like the Animate grant below
+	"CantAttackOrBlock":            kop.KwCantBlock,
 	"HIDDEN CARDNAME can't block.": kop.KwCantBlock,
 	// an Animate HiddenKeywords$ grant; the kernel's
 	// KwCantBlock plus the override record's CantAttack (masked like
@@ -169,10 +173,12 @@ var gorgeKwElsewhere = map[string]string{
 	"Impending":                         "CardDef.Impending (a hand alt cost, the entry time counters and the not-a-creature switch, compared through the cast options and the types)",
 	"Unearth":                           "a graveyard activated ability (Return of itself then OpUnearth: haste, the end-step exile and the exile-instead promise; gorge kwUnearth's expansion), no battlefield characteristic",
 	"Training":                          "an Attacks trigger with Trigger.N TrigNTraining (gorge kwTraining's expansion), no battlefield characteristic",
+	"Dethrone":                          "an Attacks Self trigger with Tf2AtkOpp and a fire-time most-life condition over the defending player (gorge kwDethrone's expansion, CR 702.105a; kgen lower_dethrone.go), no battlefield characteristic",
 	"Firebending":                       "an Attacks trigger whose AddMana has B = 1 (State.fbR; gorge kwFirebending's expansion, CR 702.189a), no battlefield characteristic",
 	"Melee":                             "an Attacks Self trigger pumping its holder: a printed one from gorge kwMelee's expansion, a static's granted one kop.Ability.MeleeGrant (kw_melee.go; CR 702.121a), no battlefield characteristic",
 	"Myriad":                            "an Attacks Self trigger with an empty program, two-seat (no opponent other than the defending player): a printed one from gorge kwMyriad's expansion, a static's granted one (kgen lower_myriad.go; CR 702.116a), no battlefield characteristic",
 	"Evolve":                            "an ETB trigger with Tf2Evolve (gorge kwEvolve's expansion, CR 702.100a; kw_evolve.go), no battlefield characteristic",
+	"Exploit":                           "an ETB trigger whose optional remembering Sacrifice is followed by OpExt ExtExploit (gorge kwExploit's expansion, CR 702.110a; kw_exploit.go), no battlefield characteristic",
 	"Increment":                         "a SpellCast trigger with Tf2Increment (gorge kwIncrement's expansion), no battlefield characteristic",
 	"Craft":                             "a battlefield activated ability (the ExileCtrlOrGrave material and Exile<1/CARDNAME> costs, then the transformed Return; gorge kwCraft's expansion), no battlefield characteristic",
 	"Embalm":                            "a graveyard activated ability (CostExileGrave of itself, OpCopyAsTokenEx with a white / Zombie / no-mana-cost exception; gorge kwEmbalm's expansion), no battlefield characteristic",
@@ -207,7 +213,15 @@ var gorgeKwElsewhere = map[string]string{
 	"Annihilator":       "gorge kwAnnihilator's expansion: an Attacks trigger making the defending player sacrifice N permanents (kgen lowers the expansion's node, Annihilator$ N as the Sacrifice count; compared through the stack and the sacrifice choice), no battlefield characteristic",
 	"Echo":              "gorge kwEcho's expansion: an upkeep trigger gated by Echo$ True (CondEchoOwed, dirac/trig_echo.go) asking the controller to pay the cost or sacrifice it (ExtCumulative B=1; compared through the pay and decline options and the sacrifice), no battlefield characteristic",
 	"Fading":            "gorge kwFading's expansion: fade counters on entry and an upkeep trigger that sacrifices a permanent with none and removes one (kgen lowers the expansion's nodes; compared through the fade counters and the sacrifice), no battlefield characteristic",
+	"Level up":          "gorge kwLevelUp's expansion: a sorcery-speed activated ability putting a LEVEL counter on the permanent (kop.CtrLevelUp; kgen lowers the expansion's node), the level bands being Continuous statics gated on its counters; no battlefield characteristic",
 	"Gift":              "CardDef.Gift (a cast-time promise and its GiftAbility; compared through the gift election and the stack; kw_gift.go), no battlefield characteristic",
+	"Madness":           "CardDef.HasMadness and MadnessCost (the native discard-to-exile trigger and the exile cast; kw_madness.go, TestPauperkwMadnessLockstep), no battlefield characteristic",
+	"Transmute":         "gorge kwTransmute's expansion: a hand activated ability, discard it and search for a card of equal mana value (kgen expandedKeywords; compared through the activate options and the zone moves), no battlefield characteristic",
+	"Outlast":           "gorge kwOutlast's expansion: a sorcery-speed tap activated ability putting a +1/+1 counter (kgen expandedKeywords; compared through the activate options and the counters), no battlefield characteristic",
+	"Fabricate":         "gorge kwFabricate's expansion: an ETB trigger choosing +1/+1 counters or Servo tokens (kgen expandedKeywords; compared through the choice, the counters and the tokens), no battlefield characteristic",
+	"Afterlife":         "gorge kwAfterlife's expansion: a dies trigger making 1/1 flying Spirit tokens (kgen expandedKeywords; compared through the stack and the tokens), no battlefield characteristic",
+	"Afflict":           "gorge kwAfflict's expansion: a becomes-blocked trigger making the defending player lose N life (kgen expandedKeywords; compared through the stack and life), no battlefield characteristic",
+	"For Mirrodin":      "gorge kwForMirrodin's expansion: an ETB trigger making a 2/2 red Rebel token and attaching the Equipment to it (kgen expandedKeywords; compared through the token and the attachment), no battlefield characteristic",
 }
 
 // gorgeKw maps one gorge keyword to its kernel bit. ok is false for a

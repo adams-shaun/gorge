@@ -36,7 +36,7 @@ func TestXAskCountsPoolAndWindow(t *testing.T) {
 	sc.perm(id["Savannah Lions"], 1)
 	s.pl[0].pool[kop.R] = 3
 	gn := sc.hand(id["Goblin Negotiation"], 0)
-	sc.do(t, AkCast, uint8(gn), 0xff)
+	sc.do(t, AkCast, TCode(gn), scAny)
 	for i := 0; i < 6; i++ {
 		d := s.Step()
 		if d.Kind == DkChoose && d.Sub == ChX {
@@ -89,7 +89,7 @@ func TestTargetReducedFlashbackOffered(t *testing.T) {
 		d := s.Step()
 		got := false
 		for _, a := range d.Options[:d.N] {
-			if a.Kind() == AkCast && a.Source() == uint8(lr) && a.Mode()&2 != 0 {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(lr)) && a.Mode()&2 != 0 {
 				got = true
 			}
 		}
@@ -131,7 +131,7 @@ func TestGreatwurmOwnPermissionUnpayableNotAmbiguous(t *testing.T) {
 	s.place(qg, kop.ZoneGraveyard, false)
 	d := s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(qg) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(qg)) {
 			return
 		}
 	}
@@ -177,7 +177,7 @@ func TestScriptSearchCountsXCast(t *testing.T) {
 		d := s.Step()
 		got := false
 		for _, a := range d.Options[:d.N] {
-			if a.Kind() == AkActivate && a.Source() == uint8(pick) {
+			if a.Kind() == AkActivate && a.Source() == TCode(uint8(pick)) {
 				got = true
 			}
 		}

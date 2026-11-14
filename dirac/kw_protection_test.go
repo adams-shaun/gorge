@@ -33,10 +33,10 @@ func TestPrintedProtection(t *testing.T) {
 	if !sc.s.canBlock(sc.k, sc.slot(gb), sc.slot(a)) {
 		t.Fatal("a green creature could not block protection from black")
 	}
-	if n := sc.s.replDamage(sc.k, 1, sc.slot(bb), black, uint8(a), false, 3); n != 0 {
+	if n := sc.s.replDamage(sc.k, 1, sc.slot(bb), black, TCode(a), false, 3); n != 0 {
 		t.Fatalf("damage from a black source: %d, want 0 (prevented)", n)
 	}
-	if n := sc.s.replDamage(sc.k, 1, sc.slot(gb), green, uint8(a), false, 3); n != 3 {
+	if n := sc.s.replDamage(sc.k, 1, sc.slot(gb), green, TCode(a), false, 3); n != 3 {
 		t.Fatalf("damage from a green source: %d, want 3", n)
 	}
 	sc.s.perms[sc.slot(a)].ovr.flags |= ovLoseAllEOT
@@ -72,13 +72,13 @@ func TestPrintedProtectionQuality(t *testing.T) {
 	if !sc.s.canBlock(sc.k, sc.slot(b), sc.slot(a)) {
 		t.Fatal("a plain creature could not block")
 	}
-	if n := sc.s.replDamage(sc.k, 1, sc.slot(g), golem, uint8(a), false, 3); n != 0 {
+	if n := sc.s.replDamage(sc.k, 1, sc.slot(g), golem, TCode(a), false, 3); n != 0 {
 		t.Fatalf("damage from an artifact: %d, want 0", n)
 	}
-	if n := sc.s.replDamage(sc.k, 1, NoSlot, golem, uint8(a), false, 3); n != 0 {
+	if n := sc.s.replDamage(sc.k, 1, NoSlot, golem, TCode(a), false, 3); n != 0 {
 		t.Fatalf("damage from a departed artifact source: %d, want 0", n)
 	}
-	if n := sc.s.replDamage(sc.k, 1, sc.slot(b), bear, uint8(a), false, 3); n != 3 {
+	if n := sc.s.replDamage(sc.k, 1, sc.slot(b), bear, TCode(a), false, 3); n != 3 {
 		t.Fatalf("damage from a plain creature: %d, want 3", n)
 	}
 }
