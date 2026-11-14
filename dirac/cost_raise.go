@@ -26,7 +26,7 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj, pips *[k
 		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
 			return
 		}
-		if st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetOK(k, st.Filter2, p, c) {
+		if st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetOK(k, st.Filter2, ctx.ctrl, c, ctx.srcSl) {
 			return // a ValidTarget$ raise: the charge with a matching target only (cost_reducespell.go)
 		}
 		n := 1

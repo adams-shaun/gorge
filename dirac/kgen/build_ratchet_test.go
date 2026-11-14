@@ -259,8 +259,9 @@ import (
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
+// +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
 // +8 (MBC costs-9: Morph PayLife<N> as CardDef.MorphLife and a trigger's own hybrid mana cost as kop.PayManaF: Zombie Cutthroat, Emiel the Blessed, Alesha, Who Smiles at Death, Kels, Fight Fixer, Rodolf Duskbringer, Shu Yun, the Silent Tempest, Slinza, the Spiked Stampede, Taeko, the Patient Avalanche; ALL build-level 23525 -> 23533 measured; merged against land 23687 -> 23696).
-var buildAcceptancePin = [2]int{23696, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23809, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
