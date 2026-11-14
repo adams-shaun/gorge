@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -173,6 +175,78 @@ func (s *State) grantIdx(k *prep, sl Slot) int {
 		return -1
 	}
 	return int(gi[0])
+}
+
+// ownSacGrantTap is the planner's side of availGrant's ownSac shape: the
+// granted {T} mana ability beside sl's printed sacrifice-only one, an
+// Eldrazi Spawn under Path of Annihilation (CR 602.2b, 605.1a). nil when
+// the grant is a sacrifice itself, restricted, or cannot be activated now
+// (a tapped or summoning-sick source has only the sacrifice, CR 302.6): the
+// census credits no tap for those either.
+//
+//go:noinline
+func (s *State) ownSacGrantTap(k *prep, sl Slot) *pcard {
+	if k.gen == nil || !k.sacOnlyMana {
+		return nil
+	}
+	var gi [maxGrants]int16
+	ng := s.grantIdxs(k, sl, &gi)
+	for i := 0; i < ng; i++ {
+		if k.gen.grantRestr[gi[i]] != 0 {
+			continue
+		}
+		g := s.grantView(k.gen, gi[i], sl)
+		if !g.grantSac && s.canTapForManaPC(k, sl, g) {
+			return g
+		}
+	}
+	return nil
+}
+
+// planGrantUnit adds gt, a granted mana view of sl, as its own unit of the
+// planner beside the printed unit the loop emitted: the tap unit of
+// ownSacGrantTap, shaped like a grant-only source's unit (manaPCGen returns
+// its granted view there).
+func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard, cr bool) {
+	if pk.nu >= maxUnits || pk.nt >= maxTypes {
+		return // the caller's loop holds the same guards
+	}
+	mask, n := s.srcMaskAt(gt, sl), gt.manaN
+	dmk := mask
+	fl := uint8(bits.OnesCount8(dmk))
+	ti := -1
+	for t := 0; t < pk.nt; t++ {
+		ty := &pk.types[t]
+		if ty.mask == mask && ty.dmask == dmk && ty.n == n && ty.creat == cr && !ty.sac && !ty.sacOnly &&
+			ty.pair == 0 && ty.pain == 0 && ty.first == 0 && ty.printed == 0 && ty.flex == fl &&
+			ty.xv == ([kop.NumManaKinds]uint8{}) && !ty.rb {
+			ti = t
+			break
+		}
+	}
+	if ti < 0 {
+		ti = pk.nt
+		pk.nt++
+		pk.types[ti] = utype{mask: mask, dmask: dmk, n: n, creat: cr, flex: fl}
+		if int(n) > pk.maxN {
+			pk.maxN = int(n)
+		}
+	}
+	pk.types[ti].avail++
+	pk.units[pk.nu] = sl
+	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.utyp[pk.nu] = uint8(ti)
+	pk.rkind[pk.nu] = 0
+	// the grant's ability number names nothing on sl's own card, and
+	// fireViewAbilityCast's granted-source skip reads manaGranted, which an
+	// own-sacrifice source is not: -1 fires nothing (trig_abilitycast.go)
+	pk.rAb[pk.nu] = -1
+	pk.nu++
+	for c := 0; c < 5; c++ {
+		if dmk&(1<<c) != 0 {
+			pk.colSrc[c]++
+		}
+	}
 }
 
 // ownManaUsable reports whether sl's own card has a usable tap mana

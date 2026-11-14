@@ -1179,6 +1179,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// each source's mana facts, read once for the three passes of every phase
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
+	var grantTap [MaxPerm]*pcard // a printed sacrifice-only source's granted {T} (ownSacGrantTap)
 	var rv [MaxPerm]uint8
 	var ra [MaxPerm]int8      // the ability a restricted view is (restrViewW)
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
@@ -1200,6 +1201,21 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 			}
 			granted[i] = s.manaGranted(k, sl)
+			if k.sacOnlyMana && pcs[i].manaSacOnly {
+				// the mirror of a granted sacrifice beside a printed tap
+				// (availGrant's ownSac): a printed sacrifice-only ability
+				// beside a granted {T} is two units, the grant's tap beside
+				// the printed {C} (CR 602.2b, 605.1a). The grant is phase 2's
+				// unit: phase 1 holds only the printed sacrifice, gorge's
+				// census, so a cast its printed plan pays is planned as gorge
+				// does (the grant is the prefix search's alternative), and the
+				// grant joins only when that plan fails. A tapped or
+				// summoning-sick token has only the sacrifice (CR 302.6), as
+				// the census credits no tap for it either.
+				if grantTap[i] = s.ownSacGrantTap(k, sl); grantTap[i] != nil {
+					hasGrant = true
+				}
+			}
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
 					if pk.noChosenPair && v.wideChosen {
@@ -1424,6 +1440,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
+				if phase == 2 && grantTap[i] != nil {
+					// the granted {T} is this source's phase-2 unit beside the
+					// printed sacrifice (see the facts loop's ownSacGrantTap):
+					// gorge's planner never sees a granted ability, so a plan
+					// with one is the kernel's, reached only when the printed
+					// units have no plan
+					s.planGrantUnit(k, p, pk, sl, grantTap[i], cr)
+				}
 				if sac {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7
