@@ -36,6 +36,13 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// counter-cost and each-colour gaps but not its Taps-deferred ones,
 		// and no arm alone funded the cast.
 		"multikicked_cast_needs_rider_beside_tapx",
+		// The same Voyager Drake beside Gemhide Sliver's granted "{T}: Add one
+		// mana of any color" (a Sliver is a source only through its grant):
+		// gorge's planner census has no granted source, so the composed plan
+		// cannot pay the four mana, and no prefix search runs to tap the grant
+		// for a plain Multikicker cast. The kernel counted the Sliver and
+		// offered the cast.
+		"multikicker_plain_cast_needs_granted_mana",
 		// Eldrazi Spawn tokens beside Path of Annihilation's granted "{T}: Add
 		// one mana of any color": gorge's cast planner leaves the grant out
 		// of its census but keeps each token's printed sacrifice for {C}, a
