@@ -19,7 +19,7 @@ func (s *State) loss6Rec(k *prep, sl Slot, ts uint16, lost bool) (uint16, bool) 
 			c++
 			if k.t.Overrides[r.r.idx-1].LoseAbilities {
 				lost = true
-				ts = max(ts, r.r.ts)
+				ts = max(ts, lossTs(&k.t.Overrides[r.r.idx-1], r.r.ts))
 			}
 		}
 	}

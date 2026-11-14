@@ -12,25 +12,19 @@ package dirac
 // per-attacker player damage, noncombat damage, a pain land's, infect damage
 // too, which gives poison rather than life loss), after prevention; cleared
 // as the turn changes. Life loss that is not damage does not count. It costs
-// no State bytes: a cold-buffer record (coldLayout.dmgT) that exists only for
+// no State bytes: a cold-buffer record (coldDmgT) that exists only for
 // a table reading ExDmgOppsTaken (genPrep.anyDmgTaken); without it nothing
 // is recorded and the read is 0.
 
 // dmgTakenCold is the per-player tally, nil when the table has none.
-func (s *State) dmgTakenCold() []int16 {
-	l := s.cold.layout
-	if l == nil || l.dmgT == 0 {
-		return nil
+func (s *State) dmgTakenCold() []int16 { return coldDmgT.of(s) }
+
+var coldDmgT = newCold[int16]("dmgT", func(g *genPrep) int {
+	if g.anyDmgTaken {
+		return MaxSeats
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[plusCreRec](nil, &at, l.ctrP)
-	_ = coldView[xblkRec](nil, &at, l.xblk)
-	_ = coldView[cmdPartner](nil, &at, l.partner)
-	_ = coldView[uint8](nil, &at, l.atkLast)
-	return coldView[int16](s.cold.buf, &at, l.dmgT)
-}
+	return 0
+})
 
 // noteDmgTaken records n damage dealt to player p (saturating).
 func (s *State) noteDmgTaken(p uint8, n int) {

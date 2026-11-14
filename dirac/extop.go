@@ -74,6 +74,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtStackExileMark:
 		s.stackExileMark(k, in) // repl_stackexile.go
 		return true, true
+	case kop.ExtDmgRedirect:
+		s.redirAdd(k, in) // repl_dmgredirect.go
+		return true, true
 	case kop.ExtDmgMark:
 		s.dmgMarkAdd(k, in) // repl_dmgmark.go
 		return true, true
@@ -182,6 +185,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
+		return true, true
+	case kop.ExtRenown:
+		s.renown(k, in) // act_renown.go
 		return true, true
 	case kop.ExtCopyAllEach:
 		// the sweep's park halts the program at the OpExt (a copy's
@@ -309,6 +315,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return false, true
 	case kop.ExtPreventNext:
 		s.prevNextAdd(k, in) // repl_prevnext.go
+		return true, true
+	case kop.ExtGrantEncore:
+		s.grantEncore(k, in) // kw_encoregrant.go
 		return true, true
 	case kop.ExtTapOrUntapAll:
 		return s.tapOrUntapAllStart(), true // act_taporuntapall.go

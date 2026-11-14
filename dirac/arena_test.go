@@ -18,7 +18,8 @@ func arenaTable(ops ...kop.Op) *kop.Table {
 // arenaPrep is a prep of tbl's arena and nothing else, with s laid out for it.
 func arenaPrep(s *State, tbl *kop.Table) *prep {
 	k := &prep{gen: &genPrep{}}
-	prepArena(tbl, k.gen, &k.cold)
+	prepArena(tbl, k.gen)
+	prepCold(k.gen, &k.cold)
 	k.cold.size()
 	s.layOut(&k.cold)
 	return k

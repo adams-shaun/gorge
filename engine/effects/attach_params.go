@@ -33,6 +33,7 @@ const (
 	attachObjectAttachedTo                           // the plural "AttachedTo <referent>" family
 	attachObjectDefined                              // any other definedSpec selector
 	attachObjectParentTarget                         // ParentTarget / ParentTargeted: the parent link's whole set
+	attachObjectValid                                // "Valid <filter>" with no Choices$: every matching object (Ardenn's "any number")
 )
 
 // AttachParams is one Attach ability's parameters, compiled once.
@@ -231,7 +232,7 @@ var attachKnownKeys = [...]string{
 	"UnlessPayer",
 	"UnlessResolveSubs",
 	"UnlessSwitched",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",
@@ -283,6 +284,7 @@ func compileAttach(sa *cards.SA, tp *TargetParams) *AttachParams {
 	p := &AttachParams{src: sa.Params, n: len(sa.Params)}
 	p.Unattach = isTrue(sa.ParamStr(cards.PKUnattach))
 	p.Object, p.ObjectPresent = sa.Param(cards.PKObject)
+	p.Choices = strings.TrimSpace(sa.ParamStr(cards.PKChoices))
 	switch {
 	case p.Object == "" || p.Object == "Self":
 		p.objectKind = attachObjectSelf
@@ -292,12 +294,13 @@ func compileAttach(sa *cards.SA, tp *TargetParams) *AttachParams {
 		p.objectKind = attachObjectAttachedTo
 	case p.Object == "ParentTarget" || p.Object == "ParentTargeted":
 		p.objectKind = attachObjectParentTarget
+	case strings.HasPrefix(p.Object, "Valid ") && p.Choices == "":
+		p.objectKind = attachObjectValid
 	default:
 		p.objectKind = attachObjectDefined
 	}
 	p.EnchantSelf = sa.ParamStr(cards.PKKeyword) == "Enchant" && p.Object == "Self"
 	p.PlayerChoices = strings.TrimSpace(sa.ParamStr(cards.PKPlayerChoices))
-	p.Choices = strings.TrimSpace(sa.ParamStr(cards.PKChoices))
 	p.OptionalTrue = isTrue(sa.ParamStr(cards.PKOptional))
 	p.RememberAttached = isTrue(sa.ParamStr(cards.PKRememberAttached))
 	p.ChoicePrompt = strings.TrimSpace(sa.ParamStr(cards.PKChoiceTitle))

@@ -40,7 +40,7 @@ func oppScen(t *testing.T, gone int) (*rules.Engine, *scen, map[string]CardID) {
 		s.pl[gone].lost = true
 	}
 	if len(s.cold.discHeld) == 0 {
-		s.cold.discHeld = make([]Obj, discHeldLen)
+		s.cold.discHeld = make([]uint8, discHeldLen)
 	}
 	return e, sc, id
 }
@@ -94,9 +94,9 @@ func TestHeldDiscardBlocksFlushInOrder(t *testing.T) {
 	sc.hand(id["Plains"], 3)
 	sc.hand(id["Plains"], 3)
 	b := sc.hand(id["Plains"], 0)
-	s.holdDiscard([]Obj{a})
+	s.holdDiscard(2, []Obj{a})
 	s.holdWhole(3)
-	s.holdDiscard([]Obj{b})
+	s.holdDiscard(0, []Obj{b})
 	if s.cold.discHeld[2*discHeldBlock] != 1 {
 		t.Fatal("the third player's picks did not get their own block")
 	}

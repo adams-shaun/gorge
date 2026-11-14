@@ -20,7 +20,7 @@ func (s *State) execCold1(k *prep, in *kop.Instr) (ok, done bool) {
 		// on the battlefield; the source creature is the damage source. A
 		// planeswalker is a source too (Compel Brutality's second mode:
 		// loyalty damage, DamageSource$ ParentTarget)
-		if in.B.N == 1 {
+		if in.B.N == 1 || in.B.N == kop.DmgFromEachCtrl {
 			s.dmgSrcPlayers(k, in) // players mode (act_damagefrom.go)
 			break
 		}
@@ -726,7 +726,7 @@ func (s *State) applyAskStdmech(k *prep, a Action) bool {
 	free := -1
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
-		if DebugPrevColRecolor && r.col != 0 && r.obj == o {
+		if DebugPrevColRecolor && r.sc == 0 && r.col != 0 && r.obj == o {
 			r.col = col // the pre-690ed17f0 reading: the card's live ChosenColor
 		} else if r.col == 0 && r.sc == 0 && free < 0 {
 			free = i
