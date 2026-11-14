@@ -1876,6 +1876,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// against THAT face's own SVar table.
 				tc := observer.triggerReferents(t, id, *ev, objLKI)
 				attackersDeclaredCapture(boardOf(observer), t, id, *ev, &tc)
+				tc.TriggerAttackedPlayers = attackedPlayersCapture(t, *ev, e.declaredDefenders)
 				fireRemembered := e.triggerRememberedFor(t, *ev, id)
 				tc.TriggerRememberedStamps = e.fireTimeRememberedStamps(fireRemembered)
 				pt := pendingTrigger{
@@ -2891,6 +2892,24 @@ func attackersDeclaredCapture(b trigmatch.Board, t cards.Trigger, source state.O
 	if matched, ok := trigmatch.AttackersDeclaredMatchedAttackers(b, t, source, ev); ok {
 		tc.TriggerAttackers = matched
 	}
+}
+
+// attackedPlayersCapture is the distinct players an AttackersDeclared
+// declaration attacked, for effects.TriggerContext.TriggerAttackedPlayers: the
+// declaration scratch's defenders for a batch line (finishAttackers builds it
+// across every per-defender DeclareAttackers event), or the event's one
+// defender for a per-defender line or when a direct synthetic emit left no
+// scratch. Other trigger modes capture nothing.
+func attackedPlayersCapture(t cards.Trigger, ev events.Event, declared []state.PlayerID) []state.PlayerID {
+	if mk := t.ModeKind(); mk != cards.TriggerAttackersDeclared && mk != cards.TriggerAttackersDeclaredOneTarget {
+		return nil
+	}
+	if len(declared) == 0 || !trigmatch.AttackersDeclaredBatch(t) {
+		// A per-defender line (OneTarget, or AttackedTarget$) fires for the
+		// event's own defender only.
+		return []state.PlayerID{ev.Player}
+	}
+	return append([]state.PlayerID(nil), declared...)
 }
 
 // triggerMatches decides whether one cards.Trigger fires for ev. lki is the

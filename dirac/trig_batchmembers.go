@@ -103,7 +103,7 @@ func (s *State) cloneBatchCands(k *prep, in *kop.Instr, d *Decision) int {
 			}
 			n++
 			if d != nil {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}

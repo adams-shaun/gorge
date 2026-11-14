@@ -52,6 +52,9 @@ func TestGenBattleRefused(t *testing.T) {
 		// their ETB trigger's "any other target" (TgtAny with an Other
 		// filter)
 		"Invasion of Tarkir": true, "Invasion of Ulgrotha": true,
+		// its enters trigger's target, a non-Elf creature with power X or
+		// less (X the lands you control): PredPowerGEV PredN 2
+		"Invasion of Lorwyn": true,
 	}
 	var battles []string
 	for _, n := range names {

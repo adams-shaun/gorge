@@ -113,7 +113,7 @@ func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 			if int(d.N) >= MaxOptions-1 {
 				return s.optionsFull(d)
 			}
-			d.add(MakeAction(AkBlock, uint8(s.perms[b].obj), uint8(s.perms[a].obj), 0))
+			d.add(MakeAction(AkBlock, TCode(s.perms[b].obj), TCode(s.perms[a].obj), 0))
 		}
 	}
 	if !owed && s.blocksCompletable(k, NoSlot, NoSlot) && s.menaceDeficit(k, NoSlot, NoSlot, nil) == 0 && !s.loneAloneBlocker(k) {

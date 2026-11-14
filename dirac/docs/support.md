@@ -8,30 +8,30 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported | 4-seat |
 |---|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 27 | 0 | 6 | 21 | 21 |
-| BLB | 278 | 261 | 2 | 7 | 252 | 251 |
+| BIG | 30 | 27 | 0 | 2 | 25 | 25 |
+| BLB | 278 | 261 | 2 | 0 | 259 | 258 |
 | DFT | 276 | 255 | 0 | 4 | 251 | 251 |
-| DSK | 276 | 251 | 4 | 30 | 217 | 217 |
-| ECL | 273 | 244 | 1 | 10 | 233 | 232 |
+| DSK | 276 | 251 | 4 | 2 | 245 | 245 |
+| ECL | 273 | 244 | 1 | 0 | 243 | 242 |
 | EOE | 266 | 250 | 0 | 11 | 239 | 239 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 514 |
-| FIN | 312 | 276 | 0 | 10 | 266 | 265 |
-| FRA | 269 | 255 | 0 | 16 | 239 | 235 |
-| HOB | 172 | 159 | 0 | 6 | 153 | 151 |
-| LCI | 290 | 260 | 1 | 30 | 229 | 226 |
-| MKM | 279 | 251 | 2 | 36 | 213 | 209 |
-| MSH | 276 | 247 | 1 | 14 | 232 | 232 |
-| OTJ | 276 | 252 | 1 | 10 | 241 | 241 |
-| SOS | 270 | 257 | 0 | 8 | 249 | 249 |
-| SPM | 192 | 169 | 1 | 10 | 158 | 157 |
-| TDM | 276 | 256 | 3 | 7 | 246 | 246 |
-| TLA | 285 | 261 | 1 | 9 | 251 | 250 |
-| TMT | 194 | 183 | 0 | 13 | 170 | 169 |
+| FIN | 312 | 276 | 0 | 3 | 273 | 272 |
+| FRA | 269 | 255 | 0 | 6 | 249 | 245 |
+| HOB | 172 | 159 | 0 | 0 | 159 | 157 |
+| LCI | 290 | 260 | 1 | 21 | 238 | 235 |
+| MKM | 279 | 252 | 2 | 30 | 220 | 216 |
+| MSH | 276 | 247 | 1 | 12 | 234 | 234 |
+| OTJ | 276 | 253 | 1 | 3 | 249 | 248 |
+| SOS | 270 | 257 | 0 | 0 | 257 | 257 |
+| SPM | 192 | 169 | 1 | 2 | 166 | 165 |
+| TDM | 276 | 257 | 3 | 1 | 253 | 253 |
+| TLA | 285 | 261 | 1 | 5 | 255 | 254 |
+| TMT | 194 | 183 | 0 | 0 | 183 | 182 |
 | TRC | 337 | 301 | 0 | 32 | 269 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 264 | 0 | 18 | 246 | 245 |
-| MBC | 2188 | 1732 | 1 | 1482 | 249 | 248 |
-| ALL | 34442 | 23495 | 21 | 18192 | 5282 | 5249 |
+| MBC | 2195 | 1806 | 0 | 950 | 856 | 840 |
+| ALL | 34442 | 23758 | 20 | 17716 | 6022 | 5973 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -43,13 +43,46 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 |---|---:|
 | blb | 1500 |
 | cmd5 | 1500 |
+| dr-mbc-aaaa | 1362 |
+| dr-mbc-abbb | 1010 |
+| ev-dr-mbc-aaaa | 810 |
+| ev-dr-mbc-aaab | 200 |
+| ev-dr-mbc-aaba | 608 |
+| ev-dr-mbc-aabb | 457 |
+| ev-dr-mbc-abaa | 768 |
+| ev-dr-mbc-abab | 63 |
+| ev-dr-mbc-abba | 128 |
+| ev-dr-mbc-abbb | 328 |
+| ev-dr-mbc-baaa | 520 |
+| ev-dr-mbc-baab | 712 |
+| ev-dr-mbc-baba | 543 |
+| ev-dr-mbc-babb | 200 |
+| ev-dr-mbc-bbaa | 712 |
+| ev-dr-mbc-bbab | 520 |
+| ev-dr-mbc-bbba | 552 |
+| ev-dr-mbc-bbbb | 96 |
+| ev-std-big | 200 |
+| ev-std-dft | 200 |
+| ev-std-dsk | 11 |
+| ev-std-eoe | 200 |
+| ev-std-fin | 200 |
+| ev-std-fra | 200 |
+| ev-std-hob | 200 |
+| ev-std-lci | 168 |
+| ev-std-mkm | 264 |
+| ev-std-msh | 169 |
+| ev-std-otj | 55 |
+| ev-std-sos | 200 |
+| ev-std-spm | 200 |
+| ev-std-tdm | 200 |
+| ev-std-tla | 200 |
 | fdn | 1500 |
 | pauper | 1500 |
 | std-big | 1500 |
 | std-blb | 1500 |
 | std-dft | 1500 |
-| std-dsk | 1464 |
-| std-ecl | 1455 |
+| std-dsk | 1207 |
+| std-ecl | 1471 |
 | std-eoe | 1500 |
 | std-fdn | 1474 |
 | std-fin | 1500 |
@@ -63,7 +96,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-spm | 1500 |
 | std-tdm | 1500 |
 | std-tla | 1500 |
-| std-tmt | 1500 |
+| std-tmt | 1430 |
 | std-trc | 1500 |
 | std-trk | 1500 |
 | std-woe | 1500 |
@@ -72,14 +105,14 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-21 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+20 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 1 |
 | options | 4 |
 | options-options | 1 |
-| projection | 2 |
+| projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 2 |

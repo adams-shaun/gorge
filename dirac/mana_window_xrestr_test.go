@@ -77,7 +77,7 @@ func TestXWitnessSpendsRestrictedLeftover(t *testing.T) {
 		}
 	}
 	spell := sc.hand(xspell, 0)
-	sc.do(t, AkCast, uint8(spell), 0xff)
+	sc.do(t, AkCast, TCode(spell), scAny)
 	if d := s.Step(); d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("decision kind %d sub %d, want the X ask", d.Kind, d.Sub)
 	}

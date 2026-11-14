@@ -49,6 +49,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtExHaste:
 		s.exHaste(k, in) // static_cantblockexcept.go
 		return true, true
+	case kop.ExtAsgnGrant:
+		s.asgnGrant(k, in) // combat_asgngrant.go
+		return true, true
 	case kop.ExtMayPlayGrave:
 		s.mayPlayGrave(k, in) // cast_graveyardgrant.go
 		return true, true
@@ -78,7 +81,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.plotGrant(k) // kw_plot.go
 		return true, true
 	case kop.ExtSacDelayed:
-		s.sacDelayed(k) // kw_mobilize.go
+		s.sacDelayed(k, in) // kw_mobilize.go
 		return true, true
 	case kop.ExtCounterLose:
 		s.counterLose(k, in) // act_counterlose.go
@@ -131,11 +134,16 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtMustBeBlocked:
 		s.mustBlockExt(k, in) // combat_mustbeblocked.go
 		return true, true
+	case kop.ExtGrantKwAll:
+		s.grantKwAll(k, in) // act_grantkwall.go
+		return true, true
 	case kop.ExtSpellToLib:
 		s.spellToLib(k) // act_spelltolib.go
 		return true, true
 	case kop.ExtVote:
 		return s.voteStart(k, in), true // act_vote.go
+	case kop.ExtChoosePlayerRes:
+		return s.choosePlayerResStart(in), true // act_chooseplayerres.go
 	case kop.ExtDrawUpto:
 		return s.drawUptoStart(k, in), true // act_drawupto.go
 	case kop.ExtAttacksIfAble:
@@ -232,7 +240,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			sl := s.objs[o].slot
 			if p := s.soleOpponent(s.perms[sl].ctrl); p != 255 {
-				s.perms[sl].chosen = p
+				s.perms[sl].chosen = objWord(p)
 				s.touchSl(sl)
 			} else {
 				s.queueAsk(sl, akPlayer)
@@ -347,7 +355,7 @@ func (s *State) eachDamageSlots(k *prep, mask uint8, f kop.FilterID, out *[MaxPe
 	x := s.xtOf(e)
 	src := s.objRef(k, kop.RefSelf)
 	n := 0
-	add := func(c, ver uint8) {
+	add := func(c TCode, ver uint8) {
 		if c == NoTarget || !isObjTarget(c) {
 			return
 		}

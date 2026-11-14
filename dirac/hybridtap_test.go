@@ -38,7 +38,7 @@ func TestHybridTapOrder(t *testing.T) {
 	}
 	castRR := func(spell Obj) {
 		t.Helper()
-		sc.do(t, AkCast, uint8(spell), 0xff)
+		sc.do(t, AkCast, TCode(spell), scAny)
 		for pip := 0; pip < 2; pip++ {
 			d := sc.s.Step()
 			if d.Kind != DkChoose || d.Sub != ChGenPip {

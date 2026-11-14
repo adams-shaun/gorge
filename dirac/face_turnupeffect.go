@@ -101,7 +101,7 @@ func (s *State) askOptionsTurnUpEff(k *prep, d *Decision) bool {
 	in := &s.prog(k)[s.res.pc]
 	n := s.turnUpEffCands(k, in, &buf)
 	for _, sl := range buf[:n] {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	}
 	if in.C != turnUpPickTransform {
 		d.add(MakeAction(AkDone, 0, 0, 0))

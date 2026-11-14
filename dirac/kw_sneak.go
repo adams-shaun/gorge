@@ -164,7 +164,7 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	if DebugFacePoolOnly && !s.sneakPoolPays(k, p, c, o, &cost) {
 		return
 	}
-	d.add(MakeAction(AkSneak, uint8(o), 0, 0))
+	d.add(MakeAction(AkSneak, TCode(o), 0, 0))
 }
 
 // beginSneak casts hand card o for its sneak cost (gorge cast_begin.go
@@ -195,7 +195,7 @@ func (s *State) sneakReturnOptions(k *prep, d *Decision) bool {
 	for m := s.ctrlM[SeatIx(e.ctrl)]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.altReturnable(k, sl, e) {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
 	if d.N == 0 {
@@ -231,8 +231,8 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 		return
 	}
 	pp.flags |= pfAttacking
-	pp.atk = uint8(e.trigObj)
-	pp.bord = s.nAttackers
+	pp.atk = TCode(e.trigObj)
+	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)
 }
@@ -252,7 +252,7 @@ func (s *State) sneakEnter(k *prep, sl Slot, e *stackEntry) {
 // zone check catching it. A pool that gains such a card must add that
 // check (or refuse the card) before it can be lowered.
 func (s *State) enteringAttackLegal(k *prep, ctrl uint8, d Obj) bool {
-	t := uint8(d)
+	t := TCode(d)
 	if isPlayerTarget(t) {
 		return CodeSeat(t) != SeatIx(ctrl)
 	}

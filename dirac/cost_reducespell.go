@@ -79,15 +79,18 @@ func (s *State) offerOptCostOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.optCostOffer(k, p, c, o) {
-		d.add(MakeAction(AkCast, uint8(o), 0, 1))
+		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
 
 // raiseTargetOK: a RaiseCost static with a ValidTarget$ (Dragon's Prey)
 // applies to the spell under construction once a chosen target matches f
 // (gorge costTargetsMatch: any chosen target; a nil slice, the offer, never
-// matches). The kernel's offer prices no build, so it never applies.
-func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
+// matches). The kernel's offer prices no build, so it never applies. f reads
+// from the static's side: ctrl is its controller and src its source slot
+// (gorge staticSpecCtxNamed), so an opponent's Kasmina, Enigmatic Mentor taxes
+// a spell that targets a creature she controls, not one the caster does.
+func (s *State) raiseTargetOK(k *prep, f kop.FilterID, ctrl uint8, c CardID, src Slot) bool {
 	if DebugReduceSpellFlip || s.ctl != ctlBuild {
 		return false
 	}
@@ -96,7 +99,7 @@ func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 		return false
 	}
 	for i := 0; i < int(e.nt); i++ {
-		if s.costTargetMatch(k, f, p, e.tgt[i]) {
+		if s.costTargetMatchSrc(k, f, ctrl, e.tgt[i], src) {
 			return true
 		}
 	}
@@ -107,17 +110,17 @@ func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 // target-dependent raise (StTargetsFilter2 on a StatIncreaseCost) makes the
 // spell unaffordable, each tried as the sole selection (gorge
 // affordableTargetCandidates). A spell with no such raise keeps all n.
-func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	return s.dropTargetsOwing(k, buf, n, false)
 }
 
 // freeDropTargets is raiseDropTargets for a spell cast without paying its
 // mana cost: the raise lands on the empty cost.
-func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	return s.dropTargetsOwing(k, buf, n, true)
 }
 
-func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bool) int {
+func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bool) int {
 	e := &s.bld().e
 	defer s.unmarkCostComposition(s.markCostComposition())
 	cd := &k.t.Cards[e.card]
@@ -132,7 +135,9 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bo
 			break
 		}
 	}
-	if !has {
+	// A battlefield one (an opponent's Kasmina, Enigmatic Mentor taxing a
+	// spell that targets her side) prices it per candidate the same way.
+	if !has && !s.boardManaTgtDep(k, e.ctrl, e.card, e.obj) {
 		return n
 	}
 	var av avail
@@ -203,7 +208,7 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if s.bargainOffers(k, p, o) {
-		d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+		d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 	}
 }
 

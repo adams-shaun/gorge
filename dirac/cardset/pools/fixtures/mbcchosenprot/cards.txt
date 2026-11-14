@@ -1,0 +1,20 @@
+# The granted protection from the host's chosen color, for the oracle's
+# constructed lockstep (dirac/oracle/mbc_protection_chosencolor_test.go): Ward
+# Sliver (all Slivers), Pentarch Ward and Benevolent Blessing (the enchanted
+# creature, with the host-Aura and attachments-you-control exceptions), with
+# coloured creatures, burn and removal on the other seat to test the
+# protection against (blocking, damage, targeting and the Aura state check).
+Ward Sliver
+Pentarch Ward
+Benevolent Blessing
+Winged Sliver
+Savannah Lions
+Serra Angel
+Grizzly Bears
+Hill Giant
+Shock
+Lightning Bolt
+Terror
+Plains
+Mountain
+Swamp

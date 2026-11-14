@@ -265,7 +265,7 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 		if h.n <= 0 || !s.occ.has(h.src) || !s.occ.has(h.dst) {
 			continue
 		}
-		if s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), uint8(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src)) {
+		if s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), TCode(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src)) {
 			n, at = n+1, i
 		}
 		s.g.ro, s.g.nc = saveRO, saveNC
@@ -285,7 +285,7 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 			}
 		}
 		h := &hs[at]
-		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), uint8(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src))
+		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), TCode(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src))
 		s.g.plusBatchAsked = true
 		return true
 	}
@@ -366,7 +366,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 			if rl != nil {
 				rl.at = at
 			}
-			s.fireDamageEvGen(k, h.src, h.n, false, false, latch, uint8(s.perms[h.dst].obj), rl)
+			s.fireDamageEvGen(k, h.src, h.n, false, false, latch, TCode(s.perms[h.dst].obj), rl)
 		}
 	}
 	for i := range hs {
@@ -395,7 +395,7 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 		return 0
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 && n > 0 {
-		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), uint8(s.perms[b].obj), false, n)
+		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), false, n)
 	}
 	if n <= 0 {
 		return 0
