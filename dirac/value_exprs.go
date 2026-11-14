@@ -334,10 +334,12 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 // this turn (mode 0), who were dealt combat damage by a legendary creature
 // (mode 1, genState.cdLeg bit q) or by any source (mode 2, cdLeg bit 4+q),
 // or who were dealt any damage (mode 3, a living opponent's plDmg bit).
+// A seat that has left the game is no opponent (gorge opponentGroup walks
+// the living).
 func (s *State) oppsLostLife(p uint8, mode int16) int {
 	c := 0
 	for q := uint8(0); q < s.nSeats(); q++ {
-		if q == p {
+		if q == p || s.pl[q].lost {
 			continue
 		}
 		switch mode {

@@ -204,6 +204,19 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			}
 		}
 	}
+	// ChangesZoneAll ValidCause$ (The Madcap Jester's "a spell or ability you
+	// control causes ..."): the resolving stack object that moved the cards
+	// must satisfy the stack spec (CR 603.2). A move with no stack cause
+	// (a cost, a turn-based action) fails closed. InvertValidCause$ (Deep Gnome
+	// Terramancer's LandAbility, a land play with no stack object) names a cause
+	// no stack kind can say, so that line is left as it was.
+	if spec := t.ParamStr(cards.PKValidCause); spec != "" && t.Mode == "ChangesZoneAll" {
+		if _, inverted := t.Params["InvertValidCause"]; !inverted {
+			if !stackCauseAdmits(e.Game(), spec, e.Game().Obj(e.ActionCause()), e.ControllerOf(source)) {
+				return false
+			}
+		}
+	}
 	// Evolve$ True (CR 702.99a): the trigger fires only when the entering
 	// creature's derived power OR toughness exceeds the source's, so an
 	// equal-or-smaller creature entering does not evolve the source. The

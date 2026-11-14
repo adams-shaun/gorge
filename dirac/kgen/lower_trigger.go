@@ -1994,6 +1994,11 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			}
 			st.Cond = andCond(st.Cond, c)
 		}
+		if s.Mode == "AlternativeCost" {
+			if err := altCostSecondSVar(lc, sp, &st); err != nil {
+				return err // lower_altcostsecondsvar.go
+			}
+		}
 		if ip, ok := sp.get("IsPresent"); ok {
 			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
 				// a Level up band (lower_levelband.go): two Self presence tests
@@ -2776,6 +2781,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		st.Override = &lOverride{RemoveKw: ks}
 		lc.out.overrides = append(lc.out.overrides, st.Override)
+		if err := cantHaveKeyword(sp, st); err != nil {
+			return nil, err // lower_canthavekw.go
+		}
 	}
 	if p, ok := sp.get("AddPower"); ok {
 		if st.Power, err = lc.value(p); err != nil {

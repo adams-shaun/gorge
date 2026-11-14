@@ -604,7 +604,7 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 // linked Card.
 func compileScripts(dir string) ([]*Card, []Diag, error) {
 	var paths []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(walkRoot(dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -665,4 +665,15 @@ func compileTokens(r *Registry, cardsDir string, diags *[]Diag) error {
 		r.Tokens[stem] = c
 	}
 	return nil
+}
+
+// walkRoot is dir spelled so filepath.WalkDir descends it when it is a symlink
+// (cards-overlay.sh links cardsfolder): WalkDir Lstats its root and skips a
+// link, but a trailing separator makes the stat follow it. Child paths are
+// cleaned joins, so they keep the caller's spelling of dir.
+func walkRoot(dir string) string {
+	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		return dir + string(filepath.Separator)
+	}
+	return dir
 }

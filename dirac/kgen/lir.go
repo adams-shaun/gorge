@@ -392,6 +392,9 @@ type lInstr struct {
 	Cond lCond
 	Skip int
 	Note string // semantic note carried into the dump (not emitted)
+	// Hyb: a trigger's own PayMana cost's hybrid pips, as printed ("GW";
+	// lower_trighybrid.go), packed into the kernel instruction's F.
+	Hyb []string
 }
 
 func (in lInstr) String() string {
@@ -411,6 +414,9 @@ func (in lInstr) String() string {
 	}
 	if in.CS != "" {
 		parts = append(parts, "CS="+in.CS)
+	}
+	if len(in.Hyb) != 0 {
+		parts = append(parts, "hyb="+strings.Join(in.Hyb, ","))
 	}
 	if in.Obj2.Kind != rNone {
 		parts = append(parts, "obj2="+in.Obj2.String())
@@ -985,6 +991,7 @@ type lOverride struct {
 	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
 	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
+	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
@@ -1043,6 +1050,7 @@ type lCard struct {
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
+	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)

@@ -160,7 +160,7 @@ func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard Car
 	if s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return true // a colour or scope record
 	}
-	if g.anyDmgMark && s.dmgMarkN(rcp) > 0 {
+	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
 	}
 	if sl != NoSlot {

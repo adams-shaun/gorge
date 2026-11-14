@@ -236,6 +236,7 @@ type genPrep struct {
 	anyDelaySpell   bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
+	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
@@ -746,7 +747,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
-	prepArena(t, g, &p.cold) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
+	prepArena(t, g) // arena.go; fills g.ix, read by prepLure/prepMustBlock below
 	prepLure(t, g)
 	prepMustBlock(t, g) // combat_mustbeblocked.go
 	prepColGrant(t, g)
@@ -785,6 +786,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
+	g.anyRaiseTgt = tableRaiseTgt(t)
 	g.anyComboDyn = tableComboDyn(t)
 	g.anyComboAny = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
@@ -1812,6 +1814,21 @@ type xTargets struct {
 }
 
 // genState is the generated-table part of State.
+// prevRec is one genState.prevCol record (see the field).
+type prevRec struct {
+	obj Obj
+	col kop.ColorMask
+	// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
+	// damage its controller ctl (a player) or the creatures ctl controls
+	// would take; sc holds the kop.PrevScope* bits and col is the record's
+	// source-colour filter (0: any source; the C bits of Ext PreventDamageScope
+	// above kop.PrevScopeColourShift), not a colour to prevent. A record
+	// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+	// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
+	sc  uint8
+	ctl TCode
+}
+
 type genState struct {
 	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
 	// cskip: the combat-phase skips (act_skipphase.go). Bit p: player p skips the
@@ -2015,17 +2032,7 @@ type genState struct {
 	// gorge Effect): the card that made it and the colour chosen (col, a
 	// ColorMask bit; 0 = free) whose sources' damage it prevents
 	// (cast_altfree.go; padding before lingerM)
-	prevCol [3]struct {
-		obj Obj
-		col kop.ColorMask
-		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
-		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
-		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
-		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
-		sc  uint8
-		ctl TCode
-	}
+	prevCol [3]prevRec
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
 	// counts each creature once across extra combats). perm.flags has no free bit, so

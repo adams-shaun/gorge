@@ -155,6 +155,12 @@ type Override struct {
 	// StatContinuous static, Static.Override names an Override carrying
 	// only this removal (the static's other parts stay Continuous).
 	RemoveKw KwMask
+	// CantHaveKw: the keywords the affected permanent can't have or gain
+	// (CR 613.1f; a Continuous static's CantHaveKeyword$, always beside a
+	// RemoveKeyword$ of the same keywords: the Archetype cycle). gorge
+	// chars.derive applies it as a final filter after every layer-6 grant,
+	// so the kernel's layer-6 walk drops these bits from its result.
+	CantHaveKw KwMask
 	// WhileHost: the record lasts only while the effect's source (its
 	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay or
 	// AsLongAsInPlay; the applied record keeps the host's Obj and ver in its

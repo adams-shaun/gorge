@@ -23,6 +23,14 @@ const (
 	discHeldLen   = (MaxSeats - 1) * discHeldBlock
 )
 
+// coldDiscHeld is the held discards, for a table with OpDiscard.
+var coldDiscHeld = newCold[Obj]("discHeld", func(g *genPrep) int {
+	if g.anyDiscard {
+		return discHeldLen
+	}
+	return 0
+}).view(func(c *coldArrays) *[]Obj { return &c.discHeld })
+
 // startEachDiscard poses OpDiscard's "each player discards N" player by
 // player, controller first. A player whose whole hand goes poses no ask and the
 // chain moves on; a live ask leaves the players still to come in g.repNext for

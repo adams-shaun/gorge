@@ -35,8 +35,8 @@ func mayColdScen(t *testing.T, withGrant bool) (*scen, Obj) {
 // maxMay and no cold bytes.
 func TestMayCapCold(t *testing.T) {
 	plain, _ := mayColdScen(t, false)
-	if c := plain.s.mayCap(); c != maxMay || plain.k.gen.anyMayCold || plain.s.cold.layout.may != 0 {
-		t.Fatalf("a table with no remembered-set grant: capacity %d, flag %v, cold records %d; want %d, false, 0", c, plain.k.gen.anyMayCold, plain.s.cold.layout.may, maxMay)
+	if c := plain.s.mayCap(); c != maxMay || plain.k.gen.anyMayCold || coldMay.count(plain.s.cold.layout) != 0 {
+		t.Fatalf("a table with no remembered-set grant: capacity %d, flag %v, cold records %d; want %d, false, 0", c, plain.k.gen.anyMayCold, coldMay.count(plain.s.cold.layout), maxMay)
 	}
 	sc, o := mayColdScen(t, true)
 	s := sc.s
