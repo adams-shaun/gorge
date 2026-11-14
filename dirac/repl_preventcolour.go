@@ -44,7 +44,7 @@ func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) b
 		return !s.noPrev(k, combat) // CR 615.12
 	}
 	for i := range s.g.prevCol {
-		if r := &s.g.prevCol[i]; r.sc != 0 && s.prevScopeHit(k, r.sc, r.ctl, sl, t) {
+		if r := &s.g.prevCol[i]; r.sc != 0 && s.prevScopeHit(k, r.sc, uint8(r.ctl), sl, t) { // code-ok: a scoped record's ctl is a seat
 			return !s.noPrev(k, combat)
 		}
 	}
@@ -68,7 +68,7 @@ func (s *State) prevColCands(k *prep, col kop.ColorMask, srcSl Slot, t prevTgt, 
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.sc != 0 {
-			if !s.prevScopeHit(k, r.sc, r.ctl, srcSl, t) {
+			if !s.prevScopeHit(k, r.sc, uint8(r.ctl), srcSl, t) { // code-ok: a scoped record's ctl is a seat
 				continue
 			}
 		} else if r.col == 0 || r.col&col == 0 || DebugNoPrevCol {

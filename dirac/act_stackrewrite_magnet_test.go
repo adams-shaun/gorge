@@ -34,7 +34,7 @@ func TestKsrMagnetAsksWhichTarget(t *testing.T) {
 		bears := sc.perm(id["Grizzly Bears"], 1)
 		giant := sc.perm(id["Hill Giant"], 1)
 		foe := PlayerTarget0 + 1
-		targets := []uint8{uint8(bears), uint8(giant), foe}
+		targets := []TCode{TCode(bears), TCode(giant), TCode(foe)}
 		sc.castCard(t, sc.hand(id["Arc Lightning"], 0))
 		left := slices.Clone(targets)
 		activated := false
@@ -48,23 +48,23 @@ func TestKsrMagnetAsksWhichTarget(t *testing.T) {
 				continue
 			case d.Kind == DkTarget && len(left) > 0:
 				for j := 0; j < int(d.N); j++ {
-					if o := d.Options[j]; o.Kind() == AkTarget && slices.Contains(left, o.Target()) {
+					if o := d.Options[j]; o.Kind() == AkTarget && slices.Contains(left, TCode(o.Target())) {
 						a = o
-						left = slices.DeleteFunc(left, func(c uint8) bool { return c == o.Target() })
+						left = slices.DeleteFunc(left, func(c TCode) bool { return c == o.Target() })
 						break
 					}
 				}
 			case d.Kind == DkTarget && !activated:
 				a = MakeAction(AkDone, 0, 0, 0)
 			case d.Kind == DkPriority && d.Player == 1 && !activated:
-				a, activated = MakeAction(AkActivate, uint8(skite), 0, 0), true
+				a, activated = MakeAction(AkActivate, TCode(skite), 0, 0), true
 			}
 			sc.s.Apply(a)
 		}
 		if ask.N == 0 {
 			t.Fatal("Spellskite resolved without asking which of three targets to change")
 		}
-		var offered []uint8
+		var offered []TCode
 		for j := 0; j < int(ask.N); j++ {
 			if a := ask.Options[j]; a.Kind() != AkChoose || a.Target() != 0 || a.Mode() != 0 {
 				t.Fatalf("option %v is not a plain target pick", a)
@@ -78,11 +78,11 @@ func TestKsrMagnetAsksWhichTarget(t *testing.T) {
 		if ask.Player != 1 || !slices.Equal(offered, wantOffered) {
 			t.Fatalf("ask player %d offers %v, want seat 1 and exactly the places %v", ask.Player, offered, wantOffered)
 		}
-		sc.s.Apply(MakeAction(AkChoose, targets[pick], 0, 0))
-		var got [MaxOptions]uint8
+		sc.s.Apply(MakeAction(AkChoose, TCode(targets[pick]), 0, 0))
+		var got [MaxOptions]TCode
 		n := sc.s.copySlotTargets(&sc.s.stack[0], 0, &got)
 		want := slices.Clone(targets)
-		want[pick] = uint8(skite)
+		want[pick] = TCode(skite)
 		if !slices.Equal(got[:n], want) {
 			t.Fatalf("picked %d: Arc Lightning's targets %v, want %v", pick, got[:n], want)
 		}

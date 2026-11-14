@@ -46,10 +46,10 @@ func TestOverloadCastsAtItsCostAndSweeps(t *testing.T) {
 	if !found {
 		t.Fatalf("overloaded cast not offered: kind %d opts %v", d.Kind, d.Options[:d.N])
 	}
-	sc.do(t, AkCast, uint8(o), castOverloadTgt)
+	sc.do(t, AkCast, TCode(o), castOverloadTgt)
 	// no target is announced: "target" reads "each" (CR 702.96b)
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	sc.s.Step() // the state-based actions
 	if sc.onBF(bear) || sc.onBF(giant) {
 		t.Fatalf("overload left bear=%v giant=%v on the battlefield", sc.onBF(bear), sc.onBF(giant))

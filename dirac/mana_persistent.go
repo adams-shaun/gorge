@@ -17,8 +17,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // gorge (CombatMana within PersistentMana); here they sit beside pm, and a
 // spend takes the combat units first (apply_state_helpers.go:390-400).
 //
-// Restricted mana and an artifact's typed mana are never persistent in a Std
-// carrier (kgen refuses them), so the restricted pools still empty.
+// Restricted mana is persistent only as a State.rb batch of a restriction
+// genPrep.restrPers marks (Karn, Legacy Reforged's artifact-only {C}): the
+// units are not tallied in pm, the batch survives persistEmpty with its typed
+// bit, and pmOn stays set for the seat while it floats. Every other
+// restricted pool still empties.
 
 // DebugPersistEmpty is the mutation switch of TestPersistMutation: the step
 // boundary keeps no persistent units, as if the mana were ordinary.
@@ -64,7 +67,7 @@ func (s *State) persistSync(p uint8) {
 		s.pm[p][c] = min(s.pm[p][c], pool[c])
 		any |= s.pm[p][c]
 	}
-	if any == 0 {
+	if any == 0 && !s.rbPersist(p) {
 		s.pmOn &^= 1 << p
 	}
 }
@@ -94,12 +97,17 @@ func (s *State) persistKeep(p uint8, ec bool) [kop.NumManaKinds]uint8 {
 // persistEmpty empties both pools but the persistent units (ManaClear), at a
 // step boundary (ec: the end-of-combat step ends) and in the cleanup step.
 func (s *State) persistEmpty(ec bool) {
+	var restr [MaxSeats]uint8
 	for p := range s.pl {
 		keep := s.persistKeep(uint8(p), ec)
 		s.pl[p].pool = keep
-		s.rbClear(uint8(p))
+		s.rbClearStep(uint8(p))
+		if s.rbAny(uint8(p)) {
+			restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+		}
 	}
-	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.poolArt, s.g.defSrc = restr, [MaxSeats]uint8{}
+	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 
@@ -115,6 +123,7 @@ func (s *State) persistTurn() {
 		s.rbClear(uint8(p))
 	}
 	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 }
 

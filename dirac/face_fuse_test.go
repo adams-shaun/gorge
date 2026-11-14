@@ -115,7 +115,7 @@ func TestFusedCastResolvesBothHalves(t *testing.T) {
 	if !fusedOffered(&d, o) {
 		t.Fatalf("no fused cast offered: %v", faceCasts(&d, o))
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(o), FeatFuseFace, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(o), TCode(FeatFuseFace), castFace))
 	for i, want := range []Obj{orn, anthem} {
 		d = sc.s.Step() // pushed (CR 601.2a), then each half's target asked
 		if i == 0 && (sc.s.objs[o].card != fd || sc.s.objs[o].zone != kop.ZoneStack) {
@@ -172,7 +172,7 @@ func TestAftermathOnlyFromTheGraveyard(t *testing.T) {
 	if got := faceCasts(&d, gy); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("graveyard: face casts %v, want [1]", got)
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(gy), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(gy), 1, castFace))
 	sc.buildToStack(t)
 	if sc.s.objs[gy].card != sc.k.t.Cards[front].Faces[1] || sc.s.objs[gy].zone != kop.ZoneStack {
 		t.Fatal("Dawn is not on the stack")

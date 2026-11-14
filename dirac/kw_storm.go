@@ -26,6 +26,9 @@ func (s *State) castFromStack(k *prep, e *stackEntry) {
 	if k.gen != nil && k.t.Cards[e.card].Storm && !DebugIgnoreStorm {
 		s.queueStormPrinted(k, e)
 	}
+	if k.gen != nil && k.gen.anyDemoGrant {
+		s.queueDemonstrate(k, e) // gorge's granted walk: Conspire, Demonstrate, then Storm
+	}
 	if k.gen != nil && k.gen.anyStorm && !DebugIgnoreStorm {
 		s.queueStorm(k, e)
 	}

@@ -50,7 +50,7 @@ func (s *State) battlefieldCands(k *prep, in *kop.Instr, d *Decision) {
 			continue
 		}
 		if s.matchPermGen(k, in.F, sl, s.res.e.ctrl, src, layerFull) {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

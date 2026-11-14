@@ -109,7 +109,7 @@ func TestRestrictedGrantRefusedByHandCastCensus(t *testing.T) {
 		sc.perm(id["Ambulatory Reactor"], 1) // Pelia's ETB target
 		o := sc.hand(id[hand], 0)
 		d := sc.s.Step()
-		return hasOption(&d, MakeAction(AkCast, uint8(o), 0, 0))
+		return hasOption(&d, MakeAction(AkCast, TCode(o), 0, 0))
 	}
 	if cast(t, 2, true, "Pelia, Immortal Innovator") {
 		t.Fatal("Pelia offered on 2 Islands + Reactor + Monument: the Reactor's restricted {C} and the Monument's extra were counted for a nonartifact spell")

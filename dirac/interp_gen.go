@@ -131,6 +131,8 @@ const (
 	ChSuspendCast                             // source = a suspended card in exile; mode 1 = cast it free (gorge's suspend_cast_yes), 0 = leave it (suspend_cast_no); CR 702.62a
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
+	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
+	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -273,7 +275,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// on the pure plus-N order ask (repl_plus.go) pauses here and
 		// the answer re-executes this op, which re-reads the same map.
 		n := s.g.ndmg
-		var codes [maxDmgMap]uint8
+		var codes [maxDmgMap]TCode
 		var amts [maxDmgMap]int
 		for i := 0; i < int(n); i++ {
 			codes[i], amts[i] = s.g.dmg[i].code, int(s.g.dmg[i].amt)
@@ -290,7 +292,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&kop.DmgDivideEvenly != 0 {
 			// no division: each legal target takes total / count, rounded down
 			// (Fireball; gorge effects divideEvenlyDown), one damage batch
-			var ec [maxXTgt + 1]uint8
+			var ec [maxXTgt + 1]TCode
 			n := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &ec)
 			per := 0
 			if n > 0 {
@@ -308,7 +310,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if s.dealAnnouncedDivision(k, e, uint8(tgtSlotOf(in.Obj))) {
 			break
 		}
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		m := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &codes)
 		total := s.value(k, in.A)
 		if m == 0 || total <= 0 {
@@ -339,6 +341,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDiscard:
 		if in.C&kop.OptAsk != 0 { // Optional$ (act_optionalask.go)
 			return s.optDiscardGen(k, in, e)
+		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			if p := s.playerRef(k, in.Obj); p != 255 {
+				s.discardDefinedAll(k, p, in.F)
+			}
+			break
 		}
 		if in.F == 0 && in.C != kop.ChooseOpp {
 			return true, false
@@ -372,7 +383,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.res.askP = e.ctrl // the source's controller chooses (gorge discardChooser)
 			}
 			s.res.left = uint8(min(n, m))
-			s.res.chosen = p
+			s.res.chosen = objWord(p)
 			return false, true
 		}
 		for i := 0; i < int(pl.handN); {
@@ -585,7 +596,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if t == nil || t.TFlags&kop.TgfGiftRange != 0 && s.giftNoSlot(t, e) {
 			break
 		}
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if s.targetCands(k, t, e.ctrl, s.resSrcSlot(k), e.obj, &buf) == 0 {
 			break // nothing to choose: gorge asks no empty target
 		}
@@ -682,7 +693,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.mayWhileSrcStamp(n0, e.obj) // cast_whilesource.go
 				if in.A.N == kop.DurWhileValid {
 					for i := n0; i < s.g.nmay; i++ {
-						s.mayAt(int(i)).turn = uint16(in.F)
+						s.mayAt(int(i)).turn = mayWord(uint16(in.F))
 					}
 				}
 			}
@@ -701,7 +712,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: s.turn}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
@@ -730,17 +741,17 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				// (0 none; an emblem with a capture has no frozen number)
 				r.num = 0
 				if o := s.objRefObj(emb.Capture); o != NoObj {
-					r.num = uint8(o) + 1
+					r.num = objWord(o) + 1
 				}
 			case emb.CapturePlayer != kop.RefNone:
 				// the Effect's RememberObjects$ TargetedPlayer: the chain's player
 				// target seat + 1, read through the same playerRef the creator uses
 				r.num = 0
 				if pp := s.playerRef(k, emb.CapturePlayer); pp != 255 {
-					r.num = pp + 1
+					r.num = objWord(pp + 1)
 				}
 			default:
-				r.num = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+				r.num = objWord(s.freezeEmbNum(k, in.A, s.ctxEntry(e)))
 			}
 			if em := &k.t.Emblems[in.C]; em.Capture2 != kop.RefNone || em.CaptureRem {
 				if !s.embRemFill(em, &r) { // static_emblemrem.go
@@ -850,6 +861,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
@@ -939,7 +951,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// (gorge apply_zone.go only clears it on a battlefield
 			// leave), so a flashback re-cast reuses the first cast's
 			// answer instead of asking again
-			s.res.chosen = s.objs[o].chosen
+			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
 		} else {
 			s.res.ask, s.res.askP = raChooseType, e.ctrl
@@ -959,6 +971,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go
+		}
+		if in.C == choosePopulatePick {
+			return s.populatePick(k, in, p) // copy_picked.go
 		}
 		if s.cardCands(k, in.F, p, nil) == 0 {
 			break
@@ -1009,7 +1024,7 @@ func (s *State) slotHasExtra(e *stackEntry, i uint8) bool {
 // xtLegal rechecks extra target j at resolution.
 // divTargets lists the divided slot's legal targets in pick order (the
 // first in tgt[slot], then its extra objects).
-func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
+func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt + 1]TCode) int {
 	m := 0
 	if c := s.tgtCode(int(slot)); c != NoTarget {
 		codes[m] = c
@@ -1028,9 +1043,9 @@ func (s *State) divTargets(k *prep, e *stackEntry, slot uint8, codes *[maxXTgt +
 // targets in pick order: while casting/activating (bsDivide, gorge's
 // cast-time division ask) or among the resolving slot's legal targets
 // (gorge's division option order). 0 when no division is being asked.
-func (s *State) FeatDivideIndex(c uint8) int {
+func (s *State) FeatDivideIndex(c TCode) int {
 	if s.ctl == ctlBuild && s.bld().stage == bsDivide {
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		n := s.divPicks(&s.bld().e, s.bld().divSlot, &codes)
 		for i := 0; i < n; i++ {
 			if codes[i] == c {
@@ -1044,7 +1059,7 @@ func (s *State) FeatDivideIndex(c uint8) int {
 	}
 	k := s.k()
 	in := &s.prog(k)[s.res.pc]
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	m := s.divTargets(k, &s.res.e, uint8(tgtSlotOf(in.Obj)), &codes)
 	for i := 0; i < m; i++ {
 		if codes[i] == c {
@@ -1056,10 +1071,10 @@ func (s *State) FeatDivideIndex(c uint8) int {
 
 // answerDivide records one damage for the picked target; the last pick
 // deals the division.
-func (s *State) answerDivide(k *prep, c uint8) {
+func (s *State) answerDivide(k *prep, c TCode) {
 	e := &s.res.e
 	in := &s.prog(k)[s.res.pc]
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	m := s.divTargets(k, e, uint8(tgtSlotOf(in.Obj)), &codes)
 	x := s.xtOf(e)
 	for i := 0; i < m; i++ {
@@ -1193,7 +1208,7 @@ func (s *State) eachPlayersDiscard(k *prep, in *kop.Instr, slot uint8) (ok, done
 // slotPlayers lists the seats target slot holds as player targets, in pick order;
 // the same seat twice is one. over: more seats than ps holds.
 func (s *State) slotPlayers(k *prep, slot uint8) (ps seatSeq, over bool) {
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	m := s.divTargets(k, &s.res.e, slot, &codes)
 	for i := 0; i < m; i++ {
 		c := codes[i]
@@ -1236,6 +1251,10 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return seatOne(s.srcOwner())
 	case kop.RefPromised:
 		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
+	case kop.RefChosenPlayer:
+		return seatOne(s.chosenPlayerSeat(&s.res.e)) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return seatOne(s.chosenSeatRes()) // act_chooseplayerres.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:
@@ -1351,7 +1370,10 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 	n := s.value(k, in.A)
 	if in.C&kop.DmgMapped != 0 {
 		if s.g.ndmg < maxDmgMap && n > 0 {
-			s.g.dmg[s.g.ndmg] = struct{ code, amt uint8 }{code, uint8(n)}
+			s.g.dmg[s.g.ndmg] = struct {
+				code TCode
+				amt  uint8
+			}{code, uint8(n)}
 			s.g.ndmg++
 		} else if n > 0 {
 			s.capFull(StallDmgMap)
@@ -1469,7 +1491,7 @@ func (s *State) auraEntry(k *prep, o Obj, ctrl uint8) (host Slot, ask, stay bool
 	if k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return NoSlot, false, false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	switch s.enchantCands(k, c, ctrl, &buf) {
 	case 0:
 		return NoSlot, false, true
@@ -1555,7 +1577,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if in.Obj == kop.RefTriggerObj && o == e.obj && e.kind == seTrigger && ob.ver != e.srcVer+1 {
 		return false // the card that died has moved on (exiled from the graveyard in response): a new object
 	}
-	if in.Obj == kop.RefTriggerObj && o != e.obj && e.kind == seTrigger && s.trigObjMoved(e, ob) {
+	if in.Obj == kop.RefTriggerObj && o != e.obj && e.kind == seTrigger && s.trigObjMoved(k, e, ob) {
 		// another card that died (Valkyrie's Call's "that card", gorge
 		// Origin$ Graveyard) that has changed zones since is a new object
 		// (CR 400.7, gorge; pairs 69834 30137 35683 68528)
@@ -2311,7 +2333,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 			creator = e.obj
 		}
 		if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(act), ctrl: e.ctrl, obj: t, ver: s.objs[t].ver, creator: creator}
+			s.dly[s.ndly] = delayed{act: uint8(act), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: creator}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)
@@ -2343,7 +2365,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 // entering under p's control may enchant (its enchant ability's filter, not
 // targeting: hexproof and shroud do not count, protection does, CR
 // 303.4f, 702.16c) into out, and returns their number.
-func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]uint8) int {
+func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]TCode) int {
 	t := &k.t.Cards[c].Enchant
 	n := 0
 	for m := s.occ; m.any() && n < MaxOptions; m = m.rest() {
@@ -2354,7 +2376,7 @@ func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]uint8)
 		if s.matchPerm(k, t.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
 			!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
 			!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c)) {
-			out[n] = uint8(s.perms[sl].obj)
+			out[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}
@@ -2373,7 +2395,7 @@ const NoSubtypeIdx = 254
 // whether the batch was parked on that ask (or a multi-event batch's loud stall
 // latched) instead of dealt, so the caller's op pauses on the parked event for
 // the answer to re-execute it.
-func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool {
+func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool {
 	kw := s.srcKw(k)
 	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
 		return true
@@ -2391,6 +2413,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
+			s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
@@ -2437,9 +2460,9 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int, park bool) bool 
 	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, NoTarget, &agg)
+			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
-			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, NoTarget, &agg)
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, TCode(NoTarget), &agg)
 		}
 		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}

@@ -91,6 +91,8 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		}
 	}
 	owner := lRef{Kind: rYou}
+	dp, _ := ps.get("DefinedPlayer")
+	eachOpp := lc.repeatPl == 0 && handOwnersEachOpp(dp)       // lower_handmoveeach.go
 	if o, ok, err := lc.handMoveDefinedOwner(ps); err != nil { // lower_handmove.go
 		return err
 	} else if ok {
@@ -185,7 +187,11 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		}
 		cs = append(cs, "ForgetOther")
 	}
-	lc.emit(lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
+	in := lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")}
+	if eachOpp && owner.Kind == rEachOpp {
+		return lc.handMoveEachOpp(in, counted) // lower_handmoveeach.go
+	}
+	lc.emit(in)
 	return nil
 }
 
@@ -375,6 +381,14 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 		// player): repeatEachPlayers rewrites rRemembered to RefEach
 		ps.consume("DefinedPlayer")
 		return lRef{Kind: rRemembered}, true, nil
+	}
+	if lc.repeatPl == 0 && handOwnersEachOpp(dp) {
+		// "each other player may put a creature card from their hand onto
+		// the battlefield" (Hunted Wumpus): the owners are the opponents
+		// (gorge definedSpecOpponent: AliveFrom(controller) without the
+		// controller), handMove walks them (lower_handmoveeach.go)
+		ps.consume("DefinedPlayer")
+		return lRef{Kind: rEachOpp}, true, nil
 	}
 	if strings.TrimSpace(dp) != "Targeted" {
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)

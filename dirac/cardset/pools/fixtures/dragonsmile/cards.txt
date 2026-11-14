@@ -1,0 +1,9 @@
+# the Dragon's Smile pool: its non-granting {0} alternative for a spell cast
+# from exile beside the plain cast its combat-damage Effect permits, with
+# Hill Giant to crew it, cheap red spells to exile and cast, and basics
+# (dirac/oracle/dragons_smile_alt_cost_test.go)
+Dragon's Smile
+Hill Giant
+Raging Goblin
+Shock
+Mountain

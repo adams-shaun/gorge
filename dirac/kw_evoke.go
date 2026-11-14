@@ -99,7 +99,7 @@ func (s *State) offerEvokeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	if s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castEvokeTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castEvokeTgt, 0))
 }
 
 // adamantOf is the ExAdamant expression the ability's trigger condition
@@ -160,7 +160,7 @@ func (s *State) evokeEnter(k *prep, e *stackEntry) {
 			continue
 		}
 		if x, ok := abAdamantOf(k.t, &k.t.Cards[pt.card].Abilities[pt.ab]); ok {
-			pt.x = uint8(spcCount(e.spc, uint(x.N&7)))
+			pt.x = objWord(spcCount(e.spc, uint(x.N&7)))
 		}
 	}
 	if st := DebugEvokeStats; st != nil && k.t.Cards[e.card].HasEvoke {

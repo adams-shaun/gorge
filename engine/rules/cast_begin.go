@@ -1012,6 +1012,9 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	e.cast = e.newCast(p, id, o.Zone, "play", -1)
 	e.cast.cost, e.cast.mods, e.cast.replaceGraveyard = cost, mods, replaceGraveyard
 	e.cast.playManaConversion = manaConversion
+	// CR 903.8: a Play cast from the command zone, free or not, still pays the
+	// commander tax (Geode Golem), as beginCast captures it.
+	e.cast.taxGeneric = e.commanderTaxAmount(p, id)
 	// The either-or additional cost rides a Play cast too, free or not (CR
 	// 118.9d: Etali, Primal Storm casting Eaten Alive still sacrifices a
 	// creature or pays {3}{B}).

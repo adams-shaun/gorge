@@ -72,7 +72,7 @@ func (s *State) conspireOptions(k *prep, d *Decision) bool {
 	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 		sl := m.first()
 		if !s.picked(s.perms[sl].obj) && s.conspireCand(k, sl, want) {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			n++
 		}
 	}

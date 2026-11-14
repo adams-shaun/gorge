@@ -117,7 +117,9 @@ const (
 	// own count). It reads the object's per-turn census (object.acts), which
 	// counts every non-mana activation of the object, so the lowering admits
 	// only a card whose one non-mana activated ability is the counted one.
-	// Dragon Whelp.
+	// Dragon Whelp. N 1 reads the evaluating source's count instead, the
+	// one being offered not included: the ActivationLimit$ N offer gate
+	// (gorge activationLimitBlocked; Fire-Belly Changeling).
 	ExActivations
 	// ExLifeLostLastTurn: the life the evaluating controller lost during the
 	// previous turn (gorge PlayerCountPropertyYou$LifeLostLastTurn, the
@@ -243,8 +245,11 @@ type Cond struct {
 // life total, OppExtHand the cards in hand, OppExtGrave the cards in the
 // graveyard, OppExtValid the battlefield permanents matching F read from
 // that opponent's side ("YouCtrl" is the opponent's). OppExtLowest in N
-// takes the lowest, else the highest. An empty group reads 0. Explicit
-// ordinal, the iota tail stays untouched.
+// takes the lowest, else the highest. OppExtNonTrigPl in N swaps the group
+// for every living player but the current trigger entry's trigger player,
+// the controller included (gorge nonTriggeredTargetGroup,
+// PlayerCountDefinedNonTriggeredTarget$; no trigger entry excludes no one).
+// An empty group reads 0. Explicit ordinal, the iota tail stays untouched.
 const ExOppExtreme ExprKind = 220
 
 // ExOppExtreme's N.
@@ -255,6 +260,9 @@ const (
 	OppExtGrave  = 4
 	OppExtValid  = 5
 	OppExtLowest = 0x100
+	// OppExtNonTrigPl: the group is the living players but the trigger
+	// player (Battle Angels of Tyr's "more than each other player")
+	OppExtNonTrigPl = 0x200
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits
@@ -485,7 +493,9 @@ const ExAttackedTurn ExprKind = 235
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
 // HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
 // opponent dealt combat damage this turn by any source (the bare head
-// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver), N 3 the living
+// opponents dealt any damage this turn, combat or not (gorge
+// PlayerCountOpponents$HasPropertywasDealtDamageThisTurn, Gnoll War Band).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1
