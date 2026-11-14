@@ -134,6 +134,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtMustBeBlocked:
 		s.mustBlockExt(k, in) // combat_mustbeblocked.go
 		return true, true
+	case kop.ExtKwMark:
+		s.kwMarkExt(k, in) // kw_kwmark.go
+		return true, true
+	case kop.ExtGrantKwAll:
+		s.grantKwAll(k, in) // act_grantkwall.go
+		return true, true
 	case kop.ExtSpellToLib:
 		s.spellToLib(k) // act_spelltolib.go
 		return true, true
@@ -154,6 +160,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.leaveCombat(sl) // combat_noncreature.go
 		}
 		return true, true
+	case kop.ExtChangeText:
+		return s.changeTextStart(k, in), true // act_changetext.go
 	case kop.ExtClearImprinted:
 		s.g.nimp = 0
 		return true, true
@@ -174,6 +182,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtSuspect:
 		s.suspectExt(k, in) // act_suspect.go
+		return true, true
+	case kop.ExtRenown:
+		s.renown(k, in) // act_renown.go
 		return true, true
 	case kop.ExtCopyAllEach:
 		// the sweep's park halts the program at the OpExt (a copy's
@@ -298,6 +309,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtPreventNext:
 		s.prevNextAdd(k, in) // repl_prevnext.go
 		return true, true
+	case kop.ExtTapOrUntapAll:
+		return s.tapOrUntapAllStart(), true // act_taporuntapall.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

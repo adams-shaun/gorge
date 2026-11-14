@@ -212,6 +212,9 @@ func (s *State) resolveTop(k *prep) {
 			s.afterResolve()
 			return
 		}
+		if k.ascend {
+			s.spellBlessing(k, &e) // CR 702.131a, before the program reads it (kw_ascend.go)
+		}
 	case seTrigger, seAbility:
 		if e.ab == abProwess {
 			ob := &s.objs[e.obj]
@@ -819,6 +822,10 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VSelfPower, kop.VSelfToughness:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if e.obj != NoObj && (e.kind == seSpell || s.objs[e.obj].ver != e.srcVer+1) {
+				// not a departed source's last known P/T: the card itself
+				s.offZonePTRead(k, e.card, s.objs[e.obj].owner(), e.obj) // static_offzonept.go
+			}
 			c := &k.cards[e.card]
 			pw, t := int(c.power), int(c.tough)
 			if e.kind != seSpell && e.obj != NoObj {
@@ -953,6 +960,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return n
 	}
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
@@ -1020,6 +1028,8 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 	case kop.RefEachOpponent:
 		// gorge Defined$ Opponent: AliveFrom(controller) without it
 		return s.oppsFrom(s.res.e.ctrl)
+	case kop.RefTriggerOpponents:
+		return s.triggerOpps() // trig_triggeropps.go
 	}
 	return seatOne(s.playerRef(k, r))
 }

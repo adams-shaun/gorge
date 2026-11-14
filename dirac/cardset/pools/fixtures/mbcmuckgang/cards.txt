@@ -1,0 +1,11 @@
+# The Muckslinger Gang pool: its battlefield "+3/+3 while not attacking or
+# blocking" beside its AffectedZone$ All off-battlefield grant (a marker the
+# kernel stalls on), against burn and a blocker; no card here reads an
+# off-battlefield power or toughness (dirac/oracle/mbc_zone_moves_four_lowers_test.go)
+The Muckslinger Gang
+Grizzly Bears
+Swamp
+Mountain
+Forest
+Raging Goblin
+Shock

@@ -1,0 +1,15 @@
+# The MBC protection-from-mana-value lowering for the oracle's constructed
+# lockstep (dirac/oracle/mbc_protectionmv_lowers_test.go): Mistmeadow Skulk's
+# "protection from mana value 3 or greater" and Reaver Titan's "protection
+# from mana value 3 or less", beside X burn that reads the announced X in its
+# own mana value (Torch Breath, CR 202.3e, 601.2b) and fixed-cost burn.
+Mistmeadow Skulk
+Reaver Titan
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Torch Breath
+Shock
+Lightning Bolt
+Plains
+Mountain
