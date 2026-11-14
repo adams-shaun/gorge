@@ -957,6 +957,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return n
 	}
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
