@@ -92,6 +92,11 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		if mode == 1 {
 			o.kind = okTap
 		}
+	case dirac.ChGenTapOrUntapAll:
+		o.kind, o.obj = okUntap, noObj // gorge's taporuntapall "tap" / "untap", no object
+		if mode == 1 {
+			o.kind = okTap
+		}
 	case dirac.ChGenLookAck:
 		o.kind, o.obj = okYes, noObj // gorge's look_ack "Continue"
 	case dirac.ChGenChooseCard, dirac.ChGenChooseEach, dirac.ChGenResTarget:

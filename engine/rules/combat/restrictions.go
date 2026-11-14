@@ -523,8 +523,11 @@ func AttackBlocked(b Board, id state.ObjID, defender state.PlayerID, attacked st
 		if !effects.CantAttackParamsReadableForRules(sv.Params) || !b.StaticGateHolds(sv) {
 			continue
 		}
+		// The defender predicate is matched in the static's own spec context with the
+		// layer tables bound (LandSpecCtx binds them for any (you, source) pair), so
+		// "controlsIsland" sees a land that became an Island (Sealock Monster).
 		if spec := strings.TrimSpace(sv.ParamStr(cards.PKUnlessDefender)); spec != "" &&
-			effects.UnlessDefenderHolds(b.Game(), spec, defender, sv.Controller, sv.Source) {
+			effects.UnlessDefenderHolds(b.Game(), spec, defender, sv.Controller, b.LandSpecCtx(sv.Controller, sv.Source)) {
 			continue
 		}
 		spec := sv.ParamStr(cards.PKValidCard)

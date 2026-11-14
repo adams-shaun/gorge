@@ -18,6 +18,56 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // by name: gorge returns after the whole flush, which the parked moves cannot
 // reproduce once the frame has closed (flushSac).
 
+// sacReturnHold reports whether an until-leaves return waits where a sacrifice
+// would park its CR 616.1 ask (sacDelayPark): a departed permanent's cards wait
+// to come back (nretHeld), the returns batch is already parked on an ask
+// (retHold), or the permanent to sacrifice holds a link to return — gorge
+// returns after the whole departure batch, which the parked move cannot
+// reproduce once the frame has closed (zone_untilleavesbatch.go). The
+// sacrifice then happens now and dieZone stalls by name, as before.
+func (s *State) sacReturnHold(ord []Slot) bool {
+	if s.g.nretHeld != 0 || s.g.retHold {
+		return true
+	}
+	for _, sl := range ord {
+		o := s.perms[sl].obj
+		for i := 0; i < int(s.g.nlinks); i++ {
+			if l := &s.g.links[i]; l.src == o && s.objs[o].ver == l.sver+1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// sacDelayPark parks a delayed trigger's sacrifice (resolveDelayed's
+// OpSacrifice, an evoke's or an AtEOT mover's) when its move to the graveyard
+// is one two or more exile-instead replacements compete for (CR 616.1): gorge
+// leaves the permanent where it is, asks its controller for the order, and
+// makes the sacrifice with the move, after the answer (runParkedMass). false
+// parks nothing: the move does not compete, the move already waits on an ask,
+// the departures hold an until-leaves return the parked move cannot place
+// (sacReturnHold), or the queue cannot hold it — the move happens now and
+// dieZone stalls by name, as before.
+func (s *State) sacDelayPark(k *prep, sl Slot) bool {
+	o := s.perms[sl].obj
+	if !s.graveMoveCompetes(k, o) || s.parkedWaitingOn(o) {
+		return false
+	}
+	var ord [1]Slot
+	ord[0] = sl
+	if s.sacReturnHold(ord[:]) {
+		return false
+	}
+	if !s.park(k, o, parkMass, 0) {
+		return false
+	}
+	if r := s.parkedMassOf(o); r != nil {
+		r.fl |= parkSacd
+	}
+	return true
+}
+
 // sacParkFrom parks the first move of ord that competes and returns its
 // index (len(ord) and false when none does). A competing move the queue
 // cannot hold stalls by name.

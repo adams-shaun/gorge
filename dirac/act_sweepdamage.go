@@ -64,6 +64,9 @@ func (s *State) sweepReplCompete(k *prep, src Slot) bool {
 			c++
 		}
 	}
+	if g.anyRedir {
+		c += s.redirLive() // a redirect on some hit's recipient is one more replacement (repl_dmgredirect.go)
+	}
 	if g.anyDmgMark {
 		c += s.dmgMarkTotal() // a mark on some hit's recipient is one more replacement (repl_dmgmark.go)
 	}
