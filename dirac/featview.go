@@ -293,7 +293,7 @@ func (s *State) FeatArrangeGraveyard() bool {
 // FeatArrangeDig reports whether the ChArrange decision is a dig's rest
 // ordered onto the bottom (gorge's "dig_bottom" options).
 func (s *State) FeatArrangeDig() bool {
-	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange
+	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange && !s.digArrangeTop(s.k())
 }
 
 // FeatArrangePlace reports whether the ChArrange decision is an owner ordering

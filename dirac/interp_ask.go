@@ -323,6 +323,9 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			chooseCardTypeOptions(d, kop.TypeMask(c))
 			break
 		}
+		if s.midTypeOptions(k, &s.prog(k)[r.pc], d) { // ValidTypes$ (act_choosetype.go)
+			break
+		}
 		for v := range k.t.TypeVocab {
 			d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 		}
@@ -1003,10 +1006,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenDigArrange:
 		o := Obj(a.Source())
 		pl := &s.pl[s.g.pickP]
-		s.detach(o)
-		s.objs[o].zone = kop.ZoneLibrary
-		s.objs[o].ver++
-		pl.libBottom(o)
+		if s.digArrangeTop(k) {
+			s.digArrangeTopPick(o) // zone_digtoporder.go
+		} else {
+			s.detach(o)
+			s.objs[o].zone = kop.ZoneLibrary
+			s.objs[o].ver++
+			pl.libBottom(o)
+		}
 		for i := 0; i < int(s.g.nlook); i++ {
 			if s.resArm().look[i] == o {
 				s.g.lookSel |= 1 << i
@@ -2270,7 +2277,7 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
-		s.res.ask, s.res.askP = raGenDigArrange, p
+		s.res.ask, s.res.askP = raGenDigArrange, s.digArrangeAsker(k)
 		return true
 	}
 	if z == kop.ZoneBattlefield {

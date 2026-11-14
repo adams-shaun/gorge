@@ -148,13 +148,13 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
-	// +31 (MBC values-3: an activated {X} ability's X..X target slot, Orcish Settlers, Alexi, Zephyr Mage, Candelabra of Tawnos, Floodwater Dam, Magus of the Candelabra, Mishra's Helix, Synod Artificer; the opponents dealt damage this turn, Gnoll War Band, Furious Spinesplitter, War Elemental; a power <= / < a value and the TREASURE counter, Legacy's Allure, Goma Fada Vanguard and A-, Radha's Firebrand and A-, Auron, Venerated Guardian, Beguiler of Wills, Desperate Plea, Earthshape, Exert Influence, Invasion of Lorwyn, Killing Glare, Kraken of the Straits, Lena, Selfless Champion, Minamo Sightbender, Nightmare Unmaking, Nimbus Champion, Sage-Eye Avengers, Temporary Insanity, Unified Strike, Unliving Psychopath; ALL 23525 -> 23556, MBC 1740 -> 1743 (Orcish Settlers, Gnoll War Band, Legacy's Allure), DMU 198 -> 199 (Radha's Firebrand), MOM 203 -> 204 (Invasion of Lorwyn) measured).
-	"ALL": {23609, 34442},
+	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
+	"ALL": {23618, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {220, 280},
+	"BRO": {221, 280},
 	"DFT": {255, 276},
-	"DMU": {199, 270},
+	"DMU": {198, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -166,9 +166,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	"MBC": {1761, 2188},
-	"MKM": {251, 279},
-	"MOM": {204, 296},
+	"MBC": {1769, 2188},
+	"MKM": {252, 279},
+	"MOM": {203, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},

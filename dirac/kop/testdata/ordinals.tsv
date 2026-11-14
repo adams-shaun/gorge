@@ -279,6 +279,7 @@ DigRandomOrder	untyped int	16
 DigRemember	untyped int	64
 DigRestShift	untyped int	0
 DigRestTop	untyped int	256
+DigRestTopAsk	untyped int	272
 DigReveal	untyped int	32
 DigRevealToCtrl	untyped int	512
 DigTakeToTop	untyped int	128
@@ -1376,6 +1377,7 @@ Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 Tf5OppCause	TrigFlags5	4
+Tf5OptSrcCtrl	TrigFlags5	64
 Tf5TapperNonActive	TrigFlags5	32
 Tf5TapsForMana	TrigFlags5	16
 TfCombat	TrigFlags	4

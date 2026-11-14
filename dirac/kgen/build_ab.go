@@ -1653,6 +1653,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4OptTrigPlayer
 	}
+	if t.OptSrcCtrl && (!t.Optional || t.Event != "DamageDone") {
+		return kt, fmt.Errorf("optional source controller on a %s trigger", t.Event)
+	}
 	if t.NamedCast {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)
@@ -4423,7 +4426,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		rest := zoneNames[fl["rest"]]
 		df := int(zoneMap[rest])
 		for k, b := range map[string]int{"Optional": kop.DigOptional, "RestRandomOrder": kop.DigRandomOrder, "Reveal": kop.DigReveal,
-			"RememberChanged": kop.DigRemember, "ForceRevealToController": kop.DigRevealToCtrl, "Tapped": kop.DigTapped, "RestTop": kop.DigRestTop, "ExileFaceDown": kop.DigFaceDown, "ExilerOther": kop.DigExilerOther} {
+			"RememberChanged": kop.DigRemember, "ForceRevealToController": kop.DigRevealToCtrl, "Tapped": kop.DigTapped, "RestTop": kop.DigRestTop, "RestTopAsk": kop.DigRestTopAsk, "ExileFaceDown": kop.DigFaceDown, "ExilerOther": kop.DigExilerOther} {
 			if _, ok := fl[k]; ok {
 				df |= b
 			}
