@@ -469,7 +469,7 @@ func (w *legalWalk) handWalk() {
 							Label: kp.label, Obj: id, Mode: kp.mode})
 					}
 				}
-			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && targetsAvailable() {
+			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && targetsAvailable() && e.kickedChainTargetsAvailable(p, id, f.SpellAbility()) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 			}

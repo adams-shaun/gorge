@@ -214,7 +214,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
@@ -1211,7 +1211,7 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 			return false
 		}
 	}
-	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl) {
+	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl, false) {
 		return false // TargetUnique$ chain: jointly distinct (tgt_uniqueoffer.go)
 	}
 	return true
