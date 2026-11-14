@@ -54,6 +54,9 @@ func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
 	if k.gen != nil && k.gen.anyBestow && k.t.Cards[s.cardAt(sl)].HasBestow {
 		return false
 	}
+	if k.gen != nil && k.gen.anyReconfigure && s.reconfigureAttached(k, sl) {
+		return false // CR 702.151b: an attached Reconfigure card is no creature (kw_reconfigure.go)
+	}
 	p := &s.perms[sl]
 	h := p.attached
 	if s.occ.has(h) {

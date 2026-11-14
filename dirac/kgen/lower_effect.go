@@ -4006,6 +4006,9 @@ func (lc *lowerCtx) fight(ps *params) error {
 }
 
 func (lc *lowerCtx) attach(ps *params) error {
+	if v, ok := ps.get("Unattach"); ok {
+		return lc.unattachSelf(ps, v) // lower_reconfigure.go
+	}
 	if o, ok := ps.get("Object"); ok && o != "Self" {
 		return lc.attachObject(ps, o)
 	}
@@ -4048,6 +4051,7 @@ func (lc *lowerCtx) attach(ps *params) error {
 			return lc.attachChoices(ps)
 		}
 	}
+	lc.reconfigureOther(ps) // lower_reconfigure.go
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
 		return err

@@ -1289,6 +1289,24 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.partnerWithTrigger() {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
+		case head == "Reconfigure":
+			// CR 702.151a: gorge kwReconfigure expands it into an attach and
+			// an unattach activated ability (Keyword$ Reconfigure), lowered
+			// from those lines (lc.attach); the card is flagged so the
+			// kernel's type switch (CR 702.151b, dirac/kw_reconfigure.go)
+			// knows an attached one is no creature
+			if !lc.hasKeywordLine(k) {
+				lc.refuseNode(node, "keyword %q without its ability", head)
+				continue
+			}
+			lc.out.Reconfigure = true
+		case head == "Choose a Background" && param == "":
+			// CR 702.124k: a deck-construction marker (the card may have a
+			// Background as its second commander, gorge deck.IsPartnerPair's
+			// Choose-a-Background family). Gorge expands it into no ability
+			// (rules/trigger_match.go registers kw:Choose a Background as
+			// play-free) and the adapter's commander gate reads the raw
+			// face keyword, so lowering nothing is exact.
 		case head == "Doctor's companion":
 			// CR 702.124m: a deck-construction marker (the card may be one
 			// of two commanders beside a Doctor, gorge deck.IsPartnerPair's

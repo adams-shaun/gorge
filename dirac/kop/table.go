@@ -569,6 +569,11 @@ type CardDef struct {
 	HasBestow  bool
 	BestowCost ManaCost
 	BestowTgt  TargetSpec
+	// HasReconfigure is printed Reconfigure (CR 702.151; no KwMask bit is
+	// free): while the permanent is attached it is not a creature
+	// (dirac/kw_reconfigure.go). The attach and unattach abilities are the
+	// card's own activated abilities.
+	HasReconfigure bool
 	// HasModeCost: Spree (CR 702.172a): each chosen mode i adds
 	// ModeCost[i] to the spell's total cost (kernel
 	// kw_spree.go).

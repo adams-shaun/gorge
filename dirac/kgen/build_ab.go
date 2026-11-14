@@ -4314,6 +4314,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		case "":
 		case "Remember":
 			ki.C = int16(kop.MvRemember) // RememberAttached$
+		case "Unattach":
+			ki.C = int16(kop.AttachUnattach) // Reconfigure's unattach half (CR 702.151a)
 		default:
 			return ki, fmt.Errorf("Attach CS %q", in.CS)
 		}
