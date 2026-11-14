@@ -203,6 +203,9 @@ func (e *Engine) divisionChooser(id state.ObjID) (state.PlayerID, string) {
 			return a.Attacking, "its blockers"
 		}
 	}
+	if e.defenderAssignsAttackerDamage(a) {
+		return a.Attacking, "its blockers"
+	}
 	return e.G.Active, "its blockers"
 }
 

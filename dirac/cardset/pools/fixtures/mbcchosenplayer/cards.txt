@@ -1,0 +1,9 @@
+# the mid-resolution chosen player pool: Gluntch, the Bestower's end step
+# chooses a player to put two +1/+1 counters on a creature they control, a
+# second to draw, and (in a game of three or more) a third to make two
+# Treasures; Grizzly Bears are the creatures the counters go on, and basic
+# lands cast them (dirac/oracle/mbc_chosenplayerres_test.go)
+Forest
+Gluntch, the Bestower
+Grizzly Bears
+Plains

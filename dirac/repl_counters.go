@@ -77,7 +77,11 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) int {
 	n := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
-		if g.replBits[s.cardAt(b)]&rbExileOnLeave == 0 || s.genLost(k, b) {
+		// a seat that has left the game's effects no longer apply (CR 800.4a):
+		// gorge's replacement walk (rules/object_query.go forEachObject) visits
+		// only living seats' zones, so its permanent is not consulted even
+		// though the sweep has not moved it yet (zone_leavegame.go)
+		if g.replBits[s.cardAt(b)]&rbExileOnLeave == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 			continue
 		}
 		if s.matchPerm(k, g.exileOnLeave[s.cardAt(b)], sl, s.perms[b].ctrl, b) {

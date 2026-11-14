@@ -276,6 +276,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
+		ct = lc.chosenCtrlImplied(ps, origin, ct) // lower_chooseplayermid.go
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
 		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
 		f, err := lc.pickFilter(ct) // lower_each.go
@@ -494,8 +495,22 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
+			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
+			if err != nil {
+				return err
+			}
+			dpScope, err := graveDefinedPlayer(ps, lc, dest, flags, counterKind) // lower_gravedefinedplayer.go
+			if err != nil {
+				return err
+			}
 			for i := range f.Clauses {
-				if f.Clauses[i].Owner != whoAny {
+				if chosenPool || f.Clauses[i].Owner != whoAny {
+					continue
+				}
+				if dpScope != dpNone {
+					// DefinedPlayer$ names the fetch player: gorge's pool is that
+					// player's own graveyard (effHiddenPick, not gameWide), the
+					// kernel's plain walk
 					continue
 				}
 				if f.Clauses[i].Ctrl == whoYou {
@@ -546,12 +561,38 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			f = pickConstraintFilter(f, budget, hasBudget, false)
+			// DefinedPlayer$ names the fetch player whose graveyard the pool
+			// is (gorge effHiddenPick's players; the plain graveyard walk is
+			// that player's zone already); Chooser$ Opponent asks the
+			// resolving controller's first living opponent (gorge
+			// hiddenPickChooser: Chooser$ Opponent through chooserPlayer),
+			// the kernel's SrChooserOpp read. You is the default fetch
+			// player (Forge's getDefinedPlayers(null) is "You") and the
+			// default chooser.
+			pickOwner := owner // lRef{Kind: rYou}, or the chosen player (lower_chooseplayermid.go)
+			pickLoop := lRef{}
+			if dp := ps.str("DefinedPlayer"); dp != "" && dpScope == dpNone {
+				if pickOwner, pickLoop, err = lc.pickFetchPlayer(dp); err != nil {
+					return refuse("graveyard pick %v", err)
+				}
+			}
 			cs := "from=Graveyard|" + strings.Join(flags, "|")
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: cs})
-			return nil
+			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
+				switch {
+				case ch == "You", ch == "":
+				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
+					cs += "|ChooserOpp"
+				default:
+					return refuse("graveyard pick Chooser$ %q", ch)
+				}
+			}
+			lc.pickEachLoop(pickLoop)
+			// dpScope You / Player (graveDefinedPlayer) already read the param, so
+			// pickOwner is You and emitGravePick opens the each-player loop for Player
+			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -731,7 +772,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// third from the top (gorge libraryOrderPlacementAt), read exactly
 			// for the source leaving the battlefield (Braided Quipu); another
 			// object or origin is lockstep-unverified and stays refused
-			if obj.Kind != rSelf || origin != zBattlefield {
+			if !lc.libThirdOK(obj, origin) { // lower_libthird.go
 				return refuse("library position 2 of %s from %s", refNames[obj.Kind], zoneLabel[origin])
 			}
 			in.C = kop.LibThird
@@ -1072,6 +1113,9 @@ func overrideString(o *lOverride) string {
 	if o.RemoveCreatureSub {
 		p = append(p, "rmcreaturesub")
 	}
+	if o.SetLandSub {
+		p = append(p, "setlandsub")
+	}
 	if o.AllCreatureTypes {
 		p = append(p, "allcreaturetypes")
 	}
@@ -1095,6 +1139,9 @@ func overrideString(o *lOverride) string {
 	}
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
+	}
+	if len(o.CantHaveKw) > 0 {
+		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
 	}
 	if len(o.AddKw) > 0 {
 		p = append(p, "kw="+strings.Join(o.AddKw, "&"))
@@ -1136,6 +1183,9 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Battlefield,Graveyard" {
 		return lc.originBattleGrave(ps) // lower_changezoneall.go
+	}
+	if strings.TrimSpace(ps.str("Origin")) == "Command,Graveyard" {
+		return lc.originCommandGrave(ps) // lower_cmdsweep.go
 	}
 	if strings.TrimSpace(ps.str("Origin")) == "Library,Sideboard" {
 		return lc.originLibrarySideboard(ps) // lower_sideboardsearch.go
@@ -1472,6 +1522,10 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 		in.C = rev
 		in.CS += "|FoundWithRevealed"
 	}
+	optional, err := lc.digUntilOptional(ps, who) // lower_thanactive.go
+	if err != nil {
+		return err
+	}
 	if ps.is("ImprintFound", "True") {
 		if ps.is("RememberRevealed", "True") {
 			return lc.digUntilImprint(ps, in, found, rev) // lower_digimprint.go
@@ -1488,6 +1542,9 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 			return refuse("RememberFound %q", v)
 		}
 		in.CS += "|RememberFound"
+	}
+	if optional {
+		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardDigUntil, Obj: who, Skip: 1, Note: "may reveal"})
 	}
 	lc.emit(in)
 	return nil
@@ -1604,9 +1661,11 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
-		// chooser's own objects. The kernel evaluates a ChooseCard's filter
-		// from the chooser's perspective (cardCands' p), so a YouCtrl clause
-		// is the chooser's control here (Flaming Gambit).
+		// chooser's own objects. The kernel evaluates this ChooseCard's filter
+		// from the chooser's perspective (chooseCardBase returns the asker for
+		// every chooser but RefEachOpponent, the chosen-player pick whose pool
+		// is the resolving controller's), so a YouCtrl clause is the chooser's
+		// control here (Flaming Gambit).
 		if cbp != "Chooser" {
 			return refuse("optional ChooseCard ControlledByPlayer$ %q", cbp)
 		}
@@ -1618,24 +1677,41 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if err != nil {
 		return err
 	}
+	fromDefined := false
 	if !optional {
-		// A mandatory ChooseCard's chooser is the resolving controller and
-		// its pick count is one (gorge chooseCardChoosers, choiceBounds max
-		// default 1). ChoiceTitle$ is display-only (the decision's Prompt),
-		// so any value reads; Amount$ 1 and Defined$ You are exactly the
-		// defaults, and anything else stays refused by name.
+		// A mandatory ChooseCard's chooser is the resolving controller —
+		// gorge choiceChoosers' default — and its pick count is one
+		// (choiceBounds max default 1). Defined$ ChosenPlayer / Player.Chosen
+		// is the one exception: the resolution's chosen player, this
+		// ability's one-opponent ChoosePlayer's pick (gorge choiceChoosers'
+		// ChosenPlayer spelling; Plargg and Nassari's "an opponent choses",
+		// Demonic Hordes, Wake to Slaughter, Wormfang Crab). ChoiceTitle$ is
+		// display-only (the decision's Prompt), so any value reads; Amount$ 1
+		// and Defined$ You are exactly the defaults, and anything else stays
+		// refused by name.
 		ps.consume("ChoiceTitle")
 		if v := ps.str("Amount"); v != "" && v != "1" {
 			return refuse("ChooseCard Amount$ %q", v)
 		}
 		if v := ps.str("Defined"); v != "" && v != "You" {
-			return refuse("ChooseCard Defined$ %q", v)
+			// gorge choiceChoosers: Defined$ ChosenPlayer / Player.Chosen is
+			// the resolution's chosen player — this ability's one-opponent
+			// ChoosePlayer's pick, which the kernel poses as the opponent's
+			// ask (Plargg and Nassari's OppPickOne, Demonic Hordes, Wake to
+			// Slaughter, Wormfang Crab). Without the armed choice it is
+			// unresolved and refuses.
+			if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
+				(v != "ChosenPlayer" && v != "Player.Chosen") {
+				return refuse("ChooseCard Defined$ %q", v)
+			}
+			chooser = lRef{Kind: rEachOpp}
+			fromDefined = true
 		}
+		ps.consume("Defined")
 	}
 	if optional && zone == zLibrary {
 		return lc.chooseLibraryUpTo(ps, f)
 	}
-	fromDefined := false
 	if optional {
 		// the optional battlefield path: ChoiceTitle$ is display only (as
 		// the mandatory path's), Defined$ You is the default chooser, and
@@ -1982,7 +2058,12 @@ func (lc *lowerCtx) play(ps *params) error {
 	// Spirit): gorge effPlay walks only the resolving controller's hand, whose
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
-	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
+	var saExpr string
+	var err error
+	if !playCommandZone(ps) {
+		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
+		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
+	}
 	lc.bluffPlay = false
 	if err != nil {
 		return err
@@ -2115,6 +2196,13 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		lc.playLibrary = true
 		return emit(lRef{Kind: rRemembered}, zLibrary, saExpr)
+	case "Command":
+		// P5: the resolving controller's own commanders in the command zone
+		// (Geode Golem; lower_playcommand.go)
+		if !playCommandZone(ps) || forget || replace {
+			return refuse("Play ValidZone$ Command with Valid$ %q", valid)
+		}
+		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
 		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
 			// the targeted player's hand (lower_playtgtplayer.go)
@@ -2791,6 +2879,9 @@ func (lc *lowerCtx) animate(ps *params) error {
 			return err
 		}
 	}
+	if lc.landTypeGrant && !selfDefined && strings.TrimSpace(ps.m["Types"]) == "ChosenType" {
+		return lc.animateChosenLandType(ps, obj) // lower_choosetype.go
+	}
 	_, optional := ps.m["Optional"]
 	ps.consume("OptionQuestion") // prompt text only (gorge combatfx.go); the yes/no is the same
 	if optional && obj.Kind != rSelf {
@@ -2911,6 +3002,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 		}
 	}
+	if err := lc.animateRemoveEnchantmentTypes(ps, o); err != nil { // lower_animateaura.go
+		return nil, "", false, err
+	}
 	if ps.is("AddAllCreatureTypes", "True") {
 		o.AllCreatureTypes = true
 	}
@@ -3001,7 +3095,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if k, ok := ps.get("Keywords"); ok {
-		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
+		k, err := lc.animateSelfEnchant(ps, k, o, obj, dur) // lower_animateaura.go
+		if err != nil {
+			return nil, "", false, err
+		}
+		k, err = lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}
@@ -3286,6 +3384,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 }
 
 func (lc *lowerCtx) gainControl(ps *params) error {
+	if d := ps.str("Defined"); strings.HasPrefix(d, attachGroupPrefix) {
+		return lc.gainControlAttached(ps, d) // lower_attachgroup.go
+	}
 	// NewController$ first: ParentTarget names the earlier link's player
 	// target, not this node's own (Donate)
 	to := lRef{}
@@ -3939,39 +4040,54 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
-		if m.Each && !stack {
-			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
-			// of a restriction (State.rb); several at once have no carrier
-			return refuse("loyalty ability adding several colours at once")
+		// UnlessCost$ with UnlessSwitched$ True (Thomil, the Destroyer's "you
+		// may sacrifice a creature. If you do, add {B}{B}{B}"): the resolution
+		// asks the payer and adds the mana only if they pay (lower_effect.go
+		// unless, the wrapper every resolving node's UnlessCost$ rides).
+		// Whatever follows the mana in a chain stays refused beside it, as
+		// gorge's unless gate covers the node's own effect only.
+		if _, ok := ps.get("UnlessCost"); ok && sa.Sub != nil {
+			return refuse("loyalty mana ability with UnlessCost$ and a sub-ability")
 		}
-		if m.Each {
-			// an unrestricted all-at-once production: one AddMana per colour
-			if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
-				return refuse("stack mana ability adding several colours under a restriction")
+		err := lc.unless(ps, func() error {
+			if m.Each && !stack {
+				// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
+				// of a restriction (State.rb); several at once have no carrier
+				return refuse("loyalty ability adding several colours at once")
 			}
-			for i := 0; i < len(m.Colors); i++ {
-				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+			if m.Each {
+				// an unrestricted all-at-once production: one AddMana per colour
+				if m.Restrict != nil || !amt.isConst() || amt.N < 1 {
+					return refuse("stack mana ability adding several colours under a restriction")
+				}
+				for i := 0; i < len(m.Colors); i++ {
+					lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors[i : i+1]})
+				}
+			} else if m.Choice || len(m.Colors) > 1 {
+				// a colour choice at resolution (gorge askManaChoice): one pick
+				// per mana of a Combo, one for the whole amount of Any; the
+				// kernel's AddMana takes the mask's last colour, no choice
+				if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
+					return refuse("loyalty mana choice over %q", m.Colors)
+				}
+				if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
+					return refuse("loyalty mana choice amount or restriction")
+				}
+				mode := 0
+				if !m.Choice {
+					mode = 1
+				}
+				lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
+			} else {
+				// F: a spell restriction (CR 106.6), floated as restricted
+				// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
+				// of Compliance's noncreature-only {U})
+				lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 			}
-		} else if m.Choice || len(m.Colors) > 1 {
-			// a colour choice at resolution (gorge askManaChoice): one pick
-			// per mana of a Combo, one for the whole amount of Any; the
-			// kernel's AddMana takes the mask's last colour, no choice
-			if m.Colors == "Chosen" || m.Special != "" || m.Colors == "" || strings.Trim(m.Colors, "WUBRG") != "" {
-				return refuse("loyalty mana choice over %q", m.Colors)
-			}
-			if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(m.Colors) < 2 || m.Restrict != nil || m.RestrictAb != nil {
-				return refuse("loyalty mana choice amount or restriction")
-			}
-			mode := 0
-			if !m.Choice {
-				mode = 1
-			}
-			lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
-		} else {
-			// F: a spell restriction (CR 106.6), floated as restricted
-			// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
-			// of Compliance's noncreature-only {U})
-			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 	if sa.Sub != nil && m.Split == nil { // (a Condition-split's sub is folded into m.Split)

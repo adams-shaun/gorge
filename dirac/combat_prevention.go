@@ -28,6 +28,13 @@ func (s *State) prevCombatFrom(k *prep, sl Slot) bool {
 	return k.gen != nil && k.gen.replBits[s.cardAt(sl)]&rbPrevCombatBy != 0 && !s.genLost(k, sl) && !s.noPrev(k, true)
 }
 
+// prevFromGrant reports whether the permanent at sl carries the granted
+// KwPreventCombatDamageFrom (an Effect's prevention in gorge, so a CR 616.1
+// candidate of the events it deals), not the printed "dealt by" sentence.
+func (s *State) prevFromGrant(k *prep, sl Slot) bool {
+	return s.kwGen(k, sl)&kop.KwPreventCombatDamageFrom != 0 && !s.noPrev(k, true)
+}
+
 // prevAnyTo reports whether the permanent at sl prevents every damage event
 // dealt to it, combat and noncombat ("Prevent all damage that would be dealt
 // to CARDNAME."), the printed fact gone with lost abilities or face down

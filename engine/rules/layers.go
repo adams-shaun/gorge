@@ -294,7 +294,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						if st.HasParam(cards.PKAddKeyword) || st.HasParam(cards.PKRemoveKeyword) || st.HasParam(cards.PKCantHaveKeyword) || statGrantsLure(st) {
 							kw := base
 							kw.Layer = LAbilities
-							kw.AddKeywords = withLureGrant(st, statKeywords(st))
+							kw.AddKeywords = effects.ResolveGrantedProtection(withLureGrant(st, statKeywords(st)), o)
 							if st.HasParam(cards.PKSharedKeywordsZone) {
 								// A shared-keyword grant is filtered by the cards in the
 								// named zones right now (Eater of Virtue's exile, Cairn
@@ -667,7 +667,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						// the outer spec no longer matches, grants nothing.
 						if name := strings.TrimSpace(st.ParamStr(cards.PKAddStaticAbility)); name != "" && w.depth == 0 {
 							e.staticMemoStateRead = true
-							if inners, ok := cards.ParseStaticLines(fc.SVars[name]); ok {
+							if inners := parseGrantedStatics(fc, name); len(inners) > 0 {
 								for _, inner := range inners {
 									if inner.Mode == "Continuous" &&
 										e.matchesSpecFrom(affects, id, o.Controller, id) {

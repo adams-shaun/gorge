@@ -34,10 +34,23 @@ func (lc *lowerCtx) dbManaRestrict(ps *params) (*lFilter, error) {
 		// and no special action (kop.SpmActivated)
 		return &lFilter{Clauses: []lClause{{Special: kop.SpmActivated}}}, nil
 	}
+	if m.Restrict != nil && m.RestrictAb == nil && m.NonSpell && strings.TrimSpace(rv) == "CantCastNonArtifactSpells" {
+		// artifact spells (the clause manaRestrict read) and every payment that
+		// is no spell (kop.SpmNonSpell); manaEffect lowers it beside
+		// PersistentMana$ True only
+		cl := append(append([]lClause(nil), m.Restrict.Clauses...), lClause{Special: kop.SpmNonSpell})
+		return &lFilter{Clauses: cl}, nil
+	}
 	if m.Restrict == nil || m.RestrictAb != nil || m.NonSpell {
 		return nil, refuse("DB$ Mana RestrictValid$ %q", rv)
 	}
 	return m.Restrict, nil
+}
+
+// restrictNonSpell: f is the artifact-spells-and-non-spell-payments restriction
+// dbManaRestrict lowers CantCastNonArtifactSpells to.
+func restrictNonSpell(f *lFilter) bool {
+	return f != nil && len(f.Clauses) > 1 && f.Clauses[len(f.Clauses)-1].Special == kop.SpmNonSpell
 }
 
 // restrictActOnly: f is the activated-only marker dbManaRestrict lowers an
