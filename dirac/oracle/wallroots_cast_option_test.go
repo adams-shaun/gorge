@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 )
 
 // TestWallOfRootsCastOptionAfterResolve replays the dr-mbc-bb pair whose
-// divergence this fix is for: after Wall of Roots resolved (its {G} a
+// divergence this fix is for (recorded before MBC was split by hash; the
+// table is built from the recording's own decks, pool "custom"): after Wall of Roots resolved (its {G} a
 // counter-cost gap), a priority decision for seat 0 listed gorge's
 // cast(Drumhunter {3}{G}) and cast(Irregular Cohort {2}{W}{W}) -- both need
 // Peat Bog's depletion rider ({T}, remove a depletion counter: Add {B}{B})
@@ -23,11 +23,14 @@ import (
 func TestWallOfRootsCastOptionAfterResolve(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
-	set := cardsettest.Synth(t, "dr-mbc-bb")
 	r, err := ReadRepro(filepath.Join("testdata", "repro", "tapsdefer_rider_beside_counter_cost_gap.repro.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	if r.Pool != "custom" {
+		t.Fatalf("precondition: recorded on pool %q, want custom (a named MBC split is not stable)", r.Pool)
+	}
+	set := reproSet(t, r.Pool, r)
 	if r.Divergence == nil || r.Divergence.What != "options" || r.Divergence.Field != "options" {
 		t.Fatalf("precondition: the repro is not an options divergence: %+v", r.Divergence)
 	}
