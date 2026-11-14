@@ -1624,10 +1624,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	}
 	if t.Static {
 		// Static$ True resolves off the stack before
-		// the ordering ask; kgen already proved the body ask-free
-		if t.Event != "SpellCast" || t.OrCopy {
-			return kt, fmt.Errorf("Static$ True on a %s trigger", t.Event)
-		}
+		// the ordering ask; kgen already proved the body ask-free (the
+		// SpellCast arm's rider shapes, or the eventless-body gate every
+		// other mode lowers through)
 		kt.Flags3 |= kop.Tf3Static
 	}
 	if t.ManaFromTreasure {
@@ -1793,10 +1792,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return refuse("ReduceCost ValidTarget$ mixes a Spell head with another")
 		}
-		if st.Filter2, err = filter(s.F2, zone); err != nil {
-			return err
-		}
-		return nil
+		st.Filter2, err = filter(s.F2, zone)
+		return err
 	}
 	var add []uint8
 	switch s.Kind {
@@ -1817,6 +1814,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.StFlags |= kop.StYouHexproof
 		}
+		st.StFlags |= gyContStFlag(s.Flags)
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
