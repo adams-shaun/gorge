@@ -332,7 +332,7 @@ const (
 	tapXPass                // p passes with a trigger of the path on the stack
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
-	tapXDefer               // a Taps-deferred gap (a depletion land, scriptTapsDefer) activates beside the tapX ones (tapXDeferDo)
+	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
 )
 
 type tapXKey struct {
@@ -357,6 +357,7 @@ type tapXSearch struct {
 	srcZ  kop.Zone
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
+	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
@@ -414,11 +415,9 @@ func tapXPairAt(n, qi int) (int, int) {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	// the Taps-deferred gaps (a depletion land's SubCounter activation) are
-	// census gaps of gorge's one search beside the tap-another ones (the
-	// search branches every census gap in option order, battlefield order), so
-	// a play the two pay together, or either alone, is found by one search
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.scriptTapsDefer(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
+	rs.gaps = rs.gaps.or(rs.def)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -438,7 +437,7 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 		return false
 	}
 	if apply {
-		s.tapXPlay(k, p, rs.a, rs.path[:rs.n])
+		s.tapXPlay(k, p, rs.path[:rs.n])
 	}
 	return true
 }
@@ -470,16 +469,14 @@ func (t *State) tapXNext(p uint8, d *Decision) bool {
 // tapXPlay plays the found path on s: each activation as the search made it,
 // each answer and pass as the decision then pending (gorge answers the
 // activation's asks and the stacked trigger's one at a time).
-func (s *State) tapXPlay(k *prep, p uint8, a Action, path []tapXStep) {
+func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 	n := s.Decisions
 	var d Decision
 	for _, st := range path {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXDefer {
-			s.tapXDeferDo(k, p, a, st)
-		} else if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXDefer {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -656,6 +653,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.tapXPlainDo(k, p, st.sl, st.col)
 		return
 	}
+	if st.kind == tapXDefer {
+		s.tapXDeferDo(k, p, st)
+		return
+	}
 	if st.cand == NoSlot {
 		s.ctrGap(k, p, st.sl, int(st.col)) // a counter-cost gap: its counter, its use, its mana
 		s.sba(k)                           // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
@@ -763,39 +764,6 @@ func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, live bool) (fou
 	return false, false
 }
 
-// tapXDeferAsk branches a Taps-deferred gap sl (a depletion land's SubCounter
-// activation; mana_tapsdefer.go's mask) at a search node on its activation
-// ask's answers (deferGapAnswers: one per colour the production names, plus
-// the plain first ability as answer 0 when the rider is a later one, the
-// order gorge's scriptAnswers reorders by the play's announced pips). The
-// step's activation runs the gap's own cost (tapXDeferDo). handled: the
-// search found a path (found) or ran out of nodes (!found); the caller
-// returns found then.
-func (rs *tapXSearch) tapXDeferAsk(k *prep, t *State, sl Slot) (found, handled bool) {
-	na := int(t.deferGapAnswers(k, sl))
-	if na == 0 {
-		return false, false
-	}
-	if na > 1 && !rs.tick() { // the activation ask
-		return false, true
-	}
-	for c := 0; c < na; c++ {
-		if rs.try(k, t, tapXStep{kind: tapXDefer, sl: sl, col: uint8(c)}) {
-			return true, true
-		}
-	}
-	return false, true
-}
-
-// tapXDeferDo plays a Taps-deferred step: the gap activates with its own cost
-// (scriptGapTap, the tapsdefer route's arm: a depletion land's counter, its
-// {T}, its mana, its sacrifice rider; the search returns to priority after
-// the step, so a trigger the activation queues is stacked and asked then).
-func (s *State) tapXDeferDo(k *prep, p uint8, a Action, st tapXStep) {
-	var spill [kop.NumManaKinds]uint8
-	s.scriptGapTap(k, p, a, st.sl, slotMask{}, s.scriptRestr(k, p), s.scriptAnyR(k, p), s.scriptTapsDefer(k, p), int(st.col), &spill)
-}
-
 // ctrAbilityAsk branches a second-ability counter gap sl (kop.SecondCtrTapManaAb)
 // at a search node on its ability ask: the plain first ability first, behind
 // the colour ask its any-colour production poses, the colours in the order of
@@ -833,11 +801,7 @@ func (rs *tapXSearch) try(k *prep, t *State, st tapXStep) bool {
 	}
 	c := t.fork()
 	defer t.unfork()
-	if st.kind == tapXDefer {
-		c.tapXDeferDo(k, rs.p, rs.a, st)
-	} else {
-		c.tapXDo(k, rs.p, st)
-	}
+	c.tapXDo(k, rs.p, st)
 	rs.path[rs.n] = st
 	rs.n++
 	if rs.settle(k, c, true) {
@@ -902,7 +866,6 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
 	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
-	tds := t.scriptTapsDefer(k, p)
 	var cols [5]uint8
 	rs.cols(&cols)
 	var order [MaxPerm]Slot
@@ -911,6 +874,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		sl := order[i]
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
+		}
+		if rs.def.has(sl) {
+			if found, handled := rs.deferAsk(k, t, sl); handled {
+				return found
+			}
+			continue
 		}
 		if each.has(sl) {
 			// an each-colour gap has one answer and asks nothing; tapped for
@@ -944,19 +913,6 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			}
 			if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true
-			}
-			continue
-		}
-		if tds.has(sl) {
-			// a Taps-deferred gap (a depletion land's SubCounter activation,
-			// a watcher's Defer source): gorge's search branches the
-			// activation ask's answers (deferGapAnswers, engine order with the
-			// play's announced colours first); its activation pays its own
-			// cost, so the node after it prices the play from the pool
-			// (tapXDeferDo). A member whose counters are gone left the
-			// battlefield (manaRiderEffect's sacrifice): gone from the mask.
-			if found, handled := rs.tapXDeferAsk(k, t, sl); handled {
-				return found
 			}
 			continue
 		}

@@ -352,6 +352,10 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// Ascend is printed Ascend (CR 702.131): its controller gets the city's
+	// blessing once they control ten or more permanents, and an instant or
+	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
+	Ascend bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a
@@ -471,6 +475,11 @@ type CardDef struct {
 	// reduction, evaluated for the permanent's controller and subtracted
 	// from MorphCost's generic, floored at zero (dirac/face_morphreduce.go).
 	MorphReduce ValueRef
+	// MorphLife (0 = none) is the life a keyword turn-up whose cost is
+	// PayLife<N> pays (CR 702.37e, 119.4; Zombie Cutthroat): MorphCost is
+	// then {0}, and the action is offered only while the controller's life
+	// covers N (dirac/face_morphlife.go).
+	MorphLife uint8
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so
@@ -562,6 +571,14 @@ type CardDef struct {
 	// printed spell's targeted instructions rewritten to their each-sweeps.
 	// Nil when the card cannot be modelled in bounded code.
 	OverloadProg []Instr
+	// CleaveAb is 1 + the index of a printed Cleave's second spell ability
+	// (CR 702.148a): the bracket-free text, with its own targets and program.
+	// The hand offers the cleaved cast at CleaveCost, and the stack entry
+	// carries that ability index in place of the printed one
+	// (dirac/kw_cleave.go).
+	CleaveAb uint8
+	// CleaveCost is the cleave cost (CleaveAb != 0).
+	CleaveCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,
@@ -691,6 +708,13 @@ type CardDef struct {
 	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
 	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
 	Identity ColorMask
+	// TextWords is the colour words (bits 0..4, WUBRG) and basic land type
+	// words (bits 5..9, Plains Island Swamp Mountain Forest) the face's text
+	// reads anywhere gorge's CR 612 rewrite would change them (the type line,
+	// keywords, Oracle text, SVars and every ability, trigger, static and
+	// replacement parameter; dirac/kgen textreach.go). Set only in a table
+	// that holds an ExtChangeText, so every other table is unchanged.
+	TextWords uint16
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

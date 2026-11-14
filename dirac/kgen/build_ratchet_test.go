@@ -254,9 +254,17 @@ import (
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
+// +40 (the MBC keywords-2 family: granted intimidate and infect, Static.Evasion / Static.Infect and ExtKwMark, 22 cards, and printed bloodthirst over ExDmgOppsTaken, 18 cards; named in ratchet_test.go's ALL pin; ALL build-level 23253 -> 23293 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
-var buildAcceptancePin = [2]int{23534, 34442} // {built, cards}
+// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
+// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
+// +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
+// +2 (Mind Bend and Whim of Volrath: a GenericChoice whose DB$ ChangeText bodies lower to ExtChangeText; ALL build-level merged against land 23728 -> 23730 measured).
+// +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
+// +41 (this branch's lowerings merged against land 23802 -> 23843 measured; MBC 1814 -> 1820).
+// +9 (the mana-abilities-2 lowerings merged against land: pip-fee {T} filters and kop.SacAnyManaAb; ALL build-level 23952 -> 23961 measured).
+var buildAcceptancePin = [2]int{23961, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
@@ -274,7 +282,8 @@ func TestCorpusBuildAcceptance(t *testing.T) {
 	t.Logf("ALL build-level: %d of %d build (%v)", cv.lowered, cv.cards, time.Since(start))
 	got := [2]int{cv.lowered, cv.cards}
 	if got != buildAcceptancePin && os.Getenv("KGEN_REPIN") == "1" {
-		row := regexp.MustCompile(`(?m)^(var buildAcceptancePin = \[2\]int\{)\d+, \d+(\})`)
+		row := regexp.MustCompile(`(?m)^(// +9 (the mana-abilities-2 lowerings merged against land: pip-fee {T} filters and kop.SacAnyManaAb; ALL build-level 23952 -> 23961 measured).
+var buildAcceptancePin = \[2\]int\{)\d+, \d+(\})`)
 		msg, err := repinFile("build_ratchet_test.go", row, "ALL build-level", buildAcceptancePin, got, os.Getenv("KGEN_REPIN_FALL"))
 		if err != nil {
 			t.Fatal(err)

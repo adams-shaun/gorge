@@ -858,6 +858,7 @@ type resCtx struct {
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
 	col   uint8
+	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
@@ -993,6 +994,12 @@ type stateCore struct {
 
 	// Decisions counts the decisions answered (SeqNo).
 	Decisions uint32
+
+	// payHyb: a trigger's own hybrid PayMana cost's announced faces, three
+	// bits per pip from bit 0, colour+1 (cost_trighybrid.go). Cleared when
+	// the ask settles. It sits here, after Decisions, because genState's
+	// reserve has no byte left: the byte fills the padding before perms.
+	payHyb uint8
 }
 
 const (

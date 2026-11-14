@@ -230,7 +230,7 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 
 // ovrKeptOnLoss reports whether override o has a part in layers 1 to 5.
 func ovrKeptOnLoss(o *kop.Override) bool {
-	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub ||
+	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
 		o.HasColors || o.AddColors != 0 || o.NameCard != 0
 }
 
@@ -247,7 +247,7 @@ func l4part(e *lfx) bool {
 		return true
 	}
 	o := e.o
-	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub
+	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0
 }
 
 // lfxApplies reports whether e applies to sl given the characteristics
@@ -276,6 +276,7 @@ func lfxApply4(k *prep, e *lfx, c *dchars) {
 	if o.HasTypes {
 		c.types = c.types&(keep|o.KeepTypes) | o.SetTypes
 	}
+	c.types &^= o.RemoveTypes
 	c.types |= o.AddTypes
 	if o.HasSub {
 		c.subs = c.subs.And(o.KeepSub).Or(o.SetSub)
@@ -758,7 +759,7 @@ func prepLayerWalk(t *kop.Table, g *genPrep) {
 			return false
 		}
 		ov := &t.Overrides[o-1]
-		return ov.HasTypes || ov.HasSub || ov.RemoveCreatureSub
+		return ov.HasTypes || ov.HasSub || ov.RemoveCreatureSub || ov.RemoveTypes != 0
 	}
 	var grantOther, setAny, setOtherKeep bool
 	var grantSelf, setSelf []bool

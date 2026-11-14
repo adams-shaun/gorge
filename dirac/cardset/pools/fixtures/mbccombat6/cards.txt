@@ -1,0 +1,18 @@
+# the MBC combat-6 family: an Effect-delivered combat-damage assignment grant
+# over a remembered creature -- Mode$ CombatDamageToughness (Plagon, Lord of
+# the Beach) and a mandatory Mode$ AssignCombatDamageAsUnblocked (Outmaneuver)
+# -- beside creatures to attack and block with
+# (dirac/oracle/mbc_combat6_lowers_test.go)
+Plagon, Lord of the Beach
+Outmaneuver
+Wall of Wood
+Wall of Air
+Wall of Stone
+Grizzly Bears
+Hill Giant
+Craw Wurm
+Savannah Lions
+Island
+Mountain
+Plains
+Forest

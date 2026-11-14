@@ -117,6 +117,8 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 				continue
 			}
 		}
+		s.noteDmgTaken(p, m)       // kw_bloodthirst.go
+		s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 		if k.gen != nil && k.gen.anyInfect && infect {
 			s.addPoison(p, m)
 		} else {

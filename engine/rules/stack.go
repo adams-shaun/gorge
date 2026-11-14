@@ -1211,22 +1211,39 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 // permanent and a permanent card in another zone. Forge spells both with a
 // `Permanent` base (Conduit of Worlds is a real `TgtZone$ Graveyard` example),
 // while the general matcher correctly treats a bare Permanent as a battlefield
-// object. Rewrite only the leading base token, retaining every qualifier, so
+// object. Rewrite the base token of EVERY comma alternative (Kagha's
+// `Land.YouOwn+...,Permanent.YouOwn+...`), retaining every qualifier, so
 // all target offer and target-legality callers share this rule.
 func targetSpecForZone(spec string, z state.Zone) string {
 	if z == state.ZBattlefield || z == state.ZStack {
 		return spec
 	}
-	if spec == "Permanent" {
-		return "PermanentCard"
-	}
-	if len(spec) > len("Permanent") && spec[:len("Permanent")] == "Permanent" {
-		next := spec[len("Permanent")]
-		if next == '.' || next == '+' || next == ',' {
-			return "PermanentCard" + spec[len("Permanent"):]
+	const base = "Permanent"
+	var out []byte // built lazily: most specs carry no rewritable alternative
+	for start := 0; start < len(spec); {
+		end := start
+		for end < len(spec) && spec[end] != ',' {
+			end++
 		}
+		alt := spec[start:end]
+		if len(alt) >= len(base) && alt[:len(base)] == base && (len(alt) == len(base) || alt[len(base)] == '.' || alt[len(base)] == '+') {
+			if out == nil {
+				out = append(out, spec[:start]...)
+			}
+			out = append(out, "PermanentCard"...)
+			out = append(out, alt[len(base):]...)
+		} else if out != nil {
+			out = append(out, alt...)
+		}
+		if end < len(spec) && out != nil {
+			out = append(out, ',')
+		}
+		start = end + 1
 	}
-	return spec
+	if out == nil {
+		return spec
+	}
+	return string(out)
 }
 
 // zoneIn reports whether z is one of the zones in the set.

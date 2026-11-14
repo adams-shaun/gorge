@@ -38,6 +38,8 @@ func (s *State) powerGEVFrom(k *prep, fl *kop.Filter, sl, src Slot) bool {
 		return t >= v // PredN 3: Hulkling's toughness > his own (toughnessGTZ)
 	case fl.PredN == 3:
 		return pw == v // power == the value (Amalia's powerEQ20)
+	case fl.PredN == 2:
+		return pw <= v // power <= the value (Legacy's Allure's powerLEX)
 	}
 	return pw >= v
 }
@@ -65,9 +67,12 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		return true
 	}
 	if fl.Pred == kop.PredPowerGEV {
-		pw, _ := s.ptGen(k, sl) // power >= the value PredV; PredN 3: power == PredV
+		pw, _ := s.ptGen(k, sl) // power >= the value PredV; PredN 3: power == PredV; PredN 2: power <= PredV
 		if fl.PredN == 3 {
 			return pw == s.evalV(k, fl.PredV, s.ctxCur())
+		}
+		if fl.PredN == 2 {
+			return pw <= s.evalV(k, fl.PredV, s.ctxCur())
 		}
 		return pw >= s.evalV(k, fl.PredV, s.ctxCur())
 	}
@@ -104,6 +109,9 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	}
 	if fl.Pred == kop.PredSuspected {
 		return s.suspected(k, sl) == (fl.PredN == 1)
+	}
+	if fl.Pred == kop.PredRenowned {
+		return s.renownedAt(k, sl) == (fl.PredN == 1) // act_renown.go
 	}
 	if fl.Pred == kop.PredEscaped {
 		return s.mSl(k, mechEscaped, sl) == (fl.PredN == 1) // kw_escape.go
@@ -161,6 +169,9 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	}
 	if fl.Pred == kop.PredSuspected {
 		return fl.PredN == 0 // off the battlefield nothing is suspected (gorge Object.Suspected clears on the move)
+	}
+	if fl.Pred == kop.PredRenowned {
+		return fl.PredN == 0 // off the battlefield nothing is renowned (gorge Object.Renowned clears on the move)
 	}
 	if fl.Pred == kop.PredEscaped {
 		return fl.PredN == 0 // off the battlefield nothing is escaped (gorge resets CastFlags on the move)

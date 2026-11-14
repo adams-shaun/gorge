@@ -775,6 +775,20 @@ type DelayedTrigger struct {
 	// (fail closed) from a registration that took no snapshot.
 	ChosenName       string
 	ChosenNameFrozen bool
+	// ChosenCard and ChosenCardFrozen are an Effect-created trigger's
+	// snapshot of the resolution's chosen-card set at REGISTRATION (Forge's
+	// EffectEffect copies the host's chosen cards onto the effect card it
+	// creates). The body's Card.ChosenCard(Strict) filter is re-evaluated at
+	// match time against the source object, which the chain's own
+	// `DB$ Cleanup | ClearChosenCard$ True` may have wiped by then; a bound
+	// set makes the ChosenCard predicate read THIS set instead (Azra
+	// Oddsmaker's "whenever that creature deals combat damage"). The set
+	// rides the DelayedRegister event's Text ("|CC=<id>[,<id>...]") because
+	// the event gains no field, and ChosenCardFrozen distinguishes a frozen
+	// EMPTY set (fail closed, never a card chosen later) from a registration
+	// that took no snapshot.
+	ChosenCard       []ObjID
+	ChosenCardFrozen bool
 	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
 	// BirthTurn distinguishes a later turn belonging to the effect controller
 	// from the turn in which the promise was created.
@@ -1127,6 +1141,7 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 			dt.Remembered = append([]Target(nil), dt.Remembered...)
 			dt.RememberedStamps = append([]TargetStamp(nil), dt.RememberedStamps...)
 			dt.RememberedManaSpent = append([]ManaSpentLKI(nil), dt.RememberedManaSpent...)
+			dt.ChosenCard = append([]ObjID(nil), dt.ChosenCard...)
 			c.Delayed[i] = dt
 		}
 	}

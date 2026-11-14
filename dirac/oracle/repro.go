@@ -74,35 +74,19 @@ const (
 
 // format1Ref maps a Ref byte of a format-1 recording to the current Refs:
 // stack ability i (0xE0+i) is RefStack+i and seat p (0xF0+p) RefPlayer+p, in
-// whichever size class reads it (0xEC and 0xFC in the default one). A format-1 recording never names an
-// instance at or above 224, and RefNone (0xFF) did not move, so every other
-// byte is unchanged.
+// whichever size class reads it (0xEC and 0xFC in the default one), and
+// RefNone (0xFF in format 1) to the class's RefNone. A format-1 recording
+// never names an instance at or above 224, so every other byte is unchanged.
 func format1Ref(r Ref) Ref {
 	switch {
 	case r >= 0xE0 && r < 0xF0:
 		return RefStack + (r - 0xE0)
 	case r == 0xF0 || r == 0xF1:
 		return RefPlayer + (r - 0xF0)
+	case r == 0xFF:
+		return RefNone
 	}
 	return r
-}
-
-// UnmarshalJSON decodes a repro and maps a format-1 one's actions to the
-// current Refs (format1Ref), so every reader of a recorded repro (ReadRepro,
-// the pinned-game files) sees the same bytes. The file keeps its format-1
-// bytes; the decoded repro says koracle-repro-2.
-func (r *Repro) UnmarshalJSON(b []byte) error {
-	type plain Repro // no methods: no recursion into this one
-	var p plain
-	if err := json.Unmarshal(b, &p); err != nil {
-		return err
-	}
-	if p.Format == reproFormat1 {
-		p.Actions = format1Actions(p.Actions)
-		p.Format = reproFormat
-	}
-	*r = Repro(p)
-	return nil
 }
 
 // format1Actions returns as with each action's source and target mapped by

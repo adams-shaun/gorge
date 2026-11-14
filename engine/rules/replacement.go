@@ -80,6 +80,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind == events.DrawEmpty && ev.Amount == 0 && e.drawForbidden(ev.Player) {
 		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot draw cards"}), true
 	}
+	// CR 614.11: a Draw replacement also meets the attempted draw from an
+	// empty library (repl_draw_empty.go).
+	if emptyDrawProposal(ev) {
+		if replaced, handled := e.applyEmptyDrawReplacement(ev); handled {
+			return replaced, true
+		}
+	}
 	// Positive LifeChange is a gain; it never carries a repl:DamageDone
 	// match (that class names a Damage event only), so it routes straight
 	// to the life replacement machinery.
@@ -419,7 +426,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		if len(matches) == 0 {
 			return ev, false
 		}
-		if len(matches) > 1 || hasOptionalReplacement(matches) {
+		if (len(matches) > 1 && !allBarePreventions(matches)) || hasOptionalReplacement(matches) {
 			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
 				if applied, served := e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p)); served {
 					// Under the resolution kernel the ask was answered in place

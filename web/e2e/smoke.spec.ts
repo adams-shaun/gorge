@@ -1591,11 +1591,17 @@ async function visible(l: Locator): Promise<boolean> {
 
 /**
  * playFromHand hovers a hand card, which raises it above its neighbours, clicks one of its
- * controls and reports whether the hand shrank. The game may have moved on since the control was
- * drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ * controls and reports whether that card left the hand. The game may have moved on since the
+ * control was drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ *
+ * The card is followed by its object id, never by the hand's size: a seat with nothing else to do
+ * passes on unseen (the ManaBrew compat rule) and can reach its next draw before the first poll,
+ * which puts the count back where it started although the card was played.
  */
 async function playFromHand(page: Page, hand: Locator, card: Locator, action: () => Promise<Locator>): Promise<boolean> {
-  const before = await hand.count();
+  const obj = await card.getAttribute('data-obj', { timeout: 2_000 }).catch(() => null);
+  if (obj === null) return false;
+  const played = page.locator(`.handfan [data-obj="${obj}"]`);
   try {
     await card.hover({ position: { x: 2, y: 8 }, timeout: 2_000 });
     await (await action()).click({ timeout: 2_000 });
@@ -1608,8 +1614,8 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
   const pay = page.locator(PAYMENT_ANSWERS);
   return expect.poll(async () => {
     if (await visible(pay)) await pay.first().click({ timeout: 2_000 }).catch(() => {});
-    return hand.count();
-  }, { timeout: 5_000 }).toBe(before - 1).then(() => true, () => false);
+    return played.count();
+  }, { timeout: 5_000 }).toBe(0).then(() => true, () => false);
 }
 
 /**
@@ -1626,30 +1632,73 @@ const PAYMENT_ANSWERS = '[data-mana-payment] :is([data-mp-autofill], [data-mp-pa
  */
 const PICKABLE = '[data-option]:enabled:not([aria-pressed="true"]):not([data-mana-payment] *):not(.options > .list > .option)';
 
-/** The footer buttons of a prompt, which commit a pick or answer outside the list. */
-const FOOTER = '[data-prompt-footer] button:enabled';
+/**
+ * The footer buttons of a prompt, which commit a pick or answer outside the list. Not the discard
+ * prompt's "Open the card view": it answers nothing, and the modal it opens covers the rail's rows,
+ * so every later click on them times out and the ask is never answered.
+ */
+const FOOTER = '[data-prompt-footer] button:enabled:not([data-discard-open])';
+
+/** The priority controls that give the window up: Done, then Pass. */
+const PASSES = ['[data-done-action]:enabled', '[data-pass-action]:enabled'];
+
+/**
+ * passUnless clicks the first visible Done or Pass control unless a control matching `unless` is
+ * visible, and reports whether it clicked. The check and the click run in one synchronous step in
+ * the page, so they read the same render. Checked from the test, they straddle a decision: the
+ * client's auto-pass answers a draw step on its own, the main phase arrives with a land on offer,
+ * and a Pass chosen while the draw step was up would give that main phase away.
+ */
+async function passUnless(page: Page, unless: string): Promise<boolean> {
+  return page.evaluate(([unless, passes]) => {
+    const shown = (el: Element) => (el as HTMLElement).getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+    if (Array.from(document.querySelectorAll(unless)).some(shown)) return false;
+    for (const sel of passes) {
+      const first = document.querySelector(sel);
+      if (first && shown(first)) {
+        (first as HTMLElement).click();
+        return true;
+      }
+    }
+    return false;
+  }, [unless, PASSES] as const);
+}
 
 /**
  * answerOpenAsk gives whatever the seat is asked the first thing offered, and passes priority.
  * A payment window is answered by its own controls. A submit comes before a pick, and a picked row
  * is never clicked again, or a multi-select would toggle forever. A finished ask leaves a control
- * behind for a moment, so a click that misses is not a failure.
+ * behind for a moment, so a click that misses is not a failure. With `unless`, priority is passed
+ * only while nothing it matches is on offer (passUnless).
  */
-async function answerOpenAsk(page: Page): Promise<void> {
+async function answerOpenAsk(page: Page, unless?: string): Promise<void> {
   for (const offered of [
     page.locator(PAYMENT_ANSWERS),
     page.locator('[data-prompt-footer] button.primary:enabled'),
     page.locator(PICKABLE),
     page.locator(FOOTER),
-    page.locator('[data-done-action]:enabled'),
-    page.locator('[data-pass-action]:enabled'),
   ]) {
     if (await visible(offered)) {
       await offered.first().click({ timeout: 2_000 }).catch(() => {});
       return;
     }
   }
+  if (unless !== undefined) {
+    await passUnless(page, unless);
+    return;
+  }
+  for (const offered of PASSES.map((sel) => page.locator(sel))) {
+    if (await visible(offered)) {
+      await offered.first().click({ timeout: 2_000 }).catch(() => {});
+      return;
+    }
+  }
 }
+
+/** A hand card's cast controls, and the same controls and its PLAY control as page-wide selectors. */
+const CAST_CONTROLS = '[data-payment-card], [data-single-action], button[aria-haspopup="menu"]';
+const SPELL_CONTROLS = `.handfan [data-obj] :is(${CAST_CONTROLS})`;
+const LAND_CONTROL = '.handfan [data-obj] [data-play-land]';
 
 /**
  * playLandUndoAndSpell plays a seated game from the mulligan until the seat has played a land,
@@ -1667,7 +1716,7 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
   while (Date.now() < deadline && !(land && spell)) {
     const landCard = hand.filter({ has: page.locator('[data-play-land]') }).first();
     // Every card with a cast control, tried in turn: the first one may be offered but unpayable.
-    const spellCards = hand.filter({ has: page.locator('[data-payment-card], [data-single-action], button[aria-haspopup="menu"]') });
+    const spellCards = hand.filter({ has: page.locator(CAST_CONTROLS) });
     const spellCard = spellCards.nth(spellTries % Math.max(1, await spellCards.count()));
     if (await visible(asked)) {
       did.push('ask');
@@ -1675,6 +1724,9 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
     } else if (!land && (await visible(landCard))) {
       did.push('land');
       const before = await hand.count();
+      // The land itself must come back: a count alone is fooled by a draw, since the client may
+      // pass on into the next turn before the undo lands, and each undo then takes back one pass.
+      const played = page.locator(`.handfan [data-obj="${await landCard.getAttribute('data-obj')}"]`);
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
         if (undone) {
           land = true;
@@ -1690,13 +1742,13 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
             if ((await visible(asked)) && undos !== 1) {
               await answerOpenAsk(page);
               undos = 0;
-              return -1;
+              return false;
             }
             undos++;
             await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).catch(() => {});
             await page.waitForTimeout(500);
-            return hand.count();
-          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(before);
+            return (await played.count()) > 0 && (await hand.count()) >= before;
+          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
           undone = true;
         }
       }
@@ -1721,7 +1773,9 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
       }
     } else {
       did.push('pass');
-      await answerOpenAsk(page);
+      // Nothing to play when this branch was chosen, but the window may have changed since: pass
+      // only while the play this loop still wants is not on offer.
+      await answerOpenAsk(page, land ? `${SPELL_CONTROLS}, ${LAND_CONTROL}` : LAND_CONTROL);
     }
     await page.waitForTimeout(100);
   }

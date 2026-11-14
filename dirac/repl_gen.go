@@ -45,8 +45,8 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // creature whose controller controls another Crystal Barricade.
 func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
-	if n <= 0 || srcCtrl > 1 {
-		return n
+	if n <= 0 || srcCtrl >= MaxSeats {
+		return n // no seat controls the source
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot
@@ -106,7 +106,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
 		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
 		if g.anyDmgMark {
-			if m := s.dmgMarkN(rcp); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
+			if m := s.dmgMarkEv(rcp, srcCtrl); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
 				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
 			}
 		}
@@ -440,7 +440,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	}
 	n := 0
 	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
-	if (rcp != sc || g.anyFiltRepl) && sc <= 1 {
+	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
 		// gorge's scan order: the controller's battlefield in entry order.
 		// A table whose only damage replacement is a plus-N addition competes
 		// on commuting sums (replPlusOnly): collect it here so the order walk
@@ -474,6 +474,19 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			return n
 		}
 		ro.cand[n] = s.perms[fe.dst].obj
+		ro.prev |= 1 << n
+		n++
+	}
+	if g.anyPrevFrom && s.prevFromGrant(k, fsl) {
+		// the source's granted prevention (Maze of Ith's Effect, gorge's
+		// bodyless Prevent$ ValidSource$ Card.IsRemembered line) is a
+		// candidate of its own: an Effect, so after the printed and
+		// keyword matches (preventFromGen removes the event once asked)
+		if n == len(ro.cand) {
+			s.capFull(StallReplCands) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fsl].obj
 		ro.prev |= 1 << n
 		n++
 	}
@@ -513,8 +526,11 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		}
 		ro.prev &^= ro.pnx
 	}
-	if g.anyDmgMark && s.dmgMarkCompetes(rcp, n) {
+	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, sc, n) {
 		return 0 // repl_dmgmark.go
+	}
+	if barePrevOnly(n, ro.prev, ro.shld, ro.pnx, ro.plus) {
+		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
 	}
 	ro.p = rcp
 	return n
@@ -676,6 +692,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
 	}
 	if ro.prev&(1<<i) != 0 {
+		if sl == ro.askS {
+			return s.prevFromGrant(k, sl) // the source's own granted prevention
+		}
 		return s.prevCombatTo(k, sl)
 	}
 	return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) &&
@@ -768,6 +787,8 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	}
 	if ro.askD == NoSlot {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
+		s.noteDmgTaken(ro.apl, n)  // kw_bloodthirst.go
+		s.notePlDamaged(k, ro.apl) // value_oppsdamaged.go
 		s.loseLife(k, ro.apl, n)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -817,6 +838,8 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 	}
 	if ev.dst == NoSlot {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.noteDmgTaken(CodeSeat(src.atk), n)  // kw_bloodthirst.go
+		s.notePlDamaged(k, CodeSeat(src.atk)) // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
@@ -1150,16 +1173,19 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, false) {
+		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false) {
 			s.capFull(StallPrevNext)
 			return false
 		}
 	}
-	if g.anyDmgMark && s.dmgMarkCompetes(rcp, c) {
+	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {
 		return false // repl_dmgmark.go
 	}
 	if c < 2 {
 		return false
+	}
+	if !parked && barePrevOnly(c, prev, shld, pnx, plus) {
+		return false // no order ask (repl_bareprev.go): replDamage prevents it
 	}
 	if parked {
 		// gorge asks this event's order after the parked one is answered and
@@ -1209,6 +1235,8 @@ func (s *State) dealNC(k *prep) {
 	}
 	code := nc.code
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
+		s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
