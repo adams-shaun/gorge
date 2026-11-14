@@ -9,20 +9,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgePhyActFixTime is gorge cr-phyrexian-activation-low-life (81fb97473),
-// the commit time in UTC: before it gorge offered a Phyrexian activation only
-// while the activator's life covered two per pip, even with the colour
-// payable (CR 107.4f, CR 119.4); the kernel offers it whenever some colour /
-// life mix is payable.
-const gorgePhyActFixTime = "20261026091120"
-
-func skipBeforePhyActFix(t *testing.T) {
-	t.Helper()
-	if !gorgePinAtLeast(t, gorgePhyActFixTime) {
-		t.Skip("gorge pin predates cr-phyrexian-activation-low-life (81fb97473): a Phyrexian activation needs life for every pip")
-	}
-}
-
 // The Phyrexian activation lockstep (CR 107.4f): the Souleaters'
 // {C/P} abilities (tap, +1/+0, trample, unblockable), Moltensteel Dragon's
 // firebreathing, and the MOM transform cards' {C/P} transforms (Order of the
@@ -65,13 +51,11 @@ var kphyactDecksB = [2][]cardset.Entry{
 
 func TestPhyactLockstepB(t *testing.T) {
 	t.Parallel()
-	skipBeforePhyActFix(t)
 	lockstepSet(t, "phyact", kphyactDecksB, 1000, "KPHYACT_SEEDS")
 }
 
 func TestPhyactLockstep(t *testing.T) {
 	t.Parallel()
-	skipBeforePhyActFix(t)
 	lockstepSet(t, "phyact", kphyactDecks, 1000, "KPHYACT_SEEDS")
 }
 
@@ -81,7 +65,6 @@ func TestPhyactLockstepMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	skipBeforePhyActFix(t)
 	dirac.DebugNoPhyrexianLife = true
 	defer func() { dirac.DebugNoPhyrexianLife = false }()
 	if !lockstepDiverges(t, "phyact", kphyactDecks, 40) {
@@ -110,7 +93,6 @@ var kphyactLowLifeDecks = [2][]cardset.Entry{
 // games must stay in lockstep and at least one must reach it.
 func TestPhyactLowLifeLockstep(t *testing.T) {
 	t.Parallel()
-	skipBeforePhyActFix(t)
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
