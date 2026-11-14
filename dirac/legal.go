@@ -214,20 +214,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			var kickedOK bool
-			if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && (s.tapPays(k, p, c, o, true) || s.hasCastDelve(k, p, c, o, true)) {
-				// a Convoke/Improvise/Delve credit the potential planner
-				// refuses to price for a mode altCastFor lacks
-				// (potentialModeCastPlan's cost:credit): gorge's menu
-				// offers the kicked cast only when its pool gate prices
-				// it, the credit folded (gorge castOfferBase plus the
-				// kicker raise; CR 601.2b, 601.2f), not when the sources
-				// can pay it (kickedAffords' witness bound).
-				kickedOK = s.FeatPoolPays(p, o, 1)
-			} else {
-				kickedOK = s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o)
-			}
-			if kickedOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
@@ -720,7 +707,13 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	if s.objs[o].zone == kop.ZoneHand && s.objs[o].owner() == p {
 		others--
 	}
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)
+	if ac.Flags&kop.CostDiscardFiltered != 0 {
+		// a filtered discard (Magmatic Insight's land card) never takes the
+		// card being cast, whatever its filter says (cost_discardfiltered.go)
+		discardOK = s.discardPayable(k, p, ac, o)
+	}
+	if s.pickCostPayable(k, p, ac, NoObj) && discardOK && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	cd := &k.t.Cards[c]
@@ -788,14 +781,16 @@ func (s *State) gorgeOffersKicked(p uint8, o Obj) bool {
 // either oracle surface gorge lowers it when its planner does not price it
 // (the autopay surface leaves out plain casts only), so it is offered when
 // the planner prices it, the pool pays it, or the potential planner does.
-func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
+// anyColor is the permission's MayPlayIgnoreColor rider, which gorge's
+// offer gate prices the cast under (mayPlayAffordable).
+func (s *State) gorgeOffersMay(p uint8, o Obj, anyColor bool) bool {
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 {
 		return true
 	}
 	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	return s.FeatPoolPays(p, o, 0) || s.gorgeLowers(p, o, true)
+	return s.FeatPoolPays(p, o, 0) || s.gorgeLowersRider(p, o, true, anyColor)
 }
 
 // offerSourcesAfford: p's sources pay cost through the offer gate -- the
@@ -837,6 +832,15 @@ func (s *State) offerSourcesAfford(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // cost alone when a part with no mana can be paid (a creature to sacrifice),
 // and otherwise with a part that has mana.
 func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
+	return s.gorgeLowersRider(p, o, mayPlay, false)
+}
+
+// gorgeLowersRider is gorgeLowers for a may-play cast under the any-colour
+// rider when anyColor: a target-priced cast's composed price is funded with
+// its coloured pips as generic (pay.PlanManaUnderRider), so Vanish into
+// Eternity's {2}{W} at a noncreature target is paid by three red and blue
+// sources (CR 601.2f, 609.4b).
+func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
@@ -915,9 +919,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			}
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			s.g.noTgtRed = false
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
+			cost = s.mayRiderCost(cost, anyColor)
 			if s.offerSourcesAfford(k, p, c, o, &cost) {
 				return true
 			}
@@ -925,9 +927,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 				return false
 			}
 			cost = s.featCost(k, p, c, o, k.cards[c].cost)
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
+			cost = s.mayRiderCost(cost, anyColor)
 			// the retry taps no source: the pool (and the restricted mana it
 			// may spend) pays the reduced price on its own
 			a := s.poolAvailPlus(p, nil)
@@ -943,15 +943,13 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// composed cost already carries it (costTargetOK finds the matching
 		// candidate).
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost = s.mayRiderCost(cost, anyColor)
 		// the planner's census (potentialTargetPricedPlan): no granted source
 		// (Imprisoned in the Moon's {C}), and a painful source makes its
 		// colours while one point of damage is not lethal (Starting Town's W)
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
-	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+	if cd.BeholdExile || cd.HasMultikicker && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
@@ -963,6 +961,9 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// "shape:additional_cost" or "shape:optional_cost" before any mana
 		// is priced, so its prefix search never runs for one (Bloom Tender
 		// beside Champions of the Perfect, the lone Elf the cost also exiles).
+		// A plain Multikicker hand cast is the same: its granted source (Gemhide
+		// Sliver's any-colour mana) is a gap in the planner's census too, and no
+		// prefix search taps it (the availAny/availGaps rule above).
 		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
 	return true
@@ -989,6 +990,15 @@ func (s *State) altAddPlanCost(k *prep, p uint8, c CardID, o Obj) kop.ManaCost {
 		cost = anyType(cost)
 	}
 	return cost
+}
+
+// mayRiderCost is cost under the may-play cast's mana rider: the any-type
+// one (s.g.mayPlayAny) or, when anyColor, the any-colour one.
+func (s *State) mayRiderCost(cost kop.ManaCost, anyColor bool) kop.ManaCost {
+	if s.g.mayPlayAny {
+		return anyType(cost)
+	}
+	return planUnderRider(cost, false, anyColor)
 }
 
 func manaEmpty(m *kop.ManaCost) bool { return m.MV() == 0 && m.X == 0 }
@@ -1224,7 +1234,7 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 			return false
 		}
 	}
-	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl) {
+	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl, false) {
 		return false // TargetUnique$ chain: jointly distinct (tgt_uniqueoffer.go)
 	}
 	return true
@@ -1546,6 +1556,21 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
 				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+				if s.riderPotential(k, p, sl) {
+					// a bounded rider source's activation is one of gorge's
+					// potential walk's units: its fixed production counts
+					// once, an any-colour or all-at-once one is unbounded
+					// (gorge potentialUnbounded; the Deplete land's is fixed)
+					if a, _ := s.riderAbilityOf(k, sl); a.ManaEach || uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 {
+						open = true
+					} else {
+						n := int(a.ManaN)
+						if n < 1 {
+							n = 1
+						}
+						add(sl, uint8(a.ManaColors), uint8(n))
+					}
+				}
 			}
 			if k.gen != nil && pc.manaAb < 0 {
 				s.potentialReflNone(k, sl, &done) // a reflected view with no colour makes no mana: the walk below must not admit the printed ability open

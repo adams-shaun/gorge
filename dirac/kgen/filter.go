@@ -293,6 +293,28 @@ func filterSelfOnly(f *lFilter) bool {
 	return true
 }
 
+// anyCardClause reports whether a clause restricts nothing: it matches any
+// card, so a group gate lowered from it asks only for a group member. A
+// typed present check (ConditionPresent$ Card.Creature) narrows the gate to
+// remembered cards of the type, which the persistent mark cannot see.
+func anyCardClause(c lClause) bool {
+	return c.Types == 0 && c.TypesAll == 0 && c.NotTypes == 0 &&
+		c.Subtype == "" && c.Name == "" && c.NotSubtype == "" && c.Subtype2 == "" &&
+		c.MoreNotSubtype == [4]string{} &&
+		c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 &&
+		c.CmpStat == 0 && c.CmpOp == 0 && c.CmpN == 0 && c.CmpX == "" && c.CmpV == nil &&
+		c.CmpCounter == "" && c.Colors == "" && c.NotColors == "" &&
+		!c.BasePermanent && !c.SpellBase && !c.Unblocked && !c.TheirHand &&
+		c.Special == 0 && c.CtrlTgt == 0
+}
+
+// filterAnyCard reports whether f restricts nothing: one unrestricted clause,
+// no player alternative and no pick constraint.
+func filterAnyCard(f *lFilter) bool {
+	return f == nil || len(f.Clauses) == 1 && anyCardClause(f.Clauses[0]) &&
+		f.Players == 0 && !f.Each && f.PickSumMax == nil && !f.PickDistinctPower
+}
+
 func (f *lFilter) String() string {
 	if f == nil {
 		return "nil"
@@ -478,6 +500,17 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 	expr = strings.TrimSpace(expr)
 	if expr == "" {
 		return nil, fmt.Errorf("empty filter")
+	}
+	// gorge's spec normalisation reads a WHOLE spec of exactly "Self" or
+	// "Other" as "Card.Self"/"Card.Other" (effects/filter.go): the bare
+	// word is not a base, so without it the spec fails closed as an
+	// unknown head -- Forge's SacValid$ Self (Tresserhorn's Lord,
+	// Returned's own sacrifice) is the corpus carrier. The normalisation
+	// sits here, the one home every lc.filter call -- a probe of an unread
+	// param included -- shares, so the census cannot disagree with a real
+	// reader about the spelling.
+	if expr == "Self" || expr == "Other" {
+		expr = "Card." + expr
 	}
 	f := &lFilter{}
 	for _, alt := range splitAlternatives(expr, isType) {
@@ -682,6 +715,23 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// as one code, so the resolution's player targets -- read as
 		// OwnedBy on the candidate's owner
 		return c.setWho(&c.Owner, whoTgtPlayer) // off the battlefield only (ownerRoleF2)
+	case "ControlledBy Player.targetedBy":
+		// Forge PlayerProperty.targetedBy (PlayerProperty.java): the
+		// player the resolving ability's ROOT is targeting -- the
+		// resolution's player targets for a spell chain and the firing
+		// trigger's target in one (Kuroki, Thief of Talents' DB$ Play
+		// Valid$ Card.ControlledBy Player.targetedBy, the corpus's only
+		// carrier). Same referent as gorge's controlReferentPlayers
+		// "Targeted"/"TargetedPlayer" code, so it lowers onto the
+		// TargetedPlayerCtrl shape (whoTgtPlayer); the kernel reads that
+		// through a battlefield-only Flags2 bit (build.go), where owner
+		// and controller are the same seat only on the battlefield.
+		// gorge's own classifier does not read the spelling yet
+		// (UnknownPredicates; effects owned_by_player_notedfor_test.go
+		// keeps the scope boundary), and no carrier reaches a kop op with
+		// it: Kuroki's node refuses on ConditionCheckSVar, and a hand
+		// filter refuses off the battlefield before a bit is set.
+		return c.setWho(&c.Ctrl, whoTgtPlayer)
 	}
 	if p == "IsSolved" || p == "!IsSolved" {
 		// a Case's solved designation (CR 719.3b; gorge filter.go IsSolved:

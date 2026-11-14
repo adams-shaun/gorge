@@ -648,6 +648,7 @@ func (s *State) newTurnGen() {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
 	clear(s.g.prevCol[:])
+	clear(s.g.redir[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
@@ -720,6 +721,7 @@ func (s *State) cleanupGen(k *prep) {
 	// object field names it: mark every card whose grant this clear ends
 	// before dropping the bitsets.
 	s.fbClearAll(k)
+	s.encoreClearAll(k)
 	if s.g.nfx > 0 {
 		var ended slotMask
 		for i := 0; i < int(s.g.nfx); i++ {

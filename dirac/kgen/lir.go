@@ -58,12 +58,13 @@ const (
 	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps", "ResChosenPlayer"}
 
 type lRef struct {
 	Kind refKind
@@ -311,11 +312,12 @@ const (
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
+	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing", "RemMark"}
 
 type lCond struct {
 	Kind condKind
@@ -370,6 +372,14 @@ func andCond(a, b lCond) lCond {
 		return a
 	}
 	return lCond{Kind: cAnd, Sub: []lCond{a, b}}
+}
+
+// orCond composes a and b into a disjunction: NOT(AND(NOT a, NOT b)), the
+// de-Morgan shape the kernel's CondAnd evaluates.
+func orCond(a, b lCond) lCond {
+	na, nb := a, b
+	na.Neg, nb.Neg = !a.Neg, !b.Neg
+	return lCond{Kind: cAnd, Neg: true, Sub: []lCond{na, nb}}
 }
 
 // lInstr is one instruction: Op on Obj with amounts A, B, the op-specific
@@ -1002,6 +1012,7 @@ type lOverride struct {
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
 	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 }
 
 // Replacement-lite kinds.

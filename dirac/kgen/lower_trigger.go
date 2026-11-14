@@ -788,6 +788,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.Combat = -1
 			}
 		}
+		if err := lc.damageAmountGate(tp, tr, t); err != nil { // lower_damageamount.go
+			return err
+		}
 		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
 			return err
 		}
@@ -2754,7 +2757,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	hard := false
-	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes"} {
+	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes", "RemoveLandTypes"} {
 		if _, ok := sp.m[k]; ok {
 			hard = true
 		}
@@ -3320,6 +3323,11 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		o.AddKw = ks
 	}
+	if v, ok := sp.get("RemoveLandTypes"); ok {
+		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
+			return nil, err
+		}
+	}
 	if removeCard {
 		o.HasSetTypes = true
 		o.HasSetSubtypes = true
@@ -3356,7 +3364,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 				// cover any plain-shaped card then. Without the Land type the
 				// intrinsic still applies in gorge but the kernel's blgMask
 				// reads only lands, so that shape stays refused.
-				if o.SetTypes&typeBits["Land"] == 0 {
+				if o.SetTypes&typeBits["Land"] == 0 && !o.SetLandSub {
 					return nil, refuse("override adds basic land type %q", w)
 				}
 			}
@@ -3708,8 +3716,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return err
 		}
 	case "Destroy":
-		if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+		if ok, err := lc.destroyRegenRepl(rp, r.With, &rl); err != nil { // lower_destroyregen.go
 			return err
+		} else if !ok {
+			if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+				return err
+			}
 		}
 	default:
 		return refuse("repl-hard: %s replacement", r.Event)
@@ -4266,7 +4278,7 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
 			}
-			if err := lc.choosePlayer(ps); err != nil {
+			if err := lc.choosePlayer(ps, false); err != nil {
 				return err
 			}
 		case "RevealHand":
