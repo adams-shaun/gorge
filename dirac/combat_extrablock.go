@@ -416,3 +416,9 @@ func (s *State) applyBlockerDivide(a Action) {
 	s.combatArm().divDone.set(s.divA)
 	s.divA = NoSlot
 }
+
+// A table with a StatExtraBlock grant takes a genPrep: anyExtraBlock is set in
+// prepareGen (gen.go).
+func init() {
+	genNeed(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatExtraBlock) })
+}

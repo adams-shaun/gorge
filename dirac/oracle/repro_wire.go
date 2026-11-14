@@ -6,14 +6,10 @@ import (
 )
 
 // A repro's actions go to disk as plain numbers, and the corpus under
-// testdata/repro (and kfuzz's testdata) holds them as the default size
-// class packs a Canon: kind<<24 | source<<16 | target<<8 | mode, one byte per
-// field. That is the wire form of every build, so a recording replays under
-// dirac_mp as it does by default: repro_wire_default.go reads and writes the
-// Canon as it is, repro_wire_mp.go maps the bytes to the four-seat class's
-// refs and back. An mp game that names a ref no byte can hold (a seat past
-// the second, an instance past 235) is written in the mp packing and says
-// so in "packing"; only a dirac_mp build reads that one.
+// testdata/repro (and kfuzz's testdata) holds them as the kernel packs a
+// Canon: kind<<24 | source<<16 | target<<8 | mode, one byte per field
+// (repro_wire_default.go reads and writes the Canon as it is). "packing"
+// names any other packing; a file that carries one is refused.
 
 // reproWire is Repro's JSON: the struct itself with its actions as wire words.
 type reproWire struct {

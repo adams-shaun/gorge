@@ -1,0 +1,7 @@
+family: KwID
+name: KwCompanion
+value: 78
+forge: Companion
+census: kw Companion all=10 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

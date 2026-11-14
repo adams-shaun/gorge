@@ -1,0 +1,7 @@
+family: KwID
+name: KwSoulbond
+value: 39
+forge: Soulbond
+census: kw Soulbond all=25 std=0 mbc=4 sole=0
+state: slotobj 112 (soulbond)
+status: reserved

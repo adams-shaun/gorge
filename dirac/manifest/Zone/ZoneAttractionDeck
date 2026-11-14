@@ -1,0 +1,7 @@
+family: Zone
+name: ZoneAttractionDeck
+value: 13
+forge: AttractionDeck
+census: zone AttractionDeck all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

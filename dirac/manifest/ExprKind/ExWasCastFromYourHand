@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExWasCastFromYourHand
+value: 161
+forge: wasCastFromYourHand
+census: count wasCastFromYourHand all=1 std=0 mbc=0 sole=1
+state: slotbyte 112 (cast facts)
+status: reserved

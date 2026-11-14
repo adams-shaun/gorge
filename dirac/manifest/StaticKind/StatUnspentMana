@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatUnspentMana
+value: 30
+forge: UnspentMana
+census: stat UnspentMana all=6 std=1 mbc=1 sole=4
+state: code 0
+status: reserved

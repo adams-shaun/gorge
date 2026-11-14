@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigFlippedCoinOnce
+value: 116
+forge: FlippedCoinOnce
+census: trig FlippedCoinOnce all=1 std=0 mbc=0 sole=0
+state: slotbit 16 (once-per-event marks)
+status: reserved

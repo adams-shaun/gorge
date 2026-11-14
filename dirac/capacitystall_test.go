@@ -233,12 +233,11 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 }
 
 // TestCapacityHashPins: ObjHash and ViewHash of a slot with three override
-// records are pinned per size class in testdata/layout.tsv. The hash reads
+// records are pinned in testdata/layout.tsv. The hash reads
 // the first four records as the base [4]ovRec layout did and mixes the second
 // four only when record four exists, so three records hash as before. Both
-// hashes read the build's layout (the object hash a perm whose code fields
-// are MaxSeats-dependent widths, the view hash the generated state's per-seat
-// banks whole), so each class has its own pins.
+// hashes read the State's layout (the object hash a perm whole, the view
+// hash the generated state's per-seat banks whole).
 func TestCapacityHashPins(t *testing.T) {
 	tbl, base := overrideRecordsTable()
 	hsc := newScenTable(t, &tbl, Config{NoElide: true})

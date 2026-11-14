@@ -8,7 +8,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // reaches it.
 
 // execExt runs one OpExt instruction. One case per sub-op, sorted by
-// ordinal: a new sub-op adds its case at its own ordinal position.
+// ordinal. A new sub-op adds no case here: its handler, in its own feature
+// file, carries //kmanifest:ext <ExtOp>, and kmanifest gen dispatches it from
+// the default arm (execExtGen, manifest_gen.go).
 //
 //go:noinline
 func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
@@ -321,8 +323,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtTapOrUntapAll:
 		return s.tapOrUntapAllStart(), true // act_taporuntapall.go
+	default:
+		// a sub-op whose handler is marked //kmanifest:ext in its own file
+		// (kmanifest gen; it panics on an op no handler takes)
+		return s.execExtGen(k, in) // manifest_gen.go
 	}
-	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
 
 // eachDamage is ExtEachDamage: the damagers -- every battlefield

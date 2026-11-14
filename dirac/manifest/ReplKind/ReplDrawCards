@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplDrawCards
+value: 49
+forge: DrawCards
+census: repl DrawCards all=2 std=1 mbc=0 sole=2
+state: code 0
+status: reserved

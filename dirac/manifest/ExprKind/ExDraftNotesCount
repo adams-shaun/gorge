@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExDraftNotesCount
+value: 124
+forge: DraftNotesCount
+census: count DraftNotesCount all=1 std=0 mbc=0 sole=1
+state: unbounded (remembered/imprinted sets)
+status: blocked unbounded:remembered/imprinted-sets

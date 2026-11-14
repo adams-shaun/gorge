@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrShy
+value: 228
+forge: SHY
+census: ctr SHY all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

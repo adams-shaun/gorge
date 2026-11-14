@@ -1,0 +1,6 @@
+family: mech
+name: mechEscaped
+value: 26
+state: slotbit 16/16
+status: active
+doc: slots whose permanent's spell was cast for its escape cost (CR 702.138a; kw_escape.go)

@@ -21,8 +21,15 @@
 //   - An op the interpreter does not implement panics naming the op; it is
 //     never a silent no-op.
 //
-// Every enum here is append-only: add new values immediately above the
-// trailing count constant.
+// A constant's value never changes (testdata/ordinals.tsv records each). The
+// iota lists are frozen: each ends at a fixed sentinel (OpCount,
+// TrigEventCount, ReplCount, StatCount, ExCount_, CondCount_; the counter
+// kinds at CtrM2M1, with NumCounterKinds3 their fixed cover), and a new code
+// of a typed family is an entry of dirac's namespace manifest
+// (dirac/manifest/<Family>/<Name>), which kmanifest generates into
+// manifest_gen.go. Most vocabulary is pre-mapped there: activate the entry
+// (status: active) rather than adding a constant. An op's own untyped operand
+// codes stay hand-written in its file.
 //
 // # Pool tables
 //

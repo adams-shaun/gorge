@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExStartingPlayer
+value: 71
+forge: StartingPlayer
+census: count StartingPlayer all=13 std=0 mbc=0 sole=7
+state: player 2 (player facts)
+status: reserved

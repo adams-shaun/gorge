@@ -1,0 +1,7 @@
+family: key
+name: keyRad
+value: 17
+forge: rad
+census: key rad classes=1 all=17
+state: player 2
+status: reserved

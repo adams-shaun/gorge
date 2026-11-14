@@ -242,7 +242,7 @@ type genPrep struct {
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
-	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
+	anyComboOff     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboanyplan.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -427,8 +427,12 @@ type genPrep struct {
 	anySelfTaps bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
+	// anyComboAny: some card carries gfComboAny (mana_comboany.go).
+	anyComboAny bool
 	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
 	dhMix bool
+	// caMix: a Combo Any source beside another census-gap kind (mana_comboany.go prepComboAnyMix): StallComboAnyMix
+	caMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -524,6 +528,9 @@ type genPrep struct {
 	landSub kop.SubMask
 	setIdx  []int16
 	setPC   []pcard
+	// uses: the registered per-table flags (newGenUse; genneed.go), where a
+	// feature's fact goes instead of a new bool here
+	uses useSet
 }
 
 // Replacement bits (genPrep.replBits).
@@ -625,7 +632,7 @@ func tableHasReconfigure(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !tableHasStatic(t, kop.StatExtraBlock) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -638,6 +645,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+		uses:        tableUses(t), // genneed.go
 	}
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
@@ -820,7 +828,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyRaiseTgt = tableRaiseTgt(t)
 	g.anyComboDyn = tableComboDyn(t)
-	g.anyComboAny = tableComboAny(t)
+	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -1362,6 +1370,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
+				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
+					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1437,7 +1448,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// alternative): an autopay source of that colour
 					pc.manaChosen = true
 				} else {
-					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) {
+					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))
@@ -1449,7 +1460,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.varPC = append(g.varPC, vp)
 						}
 					}
-					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred) {
+					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred || comboAnyMana(a) && !DebugComboAnyPlanned) {
 						pc.manaAb = -1
 					}
 				}
@@ -1640,6 +1651,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
+	prepComboAnyMix(t, g, p)
 	g.anyPrevFrom = tableGrantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
@@ -1952,7 +1964,7 @@ type genState struct {
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
-	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase.
 	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
@@ -2142,7 +2154,7 @@ type genState struct {
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
 	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
-	// (linkPadN, seats_default.go and seats_mp.go)
+	// (linkPadN, seats_default.go)
 	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
@@ -2255,6 +2267,7 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+	ctrPad   [ctrPadN]uint8 // carries the 16-bit counter kinds' growth to a whole cache line (ctr_sparse.go)
 
 	// Reserved tail: State bytes set aside so later work never edits a struct
 	// definition. Nothing reads or writes these yet. The rule: new State bytes

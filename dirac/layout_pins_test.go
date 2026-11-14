@@ -12,20 +12,18 @@ import (
 	"unsafe"
 )
 
-// The State layout pins live in testdata/layout.tsv, one block of rows per
-// size class (default, mp): State's size, perms' cache-line phase, the
+// The State layout pins live in testdata/layout.tsv, rows of the class
+// "default" (layoutClass): State's size, perms' cache-line phase, the
 // ObjHash/ViewHash pins of TestCapacityHashPins, and the fixed-State field
 // inventory of TestNoNewFixedStateFields. The file is generated, never edited
-// by hand: a deliberate layout change runs layoutRegen, which rewrites the
-// running class's rows and keeps the other class's, so it is run once per
-// class.
+// by hand: a deliberate layout change runs layoutRegen, which rewrites it.
 const (
 	layoutPath  = "testdata/layout.tsv"
-	layoutRegen = "DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac, then again with -tags dirac_mp"
+	layoutRegen = "DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac"
 )
 
 // layoutClasses is the file's class order.
-var layoutClasses = []string{"default", "mp"}
+var layoutClasses = []string{layoutClass}
 
 // layoutKeys are a class's scalar pins, in file order.
 var layoutKeys = []string{"size", "perms%64", "ObjHash", "ViewHash"}
@@ -97,8 +95,8 @@ func readLayout(t *testing.T) map[string]*layoutPin {
 	return pins
 }
 
-// updateLayout applies edit to the running class's rows and rewrites the
-// file in its canonical order, leaving the other class's rows as they were.
+// updateLayout applies edit to the class's rows and rewrites the file in its
+// canonical order. Rows of any class not in layoutClasses are dropped.
 func updateLayout(t *testing.T, edit func(p *layoutPin)) {
 	t.Helper()
 	pins := readLayout(t)
