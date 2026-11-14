@@ -177,7 +177,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return Pack(ActCastFace, src, RefNone, fc)
 		}
 		if mode&dirac.FeatCastFace != 0 {
-			return Pack(ActCastFace, src, RefNone, r.faceCastCanon(uint8(src), uint8(tgt))) // faces.go
+			return Pack(ActCastFace, src, RefNone, r.faceCastCanon(dirac.Obj(src), uint8(tgt))) // faces.go
 		}
 		if mode == 0 && tgt == 2 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the impending cast (CR 702.176a; kernel
@@ -294,6 +294,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				idx = 1
 			}
 			cm |= uint8(idx) << 4
+		case mode&0x18 == 0x18 && r.S.FeatMayZeroAltCast(r.D.Player, dirac.Obj(src)):
+			// a non-granting static's {0} alternative (Dragon's Smile, CR
+			// 118.9): gorge's "mayplay" option at AltCostIndex 1 beside the
+			// plain cast (cast_mayzeroalt.go)
+			cm, _ = CastModeCode("mayplay")
+			cm |= 1 << 4
 		case mode&8 != 0:
 			cm, _ = CastModeCode("mayplay") // a generated table's play permission (castMayPlay)
 		}
@@ -305,14 +311,14 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		c, _ := SpecialCode("turn_face_up")
 		return Pack(ActSpecial, src, RefNone, c|mode<<4) // mode = the turn-up procedure
 	case dirac.AkActivate:
-		if r.stationAbility(uint8(src), mode) {
+		if r.stationAbility(dirac.Obj(src), mode) {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)
 			return Pack(ActSpecial, src, RefNone, c)
 		}
-		if mode&0x80 != 0 && r.FaceAbility(uint8(src), mode, false) == 255 {
+		if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
 			return Pack(ActActivate, src, tgt, 255) // a granted ability, told apart by its grantor
 		}
-		return Pack(ActActivate, src, RefNone, r.FaceAbility(uint8(src), mode, false))
+		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
 		if dirac.IsObjTarget(dirac.TCode(tgt)) {
 			return Pack(ActAttack, src, Ref(tgt), 0) // a planeswalker
@@ -511,7 +517,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 // gorge's: Face.Abilities index for an activated or mana ability (gorge
 // lists both as AB lines), 0x80 | Face.Triggers index for a triggered one;
 // the kernel-native ward/prowess indices (253, 254) and 255 pass through.
-func (r *Translator) FaceAbility(o uint8, idx uint8, _ bool) uint8 {
+func (r *Translator) FaceAbility(o dirac.Obj, idx uint8, _ bool) uint8 {
 	if idx >= 253 || int(o) >= int(r.KP.NObj) {
 		return idx
 	}
@@ -523,7 +529,7 @@ func (r *Translator) FaceAbility(o uint8, idx uint8, _ bool) uint8 {
 
 // stationAbility reports whether ability idx of object o is a Station
 // ability (kop.AfStation, kcounters).
-func (r *Translator) stationAbility(o uint8, idx uint8) bool {
+func (r *Translator) stationAbility(o dirac.Obj, idx uint8) bool {
 	if int(o) >= int(r.KP.NObj) || int(r.KP.Objs[o].Card) >= len(r.Tbl.Cards) {
 		return false
 	}
@@ -702,10 +708,22 @@ func (r *Translator) sameRoomFace(a, b dirac.CardID) bool {
 // that face's index. Any other change is a face change (a transforming DFC
 // token), whose current face no longer has the SA.
 func (r *Translator) LKIAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
-	if r.sameRoomFace(srcCard, card) {
+	if r.sameRoomFace(srcCard, card) || r.sameProtoCard(srcCard, card) {
 		return r.CardAbility(card, ab)
 	}
 	return 255
+}
+
+// sameProtoCard reports whether a and b are the two defs of one prototype
+// card (kop.FacePrototype): gorge has one printed face for both, so its
+// abilityIndex still finds an ability queued as the prototype after the
+// source went back to its printed def (or the reverse).
+func (r *Translator) sameProtoCard(a, b dirac.CardID) bool {
+	if int(a) >= len(r.Tbl.Cards) || int(b) >= len(r.Tbl.Cards) {
+		return false
+	}
+	ca, cb := &r.Tbl.Cards[a], &r.Tbl.Cards[b]
+	return ca.FaceMode == kop.FacePrototype && cb.FaceMode == kop.FacePrototype && len(ca.Faces) == 2 && len(cb.Faces) == 2 && ca.Faces[0] == cb.Faces[0]
 }
 
 // StackAbility is the projected ability index of a stack entry whose source
@@ -930,6 +948,12 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("tap"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("untap"), Ref(src), RefNone, 0), true
+	case dirac.ChGenTapOrUntapAll:
+		// gorge's taporuntapall: a KChoose of "tap" / "untap", no object
+		if mode == 1 {
+			return Pack(kind("tap"), RefNone, RefNone, 0), true
+		}
+		return Pack(kind("untap"), RefNone, RefNone, 0), true
 	case dirac.ChGenKeepTapped:
 		// gorge's untap-step election over the permanent: "untap" first,
 		// then "keep_tapped"
@@ -1023,6 +1047,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenPlayer:
 		// gorge effChoosePlayer's "player" option names the seat
 		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
+	case dirac.ChGenTextWord:
+		// gorge's changetext KChoose: one option per word, kind
+		// changetext_from / changetext_to, valued by the word index
+		if mode >= 16 {
+			return Pack(kind("changetext_to"), RefNone, RefNone, mode-16), true
+		}
+		return Pack(kind("changetext_from"), RefNone, RefNone, mode), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank

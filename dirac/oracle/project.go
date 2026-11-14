@@ -47,6 +47,7 @@ const (
 	FPhasedOut
 	FMonstrous
 	FSuspected
+	FRenowned
 )
 
 // Counter slots of CardProj.Counters.
@@ -395,6 +396,9 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		}
 		if o.Suspected {
 			f |= FSuspected
+		}
+		if o.Renowned {
+			f |= FRenowned
 		}
 		if o.Zone != state.ZBattlefield {
 			// Permanent status is not tracked off the battlefield (gorge

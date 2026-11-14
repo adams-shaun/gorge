@@ -44,7 +44,8 @@ func mbcSliceCorpus(t *testing.T) (*Corpus, []PoolDeck, cardset.Set) {
 // within it: a game's table keeps only the subtypes its own cards print or name
 // (cardset matchup). A pod the kernel refuses for a card interaction (or an
 // older guard: layer, Room name read) is counted;
-// a SubtypeRefusal, or any other error, fails.
+// a card refused by name is counted too; a SubtypeRefusal, or any other
+// error, fails.
 func TestMBCPodTables(t *testing.T) {
 	c, pool, set := mbcSliceCorpus(t)
 	if n := len(set.Subtypes()); n <= kop.MaxSubtypes {
@@ -70,6 +71,15 @@ func TestMBCPodTables(t *testing.T) {
 		if why := stdMetaPairRefusal(err); why != "" && why != "interaction subtypes" {
 			refused++
 			reasons[why]++
+			continue
+		}
+		// The slice predates a card's refusal by name (dirac/support/refused):
+		// its pod is one the kernel refuses for a card, not a table that
+		// overflowed.
+		var re *cardset.RefusedError
+		if errors.As(err, &re) && re.Status == cardset.StatusRefused {
+			refused++
+			reasons["refused "+re.Card]++
 			continue
 		}
 		if err != nil {

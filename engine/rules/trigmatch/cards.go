@@ -35,7 +35,7 @@ import (
 // card's controller: a card in a hand is controlled by its owner, and
 // DiscardCost carries no player field to read instead.
 func cycledMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if _, ok := events.IsCyclingDiscard(ev); !ok {
+	if _, ok := CyclingDiscard(ev, e.Facts()); !ok {
 		return false
 	}
 	o := lki
@@ -46,6 +46,26 @@ func cycledMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 		return false
 	}
 	return eventCardAndPlayerMatch(e, t, source, ev.Obj, o.Controller)
+}
+
+// CyclingDiscard reports whether ev is a cost discard paid for a cycling
+// ability, returning the ability's keyword (events.IsCyclingDiscard). A
+// replacement that redirects the discard into exile (Rest in Peace) emits a
+// substituted move whose Counter carries the exiler stamp
+// (events.MarkExileExiler), so events.CarryAction re-labels it as the cost
+// discard but cannot add the cycling cause. CR 614.6: the modified event is
+// still that discard, so the card was still cycled (CR 702.29d); the cause is
+// then read from the in-flight replacement's carried action (f), for the
+// same object's move.
+func CyclingDiscard(ev events.Event, f Facts) (string, bool) {
+	if kw, ok := events.IsCyclingDiscard(ev); ok {
+		return kw, true
+	}
+	if !events.IsDiscardCost(ev) || f.ReplacedAction == "" || f.ReplacedObj != ev.Obj {
+		return "", false
+	}
+	bare := events.Event{Kind: ev.Kind, Obj: ev.Obj, From: ev.From, To: ev.To}
+	return events.IsCyclingDiscard(events.CarryAction(f.ReplacedAction, f.ReplacedObj, bare))
 }
 
 // exploresMatches implements the "Whenever a creature you control explores

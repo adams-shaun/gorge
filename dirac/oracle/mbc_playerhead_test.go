@@ -167,4 +167,27 @@ func TestMBCPlayerHeadLowers(t *testing.T) {
 			t.Fatalf("no seed diverged with the attack-record gate dropped (spare %d)", tal.spare)
 		}
 	})
+	for _, oath := range []string{"Oath of Druids", "Oath of Scholars", "Oath of Mages"} {
+		t.Run(oath, func(t *testing.T) {
+			t.Parallel()
+			var tal oathTally
+			oathRun(t, oath, 120, &tal, nil)
+			t.Logf("%s: %d triggers pushed, %d resolved, %d creatures dug onto the battlefield", oath, tal.pushed, tal.resolved, tal.dug)
+			if tal.resolved < 3 || tal.pushed-tal.resolved < 3 || oath == "Oath of Druids" && tal.dug < 3 {
+				t.Errorf("want at least 3 resolved and 3 removed (3 dug for Druids): pushed %d, resolved %d, dug %d", tal.pushed, tal.resolved, tal.dug)
+			}
+		})
+		t.Run(oath+" mutation", func(t *testing.T) {
+			t.Parallel()
+			var tal oathTally
+			dropped := 0
+			n := oathRun(t, oath, 120, &tal, func(tbl *kop.Table) { dropped = dropOathTargetReading(tbl) })
+			if dropped == 0 {
+				t.Fatal("precondition: no target slot carries the active-player reading in the table")
+			}
+			if n == 0 {
+				t.Fatalf("no seed diverged with the active-player target reading dropped (pushed %d, resolved %d)", tal.pushed, tal.resolved)
+			}
+		})
+	}
 }

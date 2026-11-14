@@ -28,6 +28,23 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cap. A real board's mana runs out first.
 const maxMultikick = 64
 
+// coldMk is the counts per battlefield slot, and coldMkObj per object while
+// the spell is on the stack, for a table with a Multikicker card.
+var (
+	coldMk = newCold[uint8]("mk", func(g *genPrep) int {
+		if g.anyMultikick {
+			return MaxPerm
+		}
+		return 0
+	}).view(func(c *coldArrays) *[]uint8 { return &c.mk }).perSlot()
+	coldMkObj = newCold[uint8]("mkObj", func(g *genPrep) int {
+		if g.anyMultikick {
+			return MaxObj
+		}
+		return 0
+	}).view(func(c *coldArrays) *[]uint8 { return &c.mkObj })
+)
+
 // multikickCount is the multikicker payment count of the spell e (0 for a
 // permanent or a table without Multikicker).
 func (s *State) multikickCount(e *stackEntry) int {
@@ -69,16 +86,16 @@ func (s *State) addKickerPayments(cd *kop.CardDef, e *stackEntry, c kop.ManaCost
 }
 
 // kickedAffords is the hand-cast kicked offer's mana gate for the total kc.
-// A Multikicker spell that pays with taps or the graveyard (a printed or
-// granted Convoke or Improvise, or a granted Delve) is offered by gorge's
+// A Kicker or Multikicker spell that pays with taps or the graveyard (a
+// printed or granted Convoke or Improvise, or a Delve) is offered by gorge's
 // pool-only legacy gate alone: its potential walk declines every
-// credit-bearing kicked mode (cost:credit, potentialModeBaseCost), so lands
-// the cast could still tap do not make the multikicked option (CR 702.43).
-// The pool gate folds the delve credit the way offerCastableUsing does
-// (FeatPoolPays mode 1 -> delveOfferCredit); without that credit the sources
-// count.
+// credit-bearing kicked mode (potentialModeCastPlan's cost:credit: "kicked"
+// and "multikicked" are no altCastModes row), so lands the cast could still
+// tap do not make the kicked option (CR 702.33, 702.43). The pool gate folds
+// the delve credit the way offerCastableUsing does (FeatPoolPays mode 1 ->
+// delveOfferCredit); without that credit the sources count.
 func (s *State) kickedAffords(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
-	if k.gen != nil && k.t.Cards[c].HasMultikicker && s.contribPays(k, p, c, o, true) {
+	if k.gen != nil && s.contribPays(k, p, c, o, true) {
 		return s.FeatPoolPays(p, o, 1)
 	}
 	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), kc, cav)

@@ -301,10 +301,12 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 	case kop.W7WithInfect:
 		// gorge withInfect on a battlefield object: the printed keyword,
-		// none while face down or after a lose-all-abilities effect
+		// none while face down or after a lose-all-abilities effect; or a
+		// granted one (gorge's derived keywords; kw_kwmark.go)
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && k.t.Cards[c].Infect && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 ||
+			k.gen != nil && k.gen.anyInfectGrant && s.infectGranted(k, sl)
 	case kop.W7LacksIslandwalk:
 		// !hasKeywordLandwalk:Island over the derived keywords: printed
 		// (kw_evasion.go), granted by a Continuous static, none once lost
@@ -443,7 +445,7 @@ func prepWord9(t *kop.Table, g *genPrep) {
 				reads = reads || chainWord7(t, ts.Filter, kop.W7CrewedBySrc)
 			}
 			for _, in := range a.Prog {
-				reads = reads || chainWord7(t, in.F, kop.W7CrewedBySrc)
+				reads = reads || chainWord7(t, kop.InstrFilter(&in), kop.W7CrewedBySrc)
 			}
 			if reads {
 				if g.crewerRec == nil {

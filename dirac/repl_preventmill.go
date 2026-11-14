@@ -3,8 +3,9 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // ReplPreventMillOpps (The Mindskinner): damage a source its controller
-// controls would deal to an opponent is prevented, and that opponent mills
-// that many cards instead. gorge (rules/replacement.go
+// controls would deal to an opponent is prevented, and each opponent of its
+// controller mills that many cards instead (at three seats and more that is
+// not only the damaged one). gorge (rules/replacement.go
 // applyNonMoveReplacements) runs the DB$ Mill body when the damage event is
 // proposed and hands back a stopped event: nothing is dealt, so no lifelink,
 // no damage trigger, no life loss (under "damage can't be prevented" it
@@ -33,17 +34,23 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, combat bool, n int) boo
 	// runs and the damage stands (gorge applyNonMoveReplacements,
 	// damageReplacementPreventsWithRider): false hands the damage back.
 	prevented := !s.noPrev(k, combat)
-	if k.gen.anyRepl&rbGraveLib != 0 {
-		s.millShuffling(k, rcp, n, 0)
-		return prevented
-	}
-	pl := &s.pl[rcp]
-	for i := 0; i < n && pl.libLo < pl.libHi; i++ {
-		o := pl.lib[pl.libLo]
-		pl.libLo++
-		s.touch(o)
-		s.objs[o].zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	// "each opponent mills that many cards": every opponent of srcCtrl, in
+	// turn order after it (oppsFrom), not only the one the damage was aimed
+	// at; at three seats and more they differ.
+	for q, i := s.oppsFrom(srcCtrl), uint8(0); i < q.n; i++ {
+		p := q.at(i)
+		if k.gen.anyRepl&rbGraveLib != 0 {
+			s.millShuffling(k, p, n, 0)
+			continue
+		}
+		pl := &s.pl[p]
+		for j := 0; j < n && pl.libLo < pl.libHi; j++ {
+			o := pl.lib[pl.libLo]
+			pl.libLo++
+			s.touch(o)
+			s.objs[o].zone = kop.ZoneNone
+			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		}
 	}
 	return prevented
 }

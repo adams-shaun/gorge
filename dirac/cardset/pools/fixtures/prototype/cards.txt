@@ -1,0 +1,31 @@
+# Prototype (CR 702.160, 718.3): Rust Goliath is cast for {10} or prototyped
+# for {3}{G}{G} as a green 3/5; the counterspells and removal read the
+# prototype's colour and mana value on the stack, the burn its toughness on
+# the battlefield, and the mana rocks reach the {10} front cast. Decks play it
+# in dirac/oracle/prototype_test.go. Combat Thresher (an enters trigger), Steel
+# Seraph (a begin-combat trigger) and Blitz Automaton (haste) carry the
+# printed abilities a prototype keeps.
+Rust Goliath
+Combat Thresher
+Steel Seraph
+Blitz Automaton
+Savannah Lions
+Plains
+Grizzly Bears
+Llanowar Elves
+Giant Growth
+Lightning Bolt
+Shock
+Essence Scatter
+Negate
+Unsummon
+Wind Drake
+Hill Giant
+Sol Ring
+Gilded Lotus
+Thran Dynamo
+Worn Powerstone
+Mind Stone
+Forest
+Island
+Mountain
