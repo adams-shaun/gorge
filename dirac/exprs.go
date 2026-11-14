@@ -31,6 +31,10 @@ type evalCtx struct {
 	// left the battlefield (CR 704.5j before 603.3b), where a later effect
 	// read sees gorge's reset.
 	bounds bool
+	// xmv is the announced X an {X} spell adds to its own mana value when a
+	// protection quality reads it as a source (protMatch; CR 202.3e), which
+	// a card matcher off the stack cannot see. 0 adds nothing.
+	xmv int
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -212,6 +216,7 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	if k.phasing && ob.zone.Phased() && ob.slot != NoSlot {
 		return s.phasedPT(k, ob.slot)
 	}
+	s.offZonePTRead(k, ob.card, ob.owner(), o) // static_offzonept.go
 	pc := &k.cards[ob.card]
 	if k.cda && k.gen.has(ob.card, gfCDAPT) {
 		return s.cardCDAPT(k, ob.card, ob.owner(), o) // CR 604.3: a CDA works in every zone

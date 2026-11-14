@@ -1075,7 +1075,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		kw := s.kw(k, a)
 		dt := kw&kop.KwDeathtouch != 0
-		if ap.flags&pfBlocked == 0 {
+		if ap.flags&pfBlocked == 0 || s.asUnblocked(k, a) { // ExtAsgnGrant: Outmaneuver (combat_asgngrant.go)
 			s.toDefender(k, &r, a, pw)
 			continue
 		}
@@ -1362,7 +1362,7 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 	if n <= 0 {
 		return
 	}
-	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife) {
+	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife, p) {
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {
@@ -1482,7 +1482,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		if ap.flags&pfAttacking == 0 || ap.flags&pfBlocked == 0 || s.combatArm().divDone.has(a) {
 			continue
 		}
-		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 {
+		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) {
 			continue
 		}
 		pw := s.power(k, a)

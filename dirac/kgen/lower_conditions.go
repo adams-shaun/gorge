@@ -26,6 +26,25 @@ func (lc *lowerCtx) aiHintSVars(v string) bool {
 	return true
 }
 
+// inertAddSVar reports whether a Continuous static's AddSVar$ value names
+// SVars of this face whose body is NOT in the "SVar:<Name>:<Value>" grant shape:
+// gorge's layer walk (layers.go, parseSVarGrant) grants nothing for those, so
+// the parameter has no effect in gorge (Heliod's Punishment, Burning Anger: the
+// granted ability resolves its SVars off the grantor's face either way).
+func (lc *lowerCtx) inertAddSVar(v string) bool {
+	names := strings.FieldsFunc(v, func(r rune) bool { return r == '&' || r == ',' })
+	if len(names) == 0 {
+		return false
+	}
+	for _, n := range names {
+		body, ok := lc.face.SVars[strings.TrimSpace(n)]
+		if !ok || strings.HasPrefix(body, "SVar:") {
+			return false
+		}
+	}
+	return true
+}
+
 // bareCondition lowers a node's bare Condition$ (gorge conditionBareMet):
 // Kicked reads the resolving spell's cast provenance (the kernel's
 // CondKicked reads the resolving entry, so only a spell's own chain
@@ -116,17 +135,23 @@ var phaseStepBits = [state.StepCleanup + 1]int{
 // phase-name parser, state.ParsePhases: an unknown name, an empty resolved
 // set, or a step the kernel does not model refuses.
 func (lc *lowerCtx) phasesCondition(spec string) (lCond, error) {
+	return phasesCond("ConditionPhases", spec)
+}
+
+// phasesCond is phasesCondition for the parameter named key (an activation
+// window's ActivationPhases$ reads the same parser).
+func phasesCond(key, spec string) (lCond, error) {
 	set, unknown := state.ParsePhases(spec)
 	if len(unknown) > 0 {
-		return lCond{}, refuse("ConditionPhases$ %q: unknown phase %q", spec, unknown[0])
+		return lCond{}, refuse("%s$ %q: unknown phase %q", key, spec, unknown[0])
 	}
 	if set.Empty() {
-		return lCond{}, refuse("ConditionPhases$ %q names no step", spec)
+		return lCond{}, refuse("%s$ %q names no step", key, spec)
 	}
 	var mask int
 	for _, st := range set.Steps() {
 		if int(st) >= len(phaseStepBits) || phaseStepBits[st] == 0 {
-			return lCond{}, refuse("ConditionPhases$ step %d", st)
+			return lCond{}, refuse("%s$ step %d", key, st)
 		}
 		mask |= phaseStepBits[st]
 	}
