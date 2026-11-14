@@ -708,10 +708,22 @@ func (r *Translator) sameRoomFace(a, b dirac.CardID) bool {
 // that face's index. Any other change is a face change (a transforming DFC
 // token), whose current face no longer has the SA.
 func (r *Translator) LKIAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
-	if r.sameRoomFace(srcCard, card) {
+	if r.sameRoomFace(srcCard, card) || r.sameProtoCard(srcCard, card) {
 		return r.CardAbility(card, ab)
 	}
 	return 255
+}
+
+// sameProtoCard reports whether a and b are the two defs of one prototype
+// card (kop.FacePrototype): gorge has one printed face for both, so its
+// abilityIndex still finds an ability queued as the prototype after the
+// source went back to its printed def (or the reverse).
+func (r *Translator) sameProtoCard(a, b dirac.CardID) bool {
+	if int(a) >= len(r.Tbl.Cards) || int(b) >= len(r.Tbl.Cards) {
+		return false
+	}
+	ca, cb := &r.Tbl.Cards[a], &r.Tbl.Cards[b]
+	return ca.FaceMode == kop.FacePrototype && cb.FaceMode == kop.FacePrototype && len(ca.Faces) == 2 && len(cb.Faces) == 2 && ca.Faces[0] == cb.Faces[0]
 }
 
 // StackAbility is the projected ability index of a stack entry whose source
@@ -936,6 +948,12 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("tap"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("untap"), Ref(src), RefNone, 0), true
+	case dirac.ChGenTapOrUntapAll:
+		// gorge's taporuntapall: a KChoose of "tap" / "untap", no object
+		if mode == 1 {
+			return Pack(kind("tap"), RefNone, RefNone, 0), true
+		}
+		return Pack(kind("untap"), RefNone, RefNone, 0), true
 	case dirac.ChGenKeepTapped:
 		// gorge's untap-step election over the permanent: "untap" first,
 		// then "keep_tapped"

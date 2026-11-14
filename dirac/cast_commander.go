@@ -15,12 +15,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // partner pair is offered in command-zone order, as gorge walks its zone
 // list: the commander that arrived last comes second.
 func (s *State) offerCommanderCast(k *prep, d *Decision, p uint8, av *avail) {
+	first, second := s.cmdZoneOrder(p)
+	s.offerCommanderSlot(k, d, p, av, first)
+	s.offerCommanderSlot(k, d, p, av, second)
+}
+
+// cmdZoneOrder is p's two commander slots (NoObj none) in gorge's
+// command-zone list order: the one that arrived last comes second. The
+// command-zone cast offer and the free-cast population
+// (cast_freecast.go) both walk it.
+func (s *State) cmdZoneOrder(p uint8) (Obj, Obj) {
 	first, second := s.pl[p].cmd, s.cmdObj(p, 1)
 	if !s.partnerLast(p) {
 		first, second = second, first
 	}
-	s.offerCommanderSlot(k, d, p, av, first)
-	s.offerCommanderSlot(k, d, p, av, second)
+	return first, second
 }
 
 // offerCommanderSlot offers commander o (NoObj none) from the command zone.
@@ -66,6 +75,9 @@ func (s *State) commanderTax(p uint8, o Obj) uint8 {
 	if j < 0 || *s.cmdCastAt(p, j) == 0 {
 		return 0
 	}
+	if DebugFreeCmdNoTax && s.buildLive() && s.bld().e.flags&sfFree != 0 {
+		return 0 // mutation: the free cast from the command zone skips the tax
+	}
 	z := s.objs[o].zone
 	if s.buildLive() && s.bld().bfl&bflPushed != 0 {
 		z = s.bld().origin
@@ -79,6 +91,10 @@ func (s *State) commanderTax(p uint8, o Obj) uint8 {
 	}
 	return uint8(t)
 }
+
+// DebugFreeCmdNoTax (test only, TestPlayCommandZoneLowers): a free cast
+// (OpCastFree, Geode Golem's) from the command zone pays no commander tax.
+var DebugFreeCmdNoTax bool
 
 // addCommanderTax adds tax to a cost's generic, saturating at 255.
 func addCommanderTax(c *kop.ManaCost, tax uint8) {
