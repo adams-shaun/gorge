@@ -6,7 +6,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -604,13 +603,8 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 // linked Card.
 func compileScripts(dir string) ([]*Card, []Diag, error) {
 	var paths []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(p, ".txt") {
-			paths = append(paths, p)
-		}
+	err := WalkScripts(dir, func(p string) error {
+		paths = append(paths, p)
 		return nil
 	})
 	if err != nil {
