@@ -89,6 +89,7 @@ type genPrep struct {
 	anyStackTgt     bool // some target slot is a TgtStackObj (tgt_stackability.go)
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
+	anyReconfigure  bool // a card has printed Reconfigure (CardDef.HasReconfigure; kw_reconfigure.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
 	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
@@ -610,10 +611,21 @@ func tableHasMultikicker(t *kop.Table) bool {
 	return false
 }
 
+// tableHasReconfigure reports whether any card prints Reconfigure: its type
+// switch (kw_reconfigure.go) lives in the generated-table paths.
+func tableHasReconfigure(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasReconfigure {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -958,6 +970,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasBestow {
 			g.anyBestow = true
+		}
+		if c.HasReconfigure {
+			g.anyReconfigure = true
 		}
 		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
@@ -1672,7 +1687,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			break
 		}
 	}
-	g.tyPost = g.anyBestow || g.anyImpending
+	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure
 	prepEquipAnim(t, g) // static_equipanimated.go
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go

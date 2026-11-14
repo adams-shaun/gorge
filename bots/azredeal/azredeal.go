@@ -142,26 +142,31 @@ func NewWithModel(o bots.Options, cfg azmcts.SeatConfig, model *policynet.Model)
 // says the decisions carry them.
 func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
 	return func(o bots.Options) (seat.Seat, error) {
-		cfg := Hosted()
-		cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
-		cfg.Search.Sims = sims
-		// A human meets modes, may-triggers, small choices and multi-target
-		// picks, so the paired bot weighs them; they stay off for hosted seats.
-		cfg.Search.Kinds = azmcts.FullKinds()
-		// The mulligan too, both asks, on its own budget; the seat's own
-		// answer there, and every fallback, reads the hand (never the
-		// default bot's coin).
-		cfg.Search.Kinds.Mulligan = true
-		// The commander-zone choice too: a commander's owner chooses whether
-		// it returns to the command zone (CR 903.9), and the paired bot weighs
-		// that choice instead of answering it by rule.
-		cfg.Search.Kinds.CommanderZone = true
-		cfg.Search.MulliganWorlds, cfg.Search.MulliganTurns = MulliganWorlds, MulliganTurns
-		cfg.Mulligan = botpolicy.MulliganConstructed
-		cfg.Search.AutoPayment = o.AutoPayMana
-		cfg.Search.Line = o.ExpectedLine
-		return New(o, cfg)
+		return New(o, closedConfig(o, belief, sims))
 	}
+}
+
+// closedConfig is ClosedFactory's search config for the seat o builds.
+func closedConfig(o bots.Options, belief *searchprobe.Belief, sims int) azmcts.SeatConfig {
+	cfg := Hosted()
+	cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
+	cfg.Search.Sims = sims
+	// A human meets modes, may-triggers, small choices and multi-target
+	// picks, so the paired bot weighs them; they stay off for hosted seats.
+	cfg.Search.Kinds = azmcts.FullKinds()
+	// The mulligan too, both asks, on its own budget; the seat's own
+	// answer there, and every fallback, reads the hand (never the
+	// default bot's coin).
+	cfg.Search.Kinds.Mulligan = true
+	// The commander-zone choice too: a commander's owner chooses whether
+	// it returns to the command zone (CR 903.9), and the paired bot weighs
+	// that choice instead of answering it by rule.
+	cfg.Search.Kinds.CommanderZone = true
+	cfg.Search.MulliganWorlds, cfg.Search.MulliganTurns = MulliganWorlds, MulliganTurns
+	cfg.Mulligan = botpolicy.MulliganConstructed
+	cfg.Search.AutoPayment = o.AutoPayMana
+	cfg.Search.Line = o.ExpectedLine
+	return cfg
 }
 
 // The paired bot's mulligan budget (azmcts.Options.MulliganWorlds,

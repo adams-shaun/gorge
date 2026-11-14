@@ -91,7 +91,7 @@ func commanderDraft(t *testing.T, reg *cards.Registry, seed uint64, size int) ([
 // TestCommanderDraftBuildsLegalDecks drafts a seeded synthetic 20-card pod
 // two picks per pass and checks every built deck: 60 cards, one commander or
 // a Commander-draft pair, every card inside the commanders' colour identity,
-// a 16..30 land base, and the same decks again from the same seed.
+// a 23..30 land base, and the same decks again from the same seed.
 func TestCommanderDraftBuildsLegalDecks(t *testing.T) {
 	reg := corpus(t)
 	pools, decks := commanderDraft(t, reg, 3, 0)
@@ -126,8 +126,8 @@ func TestCommanderDraftBuildsLegalDecks(t *testing.T) {
 				lands += e.Count
 			}
 		}
-		if lands < 16 || lands > 30 {
-			t.Errorf("seat %d deck has %d lands, want 16..30", s, lands)
+		if lands < 23 || lands > 30 {
+			t.Errorf("seat %d deck has %d lands, want 23..30", s, lands)
 		}
 		t.Logf("seat %d: commanders %v, %d lands, basics %v", s, f.Commanders, lands, d.Basics)
 	}
@@ -196,8 +196,8 @@ func TestCommanderBuilderDeckSize50(t *testing.T) {
 				lands += e.Count
 			}
 		}
-		if lands < 13 || lands > 25 {
-			t.Errorf("seat %d deck has %d lands, want 13..25", s, lands)
+		if lands < 19 || lands > 25 {
+			t.Errorf("seat %d deck has %d lands, want 19..25", s, lands)
 		}
 		t.Logf("seat %d: commanders %v, %d lands, basics %v", s, d.Commanders, lands, d.Basics)
 	}
