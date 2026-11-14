@@ -1273,9 +1273,13 @@ func (s *State) poolProj(p uint8) [kop.NumManaKinds]uint8 {
 // restrOptions is p's plain priority walk at a node of gorge's prefix search:
 // the search prices a play through the planner, which reads the floating pool
 // through the restriction (pay.PlanPool), so restricted mana counts exactly
-// when this play may spend it.
+// when this play may spend it. The planner's verdict is a payment, not a new
+// activation: p's this-turn Exhaust fact is read as at the search's root
+// (static_turnbits.go withRootExhaust).
 func (s *State) restrOptions(k *prep, d *Decision, p uint8) {
+	saved := s.withRootExhaust(p)
 	s.plainOptions(k, d, 0)
+	s.g.turnF = saved
 }
 
 // pendListenerOrder sorts the triggers queued since lo into listener order

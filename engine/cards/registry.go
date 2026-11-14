@@ -345,6 +345,12 @@ func (r *Registry) Save(path string) error {
 	if r.sub != nil {
 		return fmt.Errorf("cards: a subset registry cannot be saved as a corpus cache")
 	}
+	// The census (card_census.go) is taken before the cache is written, so a
+	// script added while Save runs reads as a mismatch, never as a match.
+	census, err := censusForSave(path)
+	if err != nil {
+		return err
+	}
 	if err := r.saveGob(path); err != nil {
 		return err
 	}
@@ -356,7 +362,10 @@ func (r *Registry) Save(path string) error {
 	if err := saveTokenDigest(path); err != nil {
 		return err
 	}
-	return writeSegments(SegmentPath(path), r.AllCards(), r.Tokens)
+	if err := writeSegments(SegmentPath(path), r.AllCards(), r.Tokens); err != nil {
+		return err
+	}
+	return saveCardCensus(path, census)
 }
 
 func (r *Registry) saveGob(path string) error {

@@ -168,7 +168,7 @@ func (s *State) unlockDoorApply(k *prep, sl Slot, lock bool, fi uint8) {
 //go:noinline
 func (s *State) askOptionsUnlockDoor(k *prep, d *Decision) bool {
 	if s.res.ask != raUnlockHalf && s.res.ask != raUnlockDoor {
-		return s.askOptionsStackRewrite(k, d) // act_stackrewrite.go
+		return s.askOptionsChangeText(k, d) // act_changetext.go
 	}
 	if s.res.ask == raUnlockHalf {
 		d.Sub = ChRoomDoorHalf
@@ -201,7 +201,7 @@ func (s *State) askOptionsUnlockDoor(k *prep, d *Decision) bool {
 //go:noinline
 func (s *State) applyAskUnlockDoor(k *prep, a Action) bool {
 	if s.res.ask != raUnlockHalf && s.res.ask != raUnlockDoor {
-		return s.applyAskStackRewrite(k, a) // act_stackrewrite.go
+		return s.applyAskChangeText(k, a) // act_changetext.go
 	}
 	if s.res.ask == raUnlockHalf {
 		s.unlockDoorHalf(k, a)

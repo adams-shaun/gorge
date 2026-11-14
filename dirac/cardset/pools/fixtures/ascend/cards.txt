@@ -1,0 +1,43 @@
+# the Ascend pool (CR 702.131): the Ascend carriers whose city's-blessing reads
+# lower (Count$Blessing.<yes>.<no>, static Condition$ Blessing, a CheckSVar$
+# on Count$Blessing), permanents and spells, beside cheap creatures that fill a
+# board to ten permanents (dirac/oracle/ascend_test.go); the gate carriers the
+# blessing-gate lowering lifted (trigger Blessing$ True, sub-ability and
+# CantBlockBy Condition$ Blessing, Activation$ Blessing) play in the
+# TestAscendBlessingGates matchup (dirac/oracle/ascend_gates_test.go)
+Arch of Orazca
+Andúril, Narsil Reforged
+Deadeye Brawler
+Detective of the Month
+Dusk Charger
+Elite Vanguard
+Expel from Orazca
+Forest
+Goblin Piker
+Golden Demise
+Grizzly Bears
+Illustrious Wanderglyph
+Island
+Kumena's Awakening
+Mausoleum Harpy
+Mountain
+Ocelot Pride
+Orazca Relic
+Plains
+Pride of Conquerors
+Radiant Destiny
+Resplendent Griffin
+Savannah Lions
+Secrets of the Golden City
+Skymarcher Aspirant
+Slippery Scoundrel
+Snubhorn Sentry
+Spire Winder
+Storm Fleet Swashbuckler
+Swamp
+Tendershoot Dryad
+Twilight Prophet
+Vona's Hunger
+Walking Corpse
+Wayward Swordtooth
+Wind Drake
