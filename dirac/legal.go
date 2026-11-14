@@ -836,6 +836,14 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
+	if cd.HasMultikicker && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
+		// a plain Multikicker hand cast is "shape:optional_cost" to the cast
+		// planner; gorge keeps the composition's plan (potentialPlayVerdictShared)
+		// but not its "insufficient", so the cast never enters the prefix search
+		// (potentialScriptPlays) and a census gap (a depletion land's counter
+		// mana) never pays it: it is no insufficient play and no scripted one
+		return false
+	}
 	if cd.Cost.X != 0 {
 		return s.xWitnessOffered(k, p, c, o)
 	}
@@ -1258,6 +1266,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		case kop.TgtAny:
 			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
+			if t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+				return false // tgt_thanactive.go
+			}
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
 				case kop.CtrlYou:

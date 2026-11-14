@@ -1591,11 +1591,17 @@ async function visible(l: Locator): Promise<boolean> {
 
 /**
  * playFromHand hovers a hand card, which raises it above its neighbours, clicks one of its
- * controls and reports whether the hand shrank. The game may have moved on since the control was
- * drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ * controls and reports whether that card left the hand. The game may have moved on since the
+ * control was drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ *
+ * The card is followed by its object id, never by the hand's size: a seat with nothing else to do
+ * passes on unseen (the ManaBrew compat rule) and can reach its next draw before the first poll,
+ * which puts the count back where it started although the card was played.
  */
 async function playFromHand(page: Page, hand: Locator, card: Locator, action: () => Promise<Locator>): Promise<boolean> {
-  const before = await hand.count();
+  const obj = await card.getAttribute('data-obj', { timeout: 2_000 }).catch(() => null);
+  if (obj === null) return false;
+  const played = page.locator(`.handfan [data-obj="${obj}"]`);
   try {
     await card.hover({ position: { x: 2, y: 8 }, timeout: 2_000 });
     await (await action()).click({ timeout: 2_000 });
@@ -1608,8 +1614,8 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
   const pay = page.locator(PAYMENT_ANSWERS);
   return expect.poll(async () => {
     if (await visible(pay)) await pay.first().click({ timeout: 2_000 }).catch(() => {});
-    return hand.count();
-  }, { timeout: 5_000 }).toBe(before - 1).then(() => true, () => false);
+    return played.count();
+  }, { timeout: 5_000 }).toBe(0).then(() => true, () => false);
 }
 
 /**

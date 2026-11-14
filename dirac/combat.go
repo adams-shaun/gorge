@@ -1362,7 +1362,7 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 	if n <= 0 {
 		return
 	}
-	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife) {
+	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife, p) {
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {

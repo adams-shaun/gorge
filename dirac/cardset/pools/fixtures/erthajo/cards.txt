@@ -1,0 +1,13 @@
+# the Ertha Jo pool: "whenever you activate an ability that targets a
+# creature or player, copy that ability" beside targeted and untargeted
+# activated abilities and a mana ability (dirac/oracle/erthajo_test.go)
+Ertha Jo, Frontier Mentor
+Prodigal Sorcerer
+Mogg Fanatic
+Llanowar Elves
+Grizzly Bears
+Shock
+Forest
+Mountain
+Plains
+Island

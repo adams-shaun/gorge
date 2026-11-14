@@ -366,7 +366,7 @@ func (s *State) windowComboTap(k *prep, p uint8, sl Slot, cost, useful *kop.Mana
 // Taps-deferred and counter-cost sources (caBoard), so the others are refused at
 // the game's start. The check is table-wide: a Combo Any source in one deck and a
 // filter in the other is refused too.
-const StallComboAnyMix = 188
+const StallComboAnyMix = 191
 
 func init() { stallNames[StallComboAnyMix] = "comboanymix" }
 

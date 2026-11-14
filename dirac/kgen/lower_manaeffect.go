@@ -47,7 +47,7 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		ps.consume("ValidTgts")
 	}
 	rv, _ := ps.get("RestrictValid")
-	if lc.out.Types&tArtifact != 0 && !lc.fbGranted && !dbManaActOnly(rv) { // a granted Firebending's source is the attacker, not this host (lower_firegrant.go)
+	if lc.out.Types&tArtifact != 0 && !lc.fbGranted && !dbManaActOnly(rv) && !dbManaPersistNonSpell(rv, ps) { // a granted Firebending's source is the attacker, not this host (lower_firegrant.go)
 		// An activated-only restriction (kop.SpmActivated) is the one typed
 		// shape the kernel records: addManaRestr sets poolArtRestr.
 		// an artifact source's mana is typed (gorge effects.ManaProducerTag
@@ -134,7 +134,12 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		lc.fbMarker = sub
 		persist = cst(1)
 	}
-	if restrict != nil && persist.Kind != vNone {
+	if restrictNonSpell(restrict) && persist.N != 2 {
+		return refuse("DB$ Mana CantCastNonArtifactSpells$ beside non-persistent mana")
+	}
+	if restrict != nil && persist.Kind != vNone && (!restrictNonSpell(restrict) || prod == "Any" || strings.HasPrefix(prod, "Combo ")) {
+		// the artifact-only restriction lowers beside PersistentMana$ True alone (Karn,
+		// Legacy Reforged), over a fixed colour
 		return refuse("DB$ Mana RestrictValid$ beside persistent mana")
 	}
 	if prod == "Any" || strings.HasPrefix(prod, "Combo ") {
@@ -168,6 +173,13 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		lc.emit(lInstr{Op: "AddMana", Obj: recipient, A: cst(1), B: persist, CS: c, F: restrict})
 	}
 	return nil
+}
+
+// dbManaPersistNonSpell: the resolving mana restricted to artifact spells and
+// kept until end of turn (Karn, Legacy Reforged), which the artifact-source
+// refusal lets through to the checks that follow the restriction.
+func dbManaPersistNonSpell(rv string, ps *params) bool {
+	return strings.TrimSpace(rv) == "CantCastNonArtifactSpells" && ps.is("PersistentMana", "True")
 }
 
 // manaChoiceEffect lowers a resolving DB$ Mana over a colour choice (CR 106.3;
