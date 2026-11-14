@@ -1,0 +1,20 @@
+# the MBC statics-2 spelling family (dirac/oracle/mbc_statics2_lowers_test.go
+# TestMBCStatics2Lowers): an AlternativeCost static's CheckSecondSVar$
+# (Massacre, Submerge, Deepwood Legate: "if an opponent controls a <land> and
+# you control a <land>") over decks whose lands meet one, both or neither
+# half; a Continuous static's CantHaveKeyword$ (Archetype of Imagination,
+# Archetype of Courage) against flyers and Jump's "gains flying"
+Massacre
+Submerge
+Deepwood Legate
+Archetype of Imagination
+Archetype of Courage
+Storm Crow
+Wind Drake
+Jump
+Grizzly Bears
+Savannah Lions
+Plains
+Island
+Swamp
+Forest

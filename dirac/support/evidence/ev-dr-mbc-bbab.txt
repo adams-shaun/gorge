@@ -1,3 +1,4 @@
+Apprentice Sorcerer
 Artistic Process
 Codecracker Hound
 Driver of the Dead
@@ -16,6 +17,7 @@ Plains
 Preordain
 Priest of Titania
 Quirion Ranger
+Song of Freyalise
 Splitskin Doll
 Stasis Snare
 Swamp

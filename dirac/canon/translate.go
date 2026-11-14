@@ -936,6 +936,12 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("tap"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("untap"), Ref(src), RefNone, 0), true
+	case dirac.ChGenTapOrUntapAll:
+		// gorge's taporuntapall: a KChoose of "tap" / "untap", no object
+		if mode == 1 {
+			return Pack(kind("tap"), RefNone, RefNone, 0), true
+		}
+		return Pack(kind("untap"), RefNone, RefNone, 0), true
 	case dirac.ChGenKeepTapped:
 		// gorge's untap-step election over the permanent: "untap" first,
 		// then "keep_tapped"
@@ -1029,6 +1035,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenPlayer:
 		// gorge effChoosePlayer's "player" option names the seat
 		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
+	case dirac.ChGenTextWord:
+		// gorge's changetext KChoose: one option per word, kind
+		// changetext_from / changetext_to, valued by the word index
+		if mode >= 16 {
+			return Pack(kind("changetext_to"), RefNone, RefNone, mode-16), true
+		}
+		return Pack(kind("changetext_from"), RefNone, RefNone, mode), true
 	case dirac.ChGenColor:
 		// gorge indexes its colour options densely: with an Exclude$
 		// colour dropped (Citadel Gate) the index is the colour's rank
