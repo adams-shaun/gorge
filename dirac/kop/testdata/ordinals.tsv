@@ -102,7 +102,8 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	11
+CondBlessing	CondKind	11
+CondCount_	CondKind	12
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
@@ -304,6 +305,7 @@ DmgGT	DmgCmp	5
 DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
 DmgMapped	untyped int	4
+DmgMarkBySource	untyped int	1
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
 DmgNoRegenTarget	untyped int	128
@@ -351,6 +353,7 @@ ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235
 ExAttackersAll	ExprKind	55
+ExBlessing	ExprKind	216
 ExBranches	ExprKind	37
 ExCastBattlefield	ExprKind	237
 ExCastFromGrave	ExprKind	247
@@ -926,6 +929,7 @@ PayEnergy	untyped int	5
 PayEvidence	untyped int	15
 PayExileGrave	untyped int	14
 PayForage	untyped int	7
+PayHybMax	untyped int	2
 PayLife	untyped int	4
 PayMana	untyped int	1
 PayManaX	untyped int	15
@@ -1012,6 +1016,9 @@ PredWasCastEnter	Pred	248
 PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
+PrevScopeAll	untyped int	8
+PrevScopeColourShift	untyped int	8
+PrevScopeCombat	untyped int	16
 PrevScopeCreatures	untyped int	2
 PrevScopePlayer	untyped int	1
 PrevScopeSrcCreature	untyped int	4
@@ -1608,5 +1615,7 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+payFLifeBits	untyped int	6
+payFLifeMask	untyped int	63
 RefTriggerOpponents	Ref	247
 PayBSubSacSelfMust	untyped int	4

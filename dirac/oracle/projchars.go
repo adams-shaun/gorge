@@ -161,6 +161,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Surge":                  "CardDef.HasSurge (a hand alt cost once another spell was cast this turn, no battlefield characteristic; compared through the cast options; kw_surge.go)",
 	"Evoke":                  "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
+	"Ascend":                 "CardDef.Ascend (CR 702.131; the city's blessing latch, compared through its readers: Count$Blessing and Condition$ Blessing; kw_ascend.go)",
 	"Bargain":                "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
 	"Infect":                 "CardDef.Infect, a Continuous static's Static.Infect grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the counters and poison)",
 	"Toxic":                  "CardDef.Toxic (compared through poison)",

@@ -48,6 +48,14 @@ type exMarkRec struct {
 // maxExMarks is how many such effects one turn can hold; more stall by name.
 const maxExMarks = 6
 
+// coldExMark is the turn's exile-instead effects.
+var coldExMark = newCold[exMarkRec]("exMark", func(g *genPrep) int {
+	if g.ix[mechExileEx] != arenaNone || g.anyTurnScope {
+		return maxExMarks
+	}
+	return 0
+}).view(func(c *coldArrays) *[]exMarkRec { return &c.exMark })
+
 func (s *State) exMarkCount(sl Slot) int {
 	n := 0
 	for i := range s.cold.exMark {
@@ -137,6 +145,14 @@ const raParkFinish uint8 = 99
 // maxParked is how many moves one cost, pass, mass move or mill can park; more stall
 // by name. 58 is the most that keeps every pool under the State bar.
 const maxParked = 48
+
+// coldParked is the moves parked on a replacement order ask.
+var coldParked = newCold[parkedMove]("parked", func(g *genPrep) int {
+	if g.ix[mechExileEx] != arenaNone || g.anyRepl&rbExileOnLeave != 0 {
+		return maxParked
+	}
+	return 0
+}).view(func(c *coldArrays) *[]parkedMove { return &c.parked })
 
 // maxParkSrc is how many sources one parked move can offer; more stall by name.
 const maxParkSrc = 8
