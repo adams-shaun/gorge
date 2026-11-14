@@ -180,6 +180,18 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
+	} else if fl&sfKicked != 0 && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasMultikicker && k.t.Cards[c].OptWaterbend == 0 {
+		// a kicked or buyback {X} cast is a potential play too (gorge's
+		// "kicked"/"buyback" mode): its witness is the composed cost at the
+		// largest X the sources pay (rules potentialModeCastPlan's binary
+		// search), tapped at priority before X is announced; the payment then
+		// spends the pool and pays an X past it through the window
+		// (loweredWindowOK). A pool that already pays it at X = 0 is the
+		// offered cast: nothing is tapped, and it still has no plan.
+		s.bld().bfl |= bflLowered
+		if !s.FeatPoolPays(p, o, 1) {
+			s.lowerWitness(k, p)
+		}
 	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
 		// option carries Potential: true), so its plan is the composed cost

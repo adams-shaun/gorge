@@ -333,7 +333,10 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 		c, sc := mk(t)
 		src := sc.perm(vanilla.GrizzlyBears, 0)
 		dst := sc.perm(vanilla.GrizzlyBears, 1)
-		for i := 0; i < 4; i++ {
+		// the caster's doubler beside three preventers: four bare
+		// preventions alone are not ordered at all (repl_bareprev.go)
+		sc.perm(c.tyrant, 0)
+		for i := 0; i < 3; i++ {
 			sc.perm(c.barricade, 1)
 		}
 		sc.s.g.stalled = 0

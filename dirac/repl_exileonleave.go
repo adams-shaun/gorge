@@ -15,8 +15,9 @@ import (
 // placeFrom (a resolved or countered spell, discard, mill, DigUntil's digMove
 // and the pile moves), which asks exileAnyDest. Two matching replacements on
 // one move (or one beside Progenitus's) pose gorge's CR 616.1 order ask: a
-// parked move has settled it (repl_exilemark.go), and any other is
-// StallReplLeave, as dieZone.
+// parked move has settled it (repl_exilemark.go; a two-pile split's
+// graveyard cards park in pilesToGraveyard), and any other is StallReplLeave,
+// as dieZone.
 
 // DebugExileAnyBattlefieldOnly skips the non-battlefield check (the behaviour
 // before); TestExileanyMutation asserts the lockstep then

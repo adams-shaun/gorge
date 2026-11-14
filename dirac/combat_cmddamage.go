@@ -29,7 +29,11 @@ func (s *State) noteCmdDamage(src Slot, p uint8, n int) {
 // from the recomputed pass: the recomputed pass holds the damage before the
 // walk's replacements, and a resume would tally it again.
 func (s *State) noteCmdDamagePass(r *dmgRec) {
-	if s.cfg&cfgCommander == 0 || s.g.ro.on {
+	if s.g.ro.on {
+		return
+	}
+	s.noteDmgTakenPass(r) // kw_bloodthirst.go: the same per-attacker player damage
+	if s.cfg&cfgCommander == 0 {
 		return
 	}
 	for m := s.occ; m.any(); m = m.rest() {

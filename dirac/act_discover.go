@@ -79,7 +79,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 
 // payManaResume goes on with a resolution's mana payment after a source's order ask.
 func (s *State) payManaResume(k *prep) {
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[s.res.pc].B.N))
+	c := s.resPayCost(k) // cost_trighybrid.go
 	paid := s.payReplanned(k, s.g.pickP, &c)
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder

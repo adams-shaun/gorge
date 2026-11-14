@@ -162,6 +162,11 @@ const (
 	// DB$ Mana: the clause admits every activated-ability payment and nothing
 	// else (gorge restrictValidTermMatches); never a CR 116.2 special action.
 	SpmActivated
+	// SpmNonSpell marks a resolving DB$ Mana's CantCastNonArtifactSpells: the
+	// batch's other clauses are the artifact spells it may pay, and this one
+	// adds every payment that is not a spell (gorge restrictValidTermMatches);
+	// never a CR 116.2 special action.
+	SpmNonSpell
 )
 
 // SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.
@@ -608,6 +613,13 @@ const PredTrigPlayerCtrl Pred = 239
 // else, off the battlefield too (gorge IsSuspected / !IsSuspected:
 // Object.Suspected, false off the battlefield).
 const PredSuspected Pred = 254
+
+// PredRenowned: PredN 1, a renowned battlefield permanent; PredN 0, anything
+// else, off the battlefield too (gorge IsRenowned / !IsRenowned:
+// Object.Renowned, which the move off the battlefield clears; CR 702.112b).
+// The designation is the arena's mechRenowned, set by OpExt ExtRenown
+// (dirac/act_renown.go). Explicit ordinal: the free one below PredEscaped.
+const PredRenowned Pred = 236
 
 // PredEscaped: PredN 1, a battlefield permanent whose spell was cast for its
 // escape cost; PredN 0, anything else, off the battlefield too (gorge
