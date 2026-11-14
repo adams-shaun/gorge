@@ -50,7 +50,7 @@ func newEBScen(t *testing.T) (sc *scen, id map[string]CardID, ebIn kop.Instr) {
 func ebCast(sc *scen, id map[string]CardID, in kop.Instr, o Obj) {
 	e := &sc.s.res.e
 	e.kind, e.ctrl, e.card, e.ab = seSpell, 0, id["Earthbending Lesson"], 0
-	e.tgt[0], e.nt, e.tver[0] = uint8(o), 1, sc.s.objs[o].ver
+	e.tgt[0], e.nt, e.tver[0] = TCode(o), 1, sc.s.objs[o].ver
 	sc.s.exec(sc.k, &in)
 }
 
@@ -155,10 +155,10 @@ func TestEarthbendRecordSurvivesEndStep(t *testing.T) {
 	sc, id, in := newEBScen(t)
 	s, k := sc.s, sc.k
 	f, g := sc.perm(id["Forest"], 0), sc.perm(id["Forest"], 0)
-	s.dly[0] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: s.objs[g].ver, creator: NoObj}
+	s.dly[0] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: objWord(s.objs[g].ver), creator: NoObj}
 	s.ndly = 1
 	ebCast(sc, id, in, f)
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: s.objs[g].ver, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpBounce), ctrl: 0, obj: g, ver: objWord(s.objs[g].ver), creator: NoObj}
 	s.ndly++
 	s.fireDelayed(k)
 	if s.npend != 2 {

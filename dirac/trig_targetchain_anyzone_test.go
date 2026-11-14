@@ -42,12 +42,12 @@ func TestCastTargetsAnyZone(t *testing.T) {
 	// A creature permanent: an opponent's matches (the burn-spell case), the
 	// listener's own does not.
 	oppPerm := sc.perm(creature, 1)
-	e.tgt[0] = uint8(oppPerm)
+	e.tgt[0] = TCode(oppPerm)
 	if !sc.s.castTargetsAll(sc.k, anyZone, &e, l) || !sc.s.castTargetsAll(sc.k, battlefieldOnly, &e, l) {
 		t.Fatal("an opponent's creature permanent did not match")
 	}
 	minePerm := sc.perm(creature, 0)
-	e.tgt[0] = uint8(minePerm)
+	e.tgt[0] = TCode(minePerm)
 	if sc.s.castTargetsAll(sc.k, anyZone, &e, l) {
 		t.Fatal("the listener's own creature permanent matched an opponent filter")
 	}
@@ -56,7 +56,7 @@ func TestCastTargetsAnyZone(t *testing.T) {
 	// says who controls it, not its owner (seat 0 owns this one).
 	spell := sc.obj(creature, 0)
 	pushSpell(spell, 1)
-	e.tgt[0] = uint8(spell)
+	e.tgt[0] = TCode(spell)
 	if !sc.s.castTargetsAll(sc.k, anyZone, &e, l) {
 		t.Fatal("a creature spell an opponent controls did not match")
 	}
@@ -75,7 +75,7 @@ func TestCastTargetsAnyZone(t *testing.T) {
 	// chain's player sentinel (Ctrl opp, no types) names no object.
 	land := sc.obj(id["Plains"], 1)
 	pushSpell(land, 1)
-	e.tgt[0] = uint8(land)
+	e.tgt[0] = TCode(land)
 	if sc.s.castTargetsAll(sc.k, anyZone, &e, l) {
 		t.Fatal("a noncreature spell matched a creature alternative")
 	}
@@ -84,13 +84,13 @@ func TestCastTargetsAnyZone(t *testing.T) {
 	// A card in a graveyard is controlled by its owner.
 	grave := sc.obj(creature, 1)
 	sc.s.objs[grave].zone = kop.ZoneGraveyard
-	e.tgt[0] = uint8(grave)
+	e.tgt[0] = TCode(grave)
 	if !sc.s.castTargetsAll(sc.k, anyZone, &e, l) {
 		t.Fatal("an opponent's creature card in a graveyard did not match")
 	}
 	graveMine := sc.obj(creature, 0)
 	sc.s.objs[graveMine].zone = kop.ZoneGraveyard
-	e.tgt[0] = uint8(graveMine)
+	e.tgt[0] = TCode(graveMine)
 	if sc.s.castTargetsAll(sc.k, anyZone, &e, l) {
 		t.Fatal("the listener's own creature card in a graveyard matched an opponent filter")
 	}

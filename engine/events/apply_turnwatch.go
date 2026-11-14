@@ -18,17 +18,26 @@ func resetTurnWatchers(p *state.Player) {
 	p.TokensCreatedThisTurn = 0
 	p.AttackedPlayersThisTurn = 0
 	p.AttackedPlaneswalkersThisTurn = 0
+	p.AttackedSeatsThisTurn = 0
 }
 
 // tallyAttack records, for the controller of each declared attacker, that it
 // attacked defending seat e.Player this turn: the player itself (e.Obj zero)
 // or a planeswalker that seat controls (e.Obj a planeswalker). A battle
-// attack (CR 310.7) is neither and records nothing.
+// attack (CR 310.7) is neither and records only AttackedSeatsThisTurn, which
+// every defender sets.
 func tallyAttack(g *state.Game, e *Event) {
 	if !validPlayer(g, e.Player) || e.Player < 0 || e.Player >= 64 {
 		return
 	}
 	bit := uint64(1) << uint(e.Player)
+	for _, id := range e.IDs {
+		// any defender: the player, their planeswalker or a battle they
+		// protect (Engine.AttackedDuringLastTurn's DeclareAttackers read)
+		if o := g.Obj(id); o != nil && validPlayer(g, o.Controller) {
+			g.Players[o.Controller].AttackedSeatsThisTurn |= bit
+		}
+	}
 	walker := false
 	if e.Obj != 0 {
 		target := g.Obj(e.Obj)

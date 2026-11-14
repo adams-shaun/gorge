@@ -35,7 +35,7 @@ func prepNetLock(t *kop.Table, g *genPrep) {
 
 const nlN = 8 // locks held at once
 
-func (s *State) nlAt(i int) *uint8 {
+func (s *State) nlAt(i int) *Obj {
 	switch {
 	case i < 2:
 		return &s.g.nlA[i]
@@ -48,7 +48,7 @@ func (s *State) nlAt(i int) *uint8 {
 // netLocked reports whether object o is locked.
 func (s *State) netLocked(o Obj) bool {
 	for i := 0; i < nlN; i++ {
-		if *s.nlAt(i) == uint8(o)+1 {
+		if *s.nlAt(i) == o+1 {
 			return true
 		}
 	}
@@ -64,10 +64,10 @@ func (s *State) netDrop(o Obj) {
 	if debugNetMutate == 2 {
 		return // test only: the lock survives the untap
 	}
-	var keep [nlN]uint8
+	var keep [nlN]Obj
 	n := 0
 	for i := 0; i < nlN; i++ {
-		if v := *s.nlAt(i); v != 0 && v != uint8(o)+1 {
+		if v := *s.nlAt(i); v != 0 && v != o+1 {
 			keep[n] = v
 			n++
 		}
@@ -103,7 +103,7 @@ func (s *State) lockActs(k *prep, in *kop.Instr) {
 	}
 	for i := 0; i < nlN; i++ {
 		if e := s.nlAt(i); *e == 0 {
-			*e = uint8(p.obj) + 1
+			*e = p.obj + 1
 			s.touchSl(sl)
 			return
 		}

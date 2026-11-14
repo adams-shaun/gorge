@@ -22,13 +22,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const maxStackTgt = int(PlayerTarget0 - StackTarget0) // seat-ok: the stack-code span, not a seat
 
 // isStackTarget reports whether target byte c names a stack ability.
-func isStackTarget(c uint8) bool { return c >= StackTarget0 && c < PlayerTarget0 } // seat-ok: the stack-code span, not a seat
+func isStackTarget(c TCode) bool { return c >= StackTarget0 && c < PlayerTarget0 } // seat-ok: the stack-code span, not a seat
 
 // StackTargetIndex is isStackTarget for the kernel's clients (the search
 // bots): the stack index, from the bottom, that target byte c names. A byte
 // that names a stack ability is not an Obj, so a client that indexes an
 // object table with it reads past MaxObj.
-func StackTargetIndex(c uint8) (int, bool) {
+func StackTargetIndex(c TCode) (int, bool) {
 	if !isStackTarget(c) {
 		return 0, false
 	}
@@ -50,7 +50,7 @@ func (s *State) stackSid(e *stackEntry) {
 
 // stackTgtIdx is the stack index of the ability entry target byte c with
 // identity sid names, or -1 when it is no longer on the stack.
-func (s *State) stackTgtIdx(c, sid uint8) int {
+func (s *State) stackTgtIdx(c TCode, sid uint8) int {
 	if DebugStackTgtByIndex {
 		if i := int(c - StackTarget0); i < int(s.sp) && s.stack[i].kind != seSpell {
 			return i
@@ -82,7 +82,7 @@ func (s *State) stackTgtSelf() int {
 // stackTgtOK is targetOK for a TgtStackObj slot.
 //
 //go:noinline
-func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code uint8) bool {
+func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code TCode) bool {
 	if t.Kind == kop.TgtSpellTgting {
 		return s.spellTgtingOK(k, t, p, self, code) // tgt_countershapes.go
 	}
@@ -120,16 +120,16 @@ func (s *State) stackTgtOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code u
 // as targetCands lists spells.
 //
 //go:noinline
-func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out *[MaxOptions]TCode, n int) int {
 	for i := int(s.sp) - 1; i >= 0 && n < MaxOptions; i-- {
 		e := &s.stack[i]
-		code := uint8(e.obj)
+		code := TCode(e.obj)
 		if e.kind != seSpell {
 			if i >= maxStackTgt {
 				s.stall(StallTables) // beyond gorge's canonical stack range
 				continue
 			}
-			code = StackTarget0 + uint8(i)
+			code = StackTarget0 + TCode(i)
 		}
 		if s.stackTgtOK(k, t, p, self, code) {
 			out[n] = code
@@ -141,7 +141,7 @@ func (s *State) stackTgtCands(k *prep, t *kop.TargetSpec, p uint8, self Obj, out
 
 // stackTgtPicked records the identity of a picked stack-ability target in
 // its slot's tver.
-func (s *State) stackTgtPicked(e *stackEntry, ti uint8, code uint8) {
+func (s *State) stackTgtPicked(e *stackEntry, ti uint8, code TCode) {
 	if i := int(code - StackTarget0); i < int(s.sp) {
 		e.tver[ti] = s.stack[i].sid
 	}
@@ -149,7 +149,7 @@ func (s *State) stackTgtPicked(e *stackEntry, ti uint8, code uint8) {
 
 // stackTgtSid is the stack identity of the ability entry stack-ability target
 // byte c names (0 when it is not on the stack).
-func (s *State) stackTgtSid(c uint8) uint8 {
+func (s *State) stackTgtSid(c TCode) uint8 {
 	if i := int(c - StackTarget0); i < int(s.sp) {
 		return s.stack[i].sid
 	}
@@ -197,17 +197,16 @@ func (s *State) stackTgtCtrl(i int) uint8 {
 	return 255
 }
 
-// StackTargetGone is a projected stack-ability target that has left the
-// stack: still a target, naming nothing (gorge's RefNone for the vanished
-// stack object; the oracle maps it so).
-const StackTargetGone uint8 = 0xFE
+// StackTargetGone (seats_*.go) is a projected stack-ability target that has
+// left the stack: still a target, naming nothing (gorge's RefNone for the
+// vanished stack object; the oracle maps it so).
 
 // stackTgtProj is a stack-ability target byte as the projection names it:
 // StackTarget0 + the entry's current index (gorge's live RefStack), or
 // StackTargetGone.
-func (s *State) stackTgtProj(c, sid uint8) uint8 {
+func (s *State) stackTgtProj(c TCode, sid uint8) TCode {
 	if i := s.stackTgtIdx(c, sid); i >= 0 && i < maxStackTgt {
-		return StackTarget0 + uint8(i)
+		return StackTarget0 + TCode(i)
 	}
 	return StackTargetGone
 }

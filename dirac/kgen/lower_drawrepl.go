@@ -20,6 +20,14 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		// of card to dig for: two asks the kernel does not pose at a draw
 		return refuse("repl-hard: Draw replacement with an optional or choice body")
 	}
+	if w != nil && w.API == "WinsGame" {
+		// Laboratory Maniac, Jace, Wielder of Mysteries: the line replaces
+		// a draw from an empty library, which gorge logs as DrawEmpty and
+		// never meets with a Draw replacement, so the drawer loses (CR
+		// 121.4 and 614 say the replacement applies): not lowered until
+		// gorge applies it
+		return refuse("repl-hard: Draw replacement WinsGame (gorge never replaces an empty-library draw)")
+	}
 	if rp.str("ActiveZones") != "Battlefield" || rp.str("ValidPlayer") != "You" || w == nil ||
 		!withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) {
 		return refuse("repl-hard: Draw replacement")
