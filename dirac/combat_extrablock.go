@@ -215,6 +215,8 @@ func init() { stallNames[StallExtraBlockReq] = "extrablockreq" }
 // printed one on itself and a grant, or two grants) and that already blocks two
 // attackers while a third is blockable: gorge's BlockCapacity sums the sources
 // to three attackers, and the kernel's second-block record holds two.
+// It is also the stall of a ninth blocker of two attackers in one combat: the
+// second-block table holds maxXblk records.
 const StallExtraBlockCap = 192
 
 func init() { stallNames[StallExtraBlockCap] = "extrablockcap" }
