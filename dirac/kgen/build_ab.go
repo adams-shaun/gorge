@@ -4120,7 +4120,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtLibPlace)), int16(in.C)
 	case "AttacksIfAble":
 		// OpExt ExtAttacksIfAble, Obj the target that attacks this turn if able
-		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble))
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtAttacksIfAble)), int16(in.C)
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))

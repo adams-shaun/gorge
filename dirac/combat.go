@@ -128,8 +128,8 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
-		if gd && s.goadedAt(k, sl) {
-			continue // a goad is satisfied by attacking a player only (act_goad.go)
+		if gd && s.goadedAt(k, sl) || s.attackPlayerOnly(k, sl) {
+			continue // a goad is satisfied by attacking a player only (act_goad.go), and so is Encore's duty (combat_attacksifable.go)
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
 			q := pm.first()

@@ -753,6 +753,12 @@ func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
 // dirac/combat_attacksifable.go.
 const ExtAttacksIfAble ExtOp = 255
 
+// AttacksOpponent is ExtAttacksIfAble's C bit 0: the duty names the
+// opponent ("attacks that opponent this turn if able", Encore), so only the
+// player satisfies it and no planeswalker or battle of theirs is offered
+// (the arena bit mechAttacksPlayer).
+const AttacksOpponent = 1
+
 func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 
 // ExtBlocksIfAble: the battlefield object named by Obj (a target slot)

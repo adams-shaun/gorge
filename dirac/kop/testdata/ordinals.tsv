@@ -42,6 +42,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToYouCtrl	untyped int	8
+AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
 BncDelayedMany	untyped int	8192
