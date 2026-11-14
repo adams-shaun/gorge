@@ -1,0 +1,203 @@
+{
+  "name": "mbc_e1_s1",
+  "format": "commander",
+  "archetype": "",
+  "commander": "",
+  "commanders": [
+    "Cromat"
+  ],
+  "cards": [
+    {
+      "name": "Cromat",
+      "count": 1
+    },
+    {
+      "name": "Akroma's Will",
+      "count": 1
+    },
+    {
+      "name": "Sifa Grent",
+      "count": 1
+    },
+    {
+      "name": "Misleading Signpost",
+      "count": 1
+    },
+    {
+      "name": "Rankle, Master of Pranks",
+      "count": 1
+    },
+    {
+      "name": "Guardian of Faith",
+      "count": 1
+    },
+    {
+      "name": "Gwenna, Eyes of Gaea",
+      "count": 1
+    },
+    {
+      "name": "Jabs, Mistress of Mockery",
+      "count": 1
+    },
+    {
+      "name": "Rikala, Homarid King",
+      "count": 1
+    },
+    {
+      "name": "Public Execution",
+      "count": 1
+    },
+    {
+      "name": "Generous Gift",
+      "count": 1
+    },
+    {
+      "name": "Siege-Gang Lieutenant",
+      "count": 1
+    },
+    {
+      "name": "Jolene, the Plunder Queen",
+      "count": 1
+    },
+    {
+      "name": "Jolene, the Plunder Queen",
+      "count": 1
+    },
+    {
+      "name": "Autumn Willow, Harmony",
+      "count": 1
+    },
+    {
+      "name": "Siege-Gang Lieutenant",
+      "count": 1
+    },
+    {
+      "name": "Will-o'-the-Wisp",
+      "count": 1
+    },
+    {
+      "name": "Kavu Predator",
+      "count": 1
+    },
+    {
+      "name": "Slaughter the Strong",
+      "count": 1
+    },
+    {
+      "name": "Blood Curdle",
+      "count": 1
+    },
+    {
+      "name": "Radiant's Judgment",
+      "count": 1
+    },
+    {
+      "name": "Biomechan Engineer",
+      "count": 1
+    },
+    {
+      "name": "Tendrils of Corruption",
+      "count": 1
+    },
+    {
+      "name": "Biogenic Upgrade",
+      "count": 1
+    },
+    {
+      "name": "Blur",
+      "count": 1
+    },
+    {
+      "name": "Roar of Challenge",
+      "count": 1
+    },
+    {
+      "name": "Mother of Runes",
+      "count": 1
+    },
+    {
+      "name": "Wilt",
+      "count": 1
+    },
+    {
+      "name": "Stoke the Flames",
+      "count": 1
+    },
+    {
+      "name": "Watcher for Tomorrow",
+      "count": 1
+    },
+    {
+      "name": "Marionette Apprentice",
+      "count": 1
+    },
+    {
+      "name": "Colossal Skyturtle",
+      "count": 1
+    },
+    {
+      "name": "Moon-Blessed Cleric",
+      "count": 1
+    },
+    {
+      "name": "Commander Liara Portyr",
+      "count": 1
+    },
+    {
+      "name": "Teferi's Honor Guard",
+      "count": 1
+    },
+    {
+      "name": "Baird, Steward of Argive",
+      "count": 1
+    },
+    {
+      "name": "Exultant Skymarcher",
+      "count": 1
+    },
+    {
+      "name": "Ministrant of Obligation",
+      "count": 1
+    },
+    {
+      "name": "Filth",
+      "count": 1
+    },
+    {
+      "name": "Witching Well",
+      "count": 1
+    },
+    {
+      "name": "Preordain",
+      "count": 1
+    },
+    {
+      "name": "Hunter's Edge",
+      "count": 1
+    },
+    {
+      "name": "Evolution Charm",
+      "count": 1
+    },
+    {
+      "name": "Plains",
+      "count": 5
+    },
+    {
+      "name": "Island",
+      "count": 2
+    },
+    {
+      "name": "Swamp",
+      "count": 3
+    },
+    {
+      "name": "Mountain",
+      "count": 3
+    },
+    {
+      "name": "Forest",
+      "count": 4
+    }
+  ]
+}

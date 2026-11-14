@@ -43,6 +43,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToYouCtrl	untyped int	8
+AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
@@ -1652,5 +1653,3 @@ ZoneSideboard	Zone	10
 ZoneStack	Zone	6
 payFLifeBits	untyped int	6
 payFLifeMask	untyped int	63
-RefTriggerOpponents	Ref	247
-PayBSubSacSelfMust	untyped int	4

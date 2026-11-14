@@ -1,0 +1,11 @@
+# the MBC granted-Afterlife pool: Afterlife Insurance (PumpAll KW$ Afterlife:1,
+# the dies trigger granted until end of turn) beside vanilla creatures and
+# basics (dirac/oracle/mbc_granted_afterlife_test.go)
+Afterlife Insurance
+Savannah Lions
+Glory Seeker
+Gray Ogre
+Hill Giant
+Plains
+Swamp
+Mountain
