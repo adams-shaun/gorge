@@ -520,14 +520,16 @@ const Tf2ManaFromSelf TrigFlags2 = 1 << 31
 // and the Static$ True SpellCast triggers whose Effect upgrades the cast
 // spell's entry (kernel trig_mayplaystatic.go).
 
-// Tf3Static (Trigger.Flags3, bit 4): a SpellCast trigger whose line
+// Tf3Static (Trigger.Flags3, bit 4): a trigger whose line
 // carries Static$ True. gorge resolves such a trigger off the stack, by
 // the trigger drain, before the CR 603.3b ordering ask
 // (engine/rules/static_trigger.go): no priority pass, no order choice.
 // Only a body kgen PROVES ask-free carries the flag (no targets, no Charm,
-// no Optional/Unless/Cost rider — the exact rider Effect shapes only);
-// everything else refuses in kgen and keeps the stack path. TrigFlags2 is
-// full, so it rides Flags3 beside the converge and validsa qualifiers.
+// no Optional/Unless/Cost rider; the SpellCast rider Effect shapes, or an
+// eventless body over the mayask APIs staticBodyCompetes' safe list also
+// holds); everything else refuses in kgen and keeps the stack path.
+// TrigFlags2 is full, so it rides Flags3 beside the converge and validsa
+// qualifiers.
 const Tf3Static TrigFlags3 = 1 << 4
 
 // Tf3MayPlaySrc (Trigger.Flags3, bit 5): a SpellCast trigger's ValidSA$

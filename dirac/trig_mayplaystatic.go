@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// statictrig: a SpellCast trigger whose line carries
+// statictrig: a trigger whose line carries
 // Static$ True resolves OFF the stack, by the trigger drain, before the
 // CR 603.3b ordering ask — gorge's resolveStaticTriggers
 // (engine/rules/static_trigger.go) removes each queued trigger whose line
@@ -14,9 +14,12 @@ import (
 // and runs it inline: no priority pass, no order choice. The carriers'
 // bodies are the "this spell enters with [a finality / an extra +1/+1]
 // counter" rider Effects (ExtEffEtbCtr / ExtFinalityCtr), which only stamp
-// the cast spell's stack entry, so the resolution poses no decision by
-// construction: kgen refuses Static$ True on every other body (targets,
-// Charm, optional/unless/cost riders).
+// the cast spell's stack entry, and — every other mode — the eventless
+// bookkeeping bodies (Cleanup's clears, a Pump or StoreSVar memory write)
+// over the mayask APIs gorge's staticBodyCompetes safe list also holds, so
+// the resolution poses no decision by construction: kgen refuses Static$
+// True on every other body (targets, Charm, optional/unless/cost riders,
+// any event-proposing API whose gate is board-dependent).
 //
 // placeTriggers calls placeStaticTriggers before the ordering ask. The
 // helper resolves ONE static pending trigger per call and returns: the
