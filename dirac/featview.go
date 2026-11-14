@@ -547,8 +547,8 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if k.gen == nil {
 		return true
 	}
-	if len(k.gen.grantPC) != 0 && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
-		return false // payable only with a granted mana ability (the V1 exclusion above)
+	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p)) && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
 	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
@@ -852,8 +852,8 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 			continue // the census never lists a deferred source (mana_rider.go)
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
-			continue
+		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || k.gen.anyComboDyn && s.comboDynAt(k, sl, pc) {
+			continue // (a Combo Any of an evaluated amount is no census unit: mana_combodyn.go)
 		}
 		// a printed sacrifice-only ability (Eldrazi Spawn's {C}) is a last-resort
 		// unit of the census, tapped or not and beside a granted {T} ability

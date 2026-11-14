@@ -53,6 +53,12 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// lands (CR 601.2f). The kernel priced it as a planned cast.
 		"board_target_raise_declines_planned_cast",
 		"board_target_raise_declines_planned_cast_commander",
+		// Axebane Guardian's X mana in any combination of colours: gorge's
+		// cast planner has no colour list for a Combo Any, so it is no unit
+		// of its census, and a creature only that mana pays is not offered
+		// on the autopay surface (CR 605.1a, 601.2g).
+		"combo_any_evaluated_mana_unplanned",
+		"combo_any_evaluated_mana_unplanned_second",
 	} {
 		name := name
 		t.Run(name, func(t *testing.T) {
