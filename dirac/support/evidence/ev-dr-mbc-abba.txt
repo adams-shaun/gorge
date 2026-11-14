@@ -12,6 +12,7 @@ Ball Lightning
 Beloved Chaplain
 Blindblast
 Blor the Impervious
+Bombard
 Broodbirth Viper
 Cenn's Enlistment
 Chandra, Novice Pyromancer
@@ -58,6 +59,7 @@ Myriad Landscape
 Nadier's Nightblade
 Nekrataal
 Paladin of the Bloodstained
+Pentarch Ward
 Penumbra Kavu
 Plains
 Pore Over the Pages
