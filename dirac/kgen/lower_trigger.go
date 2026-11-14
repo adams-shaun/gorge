@@ -1950,6 +1950,17 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			st.Cond = andCond(st.Cond, c)
 		}
 		if ip, ok := sp.get("IsPresent"); ok {
+			if band := levelBandFilters(ip); len(band) > 1 && sp.m["PresentCompare"] == "" && sp.m["PresentZone"] == "" {
+				// a level band's two counter compares (lower_levelband.go)
+				for _, bf := range band {
+					f, err := lc.filter(bf)
+					if err != nil {
+						return err
+					}
+					st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+				}
+				return nil
+			}
 			f, err := lc.filter(ip)
 			if err != nil {
 				return err

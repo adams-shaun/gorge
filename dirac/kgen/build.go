@@ -424,6 +424,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"LEVEL":      kop.CtrLevelUp,    // Level up's level counter (CR 702.87a; not a Class's level, kop.CtrLevel)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
