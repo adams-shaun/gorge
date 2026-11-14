@@ -318,6 +318,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenPlAb is the ability whose random-pool ChoosePlayer (kop
+	// OpChoosePlayer) is lowered: ChosenPlayer reads the resolution's chosen
+	// player (kop RefResChosenPlayer), not the opponent (Maddening Hex's Attach)
+	chosenPlAb *lAbility
 	// chosenMidAb is the ability whose mid-resolution ChoosePlayer is lowered
 	// (OpExt ExtChoosePlayerMid): the chain's ChosenPlayer readers read the
 	// resolution's choice, and only until the Cleanup clears it.

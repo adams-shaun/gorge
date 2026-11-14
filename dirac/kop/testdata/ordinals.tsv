@@ -74,6 +74,7 @@ CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+ChPlRandom	int16	1
 ChangeTextColour	int16	1
 ChangeTextLand	int16	2
 CharmRepeat	untyped int	256
@@ -757,6 +758,7 @@ OpChooseCard	Op	42
 OpChooseColor	Op	40
 OpChooseEachType	Op	79
 OpChooseMove	Op	73
+OpChoosePlayer	Op	157
 OpChooseTargets	Op	96
 OpChooseType	Op	41
 OpClassLevelUp	Op	103
@@ -1079,6 +1081,7 @@ RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
 RefReplaced	Ref	20
+RefResChosenPlayer	Ref	42
 RefSacrificed	Ref	22
 RefSelf	Ref	4
 RefSrcOwner	Ref	246
