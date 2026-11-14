@@ -20,6 +20,10 @@ func TestReproKCIDepletionLandLockstep(t *testing.T) {
 		"sacrifice_mana_and_depletion_land_pay_one_search_projection",
 		"sacrifice_mana_and_depletion_land_pay_one_search_projection_second",
 		"sacrifice_mana_and_depletion_land_pay_one_search_projection_third",
+		// dr-mbc-bbbb pair 65: an untapped Treasure opens gorge's potential
+		// bound, so its walk lists the second Ironworks and the search pays it
+		// by sacrificing the Treasure, then the Ironworks itself
+		"sacrifice_mana_sacrifices_treasure_then_itself",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()

@@ -172,6 +172,24 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 	return false
 }
 
+// tapXSacAnyBound splits a live sacrifice-any source (tapXSacAnyLive) by
+// gorge's PotentialMana bound (availPotentialFor). Closed: the bound counts its
+// fixed production once, so the potential walk lists the gaps walk's plays.
+// Open (an untapped any-colour source beside it, a Treasure: potentialUnbounded
+// in every colour): the walk lists every play, and the census is neither
+// relaxable nor bounded (paymentPlanRelaxedAlternatives: repeatable, no tap
+// part), so each listed play takes a search slot and is searched, as beside a
+// live Baylen. The search may then sacrifice the any-colour source to the
+// Ironworks and the Ironworks to itself.
+func (s *State) tapXSacAnyBound(k *prep, p uint8) (closed, open bool) {
+	if !k.tapMana || !s.tapXSacAnyLive(k, p) {
+		return false, false
+	}
+	var av avail
+	open = s.availPotentialFor(k, p, &av, nil)
+	return !open, open
+}
+
 // scriptTapXModelled is scriptTapX on the boards the search models: none
 // beside a gap kind it does not run (each-colour, restricted, sacrifice-only,
 // filter).
