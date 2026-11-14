@@ -259,9 +259,10 @@ import (
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
+// +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
 // +5 (MBC keywords-5: the granted "Prevent all combat damage that would be dealt by CARDNAME." as KwPreventCombatDamageFrom: Hunter's Ambush, Mtenda Lion, Subdue, Urza's Science Fair Project, Zealot il-Vec; ALL build-level 23443 -> 23448 measured).
 // +18 (MBC keywords-5: Renown, OpExt ExtRenown and PredRenowned: the 18 cards named on acceptancePins' ALL row in ratchet_test.go; ALL build-level 23448 -> 23466 measured).
-var buildAcceptancePin = [2]int{23680, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23823, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

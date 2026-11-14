@@ -330,6 +330,13 @@ func init() {
 // ability with Ability.CantCopy is not copied (gorge SpellCopyAllowed).
 const ExtCopyAbility ExtOp = 191
 
+// CopyAbTriggering is the target-slot value (C>>1) of an ExtCopyAbility that
+// copies the activated ability whose activation fired the resolving
+// AbilityCast trigger (Ertha Jo, Frontier Mentor: CopySpellAbility, Defined$
+// TriggeredSpellAbility): the ability is found by the stack identity the
+// trigger's trigAmt carries (dirac/trig_abilitycast.go) instead of a target.
+const CopyAbTriggering = 0x3fff
+
 func init() {
 	extOpNames[ExtCopyAbility] = "CopyAbility"
 }
@@ -825,6 +832,6 @@ func init() { extOpNames[ExtPreventNext] = "PreventNext" }
 // source that left the battlefield, or B <= 0, does nothing. The designation
 // is the arena slot bit mechRenowned, cleared when the permanent leaves.
 // dirac/act_renown.go. 296: land's ExtExploit holds 298.
-const ExtRenown ExtOp = 296
+const ExtRenown ExtOp = 295
 
 func init() { extOpNames[ExtRenown] = "Renown" }
