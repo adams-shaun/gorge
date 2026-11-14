@@ -62,6 +62,15 @@ rc=0
 go test "$@" -v -run "^($re)\$" "$pkg" >"$tmp/log" 2>&1 || rc=$?
 if [ "$rc" -ne 0 ]; then cat "$tmp/log"; fi
 sed -nE 's/^ *--- SKIP: ([^ ]+) .*/\1/p' "$tmp/log" | sort -u >"$tmp/skipped"
+# Every PASS and SKIP line, folded in the UI: a green run's -v timings, which refresh the landing gate's oracle fast tier
+# (scripts/oracle_fasttier.py --logs on the parts' logs). Without them only a red part showed its log, and the tier
+# went stale: a 0.02 s test added after it (TestMBCPodTables) reached a promote PR red (11-13 #328).
+# A red part has printed its whole log above.
+if [ "$rc" -eq 0 ]; then
+	echo "::group::ci-oracle-shard: PASS and SKIP lines of part $i (scripts/oracle_fasttier.py --logs)"
+	grep -E '^ *--- (PASS|SKIP): ' "$tmp/log" || true
+	echo "::endgroup::"
+fi
 grep -E '^(ok|FAIL|panic:)' "$tmp/log" || true
 echo "ci-oracle-shard: slowest tests of part $i, summed over their leaf subtests (refresh $weights from these):"
 # a test that plays its seeds as parallel subtests reports its wall, queueing included: weigh its leaves

@@ -346,7 +346,10 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
 		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
 	}
-	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
+	if (mode == 0 || mode == 1) && k.gen != nil && k.gen.anyConvoke {
+		// the plain cast's credit (gorge castOfferBase) and, beside the
+		// kicker raise (gorge castOfferBase plus it), the kicked cast's: the
+		// credit comes off the total the raise joined (CR 601.2b, 601.2f)
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
 	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
@@ -582,7 +585,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
+	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.boardRaiseTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
@@ -1005,8 +1008,7 @@ func (s *State) FeatPayManual() bool {
 		return false
 	}
 	k := s.k()
-	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := s.resPayCost(k) // cost_trighybrid.go
 	var av avail
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < kop.NumManaKinds; i++ {

@@ -49,6 +49,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"cache_lock.go":           {false, "single-flight lock around compile+Save; never changes the bytes written"},
 	"cache_lock_flock.go":     {false, "flock implementation of the single-flight lock"},
 	"cache_lock_noflock.go":   {false, "no-op single-flight lock for platforms without flock"},
+	"card_census.go":          {false, "card-script census sidecar beside the cache; freshness only, never changes the IR bytes"},
 	"card_probes.go":          {false, "rules-side per-card pool probes, memoised at runtime"},
 	"compiled_catalog.go":     {true, "CompileMetadata is reached from CompileDir; kept conservatively"},
 	"compiled_codes.go":       {true, "dense kind codes the compiled catalog assigns"},

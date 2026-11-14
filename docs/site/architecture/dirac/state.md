@@ -68,6 +68,12 @@ Moving an array out of the core changes which tables pay for it:
   attacker groups, this turn's zone entries and spell pushes, held discards, mechanic masks. A `coldLayout`,
   computed once per table, gives each one its length, and zero when no card in the table can write to it. Each
   array is a view into one `[]uint64`, so a `State` makes one allocation for them all.
+- **A cold array is registered by its own feature.** The file that owns it declares
+  `var coldX = newCold[T]("x", need)`, where `need` sizes it from the table's prep, and reads it through
+  `coldX.of(s)`. The registry orders the arrays itself, widest alignment first and then by key, so no shared
+  list names them and two features that add one never touch the same lines. A hot path that must not go
+  through the layout binds a `coldArrays` view (`.view`), which costs `State` a slice header; a per-slot array
+  marks itself `.perSlot` and is cleared when its slot takes a new permanent.
 
 The mechanic masks show the idea at its smallest. A mask that almost no pool uses (goaded, monstrous, suspected
 and so on) gets an index only if a card in the table uses it. Any other mechanic's index is past the end of the

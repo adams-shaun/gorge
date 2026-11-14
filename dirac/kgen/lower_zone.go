@@ -1105,6 +1105,9 @@ func overrideString(o *lOverride) string {
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
 	}
+	if len(o.CantHaveKw) > 0 {
+		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
+	}
 	if len(o.AddKw) > 0 {
 		p = append(p, "kw="+strings.Join(o.AddKw, "&"))
 	}
@@ -2927,6 +2930,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 		}
 	}
+	if err := lc.animateRemoveEnchantmentTypes(ps, o); err != nil { // lower_animateaura.go
+		return nil, "", false, err
+	}
 	if ps.is("AddAllCreatureTypes", "True") {
 		o.AllCreatureTypes = true
 	}
@@ -3017,7 +3023,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if k, ok := ps.get("Keywords"); ok {
-		k, err := lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
+		k, err := lc.animateSelfEnchant(ps, k, o, obj, dur) // lower_animateaura.go
+		if err != nil {
+			return nil, "", false, err
+		}
+		k, err = lc.animateGrantedKeywordAbilities(k, o) // lower_animatekwability.go
 		if err != nil {
 			return nil, "", false, err
 		}

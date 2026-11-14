@@ -6,10 +6,10 @@ import "strings"
 // token"). gorge (effects/token.go) resolves both sides once before the mint
 // loop and, after each mint enters, adds one permanent layer-7b set
 // (SetPower/SetToughness, sourced to the token) on it. The kernel mints the
-// token, then OpExt ExtTokenPT applies the same set from override C, built
-// exactly as Endure's (lower_endure.go). Only the exact shape lowers: both
-// sides, one mint of one creature script, no AttachedTo$; everything else
-// refuses by name.
+// tokens, then OpExt ExtTokenPT applies the same set from override C, built
+// exactly as Endure's (lower_endure.go), to each of the TokenAmount$ mints
+// (Gelatinous Genesis's X). Only the exact shape lowers: both sides, one
+// creature script, no AttachedTo$; everything else refuses by name.
 
 // tokenXPTGate refuses the token shapes the TokenPower$/TokenToughness$
 // rider cannot carry; it reports whether the rider is present. script is the
@@ -28,9 +28,6 @@ func (lc *lowerCtx) tokenXPTGate(ps *params, script string) (bool, error) {
 	}
 	if _, ok := ps.m["AttachedTo"]; ok {
 		return false, refuse("Token TokenPower$ beside AttachedTo$")
-	}
-	if a, ok := ps.m["TokenAmount"]; ok && strings.TrimSpace(a) != "1" {
-		return false, refuse("Token TokenPower$ with TokenAmount %q", a)
 	}
 	c, ok := lc.p.reg.Token(script)
 	if !ok || len(c.Faces) == 0 {
