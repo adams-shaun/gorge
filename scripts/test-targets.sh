@@ -161,7 +161,10 @@ if [ "$mode" = one ]; then
 			usage "$pkg is too big to run whole: name the exact tests in RUN (e.g. '^TestX\$'); got '$RUN'"
 		;;
 	esac
-	to=${TIMEOUT:-2m}
+	# 5m, the same -timeout as targeted's and smart's named and census steps: -timeout is part of go's test-cache key,
+	# so a test-one at 2m and the same -run at 5m were two cache entries and every test-one result re-ran in targeted
+	# (test-cache-audit 2026-11-14).
+	to=${TIMEOUT:-5m}
 	[[ $to =~ ^([0-9]+)([sm])$ ]] || usage "TIMEOUT is Ns or Nm"
 	secs=${BASH_REMATCH[1]}
 	[ "${BASH_REMATCH[2]}" = s ] || secs=$((secs * 60))

@@ -317,7 +317,7 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
    through the make targets (`scripts/test-targets.sh`), never a raw
    `go test`. To debug one test: `make test-one PKG=./pkg RUN='^TestX$'`
-   (`SKIP=`, `V=1`, `TIMEOUT=2m` at most 5m, `TAGS=`, `UPDATE=1`, and
+   (`SKIP=`, `V=1`, `TIMEOUT=` default and at most 5m, `TAGS=`, `UPDATE=1`, and
    `TESTENV='KGEN_REPIN=1'` for the allow-listed regeneration variables). Each
    target caps itself (4G/400% for test-one, `GOMAXPROCS=4`, `GOMEMLIMIT=3GiB`),
    never passes `-count` (the cache stays on), and ends with one line:

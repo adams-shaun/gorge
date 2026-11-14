@@ -2,6 +2,7 @@
 scripts/test-targets.sh's preflight. Run: python3 -m pytest scripts/test_targets_test.py"""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -320,6 +321,37 @@ def test_empty_cards_folder_is_env(repo):
     (repo / ".cards" / "cardsfolder").mkdir(parents=True)
     rc, lines, _ = wrapper(repo, "targeted")
     assert rc == 3 and lines[0].startswith("test-targeted: ENV ")
+
+
+STUB_GO = """#!/bin/sh
+echo "$@" >>"$GO_CALLS"
+case "$1" in
+list) echo m ;;
+env) echo /usr/local/go ;;
+test) echo '{"Action":"run","Package":"m/p","Test":"TestA"}'; echo '{"Action":"pass","Package":"m/p","Test":"TestA"}'
+      echo '{"Action":"pass","Package":"m/p"}' ;;
+esac
+"""
+
+
+def test_one_uses_the_named_steps_timeout_so_the_cache_entries_match(repo, tmp_path):
+    # -timeout is part of go's test-cache key: test-one's default must be the -timeout targeted and smart pass to a
+    # named -run, or each re-runs what test-one just ran.
+    (repo / ".cards" / "cardsfolder").mkdir(parents=True)
+    (repo / ".cards" / "cardsfolder" / "a.txt").write_text("x")
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "go").write_text(STUB_GO)
+    (tmp_path / "bin" / "go").chmod(0o755)
+    calls = tmp_path / "go-calls"
+    env = {"PATH": "%s:%s" % (tmp_path / "bin", os.environ["PATH"]), "GO_CALLS": str(calls), "PKG": "./p", "RUN": "^TestA$",
+           "GORGE_TEST_TARGETS_ENV": str(tmp_path / "none.env")}
+    rc, lines, err = wrapper(repo, "one", env=env)
+    assert rc == 0 and lines[0].startswith("test-one: PASS "), err
+    # targeted's loop over the named and census runs: gojson <timeout> -run "${r#*<tab>}" ...
+    named = re.findall(r'gojson (\d+m) -run "\$\{r#', (HERE / "test-targets.sh").read_text())
+    assert named == ["5m"]
+    one = [l for l in calls.read_text().splitlines() if l.startswith("test ")][0]
+    assert one.split("-timeout ")[1].split()[0] == named[0], one
 
 
 def test_one_usage_errors_exit_2(repo):

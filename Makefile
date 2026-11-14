@@ -286,7 +286,7 @@ fresh-clone-check:
 
 # The test targets (scripts/test-targets.sh) replace a raw `go test`: capped, corpus-checked, one verdict line
 # `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>` (exit 0, 1, 3, 4, 5, 75).
-#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=2m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
+#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=5m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
 #   test-targeted  the packages the diff vs BASE touches plus every package whose tests import them
 #   test-smart     the landing gate's steps, fail-fast, on a committed tree; precheck is an alias
 # BASE is the branch the change lands on.
