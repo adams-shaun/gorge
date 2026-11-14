@@ -334,6 +334,14 @@ const PayBSubEvidenceX = 11
 // grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
 const PayBSubSacHost = 7
 
+// PayBSubMandatory: a PaySacSelf whose B.N carries this sentinel is a trigger
+// body's `Cost$ Mandatory Sac<1/CARDNAME>` (Promise of Bunrei): gorge's
+// triggered-cost window settles it unasked, the source being its only candidate
+// (rules advanceTriggeredMandatory), so the kernel poses no pay or decline: the
+// source is sacrificed and the body runs, or, the source gone, the body is
+// skipped (dirac/cost_sacselfmandatory.go).
+const PayBSubMandatory = 17
+
 // PayBSubStackSelf: a PayExileGrave whose B.N carries this sentinel also
 // exiles the resolving spell itself from the stack, after the graveyard
 // cards (UnlessCost$ ExileFromGrave<N/Spec> ExileFromStack<1/Card.Self>;

@@ -894,6 +894,7 @@ PayBSubDamage	untyped int	14
 PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
+PayBSubMandatory	untyped int	17
 PayBSubSacHost	untyped int	7
 PayBSubStackSelf	untyped int	13
 PayBSubTapXVar	untyped int	16

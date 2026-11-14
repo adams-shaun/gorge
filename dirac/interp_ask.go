@@ -153,6 +153,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		}
 		return true
 	}
+	if kind == kop.PaySacSelf && pips == kop.PayBSubMandatory {
+		return s.execSacSelfMandatory(k, p, skip) // cost_sacselfmandatory.go
+	}
 	if e := &s.res.e; e.kind != seTrigger || s.res.pc != 0 && !s.afterNumTimes(k) && !s.afterCumulative(k) || in.Op != kop.OpIfPaid && !s.afterCumulative(k) {
 		skip |= pfModes // only a trigger's own cost is gorge's trigger_cost pay/decline; an unless is its modes (Painful Quandary)
 	}

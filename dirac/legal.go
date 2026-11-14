@@ -1674,6 +1674,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+	case ab.ManaRider == kop.ManaRiderDeplete && ab.Cost.Flags == kop.CostTap|kop.CostRemoveCtr:
+		// a depletion land (Sandstone Needle, Peat Bog): gorge's potentialManaFor counts its
+		// whole production while it still holds the counter its cost removes
+		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
 	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
 		// a storage battery (Mage-Ring Network): its announced X is bounded by
 		// the counters it holds (mana_countercost.go storeGap)

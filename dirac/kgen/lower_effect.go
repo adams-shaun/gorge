@@ -1453,6 +1453,9 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 				}
 			}
 			in, err := lc.payInstr(cost, lRef{Kind: rYou}, lc.trigOwnCost)
+			if err == nil && lc.trigOwnCost && in.CS == "SacrificeSelf" && strings.HasPrefix(c, "Mandatory") {
+				in.CS = "SacrificeSelfMandatory" // settled unasked by gorge's triggered-cost window
+			}
 			lc.trigOwnCost = false
 			lc.trigXMax = nil
 			if err != nil {
