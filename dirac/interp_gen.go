@@ -851,6 +851,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
@@ -1242,6 +1243,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
 	case kop.RefChosenPlayer:
 		return seatOne(s.chosenPlayerSeat(&s.res.e)) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return seatOne(s.chosenSeatRes()) // act_chooseplayerres.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:
@@ -1560,7 +1563,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if in.Obj == kop.RefTriggerObj && o == e.obj && e.kind == seTrigger && ob.ver != e.srcVer+1 {
 		return false // the card that died has moved on (exiled from the graveyard in response): a new object
 	}
-	if in.Obj == kop.RefTriggerObj && o != e.obj && e.kind == seTrigger && s.trigObjMoved(e, ob) {
+	if in.Obj == kop.RefTriggerObj && o != e.obj && e.kind == seTrigger && s.trigObjMoved(k, e, ob) {
 		// another card that died (Valkyrie's Call's "that card", gorge
 		// Origin$ Graveyard) that has changed zones since is a new object
 		// (CR 400.7, gorge; pairs 69834 30137 35683 68528)
@@ -2396,6 +2399,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
+			s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {

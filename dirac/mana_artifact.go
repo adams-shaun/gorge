@@ -90,7 +90,8 @@ func (s *State) artSync(p uint8) {
 	}
 	s.g.poolArt[SeatIx(p)] = a
 	s.treSync(p)
-	if s.pl[SeatIx(p)].pool[kop.R] == 0 {
-		s.g.defSrc[SeatIx(p)] = 0 // the deferred source's {R} is spent (mana_deferred.go)
+	if s.g.defSrc[SeatIx(p)] != 0 && s.pl[SeatIx(p)].pool[s.defColOf(p)] == 0 {
+		s.g.defSrc[SeatIx(p)] = 0
+		s.setDefCol(p, 0) // the deferred source's mana is spent (mana_deferred.go)
 	}
 }

@@ -173,6 +173,16 @@ type Facts struct {
 type SpecOpts struct {
 	// DelayedRemembered is a delayed registration's captured objects.
 	DelayedRemembered []state.Target
+	// DelayedChosen is a delayed registration's snapshotted chosen-card set
+	// (state.DelayedTrigger.ChosenCard, the ChooseCard answer the registering
+	// Effect copied, CR 611.2a) and DelayedChosenBound says it was captured.
+	// When bound, the Card.ChosenCard(Strict) predicate reads THIS set instead
+	// of the live source object's list, which the chain's own
+	// `DB$ Cleanup | ClearChosenCard$ True` already emptied (Azra Oddsmaker).
+	// A bound EMPTY set fails closed rather than matching a card the source
+	// chooses later. Read-only.
+	DelayedChosen      []state.Target
+	DelayedChosenBound bool
 	// ExtraTypes are derived types the filter reads beside the printed face.
 	ExtraTypes []string
 	// StaticGoads is the statically goaded set an IsGoaded term reads.

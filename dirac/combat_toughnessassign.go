@@ -12,7 +12,7 @@ var DebugToughAssignOff bool
 //
 //go:noinline
 func (s *State) combatAmtTough(k *prep, sl Slot) int {
-	if !DebugToughAssignOff && s.staticFlagGen(k, kop.StatCombatDmgToughness, sl) {
+	if !DebugToughAssignOff && (s.staticFlagGen(k, kop.StatCombatDmgToughness, sl) || s.asgnTough(sl)) {
 		_, t := s.pt(k, sl)
 		return t
 	}

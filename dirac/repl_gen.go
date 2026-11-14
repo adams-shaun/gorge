@@ -45,8 +45,8 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 // creature whose controller controls another Crystal Barricade.
 func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
 	g := k.gen
-	if n <= 0 || srcCtrl > 1 {
-		return n
+	if n <= 0 || srcCtrl >= MaxSeats {
+		return n // no seat controls the source
 	}
 	rcp := uint8(255) // the recipient's controller
 	sl := NoSlot
@@ -440,7 +440,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	}
 	n := 0
 	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
-	if (rcp != sc || g.anyFiltRepl) && sc <= 1 {
+	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
 		// gorge's scan order: the controller's battlefield in entry order.
 		// A table whose only damage replacement is a plus-N addition competes
 		// on commuting sums (replPlusOnly): collect it here so the order walk
@@ -768,6 +768,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	}
 	if ro.askD == NoSlot {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
+		s.notePlDamaged(k, ro.apl) // value_oppsdamaged.go
 		s.loseLife(k, ro.apl, n)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -817,6 +818,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 	}
 	if ev.dst == NoSlot {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.notePlDamaged(k, CodeSeat(src.atk)) // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
@@ -1150,7 +1152,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, false) {
+		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false) {
 			s.capFull(StallPrevNext)
 			return false
 		}
@@ -1209,6 +1211,7 @@ func (s *State) dealNC(k *prep) {
 	}
 	code := nc.code
 	if isPlayerOrNone(code) {
+		s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
