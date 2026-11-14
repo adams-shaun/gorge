@@ -25,7 +25,7 @@ import (
 // and that such a land was tapped while enchanted.
 //
 // The mutation keeps the land's own mana abilities beside the intrinsic one
-// (dirac.DebugLandSetOwnMana, the plain AddSub reading the brief names): a
+// (dirac.DebugLandSetOwnMana, the plain AddSub reading): a
 // Forest under Spreading Seas then taps for {G} too, and the kernel must
 // diverge.
 func TestLandTypeSetterLockstep(t *testing.T) {
