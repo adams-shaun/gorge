@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -27,18 +25,21 @@ func (e *Engine) kickedChainTargetsAvailable(p state.PlayerID, id state.ObjID, r
 	if root == nil || root.Sub == nil {
 		return true
 	}
-	var svars map[string]string
-	if o := e.G.Obj(id); o != nil && o.Face() != nil {
-		svars = o.Face().SVars
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return true
 	}
+	// castSubTargetsOwed is the cast flow's own verdict on a link behind an
+	// optional additional cost: the kicked cast owes a Kicked-conditioned
+	// link the plain cast does not, and neither owes an OptionalCost one.
+	kickedPC, plainPC := &pendingCast{mode: "kicked"}, &pendingCast{}
 	var uniq []*cards.SA
 	kickedLink := false
 	for _, sub := range e.collectSubTargetPreAsks(root) {
-		cond := strings.TrimSpace(sub.ParamStr(cards.PKCondition))
-		if strings.EqualFold(cond, "OptionalCost") || !effects.TargetUniqueRequested(sub) || subTargetingReadsRootTarget(sub, svars) {
+		if !castSubTargetsOwed(kickedPC, sub) || !effects.TargetUniqueRequested(sub) || subTargetingReadsRootTarget(sub, o.Face().SVars) {
 			continue
 		}
-		kickedLink = kickedLink || strings.EqualFold(cond, "Kicked")
+		kickedLink = kickedLink || !castSubTargetsOwed(plainPC, sub)
 		uniq = append(uniq, sub)
 	}
 	if !kickedLink {

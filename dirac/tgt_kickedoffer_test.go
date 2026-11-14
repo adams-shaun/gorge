@@ -1,11 +1,6 @@
 package dirac
 
-import (
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
-)
+import "testing"
 
 // offersKickedCast reports whether the decision offers o's kicked cast (the
 // AkCast action whose mode bit 0 is set) and its plain cast.
@@ -32,21 +27,11 @@ func offersKickedCast(s *State, o Obj) (kicked, plain bool) {
 // kickedChainTargetsAvailable; offering it could only end in the CR 733.1
 // reversal). A second permanent card offers it.
 func TestKickedUniqueChainCastOffer(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Urborg Repossession", Count: 1}, {Name: "Novice Occultist", Count: 2},
-		{Name: "Swamp", Count: 20}, {Name: "Forest", Count: 20}}
-	tbl, da, _, err := cardsettest.Synth(t, "dr-mbc-baba").Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
 	for _, tc := range []struct {
 		permanents int
 		want       bool
 	}{{1, false}, {2, true}} {
-		sc := newScenTable(t, tbl, Config{NoElide: true})
+		sc, id := synthScen(t, "dr-mbc-baba", "Urborg Repossession", "Novice Occultist", "Swamp", "Forest")
 		for i := 0; i < 3; i++ {
 			sc.perm(id["Swamp"], 0)
 			sc.perm(id["Forest"], 0)
