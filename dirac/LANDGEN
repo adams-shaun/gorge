@@ -1,0 +1,18 @@
+# dirac/LANDGEN: the files the landing step regenerates. The one list: the land tools (squash, the
+# rebase onto land, the seat precheck) read it from the unit's tree instead of keeping their own.
+#
+# One row per path or glob, four tab-separated fields:
+#   class      owned: seats never commit it; squash and the precheck reset it to the base's copy, and
+#              land always regenerates it.
+#              regen: seats may change it; on a conflict, take land's copy and regenerate it.
+#   path       relative to the repository root; a glob (path.Match) must match at least one file.
+#   generator  what the file's header says made it (its first 2 KiB holds this text), or "-" for pins
+#              a test rewrites in place inside Go test source, which has no generated header.
+#   command    the regenerate command, run from the repository root. Rows run top to bottom, so a file
+#              generated from another comes after it.
+#
+# TestLandgenListed (dirac/landgen_test.go) holds every row to this.
+regen	dirac/docs/support.md	TestSupportDocIsCurrent	DIRAC_UPDATE_SUPPORT=1 go test -trimpath -timeout 20m -run '^TestSupportDocIsCurrent$' ./dirac/kgen
+regen	dirac/kgen/ratchet_test.go	-	KGEN_REPIN=1 go test -trimpath -timeout 20m -run '^(TestCorpusAcceptance|TestSetAcceptance)$' ./dirac/kgen
+regen	dirac/kgen/build_ratchet_test.go	-	KGEN_REPIN=1 go test -trimpath -timeout 20m -run '^TestCorpusBuildAcceptance$' ./dirac/kgen
+regen	dirac/testdata/layout.tsv	TestStateLayoutPinned	DIRAC_UPDATE_LAYOUT=1 go test -trimpath -timeout 20m -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac && DIRAC_UPDATE_LAYOUT=1 go test -trimpath -timeout 20m -tags dirac_mp -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
