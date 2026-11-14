@@ -230,9 +230,7 @@ func (s *State) blockSources(k *prep, b Slot) int {
 	if k.t.Cards[s.cardAt(b)].ExtraBlocks != 0 && !s.genLost(k, b) {
 		n++
 	}
-	if k.gen.anyExBlockGrant {
-		n += s.extraBlockGrants(k, b)
-	}
+	n += s.extraBlockGrants(k, b)
 	return n
 }
 
