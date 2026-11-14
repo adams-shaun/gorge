@@ -1765,8 +1765,9 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.shareLandTypeCands(k, in, d, list) // zone_sharelandtype.go
 		return
 	}
+	selfOnly := in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneGraveyard && in.F != 0 && k.t.Filters[in.F].Flags&kop.FSelf != 0 // Card.StrictlySelf: the resolving source's own card (Genju of the Fields)
 	for _, o := range list {
-		if s.picksHas(o) {
+		if s.picksHas(o) || selfOnly && o != s.res.e.obj {
 			continue
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
