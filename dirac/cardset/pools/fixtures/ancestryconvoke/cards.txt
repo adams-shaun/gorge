@@ -1,0 +1,11 @@
+# Stoke the Flames (convoke) beside Path of Ancestry, a source of nothing in a
+# game without commanders (CR 903.4f): a convoke cast whose red pip the picks
+# left owed and only that source could still offer
+# (dirac/oracle/ancestry_convoke_test.go)
+Path of Ancestry
+Stoke the Flames
+Goblin Piker
+Grizzly Bears
+Mountain
+Plains
+Forest

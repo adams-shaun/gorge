@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // "pay_<B>" in printed order, with no pool pre-filter -- a face nothing can
 // fund ends in the decline-only election. The PayMana instruction carries
 // the pips in F beside the life (kop.PayManaF); the announced faces ride
-// genState.payHyb, and every read of the parked cost folds them in
+// State.payHyb, and every read of the parked cost folds them in
 // (resPayCost, canPayGen, trigCostPotentialPays).
 
 // raGenPayPip: a trigger's own hybrid cost asks the next pip's face
@@ -22,7 +22,7 @@ const raGenPayPip = raGenManifestDread + 30
 // startPayPips parks the trigger's own hybrid PayMana ask on its first pip
 // announcement; the election's pick state is set as execPay sets it.
 func (s *State) startPayPips(p uint8, skip uint16, amt int) bool {
-	s.g.payHyb = 0
+	s.payHyb = 0
 	s.g.pickF, s.g.pickZ, s.g.pickLeft, s.g.pickP = skip, kop.PayMana, uint8(amt), p
 	s.res.ask, s.res.askP = raGenPayPip, p
 	return false
@@ -42,10 +42,10 @@ func (s *State) payPipOptions(k *prep, d *Decision) {
 // gate over the announced cost).
 func (s *State) applyPayPip(k *prep, a Action) {
 	n := 0
-	for v := s.g.payHyb; v != 0; v >>= 3 {
+	for v := s.payHyb; v != 0; v >>= 3 {
 		n++
 	}
-	s.g.payHyb |= (a.Mode() + 1) << (3 * n)
+	s.payHyb |= (a.Mode() + 1) << (3 * n)
 	if c := s.resPayCost(k); c.Hyb[0] != 0 {
 		return // the next pip's face
 	}
@@ -60,7 +60,7 @@ func (s *State) applyPayPip(k *prep, a Action) {
 // announcedHyb resolves c's leading hybrid pips to the faces announced so
 // far (none outside a trigger's own hybrid ask).
 func (s *State) announcedHyb(c *kop.ManaCost) {
-	for v := s.g.payHyb; v != 0 && c.Hyb[0] != 0; v >>= 3 {
+	for v := s.payHyb; v != 0 && c.Hyb[0] != 0; v >>= 3 {
 		*c = c.Resolve(int(v&7) - 1)
 	}
 }

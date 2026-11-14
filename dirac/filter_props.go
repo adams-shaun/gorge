@@ -197,8 +197,12 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 	if fl.PredN&0xff == kop.W7Imprinted {
 		return o != NoObj && s.impHas(o) != DebugWord7Flip
 	}
-	if fl.PredN&0xff == kop.W7EnteredFromBF {
-		return o != NoObj && s.enteredFromBattlefield(o) != DebugWord7Flip
+	if n := fl.PredN & 0xff; n == kop.W7EnteredFromBF || n == kop.W7EnteredFromLib {
+		from := kop.ZoneBattlefield
+		if n == kop.W7EnteredFromLib {
+			from = kop.ZoneLibrary
+		}
+		return o != NoObj && s.enteredFrom(o, from) != DebugWord7Flip
 	}
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the
@@ -311,6 +315,10 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		ans = s.perms[sl].flags&pfBlocking == 0
 	case kop.W7BlockingTrigObj:
 		ans = s.blockingTrigObj(sl)
+	case kop.W7BlockingSrc:
+		ans = src != NoSlot && s.blocks(sl, src) // gorge blockingSource: the source's BlockedBy names sl
+	case kop.W7BlockedBySrc:
+		ans = src != NoSlot && s.blocks(src, sl) // gorge blockedBySource: sl's BlockedBy names the source
 	case kop.W7AttackingSame:
 		// both attack the same defender entity: the player, or the same
 		// planeswalker (the atk code names either); no source fails closed

@@ -146,13 +146,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
-	// +8 (MBC costs-9: a Morph turn-up cost of PayLife<N> as CardDef.MorphLife, and a printed trigger's own hybrid mana cost as kop.PayManaF with the pip announced first: Zombie Cutthroat, Emiel the Blessed, Alesha, Who Smiles at Death, Kels, Fight Fixer, Rodolf Duskbringer, Shu Yun, the Silent Tempest, Slinza, the Spiked Stampede, Taeko, the Patient Avalanche; ALL 23525 -> 23533, MBC 1740 -> 1742 measured).
-	"ALL": {23533, 34442},
+	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
+	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
+	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
+	// +8 (MBC costs-9: a Morph turn-up cost of PayLife<N> as CardDef.MorphLife, and a printed trigger's own hybrid mana cost as kop.PayManaF with the pip announced first: Zombie Cutthroat, Emiel the Blessed, Alesha, Who Smiles at Death, Kels, Fight Fixer, Rodolf Duskbringer, Shu Yun, the Silent Tempest, Slinza, the Spiked Stampede, Taeko, the Patient Avalanche; ALL 23525 -> 23533, MBC 1740 -> 1742 measured; merged against land ALL 23687 -> 23696, MBC 1786 -> 1788).
+	"ALL": {23696, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {220, 280},
+	"BRO": {221, 280},
 	"DFT": {255, 276},
-	"DMU": {198, 270},
+	"DMU": {199, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -162,18 +165,22 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"HOB": {159, 172},
 	"LCI": {260, 290},
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
+	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
+	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
+	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
+	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// +2 (MBC costs-9: Zombie Cutthroat's Morph--Pay 5 life, Emiel the Blessed's "you may pay {G/W}"; 1740 -> 1742 measured).
-	"MBC": {1742, 2188},
-	"MKM": {251, 279},
-	"MOM": {203, 296},
+	"MBC": {1788, 2195},
+	"MKM": {252, 279},
+	"MOM": {204, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},
 	"OTJ": {252, 276},
-	"SNC": {187, 266},
+	"SNC": {188, 266},
 	"SOS": {257, 270},
 	"SPM": {169, 192},
-	"TDM": {256, 276},
+	"TDM": {257, 276},
 	"TLA": {261, 285},
 	"TMT": {183, 194},
 	"TRC": {301, 337},

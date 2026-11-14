@@ -54,7 +54,7 @@ func init() {
 		"kop.RefTargets012", kop.RefTargets012, "kop.RefTargets12", kop.RefTargets12, "kop.RefTargets0123", kop.RefTargets0123,
 		"kop.RefRememberedController", kop.RefRememberedController, "kop.RefDiscarded", kop.RefDiscarded, "kop.RefTgtCtrl1", kop.RefTgtCtrl1, "kop.RefTgtCtrl2", kop.RefTgtCtrl2, "kop.RefLibTop", kop.RefLibTop,
 		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefPromised", kop.RefPromised, "kop.RefTriggerAttackers", kop.RefTriggerAttackers,
-		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl, "kop.RefAttachedCtrl", kop.RefAttachedCtrl, "kop.RefChosenPlayer", kop.RefChosenPlayer, "kop.RefTaxedAttacker", kop.RefTaxedAttacker, "kop.RefTriggerObjOwner", kop.RefTriggerObjOwner)
+		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl, "kop.RefAttachedCtrl", kop.RefAttachedCtrl, "kop.RefChosenPlayer", kop.RefChosenPlayer, "kop.RefTaxedAttacker", kop.RefTaxedAttacker, "kop.RefTriggerObjOwner", kop.RefTriggerObjOwner, "kop.RefChosenPlayerRes", kop.RefChosenPlayerRes)
 	enum[kop.VKind]("kop.VConst", kop.VConst, "kop.VX", kop.VX, "kop.VCountFilter", kop.VCountFilter,
 		"kop.VLastDamage", kop.VLastDamage, "kop.VTargetPower", kop.VTargetPower, "kop.VSelfPower", kop.VSelfPower,
 		"kop.VCountersSelf", kop.VCountersSelf, "kop.VCardsInHand", kop.VCardsInHand, "kop.VTriggerAmount", kop.VTriggerAmount,
@@ -170,7 +170,7 @@ func init() {
 		"kop.CtrInvasion", kop.CtrInvasion, "kop.CtrLoot", kop.CtrLoot, "kop.CtrRev", kop.CtrRev, "kop.CtrPage", kop.CtrPage,
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
-		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage,
+		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage, "kop.CtrScream", kop.CtrScream, "kop.CtrTreasure", kop.CtrTreasure,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive, "kop.WhoseChosen", kop.WhoseChosen)
