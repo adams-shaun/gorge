@@ -614,7 +614,17 @@ const (
 	PrevScopePlayer = 1 << iota
 	PrevScopeCreatures
 	PrevScopeSrcCreature
+	// PrevScopeAll: whatever the recipient (no ValidTarget$ on the line:
+	// Ethereal Haze); the controller bits are then not read.
+	PrevScopeAll
+	// PrevScopeCombat: combat damage only (IsCombat$ True: Loyal Unicorn).
+	PrevScopeCombat
 )
+
+// PrevScopeColourShift: the C bits above it hold the source-colour filter
+// (a ColorMask, 0 = any source): only damage from a source of one of those
+// colours is prevented (Surge of Salvation's ValidSource$ Card.Red,Card.Black).
+const PrevScopeColourShift = 8
 
 func init() { extOpNames[ExtPreventDamageScope] = "PreventDamageScope" }
 

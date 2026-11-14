@@ -14,29 +14,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // genPrep.anyContract.
 
 // contractCold is the per-seat count, or nil when the table keeps none.
-func (s *State) contractCold() []uint8 {
-	l := s.cold.layout
-	if l == nil || l.contract == 0 {
-		return nil
-	}
-	at := l.beforeAtkLast()
-	_ = coldView[uint8](nil, &at, l.atkLast)
-	_ = coldView[int16](nil, &at, l.dmgT) // dmgTakenCold sits between the attack and contract records (statecopy.go place)
-	return coldView[uint8](s.cold.buf, &at, l.contract)
-}
+func (s *State) contractCold() []uint8 { return coldContract.of(s) }
 
-// beforeAtkLast is the byte offset just past the partner records, where the
-// attack record starts: the one prefix walk atkLastCold and contractCold
-// share, in the order place() lays the arrays out.
-func (l *coldLayout) beforeAtkLast() int {
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[plusCreRec](nil, &at, l.ctrP)
-	_ = coldView[xblkRec](nil, &at, l.xblk)
-	_ = coldView[cmdPartner](nil, &at, l.partner)
-	return at
-}
+var coldContract = newCold[uint8]("contract", func(g *genPrep) int {
+	if g.anyContract {
+		return MaxSeats
+	}
+	return 0
+})
 
 // contracts is seat p's contract counter count.
 func (s *State) contracts(p uint8) uint8 {

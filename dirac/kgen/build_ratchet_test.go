@@ -262,9 +262,8 @@ import (
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
 // +2 (Mind Bend and Whim of Volrath: a GenericChoice whose DB$ ChangeText bodies lower to ExtChangeText; ALL build-level merged against land 23728 -> 23730 measured).
 // +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
-// +1 (Miss Highwater: the player Contract counter and the no-contract DamageDone gate; ALL build-level merged against land 23855 -> 23856 measured).
 // +41 (this branch's lowerings merged against land 23802 -> 23843 measured; MBC 1814 -> 1820).
-var buildAcceptancePin = [2]int{23856, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23875, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

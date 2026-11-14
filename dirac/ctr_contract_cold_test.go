@@ -10,7 +10,13 @@ import (
 // inside the buffer and none overlaps another, so a contract put cannot
 // change a plus-creature record or the other way round.
 func TestColdPrefixViewsDoNotAlias(t *testing.T) {
-	l := &coldLayout{ctrP: 1, xblk: MaxPerm, partner: 1, atkLast: MaxSeats, dmgT: MaxSeats, contract: MaxSeats}
+	l := &coldLayout{}
+	coldCtrP.set(l, 1)
+	coldXblk.set(l, MaxPerm)
+	coldPartner.set(l, 1)
+	coldAtkLast.set(l, MaxSeats)
+	coldDmgT.set(l, MaxSeats)
+	coldContract.set(l, MaxSeats)
 	l.size()
 	var s State
 	s.layOut(l)

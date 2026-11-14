@@ -16,6 +16,9 @@ import (
 //     type (a changeling has every one);
 //   - TargetsWithDefinedController$ TriggeredCardController: the candidates
 //     are controlled by the dying trigger card's controller;
+//   - TargetsWithDefinedController$ TriggeredDefendingPlayer in an Attacks
+//     trigger: the candidates are controlled by the attack's defending
+//     player (tgtCtrlDefending);
 //   - TargetsWithDefinedController$ TriggeredTarget under a damage trigger
 //     whose recipient is an opponent: the candidates are controlled by the
 //     damaged opponent (tgtCtrlTriggeredTarget).
@@ -31,6 +34,11 @@ func (lc *lowerCtx) tgtSetParams(ps *params, t *lTarget, allowParent bool) error
 	if v, ok := ps.get("TargetsWithDefinedController"); ok && !(allowParent && v == "ParentTarget") {
 		if v == "TriggeredTarget" {
 			if err := lc.tgtCtrlTriggeredTarget(t); err != nil {
+				return err
+			}
+			f = t.F
+		} else if v == "TriggeredDefendingPlayer" {
+			if err := lc.tgtCtrlDefending(t); err != nil {
 				return err
 			}
 			f = t.F
@@ -225,6 +233,38 @@ func (lc *lowerCtx) tgtCtrlTriggeredTarget(t *lTarget) error {
 		}
 		if err := c.setCmp(cmpTrigPlayerCtrl, 0, 0, "", ""); err != nil {
 			return refuse("TargetsWithDefinedController$ TriggeredTarget: %v", err)
+		}
+	}
+	t.F = &nf
+	return nil
+}
+
+// tgtCtrlDefending lowers TargetsWithDefinedController$ TriggeredDefendingPlayer
+// (gorge filterTargetsWithDefinedController: the offered permanents are
+// controlled by the trigger's DefendingPlayer) as the clause word
+// ControlledBy TriggeredDefendingPlayer on every clause of a battlefield
+// permanent slot, which the kernel already reads (kop.F2DefendingCtrl).
+func (lc *lowerCtx) tgtCtrlDefending(t *lTarget) error {
+	tr := (*lTrigger)(nil)
+	if lc.ab != nil {
+		tr = lc.ab.Trigger
+	}
+	if tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "Attacks" {
+		return refuse("TargetsWithDefinedController$ TriggeredDefendingPlayer outside an Attacks trigger")
+	}
+	f := t.F
+	if t.Zone != zBattlefield || f == nil || f.Players != 0 || len(f.Clauses) == 0 || t.ParentPlus1 != 0 {
+		return refuse("TargetsWithDefinedController$ TriggeredDefendingPlayer: not a battlefield permanent slot")
+	}
+	nf := *f
+	nf.Clauses = append([]lClause(nil), f.Clauses...)
+	for i := range nf.Clauses {
+		c := &nf.Clauses[i]
+		if c.Owner != 0 || c.Ctrl != 0 {
+			return refuse("TargetsWithDefinedController$ TriggeredDefendingPlayer with an owner/controller filter")
+		}
+		if err := c.setWho(&c.Ctrl, whoDefending); err != nil {
+			return err
 		}
 	}
 	t.F = &nf

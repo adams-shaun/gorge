@@ -19,14 +19,14 @@ package dirac
 // keeps the turn it last took.
 
 // atkLastCold is the per-seat record, or nil when the table keeps none.
-func (s *State) atkLastCold() []uint8 {
-	l := s.cold.layout
-	if l == nil || l.atkLast == 0 {
-		return nil
+func (s *State) atkLastCold() []uint8 { return coldAtkLast.of(s) }
+
+var coldAtkLast = newCold[uint8]("atkLast", func(g *genPrep) int {
+	if g.anyAtkLast {
+		return MaxSeats
 	}
-	at := l.beforeAtkLast()
-	return coldView[uint8](s.cold.buf, &at, l.atkLast)
-}
+	return 0
+})
 
 // noteAtkSeats records the defending seat of each of the active player's
 // attacking creatures m in the active seat's this-turn bits.
