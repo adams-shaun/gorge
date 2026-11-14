@@ -242,7 +242,7 @@ var repeatEachKnownKeys = [...]string{
 	"UnlessResolveSubs",
 	"UnlessSwitched",
 	"UseImprinted",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",

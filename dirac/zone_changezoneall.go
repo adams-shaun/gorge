@@ -125,6 +125,7 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 	}
 	if !DebugCzall3Off {
 		s.g.nrem, s.g.remCnt = 0, 0 // both halves (gorge forgetOther)
+		s.rememberMarkClr()         // the persistent list is emptied with them (gorge forgetOther's clearEventRemembered)
 	}
 	var eb entBatch
 	for i := 0; i < n; i++ {
