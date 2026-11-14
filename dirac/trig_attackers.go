@@ -27,6 +27,15 @@ import (
 // handful of listeners.
 const maxAtkGrp = 16
 
+// coldAtkGrp is the attacker groups, for a table with an attackers trigger or
+// a batch pool (grpNew's callers).
+var coldAtkGrp = newCold[objBits]("atkGrp", func(g *genPrep) int {
+	if g.anyTriggerAttackers || g.anyBatchPool {
+		return maxAtkGrp
+	}
+	return 0
+}).view(func(c *coldArrays) *[]objBits { return &c.atkGrp })
+
 // StallAtkGrp: a seventeenth attacker group held at once (State.grpNew).
 const StallAtkGrp = 107
 

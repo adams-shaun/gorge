@@ -662,6 +662,8 @@ const (
 	PKEachFromSource
 	PKEffectOwner
 	PKExactly
+	PKExcessDamage
+	PKExcessDamageCondition
 	PKExcessSVar
 	PKExcessSVarCondition
 	PKExileFaceDown
@@ -1569,6 +1571,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKEachFromSource:                   "EachFromSource",
 	PKEffectOwner:                      "EffectOwner",
 	PKExactly:                          "Exactly",
+	PKExcessDamage:                     "ExcessDamage",
+	PKExcessDamageCondition:            "ExcessDamageCondition",
 	PKExcessSVar:                       "ExcessSVar",
 	PKExcessSVarCondition:              "ExcessSVarCondition",
 	PKExileFaceDown:                    "ExileFaceDown",

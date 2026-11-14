@@ -10,6 +10,7 @@ Avenging Druid
 Back to Basics
 Ball Lightning
 Beloved Chaplain
+Benevolent Bodyguard
 Blindblast
 Blor the Impervious
 Bombard
@@ -32,6 +33,7 @@ Eater of the Dead
 End the Festivities
 Eternal Thirst
 Experimental Augury
+Fa'adiyah Seer
 Fallen Angel
 Far Wanderings
 Farseek
@@ -41,6 +43,7 @@ Fortify
 Fyndhorn Elves
 Galvanic Blast
 Ghostly Prison
+Gluntch, the Bestower
 Goblin Gang Leader
 Grizzly Fate
 Heroes' Bane

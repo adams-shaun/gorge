@@ -172,15 +172,6 @@ func (s *State) tapXEachGaps(k *prep, p uint8) slotMask {
 	return s.scriptGaps(k, p)
 }
 
-// tapXRiderGaps: p's Taps-deferred sources the tap-another search activates
-// beside its own gaps: none unless a tap-another source is live on the board.
-func (s *State) tapXRiderGaps(k *prep, p uint8) slotMask {
-	if !k.tapMana || !s.scriptTapX(k, p).any() || s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() {
-		return slotMask{}
-	}
-	return s.scriptTapsDefer(k, p)
-}
-
 // tapXCands lists the permanents source sl's tap cost can tap, in gorge's
 // candidate order (battlefield entry): p's untapped permanents matching the
 // cost's filter, the source itself excluded (its own {T} is paid first;
@@ -322,7 +313,7 @@ const (
 	tapXPass                // p passes with a trigger of the path on the stack
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
-	tapXRider               // a Taps-deferred rider gap's activation (scriptGapTap, the deferred arm's application)
+	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
 )
 
 type tapXKey struct {
@@ -347,6 +338,7 @@ type tapXSearch struct {
 	srcZ  kop.Zone
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
+	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
@@ -404,7 +396,9 @@ func tapXPairAt(n, qi int) (int, int) {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXRiderGaps(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
+	rs.gaps = rs.gaps.or(rs.def)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -463,7 +457,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXRider {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXDefer {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -640,11 +634,8 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.tapXPlainDo(k, p, st.sl, st.col)
 		return
 	}
-	if st.kind == tapXRider {
-		// a Taps-deferred rider gap: the deferred arm's application, the
-		// search's answer mapped to the engine's (scriptGapTap)
-		var spill [kop.NumManaKinds]uint8
-		s.scriptGapTap(k, p, st.act, st.sl, slotMask{}, slotMask{}, slotMask{}, s.scriptTapsDefer(k, p), int(st.col), &spill)
+	if st.kind == tapXDefer {
+		s.tapXDeferDo(k, p, st)
 		return
 	}
 	if st.cand == NoSlot {
@@ -854,22 +845,17 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 		}
+		if rs.def.has(sl) {
+			if found, handled := rs.deferAsk(k, t, sl); handled {
+				return found
+			}
+			continue
+		}
 		if each.has(sl) {
 			// an each-colour gap has one answer and asks nothing; tapped for
 			// its own mana it is no longer there for a tap-another cost
 			if rs.try(k, t, tapXStep{kind: tapXEach, sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true
-			}
-			continue
-		}
-		if taps := t.scriptTapsDefer(k, p); taps.has(sl) {
-			// a Taps-deferred rider gap: gorge's search branches on the
-			// activation's colour like the deferred arm's DFS does
-			// (deferGapAnswers), each answer one step (scriptGapTap)
-			for c := uint8(0); c < t.deferGapAnswers(k, sl); c++ {
-				if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, cand: NoSlot, cand2: NoSlot, col: c, act: rs.a}) {
-					return true
-				}
 			}
 			continue
 		}
