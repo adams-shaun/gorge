@@ -18,23 +18,28 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StallEntered rather than truncating, so a generated table never reads a
 // short list as if it were complete.
 
-// maxEntered is the zone entries one turn may record. Only tables with a
-// reader carry the array. Synthetic Standard pools reach 47 at 300 pairs; a
-// loop can reach more, and stalls.
-const maxEntered = 64
+// maxEntered (seats_default.go, seats_mp.go) is the zone entries one turn may
+// record. Only tables with a reader carry the array.
 
-// zoneEntry is one add. to/from are kop.Zone values (gorge's ZoneEntry.To
-// and .From); flags bit 0 is gorge's WasCreature, the creature status at a
+// zoneEntry is one add. tf holds two kop.Zone values, the destination in its
+// low nibble and the origin in its high one (gorge's ZoneEntry.To and .From;
+// every zone fits four bits), so an entry is four bytes at four seats, where
+// Obj is two; flags bit 0 is gorge's WasCreature, the creature status at a
 // departure (CR 603.10a) or the card's face at a battlefield entry; the bits
 // from enteredLeftShift up (one at two seats, two at four) are the controller
 // a battlefield departure left under, gorge's Controller. Owner, PermanentCard and Sacrificed are not read by
 // any Count$ThisTurnEntered head and are not ported.
 type zoneEntry struct {
 	o     Obj
-	to    uint8
-	from  uint8
+	tf    uint8
 	flags uint8
 }
+
+// to is the zone the entry added the object to.
+func (e *zoneEntry) to() uint8 { return e.tf & 0x0f }
+
+// from is the zone the entry moved the object from.
+func (e *zoneEntry) from() uint8 { return e.tf >> 4 }
 
 const (
 	enteredWasCreature uint8 = 1
@@ -47,7 +52,7 @@ const (
 //go:noinline
 func (s *State) noteLeftController(o Obj, ctrl uint8) {
 	if n := s.g.enteredN; n != 0 && !s.g.enteredFull && SeatIx(ctrl) != 0 {
-		if e := &s.cold.entered[n-1]; e.o == o && e.from == uint8(kop.ZoneBattlefield) {
+		if e := &s.cold.entered[n-1]; e.o == o && e.from() == uint8(kop.ZoneBattlefield) {
 			e.flags |= SeatIx(ctrl) << enteredLeftShift
 		}
 	}
@@ -98,7 +103,7 @@ func (s *State) noteEnter(o Obj, to, from kop.Zone, wasCreature bool) {
 		return
 	}
 	e := &s.cold.entered[s.g.enteredN]
-	e.o, e.to, e.from, e.flags = o, uint8(to), uint8(from), 0
+	e.o, e.tf, e.flags = o, uint8(to)&0x0f|uint8(from)<<4, 0
 	if to == kop.ZoneBattlefield {
 		wasCreature = s.k().t.Cards[s.objs[o].card].Types&kop.TCreature != 0
 	}
@@ -149,14 +154,14 @@ func (s *State) thisTurnEntered(k *prep, x *kop.Expr, ctx evalCtx) int {
 	n := 0
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.to != uint8(dest) {
+		if e.to() != uint8(dest) {
 			continue
 		}
-		if x.From >= 0 && int8(e.from) != x.From {
+		if x.From >= 0 && int8(e.from()) != x.From {
 			continue
 		}
 		ob := &s.objs[e.o]
-		fromBattlefield := e.from == uint8(kop.ZoneBattlefield)
+		fromBattlefield := e.from() == uint8(kop.ZoneBattlefield)
 		ok := false
 		if dest == kop.ZoneBattlefield {
 			if x.F2 == 0 {

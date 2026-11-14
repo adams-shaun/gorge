@@ -345,6 +345,9 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if k.gen.tapsWhose && !s.tapsWhoseOK(l, a, amt) {
 			return
 		}
+		if k.gen.anyTapsMana && !s.tapsManaOK(a, amt) {
+			return // Mode$ TapsForMana: only a mana tap by the right player (trig_params.go)
+		}
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
 		}
@@ -726,8 +729,8 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 			return
 		}
-		if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
-			return
+		if t.Filter != 0 && (needsAttachedSource(k, t.Filter) || !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o)) || !s.trigOK(k, l, a) {
+			return // trig_damageattached.go
 		}
 		if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
 			return // ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ (trig_params.go)

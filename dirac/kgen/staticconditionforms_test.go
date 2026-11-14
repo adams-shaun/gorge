@@ -26,7 +26,7 @@ var staticConditionForms = []formCase{
 	{card: "Stoic Rebuttal", form: "self ReduceCost Condition$ Metalcraft", lir: "static ReduceCost F={types=0x0 Self} F2=nil cond=Present("},
 	{card: "Slithering Shade", form: "Hellbent outside Continuous (gorge gate unverified)", refused: `static Condition "Hellbent"`},
 	{card: "Wheel of Fortune", form: "discard Mode$ Hand (whole hand, no ask)", lir: "Discard obj=EachPlayer A=127 CS=DiscarderChooses"},
-	{card: "Dread Wight", form: "Phase$ EndCombat lowers (the refusal moves on to its body)", refused: `unknown property "blockedBySource"`},
+	{card: "Dread Wight", form: "Phase$ EndCombat lowers (the refusal moves on to its body)", refused: `Effect replacement Duration$`},
 	{card: "Realm Seekers", form: "Count$ValidHand Card (both hands)", lir: "A=Sum(HandSizeOf(n=1,You),HandSizeOf(n=1,EachOpp))"},
 	{card: "Wasteland", form: "Land.nonBasic (NotTypes TBasic)", lir: "F={types=0x1 not=0x200}"},
 	{card: "Ceremonious Rejection", form: "Colorless (NotColors WUBRG)", lir: "notcolor=WUBRG"},

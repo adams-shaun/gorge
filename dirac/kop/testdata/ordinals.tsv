@@ -233,6 +233,7 @@ CtrRemMV	untyped int	1
 CtrRemember	untyped int	2
 CtrRev	CounterKind	49
 CtrRevival	CounterKind	11
+CtrScream	CounterKind	74
 CtrShadow	CounterKind	32
 CtrShield	CounterKind	4
 CtrSkewer	CounterKind	65
@@ -245,6 +246,7 @@ CtrStun	CounterKind	3
 CtrSupply	CounterKind	35
 CtrTime	CounterKind	43
 CtrTrample	CounterKind	33
+CtrTreasure	CounterKind	75
 CtrValor	CounterKind	44
 CtrVerse	CounterKind	19
 CtrVigilance	CounterKind	34
@@ -277,6 +279,7 @@ DigRandomOrder	untyped int	16
 DigRemember	untyped int	64
 DigRestShift	untyped int	0
 DigRestTop	untyped int	256
+DigRestTopAsk	untyped int	272
 DigReveal	untyped int	32
 DigRevealToCtrl	untyped int	512
 DigTakeToTop	untyped int	128
@@ -445,6 +448,7 @@ ExYourTurns	ExprKind	251
 ExtAddPhase	ExtOp	193
 ExtAegisClone	ExtOp	80
 ExtAirbend	ExtOp	95
+ExtAsgnGrant	ExtOp	173
 ExtAttacksIfAble	ExtOp	255
 ExtBecomeMonarch	ExtOp	259
 ExtBlocksIfAble	ExtOp	256
@@ -692,8 +696,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	74
-NumCounterKindsX	int	59
+NumCounterKinds3	CounterKind	76
+NumCounterKindsX	int	61
 NumExtOps	ExtOp	320
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -1073,6 +1077,7 @@ ReplDamageHealFirst	ReplKind	37
 ReplDamagePlus	ReplKind	16
 ReplDestroyHeal	ReplKind	32
 ReplDiscardOppToBattlefield	ReplKind	33
+ReplDmgCombat	untyped int	512
 ReplDmgCtrHost	untyped int	128
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
@@ -1373,6 +1378,9 @@ Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 Tf5OppCause	TrigFlags5	4
+Tf5OptSrcCtrl	TrigFlags5	64
+Tf5TapperNonActive	TrigFlags5	32
+Tf5TapsForMana	TrigFlags5	16
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
@@ -1521,12 +1529,15 @@ W7AttackingAlone	int16	3
 W7AttackingEnchTrig	int16	29
 W7AttackingOpp	int16	7
 W7AttackingSame	int16	32
+W7BlockedBySrc	int16	34
+W7BlockingSrc	int16	33
 W7BlockingTrigObj	int16	31
 W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7EnteredFromBF	int16	24
+W7EnteredFromLib	int16	35
 W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2
