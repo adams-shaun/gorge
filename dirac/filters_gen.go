@@ -367,6 +367,8 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	for i := 0; i < int(a.NTargets); i++ {
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
+	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
+	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
 	if !bound {
 		return true
 	}
@@ -716,6 +718,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return t <= n
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
 		mv := s.cardMV(k, c, o, fd)
+		if ctx != nil {
+			mv += ctx.xmv
+		}
 		switch fl.Pred {
 		case kop.PredCMCLE:
 			return mv <= n

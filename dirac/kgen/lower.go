@@ -992,6 +992,9 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
+	// Level up (CR 702.87a): gorge kwLevelUp appends one sorcery-speed
+	// AB$ PutCounter LEVEL line; the level bands are ordinary statics
+	"Level up": true,
 }
 
 // protColourLetters maps a "Protection from <q>" colour quality to its
@@ -1026,6 +1029,12 @@ func plainQuality(f *lFilter) error {
 		if c.CmpStat == cmpMonoColor && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" {
 			// gorge sourceHasQuality's monocolored class (Guardian of the
 			// Guildpact): exactly one colour of the source
+			continue
+		}
+		if c.CmpStat == cmpCMC && (c.CmpOp == opGE || c.CmpOp == opLE) && c.CmpV == nil && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" && c.CmpX == "" && c.CmpCounter == "" {
+			// a constant mana-value bound (Mistmeadow Skulk's cmcGE3, Reaver
+			// Titan's cmcLE3: gorge protectionCMC), read with a spell's
+			// announced X (kernel protSpellObj)
 			continue
 		}
 		if c.Ctrl != 0 || c.Owner != 0 || c.Flags != 0 || c.CmpOp != 0 || c.CmpStat != 0 || c.CmpX != "" || c.CmpCounter != "" {
