@@ -166,10 +166,29 @@ func (s *State) scriptTapXModelled(k *prep, p uint8) slotMask {
 // tapXEachGaps: p's each-colour sources the tap-another search activates beside
 // its own gaps: none unless a tap-another source is live on the board.
 func (s *State) tapXEachGaps(k *prep, p uint8) slotMask {
-	if !k.tapMana || !s.scriptTapX(k, p).any() || s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() {
+	if !k.tapMana || !s.scriptTapX(k, p).any() || s.scriptRestr(k, p).or(s.scriptFilt(k, p)).any() {
 		return slotMask{}
 	}
 	return s.scriptGaps(k, p)
+}
+
+// tapXAnyRBoard: p's any-colour restricted sources (a Flamebraider) sit
+// beside a live tap-another source and gaps the filter search does not take
+// (mixBoard: an each-colour or counter-cost one). gorge's one prefix search
+// activates all of them in battlefield order, so the tap-another search takes
+// the restricted source as a step of its own (tapXAnyR). A reflected-mana
+// board (a Plaza) stays the reflected search's.
+func (s *State) tapXAnyRBoard(k *prep, p uint8) bool {
+	return k.tapMana && !k.gen.anyRefl && s.scriptTapX(k, p).any()
+}
+
+// tapXAnyRGaps: p's any-colour restricted sources the tap-another search
+// activates beside its own gaps (tapXAnyRBoard).
+func (s *State) tapXAnyRGaps(k *prep, p uint8) slotMask {
+	if !s.scriptRestr(k, p).or(s.scriptFilt(k, p)).any() && s.tapXAnyRBoard(k, p) {
+		return s.scriptAnyR(k, p)
+	}
+	return slotMask{}
 }
 
 // riderDeferMask is p's activatable bounded-rider sources, a slot mask (the
@@ -300,18 +319,26 @@ func (s *State) scriptCtrModelled(k *prep, p uint8) slotMask {
 // activates them as steps, tapXEach), or a mix the filter search runs
 // (mixBoard).
 func (s *State) tapXBoard(k *prep, p uint8) bool {
-	if s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() {
+	if s.scriptRestr(k, p).or(s.scriptFilt(k, p)).any() {
 		return s.mixBoard(k, p)
+	}
+	if s.scriptAnyR(k, p).any() {
+		return s.mixBoard(k, p) || s.tapXAnyRBoard(k, p)
 	}
 	return !s.scriptGaps(k, p).any() || s.scriptTapX(k, p).any()
 }
 
 // tapXPrefix plays the search's script for play a at a tapX board; it
 // reports whether it handled the board (the caller then does nothing more).
+// A Taps-deferred rider gap beside counter-cost ones and no live real
+// tap-another source (tapXRiderGaps empty) is the scriptDeadEndAny route's
+// (scriptPrefixAny, mana_tapsdefer.go): the search here has no rider step
+// there, so a play the rider's mana funds would be left unfunded. Beside a
+// live tap-another source the search activates the rider gaps itself.
 //
 //go:noinline
 func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
-	if !s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).any() {
+	if !s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).any() || (s.scriptTapsDefer(k, p).any() && !s.tapXRiderGaps(k, p).any()) {
 		return false
 	}
 	var d Decision
@@ -340,6 +367,7 @@ const (
 	tapXPass                // p passes with a trigger of the path on the stack
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
+	tapXAnyR                // an any-colour restricted gap (a Flamebraider), col its scriptDFS answer (scriptGapTap)
 	tapXRider               // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
 	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
 )
@@ -355,6 +383,7 @@ type tapXKey struct {
 	// a tapped Seedship Agrarian's trigger made is a new state, though its
 	// own enters trigger leaves the stack as deep as the first did
 	bf uint64
+	rb [maxRB]rbatch // restricted mana floating (gorge's key counts every mana unit)
 }
 
 type tapXSearch struct {
@@ -424,7 +453,7 @@ func tapXPairAt(n, qi int) (int, int) {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXRiderGaps(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
 	rs.gaps = rs.gaps.or(rs.def)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
@@ -485,7 +514,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXRider || st.kind == tapXDefer {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -660,6 +689,12 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	}
 	if st.kind == tapXPlain {
 		s.tapXPlainDo(k, p, st.sl, st.col)
+		return
+	}
+	if st.kind == tapXAnyR {
+		// an any-colour restricted gap: the anyR search's application of its answer
+		var spill [kop.NumManaKinds]uint8
+		s.scriptGapTap(k, p, st.act, st.sl, slotMask{}, slotMask{}, s.scriptAnyR(k, p), slotMask{}, slotMask{}, int(st.col), &spill)
 		return
 	}
 	if st.kind == tapXRider {
@@ -856,7 +891,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 	}
 	pl := &t.pl[SeatIx(p)]
-	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p)}
+	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p), rb: t.rb[SeatIx(p)]}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
@@ -877,6 +912,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
 	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
+	anyR := t.scriptAnyR(k, p)
 	rider := t.riderDeferMask(k, p)
 	var cols [5]uint8
 	rs.cols(&cols)
@@ -898,6 +934,17 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			// its own mana it is no longer there for a tap-another cost
 			if rs.try(k, t, tapXStep{kind: tapXEach, sl: sl, cand: NoSlot, cand2: NoSlot}) {
 				return true
+			}
+			continue
+		}
+		if anyR.has(sl) {
+			// an any-colour restricted gap: gorge's search branches on its
+			// activation's answers like the anyR search's DFS does (scriptDFS),
+			// each answer one step (scriptGapTap)
+			for c := uint8(0); c < t.anyRAnswers(k, sl); c++ {
+				if rs.try(k, t, tapXStep{kind: tapXAnyR, sl: sl, cand: NoSlot, cand2: NoSlot, col: c, act: rs.a}) {
+					return true
+				}
 			}
 			continue
 		}

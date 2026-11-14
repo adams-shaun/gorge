@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExScryNum
+value: 89
+forge: ScryNum
+census: count ScryNum all=4 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

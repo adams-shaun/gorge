@@ -1,0 +1,14 @@
+# the protection-from-colorsYouCtrl pool: Empty-Shrine Kannushi (protection
+# from the colors of permanents its controller controls) beside red burn and
+# red / green / white creatures, and basics
+# (dirac/oracle/mbc_kannushi_lowers_test.go)
+Empty-Shrine Kannushi
+Lightning Bolt
+Shock
+Hill Giant
+Grizzly Bears
+Savannah Lions
+Elite Vanguard
+Mountain
+Plains
+Forest

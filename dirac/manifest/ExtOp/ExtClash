@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtClash
+value: 20
+forge: Clash
+census: api Clash all=29 std=0 mbc=1 sole=26
+state: code 0
+status: reserved

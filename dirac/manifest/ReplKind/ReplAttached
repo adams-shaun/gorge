@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplAttached
+value: 48
+forge: Attached
+census: repl Attached all=3 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

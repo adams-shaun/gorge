@@ -4,12 +4,11 @@
 // kernel bot asked the same decisions on the kernel's state
 // (oracle.HBotParityGame). The kernel bot is the native port
 // (dirac/search/hbot). It prints the agreement rate per decision kind and
-// the disagreement classes, each with one example. With -seats 3 or 4
-// (the dirac_mp build) each game is a pod of consecutive pairings' decks
+// the disagreement classes, each with one example. With -seats above 2 (up
+// to dirac.MaxSeats) each game is a pod of consecutive pairings' decks
 // (oracle.HBotParityPod).
 //
 //	go run ./dirac/oracle/cmd/khbot -pairs 100 -seed 78 -workers 4
-//	go run -tags dirac_mp ./dirac/oracle/cmd/khbot -seats 4 -pairs 50
 package main
 
 import (
@@ -47,7 +46,7 @@ func run() int {
 		elide     = flag.Bool("pass-elision", true, "elide single-option decisions (the kernel's default configuration does)")
 		verbose   = flag.Bool("v", false, "print every disagreement")
 		hold      = flag.Bool("hold", false, "arm gorge TimingRules.HoldInstant on both sides (hbot must hold too)")
-		seats     = flag.Int("seats", 2, "seats per game; above 2 (the dirac_mp build) a game is a pod of consecutive pairings' decks, -pairs counting pods")
+		seats     = flag.Int("seats", 2, "seats per game, at most dirac.MaxSeats; above 2 a game is a pod of consecutive pairings' decks, -pairs counting pods")
 	)
 	flag.Parse()
 	if *cardsDir == "" {

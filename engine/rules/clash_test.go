@@ -14,9 +14,8 @@ import (
 // real corpus carrier Marvo, Deep Operative, plus the trigger mode's own
 // Won$ orientation gate.
 //
-// Marvo's attack trigger is `DB$ Clash | Defined$ TriggeredDefendingPlayer`
-// and its second line is `T:Mode$ Clashed | ValidPlayer$ You | Won$ True`
-// (draw a card, then may cast an MV<=8 spell for free). The clash therefore
+// Marvo's attack trigger clashes with the defending player, and its second
+// line is a Clashed trigger on its controller winning a clash (draw a card, then may cast an MV<=8 spell for free). The clash therefore
 // runs entirely inside the attack trigger's resolution: seat 0 (Marvo's
 // controller) reveals the top of its library, seat 1 (the defending player)
 // reveals its own, the higher mana value wins, and the Clashed marker the

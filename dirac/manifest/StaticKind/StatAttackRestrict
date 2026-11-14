@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatAttackRestrict
+value: 27
+forge: AttackRestrict
+census: stat AttackRestrict all=8 std=0 mbc=2 sole=2
+state: code 0
+status: reserved

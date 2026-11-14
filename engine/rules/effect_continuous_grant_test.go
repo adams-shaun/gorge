@@ -38,8 +38,8 @@ func effectContinuousUnimplementedNotes(e *Engine) []string {
 }
 
 // TestEffectDeliveredContinuousGrantReachesLayerWalk pins the additive
-// keyword half: DB$ Effect | StaticAbilities$ STFly, whose body is
-// Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying.
+// keyword half: an Effect whose static is a continuous grant of flying to
+// creatures you control.
 func TestEffectDeliveredContinuousGrantReachesLayerWalk(t *testing.T) {
 	t.Parallel()
 	grant := card(t, "Name:GrantFlight\nManaCost:U\nTypes:Sorcery\n"+

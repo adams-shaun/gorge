@@ -19,12 +19,12 @@ import (
 // TestObjCodeCastsOnlyShrink is the shrink-only ratchet on object and target
 // codes that pass through a narrower integer, or through Action's packing by
 // hand, in the kernel: every non-test .go file of package dirac that the
-// default size class builds (this directory only; subpackages and tests
+// default build context builds (this directory only; subpackages and tests
 // excluded). It type-checks the package with go/types and counts, per family:
 //
 //   - narrow: a conversion of a non-constant Obj or TCode to any other
-//     one-byte integer type (uint8(o), byte(a.Target()), Slot(c)). When the
-//     multiplayer class widens Obj and TCode, each of these truncates a code
+//     one-byte integer type (uint8(o), byte(a.Target()), Slot(c)). Should a
+//     wider build widen Obj and TCode, each of these truncates a code
 //     without a compile error. Keep the code in an Obj or TCode instead.
 //   - launder: a conversion to Obj or TCode from a non-constant one-byte
 //     integer that is neither (TCode(t) for t uint8, Obj(e.tgt[i])). The
@@ -33,8 +33,8 @@ import (
 //   - actbits: Action's packing read or written outside its accessors in
 //     types.go (MakeAction, Kind, Source, Target, Mode): a shift or bitwise
 //     operator with an Action operand, a conversion of an Action to another
-//     type, or a conversion of a non-constant to Action. The multiplayer
-//     class packs Action differently; go through the accessors.
+//     type, or a conversion of a non-constant to Action. A wider build
+//     packs Action differently; go through the accessors.
 //
 // The scan cannot see an int that holds an object index narrowed to uint8
 // (uint8(i) for a loop index): such a value is no Obj until it is converted.
@@ -138,7 +138,7 @@ func scanObjCodeCasts(t *testing.T) (map[string]int, map[string][]string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := gobuild.Default // the default size class: no dirac_mp tag
+	ctx := gobuild.Default
 	fset := token.NewFileSet()
 	var files []*ast.File
 	for _, n := range names {

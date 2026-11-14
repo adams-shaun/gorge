@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtIntensify
+value: 26
+forge: Intensify
+census: api Intensify all=21 std=0 mbc=0 sole=0
+state: objbyte 236 (intensity)
+status: reserved

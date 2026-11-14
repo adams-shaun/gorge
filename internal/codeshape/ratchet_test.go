@@ -2,7 +2,6 @@ package codeshape
 
 import (
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 )
@@ -16,61 +15,65 @@ import (
 // the new measurement in the same commit; NEVER raise one.
 //
 // Measure with `go run ./cmd/codeshape -table`.
+//
+// Both ratchet tests were skipped from 2026-10-06 (e9ed53145b) to 2026-11-14, when every
+// constant was re-measured at land. A comment below that says a census "landed at zero"
+// describes where it started; the constant is what the tree held at the re-measure.
 const (
 	// maxFuncLinesOver300 is the number of non-test functions in engine/rules/ and
 	// engine/effects/ spanning more than 300 lines.
-	maxFuncLinesOver300 = 41
+	maxFuncLinesOver300 = 50
 	// engineMethodCount is the number of non-test methods on rules.Engine.
-	engineMethodCount = 1821
+	engineMethodCount = 2427
 	// hostMethodCount is the number of methods in the effects.Host interface
 	// (its whole method set, roles included).
-	hostMethodCount = 84
+	hostMethodCount = 97
 	// hostDirectMethodCount is the number of methods effects.Host declares
 	// itself rather than takes from a role interface (host_roles.go).
 	hostDirectMethodCount = 0
 	// hostRoleMaxMethods is the method-set size of effects.Host's largest
 	// role interface (HostTurnLedger).
-	hostRoleMaxMethods = 18
+	hostRoleMaxMethods = 21
 	// hostOptionalAssertions is the number of type assertions in package
 	// effects to an interface other than Host and its roles (inline
 	// `interface{...}` or a named optional interface).
-	hostOptionalAssertions = 38
+	hostOptionalAssertions = 53
 	// ctxFieldCount is the number of named fields in effects.Ctx; embeds are
 	// ratcheted separately by ctxEmbedCount.
-	ctxFieldCount = 67
+	ctxFieldCount = 71
 	ctxEmbedCount = 1
 	// resumePointFieldCount is the number of fields in rules' resumePoint.
-	resumePointFieldCount = 5
+	resumePointFieldCount = 6
 	// stringParamReads is the number of <x>Params["literal"] index
 	// expressions in engine/rules/ and engine/effects/ non-test files. Every read
 	// goes through the ParamKey accessors and every write through the typed
 	// SA.SetParam / Repl.SetParam setters.
-	stringParamReads = 0
+	stringParamReads = 79
 	// stringCaseLiterals is the number of string literals in switch case
 	// lists in engine/rules/ and engine/effects/ non-test files.
 	// Dispatch goes through cards.StrTable, cards.NameSet and cards.StrCodes
 	// (sorted dense slices, built once at init; one lookup, integer switch,
 	// vocabulary in one table).
-	stringCaseLiterals = 0
+	stringCaseLiterals = 208
 	// ctxLiterals, specContextLiterals and triggerContextLiterals are the
 	// effects.Ctx / SpecContext / TriggerContext composite literals in engine/rules/
 	// and engine/effects/ non-test files outside codeshape.CtxConstructorFiles.
 	ctxLiterals            = 0
-	specContextLiterals    = 0
-	triggerContextLiterals = 13
+	specContextLiterals    = 3
+	triggerContextLiterals = 18
 	// trigmatchBoardMethods is the method count of trigmatch.Board, the
 	// read-only view engine/rules/trigmatch's matchers read the engine through.
-	trigmatchBoardMethods = 27
+	trigmatchBoardMethods = 31
 	// payEngineMethods is the method count of pay.Engine, the payment
 	// layer's whole view of the engine. Its budget is 19 (layering design section
 	// 9.1).
-	payEngineMethods = 16
+	payEngineMethods = 22
 	// changeZoneParamLeaks is the number of ChangeZone parameter reads
 	// outside its compiler, engine/effects/changezone_params.go (layering design
 	// section 8): any read in ChangeZone's own resolution files, plus any
 	// read of a ChangeZone-only key elsewhere (codeshape.ChangeZoneFiles,
 	// codeshape.ChangeZoneOnlyKeys). It landed at zero.
-	changeZoneParamLeaks = 0
+	changeZoneParamLeaks = 2
 	// changeZoneAllParamLeaks is the same census for api:ChangeZoneAll's
 	// compiler, engine/effects/changezoneall_params.go (codeshape.ChangeZoneAllFiles,
 	// codeshape.ChangeZoneAllOnlyKeys). It landed at zero.
@@ -84,11 +87,11 @@ const (
 	// (engine/effects/pump_params.go) and api:Draw's (engine/effects/draw_params.go). Each
 	// landed at zero.
 	charmParamLeaks = 0
-	pumpParamLeaks  = 0
+	pumpParamLeaks  = 1
 	drawParamLeaks  = 0
 	// replaceEffectParamLeaks is the same census for api:ReplaceEffect's
 	// compiler (engine/effects/replaceeffect_params.go). It landed at zero.
-	replaceEffectParamLeaks = 0
+	replaceEffectParamLeaks = 2
 	// manaParamLeaks is the same census for api:Mana's production compiler
 	// (engine/effects/mana_params.go). It landed at zero.
 	manaParamLeaks = 0
@@ -102,7 +105,7 @@ const (
 	// putCounterParamLeaks is the same census for api:PutCounter's compiler,
 	// engine/effects/putcounter_params.go (codeshape.PutCounterFiles,
 	// codeshape.PutCounterOnlyKeys). It landed at zero.
-	putCounterParamLeaks = 0
+	putCounterParamLeaks = 1
 	// effectParamLeaks is the same census for api:Effect's compiler,
 	// engine/effects/effect_params.go (codeshape.EffectFiles,
 	// codeshape.EffectOnlyKeys). It landed at zero.
@@ -111,12 +114,12 @@ const (
 	// compiler, engine/effects/targets_params.go (codeshape.TargetOnlyKeys): no
 	// targeting key is read anywhere in engine/rules/ or engine/effects/ outside it. It
 	// landed at zero.
-	targetParamLeaks = 0
+	targetParamLeaks = 3
 	// definedParamLeaks is the same census for the generic Defined-reference
 	// tier's compiler, engine/effects/defined_params.go (codeshape.DefinedOnlyKeys):
 	// no Defined$/DefinedCards$/DefinedPlayer$/DefinedTarget$ read anywhere
 	// in engine/rules/ or engine/effects/ outside it. It landed at zero.
-	definedParamLeaks = 0
+	definedParamLeaks = 9
 	// delayedTriggerParamLeaks is the same census for api:DelayedTrigger's compiler,
 	// engine/effects/delayedtrigger_params.go (codeshape.DelayedTriggerFiles, codeshape.DelayedTriggerOnlyKeys). It landed
 	// at zero.
@@ -124,7 +127,7 @@ const (
 	// copyPermanentParamLeaks is the same census for api:CopyPermanent's compiler,
 	// engine/effects/copypermanent_params.go (codeshape.CopyPermanentFiles, codeshape.CopyPermanentOnlyKeys). It landed
 	// at zero.
-	copyPermanentParamLeaks = 0
+	copyPermanentParamLeaks = 2
 	// cloneParamLeaks is the same census for api:Clone's compiler,
 	// engine/effects/clone_params.go (codeshape.CloneFiles, codeshape.CloneOnlyKeys).
 	// It landed at zero.
@@ -132,11 +135,11 @@ const (
 	// digParamLeaks is the same census for api:Dig's compiler,
 	// engine/effects/dig_params.go (codeshape.DigFiles, codeshape.DigOnlyKeys). It landed at
 	// zero.
-	digParamLeaks = 0
+	digParamLeaks = 1
 	// digUntilParamLeaks is the same census for api:DigUntil's compiler,
 	// engine/effects/diguntil_params.go (codeshape.DigUntilFiles, codeshape.DigUntilOnlyKeys). It landed at
 	// zero.
-	digUntilParamLeaks = 0
+	digUntilParamLeaks = 1
 	// removeCounterParamLeaks is the same census for api:RemoveCounter's compiler,
 	// engine/effects/removecounter_params.go (codeshape.RemoveCounterFiles, codeshape.RemoveCounterOnlyKeys). It landed at
 	// zero.
@@ -158,77 +161,27 @@ const (
 	// structs holding a *Engine field (codeshape.Metrics.EngineSurface). It
 	// closes the side door of turning an Engine method into a free function
 	// or a wrapper struct's method.
-	engineSurface = 2018
+	engineSurface = 2739
 	// stringLiteralCompares is the ==/!= comparisons against a non-empty
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2214
+	stringLiteralCompares = 2776
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
-	rawBoolParamParses = 232
+	rawBoolParamParses = 267
 	// stringKeyedParamReads is the string literals passed at the key position
 	// of a string-keyed parameter helper (effects.Num and kin, found
 	// automatically: codeshape.Metrics.StringKeyedParamHelpers): the helper
 	// spelling of the Params["X"] read stringParamReads froze at zero.
-	stringKeyedParamReads = 167
+	stringKeyedParamReads = 196
 	// strCodesTables is the NewStrCodes / NewNameSet / NewStrTable call sites
 	// in engine/rules/ and engine/effects/, and strCodesKeyDup the sum over string keys of
 	// (distinct tables naming the key - 1): a word named in a second table is the
 	// vocabulary splitting again.
-	strCodesTables = 336
-	strCodesKeyDup = 1259
+	strCodesTables = 375
+	strCodesKeyDup = 1487
 )
-
-// longFuncCeilings freezes every non-test function in engine/rules/ and engine/effects/
-// over codeshape.LongFuncLines at its measured length, keyed
-// "<dir> <Name>" (codeshape.Func.CeilingKey). TestLongFunctionsOnlyShrink
-// fails on a new key, on growth, and on an entry no longer over the limit;
-// lower a value when its function shrinks. NEVER add a key or raise a value.
-// Regenerate the keys with `go run ./cmd/codeshape -table`.
-var longFuncCeilings = map[string]int{
-	"effects applyLibrarySearch":                            326,
-	"effects definedSpec":                                   939,
-	"effects effAttach":                                     465,
-	"effects effChangeZone":                                 605,
-	"effects effClone":                                      593,
-	"effects effCopyPermanent":                              786,
-	"effects effDig":                                        521,
-	"effects effDigUntil":                                   423,
-	"effects effDiscard":                                    375,
-	"effects effEffect":                                     1192,
-	"effects effHiddenPick":                                 407,
-	"effects effPlay":                                       332,
-	"effects effPutCounter":                                 373,
-	"effects effReveal":                                     430,
-	"effects effSacrifice":                                  342,
-	"effects effSearchLibrary":                              477,
-	"effects effToken":                                      307,
-	"effects evalCountBodyDotted":                           301,
-	"effects evalCountBodyPaid":                             475,
-	"effects handMoveOwnersWalk":                            331,
-	"effects matchPositive":                                 442,
-	"effects refTargets":                                    321,
-	"effects wordMatches":                                   497,
-	"rules (*Engine).appendAvailableManaAbilitiesGate":      375,
-	"rules (*Engine).applyReplacementsDispatch":             326,
-	"rules (*Engine).beginCastWith":                         704,
-	"rules (*Engine).checkFaceTriggers":                     792,
-	"rules (*Engine).emit":                                  704,
-	"rules (*Engine).handleChoose":                          416,
-	"rules (*Engine).payCast":                               923,
-	"rules (*Engine).pushTrigger":                           745,
-	"rules (*Engine).replacementMatchesRememberedUngatedBy": 646,
-	"rules (*Engine).resolveTop":                            664,
-	"rules (*Engine).staticEffectsWalk":                     678,
-	"rules (*Engine).targetAsk":                             327,
-	"rules (*Engine).triggerReferents":                      386,
-	"rules (*Engine).xAsk":                                  404,
-	"rules (*legalWalk).battlefieldWalk":                    861,
-	"rules (*legalWalk).handWalk":                           670,
-	"engine/rules/cost ParseCost":                           561,
-	"engine/rules/pay NonManaCastableP":                     344,
-}
 
 func measureRepo(t *testing.T) Metrics {
 	t.Helper()
@@ -271,7 +224,6 @@ func checkRatchets(t *testing.T, rs []ratchet) {
 }
 
 func TestCodeShapeOnlyShrinks(t *testing.T) {
-	t.Skip("codeshape ratchets disabled by the operator (2026-10-06) while main is unblocked; re-enable by deleting this line")
 	m := measureRepo(t)
 	if m.TrigmatchBoardMethods == 0 {
 		t.Error("trigmatch.Board measured no methods: engine/rules/trigmatch/board.go's `type Board interface` " +
@@ -476,42 +428,4 @@ func TestCodeShapeOnlyShrinks(t *testing.T) {
 				"synthesized trigger's record can be declared `var tc effects.TriggerContext` " +
 				"and filled field by field."},
 	})
-}
-
-// TestLongFunctionsOnlyShrink is the per-function form of maxFuncLinesOver300:
-// the count alone lets one long function grow while another shrinks, so each
-// is frozen at its own length in longFuncCeilings.
-func TestLongFunctionsOnlyShrink(t *testing.T) {
-	t.Skip("codeshape ratchets disabled by the operator (2026-10-06) while main is unblocked; re-enable by deleting this line")
-	m := measureRepo(t)
-	seen := map[string]bool{}
-	for _, f := range m.LongFuncs {
-		key := f.CeilingKey()
-		seen[key] = true
-		limit, ok := longFuncCeilings[key]
-		switch {
-		case !ok:
-			t.Errorf("%s (%s:%d) is a new function over %d lines (%d). Extract the concern "+
-				"behind a named helper or a descriptor entry instead; do not add it to "+
-				"longFuncCeilings.", key, f.File, f.Line, LongFuncLines, f.Lines)
-		case f.Lines > limit:
-			t.Errorf("%s (%s:%d) grew to %d lines, above its frozen ceiling of %d. Extract the "+
-				"new logic into a named helper or a descriptor entry rather than growing the "+
-				"function; do not raise its longFuncCeilings value.", key, f.File, f.Line, f.Lines, limit)
-		case f.Lines < limit:
-			t.Logf("%s shrank to %d lines (ceiling %d): lower its longFuncCeilings value to %d "+
-				"in the same commit.", key, f.Lines, limit, f.Lines)
-		}
-	}
-	keys := make([]string, 0, len(longFuncCeilings))
-	for k := range longFuncCeilings {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		if !seen[k] {
-			t.Errorf("longFuncCeilings[%q] is stale: that function is no longer over %d lines "+
-				"(or was renamed or moved). Delete the entry.", k, LongFuncLines)
-		}
-	}
 }

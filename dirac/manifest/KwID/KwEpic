@@ -1,0 +1,7 @@
+family: KwID
+name: KwEpic
+value: 90
+forge: Epic
+census: kw Epic all=5 std=0 mbc=0 sole=3
+state: unbounded (prevention/effect records)
+status: blocked unbounded:prevention/effect-records

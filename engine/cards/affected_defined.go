@@ -11,14 +11,15 @@ var affectedDefinedFilter = map[string]string{
 	"AttachedBy Self": "AttachedBy",
 }
 
-// NormalizeAffectedDefined rewrites a static's `AffectedDefined$ <who>` (plus
-// an optional `Affected$ <Type>[.<props>]` filter) into the single legacy
-// `Affected$ <Type>.<who>[+<props>]` filter every static reader in this
-// module already understands, and drops the AffectedDefined key.
+// NormalizeAffectedDefined rewrites a static's AffectedDefined key (plus an
+// optional Affected type filter) into the single legacy Affected filter, the
+// type with the defined object as a property, that every static reader in
+// this module already understands, and drops the AffectedDefined key.
 //
-// Upstream Forge moved ~2,600 static lines to the AffectedDefined$ form
-// between FORGE_REF 95f04e8 and fb4d809 (`Affected$ Creature.EquippedBy`
-// became `AffectedDefined$ Equipped | Affected$ Creature`). The mapping here
+// Upstream Forge moved ~2,600 static lines to the AffectedDefined form
+// between FORGE_REF 95f04e8 and fb4d809 (an Affected filter of creatures
+// equipped by the source became an AffectedDefined of the equipped object
+// with a separate Creature type filter). The mapping here
 // reproduces the old line exactly for every pair measured across the two
 // corpora. A value it does not know, or an Affected$ with comma
 // alternatives, is left untouched, so the param census still reports it

@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigMilledOnce
+value: 101
+forge: MilledOnce
+census: trig MilledOnce all=2 std=0 mbc=0 sole=1
+state: slotbit 16 (once-per-event marks)
+status: reserved

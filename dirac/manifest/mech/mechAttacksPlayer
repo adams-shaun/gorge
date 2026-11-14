@@ -1,0 +1,6 @@
+family: mech
+name: mechAttacksPlayer
+value: 52
+state: slotbit 16/16
+status: active
+doc: slots whose attack duty names the opponent: a player, never their planeswalkers or battles (Encore's "attacks that opponent"; combat_attacksifable.go)

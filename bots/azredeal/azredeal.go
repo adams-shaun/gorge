@@ -49,7 +49,7 @@ func init() {
 		Tier:        bots.Experimental,
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
-			Note:   "at 100 simulations, uncontended, in 2-seat constructed; 4-seat cost unmeasured; contention raises it, and the host never cuts the search",
+			Note:   "4-seat Commander, cmd5 decks, 11-13 gate box: 1.77 core-s per searched decision at 100 sims (botbench -pod, 1 az seat vs 3 bot)",
 			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
 		},
 		Env: true, Search: true,
@@ -64,7 +64,7 @@ func init() {
 		Tier:        bots.Experimental,
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
-			Note:   "the az-redeal numbers at 100 simulations, uncontended, in 2-seat constructed; 4-seat cost unmeasured; contention raises it, and the host never cuts the search",
+			Note:   "4-seat Commander, cmd5 decks, 11-13 gate box: 1.77 core-s per searched decision at 100 sims (botbench -pod, 1 az seat vs 3 bot)",
 			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
 		},
 		Env: true, Search: true,
@@ -80,11 +80,14 @@ func init() {
 // (a fresh deal per simulation), the generation-0 shape (no network, no
 // exploration noise). World is set explicitly (never the clairvoyant
 // default), and Source is left nil: NewSeat refuses a clairvoyant world with
-// a nil source, so a hosted seat can never clone the real engine.
+// a nil source, so a hosted seat can never clone the real engine. The search
+// stops once its most-visited move can no longer be overtaken
+// (azmcts.GapStop): the same moves and games, at less cost.
 func Hosted() azmcts.SeatConfig {
 	cfg := azmcts.DefaultSeatConfig()
 	cfg.World = azmcts.WorldRedeal
 	cfg.Worlds = 0
+	cfg.Search.StopEarly = &azmcts.GapStop{Sims: cfg.Search.Sims}
 	return cfg
 }
 
@@ -142,26 +145,31 @@ func NewWithModel(o bots.Options, cfg azmcts.SeatConfig, model *policynet.Model)
 // says the decisions carry them.
 func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
 	return func(o bots.Options) (seat.Seat, error) {
-		cfg := Hosted()
-		cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
-		cfg.Search.Sims = sims
-		// A human meets modes, may-triggers, small choices and multi-target
-		// picks, so the paired bot weighs them; they stay off for hosted seats.
-		cfg.Search.Kinds = azmcts.FullKinds()
-		// The mulligan too, both asks, on its own budget; the seat's own
-		// answer there, and every fallback, reads the hand (never the
-		// default bot's coin).
-		cfg.Search.Kinds.Mulligan = true
-		// The commander-zone choice too: a commander's owner chooses whether
-		// it returns to the command zone (CR 903.9), and the paired bot weighs
-		// that choice instead of answering it by rule.
-		cfg.Search.Kinds.CommanderZone = true
-		cfg.Search.MulliganWorlds, cfg.Search.MulliganTurns = MulliganWorlds, MulliganTurns
-		cfg.Mulligan = botpolicy.MulliganConstructed
-		cfg.Search.AutoPayment = o.AutoPayMana
-		cfg.Search.Line = o.ExpectedLine
-		return New(o, cfg)
+		return New(o, closedConfig(o, belief, sims))
 	}
+}
+
+// closedConfig is ClosedFactory's search config for the seat o builds.
+func closedConfig(o bots.Options, belief *searchprobe.Belief, sims int) azmcts.SeatConfig {
+	cfg := Hosted()
+	cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
+	cfg.Search.Sims = sims
+	// A human meets modes, may-triggers, small choices and multi-target
+	// picks, so the paired bot weighs them; they stay off for hosted seats.
+	cfg.Search.Kinds = azmcts.FullKinds()
+	// The mulligan too, both asks, on its own budget; the seat's own
+	// answer there, and every fallback, reads the hand (never the
+	// default bot's coin).
+	cfg.Search.Kinds.Mulligan = true
+	// The commander-zone choice too: a commander's owner chooses whether
+	// it returns to the command zone (CR 903.9), and the paired bot weighs
+	// that choice instead of answering it by rule.
+	cfg.Search.Kinds.CommanderZone = true
+	cfg.Search.MulliganWorlds, cfg.Search.MulliganTurns = MulliganWorlds, MulliganTurns
+	cfg.Mulligan = botpolicy.MulliganConstructed
+	cfg.Search.AutoPayment = o.AutoPayMana
+	cfg.Search.Line = o.ExpectedLine
+	return cfg
 }
 
 // The paired bot's mulligan budget (azmcts.Options.MulliganWorlds,

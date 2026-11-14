@@ -368,6 +368,7 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 	if decided {
 		opts = s.decidedOptions(opts)
 	}
+	exactStop(&opts)
 	var src WorldSource
 	var redeal *RedealSource
 	if s.redeals() {

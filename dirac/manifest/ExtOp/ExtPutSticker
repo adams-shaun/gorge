@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtPutSticker
+value: 18
+forge: PutSticker
+census: api PutSticker all=36 std=0 mbc=0 sole=12
+state: objbyte 236 (stickers)
+status: reserved

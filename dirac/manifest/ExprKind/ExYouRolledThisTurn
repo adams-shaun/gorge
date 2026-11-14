@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExYouRolledThisTurn
+value: 159
+forge: YouRolledThisTurn
+census: count YouRolledThisTurn all=1 std=0 mbc=0 sole=0
+state: player 4 (turn tallies)
+status: reserved

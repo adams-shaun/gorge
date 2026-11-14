@@ -1,0 +1,7 @@
+family: KwID
+name: KwReplicate
+value: 46
+forge: Replicate
+census: kw Replicate all=21 std=0 mbc=2 sole=0
+state: stackbyte 48 (paid counts)
+status: reserved

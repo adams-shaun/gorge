@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExTriggeredCardManaCost
+value: 152
+forge: TriggeredCardManaCost
+census: count TriggeredCardManaCost all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

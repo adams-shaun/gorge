@@ -96,7 +96,8 @@ func abilityFor(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) *deci
 }
 
 // TestIllusionistsGambitCastableOnlyOnDeclareBlockers is the real corpus
-// carrier: `ActivationPhases$ Declare Blockers | OpponentTurn$ True`. The
+// carrier: activated only in the declare-blockers step of an opponent's turn.
+// The
 // Gambit is NOT offered at Main1 of the opponent's turn (the right turn,
 // the wrong step — the phase gate is what withholds it) and IS offered on
 // the opponent-turn declare-blockers step. The bear attacker exists because
@@ -191,7 +192,7 @@ func TestBerserkFirstCombatOnly(t *testing.T) {
 }
 
 // TestActivationPhasesUpkeepAbilityOfferedOnlyInUpkeep pins the AB$ half
-// with a synthetic: `ActivationPhases$ Upkeep | PlayerTurn$ True` is offered
+// with a synthetic ability limited to its controller's upkeep: it is offered
 // on the controller's own upkeep and withheld at Main1 of the same turn.
 func TestActivationPhasesUpkeepAbilityOfferedOnlyInUpkeep(t *testing.T) {
 	t.Parallel()

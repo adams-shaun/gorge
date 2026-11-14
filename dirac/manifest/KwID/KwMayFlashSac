@@ -1,0 +1,7 @@
+family: KwID
+name: KwMayFlashSac
+value: 80
+forge: MayFlashSac
+census: kw MayFlashSac all=10 std=0 mbc=0 sole=9
+state: code 0
+status: reserved

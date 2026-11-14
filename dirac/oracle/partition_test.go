@@ -26,20 +26,8 @@ var kpartitionDecks = [2][]cardset.Entry{
 	},
 }
 
-// Soul Partition's Duration$ Permanent may-play survives cleanup from gorge
-// dcadfc2f7 (effectUntilEOT read the duration after the instant/sorcery test),
-// carried by the pin.
-//
-// gorgeMayPlayOwnerFixTime is gorge cr-mayplay-cardowner (82e371193,
-// 2026-10-26 09:01:16 UTC): before it gorge withheld the MayPlayPlayer$
-// CardOwner permission.
-const gorgeMayPlayOwnerFixTime = "20261026090116"
-
 func TestPartitionLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeMayPlayOwnerFixTime) {
-		t.Skip("gorge before cr-mayplay-cardowner (82e371193): the owner's may-play is withheld")
-	}
 	lockstepSet(t, "partition", kpartitionDecks, 800, "KPARTITION_SEEDS")
 }
 
@@ -48,9 +36,6 @@ func TestPartitionLockstep(t *testing.T) {
 func TestPartitionLockstepMutation(t *testing.T) {
 	if isolate(t) {
 		return
-	}
-	if !gorgePinAtLeast(t, gorgeMayPlayOwnerFixTime) {
-		t.Skip("gorge before cr-mayplay-cardowner (82e371193)")
 	}
 	dirac.DebugNoPartitionRaise = true
 	defer func() { dirac.DebugNoPartitionRaise = false }()

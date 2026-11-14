@@ -50,24 +50,26 @@ func (s *State) rcaPending(c int) int {
 
 // rcaKinds lists the kinds of the permanent at sl still present after the
 // picks so far, in kernel kind order.
-func (s *State) rcaKinds(sl Slot, out *[kop.NumCounterKinds3]uint8) int {
+func (s *State) rcaKinds(sl Slot, out *ctrHeld) int {
 	return s.ctrKindsOn(sl, out, true)
 }
 
 // ctrKindsOn lists the counter kinds of the permanent at sl in kernel kind
 // order; pending subtracts the removal picks so far.
-func (s *State) ctrKindsOn(sl Slot, out *[kop.NumCounterKinds3]uint8, pending bool) int {
+func (s *State) ctrKindsOn(sl Slot, out *ctrHeld, pending bool) int {
 	n := 0
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
-		if !kop.IsCounterKind(c) || c == int(kop.CtrOther) {
+	var held ctrHeld
+	p := &s.perms[sl]
+	for _, c := range held[:p.heldKinds(s, &held)] {
+		if !kop.IsCounterKind(int(c)) || c == uint16(kop.CtrOther) {
 			continue
 		}
-		have := s.perms[sl].ctrN(s, c)
+		have := p.ctrN(s, int(c))
 		if pending {
-			have -= s.rcaPending(c)
+			have -= s.rcaPending(int(c))
 		}
 		if have > 0 {
-			out[n] = uint8(c)
+			out[n] = c
 			n++
 		}
 	}
@@ -78,7 +80,7 @@ func (s *State) ctrKindsOn(sl Slot, out *[kop.NumCounterKinds3]uint8, pending bo
 // UpTo$, asked otherwise; at the end it removes the picks. false: asked.
 func (s *State) rcaStep(k *prep, in *kop.Instr, sl Slot) bool {
 	r := &s.res
-	var kinds [kop.NumCounterKinds3]uint8
+	var kinds ctrHeld
 	for r.left > 0 {
 		n := s.rcaKinds(sl, &kinds)
 		if n == 0 {
@@ -121,10 +123,10 @@ func (s *State) askOptionsRca(k *prep, d *Decision) bool {
 	d.Sub = ChRemCtrKind
 	put := in.Ext() == kop.ExtPutCounterExisting // ctr_putexisting.go
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		var kinds [kop.NumCounterKinds3]uint8
+		var kinds ctrHeld
 		n := s.ctrKindsOn(sl, &kinds, !put)
 		for i := 0; i < n; i++ {
-			d.add(MakeAction(AkChoose, 0, 0, kinds[i]))
+			d.add(MakeAction(AkChoose, 0, 0, ctrMode(kinds[i])))
 		}
 	}
 	if in.C&1 != 0 && !put { // seat-ok: an instruction flag bit

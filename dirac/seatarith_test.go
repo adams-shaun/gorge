@@ -299,7 +299,7 @@ func scanSeatArithmetic(t *testing.T) (map[string]int, map[string][]string) {
 					}
 				}
 			case *ast.Ident:
-				if (x.Name == "PlayerTarget0" || x.Name == "PlayerTarget1") && n != "types.go" && n != "seats_default.go" && n != "seats_mp.go" {
+				if (x.Name == "PlayerTarget0" || x.Name == "PlayerTarget1") && n != "types.go" && n != "seats_default.go" {
 					add("ptarget", x.Pos())
 				}
 			}

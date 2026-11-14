@@ -165,8 +165,8 @@ func TestGrantedCyclingAbilityShapes(t *testing.T) {
 }
 
 // TestGrantedCyclingTectonicReformationLandGrant is the LAND-card half of the
-// layer-6 cycling grant: Tectonic Reformation's
-// `Affected$ Land.YouOwn | AffectedZone$ Hand | AddKeyword$ Cycling:R` (no
+// layer-6 cycling grant: Tectonic Reformation's static granting cycling {R}
+// to land cards in your hand (no
 // EffectZone$, so the source-zone default applies) gives a land card in its
 // controller's hand cycling {R} -- a different Affected$ filter and a
 // different card type than the creature-grant pin -- and activating it
@@ -239,9 +239,8 @@ func TestGrantedCyclingTectonicReformationLandGrant(t *testing.T) {
 }
 
 // TestGrantedCyclingJoGrantHistoricGrant is the HISTORIC-card half of the
-// layer-6 cycling grant: Jo Grant's
-// `Affected$ Card.Historic+YouOwn | EffectZone$ Battlefield | AffectedZone$
-// Hand | AddKeyword$ Cycling:2 W` gives a historic card (artifact, legendary
+// layer-6 cycling grant: Jo Grant's battlefield static granting cycling
+// {2}{W} to historic cards in your hand gives a historic card (artifact, legendary
 // or Saga -- CR 700.6 / the Historic reminder) in its controller's hand
 // cycling {2}{W}, and Jo Grant's own `Mode$ Cycled` trigger puts a +1/+1
 // counter on it when the cycle resolves.

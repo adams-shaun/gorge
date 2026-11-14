@@ -893,6 +893,11 @@ const (
 	// PKValidAfterStack is ValidAfterStack$ (Keeper of the Dead's activation-
 	// time target filter). Appended: earlier ordinals stay stable.
 	PKValidAfterStack
+	// AtLeastOneInstance$ <cmp> on a DamageDealtOnce trigger (Matoc,
+	// Lavamancer): some recipient's share of the batch passes the
+	// comparison. Read by rules latchDamageBatch / closeDamageBatch.
+	// Appended: earlier ordinals stay stable.
+	PKAtLeastOneInstance
 	paramKeyCount
 )
 
@@ -1713,6 +1718,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKManaSpent:                        "ManaSpent",
 	PKManaNotSpent:                     "ManaNotSpent",
 	PKValidAfterStack:                  "ValidAfterStack",
+	PKAtLeastOneInstance:               "AtLeastOneInstance",
 }
 
 // String is the key's Forge text.

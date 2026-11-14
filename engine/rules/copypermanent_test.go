@@ -97,8 +97,8 @@ func TestFlamerushRiderCopiesTheOtherAttackerExiledAtEndOfCombat(t *testing.T) {
 	}
 	crAbortAnswer(t, e, "attack declaration", picks...)
 
-	// Flamerush's trigger fires and its Execute sub (DB$ CopyPermanent |
-	// ValidTgts$ Creature.attacking+Other) poses the target ask at
+	// Flamerush's trigger fires and its Execute sub (a CopyPermanent
+	// targeting another attacking creature) poses the target ask at
 	// placement, exactly the Master-of-Diversion precedent.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
@@ -191,9 +191,9 @@ func TestGrowingRanksPopulatesTheCreatureTokenYouControl(t *testing.T) {
 
 // TestRedoubledStormsingerCopiesEachTokenThatEnteredThisTurn pins the exact
 // shape the filed report named end to end on its real corpus card: the attack
-// trigger's `DB$ CopyPermanent | Defined$ Valid
-// Creature.token+YouCtrl+ThisTurnEntered | TokenTapped$ True | TokenAttacking$
-// True | AtEOT$ Sacrifice`. The bare battlefield "Defined$ Valid <filter>"
+// trigger's CopyPermanent over every creature token you control that entered
+// this turn, its copies tapped and attacking and sacrificed at the next end
+// step. The bare battlefield "Defined$ Valid <filter>"
 // form is the load-bearing part: effCopyPermanent resolves Defined$ through
 // knownDefinedTargets (FAIL-CLOSED, never a silent source fallback), so before
 // definedSpec recognised the bare Valid form every such line emitted

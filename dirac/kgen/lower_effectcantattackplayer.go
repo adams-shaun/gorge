@@ -4,9 +4,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// cantAttackRemembered lowers a no-target Effect whose one static is
-// "Mode$ CantAttack | ValidCard$ Creature.RememberedPlayerCtrl" over
-// RememberObjects$ TriggeredPlayer (Peace in Our Time: "that player can't
+// cantAttackRemembered lowers a no-target Effect whose one static is a
+// CantAttack on the creatures the remembered player controls, remembering
+// the triggered player (Peace in Our Time: "that player can't
 // attack this turn") to an EOT emblem handed to the trigger's player, whose
 // own creatures its Creature.YouCtrl filter names. The kernel's trigger
 // player is the Phase trigger's active player (lower_effect.go's

@@ -67,8 +67,8 @@ func subaskChooserBoard(t *testing.T, reg *cards.Registry, carrier *cards.Card, 
 
 // TestVolcanicOfferingSubTargetAskGoesToOpponent: Volcanic Offering's root
 // SP$ Pump has no TargetingPlayer$, so the CASTER answers the first land ask;
-// its DBDestroyLand link carries `TargetingPlayer$ Player.Opponent |
-// ValidTgts$ Land.nonBasic+YouDontCtrl` -- "target nonbasic land of an
+// its DBDestroyLand link has an opponent choose its target, a nonbasic land
+// the caster doesn't control -- "target nonbasic land of an
 // opponent's choice you don't control". CR 601.2c: that is still a target of
 // the spell, chosen as it is CAST, by the opponent. So the ask is posed to
 // seat 1 during the announcement, before any cost is paid, and so are the two

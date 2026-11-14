@@ -251,8 +251,8 @@ func TestVexingDevilNoAskHostDeclines(t *testing.T) {
 
 // TestUpkeepSacrificePaySparesDeclineSacrifices drives the REAL compiled
 // TestUpkeepSacrificePaySparesDeclineSacrifices drives the REAL compiled
-// Whipstitched Zombie upkeep Execute (DB$ Sacrifice | UnlessPayer$ You |
-// UnlessCost$ B) through the plain-mana unless-pay gate: the controller is
+// Whipstitched Zombie upkeep Execute (sacrifice it unless you pay {B})
+// through the plain-mana unless-pay gate: the controller is
 // asked; "pay" spares the permanent; "decline" sacrifices it.
 func TestUpkeepSacrificePaySparesDeclineSacrifices(t *testing.T) {
 	h, zombie, _ := devilBoard(t, "Whipstitched Zombie", 0)

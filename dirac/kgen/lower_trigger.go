@@ -55,7 +55,53 @@ var graveTriggerModes = map[string]bool{
 	"FullyUnlock": true, "ChangesZone": true, "ChangesZoneAll": true, "Drawn": true, "Cycled": true, "Discarded": true, "Sacrificed": true, "FacesDilemma": true,
 }
 
+// triggerZoneHalves reports a TriggerZones$ comma list that is exactly the
+// two-zone Eminence spelling, in either order, as the zone names to lower the
+// line once per.
+func triggerZoneHalves(z string) ([]string, bool) {
+	parts := strings.Split(z, ",")
+	if len(parts) != 2 {
+		return nil, false
+	}
+	seen := map[string]bool{}
+	for _, p := range parts {
+		seen[strings.TrimSpace(p)] = true
+	}
+	if len(seen) != 2 || !seen["Command"] || !seen["Battlefield"] {
+		return nil, false
+	}
+	return parts, true
+}
+
 func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
+	if zone == "" {
+		// the Eminence two-zone spelling (TriggerZones$ Command,Battlefield,
+		// gorge zoneGate's zoneSpecContains): the same printed trigger
+		// functions from the command zone and from the battlefield. The
+		// kernel has one Trigger.Zone per trigger -- a battlefield
+		// subscription (the ordinary walks) or a command-zone listener
+		// (eachCommandTrigger, commanders only) -- so the line lowers as one
+		// ability per zone. The two are mutually exclusive where the kernel
+		// and gorge both fire it: a card in the command zone has no
+		// battlefield slot to subscribe, a card on the battlefield is not in
+		// a command zone, and a Phase trigger looks back in time in neither
+		// (gorge zoneGate's zones[] walk covers only MoveZone, Draw and
+		// PutOnStack events), so gorge's single zone gate reads the same.
+		if halves, ok := triggerZoneHalves(t.Params["TriggerZones"]); ok {
+			for _, half := range halves {
+				tt := t
+				tt.Params = make(map[string]string, len(t.Params))
+				for k, v := range t.Params {
+					tt.Params[k] = v
+				}
+				tt.Params["TriggerZones"] = half
+				if err := lc.lowerTriggered(tt, zone); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
 	var atkMostLife, descended, dethrone bool // fire-time player gates
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
@@ -171,6 +217,17 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	giftSelf := false
 	switch t.Mode {
 	case "ChangesZone":
+		if raw := strings.TrimSpace(tp.str("Origin")); strings.Contains(raw, ",") {
+			// an Origin$ set on a trigger: gorge matches the move's from-zone
+			// against the set (trigmatch ZoneChangeMatchesWithCapture). Only
+			// the "put into a graveyard from anywhere other than the
+			// battlefield" shape lowers, onto the kernel's TrigToGraveyard
+			// event fired by the placement itself (dirac/zones.go placeFromK).
+			if err := lc.trigToGraveyardSet(tp, tr, t, raw, readF); err != nil {
+				return err
+			}
+			break
+		}
 		if tr.Origin, err = zoneOf(tp, "Origin", zAny); err != nil {
 			return err
 		}
@@ -297,6 +354,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					tr.Attacked |= atkOpp
 				case "Player":
 					tr.Attacked |= atkYou | atkOpp
+				case "Player.EnchantedBy":
+					// gorge attackedDefenderMatches over MatchesPlayerSpec:
+					// the attacked player is enchanted by THIS listener's Aura
+					// (playerSpecQualifierEnchantedBy), the Attacks twin of
+					// AttackedTarget$ Player.EnchantedBy (Tf4DefEnch). Alone
+					// only: a comma alternative would need a second gate.
+					if strings.Contains(v, ",") {
+						return refuse("Attacks Attacked %q", v)
+					}
+					tr.Attacked |= atkEnch
 				case "Player.withMostLife":
 					// gorge attackedDefenderMatches over MatchesPlayerSpec:
 					// the attacked player has the most life or is tied
@@ -776,6 +843,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if tp.str("ValidTarget") == atkLastTurnSpec {
 			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
+				return err
+			}
+		} else if tp.str("ValidTarget") == noContractSpec {
+			if err := noContract(tp, tr, t); err != nil { // lower_contract.go
 				return err
 			}
 		} else if tr.F2, err = readF("ValidTarget"); err != nil {
@@ -1806,6 +1877,49 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 }
 
 // lowerStatic lowers an S: line.
+// trigToGraveyardSet lowers a ChangesZone trigger whose Origin$ is a comma
+// set, the "put into a graveyard from anywhere other than the battlefield"
+// family (Syr Konrad, the Grim; Ultron the Annihilator; Ultron's Auxiliary).
+// gorge matches the move's from-zone against the Origin$ set and its to-zone
+// against Destination$ (trigmatch ZoneChangeMatchesWithCapture) as the move
+// completes, from the listener on the battlefield; the kernel is one
+// TrigToGraveyard ability that placeFromK fires when a card is placed into a
+// graveyard, Trigger.N carrying the origin zones as a 1<<kop.Zone mask
+// (0 = any), TrigLandPlayed's origin-mask pattern. The battlefield origin is
+// out of the family: a battlefield->graveyard move is a Dies line, its own
+// event and its own firing site.
+func (lc *lowerCtx) trigToGraveyardSet(tp *params, tr *lTrigger, t cards.Trigger, raw string, readF func(string) (*lFilter, error)) error {
+	var mask int16
+	for _, w := range strings.Split(raw, ",") {
+		z, ok := zoneNames[strings.TrimSpace(w)]
+		if !ok {
+			return refuse("ChangesZone Origin$ %q", raw)
+		}
+		if z == zBattlefield {
+			return refuse("ChangesZone Origin$ %q includes Battlefield", raw)
+		}
+		mask |= 1 << uint(zoneMap[z])
+	}
+	if dst := strings.TrimSpace(tp.str("Destination")); dst != "Graveyard" {
+		return refuse("ChangesZone Origin$ %s to %s", raw, dst)
+	}
+	if czCostBody(t) {
+		return refuse("ChangesZone Origin$ %s to Graveyard with a cost body", raw)
+	}
+	if tc, ok := tp.get("TriggerController"); ok && tc != "TriggeredCardController" {
+		return refuse("TriggerController %q", tc)
+	}
+	tr.Origin, tr.Dest = zAny, zGraveyard
+	tr.Event, tr.N = "ToGraveyard", mask
+	lc.wasCastOK = false
+	f, err := readF("ValidCard")
+	if err != nil {
+		return err
+	}
+	tr.F = f
+	return nil
+}
+
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "FlipCoinMod" {
 		return lc.flipCoinModStatic(s) // lower_turnfacts.go
@@ -1926,7 +2040,6 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		sp.consume("AddSVar") // a variable grant gorge's layer walk drops or no rules reader reads
 	}
 	st := lStatic{Kind: s.Mode}
-	var err error
 	readF := func(k string) (*lFilter, error) {
 		v, ok := sp.get(k)
 		if !ok {
@@ -2003,10 +2116,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			}
 		}
 		if ip, ok := sp.get("IsPresent"); ok {
-			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
-				// a Level up band (lower_levelband.go): two Self presence tests
-				for _, band := range []string{lo, hi} {
-					f, err := lc.filter(band)
+			if band := levelBandFilters(ip); len(band) > 1 && sp.m["PresentCompare"] == "" && sp.m["PresentZone"] == "" {
+				// a level band's two counter compares (lower_levelband.go)
+				for _, bf := range band {
+					f, err := lc.filter(bf)
 					if err != nil {
 						return err
 					}
@@ -2049,471 +2162,15 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		st.Cond = andCond(st.Cond, c)
 	}
 	var extra []lStatic
-	switch s.Mode {
-	case "Continuous":
-		lc.grantInner = nil
-		if err := extraBlockRefusal(sp); err != nil {
-			return nil, err // lower_extrablock.go
-		}
-		goad := sp.is("Goad", "True")
-		sp.consume("Goad")
-		lure, lureOnly, err := lc.lureGrant(sp, &st) // lower_lure.go
-		if err != nil {
-			return nil, err
-		}
-		var sts []lStatic
-		if lureOnly {
-			st = lure
-		} else if sts, err = lc.continuous(sp, &st); err != nil {
-			return nil, err
-		}
-		if err := lc.selfCondCheck(&st); err != nil {
-			return nil, err // lower_selfcondition.go
-		}
-		if err := affectedKwCheck(&st); err != nil {
-			return nil, err // lower_selfkwaffected.go
-		}
-		extra = sts
-		if lure.Kind != "" && !lureOnly {
-			// the lure rides beside the other parts (Gift of the Deity's
-			// +1/+1): a second static over the same filter and condition
-			if extra == nil {
-				extra = []lStatic{st} // extra replaces the static itself
-			}
-			extra = append(extra, lure)
-		}
-		if goad {
-			// Goad$ True: the affected creatures are goaded while the
-			// static applies (gorge's static goad route; kop.StatGoad), a
-			// second static over the same filter and condition
-			if st.Kind != "Continuous" || st.F == nil || st.F.Players != 0 {
-				return nil, refuse("Goad$ on a %s static", st.Kind)
-			}
-			if extra == nil {
-				extra = []lStatic{st} // extra replaces the static itself
-			}
-			extra = append(extra, lStatic{Kind: "Goad", F: st.F, Cond: st.Cond})
-		}
-	case "ReduceCost":
-		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (strings.HasPrefix(sp.str("ValidSpell"), "Activated.") || sp.str("ValidSpell") == "Static.Unlock") {
-			if err := lc.reduceAbility(sp, &st, readF); err != nil {
-				return nil, err
-			}
-			break // lower_reduceab.go
-		}
-		if sp.str("Type") != "Spell" {
-			return nil, refuse("ReduceCost Type %q", sp.str("Type"))
-		}
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if opt, err := lc.reduceOptPaid(sp, &st); err != nil {
-			return nil, err // lower_optcost.go
-		} else if !opt {
-			if sp.str("ValidCard") == "Card.Self" {
-				sp.consume("Relative") // gorge lists Relative$ as readable and never reads it (as reduceOptPaid)
-			}
-			if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
-				return nil, err
-			}
-		}
-		if a, ok := sp.get("Activator"); ok && a != "You" {
-			return nil, refuse("ReduceCost Activator %q", a)
-		} else if !ok && sp.str("ValidCard") != "Card.Self" {
-			// no Activator$: either player's spells (CR 601.2f; Forge
-			// StaticAbilityCostChange applies it to every payer)
-			st.Flags = append(st.Flags, "AnyCaster")
-		}
-		if ez, ok := sp.get("EffectZone"); ok {
-			if ez != "All" {
-				return nil, refuse("EffectZone %q", ez)
-			}
-			st.Zone = zAny
-		}
-		lc.spellBaseOK = true
-		st.F2, err = readF("ValidTarget")
-		lc.spellBaseOK = false
-		if err != nil {
-			return nil, err
-		}
-		if st.F == nil {
-			// OnlyFirstSpell$ without ValidCard$ (Melek): the in-flight
-			// gate is the ValidSpell$ filter, which keeps its Spell head
-			// (build_ab builds st.F at ZoneStack); the first-spell ledger
-			// spec is the stripped card spec (reduceGates).
-			lc.spellBaseOK = true
-			st.F, err = readF("ValidSpell")
-			lc.spellBaseOK = false
-			if err != nil {
-				return nil, err
-			}
-		}
-		if err := lc.reduceGates(sp, s.Params, &st); err != nil {
-			return nil, err // lower_reducegates.go
-		}
-		if err := lc.reduceSpellShape(sp, &st); err != nil {
-			return nil, err // lower_reducespell.go
-		}
-	case "RaiseCost":
-		done, err := lc.raiseSelfWaterbend(sp, &st) // lower_raisewaterbend.go
-		if err == nil && !done {
-			done, err = lc.raiseSelfBehold(sp, &st)
-		}
-		if err != nil {
-			return nil, err
-		} else if !done {
-			if err := lc.raiseCost(sp, &st); err != nil {
-				return nil, err
-			}
-		}
-	case "CantBeCast":
-		if err := lc.cantBeCast(sp, &st); err != nil {
-			return nil, err
-		}
-	case "CantBeActivated":
-		if err := lc.cantActivate(sp, &st); err != nil {
-			return nil, err // lower_cantact.go
-		}
-	case "CantTarget":
-		if err := lc.cantTarget(sp, &st); err != nil {
-			return nil, err // lower_canttarget.go
-		}
-	case "CantBlock":
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-	case "CantBeBeamedUp":
-		sp.consume("Secondary")
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if v, ok := sp.get("ValidSA"); ok {
-			if v != "Spell.KeywordSource" {
-				return nil, refuse("CantBeBeamedUp ValidSA %q", v)
-			}
-			st.Flags = append(st.Flags, "BeamGranted")
-		}
-	case "MinMaxBlocker":
-		// Max$ 1 only (gorge MinMaxBlockerBounds reads the
-		// literal smallest Max$; the corpus's only value is 1)
-		if sp.str("Min") != "" {
-			return nil, refuse("MinMaxBlocker with both Min and Max")
-		}
-		if v := sp.str("Max"); v != "1" {
-			return nil, refuse("MinMaxBlocker Max %q", v)
-		}
-		sp.consume("Max", "Secondary")
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-	case "CantBlockBy":
-		if st.F, err = readF("ValidAttacker"); err != nil {
-			return nil, err
-		}
-		if vb, ok := sp.get("ValidBlocker"); ok {
-			rest, mode := pwVsSrcSplit(vb, lc.face.SVars) // lower_powercompare.go
-			if st.F2, err = lc.filter(rest); err != nil {
-				return nil, err
-			}
-			st.PwVsSrc = mode
-		}
-	case "CantAttack":
-		if err := lc.cantAttack(sp, &st); err != nil {
-			return nil, err
-		}
-	case "CantAttackUnless":
-		if err := lc.cantAttackUnless(sp, &st); err != nil {
-			return nil, err // lower_attacktax.go
-		}
-	case "CantBlockUnless":
-		if err := lc.cantBlockUnless(sp, &st); err != nil {
-			return nil, err // lower_blocktax.go
-		}
-	case "CanAttackIfHaste":
-		// gorge canAttackIfHaste (rules/combat/attack.go): ValidCard$ (absent:
-		// every creature) scopes the exempt creatures; a present ValidTarget$
-		// is tried as a player spec on the defender, then as the attacked
-		// permanent. Only the Frenzied Saddlebrute spelling lowers: it names
-		// the defender player (an opponent of the static's controller) and the
-		// planeswalkers that player controls, so the exemption depends on the
-		// defender seat alone. gorge skips the line (inert) when it carries
-		// a param outside its whitelist, so any other param refuses here
-		// rather than lower a condition gorge never reads.
-		sp.consume("Description", "Secondary")
-		for k := range s.Params {
-			switch k {
-			case "Mode", "ValidCard", "ValidTarget", "Description", "Secondary":
-			default:
-				return nil, refuse("CanAttackIfHaste %s$ (gorge reads the line only over ValidCard$ and ValidTarget$)", k)
-			}
-		}
-		if vc, ok := sp.get("ValidCard"); ok {
-			if st.F, err = readF("ValidCard"); err != nil {
-				return nil, err
-			}
-			if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
-				return nil, refuse("CanAttackIfHaste ValidCard %q", vc)
-			}
-		}
-		if tv, ok := sp.get("ValidTarget"); ok {
-			if strings.TrimSpace(tv) != "Opponent,Planeswalker.OppCtrl" {
-				return nil, refuse("CanAttackIfHaste ValidTarget %q", tv)
-			}
-			st.Flags = append(st.Flags, "OppDef")
-		}
-	case "CanAttackDefender":
-		// gorge combat.AttackAllowedThroughDefender: ValidCard$ (or
-		// ValidCards$) must match the creature, ValidAttacked$ must admit
-		// the defender. ValidAttacked$ stays unread (the unread-param check
-		// refuses it); a player-only ValidCard$ filter refuses.
-		if _, ok := sp.get("ValidCard"); !ok {
-			return nil, refuse("CanAttackDefender without ValidCard$")
-		}
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
-			return nil, refuse("CanAttackDefender ValidCard %q", s.Params["ValidCard"])
-		}
-	case "MustAttack":
-		if st.F, err = readF("ValidCreature"); err != nil {
-			return nil, err
-		}
-	case "CastWithFlash":
-		if sp.str("Caster") != "You" || sp.str("ValidSA") != "Spell" {
-			return nil, refuse("CastWithFlash shape")
-		}
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if ez, ok := sp.get("EffectZone"); ok {
-			// gorge withSelfStatics merges a card's OWN
-			// face statics of the mode ONLY when they name an EffectZone$
-			// (CR 113.6), so this is the card's own "you may cast this
-			// spell as though it had flash if ..." grant from every zone.
-			if err := lc.selfFlashShape(s, ez); err != nil {
-				return nil, err
-			}
-			lc.out.SelfFlash = true
-		}
-		// no EffectZone$: withSelfStatics skips the static in hand, so it
-		// grants only from the battlefield and never its own card flash
-		// (Captain Mar-Vell): an ordinary battlefield static
-	case "AlternativeCost":
-		if sp.str("ValidSA") == "Spell" && sp.str("ValidCard") == "Card.Self" && sp.str("ValidPlayer") == "You" && sp.str("EffectZone") == "All" {
-			// (Land Grant) gorge alternativeCosts' face walk
-			// prices a card's own static; bare ValidSA$ Spell, its own
-			// ValidCard$ and ValidPlayer$ You is the Spell.Self grant
-			// (ValidCard$ is not read on that walk).
-			sp.consume("ValidCard", "ValidPlayer")
-			sp.m["ValidSA"] = "Spell.Self"
-		}
-		if sp.str("ValidSA") != "Spell.Self" || sp.str("EffectZone") != "All" {
-			return nil, refuse("AlternativeCost shape")
-		}
-		if sp.str("Cost") == "Reveal<1/Hand>" {
-			// "reveal your hand" (gorge cost.go
-			// IsWholeHandRevealSpec: payable with any hand, no choice) is
-			// a free alternative cost (kernel CardDef.AltFree)
-			st.Cost = lCost{}
-			sp.consume("Cost")
-		} else if st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
-			return nil, err
-		}
-		// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
-		// kernel's return alternative, build_ab.go altReturnOK); beside any
-		// other part build_ab.go refuses it as a non-mana alternative
-		if st.Cost.Forage != nil || st.Cost.ExileG != nil && !st.Cost.ExileHand || st.Cost.Energy != 0 {
-			return nil, refuse("alternative cost with a forage / exile-from-graveyard part")
-		}
-	case "Activations":
-		if err := activationLimitStatic(s, sp, &st); err != nil {
-			return nil, err
-		}
-	case "Panharmonicon":
-		// gorge panharmoniconEchoes: a battlefield static whose ValidCard$
-		// matches the triggering ability's source adds one trigger
-		// placement. The one other shape read is the entering-permanent
-		// family: ValidMode$ ChangesZone,ChangesZoneAll
-		// with Destination$ Battlefield and a ValidCause$ filter, which also
-		// needs the cause (the entering permanent or token) to match F2.
-		// A ValidMode$ of one player-event mode alone (LifeGained, Drawn),
-		// with an optional ValidPlayer$ You, echoes only that mode's triggers
-		// of that player (flags "LifeGained" / "Drawn" and "You").
-		// Every other gate (Origin$, Condition$, ...) is unread, so the shared
-		// unread check refuses it by name.
-		v, ok := sp.get("ValidCard")
-		if !ok {
-			return nil, refuse("Panharmonicon without ValidCard$")
-		}
-		if st.Cond.Kind != cNone {
-			return nil, refuse("Panharmonicon with a Condition$ / IsPresent$ / CheckSVar$ gate")
-		}
-		if st.F, err = lc.filter(v); err != nil {
-			return nil, err
-		}
-		vm, hasMode := sp.get("ValidMode")
-		cause, hasCause := sp.get("ValidCause")
-		dest, hasDest := sp.get("Destination")
-		switch {
-		case !hasMode && !hasCause && !hasDest:
-		case hasMode && !hasCause && !hasDest && (vm == "LifeGained" || vm == "Drawn"):
-			st.Flags = append(st.Flags, vm)
-			switch vp, ok := sp.get("ValidPlayer"); {
-			case !ok:
-			case strings.TrimSpace(vp) == "You":
-				st.Flags = append(st.Flags, "You")
-			default:
-				return nil, refuse("Panharmonicon ValidPlayer$ %s", vp)
-			}
-		case hasMode && hasCause && hasDest:
-			if vm != "ChangesZone,ChangesZoneAll" {
-				return nil, refuse("Panharmonicon ValidMode$ %s", vm)
-			}
-			if dest != "Battlefield" {
-				return nil, refuse("Panharmonicon Destination$ %s", dest)
-			}
-			if st.F2, err = lc.filter(cause); err != nil {
-				return nil, err
-			}
-		default:
-			return nil, refuse("Panharmonicon with a partial ValidMode$ / ValidCause$ / Destination$ set")
-		}
-	case "UntapOtherPlayer":
-		// ValidCard$ over the non-active player's tapped permanents, matched
-		// from the static's source and controller (gorge
-		// untapOtherStaticsMatch); absent means Card.Self. A player-only
-		// filter reads nothing the permanent scan can evaluate.
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if st.F == nil {
-			st.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
-		} else if st.F.Players != 0 {
-			return nil, refuse("UntapOtherPlayer ValidCard %q", s.Params["ValidCard"])
-		}
-	case "CombatDamageToughness":
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if st.F == nil {
-			return nil, refuse("CombatDamageToughness without ValidCard$")
-		}
-	case "CantGainLife", "CantDraw":
-		switch v := sp.str("ValidPlayer"); v {
-		case "", "Player":
-		case "Opponent", "Player.Opponent":
-			// gorge lifeGainForbidden / drawForbidden: the spec is matched from
-			// the static's controller, so Opponent is every other seat
-			st.Flags = append(st.Flags, "BanOpp")
-		default:
-			return nil, refuse("%s ValidPlayer %q", s.Mode, v)
-		}
-		sp.consume("ValidPlayer", "Secondary")
-	case "CantPreventDamage": // the blanket form, or IsCombat$ True (combat damage only: Frenzied Baloth); ValidSource$, EffectZone$, Affected$ stay unread (gorge cantPreventDamage)
-		if c, ok := sp.get("IsCombat"); ok {
-			if !strings.EqualFold(strings.TrimSpace(c), "True") {
-				return nil, refuse("CantPreventDamage IsCombat %q", c)
-			}
-			sp.consume("IsCombat")
-			st.Flags = append(st.Flags, "NoPrevCombat")
-		}
-		sp.consume("Secondary")
-		// Banefire's "the damage can't be prevented" (X is 5 or more, CheckSVar$ read
-		// above): a stack-zone static of the spell itself. Only the pair lowers.
-		if vs, ok := sp.get("ValidSource"); ok {
-			if strings.TrimSpace(vs) != "Spell.Self" || sp.str("EffectZone") != "Stack" {
-				return nil, refuse("CantPreventDamage ValidSource$ %q", vs)
-			}
-			st.Flags = append(st.Flags, "NoPrevSpellSelf")
-		}
-	case "CantPutCounter":
-		// gorge PutCounterBlocked's object form (rules/layers_restrict.go):
-		// ValidCard$ (or ValidObject$) scopes the permanent, CounterType$
-		// the kind (absent: every kind). The player form is a separate
-		// ValidPlayer$ reader the kernel does not have; refuse it rather
-		// than turn it into a no-op object static.
-		if vp := sp.str("ValidPlayer"); vp != "" {
-			return nil, refuse("CantPutCounter ValidPlayer %q (player counters are not lowered)", vp)
-		}
-		for _, k := range []string{"ActiveZones", "AffectedZone"} {
-			if z, ok := sp.get(k); ok && strings.TrimSpace(z) != "Battlefield" {
-				return nil, refuse("CantPutCounter %s$ %q", k, z)
-			}
-		}
-		if vc := sp.str("ValidCard"); vc != "" {
-			if st.F, err = readF("ValidCard"); err != nil {
-				return nil, err
-			}
-		} else if vo := sp.str("ValidObject"); vo != "" {
-			if st.F, err = readF("ValidObject"); err != nil {
-				return nil, err
-			}
-		} else {
-			// an unscoped line forbids every permanent (match-all filter)
-			if st.F, err = lc.filter("Card"); err != nil {
-				return nil, err
-			}
-		}
-		st.Ctr = -1 // every kind until CounterType$ names one
-		if ct, ok := sp.get("CounterType"); ok {
-			if ct = strings.TrimSpace(ct); ct != "" && ct != "Any" {
-				ck, err := counterKind(ct)
-				if err != nil {
-					return nil, refuse("CantPutCounter CounterType$ %q", ct)
-				}
-				st.Ctr = int16(ck)
-			}
-		}
-	case "CantPhaseIn":
-		// gorge phaseBlocked (rules/cantphase.go): only the blanket form,
-		// every phased-out permanent (The City on the Edge of Forever's
-		// token); a narrower ValidCard$ (Teferi's remembered set) needs the
-		// kernel's remembered-set filter and is refused.
-		if v := strings.TrimSpace(sp.str("ValidCard")); v != "Card.phasedOutPermanent" {
-			return nil, refuse("CantPhaseIn ValidCard$ %q", v)
-		}
-	case "CantSacrifice":
-		// gorge sacrificeBlocked (rules/layers_restrict.go): ValidCard$ the
-		// permanents, ActiveZones$ Battlefield the only zone it reads. The
-		// cause-scoped lines (ValidCause$, ForCost$: Sigarda, Host of Herons)
-		// need the sacrifice's cause and cost-or-effect provenance at every
-		// choke point, which the kernel does not carry.
-		for _, key := range []string{"ValidCause", "ForCost"} {
-			if v, ok := sp.get(key); ok {
-				return nil, refuse("CantSacrifice %s$ %q", key, v)
-			}
-		}
-		if z, ok := sp.get("ActiveZones"); ok && strings.TrimSpace(z) != "Battlefield" {
-			return nil, refuse("CantSacrifice ActiveZones$ %q", z)
-		}
-		sp.consume("Secondary")
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-	case "ManaConvert":
-		if err := manaConvertStatic(sp); err != nil {
-			return nil, err // lower_manaconvert.go
-		}
-	case "DisableTriggers":
-		if err := lc.disableTriggersStatic(sp, &st); err != nil {
-			return nil, err // lower_disabletriggers.go
-		}
-	case "ActivateAbilityAsIfHaste", "CantBeSuspected":
-		// gorge activatesAsIfHaste (rules/activateasifhaste.go) skips an
-		// unscoped static (fail closed); cantBeSuspected
-		// (rules/cantbesuspected.go) reads an unscoped one as blanket. The
-		// corpus always scopes both: refuse the bare form rather than pick.
-		sp.consume("Secondary")
-		if st.F, err = readF("ValidCard"); err != nil {
-			return nil, err
-		}
-		if st.F == nil || len(st.F.Clauses) == 0 || st.F.Players != 0 {
-			return nil, refuse("%s ValidCard %q", s.Mode, s.Params["ValidCard"])
-		}
-	default:
+	h := staticModes[s.Mode]
+	if h == nil {
 		return nil, refuse("static mode %s", s.Mode)
 	}
+	sc := &staticCtx{lc: lc, s: s, sp: sp, st: st, readF: readF}
+	if out, done, err := h(sc); err != nil || done {
+		return out, err
+	}
+	st, extra = sc.st, sc.extra
 	if left := sp.unread(); len(left) > 0 {
 		return nil, refuse("static unread params %v", left)
 	}
@@ -2535,6 +2192,12 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 // (kop.StatHexproofOwnColors): the kernel has no free keyword bit, and the
 // quality is the recipient's own current colours, not the source's.
 const hexproofOwnColorsKW = "Hexproof:CardColors"
+
+// protYourColorsKW is the granted keyword lowered to kop.StatProtYourColors:
+// the quality is the colours of the permanents the recipient's controller
+// controls, not a filter over the source (gorge rules/protection.go
+// protectedFrom, protection_colors_you_ctrl.go).
+const protYourColorsKW = "Protection from colorsYouCtrl"
 
 // continuous lowers a Mode$ Continuous static.
 func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
@@ -2564,6 +2227,23 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		st.F = f
 		st.Kind = "HexproofOwnColors"
+		return nil, nil
+	}
+	if kw := sp.str("AddKeyword"); kw == protYourColorsKW {
+		// Empty-Shrine Kannushi's self grant: the exact Affected$ shape only,
+		// and nothing beside it (a condition or any unread key refuses).
+		if aff != "Card.Self" {
+			return nil, refuse("%s Affected %q", protYourColorsKW, aff)
+		}
+		if st.Cond.Kind != cNone {
+			return nil, refuse("%s static with a condition", protYourColorsKW)
+		}
+		f, err := lc.filter(aff)
+		if err != nil {
+			return nil, err
+		}
+		st.F = f
+		st.Kind = "ProtYourColors"
 		return nil, nil
 	}
 	// the view-only top-of-library look. gorge reads
@@ -2802,6 +2482,22 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if aff == "You" {
 			return nil, refuse("player keyword")
 		}
+		// gorge playerkeywords.go's playerKeywords surface reads only the
+		// Shroud and Hexproof AddKeyword$ grants; any other keyword granted
+		// to a PLAYER spec is a ContinuousEffect nothing reads (the object
+		// keyword readers' player grammar fails closed, and the grant is
+		// gorge's granted-keyword-gaps ratchet: the card is playable while
+		// the grant is inert; the LimitSearchLibrary line in gorge's
+		// engine/rules/testdata/granted-keyword-gaps.txt records the gap, and
+		// this lowering goes when gorge models the grant). When the grant is the static's whole effect it
+		// lowers to nothing, exactly gorge's behaviour. Aven Mindcensor's
+		// "if an opponent would search a library, that player searches the
+		// top four cards instead" -- gorge models neither the search limit
+		// nor any other reader for the grant.
+		if strings.TrimSpace(k) == "LimitSearchLibrary" && st.F != nil && st.F.Players > 0 {
+			st.Kind = "" // view-only: lower to nothing
+			return nil, nil
+		}
 		rest, ward, wardLife, err := splitWardGrant(k)
 		if err != nil {
 			return nil, err
@@ -2816,9 +2512,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, extort := splitExtortGrant(rest)  // lower_extortgrant.go
-		rest, myriad := splitMyriadGrant(rest)  // lower_myriad.go
-		rest, err = lc.splitProtGrant(rest, st) // lower_protgrant.go
+		rest, saddles := splitSaddleGrant(rest)            // lower_saddlegrant.go
+		rest, livingWeapon := splitLivingWeaponGrant(rest) // lower_livingweapongrant.go
+		rest, extort := splitExtortGrant(rest)             // lower_extortgrant.go
+		rest, myriad := splitMyriadGrant(rest)             // lower_myriad.go
+		rest, err = lc.splitProtGrant(rest, st)            // lower_protgrant.go
 		if err != nil {
 			return nil, err
 		}
@@ -2858,6 +2556,25 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for _, line := range saddles {
+			// CR 702.171a granted: one latent AB$ AlterAttribute per grant
+			// (lower_saddlegrant.go; gorge cards.GrantedKeywordAbility)
+			idx, err := lc.saddleGrantAbility(line)
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; livingWeapon > 0; livingWeapon-- {
+			// CR 702.92a granted: one latent ChangesZone Self trigger, listed
+			// once per instance (lower_livingweapongrant.go; gorge
+			// scriptfacts.GrantedKeywordTrigger)
+			idx, err := lc.livingWeaponGrantTrigger()
 			if err != nil {
 				return nil, err
 			}
@@ -3525,10 +3242,23 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			if rp.str("ActiveZones") != "Battlefield" {
 				return refuse("other-object ETB replacement without ActiveZones Battlefield")
 			}
+			// the entrant's cast-provenance words (wasCastFromExile,
+			// !wasCastFromYourHand): gorge matches the entering object at the
+			// Moved replacement window, where the spell resolving into it is
+			// still on the stack and the record is alive (gorge
+			// castProvenanceAdmits); the kernel reads the same spell entry at
+			// the ReplOthersEnterProgram match (runOthersEnterPrograms, inside
+			// enterGen; dirac/cast_wascastspell.go). An entrant that arrived
+			// any other way has no entry and reads not cast, as gorge's dead
+			// ledger record does.
+			save := lc.spellProvOK
+			lc.spellProvOK = true
 			var err error
 			if rl.F, err = lc.filter(vc); err != nil {
+				lc.spellProvOK = save
 				return err
 			}
+			lc.spellProvOK = save
 		} else if vc != "Card.Self" {
 			// Card.Self+wasCastByYou: a condition on the entering object.
 			if rl.Cond.Kind != cNone {

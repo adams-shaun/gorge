@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtFoo
+value: next
+census: api Foo all=3 std=1 mbc=0 sole=1
+status: reserved

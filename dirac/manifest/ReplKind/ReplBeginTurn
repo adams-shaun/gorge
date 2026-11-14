@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplBeginTurn
+value: 44
+forge: BeginTurn
+census: repl BeginTurn all=5 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

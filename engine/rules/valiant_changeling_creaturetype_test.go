@@ -1,12 +1,10 @@
 package rules
 
 // End-to-end pin on the real corpus carrier: Valiant
-// Changeling carries
-//   S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X |
-//     EffectZone$ All | Description$ This spell costs {1} less to cast for
-//     each creature type among creatures you control. This effect can't
-//     reduce the amount of mana this spell costs by more than {5}.
-//   X = Count$Valid Creature.YouCtrl$CreatureType/LimitMax.5
+// Changeling carries a ReduceCost static on itself, working from every
+// zone, that reduces its cost by X, the number of creature types among
+// creatures you control capped at 5 ("This spell costs {1} less to cast for
+// each creature type among creatures you control...").
 // Before the CreatureType spelling existed the SVar read 0 (whole-token
 // fail-closed), so Valiant Changeling always cost full price.
 

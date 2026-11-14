@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigForetell
+value: 117
+forge: Foretell
+census: trig Foretell all=1 std=0 mbc=0 sole=0
+state: objbit 32 (foretold)
+status: reserved

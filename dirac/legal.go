@@ -974,7 +974,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 // gorge's prefix search taps before it prices the play again (Bloom Tender's
 // colours beside a Swamp pay Bogslither's Embrace's {1}{B}; CR 601.2b, 601.2f).
 func (s *State) scriptSourceLive(k *prep, p uint8) bool {
-	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any()
+	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any() || k.gen.anyComboAny && s.caBoard(k, p)
 }
 
 // altAddPlanCost is the mana gorge's potential planner prices an either-or additional
@@ -1770,6 +1770,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	grantFirst = grantFirst || grants && s.eachBesideGrant(k, p)  // an each-colour gap among the grants (mana_granteach.go)
 	grantFirst = grantFirst || grants && s.wideBesideGrant(k, p)  // a wide-only gap among the grants (mana_grantwide.go)
+	// a planner-deferred gap among the grants: the activation's one search (mana_granttapsdefer.go)
+	grantFirst = grantFirst || grants && a.Kind() == AkActivate && s.tdBesideGrant(k, p)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {

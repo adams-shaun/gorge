@@ -98,8 +98,13 @@ and ends with one line `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs
 ```sh
 make test-one PKG=./engine/rules RUN='^TestX$'   # debugging: one package, named tests
 make test-targeted                               # each iteration: the diff's packages + all their test reverse deps
-make test-smart                                  # once, before DONE: the landing gate's steps, on a committed tree
+make test-smart                                  # once, before DONE: the precheck (affected packages + test groups)
 ```
+
+A `(cached)` ok, or a verdict with `cached=K` in its `tests ran=` line, is a pass: go already ran that test binary on
+those inputs. Never re-run it, add `-count=1` or `go clean -testcache` to "make sure", and never call a fast PASS
+suspicious; go re-runs a test by itself when its code, flags, env or input files change. `-timeout`, `-v`, `-json` and
+`-failfast` are part of the cache key, so the make targets keep them fixed.
 
 `make precheck` is an alias for `test-smart`. The full suite runs in CI, never locally: every pull request
 runs the six test shards, and a pull request to `main` also runs the whole `dirac/oracle` in ten parts.
