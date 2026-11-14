@@ -34,6 +34,12 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// 602.2b, 605.1a). The kernel dropped the tokens from that census.
 		"spawn_sac_mana_beside_granted_tap_planned",
 		"spawn_sac_mana_beside_granted_tap_planned_aura",
+		// The same tokens for a kicked cast, which gorge offers on its
+		// potential walk: an untapped Spawn taps for the granted colour and
+		// is then sacrificed for {C}, two units, while a tapped one only
+		// sacrifices (CR 602.2b, 605.1a). The kernel joined both into one.
+		"kicked_cast_taps_granted_spawn_then_sacrifices",
+		"kicked_cast_taps_granted_spawn_then_sacrifices_second",
 	} {
 		name := name
 		t.Run(name, func(t *testing.T) {
