@@ -2612,7 +2612,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		// to a PLAYER spec is a ContinuousEffect nothing reads (the object
 		// keyword readers' player grammar fails closed, and the grant is
 		// gorge's granted-keyword-gaps ratchet: the card is playable while
-		// the grant is inert). When the grant is the static's whole effect it
+		// the grant is inert; the LimitSearchLibrary line in gorge's
+		// engine/rules/testdata/granted-keyword-gaps.txt records the gap, and
+		// this lowering goes when gorge models the grant). When the grant is the static's whole effect it
 		// lowers to nothing, exactly gorge's behaviour. Aven Mindcensor's
 		// "if an opponent would search a library, that player searches the
 		// top four cards instead" -- gorge models neither the search limit
