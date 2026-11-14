@@ -1,8 +1,8 @@
 package rules
 
 // lb-canattackpresent: a face CanAttackDefender static gated by IsPresent$
-// over a non-battlefield zone (Platypus-Bear's `IsPresent$ Lesson.YouOwn |
-// PresentZone$ Graveyard`). The registration whitelist
+// over a non-battlefield zone (Platypus-Bear's gate on a Lesson card in your
+// graveyard). The registration whitelist
 // (effects.CanAttackDefenderParamsReadable) did not list PresentZone$, so the
 // static was skipped whole and the bear stayed walled with a Lesson in the
 // graveyard.

@@ -8,9 +8,9 @@ import (
 )
 
 // The as-enters choice of another creature and the ability that reads it
-// (Dauntless Bodyguard): K:ETBReplacement:Other:<SVar> with DB$ ChooseCard |
-// Defined$ You | Choices$ Creature.YouCtrl+Other | Mandatory$ True, and
-// A:AB$ Pump | Cost$ Sac<1/CARDNAME> | Defined$ Valid Card.ChosenCardStrict.
+// (Dauntless Bodyguard): an as-enters replacement whose body makes its
+// controller choose, mandatorily, another creature they control, and a
+// sacrifice-self activated Pump defined as the strictly chosen card.
 // gorge runs the body as the permanent enters (effChooseCard: a KChoose of
 // "card" options, none posed for an empty pool) and keeps the answer on
 // Object.Chosen; the ChosenCard / ChosenCardStrict filter arm reads it,

@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatBlockTapped
+value: 45
+forge: BlockTapped
+census: stat BlockTapped all=1 std=0 mbc=1 sole=1
+state: code 0
+status: reserved

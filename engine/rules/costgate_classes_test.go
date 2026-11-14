@@ -191,8 +191,8 @@ func TestCostgateSecondaryNahiriEquip(t *testing.T) {
 // --- class 2: PresentCompare$ / PresentZone$ ------------------------------
 
 // Forceful Cultivator ({2}{G}{G}): "{2} less if there are no land cards in
-// your hand" -- IsPresent$ Land.YouOwn | PresentZone$ Hand | PresentCompare$
-// EQ0. The battlefield-exists read inverted it: a land on the battlefield
+// your hand" -- a gate on no land card of yours being in your hand. The
+// battlefield-exists read inverted it: a land on the battlefield
 // discounted, an empty board did not.
 func TestCostgatePresentEQ0ForcefulCultivator(t *testing.T) {
 	t.Parallel()
@@ -221,7 +221,7 @@ func TestCostgatePresentEQ0ForcefulCultivator(t *testing.T) {
 }
 
 // Punishing Punch ({2}{G}): "{2} less if there are two or more creature
-// cards in your graveyard" -- PresentCompare$ GE2 | PresentZone$ Graveyard.
+// cards in your graveyard" -- a gate on two or more in the graveyard.
 func TestCostgatePresentGraveyardGE2PunishingPunch(t *testing.T) {
 	t.Parallel()
 	setup := func(t *testing.T, graveyard int) (*Engine, state.ObjID, state.ObjID, state.ObjID) {

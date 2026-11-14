@@ -1,0 +1,7 @@
+family: KwID
+name: KwLoyaltyIsBeebles
+value: 120
+forge: The number of loyalty counters on CARDNAME is equal to the number of Beebles you control.
+census: kw The number of loyalty counters on CARDNAME is equal to the number of Beebles you control. all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

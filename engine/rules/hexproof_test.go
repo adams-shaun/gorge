@@ -175,8 +175,8 @@ func TestCorpusLotusFieldHexproofWithholdsOpponent(t *testing.T) {
 
 // TestGrantedHexproofBlocksOpponentNotController pins the GRANTED form end to
 // end on a real corpus static: Shalai, Voice of Plenty's
-// "Affected$ You,Planeswalker.YouCtrl,Creature.YouCtrl+Other | AddKeyword$
-// Hexproof" reaches a second creature through the layer-6 AddKeywords path
+// grant of hexproof to you, your planeswalkers and your other creatures
+// reaches a second creature through the layer-6 AddKeywords path
 // exactly as Lightning Greaves' granted Shroud does (shroud_test.go), so the
 // opponent's Shock is offered (Shalai itself is a legal target) but never
 // offers the granted-hexproof bear, while the controller's own Shock does —

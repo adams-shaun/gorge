@@ -3,9 +3,9 @@ package cards
 // Comma-separated `S:Mode$ A,B` statics: one structural home at parse time.
 //
 // The corpus prints compound statics as one S: line naming several modes over
-// the same parameters — Pacifism's "S:Mode$ CantAttack,CantBlock | ValidCard$
-// Creature.EnchantedBy" is the canonical carrier (58 raw corpus lines of the
-// exact CantAttack,CantBlock shape, 87 comma-mode rows overall). Every
+// the same parameters — Pacifism's static, a CantAttack,CantBlock mode list
+// on the creature it enchants, is the canonical carrier (58 raw corpus lines
+// of the exact CantAttack,CantBlock shape, 87 comma-mode rows overall). Every
 // Static.Mode consumer compares the field against ONE literal mode
 // (primitive.go's "stat:" token, rules' activeStatics/staticEffects,
 // face.go's CDA reads, compiled_catalog.go's staticModeCode), so the raw

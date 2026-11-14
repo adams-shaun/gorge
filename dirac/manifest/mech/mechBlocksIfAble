@@ -1,0 +1,6 @@
+family: mech
+name: mechBlocksIfAble
+value: 20
+state: slotbit 16/16
+status: active
+doc: slots whose permanent blocks this turn if able (CR 509.1c; combat_blocksifable.go)

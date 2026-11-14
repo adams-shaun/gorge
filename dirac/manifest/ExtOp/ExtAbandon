@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtAbandon
+value: 27
+forge: Abandon
+census: api Abandon all=20 std=0 mbc=0 sole=2
+state: objspace (archenemy)
+status: blocked objspace:tcode

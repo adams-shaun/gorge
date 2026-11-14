@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigVisitAttraction
+value: 127
+forge: VisitAttraction
+census: trig VisitAttraction all=1 std=0 mbc=0 sole=1
+state: objspace (attractions)
+status: blocked objspace:tcode

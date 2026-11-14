@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"testing"
@@ -32,7 +33,7 @@ list) echo m ;;
 env) echo /usr/local/go ;;
 test)
   [ -z "$ECHO_FILE" ] || cp "$ECHO_FILE" "$ECHO_OUT" 2>/dev/null
-  echo "$STREAM_MARK" >>"$MARKS"
+  echo "$STREAM_MARK $(pwd)" >>"$MARKS"
   cat "$STREAM"
   exit "${GORC:-0}" ;;
 esac
@@ -174,6 +175,8 @@ func (r *rig) goTestRuns() int {
 	return strings.Count(string(b), "\n")
 }
 
+var slotWT = regexp.MustCompile(`^\.slot[0-9]+\.wt$`)
+
 func (r *rig) boxIsClean() {
 	r.t.Helper()
 	if refs := sh(r.t, r.box, "git", "-C", "repo.git", "for-each-ref", "refs/tt"); strings.TrimSpace(refs) != "" {
@@ -185,8 +188,12 @@ func (r *rig) boxIsClean() {
 			r.t.Errorf("the box kept %s after the run", e.Name())
 		}
 	}
-	if wl := sh(r.t, r.box, "git", "-C", "repo.git", "worktree", "list", "--porcelain"); strings.Count(wl, "worktree ") != 1 {
-		r.t.Errorf("the box kept a scratch worktree:\n%s", wl)
+	// The run slots' worktrees (tt-wt/.slot<i>.wt) stay for the next run; nothing else does.
+	wl := sh(r.t, r.box, "git", "-C", "repo.git", "worktree", "list", "--porcelain")
+	for _, l := range strings.Split(wl, "\n") {
+		if p, ok := strings.CutPrefix(l, "worktree "); ok && p != filepath.Join(r.box, "repo.git") && !slotWT.MatchString(filepath.Base(p)) {
+			r.t.Errorf("the box kept a scratch worktree:\n%s", wl)
+		}
 	}
 }
 

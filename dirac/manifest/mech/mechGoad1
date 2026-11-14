@@ -1,0 +1,6 @@
+family: mech
+name: mechGoad1
+value: 1
+state: slotbit 16/16
+status: active
+doc: goad[1]: the same for player 1

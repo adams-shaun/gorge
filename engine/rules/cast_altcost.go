@@ -560,9 +560,9 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 // proposed stack zone. A grant scoped to AffectedZone$ Stack therefore works
 // before pushCast, including CheckSVar-gated first-spell grants. The keyword
 // line is `Casualty:<amount>` with optional script riders after further
-// colons: the corpus's one rider carrier (Ob Nixilis, the Adversary) spells
-// `K:Casualty:X:NonLegendary$ True | SetLoyalty$ Casualty:The copy isn't
-// legendary and has starting loyalty X.` -- the amount token is X, the
+// colons: the corpus's one rider carrier (Ob Nixilis, the Adversary) prints
+// casualty X with riders making the copy nonlegendary and setting its starting
+// loyalty to the casualty amount -- the amount token is X, the
 // sacrificed creature's power (CR 702.249a's variable form), and the riders
 // name the COPY's characteristics. A line whose amount parses neither as a
 // nonnegative integer nor as X is skipped, the same skip casualtyValue made;

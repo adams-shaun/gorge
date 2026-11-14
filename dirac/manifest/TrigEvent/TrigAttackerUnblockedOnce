@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigAttackerUnblockedOnce
+value: 105
+forge: AttackerUnblockedOnce
+census: trig AttackerUnblockedOnce all=1 std=0 mbc=0 sole=0
+state: slotbit 16 (once-per-event marks)
+status: reserved

@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigDayTimeChanges
+value: 60
+forge: DayTimeChanges
+census: trig DayTimeChanges all=10 std=0 mbc=0 sole=0
+state: global 1 (day/night)
+status: reserved

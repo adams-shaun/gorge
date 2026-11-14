@@ -1,0 +1,7 @@
+family: KwID
+name: KwCreatureSpellsPayForCounters
+value: 99
+forge: As an additional cost to cast creature spells, you may pay any amount of mana. If you do, that creature enters with that many additional +1/+1 counters on it.
+census: kw As an additional cost to cast creature spells, you may pay any amount of mana. If you do, that creature enters with that many additional +1/+1 counters on it. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

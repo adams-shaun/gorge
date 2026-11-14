@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigSaddled
+value: 103
+forge: Saddled
+census: trig Saddled all=2 std=2 mbc=0 sole=0
+state: slotbit 16 (saddled)
+status: reserved

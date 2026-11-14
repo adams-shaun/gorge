@@ -200,15 +200,16 @@ func (m ManaCost) Resolve(c int) ManaCost {
 
 // Cost is a full cost.
 type Cost struct {
-	Mana   ManaCost
-	Flags  CostFlags
-	N      uint8 // count for Sac (0: the announced X, Sac<X/Spec>) / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
-	Ctr    CounterKind
-	Filter FilterID
+	Mana  ManaCost
+	Flags CostFlags
+	N     uint8 // count for Sac (0: the announced X, Sac<X/Spec>) / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
 	// Host names a cost part paid on the permanent that granted the ability
 	// (an Equipment's or Aura's static): CostHostSac or CostHostExile. The CostFlags words are
 	// full, so the part rides its own byte. Only a granted ability reads it.
-	Host uint8
+	// It sits beside N so the 16-bit Ctr packs without a pad byte.
+	Host   uint8
+	Ctr    CounterKind
+	Filter FilterID
 	// PutLibSelf: PutCardToLibFromGrave<1/-1/CARDNAME>, the source card in
 	// its owner's graveyard moves to the bottom of that library as the
 	// ability's cost (CR 118.3, 602.2b; Daniels, Temporal Agent). A table

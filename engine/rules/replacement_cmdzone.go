@@ -31,22 +31,21 @@ func init() {
 	// registered API). Each is matched by replacementMatches's per-event
 	// branch above and applied by applyReplacements's dispatch.
 	//
-	// The life classes register too: repl:GainLife (the Prevent$ GainLife
-	// shape plus the CantGainLife static's replacement arm) and
-	// repl:LifeReduced (the ReplaceCount$Amount/Twice shape), both applied by
-	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
-	// additions, matched by replacementMatches's DamageDone case
-	// and CounterAllowed respectively.
+	// The life classes register too: repl:GainLife (the Prevent$ GainLife shape
+	// plus the CantGainLife static's replacement arm) and repl:LifeReduced (the
+	// ReplaceCount$Amount/Twice shape), both applied by applyLifeReplacements.
+	// repl:DamageDone and repl:Counter are this additions, matched by
+	// replacementMatches's DamageDone case and CounterAllowed respectively.
 	// kw:Bloodthirst (CR 702.54) is implemented by this file's
 	// bloodthirstEntryMatch: the keyword line (printed K:Bloodthirst:<N> or a
 	// layer-6 AddKeyword$ grant) is read at MoveZone→Battlefield collection
-	// time from the entering object's DERIVED keyword list, so one read
-	// covers both shapes -- a printed carrier and Twins of Discord's
-	// `Affected$ Creature.Other+YouCtrl+Colorless | AddKeyword$ Bloodthirst:2`
-	// grant, which cards-side expansion could never see. No cards-side
-	// expansion exists: bloodthirst is a static ability whose whole meaning
-	// is an entry-time conditional counter put, which is exactly what the
-	// synthetic Repl below expresses.
+	// time from the entering object's DERIVED keyword list, so one read covers
+	// both shapes -- a printed carrier and Twins of Discord's grant of
+	// bloodthirst 2 to the other colorless creatures you control, which
+	// cards-side expansion could never see. No cards-side expansion exists:
+	// bloodthirst is a static ability whose whole meaning is an entry-time
+	// conditional counter put, which is exactly what the synthetic Repl below
+	// expresses.
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst", "kw:Sunburst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",

@@ -7,7 +7,7 @@ import (
 )
 
 // TestTargetedPermanentGateReadsLastKnownInformation pins CR 608.2h for a
-// `ConditionDefined$ Targeted | ConditionPresent$ Permanent...` gate: "that
+// gate on the target being a permanent: "that
 // permanent" names the target as it last existed on the battlefield, so a
 // gate evaluated after the spell's own first effect moved the target away
 // (Filigree Fracture's destroy, Vindictive Triumph's exile) still reads it

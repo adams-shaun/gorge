@@ -1,0 +1,7 @@
+family: key
+name: keySector
+value: 29
+forge: sector
+census: key sector classes=2 all=2
+state: slotbyte 112
+status: reserved

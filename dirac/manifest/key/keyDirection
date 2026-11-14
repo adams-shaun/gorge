@@ -1,0 +1,7 @@
+family: key
+name: keyDirection
+value: 24
+forge: direction
+census: key direction classes=3 all=8
+state: global 1
+status: reserved

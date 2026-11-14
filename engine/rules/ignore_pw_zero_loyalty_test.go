@@ -2,8 +2,8 @@ package rules
 
 // stat:IgnorePlaneswalkerZeroLoyaltyRule -- Sanctum Lurker: "Planeswalkers
 // you control aren't put into their owners' graveyards for having 0
-// loyalty." (S:Mode$ IgnorePlaneswalkerZeroLoyaltyRule | ValidCard$
-// Planeswalker.YouCtrl.) The CR 704.5i sweep skips an exempt walker; an
+// loyalty." (An IgnorePlaneswalkerZeroLoyaltyRule static over planeswalkers
+// you control.) The CR 704.5i sweep skips an exempt walker; an
 // opponent's walker is not exempt, and the exemption ends with the Lurker.
 
 import (

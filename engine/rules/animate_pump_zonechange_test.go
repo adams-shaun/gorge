@@ -79,7 +79,7 @@ func TestPermanentAnimateGrantEndsOnZoneChange(t *testing.T) {
 }
 
 // TestPermanentPumpGrantEndsOnZoneChange: Mist Dragon's {0} self-pump
-// (AB$ Pump | Cost$ 0 | Defined$ Self | KW$ Flying | Duration$ Permanent).
+// (an activated Pump on itself granting flying with permanent duration).
 // The keyword grant exists before departure (and through the turn-1 cleanup,
 // the control), ends on the departure move, and does not re-apply on
 // re-entry. The printed ability itself stays -- only the swept grant is gone.

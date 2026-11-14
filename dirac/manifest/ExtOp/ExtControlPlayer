@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtControlPlayer
+value: 43
+forge: ControlPlayer
+census: api ControlPlayer all=9 std=2 mbc=0 sole=6
+state: global 2 (control player)
+status: reserved

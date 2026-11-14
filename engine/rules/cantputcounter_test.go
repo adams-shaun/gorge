@@ -82,8 +82,8 @@ func TestCantPutCounterMelirasKeepersBlocksSelfOnly(t *testing.T) {
 }
 
 // TestCantPutCounterBlightbeetleScopesOpponentsP1P1 is the opponent-scoped
-// object-form leaf: Blightbeetle's `ValidCard$ Creature.OppCtrl | CounterType$
-// P1P1` must stop +1/+1 counters on the OPPONENT's creature (the static's
+// object-form leaf: Blightbeetle's lock on opponents' creatures for the +1/+1
+// counter kind must stop +1/+1 counters on the OPPONENT's creature (the static's
 // controller reads the controller of the source, so the opponent's creature is
 // OppCtrl), while its controller's own creature and a different kind on the
 // opponent's creature place normally.

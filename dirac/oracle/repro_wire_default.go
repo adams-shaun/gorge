@@ -1,5 +1,3 @@
-//go:build !dirac_mp
-
 package oracle
 
 import (
@@ -7,8 +5,8 @@ import (
 	"math"
 )
 
-// wireActions is as in the wire form (repro_wire.go): the default class's
-// own packing, which needs no marker.
+// wireActions is as in the wire form (repro_wire.go): the kernel's own
+// packing, which needs no marker.
 func wireActions(as []Canon) ([]uint64, string) {
 	if as == nil {
 		return nil, ""
@@ -24,7 +22,7 @@ func wireActions(as []Canon) ([]uint64, string) {
 // mapped to the current ones.
 func actionsFromWire(words []uint64, packing string, format1 bool) ([]Canon, error) {
 	if packing != "" {
-		return nil, fmt.Errorf("packing %q is another size class's: replay it under that build", packing)
+		return nil, fmt.Errorf("packing %q is not this build's: replay it at a commit whose kernel packs it", packing)
 	}
 	if words == nil {
 		return nil, nil
@@ -32,7 +30,7 @@ func actionsFromWire(words []uint64, packing string, format1 bool) ([]Canon, err
 	out := make([]Canon, len(words))
 	for i, w := range words {
 		if w > math.MaxUint32 {
-			return nil, fmt.Errorf("action %d: %d does not fit the default class's 32 bits", i, w)
+			return nil, fmt.Errorf("action %d: %d does not fit the kernel's 32 bits", i, w)
 		}
 		out[i] = Canon(w)
 	}
