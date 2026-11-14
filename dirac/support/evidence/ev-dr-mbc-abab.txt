@@ -2,11 +2,13 @@ Armix, Filigree Thrasher
 Balmor, Battlemage Captain
 Battle Cry Goblin
 Blade of the Bloodchief
+Blossoming Defense
 Changeling Wayfinder
 Coastal Piracy
 Combat Research
 Coralhelm Guide
 Court Hussar
+Cultivate
 Disrupt
 Dragon Fodder
 Elvish Reclaimer
@@ -34,6 +36,7 @@ Inspired Tinkering
 Island
 Jabs, Mistress of Mockery
 Jace's Phantasm
+Land Grant
 Majestic Metamorphosis
 Manglehorn
 Manifold Key
@@ -51,6 +54,7 @@ Plains
 Prismatic Strands
 Prodigal Sorcerer
 Queen's Agent
+Reclamation Sage
 Rite of the Raging Storm
 River Serpent
 Salvage
@@ -64,6 +68,7 @@ Spitebellows
 Spore Swarm
 Spyglass Siren
 Stifle
+Stock Up
 Stormbound Geist
 Sure Strike
 Swamp
