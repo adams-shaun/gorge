@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -1279,6 +1281,11 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(g.k, sl), &order)
+	if n == 0 && t.filtFixed(g.k, sl) {
+		// a {C}-only fixed filter (Apprentice Wizard's {U}, {T}: Add {C}{C}{C}): the
+		// order names WUBRG only, but the one answer still activates it
+		order[0], n = uint8(bits.TrailingZeros8(uint8(t.filtAb(g.k, sl).ManaColors))), 1
+	}
 	needFirst(order[:n], g.need)
 	if each {
 		n = 1

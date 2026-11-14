@@ -287,12 +287,14 @@ func TapXManaTwo(a *Ability) bool {
 // TapXMana is either tap-other-permanents mana shape.
 func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) }
 
-// PipFeeManaAb reports whether a is an activate-only-once mana ability whose
-// fee is exactly one coloured pip (with a {T}) and no generic part, and the
-// pip's colour. Loot, the Pathfinder's "{G}, {T}: Add three mana of any one
-// colour" is the shape: the kernel models it as a filter
-// (dirac/mana_filterfirst.go), paying the pip from the pool. A mana ability
-// that also sacrifices, pays life, or has no once limit is not one.
+// PipFeeManaAb reports whether a is a mana ability whose fee is exactly one
+// coloured pip with a {T} and no generic part, and the pip's colour: either
+// activate-only-once (Loot, the Pathfinder's "{G}, {T}: Add three mana of any
+// one colour") or limitless (Apprentice Wizard's "{U}, {T}: Add {C}{C}{C}",
+// Ceta Disciple's and Necra Disciple's "{G}, {T}: any colour", Fire Sprites'
+// "{G}, {T}: Add {R}"; the {T} is the limit). The kernel models it as a filter
+// (dirac/mana_filterfirst.go), paying the pip from the pool. A mana ability that
+// also sacrifices, pays life, or has any other cost part is not one.
 func PipFeeManaAb(a *Ability) (col int, ok bool) {
 	m := &a.Cost.Mana
 	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame && a.Cost.Flags != CostTap ||
