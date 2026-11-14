@@ -973,7 +973,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 		chained := s.discardChained(k, in)
 		if chained && s.repPending() {
 			// the next player chooses with these picks still in hand
-			s.holdDiscard(r.arr[:r.peekI])
+			s.holdDiscard(uint8(r.chosen), r.arr[:r.peekI])
 			r.peekI = 0
 			p := s.repPop()
 			if !s.discardChain(k, in, p) {

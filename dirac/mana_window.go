@@ -800,6 +800,12 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
 		col = bits.TrailingZeros8(uint8(pc.painCol))
+		if pc.painLife && bits.OnesCount8(uint8(pc.painCol)&0x1f) == 1 && uint8(pc.painCol)&^0x1f == 0 {
+			// a life-cost ability of one fixed colour (Ramunap Ruins' {R})
+			// lists no mana symbol, like Starting Town's, so the window's
+			// answer takes the first listed ability, the plain {C} (CR 605.3b)
+			col = kop.C
+		}
 		if pc.painCol == kop.ColAny {
 			// Starting Town: the any-colour ability lists no symbol. A fixed
 			// pip still owed makes the ability ask take it (owedAbilitiesFirst);
@@ -1273,9 +1279,13 @@ func (s *State) poolProj(p uint8) [kop.NumManaKinds]uint8 {
 // restrOptions is p's plain priority walk at a node of gorge's prefix search:
 // the search prices a play through the planner, which reads the floating pool
 // through the restriction (pay.PlanPool), so restricted mana counts exactly
-// when this play may spend it.
+// when this play may spend it. The planner's verdict is a payment, not a new
+// activation: p's this-turn Exhaust fact is read as at the search's root
+// (static_turnbits.go withRootExhaust).
 func (s *State) restrOptions(k *prep, d *Decision, p uint8) {
+	saved := s.withRootExhaust(p)
 	s.plainOptions(k, d, 0)
+	s.g.turnF = saved
 }
 
 // pendListenerOrder sorts the triggers queued since lo into listener order

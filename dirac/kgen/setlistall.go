@@ -54,6 +54,11 @@ func corpusAllList(cardsDir string) (string, error) {
 // corpusAllNames is the ALL list's bytes over the scripts under root.
 func corpusAllNames(root string) ([]byte, error) {
 	var names []string
+	// WalkDir does not descend a symlinked root (cards-overlay.sh links it);
+	// the resolved path makes it, and only names leave this function.
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		root = resolved
+	}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

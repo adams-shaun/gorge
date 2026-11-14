@@ -317,6 +317,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenMidAb is the ability whose mid-resolution ChoosePlayer is lowered
+	// (OpExt ExtChoosePlayerMid): the chain's ChosenPlayer readers read the
+	// resolution's choice, and only until the Cleanup clears it.
+	chosenMidAb *lAbility
 	// chosenResAb is the ability whose mid-resolution ChoosePlayer
 	// (Choices$ Player, RememberChosen$ True) is lowered: ChosenPlayer reads
 	// the resolution's chosen player in that ability only
@@ -768,6 +772,7 @@ func (lc *lowerCtx) lowerRecord() {
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
+	out.TextWords = textWordsOf(lc.card)
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
@@ -1138,6 +1143,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (dirac/kw_speed.go); the keyword's other text is the
 			// card's own lines
 			lc.out.Engines = true
+		case head == "Ascend" && param == "":
+			// CR 702.131: the city's blessing is the kernel's post-placement
+			// scan and the spell's resolution grant (dirac/kw_ascend.go)
+			lc.out.Ascend = true
+		case head == "Bloodthirst":
+			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
+			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
+			lc.guard(node, func() error { return lc.lowerBloodthirst(param) })
 		case head == "Wither" && param == "":
 			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 			lc.out.Wither = true
@@ -1186,6 +1199,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			// trigger (Myriad$ True, DB$ Myriad), lowered from that line
 			// (lower_myriad.go)
 			if !faceHasMyriadTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Renown":
+			// CR 702.112a: gorge kwRenown expands it into a combat-damage
+			// self trigger (IsPresent$ Card.Self+!IsRenowned) whose body is
+			// DB$ PutCounter | Renown$ N, lowered from that line
+			// (lower_renown.go). Not in expandedKeywords: a granted Renown
+			// stays refused.
+			if !faceHasRenownTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
 		case head == "Training":
@@ -1384,8 +1406,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// A printed generic reduction rides the second colon field
 			// (lower_morphreduce.go).
 			cs, red, rok := lc.morphReduceParam(param)
-			mc, err := parseManaCost(cs)
-			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (mc.X || mc.Generic == 0) {
+			mc, life, err := morphTurnUpCost(cs) // lower_morphlife.go
+			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (life != 0 || mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
 			}
@@ -1393,7 +1415,7 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.refuseNode(node, "second face-down keyword")
 				continue
 			}
-			lc.out.MorphCost, lc.out.MorphReduce = &mc, red
+			lc.out.MorphCost, lc.out.MorphReduce, lc.out.MorphLife = &mc, red, life
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
@@ -3429,6 +3451,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			switch v {
 			case "Threshold":
 				ab.ActCond = lCond{Kind: cThreshold}
+			case "Blessing":
+				// "activate only if you have the city's blessing" (CR 702.131;
+				// gorge activationConditionOKBlessing, a Lost player denied)
+				ab.ActCond = lCond{Kind: cBlessing}
 			case "Delirium":
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
 			case "Metalcraft":
@@ -3867,7 +3893,7 @@ func (lc *lowerCtx) blockerNode() string {
 func (lc *lowerCtx) noteUnreadable(p *params, sa *cards.SA) {
 	var left []string
 	for _, k := range p.unread() {
-		if err := lc.probeParam(k, p.m[k]); err != nil {
+		if err := lc.probeNodeParam(sa, k, p.m[k]); err != nil {
 			lc.refuseNode(lc.blockerNode(), "%s$ %s: %s", sa.Kind, sa.API, err.Error())
 			p.used[k] = true
 			continue
@@ -3888,10 +3914,22 @@ var probeAmountKeys = map[string]bool{"NumDmg": true, "NumCards": true, "NumAtt"
 // every Valid* key.
 var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "SacValid": true, "Choices": true, "IsPresent": true, "ConditionPresent": true, "Affected": true}
 
+// probeNodeParam reads one unread param of the refused node sa on its own.
+// A Play's ValidSA$ is not a card filter: play reads it through playSAExpr
+// (a bare Spell is the land skip OpCastFree already applies), so the probe
+// reads it the same way rather than as a "Spell" filter head.
+func (lc *lowerCtx) probeNodeParam(sa *cards.SA, k, v string) error {
+	if k == "ValidSA" && sa != nil && sa.API == "Play" {
+		_, err := lc.playSAExpr(strings.TrimSpace(v))
+		return err
+	}
+	return lc.probeParam(k, v)
+}
+
 func (lc *lowerCtx) probeParam(k, v string) error {
 	v = strings.TrimSpace(v)
 	switch {
-	case v == "":
+	case v == "" || k == "ValidMessage": // a prompt string, not a filter
 		return nil
 	case probeAmountKeys[k]:
 		switch v {
