@@ -59,8 +59,8 @@ func dakraPutRevealed(t *testing.T) (*cards.Card, *cards.SA) {
 // Imprinted ... EQ0` gate no longer reads the empty list.
 func TestDefinedLibraryFetchImprintsMovedCards(t *testing.T) {
 	card, put := dakraPutRevealed(t)
-	// The gate this whole bug is about: `ConditionDefined$ Imprinted |
-	// ConditionPresent$ Card | ConditionCompare$ EQ0`. Built from the real
+	// The gate this whole bug is about: a condition that no imprinted card
+	// exists. Built from the real
 	// DBDraw so the asserted condition is the script's own.
 	dbDraw := cards.ResolveSVar(card.Faces[0].SVars, "DBDraw")
 	if dbDraw == nil || dbDraw.Params["ConditionDefined"] != "Imprinted" ||

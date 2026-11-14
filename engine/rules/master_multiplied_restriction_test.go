@@ -6,8 +6,8 @@ package rules
 //
 // The Master, Multiplied's reminder text -- "Triggered abilities you control
 // can't cause you to sacrifice or exile creature tokens you control." --
-// carries `ValidCause$ Triggered.YouCtrl | ForCost$ False` on both its
-// CantSacrifice and CantExile lines. Before this fix
+// scopes both its CantSacrifice and CantExile lines to causes that are
+// triggered abilities you control, not costs (ValidCause$, ForCost$ False). Before this fix
 // effects.CantRestrictionParamsReadable rejected the whole static (ValidCause
 // and ForCost were not whitelisted), so the protection was inert: any
 // triggered sacrifice took the tokens anyway.

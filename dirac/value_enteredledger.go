@@ -18,7 +18,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // StallEntered rather than truncating, so a generated table never reads a
 // short list as if it were complete.
 
-// maxEntered (seats_default.go, seats_mp.go) is the zone entries one turn may
+// maxEntered (seats_default.go) is the zone entries one turn may
 // record. Only tables with a reader carry the array.
 
 // coldEntered is the turn's ledger, for a table with a reader (noteEnter).

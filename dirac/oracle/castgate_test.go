@@ -17,11 +17,6 @@ import (
 //     graveyard before cr-changezoneall-zero-targets (56ba2e185).
 //
 // The expected answer at every decision is gorge's.
-const (
-	gorgeSpellPresentFixTime = "20261026092325"
-	gorgeZoneAllZeroFixTime  = "20261026082922"
-)
-
 var kstd2gateDecks = [2][]cardset.Entry{
 	{
 		{Name: "Confront the Assault", Count: 6}, {Name: "Thraben Charm", Count: 6}, {Name: "Savannah Lions", Count: 6},
@@ -33,16 +28,8 @@ var kstd2gateDecks = [2][]cardset.Entry{
 	},
 }
 
-func kstd2gatePinned(t *testing.T) {
-	t.Helper()
-	if !gorgePinAtLeast(t, gorgeSpellPresentFixTime) || !gorgePinAtLeast(t, gorgeZoneAllZeroFixTime) {
-		t.Skip("gorge before cr-spell-ispresent-cast-gate (feb134b15) / cr-changezoneall-zero-targets (56ba2e185)")
-	}
-}
-
 func TestCastRestrictionGateLockstep(t *testing.T) {
 	t.Parallel()
-	kstd2gatePinned(t)
 	lockstepSet(t, "castgate", kstd2gateDecks, 800, "KSTD2GATE_SEEDS")
 }
 
@@ -51,7 +38,6 @@ func TestCastRestrictionGateLockstep(t *testing.T) {
 // diverges.
 func TestCastRestrictionGateLockstepMutation(t *testing.T) {
 	t.Parallel()
-	kstd2gatePinned(t)
 	n := lockstepRun(t, "castgate", kstd2gateDecks, 200, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

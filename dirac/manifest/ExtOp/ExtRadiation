@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtRadiation
+value: 25
+forge: Radiation
+census: api Radiation all=22 std=0 mbc=0 sole=6
+state: player 2 (rad)
+status: reserved

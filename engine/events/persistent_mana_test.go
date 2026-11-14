@@ -3,8 +3,8 @@
 // partial clear and the TurnChange expiry. The rules-side end-to-end pins on
 // the real corpus carrier (Rousing Refrain) live in engine/rules/persistent_mana_test.go;
 // these cover the encoding corners the spell-level flow does not reach: the
-// composition with a RestrictValid$ batch (Klauth's
-// `PersistentMana$ True | RestrictValid$ Spell`), the tagged (snow/typed)
+// composition with a RestrictValid$ batch (Klauth's persistent mana that only
+// spells may spend), the tagged (snow/typed)
 // tally drain, and the batch survival split.
 package events
 

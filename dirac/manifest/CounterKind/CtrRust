@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrRust
+value: 222
+forge: RUST
+census: ctr RUST all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

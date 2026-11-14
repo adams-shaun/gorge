@@ -1,0 +1,7 @@
+family: key
+name: keyControlPlayer
+value: 23
+forge: control player
+census: key control player classes=1 all=8
+state: global 2
+status: reserved

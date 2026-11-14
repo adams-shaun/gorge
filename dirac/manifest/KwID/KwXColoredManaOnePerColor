@@ -1,0 +1,7 @@
+family: KwID
+name: KwXColoredManaOnePerColor
+value: 119
+forge: Spend only colored mana on X. No more than one mana of each color may be spent this way.
+census: kw Spend only colored mana on X. No more than one mana of each color may be spent this way. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

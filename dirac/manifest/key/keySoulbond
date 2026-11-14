@@ -1,0 +1,7 @@
+family: key
+name: keySoulbond
+value: 2
+forge: soulbond
+census: key soulbond classes=4 all=101
+state: slotobj 112
+status: reserved

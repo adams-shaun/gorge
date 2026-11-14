@@ -28,8 +28,8 @@ func moveCounterEngine(t *testing.T, reg *cards.Registry, fixtures ...string) (*
 }
 
 // TestSpikeCannibalMovesAllPlusOneCountersOntoItself drives the real Spike
-// Cannibal: `ValidSource$ Creature | Defined$ Self | CounterType$ P1P1 |
-// CounterNum$ All` -- the sweep origin, the Define$ Self destination and the
+// Cannibal, moving all +1/+1 counters from each creature onto itself -- the
+// sweep origin, the Define$ Self destination and the
 // deterministic All amount (no ask).
 func TestSpikeCannibalMovesAllPlusOneCountersOntoItself(t *testing.T) {
 	t.Parallel()
@@ -97,8 +97,8 @@ func TestSpikeCannibalMovesAllPlusOneCountersOntoItself(t *testing.T) {
 }
 
 // TestAetherbornMarauderMovesAnyNumberOntoItself drives the real Aetherborn
-// Marauder: `ValidSource$ Permanent.YouCtrl+Other+counters_GE1_P1P1 |
-// Defined$ Self | CounterType$ P1P1 | CounterNum$ Any` -- the COUNTERS_GE1
+// Marauder, moving any number of +1/+1 counters from other permanents you
+// control that have one onto itself -- the COUNTERS_GE1
 // filter sweep, the Define$ Self destination, and the real any-number ask.
 func TestAetherbornMarauderMovesAnyNumberOntoItself(t *testing.T) {
 	t.Parallel()
@@ -393,8 +393,8 @@ func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
 }
 
 // TestForgottenAncientSweepDistributesAndConserves drives the real Forgotten
-// Ancient: `Source$ Self | ValidDefined$ Creature.Other | CounterType$ P1P1 |
-// CounterNum$ Any` at an upkeep. The any-number answer is DISTRIBUTED across
+// Ancient, moving any number of its +1/+1 counters onto other creatures, at an
+// upkeep. The any-number answer is DISTRIBUTED across
 // the sweep's destinations (CR 122.5: a move never mints) -- 2 over two other
 // creatures is 1 and 1, the total on the board is conserved.
 func TestForgottenAncientSweepDistributesAndConserves(t *testing.T) {

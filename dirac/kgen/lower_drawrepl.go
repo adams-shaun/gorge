@@ -9,9 +9,9 @@ import (
 
 // drawRepl lowers the controller's "if you would draw a card, draw N cards
 // instead" replacement (gorge applyReplacements, a Draw event whose
-// ReplaceWith$ body is exactly DB$ Draw | Defined$ You | NumCards$ N):
-// Event$ Draw | ActiveZones$ Battlefield | ValidPlayer$ You, optionally
-// NotFirstCardInDrawStep$ True (the turn-based draw is exempt). Every other
+// ReplaceWith$ body is exactly a draw of N cards by you): a Draw replacement
+// active on the battlefield for your own draws, optionally exempting the first
+// card of the draw step (NotFirstCardInDrawStep). Every other
 // Draw shape (an optional body, a prevention, a choice body, a condition
 // the kernel does not read) refuses.
 func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {

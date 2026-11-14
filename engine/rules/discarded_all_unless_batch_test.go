@@ -10,8 +10,8 @@ package rules
 // pay.PayDiscardCost and engine/effects/cardflow.go's effDiscard use).
 //
 // Real payment, not the batch methods directly: Thrilling Discovery's real
-// corpus switched unless cost (`DBDraw: DB$ Draw | NumCards$ 3 | UnlessCost$
-// Discard<2/Card> | UnlessPayer$ You | UnlessSwitched$ True`) is cast and paid
+// corpus switched unless cost (its draw of three that you take only by paying
+// an unless cost of discarding two cards, UnlessSwitched$) is cast and paid
 // through the production cast/resolution/unless flows, and Magmakin
 // Artillerist's real DiscardedAll trigger is the observer whose X reads
 // TriggerCount$Amount.

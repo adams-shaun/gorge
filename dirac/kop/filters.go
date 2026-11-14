@@ -144,9 +144,17 @@ type Filter struct {
 	// target the controller of its permanent or, once it has left the
 	// battlefield, its owner (gorge controlReferentPlayers
 	// TargetedOrController). Battlefield only; the card matchers fail
-	// closed on it.
+	// closed on it, but for CtrlTgtOwner.
 	CtrlTgt uint8
 }
+
+// CtrlTgtOwner marks a Filter.CtrlTgt read on the card's OWNER, off the
+// battlefield (gorge controlReferentPlayers OwnedBy TargetedController: the
+// card's owner is the controller of the target, a card target off the
+// battlefield read as its owner): the card matcher compares the owner with
+// slot (CtrlTgt&^CtrlTgtOwner)-1; the perm matcher, whose slot it never names,
+// fails closed. Nezumi Graverobber.
+const CtrlTgtOwner = 0x80
 
 // SpecialMask is a set of CR 116.2 special actions a RestrictValid$ Static.*
 // clause admits (gorge pay.Special).
@@ -286,6 +294,24 @@ const OvChosenColor = 1
 // just before it and applies as the card enters, ahead of the enters triggers
 // (assimilate, CR 613-layer characteristics seen as it enters).
 const OvEnterWith = 2
+
+// OvChosenType, in an OpOverride's B field: the chosen basic land type
+// animation (Navigator's Compass: "target land you control becomes the basic
+// land type of your choice in addition to its other types"). C names the
+// FIRST of five consecutive Overrides records differing only in AddSub, one
+// basic land type each in gorge's option order (Forest, Island, Mountain,
+// Plains, Swamp: effects type_choices.go chooseBasicLandTypes). At resolution
+// the kernel applies the record whose AddSub holds the type the controller
+// chose earlier in the same resolution (OpChooseType with B =
+// ChooseTypeBasicLand, res.chosen); gorge combatfx.go animateGrant reads the
+// source's ChosenType AT RESOLUTION.
+const OvChosenType = 3
+
+// ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
+// offers the five basic land types (gorge effChooseType Type$ Basic Land,
+// CR 205.3i) rather than the creature-type vocabulary. The answer is the
+// chosen type's matchup subtype index.
+const ChooseTypeBasicLand = 2
 
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
@@ -517,6 +543,14 @@ const W7BlockedBySrc int16 = 34
 // read off the entered ledger). Read off the battlefield only: kgen refuses
 // it on a permanent. The Weaver King, Captain N'ghathrod.
 const W7EnteredFromLib int16 = 35
+
+// W7EnchPlayerCtrl (PredWord7 sub-kind 36): a battlefield permanent controlled
+// by the player the evaluating source Aura enchants (gorge wordEnchantedPlayerCtrl,
+// Forge's EnchantedPlayerCtrl: source.getEntityAttachedTo() is a Player equal
+// to the candidate's controller). The seat is the source's atchSeat; a source
+// that enchants no player, or is gone (NoSlot), leaves the set empty. Read on
+// the battlefield only. Trespasser's Curse.
+const W7EnchPlayerCtrl int16 = 36
 
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT

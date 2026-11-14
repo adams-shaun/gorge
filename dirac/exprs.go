@@ -700,8 +700,8 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 	case kop.CondEchoOwed:
 		r = ctx.srcSl != NoSlot && s.mSl(k, mechEchoOwed, ctx.srcSl) // trig_echo.go
 	case kop.CondSourceZone:
-		// the source object itself is in Zone now: gorge's intervening-if for
-		// IsPresent$ Card.StrictlySelf | PresentZone$, re-checked at resolution
+		// the source object itself is in Zone now: gorge's intervening-if that
+		// the strict self is present in a named zone, re-checked at resolution
 		r = ctx.src != NoObj && s.objs[ctx.src].zone == c.Zone
 	case kop.CondRemMark:
 		// the source's persistent remembered list is non-empty: the host half

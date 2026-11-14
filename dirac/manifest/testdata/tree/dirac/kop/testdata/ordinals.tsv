@@ -1,0 +1,19 @@
+CtrAll	CounterKind	254
+CtrCharge	CounterKind	2
+CtrM1M1	CounterKind	1
+CtrP1P1	CounterKind	0
+ExtA	ExtOp	1
+ExtB	ExtOp	3
+ExtNone	ExtOp	0
+NumCounterKinds3	CounterKind	3
+NumExtOps	ExtOp	321
+OpChoosePlayer	Op	157
+OpCount	Op	156
+OpHighFirst	Op	250
+OpNop	Op	0
+SomeSentinel	untyped int	5
+Tf2A	TrigFlags2	1
+Tf2B	TrigFlags2	4
+TrigETB	TrigEvent	1
+TrigEventCount	TrigEvent	2
+TrigNone	TrigEvent	0

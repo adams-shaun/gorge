@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtRestartGame
+value: 87
+forge: RestartGame
+census: api RestartGame all=1 std=0 mbc=0 sole=1
+state: unbounded (restart)
+status: blocked unbounded:restart

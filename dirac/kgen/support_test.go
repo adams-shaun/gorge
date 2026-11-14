@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -352,6 +353,10 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	return b.Bytes()
 }
 
+// TestSupportDocIsCurrent holds dirac/docs/support.md to this tree. The page is owned by
+// land (dirac/LANDGEN): land regenerates it on every landing, so by default a seat's tree
+// fails only on a fall against the stored page (supportFalls), and a rise passes.
+// DIRAC_PIN_STRICT=1 (land's re-pin, the promote CI) compares the page byte for byte.
 func TestSupportDocIsCurrent(t *testing.T) {
 	heavyParallel(t)
 	cardsDir := ratchetCards(t)
@@ -367,8 +372,173 @@ func TestSupportDocIsCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(got, want) {
-		t.Errorf("%s is stale: DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen rewrites it", supportDocPath)
+	if bytes.Equal(got, want) {
+		return
+	}
+	const regen = "DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen rewrites it"
+	if os.Getenv("DIRAC_PIN_STRICT") == "1" {
+		t.Fatalf("%s is stale: %s", supportDocPath, regen)
+	}
+	stored, err := parseSupportDoc(want)
+	if err != nil {
+		t.Fatalf("%s: %v: %s", supportDocPath, err, regen)
+	}
+	now, err := parseSupportDoc(got)
+	if err != nil {
+		t.Fatalf("the rendered support page: %v", err)
+	}
+	falls := supportFalls(stored, now)
+	for _, f := range falls {
+		t.Errorf("%s: %s", supportDocPath, f)
+	}
+	if len(falls) > 0 {
+		t.Logf("a fall is a regression; one that is meant (a lowering given up) is re-measured with %s", regen)
+		return
+	}
+	t.Logf("%s is stale with rises only: land regenerates it (DIRAC_PIN_STRICT=1 compares it exactly)", supportDocPath)
+}
+
+// supportPage is what the fall-only check reads from a support page: its list rows in page
+// order and the refused-by-name count per class.
+type supportPage struct {
+	rows    []supportCounts
+	byClass map[string]int
+}
+
+var (
+	supportRowLine   = regexp.MustCompile(`^\| ([A-Za-z0-9-]+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|$`)
+	refusedClassLine = regexp.MustCompile(`^\| ([^|]+) \| (\d+) \|$`)
+)
+
+// parseSupportDoc reads a page in supportDoc's layout.
+func parseSupportDoc(b []byte) (supportPage, error) {
+	p := supportPage{byClass: map[string]int{}}
+	inRefused, sawRefused := false, false
+	seen := map[string]bool{}
+	for _, line := range strings.Split(string(b), "\n") {
+		if strings.HasPrefix(line, "## ") {
+			inRefused = line == "## Refused by name"
+			sawRefused = sawRefused || inRefused
+			continue
+		}
+		if inRefused {
+			if m := refusedClassLine.FindStringSubmatch(line); m != nil {
+				n, _ := strconv.Atoi(m[2])
+				p.byClass[m[1]] = n
+			}
+			continue
+		}
+		m := supportRowLine.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		if seen[m[1]] {
+			return p, fmt.Errorf("list %s has two rows", m[1])
+		}
+		seen[m[1]] = true
+		var n [6]int
+		for i := range n {
+			n[i], _ = strconv.Atoi(m[i+2])
+		}
+		p.rows = append(p.rows, supportCounts{list: m[1], cards: n[0], lowered: n[1], refused: n[2], unverified: n[3], supported: n[4], fourSeat: n[5]})
+	}
+	if len(p.rows) == 0 || !sawRefused {
+		return p, fmt.Errorf("not a support page: %d list rows, refused-by-name section %v", len(p.rows), sawRefused)
+	}
+	return p, nil
+}
+
+// supportFalls is what fell from stored to now: a list gone, or a list's lowered,
+// supported or 4-seat count dropping or its refused count rising. A card refused by name
+// (a file in dirac/support/refused) is the one sanctioned fall, so a refused rise is a fall
+// only past the refusals the refused-by-name section added, and supported and 4-seat may
+// drop by as many cards as the list's refused count rose.
+func supportFalls(stored, now supportPage) []string {
+	added := 0
+	for class, n := range now.byClass {
+		added += max(n-stored.byClass[class], 0)
+	}
+	rows := map[string]supportCounts{}
+	for _, r := range now.rows {
+		rows[r.list] = r
+	}
+	var falls []string
+	for _, s := range stored.rows {
+		n, ok := rows[s.list]
+		if !ok {
+			falls = append(falls, s.list+": the list is gone")
+			continue
+		}
+		rose := max(n.refused-s.refused, 0)
+		if rose > added {
+			falls = append(falls, fmt.Sprintf("%s: refused rose %d -> %d, past the %d refusals by name dirac/support/refused added", s.list, s.refused, n.refused, added))
+		}
+		if n.lowered < s.lowered {
+			falls = append(falls, fmt.Sprintf("%s: lowered fell %d -> %d", s.list, s.lowered, n.lowered))
+		}
+		if s.supported-n.supported > rose {
+			falls = append(falls, fmt.Sprintf("%s: supported fell %d -> %d (refused rose %d)", s.list, s.supported, n.supported, rose))
+		}
+		if s.fourSeat-n.fourSeat > rose {
+			falls = append(falls, fmt.Sprintf("%s: 4-seat fell %d -> %d (refused rose %d)", s.list, s.fourSeat, n.fourSeat, rose))
+		}
+	}
+	return falls
+}
+
+// TestSupportDocFallOnly is the default (non-strict) check of TestSupportDocIsCurrent on a
+// fixture page: rises pass, falls fail, and a fall a refusal by name explains passes.
+func TestSupportDocFallOnly(t *testing.T) {
+	b, err := os.ReadFile("testdata/support-fallonly.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := string(b)
+	stored, err := parseSupportDoc(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stored.rows) != 3 || stored.rows[2] != (supportCounts{"ALL", 34442, 24129, 3, 18026, 6100, 6032}) ||
+		stored.byClass["options"] != 2 || len(stored.byClass) != 2 {
+		t.Fatalf("parsed %+v", stored)
+	}
+	const blb = "| BLB | 278 | 261 | 2 | 0 | 259 | 258 |"
+	for _, c := range []struct {
+		name  string
+		edits []string // old, new pairs
+		falls int
+	}{
+		{"unchanged", nil, 0},
+		{"a card lowers and is evidenced", []string{blb, "| BLB | 278 | 262 | 2 | 0 | 260 | 259 |"}, 0},
+		{"lowered falls", []string{blb, "| BLB | 278 | 260 | 2 | 0 | 258 | 257 |"}, 3},
+		{"evidence lost", []string{blb, "| BLB | 278 | 261 | 2 | 1 | 258 | 258 |"}, 1},
+		{"4-seat falls", []string{blb, "| BLB | 278 | 261 | 2 | 0 | 259 | 257 |"}, 1},
+		{"refused rises with no refusal by name", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 |"}, 1},
+		{"a refusal by name", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 |", "| options | 2 |", "| options | 3 |"}, 0},
+		{"a refusal by name in a new class", []string{blb, "| BLB | 278 | 261 | 3 | 0 | 258 | 257 |", "| options | 2 |", "| options | 2 |\n| projection | 1 |"}, 0},
+		{"a refusal by name and evidence lost", []string{blb, "| BLB | 278 | 261 | 3 | 1 | 257 | 257 |", "| options | 2 |", "| options | 3 |"}, 1},
+		{"a refusal lifted", []string{blb, "| BLB | 278 | 261 | 1 | 0 | 260 | 259 |", "| options | 2 |", "| options | 1 |"}, 0},
+		{"a list gone", []string{"| FDN | 517 | 517 | 0 | 0 | 517 | 514 |\n", ""}, 1},
+	} {
+		doc := base
+		for i := 0; i < len(c.edits); i += 2 {
+			if !strings.Contains(doc, c.edits[i]) {
+				t.Fatalf("%s: the fixture has no %q", c.name, c.edits[i])
+			}
+			doc = strings.Replace(doc, c.edits[i], c.edits[i+1], 1)
+		}
+		now, err := parseSupportDoc([]byte(doc))
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if falls := supportFalls(stored, now); len(falls) != c.falls {
+			t.Errorf("%s: falls %q, want %d", c.name, falls, c.falls)
+		}
+	}
+	for _, bad := range []string{"", "| BLB | 1 | 1 | 0 | 0 | 1 | 1 |\n", strings.Replace(base, "## Refused by name", "## Refused", 1), strings.Replace(base, "| FDN |", "| BLB | 1 | 1 | 0 | 0 | 1 | 1 |\n| FDN |", 1)} {
+		if _, err := parseSupportDoc([]byte(bad)); err == nil {
+			t.Errorf("%q parsed", bad)
+		}
 	}
 }
 

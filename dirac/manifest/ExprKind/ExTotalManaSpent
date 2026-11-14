@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExTotalManaSpent
+value: 99
+forge: TotalManaSpent
+census: count TotalManaSpent all=3 std=0 mbc=0 sole=1
+state: slotbyte 112 (cast facts)
+status: reserved

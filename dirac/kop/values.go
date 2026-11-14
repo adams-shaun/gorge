@@ -32,8 +32,10 @@ func Const(n int) ValueRef { return ValueRef{K: VConst, N: int16(n)} }
 // VExpr: the amount is Table.Exprs[N].
 const VExpr VKind = VCountersTarget + 1
 
-// ExprKind is an Expr's computation. Append-only.
-type ExprKind uint8
+// ExprKind is an Expr's computation. Append-only. It is 16 bits wide for
+// room: Expr.Kind sits before N int16, so the wider kind fills what was a pad
+// byte and Expr keeps its size (TestExprSizeUnchanged).
+type ExprKind uint16
 
 const (
 	ExNone                ExprKind = iota
@@ -126,8 +128,13 @@ const (
 	// LifeLostThisTurn tally one turn back; 0 on the first turn).
 	// dirac/turn.go latches it as the turn changes.
 	ExLifeLostLastTurn
-	ExCount_
+	// ExCount_ ends the frozen iota list (the kinds above are 0..61). It is
+	// a fixed value: do not append above it. A new expression kind is a
+	// manifest entry (dirac/manifest/ExprKind, kmanifest).
+	ExCount_ ExprKind = 62
 )
+
+var _ = [1]struct{}{}[ExCount_-ExLifeLostLastTurn-1]
 
 // ExValidAgg's aggregate (Expr.N): gorge count_body_zone.go's $<prop>
 // folds over the battlefield matches.
@@ -154,13 +161,13 @@ type Expr struct {
 	N    int16
 	F    FilterID
 	Ref  Ref
+	Op   CmpOp // ExCompare's comparison; beside Ref so the 16-bit Ctr packs without a pad byte
 	Ctr  CounterKind
 	Sub  [2]ValueRef
 	Mul  int8
 	Div  int8
 	Add  int8
 	Neg  bool
-	Op   CmpOp // ExCompare's comparison
 
 	// Appended by ExThisTurnEntered's operands.
 	F2   FilterID // creature-base alternatives rewritten onto Card (gated by WasCreature)
@@ -212,8 +219,14 @@ const (
 	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
 	CondBlessing            // the controller has the city's blessing (CR 702.131; dirac/kw_ascend.go)
 	CondRemMark             // the source's persistent remembered list is non-empty: the host half of a ConditionDefined$ Remembered group gate (gorge rememberedWithSource's persistent union; Forge's areMet reads host.getRemembered(), which a kernel resolution's own set does not model)
-	CondCount_
+	// CondCount_ ends the frozen iota list (the kinds above are 0..12). It
+	// is a fixed value: do not append above it. A new condition kind is
+	// an explicit constant above it (CondKind is late-bound: a manifest
+	// entry with value: next).
+	CondCount_ CondKind = 13
 )
+
+var _ = [1]struct{}{}[CondCount_-CondRemMark-1]
 
 // CmpOp is a comparison.
 type CmpOp uint8
@@ -380,8 +393,16 @@ const ExDiscardedThisTurn ExprKind = 241
 // lowered only in the header (CheckSVar$) of a self-ETB trigger. As the
 // object enters it reads the resolving spell's spend (stackEntry.spc); once
 // queued the colour's count is bound into the pending trigger's x, which the
-// resolution recheck reads (kernel kw_evoke.go).
+// resolution recheck reads (kernel kw_evoke.go). AdamantLiveRead in N
+// marks a body gate's read instead (ConditionManaSpent$/ConditionManaNotSpent$).
 const ExAdamant ExprKind = 244
+
+// AdamantLiveRead (bit 5 of an ExAdamant's N) marks a read of the source's
+// spend LIVE at resolution, gorge effects conditionManaSpentMet (a body
+// ConditionManaSpent$/ConditionManaNotSpent$ gate): the bound count while the
+// source is still the same object on the battlefield, else 0 (leaving wiped
+// its spend, CR 400.7), never Adamant's departure snapshot.
+const AdamantLiveRead = 1 << 5
 
 // ExExiledWithN: the cards exiled with the reading source, counted over every
 // seat's exile zone (gorge exiledWithSet; Count$ExiledWith$Amount).

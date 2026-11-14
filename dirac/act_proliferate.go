@@ -49,11 +49,9 @@ func (s *State) prolifPick(i int) TCode {
 func (s *State) permRealCtrs(sl Slot) int {
 	p := &s.perms[sl]
 	n := 0
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
-		if !kop.IsCounterKind(c) {
-			continue // CtrLevel is no counter (kw_class.go)
-		}
-		if p.ctrN(s, c) > 0 {
+	var held ctrHeld
+	for _, c := range held[:p.heldKinds(s, &held)] {
+		if kop.IsCounterKind(int(c)) { // CtrLevel is no counter (kw_class.go)
 			n++
 		}
 	}
@@ -72,7 +70,7 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 		}
 	}
 	for p := uint8(0); p < MaxSeats; p++ {
-		if (s.g.poison[p] > 0 || s.g.energy[p] > 0 || s.plCtr(p, kop.PlCtrExperience) > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerCode(p)) {
+		if (s.g.poison[p] > 0 || s.g.energy[p] > 0 || s.contracts(p) > 0 || s.plCtr(p, kop.PlCtrExperience) > 0) && !s.pl[p].lost && !s.prolifPicked(PlayerCode(p)) {
 			d.add(MakeAction(AkChoose, PlayerCode(p), 0, 0))
 		}
 	}
@@ -150,6 +148,9 @@ func (s *State) prolifApply(k *prep, o TCode) {
 		if s.g.energy[p] > 0 {
 			s.g.energy[p] = uint8(min(int(s.g.energy[p])+1, 255))
 		}
+		if s.contracts(p) > 0 {
+			s.addContract(k, p, 1) // ctr_contract.go
+		}
 		if c := s.plCtrPtr(p, kop.PlCtrExperience); c != nil && *c > 0 {
 			*c = uint8(min(int(*c)+1, 255))
 		}
@@ -163,12 +164,14 @@ func (s *State) prolifApply(k *prep, o TCode) {
 	if s.subs[kop.TrigCounterAddedOnce].any() && s.permRealCtrs(sl) > 1 && s.prolifOrderObservable(k, sl) {
 		s.capFull(StallProlif)
 	}
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
-		if !kop.IsCounterKind(c) {
+	// bolsterPut puts counters of kind c only, so the kinds held stay the list's
+	var held ctrHeld
+	for _, c := range held[:s.perms[sl].heldKinds(s, &held)] {
+		if !kop.IsCounterKind(int(c)) {
 			continue // CtrLevel is no counter (kw_class.go)
 		}
-		if s.perms[sl].ctrN(s, c) > 0 {
-			s.bolsterPut(k, sl, c, 1)
+		if s.perms[sl].ctrN(s, int(c)) > 0 {
+			s.bolsterPut(k, sl, int(c), 1)
 		}
 	}
 }
@@ -182,8 +185,9 @@ func (s *State) prolifApply(k *prep, o TCode) {
 func (s *State) prolifOrderObservable(k *prep, sl Slot) bool {
 	var heard [ctrSlots + 1 + maxCtrOver]kop.CounterKind
 	n := 0
-	for c := 0; c < int(kop.NumCounterKinds3) && n < len(heard); c++ {
-		if kop.IsCounterKind(c) && s.perms[sl].ctrN(s, c) > 0 && s.ctrAddedHeard(k, kop.CounterKind(c)) {
+	var held ctrHeld
+	for _, c := range held[:s.perms[sl].heldKinds(s, &held)] {
+		if kop.IsCounterKind(int(c)) && s.ctrAddedHeard(k, kop.CounterKind(c)) {
 			heard[n] = kop.CounterKind(c)
 			n++
 		}

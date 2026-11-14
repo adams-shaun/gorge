@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrCurrency
+value: 145
+forge: CURRENCY
+census: ctr CURRENCY all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

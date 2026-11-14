@@ -1,0 +1,7 @@
+family: key
+name: keyMutate
+value: 3
+forge: mutate
+census: key mutate classes=4 all=73
+state: objobj 236
+status: reserved

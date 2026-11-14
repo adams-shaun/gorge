@@ -6,5 +6,6 @@ import "github.com/adams-shaun/gorge/engine/state"
 type protectionOracle interface {
 	Keywords(state.ObjID) []string
 	sourceHasQuality(source state.ObjID, q string) bool
+	Colors(state.ObjID) string
 	controllerOf(state.ObjID) state.PlayerID
 }

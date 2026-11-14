@@ -44,8 +44,8 @@ func nextCopyElection(t *testing.T, e *Engine, pickTarget func(*decision.Decisio
 }
 
 // TestChainOfSmogMarksCopyOfCopyElection: Chain of Smog's "That player may
-// copy this spell" (CopySpellAbility | Defined$ Parent | Controller$
-// TargetedPlayer | Optional$ True) poses the election to the targeted
+// copy this spell" (an optional CopySpellAbility of the parent spell,
+// controlled by the targeted player) poses the election to the targeted
 // player. The first election (the ORIGINAL spell) is an ordinary election;
 // the election the copy then poses back to the caster copies a COPY, and the
 // engine marks it CopyOfCopy -- the runtime fact the unattended bot declines

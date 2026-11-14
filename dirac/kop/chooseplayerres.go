@@ -1,8 +1,8 @@
 package kop
 
-// The mid-resolution chosen player (Gluntch, the Bestower: `DB$ ChoosePlayer |
-// Defined$ You | Choices$ Player | RememberChosen$ True`, then Draw / Token /
-// PutCounter reading Defined$ ChosenPlayer). gorge effChoosePlayer asks the
+// The mid-resolution chosen player (Gluntch, the Bestower: a ChoosePlayer step
+// in which its controller chooses any player and remembers the choice, then
+// Draw / Token / PutCounter steps defined as the chosen player). gorge effChoosePlayer asks the
 // chooser one KChoose over the living players (AliveFrom order, a "player"
 // option each) and records the answer on the resolution: Ctx.Chosen holds one
 // player, the last chooser's, and RememberChosen$ appends the answer to the

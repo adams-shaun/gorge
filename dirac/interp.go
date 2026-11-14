@@ -509,7 +509,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		hit = s.destroyHealAll(k, hit)
+		hit = s.destroyLineAll(k, hit, true)
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
@@ -749,7 +749,7 @@ func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
 		return true
 	}
-	if s.destroyHeal(k, sl) {
+	if s.destroyLine(k, sl, !noRegen) != drNone {
 		return true
 	}
 	if !noRegen && s.canRegen(sl) {
@@ -779,6 +779,22 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 	case kop.ZoneStack:
 		if s.cmdZoneReplace(k, o, &z, &bottom) {
 			return // a CR 903.9b commander move parked before it happens
+		}
+		if o == s.res.e.obj && s.res.e.kind == seSpell {
+			// the resolving spell's own move off the stack (View from
+			// Above's and Molten Birth's return-to-hand): gorge removes it
+			// from g.Stack at the move (events apply_state_helpers.go), but
+			// the kernel's stack entry stays until finishResolve pops it --
+			// the same no-pop read moveObj's self-exile arm takes
+			// (interp_gen.go); popping here would underflow s.sp when
+			// finishResolve pops again
+			s.touch(o)
+			ob.zone = kop.ZoneNone
+			if k.gen != nil && k.gen.anyFaces {
+				z = s.stackExitFace(k, o, z, false) // face_castface.go
+			}
+			s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
+			return
 		}
 		if i := s.stackIndexOf(o); i >= 0 {
 			copy(s.stack[i:s.sp-1], s.stack[i+1:s.sp])
@@ -1026,6 +1042,8 @@ func (s *State) applyResolve(k *prep, a Action) {
 		if k.gen != nil && s.prog(k)[r.pc].C != 0 {
 			r.chosen = objWord(cardTypeAnswer(a))
 			r.bad |= resChosenCard
+		} else if isBasicLandChoose(&s.prog(k)[r.pc]) {
+			r.chosen = objWord(basicLandAnswer(k, a)) // act_choosebasicland.go
 		} else {
 			r.chosen = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
 		}

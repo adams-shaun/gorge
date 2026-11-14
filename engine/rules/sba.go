@@ -562,10 +562,9 @@ func (e *Engine) legendGroups(mayPair bool) []legendGroup {
 // S:Mode$ statics (activeStatics' canonical battlefield walk) first, then
 // the Effect-delivered registrations (state.ContinuousEffect entries whose
 // Restriction is IgnoreLegendRule, in e.active()'s CR 613 order -- sorted,
-// deterministic, never a map). Hall of Echoes' resolved {5} ability
-// (`DB$ Effect | StaticAbilities$ LegendPermission`, LegendPermission:
-// `Mode$ IgnoreLegendRule | ValidCard$ Permanent.YouCtrl`) is the corpus
-// carrier of the second route. legendRuleExempt matches both unchanged: the
+// deterministic, never a map). Hall of Echoes' resolved {5} ability (an
+// Effect whose one static exempts the permanents you control from the legend
+// rule) is the corpus carrier of the second route. legendRuleExempt matches both unchanged: the
 // registered view's YouCtrl resolves against the effect's controller
 // through staticSpecCtx exactly like a printed static's does.
 // sbaQuietKindsSafe reads the same helper, so the quiet skip and the full

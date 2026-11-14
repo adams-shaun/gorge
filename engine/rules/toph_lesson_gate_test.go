@@ -1,8 +1,8 @@
 package rules
 
 // Toph, Hardheaded Teacher's Lesson rider.
-// The SpellCast trigger's chained `DBPutCounter` sub gates on
-// `ConditionDefined$ TriggeredCardLKICopy | ConditionPresent$ Lesson` — put an
+// The SpellCast trigger's chained `DBPutCounter` sub gates on the triggered
+// card's last-known copy being a Lesson — put an
 // ADDITIONAL +1/+1 counter on the earthbent land only when the cast spell is a
 // Lesson. Before the gate's LKI-copy spelling was admitted to
 // engine/effects/conditions.go's whitelist, the condition returned unresolved and the

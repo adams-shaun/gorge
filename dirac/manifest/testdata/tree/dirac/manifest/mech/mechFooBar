@@ -1,0 +1,5 @@
+family: mech
+name: mechFooBar
+value: next
+state: slotbit 16
+status: reserved

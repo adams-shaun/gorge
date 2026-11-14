@@ -53,8 +53,8 @@ func cr603LookBackDrive(t *testing.T, e *Engine, d *decision.Decision) {
 
 // TestCR603_10aMorbidOpportunistSeesItsOwnWrath: Day of Judgment destroys
 // Morbid Opportunist together with Grizzly Bears. Its "whenever one or more
-// other creatures die, draw a card" (Mode$ ChangesZoneAll | Origin$
-// Battlefield) looks back, so it triggers for the Bears whichever of the two
+// other creatures die, draw a card" (a ChangesZoneAll trigger from the
+// battlefield) looks back, so it triggers for the Bears whichever of the two
 // the sweep moves first: one draw. "bears first" is the guard (the
 // Opportunist is still on the battlefield when the Bears die, true before
 // and after the fix); "opportunist first" fails without the look-back.

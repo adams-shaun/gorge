@@ -38,7 +38,7 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 		return
 	}
 	var p1 int
-	var ck [ctrSlots]uint8
+	var ck [ctrSlots]uint16
 	var cn [ctrSlots]uint16
 	var over [maxCtrOver]ctrOverEntry
 	nover := 0
@@ -74,7 +74,7 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 // more kinds that a counter-added trigger hears stall (StallCtrOrder) unless
 // ctrOrderObservable proves their order cannot reach the stack.
 // putCountersFrom and copyEnteredCounters share it.
-func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint8, cn [ctrSlots]uint16, over []ctrOverEntry, mult int) {
+func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint16, cn [ctrSlots]uint16, over []ctrOverEntry, mult int) {
 	kinds, heard := 0, 0
 	var heardKinds [ctrSlots + 1 + maxCtrOver]kop.CounterKind
 	nh := 0

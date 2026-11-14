@@ -1,0 +1,6 @@
+family: mech
+name: mechProtPostW
+value: 34
+state: slotbit 16/16
+status: active
+doc: slots marked protected from white while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
