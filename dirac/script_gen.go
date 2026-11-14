@@ -187,6 +187,24 @@ func hasOption(d *Decision, a Action) bool {
 	return false
 }
 
+// scriptRelax reports whether gorge's census is relaxable on p's board
+// (relax), and whether a live sacrifice-any mana source is on it (sacAny).
+// A live two-permanent source (twoLive) or a Combo Any gap (ca) makes it
+// unrelaxable; so does a fourth filter, or a dynamic one out of bounds
+// (mana_filter.go filtRelaxable), and a live Krark-Clan Ironworks (sacAny:
+// its bound is its fixed production once). A live dead counter-cost gap
+// (Component Pouch) is unrelaxable as well: gorge's census records it while
+// the cost is payable and paymentPlanRelaxedAlternatives enumerates no
+// colour for its production (potential_plan.go), so the prefix search runs
+// on the any-mana walk and the search's slot accounting counts every
+// insufficient play whatever it finds; the dead gap contributes no units to
+// either walk (availCtr).
+func (s *State) scriptRelax(k *prep, p uint8, filt slotMask, ca, twoLive bool) (relax, sacAny bool) {
+	sacAny = k.tapMana && s.tapXSacAnyLive(k, p)
+	relax = !s.scriptGaps(k, p).any() && !ca && !twoLive && !sacAny && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
+	return relax, sacAny
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -215,15 +233,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// (potential_plan.go paymentPlanRelaxProof), and the candidates are
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
-	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
-	sacAny := k.tapMana && s.tapXSacAnyLive(k, p) // (a live Krark-Clan Ironworks: unrelaxable, its bound its fixed production once)
-	// A live dead counter-cost gap (Component Pouch) is unrelaxable as well:
-	// gorge's census records it while the cost is payable and
-	// paymentPlanRelaxedAlternatives enumerates no colour for its production
-	// (potential_plan.go), so the prefix search runs on the any-mana walk and
-	// the search's slot accounting counts every insufficient play whatever it
-	// finds; the dead gap contributes no units to either walk (availCtr).
-	relax := !s.scriptGaps(k, p).any() && !ca && !twoLive && !sacAny && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
+	relax, sacAny := s.scriptRelax(k, p, filt, ca, twoLive)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
