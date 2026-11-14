@@ -254,6 +254,7 @@ import (
 // +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL build-level 23115 -> 23131 measured).
 // +14 (Extort lowered, the keyword and its SpellCast trigger, against land's corpus; merged ALL build-level 23177 -> 23191 measured).
 // +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL build-level 23251 -> 23252 measured).
+// +6 (the Effect DamageDone redirect replacements lowered as OpExt ExtDmgRedirect: the en-Kor family's DB$ ReplaceSplitDamage, Nomads en-Kor, Warrior en-Kor, Lancers en-Kor, Spirit en-Kor and Zealous Inquisitor, and Gideon's Sacrifice's DB$ ReplaceEffect VarName$ Affected; Outrider en-Kor (Flanking), Shaman en-Kor (ChooseSource) and Zhalfirin Crusader (Flanking, a player target) stay refused; ALL build-level merged against land 23657 -> 23663 measured).
 // +40 (the MBC keywords-2 family: granted intimidate and infect, Static.Evasion / Static.Infect and ExtKwMark, 22 cards, and printed bloodthirst over ExDmgOppsTaken, 18 cards; named in ratchet_test.go's ALL pin; ALL build-level 23253 -> 23293 measured).
 // +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source, DamagePlus ValidTarget$ Player.Opponent: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL build-level 23253 -> 23261 measured).
 // +1 (Foil's two-part discard alternative cost lowered, kop.Cost.Discard2N/Discard2F; ALL build-level merged against land's MBC work 23347 -> 23348 measured).
@@ -263,7 +264,7 @@ import (
 // +2 (Mind Bend and Whim of Volrath: a GenericChoice whose DB$ ChangeText bodies lower to ExtChangeText; ALL build-level merged against land 23728 -> 23730 measured).
 // +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
 // +41 (this branch's lowerings merged against land 23802 -> 23843 measured; MBC 1814 -> 1820).
-var buildAcceptancePin = [2]int{23970, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{23968, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"math/rand/v2"
 	"strings"
 	"testing"
@@ -39,6 +40,9 @@ func TestLicidLowers(t *testing.T) {
 	}
 	t.Run("table", func(t *testing.T) {
 		set, err := cardset.RawByName("licid")
+		if errors.Is(err, cardset.ErrNoCorpus) {
+			t.Skip("no card corpus: " + err.Error())
+		}
 		if err != nil {
 			t.Fatal(err)
 		}

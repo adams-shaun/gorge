@@ -800,6 +800,12 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 		// payment, so the answer is its lowest colour option whatever
 		// the window owes (mana_pain.go)
 		col = bits.TrailingZeros8(uint8(pc.painCol))
+		if pc.painLife && bits.OnesCount8(uint8(pc.painCol)&0x1f) == 1 && uint8(pc.painCol)&^0x1f == 0 {
+			// a life-cost ability of one fixed colour (Ramunap Ruins' {R})
+			// lists no mana symbol, like Starting Town's, so the window's
+			// answer takes the first listed ability, the plain {C} (CR 605.3b)
+			col = kop.C
+		}
 		if pc.painCol == kop.ColAny {
 			// Starting Town: the any-colour ability lists no symbol. A fixed
 			// pip still owed makes the ability ask take it (owedAbilitiesFirst);

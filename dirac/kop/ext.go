@@ -88,7 +88,9 @@ const (
 	// target slot C, as the controller divided them while putting the
 	// trigger on the stack (TargetSpec.Divide == DivLKIP1P1: the slot takes
 	// 0..X targets, the total is X; CR 601.2d, 603.10a; gorge cr-dies-trigger-
-	// divided-counters-lki). dirac/ctr_divided.go.
+	// divided-counters-lki). B.N is the counter kind the shares put (0,
+	// CtrP1P1, for every form but the literal-N one; Contagion's -2/-1).
+	// dirac/ctr_divided.go.
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
@@ -752,6 +754,12 @@ func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
 // leaves the battlefield. Heckling Fiends, Incite, Courtly Provocateur.
 // dirac/combat_attacksifable.go.
 const ExtAttacksIfAble ExtOp = 255
+
+// AttacksOpponent is ExtAttacksIfAble's C bit 0: the duty names the
+// opponent ("attacks that opponent this turn if able", Encore), so only the
+// player satisfies it and no planeswalker or battle of theirs is offered
+// (the arena bit mechAttacksPlayer).
+const AttacksOpponent = 1
 
 func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 

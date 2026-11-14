@@ -1,0 +1,10 @@
+# the AttachedTo Targeted group pool: Fumble ("gain control of all Auras and
+# Equipment that were attached to it, then attach them to another creature")
+# beside Auras, creatures and basics
+# (dirac/oracle/attachedtotargeted_test.go)
+Fumble
+Suntail Hawk
+Pacifism
+Holy Strength
+Plains
+Island
