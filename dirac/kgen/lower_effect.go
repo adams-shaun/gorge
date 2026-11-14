@@ -3326,6 +3326,19 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
+	if zone == zGraveyard && att.Kind == vNone && def.Kind == vNone {
+		// Araumi of the Dead Tide: a Pump whose whole body is a graveyard
+		// keyword grant. gorge's pump registers the derived keyword
+		// [Encore:CardManaCost] on the card until end of turn and offers no
+		// activation of it (kw_granted.go synthesizes no Encore body; the
+		// grant lands and nothing is offered), so ExtGrantEncore encodes the
+		// grant alone. Any other keyword on a graveyard card stays refused
+		// below.
+		if kw, ok := ps.get("KW"); ok && strings.TrimSpace(kw) == "Encore:CardManaCost" {
+			lc.emit(lInstr{Op: "GrantEncore", Obj: obj})
+			return nil
+		}
+	}
 	kw, hasKW := ps.get("KW")
 	mustBlock, noCombat, lure, marks := false, false, false, 0
 	if hasKW {

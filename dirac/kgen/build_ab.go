@@ -4294,6 +4294,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "GrantPanharm":
 		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
+	case "GrantEncore":
+		// (Araumi of the Dead Tide) OpExt ExtGrantEncore on the target: the
+		// graveyard card gains encore until end of turn; gorge offers no
+		// activation of a granted encore, so the grant is the whole effect
+		// (kw_encoregrant.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantEncore))
 	case "LockActs":
 		// (Braided Net) OpExt ExtLockActs on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLockActs))
