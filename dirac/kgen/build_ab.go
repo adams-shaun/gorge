@@ -1815,6 +1815,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
 		if s.Override != nil {
 			// RemoveKeyword$ beside the Continuous parts (layer 6)
 			i, err := cb.override(s.Override)
@@ -4121,6 +4122,19 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
+	case "KwMark":
+		// OpExt ExtKwMark, C the keywords (kop.KwMarkIntimidate |
+		// kop.KwMarkInfect), Obj the subject (RefNone with F: every
+		// battlefield permanent matching F; lower_kwmark.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtKwMark)), int16(in.C)
+		if in.F != nil {
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
+	case "ChangeText":
+		// OpExt ExtChangeText, Obj the one target, C the word list (textreach.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeText)), int16(in.C)
 	case "RemoveFromCombat":
 		// OpExt ExtRemoveFromCombat, Obj the one object removed (lower_removefromcombat.go)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRemoveFromCombat))
@@ -4393,6 +4407,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "TapOrUntap":
 		ki.Op = kop.OpTapOrUntap
+	case "TapOrUntapAll":
+		// OpExt ExtTapOrUntapAll over the sweep filter (act_taporuntapall.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtTapOrUntapAll))
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "Explore":
 		ki.Op = kop.OpExplore
 	case "Poison":

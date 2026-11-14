@@ -768,6 +768,7 @@ func (lc *lowerCtx) lowerRecord() {
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
+	out.TextWords = textWordsOf(lc.card)
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
@@ -1142,6 +1143,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.131: the city's blessing is the kernel's post-placement
 			// scan and the spell's resolution grant (dirac/kw_ascend.go)
 			lc.out.Ascend = true
+		case head == "Bloodthirst":
+			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
+			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
+			lc.guard(node, func() error { return lc.lowerBloodthirst(param) })
 		case head == "Wither" && param == "":
 			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 			lc.out.Wither = true
@@ -3899,7 +3904,7 @@ var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "
 func (lc *lowerCtx) probeParam(k, v string) error {
 	v = strings.TrimSpace(v)
 	switch {
-	case v == "":
+	case v == "" || k == "ValidMessage": // a prompt string, not a filter
 		return nil
 	case probeAmountKeys[k]:
 		switch v {

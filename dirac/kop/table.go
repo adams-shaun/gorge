@@ -703,6 +703,13 @@ type CardDef struct {
 	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
 	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
 	Identity ColorMask
+	// TextWords is the colour words (bits 0..4, WUBRG) and basic land type
+	// words (bits 5..9, Plains Island Swamp Mountain Forest) the face's text
+	// reads anywhere gorge's CR 612 rewrite would change them (the type line,
+	// keywords, Oracle text, SVars and every ability, trigger, static and
+	// replacement parameter; dirac/kgen textreach.go). Set only in a table
+	// that holds an ExtChangeText, so every other table is unchanged.
+	TextWords uint16
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.
