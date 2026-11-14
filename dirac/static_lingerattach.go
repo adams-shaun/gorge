@@ -155,3 +155,20 @@ func (s *State) recordAttLKI(o Obj, hostSlot Slot) {
 	r := &s.g.attLKI[0]
 	r.obj, r.host, r.ver = o, host, hv
 }
+
+// attachedToDeparted reports whether the attachment at slot q lost host o
+// when o left the battlefield and has not been attached since: gorge's
+// were-attached read (`AttachedTo == 0 && LastBearer == o`,
+// attachedToDefinedSelector) for a chain whose earlier link moved the host
+// (Fumble's bounce before its GainControl and Attach). The record lives until
+// the next state-based check drains it, which is when gorge's selector reads
+// it too. gorge's LastBearer outlives the drain (an Equipment that fell off a
+// host still names it when that host, the same ObjID, returns and is
+// targeted again); the kernel's does not, so that stale read is not modelled
+// (it is CR 400.7's new object). Cold: only an AttachedTo Targeted filter
+// over a departed target reaches it.
+//
+//go:noinline
+func (s *State) attachedToDeparted(q Slot, o Obj) bool {
+	return s.perms[q].attached == NoSlot && s.g.lingerM.has(q) && s.lingerObj(q) == o
+}

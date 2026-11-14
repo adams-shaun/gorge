@@ -11,6 +11,7 @@ Arcane Omens
 Archaic's Agony
 Ark of Hunger
 Arnyn, Deathbloom Botanist
+Artistic Process
 Ascendant Dustspeaker
 Aziza, Mage Tower Captain
 Banishing Betrayal
@@ -30,10 +31,12 @@ Chase Inspiration
 Cheerful Osteomancer
 Chelonian Tackle
 Colorstorm Stallion
+Colossus of the Blood Age
 Comforting Counsel
 Conciliator's Duelist
 Cost of Brilliance
 Cuboid Colony
+Daydream
 Deathcap Glade
 Decorum Dissertation
 Deluge Virtuoso
@@ -48,6 +51,7 @@ Eager Glyphmage
 Efflorescence
 Elemental Mascot
 Elite Interceptor
+Embrace the Paradox
 Emeritus of Abundance
 Emeritus of Conflict
 Emeritus of Ideation
@@ -59,6 +63,7 @@ End of the Hunt
 Ennis, Debate Moderator
 Environmental Scientist
 Erode
+Essence Scatter
 Essenceknit Scholar
 Eternal Student
 Exhibition Tidecaller
@@ -73,8 +78,11 @@ Forest
 Forum Necroscribe
 Forum of Amity
 Fractal Anomaly
+Fractal Mascot
+Fractal Tender
 Fractalize
 Garrison Excavator
+Geometer's Arthropod
 Germination Practicum
 Glorious Decay
 Goblin Glasswright
@@ -105,6 +113,7 @@ Kirol, History Buff
 Landscape Painter
 Last Gasp
 Lecturing Scornmage
+Leech Collector
 Living History
 Lluwen, Exchange Student
 Lorehold Charm
@@ -117,6 +126,7 @@ Matterbending Mage
 Melancholic Poet
 Mica, Reader of Ruins
 Mind Roots
+Mind into Matter
 Mindful Biomancer
 Molten Note
 Molten-Core Maestro
@@ -147,12 +157,15 @@ Practiced Offense
 Practiced Scrollsmith
 Primary Research
 Prismari Charm
+Prismari, the Inspiration
 Procrastinate
 Proctor's Gaze
 Professor Dellian Fel
+Pterafractyl
 Pull from the Grave
 Pursue the Past
 Quandrix Charm
+Quandrix, the Proof
 Quick Study
 Quill-Blade Laureate
 Rabid Attack
@@ -170,6 +183,7 @@ Scathing Shadelock
 Scheming Silvertongue
 Scolding Administrator
 Seize the Spoils
+Send in the Pest
 Shattered Acolyte
 Shattered Sanctum
 Shopkeeper's Bane
@@ -179,6 +193,7 @@ Skycoach Conductor
 Skycoach Waypoint
 Slumbering Trudge
 Snarl Song
+Sneering Shadewriter
 Snooping Page
 Soaring Stoneglider
 Social Snub
@@ -206,6 +221,7 @@ Sundown Pass
 Swamp
 Tablet of Discovery
 Tackle Artist
+Tam, Observant Sequencer
 Teacher's Pest
 Tenured Concocter
 Terramorphic Expanse
@@ -213,6 +229,7 @@ Tester of the Tangential
 Textbook Tabulator
 The Dawning Archaic
 Thornfist Striker
+Thunderdrum Soloist
 Titan's Grave
 Together as One
 Tome Blast
@@ -227,6 +244,7 @@ Vibrant Outburst
 Vicious Rivalry
 Wander Off
 Wild Hypothesis
+Wildgrowth Archaic
 Wilt in the Heat
 Wisdom of Ages
 Witherbloom Charm

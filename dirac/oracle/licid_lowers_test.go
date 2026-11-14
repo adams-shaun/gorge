@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"math/rand/v2"
 	"strings"
 	"testing"
@@ -34,11 +35,15 @@ import (
 // The mutation drops the Override from both Licids' programs, so the kernel
 // attaches a creature, and must diverge.
 func TestLicidLowers(t *testing.T) {
+	corpusDirOrSkip(t) // a fresh clone has no corpus: skip, as every lockstep sibling does
 	if isolate(t) {
 		return
 	}
 	t.Run("table", func(t *testing.T) {
 		set, err := cardset.RawByName("licid")
+		if errors.Is(err, cardset.ErrNoCorpus) {
+			t.Skip("no card corpus: " + err.Error())
+		}
 		if err != nil {
 			t.Fatal(err)
 		}

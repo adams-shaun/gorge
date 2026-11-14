@@ -189,13 +189,18 @@ def segments(lines):
     return segs
 
 
-def named_tests(lines, ranges):
+_PKGHOOK = re.compile(r"^func (TestMain|init)\(")
+
+
+def named_tests(lines, ranges, new=False):
     """The Test functions a set of changed line ranges lies in. Returns (names, whole): whole is True when
     a range touches anything that is not a Test function (a helper, an import, a type), so the package
-    must run whole. ranges None means a new file: every line changed."""
+    must run whole. ranges None means a new file: every line changed. A new file (ranges None, or new
+    True for one the diff adds) cannot change what an existing test does, so its package clause, imports
+    and helpers force nothing: its own Test functions run, and only a TestMain or init forces whole."""
     segs = segments(lines)
-    if ranges is None:
-        ranges = [(1, max(len(lines), 1))]
+    if new or ranges is None:
+        return sorted({t for _, _, t in segs if t}), any(_PKGHOOK.match(ln) for ln in lines)
     names, whole = [], False
     first = segs[0][0] if segs else len(lines) + 1
     for s, e in ranges:
@@ -246,7 +251,7 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     return out
 
 
-def plan(changes, dirmap, deps, lines_of, repro_names=None):
+def plan(changes, dirmap, deps, lines_of, repro_names=None, added=()):
     """What test-targeted runs.
 
     changes   {path: ranges}: the changed files; ranges is a list of (start, end) new-file line ranges,
@@ -255,6 +260,7 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None):
     deps      {import path: set of import paths} for every package that has a test binary
     lines_of  path -> lines of the file's current text
     repro_names  {import path: test names} the changed repro recordings' readers (repro_named), optional
+    added     paths the diff adds (status A or untracked), as opposed to modifies (added_files), optional
 
     Returns a list of (kind, package, regex): whole, named (regex must match), census (regex may match
     nothing). Package names are ./relative, as `go test` takes them. A package whose test helper, import or
@@ -275,13 +281,16 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None):
             if path.startswith(REPRO_DIR):
                 repro.add(p)  # read only by the repro table and lockstep tests
             elif "/testdata/" in "/" + path:
-                forced_whole.add(p)  # a fixture can move any test of the package
+                # a modified fixture can move any test of the package; a new one is read only by new tests,
+                # which a heavy package runs by name (a light package runs whole anyway)
+                if not (path in added and ("./" + rel[p] if rel[p] != "." else ".") in HEAVY):
+                    forced_whole.add(p)
             else:
                 src.add(p)
         elif not path.endswith("_test.go"):
             src.add(p)
         else:
-            names, whole = named_tests(lines_of(path), ranges)
+            names, whole = named_tests(lines_of(path), ranges, path in added)
             named.setdefault(p, set()).update(names)
             if whole:
                 forced_whole.add(p)
@@ -440,6 +449,14 @@ def diff_changes(base):
     return changes
 
 
+def added_files(base):
+    """The paths the working tree adds against the merge base with base: status A, plus untracked files."""
+    mb = sh("git", "merge-base", base, "HEAD").strip()
+    out = set(sh("git", "diff", "--name-only", "--diff-filter=A", mb).splitlines())
+    out.update(sh("git", "ls-files", "-o", "--exclude-standard").splitlines())
+    return out
+
+
 def read_lines(path):
     try:
         with open(path, errors="replace") as f:
@@ -451,7 +468,8 @@ def read_lines(path):
 def cmd_select(a):
     dirmap, deps = go_graph()
     changes = diff_changes(a.base)
-    res, skipped = plan(changes, dirmap, deps, read_lines, repro_named(changes, dirmap, read_lines))
+    res, skipped = plan(changes, dirmap, deps, read_lines, repro_named(changes, dirmap, read_lines),
+                       added_files(a.base))
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:

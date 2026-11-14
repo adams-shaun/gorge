@@ -43,10 +43,16 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ps.is("Duration", "UntilYourNextTurn") {
 		return lc.effectDmgMark(ps) // lower_effectdmgmark.go
 	}
+	if ps.is("Duration", "UntilHostLeavesPlayOrEOT") {
+		return lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
+	}
 	if _, ok := ps.get("Duration"); ok {
 		return refuse("Effect replacement Duration$")
 	}
 	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
+		return err
+	}
+	if ok, err := lc.effectDmgRedirectScope(ps); ok || err != nil { // lower_effectredirect.go
 		return err
 	}
 	if ok, err := lc.effectDmgDoubleBySource(ps); ok || err != nil { // lower_effectdmgmark.go
