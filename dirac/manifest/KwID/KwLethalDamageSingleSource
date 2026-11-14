@@ -1,0 +1,7 @@
+family: KwID
+name: KwLethalDamageSingleSource
+value: 107
+forge: CARDNAME can't be destroyed by lethal damage unless lethal damage dealt by a single source is marked on it.
+census: kw CARDNAME can't be destroyed by lethal damage unless lethal damage dealt by a single source is marked on it. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

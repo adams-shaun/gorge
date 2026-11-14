@@ -1,0 +1,7 @@
+family: key
+name: keyExerted
+value: 25
+forge: exerted
+census: key exerted classes=2 all=6
+state: slotbit 16
+status: reserved

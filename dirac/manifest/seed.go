@@ -50,7 +50,7 @@ type CensusRow struct {
 	Sole               int
 	Status             string // lowered, refused, co-refused or partial
 	StateCat, StateKey string
-	BytesDef, BytesMP  int
+	Bytes              int // in the default class
 }
 
 // ClassRow is one kgen refusal class of the research classes table, with the
@@ -59,16 +59,17 @@ type ClassRow struct {
 	Class              string
 	All, Std, MBC      int
 	StateCat, StateKey string
-	BytesDef, BytesMP  int
+	Bytes              int // in the default class
 }
 
 var (
-	censusHeader = []string{"kind", "item", "cards_all", "cards_std", "cards_mbc", "lowered_cards", "refused_naming_it", "sole_blocker", "status", "state_category", "state_key", "bytes_def", "bytes_mp"}
-	classHeader  = []string{"class", "cards_all", "cards_std", "cards_mbc", "state_category", "state_key", "bytes_def", "bytes_mp"}
+	censusHeader = []string{"kind", "item", "cards_all", "cards_std", "cards_mbc", "lowered_cards", "refused_naming_it", "sole_blocker", "status", "state_category", "state_key", "bytes_def"}
+	classHeader  = []string{"class", "cards_all", "cards_std", "cards_mbc", "state_category", "state_key", "bytes_def"}
 )
 
 // readTSV reads a headed TSV (gzip when it starts with the gzip magic) and
-// returns its rows after checking the header.
+// returns its rows after checking that the header starts with header. Columns
+// past those are ignored (the research tables end with a retired bytes_mp).
 func readTSV(name string, r io.Reader, header []string) ([][]string, error) {
 	br := bufio.NewReader(r)
 	if magic, err := br.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
@@ -84,16 +85,17 @@ func readTSV(name string, r io.Reader, header []string) ([][]string, error) {
 		return nil, fmt.Errorf("%s: %v", name, err)
 	}
 	lines := strings.Split(strings.TrimSuffix(string(raw), "\n"), "\n")
-	if got := strings.Join(strings.Split(lines[0], "\t"), " "); got != strings.Join(header, " ") {
-		return nil, fmt.Errorf("%s: header %q, want %q", name, got, strings.Join(header, " "))
+	cols := strings.Split(lines[0], "\t")
+	if len(cols) < len(header) || strings.Join(cols[:len(header)], " ") != strings.Join(header, " ") {
+		return nil, fmt.Errorf("%s: header %q, want %q first", name, strings.Join(cols, " "), strings.Join(header, " "))
 	}
 	var rows [][]string
 	for i, l := range lines[1:] {
 		f := strings.Split(l, "\t")
-		if len(f) != len(header) {
-			return nil, fmt.Errorf("%s:%d: %d fields, want %d", name, i+2, len(f), len(header))
+		if len(f) != len(cols) {
+			return nil, fmt.Errorf("%s:%d: %d fields, want %d", name, i+2, len(f), len(cols))
 		}
-		rows = append(rows, f)
+		rows = append(rows, f[:len(header)])
 	}
 	return rows, nil
 }
@@ -120,7 +122,7 @@ func ReadCensus(name string, r io.Reader) ([]CensusRow, error) {
 	for i, f := range rows {
 		c := &out[i]
 		c.Kind, c.Item, c.Status, c.StateCat, c.StateKey = f[0], f[1], f[8], f[9], f[10]
-		if err := atois(name, i+2, append(f[2:8:8], f[11], f[12]), &c.All, &c.Std, &c.MBC, &c.Lowered, &c.Refusals, &c.Sole, &c.BytesDef, &c.BytesMP); err != nil {
+		if err := atois(name, i+2, append(f[2:8:8], f[11]), &c.All, &c.Std, &c.MBC, &c.Lowered, &c.Refusals, &c.Sole, &c.Bytes); err != nil {
 			return nil, err
 		}
 	}
@@ -137,7 +139,7 @@ func ReadClasses(name string, r io.Reader) ([]ClassRow, error) {
 	for i, f := range rows {
 		c := &out[i]
 		c.Class, c.StateCat, c.StateKey = f[0], f[4], f[5]
-		if err := atois(name, i+2, []string{f[1], f[2], f[3], f[6], f[7]}, &c.All, &c.Std, &c.MBC, &c.BytesDef, &c.BytesMP); err != nil {
+		if err := atois(name, i+2, []string{f[1], f[2], f[3], f[6]}, &c.All, &c.Std, &c.MBC, &c.Bytes); err != nil {
 			return nil, err
 		}
 	}
@@ -280,7 +282,7 @@ func PlanSeed(t *Tree, census []CensusRow, classes []ClassRow, aliases []Alias, 
 		cands = append(cands, &candidate{
 			kind: r.Kind, item: r.Item, family: fam, all: r.All,
 			census: fmt.Sprintf("%s %s all=%d std=%d mbc=%d sole=%d", r.Kind, r.Item, r.All, r.Std, r.MBC, r.Sole),
-			state:  stateLine(r.StateCat, r.StateKey, r.BytesDef, r.BytesMP),
+			state:  stateLine(r.StateCat, r.StateKey, r.Bytes),
 			status: statusFor(r.StateCat, r.StateKey),
 		})
 	}
@@ -385,9 +387,13 @@ func PlanSeed(t *Tree, census []CensusRow, classes []ClassRow, aliases []Alias, 
 			errs = append(errs, fmt.Errorf("%s %q: no free %s value in [%d,%d]", c.kind, c.item, f.Name, f.Alloc.Lo, f.Alloc.Hi))
 			continue
 		}
+		st := c.status
+		if f.Cover > 0 && got >= f.Cover && st.Kind == Reserved {
+			st = Status{Kind: Deferred, Why: CoverWhy}
+		}
 		e := &Entry{
 			Path: Dir + "/" + f.Name + "/" + names[i], Family: f.Name, Name: names[i], Value: got,
-			Forge: []string{c.item}, Census: c.census, State: c.state, Status: c.status,
+			Forge: []string{c.item}, Census: c.census, State: c.state, Status: st,
 		}
 		e.raw = e.Format()
 		held[f.Name].add(f, got, e.Path)
@@ -418,7 +424,7 @@ func keyCandidates(classes []ClassRow, inCensus map[string]bool) []*candidate {
 		if k == nil {
 			k = &candidate{
 				kind: keyKind, item: c.StateKey, family: "key",
-				state:  stateLine(c.StateCat, "", c.BytesDef, c.BytesMP),
+				state:  stateLine(c.StateCat, "", c.Bytes),
 				status: Status{Kind: Reserved},
 			}
 			byKey[c.StateKey] = k
@@ -448,9 +454,9 @@ func boundedState(cat string) bool {
 	return true
 }
 
-// stateLine is an entry's state line: the category, its bytes in the
-// default and four-seat classes, and the research's State key.
-func stateLine(cat, key string, def, mp int) string {
+// stateLine is an entry's state line: the category, its bytes, and the
+// research's State key.
+func stateLine(cat, key string, bytes int) string {
 	var s string
 	switch cat {
 	case "code":
@@ -458,7 +464,7 @@ func stateLine(cat, key string, def, mp int) string {
 	case "unbounded", "objspace":
 		s = cat
 	default:
-		s = fmt.Sprintf("%s %d/%d", cat, def, mp)
+		s = fmt.Sprintf("%s %d", cat, bytes)
 	}
 	if key != "" && !strings.Contains(key, ":") {
 		s += " (" + key + ")"

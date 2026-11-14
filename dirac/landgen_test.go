@@ -69,8 +69,8 @@ func landgenProblems(root string, rows []landgenRow) (bad, absent []string) {
 			}
 			switch {
 			case r.generator == "-":
-				if !strings.HasSuffix(f, "_test.go") {
-					bad = append(bad, fmt.Sprintf("%s: %s has generator \"-\", which only a Go test source of pins may", at, f))
+				if !strings.HasSuffix(f, "_test.go") && !(strings.Contains(f, "/testdata/") && strings.HasSuffix(f, ".tsv")) {
+					bad = append(bad, fmt.Sprintf("%s: %s has generator \"-\", which only a Go test source of pins or a headerless testdata TSV a test rewrites may", at, f))
 				}
 			case !strings.Contains(string(b[:min(len(b), 2048)]), r.generator):
 				bad = append(bad, fmt.Sprintf("%s: %s's header does not name its generator %q", at, f, r.generator))

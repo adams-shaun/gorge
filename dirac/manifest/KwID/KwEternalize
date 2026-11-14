@@ -1,0 +1,7 @@
+family: KwID
+name: KwEternalize
+value: 72
+forge: Eternalize
+census: kw Eternalize all=12 std=0 mbc=0 sole=9
+state: code 0
+status: reserved

@@ -4,6 +4,102 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// key named card (dirac/manifest/key/keyNamedCard)
+const keyNamedCard key = 0
+
+// key phasing (dirac/manifest/key/keyPhasing)
+const keyPhasing key = 1
+
+// key soulbond (dirac/manifest/key/keySoulbond)
+const keySoulbond key = 2
+
+// key mutate (dirac/manifest/key/keyMutate)
+const keyMutate key = 3
+
+// key dungeon (dirac/manifest/key/keyDungeon)
+const keyDungeon key = 4
+
+// key intensity (dirac/manifest/key/keyIntensity)
+const keyIntensity key = 5
+
+// key stickers (dirac/manifest/key/keyStickers)
+const keyStickers key = 6
+
+// key ring (dirac/manifest/key/keyRing)
+const keyRing key = 7
+
+// key banding (dirac/manifest/key/keyBanding)
+const keyBanding key = 8
+
+// key stored svar (dirac/manifest/key/keyStoredSvar)
+const keyStoredSvar key = 9
+
+// key must-block target (dirac/manifest/key/keyMustBlockTarget)
+const keyMustBlockTarget key = 10
+
+// key devoured (dirac/manifest/key/keyDevoured)
+const keyDevoured key = 11
+
+// key day/night (dirac/manifest/key/keyDayNight)
+const keyDayNight key = 12
+
+// key die result (dirac/manifest/key/keyDieResult)
+const keyDieResult key = 13
+
+// key crewed (dirac/manifest/key/keyCrewed)
+const keyCrewed key = 14
+
+// key pt switch (dirac/manifest/key/keyPtSwitch)
+const keyPtSwitch key = 15
+
+// key blitz (dirac/manifest/key/keyBlitz)
+const keyBlitz key = 16
+
+// key rad (dirac/manifest/key/keyRad)
+const keyRad key = 17
+
+// key cipher (dirac/manifest/key/keyCipher)
+const keyCipher key = 18
+
+// key champion (dirac/manifest/key/keyChampion)
+const keyChampion key = 19
+
+// key detain (dirac/manifest/key/keyDetain)
+const keyDetain key = 20
+
+// key skip turn (dirac/manifest/key/keySkipTurn)
+const keySkipTurn key = 21
+
+// key haunt (dirac/manifest/key/keyHaunt)
+const keyHaunt key = 22
+
+// key control player (dirac/manifest/key/keyControlPlayer)
+const keyControlPlayer key = 23
+
+// key direction (dirac/manifest/key/keyDirection)
+const keyDirection key = 24
+
+// key exerted (dirac/manifest/key/keyExerted)
+const keyExerted key = 25
+
+// key chosen even/odd (dirac/manifest/key/keyChosenEvenOdd)
+const keyChosenEvenOdd key = 26
+
+// key vote (dirac/manifest/key/keyVote)
+const keyVote key = 27
+
+// key saddled (dirac/manifest/key/keySaddled)
+const keySaddled key = 28
+
+// key sector (dirac/manifest/key/keySector)
+const keySector key = 29
+
+// key foretold (dirac/manifest/key/keyForetold)
+const keyForetold key = 30
+
+// key solved (dirac/manifest/key/keySolved)
+const keySolved key = 31
+
 // mech (dirac/manifest/mech/mechGoad0)
 //
 // goad[0]: slots whose permanent player 0 goaded (CR 701.15; act_goad.go)

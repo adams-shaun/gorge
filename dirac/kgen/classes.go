@@ -45,6 +45,9 @@ func refusalClasses(reason string) []string {
 			r = r[len(m[0]):]
 		}
 	}
+	if strings.HasPrefix(r, "manifest:") { // the manifest guard (manifest_guard.go)
+		return []string{strings.Fields(r)[0]}
+	}
 	if strings.HasPrefix(r, "multi-face card") {
 		return []string{"faces"}
 	}

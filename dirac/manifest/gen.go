@@ -59,7 +59,7 @@ func Generate(t *Tree) (map[string][]byte, error) {
 			fmt.Fprintf(out, "//\n// %s\n", e.Doc)
 		}
 		fmt.Fprintf(out, "const %s %s = %s\n", e.Name, f.Name, genValue(e))
-		if f.register != nil {
+		if f.register != nil && (f.Cover == 0 || e.Value < f.Cover) {
 			out.WriteString(genInit(f.register(e)))
 		}
 		if f.Kgen != "" {

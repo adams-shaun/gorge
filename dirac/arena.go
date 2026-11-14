@@ -18,6 +18,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // so a pool's index assignment changes only when it uses a new mechanic.
 type mech uint8
 
+// key names one bounded State key of the keyed arena: a manifest ID
+// (dirac/manifest/key/<name>, generated into manifest_gen.go), fixed for all
+// time and costing no State bytes until a pool's cards use it. The keyed
+// arena's width classes that give a used key its bytes are later work; until
+// then every key entry is reserved and nothing reads one.
+type key uint16
+
 // goadMechs names each seat's goad mech in seat order: mechGoad0 and
 // mechGoad1 first, mechGoad2 and mechGoad3 appended past mechAtch3, so the
 // per-seat goad mech cannot be read by arithmetic off mechGoad0.

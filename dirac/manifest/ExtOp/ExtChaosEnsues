@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtChaosEnsues
+value: 37
+forge: ChaosEnsues
+census: api ChaosEnsues all=11 std=0 mbc=0 sole=0
+state: objspace (planechase)
+status: blocked objspace:tcode

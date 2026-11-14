@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigAbandoned
+value: 104
+forge: Abandoned
+census: trig Abandoned all=1 std=0 mbc=0 sole=0
+state: objspace (archenemy)
+status: blocked objspace:tcode

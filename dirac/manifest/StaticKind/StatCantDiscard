@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCantDiscard
+value: 49
+forge: CantDiscard
+census: stat CantDiscard all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -3,6 +3,12 @@ package kop
 // KwMask is a set of keyword abilities. Bits are append-only.
 type KwMask uint32
 
+// KwID names one keyword. 0..31 are KwMask's bit positions, with no
+// constants of their own; the manifest's keywords (dirac/manifest/KwID,
+// generated into manifest_gen.go) take 32 and up. KwMask is full, so a new
+// keyword is a KwID, granted through the arena rather than a mask bit.
+type KwID uint16
+
 const (
 	KwFlying KwMask = 1 << iota
 	KwReach
