@@ -271,6 +271,16 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// src is that source, and seat 1's record names it, so the qualifier is
 	// judged with a real binding -- the shape an Actual ask resolves.
 	src := e.G.AddObject(e.G.Obj(e.G.Zone(state.ZLibrary, 0)[0]).Card, 0)
+	// The Oath cycle's Player.OpponentToActive+<...>ThanActive specs compare
+	// a seat with the ACTIVE player (seat 0); seat 1 is given strictly more
+	// creatures, lands, hand cards and life, and seat 0 strictly more
+	// creature cards in its graveyard, so each is judged on its comparison
+	// rather than on the opening position's tie.
+	onBoardCard(t, e, 1, corpusCard(t, "Grizzly Bears"))
+	onBoardCard(t, e, 1, corpusCard(t, "Forest"))
+	putInHand(t, e, 1, corpusCard(t, "Grizzly Bears"))
+	e.G.Players[1].Life = e.G.Players[0].Life + 5
+	moveToGraveyard(t, e, putInHand(t, e, 0, corpusCard(t, "Grizzly Bears")))
 	e.G.Players[1].DamageTakenByGame = append(e.G.Players[1].DamageTakenByGame, src.ID)
 	sc := effects.SpecContext{You: 0, Source: src.ID}
 	sc.TriggerContext.TriggerActivator = state.Target{Player: 1, IsPlayer: true}
@@ -304,16 +314,16 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// the source-anchored negation is evaluable here; unbound it fails closed
 	// (Crown of Doom's real offer binds one, TestCrownOfDoomTargetsANonOwner).
 	wantOffered := []string{"Any", "Any.!EnchantedBy", "Any.NotDefinedParentTarget,Player", "Opponent", "Opponent.wasDealtDamageThisGameBy Self", "Player",
-		"Player.!CardOwner", "Player.!EnchantedBy", "Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other"}
-	wantFailClosed := []string{
-		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander", "Any.wasDealtDamageThisTurn",
-		"Player.LostLifeThisTurn",
-		"Player.Opponent+Active",
+		"Player.!CardOwner", "Player.!EnchantedBy", "Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent",
 		"Player.OpponentToActive+hasFewerCreaturesInYardThanActive",
 		"Player.OpponentToActive+hasMoreCardsInHandThanActive",
 		"Player.OpponentToActive+hasMoreLifeThanActive",
 		"Player.OpponentToActive+withMoreCreaturesThanActive",
-		"Player.OpponentToActive+withMoreLandsThanActive",
+		"Player.OpponentToActive+withMoreLandsThanActive", "Player.Other"}
+	wantFailClosed := []string{
+		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander", "Any.wasDealtDamageThisTurn",
+		"Player.LostLifeThisTurn",
+		"Player.Opponent+Active",
 		"Player.attackedWithCreaturesThisTurn",
 		"Player.wasDealtCombatDamageThisTurnBySource",
 		"Player.wasDealtDamageThisTurnBySource",

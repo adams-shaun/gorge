@@ -128,6 +128,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.chosenNumberOfFor(ctx.src, ctx.srcSl) // repl_choosenumber.go
 	case kop.ExUnlockedDoors:
 		return s.unlockedDoors(k, ctx.ctrl) // value_countheads.go
+	case kop.ExCmdGreatestMV:
+		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
 	case kop.ExRevolt:
 		if s.revoltHolds(ctx.ctrl) { // zone_leftzonering.go
 			return 1
