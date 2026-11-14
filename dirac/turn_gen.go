@@ -739,6 +739,9 @@ func (s *State) cleanupGen(k *prep) {
 		s.cgClear()       // static_colourgrant.go
 		s.colProtClear(k) // static_colourprot.go
 	}
+	if k.gen.anyKwMark {
+		s.kwMarkClear(k) // kw_kwmark.go
+	}
 	if k.gen.anyDmgMark {
 		s.dmgMarkEnd() // Duration$ UntilYourNextTurn (repl_dmgmark.go)
 	}
@@ -1227,7 +1230,7 @@ func (s *State) leylineStart(k *prep) bool {
 		return false
 	}
 	s.g.leyDn = true
-	if !s.hasLeyline(k, 0) && !s.hasLeyline(k, 1) {
+	if !s.anyLeyline(k) {
 		return false
 	}
 	s.g.leyP = s.startPl
@@ -1236,6 +1239,17 @@ func (s *State) leylineStart(k *prep) bool {
 	s.g.ctlRet = ctlStepBegin
 	s.ctl = ctlGenAsk
 	return true
+}
+
+// anyLeyline reports whether any seat holds a Leyline in its opening hand:
+// gorge's opening round asks every seat (AliveFrom the starting player).
+func (s *State) anyLeyline(k *prep) bool {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.hasLeyline(k, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) hasLeyline(k *prep, p uint8) bool {

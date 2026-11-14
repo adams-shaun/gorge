@@ -1,0 +1,25 @@
+# the Mode$ Unattached Equipment pool (gorge, CR 701.3b/d): Captain's Hook,
+# Grafted Wargear and Stitcher's Graft (Grafted Exoskeleton stays refused for
+# Infect), cheap creatures to equip and re-equip, Lightning Bolt and Doom
+# Blade to kill a bearer, Disenchant and Shatter to destroy the Equipment
+# itself, Karn's Touch to animate a carrier (the CR 704.5p arm) and
+# Ephemerate to bounce a bearer (the queued bearer-left detach publishes
+# after the return), for the oracle's constructed lockstep
+# (dirac/oracle/unattachequip_lowers_test.go)
+Captain's Hook
+Grafted Wargear
+Stitcher's Graft
+Karn's Touch
+Ephemerate
+Memnite
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Lightning Bolt
+Doom Blade
+Disenchant
+Shatter
+Plains
+Swamp
+Mountain
+Forest

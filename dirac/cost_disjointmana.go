@@ -29,7 +29,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 	}
 	if s.scriptRestr(k, p).has(sl) {
 		if k.gen.has(c, gfDeferred) {
-			a.addUnits(1<<kop.R, 1)
+			a.addUnits(1<<k.deferCol(c), 1)
 		} else {
 			ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 			a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))

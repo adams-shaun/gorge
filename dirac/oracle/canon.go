@@ -272,6 +272,10 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 				src = Ref(n) // two names that hash alike stay two options
 			}
 			return Pack(k, src, Ref(h>>8), uint8(h)), true
+		case "changetext_from", "changetext_to":
+			// gorge effChangeText's word picks: the word's index, colours
+			// WUBRG 0..4, basic land types 5..9 (the kernel's ChGenTextWord)
+			mode = changeTextWord(o.Label)
 		case "type", "creature_type", "land_type":
 			// A label-valued choice: the option order is state-dependent
 			// (rules.creatureTypeOptions puts the chooser's own types first),

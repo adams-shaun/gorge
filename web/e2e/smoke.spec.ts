@@ -1591,11 +1591,17 @@ async function visible(l: Locator): Promise<boolean> {
 
 /**
  * playFromHand hovers a hand card, which raises it above its neighbours, clicks one of its
- * controls and reports whether the hand shrank. The game may have moved on since the control was
- * drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ * controls and reports whether that card left the hand. The game may have moved on since the
+ * control was drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ *
+ * The card is followed by its object id, never by the hand's size: a seat with nothing else to do
+ * passes on unseen (the ManaBrew compat rule) and can reach its next draw before the first poll,
+ * which puts the count back where it started although the card was played.
  */
 async function playFromHand(page: Page, hand: Locator, card: Locator, action: () => Promise<Locator>): Promise<boolean> {
-  const before = await hand.count();
+  const obj = await card.getAttribute('data-obj', { timeout: 2_000 }).catch(() => null);
+  if (obj === null) return false;
+  const played = page.locator(`.handfan [data-obj="${obj}"]`);
   try {
     await card.hover({ position: { x: 2, y: 8 }, timeout: 2_000 });
     await (await action()).click({ timeout: 2_000 });
@@ -1608,8 +1614,8 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
   const pay = page.locator(PAYMENT_ANSWERS);
   return expect.poll(async () => {
     if (await visible(pay)) await pay.first().click({ timeout: 2_000 }).catch(() => {});
-    return hand.count();
-  }, { timeout: 5_000 }).toBe(before - 1).then(() => true, () => false);
+    return played.count();
+  }, { timeout: 5_000 }).toBe(0).then(() => true, () => false);
 }
 
 /**
@@ -1675,6 +1681,9 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
     } else if (!land && (await visible(landCard))) {
       did.push('land');
       const before = await hand.count();
+      // The land itself must come back: a count alone is fooled by a draw, since the client may
+      // pass on into the next turn before the undo lands, and each undo then takes back one pass.
+      const played = page.locator(`.handfan [data-obj="${await landCard.getAttribute('data-obj')}"]`);
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
         if (undone) {
           land = true;
@@ -1690,13 +1699,13 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
             if ((await visible(asked)) && undos !== 1) {
               await answerOpenAsk(page);
               undos = 0;
-              return -1;
+              return false;
             }
             undos++;
             await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).catch(() => {});
             await page.waitForTimeout(500);
-            return hand.count();
-          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(before);
+            return (await played.count()) > 0 && (await hand.count()) >= before;
+          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
           undone = true;
         }
       }

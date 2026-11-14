@@ -467,6 +467,16 @@ type TriggerContext struct {
 	// outside an AttackersDeclared capture (a hand-built context reads a
 	// legitimate zero, never a Remembered fallback).
 	TriggerAttackers []state.ObjID
+	// TriggerAttackedPlayers is the distinct players being attacked by the
+	// declaration that fired a Mode$ AttackersDeclared trigger, in declaration
+	// order (a planeswalker's or battle's attack names its controller or
+	// protector, CR 506.3d). It is what the count ref
+	// TriggeredPlayersAttackedTarget$Amount reads (Commander Liara Portyr's
+	// SVar:X). Rules binds it at the queue point from the declaration scratch,
+	// falling back to the event's one defender; empty outside an
+	// AttackersDeclared capture. Not serialized into events.Event; pushTrigger
+	// re-derives it on replay like TriggerAttackers.
+	TriggerAttackedPlayers []state.PlayerID
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"

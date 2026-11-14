@@ -319,18 +319,27 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 // no bound defending player (an event other than an attack declaration)
 // stalls (StallDefenderPW). NoTarget: none.
 func (s *State) enterDefenderFallback(k *prep, p uint8) TCode {
+	fb, unbound := s.enterDefenderFallbackOf(k, p)
+	if unbound {
+		s.capFull(StallDefenderPW)
+	}
+	return fb
+}
+
+// enterDefenderFallbackOf is enterDefenderFallback without the stall:
+// unbound reports the trigger with no bound defending player (fb NoTarget).
+func (s *State) enterDefenderFallbackOf(k *prep, p uint8) (fb TCode, unbound bool) {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
 		if e.defSeat != 0 {
-			return PlayerCode(e.defSeat - 1)
+			return PlayerCode(e.defSeat - 1), false
 		}
-		s.capFull(StallDefenderPW)
-		return TCode(NoTarget)
+		return TCode(NoTarget), true
 	}
 	var buf [MaxOptions]TCode
 	if s.enteringDefenderCands(k, p, &buf) == 0 {
-		return TCode(NoTarget)
+		return TCode(NoTarget), false
 	}
-	return buf[0]
+	return buf[0], false
 }
 
 // enterDefenderOrder puts fb first among the n candidates in buf, as gorge's

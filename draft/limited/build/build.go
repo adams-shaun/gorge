@@ -17,10 +17,11 @@ import (
 // Basics array uses.
 var BasicNames = [5]string{"Plains", "Island", "Swamp", "Mountain", "Forest"}
 
-// MaxBasicsPerType is the most copies of one basic land type a built deck may
-// carry. MTR 7.1 imposes no maximum — basics are free and unlimited — so this
-// is a hosting bound: it caps an untrusted build request before the count can
-// reach the engine or the deck file.
+// MaxBasicsPerType is the most copies of one basic land type a built limited
+// deck may carry. MTR 7.1 imposes no maximum — basics are free and unlimited —
+// so this is a hosting bound: it caps an untrusted build request before the
+// count can reach the engine or the deck file. A Commander-draft deck's bound
+// is MaxDeckSize (ValidateCommanderSize).
 const MaxBasicsPerType = 40
 
 // MaxDeckSize is the most cards a built deck may contain, maindeck plus
@@ -83,7 +84,7 @@ func Validate(pool []limited.CardRef, d Deck) error {
 	if len(d.Commanders) > 0 {
 		return fmt.Errorf("build: a limited deck names no commanders")
 	}
-	return validate(pool, d, 40)
+	return validate(pool, d, 40, MaxBasicsPerType)
 }
 
 // ValidateCommander checks a Commander-draft deck against its pool with the
@@ -124,18 +125,22 @@ func ValidateCommanderSize(pool []limited.CardRef, d Deck, minSize int) error {
 			return fmt.Errorf("build: commander %q is not in the main deck", id)
 		}
 	}
-	return validate(pool, d, minSize)
+	return validate(pool, d, minSize, MaxDeckSize)
 }
 
 // validate is the shared body of Validate and ValidateCommanderSize, with
-// the deck's minimum size.
-func validate(pool []limited.CardRef, d Deck, minSize int) error {
+// the deck's minimum size and the most copies of one basic it may carry. A
+// Commander-draft deck's bound is MaxDeckSize, the total's own: a 100-card
+// deck built from one draft's pool is mostly basics (MBC at 100 cards: 44 to
+// 66 of them, more than 40 of one type in a mono-coloured deck), and the
+// total cap already bounds every count.
+func validate(pool []limited.CardRef, d Deck, minSize, perType int) error {
 	for i, n := range d.Basics {
 		if n < 0 {
 			return fmt.Errorf("build: %s count %d is negative", BasicNames[i], n)
 		}
-		if n > MaxBasicsPerType {
-			return fmt.Errorf("build: %s count %d exceeds the %d-per-type limit", BasicNames[i], n, MaxBasicsPerType)
+		if n > perType {
+			return fmt.Errorf("build: %s count %d exceeds the %d-per-type limit", BasicNames[i], n, perType)
 		}
 	}
 	inPool := make(map[string]struct{}, len(pool))
