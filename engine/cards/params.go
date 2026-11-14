@@ -890,6 +890,9 @@ const (
 	// stable.
 	PKManaSpent
 	PKManaNotSpent
+	// PKValidAfterStack is ValidAfterStack$ (Keeper of the Dead's activation-
+	// time target filter). Appended: earlier ordinals stay stable.
+	PKValidAfterStack
 	paramKeyCount
 )
 
@@ -1709,6 +1712,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKXColor:                           "XColor",
 	PKManaSpent:                        "ManaSpent",
 	PKManaNotSpent:                     "ManaNotSpent",
+	PKValidAfterStack:                  "ValidAfterStack",
 }
 
 // String is the key's Forge text.

@@ -264,8 +264,7 @@ import (
 // +2 (Mind Bend and Whim of Volrath: a GenericChoice whose DB$ ChangeText bodies lower to ExtChangeText; ALL build-level merged against land 23728 -> 23730 measured).
 // +17 (Level up lowers (CR 702.87a): kwLevelUp's PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band as two Self presence tests, the 17 cards named in ratchet_test.go's MBC pin; ALL build-level 23253 -> 23270 measured).
 // +41 (this branch's lowerings merged against land 23802 -> 23843 measured; MBC 1814 -> 1820).
-// +8 (DealDamage NoPrevention$ True lowered: Arrow Storm, Combust, Lightning Surge, Pinpoint Avalanche, Urza's Rage; a self-ETB trigger body's ConditionManaSpent$/ConditionManaNotSpent$ lowered: Azorius Herald, Ogre Savant, Steamcore Weird; ALL build-level merged against land 23968 -> 23976 measured).
-var buildAcceptancePin = [2]int{23976, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{24011, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)

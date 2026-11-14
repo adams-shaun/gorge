@@ -154,11 +154,10 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (a GenericChoice whose bodies are DB$ ChangeText lowers to OpExt ExtChangeText, a no-op unless the target face reads the from word: Mind Bend and Whim of Volrath; ALL merged against land 23728 -> 23730, MBC 1797 -> 1798 (Mind Bend) measured).
 	// +17 (Level up lowers (CR 702.87a): kwLevelUp's sorcery-speed PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band IsPresent$ Card.Self+counters_GEa_LEVEL+counters_LEb_LEVEL as two Self presence tests: Brimstone Mage, Caravan Escort, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Hedron Field Purists, Ikiral Outrider, Joraga Treespeaker, Kargan Dragonlord, Kazandu Tuskcaller, Knight of Cliffhaven, Nirkana Cutthroat, Null Champion, Skywatcher Adept, Student of Warfare, Transcendent Master, Under Construction Skyscraper; ALL 23253 -> 23270, MBC 1678 -> 1683 measured).
 	// +41 (this branch's lowerings merged against land 23802 -> 23843 measured).
-	// +8 (DealDamage NoPrevention$ True lowered, kop.DmgNoPrevention: Arrow Storm, Combust, Lightning Surge, Pinpoint Avalanche, Urza's Rage; a self-ETB trigger body's ConditionManaSpent$/ConditionManaNotSpent$ lowered as an ExAdamant read: Azorius Herald, Ogre Savant, Steamcore Weird; ALL merged against land 23968 -> 23976, MBC 1854 -> 1856 measured).
-	"ALL": {23976, 34442},
+	"ALL": {24011, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
-	"BRO": {221, 280},
+	"BRO": {238, 280},
 	"DFT": {255, 276},
 	"DMU": {200, 270},
 	"DSK": {251, 276},
@@ -175,7 +174,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
 	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// MBC +5 (Level up: Enclave Cryptologist, Knight of Cliffhaven, Joraga Treespeaker, Nirkana Cutthroat, Hada Spy Patrol; 1678 -> 1683).
-	"MBC": {1856, 2195},
+	"MBC": {1859, 2195},
 	"MKM": {252, 279},
 	"MOM": {205, 296},
 	"MSH": {247, 276},

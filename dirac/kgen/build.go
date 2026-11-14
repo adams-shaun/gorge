@@ -432,6 +432,9 @@ var counterKinds = map[string]kop.CounterKind{
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
 	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
+	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
+	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
+	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -2393,7 +2396,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
 	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
-	cBlessing: kop.CondBlessing}
+	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
