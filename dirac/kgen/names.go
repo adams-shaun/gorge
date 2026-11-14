@@ -72,7 +72,8 @@ func init() {
 		"kop.TrigBecomeMonstrous", kop.TrigBecomeMonstrous, "kop.TrigTurnFaceUp", kop.TrigTurnFaceUp, "kop.TrigTransformed", kop.TrigTransformed, "kop.TrigCommitCrime", kop.TrigCommitCrime, "kop.TrigUnlockDoor", kop.TrigUnlockDoor, "kop.TrigFullyUnlock", kop.TrigFullyUnlock,
 		"kop.TrigBecomesPlotted", kop.TrigBecomesPlotted, "kop.TrigBecomesSaddled", kop.TrigBecomesSaddled, "kop.TrigAttached", kop.TrigAttached, "kop.TrigDiscardedAll", kop.TrigDiscardedAll, "kop.TrigAbilityCast", kop.TrigAbilityCast, "kop.TrigScry", kop.TrigScry, "kop.TrigSurveil", kop.TrigSurveil, "kop.TrigExplores", kop.TrigExplores, "kop.TrigCollectEvidence", kop.TrigCollectEvidence, "kop.TrigExploited", kop.TrigExploited,
 		"kop.TrigLandPlayed", kop.TrigLandPlayed, "kop.TrigSearchedLibrary", kop.TrigSearchedLibrary, "kop.TrigForage", kop.TrigForage, "kop.TrigDiscover", kop.TrigDiscover,
-		"kop.TrigManifestDread", kop.TrigManifestDread, "kop.TrigEvolved", kop.TrigEvolved)
+		"kop.TrigManifestDread", kop.TrigManifestDread, "kop.TrigEvolved", kop.TrigEvolved,
+		"kop.TrigUnattached", kop.TrigUnattached)
 	enum[kop.StaticKind]("kop.StatNone", kop.StatNone, "kop.StatContinuous", kop.StatContinuous,
 		"kop.StatReduceCost", kop.StatReduceCost, "kop.StatCantBlock", kop.StatCantBlock, "kop.StatCantBlockBy", kop.StatCantBlockBy,
 		"kop.StatAlternativeCost", kop.StatAlternativeCost, "kop.StatCastWithFlash", kop.StatCastWithFlash,
@@ -170,7 +171,7 @@ func init() {
 		"kop.CtrInvasion", kop.CtrInvasion, "kop.CtrLoot", kop.CtrLoot, "kop.CtrRev", kop.CtrRev, "kop.CtrPage", kop.CtrPage,
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
-		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage, "kop.CtrScream", kop.CtrScream, "kop.CtrTreasure", kop.CtrTreasure, "kop.CtrTask", kop.CtrTask,
+		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage, "kop.CtrScream", kop.CtrScream, "kop.CtrTreasure", kop.CtrTreasure, "kop.CtrTask", kop.CtrTask, "kop.CtrLevelUp", kop.CtrLevelUp,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive, "kop.WhoseChosen", kop.WhoseChosen)

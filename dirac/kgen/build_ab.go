@@ -803,7 +803,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Targets[i], err = cb.target(t); err != nil {
 			return ka, err
 		}
-		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell && !xCountActivatedOK(a, &ka) {
+		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell && !a.Cost.LoyaltyX && !xCountActivatedOK(a, &ka) {
 			return ka, fmt.Errorf("target count X..X outside a spell")
 		}
 		if t.Mode >= 0 {
@@ -1138,8 +1138,9 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
-	"Evolved":          kop.TrigEvolved,  // the source's own, after its evolve counter lands
-	"Attached":         kop.TrigAttached} // the attachment's own, Creature bearer (Assimilation Aegis) // the Mount's own
+	"Evolved":          kop.TrigEvolved,    // the source's own, after its evolve counter lands
+	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
+	"Unattached":       kop.TrigUnattached} // the attachment's own, the FORMER BEARER (Captain's Hook family)
 
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var kt kop.Trigger

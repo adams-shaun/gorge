@@ -85,6 +85,16 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
 		// reads off the trigger object
 		return lRef{Kind: rTriggeredOwner}, nil
+	case "TriggeredObject", "TriggeredObjectLKICopy":
+		// gorge definedSpecTriggeredObject(LKICopy) reads the OBJECT that
+		// caused the trigger: for Mode$ Unattached (the Captain's Hook
+		// family) the FORMER BEARER the queue binds from the event's ID
+		// list (gorge trigger_match.go triggerRemembered's Unattached arm),
+		// not the event's Obj (the attachment). The kernel's trigger entry
+		// carries it as RefTriggerObj, with the queue-time LKI snapshot the
+		// referent reads on the bearer-left path (CR 608.2h: a dead bearer
+		// is a no-op, as gorge's LKI reference is)
+		return lRef{Kind: rTriggered}, nil
 	case "TriggeredAttacker", "TriggeredAttackerLKICopy":
 		// gorge binds the one attacker that raised the event: an Attacks
 		// trigger queues one trigger per matching attacker
@@ -806,8 +816,13 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
 		// the present group to decide). H.M.S. Bounty: ConditionPresent$
 		// Whale.YouCtrl with Count$YourExtraTurns EQ0; Abzan Beastmaster:
-		// Creature.YouCtrl with YourTough GEOppsTough. The extra-turn count
-		// is read only against zero.
+		// Creature.YouCtrl with YourTough GEOppsTough; Triumph of Ferocity:
+		// YourFerocity GE OppsFerocity, the two Count$Valid
+		// <creatures>$GreatestCardPower aggregates. The SVar gate lowers
+		// whenever its value and compare lower (the kernel's CondValue evalV's
+		// both sides in the same resolution context, exprs.go); the extra-turn
+		// count is read only against zero, and anything else refuses rather
+		// than dropping the SVar gate.
 		if cs, ok := ps.get("ConditionCheckSVar"); ok {
 			v, err := lc.value(cs)
 			if err != nil {
@@ -2054,6 +2069,15 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			switch {
 			case d == "Self" && !hasT:
 				cl.Flags = fSelf
+			case (d == "TriggeredObject" || d == "TriggeredObjectLKICopy") && !hasT:
+				// the Mode$ Unattached family (Grafted Exoskeleton, Grafted
+				// Wargear, Stitcher's Graft): the FORMER BEARER the queue
+				// bound, the trigger object (kernel isTriggerObj, the same
+				// predicate ChooseFromDefined$ TriggeredCards pools read).
+				// A bearer already off the battlefield matches nothing on
+				// the battlefield: the body is a no-op, as gorge's
+				// TriggeredObjectLKICopy reference is (CR 608.2h)
+				cl = lClause{CmpStat: cmpTriggerObj, CmpN: 1}
 			case d == "Targeted" && hasT:
 				if _, err := lc.objOrTarget(newParams(map[string]string{"ValidTgts": ps.str("ValidTgts")}), "", zBattlefield); err != nil {
 					return err
