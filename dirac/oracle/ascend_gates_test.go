@@ -10,9 +10,10 @@ import (
 // The blessing-gate lowering (CR 702.131): the corpus carriers the gate
 // lowering lifted past the four spellings kgen refused — the trigger
 // Blessing$ True (Deadeye Brawler, Mausoleum Harpy, Resplendent Griffin,
-// Twilight Prophet), the sub-ability Condition$ Blessing (the Golden City of
-// Orazca stays out: its token script and ChaosEnsues trigger refuse), the
-// Mode$ CantBlockBy static Condition$ Blessing (Slippery Scoundrel) and the
+// Twilight Prophet), the sub-ability Condition$ Blessing (Ocelot Pride's
+// end-step copy rider; the Golden City of Orazca stays out: its ChaosEnsues
+// trigger refuses), the Mode$ CantBlockBy static Condition$ Blessing
+// (Detective of the Month, Slippery Scoundrel) and the
 // Activation$ Blessing (Arch of Orazca, Orazca Relic) — beside the same
 // blessing fillers the ascend pool plays. Every gate is the controller's
 // city's-blessing latch (gorge trigger_condition.go's PKBlessing arm,
@@ -24,13 +25,14 @@ import (
 // gorge's.
 
 var kascendGateMatchups = [2][]cardset.Entry{
-	{ // A: W/U/B, the seven lifted gate carriers plus the blessing fillers
+	{ // A: W/U/B, the nine lifted gate carriers plus the blessing fillers
 		{Name: "Deadeye Brawler", Count: 2}, {Name: "Mausoleum Harpy", Count: 2},
 		{Name: "Resplendent Griffin", Count: 2}, {Name: "Twilight Prophet", Count: 2},
 		{Name: "Slippery Scoundrel", Count: 2}, {Name: "Arch of Orazca", Count: 2},
 		{Name: "Orazca Relic", Count: 2}, {Name: "Spire Winder", Count: 3},
 		{Name: "Secrets of the Golden City", Count: 2}, {Name: "Radiant Destiny", Count: 2},
-		{Name: "Elite Vanguard", Count: 3}, {Name: "Walking Corpse", Count: 3},
+		{Name: "Ocelot Pride", Count: 3}, {Name: "Detective of the Month", Count: 2},
+		{Name: "Walking Corpse", Count: 1},
 		{Name: "Plains", Count: 5}, {Name: "Island", Count: 4}, {Name: "Swamp", Count: 4},
 	},
 	{ // B: five-colour vanilla beaters, no Ascend: the deck the gates read
@@ -47,8 +49,39 @@ var kascendGateMatchups = [2][]cardset.Entry{
 // kascendGateLifted is every carrier the gate lowering lifted that the
 // matchup plays.
 var kascendGateLifted = []string{
-	"Arch of Orazca", "Deadeye Brawler", "Mausoleum Harpy", "Orazca Relic",
-	"Resplendent Griffin", "Slippery Scoundrel", "Twilight Prophet",
+	"Arch of Orazca", "Deadeye Brawler", "Detective of the Month", "Mausoleum Harpy",
+	"Ocelot Pride", "Orazca Relic", "Resplendent Griffin", "Slippery Scoundrel",
+	"Twilight Prophet",
+}
+
+// ocelotProbe records, on gorge's side, each decision at which an Ocelot
+// Pride trigger waits on the stack, split by whether its controller has the
+// blessing: the end-step copy rider's bare Condition$ Blessing is read at
+// resolution, so both counts > 0 means that gate was reached latched and
+// unlatched. It is the per-gate read for the sub-ability arm, which no other
+// card in the matchup carries; the CantBlockBy (Slippery Scoundrel,
+// Detective of the Month), trigger and Activation$ arms are each load-bearing
+// on their own (making any one ignore its gate diverges a seed), so the
+// kernel's aggregate CondYes/CondNo stand for them.
+type ocelotProbe struct{ yes, no int }
+
+func (p *ocelotProbe) observe(gs *GorgeSide) {
+	g := gs.E.G
+	for _, id := range g.Stack {
+		o := g.Obj(id)
+		if o == nil || o.Card != nil || o.Ability == nil {
+			continue
+		}
+		src := g.Obj(o.Source)
+		if src == nil || src.Face() == nil || src.Face().Name != "Ocelot Pride" {
+			continue
+		}
+		if g.Players[o.Controller].Blessing {
+			p.yes++
+		} else {
+			p.no++
+		}
+	}
 }
 
 // TestAscendBlessingGates: every decision of every seed matches gorge; every
@@ -63,11 +96,13 @@ func TestAscendBlessingGates(t *testing.T) {
 	dirac.DebugBlessStats = st
 	defer func() { dirac.DebugBlessStats = nil }()
 	probe := &kascendProbe{played: map[string]int{}}
+	ocelot := &ocelotProbe{}
 	policy := func(seed uint64) Policy {
 		base := castFirstPolicy(seed)
 		return PolicyFunc(func(c *PickCtx) Canon {
 			if c.G != nil {
 				probe.observe(c.G)
+				ocelot.observe(c.G)
 			}
 			return base.Pick(c)
 		})
@@ -76,7 +111,8 @@ func TestAscendBlessingGates(t *testing.T) {
 	if div := lockstepRunPolicy(t, "ascend", kascendGateMatchups, seeds, true, nil, nil, policy); div != 0 {
 		t.Errorf("%d of %d seeds diverged", div, seeds)
 	}
-	t.Logf("kernel: %+v; gorge blessed at %d seat-decisions", *st, probe.blessed)
+	t.Logf("kernel: %+v; gorge blessed at %d seat-decisions; Ocelot Pride triggers on the stack blessed %d, unblessed %d",
+		*st, probe.blessed, ocelot.yes, ocelot.no)
 	if probe.blessed == 0 {
 		t.Error("gorge never granted the blessing: the pool never reached ten permanents")
 	}
@@ -94,6 +130,8 @@ func TestAscendBlessingGates(t *testing.T) {
 	}{
 		{st.CondYes, "blessing gates that held"},
 		{st.CondNo, "blessing gates that failed"},
+		{ocelot.yes, "Ocelot Pride triggers resolving with the blessing (its Condition$ Blessing held)"},
+		{ocelot.no, "Ocelot Pride triggers resolving without the blessing (its Condition$ Blessing failed)"},
 	} {
 		if c.n == 0 {
 			t.Errorf("%s: none", c.what)

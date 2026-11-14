@@ -8,6 +8,7 @@
 Arch of Orazca
 Andúril, Narsil Reforged
 Deadeye Brawler
+Detective of the Month
 Dusk Charger
 Elite Vanguard
 Expel from Orazca
@@ -20,6 +21,7 @@ Island
 Kumena's Awakening
 Mausoleum Harpy
 Mountain
+Ocelot Pride
 Orazca Relic
 Plains
 Pride of Conquerors
