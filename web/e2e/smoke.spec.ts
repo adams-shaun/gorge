@@ -1732,6 +1732,77 @@ async function pendingSeq(s: SeatRef): Promise<number | null> {
   return ((await r.json()) as { seq: number }).seq;
 }
 
+/**
+ * settleMulliganForLands answers the seat's London mulligan round over the HTTP API the way a
+ * player would, before the client mounts: a hand with fewer than two lands is mulliganed while the
+ * game offers a mulligan, and the cards put on the bottom are spells before lands. POST /api/games
+ * deals from a random seed and a random deck, so an unplayed deal is a coin the test must not leave
+ * to the page, whose first answer is always Keep: a landless seven (seen in CI, 12 cards without a
+ * land) leaves the seat nothing to play and the test passing for 150 s until its deadline.
+ * A hand whose cards carry no type line is kept, so a wire that hides them cannot mulligan to the end.
+ */
+async function settleMulliganForLands(s: SeatRef): Promise<void> {
+  const deadline = Date.now() + STALL_MS;
+  const pendingURL = `${s.base}/api/tables/${s.table}/matches/${s.match}/pending?seat=${s.seat}&token=${encodeURIComponent(s.token)}`;
+  let answered = -1;
+  let taken = 0;
+  while (Date.now() < deadline) {
+    const p = await s.request.get(pendingURL);
+    // 409/404: the toss or the other seat's mulligan holds the match, or its decision is not registered yet.
+    if (p.status() === 409 || p.status() === 404) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      continue;
+    }
+    expect(p.ok(), `mulligan pending ${s.table} seat ${s.seat} (status ${p.status()})`).toBe(true);
+    const d = (await p.json()) as WireDecision;
+    if (d.kind !== 'mulligan') return;
+    if (d.seq === answered) {
+      // The match has not moved on from the answer yet.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      continue;
+    }
+    const v = await s.request.get(`${s.base}/api/tables/${s.table}/matches/${s.match}/view?seat=${s.seat}&token=${encodeURIComponent(s.token)}`);
+    expect(v.ok(), `view of ${s.table} seat ${s.seat} (status ${v.status()})`).toBe(true);
+    const view = (await v.json()) as { players: Array<{ seat: number; hand: Array<{ id: number; types?: string }> | null }> };
+    const hand = view.players.find((x) => x.seat === s.seat)?.hand ?? [];
+    const typed = hand.length > 0 && hand.every((c) => (c.types ?? '') !== '');
+    const isLand = (id: number | undefined) => /\bLand\b/.test(hand.find((c) => c.id === id)?.types ?? '');
+    let choices: number[];
+    const bottom = d.options.filter((o) => o.kind === 'bottom');
+    if (bottom.length > 0) {
+      // Bottoming: Min == Max == the number taken, one option per card of the kept hand.
+      const ranked = [...bottom].sort((a, b) => Number(isLand(a.obj)) - Number(isLand(b.obj)));
+      choices = ranked.slice(0, d.min).map((o) => o.index);
+    } else {
+      const lands = hand.filter((c) => isLand(c.id)).length;
+      const take = typed && lands < 2 ? d.options.find((o) => o.kind === 'mulligan') : undefined;
+      const pick = take ?? d.options.find((o) => o.kind === 'keep');
+      expect(pick, `mulligan ask ${s.table} seat ${s.seat} must offer a keep option`).toBeDefined();
+      choices = [pick!.index];
+      if (take === undefined) {
+        const resp = await s.request.post(`${s.base}/api/tables/${s.table}/matches/${s.match}/intent`, {
+          headers: { Authorization: `Bearer ${s.token}` },
+          data: { seq: d.seq, player: s.seat, choices },
+        });
+        expect(resp.status(), `mulligan keep ${s.table} seat ${s.seat}`).toBe(204);
+        // A hand kept after a mulligan owes cards to the bottom and asks again; the next pass answers that.
+        if (taken === 0) return;
+        answered = d.seq;
+        continue;
+      }
+      taken++;
+    }
+    const resp = await s.request.post(`${s.base}/api/tables/${s.table}/matches/${s.match}/intent`, {
+      headers: { Authorization: `Bearer ${s.token}` },
+      data: { seq: d.seq, player: s.seat, choices },
+    });
+    expect(resp.status(), `mulligan answer ${s.table} seat ${s.seat}`).toBe(204);
+    answered = d.seq;
+    if (bottom.length > 0) return;
+  }
+  throw new Error(`settleMulliganForLands: ${s.table} seat ${s.seat} never finished the mulligan round`);
+}
+
 /** A hand card's cast controls, and the same controls and its PLAY control as page-wide selectors. */
 const CAST_CONTROLS = '[data-payment-card], [data-single-action], button[aria-haspopup="menu"]';
 const SPELL_CONTROLS = `.handfan [data-obj] :is(${CAST_CONTROLS})`;
@@ -1843,6 +1914,7 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
         expect(resp.ok(), `${label} POST /api/games`).toBe(true);
         const g = (await resp.json()) as { join: string; seat: number; table: string; match: number; token: string };
         await settleStartingPlayer(request, b, g.table, g.match, g.seat, g.token);
+        await settleMulliganForLands({ request, base: b, table: g.table, match: g.match, seat: g.seat, token: g.token });
 
         const ctx = await browser.newContext();
         try {
