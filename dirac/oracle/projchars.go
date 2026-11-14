@@ -137,15 +137,17 @@ var gorgeKwElsewhere = map[string]string{
 	"Saddle":                   "an activated ability with a CostTapPower cost and OpSaddle (gorge kwSaddle's expansion; C6)",
 	"Station":                  "an activated ability flagged AfStation (gorge rules/station.go; kcounters)",
 	"A deck can have any number of cards named CARDNAME.": "a deckbuilding rule, no game characteristic",
-	"Partner":            "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
-	"Partner with":       "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
-	"Doctor's companion": "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
-	"Landwalk":           "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
-	"Horsemanship":       "CardDef.Evasion (compared through the block options)",
-	"Intimidate":         "CardDef.Evasion, a Continuous static's Static.Evasion grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
-	"Wither":             "CardDef.Wither (compared through the -1/-1 counters)",
-	"Undying":            "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
-	"Exalted":            "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
+	"Partner":             "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Partner with":        "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
+	"Doctor's companion":  "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Reconfigure":         "CardDef.HasReconfigure + the attach and unattach activated abilities (gorge kwReconfigure's expansion, kgen lower_reconfigure.go; the type switch, kernel kw_reconfigure.go; compared through the types, the options and the attach events)",
+	"Choose a Background": "a deckbuilding rule (CR 702.124k, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Landwalk":            "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
+	"Horsemanship":        "CardDef.Evasion (compared through the block options)",
+	"Intimidate":          "CardDef.Evasion, a Continuous static's Static.Evasion grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
+	"Wither":              "CardDef.Wither (compared through the -1/-1 counters)",
+	"Undying":             "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
+	"Exalted":             "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
 	"Prevent all damage that would be dealt to CARDNAME.": "CardDef.PreventDmgTo (CR 615.1; compared through the damage behaviour)",
 	"CantAttackAlone":        "CardDef.AloneAtk (CR 506.5; compared through the attack options and Done, combat_alone.go)",
 	"CantBlockAlone":         "CardDef.AloneBlk (CR 506.5; compared through the block options and Done, combat_alone.go)",
@@ -154,6 +156,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Suspend":                "CardDef.Suspend (a hand special action, the upkeep time-counter removal and the free cast of the last counter; compared through the cast options, the exile counters and the may-cast ask; kw_suspend.go)",
 	"Plot":                   "CardDef.HasPlot (a hand special action and the exile free cast; compared through the cast options)",
 	"Foretell":               "CardDef.HasForetell (the {2} hand special action and the later exile cast for ForetellCost; compared through the cast options; kw_foretell.go)",
+	"Prototype":              "CardDef.FaceMode FacePrototype (a hand face cast for the inset cost; the object is its prototype def, with the inset cost, colours and P/T, on the stack and the battlefield only; compared through the cast options, the stack and the characteristics; dirac/face_castface.go)",
 	"Bestow":                 "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",
 	"Sneak":                  "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
@@ -250,7 +253,7 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		}
 	}
 	switch s {
-	case "Protection from white", "Protection from blue", "Protection from green":
+	case "Protection from white", "Protection from blue", "Protection from green", "Protection from colorsYouCtrl":
 		// a granted protection from the chosen colour (Akroma's Blessing;
 		// the arena marks mechProtW..mechProtG, compared through the
 		// target, block and damage options); black and red keep their bits

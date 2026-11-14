@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -192,17 +191,12 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 // path-like strings and NUL bytes.
 func DigestDir(dir string) (string, int, error) {
 	var paths []string
-	err := filepath.WalkDir(walkRoot(dir), func(p string, d fs.DirEntry, err error) error {
+	err := WalkScripts(dir, func(p string) error {
+		rel, err := filepath.Rel(dir, p)
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && strings.HasSuffix(p, ".txt") {
-			rel, err := filepath.Rel(dir, p)
-			if err != nil {
-				return err
-			}
-			paths = append(paths, rel)
-		}
+		paths = append(paths, rel)
 		return nil
 	})
 	if err != nil {

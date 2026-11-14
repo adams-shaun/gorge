@@ -84,6 +84,9 @@ var stallCapacityReasons = [...]uint8{
 	StallDmgAmt,       // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
 	StallDmgMark,      // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 	StallChooseNumber, // a mid-resolution ChooseNumber's present Max$ resolves above the chosen byte's 254 (repl_choosenumber.go)
+	StallDmgBatch,     // a ninth DamageDealtOnce line of one DamageAll sweep's batch latched (armRes.dmgB; trig_dmgbatch.go)
+	StallRedirCap,     // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
+	StallRedirOrder,   // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
