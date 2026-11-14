@@ -201,17 +201,35 @@ func TestCastBattlefieldSnapshotReapBindsTargetedPlayer(t *testing.T) {
 		t.Fatal("precondition: the caster's graveyard needs two cards to pick from")
 	}
 	addMana(t, e, caster, "GG")
+	graveLimit, gravePick := -1, state.ObjID(0)
 	so := heldCast(t, e, spell, func(d *decision.Decision) []int {
 		if d.Kind != decision.KTarget {
 			t.Fatalf("unexpected ask while casting: %+v", d)
 		}
-		for _, o := range d.Options {
-			if o.Kind == "player" && o.Player == 1-caster {
-				return []int{o.Index}
+		if !strings.Contains(d.Prompt, "chained ability") {
+			for _, o := range d.Options {
+				if o.Kind == "player" && o.Player == 1-caster {
+					return []int{o.Index}
+				}
 			}
+			t.Fatalf("the opponent was not offered: %+v", d.Options)
+			return nil
 		}
-		t.Fatalf("the opponent was not offered: %+v", d.Options)
-		return nil
+		// CR 601.2c: the graveyard slot is announced right after the opponent
+		// target, sized by the as-cast count over the TARGETED player: 1 (the
+		// green Bears and the caster's own black corpse do not count).
+		if graveLimit != -1 {
+			t.Fatalf("the graveyard slot was asked twice at cast: %+v", d)
+		}
+		graveLimit = d.Max
+		if graveLimit != 1 {
+			t.Fatalf("graveyard target limit %d at cast, want the as-cast 1", graveLimit)
+		}
+		if len(d.Options) < 2 || d.Options[0].Kind == "player" {
+			t.Fatalf("the graveyard cards were not offered: %+v", d.Options)
+		}
+		gravePick = d.Options[0].Obj
+		return []int{d.Options[0].Index}
 	})
 	if so.CastBattlefield == nil {
 		t.Fatal("precondition: Reap carries no as-cast battlefield")
@@ -222,23 +240,21 @@ func TestCastBattlefieldSnapshotReapBindsTargetedPlayer(t *testing.T) {
 	if !ok || n != 1 {
 		t.Fatalf("NrBlackAtCasting after the black permanent died = %d (ok %v), want the frozen 1", n, ok)
 	}
-	// Reap asks for its graveyard targets as it resolves, sized by that head:
-	// the limit is the as-cast 1 although the opponent now controls no black
-	// permanent.
-	graveLimit := -1
-	for i := 0; i < 12 && graveLimit < 0 && e.G.Obj(spell).Zone == state.ZStack; i++ {
+	// The slot was announced at cast (CR 601.2c), so it is NOT re-asked as the
+	// spell resolves even though the opponent now controls no black permanent:
+	// the announced answer stands, and the chosen card returns to hand.
+	for i := 0; i < 12 && e.G.Obj(spell).Zone == state.ZStack; i++ {
 		d := e.Pending()
 		if d.Kind != decision.KPriority {
-			if !strings.Contains(d.Prompt, "target card in your graveyard") {
-				t.Fatalf("unexpected ask at resolution: %+v", d)
-			}
-			graveLimit = d.Max
-			break
+			t.Fatalf("unexpected ask at resolution: %+v", d)
 		}
 		submitChoices(t, e, passOption(t, d).Index)
 	}
-	if graveLimit != 1 {
-		t.Fatalf("graveyard target limit %d at resolution, want the frozen 1", graveLimit)
+	if e.G.Obj(spell).Zone == state.ZStack {
+		t.Fatal("the spell never resolved")
+	}
+	if o := e.G.Obj(gravePick); o.Zone != state.ZHand || o.Controller != caster {
+		t.Fatalf("the announced graveyard card %d: zone=%s controller=%d, want the caster's hand", gravePick, o.Zone, o.Controller)
 	}
 	_ = cfg
 }

@@ -208,6 +208,9 @@ func (s *State) applyAskCzAttach(k *prep, a Action) bool {
 		}
 		s.res.ask = raNone
 		s.g.lookSel |= altElected
+		if s.g.pickF&kop.SrDifferentNames != 0 {
+			s.clampDistinctNames(k, in) // the cap now counts the elected zones only
+		}
 		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}

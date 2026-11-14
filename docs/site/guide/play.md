@@ -320,8 +320,15 @@ resolving.
 | `-paired-bot-decks DIR` | the server's constructed decks | the decks it guesses from (`az-closed`) |
 | `-paired-bot-searches N` | 2 | searches at once across the server; further requests wait |
 | `-paired-bot-shared` | off | also offer it on `t1` when it seats more than one human; every seat is told it's on |
+| `-pod-bot-decks DIR` | off | registers `az-closed-maxn`, the search for Commander pods of up to four seats, guessing from the decks in `DIR` |
+| `-pod-bot-sims N` | 64 | simulations per searched decision (`az-closed-maxn`) |
 
-`az-closed` plays two-seat constructed games. A request costs a few tenths of a CPU second at 100
+`az-closed` plays two-seat constructed games. A table that leaves the paired bot at the server's default gets
+the first offered bot that plays its format at its seat count, so with `-pod-bot-decks` a four-seat Commander
+pod gets `az-closed-maxn`. That bot also seats as a pod's bot opponents: `-events-bot-policy az-closed-maxn`
+makes it the draft events' default. Its belief should be decks like the pod's own, such as a Commander draft's
+built decks from `draftsim -set MBC -collation draft -format commander -deck-size 60 -structure none -players bot
+-events 100 -decks-out DIR` (`make pod-bot-decks`). A request costs a few tenths of a CPU second at 100
 simulations, more late in a long game. Nobody else at the table sees the advice, and it never reaches the game's log or a replay. It runs
 on the gorge engine only; a table on another engine refuses it.
 

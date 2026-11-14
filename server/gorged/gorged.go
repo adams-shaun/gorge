@@ -24,6 +24,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/all"
+	"github.com/adams-shaun/gorge/bots/azredeal"
 	"github.com/adams-shaun/gorge/dirac/adapter"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
@@ -83,6 +84,10 @@ type config struct {
 	pairedBot, pairedBotDecks        string
 	pairedBotSims, pairedBotSearches int
 	pairedBotShared                  bool
+	// The -pod-bot flags (podbot.go): the closed-list max^n search's belief
+	// directory and simulations.
+	podBotDecks string
+	podBotSims  int
 	// humansRaw is the -humans flag: a comma-separated list of table t1's
 	// slot indices that are real people. Empty stays all-bot, identical to
 	// today. applyHumans parses it into humans at serve time so a malformed
@@ -464,6 +469,8 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.IntVar(&c.pairedBotSims, "paired-bot-sims", 100, "with -paired-bot "+pairedBotBuiltin+": simulations per request")
 	fs.StringVar(&c.pairedBotDecks, "paired-bot-decks", "", "with -paired-bot "+pairedBotBuiltin+": directory of the decks the bot guesses an opponent's list from (default -decks)")
 	fs.IntVar(&c.pairedBotSearches, "paired-bot-searches", 2, "with -paired-bot: maximum paired-bot searches at once across the server; further requests wait (>= 1)")
+	fs.StringVar(&c.podBotDecks, "pod-bot-decks", "", "enable the "+azredeal.PolicyClosedMaxN+" bot policy: the directory of deck JSON files (e.g. draftsim -decks-out) it guesses an opponent's list from. A closed-list max^n search for Commander pods of up to four seats, offered to tables, draft events (-events-bot-policy) and as a paired bot; it never reads an opponent's real list. Off when empty")
+	fs.IntVar(&c.podBotSims, "pod-bot-sims", azredeal.ClosedMaxNSims, "with -pod-bot-decks: simulations per searched decision of "+azredeal.PolicyClosedMaxN+" (>= 1)")
 	fs.BoolVar(&c.pairedBotShared, "paired-bot-shared", false, "with -paired-bot: also offer it at a table with more than one human (t1 under -humans), where every seat is told it is on")
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot")
 	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew)")
@@ -524,6 +531,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// Network policies register only when asked, so this precedes resolving the
 	// offered set, and their beliefs are read from the corpus (netbots.go).
 	if err := c.enableNetBots(reg); err != nil {
+		return err
+	}
+	if err := c.enablePodBot(reg); err != nil {
 		return err
 	}
 	// -sb-agent names must be in the registry before the offered set is
