@@ -668,6 +668,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/manifest": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/neteval": {
       "tier": "dirac",
       "status": "EXT"
