@@ -231,6 +231,7 @@ type genPrep struct {
 	anyDelaySpell   bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
+	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -314,6 +315,7 @@ type genPrep struct {
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
 	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7
+	plDmgOn         bool           // some expression is ExOppsLostLife N 3: record plDmg (value_oppsdamaged.go)
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
@@ -768,6 +770,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
+	g.anyComboDyn = tableComboDyn(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -2143,12 +2146,15 @@ type genState struct {
 	// was hit by it this turn (value_turntallies.go).
 	// cdLeg bit p = player p was dealt combat damage this turn by a source
 	// matching Creature.Legendary; bit 4+p = by any source (genPrep.cdDamOn).
+	// plDmg bit p = player p was dealt damage this turn, combat or not
+	// (genPrep.plDmgOn; value_oppsdamaged.go).
 	cdh [4]struct {
 		o  Obj
 		pl uint8
 	}
 	ncdh  uint8
 	cdLeg uint8
+	plDmg uint8
 
 	// xph: the pending extra phases (act_addphase.go): at bits
 	// 0-3 the splice point, 4-5 the kind (combat, upkeep, end), 6 a phase of the
