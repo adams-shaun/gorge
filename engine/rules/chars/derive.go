@@ -413,20 +413,48 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	}
 	// CR 613.6: within layer 6 the walk applies keyword-gated effects after
 	// the grant they depend on, not in raw timestamp order (see
-	// abilityDependencyOrder). Layers 3/5 keep timestamp order: a SetName or
-	// colour change never gates another layer's match on this corpus, and
-	// layer 4 settled above.
+	// abilityDependencyOrder). Layer 3 keeps timestamp order, and layer 4
+	// settled above.
 	matchTypes := effects.TypeMatchWords(ty, allCreatureTypes)
 	seq := abilityDependencyOrder(b, active, id, matchTypes, kw, atStack)
 	var cantHaveKeywords [][]string
+	printedCol := col
+	// CR 613.1e before 613.1f: layer 5 settles before layer 6, so a colour
+	// set a later effect carries (Aphotic Wisps' chained Animate "target
+	// creature becomes black") gates an EARLIER layer-6 static's Affected$
+	// match (Bloodmark Mentor's "Red creatures you control have first
+	// strike" stops covering the Mentor itself once the Wisps make it
+	// black). The walk below applies 3/5/6 in timestamp order, so a
+	// layer-6 match reached before the colour effect would read the
+	// printed colour the set never reached. This pre-pass applies the
+	// LColor entries in timestamp order -- their own matches keep the
+	// printed read, whatever they would have seen mid-loop before -- so
+	// col is the object's finished layer-5 answer before the layer-6 walk.
 	for i := range seq {
 		ce := &seq[i]
-		// Only layers 3, 5 and 6 (and a CantHaveKeywords$ prohibition, which
+		if len(ce.CantHaveKeywords) != 0 || ce.Layer != state.LColor {
+			continue
+		}
+		applyColourEffect(b, ce, id, matchTypes, kw, atStack, zone, &col)
+	}
+	// The finished layer-5 answer is bound to a layer-6 match only when it
+	// differs from the printed one (layer5colors.go's own gate), so a board
+	// with no live colour effect pays nothing: colourBind is false and
+	// every match below takes the printed read it always took.
+	colourBind := col != printedCol
+	var colorsFinished string
+	if colourBind {
+		colorsFinished = col.String()
+	}
+	for i := range seq {
+		ce := &seq[i]
+		// Only layers 3 and 6 (and a CantHaveKeywords$ prohibition, which
 		// any layer's effect may carry) act in this walk: layer 4 settled in
-		// Types above and layer 7 is PT's walk
-		// below. Matching an effect this walk would then ignore is pure cost
-		// (the match has no side effect), so skip it before the match.
-		if len(ce.CantHaveKeywords) == 0 && ce.Layer != state.LText && ce.Layer != state.LColor && ce.Layer != state.LAbilities {
+		// Types above, layer 5 applied in the pre-pass above, and layer 7 is
+		// PT's walk below. Matching an effect this walk would then ignore is
+		// pure cost (the match has no side effect), so skip it before the
+		// match.
+		if len(ce.CantHaveKeywords) == 0 && ce.Layer != state.LText && ce.Layer != state.LAbilities {
 			continue
 		}
 		// kw is the walk's keywords-so-far list for THIS object (printed
@@ -437,7 +465,21 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 		// PT's layer-7 walk binds -- CR 613 orders layer 6
 		// strictly before layer 7, so the P/T applicability gate reads the
 		// completed grant stream (Windstorm Drake over Levitation).
-		if !matchesWithChars(b, ce, id, matchTypes, kw, atStack) {
+		// CR 613.1e before 613.1f: a layer-6 match -- and a
+		// CantHaveKeywords$ prohibition's, a final layer-6 filter whatever
+		// its own layer -- reads the finished layer-5 colour, bound through
+		// the stash matchesWithCharsPTSlow's DerivedColors arm reads. An
+		// LText match is layer 3, before layer 5, and keeps the printed
+		// read.
+		if colourBind && (ce.Layer == state.LAbilities || len(ce.CantHaveKeywords) > 0) {
+			prevSet, prevID, prevColors := s.ColorsSet, s.ColorsID, s.Colors
+			s.ColorsSet, s.ColorsID, s.Colors = true, id, colorsFinished
+			matched := matchesWithChars(b, ce, id, matchTypes, kw, atStack)
+			s.ColorsSet, s.ColorsID, s.Colors = prevSet, prevID, prevColors
+			if !matched {
+				continue
+			}
+		} else if !matchesWithChars(b, ce, id, matchTypes, kw, atStack) {
 			continue
 		}
 		// An AffectedZone$ qualifier on a characteristic grant narrows where
@@ -499,25 +541,10 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 			// Already applied in Types above — layer 4 must
 			// settle before any filter that tests a type runs.
 		case state.LColor:
-			// CR 613.1e: colour-set and colour-add effects apply in timestamp
-			// order; an OverwriteColors grant replaces everything so far (an
-			// empty set means an overwrite to colourless, the Animate
-			// Colors$ Colorless shape), a plain one extends it.
-			if ce.OverwriteColors {
-				col = 0
-			}
-			// Letter elements are bounds-checked: state.ContinuousEffect is
-			// exported, so a malformed element (empty, or not a WUBRG letter)
-			// must be skipped, never an index panic -- a parse path in this
-			// walk never crashes the match goroutine.
-			for _, l := range ce.AddColors {
-				if len(l) == 0 {
-					continue
-				}
-				if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
-					col |= effects.ColorMask(1 << i)
-				}
-			}
+			// Already applied in the layer-5 pre-pass above: CR 613.1e
+			// settles before the layer-6 grants the loop applies, so a
+			// colour set reaches every layer-6 match whether its
+			// timestamp precedes the set or not.
 		}
 	}
 	// CR 613.1f / Forge Card.updateKeywords: a CantHaveKeyword$ prohibition is
@@ -952,6 +979,40 @@ func lockedLayer4Types(b Board, active []state.ContinuousEffect, ce *state.Conti
 		return types
 	}
 	return effects.TypeMatchWords(pre, all)
+}
+
+// applyColourEffect is the layer-5 pre-pass's one entry: the CR 613.1e
+// application of one LColor continuous effect, in the timestamp order the
+// walk's seq keeps. Its match keeps the printed-colour read the main loop
+// gave a colour effect before the pre-pass existed (the stash binds the
+// finished answer only around the layer-6 matches), the AffectedZone$
+// qualifier narrows where the granted characteristics function with parse
+// failure staying closed, and the application is an OverwriteColors reset
+// then the letter adds. Letter elements are bounds-checked:
+// state.ContinuousEffect is exported, so a malformed element (empty, or not
+// a WUBRG letter) must be skipped, never an index panic -- a parse path in
+// this walk never crashes the match goroutine.
+func applyColourEffect(b Board, ce *state.ContinuousEffect, id state.ObjID, types, keywords []string, atStack, zone state.Zone, col *effects.ColorMask) bool {
+	if !matchesWithChars(b, ce, id, types, keywords, atStack) {
+		return false
+	}
+	if ce.AffectedZone != "" && !ce.MayPlay {
+		if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
+			return false
+		}
+	}
+	if ce.OverwriteColors {
+		*col = 0
+	}
+	for _, l := range ce.AddColors {
+		if len(l) == 0 {
+			continue
+		}
+		if j := strings.IndexByte("WUBRG", l[0]); j >= 0 {
+			*col |= effects.ColorMask(1 << j)
+		}
+	}
+	return true
 }
 
 // cardColorsToken is Forge's placeholder inside an AddKeyword$ value

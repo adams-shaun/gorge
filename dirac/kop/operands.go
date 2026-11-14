@@ -225,6 +225,11 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// AttachUnattach (OpAttach C, beside MvRemember's bit 0): Reconfigure's
+// unattach half (CR 702.151a), "unattach from a creature": the source stops
+// being attached, to nothing if it was not attached.
+const AttachUnattach = 1 << 1
+
 // SurveilRememberKept (OpSurveil C): the cards the surveil leaves on top of the
 // library join the remembered set (RememberKept$), beside MvRemember's cards put
 // into the graveyard.

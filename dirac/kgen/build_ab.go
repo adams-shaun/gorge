@@ -2233,6 +2233,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "ProtYourColors":
+		st.Kind = kop.StatProtYourColors // kw_protyours.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "HexproofOwnColors":
 		st.Kind = kop.StatHexproofOwnColors
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -4498,6 +4503,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		case "":
 		case "Remember":
 			ki.C = int16(kop.MvRemember) // RememberAttached$
+		case "Unattach":
+			ki.C = int16(kop.AttachUnattach) // Reconfigure's unattach half (CR 702.151a)
 		default:
 			return ki, fmt.Errorf("Attach CS %q", in.CS)
 		}

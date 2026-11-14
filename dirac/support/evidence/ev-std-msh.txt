@@ -7,11 +7,13 @@ Agent Phil Coulson
 Agent of Atlas
 Agents of HYDRA
 Agents of S.H.I.E.L.D.
+Alien Invasion
 Ant-Man's Army
 Ant-Man, Colony Commander
 Arc Reactor
 Ares, God of War
 Armor Wars
+Arnim Zola, Bio-Fanatic
 Asgardian Citadel
 Atlantean Cavalry
 Atlantis Attacks
@@ -66,6 +68,7 @@ Frozen in Ice
 Futurist Forge
 Giant Growth
 Giant-Sized Flying Ant
+Gleaming Bastion
 Go Nuts!
 Grim Reaper, Lethal Legionnaire
 Guerrilla Gorilla
@@ -103,6 +106,7 @@ King T'Challa
 Kingpin's Enforcers
 Knight of Wundagore
 Kree Commandos
+Kree Sentinel
 Lightning Strike
 Los Diablos Missile Base
 Luke Cage, Power Man
@@ -113,6 +117,7 @@ Madame Masque
 Mister Fantastic, Reed Richards
 Misty Knight, Hero for Hire
 Mockingbird, Ace Agent
+Mole Man, Moloid Master
 Monica Rambeau
 Moon Girl and Devil Dinosaur
 Moonstone, Harsh Mistress
@@ -133,10 +138,12 @@ Plains
 Project Deathlok Soldier
 Punishing Punch
 Pym Particles
+Pym Technologies
 Quake, Agent of S.H.I.E.L.D.
 Quicksilver, Brash Blur
 Rapid Rescue
 Red Guardian, Super-Soldier
+Red Room Recruit
 Reptil, Dinomorpher
 Repulsor Blast
 Restorative Technique
@@ -154,14 +161,17 @@ Spider-Man, To the Rescue
 Stark Industries Executive
 Stolen Stark Tech
 Subterranean Cavern
+Super Intelligence
 Super Speed
 Super Strength
 Super Suit
 Super Villain Lockup
 Super-Skrull
+Surveillance Room
 Swamp
 Swordsman, Sharp Scoundrel
 Take Up the Shield
+Team Tactics
 The Coming of Galactus
 The Masters of Evil
 The Ruinous Wrecking Crew
