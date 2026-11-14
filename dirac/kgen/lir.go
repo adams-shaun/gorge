@@ -716,6 +716,7 @@ type lTrigger struct {
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
 	Outstanding   bool  // Mode$ Always, the counter-threshold state trigger: one instance at a time, the leave re-checks (kop.Tf4StateCtr)
 	OptTrigPlayer bool  // Optional: the trigger's player (the Phase trigger's active player) answers, not the controller (kop.Tf4OptTrigPlayer)
+	OptSrcCtrl    bool  // Optional, DamageDone: the damage source's controller answers (OptionalDecider$ TriggeredSourceController; kop.Tf5OptSrcCtrl)
 	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	TapPlan       uint8 // kop.TapPlan; Taps, non-Self ValidCard$: the payment-planner class of the watcher body (lower_tapsclass.go)
 	TapPainN      uint8 // TapPlanPain: the vetted literal damage amount

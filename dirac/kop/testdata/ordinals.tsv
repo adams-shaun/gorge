@@ -1376,6 +1376,7 @@ Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
 Tf5OppCause	TrigFlags5	4
+Tf5OptSrcCtrl	TrigFlags5	64
 Tf5TapperNonActive	TrigFlags5	32
 Tf5TapsForMana	TrigFlags5	16
 TfCombat	TrigFlags	4
