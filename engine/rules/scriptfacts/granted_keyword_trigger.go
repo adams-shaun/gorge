@@ -13,11 +13,17 @@ package scriptfacts
 // the compiled corpus cache on every machine. The synthesizer needs no
 // compiler state beyond cards' exported types, so this leaf is its home.
 
-import "github.com/adams-shaun/gorge/engine/cards"
+import (
+	"strconv"
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+)
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
 // synthesize a TRIGGERED ability for: Prowess, Myriad, Extort and Evolve, whose
-// bodies read nothing the walk does not already capture. Every other head returns false (fail
+// bodies read nothing the walk does not already capture, and Afterlife, whose
+// only input is the N in its own keyword line. Every other head returns false (fail
 // closed): the expansion of a keyword like Afflict, Dethrone or Firebending
 // mints a trigger whose body reads keyword-specific state (a defending player,
 // an attack's attacker set, an N in the keyword text) through a dedicated walk
@@ -29,7 +35,8 @@ import "github.com/adams-shaun/gorge/engine/cards"
 func GrantedTriggerHeads(head string) bool {
 	id := cards.KeywordHeadIDOf(head)
 	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad") ||
-		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve")
+		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve") ||
+		id == cards.KeywordHeadIDOf("Afterlife")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -48,6 +55,28 @@ const GrantedEvolvePayload = "__kwEvolveGranted"
 // sibling of the granted Prowess and Myriad payloads.
 const GrantedExtortPayload = "__kwExtortGranted"
 
+// GrantedAfterlifePayloadPrefix starts the GrantTriggerPush body name a granted
+// Afterlife rides: "__kwAfterlifeGranted:N", the count N after the colon
+// (events.foldGrantTriggerPush rebuilds it into the printed expansion's Spirit
+// token body). A bare "__kwAfterlifeGranted" with no count rebuilds nothing.
+const GrantedAfterlifePayloadPrefix = "__kwAfterlifeGranted:"
+
+// grantedAfterlifeCount reads N from an "Afterlife:N" keyword line: a bare
+// decimal literal of at least 1, the only form the corpus prints. Any other
+// spelling reports false (fail closed).
+func grantedAfterlifeCount(line string) (string, bool) {
+	_, param, ok := strings.Cut(line, ":")
+	if !ok {
+		return "", false
+	}
+	param = strings.TrimSpace(param)
+	n, err := strconv.Atoi(param)
+	if err != nil || n < 1 || strconv.Itoa(n) != param {
+		return "", false
+	}
+	return param, true
+}
+
 // GrantedKeywordPayload names the GrantTriggerPush body payload the trigger
 // GrantedKeywordTrigger synthesizes for line rides: events.Apply rebuilds the
 // body from that name, so a log-only replay mints the identical ability.
@@ -59,6 +88,9 @@ func GrantedKeywordPayload(line string) string {
 		return GrantedEvolvePayload
 	case cards.KeywordHeadIDOf("Extort"):
 		return GrantedExtortPayload
+	case cards.KeywordHeadIDOf("Afterlife"):
+		n, _ := grantedAfterlifeCount(line)
+		return GrantedAfterlifePayloadPrefix + n
 	}
 	return "__kwProwessGranted"
 }
@@ -95,6 +127,9 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	}
 	if id == cards.KeywordHeadIDOf("Myriad") {
 		return grantedMyriadTrigger(line, head)
+	}
+	if id == cards.KeywordHeadIDOf("Afterlife") {
+		return grantedAfterlifeTrigger(line)
 	}
 	if cards.KeywordHeadIDOf(head) == cards.KeywordHeadIDOf("Evolve") {
 		return grantedEvolveTrigger(line, head)
@@ -153,5 +188,25 @@ func grantedEvolveTrigger(line, head string) *cards.Trigger {
 		return nil
 	}
 	t.Effect = grantedBodySA("PutCounter", "Defined", "Self", "CounterType", "P1P1", "CounterNum", "1")
+	return &t
+}
+
+// grantedAfterlifeTrigger is the trigger a granted Afterlife N gives its
+// holder (CR 702.135a; Afterlife Insurance's "creatures you control gain
+// afterlife 1 until end of turn"): the printed expansion's exact shape
+// (engine/cards/kw_afterlife.go), the body carried inline. Its Origin$
+// Battlefield makes it a look-back trigger (CR 603.10a): the walk reads the
+// grant from the pre-departure board. A count that is not a positive decimal
+// literal fails closed.
+func grantedAfterlifeTrigger(line string) *cards.Trigger {
+	n, ok := grantedAfterlifeCount(line)
+	if !ok {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | TriggerDescription$ Afterlife")
+	if !ok {
+		return nil
+	}
+	t.Effect = grantedBodySA("Token", "TokenScript", "wb_1_1_spirit_flying", "TokenAmount", n)
 	return &t
 }

@@ -630,6 +630,9 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 			"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1"}}
 	}
 	if sa == nil {
+		sa = grantedAfterlifeBody(e.Counter)
+	}
+	if sa == nil {
 		return
 	}
 	o := g.AddObject(nil, e.Player)
@@ -641,6 +644,23 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 	// of the granted trigger names apart from the recipient (CR 613.1f).
 	o.GrantedBy = grantedBy
 	o.Remembered = rememberedFrom(e.IDs)
+}
+
+// grantedAfterlifeBody rebuilds the body of a granted Afterlife (CR 702.135a
+// via a layer-6 grant, e.g. Afterlife Insurance's PumpAll KW$ Afterlife:1) from
+// its "__kwAfterlifeGranted:N" payload name: the printed K:Afterlife
+// expansion's DB$ Token body (engine/cards/kw_afterlife.go) with N spliced in
+// as TokenAmount$. nil for any other name or a count that is not a positive
+// decimal literal.
+func grantedAfterlifeBody(name string) *cards.SA {
+	n, ok := strings.CutPrefix(name, "__kwAfterlifeGranted:")
+	if !ok {
+		return nil
+	}
+	if v, err := strconv.Atoi(n); err != nil || v < 1 || strconv.Itoa(v) != n {
+		return nil
+	}
+	return cards.ResolveSVar(map[string]string{"__kwAfterlifeGranted": "DB$ Token | TokenScript$ wb_1_1_spirit_flying | TokenAmount$ " + n}, "__kwAfterlifeGranted")
 }
 
 // foldGrantAbilityPush folds Kind GrantAbilityPush into state.
