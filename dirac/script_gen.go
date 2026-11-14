@@ -85,7 +85,7 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 // restricted or any-colour gap, a filter-only gap, a counter-cost source, or
 // a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand)
+	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny)
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -130,6 +130,9 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	}
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
 		s.availDH(k, p, a) // a Lion's Eye Diamond's relaxed units (mana_discardhand.go)
+	}
+	if k.gen.anyComboAny && s.caBoard(k, p) {
+		s.availCA(k, p, a) // a Combo Any source's any-colour units (mana_comboany.go)
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)
@@ -197,7 +200,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	dh := k.gen.anyDiscHand && s.dhBoard(k, p) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
-	if !dh && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
+	ca := k.gen.anyComboAny && s.caBoard(k, p) // Combo Any sources the only gaps (mana_comboany.go)
+	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -208,7 +212,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
 	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
+	relax := !s.scriptGaps(k, p).any() && !ca && !twoLive && s.filtRelaxable(k, filt)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -288,6 +292,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if dh {
 			if !s.dhScript(k, a, p, false) {
 				continue // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
+			}
+		} else if ca {
+			if !s.caScript(k, a, p, false) {
+				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
 			}
 		} else if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
 			if !s.grantActScript(k, a, p) {
@@ -454,6 +462,14 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
+	if k.gen.anyComboAny && s.caBoard(k, p) {
+		var d Decision
+		s.plainOptions(k, &d, 0)
+		if !hasOption(&d, a) {
+			s.caScript(k, a, p, true) // Combo Any sources the only gaps (mana_comboany.go)
+		}
+		return
+	}
 	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
 	if s.mixBoard(k, p) {
 		if !act {
@@ -538,7 +554,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && s.caBoard(k, p)) {
 		return false
 	}
 	var d Decision

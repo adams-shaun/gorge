@@ -411,6 +411,8 @@ type genPrep struct {
 	anySelfTaps bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
+	// anyComboAny: some card carries gfComboAny (mana_comboany.go).
+	anyComboAny bool
 	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
 	dhMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
@@ -1297,6 +1299,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
+				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
+					g.anyComboAny = true // a census gap (gfGapOther, censusGapMana), never a planner unit (mana_comboany.go)
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1372,7 +1377,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// alternative): an autopay source of that colour
 					pc.manaChosen = true
 				} else {
-					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) {
+					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) && !comboAnyMana(a) {
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))
@@ -1384,7 +1389,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.varPC = append(g.varPC, vp)
 						}
 					}
-					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred) {
+					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred || comboAnyMana(a)) {
 						pc.manaAb = -1
 					}
 				}
