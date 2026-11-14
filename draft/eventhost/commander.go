@@ -64,9 +64,11 @@ func (h *Host) podPolicy(policy string) *Error {
 func (m meta) commander() bool { return m.Format == formatCommander }
 
 // commanderPersona is a Commander-draft seat's drafter and builder, both
-// scoring for a deckSize-card deck (0 means build.CommanderDeckSize).
-func commanderPersona(lookup pickbotCardLookup, deckSize int) (pickbotDrafter, pickbotBuilder) {
-	return &pickbot.CommanderDrafter{Lookup: lookup, DeckSize: deckSize}, &pickbot.CommanderBuilder{Lookup: lookup, DeckSize: deckSize}
+// scoring for a deckSize-card deck (0 means build.CommanderDeckSize) and
+// valuing cards by value (Options.CommanderValue; nil is Heuristic).
+func commanderPersona(lookup pickbotCardLookup, deckSize int, value func(*cards.Card, limited.CardRef) float64) (pickbotDrafter, pickbotBuilder) {
+	return &pickbot.CommanderDrafter{Lookup: lookup, DeckSize: deckSize, Value: value},
+		&pickbot.CommanderBuilder{Lookup: lookup, DeckSize: deckSize, Value: value}
 }
 
 // commanderDeckSize is the run's Commander-draft deck size: the event's

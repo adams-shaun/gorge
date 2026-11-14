@@ -1,0 +1,10 @@
+# the MBC repeat-each-1 pool: Rakdos Charm (its third mode, each creature
+# deals 1 damage to its controller) and Azra Bladeseeker (each player on your
+# team may discard a card, then draws) beside creatures, one with lifelink,
+# and basics (dirac/oracle/mbc_repeateach1_lowers_test.go)
+Rakdos Charm
+Azra Bladeseeker
+Vampire Nighthawk
+Sewer Rats
+Mountain
+Swamp

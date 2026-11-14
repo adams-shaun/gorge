@@ -239,15 +239,36 @@ func TestExtraBlockLostAbilitiesOneBlock(t *testing.T) {
 }
 
 // TestExtraBlockMustBlockStalls: a lure attacker with a two-attacker blocker
-// ready stalls the declaration by name, and the same board without the Twins
-// does not.
+// ready no longer stalls the declaration (StallExtraBlockReq): the lure's
+// blocker is offered the lures and then, once it has blocked one, the second
+// lure (a second pair obeying the requirement) but not a plain attacker (gorge's
+// blockDutyFull); the same board without the Twins is unchanged. The name is
+// the test's old one.
 func TestExtraBlockMustBlockStalls(t *testing.T) {
 	sc := xbScen(t, Config{NoElide: true})
-	lure := sc.perm(xbLure, 0)
-	sc.perm(xbTwins, 1)
-	xbAttack(t, sc, lure)
-	if sc.s.StallReason() != StallExtraBlockReq {
-		t.Fatalf("stall = %d, want StallExtraBlockReq", sc.s.StallReason())
+	lure, lure2, plainAtk := sc.perm(xbLure, 0), sc.perm(xbLure, 0), sc.perm(xbBear, 0)
+	tw := sc.perm(xbTwins, 1)
+	xbAttack(t, sc, lure, lure2, plainAtk)
+	if sc.s.StallReason() != 0 {
+		t.Fatalf("stall = %d, want none", sc.s.StallReason())
+	}
+	d := sc.s.Step()
+	if !xbOffered(d, tw, lure) || !xbOffered(d, tw, lure2) {
+		t.Fatalf("the Twins is not offered both lures: %v", d.Options[:d.N])
+	}
+	if xbOffered(d, tw, plainAtk) {
+		t.Fatalf("the Twins is offered the plain attacker before the lure: %v", d.Options[:d.N])
+	}
+	sc.do(t, AkBlock, TCode(tw), TCode(lure))
+	d = sc.s.Step()
+	if !xbOffered(d, tw, lure2) {
+		t.Fatalf("the second lure is not offered as the Twins' second pair: %v", d.Options[:d.N])
+	}
+	if xbOffered(d, tw, plainAtk) {
+		t.Fatalf("the lure's blocker is offered a second pair on a non-lure attacker (gorge's blockDutyFull): %v", d.Options[:d.N])
+	}
+	if d.Options[d.N-1].Kind() != AkDone {
+		t.Fatalf("Done is not offered once a lure is blocked: %v", d.Options[:d.N])
 	}
 	sc = xbScen(t, Config{NoElide: true})
 	lure = sc.perm(xbLure, 0)

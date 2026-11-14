@@ -63,7 +63,7 @@ func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {
 	if err != nil {
 		return err
 	}
-	if pay.CS != "Mana" || pay.C != 0 || pay.A.Kind != vConst || pay.B.Kind != vConst || pay.A.N < 0 || pay.A.N > 15 {
+	if pay.CS != "Mana" || pay.C != 0 || len(pay.Hyb) != 0 || pay.A.Kind != vConst || pay.B.Kind != vConst || pay.A.N < 0 || pay.A.N > 15 {
 		return refuse("NumTimes unit cost shape")
 	}
 	for i := 0; i < 5; i++ {

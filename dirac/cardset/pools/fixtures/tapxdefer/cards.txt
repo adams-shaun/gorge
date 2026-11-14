@@ -1,0 +1,11 @@
+# a real tap-another source (Springleaf Drum) beside a depletion-rider land
+# (Peat Bog, a Taps-deferred gap) and a counter-cost source (Wall of Roots):
+# the tap-another search funds all three (dirac/mana_tapx_defer_gap_test.go)
+Springleaf Drum
+Peat Bog
+Wall of Roots
+Relic Crush
+Grizzly Bears
+Island
+Swamp
+Forest

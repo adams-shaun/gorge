@@ -34,8 +34,6 @@ export class ManaBrewMatch extends SnapshotMatch {
   private gv: GameViewDto | null = null;
   private binding: PromptBinding | null = null;
   private lastPromptId = -1;
-  /** The promptId this seat last answered: the server poses it again only after an undo. */
-  private answeredPromptId = -1;
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- private projection cache (last-known card faces), never rendered
   private known = new Map<number, CardView>();
   /** How many prompts the compat rule answered with a pass (diagnostics). */
@@ -170,21 +168,32 @@ export class ManaBrewMatch extends SnapshotMatch {
   }
 
   private acceptPrompt(p: AgentPrompt) {
-    // A restored ask is an undo landing: a lower seq, or the very ask this
-    // seat just answered (an undo of its last answer, which the server sends
-    // again under the same promptId).
-    const rewound = p.promptId < this.lastPromptId || p.promptId === this.answeredPromptId;
+    // A REDELIVERED ask is one this connection has already seen: a rewind
+    // (an undo restored it — a lower promptId, or the very ask this seat
+    // answered, which the server poses again under the same promptId), or a
+    // re-pose of the open ask (the server re-sends it after a rewind frame
+    // or a stream reconnect, and a refused answer leaves its ask open so it
+    // comes back exactly like that). Neither may ever be answered by the
+    // compat auto-pass: passing a restored ask would undo the player's undo,
+    // and the seat panel's own undo brake (SeatPanelState.rewind) never sees
+    // these prompts — they are withdrawn before they bind. A redelivery of
+    // an ask that is NOT currently open here is a rewind: the panel is told
+    // and motion resets. A redelivery of the ask that IS still open
+    // (bound, unanswered) is only a re-pose: re-bound, no rewind side
+    // effects, still never auto-passed.
+    const redelivered = p.promptId <= this.lastPromptId;
+    const rewound = redelivered && this.binding?.prompt.promptId !== p.promptId;
     if (rewound) {
       // The board's history stays in the ring; the panel re-bases its seq fences.
-      this.answeredPromptId = -1;
       this.onRewind?.();
       this.model.emit({ type: 'reset' });
     }
     this.lastPromptId = p.promptId;
     // Compat: a priority ask with nothing to do but make mana is passed
-    // unseen, as ManaBrew's own engine never poses one. A rewound ask (an
-    // undo) is always shown, so the undo lands where the player can see it.
-    if (this.deps.compat && !rewound && nothingToDo(p)) {
+    // unseen, as ManaBrew's own engine never poses one. A redelivered ask
+    // (a rewind's restoration or a re-pose) is always shown, so the undo
+    // lands where the player can see it.
+    if (this.deps.compat && !redelivered && nothingToDo(p)) {
       this.autoPassed += 1;
       if (this.binding !== null) this.withdraw();
       this.sendMsg(compatPass(p)).catch(() => {
@@ -234,13 +243,9 @@ export class ManaBrewMatch extends SnapshotMatch {
 
   private async sendMsg(msg: ClientMessage) {
     if (this.match === null) throw new ApiError(409, 'conflict', 'no match');
-    // An undo request names the open ask without answering it.
-    if (msg.kind === 'response' && msg.action.output.type !== 'restoreSnapshot') this.answeredPromptId = msg.promptId;
     try {
       await this.deps.transport.send(this.table, this.match, this.seat.token, msg);
     } catch (e) {
-      // A refused answer leaves its ask open, so it never comes back as an undo.
-      if (msg.kind === 'response' && this.answeredPromptId === msg.promptId) this.answeredPromptId = -1;
       if (e instanceof WireError) {
         this.noteRefusal(e.code, e.message);
         throw new ApiError(e.status, e.code, e.message);

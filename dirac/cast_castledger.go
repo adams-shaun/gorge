@@ -30,6 +30,15 @@ import (
 // castRingN is the pushes per player per turn the ring records.
 const castRingN = 12
 
+// coldCastRing is the ring, castRingN pushes per seat, for a table that reads
+// it (noteCast) or casts a paradigm.
+var coldCastRing = newCold[castPush]("castRing", func(g *genPrep) int {
+	if g.castRingOn || g.anyParadigm {
+		return MaxSeats * castRingN
+	}
+	return 0
+}).view(func(c *coldArrays) *[]castPush { return &c.castRing })
+
 // castPush is one push: the object as Obj+1 and its castFrom* origin and
 // castTreasurePush and castWarpPush bits.
 type castPush struct {

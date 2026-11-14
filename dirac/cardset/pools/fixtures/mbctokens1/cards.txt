@@ -1,0 +1,17 @@
+# the MBC tokens-1 family: a comma-listed TokenScript$ with TokenOwner$ You
+# (Bestial Menace) and a token gated by a second presence group,
+# ConditionPresent$ beside ConditionPresent2$ (Banishing Slash: "if you control
+# an artifact and an enchantment"), beside an artifact and an enchantment to
+# satisfy it and creatures to attack and block
+# (dirac/oracle/mbc_tokens1_lowers_test.go)
+Banishing Slash
+Bestial Menace
+Pacifism
+Sol Ring
+Wayfarer's Bauble
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Plains
+Forest
+Mountain
