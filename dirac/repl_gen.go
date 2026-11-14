@@ -74,6 +74,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		}
 	}
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
+		if g.anyRedir {
+			s.redirBeside(code, rcp) // a redirect is a candidate too: gorge asks the order (repl_dmgredirect.go)
+		}
 		return 0 // Ext PreventColor (cast_altfree.go)
 	}
 	if g.anyRepl&rbProtAll != 0 && sl != NoSlot && s.kw(k, sl)&kop.KwProtectionAll != 0 && !s.noPrev(k, combat) {
@@ -81,6 +84,15 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	}
 	if g.anyRepl&rbProtCol != 0 && sl != NoSlot && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), combat) {
 		return 0 // protection from the source's colour, likewise
+	}
+	if g.anyRedir && !combat {
+		// Ext DmgRedirect: dealt to the record's recipient instead (the combat events: replCombatGen)
+		if m, ok := s.redirTake(k, srcCtrl, srcSl, srcCard, code, rcp, sl, n); ok {
+			if k.anyRedNC && m > 0 {
+				s.tallyRedNC(k, srcCtrl, srcSl, srcCard, m)
+			}
+			return m
+		}
 	}
 	if sl != NoSlot && s.prevAnyTo(k, sl, combat) {
 		return 0 // "Prevent all damage that would be dealt to CARDNAME." (combat_prevention.go)
@@ -246,6 +258,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			}
 		}
 		if k.gen.anyRepl&rbPrevCol != 0 && s.prevColHit(k, ev.src, s.cardAt(ev.src), prevTgt{s.recipientCtl(ev.dst, code), ev.dst}, true) {
+			if k.gen.anyRedir && s.redirBeside(code, s.recipientCtl(ev.dst, code)) {
+				return // a redirect is a candidate too: gorge asks the order (repl_dmgredirect.go)
+			}
 			s.preventCombatEv(k, r, ev) // Ext PreventColor: this source's event only
 			continue
 		}
@@ -256,6 +271,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		}
 		if k.gen.anyRepl&rbHealSelf != 0 && s.selfDamageCombat(k, r, i) {
 			return // a heal host's second event of an ordered-walk pass (repl_selfdamage.go)
+		}
+		if k.gen.anyRedir && s.redirCombat(k, r, ev, ordered, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
+			continue // Ext DmgRedirect: all of it dealt to the record's recipient as a new event
 		}
 		n := s.replDamage(k, src.ctrl, ev.src, s.cardAt(ev.src), code, true, int(ev.n))
 		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevCtrSelf) {

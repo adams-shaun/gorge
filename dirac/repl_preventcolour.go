@@ -20,9 +20,12 @@ func prepPrevCol(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if e := in.Ext(); e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope || e == kop.ExtPreventNext {
+				switch in.Ext() {
+				case kop.ExtPreventColor, kop.ExtPreventDamageScope, kop.ExtPreventNext:
 					g.anyRepl |= rbPrevCol
-					return
+				case kop.ExtDmgRedirect:
+					g.anyRepl |= rbPrevCol // opens every damage site; the records are genState.redir's
+					g.anyRedir = true
 				}
 			}
 		}

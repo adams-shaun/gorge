@@ -35,14 +35,16 @@ func (s *State) exileExMark(k *prep, in *kop.Instr) {
 	s.markExileEx(k, sl)
 }
 
-// exMarkRec is one exile-instead-of-dying effect on slot sl, made by src.
+// exMarkRec is one exile-instead-of-dying effect on slot sl, made by src. Its
+// two-byte fields come first, so a record takes eight bytes at either object
+// width (ten under dirac_mp with sl leading).
 type exMarkRec struct {
-	sl   Slot
+	ts   uint16 // a player hexproof record: its timestamp (a later loss of abilities takes the permanent grant)
 	src  Obj
+	sl   Slot
 	live bool
 	pl   uint8         // a scope record (sl slotExScope and the slotEx* sentinels) only: the controller of the effect (repl_turnrepl.go)
 	col  kop.ColorMask // a player hexproof record: the colours it is from, 0 for plain hexproof
-	ts   uint16        // a player hexproof record: its timestamp (a later loss of abilities takes the permanent grant)
 }
 
 // maxExMarks is how many such effects one turn can hold; more stall by name.

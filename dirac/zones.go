@@ -689,6 +689,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	s.g.lingerM.clr(sl)
 	s.g.declM.clr(sl)
+	if k.gen != nil && k.gen.anyRedir {
+		s.redirDrop(o) // a redirect ends with its host or recipient (repl_dmgredirect.go)
+	}
 	s.setOnceBits(k, sl, 0)        // CR 400.7: the activate-only-once marks end with the permanent
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
 	if s.g.netAny() {

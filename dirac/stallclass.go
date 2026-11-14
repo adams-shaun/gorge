@@ -87,6 +87,8 @@ var stallCapacityReasons = [...]uint8{
 	// a blocker of two attackers that two CanBlockAmount$ 1 sources reach:
 	// gorge's capacity is three, the second-block record holds two (combat_extrablock.go)
 	StallExtraBlockCap,
+	StallRedirCap,   // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
+	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{

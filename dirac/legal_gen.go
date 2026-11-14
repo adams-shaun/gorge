@@ -412,6 +412,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
+		if s.cfg&cfgCommander != 0 {
+			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj)) // CR 903.8: a free cast from the command zone still pays the tax
+		}
 		// the cost statics apply to what is left (CR 601.2f, 118.9d): a
 		// RaiseCost charges its generic, and a ReduceCost takes its generic
 		// off an additional cost too (The Wind Crystal reducing a free

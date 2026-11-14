@@ -65,7 +65,7 @@ func (s *State) grantGapUsable(k *prep, sl Slot) bool {
 	if s.grantIdx(k, sl) < 0 {
 		return false
 	}
-	return s.canTapForMana(k, sl) || s.grantSacOK(k, sl)
+	return s.canTapForMana(k, sl) || s.grantSacOK(k, sl) || s.grantTapOK(k, sl)
 }
 
 // grantTapOK is the grant search's "the source can tap" test: canTapForMana,
@@ -75,8 +75,8 @@ func (s *State) grantTapOK(k *prep, sl Slot) bool {
 	if s.canTapForMana(k, sl) {
 		return true
 	}
-	if !s.manaPCGen(k, sl).grantSac {
-		return false
+	if pc := s.manaPCGen(k, sl); !pc.grantSac && !(k.sacOnlyMana && pc.manaSacOnly) {
+		return false // (a printed sacrifice-only source, an Eldrazi Spawn, taps only by a grant)
 	}
 	var gi [maxGrants]int16
 	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {

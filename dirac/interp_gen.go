@@ -53,9 +53,9 @@ const (
 // The asks just above raGenManifestDread live in its free offsets (+4..+6),
 // not in the iota block above: the offset families that anchor at
 // raGenManifestDread (+1/+2 modal_activated.go, +3 zone_changezoneparams.go's
-// may-mill, +40.. act_mayask.go, ...) assign values by addition, so the next
-// iota value would alias one of them and its first handler would claim the
-// other family's election.
+// may-mill, +7 act_libplace.go, +8 repl_chooseplayer.go, +40.. act_mayask.go,
+// ...) assign values by addition, so the next iota value would alias one of
+// them and its first handler would claim the other family's election.
 const (
 	raGenDigAllOpt = raGenManifestDread + 4 // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 	raGenCmdZone   = raGenManifestDread + 5 // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
@@ -969,6 +969,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
+		}
+		if in.C == chooseAttachDest {
+			return s.attachDest(k, p) // tgt_attachdest.go
 		}
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go

@@ -69,6 +69,7 @@ const (
 	mechInfect                      // slots whose permanent has infect until end of turn (ExtKwMark; kw_kwmark.go)
 	mechInfectPost                  // slots marked infect while their permanent had lost all abilities (CR 613.7)
 	mechRenowned                    // slots whose permanent is renowned (CR 702.112b; act_renown.go)
+	mechAttacksPlayer               // slots whose attack duty names the opponent: a player, never their planeswalkers or battles (Encore's "attacks that opponent"; combat_attacksifable.go)
 	numMech
 )
 
@@ -106,6 +107,7 @@ var mechWidth = [numMech]uint8{
 	mechMustBlockedPost: wSlot,
 	mechAttacksIfAble:   wSlot,
 	mechBlocksIfAble:    wSlot,
+	mechAttacksPlayer:   wSlot,
 	mechNoRegen:         wSlot,
 	mechSBAChain:        wObj,
 	mechOnce2:           wSlot,
@@ -139,7 +141,7 @@ var mechWidth = [numMech]uint8{
 	mechRenowned:        wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "intimidate", "intimidatePost", "infect", "infectPost", "renowned"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3", "intimidate", "intimidatePost", "infect", "infectPost", "renowned", "attacksPlayer"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
@@ -213,6 +215,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					kwMarkUses(&in, &u)    // kw_kwmark.go
 					if in.Ext() == kop.ExtAttacksIfAble {
 						u[mechAttacksIfAble] = true // combat_attacksifable.go
+						if in.C&kop.AttacksOpponent != 0 {
+							u[mechAttacksPlayer] = true
+						}
 					}
 					if in.Ext() == kop.ExtBlocksIfAble {
 						u[mechBlocksIfAble] = true // combat_blocksifable.go
