@@ -195,14 +195,14 @@ func (lc *lowerCtx) pickEachLoop(loop lRef) {
 // fetch player asks the resolving controller's first living opponent (gorge
 // hiddenPickChooser: Chooser$ Opponent through chooserPlayer), the kernel's
 // SrChooserOpp read. It returns the owner and loop to emit and the CS suffix.
-func graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRef, lRef, string, error) {
+func (lc *lowerCtx) graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRef, lRef, string, error) {
 	ch, ok := ps.get("Chooser")
 	if !ok {
 		return owner, loop, "", nil
 	}
 	switch {
 	case ch == "You" && loop.Kind != rNone:
-		if !youPickEachOppGrave(f, flags, loop) {
+		if !lc.youPickEachOppGrave(f, flags, loop) {
 			return owner, loop, "", refuse("graveyard pick Chooser$ You over DefinedPlayer$ %q", ps.str("DefinedPlayer"))
 		}
 		return lRef{Kind: rYou}, lRef{}, "", nil
@@ -228,7 +228,7 @@ func graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRe
 // You and entering under You: the loop is dropped and every clause's owner
 // becomes the opponent. It reports false (refuse) for any other shape: no
 // GainControl$, or a clause that already names an owner or controller.
-func youPickEachOppGrave(f *lFilter, flags []string, loop lRef) bool {
+func (lc *lowerCtx) youPickEachOppGrave(f *lFilter, flags []string, loop lRef) bool {
 	if loop.Kind != rEachOpp || !slices.Contains(flags, "UnderYourControl") || f == nil || len(f.Clauses) == 0 {
 		return false
 	}
@@ -240,6 +240,7 @@ func youPickEachOppGrave(f *lFilter, flags []string, loop lRef) bool {
 	for i := range f.Clauses {
 		f.Clauses[i].Owner = whoOpp
 	}
+	lc.twoSeat("a per-opponent graveyard pick asked of You read as the one opponent's cards")
 	return true
 }
 

@@ -623,7 +623,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			if !chosenPool { // chosenMidPool already read Chooser$
 				var chooserCS string
-				if pickOwner, pickLoop, chooserCS, err = graveChooser(ps, f, flags, pickOwner, pickLoop); err != nil { // lower_hiddenpick.go
+				if pickOwner, pickLoop, chooserCS, err = lc.graveChooser(ps, f, flags, pickOwner, pickLoop); err != nil { // lower_hiddenpick.go
 					return err
 				}
 				cs += chooserCS
