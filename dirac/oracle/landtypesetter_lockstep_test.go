@@ -13,9 +13,10 @@ import (
 )
 
 // TestLandTypeSetterLockstep plays the attached CR 305.7 land-type setters
-// kgen lowers (Spreading Seas and Evil Presence: RemoveLandTypes$ True with
-// AddType$ Island / Swamp; kop.Override.SetLandSub) in lockstep with gorge
-// over the landtypesetter fixture pool. Both decks enchant lands of other
+// kgen lowers (Spreading Seas, Sea's Claim, Evil Presence: RemoveLandTypes$
+// True with AddType$ Island / Swamp; Lush Growth's three types, a
+// multi-colour intrinsic view; kop.Override.SetLandSub) in lockstep with
+// gorge over the landtypesetter fixture pool. Both decks enchant lands of other
 // types (Forests, Plains, Wastes, the original duals), then tap them for mana
 // and cast creatures of the old and the new colours: the enchanted land is
 // only the new basic type, its own mana ability gone and the new type's
@@ -33,9 +34,9 @@ func TestLandTypeSetterLockstep(t *testing.T) {
 	}
 	t.Run("lockstep", func(t *testing.T) {
 		run, st := runLandSetLockstep(t, 24, true)
-		t.Logf("%d games, %d divergences, %d stalls; setters attached %d (%d off-type), enchanted taps %d (%d off-type)", run.games, run.divs, run.stalls, st.attached, st.offAttach, st.taps, st.offTaps)
-		if st.offAttach < 4 || st.offTaps < 4 {
-			t.Errorf("setters attached to a land without the new type %d times and such lands tapped %d times, want at least 4 each", st.offAttach, st.offTaps)
+		t.Logf("%d games, %d divergences, %d stalls; setters attached %d (%d off-type), enchanted taps %d (%d off-type, %d under three types)", run.games, run.divs, run.stalls, st.attached, st.offAttach, st.taps, st.offTaps, st.multiTaps)
+		if st.offAttach < 4 || st.offTaps < 4 || st.multiTaps < 2 {
+			t.Errorf("setters attached to a land without the new type %d times, such lands tapped %d times, lands under three types tapped %d times: want at least 4, 4 and 2", st.offAttach, st.offTaps, st.multiTaps)
 		}
 	})
 	t.Run("mutation-own-mana", func(t *testing.T) {
@@ -49,24 +50,27 @@ func TestLandTypeSetterLockstep(t *testing.T) {
 var landSetDecks = []fixtureDecks{{
 	{{Name: "Spreading Seas", Count: 8}, {Name: "Evil Presence", Count: 4}, {Name: "Coral Merfolk", Count: 6}, {Name: "Typhoid Rats", Count: 4},
 		{Name: "Island", Count: 7}, {Name: "Swamp", Count: 5}, {Name: "Tropical Island", Count: 3}, {Name: "Bayou", Count: 3}},
-	{{Name: "Spreading Seas", Count: 4}, {Name: "Grizzly Bears", Count: 10}, {Name: "Savannah Lions", Count: 6},
+	{{Name: "Spreading Seas", Count: 4}, {Name: "Lush Growth", Count: 4}, {Name: "Grizzly Bears", Count: 6}, {Name: "Savannah Lions", Count: 3}, {Name: "Raging Goblin", Count: 3},
 		{Name: "Forest", Count: 8}, {Name: "Island", Count: 4}, {Name: "Savannah", Count: 4}, {Name: "Wastes", Count: 4}},
 }, {
 	{{Name: "Evil Presence", Count: 8}, {Name: "Spreading Seas", Count: 4}, {Name: "Typhoid Rats", Count: 8}, {Name: "Grizzly Bears", Count: 4},
 		{Name: "Swamp", Count: 6}, {Name: "Island", Count: 3}, {Name: "Bayou", Count: 4}, {Name: "Forest", Count: 3}},
-	{{Name: "Spreading Seas", Count: 6}, {Name: "Coral Merfolk", Count: 6}, {Name: "Savannah Lions", Count: 8},
+	{{Name: "Spreading Seas", Count: 3}, {Name: "Sea's Claim", Count: 3}, {Name: "Coral Merfolk", Count: 6}, {Name: "Savannah Lions", Count: 8},
 		{Name: "Plains", Count: 6}, {Name: "Island", Count: 6}, {Name: "Savannah", Count: 4}, {Name: "Tropical Island", Count: 4}},
 }}
 
-var landSetWatch = map[string]bool{"Spreading Seas": true, "Evil Presence": true}
+var landSetWatch = map[string]bool{"Spreading Seas": true, "Sea's Claim": true, "Evil Presence": true, "Lush Growth": true}
 
-// landSetAdds is the basic land type each watched setter adds.
-var landSetAdds = map[string]string{"Spreading Seas": "Island", "Evil Presence": "Swamp"}
+// landSetAdds is the basic land types each watched setter adds.
+var landSetAdds = map[string][]string{
+	"Spreading Seas": {"Island"}, "Sea's Claim": {"Island"}, "Evil Presence": {"Swamp"}, "Lush Growth": {"Mountain", "Forest", "Plains"},
+}
 
 // landSetStats are the preconditions measured from gorge's side.
 type landSetStats struct {
-	attached, offAttach int // setters attached to a land; to one whose printed types lack the added type
+	attached, offAttach int // setters attached to a land; to one whose printed types lack an added type
 	taps, offTaps       int // enchanted lands tapped; ones whose printed types lack an added type
+	multiTaps           int // lands under Lush Growth (three intrinsic abilities) tapped
 }
 
 // landSetOn returns the basic land types the setters attached to land id add.
@@ -75,9 +79,7 @@ func landSetOn(g *state.Game, id state.ObjID) []string {
 	for _, q := range g.AliveFrom(0) {
 		for _, a := range g.Zone(state.ZBattlefield, q) {
 			if o := g.Obj(a); o != nil && o.AttachedTo == id && o.Face() != nil {
-				if w, ok := landSetAdds[o.Face().Name]; ok {
-					out = append(out, w)
-				}
+				out = append(out, landSetAdds[o.Face().Name]...)
 			}
 		}
 	}
@@ -99,10 +101,13 @@ func landSetObserve(ref *GorgeSide, seen *int, st *landSetStats) {
 			if src == nil || src.Face() == nil || land == nil || land.Face() == nil {
 				continue
 			}
-			if w, ok := landSetAdds[src.Face().Name]; ok {
+			if ws, ok := landSetAdds[src.Face().Name]; ok {
 				st.attached++
-				if !land.Face().HasTypeWord(w) {
-					st.offAttach++
+				for _, w := range ws {
+					if !land.Face().HasTypeWord(w) {
+						st.offAttach++
+						break
+					}
 				}
 			}
 		case events.Tap:
@@ -115,6 +120,9 @@ func landSetObserve(ref *GorgeSide, seen *int, st *landSetStats) {
 				continue
 			}
 			st.taps++
+			if len(adds) > 1 {
+				st.multiTaps++
+			}
 			for _, w := range adds {
 				if !land.Face().HasTypeWord(w) {
 					st.offTaps++
