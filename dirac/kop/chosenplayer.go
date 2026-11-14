@@ -34,7 +34,7 @@ const RefChosenPlayer Ref = 39
 // one (one is recorded unasked, the oracle's forcedPlayerChoice); the seat
 // stays in the resolution (res.chPl, seat + 1) and RefChosenPlayer reads it
 // while the resolution holds it. dirac/repl_chooseplayer.go.
-const ExtChoosePlayerMid ExtOp = 298
+const ExtChoosePlayerMid ExtOp = 290
 
 func init() { extOpNames[ExtChoosePlayerMid] = "ChoosePlayerMid" }
 

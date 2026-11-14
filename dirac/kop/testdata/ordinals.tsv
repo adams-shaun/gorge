@@ -456,7 +456,7 @@ ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
 ExtChoosePlayer	ExtOp	299
-ExtChoosePlayerMid	ExtOp	298
+ExtChoosePlayerMid	ExtOp	290
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
