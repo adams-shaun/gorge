@@ -623,6 +623,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
 				switch {
+				case ch == "You" && pickLoop.Kind != rNone:
+					// gorge asks You over each walked player's graveyard
+					if !youPickEachOppGrave(f, flags, pickLoop) { // lower_hiddenpick.go
+						return refuse("graveyard pick Chooser$ You over DefinedPlayer$ %q", ps.str("DefinedPlayer"))
+					}
+					pickOwner, pickLoop = lRef{Kind: rYou}, lRef{}
+				case ch == "You" && pickOwner.Kind != rYou:
+					return refuse("graveyard pick Chooser$ You over DefinedPlayer$ %q", ps.str("DefinedPlayer"))
 				case ch == "You", ch == "":
 				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
 					cs += "|ChooserOpp"
