@@ -119,6 +119,13 @@ const StFreeOnly = StRaiseYou
 // NoMaxHandSize reads no IncreaseCost flag.
 const StHandOpp = StRaiseOpp
 
+// StBanOpp is StRaiseOpp read on a StatCantGainLife / StatCantDraw: the ban
+// binds only the controller's opponents (ValidPlayer$ Opponent, Tibalt, Rakish
+// Instigator's "Your opponents can't gain life"; gorge lifeGainForbidden /
+// drawForbidden match the spec from the static's controller, so the banned
+// player is any seat other than it). Neither kind reads an IncreaseCost flag.
+const StBanOpp = StRaiseOpp
+
 // StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
 // the spells of either player (a ReduceCost with no Activator$, Helm of
 // Awakening), where a ReduceCost with Activator$ You reduces its controller's.
@@ -326,10 +333,13 @@ const (
 	// CtrTreasure is a treasure counter, a named counter with no inherent
 	// rules meaning (CR 122.1; Legacy's Allure's Count$CardCounters.TREASURE).
 	CtrTreasure
-	// CtrLevelUp is a level counter (CR 702.87a: Level up puts one on the
-	// permanent as a sorcery; Zulaport Enforcer's LEVEL bands read its count),
-	// a named counter with no inherent rules meaning (CR 122.1). It is not
-	// CtrLevel, a Class's level (CR 716).
+	// CtrTask is a task counter (Heliod's Punishment): a named counter with no
+	// inherent rules meaning (CR 122.1) that the granted {T} ability removes.
+	CtrTask
+	// CtrLevelUp is a level counter (CR 702.87: Level up puts one on the
+	// permanent; the LEVEL bands read counters_GEn_LEVEL). A named counter with
+	// no inherent rules meaning (CR 122.1), distinct from CtrLevel, a Class's
+	// level designation.
 	CtrLevelUp
 	NumCounterKinds3
 )
@@ -349,7 +359,7 @@ var CtrXNames = [NumCounterKindsX]string{"CHARGE", "OIL", "SPORE", "QUEST", "VER
 	"Reach", "Shadow", "Trample", "Vigilance", "SUPPLY", "LORE", "LANDMARK", "DREAD", "DEFENSE", "CHORUS", "M0M1", "FINALITY", "TIME", "VALOR", "NET", "PLAN",
 	"INVASION", "LOOT", "REV", "PAGE", "INGENUITY", "FILM", "FIRE", "HONE", "COIN",
 	"DIVINITY", "IMPOSTOR", "BORE", "POINT", "BLOODSTAIN", "POSSESSION", "PROMOTION", "PEACE", "WISH", "SKEWER", "NEST", "AGE", "LUCK",
-	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "LEVEL"}
+	"DEPLETION", "MINING", "FADE", "BURDEN", "STORAGE", "SCREAM", "TREASURE", "TASK", "LEVEL"}
 
 // IsCounterKind reports whether c is a real counter kind (a featurized one
 // or an unfeaturized one; CtrLevel and the gap at NumCounterKinds2 are not).

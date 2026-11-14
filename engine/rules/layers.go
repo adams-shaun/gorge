@@ -294,7 +294,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						if st.HasParam(cards.PKAddKeyword) || st.HasParam(cards.PKRemoveKeyword) || st.HasParam(cards.PKCantHaveKeyword) || statGrantsLure(st) {
 							kw := base
 							kw.Layer = LAbilities
-							kw.AddKeywords = withLureGrant(st, statKeywords(st))
+							kw.AddKeywords = effects.ResolveGrantedProtection(withLureGrant(st, statKeywords(st)), o)
 							if st.HasParam(cards.PKSharedKeywordsZone) {
 								// A shared-keyword grant is filtered by the cards in the
 								// named zones right now (Eater of Virtue's exile, Cairn

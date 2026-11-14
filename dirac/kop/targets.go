@@ -155,3 +155,26 @@ const TgfActOnly TargetFlags = 1 << 15
 // Player moves — target legality stays judged from the ability's controller
 // (engine/rules/target_modes.go targetChooserCore).
 const TgfTrigChooser TargetFlags = 1 << 16
+
+// TgfOppToActive (TargetSpec.TFlags, TgtPlayer slots): the player must be an
+// opponent of the ACTIVE player, whoever controls the ability (gorge's
+// Player.OpponentToActive; the Oath cycle's "and is their opponent", the first
+// player being the player whose upkeep it is). The ThanActive field beside it
+// adds the comparison with the active player.
+const TgfOppToActive TargetFlags = 1 << 17
+
+// TgfThanShift and TgfThanMask place the ThanActive comparison in TFlags
+// (bits 18-20): the candidate player must hold strictly more (Than*) or, for
+// ThanYardFewer, fewer of a quantity than the active player does (gorge's
+// Player.withMoreCreaturesThanActive and its four siblings,
+// engine/effects/player_than_active.go). 0 = no comparison.
+const (
+	TgfThanShift       = 18
+	TgfThanMask        = TargetFlags(7) << TgfThanShift
+	ThanCreatures      = 1 // more creatures on the battlefield
+	ThanLands          = 2 // more lands on the battlefield
+	ThanHandCards      = 3 // more cards in hand
+	ThanLife           = 4 // more life
+	ThanYardFewer      = 5 // fewer creature cards in the graveyard
+	TgfPlayerCompareOK = TgfOppToActive | TgfThanMask
+)

@@ -125,7 +125,7 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 	if s.noPrev(k, combat) {
 		return n, false // CR 615.12: the shield is no candidate
 	}
-	if hit > 1 || s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, combat) {
+	if hit > 1 || s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		s.capFull(StallPrevNext) // two or more shields on one recipient: only damageTo and a combat pass pose the ask
 		return n, false
 	}
@@ -151,8 +151,11 @@ func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code TCode, d int) {
 
 // prevNextCompetes reports whether another damage replacement would also be a
 // candidate for this event (a conservative superset of gorge's collection:
-// the battlefield scan does not read each doubler's own filter).
-func (s *State) prevNextCompetes(k *prep, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
+// the battlefield scan does not read the other replacements' own filters; a
+// doubler is read through dblDmgN2, as the SHIELD counter's shieldOther reads
+// it: only the source controller's doublers that match the event compete, so
+// an opponent's Fire Servant is no candidate for this spell).
+func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
 	g := k.gen
 	if s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
 		return true // a colour or scope record
@@ -171,7 +174,10 @@ func (s *State) prevNextCompetes(k *prep, srcSl Slot, srcCard CardID, rcp uint8,
 	if combat && g.anyPrevFrom && srcSl != NoSlot && s.prevCombatFrom(k, srcSl) {
 		return true
 	}
-	const others = rbDblDmg | rbPlusDmg | rbPrevNC | rbPrevMill | rbPrevCtrSelf | rbHealSelf
+	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
+		return true
+	}
+	const others = rbPlusDmg | rbPrevNC | rbPrevMill | rbPrevCtrSelf | rbHealSelf
 	if g.anyRepl&others != 0 {
 		for m := s.statM; m.any(); m = m.rest() {
 			b := m.first()
