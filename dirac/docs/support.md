@@ -8,30 +8,30 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported | 4-seat |
 |---|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 17 | 0 | 1 | 16 | 16 |
-| BLB | 278 | 227 | 2 | 0 | 225 | 224 |
-| DFT | 276 | 221 | 0 | 3 | 218 | 218 |
-| DSK | 276 | 231 | 4 | 2 | 225 | 225 |
-| ECL | 273 | 214 | 1 | 0 | 213 | 212 |
-| EOE | 266 | 209 | 0 | 11 | 198 | 198 |
-| FDN | 517 | 461 | 0 | 0 | 461 | 458 |
-| FIN | 312 | 226 | 0 | 2 | 224 | 223 |
-| FRA | 269 | 193 | 0 | 4 | 189 | 186 |
-| HOB | 172 | 117 | 0 | 0 | 117 | 116 |
-| LCI | 290 | 217 | 1 | 17 | 199 | 198 |
-| MKM | 279 | 193 | 2 | 24 | 167 | 165 |
-| MSH | 276 | 210 | 1 | 10 | 199 | 199 |
-| OTJ | 276 | 206 | 1 | 2 | 203 | 202 |
-| SOS | 270 | 226 | 0 | 0 | 226 | 226 |
-| SPM | 192 | 151 | 1 | 1 | 149 | 148 |
-| TDM | 276 | 207 | 1 | 0 | 206 | 206 |
-| TLA | 285 | 212 | 1 | 5 | 206 | 205 |
-| TMT | 194 | 147 | 0 | 0 | 147 | 146 |
-| TRC | 337 | 269 | 0 | 29 | 240 | 238 |
-| TRK | 311 | 256 | 0 | 0 | 256 | 251 |
-| WOE | 281 | 179 | 0 | 13 | 166 | 166 |
-| MBC | 2195 | 1581 | 0 | 837 | 744 | 730 |
-| ALL | 34442 | 20877 | 18 | 15842 | 5017 | 4978 |
+| BIG | 30 | 27 | 0 | 2 | 25 | 25 |
+| BLB | 278 | 261 | 2 | 0 | 259 | 258 |
+| DFT | 276 | 255 | 0 | 4 | 251 | 251 |
+| DSK | 276 | 251 | 4 | 2 | 245 | 245 |
+| ECL | 273 | 244 | 1 | 0 | 243 | 242 |
+| EOE | 266 | 250 | 0 | 11 | 239 | 239 |
+| FDN | 517 | 517 | 0 | 0 | 517 | 514 |
+| FIN | 312 | 276 | 0 | 3 | 273 | 272 |
+| FRA | 269 | 255 | 0 | 6 | 249 | 245 |
+| HOB | 172 | 159 | 0 | 0 | 159 | 157 |
+| LCI | 290 | 260 | 1 | 21 | 238 | 235 |
+| MKM | 279 | 252 | 2 | 30 | 220 | 216 |
+| MSH | 276 | 246 | 1 | 11 | 234 | 234 |
+| OTJ | 276 | 253 | 1 | 3 | 249 | 248 |
+| SOS | 270 | 257 | 0 | 0 | 257 | 257 |
+| SPM | 192 | 169 | 1 | 2 | 166 | 165 |
+| TDM | 276 | 257 | 3 | 1 | 253 | 253 |
+| TLA | 285 | 261 | 1 | 5 | 255 | 254 |
+| TMT | 194 | 183 | 0 | 0 | 183 | 182 |
+| TRC | 337 | 301 | 0 | 32 | 269 | 266 |
+| TRK | 311 | 311 | 0 | 0 | 311 | 306 |
+| WOE | 281 | 264 | 0 | 18 | 246 | 245 |
+| MBC | 2195 | 1802 | 0 | 946 | 856 | 840 |
+| ALL | 34442 | 23739 | 20 | 17697 | 6022 | 5973 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 

@@ -150,7 +150,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
 	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
 	// +17 (Level up lowers (CR 702.87a): kwLevelUp's sorcery-speed PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band IsPresent$ Card.Self+counters_GEa_LEVEL+counters_LEb_LEVEL as two Self presence tests: Brimstone Mage, Caravan Escort, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Hedron Field Purists, Ikiral Outrider, Joraga Treespeaker, Kargan Dragonlord, Kazandu Tuskcaller, Knight of Cliffhaven, Nirkana Cutthroat, Null Champion, Skywatcher Adept, Student of Warfare, Transcendent Master, Under Construction Skyscraper; ALL 23253 -> 23270, MBC 1678 -> 1683 measured).
-	// -7 (a second plain Sac<> cost part refuses: Jarad, Golgari Lich Lord and the like; ALL 20884 -> 20877 measured on this worktree, delta applied to the pin).
+	// -7 (a second plain Sac<> cost part refuses instead of lowering the last part alone: Jarad, Golgari Lich Lord; Angels, Demons, Dragons and Behemoths Heralds; Urborg Panther; Viscerid Drone; ALL 23746 -> 23739 measured on this worktree).
 	"ALL": {23739, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
@@ -171,7 +171,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
 	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// MBC +5 (Level up: Enclave Cryptologist, Knight of Cliffhaven, Joraga Treespeaker, Nirkana Cutthroat, Hada Spy Patrol; 1678 -> 1683).
-	"MBC": {1803, 2195},
+	// -1 (a second plain Sac<> cost part refuses: Jarad, Golgari Lich Lord's graveyard return; MBC 1803 -> 1802 measured).
+	"MBC": {1802, 2195},
 	"MKM": {252, 279},
 	"MOM": {204, 296},
 	"MSH": {246, 276},
