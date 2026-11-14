@@ -41,7 +41,20 @@ var prototypeDecks = []fixtureDecks{{
 		{Name: "Negate", Count: 3}, {Name: "Unsummon", Count: 3}, {Name: "Wind Drake", Count: 4},
 		{Name: "Hill Giant", Count: 3}, {Name: "Island", Count: 8}, {Name: "Mountain", Count: 8},
 	},
+}, {
+	{
+		{Name: "Combat Thresher", Count: 4}, {Name: "Steel Seraph", Count: 4}, {Name: "Blitz Automaton", Count: 4},
+		{Name: "Savannah Lions", Count: 4}, {Name: "Hill Giant", Count: 4}, {Name: "Plains", Count: 12}, {Name: "Mountain", Count: 8},
+	},
+	{
+		{Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4}, {Name: "Essence Scatter", Count: 3},
+		{Name: "Negate", Count: 3}, {Name: "Unsummon", Count: 3}, {Name: "Wind Drake", Count: 4},
+		{Name: "Hill Giant", Count: 3}, {Name: "Island", Count: 8}, {Name: "Mountain", Count: 8},
+	},
 }}
+
+// protoCards are the pool's cards printed with K:Prototype.
+var protoCards = map[string]bool{"Rust Goliath": true, "Combat Thresher": true, "Steel Seraph": true, "Blitz Automaton": true}
 
 // protoStats are the preconditions the lockstep measures on gorge's side.
 type protoStats struct {
@@ -51,8 +64,8 @@ type protoStats struct {
 	protoSpells            int                  // decision points at which a prototyped Rust Goliath was on the stack
 }
 
-// protoPolicy plays randomly but casts Rust Goliath whenever it is offered:
-// the printed cast always, the prototyped cast three times in four.
+// protoPolicy plays randomly but casts a prototype card whenever one is
+// offered: the printed cast always, the prototyped cast three times in four.
 func protoPolicy(seed uint64, st *protoStats) Policy {
 	rnd := RandomPolicy(seed)
 	prng := rand.New(rand.NewPCG(seed, 0x70726f74)) // "prot"
@@ -60,7 +73,7 @@ func protoPolicy(seed uint64, st *protoStats) Policy {
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.G != nil && c.D.Kind == DPriority && len(c.G.E.G.Stack) == 0 {
 			for _, a := range c.D.Options {
-				if refCardName(c.G, a.Src()) != "Rust Goliath" {
+				if !protoCards[refCardName(c.G, a.Src())] {
 					continue
 				}
 				if a.Kind() == ActCast && a.Mode()&15 == 0 {
@@ -77,25 +90,26 @@ func protoPolicy(seed uint64, st *protoStats) Policy {
 	})
 }
 
-// protoObserve records the Rust Goliath objects gorge shows prototyped and
-// not on the battlefield, and the prototyped ones on the stack.
+// protoObserve records the prototype-card objects gorge shows prototyped on
+// the battlefield, the printed Rust Goliaths (the {10} cast) and the
+// prototyped spells on the stack.
 func protoObserve(ref *GorgeSide, st *protoStats) {
 	g := ref.E.G
 	for p := state.PlayerID(0); p < 2; p++ {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			o := g.Obj(id)
-			if o == nil || o.Face() == nil || o.Face().Name != "Rust Goliath" {
+			if o == nil || o.Face() == nil || !protoCards[o.Face().Name] {
 				continue
 			}
 			if o.CastFlags&state.FlagPrototype != 0 {
 				st.protoSeen[id] = true
-			} else {
+			} else if o.Face().Name == "Rust Goliath" {
 				st.frontSeen[id] = true
 			}
 		}
 	}
 	for _, id := range g.Stack {
-		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Rust Goliath" && o.CastFlags&state.FlagPrototype != 0 {
+		if o := g.Obj(id); o != nil && o.Face() != nil && protoCards[o.Face().Name] && o.CastFlags&state.FlagPrototype != 0 {
 			st.protoSpells++
 		}
 	}
@@ -190,7 +204,7 @@ func runProtoLockstep(t *testing.T, seeds int, report bool, mutate func(tbl *kop
 	return run, st
 }
 
-// TestPrototypeLowers plays Rust Goliath both ways in lockstep with gorge: no
+// TestPrototypeLowers plays the prototype cards, Rust Goliath both ways, in lockstep with gorge: no
 // divergence, and the pool actually casts it prototyped and printed.
 func TestPrototypeLowers(t *testing.T) {
 	if isolate(t) {
