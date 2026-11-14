@@ -214,7 +214,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.kickedAffords(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			var kickedOK bool
+			if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && (s.tapPays(k, p, c, o, true) || s.hasCastDelve(k, p, c, o, true)) {
+				// a Convoke/Improvise/Delve credit the potential planner
+				// refuses to price for a mode altCastFor lacks
+				// (potentialModeCastPlan's cost:credit): gorge's menu
+				// offers the kicked cast only when its pool gate prices
+				// it, the credit folded (gorge castOfferBase plus the
+				// kicker raise; CR 601.2b, 601.2f), not when the sources
+				// can pay it (kickedAffords' witness bound).
+				kickedOK = s.FeatPoolPays(p, o, 1)
+			} else {
+				kickedOK = s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o)
+			}
+			if kickedOK && s.kickedChainFeasible(k, c, p) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
@@ -1266,6 +1279,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		case kop.TgtAny:
 			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
+			if t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+				return false // tgt_thanactive.go
+			}
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
 				case kop.CtrlYou:

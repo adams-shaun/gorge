@@ -38,8 +38,8 @@ func embColdMake(sc *scen, p uint8, from, n int) {
 // table that can make one only from a spell keeps maxEmb and no cold bytes.
 func TestEmblemCapCold(t *testing.T) {
 	once := embColdScen(t, kop.AbSpell)
-	if c := once.s.embCap(); c != maxEmb || once.k.gen.anyEmbCold || once.s.cold.layout.emb != 0 {
-		t.Fatalf("a spell-only table: capacity %d, flag %v, cold records %d; want %d, false, 0", c, once.k.gen.anyEmbCold, once.s.cold.layout.emb, maxEmb)
+	if c := once.s.embCap(); c != maxEmb || once.k.gen.anyEmbCold || coldEmb.count(once.s.cold.layout) != 0 {
+		t.Fatalf("a spell-only table: capacity %d, flag %v, cold records %d; want %d, false, 0", c, once.k.gen.anyEmbCold, coldEmb.count(once.s.cold.layout), maxEmb)
 	}
 	embColdMake(once, 0, 0, maxEmb+1)
 	if once.s.g.nemb[0] != maxEmb || once.s.g.stalled != StallEmblem {

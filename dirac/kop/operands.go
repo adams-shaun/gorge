@@ -71,6 +71,14 @@ const MayGuardPut = 10
 // asked and the move is skipped.
 const MayGuardMoveRemembered = 11
 
+// MayGuardDigUntil: the OpMayAsk guard of an Optional$ DigUntil (gorge
+// effects/diguntil.go digUntilMayReveal): asked only when the next DigUntil's
+// amount is above 0 and the dug player's library holds a card (drawAsks'
+// test); else the DigUntil is skipped unasked. Obj names the asked player
+// (the dug player; unset: the resolving controller). Oath of Druids,
+// Thicket Elemental.
+const MayGuardDigUntil = 12
+
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
 // animateWouldChange), else nothing is asked.
@@ -172,6 +180,13 @@ const (
 	OptAsk int16 = 1 << 2 // 4
 	OptAny       = 1 << 3 // 8
 	OptAll       = 1 << 4 // 16
+	// OptDefined: the discard takes every hand card matching F, no ask, and
+	// the amount is never read (gorge effDiscard's Mode$ Defined arm: the
+	// cards DefinedCards$ names that are still in the discarder's hand move;
+	// Fa'adiyah Seer's Remembered drawn card). Both core and gen arms run
+	// discardDefinedAll (act_discarddefined.go); a filter is mandatory (the
+	// defined cards are the filter's matches).
+	OptDefined = 1 << 5 // 32
 )
 
 // Duration of an OpOverride / OpMayPlay.
