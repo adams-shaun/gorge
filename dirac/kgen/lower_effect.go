@@ -3572,6 +3572,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		in.Note = "only the target player's permanents"
 	}
 	mustBlock, eachColor, marks := false, false, 0
+	var afterlives []int
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
@@ -3586,6 +3587,14 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
 		}
 		if kw != "" {
+			if kw, afterlives, err = splitAfterlifeGrant(kw); err != nil {
+				return err
+			}
+			if len(afterlives) > 0 && scope.Kind != rNone {
+				return refuse("PumpAll KW$ Afterlife with a ValidTgts$ player scope")
+			}
+		}
+		if kw != "" {
 			ks, err := pumpKeywords(kw)
 			if err != nil {
 				return err
@@ -3598,8 +3607,11 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor || marks != 0) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
+	}
+	if err := lc.grantAfterlifeAll(f, afterlives); err != nil { // lower_afterlifegrant.go
+		return err
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
@@ -4237,6 +4249,9 @@ func (lc *lowerCtx) fight(ps *params) error {
 }
 
 func (lc *lowerCtx) attach(ps *params) error {
+	if v, ok := ps.get("Unattach"); ok {
+		return lc.unattachSelf(ps, v) // lower_reconfigure.go
+	}
 	if o, ok := ps.get("Object"); ok && o != "Self" {
 		return lc.attachObject(ps, o)
 	}
@@ -4300,6 +4315,7 @@ func (lc *lowerCtx) attach(ps *params) error {
 			return lc.attachChoices(ps)
 		}
 	}
+	lc.reconfigureOther(ps) // lower_reconfigure.go
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
 		return err

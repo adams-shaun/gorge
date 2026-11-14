@@ -100,6 +100,7 @@ help:
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
+	@echo "  make pod-bot-decks  — write the MBC Commander belief gorged -pod-bot-decks reads (POD_BOT_DECKS, under the corpus)"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
 	@echo "  make gorged         — run the table server (browser client at the addr)"
 	@echo "  make deploy-demo    — build the client and gorged, then (re)serve the demo (scripts/deploy-demo.sh; deploy/demo.env)"
@@ -199,6 +200,19 @@ draftsim:
 	go build -trimpath -o $(BIN_DIR)/draftsim ./cmd/draftsim
 	$(BIN_DIR)/draftsim -set FDN -seed 1 -events 2 -verify
 
+# pod-bot-decks writes the az-closed-maxn belief gorged's -pod-bot-decks reads:
+# every seat's built deck of POD_BOT_EVENTS bot-drafted MBC Commander drafts,
+# at the 60-card size the events build. Generated, never committed (deck lists
+# from the corpus, kept under it).
+POD_BOT_DECKS  ?= $(CARDS_DIR)/pod-bot-decks/mbc
+POD_BOT_EVENTS ?= 100
+.PHONY: pod-bot-decks
+pod-bot-decks:
+	go build -trimpath -o $(BIN_DIR)/draftsim ./cmd/draftsim
+	$(BIN_DIR)/draftsim -dir $(CARDS_DIR) -set MBC -collation draft -format commander -deck-size 60 -structure none \
+		-players bot -seed 1000 -events $(POD_BOT_EVENTS) -decks-out $(POD_BOT_DECKS) >/dev/null
+	@echo "pod-bot-decks: wrote $(POD_BOT_DECKS) (gorged -pod-bot-decks $(POD_BOT_DECKS))"
+
 .PHONY: fetch-cards
 # A worktree's corpus tests open the main checkout's .cards, which is outside
 # that worktree's module root, so `go test` does not hash it: a cached pass
@@ -272,7 +286,7 @@ fresh-clone-check:
 
 # The test targets (scripts/test-targets.sh) replace a raw `go test`: capped, corpus-checked, one verdict line
 # `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>` (exit 0, 1, 3, 4, 5, 75).
-#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=2m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
+#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=5m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
 #   test-targeted  the packages the diff vs BASE touches plus every package whose tests import them
 #   test-smart     the landing gate's steps, fail-fast, on a committed tree; precheck is an alias
 # BASE is the branch the change lands on.

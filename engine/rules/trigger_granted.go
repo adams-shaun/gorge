@@ -1067,6 +1067,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			if t == nil {
 				continue
 			}
+			// A granted Afterlife looks back (CR 603.10a), like the AddTrigger
+			// loop above: read once, in the leaves-the-battlefield pass.
+			if split && looksBackOnDeparture(t) != leaving {
+				continue
+			}
 			if !observer.triggerMatches(*t, id, ev, objLKI) {
 				continue
 			}

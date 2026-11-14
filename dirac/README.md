@@ -122,6 +122,7 @@ the SpellBench v2 engine may.
 | `dirac/adapter` | Yes, gorge's view, decision and card types, and never `engine/rules` itself, `engine/replay` or `dirac/oracle`: it serves a game with no rules engine built. |
 | `dirac/cmd/sbv2dirac` | Yes: it runs gorge as the lockstep shadow. |
 | `dirac/cmd/dplay` | Yes: it reads gorge's deck files, and its bots read gorge's compiled cards through `dirac/oracle`. |
+| `dirac/cmd/kmanifest` | Only the module's `cli` package: it reads the manifest and writes source. |
 
 A new import in the no column is a review failure even if the tests pass.
 

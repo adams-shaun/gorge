@@ -1009,10 +1009,17 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go
 			break
 		}
+		if in.C&kop.AttachUnattach != 0 {
+			s.unattachSelf(k) // Reconfigure's unattach half (kw_reconfigure.go)
+			break
+		}
 		src := s.objRef(k, kop.RefSelf)
 		dst := s.objRef(k, in.Obj)
 		if src != NoSlot && dst != NoSlot && src != dst {
 			s.attachTo(k, src, dst)
+			if k.gen.anyReconfigure {
+				s.refreshTy(k) // an attached Reconfigure card is no creature (kw_reconfigure.go)
+			}
 			s.touchSl(src)
 			if in.C&kop.MvRemember != 0 {
 				s.remember(s.perms[src].obj) // RememberAttached$

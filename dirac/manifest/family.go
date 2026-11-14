@@ -1,0 +1,190 @@
+package manifest
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Band is an inclusive range: values for an enum family, bit positions for a
+// flag family.
+type Band struct {
+	Lo, Hi int64
+	// Why says what the band is for (reserved bands only).
+	Why string
+}
+
+func (b Band) has(v int64) bool { return v >= b.Lo && v <= b.Hi }
+
+// Family is one Go type the manifest allocates codes of.
+type Family struct {
+	// Name is the Go type; an entry's directory.
+	Name string
+	// Pkg is the Go package the constants are generated into: "kop" (exported
+	// names) or "dirac" (unexported).
+	Pkg string
+	// Prefix starts every entry name ("" for none).
+	Prefix string
+	// Bits marks a flag word: every value is one bit, and Min/Max/Alloc and
+	// Reserved are bit positions.
+	Bits bool
+	// Min and Max bound an explicit value (the type's range, or a table's
+	// capacity where that is smaller).
+	Min, Max int64
+	// Alloc is where a "next" entry takes its value: the lowest free one.
+	Alloc Band
+	// Reserved bands take a value only for an entry with an approval line.
+	Reserved []Band
+	// Seeded marks a family whose vocabulary the census pre-maps (kmanifest
+	// seed); the others take entries one at a time.
+	Seeded bool
+	// Kgen is the kgen name registration helper for the type ("enum",
+	// "mask"), or "" when kgen names it some other way or not at all.
+	Kgen string
+
+	// register is the kop/dirac name registration for e, a statement or "".
+	register func(e *Entry) string
+	// check is the family's own entry rule.
+	check func(e *Entry) error
+}
+
+// opHotBand keeps the free Op values [158,249] for hot-path ops: a new
+// operation is otherwise an ExtOp, and an Op here needs an approval line.
+var opHotBand = Band{158, 249, "hot-path ops, each by approval"}
+
+// Families are the manifest's families, sorted by name. Untyped and int16
+// operand codes are not here: they stay hand-written in their feature files.
+var Families = []*Family{
+	flags("AbilityFlags", "Af", 16, "mask"),
+	enum8("CmpOp", "Cmp", "enum"),
+	flags("ColorMask", "", 8, "mask"),
+	enum8("CondKind", "Cond", "enum"),
+	flags("CostFlags", "Cost", 32, "mask"),
+	{
+		// perm.ck is widening to uint16, so every uint16 value is a legal
+		// counter kind. The name registration fills CtrXNames,
+		// gorge's counter name, from the first forge token.
+		Name: "CounterKind", Pkg: "kop", Prefix: "Ctr", Min: 0, Max: 65535,
+		Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true, Kgen: "enum",
+		register: func(e *Entry) string {
+			return fmt.Sprintf("CtrXNames[%s-CtrCharge] = %q", e.Name, e.Forge[0])
+		},
+		check: func(e *Entry) error {
+			if len(e.Forge) == 0 {
+				return fmt.Errorf("a CounterKind needs a forge line: its counter's name")
+			}
+			return nil
+		},
+	},
+	// ExprKind widens to uint16 before the manifest is seeded.
+	{Name: "ExprKind", Pkg: "kop", Prefix: "Ex", Max: 65535, Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true, Kgen: "enum"},
+	{
+		// NumExtOps (321) is the sub-op tables' capacity.
+		Name: "ExtOp", Pkg: "kop", Prefix: "Ext", Min: 0, Max: 320, Alloc: Band{Lo: 1, Hi: 320}, Seeded: true,
+		register: func(e *Entry) string {
+			return fmt.Sprintf("extOpNames[%s] = %q", e.Name, strings.TrimPrefix(e.Name, "Ext"))
+		},
+	},
+	flags("FilterFlags", "F", 16, "mask"),
+	flags("FilterFlags2", "F2", 32, ""),
+	// KwID 0..31 are the KwMask bit positions, with no constants of their own.
+	{Name: "KwID", Pkg: "kop", Prefix: "Kw", Min: 32, Max: 65535, Alloc: Band{Lo: 32, Hi: 65535}, Seeded: true, Kgen: "enum"},
+	flags("KwMask", "Kw", 32, "mask"),
+	{
+		// The frozen iota list ends at OpCount (156) and the high ops start at
+		// OpHighFirst (250); kgen names ops through Op.Known.
+		Name: "Op", Pkg: "kop", Prefix: "Op", Min: 0, Max: 255,
+		Alloc: Band{Lo: opHotBand.Lo, Hi: opHotBand.Hi}, Reserved: []Band{opHotBand},
+		register: func(e *Entry) string {
+			return fmt.Sprintf("opNames[%s] = %q", e.Name, strings.TrimPrefix(e.Name, "Op"))
+		},
+	},
+	enum8("Pred", "Pred", "enum"),
+	enum8("Ref", "Ref", "enum"),
+	seeded(enum8("ReplKind", "Repl", "enum")),
+	flags("SpecialMask", "Spm", 8, ""),
+	flags("StaticFlags", "St", 16, "mask"),
+	{Name: "StaticKind", Pkg: "kop", Prefix: "Stat", Max: 65535, Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true, Kgen: "enum"},
+	flags("TargetFlags", "Tgf", 32, "mask"),
+	enum8("TargetKind", "Tgt", "enum"),
+	seeded(enum8("TrigEvent", "Trig", "enum")),
+	flags("TrigFlags", "Tf", 8, "mask"),
+	flags("TrigFlags2", "Tf2", 32, ""),
+	flags("TrigFlags3", "Tf3", 8, ""),
+	flags("TrigFlags4", "Tf4", 8, ""),
+	flags("TrigFlags5", "Tf5", 8, ""),
+	flags("TypeMask", "T", 16, "mask"),
+	enum8("VKind", "V", "enum"),
+	seeded(enum8("Zone", "Zone", "enum")),
+	// key: a bounded State key, the keyed arena's index.
+	{Name: "key", Pkg: "dirac", Prefix: "key", Max: 65535, Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true},
+	{
+		// mech: the hand list in arena.go holds 0..54 until it moves to the
+		// generator; arenaNone is 0xFF. The width comes from the state
+		// line: slotbit is a slot mask, objbit an object mask.
+		Name: "mech", Pkg: "dirac", Prefix: "mech", Min: 0, Max: 254, Alloc: Band{Lo: 55, Hi: 254},
+		register: func(e *Entry) string {
+			n := strings.TrimPrefix(e.Name, "mech")
+			return fmt.Sprintf("mechWidth[%s] = %s\nmechName[%s] = %q", e.Name, mechWidth(e), e.Name, strings.ToLower(n[:1])+n[1:])
+		},
+		check: func(e *Entry) error {
+			if mechWidth(e) == "" {
+				return fmt.Errorf("a mech needs a state line of slotbit or objbit, not %q", e.State)
+			}
+			return nil
+		},
+	},
+}
+
+func mechWidth(e *Entry) string {
+	switch cat, _, _ := strings.Cut(e.State, " "); cat {
+	case "slotbit":
+		return "wSlot"
+	case "objbit":
+		return "wObj"
+	}
+	return ""
+}
+
+func enum8(name, prefix, kgen string) *Family {
+	return &Family{Name: name, Pkg: "kop", Prefix: prefix, Max: 255, Alloc: Band{Lo: 0, Hi: 255}, Kgen: kgen}
+}
+
+func seeded(f *Family) *Family { f.Seeded = true; return f }
+
+func flags(name, prefix string, width int64, kgen string) *Family {
+	return &Family{Name: name, Pkg: "kop", Prefix: prefix, Bits: true, Max: width - 1, Alloc: Band{Lo: 0, Hi: width - 1}, Kgen: kgen}
+}
+
+// FamilyNamed is the family called name, or nil.
+func FamilyNamed(name string) *Family {
+	for _, f := range Families {
+		if f.Name == name {
+			return f
+		}
+	}
+	return nil
+}
+
+// reserved is the reserved band holding v (a value, or a bit position for a
+// flag family), or nil.
+func (f *Family) reserved(v int64) *Band {
+	for i := range f.Reserved {
+		if f.Reserved[i].has(v) {
+			return &f.Reserved[i]
+		}
+	}
+	return nil
+}
+
+// bitOf is v's bit position, or -1 when v is not a single bit.
+func bitOf(v int64) int64 {
+	if v <= 0 || v&(v-1) != 0 {
+		return -1
+	}
+	var b int64
+	for v > 1 {
+		v >>= 1
+		b++
+	}
+	return b
+}

@@ -76,6 +76,8 @@ class Result:
         self.status = "PASS"
         self.ran = 0
         self.skipped = 0
+        self.pkgs = 0  # packages that ended `ok`
+        self.cached = 0  # of those, how many go answered from its test cache
         self.reasons = []
         self.detail = []
 
@@ -105,6 +107,9 @@ def classify(lines, rc=0, named=()):
         act, pkg, test, text = ev.get("Action"), ev.get("Package", ""), ev.get("Test", ""), ev.get("Output", "")
         if act in ("output", "build-output"):
             out.setdefault((pkg, test), []).append(text.rstrip("\n"))
+            if act == "output" and not test and text.startswith("ok "):
+                res.pkgs += 1
+                res.cached += "(cached)" in text
             if "panic: test timed out" in text or "signal: killed" in text or "signal: terminated" in text:
                 budget = True
                 res.reasons.append("budget: " + text.strip())
@@ -161,7 +166,11 @@ def finish(mode, jsonfile, rc, sha, pkgs, seconds, named, out=sys.stdout):
         print("... %d more lines in %s" % (len(res.detail) - MAX_DETAIL, jsonfile), file=out)
     for r in res.reasons[:5]:
         print("  note: " + r, file=out)
-    print("  tests ran=%d skipped=%d" % (res.ran, res.skipped), file=out)
+    print("  tests ran=%d skipped=%d packages=%d cached=%d" % (res.ran, res.skipped, res.pkgs, res.cached), file=out)
+    if res.cached:
+        # The verdict line alone made a one-second PASS look like nothing ran, and agents re-ran it (test-cache-audit 11-14).
+        print("  note: cached=%d: go already ran these exact tests on these inputs and they passed; "
+              "a cached ok IS a pass, do not re-run it" % res.cached, file=out)
     print(verdict_line(mode, res.status, sha, pkgs, seconds), file=out)
     return EXIT[res.status]
 

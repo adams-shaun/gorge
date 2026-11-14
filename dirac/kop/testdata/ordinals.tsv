@@ -43,6 +43,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToYouCtrl	untyped int	8
+AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
@@ -1226,6 +1227,7 @@ SrOwnZone	untyped int	256
 SrRandom	untyped int	32768
 SrRemember	untyped int	32
 SrReveal	untyped int	128
+SrSearchAttach	untyped int	256
 SrShareLandType	untyped int	512
 SrShuffleOptional	untyped int	8
 SrSideboard	untyped int	1024
@@ -1336,6 +1338,7 @@ StatOverride	StaticKind	14
 StatPanharmonicon	StaticKind	18
 StatPlayerHexproof	StaticKind	15
 StatPlayerProtAll	StaticKind	20
+StatProtYourColors	StaticKind	259
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
@@ -1650,5 +1653,3 @@ ZoneSideboard	Zone	10
 ZoneStack	Zone	6
 payFLifeBits	untyped int	6
 payFLifeMask	untyped int	63
-RefTriggerOpponents	Ref	247
-PayBSubSacSelfMust	untyped int	4
