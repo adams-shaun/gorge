@@ -20,7 +20,7 @@ func (s *State) execCold1(k *prep, in *kop.Instr) (ok, done bool) {
 		// on the battlefield; the source creature is the damage source. A
 		// planeswalker is a source too (Compel Brutality's second mode:
 		// loyalty damage, DamageSource$ ParentTarget)
-		if in.B.N == 1 {
+		if in.B.N == 1 || in.B.N == kop.DmgFromEachCtrl {
 			s.dmgSrcPlayers(k, in) // players mode (act_damagefrom.go)
 			break
 		}

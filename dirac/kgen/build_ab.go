@@ -3006,6 +3006,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["NoRegenTarget"]; ok {
 			c |= kop.DmgNoRegenTarget
 		}
+		if _, ok := fl["NoPrevention"]; ok {
+			c |= kop.DmgNoPrevention // lower_noprevention.go
+		}
 		if strings.HasPrefix(in.Note, "damage map") || cb.inDamageMap {
 			c |= kop.DmgMapped
 			cb.inDamageMap = true
@@ -3104,6 +3107,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			// the Attacks trigger's defending player (lower_damagesourceplayers.go):
 			// the player mode over RefDefendingPlayer (dirac eachPlayers -> oneOpp)
 			ki.C, ki.B = int16(kop.RefDefendingPlayer), kop.Const(1)
+			break
+		}
+		if in.CS == "eachctrl" {
+			// the RepeatEach card deals to its own controller
+			// (lower_repeatcardsdamage.go): the player mode's B.N DmgFromEachCtrl
+			ki.C, ki.B = 0, kop.Const(kop.DmgFromEachCtrl)
 			break
 		}
 		if in.CS == "anytgt" {
@@ -3913,7 +3922,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "GiveGift":
 		ki.Op = kop.OpGiveGift
 	case "GainEnergy":
-		ki.Op = kop.OpGainEnergy
+		ki.Op, ki.C = kop.OpGainEnergy, int16(in.C) // C: kop.PlCtrEnergy / kop.PlCtrExperience
 	case "Proliferate":
 		ki.Op = kop.OpProliferate
 	case "Saddle":
@@ -4229,6 +4238,14 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("DividedCounters Obj %d", ki.Obj)
 		}
 		ki.Op, ki.A, ki.C, ki.Obj = kop.OpExt, kop.Const(int(kop.ExtDividedCounters)), int16(slot), kop.RefSelf
+		if in.CS != "" {
+			// the literal-N form's CounterType$ (Contagion's M2M1): B.N the kind
+			k, err := counterKind(in.CS)
+			if err != nil {
+				return ki, err
+			}
+			ki.B = kop.Const(int(k))
+		}
 	case "DrainMana":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDrainMana))
 	case "CounterLose":
@@ -4283,6 +4300,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "GrantPanharm":
 		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
+	case "GrantEncore":
+		// (Araumi of the Dead Tide) OpExt ExtGrantEncore on the target: the
+		// graveyard card gains encore until end of turn; gorge offers no
+		// activation of a granted encore, so the grant is the whole effect
+		// (kw_encoregrant.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantEncore))
 	case "LockActs":
 		// (Braided Net) OpExt ExtLockActs on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLockActs))
@@ -4661,6 +4684,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpCreateEmblem, int16(in.C)
 	case "RollDie":
 		ki.Op, ki.C = kop.OpRollDie, int16(in.C)
+	case "ChoosePlayer":
+		ki.Op = kop.OpChoosePlayer
+		if in.CS != "Random" {
+			return ki, fmt.Errorf("ChoosePlayer build %q", in.CS)
+		}
+		ki.C = kop.ChPlRandom
 	case "OverrideAll":
 		ki.Op = kop.OpOverrideAll
 		i, err := cb.override(cb.c.overrides[in.C])
