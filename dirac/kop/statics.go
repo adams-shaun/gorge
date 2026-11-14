@@ -84,6 +84,20 @@ type Static struct {
 	// <spec>, Sword of Wealth and Power's instants and sorceries). 0 = none.
 	// The granted read is armed by genPrep.anyProtGrant (kernel kw_protection.go prepProtGrant); anyProtF opens the target, block and attach sites.
 	ProtFrom FilterID
+	// ProtChosen: the grant is also protection from the host's own chosen
+	// colour (AddKeyword$ Protection:Card.ChosenColor:chosenColor, CR 702.16;
+	// Ward Sliver, Pentarch Ward, Benevolent Blessing): a source of the static
+	// source permanent's chosen colour (perm.chosen), none while it has not
+	// chosen (gorge resolveGrantedProtection). Armed with ProtFrom.
+	ProtChosen bool
+	// ProtExc: a source this filter matches (read with the static source as
+	// its source and the static's controller as "you") is spared by the grant
+	// at the Aura state-based check only (CR 702.16 "this effect doesn't
+	// remove ..."; Pentarch Ward's CardUID of the host, Benevolent Blessing's
+	// Auras and Equipment you control). 0 = no exception. A kernel read of the
+	// SBA site alone is the whole of Pentarch Ward's, whose excepted Aura is
+	// no other protection check's source.
+	ProtExc FilterID
 	// Landwalk: a StatContinuous grant of landwalk besides its other parts:
 	// the affected creatures can't be blocked while the defending player
 	// controls a land this filter matches (CR 702.14; AddKeyword$

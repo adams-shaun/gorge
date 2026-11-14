@@ -37,7 +37,7 @@ const (
 	// DraftSplitCards is the most cards a draft pool's table holds: a longer
 	// draft list splits by hash (dr-mbc-aaaa ...). A split passes its evidence
 	// run only when every one of its games is clean, so one divergent card holds
-	// back its whole split; at 200, MBC's 2188 names are 16 splits of about 137.
+	// back its whole split; at 200, MBC's 2195 names are 16 splits of about 137.
 	DraftSplitCards = 200
 )
 

@@ -156,6 +156,15 @@ func (s *State) ctrOrderPark(k *prep, sl Slot, kind, n int) bool {
 // execPutCounter runs an OpPutCounter instruction; false when it parked on the
 // CR 616.1 order ask (the instruction runs again once it is answered).
 func (s *State) execPutCounter(k *prep, in *kop.Instr) bool {
+	if in.W != kop.RefNone {
+		return s.execPutCounterBy(k, in) // the Placer$ adder (act_chooseplayerres.go)
+	}
+	return s.execPutCounterAt(k, in)
+}
+
+// execPutCounterAt is execPutCounter's placement under the adder already
+// published.
+func (s *State) execPutCounterAt(k *prep, in *kop.Instr) bool {
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		amt := s.value(k, in.A)
 		if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {

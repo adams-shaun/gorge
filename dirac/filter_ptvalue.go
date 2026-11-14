@@ -15,6 +15,7 @@ func (s *State) cardPTEqV(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj,
 	if k.t.Cards[c].NoPT && !fd {
 		return false
 	}
+	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	pc := &k.cards[c]
 	pw, t := int(pc.power), int(pc.tough)
 	if fd {
@@ -46,6 +47,7 @@ func (s *State) cardPowerGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o O
 	if k.t.Cards[c].NoPT && !fd {
 		return false
 	}
+	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	pw := int(k.cards[c].power)
 	if fd {
 		pw = 2
@@ -80,6 +82,7 @@ func (s *State) cardToughnessGEV(k *prep, fl *kop.Filter, c CardID, owner uint8,
 	if k.t.Cards[c].NoPT && !fd {
 		return false
 	}
+	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	t := int(k.cards[c].tough)
 	if fd {
 		t = 2

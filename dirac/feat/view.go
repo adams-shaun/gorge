@@ -21,18 +21,13 @@ const (
 	zStack       = 4
 )
 
-// noObj is the encoder's no-object byte. The encoders hold objects in a byte
-// (policynet's two-seat views). Under dirac_mp (MaxObj past 255) an object
-// at noObj or past it has no encoding: a declared limit, counted per build
-// (ObjOverflow), never a silent truncation.
-const noObj = uint8(dirac.NoObj & 0xff)
+// noObj is no object. The encoders hold objects at the kernel's object
+// width (dirac.Obj: a byte in the default class, nine bits under dirac_mp),
+// so every object a position can hold has its own name.
+const noObj = dirac.NoObj
 
-// ObjOverflow counts the encodes (full and incremental) whose position held
-// an object the encoders cannot name: an index at noObj or past it, which
-// only the dirac_mp size class reaches. Such an encode names those objects
-// wrongly, so a caller that compares or learns from its output skips it.
-// The default class never counts one (MaxObj is under noObj there).
-func (e *Encoder) ObjOverflow() int { return e.objOverflow }
+// objSlots sizes the encoders' per-object tables: every object and noObj.
+const objSlots = int(dirac.NoObj) + 1
 
 // vcard is one visible card (policynet's view.CardView) as one encode
 // lists it: its content (vcore, shared from the content cache, never
@@ -42,11 +37,11 @@ func (e *Encoder) ObjOverflow() int { return e.objOverflow }
 // whether it is blocked.
 type vcard struct {
 	*vcore
-	obj       uint8
+	obj       dirac.Obj
 	zone      uint8
 	attacking bool
 	blocked   bool
-	blocks    uint8 // a blocker: the attacker it blocks (noObj none)
+	blocks    dirac.Obj // a blocker: the attacker it blocks (noObj none)
 	rel       entRel
 }
 
@@ -72,10 +67,10 @@ type vcore struct {
 	kwRep     *kwReps                    // granted bits listed again: kwRep[b] more times (nil: none)
 	printedKw bool
 	manaSrc   bool // a permanent kernel FeatManaSources counts
-	attached  uint8
-	cblocks   uint8  // the attacker it blocks (noObj none)
-	acts      int32  // non-mana activations this turn
-	key       uint64 // the content cache key it was built for (cachedCard)
+	attached  dirac.Obj
+	cblocks   dirac.Obj // the attacker it blocks (noObj none)
+	acts      int32     // non-mana activations this turn
+	key       uint64    // the content cache key it was built for (cachedCard)
 	// tyv is the derived type line gorge's view shows when a layer-4 effect
 	// changed the permanent's card types (nil: the printed line, c's)
 	tyv *typeView
@@ -156,7 +151,7 @@ type vview struct {
 	// the encodings read as "the opponent" there (sides).
 	others vplayer
 	stack  []vstack
-	hosts  [256]uint8 // obj -> how many battlefield permanents are attached to it
+	hosts  [objSlots]uint8 // obj -> how many battlefield permanents are attached to it
 }
 
 // stepIndex maps kop.Step onto gorge's 12 step names (the kernel splits
@@ -235,9 +230,9 @@ func (e *Encoder) HashCache() *dirac.ObjHashCache { return &e.ohc }
 
 // po is object o's projection, written on first use in a build
 // (kernel FeatProjObj: its zone position is not, FeatZoneIndex is).
-func (e *Encoder) po(o uint8) *dirac.ProjObj {
+func (e *Encoder) po(o dirac.Obj) *dirac.ProjObj {
 	if e.kpg[o] != e.kgen {
-		e.st0.FeatProjObj(dirac.Obj(o), &e.kp.Objs[o])
+		e.st0.FeatProjObj(o, &e.kp.Objs[o])
 		e.kpg[o] = e.kgen
 	}
 	return &e.kp.Objs[o]
@@ -275,9 +270,6 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 		e.kgen = 1
 	}
 	s.FeatProjGlobals(kp)
-	if int(kp.NObj) > int(noObj) {
-		e.objOverflow++
-	}
 	if e.hbase = e.BaseHashes(s); e.hbase != nil {
 		e.IncStats.BaseBuilds++
 	}
@@ -314,7 +306,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 		e.objs = s.FeatBattlefield(p, e.objs[:0])
 		pl := &v.players[p]
 		for _, o := range e.objs {
-			pl.bf = append(pl.bf, e.addCard(s, uint8(o), zBattlefield))
+			pl.bf = append(pl.bf, e.addCard(s, o, zBattlefield))
 		}
 	}
 	for p := 0; p < int(v.n); p++ {
@@ -351,7 +343,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 		for p := 0; p < int(v.n); p++ {
 			for _, bi := range v.players[p].bf {
 				c := &v.cards[bi]
-				c.blocked = s.FeatBlocked(dirac.Obj(c.obj))
+				c.blocked = s.FeatBlocked(c.obj)
 			}
 		}
 	} else if v.n > 2 {
@@ -375,7 +367,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 			e.objs = s.FeatZoneList(uint8(p), [3]kop.Zone{kop.ZoneHand, kop.ZoneGraveyard, kop.ZoneExile}[z], e.objs[:0])
 			pl := &v.players[p]
 			for _, x := range e.objs {
-				idx := e.addCard(s, uint8(x), uint8(zHand+z))
+				idx := e.addCard(s, x, uint8(zHand+z))
 				switch z {
 				case 0:
 					pl.hand = append(pl.hand, idx)
@@ -391,7 +383,7 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 	for i := 0; i < int(kp.NStack); i++ {
 		se := &kp.Stack[i]
 		st := vstack{name: e.pool.card(se.Card), cv: -1, ctrl: se.Ctrl}
-		src := uint8(se.Source)
+		src := se.Source
 		if se.Kind == 0 {
 			st.cv = e.addStackCard(s, src)
 		} else if src != noObj && int(src) < int(kp.NObj) {
@@ -431,10 +423,10 @@ func (e *Encoder) build(s *dirac.State, seat uint8, dk dirac.DecisionKind, decid
 				// its abilities are lost: only a granted mana ability counts
 				// (a {T}: Add {C}, one unit)
 				w = 0
-				if e.st0.FeatManaGranted(dirac.Obj(c.obj)) {
+				if e.st0.FeatManaGranted(c.obj) {
 					w = 1
 				}
-			} else if gw, ok := e.st0.FeatGrantAvail(dirac.Obj(c.obj)); ok {
+			} else if gw, ok := e.st0.FeatGrantAvail(c.obj); ok {
 				// a granted mana ability (Springleaf Parade's token): its
 				// colours times its amount; none beside the card's own
 				// (gorge AvailableMana omits a source with two free abilities)
@@ -536,7 +528,7 @@ func (v *vview) relSeat(p uint8) int {
 }
 
 // addCard appends obj's card view in zone z and returns its index.
-func (e *Encoder) addCard(s *dirac.State, o uint8, z uint8) int32 {
+func (e *Encoder) addCard(s *dirac.State, o dirac.Obj, z uint8) int32 {
 	vc := e.cardView(s, o, z)
 	e.v.cards = append(e.v.cards, vcard{vcore: vc, obj: o, zone: z, attacking: vc.catt, blocks: vc.cblocks})
 	return int32(len(e.v.cards) - 1)
@@ -547,12 +539,11 @@ func (e *Encoder) addCard(s *dirac.State, o uint8, z uint8) int32 {
 // derived context and zone are the same), else the content cache's. The
 // hint names a content-cache entry, checked by its key: an entry another
 // build evicted falls back to cachedCard.
-func (e *Encoder) cardView(s *dirac.State, o uint8, z uint8) *vcore {
-	obj := dirac.Obj(o)
+func (e *Encoder) cardView(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 	line := s.Line()
 	h := &e.ohint[o]
 	if line != 0 && h.line == line && h.z == z && h.ctx == e.ctx && h.vc != nil &&
-		!s.ChangedSince(obj, h.at) {
+		!s.ChangedSince(o, h.at) {
 		if vc := e.useView(h.key); vc != nil {
 			h.vc = vc
 			return vc
@@ -561,7 +552,7 @@ func (e *Encoder) cardView(s *dirac.State, o uint8, z uint8) *vcore {
 	if e.hbase != nil {
 		r := &e.oroot[o]
 		if r.epoch == s.Epoch() && r.z == z && r.ctx == e.ctx && r.vc != nil &&
-			!s.Changed(obj) {
+			!s.Changed(o) {
 			if vc := e.useView(r.key); vc != nil {
 				r.vc = vc
 				if line != 0 {
@@ -575,7 +566,7 @@ func (e *Encoder) cardView(s *dirac.State, o uint8, z uint8) *vcore {
 	if line != 0 {
 		h.line, h.at, h.ctx, h.key, h.vc, h.z = line, s.Touches(), e.ctx, vc.key, vc, z
 	}
-	if e.hbase != nil && !s.Changed(obj) {
+	if e.hbase != nil && !s.Changed(o) {
 		r := &e.oroot[o]
 		r.epoch, r.ctx, r.key, r.vc, r.z = s.Epoch(), e.ctx, vc.key, vc, z
 	}
@@ -642,14 +633,14 @@ func (c *vcCache) clear() {
 
 // cachedCard is obj's card view in zone z from the content cache, built
 // (mkCard) on a miss.
-func (e *Encoder) cachedCard(s *dirac.State, o uint8, z uint8) *vcore {
-	key := mix64(s.FeatObjHash(dirac.Obj(o), e.hbase, &e.ohc), uint64(z)+1)
-	card, att, blk := s.FeatObjLinks(dirac.Obj(o))
+func (e *Encoder) cachedCard(s *dirac.State, o dirac.Obj, z uint8) *vcore {
+	key := mix64(s.FeatObjHash(o, e.hbase, &e.ohc), uint64(z)+1)
+	card, att, blk := s.FeatObjLinks(o)
 	if z == zBattlefield {
 		// the projection names the attached-to and blocked objects by
 		// object; the hash has their slots
 		key = mix64(key, uint64(att)|uint64(blk)<<16)
-	} else if g, rep := s.FeatGrantedOffRep(dirac.Obj(o)); g != 0 {
+	} else if g, rep := s.FeatGrantedOffRep(o); g != 0 {
 		// a keyword granted off the battlefield (not in the hash), and how
 		// many times it was granted
 		key = mix64(key, uint64(g)|uint64(rep[trailing(uint64(kop.KwFlashback))])<<32)
@@ -703,16 +694,16 @@ func mix64(h, x uint64) uint64 {
 }
 
 // mkCard is obj's card view in zone z, read from s and its projection ob.
-func (e *Encoder) mkCard(s *dirac.State, ob *dirac.ProjObj, o uint8, z uint8, reps *kwReps) vcore {
+func (e *Encoder) mkCard(s *dirac.State, ob *dirac.ProjObj, o dirac.Obj, z uint8, reps *kwReps) vcore {
 	if reps != nil {
 		*reps = kwReps{}
 	}
 	c := vcore{cid: ob.Card, c: e.pool.card(ob.Card), ctrl: ob.Ctrl, attached: noObj, cblocks: noObj}
 	if z == zBattlefield {
-		if nc, ok := s.FeatNameCard(dirac.Obj(o)); ok {
+		if nc, ok := s.FeatNameCard(o); ok {
 			c.c = e.renamed(ob.Card, nc) // renamed by an override: gorge's view names it so
 		}
-		if ty, subs, all, setSub, ok := s.FeatViewTypes(dirac.Obj(o)); ok {
+		if ty, subs, all, setSub, ok := s.FeatViewTypes(o); ok {
 			c.tyv = e.typeLine(c.c, ty, subs, all, setSub)
 		}
 		c.tapped = ob.Flags&dirac.ProjTapped != 0
@@ -724,18 +715,18 @@ func (e *Encoder) mkCard(s *dirac.State, ob *dirac.ProjObj, o uint8, z uint8, re
 			// gorge derives a noncreature permanent's P/T too (an
 			// imprisoned 2/2 with its +1/+1 counters, an uncrewed
 			// vehicle); the kernel's projection says 0
-			p, t := s.FeatPT(dirac.Obj(o))
+			p, t := s.FeatPT(o)
 			c.power, c.tough = int32(p), int32(t)
 		}
 		copy(c.ctr[:], ob.Counters[:])
-		c.ctr[dirac.FeatCtrDeathtouched] = uint16(s.FeatDeathtouchMark(dirac.Obj(o)))
-		c.ctrListed = s.FeatCountersListed(dirac.Obj(o), &ob.Counters)
+		c.ctr[dirac.FeatCtrDeathtouched] = uint16(s.FeatDeathtouchMark(o))
+		c.ctrListed = s.FeatCountersListed(o, &ob.Counters)
 		c.nctr = uint8(bits.OnesCount16(c.ctrListed))
-		c.attached = uint8(ob.Attached)
-		c.cblocks = uint8(ob.Blocks)
-		g, rep, printed := s.FeatGrantedRep(dirac.Obj(o))
+		c.attached = ob.Attached
+		c.cblocks = ob.Blocks
+		g, rep, printed := s.FeatGrantedRep(o)
 		c.printedKw = printed
-		c.manaSrc = s.FeatManaActivatable(dirac.Obj(o))
+		c.manaSrc = s.FeatManaActivatable(o)
 		c.kw = g & e.pool.kwSpelled
 		if e.spelledReps(&rep, reps) {
 			c.kwRep = reps
@@ -745,29 +736,29 @@ func (e *Encoder) mkCard(s *dirac.State, ob *dirac.ProjObj, o uint8, z uint8, re
 		// a card's counters off the battlefield: Tinybones' stash counter
 		// on an exiled card (gorge's option counts it)
 		copy(c.ctr[:], ob.Counters[:])
-		c.ctrListed = s.FeatCountersListed(dirac.Obj(o), &ob.Counters)
+		c.ctrListed = s.FeatCountersListed(o, &ob.Counters)
 		c.nctr = uint8(bits.OnesCount16(c.ctrListed))
 		c.printedKw = true
-		g, rep := s.FeatGrantedOffRep(dirac.Obj(o))
+		g, rep := s.FeatGrantedOffRep(o)
 		c.kw = g & e.pool.kwSpelled
 		if e.spelledReps(&rep, reps) {
 			c.kwRep = reps
 		}
-		c.sick = s.FeatSickOff(dirac.Obj(o))
+		c.sick = s.FeatSickOff(o)
 		if c.c.creature {
 			// a card's own characteristic-defining P/T applies in any zone
-			if p, t, ok := s.FeatCDAPT(dirac.Obj(o)); ok {
+			if p, t, ok := s.FeatCDAPT(o); ok {
 				c.power, c.tough = int32(p), int32(t)
 			}
 		}
 	}
-	c.acts = int32(s.FeatActivations(dirac.Obj(o)))
+	c.acts = int32(s.FeatActivations(o))
 	return c
 }
 
 // addStackCard appends the card view a stack band shows (the spell itself,
 // or an ability's source) with the stack's zone class.
-func (e *Encoder) addStackCard(s *dirac.State, o uint8) int32 {
+func (e *Encoder) addStackCard(s *dirac.State, o dirac.Obj) int32 {
 	if e.po(o).Zone == kop.ZoneBattlefield {
 		// The source's own permanent view (cardView of the source id).
 		idx := e.addCard(s, o, zBattlefield)

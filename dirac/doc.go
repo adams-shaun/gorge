@@ -419,7 +419,9 @@
 //     Twinflame Tyrant, Crystal Barricade, Doubling Season, Progenitus)
 //     are computed in a fixed order: amount changes first (each Twinflame
 //     doubles), then prevention. gorge asks the affected player to order
-//     them (KReplacement, CR 616.1) when two match one damage event. Every
+//     them (KReplacement, CR 616.1) when two match one damage event, unless
+//     every match is a bare full prevention (repl_bareprev.go: two Crystal
+//     Barricades, two Cephalid Illusionist grants; neither side asks). Every
 //     order gives the same result; on a combat damage event the kernel
 //     poses the same ask, ChGenReplOrder (source = the replacement's
 //     source, mode = its index in gorge's scan: the source controller's

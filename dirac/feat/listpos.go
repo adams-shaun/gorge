@@ -57,7 +57,7 @@ func (z zoneKey) key() uint32 {
 // graveyard, exile, hand or library (the projection's zone index; the
 // library from the top). An opponent's hand is placed too (a revealed-hand
 // discard choice).
-func (e *Encoder) zoneOf(o uint8) zoneKey {
+func (e *Encoder) zoneOf(o dirac.Obj) zoneKey {
 	if o == noObj || int(o) >= int(e.kp.NObj) {
 		return zoneKey{}
 	}
@@ -102,7 +102,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		case dirac.AkPlayLand:
 			// the hand walk, then a land played from another zone through a
 			// permission (mayPlayLandWalk)
-			z := e.zoneOf(uint8(src))
+			z := e.zoneOf(dirac.Obj(src))
 			if z.zone != 4 {
 				return secHand<<24 | 1<<20 | uint32(z.idx)<<8
 			}
@@ -111,7 +111,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			if e.st0.FeatScripted(d.Player, a) {
 				return noPos // a scripted potential play (Bloom Tender's prefix)
 			}
-			z := e.zoneOf(uint8(src))
+			z := e.zoneOf(dirac.Obj(src))
 			sub := uint32(0) // the hand walk
 			if mode&2 == 0 && z.zone != 4 {
 				sub = 2 // a spell cast from another zone through a permission (mayPlaySpellWalk)
@@ -151,7 +151,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			}
 			// the battlefield walk's zones: battlefield, stack, graveyard,
 			// hand, exile; each seat's list in order; ability index
-			z := e.zoneOf(uint8(src))
+			z := e.zoneOf(dirac.Obj(src))
 			if mode&0x80 != 0 {
 				// a granted activation (CR 613.1f): gorge's walk offers the
 				// granted abilities in a sweep after every printed ability,
@@ -167,16 +167,16 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		// defender-major: each defending player, then the attacking
 		// creatures in battlefield order, each player pair followed by its
 		// planeswalker pairs.
-		c := uint32(e.zoneOf(uint8(src)).idx)
+		c := uint32(e.zoneOf(dirac.Obj(src)).idx)
 		if tgt >= dirac.PlayerTarget0 {
 			return uint32(tgt-dirac.PlayerTarget0)<<24 | c<<12
 		}
-		w := e.zoneOf(uint8(tgt))
+		w := e.zoneOf(dirac.Obj(tgt))
 		return uint32(w.seat)<<24 | c<<12 | 1 + uint32(w.idx)
 	case dirac.DkBlockers:
 		// each blocker in its controller's battlefield order, then each
 		// attacker in the active player's.
-		return uint32(e.zoneOf(uint8(src)).idx)<<12 | uint32(e.zoneOf(uint8(tgt)).idx)
+		return uint32(e.zoneOf(dirac.Obj(src)).idx)<<12 | uint32(e.zoneOf(dirac.Obj(tgt)).idx)
 	case dirac.DkTarget:
 		var copyAsk uint32
 		if d.Sub == dirac.SubCopyTarget {
@@ -191,7 +191,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		if tgt >= dirac.PlayerTarget0 {
 			return copyAsk | uint32(tgt-dirac.PlayerTarget0)
 		}
-		return copyAsk | 1<<24 | e.zoneOf(uint8(tgt)).key()
+		return copyAsk | 1<<24 | e.zoneOf(dirac.Obj(tgt)).key()
 	case dirac.DkModes:
 		return uint32(mode)
 	case dirac.DkTriggerOrder:
@@ -224,7 +224,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 		case dirac.ChCommanderZone:
 			return uint32(mode) // command_zone (0) then leave (1), as gorge lists them
 		}
-		return e.zoneOf(uint8(src)).key()
+		return e.zoneOf(dirac.Obj(src)).key()
 	}
 	return uint32(a)
 }

@@ -1,6 +1,10 @@
 package feat
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac"
+)
 
 // DebugView renders the encoder's last view for a mismatch report.
 func (e *Encoder) DebugView() string {
@@ -42,10 +46,11 @@ func (e *Encoder) DebugView() string {
 	return s
 }
 
-// DebugObj reports the encoder's projection of object o (zone, NObj).
-func (e *Encoder) DebugObj(o uint8) string {
-	if int(o) >= len(e.kpg) {
+// DebugObj reports the encoder's projection of target code t's object
+// (zone, NObj).
+func (e *Encoder) DebugObj(t dirac.TCode) string {
+	if int(t) >= len(e.kpg) {
 		return "zone=- (no object)"
 	}
-	return fmt.Sprintf("zone=%d nobj=%d", e.po(o).Zone, e.kp.NObj)
+	return fmt.Sprintf("zone=%d nobj=%d", e.po(dirac.Obj(t)).Zone, e.kp.NObj)
 }

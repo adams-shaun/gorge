@@ -330,6 +330,13 @@ func init() {
 // ability with Ability.CantCopy is not copied (gorge SpellCopyAllowed).
 const ExtCopyAbility ExtOp = 191
 
+// CopyAbTriggering is the target-slot value (C>>1) of an ExtCopyAbility that
+// copies the activated ability whose activation fired the resolving
+// AbilityCast trigger (Ertha Jo, Frontier Mentor: CopySpellAbility, Defined$
+// TriggeredSpellAbility): the ability is found by the stack identity the
+// trigger's trigAmt carries (dirac/trig_abilitycast.go) instead of a target.
+const CopyAbTriggering = 0x3fff
+
 func init() {
 	extOpNames[ExtCopyAbility] = "CopyAbility"
 }

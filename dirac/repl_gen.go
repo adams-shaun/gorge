@@ -516,6 +516,9 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	if g.anyDmgMark && s.dmgMarkCompetes(rcp, n) {
 		return 0 // repl_dmgmark.go
 	}
+	if barePrevOnly(n, ro.prev, ro.shld, ro.pnx, ro.plus) {
+		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
+	}
 	ro.p = rcp
 	return n
 }
@@ -768,6 +771,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	}
 	if ro.askD == NoSlot {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
+		s.notePlDamaged(k, ro.apl) // value_oppsdamaged.go
 		s.loseLife(k, ro.apl, n)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -817,6 +821,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 	}
 	if ev.dst == NoSlot {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
+		s.notePlDamaged(k, CodeSeat(src.atk)) // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(src.atk), n)
 	} else {
 		sl := ev.dst
@@ -1150,7 +1155,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			return false
 		}
 		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, srcSl, srcCard, rcp, sl, false) {
+		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false) {
 			s.capFull(StallPrevNext)
 			return false
 		}
@@ -1160,6 +1165,9 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	if c < 2 {
 		return false
+	}
+	if !parked && barePrevOnly(c, prev, shld, pnx, plus) {
+		return false // no order ask (repl_bareprev.go): replDamage prevents it
 	}
 	if parked {
 		// gorge asks this event's order after the parked one is answered and
@@ -1209,6 +1217,7 @@ func (s *State) dealNC(k *prep) {
 	}
 	code := nc.code
 	if isPlayerOrNone(code) {
+		s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
