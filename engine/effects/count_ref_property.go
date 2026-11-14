@@ -61,13 +61,14 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	var ts []state.Target
 	if ref == "TriggerObjectsCards" {
 		ts = c.Captured
-	} else if ref == "ReplacedCard" || ref == "ReplacedCardLKI" {
-		// Only the P/T read of the replaced card resolves (Ravenous Slime's
-		// X:ReplacedCardLKI$CardPower, the value replCtx captured at match
-		// time): every other property on these refs -- Thunderous Velocipede's
-		// ReplacedCard$CardManaCost, Coin of Mastery's and Kalain's
-		// ReplacedCard$CastTotalManaSpent -- keeps failing closed to 0 exactly
-		// as it did before that capture existed.
+	} else if ref == "ReplacedCardLKI" {
+		// Only the P/T read of the replaced card resolves on the LKI ref
+		// (Ravenous Slime's X:ReplacedCardLKI$CardPower, the value replCtx
+		// captured at match time): Kalain's ReplacedCardLKI$CastTotalManaSpent
+		// keeps failing closed to 0 as it did before that capture existed.
+		// The plain ReplacedCard ref is untouched: it resolves through
+		// refTargets/definedSpec like it always did (Thunderous Velocipede's
+		// ReplacedCard$CardManaCost reads the live mana value).
 		if prop != "CardPower" && prop != "CardToughness" {
 			return 0, false
 		}
