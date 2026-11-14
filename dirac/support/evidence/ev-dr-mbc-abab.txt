@@ -24,6 +24,7 @@ Flux Channeler
 Forest
 Fynn, the Fangbearer
 Ghost Ship
+Gods Willing
 Great Oak Guardian
 Greater Good
 Homer, the Hermit
@@ -50,6 +51,7 @@ Nimble Birdsticker
 Ondu Champion
 Opportunity
 Opt
+Personify
 Plains
 Prismatic Strands
 Prodigal Sorcerer

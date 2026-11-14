@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -16,7 +17,14 @@ import (
 //
 //   - a buyback {X} cast (Fanning the Flames): gorge's "buyback" potential
 //     play is witnessed at the largest X the sources pay (rules
-//     potentialModeCastPlan), tapped before X is announced (kernel beginCast).
+//     potentialModeCastPlan), tapped before X is announced (kernel beginCast);
+//   - a targeting spell cast while a battlefield cost static with a target
+//     clause applies to it but for that clause (Kasmina, Enigmatic Mentor's
+//     {2} on spells that target her controller's creatures and
+//     planeswalkers): gorge's cast planner declines the witness
+//     ("shape:target_dependent_cost") and the full surface lowers it at the
+//     cheapest target; the autopay surface does not offer it. A spell that
+//     then targets the taxed side pays the raise through the cost window.
 //
 // Every case must lower its spell through gorge's potential planner in some
 // seed, and no game may diverge.
@@ -33,6 +41,10 @@ func TestTapChoiceLockstep(t *testing.T) {
 			{{Name: "Fanning the Flames", Count: 14}, {Name: "Mountain", Count: 26}},
 			{{Name: "Fanning the Flames", Count: 14}, {Name: "Mountain", Count: 16}, {Name: "Swamp", Count: 10}},
 		}, []string{"Fanning the Flames"}},
+		{"target-tax", [2][]cardset.Entry{
+			{{Name: "Kasmina, Enigmatic Mentor", Count: 14}, {Name: "Island", Count: 26}},
+			{{Name: "Repulse", Count: 16}, {Name: "Island", Count: 24}},
+		}, []string{"Repulse"}},
 	}
 	reg := synthReg(t)
 	for _, c := range cases {
@@ -127,4 +139,32 @@ func tapChoicePool(t *testing.T, decks [2][]cardset.Entry) (string, cardset.Set)
 	}
 	t.Fatalf("no MBC draft pool holds every card of %v", decks)
 	return "", nil
+}
+
+// TestComboAnySourceOffThePlanLockstep replays two MBC games in which an
+// untapped Axebane Guardian stood beside the lands paying a cast. gorge's
+// payment planner has no witness for a Combo Any production (rules pay
+// PaymentPlanUnitAlternatives: it stays manual), so the Guardian is no plan
+// source and no colour source in its ranking; a kernel that planned it
+// ranked the lands differently and tapped a Forest where gorge tapped another
+// basic.
+func TestComboAnySourceOffThePlanLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "repro/combo_any_source_off_the_plan", "dr-mbc-abbb", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "repro/combo_any_source_off_the_plan_full", "dr-mbc-abbb", Config{})
+}
+
+// TestComboAnySourceOffThePlanMutation: planning the Guardian as an ordinary
+// unit again (dirac.DebugComboAnyPlanned) must diverge on the replays.
+func TestComboAnySourceOffThePlanMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	old := dirac.DebugComboAnyPlanned
+	dirac.DebugComboAnyPlanned = true
+	defer func() { dirac.DebugComboAnyPlanned = old }()
+	res, _ := synthReproRun(t, "repro/combo_any_source_off_the_plan", "dr-mbc-abbb", Config{GorgeAutopaySurface: true})
+	if res.Div == nil {
+		t.Fatal("mutation did not diverge")
+	}
 }
