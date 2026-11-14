@@ -122,8 +122,7 @@ func (s *State) ObjHash(o Obj) uint64 {
 	}
 	// the permanent, every byte (perm has no padding)
 	h = hbytes(h, unsafe.Pointer(&s.perms[ob.slot]), unsafe.Sizeof(s.perms[0]))
-	if r := s.xblkRecs(); len(r) > 0 && r[ob.slot] != (xblkRec{}) {
-		x := r[ob.slot]
+	if x := s.xblkFind(ob.slot); x != nil {
 		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
 	}
 	if s.g.on {

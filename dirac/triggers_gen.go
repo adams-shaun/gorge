@@ -981,7 +981,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 				continue
 			}
 			j := nb
-			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {
+			for j > 0 && s.blockKey(bl[j-1], a) > s.blockKey(b, a) { // the (b, a) pair's declaration order
 				bl[j] = bl[j-1]
 				j--
 			}

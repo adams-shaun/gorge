@@ -113,7 +113,7 @@ type genPrep struct {
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
-	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks (combat_extrablock.go)
+	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks or a StatExtraBlock static (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
@@ -851,6 +851,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
 	g.anyAtkHaste = tableHasStatic(t, kop.StatCanAttackIfHaste)
+	if tableHasStatic(t, kop.StatExtraBlock) {
+		g.anyExtraBlock = true // the second-block records and the two-attacker readers (combat_extrablock.go)
+	}
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
 	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
@@ -2477,7 +2480,7 @@ const (
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
-	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	NumStall           = 193 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).
