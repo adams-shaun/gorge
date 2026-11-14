@@ -25,8 +25,7 @@ func runEffectDamageReplScenario(t *testing.T, sc string) {
 }
 
 // TestEffectDamageReplShieldedPassage: Shielded Passage's bodiless
-// `Event$ DamageDone | Prevent$ True | ValidTarget$ Card.IsRemembered` shield
-// scopes by the Effect's own remembered set (the creature it targeted), CR 615.1a.
+// DamageDone prevention shield on the remembered card scopes by the Effect's own remembered set (the creature it targeted), CR 615.1a.
 func TestEffectDamageReplShieldedPassage(t *testing.T) {
 	t.Parallel()
 	runEffectDamageReplScenario(t, `{"name":"passage","cr":["615.1a"],"why":"XMage AlmsBeastTest#testNoLifelinkAfterCombat","setup":{"p0":{"hand":["Shielded Passage"],"battlefield":["Rootwater Hunter","Plains"]},"p1":{"battlefield":["Alms Beast"]}},"steps":[{"op":"pass_to","seat":0,"step":"upkeep","active":"p1"},{"op":"attack","seat":1,"attackers":["p1:Alms Beast"],"defender":"p0"},{"op":"block","seat":0,"blocks":[["p0:Rootwater Hunter","p1:Alms Beast"]]},{"op":"pass","seat":1},{"op":"cast","seat":0,"card":"p0:Shielded Passage","mana":"W","targets":["p0:Rootwater Hunter"]},{"op":"pass_to","seat":0,"step":"main2","active":"p1"},{"op":"pass","seat":1},{"op":"activate","seat":0,"card":"p0:Rootwater Hunter","targets":["p1"],"ability_index":0},{"op":"pass_to","seat":0,"step":"end","active":"p1"},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"battlefield","name":"Rootwater Hunter"},"eq":1},{"life":{"p0":21}},{"life":{"p1":19}}]}`)

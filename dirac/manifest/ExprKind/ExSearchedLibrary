@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExSearchedLibrary
+value: 146
+forge: SearchedLibrary
+census: count SearchedLibrary all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

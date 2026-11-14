@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigPlaneswalkedTo
+value: 54
+forge: PlaneswalkedTo
+census: trig PlaneswalkedTo all=57 std=0 mbc=0 sole=0
+state: objspace (planechase)
+status: blocked objspace:tcode

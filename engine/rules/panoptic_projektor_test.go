@@ -1,8 +1,6 @@
 // stat:Panharmonicon.ValidTurned end-to-end: Panoptic Projektor's
-//
-//	S:Mode$ Panharmonicon | ValidMode$ TurnFaceUp | ValidCard$ Permanent.YouCtrl |
-//	ValidTurned$ Permanent
-//
+// Panharmonicon static for turn-face-up triggers of permanents you control,
+// with any permanent as the turned one
 // ("If turning a face-down permanent face up causes a triggered ability of a
 // permanent you control to trigger, that ability triggers an additional
 // time") against a real trig:TurnFaceUp ability.

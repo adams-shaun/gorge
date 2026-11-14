@@ -62,9 +62,48 @@ const (
 	rCount
 )
 
-var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
-	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps", "ResChosenPlayer"}
+var refNames = [...]string{
+	rNone:                 "None",
+	rTarget:               "Target",
+	rSelf:                 "Self",
+	rYou:                  "You",
+	rEachOpp:              "EachOpp",
+	rEachPlayer:           "EachPlayer",
+	rTargetController:     "TargetController",
+	rTargetOwner:          "TargetOwner",
+	rTriggered:            "Triggered",
+	rTriggeredNew:         "TriggeredNew",
+	rTriggeredSource:      "TriggeredSource",
+	rTriggeredPlayer:      "TriggeredPlayer",
+	rTriggeredTgtCtrl:     "TriggeredTgtCtrl",
+	rEquipped:             "Equipped",
+	rRemembered:           "Remembered",
+	rDelayedRemembered:    "DelayedRemembered",
+	rReplaced:             "Replaced",
+	rChosen:               "Chosen",
+	rEach:                 "Each",
+	rSacrificed:           "Sacrificed",
+	rHost:                 "Host",
+	rDefending:            "Defending",
+	rTargetUnion:          "Targets",
+	rRememberedController: "RememberedController",
+	rDiscarded:            "Discarded",
+	rLibTop:               "LibTop",
+	rOppNonRemCtrl:        "OppNonRemCtrl",
+	rSrcOwner:             "SrcOwner",
+	rTriggerAttackers:     "TriggerAttackers",
+	rRememberedOwner:      "RememberedOwner",
+	rImprinted:            "Imprinted",
+	rPromised:             "Promised",
+	rAttachedCtrl:         "AttachedCtrl",
+	rLastCreated:          "LastCreated",
+	rTaxedAttacker:        "TaxedAttacker",
+	rTriggeredOwner:       "ChosenPlayer",
+	rChosenPlayer:         "TriggeredOwner",
+	rChosenPlayerRes:      "ChosenPlayerRes",
+	rTriggerOpps:          "TriggerOpps",
+	rResChosenPlayer:      "ResChosenPlayer",
+}
 
 type lRef struct {
 	Kind refKind
@@ -206,11 +245,120 @@ const (
 	vCount_
 )
 
-var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "SumPower", "DistinctCMC", "Kicked",
-	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
-	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
-	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "TimesKicked", "Monarch", "EnergyOf", "PlExtreme", "JoinForces", "RemEachOwnNonLand", "DmgOppsTaken", "CmdGreatestMV", "Blessing"}
+var valNames = [...]string{
+	vNone:                "None",
+	vConst:               "Const",
+	vX:                   "X",
+	vCount:               "Count",
+	vCountGraveyard:      "CountGraveyard",
+	vSumPower:            "SumPower",
+	vDistinctCMC:         "DistinctCMC",
+	vKicked:              "Kicked",
+	vMorbid:              "Morbid",
+	vAttackedThisTurn:    "AttackedThisTurn",
+	vPowerOf:             "PowerOf",
+	vToughnessOf:         "ToughnessOf",
+	vLifeOf:              "LifeOf",
+	vLibrarySizeOf:       "LibrarySizeOf",
+	vStartingLife:        "StartingLife",
+	vTriggerAmount:       "TriggerAmount",
+	vLifeGainedThisTurn:  "LifeGainedThisTurn",
+	vOppLifeLostThisTurn: "OppLifeLostThisTurn",
+	vCountersOn:          "CountersOn",
+	vCreaturesDied:       "CreaturesDied",
+	vRememberedCount:     "RememberedCount",
+	vExcessDamage:        "ExcessDamage",
+	vLastLifeLost:        "LastLifeLost",
+	vTokensCreated:       "TokensCreated",
+	vCountCast:           "CountCast",
+	vLifeLostThisTurn:    "LifeLostThisTurn",
+	vSum:                 "Sum",
+	vHandSizeOf:          "HandSizeOf",
+	vCountExile:          "CountExile",
+	vOppsLostLife:        "OppsLostLife",
+	vMVOf:                "MVOf",
+	vCountAtLeast:        "CountAtLeast",
+	vPromisedGift:        "PromisedGift",
+	vResolvedThisTurn:    "ResolvedThisTurn",
+	vThisTurnCast:        "ThisTurnCast",
+	vRollResult:          "RollResult",
+	vCastManaSpent:       "CastManaSpent",
+	vCompare:             "Compare",
+	vBranches:            "Branches",
+	vDevotion:            "Devotion",
+	vParty:               "Party",
+	vDrawnThisTurn:       "DrawnThisTurn",
+	vGraveTypes:          "GraveTypes",
+	vValidAgg:            "ValidAgg",
+	vGraveAgg:            "GraveAgg",
+	vYourSpeed:           "YourSpeed",
+	vHighestOppPoison:    "HighestOppPoison",
+	vThisTurnEntered:     "ThisTurnEntered",
+	vThisTurnCastSpec:    "ThisTurnCastSpec",
+	vCommittedCrime:      "CommittedCrime",
+	vThisTurnActGrave:    "ThisTurnActGrave",
+	vSelfPrepared:        "SelfPrepared",
+	vSneaked:             "Sneaked",
+	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
+	vPoisonOf:            "PoisonOf",
+	vProduct:             "Product",
+	vAttackersAll:        "AttackersAll",
+	vRefCount:            "RefCount",
+	vCountHand:           "CountHand",
+	vYourTurns:           "YourTurns",
+	vLowestLife:          "LowestLife",
+	vRedNCDmg:            "RedNCDmg",
+	vVoid:                "Void",
+	vRevolt:              "Revolt",
+	vLeftZone:            "LeftZone",
+	vCastFromGrave:       "CastFromGrave",
+	vCtrAdded:            "CtrAdded",
+	vExiledWithN:         "ExiledWithN",
+	vConverge:            "Converge",
+	vExileTypes:          "ExileTypes",
+	vSacrificedThisTurn:  "SacrificedThisTurn",
+	vDiscardedThisTurn:   "DiscardedThisTurn",
+	vNumColorsOf:         "NumColorsOf",
+	vScriedThisTurn:      "ScriedThisTurn",
+	vRemLKIPT:            "RemLKIPT",
+	vCastBattlefield:     "CastBattlefield",
+	vUnlockedDoors:       "UnlockedDoors",
+	vChosenMode:          "ChosenMode",
+	vMod:                 "Mod",
+	vPow:                 "Pow",
+	vAttackedTurn:        "AttackedTurn",
+	vPhaseCount:          "PhaseCount",
+	vAdamant:             "Adamant",
+	vDilemmasFaced:       "DilemmasFaced",
+	vChromaOf:            "ChromaOf",
+	vOppsAttacked:        "OppsAttacked",
+	vChosenNumber:        "ChosenNumber",
+	vFirstCast:           "FirstCast",
+	vYourExtraTurns:      "YourExtraTurns",
+	vNotOwnLibMV:         "NotOwnLibMV",
+	vCounterKinds:        "CounterKinds",
+	vTargetPlayers:       "TargetPlayers",
+	vIfCastOwnMain:       "IfCastOwnMain",
+	vPWTypes:             "PWTypes",
+	vTapPower:            "TapPower",
+	vStepIn:              "StepIn",
+	vTgtSpent:            "TgtSpent",
+	vOppExtreme:          "OppExtreme",
+	vThisTurnActExhaust:  "ThisTurnActExhaust",
+	vActivations:         "Activations",
+	vLifeLostLastTurn:    "LifeLostLastTurn",
+	vLastDamage:          "LastDamage",
+	vDmgAmount:           "DmgAmount",
+	vTimesKicked:         "TimesKicked",
+	vMonarch:             "Monarch",
+	vEnergyOf:            "EnergyOf",
+	vPlExtreme:           "PlExtreme",
+	vJoinForces:          "JoinForces",
+	vRemEachOwnNonLand:   "RemEachOwnNonLand",
+	vDmgOppsTaken:        "DmgOppsTaken",
+	vCmdGreatestMV:       "CmdGreatestMV",
+	vBlessing:            "Blessing",
+}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -316,8 +464,23 @@ const (
 	cCount_
 )
 
-var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing", "RemMark"}
+var condNames = [...]string{
+	cNone:          "None",
+	cPresent:       "Present",
+	cValue:         "Value",
+	cKicked:        "Kicked",
+	cThreshold:     "Threshold",
+	cYourTurn:      "YourTurn",
+	cRefMatches:    "RefMatches",
+	cCostPaid:      "CostPaid",
+	cOpponentsTurn: "OpponentsTurn",
+	cPromisedGift:  "PromisedGift",
+	cAnd:           "And",
+	cEchoOwed:      "EchoOwed",
+	cSourceZone:    "SourceZone",
+	cBlessing:      "Blessing",
+	cRemMark:       "RemMark",
+}
 
 type lCond struct {
 	Kind condKind
@@ -802,6 +965,10 @@ type lTrigger struct {
 	// player attacked the controller during their last turn
 	// (kop.Tf5DmgAttackedYouLastTurn; lower_atklastturn.go).
 	AtkYouLastTurn bool
+	// DamageDone: ValidTarget$ Player.counters_EQ0_Contract, the damaged
+	// player has no contract counter (kop.Tf5DmgNoContract;
+	// lower_contract.go).
+	NoContract bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -812,6 +979,7 @@ const (
 	atkYou uint8 = 1 << iota
 	atkYourPW
 	atkOpp
+	atkEnch // Player.EnchantedBy: the defender is enchanted by this listener's Aura (kop.Tf4DefEnch)
 )
 
 type lAbility struct {
@@ -1168,6 +1336,7 @@ type lCard struct {
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
+	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
 	Ascend         bool     // printed K:Ascend (CR 702.131)
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)

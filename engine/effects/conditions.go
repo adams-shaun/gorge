@@ -460,9 +460,8 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			return holds, true
 		}
 		// A ConditionCheckSVar$ beside a ConditionDefined$/ConditionPresent$
-		// group is a real conjunction (Coiling Rebirth's
-		// `ConditionCheckSVar$ X | ConditionDefined$ Remembered |
-		// ConditionPresent$ Card.nonLegendary`): the group gate still runs
+		// group is a real conjunction (Coiling Rebirth's SVar check paired
+		// with a gate that the remembered card is nonlegendary): the group gate still runs
 		// below if the SVar holds. A denying SVar short-circuits here;
 		// a passing SVar is the identity for the remaining conjunction.
 		if !holds {
@@ -549,8 +548,8 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 	g := h.Game()
 	sc := c.SpecContext(c.Controller)
 	// A ConditionPresent$/IsPresent$ spec over a defined group
-	// (getaway_glamer's `ConditionDefined$ Targeted | ConditionPresent$
-	// Creature.greatestPower`) can carry a greatestPower comparison; bind the
+	// (getaway_glamer's gate that the target has the greatest power among
+	// creatures) can carry a greatestPower comparison; bind the
 	// whole battlefield's layer-derived power so the member matcher below
 	// sizes the comparison set correctly. Nil for every other spec.
 	sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, present, h)...)
@@ -631,9 +630,8 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 	for _, t := range group {
 		if t.IsPlayer {
 			// A player entry is counted against the PLAYER-side grammar, never
-			// the object matcher. Synth Eradicator's DBPlay gate
-			// (`ConditionDefined$ Remembered | ConditionPresent$ Player |
-			// ConditionCompare$ EQ0`) asks "did the optional put NOT happen",
+			// the object matcher. Synth Eradicator's DBPlay gate (no
+			// remembered player present) asks "did the optional put NOT happen",
 			// and Play with Fire / Sonic Shrieker's GE1 ask the opposite, so a
 			// remembered player must be visible to the count. An object-typed
 			// base (Card, Creature, ...) never matches a player entry: skip
@@ -656,7 +654,7 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		memberSc := sc
 		// CR 608.2b/h look-back: a target that has left the battlefield since
 		// targeting is read with the counters it had there, so Dismantle's
-		// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters`
+		// gate that the target had counters
 		// still holds after the chained Destroy moved the target to the
 		// graveyard. The P/T half reads the layer-derived values captured at
 		// the departure boundary (Ctx.Snap.TargetPT), so Driftgloom Coyote's
@@ -759,9 +757,9 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 	g := h.Game()
 	group := rememberedWithSource(h, c)
 	if defined == "RememberedLKI" {
-		// ConditionDefined$ RememberedLKI (Nurturing Pixie's
-		// `ConditionDefined$ RememberedLKI | ConditionPresent$ Card.Permanent`
-		// gate on the put-counter sub): the LKI spelling of the Remembered
+		// ConditionDefined$ RememberedLKI (Nurturing Pixie's gate that the
+		// last-known remembered card was a permanent, on the put-counter
+		// sub): the LKI spelling of the Remembered
 		// group. It must enumerate the SAME capture-excluding set the
 		// Defined$ RememberedLKI resolver and the count path's refTargets
 		// use (rememberedLKIGroup, engine/effects/count.go) -- a default
@@ -845,9 +843,8 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		}
 	}
 	if defined == "Returned" {
-		// ConditionDefined$ Returned (Wonderscape Sage's `ConditionDefined$
-		// Returned | ConditionPresent$ Land.hasANonBasicLandType |
-		// ConditionCompare$ EQ0`, the corpus's one carrier): Forge's group is
+		// ConditionDefined$ Returned (Wonderscape Sage's gate that no returned
+		// land has a nonbasic land type, the corpus's one carrier): Forge's group is
 		// the permanents THIS activation's own Return<N/Spec> cost returned
 		// to their owner's hand. It is enumerated off the event log through
 		// the same activation window DiscardedInWindow scans (effects.Host's
@@ -871,7 +868,7 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// CollectEvidence<N> additional cost's exiles, enumerated off the
 		// event log through the same activation window Discarded/Returned
 		// scan (effects.Host's CostMovesInWindow, events.CostMoveEvidence).
-		// The paired `ConditionPresent$ Card | ConditionCompare$ EQ0` gate
+		// The paired "no card present" gate
 		// then runs the plain branch only when nothing was collected, and
 		// the "instead" branch only when the group is non-empty. An empty
 		// window is a resolved zero -- the cast really collected nothing --

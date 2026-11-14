@@ -13,7 +13,7 @@ import (
 
 // Squadron Hawk is the corpus card the `Card.named<Name>` predicate work was
 // filed from (the empty-choose-softlock escalation's live soft-lock): its
-// ETB trigger is `ChangeType$ Card.namedSquadron Hawk | ChangeNum$ 3`, and
+// ETB trigger searches for up to three cards named Squadron Hawk, and
 // before the named predicate existed the search was always a fail-to-find.
 // Every card here is the real compiled corpus script loaded through the
 // gitignored corpus registry -- no Forge script text is committed.

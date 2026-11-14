@@ -10,12 +10,12 @@ import (
 )
 
 // The optional PeekAndReveal lockstep (CR 701.20a,
-// 701.20e, 608.2c): `PeekAndReveal | PeekAmount$ 1 | RevealValid$ <spec> |
-// RevealOptional$ True | RememberRevealed$ True`. gorge asks the library's
+// 701.20e, 608.2c): a PeekAndReveal of the top card whose reveal is optional
+// and limited to a spec, remembering what it reveals. gorge asks the library's
 // owner yes/no only when the top card matches the spec; a yes remembers the
 // card for the chained move. Deck 0 carries all three optional PeekAndReveal
-// carriers, so the taken `Defined$ Remembered | Origin$ Library |
-// Destination$ Hand` fetch is compared on Traveling Botanist and Gathering
+// carriers, so the taken fetch of the remembered card from the library to the
+// hand is compared on Traveling Botanist and Gathering
 // Stone. A plain reveal-and-take owes no shuffle in gorge or the kernel
 // (`zone_search.go:741-752`; the kernel copies the `Origin$ Library` gate,
 // `BncFromLibrary`), so the lockstep also holds the

@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtMultiplePiles
+value: 84
+forge: MultiplePiles
+census: api MultiplePiles all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

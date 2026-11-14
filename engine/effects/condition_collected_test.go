@@ -13,9 +13,9 @@ import (
 // group and its CastSA>Collected spelling: the group
 // is the cards THIS cast collected as evidence, read through
 // Host.CostMovesInWindow(events.CostMoveEvidence). The corpus gate is a paired
-// pair -- the plain branch carries `ConditionPresent$ Card | ConditionCompare$
-// EQ0` (run when NOTHING was collected) and the "instead" branch carries
-// `ConditionPresent$ Card` (run when something was) -- so both directions are
+// pair -- the plain branch is gated on the collected group holding no card
+// (run when NOTHING was collected) and the "instead" branch on it holding one
+// (run when something was) -- so both directions are
 // asserted.
 func TestConditionCollectedGatesOnEvidence(t *testing.T) {
 	h, ids := conditionBoard(t)

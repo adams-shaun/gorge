@@ -1278,9 +1278,8 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	// whose SubAbility$ chain was never linked -- only cards.Link links a
 	// printed body. Resolve it from the source's own SVar table so a body
 	// that carries a chain actually runs it: the ChooseSource family's
-	// ReplaceWith$ body chains SubAbility$ ExileEffect
-	// (`DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile`),
-	// the idiom that ends the effect after one use. A printed body keeps its
+	// ReplaceWith$ body chains SubAbility$ ExileEffect (a ChangeZone of the
+	// effect itself from the command zone to exile), the idiom that ends the effect after one use. A printed body keeps its
 	// already-linked chain (Sub non-nil), so this only touches the
 	// Effect-created parse.
 	if with != nil && with.Sub == nil && ctx != nil && ctx.SVars != nil {

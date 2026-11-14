@@ -1,0 +1,7 @@
+family: key
+name: keyDungeon
+value: 4
+forge: dungeon
+census: key dungeon classes=6 all=66
+state: player 6
+status: reserved

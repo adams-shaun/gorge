@@ -1,6 +1,6 @@
 // optional_cost_test.go — stat:OptionalCost (the optional self additional
-// cost, `S:Mode$ OptionalCost | EffectZone$ All | ValidCard$ Card.Self |
-// ValidSA$ Spell`) pinned end to end on REAL corpus carriers:
+// cost, an OptionalCost static on the spell itself that works from any
+// zone) pinned end to end on REAL corpus carriers:
 //
 //   - Burning Curiosity's `Blight<1>`: the paid offer exists beside the
 //     plain cast, paying it stamps the pay-time CastInfo's optionalcostpaid
@@ -9,7 +9,7 @@
 //     and stamps nothing.
 //   - Voltage Surge's `Sac<1/Artifact>`: a NON-Blight optional part is paid
 //     through the ordinary staged cost machinery (the shared sacAsk), and
-//     the spell's `SVar:X:Count$OptionalGenericCostPaid.4.2` deals 4 rather
+//     the spell's X (4 if the optional cost was paid, else 2) deals 4 rather
 //     than 2 — proving no bespoke optional-cost payment path exists.
 //   - Graven Archfiend's ETB gate `CastSA>Count$OptionalGenericCostPaid.1.0`
 //     (the count head's CastSA> provenance route): the trigger fires only

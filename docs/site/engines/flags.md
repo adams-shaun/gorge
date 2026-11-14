@@ -15,10 +15,13 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 |---|---|---|---|
 | `-a` | string | none | bot policy name for seat 0 (default: heuristic) |
 | `-b` | string | none | bot policy name for seat 1 (default: heuristic) |
+| `-cpuprofile` | string | none | write a CPU profile here |
+| `-deckdir` | string | none | read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks |
 | `-decks` | string | none | comma-separated deck names (default: the first -seats of the repo decks) |
 | `-dir` | string | `.cards` | corpus directory (holds ir.gob.gz / cardsfolder) |
 | `-format` | string | `constructed` | game format: constructed or commander (40 life, commanders in the command zone) |
 | `-games` | int | `1` | number of games to play |
+| `-memprofile` | string | none | write an allocation profile here and print the run's allocation totals |
 | `-mulligans` | int | `0` | London mulligans each seat may take before turn 1 (default 0, none) |
 | `-policies` | string | none | comma-separated bot policy per seat, from seat 0; "-" or empty keeps a seat's default heuristic; overrides -a/-b |
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
@@ -100,6 +103,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-class` | string | `lockstep` | with -refuse: the kind of difference, the refused list's grouping |
 | `-decks` | string | none | deck pool directory (*.json) |
 | `-dump` | string | none | write a per-card IR dump here instead of generating (never commit it) |
+| `-four-seat` | bool | `false` | with -supported: a card a pod of three or more seats cannot hold (kop.CardPodLimited: StallTwoSeat at its start) is false |
 | `-layer-census` | bool | `false` | print the interim layer guard's reach (classified cards, refused pairs and deck pairs) instead of generating |
 | `-lir` | bool | `false` | print every card's lowered IR and refusals instead of generating |
 | `-ops` | string | none | write this pool's OPS.md to -out instead of generating |
@@ -128,12 +132,14 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-b` | string | `random` | seat B's player |
 | `-cards` | string | none | gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory) |
 | `-config` | string | `configAutopay` | the verified surface to play: lockstep-autopay or lockstep-full |
+| `-cpuprofile` | string | none | write a CPU profile here |
 | `-deck-a` | string | none | deck JSON file for seat A, with -deck-b, instead of a pool |
 | `-deck-b` | string | none | deck JSON file for seat B |
 | `-decks` | string | none | deck directory (default: the set's pool, under $GORGE_POOLS or the module's .pools, else its committed slice) |
 | `-first-pair` | int | `0` | index of the first pair |
 | `-max-intents` | int | `20000` | decision cap per game; a capped game is a stall |
 | `-max-turns` | int | `100` | turn cap; a capped game is a stall |
+| `-memprofile` | string | none | write an allocation profile here and print the run's allocation totals |
 | `-mulligan-policy` | string | `coin` | how every seat mulligans: coin, lands, never, constructed or forge |
 | `-mulligans` | int | `0` | London mulligans each player may take (0 skips the round) |
 | `-out` | string | none | games file, one JSON line per game (default: stdout) |
@@ -170,7 +176,9 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-answerers` | string | `first,rand` | -v2 transcript: comma-separated scripted answerers (first, rand) |
 | `-autopay-surface` | bool | `false` | deprecated alias of -surface autopay |
 | `-cards` | string | none | gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory) |
+| `-cmd-mini` | int | `0` | -seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the oracle's card table: -kernel gorge |
 | `-coverage` | string | none | write the run's per-card/per-ability coverage TSV (oracle.Coverage) here and print a coverage summary line |
+| `-cpuprofile` | string | none | write a CPU profile here |
 | `-decks` | string | none | pool deck directory (default: the fdn pool's, under $GORGE_POOLS or the module's .pools, else its committed slice) |
 | `-events` | int | `0` | -repro: print the last N events of gorge's log when the game ends, objects named by card |
 | `-evidence` | string | none | pool runs: play the cards the table does not refuse, unverified ones too, and write the cards the run's clean games evidence (oracle.Coverage.Evidence), one name a line, here |
@@ -191,7 +199,9 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-list-synth` | bool | `false` | print the synthetic evidence pools, one a line, and exit |
 | `-max-decisions` | int | `20000` | canonical decision cap; a capped game is a stall |
 | `-max-turns` | int | `100` | turn cap; a capped game is a stall |
+| `-memprofile` | string | none | write an allocation profile here and print the run's allocation totals |
 | `-mulligans` | int | `0` | London mulligans each player may take (0 skips the round) |
+| `-only` | string | none | -synth: play the supported cards and, of the unverified ones, only those this file names (one a line): a targeted evidence run deals the cards it owes evidence among cards that have it |
 | `-out` | string | none | directory for the first divergence's repro.json, and one file a bad game: capacity-<table>-pair<N>.repro.json for a capacity stall, unmodelled-<why>-pair<N>.repro.json for an unmodelled kernel stall, divergent-pair<N>.repro.json for a divergent game (default: none written) |
 | `-pairs` | int | `100` | deck pairs (one game each) |
 | `-pairs-file` | string | none | pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them |
@@ -203,7 +213,10 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-reach` | string | none | -synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games |
 | `-replay` | string | none | re-execute this kernel game (koracle-game-2) in gorge and report |
 | `-repro` | string | none | re-run this repro in lockstep and report |
-| `-seats` | int | `2` | seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge in any build, -kernel vanilla or a -synth pool in a build with -tags dirac_mp |
+| `-search` | string | `paranoid` | -search-seats: the search, paranoid or maxn |
+| `-search-seats` | string | none | pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Two seats |
+| `-search-sims` | int | `oracle.SearchSeatDefaultSims` | -search-seats: simulations per searched decision |
+| `-seats` | int | `2` | seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt) with -kernel gorge (dirac holds two seats) |
 | `-seed` | uint64 | `1` | base seed: pairs and game seeds derive from it (the pairing rule) |
 | `-set` | string | `fdn` | the generated card set the fdn kernel plays (a name in dirac/cardset) |
 | `-shrink` | int | `200` | shrink reruns for the first divergence (0: none) |
@@ -236,6 +249,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-pairs` | int | `100` | deck pairs (one game each) |
 | `-pass-elision` | bool | `true` | elide single-option decisions (the kernel's default configuration does) |
 | `-pool` | string | none | pool.tsv (default: <decks>/../pool.tsv) |
+| `-seats` | int | `2` | seats per game, at most dirac.MaxSeats; above 2 a game is a pod of consecutive pairings' decks, -pairs counting pods |
 | `-seed` | uint64 | `78` | base seed (the pairing rule) |
 | `-split` | string | `eval` | pool split: train, eval or all |
 | `-synth` | string | none | play a synthetic evidence pool (make dirac-tables writes them) instead of -decks and -pool |

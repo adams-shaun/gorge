@@ -1,0 +1,7 @@
+class	cards_all	cards_std	cards_mbc	state_category	state_key	bytes_def	bytes_mp
+trig:Crewed	7	1	0	slotbit	crewed	16	16
+kw:Crew granted	5	0	0	slotbit	crewed	16	16
+kw:Banding	24	0	1	slotbyte	banding	112	112
+count:ThisTurnCast Opp	9	2	0	player	turn tallies	4	8
+api:Clash	29	3	0	code	api:Clash	0	0
+other:Remembered	404	36	14	unbounded	remembered/imprinted sets	0	0

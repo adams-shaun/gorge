@@ -328,9 +328,8 @@ func TestMaelstromWandererCascadesTwice(t *testing.T) {
 
 // TestDarkApostleGrantedCascadeRegistersAndOffers is the GRANTED route's
 // carrier, on the REAL corpus card whose grant is exactly the shape
-// names: AB$ Effect | StaticAbilities$ GrantCascade, with
-// SVar:GrantCascade:Mode$ Continuous | Affected$ Card.nonCreature+YouCtrl |
-// AffectedZone$ Stack | AddKeyword$ Cascade. Activating the ability
+// names: an activated Effect whose continuous static gives your noncreature
+// spells on the stack cascade. Activating the ability
 // registers the layer-6 grant; the next noncreature spell the controller
 // casts then cascades. (TARDIS carries the identical DB$ Effect shape but is
 // unreachable end to end — its K:Crew is an unsupported primitive, so the

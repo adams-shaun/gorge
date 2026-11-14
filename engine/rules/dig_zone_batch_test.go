@@ -8,18 +8,16 @@
 //
 // The pin is the real corpus carriers and observer:
 //
-//   - Wild Wasteland (enchantment), upkeep trigger executing
-//     SVar:ExileTwo:DB$ Dig | DigNum$ 2 | ChangeNum$ All | DestinationZone$
-//     Exile -- the exact two-card case;
-//   - Laelia, the Blade Reforged (Mode$ ChangesZoneAll | Origin$
-//     Library,Graveyard | Destination$ Exile), the observer card, plus her
+//   - Wild Wasteland (enchantment), upkeep trigger executing a Dig that
+//     exiles the top two cards -- the exact two-card case;
+//   - Laelia, the Blade Reforged (a ChangesZoneAll trigger on cards going from
+//     the library or graveyard to exile), the observer card, plus her
 //     OWN attack trigger (DigNum$ 1 exile) as the single-card control: one
 //     move is exactly one batch, one counter;
-//   - Scion of Halaster (SVar:DBDig:DB$ Dig | DigNum$ 2 | DestinationZone$
-//     Graveyard), with an explicit ChangeNum$ All test override, driving two
+//   - Scion of Halaster (a Dig of two cards to the graveyard), with an explicit ChangeNum$ All test override, driving two
 //     creature cards into the graveyard under
-//     Dreadhound (Mode$ ChangesZone | Origin$ Library | Destination$
-//     Graveyard | ValidCard$ Creature), the per-move control: the singular
+//     Dreadhound (a ChangesZone trigger on a creature card going from the
+//     library to the graveyard), the per-move control: the singular
 //     mode is never batch-scoped, so two moves are two firings, two life --
 //     even while the Dig's batch bracket is open.
 //

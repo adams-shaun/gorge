@@ -10,8 +10,8 @@ import (
 )
 
 // TestExpertLevelSafeActivatedAbilityIsOffered pins the REAL corpus card
-// Expert-Level Safe's activated ability (A:AB$ Pump | Cost$ 1 T |
-// ValidTgts$ Opponent | SubAbility$ ChooseNumber) through the priority walk,
+// Expert-Level Safe's activated ability (a {1},{T} Pump targeting an opponent,
+// chained to a ChooseNumber) through the priority walk,
 // against a claim that the
 // ability "is not offered at all" -- audited against an Oracle text
 // that exists nowhere in the corpus (the real card's Oracle is the

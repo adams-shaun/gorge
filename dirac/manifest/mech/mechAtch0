@@ -1,0 +1,6 @@
+family: mech
+name: mechAtch0
+value: 41
+state: slotbit 16/16
+status: active
+doc: slots whose Aura is attached to player seat 0 (the Enchant:Player curses; static_attachtimestamp.go atchSeat)

@@ -150,8 +150,8 @@ func TestEffectDelayedNonBattlefieldPermanentStaysLive(t *testing.T) {
 }
 
 // TestEffectDelayedHostExileEndsRegistration drives the ImprintOnHost lifetime
-// through its real call site: a `DB$ ChangeZone | Defined$ Imprinted | Origin$
-// Command | Destination$ Exile` body resolved with the host as its source, the
+// through its real call site: a ChangeZone body moving the imprinted cards from
+// the Command zone to exile, resolved with the host as its source, the
 // idiom engine/effects/zone.go uses to end an imprinted effect. The host's
 // EndImprintedEffects must retire the delayed registration through a logged
 // DelayedRemove.

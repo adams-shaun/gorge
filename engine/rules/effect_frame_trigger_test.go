@@ -1,14 +1,13 @@
 package rules
 
 // effect_frame_trigger_test.go pins another path: the one-shot
-// self-exile idiom (`DB$ ChangeZone | Defined$ Self | Origin$ Command |
-// Destination$ Exile`) run from an Effect's OWN Triggers$ body. Before this
+// self-exile idiom (a ChangeZone moving the Effect itself from the command
+// zone to exile) run from an Effect's OWN Triggers$ body. Before this
 // the delayed-trigger fire built a Ctx with no EffectFrame, so the idiom
 // ended nothing and the Effect's registrations (its replacement/static
 // half) lingered for their whole duration. Kor Dirge / Kor Chant carry the
-// real corpus shape (`DB$ Effect | ReplacementEffects$ SelflessDamage |
-// Triggers$ OutOfSight`, with `OutOfSight:Mode$ ChangesZone ... Execute$
-// ExileEffect`); the fixture below is that shape with a DamageDone trigger
+// real corpus shape (an Effect carrying a damage replacement and a
+// ChangesZone trigger whose body exiles the Effect); the fixture below is that shape with a DamageDone trigger
 // so the test can fire it without a board move.
 
 import (

@@ -8,12 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// gorgeQuirionFixTime is gorge cr-dies-trigger-divided-counters-lki (merge
-// 91d9a3559, 2026-10-26 09:56:26 -0600 = 15:56:26Z, on gorge main and not yet
-// in a develop pin; the constant is UTC like gorgePinAtLeast's stamp): before it Quirion Beastcaller's dies
-// trigger asked no targets and distributed nothing.
-const gorgeQuirionFixTime = "20261026155626"
-
 // The Quirion Beastcaller lockstep: a +1/+1 counter per creature
 // spell cast, and when it dies "distribute X +1/+1 counters among any number
 // of target creatures you control, where X is the number of +1/+1 counters on
@@ -71,9 +65,6 @@ func kquirionCheck(tal *kquirionTally) func(*GorgeSide, Side) *Divergence {
 
 func TestQuirionLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeQuirionFixTime) {
-		t.Skip("gorge before cr-dies-trigger-divided-counters-lki (91d9a3559)")
-	}
 	var tal kquirionTally
 	// a Quirion with more than eight counters dies into a ninth division
 	// target: the kernel stalls loudly (StallXTgt, maxXTgt) where gorge
@@ -92,9 +83,6 @@ func TestQuirionLockstep(t *testing.T) {
 // slot bound to one target, some seed diverges.
 func TestQuirionLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeQuirionFixTime) {
-		t.Skip("gorge before cr-dies-trigger-divided-counters-lki (91d9a3559)")
-	}
 	n := sonRun(t, "quirion", kquirionMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

@@ -1,0 +1,7 @@
+family: KwID
+name: KwRecover
+value: 88
+forge: Recover
+census: kw Recover all=7 std=0 mbc=0 sole=7
+state: code 0
+status: reserved
