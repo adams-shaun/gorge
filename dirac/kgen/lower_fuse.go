@@ -145,6 +145,7 @@ func (lc *lowerCtx) lowerFusedHalf() {
 		// a fresh chain: the right half reads only its own target slots
 		// (gorge runFusedHalves' per-half Ctx), as lowerAbility starts one
 		lc.chainT, lc.xPaidAb, lc.colGrant, lc.colTgt, lc.remTgt = nil, nil, false, lRef{}, 0
+		lc.landTypeGrant = false
 		return lc.chain(sa, newParams(sa.Params))
 	})
 	for _, t := range spell.Targets {

@@ -67,6 +67,17 @@ func (s *State) tapPayCand(k *prep, sl Slot, imp bool) bool {
 	return pp.attached == NoSlot && s.isCreature(k, sl)
 }
 
+// tapPayAskCand is tapPayCand for the announcement's menu: gorge's ConvokeAsk
+// also skips an attached Reconfigure card as an improvise artifact, while its
+// offer credit (improviseCost, the credit side: tapPayCand) counts it (CR
+// 702.126a would let it improvise; gorge's two readings differ).
+func (s *State) tapPayAskCand(k *prep, sl Slot, imp bool) bool {
+	if imp && k.gen != nil && k.gen.anyReconfigure && s.reconfigureAttached(k, sl) {
+		return false
+	}
+	return s.tapPayCand(k, sl, imp)
+}
+
 func isConvokePick(f pickKind) bool { return f&convokePickMask == convokePickMask }
 
 // convokeCredit returns cost less the greedy tap-paid credit: convoke first,
@@ -320,7 +331,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	for _, sl := range ord0[:n0] {
 		pp := &s.perms[sl]
 		cc := convoke && s.tapPayCand(k, sl, false)
-		ic := improvise && s.tapPayCand(k, sl, true)
+		ic := improvise && s.tapPayAskCand(k, sl, true)
 		if !cc && !ic || s.pickedKind(pp.obj, pkTapX) {
 			continue
 		}
@@ -366,7 +377,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	for _, sl := range ord[:n] {
 		pp := &s.perms[sl]
 		cc := convoke && s.tapPayCand(k, sl, false)
-		ic := improvise && s.tapPayCand(k, sl, true)
+		ic := improvise && s.tapPayAskCand(k, sl, true)
 		if !cc && !ic {
 			continue
 		}
@@ -569,7 +580,7 @@ func (s *State) FeatConvokeCands(out []Obj) ([]Obj, bool) {
 			continue
 		}
 		cc := convoke && s.tapPayCand(k, sl, false)
-		ic := improvise && s.tapPayCand(k, sl, true)
+		ic := improvise && s.tapPayAskCand(k, sl, true)
 		off := genOK && (cc || ic)
 		col := s.colorsAt(k, sl)
 		for ci := 0; ci < 5 && cc && !off; ci++ {

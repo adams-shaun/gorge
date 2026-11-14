@@ -19,9 +19,6 @@ done
 git -C "$top" archive "$ref" | tar -x -C "$scratch"
 cd "$scratch"
 git init -q .
-# GORGE_CARDS_DIR too: the gate box exports it (scripts/test-remote-box.sh, for worktrees of a bare
-# repository), and testutil's corpus skip detector honors it while cardset does not, so a leaked
-# value makes every dirac/oracle test run its setup and then die in cardset with ErrNoCorpus.
 unset GORGE_CARDS GORGE_CARDS_DIR DIRAC_TABLES GORGE_POOLS KGEN_DECKS
 export GOWORK=off GOFLAGS=-trimpath # -trimpath: the random directory must not defeat the build cache
 

@@ -316,6 +316,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtPreventNext:
 		s.prevNextAdd(k, in) // repl_prevnext.go
 		return true, true
+	case kop.ExtGrantEncore:
+		s.grantEncore(k, in) // kw_encoregrant.go
+		return true, true
 	case kop.ExtTapOrUntapAll:
 		return s.tapOrUntapAllStart(), true // act_taporuntapall.go
 	}

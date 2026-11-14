@@ -157,10 +157,30 @@ func (lc *lowerCtx) changeSpeed(ps *params) error {
 // source; any other outer parameter refuses. Lightwheel Enhancements'
 // graveyard "you may cast this card" (a MayPlay inner static) lowers the same
 // way.
-func (lc *lowerCtx) maxSpeedGrantedStatic(sp *params, name string) error {
+func (lc *lowerCtx) maxSpeedGrantedStatic(sp *params, value string) error {
 	if left := sp.unread(); len(left) > 0 {
 		return refuse("MaxSpeed static unread params %v", left)
 	}
+	names := cards.SplitGrantNames(value)
+	if len(names) == 0 {
+		return refuse("MaxSpeed granted static %q", value)
+	}
+	// gorge grants each named body in the value's order (Tsagan, Raider
+	// Warlord's "SelfDT & WideFS": cards.ParseGrantedStatics); the lowered
+	// statics keep that order, so their timestamps follow it
+	for _, name := range names {
+		if err := lc.maxSpeedGrantedOne(name, len(names) > 1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// maxSpeedGrantedOne lowers one granted static body of a max-speed grant
+// (maxSpeedGrantedStatic). Only a list member (listed) may affect the
+// controller's other creatures (Creature.YouCtrl+Other, the host's
+// controller's side), which gorge resolves against the host.
+func (lc *lowerCtx) maxSpeedGrantedOne(name string, listed bool) error {
 	inners, ok := cards.ParseStaticLines(lc.face.SVars[name])
 	if !ok || len(inners) != 1 || (inners[0].Mode != "Continuous" && inners[0].Mode != "ReduceCost") {
 		return refuse("MaxSpeed granted static %q", name)
@@ -185,7 +205,7 @@ func (lc *lowerCtx) maxSpeedGrantedStatic(sp *params, name string) error {
 	// a ReduceCost reads its own ValidCard$ / Activator$ (staticBody);
 	// gorge's cost walk applies it to the controller's spells while the
 	// outer static is live (Racers' Scoreboard)
-	if in.Mode == "Continuous" && ps["Affected"] != "Card.Self" {
+	if in.Mode == "Continuous" && ps["Affected"] != "Card.Self" && !(listed && ps["Affected"] == "Creature.YouCtrl+Other") {
 		return refuse("MaxSpeed granted static Affected$ %q", ps["Affected"])
 	}
 	for _, k := range []string{"Condition", "CheckSVar", "IsPresent", "ClassBand"} {

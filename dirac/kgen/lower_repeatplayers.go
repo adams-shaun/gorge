@@ -26,6 +26,12 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		who = lRef{Kind: rEachPlayer}
 	case "Player.Opponent", "Opponent":
 		who = lRef{Kind: rEachOpp}
+	case "Player.YourTeam":
+		// gorge models no teams: YourTeam is the You qualifier
+		// (effects/player_filter.go), so repeatPlayers' filter arm lists the
+		// resolving controller alone. The kernel's eachPlayers reads RefYou
+		// as that one seat (playerRef). Azra Bladeseeker
+		who = lRef{Kind: rYou}
 	case "Targeted":
 		// gorge repeatPlayers' Targeted arm (choose_control.go): add the
 		// resolution's targets' players, the loop then reading them in
@@ -53,6 +59,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		// only gorge's "starting with you" order is modelled.
 		return refuse("RepeatEach StartingWith %q", v)
 	}
+	ps.consume("AILifeThreshold") // the AI's hint only (Pox); gorge's effRepeatEach never reads it
 	name := ps.str("RepeatSubAbility")
 	body := cards.ResolveSVar(lc.face.SVars, name)
 	if body == nil {
@@ -250,12 +257,12 @@ func (lc *lowerCtx) checkEachPlCtrl(expr string, f *lFilter) error {
 // two exact parameterless reads: <PlayerCountRemembered$... |
 // Count$Valid[Hand|Library|Graveyard] ...RememberedPlayerCtrl|
 // RememberedPlayerOwn... | Remembered$Valid Card.nonLand+
-// RememberedPlayerOwn> with at most one /HalfDown, /HalfUp or /Minus.N
+// RememberedPlayerOwn> with at most one /HalfDown, /HalfUp, /ThirdUp or /Minus.N
 // tail, and that it lowers inside the body. Anything else (Remembered$Amount,
 // an operand SVar, ...) is not admitted and keeps the caller's refusal.
 func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	b := strings.TrimSpace(body)
-	for _, t := range []string{"/HalfDown", "/HalfUp"} {
+	for _, t := range []string{"/HalfDown", "/HalfUp", "/ThirdUp"} {
 		b = strings.TrimSuffix(b, t)
 	}
 	if head, n, ok := strings.Cut(b, "/Minus."); ok && n != "" && strings.Trim(n, "0123456789") == "" {

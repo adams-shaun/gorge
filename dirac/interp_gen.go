@@ -797,6 +797,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
 			break
 		}
+		if in.B.N == kop.OvChosenType {
+			s.ovChosenType(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // act_choosebasicland.go
+			break
+		}
 		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
@@ -944,18 +948,19 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if o := s.g.replaced; in.C == 0 && !isBasicLandChoose(in) && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, 2)
-		} else if _, sl := s.resolutionTypeSource(); sl != NoSlot && s.perms[sl].chosen != 255 {
-			// gorge effChooseType: a source that already carries a
-			// ChosenType keeps it (the second activation is no-op)
-			s.res.chosen = s.perms[sl].chosen
+		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
+			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
 			s.res.bad |= resChosenType | card
-		} else if o, sl := s.resolutionTypeSource(); sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
+		} else if o, sl := s.resolutionTypeSource(); s.res.e.kind == seSpell && sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
 			// a spell card keeps its ChosenType across the graveyard
 			// (gorge apply_zone.go only clears it on a battlefield
 			// leave), so a flashback re-cast reuses the first cast's
-			// answer instead of asking again
+			// answer instead of asking again. An activated or triggered
+			// ability's resolution always asks (CR 608.2; gorge
+			// effChooseType's resolvesAbility), its answer replacing the
+			// source's earlier one.
 			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
 		} else {
@@ -971,6 +976,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if DebugChooseCardAmount2 {
 			p = NextSeat(p) // TestKchoosecardparamsMutation: another player picks
 		}
+		// gorge cardChoices' filter tier reads You as the ACTIVATOR, never the
+		// chooser (engine/effects/choose_control.go cardChoicesIn: Demonic
+		// Hordes' "a land of an opponent's choice" offers the resolving
+		// controller's lands). Every chooser but the chosen-player one is the
+		// resolving controller, so the base differs only there (chooseCardBase).
+		base := p
+		if in.Obj == kop.RefEachOpponent {
+			base = e.ctrl
+		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
 		}
@@ -983,20 +997,29 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C == choosePopulatePick {
 			return s.populatePick(k, in, p) // copy_picked.go
 		}
-		if s.cardCands(k, in.F, p, nil) == 0 {
+		if s.cardCandsBase(k, in.F, p, base, nil) == 0 {
 			break
 		}
 		s.res.ask, s.res.askP = raGenChooseCard, p
 		return false, true
+	case kop.OpChoosePlayer:
+		s.choosePlayerOp(k, in) // act_chooseplayer.go
 	case kop.OpAttach:
 		if in.W != 0 {
 			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go
+			break
+		}
+		if in.C&kop.AttachUnattach != 0 {
+			s.unattachSelf(k) // Reconfigure's unattach half (kw_reconfigure.go)
 			break
 		}
 		src := s.objRef(k, kop.RefSelf)
 		dst := s.objRef(k, in.Obj)
 		if src != NoSlot && dst != NoSlot && src != dst {
 			s.attachTo(k, src, dst)
+			if k.gen.anyReconfigure {
+				s.refreshTy(k) // an attached Reconfigure card is no creature (kw_reconfigure.go)
+			}
 			s.touchSl(src)
 			if in.C&kop.MvRemember != 0 {
 				s.remember(s.perms[src].obj) // RememberAttached$
@@ -2493,6 +2516,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	}
 	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
+		agg.dn = dn[:len(codes)]   // each recipient's share, an AtLeastOneInstance$ gate's read (trig_atleastone.go)
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
