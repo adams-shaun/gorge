@@ -1572,9 +1572,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 					}
 					// counted here, so the fixpoint below must not admit the same
 					// ability again (potentialGapCost's Deplete arm): gorge counts it once
-					if ai := k.riderAbOf(s.cardAt(sl)); ai >= 0 && ai < 16 {
-						done[sl] |= 1 << ai
-					}
+					s.markRiderDone(k, sl, &done)
 				}
 			}
 			if k.gen != nil && pc.manaAb < 0 {
