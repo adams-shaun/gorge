@@ -1,0 +1,20 @@
+# the MBC tokens-2 family: an X-cost sorcery minting X X/X tokens
+# (Gelatinous Genesis, TokenPower$/TokenToughness$ with TokenAmount$ X) and a
+# comma-listed TokenScript$ with TokenOwner$ You (Specimen Collector's
+# Squirrel and Crab; Fae Offering's Clue, Food and Treasure at an end step
+# after a creature and a noncreature spell), beside creatures and spells to
+# cast, attack, block and copy, and Jolene, the Plunder Queen, the token
+# adder a listed mint is refused beside (dirac/oracle/mbc_tokens2_lowers_test.go)
+Gelatinous Genesis
+Specimen Collector
+Fae Offering
+Jolene, the Plunder Queen
+Grizzly Bears
+Hill Giant
+Giant Growth
+Shock
+Murder
+Forest
+Island
+Mountain
+Swamp

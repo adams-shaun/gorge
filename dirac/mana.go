@@ -1370,7 +1370,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if k.gen != nil && k.gen.anyTapExtra && !sacOnly {
 					tn += s.srcReflectPick(k, sl, pc) // a several-colour source under a reflect carrier: one more of its pick
 					if pc.painCol != 0 {
-						xv, _, _ = s.srcExtraPain(k, sl, pc) // phase 0: the painland's normal {C} ability
+						xv, _, _, _ = s.srcExtraPain(k, sl, pc) // phase 0: the painland's normal {C} ability
 					} else {
 						xv = s.srcExtra(k, sl, pc)
 					}
@@ -1383,7 +1383,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				fl := uint8(bits.OnesCount8(dmk | xm))
 				if phase > 0 && k.painMana && pc.painCol != 0 {
-					xc, xp, _ := s.srcExtraPain(k, sl, pc)
+					xc, xp, _, _ := s.srcExtraPain(k, sl, pc)
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				rb := pc.restrFloat

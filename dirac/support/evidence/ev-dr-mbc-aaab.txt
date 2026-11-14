@@ -15,6 +15,7 @@ Captain Sisay
 Colossal Dreadmaw
 Dark Ritual
 Dauthi Horror
+Dyfed, the Guiding Hand
 Elspeth's Smite
 Elvish Visionary
 Explosive Vegetation
@@ -41,6 +42,7 @@ Nature's Claim
 Oakhame Adversary
 Overrun
 Perimeter Captain
+Pir, Imaginative Rascal
 Plains
 Secret Rendezvous
 Shrike Force

@@ -370,12 +370,12 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 	if pm.ctrl != p || !s.faceDown(k, sl) {
 		return
 	}
-	cost, megamorph, _, ok := s.turnUpCost(k, sl, mode)
+	cost, megamorph, kw, ok := s.turnUpCost(k, sl, mode)
 	if !ok || !turnUpHybOK(&cost) {
 		return
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
-	if !s.specialAffords(k, p, &cost, sp, sl, x) {
+	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpLifeOK(k, p, sl) {
 		return
 	}
 	cost = cost.AtX(x)
@@ -383,6 +383,9 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 		cost = s.turnUpHybResolve(p, cost, 0) // face_turnfaceup.go
 	}
 	s.paySpecial(k, p, &cost, sp, sl, x)
+	if kw {
+		s.payTurnUpLife(k, p, sl) // face_morphlife.go
+	}
 	s.turnUpFlip(k, sl, o, p, uint8(x))
 	if megamorph {
 		s.g.lastCK = kop.CtrP1P1

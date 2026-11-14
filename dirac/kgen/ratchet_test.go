@@ -144,16 +144,19 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +16 (the merge with land at 1acc5919d9: this branch's CR 702.43 Multikicker and Count$TimesKicked lowering beside land's later work; merged ALL 23115 -> 23131, WOE stays 264 measured).
 	// +14 (the merge with land at 6014a11d54: this branch's Extort lowering, the printed K:Extort expansion and the granted trigger, beside land's 23177; merged ALL 23177 -> 23191 measured).
 	// +1 (the RepeatEach player body's ConditionCheckSVar$ gate lowered: the gate SVar Remembered$Valid Card.nonLand+RememberedPlayerOwn as the parameterless RemEachOwnNonLand, Kroxa, Titan of Death's Hunger; ALL 23251 -> 23252 measured).
+	// +40 (the MBC keywords-2 family: granted intimidate and infect, a static's Static.Evasion / Static.Infect or a Pump / PumpAll ExtKwMark, Akroan Line Breaker, Bellowing Tanglewurm, Cavern Lampad, Corrupted Conscience, Dreadbringer Lampads, Executioner's Hood, Glistening Oil, Grisly Transformation, Gruesome Deformity, Guul Draz Vampire, Hideous Visage, Korozda Guildmage, Pestilent Souleater, Phyresis, Shadow Alley Denizen, Surrakar Marauder, Tainted Strike, Triumph of the Hordes, Vector Asp, Vela the Night-Clad, Vow of Malice, Warchanter of Mogis; printed bloodthirst over ExDmgOppsTaken, Battering Wurm, Blood Ogre, Bloodrage Vampire, Bloodscale Prowler, Carnage Wurm, Duskhunter Bat, Furyborn Hellkite, Ghor-Clan Savage, Gorehorn Minotaurs, Gristleback, Lurking Crocodile, Petrified Wood-Kin, Rabble-Rouser, Scab-Clan Mauler, Skarrgan Pit-Skulk, Skarrgan Skybreaker, Stormblood Berserker, Vampire Outcasts; ALL 23253 -> 23293 measured).
 	// +8 (MBC filters-3: with<Keyword> naming First/Double Strike with its space, <Colour>Source as the colour word, DamagePlus ValidTarget$ Player.Opponent ungated: Thunderous Orator, Jaya, Venerated Firemage, Torbran, Thane of Red Fell, Embermaw Hellion, Mechanized Warfare, Momentum Rumbler, Phyrexian Splicer, Thor, Asgard's Avenger; ALL 23253 -> 23261, BRO 218 -> 219 (Mechanized Warfare) measured).
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
 	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
+	// +2 (a GenericChoice whose bodies are DB$ ChangeText lowers to OpExt ExtChangeText, a no-op unless the target face reads the from word: Mind Bend and Whim of Volrath; ALL merged against land 23728 -> 23730, MBC 1797 -> 1798 (Mind Bend) measured).
 	// +17 (Level up lowers (CR 702.87a): kwLevelUp's sorcery-speed PutCounter LEVEL line, kop.CtrLevelUp, and the two-sided level band IsPresent$ Card.Self+counters_GEa_LEVEL+counters_LEb_LEVEL as two Self presence tests: Brimstone Mage, Caravan Escort, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Hedron Field Purists, Ikiral Outrider, Joraga Treespeaker, Kargan Dragonlord, Kazandu Tuskcaller, Knight of Cliffhaven, Nirkana Cutthroat, Null Champion, Skywatcher Adept, Student of Warfare, Transcendent Master, Under Construction Skyscraper; ALL 23253 -> 23270, MBC 1678 -> 1683 measured).
 	// +1 (MBC keywords-4: a static-granted Saddle:N lowered as a latent AB$ AlterAttribute the static lists in Grant: Jandor, Fortuned Traveler; ALL 23437 -> 23438, MBC 1724 -> 1725 measured).
 	// +6 (MBC keywords-4: a static-granted Living Weapon as a latent ChangesZone Self trigger, Ekthi, Contaminator Priest; K:Escalate:<mana> on Spree's per-mode-cost path, Collective Resistance, Collective Defiance, Borrowed Grace, Borrowed Hostility, Borrowed Malevolence; ALL 23438 -> 23444, MBC 1725 -> 1727 measured).
-	// the merge with land: the MBC keywords-4 lowerings (+7) against land's 23746; merged ALL 23746 -> 23753, MBC 1803 -> 1806 measured.
-	"ALL": {23753, 34442},
+	// the merge with land: the MBC keywords-4 lowerings (+7) against land's 23952; merged ALL 23952 -> 23959, MBC 1847 -> 1850 measured.
+	// +41 (this branch's lowerings merged against land 23802 -> 23843 measured).
+	"ALL": {23959, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -173,11 +176,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
 	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
 	// MBC +5 (Level up: Enclave Cryptologist, Knight of Cliffhaven, Joraga Treespeaker, Nirkana Cutthroat, Hada Spy Patrol; 1678 -> 1683).
-	"MBC": {1806, 2195},
+	"MBC": {1850, 2195},
 	"MKM": {252, 279},
-	"MOM": {204, 296},
-	"MSH": {246, 276},
-	"NEO": {201, 287},
+	"MOM": {205, 296},
+	"MSH": {247, 276},
+	"NEO": {204, 287},
 	"ONE": {201, 271},
 	"OTJ": {253, 276},
 	"SNC": {188, 266},
@@ -188,7 +191,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TMT": {183, 194},
 	"TRC": {301, 337},
 	"TRK": {311, 311},
-	"WOE": {264, 281},
+	"WOE": {265, 281},
 }
 
 // testSetlistDir is setlistDir relative to the test's working directory
