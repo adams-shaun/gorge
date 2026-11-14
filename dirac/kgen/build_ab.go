@@ -1792,10 +1792,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return refuse("ReduceCost ValidTarget$ mixes a Spell head with another")
 		}
-		if st.Filter2, err = filter(s.F2, zone); err != nil {
-			return err
-		}
-		return nil
+		st.Filter2, err = filter(s.F2, zone)
+		return err
 	}
 	var add []uint8
 	switch s.Kind {
@@ -1816,9 +1814,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.StFlags |= kop.StYouHexproof
 		}
-		if slices.Contains(s.Flags, "FunctionsInGraveyard") {
-			st.StFlags |= kop.StFunctionsInGraveyard // lower_gycontinuous.go: works from its owner's graveyard
-		}
+		st.StFlags |= gyContStFlag(s.Flags)
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}

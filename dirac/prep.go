@@ -102,7 +102,7 @@ type prep struct {
 	t        *kop.Table
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
-	gyCont   bool     // some Continuous static works from its card's graveyard (genPrep.anyGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
+	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
@@ -397,10 +397,7 @@ func prepare(t *kop.Table) *prep {
 			case kop.AbTriggered:
 				pc.trigMask |= 1 << a.Trig.Event & (1<<nSubEvents - 1) // TrigGiveGift: no subscription (kw_gift.go)
 			case kop.AbStatic:
-				if gyContOf(a) {
-					break // works from the graveyard, not a battlefield static (static_gycont.go)
-				}
-				pc.hasStat = true
+				pc.hasStat = battlefieldStatic(pc.hasStat, a) // a graveyard static is none (static_gycont.go)
 				if a.Static.Kind == kop.StatOverride || (a.Static.Kind == kop.StatContinuous && a.Static.Grant != 0) {
 					pc.grantStat = true // a source grantedAbilitiesN's static walk can reach
 				}
@@ -463,7 +460,7 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
-	p.gyCont = p.gen != nil && p.gen.anyGyCont
+	p.gyCont = tableHasGyCont(t)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana

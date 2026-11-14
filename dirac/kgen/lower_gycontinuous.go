@@ -1,8 +1,10 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -57,6 +59,16 @@ func (lc *lowerCtx) graveContinuous(s cards.Static) (cards.Static, bool, error) 
 	}
 	s.Params = ps
 	return s, true, nil
+}
+
+// gyContStFlag is the build-side half of graveContinuousFlag: the lowered
+// static's "FunctionsInGraveyard" flag as kop.StFunctionsInGraveyard (works
+// from its owner's graveyard).
+func gyContStFlag(flags []string) kop.StaticFlags {
+	if slices.Contains(flags, "FunctionsInGraveyard") {
+		return kop.StFunctionsInGraveyard
+	}
+	return 0
 }
 
 // graveContinuousFlag marks the lowered statics as graveyard-functioning

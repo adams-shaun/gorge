@@ -19,6 +19,23 @@ func gyContOf(a *kop.Ability) bool {
 	return a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.StFlags&kop.StFunctionsInGraveyard != 0
 }
 
+// battlefieldStatic is pcard.hasStat after static ability a: a graveyard
+// Continuous static is no battlefield static (it never joins statM).
+func battlefieldStatic(had bool, a *kop.Ability) bool { return had || !gyContOf(a) }
+
+// tableHasGyCont reports whether any card of t has a graveyard Continuous
+// static (prep.gyCont).
+func tableHasGyCont(t *kop.Table) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if gyContOf(&t.Cards[i].Abilities[j]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // anyGyStatic reports whether this table has a graveyard Continuous static.
 func anyGyStatic(k *prep) bool { return k.gyCont }
 
