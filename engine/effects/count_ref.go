@@ -571,6 +571,13 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.Source}}, true
 		}
 		return nil, false
+	case refTargetsReplacedCard:
+		// The object the replaced event was about (Ravenous Slime's
+		// X:ReplacedCardLKI$CardPower). Nobody outside a replacement.
+		if c.Repl.Replaced != 0 {
+			return []state.Target{{Obj: c.Repl.Replaced}}, true
+		}
+		return nil, true
 	case refTargetsDiscarded:
 		// The cards the resolving spell's or ability's own Discard<...> cost
 		// discarded: Grab the Prize's X:Discarded$Valid Card.nonLand/Times.2.
@@ -941,6 +948,7 @@ const (
 	refTargetsDiscarded
 	refTargetsCastCollected
 	refTargetsCastReturned
+	refTargetsReplacedCard
 )
 
 var refTargetsCodes = state.NewStrCodes(
@@ -989,6 +997,8 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "CastSA>Collected", Val: refTargetsCastCollected},
 	state.StrEntry[refTargetsCode]{Key: "CastSA>Returned", Val: refTargetsCastReturned},
 	state.StrEntry[refTargetsCode]{Key: "Discarded", Val: refTargetsDiscarded},
+	state.StrEntry[refTargetsCode]{Key: "ReplacedCard", Val: refTargetsReplacedCard},
+	state.StrEntry[refTargetsCode]{Key: "ReplacedCardLKI", Val: refTargetsReplacedCard},
 )
 
 type countRefTagCode uint16

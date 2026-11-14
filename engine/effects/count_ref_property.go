@@ -118,6 +118,8 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		}
 		o := g.Obj(t.Obj)
 		lki := c.LKI != nil && c.LKI.ID == t.Obj
+		// ReplacedCardLKI reads the P/T captured when the replacement matched.
+		replLKI := ref == "ReplacedCardLKI" && c.Repl.ReplacedPTValid && t.Obj == c.Repl.Replaced
 		if lki {
 			// A zone-change trigger must read the causing object's snapshot,
 			// not the same id after Move has cleared its counters and removed
@@ -195,6 +197,8 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			if f != nil {
 				if sacLKI != nil {
 					n += sacLKI.Power
+				} else if replLKI {
+					n += c.Repl.ReplacedPower
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power
 				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
@@ -246,6 +250,8 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			if f != nil {
 				if sacLKI != nil {
 					n += sacLKI.Toughness
+				} else if replLKI {
+					n += c.Repl.ReplacedToughness
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Toughness
 				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
