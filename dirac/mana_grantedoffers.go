@@ -206,8 +206,10 @@ func (s *State) ownSacGrantTap(k *prep, sl Slot) *pcard {
 // planGrantUnit adds gt, a granted mana view of sl, as its own unit of the
 // planner beside the printed unit the loop emitted: the tap unit of
 // ownSacGrantTap, shaped like a grant-only source's unit (manaPCGen returns
-// its granted view there).
-func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard, cr bool) {
+// its granted view there). rank is sl's place in the battlefield (entry)
+// order plan walks: gorge's prefix search activates the census gaps in that
+// order (potential_script.go), so the unit ranks by it, not by ObjID.
+func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard, cr bool, rank int) {
 	if pk.nu >= maxUnits || pk.nt >= maxTypes {
 		return // the caller's loop holds the same guards
 	}
@@ -217,7 +219,7 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 	ti := -1
 	for t := 0; t < pk.nt; t++ {
 		ty := &pk.types[t]
-		if ty.mask == mask && ty.dmask == dmk && ty.n == n && ty.creat == cr && !ty.sac && !ty.sacOnly &&
+		if ty.grantOwn && ty.mask == mask && ty.dmask == dmk && ty.n == n && ty.creat == cr && !ty.sac && !ty.sacOnly &&
 			ty.pair == 0 && ty.pain == 0 && ty.first == 0 && ty.printed == 0 && ty.flex == fl &&
 			ty.xv == ([kop.NumManaKinds]uint8{}) && !ty.rb {
 			ti = t
@@ -227,14 +229,18 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 	if ti < 0 {
 		ti = pk.nt
 		pk.nt++
-		pk.types[ti] = utype{mask: mask, dmask: dmk, n: n, creat: cr, flex: fl}
+		// irr 255: the plan's grant count stays minimal -- gorge's prefix
+		// search stops at the first payable state, so one grant beside a
+		// printed unit always outranks a second grant, and no all-printed
+		// plan's key 0 reaches a second grant's 2*255
+		pk.types[ti] = utype{mask: mask, dmask: dmk, n: n, creat: cr, flex: fl, grantOwn: true, irr: 255}
 		if int(n) > pk.maxN {
 			pk.maxN = int(n)
 		}
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.uobj[pk.nu] = Obj(rank)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	// the grant's ability number names nothing on sl's own card, and
