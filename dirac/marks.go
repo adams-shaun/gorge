@@ -224,6 +224,9 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if c := s.contractCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // ctr_contract.go
 	}
+	if c := s.experCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // act_energy.go
+	}
 	return hbytes(h, unsafe.Pointer(&g.used[0]), uintptr(g.nused)*unsafe.Sizeof(g.used[0]))
 }
 

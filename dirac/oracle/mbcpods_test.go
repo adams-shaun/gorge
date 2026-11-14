@@ -73,11 +73,12 @@ func TestMBCPodTables(t *testing.T) {
 			reasons[why]++
 			continue
 		}
-		// The slice predates a card's refusal by name (dirac/support/refused):
-		// its pod is one the kernel refuses for a card, not a table that
-		// overflowed.
+		// The slice predates a card's refusal by name (dirac/support/refused),
+		// or a kgen change that stopped lowering one of its cards (11-14:
+		// Jarad, Golgari Lich Lord's second Sac<> part now refuses): its pod is
+		// one the kernel refuses for a card, not a table that overflowed.
 		var re *cardset.RefusedError
-		if errors.As(err, &re) && re.Status == cardset.StatusRefused {
+		if errors.As(err, &re) && (re.Status == cardset.StatusRefused || re.Status == cardset.StatusNotLowered) {
 			refused++
 			reasons["refused "+re.Card]++
 			continue

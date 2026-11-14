@@ -13,7 +13,8 @@ caught at the unit that caused it instead of the next train.
     python3 scripts/oracle_fasttier.py --check dirac/oracle/testdata/fasttier.txt
 
 The generator needs the train's -v logs: --logs defaults to $GORGE_ORACLE_LOGS, so set
-either one. --check needs no logs.
+either one. A green promote PR's oracle part logs serve (ci-oracle-shard.sh prints every PASS and
+SKIP line), as fetched: `gh api repos/<owner>/<repo>/actions/jobs/<id>/logs > part-<k>.log`. --check needs no logs.
 
 --check asks `go test -list` which tests exist and fails, loudly, for every listed name that
 does not; a clean run also proves the list is sorted and has no duplicates. The gate repeats the
@@ -33,6 +34,8 @@ DEFAULT_LOGS = os.environ.get("GORGE_ORACLE_LOGS", "")
 DEFAULT_THRESHOLD = 0.5
 PASS_RE = re.compile(r"^\s*--- PASS: (\S+) \(([0-9.]+)s\)$")
 SKIP_RE = re.compile(r"^\s*--- SKIP: (\S+)")
+# A GitHub job log (the promote PR's oracle parts, scripts/ci-oracle-shard.sh) starts each line with a timestamp.
+GH_TS = re.compile(r"^\ufeff?\d{4}-\d\d-\d\dT[\d:.]+Z ")
 
 HEADER = """\
 # The oracle fast tier: ./dirac/oracle top-level tests whose median total time (own line plus every
@@ -67,6 +70,7 @@ def parse_logs(paths):
             tops = set()
             skipped = set()
             for line in f:
+                line = GH_TS.sub("", line)
                 m = SKIP_RE.match(line.rstrip())
                 if m:
                     skipped.add(m.group(1).split("/")[0])

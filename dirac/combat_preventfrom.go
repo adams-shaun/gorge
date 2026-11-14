@@ -1,5 +1,10 @@
 package dirac
 
+import "sync/atomic"
+
+// PrevFromStats counts the combat damage events preventFromGen prevents.
+var PrevFromStats struct{ Events atomic.Int64 }
+
 // preventFromGen prevents the combat damage a source with
 // KwPreventCombatDamageFrom would deal (gorge: an Effect's bodyless
 // Prevent$ True IsCombat$ True ValidSource$ Card.IsRemembered replacement,
@@ -23,5 +28,6 @@ func (s *State) preventFromGen(k *prep, r *dmgRec) {
 		}
 		r.dealt[ev.src] -= ev.n
 		ev.n = 0
+		PrevFromStats.Events.Add(1)
 	}
 }
