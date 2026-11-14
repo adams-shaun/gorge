@@ -192,6 +192,13 @@ type genPrep struct {
 	blgSub          [5]uint8       // the Plains Island Swamp Mountain Forest subtype indexes (subOutside: not in the matchup)
 	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain-shaped land
 	blgPC           []pcard        // a plain land's planner view per granted colour mask
+	// landSet: some override is a CR 305.7 land-type setter
+	// (kop.Override.SetLandSub); landSub is the matchup's land subtypes it
+	// strips, and setPC the intrinsic-only views (static_landtypesetter.go)
+	landSet bool
+	landSub kop.SubMask
+	setIdx  []int16
+	setPC   []pcard
 	globGrant       bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist         bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom     bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
@@ -1614,6 +1621,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.lossSlow = g.anyLoseStat // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
 	prepFaceDown(g)            // face_facedown.go
 	prepLandGrant(t, p, g)     // static_landtype.go
+	prepLandSet(t, p, g)       // static_landtypesetter.go
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
 		if o.AddTypes&kop.TLegendary != 0 || o.HasTypes && o.SetTypes&kop.TLegendary != 0 {
@@ -2452,6 +2460,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		vi = k.gen.manaVar(c)
 	}
 	if (pc.manaAb >= 0 || vi >= 0) && s.genLost(k, sl) {
+		if k.gen.landSet && s.landSetLost(k, sl) {
+			return s.landSetView(k, sl, c) // only the new basic types' intrinsic abilities (static_landtypesetter.go)
+		}
 		return &noManaPC // genLost covers a face-down permanent (CR 708.2)
 	}
 	if vi >= 0 {

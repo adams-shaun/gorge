@@ -118,8 +118,8 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 func (s *State) blgPrintedMask(k *prep, sl Slot) uint8 {
 	c := s.cardAt(sl)
 	own := &k.cards[c]
-	if own.types&kop.TBasic != 0 || own.manaAb < 0 {
-		return 0
+	if own.types&kop.TBasic != 0 || own.manaAb < 0 || s.landSetLost(k, sl) {
+		return 0 // a land-type setter took the printed abilities (static_landtypesetter.go)
 	}
 	m := uint8(own.manaCol & 0x3f)
 	for col, i := range k.gen.blgSub {
@@ -160,8 +160,8 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 //
 //go:noinline
 func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
-	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) {
-		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go)
+	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) && !s.landSetLost(k, sl) {
+		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go); a land-type setter's does not
 	}
 	var m kop.ColorMask
 	for c, i := range k.gen.blgSub {
@@ -261,8 +261,8 @@ func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
 	}
 	var own uint8
 	for j := range cd.Abilities {
-		if a := &cd.Abilities[j]; a.Kind == kop.AbMana {
-			own |= uint8(a.ManaColors & 0x3f)
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && !(pc.manaAb >= 0 && manaAbView(cd, pc) == nil) {
+			own |= uint8(a.ManaColors & 0x3f) // an intrinsic-only view has none (static_landtypesetter.go)
 		}
 	}
 	return mask | uint8(pc.manaCol&0x3f)&^own

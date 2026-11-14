@@ -1054,6 +1054,9 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			if ov.RemoveCreatureSub && !DebugRmCreatSubKeep {
 				subs, all, setSub = subs.AndNot(k.gen.creatSub), false, true
 			}
+			if ov.SetLandSub {
+				subs, setSub = subs.AndNot(k.gen.landSub), true // CR 305.7 (static_landtypesetter.go)
+			}
 			subs = subs.Or(ov.AddSub)
 			if ovrAllCreat(ov) {
 				all = true

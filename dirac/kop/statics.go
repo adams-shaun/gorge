@@ -152,6 +152,15 @@ type Override struct {
 	// (genPrep.creatSub) and the all-creature-types mark, keep the rest,
 	// then add AddSub.
 	RemoveCreatureSub bool
+	// SetLandSub: a CR 305.7 land-type setter (a static's RemoveLandTypes$
+	// True with AddType$ basic land types: Spreading Seas, Evil Presence).
+	// Layer 4 strips every land subtype (genPrep.landSub) before AddSub, and
+	// LoseAbilities is set beside it: the land loses the abilities its rules
+	// text generates as part of the layer-4 effect, so the loss carries no
+	// layer-6 timestamp (an ability granted to the land survives it) and the
+	// intrinsic mana ability of each new basic land type stays (gorge
+	// abilityloss.go lossStamp 0; dirac static_landtypesetter.go).
+	SetLandSub bool
 	// AddColors: colours added to the object's own (an Animate Colors$ without
 	// OverwriteColors$; a copy exception's
 	// AddColors$, CR 707.9b; applied after a SetColors).

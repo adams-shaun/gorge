@@ -1,0 +1,18 @@
+# CR 305.7 land-type setters on lands of other types: Spreading Seas and
+# Evil Presence (RemoveLandTypes$ True) on basics, original dual lands and
+# Wastes, beside vanilla creatures that need the old and the new colours
+# (dirac/oracle/landtypesetter_lockstep_test.go)
+Spreading Seas
+Evil Presence
+Coral Merfolk
+Typhoid Rats
+Grizzly Bears
+Savannah Lions
+Island
+Swamp
+Forest
+Plains
+Wastes
+Tropical Island
+Bayou
+Savannah

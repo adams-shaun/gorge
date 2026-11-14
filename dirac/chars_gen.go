@@ -138,7 +138,9 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 				continue
 			}
 			lost = true
-			ts = max(ts, s.layerTs(src))
+			if !k.gen.landSet || !landSetCard(k, s.cardAt(src)) {
+				ts = max(ts, s.layerTs(src)) // a land-type setter's loss is layer 4's: no timestamp (static_landtypesetter.go)
+			}
 		}
 	}
 	if lost && p.ovr.walk&walkOn != 0 {
@@ -197,7 +199,8 @@ func (s *State) loseAllOnset(k *prep, src, dst Slot) {
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities &&
+				!k.t.Overrides[a.Static.Override-1].SetLandSub { // a layer-4 loss removes no later grant
 				lose = true
 			}
 		}
@@ -441,6 +444,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
 		}
+		if o.SetLandSub {
+			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+		}
 		m = m.Or(o.AddSub)
 		if ovrAllCreat(o) {
 			all = true
@@ -513,6 +519,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 					m = m.AndNot(k.gen.creatSub)
 					mAll = false
 				}
+			}
+			if o.SetLandSub {
+				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 			}
 			m = m.Or(o.AddSub)
 			if ovrAllCreat(o) {

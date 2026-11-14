@@ -2677,7 +2677,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	hard := false
-	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes"} {
+	for _, k := range []string{"SetPower", "SetToughness", "SetColor", "RemoveAllAbilities", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveType", "SetName", "AddAllCreatureTypes", "RemoveLandTypes"} {
 		if _, ok := sp.m[k]; ok {
 			hard = true
 		}
@@ -3208,6 +3208,11 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		o.AddKw = ks
 	}
+	if v, ok := sp.get("RemoveLandTypes"); ok {
+		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
+			return nil, err
+		}
+	}
 	if removeCard {
 		o.HasSetTypes = true
 		o.HasSetSubtypes = true
@@ -3244,7 +3249,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 				// cover any plain-shaped card then. Without the Land type the
 				// intrinsic still applies in gorge but the kernel's blgMask
 				// reads only lands, so that shape stays refused.
-				if o.SetTypes&typeBits["Land"] == 0 {
+				if o.SetTypes&typeBits["Land"] == 0 && !o.SetLandSub {
 					return nil, refuse("override adds basic land type %q", w)
 				}
 			}
