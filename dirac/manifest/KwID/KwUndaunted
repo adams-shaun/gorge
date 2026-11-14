@@ -1,0 +1,7 @@
+family: KwID
+name: KwUndaunted
+value: 92
+forge: Undaunted
+census: kw Undaunted all=5 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -1,0 +1,7 @@
+family: KwID
+name: KwSquad
+value: 55
+forge: Squad
+census: kw Squad all=16 std=1 mbc=0 sole=0
+state: stackbyte 48 (paid counts)
+status: reserved

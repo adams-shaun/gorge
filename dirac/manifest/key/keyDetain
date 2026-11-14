@@ -1,0 +1,7 @@
+family: key
+name: keyDetain
+value: 20
+forge: detain
+census: key detain classes=1 all=12
+state: slotbit 32
+status: reserved

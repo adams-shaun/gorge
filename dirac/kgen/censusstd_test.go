@@ -29,7 +29,7 @@ func TestStdCensus(t *testing.T) {
 		}
 		var md, tsv strings.Builder
 		writeStdCensus(&md, res)
-		if err := writeStdTSV(&tsv, res); err != nil {
+		if err := writeStdTSV(&tsv, res, nil); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 {
@@ -259,7 +259,7 @@ func TestStdCensusRealDeterministic(t *testing.T) {
 		}
 		var md, tsv strings.Builder
 		writeStdCensus(&md, res)
-		if err := writeStdTSV(&tsv, res); err != nil {
+		if err := writeStdTSV(&tsv, res, nil); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 {

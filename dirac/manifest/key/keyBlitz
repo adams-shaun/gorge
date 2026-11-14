@@ -1,0 +1,7 @@
+family: key
+name: keyBlitz
+value: 16
+forge: blitz
+census: key blitz classes=1 all=19
+state: slotbit 16
+status: reserved

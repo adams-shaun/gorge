@@ -1,0 +1,7 @@
+family: key
+name: keyVote
+value: 27
+forge: vote
+census: key vote classes=1 all=3
+state: global 4
+status: reserved

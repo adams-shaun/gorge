@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigSpellCopy
+value: 70
+forge: SpellCopy
+census: trig SpellCopy all=6 std=0 mbc=0 sole=3
+state: unbounded (layers/copy/text)
+status: blocked unbounded:layers/copy/text

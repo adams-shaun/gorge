@@ -377,11 +377,12 @@ func (s *State) creatureCounters(k *prep, p uint8) int {
 			continue
 		}
 		p := &s.perms[sl]
-		for c := 0; c < int(kop.NumCounterKinds3); c++ {
-			if !kop.IsCounterKind(c) {
+		var held ctrHeld
+		for _, c := range held[:p.heldKinds(s, &held)] {
+			if !kop.IsCounterKind(int(c)) {
 				continue // CtrLevel is no counter (kw_class.go)
 			}
-			n += p.ctrN(s, c)
+			n += p.ctrN(s, int(c))
 		}
 	}
 	return n
