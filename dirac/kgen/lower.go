@@ -3057,6 +3057,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
+			// CR 205.4e: a legendary instant or sorcery is cast only while
+			// its caster controls a legendary creature or planeswalker
+			// (gorge legendarySpellLocked, on every cast route): the same
+			// cast restriction castForbidden withholds an IsPresent$ cast by
+			f, err := lc.filter("Creature.Legendary+YouCtrl,Planeswalker.Legendary+YouCtrl")
+			if err != nil {
+				return err
+			}
+			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+		}
 		if c, ok := ps.get("Cost"); ok {
 			lc.lifeXSpell = true
 			cost, err := lc.cost(c)
