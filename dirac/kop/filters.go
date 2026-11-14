@@ -622,6 +622,13 @@ const PredTrigPlayerCtrl Pred = 239
 // Object.Suspected, false off the battlefield).
 const PredSuspected Pred = 254
 
+// PredRenowned: PredN 1, a renowned battlefield permanent; PredN 0, anything
+// else, off the battlefield too (gorge IsRenowned / !IsRenowned:
+// Object.Renowned, which the move off the battlefield clears; CR 702.112b).
+// The designation is the arena's mechRenowned, set by OpExt ExtRenown
+// (dirac/act_renown.go). Explicit ordinal: the free one below PredEscaped.
+const PredRenowned Pred = 236
+
 // PredEscaped: PredN 1, a battlefield permanent whose spell was cast for its
 // escape cost; PredN 0, anything else, off the battlefield too (gorge
 // filter.go's 'escaped' predicate / '!escaped' over

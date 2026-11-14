@@ -104,6 +104,7 @@ func (s *State) beginTurn(p uint8) {
 			pl.disc = 0
 		}
 	}
+	s.dmgTakenNewTurn() // gorge DamageTakenThisTurn folds back to the last TurnChange (kw_bloodthirst.go)
 }
 
 // openPriority starts the step's priority round.
@@ -639,6 +640,11 @@ func (s *State) sba(k *prep) bool {
 				// (Crystallized Serah transformed beside another)
 				h := p.attached
 				s.touchSl(h)
+				if k.gen != nil && k.gen.anyUnattach {
+					// gorge's Equipment-bearer arm publishes the detach with
+					// the bearer (CR 704.5n, attachmentSBAs)
+					s.fireUnattached(k, sl, h)
+				}
 				p.attached = NoSlot
 				s.touchSl(sl)
 				if k.gen != nil && k.gen.anyAegis {
@@ -692,6 +698,9 @@ func (s *State) sba(k *prep) bool {
 					}
 				}
 			}
+		}
+		if k.ascend {
+			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
 		}
 		all := die.or(gy)
 		if k.gen != nil && k.gen.equipAnim && s.sbaAttachedCreatures(k, all) && !all.any() {
@@ -1111,6 +1120,9 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	case kop.OpSacrifice:
 		if s.sacBlocked(k, sl) {
 			return // gorge effSacrifice skips a permanent that can't be sacrificed (static_cantsacrifice.go)
+		}
+		if s.sacDelayPark(k, sl) {
+			return // the move's CR 616.1 order ask waits; runParkedMass makes the sacrifice with the move (repl_sacbatch.go)
 		}
 		s.fireSac(k, sl)
 		s.leave(k, sl, kop.ZoneGraveyard, false)

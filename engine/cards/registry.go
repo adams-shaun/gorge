@@ -346,6 +346,12 @@ func (r *Registry) Save(path string) error {
 	if r.sub != nil {
 		return fmt.Errorf("cards: a subset registry cannot be saved as a corpus cache")
 	}
+	// The census (card_census.go) is taken before the cache is written, so a
+	// script added while Save runs reads as a mismatch, never as a match.
+	census, err := censusForSave(path)
+	if err != nil {
+		return err
+	}
 	if err := r.saveGob(path); err != nil {
 		return err
 	}
@@ -357,7 +363,10 @@ func (r *Registry) Save(path string) error {
 	if err := saveTokenDigest(path); err != nil {
 		return err
 	}
-	return writeSegments(SegmentPath(path), r.AllCards(), r.Tokens)
+	if err := writeSegments(SegmentPath(path), r.AllCards(), r.Tokens); err != nil {
+		return err
+	}
+	return saveCardCensus(path, census)
 }
 
 func (r *Registry) saveGob(path string) error {
@@ -604,7 +613,7 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 // linked Card.
 func compileScripts(dir string) ([]*Card, []Diag, error) {
 	var paths []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(walkRoot(dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -665,4 +674,15 @@ func compileTokens(r *Registry, cardsDir string, diags *[]Diag) error {
 		r.Tokens[stem] = c
 	}
 	return nil
+}
+
+// walkRoot is dir spelled so filepath.WalkDir descends it when it is a symlink
+// (cards-overlay.sh links cardsfolder): WalkDir Lstats its root and skips a
+// link, but a trailing separator makes the stat follow it. Child paths are
+// cleaned joins, so they keep the caller's spelling of dir.
+func walkRoot(dir string) string {
+	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		return dir + string(filepath.Separator)
+	}
+	return dir
 }

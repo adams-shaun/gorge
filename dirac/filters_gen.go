@@ -271,7 +271,13 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 	}
 	if f&(kop.F2ChosenType|kop.F2ChosenColor|kop.F2SameNameAsSource) != 0 {
 		ch, ok := s.chosenTypeSub(src)
-		if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
+		if f&kop.F2ChosenType != 0 && ok && src == NoSlot && s.res.bad&resChosenCard != 0 {
+			// the resolution chose a card type (Turnabout): the
+			// permanent's own card types, not a creature type
+			if !s.chosenCardTypeHas(s.typesAt(k, sl)) {
+				return false
+			}
+		} else if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
@@ -367,6 +373,8 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	for i := 0; i < int(a.NTargets); i++ {
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
+	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
+	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
 	if !bound {
 		return true
 	}
@@ -720,6 +728,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return t <= n
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
 		mv := s.cardMV(k, c, o, fd)
+		if ctx != nil {
+			mv += ctx.xmv
+		}
 		switch fl.Pred {
 		case kop.PredCMCLE:
 			return mv <= n

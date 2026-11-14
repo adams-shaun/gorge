@@ -20,7 +20,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 159 | 0 | 0 | 159 | 157 |
 | LCI | 290 | 260 | 1 | 21 | 238 | 235 |
 | MKM | 279 | 252 | 2 | 30 | 220 | 216 |
-| MSH | 276 | 247 | 1 | 12 | 234 | 234 |
+| MSH | 276 | 248 | 1 | 13 | 234 | 234 |
 | OTJ | 276 | 253 | 1 | 3 | 249 | 248 |
 | SOS | 270 | 257 | 0 | 0 | 257 | 257 |
 | SPM | 192 | 169 | 1 | 2 | 166 | 165 |
@@ -29,9 +29,9 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TMT | 194 | 183 | 0 | 0 | 183 | 182 |
 | TRC | 337 | 301 | 0 | 32 | 269 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
-| WOE | 281 | 264 | 0 | 18 | 246 | 245 |
-| MBC | 2195 | 1806 | 0 | 950 | 856 | 840 |
-| ALL | 34442 | 23758 | 20 | 17716 | 6022 | 5973 |
+| WOE | 281 | 265 | 0 | 19 | 246 | 245 |
+| MBC | 2195 | 1850 | 1 | 957 | 892 | 876 |
+| ALL | 34442 | 23964 | 21 | 17885 | 6058 | 6009 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -48,19 +48,19 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-dr-mbc-aaaa | 810 |
 | ev-dr-mbc-aaab | 200 |
 | ev-dr-mbc-aaba | 608 |
-| ev-dr-mbc-aabb | 457 |
-| ev-dr-mbc-abaa | 768 |
-| ev-dr-mbc-abab | 63 |
-| ev-dr-mbc-abba | 128 |
-| ev-dr-mbc-abbb | 328 |
-| ev-dr-mbc-baaa | 520 |
-| ev-dr-mbc-baab | 712 |
-| ev-dr-mbc-baba | 543 |
+| ev-dr-mbc-aabb | 96 |
+| ev-dr-mbc-abaa | 200 |
+| ev-dr-mbc-abab | 86 |
+| ev-dr-mbc-abba | 118 |
+| ev-dr-mbc-abbb | 200 |
+| ev-dr-mbc-baaa | 200 |
+| ev-dr-mbc-baab | 200 |
+| ev-dr-mbc-baba | 200 |
 | ev-dr-mbc-babb | 200 |
-| ev-dr-mbc-bbaa | 712 |
-| ev-dr-mbc-bbab | 520 |
-| ev-dr-mbc-bbba | 552 |
-| ev-dr-mbc-bbbb | 96 |
+| ev-dr-mbc-bbaa | 200 |
+| ev-dr-mbc-bbab | 200 |
+| ev-dr-mbc-bbba | 200 |
+| ev-dr-mbc-bbbb | 16 |
 | ev-std-big | 200 |
 | ev-std-dft | 200 |
 | ev-std-dsk | 11 |
@@ -105,7 +105,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-20 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+21 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -121,5 +121,6 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-NStack | 2 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
+| unmodelled-landgrant | 1 |
 | unmodelled-tokatkask | 1 |
 | unmodelled-tokenpt | 1 |
