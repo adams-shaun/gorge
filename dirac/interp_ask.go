@@ -246,6 +246,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
 		}
+		if s.riderPotential(k, p, sl) {
+			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)
+		}
 		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
 		// (a commander-identity source whose controller has no commander yields
 		// nothing, CR 903.4f: its view is the no-ability one, gorge
@@ -559,6 +562,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		d.Sub = ChGenChooseCard
 		if c := s.prog(k)[r.pc].C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			s.attachPickOptions(k, d, r.pc, r.askP) // tgt_attachpick.go
+			break
+		}
+		if s.prog(k)[r.pc].C == chooseAttachDest {
+			s.attachDestScan(k, r.pc, r.askP, d) // tgt_attachdest.go
 			break
 		}
 		if s.prog(k)[r.pc].C == choosePutCounterPick {

@@ -890,6 +890,9 @@ const (
 	// stable.
 	PKManaSpent
 	PKManaNotSpent
+	// PKValidAfterStack is ValidAfterStack$ (Keeper of the Dead's activation-
+	// time target filter). Appended: earlier ordinals stay stable.
+	PKValidAfterStack
 	// AtLeastOneInstance$ <cmp> on a DamageDealtOnce trigger (Matoc,
 	// Lavamancer): some recipient's share of the batch passes the
 	// comparison. Read by rules latchDamageBatch / closeDamageBatch.
@@ -1714,6 +1717,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKXColor:                           "XColor",
 	PKManaSpent:                        "ManaSpent",
 	PKManaNotSpent:                     "ManaNotSpent",
+	PKValidAfterStack:                  "ValidAfterStack",
 	PKAtLeastOneInstance:               "AtLeastOneInstance",
 }
 

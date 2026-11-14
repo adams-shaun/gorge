@@ -62,7 +62,7 @@ func (s *State) transformObj(k *prep, o Obj) {
 		return
 	}
 	cd := &k.t.Cards[ob.card]
-	if len(cd.Faces) < 2 {
+	if len(cd.Faces) < 2 || cd.FaceMode == kop.FacePrototype { // a prototype card has one printed face (face_castface.go)
 		return
 	}
 	if DebugIncubateNoTransform && cd.FaceMode == kop.FaceTransform {

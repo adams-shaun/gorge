@@ -703,6 +703,15 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		// the source object itself is in Zone now: gorge's intervening-if for
 		// IsPresent$ Card.StrictlySelf | PresentZone$, re-checked at resolution
 		r = ctx.src != NoObj && s.objs[ctx.src].zone == c.Zone
+	case kop.CondRemMark:
+		// the source's persistent remembered list is non-empty: the host half
+		// of a ConditionDefined$ Remembered group gate. gorge's group is the
+		// source's event-backed list UNIONED with the resolution's own memory
+		// (rememberedWithSource; Forge's areMet reads
+		// getDefinedObjects(host, "Remembered"), which survives the
+		// resolution); the mark is set by every remember write on the
+		// resolving source (interp_gen.go remember).
+		r = ctx.src != NoObj && s.mObj(k, mechRem, ctx.src)
 	default:
 		panic("kernel: condition kind not implemented")
 	}
