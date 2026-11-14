@@ -55,6 +55,15 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx := effects.NewCtxPtr(0, p, effects.CtxInit{})
+	// A chained link's bound that names an EARLIER target of the same spell
+	// or ability (Reap's TargetMax$ over Permanent.Black+TargetedPlayerCtrl,
+	// the opponent chosen one slot earlier) reads that announced parent
+	// target: CR 601.2c announces every target at cast, so the sub slot's
+	// size is priced with the parent answer bound, as its candidate census
+	// (targetSpecContext) already binds it.
+	if e.subOfferBound {
+		ctx.Targets = e.subOfferParent
+	}
 	// A trigger's dynamic target bound reading the causing event (Vitality
 	// Hunter's `TargetMax$ MaxTgts` with `MaxTgts = TriggerCount$Amount`):
 	// the trigger context recorded for this stack wrapper carries

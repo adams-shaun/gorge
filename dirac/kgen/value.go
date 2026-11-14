@@ -893,6 +893,8 @@ func (lc *lowerCtx) applyModifier(v lValue, m string, depth int) (lValue, error)
 		return v, nil
 	case "HalfUp":
 		return kvfHalfUp(v, m, hasArg) // value_filterheads.go
+	case "ThirdUp":
+		return kvfThirdUp(v, m, hasArg) // value_filterheads.go
 	case "LimitMin", "LimitMax":
 		// gorge applyCountOp: LimitMax.N is min(v, N), LimitMin.N is
 		// max(v, N). A numeric N only (an SVar operand refuses), lowered to

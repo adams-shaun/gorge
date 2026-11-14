@@ -70,6 +70,16 @@ func drivePlayerAttach(t *testing.T, e *Engine, obj state.ObjID, want seatWants)
 			// A player-destination ask (PlayerChoices$) offers Kind "player";
 			// a yes/no Attach optional offers "yes"/"no"; a discard offers
 			// "discard". Prefer the destination the test wants.
+			if d.ResumeKind == "attach_subset" {
+				// "Attach any number": pick every offered object.
+				all := make([]int, 0, len(d.Options))
+				for _, o := range d.Options {
+					all = append(all, o.Index)
+				}
+				sawOptional = true
+				submitChoices(t, e, all...)
+				continue
+			}
 			if idx := attachOptionForSeat(d, want.seat); idx >= 0 && want.hasSeat {
 				sawPlayerAsk = true
 				submitChoices(t, e, idx)
