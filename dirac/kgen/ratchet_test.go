@@ -149,7 +149,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
 	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
-	"ALL": {23649, 34442},
+	// +13 (MBC statics-2 grants: K:Level up as gorge's sorcery-speed LEVEL PutCounter (kop.CtrLevelUp), a two-compare level band IsPresent$ as the AND of its compares, a band's AddStaticAbility$ self grant (CantBlockBy, Continuous) as the inner static ANDed with the band, and a max-speed AddStaticAbility$ list joined by &: Brimstone Mage, Caravan Escort, Champion's Drake, Enclave Cryptologist, Guul Draz Assassin, Hada Spy Patrol, Joraga Treespeaker, Kabira Vindicator, Kazandu Tuskcaller, Null Champion, Time of Heroes, Tsagan, Raider Warlord, Zulaport Enforcer; ALL 23649 -> 23662, MBC 1772 -> 1778 measured).
+	"ALL": {23662, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
@@ -166,7 +167,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	"MBC": {1772, 2188},
+	// +6 (MBC statics-2 grants: Enclave Cryptologist, Hada Spy Patrol, Joraga Treespeaker, Kabira Vindicator, Tsagan, Raider Warlord, Zulaport Enforcer; MBC 1772 -> 1778 measured).
+	"MBC": {1778, 2188},
 	"MKM": {252, 279},
 	"MOM": {204, 296},
 	"MSH": {246, 276},
