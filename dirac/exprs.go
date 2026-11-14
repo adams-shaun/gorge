@@ -212,6 +212,7 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	if k.phasing && ob.zone.Phased() && ob.slot != NoSlot {
 		return s.phasedPT(k, ob.slot)
 	}
+	s.offZonePTRead(k, ob.card, ob.owner(), o) // static_offzonept.go
 	pc := &k.cards[ob.card]
 	if k.cda && k.gen.has(ob.card, gfCDAPT) {
 		return s.cardCDAPT(k, ob.card, ob.owner(), o) // CR 604.3: a CDA works in every zone

@@ -34,6 +34,11 @@ func (lc *lowerCtx) tgtSetParams(ps *params, t *lTarget, allowParent bool) error
 				return err
 			}
 			f = t.F
+		} else if v == "TriggeredAttackedTarget" {
+			if err := lc.tgtCtrlAttackedTarget(t); err != nil { // lower_tgtattacked.go
+				return err
+			}
+			f = t.F
 		} else {
 			if v != "TriggeredCardController" {
 				return refuse("TargetsWithDefinedController$ %q", v)

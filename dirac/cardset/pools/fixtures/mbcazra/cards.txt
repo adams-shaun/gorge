@@ -1,0 +1,11 @@
+# the MBC Azra Oddsmaker pool (dirac/oracle/mbc_azra_oddsmaker_test.go
+# TestMBCAzraOddsmakerLowers): its beginning-of-combat discard, the chosen
+# creature and the Effect's DamageDone draw, beside bodies and basics
+Azra Oddsmaker
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Elite Vanguard
+Forest
+Mountain
+Swamp
