@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"unsafe"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -114,10 +116,12 @@ type genPrep struct {
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyAsIfHaste             bool // a StatAsIfHaste static (static_asifhaste.go)
+	anyAtkHaste              bool // a StatCanAttackIfHaste static (static_canattackifhaste.go)
 	anyCantSuspect           bool // a StatCantBeSuspected static (act_suspect.go suspectOne)
 	anyNoPrev                bool // a StatCantPreventDamage static, printed or on an emblem (static_cantprevent.go)
 	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
+	anyOvGateStat            bool // a card has an OvGate-gated static a grant record switches on (static_ovgate.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
@@ -149,6 +153,9 @@ type genPrep struct {
 	// anyTWTap: a TrigTaps trigger with N == TrigNTeamworkTap; anyGameOnce: a
 	// trigger with Tf3GameOnce (trig_params.go)
 	anyTWTap, anyGameOnce bool
+	// anyTapsMana: a TrigTaps line lowered from Mode$ TapsForMana
+	// (Tf5TapsForMana; trig_params.go tapsManaOK)
+	anyTapsMana bool
 	// anySelfDisc: a card's own non-cycled "when you discard this card" line
 	// (TrigDiscarded, TfSelf, Zone graveyard; fireSelfDisc)
 	anySelfDisc bool
@@ -197,6 +204,7 @@ type genPrep struct {
 	anyPlHexRec     bool           // some program is ExtTurnRepl TurnReplPlayerHex or TurnReplHexUB: playerHexproof reads the scope records
 	anyHexUB        bool           // some program is ExtTurnRepl TurnReplHexUB: targetableGen reads the mechHexUB plane
 	anyPlusCre      bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
+	anyAtkLast      bool           // some DamageDone line carries kop.Tf5DmgAttackedYouLastTurn: the cold buffer holds each seat's attacked defenders (trig_atklastturn.go)
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyFiltRepl     bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl       bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
@@ -235,7 +243,9 @@ type genPrep struct {
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
+	anySurge        bool           // some card has surge (CardDef.HasSurge; kw_surge.go)
 	anyEvoke        bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
+	anyCleave       bool           // some card has cleave (CardDef.CleaveAb; kw_cleave.go)
 	anyOverload     bool           // some card has overload (CardDef.HasOverload; kw_overload.go)
 	anyImpending    bool           // some card has impending (CardDef.Impending; kw_impending.go)
 	anyPrepare      bool           // some card is a preparation front (FacePrepare; face_prepare.go)
@@ -293,10 +303,12 @@ type genPrep struct {
 	anyLandPlayed   bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair       bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave  bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
+	anyLibToGrave   bool           // a TrigToGraveyard line: a card put into a graveyard from a library (trig_libtograve.go)
 	anyKwAct        bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
 	anyTokCr        bool           // some trigger is TrigTokenCreated (act_proliferate.go)
+	anyAnyAct       bool           // some ability is activatable by any player (Ability.AnyActivator; cast_anyactivator.go)
 	anyMonstrosity  bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
 	anyAirbend      bool           // some program is ExtAirbend (act_airbend.go)
 	anyMayWhileSrc  bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
@@ -306,6 +318,7 @@ type genPrep struct {
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
 	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7
+	plDmgOn         bool           // some expression is ExOppsLostLife N 3: record plDmg (value_oppsdamaged.go)
 	anyAddPhase     bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
@@ -576,7 +589,7 @@ func tableHasMultikicker(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -757,6 +770,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
+	prepAsgnGrant(t, g) // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
+	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyTwobrid = tableTwobrid(t)
@@ -780,6 +795,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
+	g.anyAtkHaste = tableHasStatic(t, kop.StatCanAttackIfHaste)
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
 	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
@@ -851,6 +867,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasDash {
 			g.anyDash = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasSurge {
+			g.anySurge, g.anyHist = true, true // the gate reads the history bank's spell count
+			p.cards[i].altCost = true          // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.CleaveAb != 0 {
+			g.anyCleave = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasOverload {
@@ -992,6 +1016,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					if a.Trig.Flags2&kop.Tf2LeavesGrave != 0 {
 						g.anyLeavesGrave = true
 					}
+				}
+				if a.Trig.Event == kop.TrigToGraveyard {
+					g.anyLibToGrave = true
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
@@ -1450,7 +1477,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 			}
 			g.anySelfDisc = g.anySelfDisc || a.Kind == kop.AbTriggered && selfDiscLine(a)
+			g.anyTapsMana = g.anyTapsMana || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags5&kop.Tf5TapsForMana != 0
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
+			g.anyAtkLast = g.anyAtkLast || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0
 			if a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 				if j >= 0x3E {
 					panic("kernel: GameActivationLimit on ability index >= 62") // usedRec.ab packs 0x40|ab
@@ -1573,6 +1602,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCtrl(t, g)
 	prepTokMana(t, g)
 	prepMonstrosity(t, g)
+	prepAnyAct(t, g) // cast_anyactivator.go
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go
@@ -1716,8 +1746,16 @@ type mayPlay struct {
 	ctrl  uint8
 	until uint8 // DurEOT / DurYourNextTurn
 	kind  uint8 // kop.MayPlayKinds riders (free, mana of any type)
-	turn  uint16
+	turn  mayWord
 }
+
+// mayHeld packs a while-source or prepared record's source object and its
+// version into mayPlay.turn (cast_whilesource.go, face_prepare.go).
+func mayHeld(o Obj, ver uint8) mayWord { return mayWord(o) | mayWord(ver)<<mayVerShift }
+
+// heldObj and heldVer read back mayHeld's object and version.
+func (r *mayPlay) heldObj() Obj   { return Obj(r.turn & (1<<mayVerShift - 1)) }
+func (r *mayPlay) heldVer() uint8 { return uint8(r.turn >> mayVerShift) }
 
 // dprog is a delayed program: at the next end step run ability ab of card
 // with RefDelayedRemembered = objs.
@@ -1745,7 +1783,7 @@ type usedRec struct {
 type xTargets struct {
 	n    uint8
 	slot [maxXTgt]uint8
-	code [maxXTgt]uint8
+	code [maxXTgt]TCode
 	ver  [maxXTgt]uint8
 	// crim is CR 700.13's pick-time verdicts for the pool's extra objects
 	// (act_commitcrime.go crimeAskDone): bit j says extra j's pick was a
@@ -1789,11 +1827,14 @@ type genState struct {
 	excess         int16
 	lostAmt        int16
 	tokMade        uint8
-	tokDef         uint8 // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
+	tokDef         TCode // the CR 508.4 defender the TokenAttacking$ True ask was answered with (a player or planeswalker/battle target byte), valid while tokDefSet; transient within one mint (filter_combatwords.go)
 	tokDefSet      bool
 	entHost        uint8 // host slot + 1 of an Aura about to enter attached: enter attaches it before its enters check (zone_handmoveaura.go; transient, 0 between moves)
 
-	dmg  [maxDmgMap]struct{ code, amt uint8 }
+	dmg [maxDmgMap]struct {
+		code TCode
+		amt  uint8
+	}
 	ndmg uint8
 
 	may  [maxMay]mayPlay
@@ -1808,18 +1849,18 @@ type genState struct {
 	ndp   uint8
 	stkCt uint8 // a countered stack ability's controller+1, for its "its controller" (tgt_stackability.go)
 
-	emb  [MaxSeats][maxEmb]uint8  // emblem index+1
-	embC [MaxSeats][maxEmb]CardID // the card that created it (its latent abilities run the emblem's triggers)
-	embO [MaxSeats][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
-	embN [MaxSeats][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
-	embT [MaxSeats][maxEmb]uint16 // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
+	emb  [MaxSeats][maxEmb]uint8   // emblem index+1
+	embC [MaxSeats][maxEmb]CardID  // the card that created it (its latent abilities run the emblem's triggers)
+	embO [MaxSeats][maxEmb]Obj     // that card's object (the source of the emblem's triggers)
+	embN [MaxSeats][maxEmb]objWord // the Effect's frozen SetChosenNumber$
+	embT [MaxSeats][maxEmb]uint16  // the emblem's CR 613.7 layer timestamp, set at creation (static_layer6.go)
 	nemb [MaxSeats]uint8
-	qgO  [qgN]uint8      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
-	qgV  [qgN]uint8      // each grant's object version: stale once the card left exile
-	qgH  [qgN]uint8      // each grant's host (the card whose ability was granted) object+1
-	pgT  [pgN]uint8      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
-	pgH  [pgN]uint8      // each grant's host (the tapped source) object+1
-	nlA  [MaxSeats]uint8 // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	qgO  [qgN]Obj      // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8    // each grant's object version: stale once the card left exile
+	qgH  [qgN]Obj      // each grant's host (the card whose ability was granted) object+1
+	pgT  [pgN]Obj      // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
+	pgH  [pgN]Obj      // each grant's host (the tapped source) object+1
+	nlA  [MaxSeats]Obj // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
 	// the untap step suspended on a keep-tapped ask (repl_untapchoice.go):
 	// untapUp the slots untapped so far, untapNext the scan index of the
 	// asked permanent, untapSl its slot, untapAns its answer (0 unanswered,
@@ -1847,7 +1888,7 @@ type genState struct {
 	// casting spells (expend). Kept only when genPrep.anyHist.
 	hist [MaxSeats][3]uint8
 	// actRing: per activator, the first actRingN abilities activated this turn, each as the source Obj+1 (0 = empty), actN the counts. Written only when genPrep.actRingOn; in no hash (cast_activationledger.go).
-	actRing [MaxSeats][actRingN]uint8
+	actRing [MaxSeats][actRingN]Obj
 	actN    [MaxSeats]uint8
 
 	// pending as-enters choices (colour / creature type) and the leyline ask
@@ -1881,7 +1922,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    uint8           // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
+	tgtSelf    Obj             // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
@@ -1889,14 +1930,14 @@ type genState struct {
 	sweep      sweepSusp       // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
 	mt         multiTgt        // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
-	disc       Obj             // the card being discarded (TrigDiscarded)
-	nlB        [MaxSeats]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	disc       Obj           // the card being discarded (TrigDiscarded)
+	nlB        [MaxSeats]Obj // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
 	redNC [MaxSeats]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
 	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
 	// the pad after redNC.
-	grantSrc uint8
+	grantSrc Obj
 	cast     slotMask // slots whose permanent was cast by its controller
 	zoneTurn objBits  // objects put into their current zone this turn
 	// dmgTurn is gorge Object.WasDealtDamageThisTurn (CR 120.3a): it survives a
@@ -1928,7 +1969,7 @@ type genState struct {
 	nlinger  uint8
 	poison   [MaxSeats]uint8 // each player's poison counters (CR 122.1f; infect and toxic, kw_infect.go; padding before lingerM)
 	poolArt  [MaxSeats]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
-	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose {R} floats in the pool (mana_deferred.go; padding)
+	defSrc   [MaxSeats]uint8 // per player, the slot + 1 of the deferred source whose mana floats in the pool (mana_deferred.go; padding)
 	speed    seatWord        // each seat's speed (3 bits each) and the once-per-turn speed trigger latch above them (kw_speed.go; padding)
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
@@ -1964,7 +2005,8 @@ type genState struct {
 		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
 		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
 		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
-		sc, ctl uint8
+		sc  uint8
+		ctl TCode
 	}
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
@@ -2108,12 +2150,15 @@ type genState struct {
 	// was hit by it this turn (value_turntallies.go).
 	// cdLeg bit p = player p was dealt combat damage this turn by a source
 	// matching Creature.Legendary; bit 4+p = by any source (genPrep.cdDamOn).
+	// plDmg bit p = player p was dealt damage this turn, combat or not
+	// (genPrep.plDmgOn; value_oppsdamaged.go).
 	cdh [4]struct {
 		o  Obj
 		pl uint8
 	}
 	ncdh  uint8
 	cdLeg uint8
+	plDmg uint8
 
 	// xph: the pending extra phases (act_addphase.go): at bits
 	// 0-3 the splice point, 4-5 the kind (combat, upkeep, end), 6 a phase of the
@@ -2162,10 +2207,14 @@ type genState struct {
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
 	// turn change. Taken from rsv.
-	dmgAmt [dmgAmtN]struct{ o, n uint8 }
+	dmgAmt [dmgAmtN]dmgAmtRec
+	// defCol: per player, a nibble: the colour index of the deferred mana floating
+	// in the pool (valid while defSrc is nonzero; defColOf, mana_deferred.go).
+	// Taken from rsv.
+	defCol [(MaxSeats + 1) / 2]uint8
 	rsv    [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
-	embX [MaxSeats][maxEmb][embRemSlots - 2]uint8
+	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
 	// being checked (fireAttacksGen), 0 outside it: gorge binds a trigger's
 	// DefendingPlayer from that event, and an IsPresent$ checked as the
@@ -2182,13 +2231,21 @@ const (
 	maxImp      = 16
 	turnFBytes  = 1 // genState.turnF, taken from rsv
 	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
-	dmgAmtBytes = dmgAmtN * 2
+	dmgAmtBytes = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
-	// keeps its phase.
-	rsvN = max(0, 80-maxImp-2-MaxSeats-MaxSeats*maxEmb-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-MaxSeats*maxEmb*(embRemSlots-2)-1-turnFBytes-dmgAmtBytes)
+	// keeps its phase. It counts bytes: an object-wide field takes its width
+	// in the class.
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2)
 )
+
+// dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
+// empty) and the damage it received this turn, saturating at 255.
+type dmgAmtRec struct {
+	o Obj
+	n uint8
+}
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
@@ -2812,7 +2869,8 @@ type askRec struct {
 	sl        Slot
 	ver, kind uint8
 	card      CardID
-	ab, pc    uint8
+	ab        objWord // the ability index; an akEnchant ask's returning Aura object
+	pc        uint8
 	ts        uint16
 }
 
@@ -2854,7 +2912,7 @@ type preAsk struct {
 	obj   Obj
 	kind  uint8
 	state uint8
-	val   uint8
+	val   objWord
 	land  bool // a land being played (asked while it is still in the hand)
 	// link: the clone park is an until-leaves link return (returnLinked), not
 	// a resolution's return op; the answer enters the card from exile instead

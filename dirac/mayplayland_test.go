@@ -17,9 +17,9 @@ func TestMayPlayLandSpend(t *testing.T) {
 	s := sc.s
 	o := sc.obj(v.Island, 0)
 	s.place(o, kop.ZoneExile, false)
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurYourNextTurn), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurYourNextTurn), turn: mayWord(s.turn)}
 	s.g.nmay = 1
-	sc.do(t, AkPlayLand, uint8(o), 0xff)
+	sc.do(t, AkPlayLand, TCode(o), scAny)
 	if !sc.onBF(o) {
 		t.Fatal("the exiled Island was not played")
 	}
@@ -30,7 +30,7 @@ func TestMayPlayLandSpend(t *testing.T) {
 	// the cast path still spends its record (the shared spendMayRecord)
 	c := sc.obj(v.ThinkTwice, 0)
 	s.place(c, kop.ZoneExile, false)
-	s.g.may[0] = mayPlay{obj: c, ver: s.objs[c].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: c, ver: s.objs[c].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	s.g.nmay = 1
 	*s.bld() = build{e: stackEntry{kind: seSpell, obj: c, card: v.ThinkTwice, ctrl: 0}}
 	s.castFlagsGen(sc.k, c, castMayPlay)

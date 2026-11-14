@@ -27,8 +27,8 @@ func tailDivRun(t *testing.T, both bool) (pend int, sentinelPend, mightPend int)
 		sc.perm(id["Island"], 0)
 		rat := sc.hand(id["Run Away Together"], 0)
 		sc.castCard(t, rat)
-		sc.do(t, AkTarget, 0xff, uint8(coy))
-		sc.do(t, AkTarget, 0xff, uint8(might))
+		sc.do(t, AkTarget, scAny, TCode(coy))
+		sc.do(t, AkTarget, scAny, TCode(might))
 		for i := 0; i < 20 && s.objs[rat].zone == kop.ZoneStack; i++ {
 			d := s.Step()
 			if d.Kind == DkPriority {

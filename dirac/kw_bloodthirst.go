@@ -25,9 +25,10 @@ func (s *State) dmgTakenCold() []int16 {
 	at := 0
 	_ = coldView[mayPlay](nil, &at, l.may)
 	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[uint8](nil, &at, l.ctrP)
+	_ = coldView[plusCreRec](nil, &at, l.ctrP)
 	_ = coldView[xblkRec](nil, &at, l.xblk)
 	_ = coldView[cmdPartner](nil, &at, l.partner)
+	_ = coldView[uint8](nil, &at, l.atkLast)
 	return coldView[int16](s.cold.buf, &at, l.dmgT)
 }
 

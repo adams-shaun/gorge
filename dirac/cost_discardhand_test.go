@@ -50,7 +50,7 @@ func TestDiscardHandActCost(t *testing.T) {
 			d := sc.s.Step()
 			found := false
 			for i := 0; i < int(d.N); i++ {
-				if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(src) && a.Mode() == ab {
+				if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(src)) && a.Mode() == ab {
 					sc.s.Apply(a)
 					found = true
 					break

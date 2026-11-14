@@ -91,9 +91,9 @@ func stackPstr(c *vcard) int32 {
 }
 
 // stackEntryOf is the Kind-0 stack entry index whose spell object is obj, -1 for none.
-func (e *Encoder) stackEntryOf(obj uint8) int {
+func (e *Encoder) stackEntryOf(obj dirac.Obj) int {
 	for i := 0; i < int(e.kp.NStack); i++ {
-		if se := &e.kp.Stack[i]; se.Kind == 0 && uint8(se.Source) == obj {
+		if se := &e.kp.Stack[i]; se.Kind == 0 && se.Source == obj {
 			return i
 		}
 	}
@@ -102,14 +102,14 @@ func (e *Encoder) stackEntryOf(obj uint8) int {
 
 // targetClass classifies target byte t for seat as buildRel does; host is
 // the battlefield card for classes 2-5.
-func (e *Encoder) targetClass(seat, t uint8) (int, *vcard) {
+func (e *Encoder) targetClass(seat uint8, t dirac.TCode) (int, *vcard) {
 	if t >= dirac.PlayerTarget0 {
-		if t == dirac.PlayerTarget0+seat {
+		if t == dirac.PlayerTarget0+dirac.TCode(seat) {
 			return tcPlayerMe, nil
 		}
 		return tcPlayerOpp, nil
 	}
-	if host := e.bfCard(t); host != nil {
+	if host := e.bfCard(dirac.Obj(t)); host != nil {
 		mine := host.ctrl == seat
 		switch {
 		case host.creature() && mine:
@@ -121,10 +121,10 @@ func (e *Encoder) targetClass(seat, t uint8) (int, *vcard) {
 		}
 		return tcPermOpp, host
 	}
-	if e.stackHas(t) {
+	if e.stackHas(dirac.Obj(t)) {
 		return tcStack, nil
 	}
-	if e.zoneHas(t, zGraveyard) || e.zoneHas(t, zExile) {
+	if e.zoneHas(dirac.Obj(t), zGraveyard) || e.zoneHas(dirac.Obj(t), zExile) {
 		return tcGrave, nil
 	}
 	return tcNone, nil
@@ -163,7 +163,7 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 			}
 			xsum[side] += int32(c.rel.x)
 		}
-		var seen [kop.MaxTargets + len(se.Extra)]uint8
+		var seen [kop.MaxTargets + len(se.Extra)]dirac.TCode
 		nseen := 0
 		n := len(se.Targets) + int(se.NExtra)
 		for j := 0; j < n; j++ {
@@ -171,7 +171,7 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 			if j < len(se.Targets) {
 				t = se.Targets[j]
 			}
-			if t == dirac.NoTarget {
+			if dirac.TCode(t) == dirac.NoTarget {
 				continue
 			}
 			dup := false
@@ -192,7 +192,7 @@ func (e *Encoder) extStack(seat uint8, me, opp *vplayer) {
 				continue // an ability: S1 only
 			}
 			if tc == tcStack && eff == EffCounter {
-				if k := e.stackEntryOf(t); k >= 0 && e.kp.Stack[k].Ctrl != se.Ctrl && v.stack[k].cv >= 0 {
+				if k := e.stackEntryOf(dirac.Obj(t)); k >= 0 && e.kp.Stack[k].Ctrl != se.Ctrl && v.stack[k].cv >= 0 {
 					b := StrengthBucket(stackPstr(&v.cards[v.stack[k].cv]))
 					e.extAdd(xSCounters+4*side+int(b), 1)
 				}

@@ -341,6 +341,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.Retrace {
 		fmt.Fprintf(w, " retrace")
+		if c.JumpStart {
+			fmt.Fprintf(w, " jumpstart")
+		}
 		if c.RetraceCost != nil {
 			fmt.Fprintf(w, " retracecost=%s", costString(*c.RetraceCost))
 		}
@@ -513,6 +516,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.ProtFrom != nil {
 			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
 		}
+		if s.ProtChosen {
+			fmt.Fprintf(w, " protchosen")
+		}
+		if s.ProtExc != nil {
+			fmt.Fprintf(w, " protexc=%s", s.ProtExc)
+		}
 		if s.Landwalk != nil {
 			fmt.Fprintf(w, " landwalk=%s", s.Landwalk)
 		}
@@ -620,6 +629,13 @@ func costString(c lCost) string {
 	}
 	if c.DiscardF != nil {
 		p = append(p, fmt.Sprintf("Discard%d%s", c.DiscardN, c.DiscardF))
+	}
+	if c.Discard2N > 0 {
+		f := "Card"
+		if c.Discard2F != nil {
+			f = c.Discard2F.String()
+		}
+		p = append(p, fmt.Sprintf("DiscardTwo%d%s", c.Discard2N, f))
 	}
 	if c.Loyalty != 0 {
 		p = append(p, fmt.Sprintf("Loyalty%+d", c.Loyalty))

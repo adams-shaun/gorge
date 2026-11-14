@@ -37,7 +37,7 @@ func TestEnchantedBySecondLeg(t *testing.T) {
 		sc.s.setAtchSeat(sc.k, cs, 2) // enchants seat 1 (the seat the other player attacks)
 		bear := sc.perm(v.GrizzlyBears, 0)
 		bs := sc.slot(bear)
-		sc.s.perms[bs].atk = uint8(PlayerTarget0 + 1)
+		sc.s.perms[bs].atk = TCode(PlayerTarget0 + 1)
 		if sc.s.atchSeat(sc.k, cs) != 2 || sc.slot(bear) == cs {
 			t.Fatalf("precondition: curse must enchant seat 1 (atchSeat=%d)", sc.s.atchSeat(sc.k, cs))
 		}

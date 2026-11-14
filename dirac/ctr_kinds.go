@@ -76,7 +76,7 @@ func (s *State) stationPick(k *prep, d *Decision) bool {
 		if s.perms[sl].flags&pfTapped != 0 || !s.matchPerm(k, a.Cost.Filter, sl, e.ctrl, src) {
 			continue
 		}
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	}
 	if d.N == 0 {
 		return false // canActivate's CostTapX gate makes this unreachable

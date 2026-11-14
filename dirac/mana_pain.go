@@ -194,7 +194,8 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 			return
 		}
 	}
-	s.noteDmgTaken(p, n) // kw_bloodthirst.go
+	s.noteDmgTaken(p, n)       // kw_bloodthirst.go
+	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 	s.loseLife(k, p, n)
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, sl, false) // filter_permmarks.go

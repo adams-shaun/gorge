@@ -356,12 +356,12 @@ func (s *State) exileOrderOptions(k *prep, d *Decision) {
 				}
 				TurnReplStats.Asked.Add(1)
 			}
-			d.add(MakeAction(AkChoose, uint8(r.src), 0, uint8(i)))
+			d.add(MakeAction(AkChoose, TCode(r.src), 0, uint8(i)))
 		}
 	}
 	r := &s.cold.parked[0]
 	for i, src := range r.src[:r.nsrc()] {
-		d.add(MakeAction(AkChoose, uint8(src), 0, uint8(maxExMarks+i)))
+		d.add(MakeAction(AkChoose, TCode(src), 0, uint8(maxExMarks+i)))
 	}
 }
 

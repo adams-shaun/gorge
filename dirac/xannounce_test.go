@@ -31,7 +31,7 @@ func (sc *scen) xChoices(t *testing.T, o Obj, ab uint8) []int {
 	d := sc.s.Step()
 	found := false
 	for i := 0; i < int(d.N) && !found; i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) && a.Mode()&0x7f == ab {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) && a.Mode()&0x7f == ab {
 			sc.s.Apply(a)
 			found = true
 		}
@@ -60,7 +60,7 @@ func TestXAnnouncementReachesTheWindow(t *testing.T) {
 	if xs := fmt.Sprint(sc.xChoices(t, hk, 1)); xs != "[0 1 2 3]" {
 		t.Fatalf("X options %s, want [0 1 2 3]", xs)
 	}
-	sc.do(t, AkChoose, 0xff, 0xff) // the first X, to check the ask closes at X = 0
+	sc.do(t, AkChoose, scAny, scAny) // the first X, to check the ask closes at X = 0
 	if sc.s.Step(); sc.s.ctl != ctlPriority || sc.tapped(lands[0]) {
 		t.Fatalf("X = 0 paid: ctl %d, first land tapped %v", sc.s.ctl, sc.tapped(lands[0]))
 	}
