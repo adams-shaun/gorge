@@ -14,7 +14,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
-	case "Self":
+	case "Self", "Parent":
+		// gorge's defined-spec table reads "Parent" as definedSpecSelf
+		// (effects/context.go), the same one alias it gives "Self" and
+		// "EffectSource": the parent of a resolving sub-ability is the
+		// ability itself, and Defined() names its source -- for View from
+		// Above's and Molten Birth's DB$ ChangeZone Origin$ Stack
+		// Destination$ Hand the spell on the stack returns to its owner's
+		// hand. ParentTarget(ed) above is the different, target-reading
+		// spelling.
 		return lRef{Kind: rSelf}, nil
 	case "OriginalHost":
 		return lRef{Kind: rHost}, nil
@@ -690,6 +698,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if c, ok := ps.get("Condition"); ok {
 		return lc.bareCondition(ps, c)
 	}
+	if c, ok, err := lc.manaSpentCondition(ps); ok || err != nil { // lower_manaspentcond.go
+		return c, err
+	}
 	if c, ok := ps.get("ConditionActivationLimit"); ok {
 		return lc.activationLimitCondition(ps, c) // lower_activationcount.go
 	}
@@ -812,6 +823,28 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		if c, err = lc.nodeConditionZone(ps, c, cp); err != nil { // lower_condkeys.go
 			return lCond{}, err
 		}
+		// The plain ConditionDefined$ Remembered spelling: gorge's group is
+		// the source's persistent remembered list UNIONED with the
+		// resolution's own memory (rememberedWithSource, which
+		// rememberedLKIGroup answers; Forge's SpellAbilityCondition.areMet
+		// reads getDefinedObjects(host, "Remembered")). The kernel's
+		// RefRemembered reads the resolution's own set alone, so a chain that
+		// wrote nothing still meets the gate on an earlier resolution's write
+		// (Nezahal, Primal Tide's second discard-three activation,
+		// Aetherling's: the first exile's memory stands on the host). OR in
+		// the persistent mark for the default present compare; a written
+		// ConditionCompare$ keeps today's lowering. The mark is a bare
+		// non-empty test, so it is ORed in only when the present filter
+		// restricts nothing: a typed gate (Soul-Shackled Zombie's
+		// ConditionPresent$ Card.Creature over an instant it remembered)
+		// stays at today's per-resolution lowering.
+		if c.Kind == cRefMatches && c.Ref.Kind == rRemembered &&
+			c.Op == opGE && c.A.Kind == vConst && c.A.N == 1 && !c.Neg &&
+			filterAnyCard(c.F) {
+			if _, hasCmp := ps.get("ConditionCompare"); !hasCmp {
+				c = orCond(c, lCond{Kind: cRemMark})
+			}
+		}
 		// ConditionCheckSVar$ beside the present check is a conjunction
 		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
 		// the present group to decide). H.M.S. Bounty: ConditionPresent$
@@ -840,6 +873,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 				return lCond{}, refuse("ConditionCheckSVar$ %q with ConditionSVarCompare$ %q beside ConditionPresent$ %q", cs, cmp, cp)
 			}
 			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
+		}
+		if c, err = lc.presentSecondGroup(ps, c); err != nil { // lower_condpresent2.go
+			return lCond{}, err
 		}
 		// A self-referencing present check ("Card.Self+Scout") is a
 		// property of the source.
@@ -1184,12 +1220,13 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		if c.Mana.X && lc.trigXMax != nil {
 			return lc.payManaX(c, in) // lower_triggerxcost.go
 		}
-		if c.Mana.X || len(c.Mana.Hybrid) > 0 || c.Mana.C > 0 {
+		if c.Mana.X || c.Mana.C > 0 || len(c.Mana.Hybrid) > 0 && !lc.trigHybridOK(c) {
 			return in, refuse("resolution mana cost %s", c.Mana)
 		}
 		in.CS = "Mana"
 		in.A = cst(c.Mana.Generic)
 		in.B = cst(packPips(c.Mana.Pips))
+		in.Hyb = c.Mana.Hybrid // lower_trighybrid.go
 	}
 	if c.DiscardN > 0 {
 		n++
@@ -1496,6 +1533,9 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			lc.trigXMax = nil
 			if err != nil {
 				return err
+			}
+			if chain != nil && len(in.Hyb) != 0 {
+				return refuse("resolution mana-and-exile cost with hybrid mana %s", cost.Mana) // the chain pays plain pips
 			}
 			if ownCost && in.CS == "SacrificeSelf" && strings.HasPrefix(c, "Mandatory") {
 				in.CS = "SacrificeSelfMust" // no "may": gorge settles it unasked (cost_mandatorysac.go)
@@ -2217,7 +2257,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChooseCard":
 		return lc.chooseCard(ps)
 	case "ChoosePlayer":
-		return lc.choosePlayer(ps) // lower_definedheads.go
+		return lc.choosePlayer(ps, chainReadsChosenPlayer(sa.Sub)) // lower_definedheads.go, lower_chooseplayermid.go
 	case "GenericChoice":
 		return lc.genericChoice(ps)
 	case "ChangeText":
@@ -2381,6 +2421,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.rollDice(ps)
 	case "TapOrUntap":
 		return lc.tapOrUntap(ps)
+	case "TapOrUntapAll":
+		return lc.tapOrUntapAll(ps) // lower_tapuntap.go
 	case "Debuff":
 		return lc.debuff(ps)
 	case "Explore":
@@ -2720,6 +2762,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 			return err
 		}
 	}
+	if err := lc.noPrevention(ps, &in); err != nil { // lower_noprevention.go
+		return err
+	}
 	if err := lc.damageDecider(ps, &in); err != nil { // lower_optional.go
 		return err
 	}
@@ -3010,6 +3055,9 @@ func (lc *lowerCtx) discard(ps *params) error {
 func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
+	}
+	if ps.str("Type") == "Basic Land" {
+		return lc.chooseBasicLandType(ps) // lower_choosetype.go
 	}
 	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
@@ -3305,12 +3353,26 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
+	if zone == zGraveyard && att.Kind == vNone && def.Kind == vNone {
+		// Araumi of the Dead Tide: a Pump whose whole body is a graveyard
+		// keyword grant. gorge's pump registers the derived keyword
+		// [Encore:CardManaCost] on the card until end of turn and offers no
+		// activation of it (kw_granted.go synthesizes no Encore body; the
+		// grant lands and nothing is offered), so ExtGrantEncore encodes the
+		// grant alone. Any other keyword on a graveyard card stays refused
+		// below.
+		if kw, ok := ps.get("KW"); ok && strings.TrimSpace(kw) == "Encore:CardManaCost" {
+			lc.emit(lInstr{Op: "GrantEncore", Obj: obj})
+			return nil
+		}
+	}
 	kw, hasKW := ps.get("KW")
-	mustBlock, noCombat, lure := false, false, false
+	mustBlock, noCombat, lure, marks := false, false, false, 0
 	if hasKW {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
 		kw, lure = splitKWSentence(kw, lureKW)
+		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -3369,6 +3431,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			return refuse("Pump KW$ must be blocked if able on a non-permanent subject")
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
+	}
+	if marks != 0 {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ %s on a non-permanent subject", kwMarkNames(marks))
+		}
+		lc.emit(lInstr{Op: "KwMark", Obj: obj, C: marks, Note: kwMarkNames(marks) + " until end of turn"})
 	}
 	if lure {
 		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
@@ -3435,6 +3503,11 @@ func pumpKeywords(kw string) ([]string, error) {
 			out = append(out, "CantBlock")
 		case k == "Prevent all combat damage that would be dealt to CARDNAME.":
 			out = append(out, "PreventCombatDamageTo")
+		case k == "Prevent all combat damage that would be dealt by CARDNAME.":
+			// a granted "dealt by" sentence (Hunter's Ambush's nongreen
+			// creatures, Feint's target): gorge's preventKWs by-combat head
+			// (rules/replacement_prevent_kw.go), the kernel's prevCombatFrom
+			out = append(out, "PreventCombatDamageFrom")
 		case k == "Wither":
 			out = append(out, "Wither") // CR 702.80 granted; not in simpleKeywords (that map also drives the printed K: switch)
 		case k == "Flashback":
@@ -3498,7 +3571,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if scope.Kind != rNone {
 		in.Note = "only the target player's permanents"
 	}
-	mustBlock, eachColor := false, false
+	mustBlock, eachColor, marks := false, false, 0
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
@@ -3507,6 +3580,10 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		kw, eachColor = splitKWSentence(kw, protEachColorKW)
 		if eachColor && scope.Kind != rNone {
 			return refuse("PumpAll KW$ protection from each color with a ValidTgts$ player scope")
+		}
+		kw, marks = splitKwMarks(kw) // lower_kwmark.go
+		if marks != 0 && scope.Kind != rNone {
+			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
 		}
 		if kw != "" {
 			ks, err := pumpKeywords(kw)
@@ -3521,7 +3598,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
 	}
 	if eachColor {
@@ -3534,6 +3611,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	if mustBlock {
 		lc.emit(lInstr{Op: "MustBeBlocked", F: f}) // every permanent matching ValidCards$
+	}
+	if marks != 0 {
+		lc.emit(lInstr{Op: "KwMark", F: f, C: marks, Note: kwMarkNames(marks) + " until end of turn"}) // every permanent matching ValidCards$
 	}
 	return nil
 }
@@ -3655,6 +3735,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if mono, ok := ps.get("Monstrosity"); ok {
 		return lc.monstrosity(ps, obj, mono)
 	}
+	if rn, ok := ps.get("Renown"); ok {
+		return lc.renown(ps, obj, rn) // lower_renown.go
+	}
 	n, err := lc.amount(ps, "CounterNum", 1)
 	if err != nil {
 		return err
@@ -3671,7 +3754,10 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 		return refuse("PutCounter without CounterType")
 	}
 	if ct == "ENERGY" {
-		return lc.gainEnergy(obj, n)
+		return lc.gainEnergy(obj, n, kop.PlCtrEnergy)
+	}
+	if ct == "Experience" {
+		return lc.gainEnergy(obj, n, kop.PlCtrExperience) // Otharri, Suns' Glory; Ezuri, Claw of Progress
 	}
 	if ct == "EachFromSource" {
 		return lc.putCounterEachFromSource(ps, obj)
@@ -4167,6 +4253,27 @@ func (lc *lowerCtx) attach(ps *params) error {
 	// Peek (not get) and gate on the one spelling: every other Defined$ (the
 	// ordinary Targeted attach object) must still resolve in the walk below,
 	// after its own target slot exists.
+	// The chosen player (Maddening Hex: DB$ Attach | Defined$ ChosenPlayer,
+	// after the random-pool ChoosePlayer): gorge's effAttach EnchantSelf
+	// branch walks the Defined$ player set — the resolution's chosen player —
+	// and attaches to the first legal seat (alive, the aura's Enchant word;
+	// the random pick already excluded the aura's bearer). The kernel's W arm
+	// is that walk over kop RefResChosenPlayer; a resolution with no pick (the
+	// random ChoosePlayer's empty pool) attaches nothing.
+	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "ChosenPlayer" &&
+		lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab {
+		ps.consume("Defined")
+		in := lInstr{Op: "Attach", W: lRef{Kind: rResChosenPlayer}}
+		if v, ok := ps.m["RememberAttached"]; ok {
+			if v = strings.TrimSpace(v); v != "True" {
+				return refuse("Attach RememberAttached$ %q", v)
+			}
+			ps.consume("RememberAttached")
+			in.CS = "Remember"
+		}
+		lc.emit(in)
+		return nil
+	}
 	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "TriggeredAttackingPlayer" {
 		r, err := lc.defined("TriggeredAttackingPlayer")
 		if err != nil {
@@ -4197,6 +4304,7 @@ func (lc *lowerCtx) attach(ps *params) error {
 	if err != nil {
 		return err
 	}
+	lc.attachSelfOther(obj) // lower_animateaura.go
 	if lc.ab.Kind == akActivated && ps.is("Keyword", "Equip") {
 		lc.ab.Name = "Equip"
 	}
@@ -5116,9 +5224,17 @@ func (lc *lowerCtx) colorGrantEffect(ps *params) error {
 func (lc *lowerCtx) dividedCountersN(ps *params) (bool, error) {
 	name := ps.str("DividedAsYouChoose")
 	n, err := strconv.Atoi(name)
+	ct := ps.str("CounterType")
 	if err != nil || n < 2 || n > 8 || strconv.Itoa(n) != name || ps.str("CounterNum") != name || ps.str("TargetMax") != name ||
-		(ps.str("TargetMin") != "1" && ps.str("TargetMin") != "0") || ps.str("CounterType") != "P1P1" {
+		(ps.str("TargetMin") != "1" && ps.str("TargetMin") != "0") || ct == "" || strings.ContainsAny(ct, ",") {
 		return false, nil
+	}
+	// gorge's announced division is kind-agnostic (counters_put.go
+	// putCounterShares emits CounterType$ as written): any one object
+	// counter kind divides the same way (Contagion's -2/-1, Splendid
+	// Agony's -1/-1); the build refuses a kind the kernel does not keep.
+	if ct == "P1P1" {
+		ct = ""
 	}
 	// gorge announces a divided primitive's shares only when it is the
 	// resolving object's own root target declaration (effects/division.go
@@ -5152,7 +5268,7 @@ func (lc *lowerCtx) dividedCountersN(ps *params) (bool, error) {
 		minT = 0 // castable with no target, which then puts nothing
 	}
 	t := lc.addTarget(lTarget{F: f, Zone: zBattlefield, Min: cst(minT), Max: cst(n), Divided: n})
-	lc.emit(lInstr{Op: "DividedCounters", Obj: lRef{Kind: rTarget, N: t}, Note: "distribute N +1/+1 counters among min..N targets"})
+	lc.emit(lInstr{Op: "DividedCounters", Obj: lRef{Kind: rTarget, N: t}, CS: ct, Note: "distribute N counters among min..N targets"})
 	return true, nil
 }
 

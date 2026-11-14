@@ -116,7 +116,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			// single one (cast_pricing.go affordableTargetCandidates)
 			all := n
 			n = s.affordableTargets(k, &buf, n)
-			if n < all && n < int(mt.min) && mt.picked == 0 && k.gen.anyRaiseLife {
+			if n < all && n < int(mt.min) && mt.picked == 0 && (k.gen.anyRaiseLife || k.gen.anyRaise) {
 				// the candidates the cast can pay for fall short of the slot's
 				// minimum: gorge's ask aborts the cast ("cast aborted: no legal
 				// target"; a life raise on a target, cost_raiselife.go)

@@ -1,0 +1,22 @@
+# the MBC keywords-4 spelling family (dirac/oracle/mbc_granted_keywords_lowers_test.go
+# TestMBCKeywords4Lowers): Jandor, Fortuned Traveler's granted saddle 2
+# beside the Mounts it makes (Armored Warhorse, Axebane Beast) and the bodies
+# that saddle them; Ekthi, Contaminator Priest's granted living weapon beside
+# the Equipment that enter under it (Short Sword, Bonesplitter); Collective
+# Resistance's escalate with the artifact, enchantment and creature it modes at
+# (Short Sword, Bonesplitter, Grizzly Bears, Pacifism) and the Llanowar Elves
+# whose floated {G} the escalate is paid from
+Jandor, Fortuned Traveler
+Armored Warhorse
+Axebane Beast
+Grizzly Bears
+Plains
+Mountain
+Forest
+Ekthi, Contaminator Priest
+Short Sword
+Bonesplitter
+Collective Resistance
+Pacifism
+Llanowar Elves
+Lotus Petal

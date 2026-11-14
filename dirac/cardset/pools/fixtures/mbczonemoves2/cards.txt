@@ -1,0 +1,17 @@
+# The MBC zone-moves-2 spellings: Abolish's Plains-discard alternative cost,
+# Magmatic Insight's land-discard additional cost, Campfire's commander
+# sweep and graveyard shuffle, and the other cards of the filtered-discard
+# classes (Flameshot, Outbreak, Surge of Strength), with creatures, artifacts
+# to destroy and the lands that pay them, for the oracle's constructed lockstep
+# (dirac/oracle/mbc_zonemoves_test.go)
+Abolish
+Magmatic Insight
+Campfire
+Flameshot
+Outbreak
+Surge of Strength
+Grizzly Bears
+Plains
+Mountain
+Forest
+Swamp

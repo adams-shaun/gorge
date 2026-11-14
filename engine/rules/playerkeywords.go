@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -26,6 +27,21 @@ import (
 // protection CR 702.16 for players is not modelled).
 // The caller owns every zone/interaction gate, exactly as shroudBlocksTarget
 // and hexproofBlocksTarget's callers do for objects.
+
+// kwDefenderAssignsCombatDamage is the player keyword Defensive Formation
+// grants: its holder, not the attacking player, assigns the combat damage of
+// each creature attacking them (CR 510.1c's chooser, rewritten by the card).
+const kwDefenderAssignsCombatDamage = "You assign combat damage of each creature attacking you."
+
+// defenderAssignsAttackerDamage reports whether the player attacker a attacks
+// holds kwDefenderAssignsCombatDamage. A creature attacking their planeswalker
+// or battle is not "attacking you", so only a player attack counts.
+func (e *Engine) defenderAssignsAttackerDamage(a *state.Object) bool {
+	if a.AttackingBattle != 0 {
+		return false
+	}
+	return slices.Contains(e.playerKeywords(a.Attacking), kwDefenderAssignsCombatDamage)
+}
 
 // playerKeywords returns the keywords every live continuous effect grants to
 // player p through an `Affected$ <player spec> | AddKeyword$ ...` static.

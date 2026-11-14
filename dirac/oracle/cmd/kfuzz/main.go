@@ -212,6 +212,9 @@ func run() int {
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
 		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge in any build, -kernel vanilla or a -synth pool in a build with -tags dirac_mp")
+		srchSeats  = flag.String("search-seats", "", "pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Two seats in any build, three or four with -tags dirac_mp")
+		srchKind   = flag.String("search", "paranoid", "-search-seats: the search, paranoid or maxn")
+		srchSims   = flag.Int("search-sims", oracle.SearchSeatDefaultSims, "-search-seats: simulations per searched decision")
 		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
 		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the kernel's four-seat build: -kernel gorge, or a Commander pool such as cmd5 in a build with -tags dirac_mp")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
@@ -336,6 +339,15 @@ func run() int {
 		return 2
 	}
 	runKernel = kernelLabel(*synth, *kernel, *setName)
+	var searchCfg *oracle.SearchSeatConfig
+	if *srchSeats != "" || explicit["search"] || explicit["search-sims"] {
+		cfg, msg := searchSeatFlags(*srchSeats, *srchKind, *srchSims, *seats, *kernel, *lead, *reproPath != "" || *replayPath != "" || *v2Mode != "")
+		if msg != "" {
+			fmt.Fprintln(os.Stderr, "kfuzz:", msg)
+			return 2
+		}
+		searchCfg = &cfg
+	}
 	if *reproPath != "" {
 		rep, err := oracle.ReadRepro(*reproPath)
 		if err != nil {
@@ -507,9 +519,9 @@ func run() int {
 			// no -pool/pool.tsv.
 			return runRepro(c, *reproPath, *lead, rc, func(rep *oracle.Repro, rrc oracle.RunConfig) (oracle.SideFactory, error) {
 				// one table over every seat's deck: at two seats, set.Matchup's
-				es := [][]cardset.Entry{reproEntries(rep.Cards[0]), reproEntries(rep.Cards[1])}
+				es := [][]cardset.Entry{oracle.ReproEntries(c.Reg, set, rep.Cards[0]), oracle.ReproEntries(c.Reg, set, rep.Cards[1])}
 				for _, d := range rep.MoreCards {
-					es = append(es, reproEntries(d))
+					es = append(es, oracle.ReproEntries(c.Reg, set, d))
 				}
 				tbl, _, err := set.MatchupN(es)
 				if err != nil {
@@ -530,7 +542,7 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
-		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans, seats: *seats}
+		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans, seats: *seats, search: searchCfg}
 		if *synth == "" && *firstPair == 0 && *pairs == oracle.SynthPairs && *seed == oracle.EvidenceSeed {
 			o.minGames = oracle.GateMinGames[*setName]
 			if sliced {
@@ -832,16 +844,6 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 	}
 }
 
-// reproEntries turns a Repro deck (card names, one per copy) into the deck
-// lines set.Matchup takes, so an fdn repro needs no deck files.
-func reproEntries(cards []string) []cardset.Entry {
-	es := make([]cardset.Entry, len(cards))
-	for i, n := range cards {
-		es[i] = cardset.Entry{Name: n, Count: 1}
-	}
-	return es
-}
-
 // coveragePath is -coverage and evidencePath -evidence: with both "" no coverage
 // is collected.
 var coveragePath, evidencePath string
@@ -1082,6 +1084,8 @@ type sweepOpts struct {
 
 	seats int // -seats: 2 plays pairs; more plays pods (oracle.PodsFrom) and prints the pod line
 
+	search *oracle.SearchSeatConfig // -search-seats: the seats dirac/search answers; nil: none
+
 	onGame func(*oracle.Result) // a test's look at each game, Actions included
 
 	corpus *oracle.Corpus // where a bad-game line reads its decks
@@ -1096,6 +1100,8 @@ type played struct {
 	skip error
 	hang bool
 	err  error
+
+	searched [oracle.MaxSeats]int // -search-seats: decisions each seat's search searched
 }
 
 // The classes a skip counts under.
@@ -1239,6 +1245,9 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 			}
 		}
 	}
+	if o.search != nil {
+		fmt.Println(searchSeatsHeader(*o.search))
+	}
 	play := func(i int) played {
 		p := ps[i]
 		ks.pair = p.Index
@@ -1259,7 +1268,11 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 			grc = oracle.WithCoverage(grc, m, &cov)
 		}
 		gp := pol(p.Seed)
-		res, k, err := lockstepDir(m, p.Seed, o.lead, oracle.SetSide(set, tbl, rc.Config), gp, grc)
+		mkSide := oracle.SetSide(set, tbl, rc.Config)
+		if o.search != nil {
+			mkSide, gp = oracle.WithSearchSeats(mkSide, gp, *o.search, c.Reg, set)
+		}
+		res, k, err := lockstepDir(m, p.Seed, o.lead, mkSide, gp, grc)
 		if err != nil {
 			return played{skip: err}
 		}
@@ -1274,7 +1287,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		if !verboseFDN && (o.out == "" || res.Div == nil && !strings.HasPrefix(res.Stall, oracle.KernelStallPrefix)) && (!implicatesAll || res.Clean()) {
 			res.Actions = nil // only the reports of a bad game read them; don't hold every game's
 		}
-		return played{m: m, res: res, cov: cov}
+		return played{m: m, res: res, cov: cov, searched: oracle.SearchedBy(gp)}
 	}
 	// Pairs are independent, so they play on `workers` goroutines and are tallied
 	// in pair order, which keeps the output identical to a serial run. -stats and
@@ -1492,6 +1505,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	implicated := map[string]int{}
 	v := verdict{CapacityWhy: map[string]int{}, UnmodelledWhy: map[string]int{}, RefusedPairWhy: map[string]int{}}
 	var st oracle.Stats
+	var searched [oracle.MaxSeats]int
 	var cov *oracle.Coverage
 	if coveragePath != "" || evidencePath != "" || o.reach != nil {
 		cov = oracle.NewCoverage()
@@ -1532,6 +1546,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			cov.MergeClean(out[i].cov, &res)
 		}
 		st.Add(res.Stats)
+		for s, n := range out[i].searched {
+			searched[s] += n
+		}
 		v.Games++
 		if implicatesAll && len(res.Stats.Unknown) > 0 {
 			kinds := make([]string, 0, len(res.Stats.Unknown))
@@ -1605,12 +1622,21 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		v.Unknown += n
 	}
 	fmt.Println(v.legacyLine(name, o.lead, classes))
-	fmt.Println(v.line(name, o.lead, o.surface))
+	line := v.line(name, o.lead, o.surface)
+	if o.search != nil {
+		line += fmt.Sprintf(" searched=%v", searched)
+	}
+	fmt.Println(line)
 	if o.seats > 2 {
 		fmt.Println(v.podLine(name, o.seats))
 	}
 	if b, err := json.Marshal(classes); err == nil {
 		fmt.Printf("%s-classes-json: %s\n", name, b)
+	}
+	if o.search != nil {
+		if b, err := json.Marshal(searched); err == nil {
+			fmt.Printf("%s-searched-json: %s\n", name, b)
+		}
 	}
 	if len(v.RefusedPairWhy) > 0 {
 		fmt.Printf("refused-pair: %s\n", strings.TrimSpace(sortedCounts(v.RefusedPairWhy)))

@@ -177,6 +177,9 @@ func (s *State) turnUpMaxX(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialM
 // turnUpOffered: the special action's mana pays the turn-up (a keyword cost
 // with {X} at some announced X).
 func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
+	if kw && !s.turnUpLifeOK(k, p, sl) {
+		return false // face_morphlife.go: the keyword's PayLife<N>
+	}
 	if kw && cost.X > 0 {
 		return s.turnUpMaxX(k, p, cost, sp, sl) >= 0
 	}
