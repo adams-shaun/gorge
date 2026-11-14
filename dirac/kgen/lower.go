@@ -98,6 +98,7 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
+	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source (lower_effectcaptured.go)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
@@ -317,6 +318,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenMidAb is the ability whose mid-resolution ChoosePlayer is lowered
+	// (OpExt ExtChoosePlayerMid): the chain's ChosenPlayer readers read the
+	// resolution's choice, and only until the Cleanup clears it.
+	chosenMidAb *lAbility
 	// chosenResAb is the ability whose mid-resolution ChoosePlayer
 	// (Choices$ Player, RememberChosen$ True) is lowered: ChosenPlayer reads
 	// the resolution's chosen player in that ability only
@@ -333,7 +338,7 @@ type lowerCtx struct {
 func lowerCard(p *pool, name string, c *cards.Card, token bool) *lCard {
 	out := &lCard{Name: name, Token: token}
 	lc := &lowerCtx{p: p, name: name, card: c, out: out, mode: -1, known: p.knownSubtype}
-	if len(c.Faces) != 1 || c.AlternateMode != "" {
+	if len(c.Faces) != 1 || c.AlternateMode != "" || protoCard(c, token) {
 		before := len(out.Refusals)
 		if !lc.lowerFaces(c) { // lower_faces.go
 			if len(out.Refusals) == before {
@@ -795,6 +800,9 @@ func (lc *lowerCtx) lowerRecord() {
 	if f.Defense != "" {
 		out.Defense, _ = strconv.Atoi(strings.TrimSpace(f.Defense)) // battle (lower_battle.go)
 	}
+	if lc.proto {
+		lc.protoInset() // the prototype face's cost, colours and P/T (lower_prototype.go)
+	}
 }
 
 // colorsOf is the face's colours as a "WUBRG" subset string: the Color
@@ -1139,6 +1147,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (dirac/kw_speed.go); the keyword's other text is the
 			// card's own lines
 			lc.out.Engines = true
+		case head == "Ascend" && param == "":
+			// CR 702.131: the city's blessing is the kernel's post-placement
+			// scan and the spell's resolution grant (dirac/kw_ascend.go)
+			lc.out.Ascend = true
 		case head == "Bloodthirst":
 			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
 			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
@@ -1191,6 +1203,15 @@ func (lc *lowerCtx) lowerKeywords() {
 			// trigger (Myriad$ True, DB$ Myriad), lowered from that line
 			// (lower_myriad.go)
 			if !faceHasMyriadTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
+		case head == "Renown":
+			// CR 702.112a: gorge kwRenown expands it into a combat-damage
+			// self trigger (IsPresent$ Card.Self+!IsRenowned) whose body is
+			// DB$ PutCounter | Renown$ N, lowered from that line
+			// (lower_renown.go). Not in expandedKeywords: a granted Renown
+			// stays refused.
+			if !faceHasRenownTrigger(lc.face) {
 				lc.refuseNode(node, "keyword %q without its trigger", head)
 			}
 		case head == "Training":
@@ -1787,6 +1808,13 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Overload = &mc
+		case head == "Prototype":
+			// CR 702.160a: the printed line is inert on the permanent (the
+			// prototype face keeps it, CR 718.3a); the face layout owns the
+			// cast (lower_prototype.go, dirac/face_castface.go)
+			if !protoCard(lc.card, lc.out.Token) {
+				lc.refuseNode(node, "Prototype on a multi-face card or token")
+			}
 		case head == "Bestow":
 			// CR 702.103a: an alternative hand cost; the spell is an Aura
 			// with enchant creature (gorge rules/bestow.go bestowCost and
@@ -3434,6 +3462,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			switch v {
 			case "Threshold":
 				ab.ActCond = lCond{Kind: cThreshold}
+			case "Blessing":
+				// "activate only if you have the city's blessing" (CR 702.131;
+				// gorge activationConditionOKBlessing, a Lost player denied)
+				ab.ActCond = lCond{Kind: cBlessing}
 			case "Delirium":
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
 			case "Metalcraft":
@@ -3872,7 +3904,7 @@ func (lc *lowerCtx) blockerNode() string {
 func (lc *lowerCtx) noteUnreadable(p *params, sa *cards.SA) {
 	var left []string
 	for _, k := range p.unread() {
-		if err := lc.probeParam(k, p.m[k]); err != nil {
+		if err := lc.probeNodeParam(sa, k, p.m[k]); err != nil {
 			lc.refuseNode(lc.blockerNode(), "%s$ %s: %s", sa.Kind, sa.API, err.Error())
 			p.used[k] = true
 			continue
@@ -3892,6 +3924,18 @@ var probeAmountKeys = map[string]bool{"NumDmg": true, "NumCards": true, "NumAtt"
 // probeFilterKeys are the filter params probeParam reads on their own, with
 // every Valid* key.
 var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "SacValid": true, "Choices": true, "IsPresent": true, "ConditionPresent": true, "Affected": true}
+
+// probeNodeParam reads one unread param of the refused node sa on its own.
+// A Play's ValidSA$ is not a card filter: play reads it through playSAExpr
+// (a bare Spell is the land skip OpCastFree already applies), so the probe
+// reads it the same way rather than as a "Spell" filter head.
+func (lc *lowerCtx) probeNodeParam(sa *cards.SA, k, v string) error {
+	if k == "ValidSA" && sa != nil && sa.API == "Play" {
+		_, err := lc.playSAExpr(strings.TrimSpace(v))
+		return err
+	}
+	return lc.probeParam(k, v)
+}
 
 func (lc *lowerCtx) probeParam(k, v string) error {
 	v = strings.TrimSpace(v)
