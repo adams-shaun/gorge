@@ -194,7 +194,7 @@ func castPoolPays(s *dirac.State, me uint8, a dirac.Action, extra *[6]int32) boo
 	case m&dirac.FeatCastFree != 0:
 		return true // nothing to pay
 	case m&dirac.FeatCastFace != 0:
-		return s.FeatFacePoolPays(me, o, a.Target(), extra)
+		return s.FeatFacePoolPays(me, o, uint8(a.Target()), extra)
 	default:
 		return s.FeatPoolPaysPlus(me, o, m, extra)
 	}

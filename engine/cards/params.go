@@ -880,6 +880,14 @@ const (
 	// Read by pay.WithSpellAbilityExtras / AbilityCompiledCost into
 	// rules/cost.Cost.XColors. Appended: earlier ordinals stay stable.
 	PKXColor
+	// ManaSpent$ / ManaNotSpent$ name the colours whose mana was (or was
+	// not) spent to cast the source (Forge's CardTraitBase.meetsRequirements
+	// ManaSpent/ManaNotSpent arms; Court Hussar's "sacrifice it unless {W}
+	// was spent to cast it", CR 601.2h). Read by triggerConditionHolds
+	// against the cast's per-colour spend. Appended: earlier ordinals stay
+	// stable.
+	PKManaSpent
+	PKManaNotSpent
 	paramKeyCount
 )
 
@@ -1695,6 +1703,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKCanBlockAmount:                   "CanBlockAmount",
 	PKCanBlockAny:                      "CanBlockAny",
 	PKXColor:                           "XColor",
+	PKManaSpent:                        "ManaSpent",
+	PKManaNotSpent:                     "ManaNotSpent",
 }
 
 // String is the key's Forge text.

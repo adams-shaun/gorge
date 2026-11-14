@@ -342,6 +342,12 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
+	if v, ok := t.Param(cards.PKManaNotSpent); ok && !e.manaColourSpendHolds(source, tc, "", v) {
+		return false
+	}
+	if v, ok := t.Param(cards.PKManaSpent); ok && !e.manaColourSpendHolds(source, tc, v, "") {
+		return false
+	}
 	if v, ok := t.Param(cards.PKAdamant); ok {
 		// Adamant$ on a trigger is an intervening-if (CR 603.4): reuse
 		// the Count$Adamant evaluator so trigger conditions and keyword
@@ -446,6 +452,33 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 		return false
 	}
 	return true
+}
+
+// manaColourSpendHolds evaluates a trigger's ManaSpent$ / ManaNotSpent$
+// clause ("sacrifice it unless {W} was spent to cast it", CR 601.2h; Forge's
+// CardTraitBase.meetsRequirements ManaSpent/ManaNotSpent arms) against the
+// cast's recorded per-colour spend, the ONE colour-list gate
+// effects.ManaColourSpendGate also evaluates for the
+// ConditionManaSpent$ / ConditionManaNotSpent$ ability gate, so the two
+// spellings cannot drift. A departure snapshot (TriggerContext.
+// SourceManaColorSpent, source_char_lki.go's departure capture, which
+// includes the cast-time spend) answers for a source that has left the
+// battlefield and stays the answer after it came back (CR 400.7: the
+// triggering read is the spend of the cast that fired the trigger, not a
+// later one); a source that never left reads live -- the pay-time CastInfo
+// rides the stack object and the stack -> battlefield move keeps it. A token
+// or an uncast entry spent nothing, ManaNotSpent's true arm, Forge's
+// null-castSA read. An unreadable colour list fails closed like every clause
+// of the walk above.
+func (e *Engine) manaColourSpendHolds(source state.ObjID, tc *effects.TriggerContext, spentKey, notSpentKey string) bool {
+	var spent state.Mana
+	if tc != nil && tc.SourceLKIValid {
+		spent = tc.SourceManaColorSpent
+	} else if o := e.G.Obj(source); o != nil {
+		spent = o.ManaColorSpent
+	}
+	met, ok := effects.ManaColourSpendGate(spent, spentKey, notSpentKey)
+	return ok && met
 }
 
 // checkDefinedPlayerHolds evaluates CheckDefinedPlayer$ "<base>.<property>",

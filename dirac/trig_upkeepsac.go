@@ -27,7 +27,7 @@ func sacAtUpkeepOf(fl int16) bool {
 //go:noinline
 func (s *State) sacAtUpkeepUntracked(t Obj, ctrl uint8) {
 	if s.ndly < MaxDelayed {
-		s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: ctrl, obj: t, ver: s.objs[t].ver, when: dlyUpkeep, creator: s.res.e.obj}
+		s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: ctrl, obj: t, ver: objWord(s.objs[t].ver), when: dlyUpkeep, creator: s.res.e.obj}
 		s.ndly++
 	} else {
 		s.capFull(StallDelayed)
@@ -46,7 +46,7 @@ func (s *State) delayEmptyUpkeep(e *stackEntry) {
 		s.capFull(StallDelayed)
 		return
 	}
-	s.dly[s.ndly] = delayed{ctrl: e.ctrl, obj: e.obj, ver: e.srcVer, when: dlyUpkeep, creator: NoObj}
+	s.dly[s.ndly] = delayed{ctrl: e.ctrl, obj: e.obj, ver: objWord(e.srcVer), when: dlyUpkeep, creator: NoObj}
 	s.ndly++
 }
 
@@ -66,10 +66,10 @@ func (s *State) fireDlyUpkeep(k *prep) {
 			continue
 		}
 		if d.act == uint8(kop.OpNop) {
-			s.enqueue(d.obj, d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, NoObj, d.ctrl, int16(d.act))
+			s.enqueue(d.obj, uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, NoObj, d.ctrl, int16(d.act))
 			continue
 		}
-		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, opSacUntracked)
+		s.enqueue(dlySource(&d), uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, opSacUntracked)
 	}
 	for i := keep; i < n; i++ {
 		s.dly[i] = delayed{}

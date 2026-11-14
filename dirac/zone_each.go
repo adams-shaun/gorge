@@ -83,7 +83,7 @@ func (s *State) eachCands(k *prep, in *kop.Instr, d *Decision, list []Obj) {
 			continue
 		}
 		if g := s.eachGroup(k, in.F, c, p, s.res.e.ctrl, o); g >= 0 && picked&(1<<g) == 0 {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

@@ -43,7 +43,10 @@ func TestDdoRefusals(t *testing.T) {
 		{"non-literal amount", map[string]string{"ValidTarget": "Card.Self", "DamageAmount": "GEX"}, draw, "DamageAmount"},
 		{"unknown comparator", map[string]string{"ValidTarget": "Card.Self", "DamageAmount": "XX3"}, draw, "DamageAmount"},
 		{"triggered source", map[string]string{"ValidTarget": "Card.Self"}, "DB$ Destroy | Defined$ TriggeredSource", "body reads TriggeredSource"},
-		{"triggered target", map[string]string{"ValidTarget": "Player"}, "DB$ Destroy | Defined$ TriggeredTarget", "body reads TriggeredTarget"},
+		// no ValidTarget$: the referent is an object or a player, so the
+		// body's TriggeredTarget names neither exactly (a players-only
+		// ValidTarget$ is the damaged player, trigger_referents_mbc_test.go)
+		{"triggered target", map[string]string{}, "DB$ Destroy | Defined$ TriggeredTarget", "body reads TriggeredTarget"},
 		{"other trigger count", map[string]string{"ValidTarget": "Card.Self"}, "DB$ Draw | Defined$ You | NumCards$ X | X$ TriggerCount$LifeAmount", "body reads TriggerCount"},
 	} {
 		found := false

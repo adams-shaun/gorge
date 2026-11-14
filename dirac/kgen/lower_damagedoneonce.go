@@ -117,10 +117,15 @@ func selfPlayerRefShape(tr *lTrigger) bool {
 	return tr.Combat != 1 && tr.F2 != nil && tr.F2.Players == plBoth && len(tr.F2.Clauses) == 0
 }
 
-// ddoPlayerReferent reports whether tr is the per-referent line
-// selfPlayerRefShape gives: the trigger player is the damaged player.
+// ddoPlayerReferent reports whether tr is a per-referent line over players
+// only: the trigger player is the damaged player (ddoRecipient queues the
+// damaged player for a player referent). selfPlayerRefShape gives the plain
+// DamageDone one; a DamageDoneOnce line whose ValidTarget$ is Player, You
+// or Opponent is the other (Rev, Tithe Extractor's "look at the top card of
+// that player's library").
 func ddoPlayerReferent(tr *lTrigger) bool {
-	return tr != nil && tr.Event == "DamageDone" && tr.PerRef && tr.SelfPlayerRef
+	return tr != nil && tr.Event == "DamageDone" && tr.PerRef &&
+		tr.F2 != nil && tr.F2.Players != 0 && len(tr.F2.Clauses) == 0
 }
 
 // ddoBodyReads lists every trigger-context spelling a DamageDone body reads,

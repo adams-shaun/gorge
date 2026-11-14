@@ -359,7 +359,7 @@ func (s *State) checkOver() {
 // names any more (freeTokenObj, zone_objreuse.go).
 func (s *State) newToken(c CardID, p uint8) Obj {
 	if int(s.nobj) < MaxObj {
-		o := Obj(s.nobj)
+		o := s.nobj
 		s.nobj++
 		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift}
 		s.touch(o)
@@ -713,7 +713,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		host = Obj(p.bord)
 	}
 	if host != NoObj {
-		p.chosen = uint8(host)
+		p.chosen = objWord(host)
 		p.flags |= pfLastBear
 		s.recordLastBearLKI(o, host)
 	} else {

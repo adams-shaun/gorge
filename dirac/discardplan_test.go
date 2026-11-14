@@ -40,7 +40,7 @@ func TestDiscardCostKeepsHandDemand(t *testing.T) {
 	m2 := sc.perm(id["Mountain"], 0)
 	thrill := sc.hand(id["Thrill of Possibility"], 0)
 	ref := sc.hand(id["Refute"], 0)
-	sc.do(t, AkCast, uint8(thrill), 0xff)
+	sc.do(t, AkCast, TCode(thrill), scAny)
 	for i := 0; i < 6 && !(sc.s.objs[thrill].zone == kop.ZoneStack && sc.s.ctl == ctlPriority); i++ {
 		d := sc.s.Step()
 		sc.s.Apply(d.Options[0])
@@ -84,7 +84,7 @@ func TestFlashbackDiscardCostCountsWholeHand(t *testing.T) {
 	thrill := sc.obj(id["Thrill of Possibility"], 0)
 	sc.s.place(thrill, kop.ZoneGraveyard, false)
 	sc.s.grantFB(sc.k, thrill)
-	sc.do(t, AkCast, uint8(thrill), 0xff)
+	sc.do(t, AkCast, TCode(thrill), scAny)
 }
 
 // TestDiscardPermanentBaseInHand: gorge's discardEligible matches
@@ -122,7 +122,7 @@ func TestDiscardPermanentBaseInHand(t *testing.T) {
 				A: kop.Const(1), C: tc.c, F: tc.f}
 			sc.s.res = resCtx{e: stackEntry{card: v.GrizzlyBears, ctrl: 0},
 				active: true, lastTok: NoObj, eachObj: NoObj}
-			sc.s.res.e.tgt[0] = PlayerTarget0 + 1
+			sc.s.res.e.tgt[0] = TCode(PlayerTarget0 + 1)
 			ok := sc.s.exec(sc.k, &in)
 			if tc.wantAsk {
 				if ok || sc.s.res.ask != raDiscard {

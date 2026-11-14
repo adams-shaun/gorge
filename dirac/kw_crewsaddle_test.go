@@ -100,13 +100,13 @@ func TestCrewTapsPower(t *testing.T) {
 	if done || len(objs) != 2 || !hasObj(objs, wall) || !hasObj(objs, bears) {
 		t.Fatalf("first pick %v done %v, want wall and bears, no Done", objs, done)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(wall), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(wall), 0, 0))
 	d = sc.s.Step()
 	objs, done = tapPicks(t, &d)
 	if done || len(objs) != 1 || objs[0] != bears {
 		t.Fatalf("after the wall %v done %v, want bears only (total 0 < 1)", objs, done)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(bears), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(bears), 0, 0))
 	// every candidate picked: the pick ends without Done
 	sc.resolveAll(t)
 	if !sc.tapped(wall) || !sc.tapped(bears) || sc.tapped(ship) {
@@ -132,7 +132,7 @@ func TestCrewDoneAtFloor(t *testing.T) {
 		t.Fatal("Crew 1 not offered")
 	}
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkChoose, uint8(b1), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b1), 0, 0))
 	d := sc.s.Step()
 	objs, done := tapPicks(t, &d)
 	if !done || len(objs) != 1 || objs[0] != b2 {
@@ -172,7 +172,7 @@ func TestSaddleAttack(t *testing.T) {
 	if objs, done := tapPicks(t, &d); done || len(objs) != 1 {
 		t.Fatalf("saddle pick %v done %v", objs, done)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(bears), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(bears), 0, 0))
 	sc.resolveAll(t)
 	if sc.s.perms[sc.slot(horn)].cseen&cseenSaddled == 0 {
 		t.Fatal("not saddled")

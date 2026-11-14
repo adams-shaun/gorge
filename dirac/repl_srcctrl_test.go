@@ -46,7 +46,7 @@ func TestDamageToDonatedSourceUsesSourceController(t *testing.T) {
 		t.Fatal("rbDblDmg unset with Twinflame Tyrant in the table")
 	}
 	life := s.pl[0].life
-	if n := s.damageTo(sc.k, PlayerTarget0, 3); n != 6 {
+	if n := s.damageTo(sc.k, TCode(PlayerTarget0), 3); n != 6 {
 		t.Fatalf("damageTo returned %d, want 6", n)
 	}
 	if got := life - s.pl[0].life; got != 6 {
@@ -76,7 +76,7 @@ func TestDamageBatchDonatedSourceUsesSourceController(t *testing.T) {
 		t.Fatal("rbDblDmg unset with Twinflame Tyrant in the table")
 	}
 	life := s.pl[0].life
-	s.damageBatch(sc.k, []uint8{PlayerTarget0}, []int{3}, false)
+	s.damageBatch(sc.k, []TCode{PlayerTarget0}, []int{3}, false)
 	if got := life - s.pl[0].life; got != 6 {
 		t.Fatalf("P0 lost %d, want 6", got)
 	}
@@ -142,7 +142,7 @@ func TestDamageToDepartedDonatedSourceUsesLastKnownController(t *testing.T) {
 		t.Fatal("rbDblDmg unset with Twinflame Tyrant in the table")
 	}
 	life := s.pl[0].life
-	if n := s.damageTo(sc.k, PlayerTarget0, 3); n != 6 {
+	if n := s.damageTo(sc.k, TCode(PlayerTarget0), 3); n != 6 {
 		t.Fatalf("damageTo returned %d, want 6", n)
 	}
 	if got := life - s.pl[0].life; got != 6 {

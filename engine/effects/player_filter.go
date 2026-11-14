@@ -491,6 +491,17 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 					return true
 				}
 			}
+		case playerSpecQualifierAttackedYouTheirLastTurn:
+			// Forge PlayerProperty attackedYouTheirLastTurn (O-Kagachi,
+			// Vengeful Kami's "if that player attacked you during their
+			// last turn"): during the seat's most recent completed turn it
+			// declared an attack whose defending seat was `you` (a
+			// planeswalker or battle of yours included), the record
+			// events.Apply copies at that turn's end -- the same reading as
+			// Engine.AttackedDuringLastTurn's log scan.
+			if int(p) < len(g.Players) && you >= 0 && you < 64 && g.Players[p].AttackedSeatsLastTurn&(uint64(1)<<uint(you)) != 0 {
+				return true
+			}
 		case playerSpecQualifierTriggeredDefendingPlayer:
 			// Player.TriggeredDefendingPlayer (Forge PlayerProperty): the
 			// seat that defended against the triggering combat. The role is
@@ -1037,6 +1048,7 @@ const (
 	playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn
 	playerSpecQualifierOpponentOfReplaced
 	playerSpecQualifierIsTriggerRemembered
+	playerSpecQualifierAttackedYouTheirLastTurn
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(
@@ -1061,6 +1073,7 @@ var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouTheirCurrentTurn", Val: playerSpecQualifierAttackedYouTheirCurrentTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouCtrlTheirCurrentTurn_Planeswalker", Val: playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "IsTriggerRemembered", Val: playerSpecQualifierIsTriggerRemembered},
+	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouTheirLastTurn", Val: playerSpecQualifierAttackedYouTheirLastTurn},
 )
 
 type playerHasMostCode uint16

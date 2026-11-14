@@ -51,7 +51,7 @@ func TestAltAddOfferPricesTheReducedTotal(t *testing.T) {
 			spell := sc.crimeStackSpell(id["Combustion Technique"], 1)
 			e := &sc.s.stack[sc.s.sp-1]
 			_ = spell
-			e.nt, e.tgt[0] = 1, uint8(target)
+			e.nt, e.tgt[0] = 1, TCode(target)
 			if got := offersCast(sc.s, rl); got != tc.offers {
 				t.Fatalf("Redirect Lightning offered = %v, want %v", got, tc.offers)
 			}

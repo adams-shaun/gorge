@@ -22,7 +22,7 @@ func TestChooseAttackersPod(t *testing.T) {
 		cs.n = 0
 		for q := uint8(1); q < uint8(len(life)); q++ {
 			for _, c := range mine {
-				cs.opts[cs.n] = copt{src: c.obj, tgt: dirac.PlayerTarget0 + q, def: q}
+				cs.opts[cs.n] = copt{src: c.obj, tgt: dirac.PlayerTarget0 + dirac.TCode(q), def: q}
 				cs.n++
 			}
 		}

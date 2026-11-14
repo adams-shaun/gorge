@@ -46,7 +46,7 @@ func (s *State) tgtBoundsFeasible(k *prep, t *kop.TargetSpec, p uint8, src Slot)
 	if lo <= 0 {
 		return true
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.targetCands(k, t, p, src, NoObj, &buf) >= lo
 }
 
@@ -57,7 +57,7 @@ func (s *State) tgtBoundsFeasible(k *prep, t *kop.TargetSpec, p uint8, src Slot)
 func (s *State) tgtBoundsV(k *prep, t *kop.TargetSpec, e *stackEntry, mt *multiTgt) {
 	lo, hi := s.tgtBoundsEval(k, t, e)
 	if hi > 254 {
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		if s.multiCands(k, t, mt.slot, &buf) > 254 {
 			s.capFull(StallTables)
 		}

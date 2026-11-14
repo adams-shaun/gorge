@@ -28,7 +28,7 @@ func (s *State) exileCands(k *prep, p uint8, c *kop.Cost, src, exclude Obj, d *D
 			}
 			n++
 			if d != nil {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}
@@ -52,7 +52,7 @@ func (s *State) handExileCands(k *prep, p uint8, f kop.FilterID, exclude Obj, d 
 		}
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return n

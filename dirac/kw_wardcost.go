@@ -90,7 +90,7 @@ func (s *State) askOptionsWardSac(k *prep, d *Decision) bool {
 	}
 	d.Sub = ChWardSac
 	s.wardSacCands(k, func(sl Slot) {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 	})
 	return true
 }
@@ -186,7 +186,7 @@ func (s *State) askOptionsEvidence(k *prep, d *Decision) bool {
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < int(pl.graveN); i++ {
 		if s.g.evSel&(1<<i) == 0 {
-			d.add(MakeAction(AkChoose, uint8(pl.grave[i]), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(pl.grave[i]), 0, 0))
 		}
 	}
 	if s.g.evSel != 0 {
@@ -290,7 +290,7 @@ func (s *State) askOptionsWardDisc(k *prep, d *Decision) bool {
 	d.Sub = ChWardDiscard
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < int(pl.handN); i++ {
-		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 	}
 	return true
 }
@@ -375,7 +375,7 @@ func (s *State) askOptionsWardAlt(d *Decision) {
 	d.Sub = ChWardAlt
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < int(pl.handN); i++ {
-		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 	}
 	if s.g.pickLeft != 0 {
 		d.add(MakeAction(AkChoose, 0, 0, 1))

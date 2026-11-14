@@ -66,7 +66,7 @@ func permcopyCastCard(t *testing.T, tb *kop.Table, c, w CardID) (sc *scen, orig 
 	sc.perm(w, 0)
 	life = int(sc.s.pl[0].life)
 	orig = sc.hand(c, 0)
-	sc.do(t, AkCast, uint8(orig), 0xff)
+	sc.do(t, AkCast, TCode(orig), scAny)
 	return sc, orig, c, life
 }
 

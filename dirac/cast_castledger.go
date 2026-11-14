@@ -33,7 +33,7 @@ const castRingN = 12
 // castPush is one push: the object as Obj+1 and its castFrom* origin and
 // castTreasurePush and castWarpPush bits.
 type castPush struct {
-	obj  uint8
+	obj  Obj // the pushed spell's object+1
 	prov uint8
 }
 
@@ -70,7 +70,7 @@ func (s *State) castPushes(p uint8) []castPush {
 func (s *State) noteReversed(o Obj, caster uint8) {
 	ring := s.castPushes(caster)
 	for i := len(ring) - 1; i >= 0; i-- {
-		if ring[i].obj == uint8(o)+1 && ring[i].prov&castReversedPush == 0 {
+		if ring[i].obj == o+1 && ring[i].prov&castReversedPush == 0 {
 			ring[i].prov |= castReversedPush
 			return
 		}
@@ -102,7 +102,7 @@ func (s *State) noteCast(o Obj, caster uint8, from kop.Zone) {
 	if s.bld().e.mode&modeWarped != 0 {
 		code |= castWarpPush // value_void.go: the push is a warp cast
 	}
-	s.cold.castRing[int(caster)*castRingN+int(n)] = castPush{obj: uint8(o) + 1, prov: code}
+	s.cold.castRing[int(caster)*castRingN+int(n)] = castPush{obj: o + 1, prov: code}
 	s.g.hist[caster][histCastN] = n + 1
 }
 
@@ -152,14 +152,14 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 			continue
 		}
 		ring := s.castPushes(p)
-		if p == hideP && len(ring) > 0 && Obj(ring[len(ring)-1].obj-1) == hide {
+		if p == hideP && len(ring) > 0 && ring[len(ring)-1].obj-1 == hide {
 			ring = ring[:len(ring)-1] // the in-flight cast's own (latest) push
 		}
 		for _, r := range ring {
 			if r.prov&castReversedPush != 0 {
 				continue
 			}
-			o := Obj(r.obj - 1)
+			o := r.obj - 1
 			if x.N&kop.CastSpecExclude != 0 && o == ctx.src {
 				continue
 			}
@@ -207,7 +207,7 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 func (s *State) castPushesMatching(k *prep, f kop.FilterID, caster uint8, l trigListener) int {
 	n := 0
 	for _, r := range s.castPushes(caster) {
-		if r.prov&castReversedPush == 0 && s.castRingMatch(k, f, Obj(r.obj-1), evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
+		if r.prov&castReversedPush == 0 && s.castRingMatch(k, f, r.obj-1, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
 			n++
 		}
 	}

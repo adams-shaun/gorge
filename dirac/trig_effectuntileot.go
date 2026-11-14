@@ -49,7 +49,7 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 // the registration's Remembered set; gorge matches the object, not a version).
 //
 //go:noinline
-func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8, listeners bool, latch *dmgLatch) {
+func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch) {
 	srcObj := s.perms[src].obj
 	srcCtrl := s.perms[src].ctrl
 	dpl := s.dmgSeat(rcp, srcCtrl)
@@ -170,7 +170,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 // and Tf2ToOpponent are tested by the caller), and a damaged permanent must
 // be a battlefield object matching Filter2 for the emblem owner; without
 // TfToPlayer only such a permanent passes.
-func (s *State) emblemRecipientOK(k *prep, t *kop.Trigger, rcp uint8, toPlayer bool, owner uint8) bool {
+func (s *State) emblemRecipientOK(k *prep, t *kop.Trigger, rcp TCode, toPlayer bool, owner uint8) bool {
 	if toPlayer {
 		return t.Flags&kop.TfToPlayer != 0
 	}

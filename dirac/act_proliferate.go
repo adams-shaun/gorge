@@ -25,7 +25,7 @@ const prolifMaxPicks = 16
 
 // prolifPicked: recipient o (an Obj, or PlayerCode(p)) is picked in the
 // current action.
-func (s *State) prolifPicked(o uint8) bool {
+func (s *State) prolifPicked(o TCode) bool {
 	r := &s.res
 	for i := 0; i < int(r.peekN); i++ {
 		if s.prolifPick(i) == o {
@@ -35,11 +35,11 @@ func (s *State) prolifPicked(o uint8) bool {
 	return false
 }
 
-func (s *State) prolifPick(i int) uint8 {
+func (s *State) prolifPick(i int) TCode {
 	if i < len(s.res.arr) {
-		return uint8(s.res.arr[i])
+		return TCode(s.res.arr[i])
 	}
-	return uint8(s.res.peek[i-len(s.res.arr)])
+	return TCode(s.res.peek[i-len(s.res.arr)])
 }
 
 // permRealCtrs is the number of counter kinds the permanent at sl holds
@@ -64,9 +64,9 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 	for p := uint8(0); p < MaxSeats; p++ {
 		for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
 			sl := m.first()
-			o := uint8(s.perms[sl].obj)
-			if s.permRealCtrs(sl) > 0 && !s.prolifPicked(o) {
-				d.add(MakeAction(AkChoose, o, 0, 0))
+			o := s.perms[sl].obj
+			if s.permRealCtrs(sl) > 0 && !s.prolifPicked(TCode(o)) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}
@@ -125,7 +125,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 			}
 			r.peekN++
 		}
-		s.prolifApply(k, o)
+		s.prolifApply(k, TCode(o))
 		var d Decision
 		s.prolifOptions(k, &d)
 		if d.N > 1 {
@@ -140,7 +140,7 @@ func (s *State) answerProlif(k *prep, a Action) {
 }
 
 // prolifApply gives recipient o another counter of each kind it has.
-func (s *State) prolifApply(k *prep, o uint8) {
+func (s *State) prolifApply(k *prep, o TCode) {
 	if isPlayerOrNone(o) {
 		p := CodeSeat(o)
 		if s.g.poison[p] > 0 {

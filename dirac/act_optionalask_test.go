@@ -61,7 +61,7 @@ func optaskScen(t *testing.T, a, b []cardset.Entry) (*scen, map[string]kop.CardI
 // left pending), failing on any unexpected decision.
 func optaskCast(t *testing.T, sc *scen, o Obj) {
 	t.Helper()
-	sc.do(t, AkCast, uint8(o), 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
 	for i := 0; i < 30; i++ {
 		if sc.s.objs[o].zone != kop.ZoneStack {
 			return // resolved; its ETB trigger is pending
@@ -160,9 +160,9 @@ func TestOptaskAugurAccept(t *testing.T) {
 	applyOpt(t, sc, d, func(a Action) bool { return a.Kind() == AkChoose && a.Mode() == 1 }, "yes")
 	// the Min 1 pick: pick both, the re-pose offers the second after the first
 	d = runTo(t, sc, ChDiscard)
-	sc.do(t, AkChoose, uint8(isl1), 0xff)
+	sc.do(t, AkChoose, TCode(isl1), scAny)
 	d = runTo(t, sc, ChDiscard)
-	sc.do(t, AkChoose, uint8(isl2), 0xff)
+	sc.do(t, AkChoose, TCode(isl2), scAny)
 	if sc.s.pl[0].graveN != 2 || sc.s.pl[0].handN != 2 {
 		t.Fatalf("grave %d hand %d after discarding two, want 2/2 (the two draws)", sc.s.pl[0].graveN, sc.s.pl[0].handN)
 	}
@@ -233,9 +233,9 @@ func TestOptaskMaggotsAnyNumber(t *testing.T) {
 	nm := sc2.hand(ids2["Mind Maggots"], 0)
 	optaskCast(t, sc2, nm)
 	d = runTo(t, sc2, ChDiscard)
-	sc2.do(t, AkChoose, uint8(nb1), 0xff) // the re-pose offers the second bear
+	sc2.do(t, AkChoose, TCode(nb1), scAny) // the re-pose offers the second bear
 	d = runTo(t, sc2, ChDiscard)
-	sc2.do(t, AkChoose, uint8(nb2), 0xff)
+	sc2.do(t, AkChoose, TCode(nb2), scAny)
 	if sc2.s.pl[0].graveN != 2 || sc2.s.perms[sc2.slot(nm)].ctrLow(int(kop.CtrP1P1)) != 4 {
 		t.Fatalf("accepted: grave %d counters %d, want 2/4", sc2.s.pl[0].graveN, sc2.s.perms[sc2.slot(nm)].ctrLow(int(kop.CtrP1P1)))
 	}
@@ -272,7 +272,7 @@ func TestOptaskCrovaxSacrifice(t *testing.T) {
 			t.Fatalf("Crovax entered with %d counters, want 4", n)
 		}
 		runTo(t, sc, ChSacrifice)
-		sc.do(t, AkChoose, uint8(bears), 0xff)
+		sc.do(t, AkChoose, TCode(bears), scAny)
 		if sc.onBF(bears) || sc.s.pl[0].graveN != 1 {
 			t.Fatalf("accepted: bears on bf %v grave %d, want false/1", sc.onBF(bears), sc.s.pl[0].graveN)
 		}
@@ -339,7 +339,7 @@ func TestOptaskOildeepSelfTarget(t *testing.T) {
 	mine2 := sc.hand(ids["Grizzly Bears"], 0)
 	theirs := sc.hand(ids["Grizzly Bears"], 1)
 	oil := sc.hand(ids["Oildeep Gearhulk"], 0)
-	sc.do(t, AkCast, uint8(oil), 0xff)
+	sc.do(t, AkCast, TCode(oil), scAny)
 
 	var d Decision
 	for i := 0; i < 40; i++ {
@@ -362,7 +362,7 @@ func TestOptaskOildeepSelfTarget(t *testing.T) {
 	if d.Player != 0 {
 		t.Fatalf("chooseMode pick asked player %d, want the controller (0) even when it targeted itself", d.Player)
 	}
-	sc.do(t, AkChoose, uint8(mine1), 0xff)
+	sc.do(t, AkChoose, TCode(mine1), scAny)
 	if sc.s.objs[mine1].zone != kop.ZoneGraveyard || sc.s.objs[theirs].zone != kop.ZoneHand {
 		t.Fatalf("after the pick: mine %d theirs %d, want the controller's card discarded and the opponent's hand intact",
 			sc.s.objs[mine1].zone, sc.s.objs[theirs].zone)

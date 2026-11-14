@@ -38,7 +38,7 @@ func exhScen(t *testing.T) *scen {
 func exhGrant(sc *scen, os ...Obj) {
 	in := exhIn
 	for _, o := range os {
-		sc.s.res.e.tgt[0], sc.s.res.e.tver[0] = uint8(o), sc.s.objs[o].ver
+		sc.s.res.e.tgt[0], sc.s.res.e.tver[0] = TCode(o), sc.s.objs[o].ver
 		sc.s.exHaste(sc.k, &in)
 	}
 }

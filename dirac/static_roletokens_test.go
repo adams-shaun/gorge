@@ -45,7 +45,7 @@ func kroleScen(t *testing.T) *scen {
 func kroleMint(t *testing.T, sc *scen, owner uint8, dst Obj) (Obj, Slot) {
 	t.Helper()
 	s := sc.s
-	s.res.e.tgt[0] = uint8(dst)
+	s.res.e.tgt[0] = TCode(dst)
 	in := kop.Instr{Op: kop.OpCreateTokenEx, C: int16(kroleRole), A: kop.Const(1),
 		B: kop.Const(int(kop.TokAttach) | int(kop.TokAttachN(kop.RefTarget0)))}
 	if ok, done := s.createAttachedToken(sc.k, &in, owner, 1); !ok || !done {
@@ -78,7 +78,7 @@ func TestRoleWithheldNoBearer(t *testing.T) {
 	sc := kroleScen(t)
 	before := sc.s.nobj
 	s := sc.s
-	s.res.e.tgt[0] = NoTarget
+	s.res.e.tgt[0] = TCode(NoTarget)
 	in := kop.Instr{Op: kop.OpCreateTokenEx, C: int16(kroleRole), A: kop.Const(1),
 		B: kop.Const(int(kop.TokAttach) | int(kop.TokAttachN(kop.RefTarget0)))}
 	if ok, done := s.createAttachedToken(sc.k, &in, 0, 1); !ok || !done {

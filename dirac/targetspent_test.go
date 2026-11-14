@@ -61,7 +61,7 @@ func TestTargetSpentSnapshot(t *testing.T) {
 			s.objs[resolving].zone = kop.ZoneStack
 			s.stack[0] = stackEntry{kind: seSpell, obj: target, card: targetID, ctrl: 1, trigAmt: c.spent}
 			s.stack[1] = stackEntry{kind: seSpell, obj: resolving, card: resolvingID, ctrl: 0, nt: 1}
-			s.stack[1].tgt[0] = uint8(target)
+			s.stack[1].tgt[0] = TCode(target)
 			s.sp = 2
 
 			if got := s.castSpent(target); got != c.spent {

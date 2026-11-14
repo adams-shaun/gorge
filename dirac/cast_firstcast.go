@@ -20,7 +20,7 @@ import "sync/atomic"
 
 // spellFirstCast is the spell entry's remVer bit 2 (spellGainedDeathtouch and
 // spellGainedLifelink hold bits 0 and 1; a spell has no remembered object).
-const spellFirstCast uint8 = 1 << 2
+const spellFirstCast objWord = 1 << 2
 
 // DebugFirstCastLate is the mutation switch: the flag is read at resolution
 // instead of stored at cast. A spell the seat casts later takes the flag from
