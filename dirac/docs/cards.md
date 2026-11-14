@@ -284,7 +284,7 @@ Most support work is a lowering, not a new engine primitive. The shape of the wo
    [`dirac/docs/kgen-params.md`](kgen-params.md).
 3. **Extend kop only if needed.** If kop cannot express the effect, add an op or an `ExtOp` sub-op in
    `dirac/kop` and implement it in dirac. [`dirac/README.md`](../README.md) is the
-   registration table: append-only ordinals, the name-registry tests, the `execExt` case, the new
+   registration table: append-only ordinals, the name-registry tests, the `//kmanifest:ext` handler, the new
    `opsdoc_<name>.go` row, and where a new stall reason goes. Do not renumber. A **stall** is a guard
    that stops the game when dirac cannot represent an ordering or a choice; it is a deliberate
    failure, not a silent wrong answer (see [`GORGE-FINDINGS.md`](GORGE-FINDINGS.md)).

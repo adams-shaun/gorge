@@ -8,6 +8,7 @@ package scripts
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -62,7 +63,15 @@ func TestTestTargetsRemoteReusesTheSlotWorktree(t *testing.T) {
 	write(t, filepath.Join(slot, "litter.txt"), "a previous run's untracked file\n", 0o644)
 	write(t, filepath.Join(slot, ".ds4", "scratch", "test", "one-stale.json"), "{}\n", 0o644)
 
-	time.Sleep(20 * time.Millisecond) // a rewritten file would get a later mtime
+	// A rewritten file must get a later mtime than keep: wait until this filesystem's clock has
+	// ticked past it, by writing a probe file there, not by sleeping a fixed wall-clock window.
+	for probe := filepath.Join(r.box, "mtime-probe"); ; {
+		write(t, probe, "tick\n", 0o644)
+		if mtime(t, probe).After(keep) {
+			break
+		}
+		runtime.Gosched()
+	}
 	r.commit("other.txt", "v2\n")
 	write(t, filepath.Join(r.repo, "fresh.txt"), "uncommitted, shipped as the patch\n", 0o644)
 	r.mustPass("second run")

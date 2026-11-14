@@ -17,7 +17,11 @@ const goldenDir = "testdata/gen"
 
 func generate(t *testing.T, m fstest.MapFS) map[string][]byte {
 	t.Helper()
-	files, err := Generate(load(t, m))
+	tr, err := LoadGen(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := Generate(tr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +131,7 @@ func TestGenerateEmptyManifest(t *testing.T) {
 	files := generate(t, fstest.MapFS{OrdinalsPath: {Data: []byte("OpNop\tOp\t0\n")}})
 	for p, want := range map[string]string{
 		KopGen:   GenHeader + "\n\npackage kop\n",
-		DiracGen: GenHeader + "\n\npackage dirac\n",
+		DiracGen: GenHeader + "\n\npackage dirac\n\nimport \"" + kopImport + "\"\n" + genExtDispatch(nil),
 		KgenGen:  GenHeader + "\n\npackage kgen\n",
 	} {
 		if string(files[p]) != want {
@@ -189,5 +193,35 @@ func TestWriteGenSecondRunIsNoOp(t *testing.T) {
 	}
 	if now, _ := os.ReadFile(kop); !bytes.Equal(now, was) {
 		t.Errorf("check wrote %s", KopGen)
+	}
+}
+
+// TestLowerCamel: a mech's name is its Go name past "mech" with the leading
+// capitals lowered, keeping the capital that starts the next word.
+func TestLowerCamel(t *testing.T) {
+	for in, want := range map[string]string{
+		"FooBar": "fooBar", "FBLo": "fbLo", "SBAChain": "sbaChain", "HexUB": "hexUB",
+		"Goad0": "goad0", "ExileEx": "exileEx", "Rem": "rem", "UB": "ub", "X": "x",
+	} {
+		if got := lowerCamel(in); got != want {
+			t.Errorf("lowerCamel(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// TestGenerateMechDoc: an entry's doc line follows its label in the
+// generated comment, and numMech is one past the highest mech.
+func TestGenerateMechDoc(t *testing.T) {
+	m := fixture(t)
+	set(Dir+"/mech/mechZed", "family: mech\nname: mechZed\nvalue: 60\nstate: objbit 32/64\nstatus: active\ndoc: zed marks\n")(m)
+	got := string(generate(t, m)[DiracGen])
+	for _, s := range []string{
+		"// mech (dirac/manifest/mech/mechZed)\n//\n// zed marks\nconst mechZed mech = 60\n",
+		"mechWidth[mechZed] = wObj\n",
+		"const numMech mech = 61\n",
+	} {
+		if !strings.Contains(got, s) {
+			t.Errorf("%s lacks %q:\n%s", DiracGen, s, got)
+		}
 	}
 }

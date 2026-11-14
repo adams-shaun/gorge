@@ -32,8 +32,10 @@ func Const(n int) ValueRef { return ValueRef{K: VConst, N: int16(n)} }
 // VExpr: the amount is Table.Exprs[N].
 const VExpr VKind = VCountersTarget + 1
 
-// ExprKind is an Expr's computation. Append-only.
-type ExprKind uint8
+// ExprKind is an Expr's computation. Append-only. It is 16 bits wide for
+// room: Expr.Kind sits before N int16, so the wider kind fills what was a pad
+// byte and Expr keeps its size (TestExprSizeUnchanged).
+type ExprKind uint16
 
 const (
 	ExNone                ExprKind = iota
@@ -154,13 +156,13 @@ type Expr struct {
 	N    int16
 	F    FilterID
 	Ref  Ref
+	Op   CmpOp // ExCompare's comparison; beside Ref so the 16-bit Ctr packs without a pad byte
 	Ctr  CounterKind
 	Sub  [2]ValueRef
 	Mul  int8
 	Div  int8
 	Add  int8
 	Neg  bool
-	Op   CmpOp // ExCompare's comparison
 
 	// Appended by ExThisTurnEntered's operands.
 	F2   FilterID // creature-base alternatives rewritten onto Card (gated by WasCreature)

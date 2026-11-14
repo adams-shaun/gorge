@@ -40,9 +40,8 @@ func (f *fakeNet) Priors(_ *dirac.State, d *dirac.Decision, _ []bool, out []floa
 // twoSeatCodes packs an action as the two-seat build packs it (kind<<24 |
 // source<<16 | target<<8 | mode, a byte a code), renumbering the stack and
 // player codes to the two-seat build's, so the fake prior, and every digest
-// pinned over it, is the same in both size classes: the four-seat class holds
-// sixteen-bit codes with its own code space (StackTarget0 488, PlayerTarget0
-// 504). In the two-seat build it returns uint32(a).
+// pinned over it, stays fixed whatever the code space. In the two-seat build
+// it returns uint32(a).
 func twoSeatCodes(a dirac.Action) uint32 {
 	code := func(c dirac.TCode) uint32 {
 		switch {

@@ -62,6 +62,14 @@
 // partially lowered items, and rows that name no code of their family. A
 // re-run adds only new vocabulary; it never edits an entry.
 //
+// # Extension handlers
+//
+// A new extension sub-op adds no case to the hand switch (execExt,
+// dirac/extop.go). Its handler, a State method with execExt's signature in the
+// feature's own file, carries "//kmanifest:ext ExtFoo" in its doc comment, and
+// gen writes execExtGen into dirac/manifest_gen.go: one case per handler, run
+// from the hand switch's default arm (ScanExt).
+//
 // # Late binding
 //
 // A "value: next" entry is rendered at a provisional value, the lowest free

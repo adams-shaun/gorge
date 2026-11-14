@@ -1,0 +1,6 @@
+family: mech
+name: mechIntimidatePost
+value: 48
+state: slotbit 16/16
+status: active
+doc: slots marked intimidate while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)

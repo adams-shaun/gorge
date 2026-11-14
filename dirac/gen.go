@@ -524,6 +524,9 @@ type genPrep struct {
 	landSub kop.SubMask
 	setIdx  []int16
 	setPC   []pcard
+	// uses: the registered per-table flags (newGenUse; genneed.go), where a
+	// feature's fact goes instead of a new bool here
+	uses useSet
 }
 
 // Replacement bits (genPrep.replBits).
@@ -625,7 +628,7 @@ func tableHasReconfigure(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -638,6 +641,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+		uses:        tableUses(t), // genneed.go
 	}
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
@@ -1949,7 +1953,7 @@ type genState struct {
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
-	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase.
 	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
@@ -2139,7 +2143,7 @@ type genState struct {
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
 	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
-	// (linkPadN, seats_default.go and seats_mp.go)
+	// (linkPadN, seats_default.go)
 	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
@@ -2252,6 +2256,7 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+	ctrPad   [ctrPadN]uint8 // carries the 16-bit counter kinds' growth to a whole cache line (ctr_sparse.go)
 
 	// Reserved tail: State bytes set aside so later work never edits a struct
 	// definition. Nothing reads or writes these yet. The rule: new State bytes

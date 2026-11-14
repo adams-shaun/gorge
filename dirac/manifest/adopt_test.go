@@ -52,6 +52,11 @@ const (
 )
 
 var extOpNames [NumExtOps]string
+
+func (o ExtOp) String() string { return extOpNames[o] }
+
+// Instr is one instruction.
+type Instr struct{ A struct{ N int32 } }
 `,
 	"dirac/kop/triggers.go": `package kop
 
@@ -83,7 +88,7 @@ func init() {
 	enum[kop.CounterKind]("kop.CtrP1P1", kop.CtrP1P1, "kop.CtrOil", kop.CtrOil)
 }
 `,
-	"dirac/kernel.go":                      "package dirac\n\nimport \"github.com/adams-shaun/gorge/dirac/kop\"\n\nvar _ = kop.CtrOil\n",
+	"dirac/kernel.go":                      "package dirac\n\nimport \"github.com/adams-shaun/gorge/dirac/kop\"\n\nvar _ = kop.CtrOil\n\ntype (\n\tState struct{}\n\tprep  struct{}\n)\n",
 	"dirac/manifest/CounterKind/CtrTicket": "family: CounterKind\nname: CtrTicket\nvalue: 9\nforge: TICKET\nstatus: reserved\n",
 	"dirac/manifest/ExtOp/ExtMakeCard":     "family: ExtOp\nname: ExtMakeCard\nvalue: 2\nforge: MakeCard\nstatus: reserved\n",
 }
@@ -197,7 +202,13 @@ func TestAdoptThreeCases(t *testing.T) {
 		}
 	}
 
+	// runtime.GOROOT() is empty in a -trimpath test binary (CI lint), so fall back to the go on PATH.
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	if _, err := os.Stat(goBin); err != nil {
+		if goBin, err = exec.LookPath("go"); err != nil {
+			t.Fatalf("no go toolchain: %v", err)
+		}
+	}
 	build := exec.Command(goBin, "build", "./...")
 	build.Dir = root
 	build.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS=", "GOTOOLCHAIN=local")

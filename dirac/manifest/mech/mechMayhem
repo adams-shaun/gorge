@@ -1,0 +1,6 @@
+family: mech
+name: mechMayhem
+value: 10
+state: objbit 32/64
+status: active
+doc: object mask: graveyard cards discarded this turn (CR 702.187; kw_mayhem.go)

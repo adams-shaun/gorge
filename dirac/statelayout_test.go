@@ -1,5 +1,3 @@
-//go:build !dirac_mp
-
 package dirac
 
 import (
@@ -7,7 +5,7 @@ import (
 	"unsafe"
 )
 
-// layoutClass names this size class's rows in testdata/layout.tsv.
+// layoutClass names the kernel's rows in testdata/layout.tsv.
 const layoutClass = "default"
 
 // perms starts at the same offset within a cache line as before the reserved
