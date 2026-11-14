@@ -6,6 +6,7 @@ Collected Company
 Counterspell
 Dauntless Bodyguard
 Davvol, Evincar of Rath
+Elite Scaleguard
 Executioner's Capsule
 Fatal Push
 Fellwar Stone
@@ -42,6 +43,7 @@ Seal of Fire
 Shimmerscale Drake
 Soul Warden
 Spellstutter Sprite
+Standstill
 Swamp
 The Rack
 Think Twice

@@ -341,6 +341,7 @@ const (
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
 	tapXRider               // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
+	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
 )
 
 type tapXKey struct {
@@ -365,6 +366,7 @@ type tapXSearch struct {
 	srcZ  kop.Zone
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
+	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
@@ -423,6 +425,8 @@ func tapXPairAt(n, qi int) (int, int) {
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXRiderGaps(k, p))
+	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
+	rs.gaps = rs.gaps.or(rs.def)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -481,7 +485,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXRider {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXRider || st.kind == tapXDefer {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -669,6 +673,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 			s.riderGap(k, p, st.sl, int(st.col))
 		}
 		s.sba(k)
+		return
+	}
+	if st.kind == tapXDefer {
+		s.tapXDeferDo(k, p, st)
 		return
 	}
 	if st.cand == NoSlot {
@@ -878,6 +886,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		sl := order[i]
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
+		}
+		if rs.def.has(sl) {
+			if found, handled := rs.deferAsk(k, t, sl); handled {
+				return found
+			}
+			continue
 		}
 		if each.has(sl) {
 			// an each-colour gap has one answer and asks nothing; tapped for

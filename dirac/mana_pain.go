@@ -194,6 +194,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 			return
 		}
 	}
+	s.noteDmgTaken(p, n)       // kw_bloodthirst.go
 	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 	s.loseLife(k, p, n)
 	if k.gen != nil && k.gen.anyPermMark {
@@ -323,8 +324,9 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	pm := uint8(pc.painCol) & 0x3f // a pain-only {C}{C} source (Ancient Tomb) makes colourless
 	// the tap's extra: the normal ability's carriers' on its type, the
 	// painful one's non-restricted carriers' on the painful type
-	// (srcExtraPain)
-	xc, xp, ok := s.srcExtraPain(k, sl, pc)
+	// (srcExtraPain); r is the painful pick's reflected extra beside a
+	// several-type production, which rides that unit's amount
+	xc, xp, r, ok := s.srcExtraPain(k, sl, pc)
 	if !ok {
 		return true
 	}
@@ -349,6 +351,12 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		n := uint8(1)
 		if pain != 0 && pc.painOnly {
 			n = max(pc.manaN, 1) // Ancient Tomb's {C}{C} in one activation
+		}
+		if pain != 0 && r > 0 {
+			// a several-type production's reflected extra is one mana of the
+			// pick (srcExtraPainPick): the activation makes n of the one
+			// colour the plan picks (gorge addTapExtra per alternative)
+			n += r
 		}
 		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0}
 		if pain != 0 {
@@ -455,6 +463,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 	}
 	modal := a.nModal != 0 // a source with a {C}-only extra: its groups split even when the budget does not bind
 	var pa painAvail
+	rpAny := false // some painful source's tap makes one mana of the pick more (srcExtraPainPick)
 	sum := 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -465,6 +474,13 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		if pc.painN != 1 {
 			s.painTightBail(modal)
 			return // a heavier rider: keep the per-unit count
+		}
+		if k.gen != nil && k.gen.anyTapExtra {
+			r, _, stall := s.srcExtraPainPick(k, sl, pc)
+			if stall {
+				s.capFull(StallTapExtra)
+			}
+			rpAny = rpAny || r > 0
 		}
 		sum++
 		pm := uint8(pc.painCol) & 0x1f
@@ -496,6 +512,12 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 			pa.n++
 		}
 		pa.cnt[g]++
+	}
+	if rpAny && (sum >= life || modal) {
+		// the groups' budget counts activations, not mana: a unit whose tap
+		// makes one mana of the pick more has no per-activation price here
+		s.capFull(StallTapExtra)
+		return
 	}
 	if sum < life && !modal {
 		return

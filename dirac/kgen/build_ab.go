@@ -1815,6 +1815,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
 		if s.Override != nil {
 			// RemoveKeyword$ beside the Continuous parts (layer 6)
 			i, err := cb.override(s.Override)
@@ -2969,13 +2970,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(z); err != nil {
 			return ki, err
 		}
-		if pk == kop.PayMana && in.C > 0 {
-			// PayMana's F is the life paid beside the mana
-			// (a trigger's own mana-and-life cost, Zoraline)
-			if in.F != nil || in.C > 255 {
+		if pk == kop.PayMana && (in.C > 0 || len(in.Hyb) != 0) {
+			// PayMana's F is the life paid beside the mana (a trigger's own
+			// mana-and-life cost, Zoraline) and its hybrid pips (Emiel the
+			// Blessed's {G/W}; kop.PayManaF)
+			f, ok := payManaF(in.C, in.Hyb) // lower_trighybrid.go
+			if in.F != nil || !ok {
 				return ki, fmt.Errorf("mana-and-life pay shape")
 			}
-			ki.F = kop.FilterID(in.C)
+			ki.F = f
 		}
 	case "DealDamage":
 		ki.Op = kop.OpDealDamage
@@ -4121,6 +4124,19 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "BlocksIfAble":
 		// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
+	case "KwMark":
+		// OpExt ExtKwMark, C the keywords (kop.KwMarkIntimidate |
+		// kop.KwMarkInfect), Obj the subject (RefNone with F: every
+		// battlefield permanent matching F; lower_kwmark.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtKwMark)), int16(in.C)
+		if in.F != nil {
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
+	case "ChangeText":
+		// OpExt ExtChangeText, Obj the one target, C the word list (textreach.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeText)), int16(in.C)
 	case "RemoveFromCombat":
 		// OpExt ExtRemoveFromCombat, Obj the one object removed (lower_removefromcombat.go)
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRemoveFromCombat))
@@ -4183,8 +4199,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		// OpExt ExtStackExileMark, C the kop.StackExile* bits (repl_stackexile.go)
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtStackExileMark)), int16(in.C)
 	case "DmgMark":
-		// OpExt ExtDmgMark, Obj the damaged player (dirac/repl_dmgmark.go)
-		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtDmgMark))
+		// OpExt ExtDmgMark, Obj the damaged player, or C kop.DmgMarkBySource
+		// for the resolving controller's sources (dirac/repl_dmgmark.go)
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtDmgMark)), int16(in.C)
 	case "EffFinalityCtr":
 		// OpExt ExtFinalityCtr, Obj the triggering spell
 		// (the kernel reads the entry's trigObj); the spell enters with one
@@ -4308,6 +4325,13 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
 	case "PreventDamageScope":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	case "Renown":
+		// OpExt ExtRenown on Obj (the source), B the counter count (dirac/act_renown.go)
+		v, err := cb.value(in.A)
+		if err != nil {
+			return ki, err
+		}
+		ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtRenown)), v
 	case "PreventNext":
 		// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
 		v, err := cb.value(in.A)
@@ -4393,6 +4417,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 	case "TapOrUntap":
 		ki.Op = kop.OpTapOrUntap
+	case "TapOrUntapAll":
+		// OpExt ExtTapOrUntapAll over the sweep filter (act_taporuntapall.go)
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtTapOrUntapAll))
+		if err := objFilter(kop.ZoneBattlefield); err != nil {
+			return ki, err
+		}
 	case "Explore":
 		ki.Op = kop.OpExplore
 	case "Poison":
