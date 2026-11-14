@@ -4,5 +4,4 @@ value: 105
 forge: TIDE
 census: ctr TIDE all=3 std=0 mbc=1 sole=0
 state: code 0
-status: active
-doc: CtrTide: Rikala, Homarid King's tide counter, a named counter with no inherent rules meaning (CR 122.1); its count gates the card's own remove-when-four line and tap extra and drives its +1/+0 read (Count$CardCounters.TIDE).
+status: reserved
