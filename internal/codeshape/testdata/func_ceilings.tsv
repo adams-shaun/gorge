@@ -32,7 +32,7 @@ dirac (*State).expr	157	64
 dirac (*State).exprCold	310	127
 dirac (*State).finishBuild	221	87
 dirac (*State).finishDigAt	151	62
-dirac (*State).fireDamageEvGen	109	52
+dirac (*State).fireDamageEvGen	109	55
 dirac (*State).fireEmblemsDmg	115	51
 dirac (*State).manaStep	310	106
 dirac (*State).matchCardOneAt	267	131
@@ -60,7 +60,7 @@ dirac (*grantSrch).visit	292	111
 dirac (*tapXSearch).visit	266	74
 dirac arenaUses	114	58
 dirac prepare	208	116
-dirac prepareGen	1085	432
+dirac prepareGen	1086	433
 dirac/canon (*Translator).Action	422	156
 dirac/canon (*Translator).generatedChoose	365	118
 dirac/cardset (dataSet).matchup	395	127
@@ -105,7 +105,7 @@ dirac/kgen (*lowerCtx).imprintMoxShape	56	59
 dirac/kgen (*lowerCtx).lowerAbility	536	287
 dirac/kgen (*lowerCtx).lowerKeywords	955	397
 dirac/kgen (*lowerCtx).lowerRepl	302	106
-dirac/kgen (*lowerCtx).lowerTriggered	1798	597
+dirac/kgen (*lowerCtx).lowerTriggered	1802	599
 dirac/kgen (*lowerCtx).manaEffect	165	67
 dirac/kgen (*lowerCtx).nodeCondition	238	78
 dirac/kgen (*lowerCtx).objOrTargetOpt	150	56
