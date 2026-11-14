@@ -1141,12 +1141,12 @@ func grantedTriggerStaticsFor(statics []ContinuousEffect, kind events.Kind, buf 
 }
 
 // grantAffects reports whether a granted-trigger registration's Affected$ spec
-// selects id. An Effect-delivered grant over Card.IsRemembered (Olinda the
-// Oblivious) reads only the set the Effect captured, bound through the same
-// registrationSpecCtx the restriction walks use; every other spec is the
-// plain source-relative match.
+// selects id. An Effect-delivered grant (Olinda the Oblivious's
+// Affected$ Card.IsRemembered) reads only the set the Effect captured, bound
+// through the same registrationSpecCtx the restriction walks use; a printed
+// static or the Animate route keeps the plain source-relative match.
 func (e *Engine) grantAffects(ce *ContinuousEffect, id state.ObjID) bool {
-	if !strings.Contains(ce.Affects, "IsRemembered") {
+	if !ce.FromEffect {
 		return e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source)
 	}
 	return e.matchesSpec(ce.Affects, id, registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce))
