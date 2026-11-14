@@ -20,7 +20,7 @@ func (s *State) execCold1(k *prep, in *kop.Instr) (ok, done bool) {
 		// on the battlefield; the source creature is the damage source. A
 		// planeswalker is a source too (Compel Brutality's second mode:
 		// loyalty damage, DamageSource$ ParentTarget)
-		if in.B.N == 1 {
+		if in.B.N == 1 || in.B.N == kop.DmgFromEachCtrl {
 			s.dmgSrcPlayers(k, in) // players mode (act_damagefrom.go)
 			break
 		}
@@ -102,6 +102,8 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		s.drawUptoOptions(d) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltOptions(d) // zone_destalt.go
+	case raChoosePlayerMid:
+		s.chosenPlayerMidOptions(d) // repl_chooseplayer.go
 	case raTapOrUntapAll:
 		s.tapOrUntapAllOptions(d) // act_taporuntapall.go
 	default:
@@ -133,6 +135,8 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		s.drawUptoAnswer(k, a) // act_drawupto.go
 	case raGenDestAlt:
 		s.destAltAnswer(k, a) // zone_destalt.go
+	case raChoosePlayerMid:
+		s.applyAskChosenPlayerMid(k, a) // repl_chooseplayer.go
 	case raTapOrUntapAll:
 		s.tapOrUntapAllAnswer(k, a) // act_taporuntapall.go
 	default:
