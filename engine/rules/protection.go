@@ -48,6 +48,14 @@ import (
 // protected (players have no ObjID, so a player target is never withheld on
 // protection grounds).
 func (e *Engine) protectedFrom(target, source state.ObjID) bool {
+	return protectedFromKW(e, e.G, target, source, false)
+}
+
+// protectedFromKW is protectedFrom's body. sba is true on the state-based
+// attachment checks (attach.go), the only place a keyword's SBA-flagged
+// exception ("doesn't remove Auras and Equipment you control that are already
+// attached", Benevolent Blessing) spares a source.
+func protectedFromKW(e protectionOracle, g *state.Game, target, source state.ObjID, sba bool) bool {
 	if target == 0 || source == 0 {
 		return false
 	}
@@ -74,6 +82,9 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 	for _, kw := range kws {
 		if q, ok := protectionQuality(kw); ok {
 			if e.sourceHasQuality(source, q) {
+				if effects.ProtectionExempt(kw, source, sba, e.controllerOf, func(spec string) bool { return e.sourceHasQuality(source, spec) }) {
+					continue
+				}
 				return true
 			}
 			// Player-relative qualities (Player.Opponent) are not object
@@ -84,8 +95,8 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 			// judged: controllerOf on a dead id degrades to seat 0, which
 			// would falsely name a controller. MatchesPlayerSpecFrom fails
 			// closed on a non-player spec, so no other quality widens here.
-			if e.G.Obj(source) != nil &&
-				effects.MatchesPlayerSpecFrom(e.G, q, e.controllerOf(source), e.controllerOf(target), 0) {
+			if g.Obj(source) != nil &&
+				effects.MatchesPlayerSpecFrom(g, q, e.controllerOf(source), e.controllerOf(target), 0) {
 				return true
 			}
 		}

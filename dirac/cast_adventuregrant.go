@@ -19,6 +19,6 @@ func (s *State) offerAdventureGrant(k *prep, d *Decision, p uint8, r mayPlay, so
 		return
 	}
 	if s.faceCastable(k, p, o, cd.Faces[1], sorc) {
-		d.add(MakeAction(AkCast, uint8(o), 1, castFace|castMayPlay))
+		d.add(MakeAction(AkCast, TCode(o), 1, castFace|castMayPlay))
 	}
 }

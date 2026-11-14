@@ -48,7 +48,7 @@ func TestFreeCastWordFourSeats(t *testing.T) {
 func TestBattleProtectorFourSeats(t *testing.T) {
 	s := new(State)
 	for p := uint8(0); p < MaxSeats; p++ {
-		s.perms[0].chosen = protChosen | p
+		s.perms[0].chosen = objWord(protChosen | p)
 		if got, ok := s.protector(0); !ok || got != p {
 			t.Fatalf("protector seat %d: got %d, %t", p, got, ok)
 		}
@@ -67,7 +67,7 @@ func TestLeftControllerFourSeats(t *testing.T) {
 	s.cold.entered = ring[:]
 	for p := uint8(0); p < MaxSeats; p++ {
 		s.g.enteredN = 1
-		ring[0] = zoneEntry{o: 7, from: uint8(kop.ZoneBattlefield), flags: enteredWasCreature}
+		ring[0] = zoneEntry{o: 7, tf: uint8(kop.ZoneBattlefield) << 4, flags: enteredWasCreature}
 		s.noteLeftController(7, p)
 		if got := ring[0].leftController(); got != p {
 			t.Fatalf("left under seat %d, ledger reads %d", p, got)

@@ -58,14 +58,14 @@ func TestEachDiscardAsksBothPlayers(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChDiscard || d.Player != 0 {
 		t.Fatalf("first ask kind %d sub %d player %d, want DkChoose ChDiscard 0", d.Kind, d.Sub, d.Player)
 	}
-	sc.do(t, AkChoose, uint8(h[0][0]), 0xff)
-	sc.do(t, AkChoose, uint8(h[0][1]), 0xff)
+	sc.do(t, AkChoose, TCode(h[0][0]), scAny)
+	sc.do(t, AkChoose, TCode(h[0][1]), scAny)
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChDiscard || d.Player != 1 {
 		t.Fatalf("second ask kind %d sub %d player %d, want DkChoose ChDiscard 1", d.Kind, d.Sub, d.Player)
 	}
-	sc.do(t, AkChoose, uint8(h[1][0]), 0xff)
-	sc.do(t, AkChoose, uint8(h[1][1]), 0xff)
+	sc.do(t, AkChoose, TCode(h[1][0]), scAny)
+	sc.do(t, AkChoose, TCode(h[1][1]), scAny)
 	if sc.s.pl[0].handN != 1 || sc.s.pl[1].handN != 1 {
 		t.Fatalf("hands %d/%d, want 1/1", sc.s.pl[0].handN, sc.s.pl[1].handN)
 	}
@@ -96,8 +96,8 @@ func TestEachDiscardWholeHandNoAsk(t *testing.T) {
 	if sc.s.pl[0].handN != 2 {
 		t.Fatalf("player 0 hand %d during the other seat's ask, want its 2 cards held", sc.s.pl[0].handN)
 	}
-	sc.do(t, AkChoose, uint8(other[0]), 0xff)
-	sc.do(t, AkChoose, uint8(other[1]), 0xff)
+	sc.do(t, AkChoose, TCode(other[0]), scAny)
+	sc.do(t, AkChoose, TCode(other[1]), scAny)
 	if sc.s.objs[first].zone != kop.ZoneGraveyard || sc.s.objs[second].zone != kop.ZoneGraveyard {
 		t.Fatalf("player 0's two cards not discarded after the last answer")
 	}
@@ -153,14 +153,14 @@ func TestEachDiscardControllerFirst(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChDiscard || d.Player != 1 {
 		t.Fatalf("first ask kind %d sub %d player %d, want the controller (1)", d.Kind, d.Sub, d.Player)
 	}
-	sc.do(t, AkChoose, uint8(h[1][0]), 0xff)
-	sc.do(t, AkChoose, uint8(h[1][1]), 0xff)
+	sc.do(t, AkChoose, TCode(h[1][0]), scAny)
+	sc.do(t, AkChoose, TCode(h[1][1]), scAny)
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChDiscard || d.Player != 0 {
 		t.Fatalf("second ask kind %d sub %d player %d, want the other seat (0)", d.Kind, d.Sub, d.Player)
 	}
-	sc.do(t, AkChoose, uint8(h[0][0]), 0xff)
-	sc.do(t, AkChoose, uint8(h[0][1]), 0xff)
+	sc.do(t, AkChoose, TCode(h[0][0]), scAny)
+	sc.do(t, AkChoose, TCode(h[0][1]), scAny)
 	if sc.s.pl[0].handN != 1 || sc.s.pl[1].handN != 1 {
 		t.Fatalf("hands %d/%d, want 1/1", sc.s.pl[0].handN, sc.s.pl[1].handN)
 	}

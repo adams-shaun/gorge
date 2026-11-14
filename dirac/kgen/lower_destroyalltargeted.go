@@ -18,6 +18,13 @@ func (lc *lowerCtx) destroyAllFilter(ps *params) (*lFilter, error) {
 	switch vc {
 	case "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith Targeted":
 		return lc.sameNameT0Filter() // lower_filterreferents.go
+	}
+	if rest, ok := sameNameSweepRest(vc); ok {
+		// Echoing Calm, Echoing Ruin, Wake of Destruction: the same sweep
+		// over one type (lower_filterreferents.go)
+		return lc.sameNameT0BattleFilter(rest)
+	}
+	switch vc {
 	case destroyAllAttachedSpec:
 		if ps.peek("ValidTgts") != "" || lc.ab == nil || len(lc.ab.Targets) != 1 ||
 			lc.ab.Targets[0].F == nil || lc.ab.Targets[0].F.Players != 0 {

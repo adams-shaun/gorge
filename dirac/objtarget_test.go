@@ -13,7 +13,7 @@ import (
 // object-target read, by file and the line's trimmed text.
 var objTargetAllow = map[string]string{
 	"act_mayshuffle.go":   "if p == NoTarget || p < PlayerTarget0 || p > PlayerTarget1 {",                                                                   // a player-range test
-	"tgt_stackability.go": "func isStackTarget(c uint8) bool { return c >= StackTarget0 && c < PlayerTarget0 } // seat-ok: the stack-code span, not a seat", // the stack-ability range test
+	"tgt_stackability.go": "func isStackTarget(c TCode) bool { return c >= StackTarget0 && c < PlayerTarget0 } // seat-ok: the stack-code span, not a seat", // the stack-ability range test
 }
 
 // TestObjTargetPredicate fails on any raw "x < PlayerTarget0" compare in
