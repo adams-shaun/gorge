@@ -10,7 +10,7 @@ import (
 // Both ticket cards carry a printed K:Bushido line. gorge now expands it,
 // but dirac has no Bushido lowering and must keep refusing the cards by
 // name with the keyword reason: a silent keyword drop would claim support
-// without lockstep evidence (and move buildAcceptancePin).
+// without lockstep evidence (and move the build_acceptance.tsv pin).
 func TestBushidoCardsStayRefusedByKeyword(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, name := range []string{"Jade Avenger", "Samurai of the Pale Curtain"} {

@@ -171,12 +171,9 @@ func TestDmgLatchNinthListenerStalls(t *testing.T) {
 	}
 }
 
-// TestOverrideRecordsFitEight: eight distinct override records live on one
-// slot in application order; the ninth stalls StallTables and no record is
-// evicted. ObjHash and ViewHash stay bit-identical to the base [4]ovRec
-// layout for three records (the hash reads the first four records as
-// before, and only mixes the second four when record four exists).
-func TestOverrideRecordsFitEight(t *testing.T) {
+// overrideRecordsTable is the vanilla table plus nine override records
+// (the first sets P/T 10/10), and the index of the first.
+func overrideRecordsTable() (kop.Table, int) {
 	tbl := *vanilla.Table
 	tbl.Cards = append([]kop.CardDef(nil), vanilla.Table.Cards...)
 	tbl.Overrides = append([]kop.Override(nil), vanilla.Table.Overrides...)
@@ -189,6 +186,14 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 		}
 		tbl.Overrides = append(tbl.Overrides, ov)
 	}
+	return tbl, base
+}
+
+// TestOverrideRecordsFitEight: eight distinct override records live on one
+// slot in application order; the ninth stalls StallTables and no record is
+// evicted.
+func TestOverrideRecordsFitEight(t *testing.T) {
+	tbl, base := overrideRecordsTable()
 	sc := newScenTable(t, &tbl, Config{NoElide: true})
 	target := sc.perm(vanilla.GrizzlyBears, 0)
 	sl := sc.slot(target)
@@ -225,36 +230,24 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	if recs := sc.s.ovRecs(sl); recs[0].ts != firstTS {
 		t.Fatalf("9th record evicted the oldest (ts %d, want %d)", recs[0].ts, firstTS)
 	}
+}
 
-	// Hash compatibility: three records, computed with the base [4]ovRec
-	// layout at 38babcfc (the first four records hash exactly as before).
-	// The ViewHash recipe gained genState.embN with (the
-	// generated state's emblems mix their frozen chosen number too), then
-	// genState.embT (an emblem's layer timestamp orders its static against a
-	// lose-all), so the view pin is the recipe after those changes; ObjHash
-	// is unchanged.
+// TestCapacityHashPins: ObjHash and ViewHash of a slot with three override
+// records are pinned per size class in testdata/layout.tsv. The hash reads
+// the first four records as the base [4]ovRec layout did and mixes the second
+// four only when record four exists, so three records hash as before. Both
+// hashes read the build's layout (the object hash a perm whose code fields
+// are MaxSeats-dependent widths, the view hash the generated state's per-seat
+// banks whole), so each class has its own pins.
+func TestCapacityHashPins(t *testing.T) {
+	tbl, base := overrideRecordsTable()
 	hsc := newScenTable(t, &tbl, Config{NoElide: true})
 	ht := hsc.perm(vanilla.GrizzlyBears, 0)
 	hsl := hsc.slot(ht)
 	for i := 0; i < 3; i++ {
 		hsc.s.applyOverridePT(hsc.k, hsl, base+i, vanilla.GrizzlyBears, 0, 10, 10)
 	}
-	// Computed with the base [4]ovRec layout, after perm.actUsed moved beside
-	// nblock (the mp State bar). Both hashes read the build's layout: the
-	// object hash a perm whose code fields are MaxSeats-dependent widths, the
-	// view hash the generated state's per-seat banks (emblems, turn history)
-	// whole, MaxSeats wide. So the dirac_mp build (four seat slots) has its
-	// own pins.
-	wantObjHash, wantViewHash := uint64(0x2d0ade365d42834a), uint64(0x34fa39b5c54075dd)
-	if MaxSeats > 2 {
-		wantObjHash, wantViewHash = 0xd5db2e2b1192a6be, 0x7ef8d43bac6f80a
-	}
-	if got := hsc.s.ObjHash(ht); got != wantObjHash {
-		t.Fatalf("ObjHash %#x, want %#x", got, wantObjHash)
-	}
-	if got := hsc.s.ViewHash(0, nil); got != wantViewHash {
-		t.Fatalf("ViewHash %#x, want %#x", got, wantViewHash)
-	}
+	checkLayoutHashes(t, hsc.s.ObjHash(ht), hsc.s.ViewHash(0, nil))
 }
 
 // TestReplCandsOverflowStalls: the three CR 616.1 candidate writers stall

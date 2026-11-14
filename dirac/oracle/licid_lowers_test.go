@@ -35,10 +35,12 @@ import (
 // The mutation drops the Override from both Licids' programs, so the kernel
 // attaches a creature, and must diverge.
 func TestLicidLowers(t *testing.T) {
+	corpusDirOrSkip(t) // a fresh clone has no corpus: skip, as every lockstep sibling does
 	if isolate(t) {
 		return
 	}
 	t.Run("table", func(t *testing.T) {
+		corpusDirOrSkip(t) // the tables are built from the corpus: with none, skip as the lockstep subtests do
 		set, err := cardset.RawByName("licid")
 		if errors.Is(err, cardset.ErrNoCorpus) {
 			t.Skip("no card corpus: " + err.Error())

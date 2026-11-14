@@ -6,11 +6,15 @@
 package gorgedevents
 
 import (
+	"flag"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/draft/eventhost"
+	"github.com/adams-shaun/gorge/draft/limited"
+	"github.com/adams-shaun/gorge/draft/limited/pickbot"
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/server/gorged"
@@ -20,18 +24,62 @@ import (
 // eventhost.Host is the /api/events backend gorged closes on shutdown.
 var _ gorged.EventRuntime = (*eventhost.Host)(nil)
 
-// Plugin is the draft-event runtime.
-type Plugin struct{}
+// Plugin is the draft-event runtime. Its zero value serves events with the
+// built-in card values; a binary that also passes Flags in
+// gorged.Extensions.Flags (a *Plugin) takes -commander-ratings.
+type Plugin struct {
+	commanderRatings      string
+	commanderRatingsField string
+}
+
+// commanderRatingsSet is the set a -commander-ratings file is read for
+// (pickbot.ParseRatingsOverride's scale): the Commander draft gorge hosts.
+const commanderRatingsSet = "MBC"
+
+// Flags registers the plugin's flags: -commander-ratings, a card value file
+// in the draftsim -ratings-file format ({"Card": {"<field>": value}}, read
+// by pickbot.ParseRatingsOverride) that every Commander-draft bot drafts and
+// builds by and a human's draft advice ranks by, and -commander-ratings-field.
+func (p *Plugin) Flags(fs *flag.FlagSet) {
+	fs.StringVar(&p.commanderRatings, "commander-ratings", "", "card value file for Commander-draft events ({\"Card\": {\"<field>\": value}}, the draftsim -ratings-file format): bots draft and build by it and draft advice ranks by it; empty uses the built-in heuristic")
+	fs.StringVar(&p.commanderRatingsField, "commander-ratings-field", "blended", "which field of -commander-ratings to rate by")
+}
+
+// commanderValue loads -commander-ratings as a Commander-persona value hook;
+// nil when the flag is empty.
+func (p Plugin) commanderValue() (func(*cards.Card, limited.CardRef) float64, error) {
+	if p.commanderRatings == "" {
+		return nil, nil
+	}
+	b, err := os.ReadFile(p.commanderRatings)
+	if err != nil {
+		return nil, fmt.Errorf("-commander-ratings: %w", err)
+	}
+	field := p.commanderRatingsField
+	if field == "" {
+		field = "blended"
+	}
+	ov, err := pickbot.ParseRatingsOverride(b, p.commanderRatings, field, commanderRatingsSet)
+	if err != nil {
+		return nil, fmt.Errorf("-commander-ratings: %w", err)
+	}
+	return ov.CommanderValue(pickbot.DefaultTuning), nil
+}
 
 // Prepare opens the event store under dir (memory when dir is "") and chains
 // its deck loader in front of load, so a host deck load of an event deck id
 // reads the event's saved deck file before the ordinary loaders see the name.
-func (Plugin) Prepare(dir string, reg *cards.Registry, load func(string) (host.Deck, error)) (gorged.EventsWiring, func(string) (host.Deck, error), error) {
+// It loads -commander-ratings first, so a bad file fails startup.
+func (p Plugin) Prepare(dir string, reg *cards.Registry, load func(string) (host.Deck, error)) (gorged.EventsWiring, func(string) (host.Deck, error), error) {
+	value, err := p.commanderValue()
+	if err != nil {
+		return nil, load, err
+	}
 	st, err := eventhost.OpenStore(dir)
 	if err != nil {
 		return nil, load, err
 	}
-	return &wiring{store: st, relay: &eventhost.Relay{}, series: eventhost.NewLazySeries()}, st.DeckLoader(reg, load), nil
+	return &wiring{store: st, relay: &eventhost.Relay{}, series: eventhost.NewLazySeries(), commanderValue: value}, st.DeckLoader(reg, load), nil
 }
 
 // ArtNames is every card name on any sheet of any collation of every
@@ -64,9 +112,10 @@ func (Plugin) ArtNames() (string, []string, error) {
 // wiring is what Prepare builds before host.New: the store whose deck loader
 // the registry needs, the OnMatchEnd relay and the lazy series hook.
 type wiring struct {
-	store  *eventhost.Store
-	relay  *eventhost.Relay
-	series *eventhost.LazySeries
+	store          *eventhost.Store
+	relay          *eventhost.Relay
+	series         *eventhost.LazySeries
+	commanderValue func(*cards.Card, limited.CardRef) float64
 }
 
 // Hook routes host.Options.OnMatchEnd through the relay, keeping any hook
@@ -98,6 +147,7 @@ func (w *wiring) Start(env gorged.EventsEnv) (gorged.EventRuntime, error) {
 		BotAutoPayMana: env.BotAutoPayMana,
 		BotCommonSense: env.BotCommonSense,
 		MintSeat:       env.MintSeat,
+		CommanderValue: w.commanderValue,
 	})
 	if err != nil {
 		return nil, err

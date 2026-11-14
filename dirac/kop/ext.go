@@ -88,7 +88,9 @@ const (
 	// target slot C, as the controller divided them while putting the
 	// trigger on the stack (TargetSpec.Divide == DivLKIP1P1: the slot takes
 	// 0..X targets, the total is X; CR 601.2d, 603.10a; gorge cr-dies-trigger-
-	// divided-counters-lki). dirac/ctr_divided.go.
+	// divided-counters-lki). B.N is the counter kind the shares put (0,
+	// CtrP1P1, for every form but the literal-N one; Contagion's -2/-1).
+	// dirac/ctr_divided.go.
 	ExtDividedCounters ExtOp = 30
 	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
 	// group program's remembered objects (trigObj and the one packed in
@@ -242,7 +244,7 @@ const (
 	// sub-op takes the next free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
 	// unnamed. Raise it only when the free values run out.
-	NumExtOps ExtOp = 320
+	NumExtOps ExtOp = 321
 )
 
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
@@ -852,3 +854,17 @@ func init() { extOpNames[ExtPreventNext] = "PreventNext" }
 const ExtRenown ExtOp = 294
 
 func init() { extOpNames[ExtRenown] = "Renown" }
+
+// ExtGrantEncore (Araumi of the Dead Tide): the graveyard card Obj gains
+// encore until end of turn (gorge pump.go's PumpZone$ Graveyard keyword
+// grant, the derived keyword [Encore:CardManaCost], CR 702.164a's grant
+// rider). gorge offers no activation of a granted encore -- kw_granted.go
+// synthesizes granted-keyword abilities for Cycling, Crew, Equip and friends
+// but not Encore, and no graveyard walk offers one -- so the kernel records
+// the grant alone: one mech bit on the card (mechEncore), part of its view,
+// ending at the zone change or the cleanup, like a granted flashback
+// (dirac/kw_encoregrant.go). A card no longer in the graveyard takes nothing
+// (gorge pump.go's zone guard skips it).
+const ExtGrantEncore ExtOp = 320
+
+func init() { extOpNames[ExtGrantEncore] = "GrantEncore" }

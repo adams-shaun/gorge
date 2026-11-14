@@ -127,6 +127,41 @@ var hiddenKeywordGrantKeys = state.NewNameSet(
 	"Mode", "Affected", "AffectedZone", "Description", "AddHiddenKeyword",
 )
 
+// addTriggerGrantFromLine reads an Effect-delivered Mode$ Continuous body whose
+// only grant is AddTrigger$ (Olinda the Oblivious's "each of those creatures
+// has 'At the beginning of your upkeep, you lose 2 life'", Obsidian
+// Fireheart's blaze land). Each name (" & "-joined, the printed-static route's
+// grammar via cards.SplitGrantNames) must be an SVar of the effect's table
+// that parses as a T:-shaped trigger, the same read the printed S: route
+// (engine/rules/layers.go) makes; a missing or unparseable body, a second
+// grant parameter, or a condition gate fails closed to the caller's honest
+// unimplemented Note. Only display metadata may sit alongside.
+func addTriggerGrantFromLine(params, svars map[string]string) (trigs []cards.Trigger, affected string, ok bool) {
+	raw := strings.TrimSpace(params["AddTrigger"])
+	if raw == "" {
+		return nil, "", false
+	}
+	for key := range params {
+		if !addTriggerGrantKeys.Has(key) {
+			return nil, "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		return nil, "", false
+	}
+	for _, name := range cards.SplitGrantNames(raw) {
+		t, parsed := cards.ParseTriggerLine(svars[name])
+		if !parsed {
+			return nil, "", false
+		}
+		trigs = append(trigs, t)
+	}
+	return trigs, affected, len(trigs) > 0
+}
+
+var addTriggerGrantKeys = state.NewNameSet("Mode", "Affected", "Description", "AddTrigger")
+
 // adjustLandPlaysGrantFromLine reads an Effect-delivered AdjustLandPlays$
 // grant (Explore, Scale the Heights, Urban Evolution, Summer Bloom): the
 // Effect path cannot evaluate a condition gate, so only the grant's own

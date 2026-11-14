@@ -123,6 +123,9 @@ jobs:
       - name: Build dirac's card tables
         run: make dirac-tables
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
+        env:
+          # dirac/kgen's acceptance pins are exact here; a local run fails only on a fall.
+          DIRAC_PIN_STRICT: "1"
         run: |
           # The nightly run takes every package, experimental ones included.
           if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1; fi

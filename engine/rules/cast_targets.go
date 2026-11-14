@@ -734,18 +734,29 @@ func bodyReadsAllTargeted(v string, svars map[string]string, depth int) bool {
 // reduction (CR 702.6), never that union. bodyReadsRef's shared walk means a
 // body can never be detected by one predicate and missed by the other's
 // ordering; the two only differ in which ref names they accept.
-func bodyReadsRootTarget(v string, svars map[string]string, depth int) bool {
+func bodyReadsRootTarget(v string, svars map[string]string, depth int, boundCtrl bool) bool {
 	return bodyReadsRef(v, svars, depth, func(s string) bool {
 		if strings.Contains(s, "AllTargeted") {
 			return false
 		}
-		return strings.Contains(s, "Targeted$") ||
-			strings.Contains(s, "ParentTarget$") ||
-			strings.Contains(s, "ThisTargetedCard$") ||
-			strings.Contains(s, "TargetedPlayer") ||
-			strings.Contains(s, "TargetedController")
+		// boundCtrl: the TargetedPlayerCtrl filter word is bound by the
+		// caller (a bound evaluator carrying the parent targets), not a read
+		// of an unbound root target.
+		if boundCtrl {
+			s = strings.ReplaceAll(s, "TargetedPlayerCtrl", "")
+		}
+		for _, ref := range rootTargetRefs {
+			if strings.Contains(s, ref) {
+				return true
+			}
+		}
+		return false
 	})
 }
+
+// rootTargetRefs are the spellings bodyReadsRootTarget treats as a read of
+// the ability's own chosen targets.
+var rootTargetRefs = []string{"Targeted$", "ParentTarget$", "ThisTargetedCard$", "TargetedPlayer", "TargetedController"}
 
 // bodyReadsRef is the shared transitive SVar/word walk both ref predicates
 // use. match decides whether a single expanded body names the ref; the walk
@@ -1032,8 +1043,12 @@ func subTargetingRootUnbindable(sub *cards.SA, svars map[string]string) bool {
 			strings.Contains(tp.DefinedController, "Targeted") || strings.Contains(tp.DefinedController, "ParentTarget")) {
 		return true
 	}
-	return bodyReadsRootTarget(tp.Min.Text, svars, 0) ||
-		bodyReadsRootTarget(tp.Max.Text, svars, 0)
+	// The bounds' TargetedPlayerCtrl filter word reads the parent's announced
+	// targets (targetBoundCtx binds them while a sub-offer is built), so Reap's
+	// `Permanent.Black+TargetedPlayerCtrl` count is priced at cast (CR 601.2c);
+	// every other target-reading body stays unbindable.
+	return bodyReadsRootTarget(tp.Min.Text, svars, 0, true) ||
+		bodyReadsRootTarget(tp.Max.Text, svars, 0, true)
 }
 
 // subTargetingChoosesParent reports whether a chain link's chooser
@@ -1055,8 +1070,8 @@ func subTargetingReadsRootTarget(sub *cards.SA, svars map[string]string) bool {
 			return true
 		}
 	}
-	return bodyReadsRootTarget(tp.Min.Text, svars, 0) ||
-		bodyReadsRootTarget(tp.Max.Text, svars, 0)
+	return bodyReadsRootTarget(tp.Min.Text, svars, 0, false) ||
+		bodyReadsRootTarget(tp.Max.Text, svars, 0, false)
 }
 
 // castSubTargetsOwed reports whether a chain link behind an optional

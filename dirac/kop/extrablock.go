@@ -6,4 +6,4 @@ package kop
 // additional creature each combat (gorge combat.BlockCapacity). The kernel
 // reads it in blockCap beside CardDef.ExtraBlocks; two sources on one
 // blocker are a capacity three the kernel does not model.
-const StatExtraBlock StaticKind = 259
+const StatExtraBlock StaticKind = 260

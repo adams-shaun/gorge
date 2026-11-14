@@ -945,6 +945,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
 				continue
 			}
+			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && cards.KeywordHead(o.Keyword) == "Saddle" {
+				// A saddle ability a static grants (Jandor, Fortuned Traveler's
+				// "has saddle 2"): the kernel's latent-ability activation,
+				// told apart by the granting permanent (kgen
+				// lower_saddlegrant.go). Only saddle is modelled: the other
+				// granted-keyword abilities keep the anchored note below.
+				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
+					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
+					continue
+				}
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue

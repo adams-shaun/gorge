@@ -855,7 +855,9 @@ func (s *State) applyBlock(k *prep, a Action) {
 	bp := &s.perms[b]
 	s.blockSeq++
 	if bp.flags&pfBlocking != 0 {
-		s.xblkRecs()[b] = xblkRec{a: uint8(at) + 1, ord: s.blockSeq} // the second attacker (combat_extrablock.go)
+		if !s.xblkAdd(b, at, s.blockSeq) { // the second attacker (combat_extrablock.go)
+			s.stall(StallExtraBlockCap)
+		}
 	} else {
 		bp.flags |= pfBlocking
 		bp.blocking = at

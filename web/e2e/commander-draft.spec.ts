@@ -19,12 +19,20 @@ import { test, expect, type Page } from '@playwright/test';
  * Bot assist (off by default) is turned on at the first pack: the seat's own
  * drafter must mark at least one card with a numbered suggestion badge, and
  * the build screen then shows the bot's suggested commanders.
+ *
+ * In-game assist: the pod table must offer the paired bot to the human seat
+ * (GET /api/tables/{t}/paired-bot), its panel must show, and asking it about
+ * the seat's first decision must answer. SMOKE_PAIRED_POLICY, when set, names
+ * the bot the offer must carry (az-closed-maxn on an MBC pod server).
  */
 
 const BASE = process.env.SMOKE_EVENTS;
 const WAIT_MS = 30_000;
 const DRAFT_MS = 420_000;
 const STARTING_LIFE = 40;
+const PAIRED_POLICY = process.env.SMOKE_PAIRED_POLICY;
+/** How long the paired bot's first answer may take: it searches, a few at a time across the server. */
+const ADVICE_MS = 120_000;
 
 /** watchPage collects page errors and same-origin server errors (5xx); a 409 stale pick is the client's designed recovery. */
 function watchPage(page: Page, base: string): string[] {
@@ -137,6 +145,10 @@ test.describe('MBC Commander Draft', () => {
     await join.waitFor({ state: 'visible', timeout: 120_000 });
     const href = await join.getAttribute('href');
     expect(href, 'the pod row carries the seat-tokenised table link').toMatch(/\/t\/[^?]+\?.*event=/);
+    // Listen before the table opens: the panel asks as soon as the seat's first decision settles.
+    const firstAdvice = page.waitForResponse((r) => /\/api\/tables\/[^/]+\/matches\/\d+\/advice\?seq=\d+/.test(r.url()), { timeout: ADVICE_MS });
+    // A failure before it is awaited must not also report this wait as unhandled.
+    firstAdvice.catch(() => undefined);
     await join.click();
     await page.waitForURL(/\/t\//, { timeout: WAIT_MS });
 
@@ -146,6 +158,31 @@ test.describe('MBC Commander Draft', () => {
     const lives = page.locator('[data-seat-row] [data-stat="life"]');
     await expect(lives).toHaveCount(4);
     for (let i = 0; i < 4; i++) await expect(lives.nth(i)).toHaveAttribute('aria-label', `Life: ${STARTING_LIFE}`);
+
+    // In-game assist: the pod table offers the paired bot to this seat...
+    const link = new URL(href!, base);
+    const table = decodeURIComponent(link.pathname.replace(/^\/t\//, ''));
+    const seat = link.searchParams.get('seat');
+    const token = link.searchParams.get('token');
+    expect(seat !== null && token !== null, `the join link names the seat and its token: ${href}`).toBe(true);
+    const offerRes = await request.get(`${base}/api/tables/${encodeURIComponent(table)}/paired-bot?seat=${seat}&token=${encodeURIComponent(token!)}`);
+    expect(offerRes.status()).toBe(200);
+    const offer = (await offerRes.json()) as { offered: boolean; policy?: string; reason?: string };
+    expect(offer.offered, `the pod table offers the paired bot: ${JSON.stringify(offer)}`).toBe(true);
+    if (PAIRED_POLICY) expect(offer.policy).toBe(PAIRED_POLICY);
+    // ...its panel shows, switched on for a player alone with bots...
+    const panel = page.locator('[data-paired-panel]');
+    await expect(panel).toBeVisible({ timeout: WAIT_MS });
+    const assist = panel.getByRole('switch');
+    if ((await assist.getAttribute('aria-checked')) !== 'true') await assist.click();
+    await expect(assist).toHaveAttribute('aria-checked', 'true');
+    // ...and asking it about the seat's first decision answers.
+    const adviceRes = await firstAdvice;
+    expect(adviceRes.status(), `advice ${adviceRes.url()}`).toBe(200);
+    const advice = (await adviceRes.json()) as { policy: string; state: string };
+    expect(advice.policy).toBe(offer.policy);
+    expect(['ready', 'none', 'refused']).toContain(advice.state);
+    await expect(panel).toHaveAttribute('data-state', /^(ready|none|refused)$/, { timeout: ADVICE_MS });
 
     expect(bad, 'the commander draft produced browser failures').toEqual([]);
   });
