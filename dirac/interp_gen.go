@@ -971,6 +971,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if DebugChooseCardAmount2 {
 			p = NextSeat(p) // TestKchoosecardparamsMutation: another player picks
 		}
+		// gorge cardChoices' filter tier reads You as the ACTIVATOR, never the
+		// chooser (engine/effects/choose_control.go cardChoicesIn: Demonic
+		// Hordes' "a land of an opponent's choice" offers the resolving
+		// controller's lands). Every chooser but the chosen-player one is the
+		// resolving controller, so the base differs only there (chooseCardBase).
+		base := p
+		if in.Obj == kop.RefEachOpponent {
+			base = e.ctrl
+		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
 		}
@@ -983,11 +992,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C == choosePopulatePick {
 			return s.populatePick(k, in, p) // copy_picked.go
 		}
-		if s.cardCands(k, in.F, p, nil) == 0 {
+		if s.cardCandsBase(k, in.F, p, base, nil) == 0 {
 			break
 		}
 		s.res.ask, s.res.askP = raGenChooseCard, p
 		return false, true
+	case kop.OpChoosePlayer:
+		s.choosePlayerOp(k, in) // act_chooseplayer.go
 	case kop.OpAttach:
 		if in.W != 0 {
 			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go

@@ -56,12 +56,13 @@ func altHandExileCost(c *kop.Cost) bool {
 	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
 }
 
-// altDiscardTwoCost: the alternative cost is two discard parts and nothing
-// else (Foil's Discard<1/Island> then Discard<1/Card.Other>, CR 118.3; kgen
-// altDiscardTwoShape): the CostDiscard part, filtered or not, then
-// Cost.Discard2N cards (cost_discardfiltered.go).
-func altDiscardTwoCost(c *kop.Cost) bool {
-	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 && c.Discard2N > 0 &&
+// altDiscardCost: the alternative cost is one discard part, or two, and
+// nothing else (Abolish's Discard<1/Plains>; Foil's Discard<1/Island> then
+// Discard<1/Card.Other>, CR 118.3; kgen altDiscardShape): the CostDiscard
+// part, filtered or not, then Cost.Discard2N cards when a second part is
+// owed (cost_discardfiltered.go).
+func altDiscardCost(c *kop.Cost) bool {
+	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 &&
 		!c.DiscardHand && c.Mana == (kop.ManaCost{})
 }
 
@@ -69,7 +70,7 @@ func altDiscardTwoCost(c *kop.Cost) bool {
 // (the sacrifice, the return, the hand exile or the two discards) rather than a
 // bare mana price.
 func altPickCost(c *kop.Cost) bool {
-	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardTwoCost(c)
+	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardCost(c)
 }
 
 // offerAltFreeHand offers hand card o's cast for its own free alternative

@@ -318,6 +318,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenPlAb is the ability whose random-pool ChoosePlayer (kop
+	// OpChoosePlayer) is lowered: ChosenPlayer reads the resolution's chosen
+	// player (kop RefResChosenPlayer), not the opponent (Maddening Hex's Attach)
+	chosenPlAb *lAbility
 	// chosenMidAb is the ability whose mid-resolution ChoosePlayer is lowered
 	// (OpExt ExtChoosePlayerMid): the chain's ChosenPlayer readers read the
 	// resolution's choice, and only until the Cleanup clears it.
@@ -2069,10 +2073,10 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.DiscardSelf {
 		return refuse("discard cost %q outside a hand ability", "Discard<1/CARDNAME>")
 	}
-	if c.DiscardF != nil && !(lc.altCostHand && c.Discard2N > 0) {
+	if c.DiscardF != nil && !lc.filteredDiscardHome(c) {
 		// a filtered discard is a battlefield activated ability's own cost
 		// (the candidates are that controller's hand cards; CR 118.3), or
-		// a spell alternative cost's two discard parts (lower_discardtwo.go)
+		// a spell's alternative or additional cost (lower_discardtwo.go)
 		return refuse("filtered discard cost outside an activated ability")
 	}
 	if c.DiscardHand && (lc.ab == nil || lc.ab.Kind != akActivated) {

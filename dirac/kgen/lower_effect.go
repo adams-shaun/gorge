@@ -3326,6 +3326,19 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		}
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
+	if zone == zGraveyard && att.Kind == vNone && def.Kind == vNone {
+		// Araumi of the Dead Tide: a Pump whose whole body is a graveyard
+		// keyword grant. gorge's pump registers the derived keyword
+		// [Encore:CardManaCost] on the card until end of turn and offers no
+		// activation of it (kw_granted.go synthesizes no Encore body; the
+		// grant lands and nothing is offered), so ExtGrantEncore encodes the
+		// grant alone. Any other keyword on a graveyard card stays refused
+		// below.
+		if kw, ok := ps.get("KW"); ok && strings.TrimSpace(kw) == "Encore:CardManaCost" {
+			lc.emit(lInstr{Op: "GrantEncore", Obj: obj})
+			return nil
+		}
+	}
 	kw, hasKW := ps.get("KW")
 	mustBlock, noCombat, lure, marks := false, false, false, 0
 	if hasKW {
@@ -4213,6 +4226,27 @@ func (lc *lowerCtx) attach(ps *params) error {
 	// Peek (not get) and gate on the one spelling: every other Defined$ (the
 	// ordinary Targeted attach object) must still resolve in the walk below,
 	// after its own target slot exists.
+	// The chosen player (Maddening Hex: DB$ Attach | Defined$ ChosenPlayer,
+	// after the random-pool ChoosePlayer): gorge's effAttach EnchantSelf
+	// branch walks the Defined$ player set — the resolution's chosen player —
+	// and attaches to the first legal seat (alive, the aura's Enchant word;
+	// the random pick already excluded the aura's bearer). The kernel's W arm
+	// is that walk over kop RefResChosenPlayer; a resolution with no pick (the
+	// random ChoosePlayer's empty pool) attaches nothing.
+	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "ChosenPlayer" &&
+		lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab {
+		ps.consume("Defined")
+		in := lInstr{Op: "Attach", W: lRef{Kind: rResChosenPlayer}}
+		if v, ok := ps.m["RememberAttached"]; ok {
+			if v = strings.TrimSpace(v); v != "True" {
+				return refuse("Attach RememberAttached$ %q", v)
+			}
+			ps.consume("RememberAttached")
+			in.CS = "Remember"
+		}
+		lc.emit(in)
+		return nil
+	}
 	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "TriggeredAttackingPlayer" {
 		r, err := lc.defined("TriggeredAttackingPlayer")
 		if err != nil {
