@@ -947,7 +947,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		if ce.AddTrigger == nil {
 			continue
 		}
-		if !observer.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) || observer.grantLostTo(ce, o) {
+		if !observer.grantAffects(ce, id) || observer.grantLostTo(ce, o) {
 			continue
 		}
 		t := *ce.AddTrigger
@@ -1138,6 +1138,18 @@ func grantedTriggerStaticsFor(statics []ContinuousEffect, kind events.Kind, buf 
 		}
 	}
 	return out
+}
+
+// grantAffects reports whether a granted-trigger registration's Affected$ spec
+// selects id. An Effect-delivered grant over Card.IsRemembered (Olinda the
+// Oblivious) reads only the set the Effect captured, bound through the same
+// registrationSpecCtx the restriction walks use; every other spec is the
+// plain source-relative match.
+func (e *Engine) grantAffects(ce *ContinuousEffect, id state.ObjID) bool {
+	if !strings.Contains(ce.Affects, "IsRemembered") {
+		return e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source)
+	}
+	return e.matchesSpec(ce.Affects, id, registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce))
 }
 
 // grantedTriggerStaticObserves reports whether any trigger ce grants could
