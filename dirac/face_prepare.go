@@ -51,8 +51,8 @@ var DebugPrepareStats *PrepareStats
 // preparedSrc reports whether DurPrepared record r still has its source: on
 // the battlefield with the recorded ver (gorge clears Prepared as it leaves).
 func (s *State) preparedSrc(r mayPlay) bool {
-	src := &s.objs[uint8(r.turn)]
-	return src.zone == kop.ZoneBattlefield && src.ver == uint8(r.turn>>8)
+	src := &s.objs[r.heldObj()]
+	return src.zone == kop.ZoneBattlefield && src.ver == r.heldVer()
 }
 
 // prepared reports whether battlefield object o is prepared (gorge
@@ -64,7 +64,7 @@ func (s *State) prepared(o Obj) bool {
 		return false
 	}
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := *s.mayAt(i); r.until == kop.DurPrepared && Obj(uint8(r.turn)) == o && uint8(r.turn>>8) == ob.ver {
+		if r := *s.mayAt(i); r.until == kop.DurPrepared && r.heldObj() == o && r.heldVer() == ob.ver {
 			return true
 		}
 	}
@@ -81,7 +81,7 @@ func (s *State) preparedCopyLive(k *prep, o Obj) (src Obj, ok bool) {
 	ob := &s.objs[o]
 	for i := 0; i < int(s.g.nmay); i++ {
 		if r := *s.mayAt(i); r.until == kop.DurPrepared && r.obj == o && r.ver == ob.ver && s.preparedSrc(r) {
-			return Obj(uint8(r.turn)), true
+			return r.heldObj(), true
 		}
 	}
 	return NoObj, false
@@ -129,7 +129,7 @@ func (s *State) prepare(k *prep, o Obj) {
 	pl.exile[pl.exileN] = c
 	pl.exileN++
 	s.touch(o)
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: c, ver: cp.ver, ctrl: ctrl, until: kop.DurPrepared, turn: uint16(o) | uint16(ob.ver)<<8}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: c, ver: cp.ver, ctrl: ctrl, until: kop.DurPrepared, turn: mayHeld(o, ob.ver)}
 	s.g.nmay++
 	if st := DebugPrepareStats; st != nil {
 		st.Grants++
@@ -194,7 +194,7 @@ func (s *State) offerPreparedCasts(k *prep, d *Decision, p uint8, sorc bool) {
 			continue
 		}
 		if s.faceCastable(k, p, o, ob.card, sorc) {
-			d.add(MakeAction(AkCast, uint8(o), 1, castFace))
+			d.add(MakeAction(AkCast, TCode(o), 1, castFace))
 		}
 	}
 }
@@ -253,7 +253,7 @@ func (s *State) unprepare(k *prep, o Obj) {
 		return
 	}
 	for i := 0; i < int(s.g.nmay); {
-		if r := *s.mayAt(i); r.until == kop.DurPrepared && Obj(uint8(r.turn)) == o && uint8(r.turn>>8) == ob.ver {
+		if r := *s.mayAt(i); r.until == kop.DurPrepared && r.heldObj() == o && r.heldVer() == ob.ver {
 			s.mayShiftDown(i)
 			s.g.nmay--
 			if st := DebugPrepareStats; st != nil {

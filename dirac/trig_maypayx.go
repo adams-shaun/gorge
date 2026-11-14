@@ -91,6 +91,6 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 //go:noinline
 func (s *State) trigXBind(k *prep) {
 	if in := &s.prog(k)[s.res.pc]; in.C&0xF == kop.PayManaX && in.B.N != kop.PayBSubEvidence {
-		s.res.e.x = s.g.pickLeft
+		s.res.e.x = objWord(s.g.pickLeft)
 	}
 }

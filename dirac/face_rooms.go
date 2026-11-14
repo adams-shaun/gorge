@@ -166,7 +166,7 @@ func (s *State) offerRoomAlt(k *prep, d *Decision, p uint8, o Obj, sorc bool) {
 	cd := &k.t.Cards[s.objs[o].card]
 	alt := 1 - cd.Face // seat-ok: the other face
 	if s.faceCastable(k, p, o, cd.Faces[alt], sorc) {
-		d.add(MakeAction(AkCast, uint8(o), alt, castFace))
+		d.add(MakeAction(AkCast, TCode(o), TCode(alt), castFace)) // code-ok: the other face's index
 	}
 }
 
@@ -227,7 +227,7 @@ func (s *State) offerUnlocks(k *prep, d *Decision, p uint8) {
 			if !s.specialAffords(k, p, &cost, kop.SpmUnlock, sl, 0) {
 				continue
 			}
-			d.add(MakeAction(AkUnlock, uint8(pm.obj), 0, fi))
+			d.add(MakeAction(AkUnlock, TCode(pm.obj), 0, fi))
 		}
 	}
 }

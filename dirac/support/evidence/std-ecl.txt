@@ -69,6 +69,7 @@ Eclipsed Realms
 Elder Auntie
 Emptiness
 Encumbered Reejerey
+End-Blaze Epiphany
 Enraged Flamecaster
 Evershrike's Gift
 Evolving Wilds
@@ -80,6 +81,7 @@ Flame-Chain Mauler
 Flamebraider
 Flamekin Gildweaver
 Flaring Cinder
+Flitterwing Nuisance
 Flock Impostor
 Forest
 Formidable Speaker
@@ -105,6 +107,7 @@ Gutsplitter Gang
 Hallowed Fountain
 Harmonized Crescendo
 Heirloom Auntie
+Hexing Squelcher
 High Perfect Morcant
 Illusion Spinners
 Impolite Entrance
@@ -112,6 +115,7 @@ Iron-Shield Elf
 Island
 Keep Out
 Kinbinding
+Kindle the Inner Flame
 Kinsbaile Aspirant
 Kinscaer Sentry
 Kirol, Attentive First-Year
@@ -119,7 +123,9 @@ Kithkeeper
 Kulrath Mystic
 Kulrath Zealot
 Lasting Tarfire
+Lavaleaper
 Liminal Hold
+Lluwen, Imperfect Naturalist
 Loch Mare
 Lofty Dreams
 Luminollusk
@@ -128,6 +134,7 @@ Maralen, Fae Ascendant
 Meanders Guide
 Merrow Skyswimmer
 Midnight Tilling
+Mirrormind Crown
 Mischievous Sneakling
 Mistmeadow Council
 Moon-Vigil Adherents
@@ -138,6 +145,7 @@ Morcant's Loyalist
 Mornsong Aria
 Mountain
 Mudbutton Cursetosser
+Mutable Explorer
 Nameless Inversion
 Nightmare Sower
 Noggle Robber
@@ -183,6 +191,7 @@ Silvergill Mentor
 Silvergill Peddler
 Sizzling Changeling
 Slumbering Walker
+Soulbright Seeker
 Sourbread Auntie
 Spell Snare
 Spiral into Solitude
@@ -200,6 +209,7 @@ Surly Farrier
 Swamp
 Swat Away
 Sygg's Command
+Tam, Mindful First-Year
 Tanufel Rimespeaker
 Temple Garden
 Temporal Cleansing

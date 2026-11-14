@@ -1,6 +1,10 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // setState lowers api:SetState Mode$ Transform (gorge effSetState, rules
 // effects/resolve.go) as OpTransform, on a modal layout or a transforming
@@ -12,6 +16,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (Flip, TurnFaceUp, TurnFaceDown, Unspecialize, the default), Optional$,
 // RememberChanged$, a target or another Defined$ refuses. Mode$ TurnFaceUp
 // is lower_setstateturnup.go's.
+//
+// Mode$ Transform with Choices$ is a pick, not a Self transform, so the
+// card's own layout is not read: setStateTransformPick.
 func (lc *lowerCtx) setState(ps *params) error {
 	m := ps.str("Mode")
 	if m == "TurnFaceUp" {
@@ -19,6 +26,9 @@ func (lc *lowerCtx) setState(ps *params) error {
 	}
 	if m != "Transform" {
 		return refuse("SetState Mode$ %q", m)
+	}
+	if ch, ok := ps.get("Choices"); ok {
+		return lc.setStateTransformPick(ps, ch)
 	}
 	if lc.out.FaceMode != kop.FaceModal && lc.out.FaceMode != kop.FaceTransform {
 		return refuse("SetState Transform on a layout the kernel does not turn (%d)", lc.out.FaceMode)
@@ -46,5 +56,33 @@ func (lc *lowerCtx) setState(ps *params) error {
 		return refuse("SetState of %s", obj)
 	}
 	lc.emit(lInstr{Op: "Transform", Obj: obj})
+	return nil
+}
+
+// setStateTransformPick lowers Mode$ Transform with Choices$ and Mandatory$
+// True (Sunder the Gateway's "transform an Incubator token you control"):
+// gorge setStateChoose's "setstate_pick", one mandatory KChoose (Min = Max =
+// 1, posed with one candidate too, none with no candidate) over the
+// battlefield permanents matching Choices$ that would transform (another
+// face, not day/nightbound), then the pick transforms. It rides ExtTurnFaceUp
+// C 2 (dirac/face_turnupeffect.go), the same ask as the TurnFaceUp pick.
+// Without Mandatory$ gorge's pick is Min 0 and refuses here, as do
+// Amount$/MinAmount$ (a multi-pick), Optional$, Defined$, ValidTgts$ and
+// RememberChanged$.
+func (lc *lowerCtx) setStateTransformPick(ps *params, ch string) error {
+	for _, k := range []string{"Amount", "MinAmount", "Optional", "Defined", "ValidTgts", "RememberChanged"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("SetState Transform Choices$ with %s$", k)
+		}
+	}
+	if v := ps.str("Mandatory"); v != "True" {
+		return refuse("SetState Transform Choices$ with Mandatory$ %q", v)
+	}
+	ps.consume("ChoiceTitle")
+	f, err := lc.filter(strings.TrimSpace(ch))
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "TurnFaceUp", F: f, C: 2})
 	return nil
 }

@@ -155,7 +155,7 @@ func (s *State) altOriginCands(k *prep, in *kop.Instr, d *Decision) {
 				continue
 			}
 			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}
@@ -241,7 +241,7 @@ func (s *State) czAttachHost(k *prep, in *kop.Instr, o Obj, ctrl uint8) (host Sl
 		if b == NoObj || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 			return NoSlot, true
 		}
-		var buf [MaxOptions]uint8
+		var buf [MaxOptions]TCode
 		for i, n := 0, s.enchantCands(k, c, ctrl, &buf); i < n; i++ {
 			if Obj(buf[i]) == b {
 				return s.objs[b].slot, false

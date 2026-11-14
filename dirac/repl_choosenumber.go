@@ -132,10 +132,10 @@ func (s *State) chosenNumberOfFor(src Obj, sl Slot) int {
 // leaves keeps it, as gorge's Object.ChosenNumber does), and in the
 // resolution for an answer read after the slot or object is gone.
 func (s *State) storeChosenNumber(o Obj, sl Slot, n int) {
-	s.res.chosen = uint8(n)
+	s.res.chosen = objWord(uint8(n))
 	s.res.bad |= resChosenNumber
 	if sl != NoSlot {
-		s.perms[sl].chosen = uint8(n)
+		s.perms[sl].chosen = objWord(uint8(n))
 	}
 	if o != NoObj {
 		s.objs[o].chosen = uint8(n)

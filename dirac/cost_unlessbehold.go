@@ -36,7 +36,7 @@ func (s *State) unlessBeholdCands(k *prep, p uint8, f kop.FilterID, d *Decision)
 		if s.matchPerm(k, f, sl, SeatIx(p), NoSlot) {
 			n++
 			if d != nil {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 	}
@@ -45,7 +45,7 @@ func (s *State) unlessBeholdCands(k *prep, p uint8, f kop.FilterID, d *Decision)
 		if o := pl.hand[i]; s.matchCardGen(k, f, s.objs[o].card, SeatIx(p), SeatIx(p), o) {
 			n++
 			if d != nil {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}

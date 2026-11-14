@@ -20,6 +20,11 @@ func (s *State) staticFlagGen(k *prep, sk kop.StaticKind, sl Slot) bool {
 		}
 		return true
 	})
+	if !hit && k.gen.anyOvGateStat && s.fxM.has(sl) {
+		// a static an Animate staticAbilities$ grant record on sl switches on
+		// (Streetwise Negotiator's Backup rider; static_ovgate.go)
+		s.grantedStaticFlag(k, sk, sl, &hit)
+	}
 	return hit
 }
 
@@ -237,7 +242,7 @@ func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 	if t == nil {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	pr := s.g.probe
 	if pr.kind == 0 {
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
@@ -313,14 +318,22 @@ func (s *State) cantLoseFor(k *prep, p uint8, reason int16) bool {
 }
 
 // mayPlayStatics calls f for every StatMayPlayFrom static controlled by p
-// that lets p play card object o (with the static's flags).
+// that lets p play card object o (with the static's flags). A {0}
+// alternative (cast_mayzeroalt.go) is no permission and is walked apart.
 func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool) {
+	s.mayPlayStaticsOf(k, p, o, false, f)
+}
+
+// mayPlayStaticsOf is mayPlayStatics over the {0}-alternative statics
+// (zeroAlt) or the permissions. A free-only static on Weftwalking's hand
+// spelling reaches every zone; any other static reaches its own.
+func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(st statSrc) bool) {
 	ob := &s.objs[o]
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom ||
-			a.Static.StFlags&kop.StFreeOnly == 0 && !mayPlayFromZone(&a.Static, ob.zone) {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || zeroAltStatic(&a.Static) != zeroAlt ||
+			(a.Static.StFlags&kop.StFreeOnly == 0 || zeroAlt) && !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&kop.StSeatActive != 0 {
@@ -349,7 +362,7 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 		return true
 	}
 	s.eachStaticC(k, sclsMayPlay, check)
-	if stopped {
+	if stopped || zeroAlt {
 		// f stopped the walk at a permanent's permission: the card's own
 		// graveyard permission is not offered again (Storied Veteran in the
 		// graveyard under Leonardo, Sewer Samurai: gorge lists one cast)
@@ -458,7 +471,7 @@ func (s *State) equipTargetPriced(k *prep) (*kop.Ability, Slot, bool) {
 // price (the chosen earlier targets plus the candidate, after the ability's
 // own ReduceCost$) the activator can pay; every candidate while a source the
 // window census cannot price is open (as the spell branch).
-func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	a, sl, ok := s.equipTargetPriced(k)
 	if !ok || DebugNoAbReduce {
 		return n
@@ -468,7 +481,7 @@ func (s *State) abilityAffordableTargets(k *prep, buf *[MaxOptions]uint8, n int)
 		return n
 	}
 	ti := min(int(s.bld().ti), kop.MaxTargets-1)
-	var tg [kop.MaxTargets]uint8
+	var tg [kop.MaxTargets]TCode
 	copy(tg[:ti], e.tgt[:ti])
 	base := a.Cost.Mana
 	if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
@@ -513,7 +526,7 @@ func (s *State) unmarkCostComposition(set bool) {
 // affordableTargets keeps, for a spell whose cost reduction depends on its
 // target (Luminous Rebuke), only the targets it can still pay for: all of
 // them when the full cost is affordable, else those the reduction needs.
-func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	e := &s.bld().e
 	if e.kind != seSpell {
 		if k.gen.anyAbReduce {

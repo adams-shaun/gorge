@@ -376,7 +376,7 @@ func TestFacedownProjection(t *testing.T) {
 					continue
 				}
 				checked++
-				id := sbtObjID(uint8(i))
+				id := sbtObjID(dirac.Obj(i))
 				for seat := uint8(0); seat < 2; seat++ {
 					v := ag.buildView(&ks.s, seat, nil)
 					var cv *view.CardView
@@ -419,7 +419,7 @@ func TestFacedownProjection(t *testing.T) {
 					continue
 				}
 				stackChecked++
-				id := sbtObjID(uint8(e.Source))
+				id := sbtObjID(dirac.Obj(e.Source))
 				for seat := uint8(0); seat < 2; seat++ {
 					v := ag.buildView(&ks.s, seat, nil)
 					if i >= len(v.Stack) {

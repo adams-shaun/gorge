@@ -76,7 +76,7 @@ func TestMayPlayPayLifeCast(t *testing.T) {
 	}
 
 	s.pl[0].life = 20
-	sc.do(t, AkCast, uint8(o), 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
 	for i := 0; i < 8 && s.objs[o].zone != kop.ZoneStack; i++ {
 		d := s.Step()
 		if d.N == 0 {
@@ -105,7 +105,7 @@ func TestMayPlayPayLifeCast(t *testing.T) {
 		t.Fatal("a plain free record reads as pay-life")
 	}
 	s.pl[0].life = 20
-	s2.do(t, AkCast, uint8(o), 0xff)
+	s2.do(t, AkCast, TCode(o), scAny)
 	for i := 0; i < 8 && s.objs[o].zone != kop.ZoneStack; i++ {
 		d := s.Step()
 		if d.N == 0 {

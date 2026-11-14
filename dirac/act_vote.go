@@ -38,10 +38,10 @@ func (s *State) voteBallot(k *prep, in *kop.Instr) slotMask {
 // controller who has not voted and is still in the game; false when every
 // voter is done.
 func (s *State) voteNext() bool {
-	for i := s.res.chosen; i < 2; i++ {
+	for i := uint8(s.res.chosen); i < 2; i++ { // res.chosen: the voters asked so far
 		p := s.res.e.ctrl ^ i
 		if !s.pl[p].lost {
-			s.res.chosen = i + 1
+			s.res.chosen = objWord(i + 1)
 			s.res.ask, s.res.askP = raVote, p
 			return true
 		}
@@ -63,7 +63,7 @@ func (s *State) voteStart(k *prep, in *kop.Instr) bool {
 func (s *State) voteOptions(k *prep, d *Decision) {
 	d.Sub = ChVoteCard
 	for m := s.voteBallot(k, &s.prog(k)[s.res.pc]); m.any(); m = m.rest() {
-		d.add(MakeAction(AkChoose, uint8(s.perms[m.first()].obj), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.perms[m.first()].obj), 0, 0))
 	}
 }
 

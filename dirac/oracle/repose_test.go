@@ -68,7 +68,7 @@ func TestReposeBlockCeilingOnAWideBoard(t *testing.T) {
 			id := state.ObjID(40 + b)
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "block", Obj: id, Attacker: atk,
 				MaxBlockers: maxb, Group: "blocker:" + strconv.Itoa(int(id))})
-			fr.acts = append(fr.acts, Pack(ActBlock, uint8(id), uint8(a), 0))
+			fr.acts = append(fr.acts, Pack(ActBlock, Ref(id), Ref(a), 0))
 			fr.valid = append(fr.valid, true)
 		}
 	}

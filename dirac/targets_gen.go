@@ -25,8 +25,9 @@ type multiTgt struct {
 // multiSlot reports whether spec t needs the multi-object path.
 func multiSlot(t *kop.TargetSpec) bool {
 	// TgfDecl only marks a copy declaration; TgfTrigChooser only moves the
-	// ask's player (cast.go), a single-object slot's qualifier
-	return t.Min|t.Max != 0 || t.Divide != 0 || t.TFlags&^(kop.TgfDecl|kop.TgfTrigChooser) != 0
+	// ask's player (cast.go), a single-object slot's qualifier; the player
+	// comparison flags only narrow a TgtPlayer slot's candidates (targetOK)
+	return t.Min|t.Max != 0 || t.Divide != 0 || t.TFlags&^(kop.TgfDecl|kop.TgfTrigChooser|kop.TgfPlayerCompareOK) != 0
 }
 
 const (
@@ -68,7 +69,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 				// objects the slot can take (Divine Resilience's
 				// Count$Valid Creature.YouCtrl), so picking every one
 				// closes the slot with no done-only ask (pair 1473)
-				var buf [MaxOptions]uint8
+				var buf [MaxOptions]TCode
 				mt.max = max8(uint8(s.multiCands(k, t, ti, &buf)), mt.min)
 			}
 		} else if t.TFlags&kop.TgfKickedRange != 0 && kickedOnlySlot(t) {
@@ -84,7 +85,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			// gorge bounds a same-controller slot by its largest group
 			// (Soul-Shackled Zombie: "up to two from a single graveyard"
 			// with one card in each closes after the first pick)
-			var buf [MaxOptions]uint8
+			var buf [MaxOptions]TCode
 			n := s.multiCands(k, t, ti, &buf)
 			var per [MaxSeats]uint8
 			for i := 0; i < n; i++ {
@@ -105,7 +106,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			s.tgtSetBounds(k, t, e, mt) // tgt_setconstraints.go
 		}
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := 0
 	if mt.picked < mt.max {
 		n = s.multiCands(k, t, ti, &buf)
@@ -209,9 +210,9 @@ func (s *State) finishSlot(k *prep, d *Decision, t *kop.TargetSpec) int {
 }
 
 // multiCands lists the slot's remaining candidates.
-func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOptions]uint8) int {
+func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOptions]TCode) int {
 	e := &s.bld().e
-	var all [MaxOptions]uint8
+	var all [MaxOptions]TCode
 	n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &all)
 	mt := &s.g.mt
 	var per [MaxSeats]uint8
@@ -256,7 +257,7 @@ func (s *State) multiCands(k *prep, t *kop.TargetSpec, ti uint8, out *[MaxOption
 	return m
 }
 
-func (s *State) pickedInSlot(e *stackEntry, ti uint8, c uint8) bool {
+func (s *State) pickedInSlot(e *stackEntry, ti uint8, c TCode) bool {
 	if s.g.mt.picked > 0 && e.tgt[ti] == c {
 		return true
 	}
@@ -268,7 +269,7 @@ func (s *State) pickedInSlot(e *stackEntry, ti uint8, c uint8) bool {
 	return false
 }
 
-func (s *State) pickedBefore(e *stackEntry, ti uint8, c uint8) bool {
+func (s *State) pickedBefore(e *stackEntry, ti uint8, c TCode) bool {
 	for i := uint8(0); i < ti; i++ {
 		if e.tgt[i] == c {
 			return true
@@ -330,7 +331,7 @@ func (s *State) applyMultiTarget(k *prep, a Action) {
 // controller when it asks for the same: Pestilent Cauldron's "four target
 // cards from a single graveyard", gorge castTargetsAvailable).
 func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj) bool {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.targetCands(k, t, p, src, self, &buf)
 	if n < int(t.Min) {
 		return false

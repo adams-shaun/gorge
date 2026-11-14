@@ -46,7 +46,7 @@ func TestCycledCardReadsX(t *testing.T) {
 			if sc.s.npend != 1 {
 				t.Fatalf("%s: %d pending triggers after the cycle, want 1", name, sc.s.npend)
 			}
-			if got := sc.s.pend[0].x; got != x {
+			if got := sc.s.pend[0].x; got != objWord(x) {
 				t.Errorf("%s cycled with X %d: the trigger's bound X is %d", name, x, got)
 			}
 		}
@@ -246,7 +246,7 @@ func (sc *scen) castToTrigger(t *testing.T, o Obj, want uint8) *stackEntry {
 	d := sc.s.Step()
 	cast := false
 	for i := 0; i < int(d.N) && !cast; i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) && a.Mode()&want == want {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) && a.Mode()&want == want {
 			sc.s.Apply(a)
 			cast = true
 		}
@@ -284,7 +284,7 @@ func TestCastSpentBoundToSelfETB(t *testing.T) {
 		sc.lands(0, id["Plains"], 5)
 		sc.s.place(sc.obj(id["T Rock"], 0), kop.ZoneGraveyard, false)
 		e := sc.castToTrigger(t, sc.hand(id["Astelli Reclaimer"], 0), c.mode)
-		if e.x != c.want {
+		if e.x != objWord(c.want) {
 			t.Errorf("%s: the trigger's bound spend is %d, want %d", c.name, e.x, c.want)
 		}
 		var p Projection

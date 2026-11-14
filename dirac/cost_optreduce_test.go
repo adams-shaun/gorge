@@ -70,7 +70,7 @@ func TestOptCostReduce(t *testing.T) {
 		generic uint8
 	}{{"plain cast", 0, 3}, {"collected cast", 1, 1}} {
 		sc, o = optReduceScen(t, 4)
-		sc.s.Apply(MakeAction(AkCast, uint8(o), 0, tc.mode))
+		sc.s.Apply(MakeAction(AkCast, TCode(o), 0, tc.mode))
 		if sc.s.ctl != ctlBuild {
 			t.Fatalf("%s: control %d, want the cast build", tc.name, sc.s.ctl)
 		}

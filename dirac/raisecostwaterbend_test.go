@@ -28,7 +28,7 @@ func rcwbSetup(t *testing.T, bears, islands int) (sc *scen, id map[string]CardID
 func rcwbOffered(sc *scen, o Obj) bool {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}
@@ -50,7 +50,7 @@ func TestRaisecostWaterbendCastPaysWithTaps(t *testing.T) {
 			if picked >= 5 {
 				t.Fatalf("a sixth waterbend pick was offered: Waterbend<5> caps at five")
 			}
-			sc.do(t, AkChoose, uint8(bs[picked]), 0xff)
+			sc.do(t, AkChoose, TCode(bs[picked]), scAny)
 			picked++
 			continue
 		}

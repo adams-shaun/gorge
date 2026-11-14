@@ -11,20 +11,19 @@ type Table = kop.Table
 // Slot is a battlefield slot index; 255 = none.
 type Slot uint8
 
-// Obj is a card instance (object) index into State.objs; 255 = none. The
+// Obj is a card instance (object) index into State.objs; NoObj = none. The
 // first len(deckA) objects are seat 0's deck in deck order, the next
-// len(deckB) seat 1's; tokens take the remaining indices.
-type Obj uint8
+// len(deckB) seat 1's; tokens take the remaining indices. Obj and NoObj are
+// set per size class (seats_default.go, seats_mp.go): a byte, and nine bits
+// in a uint16 under dirac_mp.
 
 const (
 	NoSlot Slot = 255
-	NoObj  Obj  = 255
 	// PlayerTarget0.. encode a player in an Action's target byte and in
 	// stack target records; PlayerTarget0 and StackTarget0 are set per size
 	// class (seats_default.go, seats_mp.go). PlayerTarget1 is seat 1's code;
 	// PlayerCode(p) is the spelling that holds at every seat count.
-	PlayerTarget1 uint8 = PlayerTarget0 + 1
-	NoTarget      uint8 = 0xFF
+	PlayerTarget1 TCode = PlayerTarget0 + 1
 	// StackTarget0 encodes the activated or triggered ability at stack
 	// index i (from the bottom) as StackTarget0+i in a target byte, the
 	// oracle's canonical RefStack+i (tgt_stackability.go): codes
@@ -36,20 +35,22 @@ const (
 // isObjTarget reports whether target byte c names an object (a card or
 // token instance), not a stack ability, a player or no target. Every
 // object-target read goes through it (TestObjTargetPredicate).
-func isObjTarget(c uint8) bool { return c < MaxObj }
+func isObjTarget(c TCode) bool { return c < MaxObj }
 
 // isPlayerTarget reports whether target byte c names a player, not an
 // object, a stack ability or no target. A raw "c >= PlayerTarget0" also
 // admits NoTarget, so the player-range test goes through here.
-func isPlayerTarget(c uint8) bool { return c >= PlayerTarget0 && c <= PlayerTarget0+(MaxSeats-1) }
+func isPlayerTarget(c TCode) bool { return c >= PlayerTarget0 && c <= PlayerTarget0+(MaxSeats-1) }
 
 // IsObjTarget is isObjTarget for the kernel's clients (the search bots, the
 // feature encoders, the oracle).
-func IsObjTarget(c uint8) bool { return c < MaxObj }
+func IsObjTarget(c TCode) bool { return c < MaxObj }
 
-// Action is a packed answer to a Decision:
-//
-//	kind<<24 | source<<16 | target<<8 | mode
+// Action is a packed answer to a Decision: its kind, source, target and
+// mode, laid out per size class (actKindShift and the rest, seats_*.go;
+// kind<<24 | source<<16 | target<<8 | mode in the default class). Only
+// MakeAction and the accessors below read or write the layout
+// (TestObjCodeCastsOnlyShrink).
 //
 // source and target are Obj indices (or PlayerTarget*), mode an
 // action-specific small value. See ActionKind for each kind's fields.
@@ -88,19 +89,20 @@ const (
 func isCastKind(k ActionKind) bool { return k == AkCast || k == AkCastCasualty || k == AkCastConspire }
 
 // scriptPlayKinds is the set of kinds a scripted activation can fund: the
-// casts, an activation, a plot and a sneak (script_gen.go); one mask test.
-const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<AkActivate | 1<<AkPlot | 1<<AkSneak
+// casts, a bestowed cast, an activation, a plot and a sneak (script_gen.go);
+// one mask test.
+const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<AkBestow | 1<<AkActivate | 1<<AkPlot | 1<<AkSneak
 
 func isScriptPlayKind(k ActionKind) bool { return scriptPlayKinds>>k&1 != 0 }
 
 // MakeAction packs an Action.
-func MakeAction(k ActionKind, source, target, mode uint8) Action {
-	return Action(uint32(k)<<24 | uint32(source)<<16 | uint32(target)<<8 | uint32(mode))
+func MakeAction(k ActionKind, source, target TCode, mode uint8) Action {
+	return Action(uint32(k)<<actKindShift | uint32(source)<<actSrcShift | uint32(target)<<actTgtShift | uint32(mode))
 }
 
-func (a Action) Kind() ActionKind { return ActionKind(a >> 24) }
-func (a Action) Source() uint8    { return uint8(a >> 16) }
-func (a Action) Target() uint8    { return uint8(a >> 8) }
+func (a Action) Kind() ActionKind { return ActionKind(a >> actKindShift) }
+func (a Action) Source() TCode    { return TCode(a >> actSrcShift & actCodeMask) }
+func (a Action) Target() TCode    { return TCode(a >> actTgtShift & actCodeMask) }
 func (a Action) Mode() uint8      { return uint8(a) }
 
 // DecisionKind is what a Decision asks.
@@ -197,22 +199,22 @@ func (s *State) canonKey(d *Decision, a Action) uint32 {
 			pl := &s.pl[s.objs[a.Source()].owner()]
 			for i := 0; i < int(pl.handN); i++ {
 				if pl.hand[i] == Obj(a.Source()) {
-					return uint32(AkChoose)<<24 | uint32(i)
+					return uint32(MakeAction(AkChoose, 0, 0, uint8(i))) // code-ok: the packed word is the sort key, and its fields order alike in every class
 				}
 			}
 		case ChAltAdd: // canonical value = option position
-			return uint32(AkChoose)<<24 | uint32(a.Mode())
+			return uint32(MakeAction(AkChoose, 0, 0, a.Mode())) // code-ok: the packed word is the sort key
 		case ChOptional: // canonical Yes before No
-			return uint32(AkChoose)<<24 | uint32(1-a.Mode()) // seat-ok: a yes/no option, not a seat
+			return uint32(MakeAction(AkChoose, 0, 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
 		case ChOptDiscMay: // canonical Yes before No
-			return uint32(AkChoose)<<24 | uint32(1-a.Mode()) // seat-ok: a yes/no option, not a seat
+			return uint32(MakeAction(AkChoose, 0, 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
 		case ChGenDigOpt: // canonical Yes before No
-			return uint32(AkChoose)<<24 | uint32(1-a.Mode()) // seat-ok: a yes/no option, not a seat
+			return uint32(MakeAction(AkChoose, 0, 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
 		}
 	case AkOrder: // (Order, source, -, occurrence)
-		return uint32(a) & 0xffff00ff
+		return uint32(MakeAction(AkOrder, a.Source(), 0, a.Mode())) // code-ok: the packed word is the sort key
 	}
-	return uint32(a)
+	return uint32(a) // code-ok: the packed word is the sort key, and its fields order alike in every class
 }
 
 // sortCanonical orders d's options canonically (stable insertion sort; the

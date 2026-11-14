@@ -26,7 +26,7 @@ func (s *State) echoOwnDelayed(k *prep, d *delayed, m uint8) {
 		return
 	}
 	ob := &s.objs[d.obj]
-	if ob.zone != kop.ZoneBattlefield || ob.ver != d.ver {
+	if ob.zone != kop.ZoneBattlefield || objWord(ob.ver) != d.ver {
 		return
 	}
 	sl := ob.slot

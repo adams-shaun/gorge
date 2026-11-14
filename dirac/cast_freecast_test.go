@@ -167,7 +167,7 @@ func TestFreePlayTargetedGraveExiles(t *testing.T) {
 	o := sc.obj(id["Opt"], 0)
 	sc.s.place(o, kop.ZoneGraveyard, false)
 	m11Start(sc, synth, func(e *stackEntry) {
-		e.tgt[0] = uint8(o)
+		e.tgt[0] = TCode(o)
 		e.nt = 1
 	})
 	d := m11FreeAsk(t, sc)

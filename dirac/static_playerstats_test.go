@@ -80,12 +80,12 @@ func TestParkNCPlayerProtection(t *testing.T) {
 		if prot {
 			sc.perm(virtue, 1)
 		}
-		parked := sc.s.parkNC(sc.k, 0, src, NoCard, PlayerTarget0+1, 3, 0)
+		parked := sc.s.parkNC(sc.k, 0, src, NoCard, TCode(PlayerTarget0+1), 3, 0)
 		if parked == prot {
 			t.Errorf("protected %v: parked %v, want %v", prot, parked, !prot)
 		}
 		if prot {
-			if m := sc.s.replDamage(sc.k, 0, src, NoCard, PlayerTarget0+1, false, 3); m != 0 {
+			if m := sc.s.replDamage(sc.k, 0, src, NoCard, TCode(PlayerTarget0+1), false, 3); m != 0 {
 				t.Errorf("protected: replDamage %d, want 0", m)
 			}
 		}

@@ -37,7 +37,7 @@ func (s *State) pceStart(k *prep, in *kop.Instr) bool {
 	case 0:
 		return true
 	case 1:
-		return s.pcePut(k, in, Obj(kinds[0]))
+		return s.pcePut(k, in, Obj(kinds[0])) // code-ok: a counter kind
 	}
 	r.ask, r.askP = raRemCtrAny, r.e.ctrl
 	PutExistingStats.Asked.Add(1)
@@ -47,7 +47,7 @@ func (s *State) pceStart(k *prep, in *kop.Instr) bool {
 // pceAnswer takes the kind pick and puts the counter.
 func (s *State) pceAnswer(k *prep, in *kop.Instr, a Action) {
 	s.res.ask = raNone
-	if s.pcePut(k, in, Obj(a.Mode())) {
+	if s.pcePut(k, in, Obj(a.Mode())) { // code-ok: a counter kind
 		s.continueRes(k, 0)
 	} else {
 		s.ctl = ctlResolve // the CR 616.1 order ask
@@ -58,7 +58,7 @@ func (s *State) pceAnswer(k *prep, in *kop.Instr, a Action) {
 // parked on the order ask.
 func (s *State) pcePut(k *prep, in *kop.Instr, kind Obj) bool {
 	s.res.peek[0] = kind
-	s.g.lastCK = kop.CounterKind(kind) // CounterAddedOnce reads the kind
+	s.g.lastCK = kop.CounterKind(kind) // code-ok: a counter kind (CounterAddedOnce reads it)
 	pi := kop.Instr{Op: kop.OpPutCounter, Obj: in.Obj, A: in.B, C: int16(kind)}
 	return s.execPutCounter(k, &pi)
 }

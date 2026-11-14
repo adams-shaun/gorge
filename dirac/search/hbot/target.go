@@ -182,7 +182,7 @@ func (bt *Bot) harm(d *dirac.Decision, r *tgtRank) int32 {
 // targetKey is a target's place in gorge's option list: players first,
 // then objects by zone class (stack, battlefield, graveyard, exile, hand,
 // library), seat, zone position.
-func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
+func (bt *Bot) targetKey(s *dirac.State, tg dirac.TCode) uint32 {
 	if tg >= dirac.PlayerTarget0 {
 		return uint32(tg - dirac.PlayerTarget0)
 	}
@@ -216,9 +216,9 @@ func (bt *Bot) targetKey(s *dirac.State, tg uint8) uint32 {
 // optPlayer is the gorge option's Player: the player itself, or the
 // object's zone's player (controller on the battlefield and the stack,
 // owner elsewhere).
-func optPlayer(s *dirac.State, tg uint8) uint8 {
+func optPlayer(s *dirac.State, tg dirac.TCode) uint8 {
 	if tg >= dirac.PlayerTarget0 {
-		return tg - dirac.PlayerTarget0
+		return uint8(tg - dirac.PlayerTarget0)
 	}
 	if i, ok := dirac.StackTargetIndex(tg); ok {
 		if i < s.StackLen() {
@@ -242,7 +242,7 @@ func optPlayer(s *dirac.State, tg uint8) uint8 {
 }
 
 // rankOption is target.go's rankOption.
-func (bt *Bot) rankOption(r *tgtRank, tg uint8, me uint8) {
+func (bt *Bot) rankOption(r *tgtRank, tg dirac.TCode, me uint8) {
 	b := &bt.b
 	pl := optPlayer(b.s, tg)
 	if tg >= dirac.PlayerTarget0 {
@@ -257,7 +257,7 @@ func (bt *Bot) rankOption(r *tgtRank, tg uint8, me uint8) {
 }
 
 // effectRank is target.go's effectRankerAfter.
-func (bt *Bot) effectRank(r *tgtRank, tg uint8, me uint8, dmg int32, spare bool) {
+func (bt *Bot) effectRank(r *tgtRank, tg dirac.TCode, me uint8, dmg int32, spare bool) {
 	b := &bt.b
 	pl := optPlayer(b.s, tg)
 	if tg >= dirac.PlayerTarget0 {
@@ -295,7 +295,7 @@ func (bt *Bot) effectRank(r *tgtRank, tg uint8, me uint8, dmg int32, spare bool)
 }
 
 // removalRank is target.go's removalRanker.
-func (bt *Bot) removalRank(r *tgtRank, tg uint8, me uint8, te *TgtEff) {
+func (bt *Bot) removalRank(r *tgtRank, tg dirac.TCode, me uint8, te *TgtEff) {
 	b := &bt.b
 	bt.rankOption(r, tg, me)
 	if r.ours {

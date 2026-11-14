@@ -50,7 +50,7 @@ func TestGrantedManaPrefixBeforeTargets(t *testing.T) {
 	d := s.Step()
 	found := false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkActivate && a.Source() == uint8(pass) && a.Mode() == 1 {
+		if a.Kind() == AkActivate && a.Source() == TCode(uint8(pass)) && a.Mode() == 1 {
 			s.Apply(a)
 			found = true
 			break
@@ -163,7 +163,7 @@ func TestGrantedManaScriptCap(t *testing.T) {
 		d := s.Step()
 		got := false
 		for _, a := range d.Options[:d.N] {
-			if a.Kind() == AkActivate && a.Source() == uint8(ral) {
+			if a.Kind() == AkActivate && a.Source() == TCode(uint8(ral)) {
 				got = true
 			}
 		}
@@ -206,7 +206,7 @@ func TestGrantedManaKickedCast(t *testing.T) {
 	d := s.Step()
 	plain, kicked := false, false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(g) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(g)) {
 			if a.Mode()&1 != 0 {
 				kicked = true
 			} else {
@@ -259,7 +259,7 @@ func TestGrantedArtifactManaKeepsPlan(t *testing.T) {
 	d := s.Step()
 	found := false
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkActivate && a.Source() == uint8(pass) && a.Mode() == 1 {
+		if a.Kind() == AkActivate && a.Source() == TCode(uint8(pass)) && a.Mode() == 1 {
 			s.Apply(a)
 			found = true
 			break
@@ -313,7 +313,7 @@ func TestGrantedFlashbackInstanceLowered(t *testing.T) {
 	sc.s.grantFB(sc.k, bu)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(bu) && a.Mode()&2 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(bu)) && a.Mode()&2 != 0 {
 			sc.s.Apply(a)
 			if d = sc.s.Step(); d.Kind != DkTarget {
 				t.Fatalf("decision kind %d, want the target ask", d.Kind)

@@ -7,10 +7,11 @@ import "strings"
 // X the spell announces for its printed {X} (Skeletal Scrying's
 // X B ExileFromGrave<X/Card>, SVar X Count$xPaid). Only a spell's own Cost$
 // beside that {X}: gorge announces an X for the part even with no mana {X} and
-// for an activated ability, where the kernel has no matching ask, and it
-// announces a free X where the SVar names a fixed count (Araumi of the Dead
-// Tide's "equal to the number of opponents", Forge's X = the SVar; gorge asks
-// 0..graveyard instead, a gorge defect), so those stay refused.
+// for an activated ability, where the kernel has no matching ask, so those
+// stay refused. A script whose SVar X is not Count$xPaid
+// fixes the count (gorge pay.FixLifeXCost drops the announcement): Araumi of
+// the Dead Tide's "equal to the number of opponents" lowers as the fixed
+// ExileFromGrave<1/Spec> of a two-seat card; any other SVar stays refused.
 
 // exileXCost reads ExileFromGrave<X/Spec> (spec not the source) into c: the
 // announced X cards matching Spec are exiled (kop.CostExileGrave, N 0).
@@ -18,10 +19,17 @@ func (lc *lowerCtx) exileXCost(c *lCost, parts []string, t string) error {
 	if len(parts) < 2 || len(parts) > 3 {
 		return refuse("cost token %q", t)
 	}
+	fixed := false
 	if x, ok := lc.face.SVars["X"]; ok && strings.TrimSpace(x) != "Count$xPaid" {
-		return refuse("exile cost %q with SVar X %q: gorge announces a free X where the script fixes the count", t, strings.TrimSpace(x))
+		// gorge (pay.FixLifeXCost) fixes the count to the SVar and asks
+		// nothing; only the opponents' count of an activated ability's own
+		// cost lowers, read as the one opponent of a two-seat game.
+		if strings.TrimSpace(x) != "PlayerCountOpponents$Amount" || !lc.actCost {
+			return refuse("exile cost %q with SVar X %q: the script fixes the count", t, strings.TrimSpace(x))
+		}
+		fixed = true
 	}
-	if !lc.lifeXSpell {
+	if !fixed && !lc.lifeXSpell {
 		return refuse("exile cost %q outside a spell's own cost", t)
 	}
 	if parts[1] == "CARDNAME" || c.ExileG != nil || c.ExileHandN != 0 || c.ExileGBf {
@@ -35,6 +43,11 @@ func (lc *lowerCtx) exileXCost(c *lCost, parts []string, t string) error {
 		if cl.CmpX != "" {
 			return refuse("exile cost %q: a variable bound", t)
 		}
+	}
+	if fixed {
+		lc.twoSeat("an exile cost of the opponents' count read as one")
+		c.ExileG, c.ExileGN = f, 1
+		return nil
 	}
 	c.ExileG, c.ExileGN, c.ExileGX = f, 0, true
 	return nil

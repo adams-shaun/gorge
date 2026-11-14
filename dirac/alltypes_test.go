@@ -35,7 +35,7 @@ func TestAllCreatureTypesHasOutsideType(t *testing.T) {
 	sc.stepTo(t, 12, func() bool { return pushed && sc.s.sp == 0 }, func(d *Decision) (Action, bool) {
 		pushed = pushed || sc.s.sp > 0
 		for _, a := range d.Options[:d.N] {
-			if !activated && a.Kind() == AkActivate && a.Source() == uint8(ss) {
+			if !activated && a.Kind() == AkActivate && a.Source() == TCode(uint8(ss)) {
 				activated = true
 				return a, true
 			}

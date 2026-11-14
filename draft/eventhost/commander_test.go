@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/draft/event"
+	"github.com/adams-shaun/gorge/draft/limited/build"
+	"github.com/adams-shaun/gorge/draft/limited/pickbot"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -253,6 +256,39 @@ func TestCommanderBotPodCompletes(t *testing.T) {
 			if en.Head == "crashed" || en.Head == "" {
 				t.Fatalf("the pod game did not finish: head %q", en.Head)
 			}
+		}
+	}
+}
+
+// TestCommanderDeckSizeFollowsTheEvent: a run's Commander deck size is the
+// event's EventCreated DeckSize, build.CommanderDeckSize before the event is
+// created or when it names none, and the Commander persona's drafter (Pick
+// and the advice endpoint's Rank) and builder score for it.
+func TestCommanderDeckSizeFollowsTheEvent(t *testing.T) {
+	r := &run{ev: event.New()}
+	if got := r.commanderDeckSize(); got != build.CommanderDeckSize {
+		t.Fatalf("before EventCreated: deck size %d, want %d", got, build.CommanderDeckSize)
+	}
+	seats := make([]event.SeatSpec, 4)
+	for i := range seats {
+		seats[i] = event.SeatSpec{Kind: "bot", Name: fmt.Sprintf("bot%d", i)}
+	}
+	for _, tc := range []struct{ named, want int }{{0, build.CommanderDeckSize}, {50, 50}} {
+		ev := event.New()
+		if err := ev.Apply(event.Entry{Kind: event.KindEventCreated, Seed: 9, Set: "TST", Seats: seats,
+			Format: event.FormatCommander, Structure: event.StructureNone, PicksPerPass: 2, DeckSize: tc.named}); err != nil {
+			t.Fatal(err)
+		}
+		r := &run{ev: ev}
+		if got := r.commanderDeckSize(); got != tc.want {
+			t.Errorf("EventCreated deck size %d: run deck size %d, want %d", tc.named, got, tc.want)
+		}
+		d, b := commanderPersona(nil, r.commanderDeckSize())
+		if got := d.(*pickbot.CommanderDrafter).DeckSize; got != tc.want {
+			t.Errorf("EventCreated deck size %d: drafter DeckSize %d, want %d", tc.named, got, tc.want)
+		}
+		if got := b.(*pickbot.CommanderBuilder).DeckSize; got != tc.want {
+			t.Errorf("EventCreated deck size %d: builder DeckSize %d, want %d", tc.named, got, tc.want)
 		}
 	}
 }

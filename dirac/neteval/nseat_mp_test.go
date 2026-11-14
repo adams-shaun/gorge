@@ -3,6 +3,7 @@
 package neteval
 
 import (
+	"math"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -102,4 +103,74 @@ func TestNSeatSearchWithNet(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestFourSeatRootEvalEverySeat: at a root of a four-seat Commander game
+// whose seats' libraries differ (so every seat's view differs) the net
+// values the root from each seat's view without panicking, through the
+// parts path and the materialized encoding alike, and the four values are
+// finite and pairwise distinct: each seat reads its own seat-relative
+// blocks, not another seat's. Priors at the root match too, and a pass of
+// every seat's value and the decider's priors allocates nothing.
+func TestFourSeatRootEvalEverySeat(t *testing.T) {
+	a, b := testNet(t), testNet(t)
+	b.Materialize = true
+	var decks [dirac.MaxSeats][]dirac.CardID
+	var cmds [dirac.MaxSeats][2]int16
+	for p := 0; p < 4; p++ {
+		decks[p] = append([]dirac.CardID{v.GrizzlyBears}, v.Decks[p][:40-3*p]...)
+		cmds[p] = [2]int16{0, -1}
+	}
+	var s dirac.State
+	s.InitN(v.Table, decks, 4, 7, dirac.Config{NoElide: true, Commander: true, Commanders: cmds})
+	// the root: the first decision offering several options, reached by
+	// a random line (the libraries still differ there)
+	pol := dirac.NewRandomPolicy(7)
+	var d dirac.Decision
+	for s.StepInto(&d); d.Kind != dirac.DkNone && d.N < 3; s.StepInto(&d) {
+		s.Apply(pol.Pick(&d))
+	}
+	if d.Kind == dirac.DkNone || s.NumSeats() != 4 {
+		t.Fatalf("setup: decision %v at %d seats", d.Kind, s.NumSeats())
+	}
+	var vals [4]float32
+	for seat := uint8(0); seat < 4; seat++ {
+		a.NewWorld()
+		b.NewWorld()
+		va, vb := a.Value(&s, &d, seat), b.Value(&s, &d, seat)
+		if math.IsNaN(float64(va)) || math.IsInf(float64(va), 0) {
+			t.Fatalf("seat %d: value %v", seat, va)
+		}
+		if math.Abs(float64(va-vb)) > 1e-5 {
+			t.Fatalf("seat %d: parts value %v, materialized %v", seat, va, vb)
+		}
+		vals[seat] = va
+	}
+	for p := 0; p < 4; p++ {
+		for q := p + 1; q < 4; q++ {
+			if vals[p] == vals[q] {
+				t.Fatalf("seats %d and %d value the root the same (%v): %v", p, q, vals[p], vals)
+			}
+		}
+	}
+	pa, pb := make([]float32, d.N), make([]float32, d.N)
+	a.Priors(&s, &d, nil, pa)
+	b.Priors(&s, &d, nil, pb)
+	for i := range pa {
+		if math.Abs(float64(pa[i]-pb[i])) > 1e-4 {
+			t.Fatalf("option %d: parts logit %v, materialized %v", i, pa[i], pb[i])
+		}
+	}
+	run := func() {
+		a.NewWorld()
+		for seat := uint8(0); seat < 4; seat++ {
+			a.Value(&s, &d, seat)
+		}
+		a.Priors(&s, &d, nil, pa)
+	}
+	run()
+	if n := testing.AllocsPerRun(5, run); n != 0 {
+		t.Fatalf("allocs per four-seat root pass = %v", n)
+	}
+	t.Logf("root values by seat %v over %d options", vals, d.N)
 }

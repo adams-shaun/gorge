@@ -185,6 +185,9 @@ func foldTurnChange(g *state.Game, e *Event) {
 		g.PrevTurnSpells = 0
 		if validPlayer(g, g.Active) {
 			g.PrevTurnSpells = g.Players[g.Active].SpellsCastThisTurn
+			// the outgoing seat's turn is complete: its attacks become
+			// its last turn's (attackedYouTheirLastTurn)
+			g.Players[g.Active].AttackedSeatsLastTurn = g.Players[g.Active].AttackedSeatsThisTurn
 		}
 		g.Turn = e.Amount
 		g.Active = e.Player

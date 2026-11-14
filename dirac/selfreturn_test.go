@@ -19,7 +19,7 @@ func TestSelfReturnFindsNoNewObject(t *testing.T) {
 	sc.perm(id["Swamp"], 0)
 	sk := sc.obj(id["Reassembling Skeleton"], 0)
 	sc.s.place(sk, kop.ZoneGraveyard, false)
-	sc.do(t, AkActivate, uint8(sk), 0xff)
+	sc.do(t, AkActivate, TCode(sk), scAny)
 	sc.stepTo(t, 6, func() bool { return sc.s.sp > 0 && sc.s.ctl == ctlPriority }, nil)
 	if sc.s.sp == 0 {
 		t.Fatal("the ability is not on the stack")
@@ -54,7 +54,7 @@ func TestSkeletonReturnSameObject(t *testing.T) {
 	acts := 0
 	pick := func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; acts < 2 && a.Kind() == AkActivate && a.Source() == uint8(sk) {
+			if a := d.Options[i]; acts < 2 && a.Kind() == AkActivate && a.Source() == TCode(uint8(sk)) {
 				acts++
 				return a, true
 			}

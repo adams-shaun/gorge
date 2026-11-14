@@ -306,7 +306,7 @@ func (b *board) cardOf(o dirac.Obj) *cardF {
 
 // creOf is obj's creature entry, nil when it is none.
 func (b *board) creOf(o dirac.Obj) *creature {
-	if dirac.IsObjTarget(uint8(o)) { // not NoObj, not a stack-ability target byte
+	if dirac.IsObjTarget(dirac.TCode(o)) { // not NoObj, not a stack-ability target byte
 		if i := b.creX[o]; i > 0 {
 			return &b.cre[i-1]
 		}

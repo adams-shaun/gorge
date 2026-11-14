@@ -28,6 +28,8 @@
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
+#  8b. the oracle fast tier: the ./dirac/oracle tests of 0.5 s or less (dirac/oracle/testdata/fasttier.txt).
+#  8c. the dirac_mp unit tests (-tags dirac_mp) of ./dirac, canon, neteval, search and search/hbot.
 #  mp. the dirac_mp build (make dirac-mp-check: vet, the State bar and layout pin, then lockstep on
 #      4-seat vanilla pods and the FDN and BLB slices at two seats), about 60 s, only when a non-test
 #      file under dirac/ changed. A failure fails the gate.
@@ -208,6 +210,50 @@ pins=$(git ls-tree --name-only HEAD dirac/oracle/testdata/pins/ | sed -E 's|.*/|
 out=$(go test -v -timeout 5m -run "^TestRefusedEntriesStillDiverge\$|^TestChoosesHaveNoOther\$|^TestStd[A-Za-z]*ReprosLockstep|^TestPinManifest\$|^TestPinManifestCoversOldPins\$|^($pins)\$" ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, a committed repro left lockstep, or a pinned game no longer reaches its condition: $(named=$(grep -E -- '--- FAIL|divergen|never reaches' <<<"$out" | head -20); if [ -n "$named" ]; then echo "$named"; else echo "(no test failed by name: the test binary died or did not build)"; grep -m1 -A14 -E '^(panic:|fatal error:|# |FAIL[[:space:]])' <<<"$out"; tail -6 <<<"$out"; fi)"
 skip=$(grep -F -- '--- SKIP' <<<"$out")
 [ -z "$skip" ] || bad "a refused entry, repro or pinned game was not played, since its pool or tables are not on this machine (set GORGE_POOLS, make dirac-tables): $skip"
+
+# 8b. The fast tier: the oracle tests that cost 0.5 s or less (scripts/oracle_fasttier.py, from the
+# train's -v logs), run at every landing. The set is committed as data so the cost stays bounded; a
+# name that no longer exists is a stale list and fails here, not as a vacuous `ok`.
+echo "== 8b oracle fast tier"
+fast=dirac/oracle/testdata/fasttier.txt
+t8b=$SECONDS
+[ -f "$fast" ] || bad "no fast tier list at $fast"
+tier=$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$fast") || bad "cannot read the fast tier list $fast"
+[ -n "$tier" ] || bad "the fast tier list $fast is empty"
+listed=$(go test -list '.*' ./dirac/oracle 2>&1) || bad "cannot list ./dirac/oracle tests: $(tail -10 <<<"$listed")"
+missing=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$listed" | grep -E '^Test' | sort -u)) || bad "cannot compare the fast tier list with ./dirac/oracle's tests"
+[ -z "$missing" ] || bad "the fast tier names tests that no longer exist in ./dirac/oracle: $(tr '\n' ' ' <<<"$missing")"
+re=$(printf '%s\n' "$tier" | sort -u | paste -sd'|') || bad "cannot build the fast tier pattern"
+[ -n "$re" ] || bad "the fast tier pattern is empty"
+out=$(go test -v -failfast -timeout 120s -run "^($re)\$" ./dirac/oracle 2>&1) || bad "oracle fast tier failed: $(grep -E -- '--- FAIL|^FAIL|panic:|^=== RUN' <<<"$out" | tail -20)"
+ran=$(sed -nE 's/^--- PASS: ([^/ ]+) .*/\1/p' <<<"$out") || bad "cannot read the fast tier's PASS lines"
+ran=$(sort -u <<<"$ran") || bad "cannot sort the fast tier's PASS lines"
+notrun=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$ran")) || bad "cannot compare the fast tier list with its PASS lines"
+[ -z "$notrun" ] || bad "the fast tier did not run or pass: $(tr '\n' ' ' <<<"$notrun")"
+skipped=$(grep -F -- '--- SKIP' <<<"$out"); skip_rc=$?
+[ "$skip_rc" -le 1 ] || bad "cannot read the fast tier output for skips"
+[ -z "$skipped" ] || bad "the fast tier skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
+echo "8b: ok ($((SECONDS - t8b)) s, $(wc -l <<<"$tier") tests)"
+
+# 8c. The dirac_mp unit tests (-tags dirac_mp): the packages whose tests compile and pass under the
+# four-seat-slot size class. Step mp plays that build in lockstep but runs only three of its unit tests, so
+# an mp-only break (the widths of a perm, a nine-bit object, a seat-count assumption) landed silently and
+# only the promote CI saw it. Not in the list, because each fails under dirac_mp today (a standing mp
+# break, to be fixed and then added here): ./dirac/feat and ./dirac/oracle/cmd/kfuzz. ./dirac/oracle runs
+# its mp-only tests through step 8's pins and repro tables. A package that prints no "ok", a missing mp
+# witness test or any skip but a test that names a KERNEL_ environment variable is a vacuous run and fails.
+echo "== 8c dirac_mp unit tests"
+t8c=$SECONDS
+mp_pkgs="./dirac ./dirac/canon ./dirac/neteval ./dirac/search ./dirac/search/hbot"
+out=$(go test -tags dirac_mp -trimpath -v -failfast -timeout 3m $mp_pkgs 2>&1) || bad "dirac_mp unit tests failed: $(grep -E -- '^(--- FAIL|FAIL|panic:|# )|^[[:space:]]+[A-Za-z0-9_]+_test\.go:[0-9]+:' <<<"$out" | head -20)"
+for p in $mp_pkgs; do
+	grep -qE "^ok[[:space:]]+[^[:space:]]*${p#.}[[:space:]]" <<<"$out" || bad "dirac_mp unit tests: no ok line for $p (the package did not run)"
+done
+grep -qE '^--- PASS: TestStateLayoutPinnedMP ' <<<"$out" || bad "dirac_mp unit tests: TestStateLayoutPinnedMP did not run and pass (is the build tag dirac_mp in effect?)"
+skipped=$(awk '/^--- SKIP: /{ if (prev !~ /: set KERNEL_[A-Z0-9_]+$/) print } { prev=$0 }' <<<"$out"); skip_rc=$?
+[ "$skip_rc" -eq 0 ] || bad "cannot read the dirac_mp unit test output for skips"
+[ -z "$skipped" ] || bad "dirac_mp unit tests skipped a test, since its pool or tables are not on this machine: $(head -10 <<<"$skipped")"
+echo "8c: ok ($((SECONDS - t8c)) s, $(grep -c -- '^--- PASS: ' <<<"$out") tests)"
 
 echo "== 4 lockstep, absolute"
 lockstep() {

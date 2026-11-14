@@ -55,15 +55,13 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		// refused until that is read exactly
 		return false, refuse("ChangesZone %s->%s with an optional pay-cost body", zoneLabel[tr.Origin], zoneLabel[tr.Dest])
 	}
-	if czReadsAttachment(tr.F) {
-		// a leave read on the attachment (Kaya's Ghostform's "enchanted
-		// permanent dies or is exiled"): the kernel reads the host off the
-		// live attachment, gorge off the LKI; the lockstep diverges when
-		// the host dies, so the shape stays refused
-		return false, refuse("ChangesZone %s->%s ValidCard$ reads the attached host", zoneLabel[tr.Origin], zoneLabel[tr.Dest])
-	}
 	switch {
 	case mask != 0:
+		// a ValidCard$ read on the source's host (Kaya's Ghostform's
+		// "enchanted permanent dies or is put into exile") sees the
+		// attachment as the host leaves: the kernel fires leave lines
+		// before the permanent is removed (CR 603.10a, zones.go leave), and
+		// the returned card in exile is that card (trig_objmoved.go)
 		tr.Event, tr.N = "Leaves", mask
 	case tr.Origin == zGraveyard && tr.Dest == zAny:
 		tr.Event, tr.From = "Leaves", zGraveyard
@@ -74,6 +72,18 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		// permanent (PredWasCastEnter, not negated: kernel enterCast), which
 		// moves from the stack, so Origin$ Stack adds nothing to the enter
 		tr.Event = "ETB"
+	case tr.Origin == zLibrary && tr.Dest == zGraveyard:
+		// "a creature card is put into a graveyard from a library"
+		// (Dreadhound): gorge matches ValidCard$ against each card the move
+		// puts into a graveyard from a library (trigmatch
+		// ZoneChangeMatchesWithCapture, one trigger per card); the kernel
+		// fires TrigToGraveyard From Library where the card is placed
+		// (trig_libtograve.go). The card's own line (Narcomoeba) listens
+		// from the graveyard it lands in, which no battlefield walk sees.
+		if czReadsSelf(tr.F) {
+			return false, refuse("ChangesZone Library->Graveyard of the card itself")
+		}
+		tr.Event, tr.From = "ToGraveyard", zLibrary
 	case tr.Dest == zBattlefield && tr.Origin == zExile:
 		// gorge matches a source that enters itself against its LKI snapshot,
 		// still in Exile, so a bare Permanent ValidCard$ never reads true of
@@ -102,14 +112,13 @@ func czReadsOwnCast(f *lFilter) bool {
 	return true
 }
 
-// czReadsAttachment reports a filter clause that reads attachment to the
-// trigger's source (AttachedBy / EnchantedBy / EquippedBy and their negations).
-func czReadsAttachment(f *lFilter) bool {
+// czReadsSelf reports a filter clause that names the trigger's own card.
+func czReadsSelf(f *lFilter) bool {
 	if f == nil {
 		return false
 	}
 	for _, c := range f.Clauses {
-		if c.Flags&(fEquippedBy|fEnchantedBy|fNotAttachedBy) != 0 {
+		if c.Flags&fSelf != 0 {
 			return true
 		}
 	}

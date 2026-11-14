@@ -20,6 +20,6 @@ func (s *State) handExileOptions(d *Decision, p uint8) {
 	d.Sub = ChGenPayExile
 	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.handN); i++ {
-		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(pl.hand[i]), 0, 0))
 	}
 }

@@ -15,12 +15,15 @@ func TestPlayAllRetriesATimedOutGame(t *testing.T) {
 	var calls atomic.Int32
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	out := playAll(1, 1, time.Second, true, func(int) played {
+	out, playedN := playAll(1, 1, time.Second, true, func(int) played {
 		if calls.Add(1) == 1 {
 			<-release
 		}
 		return played{res: oracle.Result{Over: true}}
 	})
+	if playedN != 1 {
+		t.Errorf("fed %d pairs, want 1 (no hang stopped the feed)", playedN)
+	}
 	if out[0].hang {
 		t.Fatal("a game that finished on its retry was recorded as a hang")
 	}
@@ -38,11 +41,14 @@ func TestPlayAllHangsOnlyAfterBothAttempts(t *testing.T) {
 	var calls atomic.Int32
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	out := playAll(1, 1, time.Second, true, func(int) played {
+	out, playedN := playAll(1, 1, time.Second, true, func(int) played {
 		calls.Add(1)
 		<-release
 		return played{}
 	})
+	if playedN != 1 {
+		t.Errorf("fed %d pairs, want 1", playedN)
+	}
 	if !out[0].hang {
 		t.Fatal("a game that stalled twice was not recorded as a hang")
 	}

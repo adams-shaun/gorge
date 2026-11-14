@@ -46,7 +46,7 @@ func (s *State) sacAtEndJoin(t Obj, when uint8) bool {
 	case prev.when != when || prev.creator != s.res.e.obj || prev.obj == t:
 		return false
 	}
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: s.res.e.ctrl, obj: t, ver: s.objs[t].ver, when: dlyGrpFollow, creator: head}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: s.res.e.ctrl, obj: t, ver: objWord(s.objs[t].ver), when: dlyGrpFollow, creator: head}
 	s.ndly++
 	return true
 }
@@ -110,7 +110,7 @@ func (s *State) atEOTRider(t Obj, exile bool) {
 		return
 	}
 	if s.ndly < MaxDelayed {
-		s.dly[s.ndly] = delayed{act: uint8(act), ctrl: s.res.e.ctrl, obj: t, ver: s.objs[t].ver, creator: s.res.e.obj}
+		s.dly[s.ndly] = delayed{act: uint8(act), ctrl: s.res.e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: s.res.e.obj}
 		s.ndly++
 	} else {
 		s.capFull(StallDelayed)
@@ -152,7 +152,7 @@ func (s *State) tokenAtEOTExt(in *kop.Instr, t Obj) {
 	if in.B.N>>8 == kop.TokAtEOTSacCombat && s.g.tokMade > 1 && s.sacAtEndJoin(t, dlyEndCombat) {
 		return // a later token of one resolution joins the first one's sacrifice
 	}
-	d := delayed{act: uint8(kop.OpDestroy), ctrl: s.res.e.ctrl, obj: t, ver: s.objs[t].ver, creator: s.res.e.obj}
+	d := delayed{act: uint8(kop.OpDestroy), ctrl: s.res.e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: s.res.e.obj}
 	if in.B.N>>8 == kop.TokAtEOTSacCombat {
 		d.act, d.when = uint8(kop.OpSacrifice), dlyEndCombat
 	}
@@ -196,7 +196,7 @@ func (s *State) fireDlyEndCombat(k *prep) {
 		if kop.Op(d.act) == kop.OpSacrifice {
 			amt = opSacUntracked // __kwEncoreSacrifice: sacrifice the group by id
 		}
-		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, amt)
+		s.enqueue(dlySource(&d), uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, amt)
 	}
 	for i := keep; i < n; i++ {
 		s.dly[i] = delayed{}
@@ -241,7 +241,7 @@ const dlyUntracked = 2
 //go:noinline
 func (s *State) sacAtEndUntracked(t Obj, ctrl uint8) {
 	if s.ndly < MaxDelayed {
-		s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: ctrl, obj: t, ver: s.objs[t].ver, when: dlyUntracked, creator: s.res.e.obj}
+		s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: ctrl, obj: t, ver: objWord(s.objs[t].ver), when: dlyUntracked, creator: s.res.e.obj}
 		s.ndly++
 	} else {
 		s.capFull(StallDelayed)

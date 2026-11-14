@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Deferred mana sources (Pyromancer's Goggles, kop.Ability.ManaDeferred:
 // "{T}: Add {R}. When that mana is spent to cast a red instant or sorcery
@@ -20,29 +24,85 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Tf2ManaFromSelf; mana_spendtrigger.go). genState.defSrc holds the source's
 // slot + 1 while its {R} floats; pay compares the pool's {R} across the payment.
 
-// floatDeferred adds the deferred source sl's {R} to p's pool and remembers
-// the source (tapGap's deferred arm).
-func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
-	s.pl[SeatIx(p)].pool[kop.R]++
-	s.artTag(k, p, sl, kop.R)
-	s.g.defSrc[SeatIx(p)] = uint8(sl) + 1
+// deferCol is the colour (a kop.W..kop.G index) of card c's deferred mana
+// ability: Pyromancer's Goggles' {R}, Gilanra's {G}. Every "{R}" above is this.
+func (k *prep) deferCol(c CardID) int {
+	for i := range k.t.Cards[c].Abilities {
+		if a := &k.t.Cards[c].Abilities[i]; a.Kind == kop.AbMana && a.ManaDeferred {
+			return bits.TrailingZeros8(uint8(a.ManaColors))
+		}
+	}
+	return kop.R
 }
 
-// deferredPool is p's floating deferred {R} before a payment, 0 when none,
-// and the source's slot + 1 (the payment's pool spend forgets it).
-func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8) {
+// floatDeferred adds the deferred source sl's mana to p's pool and remembers
+// the source and its colour (tapGap's deferred arm). A second deferred source
+// floating beside the first would leave the first's spend unattributed: stall
+// loudly.
+func (s *State) floatDeferred(k *prep, p uint8, sl Slot) {
+	col := k.deferCol(s.cardAt(sl))
+	if d := s.g.defSrc[SeatIx(p)]; d != 0 && d != uint8(sl)+1 && s.pl[SeatIx(p)].pool[s.defColOf(p)] != 0 {
+		s.capFull(StallObsSrc)
+	}
+	s.pl[SeatIx(p)].pool[col]++
+	s.artTag(k, p, sl, col)
+	s.g.defSrc[SeatIx(p)] = uint8(sl) + 1
+	s.setDefCol(p, col)
+}
+
+// deferredPool is p's floating deferred mana before a payment, 0 when none,
+// the source's slot + 1 and its colour (the payment's pool spend forgets both,
+// deferSync, so deferredSpent is handed them).
+func (s *State) deferredPool(k *prep, p uint8) (r uint8, src uint8, col int) {
 	if k.gen == nil || !k.gen.anyDeferred || s.g.defSrc[SeatIx(p)] == 0 {
+		return 0, 0, 0
+	}
+	col = s.defColOf(p)
+	return s.pl[SeatIx(p)].pool[col], s.g.defSrc[SeatIx(p)], col
+}
+
+// deferSnap is the deferred colour's floating count before a pool spend (col is
+// meaningless when n is 0): deferSync compares it afterwards.
+func (s *State) deferSnap(p uint8) (col int, n uint8) {
+	if s.g.defSrc[SeatIx(p)] == 0 {
 		return 0, 0
 	}
-	return s.pl[SeatIx(p)].pool[kop.R], s.g.defSrc[SeatIx(p)]
+	col = s.defColOf(p)
+	return col, s.pl[SeatIx(p)].pool[col]
+}
+
+// deferSync forgets the deferred source when a pool spend took some of its
+// colour (gorge spends the source's batch first, so its unit is gone even when
+// same-colour mana from other sources still floats). A creature source such as
+// Gilanra sets no poolArt bit, so artSync's gate never sees its spend; every
+// live spend of floating mana takes the snapshot: payFromPool,
+// payFromPoolAnyColor (and payConvPips under it), payFromPoolRider, filtDo's
+// fee and pip, eachProduce's fee. The other pool decrements spend nothing: they
+// take back mana a source just added (a restricted or parked unit, a fixed
+// extra, a witness tap's), return units rbTake lent to their batches, or run on
+// a dry probe whose pool is restored (windowDryFilter, windowFiltFirstFallback).
+func (s *State) deferSync(p uint8, col int, n uint8) {
+	if n != 0 && s.pl[SeatIx(p)].pool[col] < n {
+		s.g.defSrc[SeatIx(p)] = 0
+		s.setDefCol(p, 0)
+	}
 }
 
 // deferredSpent records the deferred source on the cast being built when the
-// payment spent some of its {R} (r0 was the pool's before).
+// payment spent some of its mana (r0 was the pool's before, of colour col: read
+// before the payment, which clears the record).
 //
 //go:noinline
-func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8) {
-	if s.pl[SeatIx(p)].pool[kop.R] >= r0 || !s.buildLive() || s.bld().e.kind != seSpell {
+func (s *State) deferredSpent(k *prep, p uint8, r0, src uint8, col int) {
+	if s.pl[SeatIx(p)].pool[col] >= r0 {
+		return
+	}
+	// gorge spends the source's batch first, so its unit is gone now even when
+	// same-colour mana from other sources still floats (Gilanra's {G} beside
+	// Forests'): a later payment of that colour is not the source's
+	s.g.defSrc[SeatIx(p)] = 0
+	s.setDefCol(p, 0)
+	if !s.buildLive() || s.bld().e.kind != seSpell {
 		return
 	}
 	sl := Slot(src - 1)
@@ -87,4 +147,16 @@ func (s *State) fireDeferredRider(k *prep, e *stackEntry) {
 	s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigSpellCast && s.deferRider(k, sl, a) }, func(l trigListener, a *kop.Ability) {
 		s.castTrigGen(k, l, a, e)
 	})
+}
+
+// defColOf is the colour index of the deferred mana floating in p's pool.
+func (s *State) defColOf(p uint8) int {
+	p = SeatIx(p)
+	return int(s.g.defCol[p/2]>>(4*(p%2))) & 15
+}
+
+func (s *State) setDefCol(p uint8, col int) {
+	p = SeatIx(p)
+	sh := 4 * (p % 2)
+	s.g.defCol[p/2] = s.g.defCol[p/2]&^(15<<sh) | uint8(col)<<sh
 }

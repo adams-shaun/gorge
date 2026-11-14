@@ -133,7 +133,7 @@ func TestManaRiderPrefixPaysCast(t *testing.T) {
 	sc.s.perms[sl].addCtrN(sc.s, int(a.ManaRiderCtr), 2)
 	sc.s.perms[sl].flags &^= pfTapped
 	h := sc.hand(id["Black Knight"], 0)
-	sc.do(t, AkCast, uint8(h), 0xff)
+	sc.do(t, AkCast, TCode(h), scAny)
 	if !sc.tapped(o) {
 		t.Fatal("Peat Bog untapped: the prefix search did not activate it")
 	}

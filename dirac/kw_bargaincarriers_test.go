@@ -63,7 +63,7 @@ func kbargainCarrierCast(t *testing.T, sc *scen, o Obj, card CardID, cand Obj, b
 	cast := -1
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == kind && a.Source() == uint8(o) && a.Mode() == 0 {
+		if a.Kind() == kind && a.Source() == TCode(uint8(o)) && a.Mode() == 0 {
 			cast = i
 			break
 		}
@@ -140,7 +140,7 @@ func TestBargainCarrierFlags(t *testing.T) {
 				}
 				if name == "Brave the Wilds" {
 					// the land is targeted only when bargained (CR 702.166d); either way it searches
-					if (e.tgt[0] != NoTarget) != bargained {
+					if (TCode(e.tgt[0]) != NoTarget) != bargained {
 						t.Fatalf("bargained=%v: tgt[0]=%d", bargained, e.tgt[0])
 					}
 					if !kbargainResolveSearch(sc) {

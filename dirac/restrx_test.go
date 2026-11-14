@@ -31,14 +31,14 @@ func TestRestrictedManaPaysXSpell(t *testing.T) {
 	if d := sc.s.Step(); d.Kind == DkChoose { // its as-enters creature type: answered, then set
 		sc.s.Apply(d.Options[0])
 	}
-	sc.s.perms[sc.slot(court)].chosen = uint8(sub)
+	sc.s.perms[sc.slot(court)].chosen = objWord(uint8(sub))
 	hydra := sc.hand(id["Wildwood Scourge"], 0)
 	s := sc.s
 	d := s.Step()
 	if !castOffered(&d, hydra) {
 		t.Fatalf("Wildwood Scourge not offered (Hydra chosen): decision kind %d, %d options", d.Kind, d.N)
 	}
-	s.Apply(MakeAction(AkCast, uint8(hydra), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(hydra), 0, 0))
 	d = s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX || d.N != 1 || d.Options[0].Mode() != 0 {
 		t.Fatalf("X ask: kind %d sub %d, %d options, want X = 0 only", d.Kind, d.Sub, d.N)
@@ -79,7 +79,7 @@ func TestRestrictedManaPaysKickedCast(t *testing.T) {
 		if d := sc.s.Step(); d.Kind == DkChoose { // its as-enters creature type: answered, then set
 			sc.s.Apply(d.Options[0])
 		}
-		sc.s.perms[sc.slot(court)].chosen = uint8(sub)
+		sc.s.perms[sc.slot(court)].chosen = objWord(uint8(sub))
 		courts = append(courts, court)
 	}
 	sc.perm(id["Plains"], 0)
@@ -87,7 +87,7 @@ func TestRestrictedManaPaysKickedCast(t *testing.T) {
 	bw := sc.hand(id["Goblin Bushwhacker"], 0)
 	s := sc.s
 	d := s.Step()
-	kicked := MakeAction(AkCast, uint8(bw), 0, 1)
+	kicked := MakeAction(AkCast, TCode(bw), 0, 1)
 	if !hasOption(&d, kicked) {
 		t.Fatalf("kicked Goblin Bushwhacker not offered: decision kind %d %v", d.Kind, d.Options[:d.N])
 	}

@@ -31,6 +31,6 @@ func (s *State) delayEmpty(e *stackEntry) {
 		s.capFull(StallDelayed)
 		return
 	}
-	s.dly[s.ndly] = delayed{ctrl: e.ctrl, obj: e.obj, ver: e.srcVer, creator: NoObj}
+	s.dly[s.ndly] = delayed{ctrl: e.ctrl, obj: e.obj, ver: objWord(e.srcVer), creator: NoObj}
 	s.ndly++
 }

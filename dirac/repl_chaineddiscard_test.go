@@ -51,7 +51,7 @@ func TestReplChainedDiscardParksCompetingPick(t *testing.T) {
 	if !s.discardChained(k, &s.prog(k)[s.res.pc]) {
 		t.Fatal("the scenario's discard is not chained")
 	}
-	s.applyResolve(k, MakeAction(AkChoose, uint8(instant), 0, 0))
+	s.applyResolve(k, MakeAction(AkChoose, TCode(instant), 0, 0))
 	if s.Stalled() {
 		t.Fatalf("the chained discard stalled: %s", StallName(s.StallReason()))
 	}

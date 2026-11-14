@@ -96,9 +96,9 @@ func TestCopyTokenFiresTokenCreated(t *testing.T) {
 	sc := newScenTable(t, tbl, Config{NoElide: true})
 	st := sc.perm(staff, 0)
 	m := sc.perm(mirror, 0)
-	sc.do(t, AkActivate, uint8(m), 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkActivate, TCode(m), scAny)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	if q := trigTokencreatedQueued(sc, st); q != 1 {
 		t.Fatalf("a copy token queued %d Staff triggers, want 1", q)
 	}

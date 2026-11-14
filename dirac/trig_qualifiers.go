@@ -43,6 +43,8 @@ func (s *State) castTargetsPlayerRead(k *prep, f kop.FilterID, p uint8, ctrl uin
 			continue
 		}
 		switch fl.Ctrl {
+		case kop.CtrlAny:
+			return true // a bare Player alternative (Ertha Jo's Player,Creature.inZoneBattlefield)
 		case kop.CtrlYou:
 			if p == ctrl {
 				return true
