@@ -38,6 +38,7 @@ func TestLicidLowers(t *testing.T) {
 		return
 	}
 	t.Run("table", func(t *testing.T) {
+		corpusDirOrSkip(t) // the tables are built from the corpus: with none, skip as the lockstep subtests do
 		set, err := cardset.RawByName("licid")
 		if err != nil {
 			t.Fatal(err)
