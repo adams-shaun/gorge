@@ -104,6 +104,7 @@ func (s *State) beginTurn(p uint8) {
 			pl.disc = 0
 		}
 	}
+	s.dmgTakenNewTurn() // gorge DamageTakenThisTurn folds back to the last TurnChange (kw_bloodthirst.go)
 }
 
 // openPriority starts the step's priority round.
@@ -639,6 +640,11 @@ func (s *State) sba(k *prep) bool {
 				// (Crystallized Serah transformed beside another)
 				h := p.attached
 				s.touchSl(h)
+				if k.gen != nil && k.gen.anyUnattach {
+					// gorge's Equipment-bearer arm publishes the detach with
+					// the bearer (CR 704.5n, attachmentSBAs)
+					s.fireUnattached(k, sl, h)
+				}
 				p.attached = NoSlot
 				s.touchSl(sl)
 				if k.gen != nil && k.gen.anyAegis {
@@ -855,7 +861,7 @@ func (s *State) enchantLegal(k *prep, sl Slot) bool {
 	if k.gen != nil && k.gen.anyProtCol && s.protPrinted(k, h)&s.colorsGen(k, sl) != 0 {
 		return false // printed protection from the Aura's colour (CR 702.16c; gorge attachmentSBAs)
 	}
-	if k.gen != nil && k.gen.anyProtF && s.protQuality(k, h, sl, s.cardAt(sl)) {
+	if k.gen != nil && k.gen.anyProtF && s.protQualityAt(k, h, sl, s.cardAt(sl), true) {
 		return false
 	}
 	return s.matchPerm(k, t.Filter, h, p.ctrl, NoSlot) && s.kw(k, h)&kop.KwProtectionAll == 0

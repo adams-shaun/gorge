@@ -1,0 +1,15 @@
+# the MBC zone-moves-3 family: Exhume's per-player graveyard reanimation
+# (ChangeZone DefinedPlayer$ Player) and Genju of the Fields' return of
+# itself (ChangeType$ Card.StrictlySelf, DefinedPlayer$ You)
+# (dirac/oracle/mbc_graveyardpick_lowers_test.go)
+Exhume
+Genju of the Fields
+Walking Corpse
+Savannah Lions
+Stone Rain
+Grizzly Bears
+Shock
+Plains
+Swamp
+Mountain
+Forest

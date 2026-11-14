@@ -54,7 +54,7 @@ func (s *State) raiseLifeFor(k *prep, p uint8, c CardID, o Obj, anyTarget bool) 
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
 			return true
 		}
-		if !anyTarget && st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, p, c, stc.sl) {
+		if !anyTarget && st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, stc.ctrl, c, stc.sl) {
 			return true
 		}
 		n += int(st.A)
@@ -63,9 +63,10 @@ func (s *State) raiseLifeFor(k *prep, p uint8, c CardID, o Obj, anyTarget bool) 
 	return n
 }
 
-// raiseTargetAt is raiseTargetOK with the static's source slot, so a
+// raiseTargetAt is raiseTargetOK with the targets past the entry's own
+// slots: f reads from the static's controller ctrl and source slot src, so a
 // Card.Self ValidTarget$ reads that permanent.
-func (s *State) raiseTargetAt(k *prep, f kop.FilterID, p uint8, c CardID, src Slot) bool {
+func (s *State) raiseTargetAt(k *prep, f kop.FilterID, ctrl uint8, c CardID, src Slot) bool {
 	if s.ctl != ctlBuild {
 		return false
 	}
@@ -74,13 +75,13 @@ func (s *State) raiseTargetAt(k *prep, f kop.FilterID, p uint8, c CardID, src Sl
 		return false
 	}
 	for i := 0; i < int(e.nt); i++ {
-		if s.costTargetMatchSrc(k, f, p, e.tgt[i], src) {
+		if s.costTargetMatchSrc(k, f, ctrl, e.tgt[i], src) {
 			return true
 		}
 	}
 	x := s.xtOf(e) // the targets past the entry's own slots (Shifting Grift's second creature)
 	for j := 0; j < int(x.n); j++ {
-		if s.costTargetMatchSrc(k, f, p, x.code[j], src) {
+		if s.costTargetMatchSrc(k, f, ctrl, x.code[j], src) {
 			return true
 		}
 	}
@@ -135,10 +136,51 @@ func (s *State) spellTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 	return cardTgtDepCost(&k.t.Cards[c]) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 }
 
-// boardLifeTgtDep is spellTgtDep's battlefield half.
+// boardLifeTgtDep is spellTgtDep's battlefield half: a life raise, or a
+// RaiseCost or ReduceCost of mana, whose ValidTarget$ waits for the chosen
+// target (Kasmina, Enigmatic Mentor's {2} on a spell an opponent casts).
 func (s *State) boardLifeTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
-	if k.gen == nil || !k.gen.anyRaiseLife || tspec(k, c, spellAb(k, c), 0) == nil {
+	if k.gen == nil || tspec(k, c, spellAb(k, c), 0) == nil {
 		return false
 	}
-	return s.raiseLifeFor(k, p, c, o, true) > 0
+	return k.gen.anyRaiseLife && s.raiseLifeFor(k, p, c, o, true) > 0 || s.boardManaTgtDep(k, p, c, o)
+}
+
+// boardManaTgtDep reports a battlefield RaiseCost or ReduceCost of mana with a
+// ValidTarget$ that prices p's cast of the targeting spell c once the key is
+// dropped: its controller relation, condition and spell filter hold. gorge
+// paymentPlanTargetDependentFor then declines the cast planner's witness
+// ("shape:target_dependent_cost") whatever the targets would be, so the
+// autopay surface offers the cast only from the floating pool (CR 601.2f).
+func (s *State) boardManaTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
+	found := false
+	s.eachStatic(k, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind != kop.AbStatic {
+			return true
+		}
+		st := &a.Static
+		if st.StFlags&kop.StTargetsFilter2 == 0 || st.Zone == kop.ZoneCommand || st.Zone == kop.ZoneStack {
+			return true
+		}
+		switch st.Kind {
+		case kop.StatIncreaseCost:
+			if f := st.StFlags; f&kop.StRaiseLife != 0 || f&kop.StRaiseYou != 0 && stc.ctrl != p || f&kop.StRaiseOpp != 0 && stc.ctrl == p {
+				return true
+			}
+		case kop.StatReduceCost:
+			if stc.ctrl != p && st.StFlags&kop.StReduceAny == 0 {
+				return true
+			}
+		default:
+			return true
+		}
+		ctx := s.ctxStatic(stc)
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
 }

@@ -13,8 +13,13 @@ package kgen
 func (lc *lowerCtx) choosePlayer(ps *params) error {
 	switch ps.str("Choices") {
 	case "Player.Opponent", "Opponent", "Player.Other":
+	case "Player", "Player.!IsRemembered":
+		return lc.choosePlayerRes(ps) // lower_chooseplayerres.go
 	default:
 		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
+	}
+	if lc.chosenResAb != nil && lc.chosenResAb == lc.ab {
+		return refuse("the one-opponent ChoosePlayer beside a mid-resolution ChoosePlayer")
 	}
 	lc.twoSeat("ChoosePlayer among the opponents answered as the one opponent")
 	if v := ps.str("Defined"); v != "" && v != "You" {
@@ -29,6 +34,9 @@ func (lc *lowerCtx) choosePlayer(ps *params) error {
 // chosenPlayerDefined maps ChosenPlayer / Player.Chosen to the opponent
 // while this ability's one-opponent ChoosePlayer is armed.
 func (lc *lowerCtx) chosenPlayerDefined(v string) (lRef, bool) {
+	if r, ok := lc.chosenPlayerResDefined(v); ok {
+		return r, true // lower_chooseplayerres.go
+	}
 	if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab {
 		return lRef{}, false
 	}
