@@ -74,11 +74,14 @@ func (s *State) filtRepeatFee(k *prep, sl Slot) int {
 	return n
 }
 
-// filtFixedRepeat: the repeatable filter at sl makes one fixed colour, so its
-// activation asks nothing (a one-ability source resolves directly).
-func (s *State) filtFixedRepeat(k *prep, sl Slot) bool {
+// filtFixed: the first-only filter at sl makes one fixed colour (the repeatable
+// fee-only one, or a {pip}, {T} one: Apprentice Wizard's {U}, {T}: Add {C}{C}{C}),
+// so its activation asks nothing (a one-ability source resolves directly).
+func (s *State) filtFixed(k *prep, sl Slot) bool {
 	if !s.filtRepeat(k, sl) {
-		return false
+		if _, pip := s.filtPip(k, sl); !pip || !s.filtFirstOnly(k, sl) {
+			return false
+		}
 	}
 	a := s.filtAb(k, sl)
 	return a.AFlags == 0 && a.ManaColors != kop.ColAny

@@ -872,7 +872,10 @@ type resCtx struct {
 	col uint8
 	// chPl is the resolution's mid-resolution ChoosePlayer answer (seat + 1,
 	// 0 none; ExtChoosePlayerMid), which RefChosenPlayer reads while the
-	// resolution holds it (repl_chooseplayer.go resChosenPlayer)
+	// resolution holds it (repl_chooseplayer.go resChosenPlayer). OpChoosePlayer's
+	// random pick (Maddening Hex's Attach to the chosen player) is kept here
+	// too, seat + 1 or 0 for an empty pool, and RefResChosenPlayer reads it
+	// (act_chooseplayer.go); one byte, as the layout has no padding for a second.
 	chPl  uint8
 	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)

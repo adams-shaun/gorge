@@ -667,7 +667,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						// the outer spec no longer matches, grants nothing.
 						if name := strings.TrimSpace(st.ParamStr(cards.PKAddStaticAbility)); name != "" && w.depth == 0 {
 							e.staticMemoStateRead = true
-							if inners, ok := cards.ParseStaticLines(fc.SVars[name]); ok {
+							if inners := parseGrantedStatics(fc, name); len(inners) > 0 {
 								for _, inner := range inners {
 									if inner.Mode == "Continuous" &&
 										e.matchesSpecFrom(affects, id, o.Controller, id) {

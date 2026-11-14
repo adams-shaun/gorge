@@ -4,14 +4,19 @@ import (
 	"strings"
 )
 
-// definedMoveInert consumes the ChangeNum$ 1 / Mandatory$ True an object move
-// carries (Lembas' "its owner shuffles it into their library"; Virtue of
-// Persistence's targeted return): gorge's object path moves the Defined$ or
-// chosen targets and never reads either -- only the hidden-origin pickers do
-// (zone_hand.go:21/150/171, zone_hidden.go:45/178, zone_change.go:694;
-// ). Any other count, a move without Defined$ or ValidTgts$,
+// definedMoveInert consumes the ChangeNum$ 1 / Mandatory$ True / DefinedPlayer$
+// an object move carries (Lembas' "its owner shuffles it into their library";
+// Virtue of Persistence's targeted return; Athreos, God of Passage's
+// DefinedPlayer$ You beside Defined$ TriggeredNewCardLKICopy; Nashi, Moon's
+// Legacy's beside ValidTgts$): gorge's object path moves the Defined$ or
+// chosen targets and never reads them -- only the hidden-origin pickers and
+// the library fetch dispatch do (zone_hand.go:21/150/171, zone_hidden.go:45/178,
+// zone_change.go:694; moveDefinedLibraryObjects refuses the shape and
+// searches). Any other count, a move without Defined$ or ValidTgts$,
 // or a move from a hand, leaves them unread. Mandatory$ is inert only for a
-// Defined$ move; the target path reads it itself.
+// Defined$ move; the target path reads it itself. A library origin leaves
+// DefinedPlayer$ unread: beside it gorge's library fetch dispatch searches
+// the named player's library, a different move kgen refuses.
 func definedMoveInert(ps *params, origin int) {
 	if origin == zHand {
 		return
@@ -28,6 +33,10 @@ func definedMoveInert(ps *params, origin int) {
 	if defined && ps.is("Mandatory", "True") {
 		ps.consume("Mandatory")
 	}
+	if origin == zLibrary {
+		return // gorge's library fetch dispatch beside it searches instead
+	}
+	ps.consume("DefinedPlayer")
 }
 
 // thisAndTarget lowers ThisDefinedAndTgts$ Self on a shuffled

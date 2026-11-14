@@ -1,0 +1,11 @@
+# Matoc, Lavamancer's AtLeastOneInstance$ EQ2 DamageDealtOnce trigger and its
+# "any other target" ping, beside 2-damage and 3-damage sources (Shock and
+# Grizzly Bears pass the gate, Lightning Bolt and Hill Giant fail it) and
+# basics (dirac/oracle/mbc_apiparams_lowering_test.go).
+Matoc, Lavamancer
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Mountain
+Forest

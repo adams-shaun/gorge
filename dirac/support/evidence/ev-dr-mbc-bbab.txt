@@ -9,6 +9,7 @@ Ghoulcaller Gisa
 Graaz, Unstoppable Juggernaut
 Inspiring Overseer
 Island
+Matoc, Lavamancer
 Mountain
 Negate
 Oath of Druids
@@ -17,8 +18,10 @@ Plains
 Preordain
 Priest of Titania
 Quirion Ranger
+Rust Goliath
 Song of Freyalise
 Splitskin Doll
 Stasis Snare
 Swamp
 Tetsuko Umezawa, Fugitive
+Twinmaw Stormbrood
