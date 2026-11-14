@@ -295,6 +295,23 @@ zz=$(git diff --name-only --diff-filter=A "$BASE" HEAD | grep -E '(^|/)zz_[^/]*$
 [ -z "$hyg$zz" ] || bad "history hygiene: reword or squash these commits and delete scratch files: $hyg $zz"
 sk=$(git diff -U0 "$BASE" HEAD -- 'dirac/oracle/*_test.go' | grep -E '^\+[^+].*\bt\.Skip(f|Now)?\(' | grep -vE 'pool|Pool|tables|corpus' | head -3)
 [ -z "$sk" ] || bad "a new t.Skip in dirac/oracle that does not name a missing pool, table or corpus fails CI: $sk"
+# CI's lint runs fresh-clone-check: dirac with no corpus, tables or pools, where every corpus-dependent test must skip.
+# The landing gate always has the corpus, so a test that fails there reached the promote PR (11-13 PR #328 and #329,
+# TestMBCChangeTextReadsStall). About 20 s with a warm cache. A scratch directory with a .cards above it (TMPDIR inside a
+# checkout) cannot isolate the tree: that is noted, not failed.
+if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/' 'engine/' go.mod go.sum)" ]; then
+	echo "== 2b fresh clone (dirac with no corpus, as CI's lint)"
+	fo=$(capped 4G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB REF=HEAD bash scripts/fresh-clone-check.sh 2>&1)
+	case $fo in
+	*"fresh-clone-check: ok"*) ;;
+	*"is above the scratch directory"*) echo "test-targets: note: fresh-clone-check skipped: $(grep -m1 'above the scratch' <<<"$fo")" >&2 ;;
+	*)
+		printf '%s\n' "$fo" >.ds4/scratch/test/fresh-clone.log
+		grep -E -- '--- FAIL|^FAIL|panic:|_test\.go:[0-9]+:|fresh-clone-check:' <<<"$fo" | tail -15
+		bad "fresh-clone-check failed: a dirac test fails with no corpus (make fresh-clone-check; .ds4/scratch/test/fresh-clone.log)"
+		;;
+	esac
+fi
 
 echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables

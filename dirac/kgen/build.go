@@ -668,7 +668,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.MorphCost != nil {
-		d.MorphFamily = c.MorphFamily
+		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
 			return err
 		}

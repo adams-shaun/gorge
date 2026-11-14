@@ -66,7 +66,10 @@ func TestCopyFromMatchesEverySlot(t *testing.T) {
 // TestCopyFromRebasesColdArrays: a copy has its own arrays, laid out as its
 // source's whichever layout it held before, and reuses a large enough buffer.
 func TestCopyFromRebasesColdArrays(t *testing.T) {
-	small, large := coldLayout{ms: 1}, coldLayout{ms: 2, exw: maxExw}
+	var small, large coldLayout
+	coldMS.set(&small, 1)
+	coldMS.set(&large, 2)
+	coldExw.set(&large, maxExw)
 	small.size()
 	large.size()
 	var src, dst State
@@ -116,6 +119,12 @@ func TestColdArraysHoldNoPointers(t *testing.T) {
 	for i := range c.NumField() {
 		if f := c.Field(i); f.Type.Kind() == reflect.Slice && !scalar(f.Type.Elem()) {
 			t.Errorf("%s: %s holds a pointer", f.Name, f.Type.Elem())
+		}
+	}
+	coldRegs.seal()
+	for _, d := range coldRegs.descs {
+		if e := reflect.TypeOf(d.zero); !scalar(e) {
+			t.Errorf("cold region %s: %s holds a pointer", d.key, e)
 		}
 	}
 }

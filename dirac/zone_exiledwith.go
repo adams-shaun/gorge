@@ -49,6 +49,15 @@ const (
 // maxExw bounds the links of a table with a card that records them.
 const maxExw = 64
 
+// coldExw is the links, for a table whose cards record them (exwPut's
+// callers); an empty one is simply full.
+var coldExw = newCold[exwRec]("exw", func(g *genPrep) int {
+	if g.anyExW || g.anyFaceExile {
+		return maxExw
+	}
+	return 0
+}).view(func(c *coldArrays) *[]exwRec { return &c.exw })
+
 // exwRec is one exiled-with link: card o exiled by src (stamp sver).
 type exwRec struct {
 	o, src Obj
