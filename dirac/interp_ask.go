@@ -383,9 +383,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			sl := s.resSrcSlot(k)
 			if sl != NoSlot {
 				pp := &s.perms[sl]
-				for c := 0; c < int(kop.NumCounterKinds3); c++ {
-					if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
-						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, uint8(c)))
+				var held ctrHeld
+				for _, c := range held[:pp.heldKinds(s, &held)] {
+					if kop.IsCounterKind(int(c)) {
+						d.add(MakeAction(AkChoose, TCode(pp.obj), 0, c))
 					}
 				}
 			}
@@ -2644,10 +2645,11 @@ func (s *State) paySubCounterAny(k *prep, sl Slot) {
 		return
 	}
 	first, n := 0, 0
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
-		if kop.IsCounterKind(c) && pp.ctrN(s, c) > 0 {
+	var held ctrHeld
+	for _, c := range held[:pp.heldKinds(s, &held)] {
+		if kop.IsCounterKind(int(c)) {
 			if n == 0 {
-				first = c
+				first = int(c)
 			}
 			n++
 		}

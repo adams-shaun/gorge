@@ -2719,12 +2719,13 @@ func (s *State) subCtrOptions(k *prep, d *Decision) bool {
 			}
 			o := s.perms[sl].obj
 			p := &s.perms[sl]
-			for c := 0; c < int(kop.NumCounterKinds3); c++ {
-				if !kop.IsCounterKind(c) {
+			var held ctrHeld
+			for _, c := range held[:p.heldKinds(s, &held)] {
+				if !kop.IsCounterKind(int(c)) {
 					continue // CtrLevel is no counter (kw_class.go)
 				}
-				if p.ctrN(s, c) > s.subCtrPicked(o, uint8(c)) {
-					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(c)))
+				if p.ctrN(s, int(c)) > s.subCtrPicked(o, c) {
+					d.add(MakeAction(AkChoose, TCode(o), 0, c))
 				}
 			}
 		}

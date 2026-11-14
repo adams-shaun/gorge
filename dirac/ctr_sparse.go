@@ -269,6 +269,54 @@ func (p *perm) ctrFree(s *State, i int) {
 	}
 }
 
+// ctrHeld is room for every counter kind one permanent can hold at once: its
+// +1/+1 count, its general slots and the whole overflow table.
+type ctrHeld [1 + ctrSlots + maxCtrOver]uint8
+
+// heldKinds writes to out the counter kinds p holds with a positive count, in
+// ascending kind order, and returns how many: exactly the kinds c a walk of
+// the whole kind space finds with ctrN(s, c) > 0, in that walk's order, at a
+// cost that does not grow with kop.NumCounterKinds3. It includes CtrLevel,
+// which is no counter: a walk filters it with kop.IsCounterKind as before.
+// The list is a snapshot: a walk that puts counters while it iterates puts
+// them of the kind it is on, so the kinds held don't change under it.
+func (p *perm) heldKinds(s *State, out *ctrHeld) int {
+	n := 0
+	if p.p1 != 0 {
+		out[0] = uint8(kop.CtrP1P1)
+		n = 1
+	}
+	// the occupied slots are packed in ascending kind order (ctrInsert,
+	// ctrFree); a seen slot at count 0 holds nothing
+	for i := range p.ck {
+		if p.ck[i] == 0 {
+			break
+		}
+		if p.cn[i] != 0 {
+			out[n] = p.ck[i]
+			n++
+		}
+	}
+	if p.ck[ctrSlots-1] == 0 {
+		return n // as ctrN: only a permanent with every slot taken has entries
+	}
+	// the entries are in ascending kind order and above the slots' kinds;
+	// the insertion keeps the list ascending without relying on that
+	for _, e := range s.ctrOverOf(p.obj, 0) {
+		if e.n == 0 {
+			continue
+		}
+		at := n
+		for at > 0 && out[at-1] > e.kind {
+			out[at] = out[at-1]
+			at--
+		}
+		out[at] = e.kind
+		n++
+	}
+	return n
+}
+
 // ctrSeenMask is p's seen counter kinds as a mask over FeatCtrKinds.
 func (p *perm) ctrSeenMask(s *State) uint16 {
 	var m uint16
