@@ -217,12 +217,33 @@ build now supports: it is stale.
 **To change:** when your work closes an entry, delete it in the same commit.
 Adding an entry means a regression, and a branch cannot land one (see below).
 
+**Code-shape ratchets fail on growth only.** `internal/codeshape` holds two
+kinds, both run by every precheck (`scripts/test_targets.py` always selects
+the package) and both measured from syntax in under a second:
+
+- `TestCodeShapeOnlyShrinks`: the constants in `ratchet_test.go` (interface
+  widths, `*Engine` surface, string-keyed dispatch and parameter leaks in
+  `engine/rules` and `engine/effects`).
+- `TestLongFunctionsOnlyShrink` and `TestComplexFunctionsOnlyShrink`: every
+  non-test, non-generated function in `engine/rules`, `engine/effects` and
+  `dirac/` (kgen included) over 300 lines or cyclomatic complexity 50 has a
+  row in `internal/codeshape/testdata/func_ceilings.tsv`. A listed function
+  fails when it grows past its row in either measure; an unlisted one fails
+  when it crosses a threshold.
+
+A shrink, a function that drops under both thresholds, and a deleted function
+only log, so concurrent refactors never fail on each other.
+`CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape`
+lowers the rows to the measurement and drops the stale ones; it never raises
+or adds a row. A function renamed, or moved to another package, takes its row
+under the new key in the same commit at no higher value.
+
 **A ratchet is never raised by a branch.** That covers the coverage tables
-above, the shrink-only constants and `longFuncCeilings` in
-`internal/codeshape`, the constants and allow-lists of `internal/archtest`,
-and `testkit/testutil/agentsdoc_test.go`. Review enforces this: a raised or
+above, the constants and `func_ceilings.tsv` in `internal/codeshape`, the
+constants and allow-lists of `internal/archtest`, and
+`testkit/testutil/agentsdoc_test.go`. Review enforces this: a raised or
 deleted constant, an added allow-list entry, a removed or rewired
-`TestCodeShapeOnlyShrinks` row, a new or grown `longFuncCeilings` entry or a
+`TestCodeShapeOnlyShrinks` row, a new or raised `func_ceilings.tsv` row or a
 new known-unsupported file is refused. A raise is a maintainer's decision.
 
 ### 9. Golden chain heads move only with a named cause
