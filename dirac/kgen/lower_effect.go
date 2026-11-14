@@ -690,6 +690,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 	if c, ok := ps.get("Condition"); ok {
 		return lc.bareCondition(ps, c)
 	}
+	if c, ok, err := lc.manaSpentCondition(ps); ok || err != nil { // lower_manaspentcond.go
+		return c, err
+	}
 	if c, ok := ps.get("ConditionActivationLimit"); ok {
 		return lc.activationLimitCondition(ps, c) // lower_activationcount.go
 	}
@@ -811,6 +814,28 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		}
 		if c, err = lc.nodeConditionZone(ps, c, cp); err != nil { // lower_condkeys.go
 			return lCond{}, err
+		}
+		// The plain ConditionDefined$ Remembered spelling: gorge's group is
+		// the source's persistent remembered list UNIONED with the
+		// resolution's own memory (rememberedWithSource, which
+		// rememberedLKIGroup answers; Forge's SpellAbilityCondition.areMet
+		// reads getDefinedObjects(host, "Remembered")). The kernel's
+		// RefRemembered reads the resolution's own set alone, so a chain that
+		// wrote nothing still meets the gate on an earlier resolution's write
+		// (Nezahal, Primal Tide's second discard-three activation,
+		// Aetherling's: the first exile's memory stands on the host). OR in
+		// the persistent mark for the default present compare; a written
+		// ConditionCompare$ keeps today's lowering. The mark is a bare
+		// non-empty test, so it is ORed in only when the present filter
+		// restricts nothing: a typed gate (Soul-Shackled Zombie's
+		// ConditionPresent$ Card.Creature over an instant it remembered)
+		// stays at today's per-resolution lowering.
+		if c.Kind == cRefMatches && c.Ref.Kind == rRemembered &&
+			c.Op == opGE && c.A.Kind == vConst && c.A.N == 1 && !c.Neg &&
+			filterAnyCard(c.F) {
+			if _, hasCmp := ps.get("ConditionCompare"); !hasCmp {
+				c = orCond(c, lCond{Kind: cRemMark})
+			}
 		}
 		// ConditionCheckSVar$ beside the present check is a conjunction
 		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
@@ -2208,7 +2233,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "ChooseCard":
 		return lc.chooseCard(ps)
 	case "ChoosePlayer":
-		return lc.choosePlayer(ps) // lower_definedheads.go
+		return lc.choosePlayer(ps, chainReadsChosenPlayer(sa.Sub)) // lower_definedheads.go, lower_chooseplayermid.go
 	case "GenericChoice":
 		return lc.genericChoice(ps)
 	case "ChangeText":
@@ -2712,6 +2737,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		if err := lc.rememberDamaged(rd, &in); err != nil {
 			return err
 		}
+	}
+	if err := lc.noPrevention(ps, &in); err != nil { // lower_noprevention.go
+		return err
 	}
 	if err := lc.damageDecider(ps, &in); err != nil { // lower_optional.go
 		return err
@@ -3686,7 +3714,10 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 		return refuse("PutCounter without CounterType")
 	}
 	if ct == "ENERGY" {
-		return lc.gainEnergy(obj, n)
+		return lc.gainEnergy(obj, n, kop.PlCtrEnergy)
+	}
+	if ct == "Experience" {
+		return lc.gainEnergy(obj, n, kop.PlCtrExperience) // Otharri, Suns' Glory; Ezuri, Claw of Progress
 	}
 	if ct == "EachFromSource" {
 		return lc.putCounterEachFromSource(ps, obj)
@@ -4182,6 +4213,27 @@ func (lc *lowerCtx) attach(ps *params) error {
 	// Peek (not get) and gate on the one spelling: every other Defined$ (the
 	// ordinary Targeted attach object) must still resolve in the walk below,
 	// after its own target slot exists.
+	// The chosen player (Maddening Hex: DB$ Attach | Defined$ ChosenPlayer,
+	// after the random-pool ChoosePlayer): gorge's effAttach EnchantSelf
+	// branch walks the Defined$ player set — the resolution's chosen player —
+	// and attaches to the first legal seat (alive, the aura's Enchant word;
+	// the random pick already excluded the aura's bearer). The kernel's W arm
+	// is that walk over kop RefResChosenPlayer; a resolution with no pick (the
+	// random ChoosePlayer's empty pool) attaches nothing.
+	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "ChosenPlayer" &&
+		lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab {
+		ps.consume("Defined")
+		in := lInstr{Op: "Attach", W: lRef{Kind: rResChosenPlayer}}
+		if v, ok := ps.m["RememberAttached"]; ok {
+			if v = strings.TrimSpace(v); v != "True" {
+				return refuse("Attach RememberAttached$ %q", v)
+			}
+			ps.consume("RememberAttached")
+			in.CS = "Remember"
+		}
+		lc.emit(in)
+		return nil
+	}
 	if d, ok := ps.m["Defined"]; ok && strings.TrimSpace(d) == "TriggeredAttackingPlayer" {
 		r, err := lc.defined("TriggeredAttackingPlayer")
 		if err != nil {
@@ -5132,9 +5184,17 @@ func (lc *lowerCtx) colorGrantEffect(ps *params) error {
 func (lc *lowerCtx) dividedCountersN(ps *params) (bool, error) {
 	name := ps.str("DividedAsYouChoose")
 	n, err := strconv.Atoi(name)
+	ct := ps.str("CounterType")
 	if err != nil || n < 2 || n > 8 || strconv.Itoa(n) != name || ps.str("CounterNum") != name || ps.str("TargetMax") != name ||
-		(ps.str("TargetMin") != "1" && ps.str("TargetMin") != "0") || ps.str("CounterType") != "P1P1" {
+		(ps.str("TargetMin") != "1" && ps.str("TargetMin") != "0") || ct == "" || strings.ContainsAny(ct, ",") {
 		return false, nil
+	}
+	// gorge's announced division is kind-agnostic (counters_put.go
+	// putCounterShares emits CounterType$ as written): any one object
+	// counter kind divides the same way (Contagion's -2/-1, Splendid
+	// Agony's -1/-1); the build refuses a kind the kernel does not keep.
+	if ct == "P1P1" {
+		ct = ""
 	}
 	// gorge announces a divided primitive's shares only when it is the
 	// resolving object's own root target declaration (effects/division.go
@@ -5168,7 +5228,7 @@ func (lc *lowerCtx) dividedCountersN(ps *params) (bool, error) {
 		minT = 0 // castable with no target, which then puts nothing
 	}
 	t := lc.addTarget(lTarget{F: f, Zone: zBattlefield, Min: cst(minT), Max: cst(n), Divided: n})
-	lc.emit(lInstr{Op: "DividedCounters", Obj: lRef{Kind: rTarget, N: t}, Note: "distribute N +1/+1 counters among min..N targets"})
+	lc.emit(lInstr{Op: "DividedCounters", Obj: lRef{Kind: rTarget, N: t}, CS: ct, Note: "distribute N counters among min..N targets"})
 	return true, nil
 }
 

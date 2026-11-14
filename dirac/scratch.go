@@ -14,7 +14,7 @@ import "unsafe"
 //     fresh), the body again by replOrderFreeze and replOrderEnd.
 //   - build: the cast or activation being put on the stack. Live in
 //     ctlBuild (buildLive). Every build init assigns a whole build{}.
-//   - armRes: a resolution's scratch (look, pileOrd, dmgSeqOrd). Live while
+//   - armRes: a resolution's scratch (look, pileOrd, dmgSeqOrd, dmgBRecs). Live while
 //     the resolution is suspended on a decision. Bounded by scalars that stay
 //     outside scr (nlook, lookSel, dmgSeq*); resolveTop resets them.
 //   - armEvidence: an evidence ask's picks in answer order, past arms B and C
@@ -22,7 +22,7 @@ import "unsafe"
 //     length evSel's bit count. Only arm A overlaps it, and arm A is not live
 //     beside a build or a resolution.
 //
-// The discriminants (ctl, ro.on / n, dmgSeqOn / N / I / Pl, divA / divI /
+// The discriminants (ctl, ro.on / n, dmgSeqOn / N / I / Pl, dmgBOn / dmgBn, divA / divI /
 // divRem / divFirst) are outside scr; DecisionHash reads an arm only under
 // its live condition. TestScratchArmsExclusive asserts at most one holds.
 
@@ -41,6 +41,15 @@ type armRes struct {
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
 	plc       libTally      // kop.ExtLibPlace's tally of the cards put into libraries (act_libplace.go); live from its arm op to its ask op, zeroed by scrResEnter
 	jf        int16         // the resolution's join-forces total (ExtJoinForces / ExJoinForces); zeroed by scrResEnter
+	// dmgBRecs: a DamageAll sweep's latched DamageDealtOnce lines
+	// (trig_dmgbatch.go): the sweep's per-recipient damage events are one
+	// simultaneous batch (gorge effDamageAll's BeginDamageBatch, CR 510.4), so
+	// each once line queues at its first matching event and dmgBatchClose
+	// patches the queued entry's amount to the batch's matching-event total
+	// (gorge trigger_match.go latchDamageBatch / closeDamageBatch). The open
+	// flag and the line count (dmgBOn / dmgBn) stay outside scr: the records
+	// are read only while dmgBOn holds, inside a resolution's sweep.
+	dmgBRecs [maxDmgBatch]dmgBatchEnt
 }
 
 // armEvidence is the evidence ask's scratch beside a build or a resolution.
@@ -102,7 +111,8 @@ func (s *State) scrResEnter() {
 	s.g.dmgSeqOn, s.g.dmgSeqN, s.g.dmgSeqI, s.g.dmgSeqPl = false, 0, 0, 0
 	s.g.plusBatchAsked = false // a new resolution cannot inherit a parked batch
 	s.resArm().plc = libTally{}
-	s.resArm().jf = 0 // the join-forces total is per resolution
+	s.resArm().jf = 0                // the join-forces total is per resolution
+	s.g.dmgBOn, s.g.dmgBn = false, 0 // a new resolution's sweep batch is closed (trig_dmgbatch.go)
 }
 
 // joinForcesAdd runs ExtJoinForces: it adds b to the resolution's join-forces

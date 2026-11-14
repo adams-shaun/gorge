@@ -209,7 +209,7 @@ var voteKnownKeys = [...]string{
 	"UnlessResolveSubs",
 	"UnlessSwitched",
 	"UpTo",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",
