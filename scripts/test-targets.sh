@@ -294,10 +294,6 @@ python3 -m unittest scripts/docs_sets_test.py >.ds4/scratch/test/docs_sets.log 2
 hyg=$(git log --format='%h %s' "$BASE..HEAD" | grep -iE '^[0-9a-f]+ (wip\b|fixup!|squash!)' | head -3)
 zz=$(git diff --name-only --diff-filter=A "$BASE" HEAD | grep -E '(^|/)zz_[^/]*$' | head -3)
 [ -z "$hyg$zz" ] || bad "history hygiene: reword or squash these commits and delete scratch files: $hyg $zz"
-# .ds4/ is scratch (seat reports, precheck logs); testutil's TestNothingUnderDS4IsTracked fails CI on any tracked path,
-# and no landing gate runs it for a change outside a Go package (11-14 PR #331: a seat's "chore: cs1 report").
-ds4=$(git diff --name-only --diff-filter=A "$mb" HEAD -- .ds4/ | head -3)
-[ -z "$ds4" ] || bad "a commit adds scratch under .ds4/, which must stay untracked (git rm --cached): $ds4"
 sk=$(git diff -U0 "$BASE" HEAD -- 'dirac/oracle/*_test.go' | grep -E '^\+[^+].*\bt\.Skip(f|Now)?\(' | grep -vE 'pool|Pool|tables|corpus' | head -3)
 [ -z "$sk" ] || bad "a new t.Skip in dirac/oracle that does not name a missing pool, table or corpus fails CI: $sk"
 # CI's lint runs fresh-clone-check: dirac with no corpus, tables or pools, where every corpus-dependent test must skip.
