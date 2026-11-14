@@ -173,6 +173,9 @@ type genPrep struct {
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
+	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
+	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
+	anyKwMark       bool           // some program has an ExtKwMark (kw_kwmark.go: the cleanup clear)
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb        bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
 	anyNTEndEmb     bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
@@ -213,6 +216,7 @@ type genPrep struct {
 	anySpent        bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
 	anyTgtSpent     bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
 	anyDmgAmt       bool           // some card reads the damage its object received this turn (CardDef.DmgAmt; value_dmgamount.go)
+	anyDmgTaken     bool           // some expression reads the damage players were dealt this turn (ExDmgOppsTaken): the cold buffer holds the per-player tally (kw_bloodthirst.go)
 	anyBecomeCopy   bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge   bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr    bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -690,6 +694,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		// value_dmgamount.go: every damage site records the amount for a reader card
 		g.anyDmgAmt = g.anyDmgAmt || t.Exprs[i].Kind == kop.ExDmgAmountReceived
+		g.anyDmgTaken = g.anyDmgTaken || t.Exprs[i].Kind == kop.ExDmgOppsTaken // kw_bloodthirst.go
 	}
 	if tableNthFiltered(t) {
 		g.castRingOn, g.anyHist = true, true
@@ -1602,6 +1607,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		// resolution), so the per-permanent walks find none
 		g.anyRepl |= rbPlusDmg
 	}
+	prepKwMark(t, g) // kw_kwmark.go; before prepInfect, which reads anyInfectGrant
 	prepInfect(t, g)
 	prepTwoSeat(t, g) // stallclass.go
 	prepFbStamp(t, g) // kw_fbgrant.go
@@ -1806,6 +1812,21 @@ type xTargets struct {
 }
 
 // genState is the generated-table part of State.
+// prevRec is one genState.prevCol record (see the field).
+type prevRec struct {
+	obj Obj
+	col kop.ColorMask
+	// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
+	// damage its controller ctl (a player) or the creatures ctl controls
+	// would take; sc holds the kop.PrevScope* bits and col is the record's
+	// source-colour filter (0: any source; the C bits of Ext PreventDamageScope
+	// above kop.PrevScopeColourShift), not a colour to prevent. A record
+	// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
+	// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
+	sc  uint8
+	ctl TCode
+}
+
 type genState struct {
 	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
 	// cskip: the combat-phase skips (act_skipphase.go). Bit p: player p skips the
@@ -2009,17 +2030,7 @@ type genState struct {
 	// gorge Effect): the card that made it and the colour chosen (col, a
 	// ColorMask bit; 0 = free) whose sources' damage it prevents
 	// (cast_altfree.go; padding before lingerM)
-	prevCol [3]struct {
-		obj Obj
-		col kop.ColorMask
-		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
-		// damage its controller ctl (a player) or the creatures ctl controls
-		// would take; sc holds the kop.PrevScope* bits and col is 0. A record
-		// with sc&prevNextSc is an Ext PreventNext shield: ctl the recipient's
-		// damage code, obj the effect's source, col the damage left (repl_prevnext.go)
-		sc  uint8
-		ctl TCode
-	}
+	prevCol [3]prevRec
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
 	// counts each creature once across extra combats). perm.flags has no free bit, so

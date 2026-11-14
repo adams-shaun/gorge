@@ -841,6 +841,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			}
 			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
 		}
+		if c, err = lc.presentSecondGroup(ps, c); err != nil { // lower_condpresent2.go
+			return lCond{}, err
+		}
 		// A self-referencing present check ("Card.Self+Scout") is a
 		// property of the source.
 		return c, nil
@@ -1184,12 +1187,13 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		if c.Mana.X && lc.trigXMax != nil {
 			return lc.payManaX(c, in) // lower_triggerxcost.go
 		}
-		if c.Mana.X || len(c.Mana.Hybrid) > 0 || c.Mana.C > 0 {
+		if c.Mana.X || c.Mana.C > 0 || len(c.Mana.Hybrid) > 0 && !lc.trigHybridOK(c) {
 			return in, refuse("resolution mana cost %s", c.Mana)
 		}
 		in.CS = "Mana"
 		in.A = cst(c.Mana.Generic)
 		in.B = cst(packPips(c.Mana.Pips))
+		in.Hyb = c.Mana.Hybrid // lower_trighybrid.go
 	}
 	if c.DiscardN > 0 {
 		n++
@@ -1496,6 +1500,9 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			lc.trigXMax = nil
 			if err != nil {
 				return err
+			}
+			if chain != nil && len(in.Hyb) != 0 {
+				return refuse("resolution mana-and-exile cost with hybrid mana %s", cost.Mana) // the chain pays plain pips
 			}
 			if ownCost && in.CS == "SacrificeSelf" && strings.HasPrefix(c, "Mandatory") {
 				in.CS = "SacrificeSelfMust" // no "may": gorge settles it unasked (cost_mandatorysac.go)
@@ -2204,6 +2211,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.choosePlayer(ps) // lower_definedheads.go
 	case "GenericChoice":
 		return lc.genericChoice(ps)
+	case "ChangeText":
+		return lc.changeText(ps) // textreach.go
 	case "PeekAndReveal":
 		return lc.peekAndReveal(ps)
 	case "TwoPiles":
@@ -2363,6 +2372,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.rollDice(ps)
 	case "TapOrUntap":
 		return lc.tapOrUntap(ps)
+	case "TapOrUntapAll":
+		return lc.tapOrUntapAll(ps) // lower_tapuntap.go
 	case "Debuff":
 		return lc.debuff(ps)
 	case "Explore":
@@ -3288,11 +3299,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		lc.emit(lInstr{Op: "PumpUntilEOT", Obj: obj, A: att, B: def})
 	}
 	kw, hasKW := ps.get("KW")
-	mustBlock, noCombat, lure := false, false, false
+	mustBlock, noCombat, lure, marks := false, false, false, 0
 	if hasKW {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		kw, noCombat = splitKWSentence(kw, cantAttackOrBlockKW)
 		kw, lure = splitKWSentence(kw, lureKW)
+		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 	}
 	if hasKW && kw != "" {
 		rest, fbs, err := splitFirebendingGrant(kw)
@@ -3351,6 +3363,12 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 			return refuse("Pump KW$ must be blocked if able on a non-permanent subject")
 		}
 		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj})
+	}
+	if marks != 0 {
+		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
+			return refuse("Pump KW$ %s on a non-permanent subject", kwMarkNames(marks))
+		}
+		lc.emit(lInstr{Op: "KwMark", Obj: obj, C: marks, Note: kwMarkNames(marks) + " until end of turn"})
 	}
 	if lure {
 		if zone != zBattlefield || !lc.pumpObjectRef(obj) {
@@ -3480,7 +3498,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if scope.Kind != rNone {
 		in.Note = "only the target player's permanents"
 	}
-	mustBlock, eachColor := false, false
+	mustBlock, eachColor, marks := false, false, 0
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
 		if mustBlock && scope.Kind != rNone {
@@ -3489,6 +3507,10 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		kw, eachColor = splitKWSentence(kw, protEachColorKW)
 		if eachColor && scope.Kind != rNone {
 			return refuse("PumpAll KW$ protection from each color with a ValidTgts$ player scope")
+		}
+		kw, marks = splitKwMarks(kw) // lower_kwmark.go
+		if marks != 0 && scope.Kind != rNone {
+			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
 		}
 		if kw != "" {
 			ks, err := pumpKeywords(kw)
@@ -3503,7 +3525,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
 	}
 	if eachColor {
@@ -3516,6 +3538,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	if mustBlock {
 		lc.emit(lInstr{Op: "MustBeBlocked", F: f}) // every permanent matching ValidCards$
+	}
+	if marks != 0 {
+		lc.emit(lInstr{Op: "KwMark", F: f, C: marks, Note: kwMarkNames(marks) + " until end of turn"}) // every permanent matching ValidCards$
 	}
 	return nil
 }
