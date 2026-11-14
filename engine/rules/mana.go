@@ -199,9 +199,10 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	// body is present but unresolvable is WITHHELD here -- the fail-closed
 	// direction the rest of the cost grammar takes -- rather than offered with
 	// an arbitrary announcement.
-	// fixLifeXCost is the identity on a cost with no PayLife<X> part.
+	// fixLifeXCost is the identity on a cost with no PayLife<X> or announced
+	// ExileFromGrave<X> part.
 	var local Cost
-	if len(base.LifeX) > 0 {
+	if pay.CostHasSVarX(*base) {
 		var ok bool
 		if local, ok = pay.FixLifeXCost(asPayer(e), p, id, *base); !ok {
 			return false
@@ -584,7 +585,7 @@ func (e *Engine) manaActivationCostMarker(abilities []*cards.SA) string {
 
 // PayLifeInsteadOfB (pay.Engine) reports whether p's side of the battlefield
 // carries a Continuous static granting PayLifeInsteadOf:B to p (K'rrik's
-// "Affected$ You | AddKeyword$ PayLifeInsteadOf:B"). Every mana payment and
+// static granting that keyword to its controller). Every mana payment and
 // every cast/activation offer gate consults it, so a plain {B} pip is
 // payable with 2 life anywhere K'rrik is in play under its controller.
 func (pe *payEval) PayLifeInsteadOfB(p state.PlayerID) bool {

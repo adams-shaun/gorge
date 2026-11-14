@@ -87,6 +87,14 @@ func (lc *lowerCtx) sideboardToHand(ps *params, from string) error {
 	if !ps.is("Hidden", "True") {
 		return refuse("ChangeZone Origin$ Sideboard without Hidden$ True")
 	}
+	// Reveal$ True (the Wishes: Cunning Wish, Burning Wish, Golden Wish):
+	// gorge's search reveals the moved card as a public Note
+	// (applyLibrarySearch, zone_search.go: cz.Reveal overrides Hidden$),
+	// no state change and no decision -- the library search's own reading
+	// (lower_zone.go's "search Reveal$").
+	if v, ok := ps.get("Reveal"); ok && v != "True" {
+		return refuse("ChangeZone Origin$ Sideboard Reveal$ %q", v)
+	}
 	ps.consume("Destination")
 	f, n, ct, err := lc.sideboardFilter(ps, from)
 	if err != nil {
@@ -189,13 +197,18 @@ func (lc *lowerCtx) originLibrarySideboard(ps *params) error {
 // sideSearchFlags packs a sideboard search's flags into the OpSearchEx B word
 // (ChangeZone Origin$ Sideboard / Library,Sideboard): the pool is the library
 // (unless SideOnly) and the sideboard, so the filter matches cards of either
-// zone and the zone becomes ZoneNone. The Side-only flags refuse without Side.
+// zone and the zone becomes ZoneNone. The Side-only flags refuse without Side
+// (a ChooseMove's ChooserOpp is its own flag, a plain pick's chooser, not a
+// sideboard search's).
 func sideSearchFlags(op string, fl map[string]string, sb int, zone kop.Zone) (int, kop.Zone, error) {
 	if _, ok := fl["Side"]; !ok {
-		for _, bad := range []string{"SideOnly", "Exactly", "ChooserOpp"} {
+		for _, bad := range []string{"SideOnly", "Exactly"} {
 			if _, ok := fl[bad]; ok {
 				return sb, zone, fmt.Errorf("%s without Side", bad)
 			}
+		}
+		if _, ok := fl["ChooserOpp"]; ok && op != "ChooseMove" {
+			return sb, zone, fmt.Errorf("ChooserOpp without Side")
 		}
 		return sb, zone, nil
 	}
@@ -231,6 +244,8 @@ func czallTwoZoneB(from string) (int, bool) {
 		return kop.CzBattleGrave, true
 	case "Library,Sideboard":
 		return kop.CzLibrarySideboard, true
+	case "Graveyard,Library":
+		return kop.CzGraveLibrary, true // Doomsday (lower_gravelibsweep.go)
 	}
 	return 0, false
 }

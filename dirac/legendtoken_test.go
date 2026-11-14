@@ -52,7 +52,7 @@ func TestLegendRuleGrantedLegendary(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChLegend || d.N != 2 {
 		t.Fatalf("legend decision kind=%d sub=%d n=%d, want the keep ask over 2", d.Kind, d.Sub, d.N)
 	}
-	l.sc.s.Apply(MakeAction(AkChoose, uint8(b), 0, 0))
+	l.sc.s.Apply(MakeAction(AkChoose, TCode(b), 0, 0))
 	if l.sc.onBF(a) || !l.sc.onBF(b) {
 		t.Fatalf("legend rule kept the wrong one: a=%v b=%v", l.sc.onBF(a), l.sc.onBF(b))
 	}
@@ -81,7 +81,7 @@ func TestLegendAskWithCreatureCasualty(t *testing.T) {
 	if !sc.onBF(elves) {
 		t.Fatal("the casualty died before the legend ask")
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(g1), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(g1), 0, 0))
 	if sc.s.ctl == ctlLegend {
 		t.Fatal("still asking")
 	}
@@ -114,7 +114,7 @@ func TestLegendAskCasualtyIsDuplicate(t *testing.T) {
 		if !keepFirst {
 			keep, gone = g2, g1 // the kept member is itself the casualty: it still dies
 		}
-		sc.s.Apply(MakeAction(AkChoose, uint8(keep), 0, 0))
+		sc.s.Apply(MakeAction(AkChoose, TCode(keep), 0, 0))
 		if keepFirst {
 			if !sc.onBF(g1) || sc.onBF(gone) || sc.s.objs[gone].zone != kop.ZoneGraveyard {
 				t.Fatalf("keep first: kept %v, casualty %v (zone %d)", sc.onBF(g1), sc.onBF(gone), sc.s.objs[gone].zone)

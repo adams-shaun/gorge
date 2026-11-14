@@ -1,0 +1,7 @@
+family: key
+name: keyForetold
+value: 30
+forge: foretold
+census: key foretold classes=1 all=1
+state: objbit 32
+status: reserved

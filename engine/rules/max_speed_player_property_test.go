@@ -4,15 +4,13 @@ package rules
 // property of a PLAYER rather than as a `Condition$ MaxSpeed` static, and
 // gorge reads both spellings.
 //
-//   - Hazoret, Godseeker's
-//     `S:Mode$ CantAttack,CantBlock | ValidCard$ Card.Self |
-//      CheckSVar$ PlayerCountPropertyYou$HasPropertyMaxSpeed |
-//      SVarCompare$ NE1` -- the count head had no HasPropertyMaxSpeed arm, so
+//   - Hazoret, Godseeker's CantAttack,CantBlock static on itself, gated on
+//     a count of its controller having max speed not being 1 -- the count
+//     head had no HasPropertyMaxSpeed arm, so
 //     the SVar gate was unreadable, failed closed and the CantBlock static was
 //     skipped whole (Hazoret blocked freely).
-//   - Outpace Oblivion's
-//     `A:AB$ DealDamage | Cost$ 2 Sac<1/CARDNAME/this enchantment> |
-//      Defined$ Player.!MaxSpeed | NumDmg$ 2` -- the player filter had no
+//   - Outpace Oblivion's activated ability ({2}, sacrifice it: 2 damage to
+//     each player without max speed) -- the player filter had no
 //     MaxSpeed qualifier, so `Player.!MaxSpeed` matched nobody and the ability
 //     damaged nobody.
 //

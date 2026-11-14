@@ -293,7 +293,7 @@ func (s *State) FeatArrangeGraveyard() bool {
 // FeatArrangeDig reports whether the ChArrange decision is a dig's rest
 // ordered onto the bottom (gorge's "dig_bottom" options).
 func (s *State) FeatArrangeDig() bool {
-	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange
+	return s.ctl == ctlResolve && s.res.ask == raGenDigArrange && !s.digArrangeTop(s.k())
 }
 
 // FeatArrangePlace reports whether the ChArrange decision is an owner ordering
@@ -547,8 +547,8 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if k.gen == nil {
 		return true
 	}
-	if len(k.gen.grantPC) != 0 && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
-		return false // payable only with a granted mana ability (the V1 exclusion above)
+	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p)) && !s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
 	return s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
@@ -582,7 +582,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
+	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.boardRaiseTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
@@ -845,14 +845,20 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || pm.flags&pfTapped != 0 || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		if sl == ex || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) {
 			continue // the census never lists a deferred source (mana_rider.go)
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || !s.canTapForManaPC(k, sl, pc) {
+		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || k.gen.anyComboDyn && s.comboDynAt(k, sl, pc) {
+			continue // (a Combo Any of an evaluated amount is no census unit: mana_combodyn.go)
+		}
+		// a printed sacrifice-only ability (Eldrazi Spawn's {C}) is a last-resort
+		// unit of the census, tapped or not and beside a granted {T} ability
+		// (CR 602.2b; gorge's census admits each printed ability on its own)
+		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
@@ -976,8 +982,14 @@ func (s *State) FeatZoneList(p uint8, z kop.Zone, dst []Obj) []Obj {
 }
 
 // FeatZoneIndex is object o's position in its owner's hand, library (from
-// the top), graveyard or exile; 255 elsewhere.
-func (s *State) FeatZoneIndex(o Obj) uint8 { return s.zoneIndex(o) }
+// the top), graveyard or exile; 255 elsewhere, and for a code that names no
+// object (a stack ability's or a player's, which a choice's source can be).
+func (s *State) FeatZoneIndex(o Obj) uint8 {
+	if int(o) >= MaxObj {
+		return 255
+	}
+	return s.zoneIndex(o)
+}
 
 // featCost is card c's cast cost for p after reductions, exactly as the
 // kernel's priority walk prices it (adjustCost).
@@ -993,8 +1005,7 @@ func (s *State) FeatPayManual() bool {
 		return false
 	}
 	k := s.k()
-	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := s.resPayCost(k) // cost_trighybrid.go
 	var av avail
 	pl := &s.pl[SeatIx(s.g.pickP)]
 	for i := 0; i < kop.NumManaKinds; i++ {
@@ -1047,6 +1058,9 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			}
 			if ov.RemoveCreatureSub && !DebugRmCreatSubKeep {
 				subs, all, setSub = subs.AndNot(k.gen.creatSub), false, true
+			}
+			if ov.SetLandSub {
+				subs, setSub = subs.AndNot(k.gen.landSub), true // CR 305.7 (static_landtypesetter.go)
 			}
 			subs = subs.Or(ov.AddSub)
 			if ovrAllCreat(ov) {
@@ -1290,7 +1304,7 @@ func (s *State) FeatProjGlobals(p *Projection) {
 	p.NStack = s.sp
 	for i := 0; i < int(s.sp); i++ {
 		e := &s.stack[i]
-		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: e.x}
+		p.Stack[i] = ProjStack{Kind: e.kind, Source: e.obj, Card: e.card, Ability: e.ab, Ctrl: e.ctrl, Targets: e.tgt, Mode: e.mode, X: uint8(e.x)}
 		if e.x != 0 && e.kind == seTrigger {
 			p.Stack[i].X = projTrigX(s.k(), e) // a bound X is not the object's own (trig_xpaid.go)
 		}
@@ -1360,6 +1374,9 @@ func (s *State) FeatManaActivatable(o Obj) bool {
 func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 	k := s.k()
 	t := k.t
+	if i, ok := basicLandKey(v); ok {
+		return i // gorge's basic land type order (act_choosebasicland.go)
+	}
 	if v >= len(t.TypeVocab) {
 		return 1<<16 | uint32(v)
 	}
@@ -1470,7 +1487,7 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 // counter list keeps it at 0 while the permanent stays.
 func (p *perm) seeCtr(s *State) {
 	for i := range p.cn {
-		if p.cn[i] != 0 && p.ck[i] < uint8(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
+		if p.cn[i] != 0 && p.ck[i] < uint16(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
 			p.cseen |= 1 << i
 		}
 	}

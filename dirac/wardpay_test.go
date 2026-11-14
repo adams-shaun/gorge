@@ -45,11 +45,11 @@ func TestWardPaysInBattlefieldOrder(t *testing.T) {
 	terror := sc.perm(id["Tolarian Terror"], 1)
 	sc.hand(id["Tolarian Terror"], 0)
 	pie := sc.hand(id["Bake into a Pie"], 0)
-	sc.do(t, AkCast, uint8(pie), 0xff)
+	sc.do(t, AkCast, TCode(pie), scAny)
 	for i := 0; i < 12; i++ {
 		d := s.Step()
 		if d.Kind == DkTarget {
-			s.Apply(MakeAction(AkTarget, 0, uint8(terror), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(terror), 0))
 			continue
 		}
 		if d.Kind == DkChoose && d.Sub == ChWardPay {
@@ -121,10 +121,10 @@ func TestWardPayWithBloomTender(t *testing.T) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
 			switch {
-			case a.Kind() == AkCast && a.Source() == uint8(bd):
+			case a.Kind() == AkCast && a.Source() == TCode(uint8(bd)):
 				cast = true
 				return a, true
-			case d.Kind == DkTarget && a.Target() == uint8(pr):
+			case d.Kind == DkTarget && a.Target() == TCode(uint8(pr)):
 				return a, true
 			case d.Kind == DkChoose && d.Sub == ChWardPay && a.Mode() == 1:
 				return a, true
@@ -188,11 +188,11 @@ func TestWardFailedPaySacrificesTreasure(t *testing.T) {
 	s.objs[tr].of |= ofToken
 	terror := sc.perm(id["Tolarian Terror"], 1)
 	pie := sc.hand(id["Bake into a Pie"], 0)
-	sc.do(t, AkCast, uint8(pie), 0xff)
+	sc.do(t, AkCast, TCode(pie), scAny)
 	for i := 0; i < 12; i++ {
 		d := s.Step()
 		if d.Kind == DkTarget {
-			s.Apply(MakeAction(AkTarget, 0, uint8(terror), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(terror), 0))
 			continue
 		}
 		if d.Kind == DkChoose && d.Sub == ChWardPay {
@@ -275,7 +275,7 @@ func TestWardGrantedKeepsPrintedLifeWard(t *testing.T) {
 	shock := sc.obj(id["Shock"], 1)
 	e := &stackEntry{obj: shock, ctrl: 1}
 	s.npend = 0
-	s.targetedOne(k, e, uint8(z))
+	s.targetedOne(k, e, TCode(z))
 	if s.npend != 2 || s.pend[0].ab != abWard || s.pend[0].trigAmt != -2 || s.pend[1].trigAmt != 1|wardGrantedBits {
 		t.Fatalf("pending %d: %+v, want the pay-2-life ward, then the granted ward {1}", s.npend, s.pend[:s.npend])
 	}
@@ -306,14 +306,14 @@ func TestWardPayTapAnotherPermanent(t *testing.T) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
 			switch {
-			case a.Kind() == AkCast && a.Source() == uint8(spell):
+			case a.Kind() == AkCast && a.Source() == TCode(uint8(spell)):
 				cast = true
 				return a, true
-			case d.Kind == DkTarget && a.Target() == uint8(warded):
+			case d.Kind == DkTarget && a.Target() == TCode(uint8(warded)):
 				return a, true
 			case d.Kind == DkChoose && d.Sub == ChWardPay && a.Mode() == 1:
 				return a, true
-			case d.Kind == DkChoose && d.Sub == ChWindowTap && a.Target() == uint8(spare):
+			case d.Kind == DkChoose && d.Sub == ChWindowTap && a.Target() == TCode(uint8(spare)):
 				return a, true
 			}
 		}
@@ -359,12 +359,12 @@ func TestStackedWardTriggersLeaveSameStack(t *testing.T) {
 	}
 	// p1 mints the Role on its Admirer, then p0 holds priority with 7 Mountains
 	s.active, s.prio = 1, 1
-	sc.do(t, AkCast, uint8(gen), 0xff)
+	sc.do(t, AkCast, TCode(gen), scAny)
 	for i := 0; i < 40 && !(s.sp == 0 && s.ctl == ctlPriority && s.passes == 0 && s.prio == 1 && s.nobj > 0 && roleOn(sc, adm)); i++ {
 		d := s.Step()
 		switch {
 		case d.Kind == DkTarget:
-			s.Apply(MakeAction(AkTarget, 0, uint8(adm), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(adm), 0))
 		case d.Kind == DkPriority:
 			s.Apply(MakeAction(AkPass, 0, 0, 0))
 		default:
@@ -385,7 +385,7 @@ func TestStackedWardTriggersLeaveSameStack(t *testing.T) {
 		d := s.Step()
 		switch {
 		case d.Kind == DkTarget:
-			s.Apply(MakeAction(AkTarget, 0, uint8(adm), 0))
+			s.Apply(MakeAction(AkTarget, 0, TCode(adm), 0))
 		case d.Kind == DkChoose && d.Sub == ChWardPay:
 			asks = append(asks, int(s.sp))
 			for _, a := range d.Options[:d.N] {
@@ -395,7 +395,7 @@ func TestStackedWardTriggersLeaveSameStack(t *testing.T) {
 			}
 		case d.Kind == DkPriority && acts < 3 && int(s.sp) == 3*acts && s.prio == 0:
 			for j := 0; j < int(d.N); j++ {
-				if a := d.Options[j]; a.Kind() == AkActivate && a.Source() == uint8(hk) {
+				if a := d.Options[j]; a.Kind() == AkActivate && a.Source() == TCode(uint8(hk)) {
 					s.Apply(a)
 					acts++
 					break

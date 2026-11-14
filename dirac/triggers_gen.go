@@ -18,7 +18,7 @@ type trigListener struct {
 	ctrl uint8
 	card CardID
 	ab   uint8
-	host uint8 // the granting permanent plus one (stackEntry.trigHost); 0 = none
+	host Obj // the granting permanent plus one (stackEntry.trigHost); 0 = none
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
@@ -227,7 +227,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {
-		s.pend[n].remVer = l.host // a granted trigger's host rides remVer (stackEntry.trigHost)
+		s.pend[n].remVer = objWord(l.host) // a granted trigger's host rides remVer (stackEntry.trigHost)
 	}
 	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound|kop.Tf2Convoked) != 0 {
 		s.bindTrigProv(a, tobj) // trig_xpaid.go, trig_gravedrawn.go
@@ -345,6 +345,9 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if k.gen.tapsWhose && !s.tapsWhoseOK(l, a, amt) {
 			return
 		}
+		if k.gen.anyTapsMana && !s.tapsManaOK(a, amt) {
+			return // Mode$ TapsForMana: only a mana tap by the right player (trig_params.go)
+		}
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
 		}
@@ -376,6 +379,29 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		return
 	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)
+}
+
+// lifeCauseSpellOK is a LifeLost trigger's Tf4CauseSpellAb gate: the loss
+// was caused by the spell or ability resolving right now (gorge
+// lifeLossCauseMatches reads Facts.Damaging, set around every stack
+// resolution and cleared after it; combat damage and a loss with no
+// resolution in flight -- a cost payment, a mana ability's cost -- match
+// none), qualified by the cause's controller.
+func (s *State) lifeCauseSpellOK(ctrl uint8, t *kop.Trigger) bool {
+	if !s.res.active {
+		return false
+	}
+	switch t.N {
+	case kop.TrigNCauseSpellYouCtrl:
+		if s.res.e.ctrl != ctrl {
+			return false
+		}
+	case kop.TrigNCauseSpellOppCtrl:
+		if s.res.e.ctrl == ctrl {
+			return false
+		}
+	}
+	return true
 }
 
 // firePlayerGen is the core's firePlayer on a generated table.
@@ -415,6 +441,18 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 	}
 	tobj := passed
 	switch ev {
+	case kop.TrigLifeLost:
+		// Tf4CauseSpellAb (kop): the ValidCause$ SpellAbility gate (gorge
+		// lifeLossCauseMatches): the loss was caused by the spell or
+		// ability resolving right now, never by combat damage (gorge's
+		// combatDamaging) and never with no resolution in flight -- a cost
+		// payment, a mana ability's cost, gorge's Damaging == 0. The
+		// kernel's combat damage step applies with no resolving entry
+		// (s.res.active false there), so reading the resolving entry is
+		// also the combat exclusion.
+		if t.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(l.ctrl, t) {
+			return
+		}
 	case kop.TrigDrawn:
 		if t.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(t, who) {
 			return
@@ -547,7 +585,7 @@ func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, a
 // fireDamageGen is the core's fireDamage on a generated table: one damage event
 // of amt from src, which outside a damage batch is its own batch, so
 // DamageDealtOnce fires per event too.
-func (s *State) fireDamageGen(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8) {
+func (s *State) fireDamageGen(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode) {
 	s.fireDamageEvGen(k, src, amt, toPlayer, combat, nil, rcp, nil)
 }
 
@@ -560,6 +598,10 @@ type dmgLatch struct {
 	l       [8]trigListener
 	total   int16 // all the source's damage this batch
 	totalPl int16 // the part dealt to players
+	// r and src are the combat step's events and this latch's source: an
+	// AtLeastOneInstance$ gate reads each recipient's share (trig_atleastone.go)
+	r   *dmgRec
+	src Slot
 }
 
 // has reports whether l latched before the event whose walk began with seen
@@ -580,7 +622,7 @@ func (d *dmgLatch) has(l trigListener, seen int) bool {
 // listeners once per event). With a latch (a combat damage batch) a
 // DamageDealtOnce line queues at its first matching event of the batch and
 // carries the batch total; without one the event is its own batch.
-func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat bool, latch *dmgLatch, rcp uint8, rl *refLatch) {
+func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat bool, latch *dmgLatch, rcp TCode, rl *refLatch) {
 	m := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).and(s.occ)
 	if k.gen.grantTrigEv&(1<<kop.TrigDamageDone|1<<kop.TrigDamageDealtOnce) != 0 {
 		m = s.grantTrigHosts(k, m)
@@ -627,11 +669,20 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 				return
 			}
+			if t.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0 && (!toPlayer || !s.attackedYouLastTurn(dpl, l.ctrl)) {
+				return // trig_atklastturn.go
+			}
+			if t.Flags5&kop.Tf5DmgNoContract != 0 && (!toPlayer || s.contracts(dpl) != 0) {
+				return // ctr_contract.go
+			}
 			once := t.Event == kop.TrigDamageDealtOnce && latch != nil
 			if once && latch.has(l, seen) {
 				return
 			}
-			if !s.objEventMatch(k, l, a, src) || !s.trigOK(k, l, a) {
+			if !s.objEventMatch(k, l, a, src) {
+				return
+			}
+			if !s.trigOK(k, l, a) {
 				return
 			}
 			if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
@@ -651,6 +702,12 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			if t.Flags2&(kop.Tf2Batch|kop.Tf2PerReferent) == kop.Tf2Batch && !s.batchTrigOK(l, a, NoObj) {
 				return
 			}
+			if !instGateOK(t, amt, latch, rl) {
+				return // trig_atleastone.go: AtLeastOneInstance$
+			}
+			if s.g.dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(srcObj, l, amt) {
+				return // a DamageAll sweep's batch latched the line: this matching event only accumulates (trig_dmgbatch.go)
+			}
 			if once {
 				n = latch.total
 				if t.Flags&kop.TfToPlayer != 0 {
@@ -663,7 +720,11 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 					s.capFull(StallDmgLatch) // loud: a ninth listener is not latched
 				}
 			}
+			n0 := s.npend
 			s.queueTrig(k, l, a, tobj, tpl, n)
+			if s.g.dmgBOn && dmgBatchOnce(a) && latch == nil && s.npend > n0 {
+				s.dmgBatchArm(srcObj, l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
+			}
 		})
 	}
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
@@ -677,7 +738,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 // dmgPlayers is the player mask a permanent-source damage event names: the
 // damaged player when rcp is one, else (an aggregate event to players) the
 // source controller's opponent.
-func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
+func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp TCode) uint8 {
 	if !toPlayer {
 		return 0
 	}
@@ -688,7 +749,7 @@ func dmgPlayers(toPlayer bool, srcCtrl uint8, rcp uint8) uint8 {
 }
 
 // dmgPl is the player mask fireDamageSrc takes for one damage target code.
-func dmgPl(code uint8) uint8 {
+func dmgPl(code TCode) uint8 {
 	if isPlayerOrNone(code) {
 		return 1 << CodeSeat(code)
 	}
@@ -700,7 +761,7 @@ func dmgPl(code uint8) uint8 {
 // you control deals noncombat damage to an opponent"), or an ability whose
 // source left the battlefield (gorge reads its last known information:
 // a sacrificed Fanatical Firebrand's ping, pair 3334), matched by its card.
-func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, rcp uint8, rl *refLatch) {
+func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, rcp TCode, rl *refLatch) {
 	toPlayer := plM != 0 // plM: the players dealt damage (bit p)
 	if o == NoObj {
 		return
@@ -723,7 +784,10 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		if t.Flags2&kop.Tf2ToOpponent != 0 && !oppDamaged(plM, l.ctrl) || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 			return
 		}
-		if t.Filter != 0 && !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o) || !s.trigOK(k, l, a) {
+		if t.Filter != 0 && (needsAttachedSource(k, t.Filter) || !s.matchCardGen(k, t.Filter, s.objs[o].card, ctrl, l.ctrl, o)) {
+			return // trig_damageattached.go
+		}
+		if !s.trigOK(k, l, a) {
 			return
 		}
 		if t.Flags4 != 0 && !s.singleCauseOK(k, rcp) {
@@ -736,7 +800,17 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 				return
 			}
 		}
+		if !instGateOK(t, amt, nil, rl) {
+			return // trig_atleastone.go: AtLeastOneInstance$
+		}
+		if s.g.dmgBOn && dmgBatchOnce(a) && s.dmgBatchSeen(o, l, amt) {
+			return // a DamageAll sweep's batch latched the line: this matching event only accumulates (trig_dmgbatch.go)
+		}
+		n0 := s.npend
 		s.queueTrig(k, l, a, tobj, tpl, n)
+		if s.g.dmgBOn && dmgBatchOnce(a) && rl == nil && s.npend > n0 {
+			s.dmgBatchArm(o, l, amt, n0) // the sweep batch's entry for the line: the close patches the amount (trig_dmgbatch.go)
+		}
 	}
 	for _, ev := range evs {
 		if s.subs[ev].any() {
@@ -910,7 +984,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 				continue
 			}
 			j := nb
-			for j > 0 && s.perms[bl[j-1]].bord > s.perms[b].bord {
+			for j > 0 && s.blockKey(bl[j-1], a) > s.blockKey(b, a) { // the (b, a) pair's declaration order
 				bl[j] = bl[j-1]
 				j--
 			}
@@ -956,7 +1030,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			// one Damage event per recipient, in assignment order (gorge
 			// runCombatAssignments emits each assignment): DamageDone per
 			// event, DamageDealtOnce at the source's first matching event
-			latch := dmgLatch{total: r.dealt[sl], totalPl: r.dealtPl[sl]}
+			latch := dmgLatch{total: r.dealt[sl], totalPl: r.dealtPl[sl], r: r, src: sl}
 			for i := 0; i < r.nev; i++ {
 				if ev := r.ev[i]; ev.src == sl && ev.n > 0 {
 					if ev.dst == NoSlot {

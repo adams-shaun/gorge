@@ -101,16 +101,23 @@ func ValidatePairedBot(e bots.Entry, o Options) error {
 // pairedBotOf is the bot table config c asks for, nil when it wants none or the
 // server does not offer the one it names. A table's named bot can be gone after
 // a restart with other flags.
+//
+// A table at the default gets the server's default when it plays the table's
+// format at the table's seat count, else the first choice that does (a 4-seat
+// Commander pod gets a 4-seat search), else the first choice for the format,
+// whose misfit then says why it cannot advise there.
 func (r *Registry) pairedBotOf(c *TableConfig) *bots.Entry {
 	switch c.PairedBot {
 	case "":
 		def := r.opts.PairedBot
-		if def == nil || len(def.Formats) == 0 || slices.Contains(def.Formats, c.Format.String()) {
+		if def == nil || pairedBotFits(def, c, true) {
 			return def
 		}
-		for _, e := range r.opts.PairedBotChoices {
-			if slices.Contains(e.Formats, c.Format.String()) {
-				return e
+		for _, seats := range []bool{true, false} {
+			for _, e := range r.opts.PairedBotChoices {
+				if pairedBotFits(e, c, seats) {
+					return e
+				}
 			}
 		}
 		return def
@@ -126,6 +133,15 @@ func (r *Registry) pairedBotOf(c *TableConfig) *bots.Entry {
 		}
 	}
 	return nil
+}
+
+// pairedBotFits reports whether e plays the format of a table configured as c
+// and, when seats is set, its seat count.
+func pairedBotFits(e *bots.Entry, c *TableConfig, seats bool) bool {
+	if len(e.Formats) > 0 && !slices.Contains(e.Formats, c.Format.String()) {
+		return false
+	}
+	return !seats || e.MaxSeats == 0 || c.Seats <= e.MaxSeats
 }
 
 // checkPairedBotChoice refuses a new table that names a bot this server does

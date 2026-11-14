@@ -16,18 +16,28 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // that costs about 100 bytes of State.
 const maxCtrOver = 16
 
+// ctrPadN pads genState so the 16-bit counter kinds (perm.ck, lkiRec.ck,
+// ctrOverEntry.kind, genState's lastCK and enterCtr.kind) grow the State ahead
+// of perms by a whole number of cache lines and perms keeps its phase
+// (statelayout_test.go): the State grew by 48 bytes, which these 16 carry to
+// 64.
+const ctrPadN = 16
+
 // ctrOverEntry is one counter kind in the overflow table. lki 0 is a kind obj
 // holds now; i+1 is LKI record i's copy of a kind obj held when it was taken.
 type ctrOverEntry struct {
 	n    uint16
+	kind uint16 // a kop.CounterKind, as wide as perm.ck
 	obj  Obj
-	kind uint8
 	lki  uint8
 	seen bool // perm.cseen's bit for this kind
 }
 
-func (e *ctrOverEntry) key() uint32 {
-	return uint32(e.lki)<<16 | uint32(e.obj)<<8 | uint32(e.kind)
+// key orders the table by lki and object, then kind. The lki and object half is
+// the one the 8-bit kinds had (lki<<16 | obj<<8), shifted past the 16-bit kind,
+// so the order of every table holding kinds below 256 is unchanged.
+func (e *ctrOverEntry) key() uint64 {
+	return uint64(uint32(e.lki)<<16|uint32(e.obj)<<8)<<8 | uint64(e.kind)
 }
 
 // DebugCtrOverProjOff is a test-only mutation: Project ignores the overflow
@@ -116,7 +126,7 @@ func (s *State) ctrOverSet(o Obj, c int, n uint16) bool {
 func (s *State) ctrOverSee(o Obj) {
 	t := s.ctrOverOf(o, 0)
 	for i := range t {
-		if t[i].n != 0 && t[i].kind < uint8(kop.NumCounterKinds2) {
+		if t[i].n != 0 && t[i].kind < uint16(kop.NumCounterKinds2) {
 			t[i].seen = true
 		}
 	}
@@ -141,11 +151,13 @@ func (s *State) ctrOverSum(o Obj, lki uint8) int {
 //go:noinline
 func (s *State) ctrOverHash(h uint64, o Obj) uint64 {
 	for _, e := range s.ctrOverOf(o, 0) {
-		v := uint64(e.kind)<<16 | uint64(e.n)
+		v := uint64(e.kind&0xff)<<16 | uint64(e.n)
 		if e.seen {
 			v |= 1 << 24
 		}
-		h = hmix(h, 0x6374726f<<32|v)
+		// a kind's high byte folds in above the 8-bit kinds' layout, so a
+		// kind below 256 hashes as it did
+		h = hmix(h, (0x6374726f<<32|v)^uint64(e.kind>>8)<<40)
 	}
 	return h
 }
@@ -223,7 +235,7 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 	if used == ctrSlots {
 		top := ctrSlots - 1
 		if c > int(p.ck[top]) {
-			return s.ctrOverPut(ctrOverEntry{n: n, obj: p.obj, kind: uint8(c)})
+			return s.ctrOverPut(ctrOverEntry{n: n, obj: p.obj, kind: uint16(c)})
 		}
 		if !s.ctrOverPut(ctrOverEntry{n: p.cn[top], obj: p.obj, kind: p.ck[top], seen: p.cseen&(1<<top) != 0}) {
 			return false
@@ -238,7 +250,7 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 		p.ck[i], p.cn[i] = p.ck[i-1], p.cn[i-1]
 		p.cseen = p.cseen&^(1<<i) | (p.cseen<<1)&(1<<i)
 	}
-	p.ck[at], p.cn[at] = uint8(c), n
+	p.ck[at], p.cn[at] = uint16(c), n
 	p.cseen &^= 1 << at
 	return true
 }
@@ -267,6 +279,54 @@ func (p *perm) ctrFree(s *State, i int) {
 		}
 		s.ctrOverDel(s.ctrOverFind(p.obj, int(e.kind)))
 	}
+}
+
+// ctrHeld is room for every counter kind one permanent can hold at once: its
+// +1/+1 count, its general slots and the whole overflow table.
+type ctrHeld [1 + ctrSlots + maxCtrOver]uint16
+
+// heldKinds writes to out the counter kinds p holds with a positive count, in
+// ascending kind order, and returns how many: exactly the kinds c a walk of
+// the whole kind space finds with ctrN(s, c) > 0, in that walk's order, at a
+// cost that does not grow with kop.NumCounterKinds3. It includes CtrLevel,
+// which is no counter: a walk filters it with kop.IsCounterKind as before.
+// The list is a snapshot: a walk that puts counters while it iterates puts
+// them of the kind it is on, so the kinds held don't change under it.
+func (p *perm) heldKinds(s *State, out *ctrHeld) int {
+	n := 0
+	if p.p1 != 0 {
+		out[0] = uint16(kop.CtrP1P1)
+		n = 1
+	}
+	// the occupied slots are packed in ascending kind order (ctrInsert,
+	// ctrFree); a seen slot at count 0 holds nothing
+	for i := range p.ck {
+		if p.ck[i] == 0 {
+			break
+		}
+		if p.cn[i] != 0 {
+			out[n] = p.ck[i]
+			n++
+		}
+	}
+	if p.ck[ctrSlots-1] == 0 {
+		return n // as ctrN: only a permanent with every slot taken has entries
+	}
+	// the entries are in ascending kind order and above the slots' kinds;
+	// the insertion keeps the list ascending without relying on that
+	for _, e := range s.ctrOverOf(p.obj, 0) {
+		if e.n == 0 {
+			continue
+		}
+		at := n
+		for at > 0 && out[at-1] > e.kind {
+			out[at] = out[at-1]
+			at--
+		}
+		out[at] = e.kind
+		n++
+	}
+	return n
 }
 
 // ctrSeenMask is p's seen counter kinds as a mask over FeatCtrKinds.

@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExMaxSpeed
+value: 140
+forge: MaxSpeed
+census: count MaxSpeed all=1 std=0 mbc=0 sole=1
+state: player 2 (player facts)
+status: reserved

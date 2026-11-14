@@ -1,0 +1,7 @@
+family: key
+name: keyChampion
+value: 19
+forge: champion
+census: key champion classes=2 all=13
+state: slotobj 112
+status: reserved

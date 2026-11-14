@@ -96,7 +96,7 @@ func TestFeatScenariosBuild(t *testing.T) {
 		t.Errorf("cheapkill-on-oneone: target %d is not the seat's 1/1", tg)
 	}
 	s = by["counter-prevents-lethal"]
-	if tg := top(s.Name); tg.Targets[0] != dirac.PlayerTarget0+s.Seat || tg.Card != idOf(s, "burn") ||
+	if tg := top(s.Name); dirac.TCode(tg.Targets[0]) != dirac.PlayerTarget0+dirac.TCode(s.Seat) || tg.Card != idOf(s, "burn") ||
 		int(s.Pool.Effect(tg.Card).Amount) < int(pj[s.Name].Life[s.Seat]) {
 		t.Errorf("counter-prevents-lethal: top %+v life %d", tg, pj[s.Name].Life[s.Seat])
 	}

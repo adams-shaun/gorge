@@ -37,7 +37,7 @@ func (s *State) connive(k *prep, in *kop.Instr) bool {
 	s.res.peekI = 0
 	s.res.askP = p
 	s.res.left = uint8(n)
-	s.res.chosen = p
+	s.res.chosen = objWord(p)
 	return false
 }
 

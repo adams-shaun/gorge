@@ -42,7 +42,7 @@ func (sc *scen) altAddParts(t *testing.T) []uint8 {
 	d := sc.expect(t, DkChoose, ChAltAdd)
 	var parts []uint8
 	for i := 0; i < int(d.N); i++ {
-		parts = append(parts, d.Options[i].Target())
+		parts = append(parts, uint8(d.Options[i].Target()))
 	}
 	return parts
 }
@@ -51,7 +51,7 @@ func (sc *scen) chooseAltAdd(t *testing.T, part uint8) {
 	t.Helper()
 	d := sc.expect(t, DkChoose, ChAltAdd)
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Target() == part {
+		if d.Options[i].Target() == TCode(part) {
 			sc.s.Apply(d.Options[i])
 			return
 		}
@@ -75,7 +75,7 @@ func TestForageByExile(t *testing.T) {
 	gy := sc.grave(id["Forest"], 0, 4)
 	sc.castCard(t, ftc)
 	sc.chooseAltAdd(t, 0)
-	sc.do(t, AkTarget, 0xff, uint8(gerbils))
+	sc.do(t, AkTarget, scAny, TCode(gerbils))
 	d := sc.expect(t, DkChoose, ChCostForage)
 	if d.N != 1 || d.Options[0].Mode() != 0 {
 		t.Fatalf("forage options %v, want the exile arm only (no Food)", d.Options[:d.N])
@@ -109,7 +109,7 @@ func TestForageBySacrificingFood(t *testing.T) {
 	sc.grave(id["Forest"], 0, 2) // too few to exile
 	sc.castCard(t, ftc)
 	sc.chooseAltAdd(t, 0)
-	sc.do(t, AkTarget, 0xff, uint8(gerbils))
+	sc.do(t, AkTarget, scAny, TCode(gerbils))
 	d := sc.expect(t, DkChoose, ChCostForage)
 	if d.N != 1 || d.Options[0].Mode() != 1 || Obj(d.Options[0].Source()) != food {
 		t.Fatalf("forage options %v, want the Food only", d.Options[:d.N])
@@ -153,7 +153,7 @@ func TestFeedTheCyclePaysB(t *testing.T) {
 		t.Fatalf("either-or parts %v, want forage and {B}", parts)
 	}
 	sc.chooseAltAdd(t, 1)
-	sc.do(t, AkTarget, 0xff, uint8(gerbils))
+	sc.do(t, AkTarget, scAny, TCode(gerbils))
 	sc.resolveAll(t)
 	if sc.onBF(gerbils) {
 		t.Fatal("Feed the Cycle did not destroy its target")
@@ -190,7 +190,7 @@ func TestExileFromGraveSelf(t *testing.T) {
 	if !activatable() {
 		t.Fatal("Bonebind Orator not offered")
 	}
-	sc.do(t, AkActivate, uint8(bo), 0xff)
+	sc.do(t, AkActivate, TCode(bo), scAny)
 	d := sc.expect(t, DkTarget, 0)
 	if d.N != 1 || Obj(d.Options[0].Target()) != g {
 		t.Fatalf("targets %v, want the Gerbils only (another creature card)", d.Options[:d.N])
@@ -286,7 +286,7 @@ func TestForageResolutionCost(t *testing.T) {
 		t.Fatalf("election: kind %d sub %d n %d, want ChCostForage exile + 2 Foods", d.Kind, d.Sub, d.N)
 	}
 	hand = sc.s.pl[0].handN
-	sc.s.Apply(MakeAction(AkChoose, uint8(foods[1]), 0, 1))
+	sc.s.Apply(MakeAction(AkChoose, TCode(foods[1]), 0, 1))
 	if sc.onBF(foods[1]) || !sc.onBF(foods[0]) || sc.s.pl[0].graveN < 3 || sc.s.pl[0].handN != hand+1 {
 		t.Fatalf("the chosen Food was not sacrificed alone, or no draw: %v %v grave %d hand %d/%d", sc.onBF(foods[1]), sc.onBF(foods[0]), sc.s.pl[0].graveN, sc.s.pl[0].handN, hand)
 	}

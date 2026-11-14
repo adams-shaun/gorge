@@ -19,7 +19,7 @@ func TestBolster(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChGenBolster || d.N != 2 {
 		t.Fatalf("decision kind %d sub %d with %d options, want the bolster tie ask over 2 bears", d.Kind, d.Sub, d.N)
 	}
-	sc.do(t, AkChoose, uint8(b2), 0xff)
+	sc.do(t, AkChoose, TCode(b2), scAny)
 	if n := sc.s.perms[sc.slot(b2)].ctrLow(int(kop.CtrP1P1)); n != 2 {
 		t.Fatalf("the chosen bear has %d +1/+1 counters, want 2", n)
 	}

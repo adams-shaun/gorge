@@ -33,13 +33,13 @@ func TestCrimePickVerdictCarriesToPlacement(t *testing.T) {
 		s.npend, s.g.crime = 0, 0
 		*s.bld() = build{e: stackEntry{kind: seAbility, ctrl: 0, obj: stolen, trigObj: NoObj}}
 		s.bld().e.tgt = noTargets
-		s.bld().e.tgt[0] = pick
+		s.bld().e.tgt[0] = TCode(pick)
 		s.bld().e.nt = 1
 		if picked {
 			// the pick, through the ask machinery: CR 700.13 judges it
 			// here (a slot 0 pick, crimePick's done), and the verdict
 			// rides the entry into the walk
-			s.crimePick(sc.k, pick, true)
+			s.crimePick(sc.k, TCode(pick), true)
 		}
 		if moveTo != kop.ZoneNone {
 			s.place(stolen, moveTo, false)

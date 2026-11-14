@@ -122,8 +122,7 @@ func (s *State) ObjHash(o Obj) uint64 {
 	}
 	// the permanent, every byte (perm has no padding)
 	h = hbytes(h, unsafe.Pointer(&s.perms[ob.slot]), unsafe.Sizeof(s.perms[0]))
-	if r := s.xblkRecs(); len(r) > 0 && r[ob.slot] != (xblkRec{}) {
-		x := r[ob.slot]
+	if x := s.xblkFind(ob.slot); x != nil {
 		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
 	}
 	if s.g.on {
@@ -174,7 +173,7 @@ func (s *State) genViewHash(h uint64) uint64 {
 	h = hbytes(h, unsafe.Pointer(&g.embO[0]), uintptr(len(g.embO))*unsafe.Sizeof(g.embO[0]))
 	h = hbytes(h, unsafe.Pointer(&g.embN[0]), uintptr(len(g.embN))*unsafe.Sizeof(g.embN[0])) // the frozen chosen number
 	h = hbytes(h, unsafe.Pointer(&g.embT[0]), uintptr(len(g.embT))*unsafe.Sizeof(g.embT[0])) // the layer timestamp
-	if g.embR != [MaxSeats][maxEmb]Obj{} || g.embX != [MaxSeats][maxEmb][embRemSlots - 2]uint8{} {
+	if g.embR != [MaxSeats][maxEmb]Obj{} || g.embX != [MaxSeats][maxEmb][embRemSlots - 2]objWord{} {
 		// an emblem's remembered slots (static_emblemrem.go): only a table whose emblems remember keeps them
 		h = hbytes(h, unsafe.Pointer(&g.embR[0]), uintptr(len(g.embR))*unsafe.Sizeof(g.embR[0]))
 		h = hbytes(h, unsafe.Pointer(&g.embX[0]), uintptr(len(g.embX))*unsafe.Sizeof(g.embX[0]))
@@ -217,6 +216,15 @@ func (s *State) genViewHash(h uint64) uint64 {
 	}
 	if g.atkHi != 0 {
 		h = s.atkGrpHash(h) // trig_attackers.go
+	}
+	if c := s.atkLastCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // trig_atklastturn.go
+	}
+	if c := s.contractCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // ctr_contract.go
+	}
+	if c := s.experCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // act_energy.go
 	}
 	return hbytes(h, unsafe.Pointer(&g.used[0]), uintptr(g.nused)*unsafe.Sizeof(g.used[0]))
 }
@@ -428,8 +436,8 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	h := hmix(0x6465636973696f6e, uint64(d.Kind)|uint64(d.Sub)<<8|uint64(d.Player)<<16|uint64(d.N)<<24|uint64(s.ctl)<<40)
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		h = hmix(h, uint64(a))
-		for _, o := range [2]uint8{a.Source(), a.Target()} {
+		h = hmix(h, uint64(a)) // code-ok: hashes the whole word, whatever its layout
+		for _, o := range [2]TCode{a.Source(), a.Target()} {
 			if int(o) >= int(s.nobj) {
 				continue
 			}

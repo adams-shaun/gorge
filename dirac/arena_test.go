@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -18,7 +19,8 @@ func arenaTable(ops ...kop.Op) *kop.Table {
 // arenaPrep is a prep of tbl's arena and nothing else, with s laid out for it.
 func arenaPrep(s *State, tbl *kop.Table) *prep {
 	k := &prep{gen: &genPrep{}}
-	prepArena(tbl, k.gen, &k.cold)
+	prepArena(tbl, k.gen)
+	prepCold(k.gen, &k.cold)
 	k.cold.size()
 	s.layOut(&k.cold)
 	return k
@@ -41,16 +43,23 @@ func TestArenaAssign(t *testing.T) {
 	if n != 1 || ix[mechRegen] != 0 || ix[mechGoad0] != arenaNone || ix[mechMonstrous] != arenaNone {
 		t.Fatalf("regen only: ix %v n %d", ix, n)
 	}
-	// goad takes two masks (either player may goad) and monstrous one: the arena
+	// goad takes a mask per seat (any player may goad) and monstrous one: the
+	// arena. Seats past the second have their goad mechs past mechAtch3, so
+	// they follow monstrous in enum order.
 	ix, n, _ = arenaAssign(arenaTable(kop.OpGoad, kop.OpMonstrosity))
-	if n != 3 || ix[mechGoad0] != 0 || ix[mechGoad1] != 1 || ix[mechMonstrous] != 2 || ix[mechRegen] != arenaNone {
+	if n != MaxSeats+1 || ix[mechGoad0] != 0 || ix[mechGoad1] != 1 || ix[mechMonstrous] != 2 || ix[mechRegen] != arenaNone {
 		t.Fatalf("goad+monstrous: ix %v n %d", ix, n)
 	}
-	// regen and kicker as well take a fifth, as many as the table uses
+	for sd := 2; sd < MaxSeats; sd++ {
+		if ix[goadMechs[sd]] != uint8(sd+1) {
+			t.Fatalf("goad+monstrous: seat %d's goad at %d, want %d", sd, ix[goadMechs[sd]], sd+1)
+		}
+	}
+	// regen and kicker as well take two more, as many as the table uses
 	five := arenaTable(kop.OpRegenerate, kop.OpGoad, kop.OpMonstrosity)
 	five.Cards[0].Keywords = kop.KwKicker
-	if _, n, _ = arenaAssign(five); n != 5 {
-		t.Fatalf("five slot masks: n %d", n)
+	if _, n, _ = arenaAssign(five); n != MaxSeats+3 {
+		t.Fatalf("regen+goad+monstrous+kicker slot masks: n %d, want %d", n, MaxSeats+3)
 	}
 	// kicked: Kicker, Bargain or Offspring on a card; exileEx: a damage op with the exile flag
 	kk := arenaTable()
@@ -245,5 +254,148 @@ func TestArenaSlotReuseEndsExileRecords(t *testing.T) {
 	sc.s.markExileEx(k, sl)
 	if n := sc.s.exMarkCount(sl); n != 1 {
 		t.Fatalf("%d exile-instead records on the reused slot, want only the new one", n)
+	}
+}
+
+// legacyMechs is the arena's mechanics as arena.go listed them by hand
+// before the manifest generated them: name and width, in value order. Values
+// never change, so neither does this.
+var legacyMechs = [...]struct {
+	name  string
+	width uint8
+}{
+	{"goad0", wSlot},           // mechGoad0
+	{"goad1", wSlot},           // mechGoad1
+	{"monstrous", wSlot},       // mechMonstrous
+	{"regen", wSlot},           // mechRegen
+	{"exileEx", wSlot},         // mechExileEx
+	{"kicked", wSlot},          // mechKicked
+	{"stash", wObj},            // mechStash
+	{"fbLo", wObj},             // mechFBLo
+	{"fbHi", wObj},             // mechFBHi
+	{"suspected", wSlot},       // mechSuspected
+	{"mayhem", wObj},           // mechMayhem
+	{"sneaked", wSlot},         // mechSneaked
+	{"attacked", wSlot},        // mechAttacked
+	{"dealtTurn", wSlot},       // mechDealtTurn
+	{"dealtAny", wSlot},        // mechDealtAny
+	{"dealtCombat", wSlot},     // mechDealtCombat
+	{"attackedObj", wObj},      // mechAttackedObj
+	{"mustBlocked", wSlot},     // mechMustBlocked
+	{"mustBlockedPost", wSlot}, // mechMustBlockedPost
+	{"attacksIfAble", wSlot},   // mechAttacksIfAble
+	{"blocksIfAble", wSlot},    // mechBlocksIfAble
+	{"noRegen", wSlot},         // mechNoRegen
+	{"sbaChain", wObj},         // mechSBAChain
+	{"once2", wSlot},           // mechOnce2
+	{"once3", wSlot},           // mechOnce3
+	{"tappedTurn", wSlot},      // mechTappedTurn
+	{"escaped", wSlot},         // mechEscaped
+	{"lure", wSlot},            // mechLure
+	{"lurePost", wSlot},        // mechLurePost
+	{"protW", wSlot},           // mechProtW
+	{"protU", wSlot},           // mechProtU
+	{"protB", wSlot},           // mechProtB
+	{"protR", wSlot},           // mechProtR
+	{"protG", wSlot},           // mechProtG
+	{"protPostW", wSlot},       // mechProtPostW
+	{"protPostU", wSlot},       // mechProtPostU
+	{"protPostB", wSlot},       // mechProtPostB
+	{"protPostR", wSlot},       // mechProtPostR
+	{"protPostG", wSlot},       // mechProtPostG
+	{"echoOwed", wSlot},        // mechEchoOwed
+	{"hexUB", wSlot},           // mechHexUB
+	{"atch0", wSlot},           // mechAtch0
+	{"atch1", wSlot},           // mechAtch1
+	{"atch2", wSlot},           // mechAtch2
+	{"atch3", wSlot},           // mechAtch3
+	{"goad2", wSlot},           // mechGoad2
+	{"goad3", wSlot},           // mechGoad3
+	{"intimidate", wSlot},      // mechIntimidate
+	{"intimidatePost", wSlot},  // mechIntimidatePost
+	{"infect", wSlot},          // mechInfect
+	{"infectPost", wSlot},      // mechInfectPost
+	{"renowned", wSlot},        // mechRenowned
+	{"attacksPlayer", wSlot},   // mechAttacksPlayer
+	{"rem", wObj},              // mechRem
+	{"encore", wObj},           // mechEncore
+}
+
+// TestArenaLegacyMechsUnchanged: the generated constants, names and widths of
+// the legacy mechanics are the hand list's.
+func TestArenaLegacyMechsUnchanged(t *testing.T) {
+	if numMech < mech(len(legacyMechs)) {
+		t.Fatalf("numMech %d < %d legacy mechanics", numMech, len(legacyMechs))
+	}
+	for m, l := range legacyMechs {
+		if mechName[m] != l.name || mechWidth[m] != l.width {
+			t.Errorf("mech %d: %q width %d, want %q width %d", m, mechName[m], mechWidth[m], l.name, l.width)
+		}
+	}
+	for m := mech(len(legacyMechs)); m < numMech; m++ {
+		if mechName[m] == "" {
+			t.Errorf("mech %d has no name: a gap in the manifest's mech values", m)
+		}
+	}
+}
+
+// TestArenaIxLegacyEveryPool: on every pool and synthetic pool, each legacy
+// mechanic's arena index is the one the hand list's order and widths give
+// (arenaAssign before the manifest), so moving the list to the generator
+// moved no pool's masks. A new mechanic sorts after them and cannot shift one.
+func TestArenaIxLegacyEveryPool(t *testing.T) {
+	check := func(name string, set cardset.Set) {
+		tbl, err := set.Pool()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		defer ReleaseTable(tbl)
+		u := arenaUses(tbl)
+		var ns, no uint8
+		ix, _, _ := arenaAssign(tbl)
+		for m, l := range legacyMechs {
+			want := uint8(arenaNone)
+			switch {
+			case !u[m]:
+			case l.width == wSlot:
+				want, ns = ns, ns+1
+			default:
+				want, no = no, no+1
+			}
+			if ix[m] != want {
+				t.Errorf("%s: %s at %d, want %d", name, l.name, ix[m], want)
+			}
+		}
+	}
+	pools := 0
+	for _, name := range cardset.Names() {
+		check(name, cardsettest.Set(t, name))
+		pools++
+	}
+	for _, name := range cardsettest.SynthNames(t) {
+		check("synth "+name, cardsettest.Synth(t, name))
+		pools++
+	}
+	t.Logf("%d pools", pools)
+}
+
+// TestArenaDetectRegistered: a registered detector marks its mechanic for a
+// table one of whose instructions it holds for, and only then; detectors run
+// in mech order whatever order they register in.
+func TestArenaDetectRegistered(t *testing.T) {
+	saved := arenaDetectors
+	defer func() { arenaDetectors = saved }()
+	arenaDetectors = nil
+	arenaDetect(mechRenowned, func(_ *kop.Table, in *kop.Instr) bool { return in.Op == kop.OpGoad })
+	arenaDetect(mechHexUB, func(_ *kop.Table, in *kop.Instr) bool { return in.Op == kop.OpRegenerate })
+	if len(arenaDetectors) != 2 || arenaDetectors[0].m != mechHexUB || arenaDetectors[1].m != mechRenowned {
+		t.Fatalf("detectors not in mech order: %+v", arenaDetectors)
+	}
+	u := arenaUses(arenaTable(kop.OpMonstrosity, kop.OpRegenerate))
+	if !u[mechHexUB] || u[mechRenowned] {
+		t.Errorf("regenerate: hexUB %v renowned %v, want true false", u[mechHexUB], u[mechRenowned])
+	}
+	if u := arenaUses(arenaTable(kop.OpMonstrosity)); u[mechHexUB] || u[mechRenowned] {
+		t.Error("a detector held for a table without its op")
 	}
 }

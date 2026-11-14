@@ -59,11 +59,11 @@ func (s *State) cloneOp(k *prep, c CardID) *kop.Instr {
 
 // cloneAnswer is the s.g.pre value of a clone answer: the chosen object,
 // or NoObj for "enter as itself".
-func cloneAnswer(a Action) uint8 {
+func cloneAnswer(a Action) objWord {
 	if a.Mode() != 0 {
-		return uint8(NoObj)
+		return objWord(NoObj)
 	}
-	return a.Source()
+	return objWord(a.Source())
 }
 
 // cloneOptions fills the clone ask for the spell s.g.pre.obj on top of the
@@ -75,7 +75,7 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 	o := s.g.pre.obj
 	in := s.cloneOp(k, s.objs[o].card)
 	if in == nil {
-		d.add(MakeAction(AkChoose, uint8(o), 0, 1))
+		d.add(MakeAction(AkChoose, TCode(o), 0, 1))
 		return
 	}
 	// the filter's bounds read the spell as the resolving entry (its mana
@@ -107,13 +107,13 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 				continue
 			}
 			if s.matchPermGen(k, in.F, sl, ctrl, NoSlot, layerFull) {
-				d.add(MakeAction(AkChoose, uint8(t), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(t), 0, 0))
 			}
 		}
 	}
 	s.res = saved
 	if in.C&1 != 0 || d.N == 0 { // seat-ok: an instruction flag bit
-		d.add(MakeAction(AkChoose, uint8(o), 0, 1)) // "enter as itself"
+		d.add(MakeAction(AkChoose, TCode(o), 0, 1)) // "enter as itself"
 	}
 }
 
@@ -134,7 +134,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	if s.g.pre.ask2 != 0 {
 		// the template's choice was answered on the stack: its enters
 		// program takes it below (runReplProgAs)
-		s.g.pre.val, s.g.pre.state, s.g.pre.ask2 = s.g.pre.val2, 2, 0
+		s.g.pre.val, s.g.pre.state, s.g.pre.ask2 = objWord(s.g.pre.val2), 2, 0
 	}
 	src := s.objs[t].slot
 	c := s.cardAt(src)

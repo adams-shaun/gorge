@@ -1,0 +1,7 @@
+family: ReplKind
+name: ReplAssembleContraption
+value: 55
+forge: AssembleContraption
+census: repl AssembleContraption all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

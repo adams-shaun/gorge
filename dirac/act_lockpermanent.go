@@ -4,8 +4,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Braided Net's "tap another target nonland permanent; its
 // activated abilities can't be activated for as long as it remains tapped"
-// (gorge Effect Mode$ CantBeActivated | ValidCard$ Card.IsRemembered |
-// ValidSA$ Activated, Duration$ UntilTargetedUntaps; CR 602.5, 611.2b) and
+// (gorge: an Effect's CantBeActivated static on the remembered card's
+// activated abilities, lasting until the target untaps; CR 602.5, 611.2b) and
 // Braided Quipu's LibraryPosition$ 2.
 //
 // The lock is a short list of eight objects, kept in padding bytes
@@ -35,7 +35,7 @@ func prepNetLock(t *kop.Table, g *genPrep) {
 
 const nlN = 8 // locks held at once
 
-func (s *State) nlAt(i int) *uint8 {
+func (s *State) nlAt(i int) *Obj {
 	switch {
 	case i < 2:
 		return &s.g.nlA[i]
@@ -48,7 +48,7 @@ func (s *State) nlAt(i int) *uint8 {
 // netLocked reports whether object o is locked.
 func (s *State) netLocked(o Obj) bool {
 	for i := 0; i < nlN; i++ {
-		if *s.nlAt(i) == uint8(o)+1 {
+		if *s.nlAt(i) == o+1 {
 			return true
 		}
 	}
@@ -64,10 +64,10 @@ func (s *State) netDrop(o Obj) {
 	if debugNetMutate == 2 {
 		return // test only: the lock survives the untap
 	}
-	var keep [nlN]uint8
+	var keep [nlN]Obj
 	n := 0
 	for i := 0; i < nlN; i++ {
-		if v := *s.nlAt(i); v != 0 && v != uint8(o)+1 {
+		if v := *s.nlAt(i); v != 0 && v != o+1 {
 			keep[n] = v
 			n++
 		}
@@ -103,7 +103,7 @@ func (s *State) lockActs(k *prep, in *kop.Instr) {
 	}
 	for i := 0; i < nlN; i++ {
 		if e := s.nlAt(i); *e == 0 {
-			*e = uint8(p.obj) + 1
+			*e = p.obj + 1
 			s.touchSl(sl)
 			return
 		}
@@ -113,7 +113,12 @@ func (s *State) lockActs(k *prep, in *kop.Instr) {
 
 // toLibraryThird is OpToLibrary with kop.LibThird: the object goes into its
 // owner's library, then sits third from the top (gorge
-// libraryOrderPlacementAt: the offset is min(2, the other cards left)).
+// libraryOrderPlacementAt: the offset is min(2, the other cards left)). The
+// CR 903.9b gate passes first: a commander moving to a library from anywhere
+// is parked for its owner's command-zone ask, and an answered "put it there"
+// moves to the library as the effect said (gorge commanderZoneReplacementApplies,
+// from anywhere; Bookwurm's own "put CARDNAME from your graveyard into your
+// library third from the top").
 //
 //go:noinline
 func (s *State) toLibraryThird(k *prep, in *kop.Instr) {
@@ -121,10 +126,14 @@ func (s *State) toLibraryThird(k *prep, in *kop.Instr) {
 	if o == NoObj || s.tokenLeftBattlefield(o) {
 		return
 	}
-	s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
+	z, bottom := kop.ZoneLibrary, false
+	if s.cmdZoneReplace(k, o, &z, &bottom) {
+		return // a CR 903.9b commander move parked before it happens
+	}
+	s.moveRef(k, in.Obj, z, bottom)
 	pl := &s.pl[s.objs[o].owner()]
 	if s.objs[o].zone != kop.ZoneLibrary || pl.libLen() == 0 || pl.lib[pl.libLo] != o {
-		return // a token that ceased to exist, or a replaced move
+		return // a token that ceased to exist, a replaced move, or the command zone
 	}
 	off := min(2, pl.libLen()-1)
 	if debugNetMutate == 3 {

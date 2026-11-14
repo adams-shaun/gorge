@@ -13,8 +13,8 @@ import (
 // permanent you control to its owner's hand. If a permanent was returned this
 // way, put a +1/+1 counter on CARDNAME", spelled as an optional
 // (TargetMin$ 0) ChangeZone with RememberLKI$ True and a chained PutCounter
-// gated on `ConditionDefined$ RememberedLKI | ConditionPresent$
-// Card.Permanent`. Because the trigger's fire-time capture is the Pixie
+// gated on a permanent being among the remembered last-known objects.
+// Because the trigger's fire-time capture is the Pixie
 // itself (a permanent), a gate that reads the raw captured set is satisfied
 // with nothing returned -- the reported bug. Both branches assert the
 // decisive precondition (the offered target really sits in the expected zone)

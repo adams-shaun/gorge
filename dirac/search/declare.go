@@ -116,7 +116,7 @@ func (sr *Searcher) attackCands(s *dirac.State, d *dirac.Decision, bot, limit in
 	}
 }
 
-func hasSource(l []uint32, src uint8) bool {
+func hasSource(l []uint32, src dirac.TCode) bool {
 	for _, x := range l {
 		if dirac.Action(x).Source() == src {
 			return true

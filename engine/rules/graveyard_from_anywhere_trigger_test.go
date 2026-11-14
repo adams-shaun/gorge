@@ -9,7 +9,7 @@ import (
 
 // The zoneGate self-move admission's wider measured population, pinned on the
 // elder carrier: the "put into a graveyard FROM ANYWHERE" ChangesZone
-// self-triggers (Origin$ Any | Destination$ Graveyard | ValidCard$ Card.Self,
+// self-triggers (the card itself moving from any zone to a graveyard, with
 // no TriggerZones$) — Emrakul, Kozilek, Ulamog, Worldspine Wurm, Dread,
 // Guile, Vigor, Purity, Hostility, Serra Avatar — must fire when the card is
 // discarded FROM ITS HAND, the one zone the battlefield-default zone check

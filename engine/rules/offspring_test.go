@@ -14,9 +14,8 @@ import (
 //     Matters deck's carrier): an optional ADDITIONAL cost offered beside the
 //     plain cast, recorded as FlagOffspringPaid, and the ETB trigger mints a
 //     1/1 token copy when it was paid;
-//   - the GRANTED form on Zinnia, Valley's Voice's exact static
-//     (`Affected$ Creature.wasCastByYou | AffectedZone$ Stack |
-//     AddKeyword$ Offspring:2`): a plain creature spell cast while Zinnia is
+//   - the GRANTED form on Zinnia, Valley's Voice's exact static (offspring
+//     {2} for creature spells you cast, on the stack): a plain creature spell cast while Zinnia is
 //     on the battlefield is offered the granted {2} offspring cost and mints
 //     the 1/1 copy. The granted form is the hard requirement —
 //     a printed-only test does not close it — and it exercises THREE dead
@@ -174,9 +173,8 @@ func TestOffspringPrintedPlainCastMintsNothing(t *testing.T) {
 }
 
 // TestOffspringGrantedByZinniaReachesTheCast is the hard
-// requirement: Zinnia, Valley's Voice's exact static
-// (`Affected$ Creature.wasCastByYou | AffectedZone$ Stack | AddKeyword$
-// Offspring:2`) must make a plain creature spell cast while she is on the
+// requirement: Zinnia, Valley's Voice's exact static (offspring {2} for
+// creature spells you cast, on the stack) must make a plain creature spell cast while she is on the
 // battlefield offer the GRANTED {2} offspring cost, and paying it must mint
 // the 1/1 token copy. It fails at three earlier layers if any is dead: the
 // granted keyword list is empty (wasCastByYou matches nobody), the offspring

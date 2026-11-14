@@ -313,3 +313,28 @@ func (lc *lowerCtx) targetedPlayerView(f *lFilter) *lFilter {
 	}
 	return out
 }
+
+// offFieldCardSlot reports a target slot of zone z (lTarget.Zone) that names
+// a card off the battlefield, never a player or a permanent: the slot an
+// OwnedBy TargetedController role reads (kop.CtrlTgtOwner).
+func offFieldCardSlot(z int) bool {
+	return z == zGraveyard || z == zExile || z == zHand || z == zLibrary
+}
+
+// anyOtherTarget reports f's object half is exactly "any other target"'s:
+// one bare Other clause each for Creature, Planeswalker and Battle (gorge
+// Creature.Other,Planeswalker.Other,Battle.Other beside Player), the
+// object types the kernel's TgtAny walk admits.
+func anyOtherTarget(f *lFilter) bool {
+	if len(f.Clauses) != 3 {
+		return false
+	}
+	var types uint16
+	for _, c := range f.Clauses {
+		if c != (lClause{Types: c.Types, Flags: fOther}) {
+			return false
+		}
+		types |= c.Types
+	}
+	return types == tCreature|tPlaneswalker|tBattle
+}

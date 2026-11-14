@@ -61,8 +61,8 @@ func printedPreventRepl(r cards.Repl) bool {
 }
 
 // selfPreventRepl lowers a printed R: line that is the K:Prevent "any to"
-// sentence written out (Black Panther, Hope Enduring): R:Event$ DamageDone |
-// ActiveZones$ Battlefield | Prevent$ True | ValidTarget$ Card.Self, no body,
+// sentence written out (Black Panther, Hope Enduring): a battlefield
+// DamageDone replacement that prevents all damage to the card itself, no body,
 // no source or combat filter. gorge's damageReplacementMatches reads it the
 // same as the keyword-minted line (every damage event to the card, combat and
 // noncombat), so it becomes the same CardDef.PreventDmgTo fact.

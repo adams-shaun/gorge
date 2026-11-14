@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigCrewed
+value: 64
+forge: Crewed
+census: trig Crewed all=7 std=2 mbc=0 sole=3
+state: slotbit 16 (crewed)
+status: reserved

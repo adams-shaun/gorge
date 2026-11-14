@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatCombatDamageNegatePower
+value: 55
+forge: CombatDamageNegatePower
+census: stat CombatDamageNegatePower all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

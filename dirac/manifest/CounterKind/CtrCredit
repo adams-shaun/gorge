@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrCredit
+value: 141
+forge: CREDIT
+census: ctr CREDIT all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

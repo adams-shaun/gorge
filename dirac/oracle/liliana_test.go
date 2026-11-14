@@ -7,10 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// gorgeTwoPilesBFFixTime is gorge cr-twopiles-battlefield-validcards
-// (01fc61aa7): before it the battlefield TwoPiles shape moved nothing.
-const gorgeTwoPilesBFFixTime = "20261026114050"
-
 // The Liliana lockstep: Liliana of the Veil's -6 (Ext
 // TwoPilesSac: the controller splits the target player's permanents, that
 // player picks the pile they sacrifice), beside her +1 and -2, both
@@ -29,18 +25,12 @@ var klilianaDecks = [2][]cardset.Entry{
 
 func TestLilianaLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeTwoPilesBFFixTime) {
-		t.Skip("gorge before cr-twopiles-battlefield-validcards (01fc61aa7)")
-	}
 	lockstepSet(t, "liliana", klilianaDecks, 600, "KLILIANA_SEEDS")
 }
 
 // TestLilianaLockstepMutation: with the piles dropped, some seed diverges.
 func TestLilianaLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeTwoPilesBFFixTime) {
-		t.Skip("gorge before cr-twopiles-battlefield-validcards (01fc61aa7)")
-	}
 	n := lockstepRun(t, "liliana", klilianaDecks, 200, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

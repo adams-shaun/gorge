@@ -225,7 +225,7 @@ func TestBackFaceManaValueIsFront(t *testing.T) {
 		t.Errorf("Count(land MV >= 2) = %d, want 1", n)
 	}
 	spec := kop.TargetSpec{Kind: kop.TgtObject, Filter: fid}
-	if !sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, uint8(o)) {
+	if !sc.s.targetOK(sc.k, &spec, 0, NoSlot, NoObj, TCode(o)) {
 		t.Error("a land with mana value >= 2 is not a legal target for the MV >= 2 filter")
 	}
 	le2 := kop.Filter{Types: kop.TCreature, Pred: kop.PredCMCLE, PredN: 2}

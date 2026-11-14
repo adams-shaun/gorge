@@ -58,7 +58,7 @@ func (s *State) peekMayReveal(k *prep, in *kop.Instr, p uint8) bool {
 func (s *State) askOptionsPeekReveal(d *Decision) {
 	pl := &s.pl[SeatIx(s.res.askP)]
 	d.Sub = ChGenPeekReveal
-	d.add(MakeAction(AkChoose, uint8(pl.lib[int(pl.libLo)]), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(pl.lib[int(pl.libLo)]), 0, 1))
 	d.add(MakeAction(AkChoose, 0, 0, 0))
 }
 

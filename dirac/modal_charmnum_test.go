@@ -41,7 +41,7 @@ func TestCharmnumDone(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	d := sc.s.Step()
 	if m, done := modeOpts(&d); d.Kind != DkModes || m != 3 || done {
 		t.Fatalf("first pose %+v: modes %b done %v, want both modes and no Done", d.Options[:d.N], m, done)
@@ -67,7 +67,7 @@ func TestCharmnumUpToZero(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	d := sc.s.Step()
 	if m, done := modeOpts(&d); d.Kind != DkModes || m != 3 || !done {
 		t.Fatalf("first pose %+v: modes %b done %v, want both modes and Done", d.Options[:d.N], m, done)
@@ -95,7 +95,7 @@ func TestCharmnumChooseTwoOffer(t *testing.T) {
 		fc := sc.hand(v.TestCharm, 0)
 		d := sc.s.Step()
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(fc) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(fc)) {
 				return true
 			}
 		}
@@ -114,7 +114,7 @@ func TestCharmnumTriggerRemoved(t *testing.T) {
 	sc := newScenTable(t, charmnumTable(2, 0), Config{NoElide: true})
 	sc.lands(0, v.Forest, 2)
 	ev := sc.hand(v.ElvishVisionary, 0)
-	sc.do(t, AkCast, uint8(ev), 0xff)
+	sc.do(t, AkCast, TCode(ev), scAny)
 	sc.passBoth(t) // the creature resolves; its trigger finds one eligible mode (no opposing creature)
 	d := sc.s.Step()
 	if d.Kind == DkModes {
@@ -128,7 +128,7 @@ func TestCharmnumTriggerRemoved(t *testing.T) {
 // The combined target ask's occurrence byte counts the earlier chosen slots
 // that list the same candidate.
 func TestCharmnumCombinedTargets(t *testing.T) {
-	var bufs [kop.MaxTargets][MaxOptions]uint8
+	var bufs [kop.MaxTargets][MaxOptions]TCode
 	var ns [kop.MaxTargets]int
 	bufs[0][0], bufs[0][1], ns[0] = 5, 7, 2
 	bufs[1][0], bufs[1][1], ns[1] = 7, 9, 2
@@ -139,7 +139,7 @@ func TestCharmnumCombinedTargets(t *testing.T) {
 		cand uint8
 		want uint8
 	}{{0, 7, 0}, {1, 7, 1}, {1, 9, 0}, {2, 7, 2}} {
-		if got := charmOcc(mask, c.slot, c.cand, &bufs, &ns); got != c.want {
+		if got := charmOcc(mask, c.slot, TCode(c.cand), &bufs, &ns); got != c.want {
 			t.Errorf("slot %d candidate %d: occurrence %d, want %d", c.slot, c.cand, got, c.want)
 		}
 	}
@@ -195,10 +195,10 @@ func TestCharmnumPrintedOrder(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear := sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 1) // the answer picks the later printed mode first
 	charmnumPickMode(t, sc, 0)
-	sc.do(t, AkTarget, 0xff, uint8(bear))
+	sc.do(t, AkTarget, scAny, TCode(bear))
 	sc.resolveAll(t)
 	if sc.s.objs[bear].zone != kop.ZoneGraveyard {
 		t.Fatalf("bear zone %d, want the graveyard: the modes resolved in answer order", sc.s.objs[bear].zone)
@@ -236,7 +236,7 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 	sc.lands(0, v.Mountain, 1)
 	bear := sc.perm(v.GrizzlyBears, 1)
 	fc := sc.hand(v.TestCharm, 0)
-	sc.do(t, AkCast, uint8(fc), 0xff)
+	sc.do(t, AkCast, TCode(fc), scAny)
 	charmnumPickMode(t, sc, 0)
 	charmnumPickMode(t, sc, 1)
 	// The combined step is the generated path; call its two halves directly,
@@ -250,7 +250,7 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 	seen0, seen1 := false, false
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() != AkTarget || a.Target() != uint8(bear) {
+		if a.Kind() != AkTarget || a.Target() != TCode(uint8(bear)) {
 			continue
 		}
 		switch a.Mode() {
@@ -264,16 +264,16 @@ func TestCharmnumCombinedTargetsScenario(t *testing.T) {
 		t.Fatalf("shared creature occurrences 0/1 offered %v/%v, want both: %+v", seen0, seen1, d.Options[:d.N])
 	}
 	sc.s.applyCharmTarget(sc.k, occ1)
-	if sc.s.bld().e.tgt[1] != uint8(bear) || sc.s.bld().e.tgt[0] != NoTarget {
+	if sc.s.bld().e.tgt[1] != TCode(uint8(bear)) || TCode(sc.s.bld().e.tgt[0]) != NoTarget {
 		t.Fatalf("after occurrence 1: tgt %v, want slot 1 only", sc.s.bld().e.tgt)
 	}
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == uint8(bear) && a.Mode() == 0 {
+		if a := d.Options[i]; a.Kind() == AkTarget && a.Target() == TCode(uint8(bear)) && a.Mode() == 0 {
 			sc.s.applyCharmTarget(sc.k, a)
 			break
 		}
 	}
-	if sc.s.bld().e.tgt[0] != uint8(bear) || sc.s.bld().e.tgt[1] != uint8(bear) {
+	if sc.s.bld().e.tgt[0] != TCode(uint8(bear)) || sc.s.bld().e.tgt[1] != TCode(uint8(bear)) {
 		t.Fatalf("after occurrence 0: tgt %v, want both slots", sc.s.bld().e.tgt)
 	}
 }

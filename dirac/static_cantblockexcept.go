@@ -3,8 +3,8 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Agility Bobblehead's "can't be blocked this turn except by creatures with
-// haste" (gorge Effect Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered |
-// ValidBlocker$ Creature.withoutHaste; CR 509.1b, 702.10a, 611.2c).
+// haste" (gorge: an Effect granting a CantBlockBy static on the remembered
+// attacker against blockers without haste; CR 509.1b, 702.10a, 611.2c).
 // ExtExHaste records, until the cleanup step, the attacker (obj, ver) in
 // State.cold.exH; canBlock refuses a blocker without haste (its CURRENT
 // keywords, so the same turn's KW$ Haste grant to the blocker's own side
@@ -32,6 +32,15 @@ var DebugExHasteOff bool
 // never a dropped restriction.
 const maxExH = 16
 
+// coldExH is the turn's records, for a table with ExtExHaste; an empty one is
+// simply full.
+var coldExH = newCold[exhRec]("exH", func(g *genPrep) int {
+	if g.anyExHaste {
+		return maxExH
+	}
+	return 0
+}).view(func(c *coldArrays) *[]exhRec { return &c.exH })
+
 // StallExHaste: a seventeenth Ext ExHaste record in one turn (State.cold.exH).
 const StallExHaste = 112
 
@@ -58,11 +67,17 @@ func (s *State) exHaste(k *prep, in *kop.Instr) {
 	if sl == NoSlot {
 		return
 	}
-	o := s.perms[sl].obj
 	kind := uint8(1)
 	if in.C&1 != 0 { // seat-ok: an instruction flag bit
 		kind = 0x80 | uint8(in.C>>1&7)<<4 | uint8(in.C>>4&15)
 	}
+	s.exhAdd(sl, kind)
+}
+
+// exhAdd records kind on the permanent at sl: the same grant again is a
+// no-op, a full store a loud stall.
+func (s *State) exhAdd(sl Slot, kind uint8) {
+	o := s.perms[sl].obj
 	free := -1
 	for i := range s.cold.exH {
 		r := &s.cold.exH[i]
@@ -125,7 +140,7 @@ func (s *State) exhBlocks(k *prep, a, b Slot) bool {
 			if s.kw(k, b)&kop.KwHaste == 0 {
 				return true
 			}
-		} else if cmp(kop.CmpOp(r.kind>>4&7), s.power(k, b), int(r.kind&15)) {
+		} else if r.kind >= 0x80 && cmp(kop.CmpOp(r.kind>>4&7), s.power(k, b), int(r.kind&15)) {
 			return true
 		}
 	}

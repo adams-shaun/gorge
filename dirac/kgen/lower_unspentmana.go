@@ -2,8 +2,8 @@ package kgen
 
 import "github.com/adams-shaun/gorge/engine/cards"
 
-// unspentRedEOT lowers the Last Agni Kai's `DB$ Effect | StaticAbilities$
-// Unspent`, `Mode$ UnspentMana | ValidPlayer$ You | ManaType$ Red`
+// unspentRedEOT lowers the Last Agni Kai's Effect, whose static keeps your
+// unspent red mana (an UnspentMana static for you, mana type red):
 // gorge's effEffect registers the body for its source
 // until end of turn; at every step boundary finishStepBoundary keeps the
 // effect controller's red (unspentManaKeep: ValidPlayer$ You, ManaType$ Red

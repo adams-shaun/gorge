@@ -1,0 +1,7 @@
+family: KwID
+name: KwGravestorm
+value: 94
+forge: Gravestorm
+census: kw Gravestorm all=3 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

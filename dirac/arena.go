@@ -10,62 +10,20 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // array, so the bounds test is also the off-switch: an unused mechanic touches
 // no mask.
 
-// mech names one arena mechanic. Append-only: appends
-// mechExileEx and mechKicked, the object-width ones. New
-// entries go before numMech and get a mechWidth row and a detector in
-// arenaUses.
+// mech names one arena mechanic. The constants, numMech and each mech's
+// mechWidth and mechName rows are generated (manifest_gen.go) from the
+// manifest's entries, dirac/manifest/mech/<name>: a new mechanic is a
+// value: next entry there with its state line (slotbit or objbit), plus a
+// detector registered from its own file (arenaDetect). Values never change,
+// so a pool's index assignment changes only when it uses a new mechanic.
 type mech uint8
 
-const (
-	mechGoad0           mech = iota // goad[0]: slots whose permanent player 0 goaded (CR 701.15; act_goad.go)
-	mechGoad1                       // goad[1]: the same for player 1
-	mechMonstrous                   // slots whose permanent is monstrous (CR 701.37b; act_monstrosity.go)
-	mechRegen                       // bit sl: slot sl's regeneration shields count +4 (repl_regenerate.go)
-	mechExileEx                     // slots exiled instead of dying this turn (DmgExileIfDiesThisTurn)
-	mechKicked                      // slots whose permanent's spell was kicked (Kicker, Bargain, Offspring)
-	mechStash                       // object mask: exiled cards with a stash counter (marks.go)
-	mechFBLo                        // object mask: bit 0 of a graveyard card's granted-flashback count
-	mechFBHi                        // object mask: bit 1 of that count; assigned right after mechFBLo
-	mechSuspected                   // slots whose permanent is suspected (CR 701.60; act_suspect.go)
-	mechMayhem                      // object mask: graveyard cards discarded this turn (CR 702.187; kw_mayhem.go)
-	mechSneaked                     // slots whose permanent's spell was cast for its sneak cost (CR 702.190a; kw_sneak.go)
-	mechAttacked                    // slots whose permanent was declared an attacker this turn (filter_permmarks.go)
-	mechDealtTurn                   // slots whose permanent dealt damage this turn
-	mechDealtAny                    // slots whose permanent has dealt damage since it entered
-	mechDealtCombat                 // slots whose permanent has dealt combat damage since it entered
-	mechAttackedObj                 // object mask: objects declared as attackers this turn, wherever they are now (value_turntallies.go)
-	mechMustBlocked                 // slots whose permanent must be blocked this turn if able (CR 509.1c; combat_mustbeblocked.go)
-	mechMustBlockedPost             // slots marked must-be-blocked while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
-	mechAttacksIfAble               // slots whose permanent attacks this turn if able (CR 508.1d; combat_attacksifable.go)
-	mechBlocksIfAble                // slots whose permanent blocks this turn if able (CR 509.1c; combat_blocksifable.go)
-	mechNoRegen                     // slots whose creature can't be regenerated this turn (CR 701.19c; repl_noregen.go)
-	mechSBAChain                    // object mask: casualties of this state-based check's passes that asked a replacement order (repl_exilemark.go)
-	mechOnce2                       // slots whose permanent's second activate-only-once ability was activated (legal.go onceUsed)
-	mechOnce3                       // the same for its third such ability
-	mechTappedTurn                  // slots whose permanent has become tapped this turn (Taps FirstTime$; filter_permmarks.go)
-	mechEscaped                     // slots whose permanent's spell was cast for its escape cost (CR 702.138a; kw_escape.go)
-	mechLure                        // slots whose permanent is a lure this turn: all creatures able to block it do so (CR 509.1c; combat_lure.go)
-	mechLurePost                    // slots marked lure while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
-	mechProtW                       // slots whose permanent has protection from white until end of turn (a chosen-colour grant; static_colourprot.go)
-	mechProtU                       // the same, blue
-	mechProtB                       // black
-	mechProtR                       // red
-	mechProtG                       // green
-	mechProtPostW                   // slots marked protected from white while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
-	mechProtPostU                   // the same, blue
-	mechProtPostB                   // black
-	mechProtPostR                   // red
-	mechProtPostG                   // green
-	mechEchoOwed                    // slots of the active player's permanents that came under their control since their previous turn began, read as their upkeep's echo gate (CR 702.30a; trig_echo.go)
-	mechHexUB                       // slots whose permanent has hexproof from blue and from black this turn (TurnReplHexUB; repl_turnrepl.go)
-	mechAtch0                       // slots whose Aura is attached to player seat 0 (the Enchant:Player curses; static_attachtimestamp.go atchSeat)
-	mechAtch1                       // the same, seat 1
-	mechAtch2                       // seat 2 (read only when MaxSeats > 2)
-	mechAtch3                       // seat 3
-	mechGoad2                       // goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)
-	mechGoad3                       // goad[3]: the same, seat 3
-	numMech
-)
+// key names one bounded State key of the keyed arena: a manifest ID
+// (dirac/manifest/key/<name>, generated into manifest_gen.go), fixed for all
+// time and costing no State bytes until a pool's cards use it. The keyed
+// arena's width classes that give a used key its bytes are later work; until
+// then every key entry is reserved and nothing reads one.
+type key uint16
 
 // goadMechs names each seat's goad mech in seat order: mechGoad0 and
 // mechGoad1 first, mechGoad2 and mechGoad3 appended past mechAtch3, so the
@@ -79,67 +37,54 @@ const (
 	wObj
 )
 
-var mechWidth = [numMech]uint8{
-	mechGoad0:           wSlot,
-	mechGoad1:           wSlot,
-	mechMonstrous:       wSlot,
-	mechRegen:           wSlot,
-	mechExileEx:         wSlot,
-	mechKicked:          wSlot,
-	mechStash:           wObj,
-	mechFBLo:            wObj,
-	mechFBHi:            wObj,
-	mechSuspected:       wSlot,
-	mechMayhem:          wObj,
-	mechSneaked:         wSlot,
-	mechAttacked:        wSlot,
-	mechDealtTurn:       wSlot,
-	mechDealtAny:        wSlot,
-	mechDealtCombat:     wSlot,
-	mechAttackedObj:     wObj,
-	mechMustBlocked:     wSlot,
-	mechMustBlockedPost: wSlot,
-	mechAttacksIfAble:   wSlot,
-	mechBlocksIfAble:    wSlot,
-	mechNoRegen:         wSlot,
-	mechSBAChain:        wObj,
-	mechOnce2:           wSlot,
-	mechOnce3:           wSlot,
-	mechTappedTurn:      wSlot,
-	mechEscaped:         wSlot,
-	mechLure:            wSlot,
-	mechLurePost:        wSlot,
-	mechProtW:           wSlot,
-	mechProtU:           wSlot,
-	mechProtB:           wSlot,
-	mechProtR:           wSlot,
-	mechProtG:           wSlot,
-	mechProtPostW:       wSlot,
-	mechProtPostU:       wSlot,
-	mechProtPostB:       wSlot,
-	mechProtPostR:       wSlot,
-	mechProtPostG:       wSlot,
-	mechEchoOwed:        wSlot,
-	mechHexUB:           wSlot,
-	mechAtch0:           wSlot,
-	mechAtch1:           wSlot,
-	mechAtch2:           wSlot,
-	mechAtch3:           wSlot,
-	mechGoad2:           wSlot,
-	mechGoad3:           wSlot,
-}
-
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost", "attacksIfAble", "blocksIfAble", "noRegen", "sbaChain", "once2", "once3", "tappedTurn", "escaped", "lure", "lurePost", "protW", "protU", "protB", "protR", "protG", "protPostW", "protPostU", "protPostB", "protPostR", "protPostG", "echoOwed", "hexUB", "atch0", "atch1", "atch2", "atch3", "goad2", "goad3"}
+// mechWidth is each mech's width and mechName its name, both filled by
+// manifest_gen.go's init functions.
+var (
+	mechWidth [numMech]uint8
+	mechName  [numMech]string
+)
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
 
+// arenaDetector reports whether one instruction of t reaches mechanic m.
+type arenaDetector struct {
+	m      mech
+	detect func(t *kop.Table, in *kop.Instr) bool
+}
+
+// arenaDetectors are the registered detectors, sorted by mech.
+var arenaDetectors []arenaDetector
+
+// arenaDetect registers detect for m, from m's feature file:
+//
+//	func init() { arenaDetect(mechFoo, func(t *kop.Table, in *kop.Instr) bool { ... }) }
+//
+// arenaUses marks m used when detect holds for any instruction of any
+// ability, after the hand detectors. Registration order never matters: the
+// detectors run in mech order.
+func arenaDetect(m mech, detect func(t *kop.Table, in *kop.Instr) bool) {
+	i := len(arenaDetectors)
+	for i > 0 && arenaDetectors[i-1].m > m {
+		i--
+	}
+	arenaDetectors = append(arenaDetectors, arenaDetector{})
+	copy(arenaDetectors[i+1:], arenaDetectors[i:])
+	arenaDetectors[i] = arenaDetector{m, detect}
+}
+
 // arenaUses reports which mechanics t's programs and triggers reach, by the
-// predicates the prep flags use (prepGoad, prepMonstrosity).
+// predicates the prep flags use (prepGoad, prepMonstrosity) and the
+// registered detectors (arenaDetect).
 func arenaUses(t *kop.Table) (u [numMech]bool) {
 	permMarkUses(t, &u)    // filter_permmarks.go
 	turnTalliesUses(t, &u) // value_turntallies.go
 	addPhaseUses(t, &u)    // act_addphase.go
+	for i := range t.Conds {
+		if t.Conds[i].Kind == kop.CondRemMark {
+			u[mechRem] = true // a persistent-remembered gate (exprs.go CondRemMark)
+		}
+	}
 	for i := range t.Cards {
 		if cd := &t.Cards[i]; cd.Keywords&kop.KwKicker != 0 || cd.HasMultikicker || cd.Bargain || cd.Offspring || cd.OptEvidence != 0 && cd.Types&(kop.TInstant|kop.TSorcery) == 0 {
 			u[mechKicked] = true
@@ -200,8 +145,12 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 				case kop.OpExt:
 					mustBlockUses(&in, &u) // combat_mustbeblocked.go
 					colProtUses(&in, &u)   // static_colourprot.go
+					kwMarkUses(&in, &u)    // kw_kwmark.go
 					if in.Ext() == kop.ExtAttacksIfAble {
 						u[mechAttacksIfAble] = true // combat_attacksifable.go
+						if in.C&kop.AttacksOpponent != 0 {
+							u[mechAttacksPlayer] = true
+						}
 					}
 					if in.Ext() == kop.ExtBlocksIfAble {
 						u[mechBlocksIfAble] = true // combat_blocksifable.go
@@ -214,6 +163,12 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					}
 					if in.Ext() == kop.ExtSuspect && in.C&1 == 0 { // seat-ok: an instruction flag bit
 						u[mechSuspected] = true // a suspect; an un-suspect or a read needs no mask
+					}
+					if in.Ext() == kop.ExtRenown {
+						u[mechRenowned] = true // the only writer; a read alone needs no mask (act_renown.go)
+					}
+					if in.Ext() == kop.ExtGrantEncore {
+						u[mechEncore] = true // kw_encoregrant.go
 					}
 				case kop.OpGrantKeyword:
 					// grantFB is the only writer of the flashback planes, so a pool
@@ -231,8 +186,29 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			u[mechOnce3] = true
 		}
 	}
+	arenaDetected(t, &u)
 	u[mechSBAChain] = u[mechSBAChain] || u[mechExileEx]
 	return u
+}
+
+// arenaDetected marks the mechanics a registered detector finds in t.
+func arenaDetected(t *kop.Table, u *[numMech]bool) {
+	for _, d := range arenaDetectors {
+		if u[d.m] {
+			continue
+		}
+	cards:
+		for i := range t.Cards {
+			for j := range t.Cards[i].Abilities {
+				for k := range t.Cards[i].Abilities[j].Prog {
+					if d.detect(t, &t.Cards[i].Abilities[j].Prog[k]) {
+						u[d.m] = true
+						break cards
+					}
+				}
+			}
+		}
+	}
 }
 
 // arenaAssign gives each used mechanic the next free arena index of its
@@ -256,11 +232,27 @@ func arenaAssign(t *kop.Table) (ix [numMech]uint8, nms, nmo uint8) {
 	return ix, nms, nmo
 }
 
-// prepArena fills g.ix and sizes the masks in the table's cold layout.
-func prepArena(t *kop.Table, g *genPrep, c *coldLayout) {
-	var nms, nmo uint8
-	g.ix, nms, nmo = arenaAssign(t)
-	c.ms, c.mo = int(nms), int(nmo)
+// prepArena fills g.ix; coldMS and coldMO size the masks from it.
+func prepArena(t *kop.Table, g *genPrep) {
+	g.ix, _, _ = arenaAssign(t)
+}
+
+// coldMS and coldMO are the slot- and object-width masks a table's arena
+// assigned.
+var (
+	coldMS = newCold[slotMask]("ms", func(g *genPrep) int { return arenaCount(g, wSlot) }).view(func(c *coldArrays) *[]slotMask { return &c.ms })
+	coldMO = newCold[objBits]("mo", func(g *genPrep) int { return arenaCount(g, wObj) }).view(func(c *coldArrays) *[]objBits { return &c.mo })
+)
+
+// arenaCount is how many masks of width w g.ix assigned.
+func arenaCount(g *genPrep, w uint8) int {
+	n := 0
+	for m, i := range g.ix {
+		if i != arenaNone && mechWidth[m] == w {
+			n++
+		}
+	}
+	return n
 }
 
 // mSl reports whether mechanic m's mask holds sl; false when the table does
@@ -311,15 +303,8 @@ func (s *State) arenaClrSlot(sl Slot) {
 	for i := range ms {
 		ms[i] = ms[i].without(sl)
 	}
-	if r := s.xblkRecs(); len(r) > 0 {
-		r[sl] = xblkRec{}
-	}
-	if int(sl) < len(s.cold.mk) {
-		s.cold.mk[sl] = 0 // the last permanent's multikicker count ends with it (CR 702.43; cast.go)
-	}
-	if int(sl) < len(s.cold.hexUB) {
-		s.cold.hexUB[sl] = 0 // a new permanent takes no mark from the last one (repl_turnrepl.go)
-	}
+	s.coldClrSlot(sl) // every perSlot cold region's record (statecopy.go)
+	s.xblkDrop(sl)    // the last blocker's second block (combat_extrablock.go)
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {
 			r.live = false // the last permanent's exile-instead records end with it (repl_exilemark.go)

@@ -32,7 +32,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		pc := &k.cards[c]
 		if pc.land {
 			if sorc && pl.landsPlayed < s.landLimit(k, p) {
-				d.add(MakeAction(AkPlayLand, uint8(o), 0, 0))
+				d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 				if faces && k.gen.anyFaces {
 					s.offerFaceLand(k, d, o) // face_multiface.go
 				}
@@ -181,27 +181,27 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// through the imprisoned lands)
 		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
 		if plainOK {
-			d.add(MakeAction(AkCast, uint8(o), 0, 0))
+			d.add(MakeAction(AkCast, TCode(o), 0, 0))
 		}
 		if plainOK && k.gen != nil && k.gen.anyConspire && s.conspireOffer(k, p, c, o) && s.casualtyOffers(p, o) {
 			// the conspired cast (kw_conspire.go): beside the plain cast; like the casualty cast, gorge offers it only against a pool that pays
-			d.add(MakeAction(AkCastConspire, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastConspire, TCode(o), 0, 0))
 		}
 		if twOK && s.teamworkOffer(k, p, c) && s.casualtyOffers(p, o) {
 			// the teamworked cast (kw_teamwork.go): the same action kind
-			d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 		}
 		if k.casualty && s.casualtyOffer(k, p, c, o) && s.casualtyOffers(p, o) {
 			// the casualty cast (kw_casualty.go): the plain cast's price, one more option
-			d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 		}
 		if k.bargain && s.bargainOffer(k, p, c) && s.bargainOffers(k, p, o) {
 			// the bargained cast (kw_bargain.go): the same action kind
-			d.add(MakeAction(AkCastCasualty, uint8(o), 0, 0))
+			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
 		}
 		if k.gen != nil && k.gen.anyOptCost && tgtOK && s.optCostOffer(k, p, c, o) {
 			// the optional-cost cast (cost_optional.go): the kicked action
-			d.add(MakeAction(AkCast, uint8(o), 0, 1))
+			d.add(MakeAction(AkCast, TCode(o), 0, 1))
 		}
 		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
 			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
@@ -214,8 +214,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
-				d.add(MakeAction(AkCast, uint8(o), 0, 1))
+			if s.kickedAffords(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
 	}
@@ -292,7 +292,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue
 			}
 		}
-		d.add(MakeAction(AkCast, uint8(o), 0, 2))
+		d.add(MakeAction(AkCast, TCode(o), 0, 2))
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
@@ -377,9 +377,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
 			if s.canActivate(k, sl, ai, a, sorc, &av) {
-				d.add(MakeAction(AkActivate, uint8(s.perms[sl].obj), 0, uint8(ai)))
+				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
 			}
 		}
+	}
+	if k.gen != nil && k.gen.anyAnyAct {
+		s.offerAnyActivations(k, d, p, sorc, &av, &haveAv) // cast_anyactivator.go
 	}
 	if k.gen != nil {
 		s.priorityGen(k, d, p, sorc, &av, haveAv)
@@ -704,7 +707,13 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	if s.objs[o].zone == kop.ZoneHand && s.objs[o].owner() == p {
 		others--
 	}
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)
+	if ac.Flags&kop.CostDiscardFiltered != 0 {
+		// a filtered discard (Magmatic Insight's land card) never takes the
+		// card being cast, whatever its filter says (cost_discardfiltered.go)
+		discardOK = s.discardPayable(k, p, ac, o)
+	}
+	if s.pickCostPayable(k, p, ac, NoObj) && discardOK && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	cd := &k.t.Cards[c]
@@ -772,14 +781,16 @@ func (s *State) gorgeOffersKicked(p uint8, o Obj) bool {
 // either oracle surface gorge lowers it when its planner does not price it
 // (the autopay surface leaves out plain casts only), so it is offered when
 // the planner prices it, the pool pays it, or the potential planner does.
-func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
+// anyColor is the permission's MayPlayIgnoreColor rider, which gorge's
+// offer gate prices the cast under (mayPlayAffordable).
+func (s *State) gorgeOffersMay(p uint8, o Obj, anyColor bool) bool {
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 {
 		return true
 	}
 	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	return s.FeatPoolPays(p, o, 0) || s.gorgeLowers(p, o, true)
+	return s.FeatPoolPays(p, o, 0) || s.gorgeLowersRider(p, o, true, anyColor)
 }
 
 // offerSourcesAfford: p's sources pay cost through the offer gate -- the
@@ -821,6 +832,15 @@ func (s *State) offerSourcesAfford(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // cost alone when a part with no mana can be paid (a creature to sacrifice),
 // and otherwise with a part that has mana.
 func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
+	return s.gorgeLowersRider(p, o, mayPlay, false)
+}
+
+// gorgeLowersRider is gorgeLowers for a may-play cast under the any-colour
+// rider when anyColor: a target-priced cast's composed price is funded with
+// its coloured pips as generic (pay.PlanManaUnderRider), so Vanish into
+// Eternity's {2}{W} at a noncreature target is paid by three red and blue
+// sources (CR 601.2f, 609.4b).
+func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
@@ -832,6 +852,14 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	}
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
+	}
+	if cd.HasMultikicker && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
+		// a plain Multikicker hand cast is "shape:optional_cost" to the cast
+		// planner; gorge keeps the composition's plan (potentialPlayVerdictShared)
+		// but not its "insufficient", so the cast never enters the prefix search
+		// (potentialScriptPlays) and a census gap (a depletion land's counter
+		// mana) never pays it: it is no insufficient play and no scripted one
+		return false
 	}
 	if cd.Cost.X != 0 {
 		return s.xWitnessOffered(k, p, c, o)
@@ -891,9 +919,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 			}
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
 			s.g.noTgtRed = false
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
+			cost = s.mayRiderCost(cost, anyColor)
 			if s.offerSourcesAfford(k, p, c, o, &cost) {
 				return true
 			}
@@ -901,9 +927,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 				return false
 			}
 			cost = s.featCost(k, p, c, o, k.cards[c].cost)
-			if s.g.mayPlayAny {
-				cost = anyType(cost)
-			}
+			cost = s.mayRiderCost(cost, anyColor)
 			// the retry taps no source: the pool (and the restricted mana it
 			// may spend) pays the reduced price on its own
 			a := s.poolAvailPlus(p, nil)
@@ -919,15 +943,13 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// composed cost already carries it (costTargetOK finds the matching
 		// candidate).
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost = s.mayRiderCost(cost, anyColor)
 		// the planner's census (potentialTargetPricedPlan): no granted source
 		// (Imprisoned in the Moon's {C}), and a painful source makes its
 		// colours while one point of damage is not lethal (Starting Town's W)
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
-	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+	if cd.BeholdExile || cd.HasMultikicker && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
@@ -939,6 +961,9 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// "shape:additional_cost" or "shape:optional_cost" before any mana
 		// is priced, so its prefix search never runs for one (Bloom Tender
 		// beside Champions of the Perfect, the lone Elf the cost also exiles).
+		// A plain Multikicker hand cast is the same: its granted source (Gemhide
+		// Sliver's any-colour mana) is a gap in the planner's census too, and no
+		// prefix search taps it (the availAny/availGaps rule above).
 		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
 	return true
@@ -949,7 +974,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 // gorge's prefix search taps before it prices the play again (Bloom Tender's
 // colours beside a Swamp pay Bogslither's Embrace's {1}{B}; CR 601.2b, 601.2f).
 func (s *State) scriptSourceLive(k *prep, p uint8) bool {
-	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any()
+	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any() || k.gen.anyComboAny && s.caBoard(k, p)
 }
 
 // altAddPlanCost is the mana gorge's potential planner prices an either-or additional
@@ -965,6 +990,15 @@ func (s *State) altAddPlanCost(k *prep, p uint8, c CardID, o Obj) kop.ManaCost {
 		cost = anyType(cost)
 	}
 	return cost
+}
+
+// mayRiderCost is cost under the may-play cast's mana rider: the any-type
+// one (s.g.mayPlayAny) or, when anyColor, the any-colour one.
+func (s *State) mayRiderCost(cost kop.ManaCost, anyColor bool) kop.ManaCost {
+	if s.g.mayPlayAny {
+		return anyType(cost)
+	}
+	return planUnderRider(cost, false, anyColor)
 }
 
 func manaEmpty(m *kop.ManaCost) bool { return m.MV() == 0 && m.X == 0 }
@@ -1129,7 +1163,7 @@ func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool
 	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
 		return s.spellTargetsFeasible(k, c, p)
 	}
-	s.g.tgtSelf = uint8(o) + 1
+	s.g.tgtSelf = o + 1
 	ok := s.spellTargetsFeasible(k, c, p)
 	s.g.tgtSelf = 0
 	return ok
@@ -1200,7 +1234,7 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 			return false
 		}
 	}
-	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl) {
+	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl, false) {
 		return false // TargetUnique$ chain: jointly distinct (tgt_uniqueoffer.go)
 	}
 	return true
@@ -1208,10 +1242,10 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 
 // hasTargetBut is hasTarget with the permanent but not counted.
 func (s *State) hasTargetBut(k *prep, t *kop.TargetSpec, p uint8, src Slot, but Obj) bool {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.targetCands(k, t, p, src, but, &buf)
 	for i := 0; i < n; i++ {
-		if buf[i] != uint8(but) {
+		if buf[i] != TCode(but) {
 			return true
 		}
 	}
@@ -1235,7 +1269,7 @@ func (s *State) objTargetable(k *prep, sl Slot, p uint8) bool {
 }
 
 // targetOK reports whether code is a legal choice for spec.
-func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, code uint8) bool {
+func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, code TCode) bool {
 	if t.ParentPlus1 != 0 && !s.parentTargetOK(t, code) {
 		return false
 	}
@@ -1255,6 +1289,9 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		case kop.TgtAny:
 			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
 		case kop.TgtPlayer:
+			if t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+				return false // tgt_thanactive.go
+			}
 			if t.Filter != 0 {
 				switch k.t.Filters[t.Filter].Ctrl {
 				case kop.CtrlYou:
@@ -1332,7 +1369,7 @@ func (s *State) stackCtrl(o Obj) uint8 {
 
 // targetCands writes every legal choice for spec into out (players first,
 // then battlefield in slot order, then the stack top-down, then cards).
-func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8) int {
+func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode) int {
 	n := 0
 	if t.Kind == kop.TgtAny || t.Kind == kop.TgtPlayer {
 		// every seat still in the game, in seat order (gorge offers
@@ -1351,16 +1388,16 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 			sl := m.first()
 			m = m.rest()
 			o := s.perms[sl].obj
-			if s.targetOK(k, t, p, src, self, uint8(o)) {
-				out[n] = uint8(o)
+			if s.targetOK(k, t, p, src, self, TCode(o)) {
+				out[n] = TCode(o)
 				n++
 			}
 		}
 	case kop.TgtSpell, kop.TgtSpellTgting:
 		for i := int(s.sp) - 1; i >= 0; i-- {
 			e := &s.stack[i]
-			if e.kind == seSpell && s.targetOK(k, t, p, src, self, uint8(e.obj)) {
-				out[n] = uint8(e.obj)
+			if e.kind == seSpell && s.targetOK(k, t, p, src, self, TCode(e.obj)) {
+				out[n] = TCode(e.obj)
 				n++
 			}
 		}
@@ -1380,11 +1417,11 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
-				if uint8(o)+1 == s.g.tgtSelf {
+				if o+1 == s.g.tgtSelf {
 					continue
 				}
-				if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
-					out[n] = uint8(o)
+				if s.targetOK(k, t, p, src, self, TCode(o)) && n < MaxOptions-1 {
+					out[n] = TCode(o)
 					n++
 				}
 			}
@@ -1407,13 +1444,13 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 		}
 	case kop.TgtObject:
 		for m := s.occ; m.any(); m = m.rest() {
-			if s.targetOK(k, t, p, src, self, uint8(s.perms[m.first()].obj)) {
+			if s.targetOK(k, t, p, src, self, TCode(s.perms[m.first()].obj)) {
 				return true
 			}
 		}
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	return s.targetCands(k, t, p, src, self, &buf) > 0
 }
 
@@ -1519,6 +1556,24 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
 				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+				if s.riderPotential(k, p, sl) {
+					// a bounded rider source's activation is one of gorge's
+					// potential walk's units: its fixed production counts
+					// once, an any-colour or all-at-once one is unbounded
+					// (gorge potentialUnbounded; the Deplete land's is fixed)
+					if a, _ := s.riderAbilityOf(k, sl); a.ManaEach || uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 {
+						open = true
+					} else {
+						n := int(a.ManaN)
+						if n < 1 {
+							n = 1
+						}
+						add(sl, uint8(a.ManaColors), uint8(n))
+					}
+				}
+			}
+			if k.gen != nil && pc.manaAb < 0 {
+				s.potentialReflNone(k, sl, &done) // a reflected view with no colour makes no mana: the walk below must not admit the printed ability open
 			}
 			continue
 		}
@@ -1715,6 +1770,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	grantFirst = grantFirst || grants && s.eachBesideGrant(k, p)  // an each-colour gap among the grants (mana_granteach.go)
 	grantFirst = grantFirst || grants && s.wideBesideGrant(k, p)  // a wide-only gap among the grants (mana_grantwide.go)
+	// a planner-deferred gap among the grants: the activation's one search (mana_granttapsdefer.go)
+	grantFirst = grantFirst || grants && a.Kind() == AkActivate && s.tdBesideGrant(k, p)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {
@@ -1764,7 +1821,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkCast:
 		face := a.Mode()&castFace != 0
 		if face && (a.Target() != 0 || k.anyRoom && roomDef(k, s.objs[a.Source()].card)) {
-			s.turnFaceCast(k, Obj(a.Source()), a.Target()) // a face cast (face_castface.go)
+			s.turnFaceCast(k, Obj(a.Source()), uint8(a.Target())) // code-ok: a face cast's face (face_castface.go)
 		}
 		if a.Target() == castImpTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyImpending {
 			s.g.impCast = true // the impending cost (kw_impending.go)
@@ -1781,6 +1838,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castOverloadTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyOverload {
 			s.g.impCast = true // the overload cost (kw_overload.go): beginCast marks the entry overloaded
 		}
+		if a.Target() == castCleaveTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyCleave {
+			s.g.impCast = true // the cleave cost (kw_cleave.go): beginCast puts the cleave ability on the entry
+		}
 		if a.Target() == castSurgeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anySurge {
 			s.g.impCast = true // the surge cost (kw_surge.go): beginCast marks the entry surged
 		}
@@ -1791,15 +1851,15 @@ func (s *State) applyPriority(k *prep, a Action) {
 			// the warp instance the action names (kw_warpgrant.go): a grant's
 			// marks the entry for the cost builder
 			wi := s.warpInstances(k, s.prio, Obj(a.Source()))
-			s.g.warpGrant = a.Target() < wi.n && wi.grant[a.Target()]
+			s.g.warpGrant = a.Target() < TCode(wi.n) && wi.grant[a.Target()] // code-ok: a warp instance index
 		}
 		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
 			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
-		if a.Mode()&2 != 0 && a.Target() == castEscapeTgt && k.gen != nil && k.gen.anyEscapeGrant {
+		if a.Mode()&2 != 0 && a.Target() == TCode(castEscapeTgt) && k.gen != nil && k.gen.anyEscapeGrant {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
-		s.beginCast(k, Obj(a.Source()), a.Mode(), a.Target()) // the target byte names a retrace cast (kw_retrace.go)
+		s.beginCast(k, Obj(a.Source()), a.Mode(), uint8(a.Target())) // code-ok: the target field names a retrace cast (kw_retrace.go)
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go
 		}

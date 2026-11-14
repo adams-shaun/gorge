@@ -205,8 +205,8 @@ func TestIgnoreLegendRuleDoesNotExemptOtherPlayersCreatures(t *testing.T) {
 }
 
 // TestIgnoreLegendRuleHonorsConditionTrue: Brothers Yamazaki's exemption is
-// GATED -- `IsPresent$ Permanent.namedBrothers Yamazaki | PresentCompare$
-// EQ2`, "If there are exactly two permanents named Brothers Yamazaki on the
+// GATED -- a presence check for exactly two permanents with the name, "If
+// there are exactly two permanents named Brothers Yamazaki on the
 // battlefield". With exactly two on the battlefield the gate holds and both
 // are exempt, so no duplicate set forms and no choice is posed. The fixture
 // asserts the gate actually evaluates true (not that the walk was empty).
@@ -384,9 +384,9 @@ func TestIgnoreLegendRuleEventStreamIsDeterministic(t *testing.T) {
 }
 
 // echoPermissionSrc is the Hall of Echoes {5} ability's Effect body, resolved
-// directly: a permanent carrying `DB$ Effect | StaticAbilities$
-// LegendPermission` whose LegendPermission SVar is the card's exact
-// `Mode$ IgnoreLegendRule | ValidCard$ Permanent.YouCtrl` line. The real card
+// directly: a permanent carrying an Effect whose one static, the card's
+// LegendPermission SVar, exempts the permanents you control from the legend
+// rule (IgnoreLegendRule). The real card
 // delivers it as the SubAbility$ of its AB$ Clone; this source isolates the
 // registration and its lifetime for the scope and cleanup tests.
 const echoPermissionSrc = "Name:Echo Permission\nTypes:Enchantment\n" +

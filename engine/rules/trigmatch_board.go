@@ -51,6 +51,8 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 		FinishingLifeLossBatch: b.finishingLifeLossBatch,
 		TappedTurn:             b.tappedTurn,
 		PlayingLand:            b.playingLand(),
+		ReplacedAction:         b.replAction,
+		ReplacedObj:            b.replReplaced,
 	}
 }
 
@@ -97,6 +99,12 @@ func (b *trigBoard) MatchesSpec(spec string, id, source state.ObjID, you state.P
 	e := b.eng()
 	sc := e.specCtx(source, you)
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
+	// A registration's frozen chosen-card set IS the chosen list its body's
+	// ChosenCard(Strict) predicate reads (state.DelayedTrigger.ChosenCard,
+	// Forge's Effect card), bound like DelayedRemembered is.
+	if o.DelayedChosenBound {
+		sc.Chosen, sc.ChosenValid = o.DelayedChosen, true
+	}
 	sc.ExtraTypesOwner = id
 	if o.TargetsBound {
 		sc.Resolving, sc.ResolutionTargets = true, o.Targets
@@ -120,6 +128,9 @@ func (b *trigBoard) MatchesObject(spec string, obj *state.Object, source state.O
 	e := b.eng()
 	sc := e.specCtx(source, you)
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
+	if o.DelayedChosenBound {
+		sc.Chosen, sc.ChosenValid = o.DelayedChosen, true
+	}
 	if obj != nil {
 		sc.ExtraTypesOwner = obj.ID
 		// A permanent that has just left the battlefield is matched by the

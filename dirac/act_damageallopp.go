@@ -38,14 +38,17 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 	}
 	// Same sweep order as OpDamageAll's plain path (gorge effDamageAll:
 	// each seat's battlefield in entry order, seat 0 first, then each
-	// opponent from the controller, players last).
+	// opponent from the controller, players last). The whole sweep is one
+	// damage batch for the DamageDealtOnce latch (gorge effDamageAll's
+	// BeginDamageBatch; trig_dmgbatch.go).
+	s.dmgBatchOpen()
 	var ord [MaxPerm]Slot
 	hi := 0
 	for p := uint8(0); p < s.nSeats(); p++ {
 		hi = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], hi)
 	}
 	for _, sl := range ord[:hi] {
-		s.damageTo(k, uint8(s.perms[sl].obj), n)
+		s.damageTo(k, TCode(s.perms[sl].obj), n)
 	}
 	if pl != 0 {
 		q := s.oppsFrom(ctrl)
@@ -53,4 +56,5 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 			s.damageTo(k, PlayerCode(q.s[i]), n)
 		}
 	}
+	s.dmgBatchClose()
 }

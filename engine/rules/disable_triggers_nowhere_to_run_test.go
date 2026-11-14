@@ -1,8 +1,8 @@
 package rules
 
-// disabletriggers2: Nowhere to Run's second line --
-// `S:Mode$ DisableTriggers | Secondary$ True | ValidTrigger$ Triggered.Ward |
-// ValidCard$ Creature.OppCtrl+inZoneBattlefield` -- suppresses the Ward
+// disabletriggers2: Nowhere to Run's second static -- a secondary
+// DisableTriggers static over Ward triggers of opponents' creatures on the
+// battlefield -- suppresses the Ward
 // trigger of a ValidCard$-matched creature. Ward is not a printed T: line: it
 // is synthesized by engine/rules/trigger_granted.go's checkGrantedWardTriggers from
 // the derived keyword list, and marked Params["Ward"] == "True". The

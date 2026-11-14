@@ -135,7 +135,7 @@ func (s *State) linkRetStall(k *prep, srcCtrl uint8, o Obj, ret Obj) {
 //
 //go:noinline
 func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) uint8 {
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.multiCands(k, t, ti, &buf)
 	var seen [MaxSeats]bool
 	for i := 0; i < n; i++ {

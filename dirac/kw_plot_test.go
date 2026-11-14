@@ -71,7 +71,7 @@ func TestPlotAction(t *testing.T) {
 	}
 	s.active = 0
 	spells, ring := s.g.hist[0][histSpells], s.g.hist[0][histCastN]
-	sc.do(t, AkPlot, uint8(o), 0xff)
+	sc.do(t, AkPlot, TCode(o), scAny)
 	if s.objs[o].zone != kop.ZoneExile {
 		t.Fatalf("zone %d after plot, want exile", s.objs[o].zone)
 	}
@@ -85,7 +85,7 @@ func TestPlotAction(t *testing.T) {
 		t.Fatalf("pool %v not spent", s.pl[0].pool)
 	}
 	r, ok := kplotRecord(s, o)
-	if !ok || r.turn != s.turn || r.ctrl != 0 || r.ver != s.objs[o].ver {
+	if !ok || r.turn != mayWord(s.turn) || r.ctrl != 0 || r.ver != s.objs[o].ver {
 		t.Fatalf("plot record %+v (ok %v), want turn %d ctrl 0 ver %d", r, ok, s.turn, s.objs[o].ver)
 	}
 	d = s.Step()
@@ -100,7 +100,7 @@ func TestPlotAction(t *testing.T) {
 func TestPlotFreeCast(t *testing.T) {
 	sc, id := kplotScen(t)
 	o := sc.hand(id, 0)
-	sc.do(t, AkPlot, uint8(o), 0xff)
+	sc.do(t, AkPlot, TCode(o), scAny)
 	sc.s.Step() // seat 0's priority after the action
 	sc.nextTurn()
 	d := sc.s.Step()
@@ -137,7 +137,7 @@ func TestPlotFreeCast(t *testing.T) {
 func TestPlotLeftExile(t *testing.T) {
 	sc, id := kplotScen(t)
 	o := sc.hand(id, 0)
-	sc.do(t, AkPlot, uint8(o), 0xff)
+	sc.do(t, AkPlot, TCode(o), scAny)
 	sc.s.Step()
 	from := sc.s.detach(o)
 	sc.s.placeFrom(o, kop.ZoneGraveyard, false, from, false)

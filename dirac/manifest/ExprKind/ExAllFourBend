@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExAllFourBend
+value: 114
+forge: AllFourBend
+census: count AllFourBend all=1 std=1 mbc=0 sole=0
+state: code 0
+status: reserved

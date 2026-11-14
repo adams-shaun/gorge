@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtExchangeTextBox
+value: 68
+forge: ExchangeTextBox
+census: api ExchangeTextBox all=2 std=0 mbc=0 sole=1
+state: unbounded (layers/copy/text)
+status: blocked unbounded:layers/copy/text

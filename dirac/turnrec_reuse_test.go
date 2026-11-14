@@ -79,7 +79,7 @@ func TestResolvedThisTurnActivated(t *testing.T) {
 			t.Fatalf("decision kind %d after the activation, want the target ask", d.Kind)
 		}
 		for i := 0; i < int(d.N); i++ {
-			if d.Options[i].Target() == uint8(target) {
+			if d.Options[i].Target() == TCode(uint8(target)) {
 				s.Apply(d.Options[i])
 				return
 			}

@@ -67,7 +67,7 @@ func (s *State) permCopyBlocked(k *prep, ce *stackEntry) bool {
 		return false
 	}
 	switch k.t.Cards[ce.card].FaceMode {
-	case kop.FaceNone, kop.FaceOmen:
+	case kop.FaceNone, kop.FaceOmen, kop.FacePrototype:
 		return false
 	}
 	s.stall(StallCopyFace)
@@ -85,6 +85,6 @@ func (s *State) permCopyBlocked(k *prep, ce *stackEntry) bool {
 func (s *State) copyRetargeted(k *prep, picks []Obj) {
 	e := &s.stack[s.sp-1]
 	for _, o := range picks {
-		s.targetedOne(k, e, uint8(o))
+		s.targetedOne(k, e, TCode(o))
 	}
 }

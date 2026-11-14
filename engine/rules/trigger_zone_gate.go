@@ -125,6 +125,15 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 			zones[0] = ev.From
 		}
 	}
+	if exploitedItself(ev, source) {
+		// CR 702.110b / 603.10a: a creature that exploits itself left the
+		// battlefield by that very sacrifice, before the Exploit marker was
+		// emitted; its own "when this exploits a creature" line looks back to
+		// it as it was there (the Dragons of Tarkir rulings: sacrificing
+		// itself "will cause its other ability to trigger").
+		zones[1] = state.ZBattlefield
+		n = 2
+	}
 	for _, zone := range zones[:n] {
 		if zoneSpecContains(spec, zone) {
 			return true
@@ -199,4 +208,13 @@ func leavesOtherZoneTrigger(t cards.Trigger) bool {
 	}
 	zones := effects.ZoneList(code)
 	return !zones.All() && !zones.Has(state.ZBattlefield)
+}
+
+// exploitedItself reports whether ev is the events.Exploit marker of source
+// exploiting itself (Obj and IDs[0] both source): the sacrifice that marker
+// records took source off the battlefield (a sacrifice only takes a
+// permanent), so source was there immediately before it.
+func exploitedItself(ev events.Event, source state.ObjID) bool {
+	return ev.Kind == events.Exploit && source != 0 && source == ev.Obj &&
+		len(ev.IDs) != 0 && ev.IDs[0] == source
 }

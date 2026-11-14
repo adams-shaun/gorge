@@ -1,0 +1,6 @@
+family: mech
+name: mechMustBlockedPost
+value: 18
+state: slotbit 16/16
+status: active
+doc: slots marked must-be-blocked while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)

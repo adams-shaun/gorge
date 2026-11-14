@@ -333,8 +333,8 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 		poolBefore := e.G.Players[0].Pool.Total()
 		submitChoices(t, e, choice)
 		if shouldPay {
-			// The paid body is TrigEffect (DB$ Effect | ValidTgts$
-			// Creature.withHaste) — the "target creature with haste" the
+			// The paid body is TrigEffect (an Effect targeting a creature
+			// with haste) — the "target creature with haste" the
 			// oracle names. It was never placement-covered (the ImmediateTrigger
 			// AB root declares no targets), so the pre-ask poses its
 			// own KChoose here; the census's withHaste candidates are non-empty

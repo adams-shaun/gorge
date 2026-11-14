@@ -128,7 +128,7 @@ const (
 	OpDealDamageFrom   // creature Obj deals A damage to the object in Ref C (DamageSource$ with an amount other than its power)
 	OpGiveGift         // the controller gives a gift (CR 702.174b): fires TrigGiveGift; the gift's effects follow as ordinary ops
 	OpClassLevelUp     // the source Class becomes level A (CR 716.2a; gorge effClassLevelUp): its CtrLevel count is set to A-1 and a "becomes level" trigger (TrigCounterAddedOnce, N = CtrLevel) fires
-	OpGainEnergy       // player(s) Obj get A energy counters (CR 122.1; gorge PutCounter CounterType$ ENERGY on a player)
+	OpGainEnergy       // player(s) Obj get A player counters of kind C (PlCtrEnergy / PlCtrExperience; CR 122.1; gorge PutCounter CounterType$ ENERGY / Experience on a player)
 	OpOverrideAll      // each battlefield permanent matching F gets Table.Overrides[C] for duration A.N (gorge effAnimateAll; seat 0 first, entry order)
 	OpRollDie          // the controller rolls a die with A sides (one rng.IntN(A) draw); the result, die + B.N, is ExRollResult (gorge effRollDice, one die)
 	OpBecomeCopy       // as-enters replacement program: the entering permanent enters as a copy of the battlefield permanent its controller chose as it entered (the clone ask over F's matches; CR 707.2, 614.1c); C>>1 = the copy exceptions' Table.Overrides index+1 (0: none; CR 707.9b); C&1: optional (it may enter as itself); A>0: the Table.Overrides index+1 of an ability grant applied to the copy from the entering card (AddAbilities$, Mercurial Pretender). Nothing without an answer (it entered without being cast).
@@ -238,9 +238,10 @@ const (
 	OpBlight
 
 	// OpCount ends the frozen iota list (the ops above are 0..155). It is
-	// a fixed value: do not append above it. A new op is an explicit
-	// constant with a value in [OpCount,
-	// OpHighFirst) and an init naming it (opNames[OpX] = "X").
+	// a fixed value: do not append above it. A new operation is an ExtOp
+	// (ext.go). The free values [158,249] are kept for hot-path ops, each
+	// by the operator's approval: a manifest entry (dirac/manifest/Op, with
+	// an approval line) that kmanifest generates with its opNames row.
 	OpCount Op = 156
 )
 
@@ -304,12 +305,13 @@ type Instr struct {
 	B   ValueRef
 	C   int16
 	F   FilterID
-	// W is an op's player-valued side input, the Ref the player reads
-	// (0 = none): OpTapOrUntap's Tapper$ provenance read at the tap (the
-	// election ask is the controller's, the tap's is the ref's, gorge
-	// effTapOrUntap's definedPlayerIDs read), OpAttach's PLAYER destination
-	// (gorge effAttach's "attach to player" event, Enchant:Player
-	// destinations). 0 keeps every op's playerless default.
+	// W is an op's side input, the Ref it reads (0 = none): OpTapOrUntap's
+	// Tapper$ provenance read at the tap (the election ask is the
+	// controller's, the tap's is the ref's, gorge effTapOrUntap's
+	// definedPlayerIDs read), OpAttach's PLAYER destination (gorge
+	// effAttach's "attach to player" event, Enchant:Player destinations),
+	// and OpSearchEx's AttachedTo$ bearer OBJECT (kop.SrSearchAttach: the
+	// found cards enter attached to it). 0 keeps every op's default.
 	W Ref
 }
 
@@ -356,9 +358,9 @@ const (
 	// OpExt: the extension op, the last high slot.
 	// A.N holds its sub-op (ExtOp, A.K = VConst; the field no ext user
 	// reads otherwise); the rest of the instruction is the sub-op's own
-	// (ext.go). New families take an Ext sub-op from 1 up rather than an
-	// op: the op space is full. The kernel dispatches it in a cold file
-	// (kernel extop.go execExt).
+	// (ext.go). A new operation takes an Ext sub-op rather than an op: the
+	// op space below OpHighFirst is kept for approved hot-path ops. The
+	// kernel dispatches it in a cold file (kernel extop.go execExt).
 	OpExt Op = 254
 
 	// OpHighEnd is one past the last high op.

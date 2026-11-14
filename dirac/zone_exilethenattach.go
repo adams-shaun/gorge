@@ -114,7 +114,7 @@ func (s *State) aegisOptions(k *prep, d *Decision) {
 		}
 		x := &s.objs[l.obj]
 		if x.zone == kop.ZoneExile && k.cards[x.card].types&kop.TCreature != 0 {
-			d.add(MakeAction(AkChoose, uint8(l.obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(l.obj), 0, 0))
 		}
 	}
 }
