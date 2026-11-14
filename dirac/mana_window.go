@@ -1845,13 +1845,23 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	var d Decision
 	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
+	// An activation's granted mana is the grant search's only for a play its
+	// walk lists (grantCap). A play the walk leaves off -- it needs a
+	// Taps-deferred or counter-cost gap (Saprazzan Skerry), which is no unit
+	// of that walk -- reaches only this search, and gorge's one prefix search
+	// activates the grants beside that gap (scriptSearch.visit): count them
+	// as units here, as scriptDeadEnd does, unless a live grant carries a
+	// spend rule availFor does not read (restrictedGrantLive). Ebony Fly's
+	// {4} roll from Gemhide Sliver's and Mothdust Changeling's granted mana
+	// and Skerry's {U}{U} (CR 605.1a, 601.2g-h).
+	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	for {
 		if depth > 0 {
 			if nodes++; ctr.any() && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter gaps' answers multiply)
 				return 0, false
 			}
 			t := s.fork()
-			t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
 				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, int(path[j]), &spill)
