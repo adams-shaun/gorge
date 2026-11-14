@@ -96,7 +96,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	}
 	if od, ok := tp.get("OptionalDecider"); ok {
 		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") &&
-			!(od == "TriggeredAttackingPlayer" && t.Mode == "AttackersDeclared") {
+			!(od == "TriggeredAttackingPlayer" && t.Mode == "AttackersDeclared") &&
+			!(od == "TriggeredSourceController" && t.Mode == "DamageDone") {
 			return refuse("OptionalDecider %q", od)
 		}
 		// gorge's one read: a "may" that is only a duration-bounded
@@ -109,6 +110,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// kernel's queue-time trigger player (gorge
 		// deciderFromSpecTriggeredAttackingPlayer; the Commander curses)
 		tr.OptTrigPlayer = tr.Optional && (od == "TriggeredPlayer" || od == "TriggeredAttackingPlayer")
+		// a DamageDone line's "its controller may": the damage source's
+		// controller answers (kop.Tf5OptSrcCtrl; checked against the
+		// recipient shape once the filters are read, below)
+		tr.OptSrcCtrl = tr.Optional && od == "TriggeredSourceController"
 		// gorge folds the yes/no into the body's own pay/decline when the
 		// controller decides and the body has a non-mandatory cost
 		// (rules/trigger_queue.go optionalFoldsIntoCost): one question; a
@@ -797,6 +802,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
 			return err
+		}
+		if tr.OptSrcCtrl && (tr.Event != "DamageDone" || !dmgSourceIsTriggerObj(tr)) {
+			return refuse("OptionalDecider %q on a per-referent DamageDone line", "TriggeredSourceController")
 		}
 	case "BecomesTarget":
 		switch {
@@ -1874,8 +1882,8 @@ func (lc *lowerCtx) selfFlashShape(s cards.Static, ez string) error {
 func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	sp := newParams(s.Params)
 	sp.consume("Mode")
-	if lc.aiHintSVars(s.Params["AddSVar"]) {
-		sp.consume("AddSVar") // an AI-hint variable grant, no rules reader
+	if lc.aiHintSVars(s.Params["AddSVar"]) || s.Mode == "Continuous" && lc.inertAddSVar(s.Params["AddSVar"]) {
+		sp.consume("AddSVar") // a variable grant gorge's layer walk drops or no rules reader reads
 	}
 	st := lStatic{Kind: s.Mode}
 	var err error
@@ -2328,7 +2336,13 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, refuse("CombatDamageToughness without ValidCard$")
 		}
 	case "CantGainLife", "CantDraw":
-		if v := sp.str("ValidPlayer"); v != "" && v != "Player" {
+		switch v := sp.str("ValidPlayer"); v {
+		case "", "Player":
+		case "Opponent", "Player.Opponent":
+			// gorge lifeGainForbidden / drawForbidden: the spec is matched from
+			// the static's controller, so Opponent is every other seat
+			st.Flags = append(st.Flags, "BanOpp")
+		default:
 			return nil, refuse("%s ValidPlayer %q", s.Mode, v)
 		}
 		sp.consume("ValidPlayer", "Secondary")
@@ -2733,9 +2747,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, extort := splitExtortGrant(rest)           // lower_extortgrant.go
-		rest, myriad := splitMyriadGrant(rest)           // lower_myriad.go
-		rest, st.ProtFrom, err = lc.splitProtGrant(rest) // lower_protgrant.go
+		rest, extort := splitExtortGrant(rest)  // lower_extortgrant.go
+		rest, myriad := splitMyriadGrant(rest)  // lower_myriad.go
+		rest, err = lc.splitProtGrant(rest, st) // lower_protgrant.go
 		if err != nil {
 			return nil, err
 		}

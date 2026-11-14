@@ -170,6 +170,7 @@ type lowerCtx struct {
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	probeHead      *cards.SA // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
 	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
 	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
@@ -316,6 +317,11 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenResAb is the ability whose mid-resolution ChoosePlayer
+	// (Choices$ Player, RememberChosen$ True) is lowered: ChosenPlayer reads
+	// the resolution's chosen player in that ability only
+	// (lower_chooseplayerres.go).
+	chosenResAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
 	// TargetedController whose Defined$ Remembered reads the one opponent
 	// (lower_remembered.go pumpRememberOppController).
@@ -400,12 +406,15 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerAbility(a)
 			if err != nil {
-				lc.probeBody(a, entered)
+				lc.probeBody(a, entered, true)
 			}
 			return err
 		})
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = i, true
+		}
+		if len(out.Abilities) > n && out.Cleave != nil && out.CleaveAb == n+1 && lc.isCleaveSA(a) {
+			out.Abilities[n].Latent = true // the cleaved cast's own text, reached only through its cast (lower_cleave.go)
 		}
 	}
 	for i, t := range lc.face.Triggers {
@@ -428,7 +437,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerTriggered(t, "")
 			if err != nil {
-				lc.probeBody(t.Effect, entered)
+				lc.probeBody(t.Effect, entered, false)
 			}
 			return err
 		})
@@ -494,8 +503,9 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
-	lc.lowerOverload()     // lower_overload.go
-	lc.refuseSurgeCombos() // lower_surge.go
+	lc.lowerOverload()      // lower_overload.go
+	lc.refuseCleaveCombos() // lower_cleave.go
+	lc.refuseSurgeCombos()  // lower_surge.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -2362,6 +2372,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "RevealChosen" {
+			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -3047,6 +3063,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
+			// CR 205.4e: a legendary instant or sorcery is cast only while
+			// its caster controls a legendary creature or planeswalker
+			// (gorge legendarySpellLocked, on every cast route): the same
+			// cast restriction castForbidden withholds an IsPresent$ cast by
+			f, err := lc.filter("Creature.Legendary+YouCtrl,Planeswalker.Legendary+YouCtrl")
+			if err != nil {
+				return err
+			}
+			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+		}
 		if c, ok := ps.get("Cost"); ok {
 			lc.lifeXSpell = true
 			cost, err := lc.cost(c)
@@ -3071,13 +3098,29 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.EvidenceTargets = true
 				cost.EvidenceX = false
 			}
-			// The printed mana cost rides on the card record; the SP
-			// Cost$ adds the non-mana additional costs.
-			if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
-				return refuse("spell Cost$ %q differs from the printed cost", c)
+			if lc.isCleaveSA(sa) {
+				// Cleave's second line: its Cost$ is the whole alternative cost
+				// (CR 702.148a), mana only (lower_cleave.go)
+				if !cost.pureMana() || cost.Mana.None {
+					return refuse("cleave Cost$ %q is not a plain mana cost", c)
+				}
+				if cost.Mana.X || cost.Mana.XX || cost.Mana.XXX || len(cost.Mana.Hybrid) != 0 || len(cost.Mana.Twobrid) != 0 || len(cost.Mana.Phyrexian) != 0 {
+					// the cleaved cast's X ask and symbol faces read the printed
+					// cost (Lantern Flare's {X}{R}{W}); only a plain cost is lowered
+					return refuse("cleave Cost$ %q has an {X}, hybrid or Phyrexian symbol", c)
+				}
+				mc := cost.Mana
+				lc.out.Cleave, lc.out.CleaveAb = &mc, ab.Index+1
+				ps.consume("NonBasicSpell")
+			} else {
+				// The printed mana cost rides on the card record; the SP
+				// Cost$ adds the non-mana additional costs.
+				if !cost.Mana.None && cost.Mana.String() != lc.out.Cost.String() {
+					return refuse("spell Cost$ %q differs from the printed cost", c)
+				}
+				cost.Mana = manaCost{None: true}
+				lc.out.SpellCost = &cost
 			}
-			cost.Mana = manaCost{None: true}
-			lc.out.SpellCost = &cost
 		}
 		if sa.API == "PermanentCreature" {
 			// The permanent spell itself: only its additional cost matters.
@@ -3336,6 +3379,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err != nil {
 			return err
 		}
+		if err := lc.anyActivator(sa.API, ps, ab, cost); err != nil { // lower_anyactivator.go
+			return err
+		}
 		if cost.AddCtr > 0 {
 			// a counter put on the source as a cost (CR 118.3): the
 			// -0/-1 mana-ability shape stays as it was (Wall of Roots; the
@@ -3459,6 +3505,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
 		ab.ActCond = andCond(ab.ActCond, actLimit)
+		ab.ActCond = andCond(ab.ActCond, revealChosenGate(cost)) // lower_revealchosen.go
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
@@ -3834,13 +3881,26 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 
 // probeBody lowers a refused ability's or trigger's body on its own when the
 // refusal came before the body was read, so its blockers are listed too.
-func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+// An activated ability's head Cost$ is its activation cost, which the real
+// lowering already read: the probe skips it rather than reading it as an
+// in-body resolution cost (lowerCtx.effect). A mana ability's head is no
+// chain node (lowerMana / lowerManaReflected lower it, and chain only its
+// SubAbility$): the probe reads that sub-chain alone.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int, activated bool) {
+	if activated && sa != nil && (sa.API == "Mana" || sa.API == "ManaReflected") {
+		sa, activated = sa.Sub, false
+	}
 	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
 		return
 	}
 	saved := lc.guardNode
 	lc.guardNode = saved + " body"
-	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	var ps *params
+	if activated {
+		lc.probeHead, ps = sa, probeHeadParams(sa) // lower_probehead.go
+	}
+	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, ps) })
+	lc.probeHead = nil
 	if err != nil {
 		lc.refuseNode(lc.guardNode, "%s", err.Error())
 	}

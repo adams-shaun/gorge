@@ -170,6 +170,16 @@ func buildCard(pt *poolTables, c *lCard) built {
 			cb.out.def.Abilities = nil
 		}
 	}
+	if len(c.Refusals) == 0 && c.Cleave != nil {
+		// CR 702.148a: the cleave line's latent spell ability (dirac/kw_cleave.go);
+		// the ability map is filled by abilities()
+		if j, ok := cb.abMap[c.CleaveAb-1]; ok && j+1 <= 255 {
+			cb.out.def.CleaveAb = uint8(j + 1)
+		} else {
+			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit A:SP$ NonBasicSpell", Reason: "the cleave ability was not emitted"})
+			cb.out.def.Abilities = nil
+		}
+	}
 	if len(c.Refusals) == 0 && c.Overload != nil && c.OverloadProg != nil {
 		p, err := cb.prog(c.OverloadProg)
 		if err != nil {
@@ -412,6 +422,9 @@ var counterKinds = map[string]kop.CounterKind{
 	"MINING":     kop.CtrMining,     // Gemstone Mine's mining counter (CR 122.1; mana_rider.go)
 	"BURDEN":     kop.CtrBurden,     // The One Ring's burden counter (CR 122.1; its count reads in Count$CardCounters.BURDEN)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
+	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
+	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -820,6 +833,13 @@ func (cb *cardBuilder) record() error {
 		// each-variant (dirac/kw_overload.go)
 		d.HasOverload = true
 		if d.OverloadCost, err = manaCostOf(*c.Overload); err != nil {
+			return err
+		}
+	}
+	if c.Cleave != nil {
+		// CR 702.148a: the hand's alternative cost of the cleaved cast
+		// (dirac/kw_cleave.go; CleaveAb is set where the abilities map)
+		if d.CleaveCost, err = manaCostOf(*c.Cleave); err != nil {
 			return err
 		}
 	}
@@ -1935,7 +1955,9 @@ func tgtRefOf(n int) kop.Ref {
 // (kernel cardPowerGEV); > X lowers as >= X+1 (power is an integer; Ensign
 // Harry Kim, Operations' powerGTY over his own power). A battlefield power ==
 // a constant (Amalia Benavides Aguirre's powerEQ20) is PredPowerGEV with
-// PredN 3.
+// PredN 3. A power <= a value (Legacy's Allure's powerLEX, X the treasure
+// counters on it) is PredPowerGEV with PredN 2, the same reads with the
+// comparison flipped; < X lowers as <= X-1.
 func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.Filter) (done bool, err error) {
 	if c.CmpV == nil && c.CmpX == "" && c.CmpOp == opEQ && zone == kop.ZoneBattlefield {
 		kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 3, kop.Const(c.CmpN)
@@ -1945,9 +1967,16 @@ func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.
 		return false, nil
 	}
 	bound := *c.CmpV
-	if c.CmpOp == opGT && !bound.Neg {
+	le := false
+	switch {
+	case c.CmpOp == opGT && !bound.Neg:
 		bound.Add++
-	} else if c.CmpOp != opGE {
+	case c.CmpOp == opLT && !bound.Neg:
+		bound.Add--
+		le = true
+	case c.CmpOp == opLE:
+		le = true
+	case c.CmpOp != opGE:
 		return false, fmt.Errorf("power compare against a value")
 	}
 	if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
@@ -1958,6 +1987,9 @@ func (cb *cardBuilder) powerBattlefieldClause(c lClause, zone kop.Zone, kf *kop.
 		return false, err
 	}
 	kf.Pred, kf.PredV = kop.PredPowerGEV, v
+	if le {
+		kf.PredN = 2
+	}
 	return true, nil
 }
 
@@ -2062,6 +2094,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefAttachedCtrl, nil
 	case rChosenPlayer:
 		return kop.RefChosenPlayer, nil
+	case rChosenPlayerRes:
+		return kop.RefChosenPlayerRes, nil
 	case rLastCreated:
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
