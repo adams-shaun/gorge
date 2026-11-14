@@ -161,6 +161,17 @@ func (s *State) bestowTy(k *prep, sl Slot, t kop.TypeMask) kop.TypeMask {
 	return t
 }
 
+// bestowSubs adds the Aura subtype to sl's subtype mask while sl is an
+// attached bestow permanent: bestowTy switches its type to Aura, and a real
+// Aura carries the Aura subtype (CR 702.103b, CR 303.4). The creature
+// subtypes stay.
+func (s *State) bestowSubs(k *prep, sl Slot, m kop.SubMask) kop.SubMask {
+	if k.gen.anyBestow && k.gen.auraSub != (kop.SubMask{}) && s.bestowAttached(k, sl) {
+		return m.Or(k.gen.auraSub)
+	}
+	return m
+}
+
 // bestowSlots is the battlefield's attached bestow permanents (refreshTy
 // keeps their ovGenTy types).
 //

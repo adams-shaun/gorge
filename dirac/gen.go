@@ -15,7 +15,10 @@ import (
 type genPrep struct {
 	// creatSub: the matchup subtypes that are creature types (CR 205.3m):
 	// "all creature types" (an animated Soulstone Sanctuary) is no Forest
-	creatSub    kop.SubMask
+	creatSub kop.SubMask
+	// auraSub: the matchup's Aura subtype (empty when the pool has no Aura); a
+	// bestowed permanent carries it (CR 702.103b; kw_bestow.go bestowSubs)
+	auraSub     kop.SubMask
 	graveTrig   []CardID // cards with a triggered ability that works from the graveyard
 	graveDies   bool     // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
 	graveDrawn  bool     // some graveyard trigger is a Drawn (trig_gravedrawn.go)
@@ -622,6 +625,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
 			g.creatSub = g.creatSub.With(i)
+		}
+		if n == "Aura" {
+			g.auraSub = g.auraSub.With(i)
 		}
 	}
 	for i := range t.Overrides {

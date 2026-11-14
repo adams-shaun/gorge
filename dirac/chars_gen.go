@@ -401,6 +401,9 @@ func typeVocabSub(k *prep, v int) uint8 {
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
+	if k.gen != nil && k.gen.anyBestow && k.gen.auraSub.Has(int(i)) && s.bestowAttached(k, sl) {
+		return true // an attached bestow permanent is an Aura (kw_bestow.go bestowSubs)
+	}
 	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
 		return false // CR 205.1a: gone with the creature type
 	}
@@ -558,6 +561,7 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		subs = subs.AndNot(k.gen.creatSub)
 		all = false
 	}
+	subs = s.bestowSubs(k, sl, subs)
 	return subs, all
 }
 
