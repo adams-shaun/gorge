@@ -117,7 +117,9 @@ const (
 	// own count). It reads the object's per-turn census (object.acts), which
 	// counts every non-mana activation of the object, so the lowering admits
 	// only a card whose one non-mana activated ability is the counted one.
-	// Dragon Whelp.
+	// Dragon Whelp. N 1 reads the evaluating source's count instead, the
+	// one being offered not included: the ActivationLimit$ N offer gate
+	// (gorge activationLimitBlocked; Fire-Belly Changeling).
 	ExActivations
 	// ExLifeLostLastTurn: the life the evaluating controller lost during the
 	// previous turn (gorge PlayerCountPropertyYou$LifeLostLastTurn, the
@@ -483,7 +485,9 @@ const ExAttackedTurn ExprKind = 235
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
 // HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
 // opponent dealt combat damage this turn by any source (the bare head
-// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver), N 3 the living
+// opponents dealt any damage this turn, combat or not (gorge
+// PlayerCountOpponents$HasPropertywasDealtDamageThisTurn, Gnoll War Band).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1

@@ -31,7 +31,7 @@ func TestGenDividePlayerOptionNamesSeat(t *testing.T) {
 		v.Players = append(v.Players, view.PlayerView{ID: state.PlayerID(p), Life: 20})
 	}
 	e := &Encoder{}
-	for p, target := range []uint8{dirac.PlayerTarget0, dirac.PlayerTarget1} {
+	for p, target := range []dirac.TCode{dirac.PlayerTarget0, dirac.PlayerTarget1} {
 		a := d.Options[p]
 		// Precondition: the option really is the player-target pick the fix
 		// keys on, not an object pick that happens to sort after it.

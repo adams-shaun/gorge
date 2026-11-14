@@ -222,6 +222,6 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 			// floating pool pays the cost
 			continue
 		}
-		d.add(MakeAction(AkCast, uint8(o), tgt, 2))
+		d.add(MakeAction(AkCast, TCode(o), TCode(tgt), 2)) // code-ok: an escape-cast marker, not a code
 	}
 }

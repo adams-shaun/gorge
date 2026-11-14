@@ -705,8 +705,9 @@ func faceWantsCastSpend(f *cards.Face) bool {
 // per-colour-spend CastInfo (the faceWantsCastSpend shape): it reports
 // whether the face reads per-colour payment provenance: a Count$Adamant or
 // Count$EachSpentToCast head (an SVar body or compiled CheckSVar$ gate), the
-// direct trigger-level Adamant$ clause, or a ConditionManaSpent$ /
-// ConditionManaNotSpent$ gate.
+// direct trigger-level Adamant$ clause, a trigger's ManaSpent$ / ManaNotSpent$
+// clause (triggerConditionHolds' manaColourSpendHolds), or a
+// ConditionManaSpent$ / ConditionManaNotSpent$ gate.
 // Face.Mentions scans every string VALUE the face owns -- SVars, keywords,
 // ability params, trigger params and replacement params -- which covers the
 // SVar-body spelling; Face.MentionsParam scans the parameter KEYS, which
@@ -724,6 +725,12 @@ func faceWantsManaColorSpent(f *cards.Face) bool {
 	}
 	for _, tr := range f.Triggers {
 		if _, ok := tr.Param(cards.PKAdamant); ok {
+			return true
+		}
+		if _, ok := tr.Param(cards.PKManaSpent); ok {
+			return true
+		}
+		if _, ok := tr.Param(cards.PKManaNotSpent); ok {
 			return true
 		}
 	}

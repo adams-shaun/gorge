@@ -40,9 +40,9 @@ func TestEndTheTurnRemovesFromCombat(t *testing.T) {
 	atk := sc.perm(id["Eager Trufflesnout"], 0)
 	stop := sc.hand(id["Time Stop"], 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(atk), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
-	sc.do(t, AkCast, uint8(stop), 0xff)
+	sc.do(t, AkAttack, TCode(atk), scAny)
+	sc.do(t, AkDone, scAny, scAny)
+	sc.do(t, AkCast, TCode(stop), scAny)
 	for i := 0; i < 8 && (s.objs[stop].zone == kop.ZoneStack || s.objs[stop].zone == kop.ZoneHand); i++ {
 		d := s.Step()
 		s.Apply(d.Options[0])
@@ -82,7 +82,7 @@ func TestEndTheTurnChecksBeforeCleanup(t *testing.T) {
 	doomed := sc.perm(id["Eager Trufflesnout"], 1)
 	stop := sc.hand(id["Time Stop"], 0)
 	turn := s.turn
-	sc.do(t, AkCast, uint8(stop), 0xff)
+	sc.do(t, AkCast, TCode(stop), scAny)
 	for i := 0; i < 8 && s.objs[stop].zone != kop.ZoneExile; i++ {
 		d := s.Step()
 		if d.Kind == DkPriority && d.Player == 1 {

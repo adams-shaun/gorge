@@ -64,7 +64,7 @@ func (s *State) offerSurgeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || s.castHeldOut(o) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), castSurgeTgt, 0))
+	d.add(MakeAction(AkCast, TCode(o), castSurgeTgt, 0))
 }
 
 // surgeCostOf is the surged cast's printed alternative cost.

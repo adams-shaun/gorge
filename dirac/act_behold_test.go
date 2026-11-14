@@ -55,7 +55,7 @@ func (sc *scen) tappedAndFloating(p uint8) (tapped, floating int) {
 // not listed, with it both parts are.
 func TestBeholdManaPartCompletes(t *testing.T) {
 	sc, ka, bill := beholdScen(t, Config{NoElide: true, GorgeAltAdd: true}, 3)
-	sc.do(t, AkCast, uint8(ka), 0xff)
+	sc.do(t, AkCast, TCode(ka), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd || d.N != 2 || d.Options[0].Target() != 0 || d.Options[1].Target() != 1 {
 		t.Fatalf("altadd decision %v, want the behold part then the {2} part", d.Options[:d.N])
@@ -84,7 +84,7 @@ func TestBeholdManaPartCompletes(t *testing.T) {
 	// one Plains: only the behold part is payable
 	for _, both := range []bool{false, true} {
 		sc, ka, _ := beholdScen(t, Config{NoElide: true, GorgeAltAdd: both}, 1)
-		sc.do(t, AkCast, uint8(ka), 0xff)
+		sc.do(t, AkCast, TCode(ka), scAny)
 		d := sc.s.Step()
 		want := 1
 		if both {
@@ -102,7 +102,7 @@ func TestBeholdManaPartCompletes(t *testing.T) {
 // floating (the behold lockstep without its policy steering diverged here).
 func TestBeholdUnpayableManaPart(t *testing.T) {
 	sc, ka, bill := beholdScen(t, Config{NoElide: true, GorgeAltAdd: true}, 2)
-	sc.do(t, AkCast, uint8(ka), 0xff)
+	sc.do(t, AkCast, TCode(ka), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd || d.N != 2 || d.Options[0].Target() != 0 || d.Options[1].Target() != 1 {
 		t.Fatalf("altadd decision %v, want the behold part then the unpayable {2} part", d.Options[:d.N])

@@ -61,7 +61,7 @@ func tappedN(sc *scen, lands []Obj) int {
 // left the part's mana out and only {B} was paid.
 func TestMayPlayEitherOrPaysThePart(t *testing.T) {
 	sc, eaten, lands := stashScen(t, Config{NoElide: true}, 5)
-	sc.do(t, AkCast, uint8(eaten), 0xff)
+	sc.do(t, AkCast, TCode(eaten), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd {
 		t.Fatalf("want the either-or ask, got kind %d sub %d", d.Kind, d.Sub)
@@ -95,7 +95,7 @@ func TestMayPlayEitherOrPaysThePart(t *testing.T) {
 // without the counter (pairs 14 1228 7587 7713).
 func TestStashCastLoweredUnderSurface(t *testing.T) {
 	sc, eaten, lands := stashScen(t, Config{NoElide: true, GorgeAutopaySurface: true, GorgeAltAdd: true}, 1)
-	sc.do(t, AkCast, uint8(eaten), 0xff)
+	sc.do(t, AkCast, TCode(eaten), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd {
 		t.Fatalf("want the either-or ask, got kind %d sub %d", d.Kind, d.Sub)
@@ -147,7 +147,7 @@ func TestStashCastPlansUnderRider(t *testing.T) {
 	cer := sc.obj(id["Slumbering Cerberus"], 1)
 	sc.s.place(cer, kop.ZoneExile, false)
 	sc.s.mObjSet(sc.k, mechStash, cer)
-	sc.do(t, AkCast, uint8(cer), 0xff)
+	sc.do(t, AkCast, TCode(cer), scAny)
 	for i := 0; i < 6 && !(sc.s.objs[cer].zone == kop.ZoneStack && sc.s.ctl == ctlPriority); i++ {
 		d := sc.s.Step()
 		sc.s.Apply(d.Options[0])
@@ -194,7 +194,7 @@ func TestStashCastAnyTypeWitness(t *testing.T) {
 	cer := sc.obj(id["Slumbering Cerberus"], 1)
 	sc.s.place(cer, kop.ZoneExile, false)
 	sc.s.mObjSet(sc.k, mechStash, cer)
-	sc.do(t, AkCast, uint8(cer), 0xff)
+	sc.do(t, AkCast, TCode(cer), scAny)
 	for i := 0; i < 6 && !(sc.s.objs[cer].zone == kop.ZoneStack && sc.s.ctl == ctlPriority); i++ {
 		d := sc.s.Step()
 		sc.s.Apply(d.Options[0])

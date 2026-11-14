@@ -28,6 +28,9 @@ func (s *State) beginTurn(p uint8) {
 	if s.k().anyDayNight {
 		s.dnTurn() // CR 731.2's count, before the bank resets (kw_daynight.go)
 	}
+	if k := s.k(); k.gen != nil && k.gen.anyAtkLast {
+		s.atkLastTurnEnd() // the outgoing seat's attacks become its last turn's (trig_atklastturn.go)
+	}
 	s.newTurnGen()
 	if k := s.k(); k.gen != nil && k.gen.anySaddle {
 		s.unsaddleAll(k)
@@ -855,7 +858,7 @@ func (s *State) enchantLegal(k *prep, sl Slot) bool {
 	if k.gen != nil && k.gen.anyProtCol && s.protPrinted(k, h)&s.colorsGen(k, sl) != 0 {
 		return false // printed protection from the Aura's colour (CR 702.16c; gorge attachmentSBAs)
 	}
-	if k.gen != nil && k.gen.anyProtF && s.protQuality(k, h, sl, s.cardAt(sl)) {
+	if k.gen != nil && k.gen.anyProtF && s.protQualityAt(k, h, sl, s.cardAt(sl), true) {
 		return false
 	}
 	return s.matchPerm(k, t.Filter, h, p.ctrl, NoSlot) && s.kw(k, h)&kop.KwProtectionAll == 0
@@ -1039,10 +1042,10 @@ func (s *State) fireDelayed(k *prep) {
 		}
 		if d.act == uint8(kop.OpNop) {
 			// an empty-set registration: the source's trigger, doing nothing
-			s.enqueue(d.obj, d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, NoObj, d.ctrl, int16(d.act))
+			s.enqueue(d.obj, uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, NoObj, d.ctrl, int16(d.act))
 			continue
 		}
-		if k.gen != nil && s.objs[d.obj].ver != d.ver && !staleOrdered(kop.Op(d.act)) && d.when != dlyUntracked {
+		if k.gen != nil && objWord(s.objs[d.obj].ver) != d.ver && !staleOrdered(kop.Op(d.act)) && d.when != dlyUntracked {
 			// gorge drops a generated delayed program whose object left (a
 			// token copy that died). A keyword promise (Warp, Unearth) is not tied to
 			// its source's battlefield incarnation (CR 603.7): it still takes
@@ -1053,7 +1056,7 @@ func (s *State) fireDelayed(k *prep) {
 			continue
 		}
 		m := s.npend
-		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
+		s.enqueue(dlySource(&d), uint8(d.ver), s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
 		s.echoOwnDelayed(k, &d, m)
 	}
 	if keep != 0 {
@@ -1204,7 +1207,7 @@ func (s *State) legendOptions(k *prep, d *Decision) {
 	for i := 0; i < no; i++ {
 		sl := ord[i]
 		if s.nameCardAt(sl) == s.legCard && s.typesAt(k, sl)&kop.TLegendary != 0 {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
 }

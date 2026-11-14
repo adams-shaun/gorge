@@ -66,7 +66,7 @@ func (s *State) askOptionsExileLand(k *prep, d *Decision) bool {
 	d.Sub = ChGenChooseCard
 	for i := 0; i < int(s.g.nrem); i++ {
 		if o := s.g.rem[i]; s.exileLandCand(k, o, s.g.pickP) {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return true

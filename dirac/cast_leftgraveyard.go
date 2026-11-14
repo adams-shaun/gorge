@@ -29,7 +29,7 @@ func (s *State) unnoteCastFromGrave(o Obj) {
 		return
 	}
 	for i := int(s.g.enteredN) - 1; i >= 0; i-- {
-		if e := &s.cold.entered[i]; e.o == o && e.to == uint8(kop.ZoneStack) && e.from == uint8(kop.ZoneGraveyard) {
+		if e := &s.cold.entered[i]; e.o == o && e.to() == uint8(kop.ZoneStack) && e.from() == uint8(kop.ZoneGraveyard) {
 			s.g.enteredN = uint8(i)
 			return
 		}

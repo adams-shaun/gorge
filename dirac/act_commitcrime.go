@@ -77,7 +77,7 @@ func (s *State) CrimeLedger(p uint8) bool { return s.g.crime>>p&1 != 0 }
 // battlefield or stack whose controller is not the actor, a graveyard card
 // whose owner is not. Exile, hand and library never count. A criminal
 // target sets the ledger bit.
-func (s *State) noteCrime(k *prep, actor, t uint8) bool {
+func (s *State) noteCrime(k *prep, actor uint8, t TCode) bool {
 	if !s.isCrime(actor, t) {
 		return false
 	}
@@ -86,7 +86,7 @@ func (s *State) noteCrime(k *prep, actor, t uint8) bool {
 }
 
 // isCrime is noteCrime's verdict with no ledger write.
-func (s *State) isCrime(actor, t uint8) bool {
+func (s *State) isCrime(actor uint8, t TCode) bool {
 	if t == NoTarget {
 		return false
 	}
@@ -119,7 +119,7 @@ func (s *State) isCrime(actor, t uint8) bool {
 // e is the resolving entry before the pick c is stored in slot i.
 //
 //go:noinline
-func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c uint8) {
+func (s *State) crimeModalPick(k *prep, e *stackEntry, i int, peekI uint8, c TCode) {
 	if !s.noteCrime(k, e.ctrl, c) {
 		return
 	}
@@ -167,7 +167,7 @@ const xCrimRec xtMask = 1 << maxXTgt
 // its own ability's cost sits in its owner's graveyard by then.
 //
 //go:noinline
-func (s *State) crimePick(k *prep, t uint8, done bool) {
+func (s *State) crimePick(k *prep, t TCode, done bool) {
 	e := s.bld().e
 	if e.kind != seSpell {
 		if done {
@@ -267,7 +267,7 @@ func (s *State) pickCriminal(e *stackEntry, slot, xj int8) (crime, ok bool) {
 // new targets (cs.copy) and anything unrecorded are judged here, as before.
 //
 //go:noinline
-func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t uint8, slot, xj int8) {
+func (s *State) crimeStep(k *prep, e *stackEntry, cs *crimeSt, t TCode, slot, xj int8) {
 	if t == NoTarget {
 		return
 	}

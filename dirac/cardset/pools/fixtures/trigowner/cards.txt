@@ -1,0 +1,16 @@
+# Defined$ TriggeredCardOwner (CR 108.3): Liability's "its owner loses 1 life"
+# and Warped Devotion's "that player discards a card", read off the trigger
+# object's owner, beside removal and bounce that move other players' permanents
+# (dirac/oracle/mbc_trigger_referents_lowers_test.go)
+Liability
+Warped Devotion
+Shock
+Doom Blade
+Unsummon
+Grizzly Bears
+Coral Merfolk
+Wind Drake
+Island
+Swamp
+Mountain
+Plains
