@@ -182,11 +182,6 @@ CtrBurden	CounterKind	72
 CtrCharge	CounterKind	15
 CtrChorus	CounterKind	40
 CtrCoin	CounterKind	55
-CtrComponent	CounterKind	75
-CtrDeathtouch	CounterKind	25
-CtrDefense	CounterKind	39
-CtrDepletion	CounterKind	69
-CtrDescent	CounterKind	76
 CtrComponent	CounterKind	78
 CtrDeathtouch	CounterKind	25
 CtrDefense	CounterKind	39
@@ -219,7 +214,7 @@ CtrIngenuity	CounterKind	51
 CtrInvasion	CounterKind	47
 CtrLandmark	CounterKind	37
 CtrLevel	CounterKind	14
-CtrLevelUp	CounterKind	80
+CtrLevelUp	CounterKind	77
 CtrLifelink	CounterKind	29
 CtrLoot	CounterKind	48
 CtrLore	CounterKind	36
@@ -227,7 +222,6 @@ CtrLoyalty	CounterKind	2
 CtrLuck	CounterKind	68
 CtrM0M1	CounterKind	41
 CtrM1M1	CounterKind	1
-CtrM2M1	CounterKind	77
 CtrM2M1	CounterKind	80
 CtrMaxSpeed	CounterKind	255
 CtrMenace	CounterKind	30
@@ -261,10 +255,10 @@ CtrStorage	CounterKind	73
 CtrStory	CounterKind	22
 CtrStun	CounterKind	3
 CtrSupply	CounterKind	35
-CtrTask	CounterKind	79
+CtrTask	CounterKind	76
 CtrTime	CounterKind	43
 CtrTrample	CounterKind	33
-CtrTreasure	CounterKind	78
+CtrTreasure	CounterKind	75
 CtrValor	CounterKind	44
 CtrVerse	CounterKind	19
 CtrVigilance	CounterKind	34
