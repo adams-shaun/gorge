@@ -2106,6 +2106,14 @@ type genState struct {
 		idx  uint16
 		p, t int16
 	}
+	// dmgBOn / dmgBn: a DamageAll sweep's DamageDealtOnce batch is open and
+	// counts its latched lines (trig_dmgbatch.go). Outside scr, as the arm
+	// discriminants are: the damage hooks that read dmgBOn also run while arm
+	// A (combat damage) or arm B (a cast's mana-ability damage) owns scr, and
+	// the records (armRes.dmgBRecs) are read only while dmgBOn holds. They fill the
+	// two pad bytes before lookSel, so State does not grow.
+	dmgBOn  bool
+	dmgBn   uint8
 	lookSel uint32  // picked looked-at cards (bit per index; 32 bits hold look's 24; fills the pad before ro)
 	ro      replOrd // a combat damage pass paused on gorge's replacement-order ask: the header (repl_gen.go); the body is scr's armCombat
 	// scr: the mutually exclusive decision scratch, one region read through
