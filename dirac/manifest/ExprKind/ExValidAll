@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExValidAll
+value: 77
+forge: ValidAll
+census: count ValidAll all=6 std=1 mbc=1 sole=3
+state: code 0
+status: reserved

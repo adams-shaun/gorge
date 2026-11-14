@@ -6,11 +6,12 @@ Outcome: **design only; nothing implemented.** Recommends one small build
 
 ## 1. Problem, measured today
 
-`Eater of Virtue` (NEO, the only Standard card with the shape) says:
-
-    S:Mode$ Continuous | AffectedDefined$ Equipped | Affected$ Creature |
-      AddKeyword$ Flying & First Strike & ... & Protection & ... & Vigilance |
-      SharedKeywordsZone$ Exile | SharedRestrictions$ Card.ExiledWithSource
+`Eater of Virtue` (NEO, the only Standard card with the shape) has one
+continuous static on the equipped creature that adds a list of keywords
+(flying, first strike, ..., protection, ..., vigilance), each only while a
+card in exile that was exiled with the Equipment has it: the
+`SharedKeywordsZone$` parameter names exile and `SharedRestrictions$` names
+the cards exiled with the source.
 
 Oracle: "As long as a card exiled with Eater of Virtue has flying, equipped
 creature has flying. The same is true for first strike, ..."

@@ -119,7 +119,7 @@ func TestCostVerbExileDiscardReturnParsePrecisely(t *testing.T) {
 }
 
 // TestEnhancedSurveillanceExilesItselfAsItsCost: the corpus ability
-// `A:AB$ ChangeZoneAll | Cost$ Exile<1/CARDNAME>` (Enhanced Surveillance) is
+// (Enhanced Surveillance's ChangeZoneAll, whose cost exiles the card itself) is
 // OFFERED, and paying it moves the source to exile and resolves its body
 // (the controller's graveyard is shuffled into their library). A row-17
 // engine withheld the offer entirely.
@@ -224,7 +224,7 @@ func TestMnemonicSphereDiscardsItselfFromHandAsItsCost(t *testing.T) {
 }
 
 // TestBrokenFallReturnsItselfAsItsCost: the corpus ability
-// `A:AB$ Regenerate | ValidTgts$ Creature | Cost$ Return<1/CARDNAME>` is
+// (a Regenerate of a target creature, whose cost returns the card itself) is
 // offered from the battlefield, and paying it returns the Aura-like
 // enchantment source to its owner's hand and shields the chosen creature.
 func TestBrokenFallReturnsItselfAsItsCost(t *testing.T) {

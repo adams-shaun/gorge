@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtSubgame
+value: 63
+forge: Subgame
+census: api Subgame all=3 std=0 mbc=0 sole=0
+state: unbounded (subgame)
+status: blocked unbounded:subgame

@@ -1,0 +1,6 @@
+family: mech
+name: mechOnce2
+value: 23
+state: slotbit 16/16
+status: active
+doc: slots whose permanent's second activate-only-once ability was activated (legal.go onceUsed)

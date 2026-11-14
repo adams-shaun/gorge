@@ -401,8 +401,8 @@ func TestDeclarerLazyPriors(t *testing.T) {
 
 // twoSeatAction builds this build's Action from a scripted action written as
 // the two-seat build packs it (kind<<24 | source<<16 | target<<8 | mode, a
-// byte a code, StackTarget0 0xEC, PlayerTarget0 0xFC): the four-seat class
-// packs sixteen-bit codes and moves the stack and player codes.
+// byte a code, StackTarget0 0xEC, PlayerTarget0 0xFC), mapping the stack and
+// player codes to the build's.
 func twoSeatAction(a uint32) dirac.Action {
 	code := func(c uint32) dirac.TCode {
 		switch {

@@ -1,0 +1,6 @@
+family: mech
+name: mechAttacksIfAble
+value: 19
+state: slotbit 16/16
+status: active
+doc: slots whose permanent attacks this turn if able (CR 508.1d; combat_attacksifable.go)

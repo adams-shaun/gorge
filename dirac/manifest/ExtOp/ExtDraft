@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtDraft
+value: 16
+forge: Draft
+census: api Draft all=42 std=0 mbc=0 sole=18
+state: objspace (outside-game cards)
+status: blocked objspace:tcode

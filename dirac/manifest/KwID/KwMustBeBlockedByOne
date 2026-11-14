@@ -1,0 +1,7 @@
+family: KwID
+name: KwMustBeBlockedByOne
+value: 110
+forge: CARDNAME must be blocked by exactly one creature if able.
+census: kw CARDNAME must be blocked by exactly one creature if able. all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

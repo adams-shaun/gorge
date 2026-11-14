@@ -20,7 +20,8 @@ func effExchangeControl(h Host, c *Ctx, sa *cards.SA) {
 	// cast, activation and the mid-resolution pre-ask alike), so the effect
 	// receives the chosen side through the ordinary target transport and must
 	// not second-guess it. Confusion in the Ranks is exactly that shape
-	// (`Defined$ TriggeredCard | TargetingPlayer$ TriggeredCardController`).
+	// (the triggered card, with the triggered card's controller choosing the
+	// target).
 
 	g := h.Game()
 	var targets []state.Target

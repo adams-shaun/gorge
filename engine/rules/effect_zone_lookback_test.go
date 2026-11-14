@@ -9,11 +9,11 @@ package rules
 // card's last-known controller instead of the registration's owner.
 //
 // The corpus carriers are the "whenever a creature you control dies this
-// turn" Effect promises -- Warhost's Frenzy and Waltz of Rage
-// (`Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard |
-// ValidCard$ Creature.YouCtrl`), whose Effect is created by a spell; the
+// turn" Effect promises -- Warhost's Frenzy and Waltz of Rage (a ChangesZone
+// trigger on a creature you control going from the battlefield to a
+// graveyard), whose Effect is created by a spell; the
 // source-object case here puts the same body on an Effect created by a
-// permanent (the Kjeldoran Guard shape: `DB$ Effect | Triggers$ ...`),
+// permanent (the Kjeldoran Guard shape: an Effect that carries a trigger),
 // because only a permanent's own departure reaches the LKI branch.
 
 import (

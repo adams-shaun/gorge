@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExFatefulHour
+value: 128
+forge: FatefulHour
+census: count FatefulHour all=1 std=0 mbc=0 sole=1
+state: player 4 (turn tallies)
+status: reserved

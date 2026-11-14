@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtSkipTurn
+value: 33
+forge: SkipTurn
+census: api SkipTurn all=13 std=1 mbc=0 sole=9
+state: player 2 (skip turn)
+status: reserved

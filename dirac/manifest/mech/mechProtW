@@ -1,0 +1,6 @@
+family: mech
+name: mechProtW
+value: 29
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has protection from white until end of turn (a chosen-colour grant; static_colourprot.go)

@@ -1,7 +1,7 @@
 // PersistentMana$ True — "you don't lose this mana as steps and phases end"
 // (CR 500.4 with the producing card's exception, bounded by the cards'
 // "until end of turn"). The census carrier is Rousing Refrain
-// (`SP$ Mana | Produced$ R | Amount$ Z | PersistentMana$ True | Defined$ You`,
+// (a spell adding Z persistent red mana for you,
 // Z = the target opponent's hand size); the corpus population is 23 files /
 // 24 raw lines, every occurrence the literal True. The pool tally is
 // Player.PersistentMana (engine/state/game.go), raised by the ManaAdd event's
@@ -174,7 +174,7 @@ func TestPersistentManaReplaysIdentically(t *testing.T) {
 
 // TestPersistentManaRestrictedBatchSpentFirstKeepsTheTallyExact is the
 // end-to-end pin on the second misattribution shape (Klauth's
-// live corpus form: `PersistentMana$ True | RestrictValid$ Spell`): a Spell
+// live corpus form: persistent mana restricted to spells): a Spell
 // payment carves the persistent batch first, so the persistent tally must
 // follow the batch — not the raw slot arithmetic, whose fresh share counted
 // the persistent batch's unit as ordinary and let the ORDINARY unit survive

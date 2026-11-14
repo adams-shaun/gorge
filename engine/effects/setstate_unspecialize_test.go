@@ -22,8 +22,8 @@ import (
 // pins exercise the event fold directly).
 //
 // The SA under test is the REAL compiled corpus ability (Lukamina's
-// TrigUnspecialize SVar, a real `DB$ SetState | Defined$ TriggeredCard |
-// Mode$ Unspecialize` body), never a synthetic re-typing of it: the corpus
+// TrigUnspecialize SVar, a real SetState body that unspecializes the
+// triggered card), never a synthetic re-typing of it: the corpus
 // compiles the whole specialize file into one merged face, so the ability is
 // found by scanning the registry for a SetState SVar body that carries the
 // mode.

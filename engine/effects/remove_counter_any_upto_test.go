@@ -11,7 +11,7 @@ import (
 )
 
 // TestRemoveCounterAnyUpTo pins Glissa Sunslayer's third mode:
-// `RemoveCounter | CounterType$ Any | CounterNum$ 3 | UpTo$ True`. Before the
+// remove up to three counters of any kinds. Before the
 // fix CounterType$ Any was an exotic shape, so the mode emitted one Note and
 // removed nothing. The controller now picks the kind for each counter removed
 // (one at a time, from the kinds still present), up to three in total, and

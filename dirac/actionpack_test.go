@@ -2,10 +2,10 @@ package dirac
 
 import "testing"
 
-// TestActionRoundTrip packs every kind with the edge codes and modes of this
-// size class and reads each field back through the accessors. It also checks
-// what canonKey relies on: the packed word orders like the (kind, source,
-// target, mode) tuple, in every class.
+// TestActionRoundTrip packs every kind with the edge codes and modes and
+// reads each field back through the accessors. It also checks what canonKey
+// relies on: the packed word orders like the (kind, source, target, mode)
+// tuple.
 func TestActionRoundTrip(t *testing.T) {
 	if int(AkCount) > 1<<(32-actKindShift) {
 		t.Fatalf("%d action kinds do not fit the %d kind bits", AkCount, 32-actKindShift)

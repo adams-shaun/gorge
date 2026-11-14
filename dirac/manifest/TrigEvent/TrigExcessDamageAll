@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigExcessDamageAll
+value: 113
+forge: ExcessDamageAll
+census: trig ExcessDamageAll all=1 std=1 mbc=0 sole=1
+state: code 0
+status: reserved

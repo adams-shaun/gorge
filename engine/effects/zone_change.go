@@ -889,8 +889,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	var imprinted []state.ObjID
 	// Forge keeps every DB$ Effect in an implicit "effect" object in the
-	// Command zone, and the corpus's one-shot idiom `DB$ ChangeZone | Defined$
-	// Self | Origin$ Command | Destination$ Exile` is that effect object
+	// Command zone, and the corpus's one-shot idiom, a ChangeZone moving the
+	// source from the Command zone to exile, is that effect object
 	// exiling itself -- ending the effect after one use (Deflecting Palm's
 	// RPreventNextFromSource: "the NEXT time the chosen source would deal
 	// damage"). This build has no effect object, so when the chain resolves
@@ -917,10 +917,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// The ImprintOnHost$ ender: the
 	// same "exile the implicit effect object" idiom as the block above, but
 	// keyed on the HOST's imprint instead of the effect's own self-exile.
-	// Forge's DB$ Effect | ImprintOnHost$ True imprints the created effect
+	// Forge's Effect with ImprintOnHost imprints the created effect
 	// token on the host card and moves the token to the Command zone; the
-	// corpus's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
-	// Destination$ Exile` (Superior Foes of Spider-Man, Furious Rise,
+	// corpus's ChangeZone moving the imprinted cards from the Command zone to
+	// exile (Superior Foes of Spider-Man, Furious Rise,
 	// Unstable Amulet, Word of Command, Semester's End -- 5 files) exiles
 	// that token, ending the effect it carries ("you may play that card
 	// until you exile another card with this creature" -- the second dig's

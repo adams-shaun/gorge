@@ -11,7 +11,7 @@ import (
 )
 
 // Mutable Explorer's "When this creature enters, create a tapped Mutavault
-// token" (CopyPermanent DefinedName$ Mutavault | TokenTapped$ True) played
+// token" (a CopyPermanent of the card named Mutavault, entering tapped) played
 // decision by decision against gorge: the copy source is the card named, not
 // an object (kop.ExtCopyNamed). TestStdSetReprosLockstep replays the repro;
 // TestMutableExplorerReprosReach requires the recorded game to put a

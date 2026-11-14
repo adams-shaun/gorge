@@ -1,0 +1,8 @@
+# A fixture alias list.
+ctr	M1M1	alias	CtrM1M1	an existing kind
+ctr	EachNotOn	exclude	-	not a counter type
+ctr	ACQUIREDTASTE	name	CtrAcquiredTaste	word boundary
+kw	Trample	exclude	-	partial
+
+kw	CARDNAME can only attack alone.	name	KwAttacksAlone	a rules-text keyword
+key	turn tallies	exclude	-	a category

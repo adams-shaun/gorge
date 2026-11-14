@@ -14,8 +14,7 @@ import (
 // library and offers its free cast (`ValidSA$ Spell.cmcLTX` — the bound is
 // the artifacts-you-control X). The `ImprintPlayed$ True` marker records
 // each card the Play actually begins to play on the source's imprint list,
-// and the chained `ConditionDefined$ Imprinted | ConditionPresent$ Card |
-// ConditionCompare$ EQ0` gate on DBEffect reads that list to pick the arm:
+// and the chained "nothing imprinted" gate on DBEffect reads that list to pick the arm:
 //
 //   - the card WAS cast (imprinted): DBEffect is denied — no MayPlay static,
 //     so the exiled card is not offered a second, mana-costed cast;

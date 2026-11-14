@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrMidway
+value: 191
+forge: MIDWAY
+census: ctr MIDWAY all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

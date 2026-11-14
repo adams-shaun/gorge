@@ -151,8 +151,8 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 }
 
 // EndEffect ends the one continuous-effect registration identified by
-// (source, stamp) -- the one-shot Effect self-exile (`DB$ ChangeZone |
-// Defined$ Self | Origin$ Command | Destination$ Exile`) that Forge models by
+// (source, stamp) -- the one-shot Effect self-exile (a ChangeZone moving the
+// Effect itself from the command zone to exile) that Forge models by
 // exiling the implicit effect object it keeps in the Command zone. It drops
 // exactly the entries carrying that identity (the same identity the
 // replacement key and applyReplaceDamageTail's shield depletion use), so a
@@ -225,8 +225,8 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32) {
 // EndImprintedEffects ends every live DB$ Effect registration that an
 // ImprintOnHost$ True Effect imprinted on the named host card (the entries
 // carrying state.ContinuousEffect.ImprintOnHost with that Source) -- the
-// analogue of Forge's later `DB$ ChangeZone | Defined$ Imprinted | Origin$
-// Command | Destination$ Exile` exiling the imprinted effect token from the
+// analogue of Forge's later ChangeZone of the imprinted card from the command
+// zone to exile, which exiles the imprinted effect token from the
 // Command zone (Superior Foes of Spider-Man's "until you exile another card
 // with this creature": the second dig's trigger exiles the FIRST effect's
 // token, ending its may-play grant, before the new dig's Effect registers;

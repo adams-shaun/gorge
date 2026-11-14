@@ -200,6 +200,14 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			}
 		}
 	}
+	if anyGyStatic(k) {
+		s.eachGyStatic(k, sclsKw, func(st statSrc) bool { // a graveyard card's keyword grant (static_gycont.go)
+			if st.a.Static.Kw != 0 || st.a.Static.Override > 0 {
+				s.l6static(k, sl, w, st, 0)
+			}
+			return true
+		})
+	}
 	// until-end-of-turn grants; a copy's keyword exceptions are layer 1
 	var cpKw kop.KwMask
 	if s.fxM.has(sl) {
@@ -522,7 +530,9 @@ func prepL6(t *kop.Table, g *genPrep) {
 				if o != nil && o.RemoveKw != 0 {
 					g.fxNeed |= fxNeedL6 | fxNeedPromo
 				}
-				if a.Static.Kw != 0 && filterReadsKw(t, a.Static.Filter) {
+				if a.Static.Kw != 0 && filterReadsKw(t, a.Static.Filter) || gyContOf(a) {
+					// a graveyard card's grant (static_gycont.go) is read by the layer-6
+					// walk alone, so kwGen and grantedKwGen need no check of their own
 					g.fxNeed |= fxNeedL6
 				}
 			}

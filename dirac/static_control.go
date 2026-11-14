@@ -34,9 +34,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //	r.idx  bit 0 to, bit 1 prev, bit 2 you (the effect's controller),
 //	       bits 3-5 the duration (kop.Dur*), bit 6 static, bit 7 armed
-//	r.src  the source object | its ver << 8 (NoObj: none); an object
-//	       wider than a byte (dirac_mp) keeps r.src the object and r.p
-//	       its ver
+//	r.src  the source object | its ver << 8 (NoObj: none)
 //	r.fl   unused; r.ts the CR 613.7a timestamp (static: the source's
 //	       layerTs; API: s.ts at begin)
 
@@ -76,14 +74,9 @@ func (r *fxRec) cYou() uint8 {
 	}
 	return r.r.idx & fcYou >> 2
 }
-func (r *fxRec) cDur() uint8 { return r.r.idx & fcDurMask >> fcDurShift }
-func (r *fxRec) cSrc() Obj   { return Obj(r.r.src) }
-func (r *fxRec) cSrcVer() uint8 {
-	if NoObj > 0xff {
-		return uint8(r.r.p)
-	}
-	return uint8(r.r.src >> 8)
-}
+func (r *fxRec) cDur() uint8    { return r.r.idx & fcDurMask >> fcDurShift }
+func (r *fxRec) cSrc() Obj      { return Obj(r.r.src) }
+func (r *fxRec) cSrcVer() uint8 { return uint8(r.r.src >> 8) }
 func (r *fxRec) setPrev(p uint8) {
 	if MaxSeats > 2 {
 		r.r.fl = r.r.fl&^(3<<2) | (p&3)<<2
@@ -160,11 +153,7 @@ func (s *State) gainControl(sl Slot, to, you, dur uint8, src Obj, srcVer uint8, 
 		// is the next one they take
 		r.r.idx |= fcArmed
 	}
-	if NoObj > 0xff {
-		r.r.src, r.r.p = CardID(src), int16(srcVer)
-	} else {
-		r.r.src = CardID(src) | CardID(srcVer)<<8
-	}
+	r.r.src = CardID(src) | CardID(srcVer)<<8
 	s.g.fx[s.g.nfx] = r
 	s.g.nfx++
 	s.fxM.set(sl)
@@ -506,29 +495,27 @@ func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 //
 //go:noinline
 func (s *State) opGainControl(k *prep, in *kop.Instr) {
+	var list [MaxPerm]Slot
+	n := 0
 	if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 		// Defined$ over a remembered group (Fumble's "gain control of all
 		// Auras and Equipment that were attached to it"): each battlefield
 		// member in remembered order, one effect apiece (gorge effGainControl
 		// walks its Defined set)
-		var objs [maxRem]Obj
-		n := copy(objs[:], s.g.rem[:s.g.nrem])
-		for _, o := range objs[:n] {
-			if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
-				s.opGainControlAt(k, in, s.objs[o].slot)
+		for _, o := range s.g.rem[:s.g.nrem] {
+			if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && n < len(list) {
+				list[n] = s.objs[o].slot
+				n++
 			}
 		}
+	} else if in.Obj == kop.RefNone && in.F != 0 {
+		n = s.gainControlAllHits(k, in.F, &list) // AllValid$ (act_gaincontrolall.go)
+	} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		list[0], n = sl, 1
+	}
+	if n == 0 {
 		return
 	}
-	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		s.opGainControlAt(k, in, sl)
-	}
-}
-
-// opGainControlAt is opGainControl on the one permanent at sl.
-//
-//go:noinline
-func (s *State) opGainControlAt(k *prep, in *kop.Instr, sl Slot) {
 	e := &s.res.e
 	to := e.ctrl
 	if in.C != int16(kop.RefNone) {
@@ -551,8 +538,17 @@ func (s *State) opGainControlAt(k *prep, in *kop.Instr, sl Slot) {
 		src = s.perms[ssl].obj
 		ver = s.objs[src].ver
 	}
+	for _, sl := range list[:n] {
+		s.gainControlOne(k, in, sl, to, dur, src, ver)
+	}
+}
+
+// gainControlOne is opGainControl's grant to the permanent at sl, with its
+// Untap$ / haste / RememberControlled$ riders (gorge effGainControl's
+// per-target body).
+func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, src Obj, ver uint8) {
 	s.touchSl(sl)
-	if !s.gainControl(sl, to, e.ctrl, dur, src, ver, false) {
+	if !s.gainControl(sl, to, s.res.e.ctrl, dur, src, ver, false) {
 		return
 	}
 	p := &s.perms[sl]

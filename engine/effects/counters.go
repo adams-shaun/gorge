@@ -914,8 +914,8 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 // (c.PickedTargets) when one is outstanding, else the resolution's own
 // target list. Preferring PickedTargets is the established convention
 // (engine/effects/context.go Defined, engine/effects/damage.go, engine/effects/zone.go): a sub the
-// pre-ask asked (Nesting Grounds' `Source$ ParentTarget | ValidTgts$
-// Permanent`, Rikku's, Black Panther's) must receive the sub's OWN chosen
+// pre-ask asked (Nesting Grounds' sub, moving from the parent's target to its
+// own permanent target; Rikku's, Black Panther's) must receive the sub's OWN chosen
 // targets, never the parent's (c.Targets), while a depth-0 shape the
 // placement/announcement ask covered (Bioshift's TargetMin$ 2, a Weapon Rack
 // activation) has PickedTargets nil and keeps c.Targets.

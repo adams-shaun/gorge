@@ -10,9 +10,9 @@ import (
 )
 
 // TestCantTargetArtifactSourceAbilities pins Species 8472's "can't be the
-// target of abilities from artifact sources your opponents control"
-// (`ValidSource$ Artifact | ValidSA$ Activated,Triggered | Activator$
-// Player.Opponent`): an opponent's artifact's activated ability and its
+// target of abilities from artifact sources your opponents control" (a
+// CantTarget static on activated and triggered abilities of artifact sources
+// an opponent activates): an opponent's artifact's activated ability and its
 // triggered ability can't target it, while an opponent's non-artifact
 // ability and its controller's own artifact ability can (CR 115.4, 604.1).
 func TestCantTargetArtifactSourceAbilities(t *testing.T) {

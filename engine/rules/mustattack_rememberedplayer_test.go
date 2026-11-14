@@ -60,8 +60,8 @@ func ds2RowanRegistration(source state.ObjID, params map[string]string, remember
 }
 
 // TestMustAttackRememberedPlayerCtrlBindsTheCapturedPlayer is the Rowan
-// Kenrith half (CR 508.1d): an Effect-registered `Mode$ MustAttack |
-// ValidCreature$ Creature.RememberedPlayerCtrl` with no MustAttack$ reference
+// Kenrith half (CR 508.1d): an Effect-registered MustAttack static over the
+// creatures the remembered player controls, with no MustAttack$ reference,
 // requires exactly the creatures the captured player controls, so the
 // captured (active) player's creature must be declared and a different
 // player's creature is untouched.

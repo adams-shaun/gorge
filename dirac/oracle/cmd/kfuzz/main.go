@@ -211,12 +211,12 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
-		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt): -kernel gorge in any build, -kernel vanilla or a -synth pool in a build with -tags dirac_mp")
-		srchSeats  = flag.String("search-seats", "", "pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Two seats in any build, three or four with -tags dirac_mp")
+		seats      = flag.Int("seats", 2, "seats a game: 2 plays deck pairs; 3 or 4 plays pods of distinct decks (oracle.PodAt) with -kernel gorge (dirac holds two seats)")
+		srchSeats  = flag.String("search-seats", "", "pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Two seats")
 		srchKind   = flag.String("search", "paranoid", "-search-seats: the search, paranoid or maxn")
 		srchSims   = flag.Int("search-sims", oracle.SearchSeatDefaultSims, "-search-seats: simulations per searched decision")
 		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
-		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the kernel's four-seat build: -kernel gorge, or a Commander pool such as cmd5 in a build with -tags dirac_mp")
+		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the oracle's card table: -kernel gorge")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
@@ -321,7 +321,7 @@ func run() int {
 			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla, a -synth pool or a -cmd-mini Commander pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
 			return 2
 		case *seats > dirac.MaxSeats:
-			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: this dirac build holds %d seats; build with -tags dirac_mp for up to %d (-kernel gorge plays any)\n", *seats, dirac.MaxSeats, oracle.MaxSeats)
+			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: dirac holds %d seats (-kernel gorge plays any)\n", *seats, dirac.MaxSeats)
 			return 2
 		}
 	}

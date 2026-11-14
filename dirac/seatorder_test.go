@@ -6,7 +6,7 @@ import "testing"
 // MaxSeats the build has: NextSeat walks every seat once in turn order,
 // SeatIx is the identity on seats, IsOpponent is "every other seat", and
 // PlayerCode and CodeSeat are inverse for the seats that have a target
-// code: every seat has one in either size class.
+// code: every seat has one.
 func TestSeatHelpers(t *testing.T) {
 	for p := uint8(0); p < MaxSeats; p++ {
 		if got, want := NextSeat(p), (p+1)%MaxSeats; got != want {

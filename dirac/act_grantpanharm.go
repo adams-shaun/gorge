@@ -5,8 +5,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Lwaxana Troi, Charming Guest's "{2}, {T}: Choose another target creature
 // you control. For as long as Lwaxana remains tapped, if a triggered ability
 // of that creature triggers, that ability triggers an additional time"
-// (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered, Duration$
-// UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Each resolution
+// (gorge: an Effect granting a Panharmonicon static on the remembered card,
+// lasting until the host untaps and exiled if it leaves the battlefield;
+// CR 603.2d, 611.2b). Each resolution
 // adds one record (genState.pgT the granted object, pgH the tapped host,
 // object+1, compacted so pgT[0] == 0 means none). panharmEchoes counts the
 // records naming the trigger's source beside the printed statics, so two

@@ -49,7 +49,7 @@ func init() {
 		Tier:        bots.Experimental,
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
-			Note:   "at 100 simulations, uncontended, in 2-seat constructed; 4-seat cost unmeasured; contention raises it, and the host never cuts the search",
+			Note:   "4-seat Commander, cmd5 decks, 11-13 gate box: 1.77 core-s per searched decision at 100 sims (botbench -pod, 1 az seat vs 3 bot)",
 			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
 		},
 		Env: true, Search: true,
@@ -64,7 +64,7 @@ func init() {
 		Tier:        bots.Experimental,
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
-			Note:   "the az-redeal numbers at 100 simulations, uncontended, in 2-seat constructed; 4-seat cost unmeasured; contention raises it, and the host never cuts the search",
+			Note:   "4-seat Commander, cmd5 decks, 11-13 gate box: 1.77 core-s per searched decision at 100 sims (botbench -pod, 1 az seat vs 3 bot)",
 			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
 		},
 		Env: true, Search: true,
@@ -80,11 +80,14 @@ func init() {
 // (a fresh deal per simulation), the generation-0 shape (no network, no
 // exploration noise). World is set explicitly (never the clairvoyant
 // default), and Source is left nil: NewSeat refuses a clairvoyant world with
-// a nil source, so a hosted seat can never clone the real engine.
+// a nil source, so a hosted seat can never clone the real engine. The search
+// stops once its most-visited move can no longer be overtaken
+// (azmcts.GapStop): the same moves and games, at less cost.
 func Hosted() azmcts.SeatConfig {
 	cfg := azmcts.DefaultSeatConfig()
 	cfg.World = azmcts.WorldRedeal
 	cfg.Worlds = 0
+	cfg.Search.StopEarly = &azmcts.GapStop{Sims: cfg.Search.Sims}
 	return cfg
 }
 

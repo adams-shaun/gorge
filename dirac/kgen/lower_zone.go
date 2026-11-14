@@ -438,6 +438,47 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 				flags = append(flags, "alt="+alt)
 			}
+			// AttachedTo$ on a search (Boonweaver Giant's, Runed Crown's
+			// "put it onto the battlefield attached to CARDNAME", Arachnus
+			// Spinner's ParentTarget): gorge marks the entry with the named
+			// bearers before the move (effects/zone_change.go
+			// markChangeZoneAttach) and its entry gate settles it -- an Aura
+			// enters attached to the first named bearer it can legally
+			// enchant, or stays in its zone when none is (CR 303.4f/g,
+			// rules/aura_entry.go); anything else enters, then attaches when
+			// the bearer is a creature on the battlefield
+			// (changeZoneAttachedTo). The kernel's OpSearchEx reads the
+			// bearer from W (kop.SrSearchAttach) and settles with the same
+			// two branches (czAttachBearerHost). Only the two single-object
+			// spellings lower: a card-filter bearer (One Last Job's
+			// Creature.YouCtrl, Runed Crown's shared-type filter, Retether's
+			// mass return) has the controller choose among the legal ones,
+			// which the search path does not model; a Defined$ spelling
+			// beside it refuses. On a destination that does not enter the
+			// battlefield the param has no CR meaning and gorge leaves it
+			// unread (changeZoneAttachedTo's battlefield gate), so it
+			// consumes as inert there.
+			var attachTo lRef
+			if at, ok := ps.get("AttachedTo"); ok && dest == zBattlefield {
+				if !isConstN(n, 1) {
+					return refuse("AttachedTo$ with ChangeNum$ %v", n)
+				}
+				if counterKind != "" || arm != nil {
+					return refuse("AttachedTo$ beside a counter rider")
+				}
+				if override != nil {
+					return refuse("AttachedTo$ beside StaticEffect$")
+				}
+				switch strings.TrimSpace(at) {
+				case "Self", "ParentTarget":
+					if attachTo, err = lc.defined(strings.TrimSpace(at)); err != nil {
+						return err
+					}
+				default:
+					return refuse("AttachedTo$ %q on a search", at)
+				}
+				flags = append(flags, "AttachTo")
+			}
 			if lg {
 				if flags, err = libGraveFlags(ps, dest, n, obj, arm != nil, flags); err != nil { // lower_libgrave.go
 					return err
@@ -467,7 +508,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			lc.eachSearchLoop(obj) // lower_eachsearch.go
-			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
+			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|"), Obj2: attachTo})
 			if clear != nil {
 				lc.emit(*clear)
 			}
@@ -770,8 +811,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			in.C = 1
 		case 2:
 			// third from the top (gorge libraryOrderPlacementAt), read exactly
-			// for the source leaving the battlefield (Braided Quipu); another
-			// object or origin is lockstep-unverified and stays refused
+			// for the source leaving the battlefield (Braided Quipu) or from its
+			// own graveyard (Bookwurm); another object or origin is
+			// lockstep-unverified and stays refused
 			if !lc.libThirdOK(obj, origin) { // lower_libthird.go
 				return refuse("library position 2 of %s from %s", refNames[obj.Kind], zoneLabel[origin])
 			}
@@ -2272,6 +2314,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
 			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
 		}
+		if done, err := lc.contractLossEffect(ps, tr); done || err != nil { // lower_contract.go
+			return err
+		}
 		return lc.emblem(ps, tr)
 	}
 	// EffectOwner$ (CR 611.2): effEffect resolves the created effect's owner
@@ -3412,15 +3457,20 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		}
 	}
 	hadTgts := ps.peek("ValidTgts") != ""
+	allF, err := lc.gainControlAll(ps) // lower_gaincontrolall.go
+	if err != nil {
+		return err
+	}
 	// No ValidTgts$ and no Defined$: gorge's DefinedRef falls back to the
 	// source ("an ability declaring ValidTgts$ acts on its chosen targets,
 	// any other on its source"; effects/context.go DefinedRef), which is the
 	// shape Contested Game Ball's "gains control of CARDNAME" takes. Any
-	// other subject parameter (AllValid$ and kin) still reaches the node's
-	// unread-params refusal.
-	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
-	if err != nil {
-		return err
+	// other subject parameter still reaches the node's unread-params refusal.
+	obj := lRef{}
+	if allF == nil {
+		if obj, err = lc.objOrTarget(ps, "Self", zBattlefield); err != nil {
+			return err
+		}
 	}
 	// gorge controlPlayer (effects/choose_control.go): with no NewController$
 	// the new controller is the node's own chosen player target (Chaos Lord's
@@ -3487,13 +3537,13 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		}
 		flags = append(flags, "Remember")
 	}
-	if dur == "EOT" && to.Kind == rNone && strings.Join(flags, "|") == "Untap|kw=Haste" {
+	if dur == "EOT" && to.Kind == rNone && allF == nil && strings.Join(flags, "|") == "Untap|kw=Haste" {
 		// the threaten shape keeps its op (existing tables)
 		lc.emit(lInstr{Op: "GainControlEOT", Obj: obj, CS: strings.Join(flags, "|")})
 		return nil
 	}
 	flags = append(flags, "dur="+dur)
-	in := lInstr{Op: "GainControl", Obj: obj, CS: strings.Join(flags, "|")}
+	in := lInstr{Op: "GainControl", Obj: obj, F: allF, CS: strings.Join(flags, "|")}
 	if to.Kind != rNone {
 		in.Note = "to=" + to.String()
 		in.C = int(to.Kind)<<8 | to.N
