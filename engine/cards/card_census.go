@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 )
 
 // The card-script census sidecar.
@@ -44,7 +43,11 @@ import (
 // cache. Like SegmentPath it is a derived name; PruneCaches drops it with its
 // cache.
 func cardCensusPath(cache string) string {
-	return strings.TrimSuffix(cache, ".gob.gz") + ".cen"
+	const gob = ".gob.gz"
+	if n := len(cache) - len(gob); n >= 0 && cache[n:] == gob {
+		cache = cache[:n]
+	}
+	return cache + ".cen"
 }
 
 // cardCensus digests the card script names under folder in the corpus
@@ -64,7 +67,7 @@ func cardCensus(folder string) (string, error) {
 	var rels []string
 	for _, e := range top {
 		if !e.IsDir() {
-			if strings.HasSuffix(e.Name(), ".txt") {
+			if filepath.Ext(e.Name()) == ".txt" {
 				rels = append(rels, e.Name())
 			}
 			continue
@@ -74,7 +77,7 @@ func cardCensus(folder string) (string, error) {
 			return "", err
 		}
 		for _, n := range names {
-			if strings.HasSuffix(n, ".txt") {
+			if filepath.Ext(n) == ".txt" {
 				rels = append(rels, e.Name()+"/"+n)
 			}
 		}

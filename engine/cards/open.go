@@ -278,7 +278,7 @@ func PruneCaches(dir, keepPath string) {
 	// And a card-census sidecar (cardCensusPath).
 	cens, _ := filepath.Glob(filepath.Join(dir, "ir-*.cen"))
 	for _, s := range cens {
-		if _, err := os.Stat(strings.TrimSuffix(s, ".cen") + ".gob.gz"); os.IsNotExist(err) {
+		if _, err := os.Stat(s[:len(s)-len(".cen")] + ".gob.gz"); os.IsNotExist(err) {
 			_ = os.Remove(s)
 		}
 	}
