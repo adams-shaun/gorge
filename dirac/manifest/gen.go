@@ -54,13 +54,20 @@ func Generate(t *Tree) (map[string][]byte, error) {
 		if f.Pkg == "dirac" {
 			out = &dirac
 		}
-		fmt.Fprintf(out, "\n// %s (%s)\nconst %s %s = %s\n", genLabel(e), e.Path, e.Name, f.Name, genValue(e))
+		fmt.Fprintf(out, "\n// %s (%s)\n", genLabel(e), e.Path)
+		if e.Doc != "" {
+			fmt.Fprintf(out, "//\n// %s\n", e.Doc)
+		}
+		fmt.Fprintf(out, "const %s %s = %s\n", e.Name, f.Name, genValue(e))
 		if f.register != nil {
 			out.WriteString(genInit(f.register(e)))
 		}
 		if f.Kgen != "" {
 			fmt.Fprintf(&kgen, "\n// %s\nfunc init() { %s[kop.%s](%q, kop.%s) }\n", e.Path, f.Kgen, f.Name, "kop."+e.Name, e.Name)
 		}
+	}
+	if n, ok := numMech(es); ok {
+		fmt.Fprintf(&dirac, "\n// numMech is one past the highest mech: the length of the arena's mech tables.\nconst numMech mech = %d\n", n)
 	}
 	dirac.WriteString(genExtDispatch(t.Ext))
 	kgenHead := "package kgen\n"
@@ -80,6 +87,17 @@ func Generate(t *Tree) (map[string][]byte, error) {
 		files[p] = f
 	}
 	return files, nil
+}
+
+// numMech is one past the highest mech value, and whether there is a mech.
+func numMech(es []*Entry) (int64, bool) {
+	n, ok := int64(0), false
+	for _, e := range es {
+		if e.Family == "mech" {
+			n, ok = max(n, e.Value+1), true
+		}
+	}
+	return n, ok
 }
 
 func genFile(head string, body []byte) []byte {

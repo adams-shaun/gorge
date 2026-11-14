@@ -1,0 +1,6 @@
+family: mech
+name: mechMonstrous
+value: 2
+state: slotbit 16/16
+status: active
+doc: slots whose permanent is monstrous (CR 701.37b; act_monstrosity.go)

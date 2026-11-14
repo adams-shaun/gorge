@@ -118,13 +118,13 @@ var Families = []*Family{
 	// key: a bounded State key, the keyed arena's index.
 	{Name: "key", Pkg: "dirac", Prefix: "key", Max: 65535, Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true},
 	{
-		// mech: the hand list in arena.go holds 0..54 until it moves to the
-		// generator; arenaNone is 0xFF. The width comes from the state
-		// line: slotbit is a slot mask, objbit an object mask.
+		// mech: an arena mechanic (dirac/arena.go). The legacy 55 hold 0..54,
+		// a new one takes 55 up; arenaNone is 0xFF. The width comes from the
+		// state line: slotbit is a slot mask, objbit an object mask. gen
+		// also writes numMech, one past the highest.
 		Name: "mech", Pkg: "dirac", Prefix: "mech", Min: 0, Max: 254, Alloc: Band{Lo: 55, Hi: 254},
 		register: func(e *Entry) string {
-			n := strings.TrimPrefix(e.Name, "mech")
-			return fmt.Sprintf("mechWidth[%s] = %s\nmechName[%s] = %q", e.Name, mechWidth(e), e.Name, strings.ToLower(n[:1])+n[1:])
+			return fmt.Sprintf("mechWidth[%s] = %s\nmechName[%s] = %q", e.Name, mechWidth(e), e.Name, lowerCamel(strings.TrimPrefix(e.Name, "mech")))
 		},
 		check: func(e *Entry) error {
 			if mechWidth(e) == "" {
@@ -133,6 +133,20 @@ var Families = []*Family{
 			return nil
 		},
 	},
+}
+
+// lowerCamel lowers n's leading capitals, all but the last of a run that a
+// lower-case letter follows: FooBar is fooBar, FBLo fbLo, SBAChain sbaChain,
+// HexUB hexUB.
+func lowerCamel(n string) string {
+	r := 0
+	for r < len(n) && n[r] >= 'A' && n[r] <= 'Z' {
+		r++
+	}
+	if r > 1 && r < len(n) && n[r] >= 'a' && n[r] <= 'z' {
+		r--
+	}
+	return strings.ToLower(n[:r]) + n[r:]
 }
 
 func mechWidth(e *Entry) string {

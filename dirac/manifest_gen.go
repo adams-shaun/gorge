@@ -4,6 +4,559 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// mech (dirac/manifest/mech/mechGoad0)
+//
+// goad[0]: slots whose permanent player 0 goaded (CR 701.15; act_goad.go)
+const mechGoad0 mech = 0
+
+func init() {
+	mechWidth[mechGoad0] = wSlot
+	mechName[mechGoad0] = "goad0"
+}
+
+// mech (dirac/manifest/mech/mechGoad1)
+//
+// goad[1]: the same for player 1
+const mechGoad1 mech = 1
+
+func init() {
+	mechWidth[mechGoad1] = wSlot
+	mechName[mechGoad1] = "goad1"
+}
+
+// mech (dirac/manifest/mech/mechMonstrous)
+//
+// slots whose permanent is monstrous (CR 701.37b; act_monstrosity.go)
+const mechMonstrous mech = 2
+
+func init() {
+	mechWidth[mechMonstrous] = wSlot
+	mechName[mechMonstrous] = "monstrous"
+}
+
+// mech (dirac/manifest/mech/mechRegen)
+//
+// bit sl: slot sl's regeneration shields count +4 (repl_regenerate.go)
+const mechRegen mech = 3
+
+func init() {
+	mechWidth[mechRegen] = wSlot
+	mechName[mechRegen] = "regen"
+}
+
+// mech (dirac/manifest/mech/mechExileEx)
+//
+// slots exiled instead of dying this turn (DmgExileIfDiesThisTurn)
+const mechExileEx mech = 4
+
+func init() {
+	mechWidth[mechExileEx] = wSlot
+	mechName[mechExileEx] = "exileEx"
+}
+
+// mech (dirac/manifest/mech/mechKicked)
+//
+// slots whose permanent's spell was kicked (Kicker, Bargain, Offspring)
+const mechKicked mech = 5
+
+func init() {
+	mechWidth[mechKicked] = wSlot
+	mechName[mechKicked] = "kicked"
+}
+
+// mech (dirac/manifest/mech/mechStash)
+//
+// object mask: exiled cards with a stash counter (marks.go)
+const mechStash mech = 6
+
+func init() {
+	mechWidth[mechStash] = wObj
+	mechName[mechStash] = "stash"
+}
+
+// mech (dirac/manifest/mech/mechFBLo)
+//
+// object mask: bit 0 of a graveyard card's granted-flashback count
+const mechFBLo mech = 7
+
+func init() {
+	mechWidth[mechFBLo] = wObj
+	mechName[mechFBLo] = "fbLo"
+}
+
+// mech (dirac/manifest/mech/mechFBHi)
+//
+// object mask: bit 1 of that count; assigned right after mechFBLo
+const mechFBHi mech = 8
+
+func init() {
+	mechWidth[mechFBHi] = wObj
+	mechName[mechFBHi] = "fbHi"
+}
+
+// mech (dirac/manifest/mech/mechSuspected)
+//
+// slots whose permanent is suspected (CR 701.60; act_suspect.go)
+const mechSuspected mech = 9
+
+func init() {
+	mechWidth[mechSuspected] = wSlot
+	mechName[mechSuspected] = "suspected"
+}
+
+// mech (dirac/manifest/mech/mechMayhem)
+//
+// object mask: graveyard cards discarded this turn (CR 702.187; kw_mayhem.go)
+const mechMayhem mech = 10
+
+func init() {
+	mechWidth[mechMayhem] = wObj
+	mechName[mechMayhem] = "mayhem"
+}
+
+// mech (dirac/manifest/mech/mechSneaked)
+//
+// slots whose permanent's spell was cast for its sneak cost (CR 702.190a; kw_sneak.go)
+const mechSneaked mech = 11
+
+func init() {
+	mechWidth[mechSneaked] = wSlot
+	mechName[mechSneaked] = "sneaked"
+}
+
+// mech (dirac/manifest/mech/mechAttacked)
+//
+// slots whose permanent was declared an attacker this turn (filter_permmarks.go)
+const mechAttacked mech = 12
+
+func init() {
+	mechWidth[mechAttacked] = wSlot
+	mechName[mechAttacked] = "attacked"
+}
+
+// mech (dirac/manifest/mech/mechDealtTurn)
+//
+// slots whose permanent dealt damage this turn
+const mechDealtTurn mech = 13
+
+func init() {
+	mechWidth[mechDealtTurn] = wSlot
+	mechName[mechDealtTurn] = "dealtTurn"
+}
+
+// mech (dirac/manifest/mech/mechDealtAny)
+//
+// slots whose permanent has dealt damage since it entered
+const mechDealtAny mech = 14
+
+func init() {
+	mechWidth[mechDealtAny] = wSlot
+	mechName[mechDealtAny] = "dealtAny"
+}
+
+// mech (dirac/manifest/mech/mechDealtCombat)
+//
+// slots whose permanent has dealt combat damage since it entered
+const mechDealtCombat mech = 15
+
+func init() {
+	mechWidth[mechDealtCombat] = wSlot
+	mechName[mechDealtCombat] = "dealtCombat"
+}
+
+// mech (dirac/manifest/mech/mechAttackedObj)
+//
+// object mask: objects declared as attackers this turn, wherever they are now (value_turntallies.go)
+const mechAttackedObj mech = 16
+
+func init() {
+	mechWidth[mechAttackedObj] = wObj
+	mechName[mechAttackedObj] = "attackedObj"
+}
+
+// mech (dirac/manifest/mech/mechMustBlocked)
+//
+// slots whose permanent must be blocked this turn if able (CR 509.1c; combat_mustbeblocked.go)
+const mechMustBlocked mech = 17
+
+func init() {
+	mechWidth[mechMustBlocked] = wSlot
+	mechName[mechMustBlocked] = "mustBlocked"
+}
+
+// mech (dirac/manifest/mech/mechMustBlockedPost)
+//
+// slots marked must-be-blocked while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
+const mechMustBlockedPost mech = 18
+
+func init() {
+	mechWidth[mechMustBlockedPost] = wSlot
+	mechName[mechMustBlockedPost] = "mustBlockedPost"
+}
+
+// mech (dirac/manifest/mech/mechAttacksIfAble)
+//
+// slots whose permanent attacks this turn if able (CR 508.1d; combat_attacksifable.go)
+const mechAttacksIfAble mech = 19
+
+func init() {
+	mechWidth[mechAttacksIfAble] = wSlot
+	mechName[mechAttacksIfAble] = "attacksIfAble"
+}
+
+// mech (dirac/manifest/mech/mechBlocksIfAble)
+//
+// slots whose permanent blocks this turn if able (CR 509.1c; combat_blocksifable.go)
+const mechBlocksIfAble mech = 20
+
+func init() {
+	mechWidth[mechBlocksIfAble] = wSlot
+	mechName[mechBlocksIfAble] = "blocksIfAble"
+}
+
+// mech (dirac/manifest/mech/mechNoRegen)
+//
+// slots whose creature can't be regenerated this turn (CR 701.19c; repl_noregen.go)
+const mechNoRegen mech = 21
+
+func init() {
+	mechWidth[mechNoRegen] = wSlot
+	mechName[mechNoRegen] = "noRegen"
+}
+
+// mech (dirac/manifest/mech/mechSBAChain)
+//
+// object mask: casualties of this state-based check's passes that asked a replacement order (repl_exilemark.go)
+const mechSBAChain mech = 22
+
+func init() {
+	mechWidth[mechSBAChain] = wObj
+	mechName[mechSBAChain] = "sbaChain"
+}
+
+// mech (dirac/manifest/mech/mechOnce2)
+//
+// slots whose permanent's second activate-only-once ability was activated (legal.go onceUsed)
+const mechOnce2 mech = 23
+
+func init() {
+	mechWidth[mechOnce2] = wSlot
+	mechName[mechOnce2] = "once2"
+}
+
+// mech (dirac/manifest/mech/mechOnce3)
+//
+// the same for its third such ability
+const mechOnce3 mech = 24
+
+func init() {
+	mechWidth[mechOnce3] = wSlot
+	mechName[mechOnce3] = "once3"
+}
+
+// mech (dirac/manifest/mech/mechTappedTurn)
+//
+// slots whose permanent has become tapped this turn (Taps FirstTime$; filter_permmarks.go)
+const mechTappedTurn mech = 25
+
+func init() {
+	mechWidth[mechTappedTurn] = wSlot
+	mechName[mechTappedTurn] = "tappedTurn"
+}
+
+// mech (dirac/manifest/mech/mechEscaped)
+//
+// slots whose permanent's spell was cast for its escape cost (CR 702.138a; kw_escape.go)
+const mechEscaped mech = 26
+
+func init() {
+	mechWidth[mechEscaped] = wSlot
+	mechName[mechEscaped] = "escaped"
+}
+
+// mech (dirac/manifest/mech/mechLure)
+//
+// slots whose permanent is a lure this turn: all creatures able to block it do so (CR 509.1c; combat_lure.go)
+const mechLure mech = 27
+
+func init() {
+	mechWidth[mechLure] = wSlot
+	mechName[mechLure] = "lure"
+}
+
+// mech (dirac/manifest/mech/mechLurePost)
+//
+// slots marked lure while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
+const mechLurePost mech = 28
+
+func init() {
+	mechWidth[mechLurePost] = wSlot
+	mechName[mechLurePost] = "lurePost"
+}
+
+// mech (dirac/manifest/mech/mechProtW)
+//
+// slots whose permanent has protection from white until end of turn (a chosen-colour grant; static_colourprot.go)
+const mechProtW mech = 29
+
+func init() {
+	mechWidth[mechProtW] = wSlot
+	mechName[mechProtW] = "protW"
+}
+
+// mech (dirac/manifest/mech/mechProtU)
+//
+// the same, blue
+const mechProtU mech = 30
+
+func init() {
+	mechWidth[mechProtU] = wSlot
+	mechName[mechProtU] = "protU"
+}
+
+// mech (dirac/manifest/mech/mechProtB)
+//
+// black
+const mechProtB mech = 31
+
+func init() {
+	mechWidth[mechProtB] = wSlot
+	mechName[mechProtB] = "protB"
+}
+
+// mech (dirac/manifest/mech/mechProtR)
+//
+// red
+const mechProtR mech = 32
+
+func init() {
+	mechWidth[mechProtR] = wSlot
+	mechName[mechProtR] = "protR"
+}
+
+// mech (dirac/manifest/mech/mechProtG)
+//
+// green
+const mechProtG mech = 33
+
+func init() {
+	mechWidth[mechProtG] = wSlot
+	mechName[mechProtG] = "protG"
+}
+
+// mech (dirac/manifest/mech/mechProtPostW)
+//
+// slots marked protected from white while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
+const mechProtPostW mech = 34
+
+func init() {
+	mechWidth[mechProtPostW] = wSlot
+	mechName[mechProtPostW] = "protPostW"
+}
+
+// mech (dirac/manifest/mech/mechProtPostU)
+//
+// the same, blue
+const mechProtPostU mech = 35
+
+func init() {
+	mechWidth[mechProtPostU] = wSlot
+	mechName[mechProtPostU] = "protPostU"
+}
+
+// mech (dirac/manifest/mech/mechProtPostB)
+//
+// black
+const mechProtPostB mech = 36
+
+func init() {
+	mechWidth[mechProtPostB] = wSlot
+	mechName[mechProtPostB] = "protPostB"
+}
+
+// mech (dirac/manifest/mech/mechProtPostR)
+//
+// red
+const mechProtPostR mech = 37
+
+func init() {
+	mechWidth[mechProtPostR] = wSlot
+	mechName[mechProtPostR] = "protPostR"
+}
+
+// mech (dirac/manifest/mech/mechProtPostG)
+//
+// green
+const mechProtPostG mech = 38
+
+func init() {
+	mechWidth[mechProtPostG] = wSlot
+	mechName[mechProtPostG] = "protPostG"
+}
+
+// mech (dirac/manifest/mech/mechEchoOwed)
+//
+// slots of the active player's permanents that came under their control since their previous turn began, read as their upkeep's echo gate (CR 702.30a; trig_echo.go)
+const mechEchoOwed mech = 39
+
+func init() {
+	mechWidth[mechEchoOwed] = wSlot
+	mechName[mechEchoOwed] = "echoOwed"
+}
+
+// mech (dirac/manifest/mech/mechHexUB)
+//
+// slots whose permanent has hexproof from blue and from black this turn (TurnReplHexUB; repl_turnrepl.go)
+const mechHexUB mech = 40
+
+func init() {
+	mechWidth[mechHexUB] = wSlot
+	mechName[mechHexUB] = "hexUB"
+}
+
+// mech (dirac/manifest/mech/mechAtch0)
+//
+// slots whose Aura is attached to player seat 0 (the Enchant:Player curses; static_attachtimestamp.go atchSeat)
+const mechAtch0 mech = 41
+
+func init() {
+	mechWidth[mechAtch0] = wSlot
+	mechName[mechAtch0] = "atch0"
+}
+
+// mech (dirac/manifest/mech/mechAtch1)
+//
+// the same, seat 1
+const mechAtch1 mech = 42
+
+func init() {
+	mechWidth[mechAtch1] = wSlot
+	mechName[mechAtch1] = "atch1"
+}
+
+// mech (dirac/manifest/mech/mechAtch2)
+//
+// seat 2 (read only when MaxSeats > 2)
+const mechAtch2 mech = 43
+
+func init() {
+	mechWidth[mechAtch2] = wSlot
+	mechName[mechAtch2] = "atch2"
+}
+
+// mech (dirac/manifest/mech/mechAtch3)
+//
+// seat 3
+const mechAtch3 mech = 44
+
+func init() {
+	mechWidth[mechAtch3] = wSlot
+	mechName[mechAtch3] = "atch3"
+}
+
+// mech (dirac/manifest/mech/mechGoad2)
+//
+// goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)
+const mechGoad2 mech = 45
+
+func init() {
+	mechWidth[mechGoad2] = wSlot
+	mechName[mechGoad2] = "goad2"
+}
+
+// mech (dirac/manifest/mech/mechGoad3)
+//
+// goad[3]: the same, seat 3
+const mechGoad3 mech = 46
+
+func init() {
+	mechWidth[mechGoad3] = wSlot
+	mechName[mechGoad3] = "goad3"
+}
+
+// mech (dirac/manifest/mech/mechIntimidate)
+//
+// slots whose permanent has intimidate until end of turn (ExtKwMark; kw_kwmark.go)
+const mechIntimidate mech = 47
+
+func init() {
+	mechWidth[mechIntimidate] = wSlot
+	mechName[mechIntimidate] = "intimidate"
+}
+
+// mech (dirac/manifest/mech/mechIntimidatePost)
+//
+// slots marked intimidate while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
+const mechIntimidatePost mech = 48
+
+func init() {
+	mechWidth[mechIntimidatePost] = wSlot
+	mechName[mechIntimidatePost] = "intimidatePost"
+}
+
+// mech (dirac/manifest/mech/mechInfect)
+//
+// slots whose permanent has infect until end of turn (ExtKwMark; kw_kwmark.go)
+const mechInfect mech = 49
+
+func init() {
+	mechWidth[mechInfect] = wSlot
+	mechName[mechInfect] = "infect"
+}
+
+// mech (dirac/manifest/mech/mechInfectPost)
+//
+// slots marked infect while their permanent had lost all abilities (CR 613.7)
+const mechInfectPost mech = 50
+
+func init() {
+	mechWidth[mechInfectPost] = wSlot
+	mechName[mechInfectPost] = "infectPost"
+}
+
+// mech (dirac/manifest/mech/mechRenowned)
+//
+// slots whose permanent is renowned (CR 702.112b; act_renown.go)
+const mechRenowned mech = 51
+
+func init() {
+	mechWidth[mechRenowned] = wSlot
+	mechName[mechRenowned] = "renowned"
+}
+
+// mech (dirac/manifest/mech/mechAttacksPlayer)
+//
+// slots whose attack duty names the opponent: a player, never their planeswalkers or battles (Encore's "attacks that opponent"; combat_attacksifable.go)
+const mechAttacksPlayer mech = 52
+
+func init() {
+	mechWidth[mechAttacksPlayer] = wSlot
+	mechName[mechAttacksPlayer] = "attacksPlayer"
+}
+
+// mech (dirac/manifest/mech/mechRem)
+//
+// object mask: objects whose persistent remembered list is non-empty (gorge's event-backed o.Remembered, the Choose "remembered" fold), the host half of a ConditionDefined$ Remembered group gate (exprs.go CondRemMark)
+const mechRem mech = 53
+
+func init() {
+	mechWidth[mechRem] = wObj
+	mechName[mechRem] = "rem"
+}
+
+// mech (dirac/manifest/mech/mechEncore)
+//
+// object mask: graveyard cards with a granted encore (Araumi of the Dead Tide; kw_encoregrant.go)
+const mechEncore mech = 54
+
+func init() {
+	mechWidth[mechEncore] = wObj
+	mechName[mechEncore] = "encore"
+}
+
+// numMech is one past the highest mech: the length of the arena's mech tables.
+const numMech mech = 55
+
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
 //
