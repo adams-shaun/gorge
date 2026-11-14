@@ -95,6 +95,25 @@ func New(src Source, sec *secrets.Game) *Tracker {
 		attackKeys: map[state.ObjID]string{}, blockKeys: map[state.ObjID]string{}, before: map[state.ObjID]uint32{}}
 }
 
+// Resume is the Tracker that New(origin) would be once it had folded the rest
+// of src's log: origin is the board a tracker was first created from and
+// applied the count of src's events already in it. A key counts an object's
+// zone changes since origin, so a tracker rebuilt over a game a host undo
+// rewound keys every object the way the first tracker keyed it at that point,
+// where New over the rewound board would start every count at zero and give
+// each card that has moved since origin a fresh id.
+func Resume(origin *state.Game, applied int, src Source, sec *secrets.Game) (*Tracker, error) {
+	if applied > len(src.Log().Events) {
+		return nil, fmt.Errorf("identity: resume at event %d of a %d-event log", applied, len(src.Log().Events))
+	}
+	t := New(src, sec)
+	t.shadow, t.applied = origin.Clone(), applied
+	if err := t.Sync(src); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 func keyOf(id state.ObjID, moves uint32) string { return fmt.Sprintf("%d:z%d", id, moves) }
 
 // Sync folds the events appended since the last call into the shadow game,

@@ -1955,6 +1955,17 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			st.Cond = andCond(st.Cond, c)
 		}
 		if ip, ok := sp.get("IsPresent"); ok {
+			if lo, hi, ok := levelBand(ip); ok && s.Params["PresentCompare"] == "" && s.Params["PresentZone"] == "" {
+				// a Level up band (lower_levelband.go): two Self presence tests
+				for _, band := range []string{lo, hi} {
+					f, err := lc.filter(band)
+					if err != nil {
+						return err
+					}
+					st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+				}
+				return nil
+			}
 			f, err := lc.filter(ip)
 			if err != nil {
 				return err
@@ -2929,6 +2940,14 @@ func selfOnlyCond(c lCond) bool {
 	switch c.Kind {
 	case cNone, cYourTurn:
 		return true
+	case cAnd:
+		// a Level up band: two Self counter tests (lower_levelband.go)
+		for _, sub := range c.Sub {
+			if !selfOnlyCond(sub) {
+				return false
+			}
+		}
+		return len(c.Sub) > 0
 	case cPresent:
 		if c.F == nil || c.F.Players != 0 || len(c.F.Clauses) == 0 {
 			return false
