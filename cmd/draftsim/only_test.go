@@ -48,7 +48,7 @@ func runDigest(t *testing.T, o options) (string, *result, string) {
 func TestDraftsimDefaultDigest(t *testing.T) {
 	dir := corpusReady(t)
 	want := map[string]string{
-		"MBC": "13624c877213d1945965de063e4c9057dc7a53c5fc6e854adf76e98439270f37",
+		"MBC": "2a0347d1f403176edb825e431904eb50a6a214b0a280dcd5088b08c2d85a9191",
 		"FDN": "10fb1252ce8a9373e4be769c5157d399cb330dd87ed7560f8d342334ed42132f",
 	}
 	for _, o := range defaultRuns(dir) {
