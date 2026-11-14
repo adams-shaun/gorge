@@ -566,7 +566,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// default chooser.
 			pickOwner := lRef{Kind: rYou}
 			pickLoop := lRef{}
-			if dp := ps.str("DefinedPlayer"); dp != "" {
+			if dp := ps.str("DefinedPlayer"); dp != "" && dpScope == dpNone {
 				if pickOwner, pickLoop, err = lc.pickFetchPlayer(dp); err != nil {
 					return refuse("graveyard pick %v", err)
 				}
@@ -585,7 +585,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 			}
 			lc.pickEachLoop(pickLoop)
-			// dpScope You / Player (graveDefinedPlayer) consumed the param above, so
+			// dpScope You / Player (graveDefinedPlayer) already read the param, so
 			// pickOwner is You and emitGravePick opens the each-player loop for Player
 			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
 		}
