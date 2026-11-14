@@ -18,7 +18,7 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 			hit = hit.with(sl)
 		}
 	}
-	hit = s.destroyHealAll(k, hit)
+	hit = s.destroyLineAll(k, hit, in.C&2 == 0)
 	if in.C&2 == 0 && s.anyRegen(hit) {
 		hit = s.regenAll(hit)
 	}

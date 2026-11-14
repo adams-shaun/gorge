@@ -1,0 +1,15 @@
+# the MBC statics-2 granted-static pool: Zulaport Enforcer and Kabira
+# Vindicator (Level up bands whose AddStaticAbility$ grants a CantBlockBy / an
+# other-creatures pump) and Tsagan, Raider Warlord (a max-speed grant of two
+# statics), beside vanilla bodies and basics
+# (dirac/oracle/mbc_statics2_grants_test.go)
+Zulaport Enforcer
+Kabira Vindicator
+Tsagan, Raider Warlord
+Raging Goblin
+Gray Ogre
+Walking Corpse
+Savannah Lions
+Swamp
+Plains
+Mountain

@@ -516,7 +516,34 @@ func (g *GorgeSide) windowOwed(d *decision.Decision) decision.ManaAmount {
 			owed[c] = uint32(n)
 		}
 	}
+	if owed == (decision.ManaAmount{}) && fixedColourChoice(d) {
+		// No hybrid pip was announced (payPips is empty): a plan that fell
+		// back to the manual window leaves the cast's own coloured pips owed,
+		// which a dual land's fixed-choice colour ask (Produced$ Combo W U)
+		// takes before the lowest colour. An any-colour ask keeps the
+		// kernel's lowest-colour tap.
+		if o, ok := rules.PendingCastOwed(g.E); ok && o.Generic == 0 {
+			// with generic still owed the kernel's tap pays it with the
+			// lowest colour
+			return o.Mana
+		}
+	}
 	return owed
+}
+
+// fixedColourChoice reports whether colour ask d offers a fixed subset of the
+// colours (a dual land's Produced$ Combo W U), not all five (an any-colour
+// ability, which the kernel taps for its lowest colour).
+func fixedColourChoice(d *decision.Decision) bool {
+	var seen [5]bool
+	n := 0
+	for _, o := range d.Options {
+		if c := strings.Index("WUBRG", o.ManaSymbol); o.Kind == "mana" && len(o.ManaSymbol) == 1 && c >= 0 && !seen[c] {
+			seen[c] = true
+			n++
+		}
+	}
+	return n > 0 && n < 5
 }
 
 // hasManaOption reports whether d poses a colour ask (its options name mana
@@ -917,6 +944,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// object as its own grantor.
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
 				continue
+			}
+			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && cards.KeywordHead(o.Keyword) == "Saddle" {
+				// A saddle ability a static grants (Jandor, Fortuned Traveler's
+				// "has saddle 2"): the kernel's latent-ability activation,
+				// told apart by the granting permanent (kgen
+				// lower_saddlegrant.go). Only saddle is modelled: the other
+				// granted-keyword abilities keep the anchored note below.
+				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
+					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
+					continue
+				}
 			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
@@ -1804,6 +1842,9 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 	e := g.E
 	d := e.Pending()
 	x := payexec.StartPlay(d.Player, pe.play, pe.plan, payexec.PoolOf(e, d.Player))
+	// a wheel whose labels tie (Itlimoc's two "Add G") is settled on a
+	// clone: the option that makes the witness's mana
+	x.Prove = payexec.Prover(e)
 	for x.Status() == payexec.InProgress {
 		if e.G.Over {
 			// The activations that fund the play can win the game before it

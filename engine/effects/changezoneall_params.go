@@ -284,7 +284,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"UnlessResolveSubs",
 	"UnlessSwitched",
 	"UseAllOriginZones",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",

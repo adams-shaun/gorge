@@ -70,8 +70,8 @@ func (e *Engine) grantedStatics(mode string) []staticView {
 				if !e.grantPhasesHold(st) {
 					continue
 				}
-				inners, ok := cards.ParseStaticLines(pst.Face.SVars[name])
-				if !ok {
+				inners := parseGrantedStatics(pst.Face, name)
+				if len(inners) == 0 {
 					continue
 				}
 				affects := st.ParamStr(cards.PKAffected)
@@ -120,4 +120,20 @@ func (e *Engine) grantPhasesHold(st cards.Static) bool {
 	}
 	pp := e.parsedPhaseSpec(phases)
 	return pp.valid && pp.set.Has(e.G.Step)
+}
+
+// parseGrantedStatics parses the static bodies an AddStaticAbility$ value
+// names: one SVar, or several joined by " & " (Tsagan, Raider Warlord's
+// "SelfDT & WideFS"), each through ParseStaticLines, in the value's own
+// order. A name with no parseable body grants nothing and does not suppress
+// its siblings, the rule the AddTrigger$ grant path follows. Reading the
+// whole value as one name would look up a nil SVar and grant nothing.
+func parseGrantedStatics(f *cards.Face, v string) []cards.Static {
+	var out []cards.Static
+	for _, name := range cards.SplitGrantNames(v) {
+		if inners, ok := cards.ParseStaticLines(f.SVars[name]); ok {
+			out = append(out, inners...)
+		}
+	}
+	return out
 }

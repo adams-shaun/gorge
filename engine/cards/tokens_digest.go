@@ -53,13 +53,8 @@ func TokenDigestPath(cache string) string {
 func tokenDigest(dir string) (string, error) {
 	root := TokensDir(dir)
 	var paths []string
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && filepath.Ext(p) == ".txt" {
-			paths = append(paths, p)
-		}
+	err := WalkScripts(root, func(p string) error {
+		paths = append(paths, p)
 		return nil
 	})
 	if err != nil {

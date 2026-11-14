@@ -228,6 +228,12 @@ type prep struct {
 	// (OpChangeSpeed); engines: some card carries Start your engines!
 	// (kw_speed.go): guard the life-loss and entry hooks
 	speed, engines bool
+	// ascend: some card prints Ascend: the city's blessing scans run
+	// (kw_ascend.go); a prep bool, not a genPrep one, so the hot hooks
+	// (enterNF, ctrlMove, sba, resolveTop) cost one byte load
+	ascend bool
+	// engAsc: engines || ascend, enterNF's single entry-hook guard
+	engAsc bool
 	// painMana: some card has a painful mana alternative (pcard.painCol;
 	// mana_pain.go): guards the planner's last-resort pain
 	// units and the window's pain riders
@@ -249,9 +255,9 @@ type prep struct {
 	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
 	tapXAb []int8
 	// ctrAb: per card, the index of its counter-cost mana ability (the first
-	// mana ability, kop.CtrManaAb, or a later {T} one beside a plain {T}
-	// first, kop.SecondCtrTapManaAb), -1 none: cold, read through ctrAbOf
-	// (mana_countercost.go)
+	// mana ability, kop.CtrManaAb or the dead gap kop.CtrDeadManaAb, or a
+	// later {T} one beside a plain {T} first, kop.SecondCtrTapManaAb), -1
+	// none: cold, read through ctrAbOf (mana_countercost.go)
 	ctrAb []int8
 	// riderAb: per card, the index of its bounded mana-ability rider (the
 	// first kop.ManaRiderAb ability), -1 none. Cold; read through riderAbOf
@@ -269,6 +275,8 @@ func prepare(t *kop.Table) *prep {
 	p.w8 = tableWord8(t) // filter_props.go
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
+	p.ascend = tableHasAscend(t)
+	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -354,7 +362,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
-					if ctrManaAb(a) || kop.StoreManaAb(a) {
+					if ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
@@ -463,7 +471,7 @@ func prepare(t *kop.Table) *prep {
 	// included. Both layouts are table-level, so Init and InitN of the same
 	// table with the same Config select the same pointer.
 	p.coldCmd = p.cold
-	p.coldCmd.partner = 1
+	coldPartner.set(&p.coldCmd, 1)
 	p.coldCmd.size()
 	return p
 }

@@ -226,6 +226,12 @@ const (
 	wordDamagedBy
 	wordImprinted
 	wordDefenderCtrl
+	// wordDefenderCtrlForRemembered is Forge's DefenderCtrlForRemembered -- the
+	// object is controlled by the player the REMEMBERED attacking creature is
+	// attacking (a planeswalker's or battle's attack names its controller /
+	// protector, the seat Object.Attacking carries). RepeatEach binds each
+	// iteration's subject as Remembered (Mercadia's Downfall, Holga).
+	wordDefenderCtrlForRemembered
 	wordNotDefinedTargeted
 	wordTargetedBy
 	wordOpponentCtrl
@@ -237,6 +243,13 @@ const (
 	// carriers (Snowblind's Land.Snow+EnchantedControllerCtrl, and
 	// Disturbing Conversion's / So Tiny's Card.EnchantedControllerCtrl).
 	wordEnchantedControllerCtrl
+	// wordEnchantedPlayerCtrl is Forge's EnchantedPlayerCtrl (CardProperty
+	// startsWith("EnchantedPlayer") with the Ctrl suffix): the candidate is
+	// controlled by the player the SOURCE Aura enchants (Trespasser's Curse's
+	// "Creature.EnchantedPlayerCtrl", the Curse family). A source that
+	// enchants no player (a permanent bearer, or nothing) matches nothing, as
+	// Forge's "source not enchanting a player" arm.
+	wordEnchantedPlayerCtrl
 	wordChosenColor
 	// wordHasNonBasicLandType is Forge's Card.hasANonBasicLandType: the object
 	// is a LAND that has at least one land type outside CR 205.3i's five
@@ -519,8 +532,12 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordImprinted, ""
 	case wordPredicateWordDefenderCtrl:
 		return wordDefenderCtrl, ""
+	case wordPredicateWordDefenderCtrlForRemembered:
+		return wordDefenderCtrlForRemembered, ""
 	case wordPredicateWordEnchantedControllerCtrl:
 		return wordEnchantedControllerCtrl, ""
+	case wordPredicateWordEnchantedPlayerCtrl:
+		return wordEnchantedPlayerCtrl, ""
 	case wordPredicateWordOpponent:
 		return wordOpponentCtrl, ""
 	case wordPredicateWordOppProtect:
@@ -1099,6 +1116,18 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// defender. The unbound case is refused beneath '!' too
 		// (contextPredicateBound).
 		return o.Controller == sc.DefendingPlayer.Player
+	case wordDefenderCtrlForRemembered:
+		// Forge's DefenderCtrlForRemembered: controlled by the player a
+		// remembered attacking creature is attacking. Evaluated per RepeatEach
+		// iteration, where sc.Remembered is the iteration's subject; a
+		// remembered object that is not attacking names no defender and is
+		// skipped (contextPredicateBound refuses the token when none does).
+		for _, t := range sc.Remembered {
+			if d, ok := rememberedAttackerDefender(g, t); ok && o.Controller == d {
+				return true
+			}
+		}
+		return false
 	case wordTargetedBy:
 		// Player targets are distinct referents and never match objects.
 		bound, ok := sc.TargetBinding()
@@ -1127,6 +1156,14 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return true
 		}
 		return false
+	case wordEnchantedPlayerCtrl:
+		// Forge's EnchantedPlayerCtrl: the candidate is controlled by the
+		// player the SOURCE Aura enchants (source.getEntityAttachedTo() is a
+		// Player equal to the candidate's controller). The seat is the
+		// source's own AttachedPlayer, the pair player-attached Curses
+		// carry; an unattached or permanent-attached source fails closed.
+		src := g.Obj(sc.Source)
+		return src != nil && src.Zone == state.ZBattlefield && src.HasAttachedPlayer && src.AttachedPlayer == o.Controller
 	case wordHasNonBasicLandType:
 		// Forge's hasANonBasicLandType: a land with at least one land type
 		// outside CR 205.3i's five basic land types, read through hasTypeCtx so
@@ -1312,6 +1349,21 @@ func targetBindingContains(bound []state.Target, o *state.Object) bool {
 	return false
 }
 
+// rememberedAttackerDefender is the seat the remembered object is attacking:
+// Object.Attacking, which for a planeswalker or battle attack is that
+// permanent's controller / protector. ok is false for a player target or an
+// object that is not currently attacking.
+func rememberedAttackerDefender(g *state.Game, t state.Target) (state.PlayerID, bool) {
+	if t.IsPlayer {
+		return 0, false
+	}
+	r := g.Obj(t.Obj)
+	if r == nil || !r.IsAttacking {
+		return 0, false
+	}
+	return r.Attacking, true
+}
+
 // contextPredicateBound reports whether a context-bound classifier word has
 // the binding its body reads. The families that read more than the
 // object alone are NotDefinedTargeted (needs a resolution, so the resolving
@@ -1333,6 +1385,13 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		return sc.Resolving || sc.ParentBound
 	case wordDefenderCtrl:
 		return sc.DefendingPlayer.IsPlayer
+	case wordDefenderCtrlForRemembered:
+		for _, t := range sc.Remembered {
+			if _, ok := rememberedAttackerDefender(g, t); ok {
+				return true
+			}
+		}
+		return false
 	case wordEnchantedControllerCtrl:
 		// The body resolves the bearer of the SOURCE attachment, exactly as
 		// the player grammar's Player.EnchantedController clause does. With no
@@ -1344,6 +1403,14 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		}
 		o := g.Obj(sc.Source)
 		return o != nil && o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil
+	case wordEnchantedPlayerCtrl:
+		// An absent player attachment has no seat to name: refuse the token
+		// beneath '!' too rather than invert an absent link into a match.
+		if sc.Source == 0 {
+			return false
+		}
+		o := g.Obj(sc.Source)
+		return o != nil && o.Zone == state.ZBattlefield && o.HasAttachedPlayer
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
 	case wordCountersReceived:
@@ -1459,7 +1526,9 @@ const (
 	wordPredicateWordWasDealtDamageByThisGame
 	wordPredicateWordIsImprinted
 	wordPredicateWordDefenderCtrl
+	wordPredicateWordDefenderCtrlForRemembered
 	wordPredicateWordEnchantedControllerCtrl
+	wordPredicateWordEnchantedPlayerCtrl
 	wordPredicateWordNotDefinedTargeted
 	wordPredicateWordTargetedBy
 	wordPredicateWordOpponent
@@ -1525,7 +1594,9 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "wasDealtDamageByThisGame", Val: wordPredicateWordWasDealtDamageByThisGame},
 	state.StrEntry[wordPredicateWordCode]{Key: "IsImprinted", Val: wordPredicateWordIsImprinted},
 	state.StrEntry[wordPredicateWordCode]{Key: "DefenderCtrl", Val: wordPredicateWordDefenderCtrl},
+	state.StrEntry[wordPredicateWordCode]{Key: "DefenderCtrlForRemembered", Val: wordPredicateWordDefenderCtrlForRemembered},
 	state.StrEntry[wordPredicateWordCode]{Key: "EnchantedControllerCtrl", Val: wordPredicateWordEnchantedControllerCtrl},
+	state.StrEntry[wordPredicateWordCode]{Key: "EnchantedPlayerCtrl", Val: wordPredicateWordEnchantedPlayerCtrl},
 	state.StrEntry[wordPredicateWordCode]{Key: "NotDefinedTargeted", Val: wordPredicateWordNotDefinedTargeted},
 	state.StrEntry[wordPredicateWordCode]{Key: "targetedBy", Val: wordPredicateWordTargetedBy},
 	state.StrEntry[wordPredicateWordCode]{Key: "Opponent", Val: wordPredicateWordOpponent},

@@ -104,6 +104,7 @@ func (s *State) beginTurn(p uint8) {
 			pl.disc = 0
 		}
 	}
+	s.dmgTakenNewTurn() // gorge DamageTakenThisTurn folds back to the last TurnChange (kw_bloodthirst.go)
 }
 
 // openPriority starts the step's priority round.
@@ -549,9 +550,12 @@ func (s *State) sba(k *prep) bool {
 			}
 			return true
 		}
-		if MaxSeats > 2 && s.sweepDeparted(k) {
-			continue // CR 800.4a: the departed seats' objects left (zone_leavegame.go)
-		}
+		// gorge poses the departed sweep at the pass end (rules/sba.go
+		// sweepDepartedPlayers, after applySBABatch): the casualties this pass
+		// computed saw the departed seat's permanents still in force -- an
+		// Aura the departed seat controls (Witness Protection on the Angel of
+		// Vitality) is still attached when the lethal-damage scan runs, and
+		// only the sweep takes it off (CR 800.4a, zone_leavegame.go)
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
@@ -588,8 +592,10 @@ func (s *State) sba(k *prep) bool {
 				// infect hit marks no damage (gorge destroyLethalDamage).
 				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
-					if s.destroyHeal(k, sl) {
-						s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+					if r := s.destroyLine(k, sl, true); r != drNone {
+						if r == drHeal {
+							s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+						}
 						continue
 					}
 					if s.canRegen(sl) {
@@ -656,7 +662,10 @@ func (s *State) sba(k *prep) bool {
 			}
 		}
 		if k.ctrMana {
-			s.sbaCtrTough(k, &die, &gy) // -0/-1 counters (mana_countercost.go)
+			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
+		}
+		if k.gen != nil && k.gen.anyM2M1 {
+			s.sbaCtrTough(k, kop.CtrM2M1, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1)
 		}
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {
@@ -698,6 +707,9 @@ func (s *State) sba(k *prep) bool {
 				}
 			}
 		}
+		if k.ascend {
+			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
+		}
 		all := die.or(gy)
 		if k.gen != nil && k.gen.equipAnim && s.sbaAttachedCreatures(k, all) && !all.any() {
 			continue // CR 704.5p: an Equipment left its bearer; gorge's changed pass (static_unattachcreature.go)
@@ -717,6 +729,9 @@ func (s *State) sba(k *prep) bool {
 			// gorge poses the legend ask before the pass's other actions
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
+				if MaxSeats > 2 {
+					s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+				}
 				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
 				return true
 			}
@@ -742,12 +757,20 @@ func (s *State) sba(k *prep) bool {
 				s.annihilateAll(anni)
 				continue
 			}
+			// CR 800.4a: the departed seats' objects left, at the pass end
+			// (gorge sweepDepartedPlayers runs after every pass's batch)
+			if MaxSeats > 2 && s.sweepDeparted(k) {
+				continue
+			}
 			return false
 		}
 		// gorge poses the legend ask before any of the pass's casualties
 		// apply (parkLegendChoice): park the creature casualties, which
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
+			if MaxSeats > 2 {
+				s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+			}
 			s.legDie = die
 			s.legSaga = s.sagasDue(k)
 			return true
@@ -808,6 +831,11 @@ func (s *State) sba(k *prep) bool {
 		}
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
+		}
+		// CR 800.4a: the departed seats' objects left, after this pass's
+		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
+		if MaxSeats > 2 && s.sweepDeparted(k) {
+			continue
 		}
 		if askAfter && s.parkedWaiting() {
 			s.ctl = ctlExileOrder
@@ -994,11 +1022,19 @@ func (s *State) battlefieldOrder(p uint8, mask slotMask, out []Slot, n int) int 
 
 func (s *State) regenerate(sl Slot) {
 	s.touchSl(sl)
+	s.spendRegenShield(sl)
+	s.regenerateBody(sl)
+}
+
+// regenerateBody is the regeneration itself (CR 701.19a: heal it, tap it,
+// remove it from combat), with no shield involved: gorge's regenerate, which
+// both ReplaceDestruction and a Regeneration$ destroy line's body run. The
+// caller touched sl.
+func (s *State) regenerateBody(sl Slot) {
 	p := &s.perms[sl]
 	if p.flags&pfDeathtouched != 0 {
 		p.cseen |= cseenDT // gorge lists the removed mark at 0
 	}
-	s.spendRegenShield(sl)
 	s.leaveCombat(sl) // CR 701.19b: regeneration removes it from combat
 	p.flags &^= pfDeathtouched | pfDtMore
 	wasUntapped := p.flags&pfTapped == 0
@@ -1116,6 +1152,9 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	case kop.OpSacrifice:
 		if s.sacBlocked(k, sl) {
 			return // gorge effSacrifice skips a permanent that can't be sacrificed (static_cantsacrifice.go)
+		}
+		if s.sacDelayPark(k, sl) {
+			return // the move's CR 616.1 order ask waits; runParkedMass makes the sacrifice with the move (repl_sacbatch.go)
 		}
 		s.fireSac(k, sl)
 		s.leave(k, sl, kop.ZoneGraveyard, false)
