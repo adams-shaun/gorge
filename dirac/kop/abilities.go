@@ -102,9 +102,10 @@ type Ability struct {
 	Once uint8
 	// AnyActivator: "any player may activate this ability" (Activator$
 	// Player; Feral Hydra): the kernel also offers it to the permanent's
-	// controller's opponents (dirac/cast_anyactivator.go). Only a mana-only
-	// battlefield PutCounter on the source carries it (kgen
-	// lower_anyactivator.go). A table byte: AbilityFlags has no free bit.
+	// controller's opponents (dirac/cast_anyactivator.go). Only a
+	// battlefield non-mana ability with a plain mana cost, no target and no
+	// activation condition carries it (kgen lower_anyactivator.go). A table
+	// byte: AbilityFlags has no free bit.
 	AnyActivator bool
 	// CantCopy: "this ability can't be copied" (CantCopy$ True; gorge
 	// SpellCopyAllowed): an ExtCopyAbility naming its stack entry copies

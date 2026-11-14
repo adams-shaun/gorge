@@ -215,7 +215,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
 		}
 		s.g.mayPlayAny = anyMana
-		offers := s.gorgeOffersMay(p, o)
+		offers := s.gorgeOffersMay(p, o, anyColor)
 		s.g.mayPlayAny = false
 		if !s.altAddCastableFrom(k, c, p, o, &altCost, &pc.cost, true, anyMana, av) || !offers || s.castHeldOut(o) {
 			return

@@ -35,6 +35,7 @@ import (
 // The mutation drops the Override from both Licids' programs, so the kernel
 // attaches a creature, and must diverge.
 func TestLicidLowers(t *testing.T) {
+	corpusDirOrSkip(t) // a fresh clone has no corpus: skip, as every lockstep sibling does
 	if isolate(t) {
 		return
 	}

@@ -639,6 +639,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.Flags&kop.FToken != 0 && (o == NoObj || s.objs[o].of&ofToken == 0) || fl.Flags&kop.FNontoken != 0 && o != NoObj && s.objs[o].of&ofToken != 0 {
 		return false
 	}
+	if fl.Flags&kop.FAttachedBySrc != 0 {
+		// the bearer read is a perm matcher's (matchPermOne): a card is
+		// never a live bearer-host. A damage trigger's ValidSource$
+		// EnchantedBy reaches here only for a non-permanent source (the
+		// dead host's LKI or a spell), and the attachment lived on the
+		// aura, cleared when the host left: it fails closed.
+		return false
+	}
 	if fl.Flags&kop.FExiledWith != 0 && !s.exwFlag(o, ctx) {
 		return false // zone_exiledwithstatic.go
 	}

@@ -69,8 +69,9 @@ func (s *State) grantGapUsable(k *prep, sl Slot) bool {
 }
 
 // grantTapOK is the grant search's "the source can tap" test: canTapForMana,
-// or, when its first granted view is a sacrifice-only one, an untapped
-// source that another of its granted abilities can tap.
+// or, when its first granted view is a sacrifice-only one, or its own ability
+// is (an Eldrazi Spawn's {C} beside Path of Annihilation's granted tap), an
+// untapped source that another of its granted abilities can tap.
 func (s *State) grantTapOK(k *prep, sl Slot) bool {
 	if s.canTapForMana(k, sl) {
 		return true

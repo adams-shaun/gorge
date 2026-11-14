@@ -293,6 +293,28 @@ func filterSelfOnly(f *lFilter) bool {
 	return true
 }
 
+// anyCardClause reports whether a clause restricts nothing: it matches any
+// card, so a group gate lowered from it asks only for a group member. A
+// typed present check (ConditionPresent$ Card.Creature) narrows the gate to
+// remembered cards of the type, which the persistent mark cannot see.
+func anyCardClause(c lClause) bool {
+	return c.Types == 0 && c.TypesAll == 0 && c.NotTypes == 0 &&
+		c.Subtype == "" && c.Name == "" && c.NotSubtype == "" && c.Subtype2 == "" &&
+		c.MoreNotSubtype == [4]string{} &&
+		c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 &&
+		c.CmpStat == 0 && c.CmpOp == 0 && c.CmpN == 0 && c.CmpX == "" && c.CmpV == nil &&
+		c.CmpCounter == "" && c.Colors == "" && c.NotColors == "" &&
+		!c.BasePermanent && !c.SpellBase && !c.Unblocked && !c.TheirHand &&
+		c.Special == 0 && c.CtrlTgt == 0
+}
+
+// filterAnyCard reports whether f restricts nothing: one unrestricted clause,
+// no player alternative and no pick constraint.
+func filterAnyCard(f *lFilter) bool {
+	return f == nil || len(f.Clauses) == 1 && anyCardClause(f.Clauses[0]) &&
+		f.Players == 0 && !f.Each && f.PickSumMax == nil && !f.PickDistinctPower
+}
+
 func (f *lFilter) String() string {
 	if f == nil {
 		return "nil"

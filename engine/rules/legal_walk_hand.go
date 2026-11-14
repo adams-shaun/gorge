@@ -472,11 +472,7 @@ func (w *legalWalk) handWalk() {
 							Label: kp.label, Obj: id, Mode: kp.mode})
 					}
 				}
-			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, convokeBase.Plus(kc), spellScope("kicked"), false) && targetsAvailable() {
-				// convokeBase, not RawBaseCost: Convoke is announced as the
-				// cast (CR 601.2b) and reduces the TOTAL cost the kicker
-				// raise joins (CR 601.2f), so the gate credits the same
-				// creature taps the plain cast's gate does (castOfferBase).
+			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && targetsAvailable() {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 			}

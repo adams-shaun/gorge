@@ -507,9 +507,9 @@ func run() int {
 			// no -pool/pool.tsv.
 			return runRepro(c, *reproPath, *lead, rc, func(rep *oracle.Repro, rrc oracle.RunConfig) (oracle.SideFactory, error) {
 				// one table over every seat's deck: at two seats, set.Matchup's
-				es := [][]cardset.Entry{reproEntries(rep.Cards[0]), reproEntries(rep.Cards[1])}
+				es := [][]cardset.Entry{oracle.ReproEntries(c.Reg, set, rep.Cards[0]), oracle.ReproEntries(c.Reg, set, rep.Cards[1])}
 				for _, d := range rep.MoreCards {
-					es = append(es, reproEntries(d))
+					es = append(es, oracle.ReproEntries(c.Reg, set, d))
 				}
 				tbl, _, err := set.MatchupN(es)
 				if err != nil {
@@ -830,16 +830,6 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 			fmt.Println(line)
 		}
 	}
-}
-
-// reproEntries turns a Repro deck (card names, one per copy) into the deck
-// lines set.Matchup takes, so an fdn repro needs no deck files.
-func reproEntries(cards []string) []cardset.Entry {
-	es := make([]cardset.Entry, len(cards))
-	for i, n := range cards {
-		es[i] = cardset.Entry{Name: n, Count: 1}
-	}
-	return es
 }
 
 // coveragePath is -coverage and evidencePath -evidence: with both "" no coverage

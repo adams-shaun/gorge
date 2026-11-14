@@ -280,6 +280,9 @@ func (r *realSide) Project(p *Projection) {
 				c.NameHash = nameHash("")
 			}
 			c.Face = r.tbl.Cards[pc].Face
+			if cd := &r.tbl.Cards[pc]; cd.FaceMode == kop.FacePrototype {
+				c.Face = 0 // the prototype def is the card's one printed face (gorge keeps FaceIdx 0 and a cast flag)
+			}
 			if !o.Token && o.Flags&dirac.ProjCopy == 0 { // a spell copy is no deck card (gorge project.go)
 				c.Card = r.tidx[pc]
 			}

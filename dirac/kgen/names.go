@@ -152,7 +152,7 @@ func init() {
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
 		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd, "kop.CondEchoOwed", kop.CondEchoOwed,
-		"kop.CondSourceZone", kop.CondSourceZone, "kop.CondBlessing", kop.CondBlessing)
+		"kop.CondSourceZone", kop.CondSourceZone, "kop.CondBlessing", kop.CondBlessing, "kop.CondRemMark", kop.CondRemMark)
 	enum[kop.CmpOp]("kop.CmpNone", kop.CmpNone, "kop.CmpGE", kop.CmpGE, "kop.CmpLE", kop.CmpLE, "kop.CmpEQ", kop.CmpEQ,
 		"kop.CmpGT", kop.CmpGT, "kop.CmpLT", kop.CmpLT, "kop.CmpNE", kop.CmpNE, "kop.CmpPrime", kop.CmpPrime)
 	enum[kop.CounterKind]("kop.CtrP1P1", kop.CtrP1P1, "kop.CtrM1M1", kop.CtrM1M1, "kop.CtrLoyalty", kop.CtrLoyalty,
@@ -172,6 +172,7 @@ func init() {
 		"kop.CtrIngenuity", kop.CtrIngenuity, "kop.CtrFilm", kop.CtrFilm, "kop.CtrFire", kop.CtrFire, "kop.CtrHone", kop.CtrHone, "kop.CtrCoin", kop.CtrCoin,
 		"kop.CtrDivinity", kop.CtrDivinity, "kop.CtrImpostor", kop.CtrImpostor, "kop.CtrBore", kop.CtrBore, "kop.CtrPoint", kop.CtrPoint,
 		"kop.CtrBloodstain", kop.CtrBloodstain, "kop.CtrPossession", kop.CtrPossession, "kop.CtrPromotion", kop.CtrPromotion, "kop.CtrPeace", kop.CtrPeace, "kop.CtrWish", kop.CtrWish, "kop.CtrSkewer", kop.CtrSkewer, "kop.CtrNest", kop.CtrNest, "kop.CtrAge", kop.CtrAge, "kop.CtrLuck", kop.CtrLuck, "kop.CtrDepletion", kop.CtrDepletion, "kop.CtrMining", kop.CtrMining, "kop.CtrFade", kop.CtrFade, "kop.CtrBurden", kop.CtrBurden, "kop.CtrStorage", kop.CtrStorage, "kop.CtrScream", kop.CtrScream, "kop.CtrTreasure", kop.CtrTreasure, "kop.CtrTask", kop.CtrTask, "kop.CtrLevelUp", kop.CtrLevelUp,
+		"kop.CtrComponent", kop.CtrComponent, "kop.CtrDescent", kop.CtrDescent, "kop.CtrM2M1", kop.CtrM2M1,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
 		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive, "kop.WhoseChosen", kop.WhoseChosen)
