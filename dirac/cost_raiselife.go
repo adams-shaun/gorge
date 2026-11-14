@@ -54,7 +54,7 @@ func (s *State) raiseLifeFor(k *prep, p uint8, c CardID, o Obj, anyTarget bool) 
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
 			return true
 		}
-		if !anyTarget && st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, p, c, stc.sl) {
+		if !anyTarget && st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, stc.ctrl, c, stc.sl) {
 			return true
 		}
 		n += int(st.A)
@@ -63,9 +63,10 @@ func (s *State) raiseLifeFor(k *prep, p uint8, c CardID, o Obj, anyTarget bool) 
 	return n
 }
 
-// raiseTargetAt is raiseTargetOK with the static's source slot, so a
+// raiseTargetAt is raiseTargetOK with the targets past the entry's own
+// slots: f reads from the static's controller ctrl and source slot src, so a
 // Card.Self ValidTarget$ reads that permanent.
-func (s *State) raiseTargetAt(k *prep, f kop.FilterID, p uint8, c CardID, src Slot) bool {
+func (s *State) raiseTargetAt(k *prep, f kop.FilterID, ctrl uint8, c CardID, src Slot) bool {
 	if s.ctl != ctlBuild {
 		return false
 	}
@@ -74,13 +75,13 @@ func (s *State) raiseTargetAt(k *prep, f kop.FilterID, p uint8, c CardID, src Sl
 		return false
 	}
 	for i := 0; i < int(e.nt); i++ {
-		if s.costTargetMatchSrc(k, f, p, e.tgt[i], src) {
+		if s.costTargetMatchSrc(k, f, ctrl, e.tgt[i], src) {
 			return true
 		}
 	}
 	x := s.xtOf(e) // the targets past the entry's own slots (Shifting Grift's second creature)
 	for j := 0; j < int(x.n); j++ {
-		if s.costTargetMatchSrc(k, f, p, x.code[j], src) {
+		if s.costTargetMatchSrc(k, f, ctrl, x.code[j], src) {
 			return true
 		}
 	}

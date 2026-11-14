@@ -16,7 +16,14 @@ import (
 //
 //   - a buyback {X} cast (Fanning the Flames): gorge's "buyback" potential
 //     play is witnessed at the largest X the sources pay (rules
-//     potentialModeCastPlan), tapped before X is announced (kernel beginCast).
+//     potentialModeCastPlan), tapped before X is announced (kernel beginCast);
+//   - a targeting spell cast while a battlefield cost static with a target
+//     clause applies to it but for that clause (Kasmina, Enigmatic Mentor's
+//     {2} on spells that target her controller's creatures and
+//     planeswalkers): gorge's cast planner declines the witness
+//     ("shape:target_dependent_cost") and the full surface lowers it at the
+//     cheapest target; the autopay surface does not offer it. A spell that
+//     then targets the taxed side pays the raise through the cost window.
 //
 // Every case must lower its spell through gorge's potential planner in some
 // seed, and no game may diverge.
@@ -33,6 +40,10 @@ func TestTapChoiceLockstep(t *testing.T) {
 			{{Name: "Fanning the Flames", Count: 14}, {Name: "Mountain", Count: 26}},
 			{{Name: "Fanning the Flames", Count: 14}, {Name: "Mountain", Count: 16}, {Name: "Swamp", Count: 10}},
 		}, []string{"Fanning the Flames"}},
+		{"target-tax", [2][]cardset.Entry{
+			{{Name: "Kasmina, Enigmatic Mentor", Count: 14}, {Name: "Island", Count: 26}},
+			{{Name: "Repulse", Count: 16}, {Name: "Island", Count: 24}},
+		}, []string{"Repulse"}},
 	}
 	reg := synthReg(t)
 	for _, c := range cases {
