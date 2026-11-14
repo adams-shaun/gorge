@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -138,4 +139,32 @@ func tapChoicePool(t *testing.T, decks [2][]cardset.Entry) (string, cardset.Set)
 	}
 	t.Fatalf("no MBC draft pool holds every card of %v", decks)
 	return "", nil
+}
+
+// TestComboAnySourceOffThePlanLockstep replays two MBC games in which an
+// untapped Axebane Guardian stood beside the lands paying a cast. gorge's
+// payment planner has no witness for a Combo Any production (rules pay
+// PaymentPlanUnitAlternatives: it stays manual), so the Guardian is no plan
+// source and no colour source in its ranking; a kernel that planned it
+// ranked the lands differently and tapped a Forest where gorge tapped another
+// basic.
+func TestComboAnySourceOffThePlanLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "repro/combo_any_source_off_the_plan", "dr-mbc-abbb", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "repro/combo_any_source_off_the_plan_full", "dr-mbc-abbb", Config{})
+}
+
+// TestComboAnySourceOffThePlanMutation: planning the Guardian as an ordinary
+// unit again (dirac.DebugComboAnyPlanned) must diverge on the replays.
+func TestComboAnySourceOffThePlanMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	old := dirac.DebugComboAnyPlanned
+	dirac.DebugComboAnyPlanned = true
+	defer func() { dirac.DebugComboAnyPlanned = old }()
+	res, _ := synthReproRun(t, "repro/combo_any_source_off_the_plan", "dr-mbc-abbb", Config{GorgeAutopaySurface: true})
+	if res.Div == nil {
+		t.Fatal("mutation did not diverge")
+	}
 }
