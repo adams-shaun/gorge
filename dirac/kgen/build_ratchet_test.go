@@ -259,8 +259,8 @@ import (
 // +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$, Fire Servant; ValidSource$ Card.Self with IsCombat$ True, Charging Tuskodon; merged ALL build-level 23559 -> 23561 measured).
 // +11 (MBC zone-moves-5: Count$TopOfLibraryCMC, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word; the same eleven cards as ratchet_test.go's ALL pin; ALL build-level 23253 -> 23264 measured).
 // +10 (MBC trigger-referents-6: TriggeredSourceController on a plain DamageDone line, TriggeredAttackedTarget controller slots, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra, Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL build-level merged against land 23608 -> 23618 measured).
-// +6 (the MBC values-1 lowerings: a ConditionCheckSVar gate beside the present check (Triumph of Ferocity and kin), the any-kind and putter AddCounter replacements' plus-one amount (Pir, Imaginative Rascal and kin), a planeswalker's [-X] announcing the X its target bounds read (Dyfed, the Guiding Hand); land already lowers the YourTeamCtrl word; ALL build-level merged against land 23657 -> 23663 measured).
-var buildAcceptancePin = [2]int{23663, 34442} // {built, cards}
+// +2 (the MBC values-1 lowerings merged against land 23728 -> 23730, MBC 1797 -> 1799 measured; land already lowers the ConditionCheckSVar gate's Abzan Beastmaster shape and the YourTeamCtrl word).
+var buildAcceptancePin = [2]int{23730, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
