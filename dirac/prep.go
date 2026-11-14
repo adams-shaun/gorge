@@ -102,7 +102,7 @@ type prep struct {
 	t        *kop.Table
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
-	gyCont   bool     // some Continuous static works from its card's graveyard (genPrep.anyGyCont; static_gycont.go): one load on the hot walks
+	gyCont   bool     // some Continuous static works from its card's graveyard (genPrep.anyGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer

@@ -517,7 +517,9 @@ func prepL6(t *kop.Table, g *genPrep) {
 				if o != nil && o.RemoveKw != 0 {
 					g.fxNeed |= fxNeedL6 | fxNeedPromo
 				}
-				if a.Static.Kw != 0 && filterReadsKw(t, a.Static.Filter) {
+				if a.Static.Kw != 0 && filterReadsKw(t, a.Static.Filter) || gyContOf(a) {
+					// a graveyard card's grant (static_gycont.go) is read by the layer-6
+					// walk alone, so kwGen and grantedKwGen need no check of their own
 					g.fxNeed |= fxNeedL6
 				}
 			}

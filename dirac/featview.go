@@ -1118,7 +1118,7 @@ func (s *State) FeatStaticKey() uint64 {
 	if anyGyStatic(k) {
 		h = s.gyStaticKey(k, h) // static_gycont.go
 	}
-	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 || k.gyCont {
+	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
 		s.eachStatic(k, func(st statSrc) bool {
 			a := st.a
 			if a.Kind != kop.AbStatic {

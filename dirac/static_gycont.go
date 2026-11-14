@@ -54,37 +54,19 @@ func (s *State) eachGyStatic(k *prep, cls uint16, f func(st statSrc) bool) bool 
 	return true
 }
 
-// gyKwGrants calls add with the keywords a graveyard Continuous static grants
-// the permanent at sl: kwGen's and grantedKwGen's walk over the statics of
-// cards in the graveyard (lost and lts are the permanent's lossAt).
-//
-//go:noinline
-func (s *State) gyKwGrants(k *prep, sl Slot, lost bool, lts uint16, add func(kop.KwMask)) {
-	s.eachGyStatic(k, sclsKw, func(st statSrc) bool {
-		a := st.a
-		if a.Static.Kw != 0 && (!lost || s.grantTs(st) >= lts) &&
-			s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
-			add(a.Static.Kw)
-		}
-		return true
-	})
-}
-
-// gyKwMask is gyKwGrants' keywords as one mask (kwGen; its own frame keeps
-// the caller's mask in a register).
-//
-//go:noinline
-func (s *State) gyKwMask(k *prep, sl Slot, lost bool, lts uint16) (m kop.KwMask) {
-	s.gyKwGrants(k, sl, lost, lts, func(kw kop.KwMask) { m |= kw })
-	return m
-}
-
 // gyStaticKey fingerprints which graveyard objects carry such a static, for
 // FeatStaticKey: a card entering or leaving the graveyard moves what the
 // statics in play grant even when no condition of theirs changes.
 func (s *State) gyStaticKey(k *prep, h uint64) uint64 {
 	s.eachGyStatic(k, 0, func(st statSrc) bool {
 		h = hmix(h, uint64(st.obj)<<8|uint64(st.ctrl))
+		if st.a.Static.Cond2 != 0 { // FeatStaticKey's condition truth, for a static eachStatic does not yield
+			c := uint64(1)
+			if s.statCond(k, st) {
+				c = 2
+			}
+			h = hmix(h, c)
+		}
 		return true
 	})
 	return h

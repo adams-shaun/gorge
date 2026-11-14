@@ -84,9 +84,9 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 // eachStaticC is eachStatic over the permanents whose card prints a static
 // of a class in cls (emblems all walked): f sees exactly the statics of
 // those classes eachStatic would show it, in the same order. It leaves out
-// the graveyard Continuous statics (static_gycont.go): those are plain
-// keyword grants, so only the sclsKw readers walk them (eachGyStatic), and
-// this hot walk pays nothing for them.
+// the graveyard Continuous statics (static_gycont.go), as eachStatic does:
+// those are plain keyword and landwalk grants, read by the layer-6 walk
+// (prepL6 turns it on for them) and by the readers that call eachGyStatic.
 func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()

@@ -77,9 +77,6 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 			}
 		}
 	}
-	if k.gyCont {
-		s.eachGyStatic(k, 0, f) // static_gycont.go
-	}
 }
 
 // statCond reports whether a static's condition holds.
@@ -752,9 +749,6 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 			return true
 		})
 	}
-	if k.gyCont {
-		m |= s.gyKwMask(k, sl, lost, lts) // static_gycont.go
-	}
 	return m
 }
 
@@ -1176,9 +1170,6 @@ func (s *State) grantedKwGen(k *prep, sl Slot, add func(kop.KwMask)) {
 			}
 			return true
 		})
-	}
-	if k.gyCont {
-		s.gyKwGrants(k, sl, lost, lts, add) // static_gycont.go
 	}
 }
 
