@@ -17,7 +17,11 @@ const goldenDir = "testdata/gen"
 
 func generate(t *testing.T, m fstest.MapFS) map[string][]byte {
 	t.Helper()
-	files, err := Generate(load(t, m))
+	tr, err := LoadGen(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := Generate(tr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +131,7 @@ func TestGenerateEmptyManifest(t *testing.T) {
 	files := generate(t, fstest.MapFS{OrdinalsPath: {Data: []byte("OpNop\tOp\t0\n")}})
 	for p, want := range map[string]string{
 		KopGen:   GenHeader + "\n\npackage kop\n",
-		DiracGen: GenHeader + "\n\npackage dirac\n",
+		DiracGen: GenHeader + "\n\npackage dirac\n\nimport \"" + kopImport + "\"\n" + genExtDispatch(nil),
 		KgenGen:  GenHeader + "\n\npackage kgen\n",
 	} {
 		if string(files[p]) != want {

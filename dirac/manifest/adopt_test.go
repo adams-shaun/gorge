@@ -52,6 +52,11 @@ const (
 )
 
 var extOpNames [NumExtOps]string
+
+func (o ExtOp) String() string { return extOpNames[o] }
+
+// Instr is one instruction.
+type Instr struct{ A struct{ N int32 } }
 `,
 	"dirac/kop/triggers.go": `package kop
 
@@ -83,7 +88,7 @@ func init() {
 	enum[kop.CounterKind]("kop.CtrP1P1", kop.CtrP1P1, "kop.CtrOil", kop.CtrOil)
 }
 `,
-	"dirac/kernel.go":                      "package dirac\n\nimport \"github.com/adams-shaun/gorge/dirac/kop\"\n\nvar _ = kop.CtrOil\n",
+	"dirac/kernel.go":                      "package dirac\n\nimport \"github.com/adams-shaun/gorge/dirac/kop\"\n\nvar _ = kop.CtrOil\n\ntype (\n\tState struct{}\n\tprep  struct{}\n)\n",
 	"dirac/manifest/CounterKind/CtrTicket": "family: CounterKind\nname: CtrTicket\nvalue: 9\nforge: TICKET\nstatus: reserved\n",
 	"dirac/manifest/ExtOp/ExtMakeCard":     "family: ExtOp\nname: ExtMakeCard\nvalue: 2\nforge: MakeCard\nstatus: reserved\n",
 }

@@ -2,6 +2,8 @@
 
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // slotbyte mutate (dirac/manifest/key/keyMutate)
 const keyMutate key = 0
 
@@ -11,4 +13,16 @@ const mechFooBar mech = 55
 func init() {
 	mechWidth[mechFooBar] = wSlot
 	mechName[mechFooBar] = "fooBar"
+}
+
+// execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
+// feature file: the default arm of the hand switch (execExt, extop.go).
+//
+//go:noinline
+func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
+	switch kop.ExtOp(in.A.N) {
+	case kop.ExtBar:
+		return s.extBar(k, in) // act_bar.go
+	}
+	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

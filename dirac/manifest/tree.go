@@ -27,6 +27,9 @@ type Tree struct {
 	// Entries sorted by family, then name.
 	Entries  []*Entry
 	Ordinals []Ordinal
+	// Ext is the kernel's //kmanifest:ext handlers (LoadGen; Load leaves it
+	// empty).
+	Ext []ExtHandler
 
 	byName map[string]*Ordinal
 	// commit is the commit ReadGit read the tree at ("" for a working tree).
