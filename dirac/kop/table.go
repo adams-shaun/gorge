@@ -748,6 +748,14 @@ const (
 	// countered or fizzled, it goes to the graveyard; off the stack it is
 	// its front (dirac/face_omen.go).
 	FaceOmen
+	// FacePrototype is a card printed with K:Prototype (CR 702.160, 718.3):
+	// face 1 is the same card with its prototype characteristics (the inset
+	// mana cost, the colours of that cost and the inset power and
+	// toughness), its other characteristics and abilities unchanged. It is
+	// cast from the hand as a face cast (gorge's "prototype") and is the
+	// object's card on the stack and on the battlefield only; every other
+	// zone shows the front (dirac/face_castface.go).
+	FacePrototype
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

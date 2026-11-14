@@ -583,6 +583,7 @@ FaceModal	untyped int	1
 FaceNone	untyped int	0
 FaceOmen	untyped int	7
 FacePrepare	untyped int	5
+FacePrototype	untyped int	8
 FaceRoom	untyped int	6
 FaceSplit	untyped int	3
 FaceTransform	untyped int	4

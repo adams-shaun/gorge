@@ -34,12 +34,21 @@ const (
 	FaceCodeRoomAlt     = 13 // a Room's other door (gorge "room_alt", rules legal_walk_hand.go; the face nibble is 0: the route names it)
 	FaceCodeSneak       = 14 // a hand cast for its sneak cost (gorge "sneak", rules kw_sneak.go; kernel AkSneak, kw_sneak.go): castModes is full
 	FaceCodeOmen        = 15 // an Omen card's face cast from the hand (gorge "omen_alt", rules legal_walk_hand.go; dirac/face_omen.go)
+
+	// FaceCastPrototype is the ActCastFace mode of a prototyped cast (CR
+	// 718.3a; gorge "prototype", rules legal_walk_hand.go; dirac/face_castface.go
+	// with kop.FacePrototype). The route table's nibble is full, so it is the
+	// face nibble 2 over route code 0: no other route has either.
+	FaceCastPrototype = 2<<4 | 0
 )
 
 // FollowedFaceRoute reports whether the kernel follows the planner for a
 // face route's potential play (prices every face route the kernel
 // casts; the face-down routes are not face casts of this table).
 func FollowedFaceRoute(fc uint8) bool {
+	if fc == FaceCastPrototype {
+		return true
+	}
 	switch fc & 15 {
 	case FaceCodeModal, FaceCodeAdventure, FaceCodeRecast, FaceCodeSplit,
 		FaceCodeOmen, FaceCodePrepared, FaceCodeSneak, FaceCodeRoomAlt, FaceCodeAftermath:
@@ -51,6 +60,9 @@ func FollowedFaceRoute(fc uint8) bool {
 // FaceCastCode is the ActCastFace mode of a face route's Option.Mode; ok
 // is false for every other mode.
 func FaceCastCode(mode string) (uint8, bool) {
+	if mode == "prototype" {
+		return FaceCastPrototype, true
+	}
 	for i := 1; i < len(faceCastModes); i++ {
 		if faceCastModes[i] == mode {
 			return faceCastFaces[i]<<4 | uint8(i), true
@@ -113,6 +125,8 @@ func (r *Translator) faceCastCanon(src, i uint8) uint8 {
 		code = FaceCodeRoomAlt
 	case cd.FaceMode == kop.FaceOmen && i == 1:
 		code = FaceCodeOmen
+	case cd.FaceMode == kop.FacePrototype && i == 1:
+		return FaceCastPrototype
 	}
 	return faceCastFaces[code]<<4 | code
 }
@@ -121,6 +135,9 @@ func (r *Translator) faceCastCanon(src, i uint8) uint8 {
 func CastModeOf(c Canon) string {
 	switch c.Kind() {
 	case ActCastFace:
+		if c.Mode() == FaceCastPrototype {
+			return "prototype"
+		}
 		return faceCastModes[c.Mode()&15]
 	case ActCastCasualty:
 		return "casualty"
