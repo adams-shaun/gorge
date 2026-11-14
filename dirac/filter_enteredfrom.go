@@ -29,7 +29,7 @@ func (s *State) enteredFrom(o Obj, from kop.Zone) bool {
 	}
 	for i := int(s.g.enteredN) - 1; i >= 0; i-- {
 		if e := &s.cold.entered[i]; e.o == o {
-			return e.to == uint8(s.objs[o].zone) && e.from == uint8(from)
+			return e.to() == uint8(s.objs[o].zone) && e.from() == uint8(from)
 		}
 	}
 	return false
