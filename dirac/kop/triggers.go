@@ -85,6 +85,11 @@ const (
 	// trigmatch.DiscardCauseAdmits: a cost discard has no cause). Orvar, the
 	// All-Form; Guerrilla Tactics.
 	Tf5OppCause TrigFlags5 = 1 << 2
+	// Tf5DmgNoContract: a combat DamageDone line's damaged player has no
+	// contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss
+	// Highwater; gorge state.Player.Counter("Contract"); kernel
+	// ctr_contract.go).
+	Tf5DmgNoContract TrigFlags5 = 1 << 4
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens

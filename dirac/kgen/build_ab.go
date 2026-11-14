@@ -3760,6 +3760,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.Op == "RemoveCounter" && in.C == 1 {
 			ki.Op = kop.OpRemoveCounterRem
 		}
+		if in.Op == "PutCounter" && in.CS == contractCounter {
+			ki.C = int16(kop.CtrContract) // a player's counter (lower_contract.go)
+			break
+		}
 		k, err := counterKind(in.CS)
 		if err != nil {
 			return ki, err

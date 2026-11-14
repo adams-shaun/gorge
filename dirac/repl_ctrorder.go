@@ -156,6 +156,10 @@ func (s *State) ctrOrderPark(k *prep, sl Slot, kind, n int) bool {
 // execPutCounter runs an OpPutCounter instruction; false when it parked on the
 // CR 616.1 order ask (the instruction runs again once it is answered).
 func (s *State) execPutCounter(k *prep, in *kop.Instr) bool {
+	if kop.CounterKind(in.C) == kop.CtrContract {
+		s.putContract(k, in) // a player's counter (ctr_contract.go)
+		return true
+	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		amt := s.value(k, in.A)
 		if k.gen != nil && s.ctrOrderPark(k, sl, int(in.C), amt) {

@@ -173,6 +173,9 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 	if t.AtkYouLastTurn {
 		f |= kop.Tf5DmgAttackedYouLastTurn // lower_atklastturn.go
 	}
+	if t.NoContract {
+		f |= kop.Tf5DmgNoContract // lower_contract.go
+	}
 	return f
 }
 

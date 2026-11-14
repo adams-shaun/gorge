@@ -3541,6 +3541,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if ct == "ENERGY" {
 		return lc.gainEnergy(obj, n)
 	}
+	if ct == contractCounter {
+		return lc.putContract(obj, n) // lower_contract.go
+	}
 	if ct == "EachFromSource" {
 		return lc.putCounterEachFromSource(ps, obj)
 	}

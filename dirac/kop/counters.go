@@ -350,3 +350,9 @@ func IsCounterKind(c int) bool {
 // granted trigger is checked when its event happens only). Not a counter
 // kind.
 const CtrMaxSpeed CounterKind = 255
+
+// CtrContract is a player's contract counter (Miss Highwater): the kind of
+// an OpPutCounter whose Obj names players, never stored on an object (the
+// kernel's per-seat record, dirac/ctr_contract.go). Not a permanent's
+// counter kind (IsCounterKind is false).
+const CtrContract CounterKind = 252

@@ -781,6 +781,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
 				return err
 			}
+		} else if tp.str("ValidTarget") == noContractSpec {
+			if err := noContract(tp, tr, t); err != nil { // lower_contract.go
+				return err
+			}
 		} else if tr.F2, err = readF("ValidTarget"); err != nil {
 			return err
 		}

@@ -167,4 +167,6 @@ func TestMBCPlayerHeadLowers(t *testing.T) {
 			t.Fatalf("no seed diverged with the attack-record gate dropped (spare %d)", tal.spare)
 		}
 	})
+	t.Run("Miss Highwater", highwaterLowers)            // mbc_playerhead_contract_test.go
+	t.Run("Miss Highwater mutation", highwaterMutation) // mbc_playerhead_contract_test.go
 }

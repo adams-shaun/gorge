@@ -2166,6 +2166,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
 			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
 		}
+		if done, err := lc.contractLossEffect(ps, tr); done || err != nil { // lower_contract.go
+			return err
+		}
 		return lc.emblem(ps, tr)
 	}
 	// EffectOwner$ (CR 611.2): effEffect resolves the created effect's owner
