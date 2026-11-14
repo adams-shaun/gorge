@@ -175,6 +175,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"universe.go":             {false, "runtime name-universe view over a registry"},
 	"validate.go":             {true, "Card.named is called by CompileDir"},
 	"value_heads.go":          {false, "coverage value heads computed on demand, not stored"},
+	"walk_scripts.go":         {true, "WalkScripts decides which scripts compileScripts reads: a symlinked root read as an empty tree before, so caches compiled through one must not stay fresh"},
 	"words.go":                {true, "interned type and keyword word sets derived during compile"},
 }
 
