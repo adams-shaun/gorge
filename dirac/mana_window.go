@@ -1841,6 +1841,18 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 	}
 }
 
+// anyRAnswers: the answers of gap sl's activation ask in the script search (a
+// Courtyard's six; a wide source's colour multisets).
+func (s *State) anyRAnswers(k *prep, sl Slot) uint8 {
+	if cd := &k.t.Cards[s.cardAt(sl)]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(sl))]) {
+		if s.wideSecond(k, sl) {
+			return wide2Answers
+		}
+		return wideAnswers
+	}
+	return 6
+}
+
 // scriptDFS is gorge's prefix search (scriptSearch.visit) for play a: p's
 // gaps tapped in battlefield order (order[i:]), a Courtyard branched on its
 // six answers, a counter-cost gap with a plain {T} first mana ability on
@@ -1929,13 +1941,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			case ctr.has(order[j]):
 				nch = uint8(max(k.ctrChainN(s.cardAt(order[j])), 1)) // the plain {T} first ability's answers, then the counter ability's (ctrChainTap)
 			case anyR.has(order[j]):
-				nch = 6
-				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
-					nch = wideAnswers
-					if s.wideSecond(k, order[j]) {
-						nch = wide2Answers
-					}
-				}
+				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
 			}

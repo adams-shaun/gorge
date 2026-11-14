@@ -59,6 +59,13 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// on the autopay surface (CR 605.1a, 601.2g).
 		"combo_any_evaluated_mana_unplanned",
 		"combo_any_evaluated_mana_unplanned_second",
+		// Morcant's Eyes' activation ({4}{G}{G}) on a std-ecl board with a
+		// Springleaf Drum (tap a creature for any colour), a Flamebraider (two
+		// mana of any colours, Elemental-only) and a Bloom Tender: gorge's one
+		// prefix search activates all three census gaps, so the activation is
+		// offered (CR 605.3a, 601.2g). The kernel routed the board to the
+		// any-colour restricted search, which never taps the Drum.
+		"tapx_script_composes_anyr_beside_each",
 	} {
 		name := name
 		t.Run(name, func(t *testing.T) {
