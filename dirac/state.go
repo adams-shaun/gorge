@@ -21,7 +21,7 @@ const (
 )
 
 // ObjWords is the number of 64-bit words an object bitset takes (the change
-// marks, objBits). MaxObj (seats_default.go, seats_mp.go) may be any value
+// marks, objBits). MaxObj (seats_default.go) may be any value
 // up to StackTarget0: an Obj is a uint8 whose StackTarget0.. codes are stack
 // abilities, PlayerTarget0.. players and 0xFE/0xFF a departed stack target
 // and NoTarget/NoObj in target bytes.
@@ -144,7 +144,7 @@ const (
 )
 
 // object stays 8 bytes: the owner shares the acts byte with the activation
-// count (objActsMask, objOwnerBits: seats_default.go, seats_mp.go), and
+// count (objActsMask, objOwnerBits: seats_default.go), and
 // chosen takes the byte the owner used to hold.
 
 type object struct {
@@ -273,7 +273,7 @@ type perm struct {
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
-	actUsed  uint8            // OncePerTurn abilities activated this turn (bit per ability index); beside nblock so the objWord and TCode fields below pack without a pad byte under dirac_mp
+	actUsed  uint8            // OncePerTurn abilities activated this turn (bit per ability index)
 	chosen   objWord          // "as this enters" choice; a last bearer's host (zones.go)
 	bord     objWord          // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
 	atk      TCode            // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)

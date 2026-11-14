@@ -89,11 +89,7 @@ func TestFxPoolHashStable(t *testing.T) {
 	digest()
 	lose(w1, false)
 	digest()
-	want := uint64(fxPoolHashPin)
-	if MaxSeats > 2 {
-		want = fxPoolHashPinMP
-	}
-	if h != want {
+	if want := uint64(fxPoolHashPin); h != want {
 		t.Fatalf("hash digest %#x, want %#x", h, want)
 	}
 }
@@ -103,8 +99,3 @@ func TestFxPoolHashStable(t *testing.T) {
 // so the extra fields and their order change the digest. It moved again when
 // perm.ck widened to 16-bit counter kinds: ObjHash reads the permanent whole.
 const fxPoolHashPin = 0x3e29634684c92abb
-
-// fxPoolHashPinMP is the dirac_mp build's pin: ObjHash reads the permanent
-// whole, and its code fields are MaxSeats-dependent widths (TestPermSize), as
-// TestCapacityHashPins' ObjHash pin.
-const fxPoolHashPinMP = 0x48aa9c47bf33100f

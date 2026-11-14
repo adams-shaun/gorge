@@ -1,10 +1,6 @@
 package dirac
 
-import (
-	"unsafe"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Cold paths of the sparse counter slots (perm.ck/cn/cseen) and of
 // the overflow table behind them.
@@ -22,11 +18,10 @@ const maxCtrOver = 16
 
 // ctrPadN pads genState so the 16-bit counter kinds (perm.ck, lkiRec.ck,
 // ctrOverEntry.kind, genState's lastCK and enterCtr.kind) grow the State ahead
-// of perms by a whole number of cache lines and perms keeps its phase in both
-// size classes (statelayout_test.go, statelayout_mp_test.go): the default
-// class grew by 48 bytes, which these 16 carry to 64; the mp class grew by 256
-// (lkiRec 56 -> 64 bytes), already whole lines.
-const ctrPadN = 16 * (2 - int(unsafe.Sizeof(Obj(0))))
+// of perms by a whole number of cache lines and perms keeps its phase
+// (statelayout_test.go): the State grew by 48 bytes, which these 16 carry to
+// 64.
+const ctrPadN = 16
 
 // ctrOverEntry is one counter kind in the overflow table. lki 0 is a kind obj
 // holds now; i+1 is LKI record i's copy of a kind obj held when it was taken.

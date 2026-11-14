@@ -1953,7 +1953,7 @@ type genState struct {
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
-	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase.
 	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
@@ -2143,7 +2143,7 @@ type genState struct {
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
 	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
-	// (linkPadN, seats_default.go and seats_mp.go)
+	// (linkPadN, seats_default.go)
 	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open

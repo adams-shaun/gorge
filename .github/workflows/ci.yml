@@ -258,9 +258,8 @@ jobs:
   # dirac plays the committed slices of its FDN and BLB pools against gorge, on both
   # surfaces. A divergence, an unmodelled stall or a hang fails.
   # Not on a promote PR (a pull request to main): every tree it carries already passed
-  # scripts/dirac-gate.sh, whose step 4 plays these same slices with kfuzz and whose mp
-  # step runs make dirac-mp-check, and the oracle job below plays the whole of dirac/oracle.
-  # Its 30-day reds there were all one mp build break the gate's step 8c now catches.
+  # scripts/dirac-gate.sh, whose step 4 plays these same slices with kfuzz, and the oracle
+  # job below plays the whole of dirac/oracle.
   dirac-slices:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && !(github.event_name == 'pull_request' && github.base_ref == 'main') }}
@@ -298,8 +297,6 @@ jobs:
         run: make dirac-tables
       - name: Play the committed slices
         run: make dirac-slices
-      - name: The dirac_mp size class vets, fits the State bar and plays 4-seat vanilla and the 2-seat slices in lockstep
-        run: make dirac-mp-check
       - name: Save the Go cache
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
