@@ -11,6 +11,6 @@ package kop
 // picked kind. The kinds are B (the first), C's low byte (the second) and C's
 // high byte (the third), in the card's printed order. Only the lone
 // instruction of an enters program. dirac/repl_enterctrpick.go.
-const ExtEnterCtrPick ExtOp = 296
+const ExtEnterCtrPick ExtOp = 288
 
 func init() { extOpNames[ExtEnterCtrPick] = "EnterCtrPick" }
