@@ -1,5 +1,5 @@
 family: TrigFlags5
 name: Tf5DmgNoContract
-value: next
+value: 128
 status: active
 doc: Tf5DmgNoContract: a combat DamageDone line's damaged player has no contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss Highwater; gorge state.Player.Counter("Contract"); kernel ctr_contract.go).
