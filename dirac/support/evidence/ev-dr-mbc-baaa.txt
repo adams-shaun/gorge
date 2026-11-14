@@ -49,6 +49,7 @@ Moon-Blessed Cleric
 Mountain
 Mystic of the Hidden Way
 Mystical Teachings
+Norwood Priestess
 Orcish Settlers
 Peregrine Drake
 Plains
@@ -76,6 +77,7 @@ Tolarian Terror
 Tor Wauki the Younger
 Treasure Hunt
 Unexpected Windfall
+Virus Beetle
 Visara the Dreadful
 Weaponcraft Enthusiast
 Wirewood Channeler

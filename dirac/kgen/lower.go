@@ -768,6 +768,7 @@ func (lc *lowerCtx) lowerRecord() {
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
+	out.TextWords = textWordsOf(lc.card)
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
@@ -1138,6 +1139,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (dirac/kw_speed.go); the keyword's other text is the
 			// card's own lines
 			lc.out.Engines = true
+		case head == "Bloodthirst":
+			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
+			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
+			lc.guard(node, func() error { return lc.lowerBloodthirst(param) })
 		case head == "Wither" && param == "":
 			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 			lc.out.Wither = true
@@ -3900,7 +3905,7 @@ var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "
 func (lc *lowerCtx) probeParam(k, v string) error {
 	v = strings.TrimSpace(v)
 	switch {
-	case v == "":
+	case v == "" || k == "ValidMessage": // a prompt string, not a filter
 		return nil
 	case probeAmountKeys[k]:
 		switch v {
