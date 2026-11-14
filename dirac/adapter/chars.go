@@ -21,7 +21,7 @@ import (
 
 // objFacts fills the characteristics the view derives for kernel object i. Nothing
 // reads the kernel later, so they are answered now.
-func (g *Game) objFacts(i uint8, id state.ObjID) {
+func (g *Game) objFacts(i canon.Ref, id state.ObjID) {
 	po := &g.kp.Objs[i]
 	f := &g.board.facts[id-1]
 	f.retyped, f.types = false, f.types[:0]
@@ -105,7 +105,7 @@ func hybridFaces(m kop.ColorMask, swapped bool) (a, b byte) {
 
 // retype records a type-changing effect's derived type line: the printed words still
 // true, then what the effect added.
-func (g *Game) retype(i uint8, f *objFacts) {
+func (g *Game) retype(i canon.Ref, f *objFacts) {
 	types, subs, all, setSub, ok := g.s.FeatViewTypes(dirac.Obj(i))
 	if !ok {
 		return

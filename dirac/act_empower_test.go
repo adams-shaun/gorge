@@ -71,9 +71,9 @@ func (sc *scen) empCast(t *testing.T, c CardID) {
 // empCastObj casts an object already placed in a hand.
 func (sc *scen) empCastObj(t *testing.T, o Obj) {
 	t.Helper()
-	sc.do(t, AkCast, uint8(o), 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 }
 
 // TestEmpowerMint: no Jace token -> one u_empower_jace token, named "Jace Token"
@@ -185,7 +185,7 @@ func TestEmpowerPicksAmongMints(t *testing.T) {
 		t.Fatalf("decision kind %d sub %d with %d options, want the empower pick over 2 tokens", d.Kind, d.Sub, d.N)
 	}
 	first, second := Obj(before), Obj(before+1)
-	sc.do(t, AkChoose, uint8(second), 0xff)
+	sc.do(t, AkChoose, TCode(second), scAny)
 	if n := sc.s.perms[sc.slot(second)].ctrLow(int(kop.CtrLoyalty)); n != 4 {
 		t.Fatalf("the answered token has %d loyalty counters, want 4 (Doubling Season doubles counters too)", n)
 	}

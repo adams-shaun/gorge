@@ -422,7 +422,7 @@ func (s *State) cloneCands(k *prep, in *kop.Instr, d *Decision) int {
 		if s.matchPermGen(k, in.F, sl, s.res.e.ctrl, src, layerFull) {
 			n++
 			if d != nil {
-				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
 	}

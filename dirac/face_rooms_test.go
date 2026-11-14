@@ -51,7 +51,7 @@ func roomsScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 func unlocks(d *Decision, o Obj) []uint8 {
 	var out []uint8
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkUnlock && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkUnlock && a.Source() == TCode(uint8(o)) {
 			out = append(out, a.Mode())
 		}
 	}
@@ -76,7 +76,7 @@ func TestRoomCastEachDoor(t *testing.T) {
 	if got := faceCasts(&d, o); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("room_alt casts %v, want [1]", got)
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(o), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(o), 1, castFace))
 	sc.buildToStack(t)
 	if sc.s.objs[o].card != cd.Faces[1] {
 		t.Fatal("Locker Room is not on the stack")
@@ -113,7 +113,7 @@ func TestRoomUncastEntryAndUnlock(t *testing.T) {
 	}
 	sc.perm(id["Grizzly Bears"], 1)
 	sc.s.passes = 1
-	sc.s.Apply(MakeAction(AkUnlock, uint8(o), 0, 0))
+	sc.s.Apply(MakeAction(AkUnlock, TCode(o), 0, 0))
 	if c := sc.s.perms[sc.slot(o)].card; c != cd.Faces[kop.RoomState(0, 1)] {
 		t.Fatal("unlocking door 0 did not swap to (0,{0})")
 	}
@@ -126,7 +126,7 @@ func TestRoomUncastEntryAndUnlock(t *testing.T) {
 		t.Fatalf("unlocks %v: Locker Room costs 4U, the pool has 4U", got)
 	}
 	sc.s.pl[0].pool[kop.U] = 5
-	sc.s.Apply(MakeAction(AkUnlock, uint8(o), 0, 1))
+	sc.s.Apply(MakeAction(AkUnlock, TCode(o), 0, 1))
 	if c := sc.s.perms[sc.slot(o)].card; c != cd.Faces[kop.RoomState(0, 3)] {
 		t.Fatal("unlocking door 1 did not swap to (0,{0,1})")
 	}
@@ -172,7 +172,7 @@ func TestRoomReversal(t *testing.T) {
 	}
 	o := sc.hand(front, 0)
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(o), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(o), 1, castFace))
 	sc.s.Step()
 	if sc.s.objs[o].card != cd.Faces[1] {
 		t.Fatal("the room_alt cast did not turn Locker Room up")
@@ -212,7 +212,7 @@ func TestRoomFaceSurvivesCounterAndBounce(t *testing.T) {
 	}
 	o := sc.hand(front, 0)
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(o), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(o), 1, castFace))
 	sc.buildToStack(t)
 	sc.s.counterAt(sc.k, 0)
 	if ob := &sc.s.objs[o]; ob.zone != kop.ZoneGraveyard || ob.card != cd.Faces[1] {
@@ -275,7 +275,7 @@ func TestRoomMV(t *testing.T) {
 		t.Fatalf("face-1 hand MV %d, want 6", mv)
 	}
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(o), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(o), 1, castFace))
 	sc.buildToStack(t)
 	if mv := sc.s.objMV(sc.k, sc.s.objs[o].card, o); mv != 5 {
 		t.Fatalf("stack MV %d, want 5 (Locker Room)", mv)
@@ -324,7 +324,7 @@ func TestRoomUnlockOffer(t *testing.T) {
 		t.Fatalf("unlocks %v in the end step", got)
 	}
 	sc.s.step = kop.StepMain1
-	sc.s.Apply(MakeAction(AkUnlock, uint8(o0), 0, 0))
+	sc.s.Apply(MakeAction(AkUnlock, TCode(o0), 0, 0))
 	sc.s.npend = 0
 	d = sc.s.Step()
 	if got := unlocks(&d, o0); len(got) != 0 {
@@ -337,7 +337,7 @@ func TestRoomUnlockOffer(t *testing.T) {
 	}
 	// an unlocked door is not unlocked again, nor paid for
 	c := sc.s.perms[sc.slot(o0)].card
-	sc.s.Apply(MakeAction(AkUnlock, uint8(o0), 0, 0))
+	sc.s.Apply(MakeAction(AkUnlock, TCode(o0), 0, 0))
 	if sc.s.perms[sc.slot(o0)].card != c || sc.s.pl[0].pool[kop.U] != 5 || sc.s.npend != 0 {
 		t.Fatal("unlocking an unlocked door changed the game")
 	}
@@ -360,7 +360,7 @@ func TestRoomUnlockDoorTrigger(t *testing.T) {
 	sc.s.npend = 0
 	// unlocking door 1 (no UnlockDoor of its own) does not fire door 0's again
 	sc.s.pl[0].pool[kop.U] = 5
-	sc.s.Apply(MakeAction(AkUnlock, uint8(o), 0, 1))
+	sc.s.Apply(MakeAction(AkUnlock, TCode(o), 0, 1))
 	if sc.s.perms[sl].card != cd.Faces[kop.RoomState(0, 3)] || sc.s.npend != 0 {
 		t.Fatalf("unlocking Locker Room queued %d", sc.s.npend)
 	}
@@ -385,7 +385,7 @@ func TestRoomUnlockDoorTrigger(t *testing.T) {
 		t.Fatalf("Locker Room entry queued %d", sc.s.npend)
 	}
 	sc.s.pl[0].pool[kop.U] = 1
-	sc.s.Apply(MakeAction(AkUnlock, uint8(l), 0, 0))
+	sc.s.Apply(MakeAction(AkUnlock, TCode(l), 0, 0))
 	if sc.s.perms[lsl].card != cd.Faces[kop.RoomState(1, 3)] || sc.s.npend != 1 {
 		t.Fatalf("unlocking Bottomless Pool on a face-1 Room queued %d, want 1", sc.s.npend)
 	}

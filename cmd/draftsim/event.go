@@ -89,6 +89,7 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 		en.Rounds = sh.rounds
 	}
 	en.Format = sh.format
+	en.DeckSize = sh.deckSize
 	if sh.picks > 1 {
 		en.PicksPerPass = sh.picks
 	}

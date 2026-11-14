@@ -27,11 +27,23 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	}
 	oppOnly := false
 	if t, ok := sp.get("Target"); ok {
-		if strings.ReplaceAll(t, " ", "") != "You,Planeswalker.YouCtrl" {
+		switch {
+		case strings.ReplaceAll(t, " ", "") == "You,Planeswalker.YouCtrl":
+			oppOnly = true
+			lc.twoSeat("CantAttack Target$ you and your planeswalkers read as OppCtrl")
+		case t == ownerAttackTarget && vc == "Card.Self":
+			// Xantcha, Sleeper Agent: gorge RestrictionTargetMatches blocks the
+			// attack on the source's OWNER (Player.CardOwner) and on the
+			// planeswalkers that owner controls, never on anyone else. The
+			// kernel's defender is the creature controller's opponent, so
+			// that is every attack exactly when the owner is not the
+			// controller (an opponent of the static's controller owns it)
+			// and none when the controller owns it.
+			lc.twoSeat("CantAttack Target$ its owner and their planeswalkers read as OppOwn")
+			vc = "Card.Self+OppOwn"
+		default:
 			return refuse("CantAttack Target$ %q", t)
 		}
-		oppOnly = true
-		lc.twoSeat("CantAttack Target$ you and your planeswalkers read as OppCtrl")
 	}
 	if ud, ok := sp.get("UnlessDefender"); ok {
 		if vc != "Card.Self" {
@@ -104,6 +116,10 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	sp.consume("Secondary")
 	return nil
 }
+
+// ownerAttackTarget is Xantcha, Sleeper Agent's CantAttack Target$ (its
+// owner, and the planeswalkers its owner controls).
+const ownerAttackTarget = "Player.CardOwner,Planeswalker.ControlledBy Player.CardOwner"
 
 // fewerInPlayType reports whether an UnlessDefender$ predicate is gorge
 // UnlessDefenderHolds' hasFewer<Type>sInPlayThanYou (the type word is

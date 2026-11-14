@@ -381,7 +381,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 			}
 			pose = true
 			if rem[ci] > 0 {
-				d.add(MakeAction(AkChoose, uint8(o), 0, uint8(ci)))
+				d.add(MakeAction(AkChoose, TCode(o), 0, uint8(ci)))
 				if d.N >= MaxOptions-1 {
 					s.capFull(StallConvoke)
 					break
@@ -398,7 +398,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 					s.capFull(StallConvoke)
 					break
 				}
-				d.add(MakeAction(AkChoose, uint8(o), 0, convokeGenMode(g == 1)))
+				d.add(MakeAction(AkChoose, TCode(o), 0, convokeGenMode(g == 1)))
 			}
 		}
 		if d.N >= MaxOptions-1 {

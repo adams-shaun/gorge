@@ -61,7 +61,7 @@ func TestPlayFromTopEmblemTwoPayLife(t *testing.T) {
 		if s.Stalled() {
 			t.Fatalf("stalled (%s)", StallName(s.StallReason()))
 		}
-		sc.do(t, AkCast, uint8(o), 2)
+		sc.do(t, AkCast, TCode(o), 2)
 		for i := 0; i < 8 && s.objs[o].zone != kop.ZoneStack; i++ {
 			d := s.Step()
 			if d.N == 0 {

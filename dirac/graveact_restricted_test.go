@@ -61,7 +61,7 @@ func stdMshScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 func (sc *scen) graveActivations(o Obj) (n int) {
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(o) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(o)) {
 			n++
 		}
 	}

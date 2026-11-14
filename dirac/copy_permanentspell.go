@@ -85,6 +85,6 @@ func (s *State) permCopyBlocked(k *prep, ce *stackEntry) bool {
 func (s *State) copyRetargeted(k *prep, picks []Obj) {
 	e := &s.stack[s.sp-1]
 	for _, o := range picks {
-		s.targetedOne(k, e, uint8(o))
+		s.targetedOne(k, e, TCode(o))
 	}
 }

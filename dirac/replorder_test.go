@@ -31,17 +31,17 @@ func replScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]CardID) {
 
 // burnToAsk casts Burst Lightning (unkicked) from player 0 at target code,
 // lets it resolve and returns the next decision.
-func burnToAsk(t *testing.T, sc *scen, id map[string]CardID, code uint8) Decision {
+func burnToAsk(t *testing.T, sc *scen, id map[string]CardID, code TCode) Decision {
 	t.Helper()
 	s := sc.s
 	sc.lands(0, id["Mountain"], 1)
 	bl := sc.hand(id["Burst Lightning"], 0)
-	sc.do(t, AkCast, uint8(bl), 0xff)
+	sc.do(t, AkCast, TCode(bl), scAny)
 	for i := 0; i < 8; i++ {
 		d := s.Step()
 		switch {
 		case d.Kind == DkTarget:
-			sc.do(t, AkTarget, 0xff, code)
+			sc.do(t, AkTarget, scAny, code)
 			continue
 		case d.Kind == DkChoose && d.Sub != ChGenReplOrder:
 			s.Apply(d.Options[0]) // the kicker: not paid (option order: decline first)
@@ -68,7 +68,7 @@ func TestReplOrderNoncombatTwoTwinflames(t *testing.T) {
 	s := sc.s
 	t0 := sc.perm(id["Twinflame Tyrant"], 0)
 	t1 := sc.perm(id["Twinflame Tyrant"], 0)
-	d := burnToAsk(t, sc, id, PlayerTarget1)
+	d := burnToAsk(t, sc, id, TCode(PlayerTarget1))
 	if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
 		t.Fatalf("want the opponent's order ask over the two Twinflames, got kind %d sub %d player %d opts %v", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 	}
@@ -103,7 +103,7 @@ func TestReplOrderNoncombatBarricade(t *testing.T) {
 		sc.perm(id["Twinflame Tyrant"], 0)
 		sc.perm(id["Crystal Barricade"], 1)
 		c := sc.perm(id["Eager Trufflesnout"], 1)
-		d := burnToAsk(t, sc, id, uint8(c))
+		d := burnToAsk(t, sc, id, TCode(c))
 		if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
 			t.Fatalf("want the creature controller's order ask, got kind %d sub %d player %d opts %v", d.Kind, d.Sub, d.Player, d.Options[:d.N])
 		}
@@ -133,7 +133,7 @@ func TestReplOrderEachPlayerTwoTwinflames(t *testing.T) {
 	t1 := sc.perm(id["Twinflame Tyrant"], 0)
 	sc.lands(0, id["Mountain"], 3)
 	sg := sc.hand(id["Slagstorm"], 0)
-	sc.do(t, AkCast, uint8(sg), 0xff)
+	sc.do(t, AkCast, TCode(sg), scAny)
 	var d Decision
 	for i := 0; i < 16; i++ {
 		d = s.Step()
@@ -196,7 +196,7 @@ func TestDamageAllReplOrderEveryEvent(t *testing.T) {
 	sc.perm(id["Savannah Lions"], 0) // no Barricade: no ask for its event
 	sc.lands(0, id["Mountain"], 3)
 	sr := sc.hand(id["Seismic Rupture"], 0)
-	sc.do(t, AkCast, uint8(sr), 0xff)
+	sc.do(t, AkCast, TCode(sr), scAny)
 
 	var asked []Obj
 	for i := 0; i < 12; i++ {
@@ -257,13 +257,13 @@ func TestReplOrderCombatNoDeathAtPause(t *testing.T) {
 	s.perms[sc.slot(w0)].eotKw |= kop.KwPreventCombatDamageTo
 
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(w0), 0xff)
-	sc.do(t, AkAttack, uint8(w1), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(w0), scAny)
+	sc.do(t, AkAttack, TCode(w1), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
-	sc.do(t, AkBlock, uint8(ty), uint8(w0))
-	sc.do(t, AkBlock, uint8(ba), uint8(w0))
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkBlock, TCode(ty), TCode(w0))
+	sc.do(t, AkBlock, TCode(ba), TCode(w0))
+	sc.do(t, AkDone, scAny, scAny)
 
 	var asks int
 	for i := 0; i < 40; i++ {
@@ -345,7 +345,7 @@ func TestDamageAllReplOrderCrossSeat(t *testing.T) {
 	}
 	sc.lands(0, id["Mountain"], 3)
 	sr := sc.hand(id["Seismic Rupture"], 0)
-	sc.do(t, AkCast, uint8(sr), 0xff)
+	sc.do(t, AkCast, TCode(sr), scAny)
 
 	var asked []Obj
 	for i := 0; i < 16; i++ {

@@ -334,7 +334,7 @@ func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
 		sl := m.first()
 		abs := k.t.Cards[s.cardAt(sl)].Abilities
 		for j := range abs {
-			if a := &abs[j]; a.Kind == kop.AbMana && k.gen.restrIsKind(b.kind, a) && a.ManaRestrictAb != 0 && s.perms[sl].chosen == b.chosen && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
+			if a := &abs[j]; a.Kind == kop.AbMana && k.gen.restrIsKind(b.kind, a) && a.ManaRestrictAb != 0 && s.perms[sl].chosen == objWord(b.chosen) && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
 				return true
 			}
 		}

@@ -22,9 +22,10 @@ import (
 
 // The Commander-draft event (Mystery Booster Commander): every seat drafts
 // commanderPicksPerPass cards from each pack before passing it, builds a
-// build.CommanderDeckSize deck around one or two drafted commanders, and the
-// whole pod plays one free-for-all Commander game per event round at a
-// single host table (event.StructurePod). A pod game logs only its
+// deck of the event's deck size (build.CommanderDeckSize unless the
+// EventCreated entry names another) around one or two drafted commanders,
+// and the whole pod plays one free-for-all Commander game per event round
+// at a single host table (event.StructurePod). A pod game logs only its
 // PodGameEnded; the in-flight table is run memory, so a restart starts the
 // round's game again on a fresh table.
 const (
@@ -62,9 +63,20 @@ func (h *Host) podPolicy(policy string) *Error {
 // commander reports a Commander-draft event.
 func (m meta) commander() bool { return m.Format == formatCommander }
 
-// commanderPersona is a Commander-draft seat's drafter and builder.
-func commanderPersona(lookup pickbotCardLookup) (pickbotDrafter, pickbotBuilder) {
-	return &pickbot.CommanderDrafter{Lookup: lookup}, &pickbot.CommanderBuilder{Lookup: lookup}
+// commanderPersona is a Commander-draft seat's drafter and builder, both
+// scoring for a deckSize-card deck (0 means build.CommanderDeckSize).
+func commanderPersona(lookup pickbotCardLookup, deckSize int) (pickbotDrafter, pickbotBuilder) {
+	return &pickbot.CommanderDrafter{Lookup: lookup, DeckSize: deckSize}, &pickbot.CommanderBuilder{Lookup: lookup, DeckSize: deckSize}
+}
+
+// commanderDeckSize is the run's Commander-draft deck size: the event's
+// EventCreated DeckSize, or build.CommanderDeckSize before the event is
+// created or when it named none.
+func (r *run) commanderDeckSize() int {
+	if n := r.ev.DeckSize(); n > 0 {
+		return n
+	}
+	return build.CommanderDeckSize
 }
 
 // commanderCard is one pool card's Commander-draft facts.
@@ -89,7 +101,7 @@ func (r *run) commanderFacts(name string) (commanderCard, *cards.Card) {
 }
 
 // validateCommanderDeck checks a Commander-draft deck against the seat's
-// pool (build.ValidateCommander) and the card facts the event package cannot
+// pool (build.ValidateCommanderSize, at the event's deck size) and the card facts the event package cannot
 // see: one commander-eligible card or a Commander-draft pair
 // (deck.IsDraftCommanderPair), and every non-basic maindeck card inside the
 // commanders' colour identity (CR 903.4). It returns that identity.
@@ -99,13 +111,13 @@ func (r *run) validateCommanderDeck(seat int, d build.Deck) (uint8, error) {
 	if err != nil {
 		return ident, err
 	}
-	if err := build.ValidateCommander(pool, d); err != nil {
+	if err := build.ValidateCommanderSize(pool, d, r.commanderDeckSize()); err != nil {
 		return ident, err
 	}
 	for _, id := range d.Main {
 		ref, ok := refByID(pool, id)
 		if !ok {
-			continue // ValidateCommander refused it already
+			continue // ValidateCommanderSize refused it already
 		}
 		f, c := r.commanderFacts(ref.Name)
 		if c == nil {
@@ -176,7 +188,7 @@ func refByID(pool []limited.CardRef, id string) (limited.CardRef, bool) {
 }
 
 // commanderAutoLands is the basics a Commander-draft main needs to reach
-// build.CommanderDeckSize, split by pip share over the commanders' identity
+// the event's deck size, split by pip share over the commanders' identity
 // (every basic outside it would make the deck illegal). An identity with no
 // pips in the main splits evenly over its colours; a colourless identity
 // gets none.
@@ -191,11 +203,12 @@ func (r *run) commanderAutoLands(seat int, main []string, ident uint8) [5]int {
 		}
 		return p
 	}
-	out := build.AutoLandsTo(main, masked, build.CommanderDeckSize)
+	size := r.commanderDeckSize()
+	out := build.AutoLandsTo(main, masked, size)
 	if out != ([5]int{}) || ident == 0 {
 		return out
 	}
-	lands := build.CommanderDeckSize - len(main)
+	lands := size - len(main)
 	n := bits.OnesCount8(ident)
 	if lands <= 0 || n == 0 {
 		return out
@@ -217,7 +230,7 @@ func (r *run) commanderAutoLands(seat int, main []string, ident uint8) [5]int {
 // commanderDeckCheck is the DeckCheck body for a Commander-draft deck.
 func (r *run) commanderDeckCheck(seat int, req protocol.DeckRequest) protocol.DeckCheck {
 	d := build.Deck{Main: req.Main, Basics: req.Basics, Commanders: req.Commanders}
-	out := protocol.DeckCheck{Total: d.Total(), Size: build.CommanderDeckSize}
+	out := protocol.DeckCheck{Total: d.Total(), Size: r.commanderDeckSize()}
 	ident, err := r.validateCommanderDeck(seat, d)
 	out.Identity = wubrgOf(ident)
 	if len(req.Commanders) > 0 {

@@ -157,7 +157,7 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 		t.Fatal("the creature did not enter")
 	}
 	p := &sc.s.perms[sc.slot(o)]
-	if p.flags&pfAttacking == 0 || p.atk != PlayerTarget0+1 || p.bord != 1 || sc.s.nAttackers != 2 {
+	if p.flags&pfAttacking == 0 || TCode(p.atk) != PlayerTarget0+1 || p.bord != 1 || sc.s.nAttackers != 2 {
 		t.Fatalf("attacking %v atk %d bord %d nAttackers %d, want attacking the opponent as attacker 1", p.flags&pfAttacking != 0, p.atk, p.bord, sc.s.nAttackers)
 	}
 	if sc.s.npend != 0 {
@@ -183,16 +183,16 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 		t.Fatal("the entry should suspend at the CR 508.4 defender ask")
 	}
 	var d Decision
-	if sc.s.res.ask != raGenEnterDefender || sc.s.res.chosen != uint8(sc.slot(o)) {
+	if sc.s.res.ask != raGenEnterDefender || sc.s.res.chosen != objWord(uint8(sc.slot(o))) {
 		t.Fatalf("ask %d slot %d, want the CR 508.4 defender ask for slot %d", sc.s.res.ask, sc.s.res.chosen, sc.slot(o))
 	}
 	if !sc.s.resolveOptionsGen(sc.k, &d) || d.N != 2 || d.Sub != ChGenEnterDefender ||
-		d.Options[0].Source() != PlayerTarget0+1 || d.Options[1].Source() != uint8(walk) {
+		d.Options[0].Source() != PlayerTarget0+1 || d.Options[1].Source() != TCode(uint8(walk)) {
 		t.Fatalf("options %+v, want the opponent player then the walker", d.Options[:d.N])
 	}
 	sc.s.applyAskCold1(sc.k, d.Options[1]) // answer: the walker
 	p = &sc.s.perms[sc.slot(o)]
-	if p.flags&pfAttacking == 0 || p.atk != uint8(walk) || p.bord != 0 || sc.s.nAttackers != 1 {
+	if p.flags&pfAttacking == 0 || p.atk != TCode(uint8(walk)) || p.bord != 0 || sc.s.nAttackers != 1 {
 		t.Fatalf("attacking %v atk %d bord %d nAttackers %d, want attacking the walker", p.flags&pfAttacking != 0, p.atk, p.bord, sc.s.nAttackers)
 	}
 }
@@ -257,7 +257,7 @@ func TestThisDefinedAndTgtsSelf(t *testing.T) {
 		land := sc.s.objs[sc.s.pl[0].lib[sc.s.pl[0].libLo]].card
 		tgt, src := sc.grave(land, 0, 1)[0], sc.grave(land, 0, 1)[0]
 		sc.s.res.e.obj = src
-		sc.s.res.e.tgt[0], sc.s.res.e.nt = uint8(tgt), 1
+		sc.s.res.e.tgt[0], sc.s.res.e.nt = TCode(tgt), 1
 		return sc, prog, tgt, src
 	}
 	sc, prog, tgt, src := build()

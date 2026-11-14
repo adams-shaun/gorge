@@ -58,13 +58,13 @@ func synthCommanderPacks(t *testing.T, reg *cards.Registry, seed uint64) [][][]l
 
 // commanderDraft drafts one synthetic pod with the commander persona and
 // builds every seat's deck.
-func commanderDraft(t *testing.T, reg *cards.Registry, seed uint64) ([][]limited.CardRef, []build.Deck) {
+func commanderDraft(t *testing.T, reg *cards.Registry, seed uint64, size int) ([][]limited.CardRef, []build.Deck) {
 	t.Helper()
 	pod, err := draft.NewPodPicks(seed, synthCommanderPacks(t, reg, seed), 2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := &pb.CommanderDrafter{Lookup: lookupOf(reg)}
+	d := &pb.CommanderDrafter{Lookup: lookupOf(reg), DeckSize: size}
 	rngs := make([]*rand.Rand, 4)
 	for s := range rngs {
 		rngs[s] = rand.New(rand.NewPCG(seed, uint64(s)))
@@ -78,7 +78,7 @@ func commanderDraft(t *testing.T, reg *cards.Registry, seed uint64) ([][]limited
 			}
 		}
 	}
-	b := &pb.CommanderBuilder{Lookup: lookupOf(reg)}
+	b := &pb.CommanderBuilder{Lookup: lookupOf(reg), DeckSize: size}
 	pools := make([][]limited.CardRef, 4)
 	decks := make([]build.Deck, 4)
 	for s := range pools {
@@ -94,7 +94,7 @@ func commanderDraft(t *testing.T, reg *cards.Registry, seed uint64) ([][]limited
 // a 16..30 land base, and the same decks again from the same seed.
 func TestCommanderDraftBuildsLegalDecks(t *testing.T) {
 	reg := corpus(t)
-	pools, decks := commanderDraft(t, reg, 3)
+	pools, decks := commanderDraft(t, reg, 3, 0)
 	for s, d := range decks {
 		if len(pools[s]) != 60 {
 			t.Fatalf("seat %d drafted %d cards, want 60", s, len(pools[s]))
@@ -131,7 +131,7 @@ func TestCommanderDraftBuildsLegalDecks(t *testing.T) {
 		}
 		t.Logf("seat %d: commanders %v, %d lands, basics %v", s, f.Commanders, lands, d.Basics)
 	}
-	_, again := commanderDraft(t, reg, 3)
+	_, again := commanderDraft(t, reg, 3, 0)
 	if !reflect.DeepEqual(decks, again) {
 		t.Fatal("the same seed built different decks")
 	}
@@ -174,5 +174,31 @@ func TestCommanderBuilderPairsMonoColourCommanders(t *testing.T) {
 	}
 	if d.Basics[0] == 0 || d.Basics[3] == 0 || d.Basics[1]+d.Basics[2]+d.Basics[4] != 0 {
 		t.Fatalf("basics = %v, want Plains and Mountains only", d.Basics)
+	}
+}
+
+// TestCommanderBuilderDeckSize50 drafts the same seeded pod for a 50-card
+// event: every deck is exactly 50 cards, commanders included, passes
+// ValidateCommanderSize at 50, and its land base scales to about 14.
+func TestCommanderBuilderDeckSize50(t *testing.T) {
+	reg := corpus(t)
+	pools, decks := commanderDraft(t, reg, 3, 50)
+	for s, d := range decks {
+		if d.Total() != 50 {
+			t.Fatalf("seat %d deck = %d cards, want 50", s, d.Total())
+		}
+		if err := build.ValidateCommanderSize(pools[s], d, 50); err != nil {
+			t.Fatalf("seat %d: %v", s, err)
+		}
+		lands := d.Total() - len(d.Main)
+		for _, e := range build.ToDeckFile(pools[s], d, "cmdr").Cards {
+			if c := lookupCard(t, reg, e.Name); !c.Faces[0].IsBasic() && c.Faces[0].IsLand() {
+				lands += e.Count
+			}
+		}
+		if lands < 13 || lands > 25 {
+			t.Errorf("seat %d deck has %d lands, want 13..25", s, lands)
+		}
+		t.Logf("seat %d: commanders %v, %d lands, basics %v", s, d.Commanders, lands, d.Basics)
 	}
 }

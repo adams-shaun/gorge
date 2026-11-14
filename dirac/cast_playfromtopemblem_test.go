@@ -89,7 +89,7 @@ func TestPlayFromTopEmblem(t *testing.T) {
 		if got := playTopOffers(sc, o); len(got) != 1 {
 			t.Fatalf("not offered at 20 life with no mana: %v", got)
 		}
-		sc.do(t, AkCast, uint8(o), 0xff)
+		sc.do(t, AkCast, TCode(o), scAny)
 		for i := 0; i < 8 && s.objs[o].zone != kop.ZoneStack; i++ {
 			d := s.Step()
 			if d.N == 0 {

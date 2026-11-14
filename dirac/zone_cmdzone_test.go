@@ -52,7 +52,7 @@ func assertCommanderAsk(t *testing.T, sc *scen, o Obj) Decision {
 	}
 	for i, wantMode := range [2]uint8{0, 1} {
 		a := d.Options[i]
-		if a.Kind() != AkChoose || a.Source() != uint8(o) || a.Mode() != wantMode {
+		if a.Kind() != AkChoose || a.Source() != TCode(uint8(o)) || a.Mode() != wantMode {
 			t.Fatalf("option %d = kind %d src %d mode %d, want AkChoose src %d mode %d", i, a.Kind(), a.Source(), a.Mode(), o, wantMode)
 		}
 	}
@@ -69,7 +69,7 @@ func assertCommanderMode(t *testing.T, sc *scen, o Obj, mode uint8) {
 	s := sc.s
 	from := s.objs[o].zone
 	ver := s.objs[o].ver
-	s.Apply(MakeAction(AkChoose, uint8(o), 0, mode))
+	s.Apply(MakeAction(AkChoose, TCode(o), 0, mode))
 	switch mode {
 	case 0:
 		if z := s.objs[o].zone; z != kop.ZoneCommand {
@@ -168,7 +168,7 @@ func TestCommanderZoneAskBeforeLegend(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChCommanderZone || d.Player != 0 {
 		t.Fatalf("first decision kind=%d sub=%d player=%d, want the commander-zone ask before the legend ask", d.Kind, d.Sub, d.Player)
 	}
-	s.Apply(MakeAction(AkChoose, uint8(o), 0, 1)) // leave it: the legend ask is still owed
+	s.Apply(MakeAction(AkChoose, TCode(o), 0, 1)) // leave it: the legend ask is still owed
 	if d := s.Step(); d.Kind != DkChoose || d.Sub != ChLegend {
 		t.Fatalf("after declining the commander, decision kind=%d sub=%d, want the legend keep ask", d.Kind, d.Sub)
 	}

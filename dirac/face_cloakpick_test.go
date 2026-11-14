@@ -96,7 +96,7 @@ func TestCloakPickChosenCard(t *testing.T) {
 		if d.Sub != ChGenFaceDownPick {
 			return Action(0), false
 		}
-		if d.N != 1 || d.Options[0].Kind() != AkChoose || d.Options[0].Source() != uint8(bear) {
+		if d.N != 1 || d.Options[0].Kind() != AkChoose || d.Options[0].Source() != TCode(uint8(bear)) {
 			t.Fatalf("pick ask over %d options, want exactly the one hand card %d: %v", d.N, bear, d.Options[:d.N])
 		}
 		return d.Options[0], true

@@ -92,8 +92,8 @@ func (s *State) askCmdZone(_ *prep, d *Decision, c uint8) {
 	o := s.cmdObj(p, j)
 	*s.cmdAskAt(p, j) = s.objs[o].ver
 	d.Kind, d.Sub, d.Player = DkChoose, ChCommanderZone, p
-	d.add(MakeAction(AkChoose, uint8(o), 0, 0)) // put it into the command zone
-	d.add(MakeAction(AkChoose, uint8(o), 0, 1)) // leave it
+	d.add(MakeAction(AkChoose, TCode(o), 0, 0)) // put it into the command zone
+	d.add(MakeAction(AkChoose, TCode(o), 0, 1)) // leave it
 }
 
 // applyCmdZone answers the ask: mode 0 moves the commander from its graveyard
@@ -202,8 +202,8 @@ func (s *State) cmdZoneReplace(_ *prep, o Obj, z *kop.Zone, bottom *bool) bool {
 func (s *State) cmdZoneOptions(d *Decision) {
 	d.Sub = ChCommanderZone
 	o := s.g.pre.obj
-	d.add(MakeAction(AkChoose, uint8(o), 0, 0))
-	d.add(MakeAction(AkChoose, uint8(o), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(o), 0, 1))
 }
 
 // cmdZoneAnswer records the owner's answer and runs the instruction that

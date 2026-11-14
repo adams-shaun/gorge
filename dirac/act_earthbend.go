@@ -101,7 +101,7 @@ func (s *State) execEarthbend(k *prep, in *kop.Instr) (ok, done bool) {
 		s.capFull(StallDelayed)
 		return true, true
 	}
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpEarthbendReturn), ctrl: s.res.e.ctrl, obj: o, ver: s.objs[o].ver, when: dlyLeave, creator: s.res.e.obj}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpEarthbendReturn), ctrl: s.res.e.ctrl, obj: o, ver: objWord(s.objs[o].ver), when: dlyLeave, creator: s.res.e.obj}
 	s.ndly++
 	if DebugEarthbendResolved != nil {
 		live := 0

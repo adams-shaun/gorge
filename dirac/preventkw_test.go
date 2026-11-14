@@ -88,13 +88,13 @@ func TestPreventKeywordAllDamageTo(t *testing.T) {
 	fog := sc.perm(id["Fog Bank"], 0)
 	bear := sc.perm(id["Grizzly Bears"], 0)
 	shock := id["Shock"]
-	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, uint8(dawn), false, 3); n != 0 {
+	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, TCode(dawn), false, 3); n != 0 {
 		t.Fatalf("Dawn Elemental took %d of a 3-damage burn, want 0 (all damage to it is prevented)", n)
 	}
-	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, uint8(fog), false, 3); n != 3 {
+	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, TCode(fog), false, 3); n != 3 {
 		t.Fatalf("Fog Bank took %d of a 3-damage burn, want 3 (its sentence is combat-scoped)", n)
 	}
-	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, uint8(bear), false, 3); n != 3 {
+	if n := sc.s.replDamage(sc.k, 0, NoSlot, shock, TCode(bear), false, 3); n != 3 {
 		t.Fatalf("Grizzly Bears took %d of a 3-damage burn, want 3 (no prevention)", n)
 	}
 }
@@ -124,7 +124,7 @@ func TestPreventKeywordLostAbilities(t *testing.T) {
 	})
 	dawn := sc2.perm(id2["Dawn Elemental"], 0)
 	sc2.s.perms[sc2.slot(dawn)].ovr.flags |= ovLoseAll
-	if n := sc2.s.replDamage(sc2.k, 0, NoSlot, id2["Shock"], uint8(dawn), false, 3); n != 3 {
+	if n := sc2.s.replDamage(sc2.k, 0, NoSlot, id2["Shock"], TCode(dawn), false, 3); n != 3 {
 		t.Fatalf("Dawn Elemental took %d of a 3-damage burn, want 3 (it lost all abilities: no prevention)", n)
 	}
 }
@@ -186,7 +186,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 	sc.lands(0, id["Plains"], 2)
 	sc.lands(1, id["Mountain"], 3)
 	sc.castCard(t, sc.hand(id["Boon of Safety"], 0))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	sc.resolveAll(t)
 	if n := s.Counters(dawn, kop.CtrShield); n != 1 {
 		t.Fatalf("Dawn Elemental holds %d SHIELD after Boon of Safety, want 1", n)
@@ -196,7 +196,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 	// and appends the shield last, so the modes run 0, 1)
 	passPriority(t, sc, 1)
 	sc.castCard(t, sc.hand(id["Shock"], 1))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	d := preventKWAsk(t, sc, dawn)
 	if d.Player != 0 || d.N != 2 {
 		t.Fatalf("order ask player %d n %d opts %v, want the controller's two-option ask", d.Player, d.N, d.Options[:d.N])
@@ -204,7 +204,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 	var opts [2]Action
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Source() != uint8(dawn) {
+		if a.Source() != TCode(uint8(dawn)) {
 			t.Fatalf("option %d source %d, want the Elemental's own replacement", i, a.Source())
 		}
 		opts[a.Mode()] = a
@@ -217,7 +217,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 
 	passPriority(t, sc, 1)
 	sc.castCard(t, sc.hand(id["Shock"], 1))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	d = preventKWAsk(t, sc, dawn)
 	for i := 0; i < int(d.N); i++ {
 		opts[d.Options[i].Mode()] = d.Options[i]
@@ -230,7 +230,7 @@ func TestPreventKeywordOrderAsk(t *testing.T) {
 
 	passPriority(t, sc, 1)
 	sc.castCard(t, sc.hand(id["Shock"], 1))
-	sc.do(t, AkTarget, 0xff, uint8(dawn))
+	sc.do(t, AkTarget, scAny, TCode(dawn))
 	for i := 0; i < 12; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChGenReplOrder {

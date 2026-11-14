@@ -8,7 +8,7 @@ import "testing"
 func TestSplitSecondBarsEveryActivation(t *testing.T) {
 	var s State
 	for _, mode := range []uint8{0, 1, 0x80} {
-		if !s.splitSecondBars(nil, MakeAction(AkActivate, 3, mode, 0)) {
+		if !s.splitSecondBars(nil, MakeAction(AkActivate, 3, TCode(mode), 0)) {
 			t.Errorf("an activation of mode %#x is not barred", mode)
 		}
 	}

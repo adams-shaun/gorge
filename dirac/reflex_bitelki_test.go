@@ -35,7 +35,7 @@ func TestReflexBiteGoneDealsLastKnownPower(t *testing.T) {
 		*e = stackEntry{}
 		e.ctrl, e.obj, e.card = 0, lions, id["Savannah Lions"]
 		e.trigObj, e.trigAmt = lions, int16(s.objs[lions].ver)
-		e.tgt[0], e.tver[0] = uint8(target), s.objs[target].ver
+		e.tgt[0], e.tver[0] = TCode(target), s.objs[target].ver
 		s.res.bad, s.res.xbad = 0, 0
 		if snap {
 			e.li = s.snapLKI(lions)

@@ -50,7 +50,8 @@ func tableUnion(t *kop.Table) bool {
 func (s *State) execUnion(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	m := unionMask(in.Obj)
-	var slot, code, ver [kop.MaxTargets + maxXTgt]uint8
+	var slot, ver [kop.MaxTargets + maxXTgt]uint8
+	var code [kop.MaxTargets + maxXTgt]TCode
 	n := 0
 	for i := uint8(0); i < kop.MaxTargets; i++ {
 		if m&(1<<i) == 0 {
@@ -75,7 +76,7 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 		for j := 0; j < n; j++ {
 			if c := code[j]; isObjTarget(c) {
 				if ob := &s.objs[c]; ob.zone == kop.ZoneBattlefield && s.kw(k, ob.slot)&kop.KwIndestructible != 0 {
-					code[j] = NoTarget
+					code[j] = TCode(NoTarget)
 				}
 			}
 		}

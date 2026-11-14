@@ -26,7 +26,7 @@ func TestSelfReductionFromGraveyard(t *testing.T) {
 	sc.s.place(tt, kop.ZoneGraveyard, false)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(tt) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 			return
 		}
 	}
@@ -97,7 +97,7 @@ func TestStashCastRiderPipIsGeneric(t *testing.T) {
 				}
 			}
 		}
-		sc.s.perms[cs].chosen = uint8(ch)
+		sc.s.perms[cs].chosen = objWord(uint8(ch))
 		if !hawkOffered() {
 			t.Fatalf("type %d chosen (Bird %d): the stashed Healer's Hawk not offered from the Swamp: %v", ch, bird, d.Options[:d.N])
 		}
@@ -112,7 +112,7 @@ func TestStashCastRiderPipIsGeneric(t *testing.T) {
 		sc.s.perms[sc.slot(swamp)].flags &^= pfTapped
 		sc.s.perms[sc.slot(yard)].flags &^= pfTapped
 	}
-	sc.do(t, AkCast, uint8(hk), 0xff)
+	sc.do(t, AkCast, TCode(hk), scAny)
 	sc.s.Step()
 	if sc.s.objs[hk].zone != kop.ZoneStack || !sc.tapped(swamp) || sc.tapped(yard) {
 		t.Fatalf("zone %d, Swamp tapped %v, Courtyard tapped %v; want the stack and the Swamp alone", sc.s.objs[hk].zone, sc.tapped(swamp), sc.tapped(yard))
@@ -135,7 +135,7 @@ func TestGrantedFlashbackBesidesPrinted(t *testing.T) {
 	sc.s.grantFB(sc.k, ib)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(ib) && a.Mode()&2 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(ib)) && a.Mode()&2 != 0 {
 			sc.s.Apply(a)
 			sc.s.Step()
 			if z := sc.s.objs[ib].zone; z != kop.ZoneStack {
@@ -164,7 +164,7 @@ func TestGrantedFlashbackInstanceNotPlanned(t *testing.T) {
 	sc.s.grantFB(sc.k, ib)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(ib) && a.Mode()&2 != 0 {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(ib)) && a.Mode()&2 != 0 {
 			if sc.s.FeatPlannedCast(0, ib, a.Mode()) {
 				t.Fatal("the granted {2}{U} flashback instance is reported planned")
 			}
@@ -210,7 +210,7 @@ func TestGrantedFlashbackAmbiguous(t *testing.T) {
 		}
 		got := false
 		for _, a := range d.Options[:d.N] {
-			if a.Kind() == AkCast && a.Source() == uint8(tt) {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 				got = true
 			}
 		}
@@ -239,7 +239,7 @@ func TestSelfReductionStashCaster(t *testing.T) {
 	sc.s.stashSet(sc.k, tt)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(tt) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 			return
 		}
 	}
@@ -261,7 +261,7 @@ func TestPrintedFlashbackPlanned(t *testing.T) {
 	sc.s.grantFB(sc.k, tt)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(tt) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(tt)) {
 			return
 		}
 	}
@@ -283,7 +283,7 @@ func TestStashRebukeCheapestTarget(t *testing.T) {
 	sc.s.stashSet(sc.k, lr)
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkCast && a.Source() == uint8(lr) {
+		if a.Kind() == AkCast && a.Source() == TCode(uint8(lr)) {
 			return
 		}
 	}
@@ -332,7 +332,7 @@ func TestStashCastRiderPlansEverySource(t *testing.T) {
 		t.Fatalf("the stashed Dreadwing Scavenger is offered from two sources: %v", d.Options[:d.N])
 	}
 	sc.s.perms[sc.slot(lands[0])].flags &^= pfTapped
-	sc.do(t, AkCast, uint8(dw), 0xff)
+	sc.do(t, AkCast, TCode(dw), scAny)
 	sc.s.Step()
 	if sc.s.objs[dw].zone != kop.ZoneStack || tappedN(sc, lands) != 3 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("zone %d, %d lands tapped, pool %v; want the stack, all three and an empty pool", sc.s.objs[dw].zone, tappedN(sc, lands), sc.s.pl[0].pool)

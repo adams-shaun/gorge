@@ -46,7 +46,7 @@ func TestGrantedSacHostCost(t *testing.T) {
 	if !ok {
 		t.Fatalf("the granted ability is not offered with {3} in the pool: %v", d.Options[:d.N])
 	}
-	if a.Target() != uint8(hammer) {
+	if a.Target() != TCode(uint8(hammer)) {
 		t.Fatalf("granted ability host %d, want the Equipment %d", a.Target(), hammer)
 	}
 	s.Apply(a)

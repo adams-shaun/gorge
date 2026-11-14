@@ -21,8 +21,8 @@ const maxEmbTotal = maxEmb + maxEmbCold
 type embRec struct {
 	idx uint8
 	obj Obj
-	num uint8
-	rem [embRemSlots - 1]uint8
+	num objWord
+	rem [embRemSlots - 1]objWord
 	c   CardID
 	t   uint16
 }
@@ -92,7 +92,7 @@ func (s *State) embObj(p uint8, i int) Obj {
 	return s.embRecAt(p, i).obj
 }
 
-func (s *State) embNum(p uint8, i int) uint8 {
+func (s *State) embNum(p uint8, i int) objWord {
 	if i < maxEmb {
 		return s.g.embN[p][i]
 	}
@@ -128,7 +128,7 @@ func (s *State) embPut(p uint8, i int, r embRec) {
 }
 
 // embSetNum sets the frozen number of player p's emblem i.
-func (s *State) embSetNum(p uint8, i int, n uint8) {
+func (s *State) embSetNum(p uint8, i int, n objWord) {
 	if i < maxEmb {
 		s.g.embN[p][i] = n
 		return

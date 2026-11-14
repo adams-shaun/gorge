@@ -229,7 +229,7 @@ func TestHBotHoldTimedTap(t *testing.T) {
 	bt := New(NewFacts(v.Table)).EnableHoldInstant()
 	bt.b.fill(s, bt.f, 0)
 	d := dirac.Decision{Kind: dirac.DkPriority, Player: 0, N: 1}
-	d.Options[0] = dirac.MakeAction(dirac.AkCast, uint8(shock), 0, 0)
+	d.Options[0] = dirac.MakeAction(dirac.AkCast, dirac.TCode(shock), 0, 0)
 
 	if bt.timedTapWould(s, &d) {
 		t.Fatal("own main1: held instant produced a timed tap")
@@ -353,8 +353,8 @@ func holdOppState(t *testing.T, wantStep kop.Step) (*dirac.State, dirac.Obj) {
 func TestHBotHoldPriorityOpponentTiming(t *testing.T) {
 	s, o := holdOppState(t, kop.StepMain1)
 	d := dirac.Decision{Player: 0, Kind: dirac.DkPriority, N: 2}
-	d.Options[0] = dirac.MakeAction(dirac.AkCast, uint8(o), 0, 1)
-	d.Options[1] = dirac.MakeAction(dirac.AkPass, uint8(dirac.NoObj), 0, 0)
+	d.Options[0] = dirac.MakeAction(dirac.AkCast, dirac.TCode(o), 0, 1)
+	d.Options[1] = dirac.MakeAction(dirac.AkPass, dirac.TCode(dirac.NoObj), 0, 0)
 	bt := New(NewFacts(v.Table))
 	bt.hold = true
 	if got := bt.Pick(s, &d); got != 1 {
@@ -362,8 +362,8 @@ func TestHBotHoldPriorityOpponentTiming(t *testing.T) {
 	}
 	s, o = holdOppState(t, kop.StepEnd)
 	d = dirac.Decision{Player: 0, Kind: dirac.DkPriority, N: 2}
-	d.Options[0] = dirac.MakeAction(dirac.AkCast, uint8(o), 0, 1)
-	d.Options[1] = dirac.MakeAction(dirac.AkPass, uint8(dirac.NoObj), 0, 0)
+	d.Options[0] = dirac.MakeAction(dirac.AkCast, dirac.TCode(o), 0, 1)
+	d.Options[1] = dirac.MakeAction(dirac.AkPass, dirac.TCode(dirac.NoObj), 0, 0)
 	if got := bt.Pick(s, &d); got != 0 {
 		t.Fatalf("opponent end: Pick = %d, want 0 (the timed cast)", got)
 	}
@@ -378,7 +378,7 @@ func TestHBotHoldPriorityTimedTap(t *testing.T) {
 	f := NewFacts(v.Table)
 	f.Cards[v.GiantGrowth].Trick = true // NewFacts has no IR; the oracle facts do
 	d := dirac.Decision{Kind: dirac.DkPriority, Player: 0, N: 2}
-	d.Options[0] = dirac.MakeAction(dirac.AkCast, uint8(trick), 0, 1)
+	d.Options[0] = dirac.MakeAction(dirac.AkCast, dirac.TCode(trick), 0, 1)
 	d.Options[1] = dirac.MakeAction(dirac.AkPass, 0, 0, 0)
 
 	if got := New(f).EnableHoldInstant().Pick(s, &d); got != 0 {

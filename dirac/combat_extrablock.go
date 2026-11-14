@@ -36,7 +36,7 @@ func (s *State) xblkRecs() []xblkRec {
 	at := 0
 	_ = coldView[mayPlay](nil, &at, l.may)
 	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[uint8](nil, &at, l.ctrP)
+	_ = coldView[plusCreRec](nil, &at, l.ctrP)
 	return coldView[xblkRec](s.cold.buf, &at, l.xblk)
 }
 
@@ -63,7 +63,7 @@ func (s *State) blockKey(b, a Slot) uint8 {
 	if p := &s.perms[b]; p.blocking != a && s.xblkOf(b) == a {
 		return s.xblkRecs()[b].ord
 	}
-	return s.perms[b].bord
+	return uint8(s.perms[b].bord)
 }
 
 // blockPairs writes every declared pair of the defenders' blockers, in
@@ -86,7 +86,7 @@ func (s *State) blockPairs(out *[2 * MaxPerm]blkPair) int {
 		if p.flags&pfBlocking == 0 || p.blocking == NoSlot {
 			continue
 		}
-		add(b, p.blocking, p.bord)
+		add(b, p.blocking, uint8(p.bord))
 		if x := s.xblkOf(b); x != NoSlot {
 			add(b, x, s.xblkRecs()[b].ord)
 		}
@@ -115,7 +115,7 @@ func (s *State) forgetBlocked(b, a Slot) bool {
 	case p.blocking == a:
 		p.blocking = NoSlot
 		if x := s.xblkOf(b); x != NoSlot {
-			p.blocking, p.bord = x, s.xblkRecs()[b].ord
+			p.blocking, p.bord = x, objWord(s.xblkRecs()[b].ord)
 			s.xblkRecs()[b] = xblkRec{}
 		}
 	default:
@@ -301,9 +301,9 @@ func (s *State) nextBlockerDivision(k *prep, first bool, order *[MaxPerm]Slot, n
 // share (SplitAt with two recipients).
 func (s *State) blockerDivideOptions(d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChDivide, s.perms[s.divA].ctrl
-	o := uint8(s.perms[s.divA].obj)
+	o := s.perms[s.divA].obj
 	for i, n := 0, splits(int(s.divRem), 2); i < n; i++ {
-		d.add(MakeAction(AkChoose, o, 0, uint8(i)))
+		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
 	}
 }
 

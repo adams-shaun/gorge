@@ -97,7 +97,7 @@ func TestNSeatCommanderZoneAsk(t *testing.T) {
 	}
 	for i, w := range want {
 		d := s.Step()
-		if d.Kind != DkChoose || d.Sub != ChCommanderZone || d.Player != w.p || d.N != 2 || d.Options[0].Source() != uint8(os[i]) {
+		if d.Kind != DkChoose || d.Sub != ChCommanderZone || d.Player != w.p || d.N != 2 || d.Options[0].Source() != TCode(os[i]) {
 			t.Fatalf("ask %d: kind %d sub %d player %d n %d src %d, want seat %d's commander %d", i, d.Kind, d.Sub, d.Player, d.N, d.Options[0].Source(), w.p, os[i])
 		}
 		s.Apply(d.Options[w.mode])

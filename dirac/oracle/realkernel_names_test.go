@@ -43,7 +43,7 @@ func TestRealKernelMapsGorgeNames(t *testing.T) {
 		if j >= len(m.Table) || m.Table[j] != printed {
 			t.Fatalf("%q not in the matchup table %v", printed, m.Table)
 		}
-		if r.tidx[id] != uint8(j) {
+		if r.tidx[id] != CardIndex(j) {
 			t.Errorf("tidx[%d] = %d, want %d", id, r.tidx[id], j)
 		}
 	}

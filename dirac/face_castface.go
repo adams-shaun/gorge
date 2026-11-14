@@ -127,7 +127,7 @@ func (s *State) offerFaceCasts(k *prep, d *Decision, p uint8, o Obj, sorc bool) 
 		return
 	}
 	if s.faceCastable(k, p, o, cd.Faces[1], sorc) {
-		d.add(MakeAction(AkCast, uint8(o), 1, castFace))
+		d.add(MakeAction(AkCast, TCode(o), 1, castFace))
 	}
 	if cd.FuseDef != 0 && k.gen.anyFuse {
 		s.offerFuseCast(k, d, p, o, sorc) // both halves (face_fuse.go)
@@ -147,7 +147,7 @@ func (s *State) offerAdventureRecasts(k *prep, d *Decision, p uint8, sorc bool) 
 			continue
 		}
 		if s.faceCastable(k, p, o, s.objs[o].card, sorc) {
-			d.add(MakeAction(AkCast, uint8(o), 0, castFace))
+			d.add(MakeAction(AkCast, TCode(o), 0, castFace))
 		}
 	}
 }

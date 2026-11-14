@@ -122,3 +122,106 @@ func TestCommanderPodEvent(t *testing.T) {
 }
 
 func intp(v int) *int { return &v }
+
+// commanderPools drafts a 4-seat Commander event on commanderPacks, taking
+// each pack's first card, and returns it in BUILD.
+func commanderPools(t *testing.T, created event.Entry) *event.Event {
+	t.Helper()
+	e := event.New()
+	applyAll(t, e, created)
+	packs := commanderPacks()
+	for s := 0; s < 4; s++ {
+		for r := 0; r < 3; r++ {
+			applyAll(t, e, event.Entry{Kind: event.KindPackOpened, Round: r + 1, Seat: s, Cards: packs[s][r]})
+		}
+	}
+	for e.Phase() == event.PhaseDraft {
+		for s := 0; s < 4; s++ {
+			if v, ok := e.Next(s); ok {
+				applyAll(t, e, event.Entry{Kind: event.KindPicked, Round: v.Round, PickNo: v.PickNo, Seat: s, ID: v.Pack[0].ID})
+			}
+		}
+	}
+	return e
+}
+
+// commanderDeckOf is a deck of total cards from seat's pool: 36 maindeck
+// cards (the first a commander) plus basics.
+func commanderDeckOf(e *event.Event, seat, total int) *build.Deck {
+	var main []string
+	for _, c := range e.Pool(seat)[:36] {
+		main = append(main, c.ID)
+	}
+	return &build.Deck{Main: main, Basics: [5]int{total - 36}, Commanders: []string{main[0]}}
+}
+
+// TestCommanderEventDeckSize pins the EventCreated DeckSize: a Commander
+// event naming 50 saves a 50-card deck and refuses a 49-card one; a limited
+// event and an out-of-range size are refused at EventCreated; an event that
+// names none (every log before the field) still demands 60, and its
+// EventCreated line carries no deck_size key.
+func TestCommanderEventDeckSize(t *testing.T) {
+	seats := make([]event.SeatSpec, 4)
+	for i := range seats {
+		seats[i] = event.SeatSpec{Kind: "bot", Name: fmt.Sprintf("bot%d", i)}
+	}
+	created := event.Entry{Kind: event.KindEventCreated, Seed: 9, Set: "TST", Seats: seats,
+		Format: event.FormatCommander, Structure: event.StructureNone, PicksPerPass: 2}
+
+	for _, bad := range []event.Entry{
+		{Kind: event.KindEventCreated, Seed: 9, Set: "TST", Seats: seats, DeckSize: 50},
+		{Kind: event.KindEventCreated, Seed: 9, Set: "TST", Seats: seats, Format: event.FormatCommander, Structure: event.StructureNone, DeckSize: build.MinCommanderDeckSize - 1},
+		{Kind: event.KindEventCreated, Seed: 9, Set: "TST", Seats: seats, Format: event.FormatCommander, Structure: event.StructureNone, DeckSize: build.MaxDeckSize + 1},
+		{Kind: event.KindEventCreated, Seed: 9, Set: "TST", Seats: seats, Format: event.FormatCommander, Structure: event.StructureNone, DeckSize: -1},
+	} {
+		if err := event.New().Apply(bad); err == nil {
+			t.Errorf("EventCreated %+v accepted, want a refusal", bad)
+		}
+	}
+
+	fifty := created
+	fifty.DeckSize = 50
+	e := commanderPools(t, fifty)
+	if e.DeckSize() != 50 {
+		t.Fatalf("DeckSize() = %d, want 50", e.DeckSize())
+	}
+	if err := e.Apply(event.Entry{Kind: event.KindDeckSaved, Seat: 0, Rev: 1, Deck: commanderDeckOf(e, 0, 49)}); err == nil {
+		t.Fatal("a 49-card deck was saved in a 50-card Commander event")
+	}
+	for s := 0; s < 4; s++ {
+		applyAll(t, e,
+			event.Entry{Kind: event.KindDeckSaved, Seat: s, Rev: 1, Deck: commanderDeckOf(e, s, 50)},
+			event.Entry{Kind: event.KindReady, Seat: s, Rev: 1})
+	}
+	applyAll(t, e, event.Entry{Kind: event.KindEventEnded})
+	wire, err := event.MarshalLog(e.Log())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(wire, []byte(`"deck_size":50`)) {
+		t.Fatalf("the EventCreated line carries no deck_size:\n%s", wire)
+	}
+	again, err := event.ReplayLog(wire)
+	if err != nil {
+		t.Fatalf("ReplayLog: %v", err)
+	}
+	a, _ := e.StateJSON()
+	b, _ := again.StateJSON()
+	if !bytes.Equal(a, b) || !bytes.Contains(a, []byte(`"deck_size":50`)) {
+		t.Fatalf("replayed state differs or lacks deck_size:\n%s\n%s", a, b)
+	}
+
+	old := commanderPools(t, created)
+	if old.DeckSize() != build.CommanderDeckSize {
+		t.Fatalf("DeckSize() = %d with none named, want %d", old.DeckSize(), build.CommanderDeckSize)
+	}
+	if err := old.Apply(event.Entry{Kind: event.KindDeckSaved, Seat: 0, Rev: 1, Deck: commanderDeckOf(old, 0, 50)}); err == nil {
+		t.Fatal("a 50-card deck was saved in an event that names no deck size")
+	}
+	applyAll(t, old, event.Entry{Kind: event.KindDeckSaved, Seat: 0, Rev: 1, Deck: commanderDeckOf(old, 0, 60)})
+	wire, _ = event.MarshalLog(old.Log()[:1])
+	st, _ := old.StateJSON()
+	if bytes.Contains(wire, []byte("deck_size")) || bytes.Contains(st, []byte("deck_size")) {
+		t.Fatalf("an event naming no deck size writes deck_size:\n%s\n%s", wire, st)
+	}
+}

@@ -53,8 +53,8 @@ func trigtgtctrlRun(t *testing.T, dead bool) uint8 {
 	s.pl[1].libTop(tok)
 
 	o := sc.hand(c, 0)
-	sc.do(t, AkCast, uint8(o), 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkCast, TCode(o), scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	// the resolving spell stands in for the queued trigger: bind its
 	// trigger object and the stale queue-time trigger player
 	for i := range s.stack {
@@ -62,7 +62,7 @@ func trigtgtctrlRun(t *testing.T, dead bool) uint8 {
 			s.stack[i].kind, s.stack[i].trigObj, s.stack[i].trigPl = seTrigger, referent, 0
 		}
 	}
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkPass, scAny, scAny)
 	for {
 		d := s.Step()
 		if d.Kind == DkPriority {

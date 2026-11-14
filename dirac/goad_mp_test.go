@@ -28,7 +28,7 @@ func goadScen(t *testing.T, gone int) (*scen, map[string]CardID) {
 		sc.s.pl[gone].lost = true
 	}
 	if len(sc.s.cold.discHeld) == 0 {
-		sc.s.cold.discHeld = make([]uint8, discHeldLen)
+		sc.s.cold.discHeld = make([]Obj, discHeldLen)
 	}
 	return sc, id
 }
@@ -41,7 +41,7 @@ func (sc *scen) goadOffers(o Obj) []uint8 {
 	sc.s.attackerOptions(sc.k, d)
 	var out []uint8
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkAttack && a.Source() == uint8(o) && isPlayerTarget(a.Target()) {
+		if a := d.Options[i]; a.Kind() == AkAttack && a.Source() == TCode(uint8(o)) && isPlayerTarget(a.Target()) {
 			out = append(out, CodeSeat(a.Target()))
 		}
 	}

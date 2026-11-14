@@ -20,6 +20,19 @@ func conditionManaSpentMet(c *Ctx, g *state.Game, spentKey, notSpentKey string) 
 	if o := g.Obj(c.Source); o != nil {
 		spent = o.ManaColorSpent
 	}
+	return ManaColourSpendGate(spent, spentKey, notSpentKey)
+}
+
+// ManaColourSpendGate answers the shared per-colour read behind the
+// ConditionManaSpent$ / ConditionManaNotSpent$ ability gate
+// (conditionManaSpentMet) and the trigger-side ManaSpent$ / ManaNotSpent$
+// clause (rules triggerConditionHolds): the ONE colour-list parser both
+// spellings evaluate, so they cannot drift apart. spent is the recorded
+// per-colour spend; a value is a space-separated colour list meaning ALL
+// listed colours were spent (Forge's hasAllColors). A zero vector means
+// nothing was spent: ManaSpent is false and ManaNotSpent true, Forge's
+// null-castSA arms. ok is false for a token naming no colour.
+func ManaColourSpendGate(spent state.Mana, spentKey, notSpentKey string) (met, ok bool) {
 	met = true
 	for _, k := range []struct {
 		val string

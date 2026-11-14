@@ -58,11 +58,17 @@ func (s *State) exHaste(k *prep, in *kop.Instr) {
 	if sl == NoSlot {
 		return
 	}
-	o := s.perms[sl].obj
 	kind := uint8(1)
 	if in.C&1 != 0 { // seat-ok: an instruction flag bit
 		kind = 0x80 | uint8(in.C>>1&7)<<4 | uint8(in.C>>4&15)
 	}
+	s.exhAdd(sl, kind)
+}
+
+// exhAdd records kind on the permanent at sl: the same grant again is a
+// no-op, a full store a loud stall.
+func (s *State) exhAdd(sl Slot, kind uint8) {
+	o := s.perms[sl].obj
 	free := -1
 	for i := range s.cold.exH {
 		r := &s.cold.exH[i]
@@ -125,7 +131,7 @@ func (s *State) exhBlocks(k *prep, a, b Slot) bool {
 			if s.kw(k, b)&kop.KwHaste == 0 {
 				return true
 			}
-		} else if cmp(kop.CmpOp(r.kind>>4&7), s.power(k, b), int(r.kind&15)) {
+		} else if r.kind >= 0x80 && cmp(kop.CmpOp(r.kind>>4&7), s.power(k, b), int(r.kind&15)) {
 			return true
 		}
 	}

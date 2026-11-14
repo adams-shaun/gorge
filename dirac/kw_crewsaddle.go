@@ -135,7 +135,7 @@ func (s *State) tapPowerOptions(k *prep, d *Decision) bool {
 			others -= pw[i]
 		}
 		if sum+pw[i]+others >= floor {
-			d.add(MakeAction(AkChoose, uint8(s.perms[cand[i]].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[cand[i]].obj), 0, 0))
 		}
 	}
 	if valid {

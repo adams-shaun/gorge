@@ -49,7 +49,7 @@ func TestMayPlayAnyType(t *testing.T) {
 	sc.perm(v.Mountain, 0)
 	o := sc.obj(v.ThinkTwice, 0)
 	s.objs[o].zone = kop.ZoneExile
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	s.g.nmay = 1
 
 	var d Decision
@@ -129,7 +129,7 @@ func TestSpendMayKindStaleRecord(t *testing.T) {
 	o := sc.obj(v.ThinkTwice, 0)
 	s.place(o, kop.ZoneExile, false)
 	stale := s.objs[o].ver
-	s.g.may[0] = mayPlay{obj: o, ver: stale, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: stale, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	// leave and return: the object is a new object (CR 400.7)
 	s.detach(o)
 	s.place(o, kop.ZoneGraveyard, false)
@@ -138,7 +138,7 @@ func TestSpendMayKindStaleRecord(t *testing.T) {
 	if s.objs[o].ver == stale {
 		t.Fatal("leave-and-return did not bump the object version")
 	}
-	s.g.may[1] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), kind: kop.MayPlayAnyType, turn: s.turn}
+	s.g.may[1] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), kind: kop.MayPlayAnyType, turn: mayWord(s.turn)}
 	s.g.nmay = 2
 
 	var d Decision
@@ -172,8 +172,8 @@ func TestSpendMayKindPlainFirst(t *testing.T) {
 	sc.perm(v.Mountain, 0)
 	o := sc.obj(v.ThinkTwice, 0)
 	s.objs[o].zone = kop.ZoneExile
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
-	s.g.may[1] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), kind: kop.MayPlayAnyType, turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
+	s.g.may[1] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), kind: kop.MayPlayAnyType, turn: mayWord(s.turn)}
 	s.g.nmay = 2
 
 	var d Decision
@@ -204,12 +204,12 @@ func TestSpendMayKindFallbackVer(t *testing.T) {
 	o := sc.obj(v.ThinkTwice, 0)
 	s.place(o, kop.ZoneExile, false)
 	stale := s.objs[o].ver
-	s.g.may[0] = mayPlay{obj: o, ver: stale, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: stale, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	s.detach(o)
 	s.place(o, kop.ZoneGraveyard, false)
 	s.detach(o)
 	s.place(o, kop.ZoneExile, false)
-	s.g.may[1] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[1] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	s.g.nmay = 2
 
 	castMaypermissionMayCast(t, s, sc.k, o)
@@ -253,7 +253,7 @@ func TestMayPlayAnyColor(t *testing.T) {
 	sc.perm(v.Mountain, 0)
 	o := sc.obj(v.ThinkTwice, 0)
 	s.objs[o].zone = kop.ZoneExile
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn)}
 	s.g.nmay = 1
 
 	var d Decision
@@ -303,7 +303,7 @@ func TestMayPlayAnyColorColorless(t *testing.T) {
 	sc.perm(v.Mountain, 0)
 	o := sc.obj(cspell, 0)
 	s.objs[o].zone = kop.ZoneExile
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn, kind: kop.MayPlayIgnoreColor}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn), kind: kop.MayPlayIgnoreColor}
 	s.g.nmay = 1
 
 	var d Decision
@@ -357,7 +357,7 @@ func TestMayPlayLimit(t *testing.T) {
 	sc.perm(v.Mountain, 0)
 	o := sc.obj(v.RagingGoblin, 0)
 	s.objs[o].zone = kop.ZoneExile
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn, kind: 1 << kop.MayPlayLimitShift}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn), kind: 1 << kop.MayPlayLimitShift}
 	s.g.nmay = 1
 
 	var d Decision
@@ -428,7 +428,7 @@ func b10AnyColorPlan(t *testing.T, islandFirst bool) {
 	}
 	o := sc.obj(v.RagingGoblin, 0) // {R}
 	s.place(o, kop.ZoneExile, false)
-	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: s.turn, kind: kop.MayPlayIgnoreColor}
+	s.g.may[0] = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: 0, until: uint8(kop.DurEOT), turn: mayWord(s.turn), kind: kop.MayPlayIgnoreColor}
 	s.g.nmay = 1
 	*s.bld() = build{e: stackEntry{kind: seSpell, obj: o, card: v.RagingGoblin, ctrl: 0}}
 	s.castFlagsGen(sc.k, o, castMayPlay)
