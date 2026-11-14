@@ -68,6 +68,7 @@ type coldLayout struct {
 	atkLast                                                                         int // per-seat attacked-defender bytes (0 or MaxSeats), right after the partner records (trig_atklastturn.go)
 	mk                                                                              int // multikicker counts per slot (CR 702.43; cast.go)
 	mkObj                                                                           int // multikicker counts per object while on the stack (cast.go)
+	dmgT                                                                            int // per-player damage taken this turn, right after the atkLast records (kw_bloodthirst.go)
 	words                                                                           int
 }
 
@@ -124,6 +125,9 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyAtkLast {
 		l.atkLast = MaxSeats
 	}
+	if g.anyDmgTaken {
+		l.dmgT = MaxSeats
+	}
 }
 
 // place points c's arrays into b, or just counts them if b is nil, and returns
@@ -136,6 +140,7 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	_ = coldView[xblkRec](b, &at, l.xblk)       // then xblkRecs, after the counter record
 	_ = coldView[cmdPartner](b, &at, l.partner) // then partnerCold, after the xblk records
 	_ = coldView[uint8](b, &at, l.atkLast)      // then atkLastCold, after the partner records
+	_ = coldView[int16](b, &at, l.dmgT)         // then dmgTakenCold, after the atkLast records
 	c.ms = coldView[slotMask](b, &at, l.ms)
 	c.mo = coldView[objBits](b, &at, l.mo)
 	c.exw = coldView[exwRec](b, &at, l.exw)
