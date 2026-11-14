@@ -145,19 +145,19 @@ func TestBlightCostPick(t *testing.T) {
 	bear := sc.perm(id["Ray Fillet, Man Ray"], 0)
 	sc.perm(id["Grizzly Bears"], 1)
 	sc.lands(0, id["Mountain"], 2)
-	sc.do(t, AkActivate, uint8(st), 0xff)
+	sc.do(t, AkActivate, TCode(st), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.N != 2 {
 		t.Fatalf("blight pick kind %d n %d, want 2 candidates", d.Kind, d.N)
 	}
 	seen := map[uint8]bool{}
 	for i := 0; i < int(d.N); i++ {
-		seen[d.Options[i].Source()] = true
+		seen[uint8(d.Options[i].Source())] = true
 	}
 	if !seen[uint8(st)] || !seen[uint8(bear)] {
 		t.Fatalf("blight candidates %v, want the source and the bears", d.Options[:d.N])
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(bear), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(bear), 0, 0))
 	keclBuildDone(t, sc)
 	if n := sc.s.perms[sc.slot(bear)].ctrLow(int(kop.CtrM1M1)); n != 1 {
 		t.Fatalf("picked creature has %d -1/-1 counters, want 1", n)
@@ -178,7 +178,7 @@ func TestBlightCostPick(t *testing.T) {
 	sc2.lands(0, id2["Swamp"], 2)
 	d = sc2.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(sp) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(sp)) {
 			t.Fatalf("a Blight cost with no creature is offered: %v", d.Options[:d.N])
 		}
 	}
@@ -199,7 +199,7 @@ func TestBlightAltAddPayable(t *testing.T) {
 	tgt := sc.perm(id["Grizzly Bears"], 1)
 	sc.lands(0, id["Swamp"], 5)
 	sp := sc.hand(id["Bogslither's Embrace"], 0)
-	sc.do(t, AkCast, uint8(sp), 0xff)
+	sc.do(t, AkCast, TCode(sp), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd || d.N != 2 {
 		t.Fatalf("altadd decision kind %d sub %d n %d, want both parts", d.Kind, d.Sub, d.N)
@@ -214,7 +214,7 @@ func TestBlightAltAddPayable(t *testing.T) {
 		t.Fatalf("no blight part in %v", d.Options[:d.N])
 	}
 	sc.s.Apply(blight)
-	sc.do(t, AkTarget, 0xff, uint8(tgt))
+	sc.do(t, AkTarget, scAny, TCode(tgt))
 	keclBuildDone(t, sc)
 	keclResolveAll(t, sc)
 	if n := sc.s.perms[sc.slot(bear)].ctrLow(int(kop.CtrM1M1)); n != 1 {
@@ -229,13 +229,13 @@ func TestBlightAltAddPayable(t *testing.T) {
 	tgt2 := sc2.perm(id2["Grizzly Bears"], 1)
 	sc2.lands(0, id2["Swamp"], 5)
 	sp2 := sc2.hand(id2["Bogslither's Embrace"], 0)
-	sc2.do(t, AkCast, uint8(sp2), 0xff)
+	sc2.do(t, AkCast, TCode(sp2), scAny)
 	d = sc2.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChAltAdd || d.N != 1 || d.Options[0].Target() != 1 {
 		t.Fatalf("no creature: altadd %v, want the {3} part alone", d.Options[:d.N])
 	}
 	sc2.s.Apply(d.Options[0])
-	sc2.do(t, AkTarget, 0xff, uint8(tgt2))
+	sc2.do(t, AkTarget, scAny, TCode(tgt2))
 	keclBuildDone(t, sc2)
 	keclResolveAll(t, sc2)
 	if sc2.onBF(tgt2) {
@@ -249,7 +249,7 @@ func TestBlightAltAddPayable(t *testing.T) {
 	sp3 := sc3.hand(id3["Bogslither's Embrace"], 0)
 	d = sc3.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(sp3) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(sp3)) {
 			t.Fatalf("an unpayable either-or Blight spell is offered")
 		}
 	}
@@ -290,7 +290,7 @@ func TestBlightResolutionPay(t *testing.T) {
 	if d.Kind != DkChoose || d.N != 2 {
 		t.Fatalf("blight pick kind %d n %d, want 2 candidates", d.Kind, d.N)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(bear), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(bear), 0, 0))
 	keclBuildDone(t, sc)
 	keclResolveAll(t, sc)
 	if sc.onBF(bear) {
@@ -413,7 +413,7 @@ func TestOpBlight(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChGenBlightPick || d.N != 3 {
 		t.Fatalf("blight ask kind %d sub %d n %d, want ChGenBlightPick with 3", d.Kind, d.Sub, d.N)
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(b0), 0, 0))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b0), 0, 0))
 	keclResolveAll(t, sc)
 	if sc.onBF(b0) {
 		t.Error("a 2/2 with two -1/-1 counters survived")
@@ -459,7 +459,7 @@ func TestOpBlight(t *testing.T) {
 	if d.Kind != DkChoose || d.Sub != ChGenBlightPick || d.N != 2 {
 		t.Fatalf("Morcant ask kind %d sub %d n %d, want ChGenBlightPick with 2", d.Kind, d.Sub, d.N)
 	}
-	sc3.s.Apply(MakeAction(AkChoose, uint8(opp), 0, 0))
+	sc3.s.Apply(MakeAction(AkChoose, TCode(opp), 0, 0))
 	keclResolveAll(t, sc3)
 	if !sc3.onBF(opp) {
 		t.Error("the opponent's 2/2 died to one -1/-1 counter")
@@ -489,12 +489,12 @@ func TestSubCtrPickAbility(t *testing.T) {
 	sc.s.perms[sc.slot(b0)].addCtrN(sc.s, int(kop.CtrP1P1), 1)
 	sc.s.perms[sc.slot(b1)].addCtrN(sc.s, int(kop.CtrP1P1), 1)
 	sc.s.perms[sc.slot(b1)].addCtrN(sc.s, int(kop.CtrStun), 1)
-	sc.do(t, AkActivate, uint8(ch), 0xff)
+	sc.do(t, AkActivate, TCode(ch), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkTarget {
 		t.Fatalf("Sunstar activation decision kind %d, want the target ask", d.Kind)
 	}
-	sc.do(t, AkTarget, 0xff, uint8(tgt))
+	sc.do(t, AkTarget, scAny, TCode(tgt))
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChCostSubCtr || d.N != 2 {
 		t.Fatalf("counter pick kind %d sub %d n %d, want two +1/+1 creatures", d.Kind, d.Sub, d.N)
@@ -504,7 +504,7 @@ func TestSubCtrPickAbility(t *testing.T) {
 			t.Errorf("offered counter kind %d, want +1/+1", d.Options[i].Mode())
 		}
 	}
-	sc.s.Apply(MakeAction(AkChoose, uint8(b0), 0, uint8(kop.CtrP1P1)))
+	sc.s.Apply(MakeAction(AkChoose, TCode(b0), 0, uint8(kop.CtrP1P1)))
 	keclBuildDone(t, sc)
 	keclResolveAll(t, sc)
 	if n := sc.s.perms[sc.slot(b0)].ctrLow(int(kop.CtrP1P1)); n != 0 {
@@ -527,17 +527,17 @@ func TestSubCtrPickAbility(t *testing.T) {
 	sc2.lands(0, id2["Mountain"], 2)
 	bp := &sc2.s.perms[sc2.slot(br)]
 	bp.addCtrN(sc.s, int(kop.CtrStun), 1) // two kinds: -1/-1 from the replacement and stun
-	sc2.do(t, AkActivate, uint8(br), 0xff)
+	sc2.do(t, AkActivate, TCode(br), scAny)
 	d = sc2.s.Step()
 	if d.Kind != DkTarget {
 		t.Fatalf("Brute activation decision kind %d, want the target ask", d.Kind)
 	}
-	sc2.do(t, AkTarget, 0xff, uint8(tgt2))
+	sc2.do(t, AkTarget, scAny, TCode(tgt2))
 	d = sc2.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChCostSubCtr || d.N != 2 {
 		t.Fatalf("RemoveAnyCounter kind %d sub %d n %d, want two kinds", d.Kind, d.Sub, d.N)
 	}
-	sc2.s.Apply(MakeAction(AkChoose, uint8(br), 0, uint8(kop.CtrStun)))
+	sc2.s.Apply(MakeAction(AkChoose, TCode(br), 0, uint8(kop.CtrStun)))
 	keclBuildDone(t, sc2)
 	if bp.ctrLow(int(kop.CtrStun)) != 0 || bp.ctrLow(int(kop.CtrM1M1)) != 2 {
 		t.Errorf("after removing stun: stun %d -1/-1 %d", bp.ctrLow(int(kop.CtrStun)), bp.ctrLow(int(kop.CtrM1M1)))
@@ -549,7 +549,7 @@ func TestSubCtrPickAbility(t *testing.T) {
 		{Name: "Plains", Count: 20},
 	})
 	jj := sc3.perm(id3["Jessica Jones, Private Eye"], 0)
-	sc3.do(t, AkActivate, uint8(jj), 0xff)
+	sc3.do(t, AkActivate, TCode(jj), scAny)
 	keclBuildDone(t, sc3)
 	if n := sc3.s.perms[sc3.slot(jj)].ctrLow(int(kop.CtrStun)); n != 1 {
 		t.Errorf("Jessica Jones has %d stun counters, want the cost's 1", n)
@@ -571,7 +571,7 @@ func TestBlightCountersBeforeSacrifice(t *testing.T) {
 	sl := sc.slot(st)
 	cd := &sc.k.t.Cards[id["Sting-Slinger"]]
 	cd.Abilities[0].Cost = kop.Cost{Flags: kop.CostSacSelf | kop.CostBlight, N: 1, Filter: kop.FilterID(1)}
-	sc.do(t, AkActivate, uint8(st), 0xff)
+	sc.do(t, AkActivate, TCode(st), scAny)
 	keclBuildDone(t, sc)
 	if sc.onBF(st) {
 		t.Fatal("the source was not sacrificed")

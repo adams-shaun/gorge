@@ -44,7 +44,7 @@ func TestVizierConversionPricesKickedCast(t *testing.T) {
 			t.Fatalf("precondition: decision %v for p%d, want p0's priority", d.Kind, d.Player)
 		}
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) {
 				switch a.Mode() {
 				case 0:
 					plain = true

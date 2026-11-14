@@ -29,7 +29,7 @@ func TestFlashbackTargetGoneOnStackReverses(t *testing.T) {
 	d := sc.s.Step()
 	var cast Action
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(mym) {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(mym)) {
 			cast = a
 		}
 	}

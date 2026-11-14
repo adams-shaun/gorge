@@ -127,13 +127,13 @@ func (s *State) turnRepl(k *prep, in *kop.Instr) {
 		// each activation is its own replacement effect, so the count
 		// stacks; two sources make the order ask stall (ctrGather)
 		c := s.plusCreCold()
-		if p := s.res.e.ctrl; c != nil && c[p] < 255 {
-			if c[p] == 0 {
-				c[MaxSeats+int(p)] = uint8(s.res.e.obj)
-			} else if Obj(c[MaxSeats+int(p)]) != s.res.e.obj {
-				c[MaxSeats+int(p)] = uint8(NoObj)
+		if p := s.res.e.ctrl; c != nil && c.n[p] < 255 {
+			if c.n[p] == 0 {
+				c.src[p] = s.res.e.obj
+			} else if c.src[p] != s.res.e.obj {
+				c.src[p] = NoObj
 			}
-			c[p]++
+			c.n[p]++
 		}
 	}
 }
@@ -161,9 +161,16 @@ func (s *State) exScopeN(k *prep, sl Slot) int {
 	return n
 }
 
-// plusCreCold is the creature counter-plus-one record: per player the count of
+// plusCreRec is the creature counter-plus-one record: per player the count of
 // activations, then per player the source of them (NoObj: more than one).
-func (s *State) plusCreCold() []uint8 {
+type plusCreRec struct {
+	n   [MaxSeats]uint8
+	src [MaxSeats]Obj
+}
+
+// plusCreCold is the creature counter-plus-one record, nil when the table has
+// none.
+func (s *State) plusCreCold() *plusCreRec {
 	l := s.cold.layout
 	if l == nil || l.ctrP == 0 {
 		return nil
@@ -171,7 +178,7 @@ func (s *State) plusCreCold() []uint8 {
 	at := 0
 	_ = coldView[mayPlay](nil, &at, l.may)
 	_ = coldView[embRec](nil, &at, l.emb)
-	return coldView[uint8](s.cold.buf, &at, l.ctrP)
+	return &coldView[plusCreRec](s.cold.buf, &at, l.ctrP)[0]
 }
 
 // plusCreN is the number of Prairie Dog activations whose replacement puts one
@@ -185,17 +192,17 @@ func (s *State) plusCreN(k *prep, sl Slot, kind int) (uint8, Obj) {
 		return 0, NoObj
 	}
 	p := s.perms[sl].ctrl
-	if c[p] == 0 || !s.isCreature(k, sl) {
+	if c.n[p] == 0 || !s.isCreature(k, sl) {
 		return 0, NoObj
 	}
-	return c[p], Obj(c[MaxSeats+int(p)])
+	return c.n[p], c.src[p]
 }
 
 // turnReplEnd ends the creature record (the cleanup and the new turn's reset
 // both call it) and, with scope, the scope records (the cleanup).
 func (s *State) turnReplEnd(scope bool) {
 	if c := s.plusCreCold(); c != nil {
-		clear(c)
+		*c = plusCreRec{}
 	}
 	if scope {
 		for i := range s.cold.exMark {

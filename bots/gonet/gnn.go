@@ -133,6 +133,11 @@ type gnGNN struct {
 	crossFF1, crossFF2         gnLinear
 
 	policy, value []gnLinear
+
+	// valueK and valueKHead: the K-way value head (Net.valueK's doc), on the
+	// root token as value is; 0 and nil without one.
+	valueK     int
+	valueKHead []gnLinear
 }
 
 // gnnScratch is the graph forward's reusable working set; a warm scratch
@@ -226,19 +231,20 @@ func loadGNN(path string, h gnHeader, tensors map[string][]float32, shapes map[s
 		}
 		return gnNorm{w: get(name+".weight", n), b: get(name+".bias", n), eps: eps}
 	}
-	head := func(name string, dIn, layers int) []gnLinear {
+	headN := func(name string, dIn, layers, last int) []gnLinear {
 		var out []gnLinear
 		in := dIn
 		for i := 0; i <= layers; i++ {
 			o := hh
 			if i == layers {
-				o = 1
+				o = last
 			}
 			out = append(out, lin(fmt.Sprintf("%s.%d", name, 2*i), in, o, true))
 			in = o
 		}
 		return out
 	}
+	head := func(name string, dIn, layers int) []gnLinear { return headN(name, dIn, layers, 1) }
 	g := &gnGNN{d: d, heads: heads, ff: ff, hh: hh, dEmb: e, rawW: rawW,
 		nodeType:  get("node_type.weight", gnNumNodeTypes, d),
 		edgeType:  get("edge_type.weight", gnNumEdgeTypes, d),
@@ -254,6 +260,12 @@ func loadGNN(path string, h gnHeader, tensors map[string][]float32, shapes map[s
 		noneB:     get("none_b", d),
 		policy:    head("policy", 4*d, cfg("policy_layers")),
 		value:     head("value", d, cfg("value_layers")),
+	}
+	if k := cfg("value_k"); k != 0 {
+		if k < 3 {
+			return nil, fmt.Errorf("gonet %s: value_k = %d: a K-way value head has at least 3 outcomes (two seats and no winner)", path, k)
+		}
+		g.valueK, g.valueKHead = k, headN("value_k", d, cfg("value_layers"), k)
 	}
 	table := get("table.weight", gnRows, e)
 	leafProj := lin("leaf_proj", e, d, false)
@@ -505,10 +517,11 @@ func attend(q []float32, qs int, k, v []float32, ks, nq, nk, heads, dh int, inv 
 }
 
 // evalGNN is GraphNet.forward in eval mode for one state: the batch of one.
-func (g *Net) evalGNN(gsc *gnScratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
+// vk, when non-nil, receives the K-way value head's logits (len valueK).
+func (g *Net) evalGNN(gsc *gnScratch, st *policynet.State, opts []policynet.Option, scores, vk []float32) float32 {
 	sc := &gsc.gnn
 	sc.oneSt[0], sc.oneOpts[0], sc.oneScores[0] = st, opts, scores
-	g.evalGNNBatch(gsc, sc.oneSt[:], sc.oneOpts[:], sc.oneScores[:], sc.oneVal[:])
+	g.evalGNNBatch(gsc, sc.oneSt[:], sc.oneOpts[:], sc.oneScores[:], sc.oneVal[:], vk)
 	sc.oneSt[0], sc.oneOpts[0], sc.oneScores[0] = nil, nil, nil
 	return sc.oneVal[0]
 }
@@ -522,8 +535,9 @@ func (g *Net) evalGNN(gsc *gnScratch, st *policynet.State, opts []policynet.Opti
 // bit-identical to evaluating it alone.
 //
 // opts may be nil, and opts[b] nil or empty (value only); scores[b] receives
-// len(opts[b]) logits; values[b] the value logit.
-func (g *Net) evalGNNBatch(gsc *gnScratch, sts []*policynet.State, opts [][]policynet.Option, scores [][]float32, values []float32) {
+// len(opts[b]) logits; values[b] the value logit; vks, when non-nil,
+// state b's K-way value logits at vks[b*valueK:(b+1)*valueK].
+func (g *Net) evalGNNBatch(gsc *gnScratch, sts []*policynet.State, opts [][]policynet.Option, scores [][]float32, values, vks []float32) {
 	n := g.gnn
 	sc := &gsc.gnn
 	d := n.d
@@ -687,6 +701,9 @@ func (g *Net) evalGNNBatch(gsc *gnScratch, sts []*policynet.State, opts [][]poli
 	vals := takeF(&sc.v1, B)
 	gnnHead(n.value, rx, B, vals, sc)
 	copy(values[:B], vals)
+	if vks != nil {
+		gnnHeadN(n.valueKHead, rx, B, n.valueK, vks[:B*n.valueK], sc)
+	}
 	no := 0
 	for b := range opts {
 		no += len(opts[b])
@@ -707,6 +724,25 @@ func gnnHead(layers []gnLinear, x []float32, n int, out []float32, sc *gnnScratc
 		l.gemm(y, cur, n)
 		if i == len(layers)-1 {
 			copy(out[:n], y) // the last layer has one output
+			return
+		}
+		relu(y)
+		cur = y
+		a, b = b, a
+	}
+}
+
+// gnnHeadN is gnnHead for a head whose last Linear has k outputs: row r's
+// k logits go to out[r*k:(r+1)*k].
+func gnnHeadN(layers []gnLinear, x []float32, n, k int, out []float32, sc *gnnScratch) {
+	cur := x
+	a, b := &sc.ha1, &sc.hb1
+	for i := range layers {
+		l := &layers[i]
+		y := takeF(a, n*l.out)
+		l.gemm(y, cur, n)
+		if i == len(layers)-1 {
+			copy(out[:n*k], y)
 			return
 		}
 		relu(y)

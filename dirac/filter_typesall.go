@@ -38,6 +38,8 @@ func (s *State) powerGEVFrom(k *prep, fl *kop.Filter, sl, src Slot) bool {
 		return t >= v // PredN 3: Hulkling's toughness > his own (toughnessGTZ)
 	case fl.PredN == 3:
 		return pw == v // power == the value (Amalia's powerEQ20)
+	case fl.PredN == 2:
+		return pw <= v // power <= the value (Legacy's Allure's powerLEX)
 	}
 	return pw >= v
 }
@@ -65,9 +67,12 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		return true
 	}
 	if fl.Pred == kop.PredPowerGEV {
-		pw, _ := s.ptGen(k, sl) // power >= the value PredV; PredN 3: power == PredV
+		pw, _ := s.ptGen(k, sl) // power >= the value PredV; PredN 3: power == PredV; PredN 2: power <= PredV
 		if fl.PredN == 3 {
 			return pw == s.evalV(k, fl.PredV, s.ctxCur())
+		}
+		if fl.PredN == 2 {
+			return pw <= s.evalV(k, fl.PredV, s.ctxCur())
 		}
 		return pw >= s.evalV(k, fl.PredV, s.ctxCur())
 	}

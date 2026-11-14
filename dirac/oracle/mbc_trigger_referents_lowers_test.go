@@ -6,14 +6,13 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestMBCTriggerReferents1Lowers plays fixture pools of the dr-mbc halves in
-// lockstep with gorge leading, one per spelling the mbc-trigger-referents-1
-// family lowers, each deck pair holding the carrier beside what makes its
-// trigger fire:
+// TestMBCTriggerReferents1Lowers plays fixture decks in lockstep with gorge
+// leading, in the dr-mbc split that holds the carrier (every card of a case is
+// in that split), one per spelling the mbc-trigger-referents-1 family lowers,
+// each deck pair holding the carrier beside what makes its trigger fire:
 //
 //   - BecomesTarget with no source restriction (Angelic Protector:
 //     Card.Self; Daru Spiritualist: Cleric.Creature+YouCtrl, the targeted
@@ -21,8 +20,7 @@ import (
 //     the family's other Card.Self card, is refused by name for its own
 //     prevention ability (dirac/support/refused/cephalid-illusionist.json).
 //   - TargetsWithDefinedController$ TriggeredTarget under ValidTarget$ Player
-//     (Soltari Visionary's enchantment, Sigil of Sleep's creature, which an
-//     opponent's enchanted creature can aim at its own side) and its
+//     (Soltari Visionary's enchantment, Sigil of Sleep's creature) and its
 //     graveyard card slot (Skullsnatcher).
 //
 // Each carrier must be played by some game, so the pool reaches the card; the
@@ -33,33 +31,36 @@ func TestMBCTriggerReferents1Lowers(t *testing.T) {
 	}
 	e := func(n string, c int) cardset.Entry { return cardset.Entry{Name: n, Count: c} }
 	cases := []struct {
-		pool     string
 		a, b     []cardset.Entry
 		carriers []string
 	}{
-		{"dr-mbc-aa", // Card.Self, any source
-			[]cardset.Entry{e("Angelic Protector", 8), e("Adanto Vanguard", 4), e("Aven Squire", 4), e("Plains", 12), e("Island", 12)},
-			[]cardset.Entry{e("Lightning Bolt", 4), e("Abrade", 4), e("Chandra's Pyrohelix", 4), e("Fireball", 3), e("Axgard Cavalry", 4), e("Blood Knight", 4), e("Mountain", 17)},
+		{ // Card.Self, any source: burn aimed at it
+			[]cardset.Entry{e("Angelic Protector", 16), e("Plains", 24)},
+			[]cardset.Entry{e("Grapeshot", 4), e("Solar Blast", 4), e("Blastfire Bolt", 4), e("Mountain", 28)},
 			[]string{"Angelic Protector"}},
-		{"dr-mbc-ab", // a Cleric watcher, and Skullsnatcher's graveyard slot
-			[]cardset.Entry{e("Daru Spiritualist", 4), e("Skullsnatcher", 4), e("Swords to Plowshares", 4), e("Beloved Chaplain", 4), e("Cast Down", 4), e("Plains", 10), e("Swamp", 10)},
-			[]cardset.Entry{e("Galvanic Blast", 4), e("Bombard", 4), e("Staggershock", 3), e("Battle Cry Goblin", 4), e("Burning Prophet", 4), e("Ardent Elementalist", 3), e("Mountain", 18)},
-			[]string{"Daru Spiritualist", "Skullsnatcher"}},
-		{"dr-mbc-ba", // Soltari Visionary destroys the damaged player's enchantment
-			[]cardset.Entry{e("Soltari Visionary", 4), e("Accorder Paladin", 4), e("Ajani's Pridemate", 4), e("Aerial Responder", 4), e("Angelic Page", 4), e("Plains", 20)},
-			[]cardset.Entry{e("Narcolepsy", 4), e("Seal of Removal", 4), e("Augur of Bolas", 4), e("Battlewing Mystic", 4), e("Amphin Pathmage", 4), e("Cerulean Wyvern", 3), e("Roiling Dragonstorm", 3), e("Island", 14)},
+		{ // a Cleric watcher, the Cleric itself the target
+			[]cardset.Entry{e("Daru Spiritualist", 16), e("Plains", 24)},
+			[]cardset.Entry{e("Forked Lightning", 4), e("Torrent of Fire", 4), e("Battle Cry Goblin", 4), e("Burning Prophet", 4), e("Mountain", 24)},
+			[]string{"Daru Spiritualist"}},
+		{ // Skullsnatcher's graveyard slot: the damaged player's burn in their graveyard
+			[]cardset.Entry{e("Skullsnatcher", 12), e("Changeling Outcast", 4), e("Swamp", 24)},
+			[]cardset.Entry{e("Pyrotechnics", 6), e("Anarchist", 6), e("Mountain", 28)},
+			[]string{"Skullsnatcher"}},
+		{ // Soltari Visionary destroys the damaged player's enchantment
+			[]cardset.Entry{e("Soltari Visionary", 16), e("Plains", 24)},
+			[]cardset.Entry{e("Bastion of Remembrance", 4), e("Baffling End", 4), e("The Birth of Meletis", 4), e("Plains", 14), e("Swamp", 14)},
 			[]string{"Soltari Visionary"}},
-		{"dr-mbc-bb", // Sigil of Sleep bounces a creature of the damaged player, on either side
-			[]cardset.Entry{e("Sigil of Sleep", 4), e("Amoeboid Changeling", 4), e("Academy Journeymage", 4), e("Aethersnipe", 3), e("Essence Scatter", 4), e("Reality Shift", 4), e("Island", 17)},
-			[]cardset.Entry{e("Angel of Vitality", 4), e("Blessed Spirits", 4), e("Ballynock Cohort", 4), e("Akroan Phalanx", 4), e("Spirited Companion", 4), e("Condemn", 3), e("Plains", 17)},
+		{ // Sigil of Sleep bounces a creature of the damaged player
+			[]cardset.Entry{e("Sigil of Sleep", 8), e("Daring Saboteur", 8), e("Codecracker Hound", 4), e("Island", 20)},
+			[]cardset.Entry{e("Kangee's Lieutenant", 4), e("Devout Witness", 4), e("Inspiring Overseer", 4), e("Akroan Phalanx", 4), e("Plains", 24)},
 			[]string{"Sigil of Sleep"}},
 	}
 	reg := synthReg(t)
 	for _, c := range cases {
-		t.Run(c.pool, func(t *testing.T) {
+		t.Run(c.carriers[0], func(t *testing.T) {
 			t.Parallel()
 			decks := [2][]cardset.Entry{c.a, c.b}
-			set := cardsettest.Synth(t, c.pool)
+			pool, set := mbcSplitOf(t, c.carriers[0])
 			var cs [2][]*cards.Card
 			for s, d := range decks {
 				n := 0
@@ -81,7 +82,7 @@ func TestMBCTriggerReferents1Lowers(t *testing.T) {
 			played := map[string]int{}
 			tbl, _, _, err := set.Matchup(decks[0], decks[1])
 			if err != nil {
-				t.Fatalf("%s: %v", c.pool, err)
+				t.Fatalf("%s: %v", pool, err)
 			}
 			for seed := uint64(1); seed <= 60; seed++ {
 				cfg := Config{GorgeAutopaySurface: seed%2 == 0}
@@ -111,7 +112,7 @@ func TestMBCTriggerReferents1Lowers(t *testing.T) {
 					t.Errorf("%s was never played in 60 games: the pool does not reach it", name)
 				}
 			}
-			t.Logf("%s: carriers played %v", c.pool, played)
+			t.Logf("%s: carriers played %v", pool, played)
 		})
 	}
 }

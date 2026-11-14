@@ -160,7 +160,7 @@ func newSurveilRestScen(t *testing.T, rests int) surveilRestScen {
 	copy(s.res.peek[:], peek)
 	s.res.peekN = uint8(len(peek))
 	// keep the first card, then Done sends the rest to the graveyard
-	s.applyResolve(k, MakeAction(AkChoose, uint8(peek[0]), 0, 0))
+	s.applyResolve(k, MakeAction(AkChoose, TCode(peek[0]), 0, 0))
 	if got := s.res.peekI; got != 1 {
 		t.Fatalf("peekI %d after the kept pick, want 1", got)
 	}

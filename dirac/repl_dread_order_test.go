@@ -38,7 +38,7 @@ func TestManifestDreadOtherCardParksExileOrder(t *testing.T) {
 	s.resolveOptionsGen(k, &d)
 	var pick Action
 	for i := 0; i < int(d.N); i++ {
-		if d.Options[i].Source() == uint8(keep) {
+		if d.Options[i].Source() == TCode(uint8(keep)) {
 			pick = d.Options[i]
 		}
 	}

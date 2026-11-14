@@ -11,7 +11,7 @@ var paramreadformsForms = []formCase{
 	{card: "Nylea's Colossus", form: "Pump NumDef$ Double (the object's toughness, gorge NumForObject)", lir: "0 PumpUntilEOT obj=Target0 A=PowerOf(Target0) B=ToughnessOf(Target0)"},
 	{card: "Impulse", form: "Dig NoReveal$ True (a private look: gorge RevealWin = Reveal && !NoReveal)"},
 	{card: "Goblin Guide", form: "Dig LibraryPosition2$ 0 with one card in the window (kop.DigRestTop)", lir: "0 Dig obj=Defending A=1 B=-1 C=2 CS=rest=Library|RestTop|Reveal F={types=0x1}"},
-	{card: "Bamboozle", form: "LibraryPosition2$ 0 leaving two on top: gorge asks their order (digTopOrderAsk), kept refused", refused: "two or more cards left on top"},
+	{card: "Bamboozle", form: "LibraryPosition2$ 0 leaving two on top: gorge asks their order (digTopOrderAsk, kop.DigRestTopAsk)", lir: "CS=rest=Library|RestTop|RestTopAsk|Reveal"},
 	{card: "Gray Merchant of Asphodel", form: "Count$Devotion.Black (ExDevotion)", lir: "Devotion"},
 	{card: "Fledgling Osprey", form: "enchanted (PredEnchanted)", lir: "Self cmp(10 0 0  )"},
 	{card: "Memory Lapse", form: "Counter Destination$ TopOfLibrary (OpCounter C=CtrDestLibTop)", lir: "Counter obj=Target0 C=3"},

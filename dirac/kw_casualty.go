@@ -45,7 +45,7 @@ func (s *State) casualtyCands(k *prep, p uint8, n int, d *Decision) {
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.isCreature(k, sl) && s.power(k, sl) >= n && !s.picked(s.perms[sl].obj) {
-			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}
 }
