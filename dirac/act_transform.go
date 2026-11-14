@@ -62,11 +62,14 @@ func (s *State) transformObj(k *prep, o Obj) {
 		return
 	}
 	cd := &k.t.Cards[ob.card]
-	if len(cd.Faces) < 2 {
+	if len(cd.Faces) < 2 || cd.FaceMode == kop.FacePrototype { // a prototype card has one printed face (face_castface.go)
 		return
 	}
 	if DebugIncubateNoTransform && cd.FaceMode == kop.FaceTransform {
 		return
+	}
+	if cd.FaceMode == kop.FaceFlip && cd.Face != 0 {
+		return // CR 710.4: flipping is one-way (gorge setStateFlipGate)
 	}
 	next := (int(cd.Face) + 1) % len(cd.Faces)
 	sl := ob.slot
@@ -81,7 +84,9 @@ func (s *State) transformObj(k *prep, o Obj) {
 			s.ts++ // CR 613.7g: a transforming DFC gets a new layer timestamp
 			s.lstamp[sl] = s.ts
 		}
-		s.fireTransformed(k, sl, o, p.ctrl)
+		if cd.FaceMode != kop.FaceFlip {
+			s.fireTransformed(k, sl, o, p.ctrl)
+		}
 		return
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
@@ -96,5 +101,7 @@ func (s *State) transformObj(k *prep, o Obj) {
 	if k.gen != nil {
 		s.refreshTy(k)
 	}
-	s.fireTransformed(k, sl, o, p.ctrl)
+	if cd.FaceMode != kop.FaceFlip { // a flip is not a transform (gorge: no "Transformed" FlipFace)
+		s.fireTransformed(k, sl, o, p.ctrl)
+	}
 }

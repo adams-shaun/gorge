@@ -352,6 +352,10 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// Ascend is printed Ascend (CR 702.131): its controller gets the city's
+	// blessing once they control ten or more permanents, and an instant or
+	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
+	Ascend bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a
@@ -587,6 +591,11 @@ type CardDef struct {
 	// kw_spree.go).
 	HasModeCost bool
 	ModeCost    [4]ManaCost
+	// HasEscalate: Escalate (CR 702.120a) rides HasModeCost with every
+	// ModeCost zero: the chosen modes add Escalate once for each mode beyond
+	// the first (kernel kw_escalate.go).
+	HasEscalate bool
+	Escalate    ManaCost
 	// FbCost is a printed flashback cost's non-mana part (KwFlashback;
 	// AltCost holds its mana, {0} when none): Sac<N/Spec> or
 	// tapXType<N/Spec>, paid through the cast's pick stages in place of
@@ -760,6 +769,20 @@ const (
 	// countered or fizzled, it goes to the graveyard; off the stack it is
 	// its front (dirac/face_omen.go).
 	FaceOmen
+	// FacePrototype is a card printed with K:Prototype (CR 702.160, 718.3):
+	// face 1 is the same card with its prototype characteristics (the inset
+	// mana cost, the colours of that cost and the inset power and
+	// toughness), its other characteristics and abilities unchanged. It is
+	// cast from the hand as a face cast (gorge's "prototype") and is the
+	// object's card on the stack and on the battlefield only; every other
+	// zone shows the front (dirac/face_castface.go).
+	FacePrototype
+	// FaceFlip is a flip card (CR 710, gorge's "Flip"): it is cast and
+	// enters as its top half; a SetState Mode$ Flip turns a permanent that
+	// is not yet flipped to face 1 in place, one-way (CR 710.4), with no new
+	// layer timestamp and no Mode$ Transformed trigger; leaving the
+	// battlefield it is its top half again (CR 710.2).
+	FaceFlip
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

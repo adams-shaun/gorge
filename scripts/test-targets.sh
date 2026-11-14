@@ -169,8 +169,8 @@ if [ "$mode" = one ]; then
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
-		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | GORGE_POOLS) envs+=("$kv") ;;
-		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN GORGE_POOLS (got ${kv%%=*})" ;;
+		case ${kv%%=*} in KGEN_REPIN | DIRAC_UPDATE_SUPPORT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | MANAFLARE_CAST_RECORD | GORGE_POOLS) envs+=("$kv") ;;
+		*) usage "TESTENV allows only KGEN_REPIN DIRAC_UPDATE_SUPPORT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN MANAFLARE_CAST_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
 		esac
 	done
 	pkgs_label=$pkg
@@ -214,12 +214,13 @@ if [ "$mode" = targeted ]; then
 		vo=$(go vet $vp 2>&1) || { tail -15 <<<"$vo"; verdict FAIL "go vet"; }
 	fi
 	[ "$dirac" = 0 ] || dirac_tables
-	if [ "${#whole[@]}" -gt 0 ]; then
-		gojson 10m -p "$lp" "${whole[@]}" || finish ""
-	fi
+	# The cheap named/census runs first: a whole-package BUDGET below must not hide their failures.
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		gojson 5m -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
 	done
+	if [ "${#whole[@]}" -gt 0 ]; then
+		gojson 10m -p "$lp" "${whole[@]}" || finish ""
+	fi
 	finish "$(IFS=,; echo "${named[*]-}")"
 fi
 

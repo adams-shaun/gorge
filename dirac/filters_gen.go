@@ -326,7 +326,14 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 		if f&kop.F2AttachedToT0 != 0 {
 			t := e.tgt[0]
 			ob := &s.objs[o]
-			if isPlayerOrNone(t) || ob.zone != kop.ZoneBattlefield || s.objs[t].zone != kop.ZoneBattlefield || s.perms[ob.slot].attached != s.objs[t].slot {
+			if isPlayerOrNone(t) || ob.zone != kop.ZoneBattlefield {
+				return false
+			}
+			if s.objs[t].zone != kop.ZoneBattlefield {
+				if !s.attachedToDeparted(ob.slot, Obj(t)) { // the target left earlier in the chain (Fumble)
+					return false
+				}
+			} else if s.perms[ob.slot].attached != s.objs[t].slot {
 				return false
 			}
 		}
@@ -558,8 +565,12 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.CtrlTgt != 0 {
 		// a target's controller is a battlefield role; a card matcher has
 		// no live target to read, so it fails closed (kgen never lowers it
-		// off the battlefield)
-		return false
+		// off the battlefield), but for the owner role (kop.CtrlTgtOwner:
+		// OwnedBy TargetedController, the card's owner is the target's
+		// controller)
+		if fl.CtrlTgt&kop.CtrlTgtOwner == 0 || !s.ctrlRoleTgt(k, int(fl.CtrlTgt&^kop.CtrlTgtOwner)-1, owner) {
+			return false
+		}
 	}
 	if fl.Flags&kop.FPlayer != 0 {
 		// a target spec's player alternative (kgen filterPlayerAlt) names a
@@ -630,6 +641,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return false
 	}
 	if fl.Flags&kop.FToken != 0 && (o == NoObj || s.objs[o].of&ofToken == 0) || fl.Flags&kop.FNontoken != 0 && o != NoObj && s.objs[o].of&ofToken != 0 {
+		return false
+	}
+	if fl.Flags&kop.FAttachedBySrc != 0 {
+		// the bearer read is a perm matcher's (matchPermOne): a card is
+		// never a live bearer-host. A damage trigger's ValidSource$
+		// EnchantedBy reaches here only for a non-permanent source (the
+		// dead host's LKI or a spell), and the attachment lived on the
+		// aura, cleared when the host left: it fails closed.
 		return false
 	}
 	if fl.Flags&kop.FExiledWith != 0 && !s.exwFlag(o, ctx) {

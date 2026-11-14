@@ -47,6 +47,7 @@ func (s *State) forgetOtherMove(k *prep, in *kop.Instr) bool {
 		objs[0], n = o, 1
 	}
 	s.g.nrem, s.g.remCnt = 0, 0 // both halves (gorge forgetOther)
+	s.rememberMarkClr()         // the persistent list is emptied with them (gorge forgetOther's clearEventRemembered)
 	for i := 0; i < n; i++ {
 		o := objs[i]
 		if in.Op == kop.OpReturnEx {

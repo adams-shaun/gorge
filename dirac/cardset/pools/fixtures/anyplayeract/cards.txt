@@ -1,0 +1,10 @@
+# the any-player activation pool: Activator$ Player ("Any player may activate
+# this ability") on a Pump (Flailing Ogre), a Debuff (Ribbon Snake), a
+# DamageAll (Warmonger) and a ChangeZone to the owner's hand (Quicksilver
+# Wall) beside basics (dirac/oracle/anyplayer_activation_test.go)
+Flailing Ogre
+Island
+Mountain
+Quicksilver Wall
+Ribbon Snake
+Warmonger

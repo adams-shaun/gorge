@@ -196,6 +196,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	if k.engines {
 		s.speedControl(k) // kw_speed.go
 	}
+	if k.ascend {
+		s.blessScan(k) // CR 702.131b (kw_ascend.go)
+	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
 	}
@@ -503,10 +506,29 @@ func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 //
 //go:noinline
 func (s *State) opGainControl(k *prep, in *kop.Instr) {
-	sl := s.objRef(k, in.Obj)
-	if sl == NoSlot {
+	if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+		// Defined$ over a remembered group (Fumble's "gain control of all
+		// Auras and Equipment that were attached to it"): each battlefield
+		// member in remembered order, one effect apiece (gorge effGainControl
+		// walks its Defined set)
+		var objs [maxRem]Obj
+		n := copy(objs[:], s.g.rem[:s.g.nrem])
+		for _, o := range objs[:n] {
+			if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+				s.opGainControlAt(k, in, s.objs[o].slot)
+			}
+		}
 		return
 	}
+	if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		s.opGainControlAt(k, in, sl)
+	}
+}
+
+// opGainControlAt is opGainControl on the one permanent at sl.
+//
+//go:noinline
+func (s *State) opGainControlAt(k *prep, in *kop.Instr, sl Slot) {
 	e := &s.res.e
 	to := e.ctrl
 	if in.C != int16(kop.RefNone) {

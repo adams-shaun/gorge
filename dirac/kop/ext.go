@@ -212,8 +212,9 @@ const (
 	// before the mint loop), runs that CreateToken in place and skips it, then
 	// sets the token it minted (res.lastTok) to those values as a permanent
 	// layer-7b set stamped at the mint (gorge effects/token.go: one SubSet
-	// effect sourced to the token). The Ex form counts the mint: no mint does
-	// nothing, more than one stalls StallTokenPT.
+	// effect sourced to the token). The Ex form counts the mints: no mint does
+	// nothing, each of an X mint takes the set, and a count that is not the
+	// op's amount (a token doubler) stalls StallTokenPT.
 	// dirac/act_tokenpt.go.
 	ExtTokenPT ExtOp = 170
 	// ExtExHaste (Agility Bobblehead): the object in Obj (RefTarget runs once
@@ -243,7 +244,7 @@ const (
 	// sub-op takes the next free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
 	// unnamed. Raise it only when the free values run out.
-	NumExtOps ExtOp = 320
+	NumExtOps ExtOp = 321
 )
 
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
@@ -754,6 +755,12 @@ func init() { extOpNames[ExtTurnFaceUp] = "TurnFaceUp" }
 // dirac/combat_attacksifable.go.
 const ExtAttacksIfAble ExtOp = 255
 
+// AttacksOpponent is ExtAttacksIfAble's C bit 0: the duty names the
+// opponent ("attacks that opponent this turn if able", Encore), so only the
+// player satisfies it and no planeswalker or battle of theirs is offered
+// (the arena bit mechAttacksPlayer).
+const AttacksOpponent = 1
+
 func init() { extOpNames[ExtAttacksIfAble] = "AttacksIfAble" }
 
 // ExtBlocksIfAble: the battlefield object named by Obj (a target slot)
@@ -835,3 +842,29 @@ func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
 const ExtPreventNext ExtOp = 305
 
 func init() { extOpNames[ExtPreventNext] = "PreventNext" }
+
+// ExtRenown (CR 702.112): the renown trigger's resolution (gorge
+// effPutCounter's RenownSet arm, the K:Renown expansion body DB$ PutCounter |
+// Defined$ Self | Renown$ N). The battlefield permanent Obj (the source),
+// unless it is already renowned, gets B +1/+1 counters through OpPutCounter's
+// path, then the renowned designation (gorge AlterAttribute "Renowned"). A
+// source that left the battlefield, or B <= 0, does nothing. The designation
+// is the arena slot bit mechRenowned, cleared when the permanent leaves.
+// dirac/act_renown.go. 294: land's ExtTapOrUntapAll holds 295.
+const ExtRenown ExtOp = 294
+
+func init() { extOpNames[ExtRenown] = "Renown" }
+
+// ExtGrantEncore (Araumi of the Dead Tide): the graveyard card Obj gains
+// encore until end of turn (gorge pump.go's PumpZone$ Graveyard keyword
+// grant, the derived keyword [Encore:CardManaCost], CR 702.164a's grant
+// rider). gorge offers no activation of a granted encore -- kw_granted.go
+// synthesizes granted-keyword abilities for Cycling, Crew, Equip and friends
+// but not Encore, and no graveyard walk offers one -- so the kernel records
+// the grant alone: one mech bit on the card (mechEncore), part of its view,
+// ending at the zone change or the cleanup, like a granted flashback
+// (dirac/kw_encoregrant.go). A card no longer in the graveyard takes nothing
+// (gorge pump.go's zone guard skips it).
+const ExtGrantEncore ExtOp = 320
+
+func init() { extOpNames[ExtGrantEncore] = "GrantEncore" }
