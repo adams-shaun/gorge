@@ -49,18 +49,18 @@ func (s *State) targetOKPermOrSpell(k *prep, t *kop.TargetSpec, p uint8, src Slo
 // MaxOptions).
 //
 //go:noinline
-func (s *State) permOrSpellCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+func (s *State) permOrSpellCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
 	for m := s.occ; m.any(); m = m.rest() {
 		o := s.perms[m.first()].obj
-		if s.targetOK(k, t, p, src, self, uint8(o)) {
-			out[n] = uint8(o)
+		if s.targetOK(k, t, p, src, self, TCode(o)) {
+			out[n] = TCode(o)
 			n++
 		}
 	}
 	for i := int(s.sp) - 1; i >= 0; i-- {
 		e := &s.stack[i]
-		if e.kind == seSpell && s.targetOK(k, t, p, src, self, uint8(e.obj)) {
-			out[n] = uint8(e.obj)
+		if e.kind == seSpell && s.targetOK(k, t, p, src, self, TCode(e.obj)) {
+			out[n] = TCode(e.obj)
 			n++
 		}
 	}

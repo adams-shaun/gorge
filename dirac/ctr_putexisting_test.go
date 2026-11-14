@@ -40,10 +40,10 @@ func pceScen(t *testing.T) (*scen, pceCards) {
 // decision once the ability has resolved or asked.
 func (sc *scen) pceActivate(t *testing.T, host, target Obj) Decision {
 	t.Helper()
-	sc.do(t, AkActivate, uint8(host), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(target))
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkActivate, TCode(host), scAny)
+	sc.do(t, AkTarget, scAny, TCode(target))
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	return sc.s.Step()
 }
 
@@ -123,10 +123,10 @@ func TestPutCounterExisting(t *testing.T) {
 		if n := sc.pceCount(saga, kop.CtrLore); n != 1 {
 			t.Fatalf("the Saga entered with %d lore counters, want 1", n)
 		}
-		sc.do(t, AkActivate, uint8(host), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(saga))
-		sc.do(t, AkPass, 0xff, 0xff)
-		sc.do(t, AkPass, 0xff, 0xff)
+		sc.do(t, AkActivate, TCode(host), scAny)
+		sc.do(t, AkTarget, scAny, TCode(saga))
+		sc.do(t, AkPass, scAny, scAny)
+		sc.do(t, AkPass, scAny, scAny)
 		if n := sc.pceCount(saga, kop.CtrLore); n != 2 {
 			t.Fatalf("%d lore counters, want 2", n)
 		}
@@ -139,11 +139,11 @@ func TestPutCounterExisting(t *testing.T) {
 		host, tgt := sc.perm(c.host, 0), sc.perm(c.host, 0)
 		sc.s.perms[sc.slot(tgt)].addCtrN(sc.s, int(kop.CtrQuest), 1)
 		sc.s.perms[sc.slot(tgt)].addCtrN(sc.s, int(kop.CtrP1P1), 1)
-		sc.do(t, AkActivate, uint8(host), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(tgt))
+		sc.do(t, AkActivate, TCode(host), scAny)
+		sc.do(t, AkTarget, scAny, TCode(tgt))
 		sc.s.leave(sc.k, sc.slot(tgt), kop.ZoneGraveyard, false) // gone before the ability resolves
-		sc.do(t, AkPass, 0xff, 0xff)
-		sc.do(t, AkPass, 0xff, 0xff)
+		sc.do(t, AkPass, scAny, scAny)
+		sc.do(t, AkPass, scAny, scAny)
 		if d := sc.s.Step(); d.Sub == ChRemCtrKind {
 			t.Fatal("asked with the target gone")
 		}

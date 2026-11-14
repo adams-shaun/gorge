@@ -50,14 +50,23 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				continue // the grant's once-per-turn cap is reached (Flameskull)
 			}
 			s.offerMayKind(k, d, p, r, sorc, landOK, &av)
+			if k.gen.anyZeroAlt {
+				s.offerZeroAlt(k, d, p, r.obj, mayKindMode(r), mayKindPlain(r), sorc, &av) // cast_mayzeroalt.go
+			}
 			continue
 		}
 		// a Paradigm card the offer covers is cast free instead (kw_paradigm.go:
 		// gorge offers the card once, the free permission dominating the grant)
 		if k.gen.anyParadigm && s.paradigmOffered(k, p, r.obj, sorc) {
+			if k.gen.anyZeroAlt {
+				s.offerZeroAlt(k, d, p, r.obj, castMayPlay|castFree, false, sorc, &av) // unmodelled beside Paradigm: stalls when it applies (cast_mayzeroalt.go)
+			}
 			continue
 		}
 		s.offerPlay(k, d, p, r.obj, castMayPlay, sorc, landOK, false, false, false, &av)
+		if k.gen.anyZeroAlt {
+			s.offerZeroAlt(k, d, p, r.obj, castMayPlay, true, sorc, &av) // cast_mayzeroalt.go
+		}
 	}
 	// play-from-zone statics: graveyards, exile, and the hand (free casts)
 	if k.gen.anyMayPlay {
@@ -123,7 +132,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				if hobj == NoObj {
 					hobj = s.perms[host].obj
 				}
-				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(hobj), 0x80|ab)
+				act := MakeAction(AkActivate, TCode(s.perms[sl].obj), TCode(hobj), 0x80|ab)
 				for i := first; i < int(d.N); i++ {
 					if d.Options[i] == act {
 						return
@@ -147,7 +156,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	anyMana = anyMana || mode&castFree == 0 && s.convAnyType(k, p, o) // mana_convertcreature.go
 	if pc.land {
 		if landOK {
-			d.add(MakeAction(AkPlayLand, uint8(o), 0, 0))
+			d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 		}
 		return
 	}
@@ -218,7 +227,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			return
 		}
 	}
-	d.add(MakeAction(AkCast, uint8(o), 0, mode))
+	d.add(MakeAction(AkCast, TCode(o), 0, mode))
 }
 
 // anyType turns coloured pips into generic (mana of any type may be spent).
@@ -303,6 +312,9 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
+	if mode&castFree != 0 && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) {
+		mode &^= castFree // the {0} alternative: the plain cast's permission is spent below (cast_mayzeroalt.go)
+	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
 		return
@@ -698,6 +710,9 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 				mode |= castFree
 			}
 			s.offerPlay(k, d, p, o, mode, sorc, landOK, rest.anyMana, false, s.mayPlayUnpriced(k, p, o, rest.anyMana, av), av)
+			if k.gen.anyZeroAlt {
+				s.offerZeroAlt(k, d, p, o, mode, life == 0, sorc, av) // cast_mayzeroalt.go
+			}
 		}
 		if life > 0 && !(rest.grant && rest.free) {
 			n0 := int(d.N)
@@ -782,7 +797,7 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 				}
 			}
 			if s.probeAbilityFrom(k, a, p, s.objs[o].card) {
-				d.add(MakeAction(AkActivate, uint8(o), 0, uint8(ai)))
+				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}
 	}

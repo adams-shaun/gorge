@@ -30,7 +30,7 @@ const castWarpPush uint8 = 8
 func (s *State) voidHolds(k *prep) bool {
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.from != uint8(kop.ZoneBattlefield) {
+		if e.from() != uint8(kop.ZoneBattlefield) {
 			continue
 		}
 		if DebugVoidLandToo || !s.voidLand(k, &s.objs[e.o]) {
@@ -44,7 +44,7 @@ func (s *State) voidHolds(k *prep) bool {
 	}
 	for p := uint8(0); p < MaxSeats; p++ {
 		ring := s.castPushes(p)
-		if p == hideP && len(ring) > 0 && Obj(ring[len(ring)-1].obj-1) == hide {
+		if p == hideP && len(ring) > 0 && ring[len(ring)-1].obj-1 == hide {
 			ring = ring[:len(ring)-1]
 		}
 		for _, r := range ring {

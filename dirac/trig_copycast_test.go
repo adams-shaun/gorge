@@ -42,7 +42,7 @@ func TestSpellCastOrCopy(t *testing.T) {
 	sc.lands(0, id["Island"], 2)
 	life := s.pl[0].life
 	tt := sc.hand(id["Think Twice"], 0)
-	sc.do(t, AkCast, uint8(tt), 0xff)
+	sc.do(t, AkCast, TCode(tt), scAny)
 	for i := 0; i < 60; i++ {
 		d := s.Step()
 		if d.Kind == DkNone {

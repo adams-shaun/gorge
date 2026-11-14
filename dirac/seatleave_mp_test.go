@@ -224,10 +224,10 @@ func TestNSeatLeaveGameCombat(t *testing.T) {
 					o1, o2 := st.nextAlive(st.active), st.nextAlive(st.nextAlive(st.active))
 					for j := 0; j < int(dd.N); j++ {
 						x := dd.Options[j]
-						if x.Kind() != AkAttack || seen[x.Source()] {
+						if x.Kind() != AkAttack || seen[uint8(x.Source())] {
 							continue
 						}
-						seen[x.Source()] = true
+						seen[uint8(x.Source())] = true
 						to := o1
 						if len(plan)%2 == 1 {
 							to = o2

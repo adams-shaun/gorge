@@ -33,8 +33,8 @@ func ateotEchoScen(t *testing.T) (sc *scen, own, rider Obj) {
 	own = sc.perm(bear, 0)
 	rider = sc.perm(bear, 0)
 	s := sc.s
-	s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: own, ver: s.objs[own].ver, creator: own}
-	s.dly[1] = delayed{act: uint8(kop.OpExile), ctrl: 0, obj: rider, ver: s.objs[rider].ver, creator: tw}
+	s.dly[0] = delayed{act: uint8(kop.OpSacrifice), ctrl: 0, obj: own, ver: objWord(s.objs[own].ver), creator: own}
+	s.dly[1] = delayed{act: uint8(kop.OpExile), ctrl: 0, obj: rider, ver: objWord(s.objs[rider].ver), creator: tw}
 	s.ndly = 2
 	if !s.dly[0].ownTrig() || s.dly[1].ownTrig() {
 		t.Fatal("precondition: ownTrig does not tell the token's own trigger from the AtEOT$ rider")

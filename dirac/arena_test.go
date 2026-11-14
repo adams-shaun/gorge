@@ -41,16 +41,23 @@ func TestArenaAssign(t *testing.T) {
 	if n != 1 || ix[mechRegen] != 0 || ix[mechGoad0] != arenaNone || ix[mechMonstrous] != arenaNone {
 		t.Fatalf("regen only: ix %v n %d", ix, n)
 	}
-	// goad takes two masks (either player may goad) and monstrous one: the arena
+	// goad takes a mask per seat (any player may goad) and monstrous one: the
+	// arena. Seats past the second have their goad mechs past mechAtch3, so
+	// they follow monstrous in enum order.
 	ix, n, _ = arenaAssign(arenaTable(kop.OpGoad, kop.OpMonstrosity))
-	if n != 3 || ix[mechGoad0] != 0 || ix[mechGoad1] != 1 || ix[mechMonstrous] != 2 || ix[mechRegen] != arenaNone {
+	if n != MaxSeats+1 || ix[mechGoad0] != 0 || ix[mechGoad1] != 1 || ix[mechMonstrous] != 2 || ix[mechRegen] != arenaNone {
 		t.Fatalf("goad+monstrous: ix %v n %d", ix, n)
 	}
-	// regen and kicker as well take a fifth, as many as the table uses
+	for sd := 2; sd < MaxSeats; sd++ {
+		if ix[goadMechs[sd]] != uint8(sd+1) {
+			t.Fatalf("goad+monstrous: seat %d's goad at %d, want %d", sd, ix[goadMechs[sd]], sd+1)
+		}
+	}
+	// regen and kicker as well take two more, as many as the table uses
 	five := arenaTable(kop.OpRegenerate, kop.OpGoad, kop.OpMonstrosity)
 	five.Cards[0].Keywords = kop.KwKicker
-	if _, n, _ = arenaAssign(five); n != 5 {
-		t.Fatalf("five slot masks: n %d", n)
+	if _, n, _ = arenaAssign(five); n != MaxSeats+3 {
+		t.Fatalf("regen+goad+monstrous+kicker slot masks: n %d, want %d", n, MaxSeats+3)
 	}
 	// kicked: Kicker, Bargain or Offspring on a card; exileEx: a damage op with the exile flag
 	kk := arenaTable()

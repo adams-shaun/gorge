@@ -85,12 +85,16 @@ func (sc *scen) onBF(o Obj) bool { return sc.s.objs[o].zone == kop.ZoneBattlefie
 
 // do steps to the next decision and applies the option matching want
 // (kind + source + target), failing if it is not offered.
-func (sc *scen) do(t *testing.T, kind ActionKind, src, tgt uint8) {
+// scAny is do's wildcard source or target: all ones, which no code reaches in
+// either size class (NoTarget in the default class).
+const scAny = ^TCode(0)
+
+func (sc *scen) do(t *testing.T, kind ActionKind, src, tgt TCode) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
-		if a.Kind() == kind && (src == 0xff || a.Source() == src) && (tgt == 0xff || a.Target() == tgt) {
+		if a.Kind() == kind && (src == scAny || a.Source() == src) && (tgt == scAny || a.Target() == tgt) {
 			sc.s.Apply(a)
 			return
 		}
@@ -121,15 +125,15 @@ func (sc *scen) combat(t *testing.T, attackers []Obj, blocks [][2]Obj) {
 	t.Helper()
 	sc.passUntil(t, kop.StepAttackers)
 	for _, a := range attackers {
-		sc.do(t, AkAttack, uint8(a), 0xff)
+		sc.do(t, AkAttack, TCode(a), scAny)
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
 	if len(blocks) > 0 || sc.s.ctl == ctlBlockers {
 		for _, b := range blocks {
-			sc.do(t, AkBlock, uint8(b[0]), uint8(b[1]))
+			sc.do(t, AkBlock, TCode(b[0]), TCode(b[1]))
 		}
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkDone, scAny, scAny)
 	}
 	sc.passUntil(t, kop.StepMain2)
 }
@@ -258,18 +262,18 @@ func TestLightningBoltAndDiesTrigger(t *testing.T) {
 	sc.perm(v.Mountain, 0)
 	bolt := sc.hand(v.LightningBolt, 0)
 	myr := sc.perm(v.PerilousMyr, 1)
-	sc.do(t, AkCast, uint8(bolt), 0xff)
-	sc.do(t, AkTarget, 0xff, uint8(myr))
+	sc.do(t, AkCast, TCode(bolt), scAny)
+	sc.do(t, AkTarget, scAny, TCode(myr))
 	// both pass: bolt resolves, myr dies, its trigger targets
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	// SBA: the myr dies; its trigger asks seat 1 for a target: seat 0's face
-	sc.do(t, AkTarget, 0xff, PlayerTarget0)
+	sc.do(t, AkTarget, scAny, TCode(PlayerTarget0))
 	if sc.onBF(myr) {
 		t.Fatalf("myr survived bolt")
 	}
-	sc.do(t, AkPass, 0xff, 0xff)
-	sc.do(t, AkPass, 0xff, 0xff)
+	sc.do(t, AkPass, scAny, scAny)
+	sc.do(t, AkPass, scAny, scAny)
 	if sc.s.pl[0].life != 18 {
 		t.Fatalf("life %d want 18", sc.s.pl[0].life)
 	}
@@ -281,16 +285,16 @@ func TestDamageDivisionDecision(t *testing.T) {
 	b1 := sc.perm(v.GrizzlyBears, 1)
 	b2 := sc.perm(v.GrizzlyBears, 1)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(og), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(og), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
-	sc.do(t, AkBlock, uint8(b1), uint8(og))
-	sc.do(t, AkBlock, uint8(b2), uint8(og))
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkBlock, TCode(b1), TCode(og))
+	sc.do(t, AkBlock, TCode(b2), TCode(og))
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepDamage)
 	d := sc.s.Step()
 	// splits of 3 among 2 in lexicographic order: 0,3 1,2 2,1 3,0
-	if d.Kind != DkChoose || d.Sub != ChDivide || d.Player != 0 || d.N != 4 || d.Options[0].Source() != uint8(og) {
+	if d.Kind != DkChoose || d.Sub != ChDivide || d.Player != 0 || d.N != 4 || d.Options[0].Source() != TCode(uint8(og)) {
 		t.Fatalf("division decision %d n=%d %v", d.Kind, d.N, d.Options[:d.N])
 	}
 	sc.s.Apply(d.Options[1]) // 1 to b1, 2 to b2
@@ -321,12 +325,12 @@ func TestMenaceDoneWithheld(t *testing.T) {
 	b1 := sc.perm(v.GrizzlyBears, 1)
 	b2 := sc.perm(v.GrizzlyBears, 1)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(og), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(og), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.passUntil(t, kop.StepBlockers)
-	sc.do(t, AkBlock, uint8(b1), uint8(og))
+	sc.do(t, AkBlock, TCode(b1), TCode(og))
 	d := sc.s.Step()
-	if d.N != 1 || d.Options[0] != MakeAction(AkBlock, uint8(b2), uint8(og), 0) {
+	if d.N != 1 || d.Options[0] != MakeAction(AkBlock, TCode(b2), TCode(og), 0) {
 		t.Fatalf("after a lone block on menace only the second block may follow: %v", d.Options[:d.N])
 	}
 }
@@ -337,7 +341,7 @@ func TestEndCombatFresh(t *testing.T) {
 	sc := newScen(t, Config{NoElide: true})
 	sc.perm(v.HillGiant, 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	for i := 0; i < 10; i++ {
 		d := sc.s.Step()
 		if sc.s.step == kop.StepEndCombat {
@@ -372,8 +376,8 @@ func TestCombatDamageTriggersBeforeEndOfCombat(t *testing.T) {
 	a := sc.perm(drawer, 0)
 	sc.perm(eoc, 0)
 	sc.passUntil(t, kop.StepAttackers)
-	sc.do(t, AkAttack, uint8(a), 0xff)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkAttack, TCode(a), scAny)
+	sc.do(t, AkDone, scAny, scAny)
 	hand0, life0 := sc.s.pl[0].handN, sc.s.pl[0].life
 	damageRound := false
 	drewIn, gainedIn := kop.NumSteps, kop.NumSteps // the step each trigger had resolved by

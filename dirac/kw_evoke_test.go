@@ -65,7 +65,7 @@ func handWalkCheck(t *testing.T, sc *scen, cand Obj, cardC CardID, id map[string
 	s.g.availX = 0
 	listed := func(d *Decision) bool {
 		for i := 0; i < int(d.N); i++ {
-			if d.Options[i].Kind() == kind && d.Options[i].Source() == uint8(cand) {
+			if d.Options[i].Kind() == kind && d.Options[i].Source() == TCode(uint8(cand)) {
 				return true
 			}
 		}

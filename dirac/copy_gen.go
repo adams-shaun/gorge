@@ -264,7 +264,7 @@ func b2u(b bool) uint8 {
 
 // copyGroup is target code c's controller seat (gorge
 // candidateControllerSeat: a player its own seat, an object its controller).
-func (s *State) copyGroup(c uint8) uint8 {
+func (s *State) copyGroup(c TCode) uint8 {
 	if isPlayerOrNone(c) {
 		return SeatIx(CodeSeat(c))
 	}
@@ -350,7 +350,7 @@ func (s *State) copyResume(k *prep) {
 // copyInherited lists the copy's inherited targets in gorge's order: each
 // cast-time slot's target, the declaration slot's other objects after its
 // first.
-func (s *State) copyInherited(e *stackEntry, slot int, out *[MaxOptions]uint8) int {
+func (s *State) copyInherited(e *stackEntry, slot int, out *[MaxOptions]TCode) int {
 	n := 0
 	k := s.k()
 	own := s.copyOwnSlot(k, e, slot) // a chain link's or a mode's election lists its own slot alone
@@ -381,10 +381,10 @@ func (s *State) copyTargetOptions(k *prep, d *Decision, slot int) {
 	e := &s.res.e
 	d.Kind, d.Sub = DkTarget, SubCopyTarget
 	d.Player = e.ctrl
-	var all [MaxOptions]uint8
+	var all [MaxOptions]TCode
 	n := s.copyInherited(e, slot, &all)
 	t := tspecE(k, e, slot)
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	nc := s.targetCands(k, t, e.ctrl, s.resSrcSlot(k), e.obj, &buf)
 next:
 	for _, c := range buf[:nc] {
@@ -407,9 +407,9 @@ next:
 	}
 	diff := t.TFlags&kop.TgfDiffController != 0
 	picked := s.res.arr[:s.res.peekN]
-	ok := func(c uint8, extra uint8, withExtra bool) bool {
+	ok := func(c TCode, extra TCode, withExtra bool) bool {
 		for _, p := range picked {
-			if Obj(c) == p || diff && s.copyGroup(c) == s.copyGroup(uint8(p)) {
+			if Obj(c) == p || diff && s.copyGroup(c) == s.copyGroup(TCode(p)) {
 				return false
 			}
 		}
@@ -436,7 +436,7 @@ next:
 		}
 		d.add(MakeAction(AkTarget, 0, c, 0))
 	}
-	if s.res.peekN >= s.res.chosen && d.N > 0 || d.N == 0 {
+	if objWord(s.res.peekN) >= s.res.chosen && d.N > 0 || d.N == 0 {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 }
@@ -478,12 +478,12 @@ func (s *State) setCopyTargetsQ(k *prep, e *stackEntry, i int, picks []Obj) {
 	a0 := &k.t.Cards[e.card].Abilities[e.ab]
 	oldN := 0
 	if a0.Targets[i].Divide != 0 {
-		var inherited [maxXTgt + 1]uint8
+		var inherited [maxXTgt + 1]TCode
 		oldN = s.divPicks(e, uint8(i), &inherited)
 	}
 	for j := 0; j < int(e.nt); j++ {
 		if j != i && !copyKeepSlot(a0, i, j) {
-			e.tgt[j] = NoTarget
+			e.tgt[j] = TCode(NoTarget)
 		}
 	}
 	if e.xi != 0 {
@@ -497,9 +497,9 @@ func (s *State) setCopyTargetsQ(k *prep, e *stackEntry, i int, picks []Obj) {
 		}
 		x.n = m
 	}
-	e.tgt[i] = NoTarget
+	e.tgt[i] = TCode(NoTarget)
 	for n, o := range picks {
-		c := uint8(o)
+		c := TCode(o)
 		var ver uint8
 		if isObjTarget(c) {
 			ver = s.objs[c].ver
@@ -539,11 +539,11 @@ func (s *State) setCopyTargetsQ(k *prep, e *stackEntry, i int, picks []Obj) {
 // (SubCopyTarget), the index of target t among the copy's inherited
 // targets, or -1 (gorge lists the inherited targets first, then the census
 // in its usual order).
-func (s *State) FeatCopyInherited(t uint8) int {
+func (s *State) FeatCopyInherited(t TCode) int {
 	if s.ctl != ctlResolve || s.res.ask != raGenCopyTarget && s.res.ask != raGenCopyTargets {
 		return -1
 	}
-	var inh [MaxOptions]uint8
+	var inh [MaxOptions]TCode
 	n := s.copyInherited(&s.res.e, int(s.res.left), &inh)
 	for i := 0; i < n; i++ {
 		if inh[i] == t {

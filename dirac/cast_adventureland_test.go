@@ -23,7 +23,7 @@ func TestCounteredAdventureNotOnAdventure(t *testing.T) {
 		sc.perm(id["Grizzly Bears"], 1)
 		mr := sc.hand(front, 0)
 		sc.s.Step()
-		sc.s.Apply(MakeAction(AkCast, uint8(mr), 1, castFace))
+		sc.s.Apply(MakeAction(AkCast, TCode(mr), 1, castFace))
 		sc.buildToStack(t)
 		if i := sc.s.stackIndexOf(mr); i >= 0 {
 			sc.s.counterTo(sc.k, i, kop.CtrDestExile)
@@ -49,7 +49,7 @@ func TestCounteredAdventureNotOnAdventure(t *testing.T) {
 		}
 		lb := sc.hand(front, 0)
 		sc.s.Step()
-		sc.s.Apply(MakeAction(AkCast, uint8(lb), 1, castFace))
+		sc.s.Apply(MakeAction(AkCast, TCode(lb), 1, castFace))
 		sc.buildToStack(t)
 		if i := sc.s.stackIndexOf(lb); i >= 0 {
 			sc.s.counterTo(sc.k, i, kop.CtrDestExile)

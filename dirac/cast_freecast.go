@@ -21,16 +21,16 @@ func (s *State) freeQueued(o Obj) bool {
 // instruction, so nothing here reads it).
 //
 // OpCastFree's operands:
-//   - C low 3 bits: the population zone (Exile / Hand / Graveyard / Library /
-//     Command: the resolving controller's own commanders).
+//   - C low 3 bits: the population zone (Exile / Hand / Graveyard / Library).
 //   - C bit 3: Amount$ 1 (close the ask after one pick).
 //   - C bit 4: ForgetPlayed$ True (drop the card from s.g.rem once its cast
 //     commits; a refused or reversed cast never commits and keeps it).
 //   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
 //   - C bit 8: the copy pays its mana cost; bit 9: a literal Amount$ A (the ask closes after A picks).
-//   - Obj: RefRemembered (P1), a target slot (P2), or RefNone with F (P3/P4
-//     filter population over the zone).
+//   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
+//     player target: that player's hand), or RefNone with F (P3/P4 filter
+//     population over the zone).
 //
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
@@ -123,23 +123,16 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		add(e.obj) // the source card in exile (an exile-granted ability's Play; cast_exilegrant.go)
 	case tgtSlotOf(in.Obj) >= 0:
 		if slot := tgtSlotOf(in.Obj); slot < int(e.nt) {
-			if o := Obj(e.tgt[slot]); isObjTarget(uint8(o)) {
+			if o := Obj(e.tgt[slot]); isObjTarget(TCode(o)) {
 				add(o)
+			} else if isPlayerTarget(e.tgt[slot]) {
+				s.castFreeFillHand(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
 			}
 		}
 	case zone == kop.ZoneHand:
 		pl := &s.pl[e.ctrl]
 		for i := 0; i < int(pl.handN); i++ {
 			if !add(pl.hand[i]) {
-				return
-			}
-		}
-	case zone == kop.ZoneCommand:
-		// P5: the resolving controller's own commanders, in its command-zone
-		// order (gorge effPlay walks that seat's command zone; Geode Golem)
-		first, second := s.cmdZoneOrder(e.ctrl)
-		for _, o := range [2]Obj{first, second} {
-			if o != NoObj && !add(o) {
 				return
 			}
 		}

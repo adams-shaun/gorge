@@ -318,25 +318,34 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 // trigger's event seat), else the first CR 508.4 candidate. A trigger with
 // no bound defending player (an event other than an attack declaration)
 // stalls (StallDefenderPW). NoTarget: none.
-func (s *State) enterDefenderFallback(k *prep, p uint8) uint8 {
+func (s *State) enterDefenderFallback(k *prep, p uint8) TCode {
+	fb, unbound := s.enterDefenderFallbackOf(k, p)
+	if unbound {
+		s.capFull(StallDefenderPW)
+	}
+	return fb
+}
+
+// enterDefenderFallbackOf is enterDefenderFallback without the stall:
+// unbound reports the trigger with no bound defending player (fb NoTarget).
+func (s *State) enterDefenderFallbackOf(k *prep, p uint8) (fb TCode, unbound bool) {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
 		if e.defSeat != 0 {
-			return PlayerCode(e.defSeat - 1)
+			return PlayerCode(e.defSeat - 1), false
 		}
-		s.capFull(StallDefenderPW)
-		return NoTarget
+		return TCode(NoTarget), true
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	if s.enteringDefenderCands(k, p, &buf) == 0 {
-		return NoTarget
+		return TCode(NoTarget), false
 	}
-	return buf[0]
+	return buf[0], false
 }
 
 // enterDefenderOrder puts fb first among the n candidates in buf, as gorge's
 // chooseEnteringDefender orders its ask (fallback first, the rest in
 // enteringDefenders order); fb absent is inserted. It returns the new count.
-func enterDefenderOrder(buf *[MaxOptions]uint8, n int, fb uint8) int {
+func enterDefenderOrder(buf *[MaxOptions]TCode, n int, fb TCode) int {
 	i := 0
 	for i < n && buf[i] != fb {
 		i++
@@ -372,7 +381,7 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet || !s.tokenCombatWindow(p) {
 		return false
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.enteringDefenderCands(k, p, &buf)
 	if MaxSeats > 2 {
 		fb := s.enterDefenderFallback(k, p)
@@ -384,7 +393,7 @@ func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
 	if n < 2 {
 		return false
 	}
-	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, uint8(NoSlot)
+	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, objWord(uint8(NoSlot))
 	return true
 }
 

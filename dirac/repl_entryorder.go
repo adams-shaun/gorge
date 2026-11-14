@@ -369,7 +369,7 @@ func (s *State) entryOrderPark(k *prep, o Obj, ctrl uint8, mode uint8) bool {
 	if c.early {
 		mode |= entEarly
 	}
-	ro.replHdr = replHdr{n: c.n, prev: c.tap, shld: c.untap, p: ctrl, pcol: mode, cur: Slot(o)}
+	ro.replHdr = replHdr{n: c.n, prev: c.tap, shld: c.untap, p: ctrl, pcol: mode, cur: objWord(o)}
 	return true
 }
 
@@ -716,7 +716,7 @@ func (s *State) entryOrderOptions(k *prep, d *Decision) {
 	c, _ := s.entryComp(k, ro.entObj(), ro.p, skip, ro.pcol&entEarly != 0)
 	for i := uint8(0); i < ro.n && i < c.n; i++ {
 		if ro.used&(1<<i) == 0 {
-			d.add(MakeAction(AkChoose, uint8(c.cand[i]), 0, i)) // mode: gorge's scan index
+			d.add(MakeAction(AkChoose, TCode(c.cand[i]), 0, i)) // mode: gorge's scan index
 		}
 	}
 }

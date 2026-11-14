@@ -16,7 +16,7 @@ func (bt *Bot) Declaration(s *dirac.State, d *dirac.Decision, out []dirac.Action
 		cs.chooseAttackers(b, d.Player)
 		for j := 0; j < cs.nCh; j++ {
 			o := cs.opts[cs.chosen[j]]
-			out = append(out, dirac.MakeAction(dirac.AkAttack, uint8(o.src), o.tgt, 0))
+			out = append(out, dirac.MakeAction(dirac.AkAttack, dirac.TCode(o.src), dirac.TCode(o.tgt), 0))
 		}
 	case dirac.DkBlockers:
 		b.fillCombat(s, bt.f, d.Player)
@@ -24,7 +24,7 @@ func (bt *Bot) Declaration(s *dirac.State, d *dirac.Decision, out []dirac.Action
 		cs.chooseBlockers(b, d.Player)
 		for j := 0; j < cs.nCh; j++ {
 			o := cs.opts[cs.chosen[j]]
-			out = append(out, dirac.MakeAction(dirac.AkBlock, uint8(o.src), o.tgt, 0))
+			out = append(out, dirac.MakeAction(dirac.AkBlock, dirac.TCode(o.src), dirac.TCode(o.tgt), 0))
 		}
 	}
 	return out

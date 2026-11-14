@@ -617,6 +617,14 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				ts = append(ts, t)
 			}
 		}
+	case evalPlayerRefPropertyTriggeredPlayersAttackedTarget:
+		// The players the firing AttackersDeclared declaration attacked
+		// (Commander Liara Portyr's SVar:X, "the number of players being
+		// attacked"): the fire-time capture, one entry per distinct seat.
+		// Amount is the only property.
+		for _, p := range c.TriggerAttackedPlayers {
+			ts = append(ts, state.Target{Player: p, IsPlayer: true})
+		}
 	case evalPlayerRefPropertyTriggeredPlayersTargets:
 		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
 		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
@@ -643,7 +651,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
 		return 0, false
 	}
-	if (ref == "TriggeredPlayersTargets" || ref == "TriggeredCapturedPlayers") && prop != "Amount" {
+	if (refCode == evalPlayerRefPropertyTriggeredPlayersTargets || refCode == evalPlayerRefPropertyTriggeredPlayersAttackedTarget ||
+		ref == "TriggeredCapturedPlayers") && prop != "Amount" {
 		return 0, false
 	}
 	g := h.Game()
@@ -693,6 +702,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		case prop == "Amount" && (refCode == evalPlayerRefPropertyTargetedPlayer ||
 			refCode == evalPlayerRefPropertyTriggeredPlayersOpponentVote ||
 			refCode == evalPlayerRefPropertyTriggeredPlayersTargets ||
+			refCode == evalPlayerRefPropertyTriggeredPlayersAttackedTarget ||
 			ref == "TriggeredCapturedPlayers"):
 			n++
 		default:
@@ -735,13 +745,19 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // and the Valid-family heads
 // are modelled ONLY for TriggeredTarget -- the damaged player of a DamageDone
 // trigger reads Battle Angels of Tyr's NumInHand, NumLands, sword-of-war-and-
-// peace-style damage and friends -- so the widening cannot spread to
-// TriggeredPlayer, TriggeredDefendingPlayer or any other ref's unmodelled
-// property. A Valid head is recognised exactly like the property switch below
+// peace-style damage and friends -- and CardsInHand also for
+// TriggeredDefendingPlayer (Mr. Foxglove), so the widening cannot spread to
+// TriggeredPlayer or any other ref's unmodelled property. A Valid head is recognised exactly like the property switch below
 // reads it: the word before the first space satisfies countZone.
 func defaultRefPropertyModelled(ref, prop string) bool {
 	if prop == "LifeTotal" || prop == "DamageToOppsThisTurn" {
 		return true
+	}
+	if ref == "TriggeredDefendingPlayer" {
+		// Mr. Foxglove's "cards in defending player's hand": the attacked
+		// player's hand size (Forge's player-property count resolves the
+		// defining ref to its players, whichever the ref)
+		return prop == "CardsInHand"
 	}
 	if ref != "TriggeredTarget" {
 		return false
@@ -856,6 +872,7 @@ const (
 	evalPlayerRefPropertyTriggeredPlayersOpponentVote
 	evalPlayerRefPropertyTriggeredCapturedPlayers
 	evalPlayerRefPropertyTriggeredPlayersTargets
+	evalPlayerRefPropertyTriggeredPlayersAttackedTarget
 )
 
 var evalPlayerRefPropertyCodes = state.NewStrCodes(
@@ -865,4 +882,5 @@ var evalPlayerRefPropertyCodes = state.NewStrCodes(
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersOpponentVotedDiff", Val: evalPlayerRefPropertyTriggeredPlayersOpponentVote},
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredCapturedPlayers", Val: evalPlayerRefPropertyTriggeredCapturedPlayers},
 	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersTargets", Val: evalPlayerRefPropertyTriggeredPlayersTargets},
+	state.StrEntry[evalPlayerRefPropertyCode]{Key: "TriggeredPlayersAttackedTarget", Val: evalPlayerRefPropertyTriggeredPlayersAttackedTarget},
 )

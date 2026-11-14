@@ -20,9 +20,9 @@ func (sc *scen) stepInCast(t *testing.T, id map[string]CardID) {
 		sc.perm(id["Mountain"], 0)
 	}
 	heist := sc.hand(id["Great Train Heist"], 0)
-	sc.do(t, AkCast, uint8(heist), 0xff)
+	sc.do(t, AkCast, TCode(heist), scAny)
 	charmnumPickMode(t, sc, 0)
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	sc.resolveAll(t)
 }
 

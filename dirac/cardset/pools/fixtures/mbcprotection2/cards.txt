@@ -1,0 +1,20 @@
+# The MBC protection-2 lowerings for the oracle's constructed lockstep
+# (dirac/oracle/mbcprotection2_test.go): an Aura's granted protection from
+# creatures (Spirit Mantle, Unquestioned Authority) and a PumpAll's
+# protection from each color until end of turn (Akroma's Will), with
+# coloured creatures, burn and a blocker on the other seat to test the
+# protection against (blocking, damage and targeting).
+Spirit Mantle
+Unquestioned Authority
+Akroma's Will
+Savannah Lions
+Serra Angel
+Silver Knight
+Grizzly Bears
+Hill Giant
+Shock
+Lightning Bolt
+Terror
+Plains
+Mountain
+Swamp

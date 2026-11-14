@@ -48,7 +48,7 @@ func stackKwStallScen(t *testing.T, spell string) (*scen, Obj) {
 func stackKwStall(t *testing.T, spell string) {
 	t.Helper()
 	sc, m := stackKwStallScen(t, spell)
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if !sc.s.Stalled() {
 		t.Fatalf("%s: no stall; decision %v/%d options %v", spell, d.Kind, d.Sub, d.Options[:d.N])
@@ -131,7 +131,7 @@ func wantMenu(t *testing.T, got []string, done bool, want ...string) {
 // (pay.ConvokeAsk); an artifact creature carries both generic options.
 func TestStackKwGrantMixedKeywordsAnnounces(t *testing.T) {
 	sc, m, _ := stackKwBoardScen(t, "Kappa Cannoneer")
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if sc.s.Stalled() {
 		t.Fatalf("stalled: %q", StallName(sc.s.StallReason()))
@@ -146,7 +146,7 @@ func TestStackKwGrantMixedKeywordsAnnounces(t *testing.T) {
 // possible generic payment although the composed generic is {0}.
 func TestStackKwGrantXCostAnnounces(t *testing.T) {
 	sc, m, _ := stackKwBoardScen(t, "Walking Ballista")
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if sc.s.Stalled() {
 		t.Fatalf("stalled: %q", StallName(sc.s.StallReason()))
@@ -162,18 +162,18 @@ func TestStackKwGrantXCostAnnounces(t *testing.T) {
 // generic of the X total: X = 0 is not offered, X = 2 taps three Islands.
 func TestStackKwGrantXCostPickPaysX(t *testing.T) {
 	sc, m, objs := stackKwBoardScen(t, "Walking Ballista")
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenConvoke {
 		t.Fatalf("decision %v/%d, want the convoke ask", d.Kind, d.Sub)
 	}
 	pe := objs["Pilgrim's Eye"]
-	sc.do(t, AkChoose, uint8(pe), 0xff)
+	sc.do(t, AkChoose, TCode(pe), scAny)
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenConvoke {
 		t.Fatalf("decision %v/%d after the pick, want the convoke re-ask", d.Kind, d.Sub)
 	}
-	sc.do(t, AkDone, 0xff, 0xff)
+	sc.do(t, AkDone, scAny, scAny)
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("decision %v/%d, want the X ask", d.Kind, d.Sub)
@@ -211,7 +211,7 @@ func TestStackKwGrantXCostPickPaysX(t *testing.T) {
 // Improvise or {X} still announces and casts (the guard is narrow).
 func TestStackKwGrantPlainCastDoesNotStall(t *testing.T) {
 	sc, m := stackKwStallScen(t, "Pilgrim's Eye")
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if sc.s.Stalled() {
 		t.Fatalf("Pilgrim's Eye stalled: %q", StallName(sc.s.StallReason()))
@@ -228,7 +228,7 @@ func TestStackKwGrantHarmonizeStalls(t *testing.T) {
 	sc, m := stackKwStallScen(t, "Pilgrim's Eye")
 	k := sc.k
 	k.t.Cards[sc.s.objs[m].card].Harmonize = true
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	sc.s.bld().e.flags |= sfFlashback
 	if !harmonizeEntry(&k.t.Cards[sc.s.bld().e.card], &sc.s.bld().e) {
 		t.Fatal("entry is not a harmonize cast")
@@ -249,7 +249,7 @@ func TestStackKwGrantHarmonizeStalls(t *testing.T) {
 func TestStackKwGrantAltRouteStalls(t *testing.T) {
 	sc, m := stackKwStallScen(t, "Pilgrim's Eye")
 	sc.k.t.Cards[sc.s.objs[m].card].HasPlot = true
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if !sc.s.Stalled() || sc.s.StallReason() != StallStackKwGrant || d.Kind != DkNone {
 		t.Fatalf("no StallStackKwGrant; stalled=%v decision %v/%d", sc.s.Stalled(), d.Kind, d.Sub)

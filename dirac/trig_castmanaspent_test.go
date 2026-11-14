@@ -36,7 +36,7 @@ func (sc *scen) castModeKopus(t *testing.T, o Obj, want uint8) {
 	t.Helper()
 	d := sc.s.Step()
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) && a.Mode()&want == want {
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) && a.Mode()&want == want {
 			sc.s.Apply(a)
 			return
 		}

@@ -130,7 +130,7 @@ func TestEnchantParkTrimsEnteredCards(t *testing.T) {
 			s.res.ask, s.g.nlook, s.resArm().look[0], b1)
 	}
 	draws := s.rng.Draws
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h2), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(h2), 0, 0))
 	if s.res.ask != raGenEnchant {
 		t.Fatalf("two Auras: ask %d after the first answer, want the second Aura's ask (not dropped)", s.res.ask)
 	}
@@ -149,7 +149,7 @@ func TestEnchantParkTrimsEnteredCards(t *testing.T) {
 		t.Fatalf("two Auras: the search tail ran before the second ask was answered (draws %d -> %d)", draws, s.rng.Draws)
 	}
 
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h1), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(h1), 0, 0))
 	if !sc.onBF(b2) || s.perms[sc.slot(b2)].attached != sc.slot(h1) {
 		t.Fatalf("two Auras: second Aura on bf %v attached %d, want attached to %d",
 			sc.onBF(b2), s.perms[sc.slot(b2)].attached, sc.slot(h1))
@@ -205,7 +205,7 @@ func TestEnchantParkTrimsEnteredCards(t *testing.T) {
 				s.res.ask, s.g.nlook, s.resArm().look[0], b)
 		}
 		aSlot := sc.slot(a)
-		s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(h2), 0, 0))
+		s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(h2), 0, 0))
 		if s.res.ask != raGenEnterAsk || s.res.left != tailSearchEnter {
 			t.Fatalf("as-enters tail: ask %d left %d after the enchant answer, want the queued election with tailSearchEnter kept",
 				s.res.ask, s.res.left)
@@ -307,9 +307,9 @@ func TestSearchEnchantParkKeepsEnteredCardOutOfTheRerun(t *testing.T) {
 	if s.startSearch(k, in) || s.res.ask != raGenSearch {
 		t.Fatalf("ask %d, want the search pick", s.res.ask)
 	}
-	s.applyResolveGen(k, MakeAction(AkChoose, uint8(m.land), 0, 0))
-	s.applyResolveGen(k, MakeAction(AkChoose, uint8(m.aura), 0, 0))
-	s.applyResolveGen(k, MakeAction(AkChoose, uint8(m.land2), 0, 0))
+	s.applyResolveGen(k, MakeAction(AkChoose, TCode(m.land), 0, 0))
+	s.applyResolveGen(k, MakeAction(AkChoose, TCode(m.aura), 0, 0))
+	s.applyResolveGen(k, MakeAction(AkChoose, TCode(m.land2), 0, 0))
 	// the precondition the assertion below depends on: the land entered, the
 	// Aura waits in the library for the host ask
 	if s.res.ask != raGenEnchant {
@@ -319,7 +319,7 @@ func TestSearchEnchantParkKeepsEnteredCardOutOfTheRerun(t *testing.T) {
 		t.Fatalf("zones %d %d %d, want the first land entered and the Aura and the last land still in the library",
 			s.objs[m.land].zone, s.objs[m.aura].zone, s.objs[m.land2].zone)
 	}
-	s.applyResolveGen(k, MakeAction(AkChoose, uint8(m.bear), 0, 0))
+	s.applyResolveGen(k, MakeAction(AkChoose, TCode(m.bear), 0, 0))
 	if s.res.pc != 1 || s.res.ask != raGenSearch {
 		t.Fatalf("pc %d ask %d, want the program resumed at the next search's pick", s.res.pc, s.res.ask)
 	}

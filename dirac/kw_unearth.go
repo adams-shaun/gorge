@@ -37,7 +37,7 @@ func (s *State) unearth(k *prep) {
 		s.capFull(StallDelayed)
 		return
 	}
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpUnearth), ctrl: s.res.e.ctrl, obj: o, ver: ob.ver, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpUnearth), ctrl: s.res.e.ctrl, obj: o, ver: objWord(ob.ver), creator: NoObj}
 	s.ndly++
 }
 
@@ -53,7 +53,7 @@ func (s *State) unearthZone(sl Slot, z kop.Zone) kop.Zone {
 	o := s.perms[sl].obj
 	v := s.objs[o].ver
 	for i := 0; i < int(s.ndly); i++ {
-		if d := &s.dly[i]; d.act == uint8(kop.OpUnearth) && d.obj == o && d.ver == v {
+		if d := &s.dly[i]; d.act == uint8(kop.OpUnearth) && d.obj == o && d.ver == objWord(v) {
 			return kop.ZoneExile
 		}
 	}

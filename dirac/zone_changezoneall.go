@@ -190,7 +190,8 @@ func (s *State) overrideRemembered(k *prep, in *kop.Instr) {
 
 // czallSecondZone decodes OpChangeZoneAllEx's second source zone for a
 // MvGraveExile sweep: B.N == 0 is the legacy Graveyard,Exile; B.N ==
-// ZoneHand is Graveyard,Hand (Weftwalking). B.N's CzUntilLeaves bit is
+// ZoneHand is Graveyard,Hand (Weftwalking); CzGraveLibrary is
+// Graveyard,Library (Doomsday). B.N's CzUntilLeaves bit is
 // never set on the dual shape.
 func czallSecondZone(in *kop.Instr) kop.Zone {
 	if in.B.N&kop.CzHandGrave != 0 {
@@ -201,6 +202,8 @@ func czallSecondZone(in *kop.Instr) kop.Zone {
 		return kop.ZoneHand
 	case kop.CzLibrarySideboard:
 		return kop.ZoneSideboard // Library,Sideboard (Turtles Forever)
+	case kop.CzGraveLibrary:
+		return kop.ZoneLibrary // Graveyard,Library (Doomsday)
 	}
 	return kop.ZoneExile
 }
@@ -267,7 +270,7 @@ type czallCarry struct {
 func (c *czallCarry) load(pre *preAsk) {
 	if pre.kind == akCmdZone && (pre.state == preCmdZoneMove || pre.state == preCmdZoneCmd) {
 		c.k[0], c.k[1] = int(pre.val&0x7f), int(pre.val2&0x7f)
-		c.first = pre.val>>7 | pre.val2>>7<<1
+		c.first = uint8(pre.val>>7) | pre.val2>>7<<1
 		if MaxSeats > 2 {
 			for p := 2; p < MaxSeats; p++ {
 				c.k[p] = int(pre.ordPick[p-2])
@@ -279,7 +282,7 @@ func (c *czallCarry) load(pre *preAsk) {
 
 // store writes the carried prefix for the next park.
 func (c *czallCarry) store(pre *preAsk) {
-	pre.val, pre.val2 = uint8(c.k[0])|c.first&1<<7, uint8(c.k[1])|c.first>>1<<7
+	pre.val, pre.val2 = objWord(uint8(c.k[0])|c.first&1<<7), uint8(c.k[1])|c.first>>1<<7
 	if MaxSeats > 2 {
 		for p := 2; p < MaxSeats; p++ {
 			pre.ordPick[p-2] = Obj(c.k[p])

@@ -128,6 +128,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.chosenNumberOfFor(ctx.src, ctx.srcSl) // repl_choosenumber.go
 	case kop.ExUnlockedDoors:
 		return s.unlockedDoors(k, ctx.ctrl) // value_countheads.go
+	case kop.ExCmdGreatestMV:
+		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
 	case kop.ExRevolt:
 		if s.revoltHolds(ctx.ctrl) { // zone_leftzonering.go
 			return 1
@@ -185,7 +187,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExAttackedTurn:
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
 	case kop.ExOppsLostLife:
-		return s.oppsLostLife(ctx.ctrl, x.N) // N 1 legendary hit, N 2 any hit (value_turntallies.go)
+		return s.oppsLostLife(ctx.ctrl, x.N) // N 1 legendary hit, N 2 any hit (value_turntallies.go), N 3 any damage (value_oppsdamaged.go)
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
 	case kop.ExRemEachOwnNonLand:
@@ -201,6 +203,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		if x.Ref == kop.RefRemembered {
 			return s.rememberedMVAgg(k, x.N == kop.AggGreatestMV)
+		}
+		if x.Ref == kop.RefLibTop {
+			return s.libTopMV(k, ctx) // zone_toplibrary.go
 		}
 		if _, ok := tgtSlot(x.Ref); ok {
 			return s.targetMV(k, x.Ref, ctx)
@@ -246,6 +251,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExThisTurnActExhaust:
 		return s.thisTurnActExhaust(ctx)
 	case kop.ExActivations:
+		if x.N == 1 {
+			return s.activationsOfSource(ctx) // value_activations.go
+		}
 		return s.activationsOfResolving() // value_activations.go
 	case kop.ExThisTurnCastSpec:
 		return s.thisTurnCastSpec(k, x, ctx)
@@ -322,7 +330,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 
 // oppsLostLife is ExOppsLostLife: the number of p's opponents who lost life
 // this turn (mode 0), who were dealt combat damage by a legendary creature
-// (mode 1, genState.cdLeg bit q) or by any source (mode 2, cdLeg bit 4+q).
+// (mode 1, genState.cdLeg bit q) or by any source (mode 2, cdLeg bit 4+q),
+// or who were dealt any damage (mode 3, a living opponent's plDmg bit).
 func (s *State) oppsLostLife(p uint8, mode int16) int {
 	c := 0
 	for q := uint8(0); q < s.nSeats(); q++ {
@@ -336,6 +345,10 @@ func (s *State) oppsLostLife(p uint8, mode int16) int {
 			}
 		case 2:
 			if s.g.cdLeg>>(4+q)&1 != 0 {
+				c++
+			}
+		case 3:
+			if s.oppDamaged(q) { // value_oppsdamaged.go
 				c++
 			}
 		default:
