@@ -29,9 +29,9 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TMT | 194 | 183 | 0 | 0 | 183 | 182 |
 | TRC | 337 | 301 | 0 | 32 | 269 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
-| WOE | 281 | 265 | 0 | 19 | 246 | 245 |
-| MBC | 2195 | 1854 | 1 | 961 | 892 | 876 |
-| ALL | 34442 | 23968 | 21 | 17889 | 6058 | 6009 |
+| WOE | 281 | 265 | 0 | 18 | 247 | 246 |
+| MBC | 2195 | 1869 | 1 | 970 | 898 | 882 |
+| ALL | 34442 | 24040 | 21 | 17954 | 6065 | 6016 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -45,7 +45,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | cmd5 | 1500 |
 | dr-mbc-aaaa | 1362 |
 | dr-mbc-abbb | 1010 |
-| ev-dr-mbc-aaaa | 810 |
+| ev-dr-mbc-aaaa | 187 |
 | ev-dr-mbc-aaab | 200 |
 | ev-dr-mbc-aaba | 608 |
 | ev-dr-mbc-aabb | 96 |
@@ -60,22 +60,27 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-dr-mbc-bbaa | 200 |
 | ev-dr-mbc-bbab | 200 |
 | ev-dr-mbc-bbba | 200 |
-| ev-dr-mbc-bbbb | 16 |
+| ev-dr-mbc-bbbb | 200 |
 | ev-std-big | 200 |
+| ev-std-blb | 200 |
 | ev-std-dft | 200 |
-| ev-std-dsk | 11 |
+| ev-std-dsk | 194 |
+| ev-std-ecl | 200 |
 | ev-std-eoe | 200 |
 | ev-std-fin | 200 |
 | ev-std-fra | 200 |
 | ev-std-hob | 200 |
-| ev-std-lci | 168 |
-| ev-std-mkm | 264 |
-| ev-std-msh | 169 |
+| ev-std-lci | 147 |
+| ev-std-mkm | 200 |
+| ev-std-msh | 200 |
 | ev-std-otj | 55 |
 | ev-std-sos | 200 |
 | ev-std-spm | 200 |
 | ev-std-tdm | 200 |
 | ev-std-tla | 200 |
+| ev-std-tmt | 179 |
+| ev-std-trk | 200 |
+| ev-std-woe | 200 |
 | fdn | 1500 |
 | pauper | 1500 |
 | std-big | 1500 |

@@ -275,7 +275,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
-				!potential && s.riderActivatable(k, p, sl, a)) {
+				s.riderActivatable(k, p, sl, a)) {
 				ans := 0
 				if !a.ManaEach && (uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
 					pc := s.manaPCGen(k, sl)
@@ -334,6 +334,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				} else if m := s.windowSrcMask(k, sl) & want; m != 0 {
 					col = bits.TrailingZeros8(m)
 				}
+			} else if c, ok := s.windowGrantFirstCol(k, p, sl, useful); ok {
+				col = c // the unsettled generic keeps every colour: the grant that makes the owed pip is listed first (mana_grantfirst.go)
 			}
 		}
 		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
@@ -431,8 +433,10 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // so the walk takes it here and riderGap pays its counter, mana and rider
 // (mana_rider.go) -- in the paying cast's window, a ward or unless window
 // (payWindow) and their census probes (windowAffordsTake) alike. The
-// potential route (a trigger-cost window, windowTapNoOwed) keeps the
-// planner's tier.
+// potential route (a trigger-cost window, windowTapNoOwed) takes it too:
+// gorge's trigger-cost ask prices the payer's potential mana, whose walk
+// counts the rider's activation, so the elected pay funds it here the same
+// way (mana_rider.go).
 func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred, potential bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	var tapsDef slotMask
@@ -446,7 +450,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if !potential && k.gen != nil && k.gen.anyManaRider {
+		if k.gen != nil && k.gen.anyManaRider {
 			c := s.cardAt(o)
 			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, o, a) {
 				mask := uint8(a.ManaColors)
@@ -1083,9 +1087,7 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		sl := m.first()
-		c := s.cardAt(sl)
-		if a, ok := s.riderAbilityOf(k, sl); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, sl, a) {
+		if s.riderPotential(k, p, m.first()) {
 			return true
 		}
 	}
@@ -2282,6 +2284,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	var av avail
 	s.availFor(k, p, &av)
+	printedPays := false
 	if any != 0 || anyColor {
 		// gorge prices the printed symbols on its census, which has no
 		// granted source (rules potentialModeCastPlan: the rider only when
@@ -2295,6 +2298,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		}
 		ok := pv.affords(&cost, pipMaskOf(&cost), 0)
 		if anyColor {
+			printedPays = ok // gorge's witness plans the printed symbols when they are payable, the rider's generic price only otherwise
 			ok = pv.affordsAnyColor(&cost, 0)
 		}
 		if !ok && !anyColor && k.restrSrc && s.bld().e.kind == seSpell {
@@ -2410,15 +2414,16 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		x = 0
 	}
 	untapped := s.untappedRestrSrcs(k, p)
+	tapColor := anyColor && !printedPays // the printed symbols the census pays are planned as printed (CR 609.4b lets either tap pay)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
-		if !s.tapForSpellTaps(k, p, &cost, x, excl, anyColor) {
-			s.tapForRider(k, p, &cost, x, excl, anyColor)
+		if !s.tapForSpellTaps(k, p, &cost, x, excl, tapColor) {
+			s.tapForRider(k, p, &cost, x, excl, tapColor)
 		}
 		return
 	}
 	pool := s.pl[p].pool
 	var pk planner
-	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
+	s.tapForPK(k, p, &cost, x, excl, false, tapColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
 
