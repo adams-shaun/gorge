@@ -48,8 +48,8 @@ func inHand(e *Engine, id state.ObjID) bool {
 
 // TestExpertLevelSafeChangeNumAllReturnsEveryExiledCard is the named
 // real-card pin: Expert-Level Safe's matched branch (DBSacrifice ->
-// DBOpenSafe) writes `DB$ ChangeZoneAll | ChangeNum$ All | Origin$ Exile |
-// Destination$ Hand | ChangeType$ Card.ExiledWithSource`, and "All" must
+// DBOpenSafe) writes a ChangeZoneAll that returns every card exiled with the
+// source from exile to hand, with ChangeNum "All", and "All" must
 // return EVERY card exiled with the Safe -- which is what the primitive did
 // before the param read, so this test pins that the All spelling keeps the
 // uncapped sweep rather than degrading with the numeric branch.

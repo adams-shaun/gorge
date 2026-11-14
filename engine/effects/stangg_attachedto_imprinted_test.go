@@ -12,10 +12,9 @@ import (
 // TestStanggEchoWarriorCopyAttachesToTheImprintedTwin pins the one corpus
 // `AttachedTo$ Imprinted` leg of the ImprintTokens$ True class end to end at
 // the effects boundary, on the real token face (Stangg, Echo Warrior's
-// `SVar:TrigStangg:DB$ Token | TokenScript$ stangg_twin | ImprintTokens$
-// True | ... | SubAbility$ CreateCopy` followed by `SVar:CreateCopy:DB$
-// CopyPermanent | Defined$ Valid Equipment.Attached,Aura.Attached |
-// AttachedTo$ Imprinted`). It is the only one of the 14 corpus carriers of
+// trigger makes the twin token, imprinting it, then a CopyPermanent sub-ability
+// copies each attached Equipment and Aura attached to the imprinted twin).
+// It is the only one of the 14 corpus carriers of
 // `ImprintTokens$ True` that reads the pile back through `AttachedTo$`
 // (measured with GNU grep over .cards/cardsfolder at the current FORGE_REF;
 // 11 use `Defined$ Imprinted`/`ImprintCards$ Imprinted`, 2 use

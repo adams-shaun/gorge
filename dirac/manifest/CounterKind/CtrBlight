@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrBlight
+value: 109
+forge: BLIGHT
+census: ctr BLIGHT all=2 std=2 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -346,10 +346,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
 		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
 	}
-	if (mode == 0 || mode == 1) && k.gen != nil && k.gen.anyConvoke {
-		// the plain cast's credit (gorge castOfferBase) and, beside the
-		// kicker raise (gorge castOfferBase plus it), the kicked cast's: the
-		// credit comes off the total the raise joined (CR 601.2b, 601.2f)
+	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
 	}
 	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
@@ -1374,6 +1371,9 @@ func (s *State) FeatManaActivatable(o Obj) bool {
 func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 	k := s.k()
 	t := k.t
+	if i, ok := basicLandKey(v); ok {
+		return i // gorge's basic land type order (act_choosebasicland.go)
+	}
 	if v >= len(t.TypeVocab) {
 		return 1<<16 | uint32(v)
 	}
@@ -1484,7 +1484,7 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 // counter list keeps it at 0 while the permanent stays.
 func (p *perm) seeCtr(s *State) {
 	for i := range p.cn {
-		if p.cn[i] != 0 && p.ck[i] < uint8(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
+		if p.cn[i] != 0 && p.ck[i] < uint16(kop.NumCounterKinds2) { // CtrLevel is no counter (kw_class.go)
 			p.cseen |= 1 << i
 		}
 	}

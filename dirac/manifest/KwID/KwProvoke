@@ -1,0 +1,7 @@
+family: KwID
+name: KwProvoke
+value: 86
+forge: Provoke
+census: kw Provoke all=8 std=0 mbc=0 sole=7
+state: code 0
+status: reserved

@@ -8,8 +8,8 @@ package rules
 // vc-static1 whitelisted ForCost$/ValidCause$ but deliberately skipped every
 // ForCost$ True line (the cost call sites' pending cast/activation identity
 // was not modelled), so Angel of Jubilation and Yasharn, Implacable Earth --
-// the two corpus CantSacrifice carriers of
-// `ValidCause$ Spell,Activated | ForCost$ True` -- were inert on the cost
+// the two corpus CantSacrifice carriers restricted to spell and activated
+// costs (ValidCause$ with ForCost$ True) -- were inert on the cost
 // path: a creature could be sacrificed to pay a spell's or ability's cost.
 //
 // Every leaf drives a REAL corpus card through the ordinary offer/payment
@@ -46,8 +46,8 @@ func battlefieldObj(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) st
 // symptom: with Angel of Jubilation on the battlefield, Viscera Seer's
 // `Cost$ Sac<1/Creature>` activated ability (the real castable ->
 // nonManaCastable Sac walk, and the sacAsk payment path) has no legal
-// candidate, because Angel's `ValidCard$ Creature | ValidCause$
-// Spell,Activated | ForCost$ True` static now reads the cost provenance and
+// candidate, because Angel's static (creatures can't be sacrificed to pay the
+// costs of spells or activated abilities) now reads the cost provenance and
 // blocks every creature. The control leaf (no Angel) proves the ability is
 // otherwise offered, so the absence is the restriction's doing.
 func TestCantSacrificeForCostWithholdsActivatedAbilityCost(t *testing.T) {

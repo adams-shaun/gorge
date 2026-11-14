@@ -391,8 +391,8 @@ func TestCantTargetValidSASpellDoesNotBlockActivatedAbility(t *testing.T) {
 }
 
 // TestCantTargetValidSAActivatedTriggeredReadsAbility is the reverse
-// direction: Shanna's `ValidSA$ Activated,Triggered | Activator$
-// Player.Opponent` must withhold her from an opponent's activated ability,
+// direction: Shanna's restriction on activated and triggered abilities an
+// opponent controls must withhold her from an opponent's activated ability,
 // while a spell (not in the list) and her controller's own ability still
 // target her.
 func TestCantTargetValidSAActivatedTriggeredReadsAbility(t *testing.T) {

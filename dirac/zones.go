@@ -186,7 +186,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	ob.slot = NoSlot // off a face-down spell's stack mark (slotFaceDownSpell)
 	s.g.zoneTurn.set(o)
 	if k != nil {
-		s.clearFB(k, o) // a new object: a granted flashback ends
+		s.clearFB(k, o)     // a new object: a granted flashback ends
+		s.encoreClear(k, o) // a new object: a granted encore ends
 	}
 	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)
@@ -263,8 +264,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
 		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
 	}
-	if from == kop.ZoneLibrary && z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLibToGrave {
-		s.fireLibToGrave(k, o) // trig_libtograve.go
+	if z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyToGrave {
+		s.fireToGrave(k, o, from) // trig_tograve.go
 	}
 }
 
@@ -518,8 +519,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		// counter notice follows the zone change event, but its triggers
 		// are queued before the enters triggers (Exemplar of Light before
 		// Dazzling Angel, the pair 13397)
-		for c := 0; c < int(kop.NumCounterKinds3); c++ {
-			if n := p.ctrN(s, c); n > 0 && s.occ.has(sl) && kop.IsCounterKind(c) {
+		var held ctrHeld
+		for _, c := range held[:p.heldKinds(s, &held)] {
+			if n := p.ctrN(s, int(c)); n > 0 && s.occ.has(sl) && kop.IsCounterKind(int(c)) {
 				s.g.lastCK = kop.CounterKind(c)
 				s.g.ctrEntry = true
 				s.fireObj(k, kop.TrigCounterAddedOnce, sl, o, ctrl, int16(n))
@@ -864,6 +866,9 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 				continue
 			}
 			if a.Trig.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(&a.Trig, who) {
+				continue
+			}
+			if ev == kop.TrigLifeLost && a.Trig.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(lp.ctrl, &a.Trig) {
 				continue
 			}
 			if ev == kop.TrigDrawn && !drawStepGateOK(&a.Trig, s.drawStepFirst(who)) {

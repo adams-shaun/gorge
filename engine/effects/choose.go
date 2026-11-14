@@ -501,7 +501,11 @@ func formatNumberPicks(picks []int32) string {
 }
 
 // effChooseType records a type choice. With the source already carrying a
-// ChosenType it is a no-op (the cast-time ask pre-recorded it); an answered
+// ChosenType it is a no-op (the cast-time ask pre-recorded it) -- unless an
+// ability's stack object is resolving (resolvesAbility): CR 608.2 has each
+// resolution of an activated or triggered ability make its own choice, so
+// a second activation of Dream Thrush asks again and its answer replaces
+// the first one's. An answered
 // ask emits exactly the Choose event the fallback emits, with the answered
 // type. It poses a real KChoose ask over the
 // option list its Type$ CATEGORY ranges over when two or more options are
@@ -522,7 +526,7 @@ func formatNumberPicks(picks []int32) string {
 // list when one exists (never a nonsensical creature type).
 func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
-	if o := g.Obj(c.Source); o != nil && o.ChosenType != "" {
+	if o := g.Obj(c.Source); o != nil && o.ChosenType != "" && !resolvesAbility(c) {
 		return
 	}
 	cat := strings.TrimSpace(sa.ParamStr(cards.PKType))
@@ -585,6 +589,14 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 		fallback = creatureTypeFallback(g, c.Controller)
 	}
 	emitType(fallback)
+}
+
+// resolvesAbility reports whether c is an activated or triggered ability's
+// resolution: its stack-object wrapper (Ctx.ResolvingObj) is not the source
+// itself. A spell resolves as its own object, and an as-enters replacement
+// body runs off the move with no wrapper, so both keep the recorded choice.
+func resolvesAbility(c *Ctx) bool {
+	return c.ResolvingObj != 0 && c.ResolvingObj != c.Source
 }
 
 // chooseTypeLabels returns the option labels for the resolving ChooseType's

@@ -8,10 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// gorgeIndirectPhasingTime is the commit time (UTC) of gorge (son-p-indirect-phasing):
-// before it an Aura or Equipment attached to a permanent that phased out stayed phased in (CR 702.26g,h).
-const gorgeIndirectPhasingTime = "20261026191726"
-
 // The Spectral Adversary lockstep: "When it enters, you may pay
 // {1}{U} any number of times. When you pay this cost one or more times, put
 // that many +1/+1 counters on it, then up to that many other target
@@ -78,9 +74,6 @@ func kspectralCheck(tal *kspectralTally) func(*GorgeSide, Side) *Divergence {
 
 func TestSpectralLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeIndirectPhasingTime) {
-		t.Skip("gorge before the indirect phasing fix (49b193548)")
-	}
 	var tal kspectralTally
 	_, stalled := sonRunStalls(t, "spectral", kspectralMatchups, 300, true, nil, kspectralCheck(&tal))
 	t.Logf("%d games: %d direct phase-outs, %d direct phase-ins, %d indirect phase-outs, %d indirect phase-ins; %d stalled loud on an eighth payable repetition",
@@ -98,9 +91,6 @@ func TestSpectralLockstep(t *testing.T) {
 // program, some seed diverges.
 func TestSpectralLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeIndirectPhasingTime) {
-		t.Skip("gorge before the indirect phasing fix (49b193548)")
-	}
 	n := sonRun(t, "spectral", kspectralMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

@@ -76,7 +76,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		}
 		n := m.NSeat()
 		if n > dirac.MaxSeats {
-			return nil, fmt.Errorf("realkernel: a matchup of %d seats; this kernel build holds %d (the dirac_mp build tag holds %d)", n, dirac.MaxSeats, MaxSeats)
+			return nil, fmt.Errorf("realkernel: a matchup of %d seats; the kernel holds %d", n, dirac.MaxSeats)
 		}
 		var decks [dirac.MaxSeats][]kop.CardID
 		for s := 0; s < n; s++ {
@@ -280,6 +280,9 @@ func (r *realSide) Project(p *Projection) {
 				c.NameHash = nameHash("")
 			}
 			c.Face = r.tbl.Cards[pc].Face
+			if cd := &r.tbl.Cards[pc]; cd.FaceMode == kop.FacePrototype {
+				c.Face = 0 // the prototype def is the card's one printed face (gorge keeps FaceIdx 0 and a cast flag)
+			}
 			if !o.Token && o.Flags&dirac.ProjCopy == 0 { // a spell copy is no deck card (gorge project.go)
 				c.Card = r.tidx[pc]
 			}

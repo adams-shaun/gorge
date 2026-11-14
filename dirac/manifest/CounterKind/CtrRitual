@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrRitual
+value: 220
+forge: RITUAL
+census: ctr RITUAL all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

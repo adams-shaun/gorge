@@ -1,0 +1,6 @@
+family: mech
+name: mechDealtCombat
+value: 15
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has dealt combat damage since it entered

@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatPhaseReversed
+value: 63
+forge: PhaseReversed
+census: stat PhaseReversed all=1 std=0 mbc=0 sole=0
+state: slotbit 16 (phasing)
+status: reserved

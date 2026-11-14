@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigChaosEnsues
+value: 52
+forge: ChaosEnsues
+census: trig ChaosEnsues all=158 std=0 mbc=0 sole=16
+state: objspace (planechase)
+status: blocked objspace:tcode

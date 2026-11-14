@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtHeist
+value: 45
+forge: Heist
+census: api Heist all=8 std=0 mbc=0 sole=7
+state: objspace (outside-game cards)
+status: blocked objspace:tcode

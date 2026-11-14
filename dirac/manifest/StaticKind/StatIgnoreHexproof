@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatIgnoreHexproof
+value: 37
+forge: IgnoreHexproof
+census: stat IgnoreHexproof all=3 std=1 mbc=0 sole=2
+state: code 0
+status: reserved

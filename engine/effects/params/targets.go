@@ -144,6 +144,10 @@ type TargetParams struct {
 	// ParentTarget's).
 	RelatedProperty string
 	SharedTypes     []string
+	// ValidAfterStack is ValidAfterStack$, trimmed: the activation-time
+	// filter on a chosen target (CR 602.2b), Keeper of the Dead's
+	// `Ability.IsTargeting Player.HasCardsInGraveyard_Creature_LEY`.
+	ValidAfterStack string
 	// SetProp and SetPropKind are the target-SET property constraint
 	// (TargetsWithSameCardType$, TargetsWithSameCreatureType$,
 	// TargetsWithEqualToughness$, TargetsWithDifferentCMC$,
@@ -292,6 +296,7 @@ func compileTargets(sa *cards.SA) *TargetParams {
 	p.ValidTargeting = strings.TrimSpace(sa.ParamStr(cards.PKTargetValidTargeting))
 	p.SharedCardType = strings.TrimSpace(sa.ParamStr(cards.PKTargetsWithSharedCardType))
 	p.RelatedProperty = strings.TrimSpace(sa.ParamStr(cards.PKTargetsWithRelatedProperty))
+	p.ValidAfterStack = strings.TrimSpace(sa.ParamStr(cards.PKValidAfterStack))
 	p.SharedTypes = sharedTypesList(sa.ParamStr(cards.PKTargetsWithSharedTypes))
 
 	switch {

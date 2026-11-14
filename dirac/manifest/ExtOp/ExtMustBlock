@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtMustBlock
+value: 21
+forge: MustBlock
+census: api MustBlock all=27 std=1 mbc=2 sole=17
+state: slotobj 112 (must-block target)
+status: reserved

@@ -1,0 +1,7 @@
+family: KwID
+name: KwRipple
+value: 91
+forge: Ripple
+census: kw Ripple all=5 std=0 mbc=0 sole=5
+state: code 0
+status: reserved

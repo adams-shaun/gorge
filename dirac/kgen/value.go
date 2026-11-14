@@ -893,6 +893,8 @@ func (lc *lowerCtx) applyModifier(v lValue, m string, depth int) (lValue, error)
 		return v, nil
 	case "HalfUp":
 		return kvfHalfUp(v, m, hasArg) // value_filterheads.go
+	case "ThirdUp":
+		return kvfThirdUp(v, m, hasArg) // value_filterheads.go
 	case "LimitMin", "LimitMax":
 		// gorge applyCountOp: LimitMax.N is min(v, N), LimitMin.N is
 		// max(v, N). A numeric N only (an SVar operand refuses), lowered to
@@ -1080,6 +1082,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// Count$YourCountersEnergy: the controller's energy counters
 		// (CR 122.1), the Max$ bound of the "pay one or more {E}" family.
 		return lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}}, nil
+	case "YourCountersExperience":
+		// Count$YourCountersExperience: the controller's experience counters
+		// (CR 122.1; gorge evalCountBodyPlayer), ExEnergyOf with N
+		// kop.PlCtrExperience (Otharri, Suns' Glory; Ezuri, Claw of Progress).
+		return lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}, N: kop.PlCtrExperience}, nil
 	case "OffspringPaid":
 		// CR 702.175a: the cast paid the offspring cost, read off the permanent
 		// the spell became (the kernel's kicked mark), 0 for a token copy. The

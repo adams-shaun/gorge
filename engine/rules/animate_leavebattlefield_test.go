@@ -185,8 +185,8 @@ func TestWhipOfErebosGrantsDoNotSurviveReentry(t *testing.T) {
 }
 
 // TestDreamsOfTheDeadLeaveBattlefieldExilesOnBounce: the Pump site — the
-// rider rides the sub's `DB$ Pump | ... | LeaveBattlefield$ Exile | Defined$
-// Targeted | Duration$ Permanent`, so the returned creature is exiled when
+// rider rides the sub's permanent-duration Pump of the target with a
+// LeaveBattlefield$ exile rider, so the returned creature is exiled when
 // it would leave the battlefield.
 func TestDreamsOfTheDeadLeaveBattlefieldExilesOnBounce(t *testing.T) {
 	t.Parallel()

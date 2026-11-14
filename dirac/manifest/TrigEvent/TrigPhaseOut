@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigPhaseOut
+value: 102
+forge: PhaseOut
+census: trig PhaseOut all=2 std=0 mbc=0 sole=0
+state: slotbit 16 (phasing)
+status: reserved

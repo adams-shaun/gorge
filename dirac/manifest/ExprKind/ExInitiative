@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExInitiative
+value: 133
+forge: Initiative
+census: count Initiative all=1 std=0 mbc=0 sole=0
+state: player 2 (player facts)
+status: reserved

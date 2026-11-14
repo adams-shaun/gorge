@@ -1,0 +1,7 @@
+family: key
+name: keyPhasing
+value: 1
+forge: phasing
+census: key phasing classes=44 all=189
+state: slotbit 16
+status: reserved

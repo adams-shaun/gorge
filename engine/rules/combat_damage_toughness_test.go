@@ -234,8 +234,7 @@ func onCommandCard(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) sta
 
 // TestWeightAdvantageAppliesFromTheCommandZone pins the command-zone source
 // path the previous round missed: Weight Advantage is a Conspiracy whose
-// `S:Mode$ CombatDamageToughness | EffectZone$ Command | ValidCard$
-// Creature.YouCtrl` static functions from the COMMAND ZONE (CR 113.6c, a
+// CombatDamageToughness static over creatures you control functions from the COMMAND ZONE (CR 113.6c, a
 // conspiracy is face up there). A battlefield-only collector can never see
 // it, so without assignmentStatics the attacker would deal its power 5
 // instead of its toughness 2.

@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatManaRestriction
+value: 38
+forge: ManaRestriction
+census: stat ManaRestriction all=3 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

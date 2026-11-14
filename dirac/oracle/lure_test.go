@@ -7,10 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// gorgeLureFixTime is gorge cr-lure-all-must-block (617daacfb, 2026-10-26
-// UTC): before it the lure sentence was unread.
-const gorgeLureFixTime = "20261026102225"
-
 // The lure lockstep: Prized Unicorn's "All creatures able to
 // block CARDNAME do so." (CR 509.1c) against a defender with ground
 // creatures, Giant Growth to make blocks matter. The expected answer at
@@ -28,18 +24,12 @@ var klureDecks = [2][]cardset.Entry{
 
 func TestLureLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLureFixTime) {
-		t.Skip("gorge before cr-lure-all-must-block (617daacfb)")
-	}
 	lockstepSet(t, "lure", klureDecks, 800, "KLURE_SEEDS")
 }
 
 // TestLureLockstepMutation: with the lure dropped, some seed diverges.
 func TestLureLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeLureFixTime) {
-		t.Skip("gorge before cr-lure-all-must-block (617daacfb)")
-	}
 	n := lockstepRun(t, "lure", klureDecks, 200, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

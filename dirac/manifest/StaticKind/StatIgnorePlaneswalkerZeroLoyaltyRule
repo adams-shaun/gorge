@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatIgnorePlaneswalkerZeroLoyaltyRule
+value: 59
+forge: IgnorePlaneswalkerZeroLoyaltyRule
+census: stat IgnorePlaneswalkerZeroLoyaltyRule all=1 std=0 mbc=0 sole=1
+state: objspace (planechase)
+status: blocked objspace:tcode

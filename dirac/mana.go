@@ -668,7 +668,7 @@ type planner struct {
 	// second pass of plan, mana_tapsdefer.go)
 	tapsIn bool
 	// comboIn: the plan also counts the Combo Any sources gorge's planner
-	// has no witness for (the fallback pass of planTiered, mana_comboany.go)
+	// has no witness for (the fallback pass of planTiered, mana_comboanyplan.go)
 	comboIn bool
 	// rdyn: the restricted evaluated-amount source (Helga) the plan taps and
 	// its restriction: its mana floats restricted (State.rb), spent first by
@@ -1123,7 +1123,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// battlefield fact, so its gate lifts out of the loop: without a live
 	// TrigTaps listener every source is an ordinary census unit.
 	deferSkip := !pk.tapsIn && s.deferLive(k)
-	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboAny && !DebugComboAnyPlanned
+	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
@@ -1132,7 +1132,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
 			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
-				continue // gorge's planner has no witness for a Combo Any source (mana_comboany.go)
+				continue // gorge's planner has no witness for a Combo Any source (mana_comboanyplan.go)
 			}
 			order[no] = sl
 			no++

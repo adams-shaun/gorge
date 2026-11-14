@@ -207,8 +207,8 @@ func TestStalkingLeoninRevealChosenPlayerExilesAttacker(t *testing.T) {
 }
 
 // TestStalkingLeoninChosenPlayerGateDiscriminates is the discriminating leaf
-// the review demanded: the exile's `ConditionDefined$ Targeted |
-// ConditionPresent$ Card.ChosenCtrl` gate must deny when the targeted attacker
+// the review demanded: the exile's gate that the target is controlled by the
+// chosen player must deny when the targeted attacker
 // is NOT controlled by the secretly chosen player. In a 3-seat game seat 0
 // secretly chooses seat 2 (through the REAL ETB ChoosePlayer ask), while the
 // only attacker is controlled by seat 1: the ability is still OFFERED (its

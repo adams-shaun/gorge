@@ -9,10 +9,9 @@ import (
 
 // TestLayer7PTLordSeesGrantedKeyword pins the layer-7 half of the kw:Flanking
 // row's layer-walk narrowing: a layer-7 P/T static gated on a GRANTED keyword
-// must see the grant. Windstorm Drake's `Mode$ Continuous |
-// Affected$ Creature.withFlying+Other+YouCtrl | AddPower$ 1` must pump a
-// creature whose flying comes from Levitation's layer-6
-// `AddKeyword$ Flying` grant (CR 613 orders layer 6 strictly before layer 7,
+// must see the grant. Windstorm Drake's continuous +1/+0 static on the other
+// creatures you control with flying must pump a creature whose flying comes
+// from Levitation's layer-6 flying grant (CR 613 orders layer 6 strictly before layer 7,
 // so the P/T applicability gate reads the finished grant stream). Before the
 // fix chars.PT bound no keyword list at all, so the withFlying gate
 // fell back to the printed face, missed the granted flying, and the bear sat

@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExRandom
+value: 68
+forge: Random
+census: count Random all=16 std=0 mbc=0 sole=5
+state: code 0
+status: reserved

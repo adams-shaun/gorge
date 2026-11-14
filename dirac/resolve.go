@@ -60,7 +60,9 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 func (s *State) resolveTop(k *prep) {
 	e := s.stack[s.sp-1]
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
-	s.res.trigGone = e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1
+	if e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1 {
+		s.res.flags |= rfTrigGone
+	}
 	if k.gen != nil {
 		s.g.nimp = 0
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
@@ -637,7 +639,7 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 		return NoSlot
 	}
-	if r == kop.RefTriggerObj && s.res.trigGone {
+	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
 	return ob.slot
@@ -738,6 +740,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
 	case kop.RefChosenPlayerRes:
 		return s.chosenSeatRes() // act_chooseplayerres.go
+	case kop.RefResChosenPlayer:
+		return s.res.chPl - 1 // the pick OpChoosePlayer recorded (chPl seat + 1; 0 wraps to 255, none)
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -947,6 +951,9 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
+			if s.res.flags&rfNoPrev != 0 {
+				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
+			}
 			return n // gorge's replacement-order ask, after the resolution
 		}
 		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {

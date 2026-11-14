@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"math/bits"
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -798,6 +799,9 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
+	if g.playSourceGone(t) {
+		return false
+	}
 	cost := g.cost
 	cheap := false // this node's price asks less than the root's (set on success only)
 	if g.dyn {
@@ -1082,6 +1086,19 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// playSourceGone: the searched activation's source left the battlefield on
+// this path (a granted sacrifice ability paid with the enchanted land sends
+// its Aura to the graveyard), so no continuation offers the play and gorge's
+// search ends the line at the node (potential_script.go leftOwnZone, CR
+// 602.2b). The node is charged, as there, but nothing under it is expanded.
+func (g *grantSrch) playSourceGone(t *State) bool {
+	if !g.d.hasPlay || g.d.play.Kind() != AkActivate {
+		return false
+	}
+	o := Obj(g.d.play.Source())
+	return o != NoObj && int(o) < len(t.objs) && t.objs[o].ver != g.pver
 }
 
 // waitsForStack: the play is sorcery-speed and the path left a trigger of its own
@@ -1371,6 +1388,11 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 	}
 	var order [5]uint8
 	n := manaColourOrder(t.filtAb(g.k, sl), &order)
+	if n == 0 && t.filtFixed(g.k, sl) {
+		// a {C}-only fixed filter (Apprentice Wizard's {U}, {T}: Add {C}{C}{C}): the
+		// order names WUBRG only, but the one answer still activates it
+		order[0], n = uint8(bits.TrailingZeros8(uint8(t.filtAb(g.k, sl).ManaColors))), 1
+	}
 	needFirst(order[:n], g.need)
 	if each {
 		n = 1

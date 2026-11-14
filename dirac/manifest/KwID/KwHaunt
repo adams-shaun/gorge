@@ -1,0 +1,7 @@
+family: KwID
+name: KwHaunt
+value: 79
+forge: Haunt
+census: kw Haunt all=10 std=0 mbc=0 sole=10
+state: objobj 236 (haunt)
+status: reserved

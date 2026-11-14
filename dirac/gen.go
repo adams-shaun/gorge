@@ -89,6 +89,7 @@ type genPrep struct {
 	anyStackTgt     bool // some target slot is a TgtStackObj (tgt_stackability.go)
 	anyCopyAb       bool // some target slot is a TgtCopyAb or TgtCopyTrig (copy_ability.go)
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
+	anyReconfigure  bool // a card has printed Reconfigure (CardDef.HasReconfigure; kw_reconfigure.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
 	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
@@ -112,7 +113,7 @@ type genPrep struct {
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
-	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks (combat_extrablock.go)
+	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks or a StatExtraBlock static (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
@@ -208,6 +209,7 @@ type genPrep struct {
 	anyHexUB        bool           // some program is ExtTurnRepl TurnReplHexUB: targetableGen reads the mechHexUB plane
 	anyPlusCre      bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyAtkLast      bool           // some DamageDone line carries kop.Tf5DmgAttackedYouLastTurn: the cold buffer holds each seat's attacked defenders (trig_atklastturn.go)
+	anyContract     bool           // some line reads or puts contract counters: the cold buffer holds each seat's count (ctr_contract.go)
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyRedir        bool           // some program is ExtDmgRedirect: every damage site reads genState.redir (repl_dmgredirect.go)
 	anyFiltRepl     bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
@@ -241,7 +243,7 @@ type genPrep struct {
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
-	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
+	anyComboOff     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboanyplan.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -265,6 +267,8 @@ type genPrep struct {
 	anyUnearth      bool           // some program has OpUnearth: leaves check the unearth exile promise (cast_altfree.go)
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
+	anyExper        bool           // some program gains experience counters: coldArrays.exper holds them (act_energy.go)
+	anyM2M1         bool           // some program puts -2/-1 counters (kop.CtrM2M1): ptGen reads them (CR 122.1a; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
@@ -311,7 +315,7 @@ type genPrep struct {
 	anyLandPlayed   bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair       bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave  bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
-	anyLibToGrave   bool           // a TrigToGraveyard line: a card put into a graveyard from a library (trig_libtograve.go)
+	anyToGrave      bool           // a trigger is TrigToGraveyard: N the origin mask, or From ZoneLibrary (trig_tograve.go)
 	anyKwAct        bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
@@ -424,8 +428,12 @@ type genPrep struct {
 	anySelfTaps bool
 	// anyDiscHand: some card carries gfDiscHand (mana_discardhand.go).
 	anyDiscHand bool
+	// anyComboAny: some card carries gfComboAny (mana_comboany.go).
+	anyComboAny bool
 	// dhMix: a Diamond beside another census-gap kind (mana_diamondmix.go prepDiamondMix): StallDiamondMix
 	dhMix bool
+	// caMix: a Combo Any source beside another census-gap kind (mana_comboany.go prepComboAnyMix): StallComboAnyMix
+	caMix bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -521,6 +529,9 @@ type genPrep struct {
 	landSub kop.SubMask
 	setIdx  []int16
 	setPC   []pcard
+	// uses: the registered per-table flags (newGenUse; genneed.go), where a
+	// feature's fact goes instead of a new bool here
+	uses useSet
 }
 
 // Replacement bits (genPrep.replBits).
@@ -555,6 +566,7 @@ const (
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
+	rbDestroyRegen                    // ReplDestroyRegenerate (repl_destroyheal.go destroyLine)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -607,10 +619,21 @@ func tableHasMultikicker(t *kop.Table) bool {
 	return false
 }
 
+// tableHasReconfigure reports whether any card prints Reconfigure: its type
+// switch (kw_reconfigure.go) lives in the generated-table paths.
+func tableHasReconfigure(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasReconfigure {
+			return true
+		}
+	}
+	return false
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -623,6 +646,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+		uses:        tableUses(t), // genneed.go
 	}
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
@@ -793,8 +817,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNetLock(t, g)    // act_lockpermanent.go
 	prepFinality(t, g)   // ctr_finality.go
 	prepHone(t, g)       // ctr_hone.go
+	prepM2M1(t, g)       // ctr_hone.go
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
+	g.anyExper = tableGainsExper(t)
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT) // static_offzonept.go
 	prepAsgnGrant(t, g)                                   // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
@@ -803,7 +829,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyRaiseTgt = tableRaiseTgt(t)
 	g.anyComboDyn = tableComboDyn(t)
-	g.anyComboAny = tableComboAny(t)
+	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -826,6 +852,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
 	g.anyAtkHaste = tableHasStatic(t, kop.StatCanAttackIfHaste)
+	if tableHasStatic(t, kop.StatExtraBlock) {
+		g.anyExtraBlock = true // the second-block records and the two-attacker readers (combat_extrablock.go)
+	}
 	g.anyCantSuspect = tableHasStatic(t, kop.StatCantBeSuspected)
 	g.anyLureStat = tableHasStatic(t, kop.StatLure)
 	g.anyTypeCreat = tableHasStatic(t, kop.StatAnyTypeCreatures)
@@ -954,6 +983,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasBestow {
 			g.anyBestow = true
 		}
+		if c.HasReconfigure {
+			g.anyReconfigure = true
+		}
 		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
@@ -1052,7 +1084,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				}
 				if a.Trig.Event == kop.TrigToGraveyard {
-					g.anyLibToGrave = true
+					g.anyToGrave = true
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
@@ -1195,6 +1227,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
 					}
 					g.destroyHeal[i] = a.Repl.Filter
+				case kop.ReplDestroyRegenerate:
+					g.replBits[i] |= rbDestroyRegen
+					pc.hasStat = true // scanned through statM with the destroy-heal lines (destroyLine)
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
 				case kop.ReplPayBeforeETB:
@@ -1336,6 +1371,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
+				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
+					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
+				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1411,7 +1449,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// alternative): an autopay source of that colour
 					pc.manaChosen = true
 				} else {
-					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) {
+					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))
@@ -1423,7 +1461,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 							g.varPC = append(g.varPC, vp)
 						}
 					}
-					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred) {
+					if int(pc.manaAb) == j && (a.AFlags&(kop.AfManaChosen|kop.AfManaDynamic|kop.AfLatent) != 0 || a.ManaRestrict != 0 || a.ManaColors == 0 || a.ManaDeferred || comboAnyMana(a) && !DebugComboAnyPlanned) {
 						pc.manaAb = -1
 					}
 				}
@@ -1514,6 +1552,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyTapsMana = g.anyTapsMana || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags5&kop.Tf5TapsForMana != 0
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
 			g.anyAtkLast = g.anyAtkLast || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0
+			g.anyContract = g.anyContract || contractLine(a) // ctr_contract.go
 			if a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
 				if j >= 0x3E {
 					panic("kernel: GameActivationLimit on ability index >= 62") // usedRec.ab packs 0x40|ab
@@ -1600,6 +1639,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	prepProtGrant(t, g) // kw_protection.go
+	prepProtYours(t, g) // kw_protyours.go
 	for _, b := range g.replBits {
 		g.anyRepl |= b
 	}
@@ -1613,6 +1653,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
+	prepComboAnyMix(t, g, p)
 	g.anyPrevFrom = tableGrantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
@@ -1664,7 +1705,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			break
 		}
 	}
-	g.tyPost = g.anyBestow || g.anyImpending
+	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure
 	prepEquipAnim(t, g) // static_equipanimated.go
 	prepTrigAtk(t, g)   // trig_attackers.go
 	prepBatchPool(t, g) // trig_batchmembers.go
@@ -1925,7 +1966,7 @@ type genState struct {
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 	// lkiPad: the 192-bit SubMask grew each LKI record by 8 bytes (31 x 8 = 248); these 8 carry
-	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase in both size classes.
+	// that growth to 256, a multiple of 64, so perms keeps its cache-line phase.
 	lkiPad [8]uint8
 
 	used  [maxUsed]usedRec // once-per-turn triggers / statics used this turn
@@ -2058,14 +2099,14 @@ type genState struct {
 	replaced Obj // the object an as-enters replacement program is modifying
 
 	// OpCastFree: cards still castable this resolution
-	free  [8]Obj
+	free  [maxFree]Obj
 	nfree uint8
 	// the cards OpCastFree accepted, frozen: a mode's index ranks in this
 	// list (gorge's modes decision is built once over the castable
 	// candidates), the ones already cast keeping their places
-	freeAll  [8]Obj
+	freeAll  [maxFree]Obj
 	nfreeAll uint8
-	freeQ    [8]Obj // chosen to be cast after the resolution
+	freeQ    [maxFree]Obj // chosen to be cast after the resolution
 	nfq      uint8
 	freeP    seatWord // who casts the queued cards, their zone and flags (cast_freecast.go)
 	hold     bool     // an sfHold entry is on the stack
@@ -2115,7 +2156,7 @@ type genState struct {
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
 	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
-	// (linkPadN, seats_default.go and seats_mp.go)
+	// (linkPadN, seats_default.go)
 	linkPad [linkPadN]uint8
 
 	// retHeld lists, in departure order, the sources that left in the open
@@ -2157,6 +2198,14 @@ type genState struct {
 		idx  uint16
 		p, t int16
 	}
+	// dmgBOn / dmgBn: a DamageAll sweep's DamageDealtOnce batch is open and
+	// counts its latched lines (trig_dmgbatch.go). Outside scr, as the arm
+	// discriminants are: the damage hooks that read dmgBOn also run while arm
+	// A (combat damage) or arm B (a cast's mana-ability damage) owns scr, and
+	// the records (armRes.dmgBRecs) are read only while dmgBOn holds. They fill the
+	// two pad bytes before lookSel, so State does not grow.
+	dmgBOn  bool
+	dmgBn   uint8
 	lookSel uint32  // picked looked-at cards (bit per index; 32 bits hold look's 24; fills the pad before ro)
 	ro      replOrd // a combat damage pass paused on gorge's replacement-order ask: the header (repl_gen.go); the body is scr's armCombat
 	// scr: the mutually exclusive decision scratch, one region read through
@@ -2220,6 +2269,7 @@ type genState struct {
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8
+	ctrPad   [ctrPadN]uint8 // carries the 16-bit counter kinds' growth to a whole cache line (ctr_sparse.go)
 
 	// Reserved tail: State bytes set aside so later work never edits a struct
 	// definition. Nothing reads or writes these yet. The rule: new State bytes
@@ -2427,11 +2477,12 @@ const (
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
 	StallExileGrant    = 138 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
+	StallDmgBatch      = 191 // a ninth DamageDealtOnce line of one DamageAll sweep's batch (armRes.dmgB; trig_dmgbatch.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
-	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	NumStall           = 193 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).

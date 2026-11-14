@@ -26,6 +26,7 @@ Beifong's Bounty Hunters
 Bender's Waterskin
 Bitter Work
 Boar-q-pine
+Boiling Rock Prison
 Boomerang Basics
 Bumi Bash
 Bumi, King of Three Trials
@@ -36,6 +37,7 @@ Cat-Owl
 Combustion Technique
 Compassionate Healer
 Corrupt Court Official
+Crescent Island Temple
 Cruel Administrator
 Cunning Maneuver
 Curious Farm Animals
@@ -56,6 +58,7 @@ Earthbending Lesson
 Earthen Ally
 Ember Island Production
 Enter the Avatar State
+Epic Downfall
 Fancy Footwork
 Fatal Fissure
 Fated Firepower
@@ -63,6 +66,7 @@ Fire Nation Attacks
 Fire Nation Cadets
 Fire Nation Engineer
 Fire Nation Palace
+Fire Nation Raider
 Fire Nation Warship
 Fire Navy Trebuchet
 Fire Sages
@@ -86,9 +90,11 @@ Great Divide Guide
 Guru Pathik
 Hakoda, Selfless Commander
 Haru, Hidden Talent
+Heartless Act
 Hei Bai, Spirit of Balance
 Hog-Monkey
 Honest Work
+How to Start a Riot
 Iguana Parrot
 Invasion Reinforcements
 Invasion Submersible
@@ -96,7 +102,10 @@ Invasion Tactics
 Iroh's Demonstration
 Iroh, Tea Master
 Island
+It'll Quench Ya!
+Jasmine Dragon Tea Shop
 Jeong Jeong's Deserters
+Jeong Jeong, the Deserter
 Jet's Brainwashing
 Jet, Freedom Fighter
 Joo Dee, One of Many
@@ -109,6 +118,7 @@ Kyoshi Island Plaza
 Kyoshi Village
 Kyoshi Warriors
 Leaves from the Vine
+Lightning Strike
 Lo and Li, Twin Tutors
 Long Feng, Grand Secretariat
 Lost Days
@@ -119,8 +129,11 @@ Master Piandao
 Meditation Pools
 Merchant of Many Hats
 Messenger Hawk
+Meteor Sword
+Misty Palms Oasis
 Momo, Friendly Flier
 Momo, Playful Pet
+Mongoose Lizard
 Mountain
 North Pole Gates
 North Pole Patrol
@@ -143,10 +156,12 @@ Ran and Shaw
 Raucous Audience
 Raven Eagle
 Razor Rings
+Realm of Koh
 Rebellious Captives
 Redirect Lightning
 Rockalanche
 Rocky Rebuke
+Rough Rhino Cavalry
 Rowdy Snowballers
 Ruinous Waterbending
 Rumble Arena
@@ -154,10 +169,12 @@ Sandbenders' Storm
 Secret Tunnel
 Seismic Sense
 Serpent of the Pass
+Serpent's Pass
 Shared Roots
 Sokka's Haiku
 Sokka, Lateral Strategist
 Sold Out
+Solstice Revelations
 South Pole Voyager
 Southern Air Temple
 Sparring Dummy
@@ -180,12 +197,15 @@ The Legend of Kyoshi
 The Legend of Roku
 The Lion-Turtle
 The Mechanist, Aerial Artisan
+The Spirit Oasis
+The Unagi of Kyoshi Island
 The Walls of Ba Sing Se
 Tiger-Dillo
 Tiger-Seal
 Tolls of War
 Toph, Hardheaded Teacher
 Toph, the Blind Bandit
+Treetop Freedom Fighters
 True Ancestry
 Trusty Boomerang
 Turtle-Duck
@@ -199,9 +219,11 @@ Walltop Sentries
 Wan Shi Tong, Librarian
 Wandering Musicians
 War Balloon
+Wartime Protestors
 Water Tribe Captain
 Water Tribe Rallier
 Waterbender Ascension
+Waterbending Lesson
 Waterbending Scroll
 Watery Grasp
 White Lotus Hideout

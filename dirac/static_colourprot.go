@@ -42,6 +42,13 @@ func prepColProt(in *kop.Instr, g *genPrep, i int) {
 	}
 }
 
+// The colour marks are runs indexed by colour (mechProtW+c, W U B R G):
+// each run's values are consecutive.
+var (
+	_ = [1]struct{}{}[mechProtU-mechProtW-1+mechProtB-mechProtU-1+mechProtR-mechProtB-1+mechProtG-mechProtR-1]
+	_ = [1]struct{}{}[mechProtPostU-mechProtPostW-1+mechProtPostB-mechProtPostU-1+mechProtPostR-mechProtPostB-1+mechProtPostG-mechProtPostR-1]
+)
+
 // colProtUses reports the protection marks' need (arenaUses).
 func colProtUses(in *kop.Instr, u *[numMech]bool) {
 	if in.Ext() == kop.ExtColorGrant && uint8(in.C)&cgProt != 0 {
