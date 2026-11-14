@@ -663,11 +663,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// The Effect's remembered players join the capture here too
 			// (Great Train Heist's RememberObjects$ TargetedPlayer under a
 			// DamageDone trigger's ValidTarget$ Player.IsRemembered).
-			regBody, eventIDs := effectEventRegistration(h, c, sa, tr, name, raw, regIDs)
+			eventIDs := withRememberedPlayers(regIDs, effectRememberedPlayers(h, c, sa))
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + regBody + expiry + odSuffix + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix + ccSuffix})
 			}
 			registered = true
 		}
