@@ -35,14 +35,16 @@ func (s *State) exileExMark(k *prep, in *kop.Instr) {
 	s.markExileEx(k, sl)
 }
 
-// exMarkRec is one exile-instead-of-dying effect on slot sl, made by src.
+// exMarkRec is one exile-instead-of-dying effect on slot sl, made by src. Its
+// two-byte fields come first, so a record takes eight bytes at either object
+// width (ten under dirac_mp with sl leading).
 type exMarkRec struct {
-	sl   Slot
+	ts   uint16 // a player hexproof record: its timestamp (a later loss of abilities takes the permanent grant)
 	src  Obj
+	sl   Slot
 	live bool
 	pl   uint8         // a scope record (sl slotExScope and the slotEx* sentinels) only: the controller of the effect (repl_turnrepl.go)
 	col  kop.ColorMask // a player hexproof record: the colours it is from, 0 for plain hexproof
-	ts   uint16        // a player hexproof record: its timestamp (a later loss of abilities takes the permanent grant)
 }
 
 // maxExMarks is how many such effects one turn can hold; more stall by name.
@@ -86,6 +88,7 @@ const (
 	parkMill              // a milled card, off the library's top when asked; x bit 0 is RememberMilled$, bit 1 Imprint$
 	parkRest              // a surveil or look rest card already off the library, moved one at a time; x is 1 for RememberMoved$
 	parkDread             // a manifest dread window's other card, still on the library list; its marker fired before the ask
+	parkPile              // a two-pile split's graveyard-bound card, still on the library list, moved one at a time (act_twopiles.go)
 )
 
 // parkedMove is one parked move, oldest first in s.cold.parked; x is a cycled
@@ -461,7 +464,7 @@ func parkManaHold(c int, n uint8) uint8 {
 // has left with one exile-instead effect or none, and gives the next one its ask
 // over the sources still there. Gorge makes these moves one at a time.
 func (s *State) massMovesGoOn(k *prep) {
-	for len(s.cold.parked) != 0 && (s.cold.parked[0].kind == parkMass || s.cold.parked[0].kind == parkMill || s.cold.parked[0].kind == parkRest || s.cold.parked[0].kind == parkDiscard) {
+	for len(s.cold.parked) != 0 && (s.cold.parked[0].kind == parkMass || s.cold.parked[0].kind == parkMill || s.cold.parked[0].kind == parkRest || s.cold.parked[0].kind == parkDiscard || s.cold.parked[0].kind == parkPile) {
 		r := &s.cold.parked[0]
 		var src [MaxPerm]Obj
 		n := s.graveMoveSources(k, r.obj, &src)
@@ -568,6 +571,18 @@ func (s *State) parkRests(k *prep, rest []Obj, remember bool) int {
 	return first
 }
 
+// parkQuiet queues a card with one exile-instead effect or none, whose turn
+// comes in the queue all the same; false when the queue is full.
+func (s *State) parkQuiet(o Obj, kind parkKind, x uint8) bool {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkNone {
+			*r = parkedMove{obj: o, kind: kind, x: x}
+			return true
+		}
+	}
+	return false
+}
+
 // parkRestQuiet queues a rest card with one exile-instead effect or none, whose
 // turn comes in the queue all the same; false when the queue is full.
 func (s *State) parkRestQuiet(o Obj, x uint8) bool {
@@ -660,7 +675,7 @@ func (s *State) runParked(k *prep, r parkedMove) {
 		s.runParkedMill(k, r.obj, r.x)
 	case parkRest:
 		s.runParkedRest(k, r.obj, r.x != 0)
-	case parkDread:
+	case parkDread, parkPile:
 		s.runParkedDread(k, r.obj)
 	}
 }

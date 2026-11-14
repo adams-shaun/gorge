@@ -857,7 +857,11 @@ type resCtx struct {
 	// col is the resolution's mid-resolution ChooseColor answer (colour
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
-	col   uint8
+	col uint8
+	// chPl is the resolution's mid-resolution ChoosePlayer answer (seat + 1,
+	// 0 none; ExtChoosePlayerMid), which RefChosenPlayer reads while the
+	// resolution holds it (repl_chooseplayer.go resChosenPlayer)
+	chPl  uint8
 	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }

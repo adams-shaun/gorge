@@ -402,6 +402,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Engines {
 		fmt.Fprintf(w, " engines")
 	}
+	if c.Ascend {
+		fmt.Fprintf(w, " ascend")
+	}
 	if c.Evasion != 0 {
 		fmt.Fprintf(w, " evasion=%d", c.Evasion)
 	}

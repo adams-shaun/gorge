@@ -16,6 +16,7 @@ type genPrep struct {
 	// creatSub: the matchup subtypes that are creature types (CR 205.3m):
 	// "all creature types" (an animated Soulstone Sanctuary) is no Forest
 	creatSub    kop.SubMask
+	auraSub     int8     // the matchup subtype index of "Aura" (-1: none; kw_bestow.go bestowAuraSub)
 	graveTrig   []CardID // cards with a triggered ability that works from the graveyard
 	graveDies   bool     // one of them is a Dies trigger (Furious Forebear; fireGraveDies)
 	graveDrawn  bool     // some graveyard trigger is a Drawn (trig_gravedrawn.go)
@@ -172,6 +173,7 @@ type genPrep struct {
 	blkTaxStall     bool           // a block tax beside a part its walk does not model (combat_blocktax.go prepBlkTax): StallBlkTax
 	atkTaxStall     bool           // an attack tax beside a part its walk does not model (combat_attacktax.go prepAtkTax): StallAtkTax
 	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
+	tokListAdd      bool           // a comma-listed TokenScript$ mint beside a ReplAddToken (repl_toklistadd.go prepTokListAdd): StallTokRewrite
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
 	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
@@ -207,6 +209,7 @@ type genPrep struct {
 	anyPlusCre      bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
 	anyAtkLast      bool           // some DamageDone line carries kop.Tf5DmgAttackedYouLastTurn: the cold buffer holds each seat's attacked defenders (trig_atklastturn.go)
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
+	anyRedir        bool           // some program is ExtDmgRedirect: every damage site reads genState.redir (repl_dmgredirect.go)
 	anyFiltRepl     bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl       bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock   bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
@@ -236,6 +239,7 @@ type genPrep struct {
 	anyDelaySpell   bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
+	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
@@ -511,6 +515,14 @@ type genPrep struct {
 	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
 	// first spell each seat casts (cast_firstcast.go)
 	anyFirstCast bool
+	// landSet: some override is a CR 305.7 land-type setter
+	// (kop.Override.SetLandSub); landSub is the matchup's land subtypes it
+	// strips, setIdx per card its block of 32 intrinsic-only views in setPC
+	// (-1: not printed as a land; static_landtypesetter.go)
+	landSet bool
+	landSub kop.SubMask
+	setIdx  []int16
+	setPC   []pcard
 }
 
 // Replacement bits (genPrep.replBits).
@@ -600,7 +612,7 @@ func tableHasMultikicker(t *kop.Table) bool {
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasStatic(t, kop.StatCanAttackIfHaste) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)
@@ -627,9 +639,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.replBits[i] |= rbPrevCombatBy
 		}
 	}
+	g.auraSub = -1
 	for i, n := range t.Subtypes {
 		if creatureTypeWords[n] {
 			g.creatSub = g.creatSub.With(i)
+		}
+		if n == "Aura" {
+			g.auraSub = int8(i)
 		}
 	}
 	for i := range t.Overrides {
@@ -789,6 +805,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
+	g.anyRaiseTgt = tableRaiseTgt(t)
 	g.anyComboDyn = tableComboDyn(t)
 	g.anyComboAny = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
@@ -1600,7 +1617,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	// a Diamond beside another census-gap kind (mana_diamondmix.go)
 	prepDiamondMix(t, g, p)
-	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
+	g.anyPrevFrom = tableGrantsKw(t, kop.KwPreventCombatDamageFrom) || g.anyRepl&rbPrevCombatBy != 0
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
@@ -1643,6 +1660,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.lossSlow = g.anyLoseStat // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
 	prepFaceDown(g)            // face_facedown.go
 	prepLandGrant(t, p, g)     // static_landtype.go
+	prepLandSet(t, p, g)       // static_landtypesetter.go
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
 		if o.AddTypes&kop.TLegendary != 0 || o.HasTypes && o.SetTypes&kop.TLegendary != 0 {
@@ -1658,6 +1676,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
 	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
+	prepTokListAdd(t, g)   // repl_toklistadd.go
 	prepCold(g, &p.cold)
 	return g
 }
@@ -2011,7 +2030,7 @@ type genState struct {
 	noPoison uint8           // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [MaxSeats]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
 	plusSrc  [MaxSeats]Obj   // per player, the Boimler that made them (NoObj: more than one; the order ask's source, repl_ctrorder.go; padding)
-	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
+	cast1    uint8           // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go); bit blessShift+p: seat p has the city's blessing (kw_ascend.go); padding
 	ctrAdder uint8           // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// ctrSettle is the entrant whose entry counters are being placed, +1
 	// (0: none). While set, the AddCounter matcher skips that permanent as a
@@ -2134,9 +2153,11 @@ type genState struct {
 	// effect-borne entry counters.
 	entrySelf uint8
 	// tokPT: the P/T set the token entering next takes with its entry
-	// (act_tokenpt.go): on, the override index, the evaluated P/T
+	// (act_tokenpt.go): on, how many more entering tokens take it after the
+	// next (a mint of X), the override index, the evaluated P/T
 	tokPT struct {
 		on   bool
+		left uint8
 		idx  uint16
 		p, t int16
 	}
@@ -2252,6 +2273,9 @@ type genState struct {
 	// turn began + 1 in bits 4-7 (act_monarch.go). The tail padding after
 	// atkDef, so State does not grow.
 	mon uint8
+	// redir: Ext DmgRedirect's this-turn records (repl_dmgredirect.go). Appended
+	// after the tail padding: State grows by its size (statelayout_test.go).
+	redir [maxRedir]redirRec // taken from rsv
 }
 
 const (
@@ -2263,8 +2287,10 @@ const (
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
 	// that carry State's growth for MaxObj 236 to a multiple of 64 so perms
 	// keeps its phase. It counts bytes: an object-wide field takes its width
-	// in the class.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2)
+	// in the class. The redirect records (redirBytes) grow the block by a
+	// whole cache line (64) in every seat class, so the phase holds: rsvN is
+	// what is left of that line after them.
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
@@ -2407,6 +2433,8 @@ const (
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
+	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
+	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
 	NumStall           = 192 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
@@ -2489,6 +2517,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		vi = k.gen.manaVar(c)
 	}
 	if (pc.manaAb >= 0 || vi >= 0) && s.genLost(k, sl) {
+		if k.gen.landSet && s.landSetLost(k, sl) {
+			return s.landSetView(k, sl, c) // only the new basic types' intrinsic abilities (static_landtypesetter.go)
+		}
 		return &noManaPC // genLost covers a face-down permanent (CR 708.2)
 	}
 	if vi >= 0 {

@@ -42,6 +42,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToYouCtrl	untyped int	8
+AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
 BncDelayedMany	untyped int	8192
@@ -102,12 +103,14 @@ ColU	ColorMask	2
 ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
-CondCount_	CondKind	11
+CondBlessing	CondKind	11
+CondCount_	CondKind	13
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
 CondPromised	CondKind	7
 CondRefMatches	CondKind	6
+CondRemMark	CondKind	12
 CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2
@@ -311,6 +314,8 @@ DmgMarkBySource	untyped int	1
 DmgNE	DmgCmp	4
 DmgNoRegen	untyped int	32
 DmgNoRegenTarget	untyped int	128
+DmgRedirectNext	untyped int	1
+DmgRedirectScope	untyped int	2
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpGroup	untyped int	1
@@ -355,6 +360,7 @@ ExAdamant	ExprKind	244
 ExAttackedThisTurn	ExprKind	9
 ExAttackedTurn	ExprKind	235
 ExAttackersAll	ExprKind	55
+ExBlessing	ExprKind	216
 ExBranches	ExprKind	37
 ExCastBattlefield	ExprKind	237
 ExCastFromGrave	ExprKind	247
@@ -474,6 +480,7 @@ ExtChooseName	ExtOp	251
 ExtChooseNumber	ExtOp	230
 ExtChooseNumberMid	ExtOp	303
 ExtChoosePlayer	ExtOp	299
+ExtChoosePlayerMid	ExtOp	290
 ExtChoosePlayerRes	ExtOp	12
 ExtClearImprinted	ExtOp	257
 ExtCloneCopy	ExtOp	81
@@ -492,6 +499,7 @@ ExtDigImprint	ExtOp	282
 ExtDistCounters	ExtOp	310
 ExtDividedCounters	ExtOp	30
 ExtDmgMark	ExtOp	317
+ExtDmgRedirect	ExtOp	293
 ExtDrainMana	ExtOp	40
 ExtDrawUpto	ExtOp	309
 ExtEachDamage	ExtOp	2
@@ -533,6 +541,7 @@ ExtRememberImprinted	ExtOp	307
 ExtRememberSearcher	ExtOp	304
 ExtRemoveCounterAny	ExtOp	3
 ExtRemoveFromCombat	ExtOp	260
+ExtRenown	ExtOp	294
 ExtSacDelayed	ExtOp	32
 ExtSearchCounters	ExtOp	252
 ExtSkipPhase	ExtOp	313
@@ -917,6 +926,7 @@ PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubSacHost	untyped int	7
+PayBSubSacSelfMust	untyped int	4
 PayBSubStackSelf	untyped int	13
 PayBSubTapXVar	untyped int	16
 PayBSubTrigNew	untyped int	3
@@ -1002,6 +1012,7 @@ PredPowerGEV	Pred	14
 PredPowerGTBase	Pred	243
 PredPowerLE	Pred	1
 PredPowerLTToughness	Pred	17
+PredRenowned	Pred	236
 PredSameNameRem	Pred	238
 PredSameNameT0	Pred	32
 PredSolved	Pred	252
@@ -1086,9 +1097,11 @@ RefTgtCtrl2	Ref	242
 RefTriggerAttackers	Ref	31
 RefTriggerObj	Ref	9
 RefTriggerObjOwner	Ref	40
+RefTriggerOpponents	Ref	247
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
+RememberAllObjOrder	untyped int	1
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21
 ReplAddToken	ReplKind	35

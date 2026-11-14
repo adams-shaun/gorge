@@ -214,7 +214,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			var kickedOK bool
+			if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && (s.tapPays(k, p, c, o, true) || s.hasCastDelve(k, p, c, o, true)) {
+				// a Convoke/Improvise/Delve credit the potential planner
+				// refuses to price for a mode altCastFor lacks
+				// (potentialModeCastPlan's cost:credit): gorge's menu
+				// offers the kicked cast only when its pool gate prices
+				// it, the credit folded (gorge castOfferBase plus the
+				// kicker raise; CR 601.2b, 601.2f), not when the sources
+				// can pay it (kickedAffords' witness bound).
+				kickedOK = s.FeatPoolPays(p, o, 1)
+			} else {
+				kickedOK = s.kickedAffords(k, p, c, o, &kc, cav) && s.gorgeOffersKicked(p, o)
+			}
+			if kickedOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
@@ -938,7 +951,7 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// colours while one point of damage is not lethal (Starting Town's W)
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
-	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+	if cd.BeholdExile || cd.HasMultikicker && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
@@ -950,6 +963,9 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 		// "shape:additional_cost" or "shape:optional_cost" before any mana
 		// is priced, so its prefix search never runs for one (Bloom Tender
 		// beside Champions of the Perfect, the lone Elf the cost also exiles).
+		// A plain Multikicker hand cast is the same: its granted source (Gemhide
+		// Sliver's any-colour mana) is a gap in the planner's census too, and no
+		// prefix search taps it (the availAny/availGaps rule above).
 		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
 	return true
