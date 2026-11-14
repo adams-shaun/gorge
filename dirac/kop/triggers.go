@@ -57,8 +57,10 @@ const (
 	Tf4PerCounter TrigFlags4 = 1 << 7
 )
 
-// Tf4CauseSpellAb (Trigger.Flags4, bit 3, the word's last free bit beside
-// Tf4SingleCauseTarget): LifeLost / LifeLostAll, the line's ValidCause$
+// Tf4CauseSpellAb (Trigger.Flags4, bit 3, shared with Tf4NthFiltered: that
+// flag is set only on a SpellCast line and this one only on a LifeLost /
+// LifeLostAll line, so no trigger carries both; readers scope the bit by
+// event, as the Tf4PerCounter / Tf4DefEnch pair does): LifeLost / LifeLostAll, the line's ValidCause$
 // names a spell or ability (gorge trigmatch/life.go lifeLossCauseMatches:
 // the loss's cause is the spell or ability resolving right now, gorge's
 // Facts.Damaging set; combat damage and any loss with no resolution in
