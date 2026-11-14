@@ -170,6 +170,7 @@ type lowerCtx struct {
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	probeHead      *cards.SA // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
 	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
 	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
@@ -400,7 +401,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerAbility(a)
 			if err != nil {
-				lc.probeBody(a, entered)
+				lc.probeBody(a, entered, true)
 			}
 			return err
 		})
@@ -431,7 +432,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerTriggered(t, "")
 			if err != nil {
-				lc.probeBody(t.Effect, entered)
+				lc.probeBody(t.Effect, entered, false)
 			}
 			return err
 		})
@@ -2366,6 +2367,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "RevealChosen" {
+			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -3051,6 +3058,17 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
+			// CR 205.4e: a legendary instant or sorcery is cast only while
+			// its caster controls a legendary creature or planeswalker
+			// (gorge legendarySpellLocked, on every cast route): the same
+			// cast restriction castForbidden withholds an IsPresent$ cast by
+			f, err := lc.filter("Creature.Legendary+YouCtrl,Planeswalker.Legendary+YouCtrl")
+			if err != nil {
+				return err
+			}
+			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+		}
 		if c, ok := ps.get("Cost"); ok {
 			lc.lifeXSpell = true
 			cost, err := lc.cost(c)
@@ -3482,6 +3500,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
 		}
 		ab.ActCond = andCond(ab.ActCond, actLimit)
+		ab.ActCond = andCond(ab.ActCond, revealChosenGate(cost)) // lower_revealchosen.go
 	default:
 		return refuse("ability kind %s", sa.Kind)
 	}
@@ -3857,13 +3876,26 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 
 // probeBody lowers a refused ability's or trigger's body on its own when the
 // refusal came before the body was read, so its blockers are listed too.
-func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+// An activated ability's head Cost$ is its activation cost, which the real
+// lowering already read: the probe skips it rather than reading it as an
+// in-body resolution cost (lowerCtx.effect). A mana ability's head is no
+// chain node (lowerMana / lowerManaReflected lower it, and chain only its
+// SubAbility$): the probe reads that sub-chain alone.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int, activated bool) {
+	if activated && sa != nil && (sa.API == "Mana" || sa.API == "ManaReflected") {
+		sa, activated = sa.Sub, false
+	}
 	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
 		return
 	}
 	saved := lc.guardNode
 	lc.guardNode = saved + " body"
-	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	var ps *params
+	if activated {
+		lc.probeHead, ps = sa, probeHeadParams(sa) // lower_probehead.go
+	}
+	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, ps) })
+	lc.probeHead = nil
 	if err != nil {
 		lc.refuseNode(lc.guardNode, "%s", err.Error())
 	}

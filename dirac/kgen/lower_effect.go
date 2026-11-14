@@ -225,6 +225,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			lc.twoSeat("TriggeredSourceController read as the one opponent")
 			return lRef{Kind: rEachOpp}, nil
 		}
+		if dmgSourceIsTriggerObj(lc.ab.Trigger) { // lower_trigsrcctrl.go
+			return lRef{Kind: rTriggeredTgtCtrl}, nil
+		}
 		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
 	case "TriggeredCardController", "TriggeredActivator":
 		return lRef{Kind: rTriggeredPlayer}, nil
@@ -511,7 +514,7 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 			t.Min, t.Max = lc.oppCountBound(t.Min), lc.oppCountBound(t.Max)
 		}
 		if allowParent {
-			if v, ok := ps.get("TargetsWithDefinedController"); ok && v != "TriggeredCardController" && v != "TriggeredTarget" { // those forms: lower_targetset.go
+			if v, ok := ps.get("TargetsWithDefinedController"); ok && v != "TriggeredCardController" && v != "TriggeredTarget" && v != "TriggeredAttackedTarget" { // those forms: lower_targetset.go
 				if v != "ParentTarget" {
 					return lRef{}, refuse("TargetsWithDefinedController$ %q", v)
 				}
@@ -857,7 +860,13 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	guard := lCond{}
 	// Peek, not get: get marks Defined$ read for every node, and the
 	// effect must still read (or leave unread) its own Defined$.
-	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
+	ownTgt := false
+	if g, ok, err := lc.ownTargetedGuard(sa, ps); ok || err != nil { // lower_targetedown.go
+		if err != nil {
+			return err
+		}
+		guard, ownTgt = g, true
+	} else if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
 		// Defined$ Targeted.<qualifier> (graveexile): gorge definedSpec
 		// (context.go:440-452) keeps the chain targets the qualifier
 		// admits. Lower only exactly one target slot, so the node's
@@ -923,6 +932,11 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 		return err
 	}
 	lc.targetedDefined = ""
+	if ownTgt {
+		if err := lc.ownTargetedSlot(guard); err != nil { // lower_targetedown.go
+			return err
+		}
+	}
 	if setPred != nil {
 		if err := lc.wrapPlayerSet(sa.API, effAt, *setPred); err != nil {
 			return err
@@ -1418,7 +1432,7 @@ func packPips(p [5]int) int {
 func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 	// An AB$ inside a trigger body (an optional cost paid on resolution).
 	if lc.ab.Kind == akTriggered || lc.ab.Kind == akLatent {
-		if c, ok := ps.get("Cost"); ok && sa.Kind == "AB" {
+		if c, ok := ps.get("Cost"); ok && sa.Kind == "AB" && sa != lc.probeHead {
 			if strings.HasSuffix(c, `\NumTimes>`) && strings.HasPrefix(c, "Mana<") {
 				return lc.numTimesPay(sa, ps, c) // lower_numtimes.go
 			}
@@ -2886,11 +2900,10 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Card" {
 		return lc.chooseCardType(ps) // lower_choosetype.go
 	}
-	if ps.str("Defined") != "You" || ps.str("Type") != "Creature" {
+	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}
-	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}})
-	return nil
+	return lc.chooseCreatureTypeMid(ps) // lower_choosetype.go
 }
 
 func (lc *lowerCtx) pump(ps *params) error {

@@ -836,6 +836,14 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
+	if cd.HasMultikicker && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
+		// a plain Multikicker hand cast is "shape:optional_cost" to the cast
+		// planner; gorge keeps the composition's plan (potentialPlayVerdictShared)
+		// but not its "insufficient", so the cast never enters the prefix search
+		// (potentialScriptPlays) and a census gap (a depletion land's counter
+		// mana) never pays it: it is no insufficient play and no scripted one
+		return false
+	}
 	if cd.Cost.X != 0 {
 		return s.xWitnessOffered(k, p, c, o)
 	}
@@ -1522,6 +1530,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
 				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+			}
+			if k.gen != nil && pc.manaAb < 0 {
+				s.potentialReflNone(k, sl, &done) // a reflected view with no colour makes no mana: the walk below must not admit the printed ability open
 			}
 			continue
 		}

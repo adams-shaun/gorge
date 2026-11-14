@@ -300,7 +300,7 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 			e := sbtPrio{act: x, kind: "cast", obj: sbtObjID(dirac.Obj(src)), mode: cm}
 			fromHand := kp.Objs[src].Zone == kop.ZoneHand
 			switch {
-			case s.FeatPoolPays(p, o, mode) || a.free(uint8(src), mode):
+			case s.FeatPoolPays(p, o, mode) || a.free(dirac.Obj(src), mode):
 				e.src = builtins.KeyOption
 				if mode&2 != 0 {
 					e.key = 1<<40 | zidx(dirac.Obj(src))<<8
@@ -438,7 +438,7 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 
 // free reports a cast of o whose mana cost is nothing (gorge offers it as
 // an ordinary option: there is nothing to plan).
-func (a *SBT) free(o uint8, mode uint8) bool {
+func (a *SBT) free(o dirac.Obj, mode uint8) bool {
 	cid := a.rs.kp.Objs[o].Card
 	if int(cid) >= len(a.c.tbl.Cards) || mode&1 != 0 {
 		return false

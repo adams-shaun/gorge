@@ -800,7 +800,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Targets[i], err = cb.target(t); err != nil {
 			return ka, err
 		}
-		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell {
+		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell && !xCountActivatedOK(a, &ka) {
 			return ka, fmt.Errorf("target count X..X outside a spell")
 		}
 		if t.Mode >= 0 {
@@ -1653,6 +1653,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4OptTrigPlayer
 	}
+	if t.OptSrcCtrl && (!t.Optional || t.Event != "DamageDone") {
+		return kt, fmt.Errorf("optional source controller on a %s trigger", t.Event)
+	}
 	if t.NamedCast {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)
@@ -1799,6 +1802,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			st.Grant = uint8(j + 1)
 		}
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		st.ProtChosen = s.ProtChosen
+		if st.ProtExc, err = filter(s.ProtExc, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 		if st.Landwalk, err = filter(s.Landwalk, kop.ZoneBattlefield); err != nil {

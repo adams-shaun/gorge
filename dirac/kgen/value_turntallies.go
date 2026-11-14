@@ -43,6 +43,14 @@ func oppsHitByLegendaryValue(rest string) (lValue, bool) {
 // legendary arm with no source condition (vOppsLostLife N 2).
 const oppsDealtCombatDamageBody = "HasPropertywasDealtCombatDamageThisTurn"
 
+// oppsDealtDamageBody is PlayerCountOpponents$ (or
+// PlayerCountRegisteredOpponents$) HasPropertywasDealtDamageThisTurn (Gnoll
+// War Band): the living opponents dealt any damage this turn, combat or not
+// (gorge hasPropertyStateBacked, Host.DamageTakenThisTurn > 0 over
+// opponentGroup; both heads read the same living-opponent group). Kernel
+// vOppsLostLife N 3 (dirac/value_oppsdamaged.go).
+const oppsDealtDamageBody = "HasPropertywasDealtDamageThisTurn"
+
 // triggerCostXShape reports whether a printed trigger's own PayLife<X> cost
 // carries an SVar X body gorge folds at the cost window and the kernel reads
 // at the same moment (evalTriggerCostFixedX): the entering card's power on an

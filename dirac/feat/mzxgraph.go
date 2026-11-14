@@ -117,7 +117,7 @@ type MZX struct {
 	sb     []byte
 	hidden uint8
 	// the deciding seat's activatable abilities at a priority decision
-	canCast [256]bool
+	canCast [objSlots]bool
 	canAct  map[uint32]bool
 	// label ids
 	lNone, lName, lStatic, lAttach, lBlocker, lDefender, lSource int32
@@ -537,7 +537,7 @@ func (e *Encoder) mzxSubtypes(g *MZX, m kop.SubMask, n int32, label int32) {
 
 // cardAbilities is processCardInZone's ability part for zone z (zBattlefield,
 // zHand, zGraveyard, zExile, zStack).
-func (e *Encoder) mzxCardAbilities(g *MZX, o uint8, c *vcard, cd *kop.CardDef, z uint8, n int32) {
+func (e *Encoder) mzxCardAbilities(g *MZX, o dirac.Obj, c *vcard, cd *kop.CardDef, z uint8, n int32) {
 	name := c.c.name
 	// static keyword abilities (Flash functions in every zone, the rest on the battlefield)
 	if z == zBattlefield {
@@ -590,7 +590,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 	clear(g.nodes)
 	clear(g.edges)
 	clear(g.canAct)
-	g.canCast = [256]bool{}
+	g.canCast = [objSlots]bool{}
 	g.typ, g.hid, g.id, g.val = g.typ[:0], g.hid[:0], g.id[:0], g.val[:0]
 	g.ec, g.ep, g.el = g.ec[:0], g.ep[:0], g.el[:0]
 	g.optN, g.optK, g.optP = g.optN[:0], g.optK[:0], g.optP[:0]
@@ -607,8 +607,8 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 		}
 	}
 	tbl := e.pool.tbl
-	cdOf := func(o uint8) *kop.CardDef { return &tbl.Cards[e.po(o).Card] }
-	nameOf := func(o uint8) []byte { return e.pool.card(e.po(o).Card).name }
+	cdOf := func(o dirac.Obj) *kop.CardDef { return &tbl.Cards[e.po(o).Card] }
+	nameOf := func(o dirac.Obj) []byte { return e.pool.card(e.po(o).Card).name }
 
 	root, _ := g.newNode(mzxKRoot, MZRoot, 0, 0)
 	if v.step >= 0 {
@@ -677,7 +677,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 		depth++
 		se := &e.kp.Stack[i]
 		sv := &v.stack[i]
-		src := uint8(se.Source)
+		src := se.Source
 		var nm []byte
 		var key uint64
 		if se.Kind == 0 {
@@ -729,7 +729,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 			}
 		}
 		for _, t := range se.Targets {
-			if dirac.TCode(t) != dirac.NoTarget {
+			if t != dirac.NoTarget {
 				add(t)
 			}
 			slot++
@@ -741,7 +741,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 	}
 	// the decision's source
 	if d.Kind != dirac.DkPriority {
-		if src := uint8(s.FeatSource()); src != noObj && int(src) < int(e.kp.NObj) {
+		if src := s.FeatSource(); src != noObj && int(src) < int(e.kp.NObj) {
 			g.node(MZCard, nameOf(src), mzxKeyObj('o', int(src), 0), root, g.lSource)
 		}
 	}
@@ -791,7 +791,7 @@ func (e *Encoder) AppendMZX(dst []byte, g *MZX, s *dirac.State, d *dirac.Decisio
 				if a.Kind() == dirac.AkDone {
 					node = stop
 				} else {
-					node = g.targetNode(dirac.TCode(a.Source()), pnode, true)
+					node = g.targetNode(a.Source(), pnode, true)
 				}
 			}
 		}
@@ -902,8 +902,8 @@ func (e *Encoder) mzxPlayer(g *MZX, s *dirac.State, p, me uint8, pn int32) {
 		g.hidden = 1
 		objs := s.FeatZoneList(p, kop.ZoneHand, e.objs[:0])
 		for _, o := range objs {
-			vc := e.cardView(s, uint8(o), zHand)
-			c := vcard{vcore: vc, obj: uint8(o), zone: zHand, attacking: false, blocks: noObj}
+			vc := e.cardView(s, o, zHand)
+			c := vcard{vcore: vc, obj: o, zone: zHand, attacking: false, blocks: noObj}
 			e.mzxHandCard(g, &c, hz)
 		}
 		g.hidden = 0

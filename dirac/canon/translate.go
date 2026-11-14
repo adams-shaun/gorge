@@ -177,7 +177,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return Pack(ActCastFace, src, RefNone, fc)
 		}
 		if mode&dirac.FeatCastFace != 0 {
-			return Pack(ActCastFace, src, RefNone, r.faceCastCanon(uint8(src), uint8(tgt))) // faces.go
+			return Pack(ActCastFace, src, RefNone, r.faceCastCanon(dirac.Obj(src), uint8(tgt))) // faces.go
 		}
 		if mode == 0 && tgt == 2 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the impending cast (CR 702.176a; kernel
@@ -305,14 +305,14 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		c, _ := SpecialCode("turn_face_up")
 		return Pack(ActSpecial, src, RefNone, c|mode<<4) // mode = the turn-up procedure
 	case dirac.AkActivate:
-		if r.stationAbility(uint8(src), mode) {
+		if r.stationAbility(dirac.Obj(src), mode) {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)
 			return Pack(ActSpecial, src, RefNone, c)
 		}
-		if mode&0x80 != 0 && r.FaceAbility(uint8(src), mode, false) == 255 {
+		if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
 			return Pack(ActActivate, src, tgt, 255) // a granted ability, told apart by its grantor
 		}
-		return Pack(ActActivate, src, RefNone, r.FaceAbility(uint8(src), mode, false))
+		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
 		if dirac.IsObjTarget(dirac.TCode(tgt)) {
 			return Pack(ActAttack, src, Ref(tgt), 0) // a planeswalker
@@ -511,7 +511,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 // gorge's: Face.Abilities index for an activated or mana ability (gorge
 // lists both as AB lines), 0x80 | Face.Triggers index for a triggered one;
 // the kernel-native ward/prowess indices (253, 254) and 255 pass through.
-func (r *Translator) FaceAbility(o uint8, idx uint8, _ bool) uint8 {
+func (r *Translator) FaceAbility(o dirac.Obj, idx uint8, _ bool) uint8 {
 	if idx >= 253 || int(o) >= int(r.KP.NObj) {
 		return idx
 	}
@@ -523,7 +523,7 @@ func (r *Translator) FaceAbility(o uint8, idx uint8, _ bool) uint8 {
 
 // stationAbility reports whether ability idx of object o is a Station
 // ability (kop.AfStation, kcounters).
-func (r *Translator) stationAbility(o uint8, idx uint8) bool {
+func (r *Translator) stationAbility(o dirac.Obj, idx uint8) bool {
 	if int(o) >= int(r.KP.NObj) || int(r.KP.Objs[o].Card) >= len(r.Tbl.Cards) {
 		return false
 	}

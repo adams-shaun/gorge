@@ -1,0 +1,7 @@
+# the A Killer Among Us pool: its enters trigger's secret ChooseType over
+# ValidTypes$ Human,Merfolk,Goblin, its RevealChosen<Type> cost and its
+# Defined$ Targeted.ChosenType counters, beside a mana elf and basics
+# (dirac/oracle/killeramongus_lowers_test.go)
+A Killer Among Us
+Llanowar Elves
+Forest

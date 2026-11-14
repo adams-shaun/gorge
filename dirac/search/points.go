@@ -301,6 +301,9 @@ func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit 
 	own := (sr.Opts.InstWin != InstWinOff || sr.Opts.Defer > 0) && d.Player == sr.seat
 	ef := sr.Opts.EndFire && sr.endFireNow(s, d)
 	add := func(i int) {
+		if actBudgetSpent(s, d.Options[i]) {
+			return // the bot's per-source activation budget (ActBudget)
+		}
 		if ef && d.Options[i].Kind() == dirac.AkPass {
 			return // instwin.go: EndFire never passes with removal castable
 		}
@@ -338,6 +341,29 @@ func (sr *Searcher) priorityCands(s *dirac.State, d *dirac.Decision, bot, limit 
 		}
 	}
 	return true
+}
+
+// ActBudget is how many non-mana activations of one source a turn may hold
+// before the search stops offering that source's abilities as candidates
+// beside the bot's answer: the bot's own per-source budget (hbot A5,
+// maxActivationsPerTurn; gorge botpolicy's A5). The search's leaf cannot tell
+// a free ability that changes nothing it values from passing, so without the
+// budget a {0} activation repeats while its visits edge out pass's: Lightning
+// Greaves' Equip {0} moved between two creatures until the kernel's
+// activation census filled (StallActs in 7% of four-seat MBC pods under
+// max^n), and with the census unbounded the same pods looped into
+// StallLoop or thousands of decisions. Policy only: the kernel offers every
+// activation, and the bot's answer is always a candidate.
+const ActBudget = 4
+
+// actBudgetSpent reports whether a is an activation of a battlefield source
+// that has used ActBudget non-mana activations this turn.
+func actBudgetSpent(s *dirac.State, a dirac.Action) bool {
+	if a.Kind() != dirac.AkActivate {
+		return false
+	}
+	o := dirac.Obj(a.Source())
+	return int(o) < dirac.MaxObj && s.FeatActivations(o) >= ActBudget
 }
 
 func (sr *Searcher) optIndex(d *dirac.Decision, a dirac.Action) int {
