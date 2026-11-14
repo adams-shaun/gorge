@@ -256,6 +256,85 @@ def test_census_runs_everything_for_a_root_level_or_unmapped_change():
     assert census({"docs/agents/invariants.md": None}) == ["./internal/archtest", "./internal/codeshape"]
 
 
+# ---- the narrow precheck (test-smart's default step 4) --------------------------------------------------
+
+NDIRMAP = dict(DIRMAP, **{"dirac": "m/dirac", "dirac/kop": "m/dirac/kop", "cmd/codeshape": "m/cmd/codeshape"})
+NDEPS = dict(DEPS, **{
+    "m/dirac": {"m/dirac"},
+    "m/dirac/kop": {"m/dirac/kop", "m/dirac"},
+    "m/dirac/oracle": {"m/dirac/oracle", "m/dirac", "m/engine/rules"},
+    "m/cmd/codeshape": {"m/cmd/codeshape"},
+})
+FAST = ["TestFastA", "TestFastB"]
+
+
+def narrowed(changes, files=None, sha="0", added=()):
+    res, _ = tt.plan(changes, NDIRMAP, NDEPS, lambda p: (files or {}).get(p, []), None, added,
+                     {"fast": FAST, "sha": sha})
+    return {p: (k, rx) for k, p, rx in res}
+
+
+def test_narrow_runs_engine_rules_whole_when_a_source_change_reaches_it():
+    got = narrowed({"engine/rules/engine.go": None}, sha="abc4")
+    kind, rx = got["./engine/rules"]
+    assert kind == "wholeskip"
+    assert "TestLargeEliminationSweepDoesNotTripLivelockWatcher" in rx and "TestHeads" in rx
+    # The plain selection runs only its census.
+    res, _ = tt.plan({"engine/rules/engine.go": None}, NDIRMAP, NDEPS, lambda p: [])
+    assert dict((p, k) for k, p, _ in res)["./engine/rules"] == "census"
+
+
+def test_narrow_dirac_only_diff_does_not_run_engine_rules():
+    got = narrowed({"dirac/state.go": None})
+    assert "./engine/rules" not in got
+    assert got["./dirac"] == ("whole", "") and got["./dirac/kop"] == ("whole", "")
+
+
+def test_narrow_engine_rules_test_only_diff_stays_named():
+    got = narrowed({"engine/rules/x_test.go": [(7, 7)]}, {"engine/rules/x_test.go": LEAF_TEST})
+    assert got["./engine/rules"][0] == "named"
+
+
+def test_narrow_never_runs_the_oracle_whole():
+    kind, rx = narrowed({"dirac/oracle/testdata/x.txt": None})["./dirac/oracle"]
+    assert kind == "named"
+    for part in ("^TestPinManifest$", "^(TestFastA|TestFastB)$", "ReprosLockstep", "Census", "^TestReproGlobMatchesTable$"):
+        assert part in rx
+    # A source change it imports adds the fast tier to the census run; the plain selection does not.
+    kind, rx = narrowed({"dirac/state.go": None})["./dirac/oracle"]
+    assert kind == "census" and rx.endswith("|^(TestFastA|TestFastB)$")
+    res, _ = tt.plan({"dirac/state.go": None}, NDIRMAP, NDEPS, lambda p: [])
+    assert "TestFastA" not in dict((p, rx) for _, p, rx in res)["./dirac/oracle"]
+
+
+def test_narrow_runs_the_lint_packages_and_skips_the_386_build_unless_go_source_moved():
+    got = narrowed({"docs/agents/invariants.md": None})
+    assert got["./cmd/codeshape"] == ("whole", "")
+    assert "./cmd/pkgmap" not in got  # not a package of this module
+    assert got["./internal/archtest"] == ("wholeskip", "^TestEngineCompilesFor32Bit$")
+    assert narrowed({"leaf/leaf_test.go": [(8, 8)]}, {"leaf/leaf_test.go": LEAF_TEST})["./internal/archtest"][0] == "wholeskip"
+    assert narrowed({"leaf/leaf.go": None})["./internal/archtest"] == ("whole", "")
+    assert narrowed({"go.mod": None})["./internal/archtest"] == ("whole", "")
+
+
+def test_narrow_heavy_reverse_deps_run_their_census_unless_the_change_is_in_them():
+    dm = dict(NDIRMAP, **{"dirac/kgen": "m/dirac/kgen"})
+    dp = dict(NDEPS, **{"m/dirac/kgen": {"m/dirac/kgen", "m/dirac"}})
+    def got(changes):
+        res, _ = tt.plan(changes, dm, dp, lambda p: [], None, (), {"fast": [], "sha": "0"})
+        return {p: k for k, p, _ in res}
+    assert got({"dirac/state.go": None})["./dirac/kgen"] == "census"
+    assert got({"dirac/kgen/gen.go": None})["./dirac/kgen"] == "whole"
+    assert got({"dirac/kgen/testdata/x.txt": None})["./dirac/kgen"] == "whole"
+    res, _ = tt.plan({"dirac/state.go": None}, dm, dp, lambda p: [])
+    assert dict((p, k) for k, p, _ in res)["./dirac/kgen"] == "whole"  # test-targeted unchanged
+
+
+def test_needs_386():
+    assert tt.needs_386({"a/b.go": None}) and tt.needs_386({"go.sum": None})
+    assert not tt.needs_386({"a/b_test.go": None, "a/testdata/x.go.txt": None, "scripts/x.sh": None, "x.md": None})
+
+
 def test_go_graph_reads_the_real_test_binaries():
     # The real `go list -e -test` path (not the hand-built DEPS): `.test` entries are the reverse-dep graph
     # that made engine/rules/engine.go select gorgegame on 2026-11-11.
@@ -291,6 +370,8 @@ def repo():
     (Path(d) / "scripts").mkdir()
     for n in ("test-targets.sh", "test_targets.py"):
         shutil.copy(HERE / n, Path(d) / "scripts" / n)
+    # The remote runner reads the operator's box settings: a stub keeps every run here.
+    (Path(d) / "scripts" / "test-remote.sh").write_text("remote_try() { :; }\n")
     (Path(d) / "go.mod").write_text("module m\n\ngo 1.22\n")
     yield Path(d)
     shutil.rmtree(d)
@@ -416,9 +497,11 @@ def smart_fixture(repo, tmp_path):
     make = fake / "make"
     make.write_text("#!/bin/sh\nexit 0\n")
     make.chmod(0o755)
-    # The dirac gate is BASE's own script, so it has to be a committed file.
+    (repo / "scripts" / "fresh-clone-check.sh").write_text("echo 'fresh-clone-check: ok'\n")
+    # The dirac gate is BASE's own script, so it has to be a committed file. The rest is committed too, so
+    # the diff against BASE is only what a test commits on top.
     _recording_gate(repo / "scripts" / "dirac-gate.sh", "dirac")
-    _commit(repo, "scripts/dirac-gate.sh")
+    _commit(repo, "scripts", "go.mod")
     subprocess.run(["git", "branch", "base"], cwd=repo, check=True)
     # The affected-package gate is fetched from another repository at GATE_REF.
     affected = tmp_path / "affected"
@@ -453,13 +536,35 @@ def _verdict_line(r):
     return lines[0]
 
 
-def test_smart_default_prints_why_step_4_is_skipped_and_launches_no_gate(repo, tmp_path):
-    env, gate_calls, _ = smart_fixture(repo, tmp_path)
+def test_smart_default_runs_the_narrow_selection_and_launches_no_gate(repo, tmp_path):
+    env, gate_calls, go_calls = smart_fixture(repo, tmp_path)
     r = wrapper_output(repo, "smart", env=env)
     assert r.returncode == 0, r.stderr + r.stdout
-    assert "== 4 skipped (the lander runs the affected and dirac gates)" in r.stdout
+    assert "== 4 affected packages and the lint packages" in r.stdout
+    line = _verdict_line(r)
+    assert line.startswith("test-smart: PASS ") and "affected=narrow,dirac-gate=skipped" in line
+    assert not gate_calls.exists() or gate_calls.read_text() == ""
+    calls = go_calls.read_text()
+    # the census step is widened by the groups, and archtest runs whole bar the 386 build (no Go source moved)
+    assert "|StateLayoutPinned|" in calls
+    assert "-skip ^TestEngineCompilesFor32Bit$ ./internal/archtest" in calls
+    assert "-run ^TestKopOrdinalsUnchanged$ ./dirac/kop" in calls
+    # a Go source change brings the 386 build back
+    (repo / "x.go").write_text("package m\n")
+    _commit(repo, "x.go")
+    r = wrapper_output(repo, "smart", env=env)
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "-p 4 ./internal/archtest ./internal/codeshape" in go_calls.read_text().splitlines()[-2]
+
+
+def test_smart_gates_off_prints_why_step_4_is_skipped_and_launches_no_gate(repo, tmp_path):
+    env, gate_calls, go_calls = smart_fixture(repo, tmp_path)
+    r = wrapper_output(repo, "smart", env=dict(env, GORGE_TEST_SMART_GATES="0"))
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "== 4 skipped (GORGE_TEST_SMART_GATES=0" in r.stdout
     assert _verdict_line(r).startswith("test-smart: PASS ")
     assert not gate_calls.exists() or gate_calls.read_text() == ""
+    assert "StateLayoutPinned" not in go_calls.read_text()
 
 
 def test_smart_gates_opt_in_launches_both_gates(repo, tmp_path):
@@ -473,6 +578,7 @@ def test_smart_gates_opt_in_launches_both_gates(repo, tmp_path):
 
 def test_smart_off_runs_the_repro_tables_only_when_the_diff_touches_them(repo, tmp_path):
     env, _, go_calls = smart_fixture(repo, tmp_path)
+    env = dict(env, GORGE_TEST_SMART_GATES="0")
     r = wrapper_output(repo, "smart", env=env)
     assert r.returncode == 0, r.stderr + r.stdout
     assert "-run ^TestStd[A-Za-z]*ReprosLockstep" not in go_calls.read_text()

@@ -59,6 +59,42 @@ CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrink
 GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
           ("./dirac/oracle", "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$"))
 
+# test-smart's narrow precheck (GORGE_TEST_SMART_GATES unset; coverage audit 2026-11-14, section 5 "affected
+# plus groups"): test-targeted's selection with three changes, and the dirac and affected gates left to the
+# prescreen and the lander.
+#  - ./engine/rules runs whole, minus RULES_SKIP, when a changed non-test file reaches
+#    its test binary: its card-behaviour tests are what a unit's own change breaks. A diff that cannot reach
+#    it (a dirac-only diff: nothing it imports is under dirac/) does not run it.
+#  - ./dirac/oracle never runs whole (its lockstep games are the prescreen's): a forced whole becomes the
+#    changed tests plus the repro, pin, census and guard families, and a reaching change adds the fast tier
+#    (dirac/oracle/testdata/fasttier.txt, the tests of 0.5 s or less the dirac gate's step 8b runs).
+#  - NARROW_HEAVY, the corpus-heavy packages a change usually reaches only through an import (kgen's 830
+#    test-s, kfuzz's lockstep replays), run only their census tests unless the change is in them; the census
+#    step runs their pins either way.
+#  - the lint packages of NARROW_LINT always run whole beside ALWAYS; internal/archtest skips the 386
+#    cross-build unless needs_386.
+RULES = "./engine/rules"
+ORACLE = "./dirac/oracle"
+ARCHTEST = "./internal/archtest"
+NARROW_LINT = ("./cmd/codeshape", "./cmd/pkgmap", "./cmd/testbudget")
+NARROW_HEAVY = ("./dirac/kgen", "./dirac/oracle/cmd/kfuzz")
+# The landing gate's global and post-merge lists (TestHeads runs in test-smart's census step).
+RULES_SKIP = ("TestHeads", "TestLargeEliminationSweepDoesNotTripLivelockWatcher",
+              "TestCloneFidelityShort[0-9A-Za-z]*", "TestCostStaticPlannedCastsNeverCostChange[0-9]*",
+              "TestChainTargetOfferCensusAgreesWithCastFlow[0-9]*",
+              "TestPaymentPlanOnePassMatchesReferenceOverAutoPayGameKernel[0-9A-Za-z]*")
+PINS_TESTS = "^TestPinManifest$|^TestPinManifestCoversOldPins$"
+ARCH32 = "TestEngineCompilesFor32Bit"
+FAST_TIER = "dirac/oracle/testdata/fasttier.txt"
+
+
+def needs_386(changes):
+    """Whether a change can move the GOARCH=386 build (TestEngineCompilesFor32Bit): a non-test Go file or
+    go.mod/go.sum. Test files, testdata, docs and scripts are not in `go build ./...`."""
+    return any(p in ("go.mod", "go.sum") or (p.endswith(".go") and not p.endswith("_test.go")) for p in changes)
+
+
+
 
 def short_pkgs(pkgs, keep=3):
     pkgs = list(pkgs)
@@ -260,7 +296,7 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     return out
 
 
-def plan(changes, dirmap, deps, lines_of, repro_names=None, added=()):
+def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=None):
     """What test-targeted runs.
 
     changes   {path: ranges}: the changed files; ranges is a list of (start, end) new-file line ranges,
@@ -270,6 +306,8 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=()):
     lines_of  path -> lines of the file's current text
     repro_names  {import path: test names} the changed repro recordings' readers (repro_named), optional
     added     paths the diff adds (status A or untracked), as opposed to modifies (added_files), optional
+    narrow    None for test-targeted; for test-smart's narrow precheck {"fast": oracle fast-tier names,
+              "sha": the commit}, which adds the kind wholeskip (regex is the -skip) -- see RULES above
 
     Returns a list of (kind, package, regex): whole, named (regex must match), census (regex may match
     nothing). Package names are ./relative, as `go test` takes them. A package whose test helper, import or
@@ -357,8 +395,38 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=()):
             out[lp] = (out[lp][0], lp, out[lp][2] + "|" + rx)
     for lp in ALWAYS:
         out[lp] = ("whole", lp, "")
+    if narrow is not None:
+        _narrow(out, changes, src, forced_whole, named, deps, local, narrow)
     res = [out[k] for k in sorted(out)]
     return res, skipped
+
+
+def _narrow(out, changes, src, forced_whole, named, deps, local, narrow):
+    """test-smart's narrow precheck on top of plan's selection (see RULES above); edits out in place. src is
+    the packages a changed non-test file is in, forced_whole those whose test helpers or fixtures changed."""
+    ip = {local(p): p for p in deps}
+    reached = {local(p) for p, ds in deps.items() if ds & src}
+    for lp in NARROW_HEAVY:
+        if lp in out and out[lp][0] == "whole" and ip.get(lp) not in src | forced_whole:
+            out[lp] = ("census", lp, CENSUS)
+    for lp in NARROW_LINT:
+        if lp in ip:
+            out[lp] = ("whole", lp, "")
+    if RULES in reached or out.get(RULES, ("",))[0] == "whole":
+        out[RULES] = ("wholeskip", RULES, "^(%s)$" % "|".join(RULES_SKIP))
+    if ARCHTEST in out and not needs_386(changes):
+        out[ARCHTEST] = ("wholeskip", ARCHTEST, "^%s$" % ARCH32)
+    if ORACLE in out:
+        kind, _, rx = out[ORACLE]
+        fast = narrow.get("fast") or ()
+        fx = "^(%s)$" % "|".join(fast) if fast else ""
+        if kind == "whole":
+            names = sorted(named.get(ip.get(ORACLE), ()))
+            parts = (["^(%s)$" % "|".join(names)] if names else []) + [REPRO_TESTS, PINS_TESTS, CENSUS]
+            parts += [g for lp, g in GUARDS if lp == ORACLE] + ([fx] if fx else [])
+            out[ORACLE] = ("named", ORACLE, "|".join(parts))
+        elif ORACLE in reached and fx:
+            out[ORACLE] = (kind, ORACLE, rx + "|" + fx)
 
 
 def census_pkgs(changes, dirmap, deps, candidates):
@@ -474,11 +542,19 @@ def read_lines(path):
         return []
 
 
+def fast_tier(path=FAST_TIER):
+    """The oracle fast tier's test names (comments and blank lines dropped); empty when the list is absent."""
+    return [ln.strip() for ln in read_lines(path) if ln.strip() and not ln.lstrip().startswith("#")]
+
+
 def cmd_select(a):
     dirmap, deps = go_graph()
     changes = diff_changes(a.base)
+    narrow = None
+    if a.narrow:
+        narrow = {"fast": fast_tier(), "sha": sh("git", "rev-parse", "HEAD", check=False).strip()}
     res, skipped = plan(changes, dirmap, deps, read_lines, repro_named(changes, dirmap, read_lines),
-                       added_files(a.base))
+                       added_files(a.base), narrow)
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:
@@ -506,6 +582,7 @@ def main(argv=None):
     f.add_argument("--named", default="")
     s = sub.add_parser("select")
     s.add_argument("--base", default="land")
+    s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
     c = sub.add_parser("census")
     c.add_argument("--base", default="land")
     a = ap.parse_args(argv)

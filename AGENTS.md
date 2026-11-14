@@ -98,7 +98,7 @@ and ends with one line `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs
 ```sh
 make test-one PKG=./engine/rules RUN='^TestX$'   # debugging: one package, named tests
 make test-targeted                               # each iteration: the diff's packages + all their test reverse deps
-make test-smart                                  # once, before DONE: the landing gate's steps, on a committed tree
+make test-smart                                  # once, before DONE: the precheck (affected packages + test groups)
 ```
 
 A `(cached)` ok, or a verdict with `cached=K` in its `tests ran=` line, is a pass: go already ran that test binary on
