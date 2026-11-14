@@ -61,8 +61,8 @@ func mbc5Entries(names []string) []cardset.Entry {
 	return es
 }
 
-// mbc5Run plays the case's seeds in lockstep and returns the games, the games
-// that reached the effect and the first divergence's description ("" for none).
+// mbc5Run plays the case's seeds in lockstep and returns the games played and the
+// games that reached the effect; a divergence fails the test here.
 func mbc5Run(t *testing.T, c mbc5Case) (games, hits int) {
 	t.Helper()
 	reg := synthReg(t)
