@@ -98,11 +98,18 @@ func (s *State) copyAbilityN(k *prep, in *kop.Instr, n int) bool {
 	slot := int(in.C >> 1)
 	e := &s.res.e
 	for c := n - 1; c >= 0; c-- {
-		tc := s.tgtCode(slot)
-		if !isStackTarget(tc) {
-			return true
+		var si int
+		if slot == kop.CopyAbTriggering {
+			// the ability whose activation fired the resolving AbilityCast
+			// trigger: its stack identity rides the trigger's amount
+			si = s.stackTgtIdx(StackTarget0, uint8(e.trigAmt))
+		} else {
+			tc := s.tgtCode(slot)
+			if !isStackTarget(tc) {
+				return true
+			}
+			si = s.stackTgtIdx(tc, e.tver[slot])
 		}
-		si := s.stackTgtIdx(tc, e.tver[slot])
 		if si < 0 || si >= int(s.sp)-1 {
 			return true
 		}

@@ -279,11 +279,14 @@ func (s *State) matchCard(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8) 
 	n := int(fl.PredN)
 	switch fl.Pred {
 	case kop.PredNone:
-	case kop.PredPowerLE:
-		return int(pc.power) <= n
-	case kop.PredPowerGE:
-		return int(pc.power) >= n
-	case kop.PredToughnessLE:
+	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+		s.offZonePTRead(k, c, owner, NoObj) // static_offzonept.go
+		switch fl.Pred {
+		case kop.PredPowerLE:
+			return int(pc.power) <= n
+		case kop.PredPowerGE:
+			return int(pc.power) >= n
+		}
 		return int(pc.tough) <= n
 	case kop.PredCMCLE:
 		return int(pc.total) <= n

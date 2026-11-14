@@ -18,7 +18,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // or pay-life permission, a second such static at AltCostIndex 2), or sits
 // beside a permission whose own price gorge's walk does not list it beside.
 // The game stalls loudly rather than charge the wrong cast.
-const StallZeroAltShared = 188
+const StallZeroAltShared = 189
 
 func init() { stallNames[StallZeroAltShared] = "zeroaltshared" }
 

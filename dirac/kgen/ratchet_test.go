@@ -148,13 +148,14 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Foil's two-part discard alternative cost, Discard<1/Island> then Discard<1/Card.Other>, lowered as kop.Cost.Discard2N/Discard2F; ALL merged against land's MBC work 23347 -> 23348 measured).
 	// +2 (MBC replacements-2: a DamageDone doubler with no ValidTarget$ reads any recipient, Fire Servant; ValidSource$ Card.Self with IsCombat$ True as FSelf + ReplDmgCombat, Charging Tuskodon; ALL merged against land 23559 -> 23561 measured).
 	// +11 (MBC zone-moves-5: Count$TopOfLibraryCMC as ExMVOf RefLibTop, Reorder$ on a library-to-top search, the AIRespondsToOwnAbility$ hint and the ThisTurnEnteredFrom_Library word: Counterbalance, Riddle of Lightning, Judge Unworthy, Putrid Cyclops, Stormchaser Chimera, Goblin Recruiter, Dwarven Recruiter, Congregation at Dawn, Scouting Trek, Sensei's Divining Top, Captain N'ghathrod; ALL 23253 -> 23264 measured).
-	// +1 (Dragon's Smile's non-granting {0} alternative on Exile; ALL 23605 -> 23606 measured).
-	"ALL": {23606, 34442},
+	// +10 (MBC trigger-referents-6: OptionalDecider$ and Defined$ TriggeredSourceController on a plain DamageDone line, TargetsWithDefinedController$ TriggeredAttackedTarget under a per-defender attack trigger, LibraryPosition$ 2 of the dying card: Edric, Spymaster of Trest, Gornog, the Red Reaper, God-Eternal Oketra (the three MBC cards beside Karazikar and Gix, which keep other blockers), and Brood Sliver, Synapse Sliver, Backfire, Michiko Konda, Truth Seeker, Whirlwind, Killer Cyclone, God-Eternal Rhonas, God-Eternal Bontu; ALL merged against land 23608 -> 23618, MBC 1766 -> 1769 measured).
+	// +1 (Dragon's Smile's non-granting {0} alternative on Exile; ALL merged against land 23728 -> 23729 measured).
+	"ALL": {23729, 34442},
 	"BIG": {27, 30},
 	"BLB": {261, 278},
 	"BRO": {221, 280},
 	"DFT": {255, 276},
-	"DMU": {198, 270},
+	"DMU": {200, 270},
 	"DSK": {251, 276},
 	"ECL": {244, 273},
 	"EOE": {250, 266},
@@ -166,14 +167,16 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// MBC: the Mystery Booster Commander draft pool, every dealt name gorge supports (not a Standard set).
 	// +2 (MBC replacements-2: Fire Servant, Charging Tuskodon; MBC merged against land 1748 -> 1750 measured).
 	// +3 (MBC zone-moves-5: Counterbalance, Goblin Recruiter, Sensei's Divining Top; The Weaver King still refuses on its per-opponent pick; MBC 1678 -> 1681 measured).
-	// +1 (Dragon's Smile: MayPlayDontGrantZonePermissions$ True on Exile with MayPlayAltManaCost$ 0, the non-granting {0} alternative; MBC 1765 -> 1766 measured).
-	"MBC": {1766, 2188},
-	"MKM": {251, 279},
-	"MOM": {203, 296},
+	// listed 2188 -> 2195: the list is held to what an MBC pack deals (setdata TestMBCSetlistIsItsDealtNames); the seven
+	// blocking/targeting cards gorge now plays (Balduvian Warlord, Gorm the Great, Ophidian ...) do not lower yet.
+	// +1 (Dragon's Smile: MayPlayDontGrantZonePermissions$ True on Exile with MayPlayAltManaCost$ 0, the non-granting {0} alternative; MBC 1797 -> 1798 measured).
+	"MBC": {1798, 2195},
+	"MKM": {252, 279},
+	"MOM": {204, 296},
 	"MSH": {246, 276},
 	"NEO": {201, 287},
 	"ONE": {201, 271},
-	"OTJ": {252, 276},
+	"OTJ": {253, 276},
 	"SNC": {188, 266},
 	"SOS": {257, 270},
 	"SPM": {169, 192},
