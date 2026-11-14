@@ -66,6 +66,9 @@ func (r *run) broadcast() {
 // called from broadcast under r.mu. lastSeries is looked up only by key,
 // never ranged over, so map order never reaches a frame.
 func (r *run) publishSeries() {
+	if r.meta.commander() {
+		return // a pod event's game rows ride event_state
+	}
 	results := r.ev.Results()
 	for rd := 1; rd <= draft.Rounds; rd++ {
 		for _, p := range event.Pairings(rd) {

@@ -43,8 +43,10 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 // planner leaves such a cost to (pay.PlanCostDetail "cost:x"): the first useful
 // source, repeated until the pool pays. It reports false when the sources run out;
 // what the window tapped stays tapped and its mana floats (CR 733.1). The window
-// has no auto-fill option, so gorge's answerer (payexec.WindowAnswer) takes a
-// planner-deferred source (Twitching Doll) in its battlefield place, the unit
+// has no auto-fill option (the oracle's seat never sends Intent.Announce, so
+// manaWindowAsk poses the ordinary window), so gorge's answerer
+// (payexec.WindowAnswer) takes the first listed source -- a planner-deferred one
+// (Twitching Doll, a depletion land) in its battlefield place, the unit
 // availXWindow counted for the announcement.
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
@@ -198,7 +200,7 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// the caller asked for the gap mana).
 	if k.gen != nil && k.gen.anyDeferred && s.g.availX&3 == 0 {
 		for b := s.gapMask(k, p, gfDeferred); b.any(); b = b.rest() {
-			a.addUnits(1<<kop.R, 1)
+			a.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
 		}
 	}
 	// A counter-rider or Taps-deferred source (Twitching Doll's "{T}: Add one
@@ -208,7 +210,13 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// window, so the ask counts this unit too.
 	if s.g.availX&3 == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
-			if _, ok := s.riderAbilityOf(k, b.first()); ok {
+			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
+				if ra.ManaRider == kop.ManaRiderDeplete {
+					// A depletion land's activation costs a counter, so gorge's window
+					// census (windowManaUnits: a free cost only; castWindowProbeUnits
+					// withholds SubCounter) never counts it in an X announcement.
+					continue
+				}
 				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
 				continue
 			}

@@ -260,6 +260,16 @@ type Cost struct {
 	// poses one pick per other card. A table byte, not a CostFlags bit (the
 	// words are full). Only a graveyard activated ability's own cost.
 	ExileGSelf bool
+	// Discard2N / Discard2F: a second discard part after the CostDiscard
+	// part, Discard2N hand cards matching Discard2F (0: any card) among
+	// those the first part's picks left (Foil's alternative cost:
+	// Discard<1/Island> then Discard<1/Card.Other>, CR 118.3, 601.2h;
+	// gorge discardAsk asks the parts in order, each over
+	// pay.DiscardCandidates with the earlier picks reserved and the cast
+	// card excluded). Table bytes, not CostFlags bits (the words are
+	// full). Only a spell's own alternative cost carries them.
+	Discard2N uint8
+	Discard2F FilterID
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

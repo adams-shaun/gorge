@@ -100,7 +100,7 @@ func (s *State) offerWebSlingHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 		// rule)
 		return
 	}
-	d.add(MakeAction(AkWebSling, uint8(o), 0, 0))
+	d.add(MakeAction(AkWebSling, TCode(o), 0, 0))
 }
 
 // beginWebSling casts hand card o for its web-slinging cost (gorge

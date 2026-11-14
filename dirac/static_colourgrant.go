@@ -136,8 +136,8 @@ func (s *State) applyAskColGrant(k *prep, a Action) bool {
 	if s.res.ask != raChooseColorRes {
 		return s.applyAskEndure(k, a) // act_endure.go
 	}
-	s.res.chosen = a.Mode() + 1
-	s.res.col = s.res.chosen // the ChosenColor filters' copy (static_colourprot.go resColour)
+	s.res.chosen = objWord(a.Mode() + 1)
+	s.res.col = uint8(s.res.chosen) // the ChosenColor filters' copy (static_colourprot.go resColour)
 	s.continueRes(k, 0)
 	return true
 }

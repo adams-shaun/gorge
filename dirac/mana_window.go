@@ -239,12 +239,15 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false)
 }
 
-// windowTapWalk is windowTapUseful; takeDeferred is an announced X's window
-// (gorge's announcedManaWindowAsk), whose answer (payexec.WindowAnswer) is the
-// auto-fill option while gorge's planner prices what is owed, else the first
-// source listed. The planner never taps a deferred source (planDeferred), so
-// the walk skips one while the rest still cover the cost (windowPlanCovers),
-// and once they do not takes it in its battlefield place like any other.
+// windowTapWalk is windowTapUseful; takeDeferred is an X-cost payment's CR
+// 601.2g window (xWindowPay). The oracle lowers every cast as a plain cast
+// (Intent.Payment or the potential play's script, never Intent.Announce), so
+// gorge's window is manaWindowAsk's ordinary one: no ManaPayment, no auto-fill
+// option, and its answer (payexec.WindowAnswer) is the first "activate" option
+// listed -- a planner-deferred source (planDeferred) in its battlefield place
+// like any other, whatever the planner census affords. An Intent.Announce
+// cast's announced window (announcedManaWindowAsk) would offer the auto-fill
+// plan the census covers; no seat sends it here, so the walk never skips.
 func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	if s.buildLive() && s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 && s.bld().e.kind == seSpell {
 		// the payment's mana abilities queue from here: a reversal (unpushSpell) keeps what they
@@ -262,7 +265,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k) && !s.windowPlanCovers(k, p, cost, anyColor))
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k), potential)
 		if sl == NoSlot {
 			return false, held
 		}
@@ -271,7 +274,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				s.ctrGap(k, p, sl, -1) // the counter, the use, the mana (mana_countercost.go)
 				continue
 			}
-			if a, ok := s.riderAbilityOf(k, sl); ok && s.scriptTapsDefer(k, p).has(sl) {
+			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
+				!potential && s.riderActivatable(k, p, sl, a)) {
 				ans := 0
 				if !a.ManaEach && (uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
 					pc := s.manaPCGen(k, sl)
@@ -417,23 +421,19 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 	return s.restrPoolNonSpell(k, p)
 }
 
-// windowPlanCovers reports whether p's pool and planner census (availFor, which
-// leaves a deferred source out) cover cost: gorge's window then offers its
-// auto-fill plan (announcedAutoFillPlan), which the answer takes.
-func (s *State) windowPlanCovers(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
-	var a avail
-	s.availFor(k, p, &a)
-	if anyColor {
-		return a.affordsAnyColor(cost, 0)
-	}
-	return a.affords(cost, pipMaskOf(cost), 0)
-}
-
 // windowPick is the window's next source among order (p's battlefield, in
 // order): the first usable one, or a window gap (gap true); NoSlot when
 // none is left. A planner-deferred source is skipped unless takeDeferred
-// (windowTapWalk).
-func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred bool) (sl Slot, gap bool) {
+// (windowTapWalk), but a bounded rider source's own activation (Hickory
+// Woodlot's "{T}, remove a depletion counter: Add {G}{G}") is an ordinary
+// window pick in a manual window: gorge's window lists every usable mana
+// ability in its battlefield place and its answer takes the first listed,
+// so the walk takes it here and riderGap pays its counter, mana and rider
+// (mana_rider.go) -- in the paying cast's window, a ward or unless window
+// (payWindow) and their census probes (windowAffordsTake) alike. The
+// potential route (a trigger-cost window, windowTapNoOwed) keeps the
+// planner's tier.
+func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred, potential bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	var tapsDef slotMask
 	if takeDeferred {
@@ -445,6 +445,19 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 	for _, o := range order {
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
+		}
+		if !potential && k.gen != nil && k.gen.anyManaRider {
+			c := s.cardAt(o)
+			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, o, a) {
+				mask := uint8(a.ManaColors)
+				if a.ManaEach {
+					mask = uint8(kop.ColAny)
+				}
+				if decided && mask&want == 0 {
+					continue // the clamp reads colours the cost still owes
+				}
+				return o, true
+			}
 		}
 		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
 			if !takeDeferred && s.planDeferred(k, p, o) {
@@ -838,7 +851,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, false)
+		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, false, false)
 		if sl == NoSlot {
 			ok = false
 			break
@@ -1056,12 +1069,29 @@ func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
 	return s.windowAffordsTake(k, p, cost, false)
 }
 
+// riderOfferable: some source's first mana ability is a bounded rider
+// activation the window walk can take (windowPick's rider arm): gorge's
+// manual windows list it and the census probes must count it.
+func (s *State) riderOfferable(k *prep, p uint8) bool {
+	if k.gen == nil || !k.gen.anyManaRider {
+		return false
+	}
+	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
+		sl := m.first()
+		c := s.cardAt(sl)
+		if a, ok := s.riderAbilityOf(k, sl); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, sl, a) {
+			return true
+		}
+	}
+	return false
+}
+
 // windowAffordsTake is windowAffords; takeDeferred is an unless / ward window
 // (payWindow), which taps a planner-deferred source (a counter-rider mana
 // source, Twitching Doll) once the rest cannot cover the cost: gorge's
 // unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) bool {
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any()) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any() || s.riderOfferable(k, p)) {
 		return false
 	}
 	t := s.fork()
@@ -1426,7 +1456,7 @@ func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8,
 	var ch uint8
 	for g := f; g != 0; g = k.t.Filters[g].Or {
 		if k.t.Filters[g].Flags2&kop.F2ChosenType != 0 {
-			ch = s.perms[sl].chosen
+			ch = uint8(s.perms[sl].chosen)
 		}
 	}
 	return s.addRestrChV(k, p, f, v, ch, col, n)
@@ -2604,7 +2634,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 
 // divPicks lists entry e's target slot's picked objects in pick order (the
 // first in tgt[slot], then its extra objects), legal or not.
-func (s *State) divPicks(e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
+func (s *State) divPicks(e *stackEntry, slot uint8, codes *[maxXTgt + 1]TCode) int {
 	m := 0
 	if c := e.tgt[slot]; c != NoTarget {
 		codes[m] = c
@@ -2640,7 +2670,7 @@ func (s *State) startCastDivide(k *prep) {
 				continue
 			}
 		}
-		var codes [maxXTgt + 1]uint8
+		var codes [maxXTgt + 1]TCode
 		n := s.divPicks(e, uint8(ti), &codes)
 		tot := int(t.Divide)
 		if t.Divide == kop.DivLKIP1P1 {
@@ -2681,7 +2711,7 @@ func (s *State) startCastDivide(k *prep) {
 // ChCastDivide option per target, in pick order (gorge divisionDecision).
 func (s *State) castDivideOptions(k *prep, d *Decision) {
 	e := &s.bld().e
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	n := s.divPicks(e, s.bld().divSlot, &codes)
 	d.Kind, d.Sub, d.Player = DkChoose, ChCastDivide, e.ctrl
 	for i := 0; i < n; i++ {
@@ -2690,9 +2720,9 @@ func (s *State) castDivideOptions(k *prep, d *Decision) {
 }
 
 // answerCastDivide gives target c one more point.
-func (s *State) answerCastDivide(k *prep, c uint8) {
+func (s *State) answerCastDivide(k *prep, c TCode) {
 	e := &s.bld().e
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	n := s.divPicks(e, s.bld().divSlot, &codes)
 	x := s.xtMut(e)
 	for i := 0; i < n; i++ {
@@ -2715,7 +2745,7 @@ func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
 	if x.div[0] == 0 {
 		return false
 	}
-	var codes [maxXTgt + 1]uint8
+	var codes [maxXTgt + 1]TCode
 	var amts [maxXTgt + 1]int
 	m, i := 0, 0
 	if e.tgt[slot] != NoTarget {
@@ -3303,7 +3333,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].flags |= pfLoyaltyUsed
 	}
 	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
-		s.payCounterX(sl, int(a.Cost.Ctr), e.x) // [-X] loyalty or SubCounter<X/KIND>
+		s.payCounterX(sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
 	}
 	if a.Cost.Exert && sl != NoSlot {
 		// Exert<1/NICKNAME> as an activation cost (CR 702.100a): the
@@ -3337,7 +3367,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		}
 	}
 	if f&kop.CostPayLife != 0 {
-		s.payLifeCost(k, e.ctrl, &a.Cost, e.x)
+		s.payLifeCost(k, e.ctrl, &a.Cost, uint8(e.x))
 	}
 	if f&kop.CostPayEnergy != 0 {
 		s.payEnergy(e.ctrl, &a.Cost)

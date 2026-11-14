@@ -79,7 +79,7 @@ func (s *State) unparkTail(k *prep) bool {
 		s.res.ask = raNone
 		return s.finishDigAt(k, true, true)
 	case tailDigArrange:
-		s.res.ask, s.res.askP = raGenDigArrange, s.g.pickP
+		s.res.ask, s.res.askP = raGenDigArrange, s.digArrangeAsker(k)
 		return true
 	case tailDigUntil, tailDigEnter, tailSearchEnter:
 		s.res.ask = raNone
@@ -88,11 +88,13 @@ func (s *State) unparkTail(k *prep) bool {
 	return false
 }
 
-// digArranges: the dig's rest is ordered by its owner one card at a time
-// ("the rest on the bottom in any order": gorge's dig_arrange).
+// digArranges: the dig's rest is ordered one card at a time ("the rest on
+// the bottom in any order": gorge's dig_arrange; with DigRestTopAsk "the
+// rest on top in any order", gorge digTopOrderAsk: zone_digtoporder.go).
 func digArranges(n int, lookSel uint32, rz kop.Zone, fl int16) bool {
 	nr := n - bits.OnesCount32(lookSel)
-	return nr >= 2 && (rz == kop.ZoneLibrary || rz == kop.ZoneNone) && fl&(kop.DigRandomOrder|kop.DigRestTop) == 0
+	order := fl&(kop.DigRandomOrder|kop.DigRestTop) == 0 || fl&kop.DigRestTopAsk == kop.DigRestTopAsk
+	return nr >= 2 && (rz == kop.ZoneLibrary || rz == kop.ZoneNone) && order
 }
 
 // finishDigTail is a dig's tail after its taken cards moved: the rest
@@ -124,7 +126,7 @@ func (s *State) finishDigTail(k *prep) {
 			nr++
 		}
 	}
-	if fl&kop.DigRandomOrder != 0 {
+	if fl&kop.DigRestTopAsk == kop.DigRandomOrder {
 		for i := nr - 1; i > 0; i-- {
 			j := s.rng.IntN(i + 1)
 			rest[i], rest[j] = rest[j], rest[i]

@@ -59,6 +59,11 @@ func (lc *lowerCtx) announcedXCheck(c *lCost, s string) error {
 			return refuse("sacrifice cost %q beside a self-sacrifice", s)
 		}
 	}
+	if c.ExileGX {
+		if !c.Mana.X || c.SacX || c.LifeX || c.LoyaltyX || c.SubCtrX || c.EvidenceX || c.Waterbend > 0 || c.WaterbendX || c.XMin != 0 || c.SubAmongN > 0 {
+			return refuse("exile cost ExileFromGrave<X/..> in %q beside no printed {X} or a second announced-X part", s)
+		}
+	}
 	if c.XMin == 0 {
 		return nil
 	}

@@ -35,14 +35,14 @@ func TestUnblockedTrigger(t *testing.T) {
 		h, a := sc.perm(hound, 0), sc.perm(bear, 0)
 		b := sc.perm(bear, 1)
 		sc.passUntil(t, kop.StepAttackers)
-		sc.do(t, AkAttack, uint8(h), 0xff)
-		sc.do(t, AkAttack, uint8(a), 0xff)
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkAttack, TCode(h), scAny)
+		sc.do(t, AkAttack, TCode(a), scAny)
+		sc.do(t, AkDone, scAny, scAny)
 		sc.passUntil(t, kop.StepBlockers)
 		if blocked {
-			sc.do(t, AkBlock, uint8(b), uint8(h))
+			sc.do(t, AkBlock, TCode(b), TCode(h))
 		}
-		sc.do(t, AkDone, 0xff, 0xff)
+		sc.do(t, AkDone, scAny, scAny)
 		// unblocked: the self line once, the creature line twice (hound,
 		// bear); the hound blocked: the creature line once (the bear)
 		want := 3

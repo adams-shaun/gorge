@@ -137,12 +137,60 @@ func phasesCond(key, spec string) (lCond, error) {
 // playerTurnCondition lowers a lone ConditionPlayerTurn$ True|False (gorge
 // conditions.go: g.Active compared with the resolving controller), or that
 // turn test conjoined with ConditionPhases$ (Great Train Heist: the extra
-// combat only in its controller's combat phase). Beside any third
-// Condition*$ gate it refuses.
+// combat only in its controller's combat phase), and with a
+// ConditionDefined$+ConditionPresent$ group gate (the Addendum family:
+// Tail Swipe's ConditionDefined$ Self | ConditionPresent$ Card.wasCast).
+// Beside any other Condition*$ gate it refuses.
 func (lc *lowerCtx) playerTurnCondition(ps *params, v string) (lCond, error) {
-	if beside := conditionKeysBesides(ps, "ConditionPlayerTurn", "ConditionPhases"); len(beside) > 0 {
+	if beside := conditionKeysBesides(ps, "ConditionPlayerTurn", "ConditionPhases"); len(beside) > 0 && !isDefinedPresentPair(beside) {
 		return lCond{}, refuse("ConditionPlayerTurn$ beside %s$", beside[0])
 	}
+	turn, err := lc.turnPhasesCondition(ps, v)
+	if err != nil {
+		return lCond{}, err
+	}
+	if _, ok := ps.m["ConditionPresent"]; !ok {
+		return turn, nil
+	}
+	group, err := lc.definedPresentGroup(ps)
+	if err != nil {
+		return lCond{}, err
+	}
+	return andCond(turn, group), nil
+}
+
+// isDefinedPresentPair reports whether the Condition*$ keys beside the
+// turn/phase gate are exactly ConditionDefined$ and ConditionPresent$.
+func isDefinedPresentPair(keys []string) bool {
+	return len(keys) == 2 && keys[0] == "ConditionDefined" && keys[1] == "ConditionPresent"
+}
+
+// definedPresentGroup lowers the ConditionDefined$+ConditionPresent$ group
+// beside a turn/phase gate through nodeCondition's own present-group arm, on
+// a params holding only the pair. gorge conditions.go AND-s the turn/phase
+// preconditions (extraMet) with that group gate's answer (combine), so the
+// group reads exactly as it does alone: Card.wasCast on ConditionDefined$
+// Self is the resolving spell's own cast (kernel wasCastSpell; a copy was
+// never cast, CR 707.10).
+func (lc *lowerCtx) definedPresentGroup(ps *params) (lCond, error) {
+	sub := newParams(map[string]string{"ConditionDefined": ps.m["ConditionDefined"], "ConditionPresent": ps.m["ConditionPresent"]})
+	group, err := lc.nodeCondition(sub)
+	if err != nil {
+		return lCond{}, err
+	}
+	if un := sub.unread(); len(un) > 0 {
+		return lCond{}, refuse("ConditionPlayerTurn$ beside an unread %s$", un[0])
+	}
+	if group.Kind == cNone {
+		return lCond{}, refuse("ConditionPlayerTurn$ beside a ConditionPresent$ group that lowers to no gate")
+	}
+	ps.consume("ConditionDefined", "ConditionPresent")
+	return group, nil
+}
+
+// turnPhasesCondition is the turn test, conjoined with ConditionPhases$ when
+// the node carries one.
+func (lc *lowerCtx) turnPhasesCondition(ps *params, v string) (lCond, error) {
 	var turn lCond
 	switch strings.ToLower(strings.TrimSpace(v)) {
 	case "true":
