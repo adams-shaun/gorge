@@ -211,6 +211,7 @@ const (
 	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
 	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
 	CondBlessing            // the controller has the city's blessing (CR 702.131; dirac/kw_ascend.go)
+	CondRemMark             // the source's persistent remembered list is non-empty: the host half of a ConditionDefined$ Remembered group gate (gorge rememberedWithSource's persistent union; Forge's areMet reads host.getRemembered(), which a kernel resolution's own set does not model)
 	CondCount_
 )
 

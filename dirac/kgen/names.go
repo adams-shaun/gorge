@@ -152,7 +152,7 @@ func init() {
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
 		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd, "kop.CondEchoOwed", kop.CondEchoOwed,
-		"kop.CondSourceZone", kop.CondSourceZone, "kop.CondBlessing", kop.CondBlessing)
+		"kop.CondSourceZone", kop.CondSourceZone, "kop.CondBlessing", kop.CondBlessing, "kop.CondRemMark", kop.CondRemMark)
 	enum[kop.CmpOp]("kop.CmpNone", kop.CmpNone, "kop.CmpGE", kop.CmpGE, "kop.CmpLE", kop.CmpLE, "kop.CmpEQ", kop.CmpEQ,
 		"kop.CmpGT", kop.CmpGT, "kop.CmpLT", kop.CmpLT, "kop.CmpNE", kop.CmpNE, "kop.CmpPrime", kop.CmpPrime)
 	enum[kop.CounterKind]("kop.CtrP1P1", kop.CtrP1P1, "kop.CtrM1M1", kop.CtrM1M1, "kop.CtrLoyalty", kop.CtrLoyalty,

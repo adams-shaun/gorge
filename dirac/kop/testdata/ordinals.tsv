@@ -104,12 +104,13 @@ ColW	ColorMask	1
 CondAlways	CondKind	0
 CondAnd	CondKind	8
 CondBlessing	CondKind	11
-CondCount_	CondKind	12
+CondCount_	CondKind	13
 CondEchoOwed	CondKind	9
 CondKicked	CondKind	3
 CondPresent	CondKind	1
 CondPromised	CondKind	7
 CondRefMatches	CondKind	6
+CondRemMark	CondKind	12
 CondSourceZone	CondKind	10
 CondThreshold	CondKind	4
 CondValue	CondKind	2

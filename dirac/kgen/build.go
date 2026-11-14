@@ -2393,7 +2393,7 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
 	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
-	cBlessing: kop.CondBlessing}
+	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
