@@ -13,7 +13,7 @@ import (
 // (kfuzz -cmd-mini 50) with seat 0 answered by a MaxN dirac/search (16
 // simulations) and the other three seats by the heuristic bot ends with no
 // divergence or panic, and seat 0 searched. A pod holding Reign of Dragons
-// or another two-seat-only card (StallTwoSeat) is skipped.
+// or another two-seat-only card (StallTwoSeat) is passed over for the next pod.
 func TestSearchSeatFourSeatCmd5Pod(t *testing.T) {
 	c, names := cmd5MiniCorpus(t, 50)
 	set, err := cardset.ByName("cmd5")
@@ -53,5 +53,5 @@ func TestSearchSeatFourSeatCmd5Pod(t *testing.T) {
 		}
 		return
 	}
-	t.Skip("no cmd5 pod without a two-seat-only card in the first 24")
+	t.Fatal("no cmd5 pod without a two-seat-only card in the first 24")
 }
