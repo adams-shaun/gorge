@@ -24,12 +24,7 @@ func (s *State) atkLastCold() []uint8 {
 	if l == nil || l.atkLast == 0 {
 		return nil
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	_ = coldView[uint8](nil, &at, l.ctrP)
-	_ = coldView[xblkRec](nil, &at, l.xblk)
-	_ = coldView[cmdPartner](nil, &at, l.partner)
+	at := l.beforeAtkLast()
 	return coldView[uint8](s.cold.buf, &at, l.atkLast)
 }
 
