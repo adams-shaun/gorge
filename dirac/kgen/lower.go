@@ -2500,6 +2500,8 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
 			if c.SacX || c.SacExile || c.Sac != nil {
+				// the kernel pays one Sac pick: a second part (Jarad's Sac<1/Swamp>
+				// Sac<1/Forest>) would overwrite the first and offer the wrong land
 				return c, refuse("sacrifice cost %q beside a second sacrifice part", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
