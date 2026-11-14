@@ -181,7 +181,10 @@ func cacheFresh(dir, cache string) bool {
 	if err != nil {
 		return false
 	}
-	return !corpusInputNewerThan(dir, ci)
+	// The mtimes compare one directory's timeline; the census sidecar
+	// (card_census.go) catches a cache saved by another view of the corpus
+	// holding fewer or different card scripts.
+	return !corpusInputNewerThan(dir, ci) && cardCensusFresh(dir, cache)
 }
 
 // corpusInputNewerThan reports whether any corpus input for dir is newer than
@@ -269,6 +272,13 @@ func PruneCaches(dir, keepPath string) {
 	imgs, _ := filepath.Glob(filepath.Join(dir, "ir-*.img"))
 	for _, s := range imgs {
 		if _, err := os.Stat(s[:len(s)-len(".img")] + ".gob.gz"); os.IsNotExist(err) {
+			_ = os.Remove(s)
+		}
+	}
+	// And a card-census sidecar (cardCensusPath).
+	cens, _ := filepath.Glob(filepath.Join(dir, "ir-*.cen"))
+	for _, s := range cens {
+		if _, err := os.Stat(strings.TrimSuffix(s, ".cen") + ".gob.gz"); os.IsNotExist(err) {
 			_ = os.Remove(s)
 		}
 	}

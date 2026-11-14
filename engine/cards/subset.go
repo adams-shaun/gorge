@@ -487,7 +487,7 @@ func segFresh(dir, cache, seg string) bool {
 	if ci, err := os.Stat(cache); err == nil && ci.ModTime().After(si.ModTime()) {
 		return false
 	}
-	return !corpusInputNewerThan(dir, si)
+	return !corpusInputNewerThan(dir, si) && cardCensusFresh(dir, cache)
 }
 
 // refreshSegments rebuilds seg: from the gob cache when that is fresh (a raw
