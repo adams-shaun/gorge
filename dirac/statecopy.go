@@ -66,9 +66,10 @@ type coldLayout struct {
 	ctrP                                                                            int // creature counter-plus-one records (0 or 1: plusCreRec), right after the emblem records (repl_turnrepl.go)
 	partner                                                                         int // cmdPartner records (0 or 1), right after the xblk records (zone_cmdpartner.go)
 	atkLast                                                                         int // per-seat attacked-defender bytes (0 or MaxSeats), right after the partner records (trig_atklastturn.go)
-	contract                                                                        int // per-seat contract counter counts (0 or MaxSeats), right after the attack record (ctr_contract.go)
+	contract                                                                        int // per-seat contract counter counts (0 or MaxSeats), right after the dmgT records (ctr_contract.go)
 	mk                                                                              int // multikicker counts per slot (CR 702.43; cast.go)
 	mkObj                                                                           int // multikicker counts per object while on the stack (cast.go)
+	dmgT                                                                            int // per-player damage taken this turn, right after the atkLast records (kw_bloodthirst.go)
 	words                                                                           int
 }
 
@@ -125,6 +126,9 @@ func prepCold(g *genPrep, l *coldLayout) {
 	if g.anyAtkLast {
 		l.atkLast = MaxSeats
 	}
+	if g.anyDmgTaken {
+		l.dmgT = MaxSeats
+	}
 	if g.anyContract {
 		l.contract = MaxSeats
 	}
@@ -140,7 +144,8 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	_ = coldView[xblkRec](b, &at, l.xblk)       // then xblkRecs, after the counter record
 	_ = coldView[cmdPartner](b, &at, l.partner) // then partnerCold, after the xblk records
 	_ = coldView[uint8](b, &at, l.atkLast)      // then atkLastCold, after the partner records
-	_ = coldView[uint8](b, &at, l.contract)     // then contractCold, after the attack record
+	_ = coldView[int16](b, &at, l.dmgT)         // then dmgTakenCold, after the atkLast records
+	_ = coldView[uint8](b, &at, l.contract)     // then contractCold, after the dmgT records
 	c.ms = coldView[slotMask](b, &at, l.ms)
 	c.mo = coldView[objBits](b, &at, l.mo)
 	c.exw = coldView[exwRec](b, &at, l.exw)

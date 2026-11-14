@@ -21,6 +21,7 @@ func (s *State) contractCold() []uint8 {
 	}
 	at := l.beforeAtkLast()
 	_ = coldView[uint8](nil, &at, l.atkLast)
+	_ = coldView[int16](nil, &at, l.dmgT) // dmgTakenCold sits between the attack and contract records (statecopy.go place)
 	return coldView[uint8](s.cold.buf, &at, l.contract)
 }
 

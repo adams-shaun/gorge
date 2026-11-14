@@ -6,11 +6,11 @@ import (
 )
 
 // TestColdPrefixViewsDoNotAlias: with the plus-creature, extra-block,
-// partner, attack and contract records all kept, every accessor's view lies
+// partner, attack, damage-taken and contract records all kept, every accessor's view lies
 // inside the buffer and none overlaps another, so a contract put cannot
 // change a plus-creature record or the other way round.
 func TestColdPrefixViewsDoNotAlias(t *testing.T) {
-	l := &coldLayout{ctrP: 1, xblk: MaxPerm, partner: 1, atkLast: MaxSeats, contract: MaxSeats}
+	l := &coldLayout{ctrP: 1, xblk: MaxPerm, partner: 1, atkLast: MaxSeats, dmgT: MaxSeats, contract: MaxSeats}
 	l.size()
 	var s State
 	s.layOut(l)
@@ -33,6 +33,8 @@ func TestColdPrefixViewsDoNotAlias(t *testing.T) {
 	add("partner", unsafe.Pointer(pt), int(unsafe.Sizeof(*pt)))
 	al := s.atkLastCold()
 	add("atkLast", unsafe.Pointer(&al[0]), len(al))
+	dt := s.dmgTakenCold()
+	add("dmgT", unsafe.Pointer(&dt[0]), len(dt)*int(unsafe.Sizeof(dt[0])))
 	ct := s.contractCold()
 	add("contract", unsafe.Pointer(&ct[0]), len(ct))
 	base := uintptr(unsafe.Pointer(&s.cold.buf[0]))
