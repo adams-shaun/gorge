@@ -1563,6 +1563,21 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			if k.gen != nil && !s.canTapForManaPC(k, sl, pc) {
 				s.potentialGrantSac(k, sl, payment, add, &open) // a granted sacrifice-only ability, tapped or not (mana_grantcost.go)
+				if s.riderPotential(k, p, sl) {
+					// a bounded rider source's activation is one of gorge's
+					// potential walk's units: its fixed production counts
+					// once, an any-colour or all-at-once one is unbounded
+					// (gorge potentialUnbounded; the Deplete land's is fixed)
+					if a, _ := s.riderAbilityOf(k, sl); a.ManaEach || uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 {
+						open = true
+					} else {
+						n := int(a.ManaN)
+						if n < 1 {
+							n = 1
+						}
+						add(sl, uint8(a.ManaColors), uint8(n))
+					}
+				}
 			}
 			if k.gen != nil && pc.manaAb < 0 {
 				s.potentialReflNone(k, sl, &done) // a reflected view with no colour makes no mana: the walk below must not admit the printed ability open

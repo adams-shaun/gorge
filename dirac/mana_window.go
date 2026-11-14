@@ -275,7 +275,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
-				!potential && s.riderActivatable(k, p, sl, a)) {
+				s.riderActivatable(k, p, sl, a)) {
 				ans := 0
 				if !a.ManaEach && (uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
 					pc := s.manaPCGen(k, sl)
@@ -431,8 +431,10 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // so the walk takes it here and riderGap pays its counter, mana and rider
 // (mana_rider.go) -- in the paying cast's window, a ward or unless window
 // (payWindow) and their census probes (windowAffordsTake) alike. The
-// potential route (a trigger-cost window, windowTapNoOwed) keeps the
-// planner's tier.
+// potential route (a trigger-cost window, windowTapNoOwed) takes it too:
+// gorge's trigger-cost ask prices the payer's potential mana, whose walk
+// counts the rider's activation, so the elected pay funds it here the same
+// way (mana_rider.go).
 func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred, potential bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	var tapsDef slotMask
@@ -446,7 +448,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
-		if !potential && k.gen != nil && k.gen.anyManaRider {
+		if k.gen != nil && k.gen.anyManaRider {
 			c := s.cardAt(o)
 			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, o, a) {
 				mask := uint8(a.ManaColors)
@@ -1083,9 +1085,7 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		sl := m.first()
-		c := s.cardAt(sl)
-		if a, ok := s.riderAbilityOf(k, sl); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, sl, a) {
+		if s.riderPotential(k, p, m.first()) {
 			return true
 		}
 	}
