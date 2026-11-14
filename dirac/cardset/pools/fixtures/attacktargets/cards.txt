@@ -1,0 +1,15 @@
+# Attack-target legality in the oracle's constructed lockstep
+# (dirac/oracle/attack_targets_test.go): Sealock Monster's CantAttack
+# UnlessDefender$ controlsIsland beside the lands and creatures its gate reads.
+Sealock Monster
+Grizzly Bears
+Hill Giant
+Island
+Swamp
+Forest
+Mountain
+Impulsive Pilferer
+Coastline Marauders
+Kitesail Skirmisher
+Chandra, Novice Pyromancer
+Shock

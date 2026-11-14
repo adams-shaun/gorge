@@ -159,8 +159,9 @@ func (s *State) xblkClear() {
 }
 
 // StallExtraBlockReq: a requirement- or lure-maximising block declaration with
-// a two-attacker blocker ready. gorge offers the blocker's second block inside
-// such a declaration too, and dirac would silently under-offer it.
+// a two-attacker blocker ready. No longer reached: combat_mustbeblocked.go's
+// search offers the second block there (the number stays, stallNames and the
+// stall classes read it).
 const StallExtraBlockReq = 163
 
 func init() { stallNames[StallExtraBlockReq] = "extrablockreq" }
@@ -183,26 +184,6 @@ func (s *State) blockerRoom(k *prep, b Slot) bool {
 	p := &s.perms[b]
 	return p.flags&pfBlocking != 0 && p.flags&pfTapped == 0 && s.isCreature(k, b) &&
 		s.kw(k, b)&kop.KwCantBlock == 0 && s.blockCap(k, b) == 2 && s.xblkOf(b) == NoSlot
-}
-
-// extraBlockReady: some ready blocker of the defender may block two attackers.
-func (s *State) extraBlockReady(k *prep) bool {
-	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
-		if b := bm.first(); s.blockerReady(k, b) && s.blockCap(k, b) == 2 {
-			return true
-		}
-	}
-	return false
-}
-
-// stallExtraBlockReq ends the game at StallExtraBlockReq, as optionsFull does.
-//
-//go:noinline
-func (s *State) stallExtraBlockReq(d *Decision) bool {
-	s.stall(StallExtraBlockReq)
-	d.N = 0
-	d.Kind = DkNone
-	return true
 }
 
 // blockedTwo: b blocks two attackers that both still attack.

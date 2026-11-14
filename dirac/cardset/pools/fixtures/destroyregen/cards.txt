@@ -1,0 +1,15 @@
+# the self-regenerating destroy replacement pool: Mossbridge Troll ("if it
+# would be destroyed, regenerate it") ramped by Llanowar Elves, against
+# destroy effects that can be regenerated from (Murder, Day of Judgment,
+# Typhoid Rats' deathtouch block) and ones that can't (Terror, Wrath of God)
+# (dirac/oracle/destroy_selfregen_test.go)
+Mossbridge Troll
+Llanowar Elves
+Murder
+Terror
+Day of Judgment
+Wrath of God
+Typhoid Rats
+Forest
+Swamp
+Plains

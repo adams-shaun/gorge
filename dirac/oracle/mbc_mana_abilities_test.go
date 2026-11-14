@@ -18,7 +18,12 @@ import (
 // tracked ability must be activated on gorge's side, so the lockstep compares
 // the kernel's walk of it. Relic of Legends (a no-{T} tap-another second
 // ability) stays refused: its lowering diverged from gorge (see the report).
-var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Krark-Clan Ironworks", "Necra Disciple"}
+var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Krark-Clan Ironworks", "Necra Disciple", kmbc2Grant}
+
+// kmbc2Grant: Apprentice Wizard beside Chromatic Lantern's granted any-colour land ability, the
+// grant search's filter step (grantSrch.filtBranch) for a {C}-only filter: the Wizard's {C}{C}{C}
+// pays a spell's generic and the Lantern its {R} (dr-mbc-ba pair 8: "autopay found no plan").
+const kmbc2Grant = "Apprentice Wizard + Chromatic Lantern"
 
 // kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
 // ability's activations.
@@ -59,6 +64,11 @@ var kmbc2Decks = map[string][]cardset.Entry{
 		{Name: "Krark-Clan Ironworks", Count: 5}, {Name: "Ornithopter", Count: 4}, {Name: "Mind Stone", Count: 3},
 		{Name: "Sol Ring", Count: 1}, {Name: "Juggernaut", Count: 4}, {Name: "Air Elemental", Count: 4},
 		{Name: "Serra Angel", Count: 4}, {Name: "Island", Count: 8}, {Name: "Plains", Count: 7},
+	},
+	kmbc2Grant: {
+		{Name: "Apprentice Wizard", Count: 5}, {Name: "Chromatic Lantern", Count: 4}, {Name: "Hill Giant", Count: 4},
+		{Name: "Juggernaut", Count: 3}, {Name: "Mind Stone", Count: 2}, {Name: "Sol Ring", Count: 1},
+		{Name: "Island", Count: 12}, {Name: "Mountain", Count: 9},
 	},
 }
 
@@ -164,9 +174,10 @@ func TestMBCManaAbilities2Lowers(t *testing.T) {
 	}
 }
 
-func kmbc2Spelling(t *testing.T, name string) {
+func kmbc2Spelling(t *testing.T, label string) {
+	name, _, _ := strings.Cut(label, " + ") // the tracked card
 	{
-		kd := [2][]cardset.Entry{kmbc2Decks[name], kmbc2Opp}
+		kd := [2][]cardset.Entry{kmbc2Decks[label], kmbc2Opp}
 		kmbc2Run(t, kd, name, pkPolicy, 48, nil, false)
 		byName := map[string]int{}
 		kmbc2Run(t, kd, name, ExplorePolicy, 64, byName, false)

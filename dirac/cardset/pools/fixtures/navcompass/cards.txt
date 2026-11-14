@@ -1,0 +1,17 @@
+# Navigator's Compass's "{T}: until end of turn, target land you control
+# becomes the basic land type of your choice in addition to its other types"
+# (dirac/oracle/navigators_compass_test.go TestNavigatorsCompassLowers): the
+# mid-resolution ChooseType Basic Land, asked again on every activation, and
+# the chosen-type Animate, beside off-colour spells the granted type pays for
+Navigator's Compass
+Grizzly Bears
+Savannah Lions
+Shock
+Merfolk of the Pearl Trident
+Raging Goblin
+Llanowar Elves
+Forest
+Island
+Mountain
+Plains
+Swamp

@@ -27,7 +27,9 @@ import (
 //     then targets the taxed side pays the raise through the cost window.
 //
 // Every case must lower its spell through gorge's potential planner in some
-// seed, and no game may diverge.
+// seed, in each of its modes with a witness that taps at least one source
+// (the taps the kernel must mirror before the {X} ask), and no game may
+// diverge.
 func TestTapChoiceLockstep(t *testing.T) {
 	if isolate(t) {
 		return
@@ -36,15 +38,16 @@ func TestTapChoiceLockstep(t *testing.T) {
 		name    string
 		decks   [2][]cardset.Entry
 		lowered []string // cards gorge must lower in some seed
+		modes   []string // play modes gorge must lower with a tapping witness in some seed
 	}{
 		{"buyback-x", [2][]cardset.Entry{
 			{{Name: "Fanning the Flames", Count: 14}, {Name: "Mountain", Count: 26}},
 			{{Name: "Fanning the Flames", Count: 14}, {Name: "Mountain", Count: 16}, {Name: "Swamp", Count: 10}},
-		}, []string{"Fanning the Flames"}},
+		}, []string{"Fanning the Flames"}, []string{"buyback"}},
 		{"target-tax", [2][]cardset.Entry{
 			{{Name: "Kasmina, Enigmatic Mentor", Count: 14}, {Name: "Island", Count: 26}},
 			{{Name: "Repulse", Count: 16}, {Name: "Island", Count: 24}},
-		}, []string{"Repulse"}},
+		}, []string{"Repulse"}, nil},
 	}
 	reg := synthReg(t)
 	for _, c := range cases {
@@ -68,6 +71,7 @@ func TestTapChoiceLockstep(t *testing.T) {
 				t.Fatalf("%s: %v", pool, err)
 			}
 			lowered := map[string]int{}
+			tapped := map[string]int{} // lowered plays by mode whose witness taps a source
 			for seed := uint64(1); seed <= 40; seed++ {
 				cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 				m, err := NewMatchup(reg, [2]string{"tap-a", "tap-b"}, cs, 0)
@@ -87,6 +91,9 @@ func TestTapChoiceLockstep(t *testing.T) {
 								if o := g.E.G.Obj(pe.play.Obj); o != nil && o.Face() != nil {
 									lowered[o.Face().Name]++
 								}
+								if pe.play.Mode != "" && len(pe.plan.Activations) > 0 {
+									tapped[pe.play.Mode]++
+								}
 							}
 						}
 					}
@@ -101,10 +108,15 @@ func TestTapChoiceLockstep(t *testing.T) {
 					t.Fatalf("%s seed %d: unmodelled stall %s", pool, seed, res.Stall)
 				}
 			}
-			t.Logf("%s (%s): lowered casts %v", c.name, pool, lowered)
+			t.Logf("%s (%s): lowered casts %v, tapping witnesses by mode %v", c.name, pool, lowered, tapped)
 			for _, n := range c.lowered {
 				if lowered[n] == 0 {
 					t.Errorf("gorge never lowered %s in 40 games", n)
+				}
+			}
+			for _, md := range c.modes {
+				if tapped[md] == 0 {
+					t.Errorf("gorge never lowered a %s cast with a witness tapping a source in 40 games", md)
 				}
 			}
 		})
