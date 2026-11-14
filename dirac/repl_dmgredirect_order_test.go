@@ -14,7 +14,7 @@ import (
 func redirOrderState(scope, col bool) (*State, *prep) {
 	s := &State{}
 	s.g.nseat = MaxSeats
-	g := &genPrep{anyRedir: true, anyRepl: rbPrevCol, replBits: []uint64{0, 0, 0}}
+	g := &genPrep{anyRedir: true, anyRepl: rbPrevCol, replBits: []uint32{0, 0, 0}}
 	k := &prep{gen: g, t: &kop.Table{Cards: make([]kop.CardDef, 3)}}
 	k.t.Cards[1].Colors = kop.ColR
 	s.perms[0].card, s.perms[0].ctrl, s.perms[0].obj, s.perms[0].atk = 1, 0, 4, PlayerTarget0+1

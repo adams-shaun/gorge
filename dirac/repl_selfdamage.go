@@ -35,14 +35,11 @@ import (
 var DebugSelfDamageReplOff bool
 
 // rbSelfDmg is any self-damage replacement.
-const rbSelfDmg = rbPrevCtrSelf | rbHealSelf | rbPrevRmSelf | rbPrevToSelf
+const rbSelfDmg = rbPrevCtrSelf | rbHealSelf | rbPrevToSelf
 
 // rbPrevSelf are the self-damage replacements that prevent the damage, each
 // event on its own (replCombatGen).
-const rbPrevSelf = rbPrevCtrSelf | rbPrevRmSelf | rbPrevToSelf
-
-// rbPrevBody are the preventions with a body (selfDamage runs it).
-const rbPrevBody = rbPrevCtrSelf | rbPrevRmSelf
+const rbPrevSelf = rbPrevCtrSelf | rbPrevToSelf
 
 // rbSelfDmgCompete are the damage replacements that can match an event to a
 // self-damage host beside its own: gorge asks their CR 616.1 order.
@@ -52,17 +49,17 @@ const rbSelfDmgCompete = rbDblDmg | rbPlusDmg | rbPrevNC | rbPrevDmgTo | rbPrevC
 // damage it would be dealt; the amount dealt.
 func (s *State) selfDamage(k *prep, sl Slot, combat bool, n int) int {
 	b := k.gen.replBits[s.cardAt(sl)]
-	if DebugSelfDamageReplOff || b&(rbHealSelf|rbPrevBody) == 0 || n <= 0 || s.genLost(k, sl) {
+	if DebugSelfDamageReplOff || b&(rbHealSelf|rbPrevCtrSelf) == 0 || n <= 0 || s.genLost(k, sl) {
 		return n
 	}
 	if b&rbHealSelf != 0 {
 		s.healMarked(sl)
 	}
-	if b&rbPrevBody != 0 {
-		if b&rbPrevCtrSelf != 0 {
-			s.selfDamageCounters(k, sl, n)
-		} else {
+	if b&rbPrevCtrSelf != 0 {
+		if prevRemovesOne(k, s.cardAt(sl)) {
 			s.selfDamageRemoveOne(sl)
+		} else {
+			s.selfDamageCounters(k, sl, n)
 		}
 		if !s.noPrev(k, combat) {
 			return 0
@@ -74,6 +71,19 @@ func (s *State) selfDamage(k *prep, sl Slot, combat bool, n int) int {
 // SelfDamageStats counts the Phantom bodies run (the oracle test's proof the
 // pool reaches the replacement).
 var SelfDamageStats struct{ RemoveOne atomic.Int64 }
+
+// prevRemovesOne: the card's ReplPreventDamageCounters is the Phantom body
+// (ReplPrevSelfRemoveOne), not Anti-Venom's counters. Both share rbPrevCtrSelf.
+func prevRemovesOne(k *prep, c CardID) bool {
+	cd := &k.t.Cards[c]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplPreventDamageCounters {
+			return a.Repl.C == kop.ReplPrevSelfRemoveOne
+		}
+	}
+	return false
+}
 
 // selfDamageRemoveOne is the Phantom body: remove one +1/+1 counter from sl
 // (gorge DB$ RemoveCounter | Defined$ Self | CounterNum$ 1, as OpRemoveCounter
@@ -87,7 +97,7 @@ func (s *State) selfDamageRemoveOne(sl Slot) {
 
 // selfDamageHost: the permanent at sl carries a self-damage replacement
 // that still functions.
-func (s *State) selfDamageHost(k *prep, sl Slot, b uint64) bool {
+func (s *State) selfDamageHost(k *prep, sl Slot, b uint32) bool {
 	return !DebugSelfDamageReplOff && k.gen.replBits[s.cardAt(sl)]&b != 0 && !s.genLost(k, sl)
 }
 

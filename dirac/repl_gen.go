@@ -20,12 +20,12 @@ import (
 
 // replN counts the permanents controlled by p whose card has replacement
 // bit b and still has its abilities.
-func (s *State) replN(k *prep, p uint8, b uint64) int {
+func (s *State) replN(k *prep, p uint8, b uint32) int {
 	return s.replNIn(k, s.statM.and(s.ctrlM[p]), b)
 }
 
 // replNIn is replN over the permanents of m.
-func (s *State) replNIn(k *prep, m slotMask, b uint64) int {
+func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 	g := k.gen
 	n := 0
 	for ; m.any(); m = m.rest() {

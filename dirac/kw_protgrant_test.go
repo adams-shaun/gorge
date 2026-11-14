@@ -134,13 +134,13 @@ func TestProtGrantBlock(t *testing.T) {
 func TestPrepProtGrantEmblem(t *testing.T) {
 	grant := kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatContinuous, ProtFrom: 1}}
 	tab := &kop.Table{Cards: []kop.CardDef{{}}, Emblems: []kop.Emblem{{Abilities: []kop.Ability{grant}}}}
-	g := &genPrep{replBits: make([]uint64, 1)}
+	g := &genPrep{replBits: make([]uint32, 1)}
 	prepProtGrant(tab, g)
 	if !g.anyProtGrant || !g.anyProtF {
 		t.Fatalf("an emblem's granted protection left the read unarmed: %+v", g)
 	}
 	tab.Emblems = nil
-	g = &genPrep{replBits: make([]uint64, 1)}
+	g = &genPrep{replBits: make([]uint32, 1)}
 	prepProtGrant(tab, g)
 	if g.anyProtGrant {
 		t.Fatal("a table with no grant armed the read")

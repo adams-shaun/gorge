@@ -20,15 +20,32 @@ import (
 // permanent tapped.
 var UntapCondStats struct{ Reads, Held atomic.Int64 }
 
+// pcard.noUntap values.
+const (
+	untapPlain = 1 // an unconditional ReplDoesntUntap
+	untapGated = 2 // only conditional ones: Repl.Cond is read at the untap
+)
+
 // selfNoUntap reports whether the permanent at sl's own ReplDoesntUntap keeps
 // it tapped in its controller's untap step (the plain one always; a
-// conditional one while its Repl.Cond holds).
+// conditional one while its Repl.Cond holds). The pcard carries only the
+// two-valued flag (a wider pcard costs the whole kernel instructions).
 func (s *State) selfNoUntap(k *prep, sl Slot) bool {
 	pc := &k.cards[s.cardAt(sl)]
-	if pc.noUntap {
+	if pc.noUntap == untapPlain {
 		return true
 	}
-	return pc.noUntapCond != 0 && s.untapCondHolds(k, sl, pc.noUntapCond)
+	if pc.noUntap != untapGated {
+		return false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoesntUntap && a.Repl.Cond != 0 && s.untapCondHolds(k, sl, a.Repl.Cond) {
+			return true
+		}
+	}
+	return false
 }
 
 // untapCondHolds evaluates a ReplDoesntUntap's Repl.Cond for the permanent at

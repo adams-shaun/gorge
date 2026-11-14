@@ -12,7 +12,7 @@ import (
 func markedPathState(doubler bool) (*State, *prep) {
 	s := &State{}
 	s.g.nseat = MaxSeats
-	g := &genPrep{anyDmgMark: true, anyRepl: rbDblDmg, replBits: []uint64{0, rbDblDmg}}
+	g := &genPrep{anyDmgMark: true, anyRepl: rbDblDmg, replBits: []uint32{0, rbDblDmg}}
 	k := &prep{gen: g}
 	s.res.e.ctrl, s.res.e.trigPl = 0, 1
 	s.dmgMarkAdd(nil, &kop.Instr{Obj: kop.RefTriggerPlayer})

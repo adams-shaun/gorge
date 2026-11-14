@@ -37,7 +37,7 @@ func (s *State) ctrWild(c int16, ctrl uint8) bool {
 // ctrWildBits is the replBits a wildcard counter replacement sets: a
 // putter-gated one needs the counter adder published at every site
 // (replCountersBy tests rbDblCtrYou).
-func ctrWildBits(a *kop.Ability) uint64 {
+func ctrWildBits(a *kop.Ability) uint32 {
 	if a.Repl.C == kop.ReplCtrAnyYou || a.Repl.Kind == kop.ReplDoubleCountersOn && a.Repl.A != 0 {
 		return rbDblCtrYou
 	}

@@ -402,8 +402,8 @@ type genPrep struct {
 	// the damage / token / counter / zone replacements and the player
 	// hexproof static (replBits per card, rb* bits); anyRepl gates every
 	// site, so a table without these cards never takes their paths
-	replBits     []uint64
-	anyRepl      uint64
+	replBits     []uint32
+	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
 	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
 	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
@@ -527,7 +527,7 @@ type genPrep struct {
 
 // Replacement bits (genPrep.replBits).
 const (
-	rbDblDmg       uint64 = 1 << iota // ReplDoubleDamageToOpps
+	rbDblDmg       uint32 = 1 << iota // ReplDoubleDamageToOpps
 	rbPrevNC                          // ReplPreventNoncombatToOthers
 	rbDblTok                          // ReplDoubleTokens
 	rbDblCtr                          // ReplDoubleCounters
@@ -554,11 +554,10 @@ const (
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
-	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
+	rbPrevCtrSelf                     // ReplPreventDamageCounters, either body (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
 	rbDestroyRegen                    // ReplDestroyRegenerate (repl_destroyheal.go destroyLine)
-	rbPrevRmSelf                      // ReplPreventDamageCounters with C = ReplPrevSelfRemoveOne (repl_selfdamage.go)
 	rbPrevToSelf                      // ReplPreventDamageToSelf (repl_preventtoself.go)
 )
 
@@ -627,7 +626,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g := &genPrep{
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
-		replBits:    make([]uint64, len(t.Cards)),
+		replBits:    make([]uint32, len(t.Cards)),
 	}
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
@@ -1150,11 +1149,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
 				case kop.ReplPreventDamageCounters:
-					if a.Repl.C == kop.ReplPrevSelfRemoveOne {
-						g.replBits[i] |= rbPrevRmSelf
-					} else {
-						g.replBits[i] |= rbPrevCtrSelf
-					}
+					g.replBits[i] |= rbPrevCtrSelf
 					pc.hasStat = true
 				case kop.ReplDamageHealFirst:
 					g.replBits[i] |= rbHealSelf
