@@ -4,12 +4,17 @@
 # Nyxathid's -1/-1 per card read that hand from a static; basic lands to cast
 # them and to keep a hand; Orb of Dreams, whose enters replacement over other
 # objects refuses the pair (dirac/oracle/mbc_chosenplayer_test.go,
-# fourseat_chosenplayer_mp_test.go)
+# fourseat_chosenplayer_mp_test.go); Skullwinder, whose trigger's DB chain
+# chooses an opponent mid-resolution and has that player return a card from
+# their graveyard (lower_chooseplayermid.go, fourseat_midres_mp_test.go)
 Black Vise
 Entropic Specter
+Forest
+Go for Blood
 Island
 Nyxathid
 Orb of Dreams
 Plains
+Skullwinder
 Swamp
 The Rack

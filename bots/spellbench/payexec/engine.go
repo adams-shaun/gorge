@@ -21,6 +21,28 @@ func ActionFor(e *rules.Engine, obj state.ObjID) (decision.PaymentAction, bool) 
 	return decision.PaymentAction{}, false
 }
 
+// Prover is an Execution.Prove for a live engine: it submits the answer on a
+// throwaway clone of e (e is untouched) and reports whether the payer's pool
+// then gained exactly the witness's production. An answer that poses a
+// further ask (a stage-2 colour pick) or is refused proves nothing.
+func Prover(e *rules.Engine) func(d *decision.Decision, act decision.PaymentActivation, choices []int) bool {
+	return func(d *decision.Decision, act decision.PaymentActivation, choices []int) bool {
+		c := e.Clone()
+		before := PoolOf(c, d.Player)
+		if c.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}) != nil {
+			return false
+		}
+		after := PoolOf(c, d.Player)
+		var gained decision.ManaAmount
+		for i := range after {
+			if after[i] > before[i] {
+				gained[i] = after[i] - before[i]
+			}
+		}
+		return gained == act.Produces
+	}
+}
+
 // PoolOf is player p's floating pool in e.
 func PoolOf(e *rules.Engine, p state.PlayerID) decision.ManaAmount {
 	var m decision.ManaAmount

@@ -172,6 +172,33 @@ func (s *State) tapXEachGaps(k *prep, p uint8) slotMask {
 	return s.scriptGaps(k, p)
 }
 
+// riderDeferMask is p's activatable bounded-rider sources, a slot mask (the
+// rider arm of scriptTapsDefer, mana_tapsdefer.go, without that walk's
+// tap-another-live guard: the search reads activeness per node on its copy,
+// where the Drum it just tapped no longer makes the tap-another route live).
+func (s *State) riderDeferMask(k *prep, p uint8) slotMask {
+	var m slotMask
+	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if _, ok := s.riderAbilityOf(k, sl); ok {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// tapXRiderGaps: p's planner-deferred rider sources (a Sandstone Needle's
+// "{T}, remove a depletion counter: Add {R}{R}", its sacrifice rider) the
+// tap-another search activates beside its own gaps: none unless a
+// tap-another source is live on the board (tapXEachGaps' guard), and not on a
+// board the filter or restricted-any route owns (mixBoard).
+func (s *State) tapXRiderGaps(k *prep, p uint8) slotMask {
+	if !k.tapMana || !s.scriptTapX(k, p).any() || s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() {
+		return slotMask{}
+	}
+	return s.riderDeferMask(k, p)
+}
+
 // tapXCands lists the permanents source sl's tap cost can tap, in gorge's
 // candidate order (battlefield entry): p's untapped permanents matching the
 // cost's filter, the source itself excluded (its own {T} is paid first;
@@ -313,6 +340,8 @@ const (
 	tapXPass                // p passes with a trigger of the path on the stack
 	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
+	tapXRider               // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
+	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
 )
 
 type tapXKey struct {
@@ -337,6 +366,7 @@ type tapXSearch struct {
 	srcZ  kop.Zone
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
+	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
@@ -394,7 +424,9 @@ func tapXPairAt(n, qi int) (int, int) {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXRiderGaps(k, p))
+	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
+	rs.gaps = rs.gaps.or(rs.def)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -453,7 +485,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXRider || st.kind == tapXDefer {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -628,6 +660,23 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	}
 	if st.kind == tapXPlain {
 		s.tapXPlainDo(k, p, st.sl, st.col)
+		return
+	}
+	if st.kind == tapXRider {
+		// the rider source's own cost (its counter, mana_rider.go), then its
+		// mana and rider: the script returns to priority after the step, so
+		// the SBAs and the queued triggers settle before the next node (as
+		// ctrGap's step does; a Needle down to its last counter sacrifices)
+		if s.riderPlainFirst(k, st.sl) {
+			s.riderPlainGap(k, p, st.act, st.sl, int(st.col))
+		} else {
+			s.riderGap(k, p, st.sl, int(st.col))
+		}
+		s.sba(k)
+		return
+	}
+	if st.kind == tapXDefer {
+		s.tapXDeferDo(k, p, st)
 		return
 	}
 	if st.cand == NoSlot {
@@ -828,6 +877,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
 	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
+	rider := t.riderDeferMask(k, p)
 	var cols [5]uint8
 	rs.cols(&cols)
 	var order [MaxPerm]Slot
@@ -836,6 +886,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		sl := order[i]
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
+		}
+		if rs.def.has(sl) {
+			if found, handled := rs.deferAsk(k, t, sl); handled {
+				return found
+			}
+			continue
 		}
 		if each.has(sl) {
 			// an each-colour gap has one answer and asks nothing; tapped for
@@ -874,6 +930,57 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 		if found, handled := rs.tapXAbilityAsk(k, t, sl, live.has(sl)); handled {
 			return found
+		}
+		if rider.has(sl) {
+			// a planner-deferred rider source (a Sandstone Needle's "{T}, remove
+			// a depletion counter: Add {R}{R}", its sacrifice rider, or a later
+			// rider beside a plain first ability, Grove of the Burnwillows): one
+			// production ask, whose answers are the plain first ability and the
+			// rider's colours (riderPlainGap, the play's announced ones first),
+			// or one activation of a rider-first source, its fixed production
+			// with no ask and a multi-colour one branched on its colours (the
+			// announced ones first, deferGapAnswers' count)
+			if t.riderPlainFirst(k, sl) {
+				if !rs.tick() { // the production ask
+					return false
+				}
+				for c := uint8(0); c < t.deferGapAnswers(k, sl); c++ {
+					if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: c, act: rs.a}) {
+						return true
+					}
+				}
+				continue
+			}
+			ra, ok := t.riderAbilityOf(k, sl)
+			if !ok {
+				continue
+			}
+			mask := uint8(ra.ManaColors)
+			if !ra.ManaEach && mask&(mask-1) != 0 {
+				// the activation asks its colour: the announced ones first
+				if !rs.tick() { // the colour ask
+					return false
+				}
+				var order [kop.NumManaKinds]uint8
+				no := 0
+				for col := uint8(0); col < kop.NumManaKinds; col++ {
+					if mask&(1<<col) != 0 {
+						order[no] = col
+						no++
+					}
+				}
+				needFirst(order[:no], rs.need)
+				for i := 0; i < no; i++ {
+					if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerBit(mask, int(order[i])))}) {
+						return true
+					}
+				}
+				continue
+			}
+			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl}) { // a fixed production (or every colour at once) asks nothing
+				return true
+			}
+			continue
 		}
 		if !live.has(sl) {
 			continue

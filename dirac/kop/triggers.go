@@ -216,14 +216,14 @@ type Trigger struct {
 	Whose  Whose    // for player events and TrigPhase
 	Step   Step     // TrigPhase
 	Flags  TrigFlags
-	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any)
+	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any; ToGraveyard also reads the N mask)
 
 	// Appended by dirac/kgen.
 	Filter2 FilterID   // DamageDone: the damaged object/player must match; AttackersDeclared: the attackers
 	Flags2  TrigFlags2 // more qualifiers
 	Cond    CondID     // intervening-if (0 = none): checked when the event happens and on resolution
 	Zone    Zone       // the zone the source must be in (ZoneNone = battlefield)
-	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
+	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any; ToGraveyard: origin mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
 	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)
@@ -280,6 +280,7 @@ const (
 	DmgNoRegen                         // a creature dealt damage above 0 can't be regenerated this turn (Incinerate's follow-up: the arena's mechNoRegen mark, cleared at the turn's cleanup and when the slot takes a new permanent)
 	DmgDivideEvenly                    // OpDealDamageDivided only: no division is chosen; A is divided by the slot's legal targets at resolution, rounded down, each taking the quotient (Fireball's DivideEvenly$ RoundedDown; gorge divideEvenlyDown)
 	DmgNoRegenTarget                   // OpDealDamageEx: the target object can't be regenerated this turn once the damage step ran, whether or not damage above 0 was dealt (Rage of Purphoros' ParentTarget follow-up; same arena mark as DmgNoRegen)
+	DmgNoPrevention                    // OpDealDamageEx: the damage can't be prevented (CR 615.12; DealDamage NoPrevention$ True, gorge's dmgNoPrevention read by cantPreventDamage; Arrow Storm's raid half)
 )
 
 // TrigFlags2 (Trigger.Flags2).

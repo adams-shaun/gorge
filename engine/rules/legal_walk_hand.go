@@ -33,8 +33,11 @@ func (w *legalWalk) appendAlternateSpellFace(o *state.Object, sorcery bool, af *
 		return
 	}
 	e, p, id := w.e, w.p, o.ID
+	// The targets are judged with the object showing the face the cast flips
+	// to (CR 715.3a, 720.3a-b): an Omen's sorcery may target a creature with
+	// protection from creatures that its creature front could not (CR 702.16b).
 	if af == nil || e.castSuppressed(p, id) || !w.spellTimingOK(p, id, af, sorcery) ||
-		!e.castTargetsAvailable(p, id, af.SpellAbility()) || w.castRestrictedAsFace(p, id, af) {
+		!e.offerAsFace(id, af, func() bool { return e.castTargetsAvailable(p, id, af.SpellAbility()) }) || w.castRestrictedAsFace(p, id, af) {
 		return
 	}
 	if w.offerCastableAsFace(p, id, af, pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
@@ -469,7 +472,7 @@ func (w *legalWalk) handWalk() {
 							Label: kp.label, Obj: id, Mode: kp.mode})
 					}
 				}
-			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && targetsAvailable() {
+			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && targetsAvailable() && e.kickedChainTargetsAvailable(p, id, f.SpellAbility()) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 			}

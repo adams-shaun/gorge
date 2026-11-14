@@ -6,7 +6,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -346,6 +345,12 @@ func (r *Registry) Save(path string) error {
 	if r.sub != nil {
 		return fmt.Errorf("cards: a subset registry cannot be saved as a corpus cache")
 	}
+	// The census (card_census.go) is taken before the cache is written, so a
+	// script added while Save runs reads as a mismatch, never as a match.
+	census, err := censusForSave(path)
+	if err != nil {
+		return err
+	}
 	if err := r.saveGob(path); err != nil {
 		return err
 	}
@@ -357,7 +362,10 @@ func (r *Registry) Save(path string) error {
 	if err := saveTokenDigest(path); err != nil {
 		return err
 	}
-	return writeSegments(SegmentPath(path), r.AllCards(), r.Tokens)
+	if err := writeSegments(SegmentPath(path), r.AllCards(), r.Tokens); err != nil {
+		return err
+	}
+	return saveCardCensus(path, census)
 }
 
 func (r *Registry) saveGob(path string) error {
@@ -604,13 +612,8 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 // linked Card.
 func compileScripts(dir string) ([]*Card, []Diag, error) {
 	var paths []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(p, ".txt") {
-			paths = append(paths, p)
-		}
+	err := WalkScripts(dir, func(p string) error {
+		paths = append(paths, p)
 		return nil
 	})
 	if err != nil {
