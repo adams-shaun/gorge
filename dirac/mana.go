@@ -1081,6 +1081,25 @@ func (s *State) planChosenTrial(k *prep, p uint8, pk *planner, exclude Obj, rv [
 	return true
 }
 
+// unitIrr is key 1's irreversible cost of one planned unit (gorge
+// pay.ConsequenceCost): 10 a sacrificed source, 20 a creature, 25 more for one
+// whose own printed "doesn't untap during your untap step" (Grim Monolith,
+// Basalt Monolith, Mana Vault; gorge paymentPlanSourceInterference over the
+// printed face, an ability loss does not lift it).
+func unitIrr(sac, creature, noUntap bool) uint8 {
+	irr := uint8(0)
+	if sac {
+		irr = 10
+		if creature {
+			irr = 20
+		}
+	}
+	if noUntap {
+		irr += 25
+	}
+	return irr
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1259,12 +1278,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
-				// a source whose own printed "doesn't untap during your untap
-				// step" (Grim Monolith, Basalt Monolith, Mana Vault) is last
-				// resort too, with consequence no_untap (gorge
-				// paymentPlanSourceInterference over the printed face: an
-				// ability loss does not lift it)
-				noUntap := k.cards[s.cardAt(sl)].noUntap
+				noUntap := k.cards[s.cardAt(sl)].noUntap // last resort too (unitIrr)
 				if phase == 0 && (sac || noUntap) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
@@ -1381,19 +1395,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				rb := pc.restrFloat
-				// key 1's irreversible cost of one unit (pay.ConsequenceCost:
-				// 10 a sacrificed source, 20 a creature; 25 one that does not
-				// untap next untap step)
-				irr := uint8(0)
-				if sac {
-					irr = 10
-					if cr {
-						irr = 20
-					}
-				}
-				if noUntap {
-					irr += 25
-				}
+				irr := unitIrr(sac, cr, noUntap)
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
