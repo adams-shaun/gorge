@@ -74,6 +74,7 @@ type genPrep struct {
 	anyMayPlay      bool
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
 	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
+	anyZeroAlt      bool     // some MayPlayFrom static is a non-granting {0} alternative (cast_mayzeroalt.go)
 	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (static_emblemcold.go)
 	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
@@ -232,6 +233,7 @@ type genPrep struct {
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
+	anyComboAny     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboany.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
@@ -273,6 +275,7 @@ type genPrep struct {
 	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
 	anySplitSecond  bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
+	anyOffZonePT    bool           // some card has a StatOffZonePT: an AffectedZone$ All P/T grant (static_offzonept.go)
 	anySplit        bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyAftermath    bool           // some split card's right half has aftermath (CardDef.Aftermath; face_aftermath.go)
 	anyFuse         bool           // some split card has fuse (CardDef.FuseDef; face_fuse.go)
@@ -349,6 +352,7 @@ type genPrep struct {
 	exwRec          []uint8        // per card: its resolutions record the cards they exile (anyExW only): exwRecRead, exwRecRev
 	anyCloneCopy    bool           // some program is ExtCloneCopy: permanent copies record their source (fxCopyPerm; copy_clone.go)
 	anyAegis        bool           // some program is ExtAegisClone, or some card has a TrigAttached ability (zone_exilethenattach.go)
+	anyUnattach     bool           // some card has a TrigUnattached ability, the Mode$ Unattached family (trig_unattached.go)
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
@@ -448,6 +452,10 @@ type genPrep struct {
 		ab kop.FilterID
 		ns bool
 	}
+	// restrPers: bit kind-1 marks a restriction whose mana is persistent
+	// (PersistentMana$ True; Karn, Legacy Reforged): its State.rb batches
+	// survive the step boundaries until the turn changes (rbClearStep)
+	restrPers uint8
 	// anyR: card i's restricted any-colour tap mana ability (Secluded
 	// Courtyard's "{T}: Add one mana of any color. Spend this mana only to
 	// cast a creature spell of the chosen type ..."), -1 none: a census
@@ -740,6 +748,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExHaste(t, g) // static_cantblockexcept.go
 	prepHideaway(t, g)
 	prepAegis(t, g)
+	prepUnattach(t, g)
 	prepCloneCopy(t, g)
 	prepNumTimes(t, g)
 	prepLoyaltyX(t, g)
@@ -766,11 +775,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
-	prepAsgnGrant(t, g) // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
+	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT) // static_offzonept.go
+	prepAsgnGrant(t, g)                                   // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)
 	g.anyComboDyn = tableComboDyn(t)
+	g.anyComboAny = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -800,6 +811,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
 	g.anyMayKind = tableMayPlayKinds(t)
+	g.anyZeroAlt = tableZeroAlt(t)
 	g.anyMayCold = tableMayPlayRemembered(t)
 	g.anyEmbCold = tableEmblemRepeats(t)
 	g.anyMayRaise = tableMayRaise(t)
@@ -984,6 +996,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				} else if copyAbKind(k) {
 					g.anyStackTgt, g.anyCopyAb = true, true // copy_ability.go
 				}
+			}
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigAbilityCast && a.Trig.N == kop.TrigAbCastAny {
+				g.anyStackTgt, g.anyCopyAb = true, true // the trigger's copy finds the activated ability by its stack identity (copy_ability.go)
 			}
 			switch a.Kind {
 			case kop.AbTriggered:
@@ -1597,6 +1612,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepL6(t, g)
 	prepCtrl(t, g)
 	prepTokMana(t, g)
+	prepOvrManaGrant(t, g) // mana_grantedoffers.go: an override record's mana grant is the dual census too
 	prepMonstrosity(t, g)
 	prepAnyAct(t, g) // cast_anyactivator.go
 	prepDiscAll(t, g)

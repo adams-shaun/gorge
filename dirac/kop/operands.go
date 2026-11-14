@@ -180,6 +180,13 @@ const (
 	OptAsk int16 = 1 << 2 // 4
 	OptAny       = 1 << 3 // 8
 	OptAll       = 1 << 4 // 16
+	// OptDefined: the discard takes every hand card matching F, no ask, and
+	// the amount is never read (gorge effDiscard's Mode$ Defined arm: the
+	// cards DefinedCards$ names that are still in the discarder's hand move;
+	// Fa'adiyah Seer's Remembered drawn card). Both core and gen arms run
+	// discardDefinedAll (act_discarddefined.go); a filter is mandatory (the
+	// defined cards are the filter's matches).
+	OptDefined = 1 << 5 // 32
 )
 
 // Duration of an OpOverride / OpMayPlay.
