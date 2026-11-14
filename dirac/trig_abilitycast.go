@@ -17,7 +17,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // AbilityCastStats counts the lifted mechanic; oracle tests only.
 type AbilityCastStats struct {
-	Fires      [4]int // TrigAbilityCast triggers queued, by Trigger.N class (kop.TrigAbCast*)
+	Fires      [8]int // TrigAbilityCast triggers queued, by Trigger.N class (kop.TrigAbCast*)
 	OppFires   int    // queued for a listener whose controller activated nothing (the activator is its opponent)
 	GraveFires int    // queued from a graveyard card
 }
@@ -64,6 +64,9 @@ func abilityCastClass(k *prep, e *stackEntry, cls int16) bool {
 	if cls == kop.TrigAbCastExhaust {
 		return a.Exhaust
 	}
+	if cls == kop.TrigAbCastAny {
+		return true // the target gate (abilityCastFires) is the whole test
+	}
 	// a planeswalker's [-X] carries CostLoyalty beside CostLoyaltyX; the
 	// latter alone is an announced SubCounter<X/KIND>, not a loyalty ability
 	return a.Cost.Flags&kop.CostLoyalty != 0
@@ -76,6 +79,26 @@ func abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bo
 		return false
 	}
 	return abilityCastClass(k, e, t.N)
+}
+
+// abilityCastFires is abilityCastMatch plus the part that needs the state: a
+// TrigAbCastAny line (ValidSA$ SpellAbility beside TargetsValid$) judges the
+// targets the activation chose, which gorge reads once its answers are
+// recorded (trigmatch abilityCastMatches' targetsvalid1 arm), and queues with
+// the activated entry's stack identity as its amount so the trigger's
+// CopySpellAbility finds the ability again (ExtCopyAbility, CopyAbTriggering).
+// A mana ability has no targets, so it never satisfies the gate.
+func (s *State) abilityCastFires(k *prep, e *stackEntry, l trigListener, a *kop.Ability) (int16, bool) {
+	if !abilityCastMatch(k, e, l, a) {
+		return 0, false
+	}
+	if a.Trig.N != kop.TrigAbCastAny {
+		return 0, true
+	}
+	if e.kind != seAbility || a.Trig.Flags2&kop.Tf2TargetsFilter2 == 0 || !s.castTargetsAll(k, a.Trig.Filter2, e, l) {
+		return 0, false
+	}
+	return int16(e.sid), true
 }
 
 // fireManaAbilityCast queues the AbilityCast listeners for mana ability ab of
@@ -116,7 +139,7 @@ func (s *State) fireAbilityCast(k *prep, e *stackEntry) {
 		if st == nil || s.npend <= before {
 			return
 		}
-		st.Fires[a.Trig.N&3]++
+		st.Fires[a.Trig.N&7]++
 		if l.ctrl != e.ctrl {
 			st.OppFires++
 		}
@@ -139,11 +162,12 @@ func (s *State) fireAbilityCast(k *prep, e *stackEntry) {
 				}
 				return
 			}
-			if !abilityCastMatch(k, e, l, a) {
+			amt, ok := s.abilityCastFires(k, e, l, a)
+			if !ok {
 				return
 			}
 			b := s.npend
-			s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, 0)
+			s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, amt)
 			note(b, l, a, false)
 		})
 	}
@@ -165,11 +189,12 @@ func (s *State) fireAbilityCast(k *prep, e *stackEntry) {
 						continue
 					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
-					if !abilityCastMatch(k, e, l, a) {
+					amt, ok := s.abilityCastFires(k, e, l, a)
+					if !ok {
 						continue
 					}
 					b := s.npend
-					s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, 0)
+					s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, amt)
 					note(b, l, a, true)
 				}
 			}
