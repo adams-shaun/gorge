@@ -1675,6 +1675,8 @@ async function answerOpenAsk(page: Page, unless?: string): Promise<void> {
   for (const offered of [
     page.locator(PAYMENT_ANSWERS),
     page.locator('[data-prompt-footer] button.primary:enabled'),
+    // The London mulligan's bottoming prompt commits with a button of its own, beside its hand row.
+    page.locator('[data-opening-hand] ~ .choices [data-submit]:enabled'),
     page.locator(PICKABLE),
     page.locator(FOOTER),
   ]) {
