@@ -202,7 +202,13 @@ func TestAdoptThreeCases(t *testing.T) {
 		}
 	}
 
+	// runtime.GOROOT() is empty in a -trimpath test binary (CI lint), so fall back to the go on PATH.
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	if _, err := os.Stat(goBin); err != nil {
+		if goBin, err = exec.LookPath("go"); err != nil {
+			t.Fatalf("no go toolchain: %v", err)
+		}
+	}
 	build := exec.Command(goBin, "build", "./...")
 	build.Dir = root
 	build.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS=", "GOTOOLCHAIN=local")
