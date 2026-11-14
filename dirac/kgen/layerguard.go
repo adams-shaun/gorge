@@ -104,7 +104,7 @@ func classifyLayers(pt *poolTables, d *kop.CardDef) layerClasses {
 			return
 		}
 		o := &pt.overrides[i]
-		set := o.HasTypes || i < len(pt.ovSubs) && pt.ovSubs[i].set != nil || o.HasSub || o.RemoveCreatureSub
+		set := o.HasTypes || i < len(pt.ovSubs) && pt.ovSubs[i].set != nil || o.HasSub || o.RemoveCreatureSub || o.SetLandSub
 		add := o.AddTypes != 0 || o.AllCreatureTypes || i < len(pt.ovSubs) && len(pt.ovSubs[i].add) > 0
 		if fresh {
 			if set || add {

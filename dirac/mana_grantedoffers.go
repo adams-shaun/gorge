@@ -1,8 +1,20 @@
 package dirac
 
 import (
+	"sync/atomic"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+// GrantManaStats counts the granted mana abilities a play's prefix
+// activated: the taps replayed at the play (grantApply) and the
+// sacrifice-only steps the search branches on (grantSacDo, its forks
+// included). Pool tests read it so a deck that never funds a play through a
+// granted source cannot pass vacuously.
+var GrantManaStats struct {
+	Taps atomic.Int64
+	Sac  atomic.Int64
+}
 
 // Granted mana abilities in the cast offers (tokmana). A Continuous
 // static's AddAbility$ grant of a mana ability reaches permanents its
@@ -61,6 +73,36 @@ func prepTokMana(t *kop.Table, g *genPrep) {
 			}
 			g.setFlag(CardID(i), gfContGrant)
 			g.anyContGrant = true
+		}
+	}
+}
+
+// prepOvrManaGrant marks beside prepTokMana the tables whose override
+// records grant a mana ability: an AnimateAll's Abilities$ grant (Rain of
+// Filth's "lands you control gain 'Sacrifice this land: Add {B}'") is a
+// record grant (ovGrantsBetween), which grantIdxs lists beside the statics'
+// as the walk's tail (a grant without a source in it keeps its place after
+// them), so availFor's dual census must run for its sources too. The Grant
+// indexes name abilities of the record's own card, so the sweep is
+// per-card: only a record the card's own programs apply counts.
+func prepOvrManaGrant(t *kop.Table, g *genPrep) {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		for j := range c.Abilities {
+			for _, in := range c.Abilities[j].Prog {
+				if in.Op != kop.OpOverride && in.Op != kop.OpOverrideAll {
+					continue
+				}
+				if int(in.C) >= len(t.Overrides) {
+					continue
+				}
+				for _, gr := range t.Overrides[in.C].Grant {
+					if gr != 0 && int(gr-1) < len(c.Abilities) && c.Abilities[gr-1].Kind == kop.AbMana {
+						g.anyContGrant = true // the record grant is availFor's dual census (mana_grantedoffers.go)
+						return
+					}
+				}
+			}
 		}
 	}
 }
@@ -266,17 +308,44 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if !own {
 		mask, n = 0, 0
 	}
+	// A printed sacrifice-only ability (an Eldrazi Spawn's) costs no {T} either:
+	// it is a unit of its own beside a tap grant's, and a tapped source still
+	// pays it, though not the tap grant (CR 602.2b, 605.1a).
+	var pMask, pN uint8
+	spawnNoTap := false
+	if own && k.sacOnlyMana && pc.manaSacOnly {
+		pMask, pN = mask, n
+		mask, n = 0, 0
+		spawnNoTap = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
+	}
 	// A sacrifice-only grant (Lotus Ring's "Sacrifice this creature: Add three
 	// mana of any one color") costs no {T}: the source taps for its other
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
 	var sMask, sN uint8
+	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
+	tapsNot := false
+	if ownSac {
+		// the mirror shape: a printed sacrifice-only ability (Eldrazi Spawn's
+		// {C}) beside a granted {T} ability (Path of Annihilation's any
+		// colour) -- the tap makes its mana, then the sacrifice makes its own
+		// (CR 602.2b, 605.1a); a tapped or summoning-sick source has only the
+		// sacrifice (CR 302.6)
+		sMask, sN, mask, n = mask, n, 0, 0
+		tapsNot = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
+	}
 	for i := 0; i < ng; i++ {
 		pc := s.grantView(k.gen, gi[i], sl)
+		if tapsNot && !pc.grantSac {
+			continue
+		}
 		if pc.grantSac && s.grantSacLive(sl, pc) {
 			sMask |= s.srcMaskAt(pc, sl)
 			sN = max(sN, pc.manaN)
 			continue
+		}
+		if spawnNoTap {
+			continue // a tapped or summoning-sick Spawn cannot pay a granted {T} ability (CR 302.6)
 		}
 		mask |= s.srcMaskAt(pc, sl)
 		n = max(n, pc.manaN)
@@ -284,9 +353,14 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if mask == 0 {
 		mask, n, sMask, sN = sMask, sN, 0, 0
 	}
-	s.addGrantUnits(a, mask, n)
+	if mask != 0 {
+		s.addGrantUnits(a, mask, n)
+	}
 	if sMask != 0 {
 		s.addGrantUnits(a, sMask, sN)
+	}
+	if pMask != 0 {
+		s.addGrantUnits(a, pMask, pN)
 	}
 	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 }
@@ -484,6 +558,9 @@ type grantSrch struct {
 	// each: the candidate is an each-colour gap (Tarnation Vista), a census gap
 	// of gorge's beside the grants (mana_granteach.go)
 	each [MaxPerm]bool
+	// tdef: the candidate is a Taps-deferred gap (Peat Bog's rider), a census
+	// gap of gorge's beside the grants (mana_granttapsdefer.go)
+	tdef [MaxPerm]bool
 	// wide: the candidate is a wide second-ability gap (Hermitic Herbalist),
 	// a census gap of gorge's beside the grants (mana_grantwide.go)
 	wide [MaxPerm]bool
@@ -598,6 +675,8 @@ func (g *grantSrch) candidates(s *State) {
 	dm := s.scriptDeferred(g.k, g.p)
 	em := s.scriptGaps(g.k, g.p) // (mana_granteach.go)
 	wm := s.wideGaps(g.k, g.p)   // (mana_grantwide.go)
+
+	xm := s.tapsDeferGrantGaps(g.k, g.p, &g.d) // (mana_granttapsdefer.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -608,7 +687,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -628,6 +707,7 @@ func (g *grantSrch) candidates(s *State) {
 		g.cobj[g.n] = s.perms[sl].obj
 		g.each[g.n] = ng == 0 && em.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl)
 		g.wide[g.n] = ng == 0 && wm.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl)
+		g.tdef[g.n] = ng == 0 && xm.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -666,7 +746,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
-		g.each[g.n], g.wide[g.n] = false, false
+		g.each[g.n], g.wide[g.n], g.tdef[g.n] = false, false, false
 		g.gap[g.n] = false
 		g.n++
 	}
@@ -806,6 +886,12 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 			continue
 		}
+		if g.tdef[i] {
+			if g.tapsDeferBranch(t, i, sl) { // its rider or deferred tap (mana_granttapsdefer.go)
+				return true
+			}
+			continue
+		}
 		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
 		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
 			continue // sacrificed by an earlier step (mana_grantcost.go)
@@ -894,7 +980,13 @@ func (g *grantSrch) visit(t *State) bool {
 						mask, n = srcMask(base), base.manaN
 					}
 				}
-				if g.branch(t, i, sl, -1, mask, n, alts == 1) {
+				if ppc := t.manaPCGen(g.k, sl); g.k.sacOnlyMana && ppc.manaSacOnly {
+					// a printed sacrifice-only ability (an Eldrazi Spawn's) beside a
+					// tap grant: the step sacrifices the source (CR 605.1a)
+					if g.sacBranch(t, i, sl, -1, ppc, mask, alts == 1) {
+						return true
+					}
+				} else if g.branch(t, i, sl, -1, mask, n, alts == 1) {
 					return true
 				}
 			}
@@ -1453,6 +1545,13 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 				s.tapXNext(g.p, &d)
 			}
 			continue
+		case stepTapsDefer:
+			s.tapsDeferApply(k, g.p, g.d.play, sl, st.col) // (mana_granttapsdefer.go)
+			if g.tapTriggers(s, sl) || s.npend != 0 {
+				passed = true
+				s.tapXNext(g.p, &d)
+			}
+			continue
 		case stepFilt:
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
 			if !s.filtNoTap(k, sl) {
@@ -1461,6 +1560,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			continue
 		}
 		if st.sac {
+			GrantManaStats.Sac.Add(1)   // the granted sacrifice-only step (mana_grantcost.go)
 			s.grantSacApply(k, g.p, st) // the mana, the sacrifice, the state-based check (mana_grantcost.go)
 			if s.npend != 0 {
 				passed = true
@@ -1487,6 +1587,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
+		if st.gi >= 0 {
+			GrantManaStats.Taps.Add(1) // the granted {T} step's mana (a life-cost step took the arm above)
+		}
 		if ra := s.ownRestrAb(k, sl); st.gi < 0 && ra != nil && !s.ownManaUsable(k, sl) {
 			// the printed restricted ability (mana_grantrestrictedown.go)
 			if !s.floatRestrAb(k, SeatIx(g.p), sl, ra, int(st.col), st.n) {
