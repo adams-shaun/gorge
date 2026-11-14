@@ -58,12 +58,13 @@ const (
 	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rCount
 )
 
 var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
 	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps"}
+	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker", "ChosenPlayer", "TriggeredOwner", "ChosenPlayerRes", "TriggerOpps", "ResChosenPlayer"}
 
 type lRef struct {
 	Kind refKind
@@ -311,11 +312,12 @@ const (
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
+	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
 	cCount_
 )
 
 var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing"}
+	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone", "Blessing", "RemMark"}
 
 type lCond struct {
 	Kind condKind
@@ -370,6 +372,14 @@ func andCond(a, b lCond) lCond {
 		return a
 	}
 	return lCond{Kind: cAnd, Sub: []lCond{a, b}}
+}
+
+// orCond composes a and b into a disjunction: NOT(AND(NOT a, NOT b)), the
+// de-Morgan shape the kernel's CondAnd evaluates.
+func orCond(a, b lCond) lCond {
+	na, nb := a, b
+	na.Neg, nb.Neg = !a.Neg, !b.Neg
+	return lCond{Kind: cAnd, Neg: true, Sub: []lCond{na, nb}}
 }
 
 // lInstr is one instruction: Op on Obj with amounts A, B, the op-specific
@@ -760,6 +770,7 @@ type lTrigger struct {
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
 	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)
 	DmgGate                   int16 // PerRef: DamageAmount$ gate (kop.DmgGate), 0 = none
+	InstGate                  int16 // DamageDealtOnce: AtLeastOneInstance$ gate (kop.DmgGate in Trigger.N), 0 = none
 	ResolvedLimit             bool  // ResolvedLimit$ 1: the source's limited lines resolve at most once each turn
 	Convoked                  bool  // ETB TfSelf: the trigger amount is Convoked$Amount, bound as it triggers (kernel Tf2Convoked)
 	CastHand                  bool  // ValidCard$ ...+wasCastFromYourHandByYou: ETB on the entering spell's cast, SpellCast on the spell (kernel Tf2CastFromHand)
@@ -1048,6 +1059,7 @@ type lCard struct {
 	KickerCost     *lCost      // K:Kicker with one Sac<1/..> or Return<1/..> part: Kicker is then zero mana (lower_kickercost.go)
 	Spree          bool        // K:Spree (CR 702.172) or K:Tiered (CR 702.183): ModeCost holds each mode's additional mana cost
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
+	Escalate       *manaCost   // K:Escalate:<mana> (CR 702.120): paid once per mode chosen beyond the first; Spree is set with it (lower_escalate.go)
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)

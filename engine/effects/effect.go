@@ -1149,6 +1149,42 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost:  imprintOnHost,
 				})
 				registered = true
+			} else if trigs, affected, ok := addTriggerGrantFromLine(params, c.SVars); ok {
+				// AddTrigger$ (Olinda the Oblivious, Obsidian Fireheart): the
+				// Affected$ objects -- almost always Card.IsRemembered, the
+				// Effect's own captured set -- gain the named triggered
+				// ability for the Effect's lifetime, one registration per
+				// named trigger through the SAME ContinuousEffect.AddTrigger
+				// the printed S: route and the Animate Triggers$ grant feed
+				// (engine/rules/trigger_granted.go's granted walk matches it
+				// with the registered Remembered bound, and resolves its
+				// Execute$ off this source's SVar table). The counter and
+				// move lifetimes ride the registration, so "for as long as it
+				// has an odor counter" ends the grant when the last counter
+				// goes (effectCounterSweep).
+				for i := range trigs {
+					t := trigs[i]
+					effectContinuous(h, state.ContinuousEffect{
+						Source:            c.Source,
+						Controller:        c.Controller,
+						Layer:             state.LAbilities,
+						Affects:           affected,
+						AddTrigger:        &t,
+						Name:              effectName,
+						UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
+						Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+						Duration:          dur,
+						Remembered:        remembered,
+						RememberedPlayers: effectRememberedPlayers(h, c, sa),
+						ForgetOnMoved:     forgetOn,
+						ExileOnMoved:      exileOn,
+						ForgetCounter:     forgetCounter,
+						ImprintOnHost:     imprintOnHost,
+						ForgetOnCast:      forgetOnCast,
+						ChosenNumber:      chosenNumber,
+					})
+				}
+				registered = true
 			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant
 				// (AddKeyword$/AddType$/AddPower$/SetColor$/RemoveAllAbilities$

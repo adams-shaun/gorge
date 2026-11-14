@@ -55,6 +55,9 @@ func parseFaceKey(k string) (string, int, bool) {
 // Transformed follows the flip. A card any of whose faces is a Battle
 // (CR 310) is refused by refuseBattle (lower_battle.go) unless battlesAccepted.
 func faceLayout(c *cards.Card, token bool) uint8 {
+	if protoCard(c, token) {
+		return kop.FacePrototype // lower_prototype.go: one printed face, two defs
+	}
 	if len(c.Faces) != 2 || c.Faces[0] == nil || c.Faces[1] == nil || c.Faces[1].Name == "" {
 		return kop.FaceNone
 	}
@@ -63,6 +66,8 @@ func faceLayout(c *cards.Card, token bool) uint8 {
 		return kop.FaceModal
 	case cards.AlternateDoubleFaced:
 		return kop.FaceTransform
+	case "Flip":
+		return kop.FaceFlip // CR 710: cast as its top half, flipped in place by SetState Mode$ Flip
 	}
 	m := castableFaceLayout(c) // lower_faces.go
 	if m == kop.FaceOmen && token {
@@ -88,6 +93,12 @@ func (lc *lowerCtx) lowerFaces(c *cards.Card) bool {
 		return true
 	}
 	m := faceLayout(c, lc.out.Token)
+	if m == kop.FacePrototype {
+		if r := prototypeRefusal(c); r != "" {
+			lc.refuseNode("K:Prototype", "%s", r)
+			return false
+		}
+	}
 	if m == kop.FaceNone {
 		if c.AlternateMode == "Omen" {
 			switch {
@@ -134,6 +145,9 @@ func (lc *lowerCtx) lowerFaces(c *cards.Card) bool {
 // front, a face key per other face and, for a Room, its state defs.
 func faceNames(name string, c *cards.Card, m uint8) []string {
 	out := []string{name}
+	if m == kop.FacePrototype {
+		return append(out, faceKey(name, 1)) // the prototype def: the same printed face (lower_prototype.go)
+	}
 	for j := 1; j < len(c.Faces); j++ {
 		out = append(out, faceKey(name, j))
 	}
@@ -155,11 +169,15 @@ func lowerFaceEntry(p *pool, k string) *lCard {
 		out.Token = token
 	}
 	lc := &lowerCtx{p: p, name: k, card: c, out: out, mode: -1, known: p.knownSubtype}
-	if !ok || c == nil || i <= 0 || i >= len(c.Faces) || faceLayout(c, token) == kop.FaceNone {
+	if !ok || c == nil || i <= 0 || i >= len(c.Faces) && !(i == 1 && protoCard(c, token)) || faceLayout(c, token) == kop.FaceNone {
 		lc.refuseNode("card", "face key %q", k)
 		return out
 	}
-	lc.face = c.Faces[i]
+	if protoCard(c, token) {
+		lc.face, lc.proto = c.Faces[0], true // the prototype def is the one printed face with the inset applied
+	} else {
+		lc.face = c.Faces[i]
+	}
 	out.printed = lc.face.Name
 	out.FaceMode, out.Face = faceLayout(c, token), i
 	out.Faces = faceNames(name, c, out.FaceMode)

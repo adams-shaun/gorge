@@ -1003,6 +1003,10 @@ func (s *State) dmgSeqCtrlFirst(ctrl uint8) {
 // and resumes from the next recipient after the answer, so every matching
 // event poses its own order ask while the spell is still resolving.
 func (s *State) damageSeqNext(k *prep, n int) {
+	// the sweep's events are one damage batch for the DamageDealtOnce latch
+	// (gorge effDamageAll's BeginDamageBatch; trig_dmgbatch.go); a resumed op
+	// re-enters with the batch already open, so the parked ask spans it
+	s.dmgBatchOpen()
 	for {
 		if s.g.dmgSeqI < s.g.dmgSeqN {
 			sl := s.resArm().dmgSeqOrd[s.g.dmgSeqI]
@@ -1049,6 +1053,7 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			continue
 		}
 		s.g.dmgSeqOn, s.g.dmgSeqPl = false, 0
+		s.dmgBatchClose() // the sweep is over: the batch's queued amounts are patched in (trig_dmgbatch.go)
 		return
 	}
 }

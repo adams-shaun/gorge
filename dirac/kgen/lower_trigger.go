@@ -171,6 +171,17 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	giftSelf := false
 	switch t.Mode {
 	case "ChangesZone":
+		if raw := strings.TrimSpace(tp.str("Origin")); strings.Contains(raw, ",") {
+			// an Origin$ set on a trigger: gorge matches the move's from-zone
+			// against the set (trigmatch ZoneChangeMatchesWithCapture). Only
+			// the "put into a graveyard from anywhere other than the
+			// battlefield" shape lowers, onto the kernel's TrigToGraveyard
+			// event fired by the placement itself (dirac/zones.go placeFromK).
+			if err := lc.trigToGraveyardSet(tp, tr, t, raw, readF); err != nil {
+				return err
+			}
+			break
+		}
 		if tr.Origin, err = zoneOf(tp, "Origin", zAny); err != nil {
 			return err
 		}
@@ -787,6 +798,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			} else {
 				tr.Combat = -1
 			}
+		}
+		if err := lc.damageAmountGate(tp, tr, t); err != nil { // lower_damageamount.go
+			return err
 		}
 		if err := lc.damageDoneSelfObjRef(tp, tr, t); err != nil {
 			return err
@@ -1803,6 +1817,49 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 }
 
 // lowerStatic lowers an S: line.
+// trigToGraveyardSet lowers a ChangesZone trigger whose Origin$ is a comma
+// set, the "put into a graveyard from anywhere other than the battlefield"
+// family (Syr Konrad, the Grim; Ultron the Annihilator; Ultron's Auxiliary).
+// gorge matches the move's from-zone against the Origin$ set and its to-zone
+// against Destination$ (trigmatch ZoneChangeMatchesWithCapture) as the move
+// completes, from the listener on the battlefield; the kernel is one
+// TrigToGraveyard ability that placeFromK fires when a card is placed into a
+// graveyard, Trigger.N carrying the origin zones as a 1<<kop.Zone mask
+// (0 = any), TrigLandPlayed's origin-mask pattern. The battlefield origin is
+// out of the family: a battlefield->graveyard move is a Dies line, its own
+// event and its own firing site.
+func (lc *lowerCtx) trigToGraveyardSet(tp *params, tr *lTrigger, t cards.Trigger, raw string, readF func(string) (*lFilter, error)) error {
+	var mask int16
+	for _, w := range strings.Split(raw, ",") {
+		z, ok := zoneNames[strings.TrimSpace(w)]
+		if !ok {
+			return refuse("ChangesZone Origin$ %q", raw)
+		}
+		if z == zBattlefield {
+			return refuse("ChangesZone Origin$ %q includes Battlefield", raw)
+		}
+		mask |= 1 << uint(zoneMap[z])
+	}
+	if dst := strings.TrimSpace(tp.str("Destination")); dst != "Graveyard" {
+		return refuse("ChangesZone Origin$ %s to %s", raw, dst)
+	}
+	if czCostBody(t) {
+		return refuse("ChangesZone Origin$ %s to Graveyard with a cost body", raw)
+	}
+	if tc, ok := tp.get("TriggerController"); ok && tc != "TriggeredCardController" {
+		return refuse("TriggerController %q", tc)
+	}
+	tr.Origin, tr.Dest = zAny, zGraveyard
+	tr.Event, tr.N = "ToGraveyard", mask
+	lc.wasCastOK = false
+	f, err := readF("ValidCard")
+	if err != nil {
+		return err
+	}
+	tr.F = f
+	return nil
+}
+
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "FlipCoinMod" {
 		return lc.flipCoinModStatic(s) // lower_turnfacts.go
@@ -2813,9 +2870,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, extort := splitExtortGrant(rest)  // lower_extortgrant.go
-		rest, myriad := splitMyriadGrant(rest)  // lower_myriad.go
-		rest, err = lc.splitProtGrant(rest, st) // lower_protgrant.go
+		rest, saddles := splitSaddleGrant(rest)            // lower_saddlegrant.go
+		rest, livingWeapon := splitLivingWeaponGrant(rest) // lower_livingweapongrant.go
+		rest, extort := splitExtortGrant(rest)             // lower_extortgrant.go
+		rest, myriad := splitMyriadGrant(rest)             // lower_myriad.go
+		rest, err = lc.splitProtGrant(rest, st)            // lower_protgrant.go
 		if err != nil {
 			return nil, err
 		}
@@ -2855,6 +2914,25 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_exaltedgrant.go; gorge
 			// rules/melee.go)
 			idx, err := lc.exaltedGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for _, line := range saddles {
+			// CR 702.171a granted: one latent AB$ AlterAttribute per grant
+			// (lower_saddlegrant.go; gorge cards.GrantedKeywordAbility)
+			idx, err := lc.saddleGrantAbility(line)
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; livingWeapon > 0; livingWeapon-- {
+			// CR 702.92a granted: one latent ChangesZone Self trigger, listed
+			// once per instance (lower_livingweapongrant.go; gorge
+			// scriptfacts.GrantedKeywordTrigger)
+			idx, err := lc.livingWeaponGrantTrigger()
 			if err != nil {
 				return nil, err
 			}
@@ -3713,8 +3791,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return err
 		}
 	case "Destroy":
-		if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+		if ok, err := lc.destroyRegenRepl(rp, r.With, &rl); err != nil { // lower_destroyregen.go
 			return err
+		} else if !ok {
+			if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+				return err
+			}
 		}
 	default:
 		return refuse("repl-hard: %s replacement", r.Event)

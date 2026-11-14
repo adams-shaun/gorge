@@ -265,6 +265,8 @@ type genPrep struct {
 	anyUnearth      bool           // some program has OpUnearth: leaves check the unearth exile promise (cast_altfree.go)
 	anyFinality     bool           // some program puts finality counters (kop.CtrFinality): dieZone exiles their creatures
 	anyHone         bool           // some program puts hone counters (kop.CtrHone): ptGen adds +1/+0 per hone counter on an attached permanent (CR 122.1j; ctr_hone.go)
+	anyExper        bool           // some program gains experience counters: coldArrays.exper holds them (act_energy.go)
+	anyM2M1         bool           // some program puts -2/-1 counters (kop.CtrM2M1): ptGen reads them (CR 122.1a; ctr_hone.go)
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
@@ -311,7 +313,7 @@ type genPrep struct {
 	anyLandPlayed   bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair       bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyLeavesGrave  bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
-	anyLibToGrave   bool           // a TrigToGraveyard line: a card put into a graveyard from a library (trig_libtograve.go)
+	anyToGrave      bool           // a trigger is TrigToGraveyard: N the origin mask, or From ZoneLibrary (trig_tograve.go)
 	anyKwAct        bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
@@ -555,6 +557,7 @@ const (
 	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
+	rbDestroyRegen                    // ReplDestroyRegenerate (repl_destroyheal.go destroyLine)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -793,8 +796,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepNetLock(t, g)    // act_lockpermanent.go
 	prepFinality(t, g)   // ctr_finality.go
 	prepHone(t, g)       // ctr_hone.go
+	prepM2M1(t, g)       // ctr_hone.go
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
+	g.anyExper = tableGainsExper(t)
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT) // static_offzonept.go
 	prepAsgnGrant(t, g)                                   // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
@@ -1052,7 +1057,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				}
 				if a.Trig.Event == kop.TrigToGraveyard {
-					g.anyLibToGrave = true
+					g.anyToGrave = true
 				}
 				if a.Trig.Event == kop.TrigSearchedLibrary || a.Trig.Event == kop.TrigForage || a.Trig.Event == kop.TrigDiscover || a.Trig.Event == kop.TrigManifestDread {
 					g.anyKwAct = true
@@ -1195,6 +1200,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
 					}
 					g.destroyHeal[i] = a.Repl.Filter
+				case kop.ReplDestroyRegenerate:
+					g.replBits[i] |= rbDestroyRegen
+					pc.hasStat = true // scanned through statM with the destroy-heal lines (destroyLine)
 				case kop.ReplDiscardOppToBattlefield:
 					g.replBits[i] |= rbDiscETB
 				case kop.ReplPayBeforeETB:
@@ -2058,14 +2066,14 @@ type genState struct {
 	replaced Obj // the object an as-enters replacement program is modifying
 
 	// OpCastFree: cards still castable this resolution
-	free  [8]Obj
+	free  [maxFree]Obj
 	nfree uint8
 	// the cards OpCastFree accepted, frozen: a mode's index ranks in this
 	// list (gorge's modes decision is built once over the castable
 	// candidates), the ones already cast keeping their places
-	freeAll  [8]Obj
+	freeAll  [maxFree]Obj
 	nfreeAll uint8
-	freeQ    [8]Obj // chosen to be cast after the resolution
+	freeQ    [maxFree]Obj // chosen to be cast after the resolution
 	nfq      uint8
 	freeP    seatWord // who casts the queued cards, their zone and flags (cast_freecast.go)
 	hold     bool     // an sfHold entry is on the stack
@@ -2157,6 +2165,14 @@ type genState struct {
 		idx  uint16
 		p, t int16
 	}
+	// dmgBOn / dmgBn: a DamageAll sweep's DamageDealtOnce batch is open and
+	// counts its latched lines (trig_dmgbatch.go). Outside scr, as the arm
+	// discriminants are: the damage hooks that read dmgBOn also run while arm
+	// A (combat damage) or arm B (a cast's mana-ability damage) owns scr, and
+	// the records (armRes.dmgBRecs) are read only while dmgBOn holds. They fill the
+	// two pad bytes before lookSel, so State does not grow.
+	dmgBOn  bool
+	dmgBn   uint8
 	lookSel uint32  // picked looked-at cards (bit per index; 32 bits hold look's 24; fills the pad before ro)
 	ro      replOrd // a combat damage pass paused on gorge's replacement-order ask: the header (repl_gen.go); the body is scr's armCombat
 	// scr: the mutually exclusive decision scratch, one region read through
@@ -2427,6 +2443,7 @@ const (
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
 	StallExileGrant    = 138 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
+	StallDmgBatch      = 191 // a ninth DamageDealtOnce line of one DamageAll sweep's batch (armRes.dmgB; trig_dmgbatch.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)

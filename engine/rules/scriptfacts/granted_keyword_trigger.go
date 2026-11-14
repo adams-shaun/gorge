@@ -16,7 +16,8 @@ package scriptfacts
 import "github.com/adams-shaun/gorge/engine/cards"
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
-// synthesize a TRIGGERED ability for: Prowess, Myriad, Extort and Evolve, whose
+// synthesize a TRIGGERED ability for: Prowess, Myriad, Extort, Evolve and
+// Living Weapon, whose
 // bodies read nothing the walk does not already capture. Every other head returns false (fail
 // closed): the expansion of a keyword like Afflict, Dethrone or Firebending
 // mints a trigger whose body reads keyword-specific state (a defending player,
@@ -29,7 +30,8 @@ import "github.com/adams-shaun/gorge/engine/cards"
 func GrantedTriggerHeads(head string) bool {
 	id := cards.KeywordHeadIDOf(head)
 	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad") ||
-		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve")
+		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve") ||
+		id == cards.KeywordHeadIDOf("Living Weapon")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -48,6 +50,11 @@ const GrantedEvolvePayload = "__kwEvolveGranted"
 // sibling of the granted Prowess and Myriad payloads.
 const GrantedExtortPayload = "__kwExtortGranted"
 
+// GrantedLivingWeaponPayload is the GrantTriggerPush body name a granted
+// Living Weapon rides (events.foldGrantTriggerPush rebuilds it into the Germ
+// token and attach chain).
+const GrantedLivingWeaponPayload = "__kwLivingWeaponGranted"
+
 // GrantedKeywordPayload names the GrantTriggerPush body payload the trigger
 // GrantedKeywordTrigger synthesizes for line rides: events.Apply rebuilds the
 // body from that name, so a log-only replay mints the identical ability.
@@ -59,6 +66,8 @@ func GrantedKeywordPayload(line string) string {
 		return GrantedEvolvePayload
 	case cards.KeywordHeadIDOf("Extort"):
 		return GrantedExtortPayload
+	case cards.KeywordHeadIDOf("Living Weapon"):
+		return GrantedLivingWeaponPayload
 	}
 	return "__kwProwessGranted"
 }
@@ -98,6 +107,9 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	}
 	if cards.KeywordHeadIDOf(head) == cards.KeywordHeadIDOf("Evolve") {
 		return grantedEvolveTrigger(line, head)
+	}
+	if id == cards.KeywordHeadIDOf("Living Weapon") {
+		return grantedLivingWeaponTrigger(line, head)
 	}
 	return &cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.nonCreature",
@@ -153,5 +165,32 @@ func grantedEvolveTrigger(line, head string) *cards.Trigger {
 		return nil
 	}
 	t.Effect = grantedBodySA("PutCounter", "Defined", "Self", "CounterType", "P1P1", "CounterNum", "1")
+	return &t
+}
+
+// GrantedLivingWeaponBody is the body a granted Living Weapon carries: the
+// printed expansion's (engine/cards/kw_livingweapon.go) 0/0 black Phyrexian
+// Germ token, remembered, then the source attached to it. The chain is built
+// here once for the live queue and events.foldGrantTriggerPush alike.
+func GrantedLivingWeaponBody() *cards.SA {
+	body := grantedBodySA("Token", "TokenScript", "b_0_0_phyrexian_germ", "TokenOwner", "You", "RememberTokens", "True")
+	body.Sub = grantedBodySA("Attach", "Defined", "Remembered", "Object", "Self")
+	return body
+}
+
+// grantedLivingWeaponTrigger is the trigger a granted Living Weapon gives its
+// holder (CR 702.92a, 613.1f; Ekthi, Contaminator Priest's "each Equipment you
+// control has living weapon"): the printed expansion's exact shape, an
+// enters-the-battlefield trigger of the holder itself, with the body carried
+// inline. Only the bare line is the keyword; any other spelling fails closed.
+func grantedLivingWeaponTrigger(line, head string) *cards.Trigger {
+	if len(line) != len(head) {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Living weapon")
+	if !ok {
+		return nil
+	}
+	t.Effect = GrantedLivingWeaponBody()
 	return &t
 }

@@ -9,6 +9,7 @@ const (
 	cmdShortcutNegatedWord = iota
 	cmdShortcutCommandBeacon
 	cmdShortcutCommanderMana
+	cmdShortcutCommandSweep
 	numCmdShortcuts
 )
 
