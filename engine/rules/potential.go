@@ -409,7 +409,7 @@ func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma 
 func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
 	bare := mp.Produced == "Chosen" || mp.Produced == "ChosenColor" // Produced is already trimmed
-	combo := !bare && potentialComboChosen(mp.Produced)
+	listed, combo := potentialComboChosen(mp.Produced)
 	if !bare && !combo {
 		return false
 	}
@@ -425,42 +425,49 @@ func addPotentialChosenColour(e *Engine, m *state.Mana, id state.ObjID, ma *card
 	if indeterminate {
 		return false
 	}
-	if combo {
-		// A "Combo R Chosen" source (Thriving lands, the Gates) makes one of
-		// its listed colours or the chosen one: bound each once, like a dual.
-		var seen [len(state.Mana{})]bool
-		seen[i] = true
-		for _, w := range strings.Fields(mp.Produced)[1:] {
-			if j := state.ManaIndex(w[0]); w != "Chosen" && w != "ChosenColor" && !seen[j] {
-				seen[j] = true
-				m[j] = saturatingPotentialMana(m[j], amt)
-			}
+	// A "Combo R Chosen" source (Thriving lands, the Gates) makes one of its
+	// listed colours or the chosen one: bound each once, like a dual.
+	listed[i] = true
+	for c, ok := range listed {
+		if ok {
+			m[c] = saturatingPotentialMana(m[c], amt)
 		}
 	}
-	m[i] = saturatingPotentialMana(m[i], amt)
 	return true
 }
 
-// potentialComboChosen reports whether produced is "Combo <colours> Chosen":
-// a Combo list of single WUBRG colours that also names the chosen colour.
-// Any other word in the list (Any, ColorIdentity, C) is not priced exactly
-// here.
-func potentialComboChosen(produced string) bool {
-	f := strings.Fields(produced)
-	if len(f) < 2 || f[0] != "Combo" {
-		return false
+// potentialComboChosen parses "Combo <colours> Chosen": a Combo list of
+// single WUBRG colours that also names the chosen colour. It returns the
+// listed colours and whether produced has that shape; any other word in the
+// list (Any, ColorIdentity, C) is not priced exactly here. It scans by hand:
+// the strings.* census (internal/codeshape) counts every call.
+func potentialComboChosen(produced string) (listed [len(state.Mana{})]bool, ok bool) {
+	const prefix = "Combo"
+	if len(produced) <= len(prefix) || produced[:len(prefix)] != prefix {
+		return listed, false
 	}
 	chosen := false
-	for _, w := range f[1:] {
+	for rest := produced[len(prefix):]; rest != ""; {
+		for rest != "" && rest[0] == ' ' {
+			rest = rest[1:]
+		}
+		n := 0
+		for n < len(rest) && rest[n] != ' ' {
+			n++
+		}
+		w := rest[:n]
+		rest = rest[n:]
 		switch {
+		case w == "":
 		case w == "Chosen" || w == "ChosenColor":
 			chosen = true
 		case len(w) == 1 && state.ManaIndex(w[0]) != state.MC:
+			listed[state.ManaIndex(w[0])] = true
 		default:
-			return false
+			return listed, false
 		}
 	}
-	return chosen
+	return listed, chosen
 }
 
 // addPotentialIdentityColours adds a commander-identity ability's exact
