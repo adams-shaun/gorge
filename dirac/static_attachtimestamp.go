@@ -14,9 +14,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // attachTo attaches the permanent at sl to host, restamping its layer
 // timestamp when that is a move (gorge: AttachedTo changes), then applies
-// any lose-all onset its static brings.
+// any lose-all onset its static brings. A move between two OBJECT bearers
+// publishes the re-attach detach first (gorge rules/emit.go: the Mode$
+// Unattached family's re-equip arm), RefTriggerObj the former bearer.
 func (s *State) attachTo(k *prep, sl, host Slot) {
-	if old := s.attachQuiet(k, sl, host); old != host && k.gen != nil && k.gen.anyAegis {
+	old := s.attachQuiet(k, sl, host)
+	if old != NoSlot && old != host && k.gen != nil && k.gen.anyUnattach {
+		s.fireUnattached(k, sl, old) // trig_unattached.go
+	}
+	if old != host && k.gen != nil && k.gen.anyAegis {
 		s.aegisMoved(k, sl, old, host) // zone_exilethenattach.go
 	}
 }
@@ -71,7 +77,10 @@ func (s *State) attachPlayer(k *prep, sl Slot, seat uint8) {
 
 // attachQuietPlayer is attachPlayer without refreshTy; it restamps the
 // layer timestamp when the host moved (CR 613.7e: attached to a different
-// object OR player, gorge restampLayer).
+// object OR player, gorge restampLayer). It fires no Mode$ Unattached
+// trigger: gorge's player arm (foldAttach) emits one Attach and no
+// Unattached, so an object-attached Aura becoming a curse publishes no
+// detach (trig_unattached.go).
 func (s *State) attachQuietPlayer(k *prep, sl Slot, seat uint8) {
 	p := &s.perms[sl]
 	moved := p.attached != NoSlot || s.atchSeat(k, sl) != seat+1

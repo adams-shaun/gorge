@@ -71,6 +71,10 @@ type l6walk struct {
 	order   [maxL6]uint8
 	applied uint32 // bit per e index: the effect applied
 	full    bool
+	// cant: the CantHaveKeyword$ prohibitions applying (Override.CantHaveKw
+	// of a matched Continuous static), dropped after the walk (gorge
+	// chars.derive's final filter, CR 613.1f)
+	cant kop.KwMask
 }
 
 // l6add merges e into timestamp order (a removal before an addition on
@@ -160,7 +164,7 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			continue
 		}
 		if e.a == nil {
-			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: e.ts, kind: l6Rec, reps: e.reps})
+			w.l6add(l6e{add: o.AddKw, rem: o.RemoveKw, lose: o.LoseAbilities, ts: lossTs(o, e.ts), kind: l6Rec, reps: e.reps})
 		} else if s.lfxLocked(k, sl, e, &c) {
 			ts := e.ts
 			if o.SetLandSub {
@@ -252,7 +256,7 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 	if !lost && s.nkwx != 0 {
 		kw |= s.supKw(sl) // grants an ended loss had suppressed
 	}
-	return kw, lts, lost
+	return kw &^ w.cant, lts, lost
 }
 
 // l6static adds a Continuous static's layer-6 effect on sl to w.
@@ -262,8 +266,10 @@ func (s *State) l6static(k *prep, sl Slot, w *l6walk, st statSrc, ts uint16) {
 		return
 	}
 	e := l6e{add: a.Static.Kw, ts: ts, kind: l6Stat, reps: 1}
+	var cant kop.KwMask
 	if a.Static.Override > 0 {
-		e.rem = k.t.Overrides[a.Static.Override-1].RemoveKw
+		o := &k.t.Overrides[a.Static.Override-1]
+		e.rem, cant = o.RemoveKw, o.CantHaveKw // kgen: cant only on an ungated filter
 	}
 	if filterReadsKw(k.t, a.Static.Filter) {
 		e.gated = true
@@ -275,6 +281,7 @@ func (s *State) l6static(k *prep, sl Slot, w *l6walk, st statSrc, ts uint16) {
 	} else if !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
 		return
 	}
+	w.cant |= cant
 	w.l6add(e)
 }
 
@@ -405,7 +412,7 @@ func (s *State) walkName(k *prep, sl Slot) (CardID, bool) {
 func (s *State) grantedKw6(k *prep, sl Slot, add func(kop.KwMask)) {
 	var w l6walk
 	s.l6Walk(k, sl, &w)
-	var gone kop.KwMask // removed after the effect at i
+	gone := w.cant // removed after the effect at i (a prohibition: after every one)
 	var keep [maxL6]kop.KwMask
 	for i := w.n - 1; i >= 0; i-- {
 		j := w.order[i]

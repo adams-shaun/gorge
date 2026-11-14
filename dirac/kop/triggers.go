@@ -94,6 +94,14 @@ const (
 	// the tapping player is not the turn's active player (gorge
 	// effects.MatchesPlayerSpec over TapActor). Bit 5.
 	Tf5TapperNonActive TrigFlags5 = 1 << 5
+	// Tf5OptSrcCtrl: with TfOptional, a DamageDone line whose "may"
+	// belongs to the controller of the damage source (OptionalDecider$
+	// TriggeredSourceController): the CR 603.5 resolution ask goes to that
+	// seat, the controller of the entry's trigger object (the damage
+	// source, read live; the owner once it left), not to the listener's
+	// controller (gorge deciderFromSpecTriggeredSourceController). Edric,
+	// Spymaster of Trest.
+	Tf5OptSrcCtrl TrigFlags5 = 1 << 6
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens
@@ -152,6 +160,7 @@ const (
 	TrigEvolved                     // this creature evolves (CR 702.100b; gorge Mode$ Evolved, ValidCard$ Card.Self, trigmatch evolvedMatches on the events.Evolved marker its evolve ability emits once the +1/+1 counter lands): no slot subscription, fired as the evolve trigger finishes resolving (kw_evolve.go)
 	TrigBecomeMonarch               // a player (Whose) becomes the monarch (CR 725.3; gorge Mode$ BecomeMonarch, trigmatch BecomeMonarchMatches on events.MonarchChange; N TrigNMonarchBeganTurn: BeginTurn$ You); no slot subscription: the battlefield is scanned (act_monarch.go)
 	TrigExploited                   // a creature matching Filter exploits a creature matching Filter2 (CR 702.110b; gorge Mode$ Exploited, trigmatch exploitedMatches on the events.Exploit marker effExploit emits per sacrificed object: Filter = the exploiter, Filter2 = the exploited creature, type predicates only); no slot subscription: fired by ExtExploit over the battlefield (kw_exploit.go)
+	TrigUnattached                  // this attachment becomes unattached from a permanent (CR 701.3b/d; gorge Mode$ Unattached, ValidAttachment$ Card.Self, ValidObject$ Permanent, the Captain's Hook family): no slot subscription, fired by the detach arms on the attachment's own abilities; RefTriggerObj is the FORMER BEARER (trig_unattached.go)
 	TrigEventCount                  // number of trigger events; append above
 )
 
@@ -207,14 +216,14 @@ type Trigger struct {
 	Whose  Whose    // for player events and TrigPhase
 	Step   Step     // TrigPhase
 	Flags  TrigFlags
-	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any)
+	From   Zone // TrigLeaves / TrigToGraveyard origin restriction (ZoneNone = any; ToGraveyard also reads the N mask)
 
 	// Appended by dirac/kgen.
 	Filter2 FilterID   // DamageDone: the damaged object/player must match; AttackersDeclared: the attackers
 	Flags2  TrigFlags2 // more qualifiers
 	Cond    CondID     // intervening-if (0 = none): checked when the event happens and on resolution
 	Zone    Zone       // the zone the source must be in (ZoneNone = battlefield)
-	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any
+	N       int16      // AttackersDeclared: minimum attackers; CounterAddedOnce: the counter kind (TrigNAnyCounter = every kind); BecomesTarget: TrigNValiant; AbilityCast: TrigAbCast*; LandPlayed: origin mask 1<<kop.Zone, 0 = any; Leaves: destination mask 1<<kop.Zone, 0 = any; ToGraveyard: origin mask 1<<kop.Zone, 0 = any
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
 	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)
@@ -250,6 +259,7 @@ const (
 	TrigAbCastExhaust    int16 = 1 // Activated.Exhaust
 	TrigAbCastLoyalty    int16 = 2 // Activated.Loyalty
 	TrigAbCastLoyaltyOpp int16 = 3 // Activated.Loyalty+OppCtrl
+	TrigAbCastAny        int16 = 4 // ValidSA$ SpellAbility beside TargetsValid$ (Tf2TargetsFilter2 + Filter2): any activated ability whose chosen targets match, read once its targets are chosen (Ertha Jo, Frontier Mentor); the queued trigger carries the activated entry's stack identity in its trigAmt (ExtCopyAbility reads it)
 )
 
 // TokenRider flags (OpCreateToken's B.N).
@@ -270,6 +280,7 @@ const (
 	DmgNoRegen                         // a creature dealt damage above 0 can't be regenerated this turn (Incinerate's follow-up: the arena's mechNoRegen mark, cleared at the turn's cleanup and when the slot takes a new permanent)
 	DmgDivideEvenly                    // OpDealDamageDivided only: no division is chosen; A is divided by the slot's legal targets at resolution, rounded down, each taking the quotient (Fireball's DivideEvenly$ RoundedDown; gorge divideEvenlyDown)
 	DmgNoRegenTarget                   // OpDealDamageEx: the target object can't be regenerated this turn once the damage step ran, whether or not damage above 0 was dealt (Rage of Purphoros' ParentTarget follow-up; same arena mark as DmgNoRegen)
+	DmgNoPrevention                    // OpDealDamageEx: the damage can't be prevented (CR 615.12; DealDamage NoPrevention$ True, gorge's dmgNoPrevention read by cantPreventDamage; Arrow Storm's raid half)
 )
 
 // TrigFlags2 (Trigger.Flags2).

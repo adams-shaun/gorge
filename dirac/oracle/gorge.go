@@ -516,7 +516,34 @@ func (g *GorgeSide) windowOwed(d *decision.Decision) decision.ManaAmount {
 			owed[c] = uint32(n)
 		}
 	}
+	if owed == (decision.ManaAmount{}) && fixedColourChoice(d) {
+		// No hybrid pip was announced (payPips is empty): a plan that fell
+		// back to the manual window leaves the cast's own coloured pips owed,
+		// which a dual land's fixed-choice colour ask (Produced$ Combo W U)
+		// takes before the lowest colour. An any-colour ask keeps the
+		// kernel's lowest-colour tap.
+		if o, ok := rules.PendingCastOwed(g.E); ok && o.Generic == 0 {
+			// with generic still owed the kernel's tap pays it with the
+			// lowest colour
+			return o.Mana
+		}
+	}
 	return owed
+}
+
+// fixedColourChoice reports whether colour ask d offers a fixed subset of the
+// colours (a dual land's Produced$ Combo W U), not all five (an any-colour
+// ability, which the kernel taps for its lowest colour).
+func fixedColourChoice(d *decision.Decision) bool {
+	var seen [5]bool
+	n := 0
+	for _, o := range d.Options {
+		if c := strings.Index("WUBRG", o.ManaSymbol); o.Kind == "mana" && len(o.ManaSymbol) == 1 && c >= 0 && !seen[c] {
+			seen[c] = true
+			n++
+		}
+	}
+	return n > 0 && n < 5
 }
 
 // hasManaOption reports whether d poses a colour ask (its options name mana
@@ -1378,9 +1405,12 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 // requiredCovered reports whether every creature an attackers decision
 // marks Required (CR 508.1d) that can still be declared is in the answer so
 // far: gorge's validateAttackers refuses a declaration that omits one.
+// A zero decision.RequiredQuota binds no creature: a lone required attacker
+// that can't attack alone and has no partner obeys its requirement by not
+// attacking (CR 508.1d, CR 506.5), the one rule gorge's validator reads.
 func requiredCovered(fr *frame, chosen []int) bool {
 	d := fr.d
-	if d.Kind != decision.KAttackers {
+	if d.Kind != decision.KAttackers || d.RequiredQuota() == 0 {
 		return true
 	}
 	for i := range d.Options {
@@ -1413,6 +1443,12 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 	}
 	for _, c := range chosen {
 		if c == o.Index && !d.Repeatable {
+			return false
+		}
+		if d.ResumeKind == "changetext" && optByIndex(d, c).Kind == o.Kind {
+			// one "from" and one "to" word: gorge's answer binds each list
+			// from its own picks and defaults the other half if a list is
+			// picked twice, a malformed answer the kernel's two picks never ask
 			return false
 		}
 		if o.Group == "" && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers) && optByIndex(d, c).Obj == o.Obj {
@@ -1795,6 +1831,9 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 	e := g.E
 	d := e.Pending()
 	x := payexec.StartPlay(d.Player, pe.play, pe.plan, payexec.PoolOf(e, d.Player))
+	// a wheel whose labels tie (Itlimoc's two "Add G") is settled on a
+	// clone: the option that makes the witness's mana
+	x.Prove = payexec.Prover(e)
 	for x.Status() == payexec.InProgress {
 		if e.G.Over {
 			// The activations that fund the play can win the game before it

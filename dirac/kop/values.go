@@ -210,6 +210,8 @@ const (
 	CondAnd                 // both Sub[0] and Sub[1] hold
 	CondEchoOwed            // the source came under its controller's control since the beginning of their most recent upkeep (echo's intervening if, CR 702.30a)
 	CondSourceZone          // the source object is in Zone (gorge's source-identity IsPresent$ PresentZone$, re-checked at resolution)
+	CondBlessing            // the controller has the city's blessing (CR 702.131; dirac/kw_ascend.go)
+	CondRemMark             // the source's persistent remembered list is non-empty: the host half of a ConditionDefined$ Remembered group gate (gorge rememberedWithSource's persistent union; Forge's areMet reads host.getRemembered(), which a kernel resolution's own set does not model)
 	CondCount_
 )
 
@@ -378,8 +380,16 @@ const ExDiscardedThisTurn ExprKind = 241
 // lowered only in the header (CheckSVar$) of a self-ETB trigger. As the
 // object enters it reads the resolving spell's spend (stackEntry.spc); once
 // queued the colour's count is bound into the pending trigger's x, which the
-// resolution recheck reads (kernel kw_evoke.go).
+// resolution recheck reads (kernel kw_evoke.go). AdamantLiveRead in N
+// marks a body gate's read instead (ConditionManaSpent$/ConditionManaNotSpent$).
 const ExAdamant ExprKind = 244
+
+// AdamantLiveRead (bit 5 of an ExAdamant's N) marks a read of the source's
+// spend LIVE at resolution, gorge effects conditionManaSpentMet (a body
+// ConditionManaSpent$/ConditionManaNotSpent$ gate): the bound count while the
+// source is still the same object on the battlefield, else 0 (leaving wiped
+// its spend, CR 400.7), never Adamant's departure snapshot.
+const AdamantLiveRead = 1 << 5
 
 // ExExiledWithN: the cards exiled with the reading source, counted over every
 // seat's exile zone (gorge exiledWithSet; Count$ExiledWith$Amount).
@@ -485,7 +495,9 @@ const ExAttackedTurn ExprKind = 235
 // by a legendary creature (gorge PlayerCountRegisteredOpponents$
 // HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1), N 2 the
 // opponent dealt combat damage this turn by any source (the bare head
-// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver).
+// HasPropertywasDealtCombatDamageThisTurn, Tymna the Weaver), N 3 the living
+// opponents dealt any damage this turn, combat or not (gorge
+// PlayerCountOpponents$HasPropertywasDealtDamageThisTurn, Gnoll War Band).
 const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1
@@ -603,8 +615,10 @@ const ExNotOwnLibMV ExprKind = 226
 // ExEnergyOf: the energy counters (CR 122.1) of player Ref, read by
 // Count$YourCountersEnergy (the "pay one or more {E}" ChooseNumber bounds of
 // Aether Refinery, Localized Destruction, Pia Nalaar, Rampaging Aetherhood,
-// Territorial Aetherkite and Vault 112). Explicit ordinal in the free
-// low range; the iota tail stays untouched.
+// Territorial Aetherkite and Vault 112). N names the player counter kind:
+// PlCtrEnergy (0), or PlCtrExperience for Count$YourCountersExperience
+// (Otharri, Suns' Glory; Ezuri, Claw of Progress). Explicit ordinal in the
+// free low range; the iota tail stays untouched.
 const ExEnergyOf ExprKind = 63
 
 // ExDmgAmountReceived: the positive damage the source object received this

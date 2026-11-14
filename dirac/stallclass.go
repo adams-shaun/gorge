@@ -84,6 +84,9 @@ var stallCapacityReasons = [...]uint8{
 	StallDmgAmt,       // a fifth reader-card object damaged in one turn (genState.dmgAmt; value_dmgamount.go)
 	StallDmgMark,      // a second mark of one controller on one player while the first is live (genState.dmk; repl_dmgmark.go)
 	StallChooseNumber, // a mid-resolution ChooseNumber's present Max$ resolves above the chosen byte's 254 (repl_choosenumber.go)
+	StallDmgBatch,     // a ninth DamageDealtOnce line of one DamageAll sweep's batch latched (armRes.dmgB; trig_dmgbatch.go)
+	StallRedirCap,     // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
+	StallRedirOrder,   // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -108,7 +111,10 @@ var stallUnmodelledReasons = [...]uint8{
 	StallAtkTax,
 	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
 	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
+	StallTextChange,        // a ChangeText whose from word the target's face reads: gorge rewrites the face, the kernel holds no text (act_changetext.go)
 	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
+	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
+	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
@@ -140,6 +146,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallBlkTax // combat_blocktax.go prepBlkTax
 	case g.chPlOrder:
 		return StallChoosePlayerOrder // repl_chooseplayer.go prepChoosePlayer
+	case g.tokListAdd:
+		return StallTokRewrite // repl_toklistadd.go prepTokListAdd
 	}
 	return StallNone
 }
@@ -237,6 +245,8 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		text, a, b = blkTaxStallPair(t, g) // combat_blocktax.go
 	case StallChoosePlayerOrder:
 		text, a, b = choosePlayerStallPair() // repl_chooseplayer.go
+	case StallTokRewrite:
+		text, a, b = tokListAdderPair() // repl_toklistadd.go
 	case StallDiamondMix:
 		text = "a Lion's Eye Diamond beside another mana census-gap kind (a filter, a restricted or any-colour restricted source, a counter-cost or tap-another source, a deferred source, a granted mana ability, an each-colour source): gorge's one prefix search activates both and the kernel models the Diamond alone"
 		a = abilityOn(kop.DiscardHandManaAb)

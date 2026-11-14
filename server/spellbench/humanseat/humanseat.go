@@ -160,6 +160,11 @@ type Seat struct {
 	parked   *parkedAsk // the decision parked last, until something answers it
 	mc       *bots.MatchContext
 	g        game.Game
+	// origin is the board the first tracker was made from, and originAt
+	// the count of log events already in it: a host undo rebuilds the
+	// tracker from them, so the rewound game keeps the ids the client knows.
+	origin   *state.Game
+	originAt int
 	env      *mapping.Env
 	gameID   string
 	gen      uint64 // the driver generation; a new park supersedes the last
@@ -251,7 +256,24 @@ func (s *Seat) AttachMatch(mc *bots.MatchContext) error {
 // seat lock held.
 func (s *Seat) attachEnv() {
 	gc := gamecfg.Over(s.g, secrets.NewGame(s.mc.Secret))
-	tracker := identity.New(s.g, gc.Secret)
+	var tracker *identity.Tracker
+	if s.origin != nil {
+		// A host undo: replay the rewound log from the first tracker's board, so
+		// every object keeps the key, and the client the id, it had at this point
+		// before the undo. A card the undo returns to hand is the card the client
+		// last saw there.
+		t, err := identity.Resume(s.origin, s.originAt, s.g, gc.Secret)
+		if err != nil {
+			s.logf("v2 human seat: rebuilding ids after an undo: %v", err)
+		}
+		tracker = t
+	}
+	if tracker == nil {
+		tracker = identity.New(s.g, gc.Secret)
+	}
+	if s.origin == nil {
+		s.origin, s.originAt = s.g.Board().Clone(), len(s.g.Log().Events)
+	}
 	s.env = &mapping.Env{
 		AutoPay: true,
 		G:       gc,

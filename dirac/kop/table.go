@@ -352,6 +352,10 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// Ascend is printed Ascend (CR 702.131): its controller gets the city's
+	// blessing once they control ten or more permanents, and an instant or
+	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
+	Ascend bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a
@@ -471,6 +475,11 @@ type CardDef struct {
 	// reduction, evaluated for the permanent's controller and subtracted
 	// from MorphCost's generic, floored at zero (dirac/face_morphreduce.go).
 	MorphReduce ValueRef
+	// MorphLife (0 = none) is the life a keyword turn-up whose cost is
+	// PayLife<N> pays (CR 702.37e, 119.4; Zombie Cutthroat): MorphCost is
+	// then {0}, and the action is offered only while the controller's life
+	// covers N (dirac/face_morphlife.go).
+	MorphLife uint8
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so
@@ -699,6 +708,13 @@ type CardDef struct {
 	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
 	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
 	Identity ColorMask
+	// TextWords is the colour words (bits 0..4, WUBRG) and basic land type
+	// words (bits 5..9, Plains Island Swamp Mountain Forest) the face's text
+	// reads anywhere gorge's CR 612 rewrite would change them (the type line,
+	// keywords, Oracle text, SVars and every ability, trigger, static and
+	// replacement parameter; dirac/kgen textreach.go). Set only in a table
+	// that holds an ExtChangeText, so every other table is unchanged.
+	TextWords uint16
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.
@@ -748,6 +764,14 @@ const (
 	// countered or fizzled, it goes to the graveyard; off the stack it is
 	// its front (dirac/face_omen.go).
 	FaceOmen
+	// FacePrototype is a card printed with K:Prototype (CR 702.160, 718.3):
+	// face 1 is the same card with its prototype characteristics (the inset
+	// mana cost, the colours of that cost and the inset power and
+	// toughness), its other characteristics and abilities unchanged. It is
+	// cast from the hand as a face cast (gorge's "prototype") and is the
+	// object's card on the stack and on the battlefield only; every other
+	// zone shows the front (dirac/face_castface.go).
+	FacePrototype
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

@@ -271,7 +271,13 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 	}
 	if f&(kop.F2ChosenType|kop.F2ChosenColor|kop.F2SameNameAsSource) != 0 {
 		ch, ok := s.chosenTypeSub(src)
-		if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
+		if f&kop.F2ChosenType != 0 && ok && src == NoSlot && s.res.bad&resChosenCard != 0 {
+			// the resolution chose a card type (Turnabout): the
+			// permanent's own card types, not a creature type
+			if !s.chosenCardTypeHas(s.typesAt(k, sl)) {
+				return false
+			}
+		} else if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {
@@ -320,7 +326,14 @@ func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 		if f&kop.F2AttachedToT0 != 0 {
 			t := e.tgt[0]
 			ob := &s.objs[o]
-			if isPlayerOrNone(t) || ob.zone != kop.ZoneBattlefield || s.objs[t].zone != kop.ZoneBattlefield || s.perms[ob.slot].attached != s.objs[t].slot {
+			if isPlayerOrNone(t) || ob.zone != kop.ZoneBattlefield {
+				return false
+			}
+			if s.objs[t].zone != kop.ZoneBattlefield {
+				if !s.attachedToDeparted(ob.slot, Obj(t)) { // the target left earlier in the chain (Fumble)
+					return false
+				}
+			} else if s.perms[ob.slot].attached != s.objs[t].slot {
 				return false
 			}
 		}
@@ -367,6 +380,8 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	for i := 0; i < int(a.NTargets); i++ {
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
+	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
+	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
 	if !bound {
 		return true
 	}
@@ -624,6 +639,14 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.Flags&kop.FToken != 0 && (o == NoObj || s.objs[o].of&ofToken == 0) || fl.Flags&kop.FNontoken != 0 && o != NoObj && s.objs[o].of&ofToken != 0 {
 		return false
 	}
+	if fl.Flags&kop.FAttachedBySrc != 0 {
+		// the bearer read is a perm matcher's (matchPermOne): a card is
+		// never a live bearer-host. A damage trigger's ValidSource$
+		// EnchantedBy reaches here only for a non-permanent source (the
+		// dead host's LKI or a spell), and the attachment lived on the
+		// aura, cleared when the host left: it fails closed.
+		return false
+	}
 	if fl.Flags&kop.FExiledWith != 0 && !s.exwFlag(o, ctx) {
 		return false // zone_exiledwithstatic.go
 	}
@@ -696,6 +719,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	switch fl.Pred {
 	case kop.PredNone:
 	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
+		s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 		pw, t := int(pc.power), int(pc.tough)
 		if fd {
 			pw, t = 2, 2
@@ -715,6 +739,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return t <= n
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
 		mv := s.cardMV(k, c, o, fd)
+		if ctx != nil {
+			mv += ctx.xmv
+		}
 		switch fl.Pred {
 		case kop.PredCMCLE:
 			return mv <= n
@@ -789,6 +816,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredSameNameT0 {
 			return s.sameNameT0Card(c, o, fd) // filter_samename.go
+		}
+		if fl.Pred == kop.PredPowerGTBase {
+			s.offZonePTRead(k, c, owner, o) // static_offzonept.go: the boost lifts power over base
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}

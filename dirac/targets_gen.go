@@ -25,8 +25,9 @@ type multiTgt struct {
 // multiSlot reports whether spec t needs the multi-object path.
 func multiSlot(t *kop.TargetSpec) bool {
 	// TgfDecl only marks a copy declaration; TgfTrigChooser only moves the
-	// ask's player (cast.go), a single-object slot's qualifier
-	return t.Min|t.Max != 0 || t.Divide != 0 || t.TFlags&^(kop.TgfDecl|kop.TgfTrigChooser) != 0
+	// ask's player (cast.go), a single-object slot's qualifier; the player
+	// comparison flags only narrow a TgtPlayer slot's candidates (targetOK)
+	return t.Min|t.Max != 0 || t.Divide != 0 || t.TFlags&^(kop.TgfDecl|kop.TgfTrigChooser|kop.TgfPlayerCompareOK) != 0
 }
 
 const (
@@ -115,7 +116,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			// single one (cast_pricing.go affordableTargetCandidates)
 			all := n
 			n = s.affordableTargets(k, &buf, n)
-			if n < all && n < int(mt.min) && mt.picked == 0 && k.gen.anyRaiseLife {
+			if n < all && n < int(mt.min) && mt.picked == 0 && (k.gen.anyRaiseLife || k.gen.anyRaise) {
 				// the candidates the cast can pay for fall short of the slot's
 				// minimum: gorge's ask aborts the cast ("cast aborted: no legal
 				// target"; a life raise on a target, cost_raiselife.go)

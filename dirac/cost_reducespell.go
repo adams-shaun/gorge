@@ -86,8 +86,11 @@ func (s *State) offerOptCostOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 // raiseTargetOK: a RaiseCost static with a ValidTarget$ (Dragon's Prey)
 // applies to the spell under construction once a chosen target matches f
 // (gorge costTargetsMatch: any chosen target; a nil slice, the offer, never
-// matches). The kernel's offer prices no build, so it never applies.
-func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
+// matches). The kernel's offer prices no build, so it never applies. f reads
+// from the static's side: ctrl is its controller and src its source slot
+// (gorge staticSpecCtxNamed), so an opponent's Kasmina, Enigmatic Mentor taxes
+// a spell that targets a creature she controls, not one the caster does.
+func (s *State) raiseTargetOK(k *prep, f kop.FilterID, ctrl uint8, c CardID, src Slot) bool {
 	if DebugReduceSpellFlip || s.ctl != ctlBuild {
 		return false
 	}
@@ -96,7 +99,7 @@ func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 		return false
 	}
 	for i := 0; i < int(e.nt); i++ {
-		if s.costTargetMatch(k, f, p, e.tgt[i]) {
+		if s.costTargetMatchSrc(k, f, ctrl, e.tgt[i], src) {
 			return true
 		}
 	}
@@ -132,7 +135,9 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			break
 		}
 	}
-	if !has {
+	// A battlefield one (an opponent's Kasmina, Enigmatic Mentor taxing a
+	// spell that targets her side) prices it per candidate the same way.
+	if !has && !s.boardManaTgtDep(k, e.ctrl, e.card, e.obj) {
 		return n
 	}
 	var av avail
@@ -153,7 +158,11 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			cost = addCost(cost, cd.Kicker)
 		}
 		cost = cost.AtX(int(e.x))
-		if av.affords(&cost, pipMaskOf(&cost), 0) {
+		ok := av.affords(&cost, pipMaskOf(&cost), 0)
+		if s.bld().bfl&bflAnyColor != 0 {
+			ok = av.affordsAnyColor(&cost, 0) // the may-play any-colour rider prices each target too (CR 609.4b)
+		}
+		if ok {
 			buf[m] = buf[i]
 			m++
 		}

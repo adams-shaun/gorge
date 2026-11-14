@@ -218,6 +218,7 @@ func run() int {
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		focusPath  = flag.String("focus", "", "-synth: deal a focus pool instead: every deck holds -focus-per-deck cards of this list (one card a line, enablers after a tab, ';'-separated) beside the enablers they name; the run is named after the file (fx-dsk.txt: fx-dsk)")
 		focusPer   = flag.Int("focus-per-deck", oracle.FocusPerDeck, "-focus: focus cards per deck")
+		onlyPath   = flag.String("only", "", "-synth: play the supported cards and, of the unverified ones, only those this file names (one a line): a targeted evidence run deals the cards it owes evidence among cards that have it")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 		cpuProf    = flag.String("cpuprofile", "", "write a CPU profile here")
@@ -298,8 +299,8 @@ func run() int {
 			return 2
 		}
 		*kernel = "fdn"
-	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] {
-		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach and -focus need -synth")
+	} else if explicit["synth-decks"] || explicit["reach"] || explicit["focus"] || explicit["focus-per-deck"] || explicit["only"] {
+		fmt.Fprintln(os.Stderr, "kfuzz: -synth-decks, -reach, -focus and -only need -synth")
 		return 2
 	}
 	*kernel, *setName, *decksDir, err = resolveKernel(*kernel, *setName, *decksDir, explicit)
@@ -383,7 +384,14 @@ func run() int {
 		// As -evidence: unverified cards play and decks are dealt without the refused
 		// ones, unless -play-refused asks for the games a settling run needs.
 		if set, err = cardset.SynthByName(*synth); err == nil && !*refusedIn {
-			set = cardset.AllowUnverified(set)
+			if *onlyPath != "" {
+				var names map[string]bool
+				if names, err = readNames(*onlyPath); err == nil {
+					set = cardset.AllowNamed(set, names)
+				}
+			} else {
+				set = cardset.AllowUnverified(set)
+			}
 		}
 	case *refusedIn:
 		set, err = cardset.RawByName(*setName)
@@ -499,9 +507,9 @@ func run() int {
 			// no -pool/pool.tsv.
 			return runRepro(c, *reproPath, *lead, rc, func(rep *oracle.Repro, rrc oracle.RunConfig) (oracle.SideFactory, error) {
 				// one table over every seat's deck: at two seats, set.Matchup's
-				es := [][]cardset.Entry{reproEntries(rep.Cards[0]), reproEntries(rep.Cards[1])}
+				es := [][]cardset.Entry{oracle.ReproEntries(c.Reg, set, rep.Cards[0]), oracle.ReproEntries(c.Reg, set, rep.Cards[1])}
 				for _, d := range rep.MoreCards {
-					es = append(es, reproEntries(d))
+					es = append(es, oracle.ReproEntries(c.Reg, set, d))
 				}
 				tbl, _, err := set.MatchupN(es)
 				if err != nil {
@@ -824,16 +832,6 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 	}
 }
 
-// reproEntries turns a Repro deck (card names, one per copy) into the deck
-// lines set.Matchup takes, so an fdn repro needs no deck files.
-func reproEntries(cards []string) []cardset.Entry {
-	es := make([]cardset.Entry, len(cards))
-	for i, n := range cards {
-		es[i] = cardset.Entry{Name: n, Count: 1}
-	}
-	return es
-}
-
 // coveragePath is -coverage and evidencePath -evidence: with both "" no coverage
 // is collected.
 var coveragePath, evidencePath string
@@ -856,6 +854,21 @@ func printBadGame(c *oracle.Corpus, p oracle.Pairing, outcome, class string, imp
 		return
 	}
 	fmt.Printf("bad-game\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", p.Index, p.Seed, outcome, class, strings.Join(implicated, "|"), strings.Join(recent, "|"), strings.Join(m.Table, "|"))
+}
+
+// readNames reads a name list, one a line, blank lines and "#" comments skipped.
+func readNames(path string) (map[string]bool, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	names := map[string]bool{}
+	for _, l := range strings.Split(string(b), "\n") {
+		if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "#") {
+			names[l] = true
+		}
+	}
+	return names, nil
 }
 
 // writeEvidence writes the names cov's games evidence to path, one a line, and
@@ -1026,9 +1039,6 @@ func vanillaSweep(first, games, n, seats int, seed uint64, timeout time.Duration
 	fmt.Printf("vanilla: %d games, %d without divergence (lead %s); first divergences: %s\n", played, clean, lead, sortedCounts(classes))
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
-		if feat.ObjOverflow > 0 {
-			fmt.Printf("features: %d decisions not compared: an object past the encoders' byte (declared dirac_mp limit)\n", feat.ObjOverflow)
-		}
 	}
 	for _, gap := range oracle.RealKernelGaps {
 		fmt.Println("adapter gap:", gap)
@@ -1618,9 +1628,6 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	}
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
-		if feat.ObjOverflow > 0 {
-			fmt.Printf("features: %d decisions not compared: an object past the encoders' byte (declared dirac_mp limit)\n", feat.ObjOverflow)
-		}
 	}
 	if coveragePath != "" {
 		if err := writeCoverage(coveragePath, cov); err != nil {

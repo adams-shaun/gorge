@@ -1,15 +1,19 @@
 package dirac
 
-import (
-	"unsafe"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // maxEmbCold is how many emblems past the first maxEmb each player keeps in
 // the cold buffer, for a table whose emblems can be made again and again
 // (genPrep.anyEmbCold): a planeswalker's loyalty ability makes one a turn.
 const maxEmbCold = 4
+
+// coldEmb is every player's records past maxEmb, for a table that needs them.
+var coldEmb = newCold[embRec]("emb", func(g *genPrep) int {
+	if g.anyEmbCold {
+		return MaxSeats * maxEmbCold
+	}
+	return 0
+})
 
 // maxEmbTotal is the most emblems one player can hold.
 const maxEmbTotal = maxEmb + maxEmbCold
@@ -48,23 +52,12 @@ func tableEmblemRepeats(t *kop.Table) bool {
 
 // embCap is how many emblems one player can hold in s.
 func (s *State) embCap() int {
-	if l := s.cold.layout; l != nil {
-		return maxEmb + l.emb/MaxSeats
-	}
-	return maxEmb
+	return maxEmb + coldEmb.count(s.cold.layout)/MaxSeats
 }
 
 // embCold is the cold records: player p's are [p*maxEmbCold:], in creation
-// order after the first maxEmb. They follow the may-play records in the
-// buffer.
-func (s *State) embCold() []embRec {
-	n := s.cold.layout.emb
-	if n == 0 {
-		return nil
-	}
-	at := (s.cold.layout.may*int(unsafe.Sizeof(mayPlay{})) + int(unsafe.Alignof(embRec{})) - 1) &^ (int(unsafe.Alignof(embRec{})) - 1)
-	return unsafe.Slice((*embRec)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.cold.buf)), at)), n)
-}
+// order after the first maxEmb.
+func (s *State) embCold() []embRec { return coldEmb.of(s) }
 
 // embRecAt is player p's emblem i past maxEmb.
 func (s *State) embRecAt(p uint8, i int) *embRec {

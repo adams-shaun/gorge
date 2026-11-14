@@ -1,9 +1,12 @@
 package kgen
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // the two `Affected$ You` player statics beyond
@@ -82,4 +85,16 @@ func (lc *lowerCtx) playerStatic(sp *params, st *lStatic) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// banOppFlag reads the one flag a CantGainLife / CantDraw static carries:
+// "BanOpp" (ValidPlayer$ Opponent) sets kop.StBanOpp.
+func banOppFlag(flags []string, st *kop.Static) error {
+	for _, fl := range flags {
+		if fl != "BanOpp" {
+			return fmt.Errorf("CantGainLife/CantDraw flag %q", fl)
+		}
+		st.StFlags |= kop.StBanOpp
+	}
+	return nil
 }

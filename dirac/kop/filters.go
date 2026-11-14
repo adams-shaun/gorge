@@ -162,6 +162,11 @@ const (
 	// DB$ Mana: the clause admits every activated-ability payment and nothing
 	// else (gorge restrictValidTermMatches); never a CR 116.2 special action.
 	SpmActivated
+	// SpmNonSpell marks a resolving DB$ Mana's CantCastNonArtifactSpells: the
+	// batch's other clauses are the artifact spells it may pay, and this one
+	// adds every payment that is not a spell (gorge restrictValidTermMatches);
+	// never a CR 116.2 special action.
+	SpmNonSpell
 )
 
 // SpmTurnFaceUp is Forge's isTurnFaceUp: every turn-up procedure.
@@ -219,7 +224,7 @@ const (
 	PredCMCEQ            Pred = PredWithPowerLEX + 1 + iota // mana value == PredN
 	PredCMCLEV                                              // mana value <= the value PredV (== when PredN is 1)
 	PredCountersGE                                          // at least PredN>>8 counters of kind PredN&0xff
-	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV; PredN 2: a card in a graveyard whose printed power <= PredV (dirac/filter_ptvalue.go); PredN 3: a battlefield permanent's power == PredV (Amalia's powerEQ20)
+	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV; PredN 2: power <= PredV, a battlefield permanent's current power (Legacy's Allure's powerLEX) or a card off it by its printed or last known power (Ruthless Technomancer's graveyard powerLEX; dirac/filter_ptvalue.go); PredN 3: a battlefield permanent's power == PredV (Amalia's powerEQ20)
 	PredToughnessGE                                         // toughness >= PredN
 	PredHasXCost                                            // the printed mana cost contains {X}
 	PredPowerLTToughness                                    // power < toughness
@@ -281,6 +286,24 @@ const OvChosenColor = 1
 // just before it and applies as the card enters, ahead of the enters triggers
 // (assimilate, CR 613-layer characteristics seen as it enters).
 const OvEnterWith = 2
+
+// OvChosenType, in an OpOverride's B field: the chosen basic land type
+// animation (Navigator's Compass: "target land you control becomes the basic
+// land type of your choice in addition to its other types"). C names the
+// FIRST of five consecutive Overrides records differing only in AddSub, one
+// basic land type each in gorge's option order (Forest, Island, Mountain,
+// Plains, Swamp: effects type_choices.go chooseBasicLandTypes). At resolution
+// the kernel applies the record whose AddSub holds the type the controller
+// chose earlier in the same resolution (OpChooseType with B =
+// ChooseTypeBasicLand, res.chosen); gorge combatfx.go animateGrant reads the
+// source's ChosenType AT RESOLUTION.
+const OvChosenType = 3
+
+// ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
+// offers the five basic land types (gorge effChooseType Type$ Basic Land,
+// CR 205.3i) rather than the creature-type vocabulary. The answer is the
+// chosen type's matchup subtype index.
+const ChooseTypeBasicLand = 2
 
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
@@ -608,6 +631,13 @@ const PredTrigPlayerCtrl Pred = 239
 // else, off the battlefield too (gorge IsSuspected / !IsSuspected:
 // Object.Suspected, false off the battlefield).
 const PredSuspected Pred = 254
+
+// PredRenowned: PredN 1, a renowned battlefield permanent; PredN 0, anything
+// else, off the battlefield too (gorge IsRenowned / !IsRenowned:
+// Object.Renowned, which the move off the battlefield clears; CR 702.112b).
+// The designation is the arena's mechRenowned, set by OpExt ExtRenown
+// (dirac/act_renown.go). Explicit ordinal: the free one below PredEscaped.
+const PredRenowned Pred = 236
 
 // PredEscaped: PredN 1, a battlefield permanent whose spell was cast for its
 // escape cost; PredN 0, anything else, off the battlefield too (gorge

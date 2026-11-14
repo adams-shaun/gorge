@@ -51,7 +51,10 @@ type DigUntilParams struct {
 	// RememberRevealed$ True; NoMoveFound$, Shuffle$, ImprintFound$ and
 	// ImprintRevealed$ True (any other non-False value is withheld);
 	// ShuffleNoneFound is ShuffleCondition$ NoneFound.
-	OptionalMove      bool
+	OptionalMove bool
+	// Optional is Optional$ True: each scanned player is asked yes/no before
+	// their reveal (Oath of Druids: "may reveal cards from the top").
+	Optional          bool
 	NoMoveRevealed    bool
 	RevealRandomOrder bool
 	Tapped            bool
@@ -194,6 +197,7 @@ var digUntilKnownKeys = [...]string{
 	"NoneFoundDestination",
 	"NoneFoundLibraryPosition",
 	"OpponentTurn",
+	"Optional",
 	"OptionalFoundMove",
 	"OptionalNoDestination",
 	"Planeswalker",
@@ -274,7 +278,7 @@ var digUntilKnownKeys = [...]string{
 	"UnlessResolveSubs",
 	"UnlessSwitched",
 	"Valid",
-	"ValidCard",
+	"ValidAfterStack", "ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
 	"ValidChoices",
@@ -339,6 +343,7 @@ func compileDigUntil(sa *cards.SA, dr *DefinedParams) *DigUntilParams {
 	}
 	p.RevPos = strings.TrimSpace(rawParamText(sa, "RevealedLibraryPosition").Text)
 	p.OptionalMove = isTrue(rawParamText(sa, "OptionalFoundMove").Text)
+	p.Optional = isTrue(sa.ParamStr(cards.PKOptional))
 	p.NoMoveRevealed = isTrue(rawParamText(sa, "NoMoveRevealed").Text)
 	p.RevealRandomOrder = isTrue(rawParamText(sa, "RevealRandomOrder").Text)
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))

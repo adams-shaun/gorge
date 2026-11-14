@@ -53,9 +53,9 @@ const (
 // The asks just above raGenManifestDread live in its free offsets (+4..+6),
 // not in the iota block above: the offset families that anchor at
 // raGenManifestDread (+1/+2 modal_activated.go, +3 zone_changezoneparams.go's
-// may-mill, +40.. act_mayask.go, ...) assign values by addition, so the next
-// iota value would alias one of them and its first handler would claim the
-// other family's election.
+// may-mill, +7 act_libplace.go, +8 repl_chooseplayer.go, +40.. act_mayask.go,
+// ...) assign values by addition, so the next iota value would alias one of
+// them and its first handler would claim the other family's election.
 const (
 	raGenDigAllOpt = raGenManifestDread + 4 // OpDigEx ChangeNum$ All beside Optional$: the yes/no take-all election (ChGenDigOpt)
 	raGenCmdZone   = raGenManifestDread + 5 // a commander's CR 903.9b move parked at a hand/library destination (zone_cmdzone.go)
@@ -132,6 +132,8 @@ const (
 	ChGenImprint                              // source = the hand card the imprint mox exiles (gorge's "imprint" KChoose, Min=Max=ChangeNum$, asked only with more candidates; mana_imprint.go)
 	ChEchoActionPick                          // source = a card/permanent chosen to pay an echo cost (gorge echoActionAsk's "echo_action_pick", Min=Max=N)
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
+	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
+	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -340,6 +342,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDiscard:
 		if in.C&kop.OptAsk != 0 { // Optional$ (act_optionalask.go)
 			return s.optDiscardGen(k, in, e)
+		}
+		if in.C&kop.OptDefined != 0 { // gorge effDiscard's Mode$ Defined arm
+			// the cards DefinedCards$ names that are still in the discarder's
+			// hand move, no ask, the amount never read
+			// (act_discarddefined.go)
+			if p := s.playerRef(k, in.Obj); p != 255 {
+				s.discardDefinedAll(k, p, in.F)
+			}
+			break
 		}
 		if in.F == 0 && in.C != kop.ChooseOpp {
 			return true, false
@@ -786,6 +797,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.ovChosenColor(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // static_animatechosen.go
 			break
 		}
+		if in.B.N == kop.OvChosenType {
+			s.ovChosenType(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N)) // act_choosebasicland.go
+			break
+		}
 		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
@@ -851,6 +866,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpClearRemembered:
 		s.g.nrem = 0
 		s.g.remCnt = 0
+		// gorge's effCleanup clears the source's persistent remembered list
+		// with the resolution's own (events.Choose "clear-remembered"); the
+		// persistent mark dies with it (interp_gen.go rememberMarkClr).
+		s.rememberMarkClr()
+		s.res.cpl &^= cplRemMask // the remembered players (act_chooseplayerres.go)
 	case kop.OpClearChosen:
 		s.g.nchosen = 0
 	case kop.OpDoubleCounters:
@@ -928,18 +948,19 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if o := s.g.replaced; in.C == 0 && !isBasicLandChoose(in) && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, 2)
-		} else if _, sl := s.resolutionTypeSource(); sl != NoSlot && s.perms[sl].chosen != 255 {
-			// gorge effChooseType: a source that already carries a
-			// ChosenType keeps it (the second activation is no-op)
-			s.res.chosen = s.perms[sl].chosen
+		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
+			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
 			s.res.bad |= resChosenType | card
-		} else if o, sl := s.resolutionTypeSource(); sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
+		} else if o, sl := s.resolutionTypeSource(); s.res.e.kind == seSpell && sl == NoSlot && o != NoObj && s.objs[o].chosen != 255 {
 			// a spell card keeps its ChosenType across the graveyard
 			// (gorge apply_zone.go only clears it on a battlefield
 			// leave), so a flashback re-cast reuses the first cast's
-			// answer instead of asking again
+			// answer instead of asking again. An activated or triggered
+			// ability's resolution always asks (CR 608.2; gorge
+			// effChooseType's resolvesAbility), its answer replacing the
+			// source's earlier one.
 			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
 		} else {
@@ -955,8 +976,20 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if DebugChooseCardAmount2 {
 			p = NextSeat(p) // TestKchoosecardparamsMutation: another player picks
 		}
+		// gorge cardChoices' filter tier reads You as the ACTIVATOR, never the
+		// chooser (engine/effects/choose_control.go cardChoicesIn: Demonic
+		// Hordes' "a land of an opponent's choice" offers the resolving
+		// controller's lands). Every chooser but the chosen-player one is the
+		// resolving controller, so the base differs only there (chooseCardBase).
+		base := p
+		if in.Obj == kop.RefEachOpponent {
+			base = e.ctrl
+		}
 		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
 			return s.attachPick(k, in, p) // tgt_attachpick.go
+		}
+		if in.C == chooseAttachDest {
+			return s.attachDest(k, p) // tgt_attachdest.go
 		}
 		if in.C == choosePutCounterPick {
 			return s.putCounterPick(k, in, p) // ctr_putparams.go
@@ -964,11 +997,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C == choosePopulatePick {
 			return s.populatePick(k, in, p) // copy_picked.go
 		}
-		if s.cardCands(k, in.F, p, nil) == 0 {
+		if s.cardCandsBase(k, in.F, p, base, nil) == 0 {
 			break
 		}
 		s.res.ask, s.res.askP = raGenChooseCard, p
 		return false, true
+	case kop.OpChoosePlayer:
+		s.choosePlayerOp(k, in) // act_chooseplayer.go
 	case kop.OpAttach:
 		if in.W != 0 {
 			s.attachSelfToPlayer(k, in) // static_attachtimestamp.go
@@ -1242,6 +1277,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return seatOne(s.promisedSeat(k, &s.res.e)) // kw_gift.go
 	case kop.RefChosenPlayer:
 		return seatOne(s.chosenPlayerSeat(&s.res.e)) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return seatOne(s.chosenSeatRes()) // act_chooseplayerres.go
 	}
 	if sl, ok := tgtSlot(r); ok {
 		// the slot's player targets (gorge repeatPlayers' Targeted arm:
@@ -1295,6 +1332,31 @@ func (s *State) remember(o Obj) {
 		}
 		s.g.rem[s.g.nrem] = o
 		s.g.nrem++
+	}
+	// The source's persistent remembered list (gorge's event-backed
+	// o.Remembered, the Choose "remembered" fold each RememberChanged-style
+	// write emits) is non-empty from this resolution on: the host half of a
+	// ConditionDefined$ Remembered group gate reads it (gorge
+	// rememberedWithSource; Forge's areMet reads host.getRemembered(), which
+	// survives the resolution). A mark, never a set: the gate only asks
+	// whether some earlier resolution wrote anything. No touch: the mark is
+	// not part of o's projected view, its reads gate actions instead.
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjSet(s.k(), mechRem, o)
+	}
+}
+
+// rememberMarkClr empties the resolving source's persistent-remembered mark:
+// the full clears of the remembered state (gorge's effCleanup
+// ClearRemembered$, forgetOther's ForgetOtherRemembered$/ForgetOtherTargets$
+// -- the Choose "clear-remembered" fold) empty the source's persistent
+// o.Remembered with the resolution's own set, and exprs.go CondRemMark reads
+// the mark in its place. A one-object forget (gorge forgetRememberedOne,
+// ForgetChanged$/Play's ForgetPlayed$) drops one list member and leaves the
+// mark standing: the mark holds no membership, only non-emptiness.
+func (s *State) rememberMarkClr() {
+	if o := s.res.e.obj; o != NoObj {
+		s.mObjClr(s.k(), mechRem, o)
 	}
 }
 
@@ -1366,6 +1428,10 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 			s.capFull(StallDmgMap)
 		}
 		return
+	}
+	if in.C&kop.DmgNoPrevention != 0 {
+		s.res.flags |= rfNoPrev // static_cantprevent.go: read by every prevention gate during this damage
+		defer func() { s.res.flags &^= rfNoPrev }()
 	}
 	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot
@@ -2396,6 +2462,8 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			continue
 		}
 		if isPlayerOrNone(code) {
+			s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
+			s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {

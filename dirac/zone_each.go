@@ -113,6 +113,7 @@ func (s *State) pickFits(k *prep, f kop.FilterID, o Obj, dig bool) bool {
 	}
 	var pow int8
 	if distinct {
+		s.offZonePTRead(k, s.objs[o].card, s.objs[o].owner(), o) // static_offzonept.go
 		pow = cand.Power
 	}
 	for i := 0; i < int(s.g.nlook); i++ {
