@@ -464,11 +464,18 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 				return lRef{}, err
 			}
 		}
+		thanActive, vt, isThan := oathPlayerTarget(vt) // lower_thanactive.go
 		f, err := lc.filter(vt)
 		if err != nil {
 			return lRef{}, err
 		}
 		t := lTarget{F: f, Zone: zone}
+		if isThan {
+			t.OppToActive, t.ThanActive = true, thanActive
+			if err := lc.thanActiveChooser(ps, &t); err != nil {
+				return lRef{}, err
+			}
+		}
 		if lc.graveExileCard {
 			if f.Players != 0 || len(f.Clauses) != len(gxZones) {
 				return lRef{}, refuse("ChangeZone Origin$ Graveyard,Exile ValidTgts$ %q does not lower to one clause per alternative", vt)
@@ -1432,7 +1439,7 @@ func packPips(p [5]int) int {
 func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 	// An AB$ inside a trigger body (an optional cost paid on resolution).
 	if lc.ab.Kind == akTriggered || lc.ab.Kind == akLatent {
-		if c, ok := ps.get("Cost"); ok && sa.Kind == "AB" {
+		if c, ok := ps.get("Cost"); ok && sa.Kind == "AB" && sa != lc.probeHead {
 			if strings.HasSuffix(c, `\NumTimes>`) && strings.HasPrefix(c, "Mana<") {
 				return lc.numTimesPay(sa, ps, c) // lower_numtimes.go
 			}
@@ -2246,6 +2253,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.chooseColorPrevent(ps) // Prismatic Strands
 	case "ProtectionAll":
 		return lc.protectionAllChosen(ps) // lower_choosecolorres.go
+	case "Protection":
+		return lc.protection(ps) // lower_protection.go
 	case "ChooseType":
 		return lc.chooseType(ps)
 	case "ChooseNumber":

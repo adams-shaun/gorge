@@ -170,6 +170,7 @@ type lowerCtx struct {
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	probeHead      *cards.SA // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
 	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
 	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
@@ -316,6 +317,11 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// chosenResAb is the ability whose mid-resolution ChoosePlayer
+	// (Choices$ Player, RememberChosen$ True) is lowered: ChosenPlayer reads
+	// the resolution's chosen player in that ability only
+	// (lower_chooseplayerres.go).
+	chosenResAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
 	// TargetedController whose Defined$ Remembered reads the one opponent
 	// (lower_remembered.go pumpRememberOppController).
@@ -400,7 +406,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerAbility(a)
 			if err != nil {
-				lc.probeBody(a, entered)
+				lc.probeBody(a, entered, true)
 			}
 			return err
 		})
@@ -431,7 +437,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			entered := lc.chains
 			err := lc.lowerTriggered(t, "")
 			if err != nil {
-				lc.probeBody(t.Effect, entered)
+				lc.probeBody(t.Effect, entered, false)
 			}
 			return err
 		})
@@ -3875,13 +3881,26 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 
 // probeBody lowers a refused ability's or trigger's body on its own when the
 // refusal came before the body was read, so its blockers are listed too.
-func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+// An activated ability's head Cost$ is its activation cost, which the real
+// lowering already read: the probe skips it rather than reading it as an
+// in-body resolution cost (lowerCtx.effect). A mana ability's head is no
+// chain node (lowerMana / lowerManaReflected lower it, and chain only its
+// SubAbility$): the probe reads that sub-chain alone.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int, activated bool) {
+	if activated && sa != nil && (sa.API == "Mana" || sa.API == "ManaReflected") {
+		sa, activated = sa.Sub, false
+	}
 	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
 		return
 	}
 	saved := lc.guardNode
 	lc.guardNode = saved + " body"
-	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	var ps *params
+	if activated {
+		lc.probeHead, ps = sa, probeHeadParams(sa) // lower_probehead.go
+	}
+	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, ps) })
+	lc.probeHead = nil
 	if err != nil {
 		lc.refuseNode(lc.guardNode, "%s", err.Error())
 	}
