@@ -424,6 +424,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
+	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {
@@ -2249,6 +2250,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
+	vCmdGreatestMV:      kop.ExCmdGreatestMV,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

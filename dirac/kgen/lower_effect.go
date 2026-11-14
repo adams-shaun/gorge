@@ -802,10 +802,12 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		if c, err = lc.nodeConditionZone(ps, c, cp); err != nil { // lower_condkeys.go
 			return lCond{}, err
 		}
-		// ConditionCheckSVar$ beside the present check (H.M.S. Bounty:
-		// ConditionPresent$ Whale.YouCtrl with Count$YourExtraTurns EQ0).
-		// Only that exact SVar and an equality-with-zero compare are read;
-		// any other pair refuses rather than dropping the SVar gate.
+		// ConditionCheckSVar$ beside the present check is a conjunction
+		// (gorge conditionMetCore: a denying SVar skips, a passing one leaves
+		// the present group to decide). H.M.S. Bounty: ConditionPresent$
+		// Whale.YouCtrl with Count$YourExtraTurns EQ0; Abzan Beastmaster:
+		// Creature.YouCtrl with YourTough GEOppsTough. The extra-turn count
+		// is read only against zero.
 		if cs, ok := ps.get("ConditionCheckSVar"); ok {
 			v, err := lc.value(cs)
 			if err != nil {
@@ -819,7 +821,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			if err != nil {
 				return lCond{}, err
 			}
-			if v.Kind != vYourExtraTurns || op != opEQ || !b.isConst() || b.N != 0 {
+			if v.Kind == vYourExtraTurns && (op != opEQ || !b.isConst() || b.N != 0) {
 				return lCond{}, refuse("ConditionCheckSVar$ %q with ConditionSVarCompare$ %q beside ConditionPresent$ %q", cs, cmp, cp)
 			}
 			c = lCond{Kind: cAnd, Sub: []lCond{c, {Kind: cValue, A: v, Op: op, B: b}}}
@@ -1591,6 +1593,15 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		return lc.changeZoneAll(ps)
 	case "Draw":
+		if _, ok := ps.get("Reveal"); ok {
+			// gorge's Draw never reads Reveal$ (draw_params.go's
+			// drawKnownKeys omits it): effDraw emits no reveal decision, only
+			// the unread-parameter Note (draw.go noteUnreadParams), which is
+			// information only on a draw. Any value -- the corpus's Reveal$
+			// All and Reveal$ True -- reads the same, so the kernel reads the
+			// value and lowers nothing (Fa'adiyah Seer, Sindbad, Jace, Mirror
+			// Mage).
+		}
 		remDrawn, remAll, err := rememberDrawn(ps)
 		if err != nil {
 			return err
@@ -2863,6 +2874,48 @@ func (lc *lowerCtx) discard(ps *params) error {
 			return refuse("discard mode Random of an each-player Defined$")
 		}
 		in.CS = "Random"
+	case "Defined":
+		// gorge effDiscardDefined (cardflow.go: the arm under
+		// effDiscardCodes' Defined): the cards DefinedCards$ names that are
+		// still in the acting player's hand move, no ask, and NumCards$ is
+		// never read (discardAndRemember per remembered card; Breathstealer's
+		// Crypt's comment: the Remembered drawn card). The corpus's only
+		// DefinedCards$ Remembered over a You discarder is
+		// Fa'adiyah Seer's/Sindbad's reveal-and-maybe-discard chain: the
+		// remembered cards lower to a filtered discard whose filter
+		// Card.IsRemembered takes every hand match without an ask
+		// (kop.OptDefined, act_discarddefined.go). The node's own Condition*
+		// gate (ConditionDefined$ Remembered | ConditionPresent$
+		// Card.nonLand | ConditionCompare$ EQ1, nodeCondition's
+		// cRefMatches over RefRemembered) skips the discard unless exactly
+		// one remembered card is a nonland -- the drawn card this chain
+		// remembered. Every other DefinedCards$ spelling (Imprinted,
+		// ValidHand, ChosenCard, Targeted) or a non-You discarder is its own
+		// card's blocker.
+		if who.Kind != rYou {
+			return refuse("discard mode Defined of a non-You discarder")
+		}
+		dc, ok := ps.get("DefinedCards")
+		if !ok {
+			return refuse("discard mode Defined without DefinedCards$")
+		}
+		if strings.TrimSpace(dc) != "Remembered" {
+			return refuse("discard mode Defined with DefinedCards$ %q", dc)
+		}
+		if _, ok := ps.get("NumCards"); ok {
+			return refuse("discard mode Defined with NumCards$")
+		}
+		if _, ok := ps.get("Optional"); ok {
+			return refuse("discard mode Defined with Optional$")
+		}
+		f, err := lc.filter("Card.IsRemembered")
+		if err != nil {
+			return err
+		}
+		in.F = f
+		in.A = cst(1)
+		in.CS = "DiscarderChooses"
+		in.C |= int(kop.OptDefined)
 	default:
 		return refuse("discard mode %q", m)
 	}
@@ -3416,6 +3469,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	_, hasAtt := ps.m["NumAtt"]
 	_, hasDef := ps.m["NumDef"]
+	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
+		return err
+	}
 	if !(mustBlock || eachColor) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
 	}
@@ -4523,6 +4579,9 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 		}
 	}
 	tr := lc.ab.Trigger
+	if tr != nil && tr.Event == "AbilityCast" && ps.str("Defined") == "TriggeredSpellAbility" && tr.AbClass == kop.TrigAbCastAny {
+		return lc.copyTriggeringAbility(ps)
+	}
 	if tr == nil || tr.Event != "SpellCast" || ps.str("Defined") != "TriggeredSpellAbility" {
 		return refuse("CopySpellAbility outside a SpellCast trigger's Defined$ TriggeredSpellAbility")
 	}
