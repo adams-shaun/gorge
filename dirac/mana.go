@@ -1108,6 +1108,13 @@ func unitIrr(sac, creature, noUntap bool) uint8 {
 	return irr
 }
 
+// lastResortUnit: a sacrificing or non-untapping source is planned last.
+func lastResortUnit(sac, noUntap bool) bool { return sac || noUntap }
+
+// sameRider: a planned unit type also matches on its float-restricted flag
+// and its irreversible cost (unitIrr).
+func (u *utype) sameRider(rb bool, irr uint8) bool { return u.rb == rb && u.irr == irr }
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
@@ -1291,7 +1298,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
 				noUntap := k.cards[s.cardAt(sl)].noUntap // last resort too (unitIrr)
-				if phase == 0 && (sac || noUntap) {
+				if phase == 0 && lastResortUnit(sac, noUntap) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
@@ -1411,7 +1418,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.rb == rb && ty.irr == irr {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
