@@ -482,7 +482,7 @@ func (e *Engine) ownReduceCostOffer(p state.PlayerID, id state.ObjID, ab *cards.
 	if b, ok := svars[v]; ok {
 		body = b
 	}
-	if !bodyReadsRootTarget(body, svars, 0) {
+	if !bodyReadsRootTarget(body, svars, 0, false) {
 		return best
 	}
 	for _, cand := range e.costPotentialTargets(p, id, abilityScope(ab)) {

@@ -8,6 +8,7 @@ Argothian Elder
 Battle-Rage Blessing
 Beast Attack
 Beetleback Chief
+Biomechan Engineer
 Black Cat
 Blade Sliver
 Blade of Selves
@@ -57,6 +58,8 @@ Immolating Souleater
 Impostor of the Sixth Pride
 Invisible Stalker
 Island
+Kabira Vindicator
+Massacre Girl, Known Killer
 Midnight Guard
 Mogis's Favor
 Moon-Circuit Hacker
@@ -113,6 +116,7 @@ Wake of Vultures
 Wall of Blossoms
 Wall of Swords
 Warbriar Blessing
+Wash Away
 Whipcorder
 Will-o'-the-Wisp
 Witching Well

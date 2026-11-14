@@ -550,6 +550,28 @@ func DamageAmountMatches(e Board, t cards.Trigger, source, recipient state.ObjID
 	return ApplyCompare(int(amount), op, int(n))
 }
 
+// AtLeastOneInstanceMatches evaluates t's AtLeastOneInstance$ <op><n>
+// (Matoc, Lavamancer: "if at least one permanent or player was dealt exactly
+// 2 of that damage") against amounts, each recipient's share of the batch:
+// some share passes. An absent parameter admits everything; one whose operand
+// is not a literal fails closed, as DamageAmountMatches' unreadable operand.
+func AtLeastOneInstanceMatches(t cards.Trigger, amounts []int32) bool {
+	spec, has := t.Param(cards.PKAtLeastOneInstance)
+	if !has {
+		return true
+	}
+	op, n, ok := SplitCompare(spec)
+	if !ok {
+		return false
+	}
+	for _, a := range amounts {
+		if ApplyCompare(int(a), op, n) {
+			return true
+		}
+	}
+	return false
+}
+
 // firstDamageToThisTurn is the damage mirror of firstLifeLossThisTurn
 // (trigmatch_life.go): scanning the log backwards, true only for the newest
 // Damage event on this recipient (same Obj/Player pair: object recipients

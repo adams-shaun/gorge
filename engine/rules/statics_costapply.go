@@ -180,7 +180,11 @@ func (e *Engine) costStaticGatePrefixCore(sv staticView, p state.PlayerID, id st
 				sc = e.prototypeSpellSpecCtx(sc, id)
 			}
 		}
-		if !e.matchesSpec(spec, id, sc) {
+		as := castAsPrinted
+		if scope.Kind == "Spell" && modeIsCastFaceDown(scope.Mode) {
+			as = castAsFaceDown // CR 708.4: the spell is a colourless nameless 2/2, not the card in hand
+		}
+		if !e.castRestrictionMatches(spec, id, sc, as) {
 			return false
 		}
 	}

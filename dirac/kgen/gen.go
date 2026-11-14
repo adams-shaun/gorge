@@ -405,6 +405,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Reconfigure {
 		fmt.Fprintf(w, " reconfigure")
 	}
+	if c.Ascend {
+		fmt.Fprintf(w, " ascend")
+	}
 	if c.Evasion != 0 {
 		fmt.Fprintf(w, " evasion=%d", c.Evasion)
 	}

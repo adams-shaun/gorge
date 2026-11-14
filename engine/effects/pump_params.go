@@ -401,6 +401,7 @@ var pumpKnownKeys = [...]string{
 	"UnlessPayer",
 	"UnlessResolveSubs",
 	"UnlessSwitched",
+	"ValidAfterStack",
 	"ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",

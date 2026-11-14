@@ -67,6 +67,7 @@ Soul's Attendant
 Spike Colony
 Splendor Mare
 Storm Caller
+Storm the Seedcore
 Subterranean Tremors
 Swamp
 Thoughtcast
@@ -76,7 +77,9 @@ Tolarian Kraken
 Tolarian Terror
 Tor Wauki the Younger
 Treasure Hunt
+Trespasser's Curse
 Unexpected Windfall
+Venser, Visionary Traveler
 Virus Beetle
 Visara the Dreadful
 Weaponcraft Enthusiast
