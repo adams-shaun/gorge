@@ -2763,6 +2763,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		st.Override = &lOverride{RemoveKw: ks}
 		lc.out.overrides = append(lc.out.overrides, st.Override)
+		if err := cantHaveKeyword(sp, st); err != nil {
+			return nil, err // lower_canthavekw.go
+		}
 	}
 	if p, ok := sp.get("AddPower"); ok {
 		if st.Power, err = lc.value(p); err != nil {

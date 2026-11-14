@@ -2484,6 +2484,9 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	if ko.RemoveKw, err = kwMask(o.RemoveKw); err != nil {
 		return 0, err
 	}
+	if ko.CantHaveKw, err = kwMask(o.CantHaveKw); err != nil {
+		return 0, err
+	}
 	if len(o.GrantAbility) > 2 {
 		return 0, fmt.Errorf("override grants %d abilities", len(o.GrantAbility))
 	}
