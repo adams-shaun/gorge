@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtLookAt
+value: 58
+forge: LookAt
+census: api LookAt all=4 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

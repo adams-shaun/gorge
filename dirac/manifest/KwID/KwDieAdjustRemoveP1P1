@@ -1,0 +1,7 @@
+family: KwID
+name: KwDieAdjustRemoveP1P1
+value: 98
+forge: After you roll a die, you may remove a +1/+1 counter from Xenosquirrels. If you do, increase or decrease the result by 1.
+census: kw After you roll a die, you may remove a +1/+1 counter from Xenosquirrels. If you do, increase or decrease the result by 1. all=1 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

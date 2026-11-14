@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigPayCumulativeUpkeep
+value: 80
+forge: PayCumulativeUpkeep
+census: trig PayCumulativeUpkeep all=4 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

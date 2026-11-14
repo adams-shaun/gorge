@@ -1,0 +1,7 @@
+family: key
+name: keyMustBlockTarget
+value: 10
+forge: must-block target
+census: key must-block target classes=2 all=35
+state: slotobj 112
+status: reserved

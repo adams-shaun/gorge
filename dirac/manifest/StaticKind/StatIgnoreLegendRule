@@ -1,0 +1,7 @@
+family: StaticKind
+name: StatIgnoreLegendRule
+value: 25
+forge: IgnoreLegendRule
+census: stat IgnoreLegendRule all=11 std=1 mbc=1 sole=4
+state: code 0
+status: reserved

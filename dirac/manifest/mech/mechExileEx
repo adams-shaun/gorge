@@ -1,0 +1,6 @@
+family: mech
+name: mechExileEx
+value: 4
+state: slotbit 16/16
+status: active
+doc: slots exiled instead of dying this turn (DmgExileIfDiesThisTurn)

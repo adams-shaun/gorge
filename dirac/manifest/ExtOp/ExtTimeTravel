@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtTimeTravel
+value: 42
+forge: TimeTravel
+census: api TimeTravel all=10 std=0 mbc=0 sole=4
+state: code 0
+status: reserved

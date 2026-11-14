@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExEnchantedControllerCreatures
+value: 105
+forge: EnchantedControllerCreatures
+census: count EnchantedControllerCreatures all=2 std=0 mbc=0 sole=2
+state: code 0
+status: reserved

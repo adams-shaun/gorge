@@ -1,0 +1,7 @@
+family: key
+name: keyChosenEvenOdd
+value: 26
+forge: chosen even/odd
+census: key chosen even/odd classes=1 all=3
+state: slotbyte 112
+status: reserved

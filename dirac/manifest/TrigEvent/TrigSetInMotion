@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigSetInMotion
+value: 53
+forge: SetInMotion
+census: trig SetInMotion all=84 std=0 mbc=0 sole=37
+state: objspace (archenemy)
+status: blocked objspace:tcode

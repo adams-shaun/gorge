@@ -1,0 +1,6 @@
+family: mech
+name: mechOnce3
+value: 24
+state: slotbit 16/16
+status: active
+doc: the same for its third such ability

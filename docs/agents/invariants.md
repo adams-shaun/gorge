@@ -306,7 +306,10 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    - `make test-targeted` on each iteration: the packages your diff touches
      plus every package whose tests import them, capped, one verdict line.
    - `make test-smart` once on the committed tree (`make precheck` is an alias):
-     the landing gate's own steps, fail-fast. Quote its verdict line.
+     fail-fast, the affected packages (`./engine/rules` whole when the change
+     reaches it) plus the pin, census, layout and lint groups; the prescreen and
+     the lander run the dirac gate. `GORGE_TEST_SMART_GATES=1` runs the landing
+     gate's own affected and dirac gates instead. Quote its verdict line.
    - `make lint`: gofmt, vet, `gentypes -check`, plus web lint.
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
@@ -317,7 +320,7 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
    through the make targets (`scripts/test-targets.sh`), never a raw
    `go test`. To debug one test: `make test-one PKG=./pkg RUN='^TestX$'`
-   (`SKIP=`, `V=1`, `TIMEOUT=2m` at most 5m, `TAGS=`, `UPDATE=1`, and
+   (`SKIP=`, `V=1`, `TIMEOUT=` default and at most 5m, `TAGS=`, `UPDATE=1`, and
    `TESTENV='KGEN_REPIN=1'` for the allow-listed regeneration variables). Each
    target caps itself (4G/400% for test-one, `GOMAXPROCS=4`, `GOMEMLIMIT=3GiB`),
    never passes `-count` (the cache stays on), and ends with one line:

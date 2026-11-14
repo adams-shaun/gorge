@@ -1,8 +1,9 @@
 package codeshape
 
 import (
-	"io/fs"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -40,49 +41,59 @@ func corpusStatAllowed(rel string) bool {
 
 // corpusLookupViolations returns the repo-relative _test.go files under root
 // that break the rule above, sorted.
+//
+// The files come from `git ls-files` (the tracked files, as they are on disk),
+// never from a walk of root. go's test cache hashes the listing of every
+// directory a test opens, with each entry's mtime, so walking root keyed this
+// test on .ds4/, which every seat round writes: it re-ran on every precheck and
+// was never cached (test-cache-audit 2026-11-14: 0 of 247 runs). git reads the
+// directories in its own process, which go does not record. A file that is not
+// yet tracked cannot land, and test-smart and the gate run on commits.
 func corpusLookupViolations(root string) ([]string, error) {
+	out, err := exec.Command("git", "-C", root, "ls-files", "-z", "--cached", "--", "*_test.go").Output()
+	if err != nil {
+		return nil, fmt.Errorf("git ls-files in %s: %w", root, err)
+	}
 	var bad []string
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	n := 0
+	for _, rel := range strings.Split(string(out), "\x00") {
+		if rel == "" || skippedTestPath(rel) {
+			continue
 		}
-		if d.IsDir() {
-			// Dot and underscore dirs are outside the go tool's package
-			// walk, and a local checkout may hold untracked copies in them.
-			name := d.Name()
-			if p != root && (strings.HasPrefix(name, ".") || strings.HasPrefix(name, "_")) {
-				return filepath.SkipDir
-			}
-			switch name {
-			case "node_modules", "testdata":
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(p, "_test.go") {
-			return nil
-		}
-		rel, err := filepath.Rel(root, p)
-		if err != nil {
-			return err
-		}
-		rel = filepath.ToSlash(rel)
+		n++
 		if corpusStatAllowed(rel) {
-			return nil
+			continue
 		}
-		b, err := os.ReadFile(p)
+		b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+		if os.IsNotExist(err) {
+			continue // deleted in the work tree, not yet in the index
+		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		src := string(b)
 		if corpusRelRootRe.MatchString(src) ||
 			(strings.Contains(src, corpusDirLit) && strings.Contains(src, statCall)) {
 			bad = append(bad, rel)
 		}
-		return nil
-	})
+	}
+	if n == 0 {
+		return nil, fmt.Errorf("git ls-files in %s listed no _test.go files: not a checkout with its files tracked", root)
+	}
 	sort.Strings(bad)
-	return bad, err
+	return bad, nil
+}
+
+// skippedTestPath: a path under a dot or underscore directory (outside the go
+// tool's package walk), testdata or node_modules.
+func skippedTestPath(rel string) bool {
+	parts := strings.Split(rel, "/")
+	for _, d := range parts[:len(parts)-1] {
+		if strings.HasPrefix(d, ".") || strings.HasPrefix(d, "_") || d == "testdata" || d == "node_modules" {
+			return true
+		}
+	}
+	return false
 }
 
 func TestNoTestStatsOrRelativelyOpensTheCorpusDir(t *testing.T) {
@@ -110,6 +121,10 @@ func TestCorpusLookupRatchetCanFail(t *testing.T) {
 		"a/stat_test.go": "package a\nfunc f() { _ = filepath.Join(top, " + corpusDirLit + "); " + statCall + "(d) }\n",
 		"a/ok_test.go":   "package a\nfunc f() { d := testutil.CorpusDirOrSkip(t); " + statCall + "(cards.CorpusDir(d)) }\n",
 		"a/join_test.go": "package a\nvar d = filepath.Join(" + q + ".." + q + ", " + corpusDirLit + ", " + q + "cardsfolder" + q + ")\n",
+		// outside the go tool's package walk: never flagged
+		".ds4/x/rel_test.go":     "package x\nvar d = " + q + "../" + "." + "cards" + q + "\n",
+		"a/testdata/rel_test.go": "package x\nvar d = " + q + "../" + "." + "cards" + q + "\n",
+		"_scratch/rel_test.go":   "package x\nvar d = " + q + "../" + "." + "cards" + q + "\n",
 	}
 	root := t.TempDir()
 	for name, body := range files {
@@ -121,6 +136,7 @@ func TestCorpusLookupRatchetCanFail(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	gitCheckout(t, root)
 	got, err := corpusLookupViolations(root)
 	if err != nil {
 		t.Fatal(err)
@@ -128,5 +144,50 @@ func TestCorpusLookupRatchetCanFail(t *testing.T) {
 	want := []string{"a/deep_test.go", "a/rel_test.go", "a/stat_test.go"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("violations = %v, want %v", got, want)
+	}
+}
+
+// gitCheckout makes root a git checkout with every file in it tracked (the
+// detector lists files with git ls-files), or skips without git.
+func gitCheckout(t *testing.T, root string) {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	for _, a := range [][]string{{"init", "-q"}, {"add", "-A", "-f"}} {
+		if out, err := exec.Command("git", append([]string{"-C", root}, a...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", a, err, out)
+		}
+	}
+}
+
+// TestCorpusLookupNeverListsTheRoot pins the cacheability fix: the detector
+// must not open the checkout's root directory (go's test cache would key the
+// result on the root listing, and so on .ds4/'s mtime). With the root
+// unreadable, a walk fails; the git listing still finds the violation.
+func TestCorpusLookupNeverListsTheRoot(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root reads any directory")
+	}
+	root := t.TempDir()
+	q := `"`
+	p := filepath.Join(root, "a", "rel_test.go")
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte("package a\nvar d = "+q+"../"+"."+"cards"+q+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitCheckout(t, root)
+	if err := os.Chmod(root, 0o311); err != nil { // traversable, not listable
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(root, 0o755) })
+	got, err := corpusLookupViolations(root)
+	if err != nil {
+		t.Fatalf("the detector needs the root's listing: %v", err)
+	}
+	if strings.Join(got, ",") != "a/rel_test.go" {
+		t.Fatalf("violations = %v, want [a/rel_test.go]", got)
 	}
 }

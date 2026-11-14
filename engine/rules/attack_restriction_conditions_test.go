@@ -23,6 +23,7 @@ package rules
 // fails loudly rather than passing.
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -253,5 +254,31 @@ func TestQueenMotherRamondaCantAttackWhileMonarch(t *testing.T) {
 	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
 	if e.attackBlocked(bear, 0, 0) {
 		t.Fatal("a 2/2 stayed blocked after seat 0 lost the monarch designation")
+	}
+}
+
+// TestCantAttackUnlessDefenderControlsGrantedIsland pins Sealock Monster's
+// corpus static
+// `S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ controlsIsland`
+// against a layer-4 type grant: the defender controls no printed Island, only
+// a Swamp that a continuous static turned INTO an Island (CR 305.6). The
+// predicate reads the defender's derived types through the static's spec
+// context, so the grant releases the creature; with the printed-types-only
+// read it stayed blocked.
+func TestCantAttackUnlessDefenderControlsGrantedIsland(t *testing.T) {
+	t.Parallel()
+	e := attackBlockedRegressionEngine(t)
+	e.layer4InPool = true // the grant below is placed, not in a scanned deck
+	m := onBoardCard(t, e, 0, corpusCard(t, "Sealock Monster"))
+	swamp := onBoard(t, e, 1, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
+	if !e.attackBlocked(m, 1, 0) {
+		t.Fatal("precondition: Sealock Monster attacked although the defender controlled no Island")
+	}
+	onBoard(t, e, 0, "Name:Island Grant\nTypes:Enchantment\nS:Mode$ Continuous | Affected$ Land | AddType$ Island | Description$ x\nOracle:x\n")
+	if !slices.Contains(e.Derived(swamp).Types, "Island") {
+		t.Fatal("precondition: the grant did not make the defender's Swamp an Island")
+	}
+	if e.attackBlocked(m, 1, 0) {
+		t.Fatal("Sealock Monster stayed blocked although the defender's Swamp is an Island by a layer-4 grant (CR 305.6)")
 	}
 }

@@ -253,7 +253,7 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		}
 	}
 	switch s {
-	case "Protection from white", "Protection from blue", "Protection from green":
+	case "Protection from white", "Protection from blue", "Protection from green", "Protection from colorsYouCtrl":
 		// a granted protection from the chosen colour (Akroma's Blessing;
 		// the arena marks mechProtW..mechProtG, compared through the
 		// target, block and damage options); black and red keep their bits

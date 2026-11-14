@@ -113,7 +113,12 @@ func (s *State) lockActs(k *prep, in *kop.Instr) {
 
 // toLibraryThird is OpToLibrary with kop.LibThird: the object goes into its
 // owner's library, then sits third from the top (gorge
-// libraryOrderPlacementAt: the offset is min(2, the other cards left)).
+// libraryOrderPlacementAt: the offset is min(2, the other cards left)). The
+// CR 903.9b gate passes first: a commander moving to a library from anywhere
+// is parked for its owner's command-zone ask, and an answered "put it there"
+// moves to the library as the effect said (gorge commanderZoneReplacementApplies,
+// from anywhere; Bookwurm's own "put CARDNAME from your graveyard into your
+// library third from the top").
 //
 //go:noinline
 func (s *State) toLibraryThird(k *prep, in *kop.Instr) {
@@ -121,10 +126,14 @@ func (s *State) toLibraryThird(k *prep, in *kop.Instr) {
 	if o == NoObj || s.tokenLeftBattlefield(o) {
 		return
 	}
-	s.moveRef(k, in.Obj, kop.ZoneLibrary, false)
+	z, bottom := kop.ZoneLibrary, false
+	if s.cmdZoneReplace(k, o, &z, &bottom) {
+		return // a CR 903.9b commander move parked before it happens
+	}
+	s.moveRef(k, in.Obj, z, bottom)
 	pl := &s.pl[s.objs[o].owner()]
 	if s.objs[o].zone != kop.ZoneLibrary || pl.libLen() == 0 || pl.lib[pl.libLo] != o {
-		return // a token that ceased to exist, or a replaced move
+		return // a token that ceased to exist, a replaced move, or the command zone
 	}
 	off := min(2, pl.libLen()-1)
 	if debugNetMutate == 3 {

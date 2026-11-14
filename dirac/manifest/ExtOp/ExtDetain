@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtDetain
+value: 29
+forge: Detain
+census: api Detain all=13 std=0 mbc=0 sole=11
+state: slotbit 32 (detain)
+status: reserved
