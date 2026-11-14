@@ -46,6 +46,13 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// potential play, then offers the cast (CR 702.103a, 601.2g).
 		"bestow_cast_takes_counter_mana_prefix",
 		"bestow_cast_takes_counter_mana_prefix_full",
+		// A targeting spell beside an opponent's battlefield RaiseCost with a
+		// ValidTarget$ (Kasmina, Enigmatic Mentor; Esior, Wardwing
+		// Familiar): gorge's cast planner declines the witness whatever the
+		// targets, so the autopay surface does not offer the cast from the
+		// lands (CR 601.2f). The kernel priced it as a planned cast.
+		"board_target_raise_declines_planned_cast",
+		"board_target_raise_declines_planned_cast_commander",
 	} {
 		name := name
 		t.Run(name, func(t *testing.T) {
