@@ -154,9 +154,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.XAnnounced = true
 		}
 		reflexiveCaptured(ctx, e.reflexiveRememberedPT[rp.obj])
-		if rp.kind == "optional" {
-			// CR 400.7: the CR 603.5 yes resumes before any of the body ran, so
-			// this is the resolution-start list resolveTop computes.
+		if rp.kind == "optional" || rp.kind == "effect_paid" {
+			// CR 400.7: the CR 603.5 yes and a triggered ability's Cost$
+			// window both resume before any of the body ran, so this is the
+			// resolution-start list resolveTop computes (Emiel the Blessed's
+			// paid counter trigger for a creature blinked in response).
 			ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
 		}
 		lki, lkiHeld := e.triggerLKI[rp.obj]

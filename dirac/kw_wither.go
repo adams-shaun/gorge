@@ -52,34 +52,6 @@ func (s *State) srcWither(k *prep, kw kop.KwMask) bool {
 	return false
 }
 
-// tableGrantsWither reports whether some part of t can grant wither: an
-// OpGrantKeyword, a Continuous static (a card's or an emblem's) or an
-// override's AddKw carrying kop.KwWither.
-func tableGrantsWither(t *kop.Table) bool {
-	if grantsKw(t, kop.KwWither) {
-		return true
-	}
-	isGrant := func(a *kop.Ability) bool {
-		return a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwWither != 0
-	}
-	for i := range t.Cards {
-		for j := range t.Cards[i].Abilities {
-			if isGrant(&t.Cards[i].Abilities[j]) {
-				return true
-			}
-		}
-	}
-	for i := range t.Emblems {
-		for j := range t.Emblems[i].Abilities {
-			if isGrant(&t.Emblems[i].Abilities[j]) {
-				return true
-			}
-		}
-	}
-	for i := range t.Overrides {
-		if t.Overrides[i].AddKw&kop.KwWither != 0 {
-			return true
-		}
-	}
-	return false
-}
+// tableGrantsWither reports whether some part of t can grant wither
+// (tableGrantsKw).
+func tableGrantsWither(t *kop.Table) bool { return tableGrantsKw(t, kop.KwWither) }

@@ -23,6 +23,13 @@ const dpTrackAmt int16 = -3
 //
 //go:noinline
 func (s *State) delayTracked(e *stackEntry, in *kop.Instr) {
+	if s.objs[e.obj].ver != e.srcVer {
+		// the creature left the battlefield since its attack trigger was put on the stack
+		// (Condemn on a decayed token): "sacrifice it" cannot reach the new object (CR 400.7),
+		// and gorge's OncePerSource registration (effDelayedTrigger) is never made, so no
+		// end-of-combat promise goes on the stack
+		return
+	}
 	d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, sv: s.objs[e.obj].ver, n: 1 | dpTrack | dpWhen(in), ext: dpExt(in)}
 	d.objs[0], d.vers[0] = e.obj, e.srcVer
 	s.g.dp[s.g.ndp] = d

@@ -1,5 +1,7 @@
 package kgen
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // AB$ Encore (gorge kw_encore.go's expansion of K:Encore:<cost>, CR
 // 702.141a): for each opponent, create a token copy of the source card that
 // attacks that opponent this turn if able and gains haste until end of turn;
@@ -12,7 +14,9 @@ package kgen
 // the MustAttack machinery reads (ExtAttacksIfAble,
 // dirac/combat_attacksifable.go; gorge's RequirementSet names the sole
 // defender, attack.go's encoreAttackDefender, and both engines force or
-// withhold the declaration the same way the Heckling Fiends mark does).
+// withhold the declaration the same way the Heckling Fiends mark does). The
+// duty names the opponent, so the op carries kop.AttacksOpponent and the
+// copy is offered the player alone, never a planeswalker or battle of theirs.
 //
 // The copy is the copy op's CpSacAtEndDly rider (gorge scheduleAtEOT's
 // __kwEncoreSacrifice, untracked: still put on the stack when the token
@@ -33,7 +37,7 @@ func (lc *lowerCtx) encore(ps *params) error {
 	lc.twoSeat("one copy for each opponent read as one copy")
 	lc.emit(lInstr{Op: "CopyAsToken", Obj: lRef{Kind: rSelf}, A: cst(1),
 		CS: "SacAtEndDly|PumpEOT=Haste", Note: "one token copy per opponent (two seats: one)"})
-	lc.emit(lInstr{Op: "AttacksIfAble", Obj: lRef{Kind: rLastCreated},
+	lc.emit(lInstr{Op: "AttacksIfAble", Obj: lRef{Kind: rLastCreated}, C: kop.AttacksOpponent,
 		Note: "the copy attacks the opponent this turn if able"})
 	return nil
 }

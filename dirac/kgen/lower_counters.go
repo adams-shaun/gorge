@@ -136,15 +136,20 @@ func (lc *lowerCtx) putCounterAll(ps *params) error {
 	return nil
 }
 
-// gainEnergy lowers PutCounter CounterType$ ENERGY on a player (gorge: the
-// player's ENERGY counter) to OpGainEnergy. An object recipient refuses.
-func (lc *lowerCtx) gainEnergy(obj lRef, n lValue) error {
+// gainEnergy lowers PutCounter CounterType$ ENERGY or Experience on a player
+// (gorge: the player's ENERGY / Experience counter) to OpGainEnergy, C the
+// player counter kind (kop.PlCtrEnergy / kop.PlCtrExperience). An object
+// recipient refuses.
+func (lc *lowerCtx) gainEnergy(obj lRef, n lValue, kind int) error {
 	switch obj.Kind {
 	case rYou, rEachOpp, rEachPlayer:
 	default:
+		if kind == kop.PlCtrExperience {
+			return refuse("experience counters on %s", obj)
+		}
 		return refuse("energy counters on %s", obj)
 	}
-	lc.emit(lInstr{Op: "GainEnergy", Obj: obj, A: n})
+	lc.emit(lInstr{Op: "GainEnergy", Obj: obj, A: n, C: kind})
 	return nil
 }
 
