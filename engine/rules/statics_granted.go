@@ -70,7 +70,7 @@ func (e *Engine) grantedStatics(mode string) []staticView {
 				if !e.grantPhasesHold(st) {
 					continue
 				}
-				inners := parseGrantedStatics(pst.Face.SVars, name)
+				inners := parseGrantedStatics(pst.Face, name)
 				if len(inners) == 0 {
 					continue
 				}
@@ -128,10 +128,10 @@ func (e *Engine) grantPhasesHold(st cards.Static) bool {
 // order. A name with no parseable body grants nothing and does not suppress
 // its siblings, the rule the AddTrigger$ grant path follows. Reading the
 // whole value as one name would look up a nil SVar and grant nothing.
-func parseGrantedStatics(svars map[string]string, v string) []cards.Static {
+func parseGrantedStatics(f *cards.Face, v string) []cards.Static {
 	var out []cards.Static
 	for _, name := range cards.SplitGrantNames(v) {
-		if inners, ok := cards.ParseStaticLines(svars[name]); ok {
+		if inners, ok := cards.ParseStaticLines(f.SVars[name]); ok {
 			out = append(out, inners...)
 		}
 	}
