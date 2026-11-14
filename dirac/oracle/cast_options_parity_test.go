@@ -40,6 +40,12 @@ func TestCastOptionsParityLockstep(t *testing.T) {
 		// sacrifices (CR 602.2b, 605.1a). The kernel joined both into one.
 		"kicked_cast_taps_granted_spawn_then_sacrifices",
 		"kicked_cast_taps_granted_spawn_then_sacrifices_second",
+		// Nyxborn Hydra bestowed for {G}{G} at X 0 with one green land and
+		// Wall of Roots: the counter-cost {G} is a census gap, and gorge's
+		// prefix search activates it for a bestowed cast as for any other
+		// potential play, then offers the cast (CR 702.103a, 601.2g).
+		"bestow_cast_takes_counter_mana_prefix",
+		"bestow_cast_takes_counter_mana_prefix_full",
 	} {
 		name := name
 		t.Run(name, func(t *testing.T) {
