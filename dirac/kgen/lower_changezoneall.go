@@ -279,6 +279,9 @@ func (lc *lowerCtx) originGraveHand(ps *params) error {
 	for _, k := range sortedParamKeys(ps.m) {
 		switch k {
 		case "Origin", "Destination", "ChangeType", "Shuffle", "SubAbility", "UseAllOriginZones":
+		case "Cost", "Planeswalker":
+			// an activated ability's cost and loyalty mark are the ability's,
+			// lowered with it (Arzakon's loyalty cost beside the Echo of Eons sweep)
 		default:
 			if !ignoredParams[k] {
 				return refuse("ChangeZoneAll Origin$ %s with %s$", origin, k)
