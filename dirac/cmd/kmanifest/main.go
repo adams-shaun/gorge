@@ -5,6 +5,8 @@
 //	kmanifest assign --base REF   landing only: give each value: next entry its final value, then gen
 //	kmanifest check --base REF    hold the change to the manifest's invariants against REF's merge base
 //	kmanifest show QUERY          print the entries a name, forge token or refusal class names
+//	kmanifest seed --census F --classes F [--aliases F] [--dry-run]
+//	                              cutover and FORGE_REF bumps: add an entry per new vocabulary item
 //
 // Every subcommand works on the module at --root, by default the one holding
 // the working directory. See package dirac/manifest for the entry format.
@@ -35,7 +37,7 @@ func newRoot() *cli.Command {
 		Flags: func(fs *cli.FlagSet) {
 			fs.StringVar(&root, "root", "", "module root (default: the module holding the working directory)")
 		},
-		Sub: []*cli.Command{genCmd(&root), assignCmd(&root), checkCmd(&root), showCmd(&root)},
+		Sub: []*cli.Command{genCmd(&root), assignCmd(&root), checkCmd(&root), showCmd(&root), seedCmd(&root)},
 	}
 }
 

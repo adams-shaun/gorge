@@ -144,3 +144,35 @@ func TestAssignThenCheck(t *testing.T) {
 		t.Errorf("check on a renumbered entry: exit %d, printed %q", code, out)
 	}
 }
+
+// TestSeed seeds the fixture census: a dry run writes nothing, a run writes
+// the entries and prints the counts, and a second run adds nothing.
+func TestSeed(t *testing.T) {
+	root := fixtureRoot(t)
+	fix := filepath.Join("..", "..", "manifest", "testdata", "seed")
+	args := []string{"seed", "--root", root, "--census", filepath.Join(fix, "census.tsv"),
+		"--classes", filepath.Join(fix, "classes.tsv"), "--aliases", filepath.Join(fix, "aliases.tsv")}
+	if code, _, errs := run(t, "seed", "--root", root); code != 2 || !strings.Contains(errs, "--census and --classes are required") {
+		t.Errorf("seed without inputs: exit %d, stderr %q", code, errs)
+	}
+	code, out, errs := run(t, append(args, "--dry-run")...)
+	if code != 0 {
+		t.Fatalf("seed --dry-run: exit %d: %s", code, errs)
+	}
+	want := "CounterKind\t4\nExtOp\t3\nKwID\t2\nTrigEvent\t1\nkey\t2\ntotal\t12\nskipped\t6\n"
+	if out != want {
+		t.Errorf("seed --dry-run printed %q, want %q", out, want)
+	}
+	if _, err := os.Stat(filepath.Join(root, "dirac", "manifest", "CounterKind", "CtrIce")); err == nil {
+		t.Error("seed --dry-run wrote an entry")
+	}
+	if code, out, errs = run(t, args...); code != 0 || out != want {
+		t.Fatalf("seed: exit %d, printed %q: %s", code, out, errs)
+	}
+	if code, out, errs = run(t, "show", "--root", root, "ICE"); code != 0 || !strings.HasPrefix(out, "dirac/manifest/CounterKind/CtrIce value 5 reserved state code 0\n") {
+		t.Errorf("show ICE after the seed: exit %d, printed %q: %s", code, out, errs)
+	}
+	if code, out, _ = run(t, args...); code != 0 || !strings.HasPrefix(out, "total\t0\n") {
+		t.Errorf("a second seed: exit %d, printed %q; want nothing new", code, out)
+	}
+}

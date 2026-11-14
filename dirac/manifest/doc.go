@@ -52,6 +52,16 @@
 // of a code that is not active. Check holds a change to invariant 1 against
 // its base, and holds every ordinals.tsv row of the base in place.
 //
+// # Seeding
+//
+// PlanSeed pre-maps the vocabulary once: one reserved entry per census item
+// kgen does not lower (counter types, keywords, APIs, Count$ heads, trigger,
+// static and replacement modes, zones) and per bounded State key, at the
+// lowest free values, so a change activates a code that already exists.
+// aliases.tsv lists the items that are not new codes: existing constants,
+// partially lowered items, and rows that name no code of their family. A
+// re-run adds only new vocabulary; it never edits an entry.
+//
 // # Late binding
 //
 // A "value: next" entry is rendered at a provisional value, the lowest free
