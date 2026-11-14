@@ -151,6 +151,48 @@ func TestHandMoveChooserYou(t *testing.T) {
 	}
 }
 
+// TestGraveyardPickChooserYou: a GainControl$ graveyard pick over the
+// opponent's yard with Chooser$ You (SrChooserYou, The Weaver King) asks
+// the controller, and the picked card enters under the controller (gorge
+// hiddenPickChooser / changeHiddenOriginResolve), not its owner.
+func TestGraveyardPickChooserYou(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
+	set := cardsettest.Set(t, "fdn")
+	tbl, _, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl := CardID(255)
+	for i := range tbl.Cards {
+		if tbl.Cards[i].Name == "Plains" {
+			pl = CardID(i)
+		}
+	}
+	tbl.Filters = append(tbl.Filters, kop.Filter{Zone: kop.ZoneGraveyard})
+	f := kop.FilterID(len(tbl.Filters) - 1)
+	mv := kop.Instr{Op: kop.OpChooseMove, Obj: kop.RefOpponent, A: kop.Const(1), F: f,
+		C: int16(kop.ZoneBattlefield) | int16(kop.SrMandatory|kop.SrChooserYou|kop.SrUnderYourControl)<<3}
+	src := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Thief", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{mv}}}})
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	o1 := sc.grave(pl, 1, 2)[0]
+	sc.s.res.e.ctrl, sc.s.res.e.card, sc.s.res.e.ab, sc.s.res.pc = 0, src, 0, 0
+	if sc.s.objs[o1].zone != kop.ZoneGraveyard || sc.s.objs[o1].owner() != 1 {
+		t.Fatalf("setup: card zone %d owner %d, want the opponent's graveyard", sc.s.objs[o1].zone, sc.s.objs[o1].owner())
+	}
+	if sc.s.startSearch(sc.k, &mv) || sc.s.res.ask != raGenSearch || sc.s.res.askP != 0 {
+		t.Fatalf("ask %d of player %d, want the graveyard pick asked of the controller", sc.s.res.ask, sc.s.res.askP)
+	}
+	sc.s.resArm().look[0], sc.s.g.nlook = o1, 1
+	sc.s.finishSearchNow(sc.k)
+	if sc.s.objs[o1].zone != kop.ZoneBattlefield {
+		t.Fatalf("picked card zone %d, want the battlefield", sc.s.objs[o1].zone)
+	}
+	if c := sc.s.perms[sc.s.objs[o1].slot].ctrl; c != 0 {
+		t.Fatalf("picked card controller %d, want the resolving controller 0", c)
+	}
+}
+
 // TestRevealPick: a SrReveal choose-move (gorge effReveal's reveal_pick)
 // asks over the hand's matching cards as ChGenReveal, moves nothing and
 // remembers the pick; with no matching card its Optional$ ask is skipped.

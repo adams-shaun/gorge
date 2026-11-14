@@ -46,6 +46,14 @@ SVar:TrigFetch:DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Grave
 Oracle:probe
 `
 
+const dpStealProbe = `Name:Defined Steal Probe
+ManaCost:2 B
+Types:Creature
+PT:2/2
+A:AB$ ChangeZone | Cost$ 2 B | Origin$ Graveyard | Destination$ Battlefield | DefinedPlayer$ DP | Chooser$ You | GainControl$ True | Hidden$ True | Mandatory$ True | ChangeType$ Creature | SpellDescription$ probe
+Oracle:probe
+`
+
 func dpScript(base, dp, chooser string) string {
 	s := strings.Replace(base, "DPCHOOSER", chooser, 1)
 	return strings.Replace(s, "DefinedPlayer$ DP", "DefinedPlayer$ "+dp, 1)
@@ -103,5 +111,20 @@ func TestHiddenDefinedPlayerLowers(t *testing.T) {
 	}
 	if rs := lowerScript(t, "Defined Named Probe", strings.Replace(dpNamedProbe, "Origin$ Graveyard", "Origin$ Library", 1)); !anyRefusal(rs, "DefinedPlayer") {
 		t.Errorf("library origin beside DefinedPlayer$: refusals %q, want it refused", rs)
+	}
+
+	// the graveyard pick's Chooser$ You over another player's yard (The
+	// Weaver King): the controller answers and keeps the card, so the
+	// kernel needs ChooserYou beside UnderYourControl; over its own yard
+	// You is the default chooser and no flag is emitted.
+	ops = dpOps(t, "Defined Steal Probe", dpScript(dpStealProbe, "Opponent", "You"))
+	joined := strings.Join(ops, ";")
+	if !strings.Contains(joined, "ChooseMove(Each,") || !strings.Contains(joined, "ChooserYou") || !strings.Contains(joined, "UnderYourControl") {
+		t.Errorf("steal probe (DefinedPlayer$ Opponent) ops %q, want ChooserYou beside UnderYourControl", ops)
+	}
+	ops = dpOps(t, "Defined Steal Probe", dpScript(dpStealProbe, "You", "You"))
+	joined = strings.Join(ops, ";")
+	if !strings.Contains(joined, "UnderYourControl") || strings.Contains(joined, "ChooserYou") {
+		t.Errorf("steal probe (DefinedPlayer$ You) ops %q, want UnderYourControl and no ChooserYou", ops)
 	}
 }

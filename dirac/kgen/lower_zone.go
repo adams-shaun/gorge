@@ -623,6 +623,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
 				switch {
+				case ch == "You" && pickOwner.Kind != rYou:
+					cs += "|ChooserYou" // the fetch player is not the controller: the default chooser is wrong
 				case ch == "You", ch == "":
 				case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
 					cs += "|ChooserOpp"
