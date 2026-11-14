@@ -150,3 +150,28 @@ func TestAutoLandsStaysWithinBounds(t *testing.T) {
 		t.Fatalf("AutoLands basics total %d exceeds MaxDeckSize %d", total, build.MaxDeckSize)
 	}
 }
+
+// TestValidateCommanderBasicsBoundIsTheTotal: a Commander-draft deck may carry
+// more than MaxBasicsPerType of one basic (a 100-card deck built from one
+// draft's pool is mostly basics: an MBC draft at -deck-size 100 built 44
+// Swamps), bounded by MaxDeckSize like every count; a limited deck keeps
+// MaxBasicsPerType.
+func TestValidateCommanderBasicsBoundIsTheTotal(t *testing.T) {
+	pool := poolOf(45)
+	main := []string{pool[0].ID, pool[1].ID}
+	mono := build.Deck{Main: main, Commanders: main[:1], Basics: [5]int{0, 0, 98, 0, 0}}
+	if err := build.ValidateCommanderSize(pool, mono, 100); err != nil {
+		t.Fatalf("a 100-card commander deck with 98 Swamps rejected: %v", err)
+	}
+	if err := build.Validate(pool, build.Deck{Main: main, Basics: [5]int{0, 0, 41, 0, 0}}); err == nil {
+		t.Fatal("a limited deck with 41 Swamps validated, want the per-type bound")
+	}
+	over := build.Deck{Main: main, Commanders: main[:1], Basics: [5]int{0, 0, 99, 0, 0}}
+	if err := build.ValidateCommanderSize(pool, over, 100); err == nil {
+		t.Fatal("a 101-card commander deck validated, want the total bound")
+	}
+	neg := build.Deck{Main: main, Commanders: main[:1], Basics: [5]int{-1, 0, 99, 0, 0}}
+	if err := build.ValidateCommanderSize(pool, neg, 100); err == nil {
+		t.Fatal("a commander deck with a negative basic count validated")
+	}
+}
