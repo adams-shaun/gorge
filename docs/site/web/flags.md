@@ -64,6 +64,8 @@ for it. `make deploy-demo` serves the demo (`deploy/demo.env.example`). The guid
 | `-paired-bot-shared` | `false` | with -paired-bot: also offer it at a table with more than one human (t1 under -humans), where every seat is told it is on |
 | `-paired-bot-sims` | `100` | with -paired-bot az-closed: simulations per request |
 | `-perpetual` | `true` | start a new match when one ends |
+| `-pod-bot-decks` | none | enable the az-closed-maxn bot policy: the directory of deck JSON files (e.g. draftsim -decks-out) it guesses an opponent's list from. A closed-list max^n search for Commander pods of up to four seats, offered to tables, draft events (-events-bot-policy) and as a paired bot; it never reads an opponent's real list. Off when empty |
+| `-pod-bot-sims` | `64` | with -pod-bot-decks: simulations per searched decision of az-closed-maxn (>= 1) |
 | `-pprof` | `false` | serve Go runtime profiles at /debug/pprof/ on the main listener; refused unless -addr is loopback, and anything proxied to that port can reach them |
 | `-prewarm` | `true` | prewarm the card-art cache for every card in every dealt deck at startup (disable with -prewarm=false) |
 | `-prewarm-art-budget` | `0s` | with -prewarm-art-only: stop the fill after this much wall-clock time and exit non-zero (0 = no limit) |

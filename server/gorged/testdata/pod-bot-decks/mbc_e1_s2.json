@@ -1,0 +1,192 @@
+{
+  "name": "mbc_e1_s2",
+  "format": "commander",
+  "archetype": "",
+  "commander": "",
+  "commanders": [
+    "Plargg and Nassari",
+    "Daxos, Blessed by the Sun"
+  ],
+  "cards": [
+    {
+      "name": "Plargg and Nassari",
+      "count": 1
+    },
+    {
+      "name": "Daxos, Blessed by the Sun",
+      "count": 1
+    },
+    {
+      "name": "Phyrexian Triniform",
+      "count": 1
+    },
+    {
+      "name": "Serenity",
+      "count": 1
+    },
+    {
+      "name": "Goldlust Triad",
+      "count": 1
+    },
+    {
+      "name": "Generous Gift",
+      "count": 1
+    },
+    {
+      "name": "Abolish",
+      "count": 1
+    },
+    {
+      "name": "Requisition Raid",
+      "count": 1
+    },
+    {
+      "name": "Joven and Chandler",
+      "count": 1
+    },
+    {
+      "name": "Aerial Responder",
+      "count": 1
+    },
+    {
+      "name": "Giant Cindermaw",
+      "count": 1
+    },
+    {
+      "name": "Krark-Clan Ironworks",
+      "count": 1
+    },
+    {
+      "name": "Nemesis Mask",
+      "count": 1
+    },
+    {
+      "name": "Sensei's Divining Top",
+      "count": 1
+    },
+    {
+      "name": "Banishing Light",
+      "count": 1
+    },
+    {
+      "name": "Pyroblast",
+      "count": 1
+    },
+    {
+      "name": "Pyrotechnics",
+      "count": 1
+    },
+    {
+      "name": "Battle Screech",
+      "count": 1
+    },
+    {
+      "name": "Vanish into Eternity",
+      "count": 1
+    },
+    {
+      "name": "Whipcorder",
+      "count": 1
+    },
+    {
+      "name": "Arc Trail",
+      "count": 1
+    },
+    {
+      "name": "Warrior en-Kor",
+      "count": 1
+    },
+    {
+      "name": "Congregate",
+      "count": 1
+    },
+    {
+      "name": "Invigorated Rampage",
+      "count": 1
+    },
+    {
+      "name": "Electrickery",
+      "count": 1
+    },
+    {
+      "name": "Humble Defector",
+      "count": 1
+    },
+    {
+      "name": "Restoration Specialist",
+      "count": 1
+    },
+    {
+      "name": "Volcanic Dragon",
+      "count": 1
+    },
+    {
+      "name": "Sentinel of the Eternal Watch",
+      "count": 1
+    },
+    {
+      "name": "Skyline Despot",
+      "count": 1
+    },
+    {
+      "name": "Ertha Jo, Frontier Mentor",
+      "count": 1
+    },
+    {
+      "name": "Thopter Engineer",
+      "count": 1
+    },
+    {
+      "name": "Inferno Fist",
+      "count": 1
+    },
+    {
+      "name": "Take Up the Shield",
+      "count": 1
+    },
+    {
+      "name": "Bitter Reunion",
+      "count": 1
+    },
+    {
+      "name": "Barbed Batterfist",
+      "count": 1
+    },
+    {
+      "name": "Lava Dart",
+      "count": 1
+    },
+    {
+      "name": "Seraph of Dawn",
+      "count": 1
+    },
+    {
+      "name": "Omen of the Sun",
+      "count": 1
+    },
+    {
+      "name": "Breath of Life",
+      "count": 1
+    },
+    {
+      "name": "Lava Dart",
+      "count": 1
+    },
+    {
+      "name": "Wrenn's Resolve",
+      "count": 1
+    },
+    {
+      "name": "Lotus Petal",
+      "count": 1
+    },
+    {
+      "name": "Plains",
+      "count": 9
+    },
+    {
+      "name": "Mountain",
+      "count": 8
+    }
+  ]
+}
