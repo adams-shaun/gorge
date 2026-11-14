@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -82,5 +83,64 @@ func TestGenRefusesAnInvalidTree(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(manifest.KopGen))); err == nil {
 		t.Errorf("gen wrote %s from an invalid tree", manifest.KopGen)
+	}
+}
+
+func TestShow(t *testing.T) {
+	root := fixtureRoot(t)
+	code, out, _ := run(t, "show", "--root", root, "ticket")
+	if want := "dirac/manifest/CounterKind/CtrTicket value 4 reserved state code 0\n"; code != 0 || !strings.HasPrefix(out, want) {
+		t.Errorf("show ticket: exit %d, printed %q; want it to start %q", code, out, want)
+	}
+	if code, _, errs := run(t, "show", "--root", root, "nothing"); code != 1 || !strings.Contains(errs, `no manifest entry names "nothing"`) {
+		t.Errorf("show nothing: exit %d, stderr %q", code, errs)
+	}
+}
+
+func gitT(t *testing.T, repo string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_AUTHOR_NAME=fixture", "GIT_AUTHOR_EMAIL=fixture",
+		"GIT_COMMITTER_NAME=fixture", "GIT_COMMITTER_EMAIL=fixture")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
+// TestAssignThenCheck is the landing sequence: assign against the branch
+// writes the final values and regenerates, check --final passes, and a
+// changed value fails check.
+func TestAssignThenCheck(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	root := fixtureRoot(t)
+	gitT(t, root, "init", "-q", "-b", "land")
+	gitT(t, root, "add", ".")
+	gitT(t, root, "commit", "-q", "-m", "fixture")
+	if code, _, errs := run(t, "assign", "--root", root); code != 2 || !strings.Contains(errs, "--base is required") {
+		t.Errorf("assign without --base: exit %d, stderr %q", code, errs)
+	}
+	code, out, errs := run(t, "assign", "--root", root, "--base", "land")
+	if code != 0 {
+		t.Fatalf("assign: exit %d: %s", code, errs)
+	}
+	for _, want := range []string{"assigned dirac/manifest/ExtOp/ExtFoo = 2\n", "assigned dirac/manifest/Op/OpHot = 158\n", "wrote " + manifest.KopGen + "\n"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("assign printed %q, want %q in it", out, want)
+		}
+	}
+	if code, out, _ = run(t, "check", "--root", root, "--base", "land", "--final"); code != 0 {
+		t.Errorf("check --final after assign: exit %d: %s", code, out)
+	}
+	gitT(t, root, "add", ".")
+	gitT(t, root, "commit", "-q", "-m", "manifest: assign")
+	if err := os.WriteFile(filepath.Join(root, "dirac", "manifest", "ExtOp", "ExtFoo"),
+		[]byte("family: ExtOp\nname: ExtFoo\nvalue: 9\nstatus: reserved\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, out, _ = run(t, "check", "--root", root, "--base", "land"); code != 1 || !strings.Contains(out, "value 2 at the base is now 9") {
+		t.Errorf("check on a renumbered entry: exit %d, printed %q", code, out)
 	}
 }

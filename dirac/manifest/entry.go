@@ -229,3 +229,24 @@ func (e *Entry) checkSelf() error {
 	}
 	return nil
 }
+
+// Format is e as an entry file, its lines in the canonical order (family,
+// name, value, approval, forge, census, state, status, ticket, doc), empty
+// ones left out: what a tool writing a new entry (seed, adopt) writes.
+func (e *Entry) Format() []byte {
+	v := "next"
+	if !e.Next {
+		v = strconv.FormatInt(e.Value, 10)
+	}
+	var b strings.Builder
+	for _, f := range []struct{ k, v string }{
+		{"family", e.Family}, {"name", e.Name}, {"value", v}, {"approval", e.Approval},
+		{"forge", strings.Join(e.Forge, " | ")}, {"census", e.Census}, {"state", e.State},
+		{"status", e.Status.String()}, {"ticket", e.Ticket}, {"doc", e.Doc},
+	} {
+		if f.v != "" {
+			b.WriteString(f.k + ": " + f.v + "\n")
+		}
+	}
+	return []byte(b.String())
+}

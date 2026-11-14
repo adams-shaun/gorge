@@ -49,5 +49,14 @@
 // with any constant ordinals.tsv records, the family's legal range and
 // reserved bands) and supplies invariant 3's lookup: Tree.Lookup finds the
 // entry a table's code names, and Entry.RefusalClass is the kgen refusal class
-// of a code that is not active.
+// of a code that is not active. Check holds a change to invariant 1 against
+// its base, and holds every ordinals.tsv row of the base in place.
+//
+// # Late binding
+//
+// A "value: next" entry is rendered at a provisional value, the lowest free
+// one of its family, so a change can build and test before its code has a
+// number. Landing runs Assign serially against the landing branch's tip,
+// which writes the final value into the entry's value line. Nothing has seen
+// a provisional value, so moving one is safe.
 package manifest

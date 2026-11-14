@@ -193,9 +193,19 @@ func parseOrdinal(s string) (int64, error) {
 }
 
 // Validate holds t to invariant 1 on one tree and resolves every Next entry's
-// provisional value (Resolve). It returns every violation, one line each,
+// provisional value (resolve). It returns every violation, one line each,
 // naming the file.
 func (t *Tree) Validate() []error {
+	held, errs := t.validate()
+	if len(errs) > 0 {
+		return errs
+	}
+	return t.resolve(held, nil)
+}
+
+// validate is Validate without resolving: the values the tree's constants
+// and valued entries hold, and the violations.
+func (t *Tree) validate() (map[string]*taken, []error) {
 	var errs []error
 	sort.SliceStable(t.Entries, func(i, j int) bool {
 		a, b := t.Entries[i], t.Entries[j]
@@ -212,7 +222,7 @@ func (t *Tree) Validate() []error {
 		}
 	}
 	if !ok {
-		return errs // the rest assumes known families and in-range values
+		return nil, errs // the rest assumes known families and in-range values
 	}
 	// One declaration per name in each Go package: an entry's name is no
 	// other entry's and no other type's constant.
@@ -229,7 +239,7 @@ func (t *Tree) Validate() []error {
 	}
 	held, err := t.legacyTaken()
 	if err != nil {
-		return append(errs, err)
+		return nil, append(errs, err)
 	}
 	for _, e := range t.Entries {
 		if e.Next {
@@ -242,10 +252,7 @@ func (t *Tree) Validate() []error {
 		}
 		held[f.Name].add(f, e.Value, e.Path)
 	}
-	if len(errs) > 0 {
-		return errs
-	}
-	return t.resolve(held, nil)
+	return held, errs
 }
 
 // resolve gives each Next entry the lowest free value of its family's Alloc

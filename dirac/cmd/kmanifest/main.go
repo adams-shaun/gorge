@@ -1,7 +1,10 @@
 // Command kmanifest keeps dirac's namespace manifest (dirac/manifest, one file
 // per vocabulary code) and the Go it generates.
 //
-//	kmanifest gen [--check]   write the generated files; --check lists stale ones and exits 1
+//	kmanifest gen [--check]       write the generated files; --check lists stale ones and exits 1
+//	kmanifest assign --base REF   landing only: give each value: next entry its final value, then gen
+//	kmanifest check --base REF    hold the change to the manifest's invariants against REF's merge base
+//	kmanifest show QUERY          print the entries a name, forge token or refusal class names
 //
 // Every subcommand works on the module at --root, by default the one holding
 // the working directory. See package dirac/manifest for the entry format.
@@ -32,7 +35,7 @@ func newRoot() *cli.Command {
 		Flags: func(fs *cli.FlagSet) {
 			fs.StringVar(&root, "root", "", "module root (default: the module holding the working directory)")
 		},
-		Sub: []*cli.Command{genCmd(&root)},
+		Sub: []*cli.Command{genCmd(&root), assignCmd(&root), checkCmd(&root), showCmd(&root)},
 	}
 }
 
@@ -68,6 +71,132 @@ func genCmd(root *string) *cli.Command {
 			}
 			if check && len(changed) > 0 {
 				return cli.Exit(1)
+			}
+			return nil
+		},
+	}
+}
+
+func assignCmd(root *string) *cli.Command {
+	var base string
+	return &cli.Command{
+		Name:  "assign",
+		Short: "landing only: write final values into value: next entries, then gen",
+		Long: "assign gives every value: next entry the lowest free value of its family\n" +
+			"that neither the working tree nor the commit --base names holds (the\n" +
+			"landing branch's tip), writes it into the entry's value line, prints each, and then runs gen.\n" +
+			"Run it serially, one unit at a time, after rebasing the unit onto --base.",
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&base, "base", "", "the commit the unit lands on (required)")
+		},
+		Run: func(c *cli.Context, _ []string) error {
+			if base == "" {
+				return cli.Usagef("--base is required")
+			}
+			dir, err := moduleRoot(*root)
+			if err != nil {
+				return err
+			}
+			b, err := manifest.ReadGit(dir, base)
+			if err != nil {
+				return err
+			}
+			got, err := manifest.Assign(dir, b)
+			if err != nil {
+				return err
+			}
+			for _, a := range got {
+				fmt.Fprintf(c.Stdout, "assigned %s = %d\n", a.Path, a.Value)
+			}
+			changed, err := manifest.WriteGen(dir, false)
+			for _, p := range changed {
+				fmt.Fprintln(c.Stdout, "wrote", p)
+			}
+			return err
+		},
+	}
+}
+
+func checkCmd(root *string) *cli.Command {
+	var (
+		base  string
+		final bool
+		allow []string
+	)
+	return &cli.Command{
+		Name:  "check",
+		Short: "hold the working tree's manifest to its invariants against a base",
+		Long: "check validates the working tree's manifest and compares it with the merge\n" +
+			"base of --base and HEAD: no entry deleted or renamed, no assigned value\n" +
+			"changed, only status and ticket edited on an assigned entry, no new entry\n" +
+			"named for an existing constant, and no ordinals.tsv row of the base changed\n" +
+			"or gone (--allow-ordinal NAME excepts one, for a deliberate legacy change).\n" +
+			"--final also refuses value: next (landing, after assign). Prints each\n" +
+			"violation and exits 1 if there is one.",
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&base, "base", "", "the branch the change is held to, the landing branch (required)")
+			fs.BoolVar(&final, "final", false, "refuse any value: next entry")
+			fs.StringSliceVar(&allow, "allow-ordinal", nil, "an ordinals.tsv row the change may alter (repeatable)")
+		},
+		Run: func(c *cli.Context, _ []string) error {
+			if base == "" {
+				return cli.Usagef("--base is required")
+			}
+			dir, err := moduleRoot(*root)
+			if err != nil {
+				return err
+			}
+			mb, err := manifest.MergeBase(dir, base)
+			if err != nil {
+				return err
+			}
+			b, err := manifest.ReadGit(dir, mb)
+			if err != nil {
+				return err
+			}
+			t, err := manifest.Read(os.DirFS(dir))
+			if err != nil {
+				return err
+			}
+			errs := manifest.Check(b, t, manifest.CheckOptions{AllowOrdinal: allow, Final: final})
+			for _, e := range errs {
+				fmt.Fprintln(c.Stdout, e)
+			}
+			if len(errs) > 0 {
+				return cli.Exit(1)
+			}
+			return nil
+		},
+	}
+}
+
+func showCmd(root *string) *cli.Command {
+	return &cli.Command{
+		Name:  "show",
+		Short: "print the entries a Go name, forge token or refusal class names",
+		Long: "show prints each entry QUERY names (a Go name, <Family>/<Name>, an entry\n" +
+			"path, a refusal class manifest:<status>:<Family>/<Name>, or a forge token,\n" +
+			"without case): its path, value, status and State category, then its other\n" +
+			"lines. It exits 1 when nothing matches.",
+		Args:      "<query>",
+		ValidArgs: cli.ExactArgs(1),
+		Run: func(c *cli.Context, args []string) error {
+			dir, err := moduleRoot(*root)
+			if err != nil {
+				return err
+			}
+			t, err := manifest.Load(os.DirFS(dir))
+			if err != nil {
+				return err
+			}
+			es := t.Find(args[0])
+			if len(es) == 0 {
+				return fmt.Errorf("no manifest entry names %q", args[0])
+			}
+			for _, e := range es {
+				fmt.Fprint(c.Stdout, e.Show())
 			}
 			return nil
 		},
