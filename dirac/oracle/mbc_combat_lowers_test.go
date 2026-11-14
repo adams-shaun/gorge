@@ -251,6 +251,51 @@ func braveTheSandsCase() mbc5Case {
 	}
 }
 
+// braveTheSandsTrampleCase: a Brave the Sands blocker of two attackers, one
+// of them a trampler. The trampler owes the shared blocker its toughness less
+// the damage marked on it, not less what the other attacker assigns it in the
+// same step (gorge lethalDamageNeed; CR 702.19b allows either, and gorge's
+// automatic assignment takes the first), so the trample over is the same in
+// both engines whichever attacker the kernel deals first.
+func braveTheSandsTrampleCase() mbc5Case {
+	return mbc5Case{
+		name:   "mbc5_brave_the_sands_trample",
+		prefer: []string{"Brave the Sands", "Colossal Dreadmaw", "Grizzly Bears", "Wall of Wood"},
+		// the defender's walls never attack, so they stay to block; a 0/3
+		// blocker of a 2/2 and the 6/6 trampler takes 3 or 1 of the
+		// trampler's damage as the lethal check reads the 2/2's share
+		decks: [2][]string{
+			append(deckOf(8, "Colossal Dreadmaw", deckOf(14, "Grizzly Bears")...), deckOf(18, "Forest")...),
+			append(deckOf(8, "Brave the Sands", deckOf(14, "Wall of Wood")...), append(deckOf(9, "Plains"), deckOf(9, "Forest")...)...),
+		},
+		seeds:     40,
+		attackAll: true,
+		blockAll:  true,
+		// one creature declared as the blocker of a Colossal Dreadmaw and of
+		// a Grizzly Bears in the same declaration (a Wall of Wood, the only
+		// creature of the defender's deck)
+		reached: func(g *GorgeSide) bool {
+			for i := range g.E.L.Events {
+				e := &g.E.L.Events[i]
+				if e.Kind != events.DeclareBlockers {
+					continue
+				}
+				seen := map[state.ObjID]map[string]bool{}
+				for _, pr := range e.Pairs {
+					if seen[pr[1]] == nil {
+						seen[pr[1]] = map[string]bool{}
+					}
+					seen[pr[1]][mbc5Name(g, pr[0])] = true
+					if seen[pr[1]]["Colossal Dreadmaw"] && seen[pr[1]]["Grizzly Bears"] {
+						return true
+					}
+				}
+			}
+			return false
+		},
+	}
+}
+
 // The other cards the same lowerings reach, played in the same way:
 // Instill Energy (CanAttackIfHaste over its ValidCard$ filter).
 
@@ -372,6 +417,7 @@ func TestMBCCombat5Lowers(t *testing.T) {
 		gloomSowerCase(),
 		saddlebruteCase(),
 		braveTheSandsCase(),
+		braveTheSandsTrampleCase(),
 		instillEnergyCase(),
 		curseOfTheForsakenCase(),
 		nessianBoarCase(),

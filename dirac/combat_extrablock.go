@@ -311,7 +311,7 @@ func (s *State) blockerTwoDamage(k *prep, r *dmgRec, b Slot, pw int) {
 		n1 = int(s.xblkRecs()[b].div)
 	} else {
 		_, t := s.pt(k, a1)
-		lethal := t - int(s.perms[a1].damage) - int(r.toPerm[a1])
+		lethal := t - int(s.perms[a1].damage) // marked damage only, as gorge lethalDamageNeed
 		if dt {
 			if s.perms[a1].flags&pfDeathtouched != 0 {
 				lethal = 0

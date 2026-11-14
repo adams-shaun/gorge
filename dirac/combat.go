@@ -1128,7 +1128,10 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		for i := 0; i < nb && rem > 0; i++ {
 			b := bl[i]
 			_, t := s.pt(k, b)
-			lethal := t - int(s.perms[b].damage) - int(r.toPerm[b])
+			// marked damage only: what another attacker assigns a blocker of
+			// two in this step is not read (gorge lethalDamageNeed; CR
+			// 702.19b allows either, combat_extrablock.go)
+			lethal := t - int(s.perms[b].damage)
 			if dt {
 				// A deathtouch source owes the blocker only 1, or nothing
 				// once the blocker already carries a Deathtouched mark: the
