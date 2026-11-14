@@ -939,6 +939,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		}
 	}
 	kw := s.srcKw(k)
+	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(code) && s.srcWither(k, kw)) {
 		s.infectDamageTo(k, code, n, kw) // wither is infect's creature half (a player takes ordinary damage)
 		return n
