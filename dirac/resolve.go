@@ -957,6 +957,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return n
 	}
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
@@ -1024,6 +1025,8 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 	case kop.RefEachOpponent:
 		// gorge Defined$ Opponent: AliveFrom(controller) without it
 		return s.oppsFrom(s.res.e.ctrl)
+	case kop.RefTriggerOpponents:
+		return s.triggerOpps() // trig_triggeropps.go
 	}
 	return seatOne(s.playerRef(k, r))
 }
