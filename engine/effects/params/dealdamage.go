@@ -49,6 +49,13 @@ type DealDamageParams struct {
 	// ExcessSVar$ and ExcessSVarCondition$ (CR 120.10), trimmed.
 	ExcessSVar          string
 	ExcessSVarCondition string
+	// ExcessDamage$ and ExcessDamageCondition$ (CR 120.4a, 120.10), trimmed:
+	// the player spec that takes the damage beyond lethal ("Excess damage is
+	// dealt to that creature's controller instead") and the filter the damage
+	// SOURCE must match for the redirect to apply (Ram Through's
+	// Card.withTrample).
+	ExcessDamage          string
+	ExcessDamageCondition string
 	// DamageSource is DamageSource$, trimmed (newDamageRider's spec).
 	DamageSource string
 	// DamageMap is DamageMap$ True: mark the damage for a DamageResolve.
@@ -90,8 +97,8 @@ var dealDamageKnownKeys = [...]string{
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionTargetValidTargeting", "ConditionTargetsSingleTarget", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"DamageMap", "DamageSource", "Defined", "DefinedCards", "DefinedDesc", "DefinedTarget",
-	"Description", "DivideEvenly", "DividedAsYouChoose", "ExcessSVar",
-	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
+	"Description", "DivideEvenly", "DividedAsYouChoose", "ExcessDamage",
+	"ExcessDamageCondition", "ExcessSVar", "ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",
@@ -160,6 +167,8 @@ func compileDealDamage(sa *cards.SA) *DealDamageParams {
 	p.RememberDamaged = strings.TrimSpace(sa.ParamStr(cards.PKRememberDamaged)) != ""
 	p.ExcessSVar = strings.TrimSpace(sa.ParamStr(cards.PKExcessSVar))
 	p.ExcessSVarCondition = strings.TrimSpace(sa.ParamStr(cards.PKExcessSVarCondition))
+	p.ExcessDamage = strings.TrimSpace(sa.ParamStr(cards.PKExcessDamage))
+	p.ExcessDamageCondition = strings.TrimSpace(sa.ParamStr(cards.PKExcessDamageCondition))
 	p.DamageSource = DamageSourceParam(sa)
 	p.DamageMap = isTrue(sa.ParamStr(cards.PKDamageMap))
 	p.NoPrevention = isTrue(sa.ParamStr(cards.PKNoPrevention))

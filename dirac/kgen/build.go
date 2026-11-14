@@ -27,6 +27,7 @@ type poolTables struct {
 	ovSubs    []ovSub
 	emblems   []kop.Emblem
 	subtypes  []string // pool subtype names (index = pool subtype id)
+	textWords bool     // the pool holds a lowered ChangeText: CardDef.TextWords is filled (textreach.go)
 	subIdx    map[string]int
 	tokenIdx  map[string]int   // token script key -> pool index
 	cardIdx   map[string]int   // pool card name -> pool index (multi-face links)
@@ -96,6 +97,11 @@ func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
 		// is 1 + the index, the kernel's genState.parad bit
 		if _, ok := pt.paradigm[c.Name]; c.Paradigm && len(c.Refusals) == 0 && !ok {
 			pt.paradigm[c.Name] = len(pt.paradigm)
+		}
+	}
+	for _, c := range lw.cards {
+		if c.HasChangeText && len(c.Refusals) == 0 {
+			pt.textWords = true // a ChangeText card: every card of the table carries TextWords (textreach.go)
 		}
 	}
 	for i, t := range lw.tokens {
@@ -659,7 +665,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.MorphCost != nil {
-		d.MorphFamily = c.MorphFamily
+		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
 		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
 			return err
 		}
@@ -856,6 +862,17 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.AnimateEnchant != nil {
+		// the Licids' self-granted enchant: the kernel's Aura state-based
+		// action reads it once the card's own animation makes it an Aura
+		// (lower_animateaura.go)
+		if d.Enchant.Kind != kop.TgtNone {
+			return fmt.Errorf("a granted enchant beside a printed one")
+		}
+		if d.Enchant, err = cb.target(*c.AnimateEnchant); err != nil {
+			return err
+		}
+	}
 	if c.Convoke {
 		// CR 702.51a: printed convoke; the cast taps creatures for its
 		// mana cost (dirac/kw_convoke.go)
@@ -983,6 +1000,9 @@ func (cb *cardBuilder) record() error {
 		}
 		d.HasAltAdd = true
 	}
+	if cb.pt.textWords {
+		d.TextWords = c.TextWords
+	}
 	d.Leyline = c.Leyline
 	d.World = c.World
 	d.SelfFlash = c.SelfFlash
@@ -1009,6 +1029,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
+	d.Ascend = c.Ascend
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1758,6 +1779,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// off the battlefield nothing is solved (gorge clears Solved on
 		// the zone move)
 		kf.Pred, kf.PredN = kop.PredSolved, int16(c.CmpN)
+	case cmpRenowned:
+		// the arena designation bit (kernel act_renown.go); off the
+		// battlefield nothing is renowned (predCardCold)
+		kf.Pred, kf.PredN = kop.PredRenowned, int16(c.CmpN)
 	case cmpSuspected:
 		// the arena designation bit (kernel predPermCold); off
 		// the battlefield nothing is suspected (predCardCold)
@@ -2101,6 +2126,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefLastCreated, nil
 	case rTaxedAttacker:
 		return kop.RefTaxedAttacker, nil
+	case rTriggerOpps:
+		return kop.RefTriggerOpponents, nil
 	case rSrcOwner:
 		return kop.RefSrcOwner, nil
 	case rTriggeredOwner:
@@ -2250,8 +2277,10 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
+	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
+	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2363,7 +2392,8 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
-	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone}
+	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
+	cBlessing: kop.CondBlessing}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2470,6 +2500,9 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		return 0, err
 	}
 	if ko.RemoveKw, err = kwMask(o.RemoveKw); err != nil {
+		return 0, err
+	}
+	if ko.CantHaveKw, err = kwMask(o.CantHaveKw); err != nil {
 		return 0, err
 	}
 	if len(o.GrantAbility) > 2 {

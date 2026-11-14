@@ -19,6 +19,7 @@ Deepchannel Mentor
 Dreadmalkin
 Electrickery
 Encampment Keeper
+Ethereal Haze
 Exultant Skymarcher
 Falthis, Shadowcat Familiar
 Foil
@@ -26,8 +27,10 @@ Forest
 Frogify
 Future Sight
 General Kreat, the Boltbringer
+Genju of the Fields
 Grakk the Pacifist
 Gray Merchant of Asphodel
+Hada Spy Patrol
 Hand of Death
 Helm of the Ghastlord
 Hunger of the Howlpack
@@ -73,6 +76,7 @@ Telekinetic Sliver
 Thassa's Oracle
 Thermo-Alchemist
 Thunderclap
+Tibalt, Rakish Instigator
 Toothy, Imaginary Friend
 Trostani's Judgment
 Unchained Berserker
