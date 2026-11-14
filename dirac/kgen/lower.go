@@ -973,7 +973,7 @@ var expandedKeywords = map[string]bool{
 	"Echo": true,
 	// Renown (CR 702.112a): gorge kwRenown's combat-damage trigger, intervening
 	// if Card.Self+!IsRenowned, whose body is DB$ PutCounter | Renown$ N
-	// (lower_effect.go renown; the designation is act_renown.go)
+	// (lower_effect.go renown; the designation is monstrosity() in act_monstrosity.go)
 	"Renown": true,
 }
 

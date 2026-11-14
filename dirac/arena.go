@@ -64,7 +64,7 @@ const (
 	mechAtch3                       // seat 3
 	mechGoad2                       // goad[2]: slots whose permanent seat 2 goaded (read only when MaxSeats > 2; act_goad.go)
 	mechGoad3                       // goad[3]: the same, seat 3
-	mechRenowned                    // slots whose permanent is renowned (CR 702.112b; act_renown.go)
+	mechRenowned                    // slots whose permanent is renowned (CR 702.112b; act_monstrosity.go)
 	numMech
 )
 
