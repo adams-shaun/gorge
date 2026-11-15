@@ -106,3 +106,23 @@ func (s *State) anyCand(k *prep) bool {
 	s.searchCands(k, &d)
 	return d.N > 0
 }
+
+// pickEntryPlayer is who a picked card o enters the battlefield under, p the
+// fetch player: graveexile enters a hidden pick under its owner unless
+// GainControl$ (SrUnderYourControl); a GainControl$ pick from a fetch
+// player's graveyard (SrOwnZone, The Weaver King) enters under the resolving
+// controller, not the fetch player; else the fetch player.
+func (s *State) pickEntryPlayer(o Obj, p uint8) uint8 {
+	fl := s.g.pickF
+	ep := p
+	if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
+		ep = s.objs[o].owner()
+	}
+	if fl&(kop.SrUnderYourControl|kop.SrOwnZone) == kop.SrUnderYourControl|kop.SrOwnZone {
+		ep = s.res.e.ctrl
+	}
+	if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
+		ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
+	}
+	return ep
+}
