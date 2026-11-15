@@ -579,7 +579,7 @@ func restrSrcNone(rs *restrData, d *payDesc, cost *kop.ManaCost, av *avail, extr
 // spend counted: a widened source's own unit becomes a unit of the widened
 // colours; an evaluated amount (Helga) is returned apart (multi[:nm]): that
 // many mana of one colour.
-func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot) (t avail, multi [2]uint8, nm int) {
+func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot) (t avail, multi [2]dynUnit, nm int) {
 	return s.restrSrcAvailD(k, p, d, av, skip, false)
 }
 
@@ -588,7 +588,7 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 // never lists a source whose tap fires an unvetted Taps watcher
 // (mana_tapsdefer.go), restricted or not, so its restricted mana funds no
 // planned payment; the potential walks still count it.
-func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]uint8, nm int) {
+func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]dynUnit, nm int) {
 	t = *av
 	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
@@ -634,7 +634,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				s.capFull(StallRestrSrc)
 				continue
 			}
-			multi[nm] = v.manaN
+			multi[nm] = dynUnit{n: v.manaN, cols: uint8(v.manaCol) & 0x3f}
 			nm++
 		}
 	}
@@ -662,15 +662,23 @@ func (a *avail) addXv(v *pcard) {
 	}
 }
 
+// dynUnit is one evaluated-amount restricted source's unit (rkDyn): n mana
+// of one colour of cols (the ability's own colours: Helga's any colour, Vhal,
+// Candlekeep Researcher's {C} alone).
+type dynUnit struct{ n, cols uint8 }
+
 // affordsMulti: a, with each of ns a unit of that many mana of one colour
 // (any of W U B R G), pays cost plus extra generic.
-func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []uint8) bool {
+func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []dynUnit) bool {
 	if len(ns) == 0 {
 		return a.affords(cost, pipMaskOf(cost), extra)
 	}
-	for c := 0; c < 5; c++ {
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if ns[0].cols&(1<<c) == 0 {
+			continue
+		}
 		b := a
-		b.addUnits(1<<c, ns[0])
+		b.addUnits(1<<c, ns[0].n)
 		if b.affordsMulti(cost, extra, ns[1:]) {
 			return true
 		}
@@ -912,14 +920,17 @@ func (s *State) wideSrcAvailAdd(k *prep, p uint8, a *avail, d *payDesc, skip Slo
 }
 
 // maxXMulti is maxX with each of ns a unit of that many mana of one colour.
-func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
+func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []dynUnit) int {
 	if len(ns) == 0 {
 		return a.maxX(cost, pipMask)
 	}
 	best := -1
-	for c := 0; c < 5; c++ {
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if ns[0].cols&(1<<c) == 0 {
+			continue
+		}
 		b := a
-		b.addUnits(1<<c, ns[0])
+		b.addUnits(1<<c, ns[0].n)
 		best = max(best, b.maxXMulti(cost, pipMask, ns[1:]))
 	}
 	return best
