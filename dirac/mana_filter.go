@@ -504,21 +504,19 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier, and
-// sacrificing itself alone, an Eldrazi Scion's: gorge pay
-// PlanLastResortCostOK prices both), or a deferred TriggersWhenSpent$ source
-// (Pyromancer's Goggles; mana_deferred.go), or an unrestricted Combo Any one
-// (Axebane Guardian; mana_comboany.go), so a filter beside it is no
-// filter-only board (filtOnly). Lion's Eye Diamond's sacrifice also discards
-// the hand: no planner unit (mana_discardhand.go), so it stays a gap.
+// spend restriction, each-colour production, a cost beyond {T} (but
+// {T} plus sacrificing itself, a Treasure's, and sacrificing itself alone,
+// an Eldrazi Scion's, are the census's last-resort tier: gorge
+// pay.PlanLastResortCostOK), or a
+// deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
+// or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
+// so a filter beside it is no filter-only board (filtOnly).
 func censusGapMana(a *kop.Ability) bool {
 	if a.AFlags&kop.AfLatent != 0 {
 		return false
 	}
 	f := a.Cost.Flags
-	sacOnly := f == kop.CostSacSelf && !a.Cost.DiscardHand
-	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && !sacOnly ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
