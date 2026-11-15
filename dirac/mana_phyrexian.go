@@ -102,6 +102,9 @@ var DebugNoPhyrexianLife bool
 //
 //go:noinline
 func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.ManaCost, av *avail) bool {
+	if !s.phyActUngrantedOK(k, sl, a, p, c) {
+		return false
+	}
 	n := min(c.TbN(), 5)
 	life := int(s.pl[p].life)
 	base := c
@@ -121,4 +124,31 @@ func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.M
 		}
 	}
 	return false
+}
+
+// phyActUngrantedOK is the grant half of a Phyrexian activation's offer under
+// gorge's surface. gorge's planner prices only the mana half of such a cost
+// (pay.PlanManaHalf) and witnesses no mana ability an effect grants, so when
+// that half is paid by the pool and the printed sources the play is a
+// potential play with a witness and no prefix search, and its lowering pays the
+// pips through the offer gate over the printed sources and the life
+// (autoPayPhyrexian). A pip only a granted ability could fund (a Mountain's
+// any-colour mana under Chromatic Lantern, the life short of two) leaves
+// gorge no way to make the play, though CR 602.2b allows it. A mana half the
+// printed sources cannot pay is the scripted route's: grantCap's search.
+func (s *State) phyActUngrantedOK(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.ManaCost) bool {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || k.gen == nil || len(k.gen.grantPC) == 0 {
+		return true
+	}
+	ex := NoSlot
+	if a.Cost.Flags&kop.CostTap != 0 {
+		ex = sl
+	}
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	half := c
+	half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
+	if !s.affordsUngrantedFor(k, p, &half, ex, d) {
+		return true
+	}
+	return s.affordsUngrantedFor(k, p, &c, ex, d)
 }
