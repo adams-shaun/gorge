@@ -153,6 +153,7 @@ Quake, Agent of S.H.I.E.L.D.
 Quicksilver, Brash Blur
 Rapid Rescue
 Red Guardian, Super-Soldier
+Red Hulk
 Red Room Recruit
 Reptil, Dinomorpher
 Repulsor Blast
@@ -167,8 +168,10 @@ S.H.I.E.L.D. Spy Kit
 Savage Land Dinosaur
 Scientist Supreme of A.I.M.
 Serpent Specialist
+Shang-Chi, Master of Kung Fu
 She-Hulk, Jade Defender
 Shuri, Wakandan Inventor
+Speed, Young Avenger
 Speedball, New Warrior
 Spider-Man, To the Rescue
 Spider-Woman, Secret Agent
@@ -187,6 +190,7 @@ Swamp
 Swordsman, Sharp Scoundrel
 Take Up the Shield
 Team Tactics
+The Astonishing Ant-Man
 The Coming of Galactus
 The Masters of Evil
 The Ruinous Wrecking Crew
@@ -231,5 +235,6 @@ White Widow, Free Agent
 Wiccan, Rising Magician
 Widow's Bite
 Winter Soldier, Icy Assassin
+Wolverine, Fierce Fighter
 Worlds Within Worlds
 Yellowjacket, Heartless Marauder
