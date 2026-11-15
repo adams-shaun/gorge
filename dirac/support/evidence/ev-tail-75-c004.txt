@@ -4,6 +4,7 @@ Ali Baba
 Ancient Gold Dragon
 Anointer Priest
 Attune with Aether
+Avatar of Growth
 Back in Town
 Barrow Witches
 Bathe in Dragonfire
@@ -15,6 +16,7 @@ Bond of Insight
 Bonehoard
 Bound in Silence
 Brandywine Farmer
+Catacomb Sifter
 Chaotic Backlash
 Death's Shadow
 Deepwood Wolverine
@@ -54,6 +56,7 @@ Mana Vault
 Mass Calcify
 Mindwrack Harpy
 Minotaur, Roxxon CEO
+Momentum Rumbler
 Mountain
 Muck Rats
 Neonate's Rush
@@ -63,7 +66,9 @@ Peregrine Mask
 Phantasmal Dreadmaw
 Plains
 Plasmancer
+Portent of Betrayal
 Privileged Position
+Pyrrhic Blast
 Quest for Renewal
 Rally the Peasants
 Reclaim the Wastes
@@ -77,11 +82,14 @@ Seething Pathblazer
 Sizzle
 Skyline Cascade
 Sonic Screwdriver
+Sootstoke Kindler
 Spitebellows
+Spitfire Handler
 Sunscorched Desert
 Swamp
 Swarm of Rats
 Tectonic Edge
+Thopter Assembly
 Threnody Singer
 Thundersteel Colossus
 Trained Caracal
@@ -89,6 +97,7 @@ Twiddle
 Undead Servant
 Ursine Champion
 Venomous Changeling
+Warmonger Hellkite
 Wizard Replica
 Woodland Stream
 Yawgmoth Demon

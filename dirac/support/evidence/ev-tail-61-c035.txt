@@ -1,0 +1,7 @@
+Forest
+Goblin Chariot
+Goblin Chieftain
+Island
+Mountain
+Plains
+Swamp

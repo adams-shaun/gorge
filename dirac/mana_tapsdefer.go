@@ -100,6 +100,22 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 	return d
 }
 
+// availLeavesOut reports whether availFor left the planner-deferred source at
+// sl out of the availability its walk is building: a deferred source is no
+// census unit (gorge's census never lists it) and only the any-mana and gaps
+// modes (availScript) put its relaxed unit back. A cost that taps the source
+// then has no mana of its own to take out, and removing its printed mana would
+// take a floating unit of the pool instead: Cabal Pit's {B},{T}, sacrifice
+// beside Price of Glory, paid by the {B} a scripted prefix tapped from a
+// Swamp into the pool (CR 602.2b). The test is availFor's skip.
+func (s *State) availLeavesOut(k *prep, sl Slot) bool {
+	if !s.deferLive(k) || s.g.availX&(availWalk|availHyp|availGaps|availAny) != 0 {
+		return false
+	}
+	p := s.perms[sl].ctrl
+	return s.scriptTapsDefer(k, p).has(sl) && s.planDeferred(k, p, sl)
+}
+
 // scriptTapsDefer is p's activatable Taps-deferred mana sources, a slot
 // mask: the census gap a live Defer-class watcher makes of a source's tap.
 // Which sources defer is a runtime fact of the watchers alive, so no card
@@ -177,11 +193,11 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
-		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
+		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
-		if !s.tapsGapActivatable(k, sl) {
-			continue
+		if !s.tapsGapReady(k, sl) || s.genLost(k, sl) && !s.landSetLost(k, sl) {
+			continue // a land under a land-type setter still taps for its intrinsic mana (CR 305.7)
 		}
 		m = m.with(sl)
 	}
@@ -193,7 +209,13 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 // CantBeActivated lock (cast_cantactivate.go). Every script gap arm that taps
 // its source asks it.
 func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) &&
+	return s.tapsGapReady(k, sl) && !s.genLost(k, sl)
+}
+
+// tapsGapReady is tapsGapActivatable without the lost-abilities test: the
+// source is untapped, not summoning-sick and under no CantBeActivated lock.
+func (s *State) tapsGapReady(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
