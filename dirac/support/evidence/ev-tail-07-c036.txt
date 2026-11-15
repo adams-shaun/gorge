@@ -1,3 +1,4 @@
+Avabruck Caretaker
 Azorius Herald
 Emerge Unscathed
 Exuberant Fuseling
@@ -7,16 +8,23 @@ Force Spike
 Forest
 Frogify
 Gamekeeper
+Give
+Iron League Steed
 Island
 Kor Celebrant
+Landslide
 Majestic Metamorphosis
 Mogg Raider
 Mountain
+One with Death
 Plains
 Rampaging Brontodon
 Salvage
 Speaker of the Heavens
 Spitting Slug
 Sudden Spinnerets
+Swamp
 Taunting Kobold
 Wellwisher
+Wormhole Serpent
+Zephid

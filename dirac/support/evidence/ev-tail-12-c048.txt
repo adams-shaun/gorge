@@ -1,0 +1,6 @@
+Forest
+Island
+Laboratory Brute
+Mountain
+Plains
+Swamp

@@ -1,69 +1,202 @@
+Aerial Maneuver
+Alena, Kessig Trapper
+Angelfire Ignition
 Arcane Teachings
 Archmage's Charm
 Arctic Merfolk
+Argent Mutation
+Armistice
+Armory of Iroas
 Aspect of Manticore
+Astral Steel
+Aura Flux
+Auriok Glaivemaster
 Autumn Willow, Harmony
 Aven Reedstalker
+Baloth Woodcrasher
+Barkhide Troll
+Battle Brawler
+Battlefield Promotion
 Battlefly Swarm
+Benthic Giant
 Black Dragon
+Blade Historian
+Bloodchief's Thirst
 Bogbrew Witch
+Bone Saw
 Bumi's Feast Lecture
 Burning Wish
+Bygone Marvels
+Calamity of Cinders
 Campfire
+Carapace
+Caregiver
+Cavalier of Flame
 Charnel Serenade
 Cinder Hellion
+Converter Beast
+Coordinated Assault
 Coral Commando
+Crash the Party
+Cursed Minotaur
+Cut Down
+Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Daxiver, Izzet Electromancer
 Delayed Blast Fireball
 Devoted Paladin
+Devout Monk
+Donatello's Science Lesson
+Dripping-Tongue Zubera
+Dross Hopper
 Drowsing Tyrannodon
+Echoes of the Kin Tree
+Eiganjo Free-Riders
+Elderfang Disciple
+Elite Archers
+Elven Lyre
 Emissary of Hope
 Equestrian Skill
+Erkenbrand, Lord of Westfold
 Ertai Resurrected
+Evolution Charm
 Eyeblight Massacre
+Falkenrath Pit Fighter
+False Prophet
+Famine
 Fell Stinger
 Final-Sting Faerie
 Forest
+Fountain Watch
 Gift of Growth
 Goblin Sharpshooter
+Guardian Augmenter
+Gut Shot
+Guul Draz Overseer
 Hell Mongrel
 Hellraiser Goblin
+Highland Giant
+Highspire Mantis
+Hill Giant
 Horncaller's Chant
 Hound Tamer
+Hulking Ogre
+Ideas Unbound
 Impetuous Protege
+Industrial Advancement
+Infantry Veteran
+Innistrad Charm
 Island
+Isolation Cell
 Jace Beleren
+Jodah's Codex
 Jousting Lance
 Kalonian Twingrove
 Kaya's Ghostform
+Kithkin Billyrider
+Knight of Sorrows
+Kraul Foragers
+Latch Seeker
+Lathnu Hellion
+Let the Galaxy Burn
+Leveler
 Lightning Elemental
+Long-Lost Lances
+Magus of the Future
+Make Mischief
 Mire in Misery
+Mirror of Galadriel
 Mishra's Research Desk
 Moldgraf Millipede
+Monastery Swiftspear
+Most Wanted
 Mountain
 Mwonvuli Ooze
+Nadier's Nightblade
 Naya Battlemage
+Necroskitter
+Nimbus Swimmer
 Noble Steeds
+Nomad Mythmaker
+Onyx Mage
+Oxidda Finisher
+Paradigm Shift
+Plaguemaw Beast
 Plains
+Plunder
 Pouncing Cheetah
+Prava of the Steel Legion
+Presence of the Wise
+Protection Magic
+Psionic Snoop
 Purraj of Urborg
+Pygmy Pyrosaur
+Ranger Class
+Ranger-Captain of Eos
 Raven Wings
+Regent's Authority
 Rejuvenating Springs
+Repentant Vampire
+Riddle Gate Gargoyle
 Rigging Runner
+Roar of Reclamation
+Robber Fly
+Rorix Bladewing
+Rosecot Knight
+Roving Harper
+Salvage Titan
+Sandsteppe War Riders
+Scourge of the Nobilis
+Screams of the Damned
+Seagraf Skaab
+Seek New Knowledge
+Seshiro the Anointed
+Sewer Crocodile
 Sheoldred, Whispering One
+Shield Mate
+Shielded by Faith
 Shocker
+Siren of the Silent Song
 Skyblinder Staff
+Skyhunter Strike Force
+Skyshroud Troopers
+Smelt
 Snapping Thragg
+Soul Barrier
 Soul-Strike Technique
+Spark Reaper
 Spidersilk Net
 Spire Golem
+Spitemare
+Stabbing Pain
 Stir the Pride
+Straw Soldiers
+Street Spasm
 Stronghold Assassin
+Summit Apes
+Sun Droplet
+Sunscape Apprentice
 Swamp
+Swift Maneuver
+Synchronous Sliver
+Syphon Sliver
+Terramorph
+The Hive
 The Spike Cactus
 Thornscape Apprentice
+Thundering Tanadon
 Thunderous Wrath
+Thwart
+Tormented Hero
+Tourach's Canticle
 Tresserhorn Sinks
+Ulrich's Kindred
+Valeria Richards, Precocious
 Vaultbreaker
+Wall Off
 Warbeast of Gorgoroth
+Wight
+Wolfrider's Saddle
+Workshop Assistant
+Zulaport Cutthroat

@@ -7,6 +7,8 @@ Forest
 Gavony Silversmith
 Ghost-Lit Raider
 Go-Shintai of Shared Purpose
+Homicidal Seclusion
+Honeymoon Hearse
 Horizon Explorer
 Imperial Oath
 Island
@@ -21,8 +23,10 @@ Pearled Unicorn
 Pious Wayfarer
 Plains
 Promise of Tomorrow
+Regisaur Alpha
 Reverent Mantra
 Screeching Drake
+Selesnya Charm
 Sell-Sword Brute
 Serra's Guardian
 Serum Tank
@@ -41,6 +45,7 @@ Thalia's Lieutenant
 Thopter Mechanic
 Thraben Valiant
 Tor Giant
+Treespring Lorian
 Updraft
 Vulpine Goliath
 War Falcon

@@ -1,7 +1,138 @@
+Akiri, Line-Slinger
+Ashiok's Adept
+Attended Socialite
+Atzocan Seer
+Balm of Restoration
 Banehound
 Banish from Edoras
+Basal Sliver
+Bearscape
+Benalish Honor Guard
+Bestial Fury
+Birds of Paradise
+Bloated Contaminator
+Bloodline Shaman
+Borrowed Grace
+Bramble Creeper
+Browse
+Caligo Skin-Witch
+Canyon Jerboa
+Celestial Unicorn
+Churning Eddy
+Cleanfall
+Clear the Land
+Clear the Mind
+Cliffhaven Kitesail
+Clinging Mists
+Crawl from the Cellar
+Crown of Skemfar
+Deadly Wanderings
+Death-Greeter's Champion
+Demonic Collusion
+Desperate Castaways
+Devotee of Strength
+Diplomatic Escort
+Distract
+Doomfall
+Dragon Hatchling
+Dragonspeaker Shaman
+Duskshell Crawler
+Enhanced Awareness
+Ephara's Dispersal
+Evolutionary Leap
+Exultant Cultist
+Fierce Witchstalker
+Fire
+Fire Ants
 Forest
+Fyndhorn Brownie
+Gaea's Anthem
+Gather the Pack
+Goblin Gathering
+Grim Flowering
+Hardy Veteran
+Hidden Path
+Hua Tuo, Honored Physician
+Hungry Flames
+Icy Manipulator
+Inferno of the Star Mounts
+Iron Will
 Island
+Jace, Arcane Strategist
+Jade Idol
+Jeskai Banner
+Jilt
+Jump
+Juvenile Gloomwidow
+Kami of Transience
+Kyren Glider
+Leeching Licid
+Llanowar Loamspeaker
+Loathsome Chimera
+Mage Duel
+Metallic Sliver
+Mortiphobia
 Mountain
+Nahiri's Binding
+Order of Midnight
+Outrider of Jhess
+Patient Rebuilding
+Placid Rottentail
 Plains
+Planar Gate
+Prakhata Pillar-Bug
+Promise of Aclazotz
+Prophetic Titan
+Protect the Negotiators
+Pteron Ghost
+Ravenous Daggertooth
+Ravenous Gigamole
+Ravenous Vampire
+Razorclaw Bear
+Razorfin Hunter
+Ring of Valkas
+Rise of Eagles
+River Kaijin
+Rolling Stones
+Rune Snag
+Sadistic Slash
+Settlement Blacksmith
+Shadow, Mysterious Assassin
+Sheoldred's Headcleaver
+Sigil of Myrkul
+Skrelv, Defector Mite
+Sound the Call
+Spellstutter Sprite
+Spoils of Evil
+Squirrel Sanctuary
+Star Whale
+Storm Front
+Swaggering Corsair
 Swamp
+Tamiyo's Safekeeping
+Temporary Insanity
+Tendrils of Corruption
+The Blackstaff of Waterdeep
+Think Tank
+Thran Foundry
+Tidal Wave
+Tishana's Wayfinder
+Tomb Robber
+Tower Defense
+Tranquility
+Tribute Mage
+Trigon of Mending
+Underdark Explorer
+Unhallowed Phalanx
+Vault 87: Forced Evolution
+Village Elder
+Vodalian Serpent
+Voltaic Brawler
+Voracious Null
+Wasteland Viper
+Watchful Automaton
+Watchful Blisterzoa
+Weakstone's Subjugation
+Well of Life
+Windfall
+Worldfire

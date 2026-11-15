@@ -1,0 +1,6 @@
+Brainbite
+Forest
+Island
+Mountain
+Plains
+Swamp
