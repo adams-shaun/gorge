@@ -1,13 +1,22 @@
+Abyssal Specter
+Argothian Opportunist
+Ashes to Ashes
+Assault Formation
 Balduvian Dead
 Balduvian Horde
 Barrier Breach
+Basic Conjuration
 Battering Craghorn
+Bearscape
+Blessed Light
 Bonesplitter Sliver
 Brazen Freebooter
+Callous Dismissal
 Dark Tutelage
 Dinosaur Stampede
 Domri's Nodorog
 Dragonshift
+Dreamscape Artist
 Dregscape Zombie
 Dromoka Captain
 Elven Palisade
@@ -24,34 +33,59 @@ Freewind Falcon
 Gandalf, Shadow's Foe
 Garbage Elemental
 Gleam of Authority
+Guardian Augmenter
+Haazda Officer
 Heart Sliver
+Herald of Secret Streams
+Hua Tuo, Honored Physician
+Hunter's Insight
+Illusory Gains
 Initiate's Companion
 Iron Lad, Young Avenger
 Island
 Kalastria Healer
 Koth of the Hammer
+Laser Screwdriver
 Lyla, Holographic Assistant
 Magister Sphinx
+Mercurial Pretender
 Meteor Storm
+Molten Ravager
+Monk Idealist
 Mountain
 Mudhole
+Nebelgast Herald
+Nyx-Fleece Ram
+Ogre Jailbreaker
 Ogre Warrior
+Omenspeaker
 Pitiless Gorgon
 Plains
 Redwood Treefolk
+Regenerate
+Roaring Slagwurm
 Safehold Sentry
 Scattershot
 Seasoned Pyromancer
 Silverglade Pathfinder
 Skarrgan Skybreaker
 Soulmender
+Spoils of Evil
+Steel-Plume Marshal
 Stew the Coneys
 Swamp
 Swift Warden
+Séance
 Tempestra, Dame of Games
+The Antiquities War
 Thoughtflare
+Thrashing Wumpus
+Thrun, the Last Troll
 Toski, Bearer of Secrets
+Watcher of the Spheres
+Welding Sparks
 Winged Hive Tyrant
 Wound Reflection
 Wriggling Grub
+Wu Elite Cavalry
 Yargle and Multani

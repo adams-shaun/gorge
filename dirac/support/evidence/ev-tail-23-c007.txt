@@ -1,3 +1,4 @@
+Aether Herder
 Air Marshal
 Airdrop Condor
 Ajani Goldmane
@@ -29,6 +30,7 @@ Boros Mastiff
 Breath Weapon
 Call the Bloodline
 Casey Jones, Back Alley Brute
+Celestial Force
 Ceremonial Knife
 Cloud Sprite
 Cold-Water Snapper
@@ -83,6 +85,8 @@ Jeskai Windscout
 Junktroller
 Keymaster Rogue
 Kolaghan Skirmisher
+Kozilek's Channeler
+Lash of the Balrog
 Lens Flare
 Linvala, Keeper of Silence
 Llanowar Knight
@@ -103,6 +107,7 @@ Orcish Hellraiser
 Ornery Goblin
 Pack's Favor
 Pawn of Ulamog
+Perilous Shadow
 Phantasmal Forces
 Pillardrop Warden
 Plains
@@ -111,10 +116,12 @@ Rakshasa Deathdealer
 Rath's Edge
 Returned Reveler
 Riptide Turtle
+Rise from the Grave
 Ritual of Rejuvenation
 Salvaged Manaworker
 Sardian Avenger
 Saruman's Trickery
+Sea Eagle
 Sea Gate Restoration
 Searing Wind
 Seismic Mage
@@ -122,9 +129,11 @@ Selfless Savior
 Serpentine Ambush
 Shattering Pulse
 Sidewinder Naga
+Siegehorn Ceratops
 Smash
 Solarion
 Sonic Seizure
+Sowing Mycospawn
 Spark Elemental
 Spark Jolt
 Spike Jester

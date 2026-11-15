@@ -1,14 +1,26 @@
 A-Akki Ronin
+A-Guide of Souls
+A-Oran-Rief Ooze
+A-Urza, Powerstone Prodigy
+Abzan Advantage
+Afterlife Insurance
 Aftershock
 Aim High
+Ancestral Knowledge
 Animal Boneyard
 Ardent Elementalist
+Armorcraft Judge
+Bonded Herdbeast
+Bramblecrush
+Brazen Buccaneers
 Bringer of the Green Dawn
 Broodhatch Nantuko
 Call of the Wild
 Canopy Baloth
+Carnival of Souls
 Circle of Flame
 Confront the Unknown
+Crawl from the Cellar
 Cruel Cut
 Cruel Deceiver
 Curious Pair
@@ -16,6 +28,8 @@ Cursecatcher
 Davriel, Rogue Shadowmage
 Deadly Recluse
 Death Pulse
+Demonic Lore
+Depose
 Despoil
 Dire Tactics
 Draconic Destiny
@@ -23,32 +37,53 @@ Fill with Fright
 Final Flourish
 Forest
 Furious Resistance
+Gearsmith Prodigy
+Gleam of Authority
 Gravitational Shift
 Gwaihir, Greatest of the Eagles
+Hazoret's Monument
+Innocent Traveler
 Island
 Jace's Triumph
 Jaspera Sentinel
+Jhoira's Familiar
 Kavu Aggressor
 Legolas Greenleaf
+Lightning Elemental
+Liliana's Influence
 Magistrate's Scepter
+Mawcor
 Mountain
 Mystery Key
 Oran-Rief Recluse
 Overgrowth
+Pashalik Mons
 Pegasus Refuge
 Pincher Beetles
 Plague Dogs
 Plains
+Prickleboar
+Pride Guardian
+Sage's Row Savant
 Sharktocrab
+Shu Grain Caravan
 Spiteful Sliver
+Spore Cloud
 Streetwise Negotiator
+Subversion
 Swamp
 The First Iroan Games
+Thraben Foulbloods
+Tin-Wing Chimera
 Trained Armodon
 Traverse the Outlands
 Trespasser's Curse
 Unchecked Growth
+Urborg Shambler
+Vinelasher Kudzu
 Viridian Zealot
+Voidwielder
 Wall of Roots
+Warden of the Wall
 Wei Infantry
 Zulaport Duelist

@@ -15,6 +15,7 @@ Courier Hawk
 Courier's Capsule
 Creeping Trailblazer
 Curse of Shallow Graves
+Daring Fiendbonder
 Empty the Laboratory
 Erratic Visionary
 Ethereal Champion
@@ -47,12 +48,15 @@ Lorehold Command
 Lorescale Coatl
 Malachite Talisman
 Manamorphose
+Marwyn, the Nurturer
 Moss Monster
 Mountain
 Nagging Thoughts
+Nardole, Resourceful Cyborg
 Norn's Disassembly
 Onyx Talisman
 Penumbra Bobcat
+Phantasmal Dragon
 Plains
 Plaxmanta
 Pol Jamaar, Illusionist

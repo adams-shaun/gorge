@@ -1,3 +1,4 @@
+A-Riveteers Initiate
 Abstergo Entertainment
 Abstruse Interference
 Academy Drake
@@ -16,6 +17,7 @@ Blade of Selves
 Blood Money
 Brash Taunter
 Brood of Cockroaches
+Broodhunter Wurm
 Brutal Expulsion
 Bureau Headmaster
 Calamity Bearer
@@ -30,18 +32,22 @@ Citadel of Pain
 Cobalt Golem
 Collective Nightmare
 Consecrated by Blood
+Countersquall
 Crested Herdcaller
 Cryptolith Rite
 Crystal, Inhuman Princess
 Dauthi Warlord
 Deglamer
+Destructive Revelry
 Dismiss
 Downsize
+Dragon Mask
 Dragon's Approach
 Dragonscale Boon
 Electrostatic Field
 Elvish Warmaster
 Ephara's Warden
+Execute
 Extinguish All Hope
 Faerie Trickery
 Fireflux Squad
@@ -58,6 +64,7 @@ Goldenglow Moth
 Grappling Sundew
 Grave Strength
 Grotesque Demise
+Henge Guardian
 Hideous End
 Highland Weald
 Ill-Tempered Cyclops
@@ -89,6 +96,7 @@ Moment of Defiance
 Mountain
 Murder of Crows
 Nekrataal
+Nighthowler
 Nyx Infusion
 Ob Nixilis's Cruelty
 Ojutai's Breath
@@ -114,11 +122,14 @@ Silumgar Butcher
 Sima Yi, Wei Field Marshal
 Sinkhole
 Skyknight Legionnaire
+Skyscanner
 Soramaro, First to Dream
+Sparkcaster
 Species Gorger
 Spelleater Wolverine
 Spiketail Hatchling
 Spinal Villain
+Spirit Loop
 Star Pupil
 Starfall
 Subterranean Tremors
@@ -142,8 +153,10 @@ Viashino Sandstalker
 Vorstclaw
 Wall of Limbs
 Waste Away
+Weapons Trainer
 Wheel of Fate
 Wild-Field Scarecrow
 Willow Dryad
 Worldly Counsel
+Worthy Knight
 Wrecking Crew

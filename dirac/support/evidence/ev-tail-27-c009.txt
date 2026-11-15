@@ -20,6 +20,7 @@ Hedge Troll
 Hornet Queen
 Humbler of Mortals
 Island
+Lagac Lizard
 Lull
 Marker Beetles
 Mishra's Bauble
@@ -27,9 +28,12 @@ Monstrous Growth
 Mountain
 Natural Reclamation
 Paradise Druid
+Phoenix of Ash
 Plains
 Pygmy Kavu
 Rogue Elephant
+Soul of Mirrodin
+Stormfist Crusader
 Swamp
 Sylvok Explorer
 Thallid Shell-Dweller

@@ -6,6 +6,7 @@ Acidic Sliver
 Angelic Protector
 Ashes to Ashes
 Aven Wind Mage
+Barony Vampire
 Binding Mummy
 Blisterstick Shaman
 Bloodline Pretender
@@ -79,6 +80,7 @@ Kodama of the West Tree
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
 Lignify
+Livonya Silone
 Mage's Guile
 Markov Crusader
 Meng Huo's Horde
@@ -105,9 +107,11 @@ Pillar of the Paruns
 Piper of the Swarm
 Plains
 Plated Wurm
+Power Boost
 Primetime Suspect
 Pyromancer's Gauntlet
 Rally the Forces
+Rapacious Guest
 Realm-Cloaked Giant
 Reckoner Bankbuster
 Rend Spirit

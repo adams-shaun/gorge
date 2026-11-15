@@ -1,10 +1,16 @@
+A-Hobbling Zombie
 A-Skyclave Shadowcat
+Adric, Mathematical Genius
 Aerie Worshippers
+Aether Sting
+Agent of Acquisitions
 Air Bladder
+Akki Raider
 Altar's Reap
 Archers of Qarsi
 Argothian Pixies
 Atrocious Experiment
+Automated Artificer
 Beast Whisperer
 Benalish Heralds
 Bog Tatters
@@ -18,34 +24,68 @@ Champion's Drake
 Clairvoyance
 Cliff Threader
 Conclave Evangelist
+Conductor of Cacophony
+Crumbling Ashes
 Culling Ritual
 Deal Broker
 Demon of Wailing Agonies
 Deploy the Gatewatch
 Despondency
 Dire Mimic
+Dreadhorde Twins
 Drogskol Cavalry
+Earth-Cult Elemental
 Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
+Eldrazi Linebreaker
+Elenda's Hierophant
 Enlisted Wurm
 Esper Cormorants
 Fallaji Excavation
+Flame Spirit
 Fleshbag Marauder
 Forest
 Gray Merchant of Asphodel
+Halvar, God of Battle
 Honor the God-Pharaoh
+Infiltrate
 Island
+Juzám Djinn
+Kabira Takedown
 Karlach, Fury of Avernus
 Kavu Climber
+Lightning Axe
+Lightning Wolf
+Llanowar Stalker
 Looter il-Kor
 Malevolent Rumble
 Mantis Rider
+Marionette Master
+Master Apothecary
+Monk Realist
 Mountain
+Phyrexian Etchings
 Plains
 Presence of Gond
+Presence of the Master
+Pumpkin Bombs
 Quest for Pure Flame
+Quirion Sentinel
+Reach of Branches
+Ruby Medallion
+Sanctified Charge
+Sanguimancy
+Shatterstorm
+Shimmering Mirage
+Shrieking Mogg
+Silkguard
 Steel Overseer
+Subira, Tulzidi Caravanner
 Supply Runners
 Swamp
+Tainted Indulgence
+Towashi Guide-Bot
+Travel Preparations
 Will-o'-the-Wisp
+Wizard's Lightning

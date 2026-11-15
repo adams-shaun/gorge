@@ -2,12 +2,15 @@ A-Hobbling Zombie
 A-Skyclave Shadowcat
 Adric, Mathematical Genius
 Aerie Worshippers
+Aeronaut Cavalry
 Aether Sting
 Agent of Acquisitions
 Air Bladder
 Air-Cult Elemental
 Aladdin's Ring
 Altar's Reap
+Ancient Spider
+Angelsong
 Archangel's Light
 Archers of Qarsi
 Argothian Pixies
@@ -16,7 +19,10 @@ Atrocious Experiment
 Automated Artificer
 Avalanche Riders
 Beast Whisperer
+Behold the Beyond
 Benalish Heralds
+Bird Maiden
+Blind Zealot
 Blitz Leech
 Bog Tatters
 Bogstomper
@@ -25,12 +31,17 @@ Brotherhood Vertibird
 Brutal Deceiver
 Built to Last
 Cabal Executioner
+Calming Licid
 Centaur's Herald
 Chain of Plasma
+Champion's Drake
+Chapel Geist
+Cho-Arrim Legate
 Chrome Host Seedshark
 Clairvoyance
 Cliff Threader
 Cloudseeder
+Commander's Authority
 Conclave Evangelist
 Conductor of Cacophony
 Constant Mists
@@ -40,19 +51,24 @@ Culling Ritual
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
+Deer-Dog
 Demon of Wailing Agonies
 Deploy the Gatewatch
 Despondency
 Deviant Skytech
 Dire Mimic
+Drag to the Underworld
 Dragon Moose
 Dreadhorde Twins
 Earth-Cult Elemental
 Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
+Elder Cathar
 Enlisted Wurm
 Fallaji Excavation
+Fate Forgotten
+Flame Spirit
 Flame of Anor
 Fleshbag Marauder
 Force of Despair
@@ -60,14 +76,18 @@ Forest
 Forging the Tyrite Sword
 Frogmite
 God-Eternal Rhonas
+Gore Swine
 Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
 Halvar, God of Battle
+Hand of Silumgar
 Harmonic Prodigy
 Heartbeat of Spring
+Herald of Slaanesh
 Hero of the Games
 Honor the God-Pharaoh
+Igneous Golem
 In the Trenches
 Infiltrate
 Infused Arrows
@@ -77,47 +97,67 @@ Juzám Djinn
 Karlach, Fury of Avernus
 Kavu Climber
 Kavu Scout
+Kaysa
+Knight of Cliffhaven
 Lava Serpent
+Lazotep Reaver
 Lieutenant Kirtar
 Lightning Axe
 Lightning Wolf
 Llanowar Stalker
 Looter il-Kor
+Loxodon Anchorite
+Loxodon Gatekeeper
 Malevolent Rumble
 Marionette Master
+Markov Blademaster
 Master Apothecary
 Maze Rusher
 Midnight Scavengers
 Mindless Automaton
 Mirror Wall
 Monk Realist
+Morbid Plunder
 Mountain
 Mystifying Maze
 Nishoba Brawler
 Organ Hoarder
 Paralyzing Grasp
+Phyrexian Etchings
+Pierce the Sky
 Plains
 Pradesh Gypsies
 Presence of Gond
 Presence of the Master
+Protomatter Powder
 Pumpkin Bombs
+Qilin's Blessing
 Quarrel's End
 Quest for Pure Flame
 Quirion Sentinel
+Raving Visionary
 Reach of Branches
+Reap and Sow
 Rhox Oracle
+Rising Populace
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
 Sandstorm Charger
+Sarkhan's Dragonfire
+Scalding Tongs
 Scrubland
 Sejiri Shelter
+Shadowfeed
 Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
 Silkguard
 Skyway Sniper
 Slice in Twain
+Soratami Rainshaper
+Sorin's Vengeance
+Soul Reap
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
@@ -128,12 +168,17 @@ Swamp
 Tangle Mantis
 Target Minotaur
 The Brute
+The Meathook Massacre
+Thraben Inspector
 Tithebearer Giant
 Towashi Guide-Bot
+Travel Preparations
 Undergrowth Scavenger
 Vanquish the Foul
 Voices from the Void
 Walking Archive
+Walking Corpse
+Wei Elite Companions
 Wildfire Emissary
 Will-o'-the-Wisp
 Witch's Cauldron

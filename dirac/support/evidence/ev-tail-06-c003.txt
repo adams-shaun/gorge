@@ -7,6 +7,7 @@ Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
 Armored Skaab
+Awaken the Sky Tyrant
 Bandage
 Barbary Apes
 Barl's Cage
@@ -22,6 +23,7 @@ Cathar's Call
 Cement Shoes
 Champion of Dusk
 Chimeric Staff
+Cleansing Screech
 Cloudfin Raptor
 Corpse Churn
 Cutthroat Negotiator
@@ -73,10 +75,13 @@ Nirkana Revenant
 Nuka-Cola Vending Machine
 Outnumber
 Overwhelmed Apprentice
+Ox of Agonas
 Peek
+Pemmin's Aura
 Phyrexian Battleflies
 Plague Mare
 Plains
+Pounce
 Pre-War Formalwear
 Rats of Rath
 Renewing Dawn
@@ -92,6 +97,7 @@ Spellbound Dragon
 Splinter, the Mentor
 Spore Swarm
 Strangle
+Sungrace Pegasus
 Suntail Hawk
 Swamp
 Teferi's Ageless Insight
@@ -99,6 +105,7 @@ Teleportation Circle
 Thalakos Scout
 The Modern Age
 The One Ring
+Toggo, Goblin Weaponsmith
 Tremble
 Turn
 Ultimate Magic: Holy

@@ -49,8 +49,10 @@ Goblin Swine-Rider
 Greatsword of Tyr
 Gríma Wormtongue
 Homarid Warrior
+Hunted Ghoul
 Hystrodon
 Icefall Regent
+Ifh-Bíff Efreet
 Indomitable Ancients
 Inspired Skypainter
 Iron Fist, Hero for Hire
@@ -71,6 +73,7 @@ Masked Admirers
 Melira, the Living Cure
 Mending Touch
 Mind Control
+Minister of Pain
 Mountain
 Mukotai Soulripper
 Mystic Visionary
@@ -96,6 +99,7 @@ Sage's Row Savant
 Sakura-Tribe Springcaller
 See Red
 Seer's Vision
+Shivan Zombie
 Show of Valor
 Soratami Mirror-Mage
 Soul Manipulation

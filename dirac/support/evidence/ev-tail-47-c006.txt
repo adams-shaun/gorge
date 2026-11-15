@@ -43,6 +43,7 @@ Island
 Jarad's Orders
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
+Knowledge Is Power
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
 Lignify
@@ -95,6 +96,7 @@ Tezzeret's Ambition
 The Hunger Tide Rises
 Time of Ice
 Tin Street Dodger
+Trinket Mage
 Vaporkin
 Vesperlark
 Viridian Shaman
@@ -102,4 +104,5 @@ Volcanic Island
 Voracious Vampire
 Vow of Wildness
 Walking Corpse
+Wandering Stream
 Wandering Treefolk

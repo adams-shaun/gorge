@@ -2,10 +2,12 @@ A-Imperial Subduer
 Abzan Kin-Guard
 Aeronaut Tinkerer
 Akki Ronin
+Anaba Spirit Crafter
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
 Atomize
+Awaken the Sky Tyrant
 Bandage
 Barbary Apes
 Barl's Cage
@@ -22,6 +24,7 @@ Brought Back
 Burning-Yard Trainer
 Cathar's Call
 Champion of Dusk
+Cleansing Screech
 Cloudfin Raptor
 Cloudthresher
 Conscripted Infantry
@@ -31,6 +34,7 @@ Dawnhart Wardens
 Deathbloom Gardener
 Deb Thomas
 Drizzt Do'Urden
+Dwarven Demolition Team
 Eldrazi Mimic
 Emberwilde Caliph
 Experimental Armor
@@ -71,6 +75,7 @@ Luminous Angel
 Mammoth Spider
 Mantle of Webs
 Marsh Boa
+Mindwhip Sliver
 Molten Vortex
 Mountain
 Mystic Melting
@@ -88,17 +93,22 @@ Press the Advantage
 Prison Sentence
 Pulse of the Tangle
 Ragefire Hellkite
+Rakdos Pit Dragon
 Rats of Rath
 Reality Anchor
+Reckless Ogre
 Renewing Dawn
 Rule of Law
 Sacred Armory
 Sanctum of Shattered Heights
+Scale the Heights
 Sentinel's Mark
 Servant of Volrath
 Shamble Back
 Silent-Chant Zubera
 Simic Keyrune
+Snapping Thragg
+Soot Imp
 Soul Collector
 Soul's Grace
 Spellbound Dragon
@@ -118,6 +128,7 @@ The Modern Age
 The One Ring
 Thopter Engineer
 Thorn of Amethyst
+Toggo, Goblin Weaponsmith
 Trapfinder's Trick
 Turn
 Ultimate Magic: Holy

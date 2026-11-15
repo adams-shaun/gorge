@@ -1,10 +1,15 @@
 A-Mishra, Excavation Prodigy
 A-Soul of Windgrace
 A-Stimulus Package
+Abiding Grace
 Addle
+Adorable Kitten
 Adverse Conditions
+Aerie Worshippers
 Aether Flash
 Aetherflux Car
+Aethertide Whale
+Agate Instigator
 Alchemist's Greeting
 Anchor to the Aether
 Ancient Grudge
@@ -19,8 +24,10 @@ Avacynian Priest
 Baku Altar
 Banefire
 Banishment Decree
+Barbed Battlegear
 Battlewise Aven
 Beast Attack
+Bladetusk Boar
 Blighted Woodland
 Blink of an Eye
 Blood Tithe
@@ -31,12 +38,16 @@ Blue Sun's Twilight
 Bonds of Quicksilver
 Bone Flute
 Bounding Krasis
+Brass Gnat
 Briar Hydra
+Briar Shield
 Briber's Purse
+Burn Bright
 Burst of Strength
 Cabal Conditioning
 Capture Sphere
 Cartouche of Strength
+Cathedral of War
 Caustic Wasps
 Cavern Crawler
 Charging Tuskodon
@@ -46,25 +57,35 @@ Clay Statue
 Cleric of Life's Bond
 Cloudreader Sphinx
 Coffin Purge
+Coiled Tinviper
 Conclave Guildmage
 Copperhorn Scout
 Crocodile of the Crossing
 Curiosity
+Darigaaz's Caldera
 Daring Archaeologist
 Daring Demolition
 Dark Nourishment
 Dauthi Jackal
 Death-Rattle Oni
 Desert Drake
+Destructive Tampering
+Dimir Signet
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
+Drifter il-Dal
 Earth Servant
+Echo Inspector
+Elderfang Disciple
+Elite Guardmage
+Enhanced Awareness
 Expanding Ooze
 Explosive Vegetation
 Faerie Conclave
 Farewell
 Fathom Fleet Boarder
+Felidar Guardian
 Fencer Clique
 Fiery Finish
 Flailing Manticore
@@ -72,7 +93,9 @@ Flaming Gambit
 For the Ancestors
 Forest
 Forlorn Pseudamma
+Foundry Screecher
 Fyndhorn Elves
+Gaea's Anthem
 Gatecreeper Vine
 Gates Ablaze
 Gavony Township
@@ -80,11 +103,16 @@ Gixian Infiltrator
 Gnottvold Hermit
 Gobhobbler Rats
 Goblin Chirurgeon
+Goblin Spy
 Godo's Irregulars
+Great Teacher's Decree
 Greenwood Sentinel
+Griffin Rider
 Grisly Transformation
 Ground Seal
 Gush
+Hall of Oracles
+Halo Scarab
 Hapatra, the Desert Fang
 Happy Hogan, Bodyguard
 Harrier Naga
@@ -98,27 +126,38 @@ Honden of Cleansing Fire
 Honor of the Pure
 Hope-Ender Coatl
 Hover Barrier
+Howling Golem
+Ignite Disorder
+In the Eye of Chaos
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
 Into the Void
+Invasion of Belenon
 Iron Lance
 Island
+Jagged-Scar Archers
 Jasmine Seer
 Kabira Crossroads
 Keen Sense
+Kefnet the Mindful
+Keldon Champion
 Kheru Bloodsucker
+Kindercatch
 Kor Hookmaster
 Kraul Stinger
 Krosan Adaptation
 Last Rites
 Leonin Warleader
+Life Finds a Way
 Lifecrafter's Gift
 Lightning Angel
 Looming Hoverguard
 Maelstrom Wanderer
 Magnus the Red
 Markov Waltzer
+Massive Might
+Master of Winds
 Maze Glider
 Meatsqueak, Hoard Lord
 Meditation Puzzle
@@ -130,21 +169,30 @@ Metalwork Colossus
 Millicent, Restless Revenant
 Mind's Eye
 Minsc, Beloved Ranger
+Mirran Banesplitter
 Misdirection
 Mishra's Helix
 Mobilized District
+Molten Vortex
 Mondrak, Glory Dominus
+Moonsnare Specialist
+Moriok Replica
 Mothrider Patrol
 Mountain
 Mowu, Loyal Companion
 Ms. Marvel, Elastic Ally
+Mudbrawler Cohort
 Myr Prototype
 Mystic Denial
+Necrogen Censer
+Necrosynthesis
 Needletooth Raptor
 Neoform
 Nested Shambler
+Nightbird's Clutches
 Nightshade Assassin
 Nightsquad Commando
+Nova Cleric
 Null Caller
 Nyxborn Wolf
 O'aka, Traveling Merchant
@@ -159,10 +207,14 @@ Pore Over the Pages
 Poultrygeist
 Power Conduit
 Pox
+Prizefight
+Psychic Allergy
 Pursued Whale
 Put Away
 Pygmy Allosaurus
 Rathi Fiend
+Reclusive Wight
+Red Scarab
 Reduce
 Reject Imperfection
 Repel the Darkness
@@ -170,6 +222,8 @@ Repentance
 Resculpt
 Retreat to Hagra
 Road
+Rocky Tar Pit
+Rousing Read
 Runic Repetition
 Sarkhan's Rage
 Scarland Thrinax
@@ -179,32 +233,54 @@ Sea Hag
 Searing Flesh
 Sedge Scorpion
 Seed of Hope
+Servant of Nefarox
+Shaper Apprentice
 Sheltering Word
 Shepherd of Rot
+Shimmering Grotto
 Shrine Steward
 Silent Dart
 Silent Departure
+Silkwrap
 Simplify
+Skorpekh Destroyer
 Skyfisher Spider
 Skyshaper
 Soltari Priest
+Somber Hoverguard
+Somnomancer
+Soulsworn Jury
 Spawnbed Protector
 Spell Snuff
+Spellrune Painter
+Spidersilk Net
 Stampeding Wildebeests
+Statute of Denial
 Storm, Queen of Wakanda
 Stratadon
+Submerged Boneyard
 Sunhome, Fortress of the Legion
+Sunmane Pegasus
 Swamp
+Swan Song
+Tasseled Dromedary
 Temur Battle Rage
 Teval, the Balanced Scale
 The Great Juggernaut
 The Wasp, Janet Van Dyne
 Thoughtbind
+Tightening Coils
+Tithebearer Giant
 Tolarian Kraken
 Tome Scour
 Traitorous Blood
 Traverse the Ulvenwald
+Treetop Bracers
+Treetop Sentinel
+Turntimber Grove
+Tusked Colossodon
 Uktabi Drake
+Upriser Renegade
 Vandalblast
 Venarian Glimmer
 Venarian Gold
@@ -212,5 +288,11 @@ Vendetta
 Vexing Sphinx
 Vithian Stinger
 Vivid Meadow
+Volrath's Stronghold
+Wandering Mind
+Whipflare
+Xorn
+Yarok's Wavecrasher
 Yasova Dragonclaw
+Zodiac Rooster
 Zombie Apocalypse

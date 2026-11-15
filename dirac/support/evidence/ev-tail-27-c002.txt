@@ -28,7 +28,9 @@ Deathforge Shaman
 Demonic Taskmaster
 Douser of Lights
 Drana's Chosen
+Dwarven Lieutenant
 Elemental Uprising
+Elsha, Threefold Master
 Entomber Exarch
 Erratic Cyclops
 Evolved Sleeper
@@ -64,6 +66,7 @@ Invoke Despair
 Island
 Joven
 Lamentation
+Lightning Angel
 Lull
 Maestros Initiate
 Major Teroh
@@ -81,6 +84,7 @@ Overload
 Pain Kami
 Pangosaur
 Paradise Druid
+Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains
@@ -100,6 +104,7 @@ Silt Crawler
 Skinrender
 Skull Rend
 Smother
+Southern Paladin
 Splatter Goblin
 Staff of the Flame Magus
 Sticky Fingers

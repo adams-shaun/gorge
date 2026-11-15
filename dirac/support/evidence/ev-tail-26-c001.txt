@@ -22,6 +22,7 @@ Glimpse of Freedom
 Hermes, Overseer of Elpis
 Island
 Jeskai Ascendancy
+Jhessian Infiltrator
 Junk Golem
 Kami of False Hope
 Kavu Chameleon
@@ -38,6 +39,7 @@ Rubblebelt Recluse
 Saltfield Recluse
 Scathe Zombies
 Serpent Warrior
+Spite
 Steadfast Unicorn
 Stitched Drake
 Swamp

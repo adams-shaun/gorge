@@ -5,6 +5,7 @@ Active Volcano
 Agonizing Syphon
 Ajani's Influence
 Ajani, Valiant Protector
+Alhammarret, High Arbiter
 Amazing Alliance
 Ambush
 Aragorn and Arwen, Wed
@@ -38,10 +39,12 @@ Chorus of Might
 Clattering Augur
 Confound
 Contingency Plan
+Covert Operative
 Crimson Hellkite
 Daredevil, Fearless Fighter
 Daring Apprentice
 Dawnhart Geist
+Daxos's Torment
 Death Frenzy
 Death's Duet
 Deeproot Waters
@@ -52,12 +55,15 @@ Disappearing Act
 Disturbed Burial
 Dreadmalkin
 Dromoka Monument
+Earthlink
 Elemental Summoning
 Ellyn Harbreeze, Busybody
 Elvish Handservant
+Entish Restoration
 Ethereal Guidance
 Etherium Abomination
 Exuberant Wolfbear
+Eyeblight's Ending
 Fangren Hunter
 Farmstead
 Feast of Succession
@@ -69,7 +75,9 @@ Force of Vigor
 Forest
 Fortress Cyclops
 Freyalise, Llanowar's Fury
+Frontier Mastodon
 Garruk, Caller of Beasts
+Genestealer Locus
 Gift of Granite
 Gift of Wrath
 Gobbling Ooze
@@ -78,15 +86,18 @@ Goblin Chieftain
 Goblin War Drums
 Gravel-Hide Goblin
 Grimdancer
+Harsh Scrutiny
 Hatchery Spider
 Hawkeye, Trick Shot
 Hellcarver Demon
 Henge of Ramos
+Hog-Monkey Rampage
 Howlpack Wolf
 Huatli's Raptor
 Hunted Ghoul
 Ifh-Bíff Efreet
 Ihsan's Shade
+Indicate
 Infuriate
 Iridescent Angel
 Irregular Cohort
@@ -117,14 +128,18 @@ Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
 Neglected Heirloom
+Nekrataal
 One with Nature
 Onslaught
+Opposition
+Orazca Relic
 Outbreak
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
 Pegasus Courser
 Phantom Warrior
+Phyresis
 Pianna, Nomad Captain
 Pillar Tombs of Aku
 Plains
@@ -135,16 +150,20 @@ Press for Answers
 Primordial Sage
 Prismari Apprentice
 Protector of Gondor
+Pygmy Troll
+Quench
 Ravenous Lindwurm
 Razor Swine
 Reforge the Soul
 Relic Robber
+Relic Vial
 Reprobation
 Resistance Reunited
 Resounding Silence
 Returned Pastcaller
 Reverberate
 Rhystic Study
+Rocco, Cabaretti Caterer
 Sage's Row Denizen
 Sandstorm
 Secrets of the Golden City
@@ -160,7 +179,9 @@ Skirk Commando
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
+Slinza, the Spiked Stampede
 Slith Firewalker
+Slobad, Goblin Tinkerer
 Smogsteed Rider
 Solitary Defiance
 Sootfeather Flock
@@ -183,10 +204,13 @@ Temporal Eddy
 Tenth District Veteran
 Thalakos Sentry
 Thanos, Death's Consort
+The Falcon, Airship Restored
 Thistledown Duo
+Timber Protector
 Titans' Vanguard
 Towering Viewpoint
 Trading Post
+Twincast
 Uninvited Geist
 Vampire Revenant
 Verdant Rebirth
@@ -196,6 +220,7 @@ Viridian Corrupter
 Vivid Crag
 Volcanic Spite
 Vrock
+Wakandan Tusker
 Walking Skyscraper
 Waterlogged Teachings
 Werebear
@@ -205,3 +230,4 @@ Whirlwind Technique
 Without Weakness
 Wizened Cenn
 Wretched Anurid
+Yore-Tiller Nephilim

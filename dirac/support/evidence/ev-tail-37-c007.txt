@@ -40,6 +40,7 @@ Constant Mists
 Controlled Instincts
 Crumbling Ashes
 Crusher Zendikon
+Culling Ritual
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
@@ -57,9 +58,11 @@ Eiganjo Uprising
 Eldrazi Linebreaker
 Elenda's Hierophant
 Fallaji Excavation
+Feiyi Snake
 Flame Spirit
 Flame of Anor
 Fleshbag Marauder
+Flow of Maggots
 Force of Despair
 Forest
 Forging the Tyrite Sword
@@ -135,6 +138,7 @@ Stinging Scorpion
 Subira, Tulzidi Caravanner
 Supply Runners
 Swamp
+Tainted Indulgence
 Tangle Mantis
 Target Minotaur
 The Brute
@@ -143,6 +147,8 @@ Tithebearer Giant
 Towashi Guide-Bot
 Undergrowth Scavenger
 Vanquish the Foul
+Voices from the Void
+Walking Archive
 Whisper Squad
 Wildfire Emissary
 Will-o'-the-Wisp

@@ -45,7 +45,9 @@ Doctor Jane Foster
 Dread Shade
 Dwarfhold Champion
 Earth-Origin Yak
+Elephant Graveyard
 Emblem of the Warmind
+Enormous Baloth
 Ensouled Scimitar
 Explore
 Farmstead Gleaner
@@ -54,11 +56,13 @@ Fighting Drake
 Fleetfeather Cockatrice
 Forest
 Gatekeeper Gargoyle
+Giant Warthog
 Glint Hawk
 Goblin Gardener
 Goblin Glider
 Goblin Recruiter
 Golgari Findbroker
+Gorilla Warrior
 Gruul Turf
 Guildpact Informant
 Harabaz Druid
@@ -80,10 +84,12 @@ Junktroller
 Kavu Predator
 Keymaster Rogue
 Kolaghan Skirmisher
+Kozilek's Shrieker
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
 Linvala, Keeper of Silence
+Llanowar Empath
 Llanowar Knight
 Lost Legion
 March of the Returned
@@ -128,6 +134,7 @@ Smash
 Sonic Seizure
 Spark Elemental
 Spark Jolt
+Spectral Lynx
 Starlit Angel
 Storm, Shaker of Skies
 Story Seeker

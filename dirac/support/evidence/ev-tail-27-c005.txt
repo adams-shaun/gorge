@@ -58,6 +58,7 @@ Inflame
 Inquisitive Puppet
 Island
 Joven
+Lagac Lizard
 Lamentation
 Lull
 Major Teroh
@@ -73,6 +74,7 @@ Overload
 Pain Kami
 Pangosaur
 Paradise Druid
+Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains

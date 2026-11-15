@@ -30,6 +30,7 @@ Dragon's Claw
 Elspeth's Devotee
 Ember-Eye Wolf
 Esper Panorama
+Festercreep
 Fiery Temper
 Fire Nation Ambushers
 Flame-Blessed Bolt
@@ -42,6 +43,7 @@ General Kudro of Drannith
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
 Gluntch, the Bestower
+Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
@@ -80,6 +82,7 @@ Malignant Growth
 Massive Might
 Miss Highwater
 Mountain
+Night Terrors
 Norwood Riders
 Nullmage Shepherd
 Orim's Prayer
@@ -96,6 +99,7 @@ Quest for the Goblin Lord
 Racers' Ring
 Radioactive Man
 Rain of Blades
+Raze to the Ground
 Relentless Assault
 Remote Isle
 Renegade Freighter
@@ -108,6 +112,7 @@ Sacred Prey
 Sandbar Merfolk
 Sandsower
 Sarulf's Packmate
+Savage Gorger
 Scarwood Bandits
 Secure the Wastes
 Sensor Splicer
@@ -125,6 +130,7 @@ Stonecloaker
 Stonehands
 Storm Fleet Negotiator
 Stormscape Familiar
+Strands of Undeath
 Sunblast Angel
 Survivors' Encampment
 Swamp
@@ -143,3 +149,5 @@ Volcanic Spray
 Vraan, Executioner Thane
 Wall of Hope
 War Priest of Thune
+Weaponcraft Enthusiast
+Zodiac Horse

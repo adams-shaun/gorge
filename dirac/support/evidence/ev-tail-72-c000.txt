@@ -10,8 +10,12 @@ Alchemax Slayer-Bots
 Alluring Suitor
 Always Watching
 Ambulatory Edifice
+Amethyst Dragon
 Ancient Excavation
 Angelic Quartermaster
+Arcane Laboratory
+Archfiend of the Dross
+Archway Commons
 Artful Dodge
 Assembly-Worker
 Astonishing Spider-Man
@@ -36,6 +40,7 @@ Bontu the Glorified
 Boomer Scrapper
 Boon of the Spirit Realm
 Bottomless Pit
+Branchblight Stalker
 Brass Gnat
 Cabal Slaver
 Cabal Surgeon
@@ -53,15 +58,18 @@ Chariot of the Sun
 Chorus of the Tides
 Chromatic Lantern
 Chronomancer
+Citanul Hierophants
 Cleansing Screech
 Cleaving Skyrider
 Cleaving Sliver
 Cleon, Merry Champion
+Cloudhoof Kirin
 Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
 Congregation at Dawn
 Conjurer's Closet
+Conservator
 Coursers' Accord
 Creeping Tar Pit
 Cultbrand Cinder
@@ -71,7 +79,9 @@ Cyclops Electromancer
 D'Avenant Archer
 Daggerdrome Imp
 Darksteel Splicer
+Deadly Allure
 Death Pits of Rath
+Death's Shadow
 Death's-Head Buzzard
 Defy Death
 Demanding Dragon
@@ -84,15 +94,19 @@ Dire Fleet Ravager
 Double Trouble
 Drake Familiar
 Dromad Purebred
+Drown in Shapelessness
+Drowned
 Dwarven Berserker
 Dying Wail
 Elite Vanguard
+Elusive Spellfist
 Embereth Shieldbreaker
 Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
 Expedition Healer
 Eye of Nowhere
+Facet Reader
 Faerie Guidemother
 Fallen Cleric
 Fanatical Devotion
@@ -116,9 +130,11 @@ Frantic Salvage
 Frenetic Efreet
 Galadriel, Gift-Giver
 Gargoyle Flock
+Geist of the Archives
 Geothermal Kami
 Ghitu Journeymage
 Ghostly Wings
+Glacial Crasher
 Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
@@ -142,6 +158,7 @@ Honor Troll
 Horn of Gondor
 Hostile Minotaur
 Hurloon Minotaur
+Imperial Lancer
 Inexorable Blob
 Infectious Inquiry
 Infernal Tribute
@@ -161,9 +178,13 @@ Juniper Order Advocate
 Kashi-Tribe Warriors
 Kemba's Banner
 Kinsbaile Skirmisher
+Kitchen
 Kodama of the North Tree
 Kor Scythemaster
+Kyren Legate
 Labyrinth Adversary
+Last Rites
+Lava Spike
 Lightbringer
 Llanowar Cavalry
 Llanowar Sentinel
@@ -182,6 +203,7 @@ Mindlash Sliver
 Mirri the Cursed
 Mist Leopard
 Mithril Coat
+Mobile Garrison
 Molderhulk
 Molten Ravager
 Molting Harpy
@@ -196,8 +218,10 @@ Myrsmith
 Necklace of Girion
 Neurok Replica
 Night Out in Vegas
+Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
+Novice Occultist
 Ogre Errant
 Ondu Greathorn
 Oppressive Will
@@ -220,11 +244,16 @@ Political Triumph
 Polluted Bonds
 Potatoes
 Prepare
+Prosperous Innkeeper
 Protective Bubble
 Prowling Nightstalker
 Psychic Overload
+Psychosis Crawler
+Puppet Strings
 Pursue Glory
 Qilin's Blessing
+Quicken
+Quicksilver Fisher
 Raise Dead
 Ramosian Lieutenant
 Raven's Crime
@@ -247,6 +276,8 @@ Rob the Archives
 Rocksteady, Mutant Marauder
 Rotted Hystrix
 Rumbling Slum
+Rush of Vitality
+Rushwood Elemental
 Sanctifier of Souls
 Sanctum Spirit
 Sawtooth Ogre
@@ -256,11 +287,14 @@ Scrapheap
 Scrappy Bruiser
 Scythecat Cub
 Seafloor Oracle
+Secure the Wastes
 Seer's Sundial
 Selfless Spirit
 Senate Courier
 Serendib Sorcerer
+Serra's Sanctum
 Shepherd of the Cosmos
+Shield Sphere
 Shizo, Death's Storehouse
 Shu Farmer
 Shuri, Vibranium Technologist
@@ -272,7 +306,9 @@ Sky Crier
 Skyboon Evangelist
 Skyline Scout
 Slippery Scoundrel
+Spellshock
 Spined Thopter
+Spirit of the Hunt
 Spiteful Motives
 Spore Frog
 Starlight
@@ -283,6 +319,7 @@ Stimulus Package
 Stony Silence
 Storm Seeker
 Storm the Seedcore
+Strength of the Coalition
 Stronghold Taskmaster
 Stunted Growth
 Sun-Collared Raptor
@@ -315,6 +352,7 @@ Unseal the Necropolis
 Unwilling Ingredient
 Urborg Shambler
 Valduk, Keeper of the Flame
+Vampire Outcasts
 Veiled Sentry
 Vengeful Regrowth
 Verdant Touch
@@ -324,7 +362,9 @@ Vision, Spectral Synthezoid
 Volcanic Upheaval
 Volcanic Vision
 Waking the Trolls
+Wall of Souls
 Wall of Swords
+Weave Fate
 Wildsize
 Will of the All-Hunter
 Wirewood Channeler

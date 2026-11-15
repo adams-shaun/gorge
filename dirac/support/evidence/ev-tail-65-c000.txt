@@ -1,98 +1,250 @@
 A-Celebrity Fencer
+A-Imperial Subduer
 A-Tenured Inkcaster
+A-Uurg, Spawn of Turg
 Aberrant Researcher
+Absolute Grace
+Abu Ja'far
 Accelerated Mutation
 Akoum Firebird
 Alpha Deathclaw
+Always Watching
+Amulet of Vigor
 And They Shall Know No Fear
+Apostle of Purifying Light
+Appetite for the Unnatural
 Aqueous Form
 Aradara Express
 Arasta of the Endless Web
 Archon of Absolution
 Assault Zeppelid
+Banewasp Affliction
+Bastion Protector
 Battle Cry Goblin
+Battle-Rage Blessing
 Beacon of Immortality
+Blisterstick Shaman
+Blood Burglar
+Bogstomper
+Bolt Hound
+Boss Uramon, Shadow's Reach
+Box of Free-Range Goblins
 Brawler's Plate
+Brightcap Badger
 Brink of Madness
+Burning Cloak
+Burning Sun's Fury
+Canyon Lurkers
 Catacomb Slug
+Cavalry Pegasus
+Cazur, Ruthless Stalker
+Centaur Nurturer
 Chandra's Outburst
+Chaosphere
 Charisma Bobblehead
+Civil Servant
+Clarion Cathars
 Comparative Analysis
+Copperhoof Vorrac
+Corpse Churn
 Corrosive Mentor
 Cynette, Jelly Drover
+Dakmor Lancer
 Dauntless Escort
+Dawn of Hope
+Death-Rattle Oni
 Debtors' Transport
 Decaying Time Loop
 Deputy of Acquittals
 Devastation Tide
+Devout Witness
 Dictate of Erebos
+Dispense Justice
+Distress
 Draconian Cylix
+Drifting Shade
+Dry Spell
+Eidolon of Inspiration
+Elvish Branchbender
+Embodiment of Fury
 Embraal Bruiser
+Ettercap
 Evolution Sage
+Excise the Imperfect
 Exotic Disease
+Explosive Growth
+Eyeblight Cullers
+Faith Healer
+Fanged Flames
+Field-Tested Frying Pan
 Fire Nation's Conquest
+Flensermite
 Flowstone Infusion
 Forest
+Formless Genesis
+Fortifying Draught
+Furnace Spirit
+Gaea's Cradle
+Ganax, Astral Hunter
 Geyser Glider
+Ghoulraiser
+Gilded Pinions
 Glitterfang
+Glorious Anthem
+Gold Myr
+Graceblade Artisan
+Grateful Apparition
 Grip of the Roil
 Groundbreaker
 Happy Hogan, Dauntless Driver
+Headsplitter
+Hedron Detonator
 Helm of the Gods
+Herald of the Dreadhorde
+Homicidal Seclusion
+Hope Tender
+Horned Cheetah
+Horned Helm
+Hungering Hydra
+Hunter's Ambush
 Inner Struggle
 Insatiable Gorgers
 Island
+Ixalli's Keeper
+Jagwasp Swarm
 Jaheira, Friend of the Forest
 Jawbone Skulkin
+Jhoira's Toolbox
+Joraga Visionary
+Kabuto Moth
 Kami of the Crescent Moon
+Kangee's Lieutenant
+Kazandu Tuskcaller
+Kheru Bloodsucker
+Kranioceros
+Light of Day
+Lightning Visionary
+Maestros Initiate
+Magma Phoenix
 Magmatic Force
 Might of Old Krosa
 Mirrodin's Core
+Momentary Blink
+Mortis Dogs
+Mother Bear
 Mountain
+Mournwillow
+Mycoid Shepherd
 Mystic Skyfish
 Márton Stromgald
 Narrow Escape
+Nimble-Blade Khenra
+Ninth Bridge Patrol
+Norn's Disassembly
+Novice Knight
 Nurgle's Rot
 Ohran Frostfang
+On Serra's Wings
 Oran-Rief Ooze
+Oreskos Swiftclaw
+Perilous Forays
+Petrified Field
 Phyrexian Scriptures
+Pick Up the Pace
+Pitiless Plunderer
 Plains
+Priests of Norn
+Primeval Herald
+Prison Sentence
 Prodigal Pyromancer
 Prodigal Sorcerer
 Professor's Warning
 Pygmy Razorback
+Quest for Renewal
 Radiant Destiny
 Radiant Essence
 Rage Reflection
 Rapid Hybridization
 Reach Through Mists
+Reckless Brute
+Reinforced Ronin
 Reinterpret
+Rhys the Exiled
 Ritual of Steel
+Rogue Elephant
 Roil Eruption
+Rotting Rats
 Runed Crown
+Ruthless Cullblade
+Ruthless Invasion
+Safeguard
+Sarinth Steelseeker
+Satyr Piper
 Scapegoat
+Scavenger Drake
+Scouring Swarm
+Sculpting Steel
+Seraph of the Sword
+Serrated Scorpion
+Shadows' Verdict
+Shang-Chi, Martial Mentor
 Shape the Sands
+Shauku, Endbringer
+Shimmerdrift Vale
+Shinka Gatekeeper
+Siegecraft
 Silhana Ledgewalker
+Skybind
 Slavering Nulls
+Spark of Creativity
+Spectral Force
+Spined Basher
+Spirit of the Spires
+Starlit Angel
+Stern Constable
 Stillmoon Cavalier
+Stormclaw Rager
+Stream of Life
 Stromgald Crusader
+Sunbathing Rootwalla
 Swamp
+Sworn Defender
+Sylvan Ranger
 Synchronized Strike
+Talruum Minotaur
 The Mana Rig
 Thran Quarry
+Throne of Bone
+Tibalt, the Fiend-Blooded
+Tonic Peddler
+Tormented Soul
+Tormenting Voice
 Tower Drake
+Turbulent Fen
+Uktabi Orangutan
 Unagi's Spray
 Undercity Informer
 Undergrowth Stadium
+Underworld Hermit
+Underworld Sentinel
 Unstoppable Ogre
 Utter Insignificance
 Valor
 Vampiric Feast
+Verdant Automaton
 Viridian Claw
 Vivid Grove
+Vorrac Battlehorns
+Vulshok Gauntlets
 Wall of Blossoms
+Wall of Fire
 Warrior's Honor
+Wilderness Hypnotist
 Winds of Rebuke
+Windswept Heath
 Winged Words
+Withstand Death
+Woodland Cemetery
 Wu Infantry
+Wurmcalling
 Zombie Master

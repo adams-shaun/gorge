@@ -4,6 +4,7 @@ Alpha Deathclaw
 Aqueous Form
 Beacon of Immortality
 Brink of Madness
+Burning Sun's Fury
 Call to the Feast
 Catacomb Slug
 Chandra's Outburst
@@ -20,6 +21,7 @@ Grip of the Roil
 Happy Hogan, Dauntless Driver
 Insatiable Gorgers
 Island
+Kabuto Moth
 Kami of the Crescent Moon
 Leonin Iconoclast
 Mountain

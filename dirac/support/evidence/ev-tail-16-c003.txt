@@ -1,53 +1,103 @@
 A-Goma Fada Vanguard
 Aether Gale
 Afterlife
+Aftershock
 Angel of Mercy
 Angelic Benediction
+Angler Turtle
+Anoint with Affliction
 Arcane Encyclopedia
+Armory of Iroas
+Artisan's Sorrow
+Asari Captain
+Aven Trooper
+Awakened Awareness
+Barkchannel Pathway
+Barren Moor
 Battle Mammoth
+Black Cat
+Blood Clock
 Bloodhunter Bat
+Border Patrol
+Brazen Freebooter
 Breakthrough
+Bronze Cudgels
 Cabal Ritual
 Call for Blood
+Call of the Herd
+Call the Bloodline
+Cantivore
 Chrome Prowler
+Clay Statue
 Clergy en-Vec
 Coastal Hornclaw
 Coercive Impetus
 Courtly Provocateur
+Crippling Chill
+D'Avenant Archer
 Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
 Darkness
+Dauntless Survivor
+Dawntreader Elk
+Daxos, Blessed by the Sun
 Deadeye Brawler
 Deepwood Drummer
 Defensive Stance
+Desert Sandstorm
 Disembowel
 Dross Crocodile
+Dunland Crebain
 Dusk's Landing
 Electrostatic Bolt
+Elvish Lyrist
 Enchanted Carriage
 Enchantress's Presence
+Encroaching Wastes
 Encrust
 Ertai's Scorn
 Evasive Action
 Exhume
 Eye Collector
+Family's Favor
 Farbog Boneflinger
 Feebleness
+Ferocious Charge
 Fierce Retribution
+Fire Nation Ambushers
+Fires of Undeath
+Fleet-Footed Monk
+Flickerwisp
 Fomori Nomad
+Forced Adaptation
 Forest
+Foul Imp
+Furnace Strider
+Genesis Ultimatum
+Ghirapur Gearcrafter
 Glowrider
+Goblin Assault Team
+Goblin Gathering
+Goblin Roughrider
+Goblin Swine-Rider
 Graf Harvest
 Grafted Skullcap
+Grave Exchange
+Gryff's Boon
 Guardian Scalelord
+Guardian Zendikon
+Guardian of Solitude
 Heart-Piercer Manticore
 Hearth Charm
+Heedless One
 Hermit Druid
+Hired Poisoner
 Hoar Shade
 Hoard-Smelter Dragon
 Horned Sliver
+Hunter's Prowess
 Incursion Specialist
 Iron-Barb Hellion
 Island
@@ -55,30 +105,49 @@ Junkyo Bell
 Kaito's Pursuit
 Kathari Bomber
 Kazandu Nectarpot
+Keldon Necropolis
+Kemba's Banner
 Kindred Discovery
 Knight Errant
+Kor Sky Climber
 Korozda Guildmage
+Krenko, Tin Street Kingpin
 Launch
+Lavaborn Muse
 Lazotep Behemoth
+Lethal Protection
+Lorehold Campus
 Madame Vastra
+Malevolent Noble
+Mana-Charged Dragon
 Mantle of the Wolf
 March from the Black Gate
 Marsh Lurker
 Martyrs' Tomb
+Merfolk Branchwalker
 Mesmeric Trance
+Metropolis Reformer
 Might of the Old Ways
 Mindleech Ghoul
 Mindshrieker
 Misshapen Fiend
 Mountain
+Myrel, Shield of Argive
 Nath's Buffoon
+Nevinyrral's Disk
 Niambi, Esteemed Speaker
+Niblis of Dusk
+Nimble Hobbit
 Oakhame Adversary
 Oblivion's Hunger
+Oboro Envoy
 Octomancer
+Ogre Errant
 Orchard Strider
 Ordruun Commando
+Origin Spellbomb
 Orzhov Racketeers
+Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
@@ -87,32 +156,66 @@ Plains
 Provoke
 Puncture Bolt
 Quicken
+Reduce to Ashes
+Rishadan Brigand
 Ritual of the Machine
 Rock Slide
 Sandblast
+Scent of Nightshade
+Scourge Devil
+Scourge of Geier Reach
+Scrapyard Mongrel
 Secret Rendezvous
+Shield Wall
 Shoreline Salvager
+Siege Zombie
 Silumgar Sorcerer
+Silver-Inlaid Dagger
+Simian Simulacrum
+Sinister Starfish
 Sister Hospitaller
+Skylasher
+Skyline Despot
 Slip Through Space
+Smite the Monstrous
+Soaring Show-Off
+Soul of Migration
+Soulsurge Elemental
 Sparktongue Dragon
 Sparring Construct
+Spell Crumple
 Spire Tracer
+Stone Retrieval Unit
+Stonybrook Angler
 Stormcaller of Keranos
 Strands of Undeath
+Strength of Cedars
+Suntail Hawk
+Survey the Wreckage
 Swamp
 Taigam's Strike
 Tarkir Charm
 Tarpan
 Thassa's Emissary
+Thranduil the Strategist
+Thrull Parasite
+Thunderfoot Baloth
 Titan Hunter
+Towashi Songshaper
 Tribute to Horobi
+Trickster's Talisman
+Unyaro Bees
+Vanguard of Brimaz
+Venerable Knight
 Viper, Cruel Conspirator
+Vivify
+Voracious Wurm
 Vraska's Scorn
 War-Spike Changeling
 Waterfront Bouncer
 Welkin Guide
 Wishful Merfolk
 Witherbloom Pledgemage
+Woodland Mystic
 You're Ambushed on the Road
 Young Wei Recruits

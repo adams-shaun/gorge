@@ -1,50 +1,171 @@
 A-Kenku Artificer
+A-Riveteers Initiate
+Accursed Centaur
+Act on Impulse
 Advance Scout
 Akki Lavarunner
 Amrou Scout
+Ancient Runes
+Arc Lightning
+Armor of Shadows
 Armorcraft Judge
+Asceticism
+Ashcoat Bear
+Auriok Sunchaser
+Auspicious Ancestor
 Baloth Prime
+Barrel Down Sokenzan
 Blade of the Bloodchief
 Blood Knight
 Bloodscale Prowler
+Boros Mastiff
+Boulder Salvo
+Butch DeLoria, Tunnel Snake
+Celebrity Fencer
 Chemister's Insight
+Chrome Mox
+City of Shadows
+Crossbow Infantry
+Crossroads Candleguide
+Curse of Shallow Graves
+Cyclopean Snare
+Dark Temper
+Deadly Dispute
+Death of a Thousand Stings
+Dirty Rat
+Divebomber Griffin
+Dragon Hatchling
 Dralnu's Crusade
+Eel-Hounds
+Empty the Warrens
 Faithless Looting
+Fast Forward
 Fencing Ace
+Flowstone Crusher
+Force of Savagery
 Forest
 Foul-Tongue Shriek
+Frantic Inventory
+Furnace Scamp
 Gate Hound
+Gerrard's Irregulars
+Gideon's Lawkeeper
 Glimpse of Freedom
+Gloom Pangolin
+Goblin Firebug
+Grappling Sundew
+Grave Betrayal
+Greenseeker
+Gruul Guildmage
+Henge of Ramos
 Hermes, Overseer of Elpis
+Hesitation
 Island
 Junk Golem
 Kami of False Hope
+Karakas
 Kavu Chameleon
+Killer Bees
 King Crab
+Lava Axe
+Legion Leadership
+Lightning Prowess
+Living Lands
 Lulu, Stern Guardian
 Mageta's Boon
+Magma Rift
+Makeshift Battalion
 Mana Geyser
+Markov Enforcer
+Mercadian Bazaar
+Merrow Bonegnawer
+Mizzium Skin
+Moat Piranhas
 Mogg Sentry
+Molting Harpy
+Monster Manual
+Moss Kami
 Mountain
+Necra Sanctuary
+Necroblossom Snarl
+Nested Shambler
+Nighthawk Scavenger
+Nightmarish End
+No Escape
 Nyxborn Hydra
+Paradise Mantle
+Paupers' Cage
 Pharika's Libation
+Phyrexian Ghoul
+Pit Imp
+Pit Keeper
 Plains
+Plaza of Heroes
+Polluted Bonds
+Portal to Phyrexia
+Possessed Aven
+Psionic Blast
+Pyretic Charge
+Quickening Licid
 Ransack
+Reckless Air Strike
+Rhox Brute
+Rise from the Nether
+Risona, Asari Commander
+Road of Return
 Rubblebelt Recluse
 Saltfield Recluse
+Satyr Grovedancer
 Savai Sabertooth
 Scathe Zombies
 Serpent Warrior
+Shambling Goblin
+Shrieking Affliction
+Silent Specter
+Skulltap
+Skyhunter Cub
+Skyhunter Prowler
+Skyway Sniper
+Slate Street Ruffian
+Slate of Ancestry
+Slip Through Space
+Snake Pit
+Sparkspitter
+Spite
+Spontaneous Combustion
 Steadfast Unicorn
 Stitched Drake
+Stony Strength
+Storm of Memories
 Strategic Intervention
+Sunset Revelry
+Sunspire Griffin
 Swamp
+Swift Warden
+Taranika, Akroan Veteran
+Tel-Jilad Chosen
+The Surgical Bay
 Thieves' Guild Enforcer
 Tide Drifter
+Tigereye Cameo
+Tower of Calamities
+Twins of Maurer Estate
+Unholy Strength
+Urabrask's Anointer
+Urza's Filter
+Vapor Snag
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith
+Warkite Marauder
 Warlord's Axe
+Wei Night Raiders
 Whirler Rogue
 Wight of Precinct Six
+Winter Soldier, Bucky Barnes
+Wishful Merfolk
+Wooded Foothills
 Wretched Throng
+Yahenni's Expertise
+You See a Guard Approach
+Zodiac Snake

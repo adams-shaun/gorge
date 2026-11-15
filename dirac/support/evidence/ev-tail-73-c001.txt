@@ -1,6 +1,7 @@
 A-Forge Boss
 A-Social Climber
 Abomination of Llanowar
+Abzan Battle Priest
 Agent Frank Horrigan
 Agent of Shauku
 Agility Bobblehead
@@ -10,10 +11,12 @@ Akroan Skyguard
 Amy Rose
 Anara, Wolvid Familiar
 Ancient Stirrings
+Angelic Protector
 Appetite for Brains
 Arrogant Poet
 Aspect of Lamprey
 Atarka, World Render
+Avenging Huntbonder
 Bala Ged Scorpion
 Bankrupt in Blood
 Barrin, Master Wizard
@@ -33,6 +36,7 @@ Chorus of the Tides
 Cinder Wall
 Cleaving Sliver
 Cleon, Merry Champion
+Clockwork Beetle
 Cloud Pirates
 Cloudcrown Oak
 Collected Company
@@ -45,12 +49,14 @@ Cunning Evasion
 Curio Vendor
 Dauntless Bodyguard
 Death's-Head Buzzard
+Deep-Sea Terror
 Delusions of Mediocrity
 Desecrated Earth
 Diabolic Tutor
 Dimir Aqueduct
 Djeru's Renunciation
 Dromad Purebred
+Dromoka Dunecaster
 Drownyard Temple
 Elite Vanguard
 Embereth Shieldbreaker
@@ -96,6 +102,7 @@ God-Eternal Bontu
 Gouged Zealot
 Grapeshot
 Great Goblin, Foul-Hearted
+Great Hart
 Great Whale
 Griptide
 Grisly Ritual
@@ -117,6 +124,7 @@ Honor Troll
 Horned Turtle
 Hunter's Mark
 Hurloon Minotaur
+Illusionary Armor
 Impaler Shrike
 Increasing Devotion
 Infernal Tribute
@@ -127,8 +135,10 @@ Island
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jodah's Avenger
 Judge of Currents
 Kapsho Kitefins
+Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
 Labyrinth Adversary
@@ -138,12 +148,15 @@ Lore Seeker
 Lunar Frenzy
 Lydia Frye
 Malfegor
+Malfunction
 Maniacal Rage
 Martial Glory
 Mask of Memory
+Masumaro, First to Live
 Memorial to Folly
 Mental Note
 Mightstone
+Mindbreak Trap
 Mirri the Cursed
 Mirri's Guile
 Misguided Rage
@@ -167,6 +180,7 @@ Old Rutstein
 Oneirophage
 Orc Sureshot
 Ordeal of Heliod
+Ordered Migration
 Oversold Cemetery
 Paradise Mantle
 Patagia Tiger
@@ -188,12 +202,15 @@ Raven's Crime
 Reckless Scholar
 Reckoner's Bargain
 Reclaim
+Reito Lantern
 Reprocess
 Rotted Hystrix
 Ruin Raider
+Saber Ants
 Sagu Archer
 Samite Alchemist
 Scavenged Weaponry
+Scour the Laboratory
 Scurry Oak
 Seafloor Oracle
 Searing Blood
@@ -202,10 +219,12 @@ Selfless Spirit
 Senate Courier
 Shuri's Fabricator
 Silas Renn, Seeker Adept
+Silkguard
 Silverquill Apprentice
 Skittish Kavu
 Skulking Ghost
 Skyboon Evangelist
+Skyshroud Falcon
 Skysnare Spider
 Sly Spy
 Snake Pit
@@ -215,6 +234,7 @@ Southern Paladin
 Spara's Headquarters
 Spiritual Sanctuary
 Spiteful Motives
+Spoils of Victory
 Spore Frog
 Steelform Sliver
 Steppe Glider
@@ -222,20 +242,25 @@ Stern Dismissal
 Stinging Shot
 Stoneshaker Shaman
 Stoneskin
+Stonybrook Schoolmaster
 Storm the Seedcore
 Strip Mine
 Stronghold Taskmaster
 Sun-Blessed Mount
 Sun-Collared Raptor
+Sunken City
 Survey the Wreckage
 Swamp
 Sword of the Animist
 Sylvan Ranger
 Tar Pit Warrior
+Tarkir Duneshaper
 The Stasis Coffin
 Thraben Charm
 Thunder Totem
+Thunderous Wrath
 Tideshaper Mystic
+Tower Geist
 Tranquil Grove
 Traumatize
 Treacherous Vampire
@@ -244,6 +269,7 @@ Twinscroll Shaman
 Tyrant's Familiar
 Undercity Troll
 Unholy Officiant
+Union of the Third Path
 Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
@@ -257,8 +283,10 @@ Volcano Imp
 Voldaren Pariah
 Waking the Trolls
 Wall of Lava
+Warclamp Mastiff
 Wei Strike Force
 Windstorm
+Wispweaver Angel
 Witch's Web
 Zealous Persecution
 Zhalfirin Shapecraft
