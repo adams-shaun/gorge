@@ -4,6 +4,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// ask (dirac/manifest/ask/raDredge)
+const raDredge uint8 = 146
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 

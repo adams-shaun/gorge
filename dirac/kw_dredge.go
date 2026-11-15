@@ -31,10 +31,10 @@ const StallDredge = 178
 
 func init() { stallNames[StallDredge] = "dredge" }
 
-// raDredge is OpDraw's dredge ask: res.askP (= s.g.pickP) draws, res.left
-// cards are left for them counting the asked one, s.g.pickLeft is the count
-// per player and s.g.pickZ the players still to draw (seatsPack).
-const raDredge = raGenManifestDread + 86
+// raDredge (dirac/manifest/ask/raDredge) is OpDraw's dredge ask: res.askP
+// (= s.g.pickP) draws, res.left cards are left for them counting the asked
+// one, s.g.pickLeft is the count per player and s.g.pickZ the players still
+// to draw (seatsPack).
 
 // cfgxDredgeAsked is transient, never a Config bit: the draw about to run is
 // an answered ask's ordinary draw, so drawExcl's unasked-candidate stall
