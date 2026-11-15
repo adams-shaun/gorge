@@ -1422,10 +1422,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				}
 				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) &&
-					!kop.ChosenSecondManaAb(&t.Cards[i], firstManaAb(&t.Cards[i]), j) && g.gapOther(CardID(i)) < 0 {
+					!kop.ChosenSecondManaAb(&t.Cards[i], firstManaAb(&t.Cards[i]), j) && g.gapOther(CardID(i)) < 0 &&
+					!sacOnlyManaAb(a) {
 					// (Quirion Elves' chosen {T} is folded into the source's
 					// unit by prepMultiMana, not a census gap: registering it as
 					// one would keep a filter beside it off the filtScript path)
+					// (a sacrifice-only one is a census unit, the last-resort
+					// tier: the same, a filter beside it stays filter-only)
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}

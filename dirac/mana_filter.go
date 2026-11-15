@@ -520,6 +520,16 @@ func censusGapMana(a *kop.Ability) bool {
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
+// sacOnlyManaAb: mana ability a costs only sacrificing its source (an Eldrazi
+// Scion token's "Sacrifice this creature: Add {C}", CR 605.1a): the census
+// prices it as a last-resort unit, tapped or untapped alike (mana_sacsource.go,
+// pcard.manaSacOnly's shape), so it is no census gap and a filter beside it is
+// a filter-only board (prep's gfGapOther registration skips it). Lion's Eye
+// Diamond's discard part is the DH gap's (gfDiscHand), not this.
+func sacOnlyManaAb(a *kop.Ability) bool {
+	return a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand
+}
+
 // filtOnly: p's census gaps are filters alone (no other activatable source
 // with a mana ability the census misses: a Bloom Tender, Giada, a
 // Courtyard, Lupinflower Village's restricted {W}, or a deferred
