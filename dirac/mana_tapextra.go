@@ -509,7 +509,7 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 			n += r // the reflected extra rode the unit's amount (addPainAvail)
 		}
 	}
-	if m != 0 {
+	if m != 0 && !(a.pain.on && s.removeTightPain(k, a, sl, pc, m)) {
 		a.remove(m, n)
 	}
 	if m == 0 || k.gen == nil || !k.gen.anyTapExtra {
@@ -530,6 +530,42 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 			a.remove(1<<c, n)
 		}
 	}
+}
+
+// removeTightPain takes the painful source out of a's painTight groups, where
+// its units live once the summed lethal guard binds: the mask/cnt census holds
+// only the group's normal ability (prim) and its modal extra, so the removal by
+// painAvailMask above would find nothing, and the activation whose {T} taps the
+// source would still price its own cost's mana with it (Centaur Garden's
+// "{G}, {T}, Sacrifice" at two life). It reports false when no group holds the
+// source, leaving the caller's removal to run.
+func (s *State) removeTightPain(k *prep, a *avail, sl Slot, pc *pcard, m uint8) bool {
+	pa := &a.pain
+	pm := uint8(pc.painCol) & 0x1f
+	prim := uint8(pc.manaCol) & 0x3f
+	var ob uint8
+	if pc.painOnly {
+		ob = 1
+		prim = 0
+	}
+	var ec uint8
+	if a.nModal != 0 && m&^(1<<kop.C) != 0 {
+		ec = s.painExtraC(k, sl, pc)
+	}
+	for g := uint8(0); g < pa.n; g++ {
+		if pa.mask[g] != pm || pa.prim[g] != prim || pa.only>>g&1 != ob || pa.ec[g] != ec || pa.cnt[g] == 0 {
+			continue
+		}
+		pa.cnt[g]--
+		if ob == 0 {
+			a.remove(prim, 1)
+			if ec != 0 {
+				a.remove(1<<kop.C, ec)
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // addPainAvail adds a painful source's units to a: its production mask (the
