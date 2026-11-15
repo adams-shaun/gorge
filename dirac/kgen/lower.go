@@ -983,6 +983,10 @@ var expandedKeywords = map[string]bool{
 	// replacement putting Count$Converge P1P1 (a creature) or CHARGE
 	// counters on the entering permanent
 	"Sunburst": true,
+	// Graft (CR 702.58a): gorge kwGraft (cards/kw_graft.go) expands it to an
+	// entering Moved replacement putting N +1/+1 counters and an ETB trigger
+	// on another creature moving one counter
+	"Graft": true,
 	// Class (CR 716): gorge kwClass appends each level's activator
 	// (AB$ ClassLevelUp) and its granted ability (ClassBand$ N) to the face
 	"Class": true,
