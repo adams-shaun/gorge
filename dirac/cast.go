@@ -1797,13 +1797,20 @@ func (s *State) finishBuild(k *prep) {
 		s.syncBuild()
 		s.ctl = ctlPlaceTriggers
 	}
-	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 {
-		// gorge's step() head runs startDefeatedCast after any cast or
-		// activation: ask a battle defeated earlier this step first.
-		s.wakeDefeat()
-	}
+	s.wakeDefeatAfterBuild(k, e.kind)
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)
+	}
+}
+
+// wakeDefeatAfterBuild wakes a battle defeated earlier this step after a
+// finished build: gorge's step() head runs startDefeatedCast after any cast or
+// activation, so that ask comes first. A trigger's push is not one: gorge's
+// drainTriggers pushes it and grants priority inside the same step(), so a
+// combat defeat's ask stays deferred (CR 310.11; face_battle.go).
+func (s *State) wakeDefeatAfterBuild(k *prep, kind uint8) {
+	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 && kind != seTrigger {
+		s.wakeDefeat()
 	}
 }
 
