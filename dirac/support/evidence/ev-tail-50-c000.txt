@@ -60,6 +60,7 @@ Evolution Charm
 Excavation Mole
 Explosive Impact
 Falkenrath Pit Fighter
+False Prophet
 Fang Dragon
 Fervent Strike
 Forebear's Blade
@@ -115,7 +116,9 @@ Morningtide
 Mother of Runes
 Mountain
 Natural Affinity
+Necroskitter
 Nightwind Glider
+Nimbus Swimmer
 Nomad Mythmaker
 Novablast Wurm
 Oath of Mages
@@ -143,6 +146,7 @@ Revenge of Ravens
 Revive the Shire
 Riptide
 Riverglide Pathway
+Robe of Mirrors
 Roil Elemental
 Rotted Hulk
 Roving Harper

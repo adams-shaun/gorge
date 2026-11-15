@@ -2,42 +2,75 @@ A-Blessed Hippogriff
 A-Geological Appraiser
 Abyssal Nightstalker
 Abyssal Specter
+Accorder Paladin
 Ahn-Crop Invader
+Airlift Chaplain
+Ajani's Welcome
 Alseid of Life's Bounty
+Ambush Paratrooper
 Angelic Field Marshal
+Arrester's Zeal
+Asari Captain
 Aurochs Herd
 Blanchwood Treefolk
 Bloodmist Infiltrator
+Boggart Loggers
+Bottle Golems
 Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
 Centaur Chieftain
 Chandra's Outrage
+Coiled Tinviper
 Compelled Duel
 Consul's Lieutenant
+Crookshank Kobolds
 Crow Storm
 Cruel Grimnarch
+Crusade
+Crystal Dragon
 Curfew
 Custody Battle
 Darkthicket Wolf
+Deploy to the Front
+Detainment Spell
 Devil Dinosaur
 Dragon's Eye Sentry
+Drider
+Dwarven Armorer
+Empyrial Plate
 Ensnare
+Erratic Mutation
 Escape Velocity
 Esika's Chariot
 Evie Frye
+Expedition Skulker
+Expel
 Eye Gouge
+Feast of Dreams
 Floodhound
+Fog Elemental
 Foresee
 Forest
+Forgehammer Centurion
 Freejam Regent
+Freewind Equenaut
+Freyalise Supplicant
 Gale Swooper
+Gerrard's Irregulars
+Giant Solifuge
+Glass of the Guildpact
 Glint Hawk Idol
 Goblin War Wagon
 Goma Fada Vanguard
+Graceful Adept
+Griffin Sentinel
 Grim Reaper's Scythe
+Hamlet Vanguard
+Hedron Rover
 Hero of Goma Fada
+Heron of Hope
 Illusory Demon
 Island
 Kuldotha Rebirth
@@ -46,32 +79,49 @@ Lash of the Whip
 Lavastep Raider
 Lawmage's Binding
 Learn from the Past
+Light 'Em Up
 Lily Bowen, Raging Grandma
 Living Airship
 Luxurious Libation
 Maze Abomination
 Merfolk Skydiver
 Mesa Cavalier
+Midnight Charm
 Minion Reflector
 Mountain
+Myr Kinsmith
+Mysterious Tome
 Mystical Tutor
+Narnam Cobra
+Nikya of the Old Ways
+Noble Vestige
 Order of the Mirror
 Outland Boar
+Phyrexian Driver
 Plains
 Predatory Nightstalker
+Priest of Urabrask
 Pyknite
 Pyroclastic Elemental
+Pyromantic Pilgrim
+Pyrophobia
 Rakalite
 Ral's Reinforcements
+Riot Devils
 Rise of the Ants
+Rishkar, Peema Renegade
 Rofellos's Gift
 Savage Thallid
 Scryb Sprites
+Scurry of Gremlins
 Servant of Tymaret
 Shelob's Ambush
 Singer of Swift Rivers
 Skillful Lunge
 Smoldering Werewolf
+Staff of the Wild Magus
+Stalking Bloodsucker
+Steel-Plume Marshal
 Stratus Walk
 Suit Up
 Swamp
@@ -79,7 +129,15 @@ Talas Merchant
 Terravore
 Thaumatic Compass
 Thrun, the Last Troll
+Toil
 Tomakul Honor Guard
+Topplegeist
+Tremor
 Vampiric Tutor
+Venser, Fervent Forger
 War Dance
+Weatherseed Faeries
+Wild Aesthir
+Yoked Ox
+Zarichi Tiger
 Zhuge Jin, Wu Strategist

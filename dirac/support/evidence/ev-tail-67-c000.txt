@@ -1,17 +1,139 @@
 A-Armory Veteran
 A-Dokuchi Silencer
+Aethershield Artificer
+Against All Odds
+Air Nomad Student
+Akki Underminer
+Akrasan Squire
+Angelic Renewal
+Aquatic Incursion
+Archaeomender
+Augury Adept
+Blade Splicer
+Blastfire Bolt
+Blisterspit Gremlin
+Buried Alive
+Butcher Ghoul
+Chakram Slinger
+Cloud of Faeries
+Cogwork Assembler
+Conservator
 Containment Construct
 Corrupted Roots
+Daring Fiendbonder
+Deathless Angel
+Deepwood Ghoul
+Deft Dismissal
+Demonic Rising
+Dynavolt Tower
+Ecstatic Electromancer
+Empty the Laboratory
+Erratic Visionary
+Ethereal Champion
+Ethereal Usher
+Expansion
+Fain, the Broker
+Faith Healer
+Fleshpulper Giant
+Flow of Ideas
 Forest
+Geth's Grimoire
+Glory Bearers
+Gluttonous Zombie
+Go Forth
 Grim Monolith
+Hail Storm
+Hanna, Ship's Navigator
+Hemlock Vial
+Honed Khopesh
+Hound of the Farbogs
+Hydra's Growth
+Intruder Alarm
 Island
+Jackalope Herd
+Keen-Eyed Raven
+Khalni Gem
+Kirtar's Wrath
 Kiyomaro, First to Stand
+Kor Skyfisher
+Leather Armor
+Lightning Spear
 Lightning-Core Excavator
+Liliana's Influence
 Lodestone Myr
+Lush Growth
+MJ, Rising Star
+Manticore Eternal
+Mardu Strike Leader
+Metropolis Reformer
+Mogis's Warhound
+Moonblade Shinobi
 Mountain
 Nagging Thoughts
+Necrobite
+Nemesis of Reason
+Neurok Familiar
+Nezumi Bladeblesser
+Nomad Decoy
+Norn's Disassembly
+Oblation
+Pilfering Imp
 Plains
+Plaxmanta
+Pol Jamaar, Illusionist
+Pollywog Prodigy
+Primeval Force
+Prosper, Tome-Bound
+Prosperous Innkeeper
+Rabbit Battery
+Ray of Erasure
+Raze to the Ground
+Reality Ripple
 Reckless Charge
+Reduce in Stature
+Reduce to Ashes
+Relic Barrier
+Revelation of Power
+Rogue Refiner
+Rustrazor Butcher
+Samite Archer
+Sandcrafter Mage
+Scavenged Blade
 Scion of Vitu-Ghazi
+Searing Barb
+Serra Paladin
+Setessan Skirmisher
+Shepherd of the Lost
+Shinen of Fear's Chill
+Skullknocker Ogre
+Slab Hammer
+Slinking Giant
+Solid Footing
+Spider-Man 2099, Miguel O'Hara
+Spined Fluke
+Spreading Rot
+Stormcrag Elemental
+Stormrider Rig
+Sunblade Angel
 Swamp
+Tale of Momo
 Talons of Falkenrath
+Temmet, Vizier of Naktamun
+Thaumaturge's Familiar
+The Whizzer, Classic Speedster
+Thrór's Map
+Thunder Drake
+Thwart the Grave
+Titan's Strength
+Tormod's Cryptkeeper
+Troublesome Spirit
+Trueheart Duelist
+Undercity Scavenger
+Unholy Hunger
+Warped Devotion
+Way of the Thief
+Whispering Wizard
+Wrangle
+Zealots en-Dal
+Zephyr Falcon
+Zodiac Ox

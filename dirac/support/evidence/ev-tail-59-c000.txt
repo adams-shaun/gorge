@@ -1,13 +1,204 @@
 A-Civil Servant
 A-Navigation Orb
+Academy Wall
+Aerie Bowmasters
+Affa Protector
+Aligned Hedron Network
+Amateur Hero
+Ambitious Farmhand
+Ant Queen
+Aphetto Grifter
+Aquus Steed
+Assassin's Ink
 Back to Basics
+Barbarian Riftcutter
+Benthic Behemoth
+Blaring Captain
+Blood for the Blood God!
+Blue Elemental Blast
+Brackwater Elemental
+Branchblight Stalker
+Brightling
+Builder's Blessing
 Burning-Tree Emissary
+Cavalier of Dawn
+Chimney Rabble
+Cho-Manno's Blessing
+Cho-Manno, Revolutionary
+Citanul Hierophants
+Convolute
+Cradle of Safety
+Creeping Crystal Coating
+Crowd's Favor
+Crystal Golem
+Curious Altisaur
+Dawn of the Dead
+Dawnhart Rejuvenator
+Death Bomb
+Death Wind
+Debilitating Injury
+Decision Paralysis
+Dehydration
+Demonlord of Ashmouth
+Desperate Farmer
+Discordant Dirge
+Dogpile
+Dread Drone
+Drumhunter
+Durable Coilbug
+Duskworker
+Eagle of Deliverance
+Elemental Appeal
+Embermage Goblin
+Epicenter
+Esper Battlemage
+Excise the Imperfect
+Experiment One
+Experimental Synthesizer
+Ezuri's Archers
+Fade from History
+Festering Mummy
+Fiery Cannonade
+Fissure Vent
+Fleetwheel Cruiser
+Flowstone Kavu
 Forest
+Founding of Omashu
+Frenzied Fugue
+Frost Ogre
+Genesis
+Gideon's Battle Cry
+Gnottvold Slumbermound
+Goliath Sphinx
+Grasp of Darkness
+Grave Pact
+Grim Initiate
+Guardian of the Forgotten
+Gutless Ghoul
+HONK!
+Hag of Syphoned Breath
+Hydra Omnivore
+Hydroform
+Icatian Priest
+Icatian Scout
+Imperial Recruiter
+Imposing Vantasaur
+Inundate
+Iraxxa, Empress of Mars
+Iridescent Drake
 Island
+Izzet Boilerworks
+Kappa Cannoneer
+Keeper of the Lens
+Kitesail Cleric
+Knowledge Is Power
+Kokusho, the Evening Star
+Krav, the Unredeemed
+Lattice-Blade Mantis
 Lazotep Plating
+Lead Astray
+Legion Loyalty
+Living Armor
+Livonya Silone
+Lonesome Unicorn
+Lord of Atlantis
+Lorehold Archivist
+Magmaroth
+Marionette Apprentice
+Marsh Hulk
+Maverick Thopterist
+Mirran Bardiche
+Molting Skin
+Moonveil Regent
 Mountain
+Munda's Vanguard
+Narset's Reversal
+Niblis of Frost
+Nightmarish End
+Nimble Hobbit
+Nimbleclaw Adept
+Notion Rain
+Null Rod
+Nylea's Forerunner
+Opportunist
+Otherworldly Gaze
+Paired Tactician
+Pavel Maliki
+Pearl Dragon
+Pest Infestation
+Phase Dolphin
+Phyrexian Boon
+Phyrexian Walker
 Plains
+Power Plant Worker
+Pyrohemia
+Rakdos Guildmage
+Rebuff the Wicked
+Reckless Handling
+Returned Phalanx
+Riptide Chimera
+Rod of Ruin
+Rubblebelt Maaka
+Sabertooth Outrider
+Satyr Rambler
+Screaming Fury
+Seal of Cleansing
+Search Warrant
+Second Wind
+Secure the Scene
+Sequence Engine
+Serum Snare
+Setessan Battle Priest
+Setessan Training
+Shield Wall
+Shoal Serpent
+Shoreline Raider
+Shuko
+Silent Specter
+Silkwing Scout
+Skeletal Wurm
+Skirk Prospector
+Slimebind
+Sluggishness
+Spear Spewer
+Stone Golem
 Stormbound Geist
+Strength Bobblehead
+Stun Sniper
+Sunseed Nurturer
+Sunset Revelry
 Swamp
+Talas Lookout
+Tandem Tactics
+The Terror of Serpent's Pass
+The Thing
+Thraben Foulbloods
+Threaten
+Thriving Turtle
+Topiary Stomper
+Tragic Fall
+Trench Wurm
+Tumble Magnet
+Uncontrollable Anger
+Unliving Psychopath
+Ursapine
+Urza's Rage
+Vanish into Eternity
+Vesper Ghoul
+Victor Timely, Wily Tycoon
+Vivid Flying Fish
+Vizzerdrix
+Void
+Voracious Hydra
+Wall of Ice
+Warping Wail
+Weakstone
+Welcome the Dead
+Welding Sparks
+Wild Ox
+Witty Roastmaster
 Wonder
 Words of Wisdom
+Workshop Elders
+Wreck and Rebuild
+Yellow Scarves Troops

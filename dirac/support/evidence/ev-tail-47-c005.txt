@@ -1,8 +1,176 @@
+A-Dwarfhold Champion
+A-Young Red Dragon
+Abandon the Post
+Abzan Skycaptain
+Acidic Sliver
+Angelic Protector
+Ashes to Ashes
+Aven Wind Mage
+Binding Mummy
 Blisterstick Shaman
+Bloodline Pretender
+Bloodthirsty Blade
+Bloodthrone Vampire
+Bow of Nylea
+Brain Gorgers
+Brilliant Halo
+Capashen Knight
+Captain Sisay
+Capture of Jingzhou
+Cartouche of Solidarity
+Cephalid Scout
+Chainflail Centipede
+Chosen by Heliod
+Conclave Sledge-Captain
+Conquer
+Consume Spirit
+Crucible of Fire
+Crystal Chimes
+Dalek Squadron
+Dark Ritual
+Dawnhart Mentor
+Deathbellow Raider
+Delighted Killbot
+Demonic Lore
+Depths of Desire
+Dictate of Karametra
 Diligent Farmhand
+Dirge of Dread
+Dirgur Nemesis
+Dragonstalker
+Drinker of Sorrow
+Elvish Berserker
+Energy Tap
+Environmental Sciences
+Evolution Witness
+Eyeless Watcher
+Ezio, Brash Novice
+Fallen Ideal
+Field Creeper
+Fiendslayer Paladin
+Fire Nation Turret
 Forest
+Foul Familiar
+Fowl Play
+Frilled Deathspitter
+Fruitcake Elemental
+Gaea's Balance
+Ghor-Clan Savage
+Gibbering Hyenas
+Glistening Oil
+Goblin Masons
+Grixis Battlemage
+Guardian of Tazeem
+Hag of Ceaseless Torment
+Harsh Deceiver
+Harvester of Souls
+Hazoret's Favor
+Highland Berserker
+Howling Banshee
+Ich-Tekik, Salvage Splicer
+Immolating Souleater
+Increasing Savagery
+Iona's Judgment
+Iron Star
 Island
+Kodama of the West Tree
+Lae'zel, Vlaakith's Champion
+Laurine, the Diversion
+Lignify
+Mage's Guile
+Markov Crusader
+Merfolk Mesmerist
+Midnight Covenant
+Might Weaver
+Mind Rot
+Minion Missile
+Mischief and Mayhem
+Mogg War Marshal
+Moment of Heroism
 Mountain
+Myr Galvanizer
+Mysterio's Mirage
+Natural Connection
+Natural Selection
+Nesting Wurm
+Nine-Ringed Bo
+Nourish
+Origin of the Hidden Ones
+Painful Lesson
+Piper of the Swarm
 Plains
+Plated Wurm
+Pyromancer's Gauntlet
+Rally the Forces
+Realm-Cloaked Giant
+Reckoner Bankbuster
+Rend Spirit
+Renegade Map
+Reparations
+Reservoir Kraken
+Resplendent Mentor
+Riptide Biologist
+Riptide Entrancer
+Rosethorn Halberd
+Sakura-Tribe Scout
+Savai Triome
+Scrapyard Mongrel
+Screeching Buzzard
+Screeching Skaab
+Searing Light
+Shadowbeast Sighting
+Shivan Gorge
+Shockmaw Dragon
+Sigarda's Imprisonment
+Silver Myr
+Simian Simulacrum
+Singing Bell Strike
+Siren Lookout
+Skeletal Grimace
+Sky Diamond
+Skyknight Vanguard
+Sleeper's Robe
+Sliver Construct
+Snare Tactician
+Snooping Newsie
+Somberwald Alpha
+Somberwald Vigilante
+Song of the Worldsoul
+Soul Shepherd
+Spark Harvest
+Sparkmage Apprentice
+Spawning Kraken
+Spectral Sliver
+Squirrel Mob
+Stern Constable
+Stern Lesson
+Stronghold Confessor
+Sulfurous Springs
+Suspended Sentence
 Swamp
+Swamp Mosquito
+Szarekh, the Silent King
+Tangleclaw Werewolf
+Teferi's Tutelage
+Tel-Jilad Archers
+Terra Eternal
+Tezzeret's Ambition
+The Hunger Tide Rises
 Time of Ice
+Tin Street Dodger
+Titanic Bulvox
+Tunneling Geopede
+Vaporkin
+Vastwood Fortification
+Vastwood Zendikon
+Vesperlark
+Volcanic Island
+Voracious Vampire
+Vow of Wildness
+Walking Corpse
+Wandering Treefolk
+Weaver of Currents
+White Tiger, Amulet Keeper
+Wicked Reward
+Wild Jhovall
+Zhang Liao, Hero of Hefei

@@ -35,12 +35,19 @@ Myr Enforcer
 Mystery Key
 Necrosynthesis
 Necrotic Sliver
+Noxious Grasp
+Opal Champion
 Overgrowth
+Phantom Nishoba
 Plains
 Puppet Conjurer
 Rending Volley
 Ruin Crab
+Scion of Stygia
+Scourge of the Undercity
+Sea God's Revenge
 Shredded Sails
+Sisay's Ring
 Solar Blast
 Soltari Trooper
 Spearpoint Oread
@@ -50,7 +57,10 @@ Streetwise Negotiator
 Sunder Shaman
 Swamp
 Thought Monitor
+Traverse the Outlands
 Trespasser's Curse
 Undo
 Wall of Roots
+Wand of the Elements
+Winter Soldier, Bucky Barnes
 Witch's Cottage

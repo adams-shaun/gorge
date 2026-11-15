@@ -8,16 +8,19 @@ Boiling Blood
 Capashen Unicorn
 Captured by Lagacs
 Chicken Egg
+Choke
 Chromatic Star
 Civic Guildmage
 Concordant Crossroads
 Death Speakers
 Descendant of Kiyomaro
+Devouring Swarm
 Dina, Soul Steeper
 Dragonborn Looter
 Ebony Treefolk
 Echoing Calm
 Encroaching Wastes
+Entish Restoration
 Euroakus
 Ferocious Charge
 Field Marshal
@@ -28,6 +31,7 @@ From the Rubble
 Frontier Mastodon
 Gaze of Granite
 Ghoulcaller's Bell
+Gloomhunter
 Goblin Arsonist
 Goblin Tinkerer
 Halberdier
@@ -42,6 +46,7 @@ Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Meadowboon
+Meng Huo, Barbarian King
 Merciless Executioner
 Mighty Emergence
 Millstone
@@ -56,9 +61,11 @@ Oreskos Swiftclaw
 Painwracker Oni
 Peggy Carter, Secret Agent
 Plains
+Pool Resources
 Precision Bolt
 Putrid Imp
 Pyrrhic Blast
+Rag Dealer
 Raging Kavu
 Rally Maneuver
 Rancid Rats
@@ -76,6 +83,8 @@ Silent Sentinel
 Silverflame Squire
 Silverskin Armor
 Sleeper Agent
+Smash to Dust
+Speakeasy Server
 Spitfire Handler
 Spurnmage Advocate
 Steel Leaf Paladin
@@ -88,6 +97,7 @@ Tel-Jilad Outrider
 The Shattered States Era
 Treetop Scout
 Triceraton Regenta
+Tuktuk Rubblefort
 Unquestioned Authority
 Vintara Snapper
 Viridian Longbow

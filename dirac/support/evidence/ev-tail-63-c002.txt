@@ -3,9 +3,14 @@ A-Geological Appraiser
 Abyssal Nightstalker
 Abyssal Specter
 Abzan Advantage
+Accorder Paladin
 Aetherworks Marvel
 Aggressive Instinct
 Ahn-Crop Invader
+Airlift Chaplain
+Ajani's Welcome
+Ambush Paratrooper
+Angelic Field Marshal
 Arrester's Zeal
 Aurochs Herd
 Azorius Charm
@@ -14,70 +19,120 @@ Become the Avalanche
 Blanchwood Treefolk
 Bloodmist Infiltrator
 Boggart Loggers
+Bottle Golems
 Bramblesnap
 Breath of Darigaaz
+Brightwood Tracker
 Brute Strength
 Centaur Chieftain
+Chandra's Outrage
+Coiled Tinviper
+Compelled Duel
+Crookshank Kobolds
 Crow Storm
 Cruel Grimnarch
+Crusade
+Crystal Dragon
 Curfew
 Custody Battle
 Darkthicket Wolf
+Deploy to the Front
 Detainment Spell
 Dragon's Eye Sentry
 Dread Fugue
+Drider
+Dwarven Armorer
+Empyrial Plate
+Erratic Mutation
 Escape Velocity
 Esika's Chariot
 Evie Frye
 Expedition Skulker
+Expel
 Eye Gouge
+Feast of Dreams
 Floodhound
+Fog Elemental
 Foresee
 Forest
 Forgehammer Centurion
 Freejam Regent
+Freewind Equenaut
+Freyalise Supplicant
+Gerrard's Irregulars
+Giant Solifuge
+Glass of the Guildpact
 Glint Hawk Idol
 Goblin War Wagon
 Goma Fada Vanguard
+Graceful Adept
+Griffin Sentinel
 Grim Reaper's Scythe
+Hamlet Vanguard
+Hedron Rover
+Heron of Hope
 Ichor Drinker
 Illusory Demon
 Island
 Kashi-Tribe Elite
 Kuldotha Rebirth
 Kumena's Awakening
+Kyren Negotiations
 Lash of the Whip
 Lavastep Raider
+Lawmage's Binding
 Learn from the Past
+Light 'Em Up
+Master's Guidance
 Maze Abomination
+Merfolk Skydiver
+Merry, Warden of Isengard
 Mesa Cavalier
 Midnight Charm
 Minion Reflector
 Mountain
 Mourning
 Myr Kinsmith
+Mysterious Tome
 Mystical Tutor
+Narnam Cobra
 Necrotic Hex
+Nikya of the Old Ways
 Noble Vestige
+Order of the Mirror
 Orochi Merge-Keeper
+Outland Boar
+Phyrexian Driver
 Plains
 Predatory Nightstalker
+Priest of Urabrask
+Purge the Profane
 Pyknite
+Pyroclastic Elemental
+Pyromantic Pilgrim
+Pyrophobia
+Ramosian Commander
 Replication Technique
+Riot Devils
 Rishadan Brigand
 Rishkar, Peema Renegade
 Rofellos's Gift
 Savage Thallid
 Screeching Bat
 Scryb Sprites
+Scurry of Gremlins
 Servant of Tymaret
 Shelob's Ambush
 Silvar, Devourer of the Free
+Singer of Swift Rivers
 Skillful Lunge
 Smoldering Werewolf
 Spell Crumple
 Spider-Man, Peter Parker
+Spring
 Staff of the Wild Magus
+Stalking Bloodsucker
+Steel-Plume Marshal
 Stratus Walk
 Student of Ojutai
 Suit Up
@@ -86,9 +141,18 @@ Swamp
 Taste of Blood
 Terravore
 Thaumatic Compass
+Thrun, the Last Troll
 Toil
 Tomakul Honor Guard
+Topplegeist
+Tremor
 Vampiric Tutor
+Venser, Fervent Forger
 War Dance
+Weatherseed Faeries
+Wild Aesthir
 Windrider Wizard
+Yoked Ox
+Zarichi Tiger
+Zendikar Incarnate
 Zhuge Jin, Wu Strategist
