@@ -1,0 +1,7 @@
+Cosmos Elixir
+Forest
+Island
+Mountain
+Plains
+Python
+Swamp

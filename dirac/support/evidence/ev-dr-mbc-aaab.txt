@@ -32,6 +32,7 @@ Dyfed, the Guiding Hand
 Elspeth's Smite
 Elvish Visionary
 Explosive Vegetation
+Explosive Welcome
 Extinguish All Hope
 Fell Gravship
 Forest
@@ -42,6 +43,7 @@ Insidious Fungus
 Island
 Kamahl, Heart of Krosa
 Kor Hookmaster
+Kyren Negotiations
 Lightning Bolt
 Lotus Petal
 Mana Short

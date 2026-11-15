@@ -390,9 +390,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Casualty != 0 {
 		fmt.Fprintf(w, " casualty=%d", c.Casualty)
 	}
-	if c.Wither {
-		fmt.Fprintf(w, " wither")
-	}
+	dumpKeywordFlags(w, c) // lower_umbraarmor.go
 	if c.AloneAtk {
 		fmt.Fprintf(w, " alone-atk")
 	}

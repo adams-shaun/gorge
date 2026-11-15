@@ -72,7 +72,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 			ok = false // a granted-delve face is a "shape:contribution" the planner declines: only the floating pool casts it
 		}
 		if ok && s.cfg&cfgGorgeUnpriced != 0 && facePlannerLimited(k.t.Cards[c].FaceMode) && !s.FeatPoolPays(p, o, 0) {
-			if s.anySacSource(k, p) && !s.faceWitnessReaches(k, p, c, &cost) {
+			if s.anySacSource(k, p) && !s.faceWitnessReaches(k, p, o, c, &cost) {
 				// The witness may sacrifice a source (a Treasure) the
 				// face's own targets need: gorge's potentialWitnessReaches
 				// drops the play ("unsupported: witness_unreachable").
@@ -255,8 +255,16 @@ const FeatCastFace = castFace
 // in place: the kernel's census already paid the cost, and dropping a play
 // gorge reaches through a witness this planner does not model would be the
 // worse divergence (kickWitness reads the same way). Only a found witness
-// that consumes a source and strands the face's targets withholds the play.
-func (s *State) faceWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
+// that consumes a source and strands the face's targets, or leaves the floated
+// pool short of the cost as it is then priced, withholds the play.
+//
+// The lowering floats the witness's mana before the cast, so a reduction that
+// counts the sacrificed source (Frogmyr Enforcer's affinity for a Treasure on
+// its prototype cast) has dropped by the time the cast is priced, though CR
+// 601.2f fixed the total before the sacrifice; gorge's witnessReachesMode
+// lists the cast only when the pool pays that cost (kw_spree.go does the same).
+// o has the face's card in it (faceCastable's probe).
+func (s *State) faceWitnessReaches(k *prep, p uint8, o Obj, c CardID, cost *kop.ManaCost) bool {
 	tmp := s.fork()
 	defer s.unfork()
 	var pk planner
@@ -265,7 +273,7 @@ func (s *State) faceWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCos
 	if !pk.found || !plannerConsumesSac(&pk) {
 		return true
 	}
-	return tmp.spellTargetsFeasible(k, c, p)
+	return tmp.spellTargetsFeasible(k, c, p) && tmp.FeatPoolPays(p, o, 0)
 }
 
 // plannerConsumesSac reports whether the planner's chosen witness sacrifices
