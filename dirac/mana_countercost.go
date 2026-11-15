@@ -32,6 +32,11 @@ import (
 // as the activation path's CostRemoveCtr does, and the gap is offered only
 // while the source holds them (gorge manaAbilityPayablePool).
 
+// stepCtr is the gi of a prefix step that taps a counter-cost gap; the
+// step's col is the any-colour ask's answer plus one (0: a fixed colour or
+// every colour at once asks nothing).
+const stepCtr int16 = -8
+
 // ctrManaAb reports whether mana ability a costs only counters put on its
 // source, once each turn, with a fixed production.
 func ctrManaAb(a *kop.Ability) bool { return kop.CtrManaAb(a) }
@@ -131,6 +136,33 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 	return m
 }
 
+// ctrBesideGrant reports whether p has an activatable counter-cost gap while
+// a permanent of p's holds a live granted mana ability: the grant search is
+// then gorge's one prefix search over both, and runs before the counter-cost
+// script (a Hickory Woodlot beside Jaheira's tokens: gorge taps the granted
+// gap first, battlefield order, CR 601.2g-h).
+func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
+	m := s.scriptCtr(k, p)
+	if !m.any() || !s.liveGrantGap(k, p) {
+		return false
+	}
+	for b := m; b.any(); b = b.rest() {
+		a := k.ctrAbOf(s.cardAt(b.first()))
+		if !deadCtrAb(a) && !kop.StoreManaAb(a) {
+			return true // the grant search lists only the plain shapes (candidates)
+		}
+	}
+	return false
+}
+
+// grantBesideTapXGaps reports whether gorge's one search beside the grants
+// prices play a on a board whose tap-another script (scriptOffers) found
+// nothing: a tap-another second ability or a counter-cost gap among the
+// grants (mana_granttapx.go, ctrBesideGrant), the grant search listing both.
+func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) bool {
+	return (s.tapXSecondLive(k, p) || s.ctrBesideGrant(k, p)) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)
+}
+
 // availCtr adds p's counter-cost sources' mana to the gaps walk.
 //
 //go:noinline
@@ -215,6 +247,16 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 //
 //go:noinline
 func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
+	s.ctrGapDo(k, p, sl, col, true)
+}
+
+// ctrGapDo is ctrGap; fire false is the grant search's fork-side branch
+// (ctrTry): like the other branches' forks (eachTry) it taps plainly and
+// leaves the tap's trigger passes to grantApply, so the search does not see
+// a trigger of its own step pending (waitsForStack would dead-end the
+// branch). The dead and storage shapes are no grant-search candidates
+// (candidates, mana_grantedoffers.go), so fire reaches only the plain path.
+func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
 	if kop.StoreManaAb(a) {
@@ -241,7 +283,9 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 	taps := a.Cost.Flags&kop.CostTap != 0
 	if taps {
 		pm.flags |= pfTapped // the second ability's {T} (Weather Maker)
-		s.manaTapped(k, sl)
+		if fire {
+			s.manaTapped(k, sl)
+		}
 	}
 	s.touchSl(sl)
 	cols, n := tapXUnit(a)
@@ -310,14 +354,91 @@ func (s *State) ctrAnsCol(k *prep, a Action, sl Slot, ans int) int {
 	return int(s.ctrColOrder(k, a)[ans])
 }
 
+// ctrBranch activates the counter-cost candidate i (slot sl) by each of the
+// answers its activation poses (ctrChainN): a plain {T} first ability's
+// (Vivid Grove's {T}: Add {G}) when the source can still tap, then the counter
+// ability's, an any-colour one by each colour in ctrNeedOrder's order, the
+// play's announced colours first (the mirror of gorge's scriptOrderAnswers,
+// CR 601.2g-h: the search asks each activation's ability and colour). A
+// counter-cost ability whose counters, use or {T} are gone on copy t has no
+// answer (scriptCtr's checks).
+func (g *grantSrch) ctrBranch(t *State, i int, sl Slot) bool {
+	c := t.cardAt(sl)
+	a := g.k.ctrAbOf(c)
+	if a == nil {
+		return false
+	}
+	off := g.k.ctrFirstN(c)
+	tap := t.canTapForMana(g.k, sl) // its {T}: untapped and, a creature, not sick
+	ctrOK := t.perms[sl].actUsed&(1<<uint(g.k.ctrAb[c])) == 0 &&
+		(a.Cost.Flags&kop.CostRemoveCtr == 0 || t.perms[sl].ctrN(t, int(a.Cost.Ctr)) >= int(a.Cost.N)) &&
+		(a.Cost.Flags&kop.CostTap == 0 || tap)
+	for ans := 0; ans < g.k.ctrChainN(c); ans++ {
+		if ans < off && !tap || ans >= off && !ctrOK {
+			continue
+		}
+		if g.ctrTry(t, i, sl, ans) {
+			return true
+		}
+	}
+	return false
+}
+
+// ctrTry takes candidate i's chain answer ans on a copy of t and continues the
+// search there.
+func (g *grantSrch) ctrTry(t *State, i int, sl Slot, ans int) bool {
+	if g.np >= len(g.path) {
+		return false
+	}
+	c := t.fork()
+	c.ctrStepDo(g.k, g.p, sl, g.need, ans, false)
+	g.path[g.np] = grantStep{i: uint8(i), col: uint8(ans + 1), gi: stepCtr, sl: sl}
+	g.np++
+	ok := g.next(c, sl)
+	if !ok {
+		g.np--
+	}
+	t.unfork()
+	return ok
+}
+
+// ctrStepDo applies chain answer ans of counter-cost source sl as the grant
+// search's step (ctrChainTap's counter-cost arm, the colour order read off the
+// play's need): the plain first ability's tap, or the counters, use and mana
+// and the state-based check a -0/-1 counter may kill with. fire false is the
+// search's fork-side form (ctrGapDo).
+func (s *State) ctrStepDo(k *prep, p uint8, sl Slot, need [kop.NumManaKinds]bool, ans int, fire bool) {
+	c := s.cardAt(sl)
+	off := k.ctrFirstN(c)
+	col := -1 // a fixed colour asks nothing
+	if ans < off {
+		if off > 1 {
+			col = int(ctrNeedOrder(need)[ans])
+		}
+		s.ctrAb1Do(k, p, sl, col, fire)
+		return
+	}
+	if ab := k.ctrAbOf(c); ab != nil && ctrAnyColour(ab) {
+		col = int(ctrNeedOrder(need)[ans-off])
+	}
+	s.ctrGapDo(k, p, sl, col, fire)
+	s.sba(k)
+}
+
 // ctrColOrder is the colour ask's answers for play a in the prefix search's
 // order: the play's announced colours first (tapXSearch.cols, needFirst).
 func (s *State) ctrColOrder(k *prep, a Action) [5]uint8 {
+	return ctrNeedOrder(s.playNeed(k, a))
+}
+
+// ctrNeedOrder is the colour ask's answers for a play needing the colours need:
+// those first, then the rest in colour order (needFirst).
+func ctrNeedOrder(need [kop.NumManaKinds]bool) [5]uint8 {
 	var order [5]uint8
 	for c := range order {
 		order[c] = uint8(c)
 	}
-	needFirst(order[:], s.playNeed(k, a))
+	needFirst(order[:], need)
 	return order
 }
 
@@ -382,9 +503,17 @@ func (s *State) ctrChainTap(k *prep, p uint8, a Action, sl Slot, ctr, restr slot
 //
 //go:noinline
 func (s *State) ctrAb1(k *prep, p uint8, sl Slot, col int) {
+	s.ctrAb1Do(k, p, sl, col, true)
+}
+
+// ctrAb1Do is ctrAb1; fire false is the grant search's fork-side branch,
+// which leaves the tap's trigger passes to grantApply (ctrGapDo).
+func (s *State) ctrAb1Do(k *prep, p uint8, sl Slot, col int, fire bool) {
 	pm := &s.perms[sl]
 	pm.flags |= pfTapped
-	s.manaTapped(k, sl)
+	if fire {
+		s.manaTapped(k, sl)
+	}
 	s.touchSl(sl)
 	c := s.cardAt(sl)
 	cols, n := tapXUnit(&k.t.Cards[c].Abilities[k.cards[c].manaAb])
