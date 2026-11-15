@@ -862,6 +862,7 @@ ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPreventNext	ExtOp	305
 ExtPutContract	ExtOp	91
+ExtPutCounterChoice	ExtOp	98
 ExtPutCounterExisting	ExtOp	253
 ExtPutSticker	ExtOp	18
 ExtRadiation	ExtOp	25
@@ -1491,6 +1492,8 @@ PumpEachPower	untyped int	1
 PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
+PutCtrChoiceMax	untyped int	4
+PutCtrChoiceNone	untyped int	255
 PutCtrRemAmount	untyped int	5
 PutCtrRememberPut	untyped int	2
 R	untyped int	3
