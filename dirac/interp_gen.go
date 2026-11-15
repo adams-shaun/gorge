@@ -2207,6 +2207,7 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 // copyCardToken is execCopyToken's creation of the token copies of card c,
 // shared with the named-card copy (copy_named.go), whose card is no object.
 func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
+	s.res.flags &^= rfCopyGrp
 	e := &s.res.e
 	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
 		was := e.ctrl
@@ -2255,6 +2256,14 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 // copyTokens creates n token copies of card c for the resolving entry's
 // controller (execCopyToken).
 func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
+	parked := s.copyTokensRun(k, in, c, n)
+	if !parked {
+		s.res.flags &^= rfCopyGrp
+	}
+	return parked
+}
+
+func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 	e := &s.res.e
 	if src := s.objRefObj(in.Obj); src != NoObj && s.faceDownAt(k, src) {
 		for i := 0; i < n; i++ {
@@ -2304,9 +2313,18 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
 		s.copyTokenEnter(k, in, t, host, &eb)
+		s.res.flags |= rfCopyGrp
 		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 	}
 	return false
+}
+
+// copyResumedEnter enters the copy token t a parked as-enters ask held back
+// and marks the op as having made a copy (rfCopyGrp), so the copies after it
+// join the first one's AtEOT$ sacrifice trigger (copyTokenEnterFrom).
+func (s *State) copyResumedEnter(k *prep, in *kop.Instr, t Obj, host Slot) {
+	s.copyTokenEnter(k, in, t, host, nil)
+	s.res.flags |= rfCopyGrp
 }
 
 // copyTokenEnter puts copy token t onto the battlefield, attached to host
@@ -2399,12 +2417,16 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		// one resolution's copies share one delayed triggered ability (CR 603.7;
 		// gorge effCopyPermanent registers one group): a later copy joins the
 		// first one's trigger
+		// A copy resumed from a parked as-enters ask (an Aura copy's host, a
+		// token choice) enters with no batch; rfCopyGrp says the op already
+		// made a copy, so this one is no head.
+		later := eb != nil && eb.n >= 2 || s.res.flags&rfCopyGrp != 0
 		switch {
 		case upk:
-			if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUpkeep) {
+			if !later || !s.sacAtEndJoin(t, dlyUpkeep) {
 				s.sacAtUpkeepUntracked(t, e.ctrl) // trig_upkeepsac.go
 			}
-		case eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked):
+		case !later || !s.sacAtEndJoin(t, dlyUntracked):
 			s.sacAtEndUntracked(t, e.ctrl) // trig_tokenateot.go
 		}
 	}
