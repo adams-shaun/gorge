@@ -3,11 +3,25 @@ Accumulated Knowledge
 Acolyte of Affliction
 Animist's Awakening
 Anoint with Affliction
+Apprentice Sharpshooter
+Archangel
 Argothian Elder
+Augmenting Automaton
 Bane of Progress
 Beacon Hawk
+Blitz of the Thunder-Raptor
+Bogardan Firefiend
+Break of Day
 Briarhorn
+Ceremonious Rejection
+Chimeric Mass
+Cleansing Nova
+Cogwork Librarian
+Compulsory Rest
+Concentrate
 Council of Advisors
+Coveted Peacock
+Deathbonnet Sprout
 Debtor's Pulpit
 Dramatic Finale
 Drudge Spell
@@ -15,21 +29,34 @@ Duchess, Wayward Tavernkeep
 Dungrove Elder
 Early Frost
 Eccentric Farmer
+Fists of Ironwood
 Flamewright
 Forest
 From Beyond
+Funeral Pyre
 Funeral Rites
+Gaea's Avenger
+Geyserfield Stalker
 Goblin Bomb
 Goblin Lore
+Goblin Soothsayer
+Grim Wanderer
+Grismold, the Dreadsower
 Hamato Ninpō
+Hunted Horror
 Island
 Jarl of the Forsaken
 Kamber, the Plunderer
+Khorvath Brightflame
+Knighted Myr
 Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
+Lagonna-Band Trailblazer
 Lethal Exploit
 Llanowar Visionary
+Lucky Offering
+Mass Diminish
 Might of Murasa
 Mire Triton
 Mountain
@@ -37,24 +64,57 @@ Natural Obsolescence
 Nissa's Judgment
 Nullhide Ferox
 Ojutai's Command
+One-Clown Band
+Opportunity
+Pheres-Band Tromper
 Pixie Queen
 Plague Beetle
 Plains
 Prismari Pianist
+Prophet of Distortion
 Quirion Ranger
+Raffine's Silencer
+Rakdos Keyrune
 Ranger's Longbow
+Ransack the Lab
+Ring of Renewal
 Rooftop Bypass
+Runechanter's Pike
+Sanctuary Cat
+Screaming Seahawk
+Serra's Boon
+Shriekdiver
+Sigiled Behemoth
 Silverwing Squadron
+Simian Brawler
+Skyhunter Cub
+Sparkmage's Gambit
 Spring-Leaf Avenger
 Squee's Toy
+Steadfast Guard
+Stone-Seeder Hierophant
 Storm Shaman
+Sudden Strength
 Surrak and Goreclaw
 Swamp
 Tainted Strike
+Tempered Veteran
 Tendershoot Dryad
+Thrull Parasite
+Thunder Spirit
+Torens, Fist of the Angels
 Traveling Philosopher
 Tuinvale Treefolk
+Tuktuk Grunts
 Urbis Protector
 Utter End
 Vebulid
+Vela the Night-Clad
+Vigilance
 Vinelasher Kudzu
+Vivify
+Vodalian Arcanist
+Wishcoin Crab
+Witness of Tomorrows
+Woolly Spider
+Yellow Scarves Cavalry

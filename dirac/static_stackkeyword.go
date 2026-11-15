@@ -43,6 +43,9 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 			// copy_permanentspell.go)
 			g.anyHist, g.anyCopyElect, g.anyPermCopy = true, true, true
 		}
+		if t.Cards[i].SplitSecond {
+			g.anySplitSecond = true // the printed keyword (kw_splitsecond.go)
+		}
 	}
 	if !tableHasStatic(t, kop.StatStackKw) {
 		return

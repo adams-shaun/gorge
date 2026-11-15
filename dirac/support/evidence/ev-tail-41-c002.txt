@@ -1,20 +1,36 @@
 Akroma's Memorial
 Alpha Kavu
 Angelic Gift
+Antagonize
 Ashcoat Bear
+Aurora Griffin
+Barbed Field
+Basri's Aegis
+Blinkmoth Well
+Blood Rites
+Bloodcrazed Neonate
 Bond of Discipline
+Bonesplitter
+Borrowed Time
 Canoptek Spyder
 Caustic Crawler
+Celestial Regulator
 Cephalid Retainer
 Charging Monstrosaur
 Chivalric Alliance
+Crack the Earth
+Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
 Dross Scorpion
+ED-E, Lonesome Eyebot
+Elanor Gardner
 Evolutionary Escalation
 Faerie Invaders
 Flowstone Overseer
+Flutterfox
 Forest
+Gallifrey Stands
 Ghirapur Guide
 Giant Ox
 Goblin Diplomats
@@ -35,14 +51,19 @@ Meria's Outrider
 Mesa Lynx
 Minister of Pain
 Mountain
+Mountain Bandit
+Nacatl Savage
+Oread of Mountain's Blaze
 Overwhelming Stampede
 Panic Spellbomb
 Plains
 Rampaging Ferocidon
 Reckless Abandon
+Reito Lantern
 Samite Pilgrim
 Seal of Doom
 Searchlight Companion
+Seascape Aerialist
 Separatist Voidmage
 Shamanic Revelation
 Silver-Inlaid Dagger
@@ -54,14 +75,18 @@ Smoke Bomb
 Spell Contortion
 Spire Barrage
 Stone Retrieval Unit
+Strength of Night
 Striking Sliver
 Sungold Barrage
 Swamp
 Swift Justice
 Swift Response
 Tattered Haunter
+The Mightstone and Weakstone
 Thirsting Bloodlord
+Thornling
 Thrummingbird
+Thunder Strike
 Thunderscape Familiar
 Timberwatch Elf
 Tormod's Crypt
