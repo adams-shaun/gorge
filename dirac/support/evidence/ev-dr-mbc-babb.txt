@@ -13,6 +13,7 @@ Coruscation Mage
 Dauthi Embrace
 Debt to the Deathless
 Demand Answers
+Desperate Lunge
 Destroy Evil
 Diplomatic Escort
 Doomsday
@@ -20,20 +21,28 @@ Exhaustion
 Extract from Darkness
 Fatestitcher
 Felidar Guardian
+Fiend Hunter
 Fireslinger
+Flame Jab
 Forbidden Alchemy
 Forest
+Furnace Whelp
 Gleam of Resistance
+Glimmerpoint Stag
+Gorehorn Minotaurs
 Graveshifter
 Grip of the Roil
 Gudul Lurker
 Guided Strike
 Heliod's Punishment
 Herald of Secret Streams
+Hero's Blade
 Hydrolash
 Imoti, Celebrant of Bounty
 Impact Tremors
 Island
+Jötun Owl Keeper
+Knight of Meadowgrain
 Knights of the Black Rose
 Kutzil, Malamet Exemplar
 Mad Ratter
@@ -43,20 +52,33 @@ Mistmeadow Skulk
 Mountain
 Mulldrifter
 Noble Purpose
+Nomads en-Kor
+Noxious Dragon
+Okiba-Gang Shinobi
 Otharri, Suns' Glory
 Pick Your Poison
 Plains
 Rampant Growth
+Scourge Devil
 Shadowcloak Vampire
 Shimmercreep
 Shoreline Looter
+Silver Knight
 Snap
 Sting-Slinger
 Stir the Sands
 Strands of Night
+Stronghold Rats
 Surge of Salvation
 Swamp
 Take Up the Shield
 The Muckslinger Gang
+Trove Tracker
 Unexpected Fangs
+Vedalken Mastermind
+Victimize
+Vizier of Remedies
+Volatile Claws
+You See a Pair of Goblins
+Young Wolf
 Zombie Cutthroat

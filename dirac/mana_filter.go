@@ -504,8 +504,10 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier), or a
+// spend restriction, each-colour production, a cost beyond {T} (but
+// {T} plus sacrificing itself, a Treasure's, and sacrificing itself alone,
+// an Eldrazi Scion's, are the census's last-resort tier: gorge
+// pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
@@ -514,7 +516,7 @@ func censusGapMana(a *kop.Ability) bool {
 		return false
 	}
 	f := a.Cost.Flags
-	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -728,7 +730,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	pl := &s.pl[SeatIx(p)]
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
-	} else {
+	} else if st.gap || st.restr || !s.fundsBySac(k, st.sl) {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
 		s.manaTapped(k, st.sl)
@@ -935,7 +937,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if !t.filtUsable(k, sl) {
 					continue // (a once-each-turn filter: its use, not its {T})
 				}
-			} else if t.perms[sl].flags&pfTapped != 0 {
+			} else if t.fundOut(k, sl) {
 				continue
 			}
 			if gap {
@@ -974,7 +976,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if k.restrSrc {
 				rm = t.filtRestrMask(k, sl)
 			}
-			free := t.canTapForMana(k, sl)
+			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
 				continue
 			}

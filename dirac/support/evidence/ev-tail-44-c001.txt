@@ -1,8 +1,126 @@
+A-Excavation Explosion
+A-Heartfire Hero
+Aetherflux Conduit
+Aetherwind Basker
+Aggression
+Aisling Leprechaun
+Ambush Party
+Attunement
+Balduvian Horde
+Black Vise
+Bone Sabres
+Bonepicker Skirge
+Butcher's Glee
+Cabal Patriarch
+Castle Raptors
+Chaos Lord
+Chaos Warp
+Chief of the Foundry
+Cleopatra, Exiled Pharaoh
+Colossal Dreadmask
+Combo Attack
+Coming In Hot
+Corpse Hauler
+Creature Bond
+Cruel Tutor
+Crush of Wurms
+Darksteel Citadel
+Deadly Allure
+Death Wish
+Deny Entry
+Diregraf Rebirth
+Donald Blake, Guise of Thor
+Dream Twist
+Dutiful Thrull
+Dystopia
+Echoing Truth
+Entropic Eidolon
+Essence Flux
+Fatestitcher
+Feldon of the Third Path
+Fireblast
+Flame Slash
+For the Family
 Forest
+Gamma Grotesque
+Ghostly Changeling
+Glamdring
+Gravedigger
+Grim Flayer
+Grim Haruspex
+Grim Poppet
+Grotag Thrasher
+Harvest Gwyllion
+Havoc Demon
+Headwater Sentries
+Horn of the Mark
+Howling Gale
+Icon of Ancestry
+Ill-Gotten Inheritance
+Inheritance
 Island
+Jhoira's Toolbox
+Juri, Master of the Revue
+Kavu Glider
+Keldon Arsonist
+Kelinore Bat
+Kiku, Night's Flower
+Mana-Charged Dragon
 Mountain
 Nantuko Shaman
+Nezumi Graverobber
+Nick Fury, Spymaster
+Ninja of the Deep Hours
+Nullmage Advocate
+Nut Collector
+Oran-Rief Survivalist
+Orb of Dreams
+Overgrown Battlement
+Parasitic Strix
 Patron Wizard
+Pestilent Wolf
 Plains
+Price of Fame
+Reanimate
+Rebuild
+Recon Craft Theta
+Rhonas's Monument
+Rise of the Witch-king
 Sabertooth Nishoba
+Scribe of the Mindful
+Scroll of Avacyn
+Seasoned Pyromancer
+Shinka, the Bloodsoaked Keep
+Shrapnel Slinger
+Sift
+Silverchase Fox
+Squirming Mass
+Storm Fleet Swashbuckler
+Strength of Cedars
+Sundial of the Infinite
 Swamp
+Telekinetic Sliver
+Thassa's Oracle
+Thermo-Alchemist
+They Came from the Pipes
+Thrashing Mudspawn
+Tinder Wall
+Tolabow, Loch Rascal
+Toski, Bearer of Secrets
+Traitorous Instinct
+Tuktuk the Explorer
+Uncle Istvan
+Uncomfortable Chill
+Unknown Shores
+Urza's Chalice
+Utopia Vow
+Vampire of the Dire Moon
+Vengeful Reaper
+Voice of Reason
+Wake of Vultures
+Warleader's Helix
+Will of the Temur
+Wings of the Guard
+Woodland Mystic
+Zephyr Sprite
+Zombie Infestation

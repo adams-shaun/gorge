@@ -1,7 +1,226 @@
+A-Nezumi Prowler
+A-Sorin, Imperious Bloodlord
+A-Thran Spider
+Absorbing Man and Titania
+Adventurous Impulse
+Aether Theorist
+Ainok Tracker
+Akroan Hoplite
+Amphin Pathmage
+Ancient Silver Dragon
+Arcanist's Owl
+Archivist
 Ashling the Pilgrim
+Augur of Bolas
 Avaricious Dragon
+Axegrinder Giant
+Biomathematician
+Black Widow, Deadly Hunter
+Blightbeetle
+Blind Phantasm
+Blurred Mongoose
+Boon Reflection
+Briarpack Alpha
+Broodbirth Viper
+Bucky Barnes, Eager Ally
+Butcher's Cleaver
+Cacophony Unleashed
+Casting of Bones
+Catalog
+Centaur Glade
+Cephalid Broker
+Change of Fortune
+Chapel Geist
+Charge Across the Araba
+Charging Slateback
+Checkpoint Officer
+Chieftain en-Dal
+Chimeric Coils
+Circular Logic
+Citadel Gate
+Clan Crafter
+Coiling Oracle
+Corpse Connoisseur
+Countryside Crusher
+Crash
+Crimson Cowl, Master of Evil
+Dark Bargain
+Daru Healer
+Dauntless Aven
+Dauntless Unity
+Deadly Visit
+Deathleaper, Terror Weapon
+Decisive Denial
+Demon's Jester
+Depala, Pilot Exemplar
+Desert of the Indomitable
+Dimir Signet
+Disentomb
+Dragon Whelp
+Dragonlord Dromoka
+Drake Haven
+Electrify
+Elenda, the Dusk Rose
+Elixir of Immortality
+Elvish Visionary
+Enduring Bondwarden
+Ent's Fury
+Ever After
+Evernight Shade
+Expedite
+Extinguish the Light
+Faerie Duelist
+Farid, Enterprising Salvager
+Fate Foretold
+Fated Retribution
+Fevered Strength
+Feywild Visitor
+Flame-Kin Zealot
+Flames of the Firebrand
+Fleeting Spirit
 Forest
+Fortified Rampart
+Frost Trickster
+Garruk's Companion
+Gate to Phyrexia
+Gates of Istfell
+Geistblast
+Ghirapur Aether Grid
+Glistener Elf
+Goblin Marshal
+Goblin Skycutter
+Golgari Death Swarm
+Graceful Restoration
+Gravetiller Wurm
+Greater Auramancy
+Greater Good
+Hagra Constrictor
+Havengul Vampire
+Hell Swarm
+Heroic Charge
+Hobblefiend
+Hookhand Mariner
+Horizon Scholar
+Horrific Assault
+Howling Golem
+Humongulus
+Hunted Dragon
+Inspired Fire
 Island
+Island of Wak-Wak
+Iymrith, Desert Doom
+Jaya, Venerated Firemage
+Jhessian Thief
+Kaldra Compleat
+Karakas
+Kei Takahashi
+Kiln Walker
+Knickknack Ouphe
+Last Caress
+Library
+Living Wish
+Long-Finned Skywhale
+Lurking Roper
+Luxury Suite
+Manifold Key
+Manta Riders
+Memory Plunder
+Mightstone's Animation
+Monologue Tax
+Moonwing Moth
 Mountain
+Murderous Compulsion
+Naiad of Hidden Coves
+Nico Minoru, Runaway
+Nylea's Colossus
+Obsessive Stitcher
+Ocular Halo
+Ogre Gatecrasher
+Omnath, Locus of Rage
+Part the Veil
+Patagia Golem
+Perilous Forays
+Perilous Research
+Pillaging Horde
+Pillarfield Ox
 Plains
+Poison Arrow
+Prison Term
+Quicksilver Fisher
+RMS Titanic
+Raking Claws
+Rampaging Cyclops
+Ravenous Demon
+Reaping the Rewards
+Red Ghost, Intangible Genius
+Renari, Merchant of Marvels
+Reverent Hoplite
+Righteous Fury
+Runebound Wolf
+Sacred Fire
+Sarpadian Simulacrum
+Saruman the White
+Saw It Coming
+Scout the Borders
+Scroll of the Masters
+Search the Premises
+Secluded Glen
+Selesnya Sanctuary
+Serendib Efreet
+Shao Jun
+Sigarda, Heron's Grace
+Silverquill Command
+Slippery Bogle
+So Shiny
+Soulshriek
+Squadron Hawk
+Stonefury
+Storm Fleet Sprinter
+Storm Skreelix
+Struggle for Skemfar
+Stump Stomp
+Sunken City
+Supply Caravan
+Survivor of the Unseen
 Swamp
+Swarm of Bloodflies
+Swell of Growth
+Sylvan Anthem
+Synod Sanctum
+Sythis, Harvest's Hand
+Tallyman of Nurgle
+Tar Pitcher
+Teeterpeak Ambusher
+The Rack
+Thought Collapse
+Thundercloud Shaman
+Tide Skimmer
+Touch of Brilliance
+Towering-Wave Mystic
+Tranquil Thicket
+Vagrant Plowbeasts
+Vault Guardsman
+Vector Asp
+Vengeful Dead
+Venomspout Brackus
+Verix Bladewing
+Virtue's Ruin
+Voracious Fell Beast
+Vorrac Battlehorns
+Wake Thrasher
+Wall of Essence
+Wall of Reverence
+Warlock Class
+Warpath
+Watcher of the Spheres
+Wave-Wing Elemental
+Whip Silk
+Wildwood Geist
+Willow Faerie
+Wing Puncture
+Wirewood Hivemaster
+Woodwraith Strangler
+Wose Pathfinder
+Wu Longbowman
+Xun Yu, Wei Advisor
+Zoologist

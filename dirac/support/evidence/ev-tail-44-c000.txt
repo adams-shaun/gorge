@@ -1,6 +1,195 @@
+A-Excavation Explosion
+A-Heartfire Hero
+Aetherflux Conduit
+Aetherwind Basker
+Aggression
+Aisling Leprechaun
+Ambush Party
+Anowon, the Ruin Sage
+Artificer's Assistant
+Attunement
+Auntie Blyte, Bad Influence
+Balduvian Horde
+Bant Panorama
+Black Vise
+Bloodletter Quill
+Bone Sabres
+Bonepicker Skirge
+Cabal Patriarch
+Castle Raptors
+Chaos Lord
+Chaos Warp
+Charforger
+Chief of the Foundry
+Citanul Centaurs
+Clavileño, First of the Blessed
+Combo Attack
+Coming In Hot
+Conduit Goblin
+Copper Tablet
+Corpse Hauler
+Creature Bond
+Cruel Tutor
+Curiosity Crafter
+Darkblade Agent
+Darksteel Citadel
+Day of Destiny
+Deadly Allure
+Death Wish
+Diregraf Rebirth
+Disciple of Kangee
+Downpour
+Dream Twist
+Dutiful Thrull
+Dwarven Song
+Dystopia
+Echoing Truth
+Emancipation Angel
+Essence Flux
+Extinguish
+Fatestitcher
+Feldon of the Third Path
+Fireblast
+Flame Slash
+Flood Plain
+For the Family
 Forest
+Francisco, Fowl Marauder
+Frenetic Ogre
+Gamma Grotesque
+Ghostly Changeling
+Ghoulsteed
+Gixian Puppeteer
+Glamdring
+Grasp of the Hieromancer
+Gravedigger
+Grim Discovery
+Grim Flayer
+Grim Haruspex
+Grim Poppet
+Guardians of Meletis
+Hail of Arrows
+Hammer of Nazahn
+Harvest Gwyllion
+Havoc Demon
+Headwater Sentries
+Heckling Fiends
+Holy Strength
+Horizon Drake
+Horn of the Mark
+Howling Gale
+Ill-Gotten Inheritance
+Improvised Armor
+Incurable Ogre
+Inheritance
+Inspiring Bard
+Inspiring Roar
 Island
+Jhoira's Toolbox
 Juri, Master of the Revue
+Karplusan Strider
+Kavu Glider
+Keldon Arsonist
+Kelinore Bat
+Ketria Crystal
+Khalni Heart Expedition
+Kiku, Night's Flower
+Knight of the New Coalition
+Liliana, Death Wielder
+Mana-Charged Dragon
+Manaweft Sliver
+Mega Flare
 Mountain
+Mox Pearl
+Nantuko Shaman
+Nettle Sentinel
+Nezumi Graverobber
+Nick Fury, Spymaster
+Ninja of the Deep Hours
+Nullmage Advocate
+Nut Collector
+Obsidian Giant
+Oran-Rief Survivalist
+Orb of Dreams
+Overgrown Battlement
+Pale Rider of Trostad
+Parasitic Strix
+Patron Wizard
+Pestilent Wolf
+Phantasmal Abomination
+Pistus Strike
 Plains
+Price of Fame
+Reanimate
+Rebuild
+Recon Craft Theta
+Rhonas's Monument
+Rise of the Witch-king
+Runehorn Hellkite
+Sabertooth Nishoba
+Scaretiller
+Scribe of the Mindful
+Scroll of Avacyn
+Seal of Primordium
+Seasoned Pyromancer
+Sentinel Totem
+Shard of Broken Glass
+Shattered Dreams
+Shinka, the Bloodsoaked Keep
+Shocking Grasp
+Shrapnel Slinger
+Sift
+Silverchase Fox
+Soul of the Rapids
+Spinning Wheel Kick
+Squirming Mass
+Startle
+Storm Fleet Swashbuckler
+Strength of Cedars
+Stunt Double
+Sundering Vitae
+Sundial of the Infinite
+Surge of Thoughtweft
 Swamp
+Telekinetic Sliver
+Terashi's Verdict
+Thassa's Oracle
+Thermo-Alchemist
+They Came from the Pipes
+Thornglint Bridge
+Thrashing Mudspawn
+Timbermare
+Timeless Lotus
+Timmy, Power Gamer
+Tinder Wall
+Tolabow, Loch Rascal
+Toski, Bearer of Secrets
+Traitorous Instinct
+Tuktuk the Explorer
+Uncanny Speed
+Uncle Istvan
+Uncomfortable Chill
+Unknown Shores
+Urza's Chalice
+Utopia Vow
+Vampire of the Dire Moon
+Vedalken Aethermage
+Vengeful Reaper
+Venom Blast
+Vision, Synthezoid Avenger
+Voice of Reason
+Volatile Fjord
+Vow of Torment
+Vrestin, Menoptra Leader
+Wake of Vultures
+Warleader's Helix
+Weatherseed Treefolk
+Wild Guess
+Will of the Temur
+Wings of Aesthir
+Wings of the Guard
+Woodland Mystic
+Xiahou Dun, the One-Eyed
+Yavimaya Coast
+Zephyr Sprite
+Zombie Infestation

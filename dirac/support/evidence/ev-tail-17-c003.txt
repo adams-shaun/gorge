@@ -1,7 +1,161 @@
+Act on Impulse
+Aerial Responder
+Aether Vial
+Aladdin
+Arbalest Engineers
+Ardent Electromancer
+Arni Slays the Troll
+Avarice Amulet
+Barbed Shocker
+Basilica Skullbomb
+Basking Broodscale
+Bedlam
+Beskir Shieldmate
+Big Game Hunter
+Big Score
+Birthing Hulk
+Black Panther, Claws of Bast
+Blood-Chin Fanatic
+Branchsnap Lorian
+Burrenton Shield-Bearers
+Canyon Wildcat
+Caustic Tar
+Chandra's Defeat
+Chasm Guide
+Cogwork Spy
+Collateral Damage
+Coma Veil
+Composer of Spring
+Containment Breach
 Cragplate Baloth
+Curse of Verbosity
 Dega Sanctuary
+Doomed Artisan
+Drogskol Shieldmate
+Drossforge Bridge
+Eerie Soultender
+Elves of Deep Shadow
+Elvish Scout
+Emergence Zone
+Emiel the Blessed
+Enthralling Victor
+Exultant Skymarcher
+Fantastic Bounce
+Festercreep
+Fevered Convulsions
+Fin-Clade Fugitives
+Fists of the Anvil
+Fleet-Footed Monk
+Font of Fortunes
 Forest
+Foul Imp
+Gaea's Revenge
+Galvanic Blast
+Gate of the Black Dragon
+Gearsmith Prodigy
+Geosurge
+Giant Scorpion
+Go-Shintai of Ancient Wars
+Goatnapper
+Goblin Piledriver
+Golden Demise
+Gorging Vulture
+Grafted Growth
+Graypelt Refuge
+Headless Rider
+Heaven
+Herald of Torment
+Hidden Footblade
+Imp's Mischief
+In the Web of War
+Iname, Death Aspect
+Insatiable Appetite
+Iron-Heart Chimera
+Ironclaw Buzzardiers
 Island
+Join the Maestros
+Kavu Runner
+Kazandu Stomper
+Kefnet's Last Word
+Key to the City
+Kodama of the South Tree
+Kragma Butcher
+Krosan Colossus
+Kytheon's Irregulars
+Landbind Ritual
+Lay Down Arms
+Lazotep Chancellor
+Liliana, the Necromancer
+Looming Shade
+Lurking Nightstalker
+Mad Dog
+Masked Blackguard
+Meteoric Mace
+Moderation
+Moira, Urborg Haunt
 Mountain
+Nav Squad Commandos
+Needle Specter
+Night of Souls' Betrayal
+Norn's Inquisitor
+Oakhame Adversary
+Ojutai, Soul of Winter
+Owl Familiar
+Pallid Mycoderm
+Parch
+Park Heights Maverick
+Peregrine Drake
+Plague Fiend
+Plague Sliver
 Plains
+Planar Despair
+Plundering Predator
+Pollenbright Druid
+Portable Hole
+Provoke
+Raffine's Informant
+Rage Nimbus
+Ratchet Bomb
+Rathi Intimidator
+Renegade Demon
+Restrain
+Roc of Kher Ridges
+Rumbling Crescendo
+Rumor Gatherer
+Ruthless Disposal
+Sagu Mauler
+Sai, Master Thopterist
+Scorching Missile
+Scour from Existence
+Scrapwork Rager
+Searchlight Geist
+Shagrat, Loot Bearer
+Shatter
+Smell Fear
+Snarespinner
+Specter of the Fens
+Sphinx's Tutelage
+Stingscourger
+Storm of Memories
+Street Riot
+Street Urchin
+Strike It Rich
+Suki, Kyoshi Captain
+Summary Judgment
 Swamp
+Sygg, River Guide
+Talara's Battalion
+Tapestry of the Ages
+Tectonic Rift
+The Binding of the Titans
+Thriving Isle
+Timberpack Wolf
+Tower of Calamities
+Treasure Mage
+Twilight's Call
+Undead Augur
+Winged Portent
+Witching Well
+Worm Harvest
+You Are Already Dead
+Zombie Cutthroat

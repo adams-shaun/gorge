@@ -1,7 +1,238 @@
+Acquisition Octopus
+Act on Impulse
+Aerial Responder
+Aether Vial
+Aladdin
+Ancient Spider
+Angel of Despair
+Angelic Ascension
+Ant-Man, Reformed Rogue
+Anthroplasm
+Arbalest Engineers
+Ardent Electromancer
+Argivian Restoration
+Arni Slays the Troll
+Astarion, the Decadent
+Atarka Monument
+Aura of Dominion
+Avarice Amulet
+Awaken the Sky Tyrant
+Barbed Shocker
+Basking Broodscale
+Bedlam
+Beskir Shieldmate
+Big Game Hunter
+Big Score
+Birthing Hulk
+Black Panther, Claws of Bast
+Blood-Chin Fanatic
+Branchsnap Lorian
+Brigone, Soldier of Meletis
+Burrenton Shield-Bearers
+Canopy Dragon
+Canyon Wildcat
 Catapult Fodder
+Caustic Tar
+Centaur Safeguard
+Chandra's Defeat
+Chandra's Phoenix
 Chasm Guide
+Clergy en-Vec
+Cogwork Spy
+Collateral Damage
+Coma Veil
+Composer of Spring
+Containment Breach
+Cragplate Baloth
+Crushing Pain
+Curse of Verbosity
+Dega Sanctuary
+Desert Nomads
+Doomed Artisan
+Dragonlair Spider
+Drogskol Shieldmate
+Drossforge Bridge
+Drowned
+Eerie Soultender
+Elves of Deep Shadow
+Elvish Scout
+Emergence Zone
+Emiel the Blessed
+Emrakul's Influence
+Enthralling Victor
+Errant Doomsayers
+Exultant Skymarcher
+Facet Reader
+Fantastic Bounce
+Far Wanderings
+Ferrous Lake
+Festercreep
+Fevered Convulsions
+Fin-Clade Fugitives
+Fists of the Anvil
+Fleet-Footed Monk
+Font of Fortunes
+Forced Adaptation
 Forest
+Foul Imp
+Fractal Harness
+Gaea's Revenge
+Galvanic Blast
+Garruk's Harbinger
+Gate of the Black Dragon
+Gearsmith Prodigy
+Geosurge
+Go-Shintai of Ancient Wars
+Goatnapper
+Goblin Piledriver
+Golden Demise
+Gorging Vulture
+Grafted Growth
+Graypelt Refuge
+Groundling Pouncer
+Harnessed Snubhorn
+Headless Rider
+Heaven
+Herald of Torment
+Heronblade Elite
+Hidden Footblade
+Imp's Mischief
+In the Web of War
+Iname, Death Aspect
+Insatiable Appetite
+Invasion of Zendikar
+Iron Bully
+Iron Man, Titan of Innovation
+Iron-Heart Chimera
+Ironclaw Buzzardiers
 Island
+Join the Maestros
+Kavu Runner
+Kazandu Stomper
+Kefnet's Last Word
+Key to the City
+Kitsune Riftwalker
+Kragma Butcher
+Krosan Colossus
+Kytheon's Irregulars
+Landbind Ritual
+Landroval, Horizon Witness
+Larder Zombie
+Lay Down Arms
+Lazotep Chancellor
+Life Chisel
+Liliana, the Necromancer
+Lobber Crew
+Looming Shade
+Lurking Nightstalker
+Mad Dog
+Magus of the Order
+Masked Blackguard
+Meteoric Mace
+Might of the Old Ways
+Mitotic Slime
+Moderation
+Moira, Urborg Haunt
+Mortivore
+Mosscoat Goriak
+Moth Herb Elixir
 Mountain
+Nadir Kraken
+Nav Squad Commandos
+Needle Specter
+Night of Souls' Betrayal
+Norn's Inquisitor
+Oakhame Adversary
+Ogre Siegebreaker
+Ojutai, Soul of Winter
+Owl Familiar
+Pallid Mycoderm
+Parch
+Park Heights Maverick
+Peel from Reality
+Peregrine Drake
+Plague Fiend
+Plague Sliver
 Plains
+Planar Cleansing
+Planar Despair
+Plover Knights
+Plundering Predator
+Pollenbright Druid
+Portable Hole
+Provoke
+Raffine's Informant
+Rage Nimbus
+Ratchet Bomb
+Rathi Intimidator
+Renegade Demon
+Restrain
+Roc of Kher Ridges
+Rockslide Ambush
+Rolling Thunder
+Rumbling Crescendo
+Rumor Gatherer
+Rush of Adrenaline
+Ruthless Disposal
+Sagu Mauler
+Sai, Master Thopterist
+Sapphire Drake
+Scorching Missile
+Scour from Existence
+Scrapwork Rager
+Scrivener
+Searchlight Geist
+Serra Avenger
+Shagrat, Loot Bearer
+Shatter
+Silvos, Rogue Elemental
+Skull of Orm
+Slith Bloodletter
+Sludge Monster
+Smell Fear
+Snarespinner
+Soul Swallower
+Specter of the Fens
+Sphinx's Tutelage
+Splendid Agony
+Stingscourger
+Stonebound Mentor
+Storm of Memories
+Street Riot
+Street Urchin
+Strike It Rich
+Stronghold Zeppelin
+Suki, Kyoshi Captain
+Summary Judgment
+Sunfire Balm
 Swamp
+Sygg, River Guide
+Tactical Advantage
+Take into Custody
+Talara's Battalion
+Tapestry of the Ages
+Tectonic Rift
+The Binding of the Titans
+Thriving Isle
+Timberpack Wolf
+Tower of Calamities
+Treasure Mage
+Tree of Tales
+Twilight's Call
+Ulamog's Dreadsire
+Undead Augur
+Utopia Tree
+Valiant Changeling
+Vessel of Malignity
+Village Cannibals
+Virulent Plague
+Wetland Sambar
+Wildest Dreams
+Winding Wurm
+Winged Portent
+Witching Well
+Witness the Future
+Worm Harvest
+Yavimaya Ants
+You Are Already Dead
+Zombie Cutthroat
