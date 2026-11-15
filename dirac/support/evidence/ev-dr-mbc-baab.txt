@@ -47,6 +47,7 @@ Flame Slash
 Forest
 Gaea's Gift
 Geist of the Moors
+Genasi Enforcers
 God-Eternal Oketra
 Goldnight Commander
 Hard Evidence
@@ -108,12 +109,14 @@ Squee, Goblin Nabob
 Steal Enchantment
 Swamp
 Temur Battle Rage
+The Birth of Meletis
 Thraben Watcher
 Thrull Parasite
 Tinder Wall
 Tura Kennerüd, Skyknight
 Tyvar's Stand
 Tyvar, the Pummeler
+Unbounded Potential
 Unsubstantiate
 Wave-Wing Elemental
 Wildheart Invoker

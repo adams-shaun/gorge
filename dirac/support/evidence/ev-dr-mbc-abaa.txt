@@ -1,11 +1,14 @@
 An Offer You Can't Refuse
+Anarchist
 Arcane Denial
+Avian Changeling
 Baleful Ammit
 Banishing Light
 Banishing Stroke
 Basking Broodscale
 Black Dragon Gate
 Blood Speaker
+Bloom Hulk
 Boldwyr Intimidator
 Brinelin, the Moon Kraken
 Bulk Up
@@ -31,6 +34,7 @@ Elite Cat Warrior
 Essence Extraction
 Faerie Guidemother
 Fangs of Kalonia
+Fell Specter
 Fierce Retribution
 Fists of Flame
 Force Spike
@@ -79,16 +83,25 @@ Plains
 Predator's Howl
 Psychic Corrosion
 Pyrotechnics
+Quirion Dryad
+Rabid Bloodsucker
+Ravenous Chupacabra
+Rionya, Fire Dancer
 Rumor Gatherer
 Scion of Glaciers
 Serra Sphinx
+Shattered Angel
 Shelter
+Skullsnatcher
+Spiketail Drake
 Steadfast Unicorn
+Suture Priest
 Swamp
 Swords to Plowshares
 Taunting Kobold
 Tendrils of Corruption
 Thassa, Deep-Dwelling
+Totem-Guide Hartebeest
 Triumph of Ferocity
 Typhoid Rats
 Ulamog's Crusher
@@ -99,5 +112,8 @@ Valorous Stance
 Vampire Gourmand
 Vampiric Link
 Vedalken Dismisser
+Virtus the Veiled
 Vow of Lightning
+Werebear
+Withered Wretch
 Zephid's Embrace

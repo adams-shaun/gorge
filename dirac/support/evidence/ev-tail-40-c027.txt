@@ -1,0 +1,6 @@
+Forest
+Fungal Shambler
+Island
+Mountain
+Plains
+Swamp

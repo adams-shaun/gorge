@@ -1,0 +1,250 @@
+A-Dawnbringer Cleric
+A-Geological Appraiser
+A-Sepulcher Ghoul
+Abbey Griffin
+Abomination, Irradiated Brute
+Absolute Law
+Abyssal Nightstalker
+Abyssal Specter
+Abzan Falconer
+Accorder Paladin
+Aggressive Instinct
+Ahn-Crop Invader
+Airlift Chaplain
+Alseid of Life's Bounty
+Ambush Paratrooper
+Ana Sanctuary
+Angelic Guardian
+Apocalypse
+Apostle of Invasion
+Arch of Orazca
+Archon of Justice
+Arm with Aether
+Armory Veteran
+Arrester's Zeal
+Aura Mutation
+Aven Envoy
+Bala Ged Recovery
+Bane's Invoker
+Become the Avalanche
+Birthing Pod
+Blanchwood Treefolk
+Bloodsworn Steward
+Bottle Golems
+Bramblesnap
+Brass-Talon Chimera
+Call to Glory
+Carnivorous Moss-Beast
+Chameleon Colossus
+Chant of the Skifsang
+Charismatic Vanguard
+Cindervines
+Cloudhoof Kirin
+Common Bond
+Compelled Duel
+Corridor Monitor
+Creeperhulk
+Crookshank Kobolds
+Crosis's Catacombs
+Crow Storm
+Crypt Angel
+Curfew
+Curious Obsession
+Curse Artifact
+Custodi Soulbinders
+Cutthroat Centurion
+Cyberdrive Awakener
+Danitha, New Benalia's Light
+Dawn to Dusk
+Dawnfluke
+Detainment Spell
+Devil Dinosaur
+Devkarin Dissident
+Diregraf Horde
+Dispeller's Capsule
+Drannith Magistrate
+Dusk Legion Zealot
+Duskrider Peregrine
+Dwarven Armorer
+Eladamri, Lord of Leaves
+Elephant-Rat
+Empty City Ruse
+Empyrial Plate
+Enclave Elite
+Ensnare
+Escape Velocity
+Eureka Moment
+Evie Frye
+Evolution Sage
+Expedition Skulker
+Eye Gouge
+Feast of Dreams
+Feral Krushok
+Fire Nation Sentinels
+Flamekin Spitfire
+Fog Elemental
+Folk of the Pines
+Foresee
+Forest
+Freewind Equenaut
+Fugue
+Gerrard's Irregulars
+Ghitu Firebreathing
+Ghostfire Slice
+Glass of the Guildpact
+Glissa's Scorn
+Golden-Scale Aeronaut
+Golgari Signet
+Griffin Sentinel
+Gruesome Deformity
+Heralds of Tzeentch
+Hidden Spider
+Hoard Robber
+Hobbling Zombie
+Hold the Gates
+Ichor Drinker
+Illusory Demon
+Innovative Metatect
+Inspiring Cleric
+Invasion of Dominaria
+Island
+Ivy Elemental
+Jace's Sanctum
+Jaheira, Friend of the Forest
+Jinxed Choker
+Jubilation
+Junk Diver
+Kashi-Tribe Elite
+Kashi-Tribe Reaver
+Kayla's Command
+Keeneye Aven
+Kiora's Dambreaker
+Koll, the Forgemaster
+Kuldotha Rebirth
+Kumena's Awakening
+Learn from the Past
+Legion Guildmage
+Leitmotif Composer
+Light 'Em Up
+Lily Bowen, Raging Grandma
+Limestone Golem
+Lionheart Maverick
+Living Airship
+Lulu, Loyal Hollyphant
+Luminarch Ascension
+Lurking Predators
+Mage-Ring Bully
+Marsh Threader
+Marshdrinker Giant
+Master Symmetrist
+Merfolk Secretkeeper
+Merfolk Skydiver
+Merry, Warden of Isengard
+Midnight Charm
+Morality Shift
+Mountain
+Mourning
+Munitions Expert
+Mystic Familiar
+Mystical Tutor
+Narnam Cobra
+Natural End
+Necrogen Spellbomb
+Necrotic Hex
+Nevinyrral's Disk
+Noxious Ghoul
+Obelisk of Grixis
+Obelisk of Jund
+Order of the Mirror
+Outland Boar
+Pemmin's Aura
+Pestilent Souleater
+Phyrexian Lens
+Pitiless Pontiff
+Plains
+Predatory Nightstalker
+Priest of Urabrask
+Pyknite
+Pyrophobia
+Ral's Reinforcements
+Ramosian Commander
+Ravenous Chupacabra
+Ray Fillet, Wave Warrior
+Red Dragon
+Red Elemental Blast
+Reduce to Dreams
+Refocus
+Resplendent Griffin
+Riders of Rohan
+Rise of the Ants
+Rock Lobster
+Rofellos's Gift
+Rootborn Defenses
+Ruthless Invasion
+Sarkhan's Dragonfire
+Savage Thallid
+Scavenging Ghoul
+Screeching Bat
+Scryb Sprites
+Searing Meditation
+Secret Passage
+Self-Inflicted Wound
+Setessan Oathsworn
+Seton's Scout
+Shacklegeist
+Shauku, Endbringer
+Singer of Swift Rivers
+Skillful Lunge
+Skyshroud Sentinel
+Smoldering Werewolf
+Spectacular Showdown
+Spider-Man, Peter Parker
+Spiked Ripsaw
+Spurred Wolverine
+Squeeze
+Storm Fleet Arsonist
+Stormrider Spirit
+Stratus Walk
+Strength in Numbers
+Stromgald Crusader
+Sturdy Hatchling
+Subterranean Spirit
+Sudden Death
+Sudden Edict
+Suit Up
+Suspicious Stowaway
+Swamp
+Task Force
+Terravore
+Thaumatic Compass
+The Crafter
+The Reality Chip
+Thought Harvester
+Thriving Bluff
+Thrun, the Last Troll
+Tidy Conclusion
+Tolarian Winds
+Tomb of the Spirit Dragon
+Topplegeist
+Torrent of Fire
+Tower Winder
+Tremor
+Triskelavus
+Unruly Krasis
+Vampiric Tutor
+Vat Emergence
+Vault of the Archangel
+Vile Deacon
+Vitaspore Thallid
+Vito, Thorn of the Dusk Rose
+Wall of Blossoms
+Wall of Pine Needles
+War Chariot
+Weather the Storm
+Weldfast Monitor
+White Knight
+Wild Aesthir
+Windrider Wizard
+Yoked Ox
+Zarichi Tiger
+Zof Shade

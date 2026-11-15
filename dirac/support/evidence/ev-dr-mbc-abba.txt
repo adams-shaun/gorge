@@ -6,11 +6,13 @@ Alena, Kessig Trapper
 Ancestral Blade
 Annoyed Altisaur
 Arabella, Abandoned Doll
+Araumi of the Dead Tide
 Avenging Druid
 Back to Basics
 Ball Lightning
 Beloved Chaplain
 Benevolent Bodyguard
+Bestial Menace
 Blindblast
 Blor the Impervious
 Bombard
@@ -52,10 +54,12 @@ Heroes' Bane
 Hoarding Ogre
 Honor the God-Pharaoh
 Hunting Cheetah
+Impulsive Pilferer
 Invigorated Rampage
 Island
 Jwar Isle Avenger
 Kiki-Jiki, Mirror Breaker
+Kitesail Skirmisher
 Lava Hounds
 Lord of the Accursed
 Miss Highwater

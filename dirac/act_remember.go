@@ -22,9 +22,7 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 	if in.C&2 == 0 && s.anyRegen(hit) {
 		hit = s.regenAll(hit)
 	}
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 {
-		hit = s.shieldAll(hit) // CR 122.1c: NoRegen$ suppresses regeneration only
-	}
+	hit = s.shieldUmbraAll(k, hit) // CR 122.1c, 702.89a: NoRegen$ suppresses regeneration only
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(hit, &ord)
 	var objs [MaxPerm]Obj
