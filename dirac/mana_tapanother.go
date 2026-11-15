@@ -1176,3 +1176,26 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 // 1 = the search always answers the first colour, 2 = it taps the last
 // creature candidate first; 0 = off.
 func SetDebugTapXMutate(m int) { debugTapXMutate = m }
+
+// sacPotPays reports whether gorge's PotentialMana bound pays play a on a board
+// with a live sacrifice-any source and a closed bound (tapXSacAnyBound): the
+// bound counts a choice source (Fellwar Stone's reflected {B} or {R}) once per
+// colour it can make, where the gaps walk counts it once, so it lists a play
+// the gaps walk's sum falls short of ({4} against Ironworks' {C}{C} and one
+// Fellwar Stone unit). The search then runs for that play too.
+func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
+	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
+	if !ok {
+		return false
+	}
+	var pot avail
+	d := s.grantPayDesc(k, a)
+	s.availPotentialFor(k, p, &pot, &d)
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		// the bound admits each sacrifice-any ability once (its fixed production)
+		if ab := k.tapXAbOf(s.cardAt(b.first())); kop.SacAnyManaAb(ab) {
+			addTapXUnits(&pot, ab)
+		}
+	}
+	return pot.affords(&cost, pipMaskOf(&cost), 0)
+}
