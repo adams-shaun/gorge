@@ -211,10 +211,10 @@ func (s *State) tapsGapReady(k *prep, sl Slot) bool {
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
-// tapsDeferColour is the production scriptTapsDefer models: any colour, or
-// exactly one of WUBRG.
+// tapsDeferColour is the production scriptTapsDefer models: any colour,
+// exactly one of WUBRG, or {C} (Crumbling Vestige under Brink of Disaster).
 func tapsDeferColour(c kop.ColorMask) bool {
-	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
+	return c == kop.ColAny || c == kop.ColC || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
 }
 
 // restrTapsGapShape: the source at sl is a restricted planner source whose
