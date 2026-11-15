@@ -1019,6 +1019,11 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// 118.9d: Etali, Primal Storm casting Eaten Alive still sacrifices a
 	// creature or pays {3}{B}).
 	e.cast.altAddParts = altAddCostParts(o.Face())
+	// Escalate is an additional cost too (CR 118.9d, 702.120a): a free or
+	// may-play cast of a modal spell still pays it per mode beyond the first.
+	if s, ok := o.Face().KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
+		e.cast.escalateParam, e.cast.escalateSet = s, true
+	}
 	e.cast.repriceOnPush = copyCard
 	e.continueCast()
 }

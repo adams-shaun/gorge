@@ -1,32 +1,74 @@
+Agent of Stromgald
+Amateur Auteur
 Ancestral Recall
+Angel of Glory's Rise
+Archghoul of Thraben
+Assassin Initiate
 Aven Gagglemaster
 Barrenton Cragtreads
+Barrin's Codex
+Benalish Missionary
+Blind-Spot Giant
 Cabal Inquisitor
+Captain America, Liberator
+Crash Landing
+Darien, King of Kjeldor
 Dromoka's Gift
 Drudge Reavers
+Drunau Corpse Trawler
+Duergar Mine-Captain
+Dusk Legion Dreadnought
+Dwarven Recruiter
+Elvish Hunter
 Energy Arc
+Enfeeblement
 Eyeblight's Ending
 Feast or Famine
+Final Payment
+Flowstone Mauler
 Forest
 Gavony Silversmith
+Ghost-Lit Raider
 Go-Shintai of Shared Purpose
 Grid Monitor
+Gust of Wind
+Hag of Inner Weakness
+Hammerheim Deadeye
+Headless Specter
+Henrika Domnathi
+Hillcomber Giant
+Homicidal Seclusion
+Honored Crop-Captain
 Horizon Explorer
+Hunter's Edge
 Ingenious Smith
+Innocuous Researcher
+Insatiable Souleater
 Island
+Jeskai Elder
+Kavu Howler
+Keeper of the Cadence
 Krazy Kow
 Last Kiss
 Lone Missionary
+Lucky the Pizza Dog
 Malakir Bloodwitch
+Mardu Hateblade
+Mass Appeal
 Military Discipline
 Minions' Murmurs
 Mountain
+Mystic Restraints
 Night Terrors
+Overtaker
 Paradox Engine
 Pearled Unicorn
+Pious Wayfarer
 Plains
 Protector of the Wastes
+Queen's Agent
 Ral's Outburst
+Ratcatcher
 Reverent Mantra
 Scent of Nightshade
 Screeching Drake
@@ -35,20 +77,41 @@ Serum Tank
 Shivan Hellkite
 Sinstriker's Will
 Siphon Insight
+Skyhunter Patrol
 Slimy Piper
 Sorcerer's Strongbox
 Soulblade Djinn
 Spectral Flight
+Spore Crawler
 Stalwart Aven
+Stand
+Storm Fleet Aerialist
+Suspicious Bookcase
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Tangle Asp
+Taunting Arbormage
+Teval's Judgment
 Thalia's Lieutenant
 Thraben Valiant
+Thran War Machine
+Tor Giant
+Treespring Lorian
+Tukatongue Thallid
+Uktabi Wildcats
+Unbreakable Formation
+Updraft
+Vampire Outcasts
+Veilborn Ghoul
 Vengeful Vampire
 Victual Sliver
 Vulpine Goliath
 War Falcon
 Water Elemental
+Wayward Soul
+White Widow, Yelena Belova
 Wingmate Roc
 Wydwen, the Biting Gale
+You Meet in a Tavern
+Zhang Fei, Fierce Warrior
