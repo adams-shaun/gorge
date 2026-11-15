@@ -258,7 +258,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if potential {
 			var pot avail
 			other := payDesc{class: pdOther}
-			s.availPotentialFor(k, p, &pot, &other)
+			s.availPotentialPay(k, p, &pot, &other)
 			if !pot.affords(cost, pipMaskOf(cost), 0) {
 				return false, held
 			}
@@ -492,7 +492,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 				return o, false
 			}
 		}
-		if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, o) {
+		if s.windowGapListed(k, p, o, potential) {
 			c := s.cardAt(o)
 			if decided && k.gen.flags[c]&gfRestr != 0 && uint8(k.t.Cards[c].Abilities[k.gen.restr(c)].ManaColors)&want == 0 {
 				continue // the clamp reads a fixed colour; a Tender's has none and stays
@@ -1038,6 +1038,10 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 // restricted source's mana beside it (State.rb, which the cost cannot spend).
 // held stays empty: the restricted mana never enters the pool.
 func (s *State) tapWindowGap(k *prep, p uint8, sl Slot, held *[kop.NumManaKinds]uint8) {
+	if s.anyDifferentAt(k, sl) {
+		s.windowAnyDifferentTap(k, sl) // Firemind Vessel's tap makes no mana (mana_anydifferent.go)
+		return
+	}
 	var into [kop.NumManaKinds]uint8
 	s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &into)
 }
