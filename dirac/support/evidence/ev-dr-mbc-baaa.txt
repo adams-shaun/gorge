@@ -1,11 +1,14 @@
+Ainok Tracker
 Ajani's Pridemate
 Amphin Pathmage
 Ancient Craving
+Angelic Page
 Bane's Invoker
 Birds of Paradise
 Boss Uramon, Shadow's Reach
 Breakthrough
 Breath Weapon
+Cartouche of Ambition
 Commander Eesha
 Corpse Connoisseur
 Costly Plunder
@@ -26,6 +29,7 @@ Gilt-Leaf Winnower
 Gnarlid Pack
 Gorilla Shaman
 Grandmother Goby
+Grim Bounty
 Grimdancer
 Ground Rift
 Guttersnipe
@@ -52,12 +56,15 @@ Mountain
 Mystic of the Hidden Way
 Mystical Teachings
 Norwood Priestess
+On Serra's Wings
 Orcish Settlers
 Peregrine Drake
 Plains
 Plundering Barbarian
 Predatory Nightstalker
+Pyrokinesis
 Read the Bones
+Repulse
 River Bear
 Rock Slide
 Sabertooth Wyvern
@@ -71,7 +78,9 @@ Splendor Mare
 Storm Caller
 Storm the Seedcore
 Subterranean Tremors
+Sunder the Gateway
 Swamp
+Swelter
 Thoughtcast
 Thrummingbird
 Tide Skimmer
@@ -80,12 +89,17 @@ Tolarian Terror
 Tor Wauki the Younger
 Treasure Hunt
 Trespasser's Curse
+Trial of Ambition
 Unexpected Windfall
 Valor
 Venser, Visionary Traveler
 Virus Beetle
 Visara the Dreadful
+Volcanic Spite
+Wander in Death
 Weaponcraft Enthusiast
+Wheel and Deal
 Wirewood Channeler
 Wrenn's Resolve
 Yahenni, Undying Partisan
+Your Temple Is Under Attack

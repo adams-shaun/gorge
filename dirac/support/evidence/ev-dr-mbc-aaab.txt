@@ -6,7 +6,9 @@ Anzrag, the Quake-Mole
 Avatar of Growth
 Aven Squire
 Banisher Priest
+Banshee of the Dread Choir
 Bassara Tower Archer
+Benevolent Ancestor
 Benevolent Blessing
 Betrayal of Flesh
 Bitterbow Sharpshooters
@@ -88,7 +90,10 @@ Toski, Bearer of Secrets
 Trollbred Guardian
 Undercity Informer
 Unseal the Necropolis
+Unwavering Initiate
+Vanish into Eternity
 Vastwood Surge
+Veteran Armorer
 Vile Consumption
 Vine Mare
 Whip Silk

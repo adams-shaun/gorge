@@ -5,16 +5,23 @@ Ambush Gigapede
 Ankle Biter
 Archangel of Tithes
 Arid Archway
+Armored Armadillo
 At Knifepoint
+Badlands Revival
 Bandit's Haul
+Baron Bertram Graywater
 Beastbond Outcaster
 Betrayal at the Vault
 Binding Negotiation
+Blacksnag Buzzard
 Blood Hustler
 Blooming Marsh
 Bonny Pall, Clearcutter
 Boom Box
 Botanical Sanctum
+Bounding Felidar
+Bovine Intervention
+Bridled Bighorn
 Brimstone Roundup
 Bristlepack Sentry
 Bristling Backwoods
@@ -25,8 +32,11 @@ Cactusfolk Sureshot
 Calamity, Galloping Inferno
 Canyon Crab
 Caught in the Crossfire
+Caustic Bronco
+Claim Jumper
 Concealed Courtyard
 Conduit Pylons
+Consuming Ashes
 Creosote Heath
 Cunning Coyote
 Daring Thunder-Thief
@@ -40,13 +50,16 @@ Djinn of Fool's Fall
 Double Down
 Drover Grizzly
 Duelist of the Mind
+Dust Animus
 Emergent Haunting
+Eriette's Lullaby
 Eroded Canyon
 Explosive Derailment
 Failed Fording
 Fake Your Own Death
 Ferocification
 Festering Gulch
+Final Showdown
 Fleeting Reflection
 Forest
 Forlorn Flats
@@ -54,10 +67,13 @@ Forsaken Miner
 Fortune, Loyal Steed
 Freestrider Commando
 Freestrider Lookout
+Frontier Seeker
 Geralf, the Fleshwright
+Getaway Glamer
 Geyser Drake
 Giant Beaver
 Gila Courser
+Gisa, the Hellraiser
 Gold Pan
 Gold Rush
 Goldvein Hydra
@@ -67,11 +83,16 @@ Harrier Strix
 Hell to Pay
 Hellspur Brute
 Hellspur Posse Boss
+High Noon
 Highway Robbery
+Hollow Marauder
+Holy Cow
 Honest Rutstein
 Insatiable Avarice
 Inspiring Vantage
+Intimidation Campaign
 Intrepid Stablemaster
+Inventive Wingsmith
 Irascible Wolverine
 Iron-Fist Pulverizer
 Island
@@ -80,14 +101,17 @@ Jagged Barrens
 Jem Lightfoote, Sky Explorer
 Jolene, Plundering Pugilist
 Kraum, Violent Cacophony
+Lassoed by the Law
 Laughing Jasper Flint
 Lavaspur Boots
 Lilah, Undefeated Slickshot
+Lively Dirge
 Loan Shark
 Lonely Arroyo
 Longhorn Sharpshooter
 Lush Oasis
 Luxurious Locomotive
+Magda, the Hoardmaster
 Magebane Lizard
 Make Your Own Luck
 Malcolm, the Eyes
@@ -99,13 +123,18 @@ Mirage Mesa
 Mobile Homestead
 Mountain
 Mourner's Surprise
+Mystical Tether
 Neutralize the Guards
 Nezumi Linkbreaker
 Nimble Brigand
+Nurturing Pixie
 Oasis Gardener
+Omenport Vigilante
+One Last Job
 Ornery Tumblewagg
 Outcaster Greenblade
 Outcaster Trailblazer
+Outlaw Medic
 Outlaw Stitcher
 Outlaws' Fury
 Overzealous Muscle
@@ -118,6 +147,7 @@ Plains
 Plan the Heist
 Prairie Dog
 Prickly Pair
+Prosperity Tycoon
 Quick Draw
 Quilled Charger
 Railway Brawler
@@ -133,15 +163,23 @@ Reach for the Sky
 Reckless Lackey
 Redrock Sentinel
 Resilient Roadrunner
+Rictus Robber
 Rise of the Varmints
 Rodeo Pyromancers
+Rooftop Assassin
 Roxanne, Starfall Savant
 Rush of Dread
+Rustler Rampage
+Ruthless Lawbringer
 Sandstorm Verge
+Satoru, the Infiltrator
 Scalestorm Summoner
 Scorching Shot
 Seize the Secrets
+Servant of the Stinger
 Shackle Slinger
+Shepherd of the Clouds
+Sheriff of Safe Passage
 Shifting Grift
 Shoot the Sheriff
 Silver Deputy
@@ -156,8 +194,11 @@ Soured Springs
 Spinewoods Paladin
 Spirebluff Canal
 Spring Splasher
+Stagecoach Security
+Steer Clear
 Sterling Hound
 Sterling Keykeeper
+Sterling Supplier
 Stingerback Terror
 Stoic Sphinx
 Stop Cold
@@ -169,14 +210,22 @@ The Key to the Vault
 This Town Ain't Big Enough
 Three Steps Ahead
 Throw from the Saddle
+Thunder Lasso
 Thunder Salvo
 Tinybones Joins Up
 Tomb Trawler
+Trained Arynx
 Trash the Town
+Treasure Dredger
 Trick Shot
 Tumbleweed Rising
 Unfortunate Accident
 Unscrupulous Contractor
+Vadmir, New Blood
+Vault Plunderer
+Vengeful Townsfolk
 Vial Smasher, Gleeful Grenadier
 Voracious Varmint
+Vraska Joins Up
+Wanted Griffin
 Wrangler of the Damned
