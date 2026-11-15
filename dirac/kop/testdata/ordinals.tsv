@@ -543,8 +543,6 @@ ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
 ExtPreventDamageScope	ExtOp	246
 ExtPreventNext	ExtOp	305
-ExtPutContract	ExtOp	91
-ExtPutCounterChoice	ExtOp	98
 ExtPutCounterExisting	ExtOp	253
 ExtRecruit	ExtOp	94
 ExtRememberAll	ExtOp	306
