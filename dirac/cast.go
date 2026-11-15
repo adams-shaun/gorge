@@ -1797,9 +1797,12 @@ func (s *State) finishBuild(k *prep) {
 		s.syncBuild()
 		s.ctl = ctlPlaceTriggers
 	}
-	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 {
+	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 && e.kind != seTrigger {
 		// gorge's step() head runs startDefeatedCast after any cast or
-		// activation: ask a battle defeated earlier this step first.
+		// activation: ask a battle defeated earlier this step first. A
+		// trigger's push is not one: gorge's drainTriggers pushes it and
+		// grants priority inside the same step(), so a combat defeat's ask
+		// stays deferred.
 		s.wakeDefeat()
 	}
 	if s.parkedWaiting() {
