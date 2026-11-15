@@ -1,6 +1,7 @@
 Academic Ascent
 Aerid Konstrari
 Afterthought Sentry
+Ajani Resolute
 Ajani Unrelenting
 Ajani's Anguish
 Arcane Amphisbaena
@@ -140,6 +141,7 @@ Precise Redaction
 Predictive Preparations
 Primal Witchstalker
 Proctor of Potential
+Proft, Sinister Mastermind
 Prophesied End
 Protege's Awakening
 Puppet Crafting
@@ -190,6 +192,7 @@ Tenured Tethermage
 Terminal Criticism
 Tether Technician
 Tethermage's Advantage
+Tetsuko Umezawa, Fugitive
 Teyo, Diamondblade Mage
 Teyo, Lightshield Expert
 Thalia, the Survivor

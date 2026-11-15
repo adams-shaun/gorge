@@ -11,6 +11,7 @@ Gleam of Resistance
 Graveshifter
 Gudul Lurker
 Guided Strike
+Heliod's Punishment
 Impact Tremors
 Island
 Knights of the Black Rose
@@ -28,6 +29,7 @@ Shoreline Looter
 Snap
 Sting-Slinger
 Stir the Sands
+Strands of Night
 Surge of Salvation
 Swamp
 Take Up the Shield

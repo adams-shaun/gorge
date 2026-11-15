@@ -26,6 +26,7 @@ Gilt-Leaf Winnower
 Gnarlid Pack
 Gorilla Shaman
 Grandmother Goby
+Grimdancer
 Ground Rift
 Guttersnipe
 Hammers of Moradin
@@ -36,6 +37,7 @@ Imodane's Recruiter
 Indulgent Tormentor
 Injector Crocodile
 Island
+Istvan, Butcher of Eln
 Kiln Fiend
 Kitsa, Otterball Elite
 Liliana's Devotee

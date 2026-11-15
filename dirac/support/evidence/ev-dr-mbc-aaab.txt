@@ -4,15 +4,26 @@ Aggressive Urge
 Anara, Wolvid Familiar
 Anzrag, the Quake-Mole
 Avatar of Growth
+Aven Squire
+Banisher Priest
 Bassara Tower Archer
 Benevolent Blessing
 Betrayal of Flesh
 Bitterbow Sharpshooters
 Blessing of Leeches
+Blink of an Eye
 Blood Curdle
 Broken Wings
+Campfire
 Captain Sisay
+Cathartic Pyre
+Cephalid Illusionist
+Chandra's Pyrohelix
+Chief Magistrate of Mercadia
+Claws of Gix
 Colossal Dreadmaw
+Cone of Flame
+Consul's Lieutenant
 Dark Ritual
 Dauthi Horror
 Dyfed, the Guiding Hand
@@ -28,6 +39,7 @@ Infernal Vessel
 Insidious Fungus
 Island
 Kamahl, Heart of Krosa
+Kor Hookmaster
 Lightning Bolt
 Lotus Petal
 Mana Short
@@ -38,17 +50,38 @@ Mirri's Guile
 Mortuary
 Mountain
 Mystic Retrieval
+Nahiri's Machinations
 Nature's Claim
 Oakhame Adversary
+Order of Yawgmoth
+Orochi Eggwatcher
+Otherworldly Journey
 Overrun
 Perimeter Captain
 Pir, Imaginative Rascal
+Pit Keeper
 Plains
+Pox
+Pressure Point
+Prison Term
+Rapacious One
+Rishadan Port
 Secret Rendezvous
+Secrets of the Golden City
+Shower of Coals
 Shrike Force
 Silver Myr
+Smash to Dust
+Spectral Sliver
+Spirit Link
+Sprite Noble
+Stoke the Flames
+Subjugator Angel
+Sunblade Angel
 Supreme Will
 Swamp
+Tainted Strike
+Temporal Fissure
 Thunderdrum Soloist
 Toby, Beastie Befriender
 Toski, Bearer of Secrets

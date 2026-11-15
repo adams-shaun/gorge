@@ -51,4 +51,5 @@ The Rack
 Think Twice
 Thwart
 Treasure Dredger
+Vile Requiem
 Witness Protection

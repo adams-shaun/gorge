@@ -53,14 +53,18 @@ Confounding Riddle
 Contested Game Ball
 Corpses of the Lost
 Cosmium Blast
+Cosmium Confluence
 Council of Echoes
 Curator of Sun's Creation
 Daring Discovery
 Dead Weight
 Deathcap Marionette
+Deconstruction Hammer
 Deep Goblin Skulltaker
 Deep-Cavern Bat
 Deepfathom Echo
+Deeproot Pilgrimage
+Defossilize
 Diamond Pick-Axe
 Didact Echo
 Digsite Conservator
@@ -69,6 +73,7 @@ Disruptor Wanderglyph
 Disturbed Slumber
 Dowsing Device
 Dreadmaw's Ire
+Dusk Rose Reliquary
 Earthshaker Dreadmaw
 Eaten by Piranhas
 Echo of Dusk
@@ -79,6 +84,7 @@ Explorer's Cache
 Family Reunion
 Fanatical Offering
 Forest
+Forgotten Monument
 Frilled Cave-Wurm
 Fungal Fortitude
 Gargantuan Leech
@@ -93,6 +99,7 @@ Goblin Tomb Raider
 Goldfury Strider
 Grasping Shadows
 Greedy Freebooter
+Growing Rites of Itlimoc
 Guardian of the Great Door
 Helping Hand
 Hermitic Nautilus
@@ -116,6 +123,7 @@ Island
 Itzquinth, Firstborn of Gishath
 Ixalli's Lorekeeper
 Jade Seedstones
+Jadelight Spelunker
 Join the Dead
 Kaslem's Stonetree
 Kinjalli's Dawnrunner
@@ -129,6 +137,7 @@ Malamet Veteran
 Malamet War Scribe
 Malcolm, Alluring Scoundrel
 Malicious Eclipse
+Marauding Brinefang
 Master's Guide-Mural
 Matzalantli, the Great Door
 Mephitic Draught
@@ -140,7 +149,10 @@ Mischievous Pup
 Molten Collapse
 Mountain
 Nicanzil, Current Conductor
+Nurturing Bristleback
 Oaken Siren
+Ojer Axonil, Deepest Might
+Ojer Taq, Deepest Foundation
 Oltec Archaeologists
 Oltec Cloud Guard
 Orazca Puzzle-Door
@@ -151,6 +163,7 @@ Palani's Hatcher
 Panicked Altisaur
 Pathfinding Axejaw
 Petrify
+Pirate Hat
 Plains
 Plundering Pirate
 Poetic Ingenuity
@@ -177,10 +190,12 @@ Ruin-Lurker Bat
 Rumbling Rockslide
 Runaway Boulder
 Sage of Days
+Saheeli, the Sun's Brilliance
 Sanguine Evangelist
 Screaming Phantom
 Scytheclaw Raptor
 Seeker of Sunlight
+Seismic Monstrosaur
 Self-Reflection
 Sentinel of the Nameless City
 Shipwreck Sentry
@@ -198,6 +213,7 @@ Stalactite Stalker
 Staunch Crewmate
 Stinging Cave Crawler
 Subterranean Schooner
+Sunfire Torch
 Sunshot Militia
 Swamp
 Synapse Necromage

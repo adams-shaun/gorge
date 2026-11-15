@@ -1,6 +1,7 @@
 Aang's Iceberg
 Aang's Journey
 Aang, the Last Airbender
+Abandon Attachments
 Abandoned Air Temple
 Accumulate Wisdom
 Agna Qel'a
@@ -34,6 +35,7 @@ Buzzard-Wasp Colony
 Callous Inspector
 Cat-Gator
 Cat-Owl
+Combustion Man
 Combustion Technique
 Compassionate Healer
 Corrupt Court Official
@@ -47,12 +49,14 @@ Dai Li Indoctrination
 Day of Black Sun
 Deadly Precision
 Deserter's Disciple
+Dragonfly Swarm
 Earth King's Lieutenant
 Earth Kingdom General
 Earth Kingdom Jailer
 Earth Kingdom Protectors
 Earth Kingdom Soldier
 Earth Rumble
+Earth Rumble Wrestlers
 Earthbender Ascension
 Earthbending Lesson
 Earthen Ally
@@ -83,6 +87,7 @@ Forecasting Fortune Teller
 Forest
 Gather the White Lotus
 Geyser Leaper
+Giant Koi
 Glider Kids
 Glider Staff
 Gran-Gran
@@ -137,6 +142,7 @@ Mongoose Lizard
 Mountain
 North Pole Gates
 North Pole Patrol
+Northern Air Temple
 Obsessive Pursuit
 Octopus Form
 Omashu City
@@ -152,6 +158,7 @@ Platypus-Bear
 Pretending Poxbearers
 Price of Freedom
 Professor Zei, Anthropologist
+Rabaroo Troop
 Ran and Shaw
 Raucous Audience
 Raven Eagle
@@ -172,6 +179,7 @@ Serpent of the Pass
 Serpent's Pass
 Shared Roots
 Sokka's Haiku
+Sokka, Bold Boomeranger
 Sokka, Lateral Strategist
 Sold Out
 Solstice Revelations
@@ -211,6 +219,7 @@ Trusty Boomerang
 Turtle-Duck
 Twin Blades
 Ty Lee, Artful Acrobat
+Uncle Iroh
 United Front
 Unlucky Cabbage Merchant
 Vengeful Villagers
