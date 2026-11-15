@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Spiked Pit Trap
+Spitting Sliver
+Swamp

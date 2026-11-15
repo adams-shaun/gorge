@@ -5,6 +5,7 @@ Ancient Gold Dragon
 Anointer Priest
 Ashen Monstrosity
 Attune with Aether
+Avatar of Growth
 Azure Drake
 Backfire
 Barrow Witches
@@ -20,13 +21,17 @@ Bonehoard
 Bound in Silence
 Brandywine Farmer
 Burning Fields
+Catacomb Sifter
 Chaotic Backlash
 Clip Wings
 Cunning Survivor
 Death's Shadow
 Desynchronize
+Devouring Swarm
+Double Negative
 Dragonlord Silumgar
 Drainpipe Vermin
+Dread Tiller
 Dune Mover
 Dust Corona
 Easy Prey
@@ -46,6 +51,7 @@ Herd Gnarr
 Hibernation
 Howl of the Night Pack
 Huatli, Radiant Champion
+Hurloon Battle Hymn
 Island
 Jace's Erasure
 Kayla's Reconstruction
@@ -56,9 +62,11 @@ Leapfrog
 Mana Vault
 Mass Mutiny
 Master of Winds
+Master the Way
 Metathran Elite
 Mind Over Matter
 Minotaur, Roxxon CEO
+Momentum Rumbler
 Mountain
 Muck Rats
 Myrel, Shield of Argive
@@ -71,9 +79,11 @@ Parallel Lives
 Peregrine Mask
 Perimeter Captain
 Plains
+Portent of Betrayal
 Power of Persuasion
 Precinct Captain
 Privileged Position
+Pyrrhic Blast
 Quest for Renewal
 Rally the Peasants
 Rishkar's Expertise
@@ -85,12 +95,15 @@ Seething Pathblazer
 Sizzle
 Skyline Cascade
 Sonic Screwdriver
+Spectacle Mage
 Spitebellows
+Spitfire Handler
 Stormscape Apprentice
 Sunscorched Desert
 Swamp
 Swarm of Rats
 Tectonic Edge
+Thopter Assembly
 Threnody Singer
 Thundersteel Colossus
 Trained Caracal
@@ -99,6 +112,8 @@ Twiddle
 Undead Servant
 Venomous Changeling
 Viscerid Deepwalker
+Warmonger Hellkite
+Winged Shepherd
 Wizard Replica
 Woodland Stream
 Zap
