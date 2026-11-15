@@ -1297,7 +1297,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
-				noUntap := k.cards[s.cardAt(sl)].noUntap // last resort too (unitIrr)
+				noUntap := k.cards[s.cardAt(sl)].noUntap != 0 // last resort too (unitIrr)
 				if phase == 0 && lastResortUnit(sac, noUntap) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue

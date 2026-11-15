@@ -1,0 +1,22 @@
+# the MBC replacements-1 family: the Phantom prevent-and-remove-a-counter
+# replacement (Phantom Tiger, Phantom Centaur, Phantom Flock), the bodyless
+# self prevention without ActiveZones$ (Istvan, Butcher of Eln: from
+# creatures; Guardian Naga: during your turn) and the conditional self
+# "doesn't untap" (Alirios, Enraptured: if you control a Reflection) --
+# beside creatures to attack and block and burn to deal noncombat damage
+# (dirac/oracle/mbc_replacements1_lowers_test.go)
+Phantom Tiger
+Phantom Centaur
+Phantom Flock
+Istvan, Butcher of Eln
+Guardian Naga
+Alirios, Enraptured
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest
