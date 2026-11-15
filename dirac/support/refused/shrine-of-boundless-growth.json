@@ -1,0 +1,14 @@
+{
+  "card": "Shrine of Boundless Growth",
+  "class": "unmodelled-mana",
+  "why": "gorge prices a dynamic-amount {T}, Sacrifice mana ability (Shrine of Boundless Growth: Add {C} for each charge counter) as a last-resort sacrifice unit (CR 605.1a, 601.2g: a mana ability with a sacrifice cost may be activated while paying); the kernel's dynamic-amount variants (gen.go varPC) hold {T}-only costs, so its autopay never counts the Shrine and omits the activation gorge offers (an Equip {2} paid with Sandstone Bridge's {W} and a six-counter Shrine, tail-01 pair 43) and the sacrifice gorge makes (pair 11)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "shrine_dynamic_sac_mana_unpriced"
+  }
+}
