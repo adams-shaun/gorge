@@ -132,6 +132,9 @@ func entBodyRecord(prog []kop.Instr) bool {
 // updatedBodyClass), which composes with any other in either order.
 func entBodyInert(prog []kop.Instr) bool {
 	for i := range prog {
+		if prog[i].Op == kop.OpExt && prog[i].Ext() == kop.ExtEnterCtrPick {
+			continue // the chosen-kinds counters (repl_enterctrpick.go): the same class
+		}
 		if prog[i].Op != kop.OpEnterWithCounters {
 			return false
 		}

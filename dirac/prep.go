@@ -84,7 +84,7 @@ type pcard struct {
 	enterCK     kop.CounterKind
 	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry; ahead of noCtr so the 16-bit enterCK leaves pcard no pad byte (92 bytes)
 	noCtr       bool       // ReplCantBeCountered
-	noUntap     bool       // ReplDoesntUntap
+	noUntap     uint8      // ReplDoesntUntap: untapPlain, or untapGated for one with a Cond (Alirios, Enraptured), read at the untap (repl_untapself.go)
 	mayNotUntap bool       // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
 	land        bool
 	altCost     bool // the card has its own mana alternative cost (genPrep.altFree; cast_altfree.go) or Impending: the hand walk's one-byte gate (offerAltHand)
@@ -102,6 +102,7 @@ type prep struct {
 	t        *kop.Table
 	cards    []pcard
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
+	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
@@ -367,7 +368,7 @@ func prepare(t *kop.Table) *prep {
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
 					}
-					if kop.TapXMana(a) || kop.SacXEachManaAb(a) { // (a sacrifice-another one is the tap-another search's too)
+					if kop.TapXMana(a) || kop.SacXMana(a) { // (a sacrifice-another one is the tap-another search's too)
 						p.tapMana = true // (read per card through p.tapXAb, not a pcard field: the hot record stays as it was)
 						p.tapXAb[i] = int8(j)
 					}
@@ -396,7 +397,7 @@ func prepare(t *kop.Table) *prep {
 			case kop.AbTriggered:
 				pc.trigMask |= 1 << a.Trig.Event & (1<<nSubEvents - 1) // TrigGiveGift: no subscription (kw_gift.go)
 			case kop.AbStatic:
-				pc.hasStat = true
+				pc.hasStat = battlefieldStatic(pc.hasStat, a) // a graveyard static is none (static_gycont.go)
 				if a.Static.Kind == kop.StatOverride || (a.Static.Kind == kop.StatContinuous && a.Static.Grant != 0) {
 					pc.grantStat = true // a source grantedAbilitiesN's static walk can reach
 				}
@@ -428,7 +429,7 @@ func prepare(t *kop.Table) *prep {
 					pc.hasStat = true // scanned through statM (repl_uncounterable.go)
 					p.anyUncounter = true
 				case kop.ReplDoesntUntap:
-					pc.noUntap = true
+					pc.noUntap = noUntapKind(pc.noUntap, a.Repl.Cond) // repl_untapself.go
 				case kop.ReplMayNotUntap:
 					pc.mayNotUntap = true
 				}
@@ -459,6 +460,7 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.gen = prepareGen(t, p)
+	p.gyCont = tableHasGyCont(t)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana

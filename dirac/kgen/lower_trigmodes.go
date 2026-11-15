@@ -51,6 +51,13 @@ func (lc *lowerCtx) trigModes2(tp *params, tr *lTrigger, mode, zone string, read
 			if mode != "LandPlayed" {
 				return refuse("%s %s$", mode, k)
 			}
+		case "ValidActivatingPlayer":
+			// gorge landPlayedMatches never reads it: the play's player is
+			// the land's controller, which ValidCard$ YouCtrl already names
+			// (Shanid, Sleepers' Scourge). Only "You" is that reading.
+			if mode != "LandPlayed" || tp.str(k) != "You" {
+				return refuse("%s %s$", mode, k)
+			}
 		case "ValidPlayer":
 			if mode == "LandPlayed" {
 				return refuse("%s %s$", mode, k)

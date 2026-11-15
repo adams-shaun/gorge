@@ -60,7 +60,9 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 	if k.tapMana {
 		s.g.winMode = winTrig
 	}
-	s.windowTapNoOwed(k, p, cost)
+	// gorge's trigger-cost window answers with the first listed source, a planner-deferred
+	// one (a depletion land, Twitching Doll) in its battlefield place (payexec.WindowAnswer)
+	s.windowTapWalk(k, p, cost, cost, false, false, true, true, true)
 	if s.res.ask == raGenWinTap {
 		return true
 	}

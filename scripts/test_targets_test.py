@@ -815,3 +815,21 @@ def test_smart_step_3_names_the_guard_tests_and_finds_their_packages():
             assert name in c
     # the anchored names cannot match inside the Test...($C) grep, so cpk needs its own for them
     assert "TestKopOrdinalsUnchanged|TestReproCompactRoundTrip|TestReproGlobMatchesTable" in sh
+
+
+def test_a_reused_fail_verdict_prints_the_failures_behind_it(repo, tmp_path):
+    # 11-14: a reused FAIL printed only its verdict line; the seat saw no failing test, reported DONE twice on a
+    # passing local run, and the ticket parked. The rerun must show what failed.
+    env, _, _ = smart_fixture(repo, tmp_path)
+    (tmp_path / "stream.json").write_text("\n".join([
+        ev("run", "m/p", "TestFileNames"),
+        ev("output", "m/p", "TestFileNames", "    names_test.go:88: x10_test.go ends in a number\n"),
+        ev("fail", "m/p", "TestFileNames"), ev("fail", "m/p")]))
+    env = dict(env, GORC="1")
+    first = wrapper_output(repo, "smart", env=env)
+    assert _verdict_line(first).startswith("test-smart: FAIL "), first.stdout
+    again = wrapper_output(repo, "smart", env=env)
+    assert "reused verdict" in again.stderr
+    assert _verdict_line(again).startswith("test-smart: FAIL ")
+    assert "== the failures behind the reused verdict" in again.stdout
+    assert "x10_test.go ends in a number" in again.stdout

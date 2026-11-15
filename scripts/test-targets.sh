@@ -59,9 +59,13 @@ pkgs_label=""
 # record_verdict STATUS LINE: remember a terminal verdict (PASS or FAIL) for the commit, next to the logs, so
 # a rerun on the same commit with the same gate scripts reuses it instead of repeating the work. ENV, EMPTY,
 # BUDGET and BUSY describe the box, not the commit, and are never recorded.
+# A FAIL also keeps its detail (the failing tests and their messages) in .verdict.detail: a reused FAIL that printed
+# only its verdict line left the seat nothing to fix, and it reported DONE twice on a passing local run and parked.
 record_verdict() {
+	local v=.ds4/scratch/test/smart-${sha%+dirty}.verdict
 	case $1 in
-	PASS | FAIL) printf '%s\n' "$2" >.ds4/scratch/test/smart-${sha%+dirty}.verdict ;;
+	PASS) printf '%s\n' "$2" >"$v"; rm -f "$v.detail" ;;
+	FAIL) printf '%s\n' "$2" >"$v"; if [ -n "${3:-}" ]; then printf '%s\n' "$3" >"$v.detail"; else rm -f "$v.detail"; fi ;;
 	esac
 }
 
@@ -150,7 +154,8 @@ finish() { # finish NAMED_IMPORT_PATHS: classify $json, print detail and the ver
 		vline=${out##*$'\n'}
 		st=${vline#test-smart: }
 		st=${st%% *}
-		record_verdict "$st" "$vline"
+		detail=""; [ "$out" = "$vline" ] || detail=${out%$'\n'*}   # all but the verdict line itself
+		record_verdict "$st" "$vline" "$detail"
 	fi
 	exit $pyrc
 }
@@ -287,6 +292,15 @@ if [ -z "${FORCE:-}" ] && [ -r "$vfile" ]; then
 	read -r _ rst _ rpk _ <"$vfile"
 	if [ "$rpk" = "$pkgs_label" ] && { [ "$rst" = PASS ] || [ "$rst" = FAIL ]; }; then
 		echo "test-targets: note: reused verdict for $sha; make test-smart FORCE=1 to rerun" >&2
+		if [ "$rst" = FAIL ]; then
+			# the failures behind the verdict, as the run that recorded it printed them
+			[ -r "$vfile.detail" ] && { echo "== the failures behind the reused verdict"; cat "$vfile.detail"; }
+			for f in "$keep.affected.log" "$keep.dirac.log"; do
+				[ -r "$f" ] || continue
+				d=$(grep -E -A8 -- '^--- FAIL|^FAIL[[:space:]]|panic:' "$f" | head -40)
+				[ -n "$d" ] && { echo "== failures in $f"; echo "$d"; }
+			done
+		fi
 		printf '%s\n' "$(<"$vfile")"
 		case $rst in PASS) exit 0 ;; esac
 		exit 1
@@ -305,9 +319,9 @@ echo "== 2 docs snapshot, history hygiene, oracle skip lint"
 python3 -m unittest scripts/docs_sets_test.py >.ds4/scratch/test/docs_sets.log 2>&1 ||
 	bad "docs_sets_test: scripts/docs_sets.py reads dirac/docs/support.md; regenerate that page (dirac/LANDGEN) (.ds4/scratch/test/docs_sets.log)"
 hyg=$(git log --format='%h %s' "$BASE..HEAD" | grep -iE '^[0-9a-f]+ (wip\b|fixup!|squash!)' | head -3)
-zz=$(git diff --name-only --diff-filter=A "$BASE" HEAD | grep -E '(^|/)zz_[^/]*$' | head -3)
+zz=$(git diff --name-only --diff-filter=A "$mb" HEAD | grep -E '(^|/)zz_[^/]*$' | head -3)
 [ -z "$hyg$zz" ] || bad "history hygiene: reword or squash these commits and delete scratch files: $hyg $zz"
-sk=$(git diff -U0 "$BASE" HEAD -- 'dirac/oracle/*_test.go' | grep -E '^\+[^+].*\bt\.Skip(f|Now)?\(' | grep -vE 'pool|Pool|tables|corpus' | head -3)
+sk=$(git diff -U0 "$mb" HEAD -- 'dirac/oracle/*_test.go' | grep -E '^\+[^+].*\bt\.Skip(f|Now)?\(' | grep -vE 'pool|Pool|tables|corpus' | head -3)
 [ -z "$sk" ] || bad "a new t.Skip in dirac/oracle that does not name a missing pool, table or corpus fails CI: $sk"
 # CI's lint runs fresh-clone-check: dirac with no corpus, tables or pools, where every corpus-dependent test must skip.
 # The landing gate always has the corpus, so a test that fails there reached the promote PR (11-13 PR #328 and #329,

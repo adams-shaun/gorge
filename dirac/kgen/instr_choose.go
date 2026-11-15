@@ -17,10 +17,13 @@ func init() {
 	instrOp("ChooseType", (*instrCtx).opChooseType)
 	instrOp("ChooseName", (*instrCtx).opChooseName)
 	instrOp("ChooseCardEnter", (*instrCtx).opChooseCardEnter)
+	instrOp("EnterCtrPick", (*instrCtx).opEnterCtrPick)
 	instrOp("ChoosePlayerEnter", (*instrCtx).opChoosePlayerEnter)
 	instrOp("ChoosePlayerMid", (*instrCtx).opChoosePlayerMid)
 	instrOp("ChooseNumber", (*instrCtx).opChooseNumber)
 	instrOp("ChooseNumberMid", (*instrCtx).opChooseNumberMid)
+	instrOp("NameCard", (*instrCtx).opNameCard)
+	instrOp("ClearNamedCard", (*instrCtx).opClearNamedCard)
 }
 
 func (ic *instrCtx) opChooseColorRes() error {
@@ -127,5 +130,21 @@ func (ic *instrCtx) opChooseNumberMid() error {
 	// a resolution-time number (lower_choosenumber.go): B the Max$
 	// value, C the Min$ floor plus the has-Max / Random flags
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
+	return nil
+}
+
+func (ic *instrCtx) opEnterCtrPick() error {
+	return buildEnterCtrPick(&ic.ki, ic.in.CS) // an as-enters pair of counter kinds (lower_enterctrpick.go)
+}
+
+func (ic *instrCtx) opNameCard() error {
+	// a mid-resolution card name (lower_namecard.go)
+	buildNameCard(&ic.ki, ic.in.B.N)
+	return nil
+}
+
+func (ic *instrCtx) opClearNamedCard() error {
+	// gorge `DB$ Cleanup | ClearNamedCard$ True` (lower_namecard.go)
+	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtClearNamedCard))
 	return nil
 }

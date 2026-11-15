@@ -31,6 +31,7 @@ var ignoredParams = map[string]bool{
 	"PrimaryPrompt":      true, // caption text; gorge lists it in params.DescriptiveKeys (descriptive.go), never read
 	"AINoRecursiveCheck": true, // Forge AI hint: only in gorge's accepted-key lists (params/mana.go, params/dealdamage.go, changezone_params.go), never read
 	"AIXMax":             true, // Forge AI hint for the X it announces: only in gorge's accepted-key lists (changezone_params.go, params/*.go), never read
+	"AIManaPref":         true, // Forge's AI mana-source preference (Basalt Monolith's AIManaPref$ NotSameCard); gorge's effUntap recognises and discards it (effects/untap.go), never a rules read
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 
 	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it

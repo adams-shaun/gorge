@@ -734,7 +734,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		if n := int(s.g.nemb[p]); n < s.embCap() {
 			s.g.embF[p] &^= 1 << n // a new emblem has begun no turn yet
-			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj}
+			r := embRec{idx: uint8(in.C) + 1, c: e.card, obj: e.obj, named: s.embFrozenName(k)}
 			emb := &k.t.Emblems[in.C]
 			switch {
 			case emb.Capture != kop.RefNone:

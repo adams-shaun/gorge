@@ -944,7 +944,7 @@ type lTrigger struct {
 	CastHand                  bool  // ValidCard$ ...+wasCastFromYourHandByYou: ETB on the entering spell's cast, SpellCast on the spell (kernel Tf2CastFromHand)
 	ManaFromSelf              bool  // SpellCast ValidSA$ Spell.ManaFromCard.StrictlySelf: the spell was paid with mana this source produced (kernel Tf2ManaFromSelf)
 	MayPlaySrc                bool  // SpellCast ValidSA$ Spell.MayPlaySource: the cast went through a may-play permission (gorge FlagMayPlay; kernel Tf3MayPlaySrc)
-	Static                    bool  // SpellCast Static$ True: resolved off the stack by the trigger drain, before the ordering ask (gorge static_trigger.go; kernel Tf3Static)
+	Static                    bool  // Static$ True: resolved off the stack by the trigger drain, before the ordering ask (gorge static_trigger.go; kernel Tf3Static); kgen proved the body ask-free
 	ManaFromTreasure          bool  // SpellCast ValidSA$ Spell.ManaFromTreasure: the cast spent Treasure mana (kernel Tf3ManaFromTreasure)
 	OrTargets                 bool  // SpellCast ValidSA$ "Spell.X,Spell.IsTargeting Valid Y": F matches the spell OR F2 matches some target (kernel Tf3OrTargets)
 	N                         int16 // LandPlayed: the Origin$ zone mask, 1<<kop.Zone (0 = any)

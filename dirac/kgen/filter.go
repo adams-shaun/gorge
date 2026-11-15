@@ -92,13 +92,14 @@ const (
 	fExiledWith    // ExiledWithSource: exiled with the reading source (kop.FExiledWith)
 	fNotAttacking  // !attacking (kop.FNotAttacking)
 	fNotAttachedBy // !EnchantedBy / !EquippedBy / !AttachedBy: not the source's host (kop.FNotAttachedBySrc)
+	fNamedCard     // the card-name property NamedCard: the candidate shares the source's chosen card name (gorge namePredicate NamedCard; kop.PredNamedCard)
 	fFlagCount     = iota
 )
 
 var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "Blocking", "Tapped", "Untapped",
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
-	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy"}
+	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard"}
 
 // Controller / owner selectors.
 const (
@@ -432,6 +433,7 @@ var propWords = map[string]uint64{
 	"CrewedThisTurn":            fCrewedSrc,
 	"SaddledThisTurn":           fCrewedSrc, // gorge: the exact twin of CrewedThisTurn (one pairedWithSourceThisTurn list)
 	"CastSa Spell.Warp":         fWarped,
+	"NamedCard":                 fNamedCard, // gorge namePredicate NamedCard (CR 201.4): the candidate shares the source's chosen card name (kop.PredNamedCard; Demonic Consultation, Cheering Fanatic)
 	"bargained":                 fBargained, // CR 702.166: Card.Self+bargained (kgen gates it on the CardDef.Bargain below)
 	"escaped":                   fEscaped,   // CR 702.138a: Card.Self+escaped (kop.PredEscaped; gated on CardDef.Escape below)
 	"Teamwork":                  fTeamwork,  // CR 702.194b: Card.Self+Teamwork (gated on CardDef.Teamwork)

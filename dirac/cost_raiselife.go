@@ -51,7 +51,7 @@ func (s *State) raiseLifeFor(k *prep, p uint8, c CardID, o Obj, anyTarget bool) 
 			return true
 		}
 		ctx := s.ctxStatic(stc)
-		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl, 0) {
 			return true
 		}
 		if !anyTarget && st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, stc.ctrl, c, stc.sl) {
@@ -176,7 +176,7 @@ func (s *State) boardManaTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 			return true
 		}
 		ctx := s.ctxStatic(stc)
-		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl, 0) {
 			return true
 		}
 		found = true
