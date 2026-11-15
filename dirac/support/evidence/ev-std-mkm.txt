@@ -192,6 +192,7 @@ Teysa, Opulent Oligarch
 The Chase Is On
 The Pride of Hull Clade
 They Went This Way
+Thinking Cap
 Thundering Falls
 Topiary Panther
 Torch the Witness
@@ -209,6 +210,7 @@ Unscrupulous Agent
 Urgent Necropsy
 Vannifar, Evolved Enigma
 Vein Ripper
+Vengeful Creeper
 Vengeful Tracker
 Warleader's Call
 Wispdrinker Vampire

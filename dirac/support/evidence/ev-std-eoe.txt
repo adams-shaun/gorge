@@ -21,6 +21,7 @@ Blooming Stinger
 Bombard
 Breeding Pool
 Brightspear Zealot
+Broodguard Elite
 Bygone Colossus
 Cerebral Download
 Chorale of the Void
@@ -209,6 +210,8 @@ Syr Vondam, Sunstar Exemplar
 Syr Vondam, the Lucent
 Systems Override
 Tannuk, Memorial Ensign
+Tannuk, Steadfast Second
+Tapestry Warden
 Temporal Intervention
 Terrapact Intimidator
 Terrasymbiosis
@@ -222,8 +225,10 @@ Thrumming Hivepool
 Tractor Beam
 Tragic Trajectory
 Umbral Collar Zealot
+Unravel
 Uthros Psionicist
 Uthros Scanship
+Uthros, Titanic Godcore
 Vaultguard Trooper
 Virulent Silencer
 Virus Beetle
