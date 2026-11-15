@@ -632,6 +632,16 @@ func tableHasReconfigure(t *kop.Table) bool {
 }
 
 // prepareGen precomputes a generated table (nil for a hand-written one).
+// prepOverrideLandwalk sets genPrep.anyLandwalk when any override record of
+// the table grants landwalk (a Pump KW$ Landwalk:<spec>, lower_landwalkgrant).
+func prepOverrideLandwalk(t *kop.Table, g *genPrep) {
+	for i := range t.Overrides {
+		if t.Overrides[i].Landwalk != 0 {
+			g.anyLandwalk = true
+		}
+	}
+}
+
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
 	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
@@ -889,11 +899,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	for i := range t.Overrides {
-		if t.Overrides[i].Landwalk != 0 {
-			g.anyLandwalk = true // a Pump's granted landwalk rides an override record (kw_evasion.go landwalkPumped)
-		}
-	}
+	prepOverrideLandwalk(t, g) // a Pump's granted landwalk rides an override record (kw_evasion.go landwalkPumped)
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
