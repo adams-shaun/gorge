@@ -3,6 +3,7 @@ A-Nael, Avizoa Aeronaut
 Absolute Law
 Abundant Countryside
 Adeliz, the Cinder Wind
+Aeolipile
 Aerial Boost
 Aether Spike
 Akki Rockspeaker
@@ -23,6 +24,7 @@ Black Widow, Natasha Romanoff
 Blade of Selves
 Blessing of Belzenlok
 Blinding Souleater
+Blinding Spray
 Blitz of the Thunder-Raptor
 Blockade Runner
 Blood-Chin Rager
@@ -37,8 +39,10 @@ Carmen, Cruel Skymarcher
 Cathar's Shield
 Cathedral Acolyte
 Celestial Enforcer
+Cephalid Sage
 Chained Brute
 Chandra's Magmutt
+Chaos Warp
 Chasm Skulker
 Choose Your Weapon
 Claws of Valakut
@@ -60,9 +64,12 @@ Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
 Destiny Spinner
+Discontinuity
+Displacement Wave
 Disrupting Scepter
 Dissolve
 District Guide
+Divination
 Divine Light
 Drafna, Founder of Lat-Nam
 Dramatic Finale
@@ -77,6 +84,7 @@ Energy Chamber
 Esper Panorama
 Essence Harvest
 Faerie Impostor
+False Peace
 Fate Forgotten
 Flatline
 Foe-liage
@@ -85,12 +93,15 @@ Forsake the Worldly
 Foundry Assembler
 Frantic Confrontation
 Fraying Omnipotence
+Frenetic Raptor
 Gerrard's Battle Cry
 Ghostly Changeling
 Gimli, Counter of Kills
 Gingerbehemoth
 Glint-Nest Crane
 Goatnapper
+Goblin Lore
+Godtracker of Jund
 Graaz, Unstoppable Juggernaut
 Gravel Slinger
 Grayscaled Gharial
@@ -112,6 +123,7 @@ Infantry Veteran
 Infernal Pet
 Inferno
 Introduction to Prophecy
+Inventor's Goggles
 Iridescent Blademaster
 Island
 Jeskai Barricade
@@ -124,7 +136,9 @@ Keeper of the Accord
 Killmonger, Ruthless Usurper
 Lab Rats
 Lady Spider, Maybelle Reilly
+Leaf Gilder
 Leave in the Dust
+Leery Fogbeast
 Leyline of the Meek
 Linvala, the Preserver
 Longbow Archer
@@ -170,9 +184,11 @@ Primal Order
 Profane Tutor
 Prohibit
 Rapid Decay
+Reach of Branches
 Reinforced Bulwark
 Repopulate
 Repulsor Rays
+Research Thief
 Reservoir Walker
 Rift Sower
 Rimeshield Frost Giant
@@ -185,6 +201,7 @@ Scouting Hawk
 Scythe Tiger
 Sea Monster
 Seasoned Hallowblade
+Secretkeeper
 Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
@@ -215,11 +232,13 @@ Striped Bears
 Sumala Woodshaper
 Swamp
 Swarmborn Giant
+Syphon Essence
 Syphon Mind
 Tablet of Epityr
 Taigam's Scheming
 Tears of Valakut
 Teroh's Faithful
+Thassa's Oracle
 Thatcher Revolt
 The Biblioplex
 The Falcon, Sam Wilson
@@ -247,6 +266,7 @@ Void Squall
 Volcanic Awakening
 Vraska's Fall
 Wash Out
+Watcher in the Mist
 Watchwolf
 Wave Elemental
 Wayfaring Giant

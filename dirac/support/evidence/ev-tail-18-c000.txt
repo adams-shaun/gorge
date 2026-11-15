@@ -272,6 +272,7 @@ On Wings of Gold
 Oracle of Tragedy
 Ornithopter
 Owlbear Shepherd
+Pain
 Painsmith
 Paragon of Open Graves
 Parch
@@ -436,6 +437,7 @@ Vedalken Mesmerist
 Venomous Brutalizer
 Vernal Sovereign
 Vesper Ghoul
+Vexing Bauble
 Vicious Offering
 Village Rites
 Virtus the Veiled
@@ -444,6 +446,7 @@ Voltaic Construct
 Wall of Denial
 Wall of Distortion
 Wall of Hope
+War Elemental
 Warlord's Fury
 Warped Landscape
 Watcher in the Mist

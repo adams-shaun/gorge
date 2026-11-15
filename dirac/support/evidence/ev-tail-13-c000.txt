@@ -7,6 +7,7 @@ Academy Rector
 Acolyte of Xathrid
 Adaptive Omnitool
 Adaptive Sporesinger
+Ajani's Last Stand
 Akiri, Line-Slinger
 Akroan Horse
 Akroma's Blessing
@@ -42,6 +43,7 @@ Basalt Gargoyle
 Battering Craghorn
 Berserkers of Blood Ridge
 Black Panther, Claws of Bast
+Bladewing the Risen
 Blaze
 Bloodsky Berserker
 Bloodtallow Candle
@@ -161,7 +163,9 @@ Goblin Champion
 Goblin Lookout
 Goblin Wardriver
 Golden-Tail Disciple
+Goro-Goro, Disciple of Ryusei
 Grasp of the Hieromancer
+Green Goblin, Nemesis
 Grindclock
 Groundskeeper
 Guardian Lions
@@ -309,6 +313,7 @@ Reaper from the Abyss
 Recruitment Officer
 Redress Fate
 Refuse to Yield
+Relic Putrescence
 Resistance Fighter
 Retrieve
 Rhox Pummeler
@@ -317,6 +322,7 @@ Rites of Refusal
 Ritual of Restoration
 Riverwise Augur
 Rocky Tar Pit
+Rohgahh, Kher Keep Overlord
 Rolling Temblor
 Rot Shambler
 Rubbleback Rhino

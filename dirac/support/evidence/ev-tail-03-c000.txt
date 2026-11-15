@@ -4,6 +4,7 @@ Acolyte of the Inferno
 Ainok Bond-Kin
 Ainok Guide
 Ajani's Mantra
+Ajani, Adversary of Tyrants
 Altar's Light
 Ancestral Memories
 Applied Biomancy
@@ -283,12 +284,14 @@ Phthisis
 Phyrexian Metamorph
 Phyrexian Monitor
 Phyrexian Rebirth
+Plagon, Lord of the Beach
 Plains
 Plated Wurm
 Plundering Barbarian
 Prismatic Strands
 Profit
 Prophet of Kruphix
+Prosperous Partnership
 Psychic Allergy
 Puppet Conjurer
 Raging Spirit
@@ -313,6 +316,7 @@ Sailors' Bane
 Salvage Scuttler
 Samite Herbalist
 Samut, Voice of Dissent
+Sanctum of Fruitful Harvest
 Sapphire Medallion
 Sarinth Steelseeker
 Scarblade Elite
@@ -417,6 +421,7 @@ Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
 Wintermoon Mesa
+Wirewood Symbiote
 Wizard Class
 Woebearer
 Wolfcaller's Howl

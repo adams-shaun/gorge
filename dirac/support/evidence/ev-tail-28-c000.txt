@@ -56,6 +56,7 @@ Brindle Boar
 Bringer of the Black Dawn
 Bringer of the Blue Dawn
 Broodstar
+Bull Cerodon
 Burning Cloak
 Caress of Phyrexia
 Carrion Grub
@@ -196,6 +197,7 @@ Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
 Kathari Remnant
+Kazuul's Toll Collector
 Keen Glidemaster
 Keep Safe
 Keldon Halberdier
@@ -215,6 +217,7 @@ Leonin Lightbringer
 Ley Druid
 Lifecrafter's Bestiary
 Lifecrafter's Gift
+Lithatog
 Llanowar Envoy
 Lodestone Golem
 Lost in Memories
@@ -290,6 +293,7 @@ Ratchet Bomb
 Reality Strobe
 Reconstruction
 Recruiter of the Guard
+Reflective Golem
 Resistance Skywarden
 Return Upon the Tide
 Reyhan, Last of the Abzan
@@ -337,6 +341,7 @@ Spire Garden
 Spite of Mogis
 Spread the Sickness
 Stalking Stones
+Star of Extinction
 Start from Scratch
 Steel Wall
 Stifle
@@ -372,7 +377,9 @@ Thistledown Liege
 Thor, Guardian of Midgard
 Thoughtpicker Witch
 Thraben Valiant
+Thran Vigil
 Thundering Tanadon
+Tin Street Market
 Titania's Command
 Tocasia's Dig Site
 Tomebound Lich
@@ -414,6 +421,7 @@ Wintermoor Commander
 Wipe Away
 Wolf's Quarry
 Woodcutter's Grit
+Worldgorger Dragon
 Wu Infantry
 Yeva, Nature's Herald
 You're Confronted by Robbers

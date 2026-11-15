@@ -1,5 +1,6 @@
 A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
+A-Thran Spider
 Acolyte of Xathrid
 Adaptive Sporesinger
 Akroan Horse
@@ -23,6 +24,7 @@ Bag of Holding
 Ballista Watcher
 Bane of Progress
 Basalt Gargoyle
+Berserkers of Blood Ridge
 Blaze
 Bloodsky Berserker
 Bloodtallow Candle
@@ -31,6 +33,7 @@ Bold Defense
 Bonders' Enclave
 Bone Shredder
 Boom
+Bounding Wolf
 Bountiful Harvest
 Brain Freeze
 Brave the Sands
@@ -44,6 +47,7 @@ Child of Thorns
 Citizen's Arrest
 Clinging Mists
 Cobblebrute
+Commune with Spirits
 Consign to the Pit
 Contemplation
 Covert Technician
@@ -51,6 +55,7 @@ Crackling Triton
 Cryptwailing
 Curse of the Restless Dead
 Cursed Minotaur
+Daring Escape
 Daring Leap
 Dawntreader Elk
 Deadshot
@@ -93,6 +98,7 @@ Ferropede
 Fire Nation Salvagers
 Fire Prophecy
 Flamekin Harbinger
+Flameskull
 Flaming Tyrannosaurus
 Flight Spellbomb
 Floriferous Vinewall
@@ -235,6 +241,7 @@ Reaper from the Abyss
 Recruitment Officer
 Retrieve
 Rhox Pummeler
+Rift Sower
 Rocky Tar Pit
 Rubbleback Rhino
 Rubblebelt Rioters
@@ -257,6 +264,7 @@ Sinking Feeling
 Skeletal Kathari
 Skywatcher Adept
 Slaughter Cry
+Smashing Success
 Smelt-Ward Minotaur
 Soldier Replica
 Sorceress Queen

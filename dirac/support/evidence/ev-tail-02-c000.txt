@@ -15,6 +15,7 @@ Ardent Recruit
 Armored Guardian
 Atalya, Samite Master
 Atsushi, the Blazing Sky
+Automatic Librarian
 Azorius Ploy
 Barbary Apes
 Barbed Batterfist
@@ -42,6 +43,7 @@ Cartographer
 Celestine, the Living Saint
 Centaur Omenreader
 Chain of Plasma
+Chainflail Centipede
 Chief Jim Hopper
 Cho-Manno's Blessing
 Chrome Steed
@@ -74,6 +76,7 @@ Disciple of Bolas
 Diver Skaab
 Douse
 Drakewing Krasis
+Dread Shade
 Dukhara Peafowl
 Eidolon of Rhetoric
 Eivor, Battle-Ready
@@ -146,6 +149,7 @@ Keensight Mentor
 Keepers of the Faith
 Keldon Mantle
 Kessig Malcontents
+Kill! Maim! Burn!
 Kiln Fiend
 Kinsbaile Cavalier
 Kinsbaile Courier

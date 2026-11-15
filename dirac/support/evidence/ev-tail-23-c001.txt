@@ -39,6 +39,7 @@ Blister Beetle
 Blood Bairn
 Blood Price
 Blood Reckoning
+Bloodline Shaman
 Boggart Brute
 Boggart Harbinger
 Boiling Blood
@@ -153,9 +154,11 @@ Hulking Devil
 Hypochondria
 Illusory Wrappings
 Imps' Taunt
+Imskir Iron-Eater
 Inevitable End
 Inhumaniac
 Innistrad Charm
+Integrity
 Intrepid Hero
 Invasion of Mercadia
 Island

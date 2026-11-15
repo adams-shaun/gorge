@@ -72,6 +72,7 @@ Dreamscape Artist
 Dromoka, the Eternal
 Duskdale Wurm
 Dwarven Reinforcements
+Dying Wail
 Earth Elemental
 East-Mark Cavalier
 Ekthi, Contaminator Priest
@@ -99,9 +100,11 @@ Final Strike
 Fire Bowman
 Firewing Phoenix
 Flamecore Elemental
+Fleecemane Lion
 Flight
 Forbidden Friendship
 Forest
+Forging the Tyrite Sword
 Geist-Fueled Scarecrow
 Ghost Hounds
 Ghostblade Eidolon
@@ -112,6 +115,7 @@ Goblin Elite Infantry
 Goblin Grenade
 Goblin Guide
 Goblin Tinkerer
+Grave Titan
 Gretchen Titchwillow
 Growth Cycle
 Gryff Vanguard
@@ -141,6 +145,7 @@ Jwari Disruption
 Kargan Warleader
 Keeper of Progenitus
 Khalni Garden
+Kird Ape
 Kitsune Loreweaver
 Kor Cartographer
 Koth's Courier
@@ -157,6 +162,7 @@ Magnivore
 Makeshift Munitions
 Managorger Hydra
 Manticore of the Gauntlet
+Marshmist Titan
 Mask of the Jadecrafter
 Masterwork of Ingenuity
 Mesmeric Trance
@@ -169,9 +175,11 @@ Myr Retriever
 Narnam Renegade
 Nature's Spiral
 Nettlecyst
+Noble Vestige
 Oath of Eorl
 Oath of Scholars
 Offering to Asha
+Old Rutstein
 Omen of the Forge
 Ooze Garden
 Oran-Rief Invoker
@@ -207,6 +215,7 @@ Road of Return
 Roaring Primadox
 Ruination Rioter
 Rush of Blood
+Ruthless Knave
 Saurian Symbiote
 Savageborn Hydra
 Saving Grasp
@@ -285,6 +294,7 @@ Vow of Flight
 War Horn
 Welkin Hawk
 Wings of the Guard
+Witherbloom Command
 Wolfkin Bond
 Woodcaller Automaton
 Xanthic Statue

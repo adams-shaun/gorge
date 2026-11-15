@@ -96,6 +96,7 @@ Dreadfeast Demon
 Dream Prowler
 Dream's Grip
 Dross Golem
+Elda, Conjurer of Spectacle
 Elite Cat Warrior
 Elvish Branchbender
 Elvish Doomsayer
@@ -109,6 +110,7 @@ Fading Hope
 Falkenrath Reaver
 Fall of the Gavel
 Farsight Adept
+Favor of Jukai
 Festering Thicket
 Fetid Horror
 Fever Charm
@@ -173,6 +175,7 @@ Irencrag Pyromancer
 Island
 Jasconian Isle
 Jaya's Firenado
+Join Shields
 Joiner Adept
 Junún Efreet
 Kabira Takedown
@@ -369,8 +372,10 @@ Viashivan Dragon
 Vicious Conquistador
 Vigilance
 Vine Dryad
+Void Grafter
 Void Snare
 Volcanic Hammer
+Volcanic Submersion
 Voracious Null
 Vryn Wingmare
 Walker of the Grove

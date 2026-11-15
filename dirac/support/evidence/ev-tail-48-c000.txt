@@ -18,11 +18,13 @@ Arden Angel
 Ardenvale Tactician
 Armored Galleon
 Aspiring Aeronaut
+Assault
 Aveline de Grandpré
 Azusa, Lost but Seeking
 Badlands
 Balance of Power
 Baleful Force
+Basilica Screecher
 Beanstalk Giant
 Beast Mode
 Bessie, the Doctor's Roadster
@@ -30,6 +32,7 @@ Black Dragon Gate
 Bladeback Sliver
 Blazing Sunsteel
 Blitz Leech
+Blowfly Infestation
 Bob, Reluctant HYDRA Agent
 Bonded Fetch
 Boon-Bringer Valkyrie
@@ -42,13 +45,16 @@ Burst of Energy
 Bygone Bishop
 Cackling Counterpart
 Capashen Knight
+Carnifex Demon
 Cathars' Crusade
 Censor
 Charix, the Raging Isle
 Chitinous Cloak
+Circle of Affliction
 Citanul Stalwart
 Clavileño, First of the Blessed
 Cliff Threader
+Cloud of Faeries
 Collective Voyage
 Commune with Lava
 Consul's Shieldguard
@@ -69,6 +75,7 @@ Dawning Angel
 Day of Destiny
 Dazzling Lights
 Deadly Rollick
+Deathgrip
 Demonic Bargain
 Demonic Lore
 Demotion
@@ -87,6 +94,7 @@ Dromar's Cavern
 Drown in Ichor
 Dueling Rapier
 Dusk Imp
+Earth-Cult Elemental
 Ebon Praetor
 Eliminate
 Elvish Berserker
@@ -99,11 +107,16 @@ Excommunicate
 Exiled Boggart
 Expose to Daylight
 Eyeless Watcher
+Ezio, Brash Novice
 Ezzaroot Channeler
+Falcon, Joaquin Torres
+Falkenrath Exterminator
 Fallen Ideal
 Fiendslayer Paladin
 Final Revels
 Firescreamer
+Fleetfoot Panther
+Flora Colossus
 Flowstone Charger
 Flowstone Surge
 Flowstone Wall
@@ -118,6 +131,7 @@ Fuming Effigy
 Gateway Plaza
 Gelatinous Genesis
 Ghost-Lit Redeemer
+Ghoulish Procession
 Gift of Strength
 Gimli's Fury
 Glamorous Grapplers
@@ -130,6 +144,7 @@ Greatsword
 Green Sun's Zenith
 Grizzly Fate
 Gruesome Scourger
+Hagra Sharpshooter
 Hall Monitor
 Hanged Executioner
 Heavenly Qilin
@@ -144,6 +159,7 @@ Hunted Phantasm
 Hurl Through Hell
 Icatian Lieutenant
 Illusionary Forces
+Impatience
 Imperial Outrider
 Imperial Recovery Unit
 Increasing Savagery
@@ -156,6 +172,7 @@ Iron Tusk Elephant
 Island
 Jaddi Offshoot
 James, Wandering Dad
+Jin-Gitaxias, Progress Tyrant
 Joraga Auxiliary
 Juzám Djinn
 Kangee, Sky Warden
@@ -166,6 +183,7 @@ Kodama of the West Tree
 Kor Hookmaster
 Kragma Butcher
 Krark-Clan Shaman
+Kura, the Boundless Sky
 Lantern of the Lost
 Lashwrithe
 Lathnu Sailback
@@ -174,8 +192,10 @@ Leyline of Sanctity
 Lifelink
 Liliana's Reaver
 Living Lies of Loki
+Llanowar Visionary
 Loathsome Chimera
 Loch Korrigan
+Lorehold Pledgemage
 Lurking Crocodile
 Mage Slayer
 Magus of the Mind
@@ -201,6 +221,7 @@ Molting Skin
 Moment of Heroism
 Monk of the Open Hand
 Mountain
+Munda, Ambush Leader
 Myr Galvanizer
 Mystic Crusader
 Naban, Dean of Iteration
@@ -224,8 +245,10 @@ Oswald Fiddlebender
 Pain Seer
 Patron of the Arts
 Persistent Specimen
+Pile On
 Plains
 Plated Wurm
+Polluted Dead
 Preening Champion
 Pride Sovereign
 Ragavan, Nimble Pilferer
@@ -244,6 +267,7 @@ Roterothopter
 Rubble Reading
 Ruin Crab
 Runed Stalactite
+Ryusei, the Falling Star
 Saber Ants
 Satsuki, the Living Lore
 Savage Silhouette
@@ -278,6 +302,7 @@ Skyboon Evangelist
 Skyclave Relic
 Skysovereign, Consul Flagship
 Snooping Newsie
+Sojourner's Companion
 Song of the Worldsoul
 Soulreaper of Mogis
 Spark Harvest
@@ -294,6 +319,7 @@ Sun Sentinel
 Sunken Field
 Swamp
 Swamp Mosquito
+Szarekh, the Silent King
 Terra Eternal
 Thalakos Deceiver
 The Mightstone and Weakstone
@@ -308,6 +334,7 @@ Treefolk Healer
 Tunneling Geopede
 Two-Headed Dragon
 Uchuulon
+Ulcerate
 Ulvenwald Oddity
 Unchained Berserker
 Unruly Mob
@@ -315,9 +342,11 @@ Urza's Command
 Vandalize
 Vastwood Zendikon
 Vedalken Infuser
+Veinwitch Coven
 Virulent Swipe
 Vodalian Wave-Knight
 Wall of Tears
+Warchanter Skald
 Waterlogged Teachings
 Well of Ideas
 Windbrisk Heights
@@ -326,6 +355,7 @@ Woodland Druid
 Wormfang Behemoth
 Yellow Scarves General
 You Come to a River
+Yuki-Onna
 Zodiac Rat
 Zodiac Tiger
 Zuberi, Golden Feather

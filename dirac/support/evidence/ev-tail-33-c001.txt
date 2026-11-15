@@ -12,13 +12,18 @@ Aether Chaser
 Aether Vial
 Afterlife Insurance
 Aftershock
+Agent of Horizons
+Agent of Masks
 Aim High
 Ajani's Sunstriker
+Alharu, Solemn Ritualist
+Allay
 Anaba Bodyguard
 Ancestral Knowledge
 Animal Boneyard
 Anowon, the Ruin Thief
 Arcane Investigator
+Archweaver
 Arcum Dagsson
 Ardent Elementalist
 Armorcraft Judge
@@ -36,9 +41,13 @@ Battlefront Krushok
 Belligerent Brontodon
 Belligerent Hatchling
 Blighted Agent
+Blistering Dieflyn
 Blood Divination
+Blood Speaker
 Bloodstone Cameo
+Blurred Mongoose
 Bogardan Dragonheart
+Bond of Passion
 Bonded Herdbeast
 Bontu the Glorified
 Book of Rass
@@ -56,6 +65,7 @@ Carrion Grub
 Casey Jones, Asphalt Hooligan
 Caustic Caterpillar
 Charforger
+Chittering Witch
 Circle of Flame
 Citywatch Sphinx
 Commander Greven il-Vec
@@ -87,6 +97,7 @@ Despondent Killbot
 Destroy Evil
 Destructive Digger
 Dewdrop Spy
+Dimir Machinations
 Dire Tactics
 Diving Griffin
 Donate
@@ -98,6 +109,7 @@ Dread Warlock
 Drelnoch
 Dross Golem
 Dross Prowler
+Dwarven Forge-Chanter
 Dwarven Priest
 Dwarven Weaponsmith
 Déjà Vu
@@ -106,6 +118,7 @@ Earthshape
 Ebony Charm
 Ebony Horse
 Electric Revelation
+Elven Ambush
 Ember-Eye Wolf
 Eternal Taskmaster
 Ethereal Absolution
@@ -121,6 +134,7 @@ Fire Nation Occupation
 Flame Elemental
 Flawless Maneuver
 Flip the Switch
+Flourishing Hunter
 Flumph
 Force Spike
 Forceful Cultivator
@@ -128,24 +142,33 @@ Forest
 Freejam Regent
 Furious Resistance
 Furnace Gremlin
+Gaea's Might
 Gates of Istfell
+Gau, Feral Youth
 Gearsmith Prodigy
+Gempalm Avenger
 Gleam of Authority
 Gluttonous Guest
+Godo, Bandit Warlord
 Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grozoth
 Gwaihir, Greatest of the Eagles
+Hammer of Purphoros
 Harvesttide Infiltrator
+Haunted Dead
 Hazoret's Monument
 History of Benalia
 Honor's Reward
+Horrific Assault
 Howling Fury
 Hurloon Shaman
 Illustrious Historian
 Indulgent Tormentor
 Inexorable Tide
+Infected Defector
 Inner Fire
 Innocent Traveler
 Insurrection
@@ -157,6 +180,7 @@ Jabs, Mistress of Mockery
 Jace's Triumph
 Jaspera Sentinel
 Jhoira's Familiar
+Kambal, Consul of Allocation
 Katara, Heroic Healer
 Kavu Aggressor
 Kindly Stranger
@@ -184,12 +208,14 @@ Manabond
 Marauding Boneslasher
 Marauding Knight
 Mass Hysteria
+Maximize Altitude
 Memorial to Folly
 Military Intelligence
 Mindless Conscription
 Ministrant of Obligation
 Mogg Conscripts
 Mogg Jailer
+Monastery Mentor
 Moonglove Winnower
 Mountain
 Mox Amber
@@ -228,9 +254,11 @@ Pterodon Knight
 Puppet Conjurer
 Purify
 Quirion Dryad
+Raiders' Spoils
 Ravenous Leucrocota
 Raze
 Razorjaw Oni
+Reanimate
 Reaver Drone
 Reckoner's Bargain
 Redemption Choir
@@ -242,9 +270,12 @@ Reverent Hunter
 Rewind
 Rhys the Redeemed
 Rip Apart
+Roar of the Wurm
 Rona, Disciple of Gix
+Roofstalker Wight
 Royal Falcon
 Ruin Crab
+Runehorn Hellkite
 Sabertooth Mauler
 Sage's Knowledge
 Sage's Row Savant
@@ -262,7 +293,9 @@ Seed Guardian
 Seeker
 Seething Anger
 Selesnya Sagittars
+Shattered Dreams
 Shepherd of Rot
+Shinen of Fear's Chill
 Showstopping Surprise
 Shred Memory
 Shredded Sails
@@ -279,17 +312,20 @@ Smoldering Efreet
 Smuggler's Copter
 Solar Blast
 Soltari Trooper
+Soul Kiss
 Spearpoint Oread
 Spectral Deluge
 Spirit Bonds
 Spiteful Sliver
 Spore Cloud
+Stamina
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
 Subversion
 Swamp
 Sylvan Hierophant
+Tajuru Warcaller
 Temple Elder
 Temporal Machinations
 The First Iroan Games
@@ -299,11 +335,14 @@ The Tabernacle at Pendrell Vale
 Thought Monitor
 Thraben Foulbloods
 Thresher Lizard
+Timberland Ancient
 Tin Street Hooligan
 Tin-Wing Chimera
+Towering Thunderfist
 Trained Armodon
 Trained Jackal
 Tranquil Path
+Trash for Treasure
 Traverse the Outlands
 Tree of Tales
 Treefolk Seedlings
@@ -319,11 +358,14 @@ Unyaro Bee Sting
 Urborg Shambler
 Utvara Scalper
 Verdant Crescendo
+Verdant Embrace
 Vernal Fen
+Viashino Skeleton
 Victorious Destruction
 Vinelasher Kudzu
 Viridian Zealot
 Viscera Dragger
+Voice of Truth
 Voidwielder
 Voyaging Satyr
 Vulshok War Boar
@@ -339,7 +381,9 @@ Wayward Swordtooth
 Weatherseed Totem
 Wei Infantry
 Weird Harvest
+Wild Griffin
 Willow Faerie
+Wilson, Refined Grizzly
 Winged Hive Tyrant
 Winter Soldier, Bucky Barnes
 Witch's Cottage

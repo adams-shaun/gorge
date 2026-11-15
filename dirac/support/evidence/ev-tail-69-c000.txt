@@ -5,6 +5,7 @@ Abzan Beastmaster
 Accomplished Automaton
 Accorder's Shield
 Afterlife Insurance
+Ainok Guide
 Ajani, Strength of the Pride
 Akoum Battlesinger
 Amphin Cutthroat
@@ -28,6 +29,7 @@ Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
 Blessed Orator
+Blisterpod
 Blood-Chin Fanatic
 Bloodfire Mentor
 Board the Weatherlight
@@ -51,10 +53,12 @@ Cathartic Pyre
 Cavern Lampad
 Celestial Colonnade
 Chamber of Manipulation
+Chandra Nalaar
 Change of Fortune
 Claws of Gix
 Clearwater Goblet
 Cliffhaven Kitesail
+Colossapede
 Compulsory Rest
 Conifer Strider
 Contagious Vorrac
@@ -74,14 +78,17 @@ Dauthi Mercenary
 Davriel's Shadowfugue
 Defensive Maneuvers
 Demogorgon's Clutches
+Demonspine Whip
 Depart the Realm
 Desert Twister
 Diabolical Salvation
+Disembowel
 Dispeller's Capsule
 Drannith Magistrate
 Dreadful Apathy
 Dukhara Peafowl
 Earthshaker
+Echoing Return
 Ecstatic Awakener
 Ekthi, Contaminator Priest
 Elspeth, Knight-Errant
@@ -90,6 +97,7 @@ Elvish Doomsayer
 Elvish Farmer
 Empyrial Plate
 Enduring Scalelord
+Entropic Specter
 Envoy of the Ancestors
 Epistolary Librarian
 Errant Ephemeron
@@ -144,6 +152,7 @@ Grasp of Phantoms
 Grasping Giant
 Gravewaker
 Gray Slaad
+Greed
 Grixis Panorama
 Guildless Commons
 Gust-Skimmer
@@ -153,6 +162,7 @@ Hanweir Militia Captain
 Healer's Flock
 Heed the Mists
 Heir of the Wilds
+Hellkite Overlord
 Heroes Remembered
 Hesitation
 Hidden Ancients
@@ -175,6 +185,7 @@ Impending Disaster
 In Bolas's Clutches
 Ingenuity Engine
 Insatiable Souleater
+Interceptor, Shadow's Hound
 Invasion of Belenon
 Invisible Force Field
 Iroas's Champion
@@ -265,11 +276,13 @@ Pia and Kiran Nalaar
 Plains
 Planar Bridge
 Political Triumph
+Primetime Suspect
 Prodigious Growth
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
 Rage-Scarred Berserker
+Raging Kavu
 Ranger's Guile
 Raze the Effigy
 Razorfield Thresher
@@ -302,6 +315,7 @@ Seize the Day
 Serra Avenger
 Shard Convergence
 Shattering Blow
+Shepherd of the Lost
 Shining Aerosaur
 Shivan Emissary
 Shu Elite Companions
@@ -314,6 +328,7 @@ Skeletal Crocodile
 Skirk Commando
 Sky Spirit
 Sky Theater Strix
+So Shiny
 Sparkmage's Gambit
 Spectral Shield
 Spellshock
@@ -324,6 +339,7 @@ Storm of Souls
 Stream Hopper
 Structural Assault
 Sulfur Elemental
+Surge Conductor
 Swamp
 Tales of Master Seshiro
 Taranika, Akroan Veteran
@@ -336,6 +352,7 @@ Thorn of the Black Rose
 Thriving Ibex
 Throne of Geth
 Thunderfoot Baloth
+Titania's Boon
 Toolcraft Exemplar
 Topplegeist
 Torch Fiend
@@ -361,8 +378,11 @@ Vex
 Vibranium Mining Mech
 Vigilant Sentry
 Vogar, Necropolis Tyrant
+Void
 Volcanic Torrent
 Voyager Staff
+Vraska's Contempt
+Wall of Blossoms
 War-Wing Siren
 Warm Welcome
 Watcher Sliver

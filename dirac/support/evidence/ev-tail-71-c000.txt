@@ -70,6 +70,7 @@ Commando Raid
 Conquer
 Coordinated Barrage
 Cordial Vampire
+Cosmic Hunger
 Cruel Sadist
 Crumbling Necropolis
 Crypt Cobra
@@ -119,6 +120,7 @@ Ferrovore
 Field Research
 Field of Souls
 Fire Servant
+Fire Shrine Keeper
 Fireforger's Puzzleknot
 Firemantle Mage
 Firescreamer
@@ -150,6 +152,7 @@ Gone Missing
 Goretusk Firebeast
 Granite Gargoyle
 Gravel Slinger
+Gristleback
 Growth Cycle
 Gruesome Discovery
 Guardian Automaton
@@ -198,6 +201,7 @@ Kin-Tree Warden
 Knight of the Tusk
 Kor Scythemaster
 Kyoshi Warrior Guard
+Lair Delve
 Lightning Spear
 Llanowar Cavalry
 Llanowar Vanguard
@@ -277,6 +281,7 @@ Remorseful Cleric
 Renegade Krasis
 Renegade Warlord
 Repercussion
+Restock
 Retribution of the Meek
 Revolutionary Rebuff
 Revolutionist
@@ -300,6 +305,7 @@ Scuttlegator
 Season of Growth
 Season of Renewal
 Seer's Sundial
+Serene Heart
 Serum Sovereign
 Shield Mate
 Shocker
@@ -323,6 +329,7 @@ Sonic Seizure
 Soulcatcher
 Spawnwrithe
 Spiked Ripsaw
+Spikefield Hazard
 Splatter Goblin
 Squee's Toy
 Staff of the Sun Magus
@@ -348,6 +355,7 @@ Tavern Ruffian
 Terminal Agony
 Tezzeret's Gambit
 The Battle of Bywater
+Thornwatch Scarecrow
 Thragtusk
 Threnody Singer
 Throne of the God-Pharaoh
@@ -379,6 +387,7 @@ Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror
+Webspinner Cuff
 Weldfast Wingsmith
 Whirlermaker
 Wing Shards

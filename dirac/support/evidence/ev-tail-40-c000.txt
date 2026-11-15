@@ -26,6 +26,7 @@ Arcade Cabinet
 Arcane Laboratory
 Archon of Emeria
 Armageddon
+Ascended Lawmage
 Ascending Aven
 Asylum Visitor
 Atalya, Samite Master
@@ -71,9 +72,11 @@ Charmbreaker Devils
 Charmed Stray
 Charnel Troll
 Child of the Pack
+Cho-Manno, Revolutionary
 Choking Fumes
 Choose Your Weapon
 Chronomancer
+Cinder Crawler
 Cinderbones
 Citanul Woodreaders
 Clan Guildmage
@@ -91,8 +94,10 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crimson Hellkite
 Crumbling Colossus
 Crypt Ghast
+D'Avenant Healer
 Daraja Griffin
 Daxos of Meletis
 Deepcavern Imp
@@ -105,6 +110,7 @@ Dhund Operative
 Digsite Engineer
 Dire Fleet Neckbreaker
 Dirtwater Wraith
+Domri's Nodorog
 Dragon Egg
 Dragonstorm
 Drannith Ruins
@@ -227,7 +233,9 @@ Machine Man, Model X-51
 Mage Duel
 Manabond
 Manglehorn
+Mardu Banner
 Maw of the Obzedat
+Mech Hangar
 Meldweb Curator
 Meng Huo, Barbarian King
 Mental Discipline
@@ -241,6 +249,7 @@ Mind Burst
 Mindwarper
 Minion of the Mighty
 Minotaur Skullcleaver
+Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
@@ -259,11 +268,13 @@ Needlebug
 Nemesis Mask
 Nephalia Drownyard
 Nightveil Sprite
+Nimraiser Paladin
 Noggle Bridgebreaker
 Noxious Toad
 Oasis
 Oath of the Ancient Wood
 Obelisk of Esper
+Octavia, Living Thesis
 Oji, the Exquisite Blade
 Omen of the Sun
 Oracle of Tragedy
@@ -337,6 +348,7 @@ Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
+Shield Mare
 Shriek of Dread
 Shriekhorn
 Shrill Howler
@@ -404,6 +416,7 @@ Thing Swing
 Thorn Mammoth
 Thornling
 Thoughtseize
+Thoughtweft Gambit
 Thrasher Brute
 Thriss, Nantuko Primus
 Thunder Strike
@@ -413,6 +426,7 @@ Tigereye Cameo
 Time Wipe
 Time of Heroes
 Timely Interference
+Titans' Vanguard
 Topan Ascetic
 Tormented Hero
 Tower Defense

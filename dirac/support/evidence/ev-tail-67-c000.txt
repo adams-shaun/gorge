@@ -69,6 +69,7 @@ Clutch of Undeath
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Company Commander
 Conclave Guildmage
 Confront the Unknown
 Conservator
@@ -120,6 +121,7 @@ Empty the Laboratory
 Erratic Visionary
 Essence Feed
 Essence Warden
+Etched Oracle
 Eternal Witness
 Ethereal Champion
 Ethereal Usher
@@ -172,6 +174,7 @@ Helitrooper
 Helm of the Ghastlord
 Hemlock Vial
 Heroes of the Revel
+Heroes' Podium
 Hidden Blade
 Honed Khopesh
 Hooting Mandrills
@@ -199,6 +202,7 @@ Khalni Gem
 Kirtar's Wrath
 Kiyomaro, First to Stand
 Knight of the Keep
+Knights of the Black Rose
 Kor Castigator
 Kor Skyfisher
 Leafkin Druid
@@ -280,6 +284,7 @@ Quest for Pure Flame
 Rabbit Battery
 Rage Weaver
 Rally to Battle
+Ranger en-Vec
 Ravos, Soultender
 Ray of Erasure
 Raze to the Ground
@@ -365,6 +370,7 @@ Tenza, Godo's Maul
 Territorial Allosaurus
 Thaumaturge's Familiar
 The Bears of Littjara
+The Bloodsky Massacre
 The Whizzer, Classic Speedster
 Thorn Thallid
 Throes of Chaos

@@ -3,6 +3,7 @@ Aeolipile
 Aeronaut's Wings
 Ageless Guardian
 Akki Rockspeaker
+Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
@@ -11,6 +12,7 @@ Apprentice Sorcerer
 Arashin Sovereign
 Archfiend of Sorrows
 Arctic Treeline
+Ashling the Pilgrim
 Atarka Beastbreaker
 Attune with Aether
 Axgard Armory
@@ -29,6 +31,7 @@ Boreal Elemental
 Bottle Golems
 Brand
 Brood Birthing
+Cartouche of Zeal
 Cast Down
 Cateran Enforcer
 Cavalry Pegasus
@@ -59,6 +62,7 @@ Drown in Ichor
 Duskhunter Bat
 Dwell on the Past
 Eastfarthing Farmer
+Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
 Elvish Eulogist
@@ -88,6 +92,7 @@ Fourth Bridge Prowler
 Frontline Devastator
 Garrison Griffin
 Geier Reach Sanitarium
+General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
 Ghostly Visit
@@ -100,6 +105,7 @@ Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
 Haunted Cloak
+Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Highway Robber
@@ -191,6 +197,7 @@ Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
+Rotting Mastodon
 Ruin Ghost
 Rust Monster
 Salt Marsh

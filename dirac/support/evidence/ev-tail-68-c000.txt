@@ -69,6 +69,7 @@ Drag Down
 Dramatic Reversal
 Dredge
 Eladamri, Lord of Leaves
+Elderwood Scion
 Electrickery
 Elvish Archers
 Engineered Might
@@ -253,6 +254,7 @@ Thaumaturge's Familiar
 Think Tank
 Thirst
 Tishana's Wayfinder
+Tolsimir Wolfblood
 Tormod's Cryptkeeper
 Tower of Eons
 Traumatize

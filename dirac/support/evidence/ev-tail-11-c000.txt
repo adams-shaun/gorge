@@ -1,10 +1,12 @@
 A-Druidic Ritual
 A-Dwarfhold Champion
+A-Gnarlid Colony
 A-Hall of Tagsin
 A-Mr. Orfeo, the Boulder
 A-Riveteers Initiate
 A-Vivi Ornitier
 Abduction
+Abjure
 Abstergo Entertainment
 Abstruse Interference
 Academy Drake
@@ -19,6 +21,7 @@ Alpine Guide
 Anarchy
 Anax and Cymede
 Angelic Voices
+Anje, Maid of Dishonor
 Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
@@ -26,6 +29,7 @@ Archwing Dragon
 Arctic Aven
 Arctic Treeline
 Arctic Wolves
+Artful Dodge
 Ascendant Evincar
 Assassin Initiate
 Astral Steel
@@ -50,8 +54,10 @@ Blink of an Eye
 Blood Money
 Blood-Toll Harpy
 Bloodbriar
+Bloodsworn Squire
 Bloodtracker
 Bounty Agent
+Brainbite
 Brash Taunter
 Breaching Leviathan
 Brood of Cockroaches
@@ -80,6 +86,7 @@ Cinder Storm
 Citadel of Pain
 City of Traitors
 Clearwater Pathway
+Cleric of Life's Bond
 Cloak of Mists
 Cloudgoat Ranger
 Cobalt Golem
@@ -98,6 +105,7 @@ Curse Artifact
 Dakmor Sorceress
 Dauthi Warlord
 Dawnbringer Cleric
+Day of the Dragons
 Deadeye Harpooner
 Defiant Falcon
 Deglamer
@@ -133,6 +141,7 @@ Eternity Snare
 Execute
 Extinguish All Hope
 Fable of Wolf and Owl
+Faerie Noble
 Faerie Trickery
 Fall of the Hammer
 Feast of Worms
@@ -178,6 +187,7 @@ Goldmire Bridge
 Grappling Sundew
 Grave Strength
 Graveborn Muse
+Gravelgill Duo
 Grim Flowering
 Grotag Thrasher
 Grotesque Demise
@@ -191,6 +201,7 @@ Hideous Visage
 Highland Weald
 Hithlain Knots
 Hovermyr
+Icy Prison
 Idyllic Beachfront
 Ikiral Outrider
 Ill-Tempered Cyclops
@@ -201,14 +212,18 @@ Insight
 Ironroot Warlord
 Irresistible Prey
 Island
+Jace's Sanctum
 Jamie McCrimmon
+Judith, the Scourge Diva
 Junkyard Genius
 Justiciar's Portal
 Juvenile Mist Dragon
 Kagemaro's Clutch
 Kamahl's Desire
 Kami of Ancient Law
+Kami of Twisted Reflection
 Keep Watch
+Kemuri-Onna
 Kindly Stranger
 Kinsbaile Balloonist
 Kjeldoran Dead
@@ -231,6 +246,7 @@ Llanowar Loamspeaker
 Loam Lion
 Lose Hope
 Lost in a Labyrinth
+Lotus Bloom
 Loxodon Convert
 Loxodon Punisher
 Loxodon Wayfarer
@@ -252,7 +268,9 @@ Metallurgeon
 Metathran Transport
 Midsummer Revel
 Minas Tirith
+Mind Knives
 Mindculling
+Mindless Conscription
 Mindslicer
 Mire Kavu
 Mishra's Factory
@@ -275,8 +293,10 @@ Nema Siltlurker
 Nemesis Mask
 Nemesis of Mortals
 Nighthowler
+Nissa, Worldwaker
 Noggle Hedge-Mage
 Noxious Revival
+Numbing Jellyfish
 Nyx Infusion
 Nyxborn Seaguard
 Ob Nixilis's Cruelty
@@ -286,11 +306,14 @@ Ojutai's Summons
 Opaline Bracers
 Overcome
 Palazzo Archers
+Parallax Tide
 Path of Bravery
 Pathway Arrows
+Petrified Plating
 Phyrexian Fleshgorger
 Phyrexian Splicer
 Phyrexian Warhorse
+Piper Wright, Publick Reporter
 Pirate's Pillage
 Plains
 Pointed Discussion
@@ -318,6 +341,7 @@ Rotting Regisaur
 Runes of the Deus
 Sacred Mesa
 Sacrifice
+Sage's Row Denizen
 Sanctum Weaver
 Sanguine Statuette
 Sanity Gnawers
@@ -328,7 +352,9 @@ Seedcradle Witch
 Seer's Lantern
 Seize the Initiative
 Self-Assembler
+Send to Sleep
 Sentinels of Glen Elendra
+Shacklegeist
 Sheltered Thicket
 Shining Armor
 Shire Scarecrow
@@ -378,6 +404,7 @@ Subterranean Tremors
 Sudden Death
 Sundering Growth
 Supreme Phantom
+Surrakar Spellblade
 Surtr, Fiery Jötun
 Swamp
 Sweep Away
@@ -405,6 +432,7 @@ Topan Freeblade
 Torch Song
 Tormentor Exarch
 Tortoise Formation
+Traverse Eternity
 Tree Monkey
 Treetop Ambusher
 Treetop Recluse
@@ -431,6 +459,7 @@ Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
 Wall of Limbs
+Wash Out
 Waste Away
 Weapons Trainer
 Welkin Hawk

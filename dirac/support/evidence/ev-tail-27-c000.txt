@@ -24,8 +24,10 @@ Aspiring Aeronaut
 Aura Flux
 Avatar of Woe
 Azorius First-Wing
+Azure Drake
 Barbed Lightning
 Bee Sting
+Bident of Thassa
 Blessing
 Blight Keeper
 Blowfly Infestation
@@ -70,6 +72,7 @@ Dryad's Revival
 Duergar Assailant
 Dwarven Armorer
 Dwarven Lieutenant
+Dwarven Weaponsmith
 Electrosiphon
 Elemental Mastery
 Elemental Uprising
@@ -181,9 +184,11 @@ Noxious Grasp
 Null Brooch
 Nyxborn Wolf
 Offalsnout
+Old Ghastbark
 Onyx Goblet
 Ornery Goblin
 Orzhov Keyrune
+Out of the Way
 Overload
 Pangosaur
 Paradise Druid
@@ -201,6 +206,7 @@ Rite of Flame
 Ritual of Soot
 Rotlung Reanimator
 Sage of the Falls
+Sarah Jane Smith
 Sarcomite Myr
 Satyr Rambler
 Sawblade Scamp
@@ -238,6 +244,7 @@ Stormfist Crusader
 Stun
 Stunning Shot
 Sudden Reclamation
+Surgespanner
 Survivor of Korlis
 Swamp
 Swiftgear Drake
@@ -246,6 +253,8 @@ Syphon Life
 Tail Slash
 Tainted Isle
 Tattermunge Maniac
+Teferi's Protege
+Temur Banner
 Tendrils of Corruption
 Thallid Shell-Dweller
 The Locust God
@@ -280,3 +289,4 @@ Wildwood Tracker
 Woodborn Behemoth
 Workshop Assistant
 Yuffie, Materia Hunter
+Zuri, Warrior of Wakanda

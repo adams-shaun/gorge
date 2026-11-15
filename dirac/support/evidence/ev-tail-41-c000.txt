@@ -64,6 +64,7 @@ Coercion
 Cogwork Archivist
 Collateral Damage
 Colos Yearling
+Colossus of Sardia
 Combat Thresher
 Commissar Severina Raine
 Conjurer's Bauble
@@ -179,6 +180,7 @@ Kor Sky Climber
 Kris Mage
 Krovikan Elementalist
 Kruphix's Insight
+Lambholt Raconteur
 Lead-Belly Chimera
 Leather Armor
 Leatherhead, Iron Gator
@@ -220,12 +222,15 @@ Moss Kami
 Mountain
 Mountain Bandit
 Mournwhelk
+Mu Yanling, Sky Dancer
 Mudbutton Torchrunner
 Multani's Acolyte
 Multiversal Recruitment
 Murderous Compulsion
+Myojin of Roaring Blades
 Nacatl Savage
 Necrobite
+Necroduality
 Nephalia Seakite
 Night
 Nightveil Sprite
@@ -279,6 +284,7 @@ Rhythmic Water Vortex
 Rimeshield Frost Giant
 Rimrock Knight
 Ring of Three Wishes
+Riptide Laboratory
 Rockslide Ambush
 Rograkh, Son of Rohgahh
 Root Snare
@@ -300,6 +306,8 @@ Seal of Doom
 Searchlight Companion
 Seascape Aerialist
 Secret Passage
+Secrets of the Golden City
+Seedguide Ash
 Selesnya Eulogist
 Senate Guildmage
 Sensor Splicer
@@ -391,6 +399,7 @@ Valiant Knight
 Vampire Envoy
 Vampire's Zeal
 Vastwood Gorger
+Venomthrope
 Venser, Visionary Traveler
 Verdant Field
 Verdant Rebirth

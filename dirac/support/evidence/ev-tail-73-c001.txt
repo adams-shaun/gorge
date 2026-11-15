@@ -23,10 +23,12 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
 Bringer of the White Dawn
 Cabal Evangel
+Canopy Stalker
 Cat Oven
 Cave-In
 Chaplain's Blessing
@@ -39,6 +41,7 @@ Cleon, Merry Champion
 Clockwork Beetle
 Cloud Pirates
 Cloudcrown Oak
+Cold-Eyed Selkie
 Collected Company
 Confessor
 Conjurer's Closet
@@ -51,6 +54,7 @@ Dauntless Bodyguard
 Death's-Head Buzzard
 Deep-Sea Terror
 Delusions of Mediocrity
+Deny Existence
 Desecrated Earth
 Diabolic Tutor
 Dimir Aqueduct
@@ -73,6 +77,7 @@ Falter
 Fang Skulkin
 Fatal Attraction
 Feast of the Unicorn
+Feiyi Snake
 Feral Invocation
 Festering Evil
 Fevered Suspicion
@@ -84,6 +89,7 @@ Flatten
 Fleeting Image
 Flowstone Surge
 Fodder Launch
+For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
@@ -92,6 +98,7 @@ Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
 Genju of the Falls
+Gerrard Capashen
 Ghitu Journeymage
 Gladecover Scout
 Goblin Fire Fiend
@@ -110,6 +117,7 @@ Grotag Siege-Runner
 Ground Rift
 Gruesome Fate
 Guild Thief
+Gust-Skimmer
 Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
@@ -124,10 +132,12 @@ Honor Troll
 Horned Turtle
 Hunter's Mark
 Hurloon Minotaur
+Hydra's Growth
 Illusionary Armor
 Impaler Shrike
 Increasing Devotion
 Infernal Tribute
+Inner Struggle
 Invading Manticore
 Iroas's Blessing
 Iron Man, Modern Marvel
@@ -141,12 +151,15 @@ Kapsho Kitefins
 Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
+Kudo, King Among Bears
 Labyrinth Adversary
+Leap
 Liliana of the Veil
 Lord of Change
 Lore Seeker
 Lunar Frenzy
 Lydia Frye
+Malanthrope
 Malfegor
 Malfunction
 Maniacal Rage
@@ -157,6 +170,7 @@ Memorial to Folly
 Mental Note
 Mightstone
 Mindbreak Trap
+Mindshrieker
 Mirri the Cursed
 Mirri's Guile
 Misguided Rage
@@ -179,9 +193,11 @@ Ogre Errant
 Old Rutstein
 Oneirophage
 Orc Sureshot
+Orcish Vandal
 Ordeal of Heliod
 Ordered Migration
 Oversold Cemetery
+Pack Rat
 Paradise Mantle
 Patagia Tiger
 Phantasmal Sphere
@@ -195,7 +211,9 @@ Primal Whisperer
 Prizefight
 Protective Bubble
 Puca's Covenant
+Puppet's Verdict
 Qilin's Blessing
+Quirion Trailblazer
 Raging Bull
 Ramosian Lieutenant
 Raven's Crime
@@ -205,6 +223,7 @@ Reclaim
 Reito Lantern
 Reprocess
 Rotted Hystrix
+Rotting Legion
 Ruin Raider
 Saber Ants
 Sagu Archer
@@ -227,6 +246,7 @@ Skyboon Evangelist
 Skyshroud Falcon
 Skysnare Spider
 Sly Spy
+Smogsteed Rider
 Snake Pit
 Snow-Covered Plains
 Sorcerous Sight
@@ -236,9 +256,11 @@ Spiritual Sanctuary
 Spiteful Motives
 Spoils of Victory
 Spore Frog
+Starlit Mantle
 Steelform Sliver
 Steppe Glider
 Stern Dismissal
+Stingerfling Spider
 Stinging Shot
 Stoneshaker Shaman
 Stoneskin
@@ -253,6 +275,7 @@ Survey the Wreckage
 Swamp
 Sword of the Animist
 Sylvan Ranger
+Tallyman of Nurgle
 Tar Pit Warrior
 Tarkir Duneshaper
 The Stasis Coffin
@@ -260,6 +283,7 @@ Thraben Charm
 Thunder Totem
 Thunderous Wrath
 Tideshaper Mystic
+Timid Drake
 Tower Geist
 Tranquil Grove
 Traumatize
@@ -274,6 +298,7 @@ Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
 Verdurous Gearhulk
+Veteran Armorer
 Violet Pall
 Virtus the Veiled
 Vital Splicer

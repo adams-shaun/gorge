@@ -2,6 +2,8 @@ A-Cobbled Lancer
 A-Deal Gone Bad
 A-Warm Welcome
 Abandon the Post
+Abrupt Decay
+Accelerated Mutation
 Adanto Vanguard
 Aerial Predation
 Agent of Horizons
@@ -12,6 +14,7 @@ Amrou Kithkin
 Angelic Shield
 Animal Boneyard
 Arachnoid Adaptation
+Arachnus Spinner
 Archweaver
 Arctic Nishoba
 Arms Dealer
@@ -37,6 +40,7 @@ Blot Out
 Borderland Marauder
 Boris Devilboon
 Brightmare
+Brood Birthing
 Bull-Rush Bruiser
 Burlfist Oak
 Cabal Surgeon
@@ -52,6 +56,7 @@ Conclave Phalanx
 Conjurer's Closet
 Consuming Fervor
 Consuming Sinkhole
+Costly Plunder
 Crack Open
 Crucible of Worlds
 Crypt Rats
@@ -70,11 +75,13 @@ Distorting Wake
 Divine Retribution
 Divine Transformation
 Dogged Pursuit
+Dreadmobile
 Dromad Purebred
 Dross Scorpion
 Dryad Arbor
 Dust Stalker
 Dwarven Warriors
+Ebony Owl Netsuke
 Ebony Rhino
 Eliminate
 Elite Inquisitor
@@ -86,6 +93,7 @@ Exploding Borders
 Explorer's Scope
 Eyes of Gitaxias
 Famished Ghoul
+Fauna Shaman
 Femeref Scouts
 Festival of the Guildpact
 Fists of Flame
@@ -122,6 +130,7 @@ Heartless Pillage
 Heavy Mattock
 Herald of the Fair
 Homestead Courage
+Hopeful Eidolon
 Hornet Sting
 Hot Springs
 Icon of Ancestry
@@ -146,6 +155,7 @@ Keldon Overseer
 Kite Shield
 Kithkin Harbinger
 Kitsune Loreweaver
+Languish
 Lantern of Revealing
 Leopard-Spotted Jiao
 Lim-Dûl's High Guard
@@ -178,12 +188,14 @@ Nyx Herald
 Nyx Infusion
 Oakgnarl Warrior
 Obsidian Battle-Axe
+Ogre Painbringer
 Ondu Inversion
 Opal Gargoyle
 Opaline Bracers
 Orzhov Guildmage
 Parcel Myr
 Patriot, Young Avenger
+Pharika's Mender
 Phyrexian Hulk
 Phyrexian Vivisector
 Pious Interdiction
@@ -192,6 +204,7 @@ Pre-War Formalwear
 Profane Tutor
 Purify the Grave
 Pyrophobia
+Quest for the Gemblades
 Rancor
 Reckless Rage
 Recurring Insight
@@ -203,18 +216,24 @@ Ridgetop Raptor
 Ring of Xathrid
 Rite of Consumption
 Rite of Harmony
+River Heralds' Boon
 Ronom Unicorn
+Rubblebelt Runner
+Ruinous Minotaur
+Run Aground
 Saltblast
 Sanguinary Mage
 Saprazzan Raider
 Sarah Jane Smith
 Savage Stomp
 Scale Up
+Scion of the Wild
 Scorching Spear
 Scrapheap Scrounger
 Scurrid Colony
 Scuttletide
 Seedborn Muse
+Selesnya Cluestone
 Shadow Glider
 Shadowspear
 Shapers of Nature
@@ -225,6 +244,7 @@ Silver Shroud Costume
 Silverskin Armor
 Simic Growth Chamber
 Skitter Eel
+Skyshroud Lookout
 Slice in Twain
 Snapping Gnarlid
 Solemn Offering
@@ -236,6 +256,7 @@ Spined Basher
 Spinning Wheel
 Stalwart Pathlighter
 Stirring Address
+Stolen Goods
 Stone Idol Generator
 Strix Serenade
 Stromkirk Patrol
@@ -245,6 +266,7 @@ Swamp
 Swelter
 Synod Sanctum
 Tale of Momo
+Talisman of Curiosity
 Talruum Minotaur
 Teetering Peaks
 Teferi's Sentinel
@@ -256,6 +278,7 @@ Thunderhawk Gunship
 Tidal Courier
 Tin Street Dodger
 Tobias, Doomed Conqueror
+Torsten, Founder of Benalia
 Tower Geist
 Tragic Poet
 Trained Armodon
@@ -269,6 +292,7 @@ Undead Augur
 Undercity Informer
 Undying Beast
 Utopia Tree
+Utopia Vow
 Vampire Aristocrat
 Vanquisher's Axe
 Vashta Nerada
@@ -279,10 +303,13 @@ Vindictive Vampire
 Viridian Emissary
 Viridian Scout
 Voice of Truth
+Vulshok Morningstar
 Wall of Vines
 White Scarab
 Wild Growth
+Wirewood Elf
 Woodland Stream
 Wreath of Geists
+Xenk, Paladin Unbroken
 Zendikar Incarnate
 Zephyr Net

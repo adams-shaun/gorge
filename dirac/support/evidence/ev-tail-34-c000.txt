@@ -3,7 +3,9 @@ A-Sprouting Goblin
 Aboshan's Desire
 Advanced Stitchwing
 Ageless Guardian
+Agent of the Shadow Thieves
 Alms of the Vein
+Ambitious Farmhand
 An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
@@ -12,9 +14,11 @@ Arbalest Engineers
 Arbor Elf
 Arcane Flight
 Archangel's Light
+Archmage of Echoes
 Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
+Arrogant Bloodlord
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
@@ -22,10 +26,12 @@ Bala Ged Recovery
 Balthor the Stout
 Bar the Door
 Bast, Panther Goddess
+Bat Whisperer
 Battle Angels of Tyr
 Bazaar Krovod
 Beacon of Unrest
 Beastcaller Savant
+Belbe's Percher
 Billiard Room
 Blackcleave Cliffs
 Blighted Steppe
@@ -34,7 +40,13 @@ Blisterspit Gremlin
 Blockade Runner
 Blockbuster
 Blood Clock
+Bloodboil Sorcerer
+Bloodied Ghost
+Bloodrock Cyclops
+Boarding Party
+Boggart Brute
 Boon of Safety
+Borrowed Time
 Botanical Plaza
 Bottle-Cap Blast
 Bounteous Kirin
@@ -46,14 +58,17 @@ Breath Weapon
 Brindle Boar
 Bringer of the Black Dawn
 Brutal Nightstalker
+Bushmeat Poacher
 Calix, Guided by Fate
 Cartouche of Zeal
 Cathartic Adept
 Caustic Caterpillar
+Caustic Tar
 Cave of the Frost Dragon
 Ceta Sanctuary
 Champion Lancer
 Chandra, Novice Pyromancer
+Charix, the Raging Isle
 Child of Thorns
 Choose Your Weapon
 Chosen by Heliod
@@ -69,7 +84,9 @@ Condescend
 Conjurer's Mantle
 Consulate Turret
 Copperline Gorge
+Cowl Prowler
 Crackle with Power
+Crash
 Crash the Party
 Crash the Ramparts
 Crown of Empires
@@ -77,6 +94,7 @@ Crude Rampart
 Cruel Deceiver
 Crusade
 Crystal Ball
+Crystalline Nautilus
 Culmination of Studies
 Cult Guildmage
 Custodian of the Trove
@@ -103,6 +121,7 @@ Drowner of Secrets
 Durable Coilbug
 Dust Elemental
 Dwarven Patrol
+Eidolon of Blossoms
 Elder Gargaroth
 Eldrazi Repurposer
 Electric Revelation
@@ -115,10 +134,13 @@ Embersmith
 Encase in Ice
 Endurance Bobblehead
 Enter the Unknown
+Era of Innovation
+Evanescent Intellect
 Exoskeletal Armor
 Experimental Augury
 Ezuri's Brigade
 Feeling of Dread
+Feral Ridgewolf
 First Volley
 Flip the Switch
 Folk of An-Havva
@@ -133,33 +155,45 @@ Ghost Quarter
 Glasspool Mimic
 Glimmer of Genius
 Gnottvold Hermit
+Goblin Lackey
 Godhunter Octopus
+Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
 Grafted Butcher
 Grim Bounty
 Grim Guardian
 Grim Haruspex
+Grim Return
+Grizzled Outrider
 Ground Seal
 Guardian of Solitude
 Guise of Fire
+Hapatra, the Desert Fang
 Harsh Scrutiny
+Harvest Gwyllion
+Haunt of the Dead Marshes
 Havengul Runebinder
 Hawkeye, Clint Barton
 Henrika Domnathi
 Herald of Serra
+Heroes for Hire
 Hired Poisoner
 Hoard Hauler
 Hookblade
 Hoverguard Observer
+Hunter's Edge
+Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
 Indulgent Aristocrat
 Infernal Pet
 Inferno
+Infest
 Inspiration
 Invasion of Ergamon
 Invasion of Innistrad
+Invasion of Tarkir
 Iron Apprentice
 Island
 Ivory Cup
@@ -167,8 +201,11 @@ Jace's Phantasm
 Join Forces
 Joraga Auxiliary
 Juju Bubble
+Jwari Scuttler
 Kazandu Refuge
 Keeper of the Accord
+Keldon Halberdier
+Killian, Ink Duelist
 Kitesail Apprentice
 Knotvine Paladin
 Kobold Drill Sergeant
@@ -176,6 +213,7 @@ Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
 Labyrinth Champion
+Launch Mishap
 Leaf-Crowned Visionary
 Leave in the Dust
 Leeching Bite
@@ -184,38 +222,55 @@ Leyline of Anticipation
 Lidless Gaze
 Light the Way
 Lightfoot Rogue
+Lionheart Maverick
 Locthwain Gargoyle
 Longbow Archer
 Loran's Escape
 Lost Legion
 Lothlórien Lookout
+Loxodon Warhammer
 Loyal Cathar
 Luke Cage, Hero for Hire
 Malachite Golem
+Mana Seism
+Mantle of the Wolf
 Marchesa's Infiltrator
+Marsh Lurker
 Master of the Pearl Trident
+Maze Sentinel
 Merciless Javelineer
+Miara, Thorn of the Glade
 Midnight Entourage
 Might of Oaks
+Mind Over Matter
 Ministrant of Obligation
 Minn, Wily Illusionist
 Mirari
 Mogis's Warhound
+Molten Rebuke
 Monoskelion
 Morinfen
 Moriok Scavenger
 Mountain
+Muck Rats
 Mystic Zealot
+Naga Oracle
 Nefashu
+Neurok Stealthsuit
 Nezumi Bladeblesser
 Night Market Guard
 Nightwing Shade
 Nimana Sell-Sword
+Nissa's Renewal
+Notorious Assassin
+Numbing Dose
 Nurturer Initiate
 Oboro Breezecaller
 Obsidian Obelisk
 Ogre Jailbreaker
+Olivia's Wrath
 Ordeal of Erebos
+Order of Yawgmoth
 Orzhov Locket
 Otherworldly Outburst
 Painful Memories
@@ -224,6 +279,7 @@ Pathrazer of Ulamog
 Peace of Mind
 Pearl Dragon
 Pegasus Stampede
+Perilous Myr
 Pharika's Chosen
 Pillar of Light
 Plains
@@ -231,17 +287,23 @@ Platoon Dispenser
 Power Armor
 Press into Service
 Primal Cocoon
+Pull from Tomorrow
 Purgatory
+Pyretic Prankster
 Quest for the Nihil Stone
 Quilled Wolf
 Quirion Explorer
+Quirion Sentinel
 Rain of Rust
 Raise the Alarm
 Ramosian Sergeant
+Rampaging Ferocidon
+Reality Hemorrhage
 Reclusive Wight
 Repulsor Rays
 Resurrection Orb
 Retreat to Coralhelm
+Revenge of the Hunted
 Rhys the Exiled
 Rile
 Riot Piker
@@ -259,22 +321,32 @@ Salvage Slasher
 Sand Silos
 Sapseep Forest
 Scouting Hawk
+Seagraf Skaab
+See the Unwritten
+Seeker of Skybreak
 Serra Advocate
 Serum Visions
+Sever the Bloodline
 Shadow Rift
+Shatterskull Giant
 Shifting Wall
+Showstopping Surprise
 Shu General
 Sibsig Icebreakers
 Siege Zombie
 Siegecraft
 Silence
 Silkbind Faerie
+Silver Myr
 Silverchase Fox
 Sinister Sabotage
 Slate of Ancestry
 Slinza, the Spiked Stampede
+Snooping Newsie
 Sokka's Charge
 Soltari Trooper
+Soul's Might
+Sound the Call
 Spidersilk Armor
 Spike-Tailed Ceratops
 Spiked Corridor
@@ -285,9 +357,12 @@ Spitting Dilophosaurus
 Spitting Hydra
 Squelching Leeches
 Staff of the Wild Magus
+Storm Sculptor
 Stun
+Subterranean Spirit
 Summoning Materia
 Swamp
+Sylvia Brightspear
 Tainted Adversary
 Tajuru Archer
 Tandem Takedown
@@ -297,9 +372,11 @@ Tempting Witch
 The Roaring Toeclaws
 The Thanos-Copter
 Their Number Is Legion
+Then, Dreadmaws Ate Everyone
 Thief of Existence
 Thrull Surgeon
 Thumbscrews
+Thunder Dragon
 Thunder Wall
 Tide Drifter
 Tilonalli's Crown
@@ -313,6 +390,8 @@ Troll-Horn Cameo
 Twilight Panther
 Typhoid Rats
 Uglúk of the White Hand
+Ulamog's Crusher
+Ulvenwald Captive
 Ulvenwald Hydra
 Undercellar Myconid
 Undercity Necrolisk
@@ -326,9 +405,12 @@ Vault of the Archangel
 Venerable Monk
 Venom, Eddie Brock
 Veteran's Powerblade
+Veteran's Voice
 Viashino Runner
 Vigilant Baloth
+Viral Drake
 Vivisection
+Vodalian Arcanist
 Voice of All
 Void Squall
 Vortex Runner
@@ -344,4 +426,6 @@ Wild Elephant
 Wild Ox
 Witness the End
 Xenk, Paladin Unbroken
+Xerex Strobe-Knight
+Yavimaya Scion
 Young Pyromancer

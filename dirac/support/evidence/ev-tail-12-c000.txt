@@ -4,6 +4,8 @@ A-Sunbathing Rootwalla
 Aang, Airbending Master
 Academy Raider
 Advance Scout
+Adverse Conditions
+Aether Spike
 Ahn-Crop Invader
 Ajani Fells the Godsire
 Akki Scrapchomper
@@ -29,12 +31,15 @@ Balustrade Spy
 Battle Hymn
 Benalish Veteran
 Blessed Wind
+Blind-Spot Giant
+Bog Glider
 Boggart Birth Rite
 Bold Impaler
 Brainstone
 Brave the Elements
 Briarberry Cohort
 Brood of Cockroaches
+Broodstar
 Butch DeLoria, Tunnel Snake
 By Force
 Cacophony Scamp
@@ -137,6 +142,7 @@ Iron Man, Armored Avenger
 Irradiate
 Island
 Jasmine Seer
+Jedit Ojanen of Efrava
 Kavu Climber
 Kaya's Ghostform
 Kinjalli's Sunwing
@@ -146,6 +152,7 @@ Kyren Glider
 Landroval, Horizon Witness
 Legions to Ashes
 Leonin Armorguard
+Lich's Caress
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Mad Auntie
@@ -167,11 +174,13 @@ Moriok Scavenger
 Mossfire Valley
 Mountain
 Mushroom Watchdogs
+Mutilate
 Nausea
 Neck Snap
 Nether Spirit
 Niblis of the Mist
 Nissa, Worldwaker
+Nyxborn Triton
 Ominous Cemetery
 Ophiomancer
 Orcish Siegemaster
@@ -192,6 +201,7 @@ Primal Growth
 Primordial Sage
 Pteramander
 Pyretic Prankster
+Qasali Pridemage
 Quirion Dryad
 Ragefire
 Rain of Tears
@@ -208,6 +218,7 @@ Ravenform
 Reclusive Taxidermist
 Relic Robber
 Repository Skaab
+Reprocess
 Rescind
 Restoration Angel
 Retrofitter Foundry
@@ -260,6 +271,7 @@ Sudden Spinnerets
 Sunhome Enforcer
 Survivors' Bond
 Swamp
+Swamp Mosquito
 Tale of Katara and Toph
 Tamiyo's Epiphany
 Team Transmitter
@@ -278,6 +290,7 @@ Torment
 Tramway Station
 Tranquil Expanse
 Tread Upon
+Treebeard, Gracious Host
 Turn to Dust
 Two-Headed Giant of Foriys
 Ulamog, the Ceaseless Hunger
@@ -290,6 +303,7 @@ Urborg Skeleton
 Urza's Rebuff
 Vampire Noble
 Vigil for the Lost
+Vindictive Mob
 Viscera Seer
 Vivid Creek
 War Flare

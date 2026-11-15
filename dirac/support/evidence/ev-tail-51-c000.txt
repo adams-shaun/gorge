@@ -21,6 +21,7 @@ Astral Steel
 Aura Flux
 Auriok Glaivemaster
 Autumn Willow, Harmony
+Aveline de Grandpré
 Aven Reedstalker
 Bad River
 Baloth Woodcrasher
@@ -40,7 +41,9 @@ Bone Saw
 Boseiju, Who Endures
 Botanical Plaza
 Breakneck Berserker
+Brinebarrow Intruder
 Bring to Trial
+Brion Stoutarm
 Bumi's Feast Lecture
 Burning Oil
 Burning Wish
@@ -56,6 +59,7 @@ Certain Death
 Charnel Serenade
 Cinder Hellion
 Clackbridge Troll
+Consulate Dreadnought
 Consulate Skygate
 Converter Beast
 Coordinated Assault
@@ -89,6 +93,7 @@ Donatello's Science Lesson
 Douse in Gloom
 Draconic Disciple
 Dragon Mantle
+Dream Stalker
 Dripping-Tongue Zubera
 Dross Hopper
 Dross Ripper
@@ -139,6 +144,7 @@ Freewind Equenaut
 Furnace Hellkite
 Galepowder Mage
 Gallant Cavalry
+General Thunderbolt Ross
 Generous Pup
 Ghastbark Twins
 Giant Ox
@@ -148,6 +154,7 @@ Gimli, Counter of Kills
 Glacial Crasher
 Glint-Sleeve Siphoner
 Gnarled Effigy
+Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
 Goblin Sharpshooter
@@ -190,6 +197,7 @@ Index
 Industrial Advancement
 Inescapable Brute
 Infantry Veteran
+Inhumaniac
 Innistrad Charm
 Innocence Kami
 Inspiring Commander
@@ -207,7 +215,9 @@ Keen Sense
 Keldon Vandals
 Keldon Warlord
 Kessig Dire Swine
+Killing Glare
 Kithkin Billyrider
+Kitsune Bonesetter
 Knight Exemplar
 Knight of Sorrows
 Kobolds of Kher Keep
@@ -267,6 +277,7 @@ Nighthawk, Dark Defender
 Nightwind Glider
 Nimbus Swimmer
 Nissa's Judgment
+Noble Purpose
 Noble Steeds
 Nomad Mythmaker
 Northern Paladin
@@ -307,6 +318,7 @@ Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Raven Wings
+Ravenous Sailback
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
@@ -320,6 +332,7 @@ Revenge of Ravens
 Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
+Risona, Asari Commander
 Riverglide Pathway
 Roar of Reclamation
 Robber Fly
@@ -354,6 +367,7 @@ Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
 Shocker
+Show of Confidence
 Sigiled Skink
 Simic Growth Chamber
 Siren of the Silent Song
@@ -373,12 +387,14 @@ Soulquake
 Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
+Spectral Bears
 Spidersilk Net
 Spire Golem
 Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Steal Artifact
 Steelform Sliver
 Stir the Pride
 Stone-Throwing Devils
@@ -387,6 +403,8 @@ Strangling Soot
 Strangling Spores
 Straw Soldiers
 Street Spasm
+Strength in Numbers
+Strider Harness
 Stronghold Assassin
 Summit Apes
 Sun Droplet
@@ -400,6 +418,7 @@ Sword of the Paruns
 Synchronous Sliver
 Syphon Sliver
 Take Flight
+Talas Warrior
 Tegan Jovanka
 Terrain Generator
 Terramorph
@@ -407,6 +426,7 @@ Territorial Hammerskull
 Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+The Third Doctor
 Theoretical Duplication
 Thor, Asgard's Avenger
 Thought Erasure
@@ -430,6 +450,7 @@ Unity of Purpose
 Unstoppable Ogre
 Valeria Richards, Precocious
 Vaultbreaker
+Vedalken Anatomist
 Vedalken Ghoul
 Verdant Automaton
 Verdant Force
@@ -438,12 +459,14 @@ Vindictive Mob
 Vulshok Battlegear
 Vulshok War Boar
 Wall Off
+Wall of Blood
 Wall of Mist
 Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul
 Weldfast Engineer
 Wight
+Wild Growth
 Wind-Kin Raiders
 Wolfrider's Saddle
 Workshop Assistant

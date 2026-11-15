@@ -1,6 +1,7 @@
 A-Orcish Bowmasters
 Akiri, Line-Slinger
 Alchemist's Retrieval
+Anaba Shaman
 Angelic Exaltation
 Anthousa, Setessan Hero
 Arbor Armament
@@ -30,6 +31,7 @@ Browse
 Caller of the Pack
 Canyon Jerboa
 Celestial Unicorn
+Charging Badger
 Charging Griffin
 Childhood Horror
 Chimeric Idol
@@ -80,6 +82,7 @@ Fierce Witchstalker
 Fire
 Fire Ants
 Flitterstep Eidolon
+Flood
 Flowstone Strike
 Forest
 Franklin Richards, Ascendant
@@ -88,7 +91,11 @@ Gaea's Anthem
 Gala Greeters
 Gather the Pack
 Glass Golem
+Gluttonous Zombie
 Goblin Gathering
+Greatsword of Tyr
+Greel's Caress
+Grim Affliction
 Grim Flowering
 Gruul Scrapper
 Guardian Zendikon
@@ -98,6 +105,7 @@ Hapatra, the Desert Frost
 Harbor Serpent
 Hardy Veteran
 Hatchery Spider
+Headlong Rush
 Hellhole Rats
 Hidden Path
 Hua Tuo, Honored Physician
@@ -119,9 +127,11 @@ Kami of Transience
 Kessig Prowler
 Kithkin Rabble
 Knickknack Ouphe
+Krark-Clan Shaman
 Krovikan Mist
 Kurgadon
 Kyren Glider
+Larceny
 Leeching Licid
 Leyline Dowser
 Light of Day
@@ -143,6 +153,7 @@ Mountain
 Nahiri's Binding
 Nantuko Shade
 Necklace of Girion
+Necrotic Wound
 Nim Replica
 Ninja of the New Moon
 Nova Cleric
@@ -155,14 +166,17 @@ Outrider of Jhess
 Overcharged Amalgam
 Pack's Betrayal
 Paladin en-Vec
+Parasitic Grasp
 Patient Rebuilding
 Peach Garden Oath
+Phantom Wurm
 Phyrexian Broodstar
 Placid Rottentail
 Plains
 Planar Gate
 Prakhata Pillar-Bug
 Pride Guardian
+Profane Prayers
 Promise of Aclazotz
 Protect the Negotiators
 Prowler, Misguided Mentor
@@ -181,6 +195,7 @@ Rescue, Pepper Potts
 Restore
 Righteousness
 Ring of Valkas
+Riptide Chimera
 Riptide Crab
 Riptide Director
 Rise Again
@@ -190,7 +205,10 @@ Rotwidow Pack
 Rune Snag
 Sadistic Slash
 Sanctuary Cat
+Sarkhan's Scorn
+Scavenged Blade
 Scourge of Geier Reach
+Screaming Fury
 Selenia, Dark Angel
 Sentinel's Eyes
 Seraph of Dawn
@@ -206,6 +224,7 @@ Skalla Wolf
 Skitterskin
 Skrelv, Defector Mite
 Skull Raid
+Sky-Eel School
 Sleek Schooner
 Smash to Smithereens
 Smoldering Butcher
@@ -214,6 +233,7 @@ Soul of Migration
 Sound the Call
 Spellstutter Sprite
 Sphinx's Revelation
+Spinehorn Minotaur
 Splendid Reclamation
 Spoils of Evil
 Spreading Insurrection
@@ -225,6 +245,7 @@ Steward of Valeron
 Storm Front
 Storm Seeker
 Stormcaller's Boon
+Sun-Crowned Hunters
 Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
@@ -243,11 +264,13 @@ Tower Winder
 Tranquility
 Tribute Mage
 Trigon of Mending
+Trostani's Judgment
 Trusty Retriever
 Turn the Earth
 Twisted Experiment
 Underdark Explorer
 Unhallowed Phalanx
+Unsubstantiate
 Vault 87: Forced Evolution
 Village Elder
 Vodalian Serpent

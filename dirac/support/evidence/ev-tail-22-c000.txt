@@ -1,6 +1,8 @@
 A Little Chat
 A-Canopy Tactician
 A-Luminarch Aspirant
+A-Navigation Orb
+A-Social Climber
 Aang, Air Nomad
 Abbey Gargoyles
 Adrix and Nev, Twincasters
@@ -12,7 +14,10 @@ Aid the Fallen
 Akki Scrapchomper
 Alabaster Kirin
 Albino Troll
+Amateur Hero
 Ancestral Blade
+Ancient Grudge
+Animal Sanctuary
 Arashin Cleric
 Arborback Stomper
 Architect of the Untamed
@@ -20,14 +25,20 @@ Argivian Phalanx
 Armadillo Cloak
 Army of the Damned
 Artifact Blast
+Assert Authority
 Aurification
 Avacyn, Angel of Hope
 Aven Brigadier
 Aven Fleetwing
+Awakener Druid
 Baleful Ammit
+Banishing Slash
 Bash to Bits
 Basri, Devoted Paladin
+Battle Rampart
+Baxter, Fly in the Ointment
 Beaming Defiance
+Benalish Sleeper
 Bereavement
 Birthing Ritual
 Bladed Ambassador
@@ -40,31 +51,48 @@ Boon of the Wish-Giver
 Brazen Borrower
 Breakneck Berserker
 Brood of Cockroaches
+Brushfire Elemental
+Burgeoning
+Burning-Yard Trainer
+Campfire
 Canal Dredger
 Candlelit Cavalry
+Canoptek Spyder
+Careful Consideration
+Carnage Tyrant
 Castle Embereth
 Champion's Helm
 Child of Night
 Chishiro, the Shattered Blade
+Citanul Druid
 Coalhauler Swine
 Cognivore
+Command the Storm
 Concentrate
 Conformer Shuriken
+Confront the Assault
+Consume the Meek
 Coral Merfolk
 Cragcrown Pathway
+Crash of Rhino Beetles
 Crumble
+Cultivator Colossus
 Darigaaz's Caldera
 Daring Skyjek
 Dark Withering
 Daru Encampment
+Daybreak Charger
 Deadly Dispute
 Deceive the Messenger
 Decompose
 Deem Inferior
 Demonic Gifts
+Depopulate
 Desecrated Tomb
 Desolate Mire
+Destructive Revelry
 Dimir Guildmage
+Diregraf Captain
 Dismantling Wave
 Doric, Nature's Warden
 Dreadbringer Lampads
@@ -75,11 +103,19 @@ Dualcaster Mage
 Duelist of Deep Faith
 Elder Cathar
 Ellie, Vengeful Hunter
+Elusive Krasis
+Elvish Clancaller
+Embodiment of Spring
+Engulfing Eruption
 Enigma Eidolon
 Ephara's Enlightenment
 Epiphany Storm
 Eron the Relentless
+Erratic Portal
+Escape Artist
 Essence Warden
+Everglades
+Excavation Explosion
 Exile into Darkness
 Expanding Ooze
 Expose Evil
@@ -90,6 +126,7 @@ Famished Foragers
 Farbog Explorer
 Fathom Fleet Boarder
 Field-Tested Frying Pan
+Fists of Ironwood
 Fleeting Image
 Flesh Carver
 Forbidden Alchemy
@@ -100,31 +137,45 @@ Foriysian Brigade
 Fortuitous Find
 Foul Presence
 Gate to Seatower
+Ghor-Clan Savage
+Glistener Elf
 Gnawing Zombie
 Goblin Recruiter
 Goblin Swine-Rider
 Gorma, the Gullet
+Grave Defiler
 Gravedigger
 Gravity Well
 Greatsword of Tyr
 Grim Flayer
 Gríma Wormtongue
+Guardian of the Guildpact
 H.E.R.B.I.E., Lovable Robot
 Hag of Dark Duress
+Hair-Strung Koto
+Hammerfist Giant
 Hancock, Ghoulish Mayor
 Heart-Piercer Manticore
+Higure, the Still Wind
 Hippo-Cows
 Homarid Warrior
 Honor the Fallen
+Hookhand Mariner
+Humbler of Mortals
 Hunted Ghoul
 Hunter of Eyeblights
+Hunter's Mark
 Hyperion Blacksmith
 Hystrodon
 Icefall Regent
 Ifh-Bíff Efreet
+Ignition Team
+Immolating Gyre
+Impetuous Protege
 Indomitable Ancients
 Insight
 Inspired Skypainter
+Invasion of Muraganda
 Iron Fist, Hero for Hire
 Irreverent Revelers
 Island
@@ -143,6 +194,7 @@ Knucklebone Witch
 Koskun Falls
 Kozilek's Channeler
 Kozilek's Shrieker
+Krosan Beast
 Krosan Restorer
 Krosan Verge
 Lacerate Flesh
@@ -150,117 +202,173 @@ Lash of Malice
 Lavafume Invoker
 Lead-Belly Chimera
 Lena, Selfless Champion
+Lightning Blow
 Lightwielder Paladin
+Living Lightning, Charged Up
 Llanowar Empath
 Loxodon Anchorite
 Loyal Warhound
 Luminous Wake
 Lynx
+Maddening Wind
 Maggot Carrier
 Magus of the Bridge
 Mana Cylix
+Marsh Crocodile
 Marsh Gas
 Martial Coup
 Masked Admirers
 Master of Etherium
 Melira, the Living Cure
+Melt Terrain
+Memorial to Genius
 Mending Touch
+Mental Note
 Mesa Enchantress
 Meteorite
 Mind Control
 Minister of Pain
+Minotaur Explorer
 Mirri the Cursed
+Mirror Wall
+Mirrorpool
+Misdirection
 Mist Dancer
 Mob
+Molder
 Moonglove Changeling
+More of That Strange Oil...
 Mountain
 Mukotai Soulripper
+Myrsmith
 Mystic Visionary
+Narstad Scrapper
 Nath of the Gilt-Leaf
 Necrogen Scudder
+Necrotic Sliver
+Needlepeak Spider
 Neurok Prodigy
+Nezumi Shadow-Watcher
 Nightsquad Commando
+Nihil Spellbomb
 Nim Shrieker
 Null Champion
 Oath of Jace
 Obelisk of Urd
 Ojutai Exemplars
+Oketra the True
 Ophidian Eye
 Orim's Cure
+Ornithopter of Paradise
+Orzhov Guildmage
 Oxidda Golem
 Palazzo Archers
 Parapet Watchers
 Pawn of Ulamog
 Peak Eruption
 Pearl-Ear, Imperial Advisor
+Penumbra Spider
 Perilous Shadow
 Phantom Nantuko
 Pillardrop Rescuer
 Pin to the Earth
 Plains
 Planar Bridge
+Potatoes
 Precognitive Perception
+Predator, Flagship
 Primal Adversary
 Primordial Wurm
+Prodigal Pyromancer
 Psionic Gift
 Psychic Barrier
 Pyre Zombie
 Quilled Sliver
+Rack and Ruin
 Radiant Flames
 Raffine's Silencer
 Ragavan, Nimble Pilferer
 Ragged Recluse
+Ral's Reinforcements
 Ramirez DePietro, Pillager
+Ranger's Longbow
 Rapacious Guest
+Ratadrabik of Urborg
+Ravaging Blaze
+Ravaging Horde
 Ravenform
 Ravenous Baloth
 Regal Unicorn
 Relic Golem
 Render Inert
+Restoration Specialist
+Retract
 Revolutionary Rebuff
 Righteous Blow
 Rites of Spring
 Root Greevil
 Rootborn Defenses
+Roots of Wisdom
 Rot-Tide Gargantua
+Rubbleback Rhino
 Rustmouth Ogre
 Sage's Row Savant
 Sakura-Tribe Springcaller
 Sandbar Merfolk
+Savage Order
+Scepter of Empires
 Scourge Servant
+Sea Gate Loremaster
 Sedge Troll
 See Red
 See the Unwritten
 Seer's Vision
 Seismic Assault
+Sejiri Refuge
+Shackles of Treachery
+Shifting Wall
+Shivan Zombie
 Show of Valor
+Shower of Arrows
 Silhana Wayfinder
 Skorpekh Lord
 Skyshroud Behemoth
+Slag Fiend
 Slaughterhorn
+Slinking Giant
+Sol'kanar the Swamp King
+Soldier of Fortune
 Soldier of the Grey Host
 Soratami Mirror-Mage
 Soul Manipulation
+Soul Shepherd
+Sparkmage Apprentice
 Sparring Collar
 Sphinx-Bone Wand
 Spiritual Guardian
 Spitting Dilophosaurus
 Sporeweb Weaver
 Staff of Domination
+Staggershock
 Stand Firm
 Start Your Engines
 Steal Enchantment
 Steam Spitter
 Steel Leaf Champion
 Steel Sabotage
+Stomp and Howl
 Stone Catapult
 Stone Quarry
+Stormcaller of Keranos
 Strategic Intervention
+Strength of Night
 Strongarm Thug
 Subjugator Angel
 Summoner's Sending
+Sundering Eruption
 Surge of Strength
 Surly Badgersaur
+Survivors' Bond
 Swamp
 Sword Coast Serpent
 Sword of the Chosen
@@ -268,16 +376,22 @@ Symbiotic Wurm
 Tabaxi Toucaneers
 Tahngarth's Rage
 Takenuma Bleeder
+Tangle Asp
 Teferi's Wavecaster
 Tel-Jilad Lifebreather
+Tempered in Solitude
 Temporal Eddy
 Terminal Moraine
 Territorial Boar
 Teyo, the Shieldmage
+The Crafter
+The Duke, Rebel Sentry
 Third Path Savant
 Thorned Moloch
+Thran Forge
 Thud
 Tithe Drinker
+Tolabow, Loch Rascal
 Toll of the Invasion
 Treacherous Werewolf
 Treefolk Seedlings
@@ -287,12 +401,16 @@ Tymaret, the Murder King
 Ultron, Machine Overlord
 Uncomfortable Chill
 Unnatural Restoration
+Utility Knife
+Valakut Invoker
+Valor Singer
 Valorous Charge
 Venarian Glimmer
 Vengeful Rebirth
 Victim of Night
 Viper's Kiss
 Virulent Plague
+Vitaspore Thallid
 Vodalian Wave-Knight
 Vortex Runner
 Wake Thrasher
@@ -300,10 +418,15 @@ Wall of Stone
 Wand of Vertebrae
 Wardscale Crocodile
 Warmind Infantry
+Waterspout Djinn
+Wavebreak Hippocamp
 Wavecrash Triton
 Wedding Announcement
+Whisperwood Elemental
 Wings of Velis Vel
 Xander's Pact
+Yasmin Khan
 Zealot of the God-Pharaoh
+Zendikar's Roil
 Zephid's Embrace
 Zodiac Goat
