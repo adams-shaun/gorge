@@ -111,6 +111,13 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	d.add(MakeAction(AkBestow, TCode(o), 0, 0))
 }
 
+// offerBestowIfPrinted is offerBestowHand for a card printed with bestow.
+func (s *State) offerBestowIfPrinted(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
+	if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
+		s.offerBestowHand(k, d, p, o, c, av)
+	}
+}
+
 // beginBestow casts hand card o bestowed. gorge prices the bestowed cast as
 // a potential play (altBestow potential) unless the floating pool alone pays
 // it, so the oracle lowers it then: the witness's sources (the largest X
