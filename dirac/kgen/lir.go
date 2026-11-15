@@ -562,6 +562,7 @@ type lInstr struct {
 	// (gorge effAttach's "attach to player" event, defined() player arms).
 	W    lRef
 	F    *lFilter
+	F2   *lFilter // PreventDamageScope: the recipient permanents' filter (F is the damage source's)
 	Cond lCond
 	Skip int
 	Note string // semantic note carried into the dump (not emitted)
@@ -596,6 +597,9 @@ func (in lInstr) String() string {
 	}
 	if in.W.Kind != rNone {
 		parts = append(parts, "W="+in.W.String())
+	}
+	if in.F2 != nil {
+		parts = append(parts, "F2="+in.F2.String())
 	}
 	if in.F != nil {
 		parts = append(parts, "F="+in.F.String())

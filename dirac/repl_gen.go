@@ -513,7 +513,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.pcol = 0
 		var cand [4]Obj
 		var pm uint8
-		if n = s.prevColCands(k, col, fsl, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
+		if n = s.prevColCands(k, col, fsl, fe.card, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
 			return 0
 		}
 		ro.prev |= pm
@@ -1174,7 +1174,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
 		var unused [4]Obj
-		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
+		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, srcCard, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
 			return false
 		}
 		prev |= pcol
