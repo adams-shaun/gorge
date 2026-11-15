@@ -9,6 +9,17 @@ import (
 // one "exile_cost" KChoose over the payer's graveyard cards matching Spec in
 // zone order, unasked with exactly N candidates): PayExileGrave.
 
+// graveExileCard reports whether graveyard card o can pay the cost's exile
+// part filtered by f: it matches f, and a filter's Other (Ichorid's "black
+// creature card other than Ichorid", whose trigger resolves from the
+// graveyard) never takes the resolving source itself.
+func (s *State) graveExileCard(k *prep, f kop.FilterID, p uint8, o Obj) bool {
+	if f != 0 && k.t.Filters[f].Flags&kop.FOther != 0 && o == s.res.e.obj {
+		return false
+	}
+	return s.matchCardGen(k, f, s.objs[o].card, p, p, o)
+}
+
 // countGraveExile counts p's graveyard cards matching f.
 //
 //go:noinline
@@ -16,7 +27,7 @@ func (s *State) countGraveExile(k *prep, p uint8, f kop.FilterID) int {
 	pl := &s.pl[SeatIx(p)]
 	n := 0
 	for i := 0; i < int(pl.graveN); i++ {
-		if o := pl.grave[i]; s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
+		if o := pl.grave[i]; s.graveExileCard(k, f, p, o) {
 			n++
 		}
 	}
@@ -34,7 +45,7 @@ func (s *State) graveExileOptions(k *prep, d *Decision, p uint8) {
 	f := s.genPickFilter(k)
 	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.graveN); i++ {
-		if o := pl.grave[i]; s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
+		if o := pl.grave[i]; s.graveExileCard(k, f, p, o) {
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
