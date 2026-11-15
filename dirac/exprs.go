@@ -35,6 +35,11 @@ type evalCtx struct {
 	// protection quality reads it as a source (protMatch; CR 202.3e), which
 	// a card matcher off the stack cannot see. 0 adds nothing.
 	xmv int
+	// spellMV makes a card mana-value read the card as the spell it would be
+	// cast as, not as the card in its zone: a split card counts its front half
+	// only, as gorge's Play ValidSA$ cmc bound reads the printed face (Forge
+	// reads the cast half's mana cost). Set only by castFreeFillGen.
+	spellMV bool
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.

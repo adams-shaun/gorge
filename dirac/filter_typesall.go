@@ -237,12 +237,29 @@ func hasManaAbilityCard(k *prep, c CardID, fd bool) bool {
 // X added on the stack (CR 202.3e). The CMC arm and PredTypesAllCMCLE share
 // it.
 func (s *State) cardMV(k *prep, c CardID, o Obj, fd bool) int {
+	return s.cardMVRead(k, c, o, fd, false)
+}
+
+// cardMVIn is a filter's mana-value read in ctx: cardMV plus the announced X a
+// protection source adds (ctx.xmv), read as the spell cast when ctx.spellMV.
+func (s *State) cardMVIn(k *prep, c CardID, o Obj, fd bool, ctx *evalCtx) int {
+	if ctx == nil {
+		return s.cardMV(k, c, o, fd)
+	}
+	return s.cardMVRead(k, c, o, fd, ctx.spellMV) + ctx.xmv
+}
+
+// cardMVRead is cardMV, with spell true reading the card as the spell it would
+// be cast as (the front face's cost, no split halves summed): a Play's ValidSA$
+// mana-value bound tests the spell, not the card in the graveyard (CR 601.3a,
+// 709.3a).
+func (s *State) cardMVRead(k *prep, c CardID, o Obj, fd, spell bool) int {
 	pc := &k.cards[c]
 	mv := int(pc.total)
 	if fd {
 		return 0 // CR 708.4: a face-down spell has no mana cost
 	}
-	if k.gen != nil && k.gen.anySplit {
+	if !spell && k.gen != nil && k.gen.anySplit {
 		mv = s.splitMV(k, c, o, mv) // face_castface.go
 	}
 	if pc.cost.X != 0 && o != NoObj {
