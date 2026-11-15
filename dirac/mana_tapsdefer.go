@@ -197,6 +197,24 @@ func tapsDeferColour(c kop.ColorMask, chosen bool) bool {
 	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && (chosen || c&(c-1) == 0)
 }
 
+// chosenAskOrder writes, as WUBRG indexes, the colours of the chosen-colour
+// source at sl in the order gorge's mana ask lists them: the printed colours
+// in their printed order (manaColourOrder), then the chosen colour last
+// (pay.SubstituteChosenProduced rewrites the value's last token, dropping a
+// repeat of a printed colour). Cliffgate with white chosen asks R then W,
+// though the engine order is W then R. It returns how many it wrote.
+func (s *State) chosenAskOrder(k *prep, sl Slot, pc *pcard, out *[5]uint8) int {
+	ab := k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb] // a stack copy: only ManaColors changes
+	printed := srcMask(pc)
+	ab.ManaColors = kop.ColorMask(printed)
+	n := manaColourOrder(&ab, out)
+	if ch := s.perms[sl].chosen; ch < 5 && printed&(1<<ch) == 0 {
+		out[n] = uint8(ch)
+		n++
+	}
+	return n
+}
+
 // restrTapsGapShape: the source at sl is a restricted planner source whose
 // only mana production is one restricted ability of one fixed colour
 // (Hydraulic Helper's artifact-spells {U}): the Taps-deferred gap the script
