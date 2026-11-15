@@ -68,7 +68,7 @@ rt_filter() { # rt_filter VERDICT_FILE LOG: stream the box's output, holding its
 
 rt_reason() { # rt_reason LOG ERRLOG: the box's own words for an answer that is not a test result (ENV, EMPTY, ...):
 	# its verdict message ("test-targets: <mode>: ...", stderr) and its notes ("  note: ...", stdout), at most three.
-	# Without them the local log said only "the box answered ENV" (11-14, run sadams-1209117-1794707379).
+	# Without them the local log said only "the box answered ENV" (11-14).
 	{ sed -n "s/^test-targets: $mode: //p" "$2"; sed -n 's/^  note: //p' "$1" | grep -v '^cached='; } 2>/dev/null |
 		head -3 | awk 'NR > 1 { printf "; " } { printf "%s", $0 }'
 }
