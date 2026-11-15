@@ -8,7 +8,7 @@ import "testing"
 // mana ability). The Embrace's two black mana, a Plains and one counter of the
 // Bazaar pay it; gorge's one prefix search activates the storage land beside
 // the granted gap and offers the activation, where the kernel's grant search
-// branched on the grants alone and dropped it (tail-66 pair 635, decision 1952
+// branched on the grants alone and dropped it (pair 635 of the evidence pool tail-66, decision 1952
 // of 1952).
 func TestMBCMarduBannerReprosLockstep(t *testing.T) {
 	t.Parallel()
