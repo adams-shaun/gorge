@@ -39,6 +39,12 @@ import (
 // the other leaves zero would be a bot that casts differently depending on
 // who asked.
 type Card struct {
+	// PrintedName is the card's CURRENT name (CardView.Name): a transformed
+	// or back-face-played double-faced card's current face (CR 712.8d-e), a
+	// copy's copiable name (CR 707.2), a layer-3 SetName$ binding. Empty
+	// for a face-down permanent on another seat's battlefield. Its readers
+	// compare it with a card's name as a rule does (Obstinate Familiar's
+	// replacement; the mulligan's hand-card copies).
 	PrintedName string
 	Creature    bool
 	Power       int32

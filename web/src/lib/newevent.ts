@@ -40,8 +40,9 @@ export function ratedBy17Lands(sets: EventSetInfo[] | null, code: string | undef
  * constructed-format table, so a policy must play constructed. The server
  * re-checks every name at create time.
  */
-export function eventPolicies(list: BotPolicyInfo[]): BotPolicyInfo[] {
-  return list.filter((p) => p.formats.includes('constructed'));
+export function eventPolicies(list: BotPolicyInfo[], format: EventFormat = 'draft'): BotPolicyInfo[] {
+  const plays = format === 'commander' ? 'commander' : 'constructed';
+  return list.filter((p) => p.formats.includes(plays));
 }
 
 /** SeatKind is a create-screen seat: a human (who gets an invite link) or a bot. */
@@ -79,8 +80,12 @@ export const humanCount = (seats: readonly SeatChoice[]): number => seats.filter
  */
 export const timerOffered = (seats: readonly SeatChoice[]): boolean => humanCount(seats) >= 2;
 
-/** EventFormat is the create body's supply format. */
-export type EventFormat = 'draft' | 'sealed' | 'prerelease';
+/**
+ * EventFormat is the create body's supply format. "commander" is a
+ * Commander draft (Mystery Booster Commander style): offered only for a set
+ * the server reports `commander: true` for.
+ */
+export type EventFormat = 'draft' | 'sealed' | 'prerelease' | 'commander';
 
 /** FORMATS lists the Mode segment's buttons, in order. */
 export const FORMATS: { format: EventFormat; label: string }[] = [
@@ -89,11 +94,32 @@ export const FORMATS: { format: EventFormat; label: string }[] = [
   { format: 'prerelease', label: 'Prerelease' },
 ];
 
+/**
+ * commanderSets is the server's Commander-draft-capable sets. The flag is
+ * the capability: with none, the create screen offers no Commander mode.
+ */
+export const commanderSets = (sets: readonly EventSetInfo[] | null): EventSetInfo[] => (sets ?? []).filter((s) => s.commander === true);
+
+/**
+ * commanderLabel names the Commander mode's button: "MBC Commander Draft"
+ * when the server offers exactly one set for it, else the generic name.
+ */
+export function commanderLabel(sets: readonly EventSetInfo[] | null): string {
+  const c = commanderSets(sets);
+  return c.length === 1 ? `${c[0].code} Commander Draft` : 'Commander Draft';
+}
+
+/** commanderFormat reports a Commander-draft event (EventState.format "commander"). */
+export const commanderFormat = (f: string | undefined): boolean => f === 'commander';
+
 /** sealedFormat reports a format with no picks (sealed or prerelease). */
 export const sealedFormat = (f: string | undefined): boolean => f === 'sealed' || f === 'prerelease';
 
 /** defaultBestOf is the server's default series length per format: best of 3 for a prerelease (MTR 2.1), else 1. */
 export const defaultBestOf = (f: EventFormat): 1 | 3 => (f === 'prerelease' ? 3 : 1);
+
+/** seriesFormat reports a format whose rounds are head-to-head series (every format but a Commander draft's pod games). */
+export const seriesFormat = (f: EventFormat): boolean => f !== 'commander';
 
 /** defaultRebuild is the server's default for deck changes between rounds: on for sealed formats (MTR 7.3). */
 export const defaultRebuild = (f: EventFormat): boolean => sealedFormat(f);
@@ -112,8 +138,10 @@ export interface CreateOptions {
  * a bot its chosen game policy and pickbot persona ("" = the server's
  * default for either). format is sent only when it is not a draft; best_of
  * only when it differs from the format's server default, so a draft or a
- * prerelease keeps its default unless the player changed it. rebuild is sent
- * only when the player's choice differs from the format's default, and
+ * prerelease keeps its default unless the player changed it. A Commander
+ * draft sends neither best_of nor rebuild (its rounds are free-for-all pod
+ * games, not series) nor a bot drafter (the server seats its Commander-draft
+ * drafter whatever is named). rebuild is sent only when the player's choice differs from the format's default, and
  * pick_timer only for a draft pod the server times. It never carries a seed:
  * the server mints it, and an unknown body field is a 400.
  */
@@ -125,13 +153,13 @@ export function createRequest(set: string, seats: readonly SeatChoice[], opts: C
       if (s.kind === 'human') return { kind: 'human' };
       const seat: CreateEventRequest['seats'][number] = { kind: 'bot' };
       if (s.policy) seat.policy = s.policy;
-      if (s.drafter) seat.drafter = s.drafter;
+      if (s.drafter && format !== 'commander') seat.drafter = s.drafter;
       return seat;
     }),
   };
-  if (opts.bestOf !== undefined && opts.bestOf !== defaultBestOf(format)) req.best_of = opts.bestOf;
+  if (seriesFormat(format) && opts.bestOf !== undefined && opts.bestOf !== defaultBestOf(format)) req.best_of = opts.bestOf;
   if (format !== 'draft') req.format = format;
-  if (opts.rebuild !== undefined && opts.rebuild !== defaultRebuild(format)) req.rebuild = opts.rebuild;
+  if (seriesFormat(format) && opts.rebuild !== undefined && opts.rebuild !== defaultRebuild(format)) req.rebuild = opts.rebuild;
   if (!sealedFormat(format) && opts.pickTimer && timerOffered(seats)) req.pick_timer = opts.pickTimer;
   return req;
 }

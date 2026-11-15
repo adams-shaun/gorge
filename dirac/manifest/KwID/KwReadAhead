@@ -1,0 +1,7 @@
+family: KwID
+name: KwReadAhead
+value: 82
+forge: Read ahead
+census: kw Read ahead all=10 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

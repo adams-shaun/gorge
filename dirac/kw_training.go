@@ -74,7 +74,7 @@ func (s *State) subAmongOptions(k *prep, d *Decision) bool {
 	if a == nil || a.Cost.Flags&kop.CostSubAmong == 0 {
 		return false
 	}
-	c := uint8(a.Cost.Ctr)
+	c := uint16(a.Cost.Ctr)
 	src := s.srcSlot()
 	for {
 		n := 0
@@ -97,26 +97,26 @@ func (s *State) subAmongOptions(k *prep, d *Decision) bool {
 				continue
 			}
 			o := s.perms[sl].obj
-			if c == uint8(kop.CtrAll) {
+			if c == uint16(kop.CtrAll) {
 				if n := s.perms[sl].ctrLow(int(kop.CtrP1P1)); n > s.subCtrPicked(o, uint8(kop.CtrP1P1)) {
-					d.add(MakeAction(AkChoose, uint8(o), 0, uint8(kop.CtrP1P1)))
+					d.add(MakeAction(AkChoose, TCode(o), 0, uint8(kop.CtrP1P1)))
 				}
 				for i := range s.perms[sl].ck {
 					kind := s.perms[sl].ck[i]
 					if kind == 0 { // a free slot, not a P1P1 counter
 						continue
 					}
-					if kop.IsCounterKind(int(kind)) && s.perms[sl].ctrN(s, int(kind)) > s.subCtrPicked(o, kind) {
-						d.add(MakeAction(AkChoose, uint8(o), 0, kind))
+					if kop.IsCounterKind(int(kind)) && s.perms[sl].ctrN(s, int(kind)) > s.subCtrPicked(o, ctrMode(kind)) {
+						d.add(MakeAction(AkChoose, TCode(o), 0, ctrMode(kind)))
 					}
 				}
 				for _, e := range s.ctrOverOf(o, 0) {
-					if kop.IsCounterKind(int(e.kind)) && int(e.n) > s.subCtrPicked(o, e.kind) {
-						d.add(MakeAction(AkChoose, uint8(o), 0, e.kind))
+					if kop.IsCounterKind(int(e.kind)) && int(e.n) > s.subCtrPicked(o, ctrMode(e.kind)) {
+						d.add(MakeAction(AkChoose, TCode(o), 0, ctrMode(e.kind)))
 					}
 				}
-			} else if s.perms[sl].ctrN(s, int(c)) > s.subCtrPicked(o, c) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, c))
+			} else if s.perms[sl].ctrN(s, int(c)) > s.subCtrPicked(o, ctrMode(c)) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, ctrMode(c)))
 			}
 		}
 		if d.N == 0 {

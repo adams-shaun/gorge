@@ -1,22 +1,26 @@
 <script lang="ts">
-  import { sealedFormat } from '../../lib/newevent';
+  import { commanderFormat, sealedFormat } from '../../lib/newevent';
 
   /**
    * The event's phase rail: Draft · Build · Round 1 · Round 2 ·
    * Round 3 · Results. A step is done, now, or still ahead, read from the
    * server's phase string alone. A sealed or prerelease event opens packs
-   * instead of drafting them, so its supply step is named for that.
+   * instead of drafting them, so its supply step is named for that. A
+   * Commander draft plays `games` free-for-all pod games instead of three
+   * rounds of series (ROUND1..ROUNDn, one game each).
    */
-  let { phase, format }: { phase: string; format?: string } = $props();
+  let { phase, format, games = 0 }: { phase: string; format?: string; games?: number } = $props();
 
-  const STEPS: { key: string; label: string }[] = [
-    { key: 'DRAFT', label: 'Draft' },
-    { key: 'BUILD', label: 'Build' },
-    { key: 'ROUND1', label: 'Round 1' },
-    { key: 'ROUND2', label: 'Round 2' },
-    { key: 'ROUND3', label: 'Round 3' },
-    { key: 'COMPLETE', label: 'Results' },
-  ];
+  const SERIES_ROUNDS = 3;
+  const STEPS = $derived.by((): { key: string; label: string }[] => {
+    const pod = commanderFormat(format);
+    const n = pod ? Math.max(games, 1) : SERIES_ROUNDS;
+    const rounds = Array.from({ length: n }, (_, i) => ({
+      key: `ROUND${i + 1}`,
+      label: pod ? (n === 1 ? 'Pod game' : `Game ${i + 1}`) : `Round ${i + 1}`,
+    }));
+    return [{ key: 'DRAFT', label: 'Draft' }, { key: 'BUILD', label: 'Build' }, ...rounds, { key: 'COMPLETE', label: 'Results' }];
+  });
   const at = $derived(phase === 'LOBBY' ? -1 : STEPS.findIndex((s) => s.key === phase));
   const packStep = $derived(sealedFormat(format) ? 'Open packs' : 'Draft');
 </script>

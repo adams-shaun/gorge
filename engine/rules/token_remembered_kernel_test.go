@@ -58,8 +58,8 @@ func TestTokenRememberedTimotharEndToEndKernel(t *testing.T) {
 	addMana(t, e, 0, "C")
 
 	// The other nontoken Vampire dies. The changes-zone trigger
-	// (Origin$ Battlefield | Destination$ Graveyard | ValidCard$
-	// Vampire.Other+!token+YouCtrl) fires Timothar's TrigToken body.
+	// (another nontoken Vampire you control going from the battlefield to the
+	// graveyard) fires Timothar's TrigToken body.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: vampire, From: state.ZBattlefield,
 		To: state.ZGraveyard, Text: "destroyed"})
 	e.putTriggersOnStack()

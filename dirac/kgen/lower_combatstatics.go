@@ -27,11 +27,23 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	}
 	oppOnly := false
 	if t, ok := sp.get("Target"); ok {
-		if strings.ReplaceAll(t, " ", "") != "You,Planeswalker.YouCtrl" {
+		switch {
+		case strings.ReplaceAll(t, " ", "") == "You,Planeswalker.YouCtrl":
+			oppOnly = true
+			lc.twoSeat("CantAttack Target$ you and your planeswalkers read as OppCtrl")
+		case t == ownerAttackTarget && vc == "Card.Self":
+			// Xantcha, Sleeper Agent: gorge RestrictionTargetMatches blocks the
+			// attack on the source's OWNER (Player.CardOwner) and on the
+			// planeswalkers that owner controls, never on anyone else. The
+			// kernel's defender is the creature controller's opponent, so
+			// that is every attack exactly when the owner is not the
+			// controller (an opponent of the static's controller owns it)
+			// and none when the controller owns it.
+			lc.twoSeat("CantAttack Target$ its owner and their planeswalkers read as OppOwn")
+			vc = "Card.Self+OppOwn"
+		default:
 			return refuse("CantAttack Target$ %q", t)
 		}
-		oppOnly = true
-		lc.twoSeat("CantAttack Target$ you and your planeswalkers read as OppCtrl")
 	}
 	if ud, ok := sp.get("UnlessDefender"); ok {
 		if vc != "Card.Self" {
@@ -105,6 +117,10 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	return nil
 }
 
+// ownerAttackTarget is Xantcha, Sleeper Agent's CantAttack Target$ (its
+// owner, and the planeswalkers its owner controls).
+const ownerAttackTarget = "Player.CardOwner,Planeswalker.ControlledBy Player.CardOwner"
+
 // fewerInPlayType reports whether an UnlessDefender$ predicate is gorge
 // UnlessDefenderHolds' hasFewer<Type>sInPlayThanYou (the type word is
 // everything before the first "sIn", the same split effects'
@@ -154,7 +170,9 @@ func evasionBit(head string) uint8 {
 // minMaxBlockerStatic lowers S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self
 // | Min$ N (CR 509.1b, Troll of Khazad-dum) to CardDef
 // .MinBlockers: gorge MinMaxBlockerBounds reads the literal Min$ against the
-// attacker. A Max$, Min$ All, another scope or a gate is refused.
+// attacker. Min$ All (Tromokratis) lowers to kop.MinBlockersAll, the
+// attacked player's creature count (gorge MinMaxBlockerBounds' all). A Max$,
+// another scope or a gate is refused.
 func (lc *lowerCtx) minMaxBlockerStatic(s cards.Static) error {
 	ps := newParams(s.Params)
 	ps.consume("Mode", "Description")
@@ -163,7 +181,9 @@ func (lc *lowerCtx) minMaxBlockerStatic(s cards.Static) error {
 	}
 	ps.consume("ValidCard")
 	n, err := strconv.Atoi(ps.str("Min"))
-	if err != nil || n < 2 || n > 8 {
+	if strings.EqualFold(strings.TrimSpace(ps.str("Min")), "All") {
+		n, err = int(kop.MinBlockersAll), nil
+	} else if err != nil || n < 2 || n > 8 {
 		return refuse("MinMaxBlocker Min %q", ps.str("Min"))
 	}
 	ps.consume("Min")

@@ -140,7 +140,7 @@ func (s *State) libPlaceOptions(d *Decision) {
 			picked = picked || p == o
 		}
 		if !picked {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }

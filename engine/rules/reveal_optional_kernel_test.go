@@ -378,7 +378,7 @@ func TestHandRevealPickPosesOncePerDefinedTarget(t *testing.T) {
 }
 
 // TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator: the real Gitaxian
-// Probe (SP$ RevealHand | ValidTgts$ Player | Look$ True, no NumCards$) first
+// Probe (a RevealHand spell targeting a player that only looks, no NumCards$) first
 // poses a one-option Continue look_ack to the caster naming every hand card,
 // with no look Note yet; the answer emits exactly one Secret Note scoped to
 // the caster (From hand) carrying the target's WHOLE hand, then draws.

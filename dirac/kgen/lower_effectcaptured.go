@@ -98,6 +98,40 @@ func (lc *lowerCtx) capturedCanAttack(ps *params, s cards.Static, capture lRef) 
 	if left := sp.unread(); len(left) > 0 {
 		return refuse("Effect CanAttackDefender unread %v", left)
 	}
+	return lc.canAttackCaptureEmblem(ps, capture)
+}
+
+// targetedCanAttack lowers an Effect whose only static is a CanAttackDefender
+// grant over the creature it targets (Assault Formation: "target creature with
+// defender can attack this turn as though it didn't have defender"). With no
+// Duration$ gorge's effEffect reads a CanAttackDefender restriction as this
+// turn's (absentDurationMeansThisTurn), and its Remembered set holds the
+// targeted object, whose id a zone change replaces, so the grant also lapses
+// when the creature leaves (the same capture the ForgetOnMoved$ Battlefield
+// pair above builds). Any Duration$, ExileOnMoved$ or ForgetOnMoved$ refuses.
+func (lc *lowerCtx) targetedCanAttack(ps *params, s cards.Static, obj lRef) error {
+	if obj.Kind != rTarget || strings.TrimSpace(ps.str("RememberObjects")) != "Targeted" {
+		return refuse("Effect CanAttackDefender RememberObjects$ %q over %s", ps.str("RememberObjects"), obj)
+	}
+	for _, k := range []string{"Duration", "ExileOnMoved", "ForgetOnMoved"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("Effect CanAttackDefender targeted with %s$", k)
+		}
+	}
+	sp := newParams(s.Params)
+	sp.consume("Mode", "Description")
+	if vc := strings.TrimSpace(sp.str("ValidCard")); vc != "Card.IsRemembered" && vc != "Creature.IsRemembered" {
+		return refuse("Effect CanAttackDefender ValidCard$ %q", s.Params["ValidCard"])
+	}
+	if left := sp.unread(); len(left) > 0 {
+		return refuse("Effect CanAttackDefender unread %v", left)
+	}
+	return lc.canAttackCaptureEmblem(ps, obj)
+}
+
+// canAttackCaptureEmblem emits the end-of-turn emblem whose CanAttackDefender
+// grant reaches only the captured creature and lapses when it leaves.
+func (lc *lowerCtx) canAttackCaptureEmblem(ps *params, capture lRef) error {
 	// the emblem's capture gate is the Remembered test: the filter keeps the
 	// creature check only
 	f, err := lc.filter("Creature")

@@ -1,0 +1,7 @@
+family: KwID
+name: KwMayEffectFromOpeningDeck
+value: 93
+forge: MayEffectFromOpeningDeck
+census: kw MayEffectFromOpeningDeck all=4 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

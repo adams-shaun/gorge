@@ -79,7 +79,7 @@ func TestPeekRevealChosenType(t *testing.T) {
 		ch   uint8
 		skip bool
 	}{{bear, false}, {255, true}, {giant, true}} {
-		sc.s.perms[sc.slot(stone)].chosen = c.ch
+		sc.s.perms[sc.slot(stone)].chosen = objWord(c.ch)
 		sc.s.res.ask = 0
 		got := sc.s.peekMayReveal(sc.k, in, 0)
 		switch {
@@ -99,7 +99,7 @@ func TestCostChosenType(t *testing.T) {
 		ch   uint8
 		want uint8
 	}{{bear, 1}, {255, 2}, {giant, 2}} {
-		sc.s.perms[sc.slot(stone)].chosen = c.ch
+		sc.s.perms[sc.slot(stone)].chosen = objWord(c.ch)
 		if g := sc.s.adjustCostGen(sc.k, 0, id["Grizzly Bears"], NoObj, kop.ManaCost{Generic: 2}).Generic; g != c.want {
 			t.Errorf("Grizzly Bears costs generic %d with a Gathering Stone that chose subtype %d (bear %d), want %d", g, c.ch, bear, c.want)
 		}

@@ -208,6 +208,9 @@ func kcrimeGame(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *kop.Tab
 }
 
 func TestCrimeLockstep(t *testing.T) {
+	// A fresh clone has no corpus: skip here, before the chunks (each would
+	// skip alone and leave this test's totals empty).
+	corpusDirOrSkip(t)
 	t.Parallel()
 	// Each chunk plays alone in a child process (it sets DebugCrimeStats and
 	// OccupancyHook, which every game reads) and logs its tally; the parent

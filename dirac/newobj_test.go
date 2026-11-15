@@ -90,7 +90,7 @@ func TestTriggerExileFindsNoNewObject(t *testing.T) {
 	// p1 answers the trigger by returning the Skeleton
 	sc.stepTo(t, 10, func() bool { return sc.s.objs[sk].zone == kop.ZoneBattlefield || sc.s.objs[sk].zone == kop.ZoneExile }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(sk) {
+			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(sk)) {
 				return a, true
 			}
 		}
@@ -124,7 +124,7 @@ func TestTriggerExileStashNeedsGraveyard(t *testing.T) {
 	}
 	sc.stepTo(t, 1, func() bool { return false }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() != uint8(hv) {
+			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() != TCode(uint8(hv)) {
 				return a, true
 			}
 		}
@@ -138,12 +138,12 @@ func TestTriggerExileStashNeedsGraveyard(t *testing.T) {
 	// the trigger is on the stack: p0 exiles the Rat with the Harvester
 	sc.stepTo(t, 10, func() bool { return sc.s.objs[rat].zone == kop.ZoneExile }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(hv) {
+			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(hv)) {
 				return a, true
 			}
 		}
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; d.Kind == DkTarget && a.Target() == uint8(rat) {
+			if a := d.Options[i]; d.Kind == DkTarget && a.Target() == TCode(uint8(rat)) {
 				return a, true
 			}
 		}
@@ -198,7 +198,7 @@ func TestControlEOTReturnsToPrevious(t *testing.T) {
 	sc.stepTo(t, 40, func() bool { return sc.s.turn != turn }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkCast && a.Source() == uint8(ie) || d.Kind == DkTarget && a.Target() == uint8(rat) {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(ie)) || d.Kind == DkTarget && a.Target() == TCode(uint8(rat)) {
 				return a, true
 			}
 		}
@@ -243,7 +243,7 @@ func TestAllCreatureTypesNotForest(t *testing.T) {
 	}
 	sc.stepTo(t, 12, func() bool { return sc.s.isCreature(sc.k, sc.slot(ss)) }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(ss) && a.Mode() == 1 {
+			if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(ss)) && a.Mode() == 1 {
 				return a, true
 			}
 		}
@@ -318,7 +318,7 @@ func TestDamageTriggerGoneAbilitySource(t *testing.T) {
 	sc.stepTo(t, 40, func() bool { return sc.s.pl[0].handN != hand }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkActivate && a.Source() == uint8(ff) || d.Kind == DkTarget && a.Target() == PlayerTarget0+1 {
+			if a.Kind() == AkActivate && a.Source() == TCode(uint8(ff)) || d.Kind == DkTarget && a.Target() == PlayerTarget0+1 {
 				return a, true
 			}
 		}
@@ -345,7 +345,7 @@ func TestDamageTriggerOwnControllerNotOpponent(t *testing.T) {
 	sc.stepTo(t, 40, func() bool { return sc.s.pl[0].life != life && sc.s.sp == 0 }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkActivate && a.Source() == uint8(ff) || d.Kind == DkTarget && a.Target() == PlayerTarget0 {
+			if a.Kind() == AkActivate && a.Source() == TCode(uint8(ff)) || d.Kind == DkTarget && a.Target() == PlayerTarget0 {
 				return a, true
 			}
 		}
@@ -380,7 +380,7 @@ func TestControlEOTUntapStun(t *testing.T) {
 	sc.stepTo(t, 40, func() bool { return sc.s.objs[ie].zone == kop.ZoneGraveyard }, func(d *Decision) (Action, bool) {
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkCast && a.Source() == uint8(ie) || d.Kind == DkTarget && a.Target() == uint8(rat) {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(ie)) || d.Kind == DkTarget && a.Target() == TCode(uint8(rat)) {
 				return a, true
 			}
 		}

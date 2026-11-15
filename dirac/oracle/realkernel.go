@@ -76,7 +76,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		}
 		n := m.NSeat()
 		if n > dirac.MaxSeats {
-			return nil, fmt.Errorf("realkernel: a matchup of %d seats; this kernel build holds %d (the dirac_mp build tag holds %d)", n, dirac.MaxSeats, MaxSeats)
+			return nil, fmt.Errorf("realkernel: a matchup of %d seats; the kernel holds %d", n, dirac.MaxSeats)
 		}
 		var decks [dirac.MaxSeats][]kop.CardID
 		for s := 0; s < n; s++ {
@@ -101,7 +101,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r := &realSide{tbl: tbl, m: m, n: uint8(n)}
 		m.chars = newCharVocab(tbl)
 		r.gname = make([]string, len(tbl.Cards))
-		r.tidx = make([]uint8, len(tbl.Cards))
+		r.tidx = make([]CardIndex, len(tbl.Cards))
 		for i, c := range tbl.Cards {
 			n := c.Name
 			if len(c.Faces) > 0 {
@@ -112,7 +112,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 			r.tidx[i] = NoCardIndex
 			for j, t := range m.Table {
 				if t == n {
-					r.tidx[i] = uint8(j)
+					r.tidx[i] = CardIndex(j)
 				}
 			}
 		}
@@ -146,9 +146,9 @@ type realSide struct {
 	kcfg  dirac.Config // what s was built with
 	tbl   *kop.Table
 	m     *Matchup
-	n     uint8    // seats
-	gname []string // per kernel CardID: the gorge card name
-	tidx  []uint8  // per kernel CardID: the matchup table index
+	n     uint8       // seats
+	gname []string    // per kernel CardID: the gorge card name
+	tidx  []CardIndex // per kernel CardID: the matchup table index
 	d     dirac.Decision
 	opts  []Canon
 	kp    dirac.Projection
@@ -280,6 +280,9 @@ func (r *realSide) Project(p *Projection) {
 				c.NameHash = nameHash("")
 			}
 			c.Face = r.tbl.Cards[pc].Face
+			if cd := &r.tbl.Cards[pc]; cd.FaceMode == kop.FacePrototype {
+				c.Face = 0 // the prototype def is the card's one printed face (gorge keeps FaceIdx 0 and a cast flag)
+			}
 			if !o.Token && o.Flags&dirac.ProjCopy == 0 { // a spell copy is no deck card (gorge project.go)
 				c.Card = r.tidx[pc]
 			}
@@ -320,6 +323,9 @@ func (r *realSide) Project(p *Projection) {
 		}
 		if o.Flags2&dirac.ProjSuspected != 0 {
 			f |= FSuspected
+		}
+		if o.Flags2&dirac.ProjRenowned != 0 {
+			f |= FRenowned
 		}
 		if o.Zone.Phased() {
 			f |= FPhasedOut
@@ -414,8 +420,8 @@ func (r *realSide) Project(p *Projection) {
 		}
 		for _, slot := range r.stackTargetOrder(e) {
 			si, t := int(slot), e.Targets[slot]
-			if t != dirac.NoTarget && int(st.NTargets) < MaxTgts {
-				st.Targets[st.NTargets] = t
+			if dirac.TCode(t) != dirac.NoTarget && int(st.NTargets) < MaxTgts {
+				st.Targets[st.NTargets] = Ref(t)
 				if t == dirac.StackTargetGone {
 					st.Targets[st.NTargets] = RefNone // a stack ability that left (gorge's vanished object)
 				}
@@ -423,7 +429,7 @@ func (r *realSide) Project(p *Projection) {
 			}
 			for j := 0; j < int(e.NExtra); j++ {
 				if int(e.ExtraSlot[j]) == si && int(st.NTargets) < MaxTgts {
-					st.Targets[st.NTargets] = e.Extra[j]
+					st.Targets[st.NTargets] = Ref(e.Extra[j])
 					st.NTargets++
 				}
 			}

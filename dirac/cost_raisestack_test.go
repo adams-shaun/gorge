@@ -64,7 +64,7 @@ func TestRaiseCostStackSelf(t *testing.T) {
 			}
 			sc.s.bld().e.nt = uint8(len(targets))
 			for i, o := range targets {
-				sc.s.bld().e.tgt[i] = uint8(o)
+				sc.s.bld().e.tgt[i] = TCode(o)
 			}
 		}
 		return sc.s.adjustCostGen(sc.k, 0, counter, spell, base)

@@ -7,6 +7,7 @@
   import { opponentOf, viewerSeries, waitingOn } from '../../lib/series';
   import { seatLabel } from '../../lib/draftcards';
   import BetweenGames from './BetweenGames.svelte';
+  import { withBase } from '../../lib/basepath';
 
   /**
    * The table page's event layer. A series game's join link carries
@@ -23,6 +24,10 @@
    * between-games state from the server (TableInfo.series and the table_state
    * frame), so the board stays up between games whether or not this overlay
    * is mounted.
+   *
+   * A Commander draft's pod game has no series: once the server reports
+   * this table's pod game ended, a chip links back to the event page
+   * (standings, the next pod game or the results).
    */
   let { table }: { table: string } = $props();
 
@@ -53,10 +58,17 @@
   const row = $derived(st ? viewerSeries(st, table) : null);
   const between = $derived(row !== null && row.state === 'between' && you !== null);
   const waiting = $derived(between && row !== null && you !== null && waitingOn(row, you));
+  const podEnded = $derived((st?.pod ?? []).some((g) => g.table === table && g.state === 'ended'));
   // The player may fold the panel away to look at the finished board.
   let folded = $state(false);
 </script>
 
+{#if client && st && podEnded}
+  <p class="ev-overlay__chip" role="status" data-testid="table-pod-ended">
+    The pod game is over.
+    <a class="ev-btn sm" href={withBase(`/e/${encodeURIComponent(client.id)}`)}>Back to the event</a>
+  </p>
+{/if}
 {#if client && st && row && you !== null && between}
   {#if waiting && folded}
     <p class="ev-overlay__chip" role="status" data-testid="table-between-folded">

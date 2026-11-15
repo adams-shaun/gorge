@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtBidLife
+value: 59
+forge: BidLife
+census: api BidLife all=3 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

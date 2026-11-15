@@ -84,7 +84,7 @@ func (s *State) charmSeqPrime(k *prep, a *kop.Ability, ti int) bool {
 	if t.Max < 2 || t.UpTo || t.Divide != 0 || t.TFlags&^kop.TgfDecl != 0 {
 		return true
 	}
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &buf)
 	if k.gen != nil {
 		n = s.affordableTargets(k, &buf, n)

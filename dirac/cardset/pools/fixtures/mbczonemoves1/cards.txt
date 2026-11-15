@@ -1,0 +1,14 @@
+# the MBC zone-moves-1 family (dirac/oracle/mbczonemoves1_test.go): Elda, Conjurer of Spectacle's gated AffectedZone$ Stack Demonstrate grant over nonlegendary and legendary creature spells, and Siphon Insight's permanent may-play of the exiled card with MayPlayIgnoreColor$ (Brainstealer Dragon's grant)
+Elda, Conjurer of Spectacle
+Isamaru, Hound of Konda
+Grizzly Bears
+Savannah Lions
+Giant Spider
+Plains
+Forest
+Hill Giant
+Siphon Insight
+Island
+Swamp
+Mountain
+Silverquill Lecturer

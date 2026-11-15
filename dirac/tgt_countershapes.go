@@ -42,7 +42,7 @@ func trigOnlyOK(kind uint8) bool {
 // only; an ability on the stack is not a candidate).
 //
 //go:noinline
-func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code uint8) bool {
+func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code TCode) bool {
 	if !isObjTarget(code) {
 		return false
 	}
@@ -85,7 +85,7 @@ func (s *State) entryTgtClause(k *prep, t *kop.TargetSpec, p uint8, e *stackEntr
 // spellTgtingOK has it, or an activated or triggered ability (named
 // StackTarget0 + its stack index, never the entry being built or resolving)
 // whose own targets satisfy the slot's targeting clause for the chooser.
-func (s *State) stackTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code uint8) bool {
+func (s *State) stackTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code TCode) bool {
 	if !isStackTarget(code) {
 		return s.spellTgtingOK(k, t, p, self, code)
 	}
@@ -99,7 +99,7 @@ func (s *State) stackTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, cod
 // tgtClauseMatch: target byte c satisfies slot t's targeting clause for
 // chooser p: the chooser's own player (VYou, gorge MatchesPlayerSpec "You"),
 // else a battlefield permanent matching the slot's Filter.
-func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c uint8) bool {
+func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c TCode) bool {
 	if t.VYou {
 		return isPlayerTarget(c) && (DebugCtrVYouAnyPlayer || CodeSeat(c) == p)
 	}
@@ -109,7 +109,7 @@ func (s *State) tgtClauseMatch(k *prep, t *kop.TargetSpec, p uint8, c uint8) boo
 // tgtBattlefieldMatch: target byte c names a permanent on the battlefield now
 // that matches f for chooser p (a player, a stack object or an empty slot
 // matches nothing).
-func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c uint8) bool {
+func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c TCode) bool {
 	if !isObjTarget(c) {
 		return false
 	}
@@ -120,7 +120,7 @@ func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c uint8) b
 // spellTgtingStill is targetStillLegal for a TgtSpellTgting slot: gorge does
 // not reread the targeting clause at resolution, so the target is a plain
 // spell target (still a spell on the stack, never the entry itself).
-func (s *State) spellTgtingStill(e *stackEntry, code uint8) bool {
+func (s *State) spellTgtingStill(e *stackEntry, code TCode) bool {
 	if !isObjTarget(code) || Obj(code) == e.obj || s.objs[code].zone != kop.ZoneStack {
 		return false
 	}

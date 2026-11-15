@@ -123,10 +123,10 @@ func TestStationPutsChargeEqualToPower(t *testing.T) {
 		}
 	}
 	giant := sc.perm(id["Hill Giant"], 0)
-	sc.do(t, AkActivate, uint8(ship), 0xff)
+	sc.do(t, AkActivate, TCode(ship), scAny)
 	// the pick comes before the push, always asked even with one candidate
 	d := sc.s.Step()
-	if d.Kind != DkChoose || d.Sub != ChStation || d.N != 1 || d.Options[0].Source() != uint8(giant) {
+	if d.Kind != DkChoose || d.Sub != ChStation || d.N != 1 || d.Options[0].Source() != TCode(uint8(giant)) {
 		t.Fatalf("decision %v sub %v n %d: want the one-candidate ChStation pick", d.Kind, d.Sub, d.N)
 	}
 	if sc.s.sp != 0 {
@@ -176,7 +176,7 @@ func TestNoncreatureDiesTrigger(t *testing.T) {
 	if n := sc.s.Counters(sq, kop.CtrOil); n != 2 {
 		t.Fatalf("%d oil counters as it enters, want 2", n)
 	}
-	sc.do(t, AkActivate, uint8(urn), 0xff)
+	sc.do(t, AkActivate, TCode(urn), scAny)
 	sc.resolveAll(t)
 	if sc.onBF(urn) {
 		t.Fatal("the Urn was not sacrificed")

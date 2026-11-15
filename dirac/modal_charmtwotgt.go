@@ -29,7 +29,7 @@ func charmRootSlots(a *kop.Ability, mode uint8) (mask uint8, n int) {
 		return charmSlots(a, mode)
 	}
 	for m := uint8(0); m < 8; m++ {
-		if mode&(1<<m) == 0 {
+		if mode&(1<<m) == 0 || a.ChainModes&(1<<m) != 0 {
 			continue
 		}
 		for j := 0; j < int(a.NTargets); j++ {

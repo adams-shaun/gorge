@@ -3,6 +3,12 @@ package kop
 // KwMask is a set of keyword abilities. Bits are append-only.
 type KwMask uint32
 
+// KwID names one keyword. 0..31 are KwMask's bit positions, with no
+// constants of their own; the manifest's keywords (dirac/manifest/KwID,
+// generated into manifest_gen.go) take 32 and up. KwMask is full, so a new
+// keyword is a KwID, granted through the arena rather than a mask bit.
+type KwID uint16
+
 const (
 	KwFlying KwMask = 1 << iota
 	KwReach
@@ -44,10 +50,11 @@ const (
 	StackKwCascade     int16 = 3
 	StackKwLifelink    int16 = 4
 	StackKwStorm       int16 = 5
-	StackKwSplitSecond int16 = 6 // read off each spell on the stack: while one holds it, no spell is cast and no non-mana ability is activated (CR 702.61a)
-	StackKwConvoke     int16 = 7 // read wherever the printed convoke is (tapPays): the cast announces tapped creatures toward its mana cost (CR 702.51a)
-	StackKwConspire    int16 = 8 // a granted conspire (CR 702.78a): the conspired cast taps two creatures sharing a colour with the spell and copies it (dirac kw_conspire.go)
-	StackKwDelve       int16 = 9 // read as the spell is cast: the cast announces graveyard cards to exile toward its generic cost (CR 702.66a; kernel kw_delve.go)
+	StackKwSplitSecond int16 = 6  // read off each spell on the stack: while one holds it, no spell is cast and no non-mana ability is activated (CR 702.61a)
+	StackKwConvoke     int16 = 7  // read wherever the printed convoke is (tapPays): the cast announces tapped creatures toward its mana cost (CR 702.51a)
+	StackKwConspire    int16 = 8  // a granted conspire (CR 702.78a): the conspired cast taps two creatures sharing a colour with the spell and copies it (dirac kw_conspire.go)
+	StackKwDemonstrate int16 = 10 // a granted demonstrate (CR 702.144a), read as the spell is cast like Storm: the cast trigger offers the copy and the opponent's (dirac kw_demonstrate.go)
+	StackKwDelve       int16 = 9  // read as the spell is cast: the cast announces graveyard cards to exile toward its generic cost (CR 702.66a; kernel kw_delve.go)
 )
 
 // Appended keyword bits.

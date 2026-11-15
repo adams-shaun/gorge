@@ -89,6 +89,7 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 		en.Rounds = sh.rounds
 	}
 	en.Format = sh.format
+	en.DeckSize = sh.deckSize
 	if sh.picks > 1 {
 		en.PicksPerPass = sh.picks
 	}
@@ -220,6 +221,9 @@ func (r *runner) podShapeOr() podShape {
 // concrete persona types are the only drafter the tool builds, so the
 // label is fixed.
 func drafterLabel(r *runner) string {
+	if x, ok := r.drafter.(*exploreDrafter); ok {
+		return drafterLabel(&runner{drafter: x.inner}) + "+explore"
+	}
 	if _, ok := r.drafter.(*pickbot.RatingColour); ok {
 		return "rating-colour"
 	}

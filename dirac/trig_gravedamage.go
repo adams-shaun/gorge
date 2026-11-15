@@ -19,7 +19,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // o controlled by ctrl) to the players plM names, or the object rcp names.
 //
 //go:noinline
-func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16, plM uint8, combat bool, rcp uint8) {
+func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16, plM uint8, combat bool, rcp TCode) {
 	toPlayer := plM != 0
 	for _, c := range k.gen.graveTrig {
 		cd := &k.t.Cards[c]

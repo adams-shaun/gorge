@@ -312,8 +312,8 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// An Effect-created Phase registration (its lifetime suffix is the
 		// Effect's Duration$) resolves its body under the Effect's own
 		// source-scoped frame, so the self-exile idiom (Rowan Kenrith's
-		// `ExileEffect: DB$ ChangeZone | Defined$ Self | Origin$ Command |
-		// Destination$ Exile`) ends the Effect (CR 611.2a) instead of moving
+		// ExileEffect, a ChangeZone of the effect itself from the command zone
+		// to exile) ends the Effect (CR 611.2a) instead of moving
 		// nothing.
 		frame := effectDelayedFrame(dt)
 		if frame.Source == 0 && dt.EffectDuration != "" {
@@ -787,9 +787,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				Captured:   f.remembered,
 				// An Effect-created trigger body resolves under the Effect's OWN
 				// source-scoped frame, so the one-shot self-exile idiom reached
-				// from it (Kor Dirge's `Triggers$ OutOfSight` ->
-				// `DB$ ChangeZone | Defined$ Self | Origin$ Command |
-				// Destination$ Exile`) ends the registration instead of
+				// from it (Kor Dirge's OutOfSight trigger -> a ChangeZone of
+				// the effect itself from the command zone to exile) ends the registration instead of
 				// lingering for the Effect's whole duration. A plain CR 603.7
 				// promise leaves the frame zero (nothing to end).
 				EffectFrame: effectDelayedFrame(dt),
@@ -835,7 +834,39 @@ func delayedSpecCtx(sc effects.SpecContext, dt *state.DelayedTrigger) effects.Sp
 	if dt.ChosenNameFrozen {
 		sc.FrozenChosenName, sc.ChosenNameBound = dt.ChosenName, true
 	}
+	if dt.ChosenCardFrozen {
+		// The registration's chosen-card snapshot IS the chosen list its
+		// body's Card.ChosenCard(Strict) reads (state.DelayedTrigger.
+		// ChosenCard, Forge's EffectEffect copies the host's chosen cards
+		// onto the effect card): the chain's own ClearChosenCard$ cleanup
+		// must not retract the referent an already-registered trigger copied
+		// (Azra Oddsmaker). A frozen EMPTY set binds too, so the read fails
+		// closed instead of falling back to a card the source chooses later.
+		sc.Chosen, sc.ChosenValid = delayedChosenTargets(dt.ChosenCard), true
+	}
 	return sc
+}
+
+// delayedChosenOpts is the SpecOpts an event-matched registration's matcher
+// carries beside its remembered capture: the frozen chosen-card snapshot, so
+// a ValidSource$/ValidCard$ Card.ChosenCard(Strict) reads the card chosen at
+// REGISTRATION (Azra Oddsmaker's DamageDone source gate), never the live
+// source's cleared list.
+func delayedChosenOpts(dt *state.DelayedTrigger) trigmatch.SpecOpts {
+	if !dt.ChosenCardFrozen {
+		return trigmatch.SpecOpts{}
+	}
+	return trigmatch.SpecOpts{DelayedChosen: delayedChosenTargets(dt.ChosenCard), DelayedChosenBound: true}
+}
+
+// delayedChosenTargets widens a snapshot's ids to the Target list the filter's
+// Chosen field carries.
+func delayedChosenTargets(ids []state.ObjID) []state.Target {
+	ts := make([]state.Target, 0, len(ids))
+	for _, id := range ids {
+		ts = append(ts, state.Target{Obj: id})
+	}
+	return ts
 }
 
 // delayedEventMatches dispatches the existing trigger matchers for an event
@@ -852,7 +883,7 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 	case cards.TriggerChangesController:
 		return e.delayedChangesControllerMatches(t, dt, ev, lki)
 	case cards.TriggerDamageDone:
-		return trigmatch.DamageMatchesWithCapture(boardOf(e), t, dt.Source, ev, dt.Remembered)
+		return trigmatch.DamageMatchesWithCapture(boardOf(e), t, dt.Source, ev, dt.Remembered, delayedChosenOpts(dt))
 	case cards.TriggerAttackersDeclared:
 		return trigmatch.AttackersDeclaredOneTargetMatches(boardOf(e), t, dt.Source, ev, dt.Remembered)
 	default:

@@ -58,7 +58,7 @@ func (s *State) noteLastBear(q Slot, host Obj) {
 		return
 	}
 	p := &s.perms[q]
-	p.bord = uint8(host) // an Obj fits: 0..MaxObj-1
+	p.bord = objWord(host)
 	p.flags |= pfLastBear
 }
 

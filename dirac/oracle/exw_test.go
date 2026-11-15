@@ -388,6 +388,9 @@ func kexwRunIsolated(t *testing.T, pairs []kexwPair, seeds, chunk uint64) (diver
 }
 
 func TestExwLockstep(t *testing.T) {
+	// A fresh clone has no corpus: skip here, before the chunks (each would
+	// skip alone and leave this test's totals empty).
+	corpusDirOrSkip(t)
 	t.Parallel()
 	div, stalls, tot, ok := kexwRunIsolated(t, kexwPairs, 256, kexwChunk)
 	if !ok || t.Failed() {
@@ -557,6 +560,9 @@ var kexwStaticPairs = []kexwPair{
 var kexwStaticReaders = []string{"Keen-Eyed Curator", "Dawnhand Dissident", "Maralen, Fae Ascendant", "Pick Up the Pace", "Hedonist's Trove", "Rona, Disciple of Gix"}
 
 func TestExwStaticsLockstep(t *testing.T) {
+	// A fresh clone has no corpus: skip here, before the chunks (each would
+	// skip alone and leave this test's totals empty).
+	corpusDirOrSkip(t)
 	t.Parallel()
 	const seeds = 192
 	div, stalls, tot, ok := kexwRunIsolated(t, kexwStaticPairs, seeds, kexwChunk)

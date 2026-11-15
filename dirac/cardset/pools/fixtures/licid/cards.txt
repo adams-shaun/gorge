@@ -1,0 +1,9 @@
+# the Licid pool: Convulsing Licid and Tempting Licid (AB$ Animate of Self
+# into an Aura with a granted Enchant:Creature, then DB$ Attach) beside
+# vanilla creatures and basics (dirac/oracle/licid_lowers_test.go)
+Convulsing Licid
+Tempting Licid
+Grizzly Bears
+Raging Goblin
+Mountain
+Forest

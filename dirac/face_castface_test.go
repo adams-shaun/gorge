@@ -16,8 +16,8 @@ import (
 func faceCasts(d *Decision, o Obj) []uint8 {
 	var out []uint8
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(o) && a.Mode()&castFace != 0 {
-			out = append(out, a.Target())
+		if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(o)) && a.Mode()&castFace != 0 {
+			out = append(out, uint8(a.Target()))
 		}
 	}
 	return out
@@ -61,7 +61,7 @@ func TestAdventureCastAndRecast(t *testing.T) {
 	if got := faceCasts(&d, mr); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("face casts %v, want [1]", got)
 	}
-	sc.s.Apply(MakeAction(AkCast, uint8(mr), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(mr), 1, castFace))
 	sc.s.Step() // pushed (CR 601.2a), then its target asked
 	if sc.s.objs[mr].card != face || sc.s.objs[mr].zone != kop.ZoneStack {
 		t.Fatal("the Adventure is not on the stack")
@@ -83,7 +83,7 @@ func TestAdventureCastAndRecast(t *testing.T) {
 		t.Fatal("recast offered with the pool-only mutation and an empty pool")
 	}
 	DebugFacePoolOnly = false
-	sc.s.Apply(MakeAction(AkCast, uint8(mr), 0, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(mr), 0, castFace))
 	sc.s.Step()
 	if sc.s.objs[mr].of&ofAdventure != 0 || sc.s.objs[mr].zone != kop.ZoneStack {
 		t.Fatal("still on an adventure off exile")
@@ -107,14 +107,14 @@ func TestAdventureCounteredToGraveyard(t *testing.T) {
 	sc.perm(id["Grizzly Bears"], 1)
 	mr := sc.hand(front, 0)
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(mr), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(mr), 1, castFace))
 	sc.s.Step()
 	sc.s.reverseCast(sc.k)
 	if ob := &sc.s.objs[mr]; ob.zone != kop.ZoneHand || ob.card != front {
 		t.Fatalf("undone: zone %d, front %v", ob.zone, ob.card == front)
 	}
 	sc.s.Step()
-	sc.s.Apply(MakeAction(AkCast, uint8(mr), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(mr), 1, castFace))
 	sc.buildToStack(t)
 	if sc.s.sp != 1 {
 		t.Fatalf("stack %d, want the Adventure", sc.s.sp)
@@ -270,7 +270,7 @@ func TestSplitHalfCast(t *testing.T) {
 		t.Fatalf("face casts %v, want [1]", got)
 	}
 	hand := sc.s.pl[0].handN
-	sc.s.Apply(MakeAction(AkCast, uint8(fi), 1, castFace))
+	sc.s.Apply(MakeAction(AkCast, TCode(fi), 1, castFace))
 	sc.s.Step()
 	if sc.s.objs[fi].card != ice {
 		t.Fatal("Ice is not on the stack")

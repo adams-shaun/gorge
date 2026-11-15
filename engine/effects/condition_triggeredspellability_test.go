@@ -37,8 +37,8 @@ func stackSpell(t *testing.T, h *fakeHost, ctlr state.PlayerID) state.ObjID {
 
 // TestConditionDefinedTriggeredSpellAbilityTargetFilter pins the group's
 // present-filter semantics against Shiko and Narset, Unified's REAL compiled
-// TrigCopy SA: `ConditionDefined$ TriggeredSpellAbility | ConditionPresent$
-// Spell.IsTargeting Valid Permanent,Spell.IsTargeting Player` is met only
+// TrigCopy SA: its condition on the triggering spell (a spell targeting a
+// permanent, or a spell targeting a player) is met only
 // when the triggering spell actually targets a permanent or a player. A
 // non-targeting spell is a RESOLVED non-match (never the fail-open an absent
 // binding gets), and an absent trigger referent stays fail-open.

@@ -13,8 +13,8 @@ import (
 // This is the Curator of Destinies ETB pin. Curator's real
 // script splits the top five into a pile that leaves through ChangeZone
 // (ChosenPile$ ToHand) and a pile that leaves through ChangeZoneAll
-// (UnchosenPile$ ToYard, `ChangeType$ Card.IsRemembered | Origin$
-// Library`). noShuffleBody forces NoShuffle$ True onto BOTH bodies; ChangeZone
+// (UnchosenPile$ ToYard, a sweep of the remembered cards from the library).
+// noShuffleBody forces NoShuffle$ True onto BOTH bodies; ChangeZone
 // read it, ChangeZoneAll did not, so the unchosen-pile sweep reported
 // "ChangeZoneAll ignores unread parameter(s) NoShuffle$" once per resolution.
 // The oracle text never shuffles, so the forced flag is correct and the note

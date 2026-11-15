@@ -1,0 +1,7 @@
+family: CounterKind
+name: CtrBlood
+value: 92
+forge: BLOOD
+census: ctr BLOOD all=4 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

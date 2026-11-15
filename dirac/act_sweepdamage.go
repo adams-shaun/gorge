@@ -33,7 +33,7 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 	if src == NoSlot {
 		for i := 0; i < cnt; i++ {
 			if sl := ord[i]; s.isCreature(k, sl) {
-				s.damageTo(k, uint8(s.perms[sl].obj), n)
+				s.damageTo(k, TCode(s.perms[sl].obj), n)
 			}
 		}
 		return
@@ -63,6 +63,9 @@ func (s *State) sweepReplCompete(k *prep, src Slot) bool {
 		if g.replBits[s.cardAt(b)]&(rbDblDmg|rbPrevNC|rbPrevDmgTo) != 0 && !s.genLost(k, b) {
 			c++
 		}
+	}
+	if g.anyRedir {
+		c += s.redirLive() // a redirect on some hit's recipient is one more replacement (repl_dmgredirect.go)
 	}
 	if g.anyDmgMark {
 		c += s.dmgMarkTotal() // a mark on some hit's recipient is one more replacement (repl_dmgmark.go)

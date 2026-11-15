@@ -1,0 +1,6 @@
+family: mech
+name: mechNoRegen
+value: 21
+state: slotbit 16/16
+status: active
+doc: slots whose creature can't be regenerated this turn (CR 701.19c; repl_noregen.go)

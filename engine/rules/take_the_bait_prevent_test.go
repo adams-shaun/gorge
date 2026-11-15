@@ -10,15 +10,16 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Take the Bait's prevention half — an Effect SA (SP$ Effect |
-// ReplacementEffects$ RPrevent) whose named R: body is a BODYLESS Prevent$ True
+// Take the Bait's prevention half — an Effect spell carrying one named
+// replacement, whose R: body is a BODYLESS Prevent$ True
 // DamageDone line with IsCombat$ True and ValidTarget$ You,Planeswalker.YouCtrl.
 // engine/rules/damage_prevented_once_test.go pins the registration machinery on
 // Selfless Squire; this file pins the SECOND
 // carrier shape, which exercises three parameters Selfless Squire's simpler
 // line does not: IsCombat$ (only combat damage is prevented), ValidTarget$
 // naming a PLAYER and a planeswalker clause, and the Effect's own cast-window
-// riders (OpponentTurn$ True | ActivationPhases$ BeginCombat->EndCombat) that
+// riders (cast only on an opponent's turn, from beginning of combat to end of
+// combat) that
 // must not suppress the registration once the cast itself is legal.
 //
 // The fixture is the real corpus card (testutil.CorpusRegistry), cast for

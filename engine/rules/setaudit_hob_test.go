@@ -353,8 +353,8 @@ func TestSetAudit_hob_GoblinPlateMail_AmassesThenAttaches(t *testing.T) {
 //
 //	Bombur doesn't untap during your untap step unless you have an enduring story.
 //
-// The Forge script is `R:Event$ Untap | ValidCard$ Card.Self |
-// ValidStepTurnToController$ You | Layer$ CantHappen | EnduringStory$ False`.
+// The Forge script spells it as a CantHappen Untap replacement on the card
+// itself during your untap step, gated on having no enduring story.
 // CR 702.175: without the enduring story the replacement must apply and the
 // untap cannot happen; with it, Bombur untaps.
 func TestSetAudit_hob_Bombur_DoesNotUntapWithoutEnduringStory(t *testing.T) {

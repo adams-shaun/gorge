@@ -9,7 +9,7 @@ import (
 // ExtTurnRepl (kop/turnrepl.go): two until-end-of-turn replacements an Effect
 // makes over a player's side of the board. Neither costs State bytes: the
 // exile one is a scope record in the cold exMark table, the counter one a
-// region of the cold buffer (coldLayout.ctrP) that exists only for a table
+// region of the cold buffer (coldCtrP) that exists only for a table
 // with such a program.
 
 // DebugTurnReplOff is the mutation switch: both replacements are set but
@@ -27,6 +27,24 @@ var TurnReplStats struct{ Exiled, Plus, Asked, Unc, HexP, HexO atomic.Int64 }
 // StallTurnRepl is a second scope record or creature counter record past what
 // the cold table holds: the exile-instead table is full.
 const StallTurnRepl = 159
+
+// coldHexUB is the mechHexUB grant's timestamp per battlefield slot (0:
+// unmarked), for a table with TurnReplHexUB.
+var coldHexUB = newCold[uint16]("hexUB", func(g *genPrep) int {
+	if g.anyHexUB {
+		return MaxPerm
+	}
+	return 0
+}).view(func(c *coldArrays) *[]uint16 { return &c.hexUB }).perSlot()
+
+// coldCtrP is the creature counter-plus-one record (0 or 1 of them), for a
+// table with a Prairie Dog replacement.
+var coldCtrP = newCold[plusCreRec]("ctrP", func(g *genPrep) int {
+	if g.anyPlusCre {
+		return 1
+	}
+	return 0
+})
 
 func init() { stallNames[StallTurnRepl] = "turnrepl" }
 
@@ -127,13 +145,13 @@ func (s *State) turnRepl(k *prep, in *kop.Instr) {
 		// each activation is its own replacement effect, so the count
 		// stacks; two sources make the order ask stall (ctrGather)
 		c := s.plusCreCold()
-		if p := s.res.e.ctrl; c != nil && c[p] < 255 {
-			if c[p] == 0 {
-				c[MaxSeats+int(p)] = uint8(s.res.e.obj)
-			} else if Obj(c[MaxSeats+int(p)]) != s.res.e.obj {
-				c[MaxSeats+int(p)] = uint8(NoObj)
+		if p := s.res.e.ctrl; c != nil && c.n[p] < 255 {
+			if c.n[p] == 0 {
+				c.src[p] = s.res.e.obj
+			} else if c.src[p] != s.res.e.obj {
+				c.src[p] = NoObj
 			}
-			c[p]++
+			c.n[p]++
 		}
 	}
 }
@@ -161,17 +179,20 @@ func (s *State) exScopeN(k *prep, sl Slot) int {
 	return n
 }
 
-// plusCreCold is the creature counter-plus-one record: per player the count of
+// plusCreRec is the creature counter-plus-one record: per player the count of
 // activations, then per player the source of them (NoObj: more than one).
-func (s *State) plusCreCold() []uint8 {
-	l := s.cold.layout
-	if l == nil || l.ctrP == 0 {
-		return nil
+type plusCreRec struct {
+	n   [MaxSeats]uint8
+	src [MaxSeats]Obj
+}
+
+// plusCreCold is the creature counter-plus-one record, nil when the table has
+// none.
+func (s *State) plusCreCold() *plusCreRec {
+	if c := coldCtrP.of(s); c != nil {
+		return &c[0]
 	}
-	at := 0
-	_ = coldView[mayPlay](nil, &at, l.may)
-	_ = coldView[embRec](nil, &at, l.emb)
-	return coldView[uint8](s.cold.buf, &at, l.ctrP)
+	return nil
 }
 
 // plusCreN is the number of Prairie Dog activations whose replacement puts one
@@ -185,17 +206,17 @@ func (s *State) plusCreN(k *prep, sl Slot, kind int) (uint8, Obj) {
 		return 0, NoObj
 	}
 	p := s.perms[sl].ctrl
-	if c[p] == 0 || !s.isCreature(k, sl) {
+	if c.n[p] == 0 || !s.isCreature(k, sl) {
 		return 0, NoObj
 	}
-	return c[p], Obj(c[MaxSeats+int(p)])
+	return c.n[p], c.src[p]
 }
 
 // turnReplEnd ends the creature record (the cleanup and the new turn's reset
 // both call it) and, with scope, the scope records (the cleanup).
 func (s *State) turnReplEnd(scope bool) {
 	if c := s.plusCreCold(); c != nil {
-		clear(c)
+		*c = plusCreRec{}
 	}
 	if scope {
 		for i := range s.cold.exMark {

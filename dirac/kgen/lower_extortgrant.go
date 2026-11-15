@@ -34,8 +34,8 @@ func splitExtortGrant(kw string) (string, int) {
 
 // extortGrantTrigger lowers the trigger a granted Extort gives its holder as
 // a latent SpellCast ability and returns its index, one per card. It has the
-// printed expansion's shape (engine/cards/kw_extort.go): Mode$ SpellCast |
-// ValidActivatingPlayer$ You | TriggerZones$ Battlefield, DB$ Extort. The
+// printed expansion's shape (engine/cards/kw_extort.go): a SpellCast trigger on
+// your own spells, live on the battlefield, that runs Extort. The
 // kernel lists it once per granting static among the holder's granted
 // triggers, so a permanent holding the keyword through two grants, or one
 // grant beside a printed line, triggers once per instance.

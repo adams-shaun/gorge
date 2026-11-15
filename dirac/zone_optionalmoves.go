@@ -79,7 +79,7 @@ func (s *State) libWindowCands(k *prep, f kop.FilterID, p uint8, d *Decision) in
 		}
 		n++
 		if d != nil {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 	return n

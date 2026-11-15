@@ -1,0 +1,7 @@
+family: KwID
+name: KwIngest
+value: 84
+forge: Ingest
+census: kw Ingest all=9 std=0 mbc=0 sole=9
+state: code 0
+status: reserved

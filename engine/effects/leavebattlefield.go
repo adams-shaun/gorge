@@ -73,11 +73,9 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 
 // registerAnimateReplacements is the Replacements$ grant's registration for
 // ONE animated object: each named SVar on the ANIMATING face's table is an
-// R:-shaped replacement body (Spirit-Sister's Call's `ReplaceLeaves:Event$
-// Moved | ActiveZones$ Battlefield | Origin$ Battlefield | ValidCard$
-// Card.Self | ReplaceWith$ Exile`, whose ReplaceWith$ names the sibling
-// `Exile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$
-// ReplacedCard`), resolved through the SAME Effect-created replacement path
+// R:-shaped replacement body (Spirit-Sister's Call's: if the card itself
+// would leave the battlefield, a sibling ChangeZone exiles the replaced card
+// instead), resolved through the SAME Effect-created replacement path
 // the LeaveBattlefield$ promise above uses -- an Effect-created Moved
 // replacement scoped to id's own departure (ValidCard$ Card.Self resolves
 // against Source = id), registered through Host.AddContinuous, never a
@@ -201,6 +199,32 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			if registerAnimateContinuousGrant(h, c, id, params, dur, permanent, untilEOT, lt) {
 				continue
 			}
+		}
+		if mode == "CombatDamageToughness" &&
+			strings.EqualFold(strings.TrimSpace(params["ValidCard"]), "Card.Self") &&
+			staticKeysReadable(params, "Mode", "ValidCard", "Description", "IsPresent", "PresentZone",
+				"CheckSVar", "SVarCompare", "ClassBand", "AffectedZone", "Phases", "Condition") {
+			// A granted assignment static (Streetwise Negotiator's Backup
+			// rider: SVar:BackupAbility = DB$ Animate | staticAbilities$ CDT
+			// over CDT = Mode$ CombatDamageToughness | ValidCard$ Card.Self):
+			// CR 702.165's "it gains the following ability until end of turn"
+			// -- the animated object HAS the static, so it registers the same
+			// ContinuousEffect an Effect-delivered CombatDamageToughness body
+			// does (effChangeText's sibling case in effEffect), scoped to the
+			// animated object and riding the animation's own lifetime, read by
+			// rules' assignment collector (assignmentStatics) exactly like a
+			// printed one. The whitelist is the keys the assignment walk
+			// evaluates (rules restrictionGateHolds, checkSVarHolds,
+			// classBandGateHolds, the IsPresent$ count and ValidCard$); a
+			// further scoping key must not register blanket.
+			h.AddContinuous(state.ContinuousEffect{
+				Source: id, Controller: c.Controller, Duration: dur,
+				Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+				ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
+				AssignmentStaticMode: mode, AssignmentStaticParams: params,
+				AssignmentStaticSVars: c.SVars,
+			})
+			continue
 		}
 		if mode == ModeNoCleanupDamage && len(params["ValidCard"]) > 0 &&
 			staticKeysReadable(params, "Mode", "ValidCard", "Description") {

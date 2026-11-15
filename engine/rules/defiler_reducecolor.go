@@ -10,8 +10,8 @@ import (
 )
 
 // defiler_reducecolor.go is the Defiler cycle's optional cost-for-reduction
-// (`Mode$ OptionalCost | ValidCard$ Permanent.Green | ValidSA$ Spell |
-// Activator$ You | Cost$ PayLife<2> | ReduceColor$ G`): "As an additional
+// (an OptionalCost static on your green permanent spells, paying 2 life to
+// reduce the spell's cost by one green pip): "As an additional
 // cost to cast green permanent spells, you may pay 2 life. Those spells cost
 // {G} less to cast if you paid life this way." Each static is an independent
 // optional additional cost (CR 601.2b) paired with a one-pip reduction of its

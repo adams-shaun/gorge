@@ -29,10 +29,7 @@ func (lc *lowerCtx) maxSpeedGrantedRepl(sp *params, name string, gy bool) error 
 	}
 	r.With = cards.ResolveSVar(lc.face.SVars, r.Params["ReplaceWith"]) // link.go does this for a printed R: line
 	idx := len(lc.out.Repls)
-	lc.speedRepl = true
-	err := lc.lowerRepl(r)
-	lc.speedRepl = false
-	if err != nil {
+	if err := lc.lowerRepl(r); err != nil {
 		return err
 	}
 	if len(lc.out.Repls) != idx+1 || (lc.out.Repls[idx].Kind != "DamagePlus" && lc.out.Repls[idx].Kind != "DrawMore") || lc.out.Repls[idx].Cond.Kind != cNone {

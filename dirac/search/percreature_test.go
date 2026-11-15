@@ -97,8 +97,8 @@ func TestPerCreatureReachesEverySubset(t *testing.T) {
 	}
 
 	reached := map[string]bool{}
-	var dfs func(s *dirac.State, d dirac.Decision, c uint8, acts []uint32)
-	dfs = func(s *dirac.State, d dirac.Decision, c uint8, acts []uint32) {
+	var dfs func(s *dirac.State, d dirac.Decision, c dirac.Obj, acts []uint32)
+	dfs = func(s *dirac.State, d dirac.Decision, c dirac.Obj, acts []uint32) {
 		var p point
 		sr.chainCur = c
 		bot := sr.pickBot(s, &d)
@@ -107,7 +107,7 @@ func TestPerCreatureReachesEverySubset(t *testing.T) {
 		}
 		sr.chainCur = 0
 		x := sr.chainX
-		var after [MaxPerm]uint8
+		var after [MaxPerm]dirac.Obj
 		na := chainAfter(&d, x, &after)
 		for i := 0; i < p.n; i++ {
 			s2, d2 := new(dirac.State), dirac.Decision{}
@@ -118,7 +118,7 @@ func TestPerCreatureReachesEverySubset(t *testing.T) {
 				next = append(next, a)
 			}
 			s2.StepInto(&d2)
-			nc := uint8(0)
+			nc := dirac.Obj(0)
 			for _, y := range after[:na] {
 				if hasAttackBy(&d2, y) {
 					nc = y + 1
@@ -200,10 +200,10 @@ func TestPerCreatureRootDeclaration(t *testing.T) {
 	}
 	seen := map[uint8]bool{}
 	for _, a := range res.Acts[:res.NActs-1] {
-		if a.Kind() != dirac.AkAttack || seen[a.Source()] {
+		if a.Kind() != dirac.AkAttack || seen[uint8(a.Source())] {
 			t.Fatalf("bad pick %v in %v", a, res.Acts[:res.NActs])
 		}
-		seen[a.Source()] = true
+		seen[uint8(a.Source())] = true
 		ok := false
 		for i := 0; i < int(d.N); i++ {
 			ok = ok || d.Options[i] == a
@@ -230,16 +230,16 @@ func TestPerCreaturePriorIsMaskedSubsetLikelihood(t *testing.T) {
 	o := perCreatureOpts()
 	o.PriorTopK = 6
 	sr := NewSearcher(o, &fakeNet{val: 0.6}, Heuristic{})
-	var first uint8
+	var first dirac.Obj
 	zi := -1
 	for i := 0; i < int(d.N); i++ {
 		if d.Options[i].Kind() == dirac.AkAttack {
-			first, zi = d.Options[i].Source(), i
+			first, zi = dirac.Obj(d.Options[i].Source()), i
 			break
 		}
 	}
 	// the only attack option of the first creature (the player defends alone)
-	z := float64(float32((uint32(twoSeatCodes(d.Options[zi]))*2654435761>>7)%13) / 4)
+	z := float64(float32((twoSeatCodes(d.Options[zi])*2654435761>>7)%13) / 4)
 	sr.inChain, sr.chainRoot = true, first+1
 	res := sr.Search(s, 7)
 	sr.inChain, sr.chainRoot = false, 0

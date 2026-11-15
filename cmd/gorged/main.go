@@ -21,7 +21,8 @@ import (
 )
 
 func extensions() gorged.Extensions {
-	return gorged.Extensions{Review: reviewLoad, Events: gorgedevents.Plugin{}}
+	events := &gorgedevents.Plugin{}
+	return gorged.Extensions{Review: reviewLoad, Events: events, Flags: events.Flags}
 }
 
 func main() { os.Exit(gorged.Main(os.Args[1:], extensions())) }

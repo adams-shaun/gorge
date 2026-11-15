@@ -13,7 +13,7 @@ const payKindSacHost = 18
 // which only a delayed trigger (a remembered object's version) or a spell (the
 // keywords it gained) otherwise uses, so the pending trigger and the stack entry
 // carry no byte for it.
-func (e *stackEntry) trigHost() uint8 {
+func (e *stackEntry) trigHost() objWord {
 	if e.kind != seTrigger || e.ab == abDelayed {
 		return 0
 	}

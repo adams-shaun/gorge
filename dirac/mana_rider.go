@@ -105,6 +105,20 @@ func (s *State) manaRider(k *prep, sl Slot) {
 	}
 }
 
+// riderPotential reports whether the source at sl's first mana ability is a
+// bounded rider activation the potential walks count (gorge potentialManaFor:
+// every mana ability of every untapped source, so a trigger's own cost is
+// offered over it): the windowPick rider arm's condition. A rider beside a
+// plain first ability keeps its first unit priced and stays a prefix gap.
+func (s *State) riderPotential(k *prep, p uint8, sl Slot) bool {
+	if k.gen == nil || !k.gen.anyManaRider {
+		return false
+	}
+	c := s.cardAt(sl)
+	a, ok := s.riderAbilityOf(k, sl)
+	return ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, sl, a)
+}
+
 // riderAbOf is card c's bounded rider ability index (prep.riderAb), -1 none.
 func (k *prep) riderAbOf(c CardID) int8 {
 	if int(c) >= len(k.riderAb) {
@@ -320,5 +334,14 @@ func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 		for i := uint8(0); i < q.n; i++ {
 			s.gainLife(k, q.s[i], n)
 		}
+	}
+}
+
+// markRiderDone marks the bounded rider ability of the source at sl as already
+// counted by the potential walk, so its fixpoint does not admit it a second
+// time (potentialGapCost's Deplete arm): gorge counts it once.
+func (s *State) markRiderDone(k *prep, sl Slot, done *[MaxPerm]uint16) {
+	if ai := k.riderAbOf(s.cardAt(sl)); ai >= 0 && ai < 16 {
+		done[sl] |= 1 << ai
 	}
 }

@@ -44,12 +44,15 @@ func prepWaterbend(t *kop.Table, g *genPrep) {
 }
 
 // waterbendCandidate reports whether sl can be tapped for a waterbend cost:
-// untapped, an artifact or creature, and no attached bestow card (gorge also
-// names a reconfigured card, which kgen does not lower). An equipped Equipment
-// qualifies (CR 701.67a).
+// untapped, an artifact or creature, and no attached bestow or Reconfigure
+// card (gorge's ConvokeAsk skips both). An equipped Equipment qualifies (CR
+// 701.67a).
 func (s *State) waterbendCandidate(k *prep, sl Slot) bool {
 	pp := &s.perms[sl]
 	if pp.flags&pfTapped != 0 || s.bestowAttached(k, sl) {
+		return false
+	}
+	if k.gen != nil && k.gen.anyReconfigure && s.reconfigureAttached(k, sl) {
 		return false
 	}
 	return s.typesAt(k, sl)&(kop.TArtifact|kop.TCreature) != 0
@@ -462,7 +465,7 @@ func (s *State) waterbendOptions(k *prep, d *Decision) bool {
 			s.capFull(StallTapPick)
 			break
 		}
-		d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 	}
 	if !pose && s.waterbendPickCount() == 0 {
 		return false

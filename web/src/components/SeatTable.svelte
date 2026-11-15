@@ -6,6 +6,7 @@
   import { pileCards, pileLabel, pileOpener, type PileZone } from '../lib/pileopener.svelte';
   import { pointerRelease } from '../lib/pointer';
   import { lossCauses, seatRows, stateLabel, type SeatState } from '../lib/seattable';
+  import { commanderDamageOf, LETHAL_CMD_DAMAGE } from '../lib/commander';
 
   /**
    * SeatTable is the rail's single per-seat summary. Each row preserves the
@@ -35,6 +36,12 @@
    * the same data and the same rule — not gated by pile owner). options is
    * optional and null by default so every existing caller renders exactly
    * as before.
+   *
+   * In a Commander game a seat that has taken commander damage (CR 903.10,
+   * the wire's cmd_damage) gets one more wrapping line under its name: each
+   * dealing commander with its own running total out of the lethal 21,
+   * never summed. A seat with none, and every Constructed seat, draws
+   * nothing extra.
    */
   let { view, seats = [], focus = null, onFocus, events = [], options = null }: {
     view: View;
@@ -80,6 +87,7 @@
       {@const handCards = player ? cardsFor(player, 'hand') : []}
       {@const graveyardCards = player ? cardsFor(player, 'graveyard') : []}
       {@const exileCards = player ? cardsFor(player, 'exile') : []}
+      {@const cmdDamage = player ? commanderDamageOf(player, view.players) : []}
       <li
         data-seat-row={r.seat}
         data-state={r.state}
@@ -103,6 +111,14 @@
           {#if r.lost}
             <p class="eliminated" data-eliminated>
               <span class="eliminated__tag">Eliminated</span>{#if r.lostReason}<span class="eliminated__cause"> — {r.lostReason}</span>{/if}
+            </p>
+          {/if}
+          {#if cmdDamage.length > 0}
+            <p class="cmddmg" data-cmd-damage={r.seat}>
+              <span class="cmddmg__tag">Cmdr dmg</span>
+              {#each cmdDamage as d (d.id)}
+                <span class="cmddmg__one" class:crit={d.crit} class:lethal={d.lethal} title={`${d.amount} of ${LETHAL_CMD_DAMAGE} commander damage from ${d.name}`}>{d.name} {d.amount}</span>
+              {/each}
             </p>
           {/if}
         </div>
@@ -202,6 +218,11 @@
      while inheriting nowrap — the pre-one-line table wrapped it, so wrap it
      again. .who's overflow: hidden is the second guard for a long word. */
   .eliminated { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--danger); line-height: 1.3; white-space: normal; }
+  .cmddmg { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--ink-dim); line-height: 1.3; white-space: normal; display: flex; flex-wrap: wrap; gap: 0 0.4rem; }
+  .cmddmg__tag { font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .cmddmg__one { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+  .cmddmg__one.crit { color: var(--ember); font-weight: 600; }
+  .cmddmg__one.lethal { color: var(--danger); font-weight: 700; }
   .eliminated__tag { font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
   .eliminated__cause { color: color-mix(in srgb, var(--danger) 82%, var(--ink-inst)); }
 </style>

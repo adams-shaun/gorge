@@ -8,7 +8,7 @@ import (
 // implicatesMatchup is three cards in two decks: objects 0-1 are deck 0's Alpha
 // and Beta, objects 2-3 deck 1's Beta and Gamma, and anything past them a token.
 func implicatesMatchup() *Matchup {
-	return &Matchup{Table: []string{"Alpha", "Beta", "Gamma"}, Deck: [2][]uint8{{0, 1}, {1, 2}}}
+	return &Matchup{Table: []string{"Alpha", "Beta", "Gamma"}, Deck: [2][]CardIndex{{0, 1}, {1, 2}}}
 }
 
 func TestImplicatesNamesTheDifferingOption(t *testing.T) {

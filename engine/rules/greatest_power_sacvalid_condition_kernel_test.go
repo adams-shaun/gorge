@@ -14,8 +14,8 @@ import (
 )
 
 // TestGreatestPowerSacValidPoolReadsDerivedPower drives Consume's exact
-// Sacrifice shape (`ValidTgts$ Player | SacValid$
-// Creature.greatestPowerControlledByTargeted`) through effSacrifice's pool
+// Sacrifice shape (target player sacrifices a creature with the greatest
+// power among the creatures they control) through effSacrifice's pool
 // walk with a real LPT/SubModify +5/+5 pump on the 2/2 Grizzly Bears. The
 // pumped bear is the derived-greatest (7 vs the Hill Giant's 3), so the pool
 // must admit only the bear and sacrifice it.
@@ -70,8 +70,8 @@ func TestGreatestPowerSacValidPoolReadsDerivedPower(t *testing.T) {
 }
 
 // TestGreatestPowerConditionDefinedGroupReadsDerivedPower drives Getaway
-// Glamer's destroy condition (`ConditionDefined$ Targeted | ConditionPresent$
-// Creature.greatestPower`) with a real LPT/SubModify +5/+5 pump on the 2/2
+// Glamer's destroy condition (the target is a creature with the greatest
+// power) with a real LPT/SubModify +5/+5 pump on the 2/2
 // Grizzly Bears so the pumped bear (derived 7) outranks the targeted 6/6
 // Colossal Dreadmaw. The condition means "no other creature has greater
 // power", so it must FAIL and the Dreadmaw must survive; a defined-group walk

@@ -253,6 +253,12 @@ type CardDef struct {
 	// mode bit 0, sfKicked) is gorge's "buyback" cast; Keywords has no
 	// KwKicker. The spell returns to its owner's hand as it resolves.
 	Buyback bool
+	// Entwine: K:Entwine (CR 702.42a) on a single-pick instant/sorcery charm:
+	// Kicker holds the entwine cost (zero mana with KickerCost for a Sac part)
+	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's "entwined"
+	// cast, which announces every feasible mode (dirac/kw_entwine.go);
+	// Keywords has no KwKicker.
+	Entwine bool
 	// Landwalk is the printed landwalk keyword's land filter (CR 702.14,
 	// 0 = none): the creature can't be blocked while the defending player
 	// controls a land matching it.
@@ -346,6 +352,10 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// Ascend is printed Ascend (CR 702.131): its controller gets the city's
+	// blessing once they control ten or more permanents, and an instant or
+	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
+	Ascend bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a
@@ -450,6 +460,12 @@ type CardDef struct {
 	// spell additional cost (kgen refuses them; no corpus card carries one).
 	Retrace     bool
 	RetraceCost Cost
+	// JumpStart is printed K:Jump-start (CR 702.84a), set with Retrace: the
+	// same graveyard cast with RetraceCost a discard of any one card
+	// (CostDiscard), and the spell exiled whenever it leaves the stack (the
+	// flashback family's sfFlashback, stamped once the cast is paid;
+	// dirac/kw_jumpstart.go).
+	JumpStart bool
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
@@ -459,6 +475,11 @@ type CardDef struct {
 	// reduction, evaluated for the permanent's controller and subtracted
 	// from MorphCost's generic, floored at zero (dirac/face_morphreduce.go).
 	MorphReduce ValueRef
+	// MorphLife (0 = none) is the life a keyword turn-up whose cost is
+	// PayLife<N> pays (CR 702.37e, 119.4; Zombie Cutthroat): MorphCost is
+	// then {0}, and the action is offered only while the controller's life
+	// covers N (dirac/face_morphlife.go).
+	MorphLife uint8
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so
@@ -538,12 +559,26 @@ type CardDef struct {
 	// spell runs OverloadProg, the "each" variant of its printed program
 	// (dirac/kw_overload.go).
 	HasOverload bool
+	// HasSurge is printed surge (CR 702.117a; no KwMask bit is free): the
+	// hand offers the surged cast at SurgeCost once its caster has cast
+	// another spell this turn (dirac/kw_surge.go).
+	HasSurge bool
+	// SurgeCost is the printed surge cost (HasSurge).
+	SurgeCost ManaCost
 	// OverloadCost is the printed overload cost (HasOverload).
 	OverloadCost ManaCost
 	// OverloadProg is the overloaded cast's program (CR 702.96a): the
 	// printed spell's targeted instructions rewritten to their each-sweeps.
 	// Nil when the card cannot be modelled in bounded code.
 	OverloadProg []Instr
+	// CleaveAb is 1 + the index of a printed Cleave's second spell ability
+	// (CR 702.148a): the bracket-free text, with its own targets and program.
+	// The hand offers the cleaved cast at CleaveCost, and the stack entry
+	// carries that ability index in place of the printed one
+	// (dirac/kw_cleave.go).
+	CleaveAb uint8
+	// CleaveCost is the cleave cost (CleaveAb != 0).
+	CleaveCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
 	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
 	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,
@@ -551,11 +586,21 @@ type CardDef struct {
 	HasBestow  bool
 	BestowCost ManaCost
 	BestowTgt  TargetSpec
+	// HasReconfigure is printed Reconfigure (CR 702.151; no KwMask bit is
+	// free): while the permanent is attached it is not a creature
+	// (dirac/kw_reconfigure.go). The attach and unattach abilities are the
+	// card's own activated abilities.
+	HasReconfigure bool
 	// HasModeCost: Spree (CR 702.172a): each chosen mode i adds
 	// ModeCost[i] to the spell's total cost (kernel
 	// kw_spree.go).
 	HasModeCost bool
 	ModeCost    [4]ManaCost
+	// HasEscalate: Escalate (CR 702.120a) rides HasModeCost with every
+	// ModeCost zero: the chosen modes add Escalate once for each mode beyond
+	// the first (kernel kw_escalate.go).
+	HasEscalate bool
+	Escalate    ManaCost
 	// FbCost is a printed flashback cost's non-mana part (KwFlashback;
 	// AltCost holds its mana, {0} when none): Sac<N/Spec> or
 	// tapXType<N/Spec>, paid through the cast's pick stages in place of
@@ -600,9 +645,12 @@ type CardDef struct {
 	// itself (CR 509.1b: "can't be blocked except by N or more creatures";
 	// 0 = none): menace's floor generalised (dirac/combat.go minBlockers).
 	// Not when the creature has lost its abilities. Troll of Khazad-dum.
+	// MinBlockersAll (outside the literal 2..8) is Min$ All (Tromokratis:
+	// "can't be blocked unless all creatures defending player controls
+	// block it"): the floor is every creature the attacked player controls.
 	MinBlockers uint8
-	// ExtraBlocks is a printed S:Mode$ Continuous | AffectedDefined$ Self |
-	// CanBlockAmount$ 1 (CR 509.1a): the creature can block one additional
+	// ExtraBlocks is a printed continuous static on the card itself granting
+	// one extra block (its CanBlockAmount, CR 509.1a): the creature can block one additional
 	// attacker each combat; 0 none. Not when it has lost its abilities.
 	ExtraBlocks uint8
 	// SpendRead: an SVar reads Count$CastTotalManaSpent (Memory Deluge):
@@ -670,6 +718,13 @@ type CardDef struct {
 	// face's union, WUBRG in bits 0..4 as ColorMask): a commander-identity mana
 	// ability (Ability.ManaIdentity) unions it over its controller's commanders.
 	Identity ColorMask
+	// TextWords is the colour words (bits 0..4, WUBRG) and basic land type
+	// words (bits 5..9, Plains Island Swamp Mountain Forest) the face's text
+	// reads anywhere gorge's CR 612 rewrite would change them (the type line,
+	// keywords, Oracle text, SVars and every ability, trigger, static and
+	// replacement parameter; dirac/kgen textreach.go). Set only in a table
+	// that holds an ExtChangeText, so every other table is unchanged.
+	TextWords uint16
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.
@@ -719,6 +774,20 @@ const (
 	// countered or fizzled, it goes to the graveyard; off the stack it is
 	// its front (dirac/face_omen.go).
 	FaceOmen
+	// FacePrototype is a card printed with K:Prototype (CR 702.160, 718.3):
+	// face 1 is the same card with its prototype characteristics (the inset
+	// mana cost, the colours of that cost and the inset power and
+	// toughness), its other characteristics and abilities unchanged. It is
+	// cast from the hand as a face cast (gorge's "prototype") and is the
+	// object's card on the stack and on the battlefield only; every other
+	// zone shows the front (dirac/face_castface.go).
+	FacePrototype
+	// FaceFlip is a flip card (CR 710, gorge's "Flip"): it is cast and
+	// enters as its top half; a SetState Mode$ Flip turns a permanent that
+	// is not yet flipped to face 1 in place, one-way (CR 710.4), with no new
+	// layer timestamp and no Mode$ Transformed trigger; leaving the
+	// battlefield it is its top half again (CR 710.2).
+	FaceFlip
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face
@@ -772,3 +841,8 @@ func (c *CardDef) TapPays() bool { return c.Convoke || c.Improvise }
 
 // AndNot is m without the members of o.
 func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1], m[2] &^ o[2]} }
+
+// MinBlockersAll is CardDef.MinBlockers' Min$ All form: the floor is the
+// attacked player's whole creature count (gorge combat.DefenderCreatureCount),
+// so one creature of theirs that cannot block makes the attacker unblockable.
+const MinBlockersAll uint8 = 255

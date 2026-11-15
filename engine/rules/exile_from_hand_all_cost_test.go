@@ -11,8 +11,8 @@ import (
 
 // The ExileFromHand<N/All> cost. Forge's `All` type slot on an Exile
 // cost names the WHOLE zone rather than a card filter: Herigast, Erupting
-// Nullkite's cast trigger is `Cost$ ExileFromHand<1/All> | Defined$ You |
-// NumCards$ 3` -- "you may exile your hand. If you do, draw three cards".
+// Nullkite's cast trigger is a draw of three behind an optional cost that
+// exiles the whole hand -- "you may exile your hand. If you do, draw three cards".
 // Reading `All` as a filter would reach matchesSpec as a filter base word no card
 // carries, so the candidate list was empty, triggeredCostComponentsPayable
 // judged the component unpayable, and the pay/decline window was offered

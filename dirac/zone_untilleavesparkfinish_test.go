@@ -97,7 +97,7 @@ func TestLinkReturnParkedInAnswerClosesFrame(t *testing.T) {
 		t.Fatalf("after continueRes retHold %v latch %#x, want the frame still open across the ask",
 			s.g.retHold, s.g.batchLatch)
 	}
-	s.applyResolveGen(sc.k, MakeAction(AkChoose, uint8(q), 0, 0))
+	s.applyResolveGen(sc.k, MakeAction(AkChoose, TCode(q), 0, 0))
 	assertFrameClosed(t, sc, q, aura, tailSrc, late)
 }
 

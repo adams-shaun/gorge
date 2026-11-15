@@ -491,7 +491,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	// read on Mode$ Cycled leaves a Mode$ Discarded trigger on the same event
 	// at zero.
 	if t.ModeKind() == cards.TriggerCycled {
-		if _, ok := events.IsCyclingDiscard(ev); ok && e.cast != nil && e.cast.card == ev.Obj {
+		if _, ok := trigmatch.CyclingDiscard(ev, boardOf(e).Facts()); ok && e.cast != nil && e.cast.card == ev.Obj {
 			c.TriggerPaidX = e.cast.x
 		}
 	}
@@ -746,6 +746,7 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	sc.TriggerContext, sc.Remembered, sc.Resolve = tcx, remembered, env.resolveFn
 	if srcLKIValid {
 		sc.SourceLKIValid, sc.SourceChosenType, sc.SourceChosenColor = true, srcLKI.chosenType, srcLKI.chosenColor
+		sc.SourceChosen = srcLKI.chosen
 	}
 	// The stack object's Remembered and fire-time LKI are bound above, beside
 	// TriggerContext, so placement-time numeric SVars read the same captured

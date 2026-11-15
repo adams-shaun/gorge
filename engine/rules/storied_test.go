@@ -35,9 +35,9 @@ func triggerStoriedGrant(t *testing.T, e *Engine, p state.PlayerID, id state.Obj
 }
 
 // TestDainEnduringStoryPricesTheAttackTax pins CR 702.175a end to end on the
-// real carrier: Dáin, Lord of the Iron Hills'
-// `S:Mode$ CantAttackUnless | ValidCard$ Creature | Target$ You | Cost$ 1 |
-// Condition$ EnduringStory`. With the enduring story held, an attack on
+// real carrier: Dáin, Lord of the Iron Hills' CantAttackUnless static
+// (creatures can't attack you unless their controller pays {1}, while you
+// have the enduring story). With the enduring story held, an attack on
 // Dáin's controller is priced {1} per attacker and the pool pays it; with no
 // enduring story the same attack is free (no charge, no price label). Before
 // the Storied work the gate failed closed, so the tax silently never
@@ -138,8 +138,8 @@ func TestDainAttackIsFreeWithoutEnduringStory(t *testing.T) {
 }
 
 // TestFiliContinuousPumpNeedsEnduringStory pins the S:Mode$ Continuous arm:
-// Fíli the Pathfinder's `Affected$ Creature.YouCtrl | AddPower$ 1 |
-// AddToughness$ 1 | Condition$ EnduringStory`. The gate holds only once the
+// Fíli the Pathfinder's +1/+1 to creatures you control while you have the
+// enduring story. The gate holds only once the
 // seat has the designation; before the granting event the pump is off.
 func TestFiliContinuousPumpNeedsEnduringStory(t *testing.T) {
 	t.Parallel()

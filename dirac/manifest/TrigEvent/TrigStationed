@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigStationed
+value: 124
+forge: Stationed
+census: trig Stationed all=1 std=0 mbc=0 sole=0
+state: code 0
+status: reserved

@@ -153,9 +153,6 @@ func kanimchosenPolicy(seed uint64) Policy {
 
 func TestAnimchosenLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeDefinedKWFixTime) {
-		t.Skip("gorge before cr-pump-definedkw-chosencolor (5026a0910)")
-	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -231,9 +228,6 @@ func TestAnimchosenLockstep(t *testing.T) {
 func TestAnimchosenMutation(t *testing.T) {
 	if isolate(t) {
 		return
-	}
-	if !gorgePinAtLeast(t, gorgeDefinedKWFixTime) {
-		t.Skip("gorge before cr-pump-definedkw-chosencolor (5026a0910)")
 	}
 	dirac.DebugAnimChosenFirst = true
 	defer func() { dirac.DebugAnimChosenFirst = false }()

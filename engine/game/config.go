@@ -31,7 +31,10 @@ type Config struct {
 	Format                Format
 	StartingLife          int32 // 0 is the default for the format
 	Commanders            [][]int
-	StartChooser          *int // the seat posed CR 103.1's choice instead of the toss winner
+	// DraftPartners seats a Commander-draft pair (two commanders that each have
+	// partner or may be treated as having it); false keeps CR 903.13 exactly.
+	DraftPartners bool
+	StartChooser  *int // the seat posed CR 103.1's choice instead of the toss winner
 	// GuardDisabled means the host's per-turn guard is off, so the engine's
 	// livelock watcher is too.
 	GuardDisabled bool

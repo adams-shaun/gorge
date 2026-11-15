@@ -54,12 +54,56 @@ const (
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
 	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
 	rTaxedAttacker                // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
+	rTriggeredOwner               // the owner of the triggering object (kop.RefTriggerObjOwner; Defined$ TriggeredCardOwner)
+	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
+	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
+	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rCount
 )
 
-var refNames = [...]string{"None", "Target", "Self", "You", "EachOpp", "EachPlayer", "TargetController",
-	"TargetOwner", "Triggered", "TriggeredNew", "TriggeredSource", "TriggeredPlayer", "TriggeredTgtCtrl", "Equipped", "Remembered",
-	"DelayedRemembered", "Replaced", "Chosen", "Each", "Sacrificed", "Host", "Defending", "Targets", "RememberedController", "Discarded", "LibTop", "OppNonRemCtrl", "SrcOwner", "TriggerAttackers", "RememberedOwner", "Imprinted", "Promised", "AttachedCtrl", "LastCreated", "TaxedAttacker"}
+var refNames = [...]string{
+	rNone:                 "None",
+	rTarget:               "Target",
+	rSelf:                 "Self",
+	rYou:                  "You",
+	rEachOpp:              "EachOpp",
+	rEachPlayer:           "EachPlayer",
+	rTargetController:     "TargetController",
+	rTargetOwner:          "TargetOwner",
+	rTriggered:            "Triggered",
+	rTriggeredNew:         "TriggeredNew",
+	rTriggeredSource:      "TriggeredSource",
+	rTriggeredPlayer:      "TriggeredPlayer",
+	rTriggeredTgtCtrl:     "TriggeredTgtCtrl",
+	rEquipped:             "Equipped",
+	rRemembered:           "Remembered",
+	rDelayedRemembered:    "DelayedRemembered",
+	rReplaced:             "Replaced",
+	rChosen:               "Chosen",
+	rEach:                 "Each",
+	rSacrificed:           "Sacrificed",
+	rHost:                 "Host",
+	rDefending:            "Defending",
+	rTargetUnion:          "Targets",
+	rRememberedController: "RememberedController",
+	rDiscarded:            "Discarded",
+	rLibTop:               "LibTop",
+	rOppNonRemCtrl:        "OppNonRemCtrl",
+	rSrcOwner:             "SrcOwner",
+	rTriggerAttackers:     "TriggerAttackers",
+	rRememberedOwner:      "RememberedOwner",
+	rImprinted:            "Imprinted",
+	rPromised:             "Promised",
+	rAttachedCtrl:         "AttachedCtrl",
+	rLastCreated:          "LastCreated",
+	rTaxedAttacker:        "TaxedAttacker",
+	rTriggeredOwner:       "ChosenPlayer",
+	rChosenPlayer:         "TriggeredOwner",
+	rChosenPlayerRes:      "ChosenPlayerRes",
+	rTriggerOpps:          "TriggerOpps",
+	rResChosenPlayer:      "ResChosenPlayer",
+}
 
 type lRef struct {
 	Kind refKind
@@ -195,14 +239,126 @@ const (
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
 	vJoinForces          // the resolution's join-forces total (kop.ExJoinForces; lower_storesvar.go)
 	vRemEachOwnNonLand   // the remembered cards that are nonland and owned by the repeated player (Remembered$Valid Card.nonLand+RememberedPlayerOwn, a RepeatEach body's ConditionCheckSVar$ gate)
+	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
+	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
+	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vCount_
 )
 
-var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "SumPower", "DistinctCMC", "Kicked",
-	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
-	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
-	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber", "FirstCast", "YourExtraTurns", "NotOwnLibMV", "CounterKinds", "TargetPlayers", "IfCastOwnMain", "PWTypes", "TapPower", "StepIn", "TgtSpent", "OppExtreme", "ThisTurnActExhaust", "Activations", "LifeLostLastTurn", "LastDamage", "DmgAmount", "TimesKicked", "Monarch", "EnergyOf", "PlExtreme", "JoinForces", "RemEachOwnNonLand"}
+var valNames = [...]string{
+	vNone:                "None",
+	vConst:               "Const",
+	vX:                   "X",
+	vCount:               "Count",
+	vCountGraveyard:      "CountGraveyard",
+	vSumPower:            "SumPower",
+	vDistinctCMC:         "DistinctCMC",
+	vKicked:              "Kicked",
+	vMorbid:              "Morbid",
+	vAttackedThisTurn:    "AttackedThisTurn",
+	vPowerOf:             "PowerOf",
+	vToughnessOf:         "ToughnessOf",
+	vLifeOf:              "LifeOf",
+	vLibrarySizeOf:       "LibrarySizeOf",
+	vStartingLife:        "StartingLife",
+	vTriggerAmount:       "TriggerAmount",
+	vLifeGainedThisTurn:  "LifeGainedThisTurn",
+	vOppLifeLostThisTurn: "OppLifeLostThisTurn",
+	vCountersOn:          "CountersOn",
+	vCreaturesDied:       "CreaturesDied",
+	vRememberedCount:     "RememberedCount",
+	vExcessDamage:        "ExcessDamage",
+	vLastLifeLost:        "LastLifeLost",
+	vTokensCreated:       "TokensCreated",
+	vCountCast:           "CountCast",
+	vLifeLostThisTurn:    "LifeLostThisTurn",
+	vSum:                 "Sum",
+	vHandSizeOf:          "HandSizeOf",
+	vCountExile:          "CountExile",
+	vOppsLostLife:        "OppsLostLife",
+	vMVOf:                "MVOf",
+	vCountAtLeast:        "CountAtLeast",
+	vPromisedGift:        "PromisedGift",
+	vResolvedThisTurn:    "ResolvedThisTurn",
+	vThisTurnCast:        "ThisTurnCast",
+	vRollResult:          "RollResult",
+	vCastManaSpent:       "CastManaSpent",
+	vCompare:             "Compare",
+	vBranches:            "Branches",
+	vDevotion:            "Devotion",
+	vParty:               "Party",
+	vDrawnThisTurn:       "DrawnThisTurn",
+	vGraveTypes:          "GraveTypes",
+	vValidAgg:            "ValidAgg",
+	vGraveAgg:            "GraveAgg",
+	vYourSpeed:           "YourSpeed",
+	vHighestOppPoison:    "HighestOppPoison",
+	vThisTurnEntered:     "ThisTurnEntered",
+	vThisTurnCastSpec:    "ThisTurnCastSpec",
+	vCommittedCrime:      "CommittedCrime",
+	vThisTurnActGrave:    "ThisTurnActGrave",
+	vSelfPrepared:        "SelfPrepared",
+	vSneaked:             "Sneaked",
+	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
+	vPoisonOf:            "PoisonOf",
+	vProduct:             "Product",
+	vAttackersAll:        "AttackersAll",
+	vRefCount:            "RefCount",
+	vCountHand:           "CountHand",
+	vYourTurns:           "YourTurns",
+	vLowestLife:          "LowestLife",
+	vRedNCDmg:            "RedNCDmg",
+	vVoid:                "Void",
+	vRevolt:              "Revolt",
+	vLeftZone:            "LeftZone",
+	vCastFromGrave:       "CastFromGrave",
+	vCtrAdded:            "CtrAdded",
+	vExiledWithN:         "ExiledWithN",
+	vConverge:            "Converge",
+	vExileTypes:          "ExileTypes",
+	vSacrificedThisTurn:  "SacrificedThisTurn",
+	vDiscardedThisTurn:   "DiscardedThisTurn",
+	vNumColorsOf:         "NumColorsOf",
+	vScriedThisTurn:      "ScriedThisTurn",
+	vRemLKIPT:            "RemLKIPT",
+	vCastBattlefield:     "CastBattlefield",
+	vUnlockedDoors:       "UnlockedDoors",
+	vChosenMode:          "ChosenMode",
+	vMod:                 "Mod",
+	vPow:                 "Pow",
+	vAttackedTurn:        "AttackedTurn",
+	vPhaseCount:          "PhaseCount",
+	vAdamant:             "Adamant",
+	vDilemmasFaced:       "DilemmasFaced",
+	vChromaOf:            "ChromaOf",
+	vOppsAttacked:        "OppsAttacked",
+	vChosenNumber:        "ChosenNumber",
+	vFirstCast:           "FirstCast",
+	vYourExtraTurns:      "YourExtraTurns",
+	vNotOwnLibMV:         "NotOwnLibMV",
+	vCounterKinds:        "CounterKinds",
+	vTargetPlayers:       "TargetPlayers",
+	vIfCastOwnMain:       "IfCastOwnMain",
+	vPWTypes:             "PWTypes",
+	vTapPower:            "TapPower",
+	vStepIn:              "StepIn",
+	vTgtSpent:            "TgtSpent",
+	vOppExtreme:          "OppExtreme",
+	vThisTurnActExhaust:  "ThisTurnActExhaust",
+	vActivations:         "Activations",
+	vLifeLostLastTurn:    "LifeLostLastTurn",
+	vLastDamage:          "LastDamage",
+	vDmgAmount:           "DmgAmount",
+	vTimesKicked:         "TimesKicked",
+	vMonarch:             "Monarch",
+	vEnergyOf:            "EnergyOf",
+	vPlExtreme:           "PlExtreme",
+	vJoinForces:          "JoinForces",
+	vRemEachOwnNonLand:   "RemEachOwnNonLand",
+	vDmgOppsTaken:        "DmgOppsTaken",
+	vCmdGreatestMV:       "CmdGreatestMV",
+	vBlessing:            "Blessing",
+}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -258,7 +414,7 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("n=%d", v.N))
 		case vCountGraveyard, vHandSizeOf, vOppsLostLife:
 			if v.N != 0 {
-				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the cards, not the raw zone length (a hand token is no card); vOppsLostLife N 1 legendary hit, N 2 any combat hit
+				args = append(args, fmt.Sprintf("n=%d", v.N)) // N 1: the cards, not the raw zone length (a hand token is no card); vOppsLostLife N 1 legendary hit, N 2 any combat hit, N 3 any damage
 			}
 		}
 		if v.Ref.Kind != rNone {
@@ -303,11 +459,28 @@ const (
 	cAnd                    // both Sub conditions hold
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
+	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
+	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
 	cCount_
 )
 
-var condNames = [...]string{"None", "Present", "Value", "Kicked", "Threshold", "YourTurn", "RefMatches",
-	"CostPaid", "OpponentsTurn", "PromisedGift", "And", "EchoOwed", "SourceZone"}
+var condNames = [...]string{
+	cNone:          "None",
+	cPresent:       "Present",
+	cValue:         "Value",
+	cKicked:        "Kicked",
+	cThreshold:     "Threshold",
+	cYourTurn:      "YourTurn",
+	cRefMatches:    "RefMatches",
+	cCostPaid:      "CostPaid",
+	cOpponentsTurn: "OpponentsTurn",
+	cPromisedGift:  "PromisedGift",
+	cAnd:           "And",
+	cEchoOwed:      "EchoOwed",
+	cSourceZone:    "SourceZone",
+	cBlessing:      "Blessing",
+	cRemMark:       "RemMark",
+}
 
 type lCond struct {
 	Kind condKind
@@ -364,6 +537,14 @@ func andCond(a, b lCond) lCond {
 	return lCond{Kind: cAnd, Sub: []lCond{a, b}}
 }
 
+// orCond composes a and b into a disjunction: NOT(AND(NOT a, NOT b)), the
+// de-Morgan shape the kernel's CondAnd evaluates.
+func orCond(a, b lCond) lCond {
+	na, nb := a, b
+	na.Neg, nb.Neg = !a.Neg, !b.Neg
+	return lCond{Kind: cAnd, Neg: true, Sub: []lCond{na, nb}}
+}
+
 // lInstr is one instruction: Op on Obj with amounts A, B, the op-specific
 // constant C (symbolic in CS until emission), filter F, a condition (for
 // the branch ops) and Skip (the branch length, patched after lowering the
@@ -384,6 +565,9 @@ type lInstr struct {
 	Cond lCond
 	Skip int
 	Note string // semantic note carried into the dump (not emitted)
+	// Hyb: a trigger's own PayMana cost's hybrid pips, as printed ("GW";
+	// lower_trighybrid.go), packed into the kernel instruction's F.
+	Hyb []string
 }
 
 func (in lInstr) String() string {
@@ -403,6 +587,9 @@ func (in lInstr) String() string {
 	}
 	if in.CS != "" {
 		parts = append(parts, "CS="+in.CS)
+	}
+	if len(in.Hyb) != 0 {
+		parts = append(parts, "hyb="+strings.Join(in.Hyb, ","))
 	}
 	if in.Obj2.Kind != rNone {
 		parts = append(parts, "obj2="+in.Obj2.String())
@@ -503,6 +690,12 @@ type lTarget struct {
 	// DkTarget ask (cast.go).
 	TrigChooser bool
 
+	// ThanActive is a player target's Oath-cycle comparison with the active
+	// player (kop.ThanCreatures ...; 0 = none), always beside OppToActive
+	// (lower_thanactive.go; kop.TgfOppToActive / TgfThanMask).
+	ThanActive  int
+	OppToActive bool
+
 	AtRes   bool   // asked mid-resolution (gorge's deferred chain-link targets), at its ChooseTargets
 	ChgSub  bool   // declared by a ChangeZone chain link (not the root): gorge announces its targets on cast (castSubChangeZoneAnnounceable)
 	Decl    bool   // a spell's copy target declaration (its root node or a charm mode's head)
@@ -529,6 +722,8 @@ type lCost struct {
 	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
 	DiscardSelf    bool     // discard this card (a hand ability: cycling)
 	DiscardF       *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
+	Discard2N      int      // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
+	Discard2F      *lFilter // the second part's filter, nil for any card (kop.Cost.Discard2F)
 	Loyalty        int      // +N / -N loyalty
 	LoyaltyX       bool     // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
 	Exert          bool     // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
@@ -558,6 +753,7 @@ type lCost struct {
 	Forage         *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG         *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN        int
+	ExileGX        bool     // ExileFromGrave<X/Spec>: exile the announced X cards matching ExileG (kop.CostExileGrave with N 0; a spell's own cost beside a printed {X}; lower_exilex.go)
 	ExileGSelf     bool     // ExileFromGrave<1/CARDNAME> first, then ExileFromGrave<N/Other spec> (kop.Cost.ExileGSelf; a graveyard activated ability's cost)
 	exileGCard     bool     // ExileG is the CARDNAME singleton part (a second ExileFromGrave part may follow)
 	ExileHandN     int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
@@ -571,6 +767,7 @@ type lCost struct {
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
 	ReturnSelf     bool     // Return<1/CARDNAME>: return this permanent to its owner's hand (an activated ability's cost only)
 	ExileSelf      bool     // Exile<1/CARDNAME>: exile this permanent (an activated ability's cost only)
+	RevealChosenT  bool     // RevealChosen<Type/...>: reveal the source's secretly chosen creature type (no payment; an offer gate, lower_revealchosen.go)
 	Return         *lFilter // Return<N/Spec>: return ReturnN permanents you control matching (a resolution cost only)
 	ReturnN        int
 	DrawN          int      // Draw<N/You>: draw N cards (a trigger's own cost only)
@@ -588,7 +785,7 @@ type lCost struct {
 // with any other cost is outside the modelled shape.
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
-		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
+		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
@@ -710,10 +907,16 @@ type lTrigger struct {
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
 	Outstanding   bool  // Mode$ Always, the counter-threshold state trigger: one instance at a time, the leave re-checks (kop.Tf4StateCtr)
 	OptTrigPlayer bool  // Optional: the trigger's player (the Phase trigger's active player) answers, not the controller (kop.Tf4OptTrigPlayer)
+	OptSrcCtrl    bool  // Optional, DamageDone: the damage source's controller answers (OptionalDecider$ TriggeredSourceController; kop.Tf5OptSrcCtrl)
 	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	TapPlan       uint8 // kop.TapPlan; Taps, non-Self ValidCard$: the payment-planner class of the watcher body (lower_tapsclass.go)
 	TapPainN      uint8 // TapPlanPain: the vetted literal damage amount
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
+	// CauseSpell: LifeLost/LifeLostAll ValidCause$ SpellAbility[.<qual>], the
+	// loss's cause is the spell or ability resolving right now (gorge
+	// lifeLossCauseMatches; kop.Tf4CauseSpellAb): 1 any spell or ability, 2
+	// SpellAbility.YouCtrl, 3 SpellAbility.OppCtrl.
+	CauseSpell uint8
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
 	// SpellToo: a creature spell its controller controls counts too.
@@ -735,12 +938,13 @@ type lTrigger struct {
 	SrcInPlay                 bool  // DamageDone ValidSource$ carries inZoneBattlefield: a source that is not a permanent never matches (kernel Tf2SrcInPlay)
 	SelfPlayerRef             bool  // PerRef from a plain self-source DamageDone to any player that reads the damaged player (lower_damagedoneonce.go selfPlayerRefShape)
 	DmgGate                   int16 // PerRef: DamageAmount$ gate (kop.DmgGate), 0 = none
+	InstGate                  int16 // DamageDealtOnce: AtLeastOneInstance$ gate (kop.DmgGate in Trigger.N), 0 = none
 	ResolvedLimit             bool  // ResolvedLimit$ 1: the source's limited lines resolve at most once each turn
 	Convoked                  bool  // ETB TfSelf: the trigger amount is Convoked$Amount, bound as it triggers (kernel Tf2Convoked)
 	CastHand                  bool  // ValidCard$ ...+wasCastFromYourHandByYou: ETB on the entering spell's cast, SpellCast on the spell (kernel Tf2CastFromHand)
 	ManaFromSelf              bool  // SpellCast ValidSA$ Spell.ManaFromCard.StrictlySelf: the spell was paid with mana this source produced (kernel Tf2ManaFromSelf)
 	MayPlaySrc                bool  // SpellCast ValidSA$ Spell.MayPlaySource: the cast went through a may-play permission (gorge FlagMayPlay; kernel Tf3MayPlaySrc)
-	Static                    bool  // SpellCast Static$ True: resolved off the stack by the trigger drain, before the ordering ask (gorge static_trigger.go; kernel Tf3Static)
+	Static                    bool  // Static$ True: resolved off the stack by the trigger drain, before the ordering ask (gorge static_trigger.go; kernel Tf3Static); kgen proved the body ask-free
 	ManaFromTreasure          bool  // SpellCast ValidSA$ Spell.ManaFromTreasure: the cast spent Treasure mana (kernel Tf3ManaFromTreasure)
 	OrTargets                 bool  // SpellCast ValidSA$ "Spell.X,Spell.IsTargeting Valid Y": F matches the spell OR F2 matches some target (kernel Tf3OrTargets)
 	N                         int16 // LandPlayed: the Origin$ zone mask, 1<<kop.Zone (0 = any)
@@ -751,6 +955,23 @@ type lTrigger struct {
 	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
 	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
 	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
+
+	// Taps lowered from a non-Static$ Mode$ TapsForMana (lower_tapsformana.go):
+	// only a tap paying a mana ability's cost (kop.Tf5TapsForMana), by a
+	// player other than the active one (Activator$ Player.NonActive,
+	// kop.Tf5TapperNonActive).
+	TapsForMana, TapperNonActive bool
+	// DamageDone: ValidTarget$ Player.attackedYouTheirLastTurn, the damaged
+	// player attacked the controller during their last turn
+	// (kop.Tf5DmgAttackedYouLastTurn; lower_atklastturn.go).
+	AtkYouLastTurn bool
+	// DamageDone: ValidTarget$ Player.counters_EQ0_Contract, the damaged
+	// player has no contract counter (kop.Tf5DmgNoContract;
+	// lower_contract.go).
+	NoContract bool
+	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
+	// by a spell or ability an opponent controls (kop.Tf5OppCause).
+	OppCause bool
 }
 
 // lTrigger.Attacked bits.
@@ -758,6 +979,7 @@ const (
 	atkYou uint8 = 1 << iota
 	atkYourPW
 	atkOpp
+	atkEnch // Player.EnchantedBy: the defender is enchanted by this listener's Aura (kop.Tf4DefEnch)
 )
 
 type lAbility struct {
@@ -785,6 +1007,7 @@ type lAbility struct {
 	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)
 	PowerUp         bool    // PowerUp$ True (CR 702.193): once per object stint, cost reduced on its entry turn
 	TurnOnce        bool    // ActivationLimit$ 1: once each turn
+	AnyAct          bool    // Activator$ Player: any player may activate it (lower_anyactivator.go)
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
@@ -793,6 +1016,7 @@ type lAbility struct {
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
 	RepBudget           uint8    // charm Pawprint$
+	ChainModes          uint8    // charm modes whose targets are all chain links (the mode root declares none; lower_entwine.go): Ability.ChainModes
 	ModeRestrict        uint8    // charm ChoiceRestriction$: 0 none, 1 ThisTurn, 2 ThisGame (lower_charmrestrict.go)
 	Trigger             *lTrigger
 	Prog                []lInstr
@@ -879,6 +1103,10 @@ type lStatic struct {
 	Override     *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter
+	// ProtChosen and ProtExc: the host's chosen-colour quality and the
+	// state-based exception (kop.Static.ProtChosen, ProtExc)
+	ProtChosen bool
+	ProtExc    *lFilter
 	// Landwalk: a Continuous grant's landwalk land filter (kop.Static.Landwalk)
 	Landwalk *lFilter
 	Grant    []int    // latent abilities the affected objects gain
@@ -887,6 +1115,12 @@ type lStatic struct {
 	Ward     int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// WardLife: a Continuous grant's "Ward:PayLife<N>" (kop.Static.WardLife)
 	WardLife int
+
+	// Evasion / Infect: a Continuous grant's intimidate (kop.EvIntimidate)
+	// and infect (kop.Static.Evasion / Infect; lower_kwmark.go)
+	Evasion uint8
+	Infect  bool
+
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
 	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;
@@ -925,6 +1159,7 @@ type lOverride struct {
 	SetTypes         uint16
 	HasSetTypes      bool
 	AddTypes         uint16
+	RemoveTypes      uint16 // RemoveType$: card types removed (kop.Override.RemoveTypes)
 	SetSubtypes      []string
 	HasSetSubtypes   bool
 	AddSubtypes      []string
@@ -940,6 +1175,7 @@ type lOverride struct {
 	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
 	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
+	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
@@ -951,6 +1187,7 @@ type lOverride struct {
 	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
+	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 }
 
 // Replacement-lite kinds.
@@ -984,6 +1221,8 @@ type lCard struct {
 	PTStar         bool
 	NoPT           bool     // the face prints no power or toughness (CardDef.NoPT)
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
+	HasChangeText  bool     // a ChangeText body lowered (textreach.go): the pool's cards carry CardDef.TextWords
+	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
@@ -994,9 +1233,11 @@ type lCard struct {
 	KickerCost     *lCost      // K:Kicker with one Sac<1/..> or Return<1/..> part: Kicker is then zero mana (lower_kickercost.go)
 	Spree          bool        // K:Spree (CR 702.172) or K:Tiered (CR 702.183): ModeCost holds each mode's additional mana cost
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
+	Escalate       *manaCost   // K:Escalate:<mana> (CR 702.120): paid once per mode chosen beyond the first; Spree is set with it (lower_escalate.go)
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
+	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
@@ -1028,12 +1269,16 @@ type lCard struct {
 	FbBeholdF      *lFilter
 	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step
 	Evoke          *manaCost // K:Evoke:<cost> (CR 702.74a): the hand's alternative cost; the permanent is sacrificed as it enters
+	Surge          *manaCost // K:Surge:<cost> (CR 702.117a): the hand's alternative cost once its caster has cast another spell this turn
 	Overload       *manaCost // K:Overload:<cost> (CR 702.96a): the hand's alternative cost; the spell reads "target" as "each"
 	// OverloadProg is the overloaded cast's program: the printed spell with
 	// each targeted instruction rewritten to its "each" sweep (CR 702.96a).
 	OverloadProg   []lInstr
+	Cleave         *manaCost // the second SP line's NonBasicSpell$ True Cost$ (CR 702.148a): the hand's alternative cost; the cleaved cast resolves that line (lower_cleave.go)
+	CleaveAb       int       // 1 + the LIR index of the cleave line's ability (Cleave != nil)
 	Bestow         *manaCost // K:Bestow:<cost> (CR 702.103a): the hand's alternative cost of the Aura cast
 	BestowT        *lTarget  // the bestowed Aura's enchant creature target (gorge bestowedAttachSA)
+	AnimateEnchant *lTarget  // the enchant a permanent Animate of Self grants the card it makes an Aura (the Licids; CardDef.Enchant, lower_animateaura.go)
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
@@ -1047,6 +1292,7 @@ type lCard struct {
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	Retrace        bool      // K:Retrace (CR 702.81a): a graveyard cast paying the PRINTED cost plus the additional discard-a-land cost (dirac/kw_retrace.go); never a substitution
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)
+	JumpStart      bool      // K:Jump-start (CR 702.84a): the retrace cast with Discard<1/Card> and the flashback exile (Retrace set beside it; dirac/kw_jumpstart.go)
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
@@ -1056,6 +1302,7 @@ type lCard struct {
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
 	Buyback        *manaCost // K:Buyback:<cost> (CR 702.27a): the kernel's kicked cast and Kicker cost, CardDef.Buyback; a Sac<1/..> cost is zero mana plus KickerCost
+	Entwine        *manaCost // K:Entwine:<cost> (CR 702.42a): the kernel's kicked cast and Kicker cost, CardDef.Entwine; a Sac<N/..> cost is zero mana plus KickerCost (lower_entwine.go)
 	Casualty       int       // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool      // printed K:Bargain (CR 702.166), CardDef.Bargain
 	Storm          bool      // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
@@ -1090,11 +1337,13 @@ type lCard struct {
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
+	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
+	Ascend         bool     // printed K:Ascend (CR 702.131)
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
 	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b)
+	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
 	ExtraBlocks    int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
 	Lure           bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
 	MustBeBlocked  bool     // the must-be-blocked keyword (CR 509.1c)

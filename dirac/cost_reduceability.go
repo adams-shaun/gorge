@@ -34,7 +34,7 @@ func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.Ma
 	// the offer's best case: the cheapest price over the legal targets of the
 	// ability's one target slot (two reducers gated on different targets
 	// never combine on one equip)
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	pr := s.g.probe
 	if pr.kind == 0 {
 		s.g.probe = probe{kind: probeAbility, src: sl, ctrl: ctrl}
@@ -42,7 +42,7 @@ func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.Ma
 	n := s.targetCands(k, &a.Targets[0], ctrl, sl, s.perms[sl].obj, &buf)
 	s.g.probe = pr
 	best := s.abReducedFor(k, a, sl, ctrl, c, nil, 0)
-	var one [kop.MaxTargets]uint8
+	var one [kop.MaxTargets]TCode
 	for i := 0; i < n; i++ {
 		one[0] = buf[i]
 		if r := s.abReducedFor(k, a, sl, ctrl, c, &one, 1); r.Generic < best.Generic {
@@ -96,7 +96,7 @@ func (s *State) abilityHasTargetReduction(k *prep, a *kop.Ability, sl Slot, ctrl
 // abReducedFor is abReduced's composition with the targets tgts[0..nt): a
 // target-gated static lowers the cost only when one of them matches its
 // Filter2 read with the static's source as Self (nt == 0: none applies).
-func (s *State) abReducedFor(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.ManaCost, tgts *[kop.MaxTargets]uint8, nt int) kop.ManaCost {
+func (s *State) abReducedFor(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.ManaCost, tgts *[kop.MaxTargets]TCode, nt int) kop.ManaCost {
 	g, xr := int(c.Generic), int(c.XRed)
 	s.eachStaticTS(k, sclsReduce, func(st statSrc) bool {
 		sa := &st.a.Static

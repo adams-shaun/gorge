@@ -5,8 +5,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Lwaxana Troi, Charming Guest's "{2}, {T}: Choose another target creature
 // you control. For as long as Lwaxana remains tapped, if a triggered ability
 // of that creature triggers, that ability triggers an additional time"
-// (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered, Duration$
-// UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Each resolution
+// (gorge: an Effect granting a Panharmonicon static on the remembered card,
+// lasting until the host untaps and exiled if it leaves the battlefield;
+// CR 603.2d, 611.2b). Each resolution
 // adds one record (genState.pgT the granted object, pgH the tapped host,
 // object+1, compacted so pgT[0] == 0 means none). panharmEchoes counts the
 // records naming the trigger's source beside the printed statics, so two
@@ -56,7 +57,7 @@ func (s *State) grantPanharm(k *prep, in *kop.Instr) {
 	}
 	for i := 0; i < pgN; i++ {
 		if s.g.pgT[i] == 0 {
-			s.g.pgT[i], s.g.pgH[i] = uint8(s.perms[ts].obj)+1, uint8(s.perms[hs].obj)+1
+			s.g.pgT[i], s.g.pgH[i] = s.perms[ts].obj+1, s.perms[hs].obj+1
 			s.touchSl(ts)
 			return
 		}
@@ -69,7 +70,7 @@ func (s *State) grantPanharm(k *prep, in *kop.Instr) {
 func (s *State) panharmGrants(o Obj) int {
 	n := 0
 	for i := 0; i < pgN && s.g.pgT[i] != 0; i++ {
-		if s.g.pgT[i] == uint8(o)+1 {
+		if s.g.pgT[i] == o+1 {
 			n++
 		}
 	}
@@ -86,14 +87,14 @@ func (s *State) pgDrop(o Obj, host bool) {
 	if s.g.pgT[0] == 0 {
 		return
 	}
-	var t, h [pgN]uint8
+	var t, h [pgN]Obj
 	n := 0
 	for i := 0; i < pgN && s.g.pgT[i] != 0; i++ {
 		key := s.g.pgT[i]
 		if host {
 			key = s.g.pgH[i]
 		}
-		if key == uint8(o)+1 {
+		if key == o+1 {
 			continue
 		}
 		t[n], h[n] = s.g.pgT[i], s.g.pgH[i]

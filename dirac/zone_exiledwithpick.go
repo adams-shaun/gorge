@@ -18,7 +18,7 @@ func (s *State) exwPickCands(k *prep, in *kop.Instr, d *Decision) {
 				continue
 			}
 			if s.matchCardGen(k, in.F, s.objs[o].card, pp, s.res.e.ctrl, o) {
-				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
 	}

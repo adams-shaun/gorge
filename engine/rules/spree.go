@@ -98,8 +98,8 @@ func modeCostTotal(f *cards.Face, names []string) Cost {
 // walk uses; every non-mana part is still checked against the REAL state by
 // nonManaCastable, so floating mana never buys a sacrifice. The composition
 // mirrors offerCastableUsing exactly: base and pc.mods with pc.taxGeneric
-// passed separately to the mana half (feasibleAny adds it after the
-// composition), and composedOfferCost for the non-mana halt.
+// passed separately to the mana half (feasibleAny joins it to the total the
+// modifiers compose over), and composedOfferCost for the non-mana halt.
 func (e *Engine) modeCostFeasible(pc *pendingCast, extra Cost, pot state.Mana) bool {
 	if pc == nil || pc.isAbility() {
 		return false

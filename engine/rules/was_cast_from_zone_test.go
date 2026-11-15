@@ -15,8 +15,8 @@ import (
 // The wasCastFrom<Zone> filter predicate family: the
 // origin-zone cast provenance readable in object filter specs. Sevinne's
 // Reclamation is the real corpus carrier (Desert Bloom, otc):
-// its DBCopy sub gates on ConditionDefined$ Self | ConditionPresent$
-// Card.wasCastFromGraveyard, so the flashback cast must produce the copy and
+// its DBCopy sub gates on the spell itself having been cast from a
+// graveyard, so the flashback cast must produce the copy and
 // an ordinary hand cast must not.
 
 // sevinneTestEngine deals seat 0 a deck whose first cards are the named

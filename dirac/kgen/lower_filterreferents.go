@@ -27,7 +27,11 @@ func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	}
 	for _, alt := range strings.Split(expr, ",") {
 		typ, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
-		if !ok || rest != word || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
+		// rest is the word alone or it after other properties of the same
+		// clause (Permanent.nonLand+ControlledBy TriggeredTarget, O-Kagachi,
+		// Vengeful Kami); a second comparison in the clause refuses in the
+		// parser ("two comparisons in one clause").
+		if !ok || (rest != word && !strings.HasSuffix(rest, "+"+word)) || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
 			// the predicate is the clause's one comparison, read on the
 			// battlefield: any other shape keeps the two-player reading
 			lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
@@ -71,8 +75,76 @@ func (lc *lowerCtx) changeZoneAllFilter(ps *params) (*lFilter, error) {
 	case czaSameNameTokens:
 		return lc.sameNameT0TokenFilter(ps)
 	default:
+		if rest, ok := sameNameSweepRest(ct); ok {
+			if strings.TrimSpace(ps.str("Origin")) != "Battlefield" || ps.peek("Defined") != "" {
+				return nil, refuse("sharesNameWith Targeted sweep beyond the battlefield")
+			}
+			return lc.sameNameT0BattleFilter(rest)
+		}
 		return lc.filter(ct)
 	}
+}
+
+// sameNameSweepRest reads the battlefield sweep spelling "TargetedCard.Self,
+// <Head>.<props>+NotDefinedTargeted+sharesNameWith Targeted" (Echoing Truth,
+// Echoing Calm, Sever the Bloodline): the target, and every other <Head>.<props>
+// sharing its name. rest is the second alternative without its two referent
+// words; ok is false for any other spelling.
+func sameNameSweepRest(spec string) (rest string, ok bool) {
+	alt, ok := strings.CutPrefix(spec, "TargetedCard.Self,")
+	if !ok || strings.Contains(alt, ",") {
+		return "", false
+	}
+	head, props, _ := strings.Cut(alt, ".")
+	var keep []string
+	var not, shares bool
+	for _, p := range strings.Split(props, "+") {
+		switch p {
+		case "NotDefinedTargeted":
+			not = true
+		case "sharesNameWith Targeted":
+			shares = true
+		default:
+			keep = append(keep, p)
+		}
+	}
+	if !not || !shares || head == "" {
+		return "", false
+	}
+	if len(keep) > 0 {
+		head += "." + strings.Join(keep, "+")
+	}
+	return head, true
+}
+
+// sameNameT0BattleFilter lowers sameNameSweepRest's battlefield sweep. gorge
+// matchesBase reads TargetedCard.Self as the first live object target
+// (targetedCardSelfReferent) and sharesNameWith Targeted as that target's
+// name, so with exactly one object target slot the sweep is the target
+// (Permanent.targetedBy) OR'd with the rest clause carrying PredSameNameT0
+// (the target or a permanent with its name; State.sameNameT0). A bare
+// Permanent rest already holds the target: one clause, as Maelstrom Pulse
+// lowers.
+func (lc *lowerCtx) sameNameT0BattleFilter(rest string) (*lFilter, error) {
+	if rest == "Permanent" {
+		return lc.sameNameT0Filter()
+	}
+	if len(lc.ab.Targets) != 1 || lc.ab.Targets[0].F == nil || lc.ab.Targets[0].F.Players != 0 {
+		return nil, refuse("sharesNameWith Targeted without one object target")
+	}
+	b, err := lc.filter(rest)
+	if err != nil {
+		return nil, err
+	}
+	if len(b.Clauses) != 1 || b.Players != 0 || b.Clauses[0].CmpStat != cmpNone {
+		return nil, refuse("sharesNameWith Targeted beside a comparison in %q", rest)
+	}
+	a, err := lc.filter("Permanent.targetedBy")
+	if err != nil || len(a.Clauses) != 1 {
+		return nil, refuse("sharesNameWith Targeted: Permanent.targetedBy")
+	}
+	b.Clauses[0].CmpStat = cmpSameNameT0
+	return &lFilter{Clauses: []lClause{a.Clauses[0], b.Clauses[0]}}, nil
 }
 
 // sameNameT0CardFilter lowers czaSameNameGrave: a sweep of your graveyard
@@ -177,6 +249,10 @@ func ownerRoleWord(w uint8) string {
 //     that object is some other event's. sharesCreatureTypeWith
 //     TriggeredAttacker (kop.W7SharesCrTrigObj) reads the same object
 //     under the same gate.
+//   - blockingTriggeredAttacker (kop.W7BlockingTrigObj) reads the
+//     become-blocked trigger's attacker, the kernel's trigObj of a
+//     TrigBecomesBlocked entry (trig_blocked.go) and gorge's per-attacker
+//     TriggerCard (rules/trigger_blocks.go); only Mode$ AttackerBlocked.
 //   - AttachedTo Targeted is gorge's attachedToReferentTargeted, the same
 //     referent as ParentTarget: target 0 of the entry. chooseCard sets
 //     attachedTgtOK only when the node declares no target slot of its own.
@@ -189,6 +265,11 @@ func (lc *lowerCtx) referentGate(expr string) error {
 		}
 		if tr == nil || tr.Event != "Attacks" || !lc.trigBody || lc.granted > 0 {
 			return refuse("filter %q: NotDefinedTriggeredAttacker outside an Attacks trigger", expr)
+		}
+	}
+	if strings.Contains(expr, "blockingTriggeredAttacker") {
+		if lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "AttackerBlocked" || !lc.trigBody || lc.granted > 0 {
+			return refuse("filter %q: blockingTriggeredAttacker outside an AttackerBlocked trigger", expr)
 		}
 	}
 	if strings.Contains(expr, "AttachedTo Targeted") && !lc.attachedTgtOK {
@@ -235,4 +316,29 @@ func (lc *lowerCtx) targetedPlayerView(f *lFilter) *lFilter {
 		out.Clauses = append(out.Clauses, c)
 	}
 	return out
+}
+
+// offFieldCardSlot reports a target slot of zone z (lTarget.Zone) that names
+// a card off the battlefield, never a player or a permanent: the slot an
+// OwnedBy TargetedController role reads (kop.CtrlTgtOwner).
+func offFieldCardSlot(z int) bool {
+	return z == zGraveyard || z == zExile || z == zHand || z == zLibrary
+}
+
+// anyOtherTarget reports f's object half is exactly "any other target"'s:
+// one bare Other clause each for Creature, Planeswalker and Battle (gorge
+// Creature.Other,Planeswalker.Other,Battle.Other beside Player), the
+// object types the kernel's TgtAny walk admits.
+func anyOtherTarget(f *lFilter) bool {
+	if len(f.Clauses) != 3 {
+		return false
+	}
+	var types uint16
+	for _, c := range f.Clauses {
+		if c != (lClause{Types: c.Types, Flags: fOther}) {
+			return false
+		}
+		types |= c.Types
+	}
+	return types == tCreature|tPlaneswalker|tBattle
 }

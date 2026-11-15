@@ -270,10 +270,10 @@ func TestBlocksTriggerAttachedBearer(t *testing.T) {
 // blocks one or more black creatures, CARDNAME gets +1/+2 until end of
 // turn") is the working-body pin: the pump lands when the attacker is black
 // and never when it is not. Goblin Cadets' two spellings on ONE face sharing
-// one Execute$ SVar pin the gate's exclusion side: the blocks half
-// (ValidCard$ Card.Self | ValidBlocked$ Creature) fires when Cadets BLOCKS
-// and the becomes-blocked half (ValidCard$ Creature | ValidBlocked$
-// Card.Self, Secondary$ True) fires when Cadets BECOMES blocked -- each
+// one Execute$ SVar pin the gate's exclusion side: the blocks half (Cadets
+// as the blocker, any creature as the blocked attacker) fires when Cadets
+// BLOCKS and the secondary becomes-blocked half (any creature as the blocker,
+// Cadets as the blocked attacker) fires when Cadets BECOMES blocked -- each
 // fixture yields exactly ONE trigger, so the attacker filter is what
 // excludes the sibling spelling in both directions. (The bodies'
 // control-change outcome is not asserted: DB$ GainControl's player-target

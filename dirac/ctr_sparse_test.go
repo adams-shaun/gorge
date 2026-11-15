@@ -270,10 +270,13 @@ func TestCtrOverFullStalls(t *testing.T) {
 	}
 }
 
+// TestPermSize pins perm's size. The 16-bit counter kinds (ck) added three
+// bytes and the named spare byte one.
 func TestPermSize(t *testing.T) {
 	var p perm
-	if got := unsafeSizeofPerm(&p); got != 56 {
-		t.Fatalf("perm is %d bytes, want 56", got)
+	want := uintptr(60)
+	if got := unsafeSizeofPerm(&p); got != want {
+		t.Fatalf("perm is %d bytes, want %d", got, want)
 	}
 }
 
@@ -326,4 +329,67 @@ func TestCtrSlotsStayPacked(t *testing.T) {
 		t.Fatal("precondition: the stream never freed a slot ahead of an occupied one, so ctrFree's shift went unexercised")
 	}
 	t.Logf("%d shifting frees", shifts)
+}
+
+// TestHeldKindsMatchKindWalk checks heldKinds against the walk it replaces
+// (every kind below kop.NumCounterKinds3 with ctrN > 0, ascending) over random
+// counter states of three permanents sharing the overflow table: kinds across
+// the whole space, counts falling to 0 seen and unseen, slots evicted to the
+// table and refilled from it.
+func TestHeldKindsMatchKindWalk(t *testing.T) {
+	x := uint32(7)
+	rnd := func(n int) int { x = x*1664525 + 1013904223; return int(x>>8) % n }
+	s := &State{}
+	for run := 0; run < 1000; run++ {
+		var ps [3]perm
+		for i := range ps {
+			ps[i].obj = Obj(i + 1)
+		}
+		s.g.nctrOver = 0
+		s.g.ctrOver = [maxCtrOver]ctrOverEntry{}
+		for step := 0; step < 60; step++ {
+			p := &ps[rnd(len(ps))]
+			c := rnd(int(kop.NumCounterKinds3))
+			if rnd(3) == 0 {
+				c = rnd(8) // concentrate on a few kinds, +1/+1 among them
+			}
+			switch rnd(5) {
+			case 0, 1, 2:
+				p.addCtrN(s, c, 1+rnd(3))
+			case 3:
+				p.subCtrN(s, c, 1+rnd(3))
+			case 4:
+				p.seeCtr(s)
+			}
+			for i := range ps {
+				q := &ps[i]
+				var want []uint16
+				for k := 0; k < int(kop.NumCounterKinds3); k++ {
+					if q.ctrN(s, k) > 0 {
+						want = append(want, uint16(k))
+					}
+				}
+				var held ctrHeld
+				if got := held[:q.heldKinds(s, &held)]; !slices.Equal(got, want) {
+					t.Fatalf("run %d step %d perm %d: heldKinds %v, kind walk %v", run, step, i, got, want)
+				}
+			}
+		}
+	}
+}
+
+// TestHeldKindsAllocatesNothing: the walks run in the transition loop.
+func TestHeldKindsAllocatesNothing(t *testing.T) {
+	s := &State{}
+	p := &perm{obj: 1}
+	for c := 1; c < 12; c++ {
+		p.addCtrN(s, c, c)
+	}
+	n := 0
+	if a := testing.AllocsPerRun(100, func() {
+		var held ctrHeld
+		n += p.heldKinds(s, &held)
+	}); a != 0 {
+		t.Fatalf("heldKinds allocates %v per run", a)
+	}
 }

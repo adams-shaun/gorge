@@ -86,6 +86,23 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 	}
 }
 
+// hasKeywordPriorCasts is hasKeywordH for the spell id being cast, read the way
+// queueCascadeTriggers reads a cascade grant (the stackGrantCast scratch): the
+// in-flight cast's own PutOnStack is already in the log, so an inclusive
+// Count$ThisTurnCast would fail the "first spell you cast each turn" grants'
+// CheckSVar$ X / SVarCompare$ EQ0 gate (Elda, Conjurer of Spectacle) for the
+// very cast the grant is for. The scratch makes the cast ledger count prior
+// casts only; it is set around this one pure read and cleared before it
+// returns, with the layer lists invalidated either side (cascade.go).
+func (e *Engine) hasKeywordPriorCasts(id state.ObjID, h kwHead) bool {
+	e.stackGrantCast = id
+	e.invalidateScratchLayerLists()
+	has := e.hasKeywordH(id, h)
+	e.stackGrantCast = 0
+	e.invalidateScratchLayerLists()
+	return has
+}
+
 // checkGrantedDemonstrateTriggers synthesizes Demonstrate's copy trigger
 // (CR 702.152) for a spell that currently HAS the keyword but does not print
 // it: a layer-6 grant (Silverquill Lecturer's "Creature spells you cast have
@@ -114,7 +131,7 @@ func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjI
 	if ev.Kind != events.PutOnStack || id != ev.Obj {
 		return
 	}
-	if !e.hasKeywordH(id, kwhDemonstrate) || f.HasKeywordRef(kwRefDemonstrate) {
+	if f.HasKeywordRef(kwRefDemonstrate) || !e.hasKeywordPriorCasts(id, kwhDemonstrate) {
 		return
 	}
 	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
@@ -930,7 +947,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		if ce.AddTrigger == nil {
 			continue
 		}
-		if !observer.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) || observer.grantLostTo(ce, o) {
+		if !observer.grantAffects(ce, id) || observer.grantLostTo(ce, o) {
 			continue
 		}
 		t := *ce.AddTrigger
@@ -1050,6 +1067,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			if t == nil {
 				continue
 			}
+			// A granted Afterlife looks back (CR 603.10a), like the AddTrigger
+			// loop above: read once, in the leaves-the-battlefield pass.
+			if split && looksBackOnDeparture(t) != leaving {
+				continue
+			}
 			if !observer.triggerMatches(*t, id, ev, objLKI) {
 				continue
 			}
@@ -1121,6 +1143,18 @@ func grantedTriggerStaticsFor(statics []ContinuousEffect, kind events.Kind, buf 
 		}
 	}
 	return out
+}
+
+// grantAffects reports whether a granted-trigger registration's Affected$ spec
+// selects id. An Effect-delivered grant (Olinda the Oblivious's
+// Affected$ Card.IsRemembered) reads only the set the Effect captured, bound
+// through the same registrationSpecCtx the restriction walks use; a printed
+// static or the Animate route keeps the plain source-relative match.
+func (e *Engine) grantAffects(ce *ContinuousEffect, id state.ObjID) bool {
+	if !ce.FromEffect {
+		return e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source)
+	}
+	return e.matchesSpec(ce.Affects, id, registrationSpecCtx(e.specCtx(ce.Source, ce.Controller), ce))
 }
 
 // grantedTriggerStaticObserves reports whether any trigger ce grants could

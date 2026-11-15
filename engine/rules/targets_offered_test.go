@@ -93,8 +93,8 @@ func drivePastResolution(t *testing.T, e *Engine, wantTurn int32) {
 }
 
 // TestWreckRemoverElectedZeroIsNotReasked is the NON-MODAL shape: the ETB
-// trigger's Execute IS the targeting SA (DB$ ChangeZone | ValidTgts$ Card |
-// TargetMin$ 0 | TargetMax$ 1), so pushTrigger's placement ask offers it
+// trigger's Execute IS the targeting SA (a ChangeZone of up to one target
+// card), so pushTrigger's placement ask offers it
 // directly. Electing zero must leave the graveyard card where it is, run the
 // chain's DBGainLife tail anyway, and pose no second "Select target card in
 // a graveyard to exile" ask at resolution.

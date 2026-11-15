@@ -16,8 +16,7 @@ import (
 // lead its list; it is a pure function of f and n.
 //
 // A pod of four 40-card mini decks holds 160 objects and at most 160 names,
-// which fits the kernel's four-seat build and the oracle's card table, where
-// four 100-card decks do not.
+// which fits the oracle's card table, where four 100-card decks do not.
 func MiniCommanderDeck(f deck.File, n int) (deck.File, error) {
 	names := f.CommanderNames()
 	if !strings.EqualFold(f.Format, "commander") || len(names) == 0 {
@@ -34,11 +33,12 @@ func MiniCommanderDeck(f deck.File, n int) (deck.File, error) {
 	var cmds []deck.Entry
 	var rest []string
 	for _, e := range f.Cards {
+		n := e.Count
 		if isCmd(e.Name) {
 			cmds = append(cmds, deck.Entry{Name: e.Name, Count: 1})
-			continue
+			n-- // a drafted deck may hold a second copy of its commander (not singleton): it stays a deck card
 		}
-		for range e.Count {
+		for range n {
 			rest = append(rest, e.Name)
 		}
 	}

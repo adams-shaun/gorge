@@ -46,7 +46,7 @@ func hybridScen(t *testing.T) (*scen, Obj, Obj, Obj) {
 // the two hybrid pips, and returns the decision after payment.
 func castHybridConvoke(t *testing.T, sc *scen, m Obj) Decision {
 	t.Helper()
-	sc.do(t, AkCast, uint8(m), 0xff)
+	sc.do(t, AkCast, TCode(m), scAny)
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenConvoke {
 		t.Fatalf("first decision %v/%d, want the convoke ask", d.Kind, d.Sub)
