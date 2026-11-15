@@ -905,6 +905,7 @@ func (cb *cardBuilder) record() error {
 		// its generic cost (dirac/kw_delve.go)
 		d.Delve = true
 	}
+	d.SplitSecond = c.SplitSecond // CR 702.61a (lower_splitsecond.go)
 	if c.Harmonize != nil {
 		// CR 702.180a: a graveyard cast for the harmonize cost; the one
 		// announced creature pays its power (dirac/kw_harmonize.go)

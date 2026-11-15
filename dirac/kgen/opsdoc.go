@@ -677,6 +677,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.Delve {
 			add("card:Delve", name)
 		}
+		if d.SplitSecond {
+			add("card:SplitSecond", name)
+		}
 		if d.ReboundAb != 0 {
 			add("card:Rebound", name)
 		}

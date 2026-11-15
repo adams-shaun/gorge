@@ -1673,6 +1673,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Improvise = true
+		case head == "Split second":
+			lc.lowerSplitSecond(node, param) // lower_splitsecond.go
 		case head == "Delve" && param == "":
 			// CR 702.66a: the cast exiles graveyard cards toward its
 			// generic cost (dirac/kw_delve.go); a granted Delve reads the
