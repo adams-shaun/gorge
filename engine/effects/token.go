@@ -143,14 +143,7 @@ func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	}
 	ts, ok := definedSpec(h, c, spec)
 	if !ok {
-		// An alias spelling ("TargetedAndYou") resolves through the wider
-		// Defined$ grammar, in alias order, de-duplicated.
-		if _, aliased := definedAliases[spec]; !aliased {
-			return nil, false
-		}
-		if ts, ok = knownDefinedTargets(h, c, spec); !ok {
-			return nil, false
-		}
+		return nil, false
 	}
 	ps := controllersOf(h.Game(), ts)
 	out := make([]state.PlayerID, 0, len(ps))
