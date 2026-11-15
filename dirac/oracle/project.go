@@ -535,7 +535,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 			}
 			st.Source = id.ref(g, o.Source)
 			if src := g.Obj(o.Source); src != nil {
-				st.Ability = abilityIndex(src.Face(), o.Ability)
+				st.Ability = stackAbilityIndex(src, o)
 				if st.Ability != 255 && copyGrantedAbilityOf(src, int(st.Ability)) {
 					st.Ability = 255 // an as-enters copy's AddAbilities$: the kernel's latent ability
 				}
@@ -645,6 +645,19 @@ func chosenModeMask(o *state.Object) uint8 {
 		}
 	}
 	return m
+}
+
+// stackAbilityIndex is the Face.Abilities index the kernel reports for an
+// ability stack entry o of src. src.Face() first; only on a miss, for an
+// activation minted from a text-changed face whose source has since left play
+// (CR 400.7 cleared TextChanges, so Face() no longer holds this SA), the face
+// that minted it.
+func stackAbilityIndex(src, o *state.Object) uint8 {
+	idx := abilityIndex(src.Face(), o.Ability)
+	if idx == 255 && o.StackKind == state.StackKindActivated && o.AbilityFace != nil && o.GainedFrom == 0 {
+		idx = abilityIndex(o.AbilityFace, o.Ability)
+	}
+	return idx
 }
 
 // abilityIndex is sa's index in face: Abilities i, or 0x80|i for the
