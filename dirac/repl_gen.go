@@ -324,14 +324,20 @@ type replOrd struct {
 // replHdr is the ask's header: the candidates, the answers so far and the
 // asked event. Every reset (parkNC, the untap ask, the post-resolution ask,
 // the answered ask) clears this alone.
+// replHdr.akw's bits.
+const (
+	akwLifelink uint8 = 1 << iota
+	akwDeathtouch
+)
+
 type replHdr struct {
 	// the asked combat event as it stood when asked (gorge's assignment is
 	// fixed then: a source or recipient the state-based actions remove
 	// before the answer still has it dealt): its amount, the source's
 	// controller, lifelink / deathtouch, the player hit (dst NoSlot)
-	an            int16 // before the doublings (gorge applies each pick as made)
-	actl, apl, ac uint8 // ac: the candidates asked
-	all, adt      bool
+	an            int16  // before the doublings (gorge applies each pick as made)
+	actl, apl, ac uint8  // ac: the candidates asked
+	akw           uint8  // the asked source's keywords: akwLifelink, akwDeathtouch (one byte: the header's size is pinned)
 	on            bool   // a combat damage pass is paused: the events marked below are dealt
 	fin           bool   // the asks for the event (askS, askD) are done: deal it
 	n             uint8  // its candidates (0 = no ask in progress)
@@ -650,7 +656,13 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 			}
 			skw := s.kw(k, fe.src)
 			ro.actl = s.perms[fe.src].ctrl
-			ro.all, ro.adt = skw&kop.KwLifelink != 0, skw&kop.KwDeathtouch != 0
+			ro.akw = 0
+			if skw&kop.KwLifelink != 0 {
+				ro.akw |= akwLifelink
+			}
+			if skw&kop.KwDeathtouch != 0 {
+				ro.akw |= akwDeathtouch
+			}
 			s.g.ctlRet = ctlDivide
 			s.ctl = ctlGenAsk
 			return true
@@ -817,12 +829,12 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		p := &s.perms[sl]
 		s.touchSl(sl)
 		s.dmgPerm(k, sl, p, n)
-		if ro.adt {
+		if ro.akw&akwDeathtouch != 0 {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}
 	}
 	if fe := s.replOrderFz(ro.askS, ro.askD); fe != nil {
-		fe.n, fe.ll, fe.ctrl = int16(n), ro.all, ro.actl // a gone recipient's event still gains (as asked)
+		fe.n, fe.ll, fe.ctrl = int16(n), ro.akw&akwLifelink != 0, ro.actl // a gone recipient's event still gains (as asked)
 	}
 	return n
 }
