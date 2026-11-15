@@ -3617,12 +3617,21 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		obj = lRef{Kind: rRemembered}
 	case ro == "RememberedLKI":
 		// the delayed record holds one object (kernel dprog/delayed): a
-		// target slot taking several would return only the first
+		// target slot taking several, or a remembered set one unbounded
+		// ChangeZoneAll Remember sweep wrote, would return only the first
 		if lc.delayedLKIMulti() {
 			// a set of several objects: the kernel's DpMany program, for the
 			// one shape it returns exactly (lower_delayedlkimany.go)
 			if why := lc.delayedLKIManyShape(exec); why != "" {
 				return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+			}
+			lkiMany = true
+		} else if lc.delayedLKISweepMulti() {
+			// the whole set is one ChangeZoneAll RememberChanged$ sweep's
+			// (Planar Guide's "Exile all creatures"): the same DpMany
+			// program, one body shape (lower_delayedlkimany.go)
+			if why := delayedLKIReturnBody(exec); why != "" {
+				return refuse("delayed trigger RememberedLKI over a ChangeZoneAll sweep: %s", why)
 			}
 			lkiMany = true
 		}
