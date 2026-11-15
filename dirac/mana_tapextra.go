@@ -499,6 +499,9 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 // case addPainAvail holds out or counts in nModal is left as it stands.
 func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 	p := s.perms[sl].ctrl
+	if a.pain.on && s.removeTightPain(k, a, sl, pc, p) {
+		return
+	}
 	m := s.painAvailMask(pc, p)
 	n := uint8(1)
 	if pc.painOnly {
@@ -530,6 +533,40 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 			a.remove(1<<c, n)
 		}
 	}
+}
+
+// removeTightPain takes the painful source at sl out of the pain group painTight
+// held it in (its units are not in a.mask/cnt then, so remove(m, n) finds
+// nothing to take): the group loses the unit and, for a painland, the normal
+// ability's units painTight put back under prim (CR 601.2g-h: the source's own
+// tap pays the cost, so it funds none of the cost's mana). False when no group
+// holds it, and the caller removes the per-unit count.
+func (s *State) removeTightPain(k *prep, a *avail, sl Slot, pc *pcard, p uint8) bool {
+	pm := uint8(pc.painCol) & 0x1f
+	prim := uint8(pc.manaCol) & 0x3f
+	var ob uint8
+	if pc.painOnly {
+		ob, prim = 1, 0
+	}
+	var ec uint8
+	if a.nModal != 0 && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
+		ec = s.painExtraC(k, sl, pc)
+	}
+	pa := &a.pain
+	for g := uint8(0); g < pa.n; g++ {
+		if pa.mask[g] != pm || pa.prim[g] != prim || pa.only>>g&1 != ob || pa.ec[g] != ec || pa.cnt[g] == 0 {
+			continue
+		}
+		pa.cnt[g]--
+		if ob == 0 {
+			a.remove(prim, 1)
+			if ec != 0 {
+				a.remove(1<<kop.C, ec)
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // addPainAvail adds a painful source's units to a: its production mask (the
