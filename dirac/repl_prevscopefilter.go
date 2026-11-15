@@ -42,6 +42,9 @@ func (s *State) prevScopeFiltered(k *prep, r *prevRec, srcSl Slot, srcCard CardI
 				return false
 			}
 		} else if !s.matchCardGen(k, f, srcCard, ctl, ctl, NoObj) {
+			// a departed or spell source has no live controller here: owner and
+			// controller are the Effect's, so an OppCtrl source filter reads that
+			// side, not gorge's last-known information (not lockstep-tested)
 			return false
 		}
 	}

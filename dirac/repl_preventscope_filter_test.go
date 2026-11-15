@@ -12,7 +12,7 @@ import (
 // controller) and a Pack Leader (combat damage to its controller's Dogs).
 type scopeFilterScen struct {
 	*scen
-	fog, leader, dog, bear CardID
+	fog, leader, dog, bear, opp, anyp CardID
 }
 
 func newScopeFilterScen(t *testing.T) *scopeFilterScen {
@@ -40,6 +40,8 @@ func newScopeFilterScen(t *testing.T) *scopeFilterScen {
 		dog[0] = 1
 		ids.fog = add(kop.CardDef{Name: "Test Fog", Types: kop.TInstant, Abilities: ext(kop.PrevScopeFiltered|kop.PrevScopePlayer, atk, 0)})
 		ids.leader = add(kop.CardDef{Name: "Test Leader", Types: kop.TCreature, Subtypes: dog, Abilities: ext(kop.PrevScopeFiltered|kop.PrevScopeCombat, 0, int(dogs))})
+		ids.opp = add(kop.CardDef{Name: "Test Opp Fog", Types: kop.TInstant, Abilities: ext(kop.PrevScopeFiltered|kop.PrevScopeOppPlayer|kop.PrevScopeCombat, 0, 0)})
+		ids.anyp = add(kop.CardDef{Name: "Test Player Fog", Types: kop.TInstant, Abilities: ext(kop.PrevScopeFiltered|kop.PrevScopeAnyPlayer|kop.PrevScopeCombat, 0, 0)})
 		ids.dog = add(kop.CardDef{Name: "Test Dog", Types: kop.TCreature, Subtypes: dog, Power: 2, Toughness: 2})
 		ids.bear = add(kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2})
 	})
@@ -140,5 +142,41 @@ func TestPreventScopeFilteredNeedsItsInstruction(t *testing.T) {
 	r := &prevRec{obj: f.obj(f.bear, 0), sc: kop.PrevScopeFiltered | kop.PrevScopePlayer}
 	if f.s.prevScopeHit(f.k, r, NoSlot, f.bear, 0, prevTgt{0, NoSlot}, true) {
 		t.Fatal("a filtered record without its instruction prevented damage")
+	}
+}
+
+// TestPreventScopeFilteredPlayerRecipients: the instruction-only recipient
+// bits (ValidTarget$ Opponent / Player) leave the record's source-colour
+// filter empty, so a coloured source's damage to those players is prevented.
+func TestPreventScopeFilteredPlayerRecipients(t *testing.T) {
+	f := newScopeFilterScen(t)
+	s, k := f.s, f.k
+	src := f.perm(f.bear, 1)
+	white := kop.ColorMask(1)
+	for _, c := range []struct {
+		name string
+		card CardID
+		rcp  uint8
+		bear bool
+		want bool
+	}{
+		{"opponents, to the opponent", f.opp, 1, false, true},
+		{"opponents, to the controller", f.opp, 0, false, false},
+		{"opponents, noncombat, never", f.opp, 1, true, false},
+		{"any player, to the controller", f.anyp, 0, false, true},
+		{"any player, to the opponent", f.anyp, 1, false, true},
+	} {
+		r := f.resolve(c.card)
+		if r == nil {
+			t.Fatalf("%s: no record", c.name)
+		}
+		if r.col != 0 {
+			t.Errorf("%s: record colour filter %#x, want none", c.name, r.col)
+		}
+		combat := !c.bear
+		if got := s.prevScopeHit(k, r, f.slot(src), s.objs[src].card, white, prevTgt{c.rcp, NoSlot}, combat); got != c.want {
+			t.Errorf("%s: prevented %v, want %v", c.name, got, c.want)
+		}
+		*r = prevRec{}
 	}
 }

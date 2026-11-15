@@ -17,6 +17,9 @@ var DebugNoPrevScope bool
 func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 	sc := uint8(in.C & (1<<kop.PrevScopeColourShift - 1))
 	scc := kop.ColorMask(in.C >> kop.PrevScopeColourShift)
+	if in.C&kop.PrevScopeFiltered != 0 {
+		scc = 0 // the bits above the shift hold recipient bits, not colours: the filter is read from the instruction
+	}
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.col == 0 && r.sc == 0 {
