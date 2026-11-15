@@ -1,5 +1,7 @@
 Forest
 Island
+Larder Zombie
+Lazotep Chancellor
 Mountain
 Plains
 Swamp

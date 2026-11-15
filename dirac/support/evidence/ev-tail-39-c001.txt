@@ -1,7 +1,82 @@
+A-Gnarlid Colony
+A-Pyre-Sledge Arsonist
+Ajani's Sunstriker
+Ancient Ziggurat
+Archon of Emeria
+Archway Commons
+Argothian Wurm
+Assemble the Entmoot
+Battering Krasis
+Beastmaster Ascension
+Blood Pact
+Cling to Dust
 Clockwork Beetle
 Common Iguana
+Congregate
+Crypt Rats
+Dark Triumph
 Forest
+Ghost Lantern
+Hangar Scrounger
+Hidden Guerrillas
 Island
+Llanowar Tribe
+Lord of the Accursed
+Mobile Fort
 Mountain
+Mulldrifter
+Nameless One
+Narcissism
+Nemesis Mask
+Oblivion Crown
+Oona's Grace
+Orchard Spirit
+Overseer of the Damned
+Phantom Wings
 Plains
+Power Fist
+Priest of Gix
+Quandrix Campus
+Rack and Ruin
+Rage of Purphoros
+Rakka Mar
+Rally at the Hornburg
+Rhystic Shield
+Rotten Reunion
+Ruinous Minotaur
+Safeguard
+Scurry of Squirrels
+Sentinels of Glen Elendra
+Shambling Ghast
+Shriek of Dread
+Sigil of Distinction
+Signal Pest
+Sink into Takenuma
+Sleeper's Guile
+Smokespew Invoker
+Solemn Recruit
+Soul Transfer
+Spartan Veteran
+Splitting Slime
+Springmane Cervin
+Squire's Devotion
+Storm's Wrath
 Swamp
+Takenuma Bleeder
+Talas Scout
+Taoist Hermit
+The Falcon, Airship Restored
+Time of Heroes
+Tin Street Cadet
+Tivadar's Crusade
+Tooth and Nail
+Ugin's Construct
+Urborg Drake
+Victor Mancha, Runaway
+Warped Landscape
+Welcoming Vampire
+Winter Eladrin
+Witch of the Moors
+Wondrous Revival
+Wrenn's Resolve
+Yuan Shao, the Indecisive
