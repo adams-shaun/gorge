@@ -83,11 +83,11 @@ func (s *State) announcedHyb(c *kop.ManaCost) {
 }
 
 // resPayCost is the parked PayMana ask's cost: pickLeft generic, the
-// instruction's coloured pips (NumTimes-scaled) and, on a PayMana
-// instruction (whose F is no filter), its hybrid pips.
+// instruction's coloured pips (NumTimes-scaled, numTimesCost) and, on a
+// PayMana instruction (whose F is no filter), its hybrid pips.
 func (s *State) resPayCost(k *prep) kop.ManaCost {
 	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.cumPips(k, s.numTimesPips(k, in.B.N)))
+	c := s.numTimesCost(k, int(s.g.pickLeft), s.cumPips(k, in.B.N))
 	if in.IsPayMana() {
 		s.payManaHyb(k, in.F, &c)
 		s.announcedHyb(&c)
