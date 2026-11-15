@@ -399,6 +399,8 @@ type genPrep struct {
 	anyEmbCtrl      bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped  bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk    bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
+	anyCantAtk      bool           // some card or emblem has a StatCantAttack static (combat_cantattack.go)
+	anyCantAtkScope bool           // some StatCantAttack static carries a Target$ scope bit (combat_cantattack.go)
 	anySrcMark      bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
 	dmgBy           []bool         // per card: its damage is recorded (an ability's filter reads F2DamagedBy; nil when none)
 	crewerRec       []bool         // per card: the Vehicles it crews are recorded (an ability's filter reads W7CrewedBySrc; nil when none; filter_props.go)
@@ -1711,6 +1713,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepCantAtkScope(t, g) // combat_cantattack.go: the CantAttack Target$ scope bits
 	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepTokListAdd(t, g)   // repl_toklistadd.go

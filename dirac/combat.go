@@ -25,7 +25,7 @@ func (s *State) canAttack(k *prep, sl Slot) bool {
 	if p.flags&pfSick != 0 && kw&kop.KwHaste == 0 && !(k.gen != nil && k.gen.anyAtkHaste && s.atkHasteOK(k, sl, noHasteDef)) {
 		return false
 	}
-	if (s.statM.any() || k.embComb && s.anyEmb()) && s.staticFlag(k, kop.StatCantAttack, sl) {
+	if (s.statM.any() || k.embComb && s.anyEmb()) && s.cantAtkBare(k, sl) {
 		return false
 	}
 	if k.gen != nil && k.gen.anyOvCantAtk && s.fxM.has(sl) && s.ovCantAttack(k, sl) {
@@ -73,9 +73,27 @@ func (s *State) declareMustAttack(k *prep) {
 			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
+			def := s.nextAlive(s.active)
+			if s.cantAtkPairPlayer(k, sl, def) {
+				// the player pair is forbidden (combat_cantattack.go): a
+				// plain attack duty still discharges at a battle pair, so
+				// the declaration names the battle (a goad or an Encore
+				// duty is satisfied by attacking a player only, and with no
+				// player pair the CR 508.1d requirement is ignored)
+				b, ok := s.battleOffer(k, sl)
+				if !ok || (goadOn(k) && s.goadedAt(k, sl)) || s.attackPlayerOnly(k, sl) {
+					continue
+				}
+				s.perms[sl].flags |= pfAttacking
+				s.perms[sl].atk = TCode(s.perms[b].obj)  // the battle, as a planeswalker (face_battle.go)
+				s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
+				s.touchSl(sl)
+				s.nAttackers++
+				continue
+			}
 			s.perms[sl].flags |= pfAttacking
-			s.perms[sl].atk = PlayerCode(s.nextAlive(s.active)) // two live seats only: mustAttackAsked asks at more
-			s.perms[sl].bord = objWord(s.nAttackers)            // declaration order (fireAttacksGen)
+			s.perms[sl].atk = PlayerCode(def)        // two live seats only: mustAttackAsked asks at more
+			s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -90,7 +108,7 @@ func (s *State) anyAttacker(k *prep) bool {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canAttack(k, sl) && !s.atkHasteNoPair(k, sl) {
+		if s.canAttack(k, sl) && !s.atkHasteNoPair(k, sl) && !s.cantAtkEveryPair(k, sl) {
 			return true
 		}
 	}
@@ -125,6 +143,19 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		if s.atkHasteSick(k, sl) && !s.atkHasteOK(k, sl, def) {
 			continue // CanAttackIfHaste exempts it against no defender here (static_canattackifhaste.go)
 		}
+		if s.cantAtkPairPlayer(k, sl, def) {
+			// A scoped CantAttack static (Target$ You) forbids this player
+			// pair alone: gorge attackOffersCompute skips this defender's
+			// planeswalker pairs with its player-pair block, but its battle
+			// loop runs on its own pair tests (RestrictionTargetMatches
+			// never names a battle; combat_cantattack.go) -- except under a
+			// goad or an Encore duty, whose requirement keep-loop drops
+			// every non-player pair
+			if k.gen != nil && k.gen.anyBattle && !(gd && s.goadedAt(k, sl)) && !s.attackPlayerOnly(k, sl) {
+				s.addBattleOffers(k, d, o, sl) // CR 310.7
+			}
+			continue
+		}
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
@@ -133,7 +164,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
 			q := pm.first()
-			if s.typesAt(k, q)&kop.TPlaneswalker != 0 {
+			if s.typesAt(k, q)&kop.TPlaneswalker != 0 && !s.cantAtkPairWalker(k, sl, q) {
 				d.add(MakeAction(AkAttack, TCode(o), TCode(s.perms[q].obj), 0))
 			}
 		}
@@ -217,7 +248,7 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) &&
-			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) {
+			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) {
 			return true
 		}
 	}
