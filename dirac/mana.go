@@ -875,7 +875,9 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 // (Giada: its {W} floats, unspendable on the cost) are activated in their
 // turn too (windowTap, script_gen.go).
 func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused, short bool) {
+	s.g.unlessWin = true
 	_, held := s.windowTapWalk(k, p, cost, cost, false, false, true, false, true) // an unless / ward window takes a deferred source once the plan cannot cover the cost
+	s.g.unlessWin = false
 	if s.g.winMode != winNone {
 		for c := range held {
 			held[c] += s.g.winHeld[c] // what an earlier stretch of the walk kept out of the pool

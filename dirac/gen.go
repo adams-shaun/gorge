@@ -2139,6 +2139,7 @@ type genState struct {
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	escapeCast     bool                    // the cast beginCast starts is the escape cast an AkCast's target byte names (castEscapeTgt; kw_escape.go; padding)
 	bargainCast    bool                    // the cast beginCast starts (a permission's or a hand cast) is of a Bargain card: the pool it checks pays the bargained price (offerBargainPlay, bargainOffers; kw_bargain.go; padding)
+	unlessWin      bool                    // the walk is an unless / ward window (payWindow, windowAffordsTake): gorge's unlessWindowUnits lists no depletion land (mana_window.go unlessSkipsRider; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
