@@ -494,7 +494,11 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if (k.tapMana || k.ctrMana) && s.tapXPrefix(k, a, p) {
+	// The tapX route owns the prefix only when a real tap-another source is
+	// on the board, or no Taps-deferred gap is: beside a depletion land the
+	// DFS search's replay (scriptPrefixAny) taps both gaps in battlefield
+	// order, and the tapX search's gaps (rs.gaps) hold no Taps-deferred one.
+	if (k.tapMana || k.ctrMana) && (s.scriptTapXModelled(k, p).any() || !s.scriptTapsDefer(k, p).any()) && s.tapXPrefix(k, a, p) {
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
