@@ -456,7 +456,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 		if k.gen != nil && k.gen.anyManaRider {
 			c := s.cardAt(o)
-			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && !s.unlessSkipsRider(a) && s.riderActivatable(k, p, o, a) {
+			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, o, a) {
 				mask := uint8(a.ManaColors)
 				if a.ManaEach {
 					mask = uint8(kop.ColAny)
@@ -483,7 +483,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			return o, true // a counter-cost source (mana_countercost.go)
 		}
 		if tapsDef.has(o) {
-			if ra, ok := s.riderAbilityOf(k, o); ok && !s.unlessSkipsRider(ra) {
+			if s.tapsDefRider(k, o) {
 				return o, true // a bounded rider source: its own cost, mana and rider (mana_rider.go)
 			}
 		}
@@ -1086,6 +1086,13 @@ func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
 	return s.windowAffordsTake(k, p, cost, false)
 }
 
+// tapsDefRider: the Taps-deferred source o has a bounded rider ability the
+// window may take (not a depletion land's in an unless / ward window).
+func (s *State) tapsDefRider(k *prep, o Slot) bool {
+	a, ok := s.riderAbilityOf(k, o)
+	return ok && !s.unlessSkipsRider(a)
+}
+
 // unlessSkipsRider: a depletion land's activation (a SubCounter cost) is not
 // in an unless or ward window. gorge's unlessWindowUnits lists only free-cost
 // abilities, so its offer gate never counts Remote Farm's {W}{W} and its tap
@@ -1104,9 +1111,6 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		if a, ok := s.riderAbilityOf(k, m.first()); ok && s.unlessSkipsRider(a) {
-			continue
-		}
 		if s.riderPotential(k, p, m.first()) {
 			return true
 		}
