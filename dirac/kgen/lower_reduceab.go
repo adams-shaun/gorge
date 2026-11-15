@@ -1,6 +1,10 @@
 package kgen
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // reduceAbility lowers a ReduceCost static of activated abilities (Type$
 // Ability, or no Type$ with ValidSpell$ Activated.Exhaust,
@@ -68,6 +72,11 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 	}
 	if a, ok := sp.get("Activator"); ok && a != "You" {
 		return refuse("ReduceCost Activator %q", a)
+	} else if !ok && arm != 3 {
+		// no Activator$: whoever activates the matched source's ability pays
+		// the reduced cost (CR 602.2b; gorge costActorMatches reads Activator$
+		// only when present: Heartstone lowers an opponent's creature too)
+		st.Flags = append(st.Flags, "AnyCaster")
 	}
 	var err error
 	if st.F, err = readF("ValidCard"); err != nil {
@@ -92,4 +101,18 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 		return err
 	}
 	return nil
+}
+
+// reduceAbilityBits adds a lowered ReduceCost-of-abilities static s's MinMana$
+// floor to the static's B and its no-Activator$ mark (the AnyCaster flag
+// reduceAbility appends) to its StFlags as kop.StReduceAny: any player's
+// activation of the matched source pays the reduced cost.
+func reduceAbilityBits(b int16, fl kop.StaticFlags, s lStatic) (int16, kop.StaticFlags) {
+	b |= int16(s.MinMana) << kop.ReduceAbMinShift
+	for _, f := range s.Flags {
+		if f == "AnyCaster" {
+			fl |= kop.StReduceAny
+		}
+	}
+	return b, fl
 }

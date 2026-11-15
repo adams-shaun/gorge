@@ -1899,7 +1899,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 					return ka, nil, err
 				}
 			}
-			st.B |= int16(s.MinMana) << kop.ReduceAbMinShift
+			st.B, st.StFlags = reduceAbilityBits(st.B, st.StFlags, s)
 			break
 		}
 		st.Kind = kop.StatReduceCost
