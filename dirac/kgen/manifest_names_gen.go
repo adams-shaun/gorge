@@ -1104,6 +1104,9 @@ func init() { enum[kop.KwID]("kop.KwDivideDamageAmongDefenders", kop.KwDivideDam
 // dirac/manifest/KwID/KwStartingHandFive
 func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 
+// dirac/manifest/Pred/PredNamedCard
+func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
+
 // dirac/manifest/ReplKind/ReplBeginPhase
 func init() { enum[kop.ReplKind]("kop.ReplBeginPhase", kop.ReplBeginPhase) }
 
@@ -1166,6 +1169,9 @@ func init() { enum[kop.ReplKind]("kop.ReplProliferate", kop.ReplProliferate) }
 
 // dirac/manifest/ReplKind/ReplRollPlanarDice
 func init() { enum[kop.ReplKind]("kop.ReplRollPlanarDice", kop.ReplRollPlanarDice) }
+
+// dirac/manifest/ReplKind/ReplPreventDamageToSelf
+func init() { enum[kop.ReplKind]("kop.ReplPreventDamageToSelf", kop.ReplPreventDamageToSelf) }
 
 // dirac/manifest/StaticKind/StatOptionalAttackCost
 func init() { enum[kop.StaticKind]("kop.StatOptionalAttackCost", kop.StatOptionalAttackCost) }

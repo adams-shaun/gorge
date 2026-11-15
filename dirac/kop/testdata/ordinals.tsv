@@ -777,6 +777,7 @@ ExtChooseSource	ExtOp	13
 ExtClaimThePrize	ExtOp	79
 ExtClash	ExtOp	20
 ExtClearImprinted	ExtOp	257
+ExtClearNamedCard	ExtOp	92
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtControlPlayer	ExtOp	43
@@ -848,6 +849,7 @@ ExtMeld	ExtOp	47
 ExtMultiplePiles	ExtOp	84
 ExtMustBeBlocked	ExtOp	194
 ExtMustBlock	ExtOp	21
+ExtNameCard	ExtOp	93
 ExtNone	ExtOp	0
 ExtNumTimes	ExtOp	50
 ExtOpenAttraction	ExtOp	24
@@ -1445,6 +1447,7 @@ PredMonoColor	Pred	31
 PredMonstrous	Pred	27
 PredMultiColor	Pred	18
 PredNamed	Pred	9
+PredNamedCard	Pred	35
 PredNoCounters	Pred	28
 PredNone	Pred	0
 PredNotF2	Pred	246
@@ -1611,7 +1614,13 @@ ReplOthersEnterProgram	ReplKind	7
 ReplPayBeforeETB	ReplKind	39
 ReplPayLife	ReplKind	60
 ReplPlaneswalk	ReplKind	52
+ReplPrevSelfRemoveOne	untyped int	1
+ReplPrevToCombat	untyped int	2
+ReplPrevToCreature	untyped int	4
+ReplPrevToSrcInPlay	untyped int	8
+ReplPrevToYourTurn	untyped int	1
 ReplPreventDamageCounters	ReplKind	36
+ReplPreventDamageToSelf	ReplKind	63
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplProduceMana	ReplKind	43

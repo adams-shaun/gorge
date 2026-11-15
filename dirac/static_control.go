@@ -396,11 +396,41 @@ func (s *State) ctrlCleanup(k *prep) {
 // register late above that effect when a newer static ends. This is gorge's
 // reconcileControlStatics (engine/rules/control_static.go).
 //
+// The pass repeats to a fixed point (CR 613.8a): registering a record can
+// move its bearer, and a static on the moved bearer then wants a different
+// controller — a Steal Enchantment that steals a second Steal Enchantment
+// moves that Aura first, and the stolen Aura's own "you control enchanted
+// permanent" applies with its NEW controller in the same check, moving the
+// creature it holds. gorge reaches the same state across its emit tails (the
+// next expireControl ends the stale grant, the next reconcile re-registers
+// it); here the passes run back to back so the ask the resolution poses next
+// sees the settled board. Each pass adds a record (a tracked want is
+// skipped), removes one or moves a bearer, so the fixed point exists; the
+// bound keeps a pathological loop finite, like ctrlExpire's.
+//
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
-	if s.g.nfx > 0 {
-		s.ctrlExpire(k, false)
+	var prev [MaxPerm]uint8
+	for pass := 0; pass <= maxFx; pass++ {
+		nfx := s.g.nfx
+		for m := s.fxM; m.any(); m = m.rest() {
+			prev[m.first()] = s.perms[m.first()].ctrl
+		}
+		if nfx > 0 {
+			s.ctrlExpire(k, false)
+		}
+		if !s.ctrlRegister(k) {
+			return
+		}
+		if s.g.nfx == nfx && !s.ctrlMoved(&prev) {
+			return
+		}
 	}
+}
+
+// ctrlRegister registers every live StatControl static's record in CR 613.7a
+// layer-timestamp order; false: the record table filled (StallTables).
+func (s *State) ctrlRegister(k *prep) bool {
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.statM.and(s.occ), &ord)
 	// Insertion sort: a handful of statics at most, and sort.Slice would
@@ -437,9 +467,23 @@ func (s *State) ctrlSBA(k *prep) {
 			continue
 		}
 		if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {
-			return
+			return false
 		}
 	}
+	return true
+}
+
+// ctrlMoved reports whether any slot with a control record changed hands
+// during the pass (the record table is the same size but a bearer moved, so
+// the next pass must re-derive the wants that read it).
+func (s *State) ctrlMoved(prev *[MaxPerm]uint8) bool {
+	for m := s.fxM; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.perms[sl].ctrl != prev[sl] {
+			return true
+		}
+	}
+	return false
 }
 
 // ctrlStaticTracked: the static of source o (ver) already has its record

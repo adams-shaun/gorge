@@ -834,6 +834,7 @@ type resFlags uint8
 const (
 	rfTrigGone resFlags = 1 << iota // the trigger's triggering permanent left and came back (CR 400.7)
 	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
+	rfRestPh                        // scry/surveil: the top phase closed; the rest cards are being ordered
 )
 
 // resCtx is a resolution in progress.
@@ -856,7 +857,6 @@ type resCtx struct {
 	arr     [MaxHand]Obj // arrange: cards kept on top, in pick order (then, in the rest phase, the rest cards in pick order); a discard's picks, one slot per hand card
 	restSel uint8        // scry/surveil rest phase (Config.ArrangeRestOrder): rest picks so far (bit per peek index)
 	topN    uint8        // scry/surveil rest phase: the top picks (arr[:topN]); the rest picks follow
-	restPh  bool         // scry/surveil: the top phase closed; the rest cards are being ordered
 	peekN   uint8
 	peekI   uint8
 	active  bool
@@ -874,6 +874,11 @@ type resCtx struct {
 	// index + 1, 0 none; ExtChooseColorRes), which a ChosenColor filter
 	// reads (static_colourprot.go resColour)
 	col uint8
+	// nc is a mid-resolution NameCard answer: the named card's CardID plus
+	// one, 0 none (repl_namecard.go). A stack source's chosen name (gorge
+	// Object.ChosenName) while its chain runs; a battlefield source keeps
+	// its own in the chosen byte.
+	nc uint8
 	// chPl is the resolution's mid-resolution ChoosePlayer answer (seat + 1,
 	// 0 none; ExtChoosePlayerMid), which RefChosenPlayer reads while the
 	// resolution holds it (repl_chooseplayer.go resChosenPlayer). OpChoosePlayer's

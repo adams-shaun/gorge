@@ -22,6 +22,8 @@ func init() {
 	instrOp("ChoosePlayerMid", (*instrCtx).opChoosePlayerMid)
 	instrOp("ChooseNumber", (*instrCtx).opChooseNumber)
 	instrOp("ChooseNumberMid", (*instrCtx).opChooseNumberMid)
+	instrOp("NameCard", (*instrCtx).opNameCard)
+	instrOp("ClearNamedCard", (*instrCtx).opClearNamedCard)
 }
 
 func (ic *instrCtx) opChooseColorRes() error {
@@ -133,4 +135,16 @@ func (ic *instrCtx) opChooseNumberMid() error {
 
 func (ic *instrCtx) opEnterCtrPick() error {
 	return buildEnterCtrPick(&ic.ki, ic.in.CS) // an as-enters pair of counter kinds (lower_enterctrpick.go)
+}
+
+func (ic *instrCtx) opNameCard() error {
+	// a mid-resolution card name (lower_namecard.go)
+	buildNameCard(&ic.ki, ic.in.B.N)
+	return nil
+}
+
+func (ic *instrCtx) opClearNamedCard() error {
+	// gorge `DB$ Cleanup | ClearNamedCard$ True` (lower_namecard.go)
+	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtClearNamedCard))
+	return nil
 }

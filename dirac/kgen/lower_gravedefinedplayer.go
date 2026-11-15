@@ -1,6 +1,9 @@
 package kgen
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // A graveyard pick's DefinedPlayer$ (ChangeZone Hidden$ True, Origin$
 // Graveyard, to the hand or the battlefield). gorge effHiddenPick is game-wide
@@ -73,4 +76,33 @@ func (lc *lowerCtx) emitGravePick(sc dpScope, in lInstr) error {
 	in.Obj = lRef{Kind: rEach}
 	lc.emit(in)
 	return nil
+}
+
+// graveChooserFlags is a graveyard pick's scope and chooser flags. fetched
+// reports a DefinedPlayer$ naming a player other than the controller (gorge
+// gameWide is false: the pool is that player's graveyard), so OwnZone keeps
+// a GainControl$ pick off the kernel's game-wide walk, and Chooser$ You asks
+// the controller (gorge hiddenPickChooser), the kernel's SrChooserYou: The
+// Weaver King's each-opponent pick. Chooser$ Opponent asks the resolving
+// controller's first living opponent (chooserPlayer), the kernel's
+// SrChooserOpp read; chosenPool means chosenMidPool already read Chooser$.
+func graveChooserFlags(ps *params, owner, loop lRef, flags []string, fetched, chosenPool bool) (string, error) {
+	cs := ""
+	if fetched && slices.Contains(flags, "UnderYourControl") {
+		cs += "|OwnZone"
+	}
+	ch, ok := ps.get("Chooser")
+	if !ok || chosenPool {
+		return cs, nil
+	}
+	switch {
+	case ch == "You" && fetched:
+		cs += "|ChooserYou"
+	case ch == "You", ch == "":
+	case ch == "Opponent" && owner.Kind == rYou && loop.Kind == rNone:
+		cs += "|ChooserOpp"
+	default:
+		return "", refuse("graveyard pick Chooser$ %q", ch)
+	}
+	return cs, nil
 }

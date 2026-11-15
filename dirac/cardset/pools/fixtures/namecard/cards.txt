@@ -1,0 +1,9 @@
+# the MBC NameCard pool: Demonic Consultation (SP$ NameCard, then DigUntil
+# Valid$ Card.NamedCard) and Cheering Fanatic (a trigger-body DB$ NameCard,
+# an Effect's ReduceCost ValidCard$ Card.NamedCard and DB$ Cleanup |
+# ClearNamedCard$ True) beside basics
+# (dirac/oracle/namecard_test.go)
+Demonic Consultation
+Cheering Fanatic
+Mountain
+Swamp
