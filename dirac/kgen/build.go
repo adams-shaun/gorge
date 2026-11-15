@@ -154,6 +154,7 @@ func buildCard(pt *poolTables, c *lCard) built {
 	if err := cb.record(); err != nil {
 		cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "record", Reason: err.Error()})
 	}
+	cb.out.def.SplitSecond = c.SplitSecond // CR 702.61a (lower_splitsecond.go)
 	if len(c.Refusals) > 0 {
 		// A refused card keeps its static record only.
 		cb.out.def.Abilities = nil
@@ -905,7 +906,6 @@ func (cb *cardBuilder) record() error {
 		// its generic cost (dirac/kw_delve.go)
 		d.Delve = true
 	}
-	d.SplitSecond = c.SplitSecond // CR 702.61a (lower_splitsecond.go)
 	if c.Harmonize != nil {
 		// CR 702.180a: a graveyard cast for the harmonize cost; the one
 		// announced creature pays its power (dirac/kw_harmonize.go)

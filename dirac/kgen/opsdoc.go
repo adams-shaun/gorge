@@ -677,9 +677,6 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.Delve {
 			add("card:Delve", name)
 		}
-		if d.SplitSecond {
-			add("card:SplitSecond", name)
-		}
 		if d.ReboundAb != 0 {
 			add("card:Rebound", name)
 		}
@@ -705,6 +702,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 // writeOpsDoc renders OPS.md.
 func writeOpsDoc(p *pool, pt *poolTables, all []*lCard, bs []built) []byte {
 	use := opsUsage(pt, all, bs)
+	addCardFlagUsage(use, all, bs) // opsdoc_cardflags.go
 	deckUse := func(cs map[string]bool) int {
 		n := 0
 		for _, d := range p.decks {

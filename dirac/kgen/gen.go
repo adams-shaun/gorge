@@ -350,9 +350,6 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Delve {
 		fmt.Fprintf(w, " delve")
 	}
-	if c.SplitSecond {
-		fmt.Fprintf(w, " splitsecond")
-	}
 	if c.Rebound != nil {
 		fmt.Fprintf(w, " rebound")
 	}
