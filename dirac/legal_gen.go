@@ -799,15 +799,29 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	}
 }
 
+// graveOrExileAct: a printed activated ability priorityGraveAct offers, from
+// the graveyard or from exile (not a granted one: priorityExileGrant's).
+func graveOrExileAct(a *kop.Ability) bool {
+	return a.ActZone == kop.ZoneGraveyard || a.ActZone == kop.ZoneExile && a.AFlags&kop.AfLatent == 0
+}
+
 func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	pl := &s.pl[p]
-	// activated abilities that work from the graveyard
-	for i := 0; i < int(pl.graveN); i++ {
-		o := pl.grave[i]
+	// activated abilities that work from the graveyard, then from exile (a
+	// printed ActivationZone$ Exile ability: Torrent Elemental's; a granted
+	// one is priorityExileGrant's)
+	for i := 0; i < int(pl.graveN)+int(pl.exileN); i++ {
+		z := kop.ZoneGraveyard
+		o := Obj(0)
+		if i < int(pl.graveN) {
+			o = pl.grave[i]
+		} else {
+			z, o = kop.ZoneExile, pl.exile[i-int(pl.graveN)]
+		}
 		cd := &k.t.Cards[s.objs[o].card]
 		for ai := range cd.Abilities {
 			a := &cd.Abilities[ai]
-			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneGraveyard {
+			if a.Kind != kop.AbActivated || a.ActZone != z || a.AFlags&kop.AfLatent != 0 {
 				continue
 			}
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(k, p, o, a) {

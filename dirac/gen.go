@@ -1377,7 +1377,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				}
 			case kop.AbActivated:
-				if a.ActZone == kop.ZoneGraveyard {
+				if graveOrExileAct(a) {
 					g.anyGraveAct = true
 				}
 				if a.ActZone == kop.ZoneHand {
