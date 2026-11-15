@@ -1,27 +1,41 @@
 A-Celestial Regulator
 Aerial Maneuver
+Aetheric Amplifier
+Agadeem Occultist
 Alena, Kessig Trapper
+Altar of the Brood
 Arcane Teachings
 Archmage's Charm
 Arctic Merfolk
 Argent Mutation
 Arid Mesa
 Armistice
+Armory of Iroas
 Ashiok's Skulker
 Aspect of Manticore
+Astral Steel
 Aura Flux
+Auriok Glaivemaster
 Autumn Willow, Harmony
 Aven Reedstalker
 Bad River
+Baloth Woodcrasher
 Barkhide Troll
+Bat Whisperer
+Battle Brawler
 Battlefield Promotion
 Battlefly Swarm
 Benthic Giant
 Black Dragon
 Blinding Souleater
+Bloodchief's Thirst
 Bogbrew Witch
+Bone Saw
+Boseiju, Who Endures
+Botanical Plaza
 Bring to Trial
 Bumi's Feast Lecture
+Burning Oil
 Burning Wish
 Bygone Marvels
 Cackling Fiend
@@ -30,50 +44,85 @@ Campfire
 Carapace
 Caregiver
 Cavalier of Flame
+Certain Death
 Charnel Serenade
 Cinder Hellion
 Clackbridge Troll
 Consulate Skygate
+Converter Beast
 Coordinated Assault
 Coral Commando
+Crash the Party
+Craven Giant
 Cursed Minotaur
+Cut Down
+Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Daxiver, Izzet Electromancer
+Death Cloud
 Delayed Blast Fireball
 Devoted Paladin
 Devout Monk
 Diviner's Lockbox
+Donatello's Science Lesson
+Draconic Disciple
+Dragon Mantle
+Dripping-Tongue Zubera
+Dross Hopper
+Drove of Elves
 Drowsing Tyrannodon
+Durkwood Tracker
 Echoes of the Kin Tree
+Eiganjo Free-Riders
+Elderfang Disciple
 Elite Archers
 Elven Lyre
+Elvish Farmer
 Emissary of Hope
 Enduring Victory
 Equestrian Skill
+Erkenbrand, Lord of Westfold
 Ertai Resurrected
 Evolution Charm
+Explosive Impact
 Eyeblight Massacre
 Falkenrath Pit Fighter
+False Prophet
+Famine
 Fanatic of Mogis
 Fascination
 Fell Stinger
+Fervent Strike
 Final-Sting Faerie
 Forest
 Fountain Watch
+Furnace Hellkite
 Galepowder Mage
 Ghastbark Twins
 Gift of Growth
+Gimli, Counter of Kills
 Glacial Crasher
 Goblin Sharpshooter
+Golgari Longlegs
+Goliath Paladin
 Gorilla Chieftain
 Green Sun's Zenith
 Grimgrin, Corpse-Born
+Grizzled Angler
+Grozoth
 Guardian Augmenter
+Gut Shot
+Guul Draz Assassin
 Guul Draz Overseer
+Gwafa Hazid, Profiteer
+Hag of Mage's Doom
+Haunted Fengraf
 Heedless One
 Hell Mongrel
 Helldozer
 Hellraiser Goblin
+Highland Giant
 Hill Giant
 Horncaller's Chant
 Hound Tamer
@@ -82,9 +131,13 @@ Ideas Unbound
 Impetuous Protege
 Index
 Industrial Advancement
+Infantry Veteran
 Innistrad Charm
+Innocence Kami
 Inspiring Commander
 Island
+Isolation Cell
+Jiang Yanggu, Wildcrafter
 Jodah's Codex
 Jousting Lance
 Jugan, the Rising Star
@@ -93,8 +146,11 @@ Kaya's Ghostform
 Keldon Vandals
 Kessig Dire Swine
 Kithkin Billyrider
+Knight of Sorrows
 Kor Sanctifiers
 Kormus Bell
+Kraul Foragers
+Krenko, Tin Street Kingpin
 Latch Seeker
 Lathnu Hellion
 Leaf-Crowned Visionary
@@ -104,8 +160,13 @@ Leveler
 Leyline Invocation
 Lightning Elemental
 Long-Lost Lances
+Lotus-Eye Mystics
 Loxodon Mystic
 Magus of the Future
+Make Mischief
+Mana Seism
+Manor Gate
+Mardu Warshrieker
 Merfolk Windrobber
 Migloz, Maze Crusher
 Mire in Misery
@@ -113,50 +174,79 @@ Mirror of Galadriel
 Mishra's Research Desk
 Mistblade Shinobi
 Moldgraf Millipede
+Monastery Swiftspear
+Morbid Plunder
 Most Wanted
 Mountain
 Mwonvuli Ooze
 Nadier's Nightblade
 Naya Battlemage
+Necroskitter
+Nightwind Glider
+Nimbus Swimmer
 Noble Steeds
+Nomad Mythmaker
 Northern Paladin
+Onyx Mage
+Oran-Rief, the Vastwood
 Oxidda Finisher
+Paradigm Shift
 Passwall Adept
 Path of Discovery
 Photon, Lady of Light
+Plaguemaw Beast
 Plains
 Plunder
 Pouncing Cheetah
+Prava of the Steel Legion
 Presence of the Wise
 Primal Frenzy
 Prismatic Vista
+Protection Magic
 Psionic Snoop
 Purraj of Urborg
+Pygmy Pyrosaur
 Rage Thrower
 Rain of Embers
 Ranger Class
+Ranger-Captain of Eos
 Raven Wings
 Reconstructed Thopter
 Regathan Firecat
+Regent's Authority
 Rejuvenating Springs
+Repentant Vampire
 Reveka, Wizard Savant
+Revenge of Ravens
+Riddle Gate Gargoyle
 Rigging Runner
+Riverglide Pathway
 Roar of Reclamation
 Robber Fly
+Robe of Mirrors
 Rorix Bladewing
+Rosecot Knight
+Roving Harper
 Rural Recruit
 Salvage Titan
 Sandsteppe War Riders
+Satyr Hoplite
+Scale Blessing
 Screams of the Damned
+Scrollshift
 Seagraf Skaab
 Seek New Knowledge
+Seshiro the Anointed
 Sewer Crocodile
 Shambling Strider
+Sheoldred
 Sheoldred, Whispering One
 Shield Mate
+Shielded by Faith
 Shocker
 Simic Growth Chamber
 Siren of the Silent Song
+Skull Catapult
 Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
@@ -180,26 +270,47 @@ Street Spasm
 Stronghold Assassin
 Summit Apes
 Sun Droplet
+Sunscape Apprentice
 Swamp
 Swift Maneuver
+Switcheroo
 Sword of the Paruns
 Synchronous Sliver
+Syphon Sliver
 Terrain Generator
 Terramorph
+Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+Thor, Asgard's Avenger
+Thought Erasure
 Thundering Tanadon
 Thunderous Wrath
 Thwart
+Tormented Hero
+Tourach's Canticle
 Tresserhorn Sinks
+Ulrich's Kindred
+Ultron's Auxiliary
+Unfriendly Fire
 Valeria Richards, Precocious
 Vaultbreaker
+Vedalken Ghoul
+Verdant Automaton
+Verdant Force
+Vessel of Ephemera
+Vindictive Mob
 Vulshok Battlegear
+Vulshok War Boar
 Wall Off
 Warbeast of Gorgoroth
 Wight
+Wind-Kin Raiders
+Wolfrider's Saddle
+Workshop Assistant
 Wu Elite Cavalry
 Wurmcoil Engine
+Yavimaya Hollow
 Zhao Zilong, Tiger General
 Zopandrel, Hunger Dominus
 Zulaport Cutthroat

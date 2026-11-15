@@ -3,9 +3,12 @@ Affa Protector
 Aligned Hedron Network
 Amateur Hero
 Ambitious Farmhand
+Ant Queen
+Aquus Steed
 Assassin's Ink
 Back to Basics
 Barbarian Riftcutter
+Benthic Behemoth
 Blaring Captain
 Brackwater Elemental
 Branchblight Stalker
@@ -13,39 +16,59 @@ Brightling
 Builder's Blessing
 Burning-Tree Emissary
 Cavalier of Dawn
+Chimney Rabble
 Cho-Manno, Revolutionary
+Convolute
 Cradle of Safety
+Creeping Crystal Coating
 Crowd's Favor
+Crystal Golem
 Curious Altisaur
 Dawn of the Dead
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Decision Paralysis
+Dehydration
 Demonlord of Ashmouth
 Desperate Farmer
 Dogpile
 Dread Drone
 Drumhunter
+Duchess, Wayward Tavernkeep
 Durable Coilbug
+Duskworker
 Eagle of Deliverance
 Epicenter
+Essence Filter
+Experiment One
+Ezuri's Archers
+Fade from History
 Festering Mummy
 Fiery Cannonade
 Flowstone Kavu
 Forest
 Frenzied Fugue
 Frost Ogre
+Gnottvold Slumbermound
+Goliath Sphinx
 Grasp of Darkness
 Grave Pact
+Grim Initiate
 Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
+Hair-Strung Koto
 Hamza, Guardian of Arashin
+Heavy Mattock
 Hydra Omnivore
 Hydroform
 Icatian Scout
 Inundate
+Iridescent Drake
 Island
+Izzet Boilerworks
+Kappa Cannoneer
 Keeper of the Lens
 Kitesail Cleric
 Knowledge Is Power
@@ -53,15 +76,21 @@ Kokusho, the Evening Star
 Krav, the Unredeemed
 Lattice-Blade Mantis
 Lazotep Plating
+Living Armor
 Lorehold Archivist
 Magmaroth
 Marionette Apprentice
 Maverick Thopterist
+Momir Vig, Simic Visionary
+Monstrous Onslaught
 Mountain
+Niblis of Frost
 Nightmarish End
 Nimble Hobbit
+Nimbleclaw Adept
 Notion Rain
 Null Rod
+Nylea's Forerunner
 Opportunist
 Otherworldly Gaze
 Paired Tactician
@@ -69,8 +98,13 @@ Pearl Dragon
 Pest Infestation
 Phase Dolphin
 Phyrexian Boon
+Phyrexian Walker
 Plains
+Power Plant Worker
+Reckless Handling
 Returned Phalanx
+Riptide Chimera
+Rod of Ruin
 Satyr Rambler
 Screaming Fury
 Seal of Cleansing
@@ -82,9 +116,14 @@ Serum Snare
 Shield Wall
 Shoal Serpent
 Shoreline Raider
+Shuko
+Siani, Eye of the Storm
 Silent Specter
 Skeletal Wurm
 Skull Prophet
+Slimebind
+Steadfast Guard
+Stone Golem
 Stormbound Geist
 Strength Bobblehead
 Stun Sniper
@@ -94,18 +133,27 @@ Swamp
 Talas Lookout
 Tandem Tactics
 The Terror of Serpent's Pass
+The Thing
 Thraben Foulbloods
+Thriving Turtle
+Titanic Brawl
 Topiary Stomper
 Tragic Fall
 Treebeard, Gracious Host
 Trench Wurm
 Trostani, Selesnya's Voice
+Trufflesnout
+Tumble Magnet
 Uncontrollable Anger
 Unliving Psychopath
 Ursapine
 Vanish into Eternity
 Victor Timely, Wily Tycoon
+Vivid Flying Fish
+Vizzerdrix
 Voracious Hydra
+Wall of Ice
+Weakstone
 Welcome the Dead
 Welding Sparks
 Wild Ox

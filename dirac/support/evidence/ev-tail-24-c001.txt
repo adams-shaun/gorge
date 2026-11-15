@@ -1,14 +1,20 @@
 Adamaro, First to Desire
 Aggressive Crag
+Ambassador Laquatus
+Amulet of Kroog
+Ancestral Mask
 Angrath's Rampage
 Annex Sentry
 Armored Pegasus
 Ashiok's Forerunner
 Attrition
 Aysen Bureaucrats
+Battlegrace Angel
 Bedevil
+Benevolent Hydra
 Binding the Old Gods
 Blasting Station
+Bloodhusk Ritualist
 Bog Wraith
 Bone Devourer
 Bone Picker
@@ -20,24 +26,34 @@ Carnival of Souls
 Chainer's Edict
 Chandra's Triumph
 Cleansing Wildfire
+Control Win Condition
 Court of Bounty
 Crackdown
 Crimson Caravaneer
+Crippling Blight
 Crush
 Crux of Fate
 Crypt Creeper
 Daggerclaw Imp
+Darwin, Adaptive Mutant
 Death Watch
 Deny Reality
 Disciple of Perdition
 Disciple of Tevesh Szat
 Discontinuity
+Displacement Wave
 Dragonsguard Elite
 Dust Bowl
+Dust to Dust
 Earthbending Student
+Egon, God of Death
+Elder Druid
 Eldrazi Devastator
+Elephant Guide
 Ellivere of the Wild Court
+Ensoul Artifact
 Fade from Memory
+Fae of Wishes
 Fallen Angel
 Favored of Iroas
 Firefiend Elemental
@@ -46,8 +62,13 @@ Forced March
 Forest
 Forsaken Drifters
 Fracture
+Generous Visitor
 Ghoultree
 Gilt-Leaf Seer
+Glimmer Bairn
+Go Blank
+Goblin Ringleader
+Greenweaver Druid
 Grim Hireling
 Grisly Spectacle
 Hall
@@ -60,46 +81,70 @@ Impetuous Sunchaser
 Insubordination
 Island
 Jackhammer
+Jori En, Ruin Diver
 Last March of the Ents
 Lava Spike
 Liability
 Lightning Bolt
+Lightning Stormkin
 Llanowar Augur
 Long Road Home
 Lucas, the Sharpshooter
 Luminous Wake
 M.O.D.O.K., Evil Intellect
+Machine Man, Model X-51
 Malevolent Noble
 Maraxus of Keld
 Marsh Viper
+Mausoleum Harpy
 Minotaur Abomination
+Mirari's Wake
 Mobile Garrison
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Mother Bear
 Mountain
 Muxus, Goblin Grandee
+Mystic Subdual
 Nighthawk Scavenger
+Nomadic Elf
+Norwood Archers
 Odylic Wraith
 Omen
+Order of Whiteclay
 Order of the Sacred Torch
 Order of the White Shield
 Ovinize
+Patriar's Seal
 Phantasmagorian
+Pink Horror
+Plague Wind
 Plains
+Plundering Barbarian
 Polluted Dead
 Powerstone Engineer
 Pride Sovereign
+Prismari Campus
 Radha's Firebrand
 Rampart Crawler
 Recruit the Worthy
 Resolute Rider
 Retrofitted Transmogrant
+Rhystic Syphon
 Riot Ringleader
+Rip-Clan Crasher
 Ripjaw Raptor
 Roaming Ghostlight
 Rot Shambler
+Sabertooth Wyvern
+Saheeli's Silverwing
+Sanguinary Priest
+Satyr Piper
+Savannah
+Seismic Elemental
 Selesnya Cluestone
 Serra's Liturgy
+Serum Visionary
 Shady Traveler
 Shorecomber Crab
 Sightless Ghoul
@@ -107,29 +152,44 @@ Silk Net
 Sir Shandlar of Eberyn
 Skophos Warleader
 Smite the Monstrous
+Smog Elemental
 Sorin, Imperious Bloodlord
 Soul Net
 Soul Warden
 Sparkspitter
+Spectral Cloak
 Spike Breeder
 Staggershock
 Steadfast Armasaur
 Stitched Assistant
 Stonefare Crocodile
 Strangleroot Geist
+Supply Drop
 Swamp
 Sworn Companions
 Sworn Defender
 Sylvan Yeti
 Tainted Pact
 Talisman of Impulse
+Tangle Hulk
 Taste for Mayhem
+Territorial Scythecat
 The Great Mound
+Thriving Skyclaw
+Tome Anima
+Traxos, Scourge of Kroog
+Tuknir Deathlock
 Tymaret, the Murder King
 Underworld Dreams
 Underworld Rage-Hound
 Undying Rage
+Untamed Kavu
 Voyage's End
 Wall of Tears
+Warmth
+Waterfall Aerialist
 Whirling Strike
+Willow Geist
+Writhing Chrysalis
+Yawning Fissure
 Éowyn, Lady of Rohan

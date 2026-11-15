@@ -1,36 +1,84 @@
+A-Hall of Tagsin
+A-Speakeasy Server
+Aetheric Amplifier
+Alaborn Grenadier
+Altar of the Brood
 Arcane Investigator
 Argent Mutation
 Army of the Damned
 Auriok Glaivemaster
+Awakening of Vitu-Ghazi
 Baloth Woodcrasher
 Bladeback Sliver
 Bloodchief's Thirst
+Blunt the Assault
+Botanical Plaza
+Bramblewood Paragon
 Branching Evolution
 Cabal Archon
+Canopy Spider
+Chitinous Cloak
+Cloakwood Swarmkeeper
 Combat Research
+Crackling Club
+Craven Giant
+Death Pit Offering
+Descendant of Masumaro
 Donatello's Science Lesson
+Dormant Volcano
+Dragon Mantle
+Dragon Whelp
 Eiganjo Free-Riders
 Elspeth's Nightmare
+Elvish Lyrist
+Elvish Visionary
 Evolution Charm
+Excavation Mole
+Extinguish the Light
+Fang Dragon
 Fervent Strike
 Forebear's Blade
 Forest
+Garruk's Companion
 Geist of the Archives
+Gimli, Counter of Kills
+Glaive of the Guildpact
+Graf Reaver
+Guardians' Pledge
 Gut Shot
+Guul Draz Assassin
+Haunted Fengraf
 Heartfire
 Hero of the Pride
+Hunted Dragon
+Hurly-Burly
 Hymn of Rebirth
 Island
+Jace's Sentinel
+Jungle Wayfinder
+Kavu Lair
 Kessig Flamebreather
 Kithkin Greatheart
 Knight of Sorrows
+Kobold Drill Sergeant
+Kolaghan Warmonger
+Kor Entanglers
+Lead by Example
+Library
+Loki's Scepter
+Lu Bu, Master-at-Arms
 Manor Gate
 Mardu Warshrieker
 Monastery Swiftspear
+Morningtide
 Mother of Runes
 Mountain
+Naktamun Lorespinner
+Natural Affinity
 Nightwind Glider
+Noose Constrictor
 Novablast Wurm
+Oath of Mages
 Ondu Champion
 Outpost Siege
 Paradigm Shift
@@ -39,16 +87,48 @@ Plains
 Prava of the Steel Legion
 Prodigy's Prototype
 Proud Mentor
+Prowling Pangolin
+Pyre Charger
+Reaping the Rewards
 Regent's Authority
 Revenge of Ravens
+Revive the Shire
+Riptide
+Riverglide Pathway
 Roving Harper
+Runed Servitor
+Sabertooth Alley Cat
+Scrollshift
+Segmented Wurm
+Shivan Harvest
 Sigarda, Champion of Light
 Skull Catapult
+Skyspear Cavalry
+Spider-Man, New Champion
+Spiked Baloth
+Stonefury
+Stroke of Genius
 Summoner's Sending
 Swamp
+Swarmyard
+Swell of Growth
 Syphon Mind
+Teachings of the Kirin
+The Rack
+Towering-Wave Mystic
 Undead Warchief
+Unfriendly Fire
+Vectis Silencers
 Vessel of Ephemera
 Veteran of the Depths
 Village Bell-Ringer
 Voldaren Epicure
+Wake Thrasher
+Warlock Class
+Warpath
+Wary Okapi
+Wicker Witch
+Wind-Kin Raiders
+Wirewood Hivemaster
+Wish Good Luck
+Yavimaya Hollow

@@ -1,113 +1,198 @@
 A-Civil Servant
 A-Navigation Orb
+A-Ochre Jelly
+Abu Ja'far
+Abundant Harvest
+Abzan Banner
 Academy Wall
+Acolyte of Affliction
 Aerie Bowmasters
 Affa Protector
 Aligned Hedron Network
 Amateur Hero
+Ambitious Assault
 Ambitious Farmhand
+Ancestor's Chosen
+Angelic Rocket
+Animist's Awakening
 Ant Queen
 Aquus Steed
+Ardent Plea
+Arena Rector
 Assassin's Ink
 Back to Basics
+Baleful Beholder
+Bane of Progress
 Barbarian Riftcutter
 Benthic Behemoth
 Blaring Captain
 Blood for the Blood God!
 Blue Elemental Blast
+Boggart Sprite-Chaser
 Brackwater Elemental
 Branchblight Stalker
 Brightling
+Bronze Sword
 Builder's Blessing
 Burning-Tree Emissary
 Cavalier of Dawn
+Chandra, Legacy of Fire
 Chimney Rabble
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
 Citanul Hierophants
+Colossus of Sardia
+Consume the Meek
+Convolute
+Cradle of Safety
 Creeping Crystal Coating
 Crowd's Favor
+Crush Contraband
 Crystal Golem
+Cumber Stone
 Curious Altisaur
 Dawn of the Dead
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Debilitating Injury
+Debtor's Pulpit
 Decision Paralysis
 Dehydration
 Demonlord of Ashmouth
 Desperate Farmer
+Discordant Dirge
+Disempower
+Distress
 Dogpile
+Dragon Throne of Tarkir
+Dramatic Finale
 Dread Drone
+Drudge Spell
 Drumhunter
+Duchess, Wayward Tavernkeep
 Durable Coilbug
 Duskworker
 Eagle of Deliverance
+Eccentric Farmer
+Elemental Appeal
+Embermage Goblin
 Epicenter
+Esper Battlemage
+Essence Filter
 Excise the Imperfect
 Experiment One
 Experimental Synthesizer
+Expose to Daylight
 Ezuri's Archers
 Fade from History
 Festering Mummy
 Fiery Cannonade
+Fissure Vent
+Flameborn Viron
 Fleetwheel Cruiser
 Flowstone Kavu
 Forest
+Foriysian Interceptor
+Founding of Omashu
 Frenzied Fugue
 Frost Ogre
+Genesis
+Gideon's Battle Cry
+Gnottvold Slumbermound
+Goblin Assault Team
+Goliath Sphinx
 Grasp of Darkness
 Grave Pact
+Grim Initiate
 Guardian of the Forgotten
 Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
+Hair-Strung Koto
 Hamza, Guardian of Arashin
+Haunted Library
+Healing Technique
+Heavy Mattock
+Hog-Monkey Rampage
+Hostile Desert
+Hunting Wilds
 Hydra Omnivore
+Hydroform
 Icatian Priest
 Icatian Scout
 Imperial Recruiter
 Inundate
 Iraxxa, Empress of Mars
+Iridescent Drake
 Island
+Izzet Boilerworks
+Jarl of the Forsaken
+Jungle Troll
 Kappa Cannoneer
 Keeper of the Lens
 Kitesail Cleric
 Knowledge Is Power
 Kokusho, the Evening Star
 Krav, the Unredeemed
+Krile Baldesion
+Kurgadon
 Lattice-Blade Mantis
 Lazotep Plating
+Lead Astray
+Legion Loyalty
 Living Armor
 Livonya Silone
+Llanowar Visionary
 Lonesome Unicorn
 Lord of Atlantis
 Lorehold Archivist
+Lovisa Coldeyes
+Lucky Offering
 Magmaroth
+Manakin
 Marionette Apprentice
+Markov Enforcer
+Marsh Hulk
 Maverick Thopterist
+Mire Triton
 Mirran Bardiche
 Molting Skin
+Monstrous Onslaught
 Moonveil Regent
 Mountain
+Mountain Valley
 Munda's Vanguard
+Nahiri's Stoneblades
 Narset's Reversal
+Natural Obsolescence
 Niblis of Frost
 Nightmarish End
 Nimble Hobbit
+Nimbleclaw Adept
+Notion Rain
 Null Rod
+Nullhide Ferox
+Nylea's Forerunner
 Opportunist
 Otherworldly Gaze
 Paired Tactician
 Pavel Maliki
 Pearl Dragon
 Pest Infestation
+Phase Dolphin
 Phyrexian Boon
+Phyrexian Soulgorger
 Phyrexian Walker
+Pixie Queen
 Plains
 Power Plant Worker
+Prismari Pianist
 Pyrohemia
+Queen of Ice
+Quirion Ranger
 Rakdos Guildmage
+Ranger's Path
 Rebuff the Wicked
 Reckless Handling
 Returned Phalanx
@@ -115,7 +200,11 @@ Riptide Chimera
 Rise to Glory
 Rod of Ruin
 Rubblebelt Maaka
+Runner's Bane
+Sabertooth Outrider
+Sacred Peaks
 Satyr Rambler
+Scion of the Swarm
 Screaming Fury
 Seal of Cleansing
 Search Warrant
@@ -126,47 +215,80 @@ Serum Snare
 Setessan Training
 Shichifukujin Dragon
 Shield Wall
+Shoal Serpent
 Shoreline Raider
+Shuko
+Siani, Eye of the Storm
+Sight Beyond Sight
 Silent Specter
+Silkwing Scout
+Sinister Gnarlbark
 Skeletal Wurm
 Skull Prophet
 Slimebind
+Sluggishness
+Soul Rend
 Spear Spewer
+Spring-Leaf Avenger
+Squee's Toy
+Steadfast Guard
 Stone Golem
+Storm Shaman
 Stormbound Geist
 Strength Bobblehead
 Stun Sniper
+Sudden Spoiling
+Sunder the Gateway
 Sunseed Nurturer
 Sunset Revelry
 Swamp
 Talas Lookout
 Tandem Tactics
+Telling Time
+Tempered Veteran
 The Terror of Serpent's Pass
 The Thing
+Thoughtbound Phantasm
 Thraben Foulbloods
+Thraben Sentry
+Threaten
 Thriving Turtle
+Thunder Spirit
+Titanic Brawl
 Topiary Stomper
 Tragic Fall
+Traveling Philosopher
 Trench Wurm
 Trostani, Selesnya's Voice
+Tuktuk Grunts
+Tumble Magnet
+Tyrite Sanctum
 Uncontrollable Anger
 Unliving Psychopath
+Urbis Protector
 Ursapine
 Urza's Rage
+Valorous Charge
 Vanish into Eternity
+Vesper Ghoul
+Victor Timely, Wily Tycoon
 Vivid Flying Fish
 Vizzerdrix
+Vodalian Arcanist
 Void
 Voracious Hydra
 Wall of Ice
+Warping Wail
 Weakstone
 Welcome the Dead
 Welding Sparks
 Wild Ox
 Witty Roastmaster
+Wizard's Staff
 Wonder
 Words of Wisdom
 Workshop Elders
 Wort, the Raidmother
 Wreck and Rebuild
 Yellow Scarves Troops
+Zuko, Avatar Hunter

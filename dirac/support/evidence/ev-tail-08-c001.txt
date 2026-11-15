@@ -1,39 +1,63 @@
+Amateur Auteur
 Amethyst Dragon
 Ancestral Recall
 Ancient Den
+Assassin Initiate
 Aven Gagglemaster
 Awaken the Woods
+Ballynock Trapper
 Barrenton Cragtreads
+Barrin's Codex
+Blind-Spot Giant
 Cabaretti Confluence
+Captain America, Liberator
 Carnage Tyrant
 Cavern Thoctar
 Coral Barrier
+Crash Landing
 Culling Dais
 Darkwater Catacombs
 Davvol, Evincar of Rath
 Dead
 Dromoka's Gift
 Drudge Reavers
+Duergar Mine-Captain
+Dusk Legion Dreadnought
+Dwarven Recruiter
+Elvish Hunter
 Energy Arc
+Enfeeblement
 Excavated Wall
 Eyeblight's Ending
 Feast or Famine
+Fetid Gargantua
+Flowstone Mauler
 Forest
 Fyndhorn Elder
 Geralf's Messenger
 Ghost-Lit Raider
+Giant Inheritance
+Goblin Brigand
 Goblin Sky Raider
 Grid Monitor
+Hammerheim Deadeye
+Hazardous Conditions
+Henrika Domnathi
+Hillcomber Giant
+Homicidal Seclusion
 Honored Crop-Captain
 Horizon Explorer
 Hunter's Edge
 Imperial Oath
 Ingenious Smith
 Innocuous Researcher
+Insatiable Souleater
 Island
 Jolting Merfolk
+Kavu Howler
 Krazy Kow
 Last Kiss
+Lone Missionary
 Mana Leak
 Mass Appeal
 Mercurial Pretender
@@ -44,6 +68,7 @@ Mona Lisa, Ever Adaptable
 Mother Kangaroo
 Mountain
 Mystic Restraints
+Nether Spirit
 Network Terminal
 Night Terrors
 Overtaker
@@ -63,9 +88,11 @@ Reverent Mantra
 Scent of Nightshade
 Scrap Mastery
 Scroll Thief
+Selesnya Charm
 Serra's Guardian
 Serum Tank
 Shield Sphere
+Sifter of Skulls
 Sinstriker's Will
 Siphon Insight
 Skirk Outrider
@@ -79,7 +106,9 @@ Spore Crawler
 Stalwart Aven
 Stand
 Stitch in Time
+Storm Fleet Aerialist
 Strafe
+Suspicious Bookcase
 Sustainer of the Realm
 Swamp
 Sylvia Brightspear
@@ -90,11 +119,16 @@ Tek
 Thalia's Lieutenant
 Thopter Mechanic
 Thraben Valiant
+Thran War Machine
+Tor Giant
+Treespring Lorian
 Tukatongue Thallid
 Umara Wizard
+Unbreakable Formation
 Unravel the Aether
 Updraft
 Vampire Outcasts
+Veilborn Ghoul
 Vengeful Vampire
 Vulpine Goliath
 War Falcon
@@ -102,5 +136,7 @@ Water Elemental
 Wayward Servant
 Wayward Soul
 White Widow, Yelena Belova
+Wyluli Wolf
 Yarok's Wavecrasher
+You Meet in a Tavern
 Zhang Fei, Fierce Warrior

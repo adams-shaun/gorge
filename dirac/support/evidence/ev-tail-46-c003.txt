@@ -1,37 +1,104 @@
 A-Oran-Rief Ooze
 Alpha Tyrranax
 Anaconda
+Aphetto Alchemist
 Argothian Opportunist
+Argothian Treefolk
 Auriok Transfixer
+Battlefront Krushok
+Blaring Recruiter
+Blessed Wine
+Blight Pile
+Blistering Barrier
 Bloodrite Invoker
 Bounding Wolf
+Brain Weevil
+Brazen Buccaneers
 Brood Monitor
+Cenn's Enlistment
+Chatterstorm
+Children of Korlis
+Citizen's Crowbar
+Council's Judgment
 Death-Hood Cobra
+Debt to the Kami
+Dire Fleet Interloper
+Doorkeeper
+Dormant Grove
+Dragonfly Suit
 Dread Return
+Elite Guardmage
+Empress Galina
+Endless Ranks of the Dead
+Esper Sentinel
+Everythingamajig
+Eviscerator
+Falcon Abomination
+False Summoning
 Fangs of Kalonia
+Fated Conflagration
+Feedback Bolt
 Feral Animist
+Ferocity of the Wilds
 Fire Sprites
+Floral Evoker
 Forest
+Frozen Shade
 Gaea's Embrace
+Gaea's Skyfolk
+Geistlight Snare
+Gnarled Mass
+Goldenhide Ox
 Herald of Secret Streams
 Island
+Jukai Trainee
+Lagonna-Band Elder
+Leyline of the Meek
+Lifeline
 Lightning Blow
 Lorehold Pledgemage
+Lost in the Woods
+Marshal of Zhalfir
 Merfolk Branchwalker
 Midnight Guard
+Mind Peel
+Moss Diamond
 Mountain
 Muscle Sliver
+Mycoid Shepherd
+Nihil Spellbomb
+Nurturing Presence
+Orochi Eggwatcher
 Pit Imp
 Plains
 Priest of the Blood Rite
+Quicksilver Wall
 Raise the Alarm
+Rank Officer
+Resolute Watchdog
+Rout
+Rusted Slasher
+Sanctum of Tranquil Light
+Scoria Cat
+Second Breakfast
 Shadow in the Warp
 Shu General
+Sisters of the Flame
+Sky Skiff
+Skywinder Drake
+Sorin's Vengeance
+Soulcage Fiend
 Stitcher's Graft
+Storm Strike
 Summer Bloom
+Survive the Night
 Swamp
 Tempest Harvester
+Tireless Hauler
+Trenchpost
 Tura Kennerüd, Skyknight
+Twisted Experiment
+Urborg Stalker
 Verdant Field
 Viridian Shaman
 Warbriar Blessing
@@ -39,3 +106,5 @@ Whipcorder
 Whirler Virtuoso
 Yahenni, Undying Partisan
 Yavimaya Elder
+Yotian Medic
+Éomer of the Riddermark

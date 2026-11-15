@@ -10,6 +10,7 @@ Cleaving Skyrider
 D'Avenant Archer
 Defy Death
 Doomed Traveler
+Double Trouble
 Expedition Envoy
 Fanatical Devotion
 Fatal Frenzy
@@ -25,11 +26,17 @@ Island
 Jhessian Balmgiver
 Knight of the Tusk
 Llanowar Cavalry
+Maned Serval
+Manhole Cover
 Molderhulk
 Momentary Blink
 Monk Idealist
 Mountain
+Mukotai Ambusher
 Myth Realized
+Nimble Mongoose
+Nissa's Zendikon
+Ob Nixilis, the Hate-Twisted
 Pact of Negation
 Palace Sentinels
 Phyrexian Missionary
@@ -37,6 +44,7 @@ Plains
 Prized Elephant
 Psychic Overload
 Reckless Reveler
+Regenesis
 Renegade Warlord
 Rising Populace
 Rummaging Goblin
@@ -45,10 +53,13 @@ Shu Farmer
 Sky Crier
 Soulcatcher
 Spined Thopter
+Storm Seeker
 Sungrace Pegasus
 Swamp
 Swathcutter Giant
 Tezzeret's Gambit
+Twisted Justice
 Unseal the Necropolis
 Vapor Snag
 Vent Sentinel
+Yomiji, Who Bars the Way

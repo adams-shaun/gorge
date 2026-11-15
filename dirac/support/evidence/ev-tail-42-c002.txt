@@ -1,27 +1,117 @@
+A-Dragonborn Looter
+Aethersnipe
 Arachnoform
+Arc Trail
 Ardent Soldier
 Barrage Tyrant
+Basic Conjuration
 Bewilder
 Beyeen Veil
+Blood Burglar
 Boggart Forager
+Breaching Hippocamp
+Burning Hands
+Cinder Barrens
+Cloak and Dagger
+Cone of Flame
 Consuming Corruption
+Corrupted Resolve
+Cruel Witness
+Cystbearer
+Dark Prophecy
+Delraich
 Dire Fleet Warmonger
+Elfhame Palace
 Ember Hauler
+Enigmatic Incarnation
+Entropic Specter
+Flaming Fist
+Flywheel Racer
+Forerunner of Slaughter
 Forest
+Furnace Spirit
+Galvanic Juggernaut
+Gauntlet of Might
 Gleeful Demolition
+Glimpse the Unthinkable
+Gloomwidow's Feast
+Gobland
+Goblin Diplomats
+Goblin Scouts
+Goreclaw, Terror of Qal Sisma
+Hangarback Walker
+Helm of the Host
+High-Rise Sawjack
+Hovermyr
+Icatian Store
+Idle Thoughts
 Imoti, Celebrant of Bounty
+Imperial Cosmographer
+Invasion of Xerex
+Ishai, Ojutai Dragonspeaker
 Island
+Izzet Signet
+Krosan Archer
+Leadership Vacuum
+Living Lands
+Loamcrafter Faun
 Lucid Dreams
+Manipulate Fate
 Marauding Looter
+Mogg Alarm
+Mosstodon
 Mountain
+Naru Meha, Master Wizard
+Nectar Faerie
 Night Market Aeronaut
 Nirkana Cutthroat
+Ob Nixilis, the Fallen
+Ogre Menial
+Organ Grinder
+Ornithopter
 Plains
+Polluted Mire
+Priests of Norn
+Prismatic Strands
+Ral's Dispersal
+Samut's Sprint
+Scalding Devil
+Separatist Voidmage
+Shapers' Sanctuary
 Silver Raven
+Singing Tree
+Skyshroud Lookout
+Soldevi Machinist
+Soul Strings
+Spectral Adversary
+Spellbook
+Spiderwig Boggart
+Spike Drone
+Stolen Grain
 Sunken Hope
 Swamp
+Tajuru Stalwart
+Temperamental Oozewagg
+Thalia's Lancers
+Thoughtcutter Agent
 Thrasher Brute
+Thrummingbird
+Thunderscape Familiar
+Tidepool Turtle
+Tracker's Instincts
+Traitor's Clutch
+Tribal Unity
 Twitch
+Ultimate Price
+Unicycle
 Unraveling Mummy
 Urza's Guilt
+Viashino Firstblade
+Villainous Ogre
+Volcanic Fallout
+War-Torch Goblin
+Water Servant
+Weldfast Engineer
+Wings of Hope
 Yavimaya Scion
+Zirilan of the Claw

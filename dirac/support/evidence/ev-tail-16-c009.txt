@@ -1,10 +1,17 @@
 Bloodhunter Bat
 Daggerback Basilisk
+Enchanted Carriage
 Forest
 Island
 Marsh Lurker
 Mesmeric Trance
 Mountain
 Plains
+Rock Slide
+Rogue's Gloves
+Sparring Construct
 Swamp
+Treasure Hunter
 Warning
+You're Ambushed on the Road
+Zuran Orb

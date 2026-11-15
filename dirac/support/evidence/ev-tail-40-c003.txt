@@ -1,41 +1,136 @@
+A-Syndicate Infiltrator
+A-Young Blue Dragon
 Abattoir Ghoul
 Aegis Automaton
 Akroan Sergeant
+Altar Golem
 Amulet of Vigor
+Angrath's Marauders
 Armageddon
 Asylum Visitor
 Auger Spree
+Avatar of Might
 Banishing Slash
 Bastion of Remembrance
+Blessed Light
 Blood Ogre
 Boon of Emrakul
+Butterbur, Bree Innkeeper
+Carrion Wall
 Chandra's Fury
 Charcoal Diamond
+Cliffhaven Sell-Sword
+Cogwork Archivist
 Colossal Majesty
 Compulsion
+Concordia Pegasus
+Crumbling Colossus
+Daraja Griffin
+Deflection
+Devils' Playground
+Dragon Egg
+Drifter il-Dal
+Dune Beetle
 Elvish Harbinger
+Faceless Devourer
+Feldon, Ronom Excavator
+Fetid Imp
+Field of Reality
+Flowstone Crusher
 Forest
+Free from Flesh
+Frog-Squirrels
+Frontline Medic
 Furnace Scamp
 Gnoll War Band
+Gnome-Made Engine
+Hangar Scrounger
+Helitrooper
+Hornswoggle
+Hunters' Feast
 Idol of Oblivion
 Inferno Titan
+Invasive Species
+Ironroot Treefolk
 Island
+Isolate
 Lava Zombie
+Leonin Scimitar
+Liliana's Scrounger
+Lorehold Excavation
 Manglehorn
+Mental Misstep
 Merchant Scroll
+Mercurial Transformation
+Mind Burst
 Minion of the Mighty
+Mnemonic Wall
+Morgue Theft
+Mortal's Ardor
 Mountain
+Mountain Bandit
+Mysterious Pathlighter
 Omen of the Sun
+Ore-Scale Guardian
 Oread of Mountain's Blaze
+Ovalchase Daredevil
+Patrol Signaler
+Phantom Wings
 Plains
+Platinum Angel
+Plummet
 Porcelain Legionnaire
 Primordial Ooze
+Prophetic Flamespeaker
+Rakka Mar
+Ravenous Baboons
+Resourceful Return
+Ring of Three Wishes
+Ringwarden Owl
+Rooting Kavu
+Rousing of Souls
+Ruination Wurm
+Safeguard
+Sandsteppe Outcast
 Scion of Glaciers
+Screamreach Brawler
+Scurry of Squirrels
+Season of Renewal
 Second Harvest
+Second Thoughts
+Security Detail
+Selesnya Sentry
+Sentinel Spider
+Shaggy Camel
 Shelter
+Six-Sided Die
+Skyclave Geopede
+Skylasher
+Slinking Skirge
+Smolder Initiate
+Spark Trooper
+Spartan Veteran
 Spinehorn Minotaur
+Steam Blast
 Steward of Valeron
+Stone Rain
+Structural Distortion
 Swamp
+Tah-Crop Skirmisher
+Tajuru Beastmaster
+Tegan Jovanka
+Territorial Kavu
+Terror of the Fairgrounds
+The Destined White Mage
+Thing Swing
+Thorn Mammoth
+Tidespout Tyrant
+Tigereye Cameo
+Time of Heroes
+Triton Shorethief
+Turn the Tide
 Turnabout
+Undercity Shade
+Valor of the Worthy
 Vivid Revival
 Vivisurgeon's Insight

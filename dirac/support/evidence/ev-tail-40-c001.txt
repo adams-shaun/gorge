@@ -1,10 +1,22 @@
+A-Gnarlid Colony
+A-Young Blue Dragon
 Abattoir Ghoul
 Aberrant
 Aegis Automaton
+Agent of Masks
+Akoum Flameseeker
+Akroan Sergeant
+Altar Golem
 Amulet of Vigor
+Angrath's Marauders
+Ant-Man, Elusive Avenger
 Antagonize
 Arcane Laboratory
 Armageddon
+Asylum Visitor
+Atalya, Samite Master
+Auger Spree
+Avatar of Might
 Banishing Slash
 Basri's Aegis
 Bastion of Remembrance
@@ -12,83 +24,173 @@ Battle Sliver
 Blessed Light
 Blood Ogre
 Bloodcrazed Neonate
+Blot Out
 Boon of Emrakul
 Brass Secretary
+Bright-Palm, Soul Awakener
 Brilliant Plan
+Butterbur, Bree Innkeeper
+Carrion Wall
 Cenn's Heir
 Chandra's Fury
 Charcoal Diamond
 Charmbreaker Devils
+Cleric of Chill Depths
+Cloud Crusader
 Cogwork Archivist
 Colossal Majesty
+Common Iguana
 Compulsion
+Concordia Pegasus
 Crack the Earth
+Creeping Mold
+Crumbling Colossus
+Dalek Drone
+Daraja Griffin
+Deflection
+Devils' Playground
+Dhund Operative
 Dragon Egg
 Elvish Harbinger
+Faceless Devourer
 Feldon, Ronom Excavator
+Felhide Petrifier
+Fetid Imp
+Field of Reality
 Flowstone Crusher
+Fog on the Barrow-Downs
 Forest
+Free from Flesh
+Frog-Squirrels
+Frostfist Strider
 Furnace Scamp
+Gavony Trapper
 Gnoll War Band
+Gnome-Made Engine
+Goblin Bruiser
+Goblin Mutant
+Grim Lavamancer
 Helitrooper
+High Alert
+Hunters' Feast
 Idol of Oblivion
 Inferno Titan
+Invasive Species
+Ironroot Treefolk
 Island
 Isolate
 Kardur, Doomscourge
+Kargan Dragonlord
+Killian, Ink Duelist
 Krakilin
 Lava Zombie
+Legion's Judgment
+Leonin Scimitar
+Llanowar Tribe
 Locus Cobra
 Lorehold Excavation
+Magmatic Channeler
 Manglehorn
+Megrim
+Mental Misstep
 Merchant Scroll
+Miasmic Mummy
+Mind Burst
 Minion of the Mighty
+Mnemonic Wall
+Morgue Theft
+Mortal's Ardor
 Mountain
 Mountain Bandit
 Mysterious Pathlighter
+Needlebug
+Oji, the Exquisite Blade
 Omen of the Sun
 Ore-Scale Guardian
 Oread of Mountain's Blaze
 Ovalchase Daredevil
+Patrol Signaler
+Phantom Wings
 Plains
+Plummet
 Porcelain Legionnaire
+Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
+Qasali Pridemage
+Rakdos Cluestone
+Ravenous Baboons
 Reito Lantern
+Ring of Three Wishes
 Ringwarden Owl
+Rooting Kavu
+Roughshod Mentor
 Rousing of Souls
+Ruination Wurm
+Safeguard
 Sandsteppe Outcast
 Scion of Glaciers
+Scourge of Skola Vale
 Screamreach Brawler
 Season of Renewal
 Second Harvest
+Second Thoughts
+Security Detail
+Seed Guardian
 Selesnya Sentry
 Sengir Vampire
 Sentinel Spider
 Shaggy Camel
 Shelter
+Sigil of Distinction
 Six-Sided Die
 Skyclave Geopede
+Skylasher
+Slinking Skirge
 Smolder Initiate
 Song of Eärendil
+Southern Elephant
 Spark Trooper
+Spartan Veteran
 Sphinx of Magosi
 Spinehorn Minotaur
 Steam Blast
 Steward of Valeron
+Stone Rain
 Strength of Night
+Structural Distortion
 Sumala Rumblers
 Survival Cache
 Swamp
+Swan Song
+Tah-Crop Skirmisher
 Tajuru Beastmaster
+Talisman of Curiosity
 Tegan Jovanka
+Territorial Kavu
+Terror of the Fairgrounds
+The Destined White Mage
+Thing Swing
+Thorn Mammoth
+Thoughtseize
 Thunder Strike
+Tidings
 Tigereye Cameo
+Time Wipe
+Time of Heroes
 Torsten, Founder of Benalia
 Triton Shorethief
 Turn the Tide
 Turnabout
 Undercity Shade
+Untamed Might
+Unwilling Recruit
 Valor of the Worthy
+Vineshaper Mystic
 Vivid Revival
+Vivisurgeon's Insight
+Voltaic Key
 Volunteer Militia
+Welcoming Vampire
+Whetwheel
+Yuan Shao, the Indecisive

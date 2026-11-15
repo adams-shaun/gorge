@@ -1,10 +1,15 @@
 A-Dragonborn Looter
 A-Ominous Parcel
 Aethersnipe
+Amulet of Unmaking
+Angelic Gift
 Angler Turtle
+Anurid Murkdiver
 Arachnoform
 Arc Trail
 Ardent Soldier
+Armory Guard
+Audacious Infiltrator
 Awakened Awareness
 Barrage Tyrant
 Basic Conjuration
@@ -15,61 +20,97 @@ Beyeen Veil
 Bill the Pony
 Blood Burglar
 Bloodbraid Elf
+Bloodshed Fever
 Boggart Forager
 Bonded Construct
 Boon of Boseiju
 Brawl-Bash Ogre
 Breaching Hippocamp
 Burning Hands
+Caustic Crawler
 Centaur Healer
 Cerulean Drake
+Char-Dog
 Choking Restraints
+Cinder Barrens
+Clamavus
+Cloak and Dagger
 Cloudheath Drake
+Cone of Flame
 Consuming Corruption
+Contraband Kingpin
 Corrupted Resolve
+Cremate
 Crenellated Wall
 Cruel Witness
 Cystbearer
+Dark Prophecy
 Delraich
 Desperate Charge
+Dimir Cutpurse
 Dimir House Guard
+Dire Fleet Warmonger
 Divine Smite
+Doomskar Titan
 Dragon-Cursed Halls
 Dream Pillager
 Eidolon of Inspiration
 Elfhame Palace
 Elvish Ranger
 Ember Hauler
+Enigmatic Incarnation
+Entrails Feaster
+Entropic Specter
 Faerie Swarm
 Feral Abomination
 Fiddlehead Kami
+Fiend Binder
 Flaming Fist
 Fledgling Mawcor
+Flusterstorm
+Flutterfox
 Flywheel Racer
+Forced Worship
+Forerunner of Slaughter
 Forest
 Furnace Spirit
 Galvanic Juggernaut
+Gauntlet of Might
 Gladehart Cavalry
 Gleeful Demolition
 Glimpse the Unthinkable
 Glint Raker
+Gloomwidow's Feast
 Gobland
+Goblin Diplomats
+Goblin Scouts
 Goreclaw, Terror of Qal Sisma
+Grenzo, Havoc Raiser
+Griffin Dreamfinder
+Hangarback Walker
 Havoc Devils
 Helm of the Host
 Hovermyr
+Hungry Megasloth
 Icatian Store
 Idle Thoughts
+Illustrious Wanderglyph
 Imperial Cosmographer
 Intrepid Hero
+Invasion of Xerex
 Island
 Izzet Signet
+Kami of Tattered Shoji
 King of the Pride
+Kinsbaile Courier
+Kitesail Scout
 Knight of the Reliquary
 Knowledge and Power
+Krosan Archer
 Leadership Vacuum
 Leechridden Swamp
 Legion Leadership
+Legion Vanguard
 Lifelink
 Liquify
 Living Lands
@@ -80,11 +121,15 @@ Mana Short
 Manipulate Fate
 Marauding Looter
 Master Transmuter
+Mesa Lynx
+Metal Fatigue
 Miara, Thorn of the Glade
 Mogg Alarm
 Moonlit Wake
+Mosstodon
 Motivated Pony
 Mountain
+Mystic Snake
 Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
@@ -94,9 +139,16 @@ Nimbus Champion
 Nirkana Cutthroat
 Ob Nixilis, the Fallen
 Oni of Wild Places
+Organ Grinder
 Ornithopter
+Overwhelming Encounter
+Penumbra Wurm
 Peppersmoke
+Peregrine Griffin
+Perennial Behemoth
 Perilous Myr
+Phyrexian Colossus
+Phyrexian Warhorse
 Phytoburst
 Plains
 Plow Through Reito
@@ -104,6 +156,7 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Purify the Grave
 Quantum Entanglement
 Ral's Dispersal
 Renegade Reaper
@@ -112,42 +165,67 @@ Sage's Reverie
 Samut's Sprint
 Scalding Devil
 Seek the Horizon
+Separatist Voidmage
 Serpent-Blade Assailant
 Setessan Starbreaker
 Shadow Summoning
 Shapers' Sanctuary
+Shrewd Negotiation
 Shu Cavalry
 Silver Raven
 Singing Tree
+Skyblade's Boon
+Skymark Roc
 Skyshroud Lookout
+Smoke Bomb
+Species Specialist
 Spellbook
 Spiderwig Boggart
+Spike Drone
+Squirrel Nest
 Steam Frigate
+Stolen Grain
 Sunken Hope
 Swamp
 Swift Response
+Tajuru Stalwart
 Talon Gates of Madara
+Telepathy
+Temperamental Oozewagg
 Temporal Adept
 Thalia's Lancers
 The Cauldron of Eternity
 Thirsting Bloodlord
 Thoughtcutter Agent
 Thrasher Brute
+Thrummingbird
+Thunderscape Familiar
 Tidepool Turtle
+Tracker's Instincts
 Traitor's Clutch
+Tribal Unity
+Tunneler Wurm
 Twitch
 Ultimate Price
 Unicycle
+Unraveling Mummy
 Urza's Guilt
 Venerable Knight
 Verduran Emissary
 Viashino Firstblade
+Villainous Ogre
 Volcanic Fallout
+Votary of the Conclave
+Wakanda Forever!
+Wakestone Gargoyle
 Wanderer's Intervention
 War Report
 War-Torch Goblin
 Water Servant
+Weldfast Engineer
 Wellspring
 Whisper Agent
 Wild Celebrants
+Wings of Hope
 Yavimaya Scion
+Zirilan of the Claw

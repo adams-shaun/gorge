@@ -1,5 +1,9 @@
+Assault Intercessor
 Azorius Herald
 Chief Magistrate of Mercadia
+Consuming Aetherborn
+Consuming Vapors
+Decimator Web
 Emerge Unscathed
 Exuberant Fuseling
 Fire Dragon
@@ -8,12 +12,23 @@ Force Spike
 Forest
 Frogify
 Gamekeeper
+Glorious Enforcer
+Graceblade Artisan
+Gryff's Boon
+Iron League Steed
 Island
+Karlov of the Ghost Council
 Kor Celebrant
+Landslide
 Liliana's Mastery
 Majestic Metamorphosis
+Martyr of Dusk
 Mogg Raider
+Molting Snakeskin
 Mountain
+Nadier, Agent of the Duskenel
+One with Death
+Pack's Disdain
 Plains
 Salvage
 Sheoldred's Edict
@@ -24,3 +39,5 @@ Supernatural Stamina
 Swamp
 Taunting Kobold
 Wellwisher
+Whipstitched Zombie
+Wingmantle Chaplain

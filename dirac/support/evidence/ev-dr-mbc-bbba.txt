@@ -11,10 +11,12 @@ Balduvian Horde
 Barbed Spike
 Basri's Acolyte
 Big Score
+Birchlore Rangers
 Blessed Spirits
 Blessing of Belzenlok
 Bloodrite Invoker
 Borrowing 100,000 Arrows
+Briarblade Adept
 Burst Lightning
 Caligo Skin-Witch
 Catacomb Crocodile
@@ -30,9 +32,11 @@ Ebony Fly
 Electrickery
 Encampment Keeper
 Ethereal Haze
+Expel from Orazca
 Exultant Skymarcher
 Fain, the Broker
 Falthis, Shadowcat Familiar
+Fearless Skald
 Foil
 Forest
 Frogify
@@ -63,6 +67,7 @@ Mothdust Changeling
 Mountain
 Nantuko Elder
 Oblivion Ring
+Phantom Flock
 Plains
 Pollenbright Druid
 Pongify
@@ -91,6 +96,7 @@ Tavern Swindler
 Tectonic Rift
 Telekinetic Sliver
 Thassa's Oracle
+The Weaver King
 Thermo-Alchemist
 Thunderclap
 Tibalt, Rakish Instigator
@@ -98,6 +104,7 @@ Toothy, Imaginary Friend
 Trostani's Judgment
 Unchained Berserker
 Vandalize
+Vivien's Grizzly
 Volcanic Geyser
 Voldaren Epicure
 Wall of Tears

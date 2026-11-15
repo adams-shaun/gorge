@@ -197,6 +197,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Improvise":                         "CardDef.Improvise (a cast-time payment, no battlefield characteristic; kw_convoke.go)",
 	"Rebound":                           "CardDef.ReboundAb (a resolution-time exile and an upkeep delayed program, no battlefield characteristic; kw_rebound.go)",
 	"Delve":                             "CardDef.Delve (a cast-time payment, no battlefield characteristic; kw_delve.go)",
+	"Split second":                      "CardDef.SplitSecond (read off a spell on the stack, no battlefield characteristic; kw_splitsecond.go)",
 	"Morph":                             "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
 	"Megamorph":                         "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",
 	"Disguise":                          "CardDef.MorphCost/MorphFamily (the face-down cast and turn-up special action)",

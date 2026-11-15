@@ -1,42 +1,166 @@
+Abu Ja'far
 Abundant Harvest
 Abzan Banner
+Accumulated Knowledge
+Aetherling
 Age of Ultron
+Alabaster Potion
+Altar of Bhaal
+Angel of Renewal
 Animist's Awakening
+Anoint with Affliction
+Ant-Man's Air Force
 Argothian Elder
+Augmenting Automaton
+Aven Smokeweaver
+Baboon Spirit
+Basalt Monolith
 Beacon Hawk
+Blitz of the Thunder-Raptor
+Bogardan Firefiend
+Break of Day
 Briarhorn
+Bronze Cudgels
+Calamity's Wake
+Ceremonious Rejection
+Chimeric Mass
+Chrome Mox
+Cleansing Nova
+Cogwork Librarian
+Compulsory Rest
+Concentrate
 Council of Advisors
+Covert Technician
+Dauthi Horror
+Deathbonnet Sprout
+Debtor's Pulpit
+Desperate Plea
+Disciple of Grace
+Distant Melody
 Dramatic Finale
 Dreadmobile
 Dungrove Elder
 Early Frost
 Eccentric Farmer
 Elite Headhunter
+Emissary of the Sleepless
 Eternal Flame
+Favorable Winds
+Fists of Ironwood
 Flameborn Viron
 Forest
+Fragmentize
+From Beyond
+Frost Marsh
+Funeral Pyre
 Funeral Rites
 Goblin Lore
+Goblin Soothsayer
+Grasping Current
+Grasping Dunes
+Grismold, the Dreadsower
 Hamato Ninpō
+Haunted Crossroads
+Hellfire
 Hog-Monkey Rampage
+Illustrious Historian
+Inspired Sphinx
+Involuntary Cooldown
 Island
 Jarl of the Forsaken
 Kamber, the Plunderer
+Khorvath Brightflame
+Knighted Myr
 Krovikan Plague
+Kujar Seedsculptor
 Kurgadon
+Lembas
 Lethal Exploit
+Llanowar Visionary
+Looming Spires
+Lucky Offering
+Mass Diminish
+Master Splicer
+Mesmeric Orb
+Might of Murasa
 Mire Triton
+Moria Marauder
+Mortal Obstinacy
 Mountain
+Mox Diamond
+Mystic Compass
 Natural Obsolescence
+Netherborn Altar
+Nicol Bolas
+Nissa's Judgment
 Novice Dissector
 Ojutai's Command
+Omen of the Hunt
+One-Clown Band
+Opportunity
+Overflowing Basin
+Peat Bog
+Phantatog
+Pheres-Band Tromper
 Plague Beetle
 Plains
+Prophet of Distortion
+Rainbow Crow
+Rakdos Ickspitter
+Ranger's Longbow
+Ransack the Lab
+Ring of Renewal
+Rith's Grove
 Rooftop Bypass
+Rootwater Diver
+Rumbleweed
+Runechanter's Pike
+Runed Stalactite
+Sanctuary Cat
+Sandstone Deadfall
+Screaming Seahawk
+Serra's Boon
+Shadowborn Demon
+Shriekdiver
+Silverwing Squadron
+Simian Brawler
+Simic Charm
+Skyhunter Cub
+Skystrike Officer
+Snow-Covered Island
+Soul Rend
+Soul of Innistrad
+Sparkmage's Gambit
+Spidery Grasp
+Spine of Ish Sah
+Steadfast Guard
 Stone-Seeder Hierophant
+Storm Shaman
+Sudden Strength
 Swamp
 Tainted Strike
+Tempered Veteran
+Tendershoot Dryad
+The Magic Mirror
 Theater of Horrors
+Thraben Sentry
+Thrull Parasite
+Thunder Spirit
+Tiamat's Fanatics
 Tuinvale Treefolk
+Universal Solvent
 Urbis Protector
+Vebulid
+Veiled Apparition
+Vela the Night-Clad
+Viashino Grappler
+Vigilance
+Vinelasher Kudzu
+Vivify
+Vraska's Stoneglare
+Wheel of Fortune
+Wishcoin Crab
+Witness of Tomorrows
 Wolfbriar Elemental
+Yellow Scarves Cavalry
+Yotian Frontliner
