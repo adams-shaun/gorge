@@ -27,7 +27,7 @@ func CreatureManaCandidates(e Engine, p state.PlayerID, source state.ObjID, sour
 	var ids []state.ObjID
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		o := g.Obj(id)
-		if o == nil || o.Tapped || (sourceTaps && id == source) || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || !slices.Contains(e.Chars().DerivedTypes(id), "Creature") {
+		if o == nil || o.Tapped || o.PhasedOut || (sourceTaps && id == source) || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || !slices.Contains(e.Chars().DerivedTypes(id), "Creature") {
 			continue
 		}
 		ids = append(ids, id)

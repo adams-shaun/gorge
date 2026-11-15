@@ -72,7 +72,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	}
 	for _, id := range g.Zone(state.ZBattlefield, in.Player) {
 		o := g.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || cp.Committed(paid, id) {
+		if o == nil || o.Tapped || o.PhasedOut || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || cp.Committed(paid, id) {
 			continue
 		}
 		// CR 118.3 / 602.2b: the source taps for the cost's own {T}, so it is
