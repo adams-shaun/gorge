@@ -168,7 +168,11 @@ def classify(lines, rc=0, named=()):
                 msg = " ".join(out.get((pkg, test), []))
                 if ENV_SKIP.search(msg):
                     env = True
-                    res.reasons.append("skipped for the environment: %s %s" % (pkg, test))
+                    # The test's own skip message says which part of the environment: a remote run's note is
+                    # all the local log gets (the box answered ENV with no reason, 11-14).
+                    why = " ".join(l.strip() for l in out.get((pkg, test), [])
+                                   if l.strip() and not l.lstrip().startswith(("=== ", "--- ")))
+                    res.reasons.append("skipped for the environment: %s %s%s" % (pkg, test, " (%s)" % why[:160] if why else ""))
             else:
                 res.ran += 1
             if act == "fail":
@@ -201,9 +205,15 @@ def classify(lines, rc=0, named=()):
     return res
 
 
-def finish(mode, jsonfile, rc, sha, pkgs, seconds, named, out=sys.stdout):
+def finish(mode, jsonfile, rc, sha, pkgs, seconds, named, out=sys.stdout, fallback=""):
+    """fallback is the CPU cap of a run that fell back from the gate box to below the budget's 4 cores ("" when
+    not): a timeout there says the machine was short of cores, not that the change is slow, so it is BUSY."""
     with open(jsonfile, errors="replace") as f:
         res = classify(f, rc, named)
+    if res.status == "BUDGET" and fallback:
+        res.status = "BUSY"
+        res.reasons.insert(0, "timed out at the fallback cap (CPUQuota %s; the gate box could not take the run): the "
+                              "time budget is set for 4 cores, so this is BUSY, not a BUDGET of the change" % fallback)
     detail = res.detail[:MAX_DETAIL]
     for l in detail:
         print(l, file=out)
@@ -590,6 +600,7 @@ def main(argv=None):
     f.add_argument("--pkgs", default="")
     f.add_argument("--seconds", type=float, default=0)
     f.add_argument("--named", default="")
+    f.add_argument("--fallback", default="", help="the CPU cap of a fallback run below 4 cores: a timeout is BUSY")
     s = sub.add_parser("select")
     s.add_argument("--base", default="land")
     s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
@@ -603,7 +614,7 @@ def main(argv=None):
         print(verdict_line(a.mode, a.status, a.sha, pk, a.seconds))
         return EXIT[a.status]
     if a.cmd == "finish":
-        return finish(a.mode, a.json, a.rc, a.sha, pk, a.seconds, [p for p in a.named.split(",") if p])
+        return finish(a.mode, a.json, a.rc, a.sha, pk, a.seconds, [p for p in a.named.split(",") if p], fallback=a.fallback)
     if a.cmd == "census":
         return cmd_census(a)
     return cmd_select(a)

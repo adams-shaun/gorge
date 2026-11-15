@@ -66,6 +66,13 @@ rt_filter() { # rt_filter VERDICT_FILE LOG: stream the box's output, holding its
 	done
 }
 
+rt_reason() { # rt_reason LOG ERRLOG: the box's own words for an answer that is not a test result (ENV, EMPTY, ...):
+	# its verdict message ("test-targets: <mode>: ...", stderr) and its notes ("  note: ...", stdout), at most three.
+	# Without them the local log said only "the box answered ENV" (11-14, run sadams-1209117-1794707379).
+	{ sed -n "s/^test-targets: $mode: //p" "$2"; sed -n 's/^  note: //p' "$1" | grep -v '^cached='; } 2>/dev/null |
+		head -3 | awk 'NR > 1 { printf "; " } { printf "%s", $0 }'
+}
+
 rt_cleanup() { [ -z "${rt_run:-}" ] || rt_box cleanup "$rt_run" >/dev/null 2>&1; }
 
 rt_fallback() { # rt_fallback MSG: run here, at the fallback cap, and never try the box again in this run
@@ -137,7 +144,7 @@ remote_try() {
 # rt_try_run: 0 when the box's verdict is trusted (rt_vline, rt_code set, the json copied back), 1 to fall back
 # (rt_why says why). Everything in between is infrastructure and returns 1.
 rt_try_run() {
-	local base_sha head_sha out idle free lock llock ti patch= vf lg x rrc sf vst contended
+	local base_sha head_sha out idle free lock llock ti patch= vf lg le x rrc sf vst contended why
 	local minidle=${GORGE_REMOTE_MIN_IDLE:-24}
 	head_sha=$(git rev-parse HEAD 2>/dev/null) || { rt_why="no HEAD"; return 1; }
 	base_sha=$(git rev-parse --verify -q "$BASE^{commit}") || { rt_why="BASE does not resolve"; return 1; }
@@ -177,7 +184,9 @@ rt_try_run() {
 	echo "== remote: $rt_host, $idle idle cores, run $rt_run"
 	trap 'rt_cleanup; exit 130' INT TERM
 	vf=$(mktemp "${TMPDIR:-/tmp}/tt-verdict.XXXXXX") lg=$(mktemp "${TMPDIR:-/tmp}/tt-log.XXXXXX") x=$(mktemp -d "${TMPDIR:-/tmp}/tt-back.XXXXXX")
-	rt_box run "$rt_run" "$mode" | rt_filter "$vf" "$lg"
+	le=$lg.err
+	# stdout through rt_filter as before; stderr still reaches ours, and a copy goes to $le for rt_reason.
+	{ rt_box run "$rt_run" "$mode" 2>&1 1>&3 3>&- | tee -a "$le" >&2; exit "${PIPESTATUS[0]}"; } 3>&1 | rt_filter "$vf" "$lg"
 	rrc=${PIPESTATUS[0]}
 	rt_box finish "$rt_run" 2>/dev/null | tar -C "$x" -xf - 2>/dev/null
 	trap - INT TERM
@@ -202,7 +211,10 @@ rt_try_run() {
 			if [ "${contended:-0}" != 0 ] && [ "${rt_reruns_left:-1}" != 0 ]; then rt_why="contended: ${vst} on the box while the landing gate shared it"
 			elif [ "$vst" = FAIL ] && grep -q 'dirac gate rc=2' "$lg"; then rt_why="the dirac gate reported an infrastructure failure"; fi
 			;;
-		*) rt_why="the box answered ${vst:-nothing} (${rt_vline:-no verdict line})" ;;
+		*)
+			why=$(rt_reason "$lg" "$le")
+			rt_why="the box answered ${vst:-nothing} (${rt_vline:-no verdict line})${why:+: $why}"
+			;;
 		esac
 	fi
 	if [ -z "$rt_why" ]; then
@@ -210,6 +222,6 @@ rt_try_run() {
 		mkdir -p .ds4/scratch/test
 		[ ! -d "$x/$rt_run/.ds4/scratch/test" ] || cp -R "$x/$rt_run/.ds4/scratch/test/." .ds4/scratch/test/ 2>/dev/null
 	fi
-	rm -rf "$vf" "$lg" "$x"
+	rm -rf "$vf" "$lg" "$le" "$x"
 	[ -z "$rt_why" ]
 }
