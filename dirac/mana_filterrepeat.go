@@ -140,3 +140,12 @@ func (s *State) filtRepeatBound(k *prep, p uint8, filt slotMask, unrelax bool) b
 	}
 	return s.filtRelaxable(k, filt.andNot(rep))
 }
+
+// scriptAnyWalk: the prefix search's candidates are the any-mana walk, not the
+// gaps walk. So when gorge's census is unrelaxable (not relax) and no
+// sacrifice-any source is live, except on a board where a fixed-colour
+// repeatable filter is the only gap (filtRepeatBound): gorge's potential walk
+// there is the PotentialMana bound, which counts the filter's mana once.
+func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, sacAny, unrelax bool) bool {
+	return !relax && !sacAny && !s.filtRepeatBound(k, p, filt, unrelax)
+}

@@ -244,9 +244,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
-	if !relax && !sacAny && !s.filtRepeatBound(k, p, filt, ca || twoLive) {
-		// (a repeatable fixed-colour filter alone leaves the gaps walk gorge's:
-		// its PotentialMana bound counts the filter's mana once, mana_filterrepeat.go)
+	if s.scriptAnyWalk(k, p, filt, relax, sacAny, ca || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
