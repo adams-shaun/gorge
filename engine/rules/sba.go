@@ -1296,6 +1296,24 @@ func (e *Engine) battleZeroDefense(b *sbaBatch, tried *sbaAttempts) {
 	}
 }
 
+// battleDefenseBefore is the defense count the defeat feed (Engine.emit)
+// reads off a permanent that is leaving the battlefield: its DEFENSE counters
+// when it is a face-up front-face battle, and -1 for anything else, so the
+// feed's "no defense counters" test never holds for it. CR 310.11 queues the
+// transformed cast for a battle the defeat state-based action exiled; a
+// battle that was cast transformed and then left as its back face (an
+// Aetherwing exiled by Radiant Purge) is a nonbattle permanent with no
+// defense counters, and is not defeated.
+func battleDefenseBefore(o *state.Object) int32 {
+	if o.FaceDown || o.FaceIdx != 0 {
+		return -1
+	}
+	if f := o.Face(); f == nil || !f.IsBattle() {
+		return -1
+	}
+	return o.Counter("DEFENSE")
+}
+
 // ceaseDeadTokens is CR 704.5d: a token ceases to exist the instant it leaves
 // the battlefield. The state-based action is a plain zone check -- any token
 // whose CURRENT zone is neither the battlefield nor the stack nor already

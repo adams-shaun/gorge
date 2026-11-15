@@ -1,54 +1,170 @@
+Akrasan Squire
 Alaborn Grenadier
+Ancient Den
+Arcane Investigator
 Argent Mutation
 Armory of Iroas
+Army of Allah
 Army of the Damned
+Augur of Bolas
 Auriok Glaivemaster
 Baloth Woodcrasher
+Belligerent Whiptail
 Bladeback Sliver
+Blazing Hope
 Bloodchief's Thirst
+Bloodmark Mentor
+Blunt the Assault
+Bramblewood Paragon
+Branching Evolution
+Brinebarrow Intruder
+By Invitation Only
+Byway Courier
 Cabal Archon
+Cabal Pit
+Canopy Spider
+Cathartic Adept
+Cemetery Reaper
+Centaur Peacemaker
+Cephalid Broker
+Chandra's Fury
+Chitinous Cloak
+Cloakwood Swarmkeeper
 Combat Research
 Condemn
 Crackling Club
+Dawn of the Dead
+Descendant of Masumaro
+Deviant Glee
 Donatello's Science Lesson
 Dovin's Veto
+Dragon Whelp
+Dread Statuary
 Eiganjo Free-Riders
+Elite Cat Warrior
 Elspeth's Nightmare
+Elvish Lyrist
+Elvish Visionary
 Evolution Charm
+Excavation Mole
 Explosive Impact
+Fated Retribution
+Finest Hour
+Flowstone Mauler
 Forest
+Frost Trickster
+Fully Grown
 Furnace Hellkite
+Garrison Sergeant
+Garruk's Companion
 Geist of the Archives
+Glaive of the Guildpact
 Goliath Paladin
+Grasping Scoundrel
+Grim Physician
+Grim Reaper's Scythe
+Guardians' Pledge
+Gush
+Gut Shot
+Headless Rider
+Heartfire
 Highland Giant
+Hookhand Mariner
 Hymn of Rebirth
+Impostor of the Sixth Pride
 Incremental Blight
+Intrepid Ace
+Ironwright's Cleansing
 Island
+Jungle Wayfinder
+Kavu Lair
 Kessig Flamebreather
+Kithkin Greatheart
+Kor Entanglers
 Krenko, Tin Street Kingpin
+Living Hive
+Long-Finned Skywhale
 Long-Lost Lances
 Lotus-Eye Mystics
 Lu Bu, Master-at-Arms
 Manor Gate
+Mantle of Leadership
+Marble Gargoyle
 Mardu Warshrieker
+Mesa Cavalier
+Metallic Mimic
 Monastery Swiftspear
 Mother of Runes
 Mountain
+Natural Affinity
+Nurturing Licid
 Ondu Champion
 Outpost Siege
+Phyrexian Broodstar
 Plaguemaw Beast
 Plains
+Plunder
+Polluted Mire
 Prava of the Steel Legion
+Prime Speaker Vannifar
+Prodigy's Prototype
 Prophetic Ravings
+Proud Mentor
 Pygmy Pyrosaur
+Reckless Barbarian
+Renegade Map
 Revenge of Ravens
+Reverent Hoplite
+Revive the Shire
+Riptide
 Roving Harper
+Runed Servitor
+Sabertooth Alley Cat
+Sagu Archer
+Sandstone Bridge
+Seller of Songbirds
+Sheltering Word
+Shivan Harvest
+Skirk Outrider
 Skyspear Cavalry
+Skywing Aven
+Slash the Ranks
+Slashing Tiger
+Soratami Mindsweeper
+Spider-Man, New Champion
+Spiked Baloth
+Steamclaw
+Stonefury
+Stroke of Genius
 Summoner's Sending
+Sunhome, Fortress of the Legion
+Survivor of the Unseen
 Swamp
+Swell of Growth
+Switcheroo
 Syphon Mind
+Talas Warrior
+Teachings of the Kirin
+Temporal Machinations
+Thalia's Lieutenant
+Thirsting Bloodlord
+Touch of Brilliance
+Towering-Wave Mystic
+Traitor's Clutch
+Traveling Minister
+Tremble
 Undead Warchief
+Unfriendly Fire
+Vectis Silencers
 Vessel of Ephemera
 Veteran of the Depths
 Village Bell-Ringer
+Vivid Flying Fish
 Voldaren Epicure
+Wake Thrasher
+Wall of Ice
+Wandering Goblins
+Watcher of the Spheres
+Wildwood Geist
+Wirewood Hivemaster
+Zodiac Dog
