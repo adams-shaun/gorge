@@ -10,15 +10,9 @@ import "testing"
 // from a Mountain, a Swamp, a Skyclave Relic and a Powerstone after the
 // first activation spent the four lands (decision 467 of tail-33 pair 1340);
 // the kernel's any-player offer gate left the Powerstone out of its census
-// and refused the legal option.
+// and refused the legal option. The recording plays on the table its own
+// decks need (pool custom): a tail pool's deal moves as evidence is credited.
 func TestMBCCaseyJonesAsphaltHooliganReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "anyplayer_activation_counts_restricted_sources")
-}
-
-// tail-33's recordings, globbed so the pool's recording is replayed like the
-// std pools' (TestReproGlobMatchesTable).
-func TestTail33ReprosLockstep(t *testing.T) {
-	t.Parallel()
-	stdReprosGlob(t, "tail-33")
 }

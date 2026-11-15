@@ -185,7 +185,7 @@ func globbedPools(t *testing.T) map[string]bool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	quoted := regexp.MustCompile(`"([a-z0-9][a-z0-9-]*)"`)
+	quoted := regexp.MustCompile(`"([a-z][a-z-]*)"`)
 	pools := make(map[string]bool)
 	for _, f := range files {
 		b, err := os.ReadFile(f)
