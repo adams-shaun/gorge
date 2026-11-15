@@ -242,7 +242,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.res.peek[i] = pl.lib[int(pl.libLo)+i]
 		}
 		s.res.peekN, s.res.peekI, s.res.peekSel = uint8(n), 0, 0
-		s.res.restSel, s.res.topN, s.res.restPh = 0, 0, false
+		s.res.restSel, s.res.topN, s.res.flags = 0, 0, s.res.flags&^rfRestPh
 		if in.Op == kop.OpScry {
 			s.res.ask = raScryTop
 		} else {
@@ -513,9 +513,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
-		if k.gen != nil && k.gen.anyRepl&rbShield != 0 {
-			hit = s.shieldAll(hit) // CR 122.1c, after regeneration (gorge effDestroyAll)
-		}
+		hit = s.shieldUmbraAll(k, hit) // CR 122.1c then 702.89a, after regeneration (gorge effDestroyAll; kw_umbraarmor.go)
 		s.leaveAll(k, hit, kop.ZoneGraveyard)
 	case kop.OpPumpAll:
 		if in.Obj != kop.RefNone {
@@ -758,7 +756,10 @@ func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	}
 	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
 	// regeneration, not the shield counter
-	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl)
+	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
+		return true
+	}
+	return s.umbraSpare(k, sl) // CR 702.89a, after the shield counter (kw_umbraarmor.go)
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).
@@ -907,7 +908,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 				d.add(MakeAction(AkChoose, TCode(r.peek[i]), 0, 0))
 			}
 		}
-		if !r.restPh {
+		if r.flags&rfRestPh == 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	case raSacrifice:
@@ -1005,7 +1006,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 		s.discardPicks(k, r.arr[:r.peekI], 0)
 		r.peekI = 0
 	case raScryTop, raSurveil:
-		if r.restPh {
+		if r.flags&rfRestPh != 0 {
 			for i := 0; i < int(r.peekN); i++ {
 				if r.peek[i] == Obj(a.Source()) {
 					r.restSel |= 1 << i
@@ -1031,7 +1032,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 				return
 			}
 		} else if s.cfgx&cfgxArrangeRest != 0 && int(r.peekN)-int(r.peekI) >= 2 {
-			r.restPh, r.topN = true, r.peekI // AkDone: order the rest
+			r.flags, r.topN = r.flags|rfRestPh, r.peekI // AkDone: order the rest
 			return
 		}
 		s.finishPeek(k)
@@ -1149,7 +1150,7 @@ func (s *State) finishPeek(k *prep) {
 	pl := &s.pl[p]
 	n := int(r.peekN)
 	top := int(r.peekI) // the top picks
-	if r.restPh {
+	if r.flags&rfRestPh != 0 {
 		top = int(r.topN)
 	}
 	for i := 0; i < n; i++ {

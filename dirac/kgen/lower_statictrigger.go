@@ -131,11 +131,9 @@ func (lc *lowerCtx) untapRepl(r cards.Repl, rp *params, rl *lRepl) error {
 	}
 	rl.Kind = "DoesntUntap"
 	if vc != "Card.Self" {
-		if err := lc.othersDoesntUntap(rp, rl, vc); err != nil {
-			return err
-		}
+		return lc.othersDoesntUntap(rp, rl, vc)
 	}
-	return nil
+	return lc.selfDoesntUntapGate(rp, rl) // lower_untaprepl.go
 }
 
 // triggerIsPresent lowers a trigger's IsPresent$ intervening-if (and its

@@ -4,10 +4,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // A SpellCast trigger's ValidCard$ bound that reads a value (Filter.PredV:
 // Nyota Uhura, Communications' cmcEQChosen, Chalice of the Void's cmcEQY over
-// its charge counters) is read with the trigger's source as the source:
-// gorge matches the spell through specCtx(host), whose Resolve evaluates the
-// bound against the host's own chosen number and SVars. The entry being
-// built, the kernel's default context (ctxCur), is the spell cast.
+// its charge counters, and kop.PredNamedCard: Silverquill Silencer's
+// Card.NamedCard, gorge namePredicate's g.Obj(sc.Source).ChosenName) is read
+// with the trigger's source as the source: gorge matches the spell through
+// specCtx(host), whose Resolve evaluates the bound against the host's own
+// chosen number and SVars. The entry being built, the kernel's default
+// context (ctxCur), is the spell cast.
 
 // prepCastBound sets castBoundSrc: some SpellCast trigger's filter reads a
 // value.
@@ -36,7 +38,7 @@ func tableFilterDynamic(t *kop.Table, f kop.FilterID) bool {
 
 // castFilterOK matches spell e against listener l's SpellCast filter f.
 func (s *State) castFilterOK(k *prep, f kop.FilterID, e *stackEntry, l trigListener) bool {
-	if k.gen.castBoundSrc && featFilterDynamic(k, f) && !filterChosenType(k.t, f) {
+	if (k.gen.castBoundSrc && featFilterDynamic(k, f) || filterNamedCard(k.t, f)) && !filterChosenType(k.t, f) {
 		cx := evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}
 		return s.matchCardGenAt(k, f, e.card, s.castOwner(k, f, e), l.ctrl, e.obj, &cx)
 	}

@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestSetLifeCorpusCensus names every corpus card whose scripts carry a
@@ -22,7 +25,7 @@ import (
 // entry. Plain `SetLife` also occurs inside SVar names (45 files by
 // substring); those are not the API line this primitive implements.
 func TestSetLifeCorpusCensus(t *testing.T) {
-	dir := filepath.Join("..", "..", ".cards", "cardsfolder")
+	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	var names []string
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

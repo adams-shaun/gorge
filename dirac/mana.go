@@ -1115,42 +1115,7 @@ func lastResortUnit(sac, noUntap bool) bool { return sac || noUntap }
 // and its irreversible cost (unitIrr).
 func (u *utype) sameRider(rb bool, irr uint8) bool { return u.rb == rb && u.irr == irr }
 
-func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
-	// units: fixed-production sources in battlefield (entry) order, then
-	// choice-shaped sources (any colour, a choice of colours) in battlefield
-	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).
-	var order [MaxPerm]Slot
-	no := 0
-	m := s.ctrlM[p]
-	var rd payDesc
-	if k.restrSrc {
-		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
-	}
-	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
-	// battlefield fact, so its gate lifts out of the loop: without a live
-	// TrigTaps listener every source is an ordinary census unit.
-	deferSkip := !pk.tapsIn && s.deferLive(k)
-	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
-	for m.any() {
-		sl := m.first()
-		m = m.rest()
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
-			if deferSkip && s.planDeferred(k, p, sl) {
-				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
-			}
-			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
-				continue // gorge's planner has no witness for a Combo Any source (mana_comboanyplan.go)
-			}
-			order[no] = sl
-			no++
-		}
-	}
-	// insertion sort by timestamp (entry order)
-	for i := 1; i < no; i++ {
-		for j := i; j > 0 && s.perms[order[j]].ts < s.perms[order[j-1]].ts; j-- {
-			order[j], order[j-1] = order[j-1], order[j]
-		}
-	}
+func (s *State) planHandDemand(k *prep, p uint8, pk *planner, exclude Obj) {
 	// HandReserve demand: the most pips of each colour on any single nonland
 	// card in hand other than the card being cast (gorge pay/planner.go:234).
 	// Read afresh: planChosenTrial plans a copy of a planner that already
@@ -1193,6 +1158,45 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pk.dOrder[j], pk.dOrder[j-1] = pk.dOrder[j-1], pk.dOrder[j]
 		}
 	}
+}
+
+func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+	// units: fixed-production sources in battlefield (entry) order, then
+	// choice-shaped sources (any colour, a choice of colours) in battlefield
+	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).
+	var order [MaxPerm]Slot
+	no := 0
+	m := s.ctrlM[p]
+	var rd payDesc
+	if k.restrSrc {
+		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
+	}
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary census unit.
+	deferSkip := !pk.tapsIn && s.deferLive(k)
+	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
+	for m.any() {
+		sl := m.first()
+		m = m.rest()
+		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
+			if deferSkip && s.planDeferred(k, p, sl) {
+				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
+			}
+			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
+				continue // gorge's planner has no witness for a Combo Any source (mana_comboanyplan.go)
+			}
+			order[no] = sl
+			no++
+		}
+	}
+	// insertion sort by timestamp (entry order)
+	for i := 1; i < no; i++ {
+		for j := i; j > 0 && s.perms[order[j]].ts < s.perms[order[j-1]].ts; j-- {
+			order[j], order[j-1] = order[j-1], order[j]
+		}
+	}
+	s.planHandDemand(k, p, pk, exclude)
 	if pk.maxN == 0 {
 		pk.maxN = 1
 	}
@@ -1212,6 +1216,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// each source's mana facts, read once for the three passes of every phase
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
+	var grantTap [MaxPerm]*pcard // a printed sacrifice-only source's granted {T} (ownSacGrantTap)
 	var rv [MaxPerm]uint8
 	var ra [MaxPerm]int8      // the ability a restricted view is (restrViewW)
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
@@ -1233,6 +1238,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 			}
 			granted[i] = s.manaGranted(k, sl)
+			if grantTap[i] = s.planOwnSacGrant(k, pcs[i], sl); grantTap[i] != nil {
+				hasGrant = true
+			}
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
 					if pk.noChosenPair && v.wideChosen {
@@ -1297,7 +1305,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
-				noUntap := k.cards[s.cardAt(sl)].noUntap // last resort too (unitIrr)
+				noUntap := k.cards[s.cardAt(sl)].noUntap != 0 // last resort too (unitIrr)
 				if phase == 0 && lastResortUnit(sac, noUntap) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
@@ -1453,6 +1461,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
+				if phase == 2 && grantTap[i] != nil {
+					s.planGrantUnit(k, p, pk, sl, grantTap[i], cr)
+				}
 				if sac || noUntap {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7

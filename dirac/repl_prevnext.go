@@ -180,7 +180,7 @@ func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard Car
 	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
 		return true
 	}
-	const others = rbPlusDmg | rbPrevNC | rbPrevMill | rbPrevCtrSelf | rbHealSelf
+	const others = rbPlusDmg | rbPrevNC | rbPrevMill | rbSelfDmg
 	if g.anyRepl&others != 0 {
 		for m := s.statM; m.any(); m = m.rest() {
 			b := m.first()

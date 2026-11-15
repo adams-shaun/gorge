@@ -51,7 +51,7 @@ func (s *State) raiseLifeFor(k *prep, p uint8, c CardID, o Obj, anyTarget bool) 
 			return true
 		}
 		ctx := s.ctxStatic(stc)
-		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl, 0) {
 			return true
 		}
 		if !anyTarget && st.StFlags&kop.StTargetsFilter2 != 0 && !s.raiseTargetAt(k, st.Filter2, stc.ctrl, c, stc.sl) {
@@ -111,7 +111,7 @@ func (s *State) raiseLifeDropTargets(k *prep, buf *[MaxOptions]TCode, n int) int
 	e := &s.bld().e
 	own := 0
 	if ac := spellAddCost(k, e.card); ac.Flags&kop.CostPayLife != 0 {
-		own = int(ac.N)
+		own = lifeCostOwed(ac)
 	}
 	life := int(s.pl[e.ctrl].life)
 	nt, t0 := e.nt, e.tgt[0]
@@ -176,7 +176,7 @@ func (s *State) boardManaTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 			return true
 		}
 		ctx := s.ctxStatic(stc)
-		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl, 0) {
 			return true
 		}
 		found = true

@@ -218,6 +218,94 @@ func (s *State) grantIdx(k *prep, sl Slot) int {
 	return int(gi[0])
 }
 
+// ownSacGrantTap is the planner's side of availGrant's ownSac shape: the
+// granted {T} mana ability beside sl's printed sacrifice-only one, an
+// Eldrazi Spawn under Path of Annihilation (CR 602.2b, 605.1a). nil when
+// the grant is a sacrifice itself, restricted, or cannot be activated now
+// (a tapped or summoning-sick source has only the sacrifice, CR 302.6): the
+// census credits no tap for those either.
+//
+//go:noinline
+func (s *State) ownSacGrantTap(k *prep, sl Slot) *pcard {
+	if k.gen == nil || !k.sacOnlyMana {
+		return nil
+	}
+	var gi [maxGrants]int16
+	ng := s.grantIdxs(k, sl, &gi)
+	for i := 0; i < ng; i++ {
+		if k.gen.grantRestr[gi[i]] != 0 {
+			continue
+		}
+		g := s.grantView(k.gen, gi[i], sl)
+		if !g.grantSac && s.canTapForManaPC(k, sl, g) {
+			return g
+		}
+	}
+	return nil
+}
+
+// planOwnSacGrant is the facts loop's read of a printed sacrifice-only
+// source's granted {T} (ownSacGrantTap), the mirror of a granted sacrifice
+// beside a printed tap (availGrant's ownSac): two units, the grant's tap
+// beside the printed {C} (CR 602.2b, 605.1a). The grant is phase 2's unit:
+// phase 1 holds only the printed sacrifice, gorge's census, so a cast its
+// printed plan pays is planned as gorge does (the grant is the prefix
+// search's alternative), and the grant joins only when that plan fails.
+func (s *State) planOwnSacGrant(k *prep, pc *pcard, sl Slot) *pcard {
+	if !k.sacOnlyMana || !pc.manaSacOnly {
+		return nil
+	}
+	return s.ownSacGrantTap(k, sl)
+}
+
+// planGrantUnit (called from plan's phase 2; gorge's planner never sees a
+// granted ability, so a plan with one is the kernel's, reached only when the
+// printed units have no plan) adds gt, a granted mana view of sl, as its own unit of the
+// planner beside the printed unit the loop emitted: the tap unit of
+// ownSacGrantTap, shaped like a grant-only source's unit (manaPCGen returns
+// its granted view there).
+func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard, cr bool) {
+	if pk.nu >= maxUnits || pk.nt >= maxTypes {
+		return // the caller's loop holds the same guards
+	}
+	mask, n := s.srcMaskAt(gt, sl), gt.manaN
+	dmk := mask
+	fl := uint8(bits.OnesCount8(dmk))
+	ti := -1
+	for t := 0; t < pk.nt; t++ {
+		ty := &pk.types[t]
+		if ty.mask == mask && ty.dmask == dmk && ty.n == n && ty.creat == cr && !ty.sac && !ty.sacOnly &&
+			ty.pair == 0 && ty.pain == 0 && ty.first == 0 && ty.printed == 0 && ty.flex == fl &&
+			ty.xv == ([kop.NumManaKinds]uint8{}) && !ty.rb {
+			ti = t
+			break
+		}
+	}
+	if ti < 0 {
+		ti = pk.nt
+		pk.nt++
+		pk.types[ti] = utype{mask: mask, dmask: dmk, n: n, creat: cr, flex: fl}
+		if int(n) > pk.maxN {
+			pk.maxN = int(n)
+		}
+	}
+	pk.types[ti].avail++
+	pk.units[pk.nu] = sl
+	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.utyp[pk.nu] = uint8(ti)
+	pk.rkind[pk.nu] = 0
+	// the grant's ability number names nothing on sl's own card, and
+	// fireViewAbilityCast's granted-source skip reads manaGranted, which an
+	// own-sacrifice source is not: -1 fires nothing (trig_abilitycast.go)
+	pk.rAb[pk.nu] = -1
+	pk.nu++
+	for c := 0; c < 5; c++ {
+		if dmk&(1<<c) != 0 {
+			pk.colSrc[c]++
+		}
+	}
+}
+
 // ownManaUsable reports whether sl's own card has a usable tap mana
 // ability (one the planner prices: a plain or sacrificing tap, a chosen
 // colour, a dynamic amount) that it has not lost. Beside a granted mana
@@ -703,12 +791,7 @@ func (g *grantSrch) candidates(s *State) {
 			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
 			continue
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n] = sl, uint8(ng), (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || ng > 0 && s.ownRestrAb(g.k, sl) != nil), fm.has(sl), tm.has(sl)
-		g.def[g.n] = ng == 0 && dm.has(sl)
-		g.cobj[g.n] = s.perms[sl].obj
-		g.each[g.n] = ng == 0 && em.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl)
-		g.wide[g.n] = ng == 0 && wm.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl)
-		g.tdef[g.n] = ng == 0 && xm.has(sl) && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl)
+		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -753,6 +836,33 @@ func (g *grantSrch) candidates(s *State) {
 	}
 }
 
+// gapFlags sets candidate n's gap kinds for slot sl, out of the masks one
+// search's candidates lists: the kinds exclude the later ones, so a source
+// with several gap kinds branches as the first that matches. A holder of a
+// granted ability (ng > 0) branches on the grant side.
+func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm slotMask) {
+	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
+	if ng > 0 {
+		g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
+		g.each[n], g.wide[n], g.tdef[n] = false, false, false
+		return
+	}
+	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
+	g.each[n], g.wide[n], g.tdef[n] = false, false, false
+	if dm.has(sl) {
+		g.def[n] = true // (mana_grantdeferred.go)
+		return
+	}
+	switch {
+	case em.has(sl) && !fm.has(sl) && !tm.has(sl):
+		g.each[n] = true // (mana_granteach.go)
+	case wm.has(sl) && !fm.has(sl) && !tm.has(sl) && !em.has(sl):
+		g.wide[n] = true // (mana_grantwide.go)
+	case xm.has(sl) && !fm.has(sl) && !tm.has(sl) && !em.has(sl) && !wm.has(sl):
+		g.tdef[n] = true // (mana_granttapsdefer.go)
+	}
+}
+
 // tappedOf is the tapped bits of p's permanents.
 func (s *State) tappedOf(p uint8) slotMask {
 	var m slotMask
@@ -789,6 +899,34 @@ func (g *grantSrch) node() bool {
 	}
 	g.nodes++
 	return true
+}
+
+// gapBranch runs candidate i's own gap kind's branch of the search (slot sl),
+// found when one found the play; is false when the candidate is none of the
+// per-kind gaps (its grant side, a filter or a tap-another one branches
+// elsewhere in visit).
+func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
+	switch {
+	case g.wide[i]:
+		return g.wideBranch(t, i, sl), true // its two mana abilities' answers (mana_grantwide.go)
+	case g.each[i]:
+		return g.eachBranch(t, i, sl), true // its chosen colour, or its fee-paid colours (mana_granteach.go)
+	case g.def[i]:
+		return g.deferBranch(t, i, sl), true // its plain {R} (mana_grantdeferred.go)
+	case g.tdef[i]:
+		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
+	}
+	return false, false
+}
+
+// grantFirstGaps reports the gap kinds beside a grant whose one search runs
+// before the script search (applyPriority): a deferred, each-colour, wide or
+// Taps-deferred gap among the grants is one prefix search in gorge
+// (mana_grantdeferred.go, mana_granteach.go, mana_grantwide.go,
+// mana_granttapsdefer.go).
+func (s *State) grantFirstGaps(k *prep, p uint8) bool {
+	return s.deferBesideGrant(k, p) || s.eachBesideGrant(k, p) || s.wideBesideGrant(k, p) ||
+		s.tdBesideGrant(k, p)
 }
 
 // visit is one payer priority of the search on working copy t: the play
@@ -872,26 +1010,8 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 			continue
 		}
-		if g.wide[i] {
-			if g.wideBranch(t, i, sl) { // its two mana abilities' answers (mana_grantwide.go)
-				return true
-			}
-			continue
-		}
-		if g.each[i] {
-			if g.eachBranch(t, i, sl) { // its chosen colour, or its fee-paid colours (mana_granteach.go)
-				return true
-			}
-			continue
-		}
-		if g.def[i] {
-			if g.deferBranch(t, i, sl) { // its plain {R} (mana_grantdeferred.go)
-				return true
-			}
-			continue
-		}
-		if g.tdef[i] {
-			if g.tapsDeferBranch(t, i, sl) { // its rider or deferred tap (mana_granttapsdefer.go)
+		if found, is := g.gapBranch(t, i, sl); is {
+			if found {
 				return true
 			}
 			continue

@@ -169,3 +169,56 @@ esac
 		t.Errorf("the box ran the tests at %q, want %q", b, want)
 	}
 }
+
+// The box's ENV answer carries the box's reason into the local note. On 11-14 the precheck log of seat 3c80ac4f
+// said only "the box answered ENV (...); running locally" after 1147 s: the reason (a stale corpus-pin skip in
+// ./engine/rules) was on the box's stdout, far above.
+func TestTestTargetsRemoteEnvAnswerNamesTheReason(t *testing.T) {
+	r := newRig(t)
+	write(t, filepath.Join(filepath.Dir(r.repo), "stream.json"), `{"Action":"run","Package":"m/p","Test":"TestA"}
+{"Action":"output","Package":"m/p","Test":"TestA","Output":"    a_test.go:5: corpus at 418ba52, need 91402ac: refetch .cards\n"}
+{"Action":"skip","Package":"m/p","Test":"TestA"}
+{"Action":"pass","Package":"m/p"}
+`, 0o644)
+	out, errs, code := r.run("one")
+	if code != 3 || !strings.HasPrefix(verdictLines(t, out)[0], "test-one: ENV ") {
+		t.Fatalf("exit %d\n%s\n%s", code, out, errs)
+	}
+	var note string
+	for _, l := range strings.Split(errs, "\n") {
+		if strings.Contains(l, "the box answered ENV") {
+			note = l
+		}
+	}
+	if !strings.Contains(note, "skipped for the environment: m/p TestA") || !strings.Contains(note, "need 91402ac: refetch .cards") ||
+		!strings.HasSuffix(note, "; running locally") {
+		t.Errorf("the local note must carry the box's reason; got %q in\n%s", note, errs)
+	}
+}
+
+// A timeout in a run that fell back from the box to a cap below 4 cores is BUSY, not the change's BUDGET: seat
+// 3c80ac4f was parked on 11-14 for a dirac/oracle named run that timed out at 5m on one core. At 4 cores it stands.
+func TestTestTargetsRemoteFallbackTimeoutIsBusy(t *testing.T) {
+	for _, tc := range []struct {
+		cpu, want string
+		code      int
+	}{{"100", "BUSY", 75}, {"400", "BUDGET", 5}} {
+		r := newRig(t)
+		write(t, filepath.Join(r.bin, "go"), `#!/bin/sh
+case "$1" in
+list) echo m ;;
+env) echo /usr/local/go ;;
+test)
+  printf '%s\n' '{"Action":"output","Package":"m/p","Output":"panic: test timed out after 5m0s"}' '{"Action":"fail","Package":"m/p"}'; exit 2 ;;
+esac
+`, 0o755)
+		r.set("STUB_SSH_DOWN=1", "GORGE_REMOTE_FALLBACK_CPU="+tc.cpu)
+		out, errs, code := r.run("one")
+		if code != tc.code || !strings.HasPrefix(verdictLines(t, out)[0], "test-one: "+tc.want+" ") {
+			t.Errorf("fallback cap %s%%: exit %d, want %d (%s)\n%s\n%s", tc.cpu, code, tc.code, tc.want, out, errs)
+		}
+		if tc.want == "BUSY" && !strings.Contains(out, "timed out at the fallback cap (CPUQuota 100%") {
+			t.Errorf("the BUSY verdict must say why:\n%s", out)
+		}
+	}
+}

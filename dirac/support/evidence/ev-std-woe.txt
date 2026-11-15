@@ -7,8 +7,10 @@ Archon's Glory
 Armory Mice
 Ash, Party Crasher
 Ashiok's Reaper
+Asinine Antics
 Barrow Naughty
 Beanstalk Wurm
+Become Brutes
 Belligerent of the Ball
 Bellowing Bruiser
 Beluna's Gatekeeper
@@ -20,6 +22,7 @@ Blossoming Tortoise
 Boundary Lands Ranger
 Bramble Familiar
 Brave the Wilds
+Break the Spell
 Candy Grapple
 Candy Trail
 Chancellor of Tales
@@ -39,6 +42,7 @@ Cut In
 Decadent Dragon
 Discerning Financier
 Disdainful Stroke
+Dream Spoilers
 Dutiful Griffin
 Edgewall Inn
 Edgewall Pack
@@ -47,9 +51,11 @@ Ego Drain
 Elusive Otter
 Elvish Archivist
 Embereth Veteran
+Eriette of the Charmed Apple
 Eriette's Tempting Apple
 Eriette's Whisper
 Evolving Wilds
+Expel the Interlopers
 Experimental Confectioner
 Faerie Dreamthief
 Faerie Fencing
@@ -57,6 +63,7 @@ Farsight Ritual
 Faunsbane Troll
 Feed the Cauldron
 Fell Horseman
+Feral Encounter
 Ferocious Werefox
 Flick a Coin
 Food Coma
@@ -124,6 +131,7 @@ Monstrous Rage
 Moonshaker Cavalry
 Mosswood Dreadknight
 Mountain
+Neva, Stalked by Nightmares
 Night of the Sweets' Revenge
 Obyra's Attendants
 Obyra, Dreaming Duelist
@@ -170,6 +178,7 @@ Scream Puff
 Sentinel of Lost Lore
 Sharae of Numbing Depths
 Shatter the Oath
+Shrouded Shepherd
 Skewer Slinger
 Skybeast Tracker
 Sleep-Cursed Faerie
@@ -197,9 +206,11 @@ Sugar Rush
 Swamp
 Sweettooth Witch
 Syr Armont, the Redeemer
+Syr Ginger, the Meal Ender
 Taken by Nightmares
 Talion's Messenger
 Talion, the Kindly Lord
+Tangled Colony
 Tanglespan Lookout
 Tattered Ratter
 Tempest Hart

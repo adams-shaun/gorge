@@ -22,6 +22,9 @@ type Family struct {
 	// Pkg is the Go package the constants are generated into: "kop" (exported
 	// names) or "dirac" (unexported).
 	Pkg string
+	// GoType is the type the constant is declared with when that is not Name
+	// ("uint8" for the ask kinds, which are not a named type).
+	GoType string
 	// Prefix starts every entry name ("" for none).
 	Prefix string
 	// Bits marks a flag word: every value is one bit, and Min/Max/Alloc and
@@ -132,6 +135,12 @@ var Families = []*Family{
 	flags("TypeMask", "T", 16, "mask"),
 	enum8("VKind", "V", "enum"),
 	seeded(enum8("Zone", "Zone", "enum")),
+	{
+		// ask: a resolution ask kind (resCtx.ask, dirac/interp_gen.go). The
+		// hand constants are frozen in testdata/asks.tsv; applyResolve hands
+		// only an ask at or above raGenBase (100) to the generated chain.
+		Name: "ask", Pkg: "dirac", Prefix: "ra", GoType: "uint8", Min: 100, Max: 255, Alloc: Band{Lo: 146, Hi: 245},
+	},
 	// key: a bounded State key, the keyed arena's index.
 	{Name: "key", Pkg: "dirac", Prefix: "key", Max: 65535, Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true},
 	{
@@ -150,6 +159,14 @@ var Families = []*Family{
 			return nil
 		},
 	},
+}
+
+// goType is the type an entry's constant is declared with.
+func (f *Family) goType() string {
+	if f.GoType != "" {
+		return f.GoType
+	}
+	return f.Name
 }
 
 // lowerCamel lowers n's leading capitals, all but the last of a run that a

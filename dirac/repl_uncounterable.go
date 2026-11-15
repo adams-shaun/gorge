@@ -326,7 +326,7 @@ func (s *State) uncounterScan(k *prep, e *stackEntry, cands *[4]Obj) (n int, con
 // uncounterMatch is f read against the spell of stack entry e.
 func (s *State) uncounterMatch(k *prep, f kop.FilterID, e *stackEntry) bool {
 	if k.gen != nil {
-		return s.matchSpellCard(k, f, e.card, e.ctrl, e.ctrl, e.obj, NoSlot)
+		return s.matchSpellCard(k, f, e.card, e.ctrl, e.ctrl, e.obj, NoSlot, 0)
 	}
 	return s.matchCard(k, f, e.card, e.ctrl, e.ctrl)
 }

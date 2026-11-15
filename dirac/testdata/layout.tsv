@@ -365,6 +365,7 @@ default	field	genPrep.anyCastBF	62	1
 default	field	genPrep.flags	64	24
 default	field	genPrep.smallRecs	88	24
 default	field	genPrep.leyline	112	1
+default	field	genPrep.anyUmbra	113	1
 default	field	genPrep.grantPC	120	24
 default	field	genPrep.grantOf	144	24
 default	field	genPrep.grantRestr	168	24
@@ -400,6 +401,7 @@ default	field	genPrep.anyZeroAlt	243	1
 default	field	genPrep.anyEmbCold	244	1
 default	field	genPrep.anyMayCold	245	1
 default	field	genPrep.anyMayLimit	246	1
+default	field	genPrep.anyEmbName	247	1
 default	field	genPrep.sCls	248	24
 default	field	genPrep.anyGraveAct	272	1
 default	field	genPrep.anyHandAct	273	1

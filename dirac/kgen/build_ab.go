@@ -650,6 +650,11 @@ func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
 	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
 		return true
+	case vCountersOn:
+		// the source's own counters (Vile Requiem: up to X targets, X the verse
+		// counters on CARDNAME): gorge's bound context anchors Source at the
+		// ability's object, the kernel's entry context reads it the same way
+		return v.Ref.Kind == rSelf && v.S != "ALL"
 	case vOppExtreme:
 		// the asking player's living opponents (PlayerCountPlayers$Amount
 		// is their count plus one): gorge's bound context holds the asker
@@ -2355,7 +2360,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// sacrifice shape with the permanents returned (kernel cast_altfree.go
 		// altReturnCost, the cast's pkReturn picks)
 		sacAlt = sacAlt || ka.Cost.Flags == kop.CostReturn && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && !(altDiscardShape(&ka.Cost) && cb.altSacOK()) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
+		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && !(altSacGatedShape(&ka.Cost) && cb.altSacOK()) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
 			// part (Daze, Force of Will) would never be offered
@@ -2644,10 +2649,10 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
-	case "PreventDamageCounters":
-		rp.Kind = kop.ReplPreventDamageCounters
-	case "DamageHealFirst":
-		rp.Kind = kop.ReplDamageHealFirst
+	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf":
+		if err = cb.selfDamageRepl(rp, r); err != nil { // lower_preventtoself.go
+			return ka, err
+		}
 	case "DoubleTokens":
 		rp.Kind = kop.ReplDoubleTokens
 		if r.N.isConst() && r.N.N > 2 {
