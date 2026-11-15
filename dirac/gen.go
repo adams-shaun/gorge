@@ -357,7 +357,7 @@ type genPrep struct {
 	anyCharmV       bool           // some card has CardDef.ModesPickV: a dynamic charm pick count (modal_charmcmp.go)
 	anyCharmPick    bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend    bool           // some ability costs CostWaterbend (act_waterbend.go)
-	anyXBoundAb     bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
+	anyXBoundAb     bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it; or a tap-another cost part can strand its mana (cost_collectevidence.go)
 	anyLure         bool           // some card is a lure (CardDef.Lure), or the table can make one (StatLure, mechLure; combat_lure.go)
 	anyLureStat     bool           // a StatLure static (combat_lure.go isLure)
 	anyMustBlock    bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)
