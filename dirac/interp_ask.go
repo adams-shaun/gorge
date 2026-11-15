@@ -619,7 +619,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raRecruitDiscard:
 		s.recruitOptions(k, d) // act_recruit.go
 	default:
-		if !s.askOptionsCold1(k, d) {
+		if !s.askOptionsChain(k, d) {
 			panic("kernel: bad resolution ask")
 		}
 	}
@@ -1404,7 +1404,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.recruitPick(k, a) // act_recruit.go
 		s.continueRes(k, 0)
 	default:
-		if !s.applyAskCold1(k, a) {
+		if !s.applyAskChain(k, a) {
 			panic("kernel: bad resolution answer")
 		}
 	}
