@@ -10,28 +10,28 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 |---|---:|---:|---:|---:|---:|---:|
 | BIG | 30 | 27 | 0 | 2 | 25 | 25 |
 | BLB | 278 | 261 | 2 | 0 | 259 | 258 |
-| DFT | 276 | 255 | 0 | 4 | 251 | 251 |
+| DFT | 276 | 255 | 0 | 2 | 253 | 253 |
 | DSK | 276 | 251 | 4 | 2 | 245 | 245 |
 | ECL | 273 | 244 | 1 | 0 | 243 | 242 |
-| EOE | 266 | 251 | 0 | 7 | 244 | 244 |
+| EOE | 266 | 251 | 0 | 2 | 249 | 249 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 514 |
 | FIN | 312 | 277 | 0 | 2 | 275 | 274 |
 | FRA | 269 | 255 | 0 | 6 | 249 | 245 |
 | HOB | 172 | 159 | 0 | 0 | 159 | 157 |
-| LCI | 290 | 260 | 1 | 8 | 251 | 248 |
-| MKM | 279 | 252 | 2 | 24 | 226 | 222 |
-| MSH | 276 | 248 | 1 | 10 | 237 | 237 |
-| OTJ | 276 | 253 | 1 | 3 | 249 | 248 |
+| LCI | 290 | 260 | 1 | 0 | 259 | 256 |
+| MKM | 279 | 252 | 2 | 22 | 228 | 224 |
+| MSH | 276 | 248 | 1 | 5 | 242 | 242 |
+| OTJ | 276 | 253 | 1 | 1 | 251 | 249 |
 | SOS | 270 | 257 | 0 | 0 | 257 | 257 |
 | SPM | 192 | 169 | 1 | 2 | 166 | 165 |
 | TDM | 276 | 257 | 3 | 0 | 254 | 254 |
-| TLA | 285 | 261 | 1 | 4 | 256 | 255 |
+| TLA | 285 | 261 | 1 | 3 | 257 | 256 |
 | TMT | 194 | 184 | 0 | 0 | 184 | 183 |
 | TRC | 337 | 302 | 0 | 32 | 270 | 267 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 265 | 0 | 10 | 255 | 253 |
-| MBC | 2195 | 1928 | 1 | 648 | 1279 | 1255 |
-| ALL | 34442 | 24239 | 21 | 17709 | 6509 | 6451 |
+| MBC | 2195 | 1930 | 1 | 369 | 1560 | 1530 |
+| ALL | 34442 | 24253 | 21 | 16767 | 7465 | 7398 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -45,35 +45,35 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | cmd5 | 1500 |
 | dr-mbc-aaaa | 1362 |
 | dr-mbc-abbb | 1010 |
-| ev-dr-mbc-aaaa | 187 |
+| ev-dr-mbc-aaaa | 200 |
 | ev-dr-mbc-aaab | 200 |
-| ev-dr-mbc-aaba | 164 |
-| ev-dr-mbc-aabb | 139 |
+| ev-dr-mbc-aaba | 97 |
+| ev-dr-mbc-aabb | 100 |
 | ev-dr-mbc-abaa | 200 |
-| ev-dr-mbc-abab | 126 |
-| ev-dr-mbc-abba | 120 |
-| ev-dr-mbc-abbb | 200 |
-| ev-dr-mbc-baaa | 200 |
+| ev-dr-mbc-abab | 69 |
+| ev-dr-mbc-abba | 112 |
+| ev-dr-mbc-abbb | 167 |
+| ev-dr-mbc-baaa | 187 |
 | ev-dr-mbc-baab | 200 |
-| ev-dr-mbc-baba | 200 |
+| ev-dr-mbc-baba | 167 |
 | ev-dr-mbc-babb | 200 |
-| ev-dr-mbc-bbaa | 232 |
-| ev-dr-mbc-bbab | 240 |
+| ev-dr-mbc-bbaa | 200 |
+| ev-dr-mbc-bbab | 105 |
 | ev-dr-mbc-bbba | 200 |
-| ev-dr-mbc-bbbb | 108 |
+| ev-dr-mbc-bbbb | 106 |
 | ev-std-big | 200 |
 | ev-std-blb | 200 |
 | ev-std-dft | 200 |
-| ev-std-dsk | 10 |
+| ev-std-dsk | 6 |
 | ev-std-ecl | 200 |
 | ev-std-eoe | 200 |
-| ev-std-fin | 200 |
+| ev-std-fin | 198 |
 | ev-std-fra | 200 |
 | ev-std-hob | 200 |
-| ev-std-lci | 167 |
+| ev-std-lci | 173 |
 | ev-std-mkm | 200 |
 | ev-std-msh | 200 |
-| ev-std-otj | 55 |
+| ev-std-otj | 161 |
 | ev-std-sos | 200 |
 | ev-std-spm | 200 |
 | ev-std-tdm | 200 |
@@ -81,8 +81,21 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-std-tmt | 186 |
 | ev-std-trk | 200 |
 | ev-std-woe | 200 |
-| ev-tail-73 | 358 |
-| ev-tail-75 | 1072 |
+| ev-tail-06 | 296 |
+| ev-tail-10 | 649 |
+| ev-tail-17 | 256 |
+| ev-tail-33 | 453 |
+| ev-tail-39 | 664 |
+| ev-tail-41 | 360 |
+| ev-tail-46 | 200 |
+| ev-tail-49 | 415 |
+| ev-tail-53 | 200 |
+| ev-tail-55 | 200 |
+| ev-tail-56 | 634 |
+| ev-tail-57 | 488 |
+| ev-tail-72 | 995 |
+| ev-tail-73 | 304 |
+| ev-tail-75 | 912 |
 | fdn | 1500 |
 | pauper | 1500 |
 | std-big | 1500 |

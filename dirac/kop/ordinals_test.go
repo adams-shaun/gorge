@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/manifest"
 )
 
 const ordinalsFile = "testdata/ordinals.tsv"
@@ -22,14 +24,20 @@ const ordinalsFile = "testdata/ordinals.tsv"
 // TestKopOrdinalsUnchanged holds every constant of this package to the name, type
 // and value in testdata/ordinals.tsv, in both directions: card tables and trained
 // models store these values, so a constant keeps its value wherever it is declared.
-// A new constant adds its row with
+// The file holds the hand constants only: a constant that is a dirac/manifest
+// entry's own (kmanifest gen writes it) has its row derived from the entry
+// (manifest.Tree.EntryOrdinals), so a new entry edits no shared file. A new
+// hand constant adds its row with
 // KOP_ORDINALS_REGEN=1 go test -run TestKopOrdinalsUnchanged ./dirac/kop.
 func TestKopOrdinalsUnchanged(t *testing.T) {
 	got := constantRows(t)
+	derived := derivedRows(t)
 	if os.Getenv("KOP_ORDINALS_REGEN") != "" {
 		var b bytes.Buffer
 		for _, row := range got {
-			fmt.Fprintln(&b, row)
+			if !derived[row] {
+				fmt.Fprintln(&b, row)
+			}
 		}
 		if err := os.WriteFile(ordinalsFile, b.Bytes(), 0o644); err != nil {
 			t.Fatal(err)
@@ -48,6 +56,10 @@ func TestKopOrdinalsUnchanged(t *testing.T) {
 	for _, row := range want {
 		wanted[row] = true
 	}
+	for row := range derived {
+		wanted[row] = true
+	}
+	want = append(want, sortedRows(derived)...)
 	present := map[string]bool{}
 	for _, row := range got {
 		present[row] = true
@@ -99,4 +111,28 @@ func constantRows(t *testing.T) []string {
 	}
 	sort.Strings(rows)
 	return rows
+}
+
+// derivedRows is the rows of the manifest's kop entries (name, type, value,
+// tab-separated), the constants kmanifest gen writes.
+func derivedRows(t *testing.T) map[string]bool {
+	t.Helper()
+	tr, err := manifest.Load(os.DirFS("../.."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]bool{}
+	for _, r := range tr.EntryOrdinals() {
+		out[r.Name+"\t"+r.Type+"\t"+r.Value] = true
+	}
+	return out
+}
+
+func sortedRows(m map[string]bool) []string {
+	var out []string
+	for r := range m {
+		out = append(out, r)
+	}
+	sort.Strings(out)
+	return out
 }

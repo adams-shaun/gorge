@@ -602,9 +602,8 @@ func (s *State) sba(k *prep) bool {
 						s.regenerate(sl)
 						continue
 					}
-					if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-						s.cfgx |= cfgxShieldPass // CR 122.1c: the counter goes instead, the damage stays marked for the next pass
-						continue
+					if s.sbaSpare(k, sl, &die) {
+						continue // the shield counter or umbra armor took the destruction (kw_umbraarmor.go)
 					}
 					die = die.with(sl)
 				}

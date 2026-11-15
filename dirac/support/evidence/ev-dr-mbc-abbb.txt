@@ -1,6 +1,19 @@
+Archaeomancer
+Ardent Elementalist
+Armored Ascension
+Aven Fisher
+Axebane Guardian
+Bad Deal
 Baird, Steward of Argive
+Baloth Woodcrasher
+Barrage of Boulders
+Bloodchief's Thirst
+Blossom Dryad
 Careful Study
 Citadel Gate
+Conifer Strider
+Crossbow Infantry
+Dark Triumph
 Dauthi Trapper
 Dawnbringer Cleric
 Daxos, Blessed by the Sun
@@ -12,41 +25,84 @@ Dream Fracture
 Elas il-Kor, Sadistic Pilgrim
 Errant Ephemeron
 Evincar's Justice
+Experiment One
+Exuberant Fuseling
+Ezuri's Archers
+Fencing Ace
+Ferocious Zheng
 Forest
 Forest Bear
+Gaea's Anthem
+Goblin Wardriver
+Gwenna, Eyes of Gaea
 Heartless Act
+Hellspark Elemental
+Horizon Scholar
 Humble
+Ideas Unbound
 Island
 Jaya, Venerated Firemage
 Journey to Nowhere
+Kavu Climber
 Keldon Halberdier
 Kinsbaile Courier
 Lassoed by the Law
 Lingering Souls
 Loot, Exuberant Explorer
 Lyna, Veil of Vengeance
+Mana Flare
 Masked Vandal
+Merchant Scroll
 Merfolk Looter
+Merfolk Trickster
 Mesmeric Fiend
+Metastatic Evangel
 Mistwalker
 Mogg Raider
 Mountain
 Omen
 Omen of the Sun
+Outnumber
 Overprotect
 Parasitic Impetus
 Pegasus Guardian
+Plague Spitter
 Plains
+Prakhata Pillar-Bug
 Rakdos, Patron of Chaos
+Reckless Abandon
+Restock
 Rewind
+Ruinous Gremlin
+Savage Gorger
+Scurry of Squirrels
 Serum Visions
+Sheltering Word
+Shiv's Embrace
+Snake Pit
 Sneering Shadewriter
+Stinging Shot
+Stitch Together
 Strafe
+Strategic Planning
+Streetwise Negotiator
+Strike It Rich
 Surgical Skullbomb
 Swamp
+Talrand, Sky Summoner
 The Reality Chip
 Torpor Orb
 Traveling Minister
 Up the Beanstalk
+Vampire Hexmage
+Vapor Snag
 Varchild, Betrayer of Kjeldor
+Venomspout Brackus
+Wakestone Gargoyle
+Walking Ballista
 Whirler Rogue
+Wicked Pact
+Wizard Class
+Words of Wisdom
+You're Confronted by Robbers
+Zopandrel, Hunger Dominus

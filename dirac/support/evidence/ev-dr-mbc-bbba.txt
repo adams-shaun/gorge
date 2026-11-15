@@ -22,6 +22,7 @@ Electrickery
 Encampment Keeper
 Ethereal Haze
 Exultant Skymarcher
+Fain, the Broker
 Falthis, Shadowcat Familiar
 Foil
 Forest
@@ -63,9 +64,12 @@ Reconnaissance Mission
 Rending Volley
 Ricochet Trap
 Rite of Consumption
+Rootborn Defenses
 Searing Spear
 Shambling Ghast
+Shiny Impetus
 Skyline Despot
+Skyshroud Claim
 Souldrinker
 Striped Riverwinder
 Swamp
@@ -81,6 +85,7 @@ Tibalt, Rakish Instigator
 Toothy, Imaginary Friend
 Trostani's Judgment
 Unchained Berserker
+Vandalize
 Volcanic Geyser
 Voldaren Epicure
 Wall of Tears

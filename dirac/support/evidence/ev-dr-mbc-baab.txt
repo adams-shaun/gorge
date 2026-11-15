@@ -6,6 +6,7 @@ Ancient Grudge
 Apprentice Necromancer
 Apprentice Wizard
 Arc Lightning
+Augur of Bolas
 Azra Oddsmaker
 Baffling End
 Bastion of Remembrance
@@ -22,10 +23,12 @@ Chemister's Insight
 Contagion
 Corrupted Conviction
 Cryogen Relic
+Crypt Rats
 Dauntless Cathar
 Diamond Pick-Axe
 Dirge of Dread
 Dreamscape Artist
+Edric, Spymaster of Trest
 Emerge Unscathed
 Empty the Warrens
 Evolution Charm
@@ -33,8 +36,10 @@ Evolutionary Escalation
 Exclude
 Exhume
 Eyeblight's Ending
+Faerie Swarm
 Faithbearer Paladin
 Familiar's Ruse
+Fanatic of Mogis
 Feral Shadow
 Fiery Impulse
 Firewing Phoenix
@@ -42,6 +47,8 @@ Flame Slash
 Forest
 Gaea's Gift
 Geist of the Moors
+God-Eternal Oketra
+Goldnight Commander
 Hard Evidence
 Havoc Demon
 Hedge Troll
@@ -67,14 +74,17 @@ O-Kagachi, Vengeful Kami
 Oathsworn Giant
 Ogre Arsonist
 Orthion, Hero of Lavabrink
+Orzhov Enforcer
 Overwhelming Encounter
 Pawn of Ulamog
 Plains
 Plated Crusher
 Porcelain Legionnaire
+Primal Rage
 Purifying Dragon
 Rally the Peasants
 Rebuff the Wicked
+Reckless Barbarian
 Reckless Charge
 Reckless Fireweaver
 Referee Squad
@@ -82,6 +92,7 @@ Requisition Raid
 Reverent Hoplite
 Rograkh, Son of Rohgahh
 Roiling Dragonstorm
+Sensor Splicer
 Seraph of Dawn
 Seraph of the Suns
 Serpentine Curve
@@ -90,6 +101,7 @@ Sever Soul
 Shepherd of the Flock
 Shipwreck Dowser
 Shoreline Salvager
+Sky Crier
 Soltari Visionary
 Sorcerous Sight
 Squee, Goblin Nabob
@@ -97,7 +109,13 @@ Steal Enchantment
 Swamp
 Temur Battle Rage
 Thraben Watcher
+Thrull Parasite
 Tinder Wall
+Tura Kennerüd, Skyknight
+Tyvar's Stand
 Tyvar, the Pummeler
+Unsubstantiate
+Wave-Wing Elemental
 Wildheart Invoker
+Windstorm Drake
 Wood Elves
