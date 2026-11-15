@@ -3973,6 +3973,7 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	defer func() { lc.spellProvOK = save }()
 	var spellClauses, staticClauses []lClause
 	var act []string
+	var actBF []bool // act[i] names inZoneBattlefield (an ability of a permanent)
 	for _, alt := range strings.Split(rv, ",") {
 		alt = strings.TrimSpace(alt)
 		switch {
@@ -3996,7 +3997,9 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			}
 			spellClauses = append(spellClauses, f.Clauses...)
 		case strings.HasPrefix(alt, "Activated."):
-			act = append(act, "Card."+strings.TrimPrefix(alt, "Activated."))
+			spec, bf := strings.CutSuffix(strings.TrimPrefix(alt, "Activated."), "+inZoneBattlefield")
+			act = append(act, "Card."+spec)
+			actBF = append(actBF, bf)
 		case alt == "Activated":
 			// Gorge restrictValidTermMatches (pay/payment.go:606-607):
 			// an undotted Activated is d.Class == PurposeActivated with
@@ -4004,6 +4007,7 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			// source in any zone. The any-card filter subsumes a
 			// sibling Activated.<spec> term.
 			act = append(act, "Card")
+			actBF = append(actBF, false)
 		case alt == "CantCastNonArtifactSpells":
 			// Gorge restrictValidTermMatches: a spell whose face is an
 			// artifact (Powerstone tokens).
@@ -4043,11 +4047,50 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	}
 	var err error
 	if len(act) > 0 {
-		if m.RestrictAb, err = lc.filter(strings.Join(act, ",")); err != nil {
+		if slices.Contains(actBF, true) {
+			m.RestrictAb, err = lc.actBattlefieldFilter(act, actBF)
+		} else {
+			m.RestrictAb, err = lc.filter(strings.Join(act, ","))
+		}
+		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// actBattlefieldFilter lowers the Activated alternatives of a mana restriction
+// when some carry +inZoneBattlefield. Every filter drops that word as implied
+// (propWords), but here it is the test that tells an ability of a permanent
+// from one of a card in another zone (Dalakos's {C}{C} pays an artifact's
+// battlefield ability, not Cityscape Leveler's unearth from the graveyard;
+// gorge pay.restrictValidTermMatches needsBattlefield), so those alternatives
+// keep it as the inZoneBattlefield word.
+func (lc *lowerCtx) actBattlefieldFilter(act []string, bf []bool) (*lFilter, error) {
+	n, ok := filterWordPred("inZoneBattlefield")
+	if !ok {
+		return nil, refuse("mana restriction: inZoneBattlefield word")
+	}
+	out := &lFilter{}
+	for i, spec := range act {
+		f, err := lc.filter(spec)
+		if err != nil {
+			return nil, err
+		}
+		if f.Players != 0 {
+			return nil, refuse("mana restriction %q: player filter", spec)
+		}
+		for j := range f.Clauses {
+			if !bf[i] {
+				continue
+			}
+			if err := f.Clauses[j].setCmp(cmpWord7, 0, n, "", ""); err != nil {
+				return nil, refuse("mana restriction %q: %v", spec, err)
+			}
+		}
+		out.Clauses = append(out.Clauses, f.Clauses...)
+	}
+	return out, nil
 }
 
 // finishMana reads a mana ability's spend restriction and chain.
