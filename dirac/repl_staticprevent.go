@@ -16,14 +16,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // One candidate applies on its own. Two or more are gorge's CR 616.1 order ask
 // unless every one is a bare full prevention (whichever applies first stops the
 // whole event: repl_bareprev.go), which the kernel applies without the ask. A
-// noncombat event with two or more other candidates parks on the ask
-// (spPark): the options name each host, each pick is applied as made to the
-// damage left (replHdr.an), the last candidate applies on its own and a
+// noncombat event of a one-event site (damageTo) with two or more other
+// candidates parks on the ask (spPark): the options name each host, each pick
+// is applied as made to the damage left (replHdr.an), the last candidate applies on its own and a
 // prevention that leaves nothing ends the asks. An Optional$ shield alone
 // (Battletide Alchemist) is asked of its controller with a skip option. A
 // combat event, a competition beside an optional line or a DamageAmount$ gate,
 // and a host with two shields stall StallReplPlus: the order walk of a combat
-// pass does not carry these candidates. A table that also has any other
+// pass does not carry these candidates. So does such a competition in a pass
+// that re-executes its op on a plus-N order ask (damageBatch, a hit batch,
+// DealDamageFrom): a static prevention table is never replPlusOnly, since that
+// protocol discards the answer. A table that also has any other
 // damage replacement (or a self-damage one) is refused at its start
 // (initStall: staticPrevStall), since the kinds do not commute.
 

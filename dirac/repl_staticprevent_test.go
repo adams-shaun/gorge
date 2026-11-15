@@ -275,3 +275,146 @@ func TestStaticPreventShieldAmount(t *testing.T) {
 		}
 	})
 }
+
+// TestStaticPreventBatchPasses: the damage passes that re-execute their op on
+// a pure plus-N order ask (damageBatch with park, replPlusBatch) never take a
+// static prevention's ask through that protocol (its answer would be thrown
+// away): a competition, or a lone optional line, is a loud stall with no ask
+// posed, and a lone shield still applies.
+func TestStaticPreventBatchPasses(t *testing.T) {
+	const you = TCode(PlayerTarget0)
+	// resolving: the Giant (seat 1) is the resolving entry's source
+	resolving := func(sc *scen, src Obj) {
+		s := sc.s
+		e := &s.res.e
+		e.kind, e.obj, e.srcVer, e.card, e.ctrl = seAbility, src, s.objs[src].ver, s.objs[src].card, 1
+	}
+	for _, tc := range []struct {
+		name  string
+		repls []kop.Repl
+	}{
+		{"two shields", []kop.Repl{{Kind: kop.ReplPreventDamageN, C: kop.ReplSPYou, A: 2}, {Kind: kop.ReplPreventDamageN, C: kop.ReplSPYou, A: 1}}},
+		{"a lone optional shield", []kop.Repl{{Kind: kop.ReplPreventDamageN, C: kop.ReplSPYou | kop.ReplSPOpp | kop.ReplSPOptional, A: 2}}},
+	} {
+		t.Run("damage map "+tc.name, func(t *testing.T) {
+			tb := newSPTable()
+			var hosts []CardID
+			for i, r := range tc.repls {
+				hosts = append(hosts, tb.host("Test Shield "+string(rune('A'+i)), r))
+			}
+			sc := tb.scen(t)
+			for _, h := range hosts {
+				sc.perm(h, 0)
+			}
+			giant := sc.perm(v.HillGiant, 1)
+			resolving(sc, giant)
+			s := sc.s
+			if s.g.stalled != 0 {
+				t.Fatalf("precondition: stalled at start (%s)", StallName(s.g.stalled))
+			}
+			s.damageBatch(sc.k, []TCode{you}, []int{5}, true)
+			if s.g.plusBatchAsked || s.g.ro.n != 0 {
+				t.Fatalf("posed through the plus-N re-execute protocol: plusBatchAsked %v, ask candidates %d", s.g.plusBatchAsked, s.g.ro.n)
+			}
+			if st := s.g.stalled; st != StallReplPlus {
+				t.Fatalf("stalled %s, want the loud order-ask stall", StallName(st))
+			}
+		})
+		t.Run("hit batch "+tc.name, func(t *testing.T) {
+			tb := newSPTable()
+			crt := tb.filter(kop.Filter{Types: kop.TCreature})
+			var hosts []CardID
+			for i, r := range tc.repls {
+				r.Filter = crt
+				hosts = append(hosts, tb.host("Test Shield "+string(rune('A'+i)), r))
+			}
+			sc := tb.scen(t)
+			for _, h := range hosts {
+				sc.perm(h, 0)
+			}
+			giant, bear := sc.perm(v.HillGiant, 1), sc.perm(v.GrizzlyBears, 0)
+			s := sc.s
+			hs := []dmgHit{{src: sc.slot(giant), dst: sc.slot(bear), n: 3, ctrl: 1}}
+			if s.replPlusBatch(sc.k, hs) || s.g.plusBatchAsked || s.g.ro.n != 0 {
+				t.Fatalf("replPlusBatch parked: plusBatchAsked %v, ask candidates %d", s.g.plusBatchAsked, s.g.ro.n)
+			}
+			s.dealHits(sc.k, hs)
+			if st := s.g.stalled; st != StallReplPlus {
+				t.Fatalf("stalled %s, want the loud order-ask stall", StallName(st))
+			}
+		})
+	}
+	t.Run("a lone shield applies", func(t *testing.T) {
+		tb := newSPTable()
+		h := tb.host("Test Sphere", kop.Repl{Kind: kop.ReplPreventDamageN, C: kop.ReplSPYou, A: 2})
+		sc := tb.scen(t)
+		sc.perm(h, 0)
+		giant := sc.perm(v.HillGiant, 1)
+		resolving(sc, giant)
+		s := sc.s
+		life := s.pl[0].life
+		s.damageBatch(sc.k, []TCode{you}, []int{5}, true)
+		if st := s.g.stalled; st != 0 || s.g.ro.n != 0 {
+			t.Fatalf("stalled %d, ask candidates %d; want neither", st, s.g.ro.n)
+		}
+		if got := int(life - s.pl[0].life); got != 3 {
+			t.Fatalf("the player took %d, want 3 (5 less 2)", got)
+		}
+	})
+}
+
+// TestStaticPreventOptionalAsk: a lone Optional$ shield (Battletide Alchemist)
+// is asked of its controller, not the damaged player; the pick prevents its
+// amount and the skip option (mode ro.n) deals all of it.
+func TestStaticPreventOptionalAsk(t *testing.T) {
+	const you = TCode(PlayerTarget0)
+	for _, tc := range []struct {
+		name string
+		skip bool
+		want int
+	}{{"pick", false, 3}, {"skip", true, 5}} {
+		t.Run(tc.name, func(t *testing.T) {
+			tb := newSPTable()
+			h := tb.host("Test Alchemist", kop.Repl{Kind: kop.ReplPreventDamageN, C: kop.ReplSPYou | kop.ReplSPOpp | kop.ReplSPOptional, A: 2})
+			sc := tb.scen(t)
+			host := sc.perm(h, 1)
+			giant := sc.perm(v.HillGiant, 1)
+			s := sc.s
+			e := &s.res.e
+			e.kind, e.obj, e.srcVer, e.card, e.ctrl = seAbility, giant, s.objs[giant].ver, s.objs[giant].card, 1
+			life := s.pl[0].life
+			if n := s.damageTo(sc.k, you, 5); n != 5 {
+				t.Fatalf("damageTo returned %d, want 5 (parked)", n)
+			}
+			ro := &s.g.ro
+			if ro.n != 1 || ro.spv&spOptionalAsk == 0 || ro.cand[0] != host || s.pl[0].life != life {
+				t.Fatalf("ask: n %d spv %#x cand %v, life moved %d; want the lone optional host asked, no damage yet", ro.n, ro.spv, ro.cand[0], life-s.pl[0].life)
+			}
+			var d Decision
+			s.replOrderOptions(&d)
+			if d.Player != 1 || d.N != 2 {
+				t.Fatalf("options: player %d, %d options; want the host's controller (1) with the line and its skip", d.Player, d.N)
+			}
+			var skip Action
+			for i := 0; i < int(d.N); i++ {
+				if d.Options[i].Mode() == ro.n {
+					skip = d.Options[i]
+				}
+			}
+			if skip == 0 {
+				t.Fatalf("no skip option with mode %d in %v", ro.n, d.Options[:d.N])
+			}
+			pick := MakeAction(AkChoose, TCode(host), 0, 0)
+			if tc.skip {
+				pick = skip
+			}
+			s.applyReplOrder(pick)
+			if got := int(life - s.pl[0].life); got != tc.want {
+				t.Fatalf("the player took %d, want %d", got, tc.want)
+			}
+			if ro.n != 0 || s.g.nc.n != 0 {
+				t.Fatalf("ask left behind: n %d nc %d", ro.n, s.g.nc.n)
+			}
+		})
+	}
+}

@@ -141,7 +141,7 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	case staticPrevStall(g):
-		return StallReplPlus // repl_staticprevent_pair.go: gorge asks the order of a static prevention and another damage replacement
+		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement
 	case g.dhMix:
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.caMix:
