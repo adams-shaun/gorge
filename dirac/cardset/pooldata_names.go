@@ -36,7 +36,8 @@ func activatesOffBattlefield(cd *kop.CardDef) bool {
 }
 
 // choosesNameKind is choosesName, and whether the choice is over every card's
-// name, lands included (ExtChooseName B = 1 or 2: Sorcerous Spyglass).
+// name, lands included (ExtChooseName B = 1 or 2: Sorcerous Spyglass; a
+// mid-resolution NameCard's B = 0, the unrestricted ask, Demonic Consultation).
 func choosesNameKind(cd *kop.CardDef) (names, anyCard bool) {
 	for _, ab := range cd.Abilities {
 		for _, in := range ab.Prog {
@@ -44,17 +45,39 @@ func choosesNameKind(cd *kop.CardDef) (names, anyCard bool) {
 				names = true
 				anyCard = anyCard || in.B.N == 1 || in.B.N == 2
 			}
+			if in.Op == kop.OpExt && in.Ext() == kop.ExtNameCard {
+				// a mid-resolution card-name choice (gorge effNameCard) keeps
+				// its answer in the same chosen byte: the table lists the
+				// names it offers and refuses what cannot fit
+				names = true
+				anyCard = anyCard || in.B.N == 0
+			}
 		}
 	}
 	return names, anyCard
 }
 
+// nameEntries is the pool entries a card-name choice names: the main cards
+// and every face entry a main card's Faces names (a face is a nameable
+// name). Tokens name nothing.
+func nameEntries(d *PoolData) []int {
+	out := make([]int, 0, d.NumCards)
+	for i := 0; i < d.NumCards; i++ {
+		out = append(out, i)
+		for _, f := range d.Defs[i].Faces {
+			out = append(out, int(f))
+		}
+	}
+	return out
+}
+
 // poolNamesFit reports whether the pool table can hold a card name choice:
 // no multi-face card (a split, adventure, double-faced or prepare card has
 // more nameable names than one CardID) and every real nonland card's PoolID
-// below 255.
+// below 255. Face entries are the nameable names of their multi-face mains,
+// so they count with them.
 func poolNamesFit(d *PoolData, anyCard bool) bool {
-	for i := 0; i < d.NumCards; i++ {
+	for _, i := range nameEntries(d) {
 		if len(d.Defs[i].Faces) > 0 || anyCard && activatesOffBattlefield(&d.Defs[i]) {
 			return false
 		}
@@ -67,13 +90,14 @@ func poolNamesFit(d *PoolData, anyCard bool) bool {
 
 // nameInertCards marks the cards that choose a card name when the pool table
 // cannot hold the choice (poolNamesFit): Pool plays them as inert fallbacks,
-// and the Set says so (Inert), as it does for a card it does not lower.
-// nil when no card needs it.
+// and the Set says so (Inert), as it does for a card it does not lower. A
+// face entry counts with its main card (nameEntries). nil when no card needs
+// it.
 func nameInertCards(d *PoolData) []bool {
 	var out []bool
 	var fit [2]int8 // by anyCard: -1 unmeasured, 0 no, 1 yes
 	fit = [2]int8{-1, -1}
-	for i := 0; i < d.NumCards; i++ {
+	for _, i := range nameEntries(d) {
 		names, anyCard := choosesNameKind(&d.Defs[i])
 		if !names {
 			continue
@@ -90,7 +114,7 @@ func nameInertCards(d *PoolData) []bool {
 		}
 		if fit[f] == 0 {
 			if out == nil {
-				out = make([]bool, d.NumCards)
+				out = make([]bool, d.NumIDs)
 			}
 			out[i] = true
 		}

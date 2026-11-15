@@ -400,6 +400,7 @@ default	field	genPrep.anyZeroAlt	243	1
 default	field	genPrep.anyEmbCold	244	1
 default	field	genPrep.anyMayCold	245	1
 default	field	genPrep.anyMayLimit	246	1
+default	field	genPrep.anyEmbName	247	1
 default	field	genPrep.sCls	248	24
 default	field	genPrep.anyGraveAct	272	1
 default	field	genPrep.anyHandAct	273	1

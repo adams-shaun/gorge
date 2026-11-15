@@ -1529,9 +1529,10 @@ const potentialOpenUnits = 2 * trigXCap
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
 // Every mana ability of a source counts on its own, and a paid one joins once the
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
+// open reports a bound gorge prices potentialUnbounded in every colour.
 //
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open bool) {
 	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
@@ -1539,7 +1540,6 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 	}
 	var own [MaxPerm][kop.NumManaKinds]int
 	var done [MaxPerm]uint16
-	open := false
 	add := func(sl Slot, mask uint8, n uint8) {
 		for mk := mask; mk != 0; mk &= mk - 1 {
 			c := bits.TrailingZeros8(mk)
@@ -1675,6 +1675,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
+	return open
 }
 
 // filtFeeOwed reports whether the source at sl is a filter whose fee the
@@ -1777,8 +1778,11 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	grantFirst = grantFirst || grants && s.eachBesideGrant(k, p)  // an each-colour gap among the grants (mana_granteach.go)
 	grantFirst = grantFirst || grants && s.wideBesideGrant(k, p)  // a wide-only gap among the grants (mana_grantwide.go)
-	// a planner-deferred gap among the grants: the activation's one search (mana_granttapsdefer.go)
-	grantFirst = grantFirst || grants && a.Kind() == AkActivate && s.tdBesideGrant(k, p)
+	// a planner-deferred gap among the grants: the one search runs for a cast
+	// too — gorge's census lists neither a deferred source nor a grant, so a
+	// cast's prefix search activates it in battlefield order as it does an
+	// activation's (mana_granttapsdefer.go)
+	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {

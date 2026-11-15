@@ -44,10 +44,28 @@ const TablesSubdir = "kernel-tables"
 const keyPartLen = 16
 
 // CorpusDir locates the corpus: $GORGE_CARDS, else the first .cards walking up from
-// the cwd. It returns the path as found, not resolved. An explicit $GORGE_CARDS
-// without a cards.lock is ErrNoCorpus rather than a walk: it is a misconfiguration
-// a walk would hide.
+// the cwd. It returns the path resolved: card-script and table reads made through
+// it fall outside the module, so go test's input tracking does not hash them (a
+// symlinked .cards read in-module costs minutes per package; see checkCorpus for
+// the one tracked open that is kept). An explicit $GORGE_CARDS without a cards.lock
+// is ErrNoCorpus rather than a walk: it is a misconfiguration a walk would hide.
 func CorpusDir() (string, error) {
+	d, err := corpusFound()
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(d)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrNoCorpus, err)
+	}
+	return resolved, nil
+}
+
+// corpusFound locates the corpus the way CorpusDir does but returns the path as
+// found, unresolved: checkCorpus's sentinel stat runs through it, and the callers
+// that keep a sentinel of their own tracked (the published checks in TablesDir and
+// SynthDir) stat through it too.
+func corpusFound() (string, error) {
 	if d := os.Getenv("GORGE_CARDS"); d != "" {
 		return checkCorpus(d)
 	}
@@ -68,7 +86,8 @@ func CorpusDir() (string, error) {
 
 // checkCorpus stats the lock through the path as found: when that path lies inside
 // the module, as a symlinked .cards does, go test's input tracking then sees a corpus
-// swap, while the tables themselves are read resolved, outside its tracking.
+// swap through that one open, while the card scripts and tables are read resolved,
+// outside its tracking.
 func checkCorpus(d string) (string, error) {
 	if _, err := os.Stat(filepath.Join(d, "cards.lock")); err != nil {
 		return "", fmt.Errorf("%w: %v", ErrNoCorpus, err)
@@ -135,7 +154,7 @@ func published(dir string) bool {
 // the corpus half of the key from. Then the key directory is the one whose source
 // half is this binary's; more than one is an error, never a guess.
 func TablesDir() (string, error) {
-	corpus, cerr := CorpusDir()
+	corpus, cerr := corpusFound()
 	var key string
 	if cerr == nil {
 		var err error

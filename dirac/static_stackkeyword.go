@@ -115,7 +115,7 @@ func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fro
 		if a.Static.Cond2 != 0 && !s.statCond(k, st) {
 			return true
 		}
-		if s.matchSpellCard(k, a.Static.Filter, c, caster, caster, o, st.sl) {
+		if s.matchSpellCard(k, a.Static.Filter, c, caster, caster, o, st.sl, st.emb) {
 			if n == 0 {
 				b = a.Static.B
 			}
