@@ -2,12 +2,16 @@ Anathemancer
 Ancestral Recall
 Aven Gagglemaster
 Awaken the Woods
+Ballynock Trapper
+Blind-Spot Giant
 Cabal Inquisitor
 Carnage Tyrant
 Darien, King of Kjeldor
 Drudge Reavers
 Energy Arc
+Executioner's Swing
 Eyeblight's Ending
+Faerie Macabre
 Feast or Famine
 Forest
 Gavony Silversmith
@@ -16,6 +20,7 @@ Ghost-Lit Raider
 Go-Shintai of Shared Purpose
 Goblin Sky Raider
 Grid Monitor
+Honored Crop-Captain
 Horizon Explorer
 Hunter's Edge
 Imperial Oath
@@ -26,6 +31,7 @@ Krazy Kow
 Last Kiss
 Lone Missionary
 Malakir Bloodwitch
+Mardu Hateblade
 Maw of Kozilek
 Military Discipline
 Minions' Murmurs
@@ -33,6 +39,7 @@ Moaning Wall
 Mogg Maniac
 Mother Kangaroo
 Mountain
+Mystic Restraints
 Network Terminal
 Night Terrors
 Paradox Engine
@@ -49,6 +56,7 @@ Righteous Valkyrie
 Scent of Nightshade
 Scrap Mastery
 Screeching Drake
+Selesnya Charm
 Sell-Sword Brute
 Serum Tank
 Shivan Hellkite
@@ -66,6 +74,7 @@ Tangle Asp
 Thalia's Lieutenant
 Thraben Valiant
 Tor Giant
+Treespring Lorian
 Updraft
 Vengeful Vampire
 Vulpine Goliath

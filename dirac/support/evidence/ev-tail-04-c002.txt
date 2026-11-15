@@ -1,10 +1,190 @@
+A-Hullbreaker Horror
+A-Orcish Bowmasters
+Akiri, Line-Slinger
+Angelic Exaltation
+Anthousa, Setessan Hero
 Ashiok's Adept
 Attended Socialite
+Avengers Quinjet
+Balm of Restoration
+Banehound
+Banish from Edoras
+Banisher Priest
+Basal Sliver
+Bearscape
+Benalish Honor Guard
+Bestial Fury
+Birds of Paradise
+Bloated Contaminator
+Blossoming Bogbeast
+Borrowed Grace
+Bramble Creeper
+Browse
+Canyon Jerboa
+Celestial Unicorn
+Champion of the Perished
+Churning Eddy
+Cleanfall
+Clear the Mind
+Clever Lumimancer
+Cliffhaven Kitesail
+Clinging Mists
+Concord with the Kami
+Cosmic Crucible
+Crawl from the Cellar
+Crown of Skemfar
+Deadly Wanderings
+Death-Greeter's Champion
+Deathbloom Thallid
+Demonic Collusion
+Desperate Castaways
+Devotee of Strength
+Diplomatic Escort
+Distract
+Doomfall
+Dragon Hatchling
+Dragonspeaker Shaman
+Duskshell Crawler
+Edgar's Awakening
+Eidolon of Philosophy
+Enhanced Awareness
+Ephara's Dispersal
+Evolutionary Leap
+Exultant Cultist
+Fantastic Elasticity
+Fierce Witchstalker
+Fire
 Forest
+Frilled Sea Serpent
+Gaea's Anthem
+Gala Greeters
+Gather the Pack
+Giant's Grasp
+Goblin Gathering
+Grim Flowering
+Gustcloak Skirmisher
+Hammers of Moradin
+Hardy Veteran
+Haunted Angel
+Hidden Path
+Hua Tuo, Honored Physician
+Hungry Flames
+Icy Manipulator
+Imperial Ceratops
+Inferno of the Star Mounts
+Inner-Flame Igniter
+Iron Will
 Island
+Jade Idol
+Jilt
+Jump
+Juvenile Gloomwidow
+Kami of Transience
+Kessig Prowler
+Kithkin Rabble
+Leeching Licid
+Leyline Dowser
+Light of Day
+Llanowar Loamspeaker
+Loathsome Chimera
+Loxodon Partisan
+Loxodon Restorer
+Lumengrid Sentinel
+Lyse Hext
+Mage Duel
+March from the Tomb
+Metallic Sliver
+Mortiphobia
 Mountain
+Nahiri's Binding
+Nantuko Shade
+Nim Replica
+Nova Cleric
+Okiba Reckoner Raid
+Order of Midnight
+Outrider of Jhess
+Pack's Betrayal
+Paladin en-Vec
 Patient Rebuilding
+Peach Garden Oath
+Pestilent Syphoner
+Placid Rottentail
 Plains
+Planar Gate
+Prakhata Pillar-Bug
+Prize Pig
+Promise of Aclazotz
+Prophetic Titan
+Protect the Negotiators
+Prowler, Misguided Mentor
+Pteron Ghost
+Quasiduplicate
+Radha, Heart of Keld
+Raging Ravine
+Ravenous Daggertooth
+Ravenous Gigamole
+Ravenous Vampire
+Razorfin Hunter
 Reprisal
+Riddleform
+Ring of Valkas
+Riptide Director
+Rise Again
+River Kaijin
+Rune Snag
+Sadistic Slash
+Scourge of Geier Reach
+Selenia, Dark Angel
+Sentinel's Eyes
+Seraph of Dawn
 Settlement Blacksmith
+Shadow, Mysterious Assassin
+Sheoldred's Headcleaver
+Shiny Impetus
+Sierra, Nuka's Biggest Fan
+Sigil of Myrkul
+Skrelv, Defector Mite
+Skull Raid
+Smash to Smithereens
+Sokka, Swordmaster
+Soul of Migration
+Sound the Call
+Spellstutter Sprite
+Sphinx's Revelation
+Spoils of Evil
+Squirrel Sanctuary
+Star Whale
+Storm Front
+Swaggering Corsair
 Swamp
+Tamiyo's Safekeeping
+Teferi's Wavecaster
+Temporary Insanity
+Tendrils of Corruption
+The Blackstaff of Waterdeep
+Think Tank
+Thran Foundry
+Tidal Wave
+Tishana's Wayfinder
+Tomb Robber
+Towashi Songshaper
+Tower Defense
+Tranquility
+Tribute Mage
+Trigon of Mending
+Trusty Retriever
+Underdark Explorer
+Unhallowed Phalanx
+Vampire Scrivener
+Vault 87: Forced Evolution
+Village Elder
+Vodalian Serpent
+Voice of the Provinces
+Voracious Null
+Watchful Automaton
+Weakstone's Subjugation
+Well of Life
+Whisperer of the Wilds
+Windfall
+Worldfire
+Zephyr Winder

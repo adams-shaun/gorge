@@ -1,9 +1,12 @@
+Absorb
 Aether Spellbomb
 Akoum Refuge
 Ancestral Blade
+Ancient Gold Dragon
 Anointer Priest
 Ashen Monstrosity
 Attune with Aether
+Avatar of Growth
 Back in Town
 Barrow Witches
 Belligerent Sliver
@@ -20,7 +23,9 @@ Choking Sands
 Clip Wings
 Cunning Survivor
 Death's Shadow
+Devouring Swarm
 Doom Whisperer
+Double Negative
 Drainpipe Vermin
 Drifting Shade
 Dune Mover
@@ -40,6 +45,7 @@ Glimmervoid
 Gnarled Effigy
 Griffin Aerie
 Grixis Slavedriver
+Guardian of the Guildpact
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
@@ -53,17 +59,21 @@ Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Kher Keep
+Lightning-Rig Crew
 Mana Vault
 Mark of the Oni
 Mass Calcify
 Mass Mutiny
 Master of Winds
+Master the Way
 Metathran Elite
 Mind Over Matter
 Mindwrack Harpy
+Momentum Rumbler
 Mountain
 Muck Rats
 Nebelgast Herald
+Needlethorn Drake
 Neonate's Rush
 Nezumi Freewheeler
 Nightveil Predator
@@ -73,8 +83,10 @@ Peregrine Mask
 Perimeter Captain
 Plains
 Plasmancer
+Portent of Betrayal
 Power of Persuasion
 Precinct Captain
+Pyrrhic Blast
 Rally the Peasants
 Reckless Barbarian
 Reclaim the Wastes
@@ -90,11 +102,15 @@ Sizzle
 Skyline Cascade
 Sonic Screwdriver
 Sootstoke Kindler
+Spectacle Mage
 Spitebellows
+Spitfire Handler
 Sunscorched Desert
 Swamp
 Swarm of Rats
 Tectonic Edge
+Thopter Assembly
+Thoughtweft Gambit
 Threnody Singer
 Thundersteel Colossus
 Trained Caracal
@@ -104,6 +120,7 @@ Undead Servant
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Warmonger Hellkite
 Wavebreak Hippocamp
 Wizard Replica
 Woodland Stream

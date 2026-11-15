@@ -1,24 +1,205 @@
+A-Mentor's Guidance
+Agent of the Shadow Thieves
 An-Havva Inn
 Ancient Amphitheater
+Angel's Mercy
+Angelic Wall
+Arbor Elf
+Arcane Flight
+Arm-Mounted Anchor
+Aven Trailblazer
+Avenging Arrow
+Bar the Door
+Bast, Panther Goddess
+Bazaar Krovod
+Black Lotus
+Blighted Steppe
+Blockade Runner
+Blockbuster
+Blood Clock
+Boarding Party
+Boggart Arsonists
+Boggart Brute
 Boon of Safety
+Brambleweft Behemoth
+Brawn
 Brazen Borrower
+Brindle Boar
+Bulwark Giant
+Cartouche of Zeal
+Cathartic Adept
+Cave of the Frost Dragon
+Champion Lancer
+Child of Thorns
+Cloud Djinn
+Company Commander
+Condescend
+Consulate Turret
+Copperline Gorge
+Crash the Ramparts
+Crown of Empires
+Crude Rampart
+Cruel Deceiver
+Crystal Ball
+Cult Guildmage
 Custodian of the Trove
+Cut Down
+Dark Inquiry
+Dark Salvation
+Dawn Charm
+Daxos, Blessed by the Sun
+Destroy Evil
+Dirty Rat
+District Guide
+Douse
+Drelnoch
+Dwarven Patrol
+Earthshape
+Eldrazi Confluence
+Electric Revelation
 Electrozoa
+Elegant Entourage
+Embargo
+Embersmith
+Endurance Bobblehead
+Enter the Unknown
+Evanescent Intellect
+Feral Ridgewolf
+First Volley
+Folk of An-Havva
 Forest
+Gerrard Capashen
+Gerrard's Battle Cry
 Ghalma's Warden
 Glasspool Mimic
+Glimmer of Genius
+Gnottvold Hermit
+Gossamer Phantasm
+Grim Guardian
+Grim Return
+Ground Seal
+Guise of Fire
+Hawkeye, Clint Barton
+Hired Poisoner
+Hoard Hauler
+Hookblade
+Ichorclaw Myr
 Imperial Recovery Unit
+Implement of Malice
+Indulgent Aristocrat
+Infest
+Inspiration
+Invasion of Ergamon
+Invasion of Innistrad
 Island
+Ivory Cup
+Kazandu Refuge
+Keeper of the Accord
+Kitesail Apprentice
+Knotvine Paladin
+Kolaghan Skirmisher
+Kronch Wrangler
+Leave in the Dust
+Leeching Bite
+Leonin Armorguard
+Leyline of Anticipation
+Light the Way
+Locthwain Gargoyle
 Loran's Escape
+Lothlórien Lookout
+Luke Cage, Hero for Hire
+Malachite Golem
 Master of the Pearl Trident
+Midnight Entourage
+Ministrant of Obligation
+Morale
 Mountain
+Neurok Stealthsuit
+Night Market Guard
+Nimana Sell-Sword
+Nurturer Initiate
+Obsidian Obelisk
+Ogre Jailbreaker
+Olivia's Wrath
+Order of Yawgmoth
+Orzhov Locket
+Otherworldly Outburst
+Pegasus Stampede
+Pharika's Chosen
 Plains
+Press into Service
+Quest for the Nihil Stone
+Quirion Explorer
 Rain of Rust
 Ramosian Sergeant
+Repulsor Rays
 Retreat to Coralhelm
+Revenge of the Hunted
+Rile
+Rising of the Day
+Ruin Crab
+Ruination
+Rukh Egg
+Sai of the Shinobi
+Salvage Slasher
+Sand Silos
+Scorch Rider
 Scouting Hawk
 Shadow Rift
+Shifting Wall
+Sibsig Icebreakers
+Siege Zombie
+Siegecraft
+Silence
 Silkbind Faerie
+Silver Myr
+Skittering Invasion
+Slate of Ancestry
+Soltari Trooper
+Sphinx of Jwar Isle
+Spidersilk Armor
+Spike-Tailed Ceratops
+Sprite Dragon
+Storm Sculptor
+Stun
+Sunastian Falconer
+Sunder Shaman
 Swamp
+Tandem Takedown
+Teardrop Kami
+The Roaring Toeclaws
+The Thanos-Copter
+Thumbscrews
+Tide Drifter
+Toil to Renown
+Tombfire
+Touch of Death
+Toxic Scorpion
+Tribal Flames
+Trickster Mage
+Troll-Horn Cameo
+Twilight Panther
+Typhoid Rats
+Umara Wizard
+Undercellar Myconid
+Unlikely Aid
 Unwavering Initiate
+Venom, Eddie Brock
+Veteran's Powerblade
+Vigilant Baloth
+Vivisection
 Voice of All
+Void Squall
+Vortex Runner
+Vow of Lightning
+Warpath Ghoul
+Wash Out
+Wasp, Shrinking Savior
+Wasteful Harvest
+Watchwing Scarecrow
+Whisper of the Dross
+Whitesun's Passage
+Witness the End
+Xenk, Paladin Unbroken
+Xerex Strobe-Knight
+Young Pyromancer
