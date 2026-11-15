@@ -245,7 +245,14 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
 	if !relax && !sacAny {
-		s.plainOptions(k, &any, availAny)
+		if s.filtRepeatBound(k, p, filt, ca || twoLive) {
+			// gorge's potential walk lists only the plays PotentialMana's bound pays,
+			// which counts a fixed-colour repeatable filter's mana once
+			// (mana_filterrepeat.go): not the any-mana walk
+			s.plainOptions(k, &any, availWalk|availHyp)
+		} else {
+			s.plainOptions(k, &any, availAny)
+		}
 		src = &any
 	}
 	// the insufficient plays in gorge's walk order (potentialWalkOf: the

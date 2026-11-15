@@ -116,3 +116,27 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	}
 	return n
 }
+
+// filtRepeatBound: a repeatable fee-only filter is the only reason gorge's
+// census is unrelaxable on p's board (filt are the live filters, unrelax any
+// other source that makes it so), and every filter makes one fixed colour. The
+// prefix search then runs on the plays gorge's potential walk lists, the
+// PotentialMana bound, which counts such a filter's mana once (its fee is
+// paid from the other sources' mana); an any-colour filter's bound is open
+// (every colour), the any-mana walk.
+func (s *State) filtRepeatBound(k *prep, p uint8, filt slotMask, unrelax bool) bool {
+	if unrelax || !s.filtRepeatIn(k, filt) || s.scriptGaps(k, p).any() || s.deadCtrMask(k, p).any() {
+		return false
+	}
+	var rep slotMask
+	for f := filt; f.any(); f = f.rest() {
+		sl := f.first()
+		if s.filtRepeat(k, sl) {
+			if ab := s.filtAb(k, sl); ab.ManaColors&(ab.ManaColors-1) != 0 {
+				return false // a choice of colours: an open bound
+			}
+			rep = rep.with(sl)
+		}
+	}
+	return s.filtRelaxable(k, filt.andNot(rep))
+}
