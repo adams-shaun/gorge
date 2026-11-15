@@ -355,22 +355,7 @@ func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set 
 					s.removeSrc(k, t, sl, pc)
 				}
 				s.filtFeeUnits(k, t, sl, fee, cost, anyColor)
-				a := s.filtAb(k, sl)
-				addFiltUnits(t, a, uint8(units))
-				if manaOneColour(a, uint8(units)) {
-					s.addOneColour(t, uint8(units))
-				}
-				if !comboFiltAb(a) {
-					// the filter's tap brings the TapsForMana extra
-					// (mana_tapextra.go filtExtra); a combination filter's
-					// activation keeps the stall (filtDo)
-					xv := s.filtExtra(k, sl)
-					for c := range xv {
-						if xv[c] != 0 {
-							t.addUnits(1<<c, xv[c])
-						}
-					}
-				}
+				s.filtProduce(k, t, sl)
 				set &^= 1 << i
 				progress = true
 			}

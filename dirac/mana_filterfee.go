@@ -10,6 +10,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Darkwater Catacombs ({1},{T}: add {U}{B}) as {1}{G}{G}. Each unit comes off
 // the group whose loss leaves score (the X the rest can pay) highest; a
 // one-pip fee takes a unit of its colour. With no unit to take only the total falls.
+// A unit is scored on the window with the filter's own output added, since
+// the pips may be met only by that output (Swamp, Forest, Catacombs on {X}{B}{B}),
+// so the pick does not depend on the sources' slot order.
 func (s *State) filtFeeUnits(k *prep, t *avail, sl Slot, fee int, cost *kop.ManaCost, anyColor bool) {
 	col, pip := s.filtPip(k, sl)
 	for ; fee > 0; fee-- {
@@ -20,6 +23,7 @@ func (s *State) filtFeeUnits(k *prep, t *avail, sl Slot, fee int, cost *kop.Mana
 			}
 			c := *t
 			c.removeWide(t.mask[i], 1)
+			s.filtProduce(k, &c, sl)
 			if sc := c.maxXScore(cost, anyColor); best < 0 || sc > bestScore ||
 				sc == bestScore && popcount8(t.mask[i]) < popcount8(t.mask[best]) {
 				best, bestScore = i, sc
@@ -30,6 +34,25 @@ func (s *State) filtFeeUnits(k *prep, t *avail, sl Slot, fee int, cost *kop.Mana
 			continue
 		}
 		t.removeWide(t.mask[best], 1)
+	}
+}
+
+// filtProduce adds the mana the filter at sl makes to t: its units, a one-colour
+// filter's colour choice and the TapsForMana extra its tap brings.
+func (s *State) filtProduce(k *prep, t *avail, sl Slot) {
+	a, units := s.filtAb(k, sl), uint8(s.filtUnits(k, sl))
+	addFiltUnits(t, a, units)
+	if manaOneColour(a, units) {
+		s.addOneColour(t, units)
+	}
+	if !comboFiltAb(a) {
+		// a combination filter's activation keeps the stall (filtDo)
+		xv := s.filtExtra(k, sl)
+		for c := range xv {
+			if xv[c] != 0 {
+				t.addUnits(1<<c, xv[c])
+			}
+		}
 	}
 }
 
