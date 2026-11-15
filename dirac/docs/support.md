@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 302 | 0 | 33 | 269 | 266 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 265 | 0 | 18 | 247 | 246 |
-| MBC | 2195 | 1906 | 1 | 987 | 918 | 901 |
-| ALL | 34442 | 24151 | 21 | 18045 | 6085 | 6035 |
+| MBC | 2195 | 1910 | 1 | 990 | 919 | 901 |
+| ALL | 34442 | 24156 | 21 | 18049 | 6086 | 6035 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -51,7 +51,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-dr-mbc-aabb | 108 |
 | ev-dr-mbc-abaa | 200 |
 | ev-dr-mbc-abab | 63 |
-| ev-dr-mbc-abba | 135 |
+| ev-dr-mbc-abba | 175 |
 | ev-dr-mbc-abbb | 200 |
 | ev-dr-mbc-baaa | 200 |
 | ev-dr-mbc-baab | 200 |

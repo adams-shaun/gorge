@@ -119,6 +119,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	lc.ab, lc.chainT, lc.mode = ab, nil, -1
 	tp := newParams(t.Params)
 	tp.consume("Mode", "Execute")
+	staticCand, err := staticTriggerCand(tp, t, zone)
+	if err != nil {
+		return err
+	}
 	tr := &lTrigger{Event: t.Mode}
 	ab.Trigger = tr
 	if z, ok := tp.get("TriggerZones"); ok {
@@ -173,7 +177,6 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 		}
 	}
-	var err error
 	readF := func(k string) (*lFilter, error) {
 		v, ok := tp.get(k)
 		if !ok {
@@ -1665,64 +1668,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	}
 	if ip, ok := tp.get("IsPresent"); ok {
-		if pd, ok := tp.get("PresentDefined"); ok {
-			// gorge presentClauseHolds: PresentDefined$ Self counts the
-			// source alone, 1 when it is on the battlefield and matches
-			// the spec (PresentZone$ unread on that path), so each
-			// alternative is the spec narrowed to Self. Any other
-			// Defined group refuses.
-			if strings.TrimSpace(pd) != "Self" {
-				return refuse("trigger PresentDefined$ %q", pd)
-			}
-			if _, ok := tp.get("PresentZone"); ok {
-				return refuse("trigger PresentDefined$ beside PresentZone$")
-			}
-			alts := strings.Split(ip, ",")
-			for i, a := range alts {
-				a = strings.TrimSpace(a)
-				if strings.Contains(a, ".") {
-					alts[i] = a + "+Self"
-				} else {
-					alts[i] = a + ".Self"
-				}
-			}
-			ip = strings.Join(alts, ",")
-		}
-		if strings.Contains(ip, "blockingSource") || strings.Contains(ip, "blockedBySource") {
-			// the block relation read when the trigger fires: Lairwatch
-			// Giant's Blocks trigger (IsPresent$ Creature.blockedBySource,
-			// GE2) diverges from gorge in a lockstep game (the damage
-			// division asked of another creature), so it stays refused
-			return refuse("trigger IsPresent$ %q reads the block relation at trigger time", ip)
-		}
-		lc.atkPresent = tr.Event == "Attacks"
-		f, err := lc.filter(ip)
-		lc.atkPresent = false
+		c, err := lc.triggerIsPresent(tp, tr, ip)
 		if err != nil {
-			return err
-		}
-		if tr.Event == "ETB" && filterSelfOnly(tr.F) {
-			// a self-enters intervening-if that reads the source's host
-			// (Historian's Wisdom: IsPresent$ Permanent.EnchantedBy+greatestPower)
-			// is checked by gorge with the Aura already attached (CR 303.4f);
-			// the kernel queues the ETB trigger inside enter(), before
-			// resolve.go attaches the Aura, so EnchantedBy matches nothing
-			// and the trigger never fires.
-			for _, c := range f.Clauses {
-				if c.Flags&fEnchantedBy != 0 {
-					return refuse("self-enters IsPresent$ %q reads EnchantedBy before the Aura attaches", ip)
-				}
-			}
-		}
-		c := lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
-		if pc, ok := tp.get("PresentCompare"); ok {
-			op, v, err := lc.cmpSpec(pc)
-			if err != nil {
-				return err
-			}
-			c.Op, c.A = op, v
-		}
-		if c, err = lc.triggeredPresentZoneCond(c, tp, ip); err != nil {
 			return err
 		}
 		conds = append(conds, c)
@@ -1872,6 +1819,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("static SpellCast trigger body is not the proven ask-free rider shape")
 		}
 	}
+	if err := lc.staticTriggerBody(staticCand, ab, tr, t, svars); err != nil {
+		return err
+	}
 	patchIfPaidSkips(ab)
 	return nil
 }
@@ -1954,6 +1904,10 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 			return err // lower_blocktax.go: before the EffectZone$ strip below
 		}
 	}
+	s, inGrave, err := lc.graveContinuous(s) // lower_gycontinuous.go
+	if err != nil {
+		return err
+	}
 	if s.Params["EffectZone"] == "Battlefield" {
 		// a printed static's default zone spelled out (gorge
 		// EffectZoneOK: the battlefield, as with no EffectZone$)
@@ -1973,6 +1927,11 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	lc.exwStatic = false
 	if err != nil {
 		return err
+	}
+	if inGrave {
+		if sts, err = graveContinuousFlag(sts); err != nil {
+			return err
+		}
 	}
 	for _, st := range sts {
 		if st.Kind == "" {
@@ -3322,6 +3281,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		}
 		rl.Prog = ab.Prog
 		rl.Kind = "EntersWith"
+		if err := etbRememberedRead(ab.Prog); err != nil {
+			return err
+		}
 		if spyglassChain(r.With) || handNameChain(r.With) {
 			// gorge runs this chain (not a bare NameCard body) once the permanent
 			// is on the battlefield: the queued ask, not the stack pre-ask
@@ -3354,32 +3316,8 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			rl.Cond = lCond{Kind: cValue, A: v, Op: op, B: b}
 		}
 	case "Untap":
-		if rp.str("Layer") != "CantHappen" {
-			return refuse("Untap replacement shape")
-		}
-		vc := rp.str("ValidCard")
-		if vc == "" {
-			return refuse("Untap replacement without ValidCard$")
-		}
-		if _, ok := rp.get("ValidStepTurnToController"); !ok {
-			// no step key: gorge cards.ReplUntap matches every Untap event
-			// (rules/replacement_match.go), the "can't become untapped" class
-			if r.With != nil {
-				return refuse("Untap replacement ReplaceWith$ without ValidStepTurnToController$")
-			}
-			if err := lc.untapReplFilter(rp, &rl, vc, "AnyUntap"); err != nil {
-				return err
-			}
-			break
-		}
-		if rp.str("ValidStepTurnToController") != "You" {
-			return refuse("Untap replacement shape")
-		}
-		rl.Kind = "DoesntUntap"
-		if vc != "Card.Self" {
-			if err := lc.othersDoesntUntap(rp, &rl, vc); err != nil {
-				return err
-			}
+		if err = lc.untapRepl(r, rp, &rl); err != nil {
+			return err
 		}
 	case "GameLoss", "GameWin":
 		if rp.str("Layer") != "CantHappen" || rp.str("ActiveZones") != "Battlefield" {
