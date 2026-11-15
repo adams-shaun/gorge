@@ -152,7 +152,7 @@ func TestHandMoveChooserYou(t *testing.T) {
 }
 
 // TestGraveyardPickChooserYou: a GainControl$ graveyard pick over the
-// opponent's yard with Chooser$ You (SrChooserYou, The Weaver King) asks
+// opponent's yard with Chooser$ You (SrChooserYou+SrOwnZone, The Weaver King) asks
 // the controller, and the picked card enters under the controller (gorge
 // hiddenPickChooser / changeHiddenOriginResolve), not its owner.
 func TestGraveyardPickChooserYou(t *testing.T) {
@@ -171,7 +171,7 @@ func TestGraveyardPickChooserYou(t *testing.T) {
 	tbl.Filters = append(tbl.Filters, kop.Filter{Zone: kop.ZoneGraveyard})
 	f := kop.FilterID(len(tbl.Filters) - 1)
 	mv := kop.Instr{Op: kop.OpChooseMove, Obj: kop.RefOpponent, A: kop.Const(1), F: f,
-		C: int16(kop.ZoneBattlefield) | int16(kop.SrMandatory|kop.SrChooserYou|kop.SrUnderYourControl)<<3}
+		C: int16(kop.ZoneBattlefield) | int16(kop.SrMandatory|kop.SrChooserYou|kop.SrOwnZone|kop.SrUnderYourControl)<<3}
 	src := CardID(len(tbl.Cards))
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Thief", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{mv}}}})
 	sc := newScenTable(t, tbl, Config{NoElide: true})

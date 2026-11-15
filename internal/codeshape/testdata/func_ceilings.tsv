@@ -88,7 +88,7 @@ dirac/kgen (*cardBuilder).trigger	592	292
 dirac/kgen (*instrCtx).opSearch	259	93
 dirac/kgen (*lClause).prop	563	149
 dirac/kgen (*lowerCtx).applyModifier	160	75
-dirac/kgen (*lowerCtx).changeZoneMove	955	384
+dirac/kgen (*lowerCtx).changeZoneMove	955	387
 dirac/kgen (*lowerCtx).cloneCopy	211	77
 dirac/kgen (*lowerCtx).continuous	473	149
 dirac/kgen (*lowerCtx).copyPermanent	218	65

@@ -603,13 +603,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			f = pickConstraintFilter(f, budget, hasBudget, false)
 			// DefinedPlayer$ names the fetch player whose graveyard the pool
-			// is (gorge effHiddenPick's players; the plain graveyard walk is
-			// that player's zone already); Chooser$ Opponent asks the
-			// resolving controller's first living opponent (gorge
-			// hiddenPickChooser: Chooser$ Opponent through chooserPlayer),
-			// the kernel's SrChooserOpp read. You is the default fetch
+			// is (gorge effHiddenPick's players). You is the default fetch
 			// player (Forge's getDefinedPlayers(null) is "You") and the
-			// default chooser.
+			// default chooser; graveChooserFlags reads Chooser$.
 			pickOwner := owner // lRef{Kind: rYou}, or the chosen player (lower_chooseplayermid.go)
 			pickLoop := lRef{}
 			if dp := ps.str("DefinedPlayer"); dp != "" && dpScope == dpNone {
@@ -621,13 +617,12 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			if ch, ok := ps.get("Chooser"); ok && !chosenPool { // chosenMidPool already read it
-				flag, ok := gravePickChooserFlag(ch, pickOwner, pickLoop)
-				if !ok {
-					return refuse("graveyard pick Chooser$ %q", ch)
-				}
-				cs += flag
+			fetched := pickOwner.Kind != rYou && ps.str("DefinedPlayer") != "" && dpScope == dpNone
+			more, err := graveChooserFlags(ps, pickOwner, pickLoop, flags, fetched, chosenPool) // lower_gravedefinedplayer.go
+			if err != nil {
+				return err
 			}
+			cs += more
 			lc.pickEachLoop(pickLoop)
 			// dpScope You / Player (graveDefinedPlayer) already read the param, so
 			// pickOwner is You and emitGravePick opens the each-player loop for Player
@@ -4769,21 +4764,4 @@ func noCost(c lCost) bool {
 func plainTapCostIgnoringTap(c lCost) bool {
 	c.Tap = true
 	return plainTapCost(c)
-}
-
-// gravePickChooserFlag is the plain graveyard pick's chooser flag for a
-// Chooser$ spelling. You is the default chooser only when the fetch player
-// is the controller; over another player's yard (The Weaver King's each
-// opponent) the kernel would ask that player, so it needs ChooserYou
-// (gorge hiddenPickChooser). ok is false for a spelling it does not read.
-func gravePickChooserFlag(ch string, pickOwner, pickLoop lRef) (flag string, ok bool) {
-	switch {
-	case ch == "You" && pickOwner.Kind != rYou:
-		return "|ChooserYou", true
-	case ch == "You", ch == "":
-		return "", true
-	case ch == "Opponent" && pickOwner.Kind == rYou && pickLoop.Kind == rNone:
-		return "|ChooserOpp", true
-	}
-	return "", false
 }
