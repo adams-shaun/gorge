@@ -618,13 +618,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
 		return false
 	}
-	cols := cd.Colors
-	if k.gen != nil && k.gen.anySplit {
-		cols = s.splitColors(k, c, o, cols) // CR 709.4: a split card's halves combined (face_castface.go)
-	}
-	if fd {
-		cols = 0 // CR 708.2/708.4: a face-down permanent or spell is colourless
-	}
+	cols := s.cardColors(k, c, o, fd)
 	if fl.Colors != 0 && cols&fl.Colors == 0 || cols&fl.NotColors != 0 {
 		return false
 	}

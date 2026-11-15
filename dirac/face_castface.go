@@ -254,6 +254,20 @@ func (s *State) splitColors(k *prep, c CardID, o Obj, cols kop.ColorMask) kop.Co
 	return k.t.Cards[cd.Faces[0]].Colors | k.t.Cards[cd.Faces[1]].Colors
 }
 
+// cardColors is card c's colour set as a card filter reads it off the
+// battlefield: colourless face down (CR 708.2, 708.4), a split card's halves
+// combined (splitColors), else the printed colours.
+func (s *State) cardColors(k *prep, c CardID, o Obj, fd bool) kop.ColorMask {
+	if fd {
+		return 0
+	}
+	cols := k.t.Cards[c].Colors
+	if k.gen != nil && k.gen.anySplit {
+		cols = s.splitColors(k, c, o, cols)
+	}
+	return cols
+}
+
 // FeatCastFace is the AkCast mode bit of a face cast; the action's target
 // is the face cast (0: an Adventure's front from exile).
 const FeatCastFace = castFace
