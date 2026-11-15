@@ -1,39 +1,76 @@
 Akroan Phalanx
+Ancient Stirrings
 Assault Formation
 Blindblast
+Bloodlust Inciter
+Bottle Gnomes
 Bramblecrush
 Cave-In
+Cephalid Illusionist
 Chain Lightning
 Collected Company
 Confessor
+Constable of the Realm
+Continue?
 Contraband Livestock
+Dauntless Bodyguard
+Desecrated Earth
+Faithbearer Paladin
 Falter
 Flaring Pain
 Forest
+Goblin Roughrider
 Grapeshot
 Ground Rift
+Hurloon Minotaur
 Inferno Fist
 Island
+Judge of Currents
+Lore Seeker
 Maniacal Rage
+Mightstone
 Mirri's Guile
 Mountain
 Nantuko Mentor
+Navigation Orb
 Nimble Birdsticker
 Nylea's Huntmaster
+Oneirophage
 Paladin Danse, Steel Maverick
 Plains
+Primal Whisperer
 Raging Bull
+Relief Captain
 Roar of the Crowd
 Sagu Archer
 Scurry Oak
 Searing Blood
 Seed the Land
+Selfless Spirit
 Skysnare Spider
+Snow-Covered Plains
+Spiritual Sanctuary
+Stampeding Rhino
+Steelform Sliver
+Stern Dismissal
 Stoneshaker Shaman
 Stoneskin
 Storm Fleet Pyromancer
+Strip Mine
 Swamp
+Sword of the Animist
+Sylvan Ranger
+The Stasis Coffin
+Thunder Totem
+Tideshaper Mystic
 Tranquil Grove
+Traumatize
 Treetop Rangers
+Tyrant's Familiar
+Unholy Officiant
+Venser's Journal
+Verge Rangers
 Vital Splicer
+Voidmage Prodigy
 Wall of Heat
+Zhalfirin Shapecraft
