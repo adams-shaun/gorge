@@ -192,7 +192,16 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// building entry cannot pay with it
 	a.xd, a.xdOn = s.payDescNow(NoObj), true
 	a.xPlain = s.cfg&cfgGorgeSurface == 0
+	// gorge's xAsk takes an X its planner refuses when the cast window pays it
+	// (castWindowPays), and that window taps a painful source whatever the
+	// life (the damage is lethal only afterwards, CR 704.5a): Cephalid
+	// Coliseum at 1 life still buys Mask of the Jadecrafter's X one more.
+	x := s.g.availX
+	if k.painMana && !a.xPlain {
+		s.g.availX |= availWinCol
+	}
 	s.availFor(k, p, a)
+	s.g.availX = x
 	a.xdOn, a.xPlain = false, false
 	// A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R}) is
 	// absent from the planner census but CR 601.2g's window can tap it, and
