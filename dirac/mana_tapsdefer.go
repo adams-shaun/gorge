@@ -174,6 +174,29 @@ func (s *State) deferGapsForPlay(k *prep, a Action, m slotMask) slotMask {
 // the offer priced a plain cast with it, which gorge's census never lists and
 // its autopay surface never scripts. Any other production stays unmodelled.
 func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
+	return s.scriptTapsDeferWalk(k, p, deferArmFull)
+}
+
+// scriptTapsDeferPlain is the plain Taps-deferred arm of scriptTapsDefer
+// alone: the sources whose tap a Defer-class watcher watches and whose
+// production is one mana of any colour or of exactly one of WUBRG -- the
+// census gap gorge's second pass funds (engine/rules/pay plandeferred.go,
+// this planner's planTiered pass 2). availTapsDeferIn counts their units
+// into the offer walk's picture.
+func (s *State) scriptTapsDeferPlain(k *prep, p uint8) slotMask {
+	return s.scriptTapsDeferWalk(k, p, deferArmPlain)
+}
+
+// deferArm is which arms of scriptTapsDefer's walk a caller wants.
+type deferArm uint8
+
+const (
+	deferArmFull  deferArm = iota // every arm
+	deferArmPlain                 // the plain one-mana tap arm only
+)
+
+// scriptTapsDeferWalk is scriptTapsDefer's walk over deferArm.
+func (s *State) scriptTapsDeferWalk(k *prep, p uint8, arms deferArm) slotMask {
 	if k.gen == nil || !(k.gen.anyTapsDefer || k.gen.anyManaRider) {
 		return slotMask{}
 	}
@@ -185,8 +208,11 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// A bounded rider source: the planner defers its first ability
 			// (riderDeferred) or, with a plain first ability, its later
 			// rider (Grove of the Burnwillows). Both are prefix gaps; the
-			// activation pays the ability's own cost (mana_rider.go). A
-			// granted mana ability beside the rider does not exclude the
+			// activation pays the ability's own cost (mana_rider.go).
+			if arms == deferArmPlain {
+				continue
+			}
+			// A granted mana ability beside the rider does not exclude the
 			// gap: the grant stays the availability unit availGrant counts
 			// (ownManaUsable is false for a rider-first source, so the
 			// grant is all its census keeps), while gorge's census lists
@@ -212,7 +238,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		if s.splitDeferred(k, sl) {
-			if s.splitUsable(k, sl) {
+			if arms != deferArmPlain && s.splitUsable(k, sl) {
 				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
 			}
 			continue
@@ -222,7 +248,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// colour makes (Hydraulic Helper): the same gap, its mana floating
 			// restricted (tapDeferFloat's restrTaps arm, floatRestrAb), when
 			// the source can be activated at all.
-			if s.tapsGapActivatable(k, sl) {
+			if arms != deferArmPlain && s.tapsGapActivatable(k, sl) {
 				m = m.with(sl)
 			}
 			continue
@@ -277,6 +303,32 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 func (s *State) landSetGap(k *prep, sl Slot) bool {
 	return k.gen.landSet && s.landSetLost(k, sl) && s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
+}
+
+// availTapsDeferIn is availFor with the plain Taps-deferred sources' units
+// counted (scriptTapsDeferPlain): the offer walk's picture of the sources
+// gorge's census-gap second pass funds (engine/rules/pay plandeferred.go).
+// The offer prices a play with them; the payment then goes to the script
+// route, which taps the gap first and places its watcher trigger before the
+// play (flushPrefixTriggers), as gorge's stepwise payment answers do -- or,
+// when the script search finds no prefix, to the planner's pass 2
+// (planTiered0). The units are the same addTapsDeferUnits adds: the
+// production and the StatTapExtra beside it.
+func (s *State) availTapsDeferIn(k *prep, p uint8, a *avail) {
+	s.availFor(k, p, a)
+	for b := s.scriptTapsDeferPlain(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		pc := s.manaPCGen(k, sl)
+		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+		if k.gen != nil && k.gen.anyTapExtra {
+			xv := s.srcExtra(k, sl, pc)
+			for c := range xv {
+				if xv[c] > 0 {
+					a.addUnits(1<<c, xv[c])
+				}
+			}
+		}
+	}
 }
 
 // tapsGapActivatable: the Taps-deferred gap at sl can be tapped for mana now:

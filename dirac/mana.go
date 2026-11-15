@@ -378,7 +378,12 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 		// Only the production the script route models is a census gap the
 		// prefix search pays: any other deferred source keeps its ordinary
 		// unit here, or no walk would count it and a play it funds would
-		// vanish from the offer (mana_tapsdefer.go).
+		// vanish from the offer (mana_tapsdefer.go). The plain Taps-deferred
+		// tap itself is counted only by the offer walk's picture
+		// (availTapsDeferIn), which mirrors gorge's census-gap second pass:
+		// the payment then goes to the script route, which taps the gap
+		// first and places its watcher trigger before the play, as gorge's
+		// stepwise payment answers do.
 		deferGap = s.scriptTapsDefer(k, p)
 	}
 	for m.any() {
