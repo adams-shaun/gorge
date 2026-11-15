@@ -1333,6 +1333,7 @@ type lCard struct {
 	PrevCmbBy      bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
+	UmbraArmor     bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
