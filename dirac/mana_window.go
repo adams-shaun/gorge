@@ -1083,7 +1083,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 // windowAffords: gorge's mana window pays cost from p's sources counting
 // the Tenders' mana (availFor does not), simulated on a copy.
 func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
-	return s.windowAffordsTake(k, p, cost, false)
+	return s.windowAffordsTake(k, p, cost, false, false)
 }
 
 // tapsDefRider: the Taps-deferred source o has a bounded rider ability the
@@ -1094,13 +1094,26 @@ func (s *State) tapsDefRider(k *prep, o Slot) bool {
 }
 
 // unlessSkipsRider: a depletion land's activation (a SubCounter cost) is not
-// in an unless or ward window. gorge's unlessWindowUnits lists only free-cost
+// in an unless window (not a ward's). gorge's unlessWindowUnits lists only free-cost
 // abilities, so its offer gate never counts Remote Farm's {W}{W} and its tap
 // ask never lists the land; the walk of such a window leaves it alone
-// (payWindow, windowAffordsTake). The potential route and the cast windows
+// (payWindow, windowAffordsTake). A ward's window takes it. The potential route and the cast windows
 // still take it.
 func (s *State) unlessSkipsRider(a *kop.Ability) bool {
-	return s.g.unlessWin && a.ManaRider == kop.ManaRiderDeplete
+	return s.g.turnF&turnUnlessWin != 0 && a.ManaRider == kop.ManaRiderDeplete
+}
+
+// turnUnlessWin is genState.turnF's bit 7: the walk is an unless / ward
+// window (unlessSkipsRider). It lives in turnF's free bits so State's fixed
+// layout does not move.
+const turnUnlessWin uint8 = 1 << 7
+
+func (s *State) setUnlessWin(on bool) {
+	if on {
+		s.g.turnF |= turnUnlessWin
+	} else {
+		s.g.turnF &^= turnUnlessWin
+	}
 }
 
 // riderOfferable: some source's first mana ability is a bounded rider
@@ -1118,13 +1131,15 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 	return false
 }
 
-// windowAffordsTake is windowAffords; takeDeferred is an unless / ward window
+// windowAffordsTake is windowAffords; unless: the window is an unless cost's,
+// which leaves a depletion land alone (unlessSkipsRider; a ward's takes it).
+// takeDeferred is an unless / ward window
 // (payWindow), which taps a planner-deferred source (a counter-rider mana
 // source, Twitching Doll) once the rest cannot cover the cost: gorge's
 // unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
-func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) bool {
-	s.g.unlessWin = takeDeferred
-	defer func() { s.g.unlessWin = false }()
+func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) bool {
+	s.setUnlessWin(unless)
+	defer s.setUnlessWin(false)
 	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any() || s.riderOfferable(k, p)) {
 		return false
 	}
@@ -1135,9 +1150,9 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 }
 
 // windowAffordsN is windowAffords for an unless cost of amt with pips.
-func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16) bool {
+func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16, unless bool) bool {
 	c := manaOf(amt, pips)
-	return s.windowAffordsTake(k, p, &c, true)
+	return s.windowAffordsTake(k, p, &c, true, unless)
 }
 
 // restrTapMana: a is a plain tap mana ability with a spend restriction
@@ -1155,7 +1170,7 @@ func restrTapMana(a *kop.Ability) bool {
 //
 //go:noinline
 func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pips int16) bool {
-	return kind == kop.PayMana && skip&(pfWard|pfModes) != 0 && s.windowAffordsN(k, p, amt, pips)
+	return kind == kop.PayMana && skip&(pfWard|pfModes) != 0 && s.windowAffordsN(k, p, amt, pips, skip&pfWard == 0)
 }
 
 // restrKinds is how many distinct spend restrictions a table's restricted

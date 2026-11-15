@@ -2139,7 +2139,6 @@ type genState struct {
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
 	escapeCast     bool                    // the cast beginCast starts is the escape cast an AkCast's target byte names (castEscapeTgt; kw_escape.go; padding)
 	bargainCast    bool                    // the cast beginCast starts (a permission's or a hand cast) is of a Bargain card: the pool it checks pays the bargained price (offerBargainPlay, bargainOffers; kw_bargain.go; padding)
-	unlessWin      bool                    // the walk is an unless / ward window (payWindow, windowAffordsTake): gorge's unlessWindowUnits lists no depletion land (mana_window.go unlessSkipsRider; padding)
 	noUntapL       uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step; bit 4+p their creatures (SkipUntapPlayerCL; padding)
 	yourTurns      [MaxSeats]uint8         // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)
 	extraTurnBegun uint8                   // ExYourExtraTurns: bit p, player p has begun an extra turn this game (CR 500.7; value_exprs.go)
@@ -2294,8 +2293,9 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
-	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
-	// 4-7 are free. Cleared at the turn change. Taken from rsv.
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 7:
+	// the walk in progress is an unless / ward window (setUnlessWin,
+	// mana_window.go), set and cleared around it. Bits 4-6 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
