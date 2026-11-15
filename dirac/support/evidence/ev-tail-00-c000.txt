@@ -8,9 +8,12 @@ Armed Response
 Artisan of Kozilek
 Atlantean Skirmisher
 Aura Gnarlid
+Benalish Marshal
 Bleeding Edge
 Blossom Prancer
+Body of Research
 Bog Glider
+Broodmate Dragon
 Burrowing Razormaw
 Captain of the Watch
 Castle Locthwain
@@ -25,6 +28,8 @@ Dampening Pulse
 Darkling Stalker
 Dauthi Ghoul
 Dawnbringer Charioteers
+Death Cultist
+Debtors' Knell
 Decorated Griffin
 Descend upon the Sinful
 Dirgur Focusmage
@@ -32,6 +37,7 @@ Dirtwater Wraith
 Drannith Ruins
 Dread Presence
 Dwarven Demolition Team
+Earthlink
 Eater of the Dead
 Eerie Procession
 Elaborate Firecannon
@@ -62,13 +68,23 @@ Goliath Beetle
 Gornog, the Red Reaper
 Graceful Cat
 Greater Werewolf
+Grisly Salvage
+Gwyllion Hedge-Mage
+High Market
+Historian of Zhalfir
+Honor the Past
+Honorable Scout
 Honored Hierarch
 Horn of Deafening
+Icy Prison
+Immolation
 Improvised Club
 Incubator Drone
 Ingot Chewer
+Invasion of Tarkir
 Invisible Stalker
 Iron Verdict
+Iron-Craw Crusher
 Isamaru and Yoshimaru
 Island
 Isolation Zone
@@ -90,12 +106,15 @@ Lifebane Zombie
 Light of Hope
 Loch Dragon
 Lotho, Corrupt Shirriff
+Malakir Familiar
 Mana Matrix
 Mental Journey
 Mind Flayer
 Mold Shambler
 Mortis Dogs
 Mountain
+Mycosynth Wellspring
+Myojin of Cryptic Dreams
 Mystic Forge
 Natural State
 Necroblossom Snarl
@@ -129,6 +148,7 @@ Rebel Informer
 Recruitment Officer
 Refurbished Familiar
 Requiem Angel
+Restoration Gearsmith
 Retreat to Emeria
 Rishadan Footpad
 Rush of Knowledge
@@ -157,12 +177,14 @@ Skull Collector
 Skyclave Apparition
 Sleek Schooner
 Slipstream Eel
+Sneaky Snacker
 Soilshaper
 Song-Mad Treachery
 Sorcerer of the Fang
 Sphinx Summoner
 Spike Feeder
 Spikeshot Elder
+Spiteful Squad
 Spitting Earth
 Stampede Driver
 Status
@@ -198,6 +220,7 @@ Vampiric Fury
 Verdant Embrace
 Void Shatter
 Void Snare
+Voracious Typhon
 Wall of Frost
 Wand of Vertebrae
 Weave Fate

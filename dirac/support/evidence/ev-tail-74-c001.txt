@@ -1,34 +1,70 @@
 A-Guide of Souls
 A-Plate Armor
+A-Social Climber
 A-Teferi, Time Raveler
+Abomination, World Ravager
 Absorb
+Agony Warp
 Ajani's Mantra
+Alley Grifters
+Alrund's Epiphany
+Aphotic Wisps
 Aragorn, King of Gondor
+Astarion's Thirst
+Astral Dragon
 Avatar of Growth
 Aven Trooper
+Barricade Breaker
 Bearer of Memory
+Black Sun's Twilight
+Blindblast
+Blood Vassal
+Boiling Blood
+Boulderfall
 Brainsurge
+Bramblecrush
 Bronze Guardian
 Capashen Unicorn
+Captain N'ghathrod
 Captured by Lagacs
+Cephalid Illusionist
+Chain Lightning
+Chaos Maw
+Chasm Drake
 Chicken Egg
+Chilling Trap
 Choke
 Chromatic Star
+City of Brass
 Civic Guildmage
 Colossal Dreadmaw
 Concordant Crossroads
+Constable of the Realm
 Curse of Predation
+Daemogoth Titan
+Deadeye Plunderers
+Deadly Insect
 Death Speakers
 Deepwood Tantiv
+Defenestrate
 Descendant of Kiyomaro
+Desecrated Earth
+Devouring Swarm
+Disciple of Freyalise
 Dragonborn Looter
 Dread Tiller
 Ebony Treefolk
 Echoing Calm
+Eiganjo Castle
+Ember-Fist Zubera
+Enclave Cryptologist
 Encroaching Wastes
+Entish Restoration
 Euroakus
 Ferocious Charge
 Field Marshal
+Fight Rigging
+Finale of Glory
 Fire Ambush
 Flameskull
 Forest
@@ -39,27 +75,35 @@ Gaea's Bounty
 Ghoulcaller's Bell
 Gloomhunter
 Goblin Arsonist
+Goblin Bushwhacker
 Goblin Tinkerer
 Grave Exchange
 Gruul Keyrune
 Guardian of the Guildpact
+Halberdier
 Hardened Scales
 Harpoon Sniper
 Horned Cheetah
 Horned Helm
 Hornet Cobra
+Hulk, Always Angry
+Inferno Fist
 Insidious Bookworms
 Island
 Jhoira's Familiar
 Khenra Charioteer
+Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Lava Axe
+Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
+Lore Seeker
 MACH-1, Swooping Scoundrel
 Malevolent Awakening
+Malicious Advice
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
@@ -67,64 +111,119 @@ Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Mold Folk
 Momentum Rumbler
 Moonveil Dragon
 Mountain
+Mulch
 Multiform Wonder
+Navigation Orb
 Necromancer's Familiar
 Needlethorn Drake
 Nev, the Practical Dean
 Nexus of Fate
 Nomads' Assembly
+Oathsworn Vampire
 Orazca Frillback
 Oreskos Swiftclaw
+Painwracker Oni
+Paladin Danse, Steel Maverick
 Pathbreaker Ibex
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
 Pool Resources
 Precision Bolt
+Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
+Rag Dealer
+Raging Bull
 Raging Kavu
 Rally Maneuver
 Rancid Rats
+Raugrin Crystal
+Razortooth Rats
 Reaver Ambush
+Reckoner's Bargain
 Rekindled Flame
+Relief Captain
 Return to the Earth
 Reveille Squad
 Riddlekeeper
 Roar of the Crowd
+Roc Hunter
+Rockshard Elemental
 Rundvelt Hordemaster
 Runeclaw Bear
 Sacred Cat
+Saheeli's Artistry
 Sanctify
 Scoria Wurm
+Scrapwork Cohort
+Scurry Oak
+Sedraxis Specter
+Sheltering Landscape
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
 Silverflame Squire
 Silverskin Armor
+Skirsdag Flayer
 Skizzik Surger
 Sleeper Agent
 Smash to Dust
+Smoldering Crater
+Snow-Covered Forest
+Speakeasy Server
+Spectral Rider
 Spitfire Handler
 Spurnmage Advocate
+Stampeding Rhino
 Steel Leaf Paladin
+Stenchskipper
+Storm Fleet Pyromancer
+Strip Mine
 Sudden Reclamation
 Sunstrike Legionnaire
 Sunweb
+Supreme Will
 Surrakar Marauder
 Swamp
+Sword of the Animist
 Talisman of Unity
 Telepathic Spies
+The Blue Spirit
 The Shattered States Era
+The Stasis Coffin
+The Unspeakable
 Thopter Assembly
+Thunder Totem
+Tideshaper Mystic
+Tiller Engine
+Towering Indrik
+Traumatize
+Treacherous Vampire
+Treetop Rangers
 Triceraton Regenta
 Tuktuk Rubblefort
+Two-Headed Zombie
+Unholy Indenture
+Unholy Officiant
 Unquestioned Authority
+Urza, Powerstone Prodigy
 Vedalken Heretic
+Venom, Eddie Brock
+Venser's Journal
+Verge Rangers
+Vineweft
 Vintara Snapper
 Viridian Longbow
+Vulshok Replica
+Wall of Heat
 Weapon Rack
 Wei Scout
+Wei Strike Force
+Weirding Shaman
+Willow-Wind
+Zhalfirin Shapecraft

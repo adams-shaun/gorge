@@ -1,62 +1,112 @@
 A-Goma Fada Vanguard
 A-The One Ring
+Aether Gale
 Afterlife
+Akroan Line Breaker
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
+Angelic Benediction
+Arcane Encyclopedia
+Auriok Edgewright
 Barge In
+Battle Mammoth
 Beloved Chaplain
 Bhaal's Invoker
 Blood Hound
 Bloodhunter Bat
 Boltwing Marauder
+Bounty Hunter
 Breakthrough
+Brutalizer Exarch
 Burn Down the House
+Cabal Ritual
+Call for Blood
+Cathedral of War
 Caustic Tar
 Chainwhip Cyclops
 Chastise
 Chrome Prowler
+Claws of Wirewood
+Clergy en-Vec
 Cloud Dragon
 Coastal Hornclaw
 Coercive Impetus
 Conduit of Ruin
 Courtly Provocateur
 Daggerback Basilisk
+Dakmor Scorpion
 Darba
 Dark Revenant
+Darkbore Pathway
+Darkness
 Daze
 Deadeye Brawler
+Deadeye Tormentor
+Deepwood Drummer
 Defensive Stance
+Destiny Spinner
+Devastate
+Dimir Cluestone
+Disembowel
+Disrupt
+Dross Crocodile
 Drowned
+Dusk's Landing
 Electrostatic Bolt
 Elusive Spellfist
+Elven Chorus
 Enchanted Carriage
 Enchantress's Presence
 Encrust
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
+Exhume
+Eye Collector
+Farbog Boneflinger
+Feebleness
+Festival Crasher
 Fierce Retribution
+Fight to the Death
 Font of Ire
+Forced Adaptation
 Forest
+Foundry Champion
 Fountain of Renewal
+Frenzied Raptor
+Frenzied Tilling
+Frontier Guide
+Gathering Throng
 Glowrider
 Goblin Cadets
 Goblin Instigator
 Goblin Shortcutter
+Golden Egg
 Goring Warplow
+Graf Harvest
+Grafted Skullcap
 Grandmother Goby
 Granite Grip
+Growth Spasm
+Guardians of Koilos
 Hammer Mage
+Haunted Guardian
 Heart-Piercer Manticore
 Hearth Charm
+Hermit Druid
 Hoar Shade
 Hoard-Smelter Dragon
+Hoarding Recluse
 Hope Charm
+Horned Sliver
+Ignite the Beacon
 Incursion Specialist
+Indatha Triome
 Iron Bully
 Iron-Barb Hellion
 Island
+Junkyo Bell
 Kaito's Pursuit
 Karoo
 Kathari Bomber
@@ -64,20 +114,33 @@ Kazandu Nectarpot
 Knight Errant
 Korozda Guildmage
 Launch
+Lazotep Behemoth
 Madame Vastra
 Mantle of the Wolf
 March from the Black Gate
+Marsh Lurker
 Martyrs' Tomb
 Mesmeric Trance
+Methods of the Mighty
 Might of the Old Ways
+Mindleech Ghoul
 Mindshrieker
+Minion of Tevesh Szat
+Mirkwood Spider
+Misshapen Fiend
+Mosscoat Goriak
 Mountain
 Nath's Buffoon
+Nefarox, Overlord of Grixis
+Niambi, Esteemed Speaker
 Oakhame Adversary
 Oblivion's Hunger
 Oketra's Last Mercy
 Ordruun Commando
 Orzhov Racketeers
+Paladin Elizabeth Taggerdy
+Parish-Blade Trainee
+Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
 Phantom Whelp
@@ -88,36 +151,60 @@ Provoke
 Puncture Bolt
 Quicken
 Raff Capashen, Ship's Mage
+Raven Clan War-Axe
 Ritual of the Machine
 Rock Slide
 Rockslide Ambush
+Rogue's Gloves
 Rolling Thunder
 Sandblast
 Search Party Captain
+Secret Rendezvous
+Sharpshooter Elf
+Shoreline Salvager
 Silumgar Sorcerer
 Sin Collector
 Skalla Wolf
+Skyshroud Falcon
 Slip Through Space
 Sparktongue Dragon
 Sparring Construct
 Spearbreaker Behemoth
+Specter's Shroud
 Spell Syphon
 Spire Tracer
 Spore Cloud
+Still Life
 Stingscourger
 Stormcaller of Keranos
+Strands of Undeath
+Strength of the Harvest
 Stronghold Zeppelin
+Subdue
+Subterranean Hangar
+Sunspire Griffin
 Swamp
 Sylvan Paradise
 Sylvan Reclamation
 T'Challa, the Black Panther
+Taigam's Strike
 Tarkir Charm
 Tarpan
+Terashi's Grasp
+Termagant Swarm
 Thalakos Seer
 Thassa's Emissary
+Thermal Glider
+Throne of Bone
 Tilonalli's Knight
 Titan Hunter
+Tree of Tales
 Trelasarra, Moon Dancer
+Tribute to Horobi
+Turbulent Springs
+Tuya Bearclaw
+Unesh, Criosphinx Sovereign
+Viashino Racketeer
 Viashino Slasher
 Viper, Cruel Conspirator
 Voidwielder
@@ -125,8 +212,10 @@ Vraska's Scorn
 War-Spike Changeling
 Warning
 Waterfront Bouncer
+Welkin Guide
 Wildest Dreams
 Wishful Merfolk
+Witherbloom Pledgemage
 You're Ambushed on the Road
 Young Wei Recruits
 Zhur-Taa Swine

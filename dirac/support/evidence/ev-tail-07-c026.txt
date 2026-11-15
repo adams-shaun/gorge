@@ -1,20 +1,40 @@
+A-Kona, Rescue Beastie
 Azorius Herald
+Baird, Argivian Recruiter
 Chief Magistrate of Mercadia
 Debt to the Deathless
 Disruption Protocol
 Divine Offering
+Duskfang Mentor
 Emerge Unscathed
 Exuberant Fuseling
+Firebreathing
 Force Spike
 Forest
 Frogify
 Gamekeeper
+Garrison Sergeant
+Glorious Enforcer
+Goblin Firebug
+Goblin Grenade
+Hajar, Loyal Bodyguard
+Hushwing Gryff
+Iron League Steed
+Ironclad Revolutionary
 Island
 Kor Celebrant
+Landslide
 Liliana's Mastery
 Majestic Metamorphosis
+Mandible Justiciar
+Mercurial Geists
 Mogg Raider
+Molting Snakeskin
 Mountain
+Nether Spirit
+Ninth Bridge Patrol
+Order
+Pack's Disdain
 Plains
 Rampaging Brontodon
 Salvage
@@ -25,4 +45,8 @@ Sudden Spinnerets
 Supernatural Stamina
 Swamp
 Taunting Kobold
+Titanium Golem
+Tooth and Claw
+Volatile Arsonist
+Volcanic Salvo
 Wellwisher

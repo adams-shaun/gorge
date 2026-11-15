@@ -1,28 +1,58 @@
 Alaborn Grenadier
 Argent Mutation
 Army of the Damned
+Ashen Powder
+Augur of Bolas
 Auriok Glaivemaster
 Baloth Woodcrasher
 Battle Brawler
+Bladeback Sliver
 Bloodchief's Thirst
+Brinebarrow Intruder
 Cabal Archon
+Cephalid Broker
+Chitinous Cloak
 Combat Research
 Condemn
 Crackling Club
+Craven Giant
+Dark Heart of the Wood
+Death Pit Offering
 Eiganjo Free-Riders
 Elspeth's Nightmare
+Elvish Lyrist
+Elvish Visionary
 Evolution Charm
+Excavation Mole
+Fang Dragon
+Forebear's Blade
 Forest
+Frost Trickster
+Garruk's Companion
+Geist of the Archives
+Glaive of the Guildpact
 Goliath Paladin
 Graf Reaver
 Gut Shot
+Humongulus
+Hunted Dragon
+Hurly-Burly
 Incremental Blight
+Infernal Genesis
+Infiltrator il-Kor
 Island
+Jungle Wayfinder
+Kobold Drill Sergeant
+Lead by Example
+Lochmere Serpent
+Long-Finned Skywhale
 Lord of the Undead
 Manor Gate
+Mightstone's Animation
 Monastery Swiftspear
 Mother of Runes
 Mountain
+Natural Affinity
 Nightwind Glider
 Ondu Champion
 Outpost Siege
@@ -30,19 +60,35 @@ Plaguemaw Beast
 Plains
 Prava of the Steel Legion
 Prodigy's Prototype
+Prophetic Ravings
 Proud Mentor
+Prowling Pangolin
+Pyre Charger
 Ranger-Captain of Eos
 Revenge of Ravens
 Riptide
 Roil Elemental
+Runed Servitor
+Sabertooth Alley Cat
+Sky Scourer
 Skyspear Cavalry
+So Shiny
+Storm Fleet Sprinter
+Stroke of Genius
 Summoner's Sending
+Survivor of the Unseen
 Swamp
+Swell of Growth
 Syphon Mind
+Talas Warrior
 Temporal Machinations
+Towering-Wave Mystic
 Undead Warchief
 Vessel of Ephemera
 Village Bell-Ringer
 Voldaren Epicure
+Warpath
+Watcher of the Spheres
+Wicker Witch
 Wind-Kin Raiders
 Zodiac Dog

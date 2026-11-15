@@ -5,15 +5,21 @@ Abzan Skycaptain
 Acidic Sliver
 Aeronaut Cavalry
 Anaba Bodyguard
+Anaconda
 Angelic Protector
+Arcane Melee
+Armored Cancrix
 Ashes to Ashes
 Aven Wind Mage
+Biting Rain
 Blisterstick Shaman
+Bloodrite Invoker
 Bloodthirsty Blade
 Bloodthrone Vampire
 Bow of Nylea
 Brain Gorgers
 Brilliant Halo
+Burn Bright
 Capashen Knight
 Captain Sisay
 Capture of Jingzhou
@@ -21,10 +27,13 @@ Cartouche of Solidarity
 Cephalid Scout
 Chainflail Centipede
 Chosen by Heliod
+Chub Toad
+Cleanup Crew
 Conclave Sledge-Captain
 Conquer
 Consume Spirit
 Crucible of Fire
+Crumbling Vestige
 Crystal Chimes
 Dalek Squadron
 Dark Ritual
@@ -36,11 +45,15 @@ Demonic Lore
 Depths of Desire
 Dictate of Karametra
 Diligent Farmhand
+Dire Fleet Interloper
 Dirge of Dread
 Dirgur Nemesis
 Dragonstalker
+Dread Return
 Dreadlight Monstrosity
 Dreamstalker Manticore
+Drinker of Sorrow
+Elvish Berserker
 Energy Tap
 Environmental Sciences
 Evolution Witness
@@ -50,24 +63,30 @@ Fallen Ideal
 Fangblade Brigand
 Field Creeper
 Fiendslayer Paladin
+Flailing Ogre
 Forest
 Foul Familiar
 Fowl Play
 Frilled Deathspitter
 Fruitcake Elemental
 Gaea's Balance
+Genju of the Cedars
 Ghor-Clan Savage
 Gibbering Hyenas
 Gideon's Reproach
 Glistening Oil
 Go-Shintai of Boundless Vigor
 Goblin Masons
+Gold-Forged Sentinel
+Grasping Scoundrel
 Grixis Battlemage
 Guardian of Tazeem
 Hag of Ceaseless Torment
+Harried Artisan
 Harsh Deceiver
 Harvester of Souls
 Hazoret's Favor
+Hearts on Fire
 Highland Berserker
 Howling Banshee
 Hurler Cyclops
@@ -78,6 +97,7 @@ Iona's Judgment
 Iron Star
 Island
 Jarad's Orders
+Jedit Ojanen of Efrava
 Kaervek the Merciless
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
@@ -114,10 +134,13 @@ Origin of the Hidden Ones
 Oswald Fiddlebender
 Ozolith, the Shattered Spire
 Painful Lesson
+Paupers' Cage
 Piper of the Swarm
 Plains
 Plated Wurm
 Pyromancer's Gauntlet
+Pyromania
+Rakish Heir
 Rally the Forces
 Ramosian Sky Marshal
 Realm-Cloaked Giant
@@ -166,12 +189,14 @@ Spark Harvest
 Sparkmage Apprentice
 Spawning Kraken
 Spectral Sliver
+Spoils of Victory
 Squirrel Mob
 Stern Constable
 Stern Lesson
 Stonehoof Chieftain
 Stormchaser Chimera
 Stronghold Confessor
+Sudden Impact
 Sulfurous Springs
 Suspended Sentence
 Swamp
@@ -179,9 +204,12 @@ Szarekh, the Silent King
 Tangleclaw Werewolf
 Teferi's Tutelage
 Tel-Jilad Archers
+Tempest Harvester
 Terra Eternal
 Tezzeret's Ambition
+The Everforger
 The Hunger Tide Rises
+Tilling Treefolk
 Time of Ice
 Tin Street Dodger
 Titanic Bulvox
@@ -192,15 +220,20 @@ Vaporkin
 Vastwood Fortification
 Vastwood Zendikon
 Vesperlark
+Viridian Shaman
 Volcanic Island
 Voracious Vampire
 Vow of Wildness
 Walking Corpse
 Wandering Treefolk
 Warchanter Skald
+Warden of the Wall
 Weaver of Currents
+Weldfast Wingsmith
+Whipcorder
 White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Wu Scout
 Zhang Liao, Hero of Hefei

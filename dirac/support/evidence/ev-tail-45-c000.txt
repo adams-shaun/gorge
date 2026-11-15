@@ -1,71 +1,120 @@
 A-Cabaretti Charm
 A-Exhibition Magician
 Acolyte of Xathrid
+Aetherflux Conduit
 Ajani Fells the Godsire
 Alchemist's Vial
+Alert Shu Infantry
+Alpha Authority
+Aphetto Alchemist
+Arc Lightning
 Arisen Gorgon
+Artful Takedown
 Atzocan Archer
+Balduvian Horde
 Barrier Breach
 Battering Craghorn
 Beetleform Mage
 Belbe's Armor
+Belligerent Whiptail
 Benevolent Bodyguard
+Benthicore
 Blur of Blades
 Bonesplitter Sliver
 Brazen Freebooter
 Brutal Cathar
+Carnage Altar
 Cast Out
+Cephalid Vandal
 Chameleon Spirit
 Citizen's Crowbar
+Clock of Omens
 Coastal Bulwark
+Cobbled Wings
+Constricting Sliver
 Copper Longlegs
 Corrupted Harvester
+Cruel Ultimatum
+Crystal Seer
 Dance of the Skywise
 Dark Tutelage
 Darkslick Shores
+Darksteel Juggernaut
+Daxos of Meletis
 Deadeye Tracker
 Defiant Elf
+Defiler of Souls
 Demonmail Hauberk
 Detained by Legionnaires
 Dinosaur Stampede
 Dragonshift
+Dreadful Apathy
+Dregscape Zombie
+Dress Down
 Dromoka Captain
 Drown in Shapelessness
 Dungeon Geists
 Duskmantle Operative
 Duskmantle, House of Shadow
+Dutiful Thrull
+Dwarven Grunt
 Echoing Truth
 Elite Javelineer
+Elspeth, Undaunted Hero
 Elven Palisade
+Elvish Dreadlord
+Emeria, the Sky Ruin
+Exorcist
 Ezuri, Stalker of Spheres
 Falcon Abomination
+False Summoning
 Farhaven Elf
 Felidar Guardian
 Fendeep Summoner
+Finale of Devastation
 Fire Snake
+Fireblast
+Fires of Undeath
 Flailing Soldier
+Flame Slash
+Flash Flood
+Fledgling Dragon
 Forest
+Foundry Assembler
+Foundry Helix
 Freewind Falcon
 Frozen Shade
+Garbage Elemental
 Garruk Wildspeaker
 Ghost-Lit Warder
 Gleam of Authority
 Gloomdrifter
 Goldenhide Ox
 Great Hart
+Gustcloak Savior
 Heart Sliver
+Hellfire Mongrel
+Herald of War
 Hero's Demise
+Hill Giant Herdgorger
 Hungry Spriggan
 Ice Tunnel
 Initiate's Companion
+Iron Lad, Young Avenger
 Island
 Jalum Tome
 Jewel-Eyed Cobra
+Joust
 Jund Panorama
+Kederekt Creeper
 Keldon Necropolis
 Kraul Raider
+Ledger Shredder
+Ludevic's Test Subject
 Lyla, Holographic Assistant
+March of the Drowned
 Martyr for the Cause
+Meteor Storm
 Miren, the Moaning Well
 Moss Diamond
 Mountain
@@ -73,45 +122,83 @@ Mudhole
 Murasa Rootgrazer
 Mycoid Shepherd
 Necrogen Censer
+Nezumi Graverobber
+Nightmare's Thirst
+Ninja of the Deep Hours
+Nyxathid
+Ogre Warrior
 Onulet
+Patron Wizard
 Phantom Centaur
 Plains
+Polar Kraken
 Polymorphist's Jest
 Quicksilver, Pietro Maximoff
+Rankle, Master of Pranks
+Ravenous Bloodseeker
 Redcap Heelslasher
 Redwood Treefolk
 Repentant Blacksmith
+Reverent Hunter
+Rhonas's Monument
+Rootbreaker Wurm
+Runaway Carriage
 Rusted Slasher
 Safehold Sentry
 Sanctum of Tranquil Light
 Saproling Migration
+Scalebane's Elite
+Scattershot
+Seasoned Pyromancer
 Second Breakfast
+Shambling Remains
 Silverglade Pathfinder
 Sky Skiff
 Skywinder Drake
 Sly Instigator
+Smothering Abomination
+Soul of Shandalar
 Soulcage Fiend
 Soulmender
+Sovereign's Bite
 Spawning Bed
 Spitting Image
+Stasis Cell
 Steel of the Godhead
 Stensia Masquerade
 Stew the Coneys
+Storm of Steel
 Stronghold Overseer
+Sunbathing Rootwalla
 Swamp
 Swift Warden
 Sylvan Scrying
+Tattered Mummy
+Tectonic Fiend
 Tempestra, Dame of Games
 Tempted by the Oriq
+The Immortal Weapons
+Thoughtflare
 Throne of the High City
+Tolabow, Loch Rascal
+Toski, Bearer of Secrets
 Trenchpost
 Utility Knife
+Vampire Bats
 Vampire of the Dire Moon
+Vengeful Reaper
 Voracious Vacuum
 Vulshok Gauntlets
+Wake of Vultures
+Watercourser
+Webweaver Changeling
+Whispers of Emrakul
 Willow Elf
+Winged Hive Tyrant
 Withstand Death
+Wound Reflection
 Wriggling Grub
+Yargle and Multani
 Yotian Medic
 You See a Guard Approach
 Zhang He, Wei General

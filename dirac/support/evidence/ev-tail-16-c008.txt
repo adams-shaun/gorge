@@ -1,4 +1,8 @@
+Arcane Encyclopedia
+Bhaal's Invoker
 Boltwing Marauder
+Darba
+Enchanted Carriage
 Forest
 Island
 Kaito's Pursuit
@@ -6,10 +10,22 @@ Kathari Bomber
 Lazotep Behemoth
 Mountain
 Nath's Buffoon
+Oblivion's Hunger
+Permission Denied
 Plains
+Puncture Bolt
+Quicken
+Raff Capashen, Ship's Mage
+Search Party Captain
+Sparring Construct
+Spell Syphon
+Sunder from Within
 Swamp
+Thalakos Seer
 Thassa's Emissary
+Tidal Surge
 Tribute to Horobi
 Viper, Cruel Conspirator
 Vraska's Scorn
 War-Spike Changeling
+You're Ambushed on the Road

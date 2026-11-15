@@ -1,52 +1,85 @@
 A-Dragonborn Looter
+A-Ominous Parcel
 Aethersnipe
+Angelic Gift
 Angler Turtle
 Anurid Murkdiver
 Arc Trail
 Ardent Soldier
 Armory Guard
 Audacious Infiltrator
+Awakened Awareness
 Barrage Tyrant
+Basic Conjuration
 Bastion Enforcer
 Bewilder
 Beyeen Veil
 Blood Burglar
 Bloodbraid Elf
+Bog Elemental
+Boggart Forager
+Bonded Construct
 Boon of Boseiju
 Brawl-Bash Ogre
 Breaching Hippocamp
 Burning Hands
 Choking Restraints
+Cinder Barrens
+Cloak and Dagger
 Cloudheath Drake
 Cone of Flame
 Consuming Corruption
 Corrupted Resolve
 Crenellated Wall
 Cruel Witness
+Cystbearer
 Dark Prophecy
+Delraich
 Desperate Charge
 Dire Fleet Warmonger
 Divine Smite
+Doomskar Titan
 Dragon-Cursed Halls
+Dream Pillager
+Drownyard Explorers
+Edge of the Divinity
 Eidolon of Inspiration
+Elfhame Palace
 Elvish Ranger
 Ember Hauler
 Energy Bolt
 Enigmatic Incarnation
+Entrails Feaster
 Entropic Specter
 Faerie Swarm
+Fiddlehead Kami
 Flaming Fist
 Fledgling Mawcor
+Flusterstorm
+Flutterfox
+Flywheel Racer
 Forced Worship
+Forerunner of Slaughter
 Forest
+Furnace Spirit
+Galvanic Juggernaut
+Gauntlet of Might
 Gleeful Demolition
+Glimpse the Unthinkable
 Glint Raker
+Gloomwidow's Feast
 Gobland
+Goblin Diplomats
+Goblin Scouts
 Goreclaw, Terror of Qal Sisma
+Grenzo, Havoc Raiser
 Griffin Dreamfinder
+Hangarback Walker
 Havoc Devils
 Helm of the Host
+Horned Stoneseeker
 Hovermyr
+Icatian Store
 Idle Thoughts
 Illustrious Wanderglyph
 Imoti, Celebrant of Bounty
@@ -57,59 +90,109 @@ Ishai, Ojutai Dragonspeaker
 Island
 Izzet Signet
 King of the Pride
+Kinsbaile Courier
 Krosan Archer
 Leadership Vacuum
+Leechridden Swamp
 Legion Leadership
 Lifelink
 Liquify
 Living Lands
 Loamcrafter Faun
 Lucid Dreams
+Mage-Ring Network
 Mana Short
+Manipulate Fate
+Master Transmuter
+Mesa Lynx
 Metal Fatigue
 Mogg Alarm
 Moonlit Wake
 Mosstodon
+Motivated Pony
 Mountain
 Mystic Snake
 Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
+Nether Horror
 Nimbus Champion
 Nirkana Cutthroat
+Nyxborn Triton
+Ob Nixilis, the Fallen
+Oni of Wild Places
+Organ Grinder
 Ornithopter
+Penumbra Wurm
+Peppersmoke
+Peregrine Griffin
+Perennial Behemoth
+Phyrexian Colossus
 Plains
+Polluted Mire
+Predatory Sliver
+Priests of Norn
 Prismatic Strands
 Ral's Dispersal
 Renegade Reaper
 Resurrection Orb
+Sage's Reverie
 Samut's Sprint
 Scalding Devil
+Separatist Voidmage
 Setessan Starbreaker
+Shadow Summoning
 Shapers' Sanctuary
 Shu Cavalry
 Silver Raven
 Singing Tree
+Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
+Smoke Bomb
+Spell Contortion
+Spellbook
+Spiderwig Boggart
+Spike Drone
 Steam Frigate
+Stolen Grain
 Sunken Hope
 Swamp
+Swift Response
+Temperamental Oozewagg
 Thalia's Lancers
 The Odd Acorn Gang
+Thoughtcutter Agent
+Thrasher Brute
+Thrummingbird
+Thunderscape Familiar
 Tidepool Turtle
+Tracker's Instincts
 Traitor's Clutch
+Treetop Bracers
+Tunneler Wurm
 Twitch
+Ultimate Price
 Unicycle
+Unraveling Mummy
+Urza's Guilt
 Verduran Emissary
+Viashino Firstblade
 Villainous Ogre
 Volcanic Fallout
+Votary of the Conclave
+Wakanda Forever!
 Wakandan Shield Guard
+Wakestone Gargoyle
 Wanderer's Intervention
 War Report
+War-Torch Goblin
 Water Servant
+Weldfast Engineer
 Wellspring
+Whisper Agent
 White Sun's Zenith
 Wild Celebrants
 Wings of Hope
+Yavimaya Scion
 Zirilan of the Claw

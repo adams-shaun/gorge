@@ -1,3 +1,4 @@
+A-Skull Skaab
 Alchemax Slayer-Bots
 Alluring Suitor
 Assembly-Worker
@@ -5,10 +6,12 @@ Aven of Enduring Hope
 Blazing Volley
 Bola Warrior
 Canyon Lurkers
+Chain Stasis
 Cyclops Electromancer
 Dismal Failure
 Doomed Traveler
 Drake Familiar
+Earthshaker Giant
 Fanatical Devotion
 Fire Servant
 Forest
@@ -20,23 +23,32 @@ Inner-Flame Acolyte
 Insidious Will
 Island
 Jhessian Balmgiver
+Manhole Cover
 Molten Ravager
+Monk Idealist
 Mountain
 Myth Realized
 Pact of Negation
 Palace Sentinels
 Phyrexian Missionary
 Plains
+Portal to Phyrexia
 Psychic Overload
 Quandrix Apprentice
 Renegade Warlord
 Rising Populace
 Rummaging Goblin
+Shu Farmer
+Shu Grain Caravan
 Sighted-Caste Sorcerer
 Sky Crier
 Spined Thopter
+Storm Seeker
+Stunted Growth
 Sungrace Pegasus
 Swamp
+Swordwise Centaur
+Thoughtpicker Witch
 Twisted Justice
 Unseal the Necropolis
 Valduk, Keeper of the Flame
