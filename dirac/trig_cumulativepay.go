@@ -65,6 +65,16 @@ func (s *State) cumPips(k *prep, pips int16) int16 {
 	return pips
 }
 
+// scalePips multiplies each 3-bit pip count of p by n (kgen keeps every
+// count times its maximum within 7).
+func scalePips(p int16, n int) int16 {
+	var out int16
+	for i := 0; i < 5; i++ {
+		out |= int16((int(p)>>(3*i)&7)*n) << (3 * i)
+	}
+	return out
+}
+
 // payManaHyb adds a PayMana F's hybrid pips to c, repeated once per age
 // counter in a scaled cumulative upkeep (the unit's pips in printed order,
 // then again).
