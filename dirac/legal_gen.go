@@ -541,7 +541,7 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if k.gen.anyProtCol && s.protPrinted(k, sl)&c != 0 {
 		return false
 	}
-	if k.gen.anyProtF && (srcSl != NoSlot || spell || s.curEntry() != nil) && s.protQuality(k, sl, srcSl, card) {
+	if k.gen.anyProtF && (srcSl != NoSlot || spell || s.curEntry() != nil || s.g.probe.off) && s.protQuality(k, sl, srcSl, card) {
 		return false
 	}
 	return true
