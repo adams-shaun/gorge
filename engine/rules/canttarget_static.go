@@ -174,6 +174,71 @@ func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA
 	case "AB":
 		return cantTargetSAKindIn(spec, "Activated")
 	}
+	// A sub-ability's target is chosen with the root's announcement (CR
+	// 601.2c, 602.2b): the pending cast of this very source says whether the
+	// root is an activated ability or a spell.
+	if pc := e.cast; pc != nil && pc.card == source {
+		if pc.isAbility() {
+			return cantTargetSAKindIn(spec, "Activated")
+		}
+		return cantTargetSAKindIn(spec, "Spell")
+	}
+	if sa.KindCode() == cards.SAKindDrawback {
+		// A SubAbility$ link or a Choices$ mode is judged before its spell
+		// or ability reaches the stack by the offer census (CR 700.2a: a
+		// mode with no legal target can't be chosen). It is the spell or
+		// activated ability whose chain carries it: Soul Transfer's exile
+		// mode is a spell under Dense Foliage while the card is in hand.
+		if o := e.G.Obj(source); o != nil {
+			if kind := chainRootKind(o.Face(), sa); kind != "" {
+				return cantTargetSAKindIn(spec, kind)
+			}
+		}
+	}
+	return false
+}
+
+// chainRootKind names the ValidSA$ kind ("Spell" or "Activated") of the
+// face's SP or AB ability whose SubAbility$ chain or Choices$ modes carry
+// link, or "" when none does (a trigger body stays unclassified). Links are
+// matched by their parsed Line: ResolveSVar mints a fresh SA per call.
+func chainRootKind(f *cards.Face, link *cards.SA) string {
+	if f == nil || link == nil || link.Line == "" {
+		return ""
+	}
+	for _, root := range f.Abilities {
+		kind := ""
+		if c := root.KindCode(); c == cards.SAKindSpell {
+			kind = "Spell"
+		} else if c == cards.SAKindActivated {
+			kind = "Activated"
+		} else {
+			continue
+		}
+		if chainCarriesLine(f, root, link.Line, 0) {
+			return kind
+		}
+	}
+	return ""
+}
+
+// chainCarriesLine walks sa's SubAbility$ chain and, for a modal Charm link,
+// each Choices$ mode's chain resolved from f's SVars (bounded nesting), for a
+// link parsed from line.
+func chainCarriesLine(f *cards.Face, sa *cards.SA, line string, depth int) bool {
+	for x := sa; x != nil; x = x.Sub {
+		if x.Line == line {
+			return true
+		}
+		if depth >= 3 || !isCharmWithChoices(x) {
+			continue
+		}
+		for _, name := range effects.CharmOf(x).Modes {
+			if m := cards.ResolveSVar(f.SVars, name); m != nil && chainCarriesLine(f, m, line, depth+1) {
+				return true
+			}
+		}
+	}
 	return false
 }
 
