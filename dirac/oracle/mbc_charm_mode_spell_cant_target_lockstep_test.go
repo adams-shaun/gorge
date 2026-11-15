@@ -10,8 +10,8 @@ import "testing"
 // targets of spells, while neither graveyard holds a creature or planeswalker
 // card. gorge once classified the exile mode (a DB link) as no spell while the
 // card was still in hand, so the restriction failed open and it offered the
-// cast that dirac rightly withholds (decision 138; kfuzz -synth tail-39,
-// pair 371, autopay, mulligans 0).
+// cast that dirac rightly withholds (decision 277; kfuzz -synth tail-39,
+// focus Soul Transfer + Dense Foliage, pair 26, autopay, mulligans 0).
 func TestMBCSoulTransferReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "charm_mode_spell_cant_target")
