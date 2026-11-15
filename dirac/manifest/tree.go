@@ -17,7 +17,19 @@ const Dir = "dirac/manifest"
 // (TestKopOrdinalsUnchanged): the values a new entry may not take.
 const OrdinalsPath = "dirac/kop/testdata/ordinals.tsv"
 
-// Ordinal is one ordinals.tsv row.
+// AsksPath is the frozen list of the hand-declared resolution ask kinds
+// (name<TAB>value, package dirac's ra* constants). It is optional, and
+// kmanifest check refuses any row it would add: a new ask kind is an entry of
+// the ask family.
+const AsksPath = "dirac/testdata/asks.tsv"
+
+// Ask is one asks.tsv row.
+type Ask struct {
+	Name  string
+	Value int64
+}
+
+// Ordinal is one ordinals.tsv row (or a row derived from a kop entry).
 type Ordinal struct {
 	Name, Type, Value string
 }
@@ -27,9 +39,11 @@ type Tree struct {
 	// Entries sorted by family, then name.
 	Entries  []*Entry
 	Ordinals []Ordinal
-	// Ext is the kernel's //kmanifest:ext handlers (LoadGen; Load leaves it
+	// Asks is asks.tsv's rows, in file order (none when the tree has no file).
+	Asks []Ask
+	// Handlers is the kernel's //kmanifest handlers (LoadGen; Load leaves it
 	// empty).
-	Ext []ExtHandler
+	Handlers Handlers
 
 	byName map[string]*Ordinal
 	// commit is the commit ReadGit read the tree at ("" for a working tree).
@@ -57,10 +71,44 @@ func Read(fsys fs.FS) (*Tree, error) {
 	for i := range t.Ordinals {
 		t.byName[t.Ordinals[i].Name] = &t.Ordinals[i]
 	}
+	if t.Asks, err = readAsks(fsys); err != nil {
+		return nil, err
+	}
 	if t.Entries, err = ReadEntries(fsys); err != nil {
 		return nil, err
 	}
 	return t, nil
+}
+
+// readAsks reads asks.tsv of fsys; a tree without one has no rows.
+func readAsks(fsys fs.FS) ([]Ask, error) {
+	raw, err := fs.ReadFile(fsys, AsksPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var out []Ask
+	for i, line := range strings.Split(strings.TrimSuffix(string(raw), "\n"), "\n") {
+		name, val, ok := strings.Cut(line, "\t")
+		v, err := strconv.ParseInt(val, 10, 64)
+		if !ok || name == "" || err != nil {
+			return nil, fmt.Errorf("%s:%d: want name<TAB>value, got %q", AsksPath, i+1, line)
+		}
+		out = append(out, Ask{name, v})
+	}
+	return out, nil
+}
+
+// ask is the asks.tsv row called name, or nil.
+func (t *Tree) ask(name string) *Ask {
+	for i := range t.Asks {
+		if t.Asks[i].Name == name {
+			return &t.Asks[i]
+		}
+	}
+	return nil
 }
 
 // ReadEntries parses fsys's manifest entries alone, unvalidated and in
@@ -132,6 +180,35 @@ func (t *Tree) Lookup(family string, value int64) *Entry {
 	return nil
 }
 
+// EntryOrdinals is the ordinals row of every kop entry, sorted by name: the
+// constant the generator writes from the entry, which ordinals.tsv does not
+// record (TestKopOrdinalsUnchanged adds these rows to the file's). Call it
+// after Validate, so a value: next entry reports its provisional value.
+func (t *Tree) EntryOrdinals() []Ordinal {
+	var out []Ordinal
+	for _, e := range t.Entries {
+		if f := e.Fam(); f != nil && f.Pkg == "kop" {
+			out = append(out, Ordinal{Name: e.Name, Type: e.Family, Value: strconv.FormatInt(e.Value, 10)})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
+// row is the ordinals row of the constant called name: the file's row, else
+// the one derived from a kop entry of that name, else nil.
+func (t *Tree) row(name string) *Ordinal {
+	if r := t.byName[name]; r != nil {
+		return r
+	}
+	for _, e := range t.Entries {
+		if f := e.Fam(); f != nil && e.Name == name && f.Pkg == "kop" {
+			return &Ordinal{Name: e.Name, Type: e.Family, Value: strconv.FormatInt(e.Value, 10)}
+		}
+	}
+	return nil
+}
+
 // owned reports whether ordinals row r is an entry's own constant (the
 // generator's output, which ordinals.tsv records like any other): such a row
 // takes no value from the entry that owns it.
@@ -197,6 +274,11 @@ func (t *Tree) legacyTaken() (map[string]*taken, error) {
 			return nil, fmt.Errorf("%s: %s: %v", OrdinalsPath, r.Name, err)
 		}
 		out[f.Name].add(f, v, OrdinalsPath+" "+r.Name)
+	}
+	if f := FamilyNamed("ask"); f != nil {
+		for _, a := range t.Asks {
+			out[f.Name].add(f, a.Value, AsksPath+" "+a.Name)
+		}
 	}
 	return out, nil
 }
@@ -271,6 +353,11 @@ func (t *Tree) validate() (map[string]*taken, []error) {
 		names[key] = e
 		if r := t.byName[e.Name]; r != nil && e.Fam().Pkg == "kop" && r.Type != e.Family {
 			errs = append(errs, fmt.Errorf("%s: name %s is already a %s constant (%s)", e.Path, e.Name, r.Type, OrdinalsPath))
+		}
+	}
+	for _, a := range t.Asks {
+		if o := names["dirac."+a.Name]; o != nil {
+			errs = append(errs, fmt.Errorf("%s: name %s is also a hand constant (%s)", o.Path, a.Name, AsksPath))
 		}
 	}
 	held, err := t.legacyTaken()

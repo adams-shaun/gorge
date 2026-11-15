@@ -3,9 +3,11 @@ Arcane Denial
 Baleful Ammit
 Banishing Light
 Banishing Stroke
+Basking Broodscale
 Black Dragon Gate
 Blood Speaker
 Boldwyr Intimidator
+Brinelin, the Moon Kraken
 Bulk Up
 Call of the Herd
 Canopy Cover
@@ -27,6 +29,7 @@ Devoted Druid
 Diminish
 Elite Cat Warrior
 Essence Extraction
+Faerie Guidemother
 Fangs of Kalonia
 Fierce Retribution
 Fists of Flame
@@ -40,10 +43,13 @@ General Marhault Elsdragon
 Giant Ankheg
 Giant Cindermaw
 Gnoll War Band
+Gornog, the Red Reaper
+Greensleeves, Maro-Sorcerer
 Guildpact Informant
 Gush
 Hoarding Dragon
 Hunter's Edge
+Hunter's Mark
 Inferno Fist
 Invigorating Surge
 Iona's Judgment
@@ -57,6 +63,8 @@ Marsh Flitter
 Mind Twist
 Miraculous Recovery
 Mirrorshell Crab
+Mistblade Shinobi
+Mogg Maniac
 Mother of Runes
 Mountain
 Nezumi Graverobber
@@ -71,11 +79,26 @@ Plains
 Predator's Howl
 Psychic Corrosion
 Pyrotechnics
+Quirion Dryad
+Rumor Gatherer
+Scion of Glaciers
+Serra Sphinx
 Shelter
+Steadfast Unicorn
 Swamp
 Swords to Plowshares
+Taunting Kobold
 Tendrils of Corruption
+Thassa, Deep-Dwelling
 Triumph of Ferocity
+Typhoid Rats
+Ulamog's Crusher
+Underworld Hermit
+Unquestioned Authority
 Untimely Malfunction
 Valorous Stance
 Vampire Gourmand
+Vampiric Link
+Vedalken Dismisser
+Vow of Lightning
+Zephid's Embrace
