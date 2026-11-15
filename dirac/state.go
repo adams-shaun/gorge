@@ -1023,8 +1023,9 @@ type stateCore struct {
 	// Decisions counts the decisions answered (SeqNo).
 	Decisions uint32
 
-	// payHyb: a trigger's own hybrid PayMana cost's announced faces, three
-	// bits per pip from bit 0, colour+1 (cost_trighybrid.go). Cleared when
+	// payHyb: a trigger's own hybrid PayMana cost's announced faces, one bit
+	// per pip from bit 0 (set: the second printed face) under a marker bit
+	// above the last one announced (cost_trighybrid.go). Cleared when
 	// the ask settles. It sits here, after Decisions, because genState's
 	// reserve has no byte left: the byte fills the padding before perms.
 	payHyb uint8

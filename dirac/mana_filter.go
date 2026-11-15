@@ -504,9 +504,10 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier; and sacrificing
-// itself alone, an Eldrazi Spawn's: mana_sacsource.go), or a
+// spend restriction, each-colour production, a cost beyond {T} (but
+// {T} plus sacrificing itself, a Treasure's, and sacrificing itself alone,
+// an Eldrazi Scion's, are the census's last-resort tier: gorge
+// pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
