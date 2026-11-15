@@ -524,10 +524,15 @@ func censusGapMana(a *kop.Ability) bool {
 // Scion token's "Sacrifice this creature: Add {C}", CR 605.1a): the census
 // prices it as a last-resort unit, tapped or untapped alike (mana_sacsource.go,
 // pcard.manaSacOnly's shape), so it is no census gap and a filter beside it is
-// a filter-only board (prep's gfGapOther registration skips it). Lion's Eye
-// Diamond's discard part is the DH gap's (gfDiscHand), not this.
+// a filter-only board (prep's gfGapOther registration skips it). A deferral,
+// a spend restriction or an each-colour production is another gap trigger's
+// (censusGapMana's other disjuncts), and Lion's Eye Diamond's discard part is
+// the DH gap's (gfDiscHand): those stay gaps.
 func sacOnlyManaAb(a *kop.Ability) bool {
-	return a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand
+	if a.Cost.Flags != kop.CostSacSelf || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 || a.Cost.DiscardHand {
+		return false
+	}
+	return !(a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || comboAnyMana(a))
 }
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
