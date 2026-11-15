@@ -833,12 +833,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	case "ActivePlayerCtrl", "ControlledBy Player.Active":
 		// gorge wordActivePlayerCtrl: its controller is the active player
 		return c.setCmp(cmpActiveCtrl, 0, 0, "", "")
-	case "enchanted", "Enchanted":
-		// gorge enchanted: an Aura permanent is attached to it
-		return c.setCmp(cmpEnchanted, 0, 0, "", "")
-	case "!enchanted":
-		// gorge matchPredicate negates any positive word: no Aura is attached (CmpN 1: kop.Filter.PredN 1)
-		return c.setCmp(cmpEnchanted, 0, 1, "", "")
+	case "enchanted", "Enchanted", "!enchanted":
+		// gorge enchanted: an Aura permanent is attached to it; "!enchanted" is CmpN 1
+		return c.setCmp(cmpEnchanted, 0, strings.Count(p, "!"), "", "")
 	case "modified":
 		// gorge modifiedPermanent (CR 700.9): a counter (not the
 		// internal Shield/Deathtouched markers, which the kernel never
