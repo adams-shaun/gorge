@@ -1,0 +1,6 @@
+Forest
+Island
+Izzet Signet
+Mountain
+Plains
+Swamp
