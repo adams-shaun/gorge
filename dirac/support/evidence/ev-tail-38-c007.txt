@@ -1,5 +1,6 @@
 Abyssal Gatekeeper
 Academy Journeymage
+Ajani's Influence
 Amoeboid Changeling
 Anticipate
 Armix, Filigree Thrasher
@@ -10,7 +11,9 @@ Bearded Axe
 Bitterbow Sharpshooters
 Blessed Reversal
 Captain of Umbar
+Crash the Ramparts
 Cultivator of Blades
+Custodi Lich
 Dauntless River Marshal
 Deepcavern Imp
 Deepwater Hypnotist
@@ -40,6 +43,7 @@ Lifecraft Cavalry
 Liliana's Reaver
 Lure
 Magnetic Flux
+Malakir Familiar
 Megatherium
 Mountain
 Mournful Zombie
@@ -52,7 +56,9 @@ Plains
 Rallying Roar
 Saiba Cryptomancer
 Scion of Calamity
+Scrapskin Drake
 Shambling Ghoul
+Sigarda, Heron's Grace
 Siren Reaver
 Slayer's Plate
 Snapback
@@ -70,3 +76,4 @@ Vodalian Soldiers
 Warren Pilferers
 Windborne Charge
 Wither and Bloom
+X-23, Deadly Weapon

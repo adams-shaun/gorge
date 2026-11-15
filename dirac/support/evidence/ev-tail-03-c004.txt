@@ -1,6 +1,8 @@
+Ajani's Mantra
 Animating Faerie
 Arbor Armament
 Archivist of Oghma
+Armored Pegasus
 Auriok Salvagers
 Azorius Skyguard
 Battle Rampart
@@ -8,7 +10,9 @@ Bitter Reunion
 Blessings of Nature
 Bloody Betrayal
 Borderland Ranger
+Bound in Silence
 Bridgeworks Battle
+Cenn's Heir
 Cerulean Wyvern
 Citanul Woodreaders
 Clockwork Drawbridge
@@ -30,6 +34,7 @@ Falkenrath Celebrants
 Fauna Shaman
 Forest
 Furor of the Bitten
+Githzerai Monk
 Glyph Elemental
 Gnat Alley Creeper
 Goblin King
@@ -37,23 +42,31 @@ Golden Ratio
 Grave Bramble
 Halcyon Glaze
 Half-Elf Monk
+Hamato Ninpō
 Hermetic Study
+Hoar Shade
 Hungry Mist
 In Too Deep
+Iridescent Angel
 Island
+Jeskai Student
+Kraul Raider
 Living Tempest
 Loxodon Stalwart
 Mavren Fein, Dusk Apostle
 Merfolk Seer
 Metropolis Sprite
+Minion Missile
 Mirage Mockery
 Mirri, Cat Warrior
 Mistford River Turtle
 Mountain
 Munda, Ambush Leader
 Narcolepsy
+Nightmare Shepherd
 Nivix Guildmage
 Ollenbock Escort
+Palace Sentinels
 Patrol Hound
 Permafrost Trap
 Plains
@@ -61,16 +74,22 @@ Raging Spirit
 Rakdos Signet
 Relic Retriever
 Revoke Existence
+Rousing of Souls
 Samite Herbalist
 Servant of the Scale
 Shu Defender
 Sliversmith
 Somberwald Stag
 Soul Feast
+Summary Judgment
 Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
+Teval's Judgment
+The Battle of Bywater
 Torbran, Thane of Red Fell
+Unlikely Alliance
 Vegetation Abomination
+Vraan, Executioner Thane
 Zephyr Spirit

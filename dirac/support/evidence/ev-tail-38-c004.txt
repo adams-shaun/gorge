@@ -19,7 +19,9 @@ Cavalcade of Calamity
 Charity Extractor
 Commander's Authority
 Consecrated Sphinx
+Crash the Ramparts
 Cultivator of Blades
+Custodi Lich
 Dauntless River Marshal
 Deepcavern Imp
 Deepwater Hypnotist
@@ -99,6 +101,7 @@ Respite
 Saiba Cryptomancer
 Scaldkin
 Scatter the Seeds
+Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
@@ -115,6 +118,7 @@ Stone Idol Generator
 Suture Spirit
 Swamp
 Sweatworks Brawler
+Synth Infiltrator
 Tar Snare
 Thalia, Heretic Cathar
 The Restoration of Eiganjo

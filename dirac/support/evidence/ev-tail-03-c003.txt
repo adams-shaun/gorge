@@ -13,9 +13,13 @@ Blessings of Nature
 Bloody Betrayal
 Bonebreaker Giant
 Borderland Ranger
+Bound in Silence
+Braids, Cabal Minion
 Buccaneer's Bravado
 Bygone Bishop
+Cenn's Heir
 Cerulean Wyvern
+Choke
 Citanul Woodreaders
 Clockwork Drawbridge
 Coast Watcher
@@ -46,6 +50,7 @@ Flicker of Fate
 Fogwalker
 Forest
 Furor of the Bitten
+Githzerai Monk
 Glissa Sunslayer
 Glyph Elemental
 Gnat Alley Creeper
@@ -58,10 +63,14 @@ Grim Captain's Call
 Halcyon Glaze
 Half-Elf Monk
 Hallowed Respite
+Halsin, Emerald Archdruid
+Hamato Ninpō
 Hardy Outlander
 Haunted Angel
 Hedron Scrabbler
 Heliophial
+Hoar Shade
+Howl from Beyond
 Hungry Mist
 Immortal Servitude
 In Too Deep
@@ -70,32 +79,40 @@ Island
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
 Kor Castigator
+Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
 Loxodon Stalwart
 Mavren Fein, Dusk Apostle
+Merciless Eviction
 Merfolk Seer
 Metropolis Sprite
 Migratory Route
+Minion Missile
 Mirage Mockery
 Mirri, Cat Warrior
 Mirror-Sigil Sergeant
 Mnemonic Sliver
+Moor Fiend
 Mountain
 Munda, Ambush Leader
 Narcolepsy
 Nezumi Bone-Reader
+Nightmare Shepherd
 Oko's Hospitality
 Ollenbock Escort
 Orcish Artillery
+Palace Sentinels
 Patrol Hound
 Permafrost Trap
 Phyrexian Rebirth
 Plains
 Predator, Flagship
 Psychic Allergy
+Puppet Conjurer
 Rakdos Signet
 Reap What Is Sown
 Reshape the Earth
@@ -114,19 +131,26 @@ Sliversmith
 Smite
 Somberwald Stag
 Spined Megalodon
+Spreading Rot
 Sprout
 Stalking Drone
 Start
+Stream of Acid
 Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
 Sweet Oblivion
+Syphon Sliver
+The Battle of Bywater
 Thran Golem
 Torbran, Thane of Red Fell
+Twisted Justice
 Ulgrotha Charm
+Unlikely Alliance
 Vastwood Animist
 Voidslime
+Vraan, Executioner Thane
 Wolfcaller's Howl
 Zephyr Spirit
 Zhalfirin Lancer

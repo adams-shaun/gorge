@@ -4,6 +4,7 @@ Azorius Keyrune
 Bereaved Survivor
 Boros Recruit
 Boseiju Reaches Skyward
+Bounding Krasis
 Electrodominance
 Elemental Uprising
 Forest
@@ -13,7 +14,11 @@ Joven
 Lull
 Mishra's Bauble
 Mountain
+Phoenix of Ash
 Plains
+Sarcomite Myr
+Silent Attendant
+Southern Paladin
 Swamp
 Sylvok Explorer
 Third Path Iconoclast

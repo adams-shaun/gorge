@@ -3,28 +3,73 @@ A-Nael, Avizoa Aeronaut
 Adeliz, the Cinder Wind
 Aether Spike
 Akki Rockspeaker
+Alchemist's Refuge
+Arcane Denial
+Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
 Battlewing Mystic
 Biogenic Ooze
+Blade of Selves
+Blinding Souleater
+Blitz of the Thunder-Raptor
+Bloodhunter Bat
+Bontu's Last Reckoning
 Bramble Armor
 Brazen Borrower
+Brood Sliver
+Brute Force
 Cathedral Acolyte
 Chasm Skulker
 Choose Your Weapon
 Claws of Valakut
+Cloaked Siren
+Convolute
+Cunning Survivor
+Dawn Charm
+Decimator Web
+Defabricate
+Discontinuity
+Drake Familiar
+Elder Druid
 Elder Gargaroth
 Embargo
+Encrust
+Esper Panorama
 Forest
+Foundry Assembler
 Frantic Confrontation
+Ghost-Lit Warder
+Ghostly Changeling
+Gimli, Counter of Kills
 Glint-Nest Crane
+Goblin Lore
+Godtracker of Jund
+Granger Guildmage
+Gravel Slinger
+Grayscaled Gharial
 Hyrax Tower Scout
+Impaler Shrike
+Infantry Veteran
 Infernal Pet
 Inferno
+Iraxxa, Empress of Mars
 Island
+Jeskai Barricade
+Karlach, Fury of Avernus
+Killmonger, Ruthless Usurper
+Lady Spider, Maybelle Reilly
 Leave in the Dust
+Living Lightning
+Lu Meng, Wu General
+Lush Growth
+Meatsqueak, Hoard Lord
 Monoskelion
 Mountain
+Mountain Valley
+Myr Galvanizer
+Nezumi Cutthroat
+Night Market Aeronaut
 Opal Acrolith
 Order of Leitbur
 Orzhov Locket
@@ -33,18 +78,26 @@ Pain Distributor
 Plains
 Prohibit
 Repulsor Rays
+Research Thief
+Sacred Rites
 Sea Monster
+Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
 Shimmer Dragon
 Silence
 Siren's Ruse
 Skyshroud Archer
+Skyshroud Forest
 Soaring Hope
+Spellkeeper Weird
 Spikeshot Goblin
 Spitting Hydra
 Storm Caller
 Swamp
+Syphon Mind
+Thassa's Oracle
+The Blue Spirit
 Tiller of Flesh
 Tocasia, Dig Site Mentor
 Tribal Flames
@@ -52,3 +105,6 @@ Twenty-Toed Toad
 Uncovered Clues
 Void Squall
 Wash Out
+Watcher in the Mist
+Weakstone's Subjugation
+Wreck and Rebuild

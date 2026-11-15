@@ -1,13 +1,19 @@
+Ajani's Mantra
 Arbor Armament
+Armored Pegasus
 Battle Rampart
 Bitter Reunion
 Bloody Betrayal
 Bog Gnarr
 Borderland Ranger
+Braids, Cabal Minion
 Bridgeworks Battle
 Bygone Bishop
 Capsize
+Cenn's Heir
 Cerulean Wyvern
+Choke
+Cinderslash Ravager
 Citanul Woodreaders
 Colossus, Steel Stalwart
 Crown of Flames
@@ -19,15 +25,29 @@ Elvish Vanguard
 Falkenrath Celebrants
 Forest
 Furor of the Bitten
+Githzerai Monk
 Glissa Sunslayer
 Gnat Alley Creeper
 Goblin King
 Grave Bramble
+Hoar Shade
 Island
+Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
+Leeching Licid
+March from the Black Gate
+Minion Missile
+Moor Fiend
 Mountain
 Narcolepsy
+Palace Sentinels
 Plains
 Spined Megalodon
+Spreading Rot
+Stream of Acid
 Swamp
 Torbran, Thane of Red Fell
+Unlikely Alliance
+Vraska's Stoneglare
+Yawgmoth's Vile Offering
+Zo-Zu the Punisher

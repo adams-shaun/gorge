@@ -1,37 +1,65 @@
+A-Demon's Due
 A-Llanowar Loamspeaker
 A-Moon-Circuit Hacker
 A-Radha, Coalition Warlord
+A-Wizard Class
 Abiding Grace
+Academy Drake
 Accelerate
 Advent of the Wurm
+Aethersphere Harvester
 Against All Odds
 Akki Blizzard-Herder
+Akki Ronin
 Alloy Animist
 Ambuscade Shaman
 Amok
 Ancient Craving
+And They Shall Know No Fear
 Andúril, Narsil Reforged
 Angel of Deliverance
 Angel of Fury
 Anje, Maid of Dishonor
 Apothecary Geist
+Apprentice Wizard
+Arcane Melee
 Argivian Avenger
+Armor Sliver
 Arrester's Admonition
+Atarka Beastbreaker
 Avoid Fate
 Axebane Guardian
 Ayara, First of Locthwain
 Balshan Griffin
 Balustrade Spy
+Bant Panorama
+Beast Whisperer
+Betrothed of Fire
 Bishop of Wings
 Black Poplar Shaman
 Blinding Spray
+Bloodshot Cyclops
+Blossom Prancer
+Bog Raiders
+Bomber Corps
+Bone Harvest
+Boon Reflection
+Bumi's Feast Lecture
 Carrion Imp
 Castle
 Celestial Ancient
+Cephalid Coliseum
+Chains of Custody
 Chainweb Aracnir
+Chakra Meditation
+Chameleon Spirit
 Champion of the Flame
+Chant of the Skifsang
 Charge of the Mites
+Charred Graverobber
+Chittering Rats
 Cloudkill
+Collected Company
 Commissar Severina Raine
 Confront the Assault
 Corpse Blockade
@@ -39,141 +67,253 @@ Corpse Knight
 Crop Rotation
 Cruel Celebrant
 Cruel Revival
+Cryptic Annelid
+Crystal Skull, Isu Spyglass
 Cunning Wish
 Cut Your Losses
 Dagger Caster
 Dawn Elemental
+Defy Death
+Delighted Killbot
 Diabolic Intent
+Dockside Chef
+Dragon's Claw
 Dyfed, the Guiding Hand
 Earth Rift
+Elephant-Mandrill
 Elvish Hexhunter
 Explosive Welcome
 Extortion
+Extractor Demon
 Fain, the Broker
+Faultgrinder
 Feign Death
+Field Marshal
 Fireblade Artist
+Fireblast
 Flametongue Kavu
+Flamewave Invoker
+Flaring Flame-Kin
+Fledgling Mawcor
+Fog Elemental
 Forest
+Frilled Deathspitter
+Funeral Rites
+Gathering Throng
 Ghitu Fire-Eater
+Ghoul's Feast
+Glissa's Scorn
 Gnarlid Pack
+Goblin Diplomats
+Goblin Glory Chaser
+Godhunter Octopus
+Golem's Heart
+Goma Fada Vanguard
 Granite Gargoyle
 Grave Venerations
 Grazilaxx, Illithid Scholar
+Grim Bounty
 Grizzly Fate
 Grovetender Druids
+Gruul Keyrune
+Guise of Fire
 Hallowed Haunting
 Haunting Hymn
 Hawkeye, Bowslinger
+Hazoret the Fervent
+Headless Horseman
+Heaven Sent
 Helm of the Ghastlord
 Hexgold Halberd
+Hieroglyphic Illumination
+Honor Guard
+Hooded Kavu
+Horror of the Dim
 Hunger of the Howlpack
 Hydra's Growth
+Hyrax Tower Scout
+Icy Manipulator
+Igneous Cur
+Illuminated Wings
+Immobilizing Ink
 Impeccable Timing
 Imperial Seal
 Increasing Confusion
 Insight Engine
+Insist
 Iron Suitcase
 Island
 Jace's Phantasm
+Jackal Pup
 Jeskai Barricade
+Karoo Meerkat
 Ken, Burning Brawler
+Kimoyo Beads
 King Cheetah
 Kithkin Daggerdare
 Knight's Pledge
 Kor Outfitter
 Kyren Sniper
+Littjara Mirrorlake
 Lord Jyscal Guado
+Lotus Field
 Luminous Broodmoth
+Manhole Cover
 Manriki-Gusari
+Mantis Engine
+Marauding Maulhorn
 Marchesa's Infiltrator
 Mardu Banner
+Mark of Mutiny
 Maze of Ith
+Mentor's Guidance
+Merfolk Secretkeeper
 Metropolis Reformer
+Michelangelo, On the Scene
+Minister of Inquiries
+Mirrorworks
+Mischievous Poltergeist
 Mise
+Mithril Coat
 Mob Mentality
 Mole Module
 Mountain
 Myr Turbine
+Najal, the Storm Runner
+Narrow Escape
+Nezumi Bone-Reader
 Nezumi Informant
+Noose Constrictor
+Nullmage Shepherd
+Oath of Chandra
+Oggyar Battle-Seer
+Ominous Parcel
 Overgrown Armasaur
 Passionate Archaeologist
 Pentarch Ward
 Phylath, World Sculptor
 Plains
 Poppet Stitcher
+Primordial Ooze
+Psychic Overload
 Radiant, Archangel
+Rage-Scarred Berserker
 Raging Minotaur
 Rally
+Recruiter of the Guard
+Regathan Firecat
 Regrowth
+Reign of Terror
+Revelsong Horn
 Rhox Veteran
+Rite of Consumption
 Rotting Fensnake
+Rowan Treefolk
 Sacred Rites
 Sacrifice
 Sage of Epityr
+Sarkhan, Dragonsoul
 Savage Gorger
 Scaled Wurm
+Scion of Stygia
 Scourge of Kher Ridges
+Scouring Sands
 Scrapyard Salvo
+Screeching Harpy
 Scuttling Doom Engine
 Seeker of Skybreak
 Sentinel Sliver
 Sergeant John Benton
+Serpentine Kavu
+Serum Snare
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
+Sheoldred, the Apocalypse
+Shreds of Sanity
 Sick and Tired
+Sidisi, Undead Vizier
 Slash the Ranks
 Slay
+Slime Molding
 Slinking Giant
 Slobad, Goblin Tinkerer
+Slumbering Waterways
 Snuff Out
+Sol Talisman
 Soltari Crusader
 Somnomancer
+Sonic Burst
 Soratami Mindsweeper
+Sorin's Thirst
 Soul of Theros
+Soulreaper of Mogis
 Spellskite
+Spike Colony
 Spike Worker
 Spined Sliver
+Spirit of Malevolence
 Squee's Embrace
+Staff of Compleation
 Staff of the Mind Magus
+Standing Troops
+Stimulus Package
 Stratozeppelid
+Street Urchin
 Strength-Testing Hammer
 Sudden Shock
 Sunastian Falconer
 Surgehacker Mech
 Swamp
 Swift Demise
+Sylvan Paradise
 Syndicate Guildmage
+Taigam's Scheming
 Talons of Wildwood
+Taste of Blood
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
 Territorial Baloth
 Thallid Devourer
+Thoughtflare
 Thrashing Wumpus
+Three Visits
 Throes of Chaos
 Time Spiral
+Tolarian Scholar
 Torch Courier
 Torsten Von Ursus
 Tragic Poet
+Tranquilize
+Tymora's Invoker
 Uktabi Kong
 Umbris, Fear Manifest
+Unbounded Potential
 Undead Hand Ninja
 Undertaker
+Unhallowed Pact
 Unyaro Bee Sting
 Urza's Cave
 Urza's Incubator
 Valeron Outlander
+Vault of Whispers
 Vedalken Plotter
+Veiled Shade
 Veteran Warleader
 Vine Trellis
 Vintara Elephant
+Volcanic Awakening
 Vow of Lightning
+Wakandan Shield Guard
 Wall of Mist
 Wall of Souls
 Warstorm Surge
+Wear
 Weight of the Underworld
 Welder Automaton
 Wing Splicer
 Wirecat
+Witherbloom Campus
+Xathrid Demon
 Yavimaya Iconoclast
 You Look Upon the Tarrasque
 Zenith Festival

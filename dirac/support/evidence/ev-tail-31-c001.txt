@@ -57,6 +57,7 @@ Galadhrim Bow
 Ghoulish Procession
 Giant's Skewer
 Glissa, the Traitor
+Glistening Extractor
 Gluttonous Slug
 Goblin Cannon
 Goblin Piker
@@ -78,6 +79,7 @@ Island
 Jiang Yanggu
 Justice Strike
 Kaysa
+Keen Glidemaster
 Keeper of Keys
 Kithkin Harbinger
 Kitsune Loreweaver

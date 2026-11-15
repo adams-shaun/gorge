@@ -11,21 +11,30 @@ Atzocan Archer
 Balduvian Dead
 Balduvian Horde
 Barrier Breach
+Basic Conjuration
 Battering Craghorn
+Bearscape
 Belbe's Armor
 Benevolent Bodyguard
+Blessed Light
+Blood Pet
 Boa Constrictor
 Bonesplitter Sliver
 Brazen Freebooter
 Brushland
+Callous Dismissal
+Captain of the Watch
 Carnage Altar
 Cast Out
 Chameleon Spirit
 Citizen's Crowbar
+Clearwater Goblet
+Coalhauler Swine
 Coastal Bulwark
 Constricting Sliver
 Copper Longlegs
 Corrupted Harvester
+Crossroads Consecrator
 Dakkon, Shadow Slayer
 Dance of the Skywise
 Dark Tutelage
@@ -35,9 +44,11 @@ Deadeye Tracker
 Defiler of Souls
 Demonmail Hauberk
 Detained by Legionnaires
+Devoted Paladin
 Dinosaur Stampede
 Discombobulate
 Dragonshift
+Dreamscape Artist
 Dregscape Zombie
 Dress Down
 Dromoka Captain
@@ -58,6 +69,7 @@ Exorcist
 Ezuri, Stalker of Spheres
 Falcon Abomination
 Farhaven Elf
+Feign Death
 Felidar Guardian
 Fendeep Summoner
 Finale of Devastation
@@ -78,12 +90,17 @@ Garruk Wildspeaker
 Gleam of Authority
 Gloomdrifter
 Great Hart
+Guardian Augmenter
 Gustcloak Savior
+Haazda Officer
+Haze of Pollen
 Heart Sliver
 Hellfire Mongrel
+Herald of Secret Streams
 Herald of War
 Hero's Demise
 Hill Giant Herdgorger
+Hua Tuo, Honored Physician
 Hungry Spriggan
 Improbable Alliance
 Initiate's Companion
@@ -94,18 +111,26 @@ Joust
 Jund Panorama
 Keldon Necropolis
 Kraul Raider
+Laser Screwdriver
 March of the Drowned
 Martyr for the Cause
+Mercurial Pretender
 Meteor Storm
 Miren, the Moaning Well
+Molten Ravager
+Monk Idealist
 Moss Diamond
 Mountain
 Mudhole
+Nebelgast Herald
 Necrogen Censer
 Nezumi Graverobber
 Nightmare's Thirst
+Nyx-Fleece Ram
 Nyxathid
+Ogre Jailbreaker
 Ogre Warrior
+Omenspeaker
 Onulet
 Phantom Centaur
 Pitiless Gorgon
@@ -116,8 +141,10 @@ Rankle, Master of Pranks
 Reckless Fireweaver
 Redcap Heelslasher
 Redwood Treefolk
+Regenerate
 Repentant Blacksmith
 Reverent Hunter
+Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Rusted Slasher
@@ -135,11 +162,14 @@ Silverglade Pathfinder
 Sire of Stagnation
 Skarrgan Skybreaker
 Sky Skiff
+Smiting Helix
 Smothering Abomination
 Soul of Shandalar
 Soulcage Fiend
 Soulmender
 Sovereign's Bite
+Spoils of Evil
+Steel-Plume Marshal
 Steelgaze Griffin
 Stew the Coneys
 Storm of Steel
@@ -148,13 +178,16 @@ Sunbathing Rootwalla
 Swamp
 Swift Warden
 Sylvan Scrying
+Séance
 Tajic, Blade of the Legion
 Tempestra, Dame of Games
 Tempted by the Oriq
 Thassa's Oracle
+The Antiquities War
 The Immortal Weapons
 Thoughtflare
 Throne of the High City
+Thrun, the Last Troll
 Tolabow, Loch Rascal
 Tormented Thoughts
 Toski, Bearer of Secrets
@@ -167,12 +200,14 @@ Voracious Vacuum
 Vulshok Gauntlets
 Wake of Vultures
 Webweaver Changeling
+Welding Sparks
 Whispers of Emrakul
 Willow Elf
 Winged Hive Tyrant
 Withstand Death
 Wound Reflection
 Wriggling Grub
+Wu Elite Cavalry
 Yargle and Multani
 Yotian Medic
 You See a Guard Approach

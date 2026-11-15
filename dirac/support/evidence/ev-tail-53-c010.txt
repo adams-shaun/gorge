@@ -1,3 +1,4 @@
+Aeromunculus
 Astrid Peth
 Befuddle
 Captivating Unicorn
@@ -30,6 +31,7 @@ Swamp
 Tail Swipe
 Tattered Apparition
 Tempest Caller
+Tolarian Scholar
 Trespasser il-Vec
 Upheaval
 Viral Drake

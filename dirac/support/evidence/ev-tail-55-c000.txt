@@ -90,6 +90,7 @@ Flame-Blessed Bolt
 Flaming Gambit
 Fleshmad Steed
 Flowering Field
+Font of Ire
 For the Ancestors
 Forced Landing
 Forcemage Advocate
@@ -99,6 +100,7 @@ Fresh Meat
 Furnace Skullbomb
 Fyndhorn Elves
 Garruk's Gorehorn
+Geomancer's Gambit
 Ghost-Lit Redeemer
 Ghostfire Blade
 Gimli's Axe
@@ -130,6 +132,7 @@ Iron Lance
 Ironwright's Cleansing
 Irresistible Prey
 Island
+Jiang Yanggu
 Kabira Vindicator
 Katilda, Dawnhart Prime
 Keepers of the Faith
@@ -221,6 +224,7 @@ Shinka Gatekeeper
 Shroofus Sproutsire
 Siege Veteran
 Silverclad Ferocidons
+Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
 Sky-Eel School

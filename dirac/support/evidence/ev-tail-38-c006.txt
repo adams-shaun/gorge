@@ -52,6 +52,8 @@ Mournful Zombie
 Nephalia Seakite
 Nettle Swine
 Nightmare
+Norwood Ranger
+Ojutai Exemplars
 One With the Wind
 Perish
 Pit Scorpion
@@ -65,11 +67,14 @@ Scion of Calamity
 Seacoast Drake
 Serpentine Curve
 Shambling Ghoul
+Shu Farmer
 Siren Reaver
 Snapback
 Snare the Skies
 Soldevi Sage
 Soulless One
+Spitfire Handler
+Squirrel Mob
 Stone Idol Generator
 Suture Spirit
 Swamp

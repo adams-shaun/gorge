@@ -10,6 +10,7 @@ Arashin Sovereign
 Archfiend of Sorrows
 Arctic Treeline
 Atarka Beastbreaker
+Attune with Aether
 Axgard Armory
 Barbed Batterfist
 Bazaar Trademage
@@ -17,22 +18,31 @@ Blasted Landscape
 Blood Age General
 Bloodfire Colossus
 Blue Sun's Zenith
+Blunt the Assault
 Book of Rass
 Brand
 Brood Birthing
 Cast Down
 Cateran Enforcer
 Cavalry Pegasus
+Channel the Suns
+Chatter of the Squirrel
 Clot Sliver
 Cold Storage
+Conclave Mentor
+Copper Host Crusher
 Copper Myr
+Cut
 Dakmor Plague
 Dark Betrayal
+Darksteel Brute
 Definitely Not a Turtle
 Demystify
 Dormant Sliver
 Drana, Liberator of Malakir
+Draugr Thought-Thief
 Dwell on the Past
+Eastfarthing Farmer
 Elite Scaleguard
 Elspeth Tirel
 Encroach
@@ -42,14 +52,18 @@ Ethercaste Knight
 Evangel of Synthesis
 Eviscerator's Insight
 Expedition Diviner
+Eye of Nowhere
+Farm
 Flamespeaker's Will
 Fleeting Aven
 Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
+Garrison Griffin
 Geier Reach Sanitarium
 Ghastly Demise
+Ghitu Journeymage
 Ghostly Visit
 Glimmerbell
 Goblin Bombardment
@@ -61,6 +75,7 @@ Hallowed Healer
 Harmonic Sliver
 Haunted Cloak
 Hollowhenge Overlord
+Honor the Past
 Howlpack Resurgence
 Hulking Cyclops
 Hyalopterous Lemure
@@ -81,14 +96,17 @@ Liliana's Devotee
 Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
+Lydia Frye
 Madame Hydra, Reanimated
 Magma Phoenix
+Magnivore
 Master Decoy
 Meldweb Strider
 Memory Worm
 Merrow Bonegnawer
 Metallic Mastery
 Mind Drain
+Mindless Null
 Mirrodin Avenged
 Mirror Image
 Monstrous Hound
@@ -114,6 +132,8 @@ Returned Centaur
 Rhox Brute
 Righteousness
 Riot Gear
+Root Greevil
+Rotted Hulk
 Ruin Ghost
 Rust Monster
 Salt Marsh
@@ -122,8 +142,10 @@ Scroll of Origins
 Seeker
 Seismic Strike
 Shackles
+Shanna, Sisay's Legacy
 Showdown of the Skalds
 Skyclave Cleric
+Skyshroud Troll
 Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
@@ -143,6 +165,7 @@ The Royal Scions
 Thorn Lieutenant
 Thraben Gargoyle
 Thriving Ibex
+Thunder Wall
 Tolarian Sentinel
 Tomb Fortress
 Toph, Greatest Earthbender
@@ -155,11 +178,14 @@ Ugin's Insight
 Umbral Juke
 Untamed Wilds
 Valkyrior Skyrider
+Vaporkin
 Venomous Vines
 Viashivan Dragon
+Vivisection
 Vraska's Contempt
 Wake of Destruction
 Wander in Death
+Warleader's Helix
 Wildfire Eternal
 Windreader Sphinx
 Woodland Bellower

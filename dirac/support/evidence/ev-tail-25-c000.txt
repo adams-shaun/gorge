@@ -1,12 +1,16 @@
+A-Akki Ronin
 A-Metropolis Angel
 A-Revel Ruiner
 A-Stitched Assistant
 Aboshan's Desire
 Abyssal Nocturnus
+Abzan Banner
 Adamaro, First to Desire
 Aether Rift
+Akki Coalflinger
 Akki Lavarunner
 Akuta, Born of Ash
+Aladdin
 Alchemist's Refuge
 Alpine Guide
 Amrou Scout
@@ -14,22 +18,31 @@ Anaba Ancestor
 Anaba Spirit Crafter
 Angler Drake
 Anointed Chorister
+Apex Hawks
+Aquatic Incursion
 Archangel Avacyn
 Archon of Sun's Grace
+Argivian Avenger
 Army of Allah
 Ashen-Skin Zubera
 Autonomous Assembler
 Aven Fisher
 Baloth Prime
+Beacon of Unrest
 Bitterblossom
 Bladed Battle-Fan
 Blasting Station
 Blaze Commando
+Blitz Hellion
+Blood Petal Celebrant
+Blood Vassal
 Bloodcurdler
 Bloodscale Prowler
 Blur Sliver
+Bogardan Hellkite
 Bone Picker
 Boss Uramon, Shadow's Reach
+Brass Man
 Broken Bond
 Brutal Nightstalker
 Brute Force
@@ -39,24 +52,40 @@ Call to the Netherworld
 Caller of Gales
 Captain America, Steve Rogers
 Captain's Defense
+Capture of Jingzhou
+Cat Burglar
 Cathartic Operation
+Celebrate the Harvest
+Choking Tethers
+Clawing Torment
 Cloistered Youth
 Collector Ouphe
 Commune with the Gods
+Consuming Blob
+Containment Membrane
 Court of Bounty
 Crater's Claws
+Craven Giant
 Crimson Caravaneer
 Crippling Blight
+Crook of Condemnation
 Crux of Fate
 Cudgel Troll
+Curious Homunculus
+Daemogoth Woe-Eater
 Dark Hatchling
+Dark Privilege
 Darkest Hour
 Daybreak Chaplain
 Deathbringer Thoctar
 Deathknell Berserker
+Deeproot Champion
 Defiant Falcon
+Demonic Rising
+Desperate Farmer
 Destructor Dragon
 Deviant Glee
+Diamond Valley
 Disciple of Malice
 Distortion Strike
 Divine Sacrament
@@ -65,20 +94,30 @@ Dragon Tempest
 Dralnu's Crusade
 Dread Statuary
 Dream Fracture
+Dromoka Monument
+Dromoka's Gift
 Dunland Crebain
 Ebony Owl Netsuke
+Eidolon of Philosophy
 Eldrazi Devastator
+Electropotence
 Elminster's Simulacrum
 Ephemeron
 Erebos, Bleak-Hearted
 Etherium Spinner
 Everflame Eidolon
+Expedition Skulker
+Failed Conversion
+Fallen Cleric
+Fang Dragon
+Fangren Hunter
 Fencing Ace
 Festive Funeral
 Fire-Omen Crane
 Forest
 Forge Devil
 Foul-Tongue Shriek
+Fractal Harness
 Frantic Inventory
 Fungusaur
 Furious Reprisal
@@ -88,42 +127,62 @@ Gate Hound
 Generous Patron
 Ghost Ship
 Gilt-Leaf Seer
+Glassblower's Puzzleknot
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Striker
+Golgari Cluestone
+Gone Missing
+Griffin Sentinel
+Guardian Idol
 Guardian Kirin
 Gwenna, Eyes of Gaea
+Hada Freeblade
+Harrowing Journey
+Harvest Season
 Hawkeye's Shot
 Heavy Arbalest
+Henchfiend of Ukor
 Hermes, Overseer of Elpis
 Heroes' Reunion
 Hordeling Outburst
 Horror of the Dim
+Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
+Hypnotic Sprite
 Ichor Synthesizer
 Illusions of Grandeur
+Iron League Steed
 Island
 Ixalli's Keeper
 Jeska, Warrior Adept
 Joraga Bard
+Journey for the Elixir
+Jungle Shrine
 Junk Golem
 Junk Jet
+Kamber, the Plunderer
 Kavu Chameleon
 Keiga, the Tide Star
 Kudo, King Among Bears
 Labyrinth of Skophos
 Lapis Lazuli Talisman
 Living End
+Llanowar Mentor
 Lorehold Campus
 Lulu, Stern Guardian
 Lurking Green Dragon
+Makindi Stampede
 Malefic Scythe
 Marble Gargoyle
+Marsh Flitter
 Mass of Ghouls
+Master Trinketeer
 Mawcor
 Mayhem Devil
+Merfolk Pupil
 Might Sliver
 Mindmelter
 Mogg Sentry
@@ -134,47 +193,67 @@ Monster Mashup
 Mountain
 Muxus, Goblin Grandee
 Mystic Subdual
+Narnam Renegade
 Necron Deathmark
 Necropede
+Necrotic Hex
+Nessian Game Warden
 Nightscape Familiar
 Noble Stand
 Nyxborn Eidolon
+Omen of the Hunt
 Onward
+Opal Archangel
 Open the Gates
+Orb of Dreams
+Overgrowth
 Overgrowth Elemental
+Oxidda Finisher
 Path of Bravery
+Patrol Signaler
 Pearl Medallion
 Persist
 Phantasmagorian
+Phantom Nomad
 Phoenix of Ash
 Phyrexia's Core
 Plains
 Planar Incision
 Plundering Barbarian
 Polluted Dead
+Pouncing Cheetah
 Prickly Boggart
 Pride Sovereign
 Primeval Protector
+Prophet of Kruphix
+Prowler, Misguided Mentor
 Psychic Corrosion
 Putrefaction
+Pyromancer's Gauntlet
+Quest for the Nihil Stone
 Quicksmith Genius
 Radha, Coalition Warlord
 Radical Idea
 Ragefire
 Ransack
 Razor Hippogriff
+Reckless Amplimancer
 Recruit the Worthy
 Recycla-bird
+Rejuvenating Springs
 Rejuvenation Chamber
 Remand
+Repulse
 Resolute Rider
 Response
+Return Upon the Tide
 Rhonas the Indomitable
 Ripjaw Raptor
 Rise from the Nether
 Rot Shambler
 Rotting Mastodon
 Rubblebelt Recluse
+Sachi, Daughter of Seshiro
 Sage of the Falls
 Salt Road Patrol
 Saltfield Recluse
@@ -184,34 +263,52 @@ Savage Lands
 Savage Surge
 Scathe Zombies
 Scent of Jasmine
+Scorn Effigy
+Screeching Skaab
 Seedcradle Witch
 Seismic Shudder
 Serpent Warrior
 Serra's Sanctum
+Shimmer Dragon
 Shrapnel Blast
+Shredding Winds
+Sickleslicer
 Siege Smash
 Siege-Gang Commander
 Silverglade Elemental
 Silverquill Lecturer
+Skillful Lunge
 Skophos Warleader
 Skyclave Shadowcat
 Smokebraider
 Snapping Drake
 Snapping Sailback
+Sneaky Snacker
+Snow Day
 Soliton
+Song-Mad Treachery
 Soot Imp
 Soratami Rainshaper
 Sorin, Imperious Bloodlord
 Soulsworn Jury
 Spellgorger Barbarian
 Spire Owl
+Spiritual Sanctuary
+Spitebellows
+Spore Crawler
+Sporecrown Thallid
 Staff of Titania
+Stampeding Elk Herd
+Steelgaze Griffin
 Steward of Solidarity
 Stonerise Spirit
 Striding Shotcaller
+Stromkirk Mentor
 Sun Clasp
 Swamp
 Sword Coast Serpent
+Tajuru Beastmaster
+Talas Scout
 Tall as a Beanstalk
 Tamiyo's Logbook
 Tangled Florahedron
@@ -219,43 +316,61 @@ Tasseled Dromedary
 Teferi, Time Raveler
 Teyo's Lightshield
 Thassa's Bounty
+The Spear of Leonidas
 The Underworld Cookbook
 Thieves' Tools
 Thirsting Shade
+Thornhide Wolves
 Thriving Skyclaw
+Thrummingbird
+Thrun, Breaker of Silence
 Tibor and Lumia
 Tide Drifter
 Titan of Industry
 Traxos, Scourge of Kroog
+Treacherous Vampire
+Turn to Dust
 Twin-Silk Spider
 Tymaret, the Murder King
 Undercity Necrolisk
 Undying Rage
 Unholy Strength
 Unleash Fury
+Ur-Golem's Eye
+Ursapine
 Vapor Snare
 Vedalken Entrancer
 Vengeance
 Venomous Hierophant
+Verdigris
 Vessel of Paramnesia
 Viashino Sandscout
 Viridescent Bog
 Voda Sea Scavenger
 Voice of the Blessed
+Voices from the Void
 Volatile Rig
 Voracious Wurm
+Wake of Destruction
 Wall of Granite
 Wall of Opposition
+Wall of Swords
 Wall of Tombstones
 Warlord's Axe
 Wayward Swordtooth
+Weaver of Currents
 Wild Ceratok
 Wild Onslaught
 Wilderness Elemental
 Will of the Mardu
+Windgrace's Judgment
+Winter's Grasp
 Wistful Thinking
 Wretched Throng
 Wrong Turn
 Wurmcalling
 Yawgmoth's Vile Offering
 You Happen On a Glade
+Zarda, the Power Princess
+Zhang Fei, Fierce Warrior
+Zodiac Rabbit

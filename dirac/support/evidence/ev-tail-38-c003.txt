@@ -16,8 +16,10 @@ Cast into Darkness
 Cavalcade of Calamity
 Charity Extractor
 Choking Tethers
+Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crash the Ramparts
 Cultivator of Blades
 Dauntless River Marshal
 Deepcavern Imp
@@ -44,7 +46,9 @@ Fiery Intervention
 Flourishing Hunter
 Forest
 Future Sight
+Gate to Manorborn
 Gelectrode
+Geothermal Kami
 Ghost Warden
 Gitaxian Raptor
 Goblin Spelunkers
@@ -57,6 +61,7 @@ Haunt of the Dead Marshes
 Hazoret's Monument
 Heavy Infantry
 Hibernation Sliver
+Hussar Patrol
 Impulse
 Into Thin Air
 Island
@@ -72,6 +77,7 @@ Lifecraft Cavalry
 Liliana's Reaver
 Lure
 Magnetic Flux
+Manaforce Mace
 Megatherium
 Minamo Sightbender
 Mirrorworks
@@ -83,6 +89,7 @@ Nephalia Seakite
 Nettle Swine
 Nightmare
 Noxious Hatchling
+Oakhame Ranger
 One With the Wind
 Paradise Plume
 Perish
@@ -99,6 +106,7 @@ Rampaging Aetherhood
 Razing Snidd
 Relearn
 Render Inert
+Renegade Freighter
 Respite
 Saiba Cryptomancer
 Scaldkin
@@ -109,6 +117,7 @@ Serpentine Curve
 Shambling Ghoul
 Shauku's Minion
 Shimmer Myr
+Sigarda, Heron's Grace
 Siren Reaver
 Snapback
 Snare the Skies
@@ -124,6 +133,7 @@ Thalia, Heretic Cathar
 The Restoration of Eiganjo
 Thunder Dragon
 Thunderclap Wyvern
+Tidal Visionary
 Tireless Missionaries
 Trailblazing Historian
 Unbender Tine

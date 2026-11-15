@@ -1,9 +1,11 @@
 Aeronaut Tinkerer
 Akki Ronin
+Anaba Spirit Crafter
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
 Armored Skaab
+Awaken the Sky Tyrant
 Bandage
 Barbary Apes
 Barl's Cage
@@ -16,11 +18,13 @@ Brass Man
 Brood Weaver
 Brought Back
 Burning-Yard Trainer
+Cleansing Screech
 Cloudfin Raptor
 Conscripted Infantry
 Crosstown Courier
 Deathbloom Gardener
 Deb Thomas
+Dwarven Demolition Team
 Emberwilde Caliph
 Eye of Yawgmoth
 Faerie Seer
@@ -56,18 +60,22 @@ Kyoshi Warrior Exemplars
 Lightning Surge
 Lost Soul
 Mantle of Webs
+Minotaur Sureshot
 Moan of the Unhallowed
 Molten Vortex
 Mountain
 Nim Shambler
 Nuka-Cola Vending Machine
+Ordruun Veteran
 Outnumber
 Overwhelmed Apprentice
 Peek
+Pemmin's Aura
 Phyrexian Debaser
 Plains
 Pre-War Formalwear
 Press the Advantage
+RMS Titanic
 Ragefire Hellkite
 Rats of Rath
 Renewing Dawn
@@ -76,14 +84,18 @@ Rule of Law
 Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sentinel's Mark
+Shoal Serpent
 Simic Keyrune
+Snapping Thragg
 Soltari Lancer
+Soot Imp
 Soul's Grace
 Spellbound Dragon
 Splinter, the Mentor
 Spontaneous Artist
 Spore Swarm
 Strangle
+Sungrace Pegasus
 Suntail Hawk
 Swamp
 Teferi's Ageless Insight
@@ -93,9 +105,11 @@ The Modern Age
 The One Ring
 Thorn of Amethyst
 Thran Lens
+Toggo, Goblin Weaponsmith
 Tremble
 Turn
 Valorous Steed
+Vampire Sovereign
 Vault 75: Middle School
 Venser, Shaper Savant
 Wall of Kelp

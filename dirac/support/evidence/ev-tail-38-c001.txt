@@ -20,6 +20,7 @@ Blazethorn Scarecrow
 Blessed Reversal
 Bloodbond Vampire
 Boldwyr Intimidator
+Bushmaster, Coiled Henchman
 Captain of Umbar
 Cast into Darkness
 Cavalcade of Calamity
@@ -28,9 +29,11 @@ Choking Tethers
 Commander's Authority
 Consecrated Sphinx
 Cultivator of Blades
+Cutthroat Contender
 Dauntless River Marshal
 Deepcavern Imp
 Deepwater Hypnotist
+Deface
 Demonlord Belzenlok
 Distorted Curiosity
 Doomskar Oracle
@@ -55,6 +58,7 @@ Flourishing Hunter
 Forest
 Fortify
 Future Sight
+Gargoyle Sentinel
 Garrison Cat
 Gelectrode
 Ghost Warden
@@ -100,6 +104,7 @@ Myr Servitor
 Nephalia Seakite
 Nettle Swine
 Nightmare
+Norwood Ranger
 Noxious Hatchling
 Odunos River Trawler
 One With the Wind
@@ -120,6 +125,7 @@ Rallying Roar
 Rampaging Aetherhood
 Razing Snidd
 Reckless Racer
+Recover
 Relearn
 Render Inert
 Respite
@@ -142,6 +148,9 @@ Soldevi Sage
 Soulless One
 Spellrune Painter
 Spined Wurm
+Spitfire Handler
+Squirrel Mob
+Stalking Bloodsucker
 Stone Idol Generator
 Suture Spirit
 Swamp
@@ -160,6 +169,7 @@ Unbender Tine
 Undercity's Embrace
 Vedalken Orrery
 Veil of Birds
+Vent Sentinel
 Viashino Slaughtermaster
 Vile Consumption
 Vines of the Recluse

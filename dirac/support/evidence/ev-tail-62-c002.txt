@@ -5,8 +5,10 @@ Algae Gharial
 Ambition's Cost
 An-Zerrin Ruins
 Anointed Procession
+Araña, Heart of the Spider
 Arborea Pegasus
 Attended Healer
+Augur il-Vec
 Augury Owl
 Avacyn's Memorial
 Aven Squire
@@ -27,6 +29,7 @@ Cloudskate
 Coronation of Chaos
 Court Street Denizen
 Dark Banishing
+Defabricate
 Desert of the True
 Desmond Miles
 Devilthorn Fox
@@ -102,6 +105,8 @@ Plains
 Port of Karfell
 Prickleboar
 Primal Order
+Prismatic Boon
+Protect
 Raised by Giants
 Rakshasa's Secret
 Raven Guild Master

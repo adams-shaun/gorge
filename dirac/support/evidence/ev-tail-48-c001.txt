@@ -19,6 +19,7 @@ Drake-Skull Cameo
 Eliminate
 Environmental Sciences
 Escape Protocol
+Ethrimik, Imagined Fiend
 Evolution Witness
 Eyeless Watcher
 Ezio, Brash Novice
@@ -35,6 +36,8 @@ Increasing Savagery
 Indoctrination Attendant
 Inquisition of Kozilek
 Island
+Karplusan Wolverine
+Killmonger, Ruthless Usurper
 Krark-Clan Shaman
 Lantern of the Lost
 Living Lies of Loki
@@ -52,10 +55,13 @@ Plains
 Plated Wurm
 Primeval Herald
 Profit
+Rishadan Pawnshop
 Rushwood Legate
 Saber Ants
+Scent of Cinder
 Seismic Stomp
 Shield-Wall Sentinel
+Shu Yun, the Silent Tempest
 Silvanus's Invoker
 Snooping Newsie
 Song of the Worldsoul
@@ -65,8 +71,10 @@ Steeple Creeper
 Swamp
 Swamp Mosquito
 Terra Eternal
+Tilonalli's Crown
 Topan Ascetic
 Trestle Troll
 Tunneling Geopede
 Two-Headed Dragon
+Urza's Command
 Vedalken Infuser

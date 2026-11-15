@@ -1,10 +1,15 @@
+A-Dragonborn Looter
 A-Rulik Mons, Warren Chief
+A-Sewer Crocodile
 A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
 Adorable Kitten
 Alabaster Host Sanctifier
 Alarum
+Albino Troll
+Ambush Commander
+Ancestor's Chosen
 Ancestral Tribute
 Arcane Teachings
 Archfiend of the Dross
@@ -15,7 +20,9 @@ Arid Mesa
 Armada Wurm
 Armored Whirl Turtle
 Armorer Guildmage
+Artificer's Epiphany
 Ashnod's Harvester
+Atreus, Impulsive Son
 Aura Thief
 Autumn Willow, Harmony
 Aven Augur
@@ -24,16 +31,19 @@ Azure Mage
 Baleful Eidolon
 Battle-Rage Blessing
 Battlefly Swarm
+Bay Falcon
 Beacon Bolt
 Believe in the Cleave
 Benalish Trapper
 Betrayal of Flesh
 Biomass Mutation
+Blaze
 Blessed Respite
 Blessing of Belzenlok
 Blinding Souleater
 Blue Dragon
 Bola Slinger
+Boros Keyrune
 Boros Signet
 Brainstone
 Breath of Malfegor
@@ -43,31 +53,58 @@ Cabal Trainee
 Cackling Fiend
 Calming Licid
 Canoptek Scarab Swarm
+Captain of Umbar
 Carapace
 Caress of Phyrexia
+Cephalid Looter
 Chardalyn Dragon
 Charnel Serenade
+Chimeric Coils
+Civic Gardener
 Clackbridge Troll
 Clawing Torment
+Cliffrunner Behemoth
+Coastal Bulwark
+Codex Shredder
+Cogwork Librarian
+Commander Sofia Daguerre
 Conclave Mentor
+Cone of Flame
 Coral Commando
+Corpse Harvester
 Countless Gears Renegade
+Cruel Finality
+Crush
+Crystal Rod
 Curse of the Forsaken
+Customs Depot
+Cutthroat Centurion
+Cyclops Electromancer
+D'Avenant Trapper
 Daring Escape
+Dark Bargain
 Dark Privilege
+Dark Tutelage
 Darksteel Ingot
 Daybreak Chimera
+Deadly Insect
 Deceptive Landscape
 Deem Worthy
+Demon of Catastrophes
+Deny Reality
 Desert of the Mindful
 Devastating Summons
 Devoted Paladin
+Dictate of Erebos
 Dimir Informant
 Diviner's Lockbox
 Doctor Spectrum
 Dogged Hunter
 Dragon-Scarred Bear
+Dragonborn Looter
+Dream Cache
 Dueling Rapier
+Dusk Legion Zealot
 Eagle of the Watch
 Elite Archers
 Elspeth, Sun's Nemesis
@@ -85,70 +122,113 @@ Expendable Troops
 Eyeblight Cullers
 Eyeblight Massacre
 Faerie Mastermind
+Fanatic of Mogis
 Fascination
+Felhide Minotaur
+Fendeep Summoner
+Ferocious Zheng
+Fervent Strike
 Field of Souls
 Final Judgment
 Fogwell's Gym
 Forceful Denial
 Forest
 Fork in the Road
+Frightful Delusion
+Frilled Oculus
+Frost Marsh
 Funeral March
+Furnace Skullbomb
 Galepowder Mage
 Geomancer's Gambit
 Ghastbark Twins
+Ghirapur Guide
 Ghostly Flicker
 Gift of Growth
 Gilded Pinions
+Gitaxian Probe
 Glacial Crasher
 Glistening Dawn
 Glorious Anthem
 Gluttonous Cyclops
+Goblin Bruiser
+Goblin Offensive
 Goblin Sharpshooter
+Goblin Shortcutter
+Goblin War Wagon
 Goldmeadow Harrier
+Gorilla Warrior
+Grand Arbiter Augustin IV
 Grand Warlord Radha
+Graveyard Shovel
 Green Sun's Zenith
 Griffin Guide
 Grim Affliction
 Grimgrin, Corpse-Born
+Hanged Executioner
+Hardened-Scale Armor
+Hate Weaver
+Headwater Sentries
 Heedless One
 Hell Mongrel
 Helldozer
 Honey Mammoth
 Hyena Pack
+Hysterical Blindness
 Ichor Wellspring
 Idyllic Grange
+Imperial Aerosaur
 Incorrigible Youths
 Index
+Infernal Medusa
 Instill Energy
+Intrepid Provisioner
 Island
 Javelin of Lightning
+Jeskai Banner
 Join the Ranks
 Jousting Lance
 Jugan, the Rising Star
+Kalastria Healer
 Kalonian Twingrove
+Kapsho Kitefins
 Kaya's Ghostform
+Keeper of the Cadence
 Keldon Vandals
+Kenrith's Transformation
 Kessig Dire Swine
 Kiku's Shadow
 Kindle
 Kindred Denial
+Kobold Overlord
+Kor Blademaster
 Kor Sanctifiers
 Kormus Bell
 Law-Rune Enforcer
+Lead Golem
 Leech Fanatic
+Lethal Exploit
 Leyline of Lightning
 Liberating Combustion
+Lightning Stormkin
 Lightning Visionary
 Lithomantic Barrage
 Llanowar Dead
 Llanowar Elite
 Llanowar Vanguard
+Lord of the Void
 Lounge
 Loxodon Mystic
+Luminous Bonds
 Lyzolda, the Blood Witch
+Mana Prism
+Mana Skimmer
 Mandroid Squadron
 Mask of Avacyn
 Mazirek, Kraul Death Priest
+Megatherium
+Meng Huo's Horde
+Mental Agony
 Merfolk Windrobber
 Meriadoc Brandybuck
 Migloz, Maze Crusher
@@ -157,99 +237,178 @@ Mire in Misery
 Mistblade Shinobi
 Mogg Toady
 Molten Rain
+Morgul-Knife Wound
 Mountain
 Mournwhelk
 Mox Ruby
 Mwonvuli Ooze
 Mystic Redaction
+Mystical Dispute
+Naya Battlemage
 Nephalia Drownyard
+Neurok Commando
 Noble Steeds
 Novijen, Heart of Progress
+Oak Street Innkeeper
 Order of Yawgmoth
+P-Joven and Chandler
+Palinchron
 Papercraft Decoy
+Parasitic Bond
 Pathmaker Initiate
 Pendrell Drake
+Peregrine Drake
 Perplex
+Pestermite
+Phantasmal Dragon
 Phantom General
+Phytoburst
+Pincher Beetles
 Pinnacle of Rage
 Pinpoint Avalanche
+Pit Trap
 Plains
+Plated Slagwurm
 Pouncing Cheetah
+Power Matrix
 Practical Research
 Predatory Hunger
 Priest of Iroas
 Primal Frenzy
+Purphoros's Emissary
 Pyre-Sledge Arsonist
 Pyretic Ritual
+Radical Idea
+Rag Dealer
 Rage Thrower
 Rain of Embers
 Rakdos Pit Dragon
+Rampart Crawler
+Razor Swine
+Razortip Whip
 Razorverge Thicket
 Reach of Shadows
+Reclaim
 Regathan Firecat
+Relearn
+Release to Memory
 Relic Putrescence
+Relief Captain
 Remember the Fallen
 Resolute Blademaster
 Reveka, Wizard Savant
+Revelation of Power
 Revelsong Horn
 Rigging Runner
 Rise of the Dread Marn
 Rivendell
 Rix Maadi, Dungeon Palace
 Rock Badger
+Root Maze
+Rotted Hystrix
 Russet Wolves
 Rustspore Ram
+Sadistic Hypnotist
+Sakura-Tribe Elder
+Salvage Titan
+Sanctum of Tranquil Light
+Saprazzan Breaker
 Scavenger Drake
 Scourge of Valkas
+Sea God's Revenge
+Select for Inspection
+Selesnya Sentry
+Serpent Skin
 Shadows of the Past
 Shambling Strider
 Shambling Suit
 Shambling Vent
 Shanodin Dryads
+Shatterstorm
 Shivan Meteor
+Sigarda's Summons
 Simic Growth Chamber
+Skinwing
 Skyline Despot
+Skyrider Patrol
+Skyswirl Harrier
 Slaughter Drone
 Slayer of the Wicked
+Snare the Skies
+Snow-Covered Island
+Solidarity
+Solstice Zealot
 Solve the Equation
 Songbird, Sonic Screamer
 Soratami Savant
+Soul Warden
 Soul of Mirrodin
 Soulquake
 Specter's Wail
+Spectral Cloak
+Spell Syphon
 Spellbinding Soprano
 Sphinx of Clear Skies
 Sporoloth Ancient
+Stampeding Rhino
 Starnheim Memento
 Stasis Cocoon
+Steamclaw
 Stone-Throwing Devils
+Storm of Steel
 Strangling Spores
 Street Spasm
+Sultai Runemark
 Sun Droplet
+Sungrass Prairie
+Sunscorched Desert
 Swamp
 Swarming Goblins
 Sword of the Paruns
 Syndicate Infiltrator
 Synth Infiltrator
+Take to the Streets
+Talas Researcher
 Tana, the Bloodsower
+Temporal Trespass
 Terrain Generator
 The Spike Cactus
 Thelonite Druid
+Thing Swing
+Thorn Lieutenant
 Thriss, Nantuko Primus
+Thrór's Map
 Thunderous Orator
 Thunderous Wrath
+Timber Gorge
+Tireless Tribe
+Titanium Golem
 Tolarian Scholar
 Traitorous Greed
 Tresserhorn Sinks
+Urza's Guilt
+Utter Insignificance
 Valeria Richards, Precocious
 Vampire Warlord
 Varchild, Betrayer of Kjeldor
 Vault Skirge
+Venser, Shaper Savant
 Verdant Confluence
+Viashino Grappler
 Visara the Dreadful
+Vision, Spectral Synthezoid
+Visions of Beyond
+Voldaren Duelist
+Vraska's Scorn
+Wakanda Forever!
 Wall of Tanglecord
+Werebear
 Wicked Slumber
+Wild Ceratok
 Wild Research
 Windreaper Falcon
+Witness the Future
+Woe Strider
 Wu Elite Cavalry
+Yuan Shao's Infantry
 Zopandrel, Hunger Dominus

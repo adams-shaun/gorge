@@ -3,6 +3,8 @@ Awaken the Bear
 Belligerent Guest
 Billiard Room
 Bitterbow Sharpshooters
+Crash the Ramparts
+Custodi Lich
 Doomskar Oracle
 Emerald Dragonfly
 Flourishing Hunter
@@ -16,6 +18,7 @@ Megatherium
 Mountain
 Obuun, Mul Daya Ancestor
 Plains
+Revel Ruiner
 Snare the Skies
 Soulless One
 Swamp

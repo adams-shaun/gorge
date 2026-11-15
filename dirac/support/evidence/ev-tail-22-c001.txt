@@ -8,9 +8,11 @@ Aggressive Urge
 Aid the Fallen
 Alabaster Kirin
 Albino Troll
+Arborback Stomper
 Architect of the Untamed
 Argivian Phalanx
 Artifact Blast
+Assert Authority
 Avacyn, Angel of Hope
 Aven Fleetwing
 Baleful Ammit
@@ -116,6 +118,7 @@ Mending Touch
 Mesa Enchantress
 Meteorite
 Mind Control
+Minister of Pain
 Mist Dancer
 Mob
 Moonglove Changeling
@@ -146,6 +149,7 @@ Primordial Wurm
 Psionic Gift
 Pyre Zombie
 Ragavan, Nimble Pilferer
+Ragged Recluse
 Ramirez DePietro, Pillager
 Rapacious Guest
 Ravenous Baloth

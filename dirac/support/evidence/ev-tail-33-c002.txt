@@ -1,31 +1,60 @@
 A-Akki Ronin
+A-Guide of Souls
+A-Oran-Rief Ooze
+A-Urza, Powerstone Prodigy
+Abzan Advantage
 Accursed Horde
 Advanced Stitchwing
+Aether Vial
 Aftershock
 Aim High
+Ajani's Sunstriker
+Alharu, Solemn Ritualist
+Anaba Bodyguard
+Ancestral Knowledge
 Animal Boneyard
 Anowon, the Ruin Thief
+Arcane Investigator
 Arcum Dagsson
 Ardent Elementalist
+Armorcraft Judge
 Atraxa's Fall
 Audacity
+Autumnal Gloom
+Avaricious Dragon
 Bag End Porter
 Blighted Agent
 Blood Divination
+Blood Speaker
+Bond of Passion
+Bonded Herdbeast
+Bontu the Glorified
+Bramblecrush
+Brazen Buccaneers
+Briarpack Alpha
 Bringer of the Green Dawn
 Broodhatch Nantuko
 Call to Mind
 Canopy Baloth
+Carnival of Souls
 Casey Jones, Asphalt Hooligan
 Caustic Caterpillar
 Circle of Flame
 Citywatch Sphinx
+Cold-Water Snapper
 Company Commander
 Confront the Unknown
+Coordinated Assault
+Cordial Vampire
+Crawl from the Cellar
 Cruel Deceiver
 Curious Pair
+Darwin, Adaptive Mutant
 Davriel, Rogue Shadowmage
 Deadly Recluse
+Deathbloom Thallid
+Demonic Lore
+Depose
 Despondent Killbot
 Destroy Evil
 Destructive Digger
@@ -33,96 +62,134 @@ Dewdrop Spy
 Draconic Destiny
 Dragon Whisperer
 Drelnoch
+Drill-Skimmer
 Dross Golem
 Déjà Vu
 Ebony Charm
 Ebony Horse
 Electric Revelation
+Ember-Eye Wolf
+Eternal Taskmaster
 Fallaji Dragon Engine
 False Peace
+Farbog Explorer
 Favor of the Overbeing
 Ferocious Pup
+Feroz's Ban
 Fill with Fright
 Final Flourish
 Flame Elemental
 Flip the Switch
+Force Spike
 Forest
+Freejam Regent
 Furious Resistance
 Furnace Gremlin
+Gearsmith Prodigy
+Gleam of Authority
 Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
 Hadana's Climb
 Harvesttide Infiltrator
+Hazoret's Monument
 Honor's Reward
 Hysterical Blindness
+Indulgent Tormentor
 Inexorable Tide
 Inner Fire
+Innocent Traveler
 Ire of Kaminari
 Island
 Jabs, Mistress of Mockery
 Jace's Triumph
 Jaspera Sentinel
+Jhoira's Familiar
 Katara, Heroic Healer
 Kavu Aggressor
 Kithkin Mourncaller
 Kor Line-Slinger
 Kozilek's Unsealing
+Krark-Clan Grunt
 Land Grant
 Leaden Fists
 Lightfoot Rogue
+Lightning Elemental
 Lone Revenant
 Looming Altisaur
+Lumengrid Sentinel
 Lunk Errant
 Magistrate's Scepter
 Manabond
 Maraleaf Pixie
 Marauding Knight
 Mass Hysteria
+Mawcor
+Memorial to Folly
 Military Intelligence
 Ministrant of Obligation
+Mogg Conscripts
 Moonglove Winnower
 Mountain
 Mox Amber
 Murder Investigation
 Myr Enforcer
 Mystery Key
+Nath's Buffoon
 Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
+Never
 Noxious Grasp
+Nyxathid
 Obelisk of Naya
+Ogre Arsonist
 Olivia's Wrath
 Opal Champion
 Oran-Rief Recluse
+Ordeal of Erebos
 Overgrowth
+Pack's Disdain
+Pashalik Mons
 Pegasus Refuge
 Phantom Nishoba
 Pincher Beetles
 Plague Dogs
 Plains
+Prickleboar
+Pride Guardian
 Pterodon Knight
 Puppet Conjurer
 Purify
 Quag Sickness
+Quirion Dryad
+Reanimate
+Reckoner's Bargain
 Rending Volley
+Reverent Hunter
+Rewind
 Rip Apart
 Rona, Disciple of Gix
+Roofstalker Wight
 Royal Falcon
 Ruin Crab
 Sage's Knowledge
+Saruman the White
 Scab-Clan Charger
 Scion of Stygia
 Scourge of the Undercity
 Sea God's Revenge
 Sea Snidd
 Seasoned Hallowblade
+Seed Guardian
 Sharktocrab
 Showstopping Surprise
 Shredded Sails
+Shu Grain Caravan
 Sibling Rivalry
 Sisay's Ring
+Skizzik Surger
 Skyclave Relic
 Skyreaping
 Smoldering Efreet
@@ -135,31 +202,51 @@ Spidersilk Armor
 Spirit Bonds
 Spiteful Banditry
 Spiteful Sliver
+Spore Cloud
 Square Up
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
 Sunder Shaman
 Swamp
+Temporal Machinations
 Thought Monitor
+Thraben Foulbloods
 Thresher Lizard
+Tin-Wing Chimera
 Trained Armodon
+Tranquil Path
 Traverse the Outlands
+Tree of Tales
 Trespasser's Curse
 Tyranid Harridan
 Uktabi Faerie
+Umezawa's Charm
 Unchecked Growth
+Undead Servant
 Undo
+Unyaro Bee Sting
+Urborg Shambler
 Utvara Scalper
 Verdant Crescendo
+Verdant Embrace
 Victorious Destruction
+Vinelasher Kudzu
 Viridian Zealot
+Voidwielder
+Vulshok War Boar
 Wall of Roots
 Wall of Wonder
 Wand of the Elements
+Warden of the Wall
 Warren Instigator
 Wave Goodbye
+Wayward Swordtooth
 Wei Infantry
+Willow Faerie
+Winged Hive Tyrant
 Winter Soldier, Bucky Barnes
 Witch's Cottage
+You Look Upon the Tarrasque
+Yuan Shao, the Indecisive
 Zulaport Duelist

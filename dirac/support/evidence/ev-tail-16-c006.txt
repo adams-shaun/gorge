@@ -1,30 +1,96 @@
 Afterlife
+Anoint with Affliction
 Arcane Encyclopedia
+Armory of Iroas
+Artisan's Sorrow
+Asari Captain
 Avacyn and Griselbrand
+Awakened Awareness
+Barkchannel Pathway
+Barren Moor
+Blood Clock
 Boltwing Marauder
+Border Patrol
+Brazen Freebooter
+Bronze Cudgels
 Burn Down the House
+Call the Bloodline
+Clay Statue
 Coercive Impetus
+D'Avenant Archer
 Daggerback Basilisk
 Dakmor Scorpion
+Darba
 Dark Revenant
+Dauntless Survivor
+Daxos, Blessed by the Sun
 Deadeye Tormentor
+Desert Sandstorm
 Enchanted Carriage
+Encroaching Wastes
 Evasive Action
+Family's Favor
+Ferocious Charge
+Fires of Undeath
+Flickerwisp
+Forced Adaptation
 Forest
+Foul Imp
+Frilled Sea Serpent
+Ghirapur Gearcrafter
+Goblin Gathering
+Goblin Roughrider
+Heedless One
+Hunter's Prowess
 Island
 Kaito's Pursuit
+Keldon Necropolis
+Kemba's Banner
+Krenko, Tin Street Kingpin
+Lorehold Campus
+Mana-Charged Dragon
 Marsh Lurker
 Martyrs' Tomb
 Mesmeric Trance
+Metropolis Reformer
 Mountain
+Niblis of Dusk
+Nimble Hobbit
 Oblivion's Hunger
+Ogre Errant
+Origin Spellbomb
 Plains
 Puncture Bolt
+Rancor
 Ranger of Eos
+Reduce to Ashes
+Resolute Archangel
+Rishadan Brigand
+Sai, Master Thopterist
+Scent of Nightshade
+Scourge of Geier Reach
+Shield Wall
+Silver-Inlaid Dagger
+Sinister Starfish
+Skyline Despot
+Sleep
+Smite the Monstrous
+Soaring Show-Off
+Soul Summons
+Soulsurge Elemental
+Spell Crumple
 Spell Syphon
+Stone Retrieval Unit
 Subterranean Hangar
+Suntail Hawk
+Survey the Wreckage
 Swamp
 Thermal Glider
+Thrull Parasite
 Tribute to Horobi
+Trickster's Talisman
 Turbulent Springs
+Venerable Knight
 Viper, Cruel Conspirator
+Vivify
+Voracious Wurm
