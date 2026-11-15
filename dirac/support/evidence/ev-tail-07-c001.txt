@@ -1,27 +1,236 @@
+A-Kona, Rescue Beastie
+A-Scout the Wilderness
 Aether Membrane
 Airborne Aid
+Alisaie Leveilleur
+Alpine Meadow
+Ambush Commander
+Ancestral Knowledge
+Answered Prayers
+April O'Neil, Human Element
+Archmage Emeritus
+Ascended Lawmage
+Avabruck Caretaker
 Azorius Herald
+Baird, Argivian Recruiter
+Banewhip Punisher
+Basking Rootwalla
+Beast in Show
+Bird Admirer
+Biting Tether
+Bladed Ambassador
+Blind Zealot
+Blood Speaker
+Boartusk Liege
+Bonescythe Sliver
+Boreal Elemental
+Brimstone Volley
+Camaraderie
+Cantivore
+Carapace Forger
+Cavalier of Thorns
+Caves of Koilos
+Charging Paladin
 Chief Magistrate of Mercadia
+Cinder Giant
+Cliffside Lookout
+Cloaked Siren
+Clockwork Condor
+Consuming Aetherborn
+Consuming Vapors
+Contact Other Plane
+Craterize
+Crook of Condemnation
+Cyclopean Mummy
+Darting Merfolk
+Dawn Evangel
+Deathgaze Cockatrice
+Decimator Web
+Desert
+Displacer Kitten
+Disruption Protocol
+Divine Offering
+Diviner of Mist
+Doc Ock, Evil Inventor
+Doomsday Specter
+Druid of the Anima
+Dune Diviner
+Duskfang Mentor
+Dwarven Strike Force
+Elvish Skysweeper
+Embodiment of Spring
 Emerge Unscathed
+Emissary of Despair
+Enraged Revolutionary
+Eternal Scourge
 Exuberant Fuseling
+Eye of Ugin
+Fable of the Mirror-Breaker
+Faeburrow Elder
+Favor of the Overbeing
+Feeling of Dread
+Feral Prowler
+Feroz's Ban
+Fire Dragon
+Firebreathing
+Flare of Denial
+Flower
+Flying Crane Technique
 Force Spike
 Forest
 Frogify
+Frostveil Ambush
+Frozen Aether
+Furyblade Vampire
 Gamekeeper
+Gargantos, the Endbringer
+Garrison Sergeant
+Garruk's Lost Wolf
+Gaze of Justice
+Ghirapur Gearcrafter
+Ghost-Lit Nourisher
+Gilt-Leaf Palace
+Give
+Glorious Enforcer
+Goblin Firebug
+Goblin Grenade
+Graceblade Artisan
+Grayscaled Gharial
+Gruul Ragebeast
+Gryff's Boon
+Hajar, Loyal Bodyguard
+Harvester Troll
+Headhunter
+Heroes' Reunion
+Hotshot Mechanic
+Hunter's Prowess
+Hushwing Gryff
+Hypervolt Grasp
+In the Eye of Chaos
+Iron League Steed
+Ironclad Revolutionary
 Island
+Johtull Wurm
+Jungle Barrier
+Keldon Berserker
+Kiss of Death
+Knight of Autumn
+Knight of the Keep
 Kor Celebrant
+Kuldotha Cackler
+Landslide
+Legion Guildmage
+Letter of Acceptance
+Leyline Prowler
 Liliana's Mastery
+Liliana's Shade
+Lone Rider
+Lost in Memories
+Magus of the Wheel
 Majestic Metamorphosis
+Mandible Justiciar
+Manticore
+Martyr of Dusk
+Mercurial Geists
+Messenger Drake
 Mogg Raider
+Molting Snakeskin
+Moment of Truth
+Morgue Thrull
 Mountain
+Myrkul's Invoker
+Nadier, Agent of the Duskenel
+Neoform
+Niblis of the Mist
+Niblis of the Urn
+Ninth Bridge Patrol
+Nomad Stadium
+Norwood Ranger
+Novablast Wurm
+Ondu Spiritdancer
+One with Death
+Order
+Order of the Golden Cricket
+Orzhov Keyrune
+Pack's Disdain
+Piston-Fist Cyclops
 Plains
+Plated Geopede
+Poultice Sliver
+Private Research
+Purge
+Purple-Crystal Crab
+Pyromancer's Assault
+Quick-Draw Dagger
+Rabble-Rouser
+Raging Regisaur
+Rainbow Efreet
 Rampaging Brontodon
+Rampart Architect
+Ravaging Horde
+Renegade Firebrand
+Resurrection
+Rhox Maulers
+Righteous Avengers
+Rite of Belzenlok
+Rockslide Elemental
+Roiling Waters
+Rubblebelt Rioters
 Salvage
+Sanguine Statuette
+Satyr Nyx-Smith
+Scatter Ray
+Scrabbling Claws
+Sejiri Refuge
+Select for Inspection
+Serpent of the Endless Sea
+Serum Raker
+Shadowheart, Dark Justiciar
+Sharpened Pitchfork
+Shefet Monitor
 Sheoldred's Edict
+Shore Keeper
+Sight of the Scalelords
+Somberwald Spider
+Spaceshift
 Speaker of the Heavens
+Spectral Shepherd
+Spider-Man, Hometown Hero
+Spider-Man, Web-Spinner
+Spire Patrol
 Spitting Slug
+Stamina
+Starstorm
 Sudden Spinnerets
+Suntouched Myr
 Supernatural Stamina
 Swamp
+Sweet-Gum Recluse
+Sylvan Bounty
 Taunting Kobold
+Thriving Rats
+Throne of Geth
+Titanium Golem
+Tooth and Claw
+Treason of Isengard
+Urborg Skeleton
+Vernal Bloom
+Veteran Armorsmith
+Violent Ultimatum
+Viridian Revel
+Volatile Arsonist
+Volcanic Salvo
+Voltaic Servant
+Voyaging Satyr
+Wallop
+War Screecher
+Warmonger
+Waterfront District
+Wayward Servant
 Wellwisher
+Whipstitched Zombie
+Wildgrowth Walker
+Woodvine Elemental
+Wormhole Serpent
+Zephid
+Zof Consumption

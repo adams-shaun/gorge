@@ -10,14 +10,17 @@ Bloodthrone Vampire
 Bow of Nylea
 Brain Gorgers
 Brilliant Halo
+Burn Bright
 Capashen Knight
 Captain Sisay
 Cartouche of Solidarity
+Cephalid Scout
 Chainflail Centipede
 Chosen by Heliod
 Conclave Sledge-Captain
 Conquer
 Consume Spirit
+Crumbling Vestige
 Crystal Chimes
 Dalek Squadron
 Dark Ritual
@@ -41,7 +44,9 @@ Foul Familiar
 Frilled Deathspitter
 Gaea's Balance
 Gibbering Hyenas
+Glistening Oil
 Goblin Masons
+Grasping Scoundrel
 Guardian of Tazeem
 Hag of Ceaseless Torment
 Harsh Deceiver
@@ -69,9 +74,14 @@ Natural Selection
 Nourish
 Origin of the Hidden Ones
 Oswald Fiddlebender
+Painful Lesson
+Paupers' Cage
 Piper of the Swarm
 Plains
 Pyromancer's Gauntlet
+Rally the Forces
+Realm-Cloaked Giant
+Reckoner Bankbuster
 Renegade Map
 Reparations
 Resplendent Mentor
@@ -87,6 +97,7 @@ Shivan Gorge
 Sigarda's Imprisonment
 Simian Simulacrum
 Siren Lookout
+Skeletal Grimace
 Sky Diamond
 Sliver Construct
 Snooping Newsie
@@ -106,16 +117,21 @@ Suspended Sentence
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
+Teferi's Tutelage
 Tel-Jilad Archers
 The Hunger Tide Rises
 Time of Ice
 Tin Street Dodger
+Tower of Murmurs
+Uncaged Fury
 Vaporkin
 Vastwood Fortification
 Vesperlark
+Viridian Shaman
 Volcanic Island
 Voracious Vampire
 Vow of Wildness
 Walking Corpse
+Wandering Treefolk
 White Tiger, Amulet Keeper
 Wicked Reward

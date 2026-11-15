@@ -5,6 +5,7 @@ Alchemist's Retrieval
 All That Glitters
 Alseid of Life's Bounty
 Ambassador Oak
+Archetype of Courage
 Armorcraft Judge
 Arrogant Vampire
 Atraxa's Fall
@@ -28,6 +29,7 @@ Choking Tethers
 Chromatic Lantern
 Citywatch Sphinx
 Cling to Dust
+Coastline Marauders
 Cromat
 Dauntless Dismantler
 Deathgreeter
@@ -35,6 +37,7 @@ Dive Down
 Dusk Legion Zealot
 Echoing Truth
 Elspeth's Nightmare
+Empty-Shrine Kannushi
 Enlarge
 Ensnaring Bridge
 Epic Downfall
@@ -45,6 +48,7 @@ Flame Elemental
 Forest
 Fragmentize
 Garruk's Packleader
+Geode Golem
 Ghostly Changeling
 Go Blank
 Goblin Assault
@@ -66,6 +70,7 @@ Muscle Sliver
 Narcolepsy
 Nephalia Smuggler
 Nezahal, Primal Tide
+Nils, Discipline Enforcer
 Nirkana Cutthroat
 Novice Occultist
 Pact of Negation
@@ -105,4 +110,5 @@ Tsagan, Raider Warlord
 Urborg Repossession
 Valorous Steed
 Viridian Shaman
+Warrior en-Kor
 Wilt
