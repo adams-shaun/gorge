@@ -24,6 +24,7 @@ Fireslinger
 Forbidden Alchemy
 Forest
 Gleam of Resistance
+Glimmerpoint Stag
 Graveshifter
 Grip of the Roil
 Gudul Lurker
@@ -47,6 +48,7 @@ Otharri, Suns' Glory
 Pick Your Poison
 Plains
 Rampant Growth
+Scourge Devil
 Shadowcloak Vampire
 Shimmercreep
 Shoreline Looter

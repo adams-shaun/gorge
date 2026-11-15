@@ -1,0 +1,7 @@
+Field Marshal
+Fire Ambush
+Forest
+Island
+Mountain
+Plains
+Swamp

@@ -1,7 +1,61 @@
+Aerial Responder
+Aether Vial
+Barbed Shocker
+Basking Broodscale
+Birthing Hulk
+Black Panther, Claws of Bast
+Burrenton Shield-Bearers
 Cragplate Baloth
 Dega Sanctuary
+Doomed Artisan
+Eerie Soultender
+Elves of Deep Shadow
+Exultant Skymarcher
+Fantastic Bounce
+Festercreep
+Fevered Convulsions
+Fists of the Anvil
+Fleet-Footed Monk
+Font of Fortunes
 Forest
+Foul Imp
+Gearsmith Prodigy
+Giant Scorpion
+Headless Rider
+Imp's Mischief
+In the Web of War
+Ironclaw Buzzardiers
 Island
+Join the Maestros
+Landbind Ritual
+Lay Down Arms
+Lazotep Chancellor
+Lurking Nightstalker
+Masked Blackguard
+Moderation
+Moira, Urborg Haunt
 Mountain
+Needle Specter
+Night of Souls' Betrayal
+Ojutai, Soul of Winter
+Owl Familiar
+Pallid Mycoderm
+Peregrine Drake
 Plains
+Pollenbright Druid
+Raffine's Informant
+Rumor Gatherer
+Sai, Master Thopterist
+Searchlight Geist
+Smell Fear
+Specter of the Fens
+Sphinx's Tutelage
+Street Urchin
+Strike It Rich
+Suki, Kyoshi Captain
+Summary Judgment
 Swamp
+Sygg, River Guide
+Undead Augur
+You Are Already Dead
+Zombie Cutthroat
