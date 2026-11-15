@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and matches the rest of the alternative as matchSpellCard does. No
 // object (o == NoObj, unit tests) fails closed. wasCastSpell stays the
 // stack-entry reader for triggers and conditions.
-func (s *State) matchSpellCardOffer(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot) bool {
+func (s *State) matchSpellCardOffer(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8) bool {
 	if f == 0 {
 		return true
 	}
@@ -27,7 +27,7 @@ func (s *State) matchSpellCardOffer(k *prep, f kop.FilterID, c CardID, owner, ct
 		if prov {
 			fl.Pred, fl.PredN = kop.PredNone, 0
 		}
-		if s.matchSpellAlt(k, fl, c, owner, ctrl, o, src) && (!prov || restrProvHolds(n, og)) {
+		if s.matchSpellAlt(k, fl, c, owner, ctrl, o, src, emb) && (!prov || restrProvHolds(n, og)) {
 			return true
 		}
 		f = next

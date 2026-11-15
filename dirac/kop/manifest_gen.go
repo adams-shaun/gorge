@@ -1480,6 +1480,20 @@ const ExtPutContract ExtOp = 91
 
 func init() { extOpNames[ExtPutContract] = "PutContract" }
 
+// ClearNamedCard (dirac/manifest/ExtOp/ExtClearNamedCard)
+//
+// Cleanup ClearNamedCard$ True: empties the resolving source's chosen card name.
+const ExtClearNamedCard ExtOp = 92
+
+func init() { extOpNames[ExtClearNamedCard] = "ClearNamedCard" }
+
+// NameCard (dirac/manifest/ExtOp/ExtNameCard)
+//
+// A mid-resolution card-name choice (SP$/DB$ NameCard); B.N 0 every nameable card, 1 the nonland ones.
+const ExtNameCard ExtOp = 93
+
+func init() { extOpNames[ExtNameCard] = "NameCard" }
+
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
 

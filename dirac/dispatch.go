@@ -106,6 +106,8 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 		s.chosenPlayerMidOptions(d) // repl_chooseplayer.go
 	case raTapOrUntapAll:
 		s.tapOrUntapAllOptions(d) // act_taporuntapall.go
+	case raGenChooseName:
+		s.nameCardOptions(k, d) // repl_namecard.go
 	default:
 		return s.askOptionsCold2(k, d)
 	}
@@ -139,6 +141,8 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 		s.applyAskChosenPlayerMid(k, a) // repl_chooseplayer.go
 	case raTapOrUntapAll:
 		s.tapOrUntapAllAnswer(k, a) // act_taporuntapall.go
+	case raGenChooseName:
+		s.nameCardAnswer(k, a) // repl_namecard.go
 	default:
 		return s.applyAskCold2(k, a)
 	}

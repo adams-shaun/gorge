@@ -659,6 +659,10 @@ const numMech mech = 55
 //go:noinline
 func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
+	case kop.ExtClearNamedCard:
+		return s.clearNamedCardExt(k, in) // repl_namecard.go
+	case kop.ExtNameCard:
+		return s.nameCardExt(k, in) // repl_namecard.go
 	case kop.ExtPutContract:
 		return s.putContract(k, in) // ctr_contract.go
 	}

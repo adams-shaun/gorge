@@ -471,6 +471,15 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, layer uint8) bool 
 		return s.predHasCounters(sl)
 	case kop.PredSameNameRem:
 		return s.sharesNameRem(s.perms[sl].obj, 0, false)
+	case kop.PredNamedCard:
+		// the card-name property NamedCard (CR 201.4): the permanent shares
+		// the reading source's chosen card name (gorge namePredicate
+		// NamedCard; repl_namecard.go). A face-down permanent has no name
+		// (CR 708.2).
+		if n := s.chosenNameCard(nil); n != NoCard {
+			return s.nameCardAt(sl) == n
+		}
+		return false
 	}
 	return s.predPermCold(k, fl, sl) // filter_typesall.go: PredTypesAll and later kinds
 }
@@ -562,15 +571,8 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 }
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
-	if fl.CtrlTgt != 0 {
-		// a target's controller is a battlefield role; a card matcher has
-		// no live target to read, so it fails closed (kgen never lowers it
-		// off the battlefield), but for the owner role (kop.CtrlTgtOwner:
-		// OwnedBy TargetedController, the card's owner is the target's
-		// controller)
-		if fl.CtrlTgt&kop.CtrlTgtOwner == 0 || !s.ctrlRoleTgt(k, int(fl.CtrlTgt&^kop.CtrlTgtOwner)-1, owner) {
-			return false
-		}
+	if fl.CtrlTgt != 0 && !s.cardCtrlTgtOK(k, fl, owner) {
+		return false
 	}
 	if fl.Flags&kop.FPlayer != 0 {
 		// a target spec's player alternative (kgen filterPlayerAlt) names a
@@ -821,10 +823,22 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if fl.Pred == kop.PredSameNameT0 {
 			return s.sameNameT0Card(c, o, fd) // filter_samename.go
 		}
+		if fl.Pred == kop.PredNamedCard {
+			return s.namedCardCard(c, fd, ctx) // repl_namecard.go
+		}
 		if fl.Pred == kop.PredPowerGTBase {
 			s.offZonePTRead(k, c, owner, o) // static_offzonept.go: the boost lifts power over base
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}
 	return true
+}
+
+// cardCtrlTgtOK reports whether a card matcher's CtrlTgt role holds (matchCardOneAt).
+// A target's controller is a battlefield role; a card matcher has no live
+// target to read, so it fails closed (kgen never lowers it off the
+// battlefield), but for the owner role (kop.CtrlTgtOwner: OwnedBy
+// TargetedController, the card's owner is the target's controller).
+func (s *State) cardCtrlTgtOK(k *prep, fl *kop.Filter, owner uint8) bool {
+	return fl.CtrlTgt&kop.CtrlTgtOwner != 0 && s.ctrlRoleTgt(k, int(fl.CtrlTgt&^kop.CtrlTgtOwner)-1, owner)
 }
