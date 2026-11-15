@@ -20,6 +20,10 @@ func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 	if in.C&kop.PrevScopeFiltered != 0 {
 		scc = 0 // the bits above the shift hold recipient bits, not colours: the filter is read from the instruction
 	}
+	if in.C&kop.PrevScopeFiltered != 0 && !s.scopeInstrFindable() {
+		s.capFull(StallPrevScopeCopy) // loud: a record that can never find its filters would prevent nothing
+		return
+	}
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.col == 0 && r.sc == 0 {

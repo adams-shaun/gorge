@@ -10,6 +10,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and the player-recipient bits in C. kgen refuses a card with two filtered
 // instructions that differ, so the first one found is the one.
 
+// StallPrevScopeCopy is a filtered scoped prevention resolving from a card
+// other than its object's own (a copy of the permanent or spell: the program is
+// the copied card's, the object's card is the copier's), where the record could
+// not find its filters again from the object.
+const StallPrevScopeCopy = 104
+
+func init() { stallNames[StallPrevScopeCopy] = "prevscopecopy" }
+
+// scopeInstrFindable reports whether the resolving Effect's object is of the
+// card whose program is running, so scopeInstr finds the instruction again.
+func (s *State) scopeInstrFindable() bool {
+	e := &s.res.e
+	return e.obj != NoObj && int(e.obj) < MaxObj && s.objs[e.obj].card == e.card
+}
+
 // scopeInstr is the filtered Ext PreventDamageScope in record r's source card.
 func (s *State) scopeInstr(k *prep, r *prevRec) *kop.Instr {
 	if r.obj == NoObj || int(r.obj) >= MaxObj {

@@ -8,7 +8,7 @@ import (
 // line (effectPreventScope) when one of them is not a bit form: the damage
 // source is matched against sf (a card filter), the recipient against the
 // player bits (You, Opponent, Player) or tf (a card filter over permanents).
-// A half that is a bit form (tok / sok) keeps its bits. fb always carries
+// A half that is a bit form (tok / sok) keeps its bits, a colour list excepted. fb always carries
 // kop.PrevScopeFiltered, which tells the kernel to read sf and tf from the
 // Effect's source card (dirac/repl_prevscopefilter.go).
 func (lc *lowerCtx) scopeFiltered(vt, vs string, tb int, tok bool, sb int, sok bool) (fb int, sf, tf *lFilter, err error) {
@@ -34,7 +34,9 @@ func (lc *lowerCtx) scopeFiltered(vt, vs string, tb int, tok bool, sb int, sok b
 			tf = &c
 		}
 	}
-	if sok {
+	if sok && sb>>kop.PrevScopeColourShift == 0 {
+		// a colour list stays out of fb: those bits are the recipient bits here, and
+		// the kernel reads no colours for a filtered record, so it goes through the filter
 		fb |= sb
 		return fb, nil, tf, nil
 	}

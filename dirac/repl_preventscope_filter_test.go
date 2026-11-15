@@ -53,7 +53,7 @@ func newScopeFilterScen(t *testing.T) *scopeFilterScen {
 // as the Effect's resolution does, and returns the record.
 func (f *scopeFilterScen) resolve(c CardID) *prevRec {
 	o := f.obj(c, 0)
-	f.s.res.e.obj, f.s.res.e.ctrl = o, 0
+	f.s.res.e.obj, f.s.res.e.ctrl, f.s.res.e.card = o, 0, c
 	f.s.prevScopeAdd(f.k, &f.k.t.Cards[c].Abilities[0].Prog[0])
 	for i := range f.s.g.prevCol {
 		if r := &f.s.g.prevCol[i]; r.obj == o && r.sc != 0 {
@@ -154,11 +154,11 @@ func TestPreventScopeFilteredPlayerRecipients(t *testing.T) {
 	src := f.perm(f.bear, 1)
 	white := kop.ColorMask(1)
 	for _, c := range []struct {
-		name string
-		card CardID
-		rcp  uint8
-		bear bool
-		want bool
+		name      string
+		card      CardID
+		rcp       uint8
+		noncombat bool
+		want      bool
 	}{
 		{"opponents, to the opponent", f.opp, 1, false, true},
 		{"opponents, to the controller", f.opp, 0, false, false},
@@ -173,10 +173,52 @@ func TestPreventScopeFilteredPlayerRecipients(t *testing.T) {
 		if r.col != 0 {
 			t.Errorf("%s: record colour filter %#x, want none", c.name, r.col)
 		}
-		combat := !c.bear
+		combat := !c.noncombat
 		if got := s.prevScopeHit(k, r, f.slot(src), s.objs[src].card, white, prevTgt{c.rcp, NoSlot}, combat); got != c.want {
 			t.Errorf("%s: prevented %v, want %v", c.name, got, c.want)
 		}
 		*r = prevRec{}
+	}
+}
+
+// TestPreventScopeFilteredCopyStalls: a filtered instruction resolving from a
+// card other than its object's own (a Clone copying the card) cannot find its
+// filters again from the record's object, so it stalls instead of making a
+// record that prevents nothing.
+func TestPreventScopeFilteredCopyStalls(t *testing.T) {
+	f := newScopeFilterScen(t)
+	o := f.obj(f.bear, 0)
+	f.s.res.e.obj, f.s.res.e.ctrl, f.s.res.e.card = o, 0, f.fog
+	f.s.prevScopeAdd(f.k, &f.k.t.Cards[f.fog].Abilities[0].Prog[0])
+	if f.s.g.stalled != StallPrevScopeCopy {
+		t.Fatalf("stalled %d, want %d", f.s.g.stalled, StallPrevScopeCopy)
+	}
+	for i := range f.s.g.prevCol {
+		if f.s.g.prevCol[i] != (prevRec{}) {
+			t.Fatalf("record %d made for a copied filtered instruction", i)
+		}
+	}
+	// its own card resolves as before
+	f.s.g.stalled = 0
+	if r := f.resolve(f.fog); r == nil || f.s.g.stalled != 0 {
+		t.Fatal("an object of the program's own card did not make a record")
+	}
+}
+
+// TestPreventScopeFilteredRecordPinsItsObject: a filtered record reads its
+// object's card at hit time, so the object's id is not reused while it lives.
+func TestPreventScopeFilteredRecordPinsItsObject(t *testing.T) {
+	f := newScopeFilterScen(t)
+	r := f.resolve(f.fog)
+	if r == nil {
+		t.Fatal("no record")
+	}
+	o := r.obj
+	if !f.s.heldReferenced(o) {
+		t.Fatal("a filtered record's object can be reused while the record lives")
+	}
+	*r = prevRec{}
+	if f.s.heldReferenced(o) {
+		t.Fatal("precondition: the object is held with no record")
 	}
 }

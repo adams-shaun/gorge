@@ -3,6 +3,7 @@ package kgen
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -41,5 +42,29 @@ func TestScopedPreventionFiltersLower(t *testing.T) {
 		if scoped == 0 {
 			t.Errorf("%s lowers without a PreventDamageScope instruction", name)
 		}
+	}
+}
+
+// TestScopedPreventionColourSourceFilteredRecipient: a ValidSource$ colour
+// list beside a recipient that is not a bit form lowers the colours as a
+// source filter, never as bits above PrevScopeColourShift (where the kernel
+// reads recipient bits for a filtered record and no colours).
+func TestScopedPreventionColourSourceFilteredRecipient(t *testing.T) {
+	lc := &lowerCtx{p: &pool{}, known: func(string) bool { return true }}
+	vs := "Card.Red"
+	sb, sok := scopeSourceBits(vs)
+	tb, tok := scopeTargetBits("Creature")
+	if !sok || tok {
+		t.Fatalf("precondition: source bit form %v, target bit form %v, want true, false", sok, tok)
+	}
+	fb, sf, tf, err := lc.scopeFiltered("Creature", vs, tb, tok, sb, sok)
+	if err != nil {
+		t.Fatalf("scopeFiltered: %v", err)
+	}
+	if sf == nil || tf == nil {
+		t.Fatalf("source filter %v, recipient filter %v, want both", sf, tf)
+	}
+	if fb>>kop.PrevScopeColourShift != 0 {
+		t.Fatalf("bits %#x carry colours above the shift", fb)
 	}
 }
