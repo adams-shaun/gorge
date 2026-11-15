@@ -1,137 +1,268 @@
 Aether Spellbomb
 Air Servant
+Ajani's Mantra
 Akoum Refuge
+Ali Baba
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
 Ashen Monstrosity
+Assemble the Legion
 Attune with Aether
+Avatar of Growth
+Aven Trooper
 Azure Drake
 Back in Town
 Backfire
 Barony Vampire
 Barrow Witches
 Bathe in Dragonfire
+Battle of Hoover Dam
 Belligerent Sliver
 Big Boa Constrictor
 Black Widow, Intel Expert
 Bloodmark Mentor
+Blue Marvel, Adam Brashear
+Boggart Ram-Gang
+Bond of Flourishing
 Bond of Insight
 Bonehoard
+Boulderfall
 Bound in Silence
 Brandywine Farmer
+Bronze Guardian
 Burning Fields
+Call of the Herd
+Capashen Unicorn
+Catacomb Sifter
 Chaos Charm
 Chaotic Backlash
+Choking Sands
+Chromatic Star
+Cinder Pyromancer
+City of Brass
+Civilized Scholar
 Clip Wings
+Concordant Crossroads
+Creeping Corrosion
 Cunning Survivor
+Curse of Opulence
 Dawning Purist
+Death Speakers
 Death's Shadow
 Deepwood Wolverine
+Depth Charge Colossus
 Desynchronize
+Devouring Swarm
+Dina, Essence Brewer
+Dina, Soul Steeper
 Doom Whisperer
+Doom's Servo-Guards
 Drainpipe Vermin
+Dread Tiller
 Drifting Shade
 Dune Mover
+Dust Corona
+Dwarven Hold
 Easy Prey
+Ebony Treefolk
+Echoing Calm
+Eiganjo Castle
+Ember-Fist Zubera
 Etched Monstrosity
 Ethereal Investigator
+Euroakus
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Feral Maaka
 Ferocious Zheng
+Field Marshal
+Fire Ambush
 Fireblade Charger
 Fissure
 Forest
+Frightcrawler
+From the Rubble
+Furious Spinesplitter
+Gaze of Granite
+Genestealer Locus
 Geralf's Mindcrusher
+Ghoulcaller's Bell
 Gift of Paradise
 Gild
 Glen Elendra Liege
 Glimmervoid
+Gloomhunter
 Gnarled Effigy
+Goblin Arsonist
+Goblin Bushwhacker
+Goblin Tinkerer
+Grave Exchange
 Griffin Aerie
 Grixis Slavedriver
+Guardian of the Guildpact
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
+Hardened Scales
+Harpoon Sniper
 Herd Gnarr
 Hibernation
+Horned Helm
+Hornet Cobra
 Howl of the Night Pack
+Huatli, Radiant Champion
 Hurloon Battle Hymn
+Incarnation Technique
 Island
 Jace's Erasure
+Jhoira's Familiar
 Judith, the Scourge Diva
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
+Khenra Charioteer
 Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
+Krark-Clan Grunt
+Lava Axe
 Leapfrog
+Liliana's Elite
+Liliana's Standard Bearer
 Lingering Mirage
+Luxa River Shrine
 Lys Alana Huntmaster
+MACH-1, Swooping Scoundrel
+Magnify
 Mana Vault
+Mark of the Oni
 Mass Calcify
 Mass Mutiny
 Master of Winds
+Master the Way
+Meadowboon
+Merciless Executioner
 Metathran Elite
+Millstone
 Mind Over Matter
+Mind Ravel
 Mindwrack Harpy
 Minotaur, Roxxon CEO
+Mold Demon
+Momentum Rumbler
 Mountain
 Muck Rats
+Mulch
 Myrel, Shield of Argive
+Mystic Repeal
 Nebelgast Herald
+Needlethorn Drake
 Neonate's Rush
+Nexus of Fate
 Nezumi Freewheeler
 Nightveil Predator
+Nomads' Assembly
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Painwracker Oni
 Parallel Lives
+Peggy Carter, Secret Agent
 Peregrine Mask
 Perimeter Captain
 Phantasmal Dreadmaw
 Plains
 Plasmancer
 Poison the Well
+Portent of Betrayal
 Power of Persuasion
 Precinct Captain
+Precision Bolt
+Privileged Position
+Pull from Tomorrow
+Pyrrhic Blast
 Quest for Renewal
+Rabid Wolverines
+Rag Dealer
+Raging Kavu
+Rally Maneuver
 Rally the Peasants
+Reaver Ambush
 Reckless Barbarian
 Reclaim the Wastes
+Reveille Squad
+Riddlekeeper
 Rishkar's Expertise
 Riven Turnbull
+Roaring Slagwurm
 Rooftop Nuisance
+Runeclaw Bear
 Sage Aven
 Sailor of Means
 Sanctum of Stone Fangs
 Scab-Clan Mauler
 School of Piranha
+Scoria Wurm
 Sedgemoor Witch
 Seething Pathblazer
 Siege Dragon
+Sigarda's Summons
+Sign in Blood
+Silent Sentinel
+Silverflame Squire
+Silverskin Armor
 Sizzle
+Skittering Skirge
+Skizzik Surger
 Skyline Cascade
+Sleeper Agent
+Smoldering Crater
+Snow-Covered Forest
 Sonic Screwdriver
 Sootstoke Kindler
+Spectacle Mage
+Spectral Rider
 Spitebellows
+Spitfire Handler
+Steel Leaf Paladin
 Stormscape Apprentice
+Sudden Reclamation
 Sunscorched Desert
 Swamp
 Swarm of Rats
 Tectonic Edge
+Tel-Jilad Outrider
+Telepathic Spies
+The Indomitable
+Thopter Assembly
+Thraben Standard Bearer
 Threnody Singer
 Thundercloud Elemental
 Thundersteel Colossus
+Timin, Youthful Geist
 Trained Caracal
+Treetop Scout
 Tui and La, Moon and Ocean
+Turntimber Grove
+Tuskguard Captain
 Twiddle
+Umezawa's Charm
 Undead Servant
+Urabrask the Hidden
+Ursine Champion
 Venomous Changeling
 Verdant Sun's Avatar
+Vilis, Broker of Blood
+Vineweft
+Vintara Snapper
 Viscerid Deepwalker
+Warmonger Hellkite
+Weapon Rack
+Wedding Invitation
+Wei Scout
 Wizard Replica
 Woodland Stream
+Yawgmoth Demon
 Zap
 Zendikar Farguide

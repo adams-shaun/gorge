@@ -25,6 +25,7 @@ Conclave Sledge-Captain
 Conquer
 Consume Spirit
 Crucible of Fire
+Crumbling Vestige
 Crystal Chimes
 Dalek Squadron
 Dark Ritual
@@ -57,6 +58,7 @@ Fruitcake Elemental
 Gaea's Balance
 Ghor-Clan Savage
 Gibbering Hyenas
+Gideon's Reproach
 Glistening Oil
 Goblin Masons
 Grixis Battlemage
@@ -79,6 +81,8 @@ Laurine, the Diversion
 Lignify
 Mage's Guile
 Markov Crusader
+Meng Huo's Horde
+Mercy Killing
 Merfolk Mesmerist
 Midnight Covenant
 Might Weaver
@@ -97,9 +101,11 @@ Nine-Ringed Bo
 Nourish
 Origin of the Hidden Ones
 Painful Lesson
+Pillar of the Paruns
 Piper of the Swarm
 Plains
 Plated Wurm
+Primetime Suspect
 Pyromancer's Gauntlet
 Rally the Forces
 Realm-Cloaked Giant
@@ -111,6 +117,7 @@ Reservoir Kraken
 Resplendent Mentor
 Riptide Biologist
 Riptide Entrancer
+Rise to the Challenge
 Rosethorn Halberd
 Sakura-Tribe Scout
 Savai Triome
@@ -173,4 +180,5 @@ Weaver of Currents
 White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
+Wu Scout
 Zhang Liao, Hero of Hefei

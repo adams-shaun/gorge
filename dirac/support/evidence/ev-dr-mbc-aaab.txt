@@ -15,6 +15,7 @@ Bitterbow Sharpshooters
 Blessing of Leeches
 Blink of an Eye
 Blood Curdle
+Bone Shredder
 Broken Wings
 Campfire
 Captain Sisay
@@ -26,6 +27,7 @@ Claws of Gix
 Colossal Dreadmaw
 Cone of Flame
 Consul's Lieutenant
+Convulsing Licid
 Dark Ritual
 Dauthi Horror
 Dyfed, the Guiding Hand
@@ -37,6 +39,7 @@ Extinguish All Hope
 Fell Gravship
 Forest
 Ghost Lantern
+Gifted Aetherborn
 Heart Warden
 Infernal Vessel
 Insidious Fungus
@@ -47,6 +50,7 @@ Kyren Negotiations
 Lightning Bolt
 Lotus Petal
 Mana Short
+Memnite
 Mentor of the Meek
 Mind Stone
 Mindcrank
@@ -87,9 +91,15 @@ Swamp
 Tainted Strike
 Temporal Fissure
 Thunderdrum Soloist
+Thunderwave
+Tibalt's Rager
 Toby, Beastie Befriender
+Tolaria West
 Toski, Bearer of Secrets
+Totally Lost
 Trollbred Guardian
+Twisted Abomination
+Two-Handed Axe
 Undercity Informer
 Unseal the Necropolis
 Unwavering Initiate
@@ -99,3 +109,5 @@ Veteran Armorer
 Vile Consumption
 Vine Mare
 Whip Silk
+Windgrace Acolyte
+You Find Some Prisoners

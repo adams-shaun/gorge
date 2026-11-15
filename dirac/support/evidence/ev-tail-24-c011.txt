@@ -1,32 +1,53 @@
+Annex Sentry
+Artificer's Intuition
 Battlegrace Angel
 Benevolent Hydra
 Bone Devourer
 Bone Picker
 Boss Uramon, Shadow's Reach
 Brute Force
+Captive Weird
+Chakram Retriever
 Chandra's Triumph
 Court of Bounty
 Crush
+Discontinuity
 Ellivere of the Wild Court
+Ensoul Artifact
+Forbid
 Forest
+Generous Visitor
 Gilt-Leaf Seer
 Goblin Ringleader
 Herald of Slaanesh
+Hero's Heirloom
 Hordeling Outburst
+Impetuous Sunchaser
 Island
 Jackhammer
+Lava Spike
 Lightning Bolt
 Llanowar Augur
 Luminous Wake
+Machine Man, Model X-51
+Marsh Viper
+Mechanized Warfare
+Minister of Inquiries
 Mirari's Wake
 Misthollow Griffin
+Moldgraf Scavenger
 Mountain
 Muxus, Goblin Grandee
 Order of Whiteclay
+Ovinize
 Patriar's Seal
 Plains
+Radha's Firebrand
+Rampart Crawler
 Recruit the Worthy
 Riot Ringleader
+Sabertooth Wyvern
+Saheeli's Silverwing
 Sealock Monster
 Seismic Elemental
 Sorin, Imperious Bloodlord
@@ -34,10 +55,13 @@ Soul Net
 Sparkspitter
 Staggershock
 Swamp
+Sworn Companions
 Tangled Florahedron
 Taste for Mayhem
 Territorial Scythecat
+Tome Anima
 Trollhide
 Tuknir Deathlock
 Tymaret, the Murder King
 Underworld Rage-Hound
+Whirling Strike

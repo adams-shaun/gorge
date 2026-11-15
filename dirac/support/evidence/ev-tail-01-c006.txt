@@ -1,26 +1,122 @@
+A-Pseudodragon Familiar
+A-Urza, Powerstone Prodigy
+Aim for the Head
 Alaborn Trooper
+Ammit Eternal
+Arc Spitter
 Arcane Spyglass
 Ascendant Evincar
+Balance of Power
+Banewasp Affliction
+Barkchannel Pathway
 Blinding Mage
+Blitz Automaton
 Blossoming Calm
+Bone Shards
+Carrion Howler
+Carrion Locust
+Charred Graverobber
 Choking Fumes
+Coastal Tower
+Corpsehatch
+Costly Plunder
+Crafty Pathmage
 Darklit Gargoyle
+Desolation Twin
+Diabolic Machine
+Disciple of the Vault
+Dispersing Orb
 Eastfarthing Farmer
 Eddytrail Hawk
+Eternity Vessel
+Executioner's Hood
+Fellwar Stone
 Flashfires
 Forest
+Gaea's Cradle
 Glaze Fiend
+Glorious Dragon-Kin
 Goblin Picker
+Grave Titan
+Hasran Ogress
+Hatred
+Helm of Awakening
+Homarid Spawning Bed
+Implement of Examination
+Infernal Grasp
 Island
+Khabál Ghoul
+Killer Whale
 Leonardo, the Balance
+Llawan, Cephalid Empress
+Locked in the Cemetery
+Lotus Path Djinn
+Lu Su, Wu Advisor
+Magnetic Mine
+Mana Geode
+Mana Severance
 Marble Chalice
+Master of Waves
+Meekstone
+Minor Misstep
+Moor Fiend
+Mordor Muster
 Mountain
+Myr Battlesphere
+Notorious Assassin
+Oathkeeper, Takeno's Daisho
+Omenspeaker
+Orcish Medicine
+Origin Spellbomb
+Palace Familiar
 Penumbra Kavu
+Pestilence Rats
+Petals of Insight
+Plagued Rusalka
 Plains
+Polluted Delta
 Predator's Howl
+Pride of the Perfect
+Profaner of the Dead
+Puppeteer
+Rakdos Carnarium
+Recover
+Riverwise Augur
+Roofstalker Wight
+Royal Warden
+Rupture Spire
+Sandstone Bridge
 Scepter of Fugue
+Seer of the Last Tomorrow
 Shock Troops
+Short Circuit
+Sinister Strength
+Skaab Wrangler
+Skeletal Snake
+Sleek Schooner
+Soul Snuffers
+Spellkeeper Weird
+Spire Mangler
+Spontaneous Mutation
+Stream of Consciousness
 Swamp
+Tenza, Godo's Maul
+Tezzeret, Master of the Bridge
+The Revelations of Ezio
 Thrilling Discovery
+Tolarian Serpent
+Torch Drake
+Torch Gauntlet
+Torture
+Trained Condor
+Unearth
 Unlikely Alliance
+Vat of Rebirth
+Vault of Whispers
+Venser's Sliver
+Vibrating Sphere
+Wanderguard Sentry
+Warg Rider
 Waterwhirl
+Zhentarim Bandit
+Zhou Yu, Chief Commander

@@ -7,20 +7,25 @@ Blazing Volley
 Bola Warrior
 Boomerang
 Canyon Lurkers
+Chain Stasis
 Defy Death
 Demanding Dragon
 Doomed Traveler
 Drake Familiar
+Earthshaker Giant
 Extract from Darkness
 Fanatical Devotion
 Fire Servant
 Forest
+Goblin Legionnaire
 Humble
 Imposing Visage
 Ingenious Skaab
 Island
+Journey for the Elixir
 Knight of the Tusk
 Llanowar Cavalry
+Manhole Cover
 Molderhulk
 Molten Ravager
 Momentary Blink
@@ -30,17 +35,22 @@ Pact of Negation
 Palace Sentinels
 Plains
 Psychic Overload
+Quintorius, Field Historian
 Reckless Reveler
+Regenesis
 Renegade Warlord
+Riptide Mangler
 Rising Populace
 Rummaging Goblin
 Season of Growth
+Shu Farmer
 Sighted-Caste Sorcerer
 Sky Crier
 Spined Thopter
 Stony Silence
 Storm Seeker
 Sungrace Pegasus
+Surrakar Banisher
 Swamp
 Tezzeret's Gambit
 Ukkima, Stalking Shadow

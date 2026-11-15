@@ -1,56 +1,195 @@
+A-Revel Ruiner
 A-Stitched Assistant
 Aboshan's Desire
+Abyssal Nocturnus
+Aether Rift
 Akki Lavarunner
 Akuta, Born of Ash
 Alpine Guide
+Anaba Spirit Crafter
+Anointed Chorister
+Army of Allah
+Ashen-Skin Zubera
+Autonomous Assembler
 Aven Fisher
 Baloth Prime
+Bitterblossom
+Bladed Battle-Fan
+Blur Sliver
+Boss Uramon, Shadow's Reach
+Broken Bond
+Brutal Nightstalker
+Brute Force
+Burning Anger
+Call of the Death-Dweller
 Call to the Netherworld
+Caller of Gales
+Captain America, Steve Rogers
+Captain's Defense
 Cathartic Operation
+Cloistered Youth
+Collector Ouphe
 Commune with the Gods
+Court of Bounty
+Crater's Claws
+Crippling Blight
+Cudgel Troll
 Dark Hatchling
+Darkest Hour
+Daybreak Chaplain
+Deathbringer Thoctar
+Deathknell Berserker
+Defiant Falcon
+Destructor Dragon
 Deviant Glee
+Distortion Strike
+Divine Sacrament
+Doubtless One
+Dream Fracture
+Ebony Owl Netsuke
+Eldrazi Devastator
+Elminster's Simulacrum
 Ephemeron
+Erebos, Bleak-Hearted
+Etherium Spinner
+Everflame Eidolon
 Festive Funeral
+Fire-Omen Crane
 Forest
+Forge Devil
 Foul-Tongue Shriek
+Frantic Inventory
+Fungusaur
+Furious Reprisal
+Future Flight
 Galestrike
 Generous Patron
 Ghost Ship
+Gilt-Leaf Seer
 Glimpse of Freedom
+Gloom Pangolin
+Goblin Striker
 Guardian Kirin
+Gwenna, Eyes of Gaea
+Hashep Oasis
+Heavy Arbalest
 Hermes, Overseer of Elpis
 Heroes' Reunion
+Horror of the Dim
+Hulk, Strongest There Is
+Humble Defector
+Hungry for More
 Ichor Synthesizer
+Illusions of Grandeur
 Island
+Ixalli's Keeper
+Jeska, Warrior Adept
 Joraga Bard
 Junk Golem
+Junk Jet
 Keiga, the Tide Star
+Kudo, King Among Bears
+Labyrinth of Skophos
+Lapis Lazuli Talisman
+Lurking Green Dragon
 Malefic Scythe
+Marble Gargoyle
+Mass of Ghouls
 Mawcor
+Mayhem Devil
+Might Sliver
+Mindmelter
+Moldgraf Monstrosity
+Momo, Rambunctious Rascal
+Monster Mashup
 Mountain
+Mystic Subdual
 Necron Deathmark
+Necropede
+Niv-Mizzet, Parun
+Noble Stand
+Nyxborn Eidolon
+Onward
+Open the Gates
 Overgrowth Elemental
+Pearl Medallion
 Persist
+Phantasmagorian
+Phoenix of Ash
 Plains
+Planar Incision
+Polluted Dead
 Prickly Boggart
+Psychic Corrosion
+Radha, Coalition Warlord
+Radical Idea
+Ragefire
 Recycla-bird
 Rejuvenation Chamber
+Resolute Rider
+Response
+Ripjaw Raptor
+Rise from the Nether
+Rot Shambler
 Rotting Mastodon
+Sage of the Falls
+Salt Road Patrol
 Satyr's Cunning
+Savage Surge
+Scent of Jasmine
 Seedcradle Witch
 Seismic Shudder
+Shrapnel Blast
+Siege Smash
+Siege-Gang Commander
+Silverglade Elemental
+Silverquill Lecturer
+Skyclave Shadowcat
+Snapping Drake
+Soliton
+Soot Imp
+Soratami Rainshaper
 Sorin, Imperious Bloodlord
+Spellgorger Barbarian
+Spire Owl
+Staff of Titania
+Steadfast Armasaur
+Steward of Solidarity
+Stonerise Spirit
+Striding Shotcaller
+Sun Clasp
 Swamp
+Sword Coast Serpent
+Tall as a Beanstalk
+Tamiyo's Logbook
+Tasseled Dromedary
+Teyo's Lightshield
 Thassa's Bounty
+The Underworld Cookbook
+Thieves' Tools
+Thirsting Shade
 Tide Drifter
+Titan of Industry
 Twin-Silk Spider
+Undercity Necrolisk
 Unholy Strength
+Unleash Fury
 Vapor Snare
 Vedalken Entrancer
+Venomous Hierophant
 Vessel of Paramnesia
+Viashino Sandscout
+Voda Sea Scavenger
+Voice of the Blessed
+Voracious Wurm
 Wall of Granite
+Wall of Tombstones
+Wayfaring Temple
 Wayward Swordtooth
 Wild Ceratok
+Wild Onslaught
+Will of the Mardu
+Wistful Thinking
 Wrong Turn
 Wurmcalling
+You Happen On a Glade

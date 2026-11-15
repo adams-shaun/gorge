@@ -1,15 +1,26 @@
+A-Gnarlid Colony
 A-Syndicate Infiltrator
 A-Young Blue Dragon
 Abattoir Ghoul
+Aberrant
 Aegis Automaton
+Agent of Masks
+Akoum Flameseeker
 Akroan Sergeant
+Altar Golem
 Amulet of Vigor
 Ancient Copper Dragon
 Angrath's Marauders
+Ant-Man, Elusive Avenger
 Antagonize
 Aphetto Vulture
+Arcade Cabinet
 Arcane Laboratory
+Archon of Emeria
 Armageddon
+Asylum Visitor
+Atalya, Samite Master
+Auger Spree
 Avatar of Might
 Balshan Collaborator
 Banishing Slash
@@ -18,18 +29,26 @@ Battle Sliver
 Blessed Light
 Blood Ogre
 Bloodcrazed Neonate
+Blot Out
 Boon of Emrakul
 Brass Secretary
+Bright-Palm, Soul Awakener
 Brilliant Plan
+Butterbur, Bree Innkeeper
 Carrion Wall
+Celestial Crusader
 Cenn's Heir
 Chandra's Fury
 Charcoal Diamond
+Charmbreaker Devils
+Child of the Pack
+Clan Guildmage
 Cleric of Chill Depths
 Cliffhaven Sell-Sword
 Cloud Crusader
 Cogwork Archivist
 Colossal Majesty
+Common Iguana
 Compulsion
 Concordia Pegasus
 Corrupted Key
@@ -37,44 +56,75 @@ Crack the Earth
 Creeping Mold
 Crumbling Colossus
 Crypt Ghast
+Daraja Griffin
+Deflection
 Devils' Playground
+Dhund Operative
 Dragon Egg
 Draugr Thought-Thief
 Drifter il-Dal
 Dune Beetle
+Elvish Clancaller
 Elvish Harbinger
+Everbark Shaman
+Extraction Specialist
 Faceless Devourer
+Feldon, Ronom Excavator
+Felhide Petrifier
 Fetid Imp
 Field of Reality
 Flowstone Crusher
 Forest
 Free from Flesh
 Frog-Squirrels
+Frontline Medic
 Furnace Scamp
+Gavony Trapper
+Ghost Lantern
 Gnoll War Band
 Gnome-Made Engine
 Goblin Bruiser
+Goblin Mutant
+Hangar Scrounger
+Helitrooper
+High Alert
 Hornswoggle
 Hunters' Feast
 Idol of Oblivion
+Inferno Titan
 Infest
+Infestation Expert
+Invasive Species
 Ironroot Treefolk
 Island
+Isolate
 Jaheira's Respite
+Kami of Celebration
+Kami of the Hunt
 Kargan Dragonlord
+Keeper of Fables
 Killian, Ink Duelist
 Krakilin
 Lava Zombie
+Lawless Broker
 Legion's Judgment
 Leonin Scimitar
+Liliana's Scrounger
+Llanowar Tribe
 Locus Cobra
+Lorehold Excavation
 Manglehorn
 Mental Misstep
 Merchant Scroll
 Mercurial Transformation
+Miasmic Mummy
+Midnight Assassin
 Midnight Haunting
+Mind Burst
+Mindwarper
 Minion of the Mighty
 Mnemonic Wall
+Morgue Theft
 Mortal's Ardor
 Mossbeard Ancient
 Mountain
@@ -82,71 +132,127 @@ Mountain Bandit
 Mysterious Pathlighter
 Necrogen Mists
 Needlebug
+Nemesis Mask
+Oji, the Exquisite Blade
 Omen of the Sun
+Orchard Spirit
 Ore-Scale Guardian
 Oread of Mountain's Blaze
 Ovalchase Daredevil
 Patrol Signaler
+Phantom Wings
 Plains
+Platinum Angel
 Plummet
 Porcelain Legionnaire
 Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
+Qasali Pridemage
 Rage Forger
+Ragged Recluse
 Rakdos Cluestone
+Rakka Mar
+Ravenous Baboons
+Reiterate
 Reito Lantern
 Resourceful Return
 Ring of Three Wishes
 Ringwarden Owl
+Ronin Warclub
 Rooting Kavu
+Roughshod Mentor
+Rousing of Souls
+Ruination Wurm
+Safeguard
 Sandsteppe Outcast
 Scion of Glaciers
+Scourge of Skola Vale
 Screamreach Brawler
+Scurry of Squirrels
 Sea Kings' Blessing
 Season of Renewal
 Second Harvest
 Second Thoughts
+Security Detail
 Seed Guardian
+Selesnya Sentry
 Sengir Vampire
 Sentinel Spider
 Shadowblood Egg
 Shaggy Camel
 Shelter
+Shriek of Dread
+Siege Wurm
+Sigil of Distinction
+Silburlind Snapper
 Six-Sided Die
 Skyclave Geopede
 Skylasher
+Sleeper's Guile
 Slinking Skirge
 Smolder Initiate
+Solemn Recruit
+Song of Eärendil
 Southern Elephant
 Spark Trooper
+Spartan Veteran
+Spell Rupture
 Sphinx of Magosi
+Spinehorn Minotaur
 Spirit Away
 Steam Blast
+Steward of Valeron
 Stone Rain
 Stormtide Leviathan
 Strength of Night
+Structural Distortion
 Subtle Strike
+Sulfurous Mire
+Sumala Rumblers
 Survival Cache
 Swamp
+Swan Song
+Synapse Sliver
+Tah-Crop Skirmisher
 Tajuru Beastmaster
 Talisman of Curiosity
+Tegan Jovanka
+Territorial Kavu
 Terror of the Fairgrounds
+The Destined White Mage
 Thing Swing
 Thorn Mammoth
 Thornling
+Thoughtseize
 Thunder Strike
+Tidespout Tyrant
+Tidings
 Tigereye Cameo
 Time Wipe
+Time of Heroes
+Timely Interference
+Triad of Fates
 Triton Shorethief
+Turbulent Crater
 Turn the Tide
 Turnabout
 Undercity Shade
 Underworld Charger
+Untamed Might
+Unwilling Recruit
+Valor of the Worthy
 Vastwood Gorger
 Vineshaper Mystic
 Vivid Revival
 Vivisurgeon's Insight
 Voltaic Key
 Volunteer Militia
+Warped Landscape
 Wei Elite Companions
+Welcoming Vampire
+Whetwheel
+Wirewood Savage
+Woodland Chasm
+Wrenn's Resolve
+Yuan Shao, the Indecisive
