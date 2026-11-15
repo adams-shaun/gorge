@@ -1,11 +1,110 @@
+A-Hullbreaker Horror
+Alchemist's Retrieval
+Ashiok's Adept
+Attended Socialite
+Avengers Quinjet
+Balm of Restoration
+Basal Sliver
 Bloated Contaminator
+Bloodline Shaman
+Bramble Creeper
 Break Asunder
 Browse
+Caligo Skin-Witch
+Churning Eddy
+Clear the Land
+Clear the Mind
+Cliffhaven Kitesail
+Clinging Mists
+Concord with the Kami
+Deadly Wanderings
+Death-Greeter's Champion
+Demonic Collusion
+Desperate Castaways
+Devotee of Strength
+Distract
+Doomfall
+Dragon Hatchling
+Dragonspeaker Shaman
+Eidolon of Philosophy
+Evolutionary Leap
+Fierce Witchstalker
+Fire Ants
 Forest
+Frilled Sea Serpent
+Fyndhorn Brownie
+Gaea's Anthem
+Gala Greeters
+Gather the Pack
+Goblin Gathering
+Hardy Veteran
+Hellhole Rats
+Hua Tuo, Honored Physician
+Hungry Flames
+Icy Manipulator
+Inferno of the Star Mounts
 Island
+Jade Idol
+Jilt
+Jump
+Light of Day
+Llanowar Loamspeaker
+Loathsome Chimera
+Lumengrid Sentinel
+March from the Tomb
+Mastermind Plum
+Metallic Sliver
 Mountain
+Nahiri's Binding
+Nantuko Shade
+Pack's Betrayal
 Patient Rebuilding
+Placid Rottentail
 Plains
+Planar Gate
+Prakhata Pillar-Bug
+Promise of Aclazotz
+Quasiduplicate
+Raiders' Spoils
+Ravenous Vampire
+Repeal
+Replication Specialist
+Ring of Valkas
+Riptide Director
+River Kaijin
+Rolling Stones
+Rune Snag
+Sadistic Slash
+Settlement Blacksmith
+Shadow, Mysterious Assassin
+Sheoldred's Headcleaver
+Shiny Impetus
+Sigil of Myrkul
+Skrelv, Defector Mite
+Skull Raid
+Smash to Smithereens
+Spellstutter Sprite
+Spoils of Evil
 Stampeding Elk Herd
 Star Whale
+Storm Front
+Swaggering Corsair
 Swamp
+Tamiyo's Safekeeping
+Tendrils of Corruption
+The Blackstaff of Waterdeep
+Tishana's Wayfinder
+Tomb Robber
+Towashi Songshaper
+Tower Defense
+Tranquility
+Underdark Explorer
+Unhallowed Phalanx
+Village Elder
+Vodalian Serpent
+Wasteland Viper
+Watchful Automaton
+Weakstone's Subjugation
+Well of Life
+Windfall
+Zephyr Winder

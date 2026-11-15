@@ -2,36 +2,65 @@ Akroma's Memorial
 Alpha Kavu
 Angelic Gift
 Ashcoat Bear
+Bloodcrazed Neonate
+Butterbur, Bree Innkeeper
 Canoptek Spyder
 Caustic Crawler
 Celestial Regulator
 Cephalid Retainer
+Chandra's Pyreling
+Chaos Harlequin
 Charging Monstrosaur
+Chivalric Alliance
+Cogwork Archivist
+Crack the Earth
+Cruel Bargain
+Dalakos, Crafter of Wonders
 Dauntless Cathar
+Death's Presence
+Dihada's Ploy
 Dross Scorpion
+Dungeon Shade
 Evolutionary Escalation
 Faerie Invaders
 Flowstone Overseer
 Flutterfox
 Forerunner of Slaughter
 Forest
+General Marhault Elsdragon
 Ghirapur Guide
 Goblin Diplomats
 Goblin General
 Goblin War Party
+Hand of Silumgar
 Heirs of Stromkirk
+Hexmark Destroyer
+Infest
 Iron Tusk Elephant
 Isamaru, Hound of Konda
 Island
+Joyous Respite
+Jungle Delver
+Jungle Shrine
+Kardur, Doomscourge
 Kris Mage
+Kruphix's Insight
+Magma Rift
 Marble Diamond
+Massive Raid
 Mesa Lynx
 Minister of Pain
 Mountain
+Multani's Acolyte
+Night
 Nurturing Licid
+Nylea, God of the Hunt
 Overcome
 Overwhelming Encounter
+Panic Spellbomb
+Pegasus Charger
 Plains
+Rage Forger
 Rampaging Ferocidon
 Reckless Abandon
 Rottenheart Ghoul
@@ -48,6 +77,7 @@ Slaughter Pact
 Smoke Bomb
 Spire Barrage
 Stone Retrieval Unit
+Strength of Night
 Striking Sliver
 Sturmgeist
 Swamp
@@ -58,6 +88,10 @@ Thrummingbird
 Thunderscape Familiar
 Timberwatch Elf
 Tormod's Crypt
+Underworld Charger
 Unexpected Fangs
+Untamed Might
 Warfire Javelineer
+Warren Soultrader
+Xathrid Slyblade
 Zhao, the Seething Flame
