@@ -3475,6 +3475,9 @@ func (lc *lowerCtx) destroyHealRepl(rp *params, w *cards.SA, rl *lRepl) error {
 // and Crystal Barricade's prevention (noncombat damage to your other
 // creatures).
 func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	if ok, err := lc.preventToSelf(rp, w, rl); ok || err != nil { // lower_preventtoself.go
+		return err
+	}
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: DamageDone ActiveZones")
 	}

@@ -564,10 +564,11 @@ const (
 	rbPrevCombatBy                    // CardDef.PreventCombatBy: the combat damage it would deal is prevented (combat_preventfrom.go)
 	rbDiscETB                         // ReplDiscardOppToBattlefield (repl_discardetb.go)
 	rbPrevMill                        // ReplPreventMillOpps (repl_preventmill.go)
-	rbPrevCtrSelf                     // ReplPreventDamageCounters (repl_selfdamage.go)
+	rbPrevCtrSelf                     // ReplPreventDamageCounters, either body (repl_selfdamage.go)
 	rbHealSelf                        // ReplDamageHealFirst (repl_selfdamage.go)
 	rbPayETB                          // ReplPayBeforeETB (repl_paybeforeetb.go)
 	rbDestroyRegen                    // ReplDestroyRegenerate (repl_destroyheal.go destroyLine)
+	rbPrevToSelf                      // ReplPreventDamageToSelf (repl_preventtoself.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -1175,11 +1176,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
-				case kop.ReplPreventDamageCounters:
-					g.replBits[i] |= rbPrevCtrSelf
-					pc.hasStat = true
-				case kop.ReplDamageHealFirst:
-					g.replBits[i] |= rbHealSelf
+				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf:
+					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
 					g.replBits[i] |= rbDblTok

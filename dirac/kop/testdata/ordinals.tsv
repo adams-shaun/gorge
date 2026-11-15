@@ -1614,7 +1614,13 @@ ReplOthersEnterProgram	ReplKind	7
 ReplPayBeforeETB	ReplKind	39
 ReplPayLife	ReplKind	60
 ReplPlaneswalk	ReplKind	52
+ReplPrevSelfRemoveOne	untyped int	1
+ReplPrevToCombat	untyped int	2
+ReplPrevToCreature	untyped int	4
+ReplPrevToSrcInPlay	untyped int	8
+ReplPrevToYourTurn	untyped int	1
 ReplPreventDamageCounters	ReplKind	36
+ReplPreventDamageToSelf	ReplKind	63
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplProduceMana	ReplKind	43

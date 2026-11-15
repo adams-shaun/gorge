@@ -248,9 +248,9 @@ const (
 	SrShuffleOptional              // retired: kgen never sets it; the bit stays reserved
 	SrConfirm                      // Optional$ confirmation (yes/no) before the pick: OpChooseMove from a hand, or an OpSearchEx library search (the fetching player answers)
 	SrRemember                     // the moved cards join the remembered set (RememberChanged$; a search onto the battlefield or into a hand, or an OpChooseMove)
-	SrChooserYou                   // OpChooseMove from player Obj's hand: the resolving controller chooses (gorge Chooser$ You), not the hand's owner
+	SrChooserYou                   // OpChooseMove from player Obj's hand or fetched graveyard: the resolving controller chooses (gorge Chooser$ You), not the zone's owner
 	SrReveal                       // OpChooseMove from a hand to zone none: a reveal pick (gorge effReveal's reveal_pick), nothing moves; SrConfirm then asks only when a card qualifies
-	SrOwnZone                      // OpChooseMove over the battlefield: only player Obj's permanents (gorge effHiddenPick with DefinedPlayer$), not every player's
+	SrOwnZone                      // OpChooseMove over the battlefield: only player Obj's permanents (gorge effHiddenPick with DefinedPlayer$), not every player's; over a graveyard with SrUnderYourControl: player Obj's graveyard only, the cards entering under the resolving controller
 	SrGraveExile                   // OpChooseMove (graveexile): the pool is every player's Graveyard then Exile (gorge effHiddenPick gameWide); Filter.Zone is ZoneNone
 	SrForgetOther                  // OpChooseMove (hand move or graveexile): ForgetOtherRemembered$ clears the remembered set before the moves (and on an empty pool)
 	SrUnderYourControl             // OpChooseMove (GainControl$): the picked cards enter under the fetching controller, else (SrGraveExile) under their owner; a plain Graveyard pick with it is game-wide
