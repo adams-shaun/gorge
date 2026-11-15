@@ -889,11 +889,8 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	return false
 }
 
-// visit is one priority node of the search.
-func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
-	if !fs.tick() {
-		return false
-	}
+// stateKey is the visited-state key of node t.
+func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 	p := fs.p
 	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	if k.artMana {
@@ -905,6 +902,16 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			key.tapped = key.tapped.with(sl)
 		}
 	}
+	return key
+}
+
+// visit is one priority node of the search.
+func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	p := fs.p
+	key := fs.stateKey(k, t)
 	for i := 0; i < fs.nseen; i++ {
 		if fs.seen[i] == key {
 			return false
