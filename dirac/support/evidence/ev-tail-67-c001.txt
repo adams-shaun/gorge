@@ -2,47 +2,182 @@ A-Dokuchi Silencer
 A-Elven Bow
 Accelerated Evolution
 Aethershield Artificer
+Against All Odds
+Akki Underminer
+Akrasan Squire
 Akroan Crusader
+Angelic Renewal
 Aquatic Incursion
+Archaeomender
+Augury Adept
+Autochthon Wurm
+Avatar of the Resolute
+Awakener Druid
+Axebane Guardian
+Azimaet Drake
+Baneful Omen
+Barbarian Lunatic
+Blight Grenade
 Blisterspit Gremlin
 Buried Alive
 Burn the Impure
+Butcher Ghoul
+Cao Cao, Lord of Wei
+Chakram Slinger
 Cogwork Assembler
+Commissar Severina Raine
+Corpse Knight
 Cosmos Elixir
+Courier's Capsule
+Crop Rotation
+Culling Mark
 Daring Fiendbonder
+Dauntless Survivor
+Deathless Angel
+Deep Reconnaissance
 Deepwood Ghoul
+Deft Dismissal
 Demon's Grasp
 Demonic Rising
+Domri, Anarch of Bolas
 Drag Down
+Dramatic Reversal
+Dynavolt Tower
+Earthen Goo
+Erratic Visionary
+Essence Warden
+Eternal Witness
+Everglades
+Expansion
+Explosive Welcome
+Fain, the Broker
+Firebird, Blazing Ranger
+Flametongue Kavu
+Fleetfeather Sandals
+Fleshpulper Giant
 Flow of Ideas
 Flux Channeler
 Forest
+Fungal Sprouting
+Genku, Future Shaper
+Glittermonger
 Glory Bearers
+Gluttonous Zombie
+Go Forth
+Grazilaxx, Illithid Scholar
+Grim Monolith
+Hadran, Naya Sunseeder
+Hail Storm
+Hanabi Blast
+Hanna, Ship's Navigator
+Helm of the Ghastlord
 Hemlock Vial
+Honed Khopesh
+Hooting Mandrills
+Horizon Chimera
+Horseshoe Crab
 Hound of the Farbogs
+Hydra's Growth
+Inkrise Infiltrator
+Inspiring Refrain
 Iroas's Champion
+Iron Suitcase
 Island
+Jackalope Herd
+Keen-Eyed Raven
+Ken, Burning Brawler
+Khalni Gem
+Kirtar's Wrath
+Kiyomaro, First to Stand
+Leafkin Druid
+Leather Armor
 Lightning Reaver
+Lightning-Core Excavator
 Liliana's Influence
+Lodestone Myr
+Longtusk Cub
+Lush Growth
+MJ, Rising Star
 Malachite Talisman
 Manaforce Mace
+Manticore Eternal
 Mardu Strike Leader
+Metropolis Reformer
+Mise
+Misery's Shadow
 Mogis's Warhound
+Moonlight Hunt
+Moss Monster
 Mountain
+Murkfiend Liege
 Nagging Thoughts
+Natural Emergence
 Necrobite
+Nemesis of Reason
+Neurok Familiar
+Nezumi Bladeblesser
 Norn's Disassembly
+Oblation
+Pentarch Ward
 Plains
+Pol Jamaar, Illusionist
+Primeval Force
 Prosper, Tome-Bound
+Prosperous Innkeeper
+Python
+Rage Weaver
+Ravos, Soultender
+Ray of Erasure
+Reality Ripple
 Reckless Charge
 Reduce to Ashes
+Relic Barrier
 Revelation of Power
 Rustrazor Butcher
 Savra, Queen of the Golgari
+Scavenged Blade
+Scion of Vitu-Ghazi
 Searing Barb
+Sentinel Sliver
+Skullknocker Ogre
 Slinking Giant
+Slobad, Goblin Tinkerer
+Sol Grail
+Soul of Theros
+Spined Fluke
+Squee's Embrace
+Stormcrag Elemental
+Stormrider Rig
 Swamp
+Talons of Falkenrath
+Talons of Wildwood
+Temmet, Vizier of Naktamun
+Territorial Allosaurus
+The Bears of Littjara
+Thorn Thallid
+Throes of Chaos
+Thrór's Map
 Thunder Drake
+Thwart the Grave
+Titan's Strength
 Tormod's Cryptkeeper
+Tranquil Path
+Troublesome Spirit
+Trueheart Duelist
+Umbris, Fear Manifest
+Undercity Scavenger
+Unholy Hunger
+Urza's Cave
+Vine Trellis
 Warped Devotion
+Way of the Thief
+Weight of the Underworld
+Welder Automaton
 Whispering Wizard
+Wirecat
+Woodland Liege
+Wrath of Oko
+You Look Upon the Tarrasque
+Zenith Festival
+Zephyr Falcon
+Zodiac Ox

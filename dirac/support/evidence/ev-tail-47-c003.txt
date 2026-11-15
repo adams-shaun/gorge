@@ -13,6 +13,7 @@ Bloodthrone Vampire
 Bow of Nylea
 Brain Gorgers
 Brilliant Halo
+Burn Bright
 Capashen Knight
 Captain Sisay
 Capture of Jingzhou
@@ -23,9 +24,12 @@ Chosen by Heliod
 Cinderslash Ravager
 Conclave Sledge-Captain
 Conquer
+Consider
 Crucible of Fire
+Crumbling Vestige
 Crystal Chimes
 Dark Ritual
+Darksteel Angel
 Dawnhart Mentor
 Deathbellow Raider
 Delighted Killbot
@@ -34,6 +38,7 @@ Depths of Desire
 Diligent Farmhand
 Dirgur Nemesis
 Dragonstalker
+Dread Return
 Drinker of Sorrow
 Elvish Berserker
 Energy Tap
@@ -43,6 +48,7 @@ Eyeless Watcher
 Ezio, Brash Novice
 Fallen Ideal
 Fangblade Brigand
+Fangren Firstborn
 Field Creeper
 Fiendslayer Paladin
 Fire Nation Turret
@@ -54,11 +60,15 @@ Fruitcake Elemental
 Gaea's Balance
 Ghor-Clan Savage
 Gibbering Hyenas
+Gideon's Reproach
 Glistening Oil
 Go-Shintai of Boundless Vigor
 Goblin Masons
+Grasping Scoundrel
 Guardian of Tazeem
+Hag of Ceaseless Torment
 Harsh Deceiver
+Harvester of Souls
 Hazoret's Favor
 Highland Berserker
 Howling Banshee
@@ -90,16 +100,20 @@ Mogg War Marshal
 Moment of Heroism
 Mountain
 Mutant's Prey
+Myr Galvanizer
 Mysterio's Mirage
 Natural Connection
 Natural Selection
 Nesting Wurm
 Nourish
+Noxious Groodion
 Oath of Chandra
+Obstinate Baloth
 Open the Vaults
 Origin of the Hidden Ones
 Ozolith, the Shattered Spire
 Painful Lesson
+Paupers' Cage
 Piper of the Swarm
 Plains
 Plated Wurm
@@ -160,6 +174,7 @@ Teferi's Tutelage
 Tel-Jilad Archers
 Terra Eternal
 Tezzeret's Ambition
+The Everforger
 The Hunger Tide Rises
 Time of Ice
 Tin Street Dodger
@@ -169,11 +184,17 @@ Two-Headed Dragon
 Tyrranax
 Vaporkin
 Vastwood Fortification
+Vastwood Zendikon
 Vesperlark
+Viridian Shaman
 Volcanic Island
+Voracious Vampire
 Vow of Wildness
 Walking Corpse
+Wandering Treefolk
+Warden of the Wall
 Weaver of Currents
+White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter

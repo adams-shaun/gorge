@@ -4,35 +4,50 @@ Abyssal Nightstalker
 Abyssal Specter
 Abzan Advantage
 Accorder Paladin
+Admiral's Order
+Aetherworks Marvel
 Aggressive Instinct
 Ahn-Crop Invader
 Airlift Chaplain
 Ajani's Welcome
 Akki Avalanchers
+Altar of Bone
 Ambush Paratrooper
+Ancient Hydra
 Angel of the Dawn
 Angelic Field Marshal
+Arashin War Beast
+Arborea Pegasus
+Arch of Orazca
 Arrester's Zeal
 Aurochs Herd
 Azorius Charm
 Bala Ged Recovery
 Become the Avalanche
+Blade-Blizzard Kitsune
 Blanchwood Treefolk
+Bloodhall Priest
 Bloodmist Infiltrator
+Bloodrage Vampire
 Boggart Loggers
 Border Patrol
 Bottle Golems
 Bramblesnap
 Breath of Darigaaz
 Brightwood Tracker
+Brokers Initiate
 Brute Strength
+Cage of Hands
 Centaur Chieftain
 Chandra's Outrage
 Clash of Wills
 Coiled Tinviper
 Compelled Duel
 Consul's Lieutenant
+Consulate Crackdown
+Coronation of Chaos
 Corridor Monitor
+Court Street Denizen
 Crookshank Kobolds
 Crow Storm
 Cruel Grimnarch
@@ -42,14 +57,19 @@ Curfew
 Curse Artifact
 Custody Battle
 Darkthicket Wolf
+Defender of Chaos
 Deploy to the Front
+Desmond Miles
 Detainment Spell
 Devil Dinosaur
 Drag Under
+Dragon's Eye Sentry
+Drannith Magistrate
 Dread Fugue
 Drider
 Dwarven Armorer
 Empyrial Plate
+Enlarge
 Ensnare
 Erratic Mutation
 Escape Velocity
@@ -60,7 +80,9 @@ Expel
 Eye Gouge
 Feast of Dreams
 Flash Counter
+Fleshtaker
 Floodhound
+Flowstone Thopter
 Fog Elemental
 Foresee
 Forest
@@ -70,6 +92,7 @@ Freewind Equenaut
 Freyalise Supplicant
 Gale Swooper
 Gerrard's Irregulars
+Gift of Orzhova
 Glass of the Guildpact
 Glint Hawk Idol
 Goblin War Wagon
@@ -77,16 +100,22 @@ Goma Fada Vanguard
 Graceful Adept
 Griffin Sentinel
 Grim Reaper's Scythe
+Gustha Ebbasdotter
 Hamlet Vanguard
 Headless Skaab
 Hedron Rover
 Hero of Goma Fada
 Heroes of the Revel
 Heron of Hope
+Huatli's Snubhorn
 Ichor Drinker
 Illusory Demon
+Imperial Subduer
+Implement of Improvement
 Island
 Jace's Sanctum
+King Darien XLVIII
+Kor Bladewhirl
 Kumena's Awakening
 Kyren Negotiations
 Lash of the Whip
@@ -96,23 +125,34 @@ Learn from the Past
 Light 'Em Up
 Lily Bowen, Raging Grandma
 Living Airship
+Luxurious Libation
+Maggot Carrier
 Maze Abomination
 Merfolk Skydiver
 Mesa Cavalier
+Metamorphic Wurm
 Midnight Charm
+Mindless Null
 Minion Reflector
 Mountain
 Mourning
+Myr Convert
 Myr Kinsmith
 Mysterious Tome
 Mystical Tutor
 Narnam Cobra
+Nearheath Chaplain
 Necrotic Hex
 Nesting Dovehawk
 Noble Vestige
+Ogre Shaman
 Order of the Mirror
+Ornery Kudu
 Orochi Merge-Keeper
 Outland Boar
+Pardic Collaborator
+Pardic Lancer
+Phobian Phantasm
 Phyresis
 Phyrexian Driver
 Plains
@@ -125,34 +165,53 @@ Pyroclastic Elemental
 Pyromantic Pilgrim
 Pyrophobia
 Quakebringer
+Radiant Fountain
 Rakalite
 Ral's Reinforcements
+Ral, Caller of Storms
 Ramosian Commander
+Ranger en-Vec
+Ravenous Sailback
 Ray Fillet, Wave Warrior
+Red Dragon
+Red Elemental Blast
+Reflective Golem
 Refocus
 Regenerate
 Replication Technique
+Rimrock Knight
 Riot Devils
 Rise of the Ants
 Rishadan Brigand
 Rishkar, Peema Renegade
+Rodolf Duskbringer
 Rofellos's Gift
 Rootborn Defenses
+Rushwood Dryad
+Sacred Nectar
 Sanctuary Raptor
 Savage Thallid
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
 Servant of Tymaret
+Shark Typhoon
 Shauku, Endbringer
 Shelob's Ambush
+Shilgengar, Sire of Famine
+Shivan Zombie
 Skillful Lunge
 Smoldering Werewolf
+Snarling Undorak
+Space Marine Scout
 Spell Crumple
+Spring
+Sprite Noble
 Squeeze
 Staff of the Wild Magus
 Stalking Bloodsucker
 Steel-Plume Marshal
+Stoneforge Mystic
 Stonybrook Banneret
 Stratus Walk
 Student of Ojutai
@@ -160,6 +219,7 @@ Stymied Hopes
 Subterranean Spirit
 Suit Up
 Surge Engine
+Surgical Skullbomb
 Swamp
 Talas Merchant
 Taste of Blood
@@ -167,13 +227,17 @@ Terravore
 Thalakos Deceiver
 Thaumatic Compass
 Thought Harvester
+Thriving Bluff
 Thrun, the Last Troll
 Toil
 Tomakul Honor Guard
+Tomb of the Spirit Dragon
 Topplegeist
 Traverse Eternity
 Trawler Drake
 Tremor
+Triumphant Surge
+Urgoros, the Empty One
 Vampiric Tutor
 Venser, Fervent Forger
 Wakeroot Elemental

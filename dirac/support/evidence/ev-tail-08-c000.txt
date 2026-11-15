@@ -1,31 +1,85 @@
+Aether Tunnel
+Agent of Stromgald
+Amateur Auteur
 Amethyst Dragon
 Anathemancer
 Ancestral Recall
 Ancient Den
+Anurid Barkripper
+Archghoul of Thraben
+Assassin Initiate
 Aven Gagglemaster
+Awaken the Woods
+Ballynock Trapper
 Barrenton Cragtreads
+Barrin's Codex
+Ben-Ben, Akki Hermit
+Benalish Missionary
+Bird Admirer
 Blind-Spot Giant
+Boreal Druid
 Byway Courier
 Cabal Inquisitor
+Canopy Gorger
+Captain America, Liberator
+Carefree Swinemaster
 Carnage Tyrant
+Cavern Thoctar
+Ceremonial Guard
+Commanding Presence
+Coral Barrier
+Corrupting Licid
+Cracked Earth Technique
+Crash Landing
+Craterize
 Culling Dais
 Dakmor Sorceress
 Darien, King of Kjeldor
 Darkwater Catacombs
+Davvol, Evincar of Rath
 Dead
+Defiant Strike
+Demolition Stomper
+Deranged Whelp
+Desecration Plague
+Domestication
+Dora Milaje Elite
+Dream Thief
 Dromoka's Gift
 Drudge Reavers
+Duergar Mine-Captain
+Dusk Legion Dreadnought
+Dwarven Recruiter
+Earthshaking Si
+Elvish Hunter
 Energy Arc
+Enfeeblement
+Excavated Wall
+Executioner's Swing
 Eyeblight's Ending
 Feast or Famine
+Fetid Gargantua
+Final Death
+Final Payment
+Flowstone Mauler
 Forest
 Fyndhorn Elder
 Gavony Silversmith
 Geralf's Messenger
+Giant Inheritance
 Go-Shintai of Shared Purpose
+Goblin Brigand
 Goblin Sky Raider
 Grid Monitor
+Hag of Inner Weakness
+Hammerheim Deadeye
 Headless Specter
+Headstrong Brute
+Henrika Domnathi
+Hillcomber Giant
+Homicidal Seclusion
+Honden of Night's Reach
+Honeymoon Hearse
 Honored Crop-Captain
 Horizon Explorer
 Hunter's Edge
@@ -33,16 +87,27 @@ Imperial Oath
 Indulgent Tormentor
 Ingenious Smith
 Innocuous Researcher
+Insatiable Souleater
 Island
 Ivy Lane Denizen
+Jeska's Will
+Jeskai Elder
 Jolting Merfolk
+Karstoderm
+Kavu Howler
+Keeper of the Cadence
+Kefnet the Mindful
 Krazy Kow
 Kronch Wrangler
+Krovikan Mist
 Last Kiss
+Leyline Prowler
 Lone Missionary
+Lucky the Pizza Dog
 Malakir Bloodwitch
 Mardu Hateblade
 Mass Appeal
+Merchant Raiders
 Mercurial Pretender
 Military Discipline
 Minions' Murmurs
@@ -62,19 +127,23 @@ Pharaoh Rama-Tut
 Pious Wayfarer
 Plains
 Plateau
+Plated Geopede
 Promise of Tomorrow
 Protector of the Wastes
 Queen's Agent
 Rain of Filth
 Ral's Outburst
+Ratadrabik of Urborg
 Ratcatcher
 Reflex Sliver
 Regisaur Alpha
 Reverent Mantra
+Rift Bolt
 Righteous Valkyrie
 Scent of Nightshade
 Scrap Mastery
 Screeching Drake
+Scrib Nibblers
 Scroll Thief
 Selesnya Charm
 Sell-Sword Brute
@@ -90,6 +159,7 @@ Skyhunter Patrol
 Slimy Piper
 Snap
 Sorcerer's Strongbox
+Soulblade Djinn
 Spectral Flight
 Spore Crawler
 Spur Grappler
@@ -98,21 +168,27 @@ Stand
 Stitch in Time
 Storm Fleet Aerialist
 Strafe
+Suspicious Bookcase
 Sustainer of the Realm
 Swamp
 Sylvia Brightspear
 Talas Researcher
 Talruum Champion
 Tangle Asp
+Taunting Arbormage
 Tek
+Teval's Judgment
 Thalia's Lieutenant
+Thopter Mechanic
 Thraben Valiant
 Thran War Machine
+Thunderscape Master
 Tor Giant
 Treespring Lorian
 Tukatongue Thallid
 Uktabi Wildcats
 Umara Wizard
+Unbreakable Formation
 Unravel the Aether
 Updraft
 Valko Indorian
@@ -128,6 +204,7 @@ Wayward Soul
 White Widow, Yelena Belova
 Wingmate Roc
 Wydwen, the Biting Gale
+Wyluli Wolf
 Yarok's Wavecrasher
 You Meet in a Tavern
 Zhang Fei, Fierce Warrior
