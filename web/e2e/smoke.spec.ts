@@ -1817,7 +1817,17 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
       // drawn by the machine's own-turn floor, so the seat is parked on exactly that decision here,
       // and the rewind that takes the play back re-parks it under the same seq (the replay is
       // deterministic). Read over the API, not from the page, so no client lag can move it.
-      const landSeq = await pendingSeq(seat);
+      // /pending can 409 between decisions, so read with a short retry: a null target would make
+      // the walk-back guard below unwinnable and burn WAIT_MS before failing with a timeout
+      // instead of the real cause.
+      const landSeq = await (async () => {
+        for (let i = 0; i < 20; i++) {
+          const seq = await pendingSeq(seat);
+          if (seq !== null) return seq;
+          await page.waitForTimeout(100);
+        }
+        throw new Error(`${label} no pending decision to read the walk-back target from`);
+      })();
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
         if (undone) {
           land = true;
@@ -1829,10 +1839,16 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
           // between that read and the rewind landing, and a rewind that takes back exactly that
           // answer re-parks the same seq (measured in CI: a 5 s wait for a fall that had already
           // happened). The seq comparison alone can also be true one action early — a queued undo
-          // that walked past the play — so the hand carries the verdict (see nativeHand).
+          // that walked past the play — so the hand carries the verdict (see nativeHand). Success
+          // needs the play's own window seen above the target first and one undo clicked: a client
+          // still parked on the land decision (its view lagging the play POST) must not pass the
+          // first poll with nothing undone.
+          let clicks = 0;
+          let sawAbove = false;
           await expect.poll(async () => {
             const now = await pendingSeq(seat);
-            if (now !== null && landSeq !== null && now <= landSeq) {
+            if (now !== null && now > landSeq) sawAbove = true;
+            if (sawAbove && clicks > 0 && now !== null && now <= landSeq) {
               if ((await nativeHand(seat)) === handBefore) return true;
             }
             // The seat's answerable slot is prompt-independent (ActionCluster gates undo on the sole
@@ -1841,6 +1857,7 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
             const asking = await pendingSeq(seat);
             const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
             if (!clicked || asking === null) return false;
+            clicks++;
             // The server answers an undo with 204 and rewinds later, on the match's own goroutine,
             // and each rewind takes back one of the seat's own actions. Hold the next click until
             // the pending seq moves off the value read at the click, or the walk back is already
@@ -1852,7 +1869,7 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
             // action this walk back wants.
             await expect.poll(async () => {
               const later = await pendingSeq(seat);
-              return later !== asking || (later !== null && landSeq !== null && later <= landSeq);
+              return later !== asking || (later !== null && later <= landSeq);
             }, { timeout: 5_000, intervals: [100] }).toBe(true).then(() => true, () => false);
             return false;
           }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
