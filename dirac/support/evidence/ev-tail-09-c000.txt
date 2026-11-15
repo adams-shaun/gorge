@@ -81,6 +81,7 @@ Dream Stalker
 Eiganjo Castle
 Electrostatic Bolt
 Electrostatic Field
+Elfhame Palace
 Enraged Killbot
 Erratic Visionary
 Etherium Pteramander
@@ -177,6 +178,7 @@ Moonlight Hunt
 Mossdog
 Mountain
 Muzzio, Visionary Architect
+Mwonvuli Ooze
 Necron Monolith
 Nemesis of Reason
 Neonate's Rush
@@ -230,6 +232,7 @@ Rushblade Commander
 Safe Passage
 Saurian Symbiote
 Scampering Scorcher
+Schema Thief
 Scourglass
 Sea Monster
 Security Detail
@@ -247,6 +250,7 @@ Skirk Outrider
 Skithiryx, the Blight Dragon
 Skyhunter Skirmisher
 Sleep with the Fishes
+Snare Tactician
 Sonic Assault
 Soul Diviner
 Soul Salvage
@@ -299,6 +303,7 @@ Warmonger's Chariot
 Weary Prisoner
 Wild Mongrel
 Wing Splicer
+Wingshield Agent
 Without Weakness
 Workshop Elders
 Wurmcoil Engine

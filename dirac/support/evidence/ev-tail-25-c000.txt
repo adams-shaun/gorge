@@ -23,8 +23,11 @@ Aquatic Incursion
 Archangel Avacyn
 Archon of Sun's Grace
 Argivian Avenger
+Armored Warhorse
 Army of Allah
+Arterial Flow
 Ashen-Skin Zubera
+Augur of Skulls
 Autonomous Assembler
 Aven Fisher
 Baloth Prime
@@ -43,9 +46,12 @@ Bogardan Hellkite
 Bone Picker
 Boss Uramon, Shadow's Reach
 Brass Man
+Break Asunder
 Broken Bond
+Brotherhood Vertibird
 Brutal Nightstalker
 Brute Force
+Bulwark
 Burning Anger
 Call of the Death-Dweller
 Call to the Netherworld
@@ -56,6 +62,7 @@ Capture of Jingzhou
 Cat Burglar
 Cathartic Operation
 Celebrate the Harvest
+Chimeric Staff
 Choking Tethers
 Clawing Torment
 Cloistered Youth
@@ -72,6 +79,7 @@ Crook of Condemnation
 Crux of Fate
 Cudgel Troll
 Curious Homunculus
+Cyclonic Rift
 Daemogoth Woe-Eater
 Dark Hatchling
 Dark Privilege
@@ -79,6 +87,7 @@ Darkest Hour
 Daybreak Chaplain
 Deathbringer Thoctar
 Deathknell Berserker
+Deepfathom Skulker
 Deeproot Champion
 Defiant Falcon
 Demonic Rising
@@ -87,6 +96,7 @@ Destructor Dragon
 Deviant Glee
 Diamond Valley
 Disciple of Malice
+Discombobulate
 Distortion Strike
 Divine Sacrament
 Doubtless One
@@ -97,11 +107,14 @@ Dream Fracture
 Dromoka Monument
 Dromoka's Gift
 Dunland Crebain
+Dutiful Thrull
+Eater of Hope
 Ebony Owl Netsuke
 Eidolon of Philosophy
 Eldrazi Devastator
 Electropotence
 Elminster's Simulacrum
+Enchanted Evening
 Ephemeron
 Erebos, Bleak-Hearted
 Etherium Spinner
@@ -114,8 +127,10 @@ Fangren Hunter
 Fencing Ace
 Festive Funeral
 Fire-Omen Crane
+Fireslinger
 Forest
 Forge Devil
+Forging the Anchor
 Foul-Tongue Shriek
 Fractal Harness
 Frantic Inventory
@@ -126,6 +141,7 @@ Galestrike
 Gate Hound
 Generous Patron
 Ghost Ship
+Giant Harbinger
 Gilt-Leaf Seer
 Glassblower's Puzzleknot
 Glimpse of Freedom
@@ -141,11 +157,13 @@ Hada Freeblade
 Harrowing Journey
 Harvest Season
 Hawkeye's Shot
+Heart Warden
 Heavy Arbalest
 Henchfiend of Ukor
 Hermes, Overseer of Elpis
 Heroes' Reunion
 Hordeling Outburst
+Hornet Queen
 Horror of the Dim
 Howling Gale
 Hulk, Strongest There Is
@@ -159,16 +177,23 @@ Island
 Ixalli's Keeper
 Jeska, Warrior Adept
 Joraga Bard
+Jori En, Ruin Diver
 Journey for the Elixir
 Jungle Shrine
 Junk Golem
 Junk Jet
 Kamber, the Plunderer
 Kavu Chameleon
+Kederekt Parasite
 Keiga, the Tide Star
+Khalni Heart Expedition
+Kjeldoran Gargoyle
+Kor Spiritdancer
 Kudo, King Among Bears
 Labyrinth of Skophos
 Lapis Lazuli Talisman
+Leeching Sliver
+Leering Gargoyle
 Living End
 Llanowar Mentor
 Lorehold Campus
@@ -182,10 +207,13 @@ Mass of Ghouls
 Master Trinketeer
 Mawcor
 Mayhem Devil
+Memory Erosion
 Merfolk Pupil
 Might Sliver
 Mindmelter
+Minister of Impediments
 Mogg Sentry
+Moggcatcher
 Molder Beast
 Moldgraf Monstrosity
 Momo, Rambunctious Rascal
@@ -199,16 +227,22 @@ Necropede
 Necrotic Hex
 Nessian Game Warden
 Nightscape Familiar
+Nightveil Predator
 Noble Stand
 Nyxborn Eidolon
+Oceanus Dragon
+Ocelot Pride
 Omen of the Hunt
 Onward
 Opal Archangel
 Open the Gates
 Orb of Dreams
+Ostiary Thrull
 Overgrowth
 Overgrowth Elemental
 Oxidda Finisher
+Paleoloth
+Paradise Plume
 Path of Bravery
 Patrol Signaler
 Pearl Medallion
@@ -217,6 +251,7 @@ Phantasmagorian
 Phantom Nomad
 Phoenix of Ash
 Phyrexia's Core
+Plague Wight
 Plains
 Planar Incision
 Plundering Barbarian
@@ -244,10 +279,14 @@ Rejuvenating Springs
 Rejuvenation Chamber
 Remand
 Repulse
+Resistance Squad
 Resolute Rider
 Response
 Return Upon the Tide
+Revered Unicorn
 Rhonas the Indomitable
+Rhystic Tutor
+Ridged Kusite
 Ripjaw Raptor
 Rise from the Nether
 Rot Shambler
@@ -255,6 +294,7 @@ Rotting Mastodon
 Rubblebelt Recluse
 Sachi, Daughter of Seshiro
 Sage of the Falls
+Sally Sparrow
 Salt Road Patrol
 Saltfield Recluse
 Satyr Piper
@@ -265,7 +305,9 @@ Scathe Zombies
 Scent of Jasmine
 Scorn Effigy
 Screeching Skaab
+Sea Gate Restoration
 Seedcradle Witch
+Seeker of Insight
 Seismic Shudder
 Serpent Warrior
 Serra's Sanctum
@@ -274,11 +316,16 @@ Shrapnel Blast
 Shredding Winds
 Sickleslicer
 Siege Smash
+Siege Veteran
 Siege-Gang Commander
+Sift
+Sigarda's Aid
 Silverglade Elemental
 Silverquill Lecturer
+Sire of Insanity
 Skillful Lunge
 Skophos Warleader
+Skorpekh Lord
 Skyclave Shadowcat
 Smokebraider
 Snapping Drake
@@ -297,15 +344,19 @@ Spiritual Sanctuary
 Spitebellows
 Spore Crawler
 Sporecrown Thallid
+Spotter Thopter
 Staff of Titania
 Stampeding Elk Herd
 Steelgaze Griffin
 Steward of Solidarity
 Stonerise Spirit
 Striding Shotcaller
+Strix Serenade
 Stromkirk Mentor
 Sun Clasp
+Svyelun of Sea and Sky
 Swamp
+Sweltering Suns
 Sword Coast Serpent
 Tajuru Beastmaster
 Talas Scout
@@ -314,16 +365,19 @@ Tamiyo's Logbook
 Tangled Florahedron
 Tasseled Dromedary
 Teferi, Time Raveler
+Tendrils of Despair
 Teyo's Lightshield
 Thassa's Bounty
 The Spear of Leonidas
 The Underworld Cookbook
 Thieves' Tools
 Thirsting Shade
+Thorin, King of Durin's Folk
 Thornhide Wolves
 Thriving Skyclaw
 Thrummingbird
 Thrun, Breaker of Silence
+Thundering Rebuke
 Tibor and Lumia
 Tide Drifter
 Titan of Industry
@@ -333,6 +387,7 @@ Turn to Dust
 Twin-Silk Spider
 Tymaret, the Murder King
 Undercity Necrolisk
+Undersea Invader
 Undying Rage
 Unholy Strength
 Unleash Fury
@@ -343,15 +398,19 @@ Vedalken Entrancer
 Vengeance
 Venomous Hierophant
 Verdigris
+Vermin Gorger
 Vessel of Paramnesia
 Viashino Sandscout
+Viconia, Drow Apostate
 Viridescent Bog
 Voda Sea Scavenger
 Voice of the Blessed
 Voices from the Void
 Volatile Rig
+Volcanic Vision
 Voracious Wurm
 Wake of Destruction
+Wall of Air
 Wall of Granite
 Wall of Opposition
 Wall of Swords
@@ -359,13 +418,17 @@ Wall of Tombstones
 Warlord's Axe
 Wayward Swordtooth
 Weaver of Currents
+Whitemane Lion
 Wild Ceratok
 Wild Onslaught
 Wilderness Elemental
 Will of the Mardu
+Wilt-Leaf Cavaliers
 Windgrace's Judgment
 Winter's Grasp
 Wistful Thinking
+Woeleecher
+Worldslayer
 Wretched Throng
 Wrong Turn
 Wurmcalling

@@ -21,6 +21,7 @@ Ashiok's Adept
 Atlantean Skirmisher
 Attended Socialite
 Atzocan Seer
+Avarax
 Aven Sentry
 Avengers Quinjet
 Backup Agent
@@ -47,6 +48,7 @@ Blossoming Bogbeast
 Bog Rats
 Borrowed Grace
 Bramble Creeper
+Brokers Confluence
 Brood Monitor
 Browse
 Caligo Skin-Witch
@@ -87,6 +89,7 @@ Deathbloom Thallid
 Deepwood Drummer
 Demonic Collusion
 Deputy of Acquittals
+Despark
 Desperate Castaways
 Devotee of Strength
 Devouring Swarm
@@ -94,6 +97,7 @@ Diplomatic Escort
 Distract
 Divine Arrow
 Doomfall
+Double Negative
 Douser of Lights
 Dragon Hatchling
 Dragonlord Dromoka
@@ -122,6 +126,7 @@ Filigree Sages
 Fire
 Fire Ants
 Flitterstep Eidolon
+Flood
 Flowstone Strike
 Forest
 Franklin Richards, Ascendant
@@ -134,6 +139,7 @@ Glass Golem
 Gluttonous Zombie
 Goblin Fireslinger
 Goblin Gathering
+Golgari Death Swarm
 Gorgon's Head
 Greatsword of Tyr
 Greel's Caress
@@ -144,14 +150,17 @@ Grove of the Burnwillows
 Gruul Scrapper
 Gryff Vanguard
 Gustcloak Skirmisher
+H.E.R.B.I.E., Lovable Robot
 Hammer of Nazahn
 Hammers of Moradin
 Hapatra, the Desert Frost
 Harbor Serpent
 Hardy Veteran
+Havoc Devils
 Headlong Rush
 Hellhole Rats
 Hidden Path
+Honor the God-Pharaoh
 Hua Tuo, Honored Physician
 Hungry Flames
 Icy Manipulator
@@ -194,6 +203,7 @@ Lumengrid Sentinel
 Lurching Rotbeast
 Lyse Hext
 Mage Duel
+Man-o'-War
 Mana Tithe
 March from the Tomb
 Merciless Repurposing
@@ -297,6 +307,7 @@ Sarinth Greatwurm
 Sarkhan's Scorn
 Scavenged Blade
 Scepter of Insight
+Scoria Cat
 Scourge of Geier Reach
 Screaming Fury
 Screaming Shield
@@ -366,6 +377,7 @@ Thassa's Devourer
 The Blackstaff of Waterdeep
 The Thanos-Copter
 Think Tank
+Third Path Iconoclast
 Thran Foundry
 Tidal Wave
 Tishana's Wayfinder
@@ -412,4 +424,5 @@ Woodborn Behemoth
 Worldfire
 Zephyr Winder
 Zerapa Minotaur
+Zimone, Mystery Unraveler
 Zo-Zu the Punisher

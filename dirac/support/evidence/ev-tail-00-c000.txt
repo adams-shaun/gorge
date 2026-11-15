@@ -2,6 +2,7 @@ A-Mentor's Guidance
 A-Midnight Assassin
 A-Vampire Scrivener
 Adarkar Sentinel
+Advent of the Wurm
 Aether Sting
 Agate Instigator
 Akoum Stonewaker
@@ -12,6 +13,7 @@ Angelic Reward
 Aphetto Alchemist
 Arboreal Grazer
 Arid Mesa
+Armadillo Cloak
 Armed Response
 Artificer's Assistant
 Artisan of Kozilek
@@ -23,6 +25,7 @@ Aysen Crusader
 Banisher Priest
 Belligerent Sliver
 Benalish Marshal
+Bishop of Wings
 Bishop of the Bloodstained
 Bleeding Edge
 Blessed Wine
@@ -51,6 +54,7 @@ Chief of the Scale
 Chimney Goyf
 Chronomaton
 Coal Stoker
+Coastline Marauders
 Collector Ouphe
 Colossal Dreadmask
 Contaminated Bond
@@ -65,6 +69,7 @@ Dauthi Ghoul
 Dawn Gryff
 Dawnbringer Charioteers
 Dazzling Ramparts
+Deafening Clarion
 Death Cultist
 Deathgorge Scavenger
 Debtors' Knell
@@ -126,6 +131,7 @@ Geist-Honored Monk
 Geth's Grimoire
 Gigapede
 Gilded Sentinel
+Gilder Bairn
 Gird for Battle
 Glacial Wall
 Glarewielder
@@ -135,6 +141,7 @@ Goblin Caves
 Goblin Dirigible
 Goblin Electromancer
 Goblin Freerunner
+Goblin Raider
 Goblin Sky Raider
 God-Eternal Oketra
 Gods' Hall Guardian
@@ -146,12 +153,16 @@ Graceful Cat
 Grave Birthing
 Grave Bramble
 Greater Werewolf
+Griffin Guide
 Grisly Salvage
+Gruul War Chant
 Gryff Rider
 Guardians of Oboro
 Gutless Ghoul
 Gwyllion Hedge-Mage
 HYDRA Disintegrator
+Hamza, Guardian of Arashin
+Harnessed Snubhorn
 Haughty Djinn
 Heartwood Giant
 Hengegate Pathway
@@ -174,6 +185,7 @@ Imperial Seal
 Improvised Club
 Incubator Drone
 Indatha Triome
+Infernal Genesis
 Ingot Chewer
 Intelligence Bobblehead
 Invasion of Tarkir
@@ -195,13 +207,16 @@ Kemba, Kha Regent
 King Crab
 Knight of the Skyward Eye
 Kobold Overlord
+Kodama of the South Tree
 Kor Aeronaut
 Kor Spiritdancer
+Korozda Guildmage
 Kozilek's Channeler
 Krang, the All-Powerful
 Krosan Constrictor
 Laboratory Drudge
 Lagac Lizard
+Lagomos, Hand of Hatred
 Land Leeches
 Let the Galaxy Burn
 Leyline of Anticipation
@@ -230,6 +245,7 @@ Mycosynth Wellspring
 Myojin of Cryptic Dreams
 Mystic Forge
 Natural State
+Nature's Chosen
 Nearheath Stalker
 Necroblossom Snarl
 Necromantic Thirst
@@ -263,6 +279,7 @@ Priest of Forgotten Gods
 Priest of Titania
 Prism Ring
 Prismatic Omen
+Prodigious Growth
 Psemilla, Meletian Poet
 Psychic Symbiont
 Quakefoot Cyclops
@@ -290,6 +307,7 @@ Ruthless Predation
 Sage Owl
 Salvaging Station
 Sam, Loyal Attendant
+Samwise Gamgee
 Sanctum of Shattered Heights
 Sandsower
 Sautekh Immortal
@@ -323,6 +341,7 @@ Skyclaw Thrash
 Slayer of the Wicked
 Sleek Schooner
 Slipstream Eel
+Snakeform
 Sneaky Snacker
 Soilshaper
 Song-Mad Treachery
@@ -385,10 +404,13 @@ Tumble Magnet
 Tundra Wall
 Tura Kennerüd, Skyknight
 Ulvenwald Bear
+Unburden
+Unclaimed Territory
 Valor Singer
 Vampiric Fury
 Verdant Embrace
 Vicious Hunger
+Victorious Destruction
 Void Shatter
 Void Snare
 Void Squall
@@ -399,7 +421,9 @@ Wand of Vertebrae
 Wandering Ones
 War Report
 Warlord's Axe
+Waves of Aggression
 Weave Fate
+Webweaver Changeling
 Wicked Pact
 Wicked Reward
 Wild Slash

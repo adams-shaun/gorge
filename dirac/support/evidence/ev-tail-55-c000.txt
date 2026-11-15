@@ -1,3 +1,4 @@
++2 Mace
 A-Hagra Constrictor
 A-Tanazir Quandrix
 A-Young Red Dragon
@@ -17,13 +18,17 @@ Alluring Scent
 Anarchist
 Ancient Brontodon
 Ancient Tomb
+Anoint
+Anointer of Champions
 Anvilwrought Raptor
 Arachnoid Adaptation
 Arashin Foremost
 Arcade Gannon
+Archangel Avacyn
 Archnemesis
 Archon of Falling Stars
 Arctic Wolves
+Argent Mutation
 Assassinate
 Aurochs
 Aurora Griffin
@@ -41,6 +46,7 @@ Beast Attack
 Beast in Show
 Behemoth Sledge
 Bellows Lizard
+Benevolent Ancestor
 Bile Urchin
 Blood Tithe
 Bloodhaze Wolverine
@@ -49,6 +55,8 @@ Bonds of Quicksilver
 Bone Picker
 Boon of Boseiju
 Border Guard
+Boros Garrison
+Boros Signet
 Bosco, Just a Bear
 Bosk Banneret
 Braids, Cabal Minion
@@ -79,6 +87,7 @@ Coal Stoker
 Coerced Confession
 Cogworker's Puzzleknot
 Collective Voyage
+Conclave Tribunal
 Conservatory
 Corpse Cur
 Creeping Corrosion
@@ -100,6 +109,7 @@ Demon's Due
 Demonmail Hauberk
 Desperate Castaways
 Devious Cover-Up
+Devout Lightcaster
 Diplomacy of the Wastes
 Djinni Windseer
 Dragon's Hoard
@@ -111,8 +121,10 @@ Drowner of Hope
 Duskmantle Operative
 Earthblighter
 Eidolon of the Great Revel
+Eiganjo Exemplar
 Ekundu Griffin
 Electrolyze
+Ellyn Harbreeze, Busybody
 Elspeth's Devotee
 Elven Fortress
 Encampment Keeper
@@ -122,6 +134,7 @@ Enlightened Maniac
 Enter the Unknown
 Ephara's Radiance
 Epiphany Storm
+Esquire of the King
 Eternal Thirst
 Ethereal Investigator
 Evolutionary Leap
@@ -139,12 +152,15 @@ Fathom Fleet Boarder
 Fearsome Awakening
 Feed the Clan
 Feral Maaka
+Fervent Paincaster
 Fiddlehead Kami
 Fierce Guardianship
 Fire Ants
 Fire Nation Soldier
+Firemane Commando
 Fireslinger
 Firestorm Hellkite
+Firewake Sliver
 Fissure Wizard
 Flame Sweep
 Flame-Blessed Bolt
@@ -172,6 +188,7 @@ Gnaw to the Bone
 Goblin Assault
 Goblin Boom Keg
 Goblin Locksmith
+Goldmeadow Dodger
 Granite Grip
 Grim Physician
 Grizzled Leotau
@@ -203,6 +220,7 @@ Ifnir Deadlands
 Ignite the Future
 Imaginary Friends
 Implement of Combustion
+Invasion of Dominaria
 Invasion of Kaldheim
 Ioreth of the Healing House
 Iroh, Firebending Instructor
@@ -212,6 +230,7 @@ Irresistible Prey
 Island
 Jiang Yanggu
 Joraga Treespeaker
+Journey to Nowhere
 Kabira Vindicator
 Katilda, Dawnhart Prime
 Keepers of the Faith
@@ -220,7 +239,9 @@ Kiku's Shadow
 Kill Shot
 King Macar, the Gold-Cursed
 Kinsbaile Borderguard
+Kirtar's Wrath
 Kitchen
+Knight Errant
 Kolaghan Monument
 Kor Hookmaster
 Laboratory Brute
@@ -238,6 +259,7 @@ Magus of the Mind
 Make a Wish
 Mark of Sakiko
 Match the Odds
+Mausoleum Harpy
 Merfolk Pupil
 Merfolk Trickster
 Metallic Mimic
@@ -265,6 +287,7 @@ Nikko-Onna
 Nimana Skitter-Sneak
 Nissa, Resurgent Animist
 Noble's Purse
+Nomad Stadium
 Northern Paladin
 Not Forgotten
 Nyxborn Colossus
@@ -312,12 +335,14 @@ Raging Gorilla
 Rain of Tears
 Ravenous Rats
 Ravnica at War
+Razor Hippogriff
 Razortide Bridge
 Rebel Salvo
 Reckless Cohort
 Regress
 Reinforcements
 Research Assistant
+Restoration Angel
 Rhystic Scrying
 Riku of Two Reflections
 Ring of Thune
@@ -332,6 +357,7 @@ Scion of Calamity
 Scorchmark
 Sea Gate
 Selesnya Evangel
+Seraph Sanctuary
 Serpent Assassin
 Serra's Blessing
 Seven-Tail Mentor
@@ -346,12 +372,15 @@ Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
 Sky-Eel School
+Skyclave Cleric
 Skyclave Shade
 Skycloud Egg
 Slingbow Trap
 Slith Bloodletter
 Smash to Dust
+Snubhorn Sentry
 Soaring Seacliff
+Sokka's Sword Training
 Soliton
 Songstitcher
 Soul Channeling
@@ -369,12 +398,14 @@ Stern Scolding
 Subtle Strike
 Sultai Charm
 Sundering Growth
+Sunken Hope
 Swamp
 Sweep the Skies
 Taj-Nar Swordsmith
 Talas Air Ship
 Talonrend
 Talrand, Sky Summoner
+Targ Nar, Demon-Fang Gnoll
 Telekinetic Sliver
 Temporary Lockdown
 Temur Battle Rage
@@ -398,7 +429,9 @@ Tyrant's Scorn
 Ultimate Price
 Ur-Golem's Eye
 Urborg Stalker
+Valkyrie Harbinger
 Vandalblast
+Venerable Lammasu
 Verdigris
 Verix Bladewing
 Veteran Cavalier

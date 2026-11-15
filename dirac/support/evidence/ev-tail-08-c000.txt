@@ -22,12 +22,14 @@ Aven Gagglemaster
 Awaken the Woods
 Ballynock Trapper
 Banewhip Punisher
+Bankrupt in Blood
 Barrenton Cragtreads
 Barrin's Codex
 Battle Sliver
 Ben-Ben, Akki Hermit
 Benalish Marshal
 Benalish Missionary
+Bequeathal
 Bestial Menace
 Bird Admirer
 Black Market Tycoon
@@ -47,6 +49,7 @@ Bronze Walrus
 Brush with Death
 Byway Courier
 Cabal Inquisitor
+Cadira, Caller of the Small
 Call to Glory
 Call to the Netherworld
 Calming Verse
@@ -67,6 +70,7 @@ Coral Barrier
 Corrosive Mentor
 Corrupting Licid
 Counterintelligence
+Courier Griffin
 Cover of Darkness
 Cracked Earth Technique
 Crash Landing
@@ -82,6 +86,7 @@ Dead
 Death Speakers
 Death Wind
 Death's Duet
+Deathbringer Liege
 Defiant Strike
 Demolition Stomper
 Deranged Whelp
@@ -130,6 +135,7 @@ Fruit of Tizerus
 Fyndhorn Elder
 Gavony Silversmith
 Geralf's Messenger
+Ghost-Lit Nourisher
 Giant Inheritance
 Glarewielder
 Glimpse the Future
@@ -143,6 +149,7 @@ Goggles of Night
 Grid Monitor
 Hag of Inner Weakness
 Hallowed Haunting
+Halvar, God of Battle
 Hammerheim Deadeye
 Headless Specter
 Headstrong Brute
@@ -157,6 +164,7 @@ Honored Crop-Captain
 Horizon Explorer
 Hornet Nest
 Hunter's Edge
+Hyperion Blacksmith
 Ilysian Caryatid
 Imperial Oath
 Improbable Alliance
@@ -181,6 +189,7 @@ Karstoderm
 Kavu Howler
 Keeper of the Cadence
 Kefnet the Mindful
+Kjeldoran Frostbeast
 Kolaghan Warmonger
 Kor Haven
 Krazy Kow
@@ -225,6 +234,7 @@ Night Terrors
 Nishoba Brawler
 Nomads en-Kor
 Ob Nixilis, the Ascended
+Okiba-Gang Shinobi
 Otherworld Atlas
 Overtaker
 Paradise Druid
@@ -311,7 +321,9 @@ Steel Wall
 Stitch in Time
 Storm Fleet Aerialist
 Strafe
+Sublime Archangel
 Summon: Kujata
+Sunlit Marsh
 Suspicious Bookcase
 Sustainer of the Realm
 Swamp
@@ -374,4 +386,5 @@ Wydwen, the Biting Gale
 Wyluli Wolf
 Yarok's Wavecrasher
 You Meet in a Tavern
+Yukora, the Prisoner
 Zhang Fei, Fierce Warrior

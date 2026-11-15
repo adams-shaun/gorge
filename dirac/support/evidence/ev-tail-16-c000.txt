@@ -54,6 +54,7 @@ Call for Blood
 Call of the Herd
 Call the Bloodline
 Canal Monitor
+Canopy Surge
 Cantivore
 Cathartic Reunion
 Cathedral of War
@@ -261,11 +262,13 @@ Mindleech Ghoul
 Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
+Mirror Entity
 Misshapen Fiend
 Molten Tributary
 Mosscoat Goriak
 Mountain
 Mox Emerald
+Munitions Expert
 Myrel, Shield of Argive
 Myriad Landscape
 Nacatl Outlander

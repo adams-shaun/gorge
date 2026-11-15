@@ -14,6 +14,7 @@ Aether Swooper
 Agent of the Fates
 Airdrop Aeronauts
 Alpine Grizzly
+Alpine Houndmaster
 Amphin Pathmage
 Anax, Hardened in the Forge
 Angel of Light
@@ -24,6 +25,7 @@ Arch of Orazca
 Archangel Elspeth
 Argent Dais
 Armillary Sphere
+Armored Wolf-Rider
 Artifact Unknown Shores
 Ascend from Avernus
 Auramancer
@@ -63,9 +65,11 @@ Bronze Sable
 Bruna, the Fading Light
 Brutalizer Exarch
 Cacophodon
+Call of the Conclave
 Canopy Claws
 Cao Ren, Wei Commander
 Carrier Thrall
+Carrion Feeder
 Case of the Shifting Visage
 Caustic Wasps
 Celestial Archon
@@ -189,6 +193,7 @@ Ignite the Beacon
 Illusory Wrappings
 Indulging Patrician
 Inspiring Commander
+Invasion of Ergamon
 Invasion of Kaladesh
 Ironclaw Orcs
 Island
@@ -252,6 +257,7 @@ Mischievous Poltergeist
 Mishra, Excavation Prodigy
 Mists of Littjara
 Mnemonic Sliver
+Momir Vig, Simic Visionary
 Monumental Henge
 Moonlit Scavengers
 Morgue Theft
@@ -340,6 +346,7 @@ Scalding Tongs
 Scrapheap
 Screeching Phoenix
 Scroll Thief
+Scuzzback Scrapper
 Sea Eagle
 Seahunter
 Searing Flesh
@@ -371,6 +378,7 @@ Snapsail Glider
 Soldier On
 Somberwald Dryad
 Sorin's Guide
+Soul-Guide Gryff
 Sparktongue Dragon
 Spawnbinder Mage
 Spike Feeder
@@ -380,6 +388,7 @@ Springmane Cervin
 Squad Captain
 Squash
 Stalking Tiger
+Steam Catapult
 Stir the Pride
 Stoic Rebuttal
 Stoneskin
@@ -402,15 +411,18 @@ Tempting Witch
 Terror of the Fairgrounds
 The Mirari Conjecture
 Thornscape Familiar
+Thrilling Discovery
 Tireless Tribe
 Torch Gauntlet
 Towering Thunderfist
 Transcendent Envoy
 Trapfinder's Trick
 Traveling Minister
+Trostani, Selesnya's Voice
 Turn Aside
 Twigwalker
 Tymaret Calls the Dead
+Tyrranax Rex
 Undercity Scavenger
 Undercity Scrounger
 Underdark Basilisk
@@ -436,6 +448,7 @@ Wharf Infiltrator
 Whispergear Sneak
 Whispers of the Muse
 Wildfire Cerberus
+Witchstalker
 Withered Wretch
 Wizards of Thay
 Wolfwillow Haven

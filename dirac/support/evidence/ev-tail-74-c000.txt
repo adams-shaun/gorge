@@ -4,13 +4,16 @@ A-Geology Enthusiast
 A-Guide of Souls
 A-Plate Armor
 A-Social Climber
+A-Tatyova, Steward of Tides
 A-Teferi, Time Raveler
 Aang, Airbending Master
+Abhorrent Overlord
 Abomination, World Ravager
 Abzan Runemark
 Aegis of the Heavens
 Aim for the Head
 Ajani's Mantra
+Akroma, Angel of Wrath
 Aku Djinn
 Alchemist's Greeting
 Alley Grifters
@@ -117,11 +120,13 @@ Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
+Eldrazi Mimic
 Elenda's Hierophant
 Ember-Fist Zubera
 Emeria Angel
 Enclave Cryptologist
 Encroaching Wastes
+Endless Wurm
 Entish Restoration
 Equestrian Skill
 Esika's Chariot
@@ -144,6 +149,7 @@ Firemaw Kavu
 Flameskull
 Forest
 Forge, Neverwinter Charlatan
+Fortress Cyclops
 Frightcrawler
 From the Rubble
 Frontier Mastodon
@@ -196,13 +202,16 @@ Involuntary Cooldown
 Island
 Jhoira's Familiar
 Jinxed Idol
+Keldon Strike Team
 Kindle
+Kindred Boon
 Kiora's Follower
 Kjeldoran Pride
 Knights of Dol Amroth
 Kolvori, God of Kinship
 Kor Blademaster
 Kraken of the Straits
+Kratos, Stoic Father
 Krosan Wayfarer
 Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
@@ -269,6 +278,7 @@ Outbreak
 Oversold Cemetery
 Painwracker Oni
 Paladin Danse, Steel Maverick
+Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
@@ -287,6 +297,7 @@ Prey Upon
 Priest of Ancient Lore
 Primal Whisperer
 Prismari Apprentice
+Protect
 Psychic Strike
 Psychotic Haze
 Pull from Tomorrow
@@ -314,6 +325,7 @@ Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Revel in Riches
 Reverent Mantra
 Riddlekeeper
 Ring of Three Wishes
@@ -388,6 +400,7 @@ Sword of the Animist
 Talisman of Unity
 Tar Pit Warrior
 Tawnos's Tinkering
+Tawnos, Urza's Apprentice
 Tel-Jilad Outrider
 Temporal Adept
 Territorial Baloth
@@ -410,6 +423,7 @@ Triceraton Regenta
 Tuktuk Rubblefort
 Tuktuk the Explorer
 Turntimber Ascetic
+Turntimber Symbiosis
 Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie

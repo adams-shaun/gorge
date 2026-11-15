@@ -1,7 +1,11 @@
+A-Baleful Beholder
+A-Pseudodragon Familiar
 A-The One Ring
 Adamaro, First to Desire
 Aerial Modification
+Aeromunculus
 Aggressive Crag
+Alaborn Veteran
 Ambassador Laquatus
 Amulet of Kroog
 Ancestral Mask
@@ -9,28 +13,40 @@ Angel of Mercy
 Angel's Tomb
 Angrath's Rampage
 Annex Sentry
+Arc Trail
+Archdemon of Unx
+Archivist
 Armored Pegasus
 Ashiok's Forerunner
 Attrition
 Auriok Glaivemaster
 Aysen Bureaucrats
+Bandage
 Battlegrace Angel
+Bazaar Trademage
 Bedevil
+Benalish Heralds
 Benevolent Hydra
 Binding the Old Gods
 Blasting Station
+Blinding Light
 Bloodhusk Ritualist
 Bog Wraith
 Bone Devourer
 Bone Picker
+Boreal Druid
 Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
+Brandywine Farmer
+Braulios of Pheres Band
 Brute Force
+Capashen Standard
 Captain America, Steve Rogers
 Carnival of Souls
 Chainer's Edict
 Chandra's Triumph
 Cleansing Wildfire
+Collector's Case
 Conifer Strider
 Consulate Crackdown
 Control Win Condition
@@ -44,10 +60,15 @@ Crypt Creeper
 Daggerclaw Imp
 Darwin, Adaptive Mutant
 Dauntless Dourbark
+Davvol, Evincar of Rath
 Daybreak Chimera
 Death Watch
+Deepwood Tantiv
+Deflection
 Deny Reality
 Depth Charge Colossus
+Dimir Guildmage
+Dirgur Nemesis
 Disciple of Perdition
 Disciple of Tevesh Szat
 Discontinuity
@@ -55,33 +76,51 @@ Displacement Wave
 Diviner of Mist
 Doomsday
 Dragonsguard Elite
+Dredge
+Drinker of Sorrow
+Durkwood Boars
 Dust Bowl
 Dust to Dust
 Earthbending Student
 Egon, God of Death
 Elder Druid
 Eldrazi Devastator
+Elemental Spectacle
 Elephant Guide
 Ellivere of the Wild Court
 Elvish Skysweeper
 Ensoul Artifact
+Ethersworn Adjudicator
+Exalted Flamer of Tzeentch
+Executioner's Swing
+Expel from Orazca
 Explosive Vegetation
 Fade from Memory
 Fae of Wishes
 Fallen Angel
 Favored of Iroas
+Feral Animist
+Fight Rigging
+Final Flare
 Firefiend Elemental
+Flanking Troops
+Flaring Pain
 Fledgling Griffin
 Forced March
 Forest
 Forsaken Drifters
+Fortuitous Find
 Fracture
+Fungus Sliver
+Gallantry
 Generous Visitor
 Ghoultree
 Gilt-Leaf Seer
 Glimmer Bairn
+Glint-Sleeve Artisan
 Gnarlid Pack
 Go Blank
+Goblin Motivator
 Goblin Ringleader
 Golden Bear
 Grapeshot
@@ -89,44 +128,73 @@ Greenweaver Druid
 Griffin Dreamfinder
 Grim Hireling
 Grisly Spectacle
+Grixis Panorama
+Growth Spurt
+Gruesome Realization
 Hall
+Havenwood Wurm
+Hedgewitch's Mask
 Herald of Slaanesh
+Hero of Bladehold
 Hero's Heirloom
 Heroic Teamwork
 Hordeling Outburst
 Horror of the Dim
+Hungry for More
 Hunting Grounds
+Ice Cage
 Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
+Infectious Horror
+Inferno Elemental
 Insubordination
+Invisibility
 Island
+Izoni, Thousand-Eyed
+Jace's Ingenuity
 Jackhammer
+Jedit's Dragoons
 Jori En, Ruin Diver
+Jungle Troll
 Kederekt Leviathan
+Key to the City
 Khalni Garden
 Knotvine Paladin
+Kolaghan, the Storm's Fury
 Lampad of Death's Vigil
 Last March of the Ents
+Last Word
 Lava Spike
+Lethargy Trap
 Liability
 Lightning Bolt
 Lightning Stormkin
+Linvala, Keeper of Silence
 Llanowar Augur
+Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
+Luminarch Aspirant
 Luminous Wake
 M.O.D.O.K., Evil Intellect
 Machine Man, Model X-51
+Magefire Wings
+Make Mischief
 Malevolent Noble
 Maraxus of Keld
 Mardu Strike Leader
 Marsh Viper
 Masked Admirers
+Master Skald
 Mausoleum Harpy
+Minamo Sightbender
+Mind Peel
 Minotaur Abomination
 Mirari's Wake
+Mnemonic Wall
 Mobile Garrison
+Mogg Raider
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
 Monster Mashup
@@ -134,17 +202,26 @@ Mother Bear
 Mountain
 Muxus, Goblin Grandee
 Mystic Subdual
+Necromantic Summons
+Nessian Asp
 Nessian Wanderer
+Neutralizing Blast
 Nighthawk Scavenger
+Nim Shambler
+Nirkana Assassin
 Nomadic Elf
 Norwood Archers
 Nyx Weaver
+Oath of the Grey Host
+Octoprophet
 Odylic Wraith
 Omen
+Orc Sureshot
 Order of Whiteclay
 Order of the Sacred Torch
 Order of the White Shield
 Ovinize
+Paralyzing Grasp
 Patriar's Seal
 Phantasmagorian
 Pharika's Chosen
@@ -153,9 +230,11 @@ Plague Wind
 Plains
 Plundering Barbarian
 Polluted Dead
+Pouncing Lynx
 Powerstone Engineer
 Pride Sovereign
 Prismari Campus
+Psionic Entity
 Radha's Firebrand
 Rampart Crawler
 Read the Bones
@@ -163,36 +242,54 @@ Recruit the Worthy
 Referee Squad
 Resolute Rider
 Retrofitted Transmogrant
+Rhox Maulers
 Rhystic Syphon
 Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
 Roaming Ghostlight
+Rooftop Nuisance
 Rot Shambler
+Rotlung Reanimator
 Sabertooth Wyvern
+Sage of Lat-Nam
+Sage of the Unknowable
 Saheeli's Silverwing
 Sanctum Gargoyle
 Sandblast
 Sanguinary Priest
+Sanguine Sacrament
 Satyr Piper
 Savannah
 Scryb Ranger
+Seasoned Pyromancer
 Seismic Elemental
+Sejiri Steppe
 Selesnya Cluestone
+Selfless Samurai
+Serra Ascendant
 Serra's Liturgy
 Serum Visionary
 Shady Traveler
 Shaggy Camel
+Shattered Crypt
 Shorecomber Crab
+Shroofus Sproutsire
+Siegehorn Ceratops
 Sightless Ghoul
 Silk Net
+Sinister Possession
 Sir Shandlar of Eberyn
 Skaab Wrangler
 Skophos Warleader
+Sky Tether
+Skyblade of the Legion
+Skyline Predator
 Smite the Monstrous
 Smog Elemental
 Sneaky Homunculus
 Soldevi Machinist
+Solve the Equation
 Sorcerer's Strongbox
 Sorin, Imperious Bloodlord
 Soul Net
@@ -201,28 +298,41 @@ Soul Warden
 Soulshriek
 Sparkspitter
 Spectral Cloak
+Sphere Grid
 Spike Breeder
 Spinal Parasite
+Springjaw Trap
+Sram, Senior Edificer
 Staggershock
 Steadfast Armasaur
+Steadfast Paladin
 Stitched Assistant
 Stonefare Crocodile
+Stonehoof Chieftain
 Strangleroot Geist
+Sunblade Elf
 Sunlance
+Suntouched Myr
 Supply Drop
+Surge of Thoughtweft
 Survival Cache
+Suspension Field
 Swamp
+Sword of the Chosen
 Sworn Companions
 Sworn Defender
 Sylvan Yeti
 Tainted Pact
 Talisman of Impulse
+Talrand, Sky Summoner
 Tangle Hulk
 Taste for Mayhem
+Teferi, Timebender
 Telepathic Spies
 Telling Time
 Territorial Scythecat
 The Great Mound
+The Keeper of the Yellow Hat
 Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw
@@ -231,10 +341,17 @@ Tome Anima
 Traxos, Scourge of Kroog
 Tuknir Deathlock
 Tymaret, the Murder King
+Tyrannize
 Underworld Dreams
 Underworld Rage-Hound
 Undying Rage
 Untamed Kavu
+Vedalken Heretic
+Vengeant Earth
+View from Above
+Vile Deacon
+Vito, Thorn of the Dusk Rose
+Vivid Crag
 Vodalian Serpent
 Voyage's End
 Wall of Tears
@@ -244,6 +361,7 @@ Whirler Rogue
 Whirling Strike
 Willow Geist
 Writhing Chrysalis
+Wu Spy
 Yawning Fissure
 Yoked Ox
 Éowyn, Lady of Rohan

@@ -16,6 +16,7 @@ Ancient Den
 Angel of Deliverance
 Angel of Retribution
 Arcane Investigator
+Architect of the Untamed
 Armory of Iroas
 Army of Allah
 Army of the Damned
@@ -231,6 +232,7 @@ Ledger Shredder
 Library
 Lithomantic Barrage
 Living Hive
+Loam Dweller
 Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
@@ -326,6 +328,7 @@ Roil Elemental
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat

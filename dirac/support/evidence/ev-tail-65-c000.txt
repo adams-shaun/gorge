@@ -124,6 +124,7 @@ Headsplitter
 Hedron Detonator
 Helm of the Gods
 Herald of the Dreadhorde
+Hero of Leina Tower
 Hibernation
 Homicidal Seclusion
 Hope Tender
@@ -136,6 +137,7 @@ Industrial Advancement
 Inner Struggle
 Insatiable Gorgers
 Instill Infection
+Ishkanah, Grafwidow
 Island
 Ixalli's Keeper
 Jagwasp Swarm
@@ -160,6 +162,7 @@ Maestros Initiate
 Magma Phoenix
 Magmatic Force
 Makeshift Mauler
+Marchesa's Smuggler
 Mask of Riddles
 Merchant of Secrets
 Might of Old Krosa

@@ -129,6 +129,7 @@ Dust Corona
 Dwarven Hold
 Easy Prey
 Ebony Treefolk
+Eccentric Pestfinder
 Echoing Calm
 Eiganjo Castle
 Elvish Dreadlord
@@ -189,6 +190,7 @@ Harbinger of Night
 Hardened Scales
 Harpoon Sniper
 Herd Gnarr
+Herd Migration
 Hero of the Dunes
 Hibernation
 Honden of Life's Web
@@ -365,6 +367,7 @@ Show of Valor
 Shrine Keeper
 Siege Dragon
 Sigarda's Summons
+Sigil of Valor
 Sign in Blood
 Silent Extraction
 Silent Sentinel

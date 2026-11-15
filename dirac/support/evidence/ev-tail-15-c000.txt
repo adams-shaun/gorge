@@ -60,6 +60,7 @@ Chishiro, the Shattered Blade
 Chrome Cat
 Cleanse
 Colossus Hammer
+Conclave's Blessing
 Coordinated Charge
 Copperhoof Vorrac
 Corpse Hauler
@@ -205,6 +206,7 @@ Kor Duelist
 Kraken Hatchling
 Krark-Clan Engineers
 Kyoshi Warrior Exemplars
+Lady Caleria
 Learn from the Past
 Leeching Bite
 Leinore, Autumn Sovereign
@@ -367,6 +369,7 @@ Stand United
 Steady Aim
 Steal Strength
 Stealth Mission
+Steelbane Hydra
 Steeple Roc
 Stolen Strategy
 Stone Calendar

@@ -5,6 +5,8 @@ A-Elderleaf Mentor
 A-Esika's Chariot
 Abandon Reason
 Aberrant Return
+Abuna Acolyte
+Acclaimed Contender
 Accomplished Automaton
 Adanto Vanguard
 Aetherflux Car
@@ -15,6 +17,7 @@ Alaborn Cavalier
 Alert Heedbonder
 Aligned Hedron Network
 Alloy Animist
+Anathemancer
 Angelic Accord
 Angelic Page
 Animal Sanctuary
@@ -26,6 +29,7 @@ Archetype of Aggression
 Argivian Archaeologist
 Armored Griffin
 Arrow Volley Trap
+Assault Intercessor
 Atzocan Archer
 Aura Shards
 Auriok Steelshaper
@@ -41,9 +45,12 @@ Balthor the Defiled
 Balthor the Stout
 Barishi
 Basilica Guards
+Battlewise Aven
+Benalish Emissary
 Biolume Egg
 Black Dragon Gate
 Black Oak of Odunos
+Bladewing's Thrall
 Blessed Reversal
 Blightspeaker
 Blizzard Elemental
@@ -74,7 +81,10 @@ Clearwater Pathway
 Collar the Culprit
 Collision
 Combat Professor
+Conclave Equenaut
+Conduit Goblin
 Corrupt Eunuchs
+Corrupted Conscience
 Cower in Fear
 Crackling Drake
 Crashing Drawbridge
@@ -100,6 +110,7 @@ Earth Surge
 Easy Prey
 Eat to Extinction
 Elesh Norn, Grand Cenobite
+Elspeth, Knight-Errant
 Elvish Bard
 Ember Hauler
 Emeria's Call
@@ -108,6 +119,7 @@ Erdwal Ripper
 Essence Harvest
 Etherium-Horn Sorcerer
 Executioner's Capsule
+Exotic Disease
 Failed Inspection
 Fairgrounds Warden
 Faithful Watchdog
@@ -141,6 +153,7 @@ Golden-Tail Trainer
 Goldnight Commander
 Goliath Sphinx
 Goliath Truck
+Goro-Goro and Satoru
 Goro-Goro, Disciple of Ryusei
 Graceful Adept
 Graham O'Brien
@@ -160,6 +173,7 @@ Heat Ray
 Heaven
 Hecatomb
 Hero of the Winds
+Hidden Path
 Highland Lake
 Hoarding Ogre
 Honden of Infinite Rage
@@ -180,11 +194,13 @@ Jace's Ruse
 Jace's Triumph
 Jackdaw
 Jokulmorder
+Jugan, the Rising Star
 Jungleborn Pioneer
 Juniper Order Druid
 Jwari Shapeshifter
 Kamahl's Sledge
 Kami of the Crescent Moon
+Kargan Warleader
 Kathari Remnant
 Kaya's Onslaught
 Keensight Mentor
@@ -203,9 +219,11 @@ Leonin Snarecaster
 Leyline of Abundance
 Lich's Caress
 Lingering Death
+Liturgy of Blood
 Loch Korrigan
 Lone Missionary
 Longtusk Cub
+Loxodon Mender
 Luminarch Aspirant
 Lurking Deadeye
 MJ, Rising Star
@@ -213,13 +231,16 @@ Magmaw
 Malefic Scythe
 Mardu Hordechief
 Masked Vandal
+Mass Mutiny
 Melt Terrain
 Mending Hands
 Mesmerizing Dose
 Mikaeus, the Lunarch
+Mike, the Dungeon Master
 Militia Bugler
 Mind Warp
 Mindstab
+Minotaur Abomination
 Mite Overseer
 Mobilization
 Mona Lisa, Ever Adaptable
@@ -228,8 +249,11 @@ Mountain
 Myr Scrapling
 Necrogen Mists
 Necrosquito
+Netherborn Phalanx
 Network Terminal
 Neurok Hoversail
+Nicol Bolas, Planeswalker
+Nightwind Glider
 Nimble Innovator
 Niv-Mizzet, the Firemind
 Null Brooch
@@ -256,10 +280,14 @@ Punish the Enemy
 Pursuit of Flight
 Quest for Pure Flame
 Rally the Forces
+Ravenous Rats
 Razortip Whip
 Reach of Shadows
 Reckless Fireweaver
+Reconstruct History
 Reef Pirates
+Refurbish
+Rekindling Phoenix
 Renowned Weaver
 Rescuer Chwinga
 Revolutionist
@@ -293,6 +321,7 @@ Serum Visions
 Setessan Skirmisher
 Settle Beyond Reality
 Shaleskin Bruiser
+Shambling Ghast
 Shang-Chi, Martial Mentor
 Shellshock
 Shriekgeist
@@ -314,12 +343,14 @@ Soldier of Fortune
 Somberwald Spider
 Soul Partition
 Soul of Ravnica
+Soulscour
 Spawnwrithe
 Specter's Shroud
 Spike Worker
 Spined Tyrranax
 Splinterfright
 Spreading Seas
+Springleaf Parade
 Staff of Domination
 Staff of the Mind Magus
 Steel Exemplar
@@ -333,6 +364,7 @@ Surge Node
 Svyelun of Sea and Sky
 Swamp
 Take Down
+Tall as a Beanstalk
 Telethopter
 Tendershoot Dryad
 Tezzeret's Gatebreaker
@@ -350,6 +382,9 @@ Thunderwave
 Titanic Bulvox
 Transcendent Envoy
 Travel Preparations
+Tri-Sentinel, Act of Vengeance
+Triplicate Spirits
+Triumphant Reckoning
 Ulamog's Dreadsire
 Urza's Chalice
 Veteran Explorer
@@ -369,6 +404,7 @@ Wheel and Deal
 Wild Beastmaster
 Wild Hunger
 Wildfire Emissary
+Wipe Clean
 Witches' Eye
 Woodland Patrol
 Woodwraith Strangler

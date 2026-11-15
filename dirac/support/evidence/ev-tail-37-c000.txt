@@ -52,6 +52,7 @@ Built to Last
 Built to Smash
 Cabal Executioner
 Calming Licid
+Captain Ripley Vance
 Cave-In
 Centaur's Herald
 Chain of Plasma
@@ -133,6 +134,7 @@ Fourth Bridge Prowler
 Fractal Summoning
 Frogmite
 Frozen Shade
+Gaea's Touch
 Ghostfire Blade
 Goblin Patrol
 God-Eternal Rhonas
@@ -176,6 +178,7 @@ Kasimir the Lone Wolf
 Kavu Climber
 Kavu Glider
 Kavu Scout
+Kaysa
 Kindred Denial
 Kitsune Diviner
 Knight of Cliffhaven
@@ -205,6 +208,7 @@ Midnight Scavengers
 Millennial Gargoyle
 Millstone
 Mindless Automaton
+Mindstatic
 Mirror Wall
 Mob
 Moltensteel Dragon
@@ -296,8 +300,11 @@ Snapping Voidcraw
 Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
+Sosuke's Summons
 Soul Reap
 Spawning Breath
+Spellbane Centaur
+Spellheart Chimera
 Spineless Thug
 Stand Firm
 Staunch Defenders
@@ -305,6 +312,7 @@ Steadfast Paladin
 Steel Overseer
 Steelburr Champion
 Stinging Scorpion
+Storm, Shaker of Skies
 Stormrider Rig
 Subira, Tulzidi Caravanner
 Suleiman's Legacy
@@ -315,6 +323,7 @@ Swarm Guildmage
 Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
+Tangle Spider
 Tangled Islet
 Target Minotaur
 Temur Runemark

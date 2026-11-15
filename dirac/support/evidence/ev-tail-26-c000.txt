@@ -8,33 +8,53 @@ Amrou Scout
 Ancient Runes
 Angelic Overseer
 Arc Lightning
+Arena Trickster
 Armor of Shadows
 Armorcraft Judge
+Arno Dorian
 Asceticism
 Ashcoat Bear
 Auriok Sunchaser
 Auspicious Ancestor
+Ayula, Queen Among Bears
 Baloth Prime
 Barrel Down Sokenzan
+Birchlore Rangers
+Birthing Pod
 Blade of the Bloodchief
 Blood Knight
+Bloodhall Priest
 Bloodscale Prowler
+Blue Scarab
 Boros Mastiff
 Boulder Salvo
+Brimstone Dragon
+Brindle Shoat
 Butch DeLoria, Tunnel Snake
+Candlelight Vigil
 Celebrity Fencer
+Chakram Slinger
+Chasm Drake
+Chastise
 Chemister's Insight
 Chrome Mox
 City of Shadows
+Cloud Manta
+Colossal Badger
 Contract Killing
 Copper Tablet
 Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
+Cutthroat Negotiator
 Cyclopean Snare
+Cyclops Superconductor
+Cystbearer
 Dark Temper
 Deadly Dispute
 Death of a Thousand Stings
+Declare Dominance
+Despondent Killbot
 Dirty Rat
 Divebomber Griffin
 Dragon Hatchling
@@ -43,8 +63,11 @@ Drider
 Eel-Hounds
 Empty the Warrens
 Empyrial Armor
+Enigma Eidolon
+Excogitator Sphinx
 Faithless Looting
 Fast Forward
+Feast of Dreams
 Fencing Ace
 Flowstone Crusher
 Force of Savagery
@@ -58,14 +81,17 @@ Gideon's Lawkeeper
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Firebug
+Graceful Cat
 Grappling Sundew
 Grave Betrayal
 Gravity Well
 Greenseeker
+Grizzly Ghoul
 Gruul Guildmage
 Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
+Hero of Precinct One
 Hesitation
 Island
 Junk Golem
@@ -75,9 +101,11 @@ Kavu Chameleon
 Killer Bees
 King Crab
 Lava Axe
+Leela, Sevateem Warrior
 Legion Leadership
 Lightning Prowess
 Living Lands
+Lord of Extinction
 Lulu, Stern Guardian
 Mageta's Boon
 Magma Rift
@@ -95,13 +123,18 @@ Moss Kami
 Mountain
 Necra Sanctuary
 Necroblossom Snarl
+Necrogen Spellbomb
 Necrosquito
 Nested Shambler
 Nighthawk Scavenger
 Nightmarish End
 No Escape
+Nullmage Advocate
 Nyxborn Hydra
+Open the Vaults
+Orzhov Racketeers
 Paradise Mantle
+Pardic Arsonist
 Paupers' Cage
 Pharika's Libation
 Phyrexian Ghoul
@@ -118,12 +151,17 @@ Quickening Licid
 Ransack
 Reckless Air Strike
 Rhox Brute
+Riptide Crab
 Rise from the Nether
 Risona, Asari Commander
 Road of Return
+Rootwater Diver
 Rubblebelt Recluse
+Rundvelt Hordemaster
 Saltfield Recluse
+Satyr Enchanter
 Satyr Grovedancer
+Savage Swipe
 Savai Sabertooth
 Scathe Zombies
 Serpent Warrior
@@ -138,6 +176,7 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Spark Elemental
 Sparkspitter
 Spined Fluke
 Spite
@@ -153,11 +192,14 @@ Swamp
 Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
+Tenth District Guard
 The Surgical Bay
 The Wretched
 Thieves' Guild Enforcer
+Thundering Spineback
 Tide Drifter
 Tigereye Cameo
+Titania, Nature's Force
 Tower of Calamities
 Twins of Maurer Estate
 Unholy Strength
@@ -169,6 +211,7 @@ Volcanic Rush
 Wall of Faith
 Warkite Marauder
 Warlord's Axe
+Warthog
 Wasp, Shrinking Savior
 Watchful Blisterzoa
 Wei Night Raiders

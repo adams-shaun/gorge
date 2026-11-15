@@ -26,6 +26,7 @@ Bazaar of Baghdad
 Beast Hunt
 Bitterblossom
 Blisterpod
+Blood Hound
 Blood Petal Celebrant
 Bloodstained Mire
 Break of Day
@@ -58,6 +59,7 @@ Conclave Naturalists
 Conductor of Cacophony
 Connive
 Consuming Corruption
+Cosmos Elixir
 Counsel of the Soratami
 Coursers' Accord
 Cranial Plating
@@ -84,6 +86,7 @@ Doc Ock, Evil Inventor
 Doomsday
 Dragon Egg
 Drifting Djinn
+Drownyard Lurker
 Dusk
 Duskrider Falcon
 Dust Bowl
@@ -92,6 +95,7 @@ Eidolon of the Great Revel
 Eiganjo Free-Riders
 Eldritch Evolution
 Embereth Skyblazer
+Envelop
 Excavation Technique
 Expansion
 Extraction Specialist
@@ -208,6 +212,7 @@ Needle Specter
 Nether Void
 Nightmares and Daydreams
 Nissa's Encouragement
+Nissa's Zendikon
 Null Rod
 Nut Collector
 Oath of Gideon
@@ -230,6 +235,7 @@ Phantom Ninja
 Phyrexian Espionage
 Pilfered Plans
 Plains
+Planequake
 Plate Armor
 Popular Entertainer
 Precision Bolt
@@ -291,6 +297,7 @@ Silkwing Scout
 Silver Raven
 Silverbluff Bridge
 Sinstriker's Will
+Skeletal Changeling
 Skeleton Crew
 Skyclaw Thrash
 Skyrider Elf
@@ -355,6 +362,7 @@ Wall of Spears
 Warren Weirding
 Waste Not
 Weapon Rack
+Weatherseed Treefolk
 Wee Dragonauts
 Wei Scout
 Weirding Wood
@@ -367,6 +375,7 @@ Wings of Hope
 Winter Eladrin
 Wintermoon Mesa
 Wirewood Lodge
+Wonder
 Wretched Anurid
 Yavimaya Barbarian
 Zealous Inquisitor

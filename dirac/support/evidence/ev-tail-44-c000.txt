@@ -23,6 +23,7 @@ Ashen-Skin Zubera
 Ashenmoor Gouger
 Asphyxiate
 Assimilate Essence
+Atarka, World Render
 Attunement
 Auntie Blyte, Bad Influence
 Balduvian Horde
@@ -121,6 +122,7 @@ Fin-Clade Fugitives
 Finale of Devastation
 Fireblast
 Five Hundred Year Diary
+Fixer, Techno Terror
 Flame Slash
 Flood Plain
 Floodbringer
@@ -162,6 +164,7 @@ Havoc Demon
 Headwater Sentries
 Hearth Charm
 Heckling Fiends
+Hissing Iguanar
 Holy Justiciar
 Holy Strength
 Horizon Drake
@@ -205,6 +208,7 @@ Lord of Change
 Lumbering Falls
 Lunar Force
 Madame Vastra
+Maja, Bretagard Protector
 Majestic Heliopterus
 Make a Wish
 Makindi Shieldmate
@@ -226,6 +230,7 @@ Mountain Bandit
 Mox Pearl
 Mystic Compass
 Mystic Redaction
+Mythic Proportions
 Nantuko Shaman
 Nephalia Moondrakes
 Nettle Sentinel
@@ -270,6 +275,7 @@ Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
 Qarsi Sadist
+Quartzwood Crasher
 Rakdos Keyrune
 Rathi Fiend
 Ravenous Gigamole
@@ -286,6 +292,7 @@ Rhonas's Monument
 Rise of Eagles
 Rise of the Witch-king
 Rise to Glory
+Rising of the Day
 Runehorn Hellkite
 Sabertooth Nishoba
 Saddle of the Cavalier

@@ -46,6 +46,7 @@ Bone Shards
 Brain Weevil
 Bulette
 By Invitation Only
+Cabal Slaver
 Cabaretti Initiate
 Cadaver Imp
 Careless Celebrant
@@ -137,6 +138,7 @@ Gate to the Citadel
 Generous Stray
 Generous Visitor
 Genesis Chamber
+Get the Point
 Ghitu Amplifier
 Ghitu Fire-Eater
 Ghostly Flicker
@@ -307,6 +309,7 @@ Roofstalker Wight
 Rosnakht, Heir of Rohgahh
 Ruin Rat
 Rumbling Crescendo
+Rummaging Wizard
 Rune Snag
 Rupture Spire
 Rush of Battle
@@ -315,6 +318,7 @@ Sage-Eye Harrier
 Sandstone Bridge
 Savage Order
 Scapeshift
+Scar
 Scarecrone
 Scepter of Fugue
 Scion of Draco
@@ -358,6 +362,7 @@ Splendid Reclamation
 Spontaneous Mutation
 Squire's Devotion
 Stoic Champion
+Stonebrow, Krosan Hero
 Stonefare Crocodile
 Storm Fleet Aerialist
 Stormfront Pegasus
@@ -409,6 +414,7 @@ Vampiric Touch
 Vat of Rebirth
 Vault Skirge
 Vault of Whispers
+Venomous Dragonfly
 Venser's Sliver
 Verdurous Gearhulk
 Vesperlark

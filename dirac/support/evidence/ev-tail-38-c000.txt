@@ -100,6 +100,7 @@ Fortify
 Fumulus, the Infestation
 Furor of the Bitten
 Future Sight
+Gargoyle Sentinel
 Garrison Cat
 Gate to Manorborn
 Geothermal Kami
@@ -160,6 +161,7 @@ Liliana's Reaver
 Lion Sash
 Living Airship
 Loyal Gryff
+Loyal Retainers
 Lure
 Magnetic Flux
 Malachite Golem
@@ -261,11 +263,13 @@ Spiritual Asylum
 Spitfire Handler
 Squash
 Squirrel Mob
+Stalking Bloodsucker
 Steadfastness
 Steamcore Weird
 Stoic Star-Captain
 Stone Idol Generator
 Stunning Shot
+Super Mutant Scavenger
 Suture Spirit
 Swamp
 Swashbuckling
@@ -280,6 +284,7 @@ Terravore
 Thalia, Heretic Cathar
 That's Rough Buddy
 Thaumaturge's Familiar
+The Gaffer
 The One Ring
 The Restoration of Eiganjo
 The Royal Scions
@@ -322,6 +327,7 @@ Voracious Vacuum
 Wall of Razors
 Wall of Wood
 Warren Pilferers
+Wasp Lancer
 Whirlwind
 Wild-Field Scarecrow
 Wildfire
@@ -331,4 +337,5 @@ Wing Snare
 Wither and Bloom
 Woebearer
 Wriggling Grub
+Xavier Sal, Infested Captain
 Zendikar Resurgent
