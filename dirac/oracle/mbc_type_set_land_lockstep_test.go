@@ -12,6 +12,8 @@ import "testing"
 // tapped it inside the cast, leaving the trigger above the spell (decision
 // 173 of tail-55 pair 44: Life[0] 18 vs 20). The ticket named Skirsdag
 // Supplicant; at this land the same pair and class implicate this game.
+// The recording is pooled "custom": a tail-NN bucket moves as the lowered set
+// grows, and tail-55 stopped holding Ancient Grudge once land moved on.
 func TestMBCSkirsdagSupplicantReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "type_set_land_taps_deferred_gap")
