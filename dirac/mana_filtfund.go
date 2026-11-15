@@ -66,7 +66,7 @@ func (fs *filtSearch) fundColours(k *prep, t *State, sl Slot, pc *pcard, mask ui
 //
 //go:noinline
 func (s *State) fundSac(k *prep, sl Slot) {
-	if !s.manaPCGen(k, sl).manaSac {
+	if pc := s.manaPCGen(k, sl); !pc.manaSac && !(k.sacOnlyMana && pc.manaSacOnly) {
 		return
 	}
 	s.sacFilterSource(k, sl)

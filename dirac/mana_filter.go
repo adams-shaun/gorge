@@ -514,7 +514,7 @@ func censusGapMana(a *kop.Ability) bool {
 		return false
 	}
 	f := a.Cost.Flags
-	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -728,7 +728,8 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	pl := &s.pl[SeatIx(p)]
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
-	} else {
+	} else if !(st.other.kind == otherNone && !st.gap && !st.restr && k.sacOnlyMana && s.canSacOnlyNowAt(k, st.sl)) {
+		// (a sacrifice-only source is not tapped for its mana: fundSac sacrifices it)
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
 		s.manaTapped(k, st.sl)
@@ -974,7 +975,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if k.restrSrc {
 				rm = t.filtRestrMask(k, sl)
 			}
-			free := t.canTapForMana(k, sl)
+			sacOnly := k.sacOnlyMana && t.canSacOnlyNowAt(k, sl) // an Eldrazi Spawn funds a fee by being sacrificed (gorge lists the activation at priority)
+			free := t.canTapForMana(k, sl) || sacOnly
 			if !free && rm == 0 {
 				continue
 			}
