@@ -256,13 +256,17 @@ const UnlimitedHandSize = 1 << 20
 func mayLookAtGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
 	v := strings.TrimSpace(params["MayLookAt"])
 	zone := strings.TrimSpace(params["AffectedZone"])
+	// The zone word is read through parseZone's StrCodes table (the same
+	// vocabulary ParseZones splits); You/True -- the effect's controller as
+	// the looker -- is shared by the exile and battlefield shapes.
+	zb, zoneKnown := parseZone(zone)
+	lookerYou := strings.EqualFold(v, "You") || strings.EqualFold(v, "True")
 	revealAll := false
 	switch {
-	case zone == "Exile" && (strings.EqualFold(v, "You") || strings.EqualFold(v, "True")):
-	case zone == "Battlefield" && strings.Contains(params["Affected"], "faceDown") &&
-		(strings.EqualFold(v, "You") || strings.EqualFold(v, "True")):
+	case zoneKnown && zb == state.ZExile && lookerYou:
+	case zoneKnown && zb == state.ZBattlefield && strings.Contains(params["Affected"], "faceDown") && lookerYou:
 	case zone == "Library" && strings.Contains(params["Affected"], "TopLibrary") &&
-		(strings.EqualFold(v, "You") || strings.EqualFold(v, "True") || strings.EqualFold(v, "Player")):
+		(lookerYou || strings.EqualFold(v, "Player")):
 		revealAll = strings.EqualFold(v, "Player")
 	default:
 		return state.ContinuousEffect{}, false, false
