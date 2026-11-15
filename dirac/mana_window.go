@@ -270,8 +270,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			return false, held
 		}
 		if gap {
-			if k.ctrMana && s.scriptCtr(k, p).has(sl) {
-				s.ctrGap(k, p, sl, -1) // the counter, the use, the mana (mana_countercost.go)
+			if s.windowCtrGapTap(k, p, sl) {
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
@@ -427,6 +426,16 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 	return s.restrPoolNonSpell(k, p)
 }
 
+// windowClampSkip: the clamp reads the colours of each ability the source
+// offers (gorge paymentSourceUseful): a counter-cost ability's colour keeps
+// the source listed (windowCtrOffer), though the window's answer still takes
+// the source's plain first one (windowCol). Reports whether windowPick may
+// skip the source without offering it.
+func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
+	return decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) &&
+		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want)
+}
+
 // windowPick is the window's next source among order (p's battlefield, in
 // order): the first usable one, or a window gap (gap true); NoSlot when
 // none is left. A planner-deferred source is skipped unless takeDeferred
@@ -471,7 +480,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			if !takeDeferred && s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
-			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
+			if s.windowClampSkip(k, p, o, decided, want) {
 				continue
 			}
 			return o, false
@@ -3159,49 +3168,18 @@ func (s *State) manaStep(k *prep) bool {
 				return true
 			}
 		case s.waterbendManualPay(k, e, &saved):
-			full := a.Cost.Mana
-			ok, held := s.windowTapRiderUseful(k, e.ctrl, &cost, &full, true, false)
-			if !ok {
-				// gorge's fallback window taps as it walks and leaves the
-				// mana abilities' taps and floated mana behind when payCast
-				// then aborts the activation (CR 733.1): a tap cannot be
-				// undone. Keep the window's state, unlike a dry probe.
-				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+			if !s.waterbendAbilityPay(k, e, &cost, &saved, hostSl, sl, selfUntapped) {
 				return true
 			}
-			for c := range held {
-				s.pl[e.ctrl].pool[c] += held[c]
-			}
 		case k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 && s.powerUpPlanRejected(k, a):
-			// The planner's printed-cost witness is outdated. gorge arms it
-			// whenever the charge still owes generic or coloured mana, hybrid
-			// symbols or not (armAbilityAutoPay), and re-arms for the reduced
-			// cost, tapping its plan's order. A charge the reductions left
-			// hybrid-only arms no witness at all (powerUpArmsNone), so the
-			// manual window pays source by source, first useful one in
-			// battlefield order, tapping nothing when the pool already pays
-			// it.
-			cc := s.buildCostCharge(k)
-			w := s.powerUpWitness(k, a, sl, e.ctrl)
-			if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, &saved) {
-				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
-			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
-				// the window ran out of sources: gorge aborts the activation
-				// (CR 733.1) and keeps the taps and the floated mana, as for
-				// the waterbend fallback above (mana_gate.go)
-				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+			if !s.powerUpAbilityMana(k, e, a, sl, &saved, hostSl, sl, selfUntapped) {
 				return true
 			}
 		case k.phyMana && s.phyBuild(k):
-			// a Phyrexian activation: the plan for the cost its pips settled,
-			// armed on the mana half; the manual window when none exists
-			// (mana_phyrexian.go)
-			half := a.Cost.Mana
-			half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
-			if s.abilityPlanSettles(k, e, half, half, cost, &saved) {
-				s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
-			} else {
-				s.phyPay(k, e.ctrl, &cost, int(e.x), NoObj)
+			s.phyAbilityMana(k, e, &cost, &saved) // the plan for the cost its pips settled; the manual window when none (mana_phyrexian.go)
+		case s.bld().pipN != 0 && s.hybAbilityUnwitnessed(k, e, a, sl) && !s.poolPays(e.ctrl, &cost):
+			if !s.hybWindowPay(k, e, &cost, &saved, hostSl, sl, selfUntapped) {
+				return true // gorge's manual window for the hybrid-only cost (mana_resolutionpay.go)
 			}
 		case s.bld().pipN != 0 && s.hybAbilityOffPlan(k, e.ctrl, &cost) &&
 			!s.abilityPlanSettles(k, e, s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), cost, &saved):
