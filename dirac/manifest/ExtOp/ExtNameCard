@@ -1,6 +1,6 @@
 family: ExtOp
 name: ExtNameCard
-value: next
+value: 93
 forge: NameCard
 status: active
 doc: A mid-resolution card-name choice (SP$/DB$ NameCard); B.N 0 every nameable card, 1 the nonland ones.

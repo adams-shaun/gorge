@@ -1,6 +1,6 @@
 family: ExtOp
 name: ExtClearNamedCard
-value: next
+value: 92
 forge: ClearNamedCard
 status: active
 doc: Cleanup ClearNamedCard$ True: empties the resolving source's chosen card name.
