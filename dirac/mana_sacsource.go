@@ -318,6 +318,13 @@ func (s *State) canSacOnlyNowAt(k *prep, sl Slot) bool {
 	return s.canSacOnlyNow(k, sl, s.manaPCAt(k, sl))
 }
 
+// sacOnlyFund reports whether funding step sl (filtDo's default arm) funds
+// from a sacrifice-only source (an Eldrazi Spawn): its step sacrifices it
+// (fundSac) instead of tapping it, which its cost never asked for.
+func (s *State) sacOnlyFund(k *prep, sl Slot) bool {
+	return k.sacOnlyMana && s.manaPCGen(k, sl).manaSacOnly
+}
+
 // availTappedSac adds a tapped sacrifice-only source's mana to a (the
 // manual ward / unless window's availability; availFor is the planner's
 // census, which prices only untapped sources).
