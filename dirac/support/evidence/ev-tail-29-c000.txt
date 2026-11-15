@@ -1,0 +1,216 @@
+A-Cosmos Elixir
+A-Dreamshackle Geist
+A-Eiganjo Exemplar
+A-Elven Bow
+A-Forge Boss
+Accorder's Shield
+Akki Avalanchers
+Akoum Battlesinger
+Akroma's Memorial
+Alexi's Cloak
+Amoeboid Changeling
+Angelheart Protector
+Araña, Heart of the Spider
+Avacyn's Memorial
+Barbtooth Wurm
+Bastion Mastodon
+Bellowing Tanglewurm
+Binding the Old Gods
+Bird Maiden
+Blood Cultist
+Bloodtallow Candle
+Bonds of Faith
+Bone Pit Brute
+Brain Maggot
+Broken Bond
+Brotherhood's End
+Burn the Accursed
+Capricious Sorcerer
+Captain America, Skybound
+Casey Jones, Asphalt Hooligan
+Cast into the Fire
+Cateran Enforcer
+Cateran Persuader
+Chakra Meditation
+Chandra, Hope's Beacon
+Chaos Terminator Lord
+Checkpoint Officer
+Children of Korlis
+Cliffhaven Sell-Sword
+Coast Watcher
+Conclave Sledge-Captain
+Court Hussar
+Cradle of Safety
+Crystal Seer
+Dawnhart Disciple
+Dawnhart Rejuvenator
+Daxos the Returned
+Deal Gone Bad
+Deathgazer
+Debtors' Transport
+Dega Sanctuary
+Devastation
+Dirty Wererat
+Dispersal Shield
+District Guide
+Doomfall
+Drafna, Founder of Lat-Nam
+Dragon Throne of Tarkir
+Drake Hatchling
+Dread of Night
+Dreadhorde Butcher
+Dream Trawler
+Drogskol Shieldmate
+Eerie Soultender
+Eldrazi Monument
+Electrostatic Pummeler
+Emberwilde Augur
+Empty the Laboratory
+Exert Influence
+Expel
+Ezio, Blade of Vengeance
+Fairgrounds Patrol
+Favored of Iroas
+Fiery Cannonade
+Filter Out
+Firefist Adept
+Foggy Nelson, On Retainer
+Forest
+Foulmire Knight
+Fracturing Gust
+Frost Lynx
+Galestrike
+Garruk's Lost Wolf
+Gatekeeper Gargoyle
+Ghoulcaller Gisa
+Gloomhunter
+Goblin Lookout
+Goblin Replica
+Grafted Wargear
+Green Goblin, Back for More
+Grimgrin, Corpse-Born
+Guardian of Tazeem
+Hammerheim Deadeye
+Havengul Runebinder
+Hawkeye, Trick Shot
+Haystack
+Hearthfire Hobgoblin
+Heated Debate
+Hieromancer's Cage
+High Ground
+Howling Banshee
+Icatian Scout
+Ideas Unbound
+Ingenious Infiltrator
+Ink-Eyes, Servant of Oni
+Innovative Metatect
+Intimidator Initiate
+Intrusive Packbeast
+Invasion of Ulgrotha
+Island
+Jalira, Master Polymorphist
+Jhoira, Weatherlight Captain
+Jousting Lance
+Knight Paladin
+Kodama of the North Tree
+Krovikan Elementalist
+Leonardo, Worldly Warrior
+Leonin Bladetrap
+Levitating Statue
+Leyline Phantom
+Liliana's Spoils
+Littjara Glade-Warden
+Living Wall
+Lossarnach Captain
+Magma Jet
+Master of Diversion
+Maximus, Knight Apparent
+Midnight Scavengers
+Mind Games
+Mistford River Turtle
+Mogg Jailer
+Moku, Meandering Drummer
+Mountain
+Mudhole
+Mystic of the Hidden Way
+Nahiri's Binding
+Nature's Wrath
+Need for Speed
+Noxious Groodion
+Nyxborn Brute
+Nyxborn Shieldmate
+Oppressive Will
+Ornamental Courage
+Pendrell Mists
+Penregon Strongbull
+Phantom Wings
+Phyrexian Rebirth
+Plague Sliver
+Plains
+Plow Through Reito
+Press into Service
+Prickly Marmoset
+Priest of Titania
+Ramosian Lieutenant
+River's Favor
+Road
+Root Spider
+Sai of the Shinobi
+Saltwater Stalwart
+Scab-Clan Berserker
+Scion of the Swarm
+Sea Sprite
+Shadow, Mysterious Assassin
+Shiny Impetus
+Sinister Strength
+Skullmead Cauldron
+Skyshroud Claim
+Slaughter-Priest of Mogis
+Smothering Tithe
+Solar Blast
+Sootfeather Flock
+Soul of the Rapids
+Spark Trooper
+Speakeasy Server
+Spectral Lynx
+Spiderwig Boggart
+Spiraling Embers
+Spirit en-Kor
+Squeeze
+Stabbing Pain
+Stampede
+Stealer of Secrets
+Steelshaper Apprentice
+Stormcloud Djinn
+Strategic Planning
+Strength of the Pack
+Strider, Ranger of the North
+Sturmgeist
+Swamp
+Swarm of Rats
+Sylvok Replica
+Talisman of Resilience
+Tar Pit Warrior
+Thornscape Familiar
+Thundering Raiju
+Tibalt's Rager
+Totally Lost
+Tracker's Instincts
+Treason of Isengard
+Triumph of Cruelty
+Trove Tracker
+Turtle-Seals
+Vengeful Firebrand
+Vine Mare
+Violent Impact
+Voice of Duty
+Voldaren Epicure
+Wall of Earth
+Wand of Denial
+Warping Wail
+Whispersilk Cloak
+Wildsize
+Wind Zendikon
+Wing Commando
+Yellow Scarves Cavalry
+Zodiac Pig

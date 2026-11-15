@@ -1,26 +1,162 @@
+A-Kona, Rescue Beastie
+A-Scout the Wilderness
+Aether Membrane
+Airborne Aid
+Alpine Meadow
+Ambush Commander
 Angel of the Ruins
+April O'Neil, Human Element
+Ascended Lawmage
+Assault Intercessor
 Avabruck Caretaker
 Aven Wind Guide
 Azorius Herald
+Banewhip Punisher
+Basking Rootwalla
+Beast in Show
+Bird Admirer
+Biting Tether
+Blind Zealot
+Boartusk Liege
+Bonescythe Sliver
+Brimstone Volley
+Cantivore
+Carapace Forger
+Cavalier of Thorns
+Caves of Koilos
+Charging Paladin
+Chief Magistrate of Mercadia
+Cloaked Siren
+Consuming Aetherborn
+Consuming Vapors
+Contact Other Plane
+Craterize
+Cyclopean Mummy
+Darting Merfolk
+Deathgaze Cockatrice
+Debt to the Deathless
+Decimator Web
+Desert
+Divine Offering
+Druid of the Anima
+Dune Diviner
+Duskfang Mentor
+Dwarven Strike Force
 Emerge Unscathed
+Emissary of Despair
+Enraged Revolutionary
+Eternal Scourge
 Exuberant Fuseling
+Eye of Ugin
+Feral Prowler
+Feroz's Ban
+Firebreathing
+Flower
 Force Spike
 Forest
 Frogify
+Furyblade Vampire
 Gamekeeper
+Gargantos, the Endbringer
+Garrison Sergeant
+Garruk's Lost Wolf
+Ghirapur Gearcrafter
+Gilt-Leaf Palace
+Goblin Firebug
+Goblin Grenade
+Graceblade Artisan
+Grayscaled Gharial
+Gruul Ragebeast
+Gryff's Boon
+Hajar, Loyal Bodyguard
+Harvester Troll
+Headhunter
+Hotshot Mechanic
+Hunter's Prowess
+Hushwing Gryff
+Hypervolt Grasp
+In the Eye of Chaos
+Iron League Steed
+Ironclad Revolutionary
 Island
+Karlov of the Ghost Council
+Kiss of Death
+Knight of the Keep
 Kor Celebrant
+Kuldotha Cackler
+Landslide
+Letter of Acceptance
+Leyline Prowler
 Liliana's Mastery
+Liliana's Shade
+Magus of the Wheel
 Majestic Metamorphosis
+Manticore
+Martyr of Dusk
+Mercurial Geists
 Mogg Raider
+Molting Snakeskin
+Morgue Thrull
 Mountain
+Niblis of the Urn
+Ninth Bridge Patrol
+Nomad Stadium
+One with Death
+Order
+Order of the Golden Cricket
+Orzhov Keyrune
+Pack's Disdain
 Plains
+Plated Geopede
+Private Research
+Pyromancer's Assault
+Quick-Draw Dagger
+Raging Regisaur
 Rampaging Brontodon
+Rampart Architect
+Ravaging Horde
+Ravenous Squirrel
+Regal Bloodlord
+Renegade Firebrand
+Resurrection
+Rhox Maulers
+Rite of Belzenlok
+Rockslide Elemental
+Rubblebelt Rioters
 Salvage
+Satyr Nyx-Smith
+Savvy Hunter
+Scatter Ray
+Sejiri Refuge
+Serpent of the Endless Sea
+Shadowheart, Dark Justiciar
+Sharpened Pitchfork
 Sheoldred's Edict
+Sight of the Scalelords
+Somberwald Spider
 Speaker of the Heavens
+Spider-Man, Hometown Hero
 Spitting Slug
+Stamina
 Sudden Spinnerets
+Suntouched Myr
+Supernatural Stamina
 Swamp
+Sweet-Gum Recluse
 Taunting Kobold
+Thriving Rats
+Titanium Golem
+Tooth and Claw
+Urborg Skeleton
+Vernal Bloom
+Veteran Armorsmith
+Viridian Revel
+Volatile Arsonist
+Volcanic Salvo
+Voltaic Servant
+Voyaging Satyr
+Warmonger
 Wellwisher
+Whipstitched Zombie
+Zephid
+Zof Consumption

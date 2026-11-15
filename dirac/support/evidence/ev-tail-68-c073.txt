@@ -1,0 +1,6 @@
+Island
+Mountain
+Plains
+Swamp
+Wasp Lancer
+Weed-Pruner Poplar

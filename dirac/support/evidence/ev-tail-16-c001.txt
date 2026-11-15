@@ -1,92 +1,181 @@
 A-Goma Fada Vanguard
+A-The One Ring
 Aether Gale
 Afterlife
+Aftershock
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
+Angelic Benediction
+Anoint with Affliction
+Arcane Encyclopedia
+Armory of Iroas
+Artisan's Sorrow
 Avacyn and Griselbrand
+Aven Trooper
 Barge In
+Barkchannel Pathway
 Battle Mammoth
 Beloved Chaplain
 Bhaal's Invoker
+Blood Clock
 Blood Hound
 Bloodhunter Bat
+Boltwing Marauder
+Brazen Freebooter
 Breakthrough
+Bronze Cudgels
 Burn Down the House
+Burning Anger
 Cabal Ritual
+Call for Blood
+Call of the Herd
+Call the Bloodline
+Cantivore
+Cathedral of War
 Caustic Tar
 Chainwhip Cyclops
+Chandra's Spitfire
+Charmbreaker Devils
 Chastise
 Chrome Prowler
+Clay Statue
 Cloud Dragon
 Coastal Hornclaw
 Coercive Impetus
 Conduit of Ruin
 Courtly Provocateur
+Crazed Skirge
+Crippling Chill
+D'Avenant Archer
 Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkbore Pathway
+Darkness
+Dauntless Survivor
+Dawntreader Elk
+Daxos, Blessed by the Sun
 Daze
 Deadeye Brawler
+Deepwood Drummer
 Defensive Stance
+Desert Sandstorm
+Destiny Spinner
 Dimir Cluestone
 Disrupt
+Dross Crocodile
 Drowned
+Dunland Crebain
 Dusk's Landing
+Eerie Interlude
 Electrostatic Bolt
 Elusive Spellfist
 Emiel the Blessed
 Enchanted Carriage
 Enchantress's Presence
+Encroaching Wastes
 Encrust
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
+Exhume
 Eye Collector
+Family's Favor
+Farbog Boneflinger
+Feebleness
+Ferocious Charge
+Festival Crasher
 Fierce Retribution
+Fight to the Death
+Fires of Undeath
 Font of Ire
+Forced Adaptation
 Forest
+Foul Imp
+Foundry Champion
 Fountain of Renewal
+Frenzied Raptor
+Frenzied Tilling
+Frontier Guide
+Furnace Strider
+Gathering Throng
+Ghirapur Gearcrafter
+Giant-Man, Gargantuan Genius
+Gleam of Battle
+Glowrider
+Goblin Assault Team
 Goblin Cadets
+Goblin Gathering
 Goblin Instigator
+Goblin Roughrider
 Goblin Shortcutter
+Golden Egg
 Goring Warplow
+Graf Harvest
 Grandmother Goby
 Granite Grip
+Guardians of Koilos
+Haunted Guardian
 Heart-Piercer Manticore
 Hearth Charm
+Heedless One
+Hermit Druid
+Hired Poisoner
 Hoar Shade
 Hoard-Smelter Dragon
+Hoarding Recluse
 Hope Charm
+Horned Sliver
+Hoverguard Sweepers
+Ignite the Beacon
 Incursion Specialist
 Iron Bully
 Iron-Barb Hellion
 Island
+Junkyo Bell
 Kaito's Pursuit
 Karoo
+Kathari Bomber
 Kazandu Nectarpot
+Keldon Necropolis
+Kemba's Banner
 Knight Errant
+Kor Sky Climber
 Korozda Guildmage
 Launch
+Lavaborn Muse
 Lazotep Behemoth
+Lorehold Campus
 Madame Vastra
+Mana-Charged Dragon
 Mantle of the Wolf
 March from the Black Gate
 Marsh Lurker
 Martyrs' Tomb
+Merfolk Branchwalker
 Mesmeric Trance
+Metropolis Reformer
 Might of the Old Ways
 Mindblaze
 Mindshrieker
+Mirkwood Spider
+Misshapen Fiend
+Mosscoat Goriak
 Mountain
 Nath's Buffoon
+Nevinyrral's Disk
 Niambi, Esteemed Speaker
+Niblis of Dusk
+Nyxborn Brute
 Oakhame Adversary
 Oblivion's Hunger
 Octomancer
+Ogre Errant
 Oketra's Last Mercy
 Ordruun Commando
+Origin Spellbomb
 Orzhov Racketeers
 Peer into the Abyss
 Permission Denied
@@ -96,46 +185,94 @@ Plains
 Priest of the Crossing
 Provoke
 Puncture Bolt
+Pyre Hound
 Quicken
 Raff Capashen, Ship's Mage
+Rancor
+Raven Clan War-Axe
+Reckless Amplimancer
+Reduce to Ashes
+Ritual of the Machine
 Rock Slide
 Rockslide Ambush
+Rogue's Gloves
 Rolling Thunder
+Rubblebelt Maaka
 Sandblast
+Scent of Nightshade
+Scourge Devil
+Scrapyard Mongrel
 Search Party Captain
+Secret Rendezvous
 Sharpshooter Elf
+Shield Wall
+Sigarda, Champion of Light
 Silumgar Sorcerer
+Silver-Inlaid Dagger
 Sin Collector
+Sinister Starfish
 Skalla Wolf
+Skyshroud Falcon
 Slip Through Space
+Smite the Monstrous
+Soul of Migration
+Soul of Shandalar
+Soulsurge Elemental
 Sparktongue Dragon
 Sparring Construct
 Spearbreaker Behemoth
+Specter's Shroud
 Spell Syphon
 Spire Tracer
 Spore Cloud
+Steelclaw Lance
+Still Life
 Stingscourger
+Stone Retrieval Unit
 Stormcaller of Keranos
 Strands of Undeath
+Strength of Cedars
 Stronghold Zeppelin
+Subdue
+Subterranean Hangar
+Sunspire Griffin
+Suntail Hawk
+Survey the Wreckage
 Swamp
 Sylvan Paradise
 Taigam's Strike
 Tarkir Charm
 Tarpan
+Terashi's Grasp
 Thalakos Seer
 Thassa's Emissary
+Thermal Glider
+Thrash of Raptors
+Throne of Bone
+Thrull Parasite
+Thunderfoot Baloth
 Tilonalli's Knight
 Titan Hunter
+Towashi Songshaper
 Tribute to Horobi
+Trickster's Talisman
+Turbulent Springs
+Unesh, Criosphinx Sovereign
+Unyaro Bees
+Vampiric Dragon
+Venerable Knight
 Viashino Slasher
 Viper, Cruel Conspirator
+Vivify
 Voidwielder
+Voracious Wurm
 Vraska's Scorn
 War-Spike Changeling
 Warning
 Waterfront Bouncer
+Welkin Guide
 Wildest Dreams
+Wily Goblin
 Wishful Merfolk
 You're Ambushed on the Road
 Young Wei Recruits

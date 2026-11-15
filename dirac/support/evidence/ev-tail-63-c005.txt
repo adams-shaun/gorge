@@ -6,8 +6,10 @@ Aggressive Instinct
 Ahn-Crop Invader
 Airlift Chaplain
 Akki Avalanchers
+Altar of Bone
 Ambush Paratrooper
 Angelic Field Marshal
+Arborea Pegasus
 Asari Captain
 Aurochs Herd
 Azorius Charm
@@ -16,26 +18,34 @@ Become the Avalanche
 Blanchwood Treefolk
 Bloodmist Infiltrator
 Boggart Loggers
+Border Patrol
 Bramblesnap
 Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Cage of Hands
 Centaur Chieftain
 Chandra's Outrage
 Compelled Duel
+Consul's Lieutenant
+Court Street Denizen
 Crow Storm
 Cruel Grimnarch
+Crystal Dragon
 Curfew
 Curse Artifact
 Custody Battle
 Darkthicket Wolf
+Deploy to the Front
 Detainment Spell
 Devil Dinosaur
+Dining Room
 Drag Under
 Dragon's Eye Sentry
 Dread Fugue
 Dwarven Armorer
+Elemental Spectacle
 Ensnare
 Erratic Mutation
 Escape Velocity
@@ -49,12 +59,14 @@ Foresee
 Forest
 Forgehammer Centurion
 Freejam Regent
+Freyalise Supplicant
 Gale Swooper
 Giant Solifuge
 Glint Hawk Idol
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
+Griffin Sentinel
 Grim Reaper's Scythe
 Hamlet Vanguard
 Headless Skaab
@@ -63,6 +75,7 @@ Ichor Drinker
 Imperial Subduer
 Island
 Kashi-Tribe Elite
+Kor Bladewhirl
 Kuldotha Rebirth
 Kumena's Awakening
 Kyren Negotiations
@@ -73,9 +86,11 @@ Learn from the Past
 Lily Bowen, Raging Grandma
 Living Airship
 Luxurious Libation
+Maggot Carrier
 Maze Abomination
 Merry, Warden of Isengard
 Mesa Cavalier
+Metamorphic Wurm
 Midnight Charm
 Minion Reflector
 Mountain
@@ -93,9 +108,15 @@ Plains
 Predatory Nightstalker
 Prescient Chimera
 Pyknite
+Pyroclastic Elemental
+Pyromantic Pilgrim
 Rakalite
 Ral's Reinforcements
+Ramosian Commander
+Ranger en-Vec
+Red Dragon
 Red Elemental Blast
+Reflective Golem
 Refocus
 Replication Technique
 Rishadan Brigand
@@ -104,14 +125,19 @@ Rofellos's Gift
 Sanctuary Raptor
 Savage Thallid
 Screeching Bat
+Scryb Sprites
 Scurry of Gremlins
 Shauku, Endbringer
 Shelob's Ambush
+Shivan Zombie
 Skillful Lunge
 Smoldering Werewolf
+Snarling Undorak
 Spell Crumple
 Spring
 Staff of the Wild Magus
+Steel-Plume Marshal
+Stonybrook Banneret
 Stratus Walk
 Student of Ojutai
 Stymied Hopes
@@ -126,9 +152,11 @@ Thalakos Deceiver
 Thaumatic Compass
 Tomakul Honor Guard
 Traverse Eternity
+Trawler Drake
 Vampiric Tutor
 Wakeroot Elemental
 War Dance
 Weatherseed Faeries
 Windrider Wizard
+Zendikar Incarnate
 Zhuge Jin, Wu Strategist

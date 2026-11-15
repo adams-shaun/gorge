@@ -1,0 +1,7 @@
+Cloudpost
+Combust
+Forest
+Island
+Mountain
+Plains
+Swamp
