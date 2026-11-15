@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -18,9 +19,44 @@ import (
 // The body is Ext NumTimes (the announcement 0..N, only the counts the
 // payer's potential mana covers; 0 declines and skips to the end), the
 // ordinary IfPaid on the unit cost (execPay scales it by the announced
-// count), then one guarded ReflexiveTrigger per count k = 1..N into a
-// latent that is the charm with CharmNum$ k (the kernel's multi-pick charm
-// reads a constant maximum, so the announced count selects the latent).
+// count), then the Execute$ body as a ReflexiveTrigger that reads the count:
+// with AnnounceMax$ N, one guarded ReflexiveTrigger per count k = 1..N into
+// a latent that is the charm with CharmNum$ k (the kernel's multi-pick
+// charm reads a constant maximum, so the announced count selects the latent)
+// or any body whose SVar X = Count$TriggerRememberAmount reads k as a
+// constant; with no AnnounceMax$ (the open announce), one latent whose SVar
+// X = Count$TriggerRememberAmount reads the announced count the trigger
+// rides in (gorge rides it xPaid into the instance, resolution.go), so the
+// kernel holds gorge's own 64 ceiling.
+
+// numTimesOpenCap is the open announce's repetition bound: gorge's
+// xFoldBoundCap (rules cumulative.go), the ceiling of "any number of times".
+const numTimesOpenCap = 64
+
+// trigRemNumTimes marks a reflexive latent whose body reads
+// Count$TriggerRememberAmount under an OPEN parent announce: the count rides
+// OpReflexiveTrigger's B as the parent's X, one captured amount
+// (lower_trigremembered.go).
+const trigRemNumTimes = "numTimes"
+
+// numTimesAmount is a NumTimes body's Count$TriggerRememberAmount: the
+// announced count, a constant in a per-count latent (AnnounceMax$), and the
+// parent's captured count in an open latent (gorge rides it xPaid into the
+// instance, resolution.go): one captured amount.
+func (lc *lowerCtx) numTimesAmount() (lValue, error) {
+	if lc.numTimesK > 0 {
+		return cst(lc.numTimesK), nil
+	}
+	if ab := lc.ab; ab == nil || !ab.Latent || ab.Name != "ReflexiveTrigger" {
+		return lValue{}, fmt.Errorf("Count$TriggerRememberAmount outside an open NumTimes reflexive latent")
+	}
+	if rest := lc.ab.TrigRem; rest != "" && rest != trigRemNumTimes {
+		return lValue{}, fmt.Errorf("Count$TriggerRememberAmount beside TriggerRemembered$%s: one captured amount", rest)
+	}
+	lc.ab.TrigRem = trigRemNumTimes
+	return lValue{Kind: vTriggerAmount}, nil
+}
+
 func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {
 	if lc.ab.Kind != akTriggered || len(lc.ab.Prog) != 0 || sa.API != "ImmediateTrigger" {
 		return refuse("Mana<...\\NumTimes> outside a trigger's own ImmediateTrigger cost")
@@ -29,7 +65,8 @@ func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {
 		return refuse("NumTimes announcement shape")
 	}
 	// AnnounceMax$ absent: gorge offers every count the potential mana
-	// covers (up to 64); the kernel holds 7 and stalls loud past it
+	// covers, up to its 64 bound; the open latent reads the count, so the
+	// kernel holds the same bound
 	max, open := 7, true
 	if v, ok := ps.get("AnnounceMax"); ok {
 		n, err := strconv.Atoi(v)
@@ -37,6 +74,10 @@ func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {
 			return refuse("NumTimes AnnounceMax$ %q", v)
 		}
 		max, open = n, false
+	}
+	bound := max
+	if open {
+		bound = numTimesOpenCap
 	}
 	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
 	if exec == nil {
@@ -66,20 +107,23 @@ func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {
 	if pay.CS != "Mana" || pay.C != 0 || len(pay.Hyb) != 0 || pay.A.Kind != vConst || pay.B.Kind != vConst || pay.A.N < 0 || pay.A.N > 15 {
 		return refuse("NumTimes unit cost shape")
 	}
+	// the announced count's cost rides kop.ManaCost's bytes (numTimesCost):
+	// the unit must leave one at the bound
 	for i := 0; i < 5; i++ {
-		if pay.B.N>>(3*i)&7*max > 7 {
-			return refuse("NumTimes pips past 7 over the maximum")
+		if pay.B.N>>(3*i)&7*bound > 255 {
+			return refuse("NumTimes pips past 255 over the maximum")
 		}
 	}
-	if pay.A.N*max > 255 {
+	if pay.A.N*bound > 255 {
 		return refuse("NumTimes generic past 255")
 	}
 	// the announcement: A the unit's generic, B its packed pips, C the
 	// maximum; Skip (patched to the chain end) is its decline jump; CS open
-	// stalls loud when an eighth repetition is payable
+	// reads the bound as gorge's 64 ceiling
 	ann := lInstr{Op: "NumTimes", A: pay.A, B: pay.B, C: max, Skip: -1, Note: "announce 0..max; 0 declines to the chain end"}
 	if open {
 		ann.CS = "open"
+		ann.Note = "announce 0..64 (open); 0 declines to the chain end"
 	}
 	lc.emit(ann)
 	pay.Op = "IfPaid"
@@ -87,6 +131,25 @@ func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {
 	lc.emit(pay)
 	lc.ab.Prog[payAt].Skip = -1
 	lc.ab.Prog[payAt].Note = "covers the Sub chain"
+	if open {
+		// one reflexive trigger riding the announced count (the parent's X,
+		// gorge resolution.go): the latent is the Execute$ body with the
+		// count read off the entry
+		lat := lc.newLatent("ReflexiveTrigger")
+		savedOpen := lc.numTimesOpen
+		lc.numTimesOpen = true
+		err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+		lc.numTimesOpen = savedOpen
+		if err != nil {
+			return err
+		}
+		b, err := lc.trigRememberedCapture(nil, lat)
+		if err != nil {
+			return err
+		}
+		lc.emit(lInstr{Op: "ReflexiveTrigger", A: cst(1), B: b, C: lat.Index})
+		return nil
+	}
 	// one guarded ReflexiveTrigger per announced count k, into a latent that
 	// is the Execute$ body lowered with the count a constant: the charm with
 	// CharmNum$ k (the kernel's multi-pick charm reads a constant maximum),
