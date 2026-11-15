@@ -613,9 +613,8 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.Engines {
 			add("card:Engines", name)
 		}
-		if d.Ascend {
-			add("card:Ascend", name)
-		}
+		opsAddYes(add, d.Ascend, "card:Ascend", name)
+		opsAddYes(add, d.Unleash, "card:Unleash", name)
 		if d.TypedMana {
 			add("card:TypedMana", name)
 		}

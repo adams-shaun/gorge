@@ -1164,10 +1164,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (dirac/kw_speed.go); the keyword's other text is the
 			// card's own lines
 			lc.out.Engines = true
-		case head == "Ascend" && param == "":
-			// CR 702.131: the city's blessing is the kernel's post-placement
-			// scan and the spell's resolution grant (dirac/kw_ascend.go)
+		case head == "Ascend" && param == "": // CR 702.131: the blessing scans and grant (dirac/kw_ascend.go)
 			lc.out.Ascend = true
+		case head == "Unleash" && param == "": // CR 702.86: the as-enters ask and the block gate (lower_unleash.go)
+			lc.lowerUnleash()
 		case head == "Bloodthirst":
 			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
 			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
@@ -1196,18 +1196,7 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Landwalk":
 			// gorge rules/combat/block.go LandwalkSpec: the parameter up to
 			// a second colon is a filter over the defender's lands
-			spec, _, _ := strings.Cut(param, ":")
-			spec = strings.TrimSpace(spec)
-			if spec == "" || lc.out.Landwalk != nil {
-				lc.refuseNode(node, "landwalk %q", param)
-				continue
-			}
-			f, err := lc.filter(spec)
-			if err != nil {
-				lc.refuseNode(node, "landwalk %q: %v", param, err)
-				continue
-			}
-			lc.out.Landwalk = f
+			lc.lowerLandwalk(node, param)
 		case head == "Unearth":
 			// CR 702.84a: gorge kwUnearth expands it into one graveyard
 			// AB$ ChangeZone (Unearth$ True), lowered from that line
@@ -2028,6 +2017,24 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.refuseNode(node, "keyword %q", head)
 		}
 	}
+}
+
+// lowerLandwalk is lowerKeywords' K:Landwalk arm (gorge
+// rules/combat/block.go LandwalkSpec): the parameter up to a second colon is
+// a filter over the defender's lands.
+func (lc *lowerCtx) lowerLandwalk(node, param string) {
+	spec, _, _ := strings.Cut(param, ":")
+	spec = strings.TrimSpace(spec)
+	if spec == "" || lc.out.Landwalk != nil {
+		lc.refuseNode(node, "landwalk %q", param)
+		return
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		lc.refuseNode(node, "landwalk %q: %v", param, err)
+		return
+	}
+	lc.out.Landwalk = f
 }
 
 // faceHasKeyword reports whether the face carries the parameterless keyword

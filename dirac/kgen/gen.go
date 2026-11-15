@@ -405,9 +405,8 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Reconfigure {
 		fmt.Fprintf(w, " reconfigure")
 	}
-	if c.Ascend {
-		fmt.Fprintf(w, " ascend")
-	}
+	dumpLIRYes(w, c.Ascend, " ascend")
+	dumpLIRYes(w, c.Unleash, " unleash")
 	if c.Evasion != 0 {
 		fmt.Fprintf(w, " evasion=%d", c.Evasion)
 	}
@@ -604,6 +603,13 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	for _, r := range c.Refusals {
 		fmt.Fprintf(w, "  REFUSED %s: %s\n", r.Node, r.Reason)
+	}
+}
+
+// dumpLIRYes is dumpLIR's yes-flag line.
+func dumpLIRYes(w io.Writer, on bool, tag string) {
+	if on {
+		fmt.Fprintf(w, "%s", tag)
 	}
 }
 

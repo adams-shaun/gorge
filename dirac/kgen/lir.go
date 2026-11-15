@@ -1338,6 +1338,7 @@ type lCard struct {
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
 	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
 	Ascend         bool     // printed K:Ascend (CR 702.131)
+	Unleash        bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
