@@ -422,6 +422,12 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 	eligibleByOwner := make([][]state.ObjID, len(owners))
 	for i, owner := range owners {
 		for _, id := range zoneOf(g, state.ZHand, owner) {
+			// A token returned to the hand mid-resolution (Flood of Tears)
+			// is not a card and ceases to exist at the next state check
+			// (CR 111.1, 111.7): no hand pick may take it.
+			if o := g.Obj(id); o != nil && o.Ephemeral() {
+				continue
+			}
 			if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 				eligibleByOwner[i] = append(eligibleByOwner[i], id)
 			}
