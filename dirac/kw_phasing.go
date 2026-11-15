@@ -300,8 +300,10 @@ func (s *State) phasedCtrl(p uint8) slotMask {
 
 // phasedPT is the P/T gorge projects for a phased-out creature: no
 // continuous effect applies to it (CR 702.26b; gorge matchesWithCharsPT), so
-// its base P/T plus its +1/+1 and -1/-1 counters. The projection alone reads
-// it; nothing in play sees a phased-out permanent.
+// its base P/T plus its P/T counters: +1/+1 and -1/-1, and the -0/-1 and
+// -2/-1 kinds ptGen reads (CR 122.1a; a counter stays on a phased-out
+// permanent). The projection alone reads it; nothing in play sees a
+// phased-out permanent.
 //
 //go:noinline
 func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
@@ -316,7 +318,16 @@ func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
 			bp, bt = ep, et // a copy exception's P/T is copiable (CR 707.9b)
 		}
 	}
-	return bp + c, bt + c
+	dp, dt := 0, 0
+	if k.ctrMana {
+		dt -= p.ctrN(s, int(kop.CtrM0M1)) // -0/-1 counters (mana_countercost.go)
+	}
+	if k.gen != nil && k.gen.anyM2M1 {
+		m := p.ctrN(s, int(kop.CtrM2M1)) // -2/-1 counters (ctr_hone.go)
+		dp -= 2 * m
+		dt -= m
+	}
+	return bp + c + dp, bt + c + dt
 }
 
 // phasedBasePT is a phased-out permanent's printed P/T, or its own
