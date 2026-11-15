@@ -975,8 +975,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if k.restrSrc {
 				rm = t.filtRestrMask(k, sl)
 			}
-			sacOnly := k.sacOnlyMana && t.canSacOnlyNowAt(k, sl) // an Eldrazi Spawn funds a fee by being sacrificed (gorge lists the activation at priority)
-			free := t.canTapForMana(k, sl) || sacOnly
+			free := t.canFundFee(k, sl)
 			if !free && rm == 0 {
 				continue
 			}

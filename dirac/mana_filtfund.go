@@ -85,3 +85,11 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 		s.ceaseManaToken(o)
 	}
 }
+
+// canFundFee reports whether the funding source at sl can be activated by the
+// search: an untapped tap source, or an Eldrazi Spawn, which funds a fee by
+// being sacrificed (a last-resort planner unit whose activation gorge lists at
+// priority, CR 605.1a).
+func (s *State) canFundFee(k *prep, sl Slot) bool {
+	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl)
+}
