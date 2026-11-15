@@ -165,8 +165,8 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(pc.manaCol) ||
-			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl)), pc.manaChosen) ||
+			pc.manaFixedChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
 		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
@@ -190,9 +190,11 @@ func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
 }
 
 // tapsDeferColour is the production scriptTapsDefer models: any colour, or
-// exactly one of WUBRG.
-func tapsDeferColour(c kop.ColorMask) bool {
-	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
+// exactly one of WUBRG. A chosen-colour source (Cliffgate's R or the chosen
+// colour) names its printed colours beside the chosen one, so any colours of
+// WUBRG: gorge's mana ask lists each.
+func tapsDeferColour(c kop.ColorMask, chosen bool) bool {
+	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && (chosen || c&(c-1) == 0)
 }
 
 // restrTapsGapShape: the source at sl is a restricted planner source whose
@@ -290,7 +292,7 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 		}
 		return n
 	}
-	return uint8(bits.OnesCount8(uint8(s.manaPCGen(k, sl).manaCol)))
+	return uint8(bits.OnesCount8(s.srcMaskAt(s.manaPCGen(k, sl), sl)))
 }
 
 // tapDeferPlain floats a rider source's plain first ability at sl, the
@@ -327,7 +329,7 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 		return
 	}
 	pc := s.manaPCGen(k, sl)
-	mask := uint8(pc.manaCol)
+	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
 	for i := 0; i < c; i++ {
 		mask &= mask - 1
 	}

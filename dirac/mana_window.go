@@ -1788,7 +1788,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	} else if a, ok := s.riderAbilityOf(k, sl); ok {
 		mask = uint8(a.ManaColors)
 	} else {
-		mask = uint8(s.manaPCGen(k, sl).manaCol)
+		mask = s.srcMaskAt(s.manaPCGen(k, sl), sl)
 	}
 	var order [kop.NumManaKinds]uint8
 	no := 0
