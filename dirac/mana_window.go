@@ -471,8 +471,8 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			if !takeDeferred && s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
-			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) {
-				continue // (a counter-cost second ability makes a colour the plain {T} does not: gorge lists the source, and its first ability answers)
+			if decided && s.windowUseless(k, p, o, want) {
+				continue
 			}
 			return o, false
 		}
@@ -507,6 +507,14 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 	}
 	return NoSlot, false
+}
+
+// windowUseless: the clamp (want, the colours the cost still owes) finds source o
+// no use. A counter-cost second ability that makes an owed colour keeps the
+// source listed though its plain {T} makes another: gorge lists it and its
+// first ability answers (Vivid Creek's {U} under an owed {B}).
+func (s *State) windowUseless(k *prep, p uint8, o Slot, want uint8) bool {
+	return (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, true, want)
 }
 
 // windowCanTap is canTapForMana for the window's walk: a source whose only
