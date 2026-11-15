@@ -955,6 +955,9 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 	if !ok {
 		return
 	}
+	if s.tapXGrantBoard(k, p, a) && !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) && s.tapXScript(k, a, p, true) {
+		return // gorge's one prefix search takes the sacrifice-any source and the grants in battlefield order (mana_tapxgrant.go)
+	}
 	var g grantSrch
 	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) && g.np != 0 {
 		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
