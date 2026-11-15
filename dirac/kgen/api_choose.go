@@ -10,6 +10,7 @@ func init() {
 	apiOp("ChoosePlayer", (*lowerCtx).apiChoosePlayer)
 	apiPS("ChooseColor", (*lowerCtx).chooseColorPrevent) // Prismatic Strands
 	apiPS("ChooseType", (*lowerCtx).chooseType)
+	apiPS("NameCard", (*lowerCtx).nameCardMid)            // lower_namecard.go
 	apiPS("ChooseNumber", (*lowerCtx).chooseNumberEffect) // lower_choosenumber.go
 }
 

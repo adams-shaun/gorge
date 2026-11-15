@@ -129,8 +129,9 @@ type dataSet struct {
 	plays []bool
 	// nameInert marks the pool-table cards that choose a card name when the
 	// pool's table cannot hold the choice (pooldata_names.go poolNamesFit):
-	// Pool holds them as inert fallbacks and Inert says so. A matchup table
-	// is unaffected (it compacts its CardIDs). nil when none.
+	// Pool holds them as inert fallbacks and Inert says so. A face entry
+	// counts with its main card (nameEntries). A matchup table is
+	// unaffected (it compacts its CardIDs). nil when none.
 	nameInert []bool
 }
 
@@ -186,7 +187,15 @@ func (s dataSet) Pool() (*kop.Table, error) {
 }
 
 func (s dataSet) Inert(i int) bool {
-	return i < s.d.NumCards && (!s.plays[i] || s.nameInert != nil && s.nameInert[i])
+	if i >= s.d.NumIDs {
+		return false
+	}
+	if s.nameInert != nil && s.nameInert[i] {
+		return true
+	}
+	// the plays arm stays a card entry's: a token or face entry
+	// ([NumCards, NumIDs)) is inert only when nameInert says so
+	return i < s.d.NumCards && !s.plays[i]
 }
 
 func (s dataSet) PoolID(i int) kop.CardID { return kop.CardID(s.d.PoolID[i]) }

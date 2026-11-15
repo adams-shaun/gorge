@@ -79,6 +79,7 @@ type genPrep struct {
 	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (static_emblemcold.go)
 	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
+	anyEmbName      bool     // some emblem static reads kop.PredNamedCard: the cold buffer holds each player's first maxEmb emblems' frozen chosen names (static_emblemcold.go)
 	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
 	anyGraveAct     bool
 	anyHandAct      bool // an activated ability works from the hand (cycling; repl_regenerate.go)
@@ -865,7 +866,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyMayKind = tableMayPlayKinds(t)
 	g.anyZeroAlt = tableZeroAlt(t)
 	g.anyMayCold = tableMayPlayRemembered(t)
-	g.anyEmbCold = tableEmblemRepeats(t)
+	g.anyEmbCold, g.anyEmbName = tableEmblemRepeats(t), tableEmbNamed(t)
 	g.anyMayRaise = tableMayRaise(t)
 	if tableCastFromGrave(t) {
 		g.anyCastProv = true // castFromGrave reads the cast's zone (cast_mayplayoffers.go)
