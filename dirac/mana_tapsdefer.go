@@ -190,9 +190,10 @@ func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
 }
 
 // tapsDeferColour is the production scriptTapsDefer models: any colour, or
-// exactly one of WUBRG.
+// exactly one of WUBRG or {C} (Hall of Heliod's Generosity under Blight: the
+// planner defers the land, so the census never lists its {C} either).
 func tapsDeferColour(c kop.ColorMask) bool {
-	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
+	return c == kop.ColAny || c == kop.ColC || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
 }
 
 // restrTapsGapShape: the source at sl is a restricted planner source whose
