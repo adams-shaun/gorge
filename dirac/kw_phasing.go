@@ -363,6 +363,28 @@ func (s *State) phasedIsCreature(k *prep, sl Slot) bool {
 	return s.phasedTypes(k, sl, k.t.Cards[s.cardAt(sl)].Types&^kop.TToken)&kop.TCreature != 0
 }
 
+// phasedPTShown reports whether the projection writes Power/Toughness for
+// the permanent at sl, and which: a phased-out permanent's own rule-based
+// type switches stand (phasedIsCreature, CR 702.26b), so an attached bestow
+// or reconfigure card is not a creature and its P/T is not projected, and a
+// phased-out creature's P/T is phasedPT's.
+func (s *State) phasedPTShown(k *prep, sl Slot) (bool, int, int) {
+	hid := k.phasing && s.hiddenAt(sl)
+	cr := s.isCreature(k, sl)
+	if hid && !s.faceDown(k, sl) {
+		cr = s.phasedIsCreature(k, sl)
+	}
+	if !cr && !(hid && s.faceDown(k, sl)) {
+		return false, 0, 0
+	}
+	if hid {
+		pw, tg := s.phasedPT(k, sl)
+		return true, pw, tg
+	}
+	pw, tg := s.pt(k, sl)
+	return true, pw, tg
+}
+
 // phasedBasePT is a phased-out permanent's printed P/T, or its own
 // characteristic-defining P/T. A CDA is not one of the continuous effects
 // CR 702.26b excludes: it defines the object's characteristics in every zone

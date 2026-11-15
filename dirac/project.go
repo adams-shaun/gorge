@@ -300,20 +300,11 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		if s.g.on && s.mObj(k, mechStash, i) {
 			po.Counters[kop.CtrStash]++ // gorge keeps the stash counter on a card played from exile
 		}
-		hid := k.phasing && s.hiddenAt(sl)
-		cr := s.isCreature(k, sl)
-		if hid && !s.faceDown(k, sl) {
-			// the phased-out permanent's own type switches stand (kw_phasing.go
-			// phasedIsCreature, CR 702.26b): a refreshTy left the stale gty it
-			// held while it was phased in, so the attached bestow card reads
-			// its bestowed types, not the printed creature
-			cr = s.phasedIsCreature(k, sl)
-		}
-		if cr || hid && s.faceDown(k, sl) {
-			pw, tg := s.pt(k, sl)
-			if hid {
-				pw, tg = s.phasedPT(k, sl) // kw_phasing.go
-			}
+		// a phased-out permanent's own type switches stand (kw_phasing.go
+		// phasedPTShown, CR 702.26b): a refreshTy left the stale gty it held
+		// while it was phased in, so an attached bestow card reads its
+		// bestowed types, not the printed creature
+		if shown, pw, tg := s.phasedPTShown(k, sl); shown {
 			po.Power, po.Tough = int16(pw), int16(tg)
 		}
 		if pm.attached != NoSlot {
