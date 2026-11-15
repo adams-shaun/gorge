@@ -188,32 +188,16 @@ func (lc *lowerCtx) pickEachLoop(loop lRef) {
 	}
 }
 
-// graveChooser reads a graveyard pick's Chooser$ against its fetch player
-// and each-player loop: You (the default) keeps them, except over a walked
-// player set (youPickEachOppGrave) or a fetch player other than You, where
-// gorge asks You over another player's graveyard; Opponent with You as the
-// fetch player asks the resolving controller's first living opponent (gorge
-// hiddenPickChooser: Chooser$ Opponent through chooserPlayer), the kernel's
-// SrChooserOpp read. It returns the owner and loop to emit and the CS suffix.
-func (lc *lowerCtx) graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRef, lRef, string, error) {
-	ch, ok := ps.get("Chooser")
-	if !ok {
-		return owner, loop, "", nil
+// graveChooser folds a Chooser$ You graveyard pick that walks the opponents
+// (DefinedPlayer$ Opponent, onto the battlefield under your control) into the
+// one opponent's cards asked of You (youPickEachOppGrave). It returns the
+// owner and loop to emit; every other spelling is returned unchanged for
+// graveChooserFlags (lower_gravedefinedplayer.go) to read.
+func (lc *lowerCtx) graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRef, lRef) {
+	if loop.Kind != rNone && ps.str("Chooser") == "You" && lc.youPickEachOppGrave(f, flags, loop) {
+		return lRef{Kind: rYou}, lRef{}
 	}
-	switch {
-	case ch == "You" && loop.Kind != rNone:
-		if !lc.youPickEachOppGrave(f, flags, loop) {
-			return owner, loop, "", refuse("graveyard pick Chooser$ You over DefinedPlayer$ %q", ps.str("DefinedPlayer"))
-		}
-		return lRef{Kind: rYou}, lRef{}, "", nil
-	case ch == "You" && owner.Kind != rYou:
-		return owner, loop, "", refuse("graveyard pick Chooser$ You over DefinedPlayer$ %q", ps.str("DefinedPlayer"))
-	case ch == "You", ch == "":
-		return owner, loop, "", nil
-	case ch == "Opponent" && owner.Kind == rYou && loop.Kind == rNone:
-		return owner, loop, "|ChooserOpp", nil
-	}
-	return owner, loop, "", refuse("graveyard pick Chooser$ %q", ch)
+	return owner, loop
 }
 
 // youPickEachOppGrave folds Chooser$ You into a graveyard pick that walks the
