@@ -92,6 +92,9 @@ func (lc *lowerCtx) trigRememberedCapture(ps *params, lat *lAbility) (lValue, er
 	if rest == trigRemXPaid {
 		return lValue{Kind: vX}, nil // lower_triggerxcost.go: the parent's paid X
 	}
+	if rest == trigRemNumTimes {
+		return lValue{Kind: vX}, nil // lower_numtimes.go: the parent's announced count
+	}
 	if rest == trigRemSacPower {
 		// Spawner>Sacrificed$CardPower: the parent resolution's IfPaid
 		// Sacrifice sum, captured as the reflexive trigger goes on the stack
