@@ -37,6 +37,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
 		av.xdOn = false
+		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+			s.restrAvailAdd(p, m, &av) // floating restricted mana a non-spell payment may spend (CR 106.6; gorge AvailableFor)
+		}
 		return av.affords(&c, pipMaskOf(&c), 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
