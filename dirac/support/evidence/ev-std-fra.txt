@@ -1,8 +1,10 @@
 Academic Ascent
 Aerid Konstrari
 Afterthought Sentry
+Ajani Resolute
 Ajani Unrelenting
 Ajani's Anguish
+Apex Witchstalker
 Arcane Amphisbaena
 Archive Arbiter
 Arni, Humble Scribe
@@ -90,6 +92,7 @@ Ingris Stingerquill
 Innovative Commons
 Inspired Tethermage
 Island
+Jace, Reality Sculptor
 Jiang Yanggu, Alone
 Jiang Yanggu, Never Alone
 Karn, Argent Defender
@@ -140,6 +143,7 @@ Precise Redaction
 Predictive Preparations
 Primal Witchstalker
 Proctor of Potential
+Proft, Sinister Mastermind
 Prophesied End
 Protege's Awakening
 Puppet Crafting
@@ -190,6 +194,7 @@ Tenured Tethermage
 Terminal Criticism
 Tether Technician
 Tethermage's Advantage
+Tetsuko Umezawa, Fugitive
 Teyo, Diamondblade Mage
 Teyo, Lightshield Expert
 Thalia, the Survivor
