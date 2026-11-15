@@ -21,6 +21,7 @@ Charcoal Diamond
 Chomping Changeling
 Citanul Woodreaders
 Cloudgoat Ranger
+Colossal Skyturtle
 Commune with Nature
 Compulsion
 Conclave Evangelist
@@ -30,6 +31,7 @@ Daring Demolition
 Disturbed Burial
 Dust to Dust
 Eater of the Dead
+Emiel the Blessed
 End the Festivities
 Eternal Thirst
 Experimental Augury
@@ -63,6 +65,7 @@ Myriad Landscape
 Nadier's Nightblade
 Nekrataal
 Paladin of the Bloodstained
+Pegasus Courser
 Pentarch Ward
 Penumbra Kavu
 Plains

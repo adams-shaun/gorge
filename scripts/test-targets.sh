@@ -27,8 +27,8 @@
 #
 # Settings that belong to the machine, not the repository, go in ~/.config/gorge/test-targets.env (or
 # $GORGE_TEST_TARGETS_ENV): GORGE_POOLS (dirac's deck pools), GATE_AFFECTED_REPO (+ GATE_AFFECTED_PATH, GATE_REF),
-# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT), and the remote runner's GORGE_REMOTE_HOST,
-# GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_MIN_IDLE, GORGE_REMOTE_OFF (scripts/test-remote.sh).
+# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT), and the remote runner's GORGE_REMOTE_HOST (or
+# GORGE_REMOTE_HOSTS, several boxes), GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_MIN_IDLE, GORGE_REMOTE_OFF (scripts/test-remote.sh).
 #
 # Runner: with the GORGE_REMOTE_* settings present, the mode runs on the gate box instead (the worktree's HEAD and
 # its uncommitted diff are shipped; the same verdict line and the same go test -json at the same local path come

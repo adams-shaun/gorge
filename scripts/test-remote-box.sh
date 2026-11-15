@@ -3,7 +3,7 @@
 # runs ON THE GATE BOX. test-remote.sh feeds it to `bash -s` over ssh, so the box needs no copy of it.
 #
 #   probe    <repo>              janitor (scratch worktrees and refs older than a day), then one line:
-#                                probe idle=<cores> free=<run slots> lock=<corpus lock hash>
+#                                probe idle=<cores> free=<free run slots> slots=<run slots> lock=<corpus lock hash>
 #   run      <repo> <run> <mode> the run slot's worktree at refs/tt/<run>/head (+ <repo>/../tt-wt/<run>.patch),
 #                                the same scripts/test-targets.sh <mode> in a systemd scope whose CPUWeight is below
 #                                the landing gate's (rgate.scope runs at 100). It streams the output, writes
@@ -14,7 +14,8 @@
 #                                (never the slot worktree: the next run in that slot reuses it)
 #
 # Settings arrive as TT_* environment variables (set by the client from ~/.config/gorge/test-targets.env):
-# TT_MAXRUNS, TT_WEIGHT, TT_CPU (percent), TT_MEM, TT_PROCS, TT_CARDS (the corpus on this box), TT_GOROOT, TT_NICE
+# TT_MAXRUNS (the run slots; empty means max(2, nproc/6), so the slots follow the box's cores), TT_WEIGHT, TT_CPU
+# (percent, default 1200), TT_MEM, TT_PROCS (default 8), TT_CARDS (the corpus on this box), TT_GOROOT, TT_NICE
 # (the run's nice level, default 5: below the landing gate's 0 as well as under its CPUWeight).
 # Layout: <repo>/../tt-wt/.slot<i>.wt, one worktree per run slot, reused; <repo>/../tt-wt/<run>/.ds4/scratch/test, a
 # run's results, copied out of the slot before its lock is released; <repo>/../gocache (the landing gate's build cache, kept warm),
@@ -29,6 +30,9 @@ work=$parent/tt-wt
 wd=$work/$run # the run's results; the run itself works in its slot's worktree (slot_wt)
 unit=tt-${run//[^A-Za-z0-9_-]/_}
 status=$work/$run.status
+# The run slots: TT_MAXRUNS, or one per 6 cores and at least 2 (5 on a 32-core box) when it is unset.
+slots=${TT_MAXRUNS:-}
+case $slots in '' | *[!0-9]*) slots=$(($(nproc) / 6)); [ "$slots" -ge 2 ] || slots=2 ;; esac
 
 drop() { # delete a run's leftovers
 	systemctl --user stop "$unit.scope" >/dev/null 2>&1
@@ -58,13 +62,13 @@ probe)
 	idle=$(awk -v n="$(nproc)" -v t1="$((u1 + n1 + s1 + i1 + w1 + q1 + sq1 + st1))" -v t2="$((u2 + n2 + s2 + i2 + w2 + q2 + sq2 + st2))" \
 		-v i1="$((i1 + w1))" -v i2="$((i2 + w2))" 'BEGIN { d = t2 - t1; v = 0; if (d > 0) v = n * (i2 - i1) / d; printf "%.1f", v }')
 	free=0
-	for i in $(seq 1 "${TT_MAXRUNS:-4}"); do
+	for i in $(seq 1 "$slots"); do
 		{ exec 8>>"$work/.slot$i"; } 2>/dev/null || continue
 		if flock -n 8; then free=$((free + 1)); fi
 		exec 8>&-
 	done
 	lock=$(sha256sum "${TT_CARDS:-/nonexistent}/cards.lock" 2>/dev/null | cut -c1-16)
-	echo "probe idle=$idle free=$free lock=$lock"
+	echo "probe idle=$idle free=$free slots=$slots lock=$lock"
 	;;
 cleanup)
 	drop
@@ -77,7 +81,7 @@ run)
 	infra() { echo "infra=$*" >"$status"; echo "test-remote-box: $*" >&2; exit 92; }
 	[ -d "$work" ] || infra "no $work"
 	got=
-	for i in $(seq 1 "${TT_MAXRUNS:-4}"); do
+	for i in $(seq 1 "$slots"); do
 		{ exec 8>>"$work/.slot$i"; } 2>/dev/null || continue
 		if flock -n 8; then got=$i; break; fi
 		exec 8>&-
@@ -127,11 +131,11 @@ run)
 	cd "$wd" || infra "cd $wd"
 	nl=${TT_NICE:-5}
 	case $nl in '' | *[!0-9]*) nl=5 ;; esac
-	inner=(nice -n "$nl" env BASE="refs/tt/$run/base" TEST_TARGETS_REMOTE=1 TEST_TARGETS_SCOPED=1 GOMAXPROCS="${TT_PROCS:-16}" GOMEMLIMIT="${TT_GOMEMLIMIT:-40GiB}" bash scripts/test-targets.sh "$mode")
+	inner=(nice -n "$nl" env BASE="refs/tt/$run/base" TEST_TARGETS_REMOTE=1 TEST_TARGETS_SCOPED=1 GOMAXPROCS="${TT_PROCS:-8}" GOMEMLIMIT="${TT_GOMEMLIMIT:-40GiB}" bash scripts/test-targets.sh "$mode")
 	# One scope for the whole run: scopes the run opens inside would escape this CPUWeight and CPUQuota
 	# (test-targets.sh opens none when TEST_TARGETS_REMOTE is set).
 	if systemd-run --user --scope -q true >/dev/null 2>&1; then
-		systemd-run --user --scope -q --unit="$unit" -p CPUWeight="${TT_WEIGHT:-20}" -p CPUQuota="${TT_CPU:-2400}%" -p MemoryMax="${TT_MEM:-48G}" "${inner[@]}"
+		systemd-run --user --scope -q --unit="$unit" -p CPUWeight="${TT_WEIGHT:-20}" -p CPUQuota="${TT_CPU:-1200}%" -p MemoryMax="${TT_MEM:-48G}" "${inner[@]}"
 	else
 		echo "test-remote-box: note: no user systemd on the box; running uncapped" >&2
 		"${inner[@]}"

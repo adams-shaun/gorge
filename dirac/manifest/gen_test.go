@@ -131,7 +131,7 @@ func TestGenerateEmptyManifest(t *testing.T) {
 	files := generate(t, fstest.MapFS{OrdinalsPath: {Data: []byte("OpNop\tOp\t0\n")}})
 	for p, want := range map[string]string{
 		KopGen:   GenHeader + "\n\npackage kop\n",
-		DiracGen: GenHeader + "\n\npackage dirac\n\nimport \"" + kopImport + "\"\n" + genExtDispatch(nil),
+		DiracGen: GenHeader + "\n\npackage dirac\n\nimport \"" + kopImport + "\"\n" + genKernelDispatch(Handlers{}),
 		KgenGen:  GenHeader + "\n\npackage kgen\n",
 	} {
 		if string(files[p]) != want {

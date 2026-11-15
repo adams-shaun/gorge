@@ -3,6 +3,7 @@ Adrenaline Jockey
 Aether Syphon
 Aetherjacket
 Afterburner Expert
+Agonasaur Rex
 Air Response Unit
 Alacrian Armory
 Alacrian Jaguar
@@ -26,11 +27,14 @@ Brightfield Glider
 Brightfield Mustang
 Brightglass Gearhulk
 Broadcast Rambler
+Broadside Barrage
+Broken Wings
 Broodheart Engine
 Burner Rocket
 Burnout Bashtronaut
 Caelorna, Coral Tyrant
 Camera Launcher
+Captain Howler, Sea Scourge
 Caradora, Heart of Alacria
 Carrion Cruiser
 Chandra, Spark Hunter
@@ -54,16 +58,19 @@ Detention Chariot
 Dismal Backwater
 District Mascot
 Diversion Unit
+Draconautics Engineer
 Dracosaur Auxiliary
 Dredger's Insight
 Dynamite Diver
 Earthrumbler
+Elvish Refueler
 Endrider Spikespitter
 Engine Rat
 Explosive Getaway
 Fang Guardian
 Fang-Druid Summoner
 Far Fortune, End Boss
+Fearless Swashbuckler
 Flood the Engine
 Forest
 Foul Roads
@@ -148,6 +155,7 @@ Push the Limit
 Pyrewood Gearhulk
 Quag Feast
 Racers' Scoreboard
+Rangers' Aetherhive
 Rangers' Refueler
 Reef Roads
 Regal Imperiosaur
@@ -177,6 +185,7 @@ Shefet Archfiend
 Silken Strength
 Skybox Ferry
 Skycrash
+Skyserpent Seeker
 Skystreak Engineer
 Slick Imitator
 Spectacular Pileup
@@ -187,6 +196,7 @@ Spin Out
 Spire Mechcycle
 Spotcycle Scouter
 Stall Out
+Stampeding Scurryfoot
 Starting Column
 Stock Up
 Streaking Oilgorger
@@ -214,6 +224,7 @@ Unstoppable Plan
 Unswerving Sloth
 Valor's Flagship
 Veloheart Bike
+Venomsac Lagac
 Veteran Beastrider
 Vnwxt, Verbose Host
 Voyager Glidecar
@@ -221,6 +232,7 @@ Voyager Quickwelder
 Walking Sarcophagus
 Wastewood Verge
 Waxen Shapethief
+Webstrike Elite
 Wickerfolk Indomitable
 Wild Roads
 Willowrush Verge
