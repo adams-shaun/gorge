@@ -386,7 +386,15 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		return true
 	}
 	var pot avail
-	s.availPotential(k, p, &pot)
+	if src == NoSlot {
+		// gorge prices each announced X against the spell's own payment: a
+		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
+		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
+		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
+		s.availPotentialFor(k, p, &pot, &d)
+	} else {
+		s.availPotential(k, p, &pot)
+	}
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	if src == NoSlot {
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
