@@ -1501,6 +1501,13 @@ const ExtEnterCtrPick ExtOp = 96
 
 func init() { extOpNames[ExtEnterCtrPick] = "EnterCtrPick" }
 
+// PutCounterChoice (dirac/manifest/ExtOp/ExtPutCounterChoice)
+//
+// ExtPutCounterChoice: PutCounter with a comma-listed CounterType$ (up to four kinds): the resolving controller picks one kind from the list (gorge effPutCounter's counterKinds>1 arm, a Min=Max=1 "counter" KChoose over the listed kinds; the kernel poses it as a ChRemCtrKind decision, the oracle comparing the options by kind) and one counter of it is put. The resolving form (Obj the recipient) asks mid-resolution (raRemCtrAny / ChRemCtrKind); the as-enters form (Obj RefReplaced, ETB$ True) asks once the permanent is on the battlefield, as ExtEnterCtrPick does. The kinds are B's low byte, B's high byte, C's low byte and C's high byte (0 = none beyond the last), in the card's printed order. dirac/ctr_choice.go.
+const ExtPutCounterChoice ExtOp = 98
+
+func init() { extOpNames[ExtPutCounterChoice] = "PutCounterChoice" }
+
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
 
