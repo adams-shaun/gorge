@@ -842,6 +842,9 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if k.costObj && !s.graveActOK(k, a, p, o) {
 				continue
 			}
+			if a.Cost.Flags&kop.CostPayEnergy != 0 && !s.energyPayable(p, &a.Cost) {
+				continue // Unearth's PayEnergy<8> (CR 702.84a): costObj is not set for a pure energy cost
+			}
 			if f := a.Cost.Flags; f&(kop.CostSac|kop.CostTapX|kop.CostPayLife) != 0 {
 				if !s.pickCostPayable(k, p, &a.Cost, o) {
 					continue
