@@ -8,48 +8,44 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// kw_unleash.go on the generated tail pool: the printed K:Unleash poses the
+// kw_unleash.go on a hand-built table: the printed K:Unleash poses the
 // as-enters counter election on every face-up entry, "yes" enters with one
 // +1/+1 counter (an entry-counter put), "no" enters plain, and a permanent
 // carrying the keyword and at least one +1/+1 counter can't block while the
 // counter is there (from any source: a -1/-1 counter annihilating it
 // releases the gate).
 
-// unleashScen is a scen over a generated pool holding Rakdos Cackler, both
+// unleashScen is a scen over the fdn table plus a printed-Unleash 2/2, both
 // hands emptied back into Plains-only libraries.
 func unleashScen(t *testing.T) (*scen, CardID) {
 	t.Helper()
-	set := cardsettest.Synth(t, "tail-32")
-	ck, ok := set.Lookup("Rakdos Cackler")
-	if !ok || !set.Supported()[ck] {
-		t.Fatal("Rakdos Cackler not supported in the tail-32 table")
-	}
-	deck := []cardset.Entry{{Name: "Plains", Count: 8}, {Name: "Rakdos Cackler", Count: 4}}
-	tbl, da, _, err := set.Matchup(deck, deck)
+	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
+	set := cardsettest.Set(t, "fdn")
+	tbl, _, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	var lib [20]CardID
-	for i := range lib {
-		lib[i] = id["Plains"]
-	}
-	s := new(State)
-	s.Init(tbl, lib[:], lib[:], 1, Config{NoElide: true})
-	for p := uint8(0); p < 2; p++ {
-		pls := &s.pl[p]
-		for pls.handN > 0 {
-			o := pls.hand[0]
-			s.detach(o)
-			s.objs[o].zone = kop.ZoneLibrary
-			pls.libBottom(o)
+	plains := CardID(0)
+	for i := range tbl.Cards {
+		if tbl.Cards[i].Name == "Plains" {
+			plains = CardID(i)
 		}
 	}
-	s.turn, s.active, s.step, s.prio, s.passes, s.ctl = 2, 0, kop.StepMain1, 0, 0, ctlPriority
-	return &scen{s: s, k: s.k()}, id["Rakdos Cackler"]
+	if tbl.Cards[plains].Name != "Plains" {
+		t.Fatal("fdn table has no Plains")
+	}
+	n := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{
+		Name: "Test Unleasher", Types: kop.TCreature, Power: 2, Toughness: 2, Unleash: true,
+	})
+	if !tableHasUnleash(tbl) {
+		t.Fatal("precondition: the table prints Unleash")
+	}
+	sc := newScenTableLib(t, tbl, plains, Config{NoElide: true})
+	if !sc.k.unleash {
+		t.Fatal("an Unleash table does not turn on the unleash paths")
+	}
+	return sc, n
 }
 
 // unleashAnswer answers the queued ask of the permanent at o: yes puts the
