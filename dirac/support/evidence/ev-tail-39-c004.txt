@@ -1,0 +1,7 @@
+Forest
+Hangar Scrounger
+Hydromorph Guardian
+Island
+Mountain
+Plains
+Swamp
