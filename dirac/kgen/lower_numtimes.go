@@ -42,19 +42,23 @@ const trigRemNumTimes = "numTimes"
 // numTimesAmount is a NumTimes body's Count$TriggerRememberAmount: the
 // announced count, a constant in a per-count latent (AnnounceMax$), and the
 // parent's captured count in an open latent (gorge rides it xPaid into the
-// instance, resolution.go): one captured amount.
-func (lc *lowerCtx) numTimesAmount() (lValue, error) {
+// instance, resolution.go): one captured amount. Not a NumTimes body returns
+// ok=false and falls through to the ordinary value heads.
+func (lc *lowerCtx) numTimesAmount(body string) (lValue, bool, error) {
+	if body != "Count$TriggerRememberAmount" || (lc.numTimesK == 0 && !lc.numTimesOpen) {
+		return lValue{}, false, nil
+	}
 	if lc.numTimesK > 0 {
-		return cst(lc.numTimesK), nil
+		return cst(lc.numTimesK), true, nil
 	}
 	if ab := lc.ab; ab == nil || !ab.Latent || ab.Name != "ReflexiveTrigger" {
-		return lValue{}, fmt.Errorf("Count$TriggerRememberAmount outside an open NumTimes reflexive latent")
+		return lValue{}, true, fmt.Errorf("Count$TriggerRememberAmount outside an open NumTimes reflexive latent")
 	}
 	if rest := lc.ab.TrigRem; rest != "" && rest != trigRemNumTimes {
-		return lValue{}, fmt.Errorf("Count$TriggerRememberAmount beside TriggerRemembered$%s: one captured amount", rest)
+		return lValue{}, true, fmt.Errorf("Count$TriggerRememberAmount beside TriggerRemembered$%s: one captured amount", rest)
 	}
 	lc.ab.TrigRem = trigRemNumTimes
-	return lValue{Kind: vTriggerAmount}, nil
+	return lValue{Kind: vTriggerAmount}, true, nil
 }
 
 func (lc *lowerCtx) numTimesPay(sa *cards.SA, ps *params, cost string) error {

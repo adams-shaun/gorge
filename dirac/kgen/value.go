@@ -171,8 +171,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			rest = rest[:i]
 		}
 	}
-	if body == "Count$TriggerRememberAmount" && (lc.numTimesK > 0 || lc.numTimesOpen) {
-		return lc.numTimesAmount() // the announced count (lower_numtimes.go)
+	if v, ok, err := lc.numTimesAmount(body); ok || err != nil {
+		return v, err // the announced count (lower_numtimes.go)
 	}
 	if lc.trigXPaid && body == "Count$TriggerRememberAmount" && lc.trigRemX {
 		// RememberSVarAmount$ X under a CollectEvidence<X> cost: the
