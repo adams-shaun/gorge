@@ -592,6 +592,23 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	return unlessPayerTargetsFor(h, c, sa, nil)
 }
 
+// unlessOwnTargets is the chained link's own target binding for the UnlessCost$
+// gate. A ChangeZone link's target ask lives in its body (after the gate), so
+// chosenTargetsFor binds nothing for it; when the cast-time pre-ask already
+// recorded this link's answer (Withdraw's second bounce), the gate's
+// Target...Controller payer reads that set, not the head link's target list
+// (CR 118.12: "its controller" is the controller of the creature this leg
+// returns). An empty recorded answer stays non-nil: a real "no target".
+func unlessOwnTargets(c *Ctx, sa *cards.SA, bound []state.Target) []state.Target {
+	if bound != nil || !TargetAskIsChangeZone(sa) || !TargetsOf(sa).Targeted() {
+		return bound
+	}
+	if ts, ok := c.SubPreAsk[sa.Line]; ok {
+		return append([]state.Target{}, ts...)
+	}
+	return bound
+}
+
 // unlessPayerTargetsFor is unlessPayerTargets with the chained link's own
 // bound targets: Resolve binds a chained link's target before its UnlessCost$
 // gate and hands that set here, so a Target...Controller selector names the
