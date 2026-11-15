@@ -88,6 +88,31 @@ func TestFoundFootageShowsOpponentsFaceDownCreature(t *testing.T) {
 	}
 }
 
+// TestLensOfClarityCommaListGrantShowsFaceDownCreatures: Lens of Clarity's
+// printed grant is AffectedZone$ Library,Battlefield over a comma-list
+// Affected$ (Card.TopLibrary+YouCtrl,Creature.faceDown+YouDontCtrl). The
+// battlefield half of the comma list is a CR 708.5 look grant: seat 0 sees
+// seat 1's face-down creature; seat 1 sees nothing of seat 0's.
+func TestLensOfClarityCommaListGrantShowsFaceDownCreatures(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	lens := lookup(t, reg, "Lens of Clarity")
+	bears := lookup(t, reg, "Grizzly Bears")
+	e, _ := corpusEngineCfg(t, reg, []*cards.Card{lens, bears}, []*cards.Card{bears})
+	moveByName(t, e, 0, "Lens of Clarity", state.ZBattlefield)
+	opp := faceDownOnBattlefield(t, e, 1, "Grizzly Bears")
+	own := faceDownOnBattlefield(t, e, 0, "Grizzly Bears")
+	if got := battlefieldFaceIn(t, e, 0, 1, opp); got != "Grizzly Bears" {
+		t.Errorf("board: Lens of Clarity's battlefield grant shows seat 0 face %q, want Grizzly Bears", got)
+	}
+	if got := battlefieldFaceIn(t, e, 0, 0, own); got != "Grizzly Bears" {
+		t.Errorf("board: the controller is shown face %q, want Grizzly Bears", got)
+	}
+	if got := battlefieldFaceIn(t, e, 1, 0, own); got != "" {
+		t.Errorf("board: the opponent is shown face %q of seat 0's own face-down creature, want hidden", got)
+	}
+}
+
 // TestFoundFootageDoesNotShowOwnHiddenToOpponent: Found Footage names
 // Creature.faceDown+OppCtrl -- the face-down creatures seat 0's OPPONENTS
 // control. Seat 0's own face-down creature is matched by nothing, so seat 1's
