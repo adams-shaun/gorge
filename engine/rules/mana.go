@@ -171,7 +171,14 @@ func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scop
 func (e *Engine) offerCastablePotential(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
 	desc := paymentFor(id, ability, base)
 	hyp := e.potentialManaFor(p, &desc)
-	return e.offerCastableUsing(e.collectCostStatics(), p, id, &base, scope, ability, &hyp)
+	if !e.offerCastableUsing(e.collectCostStatics(), p, id, &base, scope, ability, &hyp) {
+		return false
+	}
+	// The bound floats every paid mana ability's output without deducting its
+	// fee (Energy Refractor's "{2}: add one mana of any color" beside two lands
+	// reads as three mana), so an offer it passes still has to have a payment
+	// plan: the cast the answer begins taps real sources (CR 601.2g, 605.3b).
+	return e.planComposedCost(p, id, e.offerCostFor(p, id, base, scope), ability, false).Reason != "insufficient"
 }
 
 // offerCastableUsing is offerCastable's core with the statics collected
