@@ -114,7 +114,7 @@ func (s *State) untapCands(k *prep, sl Slot) int {
 				if a.Kind != kop.AbReplacement {
 					continue
 				}
-				hit := a.Repl.Kind == kop.ReplDoesntUntap && b == sl ||
+				hit := a.Repl.Kind == kop.ReplDoesntUntap && b == sl && (a.Repl.Cond == 0 || s.untapCondHolds(k, sl, a.Repl.Cond)) ||
 					(a.Repl.Kind == kop.ReplOthersDoesntUntap || a.Repl.Kind == kop.ReplAnyUntap) &&
 						s.matchPermGen(k, a.Repl.Filter, sl, s.perms[b].ctrl, b, layerFull)
 				if hit {

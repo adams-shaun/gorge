@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -26,6 +27,19 @@ func tapsForManaCases() []effectLongCase {
 			append(deckOf(8, "Price of Glory"), deckOf(16, "Mountain")...),
 			append(deckOf(8, opp), deckOf(16, "Mountain")...),
 		}
+	}
+	// Rikala, Homarid King casts on turn 3 off three lands; its gate (three
+	// or more tide counters) holds from the third upkeep after; an Island
+	// tapped for mana then brings the printed {U} and the gated extra. Opt
+	// is the {U} ask the Island's gap funds; the Bears and the opponent's
+	// Mountains keep both seats from doing anything else.
+	rikala := func() [2][]string {
+		d := deckOf(4, "Rikala, Homarid King")
+		d = append(d, deckOf(4, "Opt")...)
+		d = append(d, deckOf(3, "Island")...)
+		d = append(d, deckOf(3, "Forest")...)
+		d = append(d, deckOf(10, "Grizzly Bears")...)
+		return [2][]string{d, append(deckOf(8, "Grizzly Bears"), deckOf(16, "Mountain")...)}
 	}
 	return []effectLongCase{
 		{
@@ -53,7 +67,148 @@ func tapsForManaCases() []effectLongCase {
 			surface: "autopay",
 			reached: func(g *GorgeSide) bool { return priceOfGloryDestroyed(g, false) },
 		},
+		{
+			// the gate holds from the third tide counter: an Island tapped for
+			// mana then produces two {U}, the printed one and Rikala's extra
+			// (dirac/kop StatTapExtra under kop.Static.Cond2)
+			name:    "rikala_gate_holds_island_taps_for_two_blue_full",
+			prefer:  []string{"Rikala, Homarid King", "Opt"},
+			decks:   rikala(),
+			surface: "full",
+			reached: rikalaTwoBlueFromOneIsland,
+		},
+		{
+			// the gate holds with an untapped Island: gorge's planner defers
+			// the Island (the gated extra is no foldable trigger,
+			// pay.PaymentPlanFoldableTapMana), so the offer prices its tap at
+			// the printed {U} alone while its controller holds the Opt -- the
+			// kernel's unpriced static (mana_tapextra.go tapExtraReaches) must
+			// agree, and its class line must defer the source
+			name:    "rikala_gate_holds_deferred_island_taps_autopay",
+			prefer:  []string{"Rikala, Homarid King", "Opt"},
+			decks:   rikala(),
+			surface: "autopay",
+			reached: rikalaGateHoldsUntappedIsland,
+		},
 	}
+}
+
+// rikalaGateHoldsUntappedIsland: with three or more tide counters on a Rikala
+// in play, its controller received priority holding an Opt with an Island of
+// theirs still untapped.
+func rikalaGateHoldsUntappedIsland(g *GorgeSide) bool {
+	tide := map[state.ObjID]int{}
+	gate := false
+	name := func(id state.ObjID) string {
+		if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
+			return o.Face().Name
+		}
+		return ""
+	}
+	optN, islands := map[state.PlayerID]int{}, map[state.ObjID]bool{} // Opt in hand by controller, Islands untapped
+	for _, e := range g.E.L.Events {
+		switch e.Kind {
+		case events.CounterChange:
+			if e.Counter == "TIDE" {
+				o := g.E.G.Obj(e.Obj)
+				if o != nil && o.Zone == state.ZBattlefield && name(e.Obj) == "Rikala, Homarid King" {
+					tide[e.Obj] += int(e.Amount)
+					gate = tide[e.Obj] >= 3
+				}
+			}
+		case events.MoveZone, events.Draw:
+			n := name(e.Obj)
+			o := g.E.G.Obj(e.Obj)
+			switch n {
+			case "Rikala, Homarid King":
+				if o == nil || e.From == state.ZBattlefield {
+					delete(tide, e.Obj)
+				}
+			case "Opt":
+				if o == nil {
+					break
+				}
+				if e.To == state.ZHand {
+					optN[o.Controller]++
+				} else if e.From == state.ZHand && optN[o.Controller] > 0 {
+					optN[o.Controller]--
+				}
+			case "Island":
+				if o != nil && e.To == state.ZBattlefield {
+					islands[e.Obj] = true
+				} else {
+					delete(islands, e.Obj)
+				}
+			}
+		case events.Tap:
+			if _, ok := islands[e.Obj]; ok {
+				islands[e.Obj] = false
+			}
+		case events.Untap:
+			if _, ok := islands[e.Obj]; ok {
+				islands[e.Obj] = true
+			}
+		case events.Priority:
+			if !gate {
+				break
+			}
+			untapped := false
+			for id, up := range islands {
+				if o := g.E.G.Obj(id); o != nil && up && o.Controller == e.Player {
+					untapped = true
+				}
+			}
+			if untapped && optN[e.Player] > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// rikalaTwoBlueFromOneIsland: with three or more tide counters on a Rikala in
+// play (its gate), a window between two pool clears in which exactly one
+// Island was tapped added two {U} to its controller's pool: the printed one
+// and the gated extra. A removal at four drops the gate again, so the count
+// is read live.
+func rikalaTwoBlueFromOneIsland(g *GorgeSide) bool {
+	tide := map[state.ObjID]int{}
+	gate, blue, taps := false, 0, 0
+	inPlay := func(id state.ObjID) bool {
+		o := g.E.G.Obj(id)
+		return o != nil && o.Zone == state.ZBattlefield
+	}
+	island := func(id state.ObjID) bool {
+		o := g.E.G.Obj(id)
+		return o != nil && o.Face() != nil && o.Face().Name == "Island" && o.Zone == state.ZBattlefield
+	}
+	for _, e := range g.E.L.Events {
+		switch e.Kind {
+		case events.ManaClear, events.TurnChange:
+			blue, taps = 0, 0
+		case events.CounterChange:
+			if e.Counter == "TIDE" && inPlay(e.Obj) {
+				tide[e.Obj] += int(e.Amount)
+				gate = tide[e.Obj] >= 3
+			}
+		case events.MoveZone:
+			if e.From == state.ZBattlefield {
+				delete(tide, e.Obj)
+			}
+		case events.Tap:
+			if island(e.Obj) {
+				taps++
+			}
+		case events.ManaAdd:
+			if e.Counter == "U" && e.Amount > 0 {
+				blue += int(e.Amount)
+			}
+		}
+		if gate && taps == 1 && blue >= 2 {
+			return true
+		}
+	}
+	return false
 }
 
 // priceOfGloryDestroyed scans the finished log with Price of Glory in play.
@@ -257,7 +412,11 @@ func TestTapsForManaTriggerRecord(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				res, reached := effectLongPlay(t, reg, c, r, set, tapsForManaPolicy(m, c, []string{"Lightning Bolt"}, seed))
+				pol := Policy(tapsForManaPolicy(m, c, []string{"Lightning Bolt"}, seed))
+				if strings.HasPrefix(c.name, "rikala") {
+					pol = effectLongPolicy(m, c, seed)
+				}
+				res, reached := effectLongPlay(t, reg, c, r, set, pol)
 				if res.Div != nil {
 					t.Fatalf("seed %d: divergence at %d: %s %s %v\nref %v\nker %v\n%s", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.RefOptions, res.Div.KerOptions, res.Div.Detail)
 				}

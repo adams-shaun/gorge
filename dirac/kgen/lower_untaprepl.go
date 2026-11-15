@@ -33,3 +33,17 @@ func (lc *lowerCtx) untapReplFilter(rp *params, rl *lRepl, vc, kind string) erro
 	rl.Kind, rl.F = kind, f
 	return nil
 }
+
+// selfDoesntUntapGate reads the self "doesn't untap during your untap step"
+// line's ActiveZones$ Battlefield (the only zone a permanent untaps in) and
+// its IsPresent$ gate (Alirios, Enraptured: "if you control a Reflection",
+// IsPresent$ Reflection.YouCtrl). gorge evaluates IsPresent$ when the untap
+// event meets the replacement (rules/replacement_match.go
+// replacementConditionHoldsWith); it lowers to Repl.Cond, which the kernel's
+// untap step reads for ReplDoesntUntap (dirac/repl_untapself.go).
+func (lc *lowerCtx) selfDoesntUntapGate(rp *params, rl *lRepl) error {
+	if az, ok := rp.get("ActiveZones"); ok && strings.TrimSpace(az) != "Battlefield" {
+		return refuse("Untap replacement ActiveZones$ %q", az)
+	}
+	return lc.replIsPresent(rp, rl) // lower_replparams.go
+}
