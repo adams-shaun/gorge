@@ -615,12 +615,13 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fd {
 		ty = kop.TCreature // CR 708.4: a face-down spell is seen only as a 2/2 creature
 	}
-	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
-		return false
-	}
 	cols := cd.Colors
 	if fd {
 		cols = 0 // CR 708.2/708.4: a face-down permanent or spell is colourless
+	}
+	ty, cols = s.splitHalvesChars(k, c, o, fd, ty, cols) // CR 709.4: a split card off the stack has both halves' types and colours
+	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
+		return false
 	}
 	if fl.Colors != 0 && cols&fl.Colors == 0 || cols&fl.NotColors != 0 {
 		return false
