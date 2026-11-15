@@ -3833,6 +3833,14 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)
+	case prod == "ColorID" || prod == "Combo ColorID":
+		// "the circled colors" (Cryptic Spires): gorge's ProducedCounts claims
+		// no mana for the word, so the land is a source of no colour, which
+		// the kernel leaves out of payment (the ColorIdentity rider case)
+		ps.str("TriggersWhenSpent")
+		m.Colors = ""
+		m.Amount = cst(1)
+		return lc.finishMana(sa, ps, ab, m)
 	case strings.HasPrefix(prod, "Combo "):
 		m.Choice = true
 		m.Colors = strings.ReplaceAll(strings.TrimPrefix(prod, "Combo "), " ", "")

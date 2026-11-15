@@ -1,0 +1,6 @@
+Deathsprout
+Forest
+Island
+Mountain
+Plains
+Swamp

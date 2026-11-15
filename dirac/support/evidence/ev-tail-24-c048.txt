@@ -1,0 +1,6 @@
+Forest
+Island
+Lava Spike
+Mountain
+Plains
+Swamp

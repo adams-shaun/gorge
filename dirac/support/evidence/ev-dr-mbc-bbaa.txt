@@ -1,5 +1,6 @@
 Against All Odds
 Ancient Hydra
+Ancient Silverback
 Angelic Exaltation
 Assault Formation
 Ballynock Cohort
@@ -12,6 +13,7 @@ Bewilder
 Bhaal's Invoker
 Bitter Reunion
 Blasting Station
+Boggart Harbinger
 Carrion Imp
 Challenger Troll
 Charging Monstrosaur
@@ -21,11 +23,14 @@ Cloud Spirit
 Condemn
 Control of the Court
 Corpse Harvester
+Crashing Drawbridge
+Decree of Justice
 Engineered Explosives
 Exsanguinate
 Flock Impostor
 Forest
 Gloom Sower
+Goldmeadow Harrier
 Healer's Hawk
 Hieroglyphic Illumination
 Imperious Perfect
@@ -49,6 +54,7 @@ Quest for Pure Flame
 Quest for the Gravelord
 Ramosian Rally
 Reality Shift
+Renegade Warlord
 Reverent Mantra
 Rogue's Passage
 Sage's Reverie
@@ -56,8 +62,23 @@ Sea Gate
 Send in the Pest
 Sheoldred, Whispering One
 Sign in Blood
+Skeletal Wurm
+Sparkmage Apprentice
 Spectral Sailor
+Spitting Earth
 Starlit Angel
 Stromgald Crusader
 Swamp
+Sword Coast Serpent
+The Everforger
+Trumpeting Herd
+Turnabout
+Twinferno
+Ultimate Price
+Volcanic Dragon
+Wall of Corpses
+Wall of Mulch
 Wall of Roots
+War Priest of Thune
+Woodland Changeling
+Young Red Dragon
