@@ -188,8 +188,8 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
-		if !s.tapsGapActivatable(k, sl) {
-			continue
+		if !s.tapsGapReady(k, sl) || s.genLost(k, sl) && !s.landSetLost(k, sl) {
+			continue // a land under a land-type setter still taps for its intrinsic mana (CR 305.7)
 		}
 		m = m.with(sl)
 	}
@@ -201,7 +201,13 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 // CantBeActivated lock (cast_cantactivate.go). Every script gap arm that taps
 // its source asks it.
 func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && (!s.genLost(k, sl) || s.landSetLost(k, sl)) &&
+	return s.tapsGapReady(k, sl) && !s.genLost(k, sl)
+}
+
+// tapsGapReady is tapsGapActivatable without the lost-abilities test: the
+// source is untapped, not summoning-sick and under no CantBeActivated lock.
+func (s *State) tapsGapReady(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
