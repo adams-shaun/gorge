@@ -1,117 +1,424 @@
 A-Cabaretti Charm
 A-Exhibition Magician
+Abyssal Specter
+Access Denied
 Acolyte of Xathrid
+Acridian
+Aether Barrier
+Aetherflux Conduit
 Ajani Fells the Godsire
+Akki Raider
 Alchemist's Vial
+Alert Shu Infantry
+Alpha Authority
+Ambitious Aetherborn
+Anara, Wolvid Familiar
+Anthroplasm
+Aphetto Alchemist
+Apothecary Initiate
+Arc Lightning
+Argothian Opportunist
 Arisen Gorgon
+Artful Takedown
+Arwen Undómiel
+Ashes to Ashes
+Asmira, Holy Avenger
+Assault Formation
 Atzocan Archer
+Aven Initiate
+Awesome Presence
+Axebane Beast
+Ayumi, the Last Visitor
+Bag End Banquet
+Balduvian Horde
+Barkhide Mauler
 Barrier Breach
+Basic Conjuration
 Battering Craghorn
+Bearscape
 Beetleform Mage
 Belbe's Armor
+Belligerent Whiptail
 Benevolent Bodyguard
+Benthicore
+Blade of the Sixth Pride
+Blessed Light
+Blighted Gorge
+Blightstep Pathway
+Blood Pet
 Blur of Blades
+Bonders' Enclave
 Bonesplitter Sliver
+Boundless Realms
 Brazen Freebooter
+Brine Seer
 Brutal Cathar
+Call of the Death-Dweller
+Callous Dismissal
+Captain of the Watch
+Carnage Altar
 Cast Out
+Celestial Gatekeeper
+Cephalid Vandal
+Chainflinger
 Chameleon Spirit
 Citizen's Crowbar
+Clairvoyance
+Clearwater Goblet
+Clock of Omens
+Coalhauler Swine
 Coastal Bulwark
+Cobbled Wings
+Colossus Hammer
+Constricting Sliver
 Copper Longlegs
+Coppercoat Vanguard
 Corrupted Harvester
+Court Archers
+Crossroads Consecrator
+Cruel Ultimatum
+Crystal Seer
+Culling Mark
+Curse of the Nightly Hunt
+Cursed Wombat
 Dance of the Skywise
+Dark Inquiry
 Dark Tutelage
 Darkslick Shores
+Darksteel Juggernaut
+Dauntless Escort
+Dauthi Jackal
+Daxos of Meletis
 Deadeye Tracker
 Defiant Elf
+Defiler of Souls
 Demonmail Hauberk
 Detained by Legionnaires
+Devoted Paladin
 Dinosaur Stampede
+Distract
+Djinn of the Lamp
+Domri's Nodorog
 Dragonshift
+Dreadful Apathy
+Dreamscape Artist
+Dregscape Zombie
+Dress Down
 Dromoka Captain
 Drown in Shapelessness
 Dungeon Geists
 Duskmantle Operative
 Duskmantle, House of Shadow
+Dutiful Thrull
+Dwarven Grunt
 Echoing Truth
+Ecstatic Awakener
 Elite Javelineer
+Elspeth, Undaunted Hero
 Elven Palisade
+Elvish Dreadlord
+Emeria, the Sky Ruin
+Ephemeron
+Eris, Roar of the Storm
+Ethereal Elk
+Exorcist
+Ezuri, Renegade Leader
 Ezuri, Stalker of Spheres
 Falcon Abomination
+False Summoning
 Farhaven Elf
+Fearless Halberdier
+Feign Death
 Felidar Guardian
 Fendeep Summoner
+Fiery Conclusion
+Fight to the Death
+Finale of Devastation
 Fire Snake
+Fireblast
+Fires of Undeath
 Flailing Soldier
+Flame Slash
+Flare of Faith
+Flash Flood
+Fledgling Dragon
 Forest
+Forest Bear
+Foundry Assembler
+Foundry Helix
 Freewind Falcon
 Frozen Shade
+Garbage Elemental
 Garruk Wildspeaker
+General's Kabuto
+Ghitu War Cry
 Ghost-Lit Warder
+Gideon's Phalanx
+Glade Watcher
 Gleam of Authority
 Gloomdrifter
+Goblin Hero
 Goldenhide Ox
+Golgari Signet
 Great Hart
+Grinning Demon
+Guardian Augmenter
+Gustcloak Savior
+Haazda Officer
+Hag of Death's Legion
+Havengul Skaab
+Haze of Pollen
 Heart Sliver
+Heartbeat of Spring
+Hellfire Mongrel
+Herald of Kozilek
+Herald of Secret Streams
+Herald of War
 Hero's Demise
+Heronblade Elite
+Hidden Guerrillas
+Hill Giant Herdgorger
+Homarid Warrior
+Hua Tuo, Honored Physician
 Hungry Spriggan
+Hunter's Insight
+Icatian Town
 Ice Tunnel
+Ikiral Outrider
+Illusory Gains
 Initiate's Companion
+Inquisition of Kozilek
+Iron Lad, Young Avenger
+Ironclad Slayer
 Island
+Izzet Charm
 Jalum Tome
+Jawbone Skulkin
 Jewel-Eyed Cobra
+Jolrael, Empress of Beasts
+Joust
 Jund Panorama
+Kami of Industry
+Karok Wrangler
+Kavu Aggressor
+Kavu Mauler
+Kederekt Creeper
+Keening Banshee
+Keldon Arsonist
 Keldon Necropolis
+Keldon Vandals
+Kiku, Night's Flower
+King Harald's Revenge
 Kraul Raider
+Lantern Kami
+Laser Screwdriver
+Lawbringer
+Leatherback Baloth
+Ledger Shredder
+Lightning Reaver
+Lonely Sandbar
+Looming Hoverguard
+Lowland Giant
+Loxodon Sergeant
+Ludevic's Test Subject
+Lunar Force
 Lyla, Holographic Assistant
+MagicConsecrated Sphinx
+Magus of the Order
+Many Partings
+March of the Drowned
+Markov Warlord
+Marrow Bats
 Martyr for the Cause
+Mercurial Pretender
+Meteor Storm
 Miren, the Moaning Well
+Moaning Spirit
+Mole Module
+Molten Ravager
+Monk Idealist
 Moss Diamond
 Mountain
+Ms. Marvel, Elastic Ally
 Mudhole
+Murasa Pyromancer
 Murasa Rootgrazer
 Mycoid Shepherd
+Nebelgast Herald
 Necrogen Censer
+Nest Invader
+Nezumi Graverobber
+Nightmare's Thirst
+Nimblewright Schematic
+Ninja of the Deep Hours
+Niveous Wisps
+Nyx-Fleece Ram
+Nyxathid
+Obelisk of Bant
+Ogre Jailbreaker
+Ogre Warrior
+Omen of the Sea
+Omenspeaker
+One with the Kami
 Onulet
+Outland Liberator
+Owlin Spiralmancer
+Patron Wizard
 Phantom Centaur
+Pilfering Imp
 Plains
+Polar Kraken
+Pollenbright Druid
 Polymorphist's Jest
+Promising Duskmage
 Quicksilver, Pietro Maximoff
+Quirion Ranger
+Raking Canopy
+Rancid Rats
+Rankle, Master of Pranks
+Rath's Edge
+Rathi Intimidator
+Ravenous Bloodseeker
+Razorclaw Bear
+Razorfield Rhino
+Reclaim the Wastes
 Redcap Heelslasher
 Redwood Treefolk
+Regenerate
+Regress
+Remote Isle
+Renata, Called to the Hunt
+Repeal
 Repentant Blacksmith
+Resounding Roar
+Respite
+Reverent Hunter
+Rhonas's Monument
+Righteous Confluence
+Riku and Riku
+River Boa
+River Darter
+Roaring Slagwurm
+Rootbreaker Wurm
+Runaway Carriage
 Rusted Slasher
 Safehold Sentry
 Sanctum of Tranquil Light
 Saproling Migration
+Saw It Coming
+Scalebane's Elite
+Scattershot
+Seasoned Pyromancer
 Second Breakfast
+Seekers' Squire
+Sensory Deprivation
+Serum-Core Chimera
+Shaman of the Great Hunt
+Shambling Remains
+Shivan Devastator
+Signpost Scarecrow
 Silverglade Pathfinder
+Simic Cluestone
+Sister Hospitaller
 Sky Skiff
 Skywinder Drake
 Sly Instigator
+Smiting Helix
+Smothering Abomination
+Sol Grail
+Somberwald Stag
+Soul of Shandalar
 Soulcage Fiend
 Soulmender
+Sovereign's Bite
+Spare Supplies
 Spawning Bed
+Spectator Seating
+Spider-Man, Miles Morales
+Spire Winder
 Spitting Image
+Splinterfright
+Spoils of Evil
+Sporesower Thallid
+Springing Tiger
+Stasis Cell
 Steel of the Godhead
+Steel-Plume Marshal
 Stensia Masquerade
 Stew the Coneys
+Stitch Together
+Stoic Builder
+Storm of Steel
+Stormchaser Chimera
+Stormwatch Eagle
+Stromgald Crusader
 Stronghold Overseer
+Succumb to Temptation
+Sultai Flayer
+Sunbathing Rootwalla
+Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Séance
+Tattered Mummy
+Tectonic Fiend
 Tempestra, Dame of Games
 Tempted by the Oriq
+Territorial Roc
+Thalisse, Reverent Medium
+Thallid Soothsayer
+The Antiquities War
+The Immortal Weapons
+Thoughtflare
+Thrashing Wumpus
 Throne of the High City
+Thrun, the Last Troll
+Thud
+Timbermare
+Tolabow, Loch Rascal
+Toski, Bearer of Secrets
+Toucan-Puffin
+Toxic Abomination
+Trading Post
+Trailtracker Scout
 Trenchpost
+Undercity's Embrace
+Untamed Kavu
 Utility Knife
+Vampire Bats
 Vampire of the Dire Moon
+Vedalken Mesmerist
+Vengeful Reaper
+Verdant Catacombs
+Vivien, Arkbow Ranger
+Volatile Arsonist
 Voracious Vacuum
 Vulshok Gauntlets
+Wake of Vultures
+Warhost's Frenzy
+Warleader's Helix
+Watcher of the Spheres
+Watercourser
+Weakstone
+Webweaver Changeling
+Weird Harvest
+Welding Sparks
+Whimwader
+Whispers of Emrakul
 Willow Elf
+Windstorm
+Winged Hive Tyrant
+Wings of Velis Vel
+Wipe Away
 Withstand Death
+Wizard's Staff
+Wound Reflection
 Wriggling Grub
+Wu Elite Cavalry
+Yahenni, Undying Partisan
+Yargle and Multani
 Yotian Medic
 You See a Guard Approach
 Zhang He, Wei General
+Zombie Mob

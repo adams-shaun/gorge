@@ -1,16 +1,63 @@
 A-Exhibition Magician
+Abyssal Specter
+Ashes to Ashes
+Assault Formation
+Basic Conjuration
+Blessed Light
+Blood Pet
+Callous Dismissal
+Captain of the Watch
 Chosen of Markov
+Dark Tutelage
+Devoted Paladin
 Domri's Nodorog
+Elite Javelineer
+Feign Death
 Fire Snake
 Forest
 Foundry Helix
+Freewind Falcon
+Gleam of Authority
+Guardian Augmenter
+Haazda Officer
+Herald of Secret Streams
+Hua Tuo, Honored Physician
 Island
+Laser Screwdriver
+Lightning Reaver
+Molten Ravager
+Monk Idealist
 Mountain
 Murasa Rootgrazer
+Nebelgast Herald
+Nyx-Fleece Ram
+Nyxathid
+Ogre Jailbreaker
 Plains
+Quirion Ranger
+Redwood Treefolk
+Regenerate
+Reverent Hunter
+Rootbreaker Wurm
+Saproling Migration
 Shambling Remains
 Silverglade Pathfinder
+Sister Hospitaller
 Skarrgan Skybreaker
+Smiting Helix
+Smothering Abomination
 Spawning Bed
+Spoils of Evil
+Spring of Eternal Peace
 Stasis Cell
+Steel-Plume Marshal
 Swamp
+Séance
+Thrashing Wumpus
+Thrun, the Last Troll
+Toxic Abomination
+Trailtracker Scout
+Webweaver Changeling
+Welding Sparks
+Withstand Death
+Wu Elite Cavalry

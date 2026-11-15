@@ -5,10 +5,14 @@ Abzan Advantage
 Aggressive Instinct
 Ahn-Crop Invader
 Airlift Chaplain
+Ajani's Welcome
+Akki Avalanchers
+Angel of the Dawn
 Angelic Field Marshal
 Asari Captain
 Aurochs Herd
 Bala Ged Recovery
+Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Bloodmist Infiltrator
 Boggart Loggers
@@ -17,26 +21,34 @@ Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Cage of Hands
 Centaur Chieftain
 Chandra's Outrage
 Compelled Duel
 Consul's Lieutenant
+Consulate Crackdown
+Court Street Denizen
 Crow Storm
 Cruel Grimnarch
+Crystal Dragon
 Curfew
 Curse Artifact
 Custody Battle
 Darkthicket Wolf
+Defend the Celestus
+Deploy to the Front
 Detainment Spell
 Devil Dinosaur
 Dragon's Eye Sentry
 Dread Fugue
 Dwarven Armorer
 Escape Velocity
+Esika's Chariot
 Evie Frye
 Expedition Skulker
 Eye Gouge
 Feast of Dreams
+Fleshtaker
 Forest
 Freewind Equenaut
 Freyalise Supplicant
@@ -44,21 +56,29 @@ Gale Swooper
 Glint Hawk Idol
 Goblin War Wagon
 Goma Fada Vanguard
+Griffin Sentinel
 Grim Reaper's Scythe
 Hamlet Vanguard
 Hero of Goma Fada
 Ichor Drinker
+Imperial Subduer
 Island
 Kashi-Tribe Elite
+Kor Bladewhirl
 Kuldotha Rebirth
 Lash of the Whip
 Lavastep Raider
+Lawmage's Binding
+Light 'Em Up
 Lily Bowen, Raging Grandma
 Luxurious Libation
+Maggot Carrier
 Merfolk Skydiver
 Merry, Warden of Isengard
 Mesa Cavalier
+Metamorphic Wurm
 Midnight Charm
+Mindless Null
 Minion Reflector
 Mountain
 Mourning
@@ -74,8 +94,10 @@ Plains
 Prescient Chimera
 Pyknite
 Pyroclastic Elemental
+Pyromantic Pilgrim
 Rakalite
 Ral's Reinforcements
+Red Dragon
 Regenerate
 Rise of the Ants
 Rishkar, Peema Renegade
@@ -89,10 +111,14 @@ Shauku, Endbringer
 Shelob's Ambush
 Singer of Swift Rivers
 Skillful Lunge
+Skyhunter Prowler
 Smoldering Werewolf
+Space Marine Scout
 Spell Crumple
+Spider-Man, Peter Parker
 Spring
 Staff of the Wild Magus
+Steel-Plume Marshal
 Stratus Walk
 Student of Ojutai
 Subterranean Spirit
@@ -100,10 +126,14 @@ Suit Up
 Swamp
 Taste of Blood
 Terravore
+Thallid Soothsayer
 Thaumatic Compass
 Vampiric Tutor
 Wakeroot Elemental
 War Dance
+Weatherseed Faeries
 Windrider Wizard
+Wojek Halberdiers
 Zendikar Incarnate
 Zhuge Jin, Wu Strategist
+Zodiac Tiger
