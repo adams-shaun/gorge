@@ -239,6 +239,21 @@ func (s *State) splitMV(k *prep, c CardID, o Obj, mv int) int {
 	return int(k.cards[cd.Faces[0]].total) + int(k.cards[cd.Faces[1]].total)
 }
 
+// splitColors is the colour set of object o showing card c with printed
+// colours cols: a split card's front off the stack and the battlefield has
+// both halves' colours (CR 709.4, 709.4b: its colours come from the combined
+// mana cost; gorge state/mana_value.go SplitHalves). Otherwise cols.
+func (s *State) splitColors(k *prep, c CardID, o Obj, cols kop.ColorMask) kop.ColorMask {
+	cd := &k.t.Cards[c]
+	if cd.FaceMode != kop.FaceSplit || cd.Face != 0 || o == NoObj || len(cd.Faces) != 2 {
+		return cols
+	}
+	if z := s.objs[o].zone; z == kop.ZoneStack || z == kop.ZoneBattlefield {
+		return cols
+	}
+	return k.t.Cards[cd.Faces[0]].Colors | k.t.Cards[cd.Faces[1]].Colors
+}
+
 // FeatCastFace is the AkCast mode bit of a face cast; the action's target
 // is the face cast (0: an Adventure's front from exile).
 const FeatCastFace = castFace
