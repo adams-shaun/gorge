@@ -1,11 +1,137 @@
+A-Hullbreaker Horror
+Akiri, Line-Slinger
+Alchemist's Retrieval
+Attended Socialite
+Balm of Restoration
+Benalish Honor Guard
+Bestial Fury
+Bloated Contaminator
+Bloodline Shaman
+Blossoming Bogbeast
 Borrowed Grace
 Bramble Creeper
+Browse
+Churning Eddy
+Cleanfall
+Clear the Land
+Clear the Mind
+Cliffhaven Kitesail
+Clinging Mists
+Concord with the Kami
 Cosmic Crucible
+Crown of Skemfar
+Deadly Wanderings
+Death-Greeter's Champion
+Demonic Collusion
+Desperate Castaways
+Diplomatic Escort
+Distract
+Doomfall
+Dragon Hatchling
+Dragonspeaker Shaman
+Duskshell Crawler
+Eidolon of Philosophy
+Enhanced Awareness
+Ephara's Dispersal
+Eternity Snare
+Evolutionary Leap
+Exultant Cultist
+Fantastic Elasticity
+Fierce Witchstalker
+Fire
+Fire Ants
 Forest
+Franklin Richards, Ascendant
+Frilled Sea Serpent
+Fyndhorn Brownie
+Gaea's Anthem
+Gala Greeters
+Gather the Pack
+Goblin Gathering
+Grim Flowering
+Gruul Scrapper
+Hardy Veteran
+Hellhole Rats
+Hidden Path
+Hua Tuo, Honored Physician
+Hungry Flames
+Icy Manipulator
+Iron Will
 Island
+Jilt
+Jump
 Juvenile Gloomwidow
+Kyren Glider
+Leeching Licid
+Light of Day
+Llanowar Loamspeaker
+Lumengrid Sentinel
+Lyse Hext
+Metallic Sliver
 Mountain
+Outrider of Jhess
+Patient Rebuilding
+Phyrexian Broodstar
+Placid Rottentail
 Plains
+Planar Gate
+Prakhata Pillar-Bug
+Promise of Aclazotz
+Protect the Negotiators
+Prowler, Misguided Mentor
+Pteron Ghost
+Quasiduplicate
+Radha, Heart of Keld
+Ravenous Vampire
+Razorfin Hunter
+Repeal
+Restore
+Riddleform
+Ring of Valkas
+Riptide Crab
+Riptide Director
+Rise Again
+Rise of Eagles
+River Kaijin
+Rolling Stones
+Rune Snag
+Sadistic Slash
+Scourge of Geier Reach
+Senate Griffin
+Settlement Blacksmith
+Shadow, Mysterious Assassin
+Shiny Impetus
+Sigil of Myrkul
+Smash to Smithereens
+Sound the Call
+Spellstutter Sprite
 Spoils of Evil
 Squirrel Sanctuary
+Star Whale
+Storm Front
+Swaggering Corsair
 Swamp
+The Blackstaff of Waterdeep
+Think Tank
+Tidal Wave
+Tishana's Wayfinder
+Tomb Robber
+Towashi Songshaper
+Tower Defense
+Tranquility
+Tribute Mage
+Trigon of Mending
+Vault 87: Forced Evolution
+Village Elder
+Vodalian Serpent
+Voice of the Provinces
+Voltaic Brawler
+Watchful Automaton
+Watchful Blisterzoa
+Weakstone's Subjugation
+Well of Life
+Whisperer of the Wilds
+Windfall
+Worldfire
+Zephyr Winder
+Zo-Zu the Punisher

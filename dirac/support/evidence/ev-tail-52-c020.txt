@@ -1,0 +1,13 @@
+Cabal Paladin
+Cabal Trainee
+Forest
+Geomancer's Gambit
+Island
+Mountain
+Plains
+Scourge of Valkas
+Skyline Despot
+Spellbinding Soprano
+Swamp
+Swarming Goblins
+Varchild, Betrayer of Kjeldor

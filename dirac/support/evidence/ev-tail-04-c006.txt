@@ -1,11 +1,107 @@
+Alchemist's Retrieval
+Ashiok's Adept
+Avengers Quinjet
+Balm of Restoration
 Basal Sliver
 Battlewand Oak
+Benalish Honor Guard
+Bestial Fury
+Bloodline Shaman
+Browse
+Caligo Skin-Witch
+Churning Eddy
+Clear the Land
+Cliffhaven Kitesail
+Clinging Mists
+Concord with the Kami
+Cosmic Crucible
+Crawl from the Cellar
+Deadly Wanderings
+Death-Greeter's Champion
+Demonic Collusion
+Desperate Castaways
+Diplomatic Escort
+Doomfall
+Dragon Hatchling
+Dragonspeaker Shaman
+Eidolon of Philosophy
+Enhanced Awareness
+Eternity Snare
+Exultant Cultist
+Fierce Witchstalker
+Fire
 Forest
+Franklin Richards, Ascendant
+Goblin Gathering
+Gustcloak Skirmisher
+Hellhole Rats
+Hungry Flames
+Inferno of the Star Mounts
 Island
+Jade Idol
+Jeskai Banner
+Jilt
+Jump
 Juvenile Gloomwidow
+Leeching Licid
+Light of Day
+Loathsome Chimera
+Lumengrid Sentinel
+Metallic Sliver
 Mountain
+Okiba Reckoner Raid
+Order of Midnight
+Outrider of Jhess
+Pack's Betrayal
 Patient Rebuilding
+Peach Garden Oath
+Placid Rottentail
 Plains
+Planar Gate
+Promise of Aclazotz
+Protect the Negotiators
+Pteron Ghost
+Ravenous Gigamole
+Razorfin Hunter
+Restore
+Riddleform
+Ring of Valkas
+Riptide Director
+River Kaijin
+Rolling Stones
+Rune Snag
+Sadistic Slash
+Scourge of Geier Reach
+Selenia, Dark Angel
+Shadow, Mysterious Assassin
+Sheoldred's Headcleaver
+Shiny Impetus
 Skrelv, Defector Mite
 Skull Raid
+Smash to Smithereens
+Smaug the Impenetrable
+Sound the Call
+Spellstutter Sprite
+Spoils of Evil
+Squirrel Sanctuary
+Swaggering Corsair
 Swamp
+Tamiyo's Safekeeping
+Temporary Insanity
+Tendrils of Corruption
+The Blackstaff of Waterdeep
+Tidal Wave
+Tower Defense
+Trigon of Mending
+Underdark Explorer
+Unhallowed Phalanx
+Vampire Scrivener
+Vault 87: Forced Evolution
+Village Elder
+Voice of the Provinces
+Weakstone's Subjugation
+Well of Life
+Windfall
+Worldfire
+Zephyr Winder
+Zo-Zu the Punisher
