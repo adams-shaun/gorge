@@ -895,6 +895,15 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 			return false
 		}
 	}
+	if ac := spellAddCost(k, c); !mayPlay && ac.Flags == kop.CostPayLife && lifeCostOwed(ac) > 0 {
+		// a fixed PayLife<N> additional cost (Withering Boon's 3 life): the cast
+		// planner declines it and the potential planner prices it only when the
+		// printed sources pay the mana ("shape:additional_cost"), with no prefix
+		// search for a filter land its census cannot price, whose fee another
+		// source funds (Viridescent Bog beside a Swamp; CR 601.2g-h)
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+	}
 	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 || k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
 		// an exile / forage / return / blight / collect-evidence part: the cast
 		// planner declines the shape, and the potential planner prices it only
