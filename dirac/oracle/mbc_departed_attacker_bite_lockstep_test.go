@@ -15,7 +15,7 @@ import (
 // last known power (gorge triggeredAttackerLKI): Merchant of Truth is dealt
 // 2. The kernel's Bite skipped the hit once its source had left, first
 // difference projection Cards[13].Damage (decision 632 of tail-53 pair 790).
-func TestMBCMerchantOfTruthReprosLockstep(t *testing.T) {
+func TestMBCDepartedAttackerBiteReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "departed_attacker_bites_with_last_known_power")
 }
