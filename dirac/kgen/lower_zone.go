@@ -2480,11 +2480,9 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect CantBlockBy RememberObjects LKICopy")
 			}
 		}
-		if exHaste {
-			lc.emit(lInstr{Op: "ExHaste", Obj: obj, C: exC, Note: "until end of turn: blockable only by creatures with haste, or not by creatures whose power compares (C)"})
-			break
+		if err := lc.cantBlockGrant(ps, obj, exHaste, exC); err != nil {
+			return err
 		}
-		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
 	case "CanAttackDefender":
 		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
