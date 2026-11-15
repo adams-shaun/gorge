@@ -178,8 +178,12 @@ func (e *Engine) offerCastablePotential(p state.PlayerID, id state.ObjID, base C
 	// fee (Energy Refractor's "{2}: add one mana of any color" beside two lands
 	// reads as three mana), so an offer it passes still has to have a payment
 	// plan: the cast the answer begins taps real sources (CR 601.2g, 605.3b).
-	return e.planComposedCost(p, id, e.offerCostFor(p, id, base, scope), ability, false).Reason != "insufficient"
+	return e.planComposedCost(p, id, e.offerCostFor(p, id, base, scope), ability, false).Reason != planProvenUnpayable
 }
+
+// planProvenUnpayable is the PaymentPlanOutcome.Reason of a cost no payment
+// plan funds (potential_plan.go).
+const planProvenUnpayable = "insufficient"
 
 // offerCastableUsing is offerCastable's core with the statics collected
 // once (the walk shares one collection) and the mana pool optionally
