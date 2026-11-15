@@ -39,6 +39,7 @@ func (s *State) cumulativeStart(k *prep, in *kop.Instr) {
 	}
 	s.g.lastCK = kop.CounterKind(kind) // CounterAddedOnce reads the kind
 	m := s.placeCounters(k, sl, kind, 1, s.perms[sl].ctrl, ctrPutEffect)
+	s.cumulativeFits(k, in) // a scaled cost the packed ask cannot hold (trig_cumulative_pay.go)
 	if m > 0 && k.anyCtrAdded {
 		s.ctrNote(k, sl, kind)
 	}

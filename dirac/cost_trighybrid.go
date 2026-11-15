@@ -51,7 +51,8 @@ func (s *State) applyPayPip(k *prep, a Action) {
 	}
 	in := &s.prog(k)[s.res.pc]
 	p, amt := s.g.pickP, int(s.g.pickLeft)
-	if !s.canPayGen(k, p, kop.PayMana, amt, in.B.N, in.F) && !s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, amt, in.B.N, in.F) {
+	pips := s.cumPips(k, in.B.N) // trig_cumulative_pay.go
+	if !s.canPayGen(k, p, kop.PayMana, amt, pips, in.F) && !s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, amt, pips, in.F) {
 		s.g.pickF |= pfNoPay
 	}
 	s.res.ask = raGenPay
@@ -70,9 +71,9 @@ func (s *State) announcedHyb(c *kop.ManaCost) {
 // instruction (whose F is no filter), its hybrid pips.
 func (s *State) resPayCost(k *prep) kop.ManaCost {
 	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := manaOf(int(s.g.pickLeft), s.cumPips(k, s.numTimesPips(k, in.B.N)))
 	if in.IsPayMana() {
-		kop.PayManaHyb(in.F, &c)
+		s.payManaHyb(k, in.F, &c)
 		s.announcedHyb(&c)
 	}
 	return c
