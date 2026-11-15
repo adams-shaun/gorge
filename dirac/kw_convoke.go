@@ -224,6 +224,18 @@ func (s *State) convokeXCredit(k *prep) int {
 	return n
 }
 
+// convokeXHi is the X ceiling the announcement prices when np generic of X
+// are paid by picks: mx and the picks' credit. An mx below zero means the
+// printed pips alone were unaffordable; a pick that pays one of them (CR
+// 702.51a) makes them payable, so the sources' total bounds the ceiling and
+// the per-X pricing in addXOptions picks the payable values.
+func convokeXHi(mx, hi, np int, av *avail) int {
+	if mx < 0 {
+		mx = av.total
+	}
+	return min(maxXAsk, max(hi, mx+np))
+}
+
 // improvisePickCount counts the announced improvise (mode 6) picks.
 func (s *State) improvisePickCount() int {
 	n := 0
