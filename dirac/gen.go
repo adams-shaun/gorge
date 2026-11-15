@@ -2018,7 +2018,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    Obj             // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
+	tgtSelf    Obj             // the card a feasibility check is for, plus one (0: none): a graveyard or exile card leaves that zone for the stack when cast, and the spell build a post-push sweep prices (its X ask) is on the stack already; CR 115.5 makes both no target of their own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
