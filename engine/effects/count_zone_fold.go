@@ -36,7 +36,9 @@ func colourLetter(s string) byte {
 // tricolour ("GWP"/"PRG") -- through cards.ManaCostChroma's per-symbol read,
 // so a symbol of both queried colours is never counted twice. A face-down
 // battlefield permanent has no mana cost (CR 708.5's vanilla set) and
-// contributes nothing; an out-of-range controller counts nothing.
+// contributes nothing; a phased-out permanent is treated as though it does
+// not exist (CR 702.26b), so it is not a permanent you control; an
+// out-of-range controller counts nothing.
 func devotionCount(g *state.Game, controller state.PlayerID, mask uint8) int32 {
 	if int(controller) < 0 || int(controller) >= len(g.Players) {
 		return 0
@@ -44,7 +46,7 @@ func devotionCount(g *state.Game, controller state.PlayerID, mask uint8) int32 {
 	var n int32
 	for _, id := range g.Zone(state.ZBattlefield, controller) {
 		o := g.Obj(id)
-		if o == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+		if o == nil || o.PhasedOut || (o.FaceDown && o.Zone == state.ZBattlefield) {
 			continue
 		}
 		f := o.Face()

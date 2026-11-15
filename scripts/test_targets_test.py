@@ -815,3 +815,45 @@ def test_smart_step_3_names_the_guard_tests_and_finds_their_packages():
             assert name in c
     # the anchored names cannot match inside the Test...($C) grep, so cpk needs its own for them
     assert "TestKopOrdinalsUnchanged|TestReproCompactRoundTrip|TestReproGlobMatchesTable" in sh
+
+
+def test_a_reused_fail_verdict_prints_the_failures_behind_it(repo, tmp_path):
+    # 11-14: a reused FAIL printed only its verdict line; the seat saw no failing test, reported DONE twice on a
+    # passing local run, and the ticket parked. The rerun must show what failed.
+    env, _, _ = smart_fixture(repo, tmp_path)
+    (tmp_path / "stream.json").write_text("\n".join([
+        ev("run", "m/p", "TestFileNames"),
+        ev("output", "m/p", "TestFileNames", "    names_test.go:88: x10_test.go ends in a number\n"),
+        ev("fail", "m/p", "TestFileNames"), ev("fail", "m/p")]))
+    env = dict(env, GORC="1")
+    first = wrapper_output(repo, "smart", env=env)
+    assert _verdict_line(first).startswith("test-smart: FAIL "), first.stdout
+    again = wrapper_output(repo, "smart", env=env)
+    assert "reused verdict" in again.stderr
+    assert _verdict_line(again).startswith("test-smart: FAIL ")
+    assert "== the failures behind the reused verdict" in again.stdout
+    assert "x10_test.go ends in a number" in again.stdout
+
+
+def test_env_skip_reason_carries_the_skip_message():
+    lines = [ev("run", test="TestA"), ev("output", test="TestA", out="=== RUN   TestA\n"),
+             ev("output", test="TestA", out="    a_test.go:31: corpus at 418ba, need 91402: refetch .cards\n"),
+             ev("output", test="TestA", out="--- SKIP: TestA (0.00s)\n"), ev("skip", test="TestA"), ev("pass")]
+    r = tt.classify(lines)
+    assert r.status == "ENV"
+    assert r.reasons == ["skipped for the environment: m/p TestA (a_test.go:31: corpus at 418ba, need 91402: refetch .cards)"]
+
+
+def test_fallback_timeout_is_busy_not_budget(tmp_path):
+    f = tmp_path / "t.json"
+    f.write_text("\n".join([ev("output", out="panic: test timed out after 5m0s\n"), ev("fail")]))
+    base = ["finish", "--mode", "smart", "--json", str(f), "--rc", "1", "--sha", "s", "--pkgs", "./p", "--seconds", "1"]
+    rc, out, _ = run_cli(*base)
+    assert rc == 5 and out.rstrip().splitlines()[-1].startswith("test-smart: BUDGET ")
+    rc, out, _ = run_cli(*base, "--fallback", "100%")
+    assert rc == 75 and out.rstrip().splitlines()[-1].startswith("test-smart: BUSY ")
+    assert "timed out at the fallback cap (CPUQuota 100%" in out
+    # A real failure in the same fallback run is still the change's.
+    f.write_text("\n".join([ev("fail", test="TestB"), ev("fail")]))
+    rc, out, _ = run_cli(*base, "--fallback", "100%")
+    assert rc == 1

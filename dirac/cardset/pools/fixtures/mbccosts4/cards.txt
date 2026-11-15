@@ -1,0 +1,19 @@
+# the MBC costs-4 spelling family (dirac/oracle/mbc_costs_four_lowers_test.go
+# TestMBCCosts4Lowers): the PayLife<N> alternative cost (Snuff Out), the
+# tapXType alternative cost (Ramosian Rally), Strands of Night's PayLife<N>
+# beside Sac<1/Swamp> and Dreamscape Artist's Discard<1/Card> beside
+# Sac<1/Land>, beside the removal, bodies and lands that feed them
+Snuff Out
+Ramosian Rally
+Strands of Night
+Dreamscape Artist
+Grizzly Bears
+Shock
+Terror
+Swamp
+Plains
+Island
+Forest
+Mountain
+Kasmina, Enigmatic Mentor
+Ornithopter

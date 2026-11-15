@@ -67,7 +67,12 @@ func TestAdapterBoardIsWrittenInOneFile(t *testing.T) {
 		files = append(files, f)
 	}
 	info := &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
-	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil), GoVersion: "go1.25"}
+	// The dependencies are type-checked from their compiled export data
+	// (exportLookup) rather than re-parsed from source: the "source" importer
+	// recursively type-checks the whole dependency tree, shelling to go list per
+	// import path, and the export data carries the same type information. The
+	// package under check — adapter itself — is still parsed from source above.
+	conf := types.Config{Importer: importer.ForCompiler(fset, "gc", exportLookup(t, module+"/dirac/adapter")), GoVersion: "go1.25"}
 	if _, err := conf.Check("adapter", fset, files, info); err != nil {
 		t.Fatal(err)
 	}

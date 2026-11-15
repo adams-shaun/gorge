@@ -5,6 +5,7 @@ Angelic Protector
 Aqueous Form
 Arbor Elf
 Argothian Elder
+Basalt Monolith
 Battle-Rage Blessing
 Beast Attack
 Beetleback Chief
@@ -120,5 +121,6 @@ Wash Away
 Whipcorder
 Will-o'-the-Wisp
 Witching Well
+Xyris, the Writhing Storm
 You Are Already Dead
 Youthful Valkyrie

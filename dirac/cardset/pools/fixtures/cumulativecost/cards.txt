@@ -1,0 +1,22 @@
+# the cumulative upkeep cost pool: cumulative upkeep (CR 702.24a) paid with
+# coloured mana (Phobian Phantasm, Yavimaya Ants), hybrid mana (Arctic
+# Nishoba), life (Dystopia, Morinfen), a sacrificed land or creature (Polar
+# Kraken, Phyrexian Soulgorger) or a discarded card (Vexing Sphinx), for the
+# kernel's scaled ask (dirac/trig_cumulative_pay_test.go) and the oracle's
+# constructed lockstep (dirac/oracle/cumulativecost_test.go). Hill Giant and
+# Shock are filler.
+Arctic Nishoba
+Dystopia
+Forest
+Hill Giant
+Island
+Morinfen
+Mountain
+Phobian Phantasm
+Phyrexian Soulgorger
+Plains
+Polar Kraken
+Shock
+Swamp
+Vexing Sphinx
+Yavimaya Ants

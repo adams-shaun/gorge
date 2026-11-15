@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -107,7 +108,7 @@ func TestSetAudit_spm_MisterNegative_InversionExchangeLife(t *testing.T) {
 // Mister Negative-only API, and all corpus scripts using it must be covered.
 func assertExchangeLifeCorpusCensus(t *testing.T) {
 	t.Helper()
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	var got []string
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {

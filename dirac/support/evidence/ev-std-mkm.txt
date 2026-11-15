@@ -38,8 +38,10 @@ Clandestine Meddler
 Coerced to Kill
 Cold Case Cracker
 Commercial District
+Concealed Weapon
 Convenient Target
 Cornered Crook
+Coveted Falcon
 Crime Novelist
 Crimestopper Sprite
 Crowd-Control Warden
@@ -80,6 +82,7 @@ Gleaming Geardrake
 Glint Weaver
 Goblin Maskmaker
 Gravestone Strider
+Greenbelt Radical
 Griffnaut Tracker
 Haazda Vigilante
 Hard-Hitting Question
@@ -125,6 +128,7 @@ Massacre Girl, Known Killer
 Meddling Youths
 Melek, Reforged Researcher
 Meticulous Archive
+Mistway Spy
 Mountain
 Murder
 Museum Nightwatch
@@ -149,6 +153,7 @@ Presumed Dead
 Private Eye
 Proft's Eidetic Memory
 Public Thoroughfare
+Pyrotechnic Performer
 Rakdos, Patron of Chaos
 Raucous Theater
 Reckless Detective
@@ -187,6 +192,7 @@ Teysa, Opulent Oligarch
 The Chase Is On
 The Pride of Hull Clade
 They Went This Way
+Thinking Cap
 Thundering Falls
 Topiary Panther
 Torch the Witness
@@ -204,6 +210,7 @@ Unscrupulous Agent
 Urgent Necropsy
 Vannifar, Evolved Enigma
 Vein Ripper
+Vengeful Creeper
 Vengeful Tracker
 Warleader's Call
 Wispdrinker Vampire

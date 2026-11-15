@@ -932,7 +932,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// only a free cast. A PayLife<X> is bounded by the X ask.
 				// buildPickCost is the chosen either-or part: an alt-add cast
 				// paying its mana part owes no life (Redirect Lightning).
-				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(e.ctrl)].life) < int(pc.N) {
+				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(e.ctrl)].life) < lifeCostOwed(pc) {
 					s.reverseCast(k)
 					return false
 				}
@@ -2564,7 +2564,7 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
 		return false
 	}
-	if f&kop.CostPayLife != 0 && int(s.pl[p].life) < int(c.N) {
+	if f&kop.CostPayLife != 0 && int(s.pl[p].life) < lifeCostOwed(c) {
 		return false
 	}
 	if f&(costObjFlags|kop.CostPayEnergy) != 0 && !s.costObjPayable(k, p, c, NoObj, exclude) {

@@ -211,20 +211,8 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("convoke")
 			return Pack(ActChoose+CanonKind(code), ref(o.Obj), RefNone, 6), true
 		}
-		if d.ResumeKind == "counter_kind" {
-			// gorge removeCounterAny's per-counter kind pick
-			// (Glissa Sunslayer): the kind, by its kernel counter kind (the
-			// option order is the carrier's slice order, a presentation
-			// detail); Done is the declaration's ActDone
-			if o.Kind == "remove_counter_done" {
-				return Pack(ActDone, RefNone, RefNone, 0), true
-			}
-			c, ok := kernelCounterKind(o.Label)
-			if o.Kind != "counter" || !ok {
-				return 0, false
-			}
-			code, _ := chooseCode("counter")
-			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
+		if d.ResumeKind == "counter_kind" || d.ResumeKind == "counter_kinds" {
+			return counterKindAction(d, o)
 		}
 		code, known := chooseCode(cumulativeKindAlias(o.Kind))
 		if !known {
@@ -411,6 +399,32 @@ func cumulativeKindAlias(kind string) string {
 		return "trigger_cost_" + strings.TrimPrefix(kind, "echo_")
 	case "echo_sac":
 		return "trigger_cost_decline"
+	case "cumulative_action_sac", "cumulative_action_discard":
+		// the choose-exactly-N permanents or cards a sacrifice or discard
+		// cumulative upkeep pays: the kernel poses the same pick an action
+		// echo cost does (dirac/interp_ask.go echoActionPick)
+		return "echo_action_pick"
 	}
 	return kind
+}
+
+// counterKindAction is a counter-kind pick, by its kernel counter kind (the
+// option order is the carrier's slice order, a presentation detail): gorge
+// removeCounterAny's per-counter pick (Glissa Sunslayer; Done is the
+// declaration's ActDone) and putCounter's ChooseDifferent$ pick (Grimdancer,
+// two picks of a kind each).
+func counterKindAction(d *decision.Decision, o *decision.Option) (Canon, bool) {
+	if d.ResumeKind == "counter_kind" && o.Kind == "remove_counter_done" {
+		return Pack(ActDone, RefNone, RefNone, 0), true
+	}
+	c, ok := kernelCounterKind(o.Label)
+	want := "counter"
+	if d.ResumeKind == "counter_kinds" {
+		want = d.ResumeKind
+	}
+	if o.Kind != want || !ok {
+		return 0, false
+	}
+	code, _ := chooseCode("counter")
+	return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
 }

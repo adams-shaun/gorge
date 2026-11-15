@@ -322,6 +322,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = nameAskKind(in)
 				case kop.ExtChooseCardEnter:
 					kind = akCard // repl_choosecard.go
+				case kop.ExtEnterCtrPick:
+					kind = akCtrPick // repl_enterctrpick.go
 				case kop.ExtChoosePlayer:
 					kind = akPlayer
 				default:
@@ -350,7 +352,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				}
 				return
 			}
-			if kind != akCard && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
+			if kind != akCard && kind != akCtrPick && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
 				s.touchSl(sl)
 				s.g.pre.state = 0
@@ -1210,7 +1212,11 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		}
 		return
 	}
-	if ask.kind == akMode {
+	if ask.kind == akCtrPick || ask.kind == akCtrPick2 {
+		if !s.ctrPickAnswer(k, ask, a) { // repl_enterctrpick.go
+			return // the second pick is asked
+		}
+	} else if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
 	} else if ask.kind == akCard {
 		p.chosen = objWord(a.Source()) // the chosen object rides the action's code (repl_choosecard.go)
@@ -1371,6 +1377,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akCard {
 		s.enterCardOptions(k, d) // repl_choosecard.go
+		return
+	}
+	if kind == akCtrPick || kind == akCtrPick2 {
+		s.ctrPickOptions(k, d, kind) // repl_enterctrpick.go
 		return
 	}
 	if kind == akColor {

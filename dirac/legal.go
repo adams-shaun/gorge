@@ -555,7 +555,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostSubAmong != 0 && s.subAmongTotal(k, p.ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false // kw_training.go
 	}
-	if f&kop.CostPayLife != 0 && int(s.pl[p.ctrl].life) < int(a.Cost.N) {
+	if f&kop.CostPayLife != 0 && int(s.pl[p.ctrl].life) < lifeCostOwed(&a.Cost) {
 		return false
 	}
 	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p.ctrl, &a.Cost, NoObj) {
@@ -1529,10 +1529,9 @@ const potentialOpenUnits = 2 * trigXCap
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
 // Every mana ability of a source counts on its own, and a paid one joins once the
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
-// open reports a bound gorge prices potentialUnbounded in every colour.
 //
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open bool) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
@@ -1540,6 +1539,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 	}
 	var own [MaxPerm][kop.NumManaKinds]int
 	var done [MaxPerm]uint16
+	open := false
 	add := func(sl Slot, mask uint8, n uint8) {
 		for mk := mask; mk != 0; mk &= mk - 1 {
 			c := bits.TrailingZeros8(mk)
@@ -1646,16 +1646,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 				done[sl] |= 1 << j
 				progressed = true
 				if kop.StoreManaAb(ab) {
-					// A storage battery makes its counters' worth, not an
-					// unbounded dynamic amount: count the live counters so a
-					// play it cannot pay is not offered.
-					n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr))
-					if n > 255 {
-						n = 255
-					}
-					if n > 0 {
-						add(sl, uint8(ab.ManaColors), uint8(n))
-					}
+					// A storage battery's potential: its announced X
+					// (Count$xPaid) is indeterminate to gorge's potentialAmount,
+					// which folds such a production unbounded in every colour
+					// (potentialUnbounded), while the census's live-counter read
+					// (mana_countercost.go storeGap) serves the exact gates. A
+					// battery with no counter still admits here: its cost
+					// announces X (pay ManaSubCounterXBound floors it at XMin 0),
+					// so gorge's walk prices the ability payable and folds it
+					// open.
+					open = true
 					continue
 				}
 				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
@@ -1675,7 +1675,6 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
-	return open
 }
 
 // filtFeeOwed reports whether the source at sl is a filter whose fee the
@@ -1702,7 +1701,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Cost.Flags&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, ab) {
 		return false // Loot, the Pathfinder's exhaust mana ability
 	}
-	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < int(ab.Cost.N) {
+	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < lifeCostOwed(&ab.Cost) {
 		return false
 	}
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
@@ -1735,9 +1734,12 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 		// whole production while it still holds the counter its cost removes
 		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
 	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
-		// a storage battery (Mage-Ring Network): its announced X is bounded by
-		// the counters it holds (mana_countercost.go storeGap)
-		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) > 0
+		// a storage battery (Mage-Ring Network, Dwarven Hold): its cost
+		// announces X ("remove any number"), so gorge's walk prices the
+		// activation payable whatever the counters it holds (pay
+		// ManaSubCounterXBound floors the announced X at XMin 0) and folds the
+		// battery's production open (the fixpoint's StoreManaAb arm)
+		return true
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot
 		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)

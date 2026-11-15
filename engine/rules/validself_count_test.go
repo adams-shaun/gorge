@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -136,7 +137,7 @@ func TestCountValidSelfCorpusCensus(t *testing.T) {
 	testutil.CorpusRegistry(t)
 	// Count carrier files, not raw lines: this catches a new ValidSelf
 	// mechanism sibling without depending on Forge text in a tracked fixture.
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	files := map[string]bool{}
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

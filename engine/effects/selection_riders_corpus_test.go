@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -17,7 +18,7 @@ import (
 // grew and needs review, not a silent allow-list edit.
 func TestSelectionRiderCorpusCarriers(t *testing.T) {
 	testutil.CorpusRegistry(t) // absent .cards must skip rather than pass vacuously
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	checks := []struct {
 		name string
 		api  string

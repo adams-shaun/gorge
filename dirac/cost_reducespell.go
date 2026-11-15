@@ -149,6 +149,8 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 		base := cd.Cost
 		if free {
 			base = kop.ManaCost{}
+		} else if s.bld().altAdd == buildAltCost {
+			base = s.altBaseMana(k) // the cast pays its own alternative cost (gorge prices the probe with the cast's scope)
 		}
 		cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, base)
 		if e.flags&sfAnyMana != 0 {

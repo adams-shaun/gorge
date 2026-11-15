@@ -71,8 +71,8 @@ func (s *State) lifeXClamp(k *prep, cost *kop.ManaCost, mx int) int {
 }
 
 // lifeCostOwed is the amount c's life part charges: Cost.N for a fixed
-// PayLife<N>, Cost.Ctr for a may-play raise's PayLife<N> beside its sacrifice
-// (cost_mayplayraise.go), and 0 for the announced PayLife<X> form (N == 0, no
+// PayLife<N>, Cost.Ctr for PayLife<N> beside a sacrifice (a may-play raise,
+// cost_mayplayraise.go; Strands of Night's activation, kgen lifeBesideSac), and 0 for the announced PayLife<X> form (N == 0, no
 // sacrifice), which payLifeCost settles from the announced x instead.
 func lifeCostOwed(c *kop.Cost) int {
 	if c.Flags&kop.CostSac != 0 {

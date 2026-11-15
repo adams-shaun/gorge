@@ -5,9 +5,12 @@ April O'Neil, Hacktivist
 April O'Neil, Kunoichi Trainee
 April, Reporter of the Weird
 Armaggon, Future Shark
+Baxter Stockman
 Bebop & Rocksteady
 Bebop, Warthog Warrior
 Bot Bashing Time
+Brilliance Unleashed
+Broadcast Takeover
 Buzz Bots
 Casey Jones, Jury-Rig Justiciar
 Casey Jones, Vigilante
@@ -26,6 +29,7 @@ Donatello, Mutant Mechanic
 Donatello, Turtle Techie
 Donatello, Way with Machines
 Dream Beavers
+EPF Point Squad
 East Wind Avatar
 Escape Tunnel
 Everything Pizza
@@ -37,6 +41,7 @@ Frog Butler
 Fugitive Droid
 General Traag, Heart of Stone
 Genghis Frog
+Go Ninja Go
 Groundchuck & Dirtbag
 Grounded for Life
 Guac & Marshmallow Pizza
@@ -50,6 +55,7 @@ Improvised Arsenal
 Insectoid Exterminator
 Island
 Jennika's Technique
+Jennika, Bad Apple Big Sister
 Kitsune's Technique
 Kitsune, Dragon's Daughter
 Krang, Master Mind
@@ -67,6 +73,7 @@ Lord Dregg, Insect Invader
 Madame Null, Power Broker
 Make Your Move
 Manhole Missile
+Mechanized Ninja Cavalry
 Metalhead
 Michelangelo's Technique
 Michelangelo, Game Master
@@ -82,12 +89,15 @@ Mondo Gecko
 Mountain
 Mouser Attack!
 Mouser Foundry
+Mouser Mark III
 Mutagen Man, Living Ooze
 Mutant Chain Reaction
 Mutant Town
 Mutant Town Musicians
 Negate
 New Generation's Technique
+Nobody
+North Wind Avatar
 Northampton Farm
 Novel Nunchaku
 Null Group Biological Assets
@@ -107,6 +117,7 @@ Purple Dragon Punks
 Putrid Pals
 Quintessential Katana
 Ragamuffin Raptor
+Raph & Leo, Sibling Rivals
 Raph & Mikey, Troublemakers
 Raphael, Ninja Destroyer
 Raphael, Tough Turtle
@@ -146,6 +157,7 @@ The Cloning of Shredder
 The Last Ronin
 The Last Ronin's Technique
 The Ooze
+Tokka & Rahzar, Terrible Twos
 Transdimensional Bovine
 Triceraton Commander
 Tunnel Rats

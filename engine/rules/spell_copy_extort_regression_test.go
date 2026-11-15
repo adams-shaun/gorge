@@ -132,7 +132,7 @@ func TestRealNonSelfBattlefieldSpellCastTriggerStillFires(t *testing.T) {
 // used by behavioral tests. It is deliberately based on filenames and script
 // markers, never copied Forge script text.
 func TestSpellCopyExtortAndBareSpellCastCarrierCensus(t *testing.T) {
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	files := map[string]string{}
 	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
