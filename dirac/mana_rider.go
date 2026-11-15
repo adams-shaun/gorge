@@ -336,3 +336,12 @@ func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 		}
 	}
 }
+
+// markRiderDone marks the bounded rider ability of the source at sl as already
+// counted by the potential walk, so its fixpoint does not admit it a second
+// time (potentialGapCost's Deplete arm): gorge counts it once.
+func (s *State) markRiderDone(k *prep, sl Slot, done *[MaxPerm]uint16) {
+	if ai := k.riderAbOf(s.cardAt(sl)); ai >= 0 && ai < 16 {
+		done[sl] |= 1 << ai
+	}
+}
