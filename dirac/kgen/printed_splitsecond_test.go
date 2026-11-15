@@ -47,3 +47,28 @@ func TestPrintedSplitSecondLowers(t *testing.T) {
 		}
 	}
 }
+
+// A token's own token is lowered with the pool: Diabolical Salvation's Devil
+// makes a Treasure as it dies, and no other card of the pool makes one, so
+// the Devil's build would find no Treasure in the pool and refuse the card.
+func TestPoolLowersTheTokenATokenMakes(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	const name, devil, treasure = "Diabolical Salvation", "r_4_4_devil_haste_treasure", "c_a_treasure_sac"
+	card, ok := reg.Lookup(name)
+	if !ok || card == nil {
+		t.Fatalf("%s not in the corpus", name)
+	}
+	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card}, nDecks: map[string]int{}, reg: reg}
+	lw := lowerPool(p)
+	keys := map[string]*lCard{}
+	for _, tk := range lw.tokens {
+		keys[tk.Name] = tk
+	}
+	d := keys[devil]
+	if d == nil || len(d.Tokens) != 1 || d.Tokens[0] != treasure {
+		t.Fatalf("the pool's tokens %v: want %s making %s", keys, devil, treasure)
+	}
+	if keys[treasure] == nil {
+		t.Fatalf("the pool's tokens %v lack %s, the token %s makes", keys, treasure, devil)
+	}
+}
