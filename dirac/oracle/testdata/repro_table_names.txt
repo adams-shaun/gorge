@@ -28,6 +28,7 @@ ant_man_activation_subcounter_x std-msh
 anti_venom_burn_becomes_counters custom
 any_one_colour_restricted_x_colour_choice std-blb
 any_type_rider_hybrid_pips std-fdn
+anyplayer_activation_counts_restricted_sources tail-33
 ao_the_dawn_sky_dig_total_cmc custom
 arex_up_to_three_lands_ends_when_none_left std-trc
 ark_of_hunger_mayplay_both_zones std-sos
