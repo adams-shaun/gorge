@@ -18,7 +18,8 @@
 # GORGE_TEST_WRAPPER=1. With no user systemd it says so and runs uncapped.
 # Preflight: the .cards corpus resolves and is not empty, dirac's tables exist when a dirac package runs,
 # BASE resolves. Postflight (scripts/test_targets.py): a skip that names the corpus, pools or tables is ENV,
-# a -run that matched nothing is EMPTY, a timeout or kill is BUDGET.
+# a -run that matched nothing is EMPTY, a timeout or kill is BUDGET (BUSY in a run that fell back from the gate box
+# to a cap below 4 cores: the budget is set for 4).
 #
 # The last line on stdout is the one verdict line, and nothing else printed starts with "test-":
 #
@@ -26,8 +27,8 @@
 #
 # Settings that belong to the machine, not the repository, go in ~/.config/gorge/test-targets.env (or
 # $GORGE_TEST_TARGETS_ENV): GORGE_POOLS (dirac's deck pools), GATE_AFFECTED_REPO (+ GATE_AFFECTED_PATH, GATE_REF),
-# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT), and the remote runner's GORGE_REMOTE_HOST,
-# GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_MIN_IDLE, GORGE_REMOTE_OFF (scripts/test-remote.sh).
+# GORGE_HEAVY_LOCK (+ GORGE_HEAVY_LANES, GORGE_TEST_LANE_WAIT), and the remote runner's GORGE_REMOTE_HOST (or
+# GORGE_REMOTE_HOSTS, several boxes), GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_MIN_IDLE, GORGE_REMOTE_OFF (scripts/test-remote.sh).
 #
 # Runner: with the GORGE_REMOTE_* settings present, the mode runs on the gate box instead (the worktree's HEAD and
 # its uncommitted diff are shipped; the same verdict line and the same go test -json at the same local path come
@@ -59,9 +60,13 @@ pkgs_label=""
 # record_verdict STATUS LINE: remember a terminal verdict (PASS or FAIL) for the commit, next to the logs, so
 # a rerun on the same commit with the same gate scripts reuses it instead of repeating the work. ENV, EMPTY,
 # BUDGET and BUSY describe the box, not the commit, and are never recorded.
+# A FAIL also keeps its detail (the failing tests and their messages) in .verdict.detail: a reused FAIL that printed
+# only its verdict line left the seat nothing to fix, and it reported DONE twice on a passing local run and parked.
 record_verdict() {
+	local v=.ds4/scratch/test/smart-${sha%+dirty}.verdict
 	case $1 in
-	PASS | FAIL) printf '%s\n' "$2" >.ds4/scratch/test/smart-${sha%+dirty}.verdict ;;
+	PASS) printf '%s\n' "$2" >"$v"; rm -f "$v.detail" ;;
+	FAIL) printf '%s\n' "$2" >"$v"; if [ -n "${3:-}" ]; then printf '%s\n' "$3" >"$v.detail"; else rm -f "$v.detail"; fi ;;
 	esac
 }
 
@@ -85,6 +90,10 @@ fcpu=${GORGE_REMOTE_FALLBACK_CPU:-200}
 case $fcpu in '' | *[!0-9]* | 0 | ?) fcpu=200 ;; esac
 fprocs=$((fcpu / 100))
 [ -z "${TEST_TARGETS_FALLBACK:-}" ] || [ -n "${TEST_TARGETS_REMOTE:-}" ] || { lp=$fprocs lcpu=$fcpu% lprocs=$fprocs; }
+# A fallback run below the budget's 4 cores: a timeout there is the machine's (BUSY), not the change's BUDGET. The
+# 11-14 seat 3c80ac4f was parked for a dirac/oracle named run that timed out at 5m on one core (CPUQuota 100%).
+fbcap=
+[ -z "${TEST_TARGETS_FALLBACK:-}" ] || [ -n "${TEST_TARGETS_REMOTE:-}" ] || [ "$fprocs" -ge 4 ] || fbcap=$fcpu%
 
 # ---- the cap -----------------------------------------------------------------------------------------
 if [ -z "${TEST_TARGETS_SCOPED:-}" ]; then
@@ -143,14 +152,15 @@ gojson() {
 }
 finish() { # finish NAMED_IMPORT_PATHS: classify $json, print detail and the verdict, exit
 	local out pyrc vline st
-	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1")
+	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1" ${fbcap:+--fallback "$fbcap"})
 	pyrc=$?
 	printf '%s\n' "$out"
 	if [ "$mode" = smart ]; then
 		vline=${out##*$'\n'}
 		st=${vline#test-smart: }
 		st=${st%% *}
-		record_verdict "$st" "$vline"
+		detail=""; [ "$out" = "$vline" ] || detail=${out%$'\n'*}   # all but the verdict line itself
+		record_verdict "$st" "$vline" "$detail"
 	fi
 	exit $pyrc
 }
@@ -287,6 +297,15 @@ if [ -z "${FORCE:-}" ] && [ -r "$vfile" ]; then
 	read -r _ rst _ rpk _ <"$vfile"
 	if [ "$rpk" = "$pkgs_label" ] && { [ "$rst" = PASS ] || [ "$rst" = FAIL ]; }; then
 		echo "test-targets: note: reused verdict for $sha; make test-smart FORCE=1 to rerun" >&2
+		if [ "$rst" = FAIL ]; then
+			# the failures behind the verdict, as the run that recorded it printed them
+			[ -r "$vfile.detail" ] && { echo "== the failures behind the reused verdict"; cat "$vfile.detail"; }
+			for f in "$keep.affected.log" "$keep.dirac.log"; do
+				[ -r "$f" ] || continue
+				d=$(grep -E -A8 -- '^--- FAIL|^FAIL[[:space:]]|panic:' "$f" | head -40)
+				[ -n "$d" ] && { echo "== failures in $f"; echo "$d"; }
+			done
+		fi
 		printf '%s\n' "$(<"$vfile")"
 		case $rst in PASS) exit 0 ;; esac
 		exit 1
@@ -445,6 +464,7 @@ if [ "$smart" = gates ]; then
 		bad "dirac gate rc=${rd:-missing}; affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
 	fi
 	if [ "${ra:-}" = 137 ] || [ "${ra:-}" = 143 ]; then
+		[ -z "$fbcap" ] || verdict BUSY "affected gate killed (rc=$ra) at the fallback cap $fbcap: the machine's, not the change's"
 		verdict BUDGET "affected gate killed (rc=$ra)"
 	fi
 	[ "$aff_fail" = 0 ] || bad "affected gate rc=${ra:-missing}${stopped:+ ($stopped)}"
@@ -487,7 +507,7 @@ elif [ "$smart" = narrow ]; then
 	done
 	# A named run that matched nothing is EMPTY, not a pass: classify the stream before step 5 replaces it.
 	nm=$(IFS=,; echo "${named[*]-}")
-	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" >/dev/null || finish "$nm"
+	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" ${fbcap:+--fallback "$fbcap"} >/dev/null || finish "$nm"
 else
 	echo "== 4 skipped (GORGE_TEST_SMART_GATES=0: the lander runs the affected and dirac gates)"
 	if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/oracle/testdata/repro/')" ]; then

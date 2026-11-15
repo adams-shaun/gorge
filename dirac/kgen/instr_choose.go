@@ -17,6 +17,7 @@ func init() {
 	instrOp("ChooseType", (*instrCtx).opChooseType)
 	instrOp("ChooseName", (*instrCtx).opChooseName)
 	instrOp("ChooseCardEnter", (*instrCtx).opChooseCardEnter)
+	instrOp("EnterCtrPick", (*instrCtx).opEnterCtrPick)
 	instrOp("ChoosePlayerEnter", (*instrCtx).opChoosePlayerEnter)
 	instrOp("ChoosePlayerMid", (*instrCtx).opChoosePlayerMid)
 	instrOp("ChooseNumber", (*instrCtx).opChooseNumber)
@@ -130,6 +131,10 @@ func (ic *instrCtx) opChooseNumberMid() error {
 	// value, C the Min$ floor plus the has-Max / Random flags
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberMid)), int16(in.C)
 	return nil
+}
+
+func (ic *instrCtx) opEnterCtrPick() error {
+	return buildEnterCtrPick(&ic.ki, ic.in.CS) // an as-enters pair of counter kinds (lower_enterctrpick.go)
 }
 
 func (ic *instrCtx) opNameCard() error {

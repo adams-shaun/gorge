@@ -1,0 +1,16 @@
+# the MBC counters-3 pool (dirac/oracle/mbc_counters3_lowers_test.go): Grimdancer
+# (enters with a choice of two different counters), the verse-counter
+# enchantments whose "up to X targets" reads the counters on CARDNAME (Vile
+# Requiem, Recantation, Rumbling Crescendo, Serra's Liturgy) and Magmatic Core
+# (the same bound over a divided total) beside basics and a body
+Grimdancer
+Vile Requiem
+Recantation
+Rumbling Crescendo
+Serra's Liturgy
+Magmatic Core
+Savannah Lions
+Swamp
+Plains
+Island
+Mountain

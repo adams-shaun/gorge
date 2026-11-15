@@ -6,12 +6,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The corpus census includes three ExchangeLifeVariant carriers. The other
 // eight use ExchangeLife itself, including both one- and two-target forms.
 func TestExchangeLifeCorpusCensus(t *testing.T) {
-	dir := filepath.Join("..", "..", ".cards", "cardsfolder")
+	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	var names []string
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

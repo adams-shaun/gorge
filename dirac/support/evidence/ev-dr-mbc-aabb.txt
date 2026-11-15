@@ -1,4 +1,5 @@
 Accursed Spirit
+Adanto Vanguard
 Aerie Bowmasters
 Ancestral Mask
 Ancient Stirrings
@@ -18,6 +19,7 @@ Cragsmasher Yeti
 Dawntreader Elk
 Destiny Spinner
 Destructive Tampering
+Divination
 Dragon Mage
 Dragon's Smile
 Drift of Phantasms
@@ -27,45 +29,61 @@ Enclave Cryptologist
 Escape Tunnel
 Explore
 Fanatical Devotion
+Feign Death
 Fell
 Fire Servant
 Forest
 Freed from the Real
+Gelatinous Genesis
+Ghost-Lit Stalker
 Gold-Forged Thopteryx
 Harmonize
 Imperial Oath
 Ingot Chewer
 Island
+Jaheira, Friend of the Forest
 Jewel Thief
 Karlach, Fury of Avernus
 Kaya's Ghostform
 Looter il-Kor
 Make a Stand
 Marionette Apprentice
+Massacre
 Maular, the Next Evolution
 Meekstone
 Mountain
 Murmuring Mystic
+Nezumi Prowler
+Nightwind Glider
 Omnath, Locus of Creation
+Ophidian Eye
 Outmaneuver
 Overgrown Battlement
+Painful Lesson
+Palace Sentinels
 Pemmin's Aura
 Pendrell Drake
+Phantom Centaur
+Phyrexian Rager
 Plains
 Poison Dart Frog
 Propaganda
 Ramos, Dragon Engine
 Reckless Impulse
 Resolute Reinforcements
+Restoration Specialist
 Ringwarden Owl
 Saber Ants
 Season of Growth
+Sentinel Sliver
 Sheltered by Ghosts
 Shroofus Sproutsire
 Silverglade Pathfinder
+Soltari Trooper
 Spore Frog
 Sticky Fingers
 Struggle for Skemfar
+Sunscape Familiar
 Supernatural Stamina
 Swamp
 Tidy Conclusion

@@ -66,11 +66,26 @@ func altDiscardCost(c *kop.Cost) bool {
 		!c.DiscardHand && c.Mana == (kop.ManaCost{})
 }
 
+// altLifeCost: the alternative cost is paying N life and nothing else (Snuff
+// Out's PayLife<4>, CR 118.9, 119.4; kgen altLifeOrTapShape): no pick is asked,
+// the offer is gated on the life and the cast pays it (payLifeCost).
+func altLifeCost(c *kop.Cost) bool {
+	return c.Flags == kop.CostPayLife && c.N > 0 && c.Mana == (kop.ManaCost{})
+}
+
+// altTapCost: the alternative cost is tapping N untapped permanents matching
+// its filter and nothing else (Ramosian Rally's tapXType<1/Creature>, CR
+// 118.9, 602.2b; gorge cost.go tapPermanentCostAsk, kgen altLifeOrTapShape):
+// the cast poses the tap picks (costPickOptions' bsTapCost).
+func altTapCost(c *kop.Cost) bool {
+	return c.Flags == kop.CostTapX && c.N > 0 && c.Mana == (kop.ManaCost{})
+}
+
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks
-// (the sacrifice, the return, the hand exile or the two discards) rather than a
-// bare mana price.
+// (the sacrifice, the return, the hand exile, the two discards or the taps) or
+// life it pays, rather than a bare mana price.
 func altPickCost(c *kop.Cost) bool {
-	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardCost(c)
+	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardCost(c) || altLifeCost(c) || altTapCost(c)
 }
 
 // offerAltFreeHand offers hand card o's cast for its own free alternative
@@ -136,6 +151,13 @@ func (s *State) altCostOf(k *prep) kop.ManaCost {
 	e := &s.bld().e
 	a := &k.t.Cards[e.card].Abilities[k.gen.altFree[e.card]-1]
 	return s.adjustCostGen(k, e.ctrl, e.card, e.obj, a.Cost.Mana)
+}
+
+// altBaseMana is the mana of the alternative cost the build pays, before the
+// cost statics (altCostOf adjusts it).
+func (s *State) altBaseMana(k *prep) kop.ManaCost {
+	e := &s.bld().e
+	return k.t.Cards[e.card].Abilities[k.gen.altFree[e.card]-1].Cost.Mana
 }
 
 // altFreeCast reports whether a castMayPlay|castFree cast of o is its own

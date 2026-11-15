@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestUneasyAllianceExilesEnchantedAfterSacrifice pins Defined$ Enchanted
@@ -173,7 +174,7 @@ func TestAttachLKICarrierCensus(t *testing.T) {
 			t.Errorf("%s no longer carries a self-sacrifice + Defined$ Enchanted|Equipped|AttachedTo ability", name)
 		}
 	}
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	var got []string
 	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

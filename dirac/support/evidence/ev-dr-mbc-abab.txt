@@ -1,9 +1,17 @@
+Abzan Battle Priest
+Abzan Beastmaster
 Armix, Filigree Thrasher
+Augur of Skulls
 Balmor, Battlemage Captain
+Basri's Solidarity
 Battle Cry Goblin
 Blade of the Bloodchief
+Blood Ogre
 Blossoming Defense
+Breath of Life
+Burning Prophet
 Changeling Wayfinder
+City of Brass
 Coastal Piracy
 Combat Research
 Coralhelm Guide
@@ -54,23 +62,28 @@ Opportunity
 Opt
 Personify
 Plains
+Prava of the Steel Legion
 Prismatic Strands
 Prodigal Sorcerer
 Queen's Agent
 Reclamation Sage
 Rite of the Raging Storm
 River Serpent
+Rupture
 Salvage
 Sapphire Dragon
 Scrapwork Rager
 Seal of Doom
+Serenity
 Seton's Scout
+Shepherd of the Lost
 Skeletal Changeling
 Soul Snuffers
 Spitebellows
 Spore Swarm
 Spyglass Siren
 Stifle
+Stingerfling Spider
 Stock Up
 Stormbound Geist
 Sure Strike
@@ -79,10 +92,19 @@ Syphon Flesh
 The Mindskinner
 Thought Scour
 Time of Ice
+Tireless Tribe
+To Arms!
+Torbran, Thane of Red Fell
+Torrent of Fire
 Uugguu, the Omniplasm
 Valko Indorian
 Vampire of the Dire Moon
 Vindictive Vampire
 Viral Drake
+Volcanic Rush
+Wall of Fire
 Winding Way
+Wonder
+Yavimaya Granger
+You Hear Something on Watch
 Zulaport Cutthroat

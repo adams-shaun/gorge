@@ -1,6 +1,8 @@
 package archtest
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -8,11 +10,14 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"io"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -90,6 +95,22 @@ var rawTableReaders = map[string]bool{
 	"cardsettest.Synth": true,
 }
 
+// rawTableReaderNames are rawTableReaders' keys, sorted. rawTableViolation
+// gates on them with bytes.Contains before parsing: a Go selector is
+// contiguous in the source (pkg.Name), so any file that could yield a
+// violation contains one of these literals. The gate only decides whether a
+// file is worth parsing — the selector walk after it still delivers the
+// verdict — and the strings are derived from the map's keys, so they cannot
+// drift from what rawTableReaders allows.
+var rawTableReaderNames = func() []string {
+	out := make([]string, 0, len(rawTableReaders))
+	for name := range rawTableReaders {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
+}()
+
 // rawTableUsers may name them: lockstep earns evidence on raw tables, kgen builds
 // them, and eleven dirac tests read synthetic pools: nine for cards only they hold,
 // one to measure them, and arena_test.go (manifest A7c), which checks every pool's
@@ -110,6 +131,16 @@ func rawTableViolation(file string, src []byte) string {
 		if strings.HasPrefix(file, d) {
 			return ""
 		}
+	}
+	hasSelector := false
+	for _, name := range rawTableReaderNames {
+		if bytes.Contains(src, []byte(name)) {
+			hasSelector = true
+			break
+		}
+	}
+	if !hasSelector {
+		return ""
 	}
 	f, err := parser.ParseFile(token.NewFileSet(), file, src, parser.SkipObjectResolution)
 	if err != nil {
@@ -230,6 +261,88 @@ func checkedPackage(t *testing.T, dir string) *types.Package {
 		t.Fatal(err)
 	}
 	return checked
+}
+
+// exportLookup builds the compiled export-data map for pkg's dependency tree
+// with one `go list -e -export -deps -json` run from the repo root (cmd.Dir
+// "../..": from the wrong dir go list fails with "no export data") and returns
+// a lookup for importer.ForCompiler(fset, "gc", lookup). It replaces the
+// "source" importer, which recursively parses and type-checks the whole
+// dependency tree, shelling to go list per import path; the compiled export
+// data carries the same type information at a fraction of the cost, and
+// types.Config resolves the unsafe package itself.
+//
+// Cache honesty (see packages' doc comment): go test's result cache tracks
+// only the files this process opens, never what a go list subprocess reads.
+// Building the map therefore opens each dependency's directory from the test
+// process, in sorted import-path order, mirroring openPackageDirs; the export
+// file itself is opened on first use, once. The package under check is parsed
+// from source by the caller, which already tracks its directory.
+func exportLookup(t *testing.T, pkg string) func(string) (io.ReadCloser, error) {
+	t.Helper()
+	cmd := exec.Command("go", "list", "-e", "-export", "-deps", "-json", pkg)
+	cmd.Dir = "../.."
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("go list -e -export -deps -json %s: %v\n%s", pkg, err, stderr.Bytes())
+	}
+	type entry struct {
+		ImportPath string
+		Export     string
+		Dir        string
+	}
+	exportFiles := map[string]string{}
+	dirs := map[string]string{}
+	dec := json.NewDecoder(bytes.NewReader(out))
+	for {
+		var e entry
+		if err := dec.Decode(&e); err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Fatalf("decode go list -json: %v", err)
+		}
+		if e.Export != "" {
+			exportFiles[e.ImportPath] = e.Export
+		}
+		if e.Dir != "" {
+			dirs[e.ImportPath] = e.Dir
+		}
+	}
+	if len(exportFiles) == 0 {
+		t.Fatalf("go list produced no export data under %s's dependency tree", pkg)
+	}
+	paths := make([]string, 0, len(dirs))
+	for p := range dirs {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	for _, p := range paths {
+		if _, err := os.ReadDir(dirs[p]); err != nil {
+			t.Fatalf("open package dir %s (go test's cache must track it): %v", dirs[p], err)
+		}
+	}
+	var mu sync.Mutex
+	opened := map[string]io.ReadCloser{}
+	return func(p string) (io.ReadCloser, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if rc, ok := opened[p]; ok {
+			return rc, nil
+		}
+		file, ok := exportFiles[p]
+		if !ok {
+			return nil, fmt.Errorf("no export data for %s", p)
+		}
+		rc, err := os.Open(file)
+		if err != nil {
+			return nil, fmt.Errorf("open export data for %s: %w", p, err)
+		}
+		opened[p] = rc
+		return rc, nil
+	}
 }
 
 // TestStateIsPointerFree holds dirac.State's fixed core to scalars, arrays and
