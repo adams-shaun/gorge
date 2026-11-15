@@ -1621,6 +1621,13 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 	if ps.is("NoReveal", "True") && !has("RememberPeeked") && !has("RevealOptional") && !has("RevealValid") {
 		// the bare look that remembers nothing (Mishra's Bauble): gorge's
 		// look_ack when the library holds a card, no other effect
+		if who.Kind == rEachPlayer {
+			// each player's library is its own look_ack, the controller's
+			// first (gorge's AliveFrom(controller) at two seats; Case the
+			// Joint): OpLookAck reads one player
+			lc.emit(lInstr{Op: "LookAck", Obj: lRef{Kind: rYou}, A: n, CS: "Library"})
+			who = lRef{Kind: rEachOpp}
+		}
 		lc.emit(lInstr{Op: "LookAck", Obj: who, A: n, CS: "Library"})
 		return nil
 	}

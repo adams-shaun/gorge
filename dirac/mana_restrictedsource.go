@@ -630,6 +630,12 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			}
 			t.addXv(v)
 		case rkDyn:
+			if v.manaCol&kop.ColAny != kop.ColAny {
+				// a fixed-colour amount (Vhal's {C}) is units of those colours,
+				// not mana of one colour of the payment's choosing
+				t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+				continue
+			}
 			if nm == len(multi) {
 				s.capFull(StallRestrSrc)
 				continue
