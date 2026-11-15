@@ -151,9 +151,10 @@ func TestHandMoveChooserYou(t *testing.T) {
 	}
 }
 
-// TestGraveyardPickChooserYou: a GainControl$ graveyard pick over the
-// opponent's yard with Chooser$ You (SrChooserYou+SrOwnZone, The Weaver King) asks
-// the controller, and the picked card enters under the controller (gorge
+// TestGraveyardPickChooserYou: a GainControl$ graveyard pick over a fetched
+// player's yard with Chooser$ You (SrChooserYou+SrOwnZone; The Weaver King's
+// per-opponent pick lowers folded, so this is the non-loop fetch spelling)
+// asks the controller, and the picked card enters under the controller (gorge
 // hiddenPickChooser / changeHiddenOriginResolve), not its owner.
 func TestGraveyardPickChooserYou(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
