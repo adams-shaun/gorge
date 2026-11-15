@@ -1,11 +1,113 @@
+Afterlife
+Aftershock
+Anoint with Affliction
+Arcane Encyclopedia
+Armory of Iroas
+Artisan's Sorrow
+Asari Captain
+Aven Trooper
+Barkchannel Pathway
+Black Cat
+Blood Clock
 Blood Hound
+Border Patrol
+Brazen Freebooter
+Bronze Cudgels
+Call of the Herd
+Call the Bloodline
+Cantivore
+Clay Statue
 Coercive Impetus
+D'Avenant Archer
 Daggerback Basilisk
+Dakmor Scorpion
+Darba
+Dauntless Survivor
+Dawntreader Elk
+Daxos, Blessed by the Sun
+Descend upon the Sinful
+Desert Sandstorm
+Destiny Spinner
+Dunland Crebain
+Dusk's Landing
+Elvish Lyrist
+Enchanted Carriage
+Encroaching Wastes
+Family's Favor
+Ferocious Charge
+Fire Nation Ambushers
+Fires of Undeath
+Fleet-Footed Monk
+Flickerwisp
+Forced Adaptation
 Forest
+Foul Imp
+Foundry Champion
+Furnace Strider
+Ghirapur Gearcrafter
+Giant-Man, Gargantuan Genius
+Goblin Gathering
+Goblin Roughrider
+Grave Exchange
+Gryff's Boon
+Guardian Zendikon
+Hunter's Prowess
 Island
+Keldon Necropolis
+Kemba's Banner
+Kor Sky Climber
+Lavaborn Muse
+Lorehold Campus
+Malevolent Noble
 Mountain
+Myrel, Shield of Argive
+Nevinyrral's Disk
+Oboro Envoy
+Origin Spellbomb
+Pacification Array
+Parish-Blade Trainee
+Perimeter Patrol
 Pestilent Cauldron
 Plains
+Rancor
+Resolute Archangel
+Rivendell
+Rogue's Gloves
+Rubblebelt Maaka
+Sandblast
+Scent of Nightshade
+Scourge of Geier Reach
+Scrapyard Mongrel
+Shard Convergence
+Shield Wall
+Siege Zombie
+Sigarda, Champion of Light
+Silver-Inlaid Dagger
+Simian Simulacrum
+Sinister Starfish
+Skyline Despot
+Smite the Monstrous
+Soul of Migration
+Stone Retrieval Unit
+Stonybrook Angler
+Strength of Cedars
+Strength of the Harvest
+Sunspire Griffin
+Suntail Hawk
+Survey the Wreckage
 Swamp
 The Master of Cuisine
+Thermal Glider
+Thrull Parasite
+Titan Hunter
+Towashi Songshaper
+Trickster's Talisman
+Unyaro Bees
+Venerable Knight
 Viper, Cruel Conspirator
+Vivify
+Voracious Wurm
+Wily Goblin
+Woodland Mystic
+You're Ambushed on the Road
+Young Wei Recruits

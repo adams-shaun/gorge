@@ -7,6 +7,7 @@ Agoraphobia
 Banishing Stroke
 Battle Mastery
 Bellowing Elk
+Benevolent Blessing
 Bessie, the Doctor's Roadster
 Bituminous Blast
 Blood-Toll Harpy
@@ -15,10 +16,13 @@ Body of Knowledge
 Bojuka Brigand
 Bond of Passion
 Bronze Walrus
+Calming Verse
 Cast into the Fire
 Caustic Hound
+Citadel Castellan
 Claim the Firstborn
 Conjurer's Mantle
+Conqueror's Flail
 Court Hussar
 Crooked Custodian
 Cryptbreaker
@@ -31,8 +35,12 @@ Die Young
 Drowner Initiate
 Drumbellower
 Extus, Oriq Overlord
+Exultant Skymarcher
 Fallaji Archaeologist
+Fallow Earth
+Feral Instinct
 Flare
+Flicker
 Fodder Cannon
 Forest
 Galerider Sliver
@@ -40,6 +48,7 @@ General Leo Cristophe
 Giant Scorpion
 Glade Watcher
 Gleeful Arsonist
+Glimmerpost
 Glimpse of Nature
 Goblin Warchief
 Golgari Rotwurm
@@ -54,8 +63,12 @@ Innocent Traveler
 Invisible Force Field
 Island
 Kami of the Waning Moon
+Kindred Boon
+Knight of Dusk's Shadow
+Krosan Wayfarer
 Lavaborn Muse
 Lightning Runner
+Loam Dryad
 Lorthos, the Tidemaker
 Malevolent Whispers
 Masked Blackguard
@@ -69,11 +82,15 @@ Mox Jet
 Multani's Decree
 Necrotic Wound
 Nightfire Giant
+Oath of Ajani
+Old Ghastbark
 Oracle of Tragedy
 Patron of the Arts
 Patron of the Vein
 Peace of Mind
+Peema Outrider
 Penance Stare
+Penumbra Spider
 Plains
 Plated Onslaught
 Prologue to Phyresis
@@ -87,12 +104,14 @@ Resupply
 Rush of Inspiration
 Sacred Guide
 Said
+Seal Away
 Seller of Songbirds
 Sentinel
 Sergeant-at-Arms
 Serrated Scorpion
 Setessan Griffin
 Shadowfeed
+Shimmerdrift Vale
 Silverbeak Griffin
 Simian Grunts
 Skarrgan Pit-Skulk
@@ -114,13 +133,17 @@ Sundering Eruption
 Sunscape Master
 Svyelunite Priest
 Swamp
+Swashbuckling
 Telethopter
+Tenured Oilcaster
 Then, Dreadmaws Ate Everyone
 Thirst
 Tibalt, the Fiend-Blooded
 Time of Need
+Treva's Ruins
 Tuktuk Scrapper
 Tyrant's Machine
+Ulvenwald Observer
 Unchained Berserker
 Vandalize
 Vault Skyward
@@ -132,4 +155,6 @@ Watcher in the Mist
 White Dragon
 Wily Goblin
 Windrider Patrol
+You Hear Something on Watch
 Zamriel, Seraph of Steel
+Zuri, Warrior of Wakanda

@@ -1,3 +1,4 @@
+Absorb
 Air Servant
 Akoum Refuge
 Ancestral Blade
@@ -5,6 +6,7 @@ Ancient Gold Dragon
 Anointer Priest
 Ashen Monstrosity
 Attune with Aether
+Avatar of Growth
 Azure Drake
 Back in Town
 Barrow Witches
@@ -16,6 +18,7 @@ Bond of Insight
 Bonehoard
 Bound in Silence
 Brandywine Farmer
+Catacomb Sifter
 Chaotic Backlash
 Clip Wings
 Creeping Corrosion
@@ -23,9 +26,12 @@ Cunning Survivor
 Death's Shadow
 Deepwood Wolverine
 Desynchronize
+Devouring Swarm
 Dina, Essence Brewer
 Doom Whisperer
+Double Negative
 Drainpipe Vermin
+Dread Tiller
 Dune Mover
 Easy Prey
 Ethereal Investigator
@@ -39,6 +45,7 @@ Gift of Paradise
 Glimmervoid
 Gnarled Effigy
 Grixis Slavedriver
+Guardian of the Guildpact
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
@@ -54,13 +61,17 @@ Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Kher Keep
 Kjeldoran Outrider
+Lightning-Rig Crew
 Mana Vault
+Mark of the Oni
 Master of Winds
+Master the Way
 Metathran Elite
 Mind Over Matter
 Mindwrack Harpy
 Minotaur, Roxxon CEO
 Mold Demon
+Momentum Rumbler
 Mountain
 Muck Rats
 Myrel, Shield of Argive
@@ -75,7 +86,9 @@ Peregrine Mask
 Phantasmal Dreadmaw
 Plains
 Plasmancer
+Portent of Betrayal
 Power of Persuasion
+Pyrrhic Blast
 Quest for Renewal
 Rally the Peasants
 Reclaim the Wastes
@@ -89,11 +102,16 @@ Seething Pathblazer
 Sizzle
 Skyline Cascade
 Sonic Screwdriver
+Sootstoke Kindler
+Spectacle Mage
 Spitebellows
+Spitfire Handler
 Sunscorched Desert
 Swamp
 Swarm of Rats
 Tectonic Edge
+Thopter Assembly
+Thoughtweft Gambit
 Threnody Singer
 Thundersteel Colossus
 Trained Caracal
@@ -103,6 +121,7 @@ Undead Servant
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Warmonger Hellkite
 Wizard Replica
 Woodland Stream
 Zap

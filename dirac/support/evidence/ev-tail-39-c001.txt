@@ -1,30 +1,114 @@
+A-Esika's Chariot
 A-Gnarlid Colony
 A-Pyre-Sledge Arsonist
+Accursed Marauder
 Ajani's Sunstriker
 Ancient Ziggurat
 Archon of Emeria
 Archway Commons
 Argothian Wurm
+Armguard Familiar
+Arrogant Bloodlord
 Assemble the Entmoot
+Ayumi, the Last Visitor
+Banshee of the Dread Choir
+Batterbone
 Battering Krasis
 Beastmaster Ascension
+Benalish Veteran
+Berserkers of Blood Ridge
+Bitterbow Sharpshooters
 Blood Pact
+Bolshack Dragon
+Bonds of Mortality
+Burgeoning
+Callous Bloodmage
+Cavern Harpy
+Chaos Channeler
+Chill
+Choking Miasma
 Cling to Dust
 Clockwork Beetle
+Colorful Feiyi Sparrow
 Common Iguana
 Congregate
+Consign to Dream
+Courageous Outrider
+Court Cleric
+Crypt Cobra
 Crypt Rats
+Crystalline Armor
+Curse of Vitality
 Dark Triumph
+Dauntless Onslaught
+Dawnbringer Cleric
+Day's Undoing
+Deathcurse Ogre
+Demogorgon's Clutches
+Dense Foliage
+Desecration Elemental
+Domri, City Smasher
+Draco
+Drana's Emissary
+Drey Keeper
+Dromoka Dunecaster
+Druid Lyrist
+Dry Spell
+Durkwood Boars
+Elda, Conjurer of Spectacle
+Elvish Mystic
+Envoy of the Ancestors
+Ethereal Haze
+Exsanguinator Cavalry
+Fact or Fiction
+Fast
+Flooded Strand
+Flowering of the White Tree
 Forest
+Forked Bolt
+Game-Trail Changeling
+Garrison Cat
+Geistflame Reservoir
 Ghost Lantern
+Ghost Quarter
+Ghoul's Feast
+Giant's Ire
+Glacial Grasp
+Glenn, the Voice of Calm
+Glorious Charge
+God-Favored General
+HYDRA Disintegrator
 Hangar Scrounger
+Haradrim Spearmaster
+Herald of Hadar
+Hero's Resolve
+Hewed Stone Retainers
 Hidden Guerrillas
+Hobble
+Hollow Dogs
+Hydromorph Guardian
+Instill Infection
+Invasive Species
 Island
+It's Clobberin' Time!
+Joraga Warcaller
+Lance
+Late to Dinner
+Lay of the Land
+Leonin Bladetrap
+Lightning Shrieker
 Llanowar Tribe
 Lord of the Accursed
+Lotus Bloom
+Manalith
+Marchesa's Emissary
+Mark of the Vampire
+Mind Whip
 Mobile Fort
+Moonstone Eulogist
 Mountain
 Mulldrifter
+Mystic Retrieval
 Nameless One
 Narcissism
 Nemesis Mask
@@ -32,6 +116,7 @@ Oblivion Crown
 Oona's Grace
 Orchard Spirit
 Overseer of the Damned
+Paroxysm
 Phantom Wings
 Plains
 Power Fist
@@ -39,44 +124,78 @@ Priest of Gix
 Quandrix Campus
 Rack and Ruin
 Rage of Purphoros
+Ragged Recluse
 Rakka Mar
 Rally at the Hornburg
+Rejuvenate
+Renewed Faith
 Rhystic Shield
+Riot Piker
+Riverwheel Aerialists
+Ronin Warclub
 Rotten Reunion
 Ruinous Minotaur
 Safeguard
+Scourge of Fleets
 Scurry of Squirrels
 Sentinels of Glen Elendra
 Shambling Ghast
+Sheltering Boughs
 Shriek of Dread
 Sigil of Distinction
 Signal Pest
+Silburlind Snapper
 Sink into Takenuma
+Skyshroud Elite
+Slaughterhouse Bouncer
 Sleeper's Guile
 Smokespew Invoker
+Soaring Thought-Thief
 Solemn Recruit
 Soul Transfer
 Spartan Veteran
+Spellweaver Eternal
 Splitting Slime
 Springmane Cervin
 Squire's Devotion
+Stasis Field
+Stingerfling Spider
 Storm's Wrath
 Swamp
+Tajuru Snarecaster
 Takenuma Bleeder
 Talas Scout
 Taoist Hermit
+Teferi's Care
+Tempered Sliver
 The Falcon, Airship Restored
 Time of Heroes
 Tin Street Cadet
 Tivadar's Crusade
 Tooth and Nail
+Trophy Hunter
+Twinblade Assassins
 Ugin's Construct
+Ulasht, the Hate Seed
+Underworld Sentinel
 Urborg Drake
+Vengevine
 Victor Mancha, Runaway
+Wakening Sun's Avatar
+Wall of Fire
 Warped Landscape
+Warriors of Wakanda
 Welcoming Vampire
+Whetwheel
 Winter Eladrin
 Witch of the Moors
 Wondrous Revival
+Woodland Changeling
+Wort, Boggart Auntie
+Wrecking Ball
 Wrenn's Resolve
+Yawgmoth's Agenda
 Yuan Shao, the Indecisive
+Zagoth Crystal
+Zar Ojanen, Scion of Efrava
+Zuko, Firebending Master

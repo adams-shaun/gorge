@@ -1,7 +1,10 @@
 Barrage Tyrant
 Burning Hands
 Cone of Flame
+Consuming Corruption
 Dark Prophecy
+Delraich
+Dire Fleet Warmonger
 Energy Bolt
 Forest
 Gleeful Demolition
@@ -10,6 +13,8 @@ Island
 Master Transmuter
 Mountain
 Plains
+Prismatic Strands
 Scalding Devil
 Swamp
+Weldfast Engineer
 Wild Celebrants
