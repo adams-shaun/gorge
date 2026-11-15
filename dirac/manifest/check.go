@@ -68,7 +68,7 @@ func Check(base, t *Tree, o CheckOptions) []error {
 		if allowed[r.Name] || base.provisional(r) {
 			continue
 		}
-		now := t.byName[r.Name]
+		now := t.row(r.Name)
 		switch {
 		case now == nil:
 			errs = append(errs, fmt.Errorf("%s: row %s vanished; a constant is never deleted", OrdinalsPath, r.Name))

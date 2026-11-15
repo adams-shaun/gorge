@@ -17,7 +17,7 @@ const Dir = "dirac/manifest"
 // (TestKopOrdinalsUnchanged): the values a new entry may not take.
 const OrdinalsPath = "dirac/kop/testdata/ordinals.tsv"
 
-// Ordinal is one ordinals.tsv row.
+// Ordinal is one ordinals.tsv row (or a row derived from a kop entry).
 type Ordinal struct {
 	Name, Type, Value string
 }
@@ -127,6 +127,35 @@ func (t *Tree) Lookup(family string, value int64) *Entry {
 	for _, e := range t.Entries {
 		if e.Family == family && e.Value == value {
 			return e
+		}
+	}
+	return nil
+}
+
+// EntryOrdinals is the ordinals row of every kop entry, sorted by name: the
+// constant the generator writes from the entry, which ordinals.tsv does not
+// record (TestKopOrdinalsUnchanged adds these rows to the file's). Call it
+// after Validate, so a value: next entry reports its provisional value.
+func (t *Tree) EntryOrdinals() []Ordinal {
+	var out []Ordinal
+	for _, e := range t.Entries {
+		if f := e.Fam(); f != nil && f.Pkg == "kop" {
+			out = append(out, Ordinal{Name: e.Name, Type: e.Family, Value: strconv.FormatInt(e.Value, 10)})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
+// row is the ordinals row of the constant called name: the file's row, else
+// the one derived from a kop entry of that name, else nil.
+func (t *Tree) row(name string) *Ordinal {
+	if r := t.byName[name]; r != nil {
+		return r
+	}
+	for _, e := range t.Entries {
+		if f := e.Fam(); f != nil && e.Name == name && f.Pkg == "kop" {
+			return &Ordinal{Name: e.Name, Type: e.Family, Value: strconv.FormatInt(e.Value, 10)}
 		}
 	}
 	return nil
