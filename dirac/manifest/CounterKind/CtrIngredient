@@ -4,4 +4,4 @@ value: 177
 forge: INGREDIENT
 census: ctr INGREDIENT all=1 std=0 mbc=0 sole=0
 state: code 0
-status: active
+status: reserved
