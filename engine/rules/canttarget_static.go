@@ -173,16 +173,15 @@ func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA
 		return cantTargetSAKindIn(spec, "Spell")
 	case "AB":
 		return cantTargetSAKindIn(spec, "Activated")
-	case "DB":
-		// A sub-ability's target is chosen with the root's announcement (CR
-		// 601.2c, 602.2b): the pending cast of this very source says whether
-		// the root is an activated ability or a spell.
-		if pc := e.cast; pc != nil && pc.card == source {
-			if pc.isAbility() {
-				return cantTargetSAKindIn(spec, "Activated")
-			}
-			return cantTargetSAKindIn(spec, "Spell")
+	}
+	// A sub-ability's target is chosen with the root's announcement (CR
+	// 601.2c, 602.2b): the pending cast of this very source says whether the
+	// root is an activated ability or a spell.
+	if pc := e.cast; pc != nil && pc.card == source {
+		if pc.isAbility() {
+			return cantTargetSAKindIn(spec, "Activated")
 		}
+		return cantTargetSAKindIn(spec, "Spell")
 	}
 	return false
 }
