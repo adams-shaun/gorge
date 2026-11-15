@@ -1,13 +1,19 @@
 A-Plate Armor
 Ajani's Mantra
 Aven Trooper
+Barrel Down Sokenzan
 Black Sun's Twilight
+Bloodlust Inciter
 Boiling Blood
+Brainsurge
 Capashen Unicorn
 Captured by Lagacs
 Chaos Maw
 Chicken Egg
+Chilling Trap
 Choke
+Chromatic Star
+City of Brass
 Colossal Dreadmaw
 Concordant Crossroads
 Curse of Predation
@@ -15,10 +21,13 @@ Death Speakers
 Defenestrate
 Devouring Swarm
 Echoing Calm
+Eiganjo Castle
 Encroaching Wastes
+Entish Restoration
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Flameskull
 Forest
 Frightcrawler
 Frontier Mastodon
@@ -29,11 +38,14 @@ Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
 Guardian of the Guildpact
+Halberdier
+Hamletback Goliath
 Hardened Scales
 Harpoon Sniper
 Horned Cheetah
 Horned Helm
 Hornet Cobra
+Inferno Fist
 Insidious Bookworms
 Island
 Khenra Charioteer
@@ -42,9 +54,11 @@ Lava Axe
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
+Malicious Advice
 Master the Way
 Meadowboon
 Merciless Executioner
+Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
@@ -53,36 +67,58 @@ Mountain
 Mulch
 Multiform Wonder
 Necromancer's Familiar
+Nexus of Fate
 Nomads' Assembly
 Orazca Frillback
+Oreskos Swiftclaw
 Painwracker Oni
 Pathbreaker Ibex
 Plains
+Planar Portal
+Pool Resources
 Portent of Betrayal
 Precision Bolt
+Pull from Tomorrow
+Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
+Rag Dealer
 Rancid Rats
 Razortooth Rats
+Reaver Ambush
 Rekindled Flame
+Relief Captain
 Return to the Earth
 Reveille Squad
 Roar of the Crowd
 Roaring Slagwurm
+Roc Hunter
 Runeclaw Bear
+Sacred Cat
 Sanctify
 Scoria Wurm
+Scurry Oak
+Sheltering Landscape
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
+Silverflame Squire
 Skizzik Surger
+Smoldering Crater
+Snow-Covered Forest
+Spectral Rider
+Spitfire Handler
 Steel Leaf Paladin
 Stenchskipper
 Surrakar Marauder
 Swamp
+Sword of the Animist
 Talisman of Unity
+The Shattered States Era
 Thopter Assembly
+Towering Indrik
 Treetop Scout
+Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
 Vedalken Heretic
@@ -90,4 +126,6 @@ Vilis, Broker of Blood
 Vineweft
 Vintara Snapper
 Viridian Longbow
+Wall of Heat
 Wei Scout
+Weirding Shaman

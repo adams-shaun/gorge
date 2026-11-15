@@ -3,6 +3,8 @@ Ajani's Pridemate
 Amphin Pathmage
 Ancient Craving
 Angelic Page
+Ashaya's Enduring Bond
+Aven Mindcensor
 Bane's Invoker
 Birds of Paradise
 Boss Uramon, Shadow's Reach
@@ -93,9 +95,11 @@ Trial of Ambition
 Unexpected Windfall
 Valor
 Venser, Visionary Traveler
+View from Above
 Virus Beetle
 Visara the Dreadful
 Volcanic Spite
+Vow of Malice
 Wander in Death
 Weaponcraft Enthusiast
 Wheel and Deal

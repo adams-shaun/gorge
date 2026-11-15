@@ -1,60 +1,98 @@
 A-Dwarfhold Champion
+A-Young Red Dragon
+Aeronaut Cavalry
 Anaba Bodyguard
 Angelic Protector
 Aven Wind Mage
 Blisterstick Shaman
 Bloodthirsty Blade
 Bow of Nylea
+Brain Gorgers
 Brilliant Halo
+Burn Bright
+Capashen Knight
 Captain Sisay
+Capture of Jingzhou
 Cartouche of Solidarity
 Chainflail Centipede
 Chosen by Heliod
+Conquer
 Consume Spirit
+Crumbling Vestige
 Crystal Chimes
+Dark Ritual
 Dawnhart Mentor
+Deathbellow Raider
 Delighted Killbot
 Diligent Farmhand
+Dragonstalker
+Dread Return
+Dwarven Mine
 Elvish Berserker
+Energy Tap
 Environmental Sciences
 Evolution Witness
+Ezio, Brash Novice
 Fallen Ideal
 Field Creeper
 Fiendslayer Paladin
 Forest
 Foul Familiar
+Frilled Deathspitter
 Fruitcake Elemental
 Gaea's Balance
 Gibbering Hyenas
+Glistening Oil
 Goblin Masons
+Hag of Ceaseless Torment
 Harsh Deceiver
+Harvester of Souls
+Hazoret's Favor
+Highland Berserker
 Howling Banshee
 Hurler Cyclops
 Ich-Tekik, Salvage Splicer
 Immolating Souleater
+Iron Star
 Island
 Karplusan Wolverine
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
 Lignify
+Markov Crusader
 Meng Huo's Horde
+Mercy Killing
 Mind Rot
 Minion Missile
 Mountain
 Myr Galvanizer
 Natural Connection
 Natural Selection
+Nourish
+Origin of the Hidden Ones
 Oswald Fiddlebender
+Paupers' Cage
 Plains
 Plated Wurm
 Pyromancer's Gauntlet
+Rally the Forces
+Realm-Cloaked Giant
+Reckoner Bankbuster
+Rend Spirit
 Renegade Map
+Restore the Peace
+Riptide Biologist
+Riptide Entrancer
+Rise to the Challenge
 Rosethorn Halberd
+Sakura-Tribe Scout
+Savai Triome
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
 Shadowbeast Sighting
 Shivan Gorge
+Sigarda's Imprisonment
 Silver Myr
 Simic Ragworm
 Singing Bell Strike
@@ -62,11 +100,14 @@ Skeletal Grimace
 Sky Diamond
 Sliver Construct
 Somberwald Alpha
+Soul Shepherd
 Spark Harvest
+Spawning Kraken
 Stern Constable
 Stern Lesson
 Stronghold Confessor
 Sulfurous Springs
+Suspended Sentence
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
@@ -77,6 +118,10 @@ Vaporkin
 Vastwood Fortification
 Vesperlark
 Volcanic Island
+Voracious Vampire
 Vow of Wildness
 Warchanter Skald
+Warden of the Wall
+Whipcorder
 White Tiger, Amulet Keeper
+Wu Scout
