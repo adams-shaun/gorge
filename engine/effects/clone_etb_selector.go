@@ -19,6 +19,13 @@ func CloneETBSpendSelector(spec string, svars map[string]string) bool {
 	return spec == mockingbirdETBSelector && strings.TrimSpace(svars["Y"]) == mockingbirdSpendSVar
 }
 
+// cloneETBSVarBody reads one SVar name's raw body (CloneStaticGrantReadable's
+// dynamic-key shape: the key is the function's string parameter).
+func cloneETBSVarBody(svars map[string]string, name string) (string, bool) {
+	body, ok := svars[name]
+	return strings.TrimSpace(body), ok
+}
+
 // CloneETBSelectorMatches is the common announcement/replacement matcher.
 // Other selectors keep their original resolver-free context; Mockingbird's
 // Y is the mana spent to cast the entering object, and 0 when it was not
@@ -79,8 +86,8 @@ func CloneETBOffered(sa *cards.SA, svars map[string]string) bool {
 		if _, literal := literalInt(own.pt); !own.pt.Present || literal {
 			continue
 		}
-		body, ok := svars[strings.TrimSpace(own.pt.Text)]
-		if !ok || strings.TrimSpace(body) != own.want {
+		body, ok := cloneETBSVarBody(svars, strings.TrimSpace(own.pt.Text))
+		if !ok || body != own.want {
 			return false
 		}
 	}
