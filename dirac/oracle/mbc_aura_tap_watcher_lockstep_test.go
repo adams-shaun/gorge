@@ -11,7 +11,8 @@ import "testing"
 // its Taps-deferred gap mask, because the setter took the land's printed
 // abilities (its intrinsic {B} is no lost ability), counted it as an ordinary
 // unit and offered Cirith Ungol Patrol and Sever Soul (decision 328 of
-// tail-55 pair 321).
+// tail-55 pair 321). The recording is pooled custom: tail-55's membership
+// moves with the lowered set, and the repro's own decks must not depend on it.
 func TestMBCDauthiJackalReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "aura_tap_watcher_defers_enchanted_land")
