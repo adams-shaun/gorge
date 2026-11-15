@@ -91,7 +91,10 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 // every source with a mana ability in battlefield order, and a planner unit of
 // the last-resort tier is one of them, tapped or not (mana_sacsource.go). A
 // source making a choice of colours is none this models.
-func (fs *filtSearch) fundSacOnly(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
+func (fs *filtSearch) fundSacOnly(k *prep, t *State, sl Slot, gap bool, funded int, gapUsed bool) bool {
+	if gap || !k.sacOnlyMana || !t.canSacOnlyNowAt(k, sl) {
+		return false
+	}
 	mask := t.srcMaskAt(t.manaPCGen(k, sl), sl)
 	if bits.OnesCount8(mask) != 1 {
 		return false

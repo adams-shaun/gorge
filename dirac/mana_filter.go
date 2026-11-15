@@ -890,11 +890,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	return false
 }
 
-// visit is one priority node of the search.
-func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
-	if !fs.tick() {
-		return false
-	}
+// seenBefore reports whether the search already visited a state like t's (its
+// pool, restricted mana, tapped sources, stack and zones), and records it.
+func (fs *filtSearch) seenBefore(k *prep, t *State) bool {
 	p := fs.p
 	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	if k.artMana {
@@ -908,12 +906,24 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	for i := 0; i < fs.nseen; i++ {
 		if fs.seen[i] == key {
-			return false
+			return true
 		}
 	}
 	if fs.nseen < len(fs.seen) {
 		fs.seen[fs.nseen] = key
 		fs.nseen++
+	}
+	return false
+}
+
+// visit is one priority node of the search.
+func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	p := fs.p
+	if fs.seenBefore(k, t) {
+		return false
 	}
 	if gapUsed {
 		var d Decision
@@ -934,6 +944,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
 				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 			}
+			if fs.fundSacOnly(k, t, sl, gap, funded, gapUsed) {
+				return true
+			}
 			if gap && fs.other.has(sl) {
 				if fs.otherGap(k, t, sl, funded) {
 					return true
@@ -944,8 +957,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if !t.filtUsable(k, sl) {
 					continue // (a once-each-turn filter: its use, not its {T})
 				}
-			} else if t.perms[sl].flags&pfTapped != 0 && (gap || !k.sacOnlyMana || !t.canSacOnlyNowAt(k, sl)) {
-				continue // (a tapped sacrifice-only source still pays: its cost has no {T})
+			} else if t.perms[sl].flags&pfTapped != 0 {
+				continue
 			}
 			if gap {
 				free := t.canTapForMana(k, sl)
@@ -985,9 +998,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.canTapForMana(k, sl)
 			if !free && rm == 0 {
-				if k.sacOnlyMana && t.canSacOnlyNowAt(k, sl) && fs.fundSacOnly(k, t, sl, funded, gapUsed) {
-					return true
-				}
 				continue
 			}
 			if free && rm != 0 && !fs.tick() {
