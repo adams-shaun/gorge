@@ -995,7 +995,7 @@ var expandedKeywords = map[string]bool{
 	// into the resolution, which kgen never sees.
 	"Undying": true, "Persist": true, "Backup": true, "Fabricate": true, "Living Weapon": true,
 	"Job select": true, "For Mirrodin": true, "Transmute": true, "Outlast": true, "Battle cry": true,
-	"Afterlife": true, "Afflict": true, "Ravenous": true,
+	"Afterlife": true, "Afflict": true, "Ravenous": true, "Modular": true,
 	// Demonstrate (CR 702.144a): gorge kwDemonstrate (cards/kw_demonstrate.go)
 	// appends a "when you cast this spell" trigger whose body is the
 	// __kwDemonstrate SVar, DB$ Demonstrate. (gorge's comment there cites
@@ -1095,13 +1095,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Kw = append(lc.out.Kw, head)
 		case head == "Flash" && param == "":
 			lc.out.Flash = true
-		case head == "Decayed" && param == "":
-			lc.lowerDecayed() // lower_decayed.go
+		case param == "" && lc.lowerBareKeyword(head): // Decayed (lower_decayed.go), Umbra armor (lower_umbraarmor.go)
 		case head == "CantAttackOrBlock" && param == "":
 			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
-			// CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
-			lc.out.Infect = true
+			lc.out.Infect = true // CR 702.90: gorge damage riders read HasKeyword(source, "Infect")
 		case head == "Toxic":
 			// CR 702.164: gorge ToxicValue sums every Toxic:<N> instance
 			n, err := strconv.Atoi(param)
@@ -1174,8 +1172,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
 			lc.guard(node, func() error { return lc.lowerBloodthirst(param) })
 		case head == "Wither" && param == "":
-			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
-			lc.out.Wither = true
+			lc.out.Wither = true // CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackAlone && param == "":
 			// CR 506.5: gorge combat.DeclaresAlone over the derived hidden
 			// keywords (Option.AloneRestricted); kernel combat_alone.go

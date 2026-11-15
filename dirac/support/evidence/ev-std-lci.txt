@@ -180,18 +180,21 @@ Rampaging Spiketail
 Ray of Ruin
 Relic's Roar
 Resplendent Angel
+Restless Anchorage
 Restless Prairie
 Restless Reef
 Restless Ridgeline
 Restless Vents
 River Herald Guide
 River Herald Scout
+Roaming Throne
 Ruin-Lurker Bat
 Rumbling Rockslide
 Runaway Boulder
 Sage of Days
 Saheeli, the Sun's Brilliance
 Sanguine Evangelist
+Scampering Surveyor
 Screaming Phantom
 Scytheclaw Raptor
 Seeker of Sunlight
@@ -201,6 +204,7 @@ Sentinel of the Nameless City
 Shipwreck Sentry
 Sinuous Benthisaur
 Skullcap Snail
+Soaring Sandwing
 Song of Stupefaction
 Soulcoil Viper
 Souls of the Lost
@@ -210,10 +214,12 @@ Spyglass Siren
 Squirming Emergence
 Staggering Size
 Stalactite Stalker
+Starving Revenant
 Staunch Crewmate
 Stinging Cave Crawler
 Subterranean Schooner
 Sunfire Torch
+Sunken Citadel
 Sunshot Militia
 Swamp
 Synapse Necromage
@@ -222,6 +228,7 @@ Tectonic Hazard
 Tendril of the Mycotyrant
 Terror Tide
 The Ancient One
+The Belligerent
 The Mycotyrant
 Thousand Moons Crackshot
 Thousand Moons Smithy
@@ -236,6 +243,7 @@ Trumpeting Carnosaur
 Uchbenbak, the Great Mistake
 Unlucky Drop
 Vanguard of the Rose
+Visage of Dread
 Vito's Inquisitor
 Vito, Fanatic of Aclazotz
 Volatile Fault

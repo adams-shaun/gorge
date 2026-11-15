@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Swamp
+Tainted Pact
+Talisman of Impulse

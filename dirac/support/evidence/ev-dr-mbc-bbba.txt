@@ -1,15 +1,23 @@
 Academy Journeymage
+Aethersnipe
 Ambition's Cost
 Amoeboid Changeling
 Anax, Hardened in the Forge
 Angel of Light
 Arc Trail
+Archfiend of Sorrows
+Autumn Willow, Harmony
+Balduvian Horde
 Barbed Spike
 Basri's Acolyte
+Big Score
 Blessed Spirits
 Blessing of Belzenlok
+Bloodrite Invoker
 Borrowing 100,000 Arrows
 Burst Lightning
+Caligo Skin-Witch
+Catacomb Crocodile
 Chaos Warp
 Clip Wings
 Commune with the Gods
@@ -18,10 +26,12 @@ Dead
 Deepchannel Mentor
 Descent into Avernus
 Dreadmalkin
+Ebony Fly
 Electrickery
 Encampment Keeper
 Ethereal Haze
 Exultant Skymarcher
+Fain, the Broker
 Falthis, Shadowcat Familiar
 Foil
 Forest
@@ -36,6 +46,7 @@ Hand of Death
 Helm of the Ghastlord
 Hunger of the Howlpack
 Innocent Blood
+Irregular Cohort
 Island
 Kami of the Crescent Moon
 Karoo
@@ -57,17 +68,22 @@ Pollenbright Druid
 Pongify
 Presence of Gond
 Priest of Gix
+Rain of Filth
 Rapid Hybridization
 Reanimate
 Reconnaissance Mission
 Rending Volley
 Ricochet Trap
 Rite of Consumption
+Rootborn Defenses
 Searing Spear
 Shambling Ghast
+Shiny Impetus
 Skyline Despot
+Skyshroud Claim
 Souldrinker
 Striped Riverwinder
+Submerge
 Swamp
 Syr Alin, the Lion's Claw
 Tabaxi Toucaneers
@@ -81,6 +97,7 @@ Tibalt, Rakish Instigator
 Toothy, Imaginary Friend
 Trostani's Judgment
 Unchained Berserker
+Vandalize
 Volcanic Geyser
 Voldaren Epicure
 Wall of Tears

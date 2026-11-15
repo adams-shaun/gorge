@@ -1,0 +1,14 @@
+# the umbra armor pool (CR 702.89): the umbra Auras beside the destroy
+# effects, damage and deathtouch that umbra armor replaces
+Snake Umbra
+Bear Umbra
+Wrath of God
+Murder
+Lightning Bolt
+Typhoid Rats
+Hill Giant
+Gray Ogre
+Grizzly Bears
+Mountain
+Swamp
+Plains
