@@ -13,8 +13,8 @@ import "strings"
 // every player's zone whose face matches the spec, and Card.YouOwn narrows
 // the owner). An empty zone or Battlefield keeps the battlefield read.
 // ConditionDefined$ selects gorge's defined-group path, a different read, so
-// it refuses. presentZoneCond (lower_remembered.go) refuses Hand, Library, Stack
-// and Command itself.
+// it refuses. presentZoneCond (lower_presentzone.go) refuses Stack and
+// Command itself.
 func (lc *lowerCtx) nodeConditionZone(ps *params, c lCond, spec string) (lCond, error) {
 	zone, ok := ps.get("ConditionZone")
 	if !ok {

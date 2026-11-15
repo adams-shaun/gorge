@@ -1,0 +1,26 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// splitHalvesChars is the card types and colours card c shows to a filter
+// when c is a split card's front and o lies off the stack and the battlefield:
+// both halves' combined (CR 709.4, 709.4b/c; gorge state.Object.SplitHalves
+// read by effects.ColorMaskOf and hasTypeCtx), so Leave // Chance in a hand is
+// a white and a red instant and sorcery card. Anything else, a face-down card
+// included, keeps ty and cols. Cold: behind genPrep.anySplit.
+//
+//go:noinline
+func (s *State) splitHalvesChars(k *prep, c CardID, o Obj, fd bool, ty kop.TypeMask, cols kop.ColorMask) (kop.TypeMask, kop.ColorMask) {
+	if fd || k.gen == nil || !k.gen.anySplit {
+		return ty, cols
+	}
+	cd := &k.t.Cards[c]
+	if cd.FaceMode != kop.FaceSplit || cd.Face != 0 || o == NoObj || len(cd.Faces) != 2 {
+		return ty, cols
+	}
+	if z := s.objs[o].zone; z == kop.ZoneStack || z == kop.ZoneBattlefield {
+		return ty, cols
+	}
+	h := cd.Faces[1]
+	return ty | k.cards[h].types, cols | k.t.Cards[h].Colors
+}

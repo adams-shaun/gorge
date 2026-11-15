@@ -3,8 +3,11 @@ Airdrop Aeronauts
 Anax, Hardened in the Forge
 Angel of Light
 Battalion Foot Soldier
+Battlegrowth
+Benevolent Ancestor
 Blade Sliver
 Blinking Spirit
+Blood Curdle
 Carrier Thrall
 Celestial Archon
 Cloudgoat Ranger
@@ -12,13 +15,16 @@ Dáin of the Ancient Halls
 Forest
 Island
 Maja, Bretagard Protector
+Marang River Skeleton
 Marsh Flitter
 Master of Arms
 Mischievous Poltergeist
 Mountain
+Orthion, Hero of Lavabrink
 Outland Colossus
 Paragon of Open Graves
 Plains
+Reave Soul
 Restock
 Root-Kin Ally
 Sigil of the New Dawn
