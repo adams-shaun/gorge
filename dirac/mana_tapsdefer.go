@@ -127,8 +127,17 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// A bounded rider source: the planner defers its first ability
 			// (riderDeferred) or, with a plain first ability, its later
 			// rider (Grove of the Burnwillows). Both are prefix gaps; the
-			// activation pays the ability's own cost (mana_rider.go).
-			if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) ||
+			// activation pays the ability's own cost (mana_rider.go). A
+			// grant beside the rider (Rain of Filth's "Sacrifice this land:
+			// Add {B}" on a Saprazzan Skerry) is a gap of its own beside it:
+			// the planner census lists neither its rider's production nor
+			// the grant, and gorge's one prefix search activates both
+			// (scriptSearch.visit), so the source stays here and the grant
+			// search reads it as a gap too (tapsDeferGrantGaps). The rider
+			// being live is what the activatable test holds; a source whose
+			// abilities are lost has no live rider (genLost in
+			// riderActivatable) and a lost one is no gap.
+			if k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) ||
 				!s.riderActivatable(k, p, sl, a) {
 				continue
 			}
