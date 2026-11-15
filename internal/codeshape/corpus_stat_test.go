@@ -23,12 +23,20 @@ import (
 //
 // A _test.go file therefore may not (a) name a "../.cards"-style relative
 // corpus root as a string literal, nor (b) hold a `.cards"` literal together
-// with os.Stat. The patterns are assembled from pieces so this file does not
-// match itself.
+// with os.Stat, nor (c) walk a cardsfolder it joined itself from a `.cards"`
+// literal: in a seat worktree whose .cards is an overlay (a real directory of
+// per-entry links), cardsfolder is a symlink, and filepath.WalkDir does not
+// follow a symlinked root, so the walk sees one non-directory entry and the
+// census reads an empty corpus or fails on "is a directory" (11-14,
+// TestExchangeLifeCorpusCensus and TestAttachLKICarrierCensus in seat
+// ab6c7b1e's local precheck). The patterns are assembled from pieces so this
+// file does not match itself.
 var (
 	corpusRelRootRe = regexp.MustCompile(`"(?:\.\./)+\` + "." + `cards`)
 	corpusDirLit    = "." + "cards" + `"`
 	statCall        = "os." + "Stat"
+	corpusJoinLit   = corpusDirLit + `, "cards` + `folder"`
+	walkCallRe      = regexp.MustCompile(`filepath\.Walk(?:Dir)?\(`)
 )
 
 // corpusStatAllowed lists test files that may legitimately name the corpus
@@ -73,7 +81,8 @@ func corpusLookupViolations(root string) ([]string, error) {
 		}
 		src := string(b)
 		if corpusRelRootRe.MatchString(src) ||
-			(strings.Contains(src, corpusDirLit) && strings.Contains(src, statCall)) {
+			(strings.Contains(src, corpusDirLit) && strings.Contains(src, statCall)) ||
+			(strings.Contains(src, corpusJoinLit) && walkCallRe.MatchString(src)) {
 			bad = append(bad, rel)
 		}
 	}
@@ -106,8 +115,9 @@ func TestNoTestStatsOrRelativelyOpensTheCorpusDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, f := range bad {
-		t.Errorf("%s resolves the corpus privately (a \"../.cards\" literal, or os.Stat beside a .cards literal): "+
-			"use testutil.SharedCorpusDir / CorpusDirOrSkip and stat cards.CorpusDir(dir), never .cards itself", f)
+		t.Errorf("%s resolves the corpus privately (a \"../.cards\" literal, os.Stat beside a .cards literal, or a walk of a "+
+			"cardsfolder joined from a .cards literal): use testutil.SharedCorpusDir / CorpusDirOrSkip and stat or walk "+
+			"cards.CorpusDir(dir), never .cards itself", f)
 	}
 }
 
@@ -116,11 +126,13 @@ func TestNoTestStatsOrRelativelyOpensTheCorpusDir(t *testing.T) {
 func TestCorpusLookupRatchetCanFail(t *testing.T) {
 	q := `"`
 	files := map[string]string{
-		"a/rel_test.go":  "package a\nvar d = " + q + "../" + "." + "cards/cardsfolder" + q + "\n",
-		"a/deep_test.go": "package a\nvar d = " + q + "../../" + "." + "cards" + q + "\n",
-		"a/stat_test.go": "package a\nfunc f() { _ = filepath.Join(top, " + corpusDirLit + "); " + statCall + "(d) }\n",
-		"a/ok_test.go":   "package a\nfunc f() { d := testutil.CorpusDirOrSkip(t); " + statCall + "(cards.CorpusDir(d)) }\n",
-		"a/join_test.go": "package a\nvar d = filepath.Join(" + q + ".." + q + ", " + corpusDirLit + ", " + q + "cardsfolder" + q + ")\n",
+		"a/rel_test.go":    "package a\nvar d = " + q + "../" + "." + "cards/cardsfolder" + q + "\n",
+		"a/deep_test.go":   "package a\nvar d = " + q + "../../" + "." + "cards" + q + "\n",
+		"a/stat_test.go":   "package a\nfunc f() { _ = filepath.Join(top, " + corpusDirLit + "); " + statCall + "(d) }\n",
+		"a/ok_test.go":     "package a\nfunc f() { d := testutil.CorpusDirOrSkip(t); " + statCall + "(cards.CorpusDir(d)) }\n",
+		"a/join_test.go":   "package a\nvar d = filepath.Join(" + q + ".." + q + ", " + corpusDirLit + ", " + q + "cardsfolder" + q + ")\n",
+		"a/walk_test.go":   "package a\nfunc f() { r := filepath.Join(" + q + ".." + q + ", " + corpusDirLit + ", " + q + "cardsfolder" + q + "); filepath." + "WalkDir(r, nil) }\n",
+		"a/okwalk_test.go": "package a\nfunc f() { filepath." + "WalkDir(cards.CorpusDir(testutil.CorpusDirOrSkip(t)), nil) }\n",
 		// outside the go tool's package walk: never flagged
 		".ds4/x/rel_test.go":     "package x\nvar d = " + q + "../" + "." + "cards" + q + "\n",
 		"a/testdata/rel_test.go": "package x\nvar d = " + q + "../" + "." + "cards" + q + "\n",
@@ -141,7 +153,7 @@ func TestCorpusLookupRatchetCanFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"a/deep_test.go", "a/rel_test.go", "a/stat_test.go"}
+	want := []string{"a/deep_test.go", "a/rel_test.go", "a/stat_test.go", "a/walk_test.go"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("violations = %v, want %v", got, want)
 	}
