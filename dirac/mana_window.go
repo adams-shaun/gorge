@@ -2018,6 +2018,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			for j := 0; j < depth; j++ {
 				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill)
 			}
+			t.hideDeferred(k, p)
 			t.restrOptions(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
 			// is among the decision's options (offered). A trigger the path's
