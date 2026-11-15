@@ -927,12 +927,14 @@ func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
 
 // actRestrAffords: av, with the restricted sources an activation of the
 // ability of the source at sl may spend counted, pays cost. skip is the
-// source the activation's own {T} taps. Callers ask only after av alone
+// source the activation's own {T} taps. who is the activation's activator:
+// the permanent's controller on the ordinary walk, the paying player for an
+// any-player ability (CR 602.2a). Callers ask only after av alone
 // failed (legal.go abilityAffords): restrSrcNone's precondition.
 //
 //go:noinline
-func (s *State) actRestrAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail, skip Slot) bool {
-	p := s.perms[sl].ctrl
+func (s *State) actRestrAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail, skip Slot, who uint8) bool {
+	p := who
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl, instant: a.Cost.Flags&kop.CostSorcery == 0}
 	if m := s.restrPoolAct(k, p, &d); m != 0 {
 		// the floating restricted mana beside the restricted sources

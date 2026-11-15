@@ -1,66 +1,355 @@
 A-Akki Ronin
+A-Dueling Coach
+A-Guide of Souls
+A-Oran-Rief Ooze
+A-Symmetry Sage
+A-Urza, Powerstone Prodigy
+A-Vampire Scrivener
+Abzan Advantage
+Accursed Horde
+Acrobatic Maneuver
+Advanced Stitchwing
+Aesi, Tyrant of Gyre Strait
+Aether Chaser
+Aether Vial
 Aftershock
+Aim High
+Ajani's Sunstriker
+Alharu, Solemn Ritualist
+Allay
+Anaba Bodyguard
+Ancestral Knowledge
 Angelic Wall
+Animal Boneyard
+Anowon, the Ruin Thief
+Arcane Investigator
+Arcum Dagsson
 Ardent Elementalist
+Armorcraft Judge
+Ash Barrens
 Atraxa's Fall
+Audacity
+Autumnal Gloom
+Avaricious Dragon
+Baboon Spirit
+Bag End Porter
+Battlefront Krushok
+Belligerent Brontodon
+Belligerent Hatchling
+Blighted Agent
+Blightreaper Thallid
+Blistering Dieflyn
+Blood Divination
 Bloodshot Trainee
+Bloodstone Cameo
+Blurred Mongoose
+Bond of Passion
+Bonded Herdbeast
+Bontu the Glorified
+Book of Rass
+Bramblecrush
+Brazen Buccaneers
+Briarpack Alpha
+Bringer of the Green Dawn
 Broodhatch Nantuko
+Cagemail
+Call of the Wild
+Call to Mind
+Canopy Baloth
+Carnival of Souls
+Carrion Grub
+Casey Jones, Asphalt Hooligan
 Caustic Caterpillar
+Chittering Witch
+Circle of Flame
 Citywatch Sphinx
+Cold-Water Snapper
+Commander Greven il-Vec
 Company Commander
+Confront the Unknown
+Consult the Necrosages
+Coordinated Assault
+Coordinated Barrage
+Crawl from the Cellar
+Creakwood Ghoul
+Cruel Cut
 Cruel Deceiver
+Culmination of Studies
+Curious Pair
+Curse of Inertia
+Cyclops Tyrant
+Dakmor Lancer
+Damnable Pact
+Darling of the Masses
 Davriel, Rogue Shadowmage
 Deadly Recluse
+Death Pulse
+Death Tyrant
+Deathbloom Thallid
+Demonic Lore
+Depose
+Despondent Killbot
 Destroy Evil
+Destructive Digger
+Dewdrop Spy
+Dire Tactics
+Diving Griffin
+Donate
+Dovescape
+Draconic Destiny
+Dragon Whisperer
+Dragonlord Silumgar
+Drawn from Dreams
 Drelnoch
+Dross Golem
+Dwarven Priest
+Dwarven Weaponsmith
+Dáin's Company
+Déjà Vu
 Eager First-Year
+Earthshape
+Ebony Charm
+Ebony Horse
 Electric Revelation
+Ember-Eye Wolf
+Encroach
+Eternal Taskmaster
+Ethereal Absolution
+Extinction
+Fallaji Dragon Engine
+False Peace
+Favor of the Overbeing
+Ferocious Pup
+Feroz's Ban
+Fill with Fright
+Final Flourish
 Flame Elemental
+Flawless Maneuver
 Flip the Switch
+Force Spike
 Forest
+Fountain of Ichor
 Furious Resistance
+Furnace Gremlin
+Gallows at Willow Hill
+Gates of Istfell
+Gearsmith Prodigy
+Gleam of Authority
+Gluttonous Guest
+Godo, Bandit Warlord
 Golden Bear
+Golden Hind
+Goldwarden's Helm
+Gravitational Shift
+Gwaihir, Greatest of the Eagles
+Hadana's Climb
+Hammer of Purphoros
+Harvesttide Infiltrator
+Hazoret's Monument
+History of Benalia
 Honor's Reward
+Horrific Assault
+Howling Fury
+Hurloon Shaman
+Illustrious Historian
+Incite
+Inexorable Tide
+Infected Defector
+Inner Fire
+Innocent Traveler
+Insurrection
+Invasive Species
+Ire of Kaminari
 Island
 Jabs, Mistress of Mockery
+Jace's Triumph
 Jaspera Sentinel
+Jhoira's Familiar
+Kamahl, Pit Fighter
+Katara, Heroic Healer
+Kavu Aggressor
+Kindly Stranger
+Kinscaer Harpoonist
+Kird Chieftain
+Kithkin Mourncaller
+Kor Line-Slinger
+Kozilek's Unsealing
+Krark-Clan Grunt
 Land Grant
+Lava Coil
+Leaden Fists
+Legolas Greenleaf
 Lightfoot Rogue
+Lightning Elemental
+Long-Forgotten Gohei
+Looming Altisaur
+Lotus Petal
+Lumengrid Sentinel
+Lunk Errant
+Magistrate's Scepter
 Manabond
+Marauding Knight
+Mass Hysteria
+Mawcor
+Maximize Altitude
+Memorial to Folly
 Military Intelligence
+Mindless Conscription
 Ministrant of Obligation
+Mogg Conscripts
+Monastery Mentor
+Moonglove Winnower
 Mountain
 Mox Amber
+Murder Investigation
+Muster the Departed
 Myr Enforcer
 Mystery Key
+Mystic Might
+Nath's Buffoon
+Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
 Noxious Grasp
+Nyxathid
+Obelisk of Naya
+Ogre Arsonist
+Oketra's Attendant
+Olivia's Wrath
 Opal Champion
+Oran-Rief Recluse
+Outland Boar
 Overgrowth
+Pashalik Mons
+Pegasus Refuge
 Phantom Nishoba
+Phoenix Chick
+Photon, Mighty Marvel
+Pincher Beetles
+Plague Dogs
 Plains
+Prickleboar
+Pride Guardian
+Psychotic Fury
+Pterodon Knight
 Puppet Conjurer
+Purify
+Quirion Dryad
+Raze
+Razorjaw Oni
+Reanimate
+Reaver Drone
+Redemption Choir
+Regeneration
+Relentless Advance
 Rending Volley
+Renounce
+Reverent Hunter
+Rewind
+Rhys the Redeemed
+Rip Apart
+Riptide Chronologist
+Roar of the Wurm
+Rona, Disciple of Gix
+Royal Falcon
 Ruin Crab
+Sage's Knowledge
+Saltblast
+Samut, Tyrant Smasher
+Sanguine Glorifier
+Saruman the White
+Scab-Clan Charger
+Scholar of Combustion
 Scion of Stygia
 Scourge of the Undercity
 Sea God's Revenge
+Sea Snidd
+Seasoned Hallowblade
+Seeker
+Seething Anger
+Selesnya Sagittars
+Sharktocrab
+Showstopping Surprise
+Shred Memory
 Shredded Sails
+Shu Grain Caravan
+Sibling Rivalry
+Sifter of Skulls
 Sisay's Ring
+Skizzik Surger
+Skyclave Relic
+Skyreaping
+Smoldering Efreet
+Smuggler's Copter
 Solar Blast
 Soltari Trooper
 Spearpoint Oread
+Spectral Deluge
 Spidersilk Armor
+Spirit Bonds
 Spiteful Sliver
+Spore Cloud
+Square Up
+Stensia Uprising
 Streetwise Negotiator
+Striped Bears
 Sunder Shaman
 Swamp
+Sylvan Hierophant
+Temple Elder
+Temporal Machinations
+The First Iroan Games
+The Marvelous Scientist
+The Squadron Sinister
+The Tabernacle at Pendrell Vale
 Thought Monitor
+Thraben Foulbloods
+Thresher Lizard
+Tin Street Hooligan
+Tin-Wing Chimera
+Towering Thunderfist
+Trained Armodon
+Trained Jackal
 Traverse the Outlands
+Tree of Tales
+Treefolk Seedlings
 Trespasser's Curse
+Two-Headed Dragon
+Tyranid Harridan
+Uktabi Faerie
+Ultron, Machine Overlord
+Umezawa's Charm
+Unchecked Growth
+Undead Servant
 Undo
+Urza's Command
+Utvara Scalper
+Vedalken Engineer
+Verdant Crescendo
+Verdant Embrace
+Victorious Destruction
+Vinelasher Kudzu
+Viridian Zealot
+Voice of Truth
+Voidwielder
+Voyaging Satyr
+Vulshok War Boar
+Walking Dead
 Wall of Roots
+Wall of Wonder
 Wand of the Elements
+Warden of the Wall
+Warmonger's Chariot
+Warren Instigator
+Wave Goodbye
+Wayward Swordtooth
+Wei Infantry
+Weird Harvest
+Wild Griffin
+Winged Hive Tyrant
 Winter Soldier, Bucky Barnes
 Witch's Cottage
+You Look Upon the Tarrasque
+Yuan Shao, the Indecisive
+Zodiac Dragon
+Zulaport Duelist

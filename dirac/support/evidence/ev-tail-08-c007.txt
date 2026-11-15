@@ -2,10 +2,16 @@ Ancestral Recall
 Aven Gagglemaster
 Awaken the Woods
 Barrenton Cragtreads
+Barrin's Codex
+Ben-Ben, Akki Hermit
+Blind-Spot Giant
 Darien, King of Kjeldor
 Drudge Reavers
+Duergar Mine-Captain
 Energy Arc
 Feast or Famine
+Fetid Gargantua
+Final Death
 Forest
 Ghost-Lit Raider
 Go-Shintai of Shared Purpose
@@ -26,6 +32,7 @@ Minions' Murmurs
 Mogg Maniac
 Mother Kangaroo
 Mountain
+Mystic Restraints
 Network Terminal
 Night Terrors
 Paradox Engine
@@ -50,6 +57,7 @@ Slimy Piper
 Sorcerer's Strongbox
 Soulblade Djinn
 Spectral Flight
+Spore Crawler
 Stalwart Aven
 Stand
 Strafe

@@ -1,166 +1,373 @@
 +2 Mace
 A-Capenna Express
+A-Skull Skaab
 Aang and Katara
 Abomination of Llanowar
 Aether Channeler
 Agility Bobblehead
 Akki Coalflinger
+Alchemax Slayer-Bots
+Alluring Suitor
 Always Watching
+Ambulatory Edifice
+Amethyst Dragon
+Ancient Excavation
+Angelic Quartermaster
+Arcane Laboratory
+Archfiend of the Dross
+Archway Commons
+Artful Dodge
+Assembly-Worker
 Astonishing Spider-Man
 Atarka, World Render
+Audacious Thief
 Aven Redeemer
+Ayula, Queen Among Bears
 Bala Ged Scorpion
+Baleful Force
 Bankrupt in Blood
+Banners Raised
+Bartered Cow
 Beacon Behemoth
 Black Market Tycoon
+Bladebrand
 Blazing Specter
+Blazing Volley
+Blood Pet
+Bola Warrior
 Boneyard Scourge
+Bontu the Glorified
+Boomer Scrapper
+Boon of the Spirit Realm
+Bottomless Pit
+Branchblight Stalker
 Brass Gnat
+Cabal Slaver
+Cabal Surgeon
+Call the Gatewatch
 Carnassid
 Castaway's Despair
 Cat Oven
+Chain Stasis
 Chainflinger
 Champion of Lambholt
+Champions from Beyond
 Chaplain's Blessing
+Charging Badger
 Chariot of the Sun
+Chorus of the Tides
+Chromatic Lantern
+Chronomancer
+Citanul Hierophants
 Cleansing Screech
+Cleaving Skyrider
 Cleaving Sliver
 Cleon, Merry Champion
+Cloudhoof Kirin
+Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
 Congregation at Dawn
 Conjurer's Closet
+Conservator
 Coursers' Accord
+Creeping Tar Pit
+Cultbrand Cinder
 Curio Vendor
 Custodi Lich
+Cyclops Electromancer
+D'Avenant Archer
 Daggerdrome Imp
 Darksteel Splicer
+Deadly Allure
+Death Pits of Rath
+Death's Shadow
 Death's-Head Buzzard
+Defy Death
+Demanding Dragon
+Demon of Catastrophes
 Depose
+Desert Sandstorm
 Dimir Aqueduct
+Dire Fleet Captain
+Dire Fleet Ravager
+Double Trouble
+Drake Familiar
 Dromad Purebred
+Drown in Shapelessness
+Drowned
+Dwarven Berserker
+Dying Wail
 Elite Vanguard
+Elusive Spellfist
 Embereth Shieldbreaker
 Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
+Expedition Healer
 Eye of Nowhere
+Facet Reader
 Faerie Guidemother
+Fallen Cleric
+Fanatical Devotion
+Fatal Frenzy
 Festering Evil
+Fire Servant
 Fire Shrine Keeper
+Fireforger's Puzzleknot
 Flameshadow Conjuring
 Flatten
+Flaxen Intruder
+Fleet Swallower
 Fleeting Image
+Flourishing Strike
 Flowstone Surge
 Forest
 Forgotten Cave
 Fortitude
+Foul Orchard
+Frantic Salvage
+Frenetic Efreet
+Galadriel, Gift-Giver
+Gargoyle Flock
+Geist of the Archives
 Geothermal Kami
 Ghitu Journeymage
+Ghostly Wings
+Glacial Crasher
+Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
+Goblin Spy
+Grassland Crusader
+Graveborn Muse
 Grimclaw Bats
+Gruesome Discovery
 Guild Thief
+Gut, True Soul Zealot
 Gyre Sage
 Hardened-Scale Armor
+Haze of Pollen
+Heavenly Qilin
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
 Holy Armor
 Holy Light
 Honor Troll
+Horn of Gondor
+Hostile Minotaur
 Hurloon Minotaur
+Imperial Lancer
+Inexorable Blob
 Infectious Inquiry
 Infernal Tribute
+Ingenious Skaab
+Inner-Flame Acolyte
+Insidious Will
+Invasion of Ulgrotha
 Iroas's Blessing
 Irontread Crusher
+Ishi-Ishi, Akki Crackshot
 Island
 Jalira, Master Polymorphist
+Jhessian Balmgiver
+Jungle Barrier
+Jungle Basin
+Juniper Order Advocate
+Kashi-Tribe Warriors
 Kemba's Banner
+Kinsbaile Skirmisher
+Kitchen
+Kodama of the North Tree
+Kor Scythemaster
+Kyren Legate
 Labyrinth Adversary
+Last Rites
+Lava Spike
 Lightbringer
+Llanowar Cavalry
+Llanowar Sentinel
 Lord of Change
+Lumbering Satyr
 Lunar Frenzy
 Malfegor
+Manhole Cover
 Martial Glory
 Mask of Memory
 Memorial to Folly
+Mental Note
+Mercurial Kite
 Mightstone
+Mindlash Sliver
+Mirri the Cursed
 Mist Leopard
+Mithril Coat
+Mobile Garrison
+Molderhulk
+Molten Ravager
 Molting Harpy
 Morkrut Behemoth
 Morphling
 Moss Viper
 Mountain
+Mukotai Ambusher
 Murasa Behemoth
+Myojin of Life's Web
 Myrsmith
 Necklace of Girion
 Neurok Replica
 Night Out in Vegas
+Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
+Novice Occultist
 Ogre Errant
 Ondu Greathorn
 Oppressive Will
+Oracle of Nectars
 Orcish Cannonade
 Ordruun Veteran
 Overwhelming Victory
 Oxidda Daredevil
+Pact of Negation
 Paranoid Parish-Blade
+Pardic Wanderer
+Pestilence Demon
 Pheres-Band Warchief
+Piranha Marsh
 Plague Rats
 Plains
+Planar Atlas
+Plated Seastrider
 Political Triumph
 Polluted Bonds
+Potatoes
+Prepare
+Prosperous Innkeeper
 Protective Bubble
+Prowling Nightstalker
+Psychic Overload
+Psychosis Crawler
+Puppet Strings
+Pursue Glory
 Qilin's Blessing
+Quicken
+Quicksilver Fisher
 Raise Dead
 Ramosian Lieutenant
 Raven's Crime
+Reckless Reveler
 Reclaim
+Recruitment Drive
 Redemption Arc
+Regenesis
+Renegade Krasis
 Resistance Fighter
+Resurgent Belief
+Rhox Faithmender
 Rhox Pikemaster
+Ridge Rannet
 Ring of Evos Isle
+Rising Populace
+Rites of Refusal
 Ritual Guardian
+Rob the Archives
 Rocksteady, Mutant Marauder
 Rotted Hystrix
+Rumbling Slum
+Rush of Vitality
+Rushwood Elemental
+Sanctifier of Souls
 Sanctum Spirit
+Sawtooth Ogre
 Scalding Salamander
 Scavenged Weaponry
+Scrapheap
+Scrappy Bruiser
 Scythecat Cub
 Seafloor Oracle
+Secure the Wastes
+Seer's Sundial
 Selfless Spirit
 Senate Courier
 Serendib Sorcerer
+Serra's Sanctum
+Shepherd of the Cosmos
+Shield Sphere
 Shizo, Death's Storehouse
+Shu Farmer
+Shuri, Vibranium Technologist
 Sinister Starfish
 Skittish Kavu
+Skulking Ghost
 Skull Fracture
+Sky Crier
 Skyboon Evangelist
+Skyline Scout
 Slippery Scoundrel
+Spellshock
+Spined Thopter
+Spirit of the Hunt
 Spiteful Motives
 Spore Frog
+Starlight
+Starlit Mantle
+Starnheim Courser
 Steppe Glider
+Stimulus Package
+Stony Silence
+Storm Seeker
 Storm the Seedcore
+Strength of the Coalition
 Stronghold Taskmaster
+Stunted Growth
 Sun-Collared Raptor
+Sungrace Pegasus
+Sunmane Pegasus
+Surrakar Banisher
 Survey the Wreckage
 Swamp
+Swathcutter Giant
+Talon Sliver
 Targ Nar, Demon-Fang Gnoll
 Tavern Brawler
+Tavern Ruffian
+Terminal Agony
+The Battle of Bywater
 The Monumental Facade
 The Spear of Leonidas
+Thragtusk
+Timber Protector
 Treasure Hunt
+Trespassing Souleater
 Twinscroll Shaman
 Tyrant's Familiar
+Tzaangor Shaman
+Ulvenwald Captive
+Undead Minotaur
 Undercity Troll
 Union of the Third Path
+Unseal the Necropolis
 Unwilling Ingredient
 Urborg Shambler
+Valduk, Keeper of the Flame
+Vampire Outcasts
+Veiled Sentry
+Vengeful Regrowth
 Verdant Touch
+Verdurous Gearhulk
+Viashino Outrider
+Vision, Spectral Synthezoid
 Volcanic Upheaval
+Volcanic Vision
 Waking the Trolls
+Wall of Souls
 Wall of Swords
+Weave Fate
+Wildsize
 Will of the All-Hunter
+Wirewood Channeler
+Woodwraith Corrupter
+Yotian Tactician
 Young Blue Dragon

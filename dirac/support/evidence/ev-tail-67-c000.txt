@@ -1,75 +1,165 @@
 A-Armory Veteran
 A-Dokuchi Silencer
+A-Elven Bow
+Accelerated Evolution
+Adult Gold Dragon
 Aethershield Artificer
 Against All Odds
 Air Nomad Student
 Akki Underminer
 Akrasan Squire
+Akroan Crusader
+Alloy Myr
+Alms Beast
+Altar of Dementia
+Angelic Field Marshal
+Angelic Observer
 Angelic Renewal
+Animate Land
 Aquatic Incursion
 Archaeomender
+Archdemon of Unx
+Archon of Absolution
+Armor Thrull
+Asphodel Wanderer
 Augury Adept
+Avatar of the Resolute
+Awakener Druid
+Axebane Guardian
+Azimaet Drake
 Blade Splicer
 Blastfire Bolt
 Blisterspit Gremlin
 Buried Alive
+Burn the Impure
+Burst of Speed
 Butcher Ghoul
+Cacophony Scamp
+Caldera Pyremaw
+Call to the Grave
+Chain Lightning
 Chakram Slinger
+Champion's Helm
+Claim the Firstborn
 Cloud of Faeries
+Cloudkill
 Cogwork Assembler
+Commissar Severina Raine
 Conservator
+Contagion
 Containment Construct
+Corpse Knight
 Corrupted Roots
+Cosmos Elixir
+Courier's Capsule
+Crop Rotation
+Cyclops Superconductor
+Daily Bugle Newspaper
 Daring Fiendbonder
+Dauntless Survivor
+Deadshot
 Deathless Angel
+Deep Reconnaissance
 Deepwood Ghoul
 Deft Dismissal
+Demon's Grasp
 Demonic Rising
+Den Protector
+Despise
+Dismantling Blow
+Domri, Anarch of Bolas
+Dragon's Approach
+Dramatic Reversal
 Dynavolt Tower
+Earthen Goo
 Ecstatic Electromancer
+Eidolon of Rhetoric
+Ekthi, Contaminator Priest
+Emerge Unscathed
 Empty the Laboratory
 Erratic Visionary
+Essence Warden
+Eternal Witness
 Ethereal Champion
 Ethereal Usher
+Everglades
 Expansion
+Explosive Welcome
+Eyes of Gitaxias
 Fain, the Broker
 Faith Healer
+Firebird, Blazing Ranger
+Flametongue Kavu
+Flashfires
 Fleshpulper Giant
 Flow of Ideas
+Flux Channeler
 Forest
+Fungal Sprouting
+Furnace Celebration
 Geth's Grimoire
 Glory Bearers
 Gluttonous Zombie
 Go Forth
+Goblin Racketeer
+Grazilaxx, Illithid Scholar
 Grim Monolith
+Hadran, Naya Sunseeder
 Hail Storm
+Hanabi Blast
 Hanna, Ship's Navigator
+Haunting Hymn
+Helm of the Ghastlord
 Hemlock Vial
 Honed Khopesh
+Hooting Mandrills
+Horizon Chimera
+Horseshoe Crab
 Hound of the Farbogs
 Hydra's Growth
+Idol of Oblivion
+Implement of Ferocity
+Inkrise Infiltrator
+Inspiring Refrain
+Intrepid Ace
 Intruder Alarm
+Iron Suitcase
 Island
 Jackalope Herd
 Keen-Eyed Raven
+Ken, Burning Brawler
 Khalni Gem
 Kirtar's Wrath
 Kiyomaro, First to Stand
 Kor Skyfisher
+Leafkin Druid
 Leather Armor
+Lightning Hounds
+Lightning Reaver
 Lightning Spear
 Lightning-Core Excavator
 Liliana's Influence
 Lodestone Myr
+Longtusk Cub
 Lush Growth
 MJ, Rising Star
+Malachite Talisman
+Manaforce Mace
 Manticore Eternal
 Mardu Strike Leader
+Marwyn, the Nurturer
 Metropolis Reformer
+Mise
+Mogg Sentry
 Mogis's Warhound
 Moonblade Shinobi
+Moonglove Changeling
+Moonlight Hunt
+Moss Monster
 Mountain
+Mourning
 Nagging Thoughts
+Natural Emergence
 Necrobite
 Nemesis of Reason
 Neurok Familiar
@@ -77,6 +167,9 @@ Nezumi Bladeblesser
 Nomad Decoy
 Norn's Disassembly
 Oblation
+Orim's Touch
+Path of Anger's Flame
+Pentarch Ward
 Pilfering Imp
 Plains
 Plaxmanta
@@ -85,55 +178,108 @@ Pollywog Prodigy
 Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Psychic Spear
+Pulse of the Grid
+Python
 Rabbit Battery
+Rage Weaver
+Rally to Battle
+Ravos, Soultender
 Ray of Erasure
 Raze to the Ground
 Reality Ripple
 Reckless Charge
+Reckless Handling
 Reduce in Stature
 Reduce to Ashes
 Relic Barrier
 Revelation of Power
 Rogue Refiner
+Rolling Thunder
+Rousing Refrain
 Rustrazor Butcher
 Samite Archer
 Sandcrafter Mage
+Savra, Queen of the Golgari
 Scavenged Blade
 Scion of Vitu-Ghazi
 Searing Barb
+Searing Blood
+Selective Memory
+Sentinel Sliver
 Serra Paladin
 Setessan Skirmisher
 Shepherd of the Lost
 Shinen of Fear's Chill
+Skitter of Lizards
 Skullknocker Ogre
 Slab Hammer
 Slinking Giant
+Slobad, Goblin Tinkerer
+Sol Grail
 Solid Footing
+Soul of Theros
 Spider-Man 2099, Miguel O'Hara
+Spike Worker
 Spined Fluke
 Spreading Rot
+Squee's Embrace
+Steam Blast
 Stormcrag Elemental
 Stormrider Rig
 Sunblade Angel
 Swamp
+Swooping Protector
+Symmetry Sage
 Tale of Momo
 Talons of Falkenrath
+Talons of Wildwood
+Tamiyo's Journal
+Task Force
+Tawnos's Wand
 Temmet, Vizier of Naktamun
+Temporal Cascade
+Tendo Ice Bridge
+Territorial Allosaurus
 Thaumaturge's Familiar
+The Bears of Littjara
 The Whizzer, Classic Speedster
+Thorn Thallid
+Throes of Chaos
 Thrór's Map
 Thunder Drake
 Thwart the Grave
+Titan Hunter
 Titan's Strength
+Topan Freeblade
+Tor Giant
 Tormod's Cryptkeeper
+Tranquil Frillback
+Trenching Steed
 Troublesome Spirit
 Trueheart Duelist
+Umbris, Fear Manifest
 Undercity Scavenger
 Unholy Hunger
+Urza's Cave
+Vampire Lacerator
+Venomcrawler
+Vine Trellis
 Warped Devotion
 Way of the Thief
+Weight of the Underworld
+Welder Automaton
 Whispering Wizard
+Wildfire
+Wirecat
+Wolfkin Bond
+Woodland Liege
 Wrangle
+Wrath of Oko
+Writhing Necromass
+You Look Upon the Tarrasque
+Young Blue Dragon
 Zealots en-Dal
+Zenith Festival
 Zephyr Falcon
 Zodiac Ox

@@ -1,0 +1,233 @@
+A-Circuit Mender
+A-Eyes of the Beholder
+A-Jackhammer
+Active Volcano
+Agonizing Syphon
+Ajani's Influence
+Ajani, Valiant Protector
+Alhammarret, High Arbiter
+Amazing Alliance
+Ambush
+Aragorn and Arwen, Wed
+Araña, Heart of the Spider
+Argivian Blacksmith
+Ark of Blight
+Asha's Favor
+Atsushi, the Blazing Sky
+Attended Knight
+Augur il-Vec
+Aura Blast
+Awakening Zone
+Azra Smokeshaper
+Bad Deal
+Baloth Gorger
+Barbtooth Wurm
+Basilica Screecher
+Beetleback Chief
+Benalish Sleeper
+Benthic Biomancer
+Boon-Bringer Valkyrie
+Bottle-Cap Blast
+Briarbridge Tracker
+Broken Fall
+Cackling Flames
+Carrion Ants
+Case of the Shifting Visage
+Cerodon Yearling
+Chimney Goyf
+Chorus of Might
+Clattering Augur
+Confound
+Contingency Plan
+Covert Operative
+Crimson Hellkite
+Daredevil, Fearless Fighter
+Daring Apprentice
+Dawnhart Geist
+Daxos's Torment
+Death Frenzy
+Death's Duet
+Deeproot Waters
+Demon of Dark Schemes
+Devouring Deep
+Diminish
+Disappearing Act
+Disturbed Burial
+Dreadmalkin
+Dromoka Monument
+Earthlink
+Elemental Summoning
+Ellyn Harbreeze, Busybody
+Elvish Handservant
+Entish Restoration
+Ethereal Guidance
+Etherium Abomination
+Exuberant Wolfbear
+Eyeblight's Ending
+Fangren Hunter
+Farmstead
+Feast of Succession
+Fell Flagship
+Filigree Crawler
+Filigree Fracture
+Font of Progress
+Force of Vigor
+Forest
+Fortress Cyclops
+Freyalise, Llanowar's Fury
+Frontier Mastodon
+Garruk, Caller of Beasts
+Genestealer Locus
+Gift of Granite
+Gift of Wrath
+Gobbling Ooze
+Goblin Chariot
+Goblin Chieftain
+Goblin War Drums
+Gravel-Hide Goblin
+Grimdancer
+Harsh Scrutiny
+Hatchery Spider
+Hawkeye, Trick Shot
+Hellcarver Demon
+Henge of Ramos
+Hog-Monkey Rampage
+Howlpack Wolf
+Huatli's Raptor
+Hunted Ghoul
+Ifh-Bíff Efreet
+Ihsan's Shade
+Indicate
+Infuriate
+Iridescent Angel
+Irregular Cohort
+Island
+Izzet Chronarch
+Jagwasp Swarm
+Jon Irenicus, the Exile
+Kessig Wolfrider
+Kjeldoran Pride
+Klothys's Design
+Kranioceros
+Leech Gauntlet
+Liliana's Scorn
+Lingering Phantom
+Mana Prism
+Maulfist Doorbuster
+Merfolk Observer
+Merfolk of the Depths
+Mesa Unicorn
+Metathran Soldier
+Mirkwood Channeler
+Molten Rebuke
+Monastery Flock
+Mountain
+Muddle the Mixture
+Mwonvuli Acid-Moss
+Najal, the Storm Runner
+Narstad Scrapper
+Needlepeak Spider
+Neglected Heirloom
+Nekrataal
+One with Nature
+Onslaught
+Opposition
+Orazca Relic
+Outbreak
+Overwhelming Denial
+Panic Attack
+Patriarch's Desire
+Pegasus Courser
+Phantom Warrior
+Phyresis
+Pianna, Nomad Captain
+Pillar Tombs of Aku
+Plains
+Plated Spider
+Pouncing Lynx
+Predict
+Press for Answers
+Primordial Sage
+Prismari Apprentice
+Protector of Gondor
+Pygmy Troll
+Quench
+Ravenous Lindwurm
+Razor Swine
+Reforge the Soul
+Relic Robber
+Relic Vial
+Reprobation
+Resistance Reunited
+Resounding Silence
+Returned Pastcaller
+Reverberate
+Rhystic Study
+Rocco, Cabaretti Caterer
+Sage's Row Denizen
+Sandstorm
+Secrets of the Golden City
+Shabraz, the Skyshark
+Shaman of the Pack
+Shaper Apprentice
+Shapeshifter
+Sheltering Light
+Shoreline Ranger
+Sigardian Priest
+Sigiled Paladin
+Skirk Commando
+Sky-Blessed Samurai
+Skyship Stalker
+Skyshroud Claim
+Slinza, the Spiked Stampede
+Slith Firewalker
+Slobad, Goblin Tinkerer
+Smogsteed Rider
+Solitary Defiance
+Sootfeather Flock
+Spiketail Drake
+Spotter Thopter
+Staff of the Storyteller
+Stalwart Pathlighter
+Stitched Mangler
+Stonewood Invocation
+Stupor
+Summon the School
+Summon: Good King Mog XII
+Sutina, Speaker of the Tajuru
+Swamp
+Syphon Life
+Tarfire
+Tavern Swindler
+Teetering Peaks
+Temporal Eddy
+Tenth District Veteran
+Thalakos Sentry
+Thanos, Death's Consort
+The Falcon, Airship Restored
+Thistledown Duo
+Timber Protector
+Titans' Vanguard
+Towering Viewpoint
+Trading Post
+Twincast
+Uninvited Geist
+Vampire Revenant
+Verdant Rebirth
+Vexing Bauble
+Viashino Runner
+Viridian Corrupter
+Vivid Crag
+Volcanic Spite
+Vrock
+Wakandan Tusker
+Walking Skyscraper
+Waterlogged Teachings
+Werebear
+Whelming Wave
+Whiptail Wurm
+Whirlwind Technique
+Without Weakness
+Wizened Cenn
+Wretched Anurid
+Yore-Tiller Nephilim

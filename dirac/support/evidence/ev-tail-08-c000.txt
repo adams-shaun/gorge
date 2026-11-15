@@ -1,52 +1,155 @@
+A-Warm Welcome
+Abbey Griffin
+Aether Tunnel
+Agent of Stromgald
+Amateur Auteur
 Amethyst Dragon
+Ana Disciple
 Anathemancer
 Ancestral Recall
 Ancient Den
+Angel of Glory's Rise
+Anurid Barkripper
+Archghoul of Thraben
+Arrester's Admonition
+Assassin Initiate
 Aven Gagglemaster
+Awaken the Woods
+Ballynock Trapper
 Barrenton Cragtreads
+Barrin's Codex
+Ben-Ben, Akki Hermit
+Benalish Missionary
+Bird Admirer
+Black Market Tycoon
+Black Panther, Most Dangerous
 Blind-Spot Giant
+Bloodstained Mire
+Bolt of Keranos
+Boreal Druid
 Byway Courier
 Cabal Inquisitor
+Calming Verse
+Canopy Gorger
+Captain America, Liberator
+Carefree Swinemaster
 Carnage Tyrant
+Cavern Thoctar
+Ceremonial Guard
+Clockwork Fox
+Commanding Presence
+Coral Barrier
+Corrupting Licid
+Cracked Earth Technique
+Crash Landing
+Craterize
+Crystal Golem
 Culling Dais
+Cyclops Tyrant
 Dakmor Sorceress
 Darien, King of Kjeldor
 Darkwater Catacombs
+Davvol, Evincar of Rath
 Dead
+Death Wind
+Defiant Strike
+Demolition Stomper
+Deranged Whelp
+Desecration Plague
+Devil's Play
+Domestication
+Dora Milaje Elite
+Dream Thief
 Dromoka's Gift
 Drudge Reavers
+Drunau Corpse Trawler
+Dryad of the Ilysian Grove
+Duergar Mine-Captain
+Dusk Legion Dreadnought
+Dwarven Recruiter
+Earthshaking Si
+Electrify
+Elvish Hunter
 Energy Arc
+Enfeeblement
+Engulf the Shore
+Excavated Wall
+Executioner's Swing
 Eyeblight's Ending
 Feast or Famine
+Fetid Gargantua
+Final Death
+Final Payment
+Flourishing Strike
+Flowstone Mauler
 Forest
+Foundry Inspector
+Fruit of Tizerus
 Fyndhorn Elder
 Gavony Silversmith
 Geralf's Messenger
+Giant Inheritance
+Glarewielder
 Go-Shintai of Shared Purpose
+Goblin Brigand
+Goblin Heelcutter
 Goblin Sky Raider
+Goblin Soothsayer
 Grid Monitor
+Hag of Inner Weakness
+Hallowed Haunting
+Hammerheim Deadeye
 Headless Specter
+Headstrong Brute
+Henrika Domnathi
+Hillcomber Giant
+Homicidal Seclusion
+Honden of Night's Reach
+Honeymoon Hearse
 Honored Crop-Captain
 Horizon Explorer
+Hornet Nest
 Hunter's Edge
 Imperial Oath
 Indulgent Tormentor
 Ingenious Smith
 Innocuous Researcher
+Insatiable Souleater
+Inspiring Cleric
+Iron Fist, Hero for Hire
+Ishai, Ojutai Dragonspeaker
 Island
 Ivy Lane Denizen
+Jeska's Will
+Jeskai Elder
 Jolting Merfolk
+Juvenile Gloomwidow
+Kaervek's Torch
+Karstoderm
+Kavu Howler
+Keeper of the Cadence
+Kefnet the Mindful
+Kolaghan Warmonger
 Krazy Kow
 Kronch Wrangler
+Krovikan Mist
 Last Kiss
+Leyline Prowler
+Library
 Lone Missionary
+Lucky the Pizza Dog
+M.O.D.O.K., Evil Intellect
 Malakir Bloodwitch
 Mardu Hateblade
+Marsh Casualties
 Mass Appeal
+Merchant Raiders
 Mercurial Pretender
 Military Discipline
 Minions' Murmurs
 Mogg Maniac
+Mogg Squad
+Moldering Karok
 Mona Lisa, Ever Adaptable
 Mother Kangaroo
 Mountain
@@ -54,29 +157,43 @@ Mystic Restraints
 Network Terminal
 Night Terrors
 Ob Nixilis, the Ascended
+Otherworld Atlas
 Overtaker
 Paradox Engine
 Pashalik Mons
 Pearled Unicorn
+Pernicious Deed
+Pestilent Wolf
 Pharaoh Rama-Tut
+Pierce Strider
 Pious Wayfarer
 Plains
 Plateau
+Plated Geopede
+Possessed Barbarian
 Promise of Tomorrow
 Protector of the Wastes
 Queen's Agent
 Rain of Filth
 Ral's Outburst
+Rat Colony
+Ratadrabik of Urborg
 Ratcatcher
+Red XIII, Proud Warrior
 Reflex Sliver
 Regisaur Alpha
+Relentless Rats
 Reverent Mantra
+Rift Bolt
 Righteous Valkyrie
+Rustwing Falcon
 Scent of Nightshade
 Scrap Mastery
 Screeching Drake
+Scrib Nibblers
 Scroll Thief
 Selesnya Charm
+Selfless Cathar
 Sell-Sword Brute
 Serra's Guardian
 Serum Tank
@@ -88,37 +205,52 @@ Siphon Insight
 Skirk Outrider
 Skyhunter Patrol
 Slimy Piper
+Slingshot Goblin
 Snap
 Sorcerer's Strongbox
+Soulblade Djinn
 Spectral Flight
+Spontaneous Artist
 Spore Crawler
 Spur Grappler
 Stalwart Aven
 Stand
+Staunch Throneguard
+Steel Wall
 Stitch in Time
 Storm Fleet Aerialist
 Strafe
+Suspicious Bookcase
 Sustainer of the Realm
 Swamp
 Sylvia Brightspear
 Talas Researcher
 Talruum Champion
 Tangle Asp
+Taunting Arbormage
 Tek
+Tempest of Light
+Teval's Judgment
 Thalia's Lieutenant
+Thopter Mechanic
 Thraben Valiant
 Thran War Machine
+Thunderscape Master
 Tor Giant
 Treespring Lorian
 Tukatongue Thallid
 Uktabi Wildcats
 Umara Wizard
+Unbreakable Formation
 Unravel the Aether
 Updraft
+Urborg Drake
 Valko Indorian
 Vampire Outcasts
+Vectis Silencers
 Veilborn Ghoul
 Vengeful Vampire
+Vexilus Praetor
 Victual Sliver
 Vulpine Goliath
 War Falcon
@@ -127,7 +259,9 @@ Water Elemental
 Wayward Soul
 White Widow, Yelena Belova
 Wingmate Roc
+Wormhole Serpent
 Wydwen, the Biting Gale
+Wyluli Wolf
 Yarok's Wavecrasher
 You Meet in a Tavern
 Zhang Fei, Fierce Warrior

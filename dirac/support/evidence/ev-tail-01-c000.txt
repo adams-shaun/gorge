@@ -1,149 +1,368 @@
+A-Dueling Coach
 A-Leyline of Resonance
 A-Pseudodragon Familiar
+A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Agent of Erebos
 Aim for the Head
 Ainok Artillerist
+Akroan Mastiff
 Alaborn Trooper
+Ambush Krotiq
+Ammit Eternal
 Angelic Voices
 Animist's Might
 Arc Spitter
+Arcane Spyglass
+Ascendant Evincar
+Aven Fateshaper
+Aven Squire
+Bail Out
+Balance of Power
+Balduvian Dead
+Balefire Dragon
+Banewasp Affliction
 Barkchannel Pathway
 Batterhorn
+Battle of Hoover Dam
 Battleflight Eagle
 Bereavement
+Black Market Connections
+Blighted Agent
 Blind with Anger
 Blinding Mage
 Blistercoil Weird
 Blitz Automaton
+Bloated Contaminator
+Bloodchief's Thirst
 Blossoming Calm
+Bond of Discipline
 Bonded Herdbeast
+Bone Shards
+Brain Weevil
+Bulette
+By Invitation Only
+Cabaretti Initiate
+Cadaver Imp
+Careless Celebrant
+Carrion Howler
 Carrion Locust
+Cartouche of Ambition
+Cateran Persuader
+Cathedral Acolyte
 Celebrate the Harvest
+Centaur's Herald
+Charred Graverobber
 Choking Fumes
+Clash of Realities
+Clickslither
+Cloak and Dagger
 Coastal Tower
+Collar the Culprit
 Confidence from Strength
+Contagion Engine
+Conviction
 Corpsehatch
 Costly Plunder
 Court of Garenbrig
+Crabapple Cohort
+Crafty Pathmage
 Crimson Manticore
 Crossroads Consecrator
 Darklit Gargoyle
+Darkwater Egg
+Dawnhart Disciple
+Dawnstrider
 Day of the Dragons
+Death Wish
+Deeproot Warrior
+Demon's Grasp
+Denethor, Stone Seer
 Destructive Force
 Diabolic Machine
 Dig Up
+Disciple of the Vault
 Dispersing Orb
+Doomskar Titan
+Doubtless One
+Draconian Cylix
 Dragon's Smile
+Duskfang Mentor
+ED-E, Lonesome Eyebot
+Earthblighter
 Eastfarthing Farmer
 Eddytrail Hawk
+Escape Routes
 Eternity Vessel
 Executioner's Hood
+Eyes in the Skies
+False Mourning
+Farmstead Gleaner
 Fellwar Stone
 Flamekin Brawler
 Flashfires
+Fleeting Spirit
+Flinthoof Boar
 Fog
 Font of Fertility
+Forerunner of the Legion
 Forest
+Fortifying Draught
+Frostweb Spider
 Gaea's Cradle
+Galvanic Arc
+Generous Stray
+Genesis Chamber
+Ghitu Fire-Eater
+Ghoulcaller's Chant
+Giant Adephage
 Glaze Fiend
+Glorious Dragon-Kin
+Goblin Assault
 Goblin Heelcutter
 Goblin Picker
+Goblin War Drums
+Grave Titan
 Greensleeves, Maro-Sorcerer
+Grendel, Spawn of Knull
+Guardian Naga
 Guardian of the Great Conduit
 Guild Artisan
+Harvest Season
+Harvest Wurm
 Hasran Ogress
+Hatred
+Headless Specter
+Heavy Ballista
 Helm of Awakening
 Homarid Spawning Bed
+Hraesvelgr of the First Brood
 Hunted Wumpus
+Hyperion's Atomic Vision
+Illusionary Servant
+Illustrious Wanderglyph
+Imperial Recruiter
 Implement of Examination
+Improvised Weaponry
+Incendiary
 Infernal Grasp
 Infernal Plunge
+Ingot Chewer
+Inner Calm, Outer Strength
 Inspired Tinkering
+Instrument of the Bards
+Ire of Kaminari
 Island
+Jungle Lion
+Kamigawa Charm
 Kazuul Warlord
+Kefnet's Monument
+Kessig Prowler
+Khabál Ghoul
 Killer Whale
+Kithkin Shielddare
+Kjeldoran Frostbeast
+Krark-Clan Ogre
 Kyren Legate
+Legion's Landing
+Leonardo, the Balance
+Life Goes On
+Lightwalker
 Llawan, Cephalid Empress
 Locked in the Cemetery
 Loran, Disciple of History
 Lotus Path Djinn
 Lu Su, Wu Advisor
+Lurking Informant
 Magnetic Mine
+Magus of the Disk
 Mana Geode
+Mana Severance
 Marble Chalice
+Mark of Sakiko
+Master of Waves
+Mavren Fein, Dusk Apostle
+Maze Behemoth
 Meekstone
+Meneldor, Swift Savior
+Merfolk Seer
+Minion of Tevesh Szat
 Minor Misstep
 Mogg Conscripts
 Mogg Flunkies
 Molten Nursery
+Monstrous Vortex
+Moor Fiend
 Mordor Muster
 Mountain
+Myr Battlesphere
 Nahiri's Machinations
 Nessian Wanderer
+Nighthawk, Dark Defender
 Nimbus Wings
+Nissa's Triumph
+Notorious Assassin
+Nyx Herald
 Oathkeeper, Takeno's Daisho
+Oboro Breezecaller
 Omenspeaker
+Omnispell Adept
+Open the Graves
 Orcish Medicine
+Origin Spellbomb
+Ossuary Rats
 Palace Familiar
+Paradox Zone
+Parasitic Strix
+Peer into the Abyss
 Penumbra Kavu
 Pestilence Rats
 Petals of Insight
 Petrahydrox
+Petrified Plating
+Pillory of the Sleepless
 Plagued Rusalka
 Plains
 Polluted Delta
+Polygoyf
+Pondering Mage
 Predator's Howl
 Pride of the Perfect
+Primaris Eliminator
 Profaner of the Dead
+Pull Under
 Puppeteer
 Rakdos Carnarium
+Raking Canopy
+Rally
+Rathi Trapper
+Ravnica at War
+Recollect
 Recover
+Recycla-bird
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
+Rishadan Port
+Riverwise Augur
 Roc Egg
+Roil's Retribution
 Roofstalker Wight
+Rosnakht, Heir of Rohgahh
+Ruin Rat
+Rumbling Crescendo
+Rune Snag
 Rupture Spire
 Rush of Battle
 Ruthless Instincts
 Sage-Eye Harrier
 Sandstone Bridge
+Savage Order
+Scapeshift
+Scarecrone
 Scepter of Fugue
 Scion of Draco
+Scourge of Skola Vale
+Seafloor Oracle
+Seal of Doom
 Seeds of Strength
 Seer of the Last Tomorrow
+Selfless Cathar
+Shambling Suit
+Shielded by Faith
 Shock Troops
 Short Circuit
+Shrieking Specter
 Sinister Strength
 Skaab Wrangler
+Skeletal Snake
+Skulking Ghost
+Skull Prophet
+Skyhunter Patrol
 Sleek Schooner
+Snake Basket
+Sophic Centaur
 Soul Snuffers
+Soul's Majesty
+Spare Dagger
+Specimen Collector
+Spellbinding Soprano
 Spellkeeper Weird
+Spiked Pit Trap
 Spire Mangler
+Spirit of the Hunt
+Splendid Reclamation
 Spontaneous Mutation
+Squire's Devotion
+Stoic Champion
+Stonefare Crocodile
+Storm Fleet Aerialist
 Stormfront Pegasus
+Stream of Consciousness
+Stronghold Assassin
+Sudden Breakthrough
+Sumala Woodshaper
+Summoning Materia
 Swamp
+Swarm Guildmage
 Sylvan Safekeeper
+Tandem Takedown
+Tear Asunder
 Tenza, Godo's Maul
+Terramorph
+Tezzeret, Master of the Bridge
+Thallid Shell-Dweller
+The Hunter Maze
+The Revelations of Ezio
+Thraben Standard Bearer
+Thraxodemon
+Thrilling Discovery
+Tithe Drinker
 Tobias Andrion
 Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Trained Caracal
 Trained Condor
 Transcendent Master
 Turn Against
+Twisted Spider-Clone
+Tyrranax Atrocity
+Undersea Invader
+Unearth
+Unforgiving One
 Unlikely Alliance
+Vampiric Touch
+Vat of Rebirth
+Vault Skirge
 Vault of Whispers
 Venser's Sliver
+Verdurous Gearhulk
+Vesperlark
+Vessel of Nascency
+Veteran Armorsmith
 Viashino Sandswimmer
 Vibrating Sphere
 Viridescent Wisps
+Vodalian Merchant
 Volcanic Geyser
+Voracious Fell Beast
+Vow of Wildness
+Walk the Plank
 Wanderguard Sentry
+War Screecher
+Warded Battlements
+Warg Rider
+Wasteland Scorpion
 Waterwhirl
+Wind Dancer
 Wind Shear
 Wing It
+Wing Puncture
+Witherscale Wurm
 Woodcutter's Grit
+Woodland Changeling
 Zhentarim Bandit
+Zhou Yu, Chief Commander

@@ -1,3 +1,4 @@
+A-Leyline of Resonance
 A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
@@ -10,27 +11,46 @@ Angelic Voices
 Animist's Might
 Arc Spitter
 Arcane Spyglass
+Ascendant Evincar
+Balance of Power
 Banewasp Affliction
 Barkchannel Pathway
 Batterhorn
+Battleflight Eagle
+Bereavement
 Blind with Anger
 Blinding Mage
 Blitz Automaton
 Blossoming Calm
+Bonded Herdbeast
+Bone Shards
 Bulette
 By Invitation Only
+Carrion Howler
 Carrion Locust
 Celebrate the Harvest
+Centaur Battlemaster
+Charred Graverobber
 Choking Fumes
+Clash of Realities
+Clear
+Cliffhaven Vampire
 Coastal Tower
 Confidence from Strength
 Corpsehatch
+Costly Plunder
 Court of Garenbrig
+Crimson Manticore
+Crossroads Consecrator
+Darklit Gargoyle
 Dawnhart Disciple
 Deeproot Warrior
+Destructive Force
+Diabolic Machine
 Dig Up
 Disciple of the Vault
 Dispersing Orb
+Dragon's Smile
 Eastfarthing Farmer
 Eddytrail Hawk
 Eternity Vessel
@@ -38,18 +58,21 @@ Executioner's Hood
 Eyes in the Skies
 False Mourning
 Fellwar Stone
+Flamekin Brawler
 Flashfires
 Flinthoof Boar
 Fog
 Font of Fertility
 Forest
 Fortifying Draught
+Fíli and Kíli, Joyous
 Gaea's Cradle
 Generous Stray
 Glaze Fiend
 Glorious Dragon-Kin
 Goblin Heelcutter
 Goblin Picker
+Grave Titan
 Greensleeves, Maro-Sorcerer
 Guardian of the Great Conduit
 Guild Artisan
@@ -58,38 +81,56 @@ Hasran Ogress
 Hatred
 Helm of Awakening
 Homarid Shaman
+Homarid Spawning Bed
 Hunted Wumpus
+Hyperion's Atomic Vision
 Implement of Examination
 Infernal Grasp
 Infernal Plunge
+Inspired Tinkering
 Island
 Jungle Lion
 Kamigawa Charm
+Kazuul Warlord
 Khabál Ghoul
 Killer Whale
 Kithkin Shielddare
+Kjeldoran Frostbeast
+Krark-Clan Ogre
 Kyren Legate
+Leonardo, the Balance
 Llawan, Cephalid Empress
 Locked in the Cemetery
 Loran, Disciple of History
+Lord of Extinction
 Lotus Path Djinn
+Lu Su, Wu Advisor
 Magnetic Mine
 Mana Geode
+Mana Severance
 Marble Chalice
 Master of Waves
 Meekstone
+Minor Misstep
 Mogg Conscripts
+Mogg Flunkies
 Molten Nursery
 Moor Fiend
 Mordor Muster
 Mountain
 Myr Battlesphere
+Nahiri's Machinations
+Nessian Wanderer
 Nightguard Patrol
 Nighthawk, Dark Defender
+Nimbus Wings
 Notorious Assassin
+Oathkeeper, Takeno's Daisho
 Omenspeaker
 Orcish Medicine
 Origin Spellbomb
+Palace Familiar
+Paradox Zone
 Penumbra Kavu
 Pestilence Rats
 Petals of Insight
@@ -100,16 +141,22 @@ Polluted Delta
 Predator's Howl
 Pride of the Perfect
 Profaner of the Dead
+Puppeteer
 Rakdos Carnarium
+Raking Canopy
 Recollect
 Recover
+Renegade Rallier
+Renowned Weaponsmith
 Rionya, Fire Dancer
 Riverwise Augur
 Roc Egg
 Roofstalker Wight
 Royal Warden
 Rupture Spire
+Rush of Battle
 Ruthless Instincts
+Sage-Eye Harrier
 Sandstone Bridge
 Savage Order
 Scapeshift
@@ -122,23 +169,30 @@ Shock Troops
 Short Circuit
 Sinister Strength
 Skaab Wrangler
+Skeletal Snake
 Sleek Schooner
 Soul Snuffers
+Soul's Majesty
 Spellkeeper Weird
 Spire Mangler
 Spirit of the Hunt
 Splendid Reclamation
 Spontaneous Mutation
 Stormfront Pegasus
+Stream of Consciousness
 Sumala Woodshaper
+Summoning Materia
 Swamp
+Sylvan Safekeeper
 Tear Asunder
 Tenza, Godo's Maul
 The Revelations of Ezio
 Thunderous Snapper
+Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Trained Condor
 Transcendent Master
 Turn Against
 Unearth
@@ -146,12 +200,17 @@ Unlikely Alliance
 Vat of Rebirth
 Vault of Whispers
 Venser's Sliver
+Vessel of Nascency
+Viashino Sandswimmer
+Vibrating Sphere
 Viridescent Wisps
 Volcanic Geyser
 Wanderguard Sentry
 Warg Rider
+Wasteland Scorpion
 Waterwhirl
 Wind Shear
 Wing It
+Witherscale Wurm
 Woodcutter's Grit
 Zhentarim Bandit
