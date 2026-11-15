@@ -8,6 +8,7 @@ Agony Warp
 Ajani's Mantra
 Alley Grifters
 Alrund's Epiphany
+Angelic Purge
 Aphotic Wisps
 Aragorn, King of Gondor
 Astarion's Thirst
@@ -15,9 +16,11 @@ Astral Dragon
 Avatar of Growth
 Aven Trooper
 Barricade Breaker
+Battleflight Eagle
 Bearer of Memory
 Black Sun's Twilight
 Blindblast
+Blinding Mage
 Blood Vassal
 Boiling Blood
 Boulderfall
@@ -41,9 +44,11 @@ Colossal Dreadmaw
 Concordant Crossroads
 Constable of the Realm
 Curse of Predation
+Cursed Totem
 Daemogoth Titan
 Deadeye Plunderers
 Deadly Insect
+Deadly Wanderings
 Death Speakers
 Deepwood Tantiv
 Defenestrate
@@ -60,7 +65,10 @@ Ember-Fist Zubera
 Enclave Cryptologist
 Encroaching Wastes
 Entish Restoration
+Equestrian Skill
+Esika's Chariot
 Euroakus
+Fangs of Kalonia
 Ferocious Charge
 Field Marshal
 Fight Rigging
@@ -72,19 +80,27 @@ Frightcrawler
 From the Rubble
 Frontier Mastodon
 Gaea's Bounty
+Gamekeeper
 Ghoulcaller's Bell
+Gift of Paradise
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
+Goblin Commando
 Goblin Tinkerer
 Grave Exchange
+Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
+Guul Draz Assassin
 Halberdier
 Hardened Scales
 Harpoon Sniper
+Haunted Crossroads
 Horned Cheetah
 Horned Helm
+Hornet Cannon
 Hornet Cobra
 Hulk, Always Angry
 Inferno Fist
@@ -92,11 +108,14 @@ Insidious Bookworms
 Island
 Jhoira's Familiar
 Khenra Charioteer
+Knights of Dol Amroth
+Kolvori, God of Kinship
 Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Lava Axe
+Lignify
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
@@ -111,7 +130,9 @@ Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Mistwalker
 Mold Folk
+Moldervine Reclamation
 Momentum Rumbler
 Moonveil Dragon
 Mountain
@@ -123,17 +144,24 @@ Needlethorn Drake
 Nev, the Practical Dean
 Nexus of Fate
 Nomads' Assembly
+Novellamental
 Oathsworn Vampire
+Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
+Orthodoxy Enforcer
 Painwracker Oni
 Paladin Danse, Steel Maverick
 Pathbreaker Ibex
 Peggy Carter, Secret Agent
+Phyrexian Prowler
 Plains
 Planar Portal
 Pool Resources
 Precision Bolt
+Preening Champion
+Priest of Ancient Lore
+Psychotic Haze
 Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
@@ -144,6 +172,7 @@ Rally Maneuver
 Rancid Rats
 Raugrin Crystal
 Razortooth Rats
+Reaper of the Wilds
 Reaver Ambush
 Reckoner's Bargain
 Rekindled Flame
@@ -154,6 +183,8 @@ Riddlekeeper
 Roar of the Crowd
 Roc Hunter
 Rockshard Elemental
+Ruby Medallion
+Rukh Egg
 Rundvelt Hordemaster
 Runeclaw Bear
 Sacred Cat
@@ -175,6 +206,7 @@ Sleeper Agent
 Smash to Dust
 Smoldering Crater
 Snow-Covered Forest
+Sorcerous Sight
 Speakeasy Server
 Spectral Rider
 Spitfire Handler
@@ -190,10 +222,12 @@ Sunweb
 Supreme Will
 Surrakar Marauder
 Swamp
+Sweep the Skies
 Sword of the Animist
 Talisman of Unity
 Telepathic Spies
 The Blue Spirit
+The Indomitable
 The Shattered States Era
 The Stasis Coffin
 The Unspeakable
@@ -201,6 +235,7 @@ Thopter Assembly
 Thunder Totem
 Tideshaper Mystic
 Tiller Engine
+Topaz Dragon
 Towering Indrik
 Traumatize
 Treacherous Vampire
@@ -208,6 +243,7 @@ Treetop Rangers
 Triceraton Regenta
 Tuktuk Rubblefort
 Two-Headed Zombie
+Undead Executioner
 Unholy Indenture
 Unholy Officiant
 Unquestioned Authority
@@ -216,11 +252,15 @@ Vedalken Heretic
 Venom, Eddie Brock
 Venser's Journal
 Verge Rangers
+Vhati il-Dal
+Viashino Bladescout
+Vilis, Broker of Blood
 Vineweft
 Vintara Snapper
 Viridian Longbow
 Vulshok Replica
 Wall of Heat
+Warren-Scourge Elf
 Weapon Rack
 Wei Scout
 Wei Strike Force

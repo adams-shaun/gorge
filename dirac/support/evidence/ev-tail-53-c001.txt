@@ -14,6 +14,7 @@ Balduvian Bears
 Basalt Gargoyle
 Battle-Rage Blessing
 Befuddle
+Blessed Respite
 Blood Host
 Boggart Trawler
 Brass Herald
@@ -45,6 +46,7 @@ Discordant Piper
 Divination
 Domri's Ambush
 Drowned Secrets
+Dueling Rapier
 Eager Beaver
 Embraal Gear-Smasher
 Enraging Licid

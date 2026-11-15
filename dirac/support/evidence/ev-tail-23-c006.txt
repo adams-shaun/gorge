@@ -13,6 +13,7 @@ Assault Griffin
 Atmosphere Surgeon
 Atraxi Warden
 Avatar of Fury
+Aven Fateshaper
 Aven Windreader
 Ayula's Influence
 Barbed Battlegear
@@ -49,6 +50,7 @@ Dread Shade
 Dwarfhold Champion
 Earth-Origin Yak
 Elemental Mastery
+Elephant Graveyard
 Elspeth, Sun's Champion
 Emblem of the Warmind
 Enormous Baloth
@@ -60,6 +62,7 @@ Fighting Drake
 Fleetfeather Cockatrice
 Forest
 Gatekeeper Gargoyle
+Giant Warthog
 Glint Hawk
 Goblin Gardener
 Goblin Glider
@@ -94,12 +97,15 @@ Lens Flare
 Linvala, Keeper of Silence
 Llanowar Knight
 Lost Legion
+Loxodon Mender
 March of the Returned
 Maritime Guard
 Master Skald
+Metathran Transport
 Millennial Gargoyle
 Minister of Inquiries
 Mire Boa
+Mist Dancer
 Mountain
 Myrkul's Edict
 Niall Silvain
@@ -109,6 +115,7 @@ Ongoing Investigation
 Orcish Hellraiser
 Ornery Dilophosaur
 Ornery Goblin
+Oxidda Golem
 Pack's Favor
 Pawn of Ulamog
 Pillardrop Warden
@@ -122,6 +129,7 @@ Ritual of Rejuvenation
 Salvaged Manaworker
 Sea Eagle
 Sea Gate Restoration
+Searing Wind
 Seismic Mage
 Selfless Savior
 Serpentine Ambush
@@ -135,6 +143,7 @@ Solarion
 Sonic Seizure
 Spark Elemental
 Spark Jolt
+Spectral Lynx
 Spike Jester
 Starlit Angel
 Stomp and Howl

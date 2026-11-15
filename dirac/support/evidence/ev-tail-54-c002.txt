@@ -1,3 +1,4 @@
+Alley Grifters
 Alluring Scent
 Ancient Tomb
 Arashin Cleric
@@ -5,9 +6,11 @@ Artificer's Dragon
 Astrid Peth
 Aurochs
 Bag of Holding
+Basal Sliver
 Basal Thrull
 Biting-Palm Ninja
 Black Market Connections
+Blaring Recruiter
 Blight Mamba
 Boggart Shenanigans
 Bond of Agony
@@ -16,6 +19,7 @@ Chill of Foreboding
 Chimeric Egg
 Clarion Cathars
 Copy Artifact
+Crippling Blight
 Crushing Vines
 Crystal Rod
 Cursed Land
@@ -31,10 +35,12 @@ Ekundu Griffin
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
+Esior, Wardwing Familiar
 Esper Panorama
 Essence Capture
 Exile into Darkness
 Eye of Vecna
+Festercreep
 Fiery Temper
 Fire Nation Ambushers
 Flame Sweep
@@ -48,14 +54,17 @@ Foxfire Oak
 Frillscare Mentor
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
+Glistening Oil
 Gluntch, the Bestower
 Goblin Trashmaster
+Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
 Grond, the Gatebreaker
 Harbor Bandit
 Harrowing Journey
+Harvester of Souls
 Heartwood Treefolk
 Hold the Line
 Homarid Explorer
@@ -87,8 +96,10 @@ Lost Leonin
 Loyal Cathar
 Makindi Stampede
 Malignant Growth
+Mandroid Squadron
 Massive Might
 Meteor Shower
+Mindstab Thrull
 Miss Highwater
 Mountain
 Multani's Harmony
@@ -103,13 +114,17 @@ Patch Up
 Pharika's Disciple
 Phyrexian Digester
 Plains
+Plasma Elemental
 Poison-Blade Mentor
 Pridemalkin
+Prologue to Phyresis
+Promise of Aclazotz
 Pyromancer's Swath
 Quest for the Goblin Lord
 Racers' Ring
 Radioactive Man
 Rain of Blades
+Raze to the Ground
 Relentless Assault
 Remote Isle
 Renegade Freighter
@@ -139,6 +154,7 @@ Stonecloaker
 Stonehands
 Storm Fleet Negotiator
 Stormscape Familiar
+Strands of Undeath
 Sunblast Angel
 Survivors' Encampment
 Swamp
@@ -159,4 +175,6 @@ Vraan, Executioner Thane
 Vulshok Heartstoker
 Wall of Hope
 War Priest of Thune
+Weaponcraft Enthusiast
+Zodiac Horse
 Éomer, King of Rohan

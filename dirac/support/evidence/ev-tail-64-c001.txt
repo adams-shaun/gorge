@@ -42,6 +42,7 @@ Curse Artifact
 Custodi Soulbinders
 Cutthroat Centurion
 Danitha, New Benalia's Light
+Dark Betrayal
 Dawn to Dusk
 Dawnfluke
 Detainment Spell
@@ -96,18 +97,21 @@ Jace's Sanctum
 Jaheira, Friend of the Forest
 Jinxed Choker
 Junk Diver
+Kashi-Tribe Elite
 Kashi-Tribe Reaver
 Kayla's Command
 Kiora's Dambreaker
 Kuldotha Rebirth
 Kumena's Awakening
 Learn from the Past
+Legion Guildmage
 Lily Bowen, Raging Grandma
 Limestone Golem
 Lionheart Maverick
 Living Airship
 Lurking Predators
 Mage-Ring Bully
+March of the Returned
 Marsh Threader
 Marshdrinker Giant
 Master Symmetrist
@@ -132,9 +136,11 @@ Phyrexian Lens
 Pitiless Pontiff
 Plains
 Priest of Urabrask
+Pyrophobia
 Ral's Reinforcements
 Ramosian Commander
 Ray Fillet, Wave Warrior
+Reaver Ambush
 Refocus
 Resplendent Griffin
 Rise of the Ants
@@ -150,12 +156,16 @@ Secret Passage
 Self-Inflicted Wound
 Seton's Scout
 Shacklegeist
+Shauku, Endbringer
 Singer of Swift Rivers
+Skillful Lunge
 Skyshroud Sentinel
 Smoldering Werewolf
 Spectacular Showdown
 Spider-Man, Peter Parker
 Spiked Ripsaw
+Spiteful Bully
+Squeeze
 Stormrider Spirit
 Stratus Walk
 Strength in Numbers

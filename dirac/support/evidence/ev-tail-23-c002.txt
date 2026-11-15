@@ -51,11 +51,13 @@ Doctor Jane Foster
 Dread Shade
 Dwarfhold Champion
 Earth-Origin Yak
+Elder Cathar
 Elemental Mastery
 Elephant Graveyard
 Emblem of the Warmind
 Enormous Baloth
 Ensouled Scimitar
+Epiphany Storm
 Explore
 Extruder
 Farmstead Gleaner
@@ -151,6 +153,7 @@ Siegehorn Ceratops
 Smash
 Solarion
 Sonic Seizure
+Sowing Mycospawn
 Spark Elemental
 Spark Jolt
 Spectral Lynx
@@ -174,6 +177,7 @@ Vengeful Devil
 Vincent, Vengeful Atoner
 Vine Mare
 Viridian Acolyte
+Wall of Earth
 Wall of Mulch
 Warden of Geometries
 Warriors' Lesson

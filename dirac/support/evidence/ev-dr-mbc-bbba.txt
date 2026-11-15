@@ -19,6 +19,7 @@ Borrowing 100,000 Arrows
 Briarblade Adept
 Burst Lightning
 Caligo Skin-Witch
+Canopy Surge
 Catacomb Crocodile
 Chaos Warp
 Clip Wings
@@ -41,6 +42,7 @@ Foil
 Forest
 Frogify
 Future Sight
+Gemhide Sliver
 General Kreat, the Boltbringer
 Genju of the Fields
 Grakk the Pacifist
@@ -58,13 +60,16 @@ Keldon Strike Team
 Knight of the Tusk
 Kor Celebrant
 Lagonna-Band Trailblazer
+Ley Weaver
 Lure
 Man-o'-War
 Master of Arms
+Master's Rebuke
 Memory Lapse
 Momentary Blink
 Mothdust Changeling
 Mountain
+Multani, Yavimaya's Avatar
 Nantuko Elder
 Oblivion Ring
 Phantom Flock
@@ -80,6 +85,7 @@ Reconnaissance Mission
 Rending Volley
 Ricochet Trap
 Rite of Consumption
+Roar of Challenge
 Rootborn Defenses
 Searing Spear
 Shambling Ghast
@@ -95,6 +101,7 @@ Tabaxi Toucaneers
 Tavern Swindler
 Tectonic Rift
 Telekinetic Sliver
+Temur Sabertooth
 Thassa's Oracle
 The Weaver King
 Thermo-Alchemist
@@ -103,11 +110,13 @@ Tibalt, Rakish Instigator
 Toothy, Imaginary Friend
 Trostani's Judgment
 Unchained Berserker
+Valakut Invoker
 Vandalize
 Vivien's Grizzly
 Volcanic Geyser
 Voldaren Epicure
 Wall of Tears
+Warchief Giant
 Wight of Precinct Six
 Witch's Mark
 Writhing Chrysalis

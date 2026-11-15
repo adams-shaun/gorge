@@ -12,8 +12,10 @@ Captain of Umbar
 Cast into Darkness
 Cavalcade of Calamity
 Charity Extractor
+Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crash the Ramparts
 Cultivator of Blades
 Dauntless River Marshal
 Deepcavern Imp
@@ -28,6 +30,7 @@ Dwarven Armory
 Easterling Vanguard
 Emerald Dragonfly
 Entomb
+Ephara's Enlightenment
 False Demise
 Fear of Death
 Feral Ferocity
@@ -36,7 +39,9 @@ Festering March
 Fiery Intervention
 Flourishing Hunter
 Forest
+Fumulus, the Infestation
 Future Sight
+Gargoyle Sentinel
 Garrison Cat
 Ghost Warden
 Gitaxian Raptor
@@ -58,10 +63,12 @@ Kalemne's Captain
 Kalemne, Disciple of Iroas
 Kothophed, Soul Hoarder
 Laboratory Drudge
+Leave in the Dust
 Leonin Lightbringer
 Lifecraft Cavalry
 Liliana's Reaver
 Magnetic Flux
+Malakir Familiar
 Megatherium
 Minamo Sightbender
 Mirrorworks
@@ -87,12 +94,15 @@ Render Inert
 Respite
 Saiba Cryptomancer
 Scaldkin
+Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
+Serum Visionary
 Shambling Ghoul
 Shauku's Minion
 Shimmer Myr
+Shu Farmer
 Siren Reaver
 Snapback
 Snare the Skies
@@ -100,14 +110,17 @@ Soldevi Sage
 Soulless One
 Spellrune Painter
 Spined Wurm
+Spitfire Handler
 Stone Idol Generator
 Suture Spirit
 Swamp
 Sweatworks Brawler
 Tar Snare
 Thalia, Heretic Cathar
+Thaumaturge's Familiar
 The Restoration of Eiganjo
 Thunderclap Wyvern
+Tidal Visionary
 Tireless Missionaries
 Trailblazing Historian
 Unbender Tine
@@ -119,3 +132,4 @@ Vodalian Soldiers
 Warren Pilferers
 Windborne Charge
 Wither and Bloom
+Wriggling Grub

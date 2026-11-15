@@ -1,84 +1,163 @@
+A-Excavation Explosion
+A-Goma Fada Vanguard
+A-Ominous Parcel
 Abzan Battle Priest
+Abzan Falconer
 Accursed Spirit
+Aerie Bowmasters
 Aeronaut Admiral
 Aether Poisoner
 Aetherstream Leopard
+Agent of Shauku
 Akoum Boulderfoot
+Alchemax Slayer-Bots
 Amazing Spider-Girl
 Ampryn Tactician
 Amugaba
 Arborback Stomper
+Archetype of Finality
 Armored Ascension
 Arvad the Cursed
+Ashnod's Transmogrant
+Aspect of Manticore
+Aura Thief
+Balshan Collaborator
+Balthor the Defiled
 Bamboozle
 Banishment
+Banshee
+Banshee's Blade
 Baru, Wurmspeaker
 Battle Angels of Tyr
 Beaming Defiance
 Beasts of Bogardan
 Besmirch
+Bilious Skulldweller
+Bladed Battle-Fan
 Bladetusk Boar
 Blessing of Leeches
 Blistering Firecat
+Bloodsoaked Insight
 Bloodstone Cameo
+Bloom Hulk
+Board the Weatherlight
+Boarded Window
+Bond of Revival
+Brain Freeze
 Breaker of Armies
+Breathstealer
+Breya's Apprentice
 Bushmaster, Coiled Henchman
+Cabal Inquisitor
 Cackling Imp
+Call for Blood
 Carmen, Cruel Skymarcher
+Carnivorous Moss-Beast
 Centaur Garden
 Chandra's Spitfire
 Changeling Sentinel
+Chaotic Backlash
+Chlorophant
+Clash of Realities
+Cloudheath Drake
 Coercion
 Colossapede
+Combat Professor
 Conch Horn
+Consign to Dream
+Contraband Kingpin
+Corpse Traders
+Corridor Monitor
+Crumbling Vestige
 Crypt Champion
 Crypt Sliver
+Culling Ritual
 Cultist of the Absolute
+Curse of Disturbance
+Cursed Land
 Dark Remedy
 Darkheart Sliver
 Deadeye Quartermaster
+Death Bomb
 Death-Priest of Myrkul
+Deathless Angel
 Deep-Sea Serpent
+Depart the Realm
+Desert of the Mindful
+Desperate Lunge
+Divergent Growth
+Dominating Vampire
+Dread Tiller
 Dreadfeast Demon
 Dream Prowler
 Dream's Grip
+Dross Golem
 Elite Cat Warrior
 Elvish Branchbender
+Elvish Doomsayer
+Embercleave
+Embraal Bruiser
 Epicure of Blood
 Escape from Orthanc
 Eternal of Harsh Truths
 Everett K. Ross, Hapless Attaché
 Fading Hope
+Falkenrath Reaver
 Fall of the Gavel
+Farsight Adept
+Festering Thicket
 Fetid Horror
+Fever Charm
+Flood Plain
 Followed Footsteps
 Forest
 Forging the Anchor
+Foul Familiar
 Frenzied Rage
+Furtive Homunculus
 Futurist Sentinel
 Gaea's Touch
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
+Gimli's Fury
 Glistener Seer
+Glorious Enforcer
+Go Forth
+Go-Shintai of Boundless Vigor
 Goblin Fireslinger
+Goblin Gang Leader
 Goblin Gathering
+Goblin War Strike
+Goldenhide Ox
 Graveyard Marshal
+Guardians of Meletis
 Guided Strike
+Hall of Heliod's Generosity
 Halsin, Emerald Archdruid
 Hapless Researcher
 Hard Cover
 Havoc
+Helm of Awakening
 Herald of Serra
 Herald of the Host
 Heroes for Hire
+Hijack
 Hildibrand Manderville
 Hold for Questioning
+Honden of Night's Reach
+Howlpack Wolf
+Hunter of Eyeblights
 Ichor Shade
 Ichorspit Basilisk
 Illusionist's Stratagem
+Immaculate Magistrate
 Indrik Stomphowler
+Infernal Scarring
 Inkfathom Divers
+Insatiable Harpy
+Instill Energy
+Intruder Alarm
 Invade the City
 Invasion of Mercadia
 Invasion of Shandalar
@@ -88,6 +167,8 @@ Jasconian Isle
 Jaya's Firenado
 Joiner Adept
 Junún Efreet
+Kabira Takedown
+Kaervek's Hex
 Keen-Eyed Archers
 Keldon Champion
 Keldon Raider
@@ -98,19 +179,30 @@ Kruin Striker
 Larceny
 Last Breath
 Lavakin Brawler
+Leshrac's Sigil
+Liberating Combustion
 Liturgy of Blood
+Lizard Blades
 Loxodon Line Breaker
 Magma Sliver
+Marauding Knight
 Marble Titan
 Marching Duodrone
 Mardu Scout
+Marshdrinker Giant
 Masticore
+Matoc, Lavamancer
+Meadowboon
 Merciless Resolve
+Merfolk Mesmerist
 Metallic Rebuke
 Michelangelo, the Heart
+Midvast Protector
 Mina and Denn, Wildborn
 Minas Tirith
+Mind Carver
 Mindstatic
+Miracle Worker
 Misfortune's Gain
 Mizzium Tank
 Molten Gatekeeper
@@ -119,56 +211,97 @@ Monstrous Vortex
 Morbid Curiosity
 Moriok Replica
 Mountain
+Murmuration
+Myr Enforcer
 Myriad Landscape
+Mystic Subdual
+Nahiri's Stoneblades
+Nessian Boar
 Neurok Hoversail
 Nezumi Prowler
+Nullstone Gargoyle
+Oakenform
+Oakhame Adversary
 Oakhame Ranger
+Oath of Mages
+Oboro, Palace in the Clouds
 Old Gnawbone
+Olivia's Bloodsworn
 Oreskos Sun Guide
 Orim's Cure
 Orzhov Enforcer
+Overwhelmed Apprentice
 Pack's Betrayal
+Paladin's Shield
 Paper Tiger
 Parasitic Impetus
+Pegasus Stampede
 Phantasmal Bear
 Plague Stinger
 Plains
 Planar Birth
 Plant Elemental
 Plate Armor
+Pore Over the Pages
 Possessed Barbarian
 Predation Steward
 Predatory Advantage
 Pressure Point
 Prince Imrahil the Fair
 Prismatic Ending
+Private Research
 Prized Griffin
 Prophecy
+Puncturing Blow
+Pygmy Allosaurus
 Radjan Spirit
+Raiders' Karve
 Razorfield Rhino
 Reckless Cohort
 Reclusive Artificer
+Reflexes
 Regal Sliver
+Repentant Blacksmith
+Rewards of Diversity
 Reyhan, Last of the Abzan
+Rodolf Duskbringer
 Roiling Regrowth
 Rookie Mistake
+Ruinous Gremlin
 Rustvale Bridge
 Sage's Dousing
+Salt Flats
 Saradoc, Master of Buckland
 Sarcomite Myr
 Satsuki, the Living Lore
 Satyr Grovedancer
 Scabland
+Scaled Wurm
 Scarlet Witch, Wanda Maximoff
+Scion of Draco
 Screeching Harpy
+Sea Gate Banneret
+Search for Tomorrow
+Seer's Sundial
+Selesnya Sanctuary
 Sengir Nosferatu
+Sentinel Totem
 Sentinel of the Eternal Watch
 Serpent of Yawning Depths
+Serra's Liturgy
+Setessan Training
+Shivan Wumpus
+Shrouded Serpent
+Siege Modification
+Silverbeak Griffin
 Skymarcher Aspirant
+Skyshroud Troopers
 Skywise Teachings
 Soratami Cloud Chariot
 Sorceress Queen
+Soul of New Phyrexia
 Spare Dagger
+Spectral Guardian
 Spell Shrivel
 Spike Tiller
 Spikefield Hazard
@@ -177,35 +310,62 @@ Spiteflame Witch
 Spore Flower
 Springing Tiger
 Springleaf Parade
+Standstill
 Static Prison
+Stony Silence
 Stormfist Crusader
+Strip Mine
+Student of Ojutai
 Sunken Field
 Sunset Pyramid
 Swamp
 Swirling Torrent
 Sylvan Basilisk
 Tablet of Compleation
+Take into Custody
 Territorial Hammerskull
 Thalisse, Reverent Medium
 The Bear Force Pilot
+Thriving Grove
+Time Spiral
+Titan of Industry
+Tomb Blade
 Tower of Fortunes
 Toxic Iguanar
+Trained Cheetah
+Tranquil Domain
 Treetop Village
+Trestle Troll
 Trigon of Thought
 Trinket Mage
+Triumphant Surge
 Unspeakable Symbol
 Unyielding Krumar
 Updraft Elemental
 Urborg Elf
 Urza's Tome
+Vampire Hounds
+Venomous Changeling
+Vicious Conquistador
+Vigilance
 Vine Dryad
+Void Snare
 Volcanic Hammer
+Voracious Null
 Vryn Wingmare
 Walker of the Grove
 Wall of Corpses
 Wall of Resistance
 Wall of Water
+Warg Rider
+Warriors of Wakanda
 Warthog
+Water Wurm
 Weatherlight Compleated
 Wight of the Reliquary
+Wing Shards
+Witch of the Moors
+Woodweaver's Puzzleknot
+Xander's Pact
+Yavimaya Hollow
 Zhalfirin Decoy

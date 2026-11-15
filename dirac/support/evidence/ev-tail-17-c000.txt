@@ -1,10 +1,13 @@
+Abomination of Llanowar
 Acquisition Octopus
 Act on Impulse
 Aerial Responder
 Aether Vial
 Aladdin
+Amass the Components
 Ancient Spider
 Angel of Despair
+Angel's Mercy
 Angelic Ascension
 Ant-Man, Reformed Rogue
 Anthroplasm
@@ -12,13 +15,18 @@ Arbalest Engineers
 Ardent Electromancer
 Argivian Restoration
 Arni Slays the Troll
+Arrogant Poet
 Astarion, the Decadent
 Atarka Monument
+Audacious Infiltrator
 Aura of Dominion
 Avarice Amulet
 Awaken the Sky Tyrant
+Baird, Argivian Recruiter
 Barbed Shocker
+Barrow Witches
 Basking Broodscale
+Bazaar Trader
 Bedlam
 Beskir Shieldmate
 Big Game Hunter
@@ -26,50 +34,71 @@ Big Score
 Birthing Hulk
 Black Panther, Claws of Bast
 Blood-Chin Fanatic
+Bog Smugglers
+Bonds of Mortality
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
+Butcher of Malakir
+Canopy Claws
 Canopy Dragon
+Canopy Spider
 Canyon Wildcat
 Catapult Fodder
 Caustic Tar
 Centaur Safeguard
 Chandra's Defeat
 Chandra's Phoenix
+Chandra's Pyreling
 Chasm Guide
+Cinder Hellion
 Clergy en-Vec
 Cogwork Spy
 Collateral Damage
 Coma Veil
 Composer of Spring
 Containment Breach
+Coral Eel
 Cragplate Baloth
 Crushing Pain
+Cunning Lethemancer
+Curious Pair
 Curse of Verbosity
+Damnable Pact
 Dega Sanctuary
 Desert Nomads
+Dismiss into Dream
 Doomed Artisan
 Dragonlair Spider
+Dread Slag
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
 Eerie Soultender
+Ellie, Vengeful Hunter
 Elves of Deep Shadow
 Elvish Scout
 Emergence Zone
 Emiel the Blessed
 Emrakul's Influence
 Enthralling Victor
+Environmental Sciences
 Errant Doomsayers
+Escape Protocol
+Ethereal Whiskergill
 Exultant Skymarcher
 Facet Reader
+Faerie Conclave
 Fantastic Bounce
 Far Wanderings
+Fated Infatuation
+Fell Flagship
 Ferrous Lake
 Festercreep
 Fevered Convulsions
 Fin-Clade Fugitives
 Fists of the Anvil
+Fledgling Djinn
 Fleet-Footed Monk
 Font of Fortunes
 Forced Adaptation
@@ -82,6 +111,8 @@ Garruk's Harbinger
 Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
+Gift of Estates
+Gift of Tusks
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
@@ -89,13 +120,18 @@ Golden Demise
 Gorging Vulture
 Grafted Growth
 Graypelt Refuge
+Greenbelt Rampager
+Grotesque Mutation
 Groundling Pouncer
 Harnessed Snubhorn
 Headless Rider
 Heaven
 Herald of Torment
+Herbal Poultice
 Heronblade Elite
 Hidden Footblade
+Howlpack Resurgence
+Immersturm Raider
 Imp's Mischief
 In the Web of War
 Iname, Death Aspect
@@ -107,10 +143,14 @@ Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
 Join the Maestros
+Juniper Order Rootweaver
+Kari Zev's Expertise
 Kavu Runner
 Kazandu Stomper
+Keeper of the Lens
 Kefnet's Last Word
 Key to the City
+Kithkin Harbinger
 Kitsune Riftwalker
 Kragma Butcher
 Krosan Colossus
@@ -121,12 +161,14 @@ Larder Zombie
 Lay Down Arms
 Lazotep Chancellor
 Life Chisel
+Liliana's Elite
 Liliana, the Necromancer
 Lobber Crew
 Looming Shade
 Lurking Nightstalker
 Mad Dog
 Magus of the Order
+March of the Drowned
 Masked Blackguard
 Meteoric Mace
 Might of the Old Ways
@@ -138,21 +180,28 @@ Mosscoat Goriak
 Moth Herb Elixir
 Mountain
 Nadir Kraken
+Natural Reclamation
 Nav Squad Commandos
 Needle Specter
 Night of Souls' Betrayal
+Nimble Mongoose
 Norn's Inquisitor
 Oakhame Adversary
 Ogre Siegebreaker
 Ojutai, Soul of Winter
+Ondu Inversion
+Open Fire
+Orcish Spy
 Owl Familiar
 Pallid Mycoderm
 Parch
 Park Heights Maverick
 Peel from Reality
 Peregrine Drake
+Plague Engineer
 Plague Fiend
 Plague Sliver
+Plagued Rusalka
 Plains
 Planar Cleansing
 Planar Despair
@@ -165,37 +214,47 @@ Raffine's Informant
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
+Ray of Erasure
 Renegade Demon
+Renegade Wheelsmith
 Restrain
 Roc of Kher Ridges
 Rockslide Ambush
 Rolling Thunder
+Ruination
 Rumbling Crescendo
 Rumor Gatherer
 Rush of Adrenaline
 Ruthless Disposal
 Sagu Mauler
 Sai, Master Thopterist
+Sandstone Warrior
 Sapphire Drake
 Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
+Sea Drake
 Searchlight Geist
 Serra Avenger
 Shagrat, Loot Bearer
 Shatter
 Silvos, Rogue Elemental
+Siren Lookout
+Sisay's Ring
 Skull of Orm
+Sleep Paralysis
 Slith Bloodletter
 Sludge Monster
 Smell Fear
 Snarespinner
+Sorin, Imperious Bloodlord
 Soul Swallower
 Specter of the Fens
 Sphinx's Tutelage
 Splendid Agony
 Stingscourger
+Stoic Champion
 Stonebound Mentor
 Storm of Memories
 Street Riot
@@ -205,6 +264,7 @@ Stronghold Zeppelin
 Suki, Kyoshi Captain
 Summary Judgment
 Sunfire Balm
+Sunscape Familiar
 Swamp
 Sygg, River Guide
 Tactical Advantage
@@ -212,7 +272,10 @@ Take into Custody
 Talara's Battalion
 Tapestry of the Ages
 Tectonic Rift
+Thalia's Lancers
 The Binding of the Titans
+The Stasis Coffin
+Thoughtcutter Agent
 Thriving Isle
 Timberpack Wolf
 Tower of Calamities
@@ -221,12 +284,14 @@ Tree of Tales
 Twilight's Call
 Ulamog's Dreadsire
 Undead Augur
+Updraft Elemental
 Utopia Tree
 Valiant Changeling
 Vessel of Malignity
 Village Cannibals
 Virulent Plague
 Wetland Sambar
+Wild Leotau
 Wildest Dreams
 Winding Wurm
 Winged Portent

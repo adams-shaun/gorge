@@ -1,7 +1,12 @@
 A-Hobbling Zombie
+A-Skyclave Shadowcat
+Agent of Acquisitions
+Air Bladder
+Air-Cult Elemental
 Altar's Reap
 Archers of Qarsi
 Argothian Pixies
+Automated Artificer
 Beast Whisperer
 Benalish Heralds
 Bogstomper
@@ -9,31 +14,71 @@ Brotherhood Vertibird
 Built to Last
 Cabal Executioner
 Centaur's Herald
+Champion's Drake
+Clairvoyance
 Cleansing Meditation
 Cliff Threader
+Cloudseeder
 Conclave Evangelist
 Crumbling Ashes
 Deadbridge Shaman
 Deal Broker
 Deploy the Gatewatch
 Despondency
+Deviant Skytech
 Dire Mimic
+Dreadhorde Twins
 Eidolon of Blossoms
 Eiganjo Uprising
+Esper Cormorants
 Fallaji Excavation
+Flame of Anor
 Fleshbag Marauder
+Force of Despair
 Forest
+Forging the Tyrite Sword
+Frogmite
 Gray Merchant of Asphodel
 Honor the God-Pharaoh
+In the Trenches
+Infiltrate
 Island
+Juzám Djinn
 Karlach, Fury of Avernus
 Kavu Climber
+Kavu Scout
+Lightning Axe
+Lightning Wolf
+Llanowar Stalker
 Looter il-Kor
+Malevolent Rumble
 Maze Rusher
 Mountain
+Organ Hoarder
+Paralyzing Grasp
 Plains
 Presence of Gond
+Pumpkin Bombs
+Quarrel's End
+Reach of Branches
+Rhox Oracle
+Rootwater Commando
+Ruby Medallion
+Shatterstorm
+Shimmering Mirage
+Shrieking Mogg
+Skyway Sniper
 Steel Overseer
+Subira, Tulzidi Caravanner
+Sultai Banner
 Supply Runners
+Suq'Ata Firewalker
 Swamp
+Tainted Indulgence
+Target Minotaur
+The Torment of Gollum
+Towashi Guide-Bot
+Walking Archive
 Will-o'-the-Wisp
+Wizard's Lightning
+Zuran Spellcaster

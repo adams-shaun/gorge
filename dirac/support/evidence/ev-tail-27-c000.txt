@@ -1,8 +1,25 @@
 A-Blood Artist
 A-Umara Mystic
+Aegis of the Gods
+Aetherstorm Roc
+Agonizing Syphon
+Air Elemental
+Allied Assault
 Alpine Watchdog
+Altac Bloodseeker
+Altar of the Brood
+Anarchy
+Ancient Crab
+Apes of Rath
+Arachnoid
+Arborea Pegasus
 Arc Runner
+Arctic Merfolk
+Argothian Wurm
+Armix, Filigree Thrasher
 Arrogant Outlaw
+Aspiring Aeronaut
+Aura Flux
 Avatar of Woe
 Azorius First-Wing
 Barbed Lightning
@@ -10,92 +27,224 @@ Bee Sting
 Blight Keeper
 Blowfly Infestation
 Boseiju Reaches Skyward
+Bottomless Pit
+Bountiful Landscape
+Brink of Disaster
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
+Canopy Dragon
+Captain of the Mists
+Captured Sunlight
+Carrion Beetles
+Cathar's Shield
+Chromatic Sphere
+Cloak of Mists
+Cobalt Golem
+Conch Horn
+Conclave Naturalists
 Constricting Tendrils
 Crimson Fleet Commodore
 Crimson Muckwader
+Cursed Flesh
 Damnation
+Dark Nourishment
+Dark Petition
 Deal Gone Bad
 Deathforge Shaman
+Deft Duelist
+Deliberate
 Demonic Taskmaster
+Destroy the Evidence
+Dispersing Orb
 Douser of Lights
+Dream Twist
+Dryad's Revival
+Dwarven Armorer
+Electrosiphon
+Elemental Mastery
 Elemental Uprising
+Elven Warhounds
+Elvish Hunter
+Embargo
+Enraging Licid
 Entomber Exarch
+Erebor Flamesmith
+Evernight Shade
 Evolved Sleeper
 Extractor Demon
+Eyekite
+Eyeless Watcher
+Fabricate
 Fandaniel, Telophoroi Ascian
+Fang, Roku's Companion
+Field of Ruin
+Fiend Binder
+Fight as One
 Finishing Blow
 Flameborn Hellion
 Flaring Flame-Kin
+Flowstone Giant
 Font of Vigor
+For the Ancestors
+Force of Rowan
 Forest
+Forlorn Pseudamma
 Frogtosser Banneret
 Frondland Felidar
+Fruition
+Furnace Gremlin
+Galepowder Mage
 Geistflame
+Ghoulcaller's Accomplice
 Giant Ladybug
+Giant Octopus
+Gift of Strands
+Glacial Floodplain
 Glistening Deluge
+Goblin Dark-Dwellers
 Goblin Trailblazer
+God-Favored General
+Goldmane Griffin
+Gossamer Phantasm
+Grim Lavamancer
 Guul Draz Specter
+Harsh Deceiver
+Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
 Hero of the Dunes
+Hidden Spider
+High Alert
 Hollowsage
+Honorable Scout
+Hulking Cyclops
 Hungry Ridgewolf
 Hypnotic Cloud
+Ichorclaw Myr
 Idyllic Tutor
+Increasing Confusion
 Infectious Horror
 Inflame
 Invoke Despair
 Island
+Jewel Thief
+Krosan Constrictor
 Lamentation
+Lightning Axe
+Llanowar Druid
+Lord of the Unreal
+Lore Weaver
 Lull
 Maestros Initiate
+Mage il-Vec
+Mage's Attendant
+Magus of the Tabernacle
+Marauding Looter
+Marauding Raptor
 Mardu Blazebringer
 Mary Read and Anne Bonny
+Master Decoy
+Metallic Sliver
 Mishra's Bauble
 Mobilization
+Molten Birth
 Moon-Blessed Cleric
 Mountain
+Myrkul's Invoker
+Namor, Scourge of the Seas
 Natural Reclamation
+Necron Deathmark
+Neheb, Dreadhorde Champion
 Nirkana Assassin
+Noble Stand
+Norwood Riders
+Null Brooch
+Nyxborn Wolf
 Offalsnout
+Onyx Goblet
+Ornery Goblin
+Orzhov Keyrune
 Overload
 Pangosaur
 Paradise Druid
+Pardic Collaborator
+Pause for Reflection
+Phoenix of Ash
 Pilgrim of the Ages
 Plains
 Polukranos Reborn
+Promise of Power
+Python
+Ravenous Baboons
 Reign of Terror
 Rite of Flame
+Ritual of Soot
 Rotlung Reanimator
+Satyr Rambler
+Sawblade Scamp
+Scion of Vitu-Ghazi
 Scorch Spitter
 Seashell Cameo
+Sedraxis Alchemist
 Selesnya Signet
+Serpentine Curve
+Serra Paladin
+Shadowstorm Vizier
+Shivan Hellkite
+Silent Attendant
 Silt Crawler
+Silumgar Monument
 Skinrender
 Skull Rend
+Skyshroud Poacher
 Smother
+Snake Basket
+Soul of Mirrodin
+Southern Paladin
+Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
 Sticky Fingers
 Stinging Hivemaster
+Storm Front
+Stormcloud Spirit
 Stun
 Stunning Shot
+Sudden Reclamation
 Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
+Syphon Life
+Tail Slash
+Tainted Isle
+Tattermunge Maniac
+Tendrils of Corruption
 Thallid Shell-Dweller
 The Locust God
+Thieving Magpie
 Third Path Iconoclast
 Three Tragedies
 Thrull Retainer
+Thrull Surgeon
+Timmy, Power Gamer
+Tormented Thoughts
+Trained Condor
 Twinferno
+Untethered Express
 Valiant Guard
 Vampire Lacerator
+Vedalken Infiltrator
+Vengeful Devil
+Venser's Journal
+Veteran's Powerblade
 Viconia, Drow Apostate
+Vildin-Pack Outcast
+Vodalian Hexcatcher
 Vodalian Zombie
+Volcanic Hammer
 Woodborn Behemoth
+Workshop Assistant

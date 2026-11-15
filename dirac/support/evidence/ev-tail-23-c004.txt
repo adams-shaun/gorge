@@ -1,13 +1,17 @@
 Aether Herder
 Air Marshal
+Akki Battle Squad
 Alliance of Arms
 Ambassador Laquatus
 Angel's Feather
+Armored Galleon
 Arno Dorian
 Arrest
 Asceticism
 Ashen Firebeast
+Assault Griffin
 Atraxi Warden
+Avacynian Missionaries
 Aven Windreader
 Ayula's Influence
 Barbed Battlegear
@@ -36,15 +40,18 @@ Doctor Jane Foster
 Dread Shade
 Dwarfhold Champion
 Elemental Mastery
+Elephant Graveyard
 Enormous Baloth
 Ensouled Scimitar
 Explore
 Farmstead Gleaner
+Fiery Conclusion
 Fighting Drake
 Forest
 Gatekeeper Gargoyle
 Giant Warthog
 Glint Hawk
+Goblin Glider
 Golgari Findbroker
 Gorilla Warrior
 Gruul Turf
@@ -56,12 +63,14 @@ Hedonist's Trove
 Heron's Grace Champion
 Hidden Gibbons
 Highspire Artisan
+Homarid Warrior
 Hour of Revelation
 Imps' Taunt
 Infested Thrinax
 Inhumaniac
 Island
 Jeskai Windscout
+Jhessian Lookout
 Juniper Order Ranger
 Junktroller
 Kavu Predator
@@ -73,16 +82,21 @@ Linvala, Keeper of Silence
 Llanowar Knight
 Lost Legion
 March of the Returned
+Maritime Guard
 Mechanized Warfare
+Metathran Transport
 Minister of Inquiries
 Mire Boa
 Mountain
 Myrkul's Edict
 Niall Silvain
+Nivix Barrier
 Okina, Temple to the Grandfathers
+Ongoing Investigation
 Orcish Hellraiser
 Ornery Dilophosaur
 Pack's Favor
+Phantasmal Forces
 Plains
 Preordain
 Rakshasa Deathdealer
@@ -101,6 +115,7 @@ Siegehorn Ceratops
 Solarion
 Sonic Seizure
 Spark Elemental
+Spark Jolt
 Spectral Lynx
 Storm, Shaker of Skies
 Story Seeker

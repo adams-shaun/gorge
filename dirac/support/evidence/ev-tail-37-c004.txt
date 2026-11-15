@@ -1,5 +1,6 @@
 A-Hobbling Zombie
 A-Skyclave Shadowcat
+Adric, Mathematical Genius
 Aether Sting
 Agent of Acquisitions
 Air Bladder
@@ -26,10 +27,16 @@ Built to Last
 Built to Smash
 Centaur's Herald
 Chain of Plasma
+Champion's Drake
+Chrome Host Seedshark
 Clairvoyance
 Cliff Threader
+Cloudseeder
 Conclave Evangelist
 Conductor of Cacophony
+Controlled Instincts
+Coral Fighters
+Craven Knight
 Crumbling Ashes
 Crusher Zendikon
 Deadbridge Shaman
@@ -46,6 +53,7 @@ Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
 Elenda's Hierophant
+Elusive Krasis
 Esper Cormorants
 Fallaji Excavation
 Flame Spirit
@@ -60,7 +68,9 @@ Gustcloak Harrier
 Harmonic Prodigy
 Honor the God-Pharaoh
 Icatian Crier
+Igneous Golem
 In the Trenches
+Infiltrate
 Infused Arrows
 Island
 Juzám Djinn
@@ -77,22 +87,29 @@ Marionette Master
 Master Apothecary
 Midnight Scavengers
 Mindless Automaton
+Mirror Wall
 Monk Realist
 Mountain
 Mystifying Maze
 Olivia, Opulent Outlaw
+Organ Hoarder
+Paralyzing Grasp
 Phyrexian Etchings
 Plains
 Presence of Gond
 Presence of the Master
+Protomatter Powder
 Pumpkin Bombs
 Quarrel's End
 Quest for Pure Flame
+Rhox Oracle
+Rootwater Commando
 Ruby Medallion
 Sandstorm Charger
 Scrubland
 Sejiri Shelter
 Shatterstorm
+Shimmering Mirage
 Shrieking Mogg
 Staunch Defenders
 Steadfast Paladin
@@ -102,12 +119,16 @@ Subira, Tulzidi Caravanner
 Suleiman's Legacy
 Supply Runners
 Swamp
+Tainted Indulgence
 Target Minotaur
 The Brute
 The Torment of Gollum
 Tithebearer Giant
+Towashi Guide-Bot
+Travel Preparations
 Vanquish the Foul
 Voices from the Void
+Walking Archive
 Whisper Squad
 Wildfire Emissary
 Will-o'-the-Wisp

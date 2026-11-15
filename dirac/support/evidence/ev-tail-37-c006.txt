@@ -49,10 +49,13 @@ Dire Mimic
 Dragon Moose
 Dreadhorde Twins
 Drogskol Cavalry
+Dryad Sophisticate
+Dual Shot
 Earth-Cult Elemental
 Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
+Eldrazi Linebreaker
 Elenda's Hierophant
 Enlisted Wurm
 Fallaji Excavation
@@ -73,6 +76,7 @@ Havi, the All-Father
 Heartbeat of Spring
 Honor the God-Pharaoh
 Icatian Crier
+Igneous Golem
 In the Trenches
 Infiltrate
 Infused Arrows
@@ -104,6 +108,7 @@ Organ Hoarder
 Paralyzing Grasp
 Phyrexian Etchings
 Plains
+Pradesh Gypsies
 Presence of Gond
 Presence of the Master
 Protomatter Powder
@@ -138,6 +143,7 @@ The Brute
 The Torment of Gollum
 Tithebearer Giant
 Towashi Guide-Bot
+Travel Preparations
 Undergrowth Scavenger
 Vanquish the Foul
 Voices from the Void

@@ -7,6 +7,7 @@ Argivian Phalanx
 Birthing Ritual
 Bloodcrazed Paladin
 Boil
+Boltwing Marauder
 Breakneck Berserker
 Canal Dredger
 Coalhauler Swine
@@ -43,6 +44,7 @@ Masked Admirers
 Melira, the Living Cure
 Mending Touch
 Mind Control
+Minister of Pain
 Mountain
 Mystic Visionary
 Necrogen Scudder
@@ -55,9 +57,11 @@ Plains
 Regal Unicorn
 Relic Golem
 Sakura-Tribe Springcaller
+Shivan Zombie
 Sporeweb Weaver
 Starlit Angel
 Swamp
 Teyo, the Shieldmage
 Treacherous Werewolf
 Trumpeting Herd
+Tymaret, the Murder King

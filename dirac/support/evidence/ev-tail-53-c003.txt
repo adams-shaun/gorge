@@ -45,6 +45,7 @@ Kabuto Moth
 Kitchen Imp
 Lava Dart
 Leyline Binding
+Llanowar Dead
 Lose Hope
 Man-o'-War
 Marauder's Axe

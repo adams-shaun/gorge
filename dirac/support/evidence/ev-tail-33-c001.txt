@@ -1,27 +1,44 @@
 A-Akki Ronin
+A-Guide of Souls
+A-Oran-Rief Ooze
+A-Urza, Powerstone Prodigy
 A-Vampire Scrivener
+Abzan Advantage
 Accursed Horde
 Advanced Stitchwing
+Aether Vial
+Afterlife Insurance
 Aftershock
 Aim High
+Ancestral Knowledge
 Animal Boneyard
 Anowon, the Ruin Thief
+Arcane Investigator
 Arcum Dagsson
 Ardent Elementalist
+Armorcraft Judge
 Ashmouth Hound
 Atraxa's Fall
 Audacity
+Autumnal Gloom
+Avaricious Dragon
 Azusa, Lost but Seeking
+Baboon Spirit
 Bag End Porter
 Belligerent Brontodon
 Belligerent Hatchling
 Blighted Agent
 Blood Divination
+Bonded Herdbeast
+Bontu the Glorified
+Bramblecrush
+Briarpack Alpha
 Bringer of the Green Dawn
 Broodhatch Nantuko
 Call of the Wild
 Call to Mind
 Canopy Baloth
+Carnival of Souls
 Carrion Grub
 Casey Jones, Asphalt Hooligan
 Caustic Caterpillar
@@ -30,6 +47,9 @@ Citywatch Sphinx
 Commander Greven il-Vec
 Confront the Unknown
 Consult the Necrosages
+Coordinated Assault
+Cordial Vampire
+Crawl from the Cellar
 Creakwood Ghoul
 Cruel Cut
 Cruel Deceiver
@@ -39,6 +59,9 @@ Davriel, Rogue Shadowmage
 Deadly Recluse
 Death Pulse
 Death Tyrant
+Deathbloom Thallid
+Demonic Lore
+Depose
 Despondent Killbot
 Destroy Evil
 Destructive Digger
@@ -46,6 +69,7 @@ Dewdrop Spy
 Dire Tactics
 Dovescape
 Draconic Destiny
+Dread Warlock
 Drelnoch
 Dross Golem
 Dwarven Priest
@@ -56,52 +80,69 @@ Earthshape
 Ebony Charm
 Ebony Horse
 Electric Revelation
+Ember-Eye Wolf
+Eternal Taskmaster
 Ethereal Absolution
 Extinction
 Fallaji Dragon Engine
 False Peace
 Ferocious Pup
+Feroz's Ban
 Fill with Fright
 Final Flourish
 Flame Elemental
 Flip the Switch
+Force Spike
 Forest
+Freejam Regent
 Furious Resistance
 Furnace Gremlin
+Gearsmith Prodigy
+Gleam of Authority
 Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
 Gwaihir, Greatest of the Eagles
 Harvesttide Infiltrator
+Hazoret's Monument
 History of Benalia
 Honor's Reward
 Howling Fury
 Hurloon Shaman
 Inexorable Tide
 Inner Fire
+Innocent Traveler
+Invasive Species
 Ire of Kaminari
+Ironclad Revolutionary
 Island
 Jabs, Mistress of Mockery
 Jace's Triumph
 Jaspera Sentinel
+Jhoira's Familiar
 Katara, Heroic Healer
 Kavu Aggressor
 Kindly Stranger
 Kird Chieftain
 Kor Line-Slinger
 Kozilek's Unsealing
+Krark-Clan Grunt
 Land Grant
 Leaden Fists
 Legolas Greenleaf
 Lightfoot Rogue
+Lightning Elemental
+Liliana's Influence
 Looming Altisaur
+Lumengrid Sentinel
 Lunk Errant
 Magistrate's Scepter
 Manabond
 Marauding Boneslasher
 Marauding Knight
 Mass Hysteria
+Memorial to Folly
 Military Intelligence
 Mindless Conscription
 Ministrant of Obligation
@@ -111,15 +152,20 @@ Mox Amber
 Murder Investigation
 Myr Enforcer
 Mystery Key
+Nath's Buffoon
 Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
+Never
 Noxious Grasp
+Nyxathid
 Obelisk of Naya
 Olivia's Wrath
 Opal Champion
 Oran-Rief Recluse
+Ordeal of Erebos
 Overgrowth
+Pashalik Mons
 Pegasus Refuge
 Phantom Nishoba
 Phoenix Chick
@@ -127,12 +173,17 @@ Photon, Mighty Marvel
 Pincher Beetles
 Plague Dogs
 Plains
+Pride Guardian
 Psychotic Fury
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quirion Dryad
+Reckoner's Bargain
 Redemption Choir
 Rending Volley
+Reverent Hunter
+Rewind
 Rhys the Redeemed
 Rip Apart
 Rona, Disciple of Gix
@@ -140,6 +191,7 @@ Royal Falcon
 Ruin Crab
 Sage's Knowledge
 Saltblast
+Saruman the White
 Scab-Clan Charger
 Scholar of Combustion
 Scion of Stygia
@@ -147,14 +199,19 @@ Scourge of the Undercity
 Sea God's Revenge
 Sea Snidd
 Seasoned Hallowblade
+Seed Guardian
 Selesnya Sagittars
 Showstopping Surprise
 Shred Memory
 Shredded Sails
+Shu Grain Caravan
 Sibling Rivalry
+Sifter of Skulls
 Sisay's Ring
+Skizzik Surger
 Skyclave Relic
 Skyreaping
+Sling-Gang Lieutenant
 Smoldering Efreet
 Smuggler's Copter
 Solar Blast
@@ -163,34 +220,54 @@ Spearpoint Oread
 Spectral Deluge
 Spirit Bonds
 Spiteful Sliver
+Spore Cloud
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
 Swamp
+Temporal Machinations
 The First Iroan Games
 The Marvelous Scientist
 The Squadron Sinister
 Thought Monitor
+Thraben Foulbloods
 Thresher Lizard
 Tin Street Hooligan
+Tin-Wing Chimera
 Trained Armodon
+Tranquil Path
 Traverse the Outlands
+Tree of Tales
 Trespasser's Curse
+Two-Headed Dragon
 Uktabi Faerie
+Umezawa's Charm
 Unchecked Growth
+Undead Servant
 Undo
+Unyaro Bee Sting
+Urborg Shambler
 Utvara Scalper
 Verdant Crescendo
 Victorious Destruction
+Vinelasher Kudzu
 Viridian Zealot
 Viscera Dragger
+Voidwielder
+Vulshok War Boar
 Wall of Roots
 Wall of Wonder
 Wand of the Elements
+Warden of the Wall
 Warren Instigator
 Wave Goodbye
+Wayward Swordtooth
+Weatherseed Totem
 Wei Infantry
 Weird Harvest
 Winter Soldier, Bucky Barnes
 Witch's Cottage
+You Look Upon the Tarrasque
+Yuan Shao, the Indecisive
+Yuriko, the Tiger's Shadow
 Zulaport Duelist

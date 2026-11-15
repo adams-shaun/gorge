@@ -48,10 +48,12 @@ Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darksteel Ingot
 Daxiver, Izzet Electromancer
 Delayed Blast Fireball
 Devoted Paladin
 Devout Monk
+Disciple of Kangee
 Diviner's Lockbox
 Donatello's Science Lesson
 Dross Hopper
@@ -59,12 +61,18 @@ Drove of Elves
 Drowsing Tyrannodon
 Durkwood Tracker
 Echoes of the Kin Tree
+Eddytrail Hawk
 Eiganjo Free-Riders
 Elderfang Disciple
 Elite Archers
+Elven Chorus
 Elven Lyre
+Epic Proportions
 Equestrian Skill
 Erkenbrand, Lord of Westfold
+Errand-Rider of Gondor
+Essence Extraction
+Eternal Isolation
 Evolution Charm
 Explosive Impact
 Eyeblight Massacre
@@ -76,7 +84,9 @@ Fell Stinger
 Final-Sting Faerie
 Forest
 Fountain Watch
+Generous Pup
 Gift of Growth
+Gnarled Effigy
 Goblin Sharpshooter
 Green Sun's Zenith
 Gut Shot
@@ -84,6 +94,7 @@ Guul Draz Overseer
 Heedless One
 Helldozer
 Hellraiser Goblin
+Hibernation Sliver
 Highland Giant
 Highspire Mantis
 Hill Giant
@@ -107,6 +118,7 @@ Keldon Vandals
 Kessig Dire Swine
 Kithkin Billyrider
 Knight of Sorrows
+Kobolds of Kher Keep
 Kratos, Stoic Father
 Kraul Foragers
 Krenko, Tin Street Kingpin
@@ -117,17 +129,20 @@ Let the Galaxy Burn
 Leveler
 Leyline Invocation
 Lightning Elemental
+Living Wish
 Long-Lost Lances
 Loxodon Mystic
 Magus of the Future
 Make Mischief
 Mana Seism
+Master Splicer
 Migloz, Maze Crusher
 Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
 Moldgraf Millipede
 Monastery Swiftspear
+Mosstodon
 Most Wanted
 Mountain
 Mwonvuli Ooze
@@ -139,6 +154,7 @@ Nomad Mythmaker
 Onyx Mage
 Oxidda Finisher
 Paradigm Shift
+Parapet Watchers
 Path of Discovery
 Plaguemaw Beast
 Plains
@@ -172,6 +188,7 @@ Robber Fly
 Rorix Bladewing
 Rosecot Knight
 Roving Harper
+Royal Falcon
 Rural Recruit
 Salvage Titan
 Sandsteppe War Riders
@@ -216,6 +233,7 @@ Swamp
 Swift Maneuver
 Synchronous Sliver
 Syphon Sliver
+Tegan Jovanka
 Terramorph
 Teysa, Orzhov Scion
 The Hive
@@ -224,8 +242,10 @@ Thor, Asgard's Avenger
 Thornscape Apprentice
 Thundering Tanadon
 Thunderous Wrath
+Thunderwolf Cavalry
 Thwart
 Tormented Hero
+Touch of Brilliance
 Tourach's Canticle
 Tresserhorn Sinks
 Ulrich's Kindred
@@ -237,6 +257,7 @@ Verdant Force
 Vulshok Battlegear
 Vulshok War Boar
 Wall Off
+Wall of Mist
 Warbeast of Gorgoroth
 Wight
 Workshop Assistant

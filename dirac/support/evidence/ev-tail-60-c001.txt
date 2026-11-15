@@ -98,6 +98,7 @@ Gutless Ghoul
 Hag of Syphoned Breath
 Harrow
 Healing Salve
+Healing Technique
 Highland Game
 Hopeful Eidolon
 Icatian Scout
@@ -131,6 +132,7 @@ Mishra's Domination
 Mistmeadow Skulk
 Mogg Mob
 Molder Slug
+Momir Vig, Simic Visionary
 Monstrify
 Morgue Burst
 Morkrut Banshee

@@ -1,10 +1,15 @@
+A-Skemfar Avenger
+Abstergo Entertainment
 Aether Herder
 Air Marshal
 Airdrop Condor
+Aisling Leprechaun
 Ajani Goldmane
 Akki Battle Squad
 Alliance of Arms
+Alpine Watchdog
 Ambassador Laquatus
+Ancient Ziggurat
 Angel's Feather
 Armored Galleon
 Arno Dorian
@@ -12,164 +17,285 @@ Arrest
 Asceticism
 Ashen Firebeast
 Assault Griffin
+Atmosphere Surgeon
 Atraxi Warden
+Avacynian Missionaries
 Avatar of Fury
+Aven Cloudchaser
 Aven Fateshaper
 Aven Windreader
+Axebane Stag
 Ayula's Influence
 Barbed Battlegear
 Barishi
+Baru, Fist of Krosa
 Behold the Unspeakable
 Berserkers' Onslaught
 Bilbo's Ring
 Bile Urchin
+Blacklance Paragon
 Bladed Sentinel
+Blight Titan
+Blister Beetle
 Blood Price
 Blood Reckoning
+Bloodline Shaman
 Boggart Brute
 Boggart Harbinger
+Boiling Blood
 Boneknitter
 Boros Mastiff
+Brass Herald
 Breath Weapon
+Broken Fall
+Built to Last
+Cabal Ritual
 Call the Bloodline
 Casey Jones, Back Alley Brute
 Celestial Force
 Ceremonial Knife
+Chandra, Flamecaller
+Chrome Steed
+Cinder Glade
+Clockwork Condor
 Cloud Sprite
+Coat with Venom
 Cold-Water Snapper
 Combat Courier
 Command the Storm
+Commando Raid
+Compelled Duel
 Complete Disregard
+Compy Swarm
+Contact Other Plane
 Crater Hellion
 Crushing Canopy
+Crypt Angel
 Crypt Incursion
+Darkwatch Elves
 Daru Lancer
 Daybreak Charger
+Deflecting Swat
 Dense Canopy
 Desert Cerodon
+Disrupting Scepter
 Doctor Jane Foster
 Dwarfhold Champion
 Earth-Origin Yak
+El-Hajjâj
 Elemental Mastery
 Elephant Graveyard
 Emblem of the Warmind
+Engineered Plague
 Enormous Baloth
 Ensouled Scimitar
+Entomber Exarch
+Eron the Relentless
+Experimental Synthesizer
 Explore
 Extruder
+Fan Bearer
 Farmstead Gleaner
+Fearful Villager
 Fiery Conclusion
 Fighting Drake
+Fire Nation Archers
+Firebird, Blazing Ranger
+Flying Carpet
+Forcemage Advocate
 Forest
+Fortify
+Galadriel, Gift-Giver
 Gatekeeper Gargoyle
+Geistflame Reservoir
 Giant Warthog
+Gitaxian Raptor
+Gix's Caress
+Gix's Command
 Glint Hawk
 Goblin Gardener
 Goblin Glider
+Goblin Instigator
+Goblin Rally
 Goblin Recruiter
+Godo's Irregulars
 Gorilla Warrior
 Gruul Turf
 Guildpact Informant
+Gurmag Swiftwing
 Harabaz Druid
 Hawkeater Moth
 Heaven's Gate
 Hedonist's Trove
+Hedron Scrabbler
 Hematite Talisman
+Henge Guardian
 Heron's Grace Champion
 Hidden Gibbons
 Highspire Artisan
+Horned Turtle
+Horrifying Revelation
 Hound of Griselbrand
 Hour of Revelation
 Hulking Devil
 Hunt the Hunter
 Illusory Wrappings
 Imps' Taunt
+Inevitable End
 Inhumaniac
+Innistrad Charm
+Intrepid Hero
+Invasion of Mercadia
 Island
+Iwamori of the Open Fist
 Jeskai Windscout
+Jiang Yanggu, Wildcrafter
+Journeyer's Kite
 Juniper Order Ranger
 Junktroller
 Kavu Predator
+Kazandu Nectarpot
 Keymaster Rogue
+Killer Whale
 Knight of the White Orchid
+Kolaghan Skirmisher
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
+Liliana's Specter
 Linvala, Keeper of Silence
 Llanowar Knight
+Lonesome Unicorn
+Lost Legion
 Loxodon Mender
 Macetail Hystrodon
 Maritime Guard
 Master Skald
+Mausoleum Guard
 Mechanized Warfare
+Merfolk Mistbinder
+Meria's Outrider
 Metathran Transport
+Meteor Blast
+Might Makes Right
 Millennial Gargoyle
 Minister of Inquiries
+Ministrant of Obligation
 Mire Boa
+Misfortune Teller
+Molly Hayes, Runaway
+Moonglove Extract
+Mossfire Valley
 Mountain
+Mtenda Lion
 Myrkul's Edict
+Narcolepsy
 Niall Silvain
+Night Market Lookout
 Nivix Barrier
+Obscura Storefront
 Okina, Temple to the Grandfathers
 Ongoing Investigation
 Orcish Hellraiser
+Oread of Mountain's Blaze
 Ornery Dilophosaur
 Ornery Goblin
+Orochi Eggwatcher
+Ossification
 Pack's Favor
+Patchwork Automaton
+Patriar's Seal
 Pawn of Ulamog
 Pillardrop Warden
 Plains
 Preordain
+Prismatic Lens
+Prized Unicorn
 Rath's Edge
+Reprobation
 Returned Reveler
 Riptide Turtle
 Rise from the Grave
 Ritual of Rejuvenation
+Riveteers Overlook
+Rock Badger
+Rot Wolf
 Salvaged Manaworker
 Samwise Gamgee
+Sand Silos
 Sardian Avenger
 Sea Eagle
 Sea Gate Restoration
+Seal of Primordium
 Searing Wind
 Seething Landscape
 Seismic Mage
 Selfless Savior
 Serpentine Ambush
+Shared Trauma
 Shattering Pulse
 Shuri, the Black Panther
 Sidewinder Naga
+Siege Mastodon
 Siegehorn Ceratops
+Sliver Construct
 Smash
 Solarion
+Somberwald Sage
 Sonic Seizure
 Sowing Mycospawn
 Spark Elemental
 Spark Jolt
 Starlit Angel
 Stomp and Howl
+Stone Quarry
 Storm, Shaker of Skies
 Story Seeker
+Sunflare Shaman
 Sunrise Seeker
+Sunseed Nurturer
 Swamp
 Symbiote Spawn
 Tenement Crasher
 The Lady of the Mountain
+Thran Foundry
 Thunderclap
 Thunderscape Apprentice
+Timely Interference
+Toils of Night and Day
+Tortured Existence
+Towering Gibbon
 Treetop Sentinel
+Tricks of the Trade
+Trollhide
+Trusty Machete
 Turn to Slag
 Twilight Prophet
 Twinblade Slasher
+Twins of Maurer Estate
+Twisted Spider-Clone
+Two-Handed Axe
+Umezawa's Jitte
 Universal Automaton
+Valor of the Worthy
 Vampirism
+Vebulid
 Vengeful Devil
+Verdant Sun's Avatar
+Viashino Branchrider
 Vincent, Vengeful Atoner
 Vine Mare
 Viridian Acolyte
+Visionary Augmenter
+Volunteer Militia
+Vow of Flight
 Wall of Earth
 Wall of Mulch
+Wall of Resistance
 Warden of Geometries
 Warriors' Lesson
+Welcoming Vampire
+Whalebone Glider
 Whiptongue Frog
 Winding Canyons
 Woodweaver's Puzzleknot

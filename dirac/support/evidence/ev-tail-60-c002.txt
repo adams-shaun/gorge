@@ -3,6 +3,7 @@ Aethersquall Ancient
 Alabaster Mage
 Algorithmic Ferocity
 Anaba Shaman
+Ant Queen
 Arachnus Web
 Arcane Proxy
 Armored Wolf-Rider
@@ -26,6 +27,7 @@ Catacomb Crocodile
 Centaur Nurturer
 Cerulean Wisps
 Child of Gaea
+Cho-Manno, Revolutionary
 Contentious Plan
 Cosmic Hunger
 Crowd's Favor
@@ -114,7 +116,9 @@ One with the Machine
 Pact of the Titan
 Plains
 Political Trickery
+Power Plant Worker
 Quirion Trailblazer
+Rakdos Guildmage
 Reckless Ogre
 Reject
 Repudiate
@@ -155,6 +159,7 @@ Tymaret, Chosen from Death
 Tymora's Invoker
 Uktabi Efreet
 Veiled Shade
+Vesper Ghoul
 Vexilus Praetor
 Vizkopa Vampire
 Voice of Duty
@@ -162,3 +167,4 @@ Watertrap Weaver
 White Shield Crusader
 Windbrisk Raptor
 Wreck and Rebuild
+Yellow Scarves Troops

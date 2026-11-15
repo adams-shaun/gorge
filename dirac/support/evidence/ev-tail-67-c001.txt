@@ -6,6 +6,7 @@ Against All Odds
 Akki Underminer
 Akrasan Squire
 Akroan Crusader
+Angelic Field Marshal
 Angelic Renewal
 Aquatic Incursion
 Archaeomender
@@ -23,14 +24,18 @@ Buried Alive
 Burn the Impure
 Butcher Ghoul
 Cao Cao, Lord of Wei
+Caravan Escort
+Chain Lightning
 Chakram Slinger
 Cogwork Assembler
 Commissar Severina Raine
 Corpse Knight
+Corsairs of Umbar
 Cosmos Elixir
 Courier's Capsule
 Crop Rotation
 Culling Mark
+Custodi Soulbinders
 Daring Fiendbonder
 Dauntless Survivor
 Deathless Angel
@@ -39,11 +44,14 @@ Deepwood Ghoul
 Deft Dismissal
 Demon's Grasp
 Demonic Rising
+Dismantling Blow
 Domri, Anarch of Bolas
 Drag Down
 Dramatic Reversal
 Dynavolt Tower
 Earthen Goo
+Eidolon of Rhetoric
+Eivor, Battle-Ready
 Erratic Visionary
 Essence Warden
 Eternal Witness
@@ -51,6 +59,7 @@ Everglades
 Expansion
 Explosive Welcome
 Fain, the Broker
+Femeref Healer
 Firebird, Blazing Ranger
 Flametongue Kavu
 Fleetfeather Sandals
@@ -64,6 +73,7 @@ Glittermonger
 Glory Bearers
 Gluttonous Zombie
 Go Forth
+Golden Egg
 Grazilaxx, Illithid Scholar
 Grim Monolith
 Hadran, Naya Sunseeder
@@ -72,12 +82,14 @@ Hanabi Blast
 Hanna, Ship's Navigator
 Helm of the Ghastlord
 Hemlock Vial
+Hidden Blade
 Honed Khopesh
 Hooting Mandrills
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
 Hydra's Growth
+Implement of Ferocity
 Inkrise Infiltrator
 Inspiring Refrain
 Iroas's Champion
@@ -89,6 +101,7 @@ Ken, Burning Brawler
 Khalni Gem
 Kirtar's Wrath
 Kiyomaro, First to Stand
+Kor Castigator
 Leafkin Druid
 Leather Armor
 Lightning Reaver
@@ -107,6 +120,7 @@ Mise
 Misery's Shadow
 Mogis's Warhound
 Moonlight Hunt
+Mortal's Ardor
 Moss Monster
 Mountain
 Murkfiend Liege
@@ -118,6 +132,7 @@ Neurok Familiar
 Nezumi Bladeblesser
 Norn's Disassembly
 Oblation
+Orim's Touch
 Pentarch Ward
 Plains
 Pol Jamaar, Illusionist
@@ -125,7 +140,9 @@ Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
 Python
+Quest for Pure Flame
 Rage Weaver
+Rally to Battle
 Ravos, Soultender
 Ray of Erasure
 Reality Ripple
@@ -134,12 +151,14 @@ Reduce to Ashes
 Relic Barrier
 Revelation of Power
 Rustrazor Butcher
+Samite Pilgrim
 Savra, Queen of the Golgari
 Scavenged Blade
 Scion of Vitu-Ghazi
 Searing Barb
 Sentinel Sliver
 Skullknocker Ogre
+Sky Terror
 Slinking Giant
 Slobad, Goblin Tinkerer
 Sol Grail
@@ -148,10 +167,12 @@ Spined Fluke
 Squee's Embrace
 Stormcrag Elemental
 Stormrider Rig
+Summon: Good King Mog XII
 Swamp
 Talons of Falkenrath
 Talons of Wildwood
 Temmet, Vizier of Naktamun
+Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara
 Thorn Thallid
@@ -160,14 +181,17 @@ Thrór's Map
 Thunder Drake
 Thwart the Grave
 Titan's Strength
+Topan Freeblade
 Tormod's Cryptkeeper
 Tranquil Path
+Transcendent Master
 Troublesome Spirit
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
 Unholy Hunger
 Urza's Cave
+Viashino Fangtail
 Vine Trellis
 Warped Devotion
 Way of the Thief
@@ -178,6 +202,7 @@ Wirecat
 Woodland Liege
 Wrath of Oko
 You Look Upon the Tarrasque
+Young Blue Dragon
 Zenith Festival
 Zephyr Falcon
 Zodiac Ox

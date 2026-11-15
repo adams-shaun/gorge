@@ -27,9 +27,11 @@ Douser of Lights
 Drana's Chosen
 Edea, Possessed Sorceress
 Elemental Uprising
+Elven Warhounds
 Entomber Exarch
 Erratic Cyclops
 Evolved Sleeper
+Eyekite
 Fandaniel, Telophoroi Ascian
 Ferropede
 Finishing Blow
@@ -61,6 +63,7 @@ Inquisitive Puppet
 Invoke Despair
 Island
 Joven
+Lagac Lizard
 Lamentation
 Maestros Initiate
 Major Teroh
@@ -78,6 +81,7 @@ Offalsnout
 Overload
 Pangosaur
 Paradise Druid
+Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains
