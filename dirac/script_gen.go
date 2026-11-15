@@ -278,7 +278,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&castMayPlay == 0 && k.t.Cards[s.objs[Obj(a.Source())].card].HasMultikicker {
 			continue // nor for a Multikicker card's plain cast: gorge's planner declines the face (payment_plan.go "shape:optional_cost"), so a plain cast only a census gap pays is not offered (Gnarlid Pack beside Jaspera Sentinel); the multikicked cast keeps its own offer gate (legal_walk_hand.go phMultikicker)
 		}
-		if s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd || s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) {
+		if s.scriptShapeSkip(k, p, a) {
 			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
 		}
 		kk := s.walkKey(a, p, i)
@@ -769,6 +769,16 @@ func (s *State) contribCast(k *prep, p uint8, a Action) bool {
 	}
 	o := Obj(a.Source())
 	return s.contribPays(k, p, s.objs[o].card, o, s.objs[o].zone == kop.ZoneHand)
+}
+
+// scriptShapeSkip is scriptOffers' shape skip for the cast a: an exile,
+// forage, return, blight or evidence part (shape:additional_cost;
+// objPartCast) beside no either-or pay, or a contribution cast (shape:
+// contribution; kw_delve.go contribPays) whose credit is empty (improvise
+// alone, improviseAloneCast) still goes to gorge's prefix search.
+func (s *State) scriptShapeSkip(k *prep, p uint8, a Action) bool {
+	return s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd ||
+		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a)
 }
 
 // improviseAloneCast reports whether a plain cast of p's card c carries
