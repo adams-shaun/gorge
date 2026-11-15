@@ -114,7 +114,7 @@ func (s *State) frozenDealtSync(k *prep, r *dmgRec, ev *dmgEv) bool {
 		return true // dealt, nothing frozen to align with (none expected)
 	}
 	n := int(fe.n)
-	code := PlayerCode(ro.apl)
+	code := PlayerCode(CodeSeat(s.perms[ev.src].atk)) // the player the source attacks (replCombatGen's)
 	if ev.dst != NoSlot {
 		code = TCode(s.perms[ev.dst].obj)
 	}

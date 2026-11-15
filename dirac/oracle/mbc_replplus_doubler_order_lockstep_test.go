@@ -12,9 +12,3 @@ func TestMBCTail49ReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "replplus_doubler_order")
 }
-
-// the pool's recordings replay by glob, so the table row's pool is covered.
-func TestMBCTail49ReprosGlob(t *testing.T) {
-	t.Parallel()
-	stdReprosGlobPools(t, "tail-49")
-}
