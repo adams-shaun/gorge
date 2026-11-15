@@ -173,6 +173,22 @@ func (s *State) dredgeTurnAnswer(k *prep, a Action) {
 
 // --- OpDraw ---
 
+// drawOp is OpDraw: in.A cards for each player in.Obj names; in a dredge
+// table each card asks first (dredgeDraws). false: an ask is posed.
+func (s *State) drawOp(k *prep, in *kop.Instr) bool {
+	if dredgeOn(k) {
+		return s.dredgeDraws(k, in)
+	}
+	q := s.players(k, in.Obj)
+	n := s.value(k, in.A)
+	for i := uint8(0); i < q.n; i++ {
+		for j := 0; j < n && !s.over; j++ {
+			s.dredgeDrawOne(in, q.s[i])
+		}
+	}
+	return true
+}
+
 // dredgeDraws is OpDraw in a dredge table: in.A cards for each player in.Obj
 // names, each card asked first when its player has a candidate; false: an
 // ask is posed.
@@ -208,7 +224,8 @@ func (s *State) dredgeDrawLoop(k *prep, in *kop.Instr, p uint8, left int, rest u
 	}
 }
 
-// dredgeDrawOne is one card of OpDraw: RememberDrawn$ draws remember.
+// dredgeDrawOne is one card of OpDraw: RememberDrawn$ draws remember
+// (zone_rememberwrites.go).
 func (s *State) dredgeDrawOne(in *kop.Instr, p uint8) {
 	if in.C&kop.MvRemember != 0 {
 		s.drawRemember(p, in.C&kop.DrawRememberAll != 0)
