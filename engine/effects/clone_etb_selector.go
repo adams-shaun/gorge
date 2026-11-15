@@ -63,9 +63,31 @@ func CloneETBOffered(sa *cards.SA, svars map[string]string) bool {
 	if !cp.ETBShapeOK || (SpecNeedsResolver(cp.Choices) && !CloneETBSpendSelector(cp.Choices, svars)) {
 		return false
 	}
+	// The own-P/T exception's SVar-table half: a non-literal SetPower$ /
+	// SetToughness$ name (the text half admitted the bare-name shape) is
+	// offered only when the carrier's table resolves it to exactly
+	// Count$CardPower (power) / Count$CardToughness (toughness) -- Hulking
+	// Metamorph's "its power and toughness are equal to CARDNAME's power
+	// and toughness", the entering object's own characteristic read before
+	// the copy overwrites it (CR 707.9b). Any other body (Living Lore's
+	// Remembered$CardManaCost, Thunderbond Vanguard's
+	// Count$Valid Creature.YouCtrl) keeps the body withheld.
+	for _, own := range [...]struct {
+		pt   ParamText
+		want string
+	}{{cp.SetPower, "Count$CardPower"}, {cp.SetToughness, "Count$CardToughness"}} {
+		if _, literal := literalInt(own.pt); !own.pt.Present || literal {
+			continue
+		}
+		body, ok := svars[strings.TrimSpace(own.pt.Text)]
+		if !ok || strings.TrimSpace(body) != own.want {
+			return false
+		}
+	}
 	// A SubAbility$ chain is offered only as Altered Ego's "enters with X
-	// additional +1/+1 counters" rider or Superior Spider-Man's reflexive
-	// exile (CloneETBSubChainOK).
+	// additional +1/+1 counters" rider, Superior Spider-Man's reflexive
+	// exile, or Undercover Operative's condition-gated shield counter
+	// (CloneETBSubChainOK).
 	if !CloneETBSubChainOK(sa, svars) {
 		return false
 	}
