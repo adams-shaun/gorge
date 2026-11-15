@@ -1,9 +1,12 @@
 A-Young Red Dragon
 Abandon the Post
 Absolute Grace
+Abyssal Nocturnus
+Ace, Fearless Rebel
 Acidic Sliver
 Aether Figment
 Aether Rift
+Aid the Fallen
 Akoum Hellhound
 Alpha Kavu
 Anaba Bodyguard
@@ -13,35 +16,48 @@ Animate Land
 Appa, Aang's Companion
 Arden Angel
 Ardenvale Tactician
+Armored Galleon
 Aspiring Aeronaut
 Aveline de Grandpré
 Azusa, Lost but Seeking
 Badlands
+Balance of Power
+Baleful Force
 Beanstalk Giant
 Beast Mode
 Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
 Blazing Sunsteel
+Blitz Leech
 Bob, Reluctant HYDRA Agent
 Bonded Fetch
 Boon-Bringer Valkyrie
+Bouncer's Beatdown
 Bow of Nylea
 Breathstealer
+Brilliant Halo
 Builder's Blessing
+Burst of Energy
 Bygone Bishop
+Cackling Counterpart
 Capashen Knight
 Cathars' Crusade
+Censor
 Charix, the Raging Isle
 Chitinous Cloak
+Citanul Stalwart
 Clavileño, First of the Blessed
 Cliff Threader
 Collective Voyage
 Commune with Lava
+Consul's Shieldguard
 Containment Membrane
 Contemplation
 Conversion Chamber
+Corrupt Eunuchs
 Court of Grace
+Crater Hellion
 Crawling Chorus
 Crucible of Fire
 Cryptic Serpent
@@ -56,10 +72,14 @@ Deadly Rollick
 Demonic Bargain
 Demonic Lore
 Demotion
+Desecration Plague
 Disperse
 Divine Light
 Doom's Servo-Guards
+Dovin's Veto
+Dragon's Presence
 Draining Whelk
+Drake Haven
 Drake-Skull Cameo
 Dreadbore
 Dream Cache
@@ -72,14 +92,20 @@ Eliminate
 Elvish Berserker
 Elvish Mystic
 Emancipation Angel
+End Hostilities
 Environmental Sciences
 Evolution Witness
 Excommunicate
+Exiled Boggart
 Expose to Daylight
 Eyeless Watcher
+Ezzaroot Channeler
 Fallen Ideal
 Fiendslayer Paladin
+Final Revels
+Firescreamer
 Flowstone Charger
+Flowstone Surge
 Flowstone Wall
 Flusterstorm
 Fodder Tosser
@@ -91,63 +117,83 @@ Fry
 Fuming Effigy
 Gateway Plaza
 Gelatinous Genesis
+Ghost-Lit Redeemer
 Gift of Strength
 Gimli's Fury
 Glamorous Grapplers
+Gnoll Hunter
 Goblin Masons
 Goblin Piledriver
+Gorehorn Minotaurs
 Gravedig
 Greatsword
 Green Sun's Zenith
+Grizzly Fate
+Gruesome Scourger
+Hall Monitor
 Hanged Executioner
 Heavenly Qilin
 Hedron Crab
 Hellkite Charger
+Hexgold Hoverwings
 Highland Berserker
 Highland Game
 Hookblade
+Hope-Ender Coatl
 Hunted Phantasm
 Hurl Through Hell
 Icatian Lieutenant
 Illusionary Forces
 Imperial Outrider
+Imperial Recovery Unit
 Increasing Savagery
 Indoctrination Attendant
+Inkrise Infiltrator
 Inquisition of Kozilek
 Insidious Bookworms
+Inspiring Roar
 Iron Tusk Elephant
 Island
 Jaddi Offshoot
 James, Wandering Dad
 Joraga Auxiliary
+Juzám Djinn
 Kangee, Sky Warden
 Kessig Wolf
+Knight of Obligation
+Knight-Errant of Eos
 Kodama of the West Tree
 Kor Hookmaster
 Kragma Butcher
 Krark-Clan Shaman
 Lantern of the Lost
 Lashwrithe
+Lathnu Sailback
 Leering Emblem
 Leyline of Sanctity
 Lifelink
+Liliana's Reaver
 Living Lies of Loki
 Loathsome Chimera
 Loch Korrigan
 Lurking Crocodile
 Mage Slayer
+Magus of the Mind
 Malevolent Rumble
 Managorger Hydra
 Markov Crusader
 Marsh Boa
 Mausoleum Secrets
 Maze Behemoth
+Memory Plunder
 Mentor's Guidance
 Mercenary Informer
 Mercy Killing
 Merfolk Mesmerist
+Michelangelo, the Heart
 Midnight Charm
 Militant Monk
+Miming Slime
 Mind Rot
 Mirran Crusader
 Mirri, Cat Warrior
@@ -172,18 +218,25 @@ Olivia's Dragoon
 Omen of the Sea
 Opportunistic Dragon
 Order of Leitbur
+Order of the Ebon Hand
 Order of the Stars
 Oswald Fiddlebender
 Pain Seer
+Patron of the Arts
 Persistent Specimen
 Plains
 Plated Wurm
 Preening Champion
+Pride Sovereign
+Ragavan, Nimble Pilferer
+Ral, Storm Conduit
 Ramosian Sky Marshal
+Ravenous Lindwurm
 Reckless Racer
 Renegade Map
 Renegade Wheelsmith
 Resolute Watchdog
+Resurgent Belief
 Righteous Confluence
 Rishadan Pawnshop
 Rootbound Crag
@@ -199,29 +252,40 @@ Scarwood Bandits
 Scavenged Weaponry
 Scent of Cinder
 Scepter of Fugue
+Scissors Lizard
 Scorch the Fields
 Screeching Drake
 Sea Kings' Blessing
+Search the Premises
 Sentry Bot
 Shadowbeast Sighting
 Shattered Angel
+She-Hulk, Wallbreaker
 Shield-Wall Sentinel
 Shipwreck Moray
+Shockmaw Dragon
 Shu Yun, the Silent Tempest
 Siegfried, Famed Swordsman
 Sigil of Distinction
 Silvanus's Invoker
+Singer of Swift Rivers
 Singing Bell Strike
+Sire of the Storm
 Siren Song Lyre
+Skirsdag Flayer
 Skittering Crustacean
+Skyboon Evangelist
+Skyclave Relic
 Skysovereign, Consul Flagship
 Snooping Newsie
 Song of the Worldsoul
 Soulreaper of Mogis
 Spark Harvest
+Sprite Noble
 Squirrel Mob
 Steeple Creeper
 Stone Haven Pilgrim
+Stoneshock Giant
 Stormchaser Chimera
 Strider, Ranger of the North
 Stuffed Bear
@@ -231,6 +295,7 @@ Sunken Field
 Swamp
 Swamp Mosquito
 Terra Eternal
+Thalakos Deceiver
 The Mightstone and Weakstone
 Theft of Dreams
 Thopter Squadron
@@ -243,15 +308,22 @@ Treefolk Healer
 Tunneling Geopede
 Two-Headed Dragon
 Uchuulon
+Ulvenwald Oddity
 Unchained Berserker
 Unruly Mob
 Urza's Command
+Vandalize
 Vastwood Zendikon
 Vedalken Infuser
 Virulent Swipe
+Vodalian Wave-Knight
+Wall of Tears
+Waterlogged Teachings
 Well of Ideas
 Windbrisk Heights
+Winterthorn Blessing
 Woodland Druid
+Wormfang Behemoth
 Yellow Scarves General
 You Come to a River
 Zodiac Rat

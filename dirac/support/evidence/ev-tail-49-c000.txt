@@ -11,29 +11,40 @@ Akroan Hoplite
 Amphin Pathmage
 Amugaba
 Ancient Silver Dragon
+Ant-Man, Scott Lang
+Arc Mage
 Arc Spitter
 Arcanist's Owl
 Archivist
+Aria of Flame
 Ashling the Pilgrim
 Ashling, the Extinguisher
+Augmenting Automaton
 Augur of Bolas
 Avaricious Dragon
 Axegrinder Giant
 Bad Moon
+Batroc the Leaper
 Battle Mammoth
 Battlefly Swarm
+Benthic Behemoth
 Biomathematician
 Black Widow, Deadly Hunter
 Blightbeetle
 Blind Phantasm
+Blistering Barrier
 Bloodthrone Vampire
 Blurred Mongoose
 Boon Reflection
+Boros Swiftblade
+Briarhorn
 Briarpack Alpha
 Broodbirth Viper
 Bucky Barnes, Eager Ally
 Butcher's Cleaver
 Cacophony Unleashed
+Call the Cavalry
+Captain America, Steve Rogers
 Casting of Bones
 Catalog
 Centaur Glade
@@ -50,6 +61,7 @@ Circular Logic
 Citadel Gate
 Citanul Centaurs
 Clan Crafter
+Cobblebrute
 Coiling Oracle
 Corpse Connoisseur
 Countryside Crusher
@@ -59,6 +71,7 @@ Crimson Cowl, Master of Evil
 Cultist of the Absolute
 Cyberdrive Awakener
 Damping Matrix
+Daredevil's Billy Club
 Dark Bargain
 Darksteel Myr
 Daru Healer
@@ -83,11 +96,14 @@ Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Piper
+Elvish Promenade
 Elvish Scrapper
 Elvish Visionary
 Enduring Bondwarden
 Enlightened Ascetic
 Ent's Fury
+Escape Velocity
 Ever After
 Evernight Shade
 Exhaustion
@@ -99,17 +115,21 @@ Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
 Fated Retribution
+Fencing Ace
 Feral Appetite
 Ferocious Pup
 Fevered Strength
 Feywild Visitor
+Fiery Mantle
 Fissure Wizard
 Flame-Kin Zealot
+Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
 Forest
 Fortified Rampart
 Fountain of Youth
+Frenzied Gorespawn
 Frost Trickster
 Fungal Rebirth
 Gainsay
@@ -119,14 +139,17 @@ Gates of Istfell
 Geistblast
 Generous Stray
 Ghirapur Aether Grid
+Gibbering Barricade
 Glistener Elf
 Gloomdrifter
+Gnat Alley Creeper
 Goblin Marshal
 Goblin Skycutter
 Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
 Gravetiller Wurm
+Great Desert Prospector
 Greater Auramancy
 Greater Good
 Hagra Constrictor
@@ -141,6 +164,7 @@ Horrific Assault
 Howling Golem
 Humongulus
 Hunted Dragon
+Inferno Fist
 Inspired Fire
 Invigorating Boon
 Island
@@ -152,12 +176,16 @@ Jhessian Thief
 Junktroller
 Kaldra Compleat
 Karakas
+Kayla's Command
 Kei Takahashi
+Kessig Wolfrider
 Kiln Walker
 Kiss of Death
 Knickknack Ouphe
+Kor Cartographer
 Kor Entanglers
 Kor Outfitter
+Kuldotha Rebirth
 Lantern Spirit
 Lapis Lazuli Talisman
 Laquatus's Creativity
@@ -169,10 +197,14 @@ Long-Finned Skywhale
 Lu Su, Wu Advisor
 Lurking Roper
 Luxury Suite
+Magistrate's Veto
 Maned Serval
 Manic Scribe
 Manifold Key
 Manta Riders
+Mark of the Vampire
+Mask of Law and Grace
+Mass Hysteria
 Memory Plunder
 Merfolk Observer
 Metamorphic Wurm
@@ -202,8 +234,10 @@ Orochi Hatchery
 Oversold Cemetery
 Pallid Mycoderm
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
 Patch Up
+Peace Strider
 Perilous Forays
 Perilous Research
 Pillaging Horde
@@ -223,14 +257,19 @@ Rampaging Cyclops
 Raptor Companion
 Ravenous Demon
 Ray of Dissolution
+Razorgrass Ambush
 Reaping the Rewards
 Reaver Titan
 Red Ghost, Intangible Genius
 Refocus
 Renari, Merchant of Marvels
 Reverent Hoplite
+Rhystic Shield
 Righteous Cause
 Righteous Fury
+Rishkar's Expertise
+Roc Charger
+Rocksteady, Mutant Marauder
 Rootbreaker Wurm
 Runebound Wolf
 Runner's Bane
@@ -238,32 +277,44 @@ Rustvine Cultivator
 Sacred Fire
 Sage of Epityr
 Salt Road Quartermasters
+Sanctum of Stone Fangs
+Sandstorm Eidolon
 Sarpadian Simulacrum
 Saruman the White
 Sauroform Hybrid
 Saw It Coming
 Scale Blessing
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
 Secluded Glen
 Sedge Scorpion
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
+Serpent-Blade Assailant
 Shalai, Voice of Plenty
 Shao Jun
+Shape the Sands
+Shower of Coals
+Shriekmaw
 Sigarda, Heron's Grace
+Sigiled Paladin
 Silverquill Command
 Skinshifter
 Slaughterhorn
 Sleeper Agent
 Slippery Bogle
+Smelt
 So Shiny
 Soulshriek
 Spine of Ish Sah
 Squadron Hawk
+Squirrel Sanctuary
 Stinging Hivemaster
 Stone Catapult
+Stone Rain
 Stonefury
 Storm Fleet Sprinter
 Storm Skreelix
@@ -273,6 +324,7 @@ Stump Stomp
 Sunken City
 Supply Caravan
 Supreme Will
+Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
@@ -287,13 +339,18 @@ Taunting Arbormage
 Teeterpeak Ambusher
 Terrain Elemental
 The Rack
+Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Turn
+Twisted Embrace
+Ultimate Magic: Holy
 Untamed Might
 Vagrant Plowbeasts
 Vanquish the Weak
@@ -312,6 +369,7 @@ Wall of Essence
 Wall of Reverence
 Warlock Class
 Warpath
+Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
@@ -326,6 +384,7 @@ Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
+Xathrid Slyblade
 Xun Yu, Wei Advisor
 Yeva, Nature's Herald
 Zephyr Charge

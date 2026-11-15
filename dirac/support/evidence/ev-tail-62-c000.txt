@@ -1,4 +1,5 @@
 A-Mightstone's Animation
+A-Scout the Wilderness
 Active Volcano
 Aegis of the Gods
 Aether Inspector
@@ -9,10 +10,16 @@ Altar of Bone
 Ambition's Cost
 An-Zerrin Ruins
 Ancient Hydra
+Ancient Ooze
+Angel of the Dire Hour
 Anointed Procession
 Arborea Pegasus
 Archetype of Aggression
+Argivian Blacksmith
 Artifact Mutation
+Ashen Monstrosity
+Ashnod, Flesh Mechanist
+Atraxa's Fall
 Atsushi, the Blazing Sky
 Attended Healer
 Augury Owl
@@ -22,6 +29,7 @@ Azorius Herald
 Azorius Knight-Arbiter
 Bad Deal
 Bad Moon
+Balloon Peddler
 Battle Hurda
 Beastmaster's Magemark
 Beregond of the Guard
@@ -34,11 +42,15 @@ Bonded Fetch
 Book of Mazarbul
 Border Patrol
 Braidwood Sextant
+Breach the Multiverse
+Brute Suit
 Burnt Offering
 Cage of Hands
 Captain America, Liberator
 Captivating Crew
 Cateran Summons
+Caterwauling Boggart
+Chandra's Outrage
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
@@ -47,25 +59,40 @@ Copper Gnomes
 Coronation of Chaos
 Court Street Denizen
 Crashing Footfalls
+Cremate
 Crested Sunmare
 Crow Storm
 Cruel Cut
+Cruel Tutor
+Crumbling Colossus
 Crusade
+Cultivator of Blades
+Cumber Stone
 Dampening Pulse
 Dark Banishing
+Debt to the Kami
 Defabricate
 Desert of the True
 Desmond Miles
 Devilthorn Fox
+Devoted Hero
+Diligent Farmhand
 Dimir Charm
+Dire Tactics
 Disowned Ancestor
+Disruption Protocol
 Dragon Arch
+Dragon Moose
+Dragonlair Spider
 Dragonsoul Knight
 Ecologist's Terrarium
+Elder Spawn
 Elderleaf Mentor
 Elephant Ambush
+Elvish Harbinger
 Elvish Reclaimer
 Enlarge
+Ephara's Radiance
 Erinis, Gloom Stalker
 Essence Depleter
 Everett K. Ross, Hapless Attaché
@@ -74,6 +101,7 @@ Exhaustion
 Farbog Revenant
 Festerhide Boar
 Flame-Blessed Bolt
+Flare of Duplication
 Fleshtaker
 Force of Savagery
 Forest
@@ -82,23 +110,33 @@ Frilled Mystic
 Frontline Rebel
 Furnace Strider
 Fylamarid
+Gandalf, Shadow's Foe
 Gang of Devils
+Giant Caterpillar
 Gibbering Hyenas
 Gift of Estates
 Gimli, Mournful Avenger
+Gleam of Resistance
 Glint-Sleeve Artisan
 Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
 Grafted Skullcap
+Grandmother Sengir
+Grasping Current
 Grave Birthing
+Grisly Transformation
 Gristleback
+Grunn, the Lonely King
 Gustcloak Runner
+Hail Storm
 Heightened Reflexes
 Herd Baloth
+Hermit Druid
 Heron of Hope
 Hierophant's Chalice
 Hobgoblin Bandit Lord
+Howl of the Night Pack
 Huatli's Snubhorn
 Ichneumon Druid
 Illusory Ambusher
@@ -106,28 +144,42 @@ Inkfathom Infiltrator
 Inspiring Captain
 Insurrection
 Invasion of Moag
+Invasion of Zendikar
+Invigorating Falls
 Island
 Ixalli's Diviner
 Jandor's Saddlebags
+Judge Unworthy
 Juvenile Mist Dragon
+Kaijin of the Vanishing Touch
+Keening Apparition
+Keepsake Gorgon
 Kinsbaile Skirmisher
 Knighthood
 Kor Bladewhirl
 Krenko's Command
+Krosan Adaptation
+Krosan Groundshaker
 Kyoki, Sanity's Eclipse
 Kyren Negotiations
 Latch Seeker
 Lavastep Raider
+Leo's Guidance
 Level Up
+Lifeline
 Lumengrid Augur
+Ma Chao, Western Warrior
 Mad Prophet
 Maestros Theater
 Maggot Carrier
 Magistrate's Veto
+Mammoth Growth
 Mardu Runemark
 Mass Manipulation
 Matoc, Lavamancer
+Medusa, Inhuman Queen
 Memory Lapse
+Merfolk Skydiver
 Mesa Cavalier
 Metamorphic Wurm
 Midvast Protector
@@ -136,26 +188,35 @@ Minotaur Explorer
 Miraculous Recovery
 Mirari
 Mirran Mettle
+Mishra's Bauble
 Mishra's Command
 Mishra's Onslaught
+Mistveil Plains
+Misty Rainforest
 Molimo, Maro-Sorcerer
+Mosscoat Goriak
 Mountain
 Muddle the Mixture
 Myr Convert
 Mystic Meditation
+Nantuko Blightcutter
 Nantuko Disciple
 New Benalia
 Nimbus of the Isles
+Nissa's Pilgrimage
 Noble Panther
 Nocturnal Feeder
 Oakenform
+Oakheart Dryads
 Oboro Envoy
 Onslaught
 Oracle of Mul Daya
 Ornery Kudu
+Orochi Ranger
 Pack Mastiff
 Piercing Light
 Plains
+Plated Crusher
 Port of Karfell
 Prickleboar
 Primal Order
@@ -171,59 +232,97 @@ Ranger en-Vec
 Raven Guild Master
 Ravenous Sailback
 Ready to Rumble
+Recurring Insight
 Redcap Raiders
+Relic Axe
+Relic Golem
 Retreat to Kazandu
 Revenant
+Reward the Faithful
 Rimrock Knight
 Rishkar, Peema Renegade
 Rite of the Raging Storm
 Rodolf Duskbringer
+Ruin Ghost
 Ruinous Gremlin
 Rushwood Dryad
 Sachi, Daughter of Seshiro
 Sands of Delirium
+Sanguine Guard
 Sawblade Scamp
 Sawtooth Loon
 Scorched Rusalka
+Seedling Charm
+Seek the Horizon
+Seismic Shift
+Sejiri Shelter
 Selvala's Charge
 Sepulcher Ghoul
 Seraph of the Suns
 Serra Sphinx
+Serum Raker
 Serum Sovereign
+Setessan Starbreaker
 Sever the Bloodline
 Shadow Guildmage
+She-Hulk, Attorney-at-Law
+Sheltered Aerie
 Shivan Zombie
+Shoot Down
 Shoreline Ranger
 Shrapnel Blast
+Shriekgeist
+Shu Elite Infantry
+Silver Drake
 Silverclaw Griffin
+Simic Ragworm
+Skarrg, the Rage Pits
+Skophos Reaver
 Skycat Sovereign
 Skyclave Sentinel
+Slaughter Drone
 Snarling Undorak
 Soldevi Golem
+Soldevi Sage
 Soltari Trooper
 Soothing Balm
+Soratami Cloud Chariot
+Soulblade Renewer
 Space Marine Scout
 Spiketail Drake
 Sporecrown Thallid
 Springjaw Trap
 Sprite Noble
 Squirming Mass
+Staff of Zegon
 Steelfin Whale
 Stern Lesson
 Stoneforge Mystic
 Stormbind
 Stormchaser Mage
 Stronghold Confessor
+Subterranean Tremors
 Swamp
+Swarm Intelligence
+Sworn Guardian
+Sylvan Scrying
+Tainted Observer
+Tangle Golem
 Thalia, Guardian of Thraben
+The Bear Force Pilot
+The Binding of the Titans
+The Whizzer, Classic Speedster
 Thieving Magpie
+Thran Golem
 Thrasios, Triton Hero
+Thriving Turtle
 Thunderbolt
 Thwart
 Tidal Visionary
 Titania, Proud Pummeler
 Tivadar of Thorn
 Tomakul Honor Guard
+Totem-Guide Hartebeest
 Town Sentry
 Tragic Slip
 Triumph of Ferocity
@@ -234,8 +333,13 @@ Unleash Shell
 Uurg, Spawn of Turg
 Vampire's Zeal
 Vampiric Touch
+Vaporous Djinn
 Verdant Catacombs
+Vernal Bloom
+Vivien's Crocodile
 Volcanic Spite
 Weaver of Blossoms
+Weirded Vampire
 Wizard Class
+Yotian Medic
 Zodiac Snake

@@ -1,31 +1,47 @@
 A-Circle of the Land Druid
 A-Deal Gone Bad
 Advocate of the Beast
+Air Bladder
+Akki Battle Squad
 Alaborn Veteran
 Alchemist's Greeting
+All Is Dust
 Alpine Houndmaster
 Altar of the Goyf
 Ambuscade
 Ambush Viper
 Angel of Renewal
+Angelic Ascension
 Apocalypse Hydra
+Archaeomancer
+Archaeomender
 Arena Trickster
 Arm the Cathars
 Aspect of Mongoose
 Aura of Dominion
 Auriok Transfixer
+Aven Flock
 Baboon Spirit
+Banehound
+Bar the Door
 Barbarian General
+Battalion Foot Soldier
 Bayou Dragonfly
+Become the Avalanche
 Bedlam
+Beguiler of Wills
 Beledros Witherbloom
 Belle of the Brawl
 Big Bertha
 Bitter Downfall
 Blessed Orator
+Blight-Breath Catoblepas
 Blink of an Eye
+Blood Curdle
 Blood Servitor
+Bloodcrazed Paladin
 Bloodfire Expert
+Body of Knowledge
 Boiling Seas
 Bonded Horncrest
 Book of Mazarbul
@@ -36,66 +52,95 @@ Brushwagg
 Cadira, Caller of the Small
 Caldera Kavu
 Caltrops
+Captain Sisay
 Careless Celebrant
 Carnophage
 Carrion Crow
 Celestial Purge
 Cephalid Looter
+Chandra's Phoenix
 Charging Tuskodon
+Circular Logic
+City of Brass
 Civil Servant
 Clay Statue
 Clinging Anemones
 Clockwork Dragon
+Cloudpost
 Cloudreach Cavalry
 Coastal Piracy
 Cogwork Assembler
+Combat Research
 Concentrate
+Consul's Lieutenant
+Containment Breach
 Coralhelm Guide
 Corpse Harvester
 Counterintelligence
 Court Homunculus
 Cradle Clearcutter
 Crescendo of War
+Cruel Bargain
+Dark Favor
 Dark Remedy
 Daybreak Combatants
 Deathmask Nezumi
 Deathpact Angel
 Deer-Dog
+Desecrated Earth
 Desperate Plea
 Despoiler of Souls
 Devout Harpist
 Diligent Excavator
+Doctor Jane Foster
 Doorkeeper
+Dragonloft Idol
 Drogskol Captain
+Dromoka Captain
 Drowned Rusalka
 Dusk Legion Dreadnought
+Dutiful Return
 Duty-Bound Dead
+Earthshape
 Ebon Dragon
+Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
 Ember Weaver
 Emblem of the Warmind
+Enraged Revolutionary
 Escarpment Fortress
+Essence of Orthodoxy
 Fabricate
 Fangren Pathcutter
 Far Wanderings
+Fen Stalker
 Fervor
 Festergloom
 Filthy Cur
+Final Reward
 Flamekin Herald
 Flaming Sword
 Fledgling Griffin
+Flip the Switch
+Flooded Strand
 Floriferous Vinewall
 Foil
 Fool's Demise
+Forbidden Lore
 Forest
+Foundry of the Consuls
+Fountain of Ichor
+Francisco, Fowl Marauder
 Frillscare Mentor
 Frostwind Invoker
 Gaea's Avenger
 Gamma Grotesque
+Geistcatcher's Rig
 Giant Fly
 Gilt-Leaf Winnower
 Glademuse
 Gnathosaur
+Goblin Firestarter
 Golgari Cluestone
 Goring Ceratops
 Grappler Spider
@@ -111,41 +156,61 @@ HONK!
 Hada Freeblade
 Hagra Sharpshooter
 Hall of Tagsin
+Hand of Justice
+Harbinger of Night
 Haunted Guardian
 Hematite Golem
+Hexgold Slith
+Hidden Ancients
 Hijack
 Hope Against Hope
 Hopping Automaton
+Hound Tamer
 Howling Wolf
+Hurly-Burly
+Impede Momentum
+Iname, Death Aspect
 Infiltrator's Magemark
 Ingenious Thief
+Inspired Skypainter
 Invigorating Surge
 Island
 Ivy Lane Denizen
 Jade Mage
+Jaya, Venerated Firemage
 Jovial Evil
 Keening Apparition
+Kessig Flamebreather
 Koma's Faithful
 Kraken of the Straits
 Kraken's Eye
 Krosan Adaptation
 Kujar Seedsculptor
+Kumena's Speaker
 Lembas
+Leonin Scimitar
 Life and Limb
 Lifeblood Hydra
 Lightfoot Rogue
+Lilting Refrain
 Lion Sash
 Lotus Field
+Lunar Frenzy
+Makindi Patrol
 Malakir Cullblade
+Manakin
 Mardu Woe-Reaper
+Marsh Gas
 Master Splicer
 Mauhúr, Uruk-hai Captain
 Mawloc
 Maze of Ith
+Merchant Scroll
 Merfolk Looter
 Mightstone
 Mind Burst
 Mind's Eye
+Mindless Automaton
 Minotaur Tactician
 Mirran Spy
 Mistral Singer
@@ -154,30 +219,42 @@ Moonwing Moth
 Mortarion, Daemon Primarch
 Mortician Beetle
 Mountain
+Mystic Retrieval
+Nacre Talisman
+Narwhal
 Necromancer's Assistant
 Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
+Nesting Wurm
 Nimble Pilferer
 Nylea's Emissary
+Obliterate
 Olivia's Bloodsworn
 Omen of the Hunt
 One with the Stars
+Ooze Garden
+Orc General
 Orochi Leafcaller
 Otarian Juggernaut
+Oxidda Golem
 Paradoxical Outcome
 Paragon of New Dawns
 Petrified Field
 Petrified Wood-Kin
+Phantasmal Shieldback
 Piety
 Plains
+Powerstone Engineer
 Powerstone Shard
 Prepare
 Prickly Marmoset
+Prison Term
 Prizefighter Construct
 Qarsi High Priest
 Quantum Misalignment
 Queen of Ice
+Quicksmith Genius
 Racecourse Fury
 Raffine's Silencer
 Rage Weaver
@@ -185,34 +262,54 @@ Rain of Thorns
 Rakdos Ickspitter
 Raven Familiar
 Ray Fillet, Wave Warrior
+Razing Snidd
+Reap What Is Sown
 Reckless Imp
 Relic Crush
+Renegade Reaper
 Repulse
 Restoration Specialist
 Rewards of Diversity
+Rhox Veteran
+Ridgeline Rager
 Riot Ringleader
+Rod of Ruin
 Rootwater Diver
 Ruthless Sniper
 Sakiko, Mother of Summer
 Salt Road Patrol
 Sanctum Seeker
+Sanguine Praetor
 Sawblade Slinger
+Scatter Arc
+Scroll of Avacyn
 Sculpting Steel
+Searing Touch
+See Red
 Seething Song
 Serenity
 Serpent Generator
+Serra Disciple
 Sever Soul
 Shalai, Voice of Plenty
 Shifting Sliver
 Short Sword
+Shuri, the Black Panther
 Sigardian Savior
+Silklash Spider
+Silver Bolt
+Silverquill Command
 Simian Brawler
 Sisterhood of Karn
 Skarrg Guildmage
 Skittering Heartstopper
+Skyknight Legionnaire
+Skysovereign, Consul Flagship
 Slumbering Waterways
 Snowfield Sinkhole
 Soaring Show-Off
+Soltari Foot Soldier
+Song of Freyalise
 Sorin's Thirst
 Soul Reap
 Soul of New Phyrexia
@@ -221,12 +318,15 @@ Sparkmage's Gambit
 Spidery Grasp
 Spine of Ish Sah
 Spined Karok
+Spiteful Blow
 Spreading Insurrection
 Springsage Ritual
+Squadron Hawk
 Stalking Tiger
 Standstill
 Start Your Engines
 Startling Development
+Stifle
 Stormcloud Djinn
 Strategic Planning
 Stromkirk Mentor
@@ -237,27 +337,40 @@ Swamp
 Swell of Growth
 Symbiosis
 Symmetry Matrix
+Syndicate Infiltrator
 Tangled Florahedron
 Tel-Jilad Stylus
 Tentative Connection
+Terashi's Grasp
 Territory Culler
 Testament of Faith
+Teysa, Orzhov Scion
+The Spike Cactus
 Thermal Blast
 Thieves' Guild Enforcer
+Thorn Thallid
+Thoughtbind
+Thriving Bluff
 Thunderbreak Regent
 Thundermaw Hellkite
 Timberland Ancient
+Tocasia's Onulet
 Tormod's Cryptkeeper
 Tovolar's Huntmaster
+Towering-Wave Mystic
 Toxic Scorpion
 Traitorous Blood
 Trostani's Judgment
 Trygon Prime
+Tsunami
 Twilight Drover
 Tyranid Invasion
+Ulrich's Kindred
 Unnatural Predation
 Unyaro Griffin
 Urborg Elf
+Valor in Akros
+Vedalken Entrancer
 Veiled Apparition
 Vela the Night-Clad
 Vengeant Vampire
@@ -267,14 +380,18 @@ Victory's Envoy
 Vigilance
 Vile Requiem
 Violet Pall
+Vitu-Ghazi, the City-Tree
 Vulshok Refugee
+Wall of Mulch
 Wall of Omens
 Wall of Wood
 Wandering Goblins
 War Behemoth
 Warped Tusker
+Warrior en-Kor
 Warriors' Lesson
 Wee Dragonauts
+Welcome the Dead
 Wheel of Fortune
 Windstorm Drake
 Winterthorn Blessing

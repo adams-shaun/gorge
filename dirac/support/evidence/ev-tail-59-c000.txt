@@ -9,6 +9,7 @@ Acolyte of Affliction
 Aerie Bowmasters
 Aetherwind Basker
 Affa Protector
+Agent Frank Horrigan
 Akki War Paint
 Aligned Hedron Network
 Amateur Hero
@@ -39,6 +40,7 @@ Binding Grasp
 Blaring Captain
 Blighted Bat
 Blood for the Blood God!
+Bloodbraid Challenger
 Blue Elemental Blast
 Boa Constrictor
 Boggart Sprite-Chaser
@@ -100,6 +102,7 @@ Displacer Kitten
 Distress
 Divine Offering
 Dogpile
+Down
 Drag to the Bottom
 Dragon Throne of Tarkir
 Dragon's Desire
@@ -148,9 +151,11 @@ Founding of Omashu
 Fraying Omnipotence
 Frenzied Fugue
 Frost Ogre
+Fuel for the Cause
 Funeral Pyre
 Furious Strength
 Genesis
+Ghostly Prison
 Ghoulcaller's Chant
 Giant Mantis
 Gideon's Battle Cry
@@ -234,6 +239,7 @@ Markov Enforcer
 Marsh Hulk
 Mascot Interception
 Maverick Thopterist
+Merfolk Skyscout
 Mire Triton
 Mirran Bardiche
 Mold Shambler
@@ -279,6 +285,7 @@ Phyrexian Soulgorger
 Phyrexian Walker
 Pixie Queen
 Plains
+Plated Seastrider
 Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
@@ -315,6 +322,7 @@ Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
 Sautekh Immortal
+Savai Thundermane
 Scholar of Combustion
 Scion of the Swarm
 Screaming Fury
@@ -341,6 +349,7 @@ Siani, Eye of the Storm
 Sight Beyond Sight
 Silent Specter
 Silkwing Scout
+Simic Fluxmage
 Sinister Gnarlbark
 Skeletal Wurm
 Skirk Prospector
@@ -388,6 +397,7 @@ Thraben Sentry
 Threaten
 Thriving Turtle
 Thunder Spirit
+Thundering Giant
 Titanic Brawl
 Tomakul Scrapsmith
 Topiary Stomper
@@ -402,12 +412,14 @@ Tumble Magnet
 Twenty-Toed Toad
 Tyrite Sanctum
 Uncontrollable Anger
+Underworld Connections
 Unliving Psychopath
 Urbis Protector
 Ursapine
 Urza's Rage
 Valorous Charge
 Vanish into Eternity
+Venomous Vines
 Vesper Ghoul
 Victor Timely, Wily Tycoon
 Village Watch
@@ -424,6 +436,7 @@ Weakstone
 Welcome the Dead
 Welding Sparks
 Wheel of Fate
+Whisk Away
 Wild Ox
 Witch's Web
 Witty Roastmaster

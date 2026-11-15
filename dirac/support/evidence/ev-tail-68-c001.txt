@@ -4,6 +4,7 @@ Abyssal Horror
 Angelic Purge
 Awakener Druid
 Azimaet Drake
+Basal Thrull
 Blight Grenade
 Boros Guildmage
 Bull Cerodon
@@ -14,6 +15,7 @@ Cogwork Assembler
 Courier Hawk
 Courier's Capsule
 Creeping Trailblazer
+Crushing Disappointment
 Curse of Shallow Graves
 Daring Fiendbonder
 Empty the Laboratory
@@ -66,6 +68,7 @@ Rathi Assassin
 Ravenous Intruder
 Ray of Erasure
 Raze to the Ground
+Reveille Squad
 Rockslide Sorcerer
 Samite Archer
 Sandcrafter Mage

@@ -1,4 +1,6 @@
 A-Druidic Ritual
+A-Dwarfhold Champion
+A-Hall of Tagsin
 A-Mr. Orfeo, the Boulder
 A-Riveteers Initiate
 A-Vivi Ornitier
@@ -8,6 +10,7 @@ Abstruse Interference
 Academy Drake
 Aether Helix
 Agent of Erebos
+Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
 Alabaster Mage
@@ -18,6 +21,7 @@ Anax and Cymede
 Angelic Voices
 Annihilating Glare
 Aphemia, the Cacophony
+Archdemon of Paliano
 Archwing Dragon
 Arctic Aven
 Arctic Treeline
@@ -37,11 +41,15 @@ Battle of Frost and Fire
 Belbe's Percher
 Bellowing Aegisaur
 Benthicore
+Black Market
 Blade of Selves
+Blazing Rootwalla
 Blighted Shaman
 Blightsteel Colossus
+Blink of an Eye
 Blood Money
 Blood-Toll Harpy
+Bloodbriar
 Bloodtracker
 Bounty Agent
 Brash Taunter
@@ -51,8 +59,10 @@ Broodhunter Wurm
 Brutal Expulsion
 Brute Strength
 Bubble Snare
+Bucky Barnes, Eager Ally
 Bureau Headmaster
 Calamity Bearer
+Caller of Gales
 Canyon Drake
 Canyon Minotaur
 Capashen Standard
@@ -88,13 +98,16 @@ Curse Artifact
 Dakmor Sorceress
 Dauthi Warlord
 Dawnbringer Cleric
+Deadeye Harpooner
 Defiant Falcon
 Deglamer
 Depopulate
 Desmond Miles
+Destined
 Destructive Revelry
 Devour Flesh
 Devour in Shadow
+Diabolic Revelation
 Dismiss
 Divine Verdict
 Dominating Vampire
@@ -104,20 +117,28 @@ Dragon's Approach
 Dragonscale Boon
 Dragonstalker
 Dragonstorm
+Dream's Grip
+Druidic Satchel
 Electrostatic Field
 Elephant Graveyard
+Elspeth, Sun's Champion
+Elven Rite
 Elvish Warmaster
+Emry, Lurker of the Loch
 Enlightened Ascetic
 Ensouled Scimitar
 Ephara's Warden
 Epic Experiment
+Eternity Snare
 Execute
 Extinguish All Hope
 Fable of Wolf and Owl
 Faerie Trickery
 Fall of the Hammer
 Feast of Worms
+Feral Roar
 Feral Shadow
+Ferrous Lake
 Firebolt
 Fireflux Squad
 Flametongue Kavu
@@ -131,18 +152,24 @@ Forced Fruition
 Forest
 Fruition
 Furnace Whelp
+Future Flight
 Galerider Sliver
 Gallowbraid
 Game Trail
 Geothermal Bog
 Gerrard's Wisdom
 Ghoulcaller Gisa
+Gift of Wrath
+Give
 Glamdring
 Gliding Licid
 Glistener Seer
 Gloomwidow
+Glorifier of Dusk
 Gnottvold Recluse
+Gobbling Ooze
 Goblin Gaveleer
+Goblin Razerunners
 Goblin Settler
 Goblin War Cry
 God-Pharaoh's Statue
@@ -150,24 +177,35 @@ Goldenglow Moth
 Goldmire Bridge
 Grappling Sundew
 Grave Strength
+Graveborn Muse
+Grim Flowering
 Grotag Thrasher
 Grotesque Demise
 Gurmag Swiftwing
 Hellkite Whelp
+Hematite Golem
 Henge Guardian
+Heron-Blessed Geist
 Hideous End
+Hideous Visage
 Highland Weald
+Hithlain Knots
 Hovermyr
+Idyllic Beachfront
 Ikiral Outrider
 Ill-Tempered Cyclops
 In Bolas's Clutches
 Incendiary Sabotage
 Incremental Growth
 Insight
+Ironroot Warlord
+Irresistible Prey
 Island
+Jamie McCrimmon
 Junkyard Genius
 Justiciar's Portal
 Juvenile Mist Dragon
+Kagemaro's Clutch
 Kamahl's Desire
 Kami of Ancient Law
 Keep Watch
@@ -176,9 +214,12 @@ Kinsbaile Balloonist
 Kjeldoran Dead
 Knight of Autumn
 Labyrinth Champion
+Larder Zombie
 Last-Ditch Effort
 Lay Down Arms
 Lead Astray
+Leaden Myr
+Leonin Den-Guard
 Leyline Invocation
 Library of Alexandria
 Life Burst
@@ -188,6 +229,7 @@ Live Fast
 Living Wall
 Llanowar Loamspeaker
 Loam Lion
+Lose Hope
 Lost in a Labyrinth
 Loxodon Convert
 Loxodon Punisher
@@ -198,14 +240,17 @@ Magic Missile
 Magus of the Tabernacle
 Makindi Aeronaut
 Malakir Rebirth
+Mana Cannons
 Mana Confluence
 Mana Geyser
 Many Partings
 Marauding Raptor
 Master of Diversion
 Maul Splicer
+Max, the Daredevil
 Metallurgeon
 Metathran Transport
+Midsummer Revel
 Minas Tirith
 Mindculling
 Mindslicer
@@ -218,10 +263,13 @@ Morgue Burst
 Mortal Obstinacy
 Mountain
 Mtenda Lion
+Multani's Harmony
 Murasa Brute
 Murder of Crows
+Myojin of Infinite Rage
 Myr Propagator
 Nantuko Blightcutter
+Naya Panorama
 Nekrataal
 Nema Siltlurker
 Nemesis Mask
@@ -235,6 +283,10 @@ Ob Nixilis's Cruelty
 Of Herbs and Stewed Rabbit
 Ojutai's Breath
 Ojutai's Summons
+Opaline Bracers
+Overcome
+Palazzo Archers
+Path of Bravery
 Pathway Arrows
 Phyrexian Fleshgorger
 Phyrexian Splicer
@@ -243,6 +295,7 @@ Pirate's Pillage
 Plains
 Pointed Discussion
 Pool Resources
+Powerstone Fracture
 Prava of the Steel Legion
 Promise of Power
 Protection Magic
@@ -253,6 +306,7 @@ Pygmy Kavu
 Radiant Epicure
 Raid Bombardment
 Rakdos Trumpeter
+Raptor Hatchling
 Reap the Seagraf
 Redirect
 Rescue
@@ -270,12 +324,15 @@ Sanity Gnawers
 Scouring Sands
 Seachrome Coast
 Secrets of the Key
+Seedcradle Witch
 Seer's Lantern
 Seize the Initiative
 Self-Assembler
 Sentinels of Glen Elendra
+Sheltered Thicket
 Shining Armor
 Shire Scarecrow
+Shire Terrace
 Shiv's Embrace
 Shu Elite Companions
 Silkenfist Order
@@ -286,11 +343,15 @@ Sinkhole
 Skorpekh Destroyer
 Skyclave Apparition
 Skyknight Legionnaire
+Skyreaping
 Skyscanner
 Skyshroud Condor
 Sledding Otter-Penguin
 Sleep of the Dead
+Smelted Chargebug
+Smoldering Crater
 Snow-Covered Wastes
+Somberwald Beastmaster
 Soramaro, First to Dream
 Sparkcaster
 Sparkshaper Visionary
@@ -300,18 +361,24 @@ Spelleater Wolverine
 Spike-Tailed Ceratops
 Spiketail Hatchling
 Spinal Villain
+Spinneret Sliver
 Spirit Loop
 Spitting Gourna
 Splendid Agony
+Sporeweb Weaver
 Squealing Devil
 Stampede Driver
 Stand
 Star Pupil
 Starfall
 Steel Sabotage
+Stirring Wildwood
+Stormrider Spirit
 Subterranean Tremors
 Sudden Death
+Sundering Growth
 Supreme Phantom
+Surtr, Fiery Jötun
 Swamp
 Sweep Away
 Sweet-Gum Recluse
@@ -322,6 +389,7 @@ Temporary Insanity
 Tendrils of Agony
 Tendrils of Despair
 Territorial Roc
+Territorial Scythecat
 Testament Bearer
 The Everforger
 The Frightful Four
@@ -332,11 +400,15 @@ Three Dreams
 Tibalt, Rakish Instigator
 Tidepool Turtle
 Timid Drake
+Tomakul Honor Guard
 Topan Freeblade
 Torch Song
 Tormentor Exarch
+Tortoise Formation
 Tree Monkey
 Treetop Ambusher
+Treetop Recluse
+Treetop Scout
 Triangle of War
 True Conviction
 True Polymorph
@@ -345,6 +417,8 @@ Tune the Narrative
 Ugin's Construct
 Ulamog, the Ceaseless Hunger
 Ulcerate
+Unagi's Spray
+Unconventional Tactics
 Unnatural Speed
 Vampire Opportunist
 Vermiculos
@@ -354,13 +428,16 @@ Victimize
 Vitu-Ghazi Guildmage
 Voice of Law
 Voidmage Prodigy
+Voracious Vampire
 Vorstclaw
 Wall of Limbs
 Waste Away
 Weapons Trainer
 Welkin Hawk
 Wheel of Fate
+Wild Instincts
 Wild-Field Scarecrow
+Wildwood Geist
 Willow Dryad
 Wirewood Channeler
 Wirewood Hivemaster

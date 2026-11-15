@@ -1,4 +1,5 @@
 A-Celestial Regulator
+Abandon Reason
 Acquisition Octopus
 Aerial Maneuver
 Aetheric Amplifier
@@ -32,11 +33,13 @@ Battlewise Valor
 Benthic Giant
 Black Dragon
 Blinding Souleater
+Blood Pact
 Bloodchief's Thirst
 Bogbrew Witch
 Bone Saw
 Boseiju, Who Endures
 Botanical Plaza
+Breakneck Berserker
 Bring to Trial
 Bumi's Feast Lecture
 Burning Oil
@@ -57,6 +60,7 @@ Consulate Skygate
 Converter Beast
 Coordinated Assault
 Coral Commando
+Court of Ardenvale
 Crash the Party
 Craven Giant
 Crippling Fear
@@ -67,6 +71,8 @@ Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
 Darksteel Forge
+Darksteel Ingot
+Dauthi Trapper
 Daxiver, Izzet Electromancer
 Death Cloud
 Deepwood Wolverine
@@ -85,17 +91,24 @@ Draconic Disciple
 Dragon Mantle
 Dripping-Tongue Zubera
 Dross Hopper
+Dross Ripper
 Drove of Elves
 Drowsing Tyrannodon
+Dungeon Shade
 Durkwood Tracker
+Dwarven Mine
+Early Frost
 Echoes of the Kin Tree
 Eddytrail Hawk
 Eiganjo Free-Riders
 Elderfang Disciple
+Eldrazi Repurposer
+Electrodominance
 Elite Archers
 Elven Chorus
 Elven Lyre
 Elvish Farmer
+Emerald Dragonfly
 Emissary of Hope
 Enduring Victory
 Epic Proportions
@@ -105,6 +118,7 @@ Errand-Rider of Gondor
 Ertai Resurrected
 Essence Extraction
 Eternal Isolation
+Eviscerator's Insight
 Evolution Charm
 Excoriate
 Explosive Impact
@@ -118,6 +132,7 @@ Fell Stinger
 Fervent Strike
 Final-Sting Faerie
 Firefly
+Flames of the Firebrand
 Forest
 Fountain Watch
 Freewind Equenaut
@@ -131,14 +146,20 @@ Gideon's Battle Cry
 Gift of Growth
 Gimli, Counter of Kills
 Glacial Crasher
+Glint-Sleeve Siphoner
+Gnarled Effigy
+Goblin Brigand
+Goblin Masons
 Goblin Sharpshooter
 Golgari Longlegs
 Goliath Paladin
 Gorilla Chieftain
+Grazing Whiptail
 Green Sun's Zenith
 Grim Poppet
 Grimgrin, Corpse-Born
 Grizzled Angler
+Grizzly Bears
 Grozoth
 Guardian Augmenter
 Guide of Souls
@@ -150,6 +171,8 @@ Gyre Sage
 Hag of Mage's Doom
 Halo Hunter
 Haunted Fengraf
+Headless Skaab
+Headstrong Brute
 Heedless One
 Hell Mongrel
 Helldozer
@@ -165,6 +188,7 @@ Ideas Unbound
 Impetuous Protege
 Index
 Industrial Advancement
+Inescapable Brute
 Infantry Veteran
 Innistrad Charm
 Innocence Kami
@@ -187,6 +211,7 @@ Kithkin Billyrider
 Knight Exemplar
 Knight of Sorrows
 Kobolds of Kher Keep
+Kolaghan Aspirant
 Kor Sanctifiers
 Kormus Bell
 Korozda Gorgon
@@ -212,12 +237,16 @@ Make Mischief
 Mana Seism
 Manor Gate
 Mardu Warshrieker
+Mass Appeal
 Master Splicer
 Merfolk Windrobber
+Might Beyond Reason
 Migloz, Maze Crusher
+Militant Inquisitor
 Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
+Misshapen Fiend
 Mistblade Shinobi
 Moldgraf Millipede
 Monastery Swiftspear
@@ -225,17 +254,24 @@ Morbid Plunder
 Mosstodon
 Most Wanted
 Mountain
+Mulldrifter
 Mwonvuli Ooze
 Nadier's Nightblade
+Natural Spring
 Naya Battlemage
 Necroskitter
+Needle Storm
+Nettletooth Djinn
 Nick Fury, Spymaster
+Nighthawk, Dark Defender
 Nightwind Glider
 Nimbus Swimmer
 Nissa's Judgment
 Noble Steeds
 Nomad Mythmaker
 Northern Paladin
+Obsidian Battle-Axe
+One-Clown Band
 Onyx Mage
 Oran-Rief, the Vastwood
 Ox Drover
@@ -247,6 +283,7 @@ Path of Discovery
 Patron Wizard
 Pestilence Rats
 Photon, Lady of Light
+Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
 Plains
@@ -257,12 +294,16 @@ Presence of the Wise
 Pridemalkin
 Primal Frenzy
 Prismatic Vista
+Professor of Zoomancy
 Protection Magic
 Psionic Snoop
 Purraj of Urborg
 Pygmy Pyrosaur
+Quick-Draw Dagger
+Rabid Wolverines
 Rage Thrower
 Rain of Embers
+Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Raven Wings
@@ -272,6 +313,8 @@ Regent's Authority
 Reject
 Rejuvenating Springs
 Repentant Vampire
+Requiem Angel
+Retreat to Valakut
 Reveka, Wizard Savant
 Revenge of Ravens
 Rhystic Syphon
@@ -283,12 +326,15 @@ Robber Fly
 Robe of Mirrors
 Rorix Bladewing
 Rosecot Knight
+Rotting Giant
 Roving Harper
 Royal Falcon
+Rubblebelt Boar
 Rural Recruit
 Ruthless Predation
 Salvage Titan
 Sandsteppe War Riders
+Sarkhan's Catharsis
 Satyr Hoplite
 Satyr's Cunning
 Scale Blessing
@@ -297,9 +343,11 @@ Scrollshift
 Seagraf Skaab
 Seek New Knowledge
 Serendib Efreet
+Serpent's Gift
 Seshiro the Anointed
 Sewer Crocodile
 Shade of Trokair
+Shambling Remains
 Shambling Strider
 Sheoldred
 Sheoldred, Whispering One
@@ -309,11 +357,13 @@ Shocker
 Sigiled Skink
 Simic Growth Chamber
 Siren of the Silent Song
+Skittering Invasion
 Skulking Fugitive
 Skull Catapult
 Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
+Smashing Spree
 Smelt
 Snapping Thragg
 Soramaro, First to Dream
@@ -325,9 +375,11 @@ Sparkhunter Masticore
 Specter's Wail
 Spidersilk Net
 Spire Golem
+Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Steelform Sliver
 Stir the Pride
 Stone-Throwing Devils
 Stonybrook Angler
@@ -339,8 +391,10 @@ Stronghold Assassin
 Summit Apes
 Sun Droplet
 Sunscape Apprentice
+Supernatural Stamina
 Swamp
 Swift Maneuver
+Swirling Sandstorm
 Switcheroo
 Sword of the Paruns
 Synchronous Sliver
@@ -353,6 +407,7 @@ Territorial Hammerskull
 Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+Theoretical Duplication
 Thor, Asgard's Avenger
 Thought Erasure
 Thundering Tanadon
@@ -363,11 +418,16 @@ Tivadar's Crusade
 Tormented Hero
 Touch of Brilliance
 Tourach's Canticle
+Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
 Ultron's Auxiliary
+Unexpected Windfall
 Unfriendly Fire
+Unholy Officiant
+Unity of Purpose
+Unstoppable Ogre
 Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Ghoul
@@ -380,10 +440,14 @@ Vulshok War Boar
 Wall Off
 Wall of Mist
 Warbeast of Gorgoroth
+Warbriar Blessing
+Wayward Soul
+Weldfast Engineer
 Wight
 Wind-Kin Raiders
 Wolfrider's Saddle
 Workshop Assistant
+Write into Being
 Wu Elite Cavalry
 Wurmcoil Engine
 Yavimaya Hollow

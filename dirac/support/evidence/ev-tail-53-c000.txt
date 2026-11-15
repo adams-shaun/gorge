@@ -1,5 +1,6 @@
 A Little Chat
 A-Death-Priest of Myrkul
+A-Geological Appraiser
 A-Glittermonger
 A-Midnight Assassin
 Abzan Runemark
@@ -9,6 +10,8 @@ Adrix and Nev, Twincasters
 Aegis of the Heavens
 Aerith, Last Ancient
 Aeromunculus
+Aeronaut Tinkerer
+Aether Helix
 Affa Guard Hound
 Akroma's Vengeance
 Allied Reinforcements
@@ -18,47 +21,70 @@ Aqueous Form
 Archers' Parapet
 Arcum Dagsson
 Argothian Swine
+Artifact Blast
+Artisan of Kozilek
 Asgardian Inspiration
 Astrid Peth
+Augury Adept
 Auratog
+Aurora Eidolon
 Avenging Arrow
 Balduvian Bears
 Basalt Gargoyle
 Befuddle
 Beloved Princess
+Big Play
 Big Wheel
+Blasphemous Act
 Blood Host
 Boggart Trawler
 Branching Evolution
 Brass Herald
+Bred for the Hunt
 Brilliant Plan
 Brotherhood Patriarch
 Burning Prophet
+Cabal Evangel
 Cabal Pit
 Cage of Hands
 Calamity's Wake
 Canopy Cover
+Cao Ren, Wei Commander
+Captivating Crew
 Captivating Unicorn
 Cat Burglar
 Challenger Troll
 Chandra's Pyrohelix
 Chilling Grasp
 Chlorophant
+Cinder Wall
 Cleanup Crew
 Cleaver Riot
+Coastal Piracy
 Colossal Dreadmaw and Storm Crow
 Colossodon Yearling
 Commune with Dinosaurs
+Compelling Argument
 Contract Hero
+Converter Beast
+Coordinated Charge
 Corrupted Zendikon
+Cosmic Crucible
 Crumbling Necropolis
+Cryptbreaker
+Cunning Wish
 Cut the Earthly Bond
+Dalek Squadron
 Daring Archaeologist
 Daring Leap
+Dark Banishing
 Dark-Dweller Oracle
+Davriel, Rogue Shadowmage
 Deadly Designs
 Deathgreeter
+Deathsprout
 Decorated Champion
+Deep-Slumber Titan
 Deepchannel Mentor
 Deepwood Denizen
 Denizen of the Deep
@@ -68,26 +94,43 @@ Discordant Piper
 Divination
 Domri's Ambush
 Dream Fracture
+Dregscape Zombie
 Drowned Secrets
 Eager Beaver
 Eager First-Year
 Earth Elemental
+Earthshaker Giant
+Earthshaking Si
+Elemental Summoning
 Elturgard Ranger
 Embraal Gear-Smasher
 Endless Sands
+Evolved Sleeper
+Exhume
 Fa'adiyah Seer
+Face of Fear
 Faerie Seer
+Famine
 Fangren Pathcutter
 Faramir, Steward of Gondor
+Feral Hydra
+Field Creeper
+Field Surgeon
+Flailing Ogre
 Flame Discharge
 Flicker
+Forbidden Alchemy
 Forest
 Foster
+Fugue
 Fungal Infection
+Garruk's Packleader
 Geist of the Moors
 Geistwave
 Geomancer's Gambit
+Geth's Verdict
 Ghoulcaller's Accomplice
+Glimmer Bairn
 Glintwing Invoker
 Gluntch, the Bestower
 Gnottvold Recluse
@@ -97,6 +140,7 @@ Goldmeadow Lookout
 Golem Foundry
 Greater Basilisk
 Greed
+Grizzled Wolverine
 Hazoret the Fervent
 Hellrider
 Herald of the Sun
@@ -105,10 +149,14 @@ Hillcomber Giant
 Hunting Cheetah
 Immersturm Raider
 Increasing Savagery
+Incubation
+Infiltrator il-Kor
 Insufferable Balladeer
 Inventor's Apprentice
 Iron Man, Tony Stark
 Island
+Jarl of the Forsaken
+Jinxed Choker
 Joint Exploration
 Juniper Order Rootweaver
 Junk Winder
@@ -116,25 +164,34 @@ Jwar Isle Avenger
 Kabuto Moth
 Kazandu Stomper
 Kelpie Guide
+Khabál Ghoul
 Kitchen Imp
+Knight of Meadowgrain
+Krosan Reclamation
 Kuldotha Forgemaster
 Lava Dart
+Leaf Dancer
 Leyline Binding
 Liability
 Lightbringer
+Llanowar Empath
 Lose Hope
 Lost Leonin
 Loxodon Stalwart
 Loyal Cathar
 Lu Xun, Scholar General
 Lunar Hatchling
+Magma Spray
 Magus of the Wheel
+Makeshift Munitions
 Man-o'-War
 Marauder's Axe
 Master of the Pearl Trident
+Mausoleum Wanderer
 Merchant of Truth
 Mindbreak Trap
 Mine Bearer
+Mirozel
 Mobilized District
 Molten Blast
 Moonring Island
@@ -143,20 +200,26 @@ Moorland Drifter
 Morgul-Knife Wound
 Mossdog
 Mountain
+Myojin of Towering Might
 Myr Sire
 Mystical Dispute
 Naiad of Hidden Coves
+Natural End
+Nature's Revolt
 Nesting Dragon
 Never
 Niblis of the Breath
+Nightmare Unmaking
 Noble Benefactor
 Nullmage Shepherd
 Nyxborn Courser
 Nyxborn Shieldmate
 Of One Mind
+Oketra's Monument
 Okiba Salvage
 Old One Eye
 Ondu Knotmaster
+Ophiomancer
 Oracle of Mul Daya
 Ordeal of Thassa
 Ornate Kanzashi
@@ -164,15 +227,24 @@ Ornithopter of Paradise
 Paladin of the Bloodstained
 Phyrexian Digester
 Phyrexian Juggernaut
+Pillaging Horde
 Pit Raptor
 Pit Trap
 Plains
 Plated Sliver
+Plundering Predator
+Pouncing Jaguar
 Precognition
+Predict
 Price of Glory
 Prosperous Bandit
+Psionic Snoop
+Psychic Miasma
+Pulsemage Advocate
 Pyreswipe Hawk
+Pyroceratops
 Queen's Bay Soldier
+Ranger's Path
 Recalibrate
 Renewal
 Rescue, Pepper Potts
@@ -182,13 +254,17 @@ Roil Elemental
 Ruinous Intrusion
 Rumbling Baloth
 Rush of Vitality
+Savage Surge
 Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
 Scourge of Valkas
 Scrabbling Claws
+Scrappy Bruiser
 Scrubland
 Sea Gate Banneret
+Seascape Aerialist
+Second Sight
 Segovian Leviathan
 Selvala, Explorer Returned
 Servant of Tymaret
@@ -200,21 +276,30 @@ Sigil of the Empty Throne
 Silverclaw Griffin
 Sinew Sliver
 Skittering Heartstopper
+Skull Catapult
 Skullmead Cauldron
 Skyblinder Staff
+Skywhaler's Shot
 Slagwoods Bridge
 Sneaky Homunculus
 Snow Day
 Solemn Offering
 Soul's Attendant
+Soulcatcher
 Sparring Golem
+Spore Flower
+Squall
+Squirrel Nest
 Sram's Expertise
+Stitched Drake
 Strength of Arms
 Strength of the Coalition
 Submerge
+Sunblast Angel
 Sunspring Expedition
 Swamp
 Swooping Lookout
+Sylvan Yeti
 Syndicate Messenger
 Tahngarth's Rage
 Tail Swipe
@@ -228,30 +313,42 @@ Timberland Guide
 Timberwatch Elf
 To Arms!
 Torch Drake
+Torpor Dust
+Treetop Ambusher
 Trespasser il-Vec
+Trickster Mage
 Triton Cavalry
 Tyrant's Machine
 Umara Entangler
 Underworld Coinsmith
+Unnatural Endurance
 Unyaro Bees
 Upheaval
 Urban Daggertooth
 Urborg Volcano
+Vampire of the Dire Moon
 Viashino Branchrider
 Vigilant Drake
 Viral Drake
 Viscera Seer
+Voice of the Blessed
+Voltaic Whip
 Vraska's Finisher
 Vulshok Splitter
 Waking Nightmare
 Walking Ballista
+Wall of Heat
 Wanderlight Spirit
+War Oracle
 War Priest of Thune
+Warchanter of Mogis
 Watchwing Scarecrow
+Westfold Rider
 Whisper, Blood Liturgist
 White Dragon
 Wild Wanderer
 Winter Sky
 Wizard's Lightning
 Wooded Ridgeline
+Yavimaya Wurm
 Zephyr Gull

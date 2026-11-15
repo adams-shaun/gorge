@@ -5,6 +5,7 @@ Aerial Engineer
 Aethersnipe
 Angelic Gift
 Angler Turtle
+Anurid Barkripper
 Anurid Murkdiver
 Arc Trail
 Ardent Soldier
@@ -14,6 +15,7 @@ Audacious Infiltrator
 Aven Mindcensor
 Awakened Awareness
 Barrage Tyrant
+Barrowgoyf
 Basic Conjuration
 Bastion Enforcer
 Bewilder
@@ -72,6 +74,7 @@ Forced Worship
 Forerunner of Slaughter
 Forest
 Franklin Richards, Ascendant
+From Beyond
 Furnace Spirit
 Galvanic Juggernaut
 Gauntlet of Might
@@ -88,6 +91,8 @@ Goreclaw, Terror of Qal Sisma
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
 Hangarback Walker
+Harvest Wurm
+Haunted Cadaver
 Havoc Devils
 Helm of the Host
 Horned Stoneseeker
@@ -107,6 +112,7 @@ King of the Pride
 Kinsbaile Courier
 Krosan Archer
 Leadership Vacuum
+Leaping Lizard
 Leechridden Swamp
 Legion Leadership
 Leyline of Sanctity
@@ -142,12 +148,15 @@ Ob Nixilis, the Fallen
 Oni of Wild Places
 Organ Grinder
 Ornithopter
+Park Heights Pegasus
+Pelakka Predation
 Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
 Phyrexian Colossus
 Phyrexian Denouncer
+Phyrexian Totem
 Plains
 Polluted Mire
 Predatory Sliver
@@ -157,6 +166,7 @@ Ral's Dispersal
 Renegade Reaper
 Resplendent Griffin
 Resurrection Orb
+Ridgescale Tusker
 Sabertooth Outrider
 Sacred Armory
 Sage's Reverie
@@ -165,8 +175,10 @@ Samut's Sprint
 Satyr Hoplite
 Scalding Devil
 Scholar of Athreos
+Scythecat Cub
 Separatist Voidmage
 Setessan Starbreaker
+Sewer Rats
 Shadow Summoning
 Shapers' Sanctuary
 Shu Cavalry
@@ -178,13 +190,16 @@ Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
 Smoke Bomb
+Smother
 Spell Contortion
 Spellbook
 Spiderwig Boggart
 Spike Drone
+Spike Weaver
 Steam Frigate
 Steelfin Whale
 Stolen Grain
+Stolen Vitality
 Sunken Hope
 Swamp
 Sweatworks Brawler
@@ -197,6 +212,7 @@ Thoughtcutter Agent
 Thrasher Brute
 Thrummingbird
 Thunderscape Familiar
+Tidal Surge
 Tidepool Turtle
 Tracker's Instincts
 Traitor's Clutch
@@ -204,6 +220,7 @@ Treetop Bracers
 Tunneler Wurm
 Twitch
 Ultimate Price
+Umbilicus
 Unbreathing Horde
 Unicycle
 Unraveling Mummy

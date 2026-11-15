@@ -1,16 +1,20 @@
 A-Lantern of Revealing
 Acrobatic Maneuver
 Act of Treason
+Adric, Mathematical Genius
 Aerial Guide
 Aether Swooper
 Akoum Warrior
 Allied Assault
 Alpha Authority
 Amazing Spider-Girl
+Ancient Hydra
 Angel of Serenity
 Angelic Skirmisher
+Angrath's Marauders
 Apprentice Necromancer
 Artifact Mutation
+Ashen Powder
 Assault on Osgiliath
 Augury Raven
 Aurochs Herd
@@ -21,6 +25,8 @@ Bamboozle
 Baneblade Scoundrel
 Bard, Heir of Girion
 Bayou Groff
+Bladed Pinions
+Blood-Chin Rager
 Bloodthirsty Adversary
 Bog Tatters
 Bonded Horncrest
@@ -32,9 +38,11 @@ Cathartic Reunion
 Cavalry Drillmaster
 Centaur Omenreader
 Cephalid Coliseum
+Chain Devil
 Chains of Custody
 Champion's Drake
 Charge
+Chimney Rabble
 Chrome Host Seedshark
 Civic Wayfinder
 Cloud Djinn
@@ -107,6 +115,7 @@ Goblin Tinkerer
 Gretchen Titchwillow
 Growth Cycle
 Gryff Vanguard
+Guul Draz Vampire
 Hall of Triumph
 Hanna's Custody
 Heartwarming Redemption
@@ -177,6 +186,7 @@ Plains
 Plated Onslaught
 Plated Slagwurm
 Possessed Nomad
+Predatory Nightstalker
 Primal Command
 Primal Frenzy
 Primal Rage
@@ -196,6 +206,7 @@ Rishadan Airship
 Road of Return
 Roaring Primadox
 Ruination Rioter
+Rush of Blood
 Saurian Symbiote
 Savageborn Hydra
 Saving Grasp
@@ -215,9 +226,11 @@ Silent Attendant
 Silk Net
 Silverflame Squire
 Sire of Stagnation
+Sisay's Ingenuity
 Slaughter Specialist
 Slurrk, All-Ingesting
 Smelt-Ward Ignus
+Smothering Abomination
 Soilshaper
 Song of Serenity
 Soratami Seer
@@ -265,6 +278,7 @@ Veil of Summer
 Vexing Beetle
 Viashino Spearhunter
 Vigilant Baloth
+Village Cannibals
 Viridian Lorebearers
 Voiceless Spirit
 Vow of Flight

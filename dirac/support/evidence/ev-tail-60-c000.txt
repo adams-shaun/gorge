@@ -4,18 +4,28 @@ Acolyte of the Inferno
 Acridian
 Act of Treason
 Aethersquall Ancient
+Affa Protector
 Akki War Paint
+Akroan Crusader
 Alabaster Mage
+Alaborn Trooper
 Algorithmic Ferocity
+Altar's Reap
+Ancestral Statue
 Ant Queen
 Aphetto Grifter
 Aquus Steed
 Arachnus Web
 Arcane Proxy
+Argentum Armor
+Argothian Elder
+Arm with Aether
 Armored Wolf-Rider
+Artful Maneuver
 Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
+Aven Gagglemaster
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -23,47 +33,71 @@ Baloth Gorger
 Barbarian Riftcutter
 Bastion Protector
 Batterskull
+Battlegrowth
 Beast Hunt
 Befriending the Moths
+Bellowing Aegisaur
+Biblioplex Assistant
 Binding Grasp
+Birds of Paradise
 Blaster Mage
 Blessing
+Bloated Toad
 Bloodrage Vampire
 Bloodtracker
 Boros Cluestone
 Brackwater Elemental
 Brave the Elements
 Breach
+Briar Hydra
+Bridgeworks Battle
 Brightstone Ritual
 Brine Shaman
+Broodhatch Nantuko
 Builder's Blessing
+Cabal Initiate
+Call the Gatewatch
 Candlegrove Witch
 Canopy Stalker
+Canyon Jerboa
 Captain America, Skybound
 Catacomb Crocodile
+Centaur Battlemaster
 Centaur Nurturer
 Cerulean Wisps
 Chambered Nautilus
+Charnel Serenade
 Child of Gaea
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
+Choking Miasma
+Cliffside Lookout
 Clone Legion
 Cogworker's Puzzleknot
+Combat Thresher
 Compelling Argument
 Contentious Plan
 Convolute
+Coral Merfolk
 Corporeal Projection
 Cosmic Hunger
 Counterspell
+Court Cleric
 Creeping Crystal Coating
+Crenellated Wall
+Crimson Fleet Commodore
 Crowd's Favor
 Crystal Golem
 Curious Homunculus
 Curse of Wizardry
 Cybermat
+Dauntless Cathar
 Dawnhart Rejuvenator
+Dead
 Death Bomb
+Deep Dish Pizza
 Dehydration
+Demon of Wailing Agonies
 Demonlord of Ashmouth
 Demotion
 Deserted Temple
@@ -71,11 +105,15 @@ Desperate Farmer
 Dingus Egg
 Dirty Wererat
 Disruptive Pitmage
+Doctor Strange, Surgeon
 Dogpile
 Dragon Tyrant
 Dragonlord Ojutai
 Dread Drone
+Dreadfeast Demon
+Drift of Phantasms
 Dross Harvester
+Drowner of Hope
 Drumhunter
 Dryad Greenseeker
 Dueling Coach
@@ -84,6 +122,8 @@ Duskworker
 Dwarven Bloodboiler
 Dáin's Company
 Eagle of Deliverance
+Earth Servant
+Earth-Origin Yak
 Elemental Appeal
 Elixir of Immortality
 Elvish Warrior
@@ -93,19 +133,26 @@ Emeria Angel
 End the Festivities
 Epicenter
 Essence Infusion
+Eternal Flame
 Etherium Sculptor
 Excise
 Excise the Imperfect
 Exemplar of Strength
+Expedition Champion
 Eyes of the Wisent
 Fade from History
 Faerie Harbinger
+Faithless Looting
 Fallaji Vanguard
 Familiar Ground
+Felhide Brawler
+Festival of Trokin
 Fiery Mantle
 Five Hundred Year Diary
+Fleetfeather Cockatrice
 Fleetwheel Cruiser
 Flesh-Eater Imp
+Flickering Ward
 Flowstone Kavu
 Foil
 Forest
@@ -118,8 +165,10 @@ Gird for Battle
 Glorifier of Dusk
 Glory of Warfare
 Gnottvold Slumbermound
+Goblin Arsonist
 Goblin Kaboomist
 Goblin Replica
+Goblin Striker
 Goblin Tunneler
 Golden Wish
 Goldmeadow Dodger
@@ -127,64 +176,108 @@ Grab the Reins
 Grasp of Darkness
 Grave Pact
 Great Oak Guardian
+Greenhilt Trainee
 Grindstone
+Guardians of Akrasa
+Guildpact Informant
+Haazda Snare Squad
 Hag of Syphoned Breath
+Hagra Diabolist
 Hamlet Vanguard
+Hammer Helper
+Hammers of Moradin
 Hardened Scales
+Harmattan Efreet
+Harnessed Lightning
+Harrier Naga
 Harrow
 Healing Salve
+Heartwood Treefolk
 Heavy Mattock
 Hedron Detonator
+Heightened Reflexes
 Highland Game
 Hopeful Eidolon
+Hulk, Always Angry
+Hulk, Strongest There Is
+Hungry Mist
 Icatian Scout
+Ichor Wellspring
 Illness in the Ranks
 Illusionary Armor
 Illusionary Wall
+Implement of Combustion
 Impostor of the Sixth Pride
 Invasion of Eldraine
 Ironclaw Buzzardiers
 Island
 Island of Wak-Wak
+Ivory Crane Netsuke
+Jadelight Ranger
 Janjeet Sentry
+Journey of Discovery
 Jund Battlemage
+Kamahl, Heart of Krosa
+Kami of Whispered Hopes
 Karfell Kennel-Master
 Kargan Dragonlord
+Karoo
 Keeper of the Lens
+Kemba's Skyguard
 Kill! Maim! Burn!
 Kitesail Cleric
+Knight of Sorrows
 Knowledge Is Power
 Kokusho, the Evening Star
 Krav, the Unredeemed
+Kruphix's Insight
 Landscaper Colos
 Lava Hounds
 Leechridden Swamp
 Life's Legacy
+Lightning-Core Excavator
+Lithophage
 Littjara Glade-Warden
 Livonya Silone
 Llanowar Stalker
+Loathsome Catoblepas
+Lockjaw Snapper
+Lore Broker
 Lorehold Archivist
 Loxodon Gatekeeper
 Loyal Retainers
 Mad Ratter
 Magmaroth
+Marble Chalice
+Mardu Shadowspear
 Marionette Apprentice
 Mark of the Oni
 Markov Warlord
+Master Thief
 Matsu-Tribe Birdstalker
 Maximize Velocity
 Menagerie Liberator
 Metastatic Evangel
 Minamo, School at Water's Edge
+Mind Harness
+Mind Maggots
+Mind Ravel
+Mind Sculpt
 Mindwhip Sliver
 Mirozel
+Mischief and Mayhem
 Mishra's Domination
+Mist Leopard
+Mist-Cloaked Herald
 Mistmeadow Skulk
 Mogg Mob
 Monstrify
 Morgue Burst
+Moria Marauder
 Morkrut Banshee
+Mortuary
 Mountain
+Murkfiend Liege
 Myr Mindservant
 N'Yami-Class Mother Ship
 Namora, the Sea Queen
@@ -198,34 +291,60 @@ Nin, the Pain Artist
 Null Rod
 Obsessive Skinner
 Occult Epiphany
+Ochran Assassin
 Ogre Battledriver
+Ohran Frostfang
+Oketra's Last Mercy
 One with the Machine
+Onslaught
+Opportunity
+Otarian Juggernaut
+Outnumber
+Overgrown Battlement
 Pact of the Titan
+Path of Discovery
 Phase Dolphin
 Phyrexian Ironworks
 Phyrexian Walker
+Pillardrop Rescuer
+Pinnacle Monk
+Pir, Imaginative Rascal
 Pirate's Pillage
 Plains
+Planar Cleansing
 Poison the Blade
 Power Plant Worker
+Power of Fire
 Pyrohemia
 Qarsi High Priest
 Quagmire Druid
+Quiet Disrepair
 Quirion Trailblazer
+Rabid Rats
 Rakdos Guildmage
+Rambunctious Mutt
+Ramunap Hydra
+Ravenous Baloth
+Razor Golem
+Razortooth Rats
 Reckless Handling
 Reckless Ogre
 Red Cliffs Armada
+Refresh
 Reject
 Repudiate
 Retrieval Agent
+Reviving Dose
 Rhystic Deluge
+Ricochet Trap
 Riptide Chimera
 Roast
 Rod of Ruin
 Rofellos's Gift
 Rofellos, Llanowar Emissary
+Ronom Unicorn
 Rootgrapple
+Rootwalla
 Rootwater Hunter
 Rotting Rats
 Rowan Treefolk
@@ -234,7 +353,10 @@ Sabertooth Outrider
 Sanctuary Smasher
 Sardian Cliffstomper
 Satyr Rambler
+Sawtooth Thresher
+Scion of Ugin
 Scrounger of Souls
+Scuttling Sliver
 Secluded Glen
 Seismic Tutelage
 Sengir Nosferatu
@@ -243,8 +365,11 @@ Serum Snare
 Setessan Battle Priest
 Setessan Training
 Shard of the Nightbringer
+Sigiled Starfish
 Silent Specter
 Silver Erne
+Sixth Sense
+Skeletal Grimace
 Skeletal Wurm
 Skin Invasion
 Skinwing
@@ -256,8 +381,13 @@ Smelted Chargebug
 Smiting Helix
 Soltari Emissary
 Sonic Burst
+Spawn of Thraxes
 Spectral Guardian
 Spider Spawning
+Split-Tail Miko
+Sporecap Spider
+Stasis Field
+Steadfast Sentry
 Stenchskipper
 Stern Proctor
 Stitched Assistant
@@ -266,19 +396,28 @@ Stormbound Geist
 Stronghold Biologist
 Stun Sniper
 Sudden Insight
+Sulfurous Blast
 Sultai Skullkeeper
 Sun Ce, Young Conquerer
 Swamp
+Sylvok Explorer
+Syphon Flesh
 Tangle Golem
+Tarkir Charm
 Tawnos's Wand
 Tek
 Tenacity
 Terrain Generator
 Thallid Omnivore
+The Bears of Littjara
 The Terror of Serpent's Pass
 Theoretical Duplication
+Thornscape Master
+Those Who Serve
 Thousand-Year Elixir
+Thran Dynamo
 Thriving Moor
+Thurid, Mare of Destiny
 Timbermaw Larva
 Time Reversal
 Toe-Breaking Helmet
@@ -289,26 +428,41 @@ Trash for Treasure
 Treacherous Werewolf
 Treebeard, Gracious Host
 Trench Wurm
+Triton Shorestalker
 Tymaret, Chosen from Death
 Tymora's Invoker
 Uktabi Efreet
 Uncontrollable Anger
 Unliving Psychopath
 Urza's Rage
+Vapor Snare
 Veiled Shade
 Vesper Ghoul
+Vestige of Emrakul
 Vexilus Praetor
+Viridian Claw
 Voice of Duty
 Voldaren Pariah
 Voracious Hydra
+Wall of Distortion
 Wall of Wonder
+Warpath
+Warrior's Honor
 Watertrap Weaver
 Waterwhirl
+Wave Elemental
 Weakstone
 Weatherseed Totem
+Wetland Sambar
+Whip Sergeant
 White Shield Crusader
+Wicker Warcrawler
+Wight
+Wind Shear
 Windbrisk Raptor
+Witherbloom Pledgemage
 Wonder
 Workshop Elders
 Wreck and Rebuild
 Yellow Scarves Troops
+Zof Shade

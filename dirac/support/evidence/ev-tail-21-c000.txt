@@ -1,14 +1,17 @@
 A Little Chat
+A-Bretagard Stronghold
 A.I.M. Bot
 Accursed Centaur
 Aethertide Whale
 Ambassador Oak
+Ancestral Tribute
 Ancient Brontodon
 Archon of Cruelty
 Ardent Recruit
 Argent Dais
 Arms Dealer
 Arrest
+Artillery Blast
 Aspect of Mongoose
 Avacynian Missionaries
 Aven Sentry
@@ -23,11 +26,14 @@ Battlefield Promotion
 Beast of Burden
 Bedlam Reveler
 Bellowing Mauler
+Bill the Pony
 Bitterthorn, Nissa's Animus
+Black Sun's Twilight
 Blighted Gorge
 Blightspeaker
 Bloodrock Cyclops
 Blossom Dryad
+Bog Badger
 Boneshard Slasher
 Brago, King Eternal
 Brass-Talon Chimera
@@ -36,14 +42,21 @@ Bravado
 Brightcap Badger
 Brokers Initiate
 Broodwarden
+Brutal Expulsion
 Caldera Pyremaw
 Call the Scions
 Candlelit Cavalry
 Captivating Gyre
+Carrion Imp
+Celestial Colonnade
 Cerulean Sphinx
 Charge Across the Araba
 Chief Engineer
 Clear the Stage
+Cobbled Wings
+Consume Spirit
+Copperline Gorge
+Courageous Outrider
 Cradle Guard
 Crossover Collaboration
 Crosswinds
@@ -53,10 +66,12 @@ Cursebreak
 Cyan, Vengeful Samurai
 Darksteel Relic
 Dazzling Lights
+Deathbringer Regent
 Deathcult Rogue
 Deepfathom Skulker
 Defiant Greatmaw
 Deny Existence
+Desert Nomads
 Desert of the Glorified
 Destined
 Diabolic Revelation
@@ -70,8 +85,12 @@ Drown in Filth
 Dual Strike
 Duskborne Skymarcher
 Dutiful Servants
+Elegant Entourage
 Elephant-Mandrill
 Elixir of Vitality
+Elvish Berserker
+Ember Weaver
+Enchanted Carriage
 Enduring Bondwarden
 Errant Doomsayers
 Esquire of the King
@@ -83,19 +102,23 @@ Fire of Orthanc
 Firedrinker Satyr
 Firemane Avenger
 Fires of Yavimaya
+Flagstones of Trokair
 Flaming Sword
 Flayer Drone
 Flayer Husk
 Fledgling Djinn
+Flowering Field
 Flying Men
 Foot Soldiers
 Forbidden Lore
 Forest
 Forgeborn Oreads
+Frantic Purification
 Frantic Salvage
 Fumulus, the Infestation
 Fungal Infection
 Fury Sliver
+Gale Force
 Galvanic Key
 General Marhault Elsdragon
 Genesis Ultimatum
@@ -114,22 +137,27 @@ Green Scarab
 Grendel, Spawn of Knull
 Grounded
 Guided Strike
+Havoc Sower
 Hidden Blade
 High Ground
 Hope Tender
 Horn of Valhalla
+Hornbash Mentor
 Horror of Horrors
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
+Icatian Crier
 In the Web of War
 Incarnation Technique
 Invasion of Kylem
+Invasion of Vryn
 Island
 It That Heralds the End
 Jolt
 Jushi Apprentice
 Kagemaro's Clutch
+Kalonian Behemoth
 Karametra's Acolyte
 Karn's Bastion
 Kessig Cagebreakers
@@ -142,12 +170,19 @@ Lava Storm
 Layla Hassan
 Leaden Fists
 Leisure Bicycle
+Lens Flare
 Leonin Snarecaster
+Leyline of Abundance
+Lifecrafter's Bestiary
 Lightkeeper of Emeria
+Lita, Mechanical Engineer
 Living Hive
 Lost in the Mist
+Lotus Guardian
 Magmatic Core
 Majestic Genesis
+Makindi Ox
+Mana Geode
 Marrow-Gnawer
 Massacre
 Mastermind's Acquisition
@@ -155,6 +190,7 @@ Meloku the Clouded Mirror
 Meneldor, Swift Savior
 Mesmeric Orb
 Metallurgeon
+Meteorite
 Michiko Konda, Truth Seeker
 Might of Oaks
 Military Intelligence
@@ -162,6 +198,7 @@ Mind Carver
 Misguided Rage
 Misthoof Kirin
 Mogg Squad
+Mondrak, Glory Dominus
 Morbid Curiosity
 Mortuary
 Mothdust Changeling
@@ -177,7 +214,9 @@ Nightmares and Daydreams
 Oath of Druids
 Oketra the True
 Omen of Fire
+Ondu War Cleric
 Open Fire
+Orazca Frillback
 Order of the Sacred Bell
 Ox of Agonas
 Pack's Favor
@@ -186,12 +225,14 @@ Pestilent Haze
 Phantasmal Bear
 Phantom Nomad
 Phantom Wurm
+Phyrexian Awakening
 Pine Barrens
 Pitchstone Wall
 Plains
 Pounce
 Practiced Tactics
 Prehistoric Turtlesaurus
+Prism Ring
 Prognostic Sphinx
 Proud Pack-Rhino
 Prying Blade
@@ -199,6 +240,7 @@ Psychic Barrier
 Pyroconvergence
 Queen's Commission
 Quilled Slagwurm
+Rabid Elephant
 Rageblood Shaman
 Raging Kronch
 Rally the Peasants
@@ -222,6 +264,7 @@ Sardian Cliffstomper
 Sarkhan Unbroken
 Scatter Arc
 Scrap Trawler
+Scrapbasket
 Screaming Shield
 Sea Spirit
 Secluded Steppe
@@ -233,14 +276,18 @@ Serene Offering
 Serra Zealot
 Servo Exhibition
 Shalai and Hallar
+Shared Summons
 Shining Armor
 Siege Modification
 Silent Submersible
+Silverglade Elemental
+Skittering Surveyor
 Skygames
 Skyline Predator
 Skymarcher Aspirant
 Skyshroud Condor
 Slagwurm Armor
+Slith Strider
 Snow-Covered Mountain
 Soltari Monk
 Song of Freyalise
@@ -249,6 +296,7 @@ Sparkshaper Visionary
 Sphinx Mindbreaker
 Spirit Link
 Sprouting Phytohydra
+Staff of the Sun Magus
 Standing Troops
 Starfall
 Steelshaper Apprentice
@@ -256,6 +304,7 @@ Stormcaller's Boon
 Subdue
 Subterranean Scout
 Sultai Skullkeeper
+Survive the Night
 Swallowing Plague
 Swamp
 Sylvan Brushstrider
@@ -268,21 +317,30 @@ Thalakos Mistfolk
 The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
+The Roaring Toeclaws
 Thraben Watcher
 Thunder Totem
+Timberpack Wolf
+Tomb of the Spirit Dragon
+Tormented Angel
 Tormenting Voice
 Torpid Moloch
 Tower Worker
 Trench Gorger
 Tri-Sentinel, Act of Vengeance
+Trigon of Mending
 Turbulent Wilderness
 Umara Raptor
+Unbridled Growth
 Undead Minotaur
+Unravel the Aether
 Valiant Veteran
 Vampire Hexmage
 Vampire Hounds
 Veil of Assimilation
+Viridian Longbow
 Voice of Grace
+Wake the Reflections
 Walking Wall
 Warden of the Woods
 Wasteful Harvest

@@ -61,6 +61,7 @@ Cloud Elemental
 Coastal Bulwark
 Coastal Tower
 Collision
+Colossal Growth
 Combat Medic
 Conclave Tribunal
 Consider
@@ -169,13 +170,18 @@ Irontread Crusher
 Island
 Jedit Ojanen of Efrava
 Jewel-Eyed Cobra
+Joraga Bard
 Jukai Trainee
+Kalonian Twingrove
 Karn, Silver Golem
+Karplusan Wolverine
 Kazuul's Toll Collector
 Kederekt Leviathan
+Kessig Wolf
 Lagonna-Band Elder
 Launch Mishap
 Leaping Master
+Level Up
 Leyline of the Meek
 Library of Alexandria
 Lifeline
@@ -184,13 +190,16 @@ Longshot, Rebel Bowman
 Lorehold Pledgemage
 Lost in the Woods
 Lowland Oaf
+Mad Dog
 Magma Giant
 Marshal of Zhalfir
+Match the Odds
 Meandering River
 Memnarch
 Merfolk Branchwalker
 Merfolk of the Pearl Trident
 Midnight Guard
+Might of Old Krosa
 Mind Peel
 Mirrodin Avenged
 Mist Dragon
@@ -259,10 +268,12 @@ Sarkhan's Scorn
 Scarwood Goblins
 Scoria Cat
 Scuttling Sliver
+Scythe Tiger
 Searchlight Companion
 Second Breakfast
 Secure Detention
 Seizan, Perverter of Truth
+Sentry of the Underworld
 Shadow Stinger
 Shadow in the Warp
 Shire Shirriff
@@ -326,6 +337,7 @@ Toski, Bearer of Secrets
 Trained Orgg
 Treefolk Harbinger
 Trenchpost
+Tromell, Seymour's Butler
 Tura Kennerüd, Skyknight
 Twisted Experiment
 Unexpected Windfall
@@ -342,6 +354,7 @@ Wall of Denial
 Wall of One Thousand Cuts
 Wanderer's Twig
 Warbriar Blessing
+Warden of Geometries
 Warden of the Wall
 Warmth
 Weaver of Lightning

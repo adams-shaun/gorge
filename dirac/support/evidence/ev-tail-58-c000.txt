@@ -78,6 +78,8 @@ Cumber Stone
 Dapper Shieldmate
 Daru Warchief
 Dauthi Horror
+Daxiver, Izzet Electromancer
+Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit
 Deluge
@@ -87,6 +89,7 @@ Disciple of Law
 Disempower
 Distant Melody
 Distress
+Dormant Sliver
 Dovin's Acuity
 Drownyard Explorers
 Druid of the Anima
@@ -164,6 +167,7 @@ Hunger of the Nim
 Icingdeath, Frost Tyrant
 Incite
 Infernal Captor
+Inquisitor Exarch
 Inspired Insurgent
 Inspired Sphinx
 Involuntary Cooldown
@@ -252,6 +256,7 @@ Prognostic Sphinx
 Prophet of Distortion
 Prophet of the Peak
 Pyrostatic Pillar
+Quandrix Cultivator
 Quarrel's End
 Quasiduplicate
 Quirion Ranger
@@ -268,6 +273,7 @@ Reckless One
 Reito Sentinel
 Relic Runner
 Repulse
+Reshape the Earth
 Resolute Blademaster
 Riddlesmith
 Ring of Renewal
@@ -326,6 +332,7 @@ Sprouting Phytohydra
 Squee's Toy
 Staff of Titania
 Stag Beetle
+Stand Together
 Status
 Steadfast Guard
 Stone-Seeder Hierophant
@@ -379,6 +386,7 @@ Victory's Envoy
 Vigilance
 Vinelasher Kudzu
 Vivify
+Voidslime
 Voldaren Duelist
 Voltaic Construct
 Vryn Wingmare
@@ -390,6 +398,7 @@ Wheel of Fortune
 Whipcorder
 Wild Wanderer
 Wishcoin Crab
+Wistful Selkie
 Witness of Tomorrows
 Woebringer Demon
 Wolfbriar Elemental

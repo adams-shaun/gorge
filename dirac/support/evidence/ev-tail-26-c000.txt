@@ -6,6 +6,7 @@ Advance Scout
 Akki Lavarunner
 Amrou Scout
 Ancient Runes
+Angelic Overseer
 Arc Lightning
 Armor of Shadows
 Armorcraft Judge
@@ -25,6 +26,8 @@ Celebrity Fencer
 Chemister's Insight
 Chrome Mox
 City of Shadows
+Contract Killing
+Copper Tablet
 Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
@@ -36,8 +39,10 @@ Dirty Rat
 Divebomber Griffin
 Dragon Hatchling
 Dralnu's Crusade
+Drider
 Eel-Hounds
 Empty the Warrens
+Empyrial Armor
 Faithless Looting
 Fast Forward
 Fencing Ace
@@ -55,8 +60,10 @@ Gloom Pangolin
 Goblin Firebug
 Grappling Sundew
 Grave Betrayal
+Gravity Well
 Greenseeker
 Gruul Guildmage
+Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
 Hesitation
@@ -88,6 +95,7 @@ Moss Kami
 Mountain
 Necra Sanctuary
 Necroblossom Snarl
+Necrosquito
 Nested Shambler
 Nighthawk Scavenger
 Nightmarish End
@@ -131,6 +139,7 @@ Slate of Ancestry
 Slip Through Space
 Snake Pit
 Sparkspitter
+Spined Fluke
 Spite
 Spontaneous Combustion
 Steadfast Unicorn
@@ -145,6 +154,7 @@ Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
 The Surgical Bay
+The Wretched
 Thieves' Guild Enforcer
 Tide Drifter
 Tigereye Cameo
@@ -159,6 +169,8 @@ Volcanic Rush
 Wall of Faith
 Warkite Marauder
 Warlord's Axe
+Wasp, Shrinking Savior
+Watchful Blisterzoa
 Wei Night Raiders
 Whirler Rogue
 Wight of Precinct Six

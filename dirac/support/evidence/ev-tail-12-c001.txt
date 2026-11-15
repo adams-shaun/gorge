@@ -18,6 +18,7 @@ Coral Eel
 Count Nefaria
 Cunning Sparkmage
 Diamond Knight
+Disentomb
 Dispel
 Dragonspark Reactor
 Duskmantle Prowler
@@ -29,6 +30,7 @@ Forest
 Funeral Longboat
 Garrison Griffin
 Geralf's Masterpiece
+Geyserfield Stalker
 Goblin Tutor
 Goldmane Griffin
 Hand of Death
@@ -59,6 +61,7 @@ Ornamental Courage
 Pardic Arsonist
 Peer Through Depths
 Phyrexian Tribute
+Plague Spitter
 Plains
 Primal Growth
 Propaganda
@@ -71,8 +74,10 @@ Restoration Angel
 Revel of the Fallen God
 Run Aground
 Scour All Possibilities
+Scourge of Valkas
 Screeching Sliver
 Security Blockade
+Serum Powder
 Seven-Tail Mentor
 Sewer Rats
 Shadowmage Infiltrator

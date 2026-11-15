@@ -1,11 +1,20 @@
+A-Cori-Steel Cutter
 A-Dragonborn Looter
 A-Ominous Parcel
+Accursed Horde
 Adaptive Snapjaw
+Aerial Engineer
 Aether Adept
 Aethersnipe
+Akoum Refuge
+Alluring Suitor
 Amulet of Unmaking
+Angelic Exaltation
 Angelic Gift
 Angler Turtle
+Anodet Lurker
+Answered Prayers
+Ant Queen
 Anurid Barkripper
 Anurid Murkdiver
 Arachnoform
@@ -13,41 +22,63 @@ Arc Trail
 Ardent Soldier
 Armory Guard
 Audacious Infiltrator
+Aven Mindcensor
 Awakened Awareness
 Baloth Prime
 Barrage Tyrant
+Barrowgoyf
 Basic Conjuration
 Bastion Enforcer
 Bayou
+Besmirch
 Bewilder
 Beyeen Veil
 Bill the Pony
 Blood Burglar
 Bloodbraid Elf
+Bloodline Culling
+Bloodrite Invoker
 Bloodshed Fever
 Boggart Forager
+Boil
+Bolshack Dragon
 Bonded Construct
 Boon of Boseiju
+Bountiful Harvest
 Brawl-Bash Ogre
 Breaching Hippocamp
 Burning Hands
+Burning Oil
+Captain's Hook
+Carnage Wurm
+Carrion Call
 Caustic Crawler
 Centaur Healer
 Cerulean Drake
+Cessation
+Chaos Terminator Lord
 Char-Dog
 Choking Restraints
 Cinder Barrens
+Cinder Elemental
 Clamavus
+Claws of Valakut
+Cleanse
 Cleric of Chill Depths
+Clever Concealment
 Cloak and Dagger
+Clock of Omens
 Cloudheath Drake
+Coldsteel Heart
 Cone of Flame
+Confidence from Strength
 Consuming Corruption
 Contraband Kingpin
 Corpse Cur
 Corrupted Resolve
 Cremate
 Crenellated Wall
+Crooked Custodian
 Cruel Witness
 Cystbearer
 Dark Prophecy
@@ -60,21 +91,31 @@ Divine Smite
 Doomskar Titan
 Dragon-Cursed Halls
 Dream Pillager
+Dross Crocodile
+Echoing Ruin
 Eidolon of Inspiration
 Elfhame Palace
 Elvish Ranger
 Ember Hauler
+Emergency Weld
+Endless Sands
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
 Evolution Sage
 Exemplar of Strength
 Faerie Swarm
+Fell the Pheasant
 Feral Abomination
+Fervent Champion
 Fiddlehead Kami
 Fiend Binder
+Fireflux Squad
+Fissure Vent
 Flaming Fist
+Flatten
 Fledgling Mawcor
+Fledgling Osprey
 Flusterstorm
 Flutterfox
 Flywheel Racer
@@ -84,6 +125,7 @@ Forest
 From Beyond
 Furnace Spirit
 Gala Greeters
+Galadhrim Bow
 Galvanic Juggernaut
 Gauntlet of Might
 Gladehart Cavalry
@@ -91,17 +133,30 @@ Gleeful Demolition
 Glimpse the Unthinkable
 Glint Raker
 Gloomwidow's Feast
+Go for the Throat
 Gobland
 Goblin Diplomats
+Goblin Matron
+Goblin Mountaineer
 Goblin Scouts
+Goblin Sledder
+Gold-Forged Sentinel
 Goreclaw, Terror of Qal Sisma
+Grasp of Darkness
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
 Grizzled Angler
+Guardian Scalelord
+Gwenna, Eyes of Gaea
+Hammerhead, Maggia Boss
 Hangarback Walker
+Harvest Wurm
+Haunted Cadaver
 Havoc Devils
 Helm of the Host
+High Seas
 Holdout Settlement
+Horizon Explorer
 Horn of Gondor
 Hornet Sting
 Hovermyr
@@ -117,7 +172,12 @@ Invasion of Xerex
 Island
 Izzet Signet
 Jousting Dummy
+Junk Winder
+Kamahl's Desire
 Kami of Tattered Shoji
+Karplusan Forest
+Kill-Zone Acrobat
+Kindly Customer
 King of the Pride
 Kinsbaile Courier
 Kitesail Scout
@@ -125,32 +185,43 @@ Knight of the Reliquary
 Knowledge and Power
 Krosan Archer
 Leadership Vacuum
+Leaping Lizard
 Leechridden Swamp
 Legion Leadership
 Legion Vanguard
+Leonin of the Lost Pride
+Leyline of Sanctity
 Lifelink
 Liquify
 Living Lands
 Loamcrafter Faun
 Lucid Dreams
+Lurking Nightstalker
 Mage-Ring Network
 Mana Short
 Manipulate Fate
 Marauding Looter
+Mardu Runemark
 Master Transmuter
 Mesa Lynx
 Metal Fatigue
+Meteoric Mace
 Miara, Thorn of the Glade
+Mite Overseer
 Mogg Alarm
 Moonlit Wake
+Mossbeard Ancient
 Mosstodon
 Motivated Pony
 Mountain
+Myr Adapter
 Mystic Snake
 Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
+Needlethorn Drake
 Needleverge Pathway
+Nest Robber
 Nether Horror
 Night Market Aeronaut
 Nimbus Champion
@@ -159,18 +230,26 @@ Ob Nixilis, the Fallen
 Oni of Wild Places
 Organ Grinder
 Ornithopter
+Overload
 Overwhelming Encounter
+Pack's Betrayal
+Painwracker Oni
 Paradox Zone
+Park Heights Pegasus
 Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
 Perilous Myr
+Perimeter Captain
+Petravark
 Petrifying Meddler
+Phenomenon Investigators
 Pheres-Band Centaurs
 Phyrexian Colossus
 Phyrexian Warhorse
 Phytoburst
+Piety
 Plains
 Plow Through Reito
 Polluted Mire
@@ -180,32 +259,50 @@ Prismatic Strands
 Protective Bubble
 Purify the Grave
 Quantum Entanglement
+Rakdos Carnarium
 Ral's Dispersal
 Reality Heist
+Reborn Hope
 Renegade Reaper
 Resurrection Orb
+Ridgescale Tusker
+Sabertooth Outrider
 Sacred Armory
+Sage's Dousing
 Sage's Reverie
+Samite Archer
 Samut's Sprint
+Sandsteppe Scavenger
 Sandstorm
 Saprazzan Outrigger
+Satyr Hoplite
+Satyr Nyx-Smith
+Savai Sabertooth
 Scalding Devil
+Scholar of Athreos
 School of the Unseen
 Scythecat Cub
 Seek the Horizon
 Separatist Voidmage
 Serpent-Blade Assailant
 Setessan Starbreaker
+Severed Legion
+Sewer Rats
 Shadow Summoning
+Shaman of the Pack
 Shapers' Sanctuary
+Shard of the Nightbringer
 Shrewd Negotiation
+Shriek of Dread
 Shu Cavalry
+Silt Crawler
 Silver Raven
 Singing Tree
 Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
 Smoke Bomb
+Smother
 Species Specialist
 Spellbook
 Spiderwig Boggart
@@ -214,12 +311,19 @@ Spike Weaver
 Squirrel Nest
 Steam Frigate
 Stolen Grain
+Stolen Vitality
 Strength from the Fallen
+Strength of Isolation
+Subterranean Hangar
 Sunken Hope
+Suppression Bonds
 Swamp
+Sweatworks Brawler
+Swelter
 Swift Response
 Tajuru Stalwart
 Talon Gates of Madara
+Tatyova, Steward of Tides
 Telepathy
 Temperamental Oozewagg
 Temporal Adept
@@ -227,20 +331,30 @@ Thalia's Lancers
 The Cauldron of Eternity
 Thirsting Bloodlord
 Thoughtcutter Agent
+Thran Spider
 Thrasher Brute
 Thrummingbird
 Thunderscape Familiar
+Tidal Surge
 Tidepool Turtle
+Tome Raider
 Tracker's Instincts
 Traitor's Clutch
 Tribal Unity
+Tribute to Horobi
+Trufflesnout
 Tunneler Wurm
+Turntimber Ranger
 Twitch
 Ultimate Price
+Unbreathing Horde
+Undead Warchief
 Unicycle
 Unraveling Mummy
 Ureni's Counsel
+Ursine Champion
 Urza's Guilt
+Vedalken Orrery
 Venerable Knight
 Verduran Emissary
 Viashino Firstblade
@@ -254,10 +368,12 @@ War Report
 War-Torch Goblin
 Water Servant
 Weatherlight
+Welder Automaton
 Weldfast Engineer
 Wellspring
 Whisper Agent
 Wild Celebrants
 Wings of Hope
+Wrenn's Resolve
 Yavimaya Scion
 Zirilan of the Claw

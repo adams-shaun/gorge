@@ -52,6 +52,7 @@ Chieftain en-Dal
 Childhood Horror
 Cleansing Wildfire
 Cloak of Feathers
+Coffin Purge
 Combat Courier
 Conclave Naturalists
 Conductor of Cacophony
@@ -106,6 +107,7 @@ Flay
 Folk Medicine
 Forest
 Frenzied Fugue
+Frogmyr Enforcer
 Frost Walker
 Fulminator Mage
 Gadwick, the Wizened
@@ -323,6 +325,7 @@ Syndicate Enforcer
 Tel-Jilad Lifebreather
 Tezzeret's Touch
 Thassa's Bounty
+The Blackstaff of Waterdeep
 Thran Dynamo
 Thraxodemon
 Time of Need
@@ -353,6 +356,7 @@ Warren Weirding
 Waste Not
 Weapon Rack
 Wee Dragonauts
+Wei Scout
 Weirding Wood
 Whetstone
 Whimwader
@@ -363,6 +367,7 @@ Wings of Hope
 Winter Eladrin
 Wintermoon Mesa
 Wirewood Lodge
+Wretched Anurid
 Yavimaya Barbarian
 Zealous Inquisitor
 Zodiac Goat

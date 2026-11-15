@@ -5,6 +5,7 @@ A-Radha, Coalition Warlord
 A-Wizard Class
 Abiding Grace
 Academy Drake
+Academy Wall
 Accelerate
 Advent of the Wurm
 Aethersphere Harvester
@@ -23,10 +24,12 @@ Anje, Maid of Dishonor
 Apothecary Geist
 Apprentice Wizard
 Arcane Melee
+Archetype of Courage
 Argivian Avenger
 Armor Sliver
 Arrester's Admonition
 Atarka Beastbreaker
+Avatar Kyoshi, Earthbender
 Avoid Fate
 Axebane Guardian
 Ayara, First of Locthwain
@@ -49,6 +52,7 @@ Carrion Imp
 Castle
 Celestial Ancient
 Cephalid Coliseum
+Ceremonial Guard
 Chains of Custody
 Chainweb Aracnir
 Chakra Meditation
@@ -61,6 +65,7 @@ Chittering Rats
 Cloudkill
 Collected Company
 Commissar Severina Raine
+Composer of Spring
 Confront the Assault
 Corpse Blockade
 Corpse Knight
@@ -75,13 +80,19 @@ Dagger Caster
 Dawn Elemental
 Defy Death
 Delighted Killbot
+Deviant Skytech
 Diabolic Intent
+Dimir Informant
 Dockside Chef
 Dragon's Claw
 Dyfed, the Guiding Hand
 Earth Rift
+Ebon Dragon
 Elephant-Mandrill
+Eloise, Nephalia Sleuth
 Elvish Hexhunter
+Elvish Reclaimer
+Elvish Vanguard
 Explosive Welcome
 Extortion
 Extractor Demon
@@ -89,6 +100,7 @@ Fain, the Broker
 Faultgrinder
 Feign Death
 Field Marshal
+Fiery Finish
 Fireblade Artist
 Fireblast
 Flametongue Kavu
@@ -98,12 +110,16 @@ Fledgling Mawcor
 Fog Elemental
 Forest
 Frilled Deathspitter
+Frog-Squirrels
 Funeral Rites
 Gathering Throng
+General Leo Cristophe
 Ghitu Fire-Eater
 Ghoul's Feast
 Glissa's Scorn
 Gnarlid Pack
+Gnarlroot Pallbearer
+Goblin Bird-Grabber
 Goblin Diplomats
 Goblin Glory Chaser
 Godhunter Octopus
@@ -112,22 +128,27 @@ Goma Fada Vanguard
 Granite Gargoyle
 Grave Venerations
 Grazilaxx, Illithid Scholar
+Greater Good
 Grim Bounty
+Grim Strider
 Grizzly Fate
 Grovetender Druids
 Gruul Keyrune
 Guise of Fire
 Hallowed Haunting
+Haunted Angel
 Haunting Hymn
 Hawkeye, Bowslinger
 Hazoret the Fervent
 Headless Horseman
 Heaven Sent
 Helm of the Ghastlord
+Hero of Iroas
 Hexgold Halberd
 Hieroglyphic Illumination
 Honor Guard
 Hooded Kavu
+Horn of the Mark
 Horror of the Dim
 Hunger of the Howlpack
 Hydra's Growth
@@ -143,9 +164,11 @@ Insight Engine
 Insist
 Iron Suitcase
 Island
+Izzet Chronarch
 Jace's Phantasm
 Jackal Pup
 Jeskai Barricade
+Kalemne's Captain
 Karoo Meerkat
 Ken, Burning Brawler
 Kimoyo Beads
@@ -165,7 +188,9 @@ Marauding Maulhorn
 Marchesa's Infiltrator
 Mardu Banner
 Mark of Mutiny
+Mask of Immolation
 Maze of Ith
+Meloku the Clouded Mirror
 Mentor's Guidance
 Merfolk Secretkeeper
 Metropolis Reformer
@@ -195,10 +220,13 @@ Phylath, World Sculptor
 Plains
 Poppet Stitcher
 Primordial Ooze
+Prized Griffin
+Prophet of Distortion
 Psychic Overload
 Radiant, Archangel
 Rage-Scarred Berserker
 Raging Minotaur
+Rain of Thorns
 Rally
 Recruiter of the Guard
 Regathan Firecat
@@ -212,6 +240,7 @@ Rowan Treefolk
 Sacred Rites
 Sacrifice
 Sage of Epityr
+Sage of Mysteries
 Sarkhan, Dragonsoul
 Savage Gorger
 Scaled Wurm
@@ -232,6 +261,8 @@ Sheoldred, the Apocalypse
 Shreds of Sanity
 Sick and Tired
 Sidisi, Undead Vizier
+Silverback Shaman
+Silverstrike
 Slash the Ranks
 Slay
 Slime Molding
@@ -252,14 +283,18 @@ Spike Colony
 Spike Worker
 Spined Sliver
 Spirit of Malevolence
+Sporeback Wolf
 Squee's Embrace
 Staff of Compleation
 Staff of the Mind Magus
+Staggering Insight
 Standing Troops
+Steadfast Armasaur
 Stimulus Package
 Stratozeppelid
 Street Urchin
 Strength-Testing Hammer
+Subjugator Angel
 Sudden Shock
 Sunastian Falconer
 Surgehacker Mech
@@ -269,23 +304,28 @@ Sylvan Paradise
 Syndicate Guildmage
 Taigam's Scheming
 Talons of Wildwood
+Tanazir Quandrix
 Taste of Blood
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
 Territorial Baloth
 Thallid Devourer
 Thoughtflare
+Thraben Watcher
 Thrashing Wumpus
 Three Visits
 Throes of Chaos
 Time Spiral
+Tireless Missionaries
 Tolarian Scholar
 Torch Courier
 Torsten Von Ursus
 Tragic Poet
 Tranquilize
+Twilight Drover
 Tymora's Invoker
 Uktabi Kong
+Ulvenwald Mysteries
 Umbris, Fear Manifest
 Unbounded Potential
 Undead Hand Ninja
@@ -310,10 +350,13 @@ Warstorm Surge
 Wear
 Weight of the Underworld
 Welder Automaton
+Wind Drake
 Wing Splicer
 Wirecat
 Witherbloom Campus
 Xathrid Demon
 Yavimaya Iconoclast
 You Look Upon the Tarrasque
+Zealous Inquisitor
+Zendikar Resurgent
 Zenith Festival
