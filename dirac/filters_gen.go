@@ -618,7 +618,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
 		return false
 	}
-	cols := cd.Colors
+	cols := s.splitCols(k, c, o, cd.Colors) // CR 709.4 (filter_splitcolors.go)
 	if fd {
 		cols = 0 // CR 708.2/708.4: a face-down permanent or spell is colourless
 	}
