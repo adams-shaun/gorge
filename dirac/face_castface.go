@@ -72,7 +72,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 			ok = false // a granted-delve face is a "shape:contribution" the planner declines: only the floating pool casts it
 		}
 		if ok && s.cfg&cfgGorgeUnpriced != 0 && facePlannerLimited(k.t.Cards[c].FaceMode) && !s.FeatPoolPays(p, o, 0) {
-			if s.anySacSource(k, p) && !s.faceWitnessReaches(k, p, c, &cost) {
+			if s.anySacSource(k, p) && !s.faceWitnessReaches(k, p, o, c, &cost) {
 				// The witness may sacrifice a source (a Treasure) the
 				// face's own targets need: gorge's potentialWitnessReaches
 				// drops the play ("unsupported: witness_unreachable").
@@ -239,35 +239,6 @@ func (s *State) splitMV(k *prep, c CardID, o Obj, mv int) int {
 	return int(k.cards[cd.Faces[0]].total) + int(k.cards[cd.Faces[1]].total)
 }
 
-// splitColors is the colour set of object o showing card c with printed
-// colours cols: a split card's front off the stack and the battlefield has
-// both halves' colours (CR 709.4, 709.4b: its colours come from the combined
-// mana cost; gorge state/mana_value.go SplitHalves). Otherwise cols.
-func (s *State) splitColors(k *prep, c CardID, o Obj, cols kop.ColorMask) kop.ColorMask {
-	cd := &k.t.Cards[c]
-	if cd.FaceMode != kop.FaceSplit || cd.Face != 0 || o == NoObj || len(cd.Faces) != 2 {
-		return cols
-	}
-	if z := s.objs[o].zone; z == kop.ZoneStack || z == kop.ZoneBattlefield {
-		return cols
-	}
-	return k.t.Cards[cd.Faces[0]].Colors | k.t.Cards[cd.Faces[1]].Colors
-}
-
-// cardColors is card c's colour set as a card filter reads it off the
-// battlefield: colourless face down (CR 708.2, 708.4), a split card's halves
-// combined (splitColors), else the printed colours.
-func (s *State) cardColors(k *prep, c CardID, o Obj, fd bool) kop.ColorMask {
-	if fd {
-		return 0
-	}
-	cols := k.t.Cards[c].Colors
-	if k.gen != nil && k.gen.anySplit {
-		cols = s.splitColors(k, c, o, cols)
-	}
-	return cols
-}
-
 // FeatCastFace is the AkCast mode bit of a face cast; the action's target
 // is the face cast (0: an Adventure's front from exile).
 const FeatCastFace = castFace
@@ -284,8 +255,16 @@ const FeatCastFace = castFace
 // in place: the kernel's census already paid the cost, and dropping a play
 // gorge reaches through a witness this planner does not model would be the
 // worse divergence (kickWitness reads the same way). Only a found witness
-// that consumes a source and strands the face's targets withholds the play.
-func (s *State) faceWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
+// that consumes a source and strands the face's targets, or leaves the floated
+// pool short of the cost as it is then priced, withholds the play.
+//
+// The lowering floats the witness's mana before the cast, so a reduction that
+// counts the sacrificed source (Frogmyr Enforcer's affinity for a Treasure on
+// its prototype cast) has dropped by the time the cast is priced, though CR
+// 601.2f fixed the total before the sacrifice; gorge's witnessReachesMode
+// lists the cast only when the pool pays that cost (kw_spree.go does the same).
+// o has the face's card in it (faceCastable's probe).
+func (s *State) faceWitnessReaches(k *prep, p uint8, o Obj, c CardID, cost *kop.ManaCost) bool {
 	tmp := s.fork()
 	defer s.unfork()
 	var pk planner
@@ -294,7 +273,7 @@ func (s *State) faceWitnessReaches(k *prep, p uint8, c CardID, cost *kop.ManaCos
 	if !pk.found || !plannerConsumesSac(&pk) {
 		return true
 	}
-	return tmp.spellTargetsFeasible(k, c, p)
+	return tmp.spellTargetsFeasible(k, c, p) && tmp.FeatPoolPays(p, o, 0)
 }
 
 // plannerConsumesSac reports whether the planner's chosen witness sacrifices

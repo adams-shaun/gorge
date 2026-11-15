@@ -1,0 +1,280 @@
+A-Forge Boss
+A-Tanazir Quandrix
+Abomination of Llanowar
+Agent Frank Horrigan
+Agent of Shauku
+Agility Bobblehead
+Agony Warp
+Air Elemental
+Ajani, the Greathearted
+Akroan Phalanx
+Akroan Skyguard
+Amy Rose
+Anara, Wolvid Familiar
+Ancient Stirrings
+Appetite for Brains
+Arrogant Poet
+Aspect of Lamprey
+Assault Formation
+Atarka, World Render
+Bala Ged Scorpion
+Bankrupt in Blood
+Barrin, Master Wizard
+Beacon Behemoth
+Bionic Blow
+Black Market Tycoon
+Blindblast
+Bloodlust Inciter
+Bottle Gnomes
+Bramblecrush
+Brass Gnat
+Bringer of the White Dawn
+Cabal Evangel
+Cat Oven
+Cave-In
+Cephalid Illusionist
+Chain Lightning
+Chaplain's Blessing
+Chariot of the Sun
+Chasm Drake
+Chimney Imp
+Cinder Wall
+Cleaving Sliver
+Cleon, Merry Champion
+Cloud Pirates
+Cloudcrown Oak
+Collected Company
+Confessor
+Conjurer's Closet
+Constable of the Realm
+Continue?
+Contraband Livestock
+Copper Gnomes
+Cunning Evasion
+Curio Vendor
+Cutthroat il-Dal
+Dauntless Bodyguard
+Death Pits of Rath
+Delusions of Mediocrity
+Depose
+Desecrated Earth
+Diabolic Tutor
+Dimir Aqueduct
+Djeru's Renunciation
+Dromad Purebred
+Drownyard Temple
+Elite Vanguard
+Embrace the Unknown
+Enclave Cryptologist
+Endless Cockroaches
+Engineered Might
+Epitaph Golem
+Eternal Taskmaster
+Excommunicate
+Eye of Nowhere
+Faerie Guidemother
+Faithbearer Paladin
+Falter
+Fang Skulkin
+Fatal Attraction
+Feast of the Unicorn
+Feral Invocation
+Festering Evil
+Fiery Confluence
+Fire Urchin
+Flameshadow Conjuring
+Flaring Pain
+Flatten
+Fleeting Image
+Flowstone Surge
+Forest
+Forgotten Cave
+Fortitude
+Furtive Analyst
+Garruk's Horde
+Geist-Honored Monk
+Gem of Becoming
+Getaway Car
+Gladecover Scout
+Goblin Fire Fiend
+Goblin Medics
+Goblin Morningstar
+Goblin Roughrider
+God-Eternal Bontu
+Gouged Zealot
+Grapeshot
+Great Goblin, Foul-Hearted
+Great Whale
+Griptide
+Grisly Ritual
+Grotag Siege-Runner
+Ground Rift
+Gruesome Fate
+Guild Thief
+Hapatra, Vizier of Poisons
+Hardened-Scale Armor
+Headless Horseman
+Heap Doll
+Hellspark Elemental
+Hieromancer's Cage
+Hobgoblin Captain
+Holy Armor
+Holy Light
+Honor Troll
+Horned Turtle
+Hunter's Mark
+Hurloon Minotaur
+Impaler Shrike
+Increasing Devotion
+Inferno Fist
+Invading Manticore
+Iroas's Blessing
+Iron Man, Modern Marvel
+Island
+Ivy Seer
+Jade Guardian
+Jalira, Master Polymorphist
+Judge of Currents
+Kinjalli's Sunwing
+Labyrinth Adversary
+Last Word
+Lore Seeker
+Lunar Frenzy
+Maniacal Rage
+Martial Glory
+Mask of Memory
+Memorial to Folly
+Mental Note
+Mightstone
+Mirri the Cursed
+Mirri's Guile
+Misguided Rage
+Mist-Cloaked Herald
+Moggcatcher
+Molting Harpy
+Morphling
+Moss Viper
+Mountain
+Murasa Behemoth
+Myrsmith
+Nantuko Mentor
+Navigation Orb
+Needle Spires
+Nettle Drone
+Neurok Replica
+Night Out in Vegas
+Nimble Birdsticker
+Norwood Priestess
+Nylea's Huntmaster
+Oathsworn Vampire
+Ogre Errant
+Old Rutstein
+Oneirophage
+Orc Sureshot
+Ordeal of Heliod
+Oversold Cemetery
+Paladin Danse, Steel Maverick
+Paradise Mantle
+Patagia Tiger
+Phantasmal Sphere
+Pheres-Band Warchief
+Pillage
+Plague Spitter
+Plains
+Poison-Tip Archer
+Primal Whisperer
+Prizefight
+Protective Bubble
+Puca's Covenant
+Qilin's Blessing
+Raging Bull
+Ramosian Lieutenant
+Raven's Crime
+Reckless Scholar
+Reckoner's Bargain
+Reclaim
+Relief Captain
+Reprocess
+Rhox Pikemaster
+Roar of the Crowd
+Rotted Hystrix
+Ruin Raider
+Sagu Archer
+Samite Alchemist
+Scavenged Weaponry
+Scurry Oak
+Seafloor Oracle
+Searing Blood
+Seed the Land
+Selfless Spirit
+Senate Courier
+Shuri's Fabricator
+Silas Renn, Seeker Adept
+Silverquill Apprentice
+Skittish Kavu
+Skulking Ghost
+Skyboon Evangelist
+Skysnare Spider
+Sly Spy
+Snake Pit
+Snow-Covered Plains
+Sorcerous Sight
+Southern Paladin
+Spara's Headquarters
+Spiritual Sanctuary
+Spiteful Motives
+Spore Frog
+Stampeding Rhino
+Steelform Sliver
+Steppe Glider
+Stern Dismissal
+Stoneshaker Shaman
+Stoneskin
+Storm Fleet Pyromancer
+Storm the Seedcore
+Strip Mine
+Stronghold Taskmaster
+Sun-Blessed Mount
+Sun-Collared Raptor
+Survey the Wreckage
+Swamp
+Sword of the Animist
+Sylvan Ranger
+Tar Pit Warrior
+The Stasis Coffin
+Thing in the Ice
+Thraben Charm
+Thunder Totem
+Tideshaper Mystic
+Tranquil Grove
+Traumatize
+Treacherous Vampire
+Treefolk Healer
+Treetop Rangers
+Twinscroll Shaman
+Tyrant's Familiar
+Unholy Officiant
+Unnatural Growth
+Unwilling Ingredient
+Urborg Shambler
+Venser's Journal
+Verdant Touch
+Verdurous Gearhulk
+Verge Rangers
+Viashino Outrider
+Violet Pall
+Virtus the Veiled
+Vital Splicer
+Void Helix
+Voidmage Prodigy
+Volcano Imp
+Voldaren Pariah
+Waking the Trolls
+Wall of Heat
+Wall of Lava
+Wei Strike Force
+Will of the All-Hunter
+Windstorm
+Witch's Web
+Zealous Persecution
+Zhalfirin Shapecraft

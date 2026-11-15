@@ -35,12 +35,13 @@ func TestCumulativeUpkeepLowering(t *testing.T) {
 	}
 }
 
-// TestCumulativeUpkeepRefusesOtherCosts: only a plain generic cost lowers. A
-// coloured cost, a life payment and the action costs of gorge's
-// parseCumulativeAction (sacrifice a land) stay refused by name, never read
-// as a generic one.
+// TestCumulativeUpkeepRefusesOtherCosts: the action costs of gorge's
+// parseCumulativeAction that no lowering reads (add a counter, add mana, gain
+// life) and a snow cost stay refused by name, never read as a generic one.
+// The coloured, life, sacrifice and discard costs lower
+// (TestCumulativeUpkeepCostsLower).
 func TestCumulativeUpkeepRefusesOtherCosts(t *testing.T) {
-	for _, name := range []string{"Illusionary Wall", "Arnjlot's Ascent", "Breath of Dreams"} {
+	for _, name := range []string{"Aboroth", "Wall of Shards", "Glacial Plating"} {
 		cards := lowerNamed(t, []string{name})
 		if len(cards) != 1 {
 			t.Fatalf("%s: lowered %d cards", name, len(cards))
