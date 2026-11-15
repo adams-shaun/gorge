@@ -98,7 +98,7 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) {
 			return
 		}
-		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, mo, ctx.srcSl) {
+		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, mo, ctx.srcSl, emb) {
 			return
 		}
 		if st.StFlags&kop.StTargetsFilter2 != 0 && (s.g.noTgtRed || !s.costTargetOK(k, st.Filter2, p, c)) {
@@ -174,13 +174,13 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 // spell's own grant): a ChosenType alternative reads that permanent's
 // recorded choice (Gathering Stone's ReduceCost Card.ChosenType; gorge
 // sourceChosen), a printed changeling having every type.
-func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot) bool {
+func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8) bool {
 	if f == 0 {
 		return true
 	}
 	for f != 0 {
 		fl := k.t.Filters[f]
-		if s.matchSpellAlt(k, fl, c, owner, ctrl, o, src) {
+		if s.matchSpellAlt(k, fl, c, owner, ctrl, o, src, emb) {
 			return true
 		}
 		f = fl.Or
@@ -189,10 +189,21 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 }
 
 // matchSpellAlt is one alternative of matchSpellCard's Or chain (fl is a
-// copy: the zone and chosen-type words are rewritten on it).
-func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot) bool {
+// copy: the zone and chosen-type words are rewritten on it). emb is the
+// static's emblem handle (0 = not an emblem), which a Card.NamedCard read
+// follows to the frozen capture once a ClearNamedCard$ chain wiped the
+// source (repl_namecard.go).
+func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8) bool {
 	if fl.Zone == kop.ZoneStack {
 		fl.Zone = kop.ZoneNone
+	}
+	if fl.Pred == kop.PredNamedCard {
+		// the card-name property NamedCard (CR 201.4): the candidate shares
+		// the static's source's chosen name, or its emblem's frozen capture
+		// (gorge state.ContinuousEffect.ChosenName; repl_namecard.go)
+		named := s.srcNamedCard(src, emb)
+		fl.Pred = kop.PredNone
+		return named != NoCard && named == c && s.matchCardOne(k, &fl, c, owner, ctrl, o)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenType != 0 {
 		ch, ok := s.chosenTypeSub(src)

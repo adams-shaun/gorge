@@ -1675,6 +1675,8 @@ async function answerOpenAsk(page: Page, unless?: string): Promise<void> {
   for (const offered of [
     page.locator(PAYMENT_ANSWERS),
     page.locator('[data-prompt-footer] button.primary:enabled'),
+    // The London mulligan's bottoming prompt commits with a button of its own, beside its hand row.
+    page.locator('[data-opening-hand] ~ .choices [data-submit]:enabled'),
     page.locator(PICKABLE),
     page.locator(FOOTER),
   ]) {
@@ -1730,6 +1732,53 @@ async function pendingSeq(s: SeatRef): Promise<number | null> {
   if (r.status() === 409 || r.status() === 404) return null;
   expect(r.ok(), `pending of ${s.table} seat ${s.seat} (status ${r.status()})`).toBe(true);
   return ((await r.json()) as { seq: number }).seq;
+}
+
+/**
+ * settleMulliganForLands takes the seat's London mulligans over the HTTP API, before the client
+ * mounts, until its hand holds two lands or the game offers no more. It never answers Keep: the
+ * page mounts into the round (the rail offers the log switch only during it) and keeps and bottoms
+ * on its own. POST /api/games deals from a random seed and a random deck, so an unplayable deal is a
+ * coin the test must not leave to the page, whose first answer is always Keep: a landless seven
+ * (seen in CI: twelve cards without a land) leaves the seat nothing to play, and the test passed
+ * priority for 150 s until its deadline. A hand whose cards carry no type line is kept, so a wire
+ * that hides them cannot mulligan to the end of the allowance.
+ */
+async function settleMulliganForLands(s: SeatRef): Promise<void> {
+  const deadline = Date.now() + STALL_MS;
+  const pendingURL = `${s.base}/api/tables/${s.table}/matches/${s.match}/pending?seat=${s.seat}&token=${encodeURIComponent(s.token)}`;
+  let answered = -1;
+  while (Date.now() < deadline) {
+    const p = await s.request.get(pendingURL);
+    // 409/404: the other seat's mulligan holds the match, or its decision is not registered yet.
+    if (p.status() === 409 || p.status() === 404) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      continue;
+    }
+    expect(p.ok(), `mulligan pending ${s.table} seat ${s.seat} (status ${p.status()})`).toBe(true);
+    const d = (await p.json()) as WireDecision;
+    if (d.kind !== 'mulligan') return;
+    if (d.seq === answered) {
+      // The match has not moved on from the mulligan yet.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      continue;
+    }
+    const v = await s.request.get(`${s.base}/api/tables/${s.table}/matches/${s.match}/view?seat=${s.seat}&token=${encodeURIComponent(s.token)}`);
+    expect(v.ok(), `view of ${s.table} seat ${s.seat} (status ${v.status()})`).toBe(true);
+    const view = (await v.json()) as { players: Array<{ seat: number; hand: Array<{ types?: string }> | null }> };
+    const hand = view.players.find((x) => x.seat === s.seat)?.hand ?? [];
+    const typed = hand.length > 0 && hand.every((c) => (c.types ?? '') !== '');
+    const lands = hand.filter((c) => /\bLand\b/.test(c.types ?? '')).length;
+    const mulligan = d.options.find((o) => o.kind === 'mulligan');
+    if (!typed || lands >= 2 || mulligan === undefined) return;
+    const resp = await s.request.post(`${s.base}/api/tables/${s.table}/matches/${s.match}/intent`, {
+      headers: { Authorization: `Bearer ${s.token}` },
+      data: { seq: d.seq, player: s.seat, choices: [mulligan.index] },
+    });
+    expect(resp.status(), `mulligan ${s.table} seat ${s.seat}`).toBe(204);
+    answered = d.seq;
+  }
+  throw new Error(`settleMulliganForLands: ${s.table} seat ${s.seat} never reached a hand it keeps`);
 }
 
 /** A hand card's cast controls, and the same controls and its PLAY control as page-wide selectors. */
@@ -1839,10 +1888,16 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
         test.setTimeout(WIRE_GAME_MS + 60_000);
         const b = base as string;
         const label = `[${engine} ${wire}]`;
-        const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed' } });
+        // POST /api/games deals a random deck from a random seed. gorge's pool holds decks whose lands
+        // pay for nothing the page can tap (fetch lands, Wasteland), so a deal of them plays lands and
+        // casts nothing (seen in CI): the seat plays one basic-land deck of cheap spells against another.
+        // dirac's pool is two-colour decks of basics, left to the server.
+        const decks = engine === 'gorge' ? { human_deck: 'mono-green-stompy', bot_deck: 'mono-white-equipment' } : {};
+        const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed', ...decks } });
         expect(resp.ok(), `${label} POST /api/games`).toBe(true);
         const g = (await resp.json()) as { join: string; seat: number; table: string; match: number; token: string };
         await settleStartingPlayer(request, b, g.table, g.match, g.seat, g.token);
+        await settleMulliganForLands({ request, base: b, table: g.table, match: g.match, seat: g.seat, token: g.token });
 
         const ctx = await browser.newContext();
         try {

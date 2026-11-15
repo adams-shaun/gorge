@@ -117,7 +117,7 @@ func SynthDirFor(dir string) (string, error) {
 
 // SynthDir returns this binary's synthetic table directory, symlinks resolved.
 func SynthDir() (string, error) {
-	corpus, err := CorpusDir()
+	corpus, err := corpusFound()
 	if err != nil {
 		return "", err
 	}

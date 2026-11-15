@@ -440,6 +440,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"LEVEL":      kop.CtrLevelUp,    // Level up's level counter (CR 702.87; the level bands' counters_GEn_LEVEL)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
+	"TIDE":       kop.CtrTide,       // Rikala, Homarid King's tide counter (CR 122.1; its count gates the card's own lines)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
 	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
@@ -1617,29 +1618,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// Off the battlefield the kernel reads Ctrl as the owner (matchCard).
 		kf.Ctrl, kf.Owner = kf.Owner, kop.CtrlAny
 	}
-	if c.Subtype != "" {
-		i, ok := cb.pt.sub(c.Subtype)
-		if !ok {
-			return kf, fmt.Errorf("subtype %q", c.Subtype)
-		}
-		kf.Sub = uint8(i + 1)
-	}
-	if c.NotSubtype != "" {
-		i, ok := cb.pt.sub(c.NotSubtype)
-		if !ok {
-			return kf, fmt.Errorf("subtype %q", c.NotSubtype)
-		}
-		kf.NotSub = uint8(i + 1)
-	}
-	for j, w := range c.MoreNotSubtype {
-		if w == "" {
-			continue
-		}
-		i, ok := cb.pt.sub(w)
-		if !ok {
-			return kf, fmt.Errorf("subtype %q", w)
-		}
-		kf.NotSubs[j] = uint8(i + 1)
+	if err := cb.clauseSubtypes(&kf, c); err != nil {
+		return kf, err
 	}
 	if c.Flags&fWarped != 0 && zone != kop.ZoneBattlefield {
 		// the kernel's warp mark is the pending warp exile of a
@@ -1672,6 +1652,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredEscaped, 1
 		c.Flags &^= fEscaped // consumed as the Pred, no kop flag of its own
+	}
+	if err := namedCardPred(&kf, &c); err != nil { // lower_namecard.go
+		return kf, err
 	}
 	for b := uint64(1); b != 0; b <<= 1 {
 		if c.Flags&b == 0 {
@@ -2731,4 +2714,34 @@ func putsTimeCounters(d *kop.CardDef) bool {
 		}
 	}
 	return false
+}
+
+// clauseSubtypes fills kf's subtype slots from the clause's Subtype,
+// NotSubtype and MoreNotSubtype words (clause).
+func (cb *cardBuilder) clauseSubtypes(kf *kop.Filter, c lClause) error {
+	if c.Subtype != "" {
+		i, ok := cb.pt.sub(c.Subtype)
+		if !ok {
+			return fmt.Errorf("subtype %q", c.Subtype)
+		}
+		kf.Sub = uint8(i + 1)
+	}
+	if c.NotSubtype != "" {
+		i, ok := cb.pt.sub(c.NotSubtype)
+		if !ok {
+			return fmt.Errorf("subtype %q", c.NotSubtype)
+		}
+		kf.NotSub = uint8(i + 1)
+	}
+	for j, w := range c.MoreNotSubtype {
+		if w == "" {
+			continue
+		}
+		i, ok := cb.pt.sub(w)
+		if !ok {
+			return fmt.Errorf("subtype %q", w)
+		}
+		kf.NotSubs[j] = uint8(i + 1)
+	}
+	return nil
 }

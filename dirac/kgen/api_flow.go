@@ -49,6 +49,9 @@ func (lc *lowerCtx) apiCleanup(sa *cards.SA, ps *params) error {
 	if ps.is("ClearChosenCard", "True") {
 		lc.emit(lInstr{Op: "ClearChosen"})
 	}
+	if err := lc.clearNamedCard(ps); err != nil { // lower_namecard.go
+		return err
+	}
 	lc.clearChosenPlayer(ps) // lower_definedheads.go
 	if v, ok := ps.get("ClearChosenColor"); ok {
 		// the chosen-colour grants read the colour at resolution (gorge

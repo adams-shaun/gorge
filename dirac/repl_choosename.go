@@ -191,3 +191,13 @@ func (s *State) nameLookDone() {
 		s.g.ask[0].kind = akNameAny
 	}
 }
+
+// enterNameAsk is the ExtChooseName arm of execExt: it queues the as-enters
+// card-name ask for the entering permanent (none when the hand names nothing).
+func (s *State) enterNameAsk(k *prep, in *kop.Instr) {
+	if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if kind := nameAskKind(in); kind != akNameHand || !s.nameHandNone(k, s.perms[s.objs[o].slot].ctrl) {
+			s.queueAsk(s.objs[o].slot, kind)
+		}
+	}
+}

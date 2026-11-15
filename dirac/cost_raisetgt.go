@@ -55,7 +55,7 @@ func (s *State) boardRaiseTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 			return true
 		}
 		ctx := s.ctxStatic(stc)
-		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) || !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl, stc.emb) {
 			return true
 		}
 		hit = true
