@@ -27,7 +27,11 @@ func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	}
 	for _, alt := range strings.Split(expr, ",") {
 		typ, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
-		if !ok || rest != word || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
+		// rest is the word alone or it after other properties of the same
+		// clause (Permanent.nonLand+ControlledBy TriggeredTarget, O-Kagachi,
+		// Vengeful Kami); a second comparison in the clause refuses in the
+		// parser ("two comparisons in one clause").
+		if !ok || (rest != word && !strings.HasSuffix(rest, "+"+word)) || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
 			// the predicate is the clause's one comparison, read on the
 			// battlefield: any other shape keeps the two-player reading
 			lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")

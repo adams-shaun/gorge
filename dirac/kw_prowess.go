@@ -24,7 +24,7 @@ func (s *State) prowessGrantCount(k *prep, sl Slot) int {
 	}
 	lts, lost := s.lossAt(k, sl)
 	n := 0
-	s.eachStaticC(k, sclsKw, func(st statSrc) bool {
+	f := func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Kw&kop.KwProwess == 0 {
 			return true
@@ -36,7 +36,11 @@ func (s *State) prowessGrantCount(k *prep, sl Slot) int {
 			n++
 		}
 		return true
-	})
+	}
+	s.eachStaticC(k, sclsKw, f)
+	if k.gyCont {
+		s.eachGyStatic(k, sclsKw, f) // a graveyard card's keyword grant (static_gycont.go)
+	}
 	if n == 0 && s.kw(k, sl)&kop.KwProwess != 0 && k.cards[s.cardAt(sl)].kw&kop.KwProwess == 0 {
 		n = 1 // a non-static grant (until end of turn): one instance
 	}
