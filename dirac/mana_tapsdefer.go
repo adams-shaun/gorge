@@ -185,7 +185,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
-		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
+		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
 		if !s.tapsGapActivatable(k, sl) {
@@ -201,7 +201,7 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 // CantBeActivated lock (cast_cantactivate.go). Every script gap arm that taps
 // its source asks it.
 func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) &&
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && (!s.genLost(k, sl) || s.landSetLost(k, sl)) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
