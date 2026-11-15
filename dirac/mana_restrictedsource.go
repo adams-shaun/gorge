@@ -634,6 +634,16 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				s.capFull(StallRestrSrc)
 				continue
 			}
+			if oneColour(v.manaCol & (kop.ColAny | kop.ColC)) {
+				// a fixed colour's evaluated amount ({C} beside a colour: Vhal,
+				// Candlekeep Researcher's toughness of {C}) is that much mana of
+				// that colour, with no payer's choice; gorge's census adds it as
+				// units of the colour and the plan's unit is srcMaskAt's mask
+				// (mana.go's rkDyn arm), so the offer walk must not hand it to
+				// affordsMulti's any-colour choice
+				t.addUnits(uint8(v.manaCol&(kop.ColAny|kop.ColC)), v.manaN)
+				break
+			}
 			multi[nm] = v.manaN
 			nm++
 		}
