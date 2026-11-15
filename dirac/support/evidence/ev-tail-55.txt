@@ -28,9 +28,11 @@ Cabal Conditioning
 Caldera Kavu
 Caustic Wasps
 Cavern Crawler
+Cloudreader Sphinx
 Curiosity
 Encampment Keeper
 Eternal Thirst
+Fireslinger
 Forest
 Fyndhorn Elves
 Goblin Assault
@@ -39,6 +41,7 @@ Island
 Karrthus, Tyrant of Jund
 Kor Hookmaster
 Lotus Petal
+Merfolk Trickster
 Metallic Mimic
 Morbid Opportunist
 Mountain
@@ -46,11 +49,20 @@ Nikko-Onna
 Pegasus Guardian
 Plains
 Pore Over the Pages
+Primal Rage
+Pygmy Allosaurus
 Pyrite Spellbomb
 Scarland Thrinax
+Scorchmark
 Sea Gate
 Sever Soul
+Sheltering Word
 Shroofus Sproutsire
+Skirsdag Supplicant
+Skyfisher Spider
+Spiked Corridor
+Stampeding Serow
+Stampeding Wildebeests
 Sultai Charm
 Swamp
 Temur Battle Rage
@@ -63,4 +75,5 @@ Vandalblast
 Vithian Stinger
 Vizier of the Scorpion
 Whiptongue Hydra
+Wild Elephant
 Zombie Cannibal
