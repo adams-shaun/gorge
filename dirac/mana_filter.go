@@ -505,7 +505,9 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
 // spend restriction, each-colour production, a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier), or a
+// {T} plus sacrificing itself, a Treasure's last-resort tier, and a sacrifice
+// alone, an Eldrazi Spawn's: pay/planshape.go TierLastResort, a planner unit
+// the census covers), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
@@ -514,7 +516,7 @@ func censusGapMana(a *kop.Ability) bool {
 		return false
 	}
 	f := a.Cost.Flags
-	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -578,6 +580,9 @@ type filtStep struct {
 	// ability beside the census one, and the search reads no restriction
 	// (mana_restrictedsource.go)
 	restr bool
+	// sacOnly: a funding source whose mana ability costs only its own
+	// sacrifice (an Eldrazi Spawn); ans is its colour (mana_sacsource.go)
+	sacOnly bool
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -725,6 +730,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		return
 	}
 	s.fireFiltAbilityCast(k, p, st) // the activation precedes its cost's tap and sacrifice
+	if st.sacOnly {
+		s.sacOnlyDo(k, p, st)
+		return
+	}
 	pl := &s.pl[SeatIx(p)]
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
@@ -935,8 +944,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if !t.filtUsable(k, sl) {
 					continue // (a once-each-turn filter: its use, not its {T})
 				}
-			} else if t.perms[sl].flags&pfTapped != 0 {
-				continue
+			} else if t.perms[sl].flags&pfTapped != 0 && (gap || !k.sacOnlyMana || !t.canSacOnlyNowAt(k, sl)) {
+				continue // (a tapped sacrifice-only source still pays: its cost has no {T})
 			}
 			if gap {
 				free := t.canTapForMana(k, sl)
@@ -976,6 +985,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.canTapForMana(k, sl)
 			if !free && rm == 0 {
+				if k.sacOnlyMana && t.canSacOnlyNowAt(k, sl) && fs.fundSacOnly(k, t, sl, funded, gapUsed) {
+					return true
+				}
 				continue
 			}
 			if free && rm != 0 && !fs.tick() {

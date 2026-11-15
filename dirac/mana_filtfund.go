@@ -85,3 +85,25 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 		s.ceaseManaToken(o)
 	}
 }
+
+// fundSacOnly funds the search with the sacrifice-only source at sl (an Eldrazi
+// Spawn's "Sacrifice this creature: Add {C}"): gorge's prefix search activates
+// every source with a mana ability in battlefield order, and a planner unit of
+// the last-resort tier is one of them, tapped or not (mana_sacsource.go). A
+// source making a choice of colours is none this models.
+func (fs *filtSearch) fundSacOnly(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
+	mask := t.srcMaskAt(t.manaPCGen(k, sl), sl)
+	if bits.OnesCount8(mask) != 1 {
+		return false
+	}
+	return fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask)), sacOnly: true}, funded+1, gapUsed)
+}
+
+// sacOnlyDo plays a sacrifice-only funding step: its mana is added and the source
+// sacrificed (fundSac's order).
+func (s *State) sacOnlyDo(k *prep, p uint8, st filtStep) {
+	pc := s.manaPCGen(k, st.sl)
+	s.poolAdd(p, int(st.ans), int(max(pc.manaN, 1)))
+	s.artTag(k, p, st.sl, int(st.ans))
+	s.sacFilterSource(k, st.sl)
+}
