@@ -453,6 +453,12 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 		if t.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(l.ctrl, t) {
 			return
 		}
+		// FirstTime$ True (gorge firstLifeLossThisTurn): only the turn's
+		// first loss for who. loseLife added amt to lifeLost before firing,
+		// so the first loss is the one that leaves the tally at amt.
+		if t.Flags2&kop.Tf2FirstTime != 0 && int(s.pl[who].lifeLost) != int(amt) {
+			return
+		}
 	case kop.TrigDrawn:
 		if t.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(t, who) {
 			return
