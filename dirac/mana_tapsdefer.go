@@ -169,10 +169,15 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
-		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
+		// A land that lost its printed abilities to a land-type setter
+		// (Contaminated Ground's Swamp) taps for its new basic type's
+		// intrinsic ability alone (landSetView): unrestricted, and no printed
+		// ability index.
+		lost := k.gen.landSet && s.landSetLost(k, sl)
+		if !lost && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
-		if !s.tapsGapActivatable(k, sl) {
+		if !s.tapsGapActivatable(k, sl) && !(lost && s.landSetGapActivatable(k, sl)) {
 			continue
 		}
 		m = m.with(sl)
@@ -186,6 +191,14 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 // its source asks it.
 func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
 	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) &&
+		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
+}
+
+// landSetGapActivatable is tapsGapActivatable for a land whose own abilities
+// a land-type setter replaced (landSetLost): genLost holds, yet its new basic
+// type's intrinsic {T} ability can be activated.
+func (s *State) landSetGapActivatable(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
