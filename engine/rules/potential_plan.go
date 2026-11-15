@@ -375,7 +375,10 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		// The cast planner's witness also rides Decision.PaymentActions.
 		return got, true
 	case o.Kind == "ability" && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
-		return e.potentialAbilityPlan(p, o.Obj, o.Ability), true
+		if ob := e.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
+			return potentialAbilityPlan(e, p, ob, o.Ability, e.G.Players[p].Life), true
+		}
+		return e.planAbilityPayment(p, o.Obj, o.Ability), true
 	case o.Kind == "cast" && (o.AltCostIndex == 0 || o.Mode == "mayplay"):
 		return e.potentialModeCastPlan(p, o), true
 	case o.Kind == optTurnFaceUp:
@@ -1526,29 +1529,32 @@ func (e *Engine) potentialCastVerdict(p state.PlayerID, id state.ObjID, sh *cast
 	return got
 }
 
+// abilityPlanner is what potentialAbilityPlan asks of the engine.
+type abilityPlanner interface {
+	planAbilityPayment(p state.PlayerID, id state.ObjID, ability int) PaymentPlanOutcome
+	planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ability, lifePips int) PaymentPlanOutcome
+	abilityCompiledCost(sa *cards.SA) *compiledCost
+}
+
 // potentialAbilityPlan is the potential-play witness of printed ability
-// `ability` of id. A cost with Phyrexian pips (CR 107.4f) is planned as the
-// offer walk does (autoPayPhyrexian): with as many pips paid with two life
-// (CR 119.4) as the payer's life affords, then fewer, until some witness
-// exists. The pips a life total cannot cover are funded with their colour; a
-// witness that left them to life would strand a play gorge then refuses.
-func (e *Engine) potentialAbilityPlan(p state.PlayerID, id state.ObjID, ability int) PaymentPlanOutcome {
-	out := e.planAbilityPayment(p, id, ability)
-	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
-		return out
-	}
+// `ability` of o, whose controller p has life. A cost with Phyrexian pips
+// (CR 107.4f) is planned as the offer walk does (autoPayPhyrexian): with as
+// many pips paid with two life (CR 119.4) as the life total affords, then
+// fewer, until some witness exists. The pips a life total cannot cover are
+// funded with their colour; a witness that left them to life would strand a
+// play gorge then refuses.
+func potentialAbilityPlan(pl abilityPlanner, p state.PlayerID, o *state.Object, ability int, life int32) PaymentPlanOutcome {
+	out := pl.planAbilityPayment(p, o.ID, ability)
 	pa, ok := o.PileAbilityAt(ability)
-	if !ok || pa.SA == nil {
+	if !ok || pa.SA == nil || life < 0 {
 		return out
 	}
-	pips := len(e.abilityCompiledCost(pa.SA).Cost.Phyrexian)
-	life := e.G.Players[p].Life
-	if pips == 0 || life < 0 || int(life)/decision.PhyrexianLife >= pips {
+	pips := len(pl.abilityCompiledCost(pa.SA).Cost.Phyrexian)
+	if pips == 0 || int(life)/decision.PhyrexianLife >= pips {
 		return out
 	}
-	for k := max(int(life), 0) / decision.PhyrexianLife; k >= 0; k-- {
-		out = e.planAbilityPaymentLifePips(p, id, ability, k)
+	for k := int(life) / decision.PhyrexianLife; k >= 0; k-- {
+		out = pl.planAbilityPaymentLifePips(p, o.ID, ability, k)
 		if out.Plan != nil && out.Reason == "" {
 			break
 		}
