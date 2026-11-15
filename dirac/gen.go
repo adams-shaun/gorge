@@ -32,6 +32,7 @@ type genPrep struct {
 	flags     []uint32
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
+	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -107,7 +108,6 @@ type genPrep struct {
 	anyGatePair     bool // a gated same-colour larger mana ability is a pair unit (Whisperer of the Wilds; mana_gate.go)
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
-	anyUmbra        bool // a card has printed umbra armor (CardDef.UmbraArmor; kw_umbraarmor.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
 	anyAloneBlk     bool // a card has printed "can't block alone" (CardDef.AloneBlk; combat_alone.go)
 	anyStatGoad     bool // a card has a StatGoad static (act_goad.go)
