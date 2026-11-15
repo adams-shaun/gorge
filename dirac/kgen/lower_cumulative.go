@@ -31,7 +31,7 @@ import (
 // A generic cost lowers as Mana with the amount n*AGE. A coloured or hybrid
 // mana cost carries the cost of ONE counter (ExtCumulative B =
 // kop.CumulativeScaled) and the kernel multiplies it by the age counters
-// when it poses the ask (dirac/trig_cumulative_pay.go). A life, default
+// when it poses the ask (dirac/trig_cumulativepay.go). A life, default
 // Discard<k/Card> or Sac<k/Land|Creature> cost lowers as the matching
 // UnlessPaid with the amount k*AGE (the pick is the echo-style object choice).
 // A {X}, Phyrexian, {C} or snow cost, mana beside life, and the other

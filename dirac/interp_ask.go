@@ -127,7 +127,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
 		return true
 	}
-	amt, pips = s.cumulativeAmount(k, kind, amt, pips) // a cumulative upkeep's cost times its age counters (trig_cumulative_pay.go)
+	amt, pips = s.cumulativeAmount(k, kind, amt, pips) // a cumulative upkeep's cost times its age counters (trig_cumulativepay.go)
 	if k.gen != nil && k.gen.anyNumTimes && kind == kop.PayMana {
 		amt, pips = s.numTimesScale(k, amt, pips) // cast_announcetimes.go
 	}

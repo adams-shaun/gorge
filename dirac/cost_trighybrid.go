@@ -59,7 +59,7 @@ func (s *State) applyPayPip(k *prep, a Action) {
 	}
 	in := &s.prog(k)[s.res.pc]
 	p, amt := s.g.pickP, int(s.g.pickLeft)
-	pips := s.cumPips(k, in.B.N) // trig_cumulative_pay.go
+	pips := s.cumPips(k, in.B.N) // trig_cumulativepay.go
 	if !s.canPayGen(k, p, kop.PayMana, amt, pips, in.F) && !s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, amt, pips, in.F) {
 		s.g.pickF |= pfNoPay
 	}

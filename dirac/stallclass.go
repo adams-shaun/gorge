@@ -90,7 +90,7 @@ var stallCapacityReasons = [...]uint8{
 	StallDmgBatch,   // a ninth DamageDealtOnce line of one DamageAll sweep's batch latched (armRes.dmgB; trig_dmgbatch.go)
 	StallRedirCap,   // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
 	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
-	// a scaled cumulative upkeep cost past the packed ask (trig_cumulative_pay.go)
+	// a scaled cumulative upkeep cost past the packed ask (trig_cumulativepay.go)
 	StallCumulativeCost,
 }
 
