@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Swamp
+Thrasher Brute
+Tidepool Turtle

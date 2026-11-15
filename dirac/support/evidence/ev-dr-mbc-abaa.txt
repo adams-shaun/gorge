@@ -1,4 +1,5 @@
 An Offer You Can't Refuse
+Anarchist
 Arcane Denial
 Baleful Ammit
 Banishing Light
@@ -80,16 +81,22 @@ Predator's Howl
 Psychic Corrosion
 Pyrotechnics
 Quirion Dryad
+Ravenous Chupacabra
+Rionya, Fire Dancer
 Rumor Gatherer
 Scion of Glaciers
 Serra Sphinx
+Shattered Angel
 Shelter
+Spiketail Drake
 Steadfast Unicorn
+Suture Priest
 Swamp
 Swords to Plowshares
 Taunting Kobold
 Tendrils of Corruption
 Thassa, Deep-Dwelling
+Totem-Guide Hartebeest
 Triumph of Ferocity
 Typhoid Rats
 Ulamog's Crusher
@@ -100,5 +107,7 @@ Valorous Stance
 Vampire Gourmand
 Vampiric Link
 Vedalken Dismisser
+Virtus the Veiled
 Vow of Lightning
+Werebear
 Zephid's Embrace

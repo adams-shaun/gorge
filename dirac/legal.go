@@ -1529,10 +1529,9 @@ const potentialOpenUnits = 2 * trigXCap
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
 // Every mana ability of a source counts on its own, and a paid one joins once the
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
-// open reports a bound gorge prices potentialUnbounded in every colour.
 //
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open bool) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
@@ -1540,6 +1539,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 	}
 	var own [MaxPerm][kop.NumManaKinds]int
 	var done [MaxPerm]uint16
+	open := false
 	add := func(sl Slot, mask uint8, n uint8) {
 		for mk := mask; mk != 0; mk &= mk - 1 {
 			c := bits.TrailingZeros8(mk)
@@ -1675,7 +1675,6 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
-	return open
 }
 
 // filtFeeOwed reports whether the source at sl is a filter whose fee the
