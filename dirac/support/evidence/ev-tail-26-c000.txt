@@ -32,6 +32,7 @@ Brimstone Dragon
 Brindle Shoat
 Butch DeLoria, Tunnel Snake
 Candlelight Vigil
+Castle Raptors
 Celebrity Fencer
 Chakram Slinger
 Chasm Drake
@@ -94,12 +95,15 @@ Hermes, Overseer of Elpis
 Hero of Precinct One
 Hesitation
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
 Karakas
 Kavu Chameleon
 Killer Bees
 King Crab
+Kithkin Mourncaller
+Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
@@ -109,6 +113,7 @@ Lord of Extinction
 Lulu, Stern Guardian
 Mageta's Boon
 Magma Rift
+Make Your Mark
 Makeshift Battalion
 Mana Geyser
 Markov Enforcer
@@ -135,6 +140,7 @@ Open the Vaults
 Orzhov Racketeers
 Paradise Mantle
 Pardic Arsonist
+Patriot, Young Avenger
 Paupers' Cage
 Pharika's Libation
 Phyrexian Ghoul
@@ -148,7 +154,9 @@ Possessed Aven
 Psionic Blast
 Pyretic Charge
 Quickening Licid
+Rally the Ranks
 Ransack
+Reality Ripple
 Reckless Air Strike
 Rhox Brute
 Riptide Crab
@@ -158,11 +166,13 @@ Road of Return
 Rootwater Diver
 Rubblebelt Recluse
 Rundvelt Hordemaster
+Sacred Cat
 Saltfield Recluse
 Satyr Enchanter
 Satyr Grovedancer
 Savage Swipe
 Savai Sabertooth
+Scarwood Treefolk
 Scathe Zombies
 Serpent Warrior
 Shambling Goblin
@@ -178,6 +188,7 @@ Slip Through Space
 Snake Pit
 Spark Elemental
 Sparkspitter
+Spellbook
 Spined Fluke
 Spite
 Spontaneous Combustion
@@ -189,6 +200,7 @@ Strategic Intervention
 Sunset Revelry
 Sunspire Griffin
 Swamp
+Swift Maneuver
 Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen

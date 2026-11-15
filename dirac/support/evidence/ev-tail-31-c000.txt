@@ -9,6 +9,7 @@ Aerial Predation
 Agent of Horizons
 Aggressive Crag
 Agonizing Memories
+Akki Underminer
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
@@ -20,6 +21,7 @@ Arctic Nishoba
 Arms Dealer
 Aron, Benalia's Ruin
 Arterial Flow
+Atomize
 Auntie's Hovel
 Aura Extraction
 Aven Skirmisher
@@ -30,10 +32,13 @@ Basim Ibn Ishaq
 Battered Golem
 Beloved Chaplain
 Bespoke Bō
+Black Knight
 Black Poplar Shaman
+Blazing Volley
 Blighted Bat
 Blitz Hellion
 Blood-Cursed Knight
+Bloodcrazed Hoplite
 Bloodcurdling Scream
 Bloodmist Infiltrator
 Blot Out
@@ -46,8 +51,11 @@ Burlfist Oak
 Cabal Surgeon
 Calix, Guided by Fate
 Caller of the Claw
+Carrion Wall
 Cast Down
 Celestial Flare
+Centaur Rootcaster
+Cephalid Inkshrouder
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
@@ -58,17 +66,20 @@ Consuming Fervor
 Consuming Sinkhole
 Costly Plunder
 Crack Open
+Crash Landing
 Crucible of Worlds
 Crypt Rats
 Crystacean
 Daily Regimen
 Dancing Scimitar
 Darkbore Pathway
+Darkheart Sliver
 Darksteel Juggernaut
 Dawnfluke
 Defiant Khenra
 Deliberate
 Deprive
+Destructive Digger
 Detainment Spell
 Dictate of Heliod
 Distorting Wake
@@ -76,6 +87,7 @@ Divine Retribution
 Divine Transformation
 Dogged Pursuit
 Dreadmobile
+Dreg Reaver
 Dromad Purebred
 Dross Scorpion
 Dryad Arbor
@@ -87,25 +99,33 @@ Eliminate
 Elite Inquisitor
 Epic Proportions
 Era of Enlightenment
+Eternal Scourge
 Ettercap
 Ever After
+Experimental Aviator
 Exploding Borders
 Explorer's Scope
 Eyes of Gitaxias
+Faerie Bladecrafter
+Faerie Mechanist
 Famished Ghoul
 Fauna Shaman
 Femeref Scouts
 Festival of the Guildpact
 Fists of Flame
 Flame Rift
+Fleeting Memories
 Flickering Ward
 Flight of Fancy
 Flood
 Fodder Tosser
 Forest
 Fortress Crab
+Frenzied Tilling
 Frenzy Sliver
+Fury Sliver
 Galadhrim Bow
+Ghost Ship
 Ghoulish Procession
 Giant's Skewer
 Gleam of Resistance
@@ -116,6 +136,7 @@ Gluttonous Slug
 Goblin Cannon
 Goblin Guide
 Goblin Piker
+Goblin Turncoat
 Graceful Restoration
 Graypelt Hunter
 Grim Captain's Call
@@ -126,18 +147,22 @@ Guardian of the Great Conduit
 Gustcloak Sentinel
 Gustrider Exuberant
 Guul Draz Overseer
+Hagra Constrictor
 Heartless Pillage
 Heavy Mattock
+Herald of Ilharg
 Herald of the Fair
 Homestead Courage
 Hopeful Eidolon
 Hornet Sting
 Hot Springs
+Hullbreaker Horror
 Icon of Ancestry
 Immobilizing Ink
 Impatience
 Impede Momentum
 Improvised Weaponry
+Incendiary Sabotage
 Inner-Flame Acolyte
 Inquisitor's Ox
 Integrity
@@ -147,6 +172,7 @@ Island
 Ivory Guardians
 Jiang Yanggu
 Jund Panorama
+Jungle Creeper
 Justice Strike
 Kaysa
 Keen Glidemaster
@@ -167,6 +193,8 @@ Lumithread Field
 Mageta's Boon
 Mana Cylix
 Marsh Flats
+Metathran Elite
+Metathran Soldier
 Minotaur Illusionist
 Miraculous Recovery
 Moon Heron
@@ -178,15 +206,21 @@ Mountain Yeti
 Mox Jet
 Murderous Rider
 Nacre Talisman
+Nadir Kraken
+Natural Order
 Nettlecyst
+Neurok Familiar
 Nightbird's Clutches
 Nightmare Lash
+Nightpack Ambusher
+Nissa's Expedition
 Noble Quarry
 Nocturnal Raid
 Not Forgotten
 Nyx Herald
 Nyx Infusion
 Oakgnarl Warrior
+Ob Nixilis, the Hate-Twisted
 Obsidian Battle-Axe
 Ogre Painbringer
 Ondu Inversion
@@ -194,7 +228,9 @@ Opal Gargoyle
 Opaline Bracers
 Orzhov Guildmage
 Parcel Myr
+Pathrazer of Ulamog
 Patriot, Young Avenger
+Pharika's Disciple
 Pharika's Mender
 Phyrexian Hulk
 Phyrexian Vivisector
@@ -203,16 +239,21 @@ Plains
 Pre-War Formalwear
 Profane Tutor
 Purify the Grave
+Putrid Leech
 Pyrophobia
+Quarry Beetle
 Quest for the Gemblades
 Rancor
 Reckless Rage
 Recurring Insight
+Reef Pirates
 Repay in Kind
 Restless Dead
+Retrofitted Transmogrant
 Revive
 Rhonas's Last Stand
 Ridgetop Raptor
+Rile
 Ring of Xathrid
 Rite of Consumption
 Rite of Harmony
@@ -225,17 +266,23 @@ Saltblast
 Sanguinary Mage
 Saprazzan Raider
 Sarah Jane Smith
+Sardian Avenger
 Savage Stomp
 Scale Up
 Scion of the Wild
 Scorching Spear
 Scrapheap Scrounger
 Scurrid Colony
+Scuttlegator
 Scuttletide
 Seedborn Muse
+Seismic Tutelage
 Selesnya Cluestone
+Sengir Vampire
+Serum Tank
 Shadow Glider
 Shadowspear
+Shadowstorm
 Shapers of Nature
 Shivan Fire
 Shriek Raptor
@@ -247,11 +294,13 @@ Skitter Eel
 Skyshroud Lookout
 Slice in Twain
 Snapping Gnarlid
+Soldevi Heretic
 Solemn Offering
 Solid Ground
 Soul Link
 Spark Spray
 Spectral Reserves
+Spider-Man, Web-Spinner
 Spined Basher
 Spinning Wheel
 Stalwart Pathlighter
@@ -262,6 +311,7 @@ Strix Serenade
 Stromkirk Patrol
 Sun-Crowned Hunters
 Sunflare Shaman
+Sustenance
 Swamp
 Swelter
 Synod Sanctum
@@ -283,14 +333,18 @@ Tower Geist
 Tragic Poet
 Trained Armodon
 Trained Cheetah
+Training Grounds
 Triclopean Sight
 Trigon of Infestation
+Troll Ascetic
 Trudge Garden
 Tunneling Geopede
+Twiddle
 Umara Mystic
 Undead Augur
 Undercity Informer
 Undying Beast
+Updraft
 Utopia Tree
 Utopia Vow
 Vampire Aristocrat
@@ -302,13 +356,19 @@ Vindictive Flamestoker
 Vindictive Vampire
 Viridian Emissary
 Viridian Scout
+Vodalian Mage
 Voice of Truth
+Volt Charge
 Vulshok Morningstar
 Wall of Vines
+Wary Okapi
 White Scarab
 Wild Growth
 Wirewood Elf
 Woodland Stream
+Woodwraith Corrupter
+Worn Powerstone
+Worthy Knight
 Wreath of Geists
 Xenk, Paladin Unbroken
 Zendikar Incarnate

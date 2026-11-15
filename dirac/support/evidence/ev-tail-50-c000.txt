@@ -27,6 +27,7 @@ Augur of Bolas
 Auriok Glaivemaster
 Auton Soldier
 Aven Sunstriker
+Aviary Mechanic
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
 Balshan Beguiler
@@ -289,6 +290,7 @@ Paradigm Shift
 Parch
 Passwall Adept
 Perilous Research
+Petrified Wood-Kin
 Phyrexian Gargantua
 Plaguemaw Beast
 Plains

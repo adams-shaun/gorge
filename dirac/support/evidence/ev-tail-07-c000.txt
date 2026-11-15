@@ -133,6 +133,7 @@ Favor of the Overbeing
 Feeling of Dread
 Feral Prowler
 Feroz's Ban
+Fevered Suspicion
 Fierce Guardianship
 Fire
 Fire Dragon
@@ -179,6 +180,7 @@ Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
 Hallowed Respite
+Harness Infinity
 Harvester Troll
 Headhunter
 Heroes' Reunion
@@ -440,6 +442,7 @@ Waterfront District
 Wayward Servant
 Wellwisher
 Whipstitched Zombie
+Wildgrowth Walker
 Will of the All-Hunter
 Windrider Patrol
 Wolfsbane, Highland Hero

@@ -132,6 +132,7 @@ Gathering Throng
 General Leo Cristophe
 Ghitu Fire-Eater
 Ghoul's Feast
+Gixian Puppeteer
 Glissa's Scorn
 Gnarlid Pack
 Gnarlroot Pallbearer
@@ -153,6 +154,7 @@ Grovetender Druids
 Gruul Keyrune
 Guise of Fire
 Hallowed Haunting
+Haru-Onna
 Haunted Angel
 Haunting Hymn
 Hawkeye, Bowslinger
@@ -195,6 +197,7 @@ Kithkin Daggerdare
 Knight of the Last Breath
 Knight's Pledge
 Kor Outfitter
+Kozilek's Unsealing
 Kuon, Ogre Ascendant
 Kyren Sniper
 Littjara Mirrorlake
@@ -357,6 +360,7 @@ Thrashing Wumpus
 Three Visits
 Throes of Chaos
 Thrull Champion
+Tidespout Tyrant
 Time Spiral
 Tireless Missionaries
 Tolarian Scholar

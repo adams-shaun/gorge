@@ -62,6 +62,7 @@ Caress of Phyrexia
 Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
+Centaur Peacemaker
 Chasm Guide
 Chief of the Scale
 Chilling Apparition
@@ -105,6 +106,7 @@ Ebony Fly
 Eidolon of Astral Winds
 Elemental Appeal
 Elemental, My Dear
+Elf Replica
 Elven Rite
 Embrace the Unknown
 Emergent Growth
@@ -179,6 +181,7 @@ Hooded Kavu
 Hormagaunt Horde
 Howling Moon
 Huang Zhong, Shu General
+Huatli, Radiant Champion
 Humble Budoka
 Hydrosurge
 Hypervolt Grasp
@@ -255,6 +258,7 @@ Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
 Oblivion Strike
+Ohabi Caleria
 Ondu Spiritdancer
 Opaline Unicorn
 Orazca Raptor
@@ -427,3 +431,4 @@ Yeva, Nature's Herald
 You're Confronted by Robbers
 Zamriel, Seraph of Steel
 Zodiac Monkey
+Zombie Apocalypse

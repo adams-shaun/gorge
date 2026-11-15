@@ -1,11 +1,13 @@
 A-Circuit Mender
 A-Eyes of the Beholder
 A-Jackhammer
+Abyssal Hunter
 Active Volcano
 Agonizing Syphon
 Ajani's Influence
 Ajani, Valiant Protector
 Alhammarret, High Arbiter
+Altar of Bhaal
 Amazing Alliance
 Ambush
 Aragorn and Arwen, Wed
@@ -40,6 +42,7 @@ Cerodon Yearling
 Chimney Goyf
 Choking Restraints
 Chorus of Might
+Churning Eddy
 Clattering Augur
 Cogwork Spy
 Confound
@@ -112,6 +115,7 @@ Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
+Grovetender Druids
 Hanabi Blast
 Harsh Scrutiny
 Hatchery Spider
@@ -150,6 +154,7 @@ Krosan Archer
 Leech Gauntlet
 Liliana's Scorn
 Lingering Phantom
+Llawan, Cephalid Empress
 Magma Sliver
 Makindi Aeronaut
 Mana Prism
@@ -162,6 +167,7 @@ Merfolk of the Depths
 Mesa Unicorn
 Metathran Soldier
 Mirkwood Channeler
+Moira, Urborg Haunt
 Molten Rebuke
 Monastery Flock
 Mountain
@@ -173,6 +179,7 @@ Needlepeak Spider
 Neglected Heirloom
 Nekrataal
 Nettle Drone
+Nightshade Harvester
 Nissa, Resurgent Animist
 Novijen, Heart of Progress
 One with Nature
@@ -192,6 +199,7 @@ Phyresis
 Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
+Plague Rats
 Plains
 Planar Atlas
 Plated Spider
@@ -216,6 +224,7 @@ Resistance Reunited
 Resounding Silence
 Returned Pastcaller
 Reverberate
+Rhonas's Monument
 Rhystic Study
 Rocco, Cabaretti Caterer
 Safe Haven
@@ -225,6 +234,7 @@ Sandstorm
 Savage Silhouette
 Scarlet Witch, Wanda Maximoff
 Secrets of the Golden City
+Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
 Shaper Apprentice
@@ -234,7 +244,9 @@ Shoreline Ranger
 Sigardian Priest
 Sigiled Paladin
 Silverquill Campus
+Sip of Hemlock
 Skirk Commando
+Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
@@ -269,6 +281,7 @@ Syphon Life
 Talon Gates of Madara
 Tarfire
 Tavern Swindler
+Teardrop Kami
 Teetering Peaks
 Tempest Owl
 Temporal Eddy
@@ -285,6 +298,7 @@ Titans' Vanguard
 Tooth of Chiss-Goria
 Towering Viewpoint
 Trading Post
+Trigon of Thought
 Twincast
 Unbreakable Formation
 Uninvited Geist
@@ -301,6 +315,7 @@ Volcanic Spite
 Vrock
 Wakandan Tusker
 Walking Skyscraper
+Wall of Limbs
 War Chariot
 Watchful Giant
 Waterlogged Teachings

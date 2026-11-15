@@ -85,6 +85,7 @@ Dawn to Dusk
 Day of Destiny
 Deadly Allure
 Death Wish
+Deathcult Rogue
 Deathgaze Cockatrice
 Deconstruct
 Demonlord Belzenlok
@@ -232,6 +233,7 @@ Mystic Compass
 Mystic Redaction
 Mythic Proportions
 Nantuko Shaman
+Navigator's Ruin
 Nephalia Moondrakes
 Nettle Sentinel
 Neurok Invisimancer
@@ -327,6 +329,7 @@ Soldevi Steam Beast
 Soul of the Rapids
 Soul-Strike Technique
 Spectacular Showdown
+Spider-Man, Hometown Hero
 Spinning Wheel Kick
 Spitting Image
 Squirming Mass

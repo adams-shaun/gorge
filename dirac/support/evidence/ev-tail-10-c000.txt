@@ -114,6 +114,7 @@ Doctor Doom, Unrivaled
 Donatello's Science Lesson
 Doric, Nature's Warden
 Doublecast
+Drana's Chosen
 Dreg Recycler
 Dromosaur
 Duskborne Skymarcher
@@ -174,6 +175,7 @@ Harmonious Archon
 Haunted Cadaver
 Headstone
 Heal the Scars
+Heart-Piercer Bow
 Heated Debate
 Hedron Crawler
 Hemlock Vial
@@ -239,6 +241,7 @@ Magmaquake
 Mahamoti Djinn
 Maja, Bretagard Protector
 Majestic Genesis
+Mangara's Blessing
 Marang River Skeleton
 Marsh Flitter
 Marsh Threader
@@ -297,6 +300,7 @@ Pegasus Guardian
 People of the Woods
 Perplexing Test
 Petrifying Meddler
+Phantom Nishoba
 Phyrexian Broodlings
 Phyrexian Denouncer
 Phyrexian Pegasus
@@ -406,6 +410,7 @@ Swamp
 Swirling Sandstorm
 Sword of Hours
 Tainted Indulgence
+Teferi, Time Raveler
 Temporal Fissure
 Tempting Witch
 Terror of the Fairgrounds

@@ -68,6 +68,7 @@ Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Conclave Phalanx
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
@@ -400,6 +401,7 @@ Ulgrotha Charm
 Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
+Urza, Prince of Kroog
 Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination

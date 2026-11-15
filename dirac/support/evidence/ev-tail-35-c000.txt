@@ -1,5 +1,6 @@
 A-Elderleaf Mentor
 A-Nael, Avizoa Aeronaut
+A-You Come to a River
 Absolute Law
 Abundant Countryside
 Adeliz, the Cinder Wind
@@ -10,6 +11,8 @@ Akki Rockspeaker
 Alchemist's Refuge
 Amass the Components
 Anax, Hardened in the Forge
+Annex
+Arcane Denial
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
 Auntie Blyte, Bad Influence
@@ -29,10 +32,12 @@ Blitz of the Thunder-Raptor
 Blockade Runner
 Blood-Chin Rager
 Bloodhunter Bat
+Blue Marvel, Adam Brashear
 Bontu's Last Reckoning
 Bramble Armor
 Branching Bolt
 Brazen Borrower
+Brood Sliver
 Brute Force
 Call to the Feast
 Carmen, Cruel Skymarcher
@@ -49,6 +54,7 @@ Claws of Valakut
 Cloaked Siren
 Codex Shredder
 Control Magic
+Convolute
 Copper Carapace
 Crovax, Ascendant Hero
 Cunning Survivor
@@ -72,17 +78,21 @@ District Guide
 Divination
 Divine Light
 Drafna, Founder of Lat-Nam
+Drake Familiar
 Dramatic Finale
 Dreamshackle Geist
+Elder Druid
 Elder Gargaroth
 Eldrazi Repurposer
 Elite Vanguard
 Elvish Scrapper
 Embargo
 Enchantmentize
+Encrust
 Energy Chamber
 Esper Panorama
 Essence Harvest
+Expedition Diviner
 Faerie Impostor
 False Peace
 Fate Forgotten
@@ -91,9 +101,11 @@ Foe-liage
 Forest
 Forsake the Worldly
 Foundry Assembler
+Foxfire
 Frantic Confrontation
 Fraying Omnipotence
 Frenetic Raptor
+Frost Breath
 Gerrard's Battle Cry
 Ghostly Changeling
 Gimli, Counter of Kills
@@ -105,7 +117,9 @@ Godtracker of Jund
 Graaz, Unstoppable Juggernaut
 Gravel Slinger
 Grayscaled Gharial
+Gruul Cluestone
 Guardian of Solitude
+Gulf Squid
 Hag of Noxious Nightmares
 Hallowed Priest
 Hanweir Garrison
@@ -116,15 +130,18 @@ Herbology Instructor
 Hideous Visage
 Hookblade
 Hoverguard Observer
+Hypnotic Grifter
 Hyrax Tower Scout
 Implement of Malice
 In Oketra's Name
 Infantry Veteran
 Infernal Pet
 Inferno
+Inspiring Bard
 Introduction to Prophecy
 Inventor's Goggles
 Iridescent Blademaster
+Iron-Craw Crusher
 Island
 Jeskai Barricade
 Jet Medallion
@@ -145,6 +162,7 @@ Longbow Archer
 Loyal Warhound
 Lush Growth
 Mace of the Valiant
+Magus of the Bazaar
 Manticore of the Gauntlet
 Meatsqueak, Hoard Lord
 Mindlash Sliver
@@ -179,13 +197,17 @@ Pain Distributor
 Pestilence
 Pile On
 Plains
+Presence of Gond
+Prey's Vengeance
 Primal Cocoon
 Primal Order
+Primeval Titan
 Profane Tutor
 Prohibit
 Rapid Decay
 Reach of Branches
 Reinforced Bulwark
+Reject Imperfection
 Repopulate
 Repulsor Rays
 Research Thief
@@ -196,6 +218,7 @@ Roil's Retribution
 Royal Trooper
 Sacred Rites
 Sadistic Obsession
+Saprazzan Raider
 Scout the Wilderness
 Scouting Hawk
 Scythe Tiger
@@ -206,6 +229,7 @@ Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
 Serra's Embrace
+Shanodin Dryads
 She-Hulk, Attorney-at-Law
 Shimmer Dragon
 Silence
@@ -222,30 +246,36 @@ Spellkeeper Weird
 Sphere Grid
 Sphinx of Enlightenment
 Spikeshot Goblin
+Spiketail Drake
 Spireside Infiltrator
 Spirit of Malevolence
 Spitting Hydra
 Stave Off
 Stone Haven Pilgrim
 Storm Caller
+Stratadon
 Striped Bears
 Sumala Woodshaper
 Swamp
 Swarmborn Giant
+Synapse Sliver
 Syphon Essence
 Syphon Mind
 Tablet of Epityr
 Taigam's Scheming
 Tears of Valakut
+Tel-Jilad Outrider
 Teroh's Faithful
 Thassa's Oracle
 Thatcher Revolt
 The Biblioplex
+The Blue Spirit
 The Falcon, Sam Wilson
 Thorn of the Black Rose
 Thriving Grubs
 Thriving Rhino
 Thundering Ceratok
+Tidal Kraken
 Tiller of Flesh
 Tolarian Emissary
 Tor Wauki the Younger
@@ -254,9 +284,12 @@ Tree Monkey
 Tribal Flames
 Triclopean Sight
 Triton Fortune Hunter
+Triton Waverider
 Tsunami
 Twenty-Toed Toad
 Uncovered Clues
+Undercity Troll
+Unifying Theory
 Unwavering Initiate
 Utter End
 Viashino Weaponsmith
@@ -270,6 +303,7 @@ Watcher in the Mist
 Watchwolf
 Wave Elemental
 Wayfaring Giant
+Weakstone's Subjugation
 Whip-Spine Drake
 Wilt
 Witch's Vengeance

@@ -97,6 +97,7 @@ Dark Betrayal
 Dawn to Dusk
 Dawnfluke
 Debilitating Injury
+Decree of Annihilation
 Defend the Celestus
 Defender of Chaos
 Desperate Ravings
@@ -454,6 +455,7 @@ Tome Anima
 Topplegeist
 Torrent of Fire
 Tower Winder
+Tragic Lesson
 Treasure Hunter
 Trelasarra, Moon Dancer
 Tremor
