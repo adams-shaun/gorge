@@ -3833,6 +3833,14 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)
+	case prod == "Combo ColorID":
+		// Cryptic Spires' "one of the circled colors" (CR 207.5): no circle is
+		// recorded in a game, so gorge's effMana adds nothing for it (the
+		// unhandled Produced$ note) and its payment planner counts no mana. The
+		// word is no colour string, and its capital C would read as colourless.
+		m.Colors = ""
+		m.Amount = cst(1)
+		return lc.finishMana(sa, ps, ab, m)
 	case strings.HasPrefix(prod, "Combo "):
 		m.Choice = true
 		m.Colors = strings.ReplaceAll(strings.TrimPrefix(prod, "Combo "), " ", "")
