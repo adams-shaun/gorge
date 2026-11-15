@@ -601,9 +601,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.HasMiracle {
 			add("card:Miracle", name)
 		}
-		if d.Wither {
-			add("card:Wither", name)
-		}
+		keywordFlagUsage(d, name, add) // opsdoc_umbraarmor.go
 		if d.AloneAtk {
 			add("card:AloneAtk", name)
 		}
