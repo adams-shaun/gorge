@@ -1,9 +1,12 @@
 A-Dragonborn Looter
 A-Ominous Parcel
+Adaptive Snapjaw
+Aether Adept
 Aethersnipe
 Amulet of Unmaking
 Angelic Gift
 Angler Turtle
+Anurid Barkripper
 Anurid Murkdiver
 Arachnoform
 Arc Trail
@@ -11,6 +14,7 @@ Ardent Soldier
 Armory Guard
 Audacious Infiltrator
 Awakened Awareness
+Baloth Prime
 Barrage Tyrant
 Basic Conjuration
 Bastion Enforcer
@@ -34,11 +38,13 @@ Char-Dog
 Choking Restraints
 Cinder Barrens
 Clamavus
+Cleric of Chill Depths
 Cloak and Dagger
 Cloudheath Drake
 Cone of Flame
 Consuming Corruption
 Contraband Kingpin
+Corpse Cur
 Corrupted Resolve
 Cremate
 Crenellated Wall
@@ -61,6 +67,8 @@ Ember Hauler
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
+Evolution Sage
+Exemplar of Strength
 Faerie Swarm
 Feral Abomination
 Fiddlehead Kami
@@ -73,7 +81,9 @@ Flywheel Racer
 Forced Worship
 Forerunner of Slaughter
 Forest
+From Beyond
 Furnace Spirit
+Gala Greeters
 Galvanic Juggernaut
 Gauntlet of Might
 Gladehart Cavalry
@@ -87,19 +97,26 @@ Goblin Scouts
 Goreclaw, Terror of Qal Sisma
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
+Grizzled Angler
 Hangarback Walker
 Havoc Devils
 Helm of the Host
+Holdout Settlement
+Horn of Gondor
+Hornet Sting
 Hovermyr
 Hungry Megasloth
 Icatian Store
 Idle Thoughts
+Illusory Angel
 Illustrious Wanderglyph
+Immolating Souleater
 Imperial Cosmographer
 Intrepid Hero
 Invasion of Xerex
 Island
 Izzet Signet
+Jousting Dummy
 Kami of Tattered Shoji
 King of the Pride
 Kinsbaile Courier
@@ -133,6 +150,7 @@ Mystic Snake
 Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
+Needleverge Pathway
 Nether Horror
 Night Market Aeronaut
 Nimbus Champion
@@ -142,11 +160,14 @@ Oni of Wild Places
 Organ Grinder
 Ornithopter
 Overwhelming Encounter
+Paradox Zone
 Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
 Perilous Myr
+Petrifying Meddler
+Pheres-Band Centaurs
 Phyrexian Colossus
 Phyrexian Warhorse
 Phytoburst
@@ -156,14 +177,21 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Protective Bubble
 Purify the Grave
 Quantum Entanglement
 Ral's Dispersal
+Reality Heist
 Renegade Reaper
 Resurrection Orb
+Sacred Armory
 Sage's Reverie
 Samut's Sprint
+Sandstorm
+Saprazzan Outrigger
 Scalding Devil
+School of the Unseen
+Scythecat Cub
 Seek the Horizon
 Separatist Voidmage
 Serpent-Blade Assailant
@@ -182,9 +210,11 @@ Species Specialist
 Spellbook
 Spiderwig Boggart
 Spike Drone
+Spike Weaver
 Squirrel Nest
 Steam Frigate
 Stolen Grain
+Strength from the Fallen
 Sunken Hope
 Swamp
 Swift Response
@@ -209,6 +239,7 @@ Twitch
 Ultimate Price
 Unicycle
 Unraveling Mummy
+Ureni's Counsel
 Urza's Guilt
 Venerable Knight
 Verduran Emissary
@@ -222,6 +253,7 @@ Wanderer's Intervention
 War Report
 War-Torch Goblin
 Water Servant
+Weatherlight
 Weldfast Engineer
 Wellspring
 Whisper Agent

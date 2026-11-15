@@ -21,9 +21,11 @@ Bountiful Promenade
 Brotherhood Vertibird
 Built to Last
 Cabal Executioner
+Carnivorous Canopy
 Centaur's Herald
 Chain of Plasma
 Champion's Drake
+Chief of the Edge
 Chrome Host Seedshark
 Clairvoyance
 Cliff Threader
@@ -78,8 +80,10 @@ Karlach, Fury of Avernus
 Kavu Climber
 Lieutenant Kirtar
 Lightning Axe
+Llanowar Stalker
 Looter il-Kor
 Lumithread Field
+Malevolent Rumble
 Marionette Master
 Master Apothecary
 Midnight Scavengers
@@ -99,6 +103,7 @@ Protomatter Powder
 Pumpkin Bombs
 Quarrel's End
 Quest for Pure Flame
+Quirion Sentinel
 Reach of Branches
 Rhox Oracle
 Rootwater Commando
@@ -120,7 +125,9 @@ Stinging Scorpion
 Subira, Tulzidi Caravanner
 Supply Runners
 Swamp
+Swarm Guildmage
 Tainted Indulgence
+Tangle Mantis
 Target Minotaur
 The Brute
 The Torment of Gollum

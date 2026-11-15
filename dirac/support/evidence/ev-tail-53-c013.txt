@@ -1,5 +1,7 @@
+Aeromunculus
 Befuddle
 Cat Burglar
+Colossal Dreadmaw and Storm Crow
 Forest
 Ichor Explosion
 Island
@@ -14,6 +16,7 @@ Morgul-Knife Wound
 Mountain
 Myr Sire
 Nyxborn Shieldmate
+Oasis of Renewal
 Of One Mind
 Ogre Sentry
 Plains

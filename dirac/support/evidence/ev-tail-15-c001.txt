@@ -87,6 +87,7 @@ Jackal Familiar
 Josu Vess, Lich Knight
 Kalonian Hydra
 Kami of Whispered Hopes
+Kazuul's Fury
 Kederekt Parasite
 Kenrith's Transformation
 Knight Watch
@@ -101,6 +102,7 @@ Magus of the Disk
 Makeshift Mauler
 Mana Flare
 Mana Skimmer
+Manaform Hellkite
 Maralen of the Mornsong
 Maro
 Marshmist Titan

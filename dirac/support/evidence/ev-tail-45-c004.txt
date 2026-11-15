@@ -3,13 +3,18 @@ Acolyte of Xathrid
 Alchemist's Vial
 Arc Lightning
 Arisen Gorgon
+Ashes to Ashes
 Atzocan Archer
 Balduvian Horde
 Barrier Breach
+Basic Conjuration
 Battering Craghorn
 Belbe's Armor
+Blessed Light
 Bonesplitter Sliver
 Brazen Freebooter
+Brine Seer
+Callous Dismissal
 Carnage Altar
 Chameleon Spirit
 Clock of Omens
@@ -21,9 +26,11 @@ Dark Tutelage
 Darkslick Shores
 Defiler of Souls
 Detained by Legionnaires
+Devoted Paladin
 Dinosaur Stampede
 Domri's Nodorog
 Dragonshift
+Dreamscape Artist
 Dregscape Zombie
 Dromar, the Banisher
 Dromoka Captain
@@ -36,6 +43,7 @@ Elven Palisade
 Eviscerator
 Exorcist
 Farhaven Elf
+Feign Death
 Fendeep Summoner
 Finale of Devastation
 Fires of Undeath
@@ -50,8 +58,12 @@ Garruk Wildspeaker
 Ghostly Sentinel
 Gleam of Authority
 Great Hart
+Guardian Augmenter
+Hag of Death's Legion
 Heart Sliver
 Hellfire Mongrel
+Herald of Kozilek
+Herald of Secret Streams
 Hero's Demise
 Hill Giant Herdgorger
 Honored Hydra
@@ -61,16 +73,20 @@ Jalum Tome
 Joust
 Jund Panorama
 Kraul Raider
+Laser Screwdriver
 Magister Sphinx
 March of the Drowned
 Martyr for the Cause
 Meteor Storm
+Molten Ravager
 Mountain
 Mudhole
 Necrogen Censer
 Nightmare's Thirst
+Nyx-Fleece Ram
 Nyxathid
 Ogre Warrior
+Omenspeaker
 Onulet
 Patron Wizard
 Plains
@@ -78,6 +94,7 @@ Quicksilver, Pietro Maximoff
 Reckless Fireweaver
 Redcap Heelslasher
 Redwood Treefolk
+Regenerate
 Repentant Blacksmith
 Reverent Hunter
 Rootbreaker Wurm
@@ -96,6 +113,7 @@ Soul of Shandalar
 Soulmender
 Sovereign's Bite
 Sparksmith
+Spoils of Evil
 Stasis Cell
 Stew the Coneys
 Storm of Steel
@@ -107,8 +125,10 @@ Sylvan Scrying
 Tajic, Blade of the Legion
 Telekinetic Sliver
 Tempestra, Dame of Games
+The Antiquities War
 The Immortal Weapons
 Thoughtflare
+Thrashing Wumpus
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
@@ -116,9 +136,11 @@ Vengeful Reaper
 Voracious Vacuum
 Wake of Vultures
 Webweaver Changeling
+Welding Sparks
 Willow Elf
 Winged Hive Tyrant
 Withstand Death
 Wrecking Ogre
 Wriggling Grub
+Wu Elite Cavalry
 Yargle and Multani

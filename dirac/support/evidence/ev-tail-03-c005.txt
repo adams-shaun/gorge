@@ -1,14 +1,19 @@
+Ajani's Mantra
 Arbor Armament
 Archivist of Oghma
+Armored Pegasus
 Auriok Salvagers
 Battle Rampart
 Bitter Reunion
 Blackcleave Cliffs
 Blessings of Nature
 Borderland Ranger
+Bound in Silence
+Braids, Cabal Minion
 Bridgeworks Battle
 Bygone Bishop
 Cerulean Wyvern
+Choke
 Citanul Woodreaders
 Clockwork Drawbridge
 Colossus, Steel Stalwart
@@ -32,37 +37,55 @@ Forest
 Fruit of Tizerus
 Furor of the Bitten
 Gempalm Polluter
+Githzerai Monk
 Glyph Elemental
 Goblin King
 Golden Ratio
 Grave Bramble
+Hamato Ninpō
 Immortal Servitude
 Island
 Kor Castigator
+Kraul Raider
+Leeching Licid
 Living Tempest
+Loxodon Smiter
 Loxodon Stalwart
+Lucent Liminid
+March from the Black Gate
 Mavren Fein, Dusk Apostle
+Minion Missile
 Mirage Mockery
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
+Moor Fiend
 Mountain
 Narcolepsy
 Orcish Artillery
+Palace Sentinels
 Patrol Hound
 Phyrexian Monitor
 Plains
 Rakdos Signet
 Revoke Existence
+Rousing of Souls
 Saddled Rimestag
 Scroll of Griselbrand
 Servant of the Scale
 Sliversmith
 Spined Megalodon
+Spreading Rot
 Sprout
+Stream of Acid
+Summary Judgment
 Sunlance
 Surveilling Sprite
 Swamp
+Syphon Sliver
+The Battle of Bywater
 Torbran, Thane of Red Fell
+Unlikely Alliance
 Vegetation Abomination
+Vraan, Executioner Thane
 Wall of Torches

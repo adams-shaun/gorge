@@ -9,6 +9,7 @@ Arashin Foremost
 Aurochs
 Autumnal Gloom
 Avacynian Priest
+Azusa's Many Journeys
 Banishment Decree
 Basal Thrull
 Battlewise Aven
@@ -102,6 +103,7 @@ Kitchen
 Kolaghan Monument
 Kor Hookmaster
 Last Rites
+Lava Storm
 Liliana's Specter
 Living Terrain
 Loathsome Curator
@@ -116,6 +118,7 @@ Mishra's Helix
 Mistcutter Hydra
 Mobilized District
 Mondrak, Glory Dominus
+Mons's Goblin Raiders
 Morbid Opportunist
 Mossfire Egg
 Mountain
@@ -188,6 +191,7 @@ Trapmaker's Snare
 Twigwalker
 Tyrant's Scorn
 Verdigris
+Verix Bladewing
 Veteran Cavalier
 Vithian Stinger
 Vizier of the Scorpion

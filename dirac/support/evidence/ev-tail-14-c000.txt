@@ -27,6 +27,7 @@ Cartouche of Knowledge
 Centaur Veteran
 Cessation
 Chandra's Firemaw
+Chatterstorm and Awaken the Woods
 Colos Yearling
 Colossal Growth
 Coordinated Charge
@@ -42,6 +43,7 @@ Divine Verdict
 Dosan's Oldest Chant
 Double Vision
 Drakestown Forgotten
+Duelcraft Trainer
 Elder Owyn Lyons
 Elvish Herder
 Empty the Warrens
@@ -107,6 +109,7 @@ Lightwalker
 Living Lightning
 Living Tsunami
 Llanowar Scout
+Lothlórien Lookout
 Lu Meng, Wu General
 Lurking Skirge
 Mana Flare
@@ -114,6 +117,7 @@ Manaform Hellkite
 Mandibular Kite
 Mardu Outrider
 Mesmeric Sliver
+Mindsplice Apparatus
 Mindswipe
 Mindwrack Demon
 Molten Monstrosity
@@ -126,6 +130,7 @@ Mycologist
 Myojin of Roaring Blades
 Mystic Enforcer
 Mystic of the Hidden Way
+Nael, Avizoa Aeronaut
 Nantuko Calmer
 Nyxborn Rollicker
 Octavia, Living Thesis
@@ -163,6 +168,7 @@ Reinforcements
 Reminisce
 Rend Flesh
 Renegade's Getaway
+Resupply
 Revel Ruiner
 Revitalizing Repast
 Reviving Melody
@@ -170,16 +176,19 @@ Ribbon Snake
 Ring of Kalonia
 Riptide Pilferer
 Sagittars' Volley
+Saprazzan Legate
 Scaled Herbalist
 Scholar of Stars
 Scion of Oona
 Scourge of Numai
+Scrapwork Cohort
 Seek the Wilds
 Seraph of New Capenna
 Serra Aviary
 Setessan Petitioner
 Shadows' Verdict
 Shambling Goblin
+Shifting Sliver
 Silent Extraction
 Sinister Possession
 Sky Spirit
@@ -198,6 +207,7 @@ Starved Rusalka
 Strength of Isolation
 Summon: Ixion
 Swamp
+Symbiotic Wurm
 Tattermunge Witch
 Tel-Jilad Stylus
 Tempest Technique
@@ -228,6 +238,7 @@ Vicious Battlerager
 Vision Skeins
 Void Grafter
 Warden of Evos Isle
+Wily Bandar
 Wipe Clean
 Woodcaller Automaton
 Wooden Cane

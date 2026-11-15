@@ -1,5 +1,6 @@
 Alela, Cunning Conqueror
 Alluring Scent
+Almighty Brushwagg
 Ancient Tomb
 Arashin Cleric
 Archers' Parapet
@@ -9,6 +10,8 @@ Aurochs
 Bag of Holding
 Balduvian Bears
 Barbarian Ring
+Basal Sliver
+Battlefield Butcher
 Biting-Palm Ninja
 Black Market Connections
 Blight Mamba
@@ -26,6 +29,7 @@ City of Death
 Clarion Cathars
 Cloak of the Bat
 Copy Artifact
+Crippling Blight
 Crushing Vines
 Crystal Rod
 Cultivator Colossus
@@ -36,6 +40,7 @@ Deep Dish Pizza
 Demon's Due
 Destructive Tampering
 Dispense Justice
+Divination
 Dramatic Rescue
 Drowner of Hope
 Earthblighter
@@ -51,6 +56,7 @@ Exile into Darkness
 Eye of Vecna
 Failed Inspection
 Fathom Mage
+Festercreep
 Fiery Temper
 Fire Nation Ambushers
 Flame Sweep
@@ -66,8 +72,10 @@ General Kudro of Drannith
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
 Gimli's Axe
+Glistening Oil
 Gluntch, the Bestower
 Goblin Trashmaster
+Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
@@ -95,6 +103,7 @@ Jor Kadeen, First Goldwarden
 Judge's Familiar
 Jwar Isle Avenger
 Kabira Vindicator
+Kaervek the Merciless
 Karametra's Blessing
 Keldon Strike Team
 King Macar, the Gold-Cursed
@@ -108,6 +117,7 @@ Lava Dart
 Lightning Serpent
 Liliana's Specter
 Liliana's Steward
+Liquify
 Lost Leonin
 Loyal Cathar
 Lure of Prey
@@ -119,17 +129,21 @@ Massive Might
 Match the Odds
 Maze Sentinel
 Meteor Shower
+Mindstab Thrull
 Miss Highwater
 Mistcutter Hydra
 Mossfire Egg
 Mountain
 Multani's Harmony
 Muse Drake
+Night Terrors
 Nissa, Resurgent Animist
 Norwood Riders
 Not Forgotten
+Nucklavee
 Nullmage Shepherd
 Oakheart Dryads
+Olivia Voldaren
 Orim's Prayer
 Ostiary Thrull
 Ovalchase Dragster
@@ -137,10 +151,12 @@ Paladin of the Bloodstained
 Panther Warriors
 Patch Up
 Pharika's Disciple
+Phyrexian Digester
 Plains
 Plasma Elemental
 Poison-Blade Mentor
 Pridemalkin
+Promise of Aclazotz
 Protocol Knight
 Pyromancer's Swath
 Quest for the Goblin Lord
@@ -163,6 +179,7 @@ Sacred Prey
 Sandbar Merfolk
 Sandsower
 Sarulf's Packmate
+Savage Gorger
 Scalding Tarn
 Scarwood Bandits
 Secure the Wastes
@@ -187,9 +204,11 @@ Stonecloaker
 Stonehands
 Storm Fleet Negotiator
 Stormscape Familiar
+Strands of Undeath
 Sunblast Angel
 Survivors' Encampment
 Swamp
+Switcheroo
 Symmetry Matrix
 Tail Swipe
 Talas Air Ship
@@ -217,4 +236,6 @@ Vraan, Executioner Thane
 Wall of Hope
 War Priest of Thune
 Warhost's Frenzy
+Weaponcraft Enthusiast
+Zodiac Horse
 Éomer, King of Rohan

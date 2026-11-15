@@ -13,10 +13,12 @@ Avenging Arrow
 Balthor the Stout
 Bar the Door
 Bast, Panther Goddess
+Battle Angels of Tyr
 Bazaar Krovod
 Beacon of Unrest
 Beastcaller Savant
 Blighted Steppe
+Blisterspit Gremlin
 Blockade Runner
 Blockbuster
 Blood Clock
@@ -37,16 +39,20 @@ Champion Lancer
 Chandra, Novice Pyromancer
 Child of Thorns
 Choose Your Weapon
+Chosen by Heliod
 Circle of Flame
 Claws of Valakut
 Communal Brewing
 Company Commander
 Compy Swarm
+Conjurer's Mantle
+Consulate Turret
 Copperline Gorge
 Crash the Ramparts
 Crown of Empires
 Crude Rampart
 Cruel Deceiver
+Crusade
 Crystal Ball
 Culmination of Studies
 Cult Guildmage
@@ -65,17 +71,21 @@ District Guide
 Dizzy Spell
 Douse
 Drelnoch
+Drowner of Secrets
+Durable Coilbug
 Dwarven Patrol
 Elder Gargaroth
 Eldrazi Repurposer
 Electric Revelation
 Electrozoa
 Elegant Entourage
+Elminster's Simulacrum
 Elvish Scrapper
 Embargo
 Embersmith
 Encase in Ice
 Endurance Bobblehead
+Feeling of Dread
 First Volley
 Flip the Switch
 Folk of An-Havva
@@ -96,12 +106,14 @@ Guise of Fire
 Harsh Scrutiny
 Havengul Runebinder
 Hawkeye, Clint Barton
+Henrika Domnathi
 Hired Poisoner
 Hoard Hauler
 Hookblade
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
+Indulgent Aristocrat
 Infernal Pet
 Inferno
 Inspiration
@@ -110,11 +122,13 @@ Invasion of Innistrad
 Iron Apprentice
 Island
 Ivory Cup
+Join Forces
 Juju Bubble
 Kazandu Refuge
 Keeper of the Accord
 Kitesail Apprentice
 Knotvine Paladin
+Kronch Wrangler
 Labyrinth Champion
 Leave in the Dust
 Leeching Bite
@@ -133,6 +147,7 @@ Midnight Entourage
 Might of Oaks
 Ministrant of Obligation
 Minn, Wily Illusionist
+Mogis's Warhound
 Monoskelion
 Morinfen
 Mountain
@@ -180,6 +195,7 @@ Siege Zombie
 Siegecraft
 Silence
 Silkbind Faerie
+Silverchase Fox
 Sinister Sabotage
 Slate of Ancestry
 Slinza, the Spiked Stampede
@@ -202,9 +218,11 @@ Thief of Existence
 Thrull Surgeon
 Thumbscrews
 Thunder Wall
+Tide Drifter
 Toil to Renown
 Tombfire
 Touch of Death
+Toxic Scorpion
 Tribal Flames
 Trickster Mage
 Troll-Horn Cameo
@@ -214,8 +232,10 @@ Uglúk of the White Hand
 Ulvenwald Hydra
 Undercellar Myconid
 Undo
+Unhallowed Phalanx
 Unlikely Aid
 Unwavering Initiate
+Venerable Monk
 Veteran's Powerblade
 Vigilant Baloth
 Vivisection

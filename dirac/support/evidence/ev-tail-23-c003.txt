@@ -1,6 +1,8 @@
+Aether Herder
 Airdrop Condor
 Angel's Feather
 Armored Galleon
+Arno Dorian
 Arrest
 Assault Griffin
 Atmosphere Surgeon
@@ -22,8 +24,10 @@ Call the Bloodline
 Casey Jones, Back Alley Brute
 Ceremonial Knife
 Command the Storm
+Complete Disregard
 Crater Hellion
 Crushing Canopy
+Crypt Incursion
 Daru Lancer
 Daybreak Charger
 Dense Canopy
@@ -38,12 +42,14 @@ Explore
 Farmstead Gleaner
 Fiery Conclusion
 Forest
+Forge, Neverwinter Charlatan
 Glint Hawk
 Goblin Glider
 Goblin Recruiter
 Golgari Findbroker
 Gorilla Warrior
 Gruul Turf
+Hag of Dark Duress
 Harabaz Druid
 Hawkeater Moth
 Heaven's Gate
@@ -56,6 +62,7 @@ Hulking Devil
 Illusory Wrappings
 Imps' Taunt
 Infested Thrinax
+Inhumaniac
 Island
 Jeskai Windscout
 Juniper Order Ranger
@@ -104,6 +111,7 @@ Sonic Seizure
 Sowing Mycospawn
 Spark Elemental
 Spark Jolt
+Spike Jester
 Starlit Angel
 Stomp and Howl
 Storm, Shaker of Skies
@@ -125,6 +133,7 @@ Wall of Earth
 Wall of Mulch
 Warden of Geometries
 Warriors' Lesson
+Whiptongue Frog
 Winding Canyons
 Woodweaver's Puzzleknot
 Your Temple Is Under Attack

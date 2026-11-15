@@ -1,10 +1,13 @@
 A-You Come to a River
 Abyssal Gatekeeper
 Academy Journeymage
+Akki Drillmaster
+Alabaster Dragon
 Amoeboid Changeling
 Ancient Ooze
 Angelsong
 Anticipate
+Apprentice Sorcerer
 Armix, Filigree Thrasher
 Aspect of Wolf
 Auriok Bladewarden
@@ -22,15 +25,18 @@ Blessed Reversal
 Bloodbond Vampire
 Bloodhall Ooze
 Boldwyr Intimidator
+Breach
 Captain of Umbar
 Cast into Darkness
 Cavalcade of Calamity
 Charity Extractor
 Choking Tethers
+Coma Veil
 Commander's Authority
 Consecrated Sphinx
 Cultivator of Blades
 Dauntless River Marshal
+Deal Broker
 Deepcavern Imp
 Deepwater Hypnotist
 Demonlord Belzenlok
@@ -58,6 +64,7 @@ Forest
 Fortify
 Future Sight
 Garrison Cat
+Geothermal Kami
 Ghost Warden
 Gigantiform
 Gitaxian Raptor
@@ -74,6 +81,7 @@ Haunt of the Dead Marshes
 Hazoret's Monument
 Heavy Infantry
 Henchfiend of Ukor
+Herd Gnarr
 Hibernation Sliver
 Hook Swords
 Impulse
@@ -99,9 +107,11 @@ Mirrorworks
 Mountain
 Mournful Zombie
 Myr Servitor
+Mystic Crusader
 Nephalia Seakite
 Nettle Swine
 Nightmare
+Norwood Ranger
 Noxious Hatchling
 One With the Wind
 Orgg
@@ -126,9 +136,12 @@ Render Inert
 Respite
 Saiba Cryptomancer
 Scaldkin
+Scare Tactics
 Scatter the Seeds
+Scattershot
 Scion of Calamity
 Scourge Wolf
+Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
@@ -160,10 +173,12 @@ Tropical Island
 Undercity's Embrace
 Vedalken Orrery
 Veil of Birds
+Vent Sentinel
 Viashino Slaughtermaster
 Vile Consumption
 Vines of the Recluse
 Viridian Harvest
+Virulent Wound
 Vodalian Soldiers
 Warren Pilferers
 Windborne Charge

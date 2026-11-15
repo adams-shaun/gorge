@@ -1,12 +1,23 @@
 A-Exhibition Magician
+Abyssal Specter
+Argothian Opportunist
+Ashes to Ashes
+Basic Conjuration
+Bearscape
+Blessed Light
+Blood Pet
 Bonesplitter Sliver
 Brazen Freebooter
+Brine Seer
 Brushland
 Brutal Cathar
+Callous Dismissal
 Constricting Sliver
 Copper Longlegs
+Dreamscape Artist
 Dregscape Zombie
 Eviscerator
+Feign Death
 Fires of Undeath
 Flailing Soldier
 Forest
@@ -14,26 +25,50 @@ Freewind Falcon
 Garbage Elemental
 Garruk Wildspeaker
 Gleam of Authority
+Haazda Officer
 Heart Sliver
+Herald of Secret Streams
+Hua Tuo, Honored Physician
 Initiate's Companion
 Island
 Joust
+Laser Screwdriver
+Mercurial Pretender
+Molten Ravager
+Monk Idealist
 Mountain
 Mudhole
+Nebelgast Herald
+Nyx-Fleece Ram
 Nyxathid
+Ogre Jailbreaker
+Omenspeaker
 Phantom Centaur
 Plains
+Quirion Ranger
 Redcap Heelslasher
 Redwood Treefolk
+Regenerate
 Reverent Hunter
 Seasoned Pyromancer
 Skarrgan Skybreaker
 Skirk Drill Sergeant
 Smellerbee, Rebel Fighter
+Smiting Helix
 Soul of Shandalar
+Spoils of Evil
+Steel-Plume Marshal
 Stew the Coneys
 Swamp
 Swift Warden
 Sylvan Scrying
+Séance
 Tajic, Blade of the Legion
+The Antiquities War
+Thrashing Wumpus
 Toski, Bearer of Secrets
+Trading Post
+Watcher of the Spheres
+Welding Sparks
+Wings of Velis Vel
+Wu Elite Cavalry

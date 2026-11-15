@@ -10,11 +10,13 @@ Avengers Quinjet
 Banehound
 Banish from Edoras
 Banisher Priest
+Barktooth Warbeard
 Basal Sliver
 Bearscape
 Benalish Honor Guard
 Bestial Fury
 Birds of Paradise
+Bituminous Blast
 Bloated Contaminator
 Bloodline Shaman
 Blossoming Bogbeast
@@ -22,6 +24,7 @@ Borrowed Grace
 Browse
 Canyon Jerboa
 Celestial Unicorn
+Childhood Horror
 Churning Eddy
 Cleanfall
 Clear the Land
@@ -49,6 +52,7 @@ Duskshell Crawler
 Dust Elemental
 Ebony Fly
 Eidolon of Philosophy
+Elenda, the Dusk Rose
 Enhanced Awareness
 Ephara's Dispersal
 Erase
@@ -106,8 +110,10 @@ Mountain
 Nahiri's Binding
 Nantuko Shade
 Nim Replica
+Ninja of the New Moon
 Nova Cleric
 Okiba Reckoner Raid
+One Thousand Lashes
 Order of Midnight
 Outrider of Jhess
 Pack's Betrayal
@@ -140,6 +146,7 @@ Riptide Director
 Rise Again
 River Kaijin
 Rolling Stones
+Rotwidow Pack
 Rune Snag
 Sadistic Slash
 Scourge of Geier Reach
@@ -149,11 +156,13 @@ Seraph of Dawn
 Settlement Blacksmith
 Shiny Impetus
 Sierra, Nuka's Biggest Fan
+Sifa Grent
 Signpost Scarecrow
 Skitterskin
 Skrelv, Defector Mite
 Skull Raid
 Smash to Smithereens
+Smoldering Butcher
 Sokka, Swordmaster
 Soul of Migration
 Sound the Call
@@ -170,6 +179,7 @@ Tamiyo's Safekeeping
 Temporary Insanity
 The Blackstaff of Waterdeep
 Think Tank
+Third Path Iconoclast
 Thran Foundry
 Tidal Wave
 Tishana's Wayfinder
@@ -189,6 +199,7 @@ Voice of the Provinces
 Voltaic Brawler
 Voracious Null
 War Oracle
+Warpath Ghoul
 Wasteland Viper
 Watchful Blisterzoa
 Weakstone's Subjugation

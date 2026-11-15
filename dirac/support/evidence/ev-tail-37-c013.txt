@@ -1,39 +1,81 @@
 A-Hobbling Zombie
+A-Skyclave Shadowcat
+Agent of Acquisitions
 Air Bladder
+Air-Cult Elemental
+Akroma's Devoted
 Altar's Reap
 Argothian Pixies
+Atog
+Atrocious Experiment
 Beast Whisperer
 Benalish Heralds
+Black Oak of Odunos
 Bountiful Promenade
 Brotherhood Vertibird
 Built to Last
+Built to Smash
+Centaur's Herald
+Chain of Plasma
+Chrome Host Seedshark
 Clairvoyance
 Cliff Threader
 Conclave Evangelist
 Conductor of Cacophony
 Crumbling Ashes
+Crusher Zendikon
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
 Demon of Wailing Agonies
 Deploy the Gatewatch
+Despondency
 Dire Mimic
+Dreadhorde Twins
+Drogskol Cavalry
+Elenda's Hierophant
 Enlisted Wurm
 Fallaji Excavation
 Fleshbag Marauder
+Force of Despair
 Forest
+Frogmite
+God-Eternal Rhonas
 Gray Merchant of Asphodel
+Harmonic Prodigy
 Honor the God-Pharaoh
+Icatian Crier
+Igneous Golem
 Island
+Juzám Djinn
 Karlach, Fury of Avernus
 Kavu Climber
 Kinsbaile Borderguard
+Llanowar Stalker
 Looter il-Kor
+Marionette Master
+Midnight Scavengers
+Monk Realist
 Mountain
 Plains
+Pradesh Gypsies
 Presence of Gond
+Protomatter Powder
 Quest for Pure Flame
+Quirion Sentinel
+Ruby Medallion
+Shatterstorm
+Shimmering Mirage
+Shrieking Mogg
 Steel Overseer
+Subira, Tulzidi Caravanner
 Supply Runners
 Swamp
+Tainted Indulgence
+The Torment of Gollum
+Towashi Guide-Bot
+Travel Preparations
+Vanquish the Foul
+Voices from the Void
+Wildfire Emissary
 Will-o'-the-Wisp

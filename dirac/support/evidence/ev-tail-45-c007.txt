@@ -1,12 +1,20 @@
 A-Exhibition Magician
+Abyssal Specter
+Argothian Opportunist
 Atzocan Archer
 Awesome Presence
 Barrier Breach
+Basic Conjuration
 Belbe's Armor
 Belligerent Whiptail
+Blessed Light
+Blood Pet
 Bonesplitter Sliver
+Captain of the Watch
 Constricting Sliver
+Crossroads Consecrator
 Dark Tutelage
+Devoted Paladin
 Dragonshift
 Farhaven Elf
 Fendeep Summoner
@@ -18,28 +26,44 @@ Forest
 Freewind Falcon
 Garbage Elemental
 Gleam of Authority
+Guardian Augmenter
+Haazda Officer
+Haze of Pollen
 Heart Sliver
 Hill Giant Herdgorger
+Hua Tuo, Honored Physician
 Iron Lad, Young Avenger
 Island
+Laser Screwdriver
+Monk Idealist
 Mountain
 Murasa Rootgrazer
+Nebelgast Herald
+Nyx-Fleece Ram
 Ogre Warrior
 Pitiless Gorgon
 Plains
+Quirion Ranger
 Raze the Effigy
 Redcap Heelslasher
 Redwood Treefolk
+Regenerate
+Safehold Duo
 Safehold Sentry
 Scalebane's Elite
 Seasoned Pyromancer
 Shambling Remains
 Silverglade Pathfinder
 Sovereign's Bite
+Splinterfright
 Sprite Dragon
+Steel-Plume Marshal
 Swamp
+Séance
 Tempestra, Dame of Games
+Thrun, the Last Troll
 Toski, Bearer of Secrets
+Welding Sparks
 Willow Elf
 Winged Hive Tyrant
 Withstand Death

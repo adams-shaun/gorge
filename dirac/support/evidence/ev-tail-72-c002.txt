@@ -4,6 +4,9 @@ A-Skull Skaab
 Aether Channeler
 Akki Coalflinger
 Always Watching
+Amethyst Dragon
+Animist's Awakening
+Archway Commons
 Artful Dodge
 Astonishing Spider-Man
 Audacious Thief
@@ -17,6 +20,7 @@ Beacon Behemoth
 Bola Warrior
 Bontu the Glorified
 Boomer Scrapper
+Branchblight Stalker
 Cabal Slaver
 Call the Gatewatch
 Carnassid
@@ -28,21 +32,26 @@ Chaplain's Blessing
 Charging Badger
 Chariot of the Sun
 Chronomancer
+Citanul Hierophants
 Cleansing Screech
 Cleaving Skyrider
 Cleaving Sliver
 Cleon, Merry Champion
+Cloudfin Raptor
 Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
 Congregation at Dawn
 Conjurer's Closet
+Conservator
 Continue?
 Coursers' Accord
 Curio Vendor
 Custodi Lich
 Cyclops Electromancer
 Daggerdrome Imp
+Daring Skyjek
+Deadly Allure
 Death Pits of Rath
 Death's-Head Buzzard
 Demon of Catastrophes
@@ -51,6 +60,7 @@ Dimir Aqueduct
 Dire Fleet Captain
 Djeru's Renunciation
 Double Trouble
+Dragonspark Reactor
 Drake Familiar
 Dwarven Berserker
 Dying Wail
@@ -62,8 +72,10 @@ Evanescent Intellect
 Expedition Healer
 Faerie Guidemother
 Fallen Cleric
+Fanatical Devotion
 Fatal Frenzy
 Festering Evil
+Fiery Temper
 Fire Shrine Keeper
 Flameshadow Conjuring
 Flaxen Intruder
@@ -77,6 +89,7 @@ Fortitude
 Frenetic Efreet
 Galadriel, Gift-Giver
 Gargoyle Flock
+Geist of the Archives
 Geothermal Kami
 Ghostly Wings
 Gladecover Scout
@@ -92,6 +105,7 @@ Guild Thief
 Gyre Sage
 Hardened-Scale Armor
 Haze of Pollen
+Hazoret's Favor
 Heavenly Qilin
 Hellkite Charger
 Hellspark Elemental
@@ -103,24 +117,32 @@ Horn of Gondor
 Hunter's Mark
 Hurloon Minotaur
 Impaler Shrike
+Imperial Lancer
 Inexorable Blob
 Infectious Inquiry
+Infernal Plunge
 Infernal Tribute
 Ingenious Skaab
 Invading Manticore
 Iroas's Blessing
 Irontread Crusher
 Island
+Jaheira's Respite
 Jalira, Master Polymorphist
 Jhessian Balmgiver
 Jungle Barrier
 Jungle Basin
 Juniper Order Advocate
+Karametra's Blessing
 Kashi-Tribe Warriors
 Kemba's Banner
 Kinsbaile Skirmisher
+Kitchen
 Kodama of the North Tree
+Kyren Legate
 Labyrinth Adversary
+Last Rites
+Lava Spike
 Lightbringer
 Llanowar Cavalry
 Llanowar Sentinel
@@ -136,6 +158,7 @@ Mightstone
 Mirri the Cursed
 Mist Leopard
 Mithril Coat
+Mobile Garrison
 Molting Harpy
 Morkrut Behemoth
 Moss Viper
@@ -148,6 +171,7 @@ Neurok Replica
 Night Out in Vegas
 Nissa's Expedition
 Norwood Priestess
+Novice Occultist
 Ogre Errant
 Ondu Greathorn
 Oppressive Will
@@ -170,7 +194,9 @@ Polluted Bonds
 Prizefight
 Protective Bubble
 Psychic Overload
+Psychosis Crawler
 Pursue Glory
+Pyre Charger
 Qilin's Blessing
 Raise Dead
 Ramosian Lieutenant
@@ -197,9 +223,13 @@ Scrapheap
 Scrappy Bruiser
 Scythecat Cub
 Seafloor Oracle
+Searing Spear
+Secure the Wastes
 Seer's Sundial
 Senate Courier
 Serendib Sorcerer
+Serra's Sanctum
+Shield Sphere
 Shizo, Death's Storehouse
 Shu Farmer
 Sinister Starfish
@@ -211,6 +241,9 @@ Skyboon Evangelist
 Skyline Scout
 Slippery Scoundrel
 Snake Pit
+Southern Elephant
+Spellshock
+Spirit of the Hunt
 Spiteful Motives
 Spore Frog
 Starlight
@@ -218,6 +251,7 @@ Starlit Mantle
 Stimulus Package
 Stinging Shot
 Storm the Seedcore
+Strength of the Coalition
 Stronghold Taskmaster
 Stunted Growth
 Sunmane Pegasus
@@ -234,6 +268,8 @@ The Spear of Leonidas
 Thragtusk
 Timber Protector
 Treasure Hunt
+Troll-Horn Cameo
+Turn Against
 Twinscroll Shaman
 Tzaangor Shaman
 Ulvenwald Captive
@@ -251,7 +287,10 @@ Verdant Touch
 Viashino Outrider
 Volcanic Upheaval
 Volcanic Vision
+Wall of Souls
 Wall of Swords
+War-Spike Changeling
+Weave Fate
 Wildsize
 Wirewood Channeler
 Yotian Tactician

@@ -33,11 +33,13 @@ Ferropede
 Finishing Blow
 Flameborn Hellion
 Flaring Flame-Kin
+Flowstone Giant
 Font of Vigor
 Forest
 Frogtosser Banneret
 Gaea's Might
 Geistflame
+Ghor-Clan Bloodscale
 Giant Ladybug
 Glint-Horn Buccaneer
 Goblin Razerunners
@@ -53,6 +55,7 @@ Inquisitive Puppet
 Invoke Despair
 Island
 Joven
+Lagac Lizard
 Lamentation
 Lull
 Maestros Initiate
@@ -70,6 +73,7 @@ Offalsnout
 Overload
 Pangosaur
 Paradise Druid
+Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains
@@ -88,6 +92,7 @@ Sigiled Contender
 Skinrender
 Skull Rend
 Smother
+Southern Paladin
 Splatter Goblin
 Sticky Fingers
 Storm-Kiln Artist

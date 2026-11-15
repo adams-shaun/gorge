@@ -7,13 +7,19 @@ Ancient Brontodon
 Archon of Cruelty
 Ardent Recruit
 Argent Dais
+Arms Dealer
+Arrest
+Aspect of Mongoose
+Avacynian Missionaries
 Aven Sentry
 Backup Agent
 Balduvian Rage
 Bamboo Grove Archer
 Base Camp
 Basri's Solidarity
+Battle Mastery
 Battle-Scarred Goblin
+Battlefield Promotion
 Beast of Burden
 Bedlam Reveler
 Bellowing Mauler
@@ -24,14 +30,18 @@ Bloodrock Cyclops
 Blossom Dryad
 Boneshard Slasher
 Brago, King Eternal
+Brass-Talon Chimera
 Braulios of Pheres Band
 Bravado
 Brightcap Badger
+Brokers Initiate
 Broodwarden
 Caldera Pyremaw
 Call the Scions
+Candlelit Cavalry
 Captivating Gyre
 Cerulean Sphinx
+Charge Across the Araba
 Chief Engineer
 Clear the Stage
 Cradle Guard
@@ -40,9 +50,12 @@ Crosswinds
 Curse of Chaos
 Curse of the Nightly Hunt
 Cursebreak
+Cyan, Vengeful Samurai
 Darksteel Relic
+Dazzling Lights
 Deathcult Rogue
 Deepfathom Skulker
+Defiant Greatmaw
 Deny Existence
 Desert of the Glorified
 Destined
@@ -54,44 +67,63 @@ Dragonloft Idol
 Dread Warlock
 Dread of Night
 Drown in Filth
+Dual Strike
 Duskborne Skymarcher
+Dutiful Servants
 Elephant-Mandrill
 Elixir of Vitality
+Enduring Bondwarden
+Errant Doomsayers
 Esquire of the King
 Extremis Elite
+Feed the Infection
+Felhide Spiritbinder
 Fencer's Magemark
 Fire of Orthanc
 Firedrinker Satyr
 Firemane Avenger
 Fires of Yavimaya
 Flaming Sword
+Flayer Drone
 Flayer Husk
 Fledgling Djinn
+Flying Men
 Foot Soldiers
 Forbidden Lore
 Forest
+Forgeborn Oreads
+Frantic Salvage
 Fumulus, the Infestation
+Fungal Infection
 Fury Sliver
 Galvanic Key
+General Marhault Elsdragon
 Genesis Ultimatum
 Ghitu Slinger
 Gift of Compleation
 Glimmerdust Nap
+Glimpse the Sun God
 Glittering Wish
 Goblin Kaboomist
+Goblin War Buggy
 Golden-Tail Trainer
+Graf Harvest
 Grand Arbiter Augustin IV
 Grateful Apparition
 Green Scarab
 Grendel, Spawn of Knull
 Grounded
+Guided Strike
 Hidden Blade
 High Ground
 Hope Tender
 Horn of Valhalla
+Horror of Horrors
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
+In the Web of War
+Incarnation Technique
 Invasion of Kylem
 Island
 It That Heralds the End
@@ -100,13 +132,18 @@ Jushi Apprentice
 Kagemaro's Clutch
 Karametra's Acolyte
 Karn's Bastion
+Kessig Cagebreakers
+Kor Halberd
+Krovikan Scoundrel
 Lambholt Raconteur
 Lampad of Death's Vigil
 Lash of Thorns
 Lava Storm
 Layla Hassan
+Leaden Fists
 Leisure Bicycle
 Leonin Snarecaster
+Lightkeeper of Emeria
 Living Hive
 Lost in the Mist
 Magmatic Core
@@ -116,9 +153,16 @@ Massacre
 Mastermind's Acquisition
 Meloku the Clouded Mirror
 Meneldor, Swift Savior
+Mesmeric Orb
+Metallurgeon
+Michiko Konda, Truth Seeker
+Might of Oaks
+Military Intelligence
 Mind Carver
+Misguided Rage
 Misthoof Kirin
 Mogg Squad
+Morbid Curiosity
 Mortuary
 Mothdust Changeling
 Mountain
@@ -128,6 +172,7 @@ Necra Sanctuary
 Nested Ghoul
 Night Revelers
 Nightmare Unmaking
+Nightmare's Thirst
 Nightmares and Daydreams
 Oath of Druids
 Oketra the True
@@ -135,7 +180,10 @@ Omen of Fire
 Open Fire
 Order of the Sacred Bell
 Ox of Agonas
+Pack's Favor
+Permission Denied
 Pestilent Haze
+Phantasmal Bear
 Phantom Nomad
 Phantom Wurm
 Pine Barrens
@@ -153,6 +201,7 @@ Queen's Commission
 Quilled Slagwurm
 Rageblood Shaman
 Raging Kronch
+Rally the Peasants
 Ravenous Leucrocota
 Ravenous Necrotitan
 Reflexes
@@ -160,9 +209,12 @@ Reshape
 Reyav, Master Smith
 Rhovanion Rampager
 Rhystic Tutor
+Rib Cage Spider
+Righteous Valkyrie
 Roadside Reliquary
 Robot Chicken
 Run for Your Life
+Rush the Room
 Sacred Wolf
 Sage of Mysteries
 Sapphire Dragon
@@ -181,9 +233,12 @@ Serene Offering
 Serra Zealot
 Servo Exhibition
 Shalai and Hallar
+Shining Armor
 Siege Modification
 Silent Submersible
+Skygames
 Skyline Predator
+Skymarcher Aspirant
 Skyshroud Condor
 Slagwurm Armor
 Snow-Covered Mountain
@@ -192,14 +247,18 @@ Song of Freyalise
 Soul Bleed
 Sparkshaper Visionary
 Sphinx Mindbreaker
+Spirit Link
 Sprouting Phytohydra
 Standing Troops
+Starfall
 Steelshaper Apprentice
 Stormcaller's Boon
+Subdue
 Subterranean Scout
 Sultai Skullkeeper
 Swallowing Plague
 Swamp
+Sylvan Brushstrider
 Sylvan Tutor
 Syphon Essence
 Take Vengeance
@@ -210,19 +269,30 @@ The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
 Thraben Watcher
+Thunder Totem
 Tormenting Voice
 Torpid Moloch
+Tower Worker
 Trench Gorger
 Tri-Sentinel, Act of Vengeance
+Turbulent Wilderness
+Umara Raptor
+Undead Minotaur
 Valiant Veteran
+Vampire Hexmage
 Vampire Hounds
 Veil of Assimilation
+Voice of Grace
 Walking Wall
 Warden of the Woods
 Wasteful Harvest
 Weaponcraft Enthusiast
+Wedding Invitation
 Whip Sergeant
 Whiptail Moloch
+White Rhystic Study
+Will of the Mardu
 Windgrace's Judgment
 Yasmin Khan
+Yellow Scarves Troops
 Zealot's Conviction

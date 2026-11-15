@@ -1,7 +1,9 @@
+Ajani's Mantra
 Animating Faerie
 Arbalest Elite
 Arbor Armament
 Archivist of Oghma
+Armored Pegasus
 Auriok Salvagers
 Battle Rampart
 Bitter Reunion
@@ -9,10 +11,14 @@ Blade Banish
 Blessings of Nature
 Bloody Betrayal
 Borderland Ranger
+Bound in Silence
+Braids, Cabal Minion
 Buccaneer's Bravado
 Bygone Bishop
 Carnival
+Cenn's Heir
 Cerulean Wyvern
+Choke
 Citanul Woodreaders
 Clockwork Drawbridge
 Coast Watcher
@@ -24,6 +30,7 @@ Cryptothrall
 Cyclopean Snare
 Damning Verdict
 Dawnstrike Paladin
+Deadeye Brawler
 Defend the Campus
 Dega Disciple
 Demonic Appetite
@@ -40,23 +47,28 @@ Fauna Shaman
 Flicker of Fate
 Fogwalker
 Forest
+Funeral Longboat
 Furor of the Bitten
+Githzerai Monk
 Glyph Elemental
 Gnat Alley Creeper
 Goblin King
 Golden Ratio
 Grave Bramble
+Graveyard Marshal
 Greater Forgeling
 Grim Captain's Call
 Halcyon Glaze
 Half-Elf Monk
 Hallowed Respite
+Hamato Ninpō
 Hardy Outlander
 Harmattan Efreet
 Haunted Angel
 Headstone
 Hedron Scrabbler
 Hermetic Study
+Hoar Shade
 Hungry Mist
 In Too Deep
 Invincible Hymn
@@ -64,27 +76,37 @@ Island
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
 Kor Castigator
+Kraul Raider
+Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
 Loxodon Stalwart
 Maddening Wind
+March from the Black Gate
+Martial Glory
 Maulfist Squad
 Mavren Fein, Dusk Apostle
+Merciless Eviction
 Merfolk Seer
 Merfolk of the Pearl Trident
+Minion Missile
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
 Mnemonic Sliver
+Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
 Narcolepsy
 Nezumi Bone-Reader
+Nightmare Shepherd
 Ollenbock Escort
 Orcish Artillery
+Palace Sentinels
 Patrol Hound
 Phyrexian Rebirth
 Plains
@@ -112,21 +134,31 @@ Smite
 Somberwald Stag
 Soul Feast
 Spined Megalodon
+Spreading Rot
 Sprout
 Start
+Stream of Acid
+Summary Judgment
 Sunlance
 Surge Conductor
 Swamp
 Sweet Oblivion
+Syphon Sliver
+Teval's Judgment
+The Battle of Bywater
 Thran Golem
 Torbran, Thane of Red Fell
+Twisted Justice
 Ulgrotha Charm
+Unlikely Alliance
 Vastwood Animist
 Vegetation Abomination
+Vraan, Executioner Thane
 Wall of Torches
 Warden of the First Tree
 Wilson, Refined Grizzly
 Wolfcaller's Howl
 Zephyr Spirit
 Zhalfirin Lancer
+Zo-Zu the Punisher
 Zuberi, Golden Feather

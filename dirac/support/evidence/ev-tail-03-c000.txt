@@ -1,34 +1,75 @@
+Abyssal Gatekeeper
+Acolyte of the Inferno
+Ainok Bond-Kin
 Ainok Guide
+Ajani's Mantra
+Altar's Light
+Ancestral Memories
+Applied Biomancy
 Arbalest Elite
 Arbor Armament
+Arcade Cabinet
+Arcane Encyclopedia
 Archivist of Oghma
+Argivian Find
+Armor of Faith
+Armored Pegasus
 Artillerize
 Ash Barrens
+Assault Zeppelid
 Auriok Salvagers
+Aven Heartstabber
 Azorius Skyguard
+Azra Oddsmaker
+Back to Basics
 Battle Rampart
+Befriending the Moths
 Bitter Reunion
 Blackcleave Cliffs
 Blade Banish
 Blessings of Nature
+Bloodpyre Elemental
 Bloody Betrayal
 Bog Gnarr
 Bonebreaker Giant
+Bontu's Monument
+Borderland Minotaur
 Borderland Ranger
+Bound in Silence
+Braids, Cabal Minion
 Breath of Fire
+Briarknit Kami
 Bridgeworks Battle
+Brightmare
+Brushwagg
 Buccaneer's Bravado
 Bulwark
 Bygone Bishop
+Cabal Executioner
+Campus Renovation
 Capsize
+Celestial Crusader
+Cenn's Heir
 Cerulean Wyvern
+Choke
+Cinderslash Ravager
 Citanul Woodreaders
+Claim of Erebos
+Clear Shot
+Clear the Land
+Clever Lumimancer
 Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Confirm Suspicions
 Consulate Dreadnought
+Consulate Skygate
+Counterbalance
+Courier's Capsule
 Cowl Prowler
+Crack the Earth
+Creeping Trailblazer
 Crovax the Cursed
 Crown of Flames
 Cryptothrall
@@ -36,157 +77,319 @@ Crystal Carapace
 Cyclopean Snare
 Damning Verdict
 Dawnstrike Paladin
+Deadeye Brawler
+Deadly Visit
 Death Grasp
 Deathmark Prelate
 Defend the Campus
 Defiant Bloodlord
 Dega Disciple
 Demonic Appetite
+Devils' Playground
+Dirge of Dread
+Dominating Licid
+Doom Foretold
 Dragon Roost
+Drana, Liberator of Malakir
 Drift of Phantasms
+Duergar Hedge-Mage
 Dust Elemental
+Eiganjo Uprising
 Elvish Vanguard
+Ember Beast
+Enchantress's Presence
+Enclave Elite
 Endless One
+Enshrined Memories
+Entomb
+Ephemerate
+Eternal Thirst
+Ethercaste Knight
 Eutropia the Twice-Favored
+Extravagant Spirit
 Falkenrath Celebrants
+Falkenrath Pit Fighter
 Fauna Shaman
 Felhide Brawler
+Fen Hauler
+Festering Newt
+Fiery Confluence
 Fire Drake
+Firehoof Cavalry
 Flicker of Fate
+Flowstone Infusion
 Fogwalker
+Font of Mythos
 Forest
+Frenetic Ogre
 Fruit of Tizerus
+Fruitcake Elemental
+Funeral Longboat
 Furor of the Bitten
+Furyblade Vampire
+Galecaster Colossus
+Gather the Pack
+Gaze of Adamaro
+Geology Enthusiast
+Githzerai Monk
 Glissa Sunslayer
 Glyph Elemental
 Gnat Alley Creeper
+Goblin Chainwhirler
 Goblin King
+Goblinslide
 Golden Ratio
 Grave Bramble
 Grave Defiler
+Graveyard Marshal
 Greater Forgeling
+Grey Knight Paragon
 Grim Captain's Call
 Gristle Grinner
 Halcyon Glaze
 Half-Elf Monk
 Hallowed Respite
+Halsin, Emerald Archdruid
+Hamato Ninpō
 Hardy Outlander
 Harmattan Efreet
 Haunted Angel
 Headstone
 Hedron Scrabbler
+Heliod, Sun-Crowned
 Heliophial
+Hill Giant
+Hoar Shade
+Horned Kavu
+Howl from Beyond
+Howling Wolf
 Hungry Mist
 Immortal Servitude
+Impale
+Implement of Malice
 Incubation Sac
+Infiltrate
+Innocent Blood
+Inspired Tinkering
+Iridescent Angel
 Island
 Jamie McCrimmon
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Kami of False Hope
+Kami of Restless Shadows
+Karplusan Strider
 Kazarov, Sengir Pureblood
+Kiln Fiend
+Knighthood
 Kor Castigator
+Kraul Raider
 Krumar Bond-Kin
+Lamentation
+Land Tax
+Leeching Licid
 Lifespring Druid
+Lion's Eye Diamond
 Liquimetal Coating
 Living Tempest
 Lonely Sandbar
 Longshot, Rebel Bowman
+Lore Seeker
 Loxodon Stalwart
+Lucent Liminid
+Lunge
 Maddening Wind
 Magmatic Chasm
 Makindi Sliderunner
+Mantle of Webs
+March from the Black Gate
+Martial Glory
 Mavren Fein, Dusk Apostle
+Merciless Eviction
 Merfolk Seer
 Metropolis Sprite
 Mine Collapse
+Minion Missile
+Minotaur Warrior
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
+Misthollow Griffin
+Molten Gatekeeper
+Monk of the Open Hand
+Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Myr Kinsmith
+Mysterious Pathlighter
+Mystical Tutor
+Nadier's Nightblade
 Narcolepsy
 Nessian Asp
+Nesting Dragon
 Nezumi Bone-Reader
+Nightmare Shepherd
+Nimble Birdsticker
 Nissa Revane
 Nissa, Vastwood Seer
 Nissa, Vital Force
+Noxious Ghoul
+Nymris, Oona's Trickster
+Nyxborn Hydra
+Nyxborn Rollicker
+Oakgnarl Warrior
 Ogre Painbringer
 Oko's Hospitality
 Ollenbock Escort
 One-Eyed Scarecrow
+Oona's Blackguard
 Orcish Artillery
+Pack Mastiff
+Palace Sentinels
+Pale Bears
+Pale Rider of Trostad
 Patrol Hound
+Peek
 Permafrost Trap
+Pestilent Haze
+Pheres-Band Tromper
+Phthisis
+Phyrexian Metamorph
 Phyrexian Monitor
 Phyrexian Rebirth
 Plains
+Plated Wurm
+Plundering Barbarian
+Profit
 Prophet of Kruphix
 Psychic Allergy
+Puppet Conjurer
 Raging Spirit
+Raise the Palisade
 Rakdos Signet
 Rank and File
 Read the Bones
 Reap What Is Sown
 Renegade Tactics
+Reshape
 Reshape the Earth
 Revoke Existence
+Rigging Runner
+Rite of Belzenlok
+Roc Hunter
 Rootwalla
+Rousing of Souls
 Runewing
+Rural Recruit
 Saddled Rimestag
+Sailors' Bane
+Salvage Scuttler
 Samite Herbalist
 Samut, Voice of Dissent
+Sapphire Medallion
 Sarinth Steelseeker
 Scavenger Folk
 Scroll of Griselbrand
+Scute Mob
+Sea Snidd
 Seraph of the Scales
 Servant of the Scale
 Shifting Ceratops
 Shinen of Stars' Light
 Shrine of Loyal Legions
 Shu Defender
+Siege-Gang Commander
 Sigiled Skink
 Silundi Vision
+Silvan Reveler
 Simic Cluestone
 Skirk Ridge Exhumer
+Skitterbeam Battalion
+Slab Hammer
+Slag Strider
 Sliptide Serpent
 Sliversmith
+Smellerbee, Rebel Fighter
 Smite
+Snow-Covered Swamp
+Soaring Hope
+Song of Serenity
 Soul Feast
 Spined Megalodon
+Spreading Rot
 Springmantle Cleric
 Sprout
 Stalking Drone
 Start
+Stillmoon Cavalier
+Stonewood Invoker
+Storm Fleet Pyromancer
+Strange Augmentation
 Straw Golem
+Stream of Acid
+Stromkirk Condemned
+Summary Judgment
+Sun Droplet
 Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
+Sylvan Safekeeper
+Sylvan Shepherd
+Syphon Sliver
+Temur Battle Rage
 Tergrid's Shadow
+Teval's Judgment
+Thalia, Heretic Cathar
+Thatcher Revolt
 The Art of Tea
+The Battle of Bywater
+The Covert Blue Mage
 The Hunter Maze
 The Triumph of Anax
 Thermal Blast
 Thran Golem
+Thunderscape Familiar
+Tiana, Ship's Caretaker
+Tidehollow Sculler
+Tireless Provisioner
+Tocatli Honor Guard
+Tome Shredder
 Torbran, Thane of Red Fell
+Trailblazer
 Transgress the Mind
+Trynn, Champion of Freedom
+Twisted Justice
 Ulgrotha Charm
+Unburial Rites
+Unlikely Alliance
+Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
+Verdant Confluence
+Veteran Swordsmith
 Violent Eruption
 Voice of the Vermin
 Voidslime
 Volrath's Stronghold
+Vorapede
+Vraan, Executioner Thane
+Wall of Essence
 Wall of Torches
+Wandering Wolf
 Warden of the First Tree
+Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
 Woebearer
 Wolfcaller's Howl
+Word of Binding
+You Happen On a Glade
 Yuki-Onna
 Zephyr Spirit
+Zo-Zu the Punisher
 Zodiac Pig
 Zodiac Rooster
 Zuberi, Golden Feather

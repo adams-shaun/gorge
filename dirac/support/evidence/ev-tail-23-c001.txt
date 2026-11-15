@@ -4,6 +4,7 @@ Airdrop Condor
 Alliance of Arms
 Ambassador Laquatus
 Angel's Feather
+Arno Dorian
 Arrest
 Asceticism
 Ashen Firebeast
@@ -17,6 +18,7 @@ Aven Windreader
 Ayula's Influence
 Barbed Battlegear
 Barishi
+Behold the Unspeakable
 Berserkers' Onslaught
 Bilbo's Ring
 Bile Urchin
@@ -39,9 +41,11 @@ Combat Courier
 Command the Storm
 Complete Disregard
 Crater Hellion
+Crumble
 Crushing Canopy
 Crypt Incursion
 Culling Sun
+Dark Withering
 Daru Lancer
 Daybreak Charger
 Dense Canopy
@@ -75,6 +79,7 @@ Hematite Talisman
 Heron's Grace Champion
 Hidden Gibbons
 Highspire Artisan
+Hound of Griselbrand
 Hour of Revelation
 Hulking Devil
 Illusory Wrappings
@@ -100,6 +105,7 @@ March of the Returned
 Maritime Guard
 Master Skald
 Mechanized Warfare
+Merfolk Mistbinder
 Metathran Transport
 Millennial Gargoyle
 Minister of Inquiries

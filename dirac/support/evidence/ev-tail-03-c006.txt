@@ -1,7 +1,9 @@
+Ajani's Mantra
 Animating Faerie
 Arbalest Elite
 Arbor Armament
 Azorius Skyguard
+Azra Oddsmaker
 Battle Rampart
 Bitter Reunion
 Blade Banish
@@ -9,9 +11,12 @@ Blessings of Nature
 Bloody Betrayal
 Bog Gnarr
 Borderland Ranger
+Braids, Cabal Minion
 Bridgeworks Battle
 Bygone Bishop
+Cenn's Heir
 Cerulean Wyvern
+Choke
 Clockwork Drawbridge
 Colossus, Steel Stalwart
 Conclave Cavalier
@@ -38,6 +43,7 @@ Flicker of Fate
 Forest
 Fruit of Tizerus
 Furor of the Bitten
+Githzerai Monk
 Glyph Elemental
 Gnat Alley Creeper
 Goblin King
@@ -50,18 +56,23 @@ In Too Deep
 Island
 Kalonian Behemoth
 Kor Castigator
+Kraul Raider
 Living Tempest
 Maddening Wind
+March from the Black Gate
 Mavren Fein, Dusk Apostle
 Metropolis Sprite
 Mirage Mockery
+Mirkwood Channeler
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
+Molten Gatekeeper
 Mountain
 Narcolepsy
 Ollenbock Escort
 Orcish Artillery
+Palace Sentinels
 Patrol Hound
 Phyrexian Monitor
 Plains
@@ -81,13 +92,20 @@ Smite
 Somberwald Stag
 Soul Feast
 Spined Megalodon
+Spreading Rot
+Stream of Acid
+Summary Judgment
 Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
 Sweet Oblivion
+Syphon Sliver
+The Battle of Bywater
 Torbran, Thane of Red Fell
+Unlikely Alliance
 Vegetation Abomination
 Wall of Torches
 Zephyr Spirit
+Zo-Zu the Punisher
 Zuberi, Golden Feather

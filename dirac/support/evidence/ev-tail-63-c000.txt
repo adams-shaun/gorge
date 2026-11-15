@@ -5,9 +5,11 @@ Abyssal Specter
 Abzan Advantage
 Accorder Paladin
 Admiral's Order
+Aether Membrane
 Aetherworks Marvel
 Aggressive Instinct
 Ahn-Crop Invader
+Ainok Artillerist
 Airlift Chaplain
 Ajani's Welcome
 Akki Avalanchers
@@ -40,6 +42,7 @@ Brute Strength
 Cage of Hands
 Centaur Chieftain
 Chandra's Outrage
+Changeling Sentinel
 Clash of Wills
 Coiled Tinviper
 Compelled Duel
@@ -58,6 +61,7 @@ Curse Artifact
 Custody Battle
 Darkthicket Wolf
 Defender of Chaos
+Demonic Collusion
 Deploy to the Front
 Desmond Miles
 Detainment Spell
@@ -65,6 +69,7 @@ Devil Dinosaur
 Drag Under
 Dragon's Eye Sentry
 Drannith Magistrate
+Dread Charge
 Dread Fugue
 Drider
 Dwarven Armorer
@@ -95,6 +100,7 @@ Gerrard's Irregulars
 Gift of Orzhova
 Glass of the Guildpact
 Glint Hawk Idol
+Goblin Assailant
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
@@ -104,6 +110,7 @@ Gustha Ebbasdotter
 Hamlet Vanguard
 Headless Skaab
 Hedron Rover
+Heir of the Ancient Fang
 Hero of Goma Fada
 Heroes of the Revel
 Heron of Hope
@@ -116,6 +123,7 @@ Island
 Jace's Sanctum
 King Darien XLVIII
 Kor Bladewhirl
+Kormus Bell
 Kumena's Awakening
 Kyren Negotiations
 Lash of the Whip
@@ -125,6 +133,7 @@ Learn from the Past
 Light 'Em Up
 Lily Bowen, Raging Grandma
 Living Airship
+Lovisa Coldeyes
 Luxurious Libation
 Maggot Carrier
 Maze Abomination
@@ -145,6 +154,7 @@ Nearheath Chaplain
 Necrotic Hex
 Nesting Dovehawk
 Noble Vestige
+Nurturer Initiate
 Ogre Shaman
 Order of the Mirror
 Ornery Kudu
@@ -178,6 +188,7 @@ Red Elemental Blast
 Reflective Golem
 Refocus
 Regenerate
+Renewal
 Replication Technique
 Rimrock Knight
 Riot Devils
@@ -194,6 +205,7 @@ Savage Thallid
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
+Searing Barb
 Servant of Tymaret
 Shark Typhoon
 Shauku, Endbringer
@@ -239,6 +251,7 @@ Tremor
 Triumphant Surge
 Urgoros, the Empty One
 Vampiric Tutor
+Vengevine
 Venser, Fervent Forger
 Wakeroot Elemental
 War Dance

@@ -1,6 +1,7 @@
 A-Mightstone's Animation
 Aegis of the Gods
 Aether Inspector
+Algae Gharial
 Almost Perfect
 Ambition's Cost
 An-Zerrin Ruins
@@ -14,6 +15,8 @@ Aven Squire
 Azorius Knight-Arbiter
 Bad Deal
 Bad Moon
+Barbtooth Wurm
+Basilica Screecher
 Battle Hurda
 Beastmaster's Magemark
 Beregond of the Guard
@@ -25,6 +28,7 @@ Cage of Hands
 Captivating Crew
 Cloud Spirit
 Cloudshredder Sliver
+Cloudskate
 Consulate Crackdown
 Coronation of Chaos
 Court Street Denizen
@@ -44,9 +48,11 @@ Festerhide Boar
 Forest
 Frontline Rebel
 Furnace Strider
+Fylamarid
 Gang of Devils
 Gift of Estates
 Glint-Sleeve Artisan
+Goblin Balloon Brigade
 Grave Birthing
 Gristleback
 Gustcloak Runner
@@ -59,6 +65,7 @@ Intrusive Packbeast
 Island
 Ixalli's Diviner
 Knighthood
+Kyoki, Sanity's Eclipse
 Lavastep Raider
 Level Up
 Magistrate's Veto
@@ -76,6 +83,7 @@ Mirari
 Mirran Mettle
 Mishra's Command
 Mishra's Onslaught
+Molimo, Maro-Sorcerer
 Mountain
 Mystic Meditation
 Nantuko Disciple
@@ -92,6 +100,8 @@ Primal Order
 Prismatic Boon
 Protect
 Psychic Pickpocket
+Rakshasa's Secret
+Raven Guild Master
 Redcap Raiders
 Retreat to Kazandu
 Revenant
@@ -105,6 +115,8 @@ Sawblade Scamp
 Sawtooth Loon
 Selvala's Charge
 Sepulcher Ghoul
+Sever the Bloodline
+Shadow Guildmage
 Shivan Zombie
 Silverclaw Griffin
 Skycat Sovereign
@@ -115,8 +127,10 @@ Springjaw Trap
 Sprite Noble
 Steelfin Whale
 Stoneforge Mystic
+Stormbind
 Stormchaser Mage
 Swamp
+Thieving Magpie
 Thrasios, Triton Hero
 Thunderbolt
 Tidal Visionary
@@ -127,8 +141,10 @@ Tragic Slip
 Triumph of Ferocity
 Trumpet Blast
 Unleash Shell
+Vampire's Zeal
 Vampiric Touch
 Volcanic Spite
+Weaver of Blossoms
 Wingsteed Rider
 Wizard Class
 Zodiac Snake

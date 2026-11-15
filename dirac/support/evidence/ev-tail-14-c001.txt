@@ -1,14 +1,19 @@
+A-Splitting the Powerstone
 A-Tome Shredder
 Agent of the Fates
 Alley Evasion
 Alphinaud Leveilleur
 Amaranthine Wall
 Ambush Krotiq
+Arashin War Beast
+Archivist of Oghma
 Armor Thrull
+Auriok Champion
 Battle Squadron
 Battlefield Butcher
 Battleground Geist
 Beneath the Sands
+Bleeding Edge
 Blight Titan
 Blustersquall
 Briar Shield
@@ -17,22 +22,31 @@ Burning-Fist Minotaur
 Call to Serve
 Caravan Hurda
 Cartouche of Knowledge
+Carven Caryatid
 Centaur Veteran
 Cessation
 Chandra's Firemaw
+Charging Tuskodon
+Citywatch Sphinx
 Colos Yearling
 Colossal Growth
+Complete Disregard
+Coral Commando
 Core Prowler
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
 Crossbow Infantry
+Cruel Sadist
+Curse of Opulence
+Darkling Stalker
 Dauthi Mindripper
 Denethor, Stone Seer
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
 Drakestown Forgotten
+Dreadhorde Twins
 Elder Owyn Lyons
 Elvish Herder
 Emperor Mihail II
@@ -44,6 +58,7 @@ Erstwhile Trooper
 Essence Drain
 Eviscerate
 Experimental Augury
+Ezuri, Claw of Progress
 False Defeat
 Famished Paladin
 Feedback
@@ -62,6 +77,7 @@ Goblin Firestarter
 Goblin Glory Chaser
 Goblin Machinist
 Goblin Sledder
+Goblin Traprunner
 Goblin Wardriver
 Gold Myr
 Goretusk Firebeast
@@ -81,8 +97,10 @@ Hissing Iguanar
 Hitchclaw Recluse
 Hollowhenge Beast
 Hookblade Veteran
+Hymn of Rebirth
 Ior Ruin Expedition
 Island
+Isperia, Supreme Judge
 Istvan, Butcher of Eln
 Joel, Resolute Survivor
 Join the Dance
@@ -99,7 +117,10 @@ Lightning Dart
 Lightwalker
 Living Lightning
 Living Tsunami
+Llanowar Elite
 Llanowar Scout
+Loran's Escape
+Lorescale Coatl
 Lu Meng, Wu General
 Lurking Skirge
 Mana Flare
@@ -108,6 +129,7 @@ Mandibular Kite
 Mesmeric Sliver
 Mindswipe
 Mindwrack Demon
+Mockingbird, Bobbi Morse
 Molten Monstrosity
 Momentum
 Monumental Corruption
@@ -122,6 +144,7 @@ Nyxborn Rollicker
 Olog-hai Crusher
 Omega Myr
 Onakke Ogre
+Origin of the Hulk
 Palladium Myr
 Personal Tutor
 Phantasmal Shieldback
@@ -155,6 +178,7 @@ Rhizome Lurcher
 Ribbon Snake
 Ring of Kalonia
 Riptide Pilferer
+Rite of Passage
 Safewright Quest
 Sagittars' Volley
 Scaled Herbalist
@@ -180,10 +204,14 @@ Spread the Sickness
 Squealing Devil
 Starnheim Aspirant
 Starved Rusalka
+Storm Entity
+Storm's Wrath
+Strength Bobblehead
 Strength of Isolation
 Summon: Ixion
 Swamp
 Tattermunge Witch
+Tazeem Roilmage
 Tel-Jilad Stylus
 Tempest Technique
 Temporal Manipulation
@@ -196,6 +224,7 @@ Throttle
 Toothy, Imaginary Friend
 Toucan-Puffin
 Tower of Eons
+Transplant Theorist
 Triassic Egg
 True-Faith Censer
 Ugin's Mastery
@@ -210,6 +239,8 @@ Vicious Battlerager
 Vision Skeins
 Void Grafter
 Warden of Evos Isle
+Warehouse Thief
+Willow Dryad
 Wipe Clean
 Woodcaller Automaton
 Wooden Cane

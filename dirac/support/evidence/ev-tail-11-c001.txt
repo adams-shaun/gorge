@@ -1,203 +1,417 @@
+A-Dwarfhold Champion
+A-Gnarlid Colony
 A-Riveteers Initiate
 Abduction
+Abjure
 Abstergo Entertainment
 Abstruse Interference
 Academy Drake
 Aether Helix
 Agent of Erebos
+Agoraphobia
+Ajani, Strength of the Pride
+Akroma's Will
+Alabaster Mage
+Alpine Guide
 Anarchy
 Anax and Cymede
+Angelic Voices
+Annihilating Glare
+Aphemia, the Cacophony
+Archdemon of Paliano
 Archwing Dragon
+Arctic Aven
+Arctic Treeline
 Arctic Wolves
+Artful Dodge
+Ascendant Evincar
+Assassin Initiate
+Astral Steel
 Atalan Jackal
 Aven Heartstabber
 Azusa's Many Journeys
 Bane Alley Blackguard
+Barbarian Lunatic
 Battle Frenzy
 Belbe's Percher
 Bellowing Aegisaur
+Benthicore
+Black Market
 Blade of Selves
+Blazing Rootwalla
 Blighted Shaman
 Blightsteel Colossus
 Blood Money
+Blood-Toll Harpy
+Bloodsworn Squire
 Bloodtracker
 Brash Taunter
 Breaching Leviathan
 Brood of Cockroaches
 Broodhunter Wurm
 Brutal Expulsion
+Brute Strength
 Bubble Snare
+Bucky Barnes, Eager Ally
+Bureau Headmaster
+Calamity Bearer
+Caller of Gales
 Canyon Drake
 Canyon Minotaur
 Captain's Call
+Carnophage
 Cartouche of Ambition
+Cerulean Drake
 Chainbreaker
 Charnel Troll
+Chasm Skulker
 Chillbringer
+Cinder Storm
 Citadel of Pain
+City of Traitors
+Clearwater Pathway
 Cloak of Mists
+Cloudgoat Ranger
 Cobalt Golem
 Collective Nightmare
+Comparative Analysis
 Consecrated by Blood
+Constricting Sliver
+Control of the Court
+Craven Hulk
 Crested Herdcaller
 Cryptolith Rite
 Crystal, Inhuman Princess
+Curse Artifact
+Dakmor Sorceress
 Dauthi Warlord
+Dawnbringer Cleric
+Deadeye Harpooner
+Defiant Falcon
 Deglamer
 Depopulate
+Desmond Miles
+Destined
 Destructive Revelry
+Devour Flesh
+Devour in Shadow
+Diabolic Revelation
 Dismiss
+Divine Verdict
+Domesticated Hydra
 Downsize
 Dragon Mask
 Dragon's Approach
 Dragonscale Boon
+Dragonstalker
 Dragonstorm
+Druidic Satchel
 Electrostatic Field
+Elephant Graveyard
+Elven Rite
 Elvish Warmaster
 Enlightened Ascetic
+Ensouled Scimitar
 Ephara's Warden
+Eternity Snare
 Extinguish All Hope
 Fable of Wolf and Owl
+Faerie Noble
 Faerie Trickery
+Feast of Worms
+Feral Roar
+Feral Shadow
+Firebolt
 Fireflux Squad
+Flametongue Kavu
 Florian, Voldaren Scion
 Flowstone Embrace
 Flying Carpet
+Forbidden Friendship
+Forced Fruition
 Forest
 Fruition
+Furnace Whelp
+Future Flight
+Galerider Sliver
 Game Trail
+Geothermal Bog
+Gerrard's Wisdom
 Ghoulcaller Gisa
+Gift of Wrath
+Give
+Glamdring
 Gliding Licid
+Glistener Seer
 Gloomwidow
+Glorifier of Dusk
+Gnottvold Recluse
 Go-Shintai of Hidden Cruelty
+Gobbling Ooze
 Goblin Gaveleer
+Goblin Razerunners
 Goblin Settler
+Goblin War Cry
+God-Pharaoh's Statue
 Goldenglow Moth
+Goldmire Bridge
 Grappling Sundew
 Grave Strength
+Graveborn Muse
+Grim Flowering
+Grotag Thrasher
 Grotesque Demise
 Gurmag Swiftwing
+Hazezon Tamar
+Hellkite Whelp
+Hematite Golem
 Henge Guardian
 Hideous End
+Hideous Visage
 Highland Weald
+Hithlain Knots
+Hovermyr
+Icy Prison
 Ikiral Outrider
 Ill-Tempered Cyclops
 In Bolas's Clutches
 Incendiary Sabotage
 Incremental Growth
 Insight
+Ironroot Warlord
+Irresistible Prey
 Island
+Jamie McCrimmon
 Junkyard Genius
 Justiciar's Portal
+Juvenile Mist Dragon
+Kagemaro's Clutch
 Kamahl's Desire
 Kami of Ancient Law
+Kindly Stranger
 Kinsbaile Balloonist
 Kjeldoran Dead
 Knight of Autumn
+Larder Zombie
 Last-Ditch Effort
+Lay Down Arms
+Lead Astray
+Leaden Myr
+Leonin Den-Guard
+Leyline Invocation
 Library of Alexandria
+Life Burst
 Lifeforce
 Lightning Dragon
 Living Wall
+Llanowar Loamspeaker
+Loam Lion
+Lost in a Labyrinth
 Loxodon Punisher
+Loxodon Wayfarer
 Lunar Avenger
 Machinate
 Magic Missile
 Magus of the Tabernacle
 Makindi Aeronaut
+Malakir Rebirth
 Mana Confluence
+Mana Geyser
 Many Partings
 Marauding Raptor
+Marisi's Twinclaws
 Master of Diversion
 Maul Splicer
+Max, the Daredevil
+Metathran Transport
+Minas Tirith
+Mind Knives
 Mindculling
+Mindless Conscription
 Mindslicer
 Mire Kavu
 Mishra's Factory
 Mistveil Plains
 Moment of Defiance
+Monstrous Growth
+Mortal Obstinacy
 Mossbridge Troll
 Mountain
+Mtenda Lion
+Multani's Harmony
 Murasa Brute
 Murder of Crows
+Myr Propagator
 Nantuko Blightcutter
 Nekrataal
 Nema Siltlurker
+Nemesis Mask
+Nemesis of Mortals
 Nighthowler
+Noggle Hedge-Mage
+Noxious Revival
 Nyx Infusion
+Nyxborn Seaguard
 Ob Nixilis's Cruelty
+Of Herbs and Stewed Rabbit
 Ojutai's Breath
 Ojutai's Summons
+Opaline Bracers
+Palazzo Archers
+Parallax Tide
+Path of Bravery
+Petrified Plating
 Phyrexian Fleshgorger
+Phyrexian Warhorse
+Piper Wright, Publick Reporter
+Pirate's Pillage
 Plains
+Pointed Discussion
+Pool Resources
+Powerstone Fracture
+Prava of the Steel Legion
 Promise of Power
+Protection Magic
 Proteus Staff
+Proud Mentor
 Psionic Blast
+Pygmy Kavu
 Radiant Epicure
 Raid Bombardment
 Rakdos Trumpeter
+Raptor Hatchling
 Reap the Seagraf
+Redirect
 Rescue
 Righteous Charge
 Riot Spikes
+Rock Slide
 Rotting Giant
+Rotting Regisaur
 Sacred Mesa
+Sacrifice
+Sage's Row Denizen
+Sanctum Weaver
+Sanguine Statuette
 Sanity Gnawers
 Scouring Sands
+Seachrome Coast
+Secrets of the Key
+Seedcradle Witch
 Seer's Lantern
 Seize the Initiative
 Self-Assembler
+Sentinels of Glen Elendra
+Setessan Griffin
+Sheltered Thicket
 Shire Scarecrow
 Shiv's Embrace
 Shu Elite Companions
+Silkenfist Order
 Silumgar Butcher
 Sinkhole
 Skorpekh Destroyer
+Skyclave Apparition
 Skyknight Legionnaire
+Skyreaping
 Skyscanner
+Skyshroud Condor
+Sledding Otter-Penguin
+Sleep of the Dead
+Smelted Chargebug
+Smoldering Crater
 Snow-Covered Wastes
+Somberwald Beastmaster
 Soramaro, First to Dream
 Sparkcaster
+Sparkshaper Visionary
 Species Gorger
 Spectral Force
 Spelleater Wolverine
+Spike-Tailed Ceratops
 Spiketail Hatchling
 Spinal Villain
+Spinneret Sliver
 Spirit Loop
+Splendid Agony
+Sporeweb Weaver
+Squealing Devil
+Stampede Driver
 Star Pupil
 Starfall
+Stormrider Spirit
+Striding Shotcaller
 Subterranean Tremors
+Sudden Death
+Sundering Growth
+Supreme Phantom
+Surrakar Spellblade
+Surtr, Fiery Jötun
 Swamp
+Sweep Away
+Sweet-Gum Recluse
+Take Heart
 Taunting Challenge
 Tawnos's Tinkering
+Temporary Insanity
+Tendrils of Agony
 Tendrils of Despair
 Territorial Roc
+Territorial Scythecat
 Testament Bearer
+The Everforger
 The Frightful Four
+The Revelations of Ezio
 Thicket Crasher
 Thrash
 Three Dreams
 Tibalt, Rakish Instigator
+Tidepool Turtle
 Timid Drake
+Tomakul Honor Guard
 Topan Freeblade
 Torch Song
+Tormentor Exarch
+Tortoise Formation
+Traverse Eternity
 Tree Monkey
 Treetop Ambusher
+Treetop Recluse
+Treetop Scout
 Triangle of War
 True Polymorph
+Trueheart Duelist
 Tune the Narrative
+Ugin's Construct
 Ulamog, the Ceaseless Hunger
 Ulcerate
+Unagi's Spray
+Unconventional Tactics
 Unnatural Speed
+Vermiculos
 Viashino Sandstalker
+Vicious Offering
+Victimize
 Vitu-Ghazi Guildmage
+Voice of Law
+Voidmage Prodigy
+Voracious Vampire
 Vorstclaw
 Waste Away
 Weapons Trainer
+Welkin Hawk
 Wheel of Fate
+Wild Instincts
 Wild-Field Scarecrow
+Wildwood Geist
 Willow Dryad
+Wirewood Channeler
+Wirewood Hivemaster
 Withering Boon
 Worldly Counsel
 Worthy Knight
+Wrecking Crew
+Yotian Soldier
 Zendikar's Roil
+Zulaport Cutthroat
+Éomer of the Riddermark

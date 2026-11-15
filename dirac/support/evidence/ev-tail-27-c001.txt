@@ -17,6 +17,8 @@ Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
 Burning Sands
+Carrion Beetles
+Conch Horn
 Crimson Muckwader
 Daggersail Aeronaut
 Damnation
@@ -58,6 +60,7 @@ Inflame
 Inquisitive Puppet
 Invoke Despair
 Island
+Lagac Lizard
 Lamentation
 Maestros Initiate
 Mardu Blazebringer
@@ -72,6 +75,7 @@ Offalsnout
 Overload
 Pangosaur
 Paradise Druid
+Phoenix of Ash
 Phyrexian Pegasus
 Plains
 Pygmy Kavu
