@@ -1,77 +1,220 @@
+A-Speakeasy Server
+A-Urza's Command
+Agadeem Occultist
+Akrasan Squire
 Alaborn Grenadier
 Altar of the Brood
+Ancient Den
 Angel of Retribution
+Arcane Investigator
+Architect of the Untamed
 Argent Mutation
+Army of Allah
+Ashen Powder
 Auriok Glaivemaster
+Aven Sunstriker
 Baloth Woodcrasher
+Belligerent Whiptail
+Bladeback Sliver
+Blazing Hope
+Blind Creeper
 Bloodchief's Thirst
+Bloodmark Mentor
+Blunt the Assault
+Bog Initiate
+Boomerang
+Borborygmos Enraged
+Botanical Plaza
+Branching Evolution
+Brazen Wolves
+Brinebarrow Intruder
+By Invitation Only
+Byway Courier
 Cabal Archon
 Canopy Spider
+Careful Study
+Cathartic Adept
+Cemetery Reaper
+Centaur Peacemaker
+Chandra's Fury
+Chitinous Cloak
+Citanul Stalwart
 Combat Research
 Condemn
 Crackling Club
 Craven Giant
+Curse of Predation
+Descendant of Masumaro
+Deviant Glee
+Dina, Essence Brewer
+Double Vision
 Dragon Mantle
+Dragon Whelp
+Dragonlord Atarka
+Dread Statuary
 Drove of Elves
 Eiganjo Free-Riders
+Elite Cat Warrior
 Elspeth's Nightmare
+Elvish Farmer
+Elvish Lyrist
+Elvish Visionary
 Empyrial Armor
 Evolution Charm
 Explosive Impact
 False Prophet
 Fang Dragon
+Fervent Strike
+Festering Mummy
+Flowstone Mauler
+Forebear's Blade
 Forest
+Frost Trickster
+Fully Grown
+Furious Reprisal
 Furnace Hellkite
+Fyndhorn Bow
 Gimli, Counter of Kills
+Glaive of the Guildpact
+Goliath Paladin
+Graf Reaver
+Grasp of Fate
+Grasping Scoundrel
+Grim Physician
+Gruul Nodorog
+Gush
 Gut Shot
+Guul Draz Assassin
+Haunted Fengraf
 Heartfire
 Hive Stirrings
+Hookhand Mariner
+Howling Giant
+Hunted Dragon
 Hurly-Burly
+Ichor Synthesizer
+Impostor of the Sixth Pride
 Incremental Blight
+Intelligence Bobblehead
+Intrepid Ace
+Ironwright's Cleansing
 Island
+Ivory Giant
+Jace's Sentinel
+Jasmine Boreal
 Jhoira, Weatherlight Captain
 Karplusan Forest
 Kavu Lair
 Kessig Flamebreather
+Khorvath Brightflame
+Kithkin Greatheart
+Kobold Drill Sergeant
 Kolaghan Warmonger
 Krenko, Tin Street Kingpin
+Lead by Example
+Library
 Loki's Scepter
+Lord of the Undead
+Lotus-Eye Mystics
 Make Mischief
 Manor Gate
+Marble Gargoyle
 Mardu Warshrieker
+Mesa Cavalier
+Metallic Mimic
 Monastery Swiftspear
+Morningtide
 Mother of Runes
 Mountain
+Murasa Rootgrazer
+Natural Affinity
+Neurok Replica
+Noose Constrictor
+Nurturing Licid
 Ondu Champion
 Outpost Siege
 Paradigm Shift
+Parch
+Phyrexian Broodstar
 Plaguemaw Beast
 Plains
+Plunder
+Polluted Mire
 Prava of the Steel Legion
 Prophetic Ravings
 Proud Mentor
+Prowling Pangolin
 Pygmy Pyrosaur
 Pyre Charger
+Ranger-Captain of Eos
+Reaping the Rewards
+Reckless Barbarian
 Regent's Authority
+Renegade Map
 Revenge of Ravens
+Reverent Hoplite
+Riverglide Pathway
+Robe of Mirrors
 Roving Harper
 Runed Servitor
+Rushwood Elemental
+Sabertooth Alley Cat
+Sagu Archer
+Sandstone Bridge
 Scrollshift
+Seller of Songbirds
 Seshiro the Anointed
+Shadowbeast Sighting
+Sheltering Word
 Shivan Harvest
+Shuko
 Sigarda, Champion of Light
+Skirk Outrider
 Skull Catapult
 Skyhunter Strike Force
+Skywing Aven
+Slash the Ranks
 Slashing Tiger
+Soratami Mindsweeper
+Soul of Theros
+Spider-Man, New Champion
+Spiked Baloth
+Spitting Slug
+Squadron Hawk
 Steamclaw
+Stonefury
 Summoner's Sending
+Sunhome, Fortress of the Legion
 Sunscape Apprentice
 Swamp
+Swell of Growth
 Syphon Mind
+Talas Lookout
+Teachings of the Kirin
+Thalia's Lieutenant
+The Rack
 Thor, Asgard's Avenger
+Touch of Brilliance
+Towering-Wave Mystic
+Traitor's Clutch
+Tranquil Thicket
+Traveling Minister
+Tremble
 Undead Warchief
+Unfriendly Fire
 Vessel of Ephemera
+Veteran Warleader
+Veteran of the Depths
 Village Bell-Ringer
+Vivid Flying Fish
 Voldaren Epicure
+Wake Thrasher
+Wall of Ice
+Wandering Goblins
+Warlock Class
 Wary Okapi
+Wicker Witch
 Wolfrider's Saddle
+Yavimaya Hollow
+Zhur-Taa Ancient
+Zodiac Dog

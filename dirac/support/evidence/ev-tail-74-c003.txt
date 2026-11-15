@@ -1,20 +1,35 @@
 A-Guide of Souls
 A-Plate Armor
+Abomination, World Ravager
 Ajani's Mantra
+Aurora Eidolon
 Aven Trooper
+Barbed Sliver
 Bearer of Memory
 Black Sun's Twilight
+Blindblast
 Boggart Ram-Gang
+Boiling Blood
 Brainsurge
+Bramblecrush
 Brood Sliver
 Capashen Unicorn
 Captured by Lagacs
+Cave-In
+Chain Lightning
 Chicken Egg
 Chilling Trap
+Choke
 Chromatic Star
+City of Brass
 Civic Guildmage
+Colossal Dreadmaw
 Concordant Crossroads
+Constable of the Realm
+Curse of Predation
+Dauntless Bodyguard
 Deadeye Plunderers
+Deadly Insect
 Death Speakers
 Deepwood Tantiv
 Defenestrate
@@ -23,11 +38,17 @@ Devouring Swarm
 Doom's Servo-Guards
 Dragonborn Looter
 Echoing Calm
+Eiganjo Castle
+Ember-Fist Zubera
 Encroaching Wastes
+Engineered Might
+Entish Restoration
 Euroakus
+Faithbearer Paladin
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Flameskull
 Forest
 Frightcrawler
 From the Rubble
@@ -35,15 +56,21 @@ Frontier Mastodon
 Ghoulcaller's Bell
 Gloomhunter
 Goblin Arsonist
+Goblin Mountaineer
 Goblin Tinkerer
+Grindclock
+Gruul Keyrune
 Guardian of the Guildpact
 Harpoon Sniper
 Horned Cheetah
 Hornet Cobra
+Hulk, Always Angry
+Inferno Fist
 Insidious Bookworms
 Island
 Jhoira's Familiar
 Khenra Charioteer
+Kor Blademaster
 Land Leeches
 Lava Axe
 Liliana's Elite
@@ -56,13 +83,21 @@ Master the Way
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
+Mighty Emergence
+Millstone
 Mind Ravel
 Mist-Syndicate Naga
 Momentum Rumbler
+Moonveil Dragon
 Mountain
+Multiform Wonder
+Nantuko Mentor
+Navigation Orb
 Necromancer's Familiar
 Nexus of Fate
 Nomads' Assembly
+Nylea's Huntmaster
+Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
 Pathbreaker Ibex
@@ -70,6 +105,7 @@ Peggy Carter, Secret Agent
 Plains
 Planar Portal
 Pool Resources
+Portent of Betrayal
 Precision Bolt
 Psychic Strike
 Pull from Tomorrow
@@ -81,23 +117,38 @@ Rancid Rats
 Razortooth Rats
 Reaver Ambush
 Rekindled Flame
+Return to the Earth
 Reveille Squad
 Riddlekeeper
+Roc Hunter
+Rockshard Elemental
+Rundvelt Hordemaster
+Runeclaw Bear
 Sacred Cat
 Sanctify
+Savai Thundermane
+Sheltering Landscape
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
 Silverflame Squire
 Silverskin Armor
+Skirsdag Flayer
 Skizzik Surger
 Sleeper Agent
+Smoldering Crater
+Snow-Covered Forest
+Spiritual Sanctuary
 Spitfire Handler
 Spurnmage Advocate
+Stampeding Rhino
 Steel Leaf Paladin
+Steelform Sliver
 Stenchskipper
 Storm Fleet Pyromancer
+Strip Mine
 Sudden Reclamation
+Sun-Blessed Mount
 Sunstrike Legionnaire
 Sunweb
 Surrakar Marauder
@@ -105,13 +156,23 @@ Swamp
 Talisman of Unity
 Telepathic Spies
 The Shattered States Era
+Thopter Assembly
+Tideshaper Mystic
+Towering Indrik
 Triceraton Regenta
 Tuktuk Rubblefort
+Two-Headed Zombie
+Unholy Officiant
 Unquestioned Authority
 Urza, Powerstone Prodigy
+Verge Rangers
 Vilis, Broker of Blood
+Vineweft
 Vintara Snapper
 Viridian Longbow
+Vulshok Replica
+Wall of Heat
 Weapon Rack
 Wei Scout
+Weirding Shaman
 Willow-Wind

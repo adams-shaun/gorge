@@ -43,8 +43,8 @@ import (
 //   - Split second lowers to Kind "StackKw" too: gorge reads the derived
 //     keyword off each spell on the stack at every priority offer
 //     (rules split_second.go), so the kernel reads the grant off the stack
-//     entries (kernel kw_splitsecond.go). The printed keyword has no form in
-//     the kernel.
+//     entries (kernel kw_splitsecond.go). The printed keyword is
+//     CardDef.SplitSecond and reads the same gate (lower_splitsecond.go).
 //   - Conspire lowers to Kind "StackKw" too, read at cast time like Storm: the
 //     conspired cast (kernel kw_conspire.go) taps two creatures sharing a
 //     colour with the spell and copies it. The printed K:Conspire stays refused.

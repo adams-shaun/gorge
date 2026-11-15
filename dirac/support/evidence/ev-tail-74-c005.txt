@@ -1,6 +1,7 @@
 A-Guide of Souls
 A-Plate Armor
 A-Teferi, Time Raveler
+Abomination, World Ravager
 Ajani's Mantra
 Avatar of Growth
 Aven Trooper
@@ -8,9 +9,12 @@ Blue Marvel, Adam Brashear
 Boiling Blood
 Boulderfall
 Brainsurge
+Capashen Unicorn
 Captured by Lagacs
+Chain Lightning
 Chicken Egg
 Chilling Trap
+City of Brass
 Civilized Scholar
 Curse of Opulence
 Curse of Predation
@@ -20,6 +24,8 @@ Doom's Servo-Guards
 Dragonborn Looter
 Ebony Treefolk
 Echoing Calm
+Eiganjo Castle
+Ember-Fist Zubera
 Encroaching Wastes
 Euroakus
 Feral Maaka
@@ -32,16 +38,24 @@ Gaea's Bounty
 Galea, Kindler of Hope
 Ghoulcaller's Bell
 Goblin Arsonist
+Goblin Tinkerer
 Guardian of the Guildpact
+Halberdier
 Hardened Scales
 Harpoon Sniper
 Horned Helm
 Hulk, Always Angry
+Inferno Fist
 Inkwell Leviathan
+Insidious Bookworms
 Island
+Izzet Keyrune
+Jaya's Greeting
 Jhoira's Familiar
 Khenra Charioteer
 Kor Blademaster
+Lady Spider, Maybelle Reilly
+Land Leeches
 Laquatus's Creativity
 Liliana's Elite
 Malevolent Awakening
@@ -52,39 +66,50 @@ Mist-Syndicate Naga
 Momentum Rumbler
 Moonveil Dragon
 Mountain
+Mulch
 Multiform Wonder
 Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
 Orazca Frillback
+Pathbreaker Ibex
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
 Pool Resources
+Portent of Betrayal
 Precision Bolt
 Pull from Tomorrow
 Putrid Imp
 Pyrrhic Blast
 Raging Kavu
+Rancid Rats
+Razortooth Rats
 Reaver Ambush
 Return to the Earth
 Riddlekeeper
 Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
+Rundvelt Hordemaster
 Runeclaw Bear
 Sanctify
 Scoria Wurm
+Sheltering Landscape
 Silverskin Armor
 Skizzik Surger
 Sleeper Agent
 Smash to Dust
+Smoldering Crater
+Snow-Covered Forest
+Spectral Rider
 Spitfire Handler
 Spurnmage Advocate
 Steel Leaf Paladin
 Stenchskipper
 Sunstrike Legionnaire
+Sunweb
 Surrakar Marauder
 Swamp
 Talisman of Unity
@@ -93,12 +118,17 @@ Telepathic Spies
 The Indomitable
 The Shattered States Era
 Thopter Assembly
+Towering Indrik
 Treetop Scout
 Triceraton Regenta
+Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
 Urza, Powerstone Prodigy
+Venser's Journal
 Vineweft
 Viridian Longbow
+Vulshok Replica
+Wall of Heat
 Weapon Rack
 Willow-Wind

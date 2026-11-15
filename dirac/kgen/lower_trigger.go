@@ -71,33 +71,8 @@ func triggerZoneHalves(z string) ([]string, bool) {
 }
 
 func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
-	if zone == "" {
-		// the Eminence two-zone spelling (TriggerZones$ Command,Battlefield,
-		// gorge zoneGate's zoneSpecContains): the same printed trigger
-		// functions from the command zone and from the battlefield. The
-		// kernel has one Trigger.Zone per trigger -- a battlefield
-		// subscription (the ordinary walks) or a command-zone listener
-		// (eachCommandTrigger, commanders only) -- so the line lowers as one
-		// ability per zone. The two are mutually exclusive where the kernel
-		// and gorge both fire it: a card in the command zone has no
-		// battlefield slot to subscribe, a card on the battlefield is not in
-		// a command zone, and a Phase trigger looks back in time in neither
-		// (gorge zoneGate's zones[] walk covers only MoveZone, Draw and
-		// PutOnStack events), so gorge's single zone gate reads the same.
-		if halves, ok := triggerZoneHalves(t.Params["TriggerZones"]); ok {
-			for _, half := range halves {
-				tt := t
-				tt.Params = make(map[string]string, len(t.Params))
-				for k, v := range t.Params {
-					tt.Params[k] = v
-				}
-				tt.Params["TriggerZones"] = half
-				if err := lc.lowerTriggered(tt, zone); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
+	if done, err := lc.lowerTriggerSplit(t, zone); done {
+		return err
 	}
 	var atkMostLife, descended, dethrone bool // fire-time player gates
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}

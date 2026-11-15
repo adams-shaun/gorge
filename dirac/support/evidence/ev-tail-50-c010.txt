@@ -1,3 +1,4 @@
+Arcane Investigator
 Argent Mutation
 Army of the Damned
 Auriok Glaivemaster
@@ -6,41 +7,87 @@ Baloth Woodcrasher
 Bladeback Sliver
 Blind Creeper
 Bloodchief's Thirst
+Blunt the Assault
+Bramblewood Paragon
 Cabal Archon
+Citanul Stalwart
 Combat Research
 Condemn
+Crackling Club
+Craven Giant
+Cyclops of Eternal Fury
+Dark Heart of the Wood
 Donatello's Science Lesson
 Dovin's Veto
 Eiganjo Free-Riders
 Elspeth's Nightmare
+Elvish Lyrist
 Evolution Charm
+Fang Dragon
 Forest
+Frost Trickster
 Geist of the Archives
+Glaive of the Guildpact
+Guardians' Pledge
+Heartfire
+Hookhand Mariner
 Incremental Blight
+Infiltrator il-Kor
 Island
+Jhoira, Weatherlight Captain
+Jungle Wayfinder
+Kavu Lair
 Kessig Flamebreather
+Kobold Drill Sergeant
+Kolaghan Warmonger
+Lead by Example
 Lord of the Undead
+Lu Bu, Master-at-Arms
 Manor Gate
 Mardu Warshrieker
 Monastery Swiftspear
 Mother of Runes
 Mountain
+Natural Affinity
 Nightwind Glider
+Nissa's Pilgrimage
+Oath of Mages
+Ogre Gatecrasher
 Ondu Champion
 Outpost Siege
 Paradigm Shift
 Plaguemaw Beast
 Plains
 Prava of the Steel Legion
+Prime Speaker Vannifar
+Prophetic Ravings
+Proud Mentor
+Pyre Charger
+Rampaging Cyclops
 Ranger-Captain of Eos
 Revenge of Ravens
+Revive the Shire
 Riptide
+Sabertooth Alley Cat
 Shielded by Faith
+Shivan Harvest
 Skull Catapult
 Skyhunter Strike Force
+Steamclaw
+Stonefury
+Storm Fleet Sprinter
 Swamp
+Swell of Growth
 Syphon Mind
+Talas Warrior
 Undead Warchief
+Veteran of the Depths
 Village Bell-Ringer
 Voldaren Epicure
+Wake Thrasher
+Warlock Class
+Wicker Witch
+Wildwood Geist
 Wind-Kin Raiders
+Wirewood Hivemaster
+Zodiac Dog
