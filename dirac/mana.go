@@ -1089,42 +1089,7 @@ func (s *State) planChosenTrial(k *prep, p uint8, pk *planner, exclude Obj, rv [
 	return true
 }
 
-func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
-	// units: fixed-production sources in battlefield (entry) order, then
-	// choice-shaped sources (any colour, a choice of colours) in battlefield
-	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).
-	var order [MaxPerm]Slot
-	no := 0
-	m := s.ctrlM[p]
-	var rd payDesc
-	if k.restrSrc {
-		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
-	}
-	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
-	// battlefield fact, so its gate lifts out of the loop: without a live
-	// TrigTaps listener every source is an ordinary census unit.
-	deferSkip := !pk.tapsIn && s.deferLive(k)
-	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
-	for m.any() {
-		sl := m.first()
-		m = m.rest()
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
-			if deferSkip && s.planDeferred(k, p, sl) {
-				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
-			}
-			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
-				continue // gorge's planner has no witness for a Combo Any source (mana_comboanyplan.go)
-			}
-			order[no] = sl
-			no++
-		}
-	}
-	// insertion sort by timestamp (entry order)
-	for i := 1; i < no; i++ {
-		for j := i; j > 0 && s.perms[order[j]].ts < s.perms[order[j-1]].ts; j-- {
-			order[j], order[j-1] = order[j-1], order[j]
-		}
-	}
+func (s *State) planHandDemand(k *prep, p uint8, pk *planner, exclude Obj) {
 	// HandReserve demand: the most pips of each colour on any single nonland
 	// card in hand other than the card being cast (gorge pay/planner.go:234).
 	// Read afresh: planChosenTrial plans a copy of a planner that already
@@ -1167,6 +1132,45 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pk.dOrder[j], pk.dOrder[j-1] = pk.dOrder[j-1], pk.dOrder[j]
 		}
 	}
+}
+
+func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+	// units: fixed-production sources in battlefield (entry) order, then
+	// choice-shaped sources (any colour, a choice of colours) in battlefield
+	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).
+	var order [MaxPerm]Slot
+	no := 0
+	m := s.ctrlM[p]
+	var rd payDesc
+	if k.restrSrc {
+		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
+	}
+	// A Taps-deferred source's classification (mana_tapsdefer.go) is a
+	// battlefield fact, so its gate lifts out of the loop: without a live
+	// TrigTaps listener every source is an ordinary census unit.
+	deferSkip := !pk.tapsIn && s.deferLive(k)
+	comboSkip := !pk.comboIn && k.gen != nil && k.gen.anyComboOff && !DebugComboAnyPlanned
+	for m.any() {
+		sl := m.first()
+		m = m.rest()
+		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
+			if deferSkip && s.planDeferred(k, p, sl) {
+				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
+			}
+			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
+				continue // gorge's planner has no witness for a Combo Any source (mana_comboanyplan.go)
+			}
+			order[no] = sl
+			no++
+		}
+	}
+	// insertion sort by timestamp (entry order)
+	for i := 1; i < no; i++ {
+		for j := i; j > 0 && s.perms[order[j]].ts < s.perms[order[j-1]].ts; j-- {
+			order[j], order[j-1] = order[j-1], order[j]
+		}
+	}
+	s.planHandDemand(k, p, pk, exclude)
 	if pk.maxN == 0 {
 		pk.maxN = 1
 	}
@@ -1208,20 +1212,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 			}
 			granted[i] = s.manaGranted(k, sl)
-			if k.sacOnlyMana && pcs[i].manaSacOnly {
-				// the mirror of a granted sacrifice beside a printed tap
-				// (availGrant's ownSac): a printed sacrifice-only ability
-				// beside a granted {T} is two units, the grant's tap beside
-				// the printed {C} (CR 602.2b, 605.1a). The grant is phase 2's
-				// unit: phase 1 holds only the printed sacrifice, gorge's
-				// census, so a cast its printed plan pays is planned as gorge
-				// does (the grant is the prefix search's alternative), and the
-				// grant joins only when that plan fails. A tapped or
-				// summoning-sick token has only the sacrifice (CR 302.6), as
-				// the census credits no tap for it either.
-				if grantTap[i] = s.ownSacGrantTap(k, sl); grantTap[i] != nil {
-					hasGrant = true
-				}
+			if grantTap[i] = s.planOwnSacGrant(k, pcs[i], sl); grantTap[i] != nil {
+				hasGrant = true
 			}
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
@@ -1448,11 +1440,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				pk.nu++
 				if phase == 2 && grantTap[i] != nil {
-					// the granted {T} is this source's phase-2 unit beside the
-					// printed sacrifice (see the facts loop's ownSacGrantTap):
-					// gorge's planner never sees a granted ability, so a plan
-					// with one is the kernel's, reached only when the printed
-					// units have no plan
 					s.planGrantUnit(k, p, pk, sl, grantTap[i], cr)
 				}
 				if sac {

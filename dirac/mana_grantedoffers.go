@@ -244,7 +244,23 @@ func (s *State) ownSacGrantTap(k *prep, sl Slot) *pcard {
 	return nil
 }
 
-// planGrantUnit adds gt, a granted mana view of sl, as its own unit of the
+// planOwnSacGrant is the facts loop's read of a printed sacrifice-only
+// source's granted {T} (ownSacGrantTap), the mirror of a granted sacrifice
+// beside a printed tap (availGrant's ownSac): two units, the grant's tap
+// beside the printed {C} (CR 602.2b, 605.1a). The grant is phase 2's unit:
+// phase 1 holds only the printed sacrifice, gorge's census, so a cast its
+// printed plan pays is planned as gorge does (the grant is the prefix
+// search's alternative), and the grant joins only when that plan fails.
+func (s *State) planOwnSacGrant(k *prep, pc *pcard, sl Slot) *pcard {
+	if !k.sacOnlyMana || !pc.manaSacOnly {
+		return nil
+	}
+	return s.ownSacGrantTap(k, sl)
+}
+
+// planGrantUnit (called from plan's phase 2; gorge's planner never sees a
+// granted ability, so a plan with one is the kernel's, reached only when the
+// printed units have no plan) adds gt, a granted mana view of sl, as its own unit of the
 // planner beside the printed unit the loop emitted: the tap unit of
 // ownSacGrantTap, shaped like a grant-only source's unit (manaPCGen returns
 // its granted view there).
