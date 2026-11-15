@@ -1,7 +1,13 @@
+Ainok Tracker
 Amphin Pathmage
+Augur of Bolas
+Blightbeetle
+Broodbirth Viper
 Cephalid Broker
 Citadel Gate
 Corpse Connoisseur
+Dragon Whelp
+Elvish Visionary
 Forest
 Frost Trickster
 Geistblast
@@ -11,12 +17,15 @@ Grixis Sojourners
 Island
 Jaya, Venerated Firemage
 Mountain
+Noose Constrictor
 Oathsworn Giant
 Patagia Golem
 Perilous Forays
+Perilous Research
 Pillaging Horde
 Plains
 Poison Arrow
+Prison Term
 Prowling Pangolin
 Quicksilver Fisher
 RMS Titanic
@@ -44,9 +53,11 @@ Sliver Hivelord
 So Shiny
 Soulshriek
 Squadron Hawk
+Stir the Sands
 Stonefury
 Storm Fleet Sprinter
 Storm Spirit
+Struggle for Skemfar
 Stump Stomp
 Sunken City
 Supply Caravan
@@ -75,6 +86,7 @@ Vectis Silencers
 Vector Asp
 Verix Bladewing
 Village Bell-Ringer
+Virtue's Ruin
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
@@ -83,6 +95,8 @@ Wall of Reverence
 Warlock Class
 Warpath
 Watcher of the Spheres
+Wave-Wing Elemental
+Whip Silk
 Wildwood Geist
 Willow Faerie
 Wing Puncture
