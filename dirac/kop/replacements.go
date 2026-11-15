@@ -72,6 +72,20 @@ const (
 
 var _ = [1]struct{}{}[ReplCount-ReplDestroyRegenerate-1]
 
+// ReplPreventDamageToSelf scope bits (Repl.C).
+const (
+	ReplPrevToYourTurn  = 1 << iota // PlayerTurn$ True: only during its controller's turn
+	ReplPrevToCombat                // IsCombat$ True: combat damage only
+	ReplPrevToCreature              // ValidTarget$ Creature.Self: only while it is a creature
+	ReplPrevToSrcInPlay             // ValidSource$ ...inZoneBattlefield: only a source on the battlefield
+)
+
+// ReplPreventDamageCounters flag (Repl.C): instead of putting that many
+// +1/+1 counters on the permanent, remove one +1/+1 counter from it (the
+// Phantom creatures: DB$ RemoveCounter | Defined$ Self | CounterType$ P1P1 |
+// CounterNum$ 1).
+const ReplPrevSelfRemoveOne = 1
+
 // ReplDrawMore flags (Repl.C).
 const ReplDrawNotFirst = 1 // NotFirstCardInDrawStep$ True
 

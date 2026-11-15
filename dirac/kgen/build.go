@@ -440,6 +440,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"LEVEL":      kop.CtrLevelUp,    // Level up's level counter (CR 702.87; the level bands' counters_GEn_LEVEL)
 	"STORAGE":    kop.CtrStorage,    // Molten Slagheap's storage counter (CR 122.1; mana_countercost.go)
 	"SCREAM":     kop.CtrScream,     // Endless Scream's named counter (CR 122.1; its count reads in Count$CardCounters.SCREAM)
+	"TIDE":       kop.CtrTide,       // Rikala, Homarid King's tide counter (CR 122.1; its count gates the card's own lines)
 	"TREASURE":   kop.CtrTreasure,   // Legacy's Allure's named counter (CR 122.1)
 	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)

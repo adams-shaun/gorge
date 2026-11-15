@@ -27,11 +27,18 @@ const mtTapBit = 0x200
 
 // tapsManaOK: a Tf5TapsForMana line admits only a mana tap (mtTapBit), and
 // with Tf5TapperNonActive only one by a player other than the active player
-// (Activator$ Player.NonActive; the tapper is fireTapsBy's low byte).
+// (Activator$ Player.NonActive; the tapper is fireTapsBy's low byte). A
+// Tf5TapsForMana line with no body (the class-only gated line, Rikala,
+// Homarid King) is never queued: the
+// deferral class reads it (tapsWatchClass), the tap's extra mana is the
+// paired StatTapExtra static's (addGatedExtra).
 func (s *State) tapsManaOK(a *kop.Ability, amt int16) bool {
 	f := a.Trig.Flags5
 	if f&kop.Tf5TapsForMana == 0 {
 		return true
+	}
+	if len(a.Prog) == 0 {
+		return false
 	}
 	return amt&mtTapBit != 0 && (f&kop.Tf5TapperNonActive == 0 || uint8(amt) != s.active)
 }
