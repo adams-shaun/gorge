@@ -336,8 +336,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
 		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
-			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
-				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
+			if !s.tapXScript(k, a, p, false) &&
+				!(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) &&
+				!(s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)) {
+				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {

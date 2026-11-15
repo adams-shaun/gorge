@@ -553,6 +553,10 @@ type grantSrch struct {
 	// tapx: the candidate's own ability is a tap-another-permanent one, a census
 	// gap of gorge's beside the grants (mana_granttapx.go)
 	tapx [MaxPerm]bool
+	// sacx: the candidate's own ability is a sacrifice-another mana shape
+	// (kop.SacXMana), a census gap of gorge's beside the grants
+	// (mana_grantsacx.go); a grant holder keeps the grant side
+	sacx [MaxPerm]bool
 	// def: the candidate is a deferred source (Pyromancer's Goggles), a census
 	// gap of gorge's beside the grants (mana_grantdeferred.go)
 	def [MaxPerm]bool
@@ -640,7 +644,7 @@ type grantStep struct {
 	// and the answer act gives to the ask that trigger poses
 	kind uint8
 	act  Action
-	cand Slot // stepTapX: the permanent its cost taps
+	cand Slot // stepTapX: the permanent its cost taps; stepSacX: the one it sacrifices
 	pain bool // the source's painful printed ability (mana_grantpain.go)
 	sac  bool // a granted sacrifice-only ability: the source was sacrificed (mana_grantcost.go)
 	// restr: a restricted grant's mana the play may spend, floated into the
@@ -678,6 +682,7 @@ func (g *grantSrch) candidates(s *State) {
 	wm := s.wideGaps(g.k, g.p)   // (mana_grantwide.go)
 
 	xm := s.tapsDeferGrantGaps(g.k, g.p, &g.d) // (mana_granttapsdefer.go)
+	sm := s.grantSacXGaps(g.k, g.p)            // (mana_grantsacx.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -688,7 +693,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !sm.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -703,7 +708,7 @@ func (g *grantSrch) candidates(s *State) {
 			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
 			continue
 		}
-		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm)
+		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, sm)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -752,8 +757,9 @@ func (g *grantSrch) candidates(s *State) {
 // search's candidates lists: the kinds exclude the later ones, so a source
 // with several gap kinds branches as the first that matches. A holder of a
 // granted ability (ng > 0) branches on the grant side.
-func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm slotMask) {
+func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm, sm slotMask) {
 	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
+	g.sacx[n] = sm.has(sl) && ng == 0 // a holder keeps the grant side (mana_grantsacx.go)
 	if ng > 0 {
 		g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
 		g.each[n], g.wide[n], g.tdef[n] = false, false, false
@@ -761,6 +767,13 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 	}
 	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
 	g.each[n], g.wide[n], g.tdef[n] = false, false, false
+	if g.sacx[n] && !fm.has(sl) {
+		// a sacrifice-another source (Krark-Clan Ironworks): its step is the
+		// sacrifice ask and its fixed production, no printed {T} beside it
+		// (a filter beside it is the printed ability tried first)
+		g.dual[n] = false
+		return
+	}
 	if dm.has(sl) {
 		g.def[n] = true // (mana_grantdeferred.go)
 		return
@@ -819,6 +832,12 @@ func (g *grantSrch) node() bool {
 // elsewhere in visit).
 func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 	switch {
+	case g.sacx[i]:
+		// the sacrifice ask, then the fixed production (mana_grantsacx.go)
+		if !t.scriptTapX(g.k, g.p).has(sl) {
+			return false, true // tapped, spent or its candidates gone since the root
+		}
+		return g.sacXBranch(t, i, sl), true
 	case g.wide[i]:
 		return g.wideBranch(t, i, sl), true // its two mana abilities' answers (mana_grantwide.go)
 	case g.each[i]:
@@ -1577,6 +1596,16 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepTapX:
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, col: st.col, kind: tapXAct})
+			continue
+		case stepSacX:
+			// the sacrifice and its fixed production (mana_grantsacx.go); the
+			// sacrifice's dies triggers queue, and the search's settle stacked
+			// them: gorge answers each as its own decision
+			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: NoSlot, kind: tapXAct})
+			if g.tapTriggers(s, sl) || s.npend != 0 {
+				passed = true
+				s.tapXNext(g.p, &d)
+			}
 			continue
 		case stepWide:
 			s.wideApply(k, g.p, sl, st.col) // (mana_grantwide.go)
