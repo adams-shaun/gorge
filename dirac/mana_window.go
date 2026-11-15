@@ -471,8 +471,8 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			if !takeDeferred && s.planDeferred(k, p, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go)
 			}
-			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
-				continue
+			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) {
+				continue // (a counter-cost second ability makes a colour the plain {T} does not: gorge lists the source, and its first ability answers)
 			}
 			return o, false
 		}
