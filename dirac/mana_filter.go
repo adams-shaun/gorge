@@ -506,8 +506,8 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 // censusGapMana: mana ability a is one gorge's planner census misses: a
 // spend restriction, each-colour production, a cost beyond {T} (but
 // {T} plus sacrificing itself, a Treasure's, and sacrificing itself alone,
-// an Eldrazi Scion's or Spawn's, sacOnlyUnit, are the census's last-resort
-// tier: gorge pay.PlanLastResortCostOK), or a
+// an Eldrazi Scion's, are the census's last-resort tier: gorge
+// pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
@@ -516,16 +516,8 @@ func censusGapMana(a *kop.Ability) bool {
 		return false
 	}
 	f := a.Cost.Flags
-	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && !sacOnlyUnit(a) ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
-}
-
-// sacOnlyUnit: a is a sacrifice-only mana ability (an Eldrazi Spawn's) that
-// gorge's planner prices as a last-resort unit of its source (prep.go
-// manaSacOnly), not a census gap: a Treasure beside a filter is a filter-only
-// board and so is a Spawn.
-func sacOnlyUnit(a *kop.Ability) bool {
-	return !DebugIgnoreSpawnMana && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand
 }
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
