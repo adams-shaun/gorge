@@ -189,8 +189,18 @@ if [ -n "$dirac_changed" ]; then
 	if [ -n "$heap" ]; then bad "dirac locals moved to the heap: $heap"; else echo ok; fi
 
 	echo "== 8 tests"
-	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
-	out=$(go test -timeout 2m -skip '^TestEngineCompilesFor32Bit$' ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
+	# Timeouts are 5m (operator 11-14: "raise the timeouts if necessary... I don't want to replay a bunch of broken
+	# work"): ./internal/archtest takes about 20 s alone and hit the old 2m on a shared box 19:30-23:00Z 11-14, failing
+	# seats on code they did not change. Each run prints a "gate-time PKG SECONDS TIMEOUT" line; a test-time
+	# watch alerts when a package's time nears its timeout or grows. A failure
+	# names the timeout ("panic: test timed out") or the failing test before the tail.
+	t0=$SECONDS
+	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 5m 2>&1); rc=$?
+	echo "gate-time ./dirac $((SECONDS - t0)) 300"
+	[ $rc -eq 0 ] && echo ok || bad "./dirac tests failed: $(grep -m5 -E -- '^(--- FAIL|panic:)' <<<"$out"; tail -20 <<<"$out")"
+	out=$(go test -timeout 5m -skip '^TestEngineCompilesFor32Bit$' ./dirac/crcoverage ./internal/archtest 2>&1); rc=$?
+	grep -E '^(ok|FAIL)[[:space:]]+[^[:space:]]+[[:space:]]+[0-9.]+s' <<<"$out" | awk '{sub(/s$/, "", $3); print "gate-time " $2 " " int($3) " 300"}'
+	[ $rc -eq 0 ] || bad "./dirac/crcoverage or ./internal/archtest failed: $(grep -m5 -E -- '^(--- FAIL|panic:)' <<<"$out"; tail -20 <<<"$out")"
 fi
 
 # The whole refused list, the committed repro tables and the pinned games, whatever changed: a gorge
@@ -223,7 +233,7 @@ missing=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$listed" 
 [ -z "$missing" ] || bad "the fast tier names tests that no longer exist in ./dirac/oracle: $(tr '\n' ' ' <<<"$missing")"
 re=$(printf '%s\n' "$tier" | sort -u | paste -sd'|') || bad "cannot build the fast tier pattern"
 [ -n "$re" ] || bad "the fast tier pattern is empty"
-out=$(go test -v -failfast -timeout 120s -run "^($re)\$" ./dirac/oracle 2>&1) || bad "oracle fast tier failed: $(grep -E -- '--- FAIL|^FAIL|panic:|^=== RUN' <<<"$out" | tail -20)"
+out=$(go test -v -failfast -timeout 5m -run "^($re)\$" ./dirac/oracle 2>&1) || bad "oracle fast tier failed: $(grep -E -- '--- FAIL|^FAIL|panic:|^=== RUN' <<<"$out" | tail -20)"
 ran=$(sed -nE 's/^--- PASS: ([^/ ]+) .*/\1/p' <<<"$out") || bad "cannot read the fast tier's PASS lines"
 ran=$(sort -u <<<"$ran") || bad "cannot sort the fast tier's PASS lines"
 notrun=$(comm -23 <(printf '%s\n' "$tier" | sort -u) <(printf '%s\n' "$ran")) || bad "cannot compare the fast tier list with its PASS lines"

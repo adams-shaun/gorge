@@ -251,6 +251,47 @@ func braveTheSandsCase() mbc5Case {
 	}
 }
 
+// braveTheSandsLureCase: a Brave the Sands blocker (a granted second block) of
+// a lure attacker (Prized Unicorn). The declaration goes through the
+// requirement search (blockerOptionsReq) with the granted capacity, not a
+// stall: a creature of the defender is the blocker of two attackers, at least
+// one of them a Prized Unicorn.
+func braveTheSandsLureCase() mbc5Case {
+	return mbc5Case{
+		name:   "mbc5_brave_the_sands_lure",
+		prefer: []string{"Prized Unicorn", "Brave the Sands", "Savannah Lions", "Grizzly Bears"},
+		decks: [2][]string{
+			append(deckOf(10, "Prized Unicorn", deckOf(12, "Grizzly Bears")...), deckOf(18, "Forest")...),
+			append(deckOf(8, "Brave the Sands", deckOf(14, "Savannah Lions")...), deckOf(18, "Plains")...),
+		},
+		seeds:     40,
+		attackAll: true,
+		blockAll:  true,
+		reached: func(g *GorgeSide) bool {
+			for i := range g.E.L.Events {
+				e := &g.E.L.Events[i]
+				if e.Kind != events.DeclareBlockers {
+					continue
+				}
+				seen := map[state.ObjID]int{}
+				unicorn := map[state.ObjID]bool{}
+				for _, pr := range e.Pairs {
+					seen[pr[1]]++
+					if mbc5Name(g, pr[0]) == "Prized Unicorn" {
+						unicorn[pr[1]] = true
+					}
+				}
+				for b, n := range seen {
+					if n >= 2 && unicorn[b] {
+						return true
+					}
+				}
+			}
+			return false
+		},
+	}
+}
+
 // braveTheSandsTrampleCase: a Brave the Sands blocker of two attackers, one
 // of them a trampler. The trampler owes the shared blocker its toughness less
 // the damage marked on it, not less what the other attacker assigns it in the
@@ -417,6 +458,7 @@ func TestMBCCombat5Lowers(t *testing.T) {
 		gloomSowerCase(),
 		saddlebruteCase(),
 		braveTheSandsCase(),
+		braveTheSandsLureCase(),
 		braveTheSandsTrampleCase(),
 		instillEnergyCase(),
 		curseOfTheForsakenCase(),
