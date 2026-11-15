@@ -249,9 +249,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
-	// On a closed sacrifice-any bound the candidates are the gaps walk's plus the
-	// plays gorge's PotentialMana bound pays on its own (sacPotPays).
-	sacPot := func(a Action) bool { return sacAny && s.sacPotPays(k, p, a) }
 	// the insufficient plays in gorge's walk order (potentialWalkOf: the
 	// hand walk, the permission and graveyard casts, then the battlefield's
 	// activations in entry order): the kernel's walk lists activations in
@@ -276,7 +273,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
 		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
-			sacAny && !hasOption(&gaps, a) && !sacPot(a) ||
+			s.sacDrops(k, p, sacAny, &gaps, a) ||
 			wide && !s.wideAdmits(k, a, p, anyR) ||
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
@@ -310,7 +307,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !hasOption(&gaps, a) && !twoLive && !repeatLive && !sacPot(a) {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive {
 			if !relax {
 				searched++
 			}

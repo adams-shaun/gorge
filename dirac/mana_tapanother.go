@@ -1199,3 +1199,16 @@ func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
 	}
 	return pot.affords(&cost, pipMaskOf(&cost), 0)
 }
+
+// gapsOrBoundPlay: play a is one the gaps walk lists, or, on a closed
+// sacrifice-any bound (sacAny; tapXSacAnyBound), one gorge's PotentialMana bound
+// pays on its own (sacPotPays).
+func (s *State) gapsOrBoundPlay(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
+	return hasOption(gaps, a) || sacAny && s.sacPotPays(k, p, a)
+}
+
+// sacDrops: on a closed sacrifice-any bound (sacAny) play a is neither the gaps
+// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate.
+func (s *State) sacDrops(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
+	return sacAny && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
+}
