@@ -1621,6 +1621,8 @@ ReplPrevToCreature	untyped int	4
 ReplPrevToSrcInPlay	untyped int	8
 ReplPrevToYourTurn	untyped int	1
 ReplPreventDamageCounters	ReplKind	36
+ReplPreventDamageFilt	ReplKind	64
+ReplPreventDamageN	ReplKind	65
 ReplPreventDamageToSelf	ReplKind	63
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11

@@ -1026,7 +1026,7 @@ func (cb *cardBuilder) record() error {
 		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
-	d.World = c.World
+	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf

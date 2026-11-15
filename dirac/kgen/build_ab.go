@@ -2649,7 +2649,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
-	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf":
+	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf", "PreventDamageFilt", "PreventDamageN":
 		if err = cb.selfDamageRepl(rp, r); err != nil { // lower_preventtoself.go
 			return ka, err
 		}

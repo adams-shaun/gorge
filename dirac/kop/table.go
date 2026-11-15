@@ -124,6 +124,10 @@ type CardDef struct {
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
+	// Snow is the printed Snow supertype (CR 205.4a), read by the static
+	// damage preventions' ReplSPRecipSnow (Goblin Furrier). Printed only: a
+	// layer effect that adds or removes it is not read.
+	Snow bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
