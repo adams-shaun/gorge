@@ -8,8 +8,10 @@ Ashes to Ashes
 Auriok Transfixer
 Bounding Wolf
 Brazen Buccaneers
+Brood Monitor
 Burn Bright
 Cenn's Enlistment
+Cloud Elemental
 Consider
 Death-Hood Cobra
 Deekah, Fractal Theorist
@@ -22,6 +24,7 @@ Forest
 Gaea's Embrace
 Gaea's Skyfolk
 Gloomfang Mauler
+Herald of Secret Streams
 Hoarding Ogre
 Island
 Jedit Ojanen of Efrava
@@ -32,6 +35,7 @@ Lowland Oaf
 Merfolk Branchwalker
 Mogg War Marshal
 Mountain
+Nightscape Master
 Nihil Spellbomb
 Orochi Eggwatcher
 Plains
@@ -44,8 +48,10 @@ Sudden Impact
 Summer Bloom
 Swamp
 Szarel, Genesis Shepherd
+The Everforger
 Unexpected Windfall
 Verdant Field
+Viridian Shaman
 Wake the Dragon
 Warbriar Blessing
 Warden of the Wall
