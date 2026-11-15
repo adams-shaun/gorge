@@ -641,6 +641,9 @@ type grantSrch struct {
 	// tapx: the candidate's own ability is a tap-another-permanent one, a census
 	// gap of gorge's beside the grants (mana_granttapx.go)
 	tapx [MaxPerm]bool
+	// ctr: the candidate is a counter-cost gap, activated beside the grants
+	// (mana_grantctr.go)
+	ctr [MaxPerm]bool
 	// def: the candidate is a deferred source (Pyromancer's Goggles), a census
 	// gap of gorge's beside the grants (mana_grantdeferred.go)
 	def [MaxPerm]bool
@@ -766,6 +769,7 @@ func (g *grantSrch) candidates(s *State) {
 	wm := s.wideGaps(g.k, g.p)   // (mana_grantwide.go)
 
 	xm := s.tapsDeferGrantGaps(g.k, g.p, &g.d) // (mana_granttapsdefer.go)
+	cm := s.grantCtrGaps(g.k, g.p)             // (mana_grantctr.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -776,7 +780,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -792,6 +796,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm)
+		g.ctr[g.n] = ng == 0 && cm.has(sl) && !g.filt[g.n] && !g.tapx[g.n] && !g.def[g.n] && !g.each[g.n] && !g.wide[g.n] && !g.tdef[g.n]
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -926,7 +931,7 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 // mana_granttapsdefer.go).
 func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 	return s.deferBesideGrant(k, p) || s.eachBesideGrant(k, p) || s.wideBesideGrant(k, p) ||
-		s.tdBesideGrant(k, p)
+		s.tdBesideGrant(k, p) || s.ctrBesideGrant(k, p)
 }
 
 // visit is one payer priority of the search on working copy t: the play
@@ -1019,6 +1024,12 @@ func (g *grantSrch) visit(t *State) bool {
 		tx := g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl)
 		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
 			continue // sacrificed by an earlier step (mana_grantcost.go)
+		}
+		if g.ctr[i] {
+			if g.ctrBranch(t, i, sl) { // a counter-cost gap asks nothing (mana_grantctr.go)
+				return true
+			}
+			continue
 		}
 		grants := t.grantTapOK(g.k, sl)
 		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
