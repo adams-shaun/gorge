@@ -245,9 +245,17 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 // mana when the permanent at sl, controlled by ctl, taps for mana: its
 // controller's own taps, or every player's under StTapAnyPlayer (the extra
 // then goes to the tapping player, whose pool the caller fills).
+//
+// A Cond2-gated static (Rikala, Homarid King) never reaches here: the
+// planner's pricing readers skip it, because gorge's planner cannot fold a
+// gated trigger (the gate is no paymentPlanTapManaTriggerCodes key), so its
+// census unit and its potential bound (paymentPlanTapExtraMana, whole=true)
+// read the tap without the extra. The extra floats at the tap itself
+// (addGatedExtra), exactly the trigger's resolution.
 func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	a := &st.a.Static
 	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
+		a.Cond2 != 0 ||
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
 	}
@@ -256,6 +264,38 @@ func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	}
 	s.tapExtraEchoStall(k, st)
 	return true
+}
+
+// addGatedExtra floats the Cond2-gated StatTapExtra statics of sl's tap in
+// p's pool: the extra an unfoldable TapsForMana trigger adds as it resolves
+// at the tap (Rikala, Homarid King; gorge's potential bound omits it,
+// paymentPlanTapExtraMana sums only folded triggers, so the planner's
+// readers never price it -- tapExtraReaches), while the tap itself, which
+// gorge fires the trigger on, still brings it.
+func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	s.eachStatic(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 ||
+			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
+			return true
+		}
+		if a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
+			s.capFull(StallTapExtra) // the gated lowering refuses those flags
+			return true
+		}
+		if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+			return true
+		}
+		if !s.condEval(k, a.Cond2, evalCtx{src: s.perms[st.sl].obj, srcSl: st.sl, ctrl: st.ctrl}) {
+			return true // the gate holds only while the condition does
+		}
+		s.tapExtraEchoStall(k, st)
+		s.pl[p].pool[a.A] += uint8(a.B)
+		return true
+	})
 }
 
 // tapExtraEchoStall stalls (StallTapExtra) when a Panharmonicon static echoes
@@ -366,12 +406,14 @@ func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 	for c := range xv {
 		s.pl[p].pool[c] += xv[c]
 	}
+	s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
 }
 
 // addExtraCol is addExtra for a tap that made colour col: a painful source's
 // coloured pick brings only the extra of the carriers not limited to a {C}
 // tap, its {C} ability all of them (srcExtraPain).
 func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
+	s.addGatedExtra(k, p, sl, s.perms[sl].ctrl) // the gated extra does not depend on the pick
 	if pc.painCol == 0 {
 		if k.gen == nil || !k.gen.anyTapExtra {
 			return
