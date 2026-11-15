@@ -30,7 +30,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if l := kop.PayManaLife(f); l != 0 && int(s.pl[p].life) < l {
 			return false // a trigger's own mana-and-life cost: F carries the life
 		}
-		c := s.numTimesCost(k, amt, s.cumPips(k, pips))
+		c := s.numTimesCost(k, amt, pips)
 		s.payManaHyb(k, f, &c) // a trigger's own hybrid cost (cost_trighybrid.go)
 		s.announcedHyb(&c)
 		var av avail
@@ -213,7 +213,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if !s.anyManaSource(k, p, &other) {
 		return false
 	}
-	c := s.numTimesCost(k, amt, s.cumPips(k, pips))
+	c := s.numTimesCost(k, amt, pips)
 	s.payManaHyb(k, life, &c) // cost_trighybrid.go
 	s.announcedHyb(&c)
 	var av avail
