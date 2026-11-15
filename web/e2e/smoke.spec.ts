@@ -1970,6 +1970,18 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
 
           await page.locator('section.transcript .line[data-seq]').first().waitFor({ state: 'attached', timeout: WAIT_MS });
 
+          // Concede rides a priority prompt the page shows. On the ManaBrew wire the compat rule
+          // (web/src/lib/manabrew/compat.ts, default on) passes every priority prompt the seat has
+          // nothing to do in unseen, so once the spell is cast and the hand holds no land or
+          // castable card, the seat is shown no prompt until a later draw gives it one. The
+          // random deal and draws decide how long that is: it outlasted STALL_MS in CI. The play
+          // above ran under the default; the concede step turns the rule off (the setting
+          // applies when a table loads) and reloads, so the next priority window is shown.
+          if (wire === 'manabrew') {
+            await page.evaluate(() => localStorage.setItem('gorge.mbcompat.v1', 'off'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await page.locator('.quadrant').first().waitFor({ state: 'visible', timeout: WAIT_MS });
+          }
           // Concede is offered with an open ask, and the spell may have left the seat without one.
           const concede = page.locator('[data-concede-control]:enabled');
           await expect.poll(async () => {
