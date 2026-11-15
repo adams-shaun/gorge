@@ -131,8 +131,8 @@ func run(o options, out io.Writer) (*result, error) {
 		if err != nil {
 			return nil, fmt.Errorf("-only: %w", err)
 		}
-		var fills []sheetFill
-		spec, fills, err = restrictSpec(spec, only)
+		var fills []setdata.SheetFill
+		spec, fills, err = setdata.Restrict(spec, only.allows)
 		printFills(out, o.only, only, fills)
 		if err != nil {
 			return nil, err
