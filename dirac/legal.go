@@ -1778,8 +1778,11 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.deferBesideGrant(k, p) // the same one search (mana_grantdeferred.go)
 	grantFirst = grantFirst || grants && s.eachBesideGrant(k, p)  // an each-colour gap among the grants (mana_granteach.go)
 	grantFirst = grantFirst || grants && s.wideBesideGrant(k, p)  // a wide-only gap among the grants (mana_grantwide.go)
-	// a planner-deferred gap among the grants: the activation's one search (mana_granttapsdefer.go)
-	grantFirst = grantFirst || grants && a.Kind() == AkActivate && s.tdBesideGrant(k, p)
+	// a planner-deferred gap among the grants: the one search runs for a cast
+	// too — gorge's census lists neither a deferred source nor a grant, so a
+	// cast's prefix search activates it in battlefield order as it does an
+	// activation's (mana_granttapsdefer.go)
+	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		if s.npend != 0 {
