@@ -11,6 +11,10 @@ import "testing"
 // lists the Vessel in battlefield order and taps it for no mana ("unhandled
 // Produced$ AnyDifferent"): beside an untapped Mountain the window taps the
 // Mountain first and floats its {R} (decision 743 of the same game).
+//
+// The recordings replay on pool custom, the table their own decks build: land's
+// kgen has since lowered more cards, which shifted the tail buckets and moved
+// Aegis Automaton (an innocent bystander in the dealt decks) out of tail-39.
 func TestMBCElusiveTormentorReprosLockstep(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{
