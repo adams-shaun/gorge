@@ -55,7 +55,7 @@ func (s *State) payLifeOfferable(k *prep, p uint8, o Obj) bool {
 	}
 	own := 0
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostPayLife != 0 {
-		own = int(ac.N)
+		own = lifeCostOwed(ac)
 	}
 	return payLifeOwed(k, c)+own <= int(s.pl[p].life)
 }
