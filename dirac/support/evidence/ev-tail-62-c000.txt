@@ -15,6 +15,7 @@ An-Zerrin Ruins
 Ancient Hydra
 Ancient Ooze
 Angel of the Dire Hour
+Angelic Guardian
 Anointed Procession
 Arborea Pegasus
 Archetype of Aggression
@@ -70,6 +71,7 @@ Cloudskate
 Consulate Crackdown
 Copper Gnomes
 Coronation of Chaos
+Count Nefaria
 Court Street Denizen
 Crashing Footfalls
 Cremate
@@ -83,6 +85,7 @@ Cultivator of Blades
 Cumber Stone
 Dampening Pulse
 Dark Banishing
+Deadly Recluse
 Debt to the Kami
 Defabricate
 Desecrated Tomb
@@ -106,6 +109,7 @@ Elderleaf Mentor
 Elephant Ambush
 Elvish Harbinger
 Elvish Reclaimer
+Emissary of the Sleepless
 Enlarge
 Enormous Baloth
 Ephara's Radiance
@@ -118,6 +122,7 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
+Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
 Fleshtaker
@@ -139,6 +144,7 @@ Glint-Sleeve Artisan
 Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
+Goblin Spymaster
 Grafted Skullcap
 Grandmother Sengir
 Grasping Current
@@ -179,6 +185,7 @@ Keepsake Gorgon
 Kinsbaile Skirmisher
 Kirtar's Desire
 Knighthood
+Komodo Rhino
 Kor Bladewhirl
 Kozilek's Predator
 Krenko's Command
@@ -200,6 +207,7 @@ Magistrate's Veto
 Mammoth Growth
 Mardu Runemark
 Mass Manipulation
+Massive Raid
 Matoc, Lavamancer
 Medusa, Inhuman Queen
 Memory Lapse
@@ -218,6 +226,7 @@ Mishra's Onslaught
 Mistveil Plains
 Misty Rainforest
 Molimo, Maro-Sorcerer
+Molten-Tail Masticore
 Mosscoat Goriak
 Mountain
 Muddle the Mixture
@@ -254,11 +263,13 @@ Protect
 Prowess of the Fair
 Prowling Nightstalker
 Psychic Pickpocket
+Purple Pentapus
 Pyrokinesis
 Radiant Fountain
 Raised by Giants
 Rakdos Ringleader
 Rakdos Trumpeter
+Rakdos's Return
 Rakshasa's Secret
 Ral's Dispersal
 Ranger en-Vec
@@ -320,6 +331,7 @@ Simic Ragworm
 Skarrg, the Rage Pits
 Skinrender
 Skophos Reaver
+Sky Scourer
 Skycat Sovereign
 Skyclave Sentinel
 Slaughter Drone
@@ -376,6 +388,7 @@ Tribute Mage
 Triumph of Ferocity
 Trumpet Blast
 Turbulent Wilderness
+Tyrant's Familiar
 Unesh, Criosphinx Sovereign
 Unholy Heat
 Unleash Shell
@@ -396,4 +409,5 @@ Windborne Charge
 Wizard Class
 Wolverine Riders
 Yotian Medic
+Zebra Unicorn
 Zodiac Snake

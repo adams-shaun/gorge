@@ -4,6 +4,7 @@ A-Mightstone's Animation
 A-Oran-Rief Ooze
 A-Revel Ruiner
 Adeliz, the Cinder Wind
+Aether Spellbomb
 Akroan Skyguard
 Alms Beast
 Alpha Tyrranax
@@ -83,6 +84,7 @@ Conclave Tribunal
 Consider
 Council's Judgment
 Cradle Guard
+Crocodile of the Crossing
 Crumbling Vestige
 Dark-Dweller Oracle
 Darksteel Splicer
@@ -136,6 +138,7 @@ Eternal Warrior
 Everythingamajig
 Eviscerator
 Expedition Champion
+Eye of Malcator
 Falcon Abomination
 False Summoning
 Fangs of Kalonia
@@ -249,6 +252,7 @@ Mogg Salvage
 Moss Diamond
 Mossfire Egg
 Mountain
+Mu Yanling, Celestial Wind
 Murasa Rootgrazer
 Muscle Sliver
 Mystifying Maze

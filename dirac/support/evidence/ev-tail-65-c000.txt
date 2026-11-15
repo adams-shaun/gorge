@@ -93,9 +93,11 @@ Eyeblight Cullers
 Faith Healer
 Falkenrath Celebrants
 Fallaji Excavation
+Fallaji Vanguard
 Fanged Flames
 Field-Tested Frying Pan
 Fire Nation's Conquest
+Flame-Kin Zealot
 Flensermite
 Flowstone Infusion
 Font of Fortunes
@@ -162,6 +164,7 @@ Maestros Initiate
 Magma Phoenix
 Magmatic Force
 Makeshift Mauler
+Manacles of Decay
 Marchesa's Smuggler
 Mask of Riddles
 Merchant of Secrets
@@ -191,6 +194,7 @@ On Serra's Wings
 Oran-Rief Ooze
 Ore-Scale Guardian
 Oreskos Swiftclaw
+Organic Extinction
 Perilous Forays
 Petrified Field
 Phyrexian Scriptures
@@ -218,6 +222,7 @@ Reinforced Ronin
 Reinterpret
 Reptilian Reflection
 Reservoir Kraken
+Resounding Silence
 Rhys the Exiled
 Ritual of Steel
 Rogue Elephant

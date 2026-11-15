@@ -85,6 +85,7 @@ Cutthroat il-Dal
 Darkwater Catacombs
 Deadly Wanderings
 Death-Greeter's Champion
+Deathbloom Ritualist
 Deathbloom Thallid
 Deepwood Drummer
 Demonic Collusion
@@ -125,6 +126,7 @@ Fierce Witchstalker
 Filigree Sages
 Fire
 Fire Ants
+Flame Blitz
 Flitterstep Eidolon
 Flood
 Flowstone Strike
@@ -244,6 +246,7 @@ Paladin en-Vec
 Parasitic Grasp
 Patient Rebuilding
 Peach Garden Oath
+Pest Summoning
 Pestilent Syphoner
 Phantom Wurm
 Phyrexian Broodstar
@@ -298,6 +301,7 @@ River Kaijin
 Rolling Stones
 Rootwater Commando
 Rootwater Hunter
+Rotwidow Pack
 Rune Snag
 Rushwood Legate
 Sadistic Slash

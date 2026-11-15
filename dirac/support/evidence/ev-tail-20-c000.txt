@@ -1,5 +1,6 @@
 A-Bretagard Stronghold
 A-Sprouting Goblin
+Adult Gold Dragon
 Aesthir Glider
 Aggressive Instinct
 Airborne Aid
@@ -51,6 +52,7 @@ Chandler
 Chatter of the Squirrel
 Chieftain en-Dal
 Childhood Horror
+Chimney Imp
 Cleansing Wildfire
 Cloak of Feathers
 Coffin Purge
@@ -96,6 +98,7 @@ Eiganjo Free-Riders
 Eldritch Evolution
 Embereth Skyblazer
 Envelop
+Excava, the Risen Past
 Excavation Technique
 Expansion
 Extraction Specialist
@@ -123,6 +126,7 @@ Geistcatcher's Rig
 Ghosts of the Damned
 Ghoultree
 Giant Strength
+Gisa and Geralf
 Gisa's Bidding
 Glimmerbell
 Goblin Cohort
@@ -141,9 +145,11 @@ Guardian of Pilgrims
 Gudul Lurker
 Guiding Bolt
 Hapatra's Mark
+Haunter of Nightveil
 Healer of the Pride
 Herald of Dromoka
 Hero's Blade
+Hero's Demise
 Hexplate Golem
 Hissing Miasma
 Hit-Monkey
@@ -159,6 +165,7 @@ Implement of Examination
 Increasing Vengeance
 Infected Defector
 Infernal Idol
+Invasion of Shandalar
 Irenicus's Vile Duplication
 Island
 Isperia, Supreme Judge
@@ -207,6 +214,7 @@ Mortarpod
 Mountain
 Mourning Thrull
 Mystic Repeal
+Nardole, Resourceful Cyborg
 Nature's Claim
 Needle Specter
 Nether Void
@@ -219,6 +227,7 @@ Oath of Gideon
 Oculus
 Off Balance
 Ogre Battledriver
+Ogre Leadfoot
 Ogre Warrior
 Onyx Goblet
 Oran-Rief Hydra
@@ -232,6 +241,7 @@ Patrician's Scorn
 Peach Garden Oath
 Peregrination
 Phantom Ninja
+Phyrexian Bloodstock
 Phyrexian Espionage
 Pilfered Plans
 Plains
@@ -247,12 +257,14 @@ Prowling Caracal
 Quicksand
 Raggadragga, Goreguts Boss
 Rathi Dragon
+Razaketh, the Foulblooded
 Recollect
 Reforge the Soul
 Rend Spirit
 Return to Nature
 Revered Dead
 Rhox Charger
+Rhys the Redeemed
 Riddlemaster Sphinx
 Rishadan Port
 Rite of Harmony
@@ -275,6 +287,7 @@ Scavenger Grounds
 Scour the Laboratory
 Scourgemark
 Scroll of Griselbrand
+Searing Meditation
 Seasoned Marshal
 Second Harvest
 Seize the Initiative
@@ -349,6 +362,7 @@ Underworld Breach
 Unlikely Aid
 Urza's Incubator
 Utrom Monitor
+Vastwood Surge
 Vectis Agents
 Veil of Assimilation
 Vigorspore Wurm

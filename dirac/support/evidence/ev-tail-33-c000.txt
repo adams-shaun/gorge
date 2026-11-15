@@ -246,6 +246,7 @@ Memorial to Folly
 Military Intelligence
 Mindless Conscription
 Ministrant of Obligation
+Mjölnir's Might
 Mogg Conscripts
 Mogg Jailer
 Monastery Mentor
@@ -410,6 +411,7 @@ Utvara Scalper
 Vedalken Engineer
 Verdant Crescendo
 Verdant Embrace
+Vernal Fen
 Viashino Skeleton
 Victorious Destruction
 Vinelasher Kudzu

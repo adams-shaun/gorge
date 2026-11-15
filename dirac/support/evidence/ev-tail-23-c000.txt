@@ -13,6 +13,7 @@ Alliance of Arms
 Alpine Watchdog
 Ambassador Laquatus
 Ancient Gold Dragon
+Ancient Silverback
 Ancient Ziggurat
 Angel of Light
 Angel's Feather
@@ -92,6 +93,7 @@ Crypt Incursion
 Darkwatch Elves
 Daru Lancer
 Dauntless Aven
+Day's Undoing
 Daybreak Charger
 Defender en-Vec
 Deflecting Swat
@@ -116,6 +118,7 @@ Ensnaring Bridge
 Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
+Exhibition Magician
 Experimental Synthesizer
 Explore
 Extruder
@@ -206,6 +209,7 @@ Kitsune Riftwalker
 Knight Watch
 Knight of the White Orchid
 Kolaghan Skirmisher
+Kuldotha Forgemaster
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
@@ -316,6 +320,7 @@ Shuri, the Black Panther
 Sidewinder Naga
 Siege Mastodon
 Siegehorn Ceratops
+Slither Blade
 Sliver Construct
 Smash
 Smuggler's Copter
@@ -328,6 +333,7 @@ Spark Elemental
 Spark Jolt
 Spellstutter Sprite
 Sphinx-Bone Wand
+Sporoloth Ancient
 Starlit Angel
 Stomp and Howl
 Stone Quarry
@@ -366,6 +372,7 @@ Twinblade Slasher
 Twins of Maurer Estate
 Twisted Spider-Clone
 Two-Handed Axe
+Tymaret Calls the Dead
 Umezawa's Jitte
 Universal Automaton
 Valor of the Worthy

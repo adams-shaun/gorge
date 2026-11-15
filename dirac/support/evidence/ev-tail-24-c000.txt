@@ -158,11 +158,13 @@ Gruul War Plow
 Gurmag Drowner
 Hall
 Hampering Snare
+Havenwood Wurm
 Hedgewitch's Mask
 Herald of Slaanesh
 Hero of Bladehold
 Hero's Heirloom
 Heroic Teamwork
+Hivestone
 Hobblefiend
 Hordeling Outburst
 Hungry for More
@@ -314,6 +316,7 @@ Seasoned Pyromancer
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
+Selesnya Sagittars
 Serra Ascendant
 Serra's Liturgy
 Serum Visionary
@@ -391,6 +394,7 @@ Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw
 Tidewater Minion
+Time Wipe
 Tome Anima
 Transguild Promenade
 Traxos, Scourge of Kroog

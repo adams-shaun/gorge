@@ -86,6 +86,7 @@ Cone of Flame
 Confidence from Strength
 Conqueror's Pledge
 Consuming Corruption
+Containment Construct
 Contraband Kingpin
 Corpse Cur
 Corrupted Resolve
@@ -299,6 +300,7 @@ Phenomenon Investigators
 Pheres-Band Centaurs
 Phyrexian Colossus
 Phyrexian Denouncer
+Phyrexian Totem
 Phyrexian Warhorse
 Phytoburst
 Piety
@@ -415,6 +417,7 @@ Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Umbilicus
 Unbreathing Horde
 Undead Warchief
 Unicycle

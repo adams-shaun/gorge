@@ -22,6 +22,7 @@ Arrogant Bloodlord
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
+Aya of Alexandria
 Bala Ged Recovery
 Balthor the Stout
 Bar the Door
@@ -320,6 +321,7 @@ Sai of the Shinobi
 Salvage Slasher
 Sand Silos
 Sapseep Forest
+Scorch Rider
 Scouting Hawk
 Seagraf Skaab
 See the Unwritten
@@ -357,10 +359,12 @@ Spitting Dilophosaurus
 Spitting Hydra
 Squelching Leeches
 Staff of the Wild Magus
+Storm Fleet Sprinter
 Storm Sculptor
 Stun
 Subterranean Spirit
 Summoning Materia
+Sunastian Falconer
 Swamp
 Sylvia Brightspear
 Tainted Adversary

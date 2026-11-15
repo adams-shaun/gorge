@@ -186,6 +186,7 @@ Indomitable Archangel
 Instill Furor
 Intimidation
 Into the Core
+Into the Wilds
 Invigorated Rampage
 Ionize
 Ironshell Beetle
@@ -250,6 +251,7 @@ No Way Out
 Nuisance Engine
 Nurgle's Rot
 Oakgnarl Warrior
+Ogre Savant
 Oni of Wild Places
 Origin of Black Widow
 Overseer of the Damned
@@ -375,6 +377,7 @@ Tobias Andrion
 Tolsimir Wolfblood
 Toph, Earthbending Master
 Touch of the Eternal
+Trapped in the Tower
 Traumatic Revelation
 Treasury Thrull
 Treetop Recluse
@@ -422,3 +425,4 @@ Young Red Dragon
 Zektar Shrine Expedition
 Zerapa Minotaur
 Zhang He, Wei General
+Zimone, Infinite Analyst

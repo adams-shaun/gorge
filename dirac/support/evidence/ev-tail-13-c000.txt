@@ -282,6 +282,7 @@ Owlin Spiralmancer
 Paragon of Eternal Wilds
 Pardic Wanderer
 Patagia Tiger
+Peacekeeper
 Perception Bobblehead
 Pharika's Mender
 Phyrexian Boon
@@ -315,6 +316,7 @@ Redress Fate
 Refuse to Yield
 Relic Putrescence
 Resistance Fighter
+Resounding Scream
 Retrieve
 Rhox Pummeler
 Rift Sower
@@ -441,6 +443,7 @@ Wanda's Vision
 Warmonger
 Weathered Wayfarer
 Welkin Tern
+Westgate Regent
 Whisper of the Dross
 Wight of Precinct Six
 Wind-Kin Raiders

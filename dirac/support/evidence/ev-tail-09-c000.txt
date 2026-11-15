@@ -22,6 +22,7 @@ Arms of Hadar
 Arwen's Gift
 Assembly-Worker
 Auspicious Ancestor
+Axelrod Gunnarson
 Balloon Peddler
 Barrier of Bones
 Bayou
@@ -76,6 +77,7 @@ Donate
 Dormant Volcano
 Dragon Blood
 Dragon Engine
+Dragon Tempest
 Drake-Skull Cameo
 Dream Stalker
 Eiganjo Castle
@@ -123,6 +125,7 @@ Giltgrove Stalker
 Gitaxian Probe
 Glasswing Grace
 Glimpse the Unthinkable
+Glinting Creeper
 Gloom Sower
 Goblin Berserker
 Goblin Grenadiers
@@ -136,6 +139,7 @@ Grim Giganotosaurus
 Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Hand of the Praetors
 Harpoon Sniper
 Hoarding Recluse
 Hollowhenge Spirit
@@ -158,6 +162,7 @@ Jinxed Ring
 Jungle Wurm
 Kazarov, Sengir Pureblood
 Kelsinko Ranger
+Ken, Burning Brawler
 Kingfisher
 Koilos Roc
 Landbind Ritual
@@ -168,6 +173,7 @@ Lulu, Stern Guardian
 Madcap Skills
 Marauding Dreadship
 Mask of Immolation
+Melira, the Living Cure
 Mephitic Vapors
 Might of the Old Ways
 Mishra's Helix
@@ -217,6 +223,7 @@ Rakshasa Gravecaller
 Ray of Distortion
 Red Death, Shipwrecker
 Rend Flesh
+Repopulate
 Resculpt
 Restrain
 Revered Elder
@@ -231,6 +238,7 @@ Rude Awakening
 Rushblade Commander
 Safe Passage
 Saurian Symbiote
+Savage Hunger
 Scampering Scorcher
 Schema Thief
 Scourglass
@@ -246,6 +254,7 @@ Shoreline Salvager
 Sidisi's Faithful
 Silkwrap
 Sima Yi, Wei Field Marshal
+Sisterhood of Karn
 Skirk Outrider
 Skithiryx, the Blight Dragon
 Skyhunter Skirmisher
@@ -282,6 +291,7 @@ Tomb Robber
 Tome Scour
 Touch of Darkness
 Traveler's Amulet
+Treasured Find
 Tresserhorn Sinks
 Turn to Frog
 Tymna the Weaver

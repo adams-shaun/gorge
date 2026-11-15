@@ -4,7 +4,9 @@ A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Aetherling
 Aethersnipe
+Aethersquall Ancient
 Agent of Erebos
 Aim for the Head
 Ainok Artillerist
@@ -44,6 +46,7 @@ Bond of Discipline
 Bonded Herdbeast
 Bone Shards
 Brain Weevil
+Brawn, Amadeus Cho
 Bulette
 By Invitation Only
 Cabal Slaver
@@ -155,6 +158,7 @@ Goblin War Drums
 Grave Titan
 Greensleeves, Maro-Sorcerer
 Grendel, Spawn of Knull
+Grotag Siege-Runner
 Guardian Naga
 Guardian of the Great Conduit
 Guild Artisan
@@ -169,6 +173,7 @@ Heavy Ballista
 Helm of Awakening
 Hero of the Games
 Hoard-Smelter Dragon
+Homarid Shaman
 Homarid Spawning Bed
 Hornswoggle
 Hraesvelgr of the First Brood
@@ -301,6 +306,7 @@ Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
 Rishadan Port
+River Hoopoe
 Riverwise Augur
 Robobrain War Mind
 Roc Egg
@@ -332,6 +338,7 @@ Sewer Crocodile
 Shady Traveler
 Shambling Suit
 Sheltering Boughs
+Shichifukujin Dragon
 Shielded by Faith
 Shimmering Mirage
 Shock Troops
@@ -410,6 +417,7 @@ Undersea Invader
 Unearth
 Unforgiving One
 Unlikely Alliance
+Urban Evolution
 Vampiric Touch
 Vat of Rebirth
 Vault Skirge
