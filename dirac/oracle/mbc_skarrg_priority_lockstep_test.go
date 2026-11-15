@@ -10,7 +10,9 @@ import "testing"
 // flagged the Spawn a census gap (censusGapMana), which kept the filter beside
 // it off the script path, and left the activation out. The recording is the
 // first divergence of dr-mbc tail-10 pair 934 (decision 932, options options,
-// gorge leading, autopay surface, mulligans 1, seed 1).
+// gorge leading, autopay surface, mulligans 1, seed 1). It plays the custom
+// pool (a table built from its own decks): tail-10's membership moves with the
+// corpus, and Battle of Frost and Fire left it.
 func TestMBCSkarrgTheRagePitsReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "sac_only_source_is_no_census_gap_beside_filter")
