@@ -1623,7 +1623,7 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 		// look_ack when the library holds a card, no other effect
 		if who.Kind == rEachPlayer {
 			// each player's library is its own look_ack, the controller's
-			// first (gorge's AliveFrom(controller) at two seats; Case the
+			// first, then the opponent (gorge's AliveFrom(controller) order; Case the
 			// Joint): OpLookAck reads one player
 			lc.emit(lInstr{Op: "LookAck", Obj: lRef{Kind: rYou}, A: n, CS: "Library"})
 			who = lRef{Kind: rEachOpp}
