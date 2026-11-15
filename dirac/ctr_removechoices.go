@@ -78,6 +78,12 @@ func (s *State) rmctrStart(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	r.left = uint8(min(n, eligible))
+	if in.C&0x400 == 0 {
+		// Any number: gorge's Max is the whole eligible pool, not the A = 16
+		// cap, so the pick stays open until Done or the pool is spent (a
+		// seventeenth pick stalls StallProlif in answerRmctr).
+		r.left = uint8(eligible)
+	}
 	r.ask, r.askP = raGenSupport, r.e.ctrl
 	return false
 }
