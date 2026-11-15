@@ -1,19 +1,27 @@
+Afterlife
 Afterlife Insurance
 Akroan Phalanx
 Altar's Reap
 Angel of Renewal
+Aphotic Wisps
 Apprentice Sorcerer
 Arms Dealer
 Artistic Process
 Barbed Batterfist
 Blaze
 Blight Mamba
+Blightwidow
+Bloodmark Mentor
+Boomerang
 Borderland Ranger
 Brazen Wolves
 Brilliant Plan
 Brood of Cockroaches
+Burning Palm Efreet
 Cabal Ritual
+Chaos Channeler
 Codecracker Hound
+Combo Attack
 Dakmor Plague
 Daring Saboteur
 Dark-Dweller Oracle
@@ -28,16 +36,26 @@ Elemental Bond
 Epicure of Blood
 Esior, Wardwing Familiar
 Essence Scatter
+Expedite
+Faith Unbroken
+Flusterstorm
+Forbid
 Forest
 Ghoulcaller Gisa
+Gift of the Viper
 Graaz, Unstoppable Juggernaut
 Grimclaw Bats
 Herald of the Host
+Hope and Glory
+Incremental Blight
 Inspiring Overseer
 Island
 Jandor, Fortuned Traveler
+Khalni Garden
 Krovikan Sorcerer
 Magmaw
+Mardu Warshrieker
+Mask of Law and Grace
 Master Decoy
 Matoc, Lavamancer
 Militia Bugler
@@ -45,6 +63,7 @@ Mirror Image
 Mountain
 Negate
 Oath of Druids
+Oblivion Strike
 Pelakka Wurm
 Perilous Research
 Phyrexian Missionary
@@ -52,15 +71,26 @@ Plains
 Preordain
 Priest of Titania
 Quirion Ranger
+Recover
 Riverwheel Aerialists
 Ruin Crab
 Rust Goliath
 Sentinel of the Eternal Watch
+Skullport Merchant
 Snuff Out
 Song of Freyalise
 Splitskin Doll
 Stasis Snare
 Swamp
 Talrand's Invocation
+Tear Asunder
+Terror
 Tetsuko Umezawa, Fugitive
+Thunderfoot Baloth
+Thunderous Orator
+Timberland Ancient
+Toggo, Goblin Weaponsmith
+Tragic Slip
 Twinmaw Stormbrood
+Vat of Rebirth
+Zombie Master

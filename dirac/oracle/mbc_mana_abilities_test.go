@@ -10,15 +10,15 @@ import (
 )
 
 // The MBC mana-abilities-2 lockstep: the pip-fee {T} filters (Apprentice Wizard's "{U}, {T}: add {C}{C}{C}",
-// Ceta Disciple's and Necra Disciple's any-colour one, Fire Sprites' {R}), and
-// Krark-Clan Ironworks' no-{T} "sacrifice an artifact: add {C}{C}" (the deck
-// holds Ornithopter and the artifacts it sacrifices). Each has its own deck,
-// the card over artifacts, legendary creatures and spells only its mana casts
-// (Air Elemental, Serra Angel, Juggernaut), against a plain creature deck. The
-// tracked ability must be activated on gorge's side, so the lockstep compares
-// the kernel's walk of it. Relic of Legends (a no-{T} tap-another second
-// ability) stays refused: its lowering diverged from gorge (see the report).
-var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Krark-Clan Ironworks", "Necra Disciple", kmbc2Grant}
+// Ceta Disciple's and Necra Disciple's any-colour one, Fire Sprites' {R}). Each has
+// its own deck, the card over artifacts, legendary creatures and spells only
+// its mana casts (Air Elemental, Serra Angel, Juggernaut), against a plain
+// creature deck. The tracked ability must be activated on gorge's side, so the
+// lockstep compares the kernel's walk of it. Krark-Clan Ironworks (a no-{T}
+// "sacrifice an artifact" ability) and Relic of Legends (a no-{T}
+// tap-another second ability) stay refused: their lowerings diverged from gorge
+// (see the report).
+var kmbc2Names = []string{"Apprentice Wizard", "Ceta Disciple", "Fire Sprites", "Necra Disciple", kmbc2Grant}
 
 // kmbc2Grant: Apprentice Wizard beside Chromatic Lantern's granted any-colour land ability, the
 // grant search's filter step (grantSrch.filtBranch) for a {C}-only filter: the Wizard's {C}{C}{C}
@@ -27,10 +27,7 @@ const kmbc2Grant = "Apprentice Wizard + Chromatic Lantern"
 
 // kmbc2Cost: the cost text of the tracked mana ability, so the count is of that
 // ability's activations.
-var kmbc2Cost = map[string]string{
-	"Apprentice Wizard": "T", "Ceta Disciple": "T", "Fire Sprites": "T", "Necra Disciple": "T",
-	"Krark-Clan Ironworks": "Sac<",
-}
+var kmbc2Cost = map[string]string{"Apprentice Wizard": "T", "Ceta Disciple": "T", "Fire Sprites": "T", "Necra Disciple": "T"}
 
 var kmbc2Opp = []cardset.Entry{
 	{Name: "Hill Giant", Count: 2}, {Name: "Wind Drake", Count: 4}, {Name: "Grizzly Bears", Count: 4},
@@ -59,11 +56,6 @@ var kmbc2Decks = map[string][]cardset.Entry{
 		{Name: "Apprentice Wizard", Count: 6}, {Name: "Sol Ring", Count: 1}, {Name: "Juggernaut", Count: 4},
 		{Name: "Air Elemental", Count: 4}, {Name: "Serra Angel", Count: 3}, {Name: "Mind Stone", Count: 2},
 		{Name: "Island", Count: 11}, {Name: "Plains", Count: 9},
-	},
-	"Krark-Clan Ironworks": {
-		{Name: "Krark-Clan Ironworks", Count: 5}, {Name: "Ornithopter", Count: 4}, {Name: "Mind Stone", Count: 3},
-		{Name: "Sol Ring", Count: 1}, {Name: "Juggernaut", Count: 4}, {Name: "Air Elemental", Count: 4},
-		{Name: "Serra Angel", Count: 4}, {Name: "Island", Count: 8}, {Name: "Plains", Count: 7},
 	},
 	kmbc2Grant: {
 		{Name: "Apprentice Wizard", Count: 5}, {Name: "Chromatic Lantern", Count: 4}, {Name: "Hill Giant", Count: 4},
