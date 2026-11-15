@@ -22,12 +22,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // StallCumulativeCost: a scaled cumulative upkeep cost past what the packed
 // ask holds -- a pip count above 7, a generic amount above 255, or more than
-// kop.PayHybMax hybrid pips (State.payHyb keeps two announced faces).
+// four hybrid pips (kop.ManaCost.Hyb).
 const StallCumulativeCost = 176
 
 func init() {
 	stallNames[StallCumulativeCost] = "cumulativecost"
-	stallClasses[StallCumulativeCost] = StallCapacity
 }
 
 // useCumScaled: some ability heads a scaled cumulative upkeep.
@@ -100,7 +99,7 @@ func (s *State) cumulativeFits(k *prep, in *kop.Instr) {
 	}
 	pay := &s.prog(k)[s.res.pc+1]
 	n := s.value(k, kop.ValueRef{K: kop.VCountersSelf, N: int16(kop.CtrAge)})
-	if pay.A.K != kop.VConst || n*int(pay.A.N) > 255 || n*kop.PayManaHybN(pay.F) > kop.PayHybMax {
+	if pay.A.K != kop.VConst || n*int(pay.A.N) > 255 || n*kop.PayManaHybN(pay.F) > len(kop.ManaCost{}.Hyb) {
 		s.capFull(StallCumulativeCost)
 		return
 	}
@@ -110,4 +109,18 @@ func (s *State) cumulativeFits(k *prep, in *kop.Instr) {
 			return
 		}
 	}
+}
+
+// cumulativeAmount is the pay instruction's generic amount and packed pips as
+// the cumulative upkeep ahead of it asks them: a scaled mana cost (the cost of
+// one counter) times the age counters, and any amount held to the byte the ask
+// carries (no pool pays more than 255).
+func (s *State) cumulativeAmount(k *prep, kind, amt int, pips int16) (int, int16) {
+	if !s.afterCumulative(k) {
+		return amt, pips
+	}
+	if n := s.cumScale(k); kind == kop.PayMana && n > 0 {
+		amt, pips = amt*n, scalePips(pips, n)
+	}
+	return min(amt, 255), pips
 }

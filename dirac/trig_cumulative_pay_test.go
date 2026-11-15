@@ -147,37 +147,37 @@ func TestCumulativeUpkeepColouredAndLifeCosts(t *testing.T) {
 	})
 
 	t.Run("Arctic Nishoba announces each hybrid pip", func(t *testing.T) {
-		c := newCumScenario(t, "Arctic Nishoba", 1, func(sc *scen, id map[string]CardID) {
-			sc.perm(id["Forest"], 0)
-			sc.perm(id["Forest"], 0)
-		})
+		// three age counters: three {G/W} announcements, each face the payer's
+		// choice (the first and the second printed face both occur)
+		c := newCumScenario(t, "Arctic Nishoba", 2, nil)
 		s := c.sc.s
-		for i := 0; i < 2; i++ {
+		faces := []int{kop.W, kop.G, kop.W}
+		for i, face := range faces {
 			if s.res.ask != raGenPayPip || c.ask.Sub != ChGenPip || c.ask.N != 2 {
 				t.Fatalf("pip %d: ask %d sub %d with %d options, want a two-face announcement", i, s.res.ask, c.ask.Sub, c.ask.N)
 			}
-			var green Action
+			var pick Action
 			for j := 0; j < int(c.ask.N); j++ {
-				if c.ask.Options[j].Mode() == uint8(kop.G) {
-					green = c.ask.Options[j]
+				if c.ask.Options[j].Mode() == uint8(face) {
+					pick = c.ask.Options[j]
 				}
 			}
-			if green.Mode() != uint8(kop.G) {
-				t.Fatalf("pip %d: the announcement does not offer G: %v", i, c.ask.Options[:c.ask.N])
+			if pick.Mode() != uint8(face) {
+				t.Fatalf("pip %d: the announcement does not offer colour %d: %v", i, face, c.ask.Options[:c.ask.N])
 			}
-			s.Apply(green)
+			s.Apply(pick)
 			c.ask = s.Step()
 		}
 		if s.res.ask != raGenPay || c.ask.Sub != ChGenPay {
-			t.Fatalf("after two pips: ask %d sub %d, want the pay-or-decline", s.res.ask, c.ask.Sub)
+			t.Fatalf("after three pips: ask %d sub %d, want the pay-or-decline", s.res.ask, c.ask.Sub)
 		}
-		if cost := c.payCost(); cost.Pips[kop.G] != 2 || cost.Hyb[0] != 0 || s.g.pickF&pfNoPay != 0 {
-			t.Fatalf("cost %+v flags %#x, want {G}{G} offered", cost, s.g.pickF)
+		if cost := c.payCost(); cost.Pips[kop.W] != 2 || cost.Pips[kop.G] != 1 || cost.Hyb[0] != 0 {
+			t.Fatalf("cost %+v, want {W}{W}{G}", cost)
 		}
 	})
 
-	t.Run("a third hybrid pip stalls", func(t *testing.T) {
-		c := newCumScenario(t, "Arctic Nishoba", 2, nil)
+	t.Run("a fifth hybrid pip stalls", func(t *testing.T) {
+		c := newCumScenario(t, "Arctic Nishoba", 4, nil)
 		if s := c.sc.s; !s.over || s.g.stalled != StallCumulativeCost {
 			t.Fatalf("over %v stalled %d, want the cumulative cost capacity stall %d", s.over, s.g.stalled, StallCumulativeCost)
 		}

@@ -127,14 +127,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
 		return true
 	}
-	if kind == kop.PayMana {
-		if n := s.cumScale(k); n > 0 {
-			amt, pips = amt*n, scalePips(pips, n) // the cost of one counter, n times (trig_cumulative_pay.go)
-		}
-	}
-	if amt > 255 && s.afterCumulative(k) {
-		amt = 255 // n age counters of a cost: no pool pays more, and the ask holds a byte (trig_cumulative.go)
-	}
+	amt, pips = s.cumulativeAmount(k, kind, amt, pips) // a cumulative upkeep's cost times its age counters (trig_cumulative_pay.go)
 	if k.gen != nil && k.gen.anyNumTimes && kind == kop.PayMana {
 		amt, pips = s.numTimesScale(k, amt, pips) // cast_announcetimes.go
 	}
