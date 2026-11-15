@@ -520,9 +520,12 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if a.Cost.Flags&kop.CostSacSelf != 0 && s.sacBlocked(k, sl) {
 		return false // a self-sacrifice its source can't pay (static_cantsacrifice.go)
 	}
-	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
+	if s.castHeldOut(p.obj) {
 		// gorge holds a card's activation out after its second no-progress
-		// abort in a row (cast_commit.go abortCast, CR 733.2)
+		// abort in a row (cast_commit.go abortCast, CR 733.2), on every
+		// table: not only beside a waterbend card or an X-bound ability, the
+		// families whose reversal the hold-out used to be read beside
+		// (cast.go's push arm now captures bflNoProg for every activation)
 		return false
 	}
 	f := a.Cost.Flags
