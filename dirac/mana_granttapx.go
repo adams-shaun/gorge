@@ -33,7 +33,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXMana(a) { // (a sacrifice-another source is the tap-another search's alone)
+		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXEachManaAb(a) { // (a sacrifice-another source is the tap-another search's alone)
 			m = m.with(sl)
 		}
 	}

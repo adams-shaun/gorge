@@ -32,6 +32,7 @@ type genPrep struct {
 	flags     []uint32
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
+	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -820,6 +821,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepKC(t, g)
 	prepPoisonHigh(t, g)
 	prepShield(t, g)
+	prepUmbra(t, g) // kw_umbraarmor.go
 	prepDiesNC(t, g)
 	prepMcombat(t, g)
 	prepAltFree(t, g, p) // cast_altfree.go

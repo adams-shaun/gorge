@@ -121,6 +121,10 @@ type CardDef struct {
 	// Society).
 	WardPoison uint8
 	Leyline    bool // may begin the game on the battlefield from the opening hand
+	// UmbraArmor is printed K:Umbra armor (CR 702.89a, kop.KwUmbraArmor): the
+	// Aura's enchanted permanent, were it destroyed, instead loses all its
+	// damage and this Aura is destroyed (kernel kw_umbraarmor.go).
+	UmbraArmor bool
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool

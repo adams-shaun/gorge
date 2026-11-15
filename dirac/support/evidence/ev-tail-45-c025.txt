@@ -1,0 +1,6 @@
+Dregscape Zombie
+Forest
+Island
+Mountain
+Plains
+Swamp
