@@ -45,7 +45,7 @@ func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCard CardID, sr
 		return false
 	}
 	if sc&kop.PrevScopeFiltered != 0 {
-		return s.prevScopeFiltered(k, r, srcSl, srcCard, t) // repl_preventscope_filter.go
+		return s.prevScopeFiltered(k, r, srcSl, srcCard, t) // repl_prevscopefilter.go
 	}
 	if sc&kop.PrevScopeAll != 0 {
 		return true

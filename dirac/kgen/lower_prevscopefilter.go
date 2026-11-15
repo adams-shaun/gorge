@@ -10,7 +10,7 @@ import (
 // player bits (You, Opponent, Player) or tf (a card filter over permanents).
 // A half that is a bit form (tok / sok) keeps its bits. fb always carries
 // kop.PrevScopeFiltered, which tells the kernel to read sf and tf from the
-// Effect's source card (dirac/repl_preventscope_filter.go).
+// Effect's source card (dirac/repl_prevscopefilter.go).
 func (lc *lowerCtx) scopeFiltered(vt, vs string, tb int, tok bool, sb int, sok bool) (fb int, sf, tf *lFilter, err error) {
 	fb = kop.PrevScopeFiltered
 	if tok {

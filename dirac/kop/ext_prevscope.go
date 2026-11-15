@@ -7,7 +7,7 @@ const (
 	// (0: any source) and B.N the filter the recipient permanents match (0:
 	// none match). The record keeps only this bit; the kernel finds the
 	// instruction again from the Effect's source card (dirac/
-	// repl_preventscope_filter.go). A card carries one filtered pair.
+	// repl_prevscopefilter.go). A card carries one filtered pair.
 	PrevScopeFiltered = 1 << 5
 	// PrevScopeOppPlayer and PrevScopeAnyPlayer (instruction bits only):
 	// the opponents of the resolving controller, or every player, are
