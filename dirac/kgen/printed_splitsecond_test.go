@@ -72,3 +72,23 @@ func TestPoolLowersTheTokenATokenMakes(t *testing.T) {
 		t.Fatalf("the pool's tokens %v lack %s, the token %s makes", keys, treasure, devil)
 	}
 }
+
+// A refused token's refusal reaches the token that makes it, at lowering
+// and at build, so the card making the outer token is refused.
+func TestNestedTokenRefusalReachesItsMaker(t *testing.T) {
+	inner := &lCard{Name: "inner", Refusals: []refusal{{Card: "inner", Node: "x", Reason: "y"}}}
+	outer := &lCard{Name: "outer", Tokens: []string{"inner"}}
+	clean := &lCard{Name: "clean"}
+	refuseByNestedToken([]*lCard{clean, inner, outer})
+	if len(outer.Refusals) != 1 || outer.Refusals[0].Reason != "token refused" || len(clean.Refusals) != 0 {
+		t.Fatalf("lowering: outer refusals %v, clean refusals %v", outer.Refusals, clean.Refusals)
+	}
+	card := &lCard{Name: "card"}
+	outer2 := &lCard{Name: "outer"}
+	all := []*lCard{card, outer2, inner}
+	bs := []built{{tokens: []int{1}}, {tokens: []int{2}}, {}}
+	refuseByNestedBuiltToken(all, bs, 1)
+	if len(outer2.Refusals) != 1 || len(card.Refusals) != 0 {
+		t.Fatalf("build: outer refusals %v, card refusals %v (the card's own check is buildPool's)", outer2.Refusals, card.Refusals)
+	}
+}

@@ -361,6 +361,7 @@ func buildPool(lw *lowered) ([]*lCard, []built, *poolTables, error) {
 	if err := refuseInactiveCodes(pt, all, bs); err != nil {
 		return nil, nil, nil, err
 	}
+	refuseByNestedBuiltToken(all, bs, len(lw.cards)) // token_nested.go
 	// A card whose token was refused at build time is refused too.
 	for i, c := range lw.cards {
 		for _, ti := range bs[i].tokens {

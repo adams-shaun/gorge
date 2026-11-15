@@ -31,7 +31,8 @@ func printedSplitSecondScen(t *testing.T, flag bool) (*scen, map[string]CardID) 
 	return newScenTableLib(t, tbl, id["Island"], Config{NoElide: true}), id
 }
 
-// castsOffered lists the cast options of the next decision.
+// castsOffered counts the options of the next decision that split second
+// bars (casts and non-mana activations), and returns the decision.
 func (sc *scen) castsOffered() (n int, d Decision) {
 	d = sc.s.Step()
 	for i := 0; i < int(d.N); i++ {

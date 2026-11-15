@@ -227,6 +227,7 @@ func lowerPool(p *pool) *lowered {
 	for _, k := range keys {
 		lw.tokens = append(lw.tokens, byKey[k])
 	}
+	refuseByNestedToken(lw.tokens) // token_nested.go
 	// A card whose token is refused is refused too.
 	refusedTok := map[string]bool{}
 	for _, t := range lw.tokens {
