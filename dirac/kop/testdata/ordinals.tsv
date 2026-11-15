@@ -808,6 +808,7 @@ ExtEffEtbCtr	ExtOp	197
 ExtEndCombatPhase	ExtOp	66
 ExtEndure	ExtOp	9
 ExtEnterAttacking	ExtOp	250
+ExtEnterCtrPick	ExtOp	96
 ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244
@@ -2239,6 +2240,5 @@ ZonePhasedInd	Zone	9
 ZonePlanarDeck	Zone	12
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
-ExtEnterCtrPick	ExtOp	288
 payFLifeBits	untyped int	6
 payFLifeMask	untyped int	63
