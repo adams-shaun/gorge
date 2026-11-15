@@ -53,6 +53,7 @@ Canopy Claws
 Canopy Dragon
 Canopy Spider
 Canyon Wildcat
+Caravan Hurda
 Catapult Fodder
 Caustic Tar
 Centaur Safeguard
@@ -69,6 +70,7 @@ Coma Veil
 Composer of Spring
 Containment Breach
 Coral Eel
+Council's Judgment
 Cragplate Baloth
 Crushing Pain
 Cunning Lethemancer
@@ -221,6 +223,7 @@ Manifold Key
 March of the Drowned
 Masked Blackguard
 Melancholy
+Metal Fatigue
 Meteoric Mace
 Might of the Old Ways
 Mirran Bardiche
@@ -300,6 +303,7 @@ Sacred Mesa
 Sagu Mauler
 Sai, Master Thopterist
 Salvager of Secrets
+Sands of Delirium
 Sandstone Warrior
 Sangrite Surge
 Sapphire Drake
@@ -308,14 +312,17 @@ Scour from Existence
 Scrapwork Rager
 Scrivener
 Sea Drake
+Sea Gate
 Searchlight Geist
 Selvala's Enforcer
+Seraph of the Suns
 Serra Avenger
 Shadow Rift
 Shagrat, Loot Bearer
 Shambleshark
 Shard of the Void Dragon
 Shatter
+Sigarda, Font of Blessings
 Sigiled Behemoth
 Silvos, Rogue Elemental
 Siren Lookout
@@ -388,6 +395,7 @@ Wild Shape
 Wildest Dreams
 Winding Wurm
 Winged Portent
+Witch Hunter
 Witching Well
 Witness the Future
 Worm Harvest

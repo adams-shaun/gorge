@@ -24,6 +24,7 @@ Azusa, Lost but Seeking
 Badlands
 Balance of Power
 Baleful Force
+Bartolomé del Presidio
 Basilica Screecher
 Beanstalk Giant
 Beast Mode
@@ -177,6 +178,7 @@ Joraga Auxiliary
 Juzám Djinn
 Kangee, Sky Warden
 Kessig Wolf
+Kingpin's Pet
 Knight of Obligation
 Knight-Errant of Eos
 Kodama of the West Tree
@@ -202,6 +204,7 @@ Magus of the Mind
 Malevolent Rumble
 Managorger Hydra
 Markov Crusader
+Markov Purifier
 Marsh Boa
 Mausoleum Secrets
 Maze Behemoth

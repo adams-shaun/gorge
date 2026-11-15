@@ -41,6 +41,7 @@ Banners Raised
 Bartered Cow
 Battering Sliver
 Beacon Behemoth
+Beledros Witherbloom
 Beskir Shieldmate
 Black Market Tycoon
 Bladebrand
@@ -198,6 +199,7 @@ Gyre Sage
 Hail of Arrows
 Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
+Haunted Mire
 Haze of Pollen
 Hazoret's Favor
 Heavenly Qilin
@@ -324,6 +326,7 @@ Phantasmal Form
 Pheres-Band Warchief
 Phyrexian Revoker
 Pieces of the Puzzle
+Pillar of the Paruns
 Piranha Marsh
 Plague Rats
 Plains
@@ -452,6 +455,7 @@ Surrakar Banisher
 Survey the Wreckage
 Swamp
 Swathcutter Giant
+Swordsman's Steel
 Tablet of Epityr
 Taeko, the Patient Avalanche
 Talon Sliver

@@ -149,6 +149,7 @@ Forest
 Forget
 Foxfire
 Frost Breath
+Frost Fair Lure Fish
 Frostburn Weird
 Gallantry
 Galvanic Juggernaut
@@ -414,6 +415,7 @@ Teferi, Time Raveler
 Temporal Fissure
 Tempting Witch
 Terror of the Fairgrounds
+The Locust God
 The Mirari Conjecture
 Thornscape Familiar
 Thrilling Discovery
