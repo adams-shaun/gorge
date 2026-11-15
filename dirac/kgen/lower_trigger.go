@@ -116,6 +116,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Zone = zoneNames[zone]
 	}
+	selfDecides := false
 	if od, ok := tp.get("OptionalDecider"); ok {
 		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") &&
 			!(od == "TriggeredAttackingPlayer" && t.Mode == "AttackersDeclared") &&
@@ -142,7 +143,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// CopySpellAbility body folds too when the trigger carries a
 		// triggering card (a SpellCast: Mendicant Core's "pay {1}"). A source
 		// triggering on itself makes TriggeredCardController the controller too
-		selfDecides := od == "TriggeredCardController" && t.ParamStr(cards.PKValidCard) == "Card.Self"
+		selfDecides = od == "TriggeredCardController" && t.ParamStr(cards.PKValidCard) == "Card.Self"
 		if e := t.Effect; tr.Optional && (od == "You" || selfDecides) && e != nil && e.API != "Mana" {
 			if c := e.ParamStr(cards.PKCost); c != "" && !strings.HasPrefix(c, "Mandatory") {
 				tr.Optional = false
@@ -244,6 +245,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			tr.Event = "ETB"
 		case tr.Origin == zBattlefield && tr.Dest == zGraveyard:
 			tr.Event = "Dies"
+			// a listener's "that creature's controller may" (Fecundity): the
+			// dying creature's last-known controller answers the CR 603.5 ask
+			// (gorge deciderFromSpecTriggeredCardController); the entry's
+			// trigger player is that controller
+			if od, _ := tp.get("OptionalDecider"); od == "TriggeredCardController" && !selfDecides && tr.Optional {
+				tr.OptTrigPlayer = true
+			}
 		case tr.Origin == zBattlefield && tr.Dest == zAny && !giftSelf:
 			// leaves the battlefield to any zone (CR 603.6c, 603.10a): the
 			// kernel's TrigLeaves fires in fireLeave, the permanent still on

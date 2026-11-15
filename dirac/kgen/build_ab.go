@@ -1717,7 +1717,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
 	if t.OptTrigPlayer {
-		if !t.Optional || (t.Event != "Phase" && t.Event != "AttackersDeclared") {
+		if !t.Optional || (t.Event != "Phase" && t.Event != "AttackersDeclared" && t.Event != "Dies") {
 			return kt, fmt.Errorf("optional trigger player on a %s trigger", t.Event)
 		}
 		if t.Event == "Phase" && t.Whose != whoAny {
