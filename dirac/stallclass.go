@@ -97,7 +97,7 @@ var stallCapacityReasons = [...]uint8{
 var stallUnmodelledReasons = [...]uint8{
 	StallInfect, StallReplPlus, StallLifeRepl, StallDrawRepl, StallProlif, StallCtrOrder,
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
-	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
+	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer, StallTokRewrite,
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
