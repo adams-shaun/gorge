@@ -2078,6 +2078,8 @@ func discardHandCost(c *lCost) error {
 	case "Hand":
 		c.DiscardHand, c.DiscardSpec, c.DiscardN = true, "", 0
 		return nil
+	case "Random":
+		return discardRandomCost(c)
 	default:
 		return refuse("discard cost %q outside an unless cost", c.DiscardSpec)
 	}

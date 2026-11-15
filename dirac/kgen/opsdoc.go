@@ -234,9 +234,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 			if ab.Cost.Host == kop.CostHostExile {
 				add("cost:HostExile", name)
 			}
-			if ab.Cost.DiscardHand {
-				add("cost:DiscardHand", name)
-			}
+			usageDiscardCosts(ab.Cost, name, add)
 			if ab.Cost.Flags&kop.CostOncePerTurn != 0 {
 				add("cost:OncePerTurn", name)
 			}

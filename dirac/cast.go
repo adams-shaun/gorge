@@ -2259,6 +2259,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			s.sacShort(k, d)
 			return true
 		}
+		if s.bld().pickK == pkDiscard && pc.DiscardRandom {
+			s.randomDiscardPick(d)
+			d.N = 0
+			continue
+		}
 		if s.bld().pickK == pkTapX && int(d.N) == int(s.bld().pickLeft) {
 			for i := 0; i < int(d.N); i++ {
 				s.recordPick(Obj(d.Options[i].Source()))
