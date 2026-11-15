@@ -853,8 +853,8 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
-	if cd.HasMultikicker && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
-		// a plain Multikicker hand cast is "shape:optional_cost" to the cast
+	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
+		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast
 		// planner; gorge keeps the composition's plan (potentialPlayVerdictShared)
 		// but not its "insufficient", so the cast never enters the prefix search
 		// (potentialScriptPlays) and a census gap (a depletion land's counter
@@ -949,7 +949,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// colours while one point of damage is not lethal (Starting Town's W)
 		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
-	if cd.BeholdExile || cd.HasMultikicker && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
+	if cd.BeholdExile || (cd.HasMultikicker || cd.HasEscalate) && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		if s.plannerPaysCast(k, p, c, o) { // a shape lowered only on the composed plan's witness
 			return true
 		}
@@ -1570,6 +1570,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 						}
 						add(sl, uint8(a.ManaColors), uint8(n))
 					}
+					// counted here, so the fixpoint below must not admit the same
+					// ability again (potentialGapCost's Deplete arm): gorge counts it once
+					s.markRiderDone(k, sl, &done)
 				}
 			}
 			if k.gen != nil && pc.manaAb < 0 {
@@ -1727,6 +1730,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+	case ab.ManaRider == kop.ManaRiderDeplete && ab.Cost.Flags == kop.CostTap|kop.CostRemoveCtr:
+		// a depletion land (Sandstone Needle, Peat Bog): gorge's potentialManaFor counts its
+		// whole production while it still holds the counter its cost removes
+		return s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
 	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
 		// a storage battery (Mage-Ring Network): its announced X is bounded by
 		// the counters it holds (mana_countercost.go storeGap)

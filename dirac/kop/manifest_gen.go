@@ -1822,6 +1822,9 @@ const ReplProliferate ReplKind = 61
 // repl RollPlanarDice (dirac/manifest/ReplKind/ReplRollPlanarDice)
 const ReplRollPlanarDice ReplKind = 62
 
+// DamageDone (dirac/manifest/ReplKind/ReplPreventDamageToSelf)
+const ReplPreventDamageToSelf ReplKind = 63
+
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
 

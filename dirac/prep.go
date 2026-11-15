@@ -84,7 +84,7 @@ type pcard struct {
 	enterCK     kop.CounterKind
 	noCtrCond   kop.CondID // a ReplCantBeCountered with a Cond (Banefire: X is 5 or more), read with the entry; ahead of noCtr so the 16-bit enterCK leaves pcard no pad byte (92 bytes)
 	noCtr       bool       // ReplCantBeCountered
-	noUntap     bool       // ReplDoesntUntap
+	noUntap     uint8      // ReplDoesntUntap: untapPlain, or untapGated for one with a Cond (Alirios, Enraptured), read at the untap (repl_untapself.go)
 	mayNotUntap bool       // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
 	land        bool
 	altCost     bool // the card has its own mana alternative cost (genPrep.altFree; cast_altfree.go) or Impending: the hand walk's one-byte gate (offerAltHand)
@@ -429,7 +429,7 @@ func prepare(t *kop.Table) *prep {
 					pc.hasStat = true // scanned through statM (repl_uncounterable.go)
 					p.anyUncounter = true
 				case kop.ReplDoesntUntap:
-					pc.noUntap = true
+					pc.noUntap = noUntapKind(pc.noUntap, a.Repl.Cond) // repl_untapself.go
 				case kop.ReplMayNotUntap:
 					pc.mayNotUntap = true
 				}

@@ -101,8 +101,8 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
 	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
-		if n = s.selfDamage(k, sl, combat, n); n <= 0 {
-			return 0 // Anti-Venom: prevented, that many +1/+1 counters (repl_selfdamage.go)
+		if n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n); n <= 0 {
+			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
 		}
 	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
@@ -276,7 +276,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			continue // Ext DmgRedirect: all of it dealt to the record's recipient as a new event
 		}
 		n := s.replDamage(k, src.ctrl, ev.src, s.cardAt(ev.src), code, true, int(ev.n))
-		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevCtrSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevCtrSelf) {
+		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevSelf) {
 			s.preventCombatEv(k, r, ev) // this event only: each puts its own counters (repl_selfdamage.go)
 			continue
 		}
