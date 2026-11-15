@@ -1166,6 +1166,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.131: the city's blessing is the kernel's post-placement
 			// scan and the spell's resolution grant (dirac/kw_ascend.go)
 			lc.out.Ascend = true
+		case head == "Dredge":
+			lc.lowerDredge(param) // CR 702.52 (lower_dredge.go)
 		case head == "Bloodthirst":
 			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
 			// replacement, lowered as gorge builds it (lower_bloodthirst.go)

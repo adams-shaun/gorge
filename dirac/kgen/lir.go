@@ -1334,6 +1334,7 @@ type lCard struct {
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
 	UmbraArmor     bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
+	Dredge         uint8    // printed K:Dredge:N (CR 702.52a): CardDef.Dredge
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)

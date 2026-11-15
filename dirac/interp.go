@@ -30,6 +30,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.damageTo(k, code, s.value(k, in.A))
 		}
 	case kop.OpDraw:
+		if dredgeOn(k) {
+			return s.dredgeDraws(k, in) // kw_dredge.go: each card asks first
+		}
 		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
 		for i := uint8(0); i < q.n; i++ {

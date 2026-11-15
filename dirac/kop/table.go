@@ -125,6 +125,10 @@ type CardDef struct {
 	// Aura's enchanted permanent, were it destroyed, instead loses all its
 	// damage and this Aura is destroyed (kernel kw_umbraarmor.go).
 	UmbraArmor bool
+	// Dredge is printed K:Dredge:N (CR 702.52a, kop.KwDredge), N here (0:
+	// none): while the card is in its owner's graveyard, a draw of theirs
+	// may instead mill N and return it to their hand (kernel kw_dredge.go).
+	Dredge uint8
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
