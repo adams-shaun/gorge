@@ -123,8 +123,10 @@ var DebugDefendingActiveOpp bool
 // target-gated cost reduction (gorge costTargetsMatch, CR 601.2f): a
 // battlefield permanent, or for a stack-zone f (a Spell head, Out of Air's
 // Spell.Creature) a spell on the stack, read like a TgtSpell target
-// (legal.go targetOK). Every Filter2 reader (costTargetOK's build and probe
-// branches, affordableTargets) goes through it.
+// (legal.go targetOK), or a card in another zone (a graveyard-target spell's
+// ValidTarget$ Creature filter: No One Left Behind's creature card in its
+// owner's graveyard), read as the card. Every Filter2 reader (costTargetOK's
+// build and probe branches, affordableTargets) goes through it.
 func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t TCode) bool {
 	return s.costTargetMatchSrc(k, f, p, t, NoSlot)
 }
@@ -139,5 +141,11 @@ func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t TCode, sr
 	if k.t.Filters[f].Zone == kop.ZoneStack {
 		return ob.zone == kop.ZoneStack && s.matchCardAt(k, f, ob.card, s.stackCtrl(Obj(t)), p, Obj(t))
 	}
-	return ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, f, ob.slot, p, src, layerFull)
+	if ob.zone == kop.ZoneBattlefield {
+		return s.matchPermGen(k, f, ob.slot, p, src, layerFull)
+	}
+	// the target sits in another zone, so there is no permanent to read: the
+	// filter is a card filter (gorge matchesSpec reads the object wherever it
+	// is), its zone gate the spell's own target spec
+	return s.matchCardAt(k, f, ob.card, ob.owner(), p, Obj(t))
 }
