@@ -89,7 +89,7 @@ func (s *State) askOptionsHide(k *prep, d *Decision) bool {
 	}
 	d.Sub = ChHideaway
 	for i := 0; i < int(s.g.nlook); i++ {
-		d.add(MakeAction(AkChoose, uint8(s.resArm().look[i]), 0, 0))
+		d.add(MakeAction(AkChoose, TCode(s.resArm().look[i]), 0, 0))
 	}
 	return true
 }

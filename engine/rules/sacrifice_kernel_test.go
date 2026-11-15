@@ -12,8 +12,8 @@ import (
 )
 
 // TestEnchantersBaneOptionalSacrifice: Enchanter's Bane's real DBSac
-// (Sacrifice | Defined$ TargetedController | SacValid$ TargetedCard.Self |
-// Optional$ True) offers the TARGET's controller a Min 0 / Max 1 choice over
+// (the target's controller may sacrifice the targeted card) offers the
+// TARGET's controller a Min 0 / Max 1 choice over
 // exactly the targeted enchantment; declining keeps it, choosing it
 // sacrifices it. The corpus shape is pinned first; the resolving sorcery
 // carries the same parameters inline.

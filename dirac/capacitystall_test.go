@@ -171,12 +171,9 @@ func TestDmgLatchNinthListenerStalls(t *testing.T) {
 	}
 }
 
-// TestOverrideRecordsFitEight: eight distinct override records live on one
-// slot in application order; the ninth stalls StallTables and no record is
-// evicted. ObjHash and ViewHash stay bit-identical to the base [4]ovRec
-// layout for three records (the hash reads the first four records as
-// before, and only mixes the second four when record four exists).
-func TestOverrideRecordsFitEight(t *testing.T) {
+// overrideRecordsTable is the vanilla table plus nine override records
+// (the first sets P/T 10/10), and the index of the first.
+func overrideRecordsTable() (kop.Table, int) {
 	tbl := *vanilla.Table
 	tbl.Cards = append([]kop.CardDef(nil), vanilla.Table.Cards...)
 	tbl.Overrides = append([]kop.Override(nil), vanilla.Table.Overrides...)
@@ -189,6 +186,14 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 		}
 		tbl.Overrides = append(tbl.Overrides, ov)
 	}
+	return tbl, base
+}
+
+// TestOverrideRecordsFitEight: eight distinct override records live on one
+// slot in application order; the ninth stalls StallTables and no record is
+// evicted.
+func TestOverrideRecordsFitEight(t *testing.T) {
+	tbl, base := overrideRecordsTable()
 	sc := newScenTable(t, &tbl, Config{NoElide: true})
 	target := sc.perm(vanilla.GrizzlyBears, 0)
 	sl := sc.slot(target)
@@ -225,31 +230,23 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	if recs := sc.s.ovRecs(sl); recs[0].ts != firstTS {
 		t.Fatalf("9th record evicted the oldest (ts %d, want %d)", recs[0].ts, firstTS)
 	}
+}
 
-	// Hash compatibility: three records, computed with the base [4]ovRec
-	// layout at 38babcfc (the first four records hash exactly as before).
-	// The ViewHash recipe gained genState.embN with (the
-	// generated state's emblems mix their frozen chosen number too), then
-	// genState.embT (an emblem's layer timestamp orders its static against a
-	// lose-all), so the view pin is the recipe after those changes; ObjHash
-	// is unchanged.
+// TestCapacityHashPins: ObjHash and ViewHash of a slot with three override
+// records are pinned in testdata/layout.tsv. The hash reads
+// the first four records as the base [4]ovRec layout did and mixes the second
+// four only when record four exists, so three records hash as before. Both
+// hashes read the State's layout (the object hash a perm whole, the view
+// hash the generated state's per-seat banks whole).
+func TestCapacityHashPins(t *testing.T) {
+	tbl, base := overrideRecordsTable()
 	hsc := newScenTable(t, &tbl, Config{NoElide: true})
 	ht := hsc.perm(vanilla.GrizzlyBears, 0)
 	hsl := hsc.slot(ht)
 	for i := 0; i < 3; i++ {
 		hsc.s.applyOverridePT(hsc.k, hsl, base+i, vanilla.GrizzlyBears, 0, 10, 10)
 	}
-	// Computed at 38babcfc with the base [4]ovRec layout.
-	const (
-		wantObjHash  uint64 = 0xdc072663b2b01bd1
-		wantViewHash uint64 = 0x68736735437a8890
-	)
-	if got := hsc.s.ObjHash(ht); got != wantObjHash {
-		t.Fatalf("ObjHash %#x, want %#x", got, wantObjHash)
-	}
-	if got := hsc.s.ViewHash(0, nil); got != wantViewHash {
-		t.Fatalf("ViewHash %#x, want %#x", got, wantViewHash)
-	}
+	checkLayoutHashes(t, hsc.s.ObjHash(ht), hsc.s.ViewHash(0, nil))
 }
 
 // TestReplCandsOverflowStalls: the three CR 616.1 candidate writers stall
@@ -306,7 +303,7 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 			sc.perm(c.tyrant, 0)
 		}
 		sc.s.g.stalled = 0
-		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, PlayerTarget1, 3, 0); !ok || sc.s.Stalled() {
+		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, TCode(PlayerTarget1), 3, 0); !ok || sc.s.Stalled() {
 			t.Fatalf("4 doublers: park %v stall %q, want true and none", ok, StallName(sc.s.StallReason()))
 		}
 		if sc.s.g.ro.n != 4 {
@@ -316,7 +313,7 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 		sc.s.g.ro = replOrd{}
 		sc.s.g.nc = ncDmg{}
 		sc.s.g.stalled = 0
-		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, PlayerTarget1, 3, 0); ok {
+		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, TCode(PlayerTarget1), 3, 0); ok {
 			t.Fatalf("5 doublers: park succeeded, want no ask")
 		}
 		if got := sc.s.StallReason(); got != StallReplCands {
@@ -328,12 +325,15 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 		c, sc := mk(t)
 		src := sc.perm(vanilla.GrizzlyBears, 0)
 		dst := sc.perm(vanilla.GrizzlyBears, 1)
-		for i := 0; i < 4; i++ {
+		// the caster's doubler beside three preventers: four bare
+		// preventions alone are not ordered at all (repl_bareprev.go)
+		sc.perm(c.tyrant, 0)
+		for i := 0; i < 3; i++ {
 			sc.perm(c.barricade, 1)
 		}
 		sc.s.g.stalled = 0
 		code := uint8(dst)
-		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, code, 3, 0); !ok || sc.s.Stalled() {
+		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, TCode(code), 3, 0); !ok || sc.s.Stalled() {
 			t.Fatalf("4 preventers: park %v stall %q, want true and none", ok, StallName(sc.s.StallReason()))
 		}
 		if sc.s.g.ro.n != 4 {
@@ -343,7 +343,7 @@ func TestReplCandsOverflowStalls(t *testing.T) {
 		sc.s.g.ro = replOrd{}
 		sc.s.g.nc = ncDmg{}
 		sc.s.g.stalled = 0
-		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, code, 3, 0); ok {
+		if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), vanilla.GrizzlyBears, TCode(code), 3, 0); ok {
 			t.Fatalf("5 preventers: park succeeded, want no ask")
 		}
 		if got := sc.s.StallReason(); got != StallReplCands {

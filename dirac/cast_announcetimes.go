@@ -130,7 +130,7 @@ func (s *State) applyAskNumTimes(k *prep, a Action) bool {
 		return s.applyAskTrigX(k, a) // trig_maypayx.go
 	}
 	n := a.Mode()
-	s.res.e.x = n
+	s.res.e.x = objWord(n)
 	if n == 0 {
 		s.continueRes(k, uint8(s.prog(k)[s.res.pc].C>>7))
 		return true

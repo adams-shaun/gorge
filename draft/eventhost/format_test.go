@@ -146,7 +146,7 @@ func TestCreateEventRefusesUnknownFormat(t *testing.T) {
 	h, _ := newHost(t, nil)
 	_, err := h.CreateEvent(formatReq("cube"))
 	wantErr(t, err, "bad_request", 400)
-	if want := `eventhost: format must be draft, sealed or prerelease, got "cube"`; !strings.Contains(err.Error(), want) {
+	if want := `eventhost: format must be draft, sealed, prerelease or commander, got "cube"`; !strings.Contains(err.Error(), want) {
 		t.Fatalf("error %q lacks %q", err, want)
 	}
 }

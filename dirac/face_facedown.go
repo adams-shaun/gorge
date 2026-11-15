@@ -189,7 +189,7 @@ func (s *State) offerFaceDown(k *prep, d *Decision, p uint8, o Obj, fam uint8) {
 	if !s.poolPays(p, &cost) {
 		return
 	}
-	d.add(MakeAction(AkCast, uint8(o), 0, castFaceDown))
+	d.add(MakeAction(AkCast, TCode(o), 0, castFaceDown))
 }
 
 // offerTurnFaceUp offers the turn-face-up special action (CR 708.6): a
@@ -265,13 +265,13 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 				mode = 2
 			}
 			if turnUpHybOK(&cost) && s.specialAffords(k, p, &cost, turnUpSpecial(mode, cd.MorphFamily), sl, 0) {
-				d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, mode))
+				d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, mode))
 			}
 		}
 		if fam := cd.MorphFamily; fam != 0 {
 			cost := s.morphCostAt(k, sl)
 			if turnUpHybOK(&cost) && s.turnUpOffered(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl, true) {
-				d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, fam+2))
+				d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, fam+2))
 			}
 		}
 		return
@@ -283,7 +283,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 	if !turnUpHybOK(&cost) || !s.turnUpOffered(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl, true) {
 		return
 	}
-	d.add(MakeAction(AkTurnFaceUp, uint8(pm.obj), 0, 0))
+	d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, 0))
 }
 
 // turnFaceUp performs the special action: pay the Morph cost from the
@@ -370,12 +370,12 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 	if pm.ctrl != p || !s.faceDown(k, sl) {
 		return
 	}
-	cost, megamorph, _, ok := s.turnUpCost(k, sl, mode)
+	cost, megamorph, kw, ok := s.turnUpCost(k, sl, mode)
 	if !ok || !turnUpHybOK(&cost) {
 		return
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
-	if !s.specialAffords(k, p, &cost, sp, sl, x) {
+	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpLifeOK(k, p, sl) {
 		return
 	}
 	cost = cost.AtX(x)
@@ -383,6 +383,9 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 		cost = s.turnUpHybResolve(p, cost, 0) // face_turnfaceup.go
 	}
 	s.paySpecial(k, p, &cost, sp, sl, x)
+	if kw {
+		s.payTurnUpLife(k, p, sl) // face_morphlife.go
+	}
 	s.turnUpFlip(k, sl, o, p, uint8(x))
 	if megamorph {
 		s.g.lastCK = kop.CtrP1P1

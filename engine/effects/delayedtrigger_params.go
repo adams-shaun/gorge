@@ -247,7 +247,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"UnlessSwitched",
 	"UpcomingTurn",
 	"ValidActivatingPlayer",
-	"ValidAttackers",
+	"ValidAfterStack", "ValidAttackers",
 	"ValidAttackersAmount",
 	"ValidCard",
 	"ValidCards",

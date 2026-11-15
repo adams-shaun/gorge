@@ -95,7 +95,7 @@ func filterRd(f *lFilter) condRd {
 			r.types |= tArtifact | tLegendary
 			r.sub = true // Saga
 		case cmpNone, cmpCMC, cmpCounters, cmpHasX, cmpEquipped, cmpEnchanted, cmpAttached,
-			cmpActiveCtrl, cmpModified, cmpHasCounters, cmpMonstrous:
+			cmpActiveCtrl, cmpModified, cmpHasCounters, cmpMonstrous, cmpRenowned:
 			// no layer-3..7 characteristic: mana value, counters,
 			// attachment, designation or the active player
 		default:
@@ -112,7 +112,7 @@ func valueRd(v lValue) condRd {
 		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vLifeLostLastTurn, vHandSizeOf,
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
 		vKicked, vTimesKicked, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
-		vLowestLife, vOppsAttacked:
+		vLowestLife, vOppsAttacked, vBlessing:
 	case vCount, vCountAtLeast:
 		r = filterRd(v.F)
 	default:
@@ -127,7 +127,7 @@ func valueRd(v lValue) condRd {
 func condRead(c lCond) condRd {
 	var r condRd
 	switch c.Kind {
-	case cNone, cKicked, cThreshold, cYourTurn, cOpponentsTurn, cPromisedGift:
+	case cNone, cKicked, cThreshold, cYourTurn, cOpponentsTurn, cPromisedGift, cBlessing:
 	case cAnd:
 		for _, s := range c.Sub {
 			r.or(condRead(s))

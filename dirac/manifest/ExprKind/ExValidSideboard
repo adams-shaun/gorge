@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExValidSideboard
+value: 102
+forge: ValidSideboard
+census: count ValidSideboard all=3 std=0 mbc=0 sole=1
+state: code 0
+status: reserved

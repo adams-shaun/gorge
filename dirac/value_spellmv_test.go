@@ -64,7 +64,7 @@ func TestTriggerSpellMVLKI(t *testing.T) {
 	spell := func(c CardID, x uint8) *stackEntry {
 		o := sc.obj(c, 0)
 		sc.s.objs[o].zone = kop.ZoneStack
-		sc.s.push(stackEntry{kind: seSpell, obj: o, ctrl: 0, card: c, trigObj: NoObj, x: x})
+		sc.s.push(stackEntry{kind: seSpell, obj: o, ctrl: 0, card: c, trigObj: NoObj, x: objWord(x)})
 		return &sc.s.stack[sc.s.sp-1]
 	}
 	copyOf := func(e *stackEntry) *stackEntry {
@@ -106,7 +106,7 @@ func TestTriggerSpellMVLKISnapshot(t *testing.T) {
 	if mv != 2 {
 		t.Fatalf("cast Adventure half: mana value %d, want 2", mv)
 	}
-	trig := stackEntry{kind: seTrigger, ctrl: 0, card: id["Brazen Borrower"], trigObj: o, trigMV: mv}
+	trig := stackEntry{kind: seTrigger, ctrl: 0, card: id["Brazen Borrower"], trigObj: o, trigMV: objWord(mv)}
 	sc.s.stackExitFace(sc.k, o, kop.ZoneGraveyard, false)
 	if c := sc.s.objs[o].card; c != front {
 		t.Fatalf("stack exit did not reset the Adventure card to its front: %d", c)
@@ -131,7 +131,7 @@ func TestTriggerSpellMVLKIWiring(t *testing.T) {
 		sc.stepTo(t, 30, func() bool { return sc.s.sp == 0 && sc.s.npend == 0 && sc.s.objs[fire].zone == kop.ZoneGraveyard },
 			func(d *Decision) (Action, bool) {
 				for i := 0; i < int(d.N); i++ {
-					if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(fire) {
+					if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(fire)) {
 						return a, true
 					}
 				}
@@ -158,7 +158,7 @@ func TestTriggerSpellMVLKIWiring(t *testing.T) {
 					}
 				}
 				for i := 0; i < int(d.N); i++ {
-					if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ms) {
+					if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ms)) {
 						return a, true
 					}
 				}
@@ -195,18 +195,18 @@ func TestTriggerSpellMVLKICopyTrigger(t *testing.T) {
 		}
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkCast && a.Source() == uint8(tc) {
+			if a.Kind() == AkCast && a.Source() == TCode(uint8(tc)) {
 				return a, true
 			}
 		}
 		for i := 0; i < int(d.N); i++ {
 			a := d.Options[i]
-			if a.Kind() == AkTarget && a.Target() == uint8(ms) {
+			if a.Kind() == AkTarget && a.Target() == TCode(uint8(ms)) {
 				return a, true
 			}
 		}
 		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ms) {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == TCode(uint8(ms)) {
 				return a, true
 			}
 		}
@@ -237,11 +237,11 @@ func TestCopyDividedRetarget(t *testing.T) {
 	}
 	cast := func(t *testing.T, sc *scen, fire, tc, a, b Obj) {
 		t.Helper()
-		sc.do(t, AkCast, uint8(fire), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(a))
-		sc.do(t, AkTarget, 0xff, uint8(b))
-		sc.do(t, AkCast, uint8(tc), 0xff)
-		sc.do(t, AkTarget, 0xff, uint8(fire))
+		sc.do(t, AkCast, TCode(fire), scAny)
+		sc.do(t, AkTarget, scAny, TCode(a))
+		sc.do(t, AkTarget, scAny, TCode(b))
+		sc.do(t, AkCast, TCode(tc), scAny)
+		sc.do(t, AkTarget, scAny, TCode(fire))
 	}
 	t.Run("one new target takes the whole total", func(t *testing.T) {
 		sc, fire, tc, a, b, c := copyDividedScen(t)
@@ -250,7 +250,7 @@ func TestCopyDividedRetarget(t *testing.T) {
 		if d.Kind != DkTarget || d.Sub != SubCopyTarget || d.Player != 0 {
 			t.Fatalf("want the copy's new-target ask, got kind %d sub %d player %d", d.Kind, d.Sub, d.Player)
 		}
-		sc.s.Apply(MakeAction(AkTarget, 0, uint8(c), 0))
+		sc.s.Apply(MakeAction(AkTarget, 0, TCode(c), 0))
 		d = sc.s.Step()
 		if d.Kind != DkTarget || d.Sub != SubCopyTarget {
 			t.Fatalf("second pick: kind %d sub %d", d.Kind, d.Sub)
@@ -278,12 +278,12 @@ func TestCopyDividedRetarget(t *testing.T) {
 		sc, fire, tc, a, b, _ := copyDividedScen(t)
 		cast(t, sc, fire, tc, a, b)
 		passToCopyAsk(t, sc.s)
-		sc.s.Apply(MakeAction(AkTarget, 0, uint8(a), 0))
+		sc.s.Apply(MakeAction(AkTarget, 0, TCode(a), 0))
 		d := sc.s.Step()
 		if d.Kind != DkTarget || d.Sub != SubCopyTarget {
 			t.Fatalf("second pick: kind %d sub %d", d.Kind, d.Sub)
 		}
-		sc.s.Apply(MakeAction(AkTarget, 0, uint8(b), 0))
+		sc.s.Apply(MakeAction(AkTarget, 0, TCode(b), 0))
 		passToCopyResolved(t, sc.s)
 		if !sc.onBF(a) || !sc.onBF(b) {
 			t.Fatalf("a kept target died: a %v b %v", sc.onBF(a), sc.onBF(b))

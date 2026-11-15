@@ -55,7 +55,7 @@ func (t *idTable) sync(kp *dirac.Projection) {
 }
 
 // obj is kernel object o's id.
-func (t *idTable) obj(o uint8) state.ObjID {
+func (t *idTable) obj(o canon.Ref) state.ObjID {
 	if int(o) >= len(t.objs) {
 		return 0
 	}
@@ -70,7 +70,7 @@ func (t *idTable) ref(r canon.Ref, kp *dirac.Projection) state.ObjID {
 	case r >= canon.RefStack:
 		i := int(r - canon.RefStack)
 		if i < int(kp.NStack) && kp.Stack[i].Kind == 0 {
-			return t.obj(uint8(kp.Stack[i].Source))
+			return t.obj(canon.Ref(kp.Stack[i].Source))
 		}
 		if i < len(t.stack) {
 			return t.stack[i]

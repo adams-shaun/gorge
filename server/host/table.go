@@ -205,6 +205,11 @@ type TableConfig struct {
 	// rules.Config and on its sidecar, so a replay rebuilds the life the
 	// match actually played with.
 	StartingLife int32 `json:"starting_life,omitempty"`
+	// DraftPartners opts a commander table into the Commander-draft
+	// pairing rule (game.Config.DraftPartners): a seat may play two
+	// partnerless commanders of at most one colour each. A draft event's
+	// pod table sets it; false — every other table — changes nothing.
+	DraftPartners bool `json:"draft_partners,omitempty"`
 	// AllowDecklistBots opts a BOT-ONLY table into a bot policy that reads
 	// every seat's real decklist. An Env policy
 	// (bots.Info.Env) builds its search root from every seat's true 40/60 —

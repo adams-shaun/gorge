@@ -92,13 +92,14 @@ const (
 	fExiledWith    // ExiledWithSource: exiled with the reading source (kop.FExiledWith)
 	fNotAttacking  // !attacking (kop.FNotAttacking)
 	fNotAttachedBy // !EnchantedBy / !EquippedBy / !AttachedBy: not the source's host (kop.FNotAttachedBySrc)
+	fNamedCard     // the card-name property NamedCard: the candidate shares the source's chosen card name (gorge namePredicate NamedCard; kop.PredNamedCard)
 	fFlagCount     = iota
 )
 
 var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "Blocking", "Tapped", "Untapped",
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
-	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy"}
+	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard"}
 
 // Controller / owner selectors.
 const (
@@ -129,6 +130,11 @@ const (
 	// current link's target -- a player target is that player, an object
 	// target its controller (kop.Filter.CtrlTgt, battlefield only)
 	whoTgtOrCtrl
+	// whoTgtCtrl: OwnedBy TargetedController (gorge controlReferentPlayers
+	// TargetedController, op OwnedBy), on the Owner side only: the card's
+	// owner is the controller of the current link's card target, which
+	// lies off the battlefield (kop.CtrlTgtOwner; off the battlefield only)
+	whoTgtCtrl
 )
 
 // Compare statistics (lClause.CmpStat).
@@ -168,6 +174,7 @@ const (
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
 	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
+	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -292,6 +299,28 @@ func filterSelfOnly(f *lFilter) bool {
 	return true
 }
 
+// anyCardClause reports whether a clause restricts nothing: it matches any
+// card, so a group gate lowered from it asks only for a group member. A
+// typed present check (ConditionPresent$ Card.Creature) narrows the gate to
+// remembered cards of the type, which the persistent mark cannot see.
+func anyCardClause(c lClause) bool {
+	return c.Types == 0 && c.TypesAll == 0 && c.NotTypes == 0 &&
+		c.Subtype == "" && c.Name == "" && c.NotSubtype == "" && c.Subtype2 == "" &&
+		c.MoreNotSubtype == [4]string{} &&
+		c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 &&
+		c.CmpStat == 0 && c.CmpOp == 0 && c.CmpN == 0 && c.CmpX == "" && c.CmpV == nil &&
+		c.CmpCounter == "" && c.Colors == "" && c.NotColors == "" &&
+		!c.BasePermanent && !c.SpellBase && !c.Unblocked && !c.TheirHand &&
+		c.Special == 0 && c.CtrlTgt == 0
+}
+
+// filterAnyCard reports whether f restricts nothing: one unrestricted clause,
+// no player alternative and no pick constraint.
+func filterAnyCard(f *lFilter) bool {
+	return f == nil || len(f.Clauses) == 1 && anyCardClause(f.Clauses[0]) &&
+		f.Players == 0 && !f.Each && f.PickSumMax == nil && !f.PickDistinctPower
+}
+
 func (f *lFilter) String() string {
 	if f == nil {
 		return "nil"
@@ -404,6 +433,7 @@ var propWords = map[string]uint64{
 	"CrewedThisTurn":            fCrewedSrc,
 	"SaddledThisTurn":           fCrewedSrc, // gorge: the exact twin of CrewedThisTurn (one pairedWithSourceThisTurn list)
 	"CastSa Spell.Warp":         fWarped,
+	"NamedCard":                 fNamedCard, // gorge namePredicate NamedCard (CR 201.4): the candidate shares the source's chosen card name (kop.PredNamedCard; Demonic Consultation, Cheering Fanatic)
 	"bargained":                 fBargained, // CR 702.166: Card.Self+bargained (kgen gates it on the CardDef.Bargain below)
 	"escaped":                   fEscaped,   // CR 702.138a: Card.Self+escaped (kop.PredEscaped; gated on CardDef.Escape below)
 	"Teamwork":                  fTeamwork,  // CR 702.194b: Card.Self+Teamwork (gated on CardDef.Teamwork)
@@ -477,6 +507,17 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 	expr = strings.TrimSpace(expr)
 	if expr == "" {
 		return nil, fmt.Errorf("empty filter")
+	}
+	// gorge's spec normalisation reads a WHOLE spec of exactly "Self" or
+	// "Other" as "Card.Self"/"Card.Other" (effects/filter.go): the bare
+	// word is not a base, so without it the spec fails closed as an
+	// unknown head -- Forge's SacValid$ Self (Tresserhorn's Lord,
+	// Returned's own sacrifice) is the corpus carrier. The normalisation
+	// sits here, the one home every lc.filter call -- a probe of an unread
+	// param included -- shares, so the census cannot disagree with a real
+	// reader about the spelling.
+	if expr == "Self" || expr == "Other" {
+		expr = "Card." + expr
 	}
 	f := &lFilter{}
 	for _, alt := range splitAlternatives(expr, isType) {
@@ -590,6 +631,9 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 }
 
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
+	if q, ok := filterPropAlias(p); ok {
+		p = q
+	}
 	switch p {
 	case "nonLegendary":
 		c.NotTypes |= tLegendary
@@ -628,7 +672,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// twoSeat-at-caller: lowerCtx.filter marks the card)
 		c.Flags |= fAttacking
 		return c.setWho(&c.Ctrl, whoOpp)
-	case "YouCtrl":
+	case "YouCtrl", "YourTeamCtrl":
+		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
+		// teams, so a player's team is that player alone (Combo Attack)
 		return c.setWho(&c.Ctrl, whoYou)
 	case "OppCtrl", "YouDontCtrl":
 		return c.setWho(&c.Ctrl, whoOpp)
@@ -669,6 +715,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// (build.go ownerRoleF2), in an Attacks trigger's body as the
 		// ControlledBy twin is
 		return c.setWho(&c.Owner, whoDefending)
+	case "OwnedBy TargetedController":
+		// gorge controlReferentPlayers TargetedController: the controller of
+		// the current link's object target (a player target binds nothing),
+		// compared with the candidate's owner; kgen binds the slot in
+		// lowerCtx.filter and the card matcher reads it (kop.CtrlTgtOwner)
+		return c.setWho(&c.Owner, whoTgtCtrl)
 	case "OwnedBy Targeted", "TargetedPlayerOwn":
 		// TargetedPlayerOwn is gorge wordTargetedPlayerOwn
 		// (matchTargetedPlayerOwn): same referent as OwnedBy Targeted --
@@ -676,6 +728,23 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// as one code, so the resolution's player targets -- read as
 		// OwnedBy on the candidate's owner
 		return c.setWho(&c.Owner, whoTgtPlayer) // off the battlefield only (ownerRoleF2)
+	case "ControlledBy Player.targetedBy":
+		// Forge PlayerProperty.targetedBy (PlayerProperty.java): the
+		// player the resolving ability's ROOT is targeting -- the
+		// resolution's player targets for a spell chain and the firing
+		// trigger's target in one (Kuroki, Thief of Talents' DB$ Play
+		// Valid$ Card.ControlledBy Player.targetedBy, the corpus's only
+		// carrier). Same referent as gorge's controlReferentPlayers
+		// "Targeted"/"TargetedPlayer" code, so it lowers onto the
+		// TargetedPlayerCtrl shape (whoTgtPlayer); the kernel reads that
+		// through a battlefield-only Flags2 bit (build.go), where owner
+		// and controller are the same seat only on the battlefield.
+		// gorge's own classifier does not read the spelling yet
+		// (UnknownPredicates; effects owned_by_player_notedfor_test.go
+		// keeps the scope boundary), and no carrier reaches a kop op with
+		// it: Kuroki's node refuses on ConditionCheckSVar, and a hand
+		// filter refuses off the battlefield before a bit is set.
+		return c.setWho(&c.Ctrl, whoTgtPlayer)
 	}
 	if p == "IsSolved" || p == "!IsSolved" {
 		// a Case's solved designation (CR 719.3b; gorge filter.go IsSolved:
@@ -686,6 +755,16 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			n = 0
 		}
 		return c.setCmp(cmpSolved, 0, n, "", "")
+	}
+	if p == "IsRenowned" || p == "!IsRenowned" {
+		// the renowned designation (CR 702.112b; gorge filter.go IsRenowned:
+		// Object.Renowned, cleared off the battlefield): CmpN 1 renowned, 0
+		// not
+		n := 1
+		if p[0] == '!' {
+			n = 0
+		}
+		return c.setCmp(cmpRenowned, 0, n, "", "")
 	}
 	if p == "IsSuspected" || p == "!IsSuspected" {
 		// the suspected designation (CR 701.60; gorge filter.go IsSuspected:
@@ -909,7 +988,22 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setCmp(cmpPowerGTBase, 0, 0, "", "")
 	}
 	if p == "powerLTtoughness" {
-		return c.setCmp(cmpPowerLTToughness, opLT, 0, "", "")
+		return c.setCmp(cmpPowerLTToughness, opLT, int(kop.PTRelLT), "", "")
+	}
+	if p == "equalPT" || p == "!equalPT" {
+		// gorge numericPred equalPT (Forge: net power == net toughness), and
+		// its '!' negation. A non-creature with no printed P/T has none to
+		// read (gorge lacksPT: the word fails, so the negation holds), which
+		// the kernel's P/T read cannot tell apart: only a creature-only head
+		// lowers
+		if c.Types == 0 || c.Types&^tCreature != 0 {
+			return fmt.Errorf("%q beside a non-creature head", p)
+		}
+		rel := kop.PTRelEQ
+		if p[0] == '!' {
+			rel = kop.PTRelNE
+		}
+		return c.setCmp(cmpPowerLTToughness, opEQ, int(rel), "", "")
 	}
 	if strings.HasPrefix(p, "named") {
 		// named<X> (gorge wordNamed, sharesName; CR 201.2): Name is X
@@ -999,6 +1093,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		if w == "BottomLibrary" {
 			return c.setCmp(cmpWord7, 0, int(kop.W7NotBottomLibrary), "", "") // lower_filterwords.go
+		}
+		if w == "blocking" {
+			// gorge's '!' of isBlocking (kop.W7NotBlocking: FilterFlags
+			// has no bit left for an FNotBlocking beside FNotAttacking)
+			return c.setCmp(cmpWord7, 0, int(kop.W7NotBlocking), "", "")
 		}
 		if i, ok := notF2Bit(w); ok {
 			return c.setCmp(cmpNotF2, 0, i, "", "") // lower_filterwords.go

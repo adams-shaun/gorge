@@ -112,10 +112,10 @@ func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			have = true
 		}
 		if cd.BeamMeUp && s.beamCastOffered(k, p, o, cd.AltCost, &cd.FbCost, false, av) {
-			d.add(MakeAction(AkCast, uint8(o), castBeamTgt, 2))
+			d.add(MakeAction(AkCast, TCode(o), castBeamTgt, 2))
 		}
 		if granted && s.beamCastOffered(k, p, o, cd.Cost, &k.t.Cards[s.cardAt(grantor)].FbCost, true, av) {
-			d.add(MakeAction(AkCast, uint8(o), castBeamGrantTgt, 2))
+			d.add(MakeAction(AkCast, TCode(o), castBeamGrantTgt, 2))
 		}
 	}
 }

@@ -1,0 +1,16 @@
+# MBC filters-9 filter words (gorge's attackingSame, equalPT and !equalPT):
+# Kitesail Skirmisher's attack trigger target, Gilt-Leaf Winnower's enters
+# target, Master Symmetrist's attack trigger and Symmetry Matrix's enters
+# trigger (dirac/oracle/mbcfilters9_test.go)
+Kitesail Skirmisher
+Gilt-Leaf Winnower
+Master Symmetrist
+Symmetry Matrix
+Grizzly Bears
+Wind Drake
+Giant Spider
+Elvish Warrior
+Birds of Paradise
+Island
+Swamp
+Forest

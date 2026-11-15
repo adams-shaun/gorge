@@ -507,13 +507,14 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 // spend restriction, each-colour production, a cost beyond {T} (and
 // {T} plus sacrificing itself, a Treasure's last-resort tier), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
+// or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
 func censusGapMana(a *kop.Ability) bool {
 	if a.AFlags&kop.AfLatent != 0 {
 		return false
 	}
 	f := a.Cost.Flags
-	return a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -737,6 +738,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		// the fee is paid from the pool, generic in C W U B R G order, after
 		// the restricted mana it may spend; a one-pip filter's {c} is paid in
 		// c (mana_filterpip.go)
+		dc, dn := s.deferSnap(p) // a deferred source's unit the fee spends is gone (mana_deferred.go)
 		fee := s.filtFee(k, st.sl)
 		if col, ok := s.filtPip(k, st.sl); ok {
 			s.filtPayPip(k, p, st.sl, col)
@@ -755,6 +757,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
+		s.deferSync(p, dc, dn)
 		if s.filtAb(k, st.sl).ManaEach {
 			s.filtEachDo(k, p, st.sl) // every colour at once, whatever ans names (mana_filtereach.go)
 			break
@@ -1071,8 +1074,13 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
-	if !t.filtFixedRepeat(k, sl) && !fs.tick() { // (a fixed production asks no colour)
+	if !t.filtFixed(k, sl) && !fs.tick() { // (a fixed production asks no colour)
 		return false
+	}
+	if t.filtFixed(k, sl) {
+		// one fixed colour, {C} included (manaColourOrder names WUBRG only)
+		c := uint8(bits.TrailingZeros8(uint8(t.filtAb(k, sl).ManaColors)))
+		return fs.try(k, t, filtStep{sl: sl, ans: 1 + c, gap: true}, funded, true)
 	}
 	if comboFiltAb(t.filtAb(k, sl)) {
 		return fs.filtCombo(k, t, sl, funded)

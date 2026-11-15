@@ -40,6 +40,8 @@ type runner struct {
 	// packs, when non-nil, replaces openPacks as the event's pack source:
 	// the tests' synthetic 20-card Commander-draft packs.
 	packs func(r *runner, seed uint64) ([][][]limited.CardRef, error)
+	// valueLog, when non-nil, takes one -valuelog line per pod game.
+	valueLog io.Writer
 }
 
 // result is what one run produced, in the shape the tests assert on.
@@ -124,6 +126,18 @@ func run(o options, out io.Writer) (*result, error) {
 		// instead of an empty list.
 		return nil, fmt.Errorf("unknown set %q (known: %s)", o.set, strings.Join(setdata.Codes(), ", "))
 	}
+	if o.only != "" {
+		only, err := readOnly(o.only)
+		if err != nil {
+			return nil, fmt.Errorf("-only: %w", err)
+		}
+		var fills []sheetFill
+		spec, fills, err = restrictSpec(spec, only)
+		printFills(out, o.only, only, fills)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	reg, err := testutil.OpenCorpusRegistry(o.dir)
 	if err != nil {
@@ -144,10 +158,27 @@ func run(o options, out io.Writer) (*result, error) {
 		return nil, err
 	}
 	if sh.format == event.FormatCommander {
-		r.drafter, r.builder = commanderPersona(lookup)
+		r.drafter, r.builder = commanderPersona(lookup, sh.deckSize)
 	}
 	if err := applyRatingsOverride(o, r, out); err != nil {
 		return nil, err
+	}
+	if o.pickExplore < 0 || o.pickExplore > 1 {
+		return nil, fmt.Errorf("-pick-explore must be in [0, 1], got %g", o.pickExplore)
+	}
+	if o.pickExplore > 0 {
+		r.drafter = &exploreDrafter{inner: r.drafter, p: o.pickExplore}
+	}
+	if o.valueLog != "" {
+		if sh.format != event.FormatCommander {
+			return nil, fmt.Errorf("-valuelog needs -format commander")
+		}
+		vf, err := os.OpenFile(o.valueLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return nil, fmt.Errorf("opening -valuelog %s: %w", o.valueLog, err)
+		}
+		defer vf.Close()
+		r.valueLog = vf
 	}
 
 	var csvOut *os.File
@@ -176,6 +207,12 @@ func run(o options, out io.Writer) (*result, error) {
 		// non-default shape values are appended as `, key value` pairs.
 		if sh.format == event.FormatCommander {
 			fmt.Fprintf(out, "event %d: seed %d, set %s (%s), format commander, seats %d, %d picks per pass, %d game(s)", n+1, seed, spec.Code, spec.Collation, sh.seats, sh.picks, sh.rounds)
+			if sh.deckSize != 0 {
+				fmt.Fprintf(out, ", deck size %d", sh.deckSize)
+			}
+			if sh.structure == event.StructureNone {
+				fmt.Fprint(out, ", structure none")
+			}
 		} else {
 			fmt.Fprintf(out, "event %d: seed %d, set %s (%s), %s", n+1, seed, spec.Code, spec.Collation, personaHeader(o.drafter, dLabel, o.builder, bLabel))
 		}
@@ -226,6 +263,11 @@ func run(o options, out io.Writer) (*result, error) {
 				return nil, fmt.Errorf("event %d: draft CSV: %w", n+1, err)
 			}
 			csvHeader = false
+		}
+		if o.decksOut != "" {
+			if err := writeDecks(o.decksOut, spec.Code, ev, out); err != nil {
+				return nil, fmt.Errorf("event %d (seed %d): -decks-out: %w", n+1, seed, err)
+			}
 		}
 		printStandings(out, er)
 		if g != nil {

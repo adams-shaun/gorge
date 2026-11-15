@@ -45,7 +45,7 @@ func (s *State) leaveReturnReg(e *stackEntry, in *kop.Instr) {
 	}
 	// ver holds the registering source (gorge's delayed trigger's host,
 	// Melira, is the trigger's source); the target is matched by id
-	s.dly[s.ndly] = delayed{act: opLeaveReturn, ctrl: e.ctrl, obj: o, ver: uint8(e.obj), when: dlyLeaveGrave, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: opLeaveReturn, ctrl: e.ctrl, obj: o, ver: objWord(e.obj), when: dlyLeaveGrave, creator: NoObj}
 	s.ndly++
 }
 

@@ -1,30 +1,36 @@
 package dirac
 
-import (
-	"unsafe"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // maxEmbCold is how many emblems past the first maxEmb each player keeps in
 // the cold buffer, for a table whose emblems can be made again and again
 // (genPrep.anyEmbCold): a planeswalker's loyalty ability makes one a turn.
 const maxEmbCold = 4
 
+// coldEmb is every player's records past maxEmb, for a table that needs them.
+var coldEmb = newCold[embRec]("emb", func(g *genPrep) int {
+	if g.anyEmbCold {
+		return MaxSeats * maxEmbCold
+	}
+	return 0
+})
+
 // maxEmbTotal is the most emblems one player can hold.
 const maxEmbTotal = maxEmb + maxEmbCold
 
 // embRec is one emblem past maxEmb, the same fields genState keeps for the
 // first maxEmb: the Emblems index+1, the creating card and its object, the
-// frozen chosen number, the layer timestamp and the remembered slots 1..3
-// (object + 1; static_emblemrem.go).
+// frozen chosen number, the layer timestamp, the frozen chosen card name
+// (the source's CardID plus one, 0 none; repl_namecard.go) and the
+// remembered slots 1..3 (object + 1; static_emblemrem.go).
 type embRec struct {
-	idx uint8
-	obj Obj
-	num uint8
-	rem [embRemSlots - 1]uint8
-	c   CardID
-	t   uint16
+	idx   uint8
+	obj   Obj
+	num   objWord
+	named objWord
+	rem   [embRemSlots - 1]objWord
+	c     CardID
+	t     uint16
 }
 
 // tableEmblemRepeats reports whether some activated or triggered ability of t
@@ -48,23 +54,12 @@ func tableEmblemRepeats(t *kop.Table) bool {
 
 // embCap is how many emblems one player can hold in s.
 func (s *State) embCap() int {
-	if l := s.cold.layout; l != nil {
-		return maxEmb + l.emb/MaxSeats
-	}
-	return maxEmb
+	return maxEmb + coldEmb.count(s.cold.layout)/MaxSeats
 }
 
 // embCold is the cold records: player p's are [p*maxEmbCold:], in creation
-// order after the first maxEmb. They follow the may-play records in the
-// buffer.
-func (s *State) embCold() []embRec {
-	n := s.cold.layout.emb
-	if n == 0 {
-		return nil
-	}
-	at := (s.cold.layout.may*int(unsafe.Sizeof(mayPlay{})) + int(unsafe.Alignof(embRec{})) - 1) &^ (int(unsafe.Alignof(embRec{})) - 1)
-	return unsafe.Slice((*embRec)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.cold.buf)), at)), n)
-}
+// order after the first maxEmb.
+func (s *State) embCold() []embRec { return coldEmb.of(s) }
 
 // embRecAt is player p's emblem i past maxEmb.
 func (s *State) embRecAt(p uint8, i int) *embRec {
@@ -92,7 +87,7 @@ func (s *State) embObj(p uint8, i int) Obj {
 	return s.embRecAt(p, i).obj
 }
 
-func (s *State) embNum(p uint8, i int) uint8 {
+func (s *State) embNum(p uint8, i int) objWord {
 	if i < maxEmb {
 		return s.g.embN[p][i]
 	}
@@ -106,9 +101,58 @@ func (s *State) embStamp(p uint8, i int) uint16 {
 	return s.embRecAt(p, i).t
 }
 
+// tableEmbNamed reports whether a table card creates an emblem whose static
+// reads kop.PredNamedCard (gorge Card.NamedCard): such an emblem freezes the
+// source's chosen card name at creation (repl_namecard.go), and the cold
+// buffer holds each player's first maxEmb emblems' frozen names for it.
+func tableEmbNamed(t *kop.Table) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			for _, in := range t.Cards[i].Abilities[j].Prog {
+				if in.Op != kop.OpCreateEmblem || int(in.C) >= len(t.Emblems) {
+					continue
+				}
+				for k := range t.Emblems[in.C].Abilities {
+					// any alternative of the emblem static's filter may read
+					// the name, not only the head clause (filterNamedCard)
+					if filterNamedCard(t, t.Emblems[in.C].Abilities[k].Static.Filter) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+// embNamed is the chosen card name the source carried when player p's
+// emblem i registered, as its CardID plus one (0 none; repl_namecard.go).
+// The first maxEmb live in the cold region coldEmbNm, sized only for a
+// table whose emblems read it (genPrep.anyEmbName); a table without one has
+// no frozen name to read. The emblems past maxEmb carry theirs in the
+// embRec.
+func (s *State) embNamed(p uint8, i int) objWord {
+	if i < maxEmb {
+		if nm, at := coldEmbNm.of(s), int(p)*maxEmb+i; at < len(nm) {
+			return nm[at]
+		}
+		return 0
+	}
+	return s.embRecAt(p, i).named
+}
+
+// coldEmbNm is each player's first maxEmb emblems' frozen chosen card name,
+// CardID+1 (0 none).
+var coldEmbNm = newCold[objWord]("embNm", func(g *genPrep) int {
+	if g.anyEmbName {
+		return MaxSeats * maxEmb
+	}
+	return 0
+})
+
 // embGet is player p's emblem i as a record.
 func (s *State) embGet(p uint8, i int) embRec {
-	r := embRec{idx: s.embIdx(p, i), obj: s.embObj(p, i), num: s.embNum(p, i), c: s.embCard(p, i), t: s.embStamp(p, i)}
+	r := embRec{idx: s.embIdx(p, i), obj: s.embObj(p, i), num: s.embNum(p, i), named: s.embNamed(p, i), c: s.embCard(p, i), t: s.embStamp(p, i)}
 	for j := range r.rem {
 		r.rem[j] = s.embRemGet(p, i, j+1)
 	}
@@ -119,6 +163,9 @@ func (s *State) embGet(p uint8, i int) embRec {
 func (s *State) embPut(p uint8, i int, r embRec) {
 	if i < maxEmb {
 		s.g.emb[p][i], s.g.embC[p][i], s.g.embO[p][i], s.g.embN[p][i], s.g.embT[p][i] = r.idx, r.c, r.obj, r.num, r.t
+		if nm, at := coldEmbNm.of(s), int(p)*maxEmb+i; at < len(nm) {
+			nm[at] = r.named
+		}
 		for j, v := range r.rem {
 			s.embRemSet(p, i, j+1, v)
 		}
@@ -128,7 +175,7 @@ func (s *State) embPut(p uint8, i int, r embRec) {
 }
 
 // embSetNum sets the frozen number of player p's emblem i.
-func (s *State) embSetNum(p uint8, i int, n uint8) {
+func (s *State) embSetNum(p uint8, i int, n objWord) {
 	if i < maxEmb {
 		s.g.embN[p][i] = n
 		return

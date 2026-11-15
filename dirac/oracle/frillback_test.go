@@ -8,12 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// gorgeNumTimesFixTime is the commit time (UTC) of gorge, the merge
-// of the fix (Announce$ NumTimes asks 0..AnnounceMax and
-// charges N x the unit, CR 601.2b): before it the `Mana<G\NumTimes>` cost fell
-// to a generic {1} and the reflexive charm saw one repetition.
-const gorgeNumTimesFixTime = "20261026165708"
-
 // The Tranquil Frillback lockstep: "When it enters, you may pay {G}
 // up to three times. When you pay this cost one or more times, choose up to
 // that many -- destroy target artifact or enchantment; exile target player's
@@ -73,9 +67,6 @@ func kfrillbackCheck(tal *kfrillbackTally) func(*GorgeSide, Side) *Divergence {
 
 func TestFrillbackLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeNumTimesFixTime) {
-		t.Skip("gorge before the Announce$ NumTimes fix (a2c2e9ddf)")
-	}
 	var tal kfrillbackTally
 	sonRun(t, "frillback", kfrillbackMatchups, 300, true, nil, kfrillbackCheck(&tal))
 	t.Logf("%d games: %d announcements, charm asks up to 1/2/3 modes: %v", tal.games, tal.asks, tal.modes[1:])
@@ -88,9 +79,6 @@ func TestFrillbackLockstep(t *testing.T) {
 // diverges.
 func TestFrillbackLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeNumTimesFixTime) {
-		t.Skip("gorge before the Announce$ NumTimes fix (a2c2e9ddf)")
-	}
 	n := sonRun(t, "frillback", kfrillbackMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

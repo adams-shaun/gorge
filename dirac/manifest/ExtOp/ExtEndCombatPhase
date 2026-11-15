@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtEndCombatPhase
+value: 66
+forge: EndCombatPhase
+census: api EndCombatPhase all=2 std=1 mbc=0 sole=1
+state: slotbit 16 (phasing)
+status: reserved

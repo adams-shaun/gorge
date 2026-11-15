@@ -17,7 +17,7 @@ func (s *State) notObj(o Obj) (e *stackEntry, ok bool) {
 	if int(o) < MaxObj {
 		return nil, false
 	}
-	if i, is := StackTargetIndex(uint8(o)); is && i < int(s.sp) {
+	if i, is := StackTargetIndex(TCode(o)); is && i < int(s.sp) {
 		return &s.stack[i], true
 	}
 	return nil, true
@@ -128,7 +128,7 @@ func (s *State) Hidden(o Obj, seat uint8) bool {
 // hand; you choose a nonland card"). A search world keeps such a hand as
 // it is: its cards are the choice's options.
 func (s *State) HandRevealed(p, seat uint8) bool {
-	return p != seat && s.ctl == ctlResolve && s.res.ask == raDiscard && s.res.chosen == p && s.res.askP == seat
+	return p != seat && s.ctl == ctlResolve && s.res.ask == raDiscard && s.res.chosen == objWord(p) && s.res.askP == seat
 }
 
 // DealLibrary deals pool (len = p's library size) to player p's library in
@@ -290,6 +290,13 @@ func (s *State) ControlsMatching(p uint8, f kop.FilterID) bool {
 	return false
 }
 
+// MinBlockersOf is the fewest creatures that may block attacking object o
+// now (combat.go minBlockers: menace, a MinMaxBlocker Min$, Min$ All's
+// attacked player's creature count); 0 for none.
+func (s *State) MinBlockersOf(o Obj) int {
+	return s.minBlockers(s.k(), s.objs[o].slot)
+}
+
 // HasKeyword reports whether battlefield object o has keyword kw now.
 func (s *State) HasKeyword(o Obj, kw kop.KwMask) bool {
 	ob := &s.objs[o]
@@ -341,6 +348,10 @@ func (s *State) StackEntry(i int) (kind uint8, src Obj, card CardID, ctrl uint8)
 	e := &s.stack[i]
 	return e.kind, e.obj, e.card, e.ctrl
 }
+
+// StackFaceDown reports whether stack entry i is a face-down permanent spell
+// (Morph, Megamorph or Disguise cast face down, CR 708.4).
+func (s *State) StackFaceDown(i int) bool { return s.stack[i].faceDown() }
 
 // Damage is battlefield object o's marked damage.
 func (s *State) Damage(o Obj) int {

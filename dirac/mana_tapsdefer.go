@@ -48,6 +48,9 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			if !whoseOK(a.Trig.Whose, s.perms[w].ctrl, p) {
 				continue
 			}
+			if a.Trig.Flags5&kop.Tf5TapperNonActive != 0 && p == s.active {
+				continue // Activator$ Player.NonActive: the payer taps on their own turn
+			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
 				// the source's own Pain-class line (City of Brass) is priced
 				// with its printed mana ability (prepSelfTapsPain), and a
@@ -67,6 +70,12 @@ func (s *State) tapsWatchClass(k *prep, p uint8, sl Slot) (painN int, deferSrc b
 			}
 			if a.Trig.Flags2&kop.Tf2YourTurn != 0 && s.active != s.perms[w].ctrl {
 				continue // not the watcher's controller's turn
+			}
+			// The class-only gated Taps line (Rikala, Homarid King): the Island
+			// defers only while Trigger.Cond holds (gorge's real matcher,
+			// paymentPlanTapObservers' triggerMatches over the IsPresent gate).
+			if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[w].obj, srcSl: w, ctrl: s.perms[w].ctrl}) {
+				continue
 			}
 			if a.Trig.TapPlan == kop.TapPlanDefer {
 				deferSrc = true
@@ -338,6 +347,15 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 // when no plan exists without them a second pass plans with them, in
 // battlefield order like any source.
 func (s *State) planTiered(k *prep, p uint8, pk *planner, exclude Obj) {
+	if k.gen != nil && k.gen.anyComboOff && !pk.comboIn && !DebugComboAnyPlanned {
+		s.planComboTiered(k, p, pk, exclude) // mana_comboanyplan.go
+		return
+	}
+	s.planTiered0(k, p, pk, exclude)
+}
+
+// planTiered0 is planTiered's Taps-deferred tiers.
+func (s *State) planTiered0(k *prep, p uint8, pk *planner, exclude Obj) {
 	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer {
 		s.plan(k, p, pk, exclude)
 		return

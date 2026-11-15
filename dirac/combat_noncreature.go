@@ -25,8 +25,9 @@ func (s *State) removeNoncreatureCombatants(k *prep) {
 // leaveCombat removes sl from combat exactly as gorge's EndCombatReset{Obj}
 // fold (events/apply.go resetCombat) does: an attacker's blockers stay
 // blocking but block nothing, and a blocker stops blocking while its
-// attacker stays blocked with one blocker fewer (509.1h). Cold: regeneration
-// and the noncreature state-based action are its only callers.
+// attacker stays blocked with one blocker fewer (509.1h). Cold: regeneration,
+// the noncreature state-based action and ExtRemoveFromCombat (gorge
+// effRemoveFromCombat's EndCombatReset) are its callers.
 func (s *State) leaveCombat(sl Slot) {
 	p := &s.perms[sl]
 	if p.flags&pfAttacking != 0 {

@@ -42,7 +42,8 @@ func (s *State) payDiscardHand(k *prep, p uint8) {
 // when the cast is paid (rules/cast_commit.go payCast), so a spell still
 // being built shows no kick yet; and kernel sfKicked is also the offspring
 // and buyback flag, which gorge reports as FlagOffspringPaid / FlagBuyback,
-// not Kicks.
+// not Kicks (an entwined cast, which gorge flags with nothing, is no kick
+// either: kw_entwine.go).
 func (s *State) FeatStackKicked(i int) bool {
 	if i < 0 || i >= int(s.sp) || s.stack[i].flags&sfKicked == 0 {
 		return false
@@ -51,5 +52,5 @@ func (s *State) FeatStackKicked(i int) bool {
 		return false
 	}
 	c := s.stack[i].card
-	return int(c) >= len(s.k().t.Cards) || !s.k().t.Cards[c].Offspring && !s.k().t.Cards[c].Buyback
+	return int(c) >= len(s.k().t.Cards) || !s.k().t.Cards[c].Offspring && !s.k().t.Cards[c].Buyback && !s.k().t.Cards[c].Entwine
 }

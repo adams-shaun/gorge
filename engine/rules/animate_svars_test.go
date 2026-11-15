@@ -1,8 +1,8 @@
 // The sVars$ grant on a DB$ Animate body, pinned end to end on the real
-// corpus carrier Guardian Scalelord's BackupAbilities SVar
-// is `DB$ Animate | Keywords$ Flying | Triggers$ AttackTrig | sVars$ AE`, and
-// the card's own SVar table carries `AE` as the nested declaration
-// `SVar:AE:SVar:HasAttackEffect:TRUE` (cards/../g/guardian_scalelord.txt). The
+// corpus carrier Guardian Scalelord's BackupAbilities SVar is an Animate that
+// grants flying, an attack trigger and one named SVar, and the card's own SVar
+// table declares that SVar as a nested SVar declaration (an attack-effect AI
+// hint) (cards/../g/guardian_scalelord.txt). The
 // resolved Animate must grant the named bodies through the same layer-6
 // AddSVars machinery the Whip of Erebos arm uses (rules/animate_leavebattle-
 // field_test.go), expanding the nested form under BOTH names, alongside the

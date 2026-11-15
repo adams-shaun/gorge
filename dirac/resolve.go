@@ -23,6 +23,12 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 			// controller's spells included (gorge stack.go's recheck arm)
 			return false
 		}
+		if t := tspecE(s.k(), e, i); t != nil && t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
+			// the Oath cycle's comparison with the active player is judged
+			// again at resolution (CR 608.2b; gorge's recheck of the full
+			// spec): the board may have changed since the target was chosen
+			return false // tgt_thanactive.go
+		}
 		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {
@@ -54,17 +60,24 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 func (s *State) resolveTop(k *prep) {
 	e := s.stack[s.sp-1]
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
-	s.res.trigGone = e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1
+	if e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1 {
+		s.res.flags |= rfTrigGone
+	}
 	if k.gen != nil {
 		s.g.nimp = 0
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
-		if k.anyStateCtr && e.kind == seTrigger && e.ab < abCascade &&
-			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags4&kop.Tf4StateCtr != 0 {
-			s.remember(e.obj) // a state trigger's Remembered is its source alone (gorge stateTriggerRemembered, CR 603.8)
-		}
+		// A state trigger (Tf4StateCtr) starts with nothing remembered too.
+		// gorge seeds its Ctx with the source (stateTriggerRemembered), but
+		// as the fire-time capture, which a plain Remembered read leaves out
+		// (rememberedExcludingCapture): Mazemind Tome's "exile it. If you do"
+		// gate holds only when the exile's RememberChanged$ added the Tome,
+		// not when the Tome had already left the battlefield (CR 603.8, 608.2c).
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
+		}
+		if k.gen.has(e.card, gfEnterRepl) {
+			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}
 		// a damage sequence belongs to the resolution that started it: a new
 		// resolution drops any left over by an aborted one (repl_gen.go); the
@@ -201,6 +214,9 @@ func (s *State) resolveTop(k *prep) {
 			s.afterResolve()
 			return
 		}
+		if k.ascend {
+			s.spellBlessing(k, &e) // CR 702.131a, before the program reads it (kw_ascend.go)
+		}
 	case seTrigger, seAbility:
 		if e.ab == abProwess {
 			ob := &s.objs[e.obj]
@@ -269,7 +285,7 @@ func (s *State) resolveTop(k *prep) {
 		}
 		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(k, &e)) {
 			s.res.ask = raOptional
-			s.res.askP = optTrigAsker(&e, a.Trig.Flags4) // trig_optplayer.go
+			s.res.askP = s.optTrigAsker(&e, a.Trig.Flags4, a.Trig.Flags5) // trig_optplayer.go
 			s.ctl = ctlResolve
 			return
 		}
@@ -457,10 +473,10 @@ func (s *State) wardedIndex(e *stackEntry) int {
 		if se.obj != e.trigObj || se.kind == seSpell || e.tver[0] != 0 && se.sid != e.tver[0] {
 			continue
 		}
-		var codes [kop.MaxTargets + maxXTgt]uint8
+		var codes [kop.MaxTargets + maxXTgt]TCode
 		n := s.chainTargets(se, &codes)
 		for _, c := range codes[:n] {
-			if c == uint8(e.obj) {
+			if c == TCode(e.obj) {
 				return j
 			}
 		}
@@ -521,6 +537,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 			return cascadeProg[:]
 		}
 		if e.ab == abStorm {
+			if e.trigAmt == stormDemonstrate {
+				return demonstrateProg[:]
+			}
 			return stormProg[:]
 		}
 		return nil
@@ -620,7 +639,7 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 		return NoSlot
 	}
-	if r == kop.RefTriggerObj && s.res.trigGone {
+	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
 	return ob.slot
@@ -694,6 +713,11 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 			return s.ctrlOfObj(o)
 		}
 		return e.trigPl
+	case kop.RefTriggerObjOwner:
+		if o := e.trigObj; o != NoObj {
+			return s.objs[o].owner() // CR 108.3
+		}
+		return 255
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
@@ -712,6 +736,12 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.srcOwner()
 	case kop.RefPromised:
 		return s.promisedSeat(k, e) // kw_gift.go
+	case kop.RefChosenPlayer:
+		return s.chosenPlayerSeat(e) // repl_chooseplayer.go
+	case kop.RefChosenPlayerRes:
+		return s.chosenSeatRes() // act_chooseplayerres.go
+	case kop.RefResChosenPlayer:
+		return s.res.chPl - 1 // the pick OpChoosePlayer recorded (chPl seat + 1; 0 wraps to 255, none)
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	}
@@ -796,6 +826,10 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 	case kop.VSelfPower, kop.VSelfToughness:
 		sl := s.objRef(k, kop.RefSelf)
 		if sl == NoSlot {
+			if e.obj != NoObj && (e.kind == seSpell || s.objs[e.obj].ver != e.srcVer+1) {
+				// not a departed source's last known P/T: the card itself
+				s.offZonePTRead(k, e.card, s.objs[e.obj].owner(), e.obj) // static_offzonept.go
+			}
 			c := &k.cards[e.card]
 			pw, t := int(c.power), int(c.tough)
 			if e.kind != seSpell && e.obj != NoObj {
@@ -910,13 +944,16 @@ func (s *State) grantSpellKw(o Obj, kw kop.KwMask) {
 // damage deals n damage from the resolving source to an object or player
 // target code and returns the amount dealt after prevention and replacement
 // (0: none; CR 120.1).
-func (s *State) damageTo(k *prep, code uint8, n int) int {
+func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if n <= 0 {
 		return 0
 	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
+			if s.res.flags&rfNoPrev != 0 {
+				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
+			}
 			return n // gorge's replacement-order ask, after the resolution
 		}
 		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
@@ -924,11 +961,13 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		}
 	}
 	kw := s.srcKw(k)
+	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 	if k.gen != nil && k.gen.anyInfect && (s.srcInfect(k) || isObjTarget(code) && s.srcWither(k, kw)) {
 		s.infectDamageTo(k, code, n, kw) // wither is infect's creature half (a player takes ordinary damage)
 		return n
 	}
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
@@ -966,23 +1005,23 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 }
 
 // refCode turns an object/player Ref into a damage target code.
-func (s *State) refCode(k *prep, r kop.Ref) uint8 {
+func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	switch r {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner:
 		p := s.playerRef(k, r)
 		if p == 255 {
-			return NoTarget
+			return TCode(NoTarget)
 		}
 		return PlayerCode(p)
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
-		return NoTarget
+		return TCode(NoTarget)
 	}
-	return uint8(o)
+	return TCode(o)
 }
 
 // forPlayers runs f for the player(s) a Ref names.
@@ -996,6 +1035,8 @@ func (s *State) players(k *prep, r kop.Ref) seatSeq {
 	case kop.RefEachOpponent:
 		// gorge Defined$ Opponent: AliveFrom(controller) without it
 		return s.oppsFrom(s.res.e.ctrl)
+	case kop.RefTriggerOpponents:
+		return s.triggerOpps() // trig_triggeropps.go
 	}
 	return seatOne(s.playerRef(k, r))
 }
@@ -1027,7 +1068,7 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {
-			if p := s.atkSeat(k, ob.slot); p != NoTarget {
+			if p := s.atkSeat(k, ob.slot); p != noSeat {
 				return p
 			}
 		}
@@ -1037,9 +1078,9 @@ func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj)
 
 // tgtCode is the resolving entry's target i, or NoTarget when it was
 // chosen but is illegal now.
-func (s *State) tgtCode(i int) uint8 {
+func (s *State) tgtCode(i int) TCode {
 	if s.res.bad&(1<<i) != 0 {
-		return NoTarget
+		return TCode(NoTarget)
 	}
 	return s.res.e.tgt[i]
 }

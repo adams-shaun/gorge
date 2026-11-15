@@ -19,13 +19,18 @@ import (
 // Attacks event that queued the trigger, stackEntry.defSeat: seat-exact) behind
 // OpAtkPWGuard, which stalls
 // the game when the attacker attacks a planeswalker or battle (or left):
-// the kernel never copies the planeswalker case.
+// the kernel never copies the planeswalker case. Any Attacks trigger reads
+// it (Mage Slayer's equipped creature, whoever controls it): the guard also
+// stalls when the attacker attacks the trigger's controller, where gorge's
+// .Opponent qualifier names nobody, and elsewhere the defending seat is an
+// opponent of the controller (two seats: the one opponent; past two the
+// event's defSeat).
 const triggeredDefenderOrPW = "TriggeredDefender.Opponent & Valid Planeswalker.TriggeredDefender"
 
 func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
 	tr := lc.ab.Trigger
-	if tr == nil || tr.Event != "Attacks" || !lc.ownAttackTrigger() {
-		return lRef{}, refuse("Defined$ %q outside an Attacks trigger of the controller's own attack", v)
+	if tr == nil || tr.Event != "Attacks" {
+		return lRef{}, refuse("Defined$ %q outside an Attacks trigger", v)
 	}
 	lc.emit(lInstr{Op: "AtkPWGuard", Note: "the attacker attacks a player (else the game stalls)"})
 	return lRef{Kind: rDefending}, nil

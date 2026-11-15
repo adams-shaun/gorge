@@ -21,6 +21,7 @@ func (h *Host) Sets() []protocol.EventSetInfo {
 		}
 		out = append(out, protocol.EventSetInfo{
 			Code: code, Name: spec.Name, PackSize: spec.PackSize, Ratings: pickbot.RatingSource(code),
+			Commander: hostsCommander(code),
 		})
 	}
 	return out

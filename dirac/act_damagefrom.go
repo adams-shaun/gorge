@@ -26,8 +26,22 @@ var DebugDmgSrcPlLKI uint8
 // damageTo's CR 616.1 replacement-order ask (parkNC) is posed only for a
 // pure plus-N competition (replPlusSrcPass); any other event two or more
 // replacements match stalls loudly (dmgSrcOrderStalls).
+//
+// B.N kop.DmgFromEachCtrl is the RepeatEach card body (Rakdos Charm): the
+// source is the loop's object (RefEach, read live; the entry's trigger
+// record is not its last known information) and the one recipient its
+// controller. gorge's loop is one damage batch (DamageMap$ True), so a
+// DamageDealtOnce listener would latch once over every pass where the
+// kernel's passes are each their own batch: it stalls loudly
+// (StallLowering), as does the order ask, which cannot park inside the
+// loop (StallReplPlus).
 func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	e := &s.res.e
+	eachCtrl := in.B.N == kop.DmgFromEachCtrl
+	li := e.li
+	if eachCtrl {
+		li = 0
+	}
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
 		s.g.plusBatchAsked = false // a re-executed pass whose source is gone still ends its exemption
@@ -42,8 +56,8 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		return
 	}
 	ver := s.objs[o].ver
-	if e.li != 0 {
-		ver = s.lk(e.li).ver
+	if li != 0 {
+		ver = s.lk(li).ver
 	}
 	sl := s.slotIfSame(o, ver)
 	var (
@@ -55,8 +69,8 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	case sl != NoSlot:
 		kw, ctrl = s.kw(k, sl), s.perms[sl].ctrl
 		infect = s.infectAt(k, sl)
-	case e.li != 0:
-		l := s.lk(e.li)
+	case li != 0:
+		l := s.lk(li)
 		kw, ctrl, infect = l.kw, l.ctrl, l.bits&lkiInfect != 0
 		switch DebugDmgSrcPlLKI {
 		case 1:
@@ -82,7 +96,17 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			return
 		}
 	}
-	q := s.eachPlayers(k, kop.Ref(in.C))
+	var q seatSeq
+	if eachCtrl {
+		if s.subs[kop.TrigDamageDealtOnce].any() {
+			s.capFull(StallLowering) // gorge latches it once over the whole loop
+			s.g.plusBatchAsked = false
+			return
+		}
+		q = seatOne(ctrl)
+	} else {
+		q = s.eachPlayers(k, kop.Ref(in.C))
+	}
 	// A pure plus-N competition poses gorge's no-op CR 616.1 order ask before
 	// the pass deals (repl_plus.go): the op parks and the answer
 	// re-executes it, which deals the summed amount; two competing player
@@ -90,7 +114,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	// stall. The flag clears with the pass's events, below and at the early
 	// returns, so a later op of the same resolution never inherits it.
 	var (
-		plCodes [MaxSeats]uint8
+		plCodes [MaxSeats]TCode
 		plAmts  [MaxSeats]int
 	)
 	// the first seat is coded even when the set is empty, as before (its
@@ -102,6 +126,9 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		ne++
 	}
 	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
+		if eachCtrl {
+			s.capFull(StallReplPlus) // a park inside the RepeatEach loop cannot resume
+		}
 		return // parked: runProg pauses on nc.n; a multi-event pass stalls loud
 	}
 	if s.dmgSrcOrderStalls(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
@@ -117,6 +144,8 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 				continue
 			}
 		}
+		s.noteDmgTaken(p, m)       // kw_bloodthirst.go
+		s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 		if k.gen != nil && k.gen.anyInfect && infect {
 			s.addPoison(p, m)
 		} else {
@@ -165,11 +194,11 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 		return
 	}
 	card := s.objs[o].card
-	code := uint8(dst)
-	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
+	code := TCode(dst)
+	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
 		return
 	}
-	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []uint8{code}, []int{n}) {
+	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
 		s.g.plusBatchAsked = false
 		return
 	}
@@ -207,7 +236,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 // never poses the ask. A pure plus-N competition is replPlusSrcPass's, which
 // parks it. parkNC is probed with the ask state saved and restored; it can
 // change nothing else before it reports the park, and a park stops the game.
-func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []uint8, amts []int) bool {
+func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []TCode, amts []int) bool {
 	if k.gen == nil || replPlusOnly(k.gen) {
 		return false
 	}

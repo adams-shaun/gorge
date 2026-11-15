@@ -380,7 +380,10 @@ func (s *State) doubleCountersAt(k *prep, sl Slot, ck int16) {
 	s.touchSl(sl)
 	p := &s.perms[sl]
 	added := 0
-	for c := 0; c < int(kop.NumCounterKinds3); c++ {
+	// placeCounters puts counters of kind c only, so the kinds held stay the list's
+	var held ctrHeld
+	for _, hc := range held[:p.heldKinds(s, &held)] {
+		c := int(hc)
 		if !kop.IsCounterKind(c) {
 			continue // CtrLevel is no counter (kw_class.go)
 		}

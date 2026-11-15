@@ -213,7 +213,7 @@ func (s *State) uncOrderOptions(d *Decision) {
 	ro := &s.g.ro
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, ro.p
 	for i := 0; i < int(ro.n); i++ {
-		d.add(MakeAction(AkChoose, uint8(ro.cand[i]), 0, uint8(i))) // mode: gorge's scan index
+		d.add(MakeAction(AkChoose, TCode(ro.cand[i]), 0, uint8(i))) // mode: gorge's scan index
 	}
 }
 
@@ -326,7 +326,7 @@ func (s *State) uncounterScan(k *prep, e *stackEntry, cands *[4]Obj) (n int, con
 // uncounterMatch is f read against the spell of stack entry e.
 func (s *State) uncounterMatch(k *prep, f kop.FilterID, e *stackEntry) bool {
 	if k.gen != nil {
-		return s.matchSpellCard(k, f, e.card, e.ctrl, e.ctrl, e.obj, NoSlot)
+		return s.matchSpellCard(k, f, e.card, e.ctrl, e.ctrl, e.obj, NoSlot, 0)
 	}
 	return s.matchCard(k, f, e.card, e.ctrl, e.ctrl)
 }

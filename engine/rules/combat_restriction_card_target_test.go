@@ -1,7 +1,7 @@
 package rules
 
-// The Aetherspark's `S:Mode$ CantAttack | ValidCard$ Creature |
-// Target$ Card.Self+AttachedTo Creature` (CR 506.3 / 508.1b): a planeswalker
+// The Aetherspark's CantAttack static, whose target is itself while attached
+// to a creature (CR 506.3 / 508.1b): a planeswalker
 // Equipment attached to a creature can't be attacked. combat.
 // RestrictionTargetMatches reads the Card.<props> Target$ clause for the
 // attacked permanent, so the offer list, the declaration validator and the

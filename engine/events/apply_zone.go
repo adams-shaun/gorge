@@ -434,7 +434,7 @@ func foldAttach(g *state.Game, e *Event) {
 			// now "attached to" the new one, so a later "was attached
 			// to X" read must not still name the old X (state.Object.
 			// LastBearer's contract).
-			o.LastBearer = 0
+			o.LastBearer, o.LastBearerInc = 0, 0
 		}
 	}
 }
@@ -469,6 +469,7 @@ func foldUnattached(g *state.Game, e *Event) {
 	// state fold depends on it.
 	if o := g.Obj(e.Obj); o != nil {
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
+		wasQueued := o.UnattachPending
 		// An Unattached fold CONSUMES a queued bearer-departure detach
 		// (attachmentSBAs' pending arm publishes exactly this kind for it)
 		// or supersedes one another writer detached; either way the queue
@@ -481,6 +482,13 @@ func foldUnattached(g *state.Game, e *Event) {
 		// any earlier LastBearer standing -- the object was not
 		// attached to a named permanent.
 		if len(e.IDs) > 0 && e.IDs[0] != 0 {
+			// A queued bearer-departure detach keeps the incarnation the
+			// departure stamped (the bearer may have re-entered since, and
+			// is then a new object); any other detach stamps the bearer's
+			// current one.
+			if !wasQueued || o.LastBearer != e.IDs[0] {
+				o.LastBearerInc = bearerIncarnation(g, e.IDs[0], 0)
+			}
 			o.LastBearer = e.IDs[0]
 		}
 	}
@@ -530,6 +538,10 @@ func detachAttachmentsOnDeparture(g *state.Game, id state.ObjID) {
 		other := &g.Objs[i]
 		if other.AttachedTo == id {
 			other.LastBearer = id
+			// The departing bearer's move advances its Incarnation exactly
+			// once, after this fold: stamp the value it will hold off the
+			// battlefield.
+			other.LastBearerInc = bearerIncarnation(g, id, 1)
 			other.UnattachPending = true
 		}
 	}
@@ -818,6 +830,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.Card.IsTransformingDFC() && o.FaceIdx != 0 {
 		o.SetFaceIdx(0)
 	}
+	// CR 710.4: a flipped flip card that leaves the battlefield retains no
+	// memory of its status; in every other zone it has only its normal
+	// characteristics (CR 710.2).
+	if wasBattlefield && to != state.ZBattlefield && o.Card != nil &&
+		o.Card.AlternateMode == "Flip" && o.FaceIdx != 0 {
+		o.SetFaceIdx(0)
+	}
 	// The incarnation stamp is used by promises tied to a particular
 	// permanent (evoke/dash/warp), so only crossing the battlefield
 	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
@@ -973,7 +992,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// resolve to a creature it was never attached to. The leaving
 			// arm above already preserved the old bearer as LastBearer for
 			// LKI; this is its reset on the next entry.
-			o.LastBearer = 0
+			o.LastBearer, o.LastBearerInc = 0, 0
 			// A queued detach cannot survive an entry either: the queue was
 			// either consumed before the departure or spent by the
 			// departure's own fold.
@@ -1329,8 +1348,9 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// the permanent left with.
 		if o.AttachedTo != 0 {
 			o.LastBearer = o.AttachedTo
+			o.LastBearerInc = bearerIncarnation(g, o.AttachedTo, 0)
 		} else if wasBattlefield && !o.UnattachPending {
-			o.LastBearer = 0
+			o.LastBearer, o.LastBearerInc = 0, 0
 		}
 		// Its own departure spends any queued bearer-departure detach: the
 		// look-back arm of Mode$ Unattached (engine/rules/
@@ -1434,4 +1454,14 @@ func foldExileExiler(g *state.Game, o *state.Object, e *Event) {
 		return
 	}
 	o.ExiledBy, o.HasExiledBy = p, true
+}
+
+// bearerIncarnation is the Incarnation stamp LastBearerInc records for the
+// bearer id, plus ahead for a departure still to advance it; 0 when the
+// bearer is not an object.
+func bearerIncarnation(g *state.Game, id state.ObjID, ahead uint32) uint32 {
+	if b := g.Obj(id); b != nil {
+		return b.Incarnation + ahead
+	}
+	return 0
 }

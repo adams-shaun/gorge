@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtPutContract
+value: 91
+forge: PutContract
+status: active

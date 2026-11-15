@@ -74,11 +74,9 @@ func (r *fxRec) cYou() uint8 {
 	}
 	return r.r.idx & fcYou >> 2
 }
-func (r *fxRec) cDur() uint8 { return r.r.idx & fcDurMask >> fcDurShift }
-func (r *fxRec) cSrc() Obj   { return Obj(r.r.src) }
-func (r *fxRec) cSrcVer() uint8 {
-	return uint8(r.r.src >> 8)
-}
+func (r *fxRec) cDur() uint8    { return r.r.idx & fcDurMask >> fcDurShift }
+func (r *fxRec) cSrc() Obj      { return Obj(r.r.src) }
+func (r *fxRec) cSrcVer() uint8 { return uint8(r.r.src >> 8) }
 func (r *fxRec) setPrev(p uint8) {
 	if MaxSeats > 2 {
 		r.r.fl = r.r.fl&^(3<<2) | (p&3)<<2
@@ -186,6 +184,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	k := s.k()
 	if k.engines {
 		s.speedControl(k) // kw_speed.go
+	}
+	if k.ascend {
+		s.blessScan(k) // CR 702.131b (kw_ascend.go)
 	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
@@ -395,11 +396,41 @@ func (s *State) ctrlCleanup(k *prep) {
 // register late above that effect when a newer static ends. This is gorge's
 // reconcileControlStatics (engine/rules/control_static.go).
 //
+// The pass repeats to a fixed point (CR 613.8a): registering a record can
+// move its bearer, and a static on the moved bearer then wants a different
+// controller — a Steal Enchantment that steals a second Steal Enchantment
+// moves that Aura first, and the stolen Aura's own "you control enchanted
+// permanent" applies with its NEW controller in the same check, moving the
+// creature it holds. gorge reaches the same state across its emit tails (the
+// next expireControl ends the stale grant, the next reconcile re-registers
+// it); here the passes run back to back so the ask the resolution poses next
+// sees the settled board. Each pass adds a record (a tracked want is
+// skipped), removes one or moves a bearer, so the fixed point exists; the
+// bound keeps a pathological loop finite, like ctrlExpire's.
+//
 //go:noinline
 func (s *State) ctrlSBA(k *prep) {
-	if s.g.nfx > 0 {
-		s.ctrlExpire(k, false)
+	var prev [MaxPerm]uint8
+	for pass := 0; pass <= maxFx; pass++ {
+		nfx := s.g.nfx
+		for m := s.fxM; m.any(); m = m.rest() {
+			prev[m.first()] = s.perms[m.first()].ctrl
+		}
+		if nfx > 0 {
+			s.ctrlExpire(k, false)
+		}
+		if !s.ctrlRegister(k) {
+			return
+		}
+		if s.g.nfx == nfx && !s.ctrlMoved(&prev) {
+			return
+		}
 	}
+}
+
+// ctrlRegister registers every live StatControl static's record in CR 613.7a
+// layer-timestamp order; false: the record table filled (StallTables).
+func (s *State) ctrlRegister(k *prep) bool {
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.statM.and(s.occ), &ord)
 	// Insertion sort: a handful of statics at most, and sort.Slice would
@@ -436,9 +467,23 @@ func (s *State) ctrlSBA(k *prep) {
 			continue
 		}
 		if !s.gainControl(host, sp.ctrl, sp.ctrl, kop.DurPermanent, o, s.objs[o].ver, true) {
-			return
+			return false
 		}
 	}
+	return true
+}
+
+// ctrlMoved reports whether any slot with a control record changed hands
+// during the pass (the record table is the same size but a bearer moved, so
+// the next pass must re-derive the wants that read it).
+func (s *State) ctrlMoved(prev *[MaxPerm]uint8) bool {
+	for m := s.fxM; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.perms[sl].ctrl != prev[sl] {
+			return true
+		}
+	}
+	return false
 }
 
 // ctrlStaticTracked: the static of source o (ver) already has its record
@@ -494,8 +539,25 @@ func (s *State) ctrlStaticShadowed(host, src Slot, stamp uint16) bool {
 //
 //go:noinline
 func (s *State) opGainControl(k *prep, in *kop.Instr) {
-	sl := s.objRef(k, in.Obj)
-	if sl == NoSlot {
+	var list [MaxPerm]Slot
+	n := 0
+	if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
+		// Defined$ over a remembered group (Fumble's "gain control of all
+		// Auras and Equipment that were attached to it"): each battlefield
+		// member in remembered order, one effect apiece (gorge effGainControl
+		// walks its Defined set)
+		for _, o := range s.g.rem[:s.g.nrem] {
+			if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && n < len(list) {
+				list[n] = s.objs[o].slot
+				n++
+			}
+		}
+	} else if in.Obj == kop.RefNone && in.F != 0 {
+		n = s.gainControlAllHits(k, in.F, &list) // AllValid$ (act_gaincontrolall.go)
+	} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
+		list[0], n = sl, 1
+	}
+	if n == 0 {
 		return
 	}
 	e := &s.res.e
@@ -520,8 +582,17 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 		src = s.perms[ssl].obj
 		ver = s.objs[src].ver
 	}
+	for _, sl := range list[:n] {
+		s.gainControlOne(k, in, sl, to, dur, src, ver)
+	}
+}
+
+// gainControlOne is opGainControl's grant to the permanent at sl, with its
+// Untap$ / haste / RememberControlled$ riders (gorge effGainControl's
+// per-target body).
+func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, src Obj, ver uint8) {
 	s.touchSl(sl)
-	if !s.gainControl(sl, to, e.ctrl, dur, src, ver, false) {
+	if !s.gainControl(sl, to, s.res.e.ctrl, dur, src, ver, false) {
 		return
 	}
 	p := &s.perms[sl]

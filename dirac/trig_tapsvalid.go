@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // "whenever you tap an untapped creature an opponent
-// controls" (Mode$ Taps | ValidCard$ Creature.OppCtrl | ValidPlayer$ You;
+// controls" (a Taps trigger on an opponent's creature, tapped by you;
 // Hylda of the Icy Crown, Icewrought Sentry, Sharae of Numbing Depths,
 // Solitary Sanctuary). gorge tapsMatches (trigmatch/tap.go) reads
 // ValidPlayer$ against the TAPPER (TapActor), not the permanent's

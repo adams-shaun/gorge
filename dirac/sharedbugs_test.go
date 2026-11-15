@@ -92,7 +92,7 @@ func TestBargainedSpellChoosesItsTarget(t *testing.T) {
 	sc.perm(id["Ornithopter"], 0)
 	land := sc.perm(id["Forest"], 0)
 	d := s.Step()
-	a := MakeAction(AkCastCasualty, uint8(spell), 0, 0)
+	a := MakeAction(AkCastCasualty, TCode(spell), 0, 0)
 	if !hasOption(&d, a) {
 		t.Fatalf("no bargained cast in %v", d.Options[:d.N])
 	}
@@ -103,7 +103,7 @@ func TestBargainedSpellChoosesItsTarget(t *testing.T) {
 	}
 	s.Apply(d.Options[0])
 	d = s.Step()
-	if d.Kind != DkTarget || !hasOption(&d, MakeAction(AkTarget, 0, uint8(land), 0)) {
+	if d.Kind != DkTarget || !hasOption(&d, MakeAction(AkTarget, 0, TCode(land), 0)) {
 		t.Fatalf("after the bargain: kind %d options %v, want the land target", d.Kind, d.Options[:d.N])
 	}
 }
@@ -120,7 +120,7 @@ func TestXCeilingUnderReducers(t *testing.T) {
 	}
 	blaze := sc.hand(id["Blaze"], 0)
 	d := s.Step()
-	s.Apply(MakeAction(AkCast, uint8(blaze), 0, 0))
+	s.Apply(MakeAction(AkCast, TCode(blaze), 0, 0))
 	d = s.Step()
 	if d.Kind != DkChoose || d.Sub != ChX {
 		t.Fatalf("kind %d sub %d, want the X ask", d.Kind, d.Sub)

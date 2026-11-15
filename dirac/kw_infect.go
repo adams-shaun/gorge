@@ -22,6 +22,9 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	if tableGrantsWither(t) {
 		g.anyInfect, g.anyWitherGrant = true, true // a granted wither (kw_wither.go)
 	}
+	if g.anyInfectGrant {
+		g.anyInfect = true // a granted infect (kw_kwmark.go)
+	}
 	if !g.anyInfect {
 		return
 	}
@@ -74,9 +77,11 @@ func (s *State) poisonSBA(k *prep) {
 }
 
 // infectAt: the permanent at sl has printed infect and has not lost its
-// abilities (gorge HasKeyword reads the derived keywords).
+// abilities, or a granted infect (gorge HasKeyword reads the derived
+// keywords; kw_kwmark.go).
 func (s *State) infectAt(k *prep, sl Slot) bool {
-	return k.t.Cards[s.cardAt(sl)].Infect && !s.genLost(k, sl)
+	return k.t.Cards[s.cardAt(sl)].Infect && !s.genLost(k, sl) ||
+		k.gen != nil && k.gen.anyInfectGrant && s.infectGranted(k, sl)
 }
 
 // toxicAt is the permanent at sl's printed toxic N, 0 once it has lost its
@@ -99,7 +104,18 @@ func (s *State) srcInfect(k *prep) bool {
 	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 		return s.infectAt(k, sl)
 	}
-	return k.t.Cards[s.res.e.card].Infect
+	e := &s.res.e
+	if k.t.Cards[e.card].Infect {
+		return true
+	}
+	// a departed source's granted infect: gorge's LKI derives it at
+	// departure (srcWither's rule)
+	if k.gen != nil && k.gen.anyInfectGrant && e.li != 0 && e.kind != seSpell {
+		if l := s.lk(e.li); l.obj == e.obj && l.bits&lkiInfect != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // infectCounters puts infect damage n on creature sl as -1/-1 counters
@@ -126,9 +142,10 @@ func (s *State) infectCounters(k *prep, sl Slot, n int) {
 // emitObjectDamage's infect markers); a noncreature takes ordinary damage.
 //
 //go:noinline
-func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
+func (s *State) infectDamageTo(k *prep, code TCode, n int, kw kop.KwMask) {
 	e := &s.res.e
 	if isPlayerOrNone(code) {
+		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.addPoison(CodeSeat(code), n)
 	} else {
 		ob := &s.objs[code]
@@ -258,7 +275,7 @@ func (s *State) combatFoe(k *prep, sl Slot) uint8 {
 	if c != s.active {
 		return s.active
 	}
-	if p := s.atkSeat(k, sl); p != NoTarget {
+	if p := s.atkSeat(k, sl); p != noSeat {
 		return p
 	}
 	return s.nextAlive(c)

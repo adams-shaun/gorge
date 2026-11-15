@@ -292,7 +292,7 @@ func TestFDNPairTrace(t *testing.T) {
 			break
 		}
 		x := pol.Pick(&d)
-		hist = append(hist, fmt.Sprintf("t%d step%d p%d dk%d sub%d: kind %d src %s tgt %d mode %d sp %d pend %d", s.turn, s.step, d.Player, d.Kind, d.Sub, x.Kind(), name(x.Source()), x.Target(), x.Mode(), s.sp, s.npend))
+		hist = append(hist, fmt.Sprintf("t%d step%d p%d dk%d sub%d: kind %d src %s tgt %d mode %d sp %d pend %d", s.turn, s.step, d.Player, d.Kind, d.Sub, x.Kind(), name(uint8(x.Source())), x.Target(), x.Mode(), s.sp, s.npend))
 		s.Apply(x)
 	}
 	if d.Kind != DkNone {

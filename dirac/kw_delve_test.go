@@ -64,7 +64,7 @@ func TestDelveGrantCast(t *testing.T) {
 		switch a := d.Options[i]; {
 		case a.Kind() == AkDone:
 			done = true
-		case a.Kind() == AkChoose && a.Source() == uint8(grave[len(picks)]):
+		case a.Kind() == AkChoose && a.Source() == TCode(uint8(grave[len(picks)])):
 			picks = append(picks, a)
 		default:
 			t.Fatalf("option %d = kind %v src %d, want a graveyard card of %v or Done", i, a.Kind(), a.Source(), grave)

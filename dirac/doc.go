@@ -378,7 +378,14 @@
 //     on its answers ({C} first, then W U B R G) depth first along the
 //     battlefield-order chain (scriptDFS); so is a restricted two-mana
 //     Combo Any (Interdimensional Web Watch, restrWideAnyMana), whose
-//     answers are the 15 colour pairs (W W first). The potential walks list
+//     answers are the 15 colour pairs (W W first). An unrestricted {T} Combo
+//     Any source (Axebane Guardian, comboAnyMana; mana_comboany.go) is a gap
+//     too and no planner unit: its amount of mana, one colour per unit, is
+//     branched on the first 64 per-unit answers in gorge's order (the colours
+//     the play announces first), chained with the other gaps in battlefield
+//     order; a payment window taps it as well (windowComboTap), and a table
+//     holding it beside a filter, a tap-another source, a granted mana ability
+//     or a Lion's Eye Diamond is refused (StallComboAnyMix). The potential walks list
 //     a may-play cast gorge's planner leaves unpriced (Tinybones' any-type
 //     mana), so a script can make the pool pay it (pair 7489's Hawk took
 //     the Courtyard's {C}).
@@ -419,7 +426,9 @@
 //     Twinflame Tyrant, Crystal Barricade, Doubling Season, Progenitus)
 //     are computed in a fixed order: amount changes first (each Twinflame
 //     doubles), then prevention. gorge asks the affected player to order
-//     them (KReplacement, CR 616.1) when two match one damage event. Every
+//     them (KReplacement, CR 616.1) when two match one damage event, unless
+//     every match is a bare full prevention (repl_bareprev.go: two Crystal
+//     Barricades, two Cephalid Illusionist grants; neither side asks). Every
 //     order gives the same result; on a combat damage event the kernel
 //     poses the same ask, ChGenReplOrder (source = the replacement's
 //     source, mode = its index in gorge's scan: the source controller's

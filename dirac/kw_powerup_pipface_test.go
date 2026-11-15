@@ -24,7 +24,7 @@ func TestPowerUpPipFacesPriceReducedCharge(t *testing.T) {
 	if !powerupActivation(&d, a) {
 		t.Fatalf("the reduced hybrid power-up was not offered: %v", d.Options[:d.N])
 	}
-	sc.s.Apply(MakeAction(AkActivate, uint8(a), 0, 0))
+	sc.s.Apply(MakeAction(AkActivate, TCode(a), 0, 0))
 	d = sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChGenPip {
 		t.Fatalf("decision after activate %v/%d, want the hybrid pip ask", d.Kind, d.Sub)

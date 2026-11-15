@@ -13,15 +13,14 @@ import (
 
 // The Thing pins `DB$ MultiplyCounter` end to end on a real corpus carrier.
 // Lily Bowen's pin (engine/rules/multiply_counter_test.go)
-// covers the named-kind `CounterType$ P1P1 | Defined$ Self` shape. The Thing
+// covers the named-kind shape (one counter kind, +1/+1, on itself). The Thing
 // exercises the two shapes Lily does not:
 //
 //   - an ABSENT CounterType$ on a multi-kind carrier: "double the number of
 //     each kind of counter" multiplies EVERY kind the object positively holds
 //     (P1P1 and DEFENSE here), not one named kind;
-//   - the OPTIONAL ANY-NUMBER target ask (`ValidTgts$ Permanent.YouCtrl |
-//     TargetMin$ 0 | TargetMax$ MaxTargets`, MaxTargets being a
-//     `Count$Valid Permanent.YouCtrl`) reached through the paid
+//   - the OPTIONAL ANY-NUMBER target ask (zero up to as many permanents you
+//     control as you control, through a MaxTargets count) reached through the paid
 //     `AB$ ImmediateTrigger` ("you may pay {R}{G}{W}{U}. When you do, ...").
 //
 // The card is real corpus (searchCorpusCard), never inline Forge text: the

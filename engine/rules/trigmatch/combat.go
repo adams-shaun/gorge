@@ -376,10 +376,13 @@ func ExertedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 // match is the "both halves match" test, and checkTriggers' all-latch turns
 // the first such event in a batch into the single "one or more" instance.
 func DamageMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	return DamageMatchesWithCapture(e, t, source, ev, nil)
+	return DamageMatchesWithCapture(e, t, source, ev, nil, SpecOpts{})
 }
 
-func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, remembered []state.Target) bool {
+// extra carries the caller's SpecOpts overrides (a delayed registration's
+// frozen chosen-card set, SpecOpts.DelayedChosen); the remembered capture is
+// the separate parameter it always was.
+func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, remembered []state.Target, extra SpecOpts) bool {
 	// CR 120.8/603.2g: a non-positive Damage event is the marked-damage
 	// removal (cleanup, regeneration, HealDamage) or a hit reduced to zero --
 	// no damage was dealt.
@@ -415,7 +418,8 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 		if src == 0 {
 			return false
 		}
-		opts := SpecOpts{DelayedRemembered: remembered}
+		opts := extra
+		opts.DelayedRemembered = remembered
 		matched := false
 		// CR 113.7a: a source that left the battlefield while its ability
 		// waited is matched by the controller it last had there; its card
@@ -544,6 +548,28 @@ func DamageAmountMatches(e Board, t cards.Trigger, source, recipient state.ObjID
 		n = int64(v)
 	}
 	return ApplyCompare(int(amount), op, int(n))
+}
+
+// AtLeastOneInstanceMatches evaluates t's AtLeastOneInstance$ <op><n>
+// (Matoc, Lavamancer: "if at least one permanent or player was dealt exactly
+// 2 of that damage") against amounts, each recipient's share of the batch:
+// some share passes. An absent parameter admits everything; one whose operand
+// is not a literal fails closed, as DamageAmountMatches' unreadable operand.
+func AtLeastOneInstanceMatches(t cards.Trigger, amounts []int32) bool {
+	spec, has := t.Param(cards.PKAtLeastOneInstance)
+	if !has {
+		return true
+	}
+	op, n, ok := SplitCompare(spec)
+	if !ok {
+		return false
+	}
+	for _, a := range amounts {
+		if ApplyCompare(int(a), op, n) {
+			return true
+		}
+	}
+	return false
 }
 
 // firstDamageToThisTurn is the damage mirror of firstLifeLossThisTurn

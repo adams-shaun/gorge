@@ -175,7 +175,7 @@ func TargetAskIsChangeZone(sa *cards.SA) bool {
 // Defined$ value -- `You`, `Self`, a battlefield `Valid` sweep, a fire-time
 // `Triggered*` referent -- is the beneficiary/actor half of the SA, not its
 // targeting, so the SA's own ValidTgts$ is a REAL targeting this build must
-// ask (Knollspine Dragon's `DB$ Draw | Defined$ You | ValidTgts$ Opponent`:
+// ask (Knollspine Dragon's draw for you that targets an opponent:
 // the opponent is the magnitude's source, You only names the drawer --
 // suppressing the ask left the TargetedPlayer$ head over an empty target
 // list and the draw silently at zero). Dot-qualified variants of the same

@@ -486,6 +486,7 @@ func cloneFieldsEngineResolution(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			var nv0 sourceCharSnapshot
 			nv0 = v0
 			nv0.counters = append([]state.Counter(nil), v0.counters...)
+			nv0.chosen = append([]state.Target(nil), v0.chosen...)
 			c.sourceCharLKI[k0] = nv0
 		}
 	}
@@ -495,6 +496,7 @@ func cloneFieldsEngineResolution(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			var nv0 sourceCharSnapshot
 			nv0 = v0
 			nv0.counters = append([]state.Counter(nil), v0.counters...)
+			nv0.chosen = append([]state.Target(nil), v0.chosen...)
 			c.delayedSourceCharLKI[k0] = nv0
 		}
 	}
@@ -570,6 +572,8 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 				c.damageBatchLog[i0] = e.damageBatchLog[i0]
 				c.damageBatchLog[i0].sources = append([]state.ObjID(nil), e.damageBatchLog[i0].sources...)
 				c.damageBatchLog[i0].targets = append([]state.Target(nil), e.damageBatchLog[i0].targets...)
+				c.damageBatchLog[i0].instTo = append([]state.Target(nil), e.damageBatchLog[i0].instTo...)
+				c.damageBatchLog[i0].instAmt = append([]int32(nil), e.damageBatchLog[i0].instAmt...)
 			}
 		}
 	}
@@ -999,6 +1003,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		if e.manaColorActivation.trigger != nil {
 			p1 := *e.manaColorActivation.trigger
 			p1.sourceCharLKI.counters = append([]state.Counter(nil), e.manaColorActivation.trigger.sourceCharLKI.counters...)
+			p1.sourceCharLKI.chosen = append([]state.Target(nil), e.manaColorActivation.trigger.sourceCharLKI.chosen...)
 			p1.Trigger = cloneTrigger(e.manaColorActivation.trigger.Trigger)
 			if e.manaColorActivation.trigger.TriggerSVars != nil {
 				p1.TriggerSVars = make(map[string]string, len(e.manaColorActivation.trigger.TriggerSVars))

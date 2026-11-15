@@ -1,0 +1,5 @@
+# Bubbling Muck's until-end-of-turn "whenever a player taps a Swamp for mana,
+# that player adds an additional {B}" (Mode$ TapsForMana Effect trigger), which
+# kgen refuses by name: dirac/oracle/mbc_bubbling_muck_test.go
+Bubbling Muck
+Swamp

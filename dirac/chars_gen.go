@@ -127,7 +127,7 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if r := &s.g.fx[i]; r.sl == sl && r.kind == fxOverride && k.t.Overrides[r.r.idx-1].LoseAbilities {
 				lost = true
-				ts = max(ts, r.r.ts)
+				ts = max(ts, lossTs(&k.t.Overrides[r.r.idx-1], r.r.ts))
 			}
 		}
 	}
@@ -138,7 +138,9 @@ func (s *State) lossAt(k *prep, sl Slot) (ts uint16, lost bool) {
 				continue
 			}
 			lost = true
-			ts = max(ts, s.layerTs(src))
+			if !k.gen.landSet || !landSetCard(k, s.cardAt(src)) {
+				ts = max(ts, s.layerTs(src)) // a land-type setter's loss is layer 4's: no timestamp (static_landtypesetter.go)
+			}
 		}
 	}
 	if lost && p.ovr.walk&walkOn != 0 {
@@ -197,7 +199,8 @@ func (s *State) loseAllOnset(k *prep, src, dst Slot) {
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && k.t.Overrides[a.Static.Override-1].LoseAbilities &&
+				!k.t.Overrides[a.Static.Override-1].SetLandSub { // a layer-4 loss removes no later grant
 				lose = true
 			}
 		}
@@ -317,6 +320,7 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 		if o.HasTypes {
 			t = t&(keep|o.KeepTypes) | o.SetTypes
 		}
+		t &^= o.RemoveTypes
 		t |= o.AddTypes
 	}
 	s.eachOvRec(sl, func(r ovRec) { apply(&k.t.Overrides[r.idx-1]) })
@@ -400,6 +404,9 @@ func typeVocabSub(k *prep, v int) uint8 {
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
+	if k.gen != nil && k.gen.anyBestow && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
+		return true // CR 702.103b: an attached bestow card is an Aura (the subtype too; kw_bestow.go)
+	}
 	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
 		return false // CR 205.1a: gone with the creature type
 	}
@@ -440,6 +447,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if o.RemoveCreatureSub && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
 		}
+		if o.SetLandSub {
+			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+		}
 		m = m.Or(o.AddSub)
 		if ovrAllCreat(o) {
 			all = true
@@ -465,6 +475,105 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		return true
 	})
 	return found
+}
+
+// subsGen is hasSubGen reduced to one pass per slot, for ProjectChars: it
+// asks every matchup subtype of every battlefield permanent (and
+// subOutside), and hasSubGen recomputes the same per-slot work per question.
+// The per-slot reduction is i-independent -- the layer walk, the copy
+// exceptions, the override pass and the static scan -- only the final mask
+// tests vary with i. The contract is hasSubGen's: for every i in
+// 0..len(Subtypes)-1 with i < MaxSubtypes, subs.Has(i) is
+// s.hasSubGen(k, sl, i), and all is s.hasSubGen(k, sl, subOutside) (the
+// outside branch's all creature types; the mask's own changeling arm, the
+// non-outside one, is folded into the mask as the creature subtypes it
+// covers). It answers all the questions hasSubGen can: only ProjectChars
+// calls it (hasSubGen stays the single-subtype query for its other callers
+// -- delegating it would slow every single-i query). k.gen must be non-nil.
+func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
+	dormant := k.gen.anyImpending && s.impendDormant(k, sl)
+	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
+		c := s.chars(k, sl, upTo4) // one walk, not one per subtype
+		for i := range k.t.Subtypes {
+			if i < kop.MaxSubtypes && hasSubCur(k, &c, uint8(i)) {
+				subs = subs.With(i)
+			}
+		}
+		all = hasSubCur(k, &c, subOutside)
+	} else {
+		cd := &k.t.Cards[s.cardAt(sl)]
+		m := cd.Subtypes
+		copyAll := s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
+		mAll := copyAll                          // the matchup subtypes' changeling: a copy's (a printed one is outside-only)
+		allOut := cd.AllCreatureTypes || copyAll // subOutside's: printed or copy changeling
+		if s.fxM.has(sl) && k.gen.cpxSub {
+			// a copy's added subtype is a copiable value (layer 1): a later
+			// subtype-setting effect replaces it
+			m = m.Or(s.copyExcSubs(k, sl))
+		}
+		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
+			if o.HasSub {
+				m = m.And(o.KeepSub).Or(o.SetSub)
+				mAll, allOut = false, false
+			}
+			if o.RemoveCreatureSub {
+				allOut = false // the outside branch clears it on the record, mutation switch or not
+				if !DebugRmCreatSubKeep {
+					m = m.AndNot(k.gen.creatSub)
+					mAll = false
+				}
+			}
+			if o.SetLandSub {
+				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+			}
+			m = m.Or(o.AddSub)
+			if ovrAllCreat(o) {
+				mAll, allOut = true, true
+			}
+		})
+		subs = m
+		if mAll {
+			subs = subs.Or(k.gen.creatSub) // every creature type until a setter (CR 702.73a)
+		}
+		// static subtype grants (Skyknight Squire): one scan, not one per
+		// subtype. Each grant's mask (AddSub plus its own chosen type), keep
+		// mask and condition are i-independent, so its contribution unions
+		// in once: for i, a grant holds exactly when i is in its mask, i is
+		// kept and its condition held -- what hasSubGen's per-subtype scan
+		// tests.
+		s.eachStaticC(k, sclsSub, func(st statSrc) bool {
+			a := st.a
+			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous {
+				return true
+			}
+			add := a.Static.AddSub
+			if k.gen.anyAddChosen {
+				add = s.chosenGrantMask(k, a, st.sl, add)
+			}
+			if add == (kop.SubMask{}) {
+				return true
+			}
+			keep, _ := s.selfGrantKept(k, sl, st.sl)
+			if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerSub) {
+				return true
+			}
+			subs = subs.Or(add.And(keep))
+			return true
+		})
+		all = allOut
+	}
+	if dormant {
+		// CR 205.1a: gone with the creature type -- dormant kills the
+		// creature subtypes and subOutside (all), never a non-creature
+		// subtype, so it applies on the final union, not by skipping the
+		// grants
+		subs = subs.AndNot(k.gen.creatSub)
+		all = false
+	}
+	if k.gen.anyBestow && k.gen.auraSub >= 0 && s.bestowAttached(k, sl) {
+		subs = subs.With(int(k.gen.auraSub)) // CR 702.103b: the Aura subtype with the Aura type (kw_bestow.go)
+	}
+	return subs, all
 }
 
 // basePTGen is sl's base power/toughness before counters and pumps.
@@ -583,6 +692,11 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 	}
 	if k.gen.anyHone {
 		bp += s.honePower(k, sl) // CR 122.1j hone counters on attached permanents (ctr_hone.go)
+	}
+	if k.gen.anyM2M1 {
+		m := p.ctrN(s, int(kop.CtrM2M1)) // CR 122.1a -2/-1 counters (ctr_hone.go prepM2M1)
+		bp -= 2 * m
+		bt -= m
 	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
 		s.eachStaticC(k, sclsPT, func(st statSrc) bool {
@@ -805,7 +919,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 				for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
 					if g != 0 {
 						prev := s.g.grantSrc
-						s.g.grantSrc = uint8(s.perms[src].obj) + 1
+						s.g.grantSrc = s.perms[src].obj + 1
 						f(cid, g-1, 1)
 						s.g.grantSrc = prev
 					}
@@ -814,7 +928,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 				st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
 				if a.Static.Grant != 0 && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 					prev := s.g.grantSrc
-					s.g.grantSrc = uint8(s.perms[src].obj) + 1
+					s.g.grantSrc = s.perms[src].obj + 1
 					f(cid, a.Static.Grant-1, 1)
 					s.g.grantSrc = prev
 				}
@@ -1012,7 +1126,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// then turns back; a merged second turn-back sat before the animate and
 	// the object stayed a creature.
 	ov := &k.t.Overrides[idx]
-	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub
+	// An override that strips the creature subtypes (RemoveCreatureTypes$ with
+	// Types$: Gornog's "becomes a Coward") is a subtype setter too: re-applied
+	// after another subtype setter it takes the newest position, not the older
+	// application's (Majestic Metamorphosis between two of Gornog's triggers).
+	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub
 	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
 		// An override static on the host (an Aura that removes card types)
 		// sits between the older application and this one in timestamp
@@ -1028,7 +1146,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		s.stall(StallTables)
 		return
 	}
-	if k.t.Overrides[idx].LoseAbilities {
+	if k.t.Overrides[idx].LoseAbilities && !k.t.Overrides[idx].SetLandSub { // a CR 305.7 setter's loss is layer 4's: no earlier grant is suppressed (static_landtypesetter.go)
 		s.loseAllOnset(k, NoSlot, sl)
 	}
 	s.subscribeGrants(k, sl)

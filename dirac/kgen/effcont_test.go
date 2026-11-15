@@ -17,7 +17,7 @@ var effcontForms = []formCase{
 	{card: "Explore", form: "Effect AdjustLandPlays$ 1, this turn (gorge effEffect static), extra land play", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
 	{card: "Summer Bloom", form: "Effect AdjustLandPlays$ 3, this turn (gorge effEffect static), three extra land plays", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
 	{card: "Mournwillow", form: "Effect AddHiddenKeyword$ cant-block, this turn (gorge effEffect static), hidden keyword", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
-	{card: "Gruul Charm", form: "GainControl without a target stays refused (AllValid$ unread)", refused: "A[0] SP$ Charm: SP$ Charm: DB$ GainControl: unread params [AllValid]"},
+	{card: "Gruul Charm", form: "GainControl without a target: AllValid$ Permanent.YouOwn lowers as the object-order OpGainControl sweep (lower_gaincontrolall.go)"},
 	// Coward is a creature type (gorge CreatureTypeWords)
 	// no pool card carries; it lowers to the pool subtype table
 	{card: "Pyrophobia", form: "Coward filter, a creature type outside the pool"},

@@ -10,7 +10,7 @@ import (
 )
 
 // TestGrinningIgnusManaAbilityReturnsItself: Grinning Ignus's mana ability
-// `A:AB$ Mana | Cost$ R Return<1/CARDNAME> | Produced$ C C R` is an
+// ({R}, return it to its owner's hand: add {C}{C}{R}) is an
 // off-stack mana activation (CR 605.3a), and its Return<1/CARDNAME> cost
 // part must be PAID: the Ignus goes to its owner's hand as the {C}{C}{R}
 // arrives. The mana path used to pay only the mana/tap/sacrifice/discard/

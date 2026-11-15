@@ -13,7 +13,7 @@ func prepFinality(t *kop.Table, g *genPrep) {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Op == kop.OpReturnEx && in.B.K == kop.VConst && kop.CounterKind(in.B.N) == kop.CtrFinality ||
 					in.Op == kop.OpPutCounter && kop.CounterKind(in.C) == kop.CtrFinality ||
-					handGraveCounter(&in, t.Filters[in.F].Zone, kop.CtrFinality) {
+					handGraveCounter(&in, t.Filters[kop.InstrFilter(&in)].Zone, kop.CtrFinality) {
 					g.anyFinality = true
 					return
 				}

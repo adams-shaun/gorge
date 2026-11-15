@@ -43,12 +43,12 @@ func TestSacrificeCostPaidAfterMana(t *testing.T) {
 	druid := sc.perm(id["Elvish Archdruid"], 0)
 	dwynen := sc.perm(id["Dwynen, Gilt-Leaf Daen"], 0)
 	arb := sc.hand(id["Arbiter of Woe"], 0)
-	sc.do(t, AkCast, uint8(arb), 0xff)
+	sc.do(t, AkCast, TCode(arb), scAny)
 	for i := 0; i < 8 && !(sc.s.objs[arb].zone == kop.ZoneStack && sc.s.ctl == ctlPriority); i++ {
 		d := sc.s.Step()
 		a := d.Options[0]
 		for j := 0; j < int(d.N); j++ {
-			if o := d.Options[j]; o.Source() == uint8(dwynen) || o.Target() == uint8(dwynen) {
+			if o := d.Options[j]; o.Source() == TCode(uint8(dwynen)) || o.Target() == TCode(uint8(dwynen)) {
 				a = o
 				break
 			}
@@ -97,7 +97,7 @@ func TestCostObjectsChosenAfterMana(t *testing.T) {
 	druid := sc.perm(id["Elvish Archdruid"], 0)
 	sc.perm(id["Dwynen, Gilt-Leaf Daen"], 0)
 	arb := sc.hand(id["Arbiter of Woe"], 0)
-	sc.do(t, AkCast, uint8(arb), 0xff)
+	sc.do(t, AkCast, TCode(arb), scAny)
 	for i := 0; i < 8; i++ {
 		d := sc.s.Step()
 		if d.Kind == DkChoose && d.Sub == ChCostSacrifice {

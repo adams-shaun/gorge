@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtSetInMotion
+value: 74
+forge: SetInMotion
+census: api SetInMotion all=2 std=0 mbc=0 sole=0
+state: objspace (archenemy)
+status: blocked objspace:tcode

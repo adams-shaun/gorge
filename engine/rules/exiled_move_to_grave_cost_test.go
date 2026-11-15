@@ -307,8 +307,8 @@ func TestWastelandStranglerTriggerCostDeclineChangesNothing(t *testing.T) {
 }
 
 // TestProcessorAssaultSpellAdditionalCostMovesTheCard is the spell half of
-// the same token: Processor Assault's `A:SP$ DealDamage | Cost$ 1 R
-// ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>` carries the cost on
+// the same token: Processor Assault's DealDamage spell, whose cost adds putting
+// one exiled card an opponent owns into its owner's graveyard, carries the cost on
 // the SPELL's own Cost$ (an additional cost), folded in by
 // withSpellAbilityExtras. Before that fold the parsed Cost.MoveToGrave was
 // dropped on the floor for a spell, so the spell was offered, resolved, dealt

@@ -243,9 +243,9 @@ func TestNoProliferateTriggerOnOrdinaryCounterAddition(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// contagionTriggerSrc is Contagion Dispenser's ACTUAL T:Mode$ Proliferate
-// line -- `ValidPlayer$ You | TriggerZones$ Battlefield | PlayerTurn$ True |
-// ActivationLimit$ 1` -- transplanted onto a fixture whose body is a
+// contagionTriggerSrc is Contagion Dispenser's Proliferate trigger shape --
+// you proliferating, from the battlefield, on your turn, once per turn --
+// transplanted onto a fixture whose body is a
 // supported, directly observable life gain rather than the real card's
 // unsupported `DB$ Draft`. The line's trigger-level restrictions are what
 // this fixture pins; the body is a stand-in so firing is measurable. Both

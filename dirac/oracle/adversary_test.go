@@ -62,9 +62,6 @@ func kadversaryCheck(tal *kadversaryTally) func(*GorgeSide, Side) *Divergence {
 
 func TestAdversaryLockstep(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeNumTimesFixTime) {
-		t.Skip("gorge before the Announce$ NumTimes fix (a2c2e9ddf)")
-	}
 	var tal kadversaryTally
 	_, stalled := sonRunStalls(t, "adversary", kadversaryMatchups, 300, true, nil, kadversaryCheck(&tal))
 	t.Logf("%d games: announcements by the largest count offered (1..8): %v; %d stalled loud on an eighth payable repetition", tal.games, tal.top[1:], stalled)
@@ -80,9 +77,6 @@ func TestAdversaryLockstep(t *testing.T) {
 // diverges.
 func TestAdversaryLockstepMutation(t *testing.T) {
 	t.Parallel()
-	if !gorgePinAtLeast(t, gorgeNumTimesFixTime) {
-		t.Skip("gorge before the Announce$ NumTimes fix (a2c2e9ddf)")
-	}
 	n := sonRun(t, "adversary", kadversaryMatchups, 100, false, func(tbl *kop.Table) {
 		cards := append([]kop.CardDef(nil), tbl.Cards...)
 		for i := range cards {

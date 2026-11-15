@@ -38,6 +38,19 @@ func (r *run) stateFor(seat int) protocol.EventState {
 		}
 		st.Seats = append(st.Seats, es)
 	}
+	if r.meta.commander() {
+		st.PicksPerPass = commanderPicksPerPass
+		st.DeckSize = r.commanderDeckSize()
+		if r.ev.Phase() != event.PhaseLobby {
+			st.Pod = r.podRows(seat)
+		}
+		if r.ev.Phase() != event.PhaseLobby && len(st.Pod) > 0 && st.Pod[0].State == "ended" {
+			for _, s := range r.ev.Standings() {
+				st.Standings = append(st.Standings, protocol.EventStanding{Seat: s.Seat, Points: s.Points, MW: s.MW, GW: s.GW})
+			}
+		}
+		return st
+	}
 	results := r.ev.Results()
 	for rd := 1; rd <= draft.Rounds; rd++ {
 		for _, p := range event.Pairings(rd) {
@@ -257,6 +270,10 @@ func (r *run) packFor(seat int) protocol.DraftPack {
 		return out
 	}
 	out.Round, out.PickNo = v.Round, v.PickNo
+	if ppp := r.ev.PicksPerPass(); ppp > 1 {
+		out.PicksPerPass = ppp
+		out.PassPick = (v.PickNo-1)%ppp + 1
+	}
 	out.Pack = r.draftCards(v.Pack)
 	// The seat's armed pick deadline, when its armed key is still
 	// the pack at its queue head.

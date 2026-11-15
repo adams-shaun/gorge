@@ -95,6 +95,6 @@ func fanPayLifeAlts(d *Decision, n0, alts int) {
 	a := d.Options[n0]
 	d.Options[n0] = MakeAction(AkCast, a.Source(), 1, a.Mode())
 	for i := 2; i <= alts; i++ {
-		d.add(MakeAction(AkCast, a.Source(), uint8(i), a.Mode()))
+		d.add(MakeAction(AkCast, a.Source(), TCode(i), a.Mode()))
 	}
 }

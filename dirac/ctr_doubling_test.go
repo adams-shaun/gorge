@@ -26,7 +26,7 @@ func TestZimoneDoublesPast255(t *testing.T) {
 	d := sc.s.Step()
 	activated := false
 	for i := 0; i < int(d.N); i++ {
-		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == uint8(z) {
+		if a := d.Options[i]; a.Kind() == AkActivate && a.Source() == TCode(uint8(z)) {
 			sc.s.Apply(a)
 			activated = true
 			break
@@ -46,7 +46,7 @@ func TestZimoneDoublesPast255(t *testing.T) {
 		}
 		picked := false
 		for j := 0; j < int(d.N); j++ {
-			if d.Options[j].Target() == uint8(z) {
+			if d.Options[j].Target() == TCode(uint8(z)) {
 				sc.s.Apply(d.Options[j])
 				picked = true
 				break

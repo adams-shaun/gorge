@@ -1,4 +1,4 @@
-import type { EventSeat, EventSeries, EventStanding } from '../protocol';
+import type { EventPodGame, EventSeat, EventSeries, EventStanding } from '../protocol';
 import { seatLabel } from './draftcards';
 
 /** One rendered standings row. The ORDER is the server's (MTR Appendix C: points, OMW%, GW%, OGW%, seat). */
@@ -30,15 +30,37 @@ export function record(seat: number, series: EventSeries[]): string {
   return d > 0 ? `${w}-${l}-${d}` : `${w}-${l}`;
 }
 
-/** standingRows labels the server's standings, in the server's order. */
-export function standingRows(standings: EventStanding[], seats: EventSeat[], series: EventSeries[], you: number | null): StandingRow[] {
+/**
+ * podRecord is a seat's W-L(-D) over a Commander draft's ended pod games:
+ * a win when the server named the seat the winner, a loss when it named
+ * another seat, a draw when it named none.
+ */
+export function podRecord(seat: number, pod: EventPodGame[]): string {
+  let w = 0, l = 0, d = 0;
+  for (const g of pod) {
+    if (g.state !== 'ended') continue;
+    if (g.winner === null || g.winner === undefined) d++;
+    else if (g.winner === seat) w++;
+    else l++;
+  }
+  return d > 0 ? `${w}-${l}-${d}` : `${w}-${l}`;
+}
+
+/** standingRows labels the server's standings, in the server's order. With `pod` (a Commander draft) the record counts pod games. */
+export function standingRows(
+  standings: EventStanding[],
+  seats: EventSeat[],
+  series: EventSeries[],
+  you: number | null,
+  pod: EventPodGame[] | null = null,
+): StandingRow[] {
   return (standings ?? []).map((s, i) => ({
     rank: i + 1,
     seat: s.seat,
     label: seatLabel(s.seat, seats[s.seat]?.name, you),
     you: you === s.seat,
     points: s.points,
-    record: record(s.seat, series ?? []),
+    record: pod ? podRecord(s.seat, pod) : record(s.seat, series ?? []),
     mw: pct(s.mw),
     omw: pct(s.omw),
     gw: pct(s.gw),

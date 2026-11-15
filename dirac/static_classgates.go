@@ -22,6 +22,7 @@ const (
 	sclsFbGrant                    // StatFbGrant (kw_fbgrant.go)
 	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
 	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
+	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 )
 
 // prepStaticClasses fills g.sCls.
@@ -38,6 +39,9 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 			sa := &a.Static
 			switch sa.Kind {
 			case kop.StatContinuous:
+				if sa.StFlags&kop.StFunctionsInGraveyard != 0 {
+					m |= sclsGyCont
+				}
 				m |= sclsCont
 				if sa.StFlags&kop.StDynamic != 0 || sa.A != 0 || sa.B != 0 {
 					m |= sclsPT | sclsPTRel
@@ -79,7 +83,10 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 
 // eachStaticC is eachStatic over the permanents whose card prints a static
 // of a class in cls (emblems all walked): f sees exactly the statics of
-// those classes eachStatic would show it, in the same order.
+// those classes eachStatic would show it, in the same order. It leaves out
+// the graveyard Continuous statics (static_gycont.go), as eachStatic does:
+// those are plain keyword and landwalk grants, read by the layer-6 walk
+// (prepL6 turns it on for them) and by the readers that call eachGyStatic.
 func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()

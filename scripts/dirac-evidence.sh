@@ -3,7 +3,8 @@
 # coverage and reach file per run under <out>. Exit 0 when every run passes
 # kfuzz -absolute, then scripts/dirac-first-refusals.py evidence <out> writes the lists.
 #
-#   the corpus  fdn, blb and pauper real decks, one synthetic pool per Standard list, and one
+#   the corpus  fdn, blb and pauper real decks, one synthetic pool per Standard list and per draft
+#               pool (dirac/cardset/draftpools.txt, dr-<code>), and one
 #               focus pool per list in dirac/support/focus (fx-<set>: std-<set> dealt around
 #               the cards that list names, kfuzz -focus); 1500 pairs each, seed 1, the random policy
 #   the forms   surfaces autopay and full, mulligans 0 and 1
@@ -27,7 +28,7 @@ go build -trimpath -o "$out/kfuzz" ./dirac/oracle/cmd/kfuzz || exit 2
 if [ -n "${POOLS:-}" ]; then
 	pools=$POOLS
 else
-	pools="fdn blb pauper $("$out/kfuzz" -list-synth | grep '^std-' | tr '\n' ' ')"
+	pools="fdn blb pauper $("$out/kfuzz" -list-synth | grep -E '^(std|dr)-' | tr '\n' ' ')"
 	for f in dirac/support/focus/fx-*.txt; do [ -e "$f" ] && pools="$pools $(basename "$f" .txt)"; done
 fi
 surfaces=${SURFACES:-autopay full}
@@ -37,7 +38,7 @@ workers=${WORKERS:-4}
 fail=0
 for pool in $pools; do
 	case $pool in
-	std-* | tail-*) what=(-synth "$pool") ;;
+	std-* | dr-* | tail-*) what=(-synth "$pool") ;;
 	fx-*) what=(-synth "std-${pool#fx-}" -focus "$top/dirac/support/focus/$pool.txt") ;;
 	*) what=(-kernel "$pool") ;;
 	esac
@@ -46,7 +47,7 @@ for pool in $pools; do
 			run=$out/$pool.$surface.m$m
 			extra=()
 			case $pool in
-			std-* | tail-* | fx-*) extra=(-reach "$run.reach") ;;
+			std-* | dr-* | tail-* | fx-*) extra=(-reach "$run.reach") ;;
 			*) [ -n "${GATE_SLICE:-}" ] || extra=(-evidence "$run.evidence") ;;
 			esac
 			[ -n "${PLAY_REFUSED:-}" ] && extra+=(-play-refused)

@@ -1,0 +1,7 @@
+family: key
+name: keyDieResult
+value: 13
+forge: die result
+census: key die result classes=2 all=26
+state: global 2
+status: reserved

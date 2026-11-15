@@ -8,8 +8,12 @@ package kgen
 // effects/damage.go). Lowered to DealDamageFrom's player mode (CS "players":
 // build_ab.go sets B.N 1, dirac/act_damagefrom.go).
 //
-// Exactly: source rTriggered, recipient rEachOpp. Every other recipient
-// (You, a player target slot, TargetController) keeps refusing by name.
+// Exactly: source rTriggered, recipient rEachOpp, or rDefending (Mage
+// Slayer's "it deals damage equal to its power to the player it's
+// attacking": the Attacks trigger's defending seat behind AtkPWGuard,
+// lower_tokenattacking.go; CS "defending", the kernel's player mode over
+// RefDefendingPlayer). Every other recipient (You, a player target slot,
+// TargetController) keeps refusing by name.
 
 // dmgSrcPlayers emits the player-mode DealDamageFrom, or refuses.
 func (lc *lowerCtx) dmgSrcPlayers(ps *params, dmgSrc, obj lRef, n lValue) error {
@@ -19,8 +23,12 @@ func (lc *lowerCtx) dmgSrcPlayers(ps *params, dmgSrc, obj lRef, n lValue) error 
 	if _, ok := ps.get("DividedAsYouChoose"); ok {
 		return refuse("DamageSource$ to each opponent with DividedAsYouChoose$")
 	}
-	if dmgSrc.Kind != rTriggered || obj.Kind != rEachOpp {
+	if dmgSrc.Kind != rTriggered || obj.Kind != rEachOpp && obj.Kind != rDefending {
 		return refuse("DamageSource$ %s to %s", dmgSrc, obj)
+	}
+	if obj.Kind == rDefending {
+		lc.emit(lInstr{Op: "DealDamageFrom", Obj: dmgSrc, A: n, C: 0, CS: "defending", Note: "trigger object deals A to the defending player"})
+		return nil
 	}
 	lc.emit(lInstr{Op: "DealDamageFrom", Obj: dmgSrc, A: n, C: 0, CS: "players", Note: "trigger object deals A to each opponent"})
 	return nil

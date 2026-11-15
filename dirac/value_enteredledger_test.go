@@ -17,7 +17,7 @@ import (
 // enteredRing turns on the zone-entry ring for a table that does not ask for it.
 func (s *State) enteredRing() {
 	l := *s.cold.layout
-	l.entered = maxEntered
+	coldEntered.set(&l, maxEntered)
 	l.size()
 	s.resetCold(&l)
 	s.g.enteredOn = true

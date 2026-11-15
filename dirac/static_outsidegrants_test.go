@@ -114,7 +114,7 @@ func TestOutsideGrantsDistinctCodes(t *testing.T) {
 			if c.nOuts != r.wantN {
 				t.Fatalf("nOuts %d, want %d (grants %v)", c.nOuts, r.wantN, r.grants)
 			}
-			sc.s.perms[r.askSrc].chosen = r.askCode
+			sc.s.perms[r.askSrc].chosen = objWord(r.askCode)
 			sc.s.g.stalled = 0
 			if got := sc.s.curOutsideHas(sc.k, &c, r.askSrc); got != r.want {
 				t.Fatalf("curOutsideHas = %v, want %v", got, r.want)

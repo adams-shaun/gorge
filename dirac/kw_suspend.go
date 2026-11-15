@@ -66,7 +66,7 @@ func (s *State) suspendAdd(o Obj, n int) bool {
 		s.capFull(StallMayPlay)
 		return false
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurSuspend, turn: uint16(n)}
+	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurSuspend, turn: mayWord(uint16(n))}
 	s.g.nmay++
 	return true
 }
@@ -84,7 +84,7 @@ func (s *State) suspendTime(o Obj) uint8 {
 // has checked the card's cast timing and prohibition (gorge offers it
 // beside the plain cast, under the same gates, and without a target check).
 func (s *State) offerSuspendHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].SuspendCost, MakeAction(AkPlot, uint8(o), 0, plotModeSuspend))
+	s.offerSpecialHand(k, d, p, o, c, av, k.t.Cards[c].SuspendCost, MakeAction(AkPlot, TCode(o), 0, plotModeSuspend))
 }
 
 // suspendAction performs the suspend special action (CR 702.62a): pay the
@@ -188,8 +188,8 @@ func (s *State) suspendPosedOptions(d *Decision) bool {
 	}
 	r := *s.mayAt(i)
 	d.Kind, d.Sub, d.Player = DkChoose, ChSuspendCast, r.ctrl
-	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 1))
-	d.add(MakeAction(AkChoose, uint8(r.obj), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 0))
 	return true
 }
 

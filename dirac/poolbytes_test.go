@@ -20,8 +20,8 @@ func TestEveryPoolFitsTheStateBar(t *testing.T) {
 		var s State
 		s.Init(tbl, nil, nil, 0, Config{})
 		n := int(unsafe.Sizeof(s)) + 8*len(s.cold.buf)
-		if n > maxStateBytes {
-			t.Errorf("%s: %d bytes, the bar is %d", name, n, maxStateBytes)
+		if n > stateBar {
+			t.Errorf("%s: %d bytes, the bar is %d", name, n, stateBar)
 		}
 		return n
 	}

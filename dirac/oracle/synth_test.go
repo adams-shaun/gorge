@@ -294,6 +294,27 @@ func TestSynthDealsRooms(t *testing.T) {
 	}
 }
 
+// mbcSplitOf is the MBC draft split that holds name, and its set: the splits are
+// cut by hash (cardset.DraftSplitCards), so a test finds a card's split rather
+// than naming one. It fails when no split holds the card or one refuses it.
+func mbcSplitOf(t *testing.T, name string) (string, cardset.Set) {
+	t.Helper()
+	for _, pool := range cardsettest.SynthNames(t) {
+		if !strings.HasPrefix(pool, cardset.SynthDraftPrefix+"mbc-") {
+			continue
+		}
+		set := cardsettest.Synth(t, pool)
+		if i, ok := set.Lookup(name); ok {
+			if set.Status(i) == cardset.StatusRefused {
+				t.Fatalf("%s refuses %s: %s", pool, name, set.Reason(i))
+			}
+			return pool, set
+		}
+	}
+	t.Fatalf("no MBC draft split holds %s", name)
+	return "", nil
+}
+
 func setlistsDir(t *testing.T) string {
 	t.Helper()
 	dir, err := os.Getwd()
@@ -315,9 +336,14 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 	}
 	buckets := 0
 	for _, pool := range names {
+		// A draft pool deals cards that also stay in their std/tail buckets.
+		if strings.HasPrefix(pool, cardset.SynthDraftPrefix) {
+			continue
+		}
 		set := cardsettest.Synth(t, pool)
 		std := strings.HasPrefix(pool, "std-")
-		if !std {
+		draft := strings.HasPrefix(pool, cardset.SynthDraftPrefix)
+		if !std && !draft {
 			buckets++
 			if set.NumCards() > cardset.TailBucket+len(cardset.SynthBasics) {
 				t.Errorf("%s holds %d cards", pool, set.NumCards())
@@ -331,10 +357,14 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 					t.Errorf("%q is in %s and %s", n, pool, where[n])
 				}
 				inStd[n] = true
+			case draft:
+				// a draft pool (dr-<code>) replays a dealt list whose names
+				// live in the Standard and tail buckets: it partitions
+				// nothing and its not-lowered names are no one's refusal.
 			case where[n] != "":
 				t.Errorf("%q is in %s and %s", n, pool, where[n])
 			}
-			if !cardset.IsSynthBasic(n) && !std {
+			if !cardset.IsSynthBasic(n) && !std && !draft {
 				where[n] = pool
 			}
 		}

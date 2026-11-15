@@ -23,8 +23,8 @@ func (s *State) untapAsk(i int, sl Slot, up slotMask) {
 func (s *State) untapAskOptions(d *Decision) {
 	p := &s.perms[s.g.untapSl]
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenKeepTapped, p.ctrl
-	d.add(MakeAction(AkChoose, uint8(p.obj), 0, 0))
-	d.add(MakeAction(AkChoose, uint8(p.obj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(p.obj), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(p.obj), 0, 1))
 }
 
 // untapAnswer stores the answer and returns to the untap step, which resumes

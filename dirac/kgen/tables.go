@@ -32,8 +32,8 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		return nil, pb.cv, nil, fmt.Errorf("pool name %q must be letters, digits, underscores and hyphens only", poolName)
 	}
 	all, bs, pt := pb.all, pb.bs, pb.pt
-	if len(pt.subtypes) > kop.MaxSubtypes {
-		return nil, pb.cv, nil, fmt.Errorf("refusing the pool: %s %d subtypes, a table's masks hold %d", tableLimitMark, len(pt.subtypes), kop.MaxSubtypes)
+	if len(pt.subtypes) > cardset.PoolMaxSubtypes {
+		return nil, pb.cv, nil, fmt.Errorf("refusing the pool: %s %d subtypes, a pool table holds %d", tableLimitMark, len(pt.subtypes), cardset.PoolMaxSubtypes)
 	}
 	sup, err := embeddedSupport()
 	if err != nil {
@@ -51,7 +51,8 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		}
 	}
 	d.Defs = make([]kop.CardDef, len(all))
-	d.CardSubs = make([]kop.SubMask, len(all))
+	d.CardSubs = make([]cardset.PoolSubMask, len(all))
+	d.CardPrinted = make([][]uint8, len(all))
 	d.CardTokens = make([][]uint16, len(all))
 	d.CardRefSubs = make([][]uint8, len(all))
 	d.AbilityOrigin = make([][]uint8, len(all))
@@ -72,6 +73,9 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 				seen[t] = true
 				d.CardTokens[i] = append(d.CardTokens[i], uint16(t))
 			}
+		}
+		if len(bs[i].printed) > 0 {
+			d.CardPrinted[i] = bs[i].printed
 		}
 		if len(bs[i].refSubs) > 0 {
 			d.CardRefSubs[i] = bs[i].refSubs

@@ -21,7 +21,7 @@ var noObject = dirac.ProjObj{Zone: kop.ZoneNone, Attached: dirac.NoObj, Blocks: 
 func (g *Game) derive(prev *dirac.Projection, ids *idTable, asked dirac.DecisionKind) {
 	cur := &g.kp
 	before := func(o int) *dirac.ProjObj {
-		if o < int(prev.NObj) && ids.obj(uint8(o)) == g.ids.obj(uint8(o)) {
+		if o < int(prev.NObj) && ids.obj(canon.Ref(o)) == g.ids.obj(canon.Ref(o)) {
 			return &prev.Objs[o]
 		}
 		return &noObject
@@ -35,7 +35,7 @@ func (g *Game) derive(prev *dirac.Projection, ids *idTable, asked dirac.Decision
 		g.deriveLeft(&prev.Stack[i], ids, i)
 	}
 	for o := 0; o < int(cur.NObj); o++ {
-		g.deriveMove(before(o), &cur.Objs[o], uint8(o))
+		g.deriveMove(before(o), &cur.Objs[o], canon.Ref(o))
 	}
 	for i := common; i < int(cur.NStack); i++ {
 		g.derivePushed(&cur.Stack[i], i)
@@ -45,7 +45,7 @@ func (g *Game) derive(prev *dirac.Projection, ids *idTable, asked dirac.Decision
 		if now.Zone != kop.ZoneBattlefield {
 			continue
 		}
-		id := g.ids.obj(uint8(o))
+		id := g.ids.obj(canon.Ref(o))
 		wasTapped := was.Zone == kop.ZoneBattlefield && was.Flags&dirac.ProjTapped != 0
 		switch nowTapped := now.Flags&dirac.ProjTapped != 0; {
 		case nowTapped && !wasTapped:
@@ -55,11 +55,11 @@ func (g *Game) derive(prev *dirac.Projection, ids *idTable, asked dirac.Decision
 		}
 	}
 	for o := 0; o < int(cur.NObj); o++ {
-		g.deriveMarks(before(o), &cur.Objs[o], g.ids.obj(uint8(o)))
+		g.deriveMarks(before(o), &cur.Objs[o], g.ids.obj(canon.Ref(o)))
 	}
 	g.derivePlayers(prev)
 	for o := 0; o < int(cur.NObj); o++ {
-		g.deriveAttach(before(o), &cur.Objs[o], g.ids.obj(uint8(o)), ids)
+		g.deriveAttach(before(o), &cur.Objs[o], g.ids.obj(canon.Ref(o)), ids)
 	}
 	g.deriveCombat(before, asked)
 }
@@ -111,13 +111,13 @@ func (g *Game) deriveLeft(e *dirac.ProjStack, ids *idTable, i int) {
 	}
 	id := ids.stack[i]
 	if e.Kind == 0 {
-		id = ids.obj(uint8(e.Source))
+		id = ids.obj(canon.Ref(e.Source))
 	}
 	g.log.Append(events.Event{Kind: events.Resolve, Player: state.PlayerID(e.Ctrl), Obj: id})
 }
 
 // deriveMove logs object o changing zone, ascending object id.
-func (g *Game) deriveMove(was, now *dirac.ProjObj, o uint8) {
+func (g *Game) deriveMove(was, now *dirac.ProjObj, o canon.Ref) {
 	from, to := zoneOf(was.Zone), zoneOf(now.Zone)
 	if now.Token && from == state.ZLibrary {
 		from = state.ZCeased // a token's object before it is made
@@ -148,13 +148,13 @@ func (g *Game) derivePushed(e *dirac.ProjStack, i int) {
 			flags = state.FlagKicked
 		}
 		if e.X != 0 || flags != 0 {
-			g.log.Append(events.Event{Kind: events.CastInfo, Player: state.PlayerID(e.Ctrl), Obj: g.ids.obj(uint8(e.Source)),
+			g.log.Append(events.Event{Kind: events.CastInfo, Player: state.PlayerID(e.Ctrl), Obj: g.ids.obj(canon.Ref(e.Source)),
 				Amount: int32(e.X), Counter: events.FlagsString(flags)})
 		}
 	case 1:
-		g.log.Append(events.Event{Kind: events.AbilityPush, Player: state.PlayerID(e.Ctrl), Obj: g.ids.obj(uint8(e.Source))})
+		g.log.Append(events.Event{Kind: events.AbilityPush, Player: state.PlayerID(e.Ctrl), Obj: g.ids.obj(canon.Ref(e.Source))})
 	default:
-		g.log.Append(events.Event{Kind: events.TriggerPush, Player: state.PlayerID(e.Ctrl), Obj: g.ids.obj(uint8(e.Source))})
+		g.log.Append(events.Event{Kind: events.TriggerPush, Player: state.PlayerID(e.Ctrl), Obj: g.ids.obj(canon.Ref(e.Source))})
 	}
 }
 
@@ -200,10 +200,10 @@ func (g *Game) deriveAttach(was, now *dirac.ProjObj, id state.ObjID, ids *idTabl
 		return
 	}
 	if now.Attached != dirac.NoObj {
-		g.log.Append(events.Event{Kind: events.Attach, Player: state.PlayerID(now.Ctrl), Obj: id, IDs: []state.ObjID{g.ids.obj(uint8(now.Attached))}})
+		g.log.Append(events.Event{Kind: events.Attach, Player: state.PlayerID(now.Ctrl), Obj: id, IDs: []state.ObjID{g.ids.obj(canon.Ref(now.Attached))}})
 		return
 	}
-	g.log.Append(events.Event{Kind: events.Unattached, Player: state.PlayerID(now.Ctrl), Obj: id, IDs: []state.ObjID{ids.obj(uint8(was.Attached))}})
+	g.log.Append(events.Event{Kind: events.Unattached, Player: state.PlayerID(now.Ctrl), Obj: id, IDs: []state.ObjID{ids.obj(canon.Ref(was.Attached))}})
 }
 
 // deriveCombat logs a declaration, one that declared nothing included.
@@ -215,10 +215,10 @@ func (g *Game) deriveCombat(before func(int) *dirac.ProjObj, asked dirac.Decisio
 		was, now := before(o), &cur.Objs[o]
 		if now.Flags&dirac.ProjAttacking != 0 && was.Flags&dirac.ProjAttacking == 0 {
 			seat := g.defender(now)
-			attacks[seat] = append(attacks[seat], g.ids.obj(uint8(o)))
+			attacks[seat] = append(attacks[seat], g.ids.obj(canon.Ref(o)))
 		}
 		if now.Flags&dirac.ProjBlocking != 0 && was.Flags&dirac.ProjBlocking == 0 && now.Blocks != dirac.NoObj {
-			blocks = append(blocks, [2]state.ObjID{g.ids.obj(uint8(now.Blocks)), g.ids.obj(uint8(o))})
+			blocks = append(blocks, [2]state.ObjID{g.ids.obj(canon.Ref(now.Blocks)), g.ids.obj(canon.Ref(o))})
 		}
 	}
 	for p := range attacks {
@@ -239,9 +239,9 @@ func (g *Game) deriveCombat(before func(int) *dirac.ProjObj, asked dirac.Decisio
 // included.
 func (g *Game) defender(o *dirac.ProjObj) uint8 {
 	switch {
-	case o.Attacks >= dirac.PlayerTarget0 && o.Attacks != dirac.NoTarget:
-		return (o.Attacks - dirac.PlayerTarget0) & 1
-	case dirac.IsObjTarget(o.Attacks):
+	case dirac.TCode(o.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(o.Attacks) != dirac.NoTarget:
+		return uint8((dirac.TCode(o.Attacks) - dirac.PlayerTarget0) & 1)
+	case dirac.IsObjTarget(dirac.TCode(o.Attacks)):
 		return g.kp.Objs[o.Attacks].Ctrl & 1
 	}
 	return (o.Ctrl + 1) & 1

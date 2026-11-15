@@ -16,7 +16,7 @@ func TestPlayNeedReadsThePrintedBaseWhenTheGrantSearchDeclines(t *testing.T) {
 	tbl, id := wbTable(t, "Benevolent River Spirit", "Island")
 	sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
 	spirit := sc.hand(id["Benevolent River Spirit"], 0)
-	a := MakeAction(AkCast, uint8(spirit), 0, 0)
+	a := MakeAction(AkCast, TCode(spirit), 0, 0)
 	if _, _, _, ok := sc.s.grantPlayCost(sc.k, 0, a, false); ok {
 		t.Fatal("precondition: the grant search prices the waterbend cast, so this is not the declined shape")
 	}

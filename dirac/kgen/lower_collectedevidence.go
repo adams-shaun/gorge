@@ -112,8 +112,8 @@ func (lc *lowerCtx) castCollectedPerm(what string) (lCond, error) {
 	return lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}, nil
 }
 
-// castCollectedCondition lowers ConditionDefined$ CastSA>Collected |
-// ConditionPresent$ Card (the paid test; no ConditionCompare$ carrier).
+// castCollectedCondition lowers the gate that some card was collected as
+// evidence by the cast (the paid test; no ConditionCompare$ carrier).
 func (lc *lowerCtx) castCollectedCondition(ps *params, present string) (lCond, error) {
 	if strings.TrimSpace(present) != "Card" {
 		return lCond{}, refuse("ConditionDefined$ CastSA>Collected with ConditionPresent$ %q", present)

@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExUrzaLands
+value: 100
+forge: UrzaLands
+census: count UrzaLands all=3 std=0 mbc=0 sole=3
+state: code 0
+status: reserved

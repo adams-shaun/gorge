@@ -28,7 +28,7 @@ func TestCostCompositionMarkAllocs(t *testing.T) {
 	}
 	k := sc.k
 	cd := &k.t.Cards[id["Luminous Rebuke"]]
-	var buf [MaxOptions]uint8
+	var buf [MaxOptions]TCode
 	n := s.targetCands(k, &cd.Abilities[0].Targets[0], 0, NoSlot, lr, &buf)
 	if n == 0 {
 		t.Fatal("no target candidate for the reprice")

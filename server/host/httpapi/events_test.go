@@ -79,6 +79,10 @@ func (f *fakeEvents) JoinEvent(id, token string, req protocol.JoinEventRequest) 
 	return f.state, nil
 }
 
+func (f *fakeEvents) DraftAdvice(id, token string) (protocol.DraftAdvice, error) {
+	return protocol.DraftAdvice{Event: id, Waiting: true}, nil
+}
+
 func (f *fakeEvents) DraftPack(id, token string) (protocol.DraftPack, error) {
 	f.call("DraftPack", id, token, nil)
 	if f.err != nil {

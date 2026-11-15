@@ -2,9 +2,14 @@ package dirac
 
 import (
 	"math/bits"
+	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+// BlgStats counts granted basic-land-type mana views; NonLand counts the
+// ones for cards not printed as lands (the Ashaya class).
+var BlgStats struct{ NonLand atomic.Int64 }
 
 // A granted basic land type (CR 305.6): a Continuous static's
 // AddType$ AllBasicLandType (Leyline of the Guildpact, Prismatic Omen, Dryad
@@ -26,7 +31,7 @@ import (
 // ability of one colour making one mana (prepMultiMana's shape), or there
 // is none: any other affected source stalls StallLandGrant.
 
-// StallLandGrant: a land with a granted basic land type whose own mana
+// StallLandGrant: a card with a granted basic land type whose own mana
 // ability is not the plain {T}-for-one-mana shape (a {T}: Add {C}{C} land,
 // a painland, a chosen, restricted, dynamic or granted ability), or that
 // lost its abilities: one source would have to offer two different
@@ -41,7 +46,11 @@ var blgNames = [5]string{"Plains", "Island", "Swamp", "Mountain", "Forest"}
 
 // prepLandGrant finds the five basic land subtypes in the matchup table and
 // sets g.blgOn when some Continuous static or override adds one; it then
-// builds the 32 planner views of every plain-shaped land card.
+// builds the 32 planner views of every plain-shaped card, lands and the
+// creatures an override makes Forest lands (Ashaya, Soul of the Wild, Life
+// and Limb) alike: gorge appends the intrinsic "{T}: Add [c]" for every
+// derived basic type word on the battlefield (mana_activation.go's CR 305.6
+// block), and a non-token creature under Ashaya's grant is one.
 func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 	var basic kop.SubMask
 	for c := range g.blgSub {
@@ -72,7 +81,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Cards {
 		g.blgIdx[i] = -1
 		base := p.cards[i]
-		if t.Cards[i].Types&kop.TLand == 0 || !blgPlain(&t.Cards[i], &base) {
+		if !blgPlain(&t.Cards[i], &base) {
 			continue
 		}
 		g.blgIdx[i] = int16(len(g.blgPC) / 32)
@@ -109,8 +118,8 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 func (s *State) blgPrintedMask(k *prep, sl Slot) uint8 {
 	c := s.cardAt(sl)
 	own := &k.cards[c]
-	if own.types&kop.TBasic != 0 || own.manaAb < 0 {
-		return 0
+	if own.types&kop.TBasic != 0 || own.manaAb < 0 || s.landSetLost(k, sl) {
+		return 0 // a land-type setter took the printed abilities (static_landtypesetter.go)
 	}
 	m := uint8(own.manaCol & 0x3f)
 	for col, i := range k.gen.blgSub {
@@ -151,8 +160,8 @@ func blgPlain(c *kop.CardDef, pc *pcard) bool {
 //
 //go:noinline
 func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
-	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) {
-		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go)
+	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) && !s.landSetLost(k, sl) {
+		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go); a land-type setter's does not
 	}
 	var m kop.ColorMask
 	for c, i := range k.gen.blgSub {
@@ -180,6 +189,9 @@ func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	if g.blgIdx[c] < 0 {
 		s.capFull(StallLandGrant)
 		return pc
+	}
+	if k.t.Cards[c].Types&kop.TLand == 0 {
+		BlgStats.NonLand.Add(1) // an Ashaya-class grant on a non-land card
 	}
 	return &g.blgPC[int(g.blgIdx[c])*32+int(m)]
 }
@@ -249,8 +261,8 @@ func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
 	}
 	var own uint8
 	for j := range cd.Abilities {
-		if a := &cd.Abilities[j]; a.Kind == kop.AbMana {
-			own |= uint8(a.ManaColors & 0x3f)
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && !(pc.manaAb >= 0 && manaAbView(cd, pc) == nil) {
+			own |= uint8(a.ManaColors & 0x3f) // an intrinsic-only view has none (static_landtypesetter.go)
 		}
 	}
 	return mask | uint8(pc.manaCol&0x3f)&^own

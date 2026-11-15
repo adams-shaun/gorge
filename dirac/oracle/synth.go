@@ -26,10 +26,10 @@ const (
 const synthColours = "WUBRG"
 
 // PlaySet is the set dplay plays: a deck pool by name, else (a name with the prefix
-// "std-" or "tail-") the synthetic pool of that name with unverified cards playable
+// "std-", "dr-" or "tail-": cardset.IsSynthName) the synthetic pool of that name with unverified cards playable
 // and refused cards still refused, as kfuzz -synth plays it.
 func PlaySet(name string) (cardset.Set, error) {
-	if strings.HasPrefix(name, "std-") || strings.HasPrefix(name, "tail-") {
+	if cardset.IsSynthName(name) {
 		set, err := cardset.SynthByName(name)
 		if err != nil {
 			return nil, err

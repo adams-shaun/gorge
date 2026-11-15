@@ -44,6 +44,7 @@ func Main(args []string) int {
 	synthPools := flags.Bool("synth-pools", false, "write the synthetic evidence pools' binary tables under the corpus (make dirac-tables): nothing is written to the source tree")
 	supported := flags.String("supported", "", "print name<TAB>true|false for every entry of this pool's table instead of generating")
 	unverified := flags.Bool("unverified", false, "with -supported: cards without lockstep evidence count as playable (a refused card stays false)")
+	fourSeat := flags.Bool("four-seat", false, "with -supported: a card a pod of three or more seats cannot hold (kop.CardPodLimited: StallTwoSeat at its start) is false")
 	show := flags.String("show", "", "print the kop.CardDef literal of the card named by the argument, from this pool's table, instead of generating")
 	opsPool := flags.String("ops", "", "write this pool's OPS.md to -out instead of generating")
 	refuse := flags.String("refuse", "", "write this card's dirac/support/refused entry instead of generating (with -why and -repro)")
@@ -59,7 +60,7 @@ func Main(args []string) int {
 		return exitStatus(runUnrefuse(*unrefuse, os.Stdout))
 	}
 	if *supported != "" {
-		return exitStatus(runSupportedView(*supported, *unverified, os.Stdout))
+		return exitStatus(runSupportedView(*supported, *unverified, *fourSeat, os.Stdout))
 	}
 	if *show != "" {
 		return exitStatus(runShow(*show, flags.Arg(0), os.Stdout))

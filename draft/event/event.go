@@ -76,9 +76,11 @@ type Event struct {
 	collation string
 	rebuild   bool // the EventCreated Rebuild flag (MTR 7.3)
 	// format is FormatCommander or "" (limited); picksPerPass the
-	// EventCreated PicksPerPass, 0 meaning 1.
+	// EventCreated PicksPerPass, 0 meaning 1; deckSize the EventCreated
+	// DeckSize, 0 meaning build.CommanderDeckSize.
 	format       string
 	picksPerPass int
+	deckSize     int
 
 	log []Entry
 
@@ -443,8 +445,17 @@ func (e *Event) applyEventCreated(en *Entry) error {
 	if en.PicksPerPass > 1 && mode != ModeDraft {
 		return fmt.Errorf("event: EventCreated: picks per pass needs draft mode")
 	}
+	if en.DeckSize != 0 {
+		if en.Format != FormatCommander {
+			return fmt.Errorf("event: EventCreated: deck size needs format %s", FormatCommander)
+		}
+		if en.DeckSize < build.MinCommanderDeckSize || en.DeckSize > build.MaxDeckSize {
+			return fmt.Errorf("event: EventCreated: deck size %d, want %d..%d", en.DeckSize, build.MinCommanderDeckSize, build.MaxDeckSize)
+		}
+	}
 	e.format = en.Format
 	e.picksPerPass = en.PicksPerPass
+	e.deckSize = en.DeckSize
 	e.seed = en.Seed
 	e.set = en.Set
 	e.seats = append([]SeatSpec(nil), en.Seats...)
@@ -1089,10 +1100,12 @@ func (e *Event) StateJSON() ([]byte, error) {
 		Promos    int    `json:"promos,omitempty"`
 		Rounds    int    `json:"rounds,omitempty"`
 		Rebuild   bool   `json:"rebuild,omitempty"`
-		// Format, PicksPerPass and PodGames appear only in a Commander
-		// draft's state.
+		// Format, PicksPerPass, DeckSize and PodGames appear only in a
+		// Commander draft's state; DeckSize only when it is not the
+		// default build.CommanderDeckSize.
 		Format       string              `json:"format,omitempty"`
 		PicksPerPass int                 `json:"picks_per_pass,omitempty"`
+		DeckSize     int                 `json:"deck_size,omitempty"`
 		PodGames     []podGameJSON       `json:"pod_games,omitempty"`
 		Seats        []SeatSpec          `json:"seats"`
 		Pools        [][]limited.CardRef `json:"pools"`
@@ -1116,6 +1129,7 @@ func (e *Event) StateJSON() ([]byte, error) {
 		s.Structure = e.structure
 	}
 	s.Format = e.format
+	s.DeckSize = e.deckSize
 	if e.picksPerPass > 1 {
 		s.PicksPerPass = e.picksPerPass
 	}

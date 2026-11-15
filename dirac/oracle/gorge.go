@@ -516,7 +516,34 @@ func (g *GorgeSide) windowOwed(d *decision.Decision) decision.ManaAmount {
 			owed[c] = uint32(n)
 		}
 	}
+	if owed == (decision.ManaAmount{}) && fixedColourChoice(d) {
+		// No hybrid pip was announced (payPips is empty): a plan that fell
+		// back to the manual window leaves the cast's own coloured pips owed,
+		// which a dual land's fixed-choice colour ask (Produced$ Combo W U)
+		// takes before the lowest colour. An any-colour ask keeps the
+		// kernel's lowest-colour tap.
+		if o, ok := rules.PendingCastOwed(g.E); ok && o.Generic == 0 {
+			// with generic still owed the kernel's tap pays it with the
+			// lowest colour
+			return o.Mana
+		}
+	}
 	return owed
+}
+
+// fixedColourChoice reports whether colour ask d offers a fixed subset of the
+// colours (a dual land's Produced$ Combo W U), not all five (an any-colour
+// ability, which the kernel taps for its lowest colour).
+func fixedColourChoice(d *decision.Decision) bool {
+	var seen [5]bool
+	n := 0
+	for _, o := range d.Options {
+		if c := strings.Index("WUBRG", o.ManaSymbol); o.Kind == "mana" && len(o.ManaSymbol) == 1 && c >= 0 && !seen[c] {
+			seen[c] = true
+			n++
+		}
+	}
+	return n > 0 && n < 5
 }
 
 // hasManaOption reports whether d poses a colour ask (its options name mana
@@ -733,22 +760,25 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "retrace" {
+			if o.Mode == "retrace" || o.Mode == "jumpstart" {
 				// CR 702.81a: the kernel's retrace cast (the printed cost
 				// plus the discard-a-land additional cost) canonicalises to
-				// castModeOther, like "harmonize" (kw_retrace.go)
+				// castModeOther, like "harmonize" (kw_retrace.go); CR
+				// 702.84a: so does the jump-start cast, the same cast with
+				// any card discarded (kw_jumpstart.go)
 				if o.AltCostIndex > 15 {
-					note("cast/retrace")
+					note("cast/" + o.Mode)
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayhem" || o.Mode == "buyback" {
+			if o.Mode == "mayhem" || o.Mode == "buyback" || o.Mode == "entwined" {
 				// CR 702.187a: the kernel's mode-2 cast of a Mayhem card
 				// canonicalises to castModeOther, like "harmonize"
 				// (kw_mayhem.go); CR 702.27a: so does the kicked cast of a
-				// Buyback card (kw_buyback.go), gorge's "buyback" mode
+				// Buyback card (kw_buyback.go), gorge's "buyback" mode, and the
+				// kicked cast of an Entwine card (kw_entwine.go), "entwined"
 				if o.AltCostIndex > 15 {
 					note("cast/" + o.Mode)
 					continue
@@ -827,11 +857,12 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|15<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "overloaded" {
+			if o.Mode == "overloaded" || o.Mode == "cleaved" {
 				// CR 702.96a: the overloaded cast's mode word is not in the
 				// full 16-entry cast-mode table, so it canonicalises to
 				// CastModeOther, the kernel's castOverloadTgt form
-				// (kw_overload.go; canon/translate.go)
+				// (kw_overload.go; canon/translate.go); CR 702.148a's
+				// "cleaved" cast is the same shape (kw_cleave.go)
 				if o.AltCostIndex > 15 {
 					note("cast/overloaded")
 					continue
@@ -914,6 +945,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
 				continue
 			}
+			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && cards.KeywordHead(o.Keyword) == "Saddle" {
+				// A saddle ability a static grants (Jandor, Fortuned Traveler's
+				// "has saddle 2"): the kernel's latent-ability activation,
+				// told apart by the granting permanent (kgen
+				// lower_saddlegrant.go). Only saddle is modelled: the other
+				// granted-keyword abilities keep the anchored note below.
+				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
+					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
+					continue
+				}
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
@@ -945,7 +987,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
 		} else if pa.Cast.CastMode() == "conspired" {
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" {
+		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "entwined" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" || pa.Cast.CastMode() == "cleaved" {
 			// CR 702.166: the full cast-mode table's castModeOther code, the
 			// same canonical form the offered option uses
 			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
@@ -993,9 +1035,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if pa.Mode == "suspend" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
-			} else if pa.Mode == "overloaded" {
+			} else if pa.Mode == "overloaded" || pa.Mode == "cleaved" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
-			} else if pa.Mode == "buyback" {
+			} else if pa.Mode == "buyback" || pa.Mode == "entwined" {
 				// CR 702.27a: the 16-entry cast-mode table is full; the
 				// kernel's kicked cast of a Buyback card is castModeOther
 				// (kw_buyback.go), as the offered option above
@@ -1374,9 +1416,12 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 // requiredCovered reports whether every creature an attackers decision
 // marks Required (CR 508.1d) that can still be declared is in the answer so
 // far: gorge's validateAttackers refuses a declaration that omits one.
+// A zero decision.RequiredQuota binds no creature: a lone required attacker
+// that can't attack alone and has no partner obeys its requirement by not
+// attacking (CR 508.1d, CR 506.5), the one rule gorge's validator reads.
 func requiredCovered(fr *frame, chosen []int) bool {
 	d := fr.d
-	if d.Kind != decision.KAttackers {
+	if d.Kind != decision.KAttackers || d.RequiredQuota() == 0 {
 		return true
 	}
 	for i := range d.Options {
@@ -1409,6 +1454,12 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 	}
 	for _, c := range chosen {
 		if c == o.Index && !d.Repeatable {
+			return false
+		}
+		if d.ResumeKind == "changetext" && optByIndex(d, c).Kind == o.Kind {
+			// one "from" and one "to" word: gorge's answer binds each list
+			// from its own picks and defaults the other half if a list is
+			// picked twice, a malformed answer the kernel's two picks never ask
 			return false
 		}
 		if o.Group == "" && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers) && optByIndex(d, c).Obj == o.Obj {
@@ -1791,6 +1842,9 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 	e := g.E
 	d := e.Pending()
 	x := payexec.StartPlay(d.Player, pe.play, pe.plan, payexec.PoolOf(e, d.Player))
+	// a wheel whose labels tie (Itlimoc's two "Add G") is settled on a
+	// clone: the option that makes the witness's mana
+	x.Prove = payexec.Prover(e)
 	for x.Status() == payexec.InProgress {
 		if e.G.Over {
 			// The activations that fund the play can win the game before it

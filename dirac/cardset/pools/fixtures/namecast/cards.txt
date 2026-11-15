@@ -1,0 +1,9 @@
+# the NameCard cast pool: Silverquill Silencer (an ETBReplacement DB$ NameCard
+# ask, then a SpellCast trigger ValidCard$ Card.NamedCard over the opponent's
+# cast) beside the spell it names and basics
+# (dirac/oracle/namecast_test.go)
+Silverquill Silencer
+Dark Ritual
+Mountain
+Plains
+Swamp

@@ -15,7 +15,7 @@ func statusPool() *PoolData {
 		PoolID: []uint16{0, 1, 2, 3, 4},
 		Status: []Status{StatusSupported, StatusNotLowered, StatusRefused, StatusUnverified, StatusSupported},
 		Reason: []string{"", "not lowered: no", "refused: lockstep: it differs; catch-up pending", "unverified: in no evidence list", ""},
-		Defs:   make([]kop.CardDef, 5), CardSubs: make([]kop.SubMask, 5), CardTokens: make([][]uint16, 5),
+		Defs:   make([]kop.CardDef, 5), CardSubs: make([]PoolSubMask, 5), CardTokens: make([][]uint16, 5),
 		CardRefSubs: make([][]uint8, 5), AbilityOrigin: make([][]uint8, 5), StaticSubs: make([][]AbSubs, 5),
 		Filters: []kop.Filter{{}}, Exprs: []kop.Expr{}, Conds: []kop.Cond{}, Overrides: []kop.Override{}, Emblems: []kop.Emblem{}}
 }
@@ -53,6 +53,8 @@ func TestViewsPlayWhatTheySay(t *testing.T) {
 		{"gated", viewOf(d, gated(false)), map[string]bool{"A Good": true, "D Unproven": true}},
 		{"enforced", viewOf(d, gated(true)), map[string]bool{"A Good": true}},
 		{"allow unverified", AllowUnverified(viewOf(d, gated(true))), map[string]bool{"A Good": true, "D Unproven": true}},
+		{"allow named", AllowNamed(viewOf(d, gated(true)), map[string]bool{"D Unproven": true, "C Refused": true}), map[string]bool{"A Good": true, "D Unproven": true}},
+		{"allow none named", AllowNamed(viewOf(d, gated(true)), nil), map[string]bool{"A Good": true}},
 		{"raw", viewOf(d, lowered), map[string]bool{"A Good": true, "C Refused": true, "D Unproven": true}},
 	}
 	for _, v := range views {

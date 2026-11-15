@@ -2,7 +2,7 @@ package rules
 
 // trig:SpellCast.ValidSAonCard -- the cast spell's own mana-spent gate.
 //
-// Ancient Cellarspawn's T:Mode$ SpellCast carries
+// Ancient Cellarspawn's SpellCast trigger carries
 // `ValidSAonCard$ Spell.ManaSpent LTX` ("Whenever you cast a spell, if the
 // amount of mana spent to cast it was less than its mana value, target
 // opponent loses life equal to the difference"). Before this fix the
@@ -11,8 +11,7 @@ package rules
 // full-price included.
 //
 // The real-corpus regression below rides Ancient Cellarspawn's OWN
-// `S:Mode$ ReduceCost | ValidCard$ Demon,Horror,Nightmare | Type$ Spell`
-// static, so the fixture differentiates mana spent from mana value with no
+// ReduceCost static for Demon, Horror and Nightmare spells, so the fixture differentiates mana spent from mana value with no
 // synthetic mana fiddling: a Horror spell of mana value 2 costs {1} less and
 // is paid with 1 mana, a non-Horror spell of the same mana value is paid with
 // 2.

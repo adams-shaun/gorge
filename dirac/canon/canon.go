@@ -12,18 +12,18 @@ import (
 // Ref is a canonical reference, the source/target byte of a Canon and the
 // reference fields of a Projection: 0..MaxInst-1 a card instance (doc.go,
 // "Card identity"), RefStack+i the i-th stack object from the bottom (an
-// ability, which is no card), RefPlayer+p seat p, RefNone nothing.
-type Ref = uint8
+// ability, which is no card), RefPlayer+p seat p, RefNone nothing. Ref is a
+// byte (canon_default.go), as dirac.TCode.
 
 const (
-	RefStack  Ref = dirac.StackTarget0  // one definition per size class (dirac seats_*.go)
-	RefPlayer Ref = dirac.PlayerTarget0 // seat p is RefPlayer+p
-	RefNone   Ref = 0xFF
+	RefStack  Ref = Ref(dirac.StackTarget0)  // one definition (dirac seats_default.go)
+	RefPlayer Ref = Ref(dirac.PlayerTarget0) // seat p is RefPlayer+p
+	RefNone   Ref = Ref(dirac.NoTarget)
 )
 
 // Canon is a canonical option tuple (doc.go's grammar), packed
-// kind<<24 | source<<16 | target<<8 | mode. Source and target are Refs.
-type Canon uint32
+// kind<<24 | source<<16 | target<<8 | mode (canonKindShift and the rest,
+// canon_default.go). Source and target are Refs.
 
 // CanonKind is a Canon's top byte.
 type CanonKind uint8
@@ -59,15 +59,15 @@ const (
 
 // Pack builds a Canon.
 func Pack(k CanonKind, src, tgt Ref, mode uint8) Canon {
-	return Canon(uint32(k)<<24 | uint32(src)<<16 | uint32(tgt)<<8 | uint32(mode))
+	return Canon(k)<<canonKindShift | Canon(src)<<canonSrcShift | Canon(tgt)<<canonTgtShift | Canon(mode)
 }
 
 // Kind, Src, Tgt and Mode unpack a Canon.
-func (a Canon) Kind() CanonKind { return CanonKind(a >> 24) }
+func (a Canon) Kind() CanonKind { return CanonKind(a >> canonKindShift) }
 
-func (a Canon) Src() Ref { return Ref(a >> 16) }
+func (a Canon) Src() Ref { return Ref(a >> canonSrcShift & canonRefMask) }
 
-func (a Canon) Tgt() Ref { return Ref(a >> 8) }
+func (a Canon) Tgt() Ref { return Ref(a >> canonTgtShift & canonRefMask) }
 
 func (a Canon) Mode() uint8 { return uint8(a) }
 
@@ -161,6 +161,8 @@ var ChooseKinds = []string{
 	"suspend_cast_yes", // CR 702.62a: gorge startSuspendedCast's may-cast ask (kw_suspend.go)
 	"suspend_cast_no",
 	"echo_action_pick", // gorge echoActionAsk's choose-exactly-N cards or lands an action echo cost pays
+	"changetext_from",  // gorge effChangeText's "from" word pick (CR 612; the option mode is the word index)
+	"changetext_to",    // and its "to" word pick
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

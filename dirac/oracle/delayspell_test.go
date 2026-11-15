@@ -357,6 +357,9 @@ func delaySpellRun(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2]
 const delaySpellSeeds = 1500
 
 func TestDelayspellLockstep(t *testing.T) {
+	// A fresh clone has no corpus: skip here, before the chunks (each would
+	// skip alone and leave this test's totals empty).
+	corpusDirOrSkip(t)
 	if isolate(t) {
 		return
 	}

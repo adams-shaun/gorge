@@ -53,11 +53,11 @@ func dedupeTargets(ts []state.Target) []state.Target {
 //
 //   - Populate$ True with no Defined$/ValidTgts$: "a creature token you
 //     control" (CR 701.27a), scanned through the ordinary Valid filter
-//     grammar. A single eligible token is copied exactly; several keep the
-//     deterministic first-candidate stand-in under one Note (the no-host
-//     contract -- the controller's real choice needs an ask this primitive
-//     cannot pose); zero eligible tokens is a legitimate no-op (populate does
-//     nothing), never a Note.
+//     grammar. A single eligible token is copied exactly; with several the
+//     controller picks one (CR 701.36a, one KChoose in battlefield order; an
+//     unposable ask keeps the first-candidate stand-in under one Note); zero
+//     eligible tokens is a legitimate no-op (populate does nothing), never a
+//     Note.
 //   - Defined$: resolved through knownDefinedTargets, FAIL-CLOSED -- an
 //     unresolvable selector (ChosenMap, ...)
 //     is one Note and NO mint, never a silent fall-through to the source or
@@ -404,16 +404,34 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		targets = []state.Target{{}}
 	case populate && spec == "" && !hasTgts:
 		cands := DefinedSpec(h, c, "Valid Creature.token+YouCtrl")
-		if len(cands) > 1 {
-			emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-				Text: "Populate$ with several eligible creature tokens copies the first (no engine host to ask)"})
-		}
 		if len(cands) == 0 {
 			// CR 701.27a: with no creature token you control, populate does
 			// nothing. A legitimate no-op, not a defect.
 			return
 		}
 		targets = cands[:1]
+		if len(cands) > 1 {
+			// CR 701.36a: the controller chooses the token to copy (one KChoose
+			// over the candidates in battlefield order, the Choices$ arm's ask)
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "copypermanent_choice", ResumeSA: sa,
+				Prompt: "Choose a creature token to populate"}
+			for i, t := range cands {
+				d.Options = append(d.Options, decision.Option{Index: i, Obj: t.Obj, Kind: "permanent"})
+			}
+			if ans, ok := AskTape(h, d); ok {
+				for _, ev := range preNotes {
+					h.Emit(ev)
+				}
+				if len(ans) == 0 || ans[0].Obj == 0 {
+					return
+				}
+				targets = []state.Target{{Obj: ans[0].Obj}}
+			} else if askUnposable(d) {
+				emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "Populate$ with several eligible creature tokens copies the first (no engine host to ask)"})
+			}
+		}
 	case supportsChoice:
 		chooser := copyChooser(g, c, cp.ChooserRemembered)
 		// Choices$ names a CARD FILTER, not a Defined$ selector (Forge's
@@ -427,9 +445,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		pick := DefinedSpec(h, c, "Valid "+cp.ChoiceFilter)
 		if spec != "" {
 			// Choices$ with Defined$: Forge narrows the Defined$ objects by
-			// the Choices$ filter (Mimic Vat's `Defined$
-			// Imprinted.ExiledWithSource | Choices$ Card` picks one of the
-			// cards exiled with it). The selector stays FAIL-CLOSED like the
+			// the Choices$ filter (Mimic Vat names its imprinted cards
+			// exiled with it and lets any of them be chosen, so it picks one
+			// of the cards exiled with it). The selector stays FAIL-CLOSED like the
 			// plain Defined$ arm below: an unresolvable one is one Note and
 			// no copy, never the battlefield sweep.
 			ts, ok := knownDefinedTargets(h, c, spec)

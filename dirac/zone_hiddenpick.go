@@ -50,7 +50,7 @@ func (s *State) battlefieldCands(k *prep, in *kop.Instr, d *Decision) {
 			continue
 		}
 		if s.matchPermGen(k, in.F, sl, s.res.e.ctrl, src, layerFull) {
-			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
 }
@@ -76,13 +76,24 @@ func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) (parked bool) {
 }
 
 // chooserOf is who answers a search / choose-move over player p's zone:
-// p, or the resolving controller with SrChooserYou (gorge Chooser$ You).
+// p, or the resolving controller with SrChooserYou (gorge Chooser$ You), or
+// with SrChooserOpp the resolving controller's first living opponent (gorge
+// searchChooser / hiddenPickChooser: Chooser$ Opponent through chooserPlayer;
+// read from B, pickF's bit 0 is SrTapped). A ChooseMove reads the bit beside
+// its other B readers: over a hand pool bit 0 is the UntilLeaves hand-exile
+// link instead, and kgen never lowers Chooser$ Opponent on a hand pick (its
+// hand moves admit only Chooser$ You), so the hand pool keeps the link's
+// meaning. An unbound referent keeps the fetch player, as gorge's
+// chooserPlayer falls back to the owner.
 func (s *State) chooserOf(k *prep, p uint8) uint8 {
 	if s.g.pickF&kop.SrChooserYou != 0 {
 		return s.res.e.ctrl
 	}
-	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpSearchEx && in.B.N&kop.SrChooserOpp != 0 {
-		return s.playerRef(k, kop.RefOpponent) // Chooser$ Opponent (gorge searchChooser); read from B, pickF's bit 0 is SrTapped
+	if in := &s.prog(k)[s.res.pc]; (in.Op == kop.OpSearchEx || in.Op == kop.OpChooseMove) && in.B.N&kop.SrChooserOpp != 0 &&
+		!(in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneHand) {
+		if opp := s.playerRef(k, kop.RefOpponent); opp != 255 {
+			return opp
+		}
 	}
 	return p
 }
@@ -94,4 +105,24 @@ func (s *State) anyCand(k *prep) bool {
 	var d Decision
 	s.searchCands(k, &d)
 	return d.N > 0
+}
+
+// pickEntryPlayer is who a picked card o enters the battlefield under, p the
+// fetch player: graveexile enters a hidden pick under its owner unless
+// GainControl$ (SrUnderYourControl); a GainControl$ pick from a fetch
+// player's graveyard (SrOwnZone, The Weaver King) enters under the resolving
+// controller, not the fetch player; else the fetch player.
+func (s *State) pickEntryPlayer(o Obj, p uint8) uint8 {
+	fl := s.g.pickF
+	ep := p
+	if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
+		ep = s.objs[o].owner()
+	}
+	if fl&(kop.SrUnderYourControl|kop.SrOwnZone) == kop.SrUnderYourControl|kop.SrOwnZone {
+		ep = s.res.e.ctrl
+	}
+	if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
+		ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
+	}
+	return ep
 }

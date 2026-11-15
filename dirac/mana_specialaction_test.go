@@ -52,7 +52,7 @@ func plotRestrScen(t *testing.T, names ...string) (sc *scen, id map[string]CardI
 
 func plotOffered(d *Decision, o Obj) bool {
 	for _, a := range d.Options[:d.N] {
-		if a.Kind() == AkPlot && a.Source() == uint8(o) {
+		if a.Kind() == AkPlot && a.Source() == TCode(uint8(o)) {
 			return true
 		}
 	}
@@ -105,7 +105,7 @@ func TestPlotRestrictedManaClass(t *testing.T) {
 	if !plotOffered(&d, o) {
 		t.Fatalf("(c) Powerstone: plot not offered: %v", d.Options[:d.N])
 	}
-	sc.do(t, AkPlot, uint8(o), 0xff)
+	sc.do(t, AkPlot, TCode(o), scAny)
 	if sc.s.objs[o].zone != kop.ZoneExile || !sc.tapped(ps) {
 		t.Fatalf("(c) Powerstone plot: zone %d, Powerstone tapped %v; want exile and tapped", sc.s.objs[o].zone, sc.tapped(ps))
 	}
@@ -126,7 +126,7 @@ func TestPlotRestrictedManaClass(t *testing.T) {
 	if !plotOffered(&d, o) {
 		t.Fatalf("(d) Powerstone mana floating: plot not offered: %v", d.Options[:d.N])
 	}
-	sc.do(t, AkPlot, uint8(o), 0xff)
+	sc.do(t, AkPlot, TCode(o), scAny)
 	if s.objs[o].zone != kop.ZoneExile || s.restrN(0) != 0 {
 		t.Fatalf("(d) zone %d, restricted %v; want exile and the restricted mana spent", s.objs[o].zone, s.rb[0])
 	}

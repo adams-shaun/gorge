@@ -462,8 +462,8 @@ func tlaAnswerTargetsAndPass(t *testing.T, e *Engine, p state.PlayerID, limit in
 // TestSetAudit_tla_Planetarium_ScryTriggerLooksAtTop pins the library half of
 // "Whenever you scry or surveil, look at the top card of your library. You may
 // cast that card without paying its mana cost. Do this only once each turn."
-// Planetarium of Wan Shi Tong carries the trigger as `T:Mode$ Scry` conditioned
-// on `PresentDefined$ Remembered | IsPresent$ Card | PresentCompare$ EQ0`;
+// Planetarium of Wan Shi Tong carries the trigger as a Scry trigger conditioned
+// on no remembered card being present;
 // activating its `{1},{T}: Scry 2` ability must fire it. The observable is the
 // trigger's own TriggerPush -- a bare scry (effLookAndArrange) emits only its
 // own "looks at the top of the library" Note and no TriggerPush, so asserting
