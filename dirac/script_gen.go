@@ -336,9 +336,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
 		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
-			if !s.tapXScript(k, a, p, false) &&
-				!(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) &&
-				!(s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)) {
+			if !s.tapXScriptOffered(k, a, p) {
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
@@ -360,6 +358,20 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		}
 		d.add(a)
 	}
+}
+
+// tapXScriptOffered searches play a for the tap-another script, and when that
+// finds none, for the grant search beside the grants it covers: a
+// second-ability tap-another source's (tapXSecondLive), and a
+// sacrifice-another source's (sacXBesideGrant) — gorge's one prefix search
+// activates every gap of the board, the grants beside its census gaps
+// (rules scriptSearch.visit; mana_granttapx.go, mana_grantsacx.go).
+func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) bool {
+	if s.tapXScript(k, a, p, false) {
+		return true
+	}
+	return s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p) ||
+		s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)
 }
 
 // walkKey orders insufficient play a (the kernel walk's option i) as
