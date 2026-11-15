@@ -1030,10 +1030,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return s.execSetState(k, in)
 		}
 		if in.Op >= kop.OpPutCounterAll {
-			if ok, done := s.execCold1(k, in); done {
-				return ok, true
-			}
-			if ok, done := s.execOpGen(k, in); done {
+			if ok, done := s.execColdOps(k, in); done {
 				return ok, true
 			}
 		}
