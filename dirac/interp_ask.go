@@ -37,7 +37,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
 		av.xdOn = false
-		return av.affords(&c, pipMaskOf(&c), 0)
+		return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
 	case kop.PayDiscardHand:
