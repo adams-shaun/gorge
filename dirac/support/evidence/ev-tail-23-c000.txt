@@ -1,5 +1,7 @@
+A-Falcon Abomination
 A-Skemfar Avenger
 Abstergo Entertainment
+Adriana, Captain of the Guard
 Aether Herder
 Air Marshal
 Airdrop Condor
@@ -9,8 +11,12 @@ Akki Battle Squad
 Alliance of Arms
 Alpine Watchdog
 Ambassador Laquatus
+Ancient Gold Dragon
 Ancient Ziggurat
+Angel of Light
 Angel's Feather
+Arctic Nishoba
+Arden Angel
 Armored Galleon
 Arno Dorian
 Arrest
@@ -19,22 +25,26 @@ Ashen Firebeast
 Assault Griffin
 Atmosphere Surgeon
 Atraxi Warden
+Aura Gnarlid
 Avacynian Missionaries
 Avatar of Fury
 Aven Cloudchaser
 Aven Fateshaper
 Aven Windreader
 Axebane Stag
+Axgard Artisan
 Ayula's Influence
 Barbed Battlegear
 Barishi
 Baru, Fist of Krosa
+Basalt Monolith
 Behold the Unspeakable
 Berserkers' Onslaught
 Bilbo's Ring
 Bile Urchin
 Blacklance Paragon
 Bladed Sentinel
+Blaze Commando
 Blight Titan
 Blister Beetle
 Blood Price
@@ -44,17 +54,20 @@ Boggart Brute
 Boggart Harbinger
 Boiling Blood
 Boneknitter
+Boomerang, Blade Flinger
 Boros Mastiff
 Brass Herald
 Breath Weapon
 Broken Fall
 Built to Last
 Cabal Ritual
+Caged Zombie
 Call the Bloodline
 Casey Jones, Back Alley Brute
 Celestial Force
 Ceremonial Knife
 Chandra, Flamecaller
+Charging Slateback
 Chrome Steed
 Cinder Glade
 Clockwork Condor
@@ -74,12 +87,16 @@ Crypt Angel
 Crypt Incursion
 Darkwatch Elves
 Daru Lancer
+Dauntless Aven
 Daybreak Charger
+Defender en-Vec
 Deflecting Swat
 Dense Canopy
 Desert Cerodon
 Disrupting Scepter
 Doctor Jane Foster
+Dragon's Eye Sentry
+Dreg Recycler
 Dwarfhold Champion
 Earth-Origin Yak
 El-Hajjâj
@@ -95,6 +112,7 @@ Experimental Synthesizer
 Explore
 Extruder
 Fan Bearer
+Fang Skulkin
 Farmstead Gleaner
 Fearful Villager
 Fiery Conclusion
@@ -102,6 +120,7 @@ Fighting Drake
 Fire Nation Archers
 Firebird, Blazing Ranger
 Flying Carpet
+Fogwalker
 Forcemage Advocate
 Forest
 Fortify
@@ -112,6 +131,7 @@ Giant Warthog
 Gitaxian Raptor
 Gix's Caress
 Gix's Command
+Glaring Aegis
 Glint Hawk
 Goblin Gardener
 Goblin Glider
@@ -120,16 +140,21 @@ Goblin Rally
 Goblin Recruiter
 Godo's Irregulars
 Gorilla Warrior
+Grapeshot Catapult
+Great Goblin, Foul-Hearted
 Gruul Turf
 Guildpact Informant
 Gurmag Swiftwing
+Gwaihir, Greatest of the Eagles
 Harabaz Druid
 Hawkeater Moth
+Hawkeye, Clint Barton
 Heaven's Gate
 Hedonist's Trove
 Hedron Scrabbler
 Hematite Talisman
 Henge Guardian
+Hero of the Winds
 Heron's Grace Champion
 Hidden Gibbons
 Highspire Artisan
@@ -139,13 +164,17 @@ Hound of Griselbrand
 Hour of Revelation
 Hulking Devil
 Hunt the Hunter
+Hypochondria
 Illusory Wrappings
 Imps' Taunt
 Inevitable End
 Inhumaniac
 Innistrad Charm
+Integrity
 Intrepid Hero
+Invasion of Kylem
 Invasion of Mercadia
+Iridescent Drake
 Island
 Iwamori of the Open Fist
 Jeskai Windscout
@@ -153,10 +182,14 @@ Jiang Yanggu, Wildcrafter
 Journeyer's Kite
 Juniper Order Ranger
 Junktroller
+Kami of Celebration
 Kavu Predator
 Kazandu Nectarpot
+Keep Watch
 Keymaster Rogue
 Killer Whale
+Kitsune Riftwalker
+Knight Watch
 Knight of the White Orchid
 Kolaghan Skirmisher
 Lash of the Balrog
@@ -168,9 +201,13 @@ Llanowar Knight
 Lonesome Unicorn
 Lost Legion
 Loxodon Mender
+Loyal Gyrfalcon
 Macetail Hystrodon
+Makindi Griffin
+Malfegor
 Maritime Guard
 Master Skald
+Mastermind's Acquisition
 Mausoleum Guard
 Mechanized Warfare
 Merfolk Mistbinder
@@ -190,11 +227,14 @@ Mountain
 Mtenda Lion
 Myrkul's Edict
 Narcolepsy
+Nature's Will
+Necroskitter
 Niall Silvain
 Night Market Lookout
 Nivix Barrier
 Obscura Storefront
 Okina, Temple to the Grandfathers
+Ondu Greathorn
 Ongoing Investigation
 Orcish Hellraiser
 Oread of Mountain's Blaze
@@ -202,17 +242,28 @@ Ornery Dilophosaur
 Ornery Goblin
 Orochi Eggwatcher
 Ossification
+Overwhelming Denial
 Pack's Favor
+Paraselene
 Patchwork Automaton
 Patriar's Seal
 Pawn of Ulamog
+Penumbra Bobcat
+Phantasmagorian
+Phantasmal Abomination
+Pilgrim's Eye
 Pillardrop Warden
 Plains
+Portcullis Vine
 Preordain
 Prismatic Lens
+Prison Realm
 Prized Unicorn
+Profound Journey
 Rath's Edge
+Reef Worm
 Reprobation
+Resounding Thunder
 Returned Reveler
 Riptide Turtle
 Rise from the Grave
@@ -224,6 +275,7 @@ Salvaged Manaworker
 Samwise Gamgee
 Sand Silos
 Sardian Avenger
+Scourge of Kher Ridges
 Sea Eagle
 Sea Gate Restoration
 Seal of Primordium
@@ -232,6 +284,7 @@ Seething Landscape
 Seismic Mage
 Selfless Savior
 Serpentine Ambush
+Serra's Guardian
 Shared Trauma
 Shattering Pulse
 Shuri, the Black Panther
@@ -240,23 +293,28 @@ Siege Mastodon
 Siegehorn Ceratops
 Sliver Construct
 Smash
+Smuggler's Copter
 Solarion
 Somberwald Sage
 Sonic Seizure
+Sovereign's Bite
 Sowing Mycospawn
 Spark Elemental
 Spark Jolt
+Sphinx-Bone Wand
 Starlit Angel
 Stomp and Howl
 Stone Quarry
 Storm, Shaker of Skies
 Story Seeker
+Suit Up
 Sunflare Shaman
 Sunrise Seeker
 Sunseed Nurturer
 Swamp
 Symbiote Spawn
 Tenement Crasher
+The Destined White Mage
 The Lady of the Mountain
 Thran Foundry
 Thunderclap
@@ -265,9 +323,13 @@ Timely Interference
 Toils of Night and Day
 Tortured Existence
 Towering Gibbon
+Traxos, Scourge of Kroog
 Treetop Sentinel
+Tribal Golem
+Tribute to the Wild
 Tricks of the Trade
 Trollhide
+Trudge Garden
 Trusty Machete
 Turn to Slag
 Twilight Prophet
@@ -293,11 +355,15 @@ Wall of Earth
 Wall of Mulch
 Wall of Resistance
 Warden of Geometries
+Warning
 Warriors' Lesson
+Waste Not
 Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog
+White Knight
 Winding Canyons
 Woodweaver's Puzzleknot
 Your Temple Is Under Attack
+Zealot il-Vec
 Zephid's Embrace

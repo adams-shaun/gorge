@@ -1,10 +1,14 @@
 +2 Mace
 A-Capenna Express
 A-Skull Skaab
+A-Unholy Heat
 Aang and Katara
 Abomination of Llanowar
+Adventure Awaits
 Aether Channeler
+Aether Theorist
 Agility Bobblehead
+Air Marshal
 Akki Coalflinger
 Alchemax Slayer-Bots
 Alluring Suitor
@@ -24,11 +28,14 @@ Audacious Thief
 Aven Redeemer
 Ayula, Queen Among Bears
 Bala Ged Scorpion
+Baleful Eidolon
 Baleful Force
 Bankrupt in Blood
 Banners Raised
 Bartered Cow
+Battering Sliver
 Beacon Behemoth
+Beskir Shieldmate
 Black Market Tycoon
 Bladebrand
 Blazing Specter
@@ -45,6 +52,7 @@ Brass Gnat
 Cabal Slaver
 Cabal Surgeon
 Call the Gatewatch
+Carefree Swinemaster
 Carnassid
 Castaway's Despair
 Cat Oven
@@ -63,13 +71,17 @@ Cleansing Screech
 Cleaving Skyrider
 Cleaving Sliver
 Cleon, Merry Champion
+Cloudchaser Eagle
+Cloudfin Raptor
 Cloudhoof Kirin
 Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
+Compound Fracture
 Congregation at Dawn
 Conjurer's Closet
 Conservator
+Courser of Kruphix
 Coursers' Accord
 Creeping Tar Pit
 Cultbrand Cinder
@@ -78,11 +90,14 @@ Custodi Lich
 Cyclops Electromancer
 D'Avenant Archer
 Daggerdrome Imp
+Damnation
+Daring Skyjek
 Darksteel Splicer
 Deadly Allure
 Death Pits of Rath
 Death's Shadow
 Death's-Head Buzzard
+Decision Paralysis
 Defy Death
 Demanding Dragon
 Demon of Catastrophes
@@ -91,9 +106,13 @@ Desert Sandstorm
 Dimir Aqueduct
 Dire Fleet Captain
 Dire Fleet Ravager
+Dire Mimic
+Dissolve
 Double Trouble
+Dragonspark Reactor
 Drake Familiar
 Dromad Purebred
+Dromar's Cavern
 Drown in Shapelessness
 Drowned
 Dwarven Berserker
@@ -105,6 +124,7 @@ Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
 Expedition Healer
+Explosive Apparatus
 Eye of Nowhere
 Facet Reader
 Faerie Guidemother
@@ -112,6 +132,7 @@ Fallen Cleric
 Fanatical Devotion
 Fatal Frenzy
 Festering Evil
+Fiery Temper
 Fire Servant
 Fire Shrine Keeper
 Fireforger's Puzzleknot
@@ -120,6 +141,7 @@ Flatten
 Flaxen Intruder
 Fleet Swallower
 Fleeting Image
+Flooded Shoreline
 Flourishing Strike
 Flowstone Surge
 Forest
@@ -128,17 +150,23 @@ Fortitude
 Foul Orchard
 Frantic Salvage
 Frenetic Efreet
+Fresh-Faced Recruit
+Fugitive Wizard
 Galadriel, Gift-Giver
+Galvanic Key
 Gargoyle Flock
 Geist of the Archives
 Geothermal Kami
 Ghitu Journeymage
 Ghostly Wings
+Gideon's Defeat
 Glacial Crasher
+Glintwing Invoker
 Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
 Goblin Spy
+Grandmother Goby
 Grassland Crusader
 Graveborn Muse
 Grimclaw Bats
@@ -146,46 +174,63 @@ Gruesome Discovery
 Guild Thief
 Gut, True Soul Zealot
 Gyre Sage
+Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
 Haze of Pollen
+Hazoret's Favor
 Heavenly Qilin
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
+Hollowhenge Scavenger
 Holy Armor
 Holy Light
 Honor Troll
 Horn of Gondor
 Hostile Minotaur
 Hurloon Minotaur
+Iconic Shield
 Imperial Lancer
+Implement of Improvement
 Inexorable Blob
 Infectious Inquiry
+Infernal Plunge
 Infernal Tribute
 Ingenious Skaab
 Inner-Flame Acolyte
 Insidious Will
 Invasion of Ulgrotha
 Iroas's Blessing
+Iron Man, Modern Marvel
 Irontread Crusher
 Ishi-Ishi, Akki Crackshot
 Island
+Jaheira's Respite
 Jalira, Master Polymorphist
+Jeskai Elder
 Jhessian Balmgiver
+Johtull Wurm
+Jorubai Murk Lurker
 Jungle Barrier
 Jungle Basin
 Juniper Order Advocate
+Karametra's Blessing
 Kashi-Tribe Warriors
 Kemba's Banner
+Kemba, Kha Enduring
 Kinsbaile Skirmisher
 Kitchen
+Knight of Stromgald
 Kodama of the North Tree
 Kor Scythemaster
 Kyren Legate
 Labyrinth Adversary
 Last Rites
 Lava Spike
+Leovold's Operative
+Library Larcenist
 Lightbringer
+Living Tempest
 Llanowar Cavalry
 Llanowar Sentinel
 Lord of Change
@@ -193,8 +238,11 @@ Lumbering Satyr
 Lunar Frenzy
 Malfegor
 Manhole Cover
+Maralen of the Mornsong
 Martial Glory
 Mask of Memory
+Matca Rioters
+Megrim
 Memorial to Folly
 Mental Note
 Mercurial Kite
@@ -216,12 +264,16 @@ Murasa Behemoth
 Myojin of Life's Web
 Myrsmith
 Necklace of Girion
+Nettle Sentinel
+Nettle Swine
 Neurok Replica
 Night Out in Vegas
 Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
 Novice Occultist
+Obelisk of Jund
+Offalsnout
 Ogre Errant
 Ondu Greathorn
 Oppressive Will
@@ -233,8 +285,12 @@ Oxidda Daredevil
 Pact of Negation
 Paranoid Parish-Blade
 Pardic Wanderer
+Patron of the Valiant
 Pestilence Demon
+Phantasmal Forces
+Phantasmal Form
 Pheres-Band Warchief
+Pieces of the Puzzle
 Piranha Marsh
 Plague Rats
 Plains
@@ -250,10 +306,13 @@ Prowling Nightstalker
 Psychic Overload
 Psychosis Crawler
 Puppet Strings
+Purphoros, God of the Forge
 Pursue Glory
 Qilin's Blessing
 Quicken
 Quicksilver Fisher
+Quicksilver Geyser
+Raff, Weatherlight Stalwart
 Raise Dead
 Ramosian Lieutenant
 Raven's Crime
@@ -262,14 +321,17 @@ Reclaim
 Recruitment Drive
 Redemption Arc
 Regenesis
+Renari, Merchant of Marvels
 Renegade Krasis
 Resistance Fighter
 Resurgent Belief
 Rhox Faithmender
 Rhox Pikemaster
+Ribbon Snake
 Ridge Rannet
 Ring of Evos Isle
 Rising Populace
+Rites of Reaping
 Rites of Refusal
 Ritual Guardian
 Rob the Archives
@@ -280,11 +342,13 @@ Rush of Vitality
 Rushwood Elemental
 Sanctifier of Souls
 Sanctum Spirit
+Saradoc, Master of Buckland
 Sawtooth Ogre
 Scalding Salamander
 Scavenged Weaponry
 Scrapheap
 Scrappy Bruiser
+Screeching Sliver
 Scythecat Cub
 Seafloor Oracle
 Secure the Wastes
@@ -293,11 +357,14 @@ Selfless Spirit
 Senate Courier
 Serendib Sorcerer
 Serra's Sanctum
+Servant of Volrath
+Setessan Petitioner
 Shepherd of the Cosmos
 Shield Sphere
 Shizo, Death's Storehouse
 Shu Farmer
 Shuri, Vibranium Technologist
+Sindbad
 Sinister Starfish
 Skittish Kavu
 Skulking Ghost
@@ -306,14 +373,18 @@ Sky Crier
 Skyboon Evangelist
 Skyline Scout
 Slippery Scoundrel
+Southern Elephant
 Spellshock
 Spined Thopter
+Spirit Mirror
 Spirit of the Hunt
 Spiteful Motives
 Spore Frog
+Stalking Stones
 Starlight
 Starlit Mantle
 Starnheim Courser
+Steeple Creeper
 Steppe Glider
 Stimulus Package
 Stony Silence
@@ -325,22 +396,32 @@ Stunted Growth
 Sun-Collared Raptor
 Sungrace Pegasus
 Sunmane Pegasus
+Surge of Brilliance
 Surrakar Banisher
 Survey the Wreckage
 Swamp
 Swathcutter Giant
+Tablet of Epityr
+Taeko, the Patient Avalanche
 Talon Sliver
 Targ Nar, Demon-Fang Gnoll
 Tavern Brawler
 Tavern Ruffian
+Temporal Spring
 Terminal Agony
 The Battle of Bywater
+The Lady of the Mountain
 The Monumental Facade
 The Spear of Leonidas
+The Wasp, Janet Van Dyne
+Thieves' Tools
 Thragtusk
 Timber Protector
+Topple
+Toxic Nim
 Treasure Hunt
 Trespassing Souleater
+Turn Against
 Twinscroll Shaman
 Tyrant's Familiar
 Tzaangor Shaman
@@ -353,21 +434,28 @@ Unwilling Ingredient
 Urborg Shambler
 Valduk, Keeper of the Flame
 Vampire Outcasts
+Vanishment
 Veiled Sentry
 Vengeful Regrowth
 Verdant Touch
 Verdurous Gearhulk
 Viashino Outrider
 Vision, Spectral Synthezoid
+Voice of the Vermin
 Volcanic Upheaval
 Volcanic Vision
 Waking the Trolls
 Wall of Souls
 Wall of Swords
+War-Spike Changeling
 Weave Fate
+Wharf Infiltrator
+Wild Wurm
 Wildsize
 Will of the All-Hunter
+Willow Geist
 Wirewood Channeler
+Woodland Chasm
 Woodwraith Corrupter
 Yotian Tactician
 Young Blue Dragon

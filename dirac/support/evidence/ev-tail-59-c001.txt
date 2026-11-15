@@ -10,6 +10,7 @@ Aerial Responder
 Aerie Bowmasters
 Aetherwind Basker
 Affa Protector
+Agent Frank Horrigan
 Akki War Paint
 Aligned Hedron Network
 Amateur Hero
@@ -24,6 +25,7 @@ Arashin Foremost
 Ardent Plea
 Arena Rector
 Artificer's Dragon
+Artillerize
 Assassin's Ink
 Back to Basics
 Bad River
@@ -36,7 +38,9 @@ Battle Brawler
 Benthic Behemoth
 Blaring Captain
 Blood for the Blood God!
+Bloodbraid Challenger
 Blue Elemental Blast
+Boa Constrictor
 Boggart Shenanigans
 Boggart Sprite-Chaser
 Boiling Seas
@@ -46,6 +50,7 @@ Brightling
 Bronze Sword
 Builder's Blessing
 Burning-Tree Emissary
+Canyon Drake
 Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
@@ -88,8 +93,10 @@ Displacer Kitten
 Distress
 Divine Offering
 Dogpile
+Down
 Dragon Bell Monk
 Dragon Throne of Tarkir
+Dragon's Desire
 Dramatic Finale
 Dread Drone
 Dress Down
@@ -98,12 +105,14 @@ Drumhunter
 Duchess, Wayward Tavernkeep
 Durable Coilbug
 Duskworker
+Eager Beaver
 Eagle of Deliverance
 Eccentric Farmer
 Elemental Appeal
 Elite Scaleguard
 Elvish Herder
 Embermage Goblin
+Emergent Woodwurm
 Epicenter
 Esper Battlemage
 Essence Filter
@@ -125,9 +134,12 @@ Flowstone Kavu
 Forest
 Foriysian Interceptor
 Founding of Omashu
+Fraying Omnipotence
 Frenzied Fugue
 Frost Ogre
+Furious Strength
 Genesis
+Ghostly Prison
 Giant Mantis
 Gideon's Battle Cry
 Gnottvold Slumbermound
@@ -135,6 +147,7 @@ Goblin Assault Team
 Goliath Sphinx
 Grasp of Darkness
 Grave Pact
+Gray Ogre
 Greenweaver Druid
 Grim Initiate
 Grim Wanderer
@@ -184,6 +197,7 @@ Lazotep Plating
 Lead Astray
 Leafkin Druid
 Legion Loyalty
+Lightning Surge
 Lily Bowen, Raging Grandma
 Living Armor
 Livonya Silone
@@ -204,6 +218,7 @@ Marionette Apprentice
 Markov Enforcer
 Marsh Hulk
 Maverick Thopterist
+Merfolk Skyscout
 Mire Triton
 Mirran Bardiche
 Mold Shambler
@@ -215,7 +230,9 @@ Mordor Muster
 Mountain
 Mountain Valley
 Munda's Vanguard
+Murasa Ranger
 Nahiri's Stoneblades
+Naktamun Lorespinner
 Narset's Reversal
 Natural Obsolescence
 Needlebug
@@ -258,6 +275,7 @@ Ranger's Path
 Raven's Crime
 Rebel Informer
 Rebuff the Wicked
+Reckless Assault
 Reckless Handling
 Redemption Arc
 Returned Phalanx
@@ -275,6 +293,8 @@ Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
 Sautekh Immortal
+Savai Thundermane
+Scholar of Combustion
 Scion of the Swarm
 Screaming Fury
 Seal of Cleansing
@@ -286,6 +306,7 @@ Serum Snare
 Setessan Training
 Shichifukujin Dragon
 Shield Wall
+Shifting Ceratops
 Shoal Serpent
 Shoreline Raider
 Shuko
@@ -298,6 +319,7 @@ Skeletal Wurm
 Skull Prophet
 Slimebind
 Sluggishness
+Smash
 Song of the Worldsoul
 Soul Rend
 Soulless One
@@ -306,6 +328,7 @@ Spitting Hydra
 Spring-Leaf Avenger
 Squee's Toy
 Squee, Goblin Nabob
+Stasis Cocoon
 Steadfast Guard
 Stone Golem
 Storm Shaman
@@ -333,7 +356,9 @@ Thraben Sentry
 Threaten
 Thriving Turtle
 Thunder Spirit
+Thundering Giant
 Titanic Brawl
+Tomakul Scrapsmith
 Topiary Stomper
 Tragic Fall
 Travel Preparations
@@ -352,6 +377,7 @@ Ursapine
 Urza's Rage
 Valorous Charge
 Vanish into Eternity
+Venomous Vines
 Vesper Ghoul
 Victor Timely, Wily Tycoon
 Vivid Flying Fish

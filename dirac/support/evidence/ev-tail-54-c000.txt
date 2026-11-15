@@ -1,7 +1,10 @@
+Adaptive Shimmerer
+Airdrop Aeronauts
 Alela, Cunning Conqueror
 Alluring Scent
 Almighty Brushwagg
 Ancient Tomb
+Angelfire Crusader
 Arashin Cleric
 Archers' Parapet
 Arena of the Ancients
@@ -12,8 +15,10 @@ Balduvian Bears
 Barbarian Ring
 Basal Sliver
 Battlefield Butcher
+Bazaar Krovod
 Biting-Palm Ninja
 Black Market Connections
+Blaring Recruiter
 Blight Mamba
 Blightstep Pathway
 Boggart Shenanigans
@@ -21,13 +26,18 @@ Bond of Agony
 Bontu's Last Reckoning
 Brimstone Dragon
 Brokers Veteran
+Bulwark Giant
 Candlelight Vigil
+Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
 Cho-Arrim Legate
 City of Death
 Clarion Cathars
 Cloak of the Bat
+Cloud Crusader
+Copper Longlegs
+Copper-Leaf Angel
 Copy Artifact
 Crippling Blight
 Crushing Vines
@@ -38,7 +48,9 @@ Dark-Dweller Oracle
 Deathgreeter
 Deep Dish Pizza
 Demon's Due
+Desert Twister
 Destructive Tampering
+Dinosaur Stampede
 Dispense Justice
 Divination
 Dramatic Rescue
@@ -54,6 +66,7 @@ Esper Panorama
 Essence Capture
 Exile into Darkness
 Eye of Vecna
+Fade from History
 Failed Inspection
 Fathom Mage
 Festercreep
@@ -61,9 +74,11 @@ Fiery Temper
 Fire Nation Ambushers
 Flame Sweep
 Flame-Blessed Bolt
+Flaming Fist Officer
 Fleecemane Lion
 Fleshmad Steed
 Forest
+Fortified Rampart
 Foulmire Knight
 Foundry Street Denizen
 Fresh Meat
@@ -71,6 +86,7 @@ Frillscare Mentor
 General Kudro of Drannith
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
+Gideon's Reproach
 Gimli's Axe
 Glistening Oil
 Gluntch, the Bestower
@@ -88,15 +104,21 @@ Haunter of Nightveil
 Heartwood Treefolk
 Hero of Precinct One
 Heroic Teamwork
+High-Rise Sawjack
+Hitchclaw Recluse
 Hold the Line
 Homarid Explorer
 Hulk, Bruce Banner
+Hungry Spriggan
 Hunt the Weak
+Hystrodon
 Immersturm Raider
 Implement of Combustion
 Incubation
 Infested Fleshcutter
+Invigorating Surge
 Iron Man, Tony Stark
+Ironhoof Ox
 Ironwright's Cleansing
 Island
 Jor Kadeen, First Goldwarden
@@ -106,14 +128,19 @@ Kabira Vindicator
 Kaervek the Merciless
 Karametra's Blessing
 Keldon Strike Team
+Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
+Knight of the Stampede
 Kobold Taskmaster
 Kolaghan Monument
 Laser Screwdriver
 Lash of Malice
 Launch Party
 Lava Dart
+Leveler
+Lich Lord of Unx
+Life's Legacy
 Lightning Serpent
 Liliana's Specter
 Liliana's Steward
@@ -132,11 +159,16 @@ Meteor Shower
 Mindstab Thrull
 Miss Highwater
 Mistcutter Hydra
+Moonbow Illusionist
+Moss Viper
 Mossfire Egg
 Mountain
 Multani's Harmony
 Muse Drake
+Mystic Melting
+Nahiri's Machinations
 Night Terrors
+Nightmare
 Nissa, Resurgent Animist
 Norwood Riders
 Not Forgotten
@@ -149,11 +181,14 @@ Ostiary Thrull
 Ovalchase Dragster
 Paladin of the Bloodstained
 Panther Warriors
+Parallel Lives
 Patch Up
 Pharika's Disciple
 Phyrexian Digester
+Pitchstone Wall
 Plains
 Plasma Elemental
+Plated Rootwalla
 Poison-Blade Mentor
 Pridemalkin
 Promise of Aclazotz
@@ -163,7 +198,9 @@ Quest for the Goblin Lord
 Racers' Ring
 Radioactive Man
 Rain of Blades
+Rain of Embers
 Rain of Tears
+Ramosian Rally
 Ravnica at War
 Razortide Bridge
 Relentless Assault
@@ -178,27 +215,34 @@ Run Out of Town
 Sacred Prey
 Sandbar Merfolk
 Sandsower
+Saproling Symbiosis
 Sarulf's Packmate
 Savage Gorger
 Scalding Tarn
 Scarwood Bandits
+Scatter Ray
 Secure the Wastes
 Sensor Splicer
 Setessan Champion
 Shadow of Mortality
 Shinka Gatekeeper
+Shower of Sparks
 Shu Elite Infantry
 Sifa Grent
+Silent Artisan
 Silverclad Ferocidons
 Sinew Sliver
 Sisay's Ingenuity
+Sky Skiff
 Skyshroud Forest
 Slime Molding
 Slinking Serpent
+Smelt-Ward Minotaur
 Soltari Visionary
 Soul's Attendant
 Sphinx of New Prahv
 Spirit Weaver
+Steadfast Guard
 Stensia Innkeeper
 Stonecloaker
 Stonehands
@@ -213,17 +257,21 @@ Symmetry Matrix
 Tail Swipe
 Talas Air Ship
 Talrand, Sky Summoner
+Tangletrap
+Tazeem Raptor
 Temple Bell
 Terra Ravager
 The Duke, Rebel Sentry
 Thundermare
 Tidal Kraken
+Tideshaper Mystic
 Tin-Wing Chimera
 Tor Wauki
 Transplant Theorist
 Trespasser il-Vec
 Trusty Machete
 Twigwalker
+Unchecked Growth
 Unconventional Tactics
 Ur-Golem's Eye
 Urban Evolution
@@ -236,6 +284,8 @@ Vraan, Executioner Thane
 Wall of Hope
 War Priest of Thune
 Warhost's Frenzy
+Watercourser
 Weaponcraft Enthusiast
+Wrecking Crew
 Zodiac Horse
 Éomer, King of Rohan

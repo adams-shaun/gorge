@@ -1,4 +1,5 @@
 A-Sewer Crocodile
+A-Steadfast Unicorn
 A-Young Blue Dragon
 Abzan Beastmaster
 Accomplished Automaton
@@ -8,28 +9,34 @@ Ajani, Strength of the Pride
 Akoum Battlesinger
 Amphin Cutthroat
 Amy Rose
+Ancient Amphitheater
 Angelic Blessing
 Anje's Ravager
 Archfiend of Ifnir
 Arctic Aven
+Arctic Flats
 Atrocious Experiment
 Auriok Sunchaser
 Aven Skirmisher
 Bala Ged Scorpion
 Balduvian Bears
 Baloth Null
+Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
 Blessed Orator
+Blood-Chin Fanatic
 Bloodfire Mentor
 Board the Weatherlight
 Body Dropper
 Bolt of Keranos
 Bond of Revival
+Boneclad Necromancer
 Bootleggers' Stash
+Bottle of Suleiman
 Branchloft Pathway
 Briarberry Cohort
 Brindle Shoat
@@ -38,6 +45,7 @@ Brutal Deceiver
 Bull's Strength
 Burden of Guilt
 Cackling Counterpart
+Caldera Lake
 Captain America's Motorcycle
 Cathartic Pyre
 Cavern Lampad
@@ -46,6 +54,7 @@ Chamber of Manipulation
 Change of Fortune
 Claws of Gix
 Clearwater Goblet
+Cliffhaven Kitesail
 Compulsory Rest
 Conifer Strider
 Contagious Vorrac
@@ -56,6 +65,7 @@ Countless Gears Renegade
 Crackdown
 Cranial Ram
 Criminal Enterprise
+Crypt Ripper
 Dakmor Plague
 Dark Offering
 Daru Healer
@@ -78,14 +88,18 @@ Elspeth, Knight-Errant
 Elven Warhounds
 Elvish Doomsayer
 Elvish Farmer
+Empyrial Plate
 Enduring Scalelord
 Envoy of the Ancestors
 Epistolary Librarian
 Errant Ephemeron
 Escape Routes
 Essence Extraction
+Etherium Pteramander
 Everdawn Champion
+Exorcist
 Explosive Shot
+Eyeblight Massacre
 Face of Fear
 Faeburrow Elder
 Faerie Bladecrafter
@@ -98,6 +112,7 @@ Favor of the Woods
 Feast of Flesh
 Festival of Trokin
 Fetid Gargantua
+Filigree Crawler
 Filter Out
 Forest
 Foriysian Brigade
@@ -105,6 +120,7 @@ Forsake the Worldly
 Foul Watcher
 Fretwork Colony
 Frightcrawler
+Fulminator Mage
 Galvanic Blast
 Gateway Plaza
 Gauntlet of Might
@@ -116,6 +132,7 @@ Gilded Sentinel
 Gleeful Arsonist
 Glimmer Lens
 Gnoll War Band
+Go Blank
 Goblin Recruiter
 Goblin War Cry
 Gorgon's Head
@@ -142,6 +159,7 @@ Hidden Ancients
 Hidden Stockpile
 High Score
 Highland Forest
+Highspire Artisan
 Holdout Settlement
 Honored Hierarch
 Hot Soup
@@ -166,11 +184,13 @@ Ivory Charm
 Jagged-Scar Archers
 Javelin of Lightning
 Jeskai Sage
+Jeweled Torque
 Jirina, Dauntless General
 Jolene, the Plunder Queen
 Jump
 Jungle Wurm
 Jwar Isle Refuge
+Kami of the Waning Moon
 Killer Bees
 Kithkin Zealot
 Knight of Dusk's Shadow
@@ -184,6 +204,8 @@ Lantern Scout
 Leonin Den-Guard
 Lightning Cloud
 Llanowar Behemoth
+Lokhust Heavy Destroyer
+Lounge
 Maggot Therapy
 Magmatic Channeler
 Magmatic Chasm
@@ -196,6 +218,7 @@ Mephidross Vampire
 Militia's Pride
 Mindsplice Apparatus
 Mindwrack Demon
+Mire Triton
 Mishra, Excavation Prodigy
 Moon-Circuit Hacker
 Mortarion, Daemon Primarch
@@ -215,6 +238,7 @@ Nimana Skitter-Sneak
 Noxious Revival
 Nyxborn Seaguard
 Obscura Storefront
+Obzedat's Aid
 Oculus
 Ogre Shaman
 On the Trail
@@ -297,14 +321,17 @@ Starnheim Aspirant
 Stensia Innkeeper
 Stone Spirit
 Storm of Souls
+Stream Hopper
 Structural Assault
 Sulfur Elemental
 Swamp
 Tales of Master Seshiro
 Taranika, Akroan Veteran
+Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
 Throne of Geth
@@ -318,8 +345,10 @@ Tortoise Formation
 Training Grounds
 Traitorous Blood
 Treasure Hunt
+Triangle of War
 Triskelion
 Trollbred Guardian
+Ukkima, Stalking Shadow
 Underworld Connections
 Unhinge
 Unholy Indenture
@@ -331,19 +360,26 @@ Venser's Sliver
 Vex
 Vibranium Mining Mech
 Vigilant Sentry
+Vogar, Necropolis Tyrant
 Volcanic Torrent
 Voyager Staff
 War-Wing Siren
+Warm Welcome
 Watcher Sliver
+Waterfront District
+Wayfaring Temple
 Whetstone
 Whirlwind Adept
 White Scarab
 Wild Nacatl
 Winged Coatl
+Wolfir Avenger
 World Breaker
 Wrath of the Skies
 Wreak Havoc
 Yavimaya Sojourner
+You Meet in a Tavern
 Youthful Scholar
+Zagoth Triome
 Zhalfirin Lancer
 Zodiac Ox

@@ -1,3 +1,4 @@
+Abandon Reason
 Aerial Maneuver
 Alena, Kessig Trapper
 Altar of the Brood
@@ -21,6 +22,7 @@ Bat Whisperer
 Battle Brawler
 Battlefield Promotion
 Battlefly Swarm
+Battlewise Valor
 Beacon Bolt
 Benthic Giant
 Black Dragon
@@ -42,21 +44,26 @@ Charnel Serenade
 Cinder Hellion
 Consulate Skygate
 Coordinated Assault
+Court of Ardenvale
 Crash the Party
+Curse of Vitality
 Cursed Minotaur
 Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darksteel Forge
 Darksteel Ingot
 Daxiver, Izzet Electromancer
 Delayed Blast Fireball
+Demon's Due
 Devoted Paladin
 Devout Monk
 Disciple of Kangee
 Diviner's Lockbox
 Donatello's Science Lesson
 Dross Hopper
+Dross Ripper
 Drove of Elves
 Drowsing Tyrannodon
 Durkwood Tracker
@@ -82,13 +89,21 @@ Famine
 Fanatic of Mogis
 Fell Stinger
 Final-Sting Faerie
+Firefly
 Forest
 Fountain Watch
+Freewind Equenaut
+Gallant Cavalry
 Generous Pup
+Gideon's Battle Cry
 Gift of Growth
+Glint-Sleeve Siphoner
 Gnarled Effigy
+Goblin Brigand
 Goblin Sharpshooter
 Green Sun's Zenith
+Grim Poppet
+Guide of Souls
 Gut Shot
 Guul Draz Overseer
 Heedless One
@@ -115,6 +130,7 @@ Jugan, the Rising Star
 Kalonian Twingrove
 Kaya's Ghostform
 Keldon Vandals
+Keldon Warlord
 Kessig Dire Swine
 Kithkin Billyrider
 Knight of Sorrows
@@ -128,6 +144,7 @@ Leaf-Crowned Visionary
 Let the Galaxy Burn
 Leveler
 Leyline Invocation
+Light of Hope
 Lightning Elemental
 Living Wish
 Long-Lost Lances
@@ -137,9 +154,11 @@ Make Mischief
 Mana Seism
 Master Splicer
 Migloz, Maze Crusher
+Militant Inquisitor
 Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
+Misshapen Fiend
 Moldgraf Millipede
 Monastery Swiftspear
 Mosstodon
@@ -147,15 +166,20 @@ Most Wanted
 Mountain
 Mwonvuli Ooze
 Nadier's Nightblade
+Natural Spring
 Necroskitter
+Needle Storm
+Nighthawk, Dark Defender
 Nimbus Swimmer
 Noble Steeds
 Nomad Mythmaker
+One-Clown Band
 Onyx Mage
 Oxidda Finisher
 Paradigm Shift
 Parapet Watchers
 Path of Discovery
+Phyrexian Monitor
 Plaguemaw Beast
 Plains
 Plunder
@@ -187,6 +211,7 @@ Roar of Reclamation
 Robber Fly
 Rorix Bladewing
 Rosecot Knight
+Rotting Giant
 Roving Harper
 Royal Falcon
 Rural Recruit
@@ -196,14 +221,20 @@ Scourge of the Nobilis
 Screams of the Damned
 Seagraf Skaab
 Seek New Knowledge
+Serendib Efreet
+Serpent's Gift
 Seshiro the Anointed
 Sewer Crocodile
+Shade of Trokair
+Shambling Remains
 Sheoldred
 Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
 Shocker
+Sigiled Skink
 Siren of the Silent Song
+Skulking Fugitive
 Skull Catapult
 Skyblinder Staff
 Skyhunter Strike Force
@@ -218,6 +249,7 @@ Spidersilk Net
 Spire Golem
 Spitemare
 Stabbing Pain
+Start from Scratch
 Stir the Pride
 Stone-Throwing Devils
 Stonybrook Angler
@@ -249,6 +281,7 @@ Touch of Brilliance
 Tourach's Canticle
 Tresserhorn Sinks
 Ulrich's Kindred
+Unholy Officiant
 Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Ghoul

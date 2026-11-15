@@ -4,6 +4,7 @@ A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Aethersnipe
 Agent of Erebos
 Aim for the Head
 Ainok Artillerist
@@ -11,6 +12,7 @@ Akroan Mastiff
 Alaborn Trooper
 Ambush Krotiq
 Ammit Eternal
+Angelic Captain
 Angelic Voices
 Animist's Might
 Arc Spitter
@@ -35,6 +37,7 @@ Blinding Mage
 Blistercoil Weird
 Blitz Automaton
 Bloated Contaminator
+Blockade Runner
 Bloodchief's Thirst
 Blossoming Calm
 Bond of Discipline
@@ -51,17 +54,23 @@ Carrion Locust
 Cartouche of Ambition
 Cateran Persuader
 Cathedral Acolyte
+Ceaseless Conflict
 Celebrate the Harvest
 Centaur's Herald
+Chambered Nautilus
 Charred Graverobber
 Choking Fumes
+City of Death
 Clash of Realities
 Clickslither
 Cloak and Dagger
+Coastal Hornclaw
 Coastal Tower
+Coiling Woodworm
 Collar the Culprit
 Confidence from Strength
 Contagion Engine
+Conversion Chamber
 Conviction
 Corpsehatch
 Costly Plunder
@@ -70,15 +79,19 @@ Crabapple Cohort
 Crafty Pathmage
 Crimson Manticore
 Crossroads Consecrator
+Cudgel Troll
 Darklit Gargoyle
 Darkwater Egg
+Dauthi Horror
 Dawnhart Disciple
 Dawnstrider
 Day of the Dragons
 Death Wish
 Deeproot Warrior
+Defiant Ogre
 Demon's Grasp
 Denethor, Stone Seer
+Depths of Desire
 Destructive Force
 Diabolic Machine
 Dig Up
@@ -88,6 +101,7 @@ Doomskar Titan
 Doubtless One
 Draconian Cylix
 Dragon's Smile
+Dread Reaper
 Duskfang Mentor
 ED-E, Lonesome Eyebot
 Earthblighter
@@ -96,14 +110,21 @@ Eddytrail Hawk
 Escape Routes
 Eternity Vessel
 Executioner's Hood
+Exuberant Wolfbear
 Eyes in the Skies
 False Mourning
+Fangren Firstborn
 Farmstead Gleaner
+Fascination
+Felhide Petrifier
 Fellwar Stone
+Fervent Denial
+Filigree Angel
 Flamekin Brawler
 Flashfires
 Fleeting Spirit
 Flinthoof Boar
+Flowstone Embrace
 Fog
 Font of Fertility
 Forerunner of the Legion
@@ -112,14 +133,20 @@ Fortifying Draught
 Frostweb Spider
 Gaea's Cradle
 Galvanic Arc
+Gate to the Citadel
 Generous Stray
+Generous Visitor
 Genesis Chamber
+Ghitu Amplifier
 Ghitu Fire-Eater
+Ghostly Flicker
 Ghoulcaller's Chant
 Giant Adephage
+Gibbering Fiend
 Glaze Fiend
 Glorious Dragon-Kin
 Goblin Assault
+Goblin General
 Goblin Heelcutter
 Goblin Picker
 Goblin War Drums
@@ -129,6 +156,8 @@ Grendel, Spawn of Knull
 Guardian Naga
 Guardian of the Great Conduit
 Guild Artisan
+Haazda Marshal
+Hard Evidence
 Harvest Season
 Harvest Wurm
 Hasran Ogress
@@ -136,10 +165,15 @@ Hatred
 Headless Specter
 Heavy Ballista
 Helm of Awakening
+Hero of the Games
+Hoard-Smelter Dragon
 Homarid Spawning Bed
+Hornswoggle
 Hraesvelgr of the First Brood
+Hulk, Bruce Banner
 Hunted Wumpus
 Hyperion's Atomic Vision
+Ichthyomorphosis
 Illusionary Servant
 Illustrious Wanderglyph
 Imperial Recruiter
@@ -152,8 +186,12 @@ Ingot Chewer
 Inner Calm, Outer Strength
 Inspired Tinkering
 Instrument of the Bards
+Inundate
 Ire of Kaminari
 Island
+Ith, High Arcanist
+Jasmine Boreal
+Jetmir's Garden
 Jungle Lion
 Kamigawa Charm
 Kazuul Warlord
@@ -163,23 +201,32 @@ Khabál Ghoul
 Killer Whale
 Kithkin Shielddare
 Kjeldoran Frostbeast
+Knight of the Pilgrim's Road
+Kozilek's Sentinel
 Krark-Clan Ogre
 Kyren Legate
+Lagonna-Band Trailblazer
 Legion's Landing
 Leonardo, the Balance
 Life Goes On
 Lightwalker
+Living Lies of Loki
 Llawan, Cephalid Empress
 Locked in the Cemetery
 Loran, Disciple of History
 Lotus Path Djinn
+Lu Bu, Master-at-Arms
 Lu Su, Wu Advisor
 Lurking Informant
+Lurking Roper
 Magnetic Mine
 Magus of the Disk
 Mana Geode
 Mana Severance
+Maniacal Rage
+Manipulate Fate
 Marble Chalice
+Mark of Fury
 Mark of Sakiko
 Master of Waves
 Mavren Fein, Dusk Apostle
@@ -189,6 +236,7 @@ Meneldor, Swift Savior
 Merfolk Seer
 Minion of Tevesh Szat
 Minor Misstep
+Mire Kavu
 Mogg Conscripts
 Mogg Flunkies
 Molten Nursery
@@ -212,6 +260,7 @@ Open the Graves
 Orcish Medicine
 Origin Spellbomb
 Ossuary Rats
+Overwhelming Victory
 Palace Familiar
 Paradox Zone
 Parasitic Strix
@@ -231,8 +280,12 @@ Predator's Howl
 Pride of the Perfect
 Primaris Eliminator
 Profaner of the Dead
+Psychic Spiral
 Pull Under
 Puppeteer
+Pyrite Spellbomb
+Quintorius, Field Historian
+Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
 Rally
@@ -241,11 +294,13 @@ Ravnica at War
 Recollect
 Recover
 Recycla-bird
+Reef Shaman
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
 Rishadan Port
 Riverwise Augur
+Robobrain War Mind
 Roc Egg
 Roil's Retribution
 Roofstalker Wight
@@ -269,8 +324,12 @@ Seal of Doom
 Seeds of Strength
 Seer of the Last Tomorrow
 Selfless Cathar
+Sewer Crocodile
+Shady Traveler
 Shambling Suit
+Sheltering Boughs
 Shielded by Faith
+Shimmering Mirage
 Shock Troops
 Short Circuit
 Shrieking Specter
@@ -279,8 +338,10 @@ Skaab Wrangler
 Skeletal Snake
 Skulking Ghost
 Skull Prophet
+Skybridge Towers
 Skyhunter Patrol
 Sleek Schooner
+Smokespew Invoker
 Snake Basket
 Sophic Centaur
 Soul Snuffers
@@ -292,6 +353,7 @@ Spellkeeper Weird
 Spiked Pit Trap
 Spire Mangler
 Spirit of the Hunt
+Spitting Gourna
 Splendid Reclamation
 Spontaneous Mutation
 Squire's Devotion
@@ -301,23 +363,32 @@ Storm Fleet Aerialist
 Stormfront Pegasus
 Stream of Consciousness
 Stronghold Assassin
+Stymied Hopes
 Sudden Breakthrough
 Sumala Woodshaper
 Summoning Materia
+Sunscorched Divide
 Swamp
 Swarm Guildmage
 Sylvan Safekeeper
 Tandem Takedown
 Tear Asunder
+Temporal Mastery
+Tendo Ice Bridge
 Tenza, Godo's Maul
 Terramorph
 Tezzeret, Master of the Bridge
+Thallid Omnivore
 Thallid Shell-Dweller
 The Hunter Maze
+The Mana Rig
+The Modern Age
 The Revelations of Ezio
 Thraben Standard Bearer
 Thraxodemon
 Thrilling Discovery
+Thriving Moor
+Thriving Skyclaw
 Tithe Drinker
 Tobias Andrion
 Tolarian Serpent
@@ -345,6 +416,7 @@ Vessel of Nascency
 Veteran Armorsmith
 Viashino Sandswimmer
 Vibrating Sphere
+Vicious Shadows
 Viridescent Wisps
 Vodalian Merchant
 Volcanic Geyser
@@ -357,12 +429,16 @@ Warded Battlements
 Warg Rider
 Wasteland Scorpion
 Waterwhirl
+Weaver of Blossoms
 Wind Dancer
 Wind Shear
 Wing It
 Wing Puncture
+Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
+Zealots en-Dal
+Zenith Festival
 Zhentarim Bandit
 Zhou Yu, Chief Commander

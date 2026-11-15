@@ -1,3 +1,4 @@
+A-Death-Priest of Myrkul
 A-Goggles of Night
 A-Meria's Outrider
 A-Rockslide Sorcerer
@@ -5,70 +6,145 @@ Abnormal Endurance
 Abyssal Hunter
 Ace, Fearless Rebel
 Agent of the Iron Throne
+Akroan Horse
+Alchemist's Retrieval
 Alirios, Enraptured
+Altar of Dementia
+Ambush
+Ancient Excavation
+Ant-Man, Elusive Avenger
 Arasta of the Endless Web
 Archon of Emeria
 Argothian Pixies
+Arisen Gorgon
+Ark of Blight
 Arms of Hadar
 Arwen's Gift
+Assembly-Worker
 Auspicious Ancestor
 Balloon Peddler
+Barrier of Bones
+Bayou
 Bitter Revelation
 Blood Fountain
+Blood Ogre
+Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
+Bog Gnarr
 Bone Flute
+Boon Satyr
+Borrowed Hostility
+Brilliant Spectrum
+Brokers Veteran
 Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
 Castle Ardenvale
+Cateran Slaver
 Ceaseless Conflict
 Chill
 Chittering Dispatcher
+Citizen's Crowbar
 Cleric of the Forward Order
 Clutch of Undeath
+Colossal Dreadmaw
 Concentrated Fire
 Conduit of Ruin
 Contagion
+Corporeal Projection
+Corpsehatch
+Corrupt Official
+Creepy Puppeteer
 Crossway Vampire
+Crude Rampart
+Cybermat
 Cyclonic Rift
 Dakmor Bat
+Dakmor Scorpion
 Dakmor Sorceress
+Dark Prophecy
+Dawning Purist
 Deconstruct
 Deft Duelist
+Demanding Dragon
 Detective of the Month
 Dire Fleet Poisoner
+Disciple of Tevesh Szat
 Djinn of the Lamp
 Donate
+Dormant Volcano
 Dragon Blood
 Dragon Engine
 Drake-Skull Cameo
 Dream Stalker
+Eiganjo Castle
+Electrostatic Bolt
+Electrostatic Field
 Enraged Killbot
+Erratic Visionary
 Etherium Pteramander
+Everythingamajig
 Evincar's Justice
 Explore
+Fae Offering
 Fallen Ferromancer
 Far
+Farmstead
+Fate Foretold
+Fathom Fleet Firebrand
+Fathom Mage
+Festering March
+Fit of Rage
+Flaming Fist
+Fleshmad Steed
 Flowstone Blade
+Flowstone Overseer
 Flying Men
+Footfall Crater
 Forerunner of the Heralds
 Forest
+Forgotten Sentinel
+Fortitude
 Freedom Fighter Recruit
+Frenzied Raptor
 Furnace Celebration
+Fyndhorn Pollen
+Gather Courage
 Gempalm Sorcerer
+Genku, Future Shaper
+Geralf's Masterpiece
+Ghastly Gloomhunter
+Ghost Lantern
+Ghostly Visit
 Giant Cockroach
 Giltgrove Stalker
 Gitaxian Probe
 Glasswing Grace
+Glimpse the Unthinkable
 Gloom Sower
+Goblin Berserker
+Goblin Grenadiers
+Goblin Machinist
 Goblin Raider
 Goblin Wizardry
+Gorilla Titan
+Gravelighter
 Grenzo's Cutthroat
+Grim Giganotosaurus
+Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Harpoon Sniper
+Hoarding Recluse
 Hollowhenge Spirit
+Hunting Wilds
 Icatian Store
+Ice Tunnel
+Igneous Elemental
+Ill-Tempered Loner
+Immortal Servitude
+Increasing Vengeance
 Indulgent Tormentor
 Inga Rune-Eyes
 Inordinate Rage
@@ -79,76 +155,151 @@ Jhovall Queen
 Jinx
 Jinxed Ring
 Jungle Wurm
+Kazarov, Sengir Pureblood
 Kelsinko Ranger
 Kingfisher
 Koilos Roc
+Landbind Ritual
 Lattice-Blade Mantis
 Lay Bare
+Lifespark Spellbomb
+Lulu, Stern Guardian
+Madcap Skills
+Marauding Dreadship
 Mask of Immolation
+Mephitic Vapors
 Might of the Old Ways
+Mishra's Helix
 Mistral Charger
+Moat
+Monoskelion
+Moonlight Hunt
 Mossdog
 Mountain
 Muzzio, Visionary Architect
+Necron Monolith
+Nemesis of Reason
+Neonate's Rush
+Nomads' Assembly
 Numbing Jellyfish
+Nyxborn Courser
 Okina Nightwatch
 Oko's Hospitality
+Old One Eye
+Onakke Ogre
 Oran-Rief Survivalist
+Outpost Siege
 Ozox, the Clattering King
+Pegasus Refuge
 Pelargir Survivor
 Phantom Monster
 Phyrexian Crusader
 Phyrexian Rager
 Pit Keeper
+Pixie Queen
 Plains
+Pollywog Prodigy
+Prehistoric Turtlesaurus
+Primal Cocoon
 Prophetic Bolt
+Pterodon Knight
 Pulse of the Grid
+Pyric Salamander
 Pyrotechnics
 Quench
+Raff Capashen, Ship's Mage
+Rage Nimbus
 Raging Cougar
+Rakdos Firewheeler
+Rakshasa Gravecaller
 Ray of Distortion
+Red Death, Shipwrecker
+Rend Flesh
 Resculpt
+Restrain
+Revered Elder
+Rhox Pikemaster
+Ribbons of the Reikai
 Ridged Kusite
 Rishadan Cutpurse
+Rites of Initiation
+Rogue Kavu
 Royal Assassin
 Rude Awakening
+Rushblade Commander
+Safe Passage
 Saurian Symbiote
+Scampering Scorcher
+Scourglass
 Sea Monster
+Security Detail
+Seed the Land
 Seize the Storm
+Seizures
+Serenity
 Serra's Embrace
 Shadowstorm
+Shoreline Salvager
+Sidisi's Faithful
 Silkwrap
+Sima Yi, Wei Field Marshal
 Skirk Outrider
+Skithiryx, the Blight Dragon
+Skyhunter Skirmisher
+Sleep with the Fishes
 Sonic Assault
 Soul Diviner
 Soul Salvage
+Species Gorger
 Spectral Adversary
 Splitting Slime
 Stark's Ingenuity
+Steal Strength
 Stoic Rebuttal
 Stomper Cub
+Stone Drake
 Stonybrook Banneret
+Storm God's Oracle
 Stormscape Familiar
+Stronghold Rats
 Sudden Storm
 Sungrass Egg
 Swamp
 Sword of Hours
+Sylvan Advocate
+Synchronized Strike
 Tablet of Compleation
 Tah-Crop Skirmisher
+Target Minotaur
 Tezzeret's Gatebreaker
 Thassa's Rebuff
 Thriving Isle
+Tomb Robber
 Tome Scour
 Touch of Darkness
 Traveler's Amulet
 Tresserhorn Sinks
 Turn to Frog
+Tymna the Weaver
+Ulamog, the Ceaseless Hunger
+Unicycle
 Unnerve
 Untethered Express
+Vault Robber
 Vedalken Infuser
+Vertigo
 Vial of Dragonfire
+Viashino Slasher
 Victual Sliver
 Vines of the Recluse
+Vithian Stinger
+Voice of All
+War Falcon
 Warmonger's Chariot
 Weary Prisoner
 Wild Mongrel
+Wing Splicer
+Without Weakness
+Workshop Elders
+Wurmcoil Engine
+Yarok's Fenlurker

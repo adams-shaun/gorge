@@ -29,12 +29,14 @@ Banshee
 Banshee's Blade
 Baru, Wurmspeaker
 Battle Angels of Tyr
+Bayek of Siwa
 Beaming Defiance
 Beasts of Bogardan
 Besmirch
 Bilious Skulldweller
 Bladed Battle-Fan
 Bladetusk Boar
+Blast of Genius
 Blessing of Leeches
 Blistering Firecat
 Bloodsoaked Insight
@@ -61,6 +63,7 @@ Chlorophant
 Clash of Realities
 Cloudheath Drake
 Coercion
+Coiling Stalker
 Colossapede
 Combat Professor
 Conch Horn
@@ -81,6 +84,7 @@ Deadeye Quartermaster
 Death Bomb
 Death-Priest of Myrkul
 Deathless Angel
+Dedicated Martyr
 Deep-Sea Serpent
 Depart the Realm
 Desert of the Mindful
@@ -121,6 +125,7 @@ Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
 Gimli's Fury
+Gimli, Mournful Avenger
 Glistener Seer
 Glorious Enforcer
 Go Forth
@@ -131,6 +136,7 @@ Goblin Gathering
 Goblin War Strike
 Goldenhide Ox
 Graveyard Marshal
+Griffin Aerie
 Guardians of Meletis
 Guided Strike
 Hall of Heliod's Generosity
@@ -138,6 +144,7 @@ Halsin, Emerald Archdruid
 Hapless Researcher
 Hard Cover
 Havoc
+Hawkeye, Avenging Archer
 Helm of Awakening
 Herald of Serra
 Herald of the Host
@@ -161,6 +168,7 @@ Intruder Alarm
 Invade the City
 Invasion of Mercadia
 Invasion of Shandalar
+Invoke the Firemind
 Irencrag Pyromancer
 Island
 Jasconian Isle
@@ -181,6 +189,7 @@ Last Breath
 Lavakin Brawler
 Leshrac's Sigil
 Liberating Combustion
+Lieutenant Kirtar
 Liturgy of Blood
 Lizard Blades
 Loxodon Line Breaker
@@ -193,6 +202,7 @@ Marshdrinker Giant
 Masticore
 Matoc, Lavamancer
 Meadowboon
+Memory Lapse
 Merciless Resolve
 Merfolk Mesmerist
 Metallic Rebuke
@@ -235,6 +245,7 @@ Pack's Betrayal
 Paladin's Shield
 Paper Tiger
 Parasitic Impetus
+Parhelion II
 Pegasus Stampede
 Phantasmal Bear
 Plague Stinger
@@ -252,6 +263,7 @@ Prismatic Ending
 Private Research
 Prized Griffin
 Prophecy
+Prowling Felidar
 Puncturing Blow
 Pygmy Allosaurus
 Radjan Spirit
@@ -261,16 +273,20 @@ Reckless Cohort
 Reclusive Artificer
 Reflexes
 Regal Sliver
+Release the Gremlins
 Repentant Blacksmith
+Returned Pastcaller
 Rewards of Diversity
 Reyhan, Last of the Abzan
 Rodolf Duskbringer
 Roiling Regrowth
+Rollick of Abandon
 Rookie Mistake
 Ruinous Gremlin
 Rustvale Bridge
 Sage's Dousing
 Salt Flats
+Samite Alchemist
 Saradoc, Master of Buckland
 Sarcomite Myr
 Satsuki, the Living Lore
@@ -316,6 +332,7 @@ Stony Silence
 Stormfist Crusader
 Strip Mine
 Student of Ojutai
+Stump Stomp
 Sunken Field
 Sunset Pyramid
 Swamp
@@ -326,6 +343,8 @@ Take into Custody
 Territorial Hammerskull
 Thalisse, Reverent Medium
 The Bear Force Pilot
+The Mirari Conjecture
+Thrashing Mudspawn
 Thriving Grove
 Time Spiral
 Titan of Industry
@@ -346,6 +365,7 @@ Urborg Elf
 Urza's Tome
 Vampire Hounds
 Venomous Changeling
+Viashivan Dragon
 Vicious Conquistador
 Vigilance
 Vine Dryad
@@ -355,6 +375,7 @@ Voracious Null
 Vryn Wingmare
 Walker of the Grove
 Wall of Corpses
+Wall of Faith
 Wall of Resistance
 Wall of Water
 Warg Rider

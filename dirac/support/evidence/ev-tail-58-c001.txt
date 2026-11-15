@@ -5,6 +5,7 @@ Accumulated Knowledge
 Aetherling
 Age of Ultron
 Alabaster Potion
+Alesha's Vanguard
 Altar of Bhaal
 Angel of Renewal
 Animist's Awakening
@@ -23,6 +24,7 @@ Briarhorn
 Bronze Cudgels
 Calamity's Wake
 Ceremonious Rejection
+Chaos Maw
 Chimeric Mass
 Chrome Mox
 Cleansing Nova
@@ -45,6 +47,7 @@ Eccentric Farmer
 Elite Headhunter
 Emissary of the Sleepless
 Eternal Flame
+Fateful Handoff
 Favorable Winds
 Fists of Ironwood
 Flameborn Viron
@@ -54,6 +57,7 @@ From Beyond
 Frost Marsh
 Funeral Pyre
 Funeral Rites
+General's Enforcer
 Goblin Lore
 Goblin Soothsayer
 Grasping Current
@@ -63,9 +67,11 @@ Hamato Ninpō
 Haunted Crossroads
 Hellfire
 Hog-Monkey Rampage
+Hook Swords
 Illustrious Historian
 Inspired Sphinx
 Involuntary Cooldown
+Iron Myr
 Island
 Jarl of the Forsaken
 Kamber, the Plunderer
@@ -137,6 +143,8 @@ Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
 Sudden Strength
+Summit Apes
+Suspended Sentence
 Swamp
 Tainted Strike
 Tempered Veteran
@@ -148,6 +156,7 @@ Thrull Parasite
 Thunder Spirit
 Tiamat's Fanatics
 Tuinvale Treefolk
+Umbral Mantle
 Universal Solvent
 Urbis Protector
 Vebulid
@@ -159,8 +168,11 @@ Vinelasher Kudzu
 Vivify
 Vraska's Stoneglare
 Wheel of Fortune
+Whipcorder
 Wishcoin Crab
 Witness of Tomorrows
+Woebringer Demon
 Wolfbriar Elemental
+Woodland Patrol
 Yellow Scarves Cavalry
 Yotian Frontliner

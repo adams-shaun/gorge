@@ -15,17 +15,25 @@ Ajani's Welcome
 Akki Avalanchers
 Altar of Bone
 Ambush Paratrooper
+Amrou Kithkin
 Ancient Hydra
 Angel of the Dawn
 Angelic Field Marshal
+Ant-Man's Air Force
+Apocalypse Demon
 Arashin War Beast
 Arborea Pegasus
+Arcane Proxy
 Arch of Orazca
+Armed Assailant
 Arrester's Zeal
 Aurochs Herd
 Azorius Charm
 Bala Ged Recovery
+Bartizan Bats
 Become the Avalanche
+Black Carriage
+Black Vise
 Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Bloodhall Priest
@@ -39,10 +47,13 @@ Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Cackling Fiend
 Cage of Hands
+Cavern Lampad
 Centaur Chieftain
 Chandra's Outrage
 Changeling Sentinel
+Citadel Gate
 Clash of Wills
 Coiled Tinviper
 Compelled Duel
@@ -54,19 +65,24 @@ Court Street Denizen
 Crookshank Kobolds
 Crow Storm
 Cruel Grimnarch
+Cruel Revival
 Crusade
 Crystal Dragon
 Curfew
 Curse Artifact
 Custody Battle
+Darklit Gargoyle
 Darkthicket Wolf
+Dauthi Ghoul
 Defender of Chaos
 Demonic Collusion
 Deploy to the Front
 Desmond Miles
 Detainment Spell
 Devil Dinosaur
+Dire Fleet Warmonger
 Drag Under
+Dragon Whelp
 Dragon's Eye Sentry
 Drannith Magistrate
 Dread Charge
@@ -79,11 +95,14 @@ Ensnare
 Erratic Mutation
 Escape Velocity
 Esika's Chariot
+Ethereal Usher
 Evie Frye
+Excavated Wall
 Expedition Skulker
 Expel
 Eye Gouge
 Feast of Dreams
+Feast of Sanity
 Flash Counter
 Fleshtaker
 Floodhound
@@ -95,18 +114,25 @@ Forgehammer Centurion
 Freejam Regent
 Freewind Equenaut
 Freyalise Supplicant
+Furyborn Hellkite
 Gale Swooper
 Gerrard's Irregulars
+Gideon Blackblade
 Gift of Orzhova
 Glass of the Guildpact
 Glint Hawk Idol
+Glowing Anemone
+Gobland
 Goblin Assailant
+Goblin Cannon
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
 Griffin Sentinel
 Grim Reaper's Scythe
+Guilty Conscience
 Gustha Ebbasdotter
+Hag of Twisted Visions
 Hamlet Vanguard
 Headless Skaab
 Hedron Rover
@@ -114,11 +140,13 @@ Heir of the Ancient Fang
 Hero of Goma Fada
 Heroes of the Revel
 Heron of Hope
+Horizon Drake
 Huatli's Snubhorn
 Ichor Drinker
 Illusory Demon
 Imperial Subduer
 Implement of Improvement
+Invigorated Rampage
 Island
 Jace's Sanctum
 King Darien XLVIII
@@ -127,6 +155,7 @@ Kormus Bell
 Kumena's Awakening
 Kyren Negotiations
 Lash of the Whip
+Lathnu Hellion
 Lavastep Raider
 Lawmage's Binding
 Learn from the Past
@@ -134,53 +163,70 @@ Light 'Em Up
 Lily Bowen, Raging Grandma
 Living Airship
 Lovisa Coldeyes
+Lurking Skirge
 Luxurious Libation
 Maggot Carrier
 Maze Abomination
+Maze Glider
+Memorial to Glory
+Merfolk Looter
 Merfolk Skydiver
 Mesa Cavalier
 Metamorphic Wurm
 Midnight Charm
 Mindless Null
 Minion Reflector
+Mistvault Bridge
+Mold Demon
 Mountain
 Mourning
 Myr Convert
 Myr Kinsmith
 Mysterious Tome
+Mystic Skyfish
 Mystical Tutor
 Narnam Cobra
 Nearheath Chaplain
 Necrotic Hex
 Nesting Dovehawk
+Netcaster Spider
 Noble Vestige
 Nurturer Initiate
 Ogre Shaman
+Order of Midnight
 Order of the Mirror
 Ornery Kudu
 Orochi Merge-Keeper
 Outland Boar
+Palace Siege
 Pardic Collaborator
 Pardic Lancer
+Pavel Maliki
 Phobian Phantasm
 Phyresis
 Phyrexian Driver
+Pine Barrens
 Plains
 Predatory Nightstalker
 Prescient Chimera
 Priest of Urabrask
+Primal Surge
 Purge the Profane
+Pygmy Razorback
 Pyknite
 Pyroclastic Elemental
 Pyromantic Pilgrim
 Pyrophobia
+Quagmire Druid
 Quakebringer
+Quest for the Gravelord
 Radiant Fountain
 Rakalite
 Ral's Reinforcements
 Ral, Caller of Storms
 Ramosian Commander
 Ranger en-Vec
+Ravenous Chupacabra
 Ravenous Sailback
 Ray Fillet, Wave Warrior
 Red Dragon
@@ -190,6 +236,7 @@ Refocus
 Regenerate
 Renewal
 Replication Technique
+Riddleform
 Rimrock Knight
 Riot Devils
 Rise of the Ants
@@ -198,10 +245,12 @@ Rishkar, Peema Renegade
 Rodolf Duskbringer
 Rofellos's Gift
 Rootborn Defenses
+Rottenheart Ghoul
 Rushwood Dryad
 Sacred Nectar
 Sanctuary Raptor
 Savage Thallid
+Scalding Cauldron
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
@@ -211,21 +260,31 @@ Shark Typhoon
 Shauku, Endbringer
 Shelob's Ambush
 Shilgengar, Sire of Famine
+Shivan Reef
 Shivan Zombie
+Shizo, Death's Storehouse
+Short Circuit
+Singe
 Skillful Lunge
 Smoldering Werewolf
 Snarling Undorak
+Snow-Covered Forest
 Space Marine Scout
 Spell Crumple
+Spire Golem
+Spiteful Banditry
 Spring
 Sprite Noble
 Squeeze
 Staff of the Wild Magus
 Stalking Bloodsucker
+Stampeding Wildebeests
 Steel-Plume Marshal
+Stitcher's Graft
 Stoneforge Mystic
 Stonybrook Banneret
 Stratus Walk
+Straw Soldiers
 Student of Ojutai
 Stymied Hopes
 Subterranean Spirit
@@ -233,32 +292,49 @@ Suit Up
 Surge Engine
 Surgical Skullbomb
 Swamp
+Swooping Protector
 Talas Merchant
+Talons of Wildwood
 Taste of Blood
 Terravore
 Thalakos Deceiver
+Thallid
 Thaumatic Compass
+The Autonomous Furnace
 Thought Harvester
 Thriving Bluff
 Thrun, the Last Troll
+Tideforce Elemental
 Toil
 Tomakul Honor Guard
 Tomb of the Spirit Dragon
 Topplegeist
+Towering Viewpoint
 Traverse Eternity
 Trawler Drake
+Treetop Rangers
 Tremor
 Triumphant Surge
+Unholy Grotto
+Urborg Justice
 Urgoros, the Empty One
 Vampiric Tutor
 Vengevine
 Venser, Fervent Forger
+Viashino Spearhunter
+Viper's Kiss
+Viridian Shaman
+Volcanic Fallout
 Wakeroot Elemental
 War Dance
+Weapon Surge
 Weatherseed Faeries
 Wild Aesthir
 Windrider Wizard
+Wu Warship
+Yavimaya Sojourner
 Yoked Ox
+Young Wolf
 Zarichi Tiger
 Zendikar Incarnate
 Zhuge Jin, Wu Strategist

@@ -1,3 +1,4 @@
+A-Zar Ojanen, Scion of Efrava
 Abyssal Gatekeeper
 Acolyte of the Inferno
 Ainok Bond-Kin
@@ -8,6 +9,7 @@ Ancestral Memories
 Applied Biomancy
 Arbalest Elite
 Arbor Armament
+Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
 Archivist of Oghma
@@ -18,10 +20,12 @@ Artillerize
 Ash Barrens
 Assault Zeppelid
 Auriok Salvagers
+Avatar of Will
 Aven Heartstabber
 Azorius Skyguard
 Azra Oddsmaker
 Back to Basics
+Band Together
 Battle Rampart
 Befriending the Moths
 Bitter Reunion
@@ -37,6 +41,7 @@ Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Bramble Armor
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -65,6 +70,7 @@ Conclave Cavalier
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
+Coral Colony
 Counterbalance
 Courier's Capsule
 Cowl Prowler
@@ -76,17 +82,20 @@ Cryptothrall
 Crystal Carapace
 Cyclopean Snare
 Damning Verdict
+Darksteel Citadel
 Dawnstrike Paladin
 Deadeye Brawler
 Deadly Visit
 Death Grasp
 Deathmark Prelate
 Defend the Campus
+Defenders of Humanity
 Defiant Bloodlord
 Dega Disciple
 Demonic Appetite
 Devils' Playground
 Dirge of Dread
+Dismal Failure
 Dominating Licid
 Doom Foretold
 Dragon Roost
@@ -94,7 +103,9 @@ Drana, Liberator of Malakir
 Drift of Phantasms
 Duergar Hedge-Mage
 Dust Elemental
+Eerie Procession
 Eiganjo Uprising
+Eiganjo, Seat of the Empire
 Elvish Vanguard
 Ember Beast
 Enchantress's Presence
@@ -106,6 +117,7 @@ Ephemerate
 Eternal Thirst
 Ethercaste Knight
 Eutropia the Twice-Favored
+Excise
 Extravagant Spirit
 Falkenrath Celebrants
 Falkenrath Pit Fighter
@@ -120,10 +132,12 @@ Flicker of Fate
 Flowstone Infusion
 Fogwalker
 Font of Mythos
+Forbid
 Forest
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
+Fumarole
 Funeral Longboat
 Furor of the Bitten
 Furyblade Vampire
@@ -132,8 +146,10 @@ Gather the Pack
 Gaze of Adamaro
 Geology Enthusiast
 Githzerai Monk
+Glaring Fleshraker
 Glissa Sunslayer
 Glyph Elemental
+Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin Chainwhirler
 Goblin King
@@ -160,10 +176,13 @@ Heliod, Sun-Crowned
 Heliophial
 Hill Giant
 Hoar Shade
+Hope and Glory
+Horncaller's Chant
 Horned Kavu
 Howl from Beyond
 Howling Wolf
 Hungry Mist
+Hunt the Hunter
 Immortal Servitude
 Impale
 Implement of Malice
@@ -174,12 +193,14 @@ Inspired Tinkering
 Iridescent Angel
 Island
 Jamie McCrimmon
+Jeskai Student
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
 Kami of False Hope
 Kami of Restless Shadows
 Karplusan Strider
+Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
 Kiln Fiend
 Knighthood
@@ -196,6 +217,7 @@ Living Tempest
 Lonely Sandbar
 Longshot, Rebel Bowman
 Lore Seeker
+Loxodon Smiter
 Loxodon Stalwart
 Lucent Liminid
 Lunge
@@ -212,6 +234,7 @@ Metropolis Sprite
 Mine Collapse
 Minion Missile
 Minotaur Warrior
+Mirkwood Channeler
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
@@ -224,6 +247,7 @@ Mox Tantalite
 Munda, Ambush Leader
 Myr Kinsmith
 Mysterious Pathlighter
+Mystic Penitent
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
@@ -262,6 +286,7 @@ Phyrexian Rebirth
 Plains
 Plated Wurm
 Plundering Barbarian
+Prismatic Strands
 Profit
 Prophet of Kruphix
 Psychic Allergy
@@ -290,6 +315,7 @@ Samite Herbalist
 Samut, Voice of Dissent
 Sapphire Medallion
 Sarinth Steelseeker
+Scarblade Elite
 Scavenger Folk
 Scroll of Griselbrand
 Scute Mob
@@ -339,6 +365,7 @@ Swamp
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
+Tamiyo, Inquisitive Student
 Temur Battle Rage
 Tergrid's Shadow
 Teval's Judgment
@@ -360,9 +387,13 @@ Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
 Transgress the Mind
+Tropical Island
 Trynn, Champion of Freedom
+Turbulent Moor
 Twisted Justice
+Tyvar Kell
 Ulgrotha Charm
+Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
 Varchild, Betrayer of Kjeldor
@@ -376,16 +407,21 @@ Voidslime
 Volrath's Stronghold
 Vorapede
 Vraan, Executioner Thane
+Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
 Wandering Wolf
 Warden of the First Tree
+Wax
 Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
+Wintermoon Mesa
+Wizard Class
 Woebearer
 Wolfcaller's Howl
 Word of Binding
+Yawgmoth's Vile Offering
 You Happen On a Glade
 Yuki-Onna
 Zephyr Spirit

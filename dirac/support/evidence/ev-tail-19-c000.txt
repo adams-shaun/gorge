@@ -5,6 +5,7 @@ A-Symmetry Sage
 Aarakocra Sneak
 Academy Elite
 Acidic Slime
+Aerie Auxiliary
 Aetherstorm Roc
 Akki Blizzard-Herder
 Akroma, Angel of Fury
@@ -18,6 +19,7 @@ Arc Mage
 Armor of Faith
 Armory Guard
 Ashling, the Extinguisher
+Attended Knight
 Autumn Willow, Harmony
 Avatar of Discord
 Avenger of Zendikar
@@ -27,6 +29,7 @@ Battering Wurm
 Beast Mode
 Befoul
 Bellowing Saddlebrute
+Black Widow, Intel Expert
 Blackbloom Rogue
 Blacklance Paragon
 Blade Sliver
@@ -36,6 +39,7 @@ Blood Funnel
 Bloodbraid Challenger
 Bonesplitter Sliver
 Boots of Speed
+Borborygmos
 Brilliant Spectrum
 Bumi, Eclectic Earthbender
 Buoyancy
@@ -66,6 +70,8 @@ Coral Colony
 Cosmic Larva
 Cradle to Grave
 Crashing Footfalls
+Crop Sigil
+Cruel Celebrant
 Crypt Creeper
 Cryptbreaker
 Crystalline Nautilus
@@ -85,6 +91,7 @@ Dreadhound
 Dreadlight Monstrosity
 Dromoka Warrior
 Drowner Initiate
+Druid of Horns
 Druidic Satchel
 Drumbellower
 Dual Shot
@@ -117,6 +124,7 @@ Fire Tempest
 Flailing Soldier
 Flamekin Village
 Flayed One
+Flicker of Fate
 Fodder Cannon
 Force of Negation
 Forebear's Blade
@@ -149,6 +157,7 @@ Gray Harbor Merfolk
 Great Oak Guardian
 Great-Horn Krushok
 Grisly Survivor
+Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
 Guardians of Oboro
@@ -163,6 +172,7 @@ Hithlain Knots
 Hold at Bay
 Horizon Scholar
 Horizon Spellbomb
+Hormagaunt Horde
 Hunted Phantasm
 Hydromorph Gull
 Idolized
@@ -198,6 +208,8 @@ Lightning Javelin
 Lizard Warrior
 Llanowar Sentinel
 Loamcrafter Faun
+Longbow Archer
+Marble Titan
 Massacre
 Melira's Keepers
 Mental Misstep
@@ -211,6 +223,7 @@ Mistvault Bridge
 Mob Justice
 Mortipede
 Mountain
+Murasa Brute
 Myojin of Infinite Rage
 Myr Sire
 Márton Stromgald
@@ -229,6 +242,7 @@ Orzhov Signet
 Ossuary Rats
 Pardic Swordsmith
 Pearl Medallion
+Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
 Phyrexian Espionage
@@ -255,6 +269,7 @@ Repel the Vile
 Reprieve
 Resounding Roar
 Resupply
+Revitalizing Repast
 Rhox Charger
 Ring of Immortals
 Riparian Tiger
@@ -265,7 +280,9 @@ Rosethorn Acolyte
 Rotting Regisaur
 Rush of Blood
 Rush of Knowledge
+Sacred Knight
 Salt Marsh
+Sanctum Custodian
 Savage Conception
 School of Piranha
 Scorch Rider
@@ -300,6 +317,7 @@ Spitting Sliver
 Squee's Embrace
 Squelching Leeches
 Squirrel Sovereign
+Staff of the Storyteller
 Stave Off
 Stone Calendar
 Stone Drake
@@ -318,6 +336,7 @@ Temporal Mastery
 The Keeper of the Yellow Hat
 The Mary Janes
 Theater of Horrors
+Theros Charm
 Thornwatch Scarecrow
 Timber Gorge
 Titanium Man
@@ -349,6 +368,8 @@ Vedalken Aethermage
 Vendetta
 Vengeful Reaper
 Visage of Bolas
+Vivien's Grizzly
+Vizkopa Vampire
 Vorapede
 Vorel of the Hull Clade
 Wake the Dragon
@@ -372,6 +393,11 @@ Woodlot Crawler
 Wormfang Behemoth
 Wyrm's Crossing Patrol
 Yavimaya Gnats
+Yavimaya Sapherd
+You Hear Something on Watch
+You're Ambushed on the Road
 Zephyr Net
+Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist
+Zimone, Quandrix Prodigy
 Zurgo Bellstriker

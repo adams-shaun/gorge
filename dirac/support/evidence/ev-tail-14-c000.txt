@@ -1,3 +1,4 @@
+A-Dreamshackle Geist
 A-High-Rise Sawjack
 A-Knockout Blow
 A-Psionic Snoop
@@ -18,12 +19,15 @@ Battlefield Butcher
 Battleground Geist
 Blight Titan
 Blustersquall
+Body Launderer
+Bone Saw
 Boros Reckoner
 Briar Shield
 Brinelin, the Moon Kraken
 Call to Serve
 Caravan Hurda
 Cartouche of Knowledge
+Cement Shoes
 Centaur Veteran
 Cessation
 Chandra's Firemaw
@@ -32,6 +36,7 @@ Colos Yearling
 Colossal Growth
 Coordinated Charge
 Core Prowler
+Corpse Blockade
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
@@ -81,10 +86,12 @@ Guardian Idol
 Gutter Skulk
 Gutwrencher Oni
 Hate Weaver
+Haunted Library
 Headsplitter
 Heartless Summoning
 Heartstabber Mosquito
 Heliod, God of the Sun
+Helm of the Gods
 Hightide Hermit
 Hissing Iguanar
 Hitchclaw Recluse
@@ -109,6 +116,7 @@ Lightwalker
 Living Lightning
 Living Tsunami
 Llanowar Scout
+Loran's Escape
 Lothlórien Lookout
 Lu Meng, Wu General
 Lurking Skirge
@@ -117,9 +125,11 @@ Manaform Hellkite
 Mandibular Kite
 Mardu Outrider
 Mesmeric Sliver
+Mind Whip
 Mindsplice Apparatus
 Mindswipe
 Mindwrack Demon
+Mockingbird, Bobbi Morse
 Molten Monstrosity
 Momentum
 Monumental Corruption
@@ -132,6 +142,7 @@ Mystic Enforcer
 Mystic of the Hidden Way
 Nael, Avizoa Aeronaut
 Nantuko Calmer
+Narnam Cobra
 Nyxborn Rollicker
 Octavia, Living Thesis
 Olog-hai Crusher
@@ -146,6 +157,7 @@ Phyrexian Broodlings
 Pia and Kiran Nalaar
 Pieces of the Puzzle
 Pitfall Trap
+Plague Myr
 Plains
 Plated Rootwalla
 Plea for Guidance
@@ -191,6 +203,7 @@ Shambling Goblin
 Shifting Sliver
 Silent Extraction
 Sinister Possession
+Skrelv, Defector Mite
 Sky Spirit
 Skywatcher Adept
 Slate Street Ruffian
@@ -198,6 +211,7 @@ Sleep
 Smoldering Butcher
 Snarling Warg
 Snow-Covered Swamp
+Solitary Camel
 Soulscour
 Soulstinger
 Spread the Sickness
@@ -235,11 +249,13 @@ Vanishment
 Vastwood Hydra
 Veteran Armorer
 Vicious Battlerager
+Villainous Ogre
 Vision Skeins
 Void Grafter
 Warden of Evos Isle
 Wily Bandar
 Wipe Clean
+Wolf Cove Villager
 Woodcaller Automaton
 Wooden Cane
 Woodvine Elemental

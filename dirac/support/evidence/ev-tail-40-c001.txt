@@ -198,6 +198,7 @@ Maw of the Obzedat
 Megrim
 Meldweb Curator
 Meng Huo, Barbarian King
+Mental Discipline
 Mental Misstep
 Merchant Scroll
 Miasmic Mummy
@@ -250,6 +251,7 @@ Qasali Pridemage
 Rakdos Cluestone
 Ravenous Baboons
 Ravenous Bloodseeker
+Razorfin Hunter
 Reito Lantern
 Relic Bane
 Relic Sloth

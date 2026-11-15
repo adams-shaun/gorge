@@ -8,6 +8,7 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
 Alabaster Wall
@@ -31,10 +32,12 @@ Atalya, Samite Master
 Auger Spree
 Augur of Bolas
 Avatar of Might
+Aven Battle Priest
 Azorius Keyrune
 Balshan Collaborator
 Banishing Slash
 Baru, Wurmspeaker
+Bast, Panther Goddess
 Bastion of Remembrance
 Battle Sliver
 Beetleform Mage
@@ -55,6 +58,7 @@ Brilliant Plan
 Broken Visage
 Bull's Strength
 Butterbur, Bree Innkeeper
+Cankerbloom
 Carnage Altar
 Carrion Wall
 Castle Embereth
@@ -64,11 +68,14 @@ Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
 Charmbreaker Devils
+Charmed Stray
 Charnel Troll
 Child of the Pack
 Choking Fumes
 Choose Your Weapon
+Chronomancer
 Cinderbones
+Citanul Woodreaders
 Clan Guildmage
 Cleric of Chill Depths
 Cliffhaven Sell-Sword
@@ -91,6 +98,7 @@ Daxos of Meletis
 Deepcavern Imp
 Defender of Law
 Deflection
+Dehydration
 Destroy Evil
 Devils' Playground
 Dhund Operative
@@ -101,14 +109,18 @@ Dragon Egg
 Dragonstorm
 Drannith Ruins
 Draugr Thought-Thief
+Dreadwaters
 Drifter il-Dal
 Drover of the Mighty
 Dune Beetle
 Dungeoneer's Pack
 Dynacharge
+E. Honda, Sumo Champion
 Elvish Clancaller
 Elvish Harbinger
 Encampment Keeper
+Endless Scream
+Ertai's Scorn
 Everbark Shaman
 Experimental Armor
 Extraction Specialist
@@ -119,6 +131,7 @@ Feldon, Ronom Excavator
 Felhide Petrifier
 Fetid Imp
 Field of Reality
+Filigree Attendant
 Flight Spellbomb
 Flowstone Crusher
 Flux Channeler
@@ -150,13 +163,17 @@ Gnoll War Band
 Gnome-Made Engine
 Goblin Bruiser
 Goblin Mutant
+Goring Ceratops
 Great-Horn Krushok
 Greater Forgeling
+Hadran, Naya Sunseeder
 Hangar Scrounger
 Hatred
 Haywire Mite
+Heartless Summoning
 Hedron Crawler
 Helitrooper
+Hell Mongrel
 Hellfire Mongrel
 High Alert
 Highspire Mantis
@@ -186,6 +203,7 @@ Kargan Dragonlord
 Keeper of Fables
 Killian, Ink Duelist
 Knight of Infamy
+Knowledge and Power
 Kolaghan Forerunners
 Krakilin
 Land Grant
@@ -211,6 +229,7 @@ Manabond
 Manglehorn
 Maw of the Obzedat
 Meldweb Curator
+Meng Huo, Barbarian King
 Mental Discipline
 Mental Misstep
 Merchant Scroll
@@ -231,11 +250,14 @@ Mortal's Ardor
 Mossbeard Ancient
 Mountain
 Mountain Bandit
+Mournful Zombie
 Mysterious Pathlighter
 Namora, the Sea Queen
+Nantuko Shade
 Necrogen Mists
 Needlebug
 Nemesis Mask
+Nephalia Drownyard
 Nightveil Sprite
 Noggle Bridgebreaker
 Noxious Toad
@@ -244,6 +266,7 @@ Oath of the Ancient Wood
 Obelisk of Esper
 Oji, the Exquisite Blade
 Omen of the Sun
+Oracle of Tragedy
 Orchard Spirit
 Ordeal of Purphoros
 Ore-Scale Guardian
@@ -273,6 +296,9 @@ Ravenous Bloodseeker
 Razorfin Hunter
 Reiterate
 Reito Lantern
+Reiver Demon
+Relic Bane
+Relic Sloth
 Repercussion
 Rescue
 Resourceful Return
@@ -307,12 +333,14 @@ Sentinel Spider
 Sentinel's Eyes
 Shadowblood Egg
 Shaggy Camel
+Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
 Shriek of Dread
 Shriekhorn
 Shrill Howler
+Shrivel
 Siege Wurm
 Sigil of Distinction
 Silburlind Snapper
@@ -327,6 +355,7 @@ Slimefoot, the Stowaway
 Slinking Skirge
 Smolder Initiate
 Snapcaster Mage
+Snarling Warg
 Solemn Recruit
 Soltari Crusader
 Song of Eärendil
@@ -339,6 +368,7 @@ Sphinx of Magosi
 Spinehorn Minotaur
 Spire Mangler
 Spirit Away
+Sprouting Renewal
 Steam Blast
 Steward of Valeron
 Stone Rain
@@ -361,6 +391,7 @@ Swerve
 Synapse Sliver
 Tah-Crop Skirmisher
 Tajuru Beastmaster
+Take Possession
 Talisman of Curiosity
 Taunting Challenge
 Teferi's Ageless Insight
@@ -382,6 +413,7 @@ Tigereye Cameo
 Time Wipe
 Time of Heroes
 Timely Interference
+Topan Ascetic
 Tormented Hero
 Tower Defense
 Tower Drake
@@ -397,11 +429,14 @@ Undercity Shade
 Underworld Charger
 Untamed Might
 Unwilling Recruit
+Unyaro Griffin
 Urborg Mindsucker
 Valor of the Worthy
 Vampire Revenant
+Vampire Warlord
 Vastwood Gorger
 Vengeful Regrowth
+Venom Blast
 Venser, Fervent Forger
 Vineshaper Mystic
 Vivid Revival
@@ -411,6 +446,7 @@ Volunteer Militia
 Vulshok Refugee
 Wand of Denial
 Wand of the Elements
+Wandering Tombshell
 War Priest of Thune
 Warfire Javelineer
 Warped Landscape

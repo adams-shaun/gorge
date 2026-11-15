@@ -1,15 +1,24 @@
 A-Mentor's Guidance
 A-Sprouting Goblin
+Aboshan's Desire
 Advanced Stitchwing
+Ageless Guardian
+Alms of the Vein
 An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
+Arbalest Engineers
+Arbor Elf
 Arcane Flight
+Archangel's Light
+Archon of Redemption
+Ardent Militia
 Arm-Mounted Anchor
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
+Bala Ged Recovery
 Balthor the Stout
 Bar the Door
 Bast, Panther Goddess
@@ -17,24 +26,32 @@ Battle Angels of Tyr
 Bazaar Krovod
 Beacon of Unrest
 Beastcaller Savant
+Billiard Room
+Blackcleave Cliffs
 Blighted Steppe
+Blink Dog
 Blisterspit Gremlin
 Blockade Runner
 Blockbuster
 Blood Clock
 Boon of Safety
+Botanical Plaza
+Bottle-Cap Blast
 Bounteous Kirin
 Bramble Armor
 Brambleweft Behemoth
 Brawn
 Brazen Borrower
+Breath Weapon
 Brindle Boar
 Bringer of the Black Dawn
+Brutal Nightstalker
 Calix, Guided by Fate
 Cartouche of Zeal
 Cathartic Adept
 Caustic Caterpillar
 Cave of the Frost Dragon
+Ceta Sanctuary
 Champion Lancer
 Chandra, Novice Pyromancer
 Child of Thorns
@@ -42,12 +59,18 @@ Choose Your Weapon
 Chosen by Heliod
 Circle of Flame
 Claws of Valakut
+Clear the Mind
+Cleaving Sliver
+Cloud Djinn
 Communal Brewing
 Company Commander
 Compy Swarm
+Condescend
 Conjurer's Mantle
 Consulate Turret
 Copperline Gorge
+Crackle with Power
+Crash the Party
 Crash the Ramparts
 Crown of Empires
 Crude Rampart
@@ -57,22 +80,28 @@ Crystal Ball
 Culmination of Studies
 Cult Guildmage
 Custodian of the Trove
+Cut Down
 Cyan, Vengeful Samurai
+Cynette, Jelly Drover
 Dark Inquiry
 Dark Salvation
 Dauthi Embrace
 Dawn Charm
 Daxos, Blessed by the Sun
+Death-Priest of Myrkul
 Defacing Duskmage
 Destroy Evil
+Devious Cover-Up
 Dinosaur Egg
 Dirty Rat
+Disappearing Act
 District Guide
 Dizzy Spell
 Douse
 Drelnoch
 Drowner of Secrets
 Durable Coilbug
+Dust Elemental
 Dwarven Patrol
 Elder Gargaroth
 Eldrazi Repurposer
@@ -85,31 +114,43 @@ Embargo
 Embersmith
 Encase in Ice
 Endurance Bobblehead
+Enter the Unknown
+Exoskeletal Armor
+Experimental Augury
+Ezuri's Brigade
 Feeling of Dread
 First Volley
 Flip the Switch
 Folk of An-Havva
 Foreboding Landscape
 Forest
+Gaea's Gift
 Garenbrig Carver
 Gerrard Capashen
 Gerrard's Battle Cry
 Ghalma's Warden
+Ghost Quarter
 Glasspool Mimic
 Glimmer of Genius
+Gnottvold Hermit
 Godhunter Octopus
 Gossamer Phantasm
+Grafted Butcher
 Grim Bounty
 Grim Guardian
+Grim Haruspex
+Ground Seal
 Guardian of Solitude
 Guise of Fire
 Harsh Scrutiny
 Havengul Runebinder
 Hawkeye, Clint Barton
 Henrika Domnathi
+Herald of Serra
 Hired Poisoner
 Hoard Hauler
 Hookblade
+Hoverguard Observer
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
@@ -122,74 +163,107 @@ Invasion of Innistrad
 Iron Apprentice
 Island
 Ivory Cup
+Jace's Phantasm
 Join Forces
+Joraga Auxiliary
 Juju Bubble
 Kazandu Refuge
 Keeper of the Accord
 Kitesail Apprentice
 Knotvine Paladin
+Kobold Drill Sergeant
+Kolaghan Skirmisher
 Kronch Wrangler
+Krosan Avenger
 Labyrinth Champion
+Leaf-Crowned Visionary
 Leave in the Dust
 Leeching Bite
 Leonin Armorguard
 Leyline of Anticipation
+Lidless Gaze
 Light the Way
 Lightfoot Rogue
+Locthwain Gargoyle
 Longbow Archer
 Loran's Escape
+Lost Legion
 Lothlórien Lookout
+Loyal Cathar
 Luke Cage, Hero for Hire
 Malachite Golem
+Marchesa's Infiltrator
 Master of the Pearl Trident
 Merciless Javelineer
 Midnight Entourage
 Might of Oaks
 Ministrant of Obligation
 Minn, Wily Illusionist
+Mirari
 Mogis's Warhound
 Monoskelion
 Morinfen
+Moriok Scavenger
 Mountain
 Mystic Zealot
 Nefashu
+Nezumi Bladeblesser
 Night Market Guard
+Nightwing Shade
 Nimana Sell-Sword
 Nurturer Initiate
+Oboro Breezecaller
 Obsidian Obelisk
 Ogre Jailbreaker
 Ordeal of Erebos
 Orzhov Locket
 Otherworldly Outburst
 Painful Memories
+Paladin Danse, Steel Maverick
 Pathrazer of Ulamog
+Peace of Mind
+Pearl Dragon
 Pegasus Stampede
 Pharika's Chosen
+Pillar of Light
 Plains
+Platoon Dispenser
+Power Armor
 Press into Service
 Primal Cocoon
 Purgatory
 Quest for the Nihil Stone
+Quilled Wolf
 Quirion Explorer
 Rain of Rust
+Raise the Alarm
 Ramosian Sergeant
 Reclusive Wight
 Repulsor Rays
+Resurrection Orb
 Retreat to Coralhelm
 Rhys the Exiled
 Rile
+Riot Piker
+Rise from the Grave
 Rising of the Day
 Roilmage's Trick
+Rolling Hamsphere
 Royal Talon Fighter Jet
 Ruin Crab
 Ruination
 Rukh Egg
+Saheeli's Silverwing
 Sai of the Shinobi
 Salvage Slasher
 Sand Silos
+Sapseep Forest
 Scouting Hawk
+Serra Advocate
+Serum Visions
 Shadow Rift
 Shifting Wall
+Shu General
 Sibsig Icebreakers
 Siege Zombie
 Siegecraft
@@ -199,16 +273,25 @@ Silverchase Fox
 Sinister Sabotage
 Slate of Ancestry
 Slinza, the Spiked Stampede
+Sokka's Charge
 Soltari Trooper
 Spidersilk Armor
 Spike-Tailed Ceratops
+Spiked Corridor
 Spikeshot Goblin
 Spiketail Drakeling
+Spire Owl
+Spitting Dilophosaurus
 Spitting Hydra
 Squelching Leeches
+Staff of the Wild Magus
+Stun
+Summoning Materia
 Swamp
 Tainted Adversary
+Tajuru Archer
 Tandem Takedown
+Tangle Hulk
 Teardrop Kami
 Tempting Witch
 The Roaring Toeclaws
@@ -219,6 +302,7 @@ Thrull Surgeon
 Thumbscrews
 Thunder Wall
 Tide Drifter
+Tilonalli's Crown
 Toil to Renown
 Tombfire
 Touch of Death
@@ -231,12 +315,18 @@ Typhoid Rats
 Uglúk of the White Hand
 Ulvenwald Hydra
 Undercellar Myconid
+Undercity Necrolisk
 Undo
 Unhallowed Phalanx
+Unknown Shores
 Unlikely Aid
+Unnatural Growth
 Unwavering Initiate
+Vault of the Archangel
 Venerable Monk
+Venom, Eddie Brock
 Veteran's Powerblade
+Viashino Runner
 Vigilant Baloth
 Vivisection
 Voice of All
@@ -246,8 +336,12 @@ Wake the Past
 Warpath Ghoul
 Wash Out
 Wasp, Shrinking Savior
+Wasteful Harvest
+Watchwing Scarecrow
 Whisper of the Dross
 Whitesun's Passage
+Wild Elephant
+Wild Ox
 Witness the End
 Xenk, Paladin Unbroken
 Young Pyromancer

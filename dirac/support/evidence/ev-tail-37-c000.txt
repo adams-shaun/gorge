@@ -15,12 +15,14 @@ Air-Cult Elemental
 Akki Raider
 Aladdin's Ring
 Altar's Reap
+Ancient Tomb
 Angel of the Dawn
 Angelic Sell-Sword
 Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
 Argothian Pixies
+Aspect of Wolf
 Atog
 Atrocious Experiment
 Automated Artificer
@@ -42,6 +44,7 @@ Borderland Minotaur
 Born to Drive
 Boseiju Reaches Skyward
 Bountiful Promenade
+Break Down
 Brightstone Ritual
 Brotherhood Vertibird
 Brutal Deceiver
@@ -68,6 +71,7 @@ Constant Mists
 Contagion Clasp
 Controlled Instincts
 Crawling Chorus
+Crimson Kobolds
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
@@ -111,6 +115,7 @@ Esper Cormorants
 Exultant Cultist
 Fading Hope
 Faerie Impostor
+Faithless Salvaging
 Fallaji Excavation
 Fate Forgotten
 Flame Slash
@@ -139,6 +144,7 @@ Great Sable Stag
 Greatsword
 Grim Backwoods
 Gruul Turf
+Guard Gomazoa
 Guild Artisan
 Gustcloak Harrier
 Halo Hopper
@@ -154,6 +160,7 @@ Icatian Crier
 Icatian Priest
 Igneous Golem
 In the Trenches
+Incubator Drone
 Infiltrate
 Infused Arrows
 Intrepid Provisioner
@@ -165,6 +172,7 @@ Jungle Delver
 Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
+Kasimir the Lone Wolf
 Kavu Climber
 Kavu Glider
 Kavu Scout
@@ -181,8 +189,10 @@ Lightning Wolf
 Llanowar Stalker
 Looter il-Kor
 Loxodon Anchorite
+Loxodon Gatekeeper
 Lumithread Field
 Lux Cannon
+Maestros Theater
 Malevolent Rumble
 Marionette Master
 Markov Blademaster
@@ -196,17 +206,21 @@ Millennial Gargoyle
 Millstone
 Mindless Automaton
 Mirror Wall
+Mob
 Moltensteel Dragon
 Monk Realist
 Morbid Plunder
 Mountain
 Mystifying Maze
+Navigation Orb
 Nearheath Chaplain
+Niambi, Faithful Healer
 Nishoba Brawler
 Norika Yamazaki, the Poet
 Noxious Dragon
 Off Balance
 Organ Hoarder
+Orochi Merge-Keeper
 Paralyzing Grasp
 Peregrine Griffin
 Pestilent Souleater
@@ -214,6 +228,7 @@ Phyrexian Etchings
 Pierce the Sky
 Pillar Tombs of Aku
 Plains
+Polluted Delta
 Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
@@ -221,9 +236,12 @@ Presence of Gond
 Presence of the Master
 Priest of the Crossing
 Primal Empathy
+Prismari Campus
 Professor Hulk
 Protomatter Powder
+Psionic Sliver
 Pumpkin Bombs
+Purgatory
 Qilin's Blessing
 Quarrel's End
 Quest for Pure Flame
@@ -236,9 +254,11 @@ Raving Visionary
 Reach of Branches
 Reap and Sow
 Reduce to Dreams
+Rejuvenation Chamber
 Rekindled Flame
 Reviving Melody
 Rhox Oracle
+Riptide
 Rising Populace
 Roar of Reclamation
 Robot Chicken
@@ -254,6 +274,7 @@ Savage Stomp
 Scalding Tongs
 Scorch Spitter
 Scrubland
+Sea Legs
 Sejiri Shelter
 Shadowfeed
 Shatterstorm
@@ -264,6 +285,8 @@ Sickle Ripper
 Siege Smash
 Sightless Ghoul
 Silkguard
+Silundi Vision
+Siren of the Silent Song
 Skin Invasion
 Sky Ruin Drake
 Skyway Sniper
@@ -274,6 +297,7 @@ Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
+Spawning Breath
 Spineless Thug
 Stand Firm
 Staunch Defenders
@@ -291,6 +315,7 @@ Swarm Guildmage
 Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
+Tangled Islet
 Target Minotaur
 Temur Runemark
 Tenth District Veteran
@@ -303,12 +328,15 @@ Thornglint Bridge
 Thraben Inspector
 Tithebearer Giant
 Towashi Guide-Bot
+Tradewind Rider
 Travel Preparations
 Twilight Prophet
 Undead Butler
 Undergrowth Scavenger
+Urza's Blueprints
 Vanquish the Foul
 Vault Guardsman
+Vectis Dominator
 Voices from the Void
 Walking Archive
 Walking Corpse
@@ -316,6 +344,7 @@ Warped Physique
 Warrior's Charge
 Wayfaring Giant
 Whisper Squad
+White Glove Gourmand
 Wicker Witch
 Wielding the Green Dragon
 Wildfire Emissary

@@ -5,7 +5,9 @@ A-Urza's Command
 Adaptive Omnitool
 Aerial Modification
 Aerial Volley
+Aetherflux Reservoir
 Agoraphobia
+Ambition's Cost
 Ancient Copper Dragon
 Angelic Curator
 Angler Drake
@@ -16,9 +18,13 @@ Ardent Soldier
 Arni Slays the Troll
 Arrow Storm
 Asha's Favor
+Audacity
 Avatar of Might
 Aven Cloudchaser
+Aven Eternal
+Awaken the Bear
 Azorius Signet
+Baird, Steward of Argive
 Balduvian Barbarians
 Bane's Invoker
 Baneslayer Angel
@@ -31,6 +37,7 @@ Bellowing Elk
 Benevolent Blessing
 Beregond of the Guard
 Bessie, the Doctor's Roadster
+Biomass Mutation
 Bituminous Blast
 Blacklance Paragon
 Bladebrand
@@ -49,6 +56,7 @@ Boom
 Boompile
 Boros Elite
 Borrowing 100,000 Arrows
+Branching Bolt
 Branchloft Pathway
 Breath of Darigaaz
 Bred for the Hunt
@@ -74,6 +82,7 @@ Cloakwood Hermit
 Cloudseeder
 Collective Blessing
 Colossal Might
+Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
 Consecrated by Blood
@@ -95,6 +104,7 @@ Dawn of Hope
 Decimator Beetle
 Demonic Dread
 Deranged Hermit
+Desolation Twin
 Devastation Tide
 Diabolic Tutor
 Dictate of Karametra
@@ -116,6 +126,7 @@ Eidolon of Astral Winds
 Eiganjo Dynastorian
 Emerald Medallion
 Emergent Sequence
+Emrakul's Hatcher
 Enthralling Victor
 Escaped Experiment
 Etched Familiar
@@ -125,6 +136,7 @@ Extinguish the Light
 Exultant Skymarcher
 Ezuri, Claw of Progress
 Falcon Abomination
+Falconer Adept
 Fall to Earth
 Fallaji Archaeologist
 Fallow Earth
@@ -132,8 +144,10 @@ Family's Favor
 Feral Instinct
 Feral Invocation
 Fervent Denial
+Fiery Fall
 Filigree Familiar
 Firebreathing
+Firja, Judge of Valor
 Flame Discharge
 Flame Sweep
 Flameblade Adept
@@ -156,6 +170,7 @@ Gleeful Arsonist
 Glimmerpost
 Glimpse of Nature
 Glorious Charge
+Gobhobbler Rats
 Goblin Bully
 Goblin Burrows
 Goblin Scouts
@@ -177,6 +192,7 @@ Hero of the Pride
 High Priest of Penance
 Highland Lake
 Hinterland Drake
+Hornet Cobra
 Hour of Promise
 Howling Giant
 Howling Moon
@@ -193,6 +209,7 @@ Iron Lad, Young Avenger
 Island
 Jace's Sentinel
 Jedit Ojanen, Mercenary
+Jodah's Codex
 Johnny, Combo Player
 Join the Maestros
 Jushi Apprentice
@@ -205,11 +222,13 @@ Kitesail Skirmisher
 Knight of Dusk's Shadow
 Krosan Wayfarer
 Krovikan Fetish
+Lance
 Lava Flow
 Lava Hounds
 Lavaborn Muse
 Leonin Abunas
 Lightning Runner
+Llanowar Augur
 Llanowar Druid
 Loam Dryad
 Loam Larva
@@ -230,12 +249,14 @@ Militia Rallier
 Mind Unbound
 Mindstab Thrull
 Mogg War Marshal
+Moodmark Painter
 Moon Heron
 Mortarpod
 Mountain
 Mox Jet
 Mtenda Griffin
 Multani's Decree
+Naya Charm
 Necrotic Wound
 Niblis of Dusk
 Night of Souls' Betrayal
@@ -247,6 +268,7 @@ Numbing Dose
 Odious Trow
 Ogre Arsonist
 Old Ghastbark
+On Wings of Gold
 Oracle of Tragedy
 Ornithopter
 Owlbear Shepherd
@@ -282,15 +304,19 @@ Rain of Blades
 Rakdos Signet
 Raphael, the Muscle
 Raptor Companion
+Ravenous Vampire
+Rebuff the Wicked
 Recoil
 Reef Shaman
 Refurbished Familiar
 Relentless Assault
+Remand
 Renegade Tactics
 Replenish
 Resolute Archangel
 Resupply
 Rite of the Raging Storm
+Roiling Regrowth
 Rootwire Amalgam
 Rush of Inspiration
 Rusted Sentinel
@@ -324,7 +350,9 @@ Serrated Scorpion
 Setessan Griffin
 Shadowfeed
 Shimmerdrift Vale
+Shinewend
 Shriekdiver
+Shrink
 Sigardian Savior
 Silverbeak Griffin
 Simian Grunts
@@ -341,7 +369,9 @@ Soul Rend
 Soul's Might
 Soulstealer Axe
 Spawn-Gang Commander
+Spectral Rider
 Spell Swindle
+Spellbound Dragon
 Sphere of Resistance
 Spined Karok
 Spiteful Prankster
@@ -358,6 +388,7 @@ Sunscape Master
 Svyelunite Priest
 Swamp
 Swarm Surge
+Swarmborn Giant
 Syr Faren, the Hengehammer
 Tajuru Blightblade
 Take Inventory
@@ -381,6 +412,7 @@ Thoughtrender Lamia
 Threads of Disloyalty
 Thunder Spirit
 Time of Need
+Tin Street Hooligan
 Tolarian Sentinel
 Tomakul Scrapsmith
 Topiary Stomper
@@ -403,6 +435,7 @@ Vedalken Dismisser
 Vedalken Mesmerist
 Venomous Brutalizer
 Vernal Sovereign
+Vesper Ghoul
 Vicious Offering
 Village Rites
 Virtus the Veiled
