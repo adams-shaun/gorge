@@ -1,6 +1,59 @@
+Aetherflux Conduit
+Aetherwind Basker
+Attunement
+Balduvian Horde
+Black Vise
+Chaos Lord
+Chaos Warp
+Chief of the Foundry
+Combo Attack
+Cruel Tutor
+Darksteel Citadel
+Deadly Allure
+Diregraf Rebirth
+Echoing Truth
+Essence Flux
+Fatestitcher
+Fireblast
+Flame Slash
 Forest
+Ghostly Changeling
+Gravedigger
+Harvest Gwyllion
+Havoc Demon
+Headwater Sentries
+Ill-Gotten Inheritance
 Island
+Jhoira's Toolbox
 Juri, Master of the Revue
+Mana-Charged Dragon
 Mountain
+Nantuko Shaman
+Nezumi Graverobber
+Ninja of the Deep Hours
+Oran-Rief Survivalist
+Overgrown Battlement
+Patron Wizard
+Pestilent Wolf
 Plains
+Price of Fame
+Reanimate
+Rhonas's Monument
+Sabertooth Nishoba
+Scribe of the Mindful
+Seasoned Pyromancer
+Shinka, the Bloodsoaked Keep
+Silverchase Fox
 Swamp
+Telekinetic Sliver
+Thassa's Oracle
+Thermo-Alchemist
+Tinder Wall
+Tolabow, Loch Rascal
+Toski, Bearer of Secrets
+Vampire of the Dire Moon
+Vengeful Reaper
+Voice of Reason
+Wake of Vultures
+Warleader's Helix
+Woodland Mystic

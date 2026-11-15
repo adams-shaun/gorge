@@ -504,10 +504,10 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier, and a sacrifice
-// alone, an Eldrazi Spawn's: pay/planshape.go TierLastResort, a planner unit
-// the census covers), or a
+// spend restriction, each-colour production, a cost beyond {T} (but
+// {T} plus sacrificing itself, a Treasure's, and sacrificing itself alone,
+// an Eldrazi Scion's, are the census's last-resort tier: gorge
+// pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
@@ -580,9 +580,6 @@ type filtStep struct {
 	// ability beside the census one, and the search reads no restriction
 	// (mana_restrictedsource.go)
 	restr bool
-	// sacOnly: a funding source whose mana ability costs only its own
-	// sacrifice (an Eldrazi Spawn); ans is its colour (mana_sacsource.go)
-	sacOnly bool
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -730,14 +727,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		return
 	}
 	s.fireFiltAbilityCast(k, p, st) // the activation precedes its cost's tap and sacrifice
-	if st.sacOnly {
-		s.sacOnlyDo(k, p, st)
-		return
-	}
 	pl := &s.pl[SeatIx(p)]
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
-	} else {
+	} else if st.gap || st.restr || !s.fundsBySac(k, st.sl) {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
 		s.manaTapped(k, st.sl)
@@ -890,9 +883,11 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	return false
 }
 
-// seenBefore reports whether the search already visited a state like t's (its
-// pool, restricted mana, tapped sources, stack and zones), and records it.
-func (fs *filtSearch) seenBefore(k *prep, t *State) bool {
+// visit is one priority node of the search.
+func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	if !fs.tick() {
+		return false
+	}
 	p := fs.p
 	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	if k.artMana {
@@ -906,24 +901,12 @@ func (fs *filtSearch) seenBefore(k *prep, t *State) bool {
 	}
 	for i := 0; i < fs.nseen; i++ {
 		if fs.seen[i] == key {
-			return true
+			return false
 		}
 	}
 	if fs.nseen < len(fs.seen) {
 		fs.seen[fs.nseen] = key
 		fs.nseen++
-	}
-	return false
-}
-
-// visit is one priority node of the search.
-func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
-	if !fs.tick() {
-		return false
-	}
-	p := fs.p
-	if fs.seenBefore(k, t) {
-		return false
 	}
 	if gapUsed {
 		var d Decision
@@ -944,9 +927,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
 				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 			}
-			if fs.fundSacOnly(k, t, sl, gap, funded, gapUsed) {
-				return true
-			}
 			if gap && fs.other.has(sl) {
 				if fs.otherGap(k, t, sl, funded) {
 					return true
@@ -957,7 +937,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if !t.filtUsable(k, sl) {
 					continue // (a once-each-turn filter: its use, not its {T})
 				}
-			} else if t.perms[sl].flags&pfTapped != 0 {
+			} else if t.fundOut(k, sl) {
 				continue
 			}
 			if gap {
@@ -996,7 +976,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if k.restrSrc {
 				rm = t.filtRestrMask(k, sl)
 			}
-			free := t.canTapForMana(k, sl)
+			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
 				continue
 			}

@@ -1,0 +1,13 @@
+Cabal Ritual
+Caustic Tar
+Chainwhip Cyclops
+Coercive Impetus
+Daggerback Basilisk
+Evasive Action
+Forest
+Island
+Mesmeric Trance
+Mountain
+Plains
+Swamp
+Tribute to Horobi

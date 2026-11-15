@@ -151,6 +151,7 @@ type lowerCtx struct {
 	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
 	reflexMulti    bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
 	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
+	numTimesOpen   bool      // lowering an OPEN NumTimes latent (no AnnounceMax$): Count$TriggerRememberAmount is the parent's announced count (lower_numtimes.go)
 	remLKMVN       int       // RememberedLKI$CardManaCost reads admitted (value_remlkimv.go)
 	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
 	flipSide       uint8     // lowering a FlipCoin branch: 1 the win block, 2 the lose block; a bare Wins/Losses read is that flip's 1/0 (lower_dice.go flipCoin)
@@ -983,6 +984,10 @@ var expandedKeywords = map[string]bool{
 	// replacement putting Count$Converge P1P1 (a creature) or CHARGE
 	// counters on the entering permanent
 	"Sunburst": true,
+	// Graft (CR 702.58a): gorge kwGraft (cards/kw_graft.go) expands it to an
+	// entering Moved replacement putting N +1/+1 counters and an ETB trigger
+	// on another creature moving one counter
+	"Graft": true,
 	// Class (CR 716): gorge kwClass appends each level's activator
 	// (AB$ ClassLevelUp) and its granted ability (ClassBand$ N) to the face
 	"Class": true,
@@ -994,7 +999,7 @@ var expandedKeywords = map[string]bool{
 	// into the resolution, which kgen never sees.
 	"Undying": true, "Persist": true, "Backup": true, "Fabricate": true, "Living Weapon": true,
 	"Job select": true, "For Mirrodin": true, "Transmute": true, "Outlast": true, "Battle cry": true,
-	"Afterlife": true, "Afflict": true, "Ravenous": true,
+	"Afterlife": true, "Afflict": true, "Ravenous": true, "Modular": true,
 	// Demonstrate (CR 702.144a): gorge kwDemonstrate (cards/kw_demonstrate.go)
 	// appends a "when you cast this spell" trigger whose body is the
 	// __kwDemonstrate SVar, DB$ Demonstrate. (gorge's comment there cites
@@ -2022,7 +2027,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			// where gorge enters it two loyalty lower per pip.
 			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
 		default:
-			lc.refuseNode(node, "keyword %q", head)
+			lc.lowerKeywordElse(node, head, param) // lower_kwhandlers.go
 		}
 	}
 }
@@ -2075,6 +2080,8 @@ func discardHandCost(c *lCost) error {
 	case "Hand":
 		c.DiscardHand, c.DiscardSpec, c.DiscardN = true, "", 0
 		return nil
+	case "Random":
+		return discardRandomCost(c)
 	default:
 		return refuse("discard cost %q outside an unless cost", c.DiscardSpec)
 	}

@@ -1,5 +1,6 @@
 Forest
 Island
+Life Chisel
 Mountain
 Plains
 Swamp

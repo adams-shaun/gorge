@@ -66,10 +66,18 @@ func (fs *filtSearch) fundColours(k *prep, t *State, sl Slot, pc *pcard, mask ui
 //
 //go:noinline
 func (s *State) fundSac(k *prep, sl Slot) {
-	if !s.manaPCGen(k, sl).manaSac {
+	if pc := s.manaPCGen(k, sl); !pc.manaSac && !s.canSacOnlyNow(k, sl, pc) {
 		return
 	}
 	s.sacFilterSource(k, sl)
+}
+
+// fundsBySac reports whether sl funds a filter by sacrificing itself with no
+// {T} (an Eldrazi Spawn's "Sacrifice this creature: Add {C}", CR 605.1a): a
+// tapped or summoning-sick one funds too, and funding does not tap it.
+func (s *State) fundsBySac(k *prep, sl Slot) bool {
+	pc := s.manaPCGen(k, sl)
+	return pc.manaSacOnly && s.canSacOnlyNow(k, sl, pc)
 }
 
 // sacFilterSource sacrifices the mana source at sl: its Sacrificed triggers
@@ -86,27 +94,12 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 	}
 }
 
-// fundSacOnly funds the search with the sacrifice-only source at sl (an Eldrazi
-// Spawn's "Sacrifice this creature: Add {C}"): gorge's prefix search activates
-// every source with a mana ability in battlefield order, and a planner unit of
-// the last-resort tier is one of them, tapped or not (mana_sacsource.go). A
-// source making a choice of colours is none this models.
-func (fs *filtSearch) fundSacOnly(k *prep, t *State, sl Slot, gap bool, funded int, gapUsed bool) bool {
-	if gap || !k.sacOnlyMana || !t.canSacOnlyNowAt(k, sl) {
-		return false
-	}
-	mask := t.srcMaskAt(t.manaPCGen(k, sl), sl)
-	if bits.OnesCount8(mask) != 1 {
-		return false
-	}
-	return fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask)), sacOnly: true}, funded+1, gapUsed)
+// fundOut: sl is tapped and cannot fund by sacrifice either.
+func (s *State) fundOut(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl)
 }
 
-// sacOnlyDo plays a sacrifice-only funding step: its mana is added and the source
-// sacrificed (fundSac's order).
-func (s *State) sacOnlyDo(k *prep, p uint8, st filtStep) {
-	pc := s.manaPCGen(k, st.sl)
-	s.poolAdd(p, int(st.ans), int(max(pc.manaN, 1)))
-	s.artTag(k, p, st.sl, int(st.ans))
-	s.sacFilterSource(k, st.sl)
+// fundFree: sl funds a filter now, tapped for mana or sacrificed.
+func (s *State) fundFree(k *prep, sl Slot) bool {
+	return s.canTapForMana(k, sl) || s.fundsBySac(k, sl)
 }
