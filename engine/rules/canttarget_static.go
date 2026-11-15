@@ -168,13 +168,34 @@ func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA
 	if sa == nil {
 		return false
 	}
-	switch sa.Kind {
+	switch chainRootKind(e.G.Obj(source), sa) {
 	case "SP":
 		return cantTargetSAKindIn(spec, "Spell")
 	case "AB":
 		return cantTargetSAKindIn(spec, "Activated")
 	}
 	return false
+}
+
+// chainRootKind is sa.Kind, except that a SubAbility$ link (Kind "DB") takes
+// the Kind of the root of the chain it hangs off on the source's face: a chain link
+// is part of its spell or ability (CR 608.2c), and the target it announces is
+// the spell's own. The offer census asks before the spell is on the stack
+// (cantTargetValidSA's stack arm reads the object once it is), so Punish the
+// Enemy's "target creature" link was judged not-a-spell and Dense Foliage never
+// barred it.
+func chainRootKind(o *state.Object, sa *cards.SA) string {
+	if o == nil || o.Face() == nil {
+		return sa.Kind
+	}
+	for _, root := range o.Face().Abilities {
+		for link := root; link != nil; link = link.Sub {
+			if link == sa {
+				return root.Kind
+			}
+		}
+	}
+	return sa.Kind
 }
 
 // cantTargetSAKindIn reports whether the comma-separated ValidSA$ spec names
