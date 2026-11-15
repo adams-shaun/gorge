@@ -296,12 +296,7 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 	best := -1
 	for set := 1; set < 1<<n; set++ {
 		t := *av
-		if !s.filtActivate(k, &t, &filt, set, func(a *avail) int {
-			if anyColor {
-				return a.maxXAnyColor(cost)
-			}
-			return a.maxX(cost, pipMaskOf(cost))
-		}) {
+		if !s.filtActivate(k, &t, &filt, set, cost, anyColor) {
 			continue
 		}
 		if anyColor {
@@ -335,7 +330,7 @@ func (s *State) filtBoundExtra(k *prep, p uint8) int {
 // its free ability's mana, pays its fee out of the mana made so far and adds
 // its own. The fees are paid in an order that funds them, the filters that
 // add at least what they cost first; false when some fee cannot be paid.
-func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set int, score func(*avail) int) bool {
+func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set int, cost *kop.ManaCost, anyColor bool) bool {
 	for pass := 0; pass < 2; pass++ {
 		for progress := true; progress && set != 0; {
 			progress = false
@@ -359,7 +354,7 @@ func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set 
 				if pc != nil {
 					s.removeSrc(k, t, sl, pc)
 				}
-				s.filtFeeUnits(k, t, sl, fee, score)
+				s.filtFeeUnits(k, t, sl, fee, cost, anyColor)
 				a := s.filtAb(k, sl)
 				addFiltUnits(t, a, uint8(units))
 				if manaOneColour(a, uint8(units)) {
