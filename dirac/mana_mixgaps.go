@@ -147,10 +147,14 @@ func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
 	return m
 }
 
-// riderOther branches rider gap sl's answers at a priority node: its colour
-// ask, when it has one, is one node, its answers in scriptDFS's order (the
-// play's announced colours first, scriptEngineAnswer).
+// riderOther branches rider gap sl's answers at a priority node (otherGap's
+// last arm; false for a slot that is no mixRider gap): its colour ask, when it
+// has one, is one node, its answers in scriptDFS's order (the play's announced
+// colours first, scriptEngineAnswer).
 func (fs *filtSearch) riderOther(k *prep, t *State, sl Slot, try func(otherStep) bool) bool {
+	if !t.mixRider(k, fs.p, true).has(sl) {
+		return false
+	}
 	td := slotMask{}.with(sl)
 	n := t.deferGapAnswers(k, sl)
 	if n > 1 && !fs.tick() {
@@ -228,8 +232,6 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred})
 	case t.scriptCtr(k, p).has(sl):
 		return fs.ctrOther(k, t, sl, try)
-	case t.mixRider(k, p, true).has(sl):
-		return fs.riderOther(k, t, sl, try)
 	case t.scriptAnyR(k, p).has(sl):
 		if !fs.tick() {
 			return false
@@ -443,7 +445,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 		}
 	}
-	return false
+	return fs.riderOther(k, t, sl, try)
 }
 
 // ctrOther branches counter-cost gap sl's answers at a priority node, as
