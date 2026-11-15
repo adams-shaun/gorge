@@ -10,7 +10,7 @@ import (
 )
 
 const fixLevySrc = "Name:Fix Levy\nManaCost:2\nTypes:Artifact\n" +
-	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1 | Description$ Noncreature spells cost {1} more to cast.\n" +
+	"S:Mode$ RaiseCost | Type$ Spell | Amount$ 1 | ValidCard$ Card.nonCreature | Description$ Each nonland, noncreature spell is taxed by one.\n" +
 	"Oracle:x\n"
 
 // The escalate mode count is clamped to what the composed total (printed cost,
