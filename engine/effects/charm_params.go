@@ -99,7 +99,12 @@ var zeroCharm = CharmParams{Modes: []string{""}[:1:1]}
 
 // isCharmAPI reports whether sa resolves through effCharm.
 func isCharmAPI(sa *cards.SA) bool {
-	return sa != nil && (sa.API == "Charm" || sa.API == "GenericChoice")
+	return sa != nil && (sa.API == "Charm" || isGenericChoiceAPI(sa))
+}
+
+// isGenericChoiceAPI reports whether sa is an api:GenericChoice ability.
+func isGenericChoiceAPI(sa *cards.SA) bool {
+	return sa != nil && sa.API == "GenericChoice"
 }
 
 // GenericChoicePlayerChoosers reports the targeted-player GenericChoice shape
@@ -166,8 +171,30 @@ func compileCharm(sa *cards.SA, dp *DefinedParams) *CharmParams {
 	p.NumRandomChoices = ParamText{Text: nrc, Present: nrcOK}
 	if isCharmAPI(sa) {
 		p.Unread = unreadKeys(sa, charmKnownKeys[:])
+		if isGenericChoiceAPI(sa) {
+			p.Unread = dropGenericChoicePresentation(p.Unread)
+		}
 	}
 	return p
+}
+
+// genericChoicePresentationKeys are the keys only api:GenericChoice treats as
+// presentation: ShowChoice$ (with ExceptSelf) picks who is told which option
+// was chosen, and the choice is already a public ModeChosen answer. They stay
+// out of charmKnownKeys because that table is shared with api:Charm, whose
+// census does not ignore them.
+var genericChoicePresentationKeys = [...]string{"ShowChoice"}
+
+// dropGenericChoicePresentation removes genericChoicePresentationKeys from an
+// unread list, keeping its order.
+func dropGenericChoicePresentation(unread []string) []string {
+	out := unread[:0]
+	for _, k := range unread {
+		if !slices.Contains(genericChoicePresentationKeys[:], k) {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // charmKnownKeys is every parameter key a Charm or GenericChoice resolution
