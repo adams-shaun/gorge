@@ -1,105 +1,437 @@
+A-Dawnbringer Cleric
+A-Exhibition Magician
+A-Geology Enthusiast
 A-Guide of Souls
 A-Plate Armor
+A-Social Climber
+A-Teferi, Time Raveler
+Aang, Airbending Master
+Abomination, World Ravager
+Abzan Runemark
+Aegis of the Heavens
+Aim for the Head
 Ajani's Mantra
+Aku Djinn
+Alchemist's Greeting
+Alley Grifters
+Ancient Animus
+Angelic Purge
+Aphotic Wisps
+Arashin Sovereign
+Assault Formation
+Astarion's Thirst
+Astral Dragon
+Auriok Edgewright
+Avatar of Growth
+Aven Trooper
+Aven Windreader
+Azimaet Drake
+Azure Mage
 Barricade Breaker
+Battleflight Eagle
 Bearer of Memory
+Beastmaster's Magemark
+Bellows Lizard
+Benevolent Blessing
+Betrayal
+Big Game Hunter
 Black Sun's Twilight
+Blackbloom Rogue
+Blighted Steppe
+Blightwidow
+Blindblast
+Blinding Mage
+Blood Seeker
+Blood Vassal
 Boiling Blood
+Bojuka Bog
+Boulderfall
+Brainsurge
+Bramblecrush
+Brood Sliver
+Buried Ruin
+Calculated Dismissal
 Capashen Unicorn
+Captain N'ghathrod
 Captured by Lagacs
+Cartouche of Solidarity
+Casey Jones, Back Alley Brute
+Cephalid Illusionist
+Chain Lightning
+Chaos Maw
+Chasm Drake
 Chicken Egg
+Chilling Trap
 Choke
 Chromatic Star
+City of Brass
 Civic Guildmage
+Civilized Scholar
+Cleopatra, Exiled Pharaoh
+Cloudkill
+Colossal Dreadmaw
 Concordant Crossroads
+Condemn
+Confessor
+Constable of the Realm
+Constricting Tendrils
+Contraband Livestock
+Corrupt
+Creature Bond
+Crookclaw Elder
+Curse of Predation
+Cursed Totem
+Cutthroat il-Dal
+Daemogoth Titan
+Danitha Capashen, Paragon
+Darkslick Shores
+Deadeye Plunderers
+Deadly Insect
+Deadly Wanderings
 Death Speakers
+Debtor's Pulpit
+Decree of Savagery
+Deepwood Tantiv
+Defenestrate
+Deft Dismissal
+Depth Charge Colossus
 Descendant of Kiyomaro
+Desecrated Earth
+Despondency
+Devil Dinosaur
 Devouring Swarm
 Dina, Soul Steeper
+Dire Fleet Interloper
+Disciple of Freyalise
+Divine Smite
 Dragonborn Looter
+Drudge Reavers
+Dwarven Recruiter
+Earthquake
+Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
+Eiganjo Castle
+Elenda's Hierophant
+Ember-Fist Zubera
+Emeria Angel
+Enclave Cryptologist
 Encroaching Wastes
 Entish Restoration
+Equestrian Skill
+Esika's Chariot
+Eternal of Harsh Truths
+Ethersworn Adjudicator
 Euroakus
+Fact or Fiction
+Faithbearer Paladin
+Fangs of Kalonia
+Feeding Frenzy
+Feldon, Ronom Excavator
 Ferocious Charge
+Fevered Strength
 Field Marshal
+Finale of Glory
 Fire Ambush
+Fire Prophecy
+Firemaw Kavu
+Flameskull
 Forest
+Forge, Neverwinter Charlatan
 Frightcrawler
 From the Rubble
 Frontier Mastodon
+Fume Spitter
+Gaea's Bounty
+Gang of Devils
 Gaze of Granite
+Ghalma's Warden
 Ghoulcaller's Bell
+Giant Scorpion
+Gift of Paradise
+Gimli's Axe
+Gixian Infiltrator
+Glittering Wish
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
+Goblin Bushwhacker
+Goblin Commando
 Goblin Tinkerer
+God-Eternal Rhonas
+Goldnight Redeemer
+Goldwarden's Helm
+Gridlock
+Griptide
+Grismold, the Dreadsower
+Gruesome Fate
+Gruul Keyrune
+Guul Draz Assassin
 Halberdier
+Hanweir Garrison
 Hardened Scales
+Haunted Crossroads
+Hell's Thunder
+Hellkite Igniter
+Hero's Resolve
+Hollow Dogs
 Horned Cheetah
+Horned Helm
+Hornet Cannon
 Hornet Cobra
+Hulk, Always Angry
+Idyllic Tutor
+Immortal Phoenix
+Incurable Ogre
+Inferno Fist
 Insidious Bookworms
+Involuntary Cooldown
 Island
 Jhoira's Familiar
+Jinxed Idol
+Kindle
+Kjeldoran Pride
+Knights of Dol Amroth
+Kolvori, God of Kinship
+Kor Blademaster
+Kraken of the Straits
+Kuldotha Flamefiend
+Lady Spider, Maybelle Reilly
+Land Leeches
+Laquatus's Creativity
+Late to Dinner
+Leave
+Leonin Relic-Warder
+Leonin Squire
+Lignify
+Liliana's Defeat
+Liliana's Elite
 Liliana's Standard Bearer
+Loathsome Troll
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
+Magmatic Core
+Malach of the Dawn
 Malevolent Awakening
+Malicious Advice
+Maraxus of Keld
+Markov Dreadknight
+Marsh Hulk
+Marshaling Cry
 Meadowboon
+Mega Flare
 Meng Huo, Barbarian King
+Merchant of Venom
 Merciless Executioner
+Midnight Angel Armor
+Midnight Duelist
 Mighty Emergence
 Millstone
 Mind Ravel
+Mist-Syndicate Naga
+Mistwalker
+Mold Folk
+Moldervine Reclamation
+Monastery Swiftspear
+Moonveil Dragon
 Mountain
+Mulch
+Multiform Wonder
+Mystic Enforcer
+Nature's Chant
+Navigation Orb
 Necromancer's Familiar
 Needlethorn Drake
 Nev, the Practical Dean
+Nexus of Fate
 Nomads' Assembly
+Norn's Inquisitor
+Novellamental
+Oathsworn Vampire
+Opal Champion
+Oran-Rief Ooze
 Orazca Frillback
+Ordeal of Heliod
 Oreskos Swiftclaw
+Outbreak
+Oversold Cemetery
 Painwracker Oni
+Paladin Danse, Steel Maverick
+Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
+Phyrexian Prowler
+Plague Fiend
+Plague Myr
 Plains
+Planar Incision
+Planar Portal
 Pool Resources
+Portent of Betrayal
 Precision Bolt
+Preening Champion
+Preordain
+Priest of Ancient Lore
+Primal Whisperer
+Prismari Apprentice
+Psychic Strike
+Psychotic Haze
+Pull from Tomorrow
+Purple Pentapus
 Putrid Imp
+Pyromantic Pilgrim
 Pyrrhic Blast
+Queen's Agent
+Quicksilver Wall
+Quilled Slagwurm
+Rabbit Battery
 Rag Dealer
+Raging Bull
 Raging Kavu
+Rakshasa's Disdain
 Rally Maneuver
 Rancid Rats
+Razorfin Abolisher
+Razortooth Rats
+Reaping the Rewards
+Reaver Ambush
+Reckoner's Bargain
+Rekindled Flame
+Relief Captain
 Return to the Earth
 Reveille Squad
+Reverent Mantra
 Riddlekeeper
+Ring of Three Wishes
+Roar of the Crowd
+Roaring Slagwurm
+Roc Hunter
 Rockshard Elemental
+Ruby Medallion
+Rukh Egg
+Rundvelt Hordemaster
 Runeclaw Bear
+Ruthless Disposal
 Sacred Cat
+Saheeli's Artistry
 Sanctify
+Sandsteppe Mastodon
+Sapphire Dragon
+Saruman, the White Hand
+Savai Thundermane
 Scoria Wurm
+Scrapwork Cohort
+Scrivener
+Scroll of the Masters
+Scurry Oak
+Search Party Captain
+Sedraxis Specter
+Seismic Mage
+Selfless Spirit
+Servant of the Scale
+Shagrat, Loot Bearer
+She-Hulk, Jennifer Walters
+Sheltering Landscape
+Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
+Silvanus's Invoker
+Silver Knight
 Silverflame Squire
 Silverskin Armor
+Skirsdag Flayer
+Skyshaper
 Sleeper Agent
 Smash to Dust
+Smoldering Crater
+Snow-Covered Forest
+Sorcerous Sight
+Soul Salvage
 Speakeasy Server
+Spectral Rider
 Spitfire Handler
 Spurnmage Advocate
+Stampeding Rhino
 Steel Leaf Paladin
+Steelform Sliver
+Steelshaper's Gift
+Stenchskipper
 Storm Fleet Pyromancer
+String of Disappearances
+Strip Mine
+Suncrusher
 Sunstrike Legionnaire
 Sunweb
+Supreme Will
 Surrakar Marauder
 Swamp
+Sweep the Skies
+Sword of the Animist
+Talisman of Unity
+Tar Pit Warrior
+Tawnos's Tinkering
 Tel-Jilad Outrider
+Temporal Adept
+Territorial Baloth
+The Blue Spirit
+The Indomitable
 The Shattered States Era
+The Stasis Coffin
+The Unspeakable
+Thopter Assembly
+Thought Collapse
+Thunderbolt
+Thunderhead Squadron
+Tiller Engine
+Topaz Dragon
+Towering Indrik
+Traumatize
+Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
+Turntimber Ascetic
+Twinshot Sniper
+Two-Headed Zombie
+Undead Executioner
+Unholy Indenture
+Unholy Officiant
 Unquestioned Authority
+Urza, Powerstone Prodigy
+Vampire Envoy
+Vengeful Vampire
+Venom, Eddie Brock
+Venser's Journal
+Verdant Touch
+Verge Rangers
+Vessel of Endless Rest
+Vhati il-Dal
+Viashino Bladescout
+Vilis, Broker of Blood
+Vineweft
 Vintara Snapper
+Violet Pall
 Viridian Longbow
+Vulshok Replica
+Walking Atlas
+Wall of Heat
+Warren Weirding
+Warren-Scourge Elf
+Waterkin Shaman
 Weapon Rack
+Weaver of Lightning
 Wei Scout
+Wei Strike Force
+Weirding Shaman
+Western Paladin
+Whispers of the Muse
+Wildfire Eternal
+Willow-Wind
+Word of Seizing
+World-Weary
+Zealous Persecution
+Zhalfirin Shapecraft
+Zhur-Taa Ancient
+Zuko, Firebending Master

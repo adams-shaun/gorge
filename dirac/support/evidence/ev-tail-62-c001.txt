@@ -1,47 +1,178 @@
+A-Mightstone's Animation
 Aegis of the Gods
+Aether Inspector
+Algae Gharial
+Almost Perfect
+Ambition's Cost
+An-Zerrin Ruins
 Anointed Procession
+Artifact Mutation
+Atsushi, the Blazing Sky
+Attended Healer
+Augury Owl
+Avacyn's Memorial
 Aven Squire
 Azorius Knight-Arbiter
+Bad Deal
+Bad Moon
+Battle Hurda
+Beastmaster's Magemark
 Beregond of the Guard
 Bishop of Rebirth
 Blade-Blizzard Kitsune
+Bloodrage Vampire
 Border Patrol
+Braidwood Sextant
 Cage of Hands
 Captivating Crew
+Cloud Spirit
 Cloudshredder Sliver
+Cloudskate
 Consulate Crackdown
 Court Street Denizen
+Crashing Footfalls
+Dark Banishing
+Defabricate
+Desert of the True
+Desmond Miles
 Devilthorn Fox
+Dimir Charm
+Ecologist's Terrarium
+Elderleaf Mentor
+Elephant Ambush
+Elvish Reclaimer
+Enlarge
+Erinis, Gloom Stalker
 Essence Depleter
 Exclude
+Exhaustion
+Farbog Revenant
 Festerhide Boar
+Force of Savagery
 Forest
+Frilled Mystic
 Frontline Rebel
+Furnace Strider
+Fylamarid
+Gang of Devils
+Gift of Estates
+Gimli, Mournful Avenger
 Glint-Sleeve Artisan
+Goblin Balloon Brigade
+Goblin Grenadiers
+Grave Birthing
+Gristleback
 Gustcloak Runner
+Heed the Mists
+Heightened Reflexes
+Herd Baloth
 Heron of Hope
+Hierophant's Chalice
 Huatli's Snubhorn
 Illusory Ambusher
+Inkfathom Infiltrator
+Insurrection
+Intrusive Packbeast
+Invasion of Moag
 Island
+Ixalli's Diviner
+Juvenile Mist Dragon
+Knighthood
 Kor Bladewhirl
+Kyoki, Sanity's Eclipse
 Lavastep Raider
+Level Up
+Maestros Theater
+Magistrate's Veto
+Mardu Runemark
+Mass Manipulation
 Matoc, Lavamancer
 Memory Lapse
 Mesa Cavalier
+Midsummer Revel
 Midvast Protector
+Minotaur Explorer
 Miraculous Recovery
+Mirari
+Mirran Mettle
+Mishra's Command
+Mishra's Onslaught
+Molimo, Maro-Sorcerer
 Mountain
+Mystic Meditation
+Nantuko Disciple
+New Benalia
+Nimbus of the Isles
+Noble Panther
+Nocturnal Feeder
+Oakenform
+Oboro Envoy
+Onslaught
 Pack Mastiff
+Piercing Light
+Plaguebearer
 Plains
+Port of Karfell
 Prickleboar
+Primal Order
+Prismatic Boon
+Protect
+Psychic Pickpocket
+Raised by Giants
+Rakdos Ringleader
+Rakshasa's Secret
 Ranger en-Vec
+Raven Guild Master
+Redcap Raiders
+Retreat to Kazandu
+Revenant
 Rimrock Knight
 Rishkar, Peema Renegade
 Rite of the Raging Storm
+Rodolf Duskbringer
+Ruinous Gremlin
+Rushwood Dryad
+Sachi, Daughter of Seshiro
+Sands of Delirium
 Sawblade Scamp
+Sawtooth Loon
+Scorched Rusalka
+Selvala's Charge
+Sepulcher Ghoul
+Seraph of the Suns
 Serra Sphinx
+Serum Sovereign
+Sever the Bloodline
+Shadow Guildmage
+Shivan Zombie
+Silverclaw Griffin
 Skyclave Sentinel
+Spiketail Drake
+Sporecrown Thallid
+Springjaw Trap
+Steelfin Whale
 Stoneforge Mystic
+Stormbind
 Stormchaser Mage
 Swamp
+Thalia, Guardian of Thraben
+Thieving Magpie
+Thrasios, Triton Hero
+Thunderbolt
 Tidal Visionary
+Titania, Proud Pummeler
+Tivadar of Thorn
+Town Sentry
+Tragic Slip
+Triumph of Ferocity
+Trumpet Blast
+Turbulent Wilderness
+Unleash Shell
+Uurg, Spawn of Turg
+Vampire's Zeal
+Vampiric Touch
+Verdant Catacombs
+Volcanic Spite
+Weaver of Blossoms
+Wizard Class
+Zodiac Snake

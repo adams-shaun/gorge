@@ -1,74 +1,131 @@
+Acquisition Octopus
 Act on Impulse
 Aerial Responder
 Aether Vial
+Aladdin
+Ancient Spider
+Angelic Ascension
+Ant-Man, Reformed Rogue
 Arbalest Engineers
 Ardent Electromancer
 Astarion, the Decadent
+Atarka Monument
+Aura of Dominion
+Avarice Amulet
+Awaken the Sky Tyrant
 Basking Broodscale
+Bedlam
+Beskir Shieldmate
+Big Game Hunter
+Big Score
 Black Panther, Claws of Bast
 Blood-Chin Fanatic
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
+Canyon Wildcat
 Catapult Fodder
+Caustic Tar
+Chandra's Defeat
+Chasm Guide
 Cogwork Spy
+Collateral Damage
 Coma Veil
+Composer of Spring
 Containment Breach
 Cragplate Baloth
 Curse of Verbosity
 Dega Sanctuary
+Desert Nomads
 Doomed Artisan
+Dragonlair Spider
 Drogskol Shieldmate
 Drossforge Bridge
+Drowned
 Eerie Soultender
 Elves of Deep Shadow
 Elvish Scout
 Emergence Zone
+Enthralling Victor
+Errant Doomsayers
 Exultant Skymarcher
+Facet Reader
+Fantastic Bounce
 Far Wanderings
+Ferrous Lake
 Festercreep
 Fevered Convulsions
 Fin-Clade Fugitives
 Fists of the Anvil
 Fleet-Footed Monk
 Font of Fortunes
+Forced Adaptation
 Forest
 Foul Imp
 Fractal Harness
+Galvanic Blast
 Gate of the Black Dragon
 Gearsmith Prodigy
+Geosurge
 Giant Scorpion
+Go-Shintai of Ancient Wars
+Goatnapper
 Goblin Piledriver
 Golden Demise
+Gorging Vulture
+Grafted Growth
 Graypelt Refuge
 Groundling Pouncer
 Headless Rider
 Heaven
+Herald of Torment
+Hidden Footblade
+In the Web of War
 Insatiable Appetite
+Invasion of Zendikar
+Iron Bully
+Iron Man, Titan of Innovation
+Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
 Join the Maestros
 Kazandu Stomper
 Kefnet's Last Word
+Key to the City
 Kitsune Riftwalker
+Kragma Butcher
 Krosan Colossus
 Kytheon's Irregulars
 Landbind Ritual
+Landroval, Horizon Witness
 Larder Zombie
 Lay Down Arms
 Life Chisel
 Looming Shade
 Lurking Nightstalker
 Mad Dog
+Magus of the Order
 Masked Blackguard
+Meteoric Mace
+Might of the Old Ways
+Mitotic Slime
 Moira, Urborg Haunt
 Mountain
+Nav Squad Commandos
 Needle Specter
 Night of Souls' Betrayal
 Norn's Inquisitor
+Oakhame Adversary
+Owl Familiar
 Pallid Mycoderm
+Park Heights Maverick
+Peel from Reality
+Peregrine Drake
+Phantom Whelp
 Plague Fiend
+Plague Sliver
 Plains
+Planar Cleansing
 Planar Despair
 Plover Knights
 Plundering Predator
@@ -77,28 +134,65 @@ Portable Hole
 Raffine's Informant
 Rage Nimbus
 Ratchet Bomb
+Rathi Intimidator
 Renegade Demon
+Restrain
+Roc of Kher Ridges
+Rockslide Ambush
 Rumor Gatherer
+Rush of Adrenaline
 Ruthless Disposal
+Sage of the Unknowable
+Sagu Mauler
 Sai, Master Thopterist
+Sapphire Drake
 Scorching Missile
 Scour from Existence
 Scrapwork Rager
 Scrivener
 Searchlight Geist
 Serra Avenger
+Shatter
 Skull of Orm
+Slith Bloodletter
 Smell Fear
 Snarespinner
 Soul Swallower
 Specter of the Fens
 Sphinx's Tutelage
+Splendid Agony
+Stingscourger
+Stonebound Mentor
+Street Urchin
 Strike It Rich
+Stronghold Zeppelin
 Suki, Kyoshi Captain
 Summary Judgment
+Sunfire Balm
 Swamp
 Sygg, River Guide
+Sylvan Paradise
 Take into Custody
+Talara's Battalion
+Tapestry of the Ages
+The Binding of the Titans
+Thriving Isle
+Timberpack Wolf
+Tower of Calamities
+Tree of Tales
+Triskaidekaphile
 Undead Augur
+Utopia Tree
+Valiant Changeling
+Vedalken Engineer
+Vedalken Outlander
+Vessel of Malignity
+Virulent Plague
+Wetland Sambar
+Winding Wurm
+Winged Portent
+Witching Well
+Witness the Future
+Yavimaya Ants
 You Are Already Dead
 Zombie Cutthroat

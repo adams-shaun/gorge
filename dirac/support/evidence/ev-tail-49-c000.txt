@@ -1,59 +1,332 @@
+A-Druidic Ritual
+A-Nezumi Prowler
+A-Sorin, Imperious Bloodlord
+A-Thran Spider
+Absorbing Man and Titania
+Adventurous Impulse
+Aether Flash
+Aether Theorist
+Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
+Amugaba
+Ancient Silver Dragon
+Arc Spitter
 Arcanist's Owl
+Archivist
 Ashling the Pilgrim
+Ashling, the Extinguisher
 Augur of Bolas
 Avaricious Dragon
+Axegrinder Giant
+Bad Moon
+Battle Mammoth
+Battlefly Swarm
+Biomathematician
+Black Widow, Deadly Hunter
+Blightbeetle
+Blind Phantasm
+Bloodthrone Vampire
+Blurred Mongoose
+Boon Reflection
+Briarpack Alpha
+Broodbirth Viper
+Bucky Barnes, Eager Ally
+Butcher's Cleaver
+Cacophony Unleashed
+Casting of Bones
+Catalog
+Centaur Glade
 Cephalid Broker
+Change of Fortune
+Changeling Outcast
 Chapel Geist
+Charge Across the Araba
+Charging Slateback
+Checkpoint Officer
 Chieftain en-Dal
+Chimeric Coils
+Circular Logic
 Citadel Gate
+Citanul Centaurs
+Clan Crafter
+Coiling Oracle
+Corpse Connoisseur
+Countryside Crusher
+Cradle Clearcutter
+Crash
+Crimson Cowl, Master of Evil
+Cultist of the Absolute
+Cyberdrive Awakener
+Damping Matrix
+Dark Bargain
+Darksteel Myr
+Daru Healer
+Dauntless Aven
+Dauntless Unity
+Deadly Visit
+Deathleaper, Terror Weapon
+Decisive Denial
+Demon's Jester
+Depala, Pilot Exemplar
+Desert of the Indomitable
+Dimir Signet
+Disciple of Perdition
+Disentomb
+Dismember
+Double Trouble
+Dragon Whelp
+Dragonlord Dromoka
+Drake Haven
+Druid's Deliverance
+Electrify
+Elemental Uprising
+Elenda, the Dusk Rose
+Elixir of Immortality
+Elvish Scrapper
+Elvish Visionary
 Enduring Bondwarden
+Enlightened Ascetic
+Ent's Fury
+Ever After
+Evernight Shade
+Exhaustion
+Expedite
+Extinguish the Light
+Eye Spy
 Faerie Duelist
+Fallowsage
+Farid, Enterprising Salvager
+Fate Foretold
+Fated Retribution
+Feral Appetite
+Ferocious Pup
+Fevered Strength
+Feywild Visitor
+Fissure Wizard
+Flame-Kin Zealot
+Flames of the Firebrand
+Fleeting Spirit
 Forest
+Fortified Rampart
+Fountain of Youth
 Frost Trickster
+Fungal Rebirth
+Gainsay
+Garruk's Companion
+Gate to Phyrexia
+Gates of Istfell
+Geistblast
+Generous Stray
 Ghirapur Aether Grid
+Glistener Elf
+Gloomdrifter
+Goblin Marshal
 Goblin Skycutter
+Goldmeadow Lookout
+Golgari Death Swarm
+Graceful Restoration
+Gravetiller Wurm
+Greater Auramancy
+Greater Good
+Hagra Constrictor
+Havengul Vampire
+Hell Swarm
+Heroic Charge
+Hewed Stone Retainers
 Hobblefiend
+Hookhand Mariner
+Horizon Scholar
+Horrific Assault
 Howling Golem
 Humongulus
 Hunted Dragon
+Inspired Fire
+Invigorating Boon
 Island
+Island of Wak-Wak
+Iymrith, Desert Doom
+Jadecraft Artisan
+Jaya, Venerated Firemage
+Jhessian Thief
+Junktroller
+Kaldra Compleat
+Karakas
+Kei Takahashi
+Kiln Walker
+Kiss of Death
+Knickknack Ouphe
+Kor Entanglers
+Kor Outfitter
+Lantern Spirit
+Lapis Lazuli Talisman
+Laquatus's Creativity
+Last Caress
+Lawmage's Binding
 Library
+Living Wish
 Long-Finned Skywhale
+Lu Su, Wu Advisor
+Lurking Roper
+Luxury Suite
+Maned Serval
+Manic Scribe
+Manifold Key
+Manta Riders
+Memory Plunder
+Merfolk Observer
+Metamorphic Wurm
+Mightstone's Animation
+Misery Charm
+Misery's Shadow
+Moldgraf Scavenger
+Monologue Tax
+Moonwing Moth
+Motivated Pony
 Mountain
+Murderous Compulsion
+Myr Convert
+Mystery Key
+Naiad of Hidden Coves
+Nantuko Tracer
+Nico Minoru, Runaway
+Nim Grotesque
+Nylea's Colossus
+Nylea's Forerunner
+Oblivion Strike
+Obsessive Stitcher
+Ocular Halo
+Ogre Gatecrasher
+Omnath, Locus of Rage
+Orochi Hatchery
+Oversold Cemetery
+Pallid Mycoderm
+Part the Veil
+Patagia Golem
+Patch Up
+Perilous Forays
 Perilous Research
+Pillaging Horde
+Pillarfield Ox
 Plains
+Poison Arrow
+Pooling Venom
 Prison Term
+Psychomancer
+Pyknite
+Quantum Entanglement
 Quicksilver Fisher
 RMS Titanic
+Rain of Salt
+Raking Claws
 Rampaging Cyclops
+Raptor Companion
+Ravenous Demon
+Ray of Dissolution
 Reaping the Rewards
+Reaver Titan
+Red Ghost, Intangible Genius
+Refocus
 Renari, Merchant of Marvels
 Reverent Hoplite
+Righteous Cause
+Righteous Fury
+Rootbreaker Wurm
 Runebound Wolf
+Runner's Bane
+Rustvine Cultivator
 Sacred Fire
+Sage of Epityr
+Salt Road Quartermasters
 Sarpadian Simulacrum
+Saruman the White
+Sauroform Hybrid
+Saw It Coming
+Scale Blessing
+Scout the Borders
+Scroll of the Masters
+Search the Premises
+Secluded Glen
+Sedge Scorpion
+Selesnya Sanctuary
 Serendib Efreet
+Shalai, Voice of Plenty
+Shao Jun
+Sigarda, Heron's Grace
+Silverquill Command
+Skinshifter
+Slaughterhorn
+Sleeper Agent
+Slippery Bogle
+So Shiny
+Soulshriek
+Spine of Ish Sah
 Squadron Hawk
+Stinging Hivemaster
+Stone Catapult
 Stonefury
+Storm Fleet Sprinter
+Storm Skreelix
+Stormfront Pegasus
+Struggle for Skemfar
+Stump Stomp
 Sunken City
+Supply Caravan
+Supreme Will
+Survivor of the Unseen
 Swamp
+Swarm of Bloodflies
+Swell of Growth
+Sylvan Anthem
 Synod Sanctum
+Sythis, Harvest's Hand
+Tallyman of Nurgle
+Tamiyo's Logbook
+Tar Pitcher
+Taunting Arbormage
+Teeterpeak Ambusher
+Terrain Elemental
 The Rack
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Torment
 Touch of Brilliance
 Towering-Wave Mystic
+Tranquil Thicket
+Untamed Might
+Vagrant Plowbeasts
+Vanquish the Weak
+Vault Guardsman
+Vector Asp
+Vengeful Dead
+Venomspout Brackus
+Verix Bladewing
+Viridian Harvest
+Virtue's Ruin
+Vitu-Ghazi Guildmage
+Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
 Wall of Essence
 Wall of Reverence
+Warlock Class
 Warpath
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
+Whiptongue Frog
+Whirlwind Technique
+Wildwood Geist
+Willow Faerie
+Willow-Wind
 Wing Puncture
 Wirewood Hivemaster
+Woodland Wanderer
+Woodwraith Strangler
+Wose Pathfinder
 Wu Longbowman
+Xun Yu, Wei Advisor
+Yeva, Nature's Herald
+Zephyr Charge
+Zoologist

@@ -5,27 +5,40 @@ Abzan Skycaptain
 Acidic Sliver
 Aeronaut Cavalry
 Anaba Bodyguard
+Anaconda
 Angelic Protector
+Arcane Melee
+Armored Cancrix
 Ashes to Ashes
 Aven Wind Mage
+Barony Vampire
+Biting Rain
 Blisterstick Shaman
+Bloodlust Inciter
+Bloodrite Invoker
 Bloodthirsty Blade
 Bloodthrone Vampire
 Bow of Nylea
 Brain Gorgers
 Brilliant Halo
+Burn Bright
 Capashen Knight
 Captain Sisay
 Capture of Jingzhou
 Cartouche of Solidarity
 Cephalid Scout
 Chainflail Centipede
+Chill of Foreboding
 Chosen by Heliod
+Chub Toad
+Cleanup Crew
 Conclave Sledge-Captain
 Conquer
 Consume Spirit
 Crucible of Fire
+Crumbling Vestige
 Crystal Chimes
+Culling Dais
 Dalek Squadron
 Dark Ritual
 Darksteel Angel
@@ -34,13 +47,21 @@ Deathbellow Raider
 Delighted Killbot
 Demonic Lore
 Depths of Desire
+Deranged Outcast
+Devilthorn Fox
 Dictate of Karametra
 Diligent Farmhand
+Dire Fleet Interloper
 Dirge of Dread
 Dirgur Nemesis
+Djinni Windseer
 Dragonstalker
+Dread Return
 Dreadlight Monstrosity
 Dreamstalker Manticore
+Drinker of Sorrow
+Eat to Extinction
+Elvish Berserker
 Energy Tap
 Environmental Sciences
 Evolution Witness
@@ -48,39 +69,55 @@ Eyeless Watcher
 Ezio, Brash Novice
 Fallen Ideal
 Fangblade Brigand
+Festerhide Boar
 Field Creeper
 Fiendslayer Paladin
+Fireblade Charger
+Flailing Ogre
 Forest
 Foul Familiar
 Fowl Play
 Frilled Deathspitter
 Fruitcake Elemental
 Gaea's Balance
+Garruk, Unleashed
+Genju of the Cedars
 Ghor-Clan Savage
 Gibbering Hyenas
 Gideon's Reproach
 Glistening Oil
 Go-Shintai of Boundless Vigor
 Goblin Masons
+Gold-Forged Sentinel
+Golden Wish
+Grasping Scoundrel
+Grazilaxx, Illithid Scholar
 Grixis Battlemage
 Guardian of Tazeem
 Hag of Ceaseless Torment
+Harried Artisan
 Harsh Deceiver
 Harvester of Souls
 Hazoret's Favor
+Hearts on Fire
 Highland Berserker
 Howling Banshee
 Hurler Cyclops
 Ich-Tekik, Salvage Splicer
 Immolating Souleater
 Increasing Savagery
+Insidious Will
+Inspiration
+Invisible Stalker
 Iona's Judgment
 Iron Star
 Island
 Jarad's Orders
+Jedit Ojanen of Efrava
 Kaervek the Merciless
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
+Knowledge Is Power
 Kodama of the West Tree
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
@@ -112,12 +149,18 @@ Nourish
 Open the Vaults
 Origin of the Hidden Ones
 Oswald Fiddlebender
+Ovalchase Dragster
+Overtaker
 Ozolith, the Shattered Spire
 Painful Lesson
+Paupers' Cage
+Phyrexian Digester
 Piper of the Swarm
 Plains
 Plated Wurm
 Pyromancer's Gauntlet
+Pyromania
+Rakish Heir
 Rally the Forces
 Ramosian Sky Marshal
 Realm-Cloaked Giant
@@ -131,8 +174,10 @@ Restore the Peace
 Riptide Biologist
 Riptide Entrancer
 Rise to the Challenge
+Rockslide Sorcerer
 Rosethorn Halberd
 Sakura-Tribe Scout
+Sarpadian Simulacrum
 Savai Triome
 Scrapyard Mongrel
 Screeching Buzzard
@@ -143,6 +188,7 @@ Sentry of the Underworld
 Shadowbeast Sighting
 Shaman of the Great Hunt
 Shivan Gorge
+Shoal Kraken
 Shockmaw Dragon
 Sigarda's Imprisonment
 Silver Myr
@@ -153,6 +199,8 @@ Siren Lookout
 Skeletal Grimace
 Sky Diamond
 Skyknight Vanguard
+Skymark Roc
+Skyshroud Elite
 Sleeper's Robe
 Slingbow Trap
 Sliver Construct
@@ -166,22 +214,34 @@ Spark Harvest
 Sparkmage Apprentice
 Spawning Kraken
 Spectral Sliver
+Sphinx of New Prahv
+Spoils of Victory
 Squirrel Mob
 Stern Constable
 Stern Lesson
 Stonehoof Chieftain
 Stormchaser Chimera
 Stronghold Confessor
+Sudden Impact
 Sulfurous Springs
 Suspended Sentence
 Swamp
 Szarekh, the Silent King
+Tajuru Stalwart
 Tangleclaw Werewolf
+Tar Pitcher
 Teferi's Tutelage
 Tel-Jilad Archers
+Tempest Harvester
+Tempted by the Oriq
 Terra Eternal
 Tezzeret's Ambition
+Thalakos Scout
+The Everforger
 The Hunger Tide Rises
+The Reality Chip
+Thirsting Shade
+Tilling Treefolk
 Time of Ice
 Tin Street Dodger
 Titanic Bulvox
@@ -192,15 +252,22 @@ Vaporkin
 Vastwood Fortification
 Vastwood Zendikon
 Vesperlark
+Viridian Shaman
+Vizzerdrix
 Volcanic Island
 Voracious Vampire
 Vow of Wildness
 Walking Corpse
 Wandering Treefolk
 Warchanter Skald
+Warden of the Wall
 Weaver of Currents
+Weldfast Wingsmith
+Whipcorder
+Whirling Strike
 White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Wu Scout
 Zhang Liao, Hero of Hefei

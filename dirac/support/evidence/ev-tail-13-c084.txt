@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Swamp
+Vizier of Tumbling Sands
+Wall of Razors

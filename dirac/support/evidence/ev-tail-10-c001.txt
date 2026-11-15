@@ -1,26 +1,181 @@
 A-Steadfast Unicorn
+Abjure
+Access Denied
+Aerial Engineer
+Aether Meltdown
+Airdrop Aeronauts
+Alpine Grizzly
 Anax, Hardened in the Forge
 Angel of Light
+Armillary Sphere
+Artifact Unknown Shores
+Ascend from Avernus
+Baloth Packhunter
+Baneblade Scoundrel
 Battalion Foot Soldier
+Battlegrowth
+Battlewise Valor
+Bellowing Saddlebrute
 Benevolent Ancestor
+Black Carriage
 Blade Sliver
+Blighted Fen
+Blinding Light
 Blinking Spirit
 Blood Curdle
+Blossoming Wreath
+Blot Out the Sky
+Bogardan Dragonheart
+Bruna, the Fading Light
+Canopy Claws
+Carrier Thrall
+Celestial Archon
+Chitterspitter
+Clockwork Fox
 Cloudgoat Ranger
+Coastal Drake
+Colossal Whale
+Commander Sofia Daguerre
+Cosmic Epiphany
+Crazed Goblin
+Cunning Geysermage
+Cylian Elf
+D'Avenant Trapper
+Darksteel Gargoyle
+Dazzling Ramparts
+Deadly Rollick
+Elvish Lookout
+Enlistment Officer
+Exalted Flamer of Tzeentch
+Excavation Explosion
+Exiled Boggart
+Eye of Malcator
+Faithful Watchdog
+Falkenrath Reaver
+Fang of Shigeki
+Feed the Infection
+Felhide Spiritbinder
+Flowstone Shambler
 Forest
+Foxfire
+Frost Breath
+Frostburn Weird
+Gallantry
+Gang of Elk
+Glint
+Goblin Caves
+Grapeshot Catapult
+Grey Host Reinforcements
+Halo Forager
+Halo Hopper
+Hand of Justice
+Haunted Cadaver
+Heal the Scars
+Heated Debate
+Helvault
+Herbal Poultice
+Hobbit's Sting
+Holy Justiciar
+Howlgeist
+Ichor Rats
+Icy Blast
+Invasion of Kaladesh
+Ironclaw Orcs
 Island
+Ivora, Insatiable Heir
+Jace's Archivist
+Join Forces
+Karsus Depthguard
+Kaya's Onslaught
+Kenrith, the Returned King
+Kismet
+Kjeldoran Gargoyle
+Kuldotha Flamefiend
+Leonin Squire
+Magefire Wings
+Mageta the Lion
+Mahamoti Djinn
+Maja, Bretagard Protector
+Marang River Skeleton
+Marsh Flitter
 Master of Arms
+Merfolk Traders
 Mischievous Poltergeist
+Mists of Littjara
+Monumental Henge
 Mountain
+Need for Speed
+Neurok Stealthsuit
+Nightscape Apprentice
+Nim Grotesque
+Ondu Giant
+Oraxid
 Orthion, Hero of Lavabrink
 Outland Colossus
+Palace Siege
+Paragon of Open Graves
+Patrician's Scorn
+Phyrexian Denouncer
 Plains
+Pointed Discussion
+Prison Realm
+Radiant Purge
+Raging Gorilla
+Raze
+Reave Soul
+Restock
+Return the Past
+Reward the Faithful
+Ribskiff
+Ridgeline Rager
+Sandsteppe Scavenger
+Sapphire Medallion
+Savage Smash
+Scalding Tongs
+Shields of Velis Vel
+Shimmering Grotto
+Shinewend
+Shivan Oasis
 Sigil of the New Dawn
+Silverback Ape
+Sinew Dancer
+Skarrg, the Rage Pits
 Skeletal Changeling
+Skittering Precursor
+Snapsail Glider
+Soulbound Guardians
+Spirit en-Kor
+Spreading Flames
+Squash
+Stalking Tiger
+Stomper Cub
+Stormwing Entity
 Sunscape Familiar
 Surge of Salvation
+Suspension Field
+Suture Priest
 Swamp
+Swirling Sandstorm
+The Mirari Conjecture
+Thornscape Familiar
 Tireless Tribe
 Traveling Minister
+Turn Aside
+Tymaret Calls the Dead
+Undercity Scrounger
 Underworld Breach
+Vedalken Blademaster
+Vexing Beetle
+War Flare
+Warded Battlements
+Warm Welcome
+Waterspout Djinn
+Westfold Rider
+Whispergear Sneak
+Whispers of the Muse
+Wolfwillow Haven
+Yanling's Harbinger
 Yavimaya Granger
+Yotian Soldier
+You Come to a River
+Zulaport Enforcer

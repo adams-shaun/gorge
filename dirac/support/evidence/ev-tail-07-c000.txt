@@ -1,25 +1,389 @@
 A-Kona, Rescue Beastie
+A-Leyline of Resonance
 A-Scout the Wilderness
+A-Skyclave Shadowcat
+Abbot of Keral Keep
+Abduction
+Aberrant Researcher
+Aether Channeler
+Aether Membrane
+Airborne Aid
+Alisaie Leveilleur
+Alpine Grizzly
+Alpine Meadow
+Ambassador Laquatus
+Ambush Commander
+Ancestral Knowledge
+Angelic Observer
+Answered Prayers
+April O'Neil, Human Element
+Archmage Emeritus
+Ascended Lawmage
+Assault Intercessor
+Assemble the Entmoot
+Astrid Peth
+Atarka Pummeler
+Avabruck Caretaker
+Aven Envoy
+Aven Wind Guide
 Azorius Herald
+Baird, Argivian Recruiter
+Banewhip Punisher
+Barge In
+Barrage of Expendables
+Basking Rootwalla
+Bazaar of Baghdad
+Beast in Show
+Bilbo's Burglaring
+Biogenic Ooze
+Bird Admirer
+Biting Tether
+Bladed Ambassador
+Blazing Hellhound
+Blind Zealot
+Blood Price
+Blood Speaker
+Bloodsworn Squire
+Boartusk Liege
+Bonescythe Sliver
+Borborygmos Enraged
+Boreal Elemental
+Brimstone Volley
+Canoptek Scarab Swarm
+Cantivore
+Carapace Forger
+Carrier Pigeons
+Carrion
+Castle Vantress
+Cateran Slaver
+Cavalier of Thorns
+Caves of Koilos
+Centaur Courser
+Centaur Veteran
+Charging Paladin
+Chief Magistrate of Mercadia
+Cinder Giant
+Cliffside Lookout
+Clinging Anemones
+Cloaked Siren
+Clockwork Condor
+Consuming Aetherborn
+Consuming Vapors
+Contact Other Plane
+Control Magic
+Coral Fighters
+Crabapple Cohort
+Craterize
+Crook of Condemnation
+Crystacean
+Cyclopean Mummy
+Daredevil, Fearless Fighter
+Darksteel Gargoyle
+Darting Merfolk
+Dawn Evangel
+Deathgaze Cockatrice
+Debt to the Deathless
+Decimator Web
+Den of the Bugbear
+Desert
+Dinosaur Hunter
+Displacer Kitten
+Disruption Protocol
+Distorting Wake
+Divine Offering
+Diviner of Mist
+Doc Ock, Evil Inventor
+Doomsday Specter
+Druid of the Anima
+Dune Diviner
+Duskfang Mentor
+Dwarven Strike Force
+Elvish Skysweeper
+Embodiment of Spring
 Emerge Unscathed
+Emergence Zone
+Emissary of Despair
+Encase in Ice
+Enraged Revolutionary
+Etched Familiar
+Etchings of the Chosen
+Eternal Scourge
 Exuberant Fuseling
+Eye of Ugin
+Fable of the Mirror-Breaker
+Favor of the Overbeing
+Feeling of Dread
+Feral Prowler
+Feroz's Ban
+Fierce Guardianship
+Fire
+Fire Dragon
+Firebreathing
+Firemantle Mage
+Flare of Denial
+Flower
+Flowstone Mauler
 Force Spike
+Foreshadow
 Forest
+Fresh Meat
+Frogify
+Frostveil Ambush
+Frozen Aether
+Furyblade Vampire
+Gadrak, the Crown-Scourge
 Gamekeeper
+Gargantos, the Endbringer
+Garrison Sergeant
+Garruk's Lost Wolf
+Gaze of Justice
+Ghirapur Gearcrafter
+Ghost-Lit Nourisher
+Gilt-Leaf Palace
+Give
+Gix's Command
+Glorious Enforcer
+Goblin Firebug
+Goblin Grenade
+Goblin Spelunkers
+Graceblade Artisan
+Grayscaled Gharial
+Gruul Ragebeast
+Gryff's Boon
+Hajar, Loyal Bodyguard
+Harvester Troll
+Headhunter
+Hotshot Mechanic
+Hunter's Prowess
+Hushwing Gryff
+Hypervolt Grasp
+Ice Over
+Ichor Drinker
+In the Eye of Chaos
+Irenicus's Vile Duplication
+Iroas's Blessing
+Iron League Steed
+Ironclad Revolutionary
 Island
+Johtull Wurm
+Jukai Preserver
+Jungle Barrier
+Karametra's Acolyte
+Karlov of the Ghost Council
+Kasimir the Lone Wolf
+Keldon Berserker
+Kessig Recluse
+Kiss of Death
+Kithkin Rabble
+Kjeldoran Dead
+Knacksaw Clique
+Knight of Autumn
+Knight of the Keep
 Kor Celebrant
+Kuldotha Cackler
+Landslide
+Letter of Acceptance
+Leyline Prowler
+Lightning Coils
 Liliana's Mastery
+Liliana's Shade
+Lock and Load
+Lone Rider
+Lost in Memories
+Luxurious Libation
+Magus of the Wheel
 Majestic Metamorphosis
+Mandible Justiciar
+Manor Skeleton
+Manticore
+Martyr of Dusk
+Master of Waves
+Mercurial Geists
+Messenger Drake
+Mirkwood Spider
+Mirrodin's Core
+Mists of Littjara
+Mnemonic Sphere
 Mogg Raider
+Mogis's Favor
+Molting Snakeskin
+Moment of Truth
+Mordenkainen's Polymorph
+Morgue Thrull
 Mountain
+Myrkul's Invoker
+Nadier, Agent of the Duskenel
+Natural Emergence
+Neoform
+Nether Spirit
+Neurok Prodigy
+Niblis of the Mist
+Niblis of the Urn
+Ninth Bridge Patrol
+Noggle Hedge-Mage
+Noise Marine
+Nomad Stadium
+Norwood Ranger
+Obstinate Baloth
+Ondu Spiritdancer
+One with Death
+Orcish Cannonade
+Order
+Order of the Golden Cricket
+Organic Extinction
+Orzhov Keyrune
+Overrule
+Pacification Array
+Pack's Disdain
+Papercraft Decoy
+Perimeter Sergeant
+Piston-Fist Cyclops
 Plains
+Plated Geopede
+Poultice Sliver
+Private Research
+Psychic Membrane
+Pulse of Murasa
+Purge
+Purple-Crystal Crab
+Pyromancer's Assault
+Quarantine Field
+Quick-Draw Dagger
+Rabble-Rouser
+Raging Regisaur
+Rainbow Efreet
 Rampaging Brontodon
+Rampart Architect
+Ravaging Horde
+Ravenous Squirrel
+Regal Bloodlord
+Reiterate
+Renegade Firebrand
+Renowned Weaver
+Resurrection
+Rhox Maulers
+Riddlekeeper
+Righteous Avengers
+Ring of Thune
+Ripscale Predator
+Riptide Director
+Rishadan Dockhand
+Rite of Belzenlok
+Rockslide Elemental
+Roiling Waters
+Roku's Mastery
+Rona's Vortex
+Rootwater Mystic
+Rubblebelt Rioters
+Rust Elemental
+Sage of Lat-Nam
 Salvage
+Sanguine Statuette
+Satyr Nyx-Smith
+Saving Grasp
+Savvy Hunter
+Sawtooth Ogre
+Scatter Ray
+Scattershot Archer
+Scoria Elemental
+Scrabbling Claws
+Scurrid Colony
+Sejiri Refuge
+Select for Inspection
+Serpent of the Endless Sea
+Serum Raker
+Shadowheart, Dark Justiciar
+Sharding Sphinx
+Sharpened Pitchfork
 Sheoldred's Edict
+Shimmer Myr
+Shimmering Barrier
+Shore Keeper
+Shoreline Raider
+Sight of the Scalelords
+Sisay, Weatherlight Captain
+Skarrg Goliath
+Skull of Orm
+Somberwald Spider
+Spaceshift
+Spark Mage
+Spark Reaper
 Speaker of the Heavens
+Spectral Shepherd
+Spectral Sliver
+Sphinx's Tutelage
+Spider-Man, Hometown Hero
+Spider-Man, Web-Spinner
+Spike Drone
+Spiked Baloth
+Spire Patrol
+Spirit Mantle
 Spitting Slug
+Stamina
+Starfield Mystic
+Starstorm
+Steel Dromedary
+Stinging Shot
+Stoneforge Mystic
 Sudden Spinnerets
+Suntouched Myr
 Supernatural Stamina
 Swamp
+Sweet-Gum Recluse
+Sylvan Bounty
+Symbiosis
+Taigam's Strike
+Talisman of Impulse
 Taunting Kobold
+Telim'Tor's Darts
+Tempest Caller
+The Mending of Dominaria
+Thrive
+Thriving Rats
+Throne of Geth
+Thwart the Grave
+Titanium Golem
+Tooth and Claw
+Trail of Crumbs
+Tread Upon
+Treason of Isengard
+Triplicate Titan
+Triton Shorethief
+Two-Headed Cerberus
+Uktabi Wildcats
+Ulvenwald Bear
+Urborg Skeleton
+Valko Indorian
+Vampire Bats
+Vernal Bloom
+Veteran Armorsmith
+Victor Mancha, Runaway
+Violent Outburst
+Violent Ultimatum
+Viridian Revel
+Virtue's Ruin
+Viscerid Armor
+Volatile Arsonist
+Volcanic Salvo
+Voltaic Servant
+Voyaging Satyr
+Vraska's Fall
+Wallop
+Wandering Treefolk
+War Screecher
+Warmonger
+Waterfront District
 Wellwisher
+Whipstitched Zombie
+Windrider Patrol
+Wolfsbane, Highland Hero
+Wormhole Serpent
+Wreak Havoc
+Wurm's Tooth
+Yavimaya Iconoclast
+You Find the Villains' Lair
+Zap
+Zephid
+Zephyr Winder
+Zoetic Cavern
+Zof Consumption

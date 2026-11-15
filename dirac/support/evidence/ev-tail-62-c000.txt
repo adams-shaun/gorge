@@ -1,64 +1,179 @@
 A-Mightstone's Animation
+Active Volcano
 Aegis of the Gods
 Aether Inspector
+Agonizing Syphon
 Algae Gharial
 Almost Perfect
 Altar of Bone
 Ambition's Cost
 An-Zerrin Ruins
 Ancient Hydra
+Anointed Procession
 Arborea Pegasus
+Archetype of Aggression
 Artifact Mutation
+Atsushi, the Blazing Sky
 Attended Healer
+Augury Owl
+Avacyn's Memorial
+Aven Squire
+Azorius Herald
 Azorius Knight-Arbiter
+Bad Deal
 Bad Moon
 Battle Hurda
+Beastmaster's Magemark
 Beregond of the Guard
+Bishop of Rebirth
+Blades of Velis Vel
+Blistergrub
 Bloodrage Vampire
+Bloodsky Berserker
+Bonded Fetch
+Book of Mazarbul
 Border Patrol
+Braidwood Sextant
+Burnt Offering
 Cage of Hands
+Captain America, Liberator
 Captivating Crew
+Cateran Summons
 Cloud Spirit
+Cloudshredder Sliver
+Cloudskate
 Consulate Crackdown
+Copper Gnomes
 Coronation of Chaos
 Court Street Denizen
 Crashing Footfalls
+Crested Sunmare
+Crow Storm
+Cruel Cut
 Crusade
+Dampening Pulse
+Dark Banishing
 Defabricate
+Desert of the True
 Desmond Miles
 Devilthorn Fox
+Dimir Charm
+Disowned Ancestor
+Dragon Arch
+Dragonsoul Knight
+Ecologist's Terrarium
+Elderleaf Mentor
+Elephant Ambush
 Elvish Reclaimer
 Enlarge
 Erinis, Gloom Stalker
+Essence Depleter
+Everett K. Ross, Hapless Attaché
+Exclude
 Exhaustion
+Farbog Revenant
+Festerhide Boar
+Flame-Blessed Bolt
 Fleshtaker
+Force of Savagery
 Forest
+Fountain of Renewal
+Frilled Mystic
+Frontline Rebel
+Furnace Strider
+Fylamarid
 Gang of Devils
+Gibbering Hyenas
+Gift of Estates
+Gimli, Mournful Avenger
+Glint-Sleeve Artisan
+Go-Shintai of Lost Wisdom
+Goblin Balloon Brigade
+Goblin Grenadiers
+Grafted Skullcap
+Grave Birthing
+Gristleback
 Gustcloak Runner
+Heightened Reflexes
+Herd Baloth
 Heron of Hope
+Hierophant's Chalice
+Hobgoblin Bandit Lord
 Huatli's Snubhorn
+Ichneumon Druid
 Illusory Ambusher
+Inkfathom Infiltrator
+Inspiring Captain
+Insurrection
+Invasion of Moag
 Island
 Ixalli's Diviner
+Jandor's Saddlebags
+Juvenile Mist Dragon
+Kinsbaile Skirmisher
+Knighthood
 Kor Bladewhirl
+Krenko's Command
+Kyoki, Sanity's Eclipse
 Kyren Negotiations
+Latch Seeker
 Lavastep Raider
+Level Up
+Lumengrid Augur
+Mad Prophet
+Maestros Theater
 Maggot Carrier
+Magistrate's Veto
+Mardu Runemark
+Mass Manipulation
 Matoc, Lavamancer
+Memory Lapse
 Mesa Cavalier
 Metamorphic Wurm
+Midvast Protector
 Mindless Null
+Minotaur Explorer
 Miraculous Recovery
+Mirari
+Mirran Mettle
+Mishra's Command
+Mishra's Onslaught
+Molimo, Maro-Sorcerer
 Mountain
+Muddle the Mixture
 Myr Convert
+Mystic Meditation
+Nantuko Disciple
+New Benalia
+Nimbus of the Isles
+Noble Panther
+Nocturnal Feeder
+Oakenform
 Oboro Envoy
+Onslaught
+Oracle of Mul Daya
 Ornery Kudu
 Pack Mastiff
+Piercing Light
 Plains
+Port of Karfell
 Prickleboar
+Primal Order
+Prismatic Boon
+Protect
+Prowling Nightstalker
+Psychic Pickpocket
 Radiant Fountain
+Raised by Giants
+Rakdos Ringleader
+Rakshasa's Secret
 Ranger en-Vec
+Raven Guild Master
 Ravenous Sailback
+Ready to Rumble
+Redcap Raiders
+Retreat to Kazandu
+Revenant
 Rimrock Knight
 Rishkar, Peema Renegade
 Rite of the Raging Storm
@@ -66,20 +181,61 @@ Rodolf Duskbringer
 Ruinous Gremlin
 Rushwood Dryad
 Sachi, Daughter of Seshiro
+Sands of Delirium
 Sawblade Scamp
+Sawtooth Loon
+Scorched Rusalka
+Selvala's Charge
 Sepulcher Ghoul
+Seraph of the Suns
 Serra Sphinx
+Serum Sovereign
+Sever the Bloodline
+Shadow Guildmage
 Shivan Zombie
+Shoreline Ranger
+Shrapnel Blast
+Silverclaw Griffin
+Skycat Sovereign
 Skyclave Sentinel
 Snarling Undorak
+Soldevi Golem
+Soltari Trooper
+Soothing Balm
 Space Marine Scout
+Spiketail Drake
 Sporecrown Thallid
+Springjaw Trap
 Sprite Noble
+Squirming Mass
+Steelfin Whale
+Stern Lesson
 Stoneforge Mystic
+Stormbind
 Stormchaser Mage
+Stronghold Confessor
 Swamp
+Thalia, Guardian of Thraben
+Thieving Magpie
+Thrasios, Triton Hero
+Thunderbolt
+Thwart
 Tidal Visionary
+Titania, Proud Pummeler
+Tivadar of Thorn
 Tomakul Honor Guard
+Town Sentry
 Tragic Slip
 Triumph of Ferocity
+Trumpet Blast
+Turbulent Wilderness
+Unholy Heat
+Unleash Shell
 Uurg, Spawn of Turg
+Vampire's Zeal
+Vampiric Touch
+Verdant Catacombs
+Volcanic Spite
+Weaver of Blossoms
+Wizard Class
+Zodiac Snake

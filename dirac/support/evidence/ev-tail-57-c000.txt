@@ -1,79 +1,287 @@
+A-Circle of the Land Druid
+A-Deal Gone Bad
+Advocate of the Beast
+Alaborn Veteran
+Alchemist's Greeting
+Alpine Houndmaster
+Altar of the Goyf
+Ambuscade
+Ambush Viper
 Angel of Renewal
+Apocalypse Hydra
+Arena Trickster
+Arm the Cathars
+Aspect of Mongoose
+Aura of Dominion
+Auriok Transfixer
+Baboon Spirit
 Barbarian General
+Bayou Dragonfly
+Bedlam
+Beledros Witherbloom
+Belle of the Brawl
+Big Bertha
+Bitter Downfall
+Blessed Orator
+Blink of an Eye
+Blood Servitor
+Bloodfire Expert
 Boiling Seas
 Bonded Horncrest
+Book of Mazarbul
+Brain Maggot
+Brassclaw Orcs
 Bretagard Stronghold
+Brushwagg
+Cadira, Caller of the Small
+Caldera Kavu
+Caltrops
+Careless Celebrant
+Carnophage
+Carrion Crow
+Celestial Purge
+Cephalid Looter
+Charging Tuskodon
+Civil Servant
+Clay Statue
 Clinging Anemones
+Clockwork Dragon
+Cloudreach Cavalry
+Coastal Piracy
+Cogwork Assembler
 Concentrate
 Coralhelm Guide
+Corpse Harvester
+Counterintelligence
+Court Homunculus
+Cradle Clearcutter
+Crescendo of War
+Dark Remedy
+Daybreak Combatants
+Deathmask Nezumi
+Deathpact Angel
+Deer-Dog
+Desperate Plea
 Despoiler of Souls
+Devout Harpist
 Diligent Excavator
+Doorkeeper
+Drogskol Captain
+Drowned Rusalka
+Dusk Legion Dreadnought
+Duty-Bound Dead
+Ebon Dragon
+Elas il-Kor, Sadistic Pilgrim
 Ember Weaver
+Emblem of the Warmind
+Escarpment Fortress
+Fabricate
 Fangren Pathcutter
+Far Wanderings
+Fervor
+Festergloom
+Filthy Cur
+Flamekin Herald
+Flaming Sword
+Fledgling Griffin
+Floriferous Vinewall
 Foil
+Fool's Demise
 Forest
+Frillscare Mentor
+Frostwind Invoker
 Gaea's Avenger
+Gamma Grotesque
 Giant Fly
 Gilt-Leaf Winnower
+Glademuse
+Gnathosaur
+Golgari Cluestone
 Goring Ceratops
+Grappler Spider
+Gravelighter
+Greenwood Sentinel
+Grim Feast
+Grisly Transformation
+Growth Spasm
+Guardian of Cloverdell
+Guma
+Gurgling Anointer
+HONK!
+Hada Freeblade
+Hagra Sharpshooter
+Hall of Tagsin
+Haunted Guardian
+Hematite Golem
+Hijack
+Hope Against Hope
+Hopping Automaton
+Howling Wolf
+Infiltrator's Magemark
+Ingenious Thief
 Invigorating Surge
 Island
+Ivy Lane Denizen
+Jade Mage
+Jovial Evil
+Keening Apparition
+Koma's Faithful
+Kraken of the Straits
+Kraken's Eye
+Krosan Adaptation
 Kujar Seedsculptor
 Lembas
+Life and Limb
 Lifeblood Hydra
+Lightfoot Rogue
+Lion Sash
+Lotus Field
+Malakir Cullblade
+Mardu Woe-Reaper
 Master Splicer
+Mauhúr, Uruk-hai Captain
+Mawloc
+Maze of Ith
+Merfolk Looter
+Mightstone
+Mind Burst
+Mind's Eye
+Minotaur Tactician
+Mirran Spy
+Mistral Singer
+Monastery Mentor
+Moonwing Moth
+Mortarion, Daemon Primarch
+Mortician Beetle
 Mountain
+Necromancer's Assistant
+Needleshot Gourna
+Needletooth Raptor
+Nemesis of Mortals
+Nimble Pilferer
 Nylea's Emissary
+Olivia's Bloodsworn
 Omen of the Hunt
+One with the Stars
 Orochi Leafcaller
+Otarian Juggernaut
+Paradoxical Outcome
+Paragon of New Dawns
 Petrified Field
+Petrified Wood-Kin
+Piety
 Plains
+Powerstone Shard
+Prepare
+Prickly Marmoset
+Prizefighter Construct
+Qarsi High Priest
+Quantum Misalignment
+Queen of Ice
+Racecourse Fury
 Raffine's Silencer
+Rage Weaver
 Rain of Thorns
+Rakdos Ickspitter
+Raven Familiar
+Ray Fillet, Wave Warrior
+Reckless Imp
+Relic Crush
 Repulse
+Restoration Specialist
 Rewards of Diversity
+Riot Ringleader
+Rootwater Diver
+Ruthless Sniper
+Sakiko, Mother of Summer
+Salt Road Patrol
+Sanctum Seeker
 Sawblade Slinger
 Sculpting Steel
+Seething Song
 Serenity
+Serpent Generator
+Sever Soul
 Shalai, Voice of Plenty
 Shifting Sliver
+Short Sword
 Sigardian Savior
 Simian Brawler
 Sisterhood of Karn
 Skarrg Guildmage
+Skittering Heartstopper
 Slumbering Waterways
 Snowfield Sinkhole
+Soaring Show-Off
+Sorin's Thirst
+Soul Reap
 Soul of New Phyrexia
 Soulsurge Elemental
 Sparkmage's Gambit
 Spidery Grasp
+Spine of Ish Sah
 Spined Karok
+Spreading Insurrection
 Springsage Ritual
+Stalking Tiger
 Standstill
+Start Your Engines
+Startling Development
 Stormcloud Djinn
 Strategic Planning
+Stromkirk Mentor
 Sudden Strength
+Sunscorch Regent
+Sutina, Speaker of the Tajuru
 Swamp
+Swell of Growth
 Symbiosis
+Symmetry Matrix
+Tangled Florahedron
+Tel-Jilad Stylus
 Tentative Connection
+Territory Culler
 Testament of Faith
+Thermal Blast
+Thieves' Guild Enforcer
 Thunderbreak Regent
 Thundermaw Hellkite
 Timberland Ancient
+Tormod's Cryptkeeper
 Tovolar's Huntmaster
 Toxic Scorpion
+Traitorous Blood
 Trostani's Judgment
+Trygon Prime
+Twilight Drover
+Tyranid Invasion
+Unnatural Predation
+Unyaro Griffin
+Urborg Elf
+Veiled Apparition
+Vela the Night-Clad
+Vengeant Vampire
+Vermiculos
+Vexing Gull
 Victory's Envoy
 Vigilance
 Vile Requiem
+Violet Pall
+Vulshok Refugee
 Wall of Omens
 Wall of Wood
 Wandering Goblins
 War Behemoth
+Warped Tusker
+Warriors' Lesson
+Wee Dragonauts
 Wheel of Fortune
 Windstorm Drake
 Winterthorn Blessing
+Withering Hex
 Wizard's Retort
 Wurm's Tooth
 Yellow Scarves Cavalry
+Yeva's Forcemage
+Young Red Dragon
 Zarda, the Power Princess
