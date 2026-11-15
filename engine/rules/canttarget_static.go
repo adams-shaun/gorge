@@ -206,7 +206,7 @@ func chainRootKind(f *cards.Face, link *cards.SA) string {
 		} else {
 			continue
 		}
-		if chainCarriesLine(f.SVars, root, link.Line, 0) {
+		if chainCarriesLine(f, root, link.Line, 0) {
 			return kind
 		}
 	}
@@ -214,8 +214,9 @@ func chainRootKind(f *cards.Face, link *cards.SA) string {
 }
 
 // chainCarriesLine walks sa's SubAbility$ chain and, for a modal Charm link,
-// each Choices$ mode's chain (bounded nesting), for a link parsed from line.
-func chainCarriesLine(svars map[string]string, sa *cards.SA, line string, depth int) bool {
+// each Choices$ mode's chain resolved from f's SVars (bounded nesting), for a
+// link parsed from line.
+func chainCarriesLine(f *cards.Face, sa *cards.SA, line string, depth int) bool {
 	for x := sa; x != nil; x = x.Sub {
 		if x.Line == line {
 			return true
@@ -224,7 +225,7 @@ func chainCarriesLine(svars map[string]string, sa *cards.SA, line string, depth 
 			continue
 		}
 		for _, name := range effects.CharmOf(x).Modes {
-			if m := cards.ResolveSVar(svars, name); m != nil && chainCarriesLine(svars, m, line, depth+1) {
+			if m := cards.ResolveSVar(f.SVars, name); m != nil && chainCarriesLine(f, m, line, depth+1) {
 				return true
 			}
 		}
