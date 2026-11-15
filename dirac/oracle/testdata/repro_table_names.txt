@@ -1003,4 +1003,4 @@ x_witness_counts_pain_colour_beside_a_grant std-trc
 x_witness_lethal_sacrifice_trigger_keeps_treasure std-fin
 x_witness_skips_deferred_rider_source std-dsk
 zero_amount_dynamic_source_is_a_grant_gap std-trc
-improvise_filter_fee tail-08
+improvise_filter_fee custom
