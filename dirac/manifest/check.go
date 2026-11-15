@@ -21,7 +21,8 @@ type CheckOptions struct {
 // base is deleted or renamed; an entry with a value at base keeps it, and of
 // its lines only status and ticket change; a new entry does not take the name
 // of a constant base already has (an existing constant gets no manifest
-// file); and every ordinals.tsv row of base is still there, unchanged. It
+// file); every ordinals.tsv row of base is still there, unchanged; and so is every
+// asks.tsv row, with no new one. It
 // returns every violation, sorted, one line each.
 func Check(base, t *Tree, o CheckOptions) []error {
 	errs := t.Validate()
@@ -74,6 +75,22 @@ func Check(base, t *Tree, o CheckOptions) []error {
 			errs = append(errs, fmt.Errorf("%s: row %s vanished; a constant is never deleted", OrdinalsPath, r.Name))
 		case *now != *r:
 			errs = append(errs, fmt.Errorf("%s: row %s %s %s at the base is now %s %s; a constant keeps its value", OrdinalsPath, r.Name, r.Type, r.Value, now.Type, now.Value))
+		}
+	}
+	for _, b := range base.Asks {
+		now := t.ask(b.Name)
+		switch {
+		case now == nil:
+			errs = append(errs, fmt.Errorf("%s: row %s vanished; an ask kind is never deleted", AsksPath, b.Name))
+		case *now != b:
+			errs = append(errs, fmt.Errorf("%s: row %s value %d at the base is now %d; an ask kind keeps its value", AsksPath, b.Name, b.Value, now.Value))
+		}
+	}
+	for _, a := range t.Asks {
+		// A base with no asks.tsv is the one that predates it: the file's
+		// first appearance freezes the hand constants.
+		if base.Asks != nil && base.ask(a.Name) == nil {
+			errs = append(errs, fmt.Errorf("%s: row %s is new; a new ask kind is a dirac/manifest/ask entry, not an asks.tsv row", AsksPath, a.Name))
 		}
 	}
 	if o.Final {

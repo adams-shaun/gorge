@@ -1033,6 +1033,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if ok, done := s.execCold1(k, in); done {
 				return ok, true
 			}
+			if ok, done := s.execOpGen(k, in); done {
+				return ok, true
+			}
 		}
 		if in.Op >= kop.OpSkipUnless {
 			panic("kernel: generated op not implemented: " + in.Op.String())
