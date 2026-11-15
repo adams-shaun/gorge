@@ -52,8 +52,10 @@ Manglehorn
 Manifold Key
 Massive Might
 Might of the Masses
+Mobilize
 Mountain
 Nameless Inversion
+Natural Order
 Neutralize
 Nikko-Onna
 Nimble Birdsticker
@@ -67,6 +69,7 @@ Prismatic Strands
 Prodigal Sorcerer
 Queen's Agent
 Reclamation Sage
+Rikala, Homarid King
 Rite of the Raging Storm
 River Serpent
 Rupture
@@ -81,6 +84,7 @@ Skeletal Changeling
 Soul Snuffers
 Spitebellows
 Spore Swarm
+Spreading Seas
 Spyglass Siren
 Stifle
 Stingerfling Spider

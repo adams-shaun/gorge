@@ -1,13 +1,19 @@
 Abandon the Post
 Abzan Skycaptain
+Bloodthirsty Blade
 Brilliant Halo
 Capashen Knight
+Chosen by Heliod
+Crumbling Vestige
 Deathbellow Raider
 Diligent Farmhand
+Evolution Witness
+Field Creeper
 Forest
 Fruitcake Elemental
 Gaea's Balance
 Ghor-Clan Savage
+Gibbering Hyenas
 Glistening Oil
 Grixis Battlemage
 Hag of Ceaseless Torment
@@ -16,19 +22,30 @@ Iron Star
 Island
 Jarad's Orders
 Kodama of the West Tree
+Lae'zel, Vlaakith's Champion
 Mind Rot
+Mischief and Mayhem
 Mountain
 Natural Selection
 Nourish
 Plains
+Renegade Map
 Sakura-Tribe Scout
+Saproling Symbiosis
 Scute Mob
+Searing Light
 Shivan Gorge
 Sky Diamond
+Soul Shepherd
 Stern Constable
 Sulfurous Springs
 Swamp
 Terra Eternal
+Tin Street Dodger
 Tunneling Geopede
 Volcanic Island
 Walking Corpse
+Warden of Evos Isle
+Warden of the Wall
+Whipcorder
+Youthful Knight
