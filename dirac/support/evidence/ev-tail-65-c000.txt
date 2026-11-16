@@ -154,6 +154,7 @@ Joraga Visionary
 Kabuto Moth
 Kami of the Crescent Moon
 Kangee's Lieutenant
+Kardur's Vicious Return
 Kazandu Tuskcaller
 Kefnet's Last Word
 Kenku Artificer
@@ -259,6 +260,7 @@ Siegecraft
 Silhana Ledgewalker
 Skitterskin
 Skybind
+Skyfire Kirin
 Slavering Nulls
 Spark of Creativity
 Spectral Force

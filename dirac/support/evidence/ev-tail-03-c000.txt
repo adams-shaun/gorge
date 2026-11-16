@@ -109,6 +109,7 @@ Dust Elemental
 Eerie Procession
 Eiganjo Uprising
 Eiganjo, Seat of the Empire
+Eldrazi Ravager
 Elvish Vanguard
 Ember Beast
 Enchantress's Presence
@@ -253,6 +254,7 @@ Munda, Ambush Leader
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent
+Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy

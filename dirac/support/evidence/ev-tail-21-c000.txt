@@ -1,6 +1,7 @@
 A Little Chat
 A-Bretagard Stronghold
 A.I.M. Bot
+Aang, A Lot to Learn
 Accursed Centaur
 Addle
 Aethertide Whale
@@ -126,6 +127,7 @@ Errant Doomsayers
 Esquire of the King
 Extremis Elite
 Fade from Memory
+Fangren Marauder
 Farbog Revenant
 Fear
 Feed the Infection

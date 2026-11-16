@@ -37,12 +37,14 @@ Blighted Shaman
 Blood Reckoning
 Brokers Hideout
 Captain America's Motorcycle
+Captain Lannery Storm
 Cateran Brute
 Cavalier of Night
 Cavern Harpy
 Charging Paladin
 Cinder Giant
 Citadel Castellan
+Cliffhaven Vampire
 Clot Sliver
 Cloudreader Sphinx
 Cold Storage
@@ -55,6 +57,7 @@ Corpulent Corpse
 Corrupted Roots
 Courier's Capsule
 Crater's Claws
+Crushing Disappointment
 Crystal Ball
 Curse of Bounty
 Curse of Shallow Graves
@@ -158,6 +161,7 @@ Maul Splicer
 Mausoleum Secrets
 Mesmeric Fiend
 Miasmic Mummy
+Mist-Syndicate Naga
 Mogg Flunkies
 Monstrify
 Moonlight Hunt
@@ -189,6 +193,7 @@ Priest of Gix
 Proud Pack-Rhino
 Psychic Strike
 Python
+Rakdos Ragemutt
 Ranging Raptors
 Rashka the Slayer
 Ray of Erasure
@@ -205,6 +210,7 @@ Sangrophage
 Sanguine Spy
 Scaled Herbalist
 Scaled Hulk
+Scarred Vinebreeder
 Scrapper Champion
 Sentinel Sliver
 Serene Offering
@@ -248,6 +254,7 @@ Swift Spinner
 Tangleclaw Werewolf
 Tarfire
 Tattered Mummy
+Team Transmitter
 Tel-Jilad Justice
 Terra Eternal
 Thaumaturge's Familiar
@@ -275,6 +282,7 @@ Warkite Marauder
 Whispering Wizard
 White Shield Crusader
 Windrider Wizard
+Wingmate Roc
 Wolfbriar Elemental
 Wolfkin Bond
 Wooden Sphere

@@ -1,3 +1,4 @@
+A-Baleful Beholder
 A-Civil Servant
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
@@ -33,6 +34,7 @@ Bedevil
 Benalish Heralds
 Benevolent Hydra
 Binding the Old Gods
+Biolume Egg
 Bladewing, Deathless Tyrant
 Blasting Station
 Blinding Light
@@ -122,10 +124,12 @@ Final Flare
 Fire Nation Archers
 Firefiend Elemental
 Flailing Drake
+Flame Elemental
 Flamespeaker's Will
 Flanking Troops
 Flaring Pain
 Fledgling Griffin
+Fleeting Aven
 Forbid
 Force Void
 Forced March
@@ -138,6 +142,7 @@ Fungusaur
 Gallantry
 Gallows at Willow Hill
 Generous Visitor
+Getaway Car
 Ghoultree
 Gilt-Leaf Seer
 Glimmer Bairn
@@ -184,6 +189,7 @@ Izoni, Thousand-Eyed
 Jace's Ingenuity
 Jackdaw
 Jackhammer
+Jedit Ojanen
 Jedit's Dragoons
 Jori En, Ruin Diver
 Jungle Troll
@@ -303,6 +309,7 @@ Rotlung Reanimator
 Sabertooth Wyvern
 Sage of Lat-Nam
 Sage of Shaila's Claim
+Sage of the Unknowable
 Saheeli's Silverwing
 Sanctuary Raptor
 Sanctum Gargoyle
@@ -335,6 +342,7 @@ Sir Shandlar of Eberyn
 Skaab Wrangler
 Skophos Warleader
 Sky Tether
+Skyblade of the Legion
 Skyline Predator
 Smashing Success
 Smite the Monstrous
@@ -369,6 +377,7 @@ Strangleroot Geist
 Stronghold Machinist
 Sunblade Elf
 Sunlance
+Suntouched Myr
 Supply Drop
 Surge of Thoughtweft
 Survival Cache
@@ -398,6 +407,7 @@ Thriving Skyclaw
 Tidewater Minion
 Time Wipe
 Tome Anima
+Traitorous Instinct
 Transguild Promenade
 Traxos, Scourge of Kroog
 Trollhide

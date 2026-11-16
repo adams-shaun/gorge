@@ -2,6 +2,8 @@ Adaptive Shimmerer
 Airdrop Aeronauts
 Airlift Chaplain
 Alela, Cunning Conqueror
+Alley Grifters
+Alliance of Arms
 Alluring Scent
 Almighty Brushwagg
 Ancient Tomb
@@ -22,6 +24,7 @@ Basal Sliver
 Battlefield Butcher
 Bazaar Krovod
 Bearded Axe
+Betrayal of Flesh
 Birthing Hulk
 Biting-Palm Ninja
 Black Market Connections
@@ -30,6 +33,7 @@ Blight
 Blight Mamba
 Blighted Woodland
 Blightstep Pathway
+Blinding Radiance
 Boggart Shenanigans
 Bond of Agony
 Bontu's Last Reckoning
@@ -57,6 +61,8 @@ Crop Rotation
 Crushing Vines
 Cryptborn Horror
 Crystal Rod
+Crystalline Sliver
+Culling Sun
 Cultivator Colossus
 Cursed Land
 Cyclone Summoner
@@ -88,7 +94,9 @@ Escaped Null
 Esior, Wardwing Familiar
 Esper Panorama
 Essence Capture
+Euroakus
 Exile into Darkness
+Explosive Welcome
 Eye of Vecna
 Fade from History
 Failed Inspection
@@ -127,6 +135,7 @@ Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
 Greven, Predator Captain
+Grinding Station
 Grizzly Bears
 Grond, the Gatebreaker
 Hada Spy Patrol
@@ -234,6 +243,7 @@ Nucklavee
 Nullmage Shepherd
 Oakheart Dryads
 Observant Alseid
+Ojutai Monument
 Okina, Temple to the Grandfathers
 Old Gnawbone
 Olivia Voldaren
@@ -313,6 +323,7 @@ Shock Troops
 Shower of Sparks
 Shrieking Specter
 Shu Elite Infantry
+Shunt
 Sifa Grent
 Silent Artisan
 Silver Shroud Costume
@@ -333,7 +344,11 @@ Soltari Visionary
 Soul of the Harvest
 Soul's Attendant
 Sphinx of New Prahv
+Spirit Bonds
 Spirit Weaver
+Squire
+Staff of Nin
+Stalwart Aven
 Steadfast Guard
 Stensia Innkeeper
 Still Life
@@ -346,9 +361,11 @@ Summon: Ixion
 Sunblast Angel
 Sunfall
 Suq'Ata Assassin
+Surge of Salvation
 Survivors' Encampment
 Swamp
 Switcheroo
+Sylvok Lifestaff
 Symmetry Matrix
 Tail Swipe
 Take Down
@@ -359,13 +376,16 @@ Tangletrap
 Tazeem Raptor
 Temple Bell
 Terra Ravager
+The Alright Henge
 The Duke, Rebel Sentry
+Thornado
 Thousand-Year Elixir
 Thundermare
 Tidal Kraken
 Tideshaper Mystic
 Tin-Wing Chimera
 Tor Wauki
+Torch Song
 Transplant Theorist
 Traveler's Amulet
 Trawler Drake

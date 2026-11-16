@@ -46,6 +46,7 @@ Bonepicker Skirge
 Brain Gorgers
 Burrenton Shield-Bearers
 Cabal Patriarch
+Captain N'ghathrod
 Castle Raptors
 Catacomb Crocodile
 Cavalier of Thorns
@@ -88,6 +89,7 @@ Death Wish
 Deathcult Rogue
 Deathgaze Cockatrice
 Deconstruct
+Delusions of Mediocrity
 Demonlord Belzenlok
 Devout Monk
 Diabolic Machine
@@ -175,6 +177,7 @@ Hornet Harasser
 Howling Gale
 Humility
 Hunted Troll
+Hurler Cyclops
 Hyena Pack
 Ill-Gotten Inheritance
 Imperial Outrider
@@ -203,8 +206,10 @@ Krav, the Unredeemed
 Lavabelly Sliver
 Leitmotif Composer
 Leyline Binding
+Lightning Wolf
 Liliana's Indignation
 Liliana, Death Wielder
+Liliana, the Last Hope
 Limestone Golem
 Lord of Change
 Lumbering Falls
@@ -277,6 +282,7 @@ Plaxmanta
 Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
+Putrid Warrior
 Qarsi Sadist
 Quartzwood Crasher
 Rakdos Keyrune
@@ -382,12 +388,14 @@ Transguild Promenade
 Tremor
 True Love's Kiss
 Tuktuk the Explorer
+Twinblade Assassins
 Twitch
 Uncanny Speed
 Uncle Istvan
 Uncomfortable Chill
 Uninvited Geist
 Unknown Shores
+Urborg Uprising
 Urza's Chalice
 Utopia Vow
 Utrom Monitor

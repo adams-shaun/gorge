@@ -128,6 +128,7 @@ Dire Fleet Ravager
 Dire Mimic
 Disciple of Griselbrand
 Dissolve
+Djeru and Hazoret
 Double Trouble
 Dragonspark Reactor
 Drake Familiar
@@ -184,11 +185,13 @@ Ghitu Journeymage
 Ghostly Wings
 Gideon's Defeat
 Glacial Crasher
+Gleam of Battle
 Glintwing Invoker
 Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
 Goblin Spy
+Golos, Tireless Pilgrim
 Grandmother Goby
 Grassland Crusader
 Graveborn Muse
@@ -434,6 +437,7 @@ Southern Elephant
 Spellshock
 Spined Thopter
 Spined Wurm
+Spirit Away
 Spirit Mirror
 Spirit of the Hunt
 Spiteful Motives

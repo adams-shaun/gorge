@@ -24,6 +24,8 @@ Arashin Foremost
 Arcade Gannon
 Archon of Cruelty
 Armament Master
+Arrogant Outlaw
+Ascendant Packleader
 Aura Fracture
 Autumnal Gloom
 Avacynian Priest
@@ -41,6 +43,7 @@ Belligerent Brontodon
 Berserk Murlodont
 Big Boa Constrictor
 Bladetusk Boar
+Blanchwood Prowler
 Blighted Woodland
 Blink of an Eye
 Blistering Firecat
@@ -99,12 +102,15 @@ Desert Drake
 Destructive Tampering
 Dimir Signet
 Dingus Staff
+Dire Fleet Captain
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
 Dragonlord Ojutai
 Drifter il-Dal
 Drogskol Captain
+Duskmantle Prowler
+Dust Stalker
 Earth Servant
 Earthcraft
 Echo Inspector
@@ -124,6 +130,7 @@ Fencer Clique
 Fiery Finish
 Finishing Blow
 Fire Ambush
+Fires of Yavimaya
 First-Sphere Gargantua
 Flailing Manticore
 Flaming Gambit
@@ -285,6 +292,7 @@ Pheres-Band Raiders
 Phyrexian Vatmother
 Pierce the Sky
 Pink Horror
+Pinpoint Avalanche
 Plaguemaw Beast
 Plains
 Poison-Blade Mentor
@@ -300,6 +308,7 @@ Put Away
 Pygmy Allosaurus
 Rabid Wombat
 Raking Claws
+Raphael, the Muscle
 Rathi Fiend
 Reclusive Wight
 Red Scarab

@@ -29,6 +29,7 @@ Aven of Enduring Hope
 Awe for the Guilds
 Banners Raised
 Barrin, Tolarian Archmage
+Basilica Shepherd
 Baton of Courage
 Battlefield Raptor
 Battleground Geist
@@ -116,6 +117,7 @@ Elvish Visionary
 Emerald Medallion
 Enduring Victory
 Ensnare
+Eutropia the Twice-Favored
 Evolution Charm
 Expedition Envoy
 Extract from Darkness
@@ -242,6 +244,7 @@ Moku, Meandering Drummer
 Molten Ravager
 Momentary Blink
 Monk Idealist
+Morbid Opportunist
 Morningtide
 Mortal Wound
 Mountain
@@ -257,6 +260,7 @@ Nightmare Shepherd
 Nim Abomination
 Nimble Mongoose
 Nuka-Cola Vending Machine
+Nylea's Colossus
 Nylea's Disciple
 Nylea, God of the Hunt
 Ob Nixilis's Cruelty
@@ -409,6 +413,7 @@ Weight of Memory
 Weldfast Wingsmith
 Whirlermaker
 Wing Shards
+Winged Coatl
 Wistful Selkie
 Witherbloom Command
 Wizards of Thay

@@ -99,6 +99,7 @@ Goblin Replica
 Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Signet
 Guardian of Tazeem
 Hammerheim Deadeye
 Havengul Runebinder
@@ -163,6 +164,7 @@ Phyrexian Rebirth
 Plague Sliver
 Plains
 Plow Through Reito
+Polyraptor
 Press into Service
 Prickly Marmoset
 Priest of Titania
@@ -172,6 +174,7 @@ Purge the Profane
 Ramosian Lieutenant
 Return of the Mole Man
 Revoke Demise
+Rhox Bodyguard
 River's Favor
 Road
 Root Spider
@@ -201,6 +204,7 @@ Spiraling Embers
 Spirit en-Kor
 Squeeze
 Stabbing Pain
+Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Steelshaper Apprentice
