@@ -65,5 +65,32 @@ func (s *State) resolveMadness(k *prep) {
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].MadnessCost)
-	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost)) && s.spellTargetsFeasible(k, c, p)
+	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.ctrWindowAffords(k, p, &cost)) && s.spellTargetsFeasible(k, c, p)
+}
+
+// ctrWindowAffords: gorge's potential search for the madness cast activates a
+// counter-cost mana source (Vivid Creek's any-colour ability: {T}, remove a
+// charge counter) that neither the planner's sources nor windowAffords' gap
+// kinds count: its census proves the cost over the gaps walk's units
+// (availGaps counts each live counter-cost source's mana, mana_countercost.go).
+func (s *State) ctrWindowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if !k.ctrMana || !s.scriptCtr(k, p).any() {
+		return false
+	}
+	var av avail
+	x := s.g.availX
+	s.g.availX |= availGaps
+	s.availFor(k, p, &av)
+	s.g.availX = x
+	return av.affords(cost, pipMaskOf(cost), 0)
+}
+
+// madnessReversed: a madness card whose cast was reversed was not cast (CR
+// 702.35b), so it goes to its owner's graveyard from the exile the reversal
+// returned it to (gorge cast_commit.go abortCast: madnessDeclined).
+func (s *State) madnessReversed(o Obj) {
+	if s.objs[o].zone == kop.ZoneExile {
+		from := s.detach(o)
+		s.placeFrom(o, kop.ZoneGraveyard, false, from, false)
+	}
 }

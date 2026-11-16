@@ -51,11 +51,13 @@ Bog Initiate
 Bone Saw
 Boneshard Slasher
 Boomerang
+Borborygmos Enraged
 Boseiju, Who Endures
 Botanical Plaza
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Briber's Purse
 Brinebarrow Intruder
 Broken Concentration
 Broodbirth Viper
@@ -106,6 +108,7 @@ Dawn of the Dead
 Death Cloud
 Death Pit Offering
 Descendant of Masumaro
+Desert of the Fervent
 Deviant Glee
 Dina, Essence Brewer
 Donatello's Science Lesson
@@ -133,6 +136,7 @@ Elvish Lyrist
 Elvish Visionary
 Emmessi Tome
 Empyrial Armor
+Ephemeral Shields
 Evolution Charm
 Excavation Mole
 Explosive Impact
@@ -269,6 +273,7 @@ Necroskitter
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer
+Nissa, Nature's Artisan
 Noble Hierarch
 Nomad Mythmaker
 Noose Constrictor
@@ -291,12 +296,14 @@ Parch
 Passwall Adept
 Perilous Research
 Petrified Wood-Kin
+Phyrexian Broodstar
 Phyrexian Gargantua
 Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
 Prava of the Steel Legion
+Primal Empathy
 Prime Speaker Vannifar
 Prodigy's Prototype
 Prophetic Ravings
@@ -310,6 +317,7 @@ Pyre Charger
 Rainbow Efreet
 Ranger-Captain of Eos
 Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Recoil
@@ -327,6 +335,7 @@ Riverglide Pathway
 Robe of Mirrors
 Roc of Kher Ridges
 Roil Elemental
+Ronin Houndmaster
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
@@ -336,6 +345,7 @@ Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Savage Twister
 Scale Blessing
 Scaretiller
 Scrapwork Rager
@@ -392,6 +402,7 @@ Stromkirk Captain
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Survivor of the Unseen
 Swamp
 Swarmyard

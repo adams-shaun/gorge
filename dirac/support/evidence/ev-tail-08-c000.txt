@@ -1,6 +1,9 @@
 A-Warm Welcome
 Abbey Griffin
+Aberrant Return
 Acceptable Losses
+Aerial Caravan
+Aether Herder
 Aether Tunnel
 Age of Ultron
 Agent of Stromgald
@@ -46,6 +49,7 @@ Blur Sliver
 Boggart Trawler
 Bolt of Keranos
 Boreal Druid
+Bounty Agent
 Bronze Sword
 Bronze Walrus
 Brush with Death
@@ -80,6 +84,7 @@ Cover of Darkness
 Cracked Earth Technique
 Crash Landing
 Craterize
+Crisis of Conscience
 Crystal Golem
 Culling Dais
 Cyclops Tyrant
@@ -115,11 +120,13 @@ Drunau Corpse Trawler
 Dryad of the Ilysian Grove
 Duergar Mine-Captain
 Dusk Legion Dreadnought
+Dwarven Hold
 Dwarven Recruiter
 Dwarven Trader
 Eagle of Deliverance
 Earthshaking Si
 Electrify
+Elite Javelineer
 Elvish Hunter
 Energy Arc
 Enfeeblement
@@ -136,6 +143,7 @@ Final Death
 Final Payment
 Fists of Flame
 Flare
+Flay
 Flourishing Strike
 Flowstone Mauler
 Forest
@@ -144,6 +152,7 @@ Frenetic Efreet
 Fruit of Tizerus
 Funnel-Web Recluse
 Fyndhorn Elder
+Garruk's Horde
 Gavony Silversmith
 Geralf's Messenger
 Ghost-Lit Nourisher
@@ -175,6 +184,7 @@ Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
 Hornet Nest
+Hour of Revelation
 Hunter's Edge
 Hydra Broodmaster
 Hyperion Blacksmith
@@ -216,11 +226,14 @@ Lesser Werewolf
 Leyline Prowler
 Library
 Liliana's Triumph
+Living Totem
 Lone Missionary
+Loxodon Mystic
 Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
+Magmatic Force
 Malakir Bloodwitch
 Mardu Hateblade
 Marionette Apprentice
@@ -228,6 +241,7 @@ Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
+Mawloc
 Memorial to Unity
 Merchant Raiders
 Mercurial Pretender
@@ -249,11 +263,13 @@ Nature's Wrath
 Necropede
 Network Terminal
 Night Terrors
+Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
 O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
+Orim's Thunder
 Otherworld Atlas
 Overtaker
 Paradise Druid
@@ -274,6 +290,7 @@ Possessed Barbarian
 Precinct Captain
 Primal Adversary
 Promise of Tomorrow
+Propagator Drone
 Protector of the Wastes
 Puca's Covenant
 Queen's Agent
@@ -294,11 +311,14 @@ Reverent Mantra
 Riddle Gate Gargoyle
 Rift Bolt
 Righteous Charge
+Righteous Fury
 Righteous Valkyrie
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
+Ruthless Deathfang
 Scent of Nightshade
+Scourge of the Nobilis
 Scrap Mastery
 Screeching Bat
 Screeching Drake
@@ -316,10 +336,12 @@ Shared Triumph
 Shield Sphere
 Shivan Hellkite
 Sifter of Skulls
+Silkbind Faerie
 Sinstriker's Will
 Siphon Insight
 Six-Sided Die
 Skirk Outrider
+Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
@@ -329,6 +351,7 @@ Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler
@@ -337,6 +360,7 @@ Spur Grappler
 Square Up
 Stalwart Aven
 Stand
+Static Net
 Staunch Shieldmate
 Staunch Throneguard
 Steel Wall
@@ -346,6 +370,7 @@ Storm Fleet Aerialist
 Strafe
 Stroke of Genius
 Sublime Archangel
+Summon Undead
 Summon: Kujata
 Sunlit Marsh
 Suspicious Bookcase
@@ -404,11 +429,14 @@ Wall of Opposition
 War Falcon
 Warcry Phoenix
 Wardscale Crocodile
+Warlord's Elite
+Warped Tusker
 Water Elemental
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
 Willow Elf
+Winds of Rath
 Wingmate Roc
 Wormhole Serpent
 Wu Scout

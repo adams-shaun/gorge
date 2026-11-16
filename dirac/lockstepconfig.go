@@ -192,7 +192,16 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// building entry cannot pay with it
 	a.xd, a.xdOn = s.payDescNow(NoObj), true
 	a.xPlain = s.cfg&cfgGorgeSurface == 0
+	// gorge's xAsk takes an X its planner refuses when the cast window pays it
+	// (castWindowPays), and that window taps a painful source whatever the
+	// life (the damage is lethal only afterwards, CR 704.5a): Cephalid
+	// Coliseum at 1 life still buys Mask of the Jadecrafter's X one more.
+	x := s.g.availX
+	if k.painMana && !a.xPlain {
+		s.g.availX |= availWinCol
+	}
 	s.availFor(k, p, a)
+	s.g.availX = x
 	a.xdOn, a.xPlain = false, false
 	// A deferred mana source (Pyromancer's Goggles' TriggersWhenSpent$ {R}) is
 	// absent from the planner census but CR 601.2g's window can tap it, and
@@ -349,7 +358,18 @@ func (s *State) xAnswerable(k *prep, a *kop.Ability, e *stackEntry, x int) bool 
 		src = s.srcSlot()
 		s.g.probe = probe{kind: probeAbility, src: src, ctrl: e.ctrl, x: uint8(x + 1)}
 	}
+	// the spell build is already pushed (bsPush precedes bsX), so CR 115.5
+	// makes it an illegal target for itself: gorge's xAsk sweep excludes the
+	// cast card (targetsAnnounceableAt), the target ask's own self pass. Its
+	// mana value still reads X = 0 here, and a cmcEQX target (Spell Blast)
+	// would match the spell itself at X = its pip total.
+	if e.kind == seSpell {
+		s.g.tgtSelf = e.obj + 1
+	}
 	ok := s.abilityTargetsFeasible(k, a, e.ctrl, src, 0xff)
+	if e.kind == seSpell {
+		s.g.tgtSelf = 0
+	}
 	s.g.probe = probe{}
 	return ok
 }

@@ -37,14 +37,19 @@ Blighted Shaman
 Blood Reckoning
 Brokers Hideout
 Captain America's Motorcycle
+Captain Lannery Storm
 Cateran Brute
 Cavalier of Night
 Cavern Harpy
+Cephalid Vandal
 Charging Paladin
 Cinder Giant
 Citadel Castellan
+Cliffhaven Vampire
+Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Cold Storage
 Colorful Feiyi Sparrow
 Conservator
@@ -55,14 +60,17 @@ Corpulent Corpse
 Corrupted Roots
 Courier's Capsule
 Crater's Claws
+Crushing Disappointment
 Crystal Ball
 Curse of Bounty
 Curse of Shallow Graves
 Daring Apprentice
 Daring Fiendbonder
+Deeptread Merrow
 Deepwood Ghoul
 Devotee of Strength
 Didgeridoo
+Dimir Locket
 Disrupt
 Djeru's Renunciation
 Drag Down
@@ -72,6 +80,7 @@ Eladamri, Lord of Leaves
 Elderwood Scion
 Electrickery
 Elvish Archers
+Embersmith
 Engineered Might
 Errant and Giada
 Erratic Mutation
@@ -87,6 +96,7 @@ Faerie Guidemother
 Fated Intervention
 Fencer Clique
 Feral Deceiver
+Ferocious Tigorilla
 Festergloom
 Fill with Fright
 Finale of Eternity
@@ -95,7 +105,10 @@ Fire of Orthanc
 Flameborn Viron
 Flamecast Wheel
 Fleetfeather Sandals
+Followed Footsteps
 Forest
+Fractal Summoning
+Freyalise, Llanowar's Fury
 Furious Resistance
 Garruk's Packleader
 Gem of Becoming
@@ -122,11 +135,13 @@ Hollowsage
 Honden of Seeing Winds
 Hound of the Farbogs
 Howling Fury
+Hulking Bugbear
 Hushwing Gryff
 Inkrise Infiltrator
 Inspired Charge
 Intrepid Ace
 Intruder Alarm
+Isao, Enlightened Bushi
 Island
 Isolate
 Jace's Scrutiny
@@ -139,6 +154,7 @@ Keeper of Fables
 Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Kor Skyfisher
+Krovikan Sorcerer
 Labyrinth Adversary
 Lazotep Reaver
 Leather Armor
@@ -158,6 +174,7 @@ Maul Splicer
 Mausoleum Secrets
 Mesmeric Fiend
 Miasmic Mummy
+Mist-Syndicate Naga
 Mogg Flunkies
 Monstrify
 Moonlight Hunt
@@ -189,6 +206,7 @@ Priest of Gix
 Proud Pack-Rhino
 Psychic Strike
 Python
+Rakdos Ragemutt
 Ranging Raptors
 Rashka the Slayer
 Ray of Erasure
@@ -205,7 +223,9 @@ Sangrophage
 Sanguine Spy
 Scaled Herbalist
 Scaled Hulk
+Scarred Vinebreeder
 Scrapper Champion
+Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
 Shambling Ghoul
@@ -220,8 +240,10 @@ Silverglade Pathfinder
 Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
+Snag
 Sol Grail
 Solid Footing
+Soul of Eternity
 Soulhunter Rakshasa
 Soulstealer Axe
 Spark Jolt
@@ -232,6 +254,7 @@ Sporemound
 Spreading Rot
 Squirrel Wrangler
 Stitcher's Apprentice
+Stormbind
 Strandwalker
 Strangling Soot
 Strangling Spores
@@ -247,7 +270,9 @@ Swamp
 Swift Spinner
 Tangleclaw Werewolf
 Tarfire
+Tasigur, the Golden Fang
 Tattered Mummy
+Team Transmitter
 Tel-Jilad Justice
 Terra Eternal
 Thaumaturge's Familiar
@@ -262,6 +287,7 @@ Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
 Twin-Silk Spider
+Tyrant of Kher Ridges
 Undercity Scavenger
 Unholy Hunger
 Urgoros, the Empty One
@@ -275,6 +301,7 @@ Warkite Marauder
 Whispering Wizard
 White Shield Crusader
 Windrider Wizard
+Wingmate Roc
 Wolfbriar Elemental
 Wolfkin Bond
 Wooden Sphere

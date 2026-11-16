@@ -36,8 +36,25 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
+		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+			// the floating restricted mana this payment admits is pool too
+			// (CR 106.6: gorge's unless, ward and trigger-cost gates price
+			// AvailableFor's PurposeOther view, which restores every batch a
+			// non-spell payment may spend — Karn's nonartifact-spell {C}
+			// pays an unless tax)
+			var rn [kop.NumManaKinds]uint8
+			s.rbUnits(p, m, &rn)
+			for ci, n := range rn {
+				if n != 0 {
+					av.addUnits(1<<uint(ci), n)
+				}
+			}
+		}
 		av.xdOn = false
-		return av.affords(&c, pipMaskOf(&c), 0)
+		// a restricted source whose restriction admits a non-spell payment (a
+		// Powerstone's {C}, CR 106.6) funds an unless cost too: gorge's
+		// PurposeOther descriptor admits it (restrSrcAffords asks only once av alone fails)
+		return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
 	case kop.PayDiscardHand:
@@ -210,6 +227,9 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 		return false
 	}
 	other := payDesc{class: pdOther}
+	if s.anyDifferentOpen(k, p) {
+		return true // Firemind Vessel: gorge's potential is unbounded in every colour (mana_anydifferent.go)
+	}
 	if !s.anyManaSource(k, p, &other) {
 		return false
 	}
@@ -259,6 +279,12 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		// an each-colour source (Bloom Tender) is a census gap with no manaAb,
 		// yet gorge's walk counts it, and reads its production as open
 		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
+			return true
+		}
+		// a counter-cost gap source whose mana ability is no card-level manaAb (a
+		// storage battery, Sand Silos: its cost announces X, so gorge's walk
+		// prices the activation payable at any counter count)
+		if c := s.cardAt(sl); k.ctrAbOf(c) != nil && k.cards[c].manaAb < 0 && s.potentialAdmits(k, p, sl, int(k.ctrAb[c]), k.ctrAbOf(c), nil) {
 			return true
 		}
 		// gorge untappedManaSourceFor: an available mana ability counts when its
@@ -1324,7 +1350,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
 			parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
 		} else {
-			s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
+			s.copyResumedEnter(k, in, t, NoSlot) // the enters program reads the choice
 			s.g.pre = preAsk{}
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
@@ -1382,7 +1408,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
 			parked = s.sweepAnswer(k, in, t, s.objs[a.Source()].slot)
 		} else {
-			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
+			s.copyResumedEnter(k, in, t, s.objs[a.Source()].slot)
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
 			if !parked {

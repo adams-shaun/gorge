@@ -15,6 +15,7 @@ Agent of Erebos
 Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
+Alabaster Host Intercessor
 Alabaster Mage
 Algae Gharial
 Alpine Guide
@@ -26,6 +27,7 @@ Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
 Archwing Dragon
+Arclight Phoenix
 Arctic Aven
 Arctic Treeline
 Arctic Wolves
@@ -40,8 +42,10 @@ Azusa's Many Journeys
 Bag End Porter
 Bane Alley Blackguard
 Barbarian Lunatic
+Barrenton Cragtreads
 Battle Frenzy
 Battle of Frost and Fire
+Battlewise Hoplite
 Belbe's Percher
 Bellowing Aegisaur
 Benthicore
@@ -76,6 +80,8 @@ Captain's Call
 Carnophage
 Cartouche of Ambition
 Centaur Archer
+Cephalopod Sentry
+Cerulean Drake
 Chainbreaker
 Charnel Troll
 Chasm Skulker
@@ -116,6 +122,7 @@ Destructive Revelry
 Devour Flesh
 Devour in Shadow
 Diabolic Revelation
+Disfigure
 Dismiss
 Divine Verdict
 Dominating Vampire
@@ -127,6 +134,7 @@ Dragonstalker
 Dragonstorm
 Dream's Grip
 Druidic Satchel
+Dwarven Hammer
 Electrostatic Field
 Elephant Graveyard
 Elspeth, Sun's Champion
@@ -143,6 +151,7 @@ Extinguish All Hope
 Fable of Wolf and Owl
 Faerie Noble
 Faerie Trickery
+Fall of the Gavel
 Fall of the Hammer
 Feast of Worms
 Feral Roar
@@ -160,6 +169,7 @@ Forbidden Friendship
 Forced Fruition
 Forest
 Fruition
+Funeral Charm
 Furnace Whelp
 Future Flight
 Galerider Sliver
@@ -264,6 +274,7 @@ Marauding Raptor
 Master of Diversion
 Maul Splicer
 Max, the Daredevil
+Mer Man
 Metallurgeon
 Metathran Transport
 Midsummer Revel
@@ -277,6 +288,7 @@ Mishra's Factory
 Mistveil Plains
 Moment of Defiance
 Monstrous Growth
+Mordenkainen
 Morgue Burst
 Mortal Obstinacy
 Mountain
@@ -354,6 +366,7 @@ Seize the Initiative
 Self-Assembler
 Send to Sleep
 Sentinels of Glen Elendra
+Setessan Griffin
 Shacklegeist
 Sheltered Thicket
 Shining Armor
@@ -400,6 +413,7 @@ Starfall
 Steel Sabotage
 Stirring Wildwood
 Stormrider Spirit
+Striding Shotcaller
 Subterranean Tremors
 Sudden Death
 Sundering Growth
@@ -468,6 +482,7 @@ Wild Instincts
 Wild-Field Scarecrow
 Wildwood Geist
 Willow Dryad
+Winged Shepherd
 Wirewood Channeler
 Wirewood Hivemaster
 Withering Boon

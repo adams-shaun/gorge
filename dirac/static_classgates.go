@@ -25,8 +25,19 @@ const (
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 )
 
+// prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
+// the table grants landwalk (a Pump KW$ Landwalk:<spec>, lower_landwalkgrant).
+func prepOverrideLandwalk(t *kop.Table, g *genPrep) {
+	for i := range t.Overrides {
+		if t.Overrides[i].Landwalk != 0 {
+			g.anyLandwalk = true
+		}
+	}
+}
+
 // prepStaticClasses fills g.sCls.
 func prepStaticClasses(t *kop.Table, g *genPrep) {
+	prepOverrideLandwalk(t, g)
 	g.sCls = make([]uint16, len(t.Cards))
 	for i := range t.Cards {
 		c := &t.Cards[i]

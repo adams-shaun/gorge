@@ -145,34 +145,18 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 		}
 		bits |= kop.PrevScopeCombat
 	}
-	if rp.str("ValidTarget") == "" {
-		bits |= kop.PrevScopeAll
-	}
-	for _, w := range strings.Split(rp.str("ValidTarget"), ",") {
-		switch strings.TrimSpace(w) {
-		case "":
-		case "You":
-			bits |= kop.PrevScopePlayer
-		case "Creature.YouCtrl":
-			bits |= kop.PrevScopeCreatures
-		default:
-			return false, nil
+	tb, tok := scopeTargetBits(rp.str("ValidTarget"))
+	sb, sok := scopeSourceBits(rp.str("ValidSource"))
+	var sf, tf *lFilter
+	if tok && sok {
+		bits |= tb | sb
+	} else {
+		fb, f1, f2, err := lc.scopeFiltered(rp.str("ValidTarget"), rp.str("ValidSource"), tb, tok, sb, sok) // lower_prevscopefilter.go
+		if err != nil {
+			return true, err
 		}
-	}
-	switch vs := rp.str("ValidSource"); vs {
-	case "":
-	case "Creature.inZoneBattlefield":
-		bits |= kop.PrevScopeSrcCreature
-	default:
-		var col kop.ColorMask
-		for _, w := range strings.Split(vs, ",") {
-			c, ok := scopeSourceColours[strings.TrimSpace(w)]
-			if !ok {
-				return false, nil
-			}
-			col |= c
-		}
-		bits |= int(col) << kop.PrevScopeColourShift
+		bits |= fb
+		sf, tf = f1, f2
 	}
 	if left := rp.unread(); len(left) > 0 {
 		return true, refuse("Effect replacement unread %v", left)
@@ -183,8 +167,52 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 		ps.consume("ExileOnLost")
 	}
 	ps.consume("ReplacementEffects", "AILogic")
-	lc.emit(lInstr{Op: "PreventDamageScope", C: bits, Note: "prevent the damage the controller and their creatures would take this turn"})
+	in := lInstr{Op: "PreventDamageScope", C: bits, F: sf, F2: tf, Note: "prevent the damage the controller and their creatures would take this turn"}
+	if err := lc.scopeFilterAgrees(in); err != nil { // lower_prevscopefilter.go
+		return true, err
+	}
+	lc.emit(in)
 	return true, nil
+}
+
+// scopeTargetBits is a ValidTarget$ of the bit forms: none (any recipient),
+// You, Creature.YouCtrl or both. ok is false for any other word.
+func scopeTargetBits(vt string) (bits int, ok bool) {
+	if vt == "" {
+		return kop.PrevScopeAll, true
+	}
+	for _, w := range strings.Split(vt, ",") {
+		switch strings.TrimSpace(w) {
+		case "":
+		case "You":
+			bits |= kop.PrevScopePlayer
+		case "Creature.YouCtrl":
+			bits |= kop.PrevScopeCreatures
+		default:
+			return 0, false
+		}
+	}
+	return bits, true
+}
+
+// scopeSourceBits is a ValidSource$ of the bit forms: none, Creature.
+// inZoneBattlefield or a Card.<Colour> list. ok is false for any other word.
+func scopeSourceBits(vs string) (bits int, ok bool) {
+	switch vs {
+	case "":
+		return 0, true
+	case "Creature.inZoneBattlefield":
+		return kop.PrevScopeSrcCreature, true
+	}
+	var col kop.ColorMask
+	for _, w := range strings.Split(vs, ",") {
+		c, ok := scopeSourceColours[strings.TrimSpace(w)]
+		if !ok {
+			return 0, false
+		}
+		col |= c
+	}
+	return int(col) << kop.PrevScopeColourShift, true
 }
 
 // scopeSourceColours are the ValidSource$ words of a colour-filtered scoped

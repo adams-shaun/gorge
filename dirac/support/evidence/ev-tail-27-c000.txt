@@ -23,10 +23,12 @@ Arrows of Justice
 Aspiring Aeronaut
 Aura Flux
 Avatar of Woe
+Aven Wind Mage
 Azorius First-Wing
 Azure Drake
 Barbed Lightning
 Bee Sting
+Belligerent Hatchling
 Bident of Thassa
 Blessing
 Blight Keeper
@@ -46,6 +48,7 @@ Captain of the Mists
 Captured Sunlight
 Carrion Beetles
 Cathar's Shield
+Chitterspitter
 Chromatic Sphere
 Cloak of Mists
 Cobalt Golem
@@ -121,12 +124,14 @@ God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
 Grim Lavamancer
+Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+Helvault
 Hero of the Dunes
 Hidden Spider
 High Alert
@@ -177,8 +182,10 @@ Natural Reclamation
 Necrogenesis
 Necron Deathmark
 Neheb, Dreadhorde Champion
+Neverwinter Dryad
 Night Revelers
 Nirkana Assassin
+Nissa Revane
 Noble Stand
 Norwood Riders
 Noxious Grasp
@@ -191,6 +198,7 @@ Ornery Goblin
 Orzhov Keyrune
 Out of the Way
 Overload
+Owen Grady, Raptor Trainer
 Pangosaur
 Paradise Druid
 Pardic Collaborator
@@ -201,10 +209,15 @@ Plains
 Polukranos Reborn
 Promise of Power
 Python
+Rakdos the Defiler
+Rakdos, Lord of Riots
 Ravenous Baboons
+Red Ghost, Intangible Genius
 Reign of Terror
+Rhystic Deluge
 Rite of Flame
 Ritual of Soot
+Riven Turnbull
 Rotlung Reanimator
 Sage of the Falls
 Sarah Jane Smith
@@ -227,12 +240,14 @@ Silt Crawler
 Silumgar Monument
 Skinrender
 Skull Rend
+Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket
 Soul Manipulation
 Soul of Mirrodin
 Southern Paladin
+Speaker of the Heavens
 Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus

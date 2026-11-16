@@ -32,14 +32,26 @@ var DebugDpManyOff bool
 // delayMany is OpDelayedProgram with kop.DpMany: register the resolution's
 // remembered set (at most four) as one program. More than four stalls; none
 // registers a program that fires and does nothing (CR 603.7, as gorge's
-// empty set).
+// empty set). A token CR 111.8 holds in place never moves again and ceases at
+// the next state-based action, so the body can never return it and it takes
+// no carrier slot (gorge's whole-set walk skips it at the zone test; Planar
+// Guide's sweep remembers the tokens it exiles).
 //
 //go:noinline
 func (s *State) delayMany(e *stackEntry, in *kop.Instr) {
-	n := int(s.g.nrem)
-	if n > len(dprog{}.objs) {
-		s.capFull(StallDProg)
-		return
+	var rem [len(dprog{}.objs)]Obj
+	n := 0
+	for i := 0; i < int(s.g.nrem); i++ {
+		o := s.g.rem[i]
+		if s.tokenLeftBattlefield(o) {
+			continue
+		}
+		if n == len(rem) {
+			s.capFull(StallDProg)
+			return
+		}
+		rem[n] = o
+		n++
 	}
 	if n == 0 {
 		s.delayEmptyGen(e, uint8(in.C))
@@ -53,7 +65,7 @@ func (s *State) delayMany(e *stackEntry, in *kop.Instr) {
 	for i := range d.objs {
 		d.objs[i] = NoObj
 		if i < n {
-			o := s.g.rem[i]
+			o := rem[i]
 			d.objs[i], d.vers[i] = o, s.objs[o].ver
 		}
 	}

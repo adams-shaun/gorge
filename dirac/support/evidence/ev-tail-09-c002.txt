@@ -2,6 +2,7 @@ Abnormal Endurance
 Abyssal Hunter
 Ace, Fearless Rebel
 Agent of the Iron Throne
+Argothian Pixies
 Arms of Hadar
 Bitter Revelation
 Blood Fountain
@@ -40,6 +41,7 @@ Kami of Industry
 Kelsinko Ranger
 Magus of the Bazaar
 Marauding Dreadship
+Monoskelion
 Mossdog
 Mountain
 Mox Emerald
@@ -54,11 +56,13 @@ Prophetic Bolt
 Quench
 Raging Cougar
 Reckless Assault
+Repopulate
 Ridged Kusite
 Saurian Symbiote
 Seize the Storm
 Shadowstorm
 Skyclave Pick-Axe
+Sleep with the Fishes
 Sonic Assault
 Squall
 Swamp

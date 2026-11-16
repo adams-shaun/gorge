@@ -297,12 +297,15 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			}
 		}
 	}
-	return s.flags2Obj(f, o)
+	return s.flags2Obj(f&^kop.F2Kicked, o) // a permanent's kicked mark was read above
 }
 
-// flags2Obj checks the object-identity flags (remembered, chosen,
+// flags2Obj checks the object-identity flags (kicked spell, remembered, chosen,
 // attached to target 0, targeted) and the per-turn damage record.
 func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
+	if f&kop.F2Kicked != 0 && !s.spellKicked(o) {
+		return false // a spell on the stack reads its entry's kick flag (filter_spellkicked.go)
+	}
 	if f&kop.F2Remembered != 0 && !s.inSet(&s.g.rem, s.g.nrem, o) {
 		return false
 	}
@@ -386,7 +389,15 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		return true
 	}
 	var pot avail
-	s.availPotential(k, p, &pot)
+	if src == NoSlot {
+		// gorge prices each announced X against the spell's own payment: a
+		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
+		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
+		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
+		s.availPotentialFor(k, p, &pot, &d)
+	} else {
+		s.availPotential(k, p, &pot)
+	}
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	if src == NoSlot {
 		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
@@ -694,7 +705,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			}
 			f2 &^= kop.F2ChosenColor
 		}
-		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
+		if f2&(kop.F2Emblem|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false
 		}
 		if f2&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.cardRoleF2(k, f2, owner) {
@@ -707,7 +718,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return false
 		}
 		if o == NoObj {
-			if f2&(kop.F2EnteredThisTurn|kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2SharesColorRem|kop.F2NotTriggerObj|kop.F2WasDamaged) != 0 {
+			if f2&(kop.F2Kicked|kop.F2EnteredThisTurn|kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2SharesColorRem|kop.F2NotTriggerObj|kop.F2WasDamaged) != 0 {
 				return false
 			}
 		} else {

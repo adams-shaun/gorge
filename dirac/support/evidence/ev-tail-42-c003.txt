@@ -1,17 +1,24 @@
+A-Meria's Outrider
 A-Ominous Parcel
 Angler Turtle
 Armory Guard
 Audacious Infiltrator
 Barrage Tyrant
+Besmirch
 Bewilder
 Blood Burglar
 Breaching Hippocamp
+Brimstone Volley
 Burning Hands
 Centaur Healer
+Chaos Terminator Lord
 Consuming Corruption
 Cystbearer
 Dark Prophecy
+Disciple of the Vault
+Dross Crocodile
 Feral Abomination
+Fireflux Squad
 Flywheel Racer
 Forerunner of Slaughter
 Forest
@@ -19,12 +26,18 @@ Funnel-Web Recluse
 Furnace Spirit
 Gadwick, the Wizened
 Gauntlet of Might
+Ghoulsteed
 Glimpse the Unthinkable
+Goblin Mountaineer
 Goblin Scouts
+God-Eternal Bontu
 Goreclaw, Terror of Qal Sisma
+Grasp of Darkness
 Griffin Dreamfinder
+Horizon Explorer
 Hovermyr
 Idle Thoughts
+Immolating Souleater
 Intrepid Hero
 Island
 Krosan Archer
@@ -32,22 +45,31 @@ Legion Leadership
 Lifelink
 Living Lands
 Lucid Dreams
+Lyzolda, the Blood Witch
 Manipulate Fate
 Master Transmuter
+Meteoric Mace
 Mogg Alarm
 Mosstodon
 Mountain
+Mugging
 Mystic Snake
 Nether Horror
 Night Market Aeronaut
 Ob Nixilis, the Fallen
 Oni of Wild Places
+Pelakka Predation
 Plains
 Prismatic Strands
+Psychic Impetus
 Ral's Dispersal
 Resurrection Orb
 Samut's Sprint
 Scalding Devil
+Sewer Rats
+Shadow of Mortality
+Shamble Back
+Shauku's Minion
 Silver Raven
 Skymark Roc
 Spellbook
@@ -55,11 +77,14 @@ Spiderwig Boggart
 Spike Drone
 Squirrel Nest
 Stolen Grain
+Stolen Vitality
 Swamp
+Sweatworks Brawler
 Thalia's Lancers
 The Cauldron of Eternity
 Thirsting Bloodlord
 Thoughtcutter Agent
+Thran Spider
 Traitor's Clutch
 Twitch
 Ultimate Price
@@ -71,4 +96,5 @@ War-Torch Goblin
 Water Servant
 Weldfast Engineer
 Wellspring
+Wrenn's Resolve
 Zirilan of the Claw
