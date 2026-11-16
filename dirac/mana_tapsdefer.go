@@ -444,12 +444,17 @@ func prepSelfTapsPain(c *kop.CardDef, pc *pcard) bool {
 // pricing (scriptSearch.visit) never count its mana, but the plain walk would
 // and list the play a tap early; the play's payment would then tap the
 // source after the prefix's other taps, putting its trigger above the play.
-func (t *State) hideDeferred(k *prep, p uint8) {
+//
+// A source tapsDef holds is the search's own gap: availFor already leaves its
+// unit out (availLeavesOut), and tapping it here would also take away the
+// {T} a cost of its own pays (Cabal Pit's {B},{T}, sacrifice beside Price of
+// Glory, CR 602.2b), so it stays untapped.
+func (t *State) hideDeferred(k *prep, p uint8, tapsDef slotMask) {
 	if !t.deferLive(k) {
 		return
 	}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
-		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && t.planDeferred(k, p, sl) {
+		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && !tapsDef.has(sl) && t.planDeferred(k, p, sl) {
 			t.perms[sl].flags |= pfTapped
 			t.touchSl(sl)
 		}
