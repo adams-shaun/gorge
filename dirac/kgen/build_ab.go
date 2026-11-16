@@ -2639,13 +2639,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "PreventNoncombatToOthers":
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "DamageRedirect":
-		rp.Kind = kop.ReplDamageRedirect
-		rp.C = int16(r.Bits) // the recipient filter, the new recipient and the gates (kop/staticredirect.go)
-		if r.F2 != nil {
-			if rp.Filter2, err = cb.filter(r.F2, kop.ZoneBattlefield); err != nil {
-				return ka, err
-			}
-		}
+		return rdrRepl(ka, r, cb)
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
 	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf", "PreventDamageFilt", "PreventDamageN":
@@ -2747,10 +2741,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, err
 		}
 	case "SpellsCantBeCountered":
-		rp.Kind = kop.ReplSpellsCantBeCountered // lower_uncounterable.go
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneStack); err != nil {
-			return ka, err
-		}
+		return cantCounterRepl(ka, r, cb) // lower_uncounterable.go
 	case "CantTurnUp":
 		rp.Kind = kop.ReplCantTurnUp // lower_turnfaceuprepl.go
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
@@ -2936,4 +2927,16 @@ func originMask(from string) int {
 		}
 	}
 	return m
+}
+
+// cantCounterRepl builds ReplSpellsCantBeCountered: the cast spell filter
+// (Chimil, the Inner Sun, Sphinx of the Final Word).
+func cantCounterRepl(ka kop.Ability, r lRepl, cb *cardBuilder) (kop.Ability, error) {
+	ka.Repl.Kind = kop.ReplSpellsCantBeCountered
+	f, err := cb.filter(r.F, kop.ZoneStack)
+	if err != nil {
+		return ka, err
+	}
+	ka.Repl.Filter = f
+	return ka, nil
 }

@@ -214,6 +214,7 @@ type genPrep struct {
 	anyContract     bool           // some line reads or puts contract counters: the cold buffer holds each seat's count (ctr_contract.go)
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyRedir        bool           // some program is ExtDmgRedirect: every damage site reads genState.redir (repl_dmgredirect.go)
+	anyStatRdr      bool           // a card carries ReplDamageRedirect: the damage sites read it (repl_staticredirect.go)
 	anyFiltRepl     bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl       bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock   bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
@@ -587,7 +588,7 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 // carries rbPlusDmg too, and its order ask changes the amount, so a table with
 // one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev)
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr)
 }
 
 type grantRef struct {
@@ -1180,6 +1181,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
+				case kop.ReplDamageRedirect:
+					prepStatRdrCard(g, pc)
 				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf, kop.ReplPreventDamageFilt, kop.ReplPreventDamageN:
 					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true

@@ -3,24 +3,8 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
-)
-
-// The Repl.C bits of a static damage redirect (kop.ReplDamageRedirect), as
-// the lowering stores them in rl.Bits.
-const (
-	rdrToYou        = 1 << 0 // ValidTarget$ You: the recipient is this source's controller
-	rdrToYouPerms   = 1 << 1 // ...or a permanent they control, this source's not among them (Permanent.Other+YouCtrl)
-	rdrToEnchanted  = 1 << 2 // ...or the object this source is attached to (Card.EnchantedBy)
-	rdrAsSelf       = 1 << 3 // VarValue$ Self: the damage is dealt to this source instead
-	rdrAsAttached   = 1 << 4 // ...to the object it is attached to (Enchanted, Equipped)
-	rdrAsSrcCtrl    = 1 << 5 // ...to the damage source's controller (ReplacedSourceController)
-	rdrAsTgtCtrl    = 1 << 6 // ...to the current recipient's controller (ReplacedTargetController)
-	rdrGateUntapped = 1 << 7 // only while this source is untapped (IsPresent$ Card.Self+untapped)
-	rdrGateEquipped = 1 << 8 // only while this source is attached to something (IsPresent$ Card.equipping)
-	rdrCombatOnly   = 1 << 9 // combat damage only (IsCombat$ True)
-	rdrSrcUnblocked = 1 << 10 // only an unblocked attacking creature (ValidSource$ Creature.unblocked)
-	rdrSrcChosen    = 1 << 11 // a spell source of this source's chosen colour (ValidSource$ ...ChosenColor)
 )
 
 // staticDmgRedirect lowers a printed static damage redirect (Pariah, Veteran
@@ -45,14 +29,14 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 		strings.TrimSpace(w.Params["VarName"]) != "Affected" {
 		return false, nil
 	}
-	bits := 0
+	bits := int16(0)
 	switch vt := rp.str("ValidTarget"); vt {
 	case "You":
-		bits |= rdrToYou
+		bits |= kop.RdrToYou
 	case "You,Permanent.Other+YouCtrl":
-		bits |= rdrToYou | rdrToYouPerms
+		bits |= kop.RdrToYou | kop.RdrToYouPerms
 	case "Card.EnchantedBy":
-		bits |= rdrToEnchanted
+		bits |= kop.RdrToEnchanted
 	default:
 		return false, nil
 	}
@@ -66,16 +50,16 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 	switch {
 	case !hasIP && !hasPD:
 	case hasIP && strings.TrimSpace(ip) == "Card.Self+untapped" && !hasPD:
-		bits |= rdrGateUntapped
+		bits |= kop.RdrGateUntapped
 	case hasIP && strings.TrimSpace(ip) == "Card.equipping" && hasPD && strings.TrimSpace(pd) == "Self":
-		bits |= rdrGateEquipped
+		bits |= kop.RdrGateEquipped
 	default:
 		return true, refuse("repl-hard: StaticDmgRedirect gate %q", ip)
 	}
 	switch ic := rp.str("IsCombat"); ic {
 	case "":
 	case "True":
-		bits |= rdrCombatOnly
+		bits |= kop.RdrCombatOnly
 	default:
 		return true, refuse("repl-hard: StaticDmgRedirect IsCombat$ %q", ic)
 	}
@@ -89,7 +73,7 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 			if err != nil {
 				return true, err
 			}
-			rl.F2, bits = f, bits|rdrSrcUnblocked
+			rl.F2, bits = f, bits|kop.RdrSrcUnblocked
 		case "Artifact":
 			f, err := lc.filter(vs)
 			if err != nil {
@@ -101,7 +85,7 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 			if err != nil {
 				return true, err
 			}
-			rl.F2, bits = f, bits|rdrSrcChosen
+			rl.F2, bits = f, bits|kop.RdrSrcChosen
 		default:
 			return true, refuse("repl-hard: StaticDmgRedirect ValidSource$ %q", vs)
 		}
@@ -112,23 +96,23 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 	vv := strings.TrimSpace(w.Params["VarValue"])
 	switch {
 	case dt == vv && dt == "Self":
-		bits |= rdrAsSelf
+		bits |= kop.RdrAsSelf
 	case dt == vv && (dt == "Enchanted" || dt == "Equipped"):
-		bits |= rdrAsAttached
+		bits |= kop.RdrAsAttached
 	case dt == vv && dt == "ReplacedSourceController":
-		bits |= rdrAsSrcCtrl
+		bits |= kop.RdrAsSrcCtrl
 	case dt == vv && dt == "ReplacedTargetController":
-		bits |= rdrAsTgtCtrl
+		bits |= kop.RdrAsTgtCtrl
 	default:
 		return true, refuse("repl-hard: StaticDmgRedirect DamageTarget$ %q", dt)
 	}
 	switch w.Params["VarType"] {
 	case "Card":
-		if bits&rdrAsSelf == 0 && bits&rdrAsAttached == 0 {
+		if bits&kop.RdrAsSelf == 0 && bits&kop.RdrAsAttached == 0 {
 			return true, refuse("repl-hard: StaticDmgRedirect VarType$ Card body")
 		}
 	case "Player":
-		if bits&rdrAsSrcCtrl == 0 && bits&rdrAsTgtCtrl == 0 {
+		if bits&kop.RdrAsSrcCtrl == 0 && bits&kop.RdrAsTgtCtrl == 0 {
 			return true, refuse("repl-hard: StaticDmgRedirect VarType$ Player body")
 		}
 	default:
@@ -136,8 +120,25 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 	}
 	rp.consume("Description", "ValidTarget", "ValidSource", "IsPresent", "PresentDefined", "IsCombat", "DamageTarget")
 	rl.Kind = "DamageRedirect"
-	rl.Bits = bits
+	rl.Bits = int(bits)
 	return true, nil
 }
 
 // ensure the C-bit block stays inside kop's int16 Repl.C
+
+// rdrRepl builds the ReplDamageRedirect ability: the C bits carry the
+// recipient filter, the new recipient and the gates (kop/staticredirect.go),
+// Filter2 the damage source.
+func rdrRepl(ka kop.Ability, r lRepl, cb *cardBuilder) (kop.Ability, error) {
+	rp := &ka.Repl
+	rp.Kind = kop.ReplDamageRedirect
+	rp.C = int16(r.Bits)
+	if r.F2 != nil {
+		f, err := cb.filter(r.F2, kop.ZoneBattlefield)
+		if err != nil {
+			return ka, err
+		}
+		rp.Filter2 = f
+	}
+	return ka, nil
+}
