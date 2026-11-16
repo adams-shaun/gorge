@@ -1807,16 +1807,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				done[sl] |= 1 << j
 				progressed = true
 				if kop.StoreManaAb(ab) {
-					// A storage battery's potential: its announced X
-					// (Count$xPaid) is indeterminate to gorge's potentialAmount,
-					// which folds such a production unbounded in every colour
-					// (potentialUnbounded), while the census's live-counter read
-					// (mana_countercost.go storeGap) serves the exact gates. A
-					// battery with no counter still admits here: its cost
-					// announces X (pay ManaSubCounterXBound floors it at XMin 0),
-					// so gorge's walk prices the ability payable and folds it
-					// open.
-					open = true
+					// A storage battery's potential is the counters it can remove
+					// (gorge potential_subcounter.go: its announced X is bounded by
+					// pay ManaSubCounterXBound), one mana of its colour each.
+					if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
+						add(sl, uint8(ab.ManaColors), uint8(min(n, 255)))
+					}
 					continue
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, add, &anyFree, &open) {
@@ -1994,9 +1990,8 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
 		// a storage battery (Mage-Ring Network, Dwarven Hold): its cost
 		// announces X ("remove any number"), so gorge's walk prices the
-		// activation payable whatever the counters it holds (pay
-		// ManaSubCounterXBound floors the announced X at XMin 0) and folds the
-		// battery's production open (the fixpoint's StoreManaAb arm)
+		// activation payable and folds in as many mana as the counters it
+		// holds (the fixpoint's StoreManaAb arm)
 		return true
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot

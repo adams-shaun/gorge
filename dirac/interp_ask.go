@@ -277,6 +277,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
 		}
+		if s.storeSourceCounts(k, p, sl) {
+			return true // a storage battery holding counters (mana_storesource.go)
+		}
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)
 		}
