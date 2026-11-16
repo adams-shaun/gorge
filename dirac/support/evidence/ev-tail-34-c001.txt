@@ -1,4 +1,5 @@
 A-Mentor's Guidance
+Ageless Guardian
 Agent of the Shadow Thieves
 An-Havva Inn
 Ancient Amphitheater
@@ -14,9 +15,11 @@ Bast, Panther Goddess
 Bazaar Krovod
 Black Lotus
 Blighted Steppe
+Blink Dog
 Blockade Runner
 Blockbuster
 Blood Clock
+Bloodboil Sorcerer
 Boarding Party
 Boggart Arsonists
 Boggart Brute
@@ -36,10 +39,13 @@ Company Commander
 Condescend
 Consulate Turret
 Copperline Gorge
+Crash
+Crash the Party
 Crash the Ramparts
 Crown of Empires
 Crude Rampart
 Cruel Deceiver
+Crusade
 Crystal Ball
 Cult Guildmage
 Custodian of the Trove
@@ -53,6 +59,8 @@ Dirty Rat
 District Guide
 Douse
 Drelnoch
+Drowner of Secrets
+Durable Coilbug
 Dust Elemental
 Dwarven Patrol
 Earthshape
@@ -79,12 +87,15 @@ Gnottvold Hermit
 Gossamer Phantasm
 Grim Guardian
 Grim Return
+Grizzled Outrider
 Ground Seal
 Guise of Fire
+Haunt of the Dead Marshes
 Hawkeye, Clint Barton
 Hired Poisoner
 Hoard Hauler
 Hookblade
+Hunter's Edge
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
@@ -114,6 +125,7 @@ Malachite Golem
 Marchesa's Infiltrator
 Master of the Pearl Trident
 Midnight Entourage
+Mind Over Matter
 Ministrant of Obligation
 Morale
 Mountain
@@ -128,8 +140,10 @@ Olivia's Wrath
 Order of Yawgmoth
 Orzhov Locket
 Otherworldly Outburst
+Peace of Mind
 Pegasus Stampede
 Pharika's Chosen
+Pillar of Light
 Plains
 Press into Service
 Quest for the Nihil Stone
@@ -142,10 +156,12 @@ Repulsor Rays
 Retreat to Coralhelm
 Revenge of the Hunted
 Rile
+Riot Piker
 Rising of the Day
 Ruin Crab
 Ruination
 Rukh Egg
+Saheeli's Silverwing
 Sai of the Shinobi
 Salvage Slasher
 Sand Silos
@@ -162,13 +178,17 @@ Silkbind Faerie
 Silver Myr
 Skittering Invasion
 Slate of Ancestry
+Sokka's Charge
 Soltari Trooper
+Soul's Might
+Sphere of Grace
 Sphinx of Jwar Isle
 Spidersilk Armor
 Spike-Tailed Ceratops
 Sprite Dragon
 Storm Sculptor
 Stun
+Suffocating Blast
 Summoning Materia
 Sunastian Falconer
 Sunder Shaman
@@ -193,6 +213,7 @@ Ulvenwald Captive
 Umara Wizard
 Undercellar Myconid
 Unlikely Aid
+Unnatural Growth
 Unwavering Initiate
 Venom, Eddie Brock
 Veteran's Powerblade
