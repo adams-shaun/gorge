@@ -1,0 +1,24 @@
+# Mergify merge queue trial (operator 11-16). PRs to main labelled `queue` are batched (up to 10 per CI run),
+# gated on the full CI (`ci-ok` aggregates every job, oracle included); a red batch is split and bisected by Mergify.
+queue_rules:
+  - name: default
+    queue_conditions:
+      - base=main
+      - label=queue
+      - -draft
+    merge_conditions:
+      - check-success=ci-ok
+    batch_size: 10
+    batch_max_wait_time: 5 min
+    merge_method: merge
+
+merge_queue:
+  max_parallel_checks: 2
+
+pull_request_rules:
+  - name: queue labelled PRs to main
+    conditions:
+      - base=main
+      - label=queue
+    actions:
+      queue:
