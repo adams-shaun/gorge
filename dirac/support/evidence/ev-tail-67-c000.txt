@@ -257,6 +257,7 @@ Novice Dissector
 Oblation
 Obscura Initiate
 Onulet
+Orcish Bowmasters
 Organ Hoarder
 Orim's Touch
 Paradox Engine

@@ -12,6 +12,7 @@ Ambush Paratrooper
 Anaconda
 Anarchist
 Anowon, the Ruin Sage
+Anthousa, Setessan Hero
 Aphetto Alchemist
 Arc Lightning
 Arcane Melee
@@ -98,6 +99,7 @@ Defense of the Heart
 Defensive Stance
 Defiant Elf
 Demolish
+Demolition Stomper
 Demon Bolt
 Descent into Avernus
 Desert Drake
@@ -181,12 +183,14 @@ Haystack
 Heart Sliver
 Heir of the Ancient Fang
 Heir of the Wilds
+Helionaut
 Herald of Secret Streams
 Hoarding Ogre
 Hollow Trees
 Holy Day
 Honor's Reward
 Hoof Skulkin
+Horribly Awry
 Howl of the Horde
 Hungry Spriggan
 Hunting Grounds
@@ -388,6 +392,7 @@ Sudden Insight
 Summer Bloom
 Sure-Footed Infiltrator
 Survive the Night
+Suspicious Stowaway
 Swamp
 Take Up Arms
 Talas Air Ship
@@ -437,6 +442,7 @@ Warbriar Blessing
 Warden of Geometries
 Warden of the Wall
 Warmth
+Warrant
 Weaver of Lightning
 Weldfast Wingsmith
 Wellwisher

@@ -3,11 +3,14 @@ A-Eyes of the Beholder
 A-Jackhammer
 Abyssal Hunter
 Active Volcano
+Aeronaut Admiral
 Agonizing Syphon
+Airdrop Condor
 Ajani's Influence
 Ajani, Valiant Protector
 Alhammarret, High Arbiter
 Altar of Bhaal
+Altar of Bone
 Amazing Alliance
 Ambush
 Aragorn and Arwen, Wed
@@ -19,6 +22,7 @@ Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
+Avabruck Caretaker
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
@@ -26,19 +30,24 @@ Ballroom
 Baloth Gorger
 Barbtooth Wurm
 Basilica Screecher
+Bastion Enforcer
 Beetleback Chief
 Benalish Sleeper
 Benthic Biomancer
 Blasted Landscape
 Boon-Bringer Valkyrie
+Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Butcher's Glee
 Cackling Flames
 Carrion Ants
+Cartouche of Knowledge
 Case of the Shifting Visage
 Centaur Garden
 Cerodon Yearling
+Charity Extractor
 Chimney Goyf
 Choking Restraints
 Chorus of Might
@@ -47,11 +56,14 @@ Clattering Augur
 Cogwork Spy
 Confound
 Consider
+Consign
 Contingency Plan
+Courier's Briefcase
 Covert Operative
 Crested Herdcaller
 Crimson Hellkite
 Curious Killbot
+Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
 Dawnhart Geist
@@ -90,6 +102,7 @@ Fell Flagship
 Filigree Crawler
 Filigree Fracture
 Fire Whip
+Fireblade Artist
 Fires of Victory
 Fleetwheel Cruiser
 Font of Progress
@@ -103,6 +116,7 @@ Garruk, Caller of Beasts
 Genestealer Locus
 Gift of Granite
 Gift of Wrath
+Glistening Extractor
 Gobbling Ooze
 Goblin Artillery
 Goblin Cadets
@@ -120,8 +134,10 @@ Hanabi Blast
 Harsh Scrutiny
 Hatchery Spider
 Hawkeye, Trick Shot
+Heartless Pillage
 Hellcarver Demon
 Henge of Ramos
+Heron's Grace Champion
 Hog-Monkey Rampage
 Howlpack Wolf
 Huatli's Raptor
@@ -132,8 +148,10 @@ Ifh-Bíff Efreet
 Ihsan's Shade
 Imaginary Friends
 Implode
+Incremental Blight
 Incubation Sac
 Indicate
+Infected Vermin
 Infuriate
 Insatiable Gorgers
 Iridescent Angel
@@ -144,17 +162,21 @@ Izzet Chronarch
 Jagwasp Swarm
 Jon Irenicus, the Exile
 Just the Wind
+Kaleidoscorch
 Karn's Bastion
 Kessig Wolfrider
 Kjeldoran Pride
 Klothys's Design
+Kor Duelist
 Koth's Courier
 Kranioceros
 Krosan Archer
 Leech Gauntlet
+Legacy Weapon
 Liliana's Scorn
 Lingering Phantom
 Llawan, Cephalid Empress
+Lumbering Satyr
 Magma Sliver
 Makindi Aeronaut
 Mana Prism
@@ -166,6 +188,7 @@ Merfolk Observer
 Merfolk of the Depths
 Mesa Unicorn
 Metathran Soldier
+Mindeye Drake
 Mirkwood Channeler
 Moira, Urborg Haunt
 Molten Rebuke
@@ -191,19 +214,23 @@ Outbreak
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
+Peel from Reality
 Pegasus Courser
 Peppersmoke
 Phalanx Vanguard
 Phantom Warrior
+Pharika's Libation
 Phyresis
 Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
+Pincer Spider
 Plague Rats
 Plains
 Planar Atlas
 Plated Spider
 Pouncing Lynx
+Power Sink
 Predict
 Press for Answers
 Primordial Sage
@@ -226,6 +253,7 @@ Returned Pastcaller
 Reverberate
 Rhonas's Monument
 Rhystic Study
+Riders of Rohan
 Rocco, Cabaretti Caterer
 Safe Haven
 Safehold Sentry
@@ -257,6 +285,7 @@ Smogsteed Rider
 Solitary Defiance
 Sootfeather Flock
 Soul Snuffers
+Soul's Majesty
 Spiketail Drake
 Spitting Drake
 Spotter Thopter
@@ -274,9 +303,11 @@ Stupor
 Summon the School
 Summon: Good King Mog XII
 Sunweb
+Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
 Swordwise Centaur
+Syndicate Messenger
 Syphon Life
 Talon Gates of Madara
 Tarfire
@@ -286,10 +317,13 @@ Teetering Peaks
 Tempest Owl
 Temporal Eddy
 Tenth District Veteran
+Teroh's Faithful
 Thalakos Sentry
 Thanos, Death's Consort
+Thassa's Rebuff
 The Falcon, Airship Restored
 Thistledown Duo
+Thornscape Apprentice
 Thran Quarry
 Timber Protector
 Timeless Lotus
@@ -297,6 +331,7 @@ Tin Street Cadet
 Titans' Vanguard
 Tooth of Chiss-Goria
 Towering Viewpoint
+Town Gossipmonger
 Trading Post
 Trigon of Thought
 Twincast
@@ -308,6 +343,7 @@ Verdant Rebirth
 Vexing Bauble
 Viashino Runner
 Viridian Corrupter
+Viscerid Deepwalker
 Vivid Crag
 Vizier of the Scorpion
 Volatile Rig

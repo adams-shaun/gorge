@@ -1,6 +1,7 @@
 A-Warm Welcome
 Abbey Griffin
 Acceptable Losses
+Aerial Caravan
 Aether Tunnel
 Age of Ultron
 Agent of Stromgald
@@ -224,6 +225,7 @@ Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
+Magmatic Force
 Malakir Bloodwitch
 Mardu Hateblade
 Marionette Apprentice
@@ -304,6 +306,7 @@ Rob the Archives
 Rustspore Ram
 Rustwing Falcon
 Scent of Nightshade
+Scourge of the Nobilis
 Scrap Mastery
 Screeching Bat
 Screeching Drake

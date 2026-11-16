@@ -14,6 +14,7 @@ Alpha Deathclaw
 Always Watching
 Amulet of Vigor
 And They Shall Know No Fear
+Angel of the Ruins
 Apostle of Purifying Light
 Appetite for the Unnatural
 Aqueous Form
@@ -73,6 +74,7 @@ Dispense Justice
 Distress
 Draconian Cylix
 Drifting Shade
+Drooling Groodion
 Dry Spell
 Dwarven Armory
 Dwarven Patrol
@@ -289,6 +291,7 @@ Trip Noose
 Trophy Mage
 Turbulent Fen
 Uktabi Orangutan
+Ultron the Annihilator
 Umara Mystic
 Unagi's Spray
 Undercity Informer

@@ -54,6 +54,7 @@ Carnival of Souls
 Chainer's Edict
 Chakram Retriever
 Chandra's Triumph
+Chandra, Legacy of Fire
 Cleansing Wildfire
 Collector's Case
 Conifer Strider
@@ -135,6 +136,7 @@ Fracture
 Fungus Sliver
 Fungusaur
 Gallantry
+Gallows at Willow Hill
 Generous Visitor
 Ghoultree
 Gilt-Leaf Seer

@@ -311,6 +311,7 @@ Puppet's Verdict
 Puppeteer
 Qilin's Blessing
 Radiating Lightning
+Rage Thrower
 Raging Bull
 Raging Ravine
 Ramosian Lieutenant
@@ -329,6 +330,7 @@ Roiling Waters
 Rotted Hystrix
 Rotting Legion
 Ruin Raider
+Saber Ants
 Saddled Rimestag
 Sagu Archer
 Samite Alchemist
@@ -392,6 +394,7 @@ Steelform Sliver
 Steppe Glider
 Sterling Grove
 Stern Dismissal
+Sticky Fingers
 Stingerfling Spider
 Stoneshaker Shaman
 Stoneskin

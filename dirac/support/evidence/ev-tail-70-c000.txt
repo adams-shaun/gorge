@@ -4,11 +4,14 @@ Act of Treason
 Adric, Mathematical Genius
 Aerial Guide
 Aether Swooper
+Aether Tradewinds
+Air-Cult Elemental
 Akoum Warrior
 Allied Assault
 Alpha Authority
 Amazing Spider-Girl
 Ancient Hydra
+Angel of Sanctions
 Angel of Serenity
 Angelic Skirmisher
 Angrath's Marauders
@@ -137,6 +140,7 @@ Goblin Elite Infantry
 Goblin Grenade
 Goblin Guide
 Goblin Tinkerer
+Golem Foundry
 Grave Titan
 Gretchen Titchwillow
 Growth Cycle
@@ -150,6 +154,7 @@ Hero's Heirloom
 Holy Strength
 Hoof Skulkin
 Hopping Automaton
+Hoverguard Sweepers
 Hullbreaker Horror
 Hythonia the Cruel
 Ignite Disorder
@@ -193,7 +198,10 @@ Manticore of the Gauntlet
 Marshmist Titan
 Mask of the Jadecrafter
 Masterwork of Ingenuity
+Maze Abomination
+Memnarch, the Warden
 Mesmeric Trance
+Metropolis Angel
 Mind Slash
 Minotaur Sureshot
 Mountain
@@ -208,7 +216,9 @@ Noble Vestige
 Oath of Eorl
 Oath of Scholars
 Offering to Asha
+Okiba Reckoner Raid
 Old Rutstein
+Old Stickfingers
 Omen of the Forge
 Ooze Garden
 Oran-Rief Invoker
@@ -224,6 +234,7 @@ Plains
 Planar Gate
 Plated Onslaught
 Plated Slagwurm
+Pollenbright Wings
 Port of Karfell
 Possessed Nomad
 Predatory Nightstalker
@@ -233,6 +244,7 @@ Primal Frenzy
 Primal Rage
 Putrid Cyclops
 Quietus Spike
+Quirion Beastcaller
 Radagast, Wizard of Wilds
 Radiant Purge
 Raging Goblin
@@ -245,6 +257,7 @@ Relentless Skaabs
 Return of the Mole Man
 Return to Nature
 Revered Elder
+Rhystic Scrying
 Rishadan Airship
 Road of Return
 Roaring Primadox
@@ -261,6 +274,7 @@ Scrollshift
 Scuzzback Scrapper
 Scythe Leopard
 Seashell Cameo
+Sedgemoor Witch
 Sentinel of the Eternal Watch
 Servo Schematic
 Settle Beyond Reality
@@ -268,6 +282,7 @@ Shanna, Purifying Blade
 Shatterskull Giant
 Shoal Kraken
 Shu Grain Caravan
+Sickle Dancer
 Sigil Blessing
 Silent Attendant
 Silk Net
@@ -297,6 +312,7 @@ Start
 Steel of the Godhead
 Stonebound Mentor
 Stonecloaker
+Stormbound Geist
 Summer Bloom
 Svogthos, the Restless Tomb
 Swamp
@@ -317,6 +333,7 @@ Thundering Giant
 Titania's Command
 Tormented Angel
 Totem-Guide Hartebeest
+Tourach, Dread Cantor
 Toxic Stench
 Tradewind Rider
 Transmogrifying Licid

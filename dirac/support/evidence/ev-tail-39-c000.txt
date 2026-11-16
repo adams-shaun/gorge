@@ -118,6 +118,7 @@ Dovin's Dismissal
 Draco
 Drakewing Krasis
 Drana's Emissary
+Dread Presence
 Drey Keeper
 Dromoka Dunecaster
 Dry Spell
@@ -152,6 +153,7 @@ Fowl Play
 Freedom Fighter Recruit
 Frontline Rebel
 Frostwind Invoker
+Fungal Sprouting
 Gallows Warden
 Game-Trail Changeling
 Gatebreaker Ram
@@ -294,6 +296,7 @@ Rage of Purphoros
 Ragged Recluse
 Raging Kronch
 Raging Swordtooth
+Raiders' Wake
 Rakka Mar
 Rally at the Hornburg
 Ravenous Necrotitan
@@ -413,6 +416,7 @@ Wall of Fire
 Warped Devotion
 Warped Landscape
 Warriors of Wakanda
+Wash Away
 Welcoming Vampire
 Whetwheel
 Wild Slash

@@ -31,6 +31,7 @@ Avatar of Might
 Aven Battle Priest
 Azorius Keyrune
 Banishing Slash
+Baron Sengir
 Baru, Wurmspeaker
 Basri's Aegis
 Bast, Panther Goddess
@@ -208,6 +209,7 @@ Mage Duel
 Magmatic Channeler
 Manabond
 Manglehorn
+Mardu Banner
 Maw of the Obzedat
 Megrim
 Meldweb Curator

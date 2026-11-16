@@ -83,6 +83,7 @@ Copy Artifact
 Cradle of Safety
 Creeping Crystal Coating
 Crossbow Ambush
+Crovax the Cursed
 Crowd's Favor
 Crush Contraband
 Crush Dissent
@@ -273,6 +274,7 @@ Mascot Interception
 Mass Production
 Maverick Thopterist
 Merfolk Skyscout
+Merrow Levitator
 Metathran Zombie
 Militant Monk
 Mire Triton
@@ -295,6 +297,7 @@ Nahiri's Stoneblades
 Naktamun Lorespinner
 Narset's Reversal
 Natural Obsolescence
+Necra Disciple
 Needlebug
 Niblis of Frost
 Nightmarish End

@@ -92,6 +92,7 @@ Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Essence Extraction
 Eternal Isolation
+Eviscerator's Insight
 Evolution Charm
 Explosive Impact
 Eyeblight Massacre
@@ -119,6 +120,7 @@ Goblin Brigand
 Goblin Sharpshooter
 Grazing Whiptail
 Green Sun's Zenith
+Grim Hireling
 Grim Poppet
 Grizzly Bears
 Guide of Souls
@@ -138,10 +140,12 @@ Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Ichor Explosion
 Ideas Unbound
 Impetuous Protege
 Industrial Advancement
 Infantry Veteran
+Inhumaniac
 Innistrad Charm
 Innocence Kami
 Island
@@ -203,12 +207,14 @@ Noble Steeds
 Nomad Mythmaker
 One-Clown Band
 Onyx Mage
+Oraxid
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
 Parapet Watchers
 Path of Discovery
 Phyrexian Monitor
+Plague Beetle
 Plaguemaw Beast
 Plains
 Plunder
@@ -296,6 +302,7 @@ Strangling Soot
 Strangling Spores
 Straw Soldiers
 Street Spasm
+Strider Harness
 Stronghold Assassin
 Summit Apes
 Sun Droplet
@@ -336,6 +343,7 @@ Wall Off
 Wall of Mist
 Warbeast of Gorgoroth
 Wight
+Wooden Cane
 Workshop Assistant
 Wu Elite Cavalry
 Wurmcoil Engine

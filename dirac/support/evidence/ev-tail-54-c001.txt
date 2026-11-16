@@ -9,6 +9,7 @@ Balefire Liege
 Battlefield Butcher
 Bazaar Krovod
 Bearded Axe
+Betrayal of Flesh
 Biting-Palm Ninja
 Black Market Connections
 Bladed Pinions
@@ -21,12 +22,15 @@ Bond of Agony
 Bontu's Last Reckoning
 Brambleweft Behemoth
 Brought Back
+Burst of Strength
 Catapult Squad
 Chill of Foreboding
 Chimeric Egg
 Clarion Cathars
 Commune with Dinosaurs
+Copper Longlegs
 Copy Artifact
+Crippling Blight
 Crop Rotation
 Crystal Rod
 Crystalline Sliver
@@ -44,14 +48,17 @@ Dispense Justice
 Divination
 Downhill Charge
 Dragon's Claw
+Eldrazi Displacer
 Elspeth's Devotee
 Ember-Eye Wolf
+Enatu Golem
 Esior, Wardwing Familiar
 Esper Panorama
 Festercreep
 Fiery Temper
 Fire Nation Ambushers
 Flame-Blessed Bolt
+Flaming Fist Officer
 Fleecemane Lion
 Font of Fertility
 Forest
@@ -77,16 +84,21 @@ Harsh Sustenance
 Haunter of Nightveil
 Haunting Figment
 Heartwood Treefolk
+Hellrider
 Hero of Precinct One
+Hitchclaw Recluse
 Hold the Line
 Homarid Explorer
 Honeymoon Hearse
 Honor Troll
+Hungry Spriggan
+Hystrodon
 Ich-Tekik, Salvage Splicer
 Immersturm Raider
 Implement of Combustion
 Infested Fleshcutter
 Iron Man, Tony Stark
+Ironroot Treefolk
 Island
 Jolt
 Jor Kadeen, First Goldwarden
@@ -114,8 +126,11 @@ Malignant Growth
 Mandroid Squadron
 Massive Might
 Miss Highwater
+Moonbow Illusionist
 Mountain
+Mystic Melting
 Nahiri's Machinations
+Natural Affinity
 Natural Connection
 Night Terrors
 Norwood Riders
@@ -126,16 +141,21 @@ Orim's Prayer
 Ostiary Thrull
 Ovalchase Dragster
 Paladin of the Bloodstained
+Parallel Lives
+Peak Eruption
 Peema Trailblazer
 Peregrine Mask
 Phyrexia's Core
 Phyrexian Digester
+Plague Stinger
 Plains
 Plasma Elemental
+Plated Rootwalla
 Poison-Blade Mentor
 Pridemalkin
 Protocol Knight
 Pyromancer's Swath
+Pyrrhic Blast
 Quest for the Goblin Lord
 Racers' Ring
 Radioactive Man
@@ -154,6 +174,7 @@ Run Out of Town
 Sacred Prey
 Sandbar Merfolk
 Sandsower
+Saproling Symbiosis
 Sarulf's Packmate
 Savage Gorger
 Scalding Tarn
@@ -164,6 +185,7 @@ Setessan Champion
 Shadow of Mortality
 Shivan Fire
 Shivan Phoenix
+Shock Troops
 Shower of Sparks
 Shu Elite Infantry
 Silent Artisan
@@ -174,6 +196,7 @@ Sky Skiff
 Skyshroud Forest
 Slime Molding
 Slinking Serpent
+Smelt-Ward Minotaur
 Sokka, Wolf Cove's Protector
 Soltari Visionary
 Soul of the Harvest
@@ -181,6 +204,7 @@ Soul's Attendant
 Sphinx of New Prahv
 Spirit Weaver
 Squire
+Staff of Nin
 Stalwart Aven
 Steadfast Guard
 Still Life
@@ -193,12 +217,15 @@ Sunblast Angel
 Sunfall
 Survivors' Encampment
 Swamp
+Sylvok Lifestaff
 Tail Swipe
+Take Down
 Tangled Skyline
 Tazeem Raptor
 Tempest Caller
 Temple Bell
 The Duke, Rebel Sentry
+Thousand-Year Elixir
 Tin-Wing Chimera
 Torch Song
 Transplant Theorist
@@ -206,6 +233,8 @@ Traveler's Amulet
 Trespasser il-Vec
 Trusty Machete
 Tundra
+Twinferno
+Unchecked Growth
 Vampire Champion
 Viral Drake
 Visions of Beyond
@@ -215,4 +244,5 @@ Wall of Hope
 War Priest of Thune
 Weaponcraft Enthusiast
 Well of Life
+Yavimaya Ancients
 Zodiac Horse

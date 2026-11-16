@@ -156,6 +156,7 @@ Goblin Firestarter
 God-Eternal Oketra
 Golgari Cluestone
 Goring Ceratops
+Grakmaw, Skyclave Ravager
 Grappler Spider
 Grassland Crusader
 Gravelighter
@@ -402,6 +403,7 @@ Trygon Prime
 Tsunami
 Twilight Drover
 Tyranid Invasion
+Tyrant Guard
 Ulrich's Kindred
 Unnatural Predation
 Unyaro Griffin
@@ -422,6 +424,7 @@ Virtuous Variant
 Vitu-Ghazi, the City-Tree
 Volcanic Island
 Vulshok Refugee
+Wall of Brambles
 Wall of Mulch
 Wall of Omens
 Wall of Wood

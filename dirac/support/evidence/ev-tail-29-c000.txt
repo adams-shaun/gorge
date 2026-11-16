@@ -13,6 +13,7 @@ Angelheart Protector
 Araña, Heart of the Spider
 Avacyn's Memorial
 Barbtooth Wurm
+Base Camp
 Bastion Mastodon
 Battlegrace Angel
 Bellowing Tanglewurm
@@ -24,6 +25,7 @@ Boggart Birth Rite
 Bonds of Faith
 Bone Pit Brute
 Brain Maggot
+Brightclimb Pathway
 Broken Bond
 Brotherhood's End
 Burn the Accursed
@@ -120,6 +122,7 @@ Island
 Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
+Kabira Crossroads
 Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
@@ -131,6 +134,7 @@ Liliana's Spoils
 Littjara Glade-Warden
 Living Wall
 Lossarnach Captain
+Lost Leonin
 Magma Jet
 Master of Diversion
 Maximus, Knight Apparent
@@ -162,10 +166,12 @@ Plow Through Reito
 Press into Service
 Prickly Marmoset
 Priest of Titania
+Princess Lucrezia
 Prowling Serpopard
 Purge the Profane
 Ramosian Lieutenant
 Return of the Mole Man
+Revoke Demise
 River's Favor
 Road
 Root Spider
@@ -183,6 +189,7 @@ Skullmead Cauldron
 Skyshroud Claim
 Slaughter-Priest of Mogis
 Smothering Tithe
+Soaring Seacliff
 Solar Blast
 Sootfeather Flock
 Soul of the Rapids
@@ -201,12 +208,15 @@ Stormcloud Djinn
 Strategic Planning
 Strength of the Pack
 Strider, Ranger of the North
+Study
 Sturmgeist
 Swamp
 Swarm of Rats
 Sylvok Replica
 Talisman of Resilience
 Tar Pit Warrior
+Terisiare's Devastation
+Thalakos Drifters
 Thornscape Familiar
 Thundering Raiju
 Tibalt's Rager

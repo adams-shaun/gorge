@@ -14,6 +14,7 @@ Anaba Shaman
 Anax and Cymede
 Andúril, Narsil Reforged
 Angelic Exaltation
+Apex Altisaur
 Arbor Armament
 Arena Rector
 Arni Slays the Troll
@@ -53,6 +54,7 @@ Brokers Confluence
 Brood Monitor
 Browse
 Caligo Skin-Witch
+Caller of the Pack
 Canyon Jerboa
 Carapace Forger
 Castle Locthwain
@@ -89,6 +91,7 @@ Death-Greeter's Champion
 Deathbloom Ritualist
 Deathbloom Thallid
 Deepwood Drummer
+Dega Disciple
 Demonic Collusion
 Deputy of Acquittals
 Despark
@@ -112,6 +115,7 @@ Eldrazi Devastator
 Elenda, the Dusk Rose
 Embermage Goblin
 Enclave Cryptologist
+Endbringer
 Energy Tap
 Enhanced Awareness
 Ephara's Dispersal
@@ -119,6 +123,7 @@ Erase
 Eternity Snare
 Evolutionary Leap
 Expose Evil
+Extinguish
 Exultant Cultist
 False Summoning
 Fantastic Elasticity
@@ -156,6 +161,7 @@ Gruul Scrapper
 Gryff Vanguard
 Gustcloak Skirmisher
 H.E.R.B.I.E., Lovable Robot
+Half-Elf Monk
 Hammer of Nazahn
 Hammers of Moradin
 Hapatra, the Desert Frost
@@ -167,7 +173,9 @@ Hellhole Rats
 Hidden Path
 Honor the God-Pharaoh
 Hua Tuo, Honored Physician
+Hulkbuster Armor
 Hungry Flames
+Icefall Regent
 Icy Manipulator
 Imperial Ceratops
 Indomitable Ancients
@@ -200,6 +208,7 @@ Larceny
 Law-Rune Enforcer
 Layla Hassan
 Leeching Licid
+Legion's Judgment
 Leyline Dowser
 Light of Day
 Llanowar Loamspeaker
@@ -207,6 +216,7 @@ Loathsome Chimera
 Locust Swarm
 Loxodon Partisan
 Lumengrid Sentinel
+Luminous Angel
 Lurching Rotbeast
 Lyse Hext
 Mage Duel
@@ -278,6 +288,7 @@ Radha, Heart of Keld
 Raging Ravine
 Raiders' Spoils
 Rakdos Ragemutt
+Ramosian Commander
 Rathi Dragon
 Ravenous Daggertooth
 Ravenous Gigamole
@@ -295,6 +306,7 @@ Restore
 Retreat to Coralhelm
 Return the Past
 Riddleform
+Righteousness
 Ring of Valkas
 Riot Control
 Riparian Tiger
@@ -336,6 +348,7 @@ Shields of Velis Vel
 Shiny Impetus
 Shorikai, Genesis Engine
 Sierra, Nuka's Biggest Fan
+Sifa Grent
 Sigil of Myrkul
 Sigiled Sentinel
 Signpost Scarecrow
@@ -372,9 +385,11 @@ Stern Dismissal
 Steward of Valeron
 Storm Front
 Storm Seeker
+Stormcaller's Boon
 Sudden Impact
 Sun Sentinel
 Sun-Crowned Hunters
+Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping

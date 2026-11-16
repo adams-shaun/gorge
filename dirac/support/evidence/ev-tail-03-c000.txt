@@ -52,6 +52,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Call the Skybreaker
 Campus Renovation
 Capsize
 Celestial Crusader
@@ -136,6 +137,7 @@ Fogwalker
 Font of Mythos
 Forbid
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
@@ -194,6 +196,7 @@ Innocent Blood
 Inspired Tinkering
 Iridescent Angel
 Island
+Jace, Memory Adept
 Jamie McCrimmon
 Jeskai Student
 Jolrael, Mwonvuli Recluse
@@ -255,6 +258,7 @@ Nadier's Nightblade
 Narcolepsy
 Nessian Asp
 Nesting Dragon
+Neutralize
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker

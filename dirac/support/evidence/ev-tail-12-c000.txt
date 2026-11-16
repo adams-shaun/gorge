@@ -1,3 +1,4 @@
+A-Blood Artist
 A-Haywire Mite
 A-Manticore
 A-Sunbathing Rootwalla
@@ -30,6 +31,7 @@ Badlands
 Balustrade Spy
 Battle Hymn
 Benalish Veteran
+Birthing Boughs
 Blessed Wind
 Blind-Spot Giant
 Bog Glider
@@ -48,6 +50,7 @@ Call to Heel
 Call to Serve
 Cankerbloom
 Carrier Pigeons
+Catalyst Elemental
 Cathartic Pyre
 Centaur Archer
 Center Soul
@@ -70,6 +73,7 @@ Crashing Centaur
 Crowded Crypt
 Cunning Sparkmage
 Dawnglare Invoker
+Deepwater Hypnotist
 Defender en-Vec
 Diamond Knight
 Disentomb
@@ -80,6 +84,7 @@ Dragon's Approach
 Dragonspark Reactor
 Dramatic Entrance
 Duskmantle Prowler
+Dwarven Grunt
 Dwarven Lieutenant
 E. Honda, Sumo Champion
 Eagle of the Watch
@@ -106,6 +111,7 @@ Geralf's Masterpiece
 Get the Point
 Geyserfield Stalker
 Glacial Stalker
+Gliding Licid
 Glowrider
 Gnarled Mass
 Go for the Throat
@@ -128,6 +134,7 @@ Hexgold Halberd
 Hickory Woodlot
 Highway Robber
 Hobgoblin Captain
+Holy Armor
 Honden of Seeing Winds
 Hornbash Mentor
 Hurloon Battle Hymn
@@ -140,8 +147,10 @@ Infernal Idol
 Inspired Charge
 Insufferable Balladeer
 Into the Void
+Invasion of Azgol
 Iron Man, Armored Avenger
 Irradiate
+Irreverent Revelers
 Island
 Jasmine Seer
 Jedit Ojanen of Efrava
@@ -149,14 +158,18 @@ Kavu Climber
 Kaya's Ghostform
 Kinjalli's Sunwing
 Kjeldoran War Cry
+Knowing
 Kraken's Eye
 Kyren Glider
 Landroval, Horizon Witness
+Last Caress
+Laurine, the Diversion
 Legions to Ashes
 Leonin Armorguard
 Lich's Caress
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
+Macabre Mockery
 Mad Auntie
 Manaplasm
 Mantle of Leadership
@@ -168,9 +181,12 @@ Medicine Bag
 Medusa, Inhuman Queen
 Memory Erosion
 Mephitic Ooze
+Mind's Eye
 Mine Collapse
+Minotaur Tactician
 Mishra's Self-Replicator
 Misty Rainforest
+Molten Nursery
 Molten Rain
 Momentous Fall
 Moriok Scavenger
@@ -197,7 +213,9 @@ Peer Through Depths
 Petravark
 Pheres-Band Centaurs
 Phyrexian War Beast
+Plague Spitter
 Plains
+Portent of Betrayal
 Possessed Centaur
 Power Armor
 Primal Growth
@@ -227,7 +245,9 @@ Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
+Rise to the Challenge
 Rishadan Pawnshop
+Rix Maadi, Dungeon Palace
 Rotwidow Pack
 Royal Warden
 Rude Awakening
@@ -249,14 +269,17 @@ Serum Powder
 Seton's Desire
 Seven-Tail Mentor
 Sewer Rats
+Sheoldred, Whispering One
 Shire Terrace
 Silverquill Apprentice
 Skittering Cicada
 Slimebind
 Slimy Piper
 Slingshot Goblin
+Sliptide Serpent
 Slumbering Dragon
 Sophic Centaur
+Soul Shred
 Soul Summons
 Soul of Innistrad
 Soul of the Harvest
@@ -283,6 +306,7 @@ Terra Stomper
 Terror
 Thanos, Death's Consort
 Thassa, Deep-Dwelling
+Thaumatic Compass
 The Circle of Loyalty
 The Tabernacle at Pendrell Vale
 Third Path Savant
@@ -304,6 +328,7 @@ Unnerve
 Unquestioned Authority
 Urborg Skeleton
 Urza's Rebuff
+Uthros Research Craft
 Vampire Noble
 Vigil for the Lost
 Vindictive Mob
@@ -314,6 +339,7 @@ Warden of the Chained
 Waste Away
 Waterfront Bouncer
 Weapon Surge
+Well of Discovery
 Wildwood Patrol
 Wither and Bloom
 Wooded Ridgeline

@@ -1,4 +1,5 @@
 A-Imperial Subduer
+A-Kargan Warleader
 A-Radha's Firebrand
 Abzan Kin-Guard
 Adeline, Resplendent Cathar
@@ -15,6 +16,7 @@ Anaba Spirit Crafter
 Ancestral Mask
 Ancestral Vengeance
 Angel of Sanctions
+Angelic Sell-Sword
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
@@ -56,6 +58,7 @@ Brood Weaver
 Brotherhood Patriarch
 Brothers of Fire
 Brought Back
+Budoka Gardener
 Burning-Yard Trainer
 Cacophodon
 Caldera Lake
@@ -227,6 +230,7 @@ Mantle of Webs
 Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
+Master Healer
 Master's Call
 Merchant Raiders
 Merrow Harbinger
@@ -248,6 +252,7 @@ Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
 Nissa, Vital Force
+Niv-Mizzet, Dracogenius
 Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
@@ -262,8 +267,11 @@ Ordruun Veteran
 Outnumber
 Outrider of Jhess
 Overwhelmed Apprentice
+Overwhelming Intellect
+Owlbear
 Ox of Agonas
 P-Joven and Chandler
+Paragon of the Amesha
 Pardic Firecat
 Peek
 Pemmin's Aura
@@ -291,6 +299,7 @@ Rakdos Pit Dragon
 Rats of Rath
 Ray of Enfeeblement
 Reality Anchor
+Reality Strobe
 Reckless Embermage
 Reckless Ogre
 Recoup
@@ -304,6 +313,7 @@ Revenge of Ravens
 Rhizome Lurcher
 Ritual of the Machine
 Root Snare
+Rosemane Centaur
 Rotten Reunion
 Rule of Law
 Runeclaw Bear
@@ -313,6 +323,7 @@ Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sarkhan's Triumph
 Scale the Heights
+Scaled Behemoth
 Scurrilous Sentry
 Second Thoughts
 Selhoff Entomber
@@ -321,6 +332,7 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shinen of Stars' Light
 Shinka, the Bloodsoaked Keep
 Shoal Serpent
 Silent Observer

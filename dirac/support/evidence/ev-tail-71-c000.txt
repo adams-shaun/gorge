@@ -45,6 +45,7 @@ Blood Pet
 Bloodfire Expert
 Bloodforged Battle-Axe
 Bloodvial Purveyor
+Bogbrew Witch
 Bola Warrior
 Bone Pit Brute
 Boomerang
@@ -60,6 +61,7 @@ Cabal Surgeon
 Callous Dismissal
 Campaign of Vengeance
 Canyon Lurkers
+Captivating Gyre
 Captured Sunlight
 Cat Oven
 Cathedral Sanctifier
@@ -79,6 +81,7 @@ Cruel Sadist
 Crumbling Necropolis
 Crypt Cobra
 Crystal Chimes
+Cut Your Losses
 Cyclops Electromancer
 D'Avenant Archer
 Daggerclaw Imp
@@ -107,6 +110,7 @@ Dying Wail
 Earthshaker Giant
 Eccentric Farmer
 Electropotence
+Elven Cache
 Elvish Piper
 Elvish Visionary
 Emerald Medallion
@@ -122,6 +126,7 @@ Fanatical Devotion
 Fatal Frenzy
 Fated Infatuation
 Ferrovore
+Feywild Visitor
 Field Research
 Field of Souls
 Fire Servant
@@ -142,6 +147,7 @@ Frantic Salvage
 Freewind Falcon
 Frenetic Efreet
 Fungal Plots
+Garbage Elemental
 Gargoyle Flock
 Garruk's Warsteed
 Gather Courage
@@ -163,10 +169,12 @@ Gruesome Discovery
 Guardian Automaton
 Guardian Lions
 Gut, True Soul Zealot
+Gwaihir the Windlord
 Hallowed Healer
 Hanna, Ship's Navigator
 Harnessed Lightning
 Harsh Sustenance
+Hateflayer
 Hawkeye, Avenging Archer
 Haze of Pollen
 Hearth Kami
@@ -222,6 +230,7 @@ Mask of Memory
 Masumaro, First to Live
 Mechanical Glider
 Meldweb Curator
+Meldweb Strider
 Memorial to Unity
 Mephitic Ooze
 Metastatic Evangel
@@ -322,6 +331,7 @@ Sighted-Caste Sorcerer
 Siren Song Lyre
 Skatewing Spy
 Sky Crier
+Skycat Sovereign
 Skyswirl Harrier
 Slagstone Refinery
 Slinking Skirge
@@ -335,6 +345,7 @@ Soulcatcher
 Spawnwrithe
 Spiked Ripsaw
 Spikefield Hazard
+Spirit Summoning
 Splatter Goblin
 Squee's Toy
 Staff of the Sun Magus
@@ -394,6 +405,7 @@ Wanderer's Twig
 Wandering Ones
 Wave of Terror
 Webspinner Cuff
+Weight of Memory
 Weldfast Wingsmith
 Whirlermaker
 Wing Shards

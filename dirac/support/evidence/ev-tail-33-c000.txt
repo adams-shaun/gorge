@@ -42,6 +42,7 @@ Bag End Porter
 Battlefront Krushok
 Belligerent Brontodon
 Belligerent Hatchling
+Blast Zone
 Blighted Agent
 Blightreaper Thallid
 Blistering Dieflyn
