@@ -123,6 +123,18 @@ func chainFlags2(t *kop.Table, f kop.FilterID) kop.FilterFlags2 {
 	return out
 }
 
+// chainHasOther reports whether any clause of filter f's Or chain carries
+// FOther (not the source itself).
+func chainHasOther(t *kop.Table, f kop.FilterID) bool {
+	for n := 0; f != 0 && int(f) < len(t.Filters) && n < len(t.Filters); n++ {
+		if t.Filters[f].Flags&kop.FOther != 0 {
+			return true
+		}
+		f = t.Filters[f].Or
+	}
+	return false
+}
+
 // markSrc records that source object src marked the permanent at sl.
 //
 //go:noinline
