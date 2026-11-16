@@ -2354,49 +2354,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 	}
 	if hasKW && kw != "" {
-		rest, fbs, err := splitFirebendingGrant(kw)
-		if err != nil {
+		if err := lc.pumpGrantKw(kw, obj, zone); err != nil {
 			return err
-		}
-		if len(fbs) > 0 && zone != zBattlefield {
-			return refuse("granted Firebending to a non-battlefield object")
-		}
-		rest, myriads := splitMyriadGrant(rest)
-		if myriads > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
-			return refuse("granted Myriad to a non-battlefield object")
-		}
-		if rest != "" || len(fbs)+myriads == 0 {
-			ks, err := pumpKeywords(rest)
-			if err != nil {
-				return err
-			}
-			if lc.pumpPlayerRef(obj) {
-				if err := lc.pumpPlayerEOT(ks); err != nil {
-					return err
-				}
-			} else {
-				lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
-			}
-		}
-		for _, n := range fbs {
-			// CR 702.189a granted until end of turn: the latent Attacks
-			// trigger rides an end-of-turn override record; identical
-			// applications stack (lower_firegrant.go)
-			idx, err := lc.firebendGrantTrigger(n)
-			if err != nil {
-				return err
-			}
-			lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
-		}
-		for range myriads {
-			// CR 702.116a granted until end of turn (Duke Ulder Ravengard):
-			// gorge's granted walk synthesizes the trigger from the
-			// registered AddKeywords line (lower_myriad.go)
-			idx, err := lc.myriadGrantTrigger()
-			if err != nil {
-				return err
-			}
-			lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
 		}
 	}
 	if len(extra) > 0 {
@@ -2432,6 +2391,69 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		// record's CantAttack (there is no kernel keyword bit for the attack half)
 		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "CantBlock"})
 		lc.emitOverride(obj, &lOverride{CantAttack: true}, "EOT")
+	}
+	return nil
+}
+
+// pumpGrantKw emits one Pump's granted-keyword sentence (the KW$ value split
+// into rest keywords, Firebending, Myriad and Landwalk grants, each until end
+// of turn as the rules grant them) for the already-resolved subject obj.
+func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
+	rest, fbs, err := splitFirebendingGrant(kw)
+	if err != nil {
+		return err
+	}
+	if len(fbs) > 0 && zone != zBattlefield {
+		return refuse("granted Firebending to a non-battlefield object")
+	}
+	rest, myriads := splitMyriadGrant(rest)
+	if myriads > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
+		return refuse("granted Myriad to a non-battlefield object")
+	}
+	rest, landwalk, err := lc.splitLandwalkPump(rest) // lower_landwalkgrant.go
+	if err != nil {
+		return err
+	}
+	if landwalk != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
+		return refuse("granted landwalk to a non-permanent subject")
+	}
+	if rest != "" || len(fbs)+myriads == 0 && landwalk == nil {
+		ks, err := pumpKeywords(rest)
+		if err != nil {
+			return err
+		}
+		if lc.pumpPlayerRef(obj) {
+			if err := lc.pumpPlayerEOT(ks); err != nil {
+				return err
+			}
+		} else {
+			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
+		}
+	}
+	if landwalk != nil {
+		// CR 702.14 granted until end of turn: an end-of-turn override
+		// record carrying the land filter (kop.Override.Landwalk)
+		lc.emitOverride(obj, &lOverride{Landwalk: landwalk}, "EOT")
+	}
+	for _, n := range fbs {
+		// CR 702.189a granted until end of turn: the latent Attacks
+		// trigger rides an end-of-turn override record; identical
+		// applications stack (lower_firegrant.go)
+		idx, err := lc.firebendGrantTrigger(n)
+		if err != nil {
+			return err
+		}
+		lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
+	}
+	for range myriads {
+		// CR 702.116a granted until end of turn (Duke Ulder Ravengard):
+		// gorge's granted walk synthesizes the trigger from the
+		// registered AddKeywords line (lower_myriad.go)
+		idx, err := lc.myriadGrantTrigger()
+		if err != nil {
+			return err
+		}
+		lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
 	}
 	return nil
 }
