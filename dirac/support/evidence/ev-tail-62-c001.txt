@@ -1,47 +1,320 @@
+A-Mightstone's Animation
+A-Scout the Wilderness
+A-Skull Skaab
 Aegis of the Gods
+Aether Inspector
+Algae Gharial
+Almost Perfect
+Ambition's Cost
+An-Zerrin Ruins
+Ancient Ooze
+Angel of the Dire Hour
 Anointed Procession
+Ardent Electromancer
+Argivian Blacksmith
+Artifact Mutation
+Ashnod, Flesh Mechanist
+Atraxa's Fall
+Atsushi, the Blazing Sky
+Attended Healer
+Augury Owl
+Avacyn's Memorial
 Aven Squire
+Aven Surveyor
 Azorius Knight-Arbiter
+Bad Deal
+Bad Moon
+Balloon Peddler
+Battle Hurda
+Beastmaster's Magemark
 Beregond of the Guard
 Bishop of Rebirth
+Black Dragon
 Blade-Blizzard Kitsune
+Bloodrage Vampire
+Bloodsky Berserker
+Bog Rats
+Bog Wraith
 Border Patrol
+Braidwood Sextant
+Breach the Multiverse
+Brute Suit
+Burnt Offering
 Cage of Hands
+Captain America, Liberator
 Captivating Crew
+Cateran Summons
+Caterwauling Boggart
+Cathar's Call
+Cephalid Aristocrat
+Chatterstorm
+Clone Legion
+Cloud Spirit
 Cloudshredder Sliver
+Cloudskate
 Consulate Crackdown
+Copper Gnomes
+Count Nefaria
 Court Street Denizen
+Crashing Footfalls
+Cremate
+Crow Storm
+Cruel Cut
+Cruel Tutor
+Cultivator of Blades
+Dark Banishing
+Deadly Recluse
+Debt to the Kami
+Defabricate
+Desert of the True
+Desmond Miles
 Devilthorn Fox
+Diligent Farmhand
+Dimir Charm
+Dire Tactics
+Disowned Ancestor
+Disruption Protocol
+Dragon Arch
+Dragonlair Spider
+Dungeon Geists
+Ecologist's Terrarium
+Elder Spawn
+Elderleaf Mentor
+Elephant Ambush
+Elvish Harbinger
+Elvish Reclaimer
+Enlarge
+Enormous Baloth
+Erinis, Gloom Stalker
 Essence Depleter
 Exclude
+Exhaustion
+Farbog Revenant
 Festerhide Boar
+Fettergeist
+Final Parting
+Fire-Belly Changeling
+Force of Savagery
 Forest
+Frilled Mystic
 Frontline Rebel
+Furnace Strider
+Fylamarid
+Gandalf, Shadow's Foe
+Gang of Devils
+Giant Caterpillar
+Gibbering Hyenas
+Gift of Estates
+Gimli, Mournful Avenger
 Glint-Sleeve Artisan
+Go-Shintai of Lost Wisdom
+Goblin Balloon Brigade
+Goblin Grenadiers
+Grandmother Sengir
+Grasping Current
+Grave Birthing
+Grisly Transformation
+Gristleback
+Grunn, the Lonely King
 Gustcloak Runner
+Hag of Mage's Doom
+Hail Storm
+Heed the Mists
+Heightened Reflexes
+Herd Baloth
+Hermit Druid
 Heron of Hope
+Hierophant's Chalice
+Howl of the Night Pack
 Huatli's Snubhorn
 Illusory Ambusher
+Inkfathom Infiltrator
+Inspiring Captain
+Insurrection
+Intrusive Packbeast
+Invasion of Moag
+Invasion of Zendikar
+Invigorating Falls
 Island
+Ivy Seer
+Ixalli's Diviner
+Jandor's Saddlebags
+Juvenile Mist Dragon
+Kaijin of the Vanishing Touch
+Keepsake Gorgon
+Kinsbaile Skirmisher
+Knighthood
 Kor Bladewhirl
+Kozilek's Predator
+Krenko's Command
+Krosan Adaptation
+Krosan Groundshaker
+Kyoki, Sanity's Eclipse
 Lavastep Raider
+Leo's Guidance
+Level Up
+Lifeforce
+Lifeline
+Lumengrid Augur
+Mad Prophet
+Maestros Theater
+Magistrate's Veto
+Mammoth Growth
+Mardu Runemark
+Mass Manipulation
+Massive Raid
 Matoc, Lavamancer
+Medusa, Inhuman Queen
 Memory Lapse
+Merfolk Skydiver
 Mesa Cavalier
+Midsummer Revel
 Midvast Protector
+Minotaur Explorer
 Miraculous Recovery
+Mirari
+Mirran Mettle
+Mishra's Command
+Mishra's Onslaught
+Molimo, Maro-Sorcerer
+Mosscoat Goriak
 Mountain
+Mystic Meditation
+Nantuko Blightcutter
+Nantuko Disciple
+Necrogoyf
+New Benalia
+Nimbus of the Isles
+Nissa's Pilgrimage
+Noble Panther
+Nocturnal Feeder
+Oakenform
+Oakheart Dryads
+Oboro Envoy
+Obsessive Collector
+Onslaught
+Oracle of Mul Daya
+Orochi Ranger
+Otharri, Suns' Glory
 Pack Mastiff
+Paragon of Gathering Mists
+Piercing Light
+Pilfered Plans
+Plaguebearer
 Plains
+Plated Crusher
+Port of Karfell
 Prickleboar
+Primal Order
+Prismatic Boon
+Protect
+Psychic Pickpocket
+Purple Pentapus
+Raised by Giants
+Rakdos Ringleader
+Rakshasa's Secret
 Ranger en-Vec
+Raven Guild Master
+Reckless Spite
+Redcap Raiders
+Relic Golem
+Resourceful Return
+Retreat to Kazandu
+Revenant
+Reward the Faithful
 Rimrock Knight
+Risen Sanctuary
 Rishkar, Peema Renegade
 Rite of the Raging Storm
+Rodolf Duskbringer
+Ruinous Gremlin
+Rushwood Dryad
+Sachi, Daughter of Seshiro
+Sands of Delirium
+Sanguine Guard
 Sawblade Scamp
+Sawtooth Loon
+Scorched Rusalka
+Scorchmark
+Scourgemark
+Seedling Charm
+Seek the Horizon
+Seismic Shift
+Sejiri Shelter
+Selvala's Charge
+Sepulcher Ghoul
+Seraph of the Suns
 Serra Sphinx
+Serum Sovereign
+Setessan Starbreaker
+Sever the Bloodline
+Shadow Guildmage
+Sharktocrab
+She-Hulk, Attorney-at-Law
+Sheltered Aerie
+Sheoldred's Headcleaver
+Shivan Zombie
+Shoot Down
+Silent Observer
+Silverclaw Griffin
+Simic Ragworm
+Skinrender
+Sky Scourer
 Skyclave Sentinel
+Slaughter Drone
+Soldevi Sage
+Soothing Balm
+Soulblade Renewer
+Spiketail Drake
+Sporecrown Thallid
+Springjaw Trap
+Squirming Mass
+Staff of Zegon
+Steelfin Whale
+Stern Lesson
 Stoneforge Mystic
+Stormbind
 Stormchaser Mage
+Stronghold Confessor
 Swamp
+Swarm Intelligence
+Sworn Guardian
+Sylvan Scrying
+Tainted Observer
+Teller of Tales
+Thalia, Guardian of Thraben
+The Bear Force Pilot
+The Binding of the Titans
+Thieving Magpie
+Thran Golem
+Thrasios, Triton Hero
+Thunderbolt
+Thwart
 Tidal Visionary
+Titania, Proud Pummeler
+Tivadar of Thorn
+Tolarian Kraken
+Totem-Guide Hartebeest
+Town Sentry
+Tragic Slip
+Triumph of Ferocity
+Trumpet Blast
+Turbulent Wilderness
+Unesh, Criosphinx Sovereign
+Unholy Heat
+Unleash Shell
+Uurg, Spawn of Turg
+Vampire's Zeal
+Vampiric Touch
+Vaporous Djinn
+Verdant Catacombs
+Vernal Bloom
+Vivien's Crocodile
+Volcanic Spite
+Vulturous Aven
+Wall of Water
+Weaver of Blossoms
+Weirded Vampire
+Wizard Class
+Zebra Unicorn
+Zodiac Snake

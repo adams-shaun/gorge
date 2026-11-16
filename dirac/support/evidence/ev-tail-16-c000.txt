@@ -1,132 +1,470 @@
 A-Goma Fada Vanguard
+A-Knockout Blow
+A-Prosperous Thief
 A-The One Ring
+Aether Gale
 Afterlife
+Aftershock
+Akroan Line Breaker
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
+Angelic Benediction
+Angler Turtle
+Anoint with Affliction
+Arcane Encyclopedia
+Archghoul of Thraben
+Archon of Justice
+Arm the Cathars
+Armory of Iroas
+Artisan's Sorrow
+Asari Captain
+Atarka Monument
+Auriok Edgewright
+Automated Assembly Line
+Aven Trooper
+Awakened Awareness
+Baral's Expertise
 Barge In
+Barkchannel Pathway
+Barren Moor
+Battle Mammoth
 Beloved Chaplain
+Benthic Djinn
 Bhaal's Invoker
+Black Cat
+Black Lotus
+Black Widow, Deadly Hunter
+Blood Clock
 Blood Hound
 Bloodhunter Bat
 Boltwing Marauder
+Border Patrol
+Boros Recruit
+Bounty Hunter
+Brazen Freebooter
 Breakthrough
+Bringer of the Green Dawn
+Bronze Cudgels
+Brutalizer Exarch
 Burn Down the House
+Burning Anger
+Cabal Ritual
+Call for Blood
+Call of the Herd
+Call the Bloodline
+Canal Monitor
+Canopy Surge
+Cantivore
+Cathartic Reunion
+Cathedral of War
 Caustic Tar
 Chainwhip Cyclops
+Chandra's Spitfire
+Charmbreaker Devils
 Chastise
+Chittering Skitterling
 Chrome Prowler
+Claws of Wirewood
+Clay Statue
+Clergy en-Vec
 Cloud Dragon
 Coastal Hornclaw
 Coercive Impetus
+Colossal Whale
 Conduit of Ruin
+Consecrated Sphinx
+Contagious Nim
 Courtly Provocateur
+Cradle of the Accursed
+Crippling Chill
+D'Avenant Archer
 Daggerback Basilisk
+Dakmor Scorpion
 Darba
 Dark Revenant
+Darkblade Agent
+Darkbore Pathway
+Darkness
+Dauntless Survivor
+Dauntless Unity
+Dawntreader Elk
+Daxos, Blessed by the Sun
 Daze
 Deadeye Brawler
+Deadeye Tormentor
+Deepwood Drummer
 Defensive Stance
+Demon's Horn
+Descend upon the Sinful
+Desert Sandstorm
+Destiny Spinner
+Devastate
+Didn't Say Please
+Dimir Cluestone
+Dimir House Guard
+Disembowel
+Disrupt
+Draconic Lore
+Dragon Tyrant
+Dragonfly Suit
+Dromar, the Banisher
+Dross Crocodile
 Drowned
+Dunland Crebain
+Dusk's Landing
+Ebon Praetor
 Electrostatic Bolt
 Elusive Spellfist
+Elven Chorus
+Elvish Lyrist
 Enchanted Carriage
 Enchantress's Presence
+Encroaching Wastes
 Encrust
+Endure
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
+Exhume
+Eye Collector
+Faerie Formation
+Fall of the Hammer
+Family's Favor
+Farbog Boneflinger
+Fathom Fleet Captain
+Favor of the Woods
+Feebleness
+Ferocious Charge
+Ferocity of the Wilds
+Festival Crasher
 Fierce Retribution
+Fight to the Death
+Final Payment
+Fire Drake
+Fire Nation Ambushers
+Fires of Undeath
+Fleet-Footed Monk
+Flickerwisp
 Font of Ire
+Forced Adaptation
+Forced Landing
 Forest
+Foul Imp
+Foundry Champion
 Fountain of Renewal
+Frenzied Raptor
+Frenzied Tilling
+Frilled Sea Serpent
+Frodo, Determined Hero
+Frontier Guide
+Furnace Strider
+Furtive Analyst
+Garrison Cat
+Gathering Throng
+Ghirapur Gearcrafter
+Giant-Man, Gargantuan Genius
+Glissa, the Traitor
 Glowrider
+Gluttonous Cyclops
+Goblin Anarchomancer
+Goblin Assault Team
 Goblin Cadets
+Goblin Cavaliers
+Goblin Cratermaker
+Goblin Gathering
 Goblin Instigator
+Goblin Roughrider
 Goblin Shortcutter
+Goblin Swine-Rider
+Golden Egg
+Goremand
 Goring Warplow
+Graf Harvest
+Grafted Skullcap
 Grandmother Goby
 Granite Grip
+Grave Exchange
+Groundbreaker
+Growth Spasm
+Gryff's Boon
+Guardian Zendikon
+Guardian of Solitude
+Guardians of Koilos
+Hagra Crocodile
 Hammer Mage
+Hashep Oasis
+Haunted Guardian
+Havoc Demon
 Heart-Piercer Manticore
 Hearth Charm
+Heedless One
+Herbology Instructor
+Hermit Druid
+Hired Poisoner
 Hoar Shade
 Hoard-Smelter Dragon
+Hoarding Recluse
+Hobble
+Hollowhenge Overlord
 Hope Charm
+Horned Sliver
+Hunter's Prowess
+Icy Blast
+Ignite the Beacon
 Incursion Specialist
+Indatha Triome
+Inner Fire
+Inquisitor's Ox
 Iron Bully
 Iron-Barb Hellion
 Island
+Iymrith, Desert Doom
+Jayemdae Tome
+Jokulhaups
+Jor Kadeen, the Prevailer
+Juniper Order Ranger
+Junk Diver
+Junkyo Bell
 Kaito's Pursuit
+Karlov of the Ghost Council
 Karoo
 Kathari Bomber
 Kazandu Nectarpot
+Keldon Necropolis
+Kemba's Banner
+Kiora's Dambreaker
 Knight Errant
+Kor Sky Climber
 Korozda Guildmage
+Krenko, Tin Street Kingpin
+Krosan Cloudscraper
 Launch
+Lavaborn Muse
+Lazotep Behemoth
+Lethal Protection
+Light of Promise
+Lorehold Campus
 Madame Vastra
+Malevolent Noble
+Mana-Charged Dragon
 Mantle of the Wolf
 March from the Black Gate
+Marsh Lurker
+Martial Impetus
 Martyrs' Tomb
+Merfolk Branchwalker
+Merrow Commerce
 Mesmeric Trance
+Methods of the Mighty
+Metropolis Reformer
 Might of the Old Ways
+Mind Shatter
+Mindleech Ghoul
 Mindshrieker
+Minion of Tevesh Szat
+Mirkwood Spider
+Mirror Entity
+Misshapen Fiend
+Molten Tributary
+Mosscoat Goriak
 Mountain
+Mox Emerald
+Munitions Expert
+Myrel, Shield of Argive
+Myriad Landscape
+Nacatl Outlander
 Nath's Buffoon
+Nebelgast Beguiler
+Necromancer's Assistant
+Nefarox, Overlord of Grixis
+Nevinyrral's Disk
+Niambi, Esteemed Speaker
+Niblis of Dusk
+Nimble Hobbit
 Oakhame Adversary
 Oblivion's Hunger
+Oboro Envoy
+Obsessive Search
+Ogre Errant
 Oketra's Last Mercy
+Omnibian
+Orcish Bloodpainter
+Orcish Oriflamme
 Ordruun Commando
+Origin Spellbomb
+Oriq Loremage
+Orzhov Cluestone
 Orzhov Racketeers
+Paladin Elizabeth Taggerdy
+Parish-Blade Trainee
+Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
 Phantom Whelp
+Phyrexian Scriptures
+Pillardrop Warden
 Plague Sliver
 Plains
 Priest of the Crossing
+Primeval Protector
 Provoke
 Puncture Bolt
 Quicken
 Raff Capashen, Ship's Mage
+Ramroller
+Rancor
+Raven Clan War-Axe
+Recumbent Bliss
+Reduce to Ashes
+Renegade Firebrand
+Resolute Archangel
+Rishadan Brigand
 Ritual of the Machine
+Rivendell
 Rock Slide
 Rockslide Ambush
+Rogue's Gloves
 Rolling Thunder
+Rubblebelt Maaka
+Rubblebelt Raiders
+Ruthless Winnower
+Sai, Master Thopterist
 Sandblast
+Scab-Clan Berserker
+Scavenged Brawler
+Scent of Nightshade
+Schismotivate
+Scourge Devil
+Scourge of Geier Reach
+Scrapyard Mongrel
+Sea Hag
 Search Party Captain
+Secret Rendezvous
+Seedborn Muse
+Selvala's Charge
+Shard Convergence
+Sharpshooter Elf
+Shield Wall
+Shoreline Salvager
+Siege Zombie
+Siegfried, Famed Swordsman
+Sigarda, Champion of Light
+Silent Sentinel
 Silumgar Sorcerer
+Silver-Inlaid Dagger
+Silverback Ape
+Simian Simulacrum
 Sin Collector
+Sinister Starfish
 Skalla Wolf
+Skylasher
+Skyline Despot
+Skyshroud Falcon
+Sleep
 Slip Through Space
+Smite the Monstrous
+Soaring Show-Off
+Soltari Lancer
+Soul Summons
+Soul of Migration
+Soul of Shandalar
+Soulsurge Elemental
 Sparktongue Dragon
 Sparring Construct
 Spearbreaker Behemoth
+Specter's Shroud
+Spell Crumple
 Spell Syphon
+Sphinx Mindbreaker
 Spire Tracer
 Spore Cloud
+Sprouting Vines
+Stalking Vengeance
+Still Life
 Stingscourger
+Stone Retrieval Unit
+Stonybrook Angler
 Stormcaller of Keranos
+Strands of Undeath
+Strength of Cedars
+Strength of the Harvest
 Stronghold Zeppelin
+Subdue
+Subterranean Hangar
+Sun-Crested Pterodon
+Sunspire Griffin
+Suntail Hawk
+Survey the Wreckage
 Swamp
 Sylvan Paradise
 Sylvan Reclamation
 T'Challa, the Black Panther
+Taigam's Strike
+Tainted Wood
 Tarkir Charm
 Tarpan
+Tenth District Legionnaire
+Terashi's Grasp
+Termagant Swarm
 Thalakos Seer
 Thassa's Emissary
+The Marvelous Scientist
+The Shire
+Thermal Glider
+Thought Erasure
+Thranduil the Strategist
+Thrash of Raptors
+Throne of Bone
+Thrull Parasite
+Thunder of Hooves
+Thunderfoot Baloth
 Tilonalli's Knight
+Time Ebb
 Titan Hunter
+Towashi Songshaper
+Tree of Tales
 Trelasarra, Moon Dancer
+Tribute to Horobi
+Trickster's Talisman
+Tropical Storm
+Turbulent Springs
+Turn to Slag
+Tuya Bearclaw
+Uncle's Musings
+Unesh, Criosphinx Sovereign
+Unyaro Bees
+Vampirism
+Vanguard of Brimaz
+Venerable Knight
+Viashino Racketeer
 Viashino Slasher
+Village Pillagers
+Violent Eruption
 Viper, Cruel Conspirator
+Visage of Bolas
+Vivify
+Vodalian Illusionist
 Voidwielder
+Vona, Butcher of Magan
+Voracious Wurm
 Vraska's Scorn
+Wall of Tanglecord
 War-Spike Changeling
+Warden of the Chained
 Warning
 Waterfront Bouncer
+Welkin Guide
+Whirlwind Adept
 Wildest Dreams
+Wily Goblin
+Windfall
+Winged Boots
 Wishful Merfolk
+Witherbloom Pledgemage
+Woodland Mystic
+Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits
 Zhur-Taa Swine

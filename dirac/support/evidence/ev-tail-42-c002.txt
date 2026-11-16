@@ -1,27 +1,210 @@
+A-Dragonborn Looter
+Accursed Horde
+Aerial Engineer
+Aethersnipe
+Alluring Suitor
+Answered Prayers
 Arachnoform
+Arc Trail
 Ardent Soldier
+Armored Ascension
+Ashiok's Adept
+Attended Healer
+Avatar of Woe
 Barrage Tyrant
+Basic Conjuration
 Bewilder
 Beyeen Veil
+Blistercoil Weird
+Blood Burglar
+Bloodline Culling
 Boggart Forager
+Boil
+Bolshack Dragon
+Bountiful Harvest
+Breaching Hippocamp
+Brimstone Volley
+Burning Hands
+Captain's Hook
+Carnage Wurm
+Carrion Call
+Cessation
+Cinder Barrens
+Cleanse
+Clever Concealment
+Cloak and Dagger
+Cone of Flame
+Conqueror's Pledge
 Consuming Corruption
+Corrupted Resolve
+Crooked Custodian
+Cruel Witness
+Cystbearer
+Dark Prophecy
+Delraich
 Dire Fleet Warmonger
+Dread Slaver
+Dross Crocodile
+Elfhame Palace
 Ember Hauler
+Emergency Weld
+Enigmatic Incarnation
+Entropic Specter
+Essence Depleter
+Flaming Fist
+Flatten
+Fleshpulper Giant
+Fling
+Flywheel Racer
+Forerunner of Slaughter
 Forest
+Franklin Richards, Ascendant
+Fungus Elemental
+Furnace Spirit
+Galvanic Juggernaut
+Gauntlet of Might
+Ghoulsteed
 Gleeful Demolition
+Glimpse the Unthinkable
+Gloomwidow's Feast
+Go for the Throat
+Gobland
+Goblin Diplomats
+Goblin Scouts
+God-Eternal Bontu
+Goreclaw, Terror of Qal Sisma
+Grasp of Darkness
+Greater Auramancy
+Guardian Scalelord
+Hammerhead, Maggia Boss
+Hangarback Walker
+Haunted Cadaver
+Heavyweight Demolisher
+Helm of the Host
+Herald of Anguish
+High-Rise Sawjack
+Hornet Sting
+Hovermyr
+Icatian Store
+Idle Thoughts
+Ill-Gotten Inheritance
+Illusory Angel
 Imoti, Celebrant of Bounty
+Imperial Cosmographer
+Invasion of Xerex
+Ishai, Ojutai Dragonspeaker
 Island
+Izzet Signet
+Kill-Zone Acrobat
+Kindly Customer
+Krosan Archer
+Leadership Vacuum
+Leonin of the Lost Pride
+Living Lands
+Loamcrafter Faun
 Lucid Dreams
+Lurking Nightstalker
+Maga, Traitor to Mortals
+Manipulate Fate
 Marauding Looter
+Mogg Alarm
+Morkrut Banshee
+Mossbeard Ancient
+Mosstodon
 Mountain
+Naru Meha, Master Wizard
+Nectar Faerie
 Night Market Aeronaut
 Nirkana Cutthroat
+Ob Nixilis, the Fallen
+Ogre Menial
+Organ Grinder
+Ornithopter
+Pack's Betrayal
+Painwracker Oni
+Paradox Zone
+Pelakka Predation
+Perimeter Captain
+Phenomenon Investigators
+Pheres-Band Centaurs
+Phyrexian Denouncer
 Plains
+Polluted Mire
+Priests of Norn
+Prismatic Strands
+Protective Bubble
+Psychic Impetus
+Ral's Dispersal
+Reality Heist
+Reborn Hope
+Resplendent Griffin
+Samut's Sprint
+Savai Sabertooth
+Scalding Devil
+Scholar of Athreos
+Separatist Voidmage
+Severed Legion
+Sewer Rats
+Shadow of Mortality
+Shaman of the Pack
+Shamble Back
+Shapers' Sanctuary
+Shriek of Dread
+Silt Crawler
 Silver Raven
+Singing Tree
+Skyshroud Lookout
+Smother
+Soldevi Machinist
+Soul Strings
+Spectral Adversary
+Spellbook
+Spiderwig Boggart
+Spike Drone
+Steelfin Whale
+Stolen Grain
+Stolen Vitality
+Strength from the Fallen
+Strength of Isolation
+Sunbringer's Touch
 Sunken Hope
+Suppression Bonds
 Swamp
+Sweatworks Brawler
+Swelter
+Tajuru Stalwart
+Temperamental Oozewagg
+Temporal Manipulation
+Thalia's Lancers
+Thoughtcutter Agent
 Thrasher Brute
+Thrummingbird
+Thunderscape Familiar
+Tidepool Turtle
+Tracker's Instincts
+Traitor's Clutch
+Trench Stalker
+Tribal Unity
+Tribute to Horobi
+Trostani's Summoner
 Twitch
+Ultimate Price
+Unbreathing Horde
+Undead Warchief
+Unicycle
 Unraveling Mummy
 Urza's Guilt
+Viashino Firstblade
+Villainous Ogre
+Volcanic Fallout
+War-Torch Goblin
+Water Servant
+Weight of the Underworld
+Weldfast Engineer
+Wings of Aesthir
+Wings of Hope
+Wrangle
+Wrenn's Resolve
+Wyluli Wolf
 Yavimaya Scion
+Zirilan of the Claw

@@ -1,44 +1,203 @@
 A-Akki Ronin
+A-Guide of Souls
+A-Oran-Rief Ooze
+A-Urza, Powerstone Prodigy
+Abzan Advantage
+Accursed Horde
+Advanced Stitchwing
+Aether Vial
 Aftershock
+Aim High
+Ajani's Sunstriker
+Alharu, Solemn Ritualist
+Anaba Bodyguard
+Ancestral Knowledge
+Animal Boneyard
+Arcum Dagsson
 Ardent Elementalist
+Armorcraft Judge
 Atraxa's Fall
+Audacity
+Bag End Porter
+Belligerent Brontodon
+Blighted Agent
+Blood Divination
+Bramblecrush
+Brazen Buccaneers
+Bringer of the Green Dawn
 Broodhatch Nantuko
+Call of the Wild
+Call to Mind
+Canopy Baloth
 Caustic Caterpillar
+Circle of Flame
+Citywatch Sphinx
+Confront the Unknown
+Consult the Necrosages
+Crawl from the Cellar
+Creakwood Ghoul
+Cruel Cut
 Cruel Deceiver
+Curious Pair
+Cyclops Tyrant
+Dakmor Lancer
 Davriel, Rogue Shadowmage
+Deadly Recluse
+Death Pulse
+Death Tyrant
+Depose
+Despondent Killbot
 Destroy Evil
+Destructive Digger
+Dewdrop Spy
+Dire Tactics
+Draconic Destiny
+Dragonlord Silumgar
+Drelnoch
+Dross Golem
+Dwarven Priest
+Dwarven Weaponsmith
+Déjà Vu
+Eager First-Year
+Earthshape
+Ebony Charm
+Ebony Horse
 Electric Revelation
+Ember-Eye Wolf
+Ethereal Absolution
+Extinction
+Fallaji Dragon Engine
+False Peace
+Fill with Fright
+Final Flourish
 Flame Elemental
 Flip the Switch
+Forceful Cultivator
 Forest
+Furious Resistance
+Furnace Gremlin
+Gearsmith Prodigy
+Gleam of Authority
+Golden Bear
+Goldwarden's Helm
+Gravitational Shift
+Gwaihir, Greatest of the Eagles
+Hazoret's Monument
+History of Benalia
 Honor's Reward
+Howling Fury
+Hurloon Shaman
+Inexorable Tide
+Inner Fire
+Innocent Traveler
 Island
 Jabs, Mistress of Mockery
+Jace's Triumph
 Jaspera Sentinel
+Jhoira's Familiar
+Katara, Heroic Healer
+Kavu Aggressor
+Kindly Stranger
+Kird Chieftain
+Kithkin Mourncaller
+Kor Line-Slinger
 Land Grant
+Leaden Fists
 Lightfoot Rogue
+Lightning Elemental
+Liliana's Influence
+Looming Altisaur
+Lumengrid Augur
+Magistrate's Scepter
 Manabond
+Marauding Knight
+Mass Hysteria
+Mawcor
+Maximize Altitude
+Metalspinner's Puzzleknot
 Military Intelligence
+Mindless Conscription
 Ministrant of Obligation
 Mountain
 Mox Amber
+Murder Investigation
 Myr Enforcer
+Mystery Key
+Nebelgast Beguiler
+Necrosynthesis
 Necrotic Sliver
+Nezumi Freewheeler
+Noxious Grasp
+Obelisk of Naya
+Opal Champion
+Oran-Rief Recluse
 Overgrowth
+Pegasus Refuge
 Phantom Nishoba
+Photon, Mighty Marvel
+Pincher Beetles
+Plague Dogs
 Plains
+Prickleboar
+Pterodon Knight
+Puppet Conjurer
+Purify
+Quirion Dryad
 Rending Volley
+Rip Apart
+Royal Falcon
+Ruin Crab
+Sage's Knowledge
+Saltblast
+Scab-Clan Charger
+Scholar of Combustion
+Scion of Stygia
+Scourge of the Undercity
+Sea God's Revenge
+Sea Snidd
+Seasoned Hallowblade
+Selesnya Sagittars
+Showstopping Surprise
 Shredded Sails
+Shu Grain Caravan
+Sibling Rivalry
+Sifter of Skulls
+Sisay's Ring
+Skyclave Relic
+Skyreaping
+Smuggler's Copter
 Solar Blast
 Soltari Trooper
 Spearpoint Oread
+Spectral Deluge
 Spidersilk Armor
+Spirit Bonds
 Spiteful Sliver
+Spore Cloud
+Stensia Uprising
 Streetwise Negotiator
 Swamp
 Thought Monitor
+Thraben Foulbloods
+Thresher Lizard
+Tin-Wing Chimera
+Trained Armodon
 Trespasser's Curse
+Two-Headed Dragon
+Unchecked Growth
 Undo
+Utvara Scalper
+Verdant Crescendo
+Verdant Embrace
+Vinelasher Kudzu
+Viridian Zealot
+Voidwielder
 Wall of Roots
+Wall of Wonder
 Wand of the Elements
+Warden of the Wall
+Warren Instigator
+Wave Goodbye
+Wei Infantry
 Witch's Cottage
+Zulaport Duelist

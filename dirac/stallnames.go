@@ -61,7 +61,6 @@ func init() {
 	stallNames[58] = "restrx"
 	stallNames[59] = "endure"
 	stallNames[60] = "linkctr"
-	stallNames[61] = "numtimes"
 	stallNames[62] = "aegis"
 	stallNames[63] = "sacother"
 	stallNames[70] = "obssrc"

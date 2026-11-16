@@ -121,8 +121,9 @@ var DebugDefendingActiveOpp bool
 
 // costTargetMatch reports whether target code t matches the Filter2 f of a
 // target-gated cost reduction (gorge costTargetsMatch, CR 601.2f): a
-// battlefield permanent, or for a stack-zone f (a Spell head, Out of Air's
-// Spell.Creature) a spell on the stack, read like a TgtSpell target
+// battlefield permanent, a card in a graveyard or exile, or for a stack-zone
+// f (a Spell head, Out of Air's Spell.Creature) a spell on the stack, read
+// like a TgtSpell target
 // (legal.go targetOK). Every Filter2 reader (costTargetOK's build and probe
 // branches, affordableTargets) goes through it.
 func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t TCode) bool {
@@ -138,6 +139,11 @@ func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t TCode, sr
 	ob := &s.objs[t]
 	if k.t.Filters[f].Zone == kop.ZoneStack {
 		return ob.zone == kop.ZoneStack && s.matchCardAt(k, f, ob.card, s.stackCtrl(Obj(t)), p, Obj(t))
+	}
+	if ob.zone == kop.ZoneGraveyard || ob.zone == kop.ZoneExile {
+		// a card target (No One Left Behind's "targets a creature card with
+		// mana value 3 or less"): gorge matches the chosen object in any zone
+		return s.matchCardAt(k, f, ob.card, ob.owner(), p, Obj(t))
 	}
 	return ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, f, ob.slot, p, src, layerFull)
 }

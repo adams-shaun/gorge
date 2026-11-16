@@ -51,6 +51,9 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 		if in.B.N&kop.MayPlayInstSorc != 0 && k.t.Cards[s.objs[o].card].Types&(kop.TInstant|kop.TSorcery) == 0 {
 			continue
 		}
+		if in.F != 0 && in.A.N == kop.DurPermanent && !s.matchCardGenAt(k, in.F, s.objs[o].card, s.objs[o].owner(), ctrl, o, nil) {
+			continue // a while-exiled grant's F: the cards it admits (Vivien's Creature.IsRemembered)
+		}
 		if s.mayFull() {
 			s.capFull(StallMayPlay)
 			return
