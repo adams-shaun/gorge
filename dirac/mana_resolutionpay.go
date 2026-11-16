@@ -4,6 +4,20 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// lowerHybridOnly lowers the activation being built (ability ab of the build's
+// card) when its mana cost is hybrid pips alone: the activation gorge lowers
+// by tapping the planner's witness before activating, however the source
+// is activated (a battlefield permanent's ability, a hand or graveyard
+// ability such as cycling, a granted one).
+func (s *State) lowerHybridOnly(k *prep, ab uint8) {
+	if s.cfg&cfgGorgeUnpriced == 0 || ab >= abCascade {
+		return
+	}
+	if c := &k.t.Cards[s.bld().e.card].Abilities[ab].Cost.Mana; c.Hyb[0] != 0 && !c.Phyrexian() && c.X == 0 && c.Generic == 0 && pipMaskOf(c) == 0 {
+		s.lowerHybridActivation(k, c)
+	}
+}
+
 // lowerHybridActivation taps the witness of a hybrid activation the
 // oracle lowers (kverify-c4: Puresight Merrow's {W/U}{Q}). gorge offers
 // an activation as is through its autopay offer only when the cost has

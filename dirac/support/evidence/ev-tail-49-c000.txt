@@ -14,6 +14,7 @@ Amphin Pathmage
 Amugaba
 Ancient Silver Dragon
 Angelic Curator
+Angrath's Fury
 Ant-Man, Scott Lang
 Arc Mage
 Arc Spitter
@@ -102,6 +103,7 @@ Dimir Signet
 Disciple of Perdition
 Disentomb
 Dismember
+Domri, City Smasher
 Double Trouble
 Dragon Whelp
 Dragonlord Dromoka
@@ -409,6 +411,7 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
+Thunderscape Master
 Tide Skimmer
 Tidings
 Torment
@@ -450,6 +453,7 @@ Whirlwind Technique
 Wildwood Geist
 Willow Faerie
 Willow-Wind
+Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Wirewood Lodge

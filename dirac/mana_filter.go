@@ -556,7 +556,9 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 // pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
-// so a filter beside it is no filter-only board (filtOnly).
+// so a filter beside it is no filter-only board (filtOnly). A sacrifice-only
+// source (an Eldrazi Scion's "Sacrifice this creature: Add {C}") is no gap: the
+// planner prices it as its source's last-resort tier (mana_sacsource.go).
 func censusGapMana(a *kop.Ability) bool {
 	if a.AFlags&kop.AfLatent != 0 {
 		return false

@@ -31,6 +31,7 @@ Banehound
 Bar the Door
 Barbarian General
 Barrenton Medic
+Basim Ibn Ishaq
 Battalion Foot Soldier
 Bayou Dragonfly
 Become the Avalanche
@@ -412,6 +413,7 @@ Twilight Drover
 Tyranid Invasion
 Tyrant Guard
 Ulrich's Kindred
+Undermine
 Unnatural Predation
 Unyaro Griffin
 Urborg Elf

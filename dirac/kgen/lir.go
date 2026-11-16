@@ -1078,6 +1078,10 @@ type lMana struct {
 	Rider    int
 	RiderCtr string // the source counter kind a deplete rider reads
 	RiderN   int    // the life count
+	// RestrictAbZones is the zone each RestrictAb clause's ability source is
+	// matched in (lowerCtx.restrictAbZones): kop.ZoneBattlefield for an
+	// inZoneBattlefield alternative, kop.ZoneAny for a zone-free one
+	RestrictAbZones []kop.Zone
 }
 
 type lUnless struct {
@@ -1190,6 +1194,7 @@ type lOverride struct {
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
 	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 }
 

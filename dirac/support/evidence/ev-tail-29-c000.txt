@@ -103,6 +103,7 @@ Goblin Replica
 Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Scrapper
 Gruul Signet
 Guardian of Tazeem
 Gwyllion Hedge-Mage
@@ -198,6 +199,7 @@ Scavenging Scarab
 Scion of the Swarm
 Sea Sprite
 Sentinel's Mark
+Sequence Engine
 Seshiro the Anointed
 Shadow, Mysterious Assassin
 Shiny Impetus

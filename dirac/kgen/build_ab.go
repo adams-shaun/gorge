@@ -1106,7 +1106,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaRestrict = id
 	}
 	if m.RestrictAb != nil {
-		id, err := cb.filter(m.RestrictAb, kop.ZoneNone)
+		id, err := cb.manaRestrictAb(m)
 		if err != nil {
 			return err
 		}
@@ -1135,6 +1135,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaHasteValid = id
 	}
 	return nil
+}
+
+// manaRestrictAb builds m's activated half: a battlefield-only clause keeps
+// ZoneNone, a zone-free one carries kop.ZoneAny (kernel restrActMatch's
+// source off the battlefield; lowerCtx.restrictAbZones).
+func (cb *cardBuilder) manaRestrictAb(m *lMana) (kop.FilterID, error) {
+	if len(m.RestrictAbZones) != len(m.RestrictAb.Clauses) {
+		return 0, fmt.Errorf("mana restriction's activated half: %d zones for %d clauses", len(m.RestrictAbZones), len(m.RestrictAb.Clauses))
+	}
+	return cb.filterZones(m.RestrictAb, m.RestrictAbZones)
 }
 
 var stepMap = map[string]kop.Step{"Upkeep": kop.StepUpkeep, "End": kop.StepEnd, "BeginCombat": kop.StepBeginCombat,
@@ -2728,7 +2738,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, err
 		}
 		rp.A, rp.C = int16(r.N.N), k
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+		if rp.Filter, err = cb.addCountersFilter(r.F); err != nil { // lower_counterrepl.go
 			return ka, err
 		}
 	case "TurnUpProgram":

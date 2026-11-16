@@ -351,6 +351,7 @@ Regathan Firecat
 Regent's Authority
 Reject
 Rejuvenating Springs
+Remote Farm
 Repentant Vampire
 Requiem Angel
 Retreat to Valakut
@@ -396,6 +397,7 @@ Shield Mate
 Shielded by Faith
 Shocker
 Show of Confidence
+Shrine of Burning Rage
 Sigiled Skink
 Silverclad Ferocidons
 Simic Growth Chamber
@@ -420,6 +422,7 @@ Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
 Spectral Bears
+Sphere of Purity
 Sphinx's Insight
 Spidersilk Net
 Spire Golem
@@ -465,6 +468,7 @@ The Third Doctor
 Theoretical Duplication
 Thor, Asgard's Avenger
 Thought Erasure
+Throat Slitter
 Thundering Tanadon
 Thunderous Wrath
 Thunderwolf Cavalry
@@ -476,6 +480,7 @@ Tourach's Canticle
 Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
+Turbulent Shore
 Ulrich's Kindred
 Ultron's Auxiliary
 Undercover Butler

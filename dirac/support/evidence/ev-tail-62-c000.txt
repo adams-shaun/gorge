@@ -118,6 +118,7 @@ Elephant Ambush
 Elvish Harbinger
 Elvish Reclaimer
 Emissary of the Sleepless
+Empyrial Archangel
 Enlarge
 Enormous Baloth
 Ephara's Radiance
@@ -383,6 +384,7 @@ Stormchaser Mage
 Stronghold Confessor
 Subterranean Tremors
 Sunder the Gateway
+Sunscape Apprentice
 Swamp
 Swarm Intelligence
 Sworn Guardian
