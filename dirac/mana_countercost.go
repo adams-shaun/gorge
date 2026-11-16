@@ -35,7 +35,7 @@ import (
 // stepCtr is the gi of a prefix step that taps a counter-cost gap; the
 // step's col is the any-colour ask's answer plus one (0: a fixed colour or
 // every colour at once asks nothing).
-const stepCtr int16 = -8
+const stepCtr int16 = -9
 
 // ctrManaAb reports whether mana ability a costs only counters put on its
 // source, once each turn, with a fixed production.
@@ -228,7 +228,28 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 // answers the window without it, though its activation is offered and the
 // prefix script's steps activate it (ctrDeadGap).
 //
+// windowCtrGapTap pays a counter-cost source the window picked in a gap.
+// The once-each-turn Produced$ Any shape takes the plain {T} first mana
+// ability: gorge's activation ask lists it first (owedAbilitiesFirst prices
+// no colour in a counter-cost shape: AnnouncedAbilityColours is nil for
+// one), so the window's answer takes it and the counters and the
+// once-each-turn use stay (ctrChainTap's first branch); otherwise the
+// counter, the use, the mana. Reports whether the walk continues past a
+// handled gap.
+//
 //go:noinline
+func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot) bool {
+	if !k.ctrMana || !s.scriptCtr(k, p).has(sl) {
+		return false
+	}
+	if k.ctrSecond(s.cardAt(sl)) {
+		s.ctrAb1(k, p, sl, -1)
+	} else {
+		s.ctrGap(k, p, sl, -1) // the counter, the use, the mana (mana_countercost.go)
+	}
+	return true
+}
+
 func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
 	if !k.ctrMana || !s.scriptCtr(k, p).has(o) {
 		return false

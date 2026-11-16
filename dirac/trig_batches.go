@@ -299,13 +299,14 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 // without a side effect: no shield to spend, no Mindskinner mill, no
 // noncombat damage tally. Every order then lands the same amount (a
 // prevention beside an addition is 0 in either order, CR 616.1), and a
-// non-commuting doubling still stalls loudly in replPlus.
+// non-commuting doubling still stalls loudly in replPlus. A static prevention
+// (repl_staticprevent.go) is never parked here: the answer would discard it.
 func batchOrderAskable(k *prep) bool {
 	g := k.gen
 	if replPlusOnly(g) {
 		return true
 	}
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&(rbShield|rbPrevMill) == 0 && !k.anyRedNC
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&(rbShield|rbPrevMill) == 0 && !k.anyRedNC && !g.uses.has(useStaticPrev)
 }
 
 // dealHitsLatched is dealHits with rl, whose dmgRec it fills, as the batch's
