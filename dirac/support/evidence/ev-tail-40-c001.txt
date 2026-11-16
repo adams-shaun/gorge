@@ -186,6 +186,7 @@ Ironroot Treefolk
 Island
 Isolate
 Jokulmorder
+Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
 Killian, Ink Duelist
@@ -395,6 +396,7 @@ Urborg Mindsucker
 Valor of the Worthy
 Vampire Revenant
 Vampire Warlord
+Vectis Gloves
 Vengeful Regrowth
 Venom Blast
 Venser, Fervent Forger

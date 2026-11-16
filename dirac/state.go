@@ -835,6 +835,7 @@ const (
 	rfTrigGone resFlags = 1 << iota // the trigger's triggering permanent left and came back (CR 400.7)
 	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
 	rfRestPh                        // scry/surveil: the top phase closed; the rest cards are being ordered
+	rfCopyGrp                       // a copy op has entered a copy and may park for the next one (interp_gen.go copyTokens): its later copies join the first one's AtEOT$ sacrifice trigger
 )
 
 // resCtx is a resolution in progress.

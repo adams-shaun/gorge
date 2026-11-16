@@ -94,6 +94,7 @@ Cruel Finality
 Crush
 Crystal Rod
 Curse of the Forsaken
+Cursed Ronin
 Customs Depot
 Cutthroat Centurion
 Cyclops Electromancer
@@ -295,6 +296,7 @@ Naya Battlemage
 Necromaster Dragon
 Nephalia Drownyard
 Neurok Commando
+Nezumi Ronin
 Noble Steeds
 Noggle Bandit
 Novijen, Heart of Progress

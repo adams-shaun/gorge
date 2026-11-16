@@ -145,13 +145,20 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// rider (Grove of the Burnwillows). Both are prefix gaps; the
 			// activation pays the ability's own cost (mana_rider.go). A
 			// granted mana ability beside the rider does not exclude the
-			// gap: the grant stays the census unit availGrant counts
+			// gap: the grant stays the availability unit availGrant counts
 			// (ownManaUsable is false for a rider-first source, so the
-			// grant is all its census keeps) and the rider is the prefix
-			// gap the script taps beside it (gorge's plan prices a play
-			// with both: Sandstone Needle's "{T}, Remove a depletion
-			// counter: Add {R}{R}" beside Rain of Filth's granted
-			// sacrifice on the same land).
+			// grant is all its census keeps), while gorge's census lists
+			// neither its rider's production nor the grant and its one
+			// prefix search activates both (scriptSearch.visit), so the
+			// rider is the prefix gap the script taps beside it and the
+			// source stays here, the grant search reading it as a gap too
+			// (tapsDeferGrantGaps). Gorge's plan prices a play with both:
+			// Saprazzan Skerry's "{T}, Remove a depletion counter: Add
+			// {U}{U}" or Sandstone Needle's Add {R}{R} beside Rain of
+			// Filth's granted sacrifice on the same land. The rider being
+			// live is what the activatable test holds; a source whose
+			// abilities are lost has no live rider (genLost in
+			// riderActivatable) and a lost one is no gap.
 			if k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) ||
 				!s.riderActivatable(k, p, sl, a) {
 				continue

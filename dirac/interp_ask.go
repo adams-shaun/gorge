@@ -1350,7 +1350,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
 			parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
 		} else {
-			s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
+			s.copyResumedEnter(k, in, t, NoSlot) // the enters program reads the choice
 			s.g.pre = preAsk{}
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
@@ -1408,7 +1408,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
 			parked = s.sweepAnswer(k, in, t, s.objs[a.Source()].slot)
 		} else {
-			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
+			s.copyResumedEnter(k, in, t, s.objs[a.Source()].slot)
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
 			if !parked {

@@ -60,6 +60,7 @@ Invigorating Surge
 Iona's Judgment
 Island
 Ivy Lane Denizen
+Kitsune Blademaster
 Lae'zel, Vlaakith's Champion
 Lightning Greaves
 Liliana's Caress
@@ -105,6 +106,7 @@ Tempting Licid
 Tendrils of Corruption
 Thassa, Deep-Dwelling
 Totem-Guide Hartebeest
+Trailblazer's Boots
 Triumph of Ferocity
 Typhoid Rats
 Ulamog's Crusher
