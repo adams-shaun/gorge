@@ -1641,6 +1641,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if pk.dry {
 		return
 	}
+	if DebugPlanTrace {
+		s.tracePlan(k, p, pk)
+	}
 	if k.gen != nil {
 		s.limitPlan(k, pk)
 	}
