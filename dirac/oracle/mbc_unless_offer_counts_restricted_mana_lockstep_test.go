@@ -17,7 +17,7 @@ import "testing"
 // Circular Logic, Scatter Arc, Thoughtbind, Azorius Charm), pair 121, replayed
 // on its own decks' table (pool custom: a tail pool's deal moves as evidence
 // is credited).
-func TestMBCFlipTheSwitchReprosLockstep(t *testing.T) {
+func TestMBCUnlessOfferCountsRestrictedManaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "unless_offer_counts_restricted_mana")
 }
