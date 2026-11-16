@@ -3618,6 +3618,14 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 				return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
 			}
 			lkiMany = true
+		} else if lc.delayedAllSet() {
+			// the set is a ChangeZoneAll sweep's changed objects (Planar
+			// Guide's exile of every creature): the same DpMany program, for
+			// the one shape it returns exactly (lower_delayedlkimany.go)
+			if why := lc.delayedAllManyShape(exec); why != "" {
+				return refuse("delayed trigger RememberedLKI over a ChangeZoneAll's changed set: %s", why)
+			}
+			lkiMany = true
 		}
 		obj = lRef{Kind: rRemembered}
 	case ro == "TriggeredNewCardLKICopy":
@@ -3626,6 +3634,15 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		var err error
 		if obj, err = lc.delayedRemember(ro, exec); err != nil {
 			return err
+		}
+		if obj.Kind == rRemembered && lc.delayedAllSet() {
+			// the set is a ChangeZoneAll sweep's changed objects (Laezel's
+			// Acrobatics'): the same DpMany program, for the one shape it
+			// returns exactly (lower_delayedlkimany.go)
+			if why := lc.delayedAllManyShape(exec); why != "" {
+				return refuse("delayed trigger Remembered over a ChangeZoneAll's changed set: %s", why)
+			}
+			lkiMany = true
 		}
 	}
 	lat := lc.newLatent("DelayedTrigger")
@@ -3658,7 +3675,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	}
 	if lkiMany {
 		if len(lat.Prog) != 1 || lat.Prog[0].Op != "Return" || lat.Prog[0].Obj.Kind != rDelayedRemembered {
-			return refuse("delayed trigger RememberedLKI over a multi-object target slot: the body lowered to %d ops, not one Return of the delayed set", len(lat.Prog))
+			return refuse("delayed many-object body lowered to %d ops, not one Return of the delayed set", len(lat.Prog))
 		}
 		if cs := lat.Prog[0].CS; cs == "" {
 			lat.Prog[0].CS = "DelayedMany"
