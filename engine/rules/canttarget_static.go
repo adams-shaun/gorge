@@ -156,8 +156,17 @@ func (e *Engine) cantTargetBlocks(b cantTargetBody, id state.ObjID, actor state.
 // ability chooses its targets (CR 602.2b) before AbilityPush mints that
 // wrapper, so when no stack object is available the SA's own kind decides the
 // two spellings (SP is a spell, AB an activated ability), matching every
-// comma alternative. A triggered DB/ST body is unclassifiable there, so it
-// fails open (no restriction).
+// comma alternative. A printed DB/ST SubAbility$ link read off the stack --
+// the offer census's chain ask (CR 601.2c: every link's targets are announced
+// beside the root's own) -- classifies by the ROOT ability it belongs to,
+// found by identity in the source permanent's face: Oko, Thief of Crowns'
+// [-5] exchange half is part of an activated ability, and Shanna, Sisay's
+// Legacy ("can't be the target of abilities your opponents control") must
+// withhold itself from the link's census, leaving the ability with no second
+// legal target and no offer (tail-53 pair 478). A link outside the face's
+// printed tree (a granted or merged-pile copy) finds no root and fails open,
+// the historical reading. A rootless DB/ST body is unclassifiable there, so
+// it fails open (no restriction).
 func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA, staticController state.PlayerID) bool {
 	if spec == "" {
 		return true
@@ -168,34 +177,116 @@ func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA
 	if sa == nil {
 		return false
 	}
-	switch chainRootKind(e.G.Obj(source), sa) {
-	case "SP":
+	if kind, ok := cantTargetSASpelling(sa.Kind); ok {
+		return cantTargetSAKindIn(spec, kind)
+	}
+	if root := subLinkRootOfFace(e.G.Obj(source), sa); root != nil {
+		if kind, ok := cantTargetSASpelling(root.Kind); ok {
+			return cantTargetSAKindIn(spec, kind)
+		}
+	}
+	// A sub-ability's target is chosen with the root's announcement (CR
+	// 601.2c, 602.2b): the pending cast of this very source says whether the
+	// root is an activated ability or a spell.
+	if pc := e.cast; pc != nil && pc.card == source {
+		if pc.isAbility() {
+			return cantTargetSAKindIn(spec, "Activated")
+		}
 		return cantTargetSAKindIn(spec, "Spell")
-	case "AB":
-		return cantTargetSAKindIn(spec, "Activated")
+	}
+	if sa.KindCode() == cards.SAKindDrawback {
+		// A SubAbility$ link or a Choices$ mode is judged before its spell
+		// or ability reaches the stack by the offer census (CR 700.2a: a
+		// mode with no legal target can't be chosen). It is the spell or
+		// activated ability whose chain carries it: Soul Transfer's exile
+		// mode is a spell under Dense Foliage while the card is in hand.
+		if o := e.G.Obj(source); o != nil {
+			if kind := chainRootKind(o.Face(), sa); kind != "" {
+				return cantTargetSAKindIn(spec, kind)
+			}
+		}
 	}
 	return false
 }
 
-// chainRootKind is sa.Kind, except that a SubAbility$ link (Kind "DB") takes
-// the Kind of the root of the chain it hangs off on the source's face: a chain link
-// is part of its spell or ability (CR 608.2c), and the target it announces is
-// the spell's own. The offer census asks before the spell is on the stack
-// (cantTargetValidSA's stack arm reads the object once it is), so Punish the
-// Enemy's "target creature" link was judged not-a-spell and Dense Foliage never
-// barred it.
-func chainRootKind(o *state.Object, sa *cards.SA) string {
-	if o == nil || o.Face() == nil {
-		return sa.Kind
+// chainRootKind names the ValidSA$ kind ("Spell" or "Activated") of the
+// face's SP or AB ability whose SubAbility$ chain or Choices$ modes carry
+// link, or "" when none does (a trigger body stays unclassified). Links are
+// matched by their parsed Line: ResolveSVar mints a fresh SA per call.
+func chainRootKind(f *cards.Face, link *cards.SA) string {
+	if f == nil || link == nil || link.Line == "" {
+		return ""
 	}
-	for _, root := range o.Face().Abilities {
-		for link := root; link != nil; link = link.Sub {
-			if link == sa {
-				return root.Kind
+	for _, root := range f.Abilities {
+		kind := ""
+		if c := root.KindCode(); c == cards.SAKindSpell {
+			kind = "Spell"
+		} else if c == cards.SAKindActivated {
+			kind = "Activated"
+		} else {
+			continue
+		}
+		if chainCarriesLine(f, root, link.Line, 0) {
+			return kind
+		}
+	}
+	return ""
+}
+
+// chainCarriesLine walks sa's SubAbility$ chain and, for a modal Charm link,
+// each Choices$ mode's chain resolved from f's SVars (bounded nesting), for a
+// link parsed from line.
+func chainCarriesLine(f *cards.Face, sa *cards.SA, line string, depth int) bool {
+	for x := sa; x != nil; x = x.Sub {
+		if x.Line == line {
+			return true
+		}
+		if depth >= 3 || !isCharmWithChoices(x) {
+			continue
+		}
+		for _, name := range effects.CharmOf(x).Modes {
+			if m := cards.ResolveSVar(f.SVars, name); m != nil && chainCarriesLine(f, m, line, depth+1) {
+				return true
 			}
 		}
 	}
-	return sa.Kind
+	return false
+}
+
+// cantTargetSASpelling maps an SA kind to the ValidSA$ spelling it classifies
+// as: SP is a spell, AB an activated ability; every other kind (a DB/ST body
+// read alone) names no class.
+func cantTargetSASpelling(kind string) (string, bool) {
+	switch kind {
+	case "SP":
+		return "Spell", true
+	case "AB":
+		return "Activated", true
+	}
+	return "", false
+}
+
+// subLinkRootOfFace returns the printed ability of o's face whose
+// SubAbility$ chain holds sa by pointer identity. It is a census-time read:
+// the offer walk passes a printed face ability, so a chain link is one of
+// these pointers, and an object with no face (or a link minted outside the
+// printed tree -- a granted or merged-pile copy) returns nil.
+func subLinkRootOfFace(o *state.Object, sa *cards.SA) *cards.SA {
+	if o == nil {
+		return nil
+	}
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	for _, ab := range f.Abilities {
+		for s := ab; s != nil; s = s.Sub {
+			if s == sa {
+				return ab
+			}
+		}
+	}
+	return nil
 }
 
 // cantTargetSAKindIn reports whether the comma-separated ValidSA$ spec names

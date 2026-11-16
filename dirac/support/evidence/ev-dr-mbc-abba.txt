@@ -6,11 +6,13 @@ Alena, Kessig Trapper
 Ancestral Blade
 Annoyed Altisaur
 Arabella, Abandoned Doll
+Araumi of the Dead Tide
 Avenging Druid
 Back to Basics
 Ball Lightning
 Beloved Chaplain
 Benevolent Bodyguard
+Bestial Menace
 Blindblast
 Blor the Impervious
 Bombard
@@ -20,7 +22,9 @@ Chandra, Novice Pyromancer
 Charcoal Diamond
 Chomping Changeling
 Citanul Woodreaders
+Cliffgate
 Cloudgoat Ranger
+Colossal Skyturtle
 Commune with Nature
 Compulsion
 Conclave Evangelist
@@ -51,12 +55,16 @@ Heroes' Bane
 Hoarding Ogre
 Honor the God-Pharaoh
 Hunting Cheetah
+Impulsive Pilferer
 Invigorated Rampage
 Island
+Joraga Treespeaker
 Jwar Isle Avenger
 Kiki-Jiki, Mirror Breaker
+Kitesail Skirmisher
 Lava Hounds
 Lord of the Accursed
+Miner's Bane
 Miss Highwater
 Mountain
 Mr. Foxglove
@@ -64,6 +72,7 @@ Myriad Landscape
 Nadier's Nightblade
 Nekrataal
 Paladin of the Bloodstained
+Pegasus Courser
 Pentarch Ward
 Penumbra Kavu
 Plains
@@ -75,6 +84,7 @@ Pyrite Spellbomb
 Raffine's Informant
 Rain of Thorns
 Rampaging Brontodon
+Ramunap Ruins
 Rancor
 Rankle, Master of Pranks
 Ratadrabik of Urborg

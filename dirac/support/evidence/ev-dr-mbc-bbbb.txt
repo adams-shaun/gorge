@@ -1,55 +1,107 @@
+Abundant Growth
+Act on Impulse
 Angel of Vitality
+Angel of the Ruins
 Archon of Absolution
+Beanstalk Giant
+Binding the Old Gods
+Blessed Hippogriff
 Bloodthrone Vampire
+Brood Monitor
+Caltrops
 Clinquant Skymage
+Cloud Elemental
 Collected Company
+Concentrate
 Counterspell
+Crimson Fleet Commodore
+Crop Rotation
+Curse of Opulence
+Curse of Verbosity
 Dauntless Bodyguard
 Davvol, Evincar of Rath
+Destined
+Dimir House Guard
+Diregraf Horde
 Elite Scaleguard
 Executioner's Capsule
 Ezuri, Claw of Progress
+Falter
 Fatal Push
 Fellwar Stone
+Flesh-Eater Imp
+Fog
 Fog Bank
 Footfall Crater
 Forest
 Fungal Infection
+Fyndhorn Elder
 Ganax, Astral Hunter
 Geistblast
+Ghostly Flicker
+Gideon's Lawkeeper
 Glacier Godmaw
 Gloomfang Mauler
 Go for the Throat
 Goblin Bombardment
 Goblin Recruiter
+Grab the Reins
+Hollow Marauder
 Hopeless Nightmare
+Illusory Ambusher
 Irenicus's Vile Duplication
 Island
+Jolene, the Plunder Queen
+Kavu Predator
+Lunar Frenzy
 Manabond
+Mindbreak Trap
 Mischievous Mystic
 Moan of the Unhallowed
 Moment of Defiance
+Moonglove Changeling
 Mountain
+Noose Constrictor
 Noxious Ghoul
 Nyx-Fleece Ram
 Omen of the Sea
+Omenspeaker
 Pacifism
+Patriar's Seal
+Peat Bog
+Pilgrim of the Ages
 Plains
+Power Matrix
+Primal Growth
 Prizefight
+Puppet Conjurer
 Quakefoot Cyclops
 Rapacious Dragon
 Ravenform
+Regrowth
 Renewed Faith
+Rescind
 Reya Dawnbringer
 Seal of Fire
 Shimmerscale Drake
+Sire of Stagnation
 Soul Warden
 Spellstutter Sprite
+Spiteful Prankster
 Standstill
+Strangleroot Geist
+Sudden Spinnerets
+Summon Undead
 Swamp
+Symbiosis
 The Rack
 Think Twice
 Thwart
+Tolabow, Loch Rascal
 Treasure Dredger
+Undo
 Vile Requiem
+Weatherseed Faeries
+Wispweaver Angel
 Witness Protection
+Young Pyromancer

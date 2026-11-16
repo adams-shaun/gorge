@@ -229,6 +229,11 @@ func (e *Engine) castsThisTurnMatching(you state.PlayerID, spec string, exclude 
 		}
 		sc := e.specCtx(ev.Obj, you)
 		sc.TriggerContext = tc
+		// A cast is history, not a permanent (CR 702.26b hides phased-out
+		// permanents from a battlefield read, not a spell cast this turn: Forge's
+		// cast list holds cast-time copies and filters them with no phasing
+		// check): a spell whose permanent has since phased out still counts.
+		sc.WithPhasedOut = true
 		matched := e.matchesSpec(matchSpec, ev.Obj, sc)
 		e.ledgerCast = ledgerCastView{}
 		if matched {
