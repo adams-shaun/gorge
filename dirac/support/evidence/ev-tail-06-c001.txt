@@ -48,6 +48,7 @@ Cloudthresher
 Conscripted Infantry
 Control of the Court
 Corpse Churn
+Court of Embereth
 Crosstown Courier
 Cutthroat Negotiator
 Dawnhart Wardens
@@ -55,6 +56,7 @@ Deathbloom Gardener
 Deb Thomas
 Decree of Savagery
 Dream Trawler
+Dreamdrinker Vampire
 Drizzt Do'Urden
 Edge of Autumn
 Eldrazi Mimic
@@ -91,6 +93,7 @@ Griselbrand
 Hagra Diabolist
 Halo Scarab
 Heliod, God of the Sun
+Herald of Hadar
 Hobgoblin Bandit Lord
 Honor the Fallen
 Hornet Nest
@@ -110,8 +113,10 @@ Juntu Stakes
 Kemba, Kha Enduring
 Kyoshi Warrior Exemplars
 Leaf Gilder
+Lesser Masticore
 Lightning Surge
 Locthwain Lancer
+Long Road Home
 Lost Soul
 Loxodon Warhammer
 Luminous Angel
@@ -126,12 +131,14 @@ Minds Aglow
 Mindstab
 Moan of the Unhallowed
 Molten Vortex
+Mothdust Changeling
 Mountain
 Mystic Melting
 Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
 Nuka-Cola Vending Machine
+Obstinate Gargoyle
 On Serra's Wings
 Order of the Ebon Hand
 Outnumber
@@ -162,6 +169,7 @@ Sacred Armory
 Sailors' Bane
 Sanctum of Shattered Heights
 Saprazzan Bailiff
+Sarkhan's Triumph
 Sentinel's Mark
 Seraph of the Masses
 Servant of Volrath
@@ -184,6 +192,8 @@ Spore Swarm
 Steel Dromedary
 Stensia Banquet
 Strangle
+Stronghold Taskmaster
+Sudden Spoiling
 Sungrace Pegasus
 Suntail Hawk
 Swamp
@@ -193,6 +203,7 @@ Teferi's Ageless Insight
 Teleportation Circle
 Teller of Tales
 Thalakos Scout
+Thassa, Deep-Dwelling
 The Antiquities War
 The Modern Age
 The One Ring

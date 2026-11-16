@@ -1144,13 +1144,35 @@ func (s *State) setUnlessWin(on bool) {
 
 // riderOfferable: some source's first mana ability is a bounded rider
 // activation the window walk can take (windowPick's rider arm): gorge's
-// manual windows list it and the census probes must count it.
-func (s *State) riderOfferable(k *prep, p uint8) bool {
+// manual windows list it and the census probes must count it. unless is an
+// unless / ward window, which lists only bare-tap abilities
+// (unlessWindowUnits): a rider that removes counters as its cost (Gemstone
+// Mine) is no unit there, so it is not offerable.
+func (s *State) riderOfferable(k *prep, p uint8, unless bool) bool {
 	if k.gen == nil || !k.gen.anyManaRider {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		if s.riderPotential(k, p, m.first()) {
+		if s.riderPotential(k, p, m.first()) && !(unless && s.riderCtrCost(k, m.first())) {
+			return true
+		}
+	}
+	return false
+}
+
+// riderCtrCost: the bounded rider at sl pays a counter-removal cost (a
+// depletion land, Gemstone Mine), which gorge's unless / ward window does not
+// price (unlessWindowUnits lists only mana abilities with a bare-tap cost).
+func (s *State) riderCtrCost(k *prep, sl Slot) bool {
+	a, ok := s.riderAbilityOf(k, sl)
+	return ok && a.Cost.Flags&kop.CostRemoveCtr != 0
+}
+
+// unlessTapsDeferred is scriptTapsDefer as an unless / ward window prices it:
+// without the riders that remove counters as their cost (riderCtrCost).
+func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
+	for m := s.scriptTapsDefer(k, p); m.any(); m = m.rest() {
+		if !s.riderCtrCost(k, m.first()) {
 			return true
 		}
 	}
@@ -1166,7 +1188,7 @@ func (s *State) riderOfferable(k *prep, p uint8) bool {
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) bool {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.scriptTapsDefer(k, p).any() || s.riderOfferable(k, p)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || s.riderOfferable(k, p, takeDeferred)) {
 		return false
 	}
 	t := s.fork()

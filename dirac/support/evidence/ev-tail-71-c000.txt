@@ -9,6 +9,7 @@ Act of Treason
 Aerial Guide
 Aerie Mystics
 Alaborn Cavalier
+Alandra, Sky Dreamer
 Alchemax Slayer-Bots
 Alchemist's Gift
 All Is Dust
@@ -192,6 +193,7 @@ Hostile Minotaur
 Huatli's Snubhorn
 Humble
 Hunting Moa
+Hydrolash
 Imperial Ceratops
 Imposing Visage
 Inescapable Brute
