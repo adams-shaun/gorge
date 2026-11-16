@@ -83,7 +83,7 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 	// desc's side: a triggered or upkeep cost is neither a spell cast nor an
 	// activation, so no ValidSA$ ManaConvert widens it (CR 609.4b).
 	return sources && pay.CostPayablePool(asPayer(e), player, source, desc.SAKind(), amount,
-		e.potentialManaFor(player, &desc), pay.AvailableFor(asPayer(e), player, desc).Typed)
+		e.potentialManaCounted(player, &desc, true), pay.AvailableFor(asPayer(e), player, desc).Typed)
 }
 
 // resPayPlan is the planner's witness for amount's mana from the current

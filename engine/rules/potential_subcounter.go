@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// potentialSubCounterBounded returns ma with its Amount$ X read at the most
+// potentialSubCounterBounded (the pay gate only: potentialManaCounted) returns ma with its Amount$ X read at the most
 // counters its announced SubCounter<X/Kind> cost can settle right now
 // (pay.ManaSubCounterXBound), and true when ma is that shape (Icatian
 // Store's "{T}, Remove X storage counters: Add {W} for each counter
