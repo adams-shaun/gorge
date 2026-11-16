@@ -127,6 +127,7 @@ Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faerie Guidemother
 Faithbearer Paladin
@@ -163,6 +164,7 @@ Geist-Honored Monk
 Gem of Becoming
 Gerrard Capashen
 Getaway Car
+Ghostway
 Giant Solifuge
 Gladecover Scout
 Goblin Fire Fiend
@@ -191,6 +193,7 @@ Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
 Heap Doll
+Helica Glider
 Hellspark Elemental
 Hieromancer's Cage
 Hobgoblin Captain
@@ -244,6 +247,7 @@ Magmatic Sprinter
 Malanthrope
 Malevolent Awakening
 Malevolent Whispers
+Malfunction
 Malignant Growth
 Mana Severance
 Maniacal Rage
@@ -377,6 +381,7 @@ Skulking Ghost
 Skullslither Worm
 Skullsnatcher
 Skyboon Evangelist
+Skyknight Vanguard
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon

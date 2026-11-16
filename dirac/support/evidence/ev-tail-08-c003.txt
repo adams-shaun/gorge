@@ -8,7 +8,12 @@ Barrenton Cragtreads
 Barrin's Codex
 Benalish Missionary
 Captain America, Liberator
+Coercive Impetus
+Courier Griffin
+Courtly Provocateur
 Crash Landing
+Death Wind
+Divest
 Domestication
 Dromoka's Gift
 Drudge Reavers
@@ -32,6 +37,7 @@ Hazardous Conditions
 Henrika Domnathi
 Hillcomber Giant
 Homicidal Seclusion
+Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
 Hunter's Edge
@@ -43,20 +49,26 @@ Jeskai Elder
 Kavu Howler
 Keeper of the Cadence
 Krazy Kow
+Last Breath
 Last Kiss
 Lone Missionary
 Mardu Hateblade
+Marsh Casualties
 Mass Appeal
 Military Discipline
+Mind Slash
 Mogg Maniac
 Mother Kangaroo
 Mountain
+Necropede
 Nether Spirit
 Network Terminal
 Overtaker
+Paradise Druid
 Pearled Unicorn
 Pious Wayfarer
 Plains
+Propagator Drone
 Protector of the Wastes
 Queen's Agent
 Ral's Outburst
@@ -76,6 +88,7 @@ Spectral Flight
 Spore Crawler
 Stalwart Aven
 Stand
+Stonewood Invocation
 Storm Fleet Aerialist
 Suspicious Bookcase
 Swamp
@@ -85,14 +98,17 @@ Tangle Asp
 Taunting Arbormage
 Teval's Judgment
 Thalia's Lieutenant
+That Which Was Taken
 Thopter Mechanic
 Thraben Valiant
 Thran War Machine
 Tor Giant
 Treespring Lorian
+Troublesome Spirit
 Tukatongue Thallid
 Uktabi Wildcats
 Unbreakable Formation
+Underhanded Designs
 Updraft
 Valko Indorian
 Vampire Outcasts
@@ -104,6 +120,7 @@ War Falcon
 Water Elemental
 Wayward Soul
 White Widow, Yelena Belova
+Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher
 You Meet in a Tavern

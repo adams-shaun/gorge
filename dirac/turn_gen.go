@@ -327,8 +327,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = nameAskKind(in)
 				case kop.ExtChooseCardEnter:
 					kind = akCard // repl_choosecard.go
-				case kop.ExtEnterCtrPick:
-					kind = akCtrPick // repl_enterctrpick.go
+				case kop.ExtEnterCtrPick, kop.ExtPutCounterChoice:
+					kind = akCtrPick // repl_enterctrpick.go, ctr_choice.go
 				case kop.ExtChoosePlayer:
 					kind = akPlayer
 				default:

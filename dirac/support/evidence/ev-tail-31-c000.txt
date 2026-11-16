@@ -10,10 +10,12 @@ Agent of Horizons
 Aggressive Crag
 Agonizing Memories
 Akki Underminer
+Akoum Firebird
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
 Animal Boneyard
+Anointer Priest
 Arachnoid Adaptation
 Arachnus Spinner
 Archweaver
@@ -62,6 +64,7 @@ Charge Through
 Circle of Dreams Druid
 Claim of Erebos
 Clinging Darkness
+Combine Chrysalis
 Conclave Phalanx
 Conjurer's Closet
 Consuming Fervor
@@ -84,6 +87,7 @@ Deprive
 Destructive Digger
 Detainment Spell
 Dictate of Heliod
+Diplomatic Immunity
 Distorting Wake
 Divine Retribution
 Divine Transformation
@@ -100,6 +104,7 @@ Ebony Owl Netsuke
 Ebony Rhino
 Eliminate
 Elite Inquisitor
+Entangling Vines
 Epic Proportions
 Era of Enlightenment
 Eternal Scourge
@@ -122,6 +127,7 @@ Flickering Ward
 Flight of Fancy
 Flood
 Fodder Tosser
+Foreshadow
 Forest
 Forfend
 Fork in the Road
@@ -153,6 +159,7 @@ Gustcloak Sentinel
 Gustrider Exuberant
 Guul Draz Overseer
 Hagra Constrictor
+Hamletback Goliath
 Heartless Pillage
 Heavy Mattock
 Herald of Ilharg
@@ -173,6 +180,7 @@ Inner-Flame Acolyte
 Inquisitor's Ox
 Integrity
 Into the Time Vortex
+Intrepid Adversary
 Inventor's Axe
 Island
 Ivory Guardians
@@ -180,6 +188,8 @@ Jiang Yanggu
 Jund Panorama
 Jungle Creeper
 Justice Strike
+Kami of Tattered Shoji
+Kami of Transience
 Kaysa
 Keen Glidemaster
 Keeper of Keys
@@ -187,6 +197,7 @@ Keldon Overseer
 Kite Shield
 Kithkin Harbinger
 Kitsune Loreweaver
+Kumena's Awakening
 Languish
 Lantern of Revealing
 Leopard-Spotted Jiao
@@ -234,6 +245,7 @@ Ogre Painbringer
 Ondu Inversion
 Opal Gargoyle
 Opaline Bracers
+Open the Gates
 Orzhov Guildmage
 Parcel Myr
 Pathrazer of Ulamog
@@ -253,15 +265,18 @@ Pyre Spawn
 Pyrophobia
 Quarry Beetle
 Quest for the Gemblades
+Qumulox
 Rage of Purphoros
 Ramosian Sky Marshal
 Rancor
 Reckless Rage
+Reclusive Taxidermist
 Recurring Insight
 Reef Pirates
 Repay in Kind
 Restless Dead
 Retrofitted Transmogrant
+Revenge of the Drowned
 Revive
 Rhonas's Last Stand
 Ridgetop Raptor
@@ -293,6 +308,7 @@ Seismic Tutelage
 Selesnya Cluestone
 Sengir Vampire
 Serum Tank
+Setessan Champion
 Shadow Glider
 Shadowspear
 Shadowstorm
@@ -319,12 +335,14 @@ Spider-Man, Web-Spinner
 Spined Basher
 Spinning Wheel
 Stalwart Pathlighter
+Steel Leaf Paladin
 Stirring Address
 Stolen Goods
 Stone Idol Generator
 Strix Serenade
 Stromgald Cabal
 Stromkirk Patrol
+Stronghold Biologist
 Sun-Crowned Hunters
 Sunflare Shaman
 Sustenance
@@ -337,6 +355,7 @@ Talruum Minotaur
 Teetering Peaks
 Teferi's Sentinel
 Tel-Jilad Fallen
+Temple Acolyte
 Temporal Fissure
 Terrain Elemental
 Thalakos Mistfolk
@@ -357,6 +376,7 @@ Troll Ascetic
 Trudge Garden
 Tunneling Geopede
 Twiddle
+Tyvar's Stand
 Umara Mystic
 Undead Augur
 Undercity Informer

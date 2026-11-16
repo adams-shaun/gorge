@@ -1,11 +1,15 @@
 A-Guide of Souls
 A-Plate Armor
 A-Social Climber
+A-Tatyova, Steward of Tides
 A-Teferi, Time Raveler
+Aang, Airbending Master
+Abhorrent Overlord
 Abomination, World Ravager
 Absorb
 Agony Warp
 Ajani's Mantra
+Alchemist's Greeting
 Alley Grifters
 Alrund's Epiphany
 Angelic Purge
@@ -15,15 +19,18 @@ Astarion's Thirst
 Astral Dragon
 Avatar of Growth
 Aven Trooper
+Aven Windreader
 Barricade Breaker
 Battleflight Eagle
 Bearer of Memory
 Black Sun's Twilight
+Blackbloom Rogue
 Blindblast
 Blinding Mage
 Blood Vassal
 Boiling Blood
 Boulderfall
+Bounty of the Luxa
 Brainsurge
 Bramblecrush
 Bronze Guardian
@@ -40,9 +47,12 @@ Choke
 Chromatic Star
 City of Brass
 Civic Guildmage
+Cleopatra, Exiled Pharaoh
+Clickslither
 Colossal Dreadmaw
 Concordant Crossroads
 Constable of the Realm
+Creature Bond
 Curse of Predation
 Cursed Totem
 Daemogoth Titan
@@ -50,30 +60,39 @@ Deadeye Plunderers
 Deadly Insect
 Deadly Wanderings
 Death Speakers
+Deathleaper, Terror Weapon
 Deepwood Tantiv
 Defenestrate
 Descendant of Kiyomaro
 Desecrated Earth
+Despondency
 Devouring Swarm
 Disciple of Freyalise
+Divine Smite
 Dragonborn Looter
 Dread Tiller
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
 Ember-Fist Zubera
+Emeria Angel
 Enclave Cryptologist
 Encroaching Wastes
 Entish Restoration
 Equestrian Skill
 Esika's Chariot
+Eternal of Harsh Truths
 Euroakus
+Fanatical Fever
 Fangs of Kalonia
+Feldon, Ronom Excavator
 Ferocious Charge
 Field Marshal
 Fight Rigging
 Finale of Glory
 Fire Ambush
+Fire Prophecy
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
@@ -83,13 +102,16 @@ Gaea's Bounty
 Gamekeeper
 Ghoulcaller's Bell
 Gift of Paradise
+Gimli's Axe
 Gloomhunter
 Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Commando
 Goblin Tinkerer
+Golden Ratio
 Grave Exchange
+Griptide
 Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
@@ -98,6 +120,7 @@ Halberdier
 Hardened Scales
 Harpoon Sniper
 Haunted Crossroads
+Hellkite Igniter
 Horned Cheetah
 Horned Helm
 Hornet Cannon
@@ -105,12 +128,17 @@ Hornet Cobra
 Hulk, Always Angry
 Inferno Fist
 Insidious Bookworms
+Involuntary Cooldown
 Island
 Jhoira's Familiar
+Jinxed Idol
 Khenra Charioteer
+Kindle
+Kiora's Follower
 Knights of Dol Amroth
 Kolvori, God of Kinship
 Kor Blademaster
+Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
@@ -123,9 +151,11 @@ Lore Seeker
 MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Malicious Advice
+Marsh Hulk
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
+Metallic Mastery
 Mighty Emergence
 Millstone
 Mind Ravel
@@ -138,6 +168,7 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Nature's Chant
 Navigation Orb
 Necromancer's Familiar
 Needlethorn Drake
@@ -153,6 +184,7 @@ Orthodoxy Enforcer
 Painwracker Oni
 Paladin Danse, Steel Maverick
 Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
 Phyrexian Prowler
 Plains
@@ -190,10 +222,13 @@ Runeclaw Bear
 Sacred Cat
 Saheeli's Artistry
 Sanctify
+Sarinth Greatwurm
 Scoria Wurm
 Scrapwork Cohort
+Scrivener
 Scurry Oak
 Sedraxis Specter
+Shagrat, Loot Bearer
 Sheltering Landscape
 Sigarda's Summons
 Sign in Blood
@@ -207,6 +242,7 @@ Smash to Dust
 Smoldering Crater
 Snow-Covered Forest
 Sorcerous Sight
+Soul Salvage
 Speakeasy Server
 Spectral Rider
 Spitfire Handler
@@ -215,6 +251,7 @@ Stampeding Rhino
 Steel Leaf Paladin
 Stenchskipper
 Storm Fleet Pyromancer
+String of Disappearances
 Strip Mine
 Sudden Reclamation
 Sunstrike Legionnaire
@@ -232,7 +269,10 @@ The Shattered States Era
 The Stasis Coffin
 The Unspeakable
 Thopter Assembly
+Thought Collapse
 Thunder Totem
+Thunderbolt
+Thunderhead Squadron
 Tideshaper Mystic
 Tiller Engine
 Topaz Dragon
@@ -242,6 +282,8 @@ Treacherous Vampire
 Treetop Rangers
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
+Tuya Bearclaw
 Two-Headed Zombie
 Undead Executioner
 Unholy Indenture
@@ -260,10 +302,14 @@ Vintara Snapper
 Viridian Longbow
 Vulshok Replica
 Wall of Heat
+Warren Weirding
 Warren-Scourge Elf
+Waterkin Shaman
 Weapon Rack
 Wei Scout
 Wei Strike Force
 Weirding Shaman
+Western Paladin
+Whispers of the Muse
 Willow-Wind
 Zhalfirin Shapecraft

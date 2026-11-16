@@ -178,6 +178,7 @@ Hungry for More
 Hunting Grounds
 Hydromorph Gull
 Ice Cage
+Ignoble Hierarch
 Impetuous Sunchaser
 Indrik Stomphowler
 Infectious Horror
@@ -364,6 +365,7 @@ Sphere Grid
 Sphinx of Uthuun
 Spike Breeder
 Spinal Parasite
+Spirit of the Hearth
 Springjaw Trap
 Sram, Senior Edificer
 Staggershock

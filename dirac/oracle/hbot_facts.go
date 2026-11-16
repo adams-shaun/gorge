@@ -80,6 +80,7 @@ func HBotFactsSet(reg *cards.Registry, tbl *kop.Table, names map[string]string, 
 				continue
 			}
 			ab.Tgt = hbotTgtChain(face, sa)
+			hbotReflexTgts(c.Abilities, face, ka.Prog, sa) // hbot_facts_reflex.go
 			if ka.Kind != kop.AbActivated && ka.Kind != kop.AbMana {
 				continue
 			}

@@ -368,6 +368,7 @@ Sylvan Awakening
 Tajuru Snarecaster
 Telekinetic Sliver
 Terashi's Verdict
+Termination Facilitator
 Teshar, Ancestor's Apostle
 Thassa's Oracle
 Thermo-Alchemist
@@ -435,6 +436,7 @@ Wings of Aesthir
 Wings of the Guard
 Wirewood Pride
 Witch's Cauldron
+Wolfkin Outcast
 Woodland Mystic
 Worldly Tutor
 Xiahou Dun, the One-Eyed

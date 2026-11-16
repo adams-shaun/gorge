@@ -10,6 +10,7 @@ Arc Mage
 Arc Spitter
 Aria of Flame
 Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Ashling, the Extinguisher
 Augmenting Automaton
@@ -52,10 +53,12 @@ Checkpoint Officer
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Centaurs
 Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
 Cobblebrute
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Cradle Clearcutter
@@ -104,6 +107,7 @@ Explosive Revelation
 Extinguish the Light
 Eye Spy
 Faerie Duelist
+Fallen Shinobi
 Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
@@ -168,6 +172,7 @@ Kayla's Command
 Kessig Wolfrider
 Kiln Walker
 Kor Cartographer
+Kor Entanglers
 Kor Scythemaster
 Kuldotha Rebirth
 Lantern of Revealing
@@ -179,7 +184,9 @@ Library
 Life
 Living Wish
 Long-Finned Skywhale
+Lu Su, Wu Advisor
 Lurking Roper
+Magistrate's Veto
 Malicious Intent
 Maned Serval
 Manifold Key
@@ -190,6 +197,7 @@ Maze Skullbomb
 Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
+Mindmelter
 Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
@@ -293,6 +301,7 @@ Snow-Covered Mountain
 So Shiny
 Soratami Savant
 Soulshriek
+Spawn-Gang Commander
 Squadron Hawk
 Squirrel Sanctuary
 Stone Catapult
@@ -300,6 +309,7 @@ Stone Rain
 Stonefury
 Storm Fleet Sprinter
 Storm Shaman
+Stormchaser Mage
 Stormfront Pegasus
 Struggle for Skemfar
 Stump Stomp
@@ -338,6 +348,7 @@ Vector Asp
 Vengeful Dead
 Vengeful Firebrand
 Vengeful Rebirth
+Viridian Harvest
 Virtue's Ruin
 Vitu-Ghazi Guildmage
 Voracious Fell Beast
@@ -355,6 +366,7 @@ Whiptongue Frog
 Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Wirewood Lodge

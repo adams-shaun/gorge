@@ -9,6 +9,7 @@ Airdrop Condor
 Ajani's Influence
 Ajani, Valiant Protector
 Alhammarret, High Arbiter
+Aligned Heart
 Altar of Bhaal
 Altar of Bone
 Amazing Alliance
@@ -19,11 +20,13 @@ Araña, Heart of the Spider
 Argivian Blacksmith
 Ark of Blight
 Asha's Favor
+Atraxi Warden
 Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
 Avabruck Caretaker
+Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
@@ -41,6 +44,7 @@ Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Bumbling Pangolin
 Butcher's Glee
 Cackling Flames
 Canopy Gorger
@@ -70,6 +74,7 @@ Curious Killbot
 Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
+Davriel's Shadowfugue
 Dawnhart Geist
 Daxos's Torment
 Death Frenzy
@@ -98,6 +103,7 @@ Etherium Abomination
 Exuberant Wolfbear
 Eyeblight's Ending
 Fallen Ferromancer
+False Mourning
 Fangren Hunter
 Farfinder
 Farmstead
@@ -143,6 +149,7 @@ Heartless Pillage
 Hellcarver Demon
 Henge of Ramos
 Heron's Grace Champion
+High Score
 Hog-Monkey Rampage
 Howlpack Wolf
 Huatli's Raptor
@@ -163,6 +170,7 @@ Iridescent Angel
 Irradiate
 Irregular Cohort
 Island
+It That Heralds the End
 Izzet Chronarch
 Jade Guardian
 Jagwasp Swarm
@@ -192,6 +200,7 @@ Maulfist Doorbuster
 Mending Touch
 Merfolk Observer
 Merfolk of the Depths
+Meriadoc Brandybuck
 Mesa Unicorn
 Metathran Soldier
 Mindeye Drake
@@ -264,6 +273,7 @@ Reverberate
 Rhonas's Monument
 Rhystic Study
 Riders of Rohan
+Roc Egg
 Rocco, Cabaretti Caterer
 Safe Haven
 Safehold Sentry
@@ -277,6 +287,7 @@ Shabraz, the Skyshark
 Shaman of the Pack
 Shaper Apprentice
 Shapeshifter
+Shatterskull Recruit
 Sheltering Light
 Shoreline Ranger
 Sigardian Priest
@@ -316,6 +327,7 @@ Stupor
 Summon the School
 Summon: Good King Mog XII
 Sunweb
+Surge of Righteousness
 Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
@@ -326,6 +338,7 @@ Talon Gates of Madara
 Tarfire
 Tavern Swindler
 Teardrop Kami
+Tectonic Rift
 Teetering Peaks
 Tempest Owl
 Temporal Eddy
@@ -335,6 +348,7 @@ Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
 The Falcon, Airship Restored
+The Great Juggernaut
 Thistledown Duo
 Thornscape Apprentice
 Thran Quarry
@@ -382,5 +396,6 @@ Wretched Anurid
 Wrong Turn
 Wu Longbowman
 Yeva's Forcemage
+Yomiji, Who Bars the Way
 Yore-Tiller Nephilim
 Zulaport Duelist

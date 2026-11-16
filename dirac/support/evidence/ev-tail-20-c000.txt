@@ -41,6 +41,7 @@ Captain America, Unbowed
 Capture Sphere
 Carapace
 Careful Consideration
+Careful Cultivation
 Carnivorous Plant
 Catacomb Slug
 Catalyst Elemental
@@ -88,6 +89,7 @@ Dirtcowl Wurm
 Doc Ock, Evil Inventor
 Doomsday
 Dragon Egg
+Drana's Silencer
 Drifting Djinn
 Drownyard Lurker
 Druid Lyrist
@@ -97,6 +99,7 @@ Dust Bowl
 Edge of Autumn
 Eidolon of the Great Revel
 Eiganjo Free-Riders
+Elder Gargaroth
 Eldritch Evolution
 Embereth Skyblazer
 Envelop
@@ -150,6 +153,7 @@ Hapatra's Mark
 Haunter of Nightveil
 Healer of the Pride
 Herald of Dromoka
+Hero of the Nyxborn
 Hero's Blade
 Hero's Demise
 Hexplate Golem
@@ -355,6 +359,7 @@ The Blackstaff of Waterdeep
 Thran Dynamo
 Thraxodemon
 Time of Need
+Tishana, Voice of Thunder
 Titania's Chosen
 Tramway Station
 Transmogrifying Licid
@@ -363,6 +368,7 @@ True Love's Kiss
 Trumpet Blast
 Trusty Retriever
 Turtle-Seals
+Uktabi Kong
 Undead Hand Ninja
 Underworld Breach
 Unlikely Aid
@@ -372,6 +378,7 @@ Vastwood Surge
 Vectis Agents
 Veil of Assimilation
 Vigorspore Wurm
+Vivien, Champion of the Wilds
 Volatile Claws
 Volatile Fjord
 Votary of the Conclave

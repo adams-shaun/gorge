@@ -22,6 +22,7 @@ Auriok Bladewarden
 Avatar of Slaughter
 Awaken the Bear
 Awakening of Vitu-Ghazi
+Axebane Guardian
 Axgard Armory
 Ayumi, the Last Visitor
 Baloth Cage Trap
@@ -100,6 +101,7 @@ Fiery Intervention
 Flame Spirit
 Flameshadow Conjuring
 Flourishing Hunter
+Flowstone Hellion
 Forest
 Fortify
 Fumulus, the Infestation
@@ -188,6 +190,7 @@ Mizzium Tank
 Most Wanted
 Mountain
 Mournful Zombie
+Myojin of Life's Web
 Myr Servitor
 Mystic Crusader
 Nema Siltlurker
@@ -196,6 +199,7 @@ Nettle Swine
 Nightmare
 Norwood Ranger
 Noxious Hatchling
+Oakhame Ranger
 Ojutai Exemplars
 Omen of the Sun
 One With the Wind
@@ -218,6 +222,7 @@ Plains
 Poisonbelly Ogre
 Precise Strike
 Predatory Hunger
+Prize Pig
 Psionic Sliver
 Puncture Blast
 Quiet Purity
@@ -226,6 +231,7 @@ Rampaging Aetherhood
 Ravenous Demon
 Razing Snidd
 Reckless Racer
+Recover
 Relearn
 Render Inert
 Renegade Freighter
@@ -241,15 +247,18 @@ Scaldkin
 Scare Tactics
 Scatter the Seeds
 Scattershot
+Scholar of the Ages
 Scion of Calamity
 Scourge Wolf
 Scrap Mastery
 Scrapskin Drake
 Seacoast Drake
 Seal of Fire
+Segmented Wurm
 Seluma, Light of Aysen
 Serpentine Curve
 Serum Visionary
+Shadow in the Warp
 Shambling Ghoul
 Shauku's Minion
 Shelter
@@ -338,6 +347,7 @@ Viridian Lorebearers
 Viridian Scout
 Virulent Wound
 Vodalian Soldiers
+Volcanic Geyser
 Voracious Vacuum
 Wall of Razors
 Wall of Wood
@@ -353,5 +363,6 @@ Wing Snare
 Wither and Bloom
 Woebearer
 Wriggling Grub
+X-23, Deadly Weapon
 Xavier Sal, Infested Captain
 Zendikar Resurgent

@@ -113,6 +113,7 @@ Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Living Lands
 Lord of Extinction
@@ -145,6 +146,7 @@ No Escape
 Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
+Oblivion Ring
 Open the Vaults
 Orzhov Racketeers
 Paradise Mantle
@@ -183,6 +185,7 @@ Savage Swipe
 Savai Sabertooth
 Scarwood Treefolk
 Scathe Zombies
+Sentinel
 Serpent Warrior
 Shambling Goblin
 Shessra, Death's Whisper
@@ -196,6 +199,7 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
 Spellbook

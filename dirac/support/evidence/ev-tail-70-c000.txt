@@ -205,6 +205,7 @@ Mesmeric Trance
 Metropolis Angel
 Mind Slash
 Minotaur Sureshot
+Moth Herb Elixir
 Mountain
 Mutilate
 Myconid Spore Tender
@@ -226,6 +227,7 @@ Oran-Rief Invoker
 Orcish Veteran
 Overmaster
 Patagia Viper
+Patchwork Gnomes
 Pestilence
 Phyrexian Reclamation
 Piercing Light

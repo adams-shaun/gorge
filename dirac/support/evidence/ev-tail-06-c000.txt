@@ -1,6 +1,7 @@
 A-Imperial Subduer
 A-Kargan Warleader
 A-Radha's Firebrand
+A-Syndicate Infiltrator
 Abzan Kin-Guard
 Adeline, Resplendent Cathar
 Aeronaut Tinkerer
@@ -19,6 +20,7 @@ Angel of Sanctions
 Angelic Sell-Sword
 Anvilwrought Raptor
 Apothecary Initiate
+Archfiend of Ifnir
 Argivian Find
 Armored Cancrix
 Armored Skaab
@@ -92,6 +94,7 @@ Cruel Grimnarch
 Cutthroat Negotiator
 Cylian Elf
 Dawnglare Invoker
+Dead Man's Chest
 Deadeye Quartermaster
 Death Stroke
 Deathbloom Gardener
@@ -116,6 +119,7 @@ Empty-Shrine Kannushi
 Enraged Ceratok
 Epicenter
 Erdwal Ripper
+Ethereal Absolution
 Evil Eye of Urborg
 Experimental Armor
 Explosive Entry
@@ -184,6 +188,7 @@ Hunger of the Howlpack
 Hymn to Tourach
 Illusionary Informant
 Illusory Angel
+Imperious Oligarch
 Innocent Blood
 Invoke the Divine
 Iron-Heart Chimera
@@ -205,6 +210,7 @@ Kemba, Kha Enduring
 Kezzerdrix
 Kiki-Jiki, Mirror Breaker
 Killian, Decisive Mentor
+King Darien XLVIII
 Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
@@ -215,6 +221,7 @@ Launch Party
 Lazotep Behemoth
 Leaf Gilder
 Leafcrown Dryad
+Lesser Masticore
 Leyline of Vitality
 Lightning Surge
 Liliana's Talent
@@ -229,6 +236,7 @@ Magnetic Mine
 Magus of the Bridge
 Malcator, Purity Overseer
 Mammoth Spider
+Manifestation Sage
 Mantle of Webs
 Marang River Skeleton
 Marsh Boa
@@ -263,6 +271,7 @@ Nylea's Disciple
 Oath of Druids
 Obelisk Spider
 Obelisk of Bant
+Obstinate Gargoyle
 On Serra's Wings
 Onward
 Oona's Grace
@@ -336,6 +345,7 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shepherd of Heroes
 Shinen of Stars' Light
 Shinka, the Bloodsoaked Keep
 Shoal Serpent
@@ -352,6 +362,7 @@ Soltari Lancer
 Soot Imp
 Soratami Mirror-Guard
 Soul Collector
+Soul Link
 Soul of Ravnica
 Soul's Grace
 Spellbound Dragon

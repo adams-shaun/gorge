@@ -142,6 +142,7 @@ Dying Wail
 Elite Vanguard
 Elusive Spellfist
 Embereth Shieldbreaker
+Epic Experiment
 Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
@@ -153,6 +154,7 @@ Faerie Guidemother
 Fallen Angel
 Fallen Cleric
 Fanatical Devotion
+Far
 Fatal Frenzy
 Festering Evil
 Fiery Temper

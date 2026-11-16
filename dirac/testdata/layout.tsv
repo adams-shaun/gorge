@@ -699,7 +699,9 @@ default	field	genPrep.anyWhileHost	3703	1
 default	field	genPrep.anyEmbCtrl	3704	1
 default	field	genPrep.anyWhileTapped	3705	1
 default	field	genPrep.anyOvCantAtk	3706	1
-default	field	genPrep.anySrcMark	3707	1
+default	field	genPrep.anyCantAtk	3707	1
+default	field	genPrep.anyCantAtkScope	3708	1
+default	field	genPrep.anySrcMark	3709	1
 default	field	genPrep.dmgBy	3712	24
 default	field	genPrep.crewerRec	3736	24
 default	field	genPrep.crewBy	3760	24
