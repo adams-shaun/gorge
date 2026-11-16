@@ -1864,6 +1864,9 @@ const ReplPreventDamageFilt ReplKind = 64
 // DamageDone (dirac/manifest/ReplKind/ReplPreventDamageN)
 const ReplPreventDamageN ReplKind = 65
 
+// DamageDone (dirac/manifest/ReplKind/ReplDamageRedirect)
+const ReplDamageRedirect ReplKind = 66
+
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
 

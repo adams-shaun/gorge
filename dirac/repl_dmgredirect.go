@@ -230,21 +230,23 @@ func (s *State) redirTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, co
 }
 
 // redirDeal deals the redirected damage m to the permanent tcode as a new
-// event from the source: replacements again, then the damage with deathtouch,
-// lifelink and the damage triggers of damageTo. A source with no slot is read
-// only while it is the resolving entry.
+// event from the source: replacements again (the ReplaceSplitDamage shield's
+// new event meets them again, gorge replacement_splitdamage.go), then the
+// damage with deathtouch, lifelink and the damage triggers of damageTo.
 func (s *State) redirDeal(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tcode TCode, m int) {
 	if m = s.replDamage(k, srcCtrl, srcSl, srcCard, tcode, false, m); m <= 0 {
 		return
 	}
-	e := &s.res.e
-	var kw kop.KwMask
-	if srcSl != NoSlot {
-		kw = s.kw(k, srcSl)
-	} else if s.res.active && e.card == srcCard && e.obj != NoObj {
-		kw = s.srcKw(k)
-	} else {
-		s.capFull(StallRedirOrder) // a source the kernel cannot read here
+	s.redirLand(k, srcCtrl, srcSl, srcCard, tcode, m)
+}
+
+// redirLand lands m damage from the source on the permanent tcode as the one
+// event it is (the static redirects' in-place rewrite: gorge
+// replacement_damage.go's single emit, no replacements re-run), with
+// deathtouch, lifelink and the damage triggers of damageTo.
+func (s *State) redirLand(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tcode TCode, m int) {
+	kw, ok := s.redirKw(k, srcSl, srcCard)
+	if !ok {
 		return
 	}
 	if s.objs[tcode].zone != kop.ZoneBattlefield {
@@ -270,9 +272,24 @@ func (s *State) redirDeal(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tc
 		if srcSl != NoSlot {
 			s.fireDamage(k, srcSl, int16(m), false, false, tcode)
 		} else {
-			s.fireDamageSrc(k, e.obj, e.ctrl, int16(m), 0, tcode, nil)
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(m), 0, tcode, nil)
 		}
 	}
+}
+
+// redirKw is the keyword mask of a redirect's damage source: the permanent's
+// when it has a slot, else the resolving entry's (a source with no slot is
+// read only while it is the resolving entry; redirDeal's original read).
+func (s *State) redirKw(k *prep, srcSl Slot, srcCard CardID) (kop.KwMask, bool) {
+	if srcSl != NoSlot {
+		return s.kw(k, srcSl), true
+	}
+	e := &s.res.e
+	if s.res.active && e.card == srcCard && e.obj != NoObj {
+		return s.srcKw(k), true
+	}
+	s.capFull(StallRedirOrder) // a source the kernel cannot read here
+	return 0, false
 }
 
 // redirCombat is replCombatGen's redirect arm for combat event ev of r (the
