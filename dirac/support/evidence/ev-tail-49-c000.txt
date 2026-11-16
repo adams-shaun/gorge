@@ -29,6 +29,7 @@ Avaricious Dragon
 Axegrinder Giant
 Bad Moon
 Batroc the Leaper
+Batterbone
 Battle Mammoth
 Battlefly Swarm
 Benthic Behemoth
@@ -66,6 +67,7 @@ Chimeric Coils
 Circular Logic
 Citadel Gate
 Citanul Centaurs
+Citanul Flute
 Clan Crafter
 Cobblebrute
 Coiling Oracle
@@ -80,6 +82,7 @@ Damping Matrix
 Daredevil's Billy Club
 Dark Bargain
 Darksteel Myr
+Daru Encampment
 Daru Healer
 Dauntless Aven
 Dauntless Unity
@@ -100,6 +103,7 @@ Dragonlord Dromoka
 Drake Haven
 Dregs of Sorrow
 Druid's Deliverance
+Dryad Arbor
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
@@ -108,6 +112,7 @@ Elvish Piper
 Elvish Promenade
 Elvish Scrapper
 Elvish Visionary
+Emmara, Soul of the Accord
 Enduring Bondwarden
 Enlightened Ascetic
 Ent's Fury
@@ -149,6 +154,7 @@ Gates of Istfell
 Geistblast
 Generous Stray
 Ghirapur Aether Grid
+Ghitu Encampment
 Gibbering Barricade
 Glistener Elf
 Gloomdrifter
@@ -158,6 +164,7 @@ Goblin Skycutter
 Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
+Grasping Dunes
 Gravetiller Wurm
 Great Desert Prospector
 Greater Auramancy
@@ -202,6 +209,7 @@ Kor Outfitter
 Kor Scythemaster
 Kuldotha Rebirth
 Lantern Spirit
+Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
 Laquatus's Creativity
@@ -222,6 +230,7 @@ Manta Riders
 Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
+Masticore
 Memory Plunder
 Merfolk Observer
 Metamorphic Wurm
@@ -251,6 +260,7 @@ Ogre Gatecrasher
 Omnath, Locus of Rage
 Orochi Hatchery
 Outland Colossus
+Overflowing Basin
 Oversold Cemetery
 Pallid Mycoderm
 Part the Veil
@@ -342,6 +352,7 @@ Slippery Bogle
 Smelt
 Snow-Covered Mountain
 So Shiny
+Soratami Savant
 Soulshriek
 Spawn-Gang Commander
 Spine of Ish Sah
@@ -385,6 +396,7 @@ Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
+Tranquil Expanse
 Tranquil Thicket
 Turn
 Twisted Embrace
@@ -421,6 +433,7 @@ Willow Faerie
 Willow-Wind
 Wing Puncture
 Wirewood Hivemaster
+Wirewood Lodge
 Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder

@@ -153,6 +153,7 @@ Kothophed, Soul Hoarder
 Krosan Grip
 Laboratory Drudge
 Labyrinth Minotaur
+Leave
 Leave in the Dust
 Lena, Selfless Champion
 Leonin Lightbringer
@@ -207,6 +208,7 @@ Pitchburn Devils
 Plague Mare
 Plains
 Poisonbelly Ogre
+Precise Strike
 Predatory Hunger
 Psionic Sliver
 Puncture Blast

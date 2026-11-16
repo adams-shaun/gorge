@@ -105,6 +105,7 @@ Doomskar Titan
 Doubtless One
 Draconian Cylix
 Dragon's Smile
+Dragonshift
 Dread Reaper
 Duskfang Mentor
 ED-E, Lonesome Eyebot
@@ -236,6 +237,7 @@ Marble Chalice
 Mark of Fury
 Mark of Sakiko
 Master of Waves
+Master the Way
 Mavren Fein, Dusk Apostle
 Maze Behemoth
 Meekstone
@@ -302,6 +304,7 @@ Recollect
 Recover
 Recycla-bird
 Reef Shaman
+Reinterpret
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer

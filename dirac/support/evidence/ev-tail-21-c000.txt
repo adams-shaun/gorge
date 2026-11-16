@@ -54,6 +54,7 @@ Brago, King Eternal
 Brass-Talon Chimera
 Braulios of Pheres Band
 Bravado
+Breath of Malfegor
 Brightcap Badger
 Brokers Initiate
 Broodwarden
@@ -106,6 +107,7 @@ Draconic Destiny
 Draconic Lore
 Dragon Blood
 Dragonloft Idol
+Dralnu's Crusade
 Dread Warlock
 Dread of Night
 Drown in Filth
@@ -327,6 +329,7 @@ Righteous Valkyrie
 Roadside Reliquary
 Roast
 Robot Chicken
+Rot Hulk
 Run for Your Life
 Rush the Room
 Sacred Wolf
@@ -357,6 +360,7 @@ Silent Submersible
 Silverglade Elemental
 Simian Grunts
 Skittering Surveyor
+Skull Skaab
 Skygames
 Skyline Predator
 Skymarcher Aspirant

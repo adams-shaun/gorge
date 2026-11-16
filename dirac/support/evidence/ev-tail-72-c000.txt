@@ -207,6 +207,7 @@ Hellcarver Demon
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
+Hit
 Hollowhenge Scavenger
 Holy Armor
 Holy Light
@@ -244,6 +245,7 @@ Jötun Owl Keeper
 Karametra's Blessing
 Kashi-Tribe Reaver
 Kashi-Tribe Warriors
+Kavu Runner
 Kemba's Banner
 Kemba, Kha Enduring
 Kinsbaile Skirmisher
@@ -251,6 +253,7 @@ Kitchen
 Knight of Stromgald
 Kodama of the North Tree
 Kor Scythemaster
+Kozilek's Shrieker
 Kyren Legate
 Labyrinth Adversary
 Last Rites

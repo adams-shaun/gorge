@@ -6,16 +6,19 @@ Aerith, Last Ancient
 Ajani's Welcome
 Akroan Conscriptor
 Alesha's Vanguard
+Amphibian Downpour
 Ancient Stirrings
 Angel of Invention
 Angel of Renewal
 Angelic Captain
+Anikthea, Hand of Erebos
 Apes of Rath
 Ardent Recruit
 Armored Guardian
 Atalya, Samite Master
 Atsushi, the Blazing Sky
 Automatic Librarian
+Azorius First-Wing
 Azorius Ploy
 Barbary Apes
 Barbed Batterfist
@@ -37,24 +40,29 @@ Bristling Boar
 Burning Palm Efreet
 Burning Prophet
 Butcher of Malakir
+Call to Mind
 Captain's Call
 Carrier Thrall
 Cartographer
+Cateran Kidnappers
 Celestine, the Living Saint
 Centaur Omenreader
 Chain of Plasma
 Chainflail Centipede
+Chamber of Manipulation
 Chief Jim Hopper
 Cho-Manno's Blessing
 Chrome Steed
 Chronicler of Heroes
 Cloud Sprite
 Coldsteel Heart
+Complex Automaton
 Conservatory
 Contraband Livestock
 Copper-Leaf Angel
 Counterspell
 Crazed Skirge
+Creakwood Ghoul
 Creeping Mold
 Crimson Mage
 Crookshank Kobolds
@@ -62,10 +70,13 @@ Cultist's Staff
 Custody Battle
 Cybermen Squadron
 Daily Regimen
+Dark Offering
+Daru Lancer
 Dauthi Marauder
 Dauthi Mindripper
 Deadly Derision
 Deathbonnet Sprout
+Deathreap Ritual
 Deception
 Defiant Greatmaw
 Denethor, Ruling Steward
@@ -78,9 +89,11 @@ Douse
 Drakewing Krasis
 Dread Shade
 Dukhara Peafowl
+Dune Mover
 Eidolon of Rhetoric
 Eivor, Battle-Ready
 Eldritch Evolution
+Elegant Edgecrafters
 Ember Swallower
 Endless One
 Erebos, God of the Dead
@@ -109,6 +122,7 @@ Forest
 Fracturing Gust
 Gallia of the Endless Dance
 Gandalf the Grey
+Gang of Elk
 Gauntlets of Light
 General Kudro of Drannith
 Ghost Tactician
@@ -124,6 +138,7 @@ Grunn, the Lonely King
 Hapatra, the Desert Frost
 Harried Artisan
 Haughty Djinn
+Hawkeater Moth
 Hazardous Conditions
 Hearts on Fire
 Heartwarming Redemption
@@ -164,6 +179,7 @@ Korlessa, Scale Singer
 Krosan Beast
 Lead the Stampede
 Leadership Vacuum
+Lifebane Zombie
 Light of Promise
 Lingering Souls
 Lowland Giant
@@ -190,7 +206,9 @@ Mystic Forge
 Namor, Scourge of the Seas
 Nautiloid Ship
 Nightshade Stinger
+Nuisance Engine
 Null Champion
+Nylea's Huntmaster
 Nyxborn Colossus
 Oath of the Ancient Wood
 Oathsworn Giant
@@ -203,6 +221,7 @@ Ojutai's Breath
 On the Trail
 Ondu Cleric
 Orcish Mechanics
+Orzhova, the Church of Deals
 Otherworldly Gaze
 Otherworldly Outburst
 Owlbear Shepherd
@@ -210,6 +229,7 @@ Ox Drover
 Paradoxical Outcome
 Path of Peace
 Persistent Specimen
+Pestilent Kathari
 Pestilent Syphoner
 Pillar of War
 Plains
@@ -226,12 +246,14 @@ Quartzwood Crasher
 Quicksilver, Speedster
 Racers' Ring
 Rathi Trapper
+Raven Wings
 Ravenous Daggertooth
 Reality Anchor
 Reaper of the Wilds
 Reborn Hero
 Reckless Air Strike
 Reckless Charge
+Red Cliffs Armada
 Refresh
 Renewed Solidarity
 Renounce the Guilds
@@ -251,6 +273,7 @@ Saprazzan Legate
 Sarkhan Vol
 Savannah Sage
 Scare Tactics
+Scathe Zombies
 Scent of Cinder
 Scion of Opulence
 Scout the Borders
@@ -309,6 +332,7 @@ Voltaic Key
 Vulshok Replica
 Wailing Ghoul
 Wake of Vultures
+Wall of Light
 Wall of Pine Needles
 Wall of Runes
 Warship Scout

@@ -266,6 +266,7 @@ Nissa's Triumph
 Novellamental
 Nyxborn Marauder
 Obelisk of Esper
+Ochre Jelly
 Ogre Gatecrasher
 Ogre Sentry
 Oji, the Exquisite Blade
@@ -372,6 +373,7 @@ Stealth Mission
 Steelbane Hydra
 Steeple Roc
 Stolen Strategy
+Stolen by the Fae
 Stone Calendar
 Stormwatch Eagle
 Stupefying Touch

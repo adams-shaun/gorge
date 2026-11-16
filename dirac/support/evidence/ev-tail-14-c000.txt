@@ -3,6 +3,7 @@ A-High-Rise Sawjack
 A-Knockout Blow
 A-Psionic Snoop
 A-Tome Shredder
+Abyssal Nightstalker
 Adarkar Wastes
 Agent of the Fates
 Alley Evasion
@@ -10,9 +11,11 @@ Alphinaud Leveilleur
 Amaranthine Wall
 Ambush Krotiq
 Angrath, Captain of Chaos
+Anointed Deacon
 Archnemesis
 Argivian Archaeologist
 Armor Thrull
+Auriok Champion
 Avacynian Priest
 Avalanche Riders
 Aven Archer
@@ -23,6 +26,8 @@ Battlefield Butcher
 Battleground Geist
 Blade of the Bloodchief
 Blazethorn Scarecrow
+Bleeding Edge
+Blight Mamba
 Blight Titan
 Blood Aspirant
 Blustersquall
@@ -39,6 +44,7 @@ Carven Caryatid
 Cement Shoes
 Centaur Veteran
 Cessation
+Chalice of the Void
 Chandra's Firemaw
 Chatterstorm and Awaken the Woods
 Colos Yearling
@@ -51,6 +57,7 @@ Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
 Crossbow Infantry
+Dauthi Marauder
 Dauthi Mindripper
 Deglamer
 Deluge of Doom
@@ -69,11 +76,13 @@ Elder Owyn Lyons
 Elvish Herder
 Elvish Warmaster
 Empty the Warrens
+Enfeeblement
 Enshrined Memories
 Entrails Feaster
 Entrapment Maneuver
 Erstwhile Trooper
 Essence Drain
+Eunuchs' Intrigues
 Eviscerate
 Experimental Augury
 Eyes in the Skies
@@ -90,6 +99,7 @@ Foothill Guide
 Force of Nature
 Forest
 Forgotten Sentinel
+Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
 Glasses of Urza
@@ -102,6 +112,7 @@ Goblin Sledder
 Goblin Wardriver
 Gold Myr
 Goretusk Firebeast
+Gruul Ragebeast
 Guard Duty
 Guardian Idol
 Gutter Skulk
@@ -124,6 +135,7 @@ Hollowhenge Beast
 Hookblade Veteran
 Hymn of Rebirth
 Inferno Project
+Inspiring Unicorn
 Ior Ruin Expedition
 Island
 Istvan, Butcher of Eln
@@ -131,6 +143,7 @@ Jaspera Sentinel
 Join the Dance
 Journeyer's Kite
 Joven and Chandler
+Kavu Scout
 Kazuul's Fury
 Kiora's Follower
 Knight of Cliffhaven
@@ -140,6 +153,7 @@ Leering Emblem
 Leonin of the Lost Pride
 Lethal Protection
 Lightning Dart
+Lightning Diadem
 Lightwalker
 Living Lightning
 Living Tsunami
@@ -214,6 +228,7 @@ Reality Heist
 Reality Hemorrhage
 Realm-Cloaked Giant
 Reconstructed Thopter
+Red Dragon
 Reinforcements
 Reminisce
 Rend Flesh
@@ -247,6 +262,7 @@ Shifting Sliver
 Silent Extraction
 Sinister Possession
 Sink into Takenuma
+Skeletal Crocodile
 Skrelv, Defector Mite
 Sky Spirit
 Skywatcher Adept
@@ -256,6 +272,7 @@ Smoldering Butcher
 Snarling Warg
 Snow-Covered Swamp
 Solitary Camel
+Soul of Zendikar
 Soulscour
 Soulstinger
 Spawning Bed
@@ -265,6 +282,7 @@ Starnheim Aspirant
 Starved Rusalka
 Steel Dromedary
 Stone Kavu
+Storm Entity
 Storm's Wrath
 Strength Bobblehead
 Strength of Isolation
@@ -290,6 +308,7 @@ Tormod, the Desecrator
 Toucan-Puffin
 Tower of Eons
 Triassic Egg
+Trigon of Infestation
 True-Faith Censer
 Tundra Wolves
 Turbulent Steppe
@@ -297,6 +316,7 @@ Ugin's Mastery
 Unbreathing Horde
 Undercellar Myconid
 Unfulfilled Desires
+Unified Front
 Vampiric Link
 Vanishing Verse
 Vanishment
@@ -306,7 +326,9 @@ Vicious Battlerager
 Villainous Ogre
 Vision Skeins
 Void Grafter
+Wall of Stone
 Warden of Evos Isle
+Wild Cantor
 Wild Celebrants
 Willow Dryad
 Wily Bandar
@@ -317,3 +339,4 @@ Wooden Cane
 Woodvine Elemental
 Wyleth, Soul of Steel
 Zimone, Mystery Unraveler
+Zof Consumption

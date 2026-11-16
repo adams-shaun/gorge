@@ -68,6 +68,7 @@ Cerodon Yearling
 Chain Stasis
 Chronomancer
 Cleaving Skyrider
+Clinging Darkness
 Cloud Djinn
 Commando Raid
 Conquer
@@ -90,6 +91,7 @@ Demanding Dragon
 Demon Bolt
 Desert Sandstorm
 Desperate Charge
+Detective of the Month
 Dire Fleet Poisoner
 Dismal Failure
 Dispel
@@ -405,4 +407,5 @@ Xathrid Necromancer
 Yawgmoth Demon
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way
+Yotian Tactician
 Zopandrel, Hunger Dominus

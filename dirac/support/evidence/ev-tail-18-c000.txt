@@ -167,6 +167,7 @@ Giant Scorpion
 Glade Watcher
 Glass of the Guildpact
 Gleeful Arsonist
+Glenn, the Voice of Calm
 Glimmerpost
 Glimpse of Nature
 Glorious Charge
@@ -356,6 +357,7 @@ Shriekdiver
 Shrink
 Sigardian Savior
 Silverbeak Griffin
+Silverquill Pledgemage
 Simian Grunts
 Sinister Gnarlbark
 Skarrgan Pit-Skulk
@@ -381,6 +383,7 @@ Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
 Steadfastness
+Steel Leaf Champion
 Stingscourger
 Stronghold Overseer
 Summon Undead

@@ -69,6 +69,7 @@ Death Grasp
 Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
+Defabricate
 Destiny Spinner
 Discontinuity
 Displacement Wave
@@ -171,6 +172,7 @@ Mizzium Meddler
 Moira Brown, Guide Author
 Monoskelion
 Moonlit Wake
+Morality Shift
 Mordenkainen's Polymorph
 More of That Strange Oil...
 Mountain
@@ -255,6 +257,7 @@ Stone Haven Pilgrim
 Storm Caller
 Stratadon
 Striped Bears
+Subterranean Shambler
 Sumala Woodshaper
 Swamp
 Swarmborn Giant
