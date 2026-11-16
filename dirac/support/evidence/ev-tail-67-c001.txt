@@ -1,6 +1,9 @@
 A-Dokuchi Silencer
 A-Elven Bow
+A-Rulik Mons, Warren Chief
+A-Umara Mystic
 Accelerated Evolution
+Aerial Assault
 Aethershield Artificer
 Against All Odds
 Akki Underminer
@@ -13,23 +16,29 @@ Archaeomender
 Augury Adept
 Autochthon Wurm
 Avatar of the Resolute
+Aven Trailblazer
 Awakener Druid
 Axebane Guardian
 Azimaet Drake
 Baneful Omen
 Barbarian Lunatic
+Biting Rain
 Blight Grenade
 Blisterspit Gremlin
 Buried Alive
 Burn the Impure
+Burning Palm Efreet
 Butcher Ghoul
+Caldera Pyremaw
 Cao Cao, Lord of Wei
 Caravan Escort
 Chain Lightning
 Chakram Slinger
 Cogwork Assembler
 Commissar Severina Raine
+Consuming Vapors
 Corpse Knight
+Corrupting Licid
 Corsairs of Umbar
 Cosmos Elixir
 Courier's Capsule
@@ -47,12 +56,15 @@ Demonic Rising
 Dismantling Blow
 Domri, Anarch of Bolas
 Drag Down
+Dragon's Approach
 Dramatic Reversal
 Dynavolt Tower
 Earthen Goo
 Eidolon of Rhetoric
 Eivor, Battle-Ready
+Ekthi, Contaminator Priest
 Erratic Visionary
+Essence Feed
 Essence Warden
 Eternal Witness
 Everglades
@@ -64,15 +76,21 @@ Firebird, Blazing Ranger
 Flametongue Kavu
 Fleetfeather Sandals
 Fleshpulper Giant
+Floodhound
 Flow of Ideas
 Flux Channeler
+Fog of Gnats
 Forest
 Fungal Sprouting
+Furnace Celebration
 Genku, Future Shaper
 Glittermonger
 Glory Bearers
 Gluttonous Zombie
+Gnome-Made Engine
 Go Forth
+Goblin Glider
+Goblin Racketeer
 Golden Egg
 Grazilaxx, Illithid Scholar
 Grim Monolith
@@ -90,8 +108,12 @@ Horseshoe Crab
 Hound of the Farbogs
 Hydra's Growth
 Implement of Ferocity
+Independent Troops
+Indigo Faerie
+Infernal Pet
 Inkrise Infiltrator
 Inspiring Refrain
+Irencrag Pyromancer
 Iroas's Champion
 Iron Suitcase
 Island
@@ -101,6 +123,7 @@ Ken, Burning Brawler
 Khalni Gem
 Kirtar's Wrath
 Kiyomaro, First to Stand
+Knight of the Keep
 Kor Castigator
 Leafkin Druid
 Leather Armor
@@ -109,6 +132,8 @@ Lightning-Core Excavator
 Liliana's Influence
 Lodestone Myr
 Longtusk Cub
+Lowland Oaf
+Lucas, the Sharpshooter
 Lush Growth
 MJ, Rising Star
 Malachite Talisman
@@ -116,13 +141,20 @@ Manaforce Mace
 Manticore Eternal
 Mardu Strike Leader
 Metropolis Reformer
+Might Weaver
+Mirror of Galadriel
 Mise
 Misery's Shadow
+Mogg Sentry
 Mogis's Warhound
+Moonglove Changeling
 Moonlight Hunt
 Mortal's Ardor
 Moss Monster
+Mother of Runes
+Mothrider Patrol
 Mountain
+Mourning
 Murkfiend Liege
 Nagging Thoughts
 Natural Emergence
@@ -132,13 +164,18 @@ Neurok Familiar
 Nezumi Bladeblesser
 Norn's Disassembly
 Oblation
+Onulet
+Organ Hoarder
 Orim's Touch
 Pentarch Ward
+Phyrexian Etchings
 Plains
 Pol Jamaar, Illusionist
+Preeminent Captain
 Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Purifying Dragon
 Python
 Quest for Pure Flame
 Rage Weaver
@@ -147,6 +184,7 @@ Ravos, Soultender
 Ray of Erasure
 Reality Ripple
 Reckless Charge
+Reckless Handling
 Reduce to Ashes
 Relic Barrier
 Revelation of Power
@@ -156,7 +194,11 @@ Savra, Queen of the Golgari
 Scavenged Blade
 Scion of Vitu-Ghazi
 Searing Barb
+Searing Blood
 Sentinel Sliver
+Shake the Foundations
+Shore Keeper
+Simplify
 Skullknocker Ogre
 Sky Terror
 Slinking Giant
@@ -165,12 +207,17 @@ Sol Grail
 Soul of Theros
 Spined Fluke
 Squee's Embrace
+Steam Blast
 Stormcrag Elemental
 Stormrider Rig
+Streetbreaker Wurm
 Summon: Good King Mog XII
 Swamp
+Symmetry Sage
+Tactical Advantage
 Talons of Falkenrath
 Talons of Wildwood
+Tawnos's Wand
 Temmet, Vizier of Naktamun
 Tenza, Godo's Maul
 Territorial Allosaurus
@@ -182,6 +229,7 @@ Thunder Drake
 Thwart the Grave
 Titan's Strength
 Topan Freeblade
+Tor Giant
 Tormod's Cryptkeeper
 Tranquil Path
 Transcendent Master
@@ -191,6 +239,8 @@ Umbris, Fear Manifest
 Undercity Scavenger
 Unholy Hunger
 Urza's Cave
+Vampire Lacerator
+Venomcrawler
 Viashino Fangtail
 Vine Trellis
 Warped Devotion
@@ -198,6 +248,7 @@ Way of the Thief
 Weight of the Underworld
 Welder Automaton
 Whispering Wizard
+Windgrace Acolyte
 Wirecat
 Woodland Liege
 Wrath of Oko

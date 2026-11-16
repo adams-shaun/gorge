@@ -1,8 +1,10 @@
+Abstruse Interference
 Advanced Hoverguard
 Aeolipile
 Aeronaut's Wings
 Ageless Guardian
 Akki Rockspeaker
+Akoum Boulderfoot
 Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
@@ -15,7 +17,9 @@ Arctic Treeline
 Ashling the Pilgrim
 Atarka Beastbreaker
 Attune with Aether
+Avenger of Zendikar
 Axgard Armory
+Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
 Blasted Landscape
@@ -25,6 +29,7 @@ Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
 Blunt the Assault
+Boggart Arsonists
 Book of Rass
 Border Guard
 Boreal Elemental
@@ -33,13 +38,18 @@ Brand
 Brood Birthing
 Cartouche of Zeal
 Cast Down
+Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Channel the Suns
+Chaotic Goo
+Charging Monstrosaur
 Chatter of the Squirrel
+Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
 Combust
 Conclave Mentor
@@ -60,8 +70,10 @@ Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
 Duskhunter Bat
+Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Eidolon of Countless Battles
 Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
@@ -71,19 +83,24 @@ Endurance Bobblehead
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
+Eternal Skylord
 Ethercaste Knight
 Evangel of Synthesis
+Evaporate
 Eviscerator's Insight
 Expedition Diviner
+Explosive Impact
 Eye of Nowhere
 Facevaulter
 Familiar Ground
 Farm
+Fault Riders
 Filigree Fracture
 Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Flywheel Racer
 Footfall Crater
 Forest
@@ -92,6 +109,7 @@ Fourth Bridge Prowler
 Frontline Devastator
 Garrison Griffin
 Geier Reach Sanitarium
+Genasi Enforcers
 General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
@@ -99,6 +117,7 @@ Ghostly Visit
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
 Hall of Oracles
@@ -119,6 +138,7 @@ Idle Thoughts
 Ifnir Deadlands
 Ignition Team
 Inferno
+Into Thin Air
 Invasion of Segovia
 Irini Sengir
 Island
@@ -132,6 +152,7 @@ Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
 Levitating Statue
+Leyline Dowser
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -140,13 +161,17 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Lydia Frye
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
+Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -168,10 +193,12 @@ Nyxborn Marauder
 Oashra Cultivator
 Obliterate
 Ondu Cleric
+Oni Possession
 Peer Through Depths
 Penance Stare
 Pest Infestation
 Pestermite
+Phantasmal Sphere
 Pillar of Light
 Pious Evangel
 Plains
@@ -210,6 +237,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sizzle
 Skyclave Cleric
 Skyclave Shade
 Skyshroud Troll
@@ -217,14 +245,17 @@ Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Soul Bleed
 Spellseeker
 Spitting Spider
 Spontaneous Flight
 Squall Line
+Stampeding Horncrest
 Star of Extinction
 Steel Golem
 Steeple Roc
 Storm Crow
+Strandwalker
 Strength of Arms
 Strike It Rich
 Surreal Memoir
@@ -236,6 +267,7 @@ The Prydwen, Steel Flagship
 The Royal Scions
 Thorn Lieutenant
 Thraben Gargoyle
+Thran Lens
 Thriving Ibex
 Thunder Wall
 Tolarian Sentinel
@@ -253,6 +285,7 @@ Untamed Wilds
 Valkyrior Skyrider
 Vaporkin
 Venomous Vines
+Vexing Sphinx
 Viashivan Dragon
 Viridian Zealot
 Vivisection
@@ -261,6 +294,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wildfire Eternal
 Windreader Sphinx

@@ -13,6 +13,7 @@ Alliance of Arms
 Alpine Watchdog
 Ambassador Laquatus
 Ancient Gold Dragon
+Ancient Silverback
 Ancient Ziggurat
 Angel of Light
 Angel's Feather
@@ -36,6 +37,7 @@ Aven Windreader
 Axebane Stag
 Axgard Artisan
 Ayula's Influence
+Baloth Gorger
 Barbed Battlegear
 Barishi
 Baru, Fist of Krosa
@@ -92,7 +94,9 @@ Crypt Incursion
 Darkwatch Elves
 Daru Lancer
 Dauntless Aven
+Day's Undoing
 Daybreak Charger
+Deepchannel Mentor
 Defender en-Vec
 Deflecting Swat
 Dense Canopy
@@ -116,9 +120,12 @@ Ensnaring Bridge
 Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
+Exhibition Magician
+Exile
 Experimental Synthesizer
 Explore
 Extruder
+Eyes of the Watcher
 Ezuri's Archers
 Fan Bearer
 Fang Skulkin
@@ -135,6 +142,7 @@ Forcemage Advocate
 Forest
 Fortify
 Fungusaur
+Fylamarid
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
@@ -180,6 +188,7 @@ Hypochondria
 Illusory Wrappings
 Imp's Mischief
 Imps' Taunt
+Imskir Iron-Eater
 Inevitable End
 Inhumaniac
 Innistrad Charm
@@ -188,6 +197,7 @@ Integrity
 Intrepid Hero
 Invasion of Kylem
 Invasion of Mercadia
+Ion Storm
 Iridescent Drake
 Island
 Iwamori of the Open Fist
@@ -206,6 +216,7 @@ Kitsune Riftwalker
 Knight Watch
 Knight of the White Orchid
 Kolaghan Skirmisher
+Kuldotha Forgemaster
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
@@ -222,6 +233,7 @@ Makindi Griffin
 Malfegor
 Maritime Guard
 Master Skald
+Master Transmuter
 Mastermind's Acquisition
 Mausoleum Guard
 Mechanized Warfare
@@ -248,6 +260,7 @@ Niall Silvain
 Night Market Lookout
 Nimbleclaw Adept
 Nivix Barrier
+No One Left Behind
 Obscura Storefront
 Okina, Temple to the Grandfathers
 Ondu Greathorn
@@ -271,6 +284,7 @@ Phantasmagorian
 Phantasmal Abomination
 Pilgrim's Eye
 Pillardrop Warden
+Pitiless Pontiff
 Plains
 Polukranos, World Eater
 Portcullis Vine
@@ -280,6 +294,8 @@ Prison Realm
 Prized Unicorn
 Profound Journey
 Prosperous Pirates
+Radiant Kavu
+Rampart Architect
 Rankle, Master of Pranks
 Rath's Edge
 Reef Worm
@@ -316,8 +332,10 @@ Shuri, the Black Panther
 Sidewinder Naga
 Siege Mastodon
 Siegehorn Ceratops
+Slither Blade
 Sliver Construct
 Smash
+Smokestack
 Smuggler's Copter
 Solarion
 Somberwald Sage
@@ -328,6 +346,8 @@ Spark Elemental
 Spark Jolt
 Spellstutter Sprite
 Sphinx-Bone Wand
+Sporoloth Ancient
+Stand United
 Starlit Angel
 Stomp and Howl
 Stone Quarry
@@ -366,6 +386,7 @@ Twinblade Slasher
 Twins of Maurer Estate
 Twisted Spider-Clone
 Two-Handed Axe
+Tymaret Calls the Dead
 Umezawa's Jitte
 Universal Automaton
 Valor of the Worthy
@@ -387,6 +408,7 @@ Warden of Geometries
 Warning
 Warriors' Lesson
 Waste Not
+Waterfall Aerialist
 Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog

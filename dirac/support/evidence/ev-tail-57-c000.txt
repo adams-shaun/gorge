@@ -2,6 +2,7 @@ A-Circle of the Land Druid
 A-Deal Gone Bad
 A-Skemfar Elderhall
 Advocate of the Beast
+Aetherflux Conduit
 Air Bladder
 Akki Battle Squad
 Akroan Phalanx
@@ -29,6 +30,7 @@ Baboon Spirit
 Banehound
 Bar the Door
 Barbarian General
+Barrenton Medic
 Battalion Foot Soldier
 Bayou Dragonfly
 Become the Avalanche
@@ -97,8 +99,10 @@ Desperate Plea
 Despoiler of Souls
 Devout Harpist
 Diligent Excavator
+Dissenter's Deliverance
 Doctor Jane Foster
 Doorkeeper
+Draco
 Dragon-Style Twins
 Dragonloft Idol
 Drogskol Captain
@@ -156,6 +160,7 @@ Goblin Firestarter
 God-Eternal Oketra
 Golgari Cluestone
 Goring Ceratops
+Grakmaw, Skyclave Ravager
 Grappler Spider
 Grassland Crusader
 Gravelighter
@@ -230,6 +235,7 @@ Mawloc
 Maze of Ith
 Merchant Scroll
 Merfolk Looter
+Midnight Banshee
 Mightstone
 Mind Burst
 Mind's Eye
@@ -313,6 +319,7 @@ Sandbar Serpent
 Sanguine Praetor
 Sawblade Slinger
 Scatter Arc
+Scavenging Ghoul
 Scroll of Avacyn
 Sculpting Steel
 Searing Touch
@@ -331,6 +338,7 @@ Silklash Spider
 Silver Bolt
 Silverquill Command
 Simian Brawler
+Sisay, Weatherlight Captain
 Sisterhood of Karn
 Skarrg Guildmage
 Skittering Heartstopper
@@ -342,6 +350,7 @@ Soaring Show-Off
 Soltari Foot Soldier
 Song of Freyalise
 Sorin's Thirst
+Soul Feast
 Soul Reap
 Soul of New Phyrexia
 Soulcage Fiend
@@ -391,6 +400,7 @@ Thundermaw Hellkite
 Timberland Ancient
 Tocasia's Onulet
 Tormod's Cryptkeeper
+Tormod, the Desecrator
 Tovolar's Huntmaster
 Towering-Wave Mystic
 Toxic Scorpion
@@ -400,6 +410,7 @@ Trygon Prime
 Tsunami
 Twilight Drover
 Tyranid Invasion
+Tyrant Guard
 Ulrich's Kindred
 Unnatural Predation
 Unyaro Griffin
@@ -420,6 +431,7 @@ Virtuous Variant
 Vitu-Ghazi, the City-Tree
 Volcanic Island
 Vulshok Refugee
+Wall of Brambles
 Wall of Mulch
 Wall of Omens
 Wall of Wood

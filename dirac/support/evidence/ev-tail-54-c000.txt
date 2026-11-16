@@ -2,10 +2,13 @@ Adaptive Shimmerer
 Airdrop Aeronauts
 Airlift Chaplain
 Alela, Cunning Conqueror
+Alley Grifters
+Alliance of Arms
 Alluring Scent
 Almighty Brushwagg
 Ancient Tomb
 Angelfire Crusader
+Angelic Chorus
 Arashin Cleric
 Archers' Parapet
 Arena of the Ancients
@@ -22,6 +25,7 @@ Basal Sliver
 Battlefield Butcher
 Bazaar Krovod
 Bearded Axe
+Betrayal of Flesh
 Birthing Hulk
 Biting-Palm Ninja
 Black Market Connections
@@ -30,6 +34,7 @@ Blight
 Blight Mamba
 Blighted Woodland
 Blightstep Pathway
+Blinding Radiance
 Boggart Shenanigans
 Bond of Agony
 Bontu's Last Reckoning
@@ -41,6 +46,7 @@ Brought Back
 Bulwark Giant
 Burst of Strength
 Candlelight Vigil
+Carnival
 Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
@@ -49,6 +55,7 @@ City of Death
 Clarion Cathars
 Cloak of the Bat
 Cloud Crusader
+Coiling Oracle
 Copper Longlegs
 Copper-Leaf Angel
 Copy Artifact
@@ -57,6 +64,8 @@ Crop Rotation
 Crushing Vines
 Cryptborn Horror
 Crystal Rod
+Crystalline Sliver
+Culling Sun
 Cultivator Colossus
 Cursed Land
 Cyclone Summoner
@@ -71,6 +80,7 @@ Destructive Tampering
 Dinosaur Stampede
 Dispense Justice
 Divination
+Djeru, With Eyes Open
 Downhill Charge
 Dramatic Rescue
 Drowner of Hope
@@ -78,6 +88,7 @@ Earth Surge
 Earthblighter
 Echoes of the Kin Tree
 Ekundu Griffin
+Eldrazi Displacer
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
@@ -87,7 +98,9 @@ Escaped Null
 Esior, Wardwing Familiar
 Esper Panorama
 Essence Capture
+Euroakus
 Exile into Darkness
+Explosive Welcome
 Eye of Vecna
 Fade from History
 Failed Inspection
@@ -102,6 +115,7 @@ Flame-Blessed Bolt
 Flaming Fist Officer
 Fleecemane Lion
 Fleshmad Steed
+Flycatcher Giraffid
 Font of Fertility
 Forest
 Fortified Rampart
@@ -126,6 +140,7 @@ Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
 Greven, Predator Captain
+Grinding Station
 Grizzly Bears
 Grond, the Gatebreaker
 Hada Spy Patrol
@@ -156,6 +171,7 @@ Implement of Combustion
 Imps' Taunt
 Incubation
 Infested Fleshcutter
+Infested Thrinax
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge
@@ -233,6 +249,8 @@ Nucklavee
 Nullmage Shepherd
 Oakheart Dryads
 Observant Alseid
+Ojutai Monument
+Okina, Temple to the Grandfathers
 Old Gnawbone
 Olivia Voldaren
 Orim's Prayer
@@ -311,6 +329,7 @@ Shock Troops
 Shower of Sparks
 Shrieking Specter
 Shu Elite Infantry
+Shunt
 Sifa Grent
 Silent Artisan
 Silver Shroud Costume
@@ -331,7 +350,11 @@ Soltari Visionary
 Soul of the Harvest
 Soul's Attendant
 Sphinx of New Prahv
+Spirit Bonds
 Spirit Weaver
+Squire
+Staff of Nin
+Stalwart Aven
 Steadfast Guard
 Stensia Innkeeper
 Still Life
@@ -342,10 +365,13 @@ Stormscape Familiar
 Strands of Undeath
 Summon: Ixion
 Sunblast Angel
+Sunfall
 Suq'Ata Assassin
+Surge of Salvation
 Survivors' Encampment
 Swamp
 Switcheroo
+Sylvok Lifestaff
 Symmetry Matrix
 Tail Swipe
 Take Down
@@ -356,12 +382,16 @@ Tangletrap
 Tazeem Raptor
 Temple Bell
 Terra Ravager
+The Alright Henge
 The Duke, Rebel Sentry
+Thornado
+Thousand-Year Elixir
 Thundermare
 Tidal Kraken
 Tideshaper Mystic
 Tin-Wing Chimera
 Tor Wauki
+Torch Song
 Transplant Theorist
 Traveler's Amulet
 Trawler Drake

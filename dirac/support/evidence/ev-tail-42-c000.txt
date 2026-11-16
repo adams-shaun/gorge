@@ -11,6 +11,7 @@ Aethersnipe
 Akoum Refuge
 Akroan Sergeant
 Alluring Suitor
+Alpha Tyrranax
 Amulet of Unmaking
 Angelic Exaltation
 Angelic Gift
@@ -43,6 +44,7 @@ Bewilder
 Beyeen Veil
 Big Score
 Bill the Pony
+Blistercoil Weird
 Blood Burglar
 Bloodbraid Elf
 Bloodline Culling
@@ -86,6 +88,7 @@ Cone of Flame
 Confidence from Strength
 Conqueror's Pledge
 Consuming Corruption
+Containment Construct
 Contraband Kingpin
 Corpse Cur
 Corrupted Resolve
@@ -119,6 +122,7 @@ Elvish Ranger
 Ember Hauler
 Emergency Weld
 Endless Sands
+Energy Storm
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
@@ -150,6 +154,7 @@ Forest
 Forked Bolt
 Franklin Richards, Ascendant
 From Beyond
+Fungus Elemental
 Furnace Spirit
 Gala Greeters
 Galadhrim Bow
@@ -187,6 +192,7 @@ Hangarback Walker
 Harvest Wurm
 Haunted Cadaver
 Havoc Devils
+Heavyweight Demolisher
 Helm of the Host
 Herald of Anguish
 Here Comes a New Hero!
@@ -210,6 +216,7 @@ Intrepid Hero
 Invasion of Xerex
 Island
 Izzet Signet
+Jedit Ojanen, Mercenary
 Jousting Dummy
 Junk Winder
 Kamahl's Desire
@@ -237,6 +244,7 @@ Loamcrafter Faun
 Looter il-Kor
 Lucid Dreams
 Lurking Nightstalker
+Lys Alana Huntmaster
 Lyzolda, the Blood Witch
 Maga, Traitor to Mortals
 Mage's Guile
@@ -255,6 +263,7 @@ Mite Overseer
 Mogg Alarm
 Moonlit Wake
 Mordant Dragon
+Morkrut Banshee
 Mossbeard Ancient
 Mosstodon
 Motivated Pony
@@ -299,6 +308,7 @@ Phenomenon Investigators
 Pheres-Band Centaurs
 Phyrexian Colossus
 Phyrexian Denouncer
+Phyrexian Totem
 Phyrexian Warhorse
 Phytoburst
 Piety
@@ -340,6 +350,7 @@ Scuttling Doom Engine
 Scythecat Cub
 Seek the Horizon
 Separatist Voidmage
+Serene Steward
 Serpent-Blade Assailant
 Setessan Starbreaker
 Severed Legion
@@ -358,6 +369,8 @@ Shu Cavalry
 Silt Crawler
 Silver Raven
 Silverquill Lecturer
+Silverwing Squadron
+Simic Sky Swallower
 Singing Tree
 Skyblade's Boon
 Skymark Roc
@@ -409,12 +422,15 @@ Traitor's Clutch
 Trench Stalker
 Tribal Unity
 Tribute to Horobi
+Trigon of Corruption
+Trostani's Summoner
 Trufflesnout
 Tunneler Wurm
 Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Umbilicus
 Unbreathing Horde
 Undead Warchief
 Unicycle
@@ -446,6 +462,7 @@ Whisper Agent
 Wild Celebrants
 Wings of Hope
 Wolf's Quarry
+Woodland Bellower
 Wrangle
 Wrenn's Resolve
 Wyluli Wolf

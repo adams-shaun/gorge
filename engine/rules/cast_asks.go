@@ -1081,9 +1081,9 @@ func (e *Engine) castModeAsk() bool {
 	// Escalate (the modal additional cost): a cast choosing N modes pays the
 	// escalate cost N-1 times, so a mode count the board cannot pay for is
 	// not a legal announcement -- clamp Max to 1 + the largest number of
-	// escalate payments the SAME affordability checker the payment window's
-	// composed total faces (castable) still admits, the replicateAsk shape,
-	// pool-only at ask time (the CR 601.2g window afterwards may still
+	// escalate payments the candidate's composed total (countCandPayable: the
+	// cost modifiers the payment will fold in, so a tax static prices the
+	// extra mode) still admits, the replicateAsk shape, pool-only at ask time (the CR 601.2g window afterwards may still
 	// produce mana). The loop is bounded by the bounds Max itself, so it
 	// terminates. An unpriceable parameter cannot clamp (it also cannot
 	// charge -- the answer handler emits a loud Note instead), so the
@@ -1093,10 +1093,11 @@ func (e *Engine) castModeAsk() bool {
 			maxEscalations := 0
 			cand := pc.cost
 			for 1+maxEscalations < max {
-				if !e.castable(pc.player, pc.card, cand.Plus(esc), false) {
+				next := cand.Plus(esc)
+				if !e.countCandPayable(pc, next) {
 					break
 				}
-				cand = cand.Plus(esc)
+				cand = next
 				maxEscalations++
 			}
 			if clamped := 1 + maxEscalations; clamped < max {

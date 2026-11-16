@@ -7,6 +7,7 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
 Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
@@ -31,6 +32,7 @@ Avatar of Might
 Aven Battle Priest
 Azorius Keyrune
 Banishing Slash
+Baron Sengir
 Baru, Wurmspeaker
 Basri's Aegis
 Bast, Panther Goddess
@@ -46,12 +48,14 @@ Bloodline Necromancer
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
 Cankerbloom
@@ -88,6 +92,7 @@ Crimson Hellkite
 Crumbling Colossus
 Dalek Drone
 Daraja Griffin
+Daxos of Meletis
 Deepcavern Imp
 Defender of Law
 Deflection
@@ -207,6 +212,7 @@ Mage Duel
 Magmatic Channeler
 Manabond
 Manglehorn
+Mardu Banner
 Maw of the Obzedat
 Megrim
 Meldweb Curator
@@ -303,6 +309,7 @@ Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
+Shield Mare
 Shriekhorn
 Shrill Howler
 Shrivel
@@ -358,6 +365,7 @@ The Destined White Mage
 Thing Swing
 Thorn Mammoth
 Thoughtseize
+Thoughtweft Gambit
 Thrasher Brute
 Thriss, Nantuko Primus
 Thunder Strike
@@ -372,6 +380,7 @@ Torsten, Founder of Benalia
 Tower Defense
 Tower Drake
 Triton Shorethief
+Tunnel
 Turn the Tide
 Turnabout
 Uktabi Efreet

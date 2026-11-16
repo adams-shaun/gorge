@@ -35,6 +35,7 @@ Arrester's Zeal
 Ashiok's Forerunner
 Atmosphere Surgeon
 Aurochs Herd
+Aven Wind Guide
 Awakened Amalgam
 Azorius Charm
 Bala Ged Recovery
@@ -48,6 +49,7 @@ Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Blaring Captain
 Blindblast
+Blinding Fog
 Bloodhall Priest
 Bloodhaze Wolverine
 Bloodmist Infiltrator
@@ -113,6 +115,7 @@ Desmond Miles
 Detainment Spell
 Devil Dinosaur
 Dire Fleet Warmonger
+Dovin's Dismissal
 Drag Under
 Dragon Whelp
 Dragon's Eye Sentry
@@ -183,6 +186,7 @@ Goma Fada Vanguard
 Graceful Adept
 Grand Warlord Radha
 Graviton, Fundamental Force
+Greenwheel Liberator
 Griffin Sentinel
 Grim Reaper's Scythe
 Grizzlegom, Hurloon Hero
@@ -220,6 +224,7 @@ Island
 Jabs, Mistress of Mockery
 Jace's Sanctum
 Jackalope Herd
+Jaya's Immolating Inferno
 Jubilation
 Jwar Isle Avenger
 Jwari Disruption
@@ -339,6 +344,7 @@ Ratcatcher
 Ravenous Chupacabra
 Ravenous Sailback
 Ray Fillet, Wave Warrior
+Realmwalker
 Red Dragon
 Red Elemental Blast
 Reflective Golem
@@ -434,6 +440,7 @@ Tabaxi Toucaneers
 Talas Merchant
 Talons of Wildwood
 Taste of Blood
+Tempting Licid
 Terravore
 Thalakos Deceiver
 Thallid
@@ -445,6 +452,7 @@ Thriving Bluff
 Throes of Chaos
 Thrun, the Last Troll
 Tideforce Elemental
+Time Elemental
 Titanic Pelagosaur
 Toil
 Toil to Renown

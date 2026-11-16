@@ -83,17 +83,23 @@ func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed 
 // same generic is left to pay and no step taps an announced artifact. Otherwise
 // the plan is re-armed on what the announced artifacts leave (rearmAutoPay). The
 // planner reads the seat's control mask, so the held-back artifacts leave that.
-// It reports that the payment is stranded and the cast reversed.
-func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool, saved *[len(build{}.picks)]uint8) bool {
+// It reports stranded (the cast was reversed) and paid (the plan tapped). A
+// plan with no payment on what the artifacts leave is stranded too when no
+// way through the window pays (gorge's paymentStranded: the dry strand check
+// cannot price a sacrifice-only source, an Eldrazi Spawn, but the plan does,
+// CR 733.1); when the window can (a restricted mana the spell admits, which
+// the plan never counts, CR 106.6) it is neither, and the manual window pays.
+func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, anyColor bool, saved *[len(build{}.picks)]uint8) (stranded, paid bool) {
 	occ := s.occ
 	hidden := s.convokeHidden()
+	printed := *cost
 	*cost = s.convokeApplyPicks(k, xFolded(*cost, int(e.x)))
 	s.occ = occ.andNot(hidden)
 	if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, cost) {
 		s.occ = occ
 		s.releaseCostTaps(k, saved)
 		s.reverseCast(k)
-		return true
+		return true, false
 	}
 	s.occ = occ
 	si := SeatIx(e.ctrl)
@@ -103,8 +109,7 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		c := *cost
 		t := s.fork()
 		t.ctrlM[si] = ctrl.andNot(g)
-		t.tapForRider(k, e.ctrl, &c, int(e.x), e.obj, anyColor)
-		conflict := false
+		conflict := !t.tapForTry(k, e.ctrl, &c, int(e.x), e.obj, anyColor)
 		for m := hidden; m.any(); m = m.rest() {
 			if t.perms[m.first()].flags&pfTapped != 0 {
 				conflict = true
@@ -116,9 +121,21 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		}
 	}
 	s.ctrlM[si] = ctrl.andNot(hold)
-	s.tapForRider(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
+	paid = s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
 	s.ctrlM[si] = ctrl
-	return false
+	if paid {
+		return false, true
+	}
+	s.occ = occ.andNot(hidden)
+	strand := s.bld().bfl&bflMsDone == 0 && s.paymentStrandedPlan(k, e, cost, true)
+	s.occ = occ
+	if !strand {
+		*cost = printed // the manual window applies the picks itself (manaStep)
+		return false, false
+	}
+	s.releaseCostTaps(k, saved)
+	s.reverseCast(k)
+	return true, false
 }
 
 // improviseRoute routes the mana step of a spell cast whose plan gorge's
@@ -145,8 +162,10 @@ func (s *State) improviseRoute(k *prep, e *stackEntry, cost *kop.ManaCost, anyCo
 	}
 	if plan {
 		// an Improvise cast gorge's planner prices: the plan pays it while it
-		// still describes the payment; stranded, the cast is reversed
-		return true, s.improvisePlanPay(k, e, cost, anyColor, saved)
+		// still describes the payment; stranded, the cast is reversed; with
+		// no plan and a source the census does not price, the manual window pays
+		stranded, paid := s.improvisePlanPay(k, e, cost, anyColor, saved)
+		return paid || stranded, stranded
 	}
 	return false, false
 }

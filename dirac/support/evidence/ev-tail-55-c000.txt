@@ -18,10 +18,12 @@ Alluring Scent
 Anarchist
 Ancient Brontodon
 Ancient Tomb
+Angelic Sleuth
 Anoint
 Anointer of Champions
 Anvilwrought Raptor
 Arachnoid Adaptation
+Aragorn and Arwen, Wed
 Arashin Foremost
 Arcade Gannon
 Archangel Avacyn
@@ -58,6 +60,7 @@ Border Guard
 Boros Garrison
 Boros Signet
 Bosco, Just a Bear
+Bosh, Iron Golem
 Bosk Banneret
 Braids, Cabal Minion
 Brainbite
@@ -137,6 +140,7 @@ Epiphany Storm
 Esquire of the King
 Eternal Thirst
 Ethereal Investigator
+Ethrimik, Imagined Fiend
 Evolutionary Leap
 Exile into Darkness
 Extortion
@@ -157,6 +161,8 @@ Fiddlehead Kami
 Fierce Guardianship
 Fire Ants
 Fire Nation Soldier
+Fireborn Knight
+Firemane Avenger
 Firemane Commando
 Fireslinger
 Firestorm Hellkite
@@ -173,6 +179,7 @@ Forced Landing
 Forcemage Advocate
 Forest
 Forgotten Harvest
+Fracture
 Fresh Meat
 Furnace Skullbomb
 Fyndhorn Elves
@@ -185,7 +192,9 @@ Ghostfire Blade
 Gimli's Axe
 Glory Bearers
 Gnaw to the Bone
+Gnottvold Slumbermound
 Goblin Assault
+Goblin Bomb
 Goblin Boom Keg
 Goblin Locksmith
 Goldmeadow Dodger
@@ -195,8 +204,10 @@ Grizzled Leotau
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
+Guardian of the Forgotten
 Gush
 Gust of Wind
+Hag Hedge-Mage
 Hag of Twisted Visions
 Hall of Triumph
 Hand of Death
@@ -219,9 +230,11 @@ Idyllic Beachfront
 Ifnir Deadlands
 Ignite the Future
 Imaginary Friends
+Immersturm Skullcairn
 Implement of Combustion
 Invasion of Dominaria
 Invasion of Kaldheim
+Invigorating Hot Spring
 Ioreth of the Healing House
 Iroh, Firebending Instructor
 Iron Lance
@@ -255,11 +268,13 @@ Looming Shade
 Lotus Petal
 Lucky Offering
 Lux Cannon
+Mage-Ring Network
 Magus of the Mind
 Make a Wish
 Mark of Sakiko
 Match the Odds
 Mausoleum Harpy
+Mercy Killing
 Merfolk Pupil
 Merfolk Trickster
 Metallic Mimic
@@ -333,6 +348,7 @@ Quilled Wolf
 Radioactive Man
 Raging Gorilla
 Rain of Tears
+Rampart Smasher
 Ravenous Rats
 Ravnica at War
 Razor Hippogriff
@@ -389,6 +405,7 @@ Sparksmith
 Sparring Construct
 Spiked Corridor
 Spiteful Sliver
+Spurred Wolverine
 Staff of the Death Magus
 Stampeding Serow
 Stampeding Wildebeests
@@ -406,6 +423,7 @@ Talas Air Ship
 Talonrend
 Talrand, Sky Summoner
 Targ Nar, Demon-Fang Gnoll
+Tattered Drake
 Telekinetic Sliver
 Temporary Lockdown
 Temur Battle Rage
@@ -431,7 +449,9 @@ Ur-Golem's Eye
 Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
+Venarian Gold
 Venerable Lammasu
+Vengeant Vampire
 Verdigris
 Verix Bladewing
 Veteran Cavalier
@@ -444,6 +464,7 @@ Vodalian Merchant
 Vodalian Zombie
 Vulshok Berserker
 Vulshok Heartstoker
+Wall of Bone
 Wall of Hope
 Wave Goodbye
 Web

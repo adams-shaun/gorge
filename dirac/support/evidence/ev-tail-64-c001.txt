@@ -8,16 +8,20 @@ Abzan Falconer
 Accorder Paladin
 Ahn-Crop Invader
 Airlift Chaplain
+Akki Ember-Keeper
 Alive
+All That Glitters
 Alseid of Life's Bounty
 Ambush Paratrooper
 Ana Sanctuary
+Angel of Condemnation
 Angelic Renewal
 Apostle of Invasion
 Arch of Orazca
 Arm with Aether
 Armory Veteran
 Arrester's Zeal
+Ashen Firebeast
 Ashmouth Hound
 Atog
 Aura Mutation
@@ -30,7 +34,10 @@ Birthing Pod
 Bitterbow Sharpshooters
 Blasting Station
 Bleed Dry
+Blinking Spirit
+Bloodmad Vampire
 Bloodsworn Steward
+Blue Dragon
 Bottle Golems
 Bramblesnap
 Brokers Initiate
@@ -44,11 +51,14 @@ Chameleon Colossus
 Chant of the Skifsang
 Charging Troll
 Charismatic Vanguard
+Citizen's Arrest
+Clockwork Gnomes
 Cockatrice
 Cogwork Archivist
 Coming In Hot
 Common Bond
 Compelled Duel
+Congregate
 Consuming Aetherborn
 Copperhorn Scout
 Coral Barrier
@@ -56,6 +66,7 @@ Crookshank Kobolds
 Crosis's Catacombs
 Crow Storm
 Cruel Fate
+Crusading Knight
 Culling the Weak
 Curfew
 Curious Obsession
@@ -115,6 +126,7 @@ Feral Krushok
 Flame On!
 Flamekin Spitfire
 Fleet Swallower
+Fleetfeather Sandals
 Fleshbag Marauder
 Flood of Recollection
 Fog Elemental
@@ -126,17 +138,24 @@ Forest
 Forsaken Drifters
 Foundry Champion
 Freewind Equenaut
+Frog Tongue
 Fugue
+Gate to Tumbledown
 Gelatinous Genesis
+Genju of the Falls
 Genju of the Spires
 Gerrard's Irregulars
 Ghostfire Slice
+Giant Crab
 Glass of the Guildpact
 Glint Raker
 Glissa's Scorn
 Gloom Sower
+Goblin Trailblazer
+Greater Tanuki
 Greenwood Sentinel
 Grid Monitor
+Grindstone
 Grisly Ritual
 Gruesome Deformity
 Guardian of Cloverdell
@@ -144,8 +163,10 @@ Gustcloak Runner
 Gutwrencher Oni
 Hardy Outlander
 Healing Technique
+Heap Doll
 Hedron Alignment
 Hedron Crab
+Helm of the Host
 Heralds of Tzeentch
 Heroes of the Revel
 Heron of Hope
@@ -160,9 +181,11 @@ Howlpack Piper
 Hydromorph Guardian
 Igneous Golem
 Illusory Demon
+Impeccable Timing
 In the Trenches
 Indestructibility
 Inescapable Blaze
+Infuse with the Elements
 Ingenious Thief
 Inkling Summoning
 Innovative Metatect
@@ -170,6 +193,7 @@ Inspiring Cleric
 Invasion of Dominaria
 Invasion of Tolvada
 Ironclad Krovod
+Ironclaw Orcs
 Island
 Ivora, Insatiable Heir
 Ivy Elemental
@@ -187,42 +211,54 @@ Kayla's Command
 Kelsinko Ranger
 Kinsbaile Cavalier
 Kiora's Dambreaker
+Kitesail Cleric
 Krenko's Enforcer
 Kuldotha Rebirth
 Kumena's Awakening
 Kyoki, Sanity's Eclipse
+Lapse of Certainty
 Learn from the Past
 Legion Guildmage
 Legions to Ashes
 Life and Limb
+Lightning Blast
 Lightning-Rig Crew
 Liliana's Standard Bearer
 Liliana, Death Wielder
 Lily Bowen, Raging Grandma
 Limestone Golem
 Lionheart Maverick
+Liquimetal Torque
 Live Fast
 Living Airship
 Lotus Path Djinn
 Lurking Predators
 Mage-Ring Bully
 Manta Riders
+Marang River Prowler
+Marble Diamond
 March of the Returned
 Marrow-Gnawer
 Marsh Threader
 Marshdrinker Giant
 Master Symmetrist
+Maverick Thopterist
 Maximus, Knight Apparent
 Merfolk Secretkeeper
 Merfolk Skydiver
 Merry, Warden of Isengard
 Midnight Charm
+Midnight Haunting
 Mindleech Ghoul
+Miscast
+Mishra's Factory
 Mishra's Onslaught
+Mogg Maniac
 Molder Slug
 Mountain
 Munitions Expert
 Muscle Sliver
+Myojin of Seeing Winds
 Mystic Familiar
 Mystical Tutor
 Nantuko Husk
@@ -256,15 +292,18 @@ Quickling
 Rabble-Rouser
 Radha's Firebrand
 Radiant, Archangel
+Rainbow Crow
 Ral's Reinforcements
 Ramosian Commander
 Rathi Assassin
 Ray Fillet, Wave Warrior
 Reaver Ambush
 Recantation
+Reckless Rage
 Refocus
 Renegade Krasis
 Repentant Vampire
+Repudiate
 Resplendent Griffin
 Retrieve
 Revive
@@ -273,9 +312,12 @@ Rise of the Hobgoblins
 Ritual of Steel
 Rock Lobster
 Rofellos's Gift
+Rooftop Bypass
 Root-Kin Ally
 Rootborn Defenses
 Rouse
+Run for Your Life
+Rustvale Bridge
 Ruthless Invasion
 Sanguine Spy
 Sarkhan's Dragonfire
@@ -285,6 +327,7 @@ Screeching Bat
 Scryb Sprites
 Sea Spirit
 Secret Passage
+Seeker of the Way
 Segmented Krotiq
 Selenia, Dark Angel
 Self-Inflicted Wound
@@ -292,10 +335,13 @@ Seraph of Dawn
 Seton's Scout
 Shacklegeist
 Shauku, Endbringer
+Shield of the Ages
+Shiv's Embrace
 Shu Soldier-Farmers
 Sigiled Contender
 Singer of Swift Rivers
 Skillful Lunge
+Skirk Drill Sergeant
 Skull Fracture
 Skyshroud Sentinel
 Smoldering Werewolf
@@ -316,6 +362,7 @@ Stromgald Crusader
 Sudden Death
 Sudden Edict
 Suit Up
+Sunspear Shikari
 Surveilling Sprite
 Suspicious Stowaway
 Swaggering Corsair
@@ -324,6 +371,7 @@ Swarm of Bloodflies
 Swift Justice
 Syndicate Enforcer
 Tainted Pact
+Tainted Peak
 Temperamental Oozewagg
 Tenacity
 Terravore
@@ -332,15 +380,21 @@ Thaumatic Compass
 The Crafter
 The Rack
 The Reality Chip
+Thorn of Amethyst
 Thought Harvester
 Thresher Lizard
 Thrun, the Last Troll
+Thundering Djinn
+Thunderous Orator
+Tiamat's Fanatics
 Tidy Conclusion
 Time Reversal
 Time Walk
 Tolarian Winds
 Tomb of the Spirit Dragon
+Tome Anima
 Tower Winder
+Tragic Lesson
 Treasure Hunter
 Trelasarra, Moon Dancer
 Tremor
@@ -354,6 +408,7 @@ Vat Emergence
 Vault of the Archangel
 Veiled Sentry
 Venomous Brutalizer
+Vibrating Sphere
 Vincent, Vengeful Atoner
 Vitalize
 Vitaspore Thallid
@@ -370,6 +425,7 @@ Whiptongue Hydra
 White Knight
 Wild Aesthir
 Windrider Wizard
+Witness of the Ages
 Wurmcoil Larva
 Yoked Ox
 Zarichi Tiger

@@ -1,9 +1,13 @@
 A-Warm Welcome
 Abbey Griffin
+Aberrant Return
 Acceptable Losses
+Aerial Caravan
+Aether Herder
 Aether Tunnel
 Age of Ultron
 Agent of Stromgald
+Akoum Hellkite
 Amateur Auteur
 Amethyst Dragon
 Amnesia
@@ -20,6 +24,7 @@ Assassin Initiate
 Aura of Silence
 Aven Gagglemaster
 Awaken the Woods
+Azami, Lady of Scrolls
 Ballynock Trapper
 Banewhip Punisher
 Bankrupt in Blood
@@ -44,6 +49,7 @@ Blur Sliver
 Boggart Trawler
 Bolt of Keranos
 Boreal Druid
+Bounty Agent
 Bronze Sword
 Bronze Walrus
 Brush with Death
@@ -60,21 +66,25 @@ Carnage Tyrant
 Cavern Thoctar
 Ceremonial Guard
 Certain Death
+Chakram Retriever
 Chase Stein, Runaway
 Clockwork Fox
 Coercive Impetus
 Commanding Presence
 Commence the Endgame
+Concordant Crossroads
 Containment Protocol
 Coral Barrier
 Corrosive Mentor
 Corrupting Licid
 Counterintelligence
 Courier Griffin
+Courtly Provocateur
 Cover of Darkness
 Cracked Earth Technique
 Crash Landing
 Craterize
+Crisis of Conscience
 Crystal Golem
 Culling Dais
 Cyclops Tyrant
@@ -89,16 +99,19 @@ Death's Duet
 Deathbringer Liege
 Defiant Strike
 Demolition Stomper
+Denizen of the Deep
 Deranged Whelp
 Desecration Plague
 Devil's Play
 Devouring Deep
+Diamond Knight
 Disposal Mummy
 Divest
 Djinn of Infinite Deceits
 Domestication
 Dora Milaje Elite
 Drana's Emissary
+Dread Specter
 Dream Prowler
 Dream Thief
 Dromoka's Gift
@@ -107,9 +120,13 @@ Drunau Corpse Trawler
 Dryad of the Ilysian Grove
 Duergar Mine-Captain
 Dusk Legion Dreadnought
+Dwarven Hold
 Dwarven Recruiter
+Dwarven Trader
+Eagle of Deliverance
 Earthshaking Si
 Electrify
+Elite Javelineer
 Elvish Hunter
 Energy Arc
 Enfeeblement
@@ -126,13 +143,16 @@ Final Death
 Final Payment
 Fists of Flame
 Flare
+Flay
 Flourishing Strike
 Flowstone Mauler
 Forest
 Foundry Inspector
 Frenetic Efreet
 Fruit of Tizerus
+Funnel-Web Recluse
 Fyndhorn Elder
+Garruk's Horde
 Gavony Silversmith
 Geralf's Messenger
 Ghost-Lit Nourisher
@@ -148,6 +168,7 @@ Goblin Soothsayer
 Goggles of Night
 Grid Monitor
 Hag of Inner Weakness
+Hag of Noxious Nightmares
 Hallowed Haunting
 Halvar, God of Battle
 Hammerheim Deadeye
@@ -163,7 +184,9 @@ Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
 Hornet Nest
+Hour of Revelation
 Hunter's Edge
+Hydra Broodmaster
 Hyperion Blacksmith
 Ilysian Caryatid
 Imperial Oath
@@ -183,6 +206,7 @@ Jeskai Elder
 Joiner Adept
 Jolting Merfolk
 Juju Bubble
+Jukai Trainee
 Juvenile Gloomwidow
 Kaervek's Torch
 Karstoderm
@@ -197,14 +221,19 @@ Kronch Wrangler
 Krovikan Mist
 Last Breath
 Last Kiss
+Lat-Nam Adept
 Lesser Werewolf
 Leyline Prowler
 Library
+Liliana's Triumph
+Living Totem
 Lone Missionary
+Loxodon Mystic
 Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
+Magmatic Force
 Malakir Bloodwitch
 Mardu Hateblade
 Marionette Apprentice
@@ -212,9 +241,11 @@ Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
+Mawloc
 Memorial to Unity
 Merchant Raiders
 Mercurial Pretender
+Midnight Ritual
 Military Discipline
 Militia Bugler
 Mind Slash
@@ -228,13 +259,17 @@ Mortal's Resolve
 Mother Kangaroo
 Mountain
 Mystic Restraints
+Nature's Wrath
 Necropede
 Network Terminal
 Night Terrors
+Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
+O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
+Orim's Thunder
 Otherworld Atlas
 Overtaker
 Paradise Druid
@@ -255,7 +290,9 @@ Possessed Barbarian
 Precinct Captain
 Primal Adversary
 Promise of Tomorrow
+Propagator Drone
 Protector of the Wastes
+Puca's Covenant
 Queen's Agent
 Quickbeam, Upstart Ent
 Quietus Spike
@@ -274,11 +311,14 @@ Reverent Mantra
 Riddle Gate Gargoyle
 Rift Bolt
 Righteous Charge
+Righteous Fury
 Righteous Valkyrie
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
+Ruthless Deathfang
 Scent of Nightshade
+Scourge of the Nobilis
 Scrap Mastery
 Screeching Bat
 Screeching Drake
@@ -296,32 +336,40 @@ Shared Triumph
 Shield Sphere
 Shivan Hellkite
 Sifter of Skulls
+Silkbind Faerie
 Sinstriker's Will
 Siphon Insight
 Six-Sided Die
 Skirk Outrider
+Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
 Snap
+Snarespinner
 Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler
 Sprinting Warbrute
 Spur Grappler
+Square Up
 Stalwart Aven
 Stand
 Staunch Shieldmate
 Staunch Throneguard
 Steel Wall
 Stitch in Time
+Stonewood Invocation
 Storm Fleet Aerialist
 Strafe
+Stroke of Genius
 Sublime Archangel
+Summon Undead
 Summon: Kujata
 Sunlit Marsh
 Suspicious Bookcase
@@ -329,6 +377,7 @@ Sustainer of the Realm
 Swamp
 Sylvia Brightspear
 Talas Researcher
+Talisman of Unity
 Talruum Champion
 Tangle Asp
 Taunting Arbormage
@@ -338,6 +387,7 @@ Territorial Maro
 Teval's Judgment
 Teysa, Envoy of Ghosts
 Thalia's Lieutenant
+That Which Was Taken
 The Forgotten Place
 The Terror of Serpent's Pass
 Thopter Mechanic
@@ -357,6 +407,8 @@ Tyranid Prime
 Uktabi Wildcats
 Umara Wizard
 Unbreakable Formation
+Uncontrollable Anger
+Underhanded Designs
 Unravel the Aether
 Updraft
 Urborg Drake
@@ -375,16 +427,22 @@ Vulpine Goliath
 Wall of Opposition
 War Falcon
 Warcry Phoenix
+Wardscale Crocodile
+Warlord's Elite
+Warped Tusker
 Water Elemental
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
+Willow Elf
+Winds of Rath
 Wingmate Roc
 Wormhole Serpent
 Wu Scout
 Wydwen, the Biting Gale
 Wyluli Wolf
 Yarok's Wavecrasher
+Yavimaya Enchantress
 You Meet in a Tavern
 Yukora, the Prisoner
 Zhang Fei, Fierce Warrior

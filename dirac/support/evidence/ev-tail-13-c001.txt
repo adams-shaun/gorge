@@ -1,16 +1,25 @@
+A-Case the Joint
 A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
 A-Thran Spider
+Aardvark Sloth
 Acolyte of Xathrid
+Adaptive Omnitool
 Adaptive Sporesinger
+Akiri, Line-Slinger
 Akroan Horse
+Alchor's Tomb
 Alloy Myr
 Alluring Scent
+Ambush Party
 Ana Sanctuary
 Ancient Crab
+Appa, Aang's Companion
 Appetite for the Unnatural
 Arcane Denial
+Archmage Emeritus
 Armed Assailant
+Armored Skaab
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -25,6 +34,7 @@ Ballista Watcher
 Bane of Progress
 Basalt Gargoyle
 Berserkers of Blood Ridge
+Black Panther, Claws of Bast
 Blaze
 Bloodsky Berserker
 Bloodtallow Candle
@@ -33,6 +43,7 @@ Bold Defense
 Bonders' Enclave
 Bone Shredder
 Boom
+Borderland Behemoth
 Bounding Wolf
 Bountiful Harvest
 Brain Freeze
@@ -43,6 +54,7 @@ Brushfire Elemental
 Burn the Accursed
 Caustic Crawler
 Celestial Flare
+Chandra's Pyrohelix
 Child of Thorns
 Citizen's Arrest
 Clinging Mists
@@ -75,6 +87,7 @@ Dismember
 Disruptive Pitmage
 Disturbed Burial
 Dive Bomber
+Diversionary Tactics
 Diviner's Lockbox
 Dreadhorde Invasion
 Drove of Elves
@@ -87,6 +100,7 @@ Elvish Pioneer
 Emissary of Hope
 Ensoul Artifact
 Enthrall
+Evil Eye of Orms-by-Gore
 Evolving Adaptive
 Extinguish All Hope
 Eye Spy
@@ -108,17 +122,23 @@ Flurry of Horns
 Folk of An-Havva
 Forest
 Foundry Hornet
+Fountain Watch
 Fretwork Colony
 Fume Spitter
 Fungus Sliver
 Furious Spinesplitter
 Gaea's Skyfolk
+Gerrard's Command
 Ghirapur Osprey
+Ghost Warden
+Ghoulcaller's Bell
 Ghoulcaller's Harvest
 Giant Caterpillar
+Gilded Scuttler
 Gimli of the Glittering Caves
 Gladehart Cavalry
 Glaring Aegis
+Glen Elendra Archmage
 Glimmer Lens
 Go-Shintai of Lost Wisdom
 Goblin Champion
@@ -130,8 +150,10 @@ Grindclock
 Groundskeeper
 Guardian Lions
 Gulping Scraptrap
+Guttural Response
 Hanweir Militia Captain
 Haradrim Spearmaster
+Harvester Troll
 Hatching Plans
 Haywire Mite
 Healer of the Glade
@@ -141,19 +163,26 @@ Hellfire
 Hold at Bay
 Horned Troll
 Hound of Urabrask
+Huatli's Raptor
+Hunted Dragon
 Hydroelectric Specimen
 Hypnotic Specter
 Hypnotic Sprite
 Iceman and Firestar
+Illusory Ambusher
 Immolating Glare
+Index
 Inertia Bubble
 Inexorable Blob
 Inner-Flame Igniter
 Insist
 Inspired Sprite
 Invasion of Innistrad
+Invasion of Kaldheim
 Invasion of Lorwyn
+Invasion of Moag
 Invasion of Muraganda
+Iron-Barb Hellion
 Island
 Izzet Cluestone
 Jedit's Dragoons
@@ -161,13 +190,17 @@ Jerrard of the Closed Fist
 Jin-Gitaxias, Progress Tyrant
 Kagemaro, First to Suffer
 Kamahl, Pit Fighter
+Kami's Flare
+Keen-Eyed Archers
 Kemba's Skyguard
 Kiki-Jiki, Mirror Breaker
 Kite Shield
+Kitesail
 Knight of New Benalia
 Knight-Captain of Eos
 Kothophed, Soul Hoarder
 Kujar Seedsculptor
+Kuldotha Cackler
 Lead the Stampede
 Leafcrown Dryad
 Lembas
@@ -176,6 +209,7 @@ Living Totem
 Lizard Blades
 Lock and Load
 Lofty Denial
+Long-Lost Lances
 Make Obsolete
 Mantle of Tides
 Mark of Mutiny
@@ -183,6 +217,7 @@ Markov Purifier
 Marrow Bats
 Mass of Ghouls
 Maul of the Skyclaves
+Medicine Runner
 Merrow Commerce
 Might of Murasa
 Minotaur Aggressor
@@ -195,6 +230,7 @@ Mountain
 Mudbrawler Cohort
 Multani's Decree
 Murmuring Mystic
+Muse Drake
 Natural Obsolescence
 Naturalize
 Nemata, Grove Guardian
@@ -214,6 +250,8 @@ Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Owlin Spiralmancer
 Paragon of Eternal Wilds
+Pardic Wanderer
+Peacekeeper
 Pharika's Mender
 Phyrexian Boon
 Phyrexian Negator
@@ -225,6 +263,7 @@ Poppet Stitcher
 Predatory Sliver
 Prey's Vengeance
 Primeval Shambler
+Privileged Position
 Prosperous Thief
 Psychic Drain
 Pull Under
@@ -233,28 +272,39 @@ Put Away
 Putrid Imp
 Pyromania
 Quest for the Gravelord
+Quicksilver, Pietro Maximoff
 Rabid Rats
 Raka Sanctuary
 Ramunap Hydra
 Rat King, Pale Piper
 Reaper from the Abyss
 Recruitment Officer
+Redress Fate
+Relic Putrescence
 Retrieve
 Rhox Pummeler
 Rift Sower
+Rites of Refusal
+Riverwise Augur
 Rocky Tar Pit
+Rolling Temblor
+Rot Shambler
 Rubbleback Rhino
 Rubblebelt Rioters
 Rupture
+Ruthless Waterbender
 Ryusei, the Falling Star
+Sabertooth Alley Cat
 Sanctum Custodian
 Saprazzan Cove
 Scent of Ivy
 Scourge of the Undercity
 Sea Legs
 Seachrome Coast
+Segovian Leviathan
 Sejiri Steppe
 Sharpened Pitchfork
+Shattering Pulse
 Shield of Kaldra
 Shower of Coals
 Sickle Dancer
@@ -262,12 +312,16 @@ Silent Departure
 Silent Skimmer
 Sinking Feeling
 Skeletal Kathari
+Skyswimmer Koi
 Skywatcher Adept
+Slash Panther
 Slaughter Cry
 Smashing Success
 Smelt-Ward Minotaur
+Soaring Drake
 Soldier Replica
 Sorceress Queen
+Soul Partition
 Spark of Creativity
 Spectral Flight
 Spelleater Wolverine
@@ -277,6 +331,7 @@ Squirrel Sovereign
 Staff of Compleation
 Starstorm
 Stature, Young Avenger
+Steel Seraph
 Stitcher's Apprentice
 Stoic Star-Captain
 Storm Entity
@@ -285,8 +340,10 @@ Stromkirk Patrol
 Sun-Crested Pterodon
 Surrakar Marauder
 Swamp
+Sword of the Paruns
 Tazeem Raptor
 Tenacious Dead
+Tervigon
 The Scorpion God
 Thopter Assembly
 Thopter Spy Network
@@ -305,6 +362,7 @@ Trained Jackal
 Tribute to Urborg
 Triton Waverider
 Typhoid Rats
+Tzaangor Shaman
 Uncage the Menagerie
 Unlicensed Hearse
 Unmake
@@ -327,7 +385,10 @@ Vitalize
 Vivien's Crocodile
 Waking Nightmare
 Wall of Razors
+Wanda's Vision
+Warmonger
 Weathered Wayfarer
+Welkin Tern
 Whisper of the Dross
 Wight of Precinct Six
 Woebringer Demon
@@ -335,6 +396,7 @@ Wolfir Avenger
 Wolverine Riders
 Woodland Weavemaster
 Woolly Spider
+Words of Wisdom
 World Shaper
 Worldslayer
 Wurmskin Forger

@@ -1,3 +1,4 @@
+A-Meria's Outrider
 A-Ominous Parcel
 Angler Turtle
 Armory Guard
@@ -11,7 +12,9 @@ Centaur Healer
 Consuming Corruption
 Cystbearer
 Dark Prophecy
+Disciple of the Vault
 Feral Abomination
+Fireflux Squad
 Flywheel Racer
 Forerunner of Slaughter
 Forest
@@ -19,7 +22,9 @@ Funnel-Web Recluse
 Furnace Spirit
 Gadwick, the Wizened
 Gauntlet of Might
+Ghoulsteed
 Glimpse the Unthinkable
+Goblin Mountaineer
 Goblin Scouts
 Goreclaw, Terror of Qal Sisma
 Griffin Dreamfinder
@@ -32,6 +37,7 @@ Legion Leadership
 Lifelink
 Living Lands
 Lucid Dreams
+Lyzolda, the Blood Witch
 Manipulate Fate
 Master Transmuter
 Mogg Alarm
@@ -44,10 +50,13 @@ Ob Nixilis, the Fallen
 Oni of Wild Places
 Plains
 Prismatic Strands
+Psychic Impetus
 Ral's Dispersal
 Resurrection Orb
 Samut's Sprint
 Scalding Devil
+Sewer Rats
+Shamble Back
 Silver Raven
 Skymark Roc
 Spellbook
@@ -55,6 +64,7 @@ Spiderwig Boggart
 Spike Drone
 Squirrel Nest
 Stolen Grain
+Stolen Vitality
 Swamp
 Thalia's Lancers
 The Cauldron of Eternity

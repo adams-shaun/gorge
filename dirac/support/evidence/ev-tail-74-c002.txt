@@ -4,6 +4,7 @@ A-Social Climber
 A-Teferi, Time Raveler
 Abomination, World Ravager
 Absorb
+Abzan Runemark
 Ajani's Mantra
 Alley Grifters
 Aphotic Wisps
@@ -16,6 +17,7 @@ Barricade Breaker
 Bearer of Memory
 Black Sun's Twilight
 Blindblast
+Blinding Mage
 Blood Vassal
 Blue Marvel, Adam Brashear
 Boggart Ram-Gang
@@ -45,23 +47,30 @@ Daemogoth Titan
 Dauntless Bodyguard
 Deadly Insect
 Death Speakers
+Deathleaper, Terror Weapon
 Defenestrate
 Descendant of Kiyomaro
 Devouring Swarm
 Disciple of Freyalise
+Divine Smite
 Doom's Servo-Guards
 Dragonborn Looter
 Dread Tiller
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
+Eldrazi Mimic
 Ember-Fist Zubera
+Emeria Angel
 Encroaching Wastes
+Endless Wurm
 Entish Restoration
 Euroakus
+Fanatical Fever
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
@@ -77,6 +86,7 @@ Goblin Bushwhacker
 Goblin Tinkerer
 Gruul Keyrune
 Guardian of the Guildpact
+Guul Draz Assassin
 Halberdier
 Hardened Scales
 Horned Cheetah
@@ -86,14 +96,18 @@ Hulk, Always Angry
 Immortal Phoenix
 Inferno Fist
 Insidious Bookworms
+Involuntary Cooldown
 Island
 Jhoira's Familiar
+Jinxed Idol
 Khenra Charioteer
 Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Lava Axe
+Lignify
+Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
@@ -102,6 +116,7 @@ Malevolent Awakening
 Malicious Advice
 Maniacal Rage
 Master the Way
+Mayael the Anima
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
@@ -115,16 +130,21 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Nature's Chant
 Navigation Orb
+Naya Sojourners
 Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
+Novellamental
+Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
 Paladin Danse, Steel Maverick
 Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
@@ -134,6 +154,7 @@ Precision Bolt
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
+Quilled Slagwurm
 Rag Dealer
 Raging Kavu
 Rally Maneuver
@@ -157,6 +178,8 @@ Sanctify
 Savai Thundermane
 Scoria Wurm
 Scrapwork Cohort
+Scrivener
+Selfless Spirit
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
@@ -184,16 +207,19 @@ Swamp
 Sword of the Animist
 Talisman of Unity
 The Blue Spirit
+The Indomitable
 The Shattered States Era
 The Stasis Coffin
 Thopter Assembly
 Thunder Totem
 Tiller Engine
+Topaz Dragon
 Towering Indrik
 Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
 Unholy Indenture
@@ -213,4 +239,5 @@ Weapon Rack
 Wei Scout
 Weirding Shaman
 Willow-Wind
+Woodland Liege
 Zhalfirin Shapecraft

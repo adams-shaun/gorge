@@ -46,6 +46,7 @@ Bonepicker Skirge
 Brain Gorgers
 Burrenton Shield-Bearers
 Cabal Patriarch
+Captain N'ghathrod
 Castle Raptors
 Catacomb Crocodile
 Cavalier of Thorns
@@ -85,8 +86,10 @@ Dawn to Dusk
 Day of Destiny
 Deadly Allure
 Death Wish
+Deathcult Rogue
 Deathgaze Cockatrice
 Deconstruct
+Delusions of Mediocrity
 Demonlord Belzenlok
 Devout Monk
 Diabolic Machine
@@ -110,7 +113,9 @@ Emancipation Angel
 Emissary of Despair
 End the Festivities
 Entrancing Melody
+Equilibrium
 Essence Flux
+Explosive Revelation
 Extinguish
 Fa'adiyah Seer
 Fable of Wolf and Owl
@@ -173,6 +178,7 @@ Hornet Harasser
 Howling Gale
 Humility
 Hunted Troll
+Hurler Cyclops
 Hyena Pack
 Ill-Gotten Inheritance
 Imperial Outrider
@@ -201,9 +207,12 @@ Krav, the Unredeemed
 Lavabelly Sliver
 Leitmotif Composer
 Leyline Binding
+Lightning Wolf
 Liliana's Indignation
 Liliana, Death Wielder
+Liliana, the Last Hope
 Limestone Golem
+Lingering Tormentor
 Lord of Change
 Lumbering Falls
 Lunar Force
@@ -232,6 +241,7 @@ Mystic Compass
 Mystic Redaction
 Mythic Proportions
 Nantuko Shaman
+Navigator's Ruin
 Nephalia Moondrakes
 Nettle Sentinel
 Neurok Invisimancer
@@ -274,6 +284,7 @@ Plaxmanta
 Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
+Putrid Warrior
 Qarsi Sadist
 Quartzwood Crasher
 Rakdos Keyrune
@@ -283,6 +294,7 @@ Reanimate
 Rebuild
 Recon Craft Theta
 Remorseful Cleric
+Rendclaw Trow
 Renegade Demon
 Replication Specialist
 Retreat to Emeria
@@ -326,7 +338,9 @@ Solarion
 Soldevi Steam Beast
 Soul of the Rapids
 Soul-Strike Technique
+Species Specialist
 Spectacular Showdown
+Spider-Man, Hometown Hero
 Spinning Wheel Kick
 Spitting Image
 Squirming Mass
@@ -354,6 +368,7 @@ Sylvan Awakening
 Tajuru Snarecaster
 Telekinetic Sliver
 Terashi's Verdict
+Termination Facilitator
 Teshar, Ancestor's Apostle
 Thassa's Oracle
 Thermo-Alchemist
@@ -378,12 +393,14 @@ Transguild Promenade
 Tremor
 True Love's Kiss
 Tuktuk the Explorer
+Twinblade Assassins
 Twitch
 Uncanny Speed
 Uncle Istvan
 Uncomfortable Chill
 Uninvited Geist
 Unknown Shores
+Urborg Uprising
 Urza's Chalice
 Utopia Vow
 Utrom Monitor
@@ -398,6 +415,7 @@ Vision, Synthezoid Avenger
 Voice of Reason
 Volatile Fjord
 Vow of Torment
+Vraska, Relic Seeker
 Vrestin, Menoptra Leader
 Vulshok Battlegear
 Wake of Vultures
@@ -418,6 +436,7 @@ Wings of Aesthir
 Wings of the Guard
 Wirewood Pride
 Witch's Cauldron
+Wolfkin Outcast
 Woodland Mystic
 Worldly Tutor
 Xiahou Dun, the One-Eyed

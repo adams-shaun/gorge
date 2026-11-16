@@ -30,6 +30,7 @@ Arch of Orazca
 Armed Assailant
 Arrester's Zeal
 Asari Captain
+Ashiok's Forerunner
 Atmosphere Surgeon
 Aurochs Herd
 Aven Wind Guide
@@ -47,6 +48,7 @@ Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Blaring Captain
 Blindblast
+Blinding Fog
 Bloodhall Priest
 Bloodhaze Wolverine
 Bloodmist Infiltrator

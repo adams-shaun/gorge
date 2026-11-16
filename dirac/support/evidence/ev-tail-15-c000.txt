@@ -23,6 +23,7 @@ Avatar of Will
 Aven Brigadier
 Aven Eternal
 Axgard Artisan
+Azor's Elocutors
 Bamboo Grove Archer
 Basri's Aegis
 Battle Frenzy
@@ -168,6 +169,7 @@ Grim Feast
 Grim Guardian
 Grip of Desolation
 Growth-Chamber Guardian
+Gustha Ebbasdotter
 Gutter Skulk
 Gwaihir the Windlord
 Haazda Snare Squad
@@ -189,6 +191,7 @@ Inner Calm, Outer Strength
 Innocuous Researcher
 Inspired Inventor
 Into the Time Vortex
+Inviolability
 Island
 Jace's Erasure
 Jackal Familiar
@@ -200,6 +203,7 @@ Kathari Screecher
 Kederekt Parasite
 Kenrith's Transformation
 King Cheetah
+Kitchen Finks
 Knight Watch
 Knight of New Benalia
 Kor Duelist
@@ -234,9 +238,12 @@ Maralen of the Mornsong
 Maro
 Marsh Viper
 Marshmist Titan
+Mary Read and Anne Bonny
 Mask of the Jadecrafter
 Maze Skullbomb
 Mending Hands
+Messenger Drake
+Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
 Mind Knives
@@ -266,6 +273,7 @@ Nissa's Triumph
 Novellamental
 Nyxborn Marauder
 Obelisk of Esper
+Ochre Jelly
 Ogre Gatecrasher
 Ogre Sentry
 Oji, the Exquisite Blade
@@ -334,6 +342,7 @@ Seraph of New Capenna
 Serene Steward
 Shaper Guildmage
 Shared Trauma
+Shark Typhoon
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
@@ -349,6 +358,7 @@ Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
 Slippery Karst
+Sludge Monster
 Slum Reaper
 Smitten Swordmaster
 Song of Eärendil
@@ -372,6 +382,7 @@ Stealth Mission
 Steelbane Hydra
 Steeple Roc
 Stolen Strategy
+Stolen by the Fae
 Stone Calendar
 Stormwatch Eagle
 Stupefying Touch

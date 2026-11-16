@@ -107,19 +107,23 @@ Dragonlord Silumgar
 Dragonwing Glider
 Dread Warlock
 Drelnoch
+Dripping Dead
 Dross Golem
 Dross Prowler
 Dwarven Forge-Chanter
 Dwarven Priest
 Dwarven Weaponsmith
+Dáin's Company
 Déjà Vu
 Eager First-Year
 Earthshape
+Ebon Drake
 Ebony Charm
 Ebony Horse
 Electric Revelation
 Elven Ambush
 Ember-Eye Wolf
+Encroach
 Eternal Taskmaster
 Ethereal Absolution
 Extinction
@@ -169,8 +173,10 @@ Illustrious Historian
 Indulgent Tormentor
 Inexorable Tide
 Infected Defector
+Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Inspiring Veteran
 Insurrection
 Invasive Species
 Ire of Kaminari
@@ -179,6 +185,7 @@ Island
 Jabs, Mistress of Mockery
 Jace's Triumph
 Jaspera Sentinel
+Jelenn Sphinx
 Jhoira's Familiar
 Kambal, Consul of Allocation
 Katara, Heroic Healer
@@ -194,6 +201,7 @@ Land Grant
 Lava Coil
 Leaden Fists
 Legolas Greenleaf
+Liege of the Pit
 Lightfoot Rogue
 Lightning Elemental
 Liliana's Influence
@@ -204,6 +212,7 @@ Lumengrid Sentinel
 Lunk Errant
 Mace of the Valiant
 Magistrate's Scepter
+Magnetic Theft
 Manabond
 Marauding Boneslasher
 Marauding Knight
@@ -241,6 +250,7 @@ Overgrowth
 Pack's Disdain
 Pashalik Mons
 Pegasus Refuge
+Perilous Shadow
 Phantom Nishoba
 Phoenix Chick
 Photon, Mighty Marvel
@@ -253,6 +263,7 @@ Psychotic Fury
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quarantine Field
 Quirion Dryad
 Raiders' Spoils
 Ravenous Leucrocota
@@ -325,6 +336,7 @@ Striped Bears
 Subversion
 Swamp
 Sylvan Hierophant
+Sythis, Harvest's Hand
 Tajuru Warcaller
 Temple Elder
 Temporal Machinations
@@ -338,6 +350,7 @@ Thresher Lizard
 Timberland Ancient
 Tin Street Hooligan
 Tin-Wing Chimera
+Tolsimir, Friend to Wolves
 Towering Thunderfist
 Trained Armodon
 Trained Jackal

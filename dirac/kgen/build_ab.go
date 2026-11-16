@@ -2253,6 +2253,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		if err := atkScopeBits(st, "CantAttack", s.Flags); err != nil {
+			return ka, nil, err
+		}
 	case "CantAttackUnless":
 		st.Kind = kop.StatAttackTax // lower_attacktax.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2261,15 +2264,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Amount, lValue{}); err != nil {
 			return ka, nil, err
 		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "TaxPlayer":
-				st.StFlags |= kop.StAtkTaxPlayer
-			case "TaxWalker":
-				st.StFlags |= kop.StAtkTaxWalker
-			default:
-				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
-			}
+		if err := atkScopeBits(st, "CantAttackUnless", s.Flags); err != nil {
+			return ka, nil, err
 		}
 	case "CantBlockUnless":
 		st.Kind = kop.StatBlockTax // lower_blocktax.go
@@ -2638,9 +2634,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "PreventNoncombatToOthers":
 		rp.Kind = kop.ReplPreventNoncombatToOthers
+	case "DamageRedirect":
+		return rdrRepl(ka, r, cb)
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
-	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf":
+	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf", "PreventDamageFilt", "PreventDamageN":
 		if err = cb.selfDamageRepl(rp, r); err != nil { // lower_preventtoself.go
 			return ka, err
 		}
@@ -2739,10 +2737,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, err
 		}
 	case "SpellsCantBeCountered":
-		rp.Kind = kop.ReplSpellsCantBeCountered // lower_uncounterable.go
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneStack); err != nil {
-			return ka, err
-		}
+		return cantCounterRepl(ka, r, cb) // lower_uncounterable.go
 	case "CantTurnUp":
 		rp.Kind = kop.ReplCantTurnUp // lower_turnfaceuprepl.go
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
@@ -2928,4 +2923,40 @@ func originMask(from string) int {
 		}
 	}
 	return m
+}
+
+// cantCounterRepl builds ReplSpellsCantBeCountered: the cast spell filter
+// (Chimil, the Inner Sun, Sphinx of the Final Word).
+func cantCounterRepl(ka kop.Ability, r lRepl, cb *cardBuilder) (kop.Ability, error) {
+	ka.Repl.Kind = kop.ReplSpellsCantBeCountered
+	f, err := cb.filter(r.F, kop.ZoneStack)
+	if err != nil {
+		return ka, err
+	}
+	ka.Repl.Filter = f
+	return ka, nil
+}
+
+// atkScopeBits folds a lowered combat static's Target$ scope flags into its
+// StFlags bits (kop/attacktax.go): the CantAttack player/walker pair bits
+// and the CantAttackUnless tax's (lower_attacktax.go). One flag per scope
+// clause; an unknown flag is a lowering bug, refused.
+func atkScopeBits(st *kop.Static, which string, flags []string) error {
+	for _, fl := range flags {
+		var bit kop.StaticFlags
+		switch {
+		case which == "CantAttack" && fl == "AtkPlayer":
+			bit = kop.StCantAtkPlayer
+		case which == "CantAttack" && fl == "AtkWalker":
+			bit = kop.StCantAtkWalker
+		case which == "CantAttackUnless" && fl == "TaxPlayer":
+			bit = kop.StAtkTaxPlayer
+		case which == "CantAttackUnless" && fl == "TaxWalker":
+			bit = kop.StAtkTaxWalker
+		default:
+			return fmt.Errorf("%s flag %q", which, fl)
+		}
+		st.StFlags |= bit
+	}
+	return nil
 }

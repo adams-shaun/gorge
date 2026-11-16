@@ -25,6 +25,7 @@ Baloth Null
 Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
+Battle at the Helvault
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
@@ -72,10 +73,12 @@ Criminal Enterprise
 Crypt Ripper
 Dakmor Plague
 Dark Offering
+Dark Supplicant
 Daru Healer
 Dauntless River Marshal
 Dauthi Mercenary
 Davriel's Shadowfugue
+Deeproot Warrior
 Defensive Maneuvers
 Demogorgon's Clutches
 Demonspine Whip
@@ -87,14 +90,17 @@ Dispeller's Capsule
 Drannith Magistrate
 Dreadful Apathy
 Dukhara Peafowl
+Duskdale Wurm
 Earthshaker
 Echoing Return
 Ecstatic Awakener
 Ekthi, Contaminator Priest
+Elephant Grass
 Elspeth, Knight-Errant
 Elven Warhounds
 Elvish Doomsayer
 Elvish Farmer
+Emerald Charm
 Empyrial Plate
 Enduring Scalelord
 Entropic Specter
@@ -129,11 +135,14 @@ Foul Watcher
 Fretwork Colony
 Frightcrawler
 Fulminator Mage
+Fyndhorn Brownie
 Galvanic Blast
+Garruk Wildspeaker
 Gateway Plaza
 Gauntlet of Might
 Geistflame
 Genju of the Fields
+Ghostly Wings
 Giant Harbinger
 Gift of Granite
 Gilded Sentinel
@@ -171,6 +180,7 @@ High Score
 Highland Forest
 Highspire Artisan
 Holdout Settlement
+Honey Mammoth
 Honored Hierarch
 Hot Soup
 How to Keep an Izzet Mage Busy
@@ -242,12 +252,15 @@ Nantuko Elder
 Naru Meha, Master Wizard
 Natural Spring
 Nature's Resurgence
+Necropouncer
 Necrotic Fumes
 Night Market Lookout
 Nightshade Harvester
 Nimana Skitter-Sneak
 Noxious Revival
+Nullhide Ferox
 Nyxborn Seaguard
+Ob Nixilis, the Ascended
 Obscura Storefront
 Obzedat's Aid
 Oculus
@@ -278,6 +291,7 @@ Planar Bridge
 Political Triumph
 Primetime Suspect
 Prodigious Growth
+Putrefy
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
@@ -305,17 +319,22 @@ Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Rust Goliath
 Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
 Saprazzan Heir
+Sarulf's Packmate
 Scale the Heights
+Seal of Removal
 Searchlight Geist
 Seize the Day
+Sergeant John Benton
 Serra Avenger
 Shard Convergence
 Shattering Blow
 Shepherd of the Lost
+Shielding Plax
 Shining Aerosaur
 Shivan Emissary
 Shu Elite Companions
@@ -341,12 +360,14 @@ Structural Assault
 Sulfur Elemental
 Surge Conductor
 Swamp
+Sylvan Anthem
 Tales of Master Seshiro
 Taranika, Akroan Veteran
 Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thing in the Ice
 Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
@@ -372,6 +393,7 @@ Unholy Indenture
 Unwind
 Urza's Filter
 Vampire Hexmage
+Vampire's Bite
 Venomcrawler
 Venser's Sliver
 Vex
@@ -380,6 +402,7 @@ Vigilant Sentry
 Vogar, Necropolis Tyrant
 Void
 Volcanic Torrent
+Voracious Typhon
 Voyager Staff
 Vraska's Contempt
 Wall of Blossoms
@@ -388,10 +411,12 @@ Warm Welcome
 Watcher Sliver
 Waterfront District
 Wayfaring Temple
+Wedding Announcement
 Whetstone
 Whirlwind Adept
 White Scarab
 Wild Nacatl
+Wilderness Reclamation
 Winged Coatl
 Wolfir Avenger
 World Breaker

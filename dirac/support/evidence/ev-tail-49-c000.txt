@@ -19,8 +19,10 @@ Arc Mage
 Arc Spitter
 Arcanist's Owl
 Archivist
+Argivian Restoration
 Aria of Flame
 Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Ashling, the Extinguisher
 Augmenting Automaton
@@ -29,6 +31,7 @@ Avaricious Dragon
 Axegrinder Giant
 Bad Moon
 Batroc the Leaper
+Batterbone
 Battle Mammoth
 Battlefly Swarm
 Benthic Behemoth
@@ -39,6 +42,7 @@ Blind Phantasm
 Blistering Barrier
 Bloodthrone Vampire
 Blurred Mongoose
+Bog Initiate
 Boon Reflection
 Boros Swiftblade
 Brand
@@ -49,6 +53,7 @@ Bucky Barnes, Eager Ally
 Butcher's Cleaver
 Cacophony Unleashed
 Call the Cavalry
+Call the Scions
 Captain America, Steve Rogers
 Casting of Bones
 Catalog
@@ -66,9 +71,11 @@ Chimeric Coils
 Circular Logic
 Citadel Gate
 Citanul Centaurs
+Citanul Flute
 Clan Crafter
 Cobblebrute
 Coiling Oracle
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Cradle Clearcutter
@@ -80,6 +87,7 @@ Damping Matrix
 Daredevil's Billy Club
 Dark Bargain
 Darksteel Myr
+Daru Encampment
 Daru Healer
 Dauntless Aven
 Dauntless Unity
@@ -100,6 +108,7 @@ Dragonlord Dromoka
 Drake Haven
 Dregs of Sorrow
 Druid's Deliverance
+Dryad Arbor
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
@@ -108,6 +117,7 @@ Elvish Piper
 Elvish Promenade
 Elvish Scrapper
 Elvish Visionary
+Emmara, Soul of the Accord
 Enduring Bondwarden
 Enlightened Ascetic
 Ent's Fury
@@ -130,6 +140,7 @@ Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
 Fissure Wizard
 Flame-Kin Zealot
 Flamecore Elemental
@@ -149,6 +160,7 @@ Gates of Istfell
 Geistblast
 Generous Stray
 Ghirapur Aether Grid
+Ghitu Encampment
 Gibbering Barricade
 Glistener Elf
 Gloomdrifter
@@ -158,14 +170,17 @@ Goblin Skycutter
 Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
+Grasping Dunes
 Gravetiller Wurm
 Great Desert Prospector
 Greater Auramancy
 Greater Good
 Greenwarden of Murasa
 Hagra Constrictor
+Hatching Plans
 Havengul Vampire
 Hell Swarm
+Hellion Eruption
 Heroic Charge
 Hewed Stone Retainers
 Hobblefiend
@@ -200,8 +215,10 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
+Krosan Druid
 Kuldotha Rebirth
 Lantern Spirit
+Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
 Laquatus's Creativity
@@ -222,7 +239,10 @@ Manta Riders
 Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
+Masticore
+Maze Skullbomb
 Memory Plunder
+Merciless Eternal
 Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
@@ -251,6 +271,7 @@ Ogre Gatecrasher
 Omnath, Locus of Rage
 Orochi Hatchery
 Outland Colossus
+Overflowing Basin
 Oversold Cemetery
 Pallid Mycoderm
 Part the Veil
@@ -294,6 +315,7 @@ Reverent Hoplite
 Rhystic Shield
 Righteous Cause
 Righteous Fury
+Riptide Pilferer
 Rishkar's Expertise
 Roc Charger
 Rock Basilisk
@@ -342,6 +364,7 @@ Slippery Bogle
 Smelt
 Snow-Covered Mountain
 So Shiny
+Soratami Savant
 Soulshriek
 Spawn-Gang Commander
 Spine of Ish Sah
@@ -365,6 +388,7 @@ Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Swat
 Swell of Growth
 Sylvan Anthem
 Symbiotic Elf
@@ -376,6 +400,7 @@ Tar Pitcher
 Taunting Arbormage
 Teeterpeak Ambusher
 Terrain Elemental
+Terror Ballista
 The Rack
 Thorncaster Sliver
 Thought Collapse
@@ -385,6 +410,7 @@ Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
+Tranquil Expanse
 Tranquil Thicket
 Turn
 Twisted Embrace
@@ -406,6 +432,7 @@ Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warlock Class
@@ -421,6 +448,7 @@ Willow Faerie
 Willow-Wind
 Wing Puncture
 Wirewood Hivemaster
+Wirewood Lodge
 Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
