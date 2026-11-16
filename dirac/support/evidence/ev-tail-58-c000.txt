@@ -22,6 +22,7 @@ Ana Disciple
 Angel of Renewal
 Animist's Awakening
 Anoint with Affliction
+Apocalypse Hydra
 Ardent Plea
 Argothian Elder
 Assassin's Strike
@@ -78,6 +79,8 @@ Cumber Stone
 Dapper Shieldmate
 Daru Warchief
 Dauthi Horror
+Daxiver, Izzet Electromancer
+Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit
 Deluge
@@ -87,7 +90,9 @@ Disciple of Law
 Disempower
 Distant Melody
 Distress
+Dormant Sliver
 Dovin's Acuity
+Dreadwing
 Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
@@ -100,6 +105,7 @@ Elder Owyn Lyons
 Elder Spawn
 Elgaud Inquisitor
 Elite Arrester
+Elite Headhunter
 Ember Weaver
 Enraged Giant
 Enraged Killbot
@@ -150,6 +156,7 @@ Ground Rift
 Guardian of Pilgrims
 Guma
 Hair-Strung Koto
+Hajar, Loyal Bodyguard
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
@@ -164,6 +171,7 @@ Hunger of the Nim
 Icingdeath, Frost Tyrant
 Incite
 Infernal Captor
+Inquisitor Exarch
 Inspired Insurgent
 Inspired Sphinx
 Involuntary Cooldown
@@ -179,6 +187,7 @@ Kinjalli's Caller
 Kitesail Apprentice
 Kithkin Daggerdare
 Knighted Myr
+Knights' Charge
 Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
@@ -192,6 +201,7 @@ Lethal Exploit
 Lifeblood Hydra
 Lightning Dragon
 Lightning Talons
+Liliana, the Necromancer
 Llanowar Visionary
 Looming Spires
 Lucky Offering
@@ -202,6 +212,7 @@ Marionette Master
 Mass Diminish
 Master Splicer
 Maul of the Skyclaves
+Meletis Astronomer
 Mesmeric Fiend
 Mesmeric Orb
 Michelangelo, On the Scene
@@ -252,6 +263,7 @@ Prognostic Sphinx
 Prophet of Distortion
 Prophet of the Peak
 Pyrostatic Pillar
+Quandrix Cultivator
 Quarrel's End
 Quasiduplicate
 Quirion Ranger
@@ -268,6 +280,7 @@ Reckless One
 Reito Sentinel
 Relic Runner
 Repulse
+Reshape the Earth
 Resolute Blademaster
 Riddlesmith
 Ring of Renewal
@@ -303,6 +316,7 @@ Shambling Vent
 Shard Volley
 Short Sword
 Shriekdiver
+Shrieking Grotesque
 Sigiled Behemoth
 Silverwing Squadron
 Simian Brawler
@@ -326,6 +340,7 @@ Sprouting Phytohydra
 Squee's Toy
 Staff of Titania
 Stag Beetle
+Stand Together
 Status
 Steadfast Guard
 Stone-Seeder Hierophant
@@ -379,17 +394,20 @@ Victory's Envoy
 Vigilance
 Vinelasher Kudzu
 Vivify
+Voidslime
 Voldaren Duelist
 Voltaic Construct
 Vryn Wingmare
 Wailing Ghoul
 Wall of Kelp
+Warchief Giant
 Weatherseed Faeries
 Welkin Guide
 Wheel of Fortune
 Whipcorder
 Wild Wanderer
 Wishcoin Crab
+Wistful Selkie
 Witness of Tomorrows
 Woebringer Demon
 Wolfbriar Elemental

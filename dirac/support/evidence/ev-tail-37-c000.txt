@@ -15,12 +15,15 @@ Air-Cult Elemental
 Akki Raider
 Aladdin's Ring
 Altar's Reap
+Ancient Tomb
 Angel of the Dawn
 Angelic Sell-Sword
+Angelsong
 Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
 Argothian Pixies
+Aspect of Wolf
 Atog
 Atrocious Experiment
 Automated Artificer
@@ -42,6 +45,7 @@ Borderland Minotaur
 Born to Drive
 Boseiju Reaches Skyward
 Bountiful Promenade
+Break Down
 Brightstone Ritual
 Brotherhood Vertibird
 Brutal Deceiver
@@ -49,6 +53,7 @@ Built to Last
 Built to Smash
 Cabal Executioner
 Calming Licid
+Captain Ripley Vance
 Cave-In
 Centaur's Herald
 Chain of Plasma
@@ -68,6 +73,7 @@ Constant Mists
 Contagion Clasp
 Controlled Instincts
 Crawling Chorus
+Crimson Kobolds
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
@@ -101,6 +107,7 @@ Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
 Elder Cathar
+Elderleaf Mentor
 Eldrazi Linebreaker
 Elenda's Hierophant
 Elusive Krasis
@@ -111,6 +118,7 @@ Esper Cormorants
 Exultant Cultist
 Fading Hope
 Faerie Impostor
+Faithless Salvaging
 Fallaji Excavation
 Fate Forgotten
 Flame Slash
@@ -128,6 +136,7 @@ Fourth Bridge Prowler
 Fractal Summoning
 Frogmite
 Frozen Shade
+Gaea's Touch
 Ghostfire Blade
 Goblin Patrol
 God-Eternal Rhonas
@@ -139,6 +148,7 @@ Great Sable Stag
 Greatsword
 Grim Backwoods
 Gruul Turf
+Guard Gomazoa
 Guild Artisan
 Gustcloak Harrier
 Halo Hopper
@@ -150,10 +160,12 @@ Herald of Slaanesh
 Hero of the Games
 Honor the God-Pharaoh
 Hooded Hydra
+Humiliate
 Icatian Crier
 Icatian Priest
 Igneous Golem
 In the Trenches
+Incubator Drone
 Infiltrate
 Infused Arrows
 Intrepid Provisioner
@@ -165,9 +177,11 @@ Jungle Delver
 Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
+Kasimir the Lone Wolf
 Kavu Climber
 Kavu Glider
 Kavu Scout
+Kaysa
 Kindred Denial
 Kitsune Diviner
 Knight of Cliffhaven
@@ -181,39 +195,50 @@ Lightning Wolf
 Llanowar Stalker
 Looter il-Kor
 Loxodon Anchorite
+Loxodon Gatekeeper
 Lumithread Field
 Lux Cannon
+Maestros Theater
 Malevolent Rumble
 Marionette Master
 Markov Blademaster
 Master Apothecary
 Maulfist Doorbuster
 Maze Rusher
+Meishin, the Mind Cage
 Mephidross Vampire
 Metathran Aerostat
 Midnight Scavengers
 Millennial Gargoyle
 Millstone
 Mindless Automaton
+Mindstatic
 Mirror Wall
+Mob
 Moltensteel Dragon
 Monk Realist
 Morbid Plunder
 Mountain
 Mystifying Maze
+Navigation Orb
 Nearheath Chaplain
+Niambi, Faithful Healer
 Nishoba Brawler
 Norika Yamazaki, the Poet
 Noxious Dragon
 Off Balance
 Organ Hoarder
+Orochi Merge-Keeper
 Paralyzing Grasp
+Parapet Thrasher
 Peregrine Griffin
 Pestilent Souleater
 Phyrexian Etchings
+Phyrexian Missionary
 Pierce the Sky
 Pillar Tombs of Aku
 Plains
+Polluted Delta
 Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
@@ -221,9 +246,14 @@ Presence of Gond
 Presence of the Master
 Priest of the Crossing
 Primal Empathy
+Primaris Chaplain
+Prismari Campus
 Professor Hulk
 Protomatter Powder
+Psionic Sliver
+Pulse of the Tangle
 Pumpkin Bombs
+Purgatory
 Qilin's Blessing
 Quarrel's End
 Quest for Pure Flame
@@ -231,14 +261,18 @@ Quicksilver Gargantuan
 Quirion Sentinel
 Radagast, Wizard of Wilds
 Ral's Outburst
+Rampaging Growth
 Ravenous Skirge
 Raving Visionary
 Reach of Branches
 Reap and Sow
 Reduce to Dreams
+Regal Bloodlord
+Rejuvenation Chamber
 Rekindled Flame
 Reviving Melody
 Rhox Oracle
+Riptide
 Rising Populace
 Roar of Reclamation
 Robot Chicken
@@ -254,7 +288,9 @@ Savage Stomp
 Scalding Tongs
 Scorch Spitter
 Scrubland
+Sea Legs
 Sejiri Shelter
+Selesnya Signet
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
@@ -264,6 +300,9 @@ Sickle Ripper
 Siege Smash
 Sightless Ghoul
 Silkguard
+Silumgar Butcher
+Silundi Vision
+Siren of the Silent Song
 Skin Invasion
 Sky Ruin Drake
 Skyway Sniper
@@ -273,7 +312,11 @@ Snapping Voidcraw
 Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
+Sosuke's Summons
 Soul Reap
+Spawning Breath
+Spellbane Centaur
+Spellheart Chimera
 Spineless Thug
 Stand Firm
 Staunch Defenders
@@ -281,9 +324,11 @@ Steadfast Paladin
 Steel Overseer
 Steelburr Champion
 Stinging Scorpion
+Storm, Shaker of Skies
 Stormrider Rig
 Subira, Tulzidi Caravanner
 Suleiman's Legacy
+Sun-Collared Raptor
 Sunstrike Legionnaire
 Supply Runners
 Swamp
@@ -291,6 +336,8 @@ Swarm Guildmage
 Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
+Tangle Spider
+Tangled Islet
 Target Minotaur
 Temur Runemark
 Tenth District Veteran
@@ -301,21 +348,30 @@ The Meathook Massacre
 The Torment of Gollum
 Thornglint Bridge
 Thraben Inspector
+Thragtusk
 Tithebearer Giant
 Towashi Guide-Bot
+Tradewind Rider
 Travel Preparations
+Trollbred Guardian
 Twilight Prophet
 Undead Butler
 Undergrowth Scavenger
+Undo
+Urza's Blueprints
 Vanquish the Foul
 Vault Guardsman
+Vectis Dominator
 Voices from the Void
+Vorel of the Hull Clade
 Walking Archive
 Walking Corpse
 Warped Physique
 Warrior's Charge
 Wayfaring Giant
+Wei Elite Companions
 Whisper Squad
+White Glove Gourmand
 Wicker Witch
 Wielding the Green Dragon
 Wildfire Emissary
@@ -328,5 +384,6 @@ Yavimaya Ancients
 Yorvo, Lord of Garenbrig
 Yotian Dissident
 You See a Pair of Goblins
+Zealot of the God-Pharaoh
 Zephyr Boots
 Zuran Spellcaster

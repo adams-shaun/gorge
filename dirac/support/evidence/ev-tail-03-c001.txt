@@ -223,6 +223,7 @@ Metropolis Sprite
 Mine Collapse
 Minion Missile
 Minotaur Warrior
+Mirkwood Channeler
 Mirri, Cat Warrior
 Mirror-Sigil Sergeant
 Mishra's Self-Replicator
@@ -275,6 +276,7 @@ Plated Wurm
 Plundering Barbarian
 Predator, Flagship
 Prismatic Strands
+Profit
 Prophet of Kruphix
 Psychic Allergy
 Puppet Conjurer

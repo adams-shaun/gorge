@@ -30,6 +30,7 @@ Barkchannel Pathway
 Barren Moor
 Battle Mammoth
 Beloved Chaplain
+Benthic Djinn
 Bhaal's Invoker
 Black Cat
 Black Lotus
@@ -53,6 +54,7 @@ Call for Blood
 Call of the Herd
 Call the Bloodline
 Canal Monitor
+Canopy Surge
 Cantivore
 Cathartic Reunion
 Cathedral of War
@@ -81,6 +83,7 @@ Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkblade Agent
 Darkbore Pathway
 Darkness
 Dauntless Survivor
@@ -105,6 +108,7 @@ Disrupt
 Draconic Lore
 Dragon Tyrant
 Dragonfly Suit
+Dromar, the Banisher
 Dross Crocodile
 Drowned
 Dunland Crebain
@@ -127,6 +131,7 @@ Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
+Fathom Fleet Captain
 Favor of the Woods
 Feebleness
 Ferocious Charge
@@ -158,6 +163,7 @@ Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
 Giant-Man, Gargantuan Genius
+Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
 Goblin Assault Team
@@ -256,10 +262,13 @@ Mindleech Ghoul
 Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
+Mirror Entity
 Misshapen Fiend
+Molten Tributary
 Mosscoat Goriak
 Mountain
 Mox Emerald
+Munitions Expert
 Myrel, Shield of Argive
 Myriad Landscape
 Nacatl Outlander
@@ -321,6 +330,7 @@ Sandblast
 Scab-Clan Berserker
 Scavenged Brawler
 Scent of Nightshade
+Schismotivate
 Scourge Devil
 Scourge of Geier Reach
 Scrapyard Mongrel
@@ -398,6 +408,7 @@ Thassa's Emissary
 The Marvelous Scientist
 The Shire
 Thermal Glider
+Thought Erasure
 Thrash of Raptors
 Throne of Bone
 Thrull Parasite
@@ -428,6 +439,7 @@ Violent Eruption
 Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
+Vodalian Illusionist
 Voidwielder
 Vona, Butcher of Magan
 Voracious Wurm
@@ -446,6 +458,7 @@ Wishful Merfolk
 Witherbloom Pledgemage
 Woodland Mystic
 Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits
 Zhur-Taa Swine

@@ -16,6 +16,7 @@ Ancient Den
 Angel of Deliverance
 Angel of Retribution
 Arcane Investigator
+Architect of the Untamed
 Armory of Iroas
 Army of Allah
 Army of the Damned
@@ -26,11 +27,14 @@ Augur of Bolas
 Auriok Glaivemaster
 Auton Soldier
 Aven Sunstriker
+Aviary Mechanic
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
 Balshan Beguiler
 Barrage Tyrant
+Battered Golem
 Battle Brawler
+Battle Hymn
 Belligerent Whiptail
 Berserk Murlodont
 Bilbo's Burglaring
@@ -53,7 +57,9 @@ Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
 Brinebarrow Intruder
+Broken Concentration
 Broodbirth Viper
+Broodhunter Wurm
 Bull Aurochs
 Burning Oil
 By Invitation Only
@@ -89,6 +95,7 @@ Condemn
 Converter Beast
 Corpse Connoisseur
 Crackling Club
+Crafty Pathmage
 Craven Giant
 Curse of Predation
 Cut Down
@@ -116,6 +123,7 @@ Dross Hopper
 Drove of Elves
 Dueling Coach
 Durkwood Tracker
+Dustin, Gadget Genius
 Eiganjo Free-Riders
 Elderfang Disciple
 Elite Cat Warrior
@@ -165,9 +173,11 @@ Graf Reaver
 Grasp of Fate
 Grasping Scoundrel
 Grave Betrayal
+Grey Havens Navigator
 Grim Physician
 Grim Reaper's Scythe
 Grizzled Angler
+Gruul Nodorog
 Guardians' Pledge
 Gush
 Gut Shot
@@ -183,11 +193,13 @@ Hive Stirrings
 Holy Day
 Hookhand Mariner
 Horn of Valhalla
+Howling Giant
 Hunted Dragon
 Hunted Witness
 Hurly-Burly
 Hydrosurge
 Hymn of Rebirth
+Ichor Synthesizer
 Idolized
 Impostor of the Sixth Pride
 Incremental Blight
@@ -220,6 +232,8 @@ Lead by Example
 Ledger Shredder
 Library
 Lithomantic Barrage
+Living Hive
+Loam Dweller
 Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
@@ -255,23 +269,29 @@ Necroskitter
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer
+Noble Hierarch
 Nomad Mythmaker
 Noose Constrictor
 Novablast Wurm
 Nurturing Licid
 Oath of Mages
 Oathsworn Giant
+Obelisk of Undoing
 Ochran Assassin
 Ogre's Cleaver
+Oil-Gorger Troll
 Ondu Champion
 Onyx Mage
 Oona's Gatewarden
 Oran-Rief, the Vastwood
+Orcish Hellraiser
 Outpost Siege
 Paradigm Shift
 Parch
 Passwall Adept
 Perilous Research
+Petrified Wood-Kin
+Phyrexian Broodstar
 Phyrexian Gargantua
 Plaguemaw Beast
 Plains
@@ -283,11 +303,14 @@ Prodigy's Prototype
 Prophetic Ravings
 Protection Magic
 Proud Mentor
+Prowler's Helm
 Prowling Pangolin
 Puncture Blast
 Pygmy Pyrosaur
 Pyre Charger
+Rainbow Efreet
 Ranger-Captain of Eos
+Raph's Bravado
 Reaping the Rewards
 Reckless Barbarian
 Recoil
@@ -307,6 +330,8 @@ Roc of Kher Ridges
 Roil Elemental
 Rotted Hulk
 Roving Harper
+Rulik Mons, Warren Chief
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
@@ -324,6 +349,7 @@ Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
 Shielded by Faith
+Shire Scarecrow
 Shivan Harvest
 Shrapnel Slinger
 Shu Defender
@@ -344,6 +370,7 @@ Slash the Ranks
 Slashing Tiger
 So Shiny
 Soltari Champion
+Soratami Mindsweeper
 Soul Collector
 Soul of Theros
 Soulshriek
@@ -357,6 +384,7 @@ Static Prison
 Steamclaw
 Stern Proctor
 Stonefury
+Stonework Puma
 Storm Fleet Sprinter
 Stormfront Riders
 Strength of Unity
@@ -388,6 +416,7 @@ Thopter Squadron
 Thor, Asgard's Avenger
 Tide Skimmer
 Tivadar of Thorn
+Tolarian Academy
 Touch of Brilliance
 Tourach's Canticle
 Towering-Wave Mystic
@@ -400,6 +429,7 @@ Ulrich's Kindred
 Ultimate Nullification
 Undead Warchief
 Unfriendly Fire
+Urn of Godfire
 Vampire Opportunist
 Vampire's Kiss
 Vat Emergence
@@ -407,11 +437,13 @@ Vectis Silencers
 Verdant Automaton
 Verdant Force
 Vessel of Ephemera
+Veteran Warleader
 Veteran of the Depths
 Village Bell-Ringer
 Vindictive Mob
 Virtuous Charge
 Vivid Flying Fish
+Volcanic Rush
 Volcanic Spite
 Voldaren Ambusher
 Voldaren Epicure
@@ -425,6 +457,7 @@ Warlock Class
 Warpath
 Wary Okapi
 Watcher of the Spheres
+Watchful Radstag
 Wave-Wing Elemental
 Wayward Guide-Beast
 Wicker Witch
@@ -440,5 +473,6 @@ Xun Yu, Wei Advisor
 Yavimaya Hollow
 Yuriko, the Tiger's Shadow
 Zealous Strike
+Zhur-Taa Ancient
 Zodiac Dog
 Zodiac Horse

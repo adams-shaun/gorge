@@ -7,6 +7,8 @@ Academy Rector
 Acolyte of Xathrid
 Adaptive Omnitool
 Adaptive Sporesinger
+Ajani's Last Stand
+Akiri, Line-Slinger
 Akroan Horse
 Akroma's Blessing
 Alchor's Tomb
@@ -41,13 +43,16 @@ Basalt Gargoyle
 Battering Craghorn
 Berserkers of Blood Ridge
 Black Panther, Claws of Bast
+Bladewing the Risen
 Blaze
 Bloodsky Berserker
 Bloodtallow Candle
 Bog Raiders
 Bold Defense
 Bonders' Enclave
+Bone Shredder
 Boom
+Borderland Behemoth
 Bounding Wolf
 Bountiful Harvest
 Brain Freeze
@@ -81,9 +86,12 @@ Deadshot
 Deathreap Ritual
 Deepwood Denizen
 Defeat
+Defiler of Souls
 Defiling Daemogoth
 Devout Chaplain
 Dhund Operative
+Dimir Charm
+Dimir Cutpurse
 Dire Undercurrents
 Diregraf Colossus
 Dirtcowl Wurm
@@ -97,6 +105,7 @@ Diversionary Tactics
 Diviner's Lockbox
 Doomskar Oracle
 Dreadhorde Invasion
+Drove of Elves
 Drown in Dreams
 Drunau Corpse Trawler
 Dusk Feaster
@@ -112,6 +121,7 @@ Ensoul Artifact
 Enthrall
 Evolving Adaptive
 Expendable Lackey
+Extinguish All Hope
 Eye Spy
 Faerie Duelist
 Fatal Fumes
@@ -120,6 +130,7 @@ Ferropede
 Fire Nation Salvagers
 Fire Prophecy
 Flamekin Harbinger
+Flameskull
 Flaming Tyrannosaurus
 Flight Spellbomb
 Floriferous Vinewall
@@ -143,6 +154,7 @@ Ghoulcaller's Bell
 Ghoulcaller's Harvest
 Giant Adephage
 Giant Caterpillar
+Gilded Scuttler
 Gladehart Cavalry
 Glaring Aegis
 Glimmer Lens
@@ -151,7 +163,9 @@ Goblin Champion
 Goblin Lookout
 Goblin Wardriver
 Golden-Tail Disciple
+Goro-Goro, Disciple of Ryusei
 Grasp of the Hieromancer
+Green Goblin, Nemesis
 Grindclock
 Groundskeeper
 Guardian Lions
@@ -171,9 +185,11 @@ Honor of the Pure
 Horned Troll
 Hound of Urabrask
 Huatli's Raptor
+Hunted Dragon
 Hydroelectric Specimen
 Hypnotic Specter
 Hypnotic Sprite
+Iceman and Firestar
 Illusory Ambusher
 Immolating Glare
 Index
@@ -202,6 +218,7 @@ Keen-Eyed Archers
 Kemba's Skyguard
 Kiki-Jiki, Mirror Breaker
 Kite Shield
+Kitesail
 Knight of New Benalia
 Knight-Captain of Eos
 Kothophed, Soul Hoarder
@@ -211,6 +228,7 @@ Lead the Stampede
 Leafcrown Dryad
 Lembas
 Liliana's Scorn
+Liliana, Waker of the Dead
 Living Totem
 Lizard Blades
 Lock and Load
@@ -222,6 +240,7 @@ Mantle of Tides
 Mark of Mutiny
 Markov Purifier
 Marrow Bats
+Mass of Ghouls
 Maul of the Skyclaves
 Medicine Runner
 Merrow Commerce
@@ -246,6 +265,7 @@ Nessian Courser
 Niblis of the Breath
 Nightveil Specter
 Noble Quarry
+Noble Templar
 Novice Occultist
 Oketra's Monument
 Old Stickfingers
@@ -253,6 +273,7 @@ Omnath, Locus of Rage
 One Dozen Eyes
 Oran-Rief, the Vastwood
 Order of the Golden Cricket
+Order of the Mirror
 Order of the White Shield
 Ordered Migration
 Orim, Samite Healer
@@ -261,6 +282,8 @@ Owlin Spiralmancer
 Paragon of Eternal Wilds
 Pardic Wanderer
 Patagia Tiger
+Peacekeeper
+Perception Bobblehead
 Pharika's Mender
 Phyrexian Boon
 Phyrexian Negator
@@ -268,6 +291,7 @@ Phyrexian Vault
 Pious Interdiction
 Plague Wight
 Plains
+Poppet Stitcher
 Predatory Sliver
 Prey's Vengeance
 Primeval Shambler
@@ -290,7 +314,9 @@ Reaper from the Abyss
 Recruitment Officer
 Redress Fate
 Refuse to Yield
+Relic Putrescence
 Resistance Fighter
+Resounding Scream
 Retrieve
 Rhox Pummeler
 Rift Sower
@@ -298,11 +324,14 @@ Rites of Refusal
 Ritual of Restoration
 Riverwise Augur
 Rocky Tar Pit
+Rohgahh, Kher Keep Overlord
 Rolling Temblor
 Rot Shambler
 Rubbleback Rhino
 Rubblebelt Rioters
+Runic Shot
 Rupture
+Ruthless Waterbender
 Ryusei, the Falling Star
 Sabertooth Alley Cat
 Sanctum Custodian
@@ -361,7 +390,9 @@ Tainted Field
 Tale of Katara and Toph
 Tazeem Raptor
 Tenacious Dead
+Tervigon
 The Dross Pits
+The Scorpion God
 Thopter Assembly
 Thopter Spy Network
 Thorin, King of Durin's Folk
@@ -383,6 +414,7 @@ Tribute to Urborg
 Tribute to the World Tree
 Triton Waverider
 Typhoid Rats
+Tzaangor Shaman
 Uncage the Menagerie
 Uncle's Musings
 Unlicensed Hearse
@@ -412,6 +444,7 @@ Wanda's Vision
 Warmonger
 Weathered Wayfarer
 Welkin Tern
+Westgate Regent
 Whisper of the Dross
 Wight of Precinct Six
 Wind-Kin Raiders

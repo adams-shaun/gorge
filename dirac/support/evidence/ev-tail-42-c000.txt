@@ -1,123 +1,223 @@
+A-Cori-Steel Cutter
 A-Dragonborn Looter
+A-Meria's Outrider
 A-Ominous Parcel
+Accursed Horde
 Adaptive Snapjaw
+Aerial Engineer
 Aether Adept
+Aether Inspector
 Aethersnipe
+Akoum Refuge
+Akroan Sergeant
+Alluring Suitor
 Amulet of Unmaking
+Angelic Exaltation
 Angelic Gift
 Angler Turtle
+Anodet Lurker
+Answered Prayers
+Ant Queen
 Anurid Barkripper
 Anurid Murkdiver
 Arachnoform
 Arc Trail
 Ardent Soldier
+Armored Ascension
 Armory Guard
+Ashiok's Adept
+Astral Dragon
+Attended Healer
 Audacious Infiltrator
+Auton Soldier
+Aven Mindcensor
 Awakened Awareness
 Baloth Prime
 Barrage Tyrant
+Barrowgoyf
 Basic Conjuration
 Bastion Enforcer
 Bayou
+Besmirch
 Bewilder
 Beyeen Veil
+Big Score
 Bill the Pony
 Blood Burglar
 Bloodbraid Elf
+Bloodline Culling
+Bloodrite Invoker
 Bloodshed Fever
 Boggart Forager
+Boil
+Bolshack Dragon
 Bonded Construct
 Boon of Boseiju
+Bountiful Harvest
 Brawl-Bash Ogre
 Breaching Hippocamp
+Brimstone Volley
+Burning Fields
 Burning Hands
+Burning Oil
+Captain's Hook
+Carnage Wurm
+Carrion Call
 Caustic Crawler
 Centaur Healer
 Cerulean Drake
+Cessation
+Chaos Terminator Lord
 Char-Dog
 Choking Restraints
 Cinder Barrens
+Cinder Elemental
 Clamavus
+Claws of Valakut
+Cleanse
 Cleric of Chill Depths
+Clever Concealment
 Cloak and Dagger
+Clock of Omens
+Clone
 Cloudheath Drake
+Coldsteel Heart
 Cone of Flame
+Confidence from Strength
+Conqueror's Pledge
 Consuming Corruption
+Containment Construct
 Contraband Kingpin
 Corpse Cur
 Corrupted Resolve
 Cremate
 Crenellated Wall
+Crooked Custodian
 Cruel Witness
 Cystbearer
 Dark Prophecy
+Dauthi Embrace
+Dawn Evangel
+Dawnbringer Charioteers
 Delraich
 Desperate Charge
 Dimir Cutpurse
 Dimir House Guard
 Dire Fleet Warmonger
+Disciple of Malice
+Disciple of the Vault
 Divine Smite
 Doomskar Titan
 Dragon-Cursed Halls
+Dread Slaver
 Dream Pillager
+Dross Crocodile
+Duergar Mine-Captain
+Echoing Ruin
 Eidolon of Inspiration
 Elfhame Palace
 Elvish Ranger
 Ember Hauler
+Emergency Weld
+Endless Sands
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
+Essence Depleter
 Evolution Sage
 Exemplar of Strength
 Faerie Swarm
+Fathom Trawl
+Fell the Pheasant
 Feral Abomination
+Fervent Champion
 Fiddlehead Kami
 Fiend Binder
+Fireflux Squad
+Fissure
+Fissure Vent
 Flaming Fist
+Flatten
 Fledgling Mawcor
+Fledgling Osprey
+Fleshpulper Giant
+Fling
 Flusterstorm
 Flutterfox
 Flywheel Racer
 Forced Worship
 Forerunner of Slaughter
 Forest
+Forked Bolt
+Franklin Richards, Ascendant
 From Beyond
 Furnace Spirit
 Gala Greeters
+Galadhrim Bow
 Galvanic Juggernaut
 Gauntlet of Might
+Gaze of Justice
+Ghoulsteed
 Gladehart Cavalry
 Gleeful Demolition
 Glimpse the Unthinkable
 Glint Raker
 Gloomwidow's Feast
+Gnathosaur
+Go for the Throat
 Gobland
 Goblin Diplomats
+Goblin Matron
+Goblin Mountaineer
+Goblin Ringleader
 Goblin Scouts
+Goblin Sledder
+God-Eternal Bontu
+Gold-Forged Sentinel
 Goreclaw, Terror of Qal Sisma
+Grasp of Darkness
+Greater Auramancy
+Green Scarab
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
 Grizzled Angler
+Guardian Scalelord
+Gwenna, Eyes of Gaea
+Hammerhead, Maggia Boss
 Hangarback Walker
+Harvest Wurm
+Haunted Cadaver
 Havoc Devils
 Helm of the Host
+Herald of Anguish
+Here Comes a New Hero!
+High Seas
 Holdout Settlement
+Horizon Explorer
 Horn of Gondor
 Hornet Sting
 Hovermyr
 Hungry Megasloth
 Icatian Store
 Idle Thoughts
+Ill-Gotten Inheritance
 Illusory Angel
 Illustrious Wanderglyph
 Immolating Souleater
 Imperial Cosmographer
+In Garruk's Wake
+Incremental Growth
 Intrepid Hero
 Invasion of Xerex
 Island
 Izzet Signet
 Jousting Dummy
+Junk Winder
+Kamahl's Desire
 Kami of Tattered Shoji
+Karplusan Forest
+Kill-Zone Acrobat
+Kindly Customer
 King of the Pride
 Kinsbaile Courier
 Kitesail Scout
@@ -125,52 +225,86 @@ Knight of the Reliquary
 Knowledge and Power
 Krosan Archer
 Leadership Vacuum
+Leaping Lizard
 Leechridden Swamp
 Legion Leadership
 Legion Vanguard
+Leonin of the Lost Pride
+Leyline of Sanctity
 Lifelink
 Liquify
 Living Lands
 Loamcrafter Faun
+Looter il-Kor
 Lucid Dreams
+Lurking Nightstalker
+Lys Alana Huntmaster
+Lyzolda, the Blood Witch
+Maga, Traitor to Mortals
+Mage's Guile
 Mage-Ring Network
 Mana Short
 Manipulate Fate
 Marauding Looter
+Mardu Runemark
 Master Transmuter
 Mesa Lynx
 Metal Fatigue
+Meteoric Mace
 Miara, Thorn of the Glade
+Mishra's Command
+Mite Overseer
 Mogg Alarm
 Moonlit Wake
+Mordant Dragon
+Mossbeard Ancient
 Mosstodon
 Motivated Pony
 Mountain
+Mugging
+Myr Adapter
 Mystic Snake
 Naru Meha, Master Wizard
 Nature's Will
 Nectar Faerie
+Needlethorn Drake
 Needleverge Pathway
+Nest Robber
 Nether Horror
 Night Market Aeronaut
 Nimbus Champion
 Nirkana Cutthroat
+Nova Flame
 Ob Nixilis, the Fallen
 Oni of Wild Places
+Orcish Veteran
 Organ Grinder
 Ornithopter
+Overload
 Overwhelming Encounter
+Pack's Betrayal
+Painful Lesson
+Painwracker Oni
 Paradox Zone
+Park Heights Pegasus
+Pelakka Predation
 Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
 Perilous Myr
+Perimeter Captain
+Petravark
 Petrifying Meddler
+Phantasmal Dreadmaw
+Phenomenon Investigators
 Pheres-Band Centaurs
 Phyrexian Colossus
+Phyrexian Denouncer
+Phyrexian Totem
 Phyrexian Warhorse
 Phytoburst
+Piety
 Plains
 Plow Through Reito
 Polluted Mire
@@ -178,86 +312,148 @@ Predatory Sliver
 Priests of Norn
 Prismatic Strands
 Protective Bubble
+Psychic Impetus
 Purify the Grave
 Quantum Entanglement
+Rakdos Carnarium
 Ral's Dispersal
 Reality Heist
+Reborn Hope
+Recall
 Renegade Reaper
 Resurrection Orb
+Ridgescale Tusker
+Roilmage's Trick
+Sabertooth Outrider
 Sacred Armory
+Sage's Dousing
 Sage's Reverie
+Samite Archer
 Samut's Sprint
+Sandsteppe Scavenger
 Sandstorm
 Saprazzan Outrigger
+Satyr Hoplite
+Satyr Nyx-Smith
+Savai Sabertooth
 Scalding Devil
+Scholar of Athreos
 School of the Unseen
+Scuttling Doom Engine
 Scythecat Cub
 Seek the Horizon
 Separatist Voidmage
 Serpent-Blade Assailant
 Setessan Starbreaker
+Severed Legion
+Sewer Rats
 Shadow Summoning
+Shadow of Mortality
+Shaman of the Pack
+Shamble Back
 Shapers' Sanctuary
+Shard of the Nightbringer
+Shared Discovery
+Shauku's Minion
 Shrewd Negotiation
+Shriek of Dread
 Shu Cavalry
+Silt Crawler
 Silver Raven
+Silverquill Lecturer
 Singing Tree
 Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
 Smoke Bomb
+Smother
+Soulblade Djinn
 Species Specialist
 Spellbook
+Spider Spawning
 Spiderwig Boggart
 Spike Drone
 Spike Weaver
 Squirrel Nest
 Steam Frigate
+Steelfin Whale
 Stolen Grain
+Stolen Vitality
 Strength from the Fallen
+Strength of Isolation
+Subterranean Hangar
+Sunbringer's Touch
 Sunken Hope
+Suppression Bonds
 Swamp
+Sweatworks Brawler
+Swelter
 Swift Response
 Tajuru Stalwart
 Talon Gates of Madara
+Tatyova, Steward of Tides
 Telepathy
 Temperamental Oozewagg
 Temporal Adept
+Temporal Manipulation
 Thalia's Lancers
 The Cauldron of Eternity
 Thirsting Bloodlord
 Thoughtcutter Agent
+Thran Spider
 Thrasher Brute
 Thrummingbird
 Thunderscape Familiar
+Tidal Surge
 Tidepool Turtle
+Tome Raider
 Tracker's Instincts
 Traitor's Clutch
+Trench Stalker
 Tribal Unity
+Tribute to Horobi
+Trigon of Corruption
+Trufflesnout
 Tunneler Wurm
+Turntimber Ranger
 Twitch
+Tyrranax
 Ultimate Price
+Umbilicus
+Unbreathing Horde
+Undead Warchief
 Unicycle
 Unraveling Mummy
 Ureni's Counsel
+Ursine Champion
 Urza's Guilt
+Vedalken Orrery
 Venerable Knight
 Verduran Emissary
 Viashino Firstblade
+Viashino Shanktail
 Villainous Ogre
 Volcanic Fallout
 Votary of the Conclave
 Wakanda Forever!
 Wakestone Gargoyle
+Waking the Trolls
 Wanderer's Intervention
 War Report
 War-Torch Goblin
 Water Servant
 Weatherlight
+Weight of the Underworld
+Welder Automaton
 Weldfast Engineer
 Wellspring
 Whisper Agent
 Wild Celebrants
 Wings of Hope
+Wolf's Quarry
+Wrangle
+Wrenn's Resolve
+Wyluli Wolf
 Yavimaya Scion
+Zephyr Scribe
 Zirilan of the Claw

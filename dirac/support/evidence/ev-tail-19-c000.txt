@@ -3,14 +3,17 @@ A-Heartfire Hero
 A-Phylath, World Sculptor
 A-Symmetry Sage
 Aarakocra Sneak
+Abomination
 Academy Elite
 Acidic Slime
+Aerie Auxiliary
 Aetherstorm Roc
 Akki Blizzard-Herder
 Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
 Allied Reinforcements
+Alpha Deathclaw
 Ancient Lumberknot
 Angel of Glory's Rise
 Ankh of Mishra
@@ -18,6 +21,7 @@ Arc Mage
 Armor of Faith
 Armory Guard
 Ashling, the Extinguisher
+Attended Knight
 Autumn Willow, Harmony
 Avatar of Discord
 Avenger of Zendikar
@@ -27,6 +31,7 @@ Battering Wurm
 Beast Mode
 Befoul
 Bellowing Saddlebrute
+Black Widow, Intel Expert
 Blackbloom Rogue
 Blacklance Paragon
 Blade Sliver
@@ -36,6 +41,7 @@ Blood Funnel
 Bloodbraid Challenger
 Bonesplitter Sliver
 Boots of Speed
+Borborygmos
 Brilliant Spectrum
 Bumi, Eclectic Earthbender
 Buoyancy
@@ -66,12 +72,16 @@ Coral Colony
 Cosmic Larva
 Cradle to Grave
 Crashing Footfalls
+Crop Sigil
+Cruel Celebrant
 Crypt Creeper
 Cryptbreaker
 Crystalline Nautilus
 Damn
 Daru Warchief
+Death Mutation
 Death's Caress
+Deathmark Prelate
 Deepwood Ghoul
 Defensive Maneuvers
 Defiant Strike
@@ -81,13 +91,16 @@ Disciple of Grace
 Disciple of the Ring
 Dragon's Desire
 Dragonwing Glider
+Drain the Well
 Dreadhound
 Dreadlight Monstrosity
 Dromoka Warrior
 Drowner Initiate
+Druid of Horns
 Druidic Satchel
 Drumbellower
 Dual Shot
+Ebony Treefolk
 Efreet Flamepainter
 Eiganjo Exemplar
 Electrosiphon
@@ -100,6 +113,7 @@ Emmara, Soul of the Accord
 Epiphany at the Drownyard
 Essence Infusion
 Evaporate
+Everbark Shaman
 Evie Frye
 Extract from Darkness
 Extremis Elite
@@ -117,6 +131,7 @@ Fire Tempest
 Flailing Soldier
 Flamekin Village
 Flayed One
+Flicker of Fate
 Fodder Cannon
 Force of Negation
 Forebear's Blade
@@ -149,6 +164,7 @@ Gray Harbor Merfolk
 Great Oak Guardian
 Great-Horn Krushok
 Grisly Survivor
+Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
 Guardians of Oboro
@@ -163,6 +179,7 @@ Hithlain Knots
 Hold at Bay
 Horizon Scholar
 Horizon Spellbomb
+Hormagaunt Horde
 Hunted Phantasm
 Hydromorph Gull
 Idolized
@@ -183,6 +200,7 @@ Kazuul Warlord
 Keeper of Secrets
 Keldon Mantle
 Knight of Dusk
+Kogla, the Titan Ape
 Kraken Hatchling
 Kraum, Ludevic's Opus
 Krenko's Command
@@ -198,6 +216,9 @@ Lightning Javelin
 Lizard Warrior
 Llanowar Sentinel
 Loamcrafter Faun
+Longbow Archer
+Maraleaf Pixie
+Marble Titan
 Massacre
 Melira's Keepers
 Mental Misstep
@@ -209,8 +230,10 @@ Miracle Worker
 Misers' Cage
 Mistvault Bridge
 Mob Justice
+Molten Echoes
 Mortipede
 Mountain
+Murasa Brute
 Myojin of Infinite Rage
 Myr Sire
 Márton Stromgald
@@ -227,8 +250,10 @@ Origin of Black Widow
 Orochi Sustainer
 Orzhov Signet
 Ossuary Rats
+Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
+Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
 Phyrexian Espionage
@@ -239,6 +264,7 @@ Pinnacle of Rage
 Plains
 Popular Entertainer
 Possessed Aven
+Predator's Rapport
 Pulse of Murasa
 Quicksilver Amulet
 Quicksilver Dagger
@@ -255,6 +281,7 @@ Repel the Vile
 Reprieve
 Resounding Roar
 Resupply
+Revitalizing Repast
 Rhox Charger
 Ring of Immortals
 Riparian Tiger
@@ -265,7 +292,9 @@ Rosethorn Acolyte
 Rotting Regisaur
 Rush of Blood
 Rush of Knowledge
+Sacred Knight
 Salt Marsh
+Sanctum Custodian
 Savage Conception
 School of Piranha
 Scorch Rider
@@ -280,6 +309,7 @@ Shatterskull Charger
 Shatterskull Smashing
 Shield-Wall Sentinel
 Shimmering Wings
+Shinechaser
 Shinen of Life's Roar
 Sickleslicer
 Sif's Spearmaster
@@ -300,7 +330,10 @@ Spitting Sliver
 Squee's Embrace
 Squelching Leeches
 Squirrel Sovereign
+Staff of the Storyteller
 Stave Off
+Stern Marshal
+Stick, Fearless Mentor
 Stone Calendar
 Stone Drake
 Strangle
@@ -315,9 +348,11 @@ Swamp
 Talrand's Invocation
 Tanglebloom
 Temporal Mastery
+The Destined Black Mage
 The Keeper of the Yellow Hat
 The Mary Janes
 Theater of Horrors
+Theros Charm
 Thornwatch Scarecrow
 Timber Gorge
 Titanium Man
@@ -349,12 +384,15 @@ Vedalken Aethermage
 Vendetta
 Vengeful Reaper
 Visage of Bolas
+Vivien's Grizzly
+Vizkopa Vampire
 Vorapede
 Vorel of the Hull Clade
 Wake the Dragon
 Wake the Past
 Walker of the Grove
 Walking Atlas
+Wall of Roots
 Warlock Class
 Wave of Indifference
 Weaver of Harmony
@@ -372,6 +410,11 @@ Woodlot Crawler
 Wormfang Behemoth
 Wyrm's Crossing Patrol
 Yavimaya Gnats
+Yavimaya Sapherd
+You Hear Something on Watch
+You're Ambushed on the Road
 Zephyr Net
+Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist
+Zimone, Quandrix Prodigy
 Zurgo Bellstriker

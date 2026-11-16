@@ -4,6 +4,8 @@ A-Forge Boss
 A-Tanazir Quandrix
 Abomination of Llanowar
 Aboshan, Cephalid Emperor
+Abzan Battle Priest
+Aetherworks Marvel
 Agent Frank Horrigan
 Agent of Shauku
 Agility Bobblehead
@@ -12,19 +14,24 @@ Air Elemental
 Ajani, the Greathearted
 Akroan Phalanx
 Akroan Skyguard
+Akuta, Born of Ash
+Ambulatory Edifice
 Amy Rose
 Anara, Wolvid Familiar
 Ancient Stirrings
 Angelic Protector
 Appetite for Brains
 Archon of Falling Stars
+Arm-Mounted Anchor
 Arrogant Poet
+Ashen Rider
 Aspect of Lamprey
 Assault Formation
 Assault Strobe
 Atarka, World Render
 Aurochs
 Automated Artificer
+Avenging Huntbonder
 Bala Ged Scorpion
 Bankrupt in Blood
 Barrin, Master Wizard
@@ -32,31 +39,40 @@ Beacon Behemoth
 Bedlam Reveler
 Bionic Blow
 Black Market Tycoon
+Blight Grenade
 Blindblast
 Blood Lust
+Blood Money
 Bloodlust Inciter
+Bold Impaler
 Bonesplitter
 Boneyard Wurm
 Boreal Shelf
+Borrowed Malevolence
 Bottle Gnomes
 Bramblecrush
 Brass Gnat
 Bringer of the White Dawn
+Bristling Hydra
 Burn the Impure
 Cabal Evangel
 Canopy Stalker
 Cat Oven
 Cave-In
+Celestial Force
 Cephalid Illusionist
 Chain Lightning
+Chameleon Colossus
 Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
 Chimney Imp
 Cinder Barrens
 Cinder Wall
+Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
+Clockwork Beetle
 Clockwork Drawbridge
 Cloud Pirates
 Cloudcrown Oak
@@ -67,14 +83,19 @@ Constable of the Realm
 Continue?
 Contraband Livestock
 Copper Gnomes
+Cryptothrall
+Crystal Dragon
 Crystal Slipper
 Cunning Evasion
 Cunning Geysermage
 Curio Vendor
+Curse of Verbosity
 Cutthroat il-Dal
 Dauntless Bodyguard
 Death Pits of Rath
+Deathspore Thallid
 Deep-Sea Terror
+Deepglow Skate
 Delusions of Mediocrity
 Depose
 Desecrated Earth
@@ -86,6 +107,7 @@ Djeru's Renunciation
 Dogpile
 Dragon Mantle
 Dreamstone Hedron
+Drey Keeper
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
@@ -99,6 +121,7 @@ Embrace the Unknown
 Enclave Cryptologist
 Endless Cockroaches
 Engineered Might
+Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
@@ -127,23 +150,29 @@ Forest
 Forgotten Cave
 Fortitude
 Fortress Crab
+Frenetic Sliver
+Frilled Sandwalla
 Funeral March
+Fungal Plots
 Furtive Analyst
 Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
 Gerrard Capashen
 Getaway Car
+Giant Solifuge
 Gladecover Scout
 Goblin Fire Fiend
 Goblin Medics
 Goblin Morningstar
 Goblin Roughrider
 God-Eternal Bontu
+Goliath Beetle
 Gouged Zealot
 Grapeshot
 Gravetiller Wurm
 Great Goblin, Foul-Hearted
+Great Hart
 Great Whale
 Greater Basilisk
 Griptide
@@ -151,7 +180,9 @@ Grisly Ritual
 Grotag Siege-Runner
 Ground Rift
 Gruesome Fate
+Gudul Lurker
 Guild Thief
+Gust-Skimmer
 Guul Draz Mucklord
 Hapatra, Vizier of Poisons
 Hardened-Scale Armor
@@ -167,53 +198,72 @@ Horned Turtle
 Humble Defector
 Hunter's Mark
 Hurloon Minotaur
+Hydra's Growth
 Illusionary Armor
 Impaler Shrike
+Impending Doom
 Increasing Devotion
 Inferno Fist
 Inner Struggle
 Invading Manticore
 Iroas's Blessing
 Iron Man, Modern Marvel
+Iron Suitcase
 Island
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
 Jeering Homunculus
+Jhessian Thief
+Jodah's Avenger
 Judge of Currents
 Jund Battlemage
 Kalemne, Disciple of Iroas
+Kenrith, the Returned King
 Kinjalli's Sunwing
 Kithkin Healer
+Koma's Faithful
 Kragma Warcaller
+Kudo, King Among Bears
 Labyrinth Adversary
+Labyrinth Minotaur
 Last Word
 Leafkin Avenger
 Leap
+Lifesmith
+Lodestone Myr
 Lord of the Accursed
 Lore Seeker
 Lunar Frenzy
 Maelstrom Colossus
+Magmatic Sprinter
 Malevolent Awakening
+Malevolent Whispers
 Mana Severance
 Maniacal Rage
 Marauder's Axe
 Martial Glory
 Mask of Memory
+Masumaro, First to Live
 Memorial to Folly
 Mental Note
 Mightstone
+Mindbreak Trap
 Mindshrieker
+Mirran Mettle
 Mirri the Cursed
 Mirri's Guile
 Misguided Rage
 Mist-Cloaked Herald
 Moggcatcher
+Molimo, Maro-Sorcerer
 Molting Harpy
 Morphling
 Moss Viper
 Mountain
 Mountain Goat
+Mowu, Loyal Companion
+Mox Diamond
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -224,6 +274,7 @@ Nettle Drone
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
+Nomad Decoy
 Norwood Priestess
 Null Caller
 Nylea's Huntmaster
@@ -234,15 +285,21 @@ Oneirophage
 Orc Sureshot
 Orcish Vandal
 Ordeal of Heliod
+Ordered Migration
+Orgg
 Outmaneuver
 Oversold Cemetery
 Pack Rat
 Paladin Danse, Steel Maverick
 Paradise Mantle
 Patagia Tiger
+Pestilent Cauldron
 Phantasmal Sphere
 Pheres-Band Warchief
+Phyrexian Crusader
+Pilgrim of the Fires
 Pillage
+Pitfall Trap
 Plague Spitter
 Plains
 Poison-Tip Archer
@@ -268,7 +325,9 @@ Reroute
 Rhox Pikemaster
 Rhystic Study
 Roar of the Crowd
+Roiling Waters
 Rotted Hystrix
+Rotting Legion
 Ruin Raider
 Saddled Rimestag
 Sagu Archer
@@ -278,19 +337,26 @@ Scab-Clan Charger
 Scabland
 Scarwood Goblins
 Scavenged Weaponry
+Scour the Laboratory
 Scourge of Numai
+Screams of the Damned
 Scurry Oak
 Seafloor Oracle
 Searing Blood
 Seed the Land
 Selfless Spirit
 Senate Courier
+Serra Aviary
 Shadowblood Ridge
 Shuri's Fabricator
+Sibsig Host
+Sidewinder Naga
 Sigarda's Imprisonment
 Silas Renn, Seeker Adept
 Silkguard
 Silverquill Apprentice
+Simic Slaw
+Sisters of the Flame
 Sivvi's Ruse
 Skirk Shaman
 Skittish Kavu
@@ -304,11 +370,18 @@ Skyshroud Vampire
 Skysnare Spider
 Sliver Hive
 Sly Spy
+Smogsteed Rider
 Snake Pit
+Snapback
 Snow-Covered Plains
+Soratami Mirror-Mage
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
+Spawning Kraken
+Spelltithe Enforcer
+Spider-Man, Peter Parker
+Spirit Cairn
 Spiritual Sanctuary
 Spiteful Motives
 Spoils of Victory
@@ -317,6 +390,7 @@ Stampeding Rhino
 Starlit Mantle
 Steelform Sliver
 Steppe Glider
+Sterling Grove
 Stern Dismissal
 Stingerfling Spider
 Stoneshaker Shaman
@@ -329,6 +403,7 @@ Stronghold Taskmaster
 Sulfur Elemental
 Sun-Blessed Mount
 Sun-Collared Raptor
+Sunken City
 Survey the Wreckage
 Swamp
 Sword of the Animist
@@ -336,12 +411,21 @@ Sylvan Ranger
 TVA Bureaucrat
 Tallyman of Nurgle
 Tar Pit Warrior
+Tarkir Duneshaper
+Taste for Mayhem
+Tectonic Break
 The Stasis Coffin
 Thing in the Ice
 Thraben Charm
+Threads of Disloyalty
 Thunder Totem
 Thunderous Wrath
+Thunderscape Apprentice
 Tideshaper Mystic
+Timid Drake
+Tireless Hauler
+Touch of the Eternal
+Tower Geist
 Tranquil Grove
 Traumatize
 Treacherous Vampire
@@ -352,6 +436,7 @@ Tyrant's Familiar
 Ulvenwald Hydra
 Unholy Officiant
 Union of the Third Path
+Unleash Fury
 Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
@@ -372,9 +457,12 @@ Voldaren Pariah
 Waking the Trolls
 Wall of Heat
 Wall of Lava
+Wanderer's Intervention
 Warclamp Mastiff
+Warden of the First Tree
 Warhorn Blast
 Wei Strike Force
+Wicked Slumber
 Will of the All-Hunter
 Windstorm
 Wispweaver Angel

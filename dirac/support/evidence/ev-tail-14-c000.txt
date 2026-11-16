@@ -1,7 +1,9 @@
+A-Dreamshackle Geist
 A-High-Rise Sawjack
 A-Knockout Blow
 A-Psionic Snoop
 A-Tome Shredder
+Abyssal Nightstalker
 Adarkar Wastes
 Agent of the Fates
 Alley Evasion
@@ -9,53 +11,85 @@ Alphinaud Leveilleur
 Amaranthine Wall
 Ambush Krotiq
 Angrath, Captain of Chaos
+Anointed Deacon
 Archnemesis
 Argivian Archaeologist
 Armor Thrull
+Auriok Champion
+Avacynian Priest
+Avalanche Riders
 Aven Archer
+Awaken the Woods
+Batterhorn
 Battle Squadron
 Battlefield Butcher
 Battleground Geist
+Blade of the Bloodchief
+Blazethorn Scarecrow
+Bleeding Edge
+Blight Mamba
 Blight Titan
+Blood Aspirant
 Blustersquall
+Body Launderer
+Bone Saw
 Boros Reckoner
 Briar Shield
 Brinelin, the Moon Kraken
+Brothers of Fire
 Call to Serve
 Caravan Hurda
 Cartouche of Knowledge
+Carven Caryatid
+Cement Shoes
 Centaur Veteran
 Cessation
+Chalice of the Void
 Chandra's Firemaw
 Chatterstorm and Awaken the Woods
 Colos Yearling
 Colossal Growth
+Conjurer's Bauble
 Coordinated Charge
 Core Prowler
+Corpse Blockade
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
 Crossbow Infantry
+Dauthi Marauder
 Dauthi Mindripper
+Deglamer
+Deluge of Doom
 Demonspine Whip
 Denethor, Stone Seer
+Dewdrop Spy
+Dimir Keyrune
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
 Drakestown Forgotten
+Dread Fugue
 Duelcraft Trainer
+Dystopia
 Elder Owyn Lyons
 Elvish Herder
+Elvish Warmaster
 Empty the Warrens
+Enfeeblement
 Enshrined Memories
+Entrails Feaster
 Entrapment Maneuver
 Erstwhile Trooper
 Essence Drain
+Eunuchs' Intrigues
 Eviscerate
 Experimental Augury
+Eyes in the Skies
 False Defeat
 Famished Paladin
 Feedback
+Fire-Omen Crane
 Firemane Commando
 Firja, Judge of Valor
 Flensermite
@@ -65,10 +99,12 @@ Foothill Guide
 Force of Nature
 Forest
 Forgotten Sentinel
+Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
 Glasses of Urza
 Glimmer Lens
+Glistening Deluge
 Goblin Firestarter
 Goblin Glory Chaser
 Goblin Machinist
@@ -76,26 +112,38 @@ Goblin Sledder
 Goblin Wardriver
 Gold Myr
 Goretusk Firebeast
+Gruul Ragebeast
 Guard Duty
 Guardian Idol
 Gutter Skulk
 Gutwrencher Oni
+Guul Draz Specter
+Hag of Ceaseless Torment
+Harrier Griffin
 Hate Weaver
+Haunted Library
 Headsplitter
+Heartfire
 Heartless Summoning
 Heartstabber Mosquito
 Heliod, God of the Sun
+Helm of the Gods
 Hightide Hermit
 Hissing Iguanar
 Hitchclaw Recluse
 Hollowhenge Beast
 Hookblade Veteran
+Hymn of Rebirth
+Inferno Project
+Inspiring Unicorn
 Ior Ruin Expedition
 Island
 Istvan, Butcher of Eln
+Jaspera Sentinel
 Join the Dance
 Journeyer's Kite
 Joven and Chandler
+Kavu Scout
 Kazuul's Fury
 Kiora's Follower
 Knight of Cliffhaven
@@ -105,10 +153,13 @@ Leering Emblem
 Leonin of the Lost Pride
 Lethal Protection
 Lightning Dart
+Lightning Diadem
 Lightwalker
 Living Lightning
 Living Tsunami
+Llanowar Elite
 Llanowar Scout
+Loran's Escape
 Lothlórien Lookout
 Lu Meng, Wu General
 Lurking Skirge
@@ -117,9 +168,13 @@ Manaform Hellkite
 Mandibular Kite
 Mardu Outrider
 Mesmeric Sliver
+Mind Whip
 Mindsplice Apparatus
 Mindswipe
 Mindwrack Demon
+Mishra's Workshop
+Mockingbird, Bobbi Morse
+Mogg Bombers
 Molten Monstrosity
 Momentum
 Monumental Corruption
@@ -132,12 +187,14 @@ Mystic Enforcer
 Mystic of the Hidden Way
 Nael, Avizoa Aeronaut
 Nantuko Calmer
+Narnam Cobra
 Nyxborn Rollicker
 Octavia, Living Thesis
 Olog-hai Crusher
 Omega Myr
 Onakke Ogre
 Orah, Skyclave Hierophant
+Origin of the Hulk
 Palladium Myr
 Personal Tutor
 Phantasmal Shieldback
@@ -146,14 +203,19 @@ Phyrexian Broodlings
 Pia and Kiran Nalaar
 Pieces of the Puzzle
 Pitfall Trap
+Pixie Illusionist
+Plague Myr
 Plains
 Plated Rootwalla
 Plea for Guidance
 Power Boost
 Pride of Conquerors
 Priest of Ancient Lore
+Prismatic Ending
+Puncture Bolt
 Puncturing Blow
 Quag Vampires
+Quicksand
 Quiet Contemplation
 Radiating Lightning
 Rain of Salt
@@ -164,24 +226,32 @@ Ravenous Harpy
 Ready to Rumble
 Reality Heist
 Reality Hemorrhage
+Realm-Cloaked Giant
+Reconstructed Thopter
+Red Dragon
 Reinforcements
 Reminisce
 Rend Flesh
 Renegade's Getaway
 Resupply
 Revel Ruiner
+Revel of the Fallen God
 Revitalizing Repast
 Reviving Melody
 Ribbon Snake
 Ring of Kalonia
 Riptide Pilferer
+Rite of Passage
 Sagittars' Volley
+Sandwurm Convergence
 Saprazzan Legate
 Scaled Herbalist
 Scholar of Stars
 Scion of Oona
 Scourge of Numai
 Scrapwork Cohort
+Seal Away
+Seeds of Strength
 Seek the Wilds
 Seraph of New Capenna
 Serra Aviary
@@ -191,6 +261,9 @@ Shambling Goblin
 Shifting Sliver
 Silent Extraction
 Sinister Possession
+Sink into Takenuma
+Skeletal Crocodile
+Skrelv, Defector Mite
 Sky Spirit
 Skywatcher Adept
 Slate Street Ruffian
@@ -198,20 +271,30 @@ Sleep
 Smoldering Butcher
 Snarling Warg
 Snow-Covered Swamp
+Solitary Camel
+Soul of Zendikar
 Soulscour
 Soulstinger
+Spawning Bed
 Spread the Sickness
 Squealing Devil
 Starnheim Aspirant
 Starved Rusalka
+Steel Dromedary
+Stone Kavu
+Storm Entity
+Storm's Wrath
+Strength Bobblehead
 Strength of Isolation
 Summon: Ixion
 Swamp
 Symbiotic Wurm
+Taiga
 Tattermunge Witch
 Tel-Jilad Stylus
 Tempest Technique
 Temporal Manipulation
+Tend the Pests
 Territorial Aetherkite
 Tethered Skirge
 The Scorpion God
@@ -219,29 +302,41 @@ Thirst for Discovery
 Thirst for Meaning
 Throat Slitter
 Throttle
+Toe-Breaking Helmet
 Toothy, Imaginary Friend
 Tormod, the Desecrator
 Toucan-Puffin
 Tower of Eons
 Triassic Egg
+Trigon of Infestation
 True-Faith Censer
 Tundra Wolves
+Turbulent Steppe
 Ugin's Mastery
 Unbreathing Horde
+Undercellar Myconid
 Unfulfilled Desires
+Unified Front
 Vampiric Link
 Vanishing Verse
 Vanishment
 Vastwood Hydra
 Veteran Armorer
 Vicious Battlerager
+Villainous Ogre
 Vision Skeins
 Void Grafter
+Wall of Stone
 Warden of Evos Isle
+Wild Cantor
+Wild Celebrants
+Willow Dryad
 Wily Bandar
 Wipe Clean
+Wolf Cove Villager
 Woodcaller Automaton
 Wooden Cane
 Woodvine Elemental
 Wyleth, Soul of Steel
 Zimone, Mystery Unraveler
+Zof Consumption

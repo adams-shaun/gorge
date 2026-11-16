@@ -31,7 +31,9 @@ Blessings of Nature
 Blight Keeper
 Blistering Dieflyn
 Bloodscent
+Bloodshot Trainee
 Bloodthorn Taunter
+Boggart Loggers
 Bonded Construct
 Bonescythe Sliver
 Boon of Boseiju
@@ -160,6 +162,7 @@ Icewind Stalwart
 Immaculate Magistrate
 Infernal Medusa
 Insubordination
+Iona, Shield of Emeria
 Ironclad Slayer
 Ironshell Beetle
 Island
@@ -216,6 +219,7 @@ Motivated Pony
 Mountain
 Mox Opal
 Murmuring Phantasm
+Nahiri, Storm of Stone
 Nantuko Mentor
 Narset's Reversal
 Nature's Will
@@ -245,6 +249,7 @@ Pheres-Band Thunderhoof
 Phyrexian Colossus
 Phytoburst
 Piper Wright, Publick Reporter
+Plague Spores
 Plains
 Plow Through Reito
 Poison Arrow
@@ -253,10 +258,13 @@ Precise Strike
 Primal Forcemage
 Profound Journey
 Pulverize
+Puresight Merrow
 Purestrain Genestealer
 Purify the Grave
 Quag Vampires
 Ral's Dispersal
+Ramunap Ruins
+Raven Clan War-Axe
 Razor Golem
 Razorfield Ripper
 Razorgrass Ambush
@@ -340,6 +348,7 @@ Thallid Germinator
 The Hunger Tide Rises
 The Odd Acorn Gang
 The Restoration of Eiganjo
+Thraben Charm
 Thraben Heretic
 Three Dreams
 Thunder Strike

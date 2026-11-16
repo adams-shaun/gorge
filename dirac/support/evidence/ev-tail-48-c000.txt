@@ -1,9 +1,12 @@
 A-Young Red Dragon
 Abandon the Post
 Absolute Grace
+Abyssal Nocturnus
+Ace, Fearless Rebel
 Acidic Sliver
 Aether Figment
 Aether Rift
+Aid the Fallen
 Akoum Hellhound
 Alpha Kavu
 Anaba Bodyguard
@@ -13,35 +16,55 @@ Animate Land
 Appa, Aang's Companion
 Arden Angel
 Ardenvale Tactician
+Armored Galleon
 Aspiring Aeronaut
+Assault
 Aveline de Grandpré
 Azusa, Lost but Seeking
 Badlands
+Balance of Power
+Baleful Force
+Bartolomé del Presidio
+Basilica Screecher
 Beanstalk Giant
 Beast Mode
 Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
 Blazing Sunsteel
+Blitz Leech
+Blowfly Infestation
 Bob, Reluctant HYDRA Agent
 Bonded Fetch
 Boon-Bringer Valkyrie
+Bouncer's Beatdown
 Bow of Nylea
 Breathstealer
+Brilliant Halo
 Builder's Blessing
+Burst of Energy
 Bygone Bishop
+Cackling Counterpart
 Capashen Knight
+Carnifex Demon
 Cathars' Crusade
+Censor
 Charix, the Raging Isle
 Chitinous Cloak
+Circle of Affliction
+Citanul Stalwart
 Clavileño, First of the Blessed
 Cliff Threader
+Cloud of Faeries
 Collective Voyage
 Commune with Lava
+Consul's Shieldguard
 Containment Membrane
 Contemplation
 Conversion Chamber
+Corrupt Eunuchs
 Court of Grace
+Crater Hellion
 Crawling Chorus
 Crucible of Fire
 Cryptic Serpent
@@ -53,13 +76,18 @@ Dawning Angel
 Day of Destiny
 Dazzling Lights
 Deadly Rollick
+Deathgrip
 Demonic Bargain
 Demonic Lore
 Demotion
+Desecration Plague
 Disperse
 Divine Light
 Doom's Servo-Guards
+Dovin's Veto
+Dragon's Presence
 Draining Whelk
+Drake Haven
 Drake-Skull Cameo
 Dreadbore
 Dream Cache
@@ -67,19 +95,31 @@ Dromar's Cavern
 Drown in Ichor
 Dueling Rapier
 Dusk Imp
+Earth-Cult Elemental
 Ebon Praetor
 Eliminate
 Elvish Berserker
 Elvish Mystic
 Emancipation Angel
+End Hostilities
 Environmental Sciences
 Evolution Witness
 Excommunicate
+Exiled Boggart
 Expose to Daylight
 Eyeless Watcher
+Ezio, Brash Novice
+Ezzaroot Channeler
+Falcon, Joaquin Torres
+Falkenrath Exterminator
 Fallen Ideal
 Fiendslayer Paladin
+Final Revels
+Firescreamer
+Fleetfoot Panther
+Flora Colossus
 Flowstone Charger
+Flowstone Surge
 Flowstone Wall
 Flusterstorm
 Fodder Tosser
@@ -91,63 +131,92 @@ Fry
 Fuming Effigy
 Gateway Plaza
 Gelatinous Genesis
+Ghost-Lit Redeemer
+Ghoulish Procession
 Gift of Strength
 Gimli's Fury
 Glamorous Grapplers
+Gnoll Hunter
 Goblin Masons
 Goblin Piledriver
+Gorehorn Minotaurs
 Gravedig
 Greatsword
 Green Sun's Zenith
+Grizzly Fate
+Gruesome Scourger
+Hagra Sharpshooter
+Hall Monitor
 Hanged Executioner
 Heavenly Qilin
 Hedron Crab
 Hellkite Charger
+Hexgold Hoverwings
 Highland Berserker
 Highland Game
 Hookblade
+Hope-Ender Coatl
 Hunted Phantasm
 Hurl Through Hell
 Icatian Lieutenant
 Illusionary Forces
+Impatience
 Imperial Outrider
+Imperial Recovery Unit
 Increasing Savagery
 Indoctrination Attendant
+Inkrise Infiltrator
 Inquisition of Kozilek
 Insidious Bookworms
+Inspiring Roar
 Iron Tusk Elephant
 Island
 Jaddi Offshoot
 James, Wandering Dad
+Jin-Gitaxias, Progress Tyrant
 Joraga Auxiliary
+Juzám Djinn
 Kangee, Sky Warden
 Kessig Wolf
+Kingpin's Pet
+Knight of Obligation
+Knight-Errant of Eos
 Kodama of the West Tree
 Kor Hookmaster
 Kragma Butcher
 Krark-Clan Shaman
+Kura, the Boundless Sky
 Lantern of the Lost
 Lashwrithe
+Lathnu Sailback
 Leering Emblem
 Leyline of Sanctity
 Lifelink
+Liliana's Reaver
 Living Lies of Loki
+Llanowar Visionary
 Loathsome Chimera
 Loch Korrigan
+Lorehold Pledgemage
 Lurking Crocodile
 Mage Slayer
+Magus of the Mind
 Malevolent Rumble
 Managorger Hydra
 Markov Crusader
+Markov Purifier
 Marsh Boa
 Mausoleum Secrets
 Maze Behemoth
+Memory Plunder
 Mentor's Guidance
 Mercenary Informer
 Mercy Killing
 Merfolk Mesmerist
+Michelangelo, the Heart
 Midnight Charm
 Militant Monk
+Miming Slime
 Mind Rot
 Mirran Crusader
 Mirri, Cat Warrior
@@ -155,6 +224,7 @@ Molting Skin
 Moment of Heroism
 Monk of the Open Hand
 Mountain
+Munda, Ambush Leader
 Myr Galvanizer
 Mystic Crusader
 Naban, Dean of Iteration
@@ -172,18 +242,27 @@ Olivia's Dragoon
 Omen of the Sea
 Opportunistic Dragon
 Order of Leitbur
+Order of the Ebon Hand
 Order of the Stars
 Oswald Fiddlebender
 Pain Seer
+Patron of the Arts
 Persistent Specimen
+Pile On
 Plains
 Plated Wurm
+Polluted Dead
 Preening Champion
+Pride Sovereign
+Ragavan, Nimble Pilferer
+Ral, Storm Conduit
 Ramosian Sky Marshal
+Ravenous Lindwurm
 Reckless Racer
 Renegade Map
 Renegade Wheelsmith
 Resolute Watchdog
+Resurgent Belief
 Righteous Confluence
 Rishadan Pawnshop
 Rootbound Crag
@@ -191,6 +270,7 @@ Roterothopter
 Rubble Reading
 Ruin Crab
 Runed Stalactite
+Ryusei, the Falling Star
 Saber Ants
 Satsuki, the Living Lore
 Savage Silhouette
@@ -199,29 +279,41 @@ Scarwood Bandits
 Scavenged Weaponry
 Scent of Cinder
 Scepter of Fugue
+Scissors Lizard
 Scorch the Fields
 Screeching Drake
 Sea Kings' Blessing
+Search the Premises
 Sentry Bot
 Shadowbeast Sighting
 Shattered Angel
+She-Hulk, Wallbreaker
 Shield-Wall Sentinel
 Shipwreck Moray
+Shockmaw Dragon
 Shu Yun, the Silent Tempest
 Siegfried, Famed Swordsman
 Sigil of Distinction
 Silvanus's Invoker
+Singer of Swift Rivers
 Singing Bell Strike
+Sire of the Storm
 Siren Song Lyre
+Skirsdag Flayer
 Skittering Crustacean
+Skyboon Evangelist
+Skyclave Relic
 Skysovereign, Consul Flagship
 Snooping Newsie
+Sojourner's Companion
 Song of the Worldsoul
 Soulreaper of Mogis
 Spark Harvest
+Sprite Noble
 Squirrel Mob
 Steeple Creeper
 Stone Haven Pilgrim
+Stoneshock Giant
 Stormchaser Chimera
 Strider, Ranger of the North
 Stuffed Bear
@@ -230,7 +322,9 @@ Sun Sentinel
 Sunken Field
 Swamp
 Swamp Mosquito
+Szarekh, the Silent King
 Terra Eternal
+Thalakos Deceiver
 The Mightstone and Weakstone
 Theft of Dreams
 Thopter Squadron
@@ -243,17 +337,28 @@ Treefolk Healer
 Tunneling Geopede
 Two-Headed Dragon
 Uchuulon
+Ulcerate
+Ulvenwald Oddity
 Unchained Berserker
 Unruly Mob
 Urza's Command
+Vandalize
 Vastwood Zendikon
 Vedalken Infuser
+Veinwitch Coven
 Virulent Swipe
+Vodalian Wave-Knight
+Wall of Tears
+Warchanter Skald
+Waterlogged Teachings
 Well of Ideas
 Windbrisk Heights
+Winterthorn Blessing
 Woodland Druid
+Wormfang Behemoth
 Yellow Scarves General
 You Come to a River
+Yuki-Onna
 Zodiac Rat
 Zodiac Tiger
 Zuberi, Golden Feather
