@@ -276,12 +276,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 		}
 	case kop.OpFight, kop.OpBite:
-		a := s.objRef(k, in.Obj)
-		if in.Obj == kop.RefDelayedRemembered && (a == NoSlot || s.reflexStale()) {
-			if in.Op == kop.OpBite && s.reflexBiteGone(k, in) {
-				break // the gone capture dealt its last known power (zone_rememberwrites.go)
-			}
-			a = NoSlot // the reflexive capture changed zones since (zone_rememberwrites.go)
+		a, dealt := s.fightSource(k, in)
+		if dealt {
+			break // a departed source dealt its last known power (act_bitelki.go)
 		}
 		if in.Op == kop.OpBite && s.biteEachTarget(k, in, a) {
 			break
@@ -513,9 +510,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
-		if k.gen != nil && k.gen.anyRepl&rbShield != 0 {
-			hit = s.shieldAll(hit) // CR 122.1c, after regeneration (gorge effDestroyAll)
-		}
+		hit = s.shieldUmbraAll(k, hit) // CR 122.1c then 702.89a, after regeneration (gorge effDestroyAll; kw_umbraarmor.go)
 		s.leaveAll(k, hit, kop.ZoneGraveyard)
 	case kop.OpPumpAll:
 		if in.Obj != kop.RefNone {
@@ -758,7 +753,10 @@ func (s *State) destroySpared(k *prep, sl Slot, noRegen bool) bool {
 	}
 	// CR 122.1c, after regeneration (gorge effDestroy); NoRegen$ suppresses
 	// regeneration, not the shield counter
-	return k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl)
+	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
+		return true
+	}
+	return s.umbraSpare(k, sl) // CR 702.89a, after the shield counter (kw_umbraarmor.go)
 }
 
 // moveRef moves the object a Ref names to zone z (its owner's).

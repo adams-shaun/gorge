@@ -836,6 +836,9 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 // grant.
 func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	pl := &s.pl[SeatIx(p)]
+	if k.phyMana {
+		av.life = pl.life // a Phyrexian pip's two-life face (CR 107.4f; availExt)
+	}
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
 			av.addUnits(1<<i, pl.pool[i])

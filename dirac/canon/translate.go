@@ -786,17 +786,12 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenSearch:
 		return Pack(kind("search"), Ref(src), RefNone, 0), true
-	case dirac.ChGenKczZone:
-		// gorge's originAlternativeZones pick: the option index (0 the
-		// library, 1 the alternative zone, 2 the Graveyard,Hand pair's hand)
-		return Pack(kind("zone"), RefNone, RefNone, mode), true
 	case dirac.ChGenHiddenPick:
 		return Pack(kind("hidden_pick"), Ref(src), RefNone, 0), true
 	case dirac.ChGenHandMove:
 		return Pack(kind("hand_move"), Ref(src), RefNone, 0), true
 	case dirac.ChGenImprint:
-		// gorge zone_change.go's imprint pick (Chrome Mox)
-		return Pack(kind("imprint"), Ref(src), RefNone, 0), true
+		return Pack(kind("imprint"), Ref(src), RefNone, 0), true // gorge zone_change.go's imprint pick (Chrome Mox)
 	case dirac.ChGenReveal:
 		return Pack(kind("reveal"), Ref(src), RefNone, 0), true
 	case dirac.ChGenDig:
@@ -804,34 +799,15 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenBolster:
 		return Pack(kind("counter_pick"), Ref(src), RefNone, 0), true
 	case dirac.ChGenDistPick:
-		// gorge's "counter_dist" pick
-		return Pack(kind("counter_dist"), Ref(src), RefNone, 0), true
-	case dirac.ChGenProlif:
-		// gorge's proliferate pick: a permanent by Obj, a player by Player
-		if src >= dirac.PlayerTarget0 {
-			return Pack(kind("proliferate"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
-		}
-		return Pack(kind("proliferate"), Ref(src), RefNone, 0), true
-	case dirac.ChCastDivide:
-		// gorge's CR 601.2d division ask: a repeatable "divide" pick over
-		// the targets, a player target named by Player
-		if src >= dirac.PlayerTarget0 {
-			return Pack(kind("divide"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
-		}
-		return Pack(kind("divide"), Ref(src), RefNone, 0), true
-	case dirac.ChGenDivide:
-		// gorge's resolution division: a repeatable pick over the targets
-		if src >= dirac.PlayerTarget0 {
-			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
-		}
-		return Pack(kind("card"), Ref(src), RefNone, 0), true
-	case dirac.ChGenEnterDefender:
-		// gorge's CR 508.4 entering_defender ask: a "player" option for a
-		// player, a "card" option for a planeswalker or battle (optionAction)
-		if src >= dirac.PlayerTarget0 {
-			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
-		}
-		return Pack(kind("card"), Ref(src), RefNone, 0), true
+		return Pack(kind("counter_dist"), Ref(src), RefNone, 0), true // gorge's "counter_dist" pick
+	case dirac.ChGenProlif: // gorge's proliferate pick: a permanent by Obj, a player by Player
+		return playerPick("proliferate", "proliferate", src)
+	case dirac.ChCastDivide: // gorge's CR 601.2d division ask: a repeatable "divide" pick over the targets, a player named by Player
+		return playerPick("divide", "divide", src)
+	case dirac.ChGenDivide: // gorge's resolution division: a repeatable pick over the targets
+		return playerPick("player", "card", src)
+	case dirac.ChGenEnterDefender: // gorge's CR 508.4 entering_defender ask: a "player" for a player, a "card" for a planeswalker or battle
+		return playerPick("player", "card", src)
 	case dirac.ChKsrTarget:
 		// gorge's effChangeTargets "Choose new target" KChoose: a "player"
 		// option for a player, a "card" option for an object or a stack
@@ -910,6 +886,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("trigger_cost_pay"), top, RefNone, 0), true
 		}
 		return Pack(kind("trigger_cost_decline"), top, RefNone, 0), true
+	case dirac.ChGenUnleash:
+		return unleashCanon(src), true
+	case dirac.ChGenKczZone:
+		return Pack(kind("zone"), RefNone, RefNone, mode), true // gorge's originAlternativeZones pick: the option index
 	case dirac.ChGenBranch:
 		// gorge lists only the payable choices, indexed densely
 		n := uint8(0)
