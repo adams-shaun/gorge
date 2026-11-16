@@ -1254,28 +1254,18 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 				prev |= 1 << c
 				c++
 			} else if rb&rbPlusDmg != 0 && p == ctrl {
-				// an addition (Fated Firepower, Hawkeye): gorge collects it
-				// beside every other match, so two or more are asked as its
-				// CR 616.1 order (replPlus); beside a prevention every order
-				// gives 0, beside a doubling the picks are applied as made
-				// (the mixed park below). A raise (Ojer Axonil) is collected
-				// as a candidate of its own kind: it does not commute with
-				// the additions or the doublings either.
-				add, raise, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false, n)
-				if ok {
-					if c == len(cand) {
-						s.capFull(StallReplCands) // loud: never truncate the candidates
-						return false
-					}
-					cand[c] = s.perms[b].obj
-					if raise != 0 {
-						rs |= 1 << c
-					} else {
-						plus |= 1 << c
-						plusAdd += add
-					}
-					c++
+				// an addition (Fated Firepower, Hawkeye) or a raise (Ojer
+				// Axonil): gorge collects it beside every other match, so two
+				// or more are asked as its CR 616.1 order (replPlus); beside a
+				// prevention every order gives 0, beside a doubling the picks
+				// are applied as made (parkNCPend). A raise is collected as a
+				// candidate of its own kind: it does not commute with the
+				// additions or the doublings either.
+				nc, add := s.parkPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, n, &cand, c, &plus, &rs)
+				if nc < 0 {
+					return false
 				}
+				c, plusAdd = nc, plusAdd+add
 			}
 		}
 	}
@@ -1332,37 +1322,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		s.capFull(StallReplPlus)
 		return false
 	}
-	// The mixed competition (a plus-N addition or a raise beside a
-	// non-commuting amount changer, a doubling): gorge applies each picked
-	// replacement as it is picked (CR 616.1e), so the order decides the
-	// amount and it is not known here. Park on the ask with the running
-	// amount in ro.an and the sentinel ncDmg.n; the picks apply as made
-	// (replOrderPick's ncPlusPickNC) and the ask's end writes the final
-	// amount back into the record (the op-resume shape's answer re-executes
-	// the op, whose asked event deals from it — replDamagePend; a damageTo
-	// sweep's parked event is dealt at dealNC). gorge re-collects the rest
-	// after each pick, and a raise's match (the amount below the host's
-	// power) can expire mid-ask, so the re-collection the walk mirrors reads
-	// the raise against the running amount (ncPlusLive).
-	if plus|rs != 0 && prev == 0 && shld == 0 && pnx == 0 {
-		mixed := rs != 0
-		for i := 0; i < c; i++ {
-			if plus&(1<<i) == 0 && rs&(1<<i) == 0 {
-				mixed = true // a doubling: the order decides the amount
-			}
-		}
-		if mixed && !s.pendBlocked(k, ctrl, srcSl, srcCard, code, rcp, sl) {
-			ro.replHdr = replHdr{n: uint8(c), plus: plus, rs: rs, p: rcp, cand: cand,
-				ac: uint8(c), an: int16(min(n, 1<<14)), askS: srcSl, askD: sl, actl: ctrl, apl: rcp}
-			nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: ncPend}
-			if srcSl != NoSlot {
-				nc.src = s.perms[srcSl].obj
-			} else {
-				nc.src, nc.spell = s.res.e.obj, s.res.e.kind == seSpell
-			}
-			s.g.nc = nc
-			return true
-		}
+	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, cand, c) {
+		return true
 	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on
@@ -1391,6 +1352,27 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	s.g.nc = nc
 	return true
+}
+
+// parkPlusCand appends the battlefield plus-N candidate at b (an addition or
+// a raise, replPlusCand) to parkNC's list: the new count and the candidate's
+// live addition, or -1 after a loud stall (the candidates overflow).
+func (s *State) parkPlusCand(k *prep, b Slot, srcSl Slot, srcCard CardID, ctrl, rcp uint8, sl Slot, n int, cand *[4]Obj, c int, plus, rs *uint8) (int, int) {
+	add, raise, ok := s.replPlusCand(k, b, srcSl, srcCard, ctrl, rcp, sl, false, n)
+	if !ok {
+		return c, 0
+	}
+	if c == len(cand) {
+		s.capFull(StallReplCands) // loud: never truncate the candidates
+		return -1, 0
+	}
+	cand[c] = s.perms[b].obj
+	if raise != 0 {
+		*rs |= 1 << c
+	} else {
+		*plus |= 1 << c
+	}
+	return c + 1, add
 }
 
 // parkPrevAny appends the recipient's own printed K:Prevent "all damage" line

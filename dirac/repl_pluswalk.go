@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // The CR 616.1 order walk's plus-N additions beside a non-commuting
 // competitor (a doubling): gorge applies each picked replacement as it is
 // picked (replacement.go handleDamageReplacementChoice) and re-collects the
@@ -21,6 +23,46 @@ package dirac
 // only when the ask ends (replOrderPick), so the park records a sentinel.
 // (ncDmg.n -1 is a parked, prevented event.)
 const ncPend int16 = -2
+
+// parkNCPend parks a noncombat damage event whose collected competition mixes
+// an addition or a raise with a non-commuting amount changer (a candidate
+// with neither bit is a doubling): gorge applies each picked replacement as
+// it is picked (CR 616.1e), so the order decides the amount and it is not
+// known here. The park carries the running amount in ro.an and the sentinel
+// ncDmg.n; the picks apply as made (replOrderPick's ncPlusPickNC) and the
+// ask's end writes the final amount back into the record (the op-resume
+// shape's answer re-executes the op, whose asked event deals from it —
+// replDamagePend; a damageTo sweep's parked event is dealt at dealNC). gorge
+// re-collects the rest after each pick, and a raise's match (the amount below
+// the host's power) can expire mid-ask, so the re-collection the walk mirrors
+// reads the raise against the running amount (ncPlusLive). A candidate
+// replDamage's fixed order cannot carry (pendBlocked) keeps the event on
+// replDamage's loud paths. It reports whether it parked.
+func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, n int, kw kop.KwMask, plus, rs, prev, shld, pnx uint8, cand [4]Obj, c int) bool {
+	if plus|rs == 0 || prev != 0 || shld != 0 || pnx != 0 {
+		return false
+	}
+	mixed := rs != 0
+	for i := 0; i < c; i++ {
+		if plus&(1<<i) == 0 && rs&(1<<i) == 0 {
+			mixed = true // a doubling: the order decides the amount
+		}
+	}
+	if !mixed || s.pendBlocked(k, ctrl, srcSl, srcCard, code, rcp, sl) {
+		return false
+	}
+	ro := &s.g.ro
+	ro.replHdr = replHdr{n: uint8(c), plus: plus, rs: rs, p: rcp, cand: cand,
+		ac: uint8(c), an: int16(min(n, 1<<14)), askS: srcSl, askD: sl, actl: ctrl, apl: rcp}
+	nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: ncPend}
+	if srcSl != NoSlot {
+		nc.src = s.perms[srcSl].obj
+	} else {
+		nc.src, nc.spell = s.res.e.obj, s.res.e.kind == seSpell
+	}
+	s.g.nc = nc
+	return true
+}
 
 // ncPlusPickNC applies the parked event's picked candidate i to the running
 // amount ro.an, as gorge applies each pick as it is picked (CR 616.1e): an
@@ -109,6 +151,23 @@ func (s *State) replDamagePend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, 
 		return n
 	}
 	return s.replDamage(k, ctrl, srcSl, srcCard, code, false, n)
+}
+
+// replPlusAskedResume closes an answered replplus ask whose op resumes
+// (plusBatchAsked, set by replPlusSrcPass and replPlusBatch): a mixed
+// competition's park (ro.ac != 0) keeps its record, whose picks were applied
+// as made (ncPlusPickNC) and whose amount the re-executed op's asked event
+// deals from (replDamagePend); a pure plus-N batch order ask drops the parked
+// event too, since the order cannot change the sum. The walk is dropped and
+// the op re-executes.
+func (s *State) replPlusAskedResume(k *prep) {
+	if s.g.ro.ac != 0 {
+		s.g.ro = replOrd{}
+	} else {
+		s.g.ro, s.g.nc = replOrd{}, ncDmg{}
+	}
+	s.res.ask = raNone
+	s.runProg(k)
 }
 
 // pendBlocked reports that the event is matched by a replacement kind the
