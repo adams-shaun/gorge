@@ -1217,10 +1217,20 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return // ask again
 		}
 		if s.g.plusBatchAsked {
-			// a pure plus-N batch order ask (trig_batches.go replPlusBatch):
-			// the order cannot change the sum, so drop the parked event and
-			// re-execute the same op, which now deals every hit
-			s.g.ro, s.g.nc = replOrd{}, ncDmg{}
+			if s.g.ro.ac != 0 {
+				// a mixed competition's park (replPlusSrcPass / replPlusBatch):
+				// the picks were applied as made (ncPlusPickNC) and the record
+				// holds the picked order's amount, which the re-executed op's
+				// asked event deals from (replDamagePend); drop the walk, keep
+				// the record
+				s.g.ro = replOrd{}
+			} else {
+				// a pure plus-N batch order ask (trig_batches.go
+				// replPlusBatch): the order cannot change the sum, so drop the
+				// parked event and re-execute the same op, which now deals
+				// every hit
+				s.g.ro, s.g.nc = replOrd{}, ncDmg{}
+			}
 			s.res.ask = raNone
 			s.runProg(k)
 			return

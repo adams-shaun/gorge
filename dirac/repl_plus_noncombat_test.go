@@ -58,31 +58,58 @@ func TestReplPlusNoncombatPark(t *testing.T) {
 	}
 }
 
-// TestReplPlusNoncombatRaiseStalls: a raise (Ojer Axonil) beside two commuting
-// additions is the non-commuting CR 616.1 ask this park cannot sum. The park
-// must leave the event to replDamage, whose replPlus caps StallReplPlus
-// loudly instead of parking only the additions and dropping the raise.
-func TestReplPlusNoncombatRaiseStalls(t *testing.T) {
+// TestReplPlusNoncombatRaiseWalks: a raise (Ojer Axonil) beside two
+// commuting additions is the mixed CR 616.1 ask walked as picked (CR 616.1e):
+// the park records the running amount and the raise's candidate, the picked
+// addition applies at the pick, the raise past its host's power is
+// re-collected out (ncPlusLive) and the record's amount is the picked
+// order's. Picking the raise first keeps the ask alive over the two
+// additions, whose order is free.
+func TestReplPlusNoncombatRaiseWalks(t *testing.T) {
 	tbl, plus, raise := replPlusTable(true)
 	sc := newScenTable(t, tbl, Config{NoElide: true})
 	src := sc.perm(v.GrizzlyBears, 0)
 	sc.perm(plus, 0)
 	sc.perm(plus, 0)
 	sc.perm(raise, 0)
-	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), 3, 0); ok {
-		t.Fatalf("raise beside two additions parked %d candidates for %d damage, dropping the raise",
-			sc.s.g.ro.n, sc.s.g.nc.n)
+	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), 3, 0); !ok {
+		t.Fatalf("raise beside two additions: park failed (stall %s)", StallName(sc.s.StallReason()))
 	}
-	if sc.s.Stalled() {
-		t.Fatalf("raise beside two additions stalled in the park, want replDamage's stall: %s", StallName(sc.s.StallReason()))
+	if ro := sc.s.g.ro; ro.n != 3 || ro.rs != 1<<2 {
+		t.Fatalf("raise beside two additions: %d candidates, rs %d, want 3 and the raise's bit", ro.n, ro.rs)
 	}
-	if n := sc.s.g.nc.n; n != 0 {
-		t.Fatalf("raise beside two additions left a parked event of %d, want none", n)
+	if sc.s.g.nc.n != ncPend {
+		t.Fatalf("raise beside two additions: parked amount %d, want the pend sentinel", sc.s.g.nc.n)
 	}
-	if got := sc.s.replDamage(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), false, 3); got != 4 {
-		t.Fatalf("raise beside two additions: replDamage %d, want 4", got)
+	// the first addition applies at the pick (4): the raise (power 4) no
+	// longer matches, so the ask ends with the second addition applied
+	if sc.s.replOrderPick(MakeAction(AkChoose, 0, 0, 0)) {
+		t.Fatal("raise beside two additions: the ask continues over the expired raise")
 	}
-	if got := sc.s.StallReason(); got != StallReplPlus {
-		t.Fatalf("raise beside two additions: stall %q, want replplus", StallName(got))
+	if n := sc.s.g.nc.n; n != 5 {
+		t.Fatalf("raise beside two additions: picked-order amount %d, want 5 (3 + 1 + 1)", n)
+	}
+
+	// the raise picked first replaces the amount with the host's power (4)
+	// and the ask continues over the two additions
+	sc = newScenTable(t, tbl, Config{NoElide: true})
+	src = sc.perm(v.GrizzlyBears, 0)
+	sc.perm(plus, 0)
+	sc.perm(plus, 0)
+	sc.perm(raise, 0)
+	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), 3, 0); !ok {
+		t.Fatalf("raise picked first: park failed (stall %s)", StallName(sc.s.StallReason()))
+	}
+	if !sc.s.replOrderPick(MakeAction(AkChoose, 0, 0, 2)) {
+		t.Fatal("raise picked first: the ask ended over the two live additions")
+	}
+	if n := sc.s.g.ro.an; n != 4 {
+		t.Fatalf("raise picked first: running amount %d, want the host's power 4", n)
+	}
+	if sc.s.replOrderPick(MakeAction(AkChoose, 0, 0, 0)) {
+		t.Fatal("raise picked first: the ask continues past the last addition")
+	}
+	if n := sc.s.g.nc.n; n != 6 {
+		t.Fatalf("raise picked first: picked-order amount %d, want 6 (4 + 1 + 1)", n)
 	}
 }
