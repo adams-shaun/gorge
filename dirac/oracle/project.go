@@ -651,10 +651,11 @@ func chosenModeMask(o *state.Object) uint8 {
 // ability stack entry o of src. src.Face() first; only on a miss, for an
 // activation minted from a text-changed face whose source has since left play
 // (CR 400.7 cleared TextChanges, so Face() no longer holds this SA), the face
-// that minted it.
+// that minted it. A face of another name (the source went back to its other
+// side or def) stays 255: the kernel's LKIAbility reports 255 for it.
 func stackAbilityIndex(src, o *state.Object) uint8 {
 	idx := abilityIndex(src.Face(), o.Ability)
-	if idx == 255 && o.StackKind == state.StackKindActivated && o.AbilityFace != nil && o.GainedFrom == 0 {
+	if idx == 255 && o.StackKind == state.StackKindActivated && o.AbilityFace != nil && o.GainedFrom == 0 && o.AbilityFace.Name == src.Face().Name {
 		idx = abilityIndex(o.AbilityFace, o.Ability)
 	}
 	return idx
