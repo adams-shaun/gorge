@@ -1933,6 +1933,9 @@ type genState struct {
 		amt  uint8
 	}
 	ndmg uint8
+	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
+	// both-instances flashback classification (legal.go fbProbeRoot).
+	fbProbe bool
 
 	may  [maxMay]mayPlay
 	nmay uint8
