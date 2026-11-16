@@ -459,6 +459,34 @@ func (s *State) windowGrantYield(k *prep, sl Slot, pc *pcard, col int) uint8 {
 	return pc.manaN
 }
 
+// windowGrantAnswer is the view the window's tap of sl takes when its answer
+// col is a colour the source's printed ability pc cannot make: the granted
+// one that does. gorge's choose-a-mana-ability ask lists the printed ability
+// first, the granted one when only it makes the owed colour
+// (mana_grantedoffers.go), so the tap floats the granted ability's
+// production at its own size and pays its own cost (CR 106.4) --
+// windowGrantLife already prices its life cost on this. pc again when the
+// printed ability makes col or no admitted grant does.
+func (s *State) windowGrantAnswer(k *prep, sl Slot, col int, pc *pcard) *pcard {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.srcMaskAt(pc, sl)&(1<<uint(col)) != 0 {
+		return pc
+	}
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	if n > 0 {
+		d := s.payDescNow(NoObj)
+		if n = s.grantsAdmitted(k, sl, &gi, n, &d); n > 0 {
+			for i := 0; i < n; i++ {
+				g := s.grantView(k.gen, gi[i], sl)
+				if s.srcMaskAt(g, sl)&(1<<uint(col)) != 0 && s.grantCostPayable(s.perms[sl].ctrl, g) {
+					return g
+				}
+			}
+		}
+	}
+	return pc
+}
+
 // windowGrantLife is the life a window activation of sl taking colour col
 // pays: pc's own when the window took a life-cost grant view, else, when
 // sl's own ability does not make col, the least a granted ability making col
