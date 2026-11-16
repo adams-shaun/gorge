@@ -1340,7 +1340,11 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		}
 		return s.matchPerm(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
 	case kop.TgtSpell:
-		if ob.zone != kop.ZoneStack || o == self {
+		if ob.zone != kop.ZoneStack || o == self || o+1 == s.g.tgtSelf {
+			// CR 115.5: a spell on the stack is an illegal target for itself;
+			// tgtSelf names the spell being built whose feasibility sweep runs
+			// after its push, the cast card gorge's targetSAAvailable excludes
+			// (xask_self_spell_target: the cmcEQX ask of Spell Blast's X)
 			return false
 		}
 		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
@@ -1399,6 +1403,9 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 	case kop.TgtSpell, kop.TgtSpellTgting:
 		for i := int(s.sp) - 1; i >= 0; i-- {
 			e := &s.stack[i]
+			if e.obj+1 == s.g.tgtSelf {
+				continue // the spell being built (CR 115.5; hasTarget's arm)
+			}
 			if e.kind == seSpell && s.targetOK(k, t, p, src, self, TCode(e.obj)) {
 				out[n] = TCode(e.obj)
 				n++

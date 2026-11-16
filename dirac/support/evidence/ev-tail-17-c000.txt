@@ -83,6 +83,7 @@ Curate
 Curious Pair
 Curse of Verbosity
 Damnable Pact
+Daraja Griffin
 Dark Hatchling
 Dauthi Warlord
 Dega Sanctuary
@@ -90,6 +91,7 @@ Delete
 Desert Nomads
 Desert of the True
 Dismiss into Dream
+Dispersal Technician
 Doomed Artisan
 Doomed Traveler
 Dragonlair Spider
@@ -113,6 +115,7 @@ Erkenbrand, Lord of Westfold
 Errant Doomsayers
 Escape Protocol
 Ethereal Whiskergill
+Etherium Abomination
 Evil Presence
 Exuberant Firestoker
 Exuberant Fuseling
@@ -268,6 +271,7 @@ Pallid Mycoderm
 Panacea
 Parch
 Park Heights Maverick
+Passwall Adept
 Peel from Reality
 Peregrine Drake
 Phantom General
@@ -308,6 +312,7 @@ Ruin Raider
 Ruination
 Rumbling Crescendo
 Rumor Gatherer
+Runewing
 Rush of Adrenaline
 Ruthless Disposal
 Sacred Mesa
