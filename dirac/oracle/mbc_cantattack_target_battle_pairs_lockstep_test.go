@@ -12,7 +12,7 @@ import "testing"
 // Siege, Invasion of Moag -- and, on the mirrored read, posing an attackers
 // decision whose offer list gorge poses none of (askAttackers' empty option
 // list is the silent empty declaration).
-func TestMBCInvasionOfMoagReprosLockstep(t *testing.T) {
+func TestMBCInvasionOfMoagCantAttackBattleReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "cantattack_target_battle_pairs")
 }
