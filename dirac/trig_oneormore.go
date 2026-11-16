@@ -160,9 +160,12 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 		// Two or more ReplDamagePlus additions in a table with no other
 		// damage replacement kind all commute: every order gives the same
 		// sum, so gorge's CR 616.1 ask is a no-op and the combat order walk
-		// (replOrderCombat) poses it and applies the additions. Keep the
-		// loud stall for any non-commuting competition.
-		if !(raise == 0 && replPlusOnly(g) && (s.g.ro.on || s.g.plusBatchAsked)) {
+		// (replOrderCombat) poses it and applies the additions. Beside a
+		// doubling the walk poses the ask and applies the picks as made
+		// (roPlusPend), so the additions wait for it here too. Keep the
+		// loud stall for any competition the walk does not pose.
+		if !(raise == 0 && replPlusOnly(g) && (s.g.ro.on || s.g.plusBatchAsked)) &&
+			!s.walkAsksRepl(k, srcCtrl, srcSl, srcCard, rcp, sl, n) {
 			s.capFull(StallReplPlus)
 		}
 	}

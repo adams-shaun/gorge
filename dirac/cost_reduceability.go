@@ -8,7 +8,8 @@ import (
 
 // abReduced returns activated ability a's mana cost c after the
 // StatReduceAbility statics of its battlefield source sl
-// (ability): every static of the activator ctrl whose condition holds, whose
+// (ability): every static of the activator ctrl (of any activator when it has no
+// Activator$, kop.StReduceAny: Heartstone) whose condition holds, whose
 // filter matches the source and, for B bit 0 only for an Exhaust ability,
 // for B bit 2 only for a Power-up ability and for B bit 3 only for an Equip
 // ability, subtracts its amount from the generic part, floored at zero after
@@ -59,7 +60,7 @@ func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.Ma
 // caller's.
 func (s *State) abReduceStaticApplies(k *prep, st statSrc, a *kop.Ability, sl Slot, ctrl uint8) bool {
 	sa := &st.a.Static
-	if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatReduceAbility || st.ctrl != ctrl {
+	if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatReduceAbility || st.ctrl != ctrl && sa.StFlags&kop.StReduceAny == 0 {
 		return false
 	}
 	if sa.B&kop.ReduceAbUnlock != 0 {

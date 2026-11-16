@@ -146,6 +146,10 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		sl := b.first()
 		if s.perms[sl].flags&pfTapped == 0 && s.canTapForMana(k, sl) {
 			n += int(max(s.manaPCGen(k, sl).manaN, 1))
+		} else if pc := s.manaPCGen(k, sl); s.canSacOnlyForMana(k, sl, pc) {
+			// a sacrifice-only source (an Eldrazi Spawn) is a last-resort
+			// unit of gorge's census, tapped or not (mana_sacsource.go)
+			n += int(max(pc.manaN, 1))
 		}
 	}
 	if k.ctrMana {
