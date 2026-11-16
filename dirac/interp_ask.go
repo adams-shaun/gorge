@@ -36,6 +36,20 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
+		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+			// the floating restricted mana this payment admits is pool too
+			// (CR 106.6: gorge's unless, ward and trigger-cost gates price
+			// AvailableFor's PurposeOther view, which restores every batch a
+			// non-spell payment may spend — Karn's nonartifact-spell {C}
+			// pays an unless tax)
+			var rn [kop.NumManaKinds]uint8
+			s.rbUnits(p, m, &rn)
+			for ci, n := range rn {
+				if n != 0 {
+					av.addUnits(1<<uint(ci), n)
+				}
+			}
+		}
 		av.xdOn = false
 		// a restricted source whose restriction admits a non-spell payment (a
 		// Powerstone's {C}, CR 106.6) funds an unless cost too: gorge's
