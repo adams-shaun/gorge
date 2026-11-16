@@ -1,13 +1,17 @@
 Absorbing Man and Titania
+Aether Flash
 Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
+Aria of Flame
 Ashling the Pilgrim
 Augur of Bolas
 Avaricious Dragon
 Blightbeetle
 Blurred Mongoose
+Bog Initiate
 Boon Reflection
+Brand
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
@@ -34,6 +38,7 @@ Depala, Pilot Exemplar
 Desert of the Indomitable
 Dimir Signet
 Disentomb
+Double Trouble
 Dragon Whelp
 Drake Haven
 Electrify
@@ -47,12 +52,15 @@ Extinguish the Light
 Faerie Duelist
 Farid, Enterprising Salvager
 Fate Foretold
+Feral Appetite
+Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Flames of the Firebrand
 Forest
 Fortified Rampart
 Frost Trickster
+Fungal Rebirth
 Garruk's Companion
 Geistblast
 Ghirapur Aether Grid
@@ -70,6 +78,7 @@ Horizon Scholar
 Howling Golem
 Humongulus
 Hunted Dragon
+Incriminate
 Inspired Fire
 Island
 Island of Wak-Wak
@@ -80,6 +89,7 @@ Living Wish
 Manifold Key
 Manta Riders
 Mightstone's Animation
+Mindmelter
 Monologue Tax
 Moonwing Moth
 Mountain
@@ -88,6 +98,7 @@ Nico Minoru, Runaway
 Night Incarnate
 Ocular Halo
 Ogre Gatecrasher
+Outland Colossus
 Part the Veil
 Patagia Golem
 Perilous Forays
@@ -98,8 +109,10 @@ Plains
 Poison Arrow
 Prison Term
 Prowling Pangolin
+Pyknite
 Quicksilver Fisher
 RMS Titanic
+Rain of Salt
 Raking Claws
 Rampaging Cyclops
 Reaping the Rewards
@@ -108,14 +121,19 @@ Relentless Rats
 Renari, Merchant of Marvels
 Reverent Hoplite
 Righteous Fury
+Roc Charger
 Runebound Wolf
+Runner's Bane
 Sacred Fire
+Sage of Epityr
+Sandstorm Eidolon
 Sarpadian Simulacrum
 Saruman the White
 Saw It Coming
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
 Sigarda, Heron's Grace
@@ -124,12 +142,14 @@ Skemfar Elderhall
 Slippery Bogle
 So Shiny
 Soulshriek
+Spawn-Gang Commander
 Spire Garden
 Squadron Hawk
 Squallmonger
 Stoneforge Acolyte
 Stonefury
 Storm Fleet Sprinter
+Stormchaser Mage
 Stump Stomp
 Sunken City
 Supply Caravan
@@ -150,12 +170,14 @@ Tide Skimmer
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Ultimate Magic: Holy
 Underworld Coinsmith
 Vagrant Plowbeasts
 Vault Guardsman
 Vector Asp
 Vengeful Dead
 Verix Bladewing
+Viridian Harvest
 Viscerid Armor
 Voracious Fell Beast
 Vorrac Battlehorns
@@ -171,6 +193,7 @@ Wildwood Geist
 Willow Faerie
 Wing Puncture
 Wirewood Hivemaster
+Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman

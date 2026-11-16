@@ -15,6 +15,7 @@ Air-Cult Elemental
 Akki Raider
 Aladdin's Ring
 Altar's Reap
+Ancient Spider
 Ancient Tomb
 Angel of the Dawn
 Angelic Sell-Sword
@@ -98,6 +99,7 @@ Dragon Roost
 Dreadhorde Twins
 Driven
 Drogskol Cavalry
+Drownyard Temple
 Dusk's Landing
 Duskrider Falcon
 Dynavolt Tower
@@ -138,6 +140,7 @@ Frogmite
 Frozen Shade
 Gaea's Touch
 Ghostfire Blade
+Giant Ankheg
 Goblin Patrol
 God-Eternal Rhonas
 Gore Swine
@@ -183,6 +186,7 @@ Kavu Glider
 Kavu Scout
 Kaysa
 Kindred Denial
+King's Assassin
 Kitsune Diviner
 Knight of Cliffhaven
 Kolaghan Monument
@@ -205,6 +209,7 @@ Markov Blademaster
 Master Apothecary
 Maulfist Doorbuster
 Maze Rusher
+Maze of Shadows
 Meishin, the Mind Cage
 Mephidross Vampire
 Metathran Aerostat
@@ -226,6 +231,7 @@ Niambi, Faithful Healer
 Nishoba Brawler
 Norika Yamazaki, the Poet
 Noxious Dragon
+Nullify
 Off Balance
 Organ Hoarder
 Orochi Merge-Keeper
@@ -291,6 +297,8 @@ Scrubland
 Sea Legs
 Sejiri Shelter
 Selesnya Signet
+Selkie Hedge-Mage
+Shadow Lance
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
@@ -332,6 +340,7 @@ Sun-Collared Raptor
 Sunstrike Legionnaire
 Supply Runners
 Swamp
+Swampbenders
 Swarm Guildmage
 Tainted Adversary
 Tainted Indulgence
@@ -364,6 +373,7 @@ Vault Guardsman
 Vectis Dominator
 Voices from the Void
 Vorel of the Hull Clade
+Wakedancer
 Walking Archive
 Walking Corpse
 Warped Physique

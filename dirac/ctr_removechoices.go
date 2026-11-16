@@ -15,7 +15,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // A chosen permanent holding none of the kind is a legal pick that removes
 // nothing. RememberAmount$ True adds the removed total to remCnt.
 //
-// Instr: A the pick count (16 for any number), C&0xFF the kind, C&0x200 this
+// Instr: A the pick count (exact form; any number stays open for the whole
+// eligible pool, A only bounds the pick store), C&0xFF the kind, C&0x200 this
 // form, C&0x400 exact, C&0x800 RememberAmount$, F the Choices$ filter.
 
 // DebugRmctrNoRemember: the remember bit adds nothing (mutation test).
@@ -78,6 +79,12 @@ func (s *State) rmctrStart(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	r.left = uint8(min(n, eligible))
+	if in.C&0x400 == 0 {
+		// Any number: gorge's Max is the whole eligible pool, not the A = 16
+		// cap, so the pick stays open until Done or the pool is spent (a
+		// seventeenth pick stalls StallProlif in answerRmctr).
+		r.left = uint8(eligible)
+	}
 	r.ask, r.askP = raGenSupport, r.e.ctrl
 	return false
 }

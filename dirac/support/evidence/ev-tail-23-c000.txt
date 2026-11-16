@@ -37,6 +37,7 @@ Aven Windreader
 Axebane Stag
 Axgard Artisan
 Ayula's Influence
+Baloth Gorger
 Barbed Battlegear
 Barishi
 Baru, Fist of Krosa
@@ -56,6 +57,7 @@ Bloodline Shaman
 Boggart Brute
 Boggart Harbinger
 Boiling Blood
+Bone Miser
 Boneknitter
 Boomerang, Blade Flinger
 Boros Mastiff
@@ -95,6 +97,7 @@ Daru Lancer
 Dauntless Aven
 Day's Undoing
 Daybreak Charger
+Deepchannel Mentor
 Defender en-Vec
 Deflecting Swat
 Dense Canopy
@@ -119,9 +122,11 @@ Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
 Exhibition Magician
+Exile
 Experimental Synthesizer
 Explore
 Extruder
+Eyes of the Watcher
 Ezuri's Archers
 Fan Bearer
 Fang Skulkin
@@ -138,9 +143,11 @@ Forcemage Advocate
 Forest
 Fortify
 Fungusaur
+Fylamarid
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
+Gempalm Incinerator
 Giant Warthog
 Gitaxian Raptor
 Gix's Caress
@@ -183,6 +190,7 @@ Hypochondria
 Illusory Wrappings
 Imp's Mischief
 Imps' Taunt
+Imskir Iron-Eater
 Inevitable End
 Inhumaniac
 Innistrad Charm
@@ -191,6 +199,7 @@ Integrity
 Intrepid Hero
 Invasion of Kylem
 Invasion of Mercadia
+Ion Storm
 Iridescent Drake
 Island
 Iwamori of the Open Fist
@@ -226,10 +235,12 @@ Makindi Griffin
 Malfegor
 Maritime Guard
 Master Skald
+Master Transmuter
 Mastermind's Acquisition
 Mausoleum Guard
 Mechanized Warfare
 Merfolk Mistbinder
+Merfolk of the Depths
 Meria's Outrider
 Metathran Transport
 Meteor Blast
@@ -252,6 +263,7 @@ Niall Silvain
 Night Market Lookout
 Nimbleclaw Adept
 Nivix Barrier
+No One Left Behind
 Obscura Storefront
 Okina, Temple to the Grandfathers
 Ondu Greathorn
@@ -275,15 +287,19 @@ Phantasmagorian
 Phantasmal Abomination
 Pilgrim's Eye
 Pillardrop Warden
+Pitiless Pontiff
 Plains
 Polukranos, World Eater
 Portcullis Vine
+Predatory Advantage
 Preordain
 Prismatic Lens
 Prison Realm
 Prized Unicorn
 Profound Journey
 Prosperous Pirates
+Radiant Kavu
+Rampart Architect
 Rankle, Master of Pranks
 Rath's Edge
 Reef Worm
@@ -323,6 +339,7 @@ Siegehorn Ceratops
 Slither Blade
 Sliver Construct
 Smash
+Smokestack
 Smuggler's Copter
 Solarion
 Somberwald Sage
@@ -334,6 +351,7 @@ Spark Jolt
 Spellstutter Sprite
 Sphinx-Bone Wand
 Sporoloth Ancient
+Stand United
 Starlit Angel
 Stomp and Howl
 Stone Quarry
@@ -366,6 +384,7 @@ Tricks of the Trade
 Trollhide
 Trudge Garden
 Trusty Machete
+Trygon Prime
 Turn to Slag
 Twilight Prophet
 Twinblade Slasher
@@ -394,6 +413,7 @@ Warden of Geometries
 Warning
 Warriors' Lesson
 Waste Not
+Waterfall Aerialist
 Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog

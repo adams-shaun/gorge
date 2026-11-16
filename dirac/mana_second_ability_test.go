@@ -63,7 +63,7 @@ func TestHauntedScreenWindowAnswers(t *testing.T) {
 		sc, id := manasecondScen(t, deck)
 		hs := sc.perm(id["Haunted Screen"], 0)
 		c := cost(0, kop.G)
-		_, short := sc.s.payWindow(sc.k, 0, &c)
+		_, short := sc.s.payWindow(sc.k, 0, &c, false)
 		var want [kop.NumManaKinds]uint8
 		want[kop.W] = 1
 		if !sc.tapped(hs) || !short || sc.s.pl[0].pool != want || sc.s.pl[0].life != 20 {

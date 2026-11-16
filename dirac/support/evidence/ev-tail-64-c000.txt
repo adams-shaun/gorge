@@ -159,6 +159,7 @@ Forest
 Forsaken Drifters
 Foundry Champion
 Freewind Equenaut
+Frog Tongue
 Fugue
 Gate to Tumbledown
 Gelatinous Genesis
@@ -209,6 +210,7 @@ Impeccable Timing
 In the Trenches
 Indestructibility
 Inescapable Blaze
+Infuse with the Elements
 Ingenious Thief
 Innovative Metatect
 Inspiring Cleric
@@ -220,9 +222,11 @@ Ironhoof Boar
 Island
 Ivora, Insatiable Heir
 Ivy Elemental
+Izzet Locket
 Jace's Sanctum
 Jade Mage
 Jaheira, Friend of the Forest
+Jhessian Zombies
 Jinxed Choker
 Jubilation
 Jungleborn Pioneer
@@ -238,9 +242,11 @@ Kinsbaile Cavalier
 Kiora's Dambreaker
 Kitesail Cleric
 Koll, the Forgemaster
+Konda's Hatamoto
 Krenko's Enforcer
 Kuldotha Rebirth
 Kumena's Awakening
+Kyoki, Sanity's Eclipse
 Labyrinth Raptor
 Lapse of Certainty
 Learn from the Past
@@ -426,6 +432,7 @@ Swamp
 Swarm of Bloodflies
 Swift Justice
 Syndicate Enforcer
+T-45 Power Armor
 Tainted Pact
 Tainted Peak
 Task Force

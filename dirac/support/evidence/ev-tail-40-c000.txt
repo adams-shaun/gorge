@@ -8,6 +8,7 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
 Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
@@ -37,6 +38,7 @@ Aven Battle Priest
 Azorius Keyrune
 Balshan Collaborator
 Banishing Slash
+Baron Sengir
 Baru, Wurmspeaker
 Bast, Panther Goddess
 Bastion of Remembrance
@@ -48,15 +50,18 @@ Blitz Automaton
 Blood Ogre
 Bloodcrazed Neonate
 Bloodline Necromancer
+Bloodstone Goblin
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
 Cankerbloom
@@ -68,6 +73,7 @@ Cenn's Heir
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Charitable Levy
 Charmbreaker Devils
 Charmed Stray
 Charnel Troll
@@ -94,6 +100,7 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 Crypt Ghast
@@ -202,6 +209,7 @@ Island
 Isolate
 Jaheira's Respite
 Jokulmorder
+Kabira Outrider
 Kami of Celebration
 Kami of the Hunt
 Kardur, Doomscourge
@@ -257,6 +265,7 @@ Monstrous Onslaught
 Morgue Theft
 Mortal's Ardor
 Mossbeard Ancient
+Mothrider Samurai
 Mountain
 Mountain Bandit
 Mournful Zombie
@@ -297,7 +306,9 @@ Press for Answers
 Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
+Protector of the Crown
 Qasali Pridemage
+Quintorius, History Chaser
 Rage Forger
 Ragged Recluse
 Rakdos Cluestone
@@ -318,6 +329,7 @@ Ring of Three Wishes
 Ringwarden Owl
 Riot Spikes
 Rip Apart
+Ronin Cliffrider
 Ronin Warclub
 Rooting Kavu
 Roughshod Mentor
@@ -433,6 +445,7 @@ Tower Defense
 Tower Drake
 Triad of Fates
 Triton Shorethief
+Tunnel
 Turbulent Crater
 Turn the Tide
 Turnabout
@@ -449,6 +462,7 @@ Valor of the Worthy
 Vampire Revenant
 Vampire Warlord
 Vastwood Gorger
+Vectis Gloves
 Vengeful Regrowth
 Venom Blast
 Venser, Fervent Forger
@@ -458,6 +472,7 @@ Vivisurgeon's Insight
 Voltaic Key
 Volunteer Militia
 Vulshok Refugee
+Waker of Waves
 Wand of Denial
 Wand of the Elements
 Wandering Tombshell

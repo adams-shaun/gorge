@@ -122,6 +122,17 @@ func (s *State) scriptDeferred(k *prep, p uint8) slotMask {
 	return s.gapMask(k, p, gfDeferred)
 }
 
+// addDeferredUnits counts p's activatable deferred sources (Gilanra's {G}) as
+// available units of av: the planner's census omits them, yet the CR 601.2g
+// mana window can tap them, and gorge's announceFeasible, which prices a
+// hybrid or Phyrexian pip against the sources the window can activate, counts
+// their mana (CR 605.3a).
+func (s *State) addDeferredUnits(k *prep, p uint8, av *avail) {
+	for b := s.scriptDeferred(k, p); b.any(); b = b.rest() {
+		av.addUnits(1<<k.deferCol(s.cardAt(b.first())), 1)
+	}
+}
+
 // deferRider: a is the TriggersWhenSpent$ rider of the deferred source at sl,
 // which onCast's listener walk skips. gorge queues the rider apart from the
 // ordinary cast triggers (cast_commit.go fireManaSpentTriggers), after them and

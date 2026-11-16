@@ -232,7 +232,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// A live Baylen makes the census unrelaxable (gorge paymentPlanRelaxedAlternatives,
 	// no once-only cost): every walk play is searched; so is every play beside a live
 	// Krark-Clan Ironworks when the potential bound is open. On a closed bound the
-	// Ironworks' plays are the gaps walk's (sacAny; tapXSacAnyBound).
+	// Ironworks' plays are the gaps walk's and those gorge's PotentialMana bound
+	// pays on its own (sacAny; tapXSacAnyBound; sacPotPays).
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) || sacOpen
 	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
@@ -244,7 +245,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
-	if !relax && !sacAny {
+	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
@@ -272,6 +273,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
 		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
+			s.sacDrops(k, p, sacAny, &gaps, a) ||
 			wide && !s.wideAdmits(k, a, p, anyR) ||
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
@@ -291,7 +293,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&castMayPlay == 0 && k.t.Cards[s.objs[Obj(a.Source())].card].HasMultikicker {
 			continue // nor for a Multikicker card's plain cast: gorge's planner declines the face (payment_plan.go "shape:optional_cost"), so a plain cast only a census gap pays is not offered (Gnarlid Pack beside Jaspera Sentinel); the multikicked cast keeps its own offer gate (legal_walk_hand.go phMultikicker)
 		}
-		if s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd || s.contribCast(k, p, a) {
+		if s.scriptShapeSkip(k, p, a) {
 			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
 		}
 		kk := s.walkKey(a, p, i)
@@ -305,7 +307,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !hasOption(&gaps, a) && !twoLive && !repeatLive {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive {
 			if !relax {
 				searched++
 			}
@@ -336,8 +338,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
 		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
-			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
-				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
+			if !s.tapXScriptOffered(k, a, p) {
+				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {
@@ -358,6 +360,21 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		}
 		d.add(a)
 	}
+}
+
+// tapXScriptOffered searches play a for the tap-another script, and when that
+// finds none, for the grant search beside the grants it covers: a
+// second-ability tap-another source's (tapXSecondLive) or a counter-cost gap
+// (grantBesideTapXGaps), and a sacrifice-another source's (sacXBesideGrant) —
+// gorge's one prefix search activates every gap of the board, the grants
+// beside its census gaps (rules scriptSearch.visit; mana_granttapx.go,
+// mana_countercost.go, mana_grantsacx.go).
+func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) bool {
+	if s.tapXScript(k, a, p, false) {
+		return true
+	}
+	return s.grantBesideTapXGaps(k, a, p) ||
+		s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)
 }
 
 // walkKey orders insufficient play a (the kernel walk's option i) as
@@ -738,10 +755,13 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
-			if !s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false) {
-				// Gorge's script search covers every census gap — granted units and
-				// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
-				// kernel drops the play only when neither route prices it.
+			if (!s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false)) && !s.scriptCtr(k, p).any() {
+				// Gorge's script search covers every census gap — granted units,
+				// tap-another-permanent gaps and counter-cost mana (Wall of Roots'
+				// counter beside Wrenn and Realmbreaker's grant) alike (CR 605.1a,
+				// 601.2g-h) — so the kernel drops the play only when no route
+				// prices it; a live counter-cost gap leaves the play to
+				// scriptOffers' counter-gap search (scriptDeadEnd).
 				d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 				// The play has had gorge's one prefix search (the grant search
 				// covers a grant board's filters with its grants,
@@ -749,13 +769,16 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
-		} else if g.cheaper && !hasOption(d, a) {
+		} else if (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a)) && !hasOption(d, a) {
 			// gorge's planner prices the play again at every search node
 			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
 			// found prefix answered lowered the cost under the root price the
 			// offer builder priced the play with (Gran-Gran's loot discarding a
 			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
-			// lists what the builder left off
+			// lists what the builder left off; so does a prefix that activates a
+			// storage battery, whose counters the builder's units leave out
+			// (mana_grantstore.go), except a plain cast under the autopay
+			// surface, which gorge reaches only by that script and drops
 			d.add(a)
 		}
 	}
@@ -782,6 +805,66 @@ func (s *State) contribCast(k *prep, p uint8, a Action) bool {
 	}
 	o := Obj(a.Source())
 	return s.contribPays(k, p, s.objs[o].card, o, s.objs[o].zone == kop.ZoneHand)
+}
+
+// scriptShapeSkip is scriptOffers' shape skip for the cast a: an exile,
+// forage, return, blight or evidence part (shape:additional_cost;
+// objPartCast) beside no either-or pay, or a contribution cast (shape:
+// contribution; kw_delve.go contribPays) whose credit is empty (improvise
+// alone, improviseAloneCast) still goes to gorge's prefix search.
+func (s *State) scriptShapeSkip(k *prep, p uint8, a Action) bool {
+	return s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd ||
+		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a)
+}
+
+// improviseAloneCast reports whether a plain cast of p's card c carries
+// improvise and no other shape:contribution keyword or priced extra, and
+// credits no artifact: gorge's planner plans such a cast plainly (its
+// improviseTaps are empty — improviseCost credits generic only, so a cast
+// without generic or without an untapped artifact credits nothing), the
+// credited census misses the pips and the prefix search funds a census gap's
+// fee beside them: the cast is offered (CR 601.2g; Geralf's Messenger beside
+// Inspiring Statuary, decision 389 of tail-08 pair 541). A cast whose credit
+// is not empty goes through gorge's planImprovise instead, whose
+// "unsupported cost:credit" runs no prefix search (payment_plan_improvise.go)
+// — a mode, a may-play/face/warp form, a target, an additional cost, an
+// announced X or a live artifact credit keeps the contribution shape.
+func (s *State) improviseAloneCast(k *prep, p uint8, a Action) bool {
+	if a.Kind() != AkCast || a.Mode()&3 != 0 || a.Mode()&(castMayPlay|castFace|castWarp) != 0 || a.Target() != 0 {
+		return false
+	}
+	o := Obj(a.Source())
+	ob := &s.objs[o]
+	if ob.zone == kop.ZoneBattlefield {
+		return false // a permanent on the battlefield is never a spell being cast (kw_delve.go)
+	}
+	c := ob.card
+	fromHand := ob.zone == kop.ZoneHand
+	if k.t.Cards[c].Cost.X != 0 || k.t.Cards[c].Cost.XRed != 0 || k.t.Cards[c].Cost.XPip != 0 {
+		return false // the X ask keeps the manual window (payment_plan.go costAnnouncesX)
+	}
+	if sp := k.t.Cards[c].SpellCost; sp.Flags != 0 || sp.N != 0 || sp.Ctr != 0 {
+		return false // an additional sacrifice or tap part keeps it (payment_plan.go spellCost)
+	}
+	if !s.isImprovise(k, p, c, o, fromHand) || s.hasConvoke(k, p, c, o, fromHand) ||
+		s.hasCastDelve(k, p, c, o, fromHand) {
+		return false
+	}
+	return k.t.Cards[c].Cost.Generic == 0 || !s.improviseCreditLive(k, p)
+}
+
+// improviseCreditLive reports an untapped artifact of p's the improvise
+// credit could tap (gorge improviseCost's candidates, kw_convoke.go
+// tapPayCand with imp).
+func (s *State) improviseCreditLive(k *prep, p uint8) bool {
+	var ord [MaxPerm]Slot
+	n := s.battlefieldOrder(SeatIx(p), s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
+	for _, sl := range ord[:n] {
+		if s.tapPayCand(k, sl, true) {
+			return true
+		}
+	}
+	return false
 }
 
 // objPartPrinted reports whether the printed sources pay objPartCast a's

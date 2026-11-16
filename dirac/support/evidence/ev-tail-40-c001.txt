@@ -7,6 +7,7 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
 Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
@@ -31,6 +32,7 @@ Avatar of Might
 Aven Battle Priest
 Azorius Keyrune
 Banishing Slash
+Baron Sengir
 Baru, Wurmspeaker
 Basri's Aegis
 Bast, Panther Goddess
@@ -46,12 +48,14 @@ Bloodline Necromancer
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
 Cankerbloom
@@ -84,10 +88,12 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 Dalek Drone
 Daraja Griffin
+Daxos of Meletis
 Deepcavern Imp
 Defender of Law
 Deflection
@@ -180,6 +186,7 @@ Ironroot Treefolk
 Island
 Isolate
 Jokulmorder
+Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
 Killian, Ink Duelist
@@ -207,6 +214,7 @@ Mage Duel
 Magmatic Channeler
 Manabond
 Manglehorn
+Mardu Banner
 Maw of the Obzedat
 Megrim
 Meldweb Curator
@@ -303,6 +311,7 @@ Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
+Shield Mare
 Shriekhorn
 Shrill Howler
 Shrivel
@@ -358,6 +367,7 @@ The Destined White Mage
 Thing Swing
 Thorn Mammoth
 Thoughtseize
+Thoughtweft Gambit
 Thrasher Brute
 Thriss, Nantuko Primus
 Thunder Strike
@@ -372,6 +382,7 @@ Torsten, Founder of Benalia
 Tower Defense
 Tower Drake
 Triton Shorethief
+Tunnel
 Turn the Tide
 Turnabout
 Uktabi Efreet
@@ -385,6 +396,7 @@ Urborg Mindsucker
 Valor of the Worthy
 Vampire Revenant
 Vampire Warlord
+Vectis Gloves
 Vengeful Regrowth
 Venom Blast
 Venser, Fervent Forger

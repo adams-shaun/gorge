@@ -27,6 +27,7 @@ const (
 	otherTapXPlain // a second-ability tap-another source's plain first ability (tapXPlainDo)
 	otherCtr       // a counter-cost source's ability (mixCtr): the counter one, or plain {T} first
 	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
+	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -54,7 +55,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider {
 		return false
 	}
 	filt := s.scriptFilt(k, p).any()
@@ -77,6 +78,9 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	}
 	ctr := s.mixCtr(k, p, filt)
 	if ctr.any() {
+		n++
+	}
+	if s.mixRider(k, p, filt).any() {
 		n++
 	}
 	// A counter source beside no filter stays the counter-gap scripts' (a
@@ -116,6 +120,54 @@ func (s *State) mixCtr(k *prep, p uint8, filt bool) slotMask {
 	return s.scriptCtr(k, p)
 }
 
+// mixRider: p's activatable bounded rider sources (mana_rider.go: Peat Bog's
+// "{T}, remove a depletion counter: Add {B}{B}") when a filter is a gap beside
+// them (filt). gorge's planner defers the rider ability, so its census misses
+// both, and its one prefix search activates every census gap in battlefield
+// order: the filter search takes the rider source as an otherGap step, Peat
+// Bog's {B}{B} funding Gruul Signet's {1} fee for {R}{G} and paying the rest
+// of Dragon Throne of Tarkir's Equip {3} (CR 605.3a, 601.2g-h). A rider whose
+// plain first ability shares its ask (riderPlainFirst), or a board holding
+// another Taps-deferred gap, keeps the Taps-deferred search (scriptPrefixAny).
+func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
+	if !filt || !k.gen.anyManaRider {
+		return slotMask{}
+	}
+	td := s.scriptTapsDefer(k, p)
+	var m slotMask
+	for b := td; b.any(); b = b.rest() {
+		sl := b.first()
+		if _, ok := s.riderAbilityOf(k, sl); ok && !s.riderPlainFirst(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	if td.andNot(m).any() {
+		return slotMask{}
+	}
+	return m
+}
+
+// riderOther branches rider gap sl's answers at a priority node (otherGap's
+// last arm; false for a slot that is no mixRider gap): its colour ask, when it
+// has one, is one node, its answers in scriptDFS's order (the play's announced
+// colours first, scriptEngineAnswer).
+func (fs *filtSearch) riderOther(k *prep, t *State, sl Slot, try func(otherStep) bool) bool {
+	if !t.mixRider(k, fs.p, true).has(sl) {
+		return false
+	}
+	td := slotMask{}.with(sl)
+	n := t.deferGapAnswers(k, sl)
+	if n > 1 && !fs.tick() {
+		return false
+	}
+	for c := 0; c < int(n); c++ {
+		if try(otherStep{kind: otherRider, ans: uint8(t.scriptEngineAnswer(k, fs.a, sl, slotMask{}, td, c))}) {
+			return true
+		}
+	}
+	return false
+}
+
 // otherGaps: the gaps a filter search on p's board activates beside its
 // filters. A play's own granted sources are the grant search's (grantCap /
 // grantPrefix) too, but gorge runs one prefix search over the filters and the
@@ -126,7 +178,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		filt := s.scriptFilt(k, p).any()
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -393,7 +445,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 		}
 	}
-	return false
+	return fs.riderOther(k, t, sl, try)
 }
 
 // ctrOther branches counter-cost gap sl's answers at a priority node, as
@@ -451,6 +503,12 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
 		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)
+		if spill != ([kop.NumManaKinds]uint8{}) {
+			s.capFull(StallRestrSrc) // never a silent spill
+		}
+	case otherRider:
+		var spill [kop.NumManaKinds]uint8
+		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}, slotMask{}.with(st.sl), int(o.ans), &spill)
 		if spill != ([kop.NumManaKinds]uint8{}) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}

@@ -72,25 +72,40 @@ func (lc *lowerCtx) lowerTriggerSplit(t cards.Trigger, zone string) (done bool, 
 	if zone != "" {
 		return false, nil
 	}
+	markSplit := func(n int) {
+		for _, a := range lc.out.Abilities[n:] {
+			a.SplitPrev = true // the printed identity is the first half's (kop.Ability.SplitPrev)
+		}
+	}
 	if halves, ok := triggerZoneHalves(t.Params["TriggerZones"]); ok {
-		for _, half := range halves {
+		for j, half := range halves {
 			tt := t
 			tt.Params = make(map[string]string, len(t.Params))
 			for k, v := range t.Params {
 				tt.Params[k] = v
 			}
 			tt.Params["TriggerZones"] = half
+			n := len(lc.out.Abilities)
 			if err := lc.lowerTriggered(tt, zone); err != nil {
 				return true, err
+			}
+			if j != 0 {
+				markSplit(n)
 			}
 		}
 		return true, nil
 	}
 	if other, bf, ok := anyToGraveHalves(t); ok {
+		n := len(lc.out.Abilities)
 		if err := lc.lowerTriggered(other, zone); err != nil {
 			return true, err
 		}
-		return true, lc.lowerTriggered(bf, zone)
+		n = len(lc.out.Abilities)
+		if err := lc.lowerTriggered(bf, zone); err != nil {
+			return true, err
+		}
+		markSplit(n)
+		return true, nil
 	}
 	return false, nil
 }

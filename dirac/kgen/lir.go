@@ -562,6 +562,7 @@ type lInstr struct {
 	// (gorge effAttach's "attach to player" event, defined() player arms).
 	W    lRef
 	F    *lFilter
+	F2   *lFilter // PreventDamageScope: the recipient permanents' filter (F is the damage source's)
 	Cond lCond
 	Skip int
 	Note string // semantic note carried into the dump (not emitted)
@@ -596,6 +597,9 @@ func (in lInstr) String() string {
 	}
 	if in.W.Kind != rNone {
 		parts = append(parts, "W="+in.W.String())
+	}
+	if in.F2 != nil {
+		parts = append(parts, "F2="+in.F2.String())
 	}
 	if in.F != nil {
 		parts = append(parts, "F="+in.F.String())
@@ -993,7 +997,8 @@ type lAbility struct {
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
-	Index           int // position in the card's ability list (latent abilities included)
+	SplitPrev       bool // a split line's half but the first: the printed identity on the stack is the preceding ability (kop.Ability.SplitPrev)
+	Index           int  // position in the card's ability list (latent abilities included)
 	Name            string
 	Cost            lCost
 	Optional        bool // the cost is optional ("you may pay ... if you do")
@@ -1074,6 +1079,10 @@ type lMana struct {
 	Rider    int
 	RiderCtr string // the source counter kind a deplete rider reads
 	RiderN   int    // the life count
+	// RestrictAbZones is the zone each RestrictAb clause's ability source is
+	// matched in (lowerCtx.restrictAbZones): kop.ZoneBattlefield for an
+	// inZoneBattlefield alternative, kop.ZoneAny for a zone-free one
+	RestrictAbZones []kop.Zone
 }
 
 type lUnless struct {
@@ -1186,6 +1195,7 @@ type lOverride struct {
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
 	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 }
 
@@ -1205,6 +1215,7 @@ type lRepl struct {
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
+	F2      *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 }
 
 // lCard is a lowered card.
@@ -1298,6 +1309,7 @@ type lCard struct {
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
 	World          bool      // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
+	Snow           bool      // the printed Snow supertype (CR 205.4a): CardDef.Snow
 	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
@@ -1335,11 +1347,13 @@ type lCard struct {
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
 	UmbraArmor     bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
+	Dredge         uint8    // printed K:Dredge:N (CR 702.52a): CardDef.Dredge
 	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
 	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
 	Ascend         bool     // printed K:Ascend (CR 702.131)
+	Unleash        bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
