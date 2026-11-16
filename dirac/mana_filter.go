@@ -504,8 +504,10 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, a cost beyond {T} (and
-// {T} plus sacrificing itself, a Treasure's last-resort tier), or a
+// spend restriction, each-colour production, a cost beyond {T} (but
+// {T} plus sacrificing itself, a Treasure's, and sacrificing itself alone,
+// an Eldrazi Scion's, are the census's last-resort tier: gorge
+// pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
 // or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly).
@@ -514,7 +516,7 @@ func censusGapMana(a *kop.Ability) bool {
 		return false
 	}
 	f := a.Cost.Flags
-	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -534,6 +536,17 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 // not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
+	if k.sacOnlyMana {
+		// A sacrifice-only source (an Eldrazi Spawn or Scion token's "Sacrifice
+		// this creature: Add {C}") is a payment-plan last resort, not a census
+		// gap (mana_sacsource.go): gorge's planner prices it inside every
+		// plan, so a filter beside it is still a filter-only board.
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); s.manaPCAt(k, sl).manaSacOnly {
+				m = m.without(sl)
+			}
+		}
+	}
 	if k.ctrMana && m.any() {
 		// A counter-cost source with too few counters to remove (Ramos,
 		// Dragon Engine with one +1/+1 counter) cannot be activated either:
@@ -578,6 +591,10 @@ type filtStep struct {
 	// ability beside the census one, and the search reads no restriction
 	// (mana_restrictedsource.go)
 	restr bool
+	// sacOnly: a funding source whose mana ability costs only its own
+	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
+	// (mana_sacsource.go)
+	sacOnly bool
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -665,6 +682,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	if !fs.visit(k, t, 0, false) {
 		return false
 	}
@@ -726,9 +744,13 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	}
 	s.fireFiltAbilityCast(k, p, st) // the activation precedes its cost's tap and sacrifice
 	pl := &s.pl[SeatIx(p)]
+	if st.sacOnly {
+		s.fundSacOnly(k, p, st.sl) // (mana_filtfund.go)
+		return
+	}
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
-	} else {
+	} else if st.gap || st.restr || !s.fundsBySac(k, st.sl) {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
 		s.manaTapped(k, st.sl)
@@ -881,11 +903,8 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	return false
 }
 
-// visit is one priority node of the search.
-func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
-	if !fs.tick() {
-		return false
-	}
+// stateKey is the visited-state key of node t.
+func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 	p := fs.p
 	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	if k.artMana {
@@ -897,6 +916,16 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			key.tapped = key.tapped.with(sl)
 		}
 	}
+	return key
+}
+
+// visit is one priority node of the search.
+func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	p := fs.p
+	key := fs.stateKey(k, t)
 	for i := 0; i < fs.nseen; i++ {
 		if fs.seen[i] == key {
 			return false
@@ -935,7 +964,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				if !t.filtUsable(k, sl) {
 					continue // (a once-each-turn filter: its use, not its {T})
 				}
-			} else if t.perms[sl].flags&pfTapped != 0 {
+			} else if t.fundOut(k, sl) {
 				continue
 			}
 			if gap {
@@ -974,8 +1003,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if k.restrSrc {
 				rm = t.filtRestrMask(k, sl)
 			}
-			free := t.canTapForMana(k, sl)
+			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
+				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
+					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
+				}
 				continue
 			}
 			if free && rm != 0 && !fs.tick() {

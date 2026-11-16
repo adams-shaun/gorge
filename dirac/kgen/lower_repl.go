@@ -352,6 +352,9 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if ok, err := lc.preventToSelf(rp, w, rl); ok || err != nil { // lower_preventtoself.go
 		return err
 	}
+	if ok, err := lc.staticDamagePrevent(rp, w, rl); ok || err != nil { // lower_staticprevent.go
+		return err
+	}
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: DamageDone ActiveZones")
 	}

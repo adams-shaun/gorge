@@ -108,7 +108,33 @@ func (s *State) powerUpPlanRejected(k *prep, a *kop.Ability) bool {
 // source in battlefield order. The caller guards on anyPowerUp and
 // CostPowerUp; this body is cold.
 //
+// powerUpAbilityMana pays a charge ability whose planner witness is outdated
+// (the case arm powerUpPlanRejected approved). gorge arms the printed-cost
+// witness whenever the charge still owes generic or coloured mana, hybrid
+// symbols or not (armAbilityAutoPay), and re-arms it for the reduced cost,
+// tapping its plan's order. A charge the reductions left hybrid-only arms no
+// witness at all (powerUpArmsNone), so the manual window pays source by
+// source, first useful one in battlefield order, tapping nothing when the
+// pool already pays it. It reports whether the activation continues.
+//
 //go:noinline
+func (s *State) powerUpAbilityMana(k *prep, e *stackEntry, a *kop.Ability, sl Slot, saved *[len(build{}.picks)]uint8, hostSl, srcSl Slot, selfUntapped bool) bool {
+	cc := s.buildCostCharge(k)
+	w := s.powerUpWitness(k, a, sl, e.ctrl)
+	if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, saved) {
+		s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
+		return true
+	}
+	if !s.windowTapHeldOK(k, e.ctrl, &cc) {
+		// the window ran out of sources: gorge aborts the activation
+		// (CR 733.1) and keeps the taps and the floated mana, as for the
+		// waterbend fallback above (mana_gate.go)
+		s.reverseActivation(k, saved, hostSl, srcSl, selfUntapped)
+		return false
+	}
+	return true
+}
+
 func (s *State) powerUpArmsNone(k *prep) bool {
 	s.bld().bfl |= bflCostComp
 	c, _ := s.buildCostPre(k, false, true)
