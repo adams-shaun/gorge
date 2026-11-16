@@ -66,10 +66,18 @@ func (fs *filtSearch) fundColours(k *prep, t *State, sl Slot, pc *pcard, mask ui
 //
 //go:noinline
 func (s *State) fundSac(k *prep, sl Slot) {
-	if !s.manaPCGen(k, sl).manaSac {
+	if pc := s.manaPCGen(k, sl); !pc.manaSac && !s.canSacOnlyNow(k, sl, pc) {
 		return
 	}
 	s.sacFilterSource(k, sl)
+}
+
+// fundsBySac reports whether sl funds a filter by sacrificing itself with no
+// {T} (an Eldrazi Spawn's "Sacrifice this creature: Add {C}", CR 605.1a): a
+// tapped or summoning-sick one funds too, and funding does not tap it.
+func (s *State) fundsBySac(k *prep, sl Slot) bool {
+	pc := s.manaPCGen(k, sl)
+	return pc.manaSacOnly && s.canSacOnlyNow(k, sl, pc)
 }
 
 // sacFilterSource sacrifices the mana source at sl: its Sacrificed triggers
@@ -84,4 +92,27 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
 		s.ceaseManaToken(o)
 	}
+}
+
+// fundSacOnly is a sacrifice-only funding source's step (an Eldrazi Spawn's
+// "Sacrifice this creature: Add {C}", CR 605.1a): its mana is added and it is
+// sacrificed, never tapped, so no Taps watcher fires and summoning sickness
+// does not bar it. gorge's prefix search lists it as an "activate" option as it
+// does a Treasure's (mana_sacsource.go).
+//
+//go:noinline
+func (s *State) fundSacOnly(k *prep, p uint8, sl Slot) {
+	pc := s.manaPCGen(k, sl)
+	s.poolAdd(p, bits.TrailingZeros8(s.srcMaskAt(pc, sl)), int(max(pc.manaN, 1)))
+	s.sacFilterSource(k, sl)
+}
+
+// fundOut: sl is tapped and cannot fund by sacrifice either.
+func (s *State) fundOut(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl)
+}
+
+// fundFree: sl funds a filter now, tapped for mana or sacrificed.
+func (s *State) fundFree(k *prep, sl Slot) bool {
+	return s.canTapForMana(k, sl) || s.fundsBySac(k, sl)
 }

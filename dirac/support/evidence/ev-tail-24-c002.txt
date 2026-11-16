@@ -1,87 +1,250 @@
+A-Pseudodragon Familiar
+A-Pyre-Sledge Arsonist
+A-The One Ring
 Adamaro, First to Desire
+Air Nomad Student
+Alaborn Veteran
+Ancestral Mask
+Angel of Mercy
+Angel's Tomb
+Angrath's Rampage
 Annex Sentry
+Archdemon of Unx
 Armored Pegasus
+Arno Dorian
+Artificer's Intuition
+Ascending Aven
+Ashiok's Forerunner
+Attrition
+Auriok Glaivemaster
 Aysen Bureaucrats
+Bandage
 Bastion Inventor
+Battlegrace Angel
+Bazaar Trademage
 Bedevil
 Binding the Old Gods
+Biolume Egg
+Blinding Light
 Bog Wraith
 Bone Devourer
+Boreal Druid
 Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
+Braulios of Pheres Band
 Brutal Nightstalker
 Brute Force
 Carnival of Souls
 Chainer's Edict
+Chakram Retriever
 Chandra's Triumph
+Cleansing Wildfire
+Collector's Case
 Court of Bounty
 Crackdown
+Crimson Caravaneer
 Crippling Blight
+Crowd's Favor
 Crush
+Crux of Fate
 Crypt Creeper
 Daggerclaw Imp
 Death Watch
+Deeproot Champion
+Deepwood Tantiv
+Deflection
+Deny Reality
+Depth Charge Colossus
+Dimir Guildmage
+Dirgur Nemesis
 Disciple of Perdition
+Discontinuity
+Diviner of Mist
+Doomsday
 Doubtless One
+Dredge
+Drinker of Sorrow
 Dust Bowl
 Earthbending Student
 Egon, God of Death
+Elemental Spectacle
+Ellivere of the Wild Court
+Elvish Skysweeper
+Emberwilde Caliph
+Ensoul Artifact
+Entropic Eidolon
+Executioner's Swing
 Fade from Memory
 Fae of Wishes
+Fallen Angel
+Firefiend Elemental
+Flame Elemental
+Flamespeaker's Will
+Flaring Pain
+Fledgling Griffin
+Fleeting Aven
+Forced March
 Forest
 Forsaken Drifters
+Fortuitous Find
+Fracture
 Generous Visitor
 Glimmer Bairn
+Glint-Sleeve Artisan
+Gluttonous Troll
 Go Blank
 Goblin Ringleader
+Griffin Dreamfinder
+Grim Hireling
+Grisly Spectacle
+Herald of Slaanesh
+Hero of Bladehold
 Hero's Heirloom
+Heroic Teamwork
+Hobblefiend
 Hordeling Outburst
 Horror of the Dim
+Hunting Grounds
+Ice Cage
+Impetuous Sunchaser
 Insubordination
+Invisibility
+Iron Man, Futurist Paragon
 Island
+Izoni, Thousand-Eyed
+Jackdaw
 Jackhammer
+Jedit Ojanen
 Jori En, Ruin Diver
+Key to the City
+Khalni Garden
+Knotvine Paladin
 Korlessa, Scale Singer
+Lampad of Death's Vigil
+Last Word
 Lava Spike
+Lightning Bolt
 Lightning Stormkin
 Llanowar Augur
+Long Road Home
+Lucas, the Sharpshooter
+Magefire Wings
+Maraxus of Keld
+Mardu Strike Leader
+Maritime Guard
 Marsh Viper
+Mass Manipulation
 Mausoleum Harpy
 Misthollow Griffin
+Mnemonic Wall
+Mobile Garrison
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Mother Bear
 Mountain
 Nighthawk Scavenger
+Nirkana Assassin
+Norwood Archers
+Oath of the Grey Host
+Octoprophet
 Odylic Wraith
 Onward
+Orc Sureshot
+Ovinize
+Paralyzing Grasp
 Patriar's Seal
 Phantasmagorian
+Pharika's Chosen
+Pitiless Vizier
 Plains
+Powerstone Engineer
+Pride Sovereign
+Psionic Entity
 Radha's Firebrand
+Rampart Crawler
+Read the Bones
+Reckless Reveler
+Reckless Stormseeker
+Referee Squad
 Retrofitted Transmogrant
 Rhystic Syphon
 Riot Ringleader
+Rip-Clan Crasher
+Rooftop Nuisance
+Sage of Lat-Nam
+Sage of the Unknowable
 Saheeli's Silverwing
+Sanctuary Raptor
+Sanctum Gargoyle
 Sanguinary Priest
+Satyr Piper
 Sealock Monster
 Seismic Elemental
+Selesnya Sagittars
+Selfless Samurai
+Serra's Liturgy
 Shady Traveler
 Shorecomber Crab
+Siegehorn Ceratops
 Sightless Ghoul
 Silk Net
 Skophos Warleader
+Skyline Predator
 Smite the Monstrous
+Sneaky Homunculus
+Soldevi Machinist
+Solve the Equation
+Sorcerer's Strongbox
+Soul Net
+Soul Transfer
+Soul Warden
+Soulshriek
 Sparkspitter
+Sphere Grid
+Spike Breeder
+Spinal Parasite
+Springjaw Trap
+Sram, Senior Edificer
 Staggershock
+Steadfast Paladin
 Stitched Assistant
+Stomp and Howl
+Strangleroot Geist
+Strider Harness
+Sunlance
+Supply Drop
 Swamp
+Sworn Companions
+Sworn Defender
 Sylvan Yeti
 Tainted Pact
+Talisman of Impulse
+Talrand, Sky Summoner
 Tangled Florahedron
 Taste for Mayhem
+Taunting Kobold
+Telepathic Spies
+Telling Time
 Tenth District Guard
 Territorial Scythecat
+The Keeper of the Yellow Hat
+Thopter Spy Network
+Thraben Sentry
 Thriving Skyclaw
+Tidewater Minion
+Tome Anima
+Traitorous Instinct
+Tuknir Deathlock
 Underworld Dreams
 Underworld Rage-Hound
+Undying Rage
+Untamed Kavu
+Vedalken Heretic
+Vile Deacon
+Vodalian Serpent
 Voyage's End
+Waterkin Shaman
+Whirler Rogue
+Whirling Strike
+Wu Spy
+Yoked Ox

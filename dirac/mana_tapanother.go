@@ -49,7 +49,9 @@ import (
 // {T}, the sacrifice (whose dies triggers queue), the mana (sacXDo). A path
 // that sacrifices the searched ability's own source dead-ends at the next node
 // (gorge scriptSearch.leftOwnZone). The manual ward and unless windows do not
-// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps).
+// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps) —
+// beside a granted mana ability it activates the source as a candidate of its
+// own now (mana_grantsacx.go).
 
 // DebugNoTapMana hides the tap-another-permanent gaps (the caretaker
 // mutation test proves the pool's plays need them).
@@ -63,7 +65,7 @@ var DebugNoSacXMana bool
 // (kop.SacXEachManaAb: Bolg's Company).
 func (k *prep) sacXOf(c CardID) bool {
 	a := k.tapXAbOf(c)
-	return a != nil && kop.SacXEachManaAb(a)
+	return a != nil && kop.SacXMana(a)
 }
 
 // debugTapXMutate selects a lockstep mutation: 1 = the first colour always
@@ -112,7 +114,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
 		a := k.tapXAbOf(s.cardAt(sl))
-		if a == nil || DebugNoSacXMana && kop.SacXEachManaAb(a) {
+		if a == nil || DebugNoSacXMana && kop.SacXMana(a) {
 			continue
 		}
 		pm := &s.perms[sl]
@@ -146,11 +148,48 @@ func (s *State) sacXLive(k *prep, p uint8) bool {
 //go:noinline
 func (s *State) tapXTwoLive(k *prep, p uint8) bool {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		if k.tapXAbOf(s.cardAt(b.first())).Cost.Flags&kop.CostTap == 0 {
+		if ab := k.tapXAbOf(s.cardAt(b.first())); ab.Cost.Flags&kop.CostTap == 0 && !kop.SacAnyManaAb(ab) {
 			return true
 		}
 	}
 	return false
+}
+
+// tapXSacAnyLive: a no-{T} sacrifice source with a fixed production
+// (kop.SacAnyManaAb: Krark-Clan Ironworks) is activatable now on a board the
+// search models. Like Baylen's, its cost is not once-only, so gorge's census is
+// unrelaxable (a repeatable cost that is not a bounded tap part) and every
+// census-incomplete insufficient play takes a search slot; unlike Baylen's
+// any-colour production, its potential bound is its fixed production once
+// (PotentialMana admits the ability a single time), so the plays searched are
+// the gaps walk's, not every play an open bound would list.
+//
+//go:noinline
+func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		if kop.SacAnyManaAb(k.tapXAbOf(s.cardAt(b.first()))) {
+			return true
+		}
+	}
+	return false
+}
+
+// tapXSacAnyBound splits a live sacrifice-any source (tapXSacAnyLive) by
+// gorge's PotentialMana bound (availPotentialFor). Closed: the bound counts its
+// fixed production once, so the potential walk lists the gaps walk's plays.
+// Open (an untapped any-colour source beside it, a Treasure: potentialUnbounded
+// in every colour): the walk lists every play, and the census is neither
+// relaxable nor bounded (paymentPlanRelaxedAlternatives: repeatable, no tap
+// part), so each listed play takes a search slot and is searched, as beside a
+// live Baylen. The search may then sacrifice the any-colour source to the
+// Ironworks and the Ironworks to itself.
+func (s *State) tapXSacAnyBound(k *prep, p uint8) (closed, open bool) {
+	if !k.tapMana || !s.tapXSacAnyLive(k, p) {
+		return false, false
+	}
+	var av avail
+	open = s.availPotentialFor(k, p, &av, nil)
+	return !open, open
 }
 
 // scriptTapXModelled is scriptTapX on the boards the search models: none
@@ -260,7 +299,7 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl || spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
+		if x == sl && !kop.SacAnyManaAb(ab) || spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
 			continue
 		}
 		m = m.with(x)
@@ -370,6 +409,7 @@ const (
 	tapXAnyR                // an any-colour restricted gap (a Flamebraider), col its scriptDFS answer (scriptGapTap)
 	tapXRider               // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
 	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
+	tapXDead                // a Firemind Vessel (AnyDifferent) taps for no mana: gorge's search activates it as a census gap (mana_anydifferent.go)
 )
 
 type tapXKey struct {
@@ -396,6 +436,7 @@ type tapXSearch struct {
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
 	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
+	dead  slotMask               // the AnyDifferent sources among gaps: gorge's census lists them, they add no mana (anyDifferentGaps)
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
@@ -456,6 +497,8 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
 	rs.gaps = rs.gaps.or(rs.def)
+	rs.dead = s.anyDifferentGaps(k, p)
+	rs.gaps = rs.gaps.or(rs.dead)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -514,7 +557,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer || st.kind == tapXDead {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -714,6 +757,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.tapXDeferDo(k, p, st)
 		return
 	}
+	if st.kind == tapXDead {
+		s.windowAnyDifferentTap(k, st.sl) // no mana, no ask (mana_anydifferent.go)
+		return
+	}
 	if st.cand == NoSlot {
 		s.ctrGap(k, p, st.sl, int(st.col)) // a counter-cost gap: its counter, its use, its mana
 		s.sba(k)                           // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
@@ -759,9 +806,11 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 // the queued triggers settle before the next node (as ctrGap's step does).
 func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot) {
 	ab := k.tapXAbOf(s.cardAt(sl))
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
+	if ab.Cost.Flags&kop.CostTap != 0 { // (Krark-Clan Ironworks has no {T})
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+	}
 	s.sacFilterSource(k, cand)
 	cols, n := tapXUnit(ab)
 	for col := 0; col < kop.NumManaKinds; col++ {
@@ -923,6 +972,14 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 		}
+		if rs.dead.has(sl) {
+			// a Firemind Vessel: one activation, no ask and no mana; gorge's
+			// search taps it ahead of the later gap that funds the play
+			if t.anyDifferentAt(k, sl) && rs.try(k, t, tapXStep{kind: tapXDead, sl: sl, cand: NoSlot, cand2: NoSlot}) {
+				return true
+			}
+			continue
+		}
 		if rs.def.has(sl) {
 			if found, handled := rs.deferAsk(k, t, sl); handled {
 				return found
@@ -979,53 +1036,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			return found
 		}
 		if rider.has(sl) {
-			// a planner-deferred rider source (a Sandstone Needle's "{T}, remove
-			// a depletion counter: Add {R}{R}", its sacrifice rider, or a later
-			// rider beside a plain first ability, Grove of the Burnwillows): one
-			// production ask, whose answers are the plain first ability and the
-			// rider's colours (riderPlainGap, the play's announced ones first),
-			// or one activation of a rider-first source, its fixed production
-			// with no ask and a multi-colour one branched on its colours (the
-			// announced ones first, deferGapAnswers' count)
-			if t.riderPlainFirst(k, sl) {
-				if !rs.tick() { // the production ask
-					return false
-				}
-				for c := uint8(0); c < t.deferGapAnswers(k, sl); c++ {
-					if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: c, act: rs.a}) {
-						return true
-					}
-				}
-				continue
-			}
-			ra, ok := t.riderAbilityOf(k, sl)
-			if !ok {
-				continue
-			}
-			mask := uint8(ra.ManaColors)
-			if !ra.ManaEach && mask&(mask-1) != 0 {
-				// the activation asks its colour: the announced ones first
-				if !rs.tick() { // the colour ask
-					return false
-				}
-				var order [kop.NumManaKinds]uint8
-				no := 0
-				for col := uint8(0); col < kop.NumManaKinds; col++ {
-					if mask&(1<<col) != 0 {
-						order[no] = col
-						no++
-					}
-				}
-				needFirst(order[:no], rs.need)
-				for i := 0; i < no; i++ {
-					if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerBit(mask, int(order[i])))}) {
-						return true
-					}
-				}
-				continue
-			}
-			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl}) { // a fixed production (or every colour at once) asks nothing
-				return true
+			if found, stop := rs.riderStep(k, t, sl); stop {
+				return found
 			}
 			continue
 		}
@@ -1133,7 +1145,97 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	return false
 }
 
+// riderStep is visit's branch for a planner-deferred rider source sl (a
+// Sandstone Needle's "{T}, remove a depletion counter: Add {R}{R}", its
+// sacrifice rider, or a later rider beside a plain first ability, Grove of the
+// Burnwillows): one production ask, whose answers are the plain first ability
+// and the rider's colours (riderPlainGap, the play's announced ones first), or
+// one activation of a rider-first source, its fixed production with no ask and
+// a multi-colour one branched on its colours (the announced ones first,
+// deferGapAnswers' count). stop: visit returns found, else it goes on to the
+// next source.
+func (rs *tapXSearch) riderStep(k *prep, t *State, sl Slot) (found, stop bool) {
+	if t.riderPlainFirst(k, sl) {
+		if !rs.tick() { // the production ask
+			return false, true
+		}
+		for c := uint8(0); c < t.deferGapAnswers(k, sl); c++ {
+			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: c, act: rs.a}) {
+				return true, true
+			}
+		}
+		return false, false
+	}
+	ra, ok := t.riderAbilityOf(k, sl)
+	if !ok {
+		return false, false
+	}
+	mask := uint8(ra.ManaColors)
+	if !ra.ManaEach && mask&(mask-1) != 0 {
+		// the activation asks its colour: the announced ones first
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		var order [kop.NumManaKinds]uint8
+		no := 0
+		for col := uint8(0); col < kop.NumManaKinds; col++ {
+			if mask&(1<<col) != 0 {
+				order[no] = col
+				no++
+			}
+		}
+		needFirst(order[:no], rs.need)
+		for i := 0; i < no; i++ {
+			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerBit(mask, int(order[i])))}) {
+				return true, true
+			}
+		}
+		return false, false
+	}
+	// a fixed production (or every colour at once) asks nothing
+	if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl}) {
+		return true, true
+	}
+	return false, false
+}
+
 // SetDebugTapXMutate is the caretaker lockstep mutation switch (test only):
 // 1 = the search always answers the first colour, 2 = it taps the last
 // creature candidate first; 0 = off.
 func SetDebugTapXMutate(m int) { debugTapXMutate = m }
+
+// sacPotPays reports whether gorge's PotentialMana bound pays play a on a board
+// with a live sacrifice-any source and a closed bound (tapXSacAnyBound): the
+// bound counts a choice source (Fellwar Stone's reflected {B} or {R}) once per
+// colour it can make, where the gaps walk counts it once, so it lists a play
+// the gaps walk's sum falls short of ({4} against Ironworks' {C}{C} and one
+// Fellwar Stone unit). The search then runs for that play too.
+func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
+	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
+	if !ok {
+		return false
+	}
+	var pot avail
+	d := s.grantPayDesc(k, a)
+	s.availPotentialFor(k, p, &pot, &d)
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		// the bound admits each sacrifice-any ability once (its fixed production)
+		if ab := k.tapXAbOf(s.cardAt(b.first())); kop.SacAnyManaAb(ab) {
+			addTapXUnits(&pot, ab)
+		}
+	}
+	return pot.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// gapsOrBoundPlay: play a is one the gaps walk lists, or, on a closed
+// sacrifice-any bound (sacAny; tapXSacAnyBound), one gorge's PotentialMana bound
+// pays on its own (sacPotPays).
+func (s *State) gapsOrBoundPlay(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
+	return hasOption(gaps, a) || sacAny && s.sacPotPays(k, p, a)
+}
+
+// sacDrops: on a closed sacrifice-any bound (sacAny) play a is neither the gaps
+// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate.
+func (s *State) sacDrops(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
+	return sacAny && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
+}

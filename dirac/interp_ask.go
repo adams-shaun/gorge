@@ -30,14 +30,17 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if l := kop.PayManaLife(f); l != 0 && int(s.pl[p].life) < l {
 			return false // a trigger's own mana-and-life cost: F carries the life
 		}
-		c := manaOf(amt, pips)
+		c := s.numTimesCost(k, amt, pips)
 		s.payManaHyb(k, f, &c) // a trigger's own hybrid cost (cost_trighybrid.go)
 		s.announcedHyb(&c)
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
 		av.xdOn = false
-		return av.affords(&c, pipMaskOf(&c), 0)
+		// a restricted source whose restriction admits a non-spell payment (a
+		// Powerstone's {C}, CR 106.6) funds an unless cost too: gorge's
+		// PurposeOther descriptor admits it (restrSrcAffords asks only once av alone fails)
+		return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
 	case kop.PayDiscardHand:
@@ -210,10 +213,13 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 		return false
 	}
 	other := payDesc{class: pdOther}
+	if s.anyDifferentOpen(k, p) {
+		return true // Firemind Vessel: gorge's potential is unbounded in every colour (mana_anydifferent.go)
+	}
 	if !s.anyManaSource(k, p, &other) {
 		return false
 	}
-	c := manaOf(amt, pips)
+	c := s.numTimesCost(k, amt, pips)
 	s.payManaHyb(k, life, &c) // cost_trighybrid.go
 	s.announcedHyb(&c)
 	var av avail
@@ -259,6 +265,12 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		// an each-colour source (Bloom Tender) is a census gap with no manaAb,
 		// yet gorge's walk counts it, and reads its production as open
 		if c := s.cardAt(sl); k.gen.eachCol(c) >= 0 && s.potentialAdmits(k, p, sl, int(k.gen.eachCol(c)), &k.t.Cards[c].Abilities[k.gen.eachCol(c)], nil) {
+			return true
+		}
+		// a counter-cost gap source whose mana ability is no card-level manaAb (a
+		// storage battery, Sand Silos: its cost announces X, so gorge's walk
+		// prices the activation payable at any counter count)
+		if c := s.cardAt(sl); k.ctrAbOf(c) != nil && k.cards[c].manaAb < 0 && s.potentialAdmits(k, p, sl, int(k.ctrAb[c]), k.ctrAbOf(c), nil) {
 			return true
 		}
 		// gorge untappedManaSourceFor: an available mana ability counts when its
