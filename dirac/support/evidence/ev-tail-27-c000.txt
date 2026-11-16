@@ -181,6 +181,7 @@ Neheb, Dreadhorde Champion
 Neverwinter Dryad
 Night Revelers
 Nirkana Assassin
+Nissa Revane
 Noble Stand
 Norwood Riders
 Noxious Grasp
@@ -203,6 +204,7 @@ Plains
 Polukranos Reborn
 Promise of Power
 Python
+Rakdos the Defiler
 Ravenous Baboons
 Reign of Terror
 Rhystic Deluge

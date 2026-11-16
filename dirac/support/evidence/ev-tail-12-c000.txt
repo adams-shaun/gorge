@@ -26,14 +26,18 @@ Automatic Librarian
 Aven Sunstriker
 Awakening
 Awe for the Guilds
+Azorius Cluestone
 Backwoods Survivalists
 Badlands
 Balustrade Spy
+Banefire
+Barter in Blood
 Battle Hymn
 Benalish Veteran
 Birthing Boughs
 Blessed Wind
 Blind-Spot Giant
+Bloodsworn Steward
 Bog Glider
 Boggart Birth Rite
 Bold Impaler
@@ -83,6 +87,7 @@ Double Cleave
 Dragon's Approach
 Dragonspark Reactor
 Dramatic Entrance
+Drowned Rusalka
 Duskmantle Prowler
 Dwarven Grunt
 Dwarven Lieutenant
@@ -124,7 +129,9 @@ Gorgon Flail
 Gourmand's Talent
 Granger Guildmage
 Ground Assault
+Growing Ranks
 Growth Spurt
+Guardian Gladewalker
 Guardian of Ghirapur
 Gustcloak Savior
 Hag of Death's Legion
@@ -136,14 +143,17 @@ Highway Robber
 Hobgoblin Captain
 Holy Armor
 Honden of Seeing Winds
+Hopeful Initiate
 Hornbash Mentor
 Hurloon Battle Hymn
 Hydra Omnivore
 Impending Flux
 Imperious Oligarch
 Impulsivity
+Increasing Devotion
 Indicate
 Infernal Idol
+Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
 Into the Void
@@ -188,16 +198,19 @@ Mishra's Self-Replicator
 Misty Rainforest
 Molten Nursery
 Molten Rain
+Moment of Truth
 Momentous Fall
 Moriok Scavenger
 Mossfire Valley
 Mountain
 Mushroom Watchdogs
 Mutilate
+Muzzio, Visionary Architect
 Nausea
 Neck Snap
 Nether Spirit
 Niblis of the Mist
+Nikara, Lair Scavenger
 Nissa, Worldwaker
 Nyxborn Triton
 Ominous Cemetery
@@ -271,6 +284,7 @@ Seven-Tail Mentor
 Sewer Rats
 Sheoldred, Whispering One
 Shire Terrace
+Sifter Wurm
 Silverquill Apprentice
 Skittering Cicada
 Slimebind
@@ -278,6 +292,7 @@ Slimy Piper
 Slingshot Goblin
 Sliptide Serpent
 Slumbering Dragon
+Sly Requisitioner
 Sophic Centaur
 Soul Shred
 Soul Summons
@@ -300,6 +315,7 @@ Swamp
 Swamp Mosquito
 Tale of Katara and Toph
 Tamiyo's Epiphany
+Tana, the Bloodsower
 Team Transmitter
 Tempest of Light
 Terra Stomper
@@ -342,6 +358,7 @@ Weapon Surge
 Well of Discovery
 Wildwood Patrol
 Wither and Bloom
+Withering Boon
 Wooded Ridgeline
 Woodland Sleuth
 Worldgorger Dragon

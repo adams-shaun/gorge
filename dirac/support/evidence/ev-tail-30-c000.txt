@@ -25,6 +25,7 @@ Ascendant Acolyte
 Assassin Gauntlet
 Assassin's Strike
 Assure
+Atlas, Sizable Stooge
 Auramancer
 Avacyn, Angel of Hope
 Axebane Stag
@@ -88,6 +89,7 @@ Collective Defiance
 Commander Greven il-Vec
 Concerted Defense
 Consecrate
+Consumptive Goo
 Coronation of Chaos
 Corpse Knight
 Covenant of Blood
@@ -117,6 +119,7 @@ Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
 Echoing Truth
+Electrozoa
 Elvish Champion
 Elvish Hydromancer
 Embodiment of Insight
@@ -294,8 +297,10 @@ Ring of Immortals
 Rites of Reaping
 Ronin Warclub
 Rotcrown Ghoul
+Ruination Wurm
 Run Afoul
 Runeboggle
+Ruric Thar, the Unbowed
 Rush the Room
 Safe Haven
 Saltwater Stalwart
@@ -371,6 +376,7 @@ The First Eruption
 The Howling Commandos
 The Triumph of Anax
 Their Name Is Death
+Thought Courier
 Thriving Grubs
 Thriving Rhino
 Tobias Andrion
@@ -399,6 +405,7 @@ Venerable Monk
 Veteran Cathar
 Veteran Swordsmith
 Viper, Cruel Conspirator
+Vision, Synthezoid Avenger
 Vitality Charm
 Vodalian Hypnotist
 Voice of Law

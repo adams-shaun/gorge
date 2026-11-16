@@ -122,6 +122,7 @@ Exhibition Magician
 Experimental Synthesizer
 Explore
 Extruder
+Eyes of the Watcher
 Ezuri's Archers
 Fan Bearer
 Fang Skulkin
@@ -183,6 +184,7 @@ Hypochondria
 Illusory Wrappings
 Imp's Mischief
 Imps' Taunt
+Imskir Iron-Eater
 Inevitable End
 Inhumaniac
 Innistrad Charm
@@ -191,6 +193,7 @@ Integrity
 Intrepid Hero
 Invasion of Kylem
 Invasion of Mercadia
+Ion Storm
 Iridescent Drake
 Island
 Iwamori of the Open Fist

@@ -15,6 +15,7 @@ Agent of Erebos
 Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
+Alabaster Host Intercessor
 Alabaster Mage
 Algae Gharial
 Alpine Guide
@@ -26,6 +27,7 @@ Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
 Archwing Dragon
+Arclight Phoenix
 Arctic Aven
 Arctic Treeline
 Arctic Wolves
@@ -78,6 +80,7 @@ Carnophage
 Cartouche of Ambition
 Centaur Archer
 Cephalopod Sentry
+Cerulean Drake
 Chainbreaker
 Charnel Troll
 Chasm Skulker
@@ -130,6 +133,7 @@ Dragonstalker
 Dragonstorm
 Dream's Grip
 Druidic Satchel
+Dwarven Hammer
 Electrostatic Field
 Elephant Graveyard
 Elspeth, Sun's Champion

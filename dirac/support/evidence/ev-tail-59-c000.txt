@@ -334,6 +334,7 @@ Power Conduit
 Power Plant Worker
 Practiced Tactics
 Prismari Pianist
+Psychotic Fury
 Pyrohemia
 Pyrotechnics
 Queen of Ice
@@ -368,6 +369,7 @@ Sabertooth Outrider
 Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
+Sauron, the Lidless Eye
 Sautekh Immortal
 Savage Lands
 Savai Thundermane

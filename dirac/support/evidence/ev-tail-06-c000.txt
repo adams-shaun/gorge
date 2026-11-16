@@ -84,6 +84,7 @@ Conscripted Infantry
 Control of the Court
 Coral Helm
 Corpse Churn
+Court of Embereth
 Crosstown Courier
 Crown of Skemfar
 Crucible of Fire
@@ -280,6 +281,7 @@ Pestilence Demon
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
+Phyrexian Marauder
 Pious Kitsune
 Plague Mare
 Plains

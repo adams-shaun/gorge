@@ -257,6 +257,7 @@ Nimana Skitter-Sneak
 Noxious Revival
 Nullhide Ferox
 Nyxborn Seaguard
+Ob Nixilis, the Ascended
 Obscura Storefront
 Obzedat's Aid
 Oculus
@@ -287,6 +288,7 @@ Planar Bridge
 Political Triumph
 Primetime Suspect
 Prodigious Growth
+Putrefy
 Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
@@ -321,6 +323,7 @@ Salvage Scout
 Saprazzan Heir
 Sarulf's Packmate
 Scale the Heights
+Seal of Removal
 Searchlight Geist
 Seize the Day
 Serra Avenger
@@ -384,6 +387,7 @@ Unholy Indenture
 Unwind
 Urza's Filter
 Vampire Hexmage
+Vampire's Bite
 Venomcrawler
 Venser's Sliver
 Vex
@@ -405,6 +409,7 @@ Whetstone
 Whirlwind Adept
 White Scarab
 Wild Nacatl
+Wilderness Reclamation
 Winged Coatl
 Wolfir Avenger
 World Breaker

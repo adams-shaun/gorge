@@ -2,6 +2,7 @@ A-Circle of the Land Druid
 A-Deal Gone Bad
 A-Skemfar Elderhall
 Advocate of the Beast
+Aetherflux Conduit
 Air Bladder
 Akki Battle Squad
 Akroan Phalanx
@@ -29,6 +30,7 @@ Baboon Spirit
 Banehound
 Bar the Door
 Barbarian General
+Barrenton Medic
 Battalion Foot Soldier
 Bayou Dragonfly
 Become the Avalanche
@@ -99,6 +101,7 @@ Devout Harpist
 Diligent Excavator
 Doctor Jane Foster
 Doorkeeper
+Draco
 Dragon-Style Twins
 Dragonloft Idol
 Drogskol Captain

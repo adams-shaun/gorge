@@ -75,6 +75,7 @@ Danitha Capashen, Paragon
 Daring Saboteur
 Dawnstrike Paladin
 Daysquad Marshal
+Deathbellow War Cry
 Deem Inferior
 Deluge
 Dematerialize
@@ -204,6 +205,7 @@ Mind Control
 Mindclaw Shaman
 Mindcrank
 Mine Bearer
+Minotaur Aggressor
 Mirri's Guile
 Mise
 Mizzium Meddler

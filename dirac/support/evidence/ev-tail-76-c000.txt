@@ -6,6 +6,7 @@ Aether Meltdown
 Amrou Scout
 Ancestral Recall
 Anticipate
+April O'Neil, Live on the Scene
 Arboreal Grazer
 Arena of the Ancients
 Armguard Familiar
@@ -150,6 +151,7 @@ Prickly Boggart
 Primal Huntbeast
 Promise of Bunrei
 Pyretic Ritual
+Ramirez DePietro, Pillager
 Ramosian Greatsword
 Ramses Overdark
 Raphael, Fiendish Savior
