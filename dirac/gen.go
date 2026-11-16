@@ -1916,6 +1916,7 @@ type genState struct {
 	remCnt  uint16 // OpRemoveCounterRem's count
 	availX  uint8  // transient availFor mode while scriptOffers re-walks priority (script_gen.go)
 	noGrant bool   // transient: an activated ability's prefix search prices without granted mana (its grant prefix is its own search; script_gen.go)
+	fbProbe bool   // transient: a filter script trial node keeps the root's both-instances flashback classification (legal.go fbProbeRoot)
 	roleOut uint8  // a Role token may be on the battlefield: the SBA scans for CR 704.5z (static_roletokens.go)
 	digLo   uint8  // a DuDugMark DigUntil's first exile index (act_discoverbottom.go; the padding before excess)
 	// raiseO / raiseB: a may-play surcharge being offered / owed by the cast
