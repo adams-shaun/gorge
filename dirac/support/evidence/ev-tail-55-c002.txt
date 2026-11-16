@@ -1,17 +1,145 @@
+Abrupt Decay
+Alluring Scent
+Aurochs
+Basal Thrull
+Bosco, Just a Bear
+Braids, Cabal Minion
+Brainbite
+Brokers Veteran
+Burnt Offering
+Caldera Kavu
 Cavern Crawler
+Centaur Rootcaster
+Chandra's Revolution
+Coerced Confession
+Collective Voyage
+Corpse Cur
 Crimson Mage
+Cruel Edict
+Crystal Slipper
+Damping Matrix
+Deep-Sea Terror
+Dementia Bat
+Devious Cover-Up
+Diplomacy of the Wastes
+Dreadwurm
+Drowner of Hope
+Electrolyze
+Ephara's Radiance
 Eternal Thirst
+Exile into Darkness
+Faerie Conclave
+Failed Inspection
+Fate Unraveler
 Fireslinger
+Flame Sweep
+Flame-Blessed Bolt
+Flaming Gambit
+Fleshmad Steed
+Flowering Field
+Forcemage Advocate
 Forest
+Forgotten Harvest
+Fresh Meat
+Freyalise's Charm
+Garruk's Gorehorn
+Ghost-Lit Redeemer
+Ghostfire Blade
+Gimli's Axe
+Grim Physician
+Grizzly Bears
+Gruul Charm
+Guardian Gladewalker
 Hapato's Might
+Harrowing Journey
+Heal
+Hellkite Whelp
+Heroic Teamwork
+Huang Zhong, Shu General
+Hunger of the Nim
 Ignite the Future
+Ironwright's Cleansing
 Island
+Kabira Vindicator
+Katilda, Dawnhart Prime
+Keepers of the Faith
+Kestia, the Cultivator
+Kill Shot
+Kitchen
+Liliana's Specter
 Living Terrain
 Loathsome Curator
+Lotus Petal
+Make a Wish
+Mark of Sakiko
+Match the Odds
+Merfolk Trickster
+Mistcutter Hydra
+Morbid Opportunist
 Mountain
+Multani's Harmony
+Nightshade Assassin
+Nimana Skitter-Sneak
+Nissa, Resurgent Animist
+Noble's Purse
+Oakheart Dryads
+Obelisk of Undoing
+Octoprophet
 Olivia Voldaren
+Opaline Unicorn
+Oran-Rief Invoker
+Orthodoxy Enforcer
+Ostiary Thrull
 Owlbear
+Panther Warriors
+Parhelion II
+Phyrexian War Beast
 Plains
+Power Matrix
+Quilled Wolf
+Rain of Tears
+Ravenous Rats
+Rebel Salvo
+Regress
+Ring of Thune
+Rona's Vortex
+Rootbound Crag
+Samut, Tyrant Smasher
+Sarkhan Vol
+Serpent Assassin
+Sever Soul
+Sheltering Word
+Shinka Gatekeeper
+Shroofus Sproutsire
+Siege Veteran
+Sisay's Ingenuity
+Skirsdag Supplicant
+Skyclave Shade
+Skyfisher Spider
+Slimefoot, the Stowaway
+Soaring Seacliff
+Soul Channeling
+Soul Kiss
+Spiked Corridor
+Stampeding Serow
+Staunch Throneguard
+Stensia Innkeeper
+Sultai Charm
 Swamp
+Talonrend
+Tenacious Hunter
+Terra Ravager
+The Surgical Bay
+Thorncaster Sliver
+Thoughts of Ruin
+Toggo, Goblin Weaponsmith
+Twigwalker
+Tyrant's Scorn
 Vandalblast
+Veteran Cavalier
+Vithian Stinger
+Vizier of the Scorpion
+Vodalian Merchant
+Whiptongue Hydra
+Whitewater Naiads
 Zombie Cannibal

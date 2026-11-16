@@ -1,0 +1,11 @@
+Cloud Sprite
+Cold-Water Snapper
+Dense Canopy
+Forest
+Island
+Mountain
+Plains
+Spike Jester
+Swamp
+Vine Mare
+Wall of Mulch

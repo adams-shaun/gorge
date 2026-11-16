@@ -235,6 +235,14 @@ type Cost struct {
 	// an empty hand pays with nothing). A table byte, not a CostFlags bit
 	// (the words are full).
 	DiscardHand bool
+	// DiscardRandom: the CostDiscard part (N cards) is discarded at random,
+	// not chosen (Discard<N/Random>, CR 701.9b, 118.3; gorge discardAsk's
+	// Random arm over pay.DiscardCandidates): the engine's seeded RNG picks
+	// each card, one draw per card over the shrinking hand in hand order,
+	// when the cost objects are chosen, and nothing is asked. The offer gate
+	// is CostDiscard's (a hand of at least N cards besides the cast spell).
+	// A table byte, not a CostFlags bit (the words are full).
+	DiscardRandom bool
 	// XMin: the announced X's floor (CR 107.3, 601.2b; gorge Cost.XMin /
 	// XMin$): the X ask offers nothing below it, and an offer that cannot
 	// pay it is not made. 0 means no floor. A table byte, not a CostFlags

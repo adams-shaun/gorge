@@ -1213,9 +1213,12 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 // while the general matcher correctly treats a bare Permanent as a battlefield
 // object. Rewrite the base token of EVERY comma alternative (Kagha's
 // `Land.YouOwn+...,Permanent.YouOwn+...`), retaining every qualifier, so
-// all target offer and target-legality callers share this rule.
+// all target offer and target-legality callers share this rule. The stack
+// takes the rewrite too: a permanent spell is a permanent card there (CR
+// 110.4b), so Lithoform Engine's `Permanent.YouCtrl` names the creature spell
+// its controller cast; an ability object has no card face and still fails it.
 func targetSpecForZone(spec string, z state.Zone) string {
-	if z == state.ZBattlefield || z == state.ZStack {
+	if z == state.ZBattlefield {
 		return spec
 	}
 	const base = "Permanent"

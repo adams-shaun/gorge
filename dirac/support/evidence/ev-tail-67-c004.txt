@@ -1,7 +1,126 @@
+A-Dokuchi Silencer
+Aethershield Artificer
+Against All Odds
+Air Nomad Student
+Akki Underminer
+Akrasan Squire
 Akroan Crusader
 Alms Beast
+Angelic Renewal
+Aquatic Incursion
+Archaeomender
+Avatar of the Resolute
+Axebane Guardian
+Blacksmith's Skill
+Blade Splicer
+Blazing Hellhound
+Buried Alive
+Cogwork Assembler
+Commissar Severina Raine
+Conservator
+Corpse Knight
+Courier's Capsule
+Crop Rotation
+Culling Mark
+Cyclops Superconductor
+Daring Fiendbonder
+Dauntless Survivor
+Deathless Angel
+Deep Reconnaissance
+Deepwood Ghoul
+Demon's Grasp
+Demonic Rising
+Drag Down
+Dyfed, the Guiding Hand
+Erratic Visionary
+Essence Warden
+Eternal Witness
+Ethereal Champion
+Ethereal Usher
+Expansion
+Fain, the Broker
+Firebird, Blazing Ranger
 Forest
+Fungal Sprouting
+Gluttonous Zombie
+Grim Monolith
+Hanna, Ship's Navigator
+Hemlock Vial
+Honed Khopesh
+Horizon Chimera
+Hound of the Farbogs
+Inkrise Infiltrator
+Inspiring Refrain
+Iron Suitcase
 Island
+Jackalope Herd
+Keen-Eyed Raven
+Kirtar's Wrath
+Kiyomaro, First to Stand
+Leafkin Druid
+Lightning Reaver
+Liliana's Influence
+Lodestone Myr
+Longtusk Cub
+Lush Growth
+Manaforce Mace
+Mardu Strike Leader
+Mausoleum Secrets
+Metropolis Reformer
+Mise
+Mogis's Warhound
+Moss Monster
 Mountain
+Nagging Thoughts
+Natural Emergence
+Necrobite
+Nemesis of Reason
+Neurok Familiar
+Norn's Disassembly
+Oblation
+Pentarch Ward
+Phantasmal Dragon
+Pilfering Imp
 Plains
+Pollywog Prodigy
+Primeval Force
+Prosperous Innkeeper
+Python
+Rage Weaver
+Ravos, Soultender
+Ray of Erasure
+Reality Ripple
+Relic Barrier
+Revelation of Power
+Rogue Refiner
+Sandcrafter Mage
+Scion of Vitu-Ghazi
+Shepherd of the Lost
+Sol Grail
+Solid Footing
+Soul of Theros
+Spined Fluke
+Squee's Embrace
 Swamp
+Tale of Momo
+Talons of Wildwood
+Temmet, Vizier of Naktamun
+The Bears of Littjara
+The Whizzer, Classic Speedster
+Thorn Thallid
+Thrór's Map
+Thunder Drake
+Thwart the Grave
+Tormod's Cryptkeeper
+Trueheart Duelist
+Undercity Scavenger
+Unholy Hunger
+Vine Trellis
+Warped Devotion
+Way of the Thief
+Whispering Wizard
+Wirecat
+Wrath of Oko
+You Look Upon the Tarrasque
+Zephyr Falcon
+Zodiac Ox
