@@ -26,6 +26,7 @@ Battle Mammoth
 Beloved Chaplain
 Bhaal's Invoker
 Black Cat
+Black Lotus
 Black Widow, Deadly Hunter
 Blood Clock
 Blood Hound
@@ -76,6 +77,7 @@ Dawntreader Elk
 Daxos, Blessed by the Sun
 Daze
 Deadeye Brawler
+Deadly Alliance
 Deepwood Drummer
 Defensive Stance
 Demon's Horn
@@ -107,6 +109,7 @@ Ertai's Scorn
 Evasive Action
 Exhume
 Eye Collector
+Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
@@ -133,6 +136,7 @@ Frilled Sea Serpent
 Frodo, Determined Hero
 Frontier Guide
 Furnace Strider
+Furtive Analyst
 Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
@@ -389,5 +393,6 @@ Wily Goblin
 Winged Boots
 Wishful Merfolk
 Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits
