@@ -9,10 +9,12 @@ Aerial Boost
 Aether Spike
 Akki Rockspeaker
 Alchemist's Refuge
+Alibou, Ancient Witness
 Amass the Components
 Anax, Hardened in the Forge
 Annex
 Arcane Denial
+Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
 Auntie Blyte, Bad Influence
@@ -69,6 +71,7 @@ Death Grasp
 Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
+Defabricate
 Destiny Spinner
 Discontinuity
 Displacement Wave
@@ -81,6 +84,7 @@ Drafna, Founder of Lat-Nam
 Drake Familiar
 Dramatic Finale
 Dreamshackle Geist
+Dyfed, the Guiding Hand
 Elder Druid
 Elder Gargaroth
 Eldrazi Repurposer
@@ -96,6 +100,7 @@ Expedition Diviner
 Faerie Impostor
 False Peace
 Fate Forgotten
+Fiend Hunter
 Flatline
 Foe-liage
 Forest
@@ -106,7 +111,9 @@ Frantic Confrontation
 Fraying Omnipotence
 Frenetic Raptor
 Frost Breath
+Gargadon
 Gerrard's Battle Cry
+Ghost-Lit Warder
 Ghostly Changeling
 Gimli, Counter of Kills
 Gingerbehemoth
@@ -115,6 +122,7 @@ Goatnapper
 Goblin Lore
 Godtracker of Jund
 Graaz, Unstoppable Juggernaut
+Granger Guildmage
 Gravel Slinger
 Grayscaled Gharial
 Gruul Cluestone
@@ -128,10 +136,12 @@ Helldozer
 Herald of War
 Herbology Instructor
 Hideous Visage
+Hoofprints of the Stag
 Hookblade
 Hoverguard Observer
 Hypnotic Grifter
 Hyrax Tower Scout
+Impaler Shrike
 Implement of Malice
 In Oketra's Name
 Infantry Veteran
@@ -158,19 +168,24 @@ Leave in the Dust
 Leery Fogbeast
 Leyline of the Meek
 Linvala, the Preserver
+Living Lightning
 Longbow Archer
 Loyal Warhound
+Lu Meng, Wu General
+Lulu, Loyal Hollyphant
 Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
 Manticore of the Gauntlet
 Meatsqueak, Hoard Lord
+Meltdown
 Mindlash Sliver
 Mishra's Groundbreaker
 Mizzium Meddler
 Moira Brown, Guide Author
 Monoskelion
 Moonlit Wake
+Morality Shift
 Mordenkainen's Polymorph
 More of That Strange Oil...
 Mountain
@@ -182,11 +197,13 @@ Nantuko Tracer
 Necrogenesis
 Nezumi Cutthroat
 Night Market Aeronaut
+Nip Gwyllion
 Nissa's Defeat
 No-Dachi
 Noble Benefactor
 Oath of Ajani
 Obsidian Obelisk
+Olog-hai Crusher
 Opal Acrolith
 Order of Leitbur
 Ori, Plate Stacker
@@ -194,9 +211,12 @@ Orzhov Locket
 Otherworldly Outburst
 Overwhelming Intellect
 Pain Distributor
+Pain Seer
+Pest Rescuer
 Pestilence
 Pile On
 Plains
+Planar Birth
 Presence of Gond
 Prey's Vengeance
 Primal Cocoon
@@ -205,6 +225,7 @@ Primeval Titan
 Profane Tutor
 Prohibit
 Rapid Decay
+Raugrin Crystal
 Reach of Branches
 Reinforced Bulwark
 Reject Imperfection
@@ -229,6 +250,7 @@ Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
 Serra's Embrace
+Shaleskin Bruiser
 Shanodin Dryads
 She-Hulk, Attorney-at-Law
 Shimmer Dragon
@@ -255,6 +277,7 @@ Stone Haven Pilgrim
 Storm Caller
 Stratadon
 Striped Bears
+Subterranean Shambler
 Sumala Woodshaper
 Swamp
 Swarmborn Giant
@@ -277,6 +300,7 @@ Thriving Rhino
 Thundering Ceratok
 Tidal Kraken
 Tiller of Flesh
+Titan of Eternal Fire
 Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback

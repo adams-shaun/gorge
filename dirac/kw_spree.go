@@ -251,12 +251,15 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 		cost = addCost(cost, s.altAddManaPart(k, c))
 	}
 	t := s.fork()
+	n0 := t.npend
 	var pk planner
 	pk.try = true
 	t.tapForPK(k, p, &cost, 0, NoObj, false, false, &pk)
 	consumes := pk.found && plannerConsumesSac(&pk)
 	reaches := false
-	if consumes {
+	// a witness whose sacrifices stack more triggers than the wait budget lets
+	// resolve never reaches the cast (witnessOverWaits)
+	if consumes && !s.witnessOverWaits(k, p, c, o, int(t.npend)-int(n0)) {
 		ab := spellAb(k, c)
 		if ab == 255 || !cd.HasModeCost {
 			// no target to lose, or an unmoded spell: reached when its targets

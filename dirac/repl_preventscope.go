@@ -17,6 +17,13 @@ var DebugNoPrevScope bool
 func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 	sc := uint8(in.C & (1<<kop.PrevScopeColourShift - 1))
 	scc := kop.ColorMask(in.C >> kop.PrevScopeColourShift)
+	if in.C&kop.PrevScopeFiltered != 0 {
+		scc = 0 // the bits above the shift hold recipient bits, not colours: the filter is read from the instruction
+	}
+	if in.C&kop.PrevScopeFiltered != 0 && !s.scopeInstrFindable() {
+		s.capFull(StallPrevScopeCopy) // loud: a record that can never find its filters would prevent nothing
+		return
+	}
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.col == 0 && r.sc == 0 {
@@ -28,8 +35,9 @@ func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 }
 
 // prevScopeHit reports whether scoped record r (made by player r.ctl)
-// prevents damage from the source at srcSl, whose colours are srcCol, to t.
-func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCol kop.ColorMask, t prevTgt, combat bool) bool {
+// prevents damage from the source at srcSl (else the card srcCard), whose
+// colours are srcCol, to t.
+func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCard CardID, srcCol kop.ColorMask, t prevTgt, combat bool) bool {
 	sc := r.sc
 	if DebugNoPrevScope {
 		return false
@@ -42,6 +50,9 @@ func (s *State) prevScopeHit(k *prep, r *prevRec, srcSl Slot, srcCol kop.ColorMa
 	}
 	if sc&kop.PrevScopeSrcCreature != 0 && (srcSl == NoSlot || !s.isCreature(k, srcSl)) {
 		return false
+	}
+	if sc&kop.PrevScopeFiltered != 0 {
+		return s.prevScopeFiltered(k, r, srcSl, srcCard, t) // repl_prevscopefilter.go
 	}
 	if sc&kop.PrevScopeAll != 0 {
 		return true

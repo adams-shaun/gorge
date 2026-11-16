@@ -45,7 +45,7 @@ func (s *State) payWindowAsk(k *prep, p uint8, cost *kop.ManaCost, mode uint8) (
 	if k.tapMana {
 		s.g.winMode = mode
 	}
-	if paused, short = s.payWindow(k, p, cost); paused {
+	if paused, short = s.payWindow(k, p, cost, mode == winPay && s.g.pickF&pfWard == 0); paused {
 		return true, false
 	}
 	s.g.winMode = winNone
@@ -218,7 +218,7 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 		s.payDone(k, false)
 		return true
 	}
-	paused, short := s.payWindow(k, p, &cost)
+	paused, short := s.payWindow(k, p, &cost, s.g.winMode == winPay && s.g.pickF&pfWard == 0)
 	if paused {
 		return true
 	}

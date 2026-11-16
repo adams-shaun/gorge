@@ -1,13 +1,22 @@
+A-Blessed Hippogriff
+A-High-Rise Sawjack
 A-Steadfast Unicorn
+Abbey Matron
 Abjure
+Acid Web Spider
 Aerial Engineer
 Aether Meltdown
+Aether Swooper
 Airdrop Aeronauts
 Anax, Hardened in the Forge
 Angel of Light
+Argent Dais
 Armillary Sphere
 Artifact Unknown Shores
+Auramancer
 Baloth Packhunter
+Basilica Bell-Haunt
+Basking Rootwalla
 Battalion Foot Soldier
 Battlegrowth
 Battlewise Valor
@@ -15,13 +24,16 @@ Bellowing Saddlebrute
 Benevolent Ancestor
 Black Carriage
 Blade Sliver
+Blightcaster
 Blinding Light
 Blinking Spirit
 Blood Curdle
+Bloodfire Colossus
 Blossoming Wreath
 Blot Out the Sky
 Bogardan Dragonheart
 Bruna, the Fading Light
+Brutalizer Exarch
 Canopy Claws
 Carrier Thrall
 Celestial Archon
@@ -29,18 +41,27 @@ Chandra, Pyrogenius
 Clockwork Fox
 Cloudgoat Ranger
 Commander Sofia Daguerre
+Cosmic Larva
 Crazed Goblin
+Crushing Canopy
 Cunning Geysermage
+Curfew
 Cylian Elf
 D'Avenant Trapper
 Darksteel Gargoyle
 Dazzling Ramparts
+Decimator Beetle
 Disowned Ancestor
+Doric, Nature's Warden
+Doublecast
 Dreadwing
 Dromosaur
+Dwarven Bloodboiler
 Dáin of the Ancient Halls
+Elaborate Firecannon
 Elvish Lookout
 Enlistment Officer
+Esper Sentinel
 Exalted Flamer of Tzeentch
 Excavation Explosion
 Exiled Boggart
@@ -50,6 +71,7 @@ Falkenrath Reaver
 Fang of Shigeki
 Feed the Infection
 Felhide Spiritbinder
+Fend Off
 Flowstone Shambler
 Forest
 Foxfire
@@ -59,72 +81,121 @@ Gallantry
 Gang of Elk
 Glint
 Goblin Caves
+Goblin Cohort
+Goblin Gardener
+Goblin Picker
 Goblin War Paint
 Grapeshot Catapult
+Grasping Thrull
 Halo Forager
 Halo Hopper
+Hapatra's Mark
+Harmonious Archon
 Haunted Cadaver
 Heal the Scars
+Heart-Piercer Bow
 Heated Debate
 Herbal Poultice
 Hobbit's Sting
 Holy Justiciar
 Howlgeist
+Hungry Megasloth
 Icy Blast
+Ignite the Beacon
+Inner Demon
 Ipnu Rivulet
 Ironclaw Orcs
 Island
 Ivora, Insatiable Heir
+Ivory Cup
 Jace's Archivist
 Join Forces
+Jolting Merfolk
 Karsus Depthguard
 Kaya's Onslaught
 Kenrith, the Returned King
+Kinetic Ooze
+King Suleiman
 Kismet
+Knight of the White Orchid
+Kraul Foragers
+Kraul Warrior
 Krosan Druid
 Kuldotha Flamefiend
 Leonin Squire
+Liliana's Devotee
+Lingering Souls
+Living Terrain
+Lizard Warrior
+Lothlórien Blade
 Magefire Wings
 Mageta the Lion
+Magma Giant
 Mahamoti Djinn
 Maja, Bretagard Protector
 Marang River Skeleton
 Marsh Flitter
+Marsh Threader
 Mascot Interception
 Master of Arms
+Mightstone's Animation
 Mischievous Poltergeist
 Mists of Littjara
 Monumental Henge
 Moonlit Scavengers
 Mountain
+Murasa Behemoth
+Mystic Zealot
 Need for Speed
 Neurok Stealthsuit
 Nim Grotesque
+Oathkeeper, Takeno's Daisho
+One with Nothing
+Oran-Rief Recluse
 Oraxid
+Orcish Mechanics
+Ori, Plate Stacker
+Ornery Kudu
 Orthion, Hero of Lavabrink
 Outland Colossus
 Paragon of Open Graves
 Patrician's Scorn
+People of the Woods
 Phyrexian Denouncer
+Phyrexian Pegasus
 Plains
 Pointed Discussion
 Prison Realm
 Radiant Purge
+Ragged Veins
 Raging Gorilla
+Ravenous Squirrel
 Raze
+Realm Seekers
 Reave Soul
+Reckless Abandon
 Regal Force
+Regal Unicorn
 Restock
 Return the Past
 Reward the Faithful
 Ridgeline Rager
+Righteous Blow
+Ripjaw Raptor
+Ritual of Restoration
 Root-Kin Ally
+Royal Trooper
+Sanctuary Lockdown
 Sandsteppe Scavenger
 Scalding Tongs
 Screeching Phoenix
+Scroll Thief
 Seal from Existence
+Searing Flesh
 Selective Memory
 Servant of Nefarox
+Seton's Desire
+Shadow Summoning
 Shields of Velis Vel
 Shimmering Grotto
 Shivan Oasis
@@ -133,26 +204,43 @@ Silverback Ape
 Skarrg, the Rage Pits
 Skeletal Changeling
 Skittering Precursor
+Skyrider Trainee
+Soldier On
+Somberwald Dryad
+Spined Tyrranax
 Spreading Flames
+Springmane Cervin
+Squad Captain
 Stalking Tiger
+Steam Catapult
+Stir the Pride
 Stomper Cub
+Stoneskin
 Storm World
 Sunscape Familiar
 Surge of Salvation
 Suspension Field
+Suspicious Bookcase
 Suture Priest
 Swamp
 Swirling Sandstorm
+Sword of Hours
 The Mirari Conjecture
 Thornscape Familiar
 Tireless Tribe
 Traveling Minister
+Twigwalker
 Tymaret Calls the Dead
+Tyrranax Rex
 Undercity Scrounger
+Underdark Basilisk
 Underworld Breach
 Unstable Mutation
 Vedalken Blademaster
 Vexing Beetle
+Vicious Battlerager
+Village Elder
+Vulshok Heartstoker
 War Flare
 Warded Battlements
 Warm Welcome
@@ -163,4 +251,5 @@ Whispers of the Muse
 Wizards of Thay
 Yanling's Harbinger
 Yavimaya Granger
+Zendikar Farguide
 Zulaport Enforcer

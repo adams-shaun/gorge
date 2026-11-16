@@ -1,10 +1,11 @@
 package dirac
 
-// markFogFirst records, for a first-strike damage step a Fog skips, the
-// creatures that took part in it: gorge notes the first strikers as the step
-// begins (actsThisDamageStep / collectFirstStrikers, CR 510.4), so a first
-// striker whose damage was all prevented still sits out the regular step.
-// combatDamage sets pfDealtFirst in the same two places for a step that runs.
+// markFogFirst records that the first-strike damage step passed for every
+// creature that deals damage in it, when a prevention effect skipped the
+// damage pass (combatDamage sets pfDealtFirst as it goes). CR 510.4: a
+// creature with first strike and not double strike deals no regular combat
+// damage, however its first-strike damage fared; gorge reads the keyword, not
+// a record, so the kernel must not pose that creature's division again.
 func (s *State) markFogFirst(k *prep) {
 	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
 		a := am.first()
@@ -15,8 +16,7 @@ func (s *State) markFogFirst(k *prep) {
 	}
 	for bm := s.oppsM(s.active); bm.any(); bm = bm.rest() {
 		b := bm.first()
-		bp := &s.perms[b]
-		if bp.flags&pfBlocking != 0 && bp.blocking != NoSlot && s.dealsNow(k, b, true) {
+		if bp := &s.perms[b]; bp.flags&pfBlocking != 0 && bp.blocking != NoSlot && s.dealsNow(k, b, true) {
 			bp.flags |= pfDealtFirst
 			s.touchSl(b)
 		}

@@ -1,3 +1,7 @@
+A-Sprouting Goblin
+Airborne Aid
+Akoum Stonewaker
+Ambitious Assault
 Amrou Seekers
 Anafenza, Kin-Tree Spirit
 Annex
@@ -14,6 +18,7 @@ Baton of Courage
 Bazaar of Baghdad
 Betrayal
 Blisterpod
+Blood Hound
 Blood Petal Celebrant
 Bloodstained Mire
 Breya's Apprentice
@@ -28,6 +33,7 @@ Chance-Met Elves
 Chandler
 Chatter of the Squirrel
 Childhood Horror
+Cleansing Wildfire
 Cloak of Feathers
 Conclave Naturalists
 Connive
@@ -38,22 +44,30 @@ Crowd of Cinders
 Curse of Inertia
 Daily Bugle Newspaper
 Danitha Capashen, Paragon
+Deathbellow War Cry
 Deluge
 Dematerialize
 Devastation
 Devout Witness
 Diregraf Scavenger
 Doomsday
+Dreamcatcher
 Drifting Djinn
 Dusk
 Duskrider Falcon
 Eidolon of the Great Revel
 Elder of Laurels
+Embereth Skyblazer
 Excavation Technique
+Falkenrath Perforator
 Fallowsage
+False Memories
+Field of Reality
+Fire Nation's Conquest
 Flay
 Folk Medicine
 Forest
+Frenzied Fugue
 Fulminator Mage
 Gallant Cavalry
 Galvanic Bombardment
@@ -61,7 +75,9 @@ Geistcatcher's Rig
 Ghosts of the Damned
 Giant Strength
 Gisa's Bidding
+Glimmerbell
 Goblin Cohort
+Goblin Piker
 Grasslands
 Green Goblin, Nemesis
 Greenhilt Trainee
@@ -69,13 +85,17 @@ Guardian of Pilgrims
 Gudul Lurker
 Hapatra's Mark
 Healer of the Pride
+Hero's Blade
+Hexplate Golem
 Hit-Monkey
 Hornet Cannon
 Huatli, the Sun's Heart
 Hulking Goblin
 Hypnotic Grifter
+Implement of Examination
 Increasing Vengeance
 Infected Defector
+Infernal Idol
 Irenicus's Vile Duplication
 Island
 Isperia, Supreme Judge
@@ -95,32 +115,47 @@ Loyal Fire Sage
 Ma Chao, Western Warrior
 Madrush Cyclops
 Majestic Heliopterus
+Manic Vandal
 Maw of the Obzedat
 Merrow Wavebreakers
+Mind Control
 Mindclaw Shaman
 Mindcrank
 Mine Bearer
+Minotaur Aggressor
+Mise
+Mizzium Meddler
 Mogis's Favor
 Mons's Goblin Raiders
 Moonglove Extract
 Mountain
 Mourning Thrull
 Nether Void
+Nightmares and Daydreams
 Nissa's Encouragement
+Null Rod
 Oath of Gideon
 Oculus
 Off Balance
+Ogre Battledriver
+Ogre Leadfoot
+Ogre Warrior
 Onyx Goblet
 Oran-Rief Hydra
 Orcish Oriflamme
 Original Skullclamp
+Patagia Golem
+Phantom Ninja
 Phyrexian Espionage
 Pilfered Plans
 Plains
+Precision Bolt
 Predator's Rapport
 Princess Lucrezia
+Prohibit
 Rathi Dragon
 Reflections of Littjara
+Reforge the Soul
 Revered Dead
 Rhox Charger
 Rishadan Port
@@ -129,42 +164,56 @@ Roar of the Wurm
 Rootless Yew
 Rowan, Fearless Sparkmage
 Rummaging Wizard
+Runed Crown
 Sacred Knight
 Scavenger Grounds
 Scour the Laboratory
 Scourgemark
+Scroll of Griselbrand
 Seasoned Marshal
 Selhoff Occultist
 Sentry Bot
 Serene Heart
+Servo Schematic
 Shield of the Ages
 Shinechaser
 Shower of Arrows
 Shriekhorn
+Silent Submersible
+Silkwing Scout
 Silverbluff Bridge
 Skyclaw Thrash
 Slaughter-Priest of Mogis
 Sleeper Dart
+Snapsail Glider
 Solphim, Mayhem Dominus
 Soothsayer Adept
+Spikeshot Elder
+Spite of Mogis
 Spitting Sliver
 Squad Captain
 Staff of the Death Magus
+Starnheim Memento
 Stone Spirit
 Storm God's Oracle
+Structural Assault
 Sungrass Egg
 Swamp
+Swiftgear Drake
 Sylvan Might
 Syndicate Enforcer
 Tezzeret's Touch
+The Blackstaff of Waterdeep
 Thraxodemon
 Titanic Ultimatum
 Tramway Station
 Transmogrifying Licid
 Traproot Kami
 True Love's Kiss
+Trumpet Blast
 Turtle-Seals
 Undead Slayer
+Urza's Incubator
 Utrom Monitor
 Vigorspore Wurm
 Vulturous Aven
@@ -172,7 +221,10 @@ Wall of Lost Thoughts
 Wall of Spears
 Warren Weirding
 Waste Not
+Weapon Rack
+Whetstone
 Whimwader
 Wild Instincts
+Winter Eladrin
 Wintermoon Mesa
 Zealous Inquisitor

@@ -2,6 +2,7 @@ A-Excavation Explosion
 A-Heartfire Hero
 Aang, Air Nomad
 Absorb
+Academy Raider
 Accursed Spirit
 Acid Rain
 Adeline, Resplendent Cathar
@@ -14,51 +15,77 @@ Ankh of Mishra
 Ascendant Acolyte
 Ashenmoor Gouger
 Assimilate Essence
+Atarka, World Render
 Attunement
 Balduvian Horde
+Balduvian Rage
 Banishment Decree
+Barbarian General
+Barrin, Tolarian Archmage
 Black Vise
+Blood Knight
+Blossoming Wreath
 Blur of Blades
+Bond of Insight
 Bone Sabres
 Bonepicker Skirge
+Brain Gorgers
 Butcher's Glee
 Cabal Patriarch
 Castle Raptors
+Catacomb Crocodile
+Cavalier of Thorns
 Chaos Lord
 Chaos Warp
 Chief of the Foundry
+Citadel of Pain
 Cleopatra, Exiled Pharaoh
 Collective Blessing
 Colossal Dreadmask
 Combo Attack
 Coming In Hot
 Confessor
+Core Prowler
 Corpse Hauler
+Cragplate Baloth
 Cranial Plating
 Crazed Goblin
 Creature Bond
 Cruel Tutor
 Crush of Wurms
+Cunning Advisor
 Curse of Chains
 Cutthroat Maneuver
 Darksteel Citadel
+Dawn to Dusk
 Deadly Allure
 Death Wish
+Deathcult Rogue
+Deconstruct
 Delusions of Mediocrity
 Deny Entry
 Devout Monk
 Diregraf Rebirth
+Discordant Dirge
 Donald Blake, Guise of Thor
 Draconic Disciple
 Dream Twist
+Duskrider Peregrine
 Dutiful Thrull
 Dystopia
 Echoing Truth
+Elanor Gardner
+End the Festivities
 Entropic Eidolon
+Equilibrium
 Essence Flux
+Explosive Revelation
+Fa'adiyah Seer
 Fable of Wolf and Owl
 Fatestitcher
 Feldon of the Third Path
+Fin-Clade Fugitives
+Finale of Devastation
 Fireblast
 Five Hundred Year Diary
 Flame Slash
@@ -66,10 +93,13 @@ For the Family
 Forest
 Forge Devil
 Frogmite
+Funeral Pyre
 Gamma Grotesque
 Genju of the Cedars
 Ghostly Changeling
+Giant Killer
 Glamdring
+Goblin Balloon Brigade
 Gorging Vulture
 Gravedigger
 Greater Werewolf
@@ -84,11 +114,16 @@ Harvest Gwyllion
 Havoc Demon
 Headwater Sentries
 Hearth Charm
+Hissing Iguanar
 Horn of the Mark
+Hornet Harasser
 Howling Gale
+Hurler Cyclops
+Hyena Pack
 Icon of Ancestry
 Ill-Gotten Inheritance
 Imperial Outrider
+Infectious Inquiry
 Inheritance
 Island
 Jhoira's Toolbox
@@ -99,16 +134,24 @@ Keeper of Keys
 Keldon Arsonist
 Kelinore Bat
 Kiku, Night's Flower
+Krav, the Unredeemed
 Liliana's Indignation
+Liliana, the Last Hope
 Lunar Force
 Madame Vastra
 Majestic Heliopterus
+Make a Wish
 Mana-Charged Dragon
 Mayhem Devil
 Michiko's Reign of Truth
+Mist Raven
+Mob Rule
 Monastery Flock
 Mountain
+Mountain Bandit
+Mythic Proportions
 Nantuko Shaman
+Navigator's Ruin
 Nephalia Moondrakes
 Nezumi Graverobber
 Nick Fury, Spymaster
@@ -121,40 +164,66 @@ Onyx Mage
 Oran-Rief Survivalist
 Orb of Dreams
 Overgrown Battlement
+Ovinize
+Pact of Negation
 Parasitic Strix
+Patrolling Peacemaker
 Patron Wizard
 Pestilent Wolf
 Photon, Lady of Light
+Phyrexian Driver
+Phyrexian Reaper
+Phyrexian Soulgorger
 Plains
+Planar Portal
+Praetor's Counsel
 Price of Fame
+Priest of Forgotten Gods
 Putrid Warrior
+Quartzwood Crasher
+Ravenous Gigamole
 Reanimate
 Rebuild
 Recon Craft Theta
+Remorseful Cleric
 Renegade Demon
+Replication Specialist
+Retreat to Emeria
 Return to Action
+Return to Battle
 Rhonas's Monument
 Rise of Eagles
 Rise of the Witch-king
 Rise to Glory
+Rising of the Day
 Sabertooth Nishoba
 Scribe of the Mindful
 Scroll of Avacyn
 Seasoned Pyromancer
+Sedge Troll
 Shapers of Nature
+Shelob's Ambush
 Shinka, the Bloodsoaked Keep
 Shrapnel Slinger
 Sift
 Silumgar Sorcerer
 Silverchase Fox
+Slash of Talons
 Sliversmith
+Soldevi Steam Beast
+Spectacular Showdown
+Spider-Man, Hometown Hero
 Squirming Mass
 Starved Rusalka
 Storm Fleet Swashbuckler
+Storm-Kiln Artist
+Street Riot
 Strength of Cedars
 Structural Distortion
+Sunbond
 Sundial of the Infinite
 Swamp
+Sylvan Awakening
 Telekinetic Sliver
 Teshar, Ancestor's Apostle
 Thassa's Oracle
@@ -162,10 +231,14 @@ Thermo-Alchemist
 They Came from the Pipes
 Thrashing Mudspawn
 Thunder Drake
+Tiger Shark, Abyssal Hunter
 Tinder Wall
 Tolabow, Loch Rascal
 Toski, Bearer of Secrets
 Traitorous Instinct
+Transgress the Mind
+Tremor
+True Love's Kiss
 Tuktuk the Explorer
 Twinblade Assassins
 Twitch
@@ -178,12 +251,21 @@ Utopia Vow
 Vampire of the Dire Moon
 Vampiric Link
 Vengeful Reaper
+Vengeful Rebel
+Vessel of Nascency
 Voice of Reason
 Wake of Vultures
+Wall of Reverence
+War-Torch Goblin
 Warleader's Helix
+Weaselback Redcap
+Wild Nacatl
 Will of the Temur
 Wings of the Guard
 Wirewood Pride
+Wolfkin Outcast
 Woodland Mystic
+Worldly Tutor
 Zephyr Sprite
 Zombie Infestation
+Zombie Outlander
