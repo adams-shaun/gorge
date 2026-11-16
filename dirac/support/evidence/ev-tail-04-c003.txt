@@ -71,6 +71,7 @@ Jilt
 Jump
 Juvenile Gloomwidow
 Kami of Transience
+Keskit, the Flesh Sculptor
 Kessig Prowler
 Kithkin Rabble
 Krovikan Whispers
@@ -96,6 +97,7 @@ Paladin en-Vec
 Patient Rebuilding
 Peach Garden Oath
 Pestilent Syphoner
+Phantom Wurm
 Placid Rottentail
 Plains
 Planar Gate
@@ -119,6 +121,7 @@ Rise Again
 River Kaijin
 Rolling Stones
 Rune Snag
+Rushwood Legate
 Sadistic Slash
 Sanctum Gargoyle
 Sarinth Greatwurm
@@ -142,6 +145,7 @@ Sphinx's Revelation
 Spoils of Evil
 Squirrel Sanctuary
 Star Whale
+Steward of Valeron
 Storm Front
 Swaggering Corsair
 Swamp
@@ -167,7 +171,9 @@ Village Elder
 Vodalian Serpent
 Voice of the Provinces
 Voracious Null
+Wall of Tombstones
 War Oracle
+Warpath Ghoul
 Wasteland Viper
 Watchful Automaton
 Well of Life

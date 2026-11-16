@@ -112,6 +112,36 @@ func (s *State) enterDefense(k *prep, sl Slot, c CardID) {
 	}
 }
 
+// battleOffer is the first battle pair addBattleOffers would add for the
+// creature at atk (NoSlot, false when none): the same walk, so
+// anyAttacker's empty-offer read (cantAtkEveryPair, combat_cantattack.go)
+// and declareMustAttack's battle declaration match the decision's own
+// enumeration.
+func (s *State) battleOffer(k *prep, atk Slot) (Slot, bool) {
+	sick := s.atkHasteSick(k, atk)
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		if sick && !s.atkHasteOK(k, atk, p) {
+			continue // a CanAttackIfHaste exemption names the defender seat (static_canattackifhaste.go)
+		}
+		for q := s.ctrlM[p]; q.any(); q = q.rest() {
+			if sl := q.first(); s.battleAttackable(k, sl, s.active) {
+				return sl, true
+			}
+		}
+	}
+	return NoSlot, false
+}
+
+// someBattleOffers reports whether a battle pair stands for the creature at
+// atk (battleOffer's existence half).
+func (s *State) someBattleOffers(k *prep, atk Slot) bool {
+	_, ok := s.battleOffer(k, atk)
+	return ok
+}
+
 // addBattleOffers appends the attack of attacker o on each attackable
 // battle: ascending seat, then battlefield order (gorge attackOffersCompute
 // walks every seat's battlefield).

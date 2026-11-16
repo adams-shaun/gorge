@@ -4,6 +4,7 @@ A-Mightstone's Animation
 A-Oran-Rief Ooze
 A-Revel Ruiner
 Adeliz, the Cinder Wind
+Aether Spellbomb
 Akroan Skyguard
 Alms Beast
 Alpha Tyrranax
@@ -11,6 +12,7 @@ Ambush Paratrooper
 Anaconda
 Anarchist
 Anowon, the Ruin Sage
+Anthousa, Setessan Hero
 Aphetto Alchemist
 Arc Lightning
 Arcane Melee
@@ -33,6 +35,7 @@ Beast of Burden
 Belligerent Whiptail
 Benalish Trapper
 Benthic Giant
+Bespoke Battlewagon
 Blaring Recruiter
 Bleed Dry
 Blessed Wine
@@ -64,6 +67,7 @@ Cast Out
 Castigate
 Cenn's Enlistment
 Cephalopod Sentry
+Champion of the Perished
 Chandler
 Chaos Charm
 Chatterstorm
@@ -81,8 +85,10 @@ Colossal Growth
 Combat Medic
 Conclave Tribunal
 Consider
+Coretapper
 Council's Judgment
 Cradle Guard
+Crocodile of the Crossing
 Crumbling Vestige
 Dark-Dweller Oracle
 Darksteel Splicer
@@ -96,6 +102,7 @@ Defense of the Heart
 Defensive Stance
 Defiant Elf
 Demolish
+Demolition Stomper
 Demon Bolt
 Descent into Avernus
 Desert Drake
@@ -136,6 +143,7 @@ Eternal Warrior
 Everythingamajig
 Eviscerator
 Expedition Champion
+Eye of Malcator
 Falcon Abomination
 False Summoning
 Fangs of Kalonia
@@ -172,18 +180,21 @@ Goldenhide Ox
 Grasping Scoundrel
 Gray Harbor Merfolk
 Grisly Survivor
+Gustcloak Sentinel
 Hammer of Purphoros
 Haunted Fengraf
 Haystack
 Heart Sliver
 Heir of the Ancient Fang
 Heir of the Wilds
+Helionaut
 Herald of Secret Streams
 Hoarding Ogre
 Hollow Trees
 Holy Day
 Honor's Reward
 Hoof Skulkin
+Horribly Awry
 Howl of the Horde
 Hungry Spriggan
 Hunting Grounds
@@ -207,6 +218,7 @@ Karplusan Wolverine
 Karstoderm
 Kazuul's Toll Collector
 Kederekt Leviathan
+Keeper of the Nine Gales
 Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
@@ -249,6 +261,7 @@ Mogg Salvage
 Moss Diamond
 Mossfire Egg
 Mountain
+Mu Yanling, Celestial Wind
 Murasa Rootgrazer
 Muscle Sliver
 Mystifying Maze
@@ -269,6 +282,7 @@ Otherworldly Journey
 Paleoloth
 Panther Robot
 Paragon of the Amesha
+Phalanx Leader
 Phalanx Tactics
 Phyrexian Rager
 Phyrexian Vault
@@ -307,6 +321,7 @@ Rot Wolf
 Rout
 Rowan's Stalwarts
 Rune-Cervin Rider
+Runic Repetition
 Rushwood Grove
 Rusted Slasher
 Sage-Eye Harrier
@@ -378,12 +393,14 @@ Stitcher's Graft
 Storm Strike
 Stormwing Entity
 Stream of Life
+Strength of Solidarity
 Strength of the Harvest
 Sudden Impact
 Sudden Insight
 Summer Bloom
 Sure-Footed Infiltrator
 Survive the Night
+Suspicious Stowaway
 Swamp
 Take Up Arms
 Talas Air Ship
@@ -392,6 +409,7 @@ Talas Merchant
 Talon of Pain
 Tempered Sliver
 Tempest Harvester
+Terra Stomper
 Tethered Skirge
 Thallid Devourer
 The Everforger
@@ -402,6 +420,7 @@ Thundercloud Shaman
 Tilling Treefolk
 Tireless Hauler
 Tolarian Geyser
+Tome of the Guildpact
 Topple the Statue
 Torens, Fist of the Angels
 Tormented Thoughts
@@ -433,18 +452,21 @@ Warbriar Blessing
 Warden of Geometries
 Warden of the Wall
 Warmth
+Warrant
 Weaver of Lightning
 Weldfast Wingsmith
 Wellwisher
 Whipcorder
 Whirler Virtuoso
 White Tiger, Amulet Keeper
+Windrider Eel
 Winds of Rebuke
 Wing It
 Witness the End
 Wu Scout
 Yahenni, Undying Partisan
 Yavimaya Elder
+Yavimaya Kavu
 Yotian Medic
 Zagoth Triome
 Zephid

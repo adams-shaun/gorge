@@ -6,6 +6,7 @@ Aether Meltdown
 Amrou Scout
 Ancestral Recall
 Anticipate
+April O'Neil, Live on the Scene
 Arboreal Grazer
 Arena of the Ancients
 Armguard Familiar
@@ -34,6 +35,7 @@ Cave of Temptation
 Circle of the Land Druid
 Cleanfall
 Clout of the Dominus
+Commencement of Festivities
 Commune with Dinosaurs
 Consuming Fervor
 Crash of Rhinos
@@ -148,7 +150,9 @@ Plant Elemental
 Predation Steward
 Prickly Boggart
 Primal Huntbeast
+Promise of Bunrei
 Pyretic Ritual
+Ramirez DePietro, Pillager
 Ramosian Greatsword
 Ramses Overdark
 Raphael, Fiendish Savior

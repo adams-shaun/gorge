@@ -1,5 +1,6 @@
 A-Bretagard Stronghold
 A-Sprouting Goblin
+Adult Gold Dragon
 Aesthir Glider
 Aggressive Instinct
 Airborne Aid
@@ -40,6 +41,7 @@ Captain America, Unbowed
 Capture Sphere
 Carapace
 Careful Consideration
+Careful Cultivation
 Carnivorous Plant
 Catacomb Slug
 Catalyst Elemental
@@ -51,6 +53,7 @@ Chandler
 Chatter of the Squirrel
 Chieftain en-Dal
 Childhood Horror
+Chimney Imp
 Cleansing Wildfire
 Cloak of Feathers
 Coffin Purge
@@ -73,6 +76,7 @@ Danitha Capashen, Paragon
 Daring Saboteur
 Dawnstrike Paladin
 Daysquad Marshal
+Deathbellow War Cry
 Deem Inferior
 Deluge
 Dematerialize
@@ -85,17 +89,22 @@ Dirtcowl Wurm
 Doc Ock, Evil Inventor
 Doomsday
 Dragon Egg
+Drana's Silencer
+Dreamcatcher
 Drifting Djinn
 Drownyard Lurker
+Druid Lyrist
 Dusk
 Duskrider Falcon
 Dust Bowl
 Edge of Autumn
 Eidolon of the Great Revel
 Eiganjo Free-Riders
+Elder Gargaroth
 Eldritch Evolution
 Embereth Skyblazer
 Envelop
+Excava, the Risen Past
 Excavation Technique
 Expansion
 Extraction Specialist
@@ -123,6 +132,7 @@ Geistcatcher's Rig
 Ghosts of the Damned
 Ghoultree
 Giant Strength
+Gisa and Geralf
 Gisa's Bidding
 Glimmerbell
 Goblin Cohort
@@ -141,9 +151,12 @@ Guardian of Pilgrims
 Gudul Lurker
 Guiding Bolt
 Hapatra's Mark
+Haunter of Nightveil
 Healer of the Pride
 Herald of Dromoka
+Hero of the Nyxborn
 Hero's Blade
+Hero's Demise
 Hexplate Golem
 Hissing Miasma
 Hit-Monkey
@@ -159,8 +172,10 @@ Implement of Examination
 Increasing Vengeance
 Infected Defector
 Infernal Idol
+Invasion of Shandalar
 Irenicus's Vile Duplication
 Island
+Isolation Zone
 Isperia, Supreme Judge
 Istvan, Butcher of Eln
 Jarvis, Earth's Mightiest Butler
@@ -189,6 +204,7 @@ Ma Chao, Western Warrior
 Magus of the Library
 Majestic Heliopterus
 Manic Vandal
+Mark of Asylum
 Markov Crusader
 Maw of the Obzedat
 Menagerie Liberator
@@ -197,6 +213,7 @@ Mind Control
 Mindclaw Shaman
 Mindcrank
 Mine Bearer
+Minotaur Aggressor
 Mirri's Guile
 Mise
 Mizzium Meddler
@@ -207,6 +224,7 @@ Mortarpod
 Mountain
 Mourning Thrull
 Mystic Repeal
+Nardole, Resourceful Cyborg
 Nature's Claim
 Needle Specter
 Nether Void
@@ -219,6 +237,7 @@ Oath of Gideon
 Oculus
 Off Balance
 Ogre Battledriver
+Ogre Leadfoot
 Ogre Warrior
 Onyx Goblet
 Oran-Rief Hydra
@@ -232,8 +251,10 @@ Patrician's Scorn
 Peach Garden Oath
 Peregrination
 Phantom Ninja
+Phyrexian Bloodstock
 Phyrexian Espionage
 Pilfered Plans
+Pious Kitsune
 Plains
 Planequake
 Plate Armor
@@ -247,12 +268,14 @@ Prowling Caracal
 Quicksand
 Raggadragga, Goreguts Boss
 Rathi Dragon
+Razaketh, the Foulblooded
 Recollect
 Reforge the Soul
 Rend Spirit
 Return to Nature
 Revered Dead
 Rhox Charger
+Rhys the Redeemed
 Riddlemaster Sphinx
 Rishadan Port
 Rite of Harmony
@@ -275,6 +298,7 @@ Scavenger Grounds
 Scour the Laboratory
 Scourgemark
 Scroll of Griselbrand
+Searing Meditation
 Seasoned Marshal
 Second Harvest
 Seize the Initiative
@@ -293,6 +317,7 @@ Sick and Tired
 Sigil Blessing
 Silent Submersible
 Silhana Ledgewalker
+Silkweaver Elite
 Silkwing Scout
 Silver Raven
 Silverbluff Bridge
@@ -322,6 +347,7 @@ Stone Spirit
 Stonehands
 Stonehorn Chanter
 Storm God's Oracle
+Storm Herd
 Structural Assault
 Sundial of the Infinite
 Sungrass Egg
@@ -336,6 +362,7 @@ The Blackstaff of Waterdeep
 Thran Dynamo
 Thraxodemon
 Time of Need
+Tishana, Voice of Thunder
 Titania's Chosen
 Tramway Station
 Transmogrifying Licid
@@ -344,14 +371,17 @@ True Love's Kiss
 Trumpet Blast
 Trusty Retriever
 Turtle-Seals
+Uktabi Kong
 Undead Hand Ninja
 Underworld Breach
 Unlikely Aid
 Urza's Incubator
 Utrom Monitor
+Vastwood Surge
 Vectis Agents
 Veil of Assimilation
 Vigorspore Wurm
+Vivien, Champion of the Wilds
 Volatile Claws
 Volatile Fjord
 Votary of the Conclave
@@ -359,6 +389,7 @@ Vulturous Aven
 Wakestone Gargoyle
 Wall of Lost Thoughts
 Wall of Spears
+Wander in Death
 Warren Weirding
 Waste Not
 Weapon Rack

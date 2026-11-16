@@ -129,10 +129,12 @@ Exuberant Fuseling
 Eye of Ugin
 Fable of the Mirror-Breaker
 Faeburrow Elder
+Faramir, Steward of Gondor
 Favor of the Overbeing
 Feeling of Dread
 Feral Prowler
 Feroz's Ban
+Fevered Suspicion
 Fierce Guardianship
 Fire
 Fire Dragon
@@ -179,6 +181,7 @@ Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
 Hallowed Respite
+Harness Infinity
 Harvester Troll
 Headhunter
 Heroes' Reunion
@@ -288,6 +291,7 @@ Psychic Membrane
 Pulse of Murasa
 Purge
 Purple-Crystal Crab
+Putrid Goblin
 Pyromancer's Assault
 Quagmire Lamprey
 Quarantine Field
@@ -343,6 +347,7 @@ Sejiri Refuge
 Select for Inspection
 Senate Griffin
 Serpent of the Endless Sea
+Serrated Arrows
 Serum Raker
 Sethron, Hurloon General
 Settlement Blacksmith
@@ -360,6 +365,7 @@ Siphon Insight
 Sisay, Weatherlight Captain
 Skarrg Goliath
 Skull of Orm
+Slipstream Eel
 Somberwald Spider
 Spaceshift
 Spark Mage
@@ -394,6 +400,7 @@ Symbiosis
 Taigam's Strike
 Talisman of Impulse
 Taunting Kobold
+Teferi's Moat
 Telim'Tor's Darts
 Tempest Caller
 Thalia, Guardian of Thraben
@@ -415,6 +422,7 @@ Tyrant's Scorn
 Uktabi Wildcats
 Ulvenwald Bear
 Urborg Skeleton
+Uro, Titan of Nature's Wrath
 Valko Indorian
 Vampire Bats
 Vernal Bloom
@@ -436,10 +444,12 @@ Wallop
 Wandering Treefolk
 War Screecher
 Warmonger
+Warped Researcher
 Waterfront District
 Wayward Servant
 Wellwisher
 Whipstitched Zombie
+Wildgrowth Walker
 Will of the All-Hunter
 Windrider Patrol
 Wolfsbane, Highland Hero

@@ -1,8 +1,10 @@
 Aeolipile
 Aeronaut's Wings
 Ageless Guardian
+Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
+Amulet of Kroog
 Annoyed Altisaur
 Apprentice Sorcerer
 Archfiend of Sorrows
@@ -30,6 +32,7 @@ Definitely Not a Turtle
 Demystify
 Dormant Sliver
 Drana, Liberator of Malakir
+Dwarven Warriors
 Dwell on the Past
 Elite Scaleguard
 Elspeth Tirel
@@ -38,25 +41,30 @@ Enthusiastic Mechanaut
 Essence Flare
 Eviscerator's Insight
 Expedition Diviner
+Fault Riders
 Feral Ridgewolf
+Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Footfall Crater
 Forest
 Forget
 Fourth Bridge Prowler
+Frontline Devastator
 Geier Reach Sanitarium
 Ghastly Demise
 Ghostly Visit
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
 Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
 Haunted Cloak
+Heart Sliver
 Hollowhenge Overlord
 Howlpack Resurgence
 Hulking Cyclops
@@ -82,6 +90,7 @@ Loathsome Catoblepas
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
+Magus of the Candelabra
 Master Decoy
 Meldweb Strider
 Merrow Bonegnawer
@@ -89,6 +98,7 @@ Metallic Mastery
 Mind Drain
 Mirrodin Avenged
 Mirror Image
+Misthios's Fury
 Monstrous Hound
 Mountain
 Multiversal Recruitment
@@ -105,6 +115,7 @@ Plains
 Pollenbright Wings
 Psychic Spear
 Purifying Dragon
+Quicksilver Dagger
 Raiding Nightstalker
 Raving Oni-Slave
 Razorjaw Oni
@@ -135,6 +146,8 @@ Star of Extinction
 Steel Golem
 Steeple Roc
 Strength of Arms
+Strike It Rich
+Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict

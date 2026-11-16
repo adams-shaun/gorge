@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -97,7 +98,7 @@ func (tc *triggeredEffectCost) triggerSubCounterPayable(e *Engine, c Cost) bool 
 		return ok
 	}
 	o := e.G.Obj(tc.source)
-	if !pay.ExistsOnBattlefield(o) {
+	if !pay.ExistsOnBattlefield(o) || tc.sourceIsNewObject(e) {
 		return false
 	}
 	var total int32
@@ -108,6 +109,15 @@ func (tc *triggeredEffectCost) triggerSubCounterPayable(e *Engine, c Cost) bool 
 		}
 	}
 	return pay.SubCounterAvailable(o, anyCounterKind) >= total
+}
+
+// sourceIsNewObject reports that the parked ability's source left the
+// battlefield and came back since the ability went on the stack: the counters
+// on the permanent now standing there belong to a new object (CR 400.7), so
+// "remove a counter from it" names nothing the ability can pay from
+// (Kappa Tech-Wrecker's trigger after a Ninjutsu bounce and replay).
+func (tc *triggeredEffectCost) sourceIsNewObject(e *Engine) bool {
+	return tc.resume != nil && effects.SourceIsNewObject(e.G, e.G.Obj(tc.resume.obj))
 }
 
 // triggerSubCounterKinds lists, in the source's counter order, the kinds an

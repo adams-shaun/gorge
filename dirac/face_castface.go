@@ -29,6 +29,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // castFace is the AkCast mode bit of a face cast (target = the face).
 const castFace uint8 = 1 << 2
 
+// facePoolNoTap is the FeatPoolPays mode of a face cast's pool test: the pool
+// pays the face's own cost with no convoke or improvise credit (still the
+// delve credit). gorge's pool-only offer of a face prices the raw face cost
+// (legal_walk.go offerCastableAsFace), and a credited face is a
+// "cost:credit" decline of its potential plan, so Inspiring Statuary's
+// improvise leaves Explosive Crystal unoffered while the credit alone pays it.
+const facePoolNoTap uint8 = 16
+
 // faceCastable reports whether p may cast object o (in its zone now) as
 // card c, its face up for the cast, with the timing, prohibition, target,
 // cost-object and mana gates of the hand walk. The cost is read with the
@@ -68,7 +76,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 		if ok && k.gen.anyFuse && !s.fusePoolGate(k, p, o, c) {
 			ok = false // gorge's planner prices no fused cast: only the floating pool casts it (face_fuse.go)
 		}
-		if ok && s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand) && !s.FeatPoolPays(p, o, 0) {
+		if ok && s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand) && !s.FeatPoolPays(p, o, facePoolNoTap) {
 			ok = false // a granted-delve face is a "shape:contribution" the planner declines: only the floating pool casts it
 		}
 		if ok && s.cfg&cfgGorgeUnpriced != 0 && facePlannerLimited(k.t.Cards[c].FaceMode) && !s.FeatPoolPays(p, o, 0) {
