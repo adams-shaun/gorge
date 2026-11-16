@@ -14,11 +14,15 @@ func (s *State) paySacSelf(k *prep) {
 
 // payDraw pays kop.PayDraw: the payer draws n cards (gorge cumulative.go's
 // Draw-bearing triggered cost: drawCostCard per count; an empty library is
-// a draw from it, CR 121.4).
+// a draw from it, CR 121.4). A draw cost is not an effect draw: gorge's
+// rules pay it plainly, no dredge ask, so each card is latched past
+// dredgeHeld once (kw_dredge.go).
 //
 //go:noinline
 func (s *State) payDraw(p uint8, n int) {
 	for i := 0; i < n && !s.over; i++ {
+		s.cfgx |= cfgxDredgeAsked
 		s.draw(p)
+		s.cfgx &^= cfgxDredgeAsked
 	}
 }

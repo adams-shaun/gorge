@@ -19,14 +19,26 @@ var DebugRecruitAlwaysToken bool
 // generated-table iota block cannot collide with a sibling family.
 const raRecruitDiscard = raGenManifestDread + 60
 
-// recruitStart is OpExt ExtRecruit: the draw, then the discard. A hand of at
-// most one card discards it in place (gorge's strict-supersets no-ask rule);
-// a larger hand poses the pick (raRecruitDiscard).
+// recruitStart is OpExt ExtRecruit: the draw, then the discard. The draw
+// asks the dredge ask first when its player has a candidate (kw_dredge.go).
+// A hand of at most one card discards it in place (gorge's strict-supersets
+// no-ask rule); a larger hand poses the pick (raRecruitDiscard).
 //
 //go:noinline
 func (s *State) recruitStart(k *prep) bool {
 	p := s.res.e.ctrl
+	if !s.dredgeResPose(k, p, dredgeResRecruit, 1) {
+		return false // the dredge ask is posed; its answer's tail runs recruitTail
+	}
 	s.draw(p) // CR 121.1: the draw comes first
+	return s.recruitTail(k, false)
+}
+
+// recruitTail is Recruit's discard half, after its draw. resume: called from
+// the answered dredge ask, which continues the program itself; false: the op
+// is finishing in runProg, which goes on by itself.
+func (s *State) recruitTail(k *prep, resume bool) bool {
+	p := s.res.e.ctrl
 	pl := &s.pl[p]
 	switch {
 	case pl.handN == 0:
@@ -45,6 +57,9 @@ func (s *State) recruitStart(k *prep) bool {
 		s.res.askP = p
 		s.res.chosen = objWord(p)
 		return false
+	}
+	if resume {
+		s.continueRes(k, 0)
 	}
 	return true
 }
