@@ -255,7 +255,7 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 	if !pc.painOnly {
 		m = prim
 	}
-	if s.g.availX&availWinCol != 0 || int(pc.painN) < int(s.pl[p].life) {
+	if s.g.availX&availWinCol != 0 && !pc.painLife || int(pc.painN) < int(s.pl[p].life) {
 		m |= uint8(pc.painCol) & 0x3f
 	}
 	return m
@@ -270,7 +270,7 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 // life" alternative (painLife, not painOnly) commits life too, so a later
 // source sees less.
 func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
-	if s.g.availX&availWin == 0 || !pc.painOnly || !pc.painLife {
+	if s.g.availX&(availWin|availWinCol) == 0 || !pc.painOnly || !pc.painLife {
 		return s.painAvailMask(pc, p)
 	}
 	var ord [MaxPerm]Slot
@@ -627,7 +627,11 @@ func (s *State) availWindowFor(k *prep, p uint8, a *avail) {
 // availWinCol is the availFor mode of a manual cast window's affordability
 // (a hybrid pip's announcement: gorge's planner refuses the cost, the
 // window pays it): every painful colour counts, with no lethal guard (the
-// window's answer taps a painland for a colour whatever the life).
+// window's answer taps a painland for a colour whatever the life). A
+// paid-life source (Mana Confluence, Starting Town) keeps its guard: gorge's
+// source-window probe skips a paid-life alternative that would leave the payer
+// at 0 or below (pay.windowManaAlt LifeKeep), so a hybrid face only that
+// source could make is not offered at 1 life (painAvailMaskAt).
 const availWinCol uint8 = 64
 
 // availCastWindowFor is availFor under availWinCol.

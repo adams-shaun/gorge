@@ -163,6 +163,17 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		// counts it, so Pyromancer's Goggles alone funds Three Tree Mascot's {1}
 		n += s.scriptDeferred(k, p).count()
 	}
+	if k.gen.anyManaRider {
+		// a bounded rider source (Peat Bog's {B}{B}): gorge's PotentialMana
+		// counts its production (availPotentialFor's rider arm), so a depletion
+		// land alone funds Gruul Signet's {1} (CR 605.3a)
+		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+			if sl := b.first(); !s.canTapForMana(k, sl) && s.riderPotential(k, p, sl) {
+				a, _ := s.riderAbilityOf(k, sl)
+				n += max(int(a.ManaN), 1)
+			}
+		}
+	}
 	return n
 }
 
