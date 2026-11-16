@@ -41,8 +41,10 @@ func storeProbeMatchup(t *testing.T) storeProbe {
 }
 
 // TestStoreManaGap: Bottomless Vault's single-colour storage-battery mana
-// ability is a counter gap: scriptCtr reaches it, the potential walk counts
-// its live counters, and activating it removes every counter and makes that
+// ability is a counter gap: scriptCtr reaches it, the potential walk folds
+// its indeterminate Amount$ open (gorge potentialAmount: an announced
+// Count$xPaid production is potentialUnbounded in every colour, whatever the
+// live counters), and activating it removes every counter and makes that
 // many mana. The lowering itself is dirac/kgen's storageland_test.go.
 func TestStoreManaGap(t *testing.T) {
 	p := storeProbeMatchup(t)
@@ -56,8 +58,9 @@ func TestStoreManaGap(t *testing.T) {
 	}
 	var pot avail
 	sc.s.availPotential(sc.k, 0, &pot)
-	if pot.total != 3 {
-		t.Fatalf("availPotential.total = %d, want 3", pot.total)
+	// the battery is the only source, so only an open fold covers this
+	if !pot.affords(&kop.ManaCost{Generic: 20}, 0, 0) {
+		t.Fatalf("availPotential does not fold the battery open: total %d", pot.total)
 	}
 	sc.s.ctrGap(sc.k, 0, sl, -1)
 	if n := sc.s.perms[sl].ctrN(sc.s, int(kop.CtrStorage)); n != 0 {

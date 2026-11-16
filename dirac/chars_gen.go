@@ -698,6 +698,11 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 		bp -= 2 * m
 		bt -= m
 	}
+	if k.gen.uses.has(usePTKinds) {
+		dp, dt := s.ptKindsDelta(k, p) // CR 122.1a the other P/T counter kinds (ctr_ptkinds.go)
+		bp += dp
+		bt += dt
+	}
 	if s.statM.any() || s.g.nemb[0]+s.g.nemb[1] != 0 {
 		s.eachStaticC(k, sclsPT, func(st statSrc) bool {
 			a := st.a

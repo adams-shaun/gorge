@@ -602,9 +602,8 @@ func (s *State) sba(k *prep) bool {
 						s.regenerate(sl)
 						continue
 					}
-					if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-						s.cfgx |= cfgxShieldPass // CR 122.1c: the counter goes instead, the damage stays marked for the next pass
-						continue
+					if s.sbaSpare(k, sl, &die) {
+						continue // the shield counter or umbra armor took the destruction (kw_umbraarmor.go)
 					}
 					die = die.with(sl)
 				}
@@ -664,9 +663,7 @@ func (s *State) sba(k *prep) bool {
 		if k.ctrMana {
 			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
 		}
-		if k.gen != nil && k.gen.anyM2M1 {
-			s.sbaCtrTough(k, kop.CtrM2M1, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1)
-		}
+		s.sbaPTKinds(k, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1) and the other toughness-lowering kinds (ctr_ptkinds.go)
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {
 			wld = s.worldLosers(k) // CR 704.5k (zone_worldrule.go)

@@ -85,6 +85,7 @@ import "embed"
 //go:embed kw_levelup.go
 //go:embed kw_livingweapon.go
 //go:embed kw_melee.go
+//go:embed kw_modular.go
 //go:embed kw_mentor.go
 //go:embed kw_mobilize.go
 //go:embed kw_myriad.go
