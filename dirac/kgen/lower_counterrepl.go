@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -242,4 +243,15 @@ func replCtrKind(r lRepl) (int16, error) {
 	}
 	k, err := counterKind(r.Ctr)
 	return int16(k), err
+}
+
+// addCountersFilter is an AddCountersOn replacement's recipient filter. When
+// ValidObject$ names a player as well as permanents (Lae'zel's "or on
+// yourself") the player alternative rides the filter chain, which the
+// kernel's plusPlayerCtr reads for a player's counters (CR 122.6).
+func (cb *cardBuilder) addCountersFilter(f *lFilter) (kop.FilterID, error) {
+	if f == nil || f.Players == 0 || len(f.Clauses) == 0 {
+		return cb.filter(f, kop.ZoneBattlefield)
+	}
+	return cb.filterPlayerAlt(f, slices.Repeat([]kop.Zone{kop.ZoneBattlefield}, len(f.Clauses)), f.Players)
 }

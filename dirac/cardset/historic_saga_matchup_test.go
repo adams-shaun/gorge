@@ -15,9 +15,9 @@ import (
 // card its mask bit (CR 700.6); the kernel reads exactly those two (predPermKind,
 // predCardKind). A tail pool is searched because std-trc keeps every printed
 // subtype through the pool-wide choosesType escape and cannot witness the drop.
-// No card or pool is named: TailBuckets hash-sorts every lowered name outside the
-// Standard lists into fixed-size buckets, so each newly lowered card moves the
-// boundaries and a pair that shared a bucket yesterday may not tomorrow. The
+// No card or pool is named: TailBuckets deals every lowered name outside the
+// Standard lists to a bucket by its own hash, so a pair that shares a bucket
+// today may not once a name is renamed or the bucket count is raised. The
 // witness is searched for: a Saga that is neither an artifact nor legendary (so
 // only the Saga clause of the historic test can reach it) beside a card that
 // reads Saga through a PredHistoric filter, both in one pool.

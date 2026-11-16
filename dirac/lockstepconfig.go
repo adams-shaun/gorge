@@ -358,7 +358,18 @@ func (s *State) xAnswerable(k *prep, a *kop.Ability, e *stackEntry, x int) bool 
 		src = s.srcSlot()
 		s.g.probe = probe{kind: probeAbility, src: src, ctrl: e.ctrl, x: uint8(x + 1)}
 	}
+	// the spell build is already pushed (bsPush precedes bsX), so CR 115.5
+	// makes it an illegal target for itself: gorge's xAsk sweep excludes the
+	// cast card (targetsAnnounceableAt), the target ask's own self pass. Its
+	// mana value still reads X = 0 here, and a cmcEQX target (Spell Blast)
+	// would match the spell itself at X = its pip total.
+	if e.kind == seSpell {
+		s.g.tgtSelf = e.obj + 1
+	}
 	ok := s.abilityTargetsFeasible(k, a, e.ctrl, src, 0xff)
+	if e.kind == seSpell {
+		s.g.tgtSelf = 0
+	}
 	s.g.probe = probe{}
 	return ok
 }

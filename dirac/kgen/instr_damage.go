@@ -274,6 +274,23 @@ func (ic *instrCtx) opPreventDamageScope() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
+	if in.C&kop.PrevScopeFiltered == 0 {
+		return nil
+	}
+	// F the damage source's filter, B the recipient permanents' (kop.PrevScopeFiltered)
+	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+		return err
+	}
+	if in.F2 != nil {
+		id, err := ic.cb.filter(in.F2, kop.ZoneBattlefield)
+		if err != nil {
+			return err
+		}
+		if id > 1<<15-1 {
+			return fmt.Errorf("PreventDamageScope recipient filter %d beyond a ValueRef", id)
+		}
+		ki.B = kop.Const(int(id))
+	}
 	return nil
 }
 

@@ -1,39 +1,72 @@
 Akroma's Memorial
 Alpha Kavu
 Angelic Gift
+Antagonize
 Ashcoat Bear
+Barbed Field
+Basri's Aegis
+Blood Rites
 Bond of Discipline
 Canoptek Spyder
 Caustic Crawler
+Chandra's Pyreling
+Chaos Harlequin
 Charging Monstrosaur
+Cogwork Archivist
+Crack the Earth
+Cruel Bargain
+Dalakos, Crafter of Wonders
 Dauntless Cathar
 Dawn Gryff
+Digsite Engineer
+Dihada's Ploy
 Dross Scorpion
 Eccentric Pestfinder
+Faceless Devourer
 Faerie Invaders
 Fiend Binder
+Flare of Duplication
+Flood of Recollection
 Flowstone Overseer
 Flutterfox
 Forerunner of Slaughter
 Forest
+Furnace Scamp
+Galvanic Discharge
 Ghirapur Guide
 Goblin Diplomats
 Goblin General
+Goblin Outlander
+Goblin War Party
+Heirs of Stromkirk
 Hungry Megasloth
+Infest
 Isamaru, Hound of Konda
 Island
 Jungle Delver
 Kitesail Scout
 Kris Mage
 Krovikan Elementalist
+Lightning Skelemental
+Magma Rift
 Marble Diamond
+Maw of the Mire
 Merfolk Sovereign
 Minister of Pain
 Mountain
+Mountain Bandit
+Multani's Acolyte
 Nurturing Licid
+Nylea, God of the Hunt
+Oath of the Grey Host
+Oread of Mountain's Blaze
+Pegasus Charger
 Plains
+Pontiff of Blight
 Rampaging Ferocidon
+Ravenous Baboons
 Reckless Abandon
+Root Snare
 Rottenheart Ghoul
 Seal of Doom
 Searchlight Companion
@@ -43,8 +76,10 @@ Shamanic Revelation
 Silver-Inlaid Dagger
 Skittering Monstrosity
 Skulltap
+Skyshroud Behemoth
 Skywing Aven
 Slaughter Pact
+Slaughter Specialist
 Smoke Bomb
 Spell Contortion
 Spire Barrage
@@ -54,11 +89,16 @@ Sturmgeist
 Swamp
 Swift Justice
 Tattered Haunter
+The Bloodsky Massacre
 Thrummingbird
 Thunderscape Familiar
 Timberwatch Elf
 Tormod's Crypt
 Tracker's Instincts
+Underworld Charger
 Unexpected Fangs
+Untamed Might
 Warfire Javelineer
+Warren Soultrader
 Xathrid Slyblade
+Zhao, the Seething Flame
