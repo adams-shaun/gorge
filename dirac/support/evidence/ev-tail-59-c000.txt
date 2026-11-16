@@ -188,6 +188,7 @@ Goliath Sphinx
 Goliath Truck
 Grasp of Darkness
 Grave Pact
+Gravelgill Axeshark
 Gray Ogre
 Greenweaver Druid
 Grim Initiate
