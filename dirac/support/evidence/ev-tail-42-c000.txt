@@ -122,6 +122,7 @@ Elvish Ranger
 Ember Hauler
 Emergency Weld
 Endless Sands
+Energy Storm
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter

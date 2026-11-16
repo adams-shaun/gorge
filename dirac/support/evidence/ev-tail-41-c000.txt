@@ -24,6 +24,7 @@ Barbed Field
 Basri's Aegis
 Bastion of Remembrance
 Battle Cry Goblin
+Blessed Sanctuary
 Blightbelly Rat
 Blinkmoth Well
 Blood Mist
@@ -216,6 +217,7 @@ Minion of the Mighty
 Minister of Pain
 Misfortune's Gain
 Mogg Fanatic
+Moira Brown, Guide Author
 Moorland Drifter
 Morale
 Morbid Hunger

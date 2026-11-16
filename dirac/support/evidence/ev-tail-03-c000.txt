@@ -251,6 +251,7 @@ Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Muzzle
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent

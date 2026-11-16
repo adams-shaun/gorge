@@ -5,6 +5,7 @@ Act of Treason
 Aerial Caravan
 Affa Protector
 Ainok Tracker
+Akroan Crusader
 Alabaster Mage
 Alaborn Trooper
 Algorithmic Ferocity
@@ -334,6 +335,7 @@ Those Who Serve
 Thousand-Year Elixir
 Thran Dynamo
 Thriving Moor
+Thunderstaff
 Toe-Breaking Helmet
 Touch of Darkness
 Towashi Guide-Bot
@@ -361,6 +363,8 @@ Warrior's Honor
 Watertrap Weaver
 Waterwhirl
 Wave Elemental
+Wetland Sambar
+Whip Sergeant
 White Shield Crusader
 Wind Shear
 Windbrisk Raptor

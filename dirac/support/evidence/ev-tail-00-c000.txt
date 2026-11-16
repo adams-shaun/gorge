@@ -229,6 +229,7 @@ Loch Dragon
 Lost in the Woods
 Lotho, Corrupt Shirriff
 Loyal Pegasus
+Magebane Armor
 Make Obsolete
 Malakir Familiar
 Mana Matrix
@@ -274,6 +275,7 @@ Pharika's Cure
 Phobian Phantasm
 Piety Charm
 Piranha Marsh
+Piston-Fist Cyclops
 Plains
 Powerstone Fracture
 Priest of Forgotten Gods

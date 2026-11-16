@@ -9,6 +9,7 @@ Bojuka Brigand
 Captivating Unicorn
 Carrion Screecher
 Commune with Dinosaurs
+Crimson Manticore
 Cruel Edict
 Daru Cavalier
 Dauthi Cutthroat
@@ -58,5 +59,6 @@ Undercity Shade
 Unhinge
 Unliving Psychopath
 Vastwood Fortification
+Vow of Duty
 Whipstitched Zombie
 Wurmskin Forger
