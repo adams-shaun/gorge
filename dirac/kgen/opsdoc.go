@@ -234,9 +234,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 			if ab.Cost.Host == kop.CostHostExile {
 				add("cost:HostExile", name)
 			}
-			if ab.Cost.DiscardHand {
-				add("cost:DiscardHand", name)
-			}
+			usageDiscardCosts(ab.Cost, name, add)
 			if ab.Cost.Flags&kop.CostOncePerTurn != 0 {
 				add("cost:OncePerTurn", name)
 			}
@@ -601,9 +599,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.HasMiracle {
 			add("card:Miracle", name)
 		}
-		if d.Wither {
-			add("card:Wither", name)
-		}
+		keywordFlagUsage(d, name, add) // opsdoc_umbraarmor.go
 		if d.AloneAtk {
 			add("card:AloneAtk", name)
 		}
@@ -702,6 +698,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 // writeOpsDoc renders OPS.md.
 func writeOpsDoc(p *pool, pt *poolTables, all []*lCard, bs []built) []byte {
 	use := opsUsage(pt, all, bs)
+	addCardFlagUsage(use, all, bs) // opsdoc_cardflags.go
 	deckUse := func(cs map[string]bool) int {
 		n := 0
 		for _, d := range p.decks {

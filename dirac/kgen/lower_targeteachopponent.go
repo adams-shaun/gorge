@@ -65,6 +65,9 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	if f == nil || f.Players != 0 || len(f.Clauses) == 0 || t.Zone != zBattlefield {
 		return refuse("TargetsForEachPlayer$ shape %q: target filter is not opponent-controlled permanents", v)
 	}
+	if lc.livingEach(ps, f, t) {
+		return nil
+	}
 	for _, c := range f.Clauses {
 		if c.Ctrl != whoOpp {
 			return refuse("TargetsForEachPlayer$ shape %q: a non-OppCtrl alternative", v)
@@ -82,4 +85,32 @@ func (lc *lowerCtx) forEachOpp(ps *params, f *lFilter, t *lTarget) error {
 	lc.twoSeat("one target for each opponent read as one target")
 	t.Max = cst(1)
 	return nil
+}
+
+// livingEach reads "for each player, up to one target permanent that player
+// controls" (TargetMax$ OneEach, SVar OneEach PlayerCountPlayers$Amount, TargetMin$
+// 0: Nils, Discipline Enforcer) over a battlefield permanent filter of any
+// controller. gorge sizes the ask at the number of distinct controllers among
+// the candidates and groups the options one per controller
+// (engine/effects/targets_ask.go: TgtForEachPlayer, Option.Group), so the
+// choice is a set of at most one permanent per controller. That is the
+// kernel's different-controllers slot (TgfDiffController: no two chosen
+// objects share a controller) whose bound is the living players' count, an
+// "up to" the distinct controllers can never exceed; livingBound (lower.go's
+// addTarget) reads that count as the two seats of the two-player kernel
+// (twoSeat-at-caller: livingBound marks the card).
+func (lc *lowerCtx) livingEach(ps *params, f *lFilter, t *lTarget) bool {
+	mn, _ := ps.get("TargetMin")
+	mx, _ := ps.get("TargetMax")
+	if strings.TrimSpace(mx) != "OneEach" || strings.TrimSpace(mn) != "0" || !t.Min.isConst() || t.Min.N != 0 ||
+		strings.TrimSpace(lc.face.SVars["OneEach"]) != "PlayerCountPlayers$Amount" || !oneEachPerms(f, t.Zone) {
+		return false
+	}
+	t.DiffCtrl = true
+	return true
+}
+
+// oneEachPerms: the filter targets battlefield permanents only.
+func oneEachPerms(f *lFilter, zone int) bool {
+	return f != nil && f.Players == 0 && len(f.Clauses) > 0 && zone == zBattlefield
 }

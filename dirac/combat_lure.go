@@ -86,28 +86,54 @@ func (s *State) blockPairOK(k *prep, b, a Slot) bool {
 		!(k.gen != nil && k.gen.anyMaxBlk && s.blockCapped(k, a))
 }
 
+// lureFloorMet reports whether a non-lure attacker a with a block floor (menace's
+// two, a Min$) still has that many free blockers when b blocks it: a duty
+// blocker is committed to a lure (gorge's most-requirements rule rejects
+// pulling it off), so only the blockers without a lure pair count. Without a
+// floor above one it is vacuously met.
+func (s *State) lureFloorMet(k *prep, duty slotMask, b, a Slot) bool {
+	need := s.minBlockers(k, a)
+	if need < 2 {
+		return true
+	}
+	n := 1 // b itself
+	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
+		b2 := bm.first()
+		if b2 != b && !duty.has(b2) && s.blockerReady(k, b2) && s.blockPairOK(k, b2, a) {
+			n++
+		}
+	}
+	return n >= need
+}
+
 // blockerOptionsLure is blockerOptions with lure attackers in combat.
 //
 //go:noinline
 func (s *State) blockerOptionsLure(k *prep, d *Decision, lure slotMask) bool {
 	def := s.blockDef()
-	owed := false
+	var dutyM slotMask
 	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
 		b := bm.first()
 		if !s.blockerReady(k, b) {
 			continue
 		}
-		duty := false
 		for lm := lure; lm.any(); lm = lm.rest() {
 			if s.blockPairOK(k, b, lm.first()) {
-				duty = true
+				dutyM = dutyM.with(b)
 				break
 			}
 		}
-		owed = owed || duty
+	}
+	owed := dutyM.any()
+	for bm := s.ctrlM[def]; bm.any(); bm = bm.rest() {
+		b := bm.first()
+		if !s.blockerReady(k, b) {
+			continue
+		}
+		duty := dutyM.has(b)
 		for am := s.blockAtkM(k); am.any(); am = am.rest() {
 			a := am.first()
-			if duty && !lure.has(a) || !s.blockPairOK(k, b, a) {
+			if duty && !lure.has(a) || !s.blockPairOK(k, b, a) || !duty && !lure.has(a) && !s.lureFloorMet(k, dutyM, b, a) {
 				continue
 			}
 			if int(d.N) >= MaxOptions-1 {

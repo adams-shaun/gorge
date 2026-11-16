@@ -52,6 +52,11 @@ func (s *State) forgetOtherMove(k *prep, in *kop.Instr) bool {
 		o := objs[i]
 		if in.Op == kop.OpReturnEx {
 			if s.execReturnObj(k, in, NoSlot, o) {
+				if s.res.ask == raGenEnchant {
+					// An Aura's host ask (CR 303.4f): the answer reads the returning Aura
+					// through the ref, so the set holds it again (the move re-adds it, deduped).
+					s.g.rem[0], s.g.nrem = o, 1
+				}
 				return true // known: a CR 508.4 defender ask here drops the later remembered objects (nrem is zeroed)
 			}
 			continue

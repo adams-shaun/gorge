@@ -345,7 +345,9 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 		draft := strings.HasPrefix(pool, cardset.SynthDraftPrefix)
 		if !std && !draft {
 			buckets++
-			if set.NumCards() > cardset.TailBucket+len(cardset.SynthBasics) {
+			// A bucket is the names that hash to it, so its size varies around
+			// TailBucket (the largest measured is 285 cards); 1.2x leaves headroom.
+			if set.NumCards() > cardset.TailBucket*6/5+len(cardset.SynthBasics) {
 				t.Errorf("%s holds %d cards", pool, set.NumCards())
 			}
 		}

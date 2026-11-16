@@ -98,6 +98,10 @@ type Repl struct {
 	// Appended by dirac/kgen.
 	Filter FilterID // ReplOthersEnterProgram: the entering objects it applies to
 	Cond   CondID   // the replacement applies only while Table.Conds[Cond] holds (0 = always)
+
+	// ReplPreventDamageFilt and ReplPreventDamageN (replacements_staticprevent.go).
+	Filter2 FilterID // the damage source it applies to (0: any)
+	V       ValueRef // the damage a prevent-N shield prevents, read when the damage would be dealt (ReplSPAmtV)
 }
 
 // Repl.C of a ReplCantLoseGame: 0 stops every loss of the game; CantLoseLife

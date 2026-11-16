@@ -1,16 +1,49 @@
 A-Akki Ronin
 Aftershock
+Ardent Elementalist
+Caustic Caterpillar
+Citywatch Sphinx
 Company Commander
+Cruel Deceiver
+Davriel, Rogue Shadowmage
+Destroy Evil
 Electric Revelation
+Flame Elemental
+Flip the Switch
 Forest
+Honor's Reward
 Island
+Jabs, Mistress of Mockery
+Jaspera Sentinel
+Land Grant
 Lightfoot Rogue
+Manabond
 Mardu Roughrider
+Military Intelligence
+Ministrant of Obligation
 Mountain
+Mox Amber
+Myr Enforcer
 Necrosynthesis
 Necrotic Sliver
+Overgrowth
 Plains
 Punish Ignorance
+Puppet Conjurer
+Rending Volley
+Ruin Crab
+Shredded Sails
+Solar Blast
+Soltari Trooper
+Spearpoint Oread
+Spidersilk Armor
+Spiteful Sliver
+Streetwise Negotiator
 Sunder Shaman
 Swamp
 Sydri, Galvanic Genius
+Thought Monitor
+Trespasser's Curse
+Undo
+Wall of Roots
+Witch's Cottage

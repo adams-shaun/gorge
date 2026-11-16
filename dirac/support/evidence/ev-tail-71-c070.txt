@@ -1,0 +1,7 @@
+Cabal Slaver
+Cabal Surgeon
+Forest
+Island
+Mountain
+Plains
+Swamp
