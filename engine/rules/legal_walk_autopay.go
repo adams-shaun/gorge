@@ -48,7 +48,93 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 		}
 		return true
 	}
-	return w.autoPayPlan(p, id, idx, base, scope, statics)
+	if w.autoPayPlan(p, id, idx, base, scope, statics) {
+		return true
+	}
+	// The planner has no witness, but the payment window can still pay: a
+	// deferred source's tap is the payer's own window action (the manual
+	// witness), and the offer leaves no armed witness there. Nothing the
+	// trigger the tap fires does is owed inside the window. A tap-watching
+	// trigger outside the two fully determined shapes (City of Brass's
+	// damage, a doesn't-untap) defers its source (payment_plan_interference.go)
+	// without touching the mana: Relic Bind's choose one is answered at the
+	// trigger's own resolution, which a payment window never reaches (CR 405.2
+	// -- a trigger pushed during a payment waits for the next priority round,
+	// and the activation goes on the stack above it), so withholding the
+	// activation would withhold a legal play the player completes by tapping
+	// the source in the ordinary manual window. armAbilityAutoPay's planner
+	// declines the same shape, so the payment poses that window, exactly like
+	// every play before the planner existed. A witness the confirming gate
+	// refuses leaves the ability withheld, as before: the gate reads every
+	// non-mana part for real, and an option the payer could not complete is
+	// the stranding shape the planner-only offer existed to avoid.
+	//
+	// Deliberately the planner's plain-cost shape only (manualWitnessPlain): a
+	// cost whose parts the planner never planned (hybrid, X, life) stays
+	// planner-only, because the window's extra asks for it are the shape this
+	// fallback must not widen. A restricted floating batch is declined too:
+	// the witness pool would read the raw tally the per-leaf admission
+	// filters, which only the descriptor entry prices.
+	//
+	// PowerUp's ReduceCost is applied by the walk but not by the planner, so
+	// the walk's base would differ from the planner's cost, exactly the drift
+	// autoPayFast excludes; the planner owns those abilities.
+	if ab != nil && powerUpTrueCodes.Code(ab.ParamStr(cards.PKPowerUp)) == powerUpTrue {
+		return false
+	}
+	if len(w.e.G.Players[p].RestrictedMana) > 0 {
+		return false
+	}
+	if global, _ := w.e.paymentPlanGlobalManaEffect(p, id); global {
+		return false
+	}
+	composed := w.e.offerCostForUsing(statics, p, id, base, scope)
+	if !manualWitnessPlain(&composed, id) {
+		return false
+	}
+	units := w.autoPlainUnits(p)
+	// witness is the pool plus every chosen source's production; have is the
+	// same sum with the coloured requirement consumed as it is covered, so
+	// the leftover at the end can absorb the generic part. The source's tier
+	// is deliberately not read: a deferred source's tap is the payer's own
+	// window action, and every tier's production the census prices is exact.
+	witness := w.e.G.Players[p].Pool
+	have := witness
+	needCol := composed.Colored
+	needGen := composed.Generic
+	for i := range units {
+		u := &units[i]
+		if u.ID == id {
+			continue // the ability's own tap or self-sacrifice withholds its mana ability
+		}
+		best := -1
+		var bestMana state.Mana
+		bestScore := int64(-1)
+		for ai := range u.Alts {
+			a := u.Alts[ai]
+			if !pay.PlanAltOK(a) {
+				continue
+			}
+			m := a.Mana()
+			if score := autoPayCoverScore(m, needCol); score > bestScore {
+				bestScore, best, bestMana = score, ai, m
+			}
+		}
+		if best < 0 {
+			continue
+		}
+		witness = addManaVec(witness, bestMana)
+		have = addManaVec(have, bestMana)
+		autoPayConsumeColored(&have, &needCol)
+		if needCol == (state.Mana{}) && have.Total() >= needGen {
+			break
+		}
+	}
+	if needCol != (state.Mana{}) || have.Total() < needGen {
+		return false
+	}
+	probe = base
+	return w.e.offerCastableUsing(statics, p, id, &probe, scope, true, &witness)
 }
 
 // autoPayPlan is the ordinary autopay path: run the payment planner and
