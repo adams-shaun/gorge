@@ -13,6 +13,7 @@ Araña, Heart of the Spider
 Arbor Colossus
 Barbtooth Wurm
 Bastion Mastodon
+Battlegrace Angel
 Bellowing Tanglewurm
 Binding the Old Gods
 Bird Maiden
@@ -21,6 +22,7 @@ Boggart Birth Rite
 Bonds of Faith
 Bone Pit Brute
 Broken Bond
+Burn the Accursed
 Canopy Baloth
 Capricious Sorcerer
 Captain America, Skybound
@@ -31,6 +33,7 @@ Cateran Enforcer
 Chandra, Hope's Beacon
 Checkpoint Officer
 Children of Korlis
+Chorus of the Tides
 Chub Toad
 Cliffhaven Sell-Sword
 Coast Watcher
@@ -46,6 +49,7 @@ Deathgazer
 Debtors' Transport
 Decisive Denial
 Dega Sanctuary
+Devastation
 Dirty Wererat
 Dispersal Shield
 District Guide
@@ -74,6 +78,7 @@ Frost Lynx
 Galestrike
 Garruk's Lost Wolf
 Gatekeeper Gargoyle
+Ghoulcaller Gisa
 Gloomhunter
 Goblin Lookout
 Goblin Replica
@@ -96,10 +101,13 @@ Ink-Eyes, Servant of Oni
 Intrusive Packbeast
 Invasion of Ulgrotha
 Island
+Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
 Knight Paladin
 Kodama of the North Tree
+Leonardo, Worldly Warrior
+Leonin Bladetrap
 Leyline Phantom
 Liliana's Spoils
 Littjara Glade-Warden
@@ -108,9 +116,11 @@ Lossarnach Captain
 Lost Leonin
 Ludevic's Test Subject
 Magma Jet
+Metalwork Colossus
 Midnight Scavengers
 Mind Games
 Mistford River Turtle
+Moku, Meandering Drummer
 Mountain
 Mudhole
 Myr Battlesphere
@@ -158,11 +168,13 @@ Sinister Strength
 Skullmead Cauldron
 Skyshroud Claim
 Slaughter-Priest of Mogis
+Smoldering Egg
 Smothering Tithe
 Solar Blast
 Sootfeather Flock
 Soul of the Rapids
 Speakeasy Server
+Spectral Lynx
 Spiderwig Boggart
 Spiraling Embers
 Spirit en-Kor
@@ -179,6 +191,7 @@ Swarm of Rats
 Sylvok Replica
 Talisman of Resilience
 Tar Pit Warrior
+Thalakos Drifters
 Thornscape Familiar
 Thundering Raiju
 Tibalt's Rager
@@ -201,4 +214,5 @@ Wild Aesthir
 Wildsize
 Wind Zendikon
 Wing Commando
+Yellow Scarves Cavalry
 Zodiac Pig

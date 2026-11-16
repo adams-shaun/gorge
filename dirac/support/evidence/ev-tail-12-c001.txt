@@ -3,16 +3,21 @@ A-Haywire Mite
 A-Manticore
 Aang, Airbending Master
 Academy Raider
+Advance Scout
 Adverse Conditions
+Ahn-Crop Invader
 Ajani Fells the Godsire
 Akroma's Will
 Almighty Brushwagg
 Altac Bloodseeker
+Angel of Invention
 Angelheart Vial
 Apocalypse Demon
 Apprentice Necromancer
 Arlinn's Wolf
 Armament Master
+Assaultron Dominator
+Aven Sunstriker
 Azorius Cluestone
 Backwoods Survivalists
 Balustrade Spy
@@ -20,12 +25,14 @@ Banefire
 Barter in Blood
 Battle Hymn
 Benalish Veteran
+Birthing Boughs
 Birthing Ritual
 Bloodsworn Steward
 Bog Glider
 Bold Impaler
 Brainstone
 Brave the Elements
+Briarberry Cohort
 Briarblade Adept
 Butch DeLoria, Tunnel Snake
 Call to Serve
@@ -34,6 +41,7 @@ Cathartic Pyre
 Char
 Charismatic Vanguard
 Child of Gaea
+Chimeric Mass
 Chittering Rats
 Chocobo Knights
 Cinder Seer
@@ -51,18 +59,25 @@ Disentomb
 Dispel
 Dragonspark Reactor
 Drowned Rusalka
+Druid's Call
 Duskmantle Prowler
 Dwarven Grunt
 Dwarven Lieutenant
 Eagle of the Watch
+Enduring Scalelord
 Enforcer Griffin
 Enlightened Tutor
+Enlistment Officer
+Excavation Technique
 Farsight Adept
 Feedback Bolt
+Feral Thallid
 Festering Thicket
 Fire Imp
 Flesh to Dust
 Flood of Tears
+Flower
+Fog on the Barrow-Downs
 Force of Despair
 Forest
 Funeral Longboat
@@ -71,43 +86,63 @@ Genesis
 Geralf's Masterpiece
 Geralf, Visionary Stitcher
 Geyserfield Stalker
+Glacial Stalker
 Gliding Licid
 Gloomwidow's Feast
+Glowrider
 Gnarled Mass
 Goblin Marshal
 Goblin Tutor
 Goldmane Griffin
+Golem Artisan
+Gorgon Flail
+Gourmand's Talent
 Growing Ranks
 Guardian Gladewalker
+Guardian of Ghirapur
+Gustcloak Harrier
+Gustcloak Savior
 Hand of Death
 Heliod's Emissary
 Hexgold Halberd
+Hickory Woodlot
 Highway Robber
 Holy Armor
 Honden of Seeing Winds
+Hopeful Initiate
 Hurloon Battle Hymn
+Hydra Omnivore
 Impending Flux
 Increasing Devotion
 Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
+Intervene
+Into the Void
 Invasion of Azgol
+Iron Man, Armored Avenger
 Irradiate
 Irreverent Revelers
 Island
+Jasmine Seer
 Jedit Ojanen of Efrava
 Jhoira, Ageless Innovator
 Kavu Climber
 Kaya's Ghostform
+Kinjalli's Sunwing
 Kjeldoran War Cry
 Knowing
+Kraken's Eye
 Kyren Glider
 Laboratory Brute
 Landroval, Horizon Witness
 Last Caress
+Laurine, the Diversion
 Leonardo, Worldly Warrior
+Leonin Armorguard
 Levitation
 Lich's Caress
+MACH-1, Swooping Scoundrel
 Macabre Mockery
 Manaplasm
 Mantle of Leadership
@@ -118,7 +153,9 @@ Maximize Altitude
 Medicine Bag
 Memory Erosion
 Mephitic Ooze
+Mind's Eye
 Mine Collapse
+Mishra's Self-Replicator
 Molten Nursery
 Molten Rain
 Moment of Truth
@@ -130,6 +167,7 @@ Neck Snap
 Niblis of the Mist
 Nikara, Lair Scavenger
 Nissa, Worldwaker
+Nyxborn Triton
 Ominous Cemetery
 Ophiomancer
 Oriq Loremage
@@ -145,19 +183,25 @@ Plague Spitter
 Plains
 Portent of Betrayal
 Primal Growth
+Primordial Sage
 Propaganda
 Prophetic Titan
+Prying Blade
 Pteramander
+Qasali Pridemage
 Quirion Dryad
 Rain of Tears
 Ramosian Sergeant
 Rampant Rejuvenator
+Ranger-Captain of Eos
 Raph's Bravado
 Rat Colony
 Rats of Rath
+Relic Robber
 Repository Skaab
 Reprocess
 Restoration Angel
+Retrofitter Foundry
 Revel of the Fallen God
 Rise to the Challenge
 Rishadan Pawnshop
@@ -165,6 +209,7 @@ Rude Awakening
 Run Aground
 Rushwood Herbalist
 Rusting Golem
+Sanctifier of Souls
 Sanguimancy
 Savannah Sage
 Scour All Possibilities
@@ -196,6 +241,7 @@ Spontaneous Mutation
 Steam Augury
 Steel Overseer
 Steelshaper's Gift
+Storm of Souls
 Sudden Edict
 Sudden Spinnerets
 Swamp
@@ -209,9 +255,13 @@ Thaumatic Compass
 The Circle of Loyalty
 Third Path Savant
 Thumbscrews
+Thundering Chariot
+Thundermare
 Thunderwolf Cavalry
 Torment
+Tramway Station
 Tread Upon
+Treebeard, Gracious Host
 Treeshaker Chimera
 Tromp the Domains
 Ugin's Mastery
@@ -221,11 +271,14 @@ Unnatural Restoration
 Unnerve
 Unquestioned Authority
 Urborg Skeleton
+Uthros Research Craft
+Uurg, Spawn of Turg
 Vampire Noble
 Vedalken Anatomist
 Vigil for the Lost
 Vindictive Mob
 Viscera Seer
+Vivid Creek
 Waste Away
 Waterfront Bouncer
 Wither and Bloom

@@ -1,3 +1,4 @@
+A-Death-Priest of Myrkul
 A-Goggles of Night
 Abnormal Endurance
 Abyssal Hunter
@@ -6,6 +7,7 @@ Ambush
 Ancient Excavation
 Archon of Emeria
 Argothian Pixies
+Arisen Gorgon
 Arms of Hadar
 Arwen's Gift
 Axelrod Gunnarson
@@ -16,17 +18,21 @@ Blood Fountain
 Blood Ogre
 Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
+Bone Flute
 Borrowed Hostility
 Bull Rush
 Canal Monitor
 Carrion
 Cateran Slaver
 Ceaseless Conflict
+Chittering Dispatcher
 Citizen's Crowbar
 Cleric of the Forward Order
 Clutch of Undeath
 Concentrated Fire
+Conduit of Ruin
 Contagion
+Corrupt Official
 Crash of Rhinos
 Creepy Puppeteer
 Crossway Vampire
@@ -39,26 +45,33 @@ Dawnray Archer
 Deconstruct
 Demanding Dragon
 Detective of the Month
+Disciple of Tevesh Szat
+Dolmen Gate
 Donate
+Dragon Engine
 Dream Stalker
 Earsplitting Rats
 Electrostatic Bolt
 Electrostatic Field
 Enraged Killbot
 Evincar's Justice
+Explore
 Fallen Ferromancer
 Far
 Farmstead
 Fathom Fleet Firebrand
+Fathom Mage
 Feral Lightning
 Festering March
 Fit of Rage
 Flaming Fist
+Fleshmad Steed
 Flowstone Blade
 Flowstone Overseer
 Flying Men
 Footfall Crater
 Forest
+Forgotten Sentinel
 Foundry Screecher
 Freedom Fighter Recruit
 Frenzied Raptor
@@ -66,6 +79,7 @@ Frost Lynx
 Frost Walker
 Furnace Celebration
 Ghost Lantern
+Ghostly Visit
 Giant Cockroach
 Gitaxian Probe
 Glasswing Grace
@@ -76,6 +90,7 @@ Goblin Grenadiers
 Goblin Machinist
 Goblin Raider
 Goblin Wizardry
+Gorilla Titan
 Gravelighter
 Grenzo's Cutthroat
 Grim Initiate
@@ -85,6 +100,7 @@ Harpoon Sniper
 Hissing Miasma
 Hollowhenge Spirit
 Hunter's Bow
+Hunting Wilds
 Igneous Elemental
 Ill-Tempered Loner
 Immortal Servitude
@@ -92,6 +108,7 @@ Increasing Vengeance
 Indulgent Tormentor
 Ironhoof Ox
 Island
+Ixalli's Diviner
 Jhovall Queen
 Jinxed Ring
 Kamahl, Heart of Krosa
@@ -101,10 +118,13 @@ Kingfisher
 Lady Orca
 Landbind Ritual
 Lay Bare
+Lifespark Spellbomb
+Lulu, Stern Guardian
 Madcap Skills
 Magus of the Bazaar
 Marauding Dreadship
 Mask of Immolation
+Melira, the Living Cure
 Mephitic Vapors
 Mistral Charger
 Moat
@@ -118,9 +138,12 @@ Nomads' Assembly
 Numbing Jellyfish
 Nyxborn Courser
 Okina Nightwatch
+Oko's Hospitality
+Old One Eye
 Onakke Ogre
 Outpost Siege
 Ozox, the Clattering King
+Pack Leader
 Pegasus Refuge
 Pelargir Survivor
 Phantom Monster
@@ -128,6 +151,8 @@ Phyrexian Crusader
 Phyrexian Rager
 Pit Keeper
 Plains
+Pollywog Prodigy
+Primal Cocoon
 Prophetic Bolt
 Pterodon Knight
 Pulse of the Grid
@@ -137,10 +162,12 @@ Quench
 Rage Nimbus
 Raging Cougar
 Rakdos Firewheeler
+Rakshasa Gravecaller
 Ray of Distortion
 Reckless Assault
 Rend Flesh
 Repopulate
+Resculpt
 Restrain
 Revered Elder
 Rhox Pikemaster
@@ -153,13 +180,17 @@ Rude Awakening
 Rushblade Commander
 Safe Passage
 Saurian Symbiote
+Savage Hunger
 Scampering Scorcher
 Scourglass
 Security Detail
 Seize the Storm
+Seizures
 Serenity
 Serra's Embrace
 Shadowstorm
+Sidisi's Faithful
+Sima Yi, Wei Field Marshal
 Skirk Outrider
 Skithiryx, the Blight Dragon
 Skyclave Pick-Axe
@@ -173,16 +204,26 @@ Squall
 Stark's Ingenuity
 Stoic Rebuttal
 Stone Drake
+Stronghold Rats
 Swamp
+Sylvan Advocate
+Synchronized Strike
 Target Minotaur
 Taunting Sliver
 Temporal Spring
 Thassa's Rebuff
+Tomb Robber
+Tome Scour
 Touch of Darkness
+Treasured Find
+Turn to Frog
 Tymna the Weaver
+Ulamog, the Ceaseless Hunger
+Unicycle
 Unnerve
 Untethered Express
 Vault Robber
+Verdant Force
 Vertigo
 Vial of Dragonfire
 Viashino Slasher
@@ -192,3 +233,7 @@ Voice of All
 War Falcon
 Warmonger's Chariot
 Weary Prisoner
+Wild Mongrel
+Wing Splicer
+Without Weakness
+Yarok's Fenlurker

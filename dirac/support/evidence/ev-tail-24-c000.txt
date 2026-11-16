@@ -338,6 +338,7 @@ Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
 Selesnya Sagittars
+Selfless Samurai
 Serra Ascendant
 Serra's Liturgy
 Serum Visionary
@@ -345,6 +346,7 @@ Shady Traveler
 Shaggy Camel
 Shattered Crypt
 Shorecomber Crab
+Showdown of the Skalds
 Shroofus Sproutsire
 Siegehorn Ceratops
 Sightless Ghoul
@@ -414,6 +416,7 @@ Tenth District Guard
 Territorial Scythecat
 The Great Mound
 The Keeper of the Yellow Hat
+The Wanderer
 Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw

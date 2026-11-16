@@ -69,6 +69,7 @@ Daring Fiendbonder
 Deepwood Ghoul
 Devotee of Strength
 Didgeridoo
+Dimir Locket
 Disrupt
 Djeru's Renunciation
 Drag Down
@@ -240,6 +241,7 @@ Slither Blade
 Snag
 Sol Grail
 Solid Footing
+Soul of Eternity
 Soulhunter Rakshasa
 Soulstealer Axe
 Spark Jolt
@@ -266,6 +268,7 @@ Swamp
 Swift Spinner
 Tangleclaw Werewolf
 Tarfire
+Tasigur, the Golden Fang
 Tattered Mummy
 Team Transmitter
 Tel-Jilad Justice
