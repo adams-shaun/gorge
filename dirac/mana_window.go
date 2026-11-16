@@ -501,7 +501,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 				return o, false
 			}
 		}
-		if s.windowGapListed(k, p, o, potential) {
+		if s.windowGapListed(k, p, o) {
 			c := s.cardAt(o)
 			if decided && k.gen.flags[c]&gfRestr != 0 && uint8(k.t.Cards[c].Abilities[k.gen.restr(c)].ManaColors)&want == 0 {
 				continue // the clamp reads a fixed colour; a Tender's has none and stays
