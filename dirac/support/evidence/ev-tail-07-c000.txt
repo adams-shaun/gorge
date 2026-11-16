@@ -444,6 +444,7 @@ Wallop
 Wandering Treefolk
 War Screecher
 Warmonger
+Warped Researcher
 Waterfront District
 Wayward Servant
 Wellwisher

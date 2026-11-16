@@ -2,6 +2,7 @@ A-Hobbling Zombie
 A-Skyclave Shadowcat
 Act of Aggression
 Adric, Mathematical Genius
+Aegis Automaton
 Aerie Worshippers
 Aether Sting
 Agent of Acquisitions
@@ -25,6 +26,7 @@ Barricade Breaker
 Beast Whisperer
 Benalish Heralds
 Blackcleave Goblin
+Blightreaper Thallid
 Blind Zealot
 Blitz Leech
 Bog Tatters
@@ -134,10 +136,12 @@ Lightning Wolf
 Llanowar Stalker
 Looter il-Kor
 Lumithread Field
+Lux Cannon
 Malevolent Rumble
 Marionette Master
 Markov Blademaster
 Master Apothecary
+Maulfist Doorbuster
 Maze Rusher
 Midnight Scavengers
 Millennial Gargoyle
@@ -145,6 +149,7 @@ Millstone
 Mindless Automaton
 Mindstatic
 Mirror Wall
+Mob
 Monk Realist
 Morbid Plunder
 Mountain
@@ -173,6 +178,7 @@ Ravenous Skirge
 Reach of Branches
 Reap and Sow
 Regal Bloodlord
+Rejuvenation Chamber
 Rhox Oracle
 Riptide
 Rootwater Commando
@@ -191,6 +197,7 @@ Shimmering Mirage
 Shrieking Mogg
 Sickle Ripper
 Silkguard
+Silumgar Butcher
 Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
@@ -206,9 +213,11 @@ Subira, Tulzidi Caravanner
 Suleiman's Legacy
 Supply Runners
 Swamp
+Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
 Target Minotaur
+Tergrid's Shadow
 Terminal Agony
 The Brute
 The Meathook Massacre

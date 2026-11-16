@@ -70,6 +70,7 @@ Cache Raiders
 Cacophony Unleashed
 Calming Verse
 Capital Guard
+Carnage Interpreter
 Carven Caryatid
 Cast into the Fire
 Catapult Fodder
@@ -194,6 +195,7 @@ Hero of the Pride
 High Priest of Penance
 Highland Lake
 Hinterland Drake
+Hoodwink
 Hornet Cobra
 Hour of Promise
 Howling Giant

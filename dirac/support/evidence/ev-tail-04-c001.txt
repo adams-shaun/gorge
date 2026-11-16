@@ -175,6 +175,8 @@ Lyse Hext
 Mage Duel
 March from the Tomb
 Marvelous Melee
+Mazirek, Kraul Death Priest
+Merciless Repurposing
 Metallic Sliver
 Might Sliver
 Might of Alara
@@ -229,6 +231,7 @@ Ray of Revelation
 Razorclaw Bear
 Razorfin Hunter
 Redcap Heelslasher
+Repay in Kind
 Replication Specialist
 Reprisal
 Rescue, Pepper Potts

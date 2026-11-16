@@ -338,6 +338,7 @@ Talon Gates of Madara
 Tarfire
 Tavern Swindler
 Teardrop Kami
+Tectonic Rift
 Teetering Peaks
 Tempest Owl
 Temporal Eddy
@@ -347,6 +348,7 @@ Thalakos Sentry
 Thanos, Death's Consort
 Thassa's Rebuff
 The Falcon, Airship Restored
+The Great Juggernaut
 Thistledown Duo
 Thornscape Apprentice
 Thran Quarry

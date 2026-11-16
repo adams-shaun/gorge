@@ -1,4 +1,5 @@
 Abandon Reason
+Academy Journeymage
 Acquisition Octopus
 Aerial Maneuver
 Alena, Kessig Trapper
@@ -29,6 +30,7 @@ Beacon Bolt
 Benthic Giant
 Black Dragon
 Blade Historian
+Blessed Defiance
 Blinding Souleater
 Blood Pact
 Bloodchief's Thirst
@@ -116,6 +118,7 @@ Fountain Watch
 Freewind Equenaut
 Gallant Cavalry
 Gemhide Sliver
+General Thunderbolt Ross
 Generous Pup
 Giant Ox
 Gideon's Battle Cry
@@ -158,6 +161,7 @@ Innocence Kami
 Island
 Isolation Cell
 Ivory Charm
+Jackhammer
 Jodah's Codex
 Jousting Lance
 Jugan, the Rising Star
@@ -340,6 +344,7 @@ Territorial Hammerskull
 Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+Theoretical Duplication
 Thor, Asgard's Avenger
 Thornscape Apprentice
 Thundering Tanadon
@@ -372,6 +377,7 @@ Weldfast Engineer
 Wight
 Wooden Cane
 Workshop Assistant
+Write into Being
 Wu Elite Cavalry
 Wurmcoil Engine
 Zhao Zilong, Tiger General

@@ -118,6 +118,7 @@ Glimmer of Genius
 Glitterfang
 Glorious Anthem
 Gold Myr
+Golgari Locket
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
@@ -222,6 +223,7 @@ Propaganda
 Proper Burial
 Protocol Knight
 Pygmy Razorback
+Quakebringer
 Quest for Renewal
 Radiant Destiny
 Radiant Essence

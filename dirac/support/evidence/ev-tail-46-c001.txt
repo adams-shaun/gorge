@@ -22,10 +22,12 @@ Auriok Transfixer
 Back in Town
 Battlefront Krushok
 Belligerent Whiptail
+Bespoke Battlewagon
 Blaring Recruiter
 Bleed Dry
 Blessed Wine
 Blight Pile
+Blind Phantasm
 Blistering Barrier
 Blood Funnel
 Blur of Blades
@@ -67,6 +69,7 @@ Consider
 Council's Judgment
 Crocodile of the Crossing
 Crumbling Vestige
+Dark-Dweller Oracle
 Death-Hood Cobra
 Deathcap Cultivator
 Debt to the Kami
@@ -78,6 +81,7 @@ Demolish
 Demolition Stomper
 Demon Bolt
 Descent into Avernus
+Desert Drake
 Dire Fleet Hoarder
 Dire Fleet Interloper
 Doombot Harbinger
@@ -105,6 +109,7 @@ Eternal Warrior
 Everythingamajig
 Eviscerator
 Expedition Champion
+Eye of Malcator
 Falcon Abomination
 False Summoning
 Fangs of Kalonia
@@ -188,6 +193,7 @@ Mogg Salvage
 Moss Diamond
 Mossfire Egg
 Mountain
+Mu Yanling, Celestial Wind
 Murasa Rootgrazer
 Muscle Sliver
 Mycoid Shepherd
@@ -200,6 +206,7 @@ Otherworldly Journey
 Panther Robot
 Pest Summoning
 Phalanx Leader
+Phyrexian Rager
 Pit Imp
 Placid Rottentail
 Plains
@@ -207,6 +214,7 @@ Prophecy
 Protector of the Wastes
 Psionic Entity
 Pull from the Deep
+Putrefaction
 Qasali Slingers
 Quicksilver Wall
 Raise the Alarm
@@ -255,6 +263,7 @@ Sidisi's Pet
 Silverback Elder
 Sisters of the Flame
 Skeletal Snake
+Skilled Animator
 Sky Skiff
 Skyclave Geopede
 Skywinder Drake
@@ -266,6 +275,7 @@ Snare Thopter
 Soltari Foot Soldier
 Somberwald Dryad
 Sorin's Vengeance
+Soul Read
 Soul's Grace
 Sower of Temptation
 Spark Spray
@@ -281,6 +291,8 @@ Sprite Dragon
 Squallmonger
 Stab Wound
 Stalwart Shield-Bearers
+Steam Augury
+Steelclad Serpent
 Steelgaze Griffin
 Steward of Solidarity
 Storm Strike

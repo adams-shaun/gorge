@@ -236,6 +236,7 @@ Silt Crawler
 Silumgar Monument
 Skinrender
 Skull Rend
+Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket

@@ -273,6 +273,7 @@ Necroskitter
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer
+Nissa, Nature's Artisan
 Noble Hierarch
 Nomad Mythmaker
 Noose Constrictor
