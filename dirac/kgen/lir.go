@@ -1063,10 +1063,6 @@ type lMana struct {
 	Amount     lValue
 	Restrict   *lFilter // spend only on spells matching
 	RestrictAb *lFilter // ... or on activated abilities of objects matching
-	// RestrictAbZones is the zone each RestrictAb clause's ability source is
-	// matched in (lowerCtx.restrictAbZones): kop.ZoneBattlefield for an
-	// inZoneBattlefield alternative, kop.ZoneAny for a zone-free one
-	RestrictAbZones []kop.Zone
 	NonSpell   bool     // ... or on any payment that is not a spell (CantCastNonArtifactSpells)
 	Special    string
 	SpecialF   *lFilter
@@ -1082,6 +1078,10 @@ type lMana struct {
 	Rider    int
 	RiderCtr string // the source counter kind a deplete rider reads
 	RiderN   int    // the life count
+	// RestrictAbZones is the zone each RestrictAb clause's ability source is
+	// matched in (lowerCtx.restrictAbZones): kop.ZoneBattlefield for an
+	// inZoneBattlefield alternative, kop.ZoneAny for a zone-free one
+	RestrictAbZones []kop.Zone
 }
 
 type lUnless struct {
