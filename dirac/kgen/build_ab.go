@@ -1106,7 +1106,12 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaRestrict = id
 	}
 	if m.RestrictAb != nil {
-		id, err := cb.filter(m.RestrictAb, kop.ZoneNone)
+		// a battlefield-only clause keeps ZoneNone, a zone-free one carries
+		// kop.ZoneAny (kernel restrActMatch's off-battlefield source)
+		if len(m.RestrictAbZones) != len(m.RestrictAb.Clauses) {
+			return fmt.Errorf("mana restriction's activated half: %d zones for %d clauses", len(m.RestrictAbZones), len(m.RestrictAb.Clauses))
+		}
+		id, err := cb.filterZones(m.RestrictAb, m.RestrictAbZones)
 		if err != nil {
 			return err
 		}

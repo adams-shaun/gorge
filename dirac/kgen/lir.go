@@ -1063,6 +1063,10 @@ type lMana struct {
 	Amount     lValue
 	Restrict   *lFilter // spend only on spells matching
 	RestrictAb *lFilter // ... or on activated abilities of objects matching
+	// RestrictAbZones is the zone each RestrictAb clause's ability source is
+	// matched in (lowerCtx.restrictAbZones): kop.ZoneBattlefield for an
+	// inZoneBattlefield alternative, kop.ZoneAny for a zone-free one
+	RestrictAbZones []kop.Zone
 	NonSpell   bool     // ... or on any payment that is not a spell (CantCastNonArtifactSpells)
 	Special    string
 	SpecialF   *lFilter

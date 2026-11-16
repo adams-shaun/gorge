@@ -4079,8 +4079,39 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 		if m.RestrictAb, err = lc.filter(strings.Join(act, ",")); err != nil {
 			return err
 		}
+		var ok bool
+		if m.RestrictAbZones, ok = restrictAbZones(act, m.RestrictAb); !ok {
+			return refuse("mana restriction %q: mixed inZoneBattlefield alternatives that do not line up with their clauses", rv)
+		}
 	}
 	return nil
+}
+
+// restrictAbZones is the zone each clause of the activated half f (lowered
+// from the Card.<spec> alternatives act) is matched in: kop.ZoneBattlefield
+// for an inZoneBattlefield alternative, whose source must be a permanent
+// (gorge restrictValidTermMatches' needsBattlefield: Vedalken Engineer's
+// mana never pays Scrapwork Rager's unearth), kop.ZoneAny for a zone-free
+// one, which pays an ability activated from any zone (CR 106.6, 602.2). ok
+// is false when the alternatives mix the two and do not line up with f's
+// clauses.
+func restrictAbZones(act []string, f *lFilter) (zones []kop.Zone, ok bool) {
+	zones = make([]kop.Zone, len(act))
+	for i, alt := range act {
+		zones[i] = kop.ZoneAny
+		if strings.Contains(alt, "inZoneBattlefield") {
+			zones[i] = kop.ZoneBattlefield
+		}
+	}
+	if len(f.Clauses) == len(zones) {
+		return zones, true
+	}
+	for _, z := range zones[1:] {
+		if z != zones[0] {
+			return nil, false
+		}
+	}
+	return slices.Repeat(zones[:1], len(f.Clauses)), true
 }
 
 // finishMana reads a mana ability's spend restriction and chain.
