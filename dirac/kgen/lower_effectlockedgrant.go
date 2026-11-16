@@ -32,8 +32,10 @@ func (lc *lowerCtx) lockedCantBlock(ps *params, ss []cards.Static) (bool, error)
 	if strings.TrimSpace(sp.str("AddHiddenKeyword")) != "CARDNAME can't block." || !effects.SpecReadsPT(sp.str("Affected")) {
 		return false, nil
 	}
-	for k := range ss[0].Params {
-		if !slices.Contains([]string{"Mode", "Affected", "AddHiddenKeyword", "Description"}, k) {
+	// AffectedZone$ Battlefield (Mournwillow) is the default scope spelled out
+	keys := []string{"Mode", "Affected", "AddHiddenKeyword", "Description", "AffectedZone=Battlefield"}
+	for k, v := range ss[0].Params {
+		if !slices.Contains(keys, k) && !slices.Contains(keys, k+"="+v) {
 			return true, refuse("Effect locked can't-block static with %s$", k)
 		}
 	}

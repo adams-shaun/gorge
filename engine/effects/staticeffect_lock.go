@@ -30,8 +30,10 @@ func lockEffectGrant(h Host, c *Ctx, ce *state.ContinuousEffect) bool {
 	if len(ce.Remembered) > 0 || ce.Affects == "" || strings.Contains(ce.Affects, "IsRemembered") {
 		return true
 	}
-	if z := ce.AffectedZone; z != "" && !strings.EqualFold(z, "Battlefield") {
-		return true
+	if z := ce.AffectedZone; z != "" {
+		if zs, all, ok := ParseZones(z); !ok || all || len(zs) != 1 || zs[0] != state.ZBattlefield {
+			return true
+		}
 	}
 	if !SpecReadsPT(ce.Affects) {
 		return true
@@ -53,4 +55,13 @@ func lockEffectGrant(h Host, c *Ctx, ce *state.ContinuousEffect) bool {
 		ce.ForgetOnMoved = "Battlefield" // a creature that leaves is a new object (CR 400.7)
 	}
 	return true
+}
+
+// effectContinuousLocked is effectContinuous for an Effect-delivered layer
+// grant whose affected set CR 611.2c fixes as the effect begins
+// (lockEffectGrant).
+func effectContinuousLocked(h Host, c *Ctx, ce state.ContinuousEffect) {
+	if lockEffectGrant(h, c, &ce) {
+		effectContinuous(h, ce)
+	}
 }
