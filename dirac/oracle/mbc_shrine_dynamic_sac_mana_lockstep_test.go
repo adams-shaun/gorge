@@ -15,8 +15,9 @@ const shrineDynamicSacRepro = "shrine_dynamic_sac_mana_unpriced"
 // dynamic-amount variants (gen.go varPC) hold {T}-only costs, so its autopay
 // never counts it and omits the Equip {2} (Oathkeeper, Takeno's Daisho) gorge
 // offers when a Sandstone Bridge and a six-counter Shrine are the only untapped
-// sources (tail-01 pair 43). The card is refused by name and the recorded game
-// still shows the divergence with it implicated.
+// sources (tail-01 pair 43). The card is refused by name (one entry, shared with
+// the potential-offer divergence of TestMBCResurrectionOrbReprosLockstep) and
+// the recorded game still shows the divergence with it implicated.
 func TestMBCOathkeeperTakenoSDaishoReprosLockstep(t *testing.T) {
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
@@ -27,10 +28,12 @@ func TestMBCOathkeeperTakenoSDaishoReprosLockstep(t *testing.T) {
 		if e.Card != "Shrine of Boundless Growth" {
 			continue
 		}
-		if e.Repro.Pool != "custom" || e.Repro.File != shrineDynamicSacRepro {
-			t.Fatalf("Shrine of Boundless Growth's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, shrineDynamicSacRepro)
-		}
-		checkRefusedRepro(t, e)
+		// A card has one refused entry, and land's names the Resurrection Orb
+		// recording; this divergence's own recording replays against the same
+		// card through a copy of the entry.
+		own := *e
+		own.Repro.File = shrineDynamicSacRepro
+		checkRefusedRepro(t, &own)
 		return
 	}
 	t.Fatal("Shrine of Boundless Growth has no dirac/support/refused entry: its dynamic {T}, sacrifice mana is no kernel autopay source")

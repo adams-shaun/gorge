@@ -1,4 +1,6 @@
+A-Circuit Mender
 Abomination of Llanowar
+Aboshan, Cephalid Emperor
 Agent of Shauku
 Agility Bobblehead
 Agony Warp
@@ -6,15 +8,21 @@ Akroan Skyguard
 Always Watching
 Amy Rose
 Ancient Stirrings
+Archon of Falling Stars
+Arm-Mounted Anchor
 Arrogant Poet
 Atarka, World Render
+Automated Artificer
 Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blood Money
 Bloodlust Inciter
+Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
+Canopy Stalker
 Cave-In
 Chaplain's Blessing
 Chariot of the Sun
@@ -23,19 +31,30 @@ Chorus of the Tides
 Cinder Wall
 Cleaving Sliver
 Cleon, Merry Champion
+Clockwork Drawbridge
 Cloudcrown Oak
+Cold-Eyed Selkie
 Collected Company
 Confessor
 Conjurer's Closet
 Continue?
+Crystal Dragon
 Cunning Evasion
+Cunning Geysermage
 Curio Vendor
 Death's-Head Buzzard
+Deep-Sea Terror
+Deepglow Skate
+Deny Existence
 Depose
+Devastate
 Diabolic Tutor
 Dimir Aqueduct
 Dromad Purebred
+Dromoka Dunecaster
 Drownyard Temple
+Dúnedain Blade
+Earthbending Student
 Embereth Shieldbreaker
 Enclave Cryptologist
 Epitaph Golem
@@ -53,14 +72,19 @@ Flameshadow Conjuring
 Flaring Pain
 Fleeting Image
 Flowstone Surge
+For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
+Frilled Sandwalla
+Frostveil Ambush
+Fungal Plots
 Furtive Analyst
 Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
 Genju of the Falls
+Gerrard Capashen
 Ghitu Journeymage
 Gladecover Scout
 Goblin Engineer
@@ -72,9 +96,11 @@ Gouged Zealot
 Grapeshot
 Grasp of Phantoms
 Great Goblin, Foul-Hearted
+Great Hart
 Grotag Siege-Runner
 Ground Rift
 Guild Thief
+Guul Draz Mucklord
 Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
@@ -93,17 +119,31 @@ Island
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jeering Homunculus
+Jhessian Thief
 Judge of Currents
 Jungle Basin
+Kalemne, Disciple of Iroas
 Kapsho Kitefins
+Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
+Kithkin Spellduster
+Leafkin Avenger
 Lord of Change
 Lore Seeker
+Malanthrope
+Malfunction
+Malignant Growth
+Mana Severance
 Maniacal Rage
+Marauder's Axe
 Mask of Memory
 Memorial to Folly
 Mightstone
+Mindbreak Trap
+Mindshrieker
+Mirran Mettle
 Mirrorpool
 Misguided Rage
 Morphling
@@ -115,19 +155,27 @@ Nantuko Mentor
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
+Null Caller
 Nylea's Huntmaster
 Ogre Errant
 Old Rutstein
 Oneirophage
+Orcish Settlers
 Ordeal of Heliod
+Ordered Migration
+Outmaneuver
 Paradise Mantle
+Penumbra Wurm
 Phantasmal Sphere
 Pheres-Band Warchief
+Phyrexian Crusader
+Pitfall Trap
 Plains
 Poison-Tip Archer
 Prizefight
 Professor Hulk
 Protective Bubble
+Puppeteer
 Qilin's Blessing
 Raise Dead
 Ramosian Lieutenant
@@ -135,32 +183,53 @@ Raven's Crime
 Reckless Scholar
 Reclaim
 Reprocess
+Reya Dawnbringer
+Roalesk, Apex Hybrid
 Rocksteady, Mutant Marauder
 Rotted Hystrix
+Rotting Legion
+Saddled Rimestag
 Sagu Archer
 Samite Alchemist
+Sandstorm Charger
+Scarwood Goblins
+Scour the Laboratory
+Scourge of Numai
 Seafloor Oracle
 Seed the Land
 Selfless Spirit
 Senate Courier
+Serra Aviary
 Shuri's Fabricator
+Sigarda's Imprisonment
 Silas Renn, Seeker Adept
+Sivvi's Ruse
 Skittish Kavu
 Skulking Ghost
+Skyreach Manta
+Skyshroud Blessing
+Skyshroud Falcon
 Skysnare Spider
+Smogsteed Rider
 Snake Pit
+Snapback
 Snow-Covered Plains
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
+Spawning Kraken
+Spelltithe Enforcer
+Spider-Man, Peter Parker
 Spiteful Motives
 Spore Frog
 Steelform Sliver
 Steppe Glider
+Sterling Grove
 Stern Dismissal
 Stinging Shot
 Stoneshaker Shaman
 Stoneskin
+Stonybrook Schoolmaster
 Storm the Seedcore
 Strip Mine
 Sun-Collared Raptor
@@ -169,19 +238,28 @@ Survey the Wreckage
 Swamp
 Sword of the Animist
 Sylvan Ranger
+TVA Bureaucrat
+Tallyman of Nurgle
 Tar Pit Warrior
+Tarkir Duneshaper
 Thraben Charm
+Threads of Disloyalty
 Thunder Totem
 Tideshaper Mystic
+Timid Drake
+Tower Geist
 Tranquil Grove
 Traumatize
 Treefolk Healer
 Twinscroll Shaman
+Ulvenwald Hydra
 Undercity Troll
 Unholy Officiant
 Unnatural Growth
 Urborg Shambler
+Vedalken Ghoul
 Verdurous Gearhulk
+Veteran Armorer
 Viashino Outrider
 Violet Pall
 Virtus the Veiled
@@ -189,7 +267,11 @@ Vital Splicer
 Void Helix
 Voidmage Prodigy
 Waking the Trolls
+Wanderer's Intervention
+Warhorn Blast
 Wei Strike Force
+Wicked Slumber
 Will of the All-Hunter
 Windstorm
 Witch's Web
+Witching Well

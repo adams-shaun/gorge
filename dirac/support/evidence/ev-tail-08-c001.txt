@@ -8,9 +8,11 @@ Awaken the Woods
 Ballynock Trapper
 Barrenton Cragtreads
 Barrin's Codex
+Black Market Tycoon
 Blind-Spot Giant
 Bolt of Keranos
 Cabaretti Confluence
+Call to Glory
 Call to the Netherworld
 Captain America, Liberator
 Carnage Tyrant
@@ -30,12 +32,14 @@ Drudge Reavers
 Duergar Mine-Captain
 Dusk Legion Dreadnought
 Dwarven Recruiter
+Dwarven Trader
 Elvish Hunter
 Energy Arc
 Enfeeblement
 Engulf the Shore
 Excavated Wall
 Eyeblight's Ending
+Feast of the Unicorn
 Feast or Famine
 Fetid Gargantua
 Flowstone Mauler
@@ -48,6 +52,7 @@ Ghost-Lit Raider
 Giant Inheritance
 Goblin Brigand
 Goblin Sky Raider
+Goblin Soothsayer
 Grid Monitor
 Hammerheim Deadeye
 Hazardous Conditions
@@ -69,6 +74,7 @@ Juvenile Gloomwidow
 Kavu Howler
 Krazy Kow
 Last Kiss
+Liliana's Triumph
 Lone Missionary
 Loxodon Mystic
 Mana Leak
@@ -95,6 +101,7 @@ Pashalik Mons
 Pearled Unicorn
 Pharaoh Rama-Tut
 Pious Wayfarer
+Pitchburn Devils
 Plains
 Plateau
 Portable Hole
@@ -122,9 +129,12 @@ Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Spontaneous Artist
 Spore Crawler
+Sprinting Warbrute
 Stalwart Aven
 Stand
+Staunch Shieldmate
 Stitch in Time
 Storm Fleet Aerialist
 Strafe
@@ -150,10 +160,12 @@ Uncontrollable Anger
 Unravel the Aether
 Updraft
 Urborg Drake
+Valorous Steed
 Vampire Outcasts
 Veilborn Ghoul
 Vengeful Vampire
 Vulpine Goliath
+Wall of Opposition
 War Falcon
 Water Elemental
 Wayward Servant

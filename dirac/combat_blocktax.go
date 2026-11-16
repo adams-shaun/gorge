@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"slices"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // The block tax (kop.StatBlockTax): a printed S:Mode$ CantBlockUnless with a
 // generic mana Cost$ (Archangel of Tithes, Qal Sisma Behemoth, Myr Prototype,
@@ -113,6 +117,10 @@ func blkTaxFloorInstr(in *kop.Instr) bool {
 	case kop.OpMoveCounter:
 		return kop.CounterKind(in.B.N) == kop.CtrMenace
 	case kop.OpExt:
+		if in.Ext() == kop.ExtPutCounterChoice { // a menace counter among the kinds offered (ctr_choice.go)
+			ks, n := in.PutCtrChoiceKinds()
+			return slices.Contains(ks[:n], uint8(kop.CtrMenace))
+		}
 		return in.Ext() == kop.ExtMustBeBlocked || in.Ext() == kop.ExtBlocksIfAble || in.Ext() == kop.ExtSuspect
 	}
 	return false

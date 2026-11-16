@@ -1,9 +1,11 @@
 A-Kenku Artificer
 A-Riveteers Initiate
+A-Stimulus Package
 Accursed Centaur
 Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Amrou Scout
 Ancient Runes
 Angelic Overseer
@@ -14,6 +16,7 @@ Armorcraft Judge
 Arno Dorian
 Asceticism
 Ashcoat Bear
+Aura Shards
 Auriok Sunchaser
 Auspicious Ancestor
 Ayula, Queen Among Bears
@@ -30,8 +33,10 @@ Boros Mastiff
 Boulder Salvo
 Brimstone Dragon
 Brindle Shoat
+Bringer of the Blue Dawn
 Butch DeLoria, Tunnel Snake
 Candlelight Vigil
+Castle Raptors
 Celebrity Fencer
 Chakram Slinger
 Chasm Drake
@@ -57,15 +62,18 @@ Declare Dominance
 Despondent Killbot
 Dirty Rat
 Divebomber Griffin
+Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
 Drider
 Eel-Hounds
+Elven Bow
 Empty the Warrens
 Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Famished Foragers
 Fast Forward
 Feast of Dreams
 Fencing Ace
@@ -75,6 +83,7 @@ Forest
 Foul-Tongue Shriek
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate Hound
 Gerrard's Irregulars
 Gideon's Lawkeeper
@@ -94,21 +103,27 @@ Hermes, Overseer of Elpis
 Hero of Precinct One
 Hesitation
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
+Kami of Fire's Roar
 Karakas
 Kavu Chameleon
 Killer Bees
 King Crab
+Kithkin Mourncaller
+Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Living Lands
 Lord of Extinction
 Lulu, Stern Guardian
 Mageta's Boon
 Magma Rift
+Make Your Mark
 Makeshift Battalion
 Mana Geyser
 Markov Enforcer
@@ -126,15 +141,20 @@ Necroblossom Snarl
 Necrogen Spellbomb
 Necrosquito
 Nested Shambler
+Niall Silvain
 Nighthawk Scavenger
 Nightmarish End
+Nikya of the Old Ways
 No Escape
+Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
+Oblivion Ring
 Open the Vaults
 Orzhov Racketeers
 Paradise Mantle
 Pardic Arsonist
+Patriot, Young Avenger
 Paupers' Cage
 Pharika's Libation
 Phyrexian Ghoul
@@ -147,8 +167,12 @@ Portal to Phyrexia
 Possessed Aven
 Psionic Blast
 Pyretic Charge
+Quandrix Pledgemage
 Quickening Licid
+Rally the Ranks
+Rampaging Aetherhood
 Ransack
+Reality Ripple
 Reckless Air Strike
 Rhox Brute
 Riptide Crab
@@ -158,14 +182,19 @@ Road of Return
 Rootwater Diver
 Rubblebelt Recluse
 Rundvelt Hordemaster
+Sacred Cat
+Saiba Trespassers
 Saltfield Recluse
 Satyr Enchanter
 Satyr Grovedancer
 Savage Swipe
 Savai Sabertooth
+Scarwood Treefolk
 Scathe Zombies
+Sentinel
 Serpent Warrior
 Shambling Goblin
+Shessra, Death's Whisper
 Shrieking Affliction
 Silent Specter
 Skulltap
@@ -176,8 +205,10 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
+Spellbook
 Spined Fluke
 Spite
 Spontaneous Combustion
@@ -189,6 +220,7 @@ Strategic Intervention
 Sunset Revelry
 Sunspire Griffin
 Swamp
+Swift Maneuver
 Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
@@ -206,6 +238,7 @@ Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Verduran Emissary
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith

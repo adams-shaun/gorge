@@ -1,7 +1,9 @@
 A-Mentor's Guidance
+A-Phylath, World Sculptor
 A-Sprouting Goblin
 Aboshan's Desire
 Advanced Stitchwing
+Aether Mutation
 Ageless Guardian
 Agent of the Shadow Thieves
 Alms of the Vein
@@ -10,6 +12,7 @@ An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
+Appeal
 Arbalest Engineers
 Arbor Elf
 Arcane Flight
@@ -19,9 +22,11 @@ Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
+Aura Mutation
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
+Aya of Alexandria
 Bala Ged Recovery
 Balthor the Stout
 Bar the Door
@@ -59,6 +64,7 @@ Brindle Boar
 Bringer of the Black Dawn
 Brutal Nightstalker
 Bushmeat Poacher
+Butterbur, Bree Innkeeper
 Calix, Guided by Fate
 Cartouche of Zeal
 Cathartic Adept
@@ -121,6 +127,7 @@ Drowner of Secrets
 Durable Coilbug
 Dust Elemental
 Dwarven Patrol
+Edric, Spymaster of Trest
 Eidolon of Blossoms
 Elder Gargaroth
 Eldrazi Repurposer
@@ -135,6 +142,7 @@ Encase in Ice
 Endurance Bobblehead
 Enter the Unknown
 Era of Innovation
+Etherium-Horn Sorcerer
 Evanescent Intellect
 Exoskeletal Armor
 Experimental Augury
@@ -142,6 +150,7 @@ Ezuri's Brigade
 Feeling of Dread
 Feral Ridgewolf
 First Volley
+Flamespeaker Adept
 Flip the Switch
 Folk of An-Havva
 Foreboding Landscape
@@ -160,6 +169,7 @@ Godhunter Octopus
 Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
 Grafted Butcher
+Grazing Kelpie
 Grim Bounty
 Grim Guardian
 Grim Haruspex
@@ -174,6 +184,7 @@ Harvest Gwyllion
 Haunt of the Dead Marshes
 Havengul Runebinder
 Hawkeye, Clint Barton
+Heartstone
 Henrika Domnathi
 Herald of Serra
 Heroes for Hire
@@ -182,10 +193,12 @@ Hoard Hauler
 Hookblade
 Hoverguard Observer
 Hunter's Edge
+Hydroid Krasis
 Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
+Indatha Crystal
 Indulgent Aristocrat
 Infernal Pet
 Inferno
@@ -246,6 +259,7 @@ Mind Over Matter
 Ministrant of Obligation
 Minn, Wily Illusionist
 Mirari
+Moaning Wall
 Mogis's Warhound
 Molten Rebuke
 Monoskelion
@@ -280,6 +294,7 @@ Peace of Mind
 Pearl Dragon
 Pegasus Stampede
 Perilous Myr
+Petradon
 Pharika's Chosen
 Pillar of Light
 Plains
@@ -296,14 +311,18 @@ Quirion Explorer
 Quirion Sentinel
 Rain of Rust
 Raise the Alarm
+Rakdos Riteknife
 Ramosian Sergeant
 Rampaging Ferocidon
+Rapacious One
 Reality Hemorrhage
 Reclusive Wight
+Reduce
 Repulsor Rays
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
+Reyav, Master Smith
 Rhys the Exiled
 Rile
 Riot Piker
@@ -320,10 +339,12 @@ Sai of the Shinobi
 Salvage Slasher
 Sand Silos
 Sapseep Forest
+Scorch Rider
 Scouting Hawk
 Seagraf Skaab
 See the Unwritten
 Seeker of Skybreak
+Senseless Rage
 Serra Advocate
 Serum Visions
 Sever the Bloodline
@@ -347,6 +368,7 @@ Sokka's Charge
 Soltari Trooper
 Soul's Might
 Sound the Call
+Sphere of Grace
 Spidersilk Armor
 Spike-Tailed Ceratops
 Spiked Corridor
@@ -355,12 +377,16 @@ Spiketail Drakeling
 Spire Owl
 Spitting Dilophosaurus
 Spitting Hydra
+Sprite Dragon
 Squelching Leeches
 Staff of the Wild Magus
+Storm Fleet Sprinter
 Storm Sculptor
 Stun
 Subterranean Spirit
+Suffocating Blast
 Summoning Materia
+Sunastian Falconer
 Swamp
 Sylvia Brightspear
 Tainted Adversary
@@ -384,6 +410,7 @@ Toil to Renown
 Tombfire
 Touch of Death
 Toxic Scorpion
+Treacherous Link
 Tribal Flames
 Trickster Mage
 Troll-Horn Cameo
@@ -393,6 +420,7 @@ Uglúk of the White Hand
 Ulamog's Crusher
 Ulvenwald Captive
 Ulvenwald Hydra
+Umara Wizard
 Undercellar Myconid
 Undercity Necrolisk
 Undo
@@ -406,6 +434,7 @@ Venerable Monk
 Venom, Eddie Brock
 Veteran's Powerblade
 Veteran's Voice
+Viashino Outrider
 Viashino Runner
 Vigilant Baloth
 Viral Drake
@@ -414,6 +443,7 @@ Vodalian Arcanist
 Voice of All
 Void Squall
 Vortex Runner
+Vow of Lightning
 Wake the Past
 Warpath Ghoul
 Wash Out
@@ -424,6 +454,7 @@ Whisper of the Dross
 Whitesun's Passage
 Wild Elephant
 Wild Ox
+Winds of Qal Sisma
 Witness the End
 Xenk, Paladin Unbroken
 Xerex Strobe-Knight

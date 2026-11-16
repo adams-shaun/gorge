@@ -1,5 +1,6 @@
 A-Skull Skaab
 A-The Meathook Massacre
+Academy Elite
 Aerial Guide
 Aether Swooper
 Alaborn Cavalier
@@ -7,19 +8,25 @@ Alchemax Slayer-Bots
 All Is Dust
 Alluring Suitor
 Ambulatory Edifice
+Ancient Carp
 Angel's Tomb
 Angelic Quartermaster
+Arcane Spyglass
 Arrow Volley Trap
 Assembly-Worker
 Audacious Thief
 Aven of Enduring Hope
 Banners Raised
 Barrin, Tolarian Archmage
+Baton of Courage
 Battlefield Raptor
+Beacon of Destruction
+Ben-Ben, Akki Hermit
 Bident of Thassa
 Bladebrand
 Blazing Hope
 Blazing Volley
+Blind with Anger
 Blood Pet
 Bloodvial Purveyor
 Bola Warrior
@@ -27,9 +34,13 @@ Bone Pit Brute
 Boomerang
 Boon Satyr
 Bower Passage
+Bull Rush
+Burning Wish
 Callous Dismissal
 Canyon Lurkers
+Captivating Gyre
 Captured Sunlight
+Cathedral Sanctifier
 Chain Stasis
 Cleaving Skyrider
 Cloud Djinn
@@ -38,16 +49,19 @@ Cordial Vampire
 Cruel Sadist
 Cyclops Electromancer
 D'Avenant Archer
+Dangerous Wager
 Deathsprout
 Defy Death
 Demanding Dragon
 Demon Bolt
 Desert Sandstorm
+Detective of the Month
 Dismal Failure
 Dockside Chef
 Doomed Traveler
 Doomgape
 Double Trouble
+Dragonscale General
 Drake Familiar
 Dying Wail
 Earthshaker Giant
@@ -59,15 +73,21 @@ Fall of the Thran
 Fanatical Devotion
 Fatal Frenzy
 Fated Infatuation
+Ferrovore
+Feywild Visitor
 Fire Servant
 Fireforger's Puzzleknot
 Firemantle Mage
 Firescreamer
 Flaxen Intruder
 Flourishing Strike
+Flow of Knowledge
+Flowstone Shambler
 Flowstone Wall
 Forest
 Frantic Salvage
+Freewind Falcon
+Garbage Elemental
 Gargoyle Flock
 Gather Courage
 Geothermal Bog
@@ -75,32 +95,47 @@ Ghostly Wings
 Goblin Legionnaire
 Goblin Spy
 Gone Missing
+Goretusk Firebeast
+Granite Gargoyle
 Gravel Slinger
 Gruesome Discovery
+Guardian Automaton
 Gut, True Soul Zealot
+Gwaihir the Windlord
+Hanna, Ship's Navigator
 Harnessed Lightning
 Hawkeye, Avenging Archer
 Haze of Pollen
+Hearth Kami
 Heavenly Qilin
 Hippo-Cows
 Horn of Gondor
+Huatli's Snubhorn
 Humble
+Imperial Ceratops
 Imposing Visage
 Inescapable Brute
 Infernal Captor
 Inner-Flame Acolyte
 Insidious Will
 Invasion of Segovia
+Invincible Hymn
 Island
+Jawbone Duelist
 Jhessian Balmgiver
 Journey for the Elixir
+Junk Jet
 K-9, Mark I
 Karametra's Favor
 Kardur's Vicious Return
 Keepsake Gorgon
+Keldon Warcaller
 Knight of the Tusk
 Kor Scythemaster
 Krosan Warchief
+Kyoshi Warrior Guard
+Lightning Rift
+Lightning Spear
 Llanowar Cavalry
 Mage il-Vec
 Magma Jet
@@ -112,6 +147,8 @@ Masumaro, First to Live
 Meldweb Curator
 Memorial to Unity
 Mercurial Kite
+Metastatic Evangel
+Mine Worker
 Moku, Meandering Drummer
 Molten Ravager
 Momentary Blink
@@ -122,12 +159,15 @@ Myr Retriever
 Myth Realized
 Nightmare Shepherd
 Nimble Mongoose
+Nuka-Cola Vending Machine
 Nylea's Disciple
 Ogre Resister
 Oracle of Nectars
 Pact of Negation
 Palace Sentinels
+Paladin of Atonement
 Patagia Viper
+Pathmaker Initiate
 Pestilence Demon
 Phyrexian Missionary
 Piranha Marsh
@@ -141,6 +181,7 @@ Quandrix Apprentice
 Quirion Beastcaller
 Rampaging Monument
 Reckless Reveler
+Recruit the Worthy
 Regenesis
 Renegade Warlord
 Repercussion
@@ -149,18 +190,23 @@ Riptide Mangler
 Rising Populace
 Rummaging Goblin
 Sawtooth Ogre
+Scalding Salamander
 Scaled Behemoth
+Scoria Wurm
 Scuttlegator
 Season of Growth
+Shield Mate
 Shu Farmer
 Shu Grain Caravan
 Shuri, Vibranium Technologist
 Sighted-Caste Sorcerer
+Skatewing Spy
 Sky Crier
 Sky Cycle
 Skycloud Egg
 Skyswirl Harrier
 Slag Fiend
+Slagstone Refinery
 Slurrk, All-Ingesting
 Soulcatcher
 Staff of the Sun Magus
@@ -168,6 +214,7 @@ Stampede Rider
 Steal Artifact
 Stensia Bloodhall
 Storm Seeker
+Striking Sliver
 Sunbringer's Touch
 Sungrace Pegasus
 Sunmane Pegasus
@@ -175,9 +222,12 @@ Swamp
 Tavern Ruffian
 Terminal Agony
 Tezzeret's Gambit
+The Archimandrite
 Thragtusk
+Threnody Singer
 Throne of the God-Pharaoh
 Time Bomb
+Treasure Mage
 Tribute to the Wild
 Twisted Justice
 Tzaangor Shaman
@@ -185,6 +235,7 @@ Ukkima, Stalking Shadow
 Ulvenwald Captive
 Undead Butler
 Unseal the Necropolis
+Utvara Scalper
 Valduk, Keeper of the Flame
 Vapor Snag
 Vectis Dominator
@@ -197,3 +248,4 @@ Wing Shards
 Witherbloom Command
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way
+Yotian Tactician

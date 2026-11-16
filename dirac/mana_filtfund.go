@@ -94,6 +94,19 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 	}
 }
 
+// fundSacOnly is a sacrifice-only funding source's step (an Eldrazi Spawn's
+// "Sacrifice this creature: Add {C}", CR 605.1a): its mana is added and it is
+// sacrificed, never tapped, so no Taps watcher fires and summoning sickness
+// does not bar it. gorge's prefix search lists it as an "activate" option as it
+// does a Treasure's (mana_sacsource.go).
+//
+//go:noinline
+func (s *State) fundSacOnly(k *prep, p uint8, sl Slot) {
+	pc := s.manaPCGen(k, sl)
+	s.poolAdd(p, bits.TrailingZeros8(s.srcMaskAt(pc, sl)), int(max(pc.manaN, 1)))
+	s.sacFilterSource(k, sl)
+}
+
 // fundOut: sl is tapped and cannot fund by sacrifice either.
 func (s *State) fundOut(k *prep, sl Slot) bool {
 	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl)

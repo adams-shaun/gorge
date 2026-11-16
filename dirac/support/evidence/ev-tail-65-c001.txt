@@ -1,43 +1,180 @@
+A-Celebrity Fencer
 A-Tenured Inkcaster
 Aberrant Researcher
+Abu Ja'far
+Aether Figment
+Aliban's Tower
 Alpha Deathclaw
+Always Watching
 Aqueous Form
+Bastion Protector
 Beacon of Immortality
+Blisterstick Shaman
+Blood Burglar
+Bogstomper
+Bolt Hound
+Boss Uramon, Shadow's Reach
+Box of Free-Range Goblins
+Brawler's Plate
 Brink of Madness
+Burning Cloak
 Burning Sun's Fury
+Burning-Fist Minotaur
 Call to the Feast
+Canyon Lurkers
 Catacomb Slug
+Cavalry Pegasus
 Chandra's Outburst
+Chaosphere
+Clarion Cathars
+Corpse Churn
 Corrosive Mentor
+Deadeye Tormentor
 Deathgazer
 Debtors' Transport
 Devastation Tide
 Dictate of Erebos
+Dispense Justice
+Distress
+Drifting Shade
+Dry Spell
+Dwarven Armory
+Dwarven Patrol
+Embereth Shieldbreaker
 Emberstrike Duo
+Embodiment of Fury
 Embraal Bruiser
+Enter the God-Eternals
+Ettercap
+Excise the Imperfect
+Eyeblight Cullers
+Faith Healer
+Fallaji Excavation
+Fanged Flames
+Field-Tested Frying Pan
 Fire Nation's Conquest
+Flame-Kin Zealot
+Flensermite
+Font of Fortunes
 Forest
+Fortifying Draught
+Furnace Spirit
+Ganax, Astral Hunter
+Ghoulraiser
+Gitaxian Anatomist
+Graceblade Artisan
+Grateful Apparition
 Grip of the Roil
+Guardians of Koilos
 Happy Hogan, Dauntless Driver
+Headsplitter
+Hedron Detonator
+Herald of the Dreadhorde
+Hibernation
+Homicidal Seclusion
 Horned Cheetah
+Horned Helm
+Hungering Hydra
+Hunter's Ambush
+Incursion Specialist
+Industrial Advancement
+Inner Sanctum
 Insatiable Gorgers
+Instill Infection
 Island
+Jagwasp Swarm
+Jhessian Infiltrator
+Jhoira's Toolbox
+Joraga Visionary
 Kabuto Moth
 Kami of the Crescent Moon
+Kardur's Vicious Return
+Kefnet's Last Word
+Kheru Bloodsucker
+Kranioceros
 Leonin Iconoclast
+Light of Day
+Lightning Visionary
+Livaan, Cultist of Tiamat
+Magma Phoenix
+Manacles of Decay
+Marchesa's Smuggler
+Momentary Blink
+Moon-Circuit Hacker
+Mortis Dogs
 Mountain
+Mournwillow
+Nimble-Blade Khenra
+Norn's Disassembly
 Observant Alseid
+Oko, Thief of Crowns
+On Serra's Wings
+Ore-Scale Guardian
+Oreskos Swiftclaw
+Organic Extinction
+Perilous Forays
+Pick Up the Pace
+Pitiless Plunderer
 Plains
+Prison Sentence
 Prodigal Pyromancer
 Prodigal Sorcerer
 Professor's Warning
 Rapid Hybridization
 Reach Through Mists
+Reckless Brute
+Reinforced Ronin
+Reptilian Reflection
+Reservoir Kraken
+Restless Apparition
+Rhys the Exiled
+Rotting Rats
+Ruthless Cullblade
+Ruthless Invasion
+Sage Aven
+Scavenger Drake
+Scouring Swarm
+Serpentine Ambush
+Serrated Scorpion
+Shadows' Verdict
+Shang-Chi, Martial Mentor
+Shao Jun
+Shauku, Endbringer
+Shinka Gatekeeper
+Siegecraft
+Skitterskin
+Skybind
+Skyfire Kirin
 Slavering Nulls
+Spectral Force
+Spined Basher
+Spirit of the Spires
 Spontaneous Combustion
+Stern Constable
+Stitch in Time
+Stormclaw Rager
 Stromgald Crusader
 Swamp
+Sylvan Ranger
+Talruum Minotaur
+Tormented Soul
+Tormenting Voice
+Trip Noose
+Trophy Mage
+Uktabi Orangutan
+Umara Mystic
 Undercity Informer
+Underworld Hermit
+Underworld Sentinel
+Vile Requiem
+Vorrac Battlehorns
+Vulshok Gauntlets
+Wall of Fire
 Winds of Rebuke
+Windswept Heath
 Winged Words
+Wish Good Luck
+Wishcoin Crab
+Withstand Death
+Wurmcalling
 Zombie Master

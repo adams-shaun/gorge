@@ -1,14 +1,14 @@
 {
   "card": "Shrine of Boundless Growth",
-  "class": "unmodelled-mana",
-  "why": "gorge prices a dynamic-amount {T}, Sacrifice mana ability (Shrine of Boundless Growth: Add {C} for each charge counter) as a last-resort sacrifice unit (CR 605.1a, 601.2g: a mana ability with a sacrifice cost may be activated while paying); the kernel's dynamic-amount variants (gen.go varPC) hold {T}-only costs, so its autopay never counts the Shrine and omits the activation gorge offers (an Equip {2} paid with Sandstone Bridge's {W} and a six-counter Shrine, tail-01 pair 43) and the sacrifice gorge makes (pair 11)",
+  "class": "options-options",
+  "why": "gorge offers an activation (Resurrection Orb's Equip {4}) whose cost is payable only after the Shrine's {T}, Sacrifice: Add {C} for each charge counter is activated first (CR 602.2b), through its potential walk, while the planner counts the Shrine for neither a cast nor a plan; dirac offers it for neither, so the options differ (tail-34 pair 1, decision 579). Counting the Shrine for activations alone is a model of gorge's potential walk and its manual mana window, and counting it for casts too over-offers (Boarding Party, Mirari, Hythonia the Cruel, Showstopping Surprise)",
   "repro": {
     "pool": "custom",
     "surface": "autopay",
-    "seed": 1,
+    "seed": 0,
     "pair": 0,
     "policy": "random",
     "mulligans": 0,
-    "file": "shrine_dynamic_sac_mana_unpriced"
+    "file": "shrine_of_boundless_growth_potential_offer_unmodelled"
   }
 }

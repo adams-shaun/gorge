@@ -53,10 +53,13 @@ func (s *State) freeCastParkable() bool {
 // OpCastFree.
 func (s *State) resumeFreeCast(k *prep) {
 	s.res.ask = raNone
-	// the drained queue's ForgetPlayed$ marker has served its casts (a
-	// committed card was dropped in cast.go finishBuild; a refused or
-	// reversed one kept its place)
-	s.g.freeP &^= freeForget
+	// the drained queue's register has served its casts (a committed card
+	// was dropped in cast.go finishBuild; a refused or reversed one kept its
+	// place). The whole register dies with the queue: ReplaceGraveyard$
+	// Exile belongs to the played spells, and a stale bit would exile a
+	// later unrelated free cast's spell on leave (CR 701.5a). This runs
+	// before turn_gen.go's drain tail on the parked path.
+	s.g.freeP = 0
 	if i := s.holdIndex(); i >= 0 {
 		copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
 		s.sp--

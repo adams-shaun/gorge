@@ -35,6 +35,7 @@ Avatar Kyoshi, Earthbender
 Avoid Fate
 Axebane Guardian
 Ayara, First of Locthwain
+Azra Bladeseeker
 Balshan Griffin
 Balustrade Spy
 Bant Panorama
@@ -51,6 +52,7 @@ Blossom Prancer
 Bog Raiders
 Bomber Corps
 Bone Harvest
+Boomer Scrapper
 Boon Reflection
 Bumi's Feast Lecture
 Call to the Grave
@@ -91,12 +93,14 @@ Dagger Caster
 Dawn Elemental
 Defy Death
 Delighted Killbot
+Delirium Skeins
 Deviant Skytech
 Diabolic Intent
 Dimir Informant
 Dockside Chef
 Downdraft
 Dragon's Claw
+Drown in Filth
 Dyfed, the Guiding Hand
 Earth Rift
 Ebon Dragon
@@ -115,6 +119,7 @@ Faultgrinder
 Feign Death
 Field Marshal
 Fiery Finish
+Filth
 Fireblade Artist
 Fireblast
 Flametongue Kavu
@@ -132,6 +137,7 @@ Gathering Throng
 General Leo Cristophe
 Ghitu Fire-Eater
 Ghoul's Feast
+Gixian Puppeteer
 Glissa's Scorn
 Gnarlid Pack
 Gnarlroot Pallbearer
@@ -153,6 +159,7 @@ Grovetender Druids
 Gruul Keyrune
 Guise of Fire
 Hallowed Haunting
+Haru-Onna
 Haunted Angel
 Haunting Hymn
 Hawkeye, Bowslinger
@@ -188,6 +195,7 @@ Jackal Pup
 Jeskai Barricade
 Kalemne's Captain
 Karoo Meerkat
+Kavu Monarch
 Ken, Burning Brawler
 Kimoyo Beads
 King Cheetah
@@ -195,6 +203,7 @@ Kithkin Daggerdare
 Knight of the Last Breath
 Knight's Pledge
 Kor Outfitter
+Kozilek's Unsealing
 Kuon, Ogre Ascendant
 Kyren Sniper
 Littjara Mirrorlake
@@ -244,10 +253,12 @@ Oath of Chandra
 Oggyar Battle-Seer
 Ominous Parcel
 Overgrown Armasaur
+Pariah's Shield
 Passionate Archaeologist
 Pentarch Ward
 Phylath, World Sculptor
 Plains
+Plated Pegasus
 Poisonbelly Ogre
 Poppet Stitcher
 Primordial Ooze
@@ -292,6 +303,7 @@ Sergeant John Benton
 Serpentine Kavu
 Serum Snare
 Shadowcloak Vampire
+Shatterskull Minotaur
 She-Hulk, Wallbreaker
 Sheoldred, the Apocalypse
 Shivan Wurm
@@ -335,10 +347,12 @@ Street Urchin
 Strength-Testing Hammer
 Subjugator Angel
 Sudden Shock
+Sun-Blessed Mount
 Sunastian Falconer
 Sunspring Expedition
 Surgehacker Mech
 Swamp
+Swathcutter Giant
 Swift Demise
 Sylvan Paradise
 Syndicate Guildmage
@@ -357,6 +371,7 @@ Thrashing Wumpus
 Three Visits
 Throes of Chaos
 Thrull Champion
+Tidespout Tyrant
 Time Spiral
 Tireless Missionaries
 Tolarian Scholar
@@ -376,6 +391,7 @@ Undertaker
 Unhallowed Pact
 Unmake the Graves
 Unyaro Bee Sting
+Ursine Fylgja
 Urza's Cave
 Urza's Incubator
 Valeron Outlander
