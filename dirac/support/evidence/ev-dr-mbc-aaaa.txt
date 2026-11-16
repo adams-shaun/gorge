@@ -1,5 +1,6 @@
 Accursed Marauder
 Aether Vial
+Alirios, Enraptured
 Angelic Gift
 Angelic Protector
 Aqueous Form
@@ -44,6 +45,7 @@ Fire-Belly Changeling
 Flaring Pain
 Flickerwisp
 Forest
+Fumble
 Fury Sliver
 Gatekeeper of Malakir
 Gempalm Incinerator
@@ -121,5 +123,6 @@ Wash Away
 Whipcorder
 Will-o'-the-Wisp
 Witching Well
+Xyris, the Writhing Storm
 You Are Already Dead
 Youthful Valkyrie

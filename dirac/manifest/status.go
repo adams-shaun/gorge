@@ -16,19 +16,26 @@ import (
 // rooted at the module): an entry is active exactly when package dirac's
 // non-test, non-generated source references its code. A kop entry is
 // referenced as kop.<Name>, a dirac entry (key, mech) by its bare name, and
-// an ExtOp also by a //kmanifest:ext handler (ScanExt). It returns one line
+// an ExtOp or Op also by a //kmanifest:ext or :op handler and an ask by its
+// :askopts handler (ScanKernel). It returns one line
 // per mismatch, naming the entry's file, sorted.
 func StatusMismatches(fsys fs.FS, t *Tree) ([]error, error) {
 	used, err := kernelRefs(fsys)
 	if err != nil {
 		return nil, err
 	}
-	ext, err := ScanExt(fsys)
+	hs, err := ScanKernel(fsys)
 	if err != nil {
 		return nil, err
 	}
-	for _, h := range ext {
+	for _, h := range hs.Ext {
 		used["kop."+h.Op] = true
+	}
+	for _, h := range hs.Op {
+		used["kop."+h.Op] = true
+	}
+	for _, h := range hs.Ask {
+		used[h.Ask] = true
 	}
 	var errs []error
 	for _, e := range t.Entries {

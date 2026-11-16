@@ -4,6 +4,7 @@ Afterthought Sentry
 Ajani Resolute
 Ajani Unrelenting
 Ajani's Anguish
+Apex Witchstalker
 Arcane Amphisbaena
 Archive Arbiter
 Arni, Humble Scribe
@@ -91,6 +92,7 @@ Ingris Stingerquill
 Innovative Commons
 Inspired Tethermage
 Island
+Jace, Reality Sculptor
 Jiang Yanggu, Alone
 Jiang Yanggu, Never Alone
 Karn, Argent Defender

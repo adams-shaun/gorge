@@ -58,10 +58,12 @@ Detention Chariot
 Dismal Backwater
 District Mascot
 Diversion Unit
+Draconautics Engineer
 Dracosaur Auxiliary
 Dredger's Insight
 Dynamite Diver
 Earthrumbler
+Elvish Refueler
 Endrider Spikespitter
 Engine Rat
 Explosive Getaway
@@ -115,6 +117,7 @@ Lightning Strike
 Lightshield Parry
 Lightwheel Enhancements
 Locust Spray
+Loot, the Pathfinder
 Lotusguard Disciple
 Loxodon Surveyor
 Lumbering Worldwagon
@@ -181,6 +184,7 @@ Scrap Compactor
 Scrounging Skyray
 Shefet Archfiend
 Silken Strength
+Sita Varma, Masked Racer
 Skybox Ferry
 Skycrash
 Skyserpent Seeker

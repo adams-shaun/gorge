@@ -1031,7 +1031,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return s.execSetState(k, in)
 		}
 		if in.Op >= kop.OpPutCounterAll {
-			if ok, done := s.execCold1(k, in); done {
+			if ok, done := s.execColdOps(k, in); done {
 				return ok, true
 			}
 		}
@@ -2056,7 +2056,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		nf := 0
 		// the scan window in scan order (DuRememberRevealed's reveal list:
 		// gorge appends every revealed card, found ones included, at the end
-		// of the player's walk)
+		// of the player's walk; DuFoundWithRevealed's rest list, same order)
 		var all [MaxDeck]Obj
 		na := 0
 		cmc := 0
@@ -2065,10 +2065,8 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		// Amount$ still reveals nothing (gorge's amount > 0 gate).
 		for i := 0; (resumed || minCMC > 0 && want > 0 && cmc < minCMC || minCMC == 0 && found < want) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
 			o := pl.lib[int(pl.libLo)+i]
-			if fl&kop.DuRememberRevealed != 0 {
-				all[na] = o
-				na++
-			}
+			all[na] = o
+			na++
 			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && (minCMC > 0 || found < want) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
@@ -2111,8 +2109,15 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 			}
 		}
 		if fl&kop.DuFoundWithRevealed != 0 {
-			for i := 0; i < nf; i++ {
-				rev[nr] = fnd[i]
+			// the rest is the whole revealed pile in scan order, the found
+			// cards at their own scan positions (Forge DigUntilEffect: with
+			// no FoundDestination$ the found-move block is skipped and the
+			// final loop walks `revealed` — the collection the scan built;
+			// gorge effDigUntil's toReturn). Appending the found cards last
+			// landed the lands on top of a Mirko Vosk mill's graveyard batch.
+			nr = 0
+			for i := 0; i < na; i++ {
+				rev[nr] = all[i]
 				nr++
 			}
 			nf = 0
