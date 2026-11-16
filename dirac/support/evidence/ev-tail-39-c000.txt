@@ -2,12 +2,14 @@ A-Buy Your Silence
 A-Esika's Chariot
 A-Gnarlid Colony
 A-Pyre-Sledge Arsonist
+A-Return Upon the Tide
 Absorbing Man and Titania
 Abuna's Chant
 Accursed Duneyard
 Accursed Marauder
 Aegis Automaton
 Aether Barrier
+Aether Charge
 Aetherstream Leopard
 Afflict
 Aim High
@@ -32,6 +34,7 @@ Aspect of Hydra
 Assemble the Entmoot
 Atalya, Samite Master
 Audacious Thief
+Auger Spree
 Avatar of Growth
 Aven Redeemer
 Azra Smokeshaper
@@ -45,12 +48,14 @@ Berserkers of Blood Ridge
 Bespoke Battlewagon
 Bitter Reunion
 Bitterbow Sharpshooters
+Bladed Sentinel
 Blast of Genius
 Blood Pact
 Bloodvial Purveyor
 Blot Out
 Bolshack Dragon
 Bonds of Mortality
+Bounty Hunter
 Branchsnap Lorian
 Brushland
 Bulette
@@ -72,6 +77,7 @@ Congregate
 Consign to Dream
 Consume Strength
 Corpsejack Menace
+Corrupted Roots
 Courageous Outrider
 Court Cleric
 Creeperhulk
@@ -87,6 +93,8 @@ Crystalline Armor
 Curse of Vitality
 Dark Triumph
 Dark Withering
+Darksteel Pendant
+Darksteel Relic
 Darting Merfolk
 Dauntless Onslaught
 Dauthi Trapper
@@ -94,6 +102,7 @@ Dawnbringer Cleric
 Dawnfeather Eagle
 Dawnhart Geist
 Dawnhart Mentor
+Dawnray Archer
 Day's Undoing
 Deathgreeter
 Deceive the Messenger
@@ -102,19 +111,23 @@ Defenestrate
 Demogorgon's Clutches
 Dense Foliage
 Desecration Elemental
+Destructive Force
 Devkarin Dissident
 Diabolical Salvation
+Dismantling Wave
 Domri, City Smasher
 Dovin's Dismissal
 Draco
 Drakewing Krasis
 Drana's Emissary
+Dread Presence
 Drey Keeper
 Dromoka Dunecaster
 Dry Spell
 Durkwood Boars
 Elda, Conjurer of Spectacle
 Elemental Eruption
+Elena, Turk Recruit
 Elvish Mystic
 Enlightened Maniac
 Envoy of the Ancestors
@@ -134,6 +147,7 @@ Fervent Paincaster
 Fevered Convulsions
 Fleshgrafter
 Flooded Strand
+Florian, Voldaren Scion
 Flowering of the White Tree
 Flowstone Slide
 Forest
@@ -141,33 +155,45 @@ Forked Bolt
 Fowl Play
 Freedom Fighter Recruit
 Frontline Rebel
+Frostwind Invoker
+Fungal Sprouting
 Gallows Warden
 Game-Trail Changeling
 Gatebreaker Ram
 Geistflame Reservoir
+Geralf's Mindcrusher
 Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
+Ghostflame Sliver
 Ghostly Touch
 Ghoul's Feast
 Gifted Aetherborn
 Glacial Grasp
 Glaive of the Guildpact
+Gleaming Overseer
 Glenn, the Voice of Calm
 Glint Hawk Idol
 Glittermonger
 Glorious Charge
+Goblin Flectomancer
 Goblin War Buggy
+Gretchen Titchwillow
 Grim Discovery
 Grisly Salvage
 Gurmag Drowner
 HYDRA Disintegrator
+Hada Spy Patrol
 Hag of Inner Weakness
+Halimar Excavator
 Hall of Tagsin
+Hammerhead Tyrant
 Hangar Scrounger
+Heartmender
 Herald of Hadar
 Hermes, Overseer of Elpis
 Hero's Resolve
+Heroes Remembered
 Hewed Stone Retainers
 Hidden Guerrillas
 Highspire Infusion
@@ -177,6 +203,7 @@ Humble the Brute
 Humongulus
 Hundroog
 Hydromorph Guardian
+Imperial Cosmographer
 Infectious Bloodlust
 Inheritance
 Inspirit
@@ -188,12 +215,15 @@ Island
 It's Clobberin' Time!
 Jukai Messenger
 Jungle Wayfinder
+Junkyard Genius
 Jwari Scuttler
 Kamigawa Charm
 Kazandu Mammoth
 Kazuul's Fury
+Kessig Dire Swine
 Ketria Triome
 Kher Keep
+Kill Shot
 Kill-Zone Acrobat
 Kitsune Diviner
 Knightly Valor
@@ -209,15 +239,20 @@ Leonin Battlemage
 Leonin Bladetrap
 Leonin Sun Standard
 Liberated Dwarf
+Lifegift
 Lightning Shrieker
 Llanowar Tribe
 Lord of the Accursed
+Lost Soul
 Lotus Bloom
 Manalith
 Manticore Eternal
 Marchesa's Emissary
 Marching Duodrone
 Mark of the Vampire
+Marshal of Zhalfir
+Marwyn, the Nurturer
+Master's Rebuke
 Matsu-Tribe Sniper
 Merfolk Mistbinder
 Metallic Rebuke
@@ -227,8 +262,10 @@ Mobile Fort
 Molten Monstrosity
 Monologue Tax
 Moonstone Eulogist
+Moonveil Dragon
 Morska, Undersea Sleuth
 Mountain
+Mudbrawler Raiders
 Mudbutton Torchrunner
 Mulldrifter
 Mystic Retrieval
@@ -240,6 +277,8 @@ Nether Horror
 Night Out in Vegas
 Nissa's Defeat
 Oblivion Crown
+Oblivion's Hunger
+Ogre Berserker
 Oji, the Exquisite Blade
 Oona's Grace
 Orchard Spirit
@@ -251,6 +290,7 @@ Paroxysm
 Pegasus Charger
 Phantom Warrior
 Phantom Wings
+Pitiless Gorgon
 Plains
 Platinum Angel
 Power Fist
@@ -267,6 +307,7 @@ Rage of Purphoros
 Ragged Recluse
 Raging Kronch
 Raging Swordtooth
+Raiders' Wake
 Rakka Mar
 Rally at the Hornburg
 Ravenous Necrotitan
@@ -277,9 +318,11 @@ Rejuvenate
 Reki, the History of Kamigawa
 Renewed Faith
 Repel the Darkness
+Resistance Reunited
 Rhystic Shield
 Riddle of Lightning
 Ridgetop Raptor
+Riftwing Cloudskate
 Riot Piker
 Rip-Clan Crasher
 Riverwheel Aerialists
@@ -291,13 +334,18 @@ Rush of Adrenaline
 Safeguard
 Salvaged Manaworker
 Sanctum Spirit
+Scavenger Grounds
 Scourge of Fleets
 Scurry of Squirrels
+Second Wind
 Segovian Angel
 Sentinels of Glen Elendra
+Serene Sunset
 Shadowblood Egg
 Shambling Ghast
+Shardless Agent
 Sheltering Boughs
+Shield of the Avatar
 Shivan Gorge
 Shriek of Dread
 Siege Dragon
@@ -309,9 +357,11 @@ Siren Reaver
 Siren's Ruse
 Sky Crier
 Skyshroud Elite
+Skystrike Officer
 Slaughterhouse Bouncer
 Sleeper's Guile
 Smokespew Invoker
+Snapping Drake
 Soaring Thought-Thief
 Solemn Recruit
 Soltari Monk
@@ -322,6 +372,7 @@ Spellweaver Eternal
 Spike Hatcher
 Spinal Centipede
 Splitting Slime
+Spotted Griffin
 Springmane Cervin
 Spur Grappler
 Squire's Devotion
@@ -334,11 +385,14 @@ Strionic Resonator
 Sungold Barrage
 Swamp
 Swan Song
+Sweet Oblivion
 Symbiote Spawn
+Synchronous Sliver
 Tajuru Snarecaster
 Takenuma Bleeder
 Talas Scout
 Taoist Hermit
+Tar Snare
 Teeterpeak Ambusher
 Tempered Sliver
 The Balrog, Flame of Udûn
@@ -366,6 +420,7 @@ Urborg Emissary
 Vedalken Mastermind
 Vengevine
 Victor Mancha, Runaway
+Victor Timely, Wily Tycoon
 Viridescent Wisps
 Vivien's Talent
 Vraska, Swarm's Eminence
@@ -374,11 +429,13 @@ Wall of Fire
 Warped Devotion
 Warped Landscape
 Warriors of Wakanda
+Wash Away
 Welcoming Vampire
 Whetwheel
 Wild Slash
 Wingspan Mentor
 Winter Eladrin
+Wirewood Savage
 Witch of the Moors
 Wondrous Revival
 Woodland Changeling

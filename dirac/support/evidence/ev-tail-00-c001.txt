@@ -90,6 +90,7 @@ Electrickery
 Elfhame Wurm
 Elite Instructor
 Ember-Fist Zubera
+Emperor Mihail II
 Energy Chamber
 Erratic Explosion
 Escape Artist
@@ -205,6 +206,7 @@ Loch Dragon
 Lost in the Woods
 Lotho, Corrupt Shirriff
 Loyal Pegasus
+Magebane Armor
 Make Obsolete
 Malakir Familiar
 Mana Matrix
@@ -243,6 +245,7 @@ Pennon Blade
 Pewter Golem
 Pharika's Cure
 Phobian Phantasm
+Phyrexian Slayer
 Piety Charm
 Piranha Marsh
 Plains
@@ -274,6 +277,7 @@ Rush of Knowledge
 Russet Wolves
 Ruthless Predation
 Sage Owl
+Salvaging Station
 Sam, Loyal Attendant
 Samwise Gamgee
 Sanctum of Shattered Heights
@@ -357,6 +361,7 @@ Tumble Magnet
 Tundra Wall
 Tura Kennerüd, Skyknight
 Unburden
+Unclaimed Territory
 Valor Singer
 Vampiric Fury
 Verdant Embrace

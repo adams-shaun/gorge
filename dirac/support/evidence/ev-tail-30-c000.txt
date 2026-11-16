@@ -25,6 +25,7 @@ Ascendant Acolyte
 Assassin Gauntlet
 Assassin's Strike
 Assure
+Atlas, Sizable Stooge
 Auramancer
 Avacyn, Angel of Hope
 Axebane Stag
@@ -33,6 +34,7 @@ Balduvian Barbarians
 Balduvian Hydra
 Ballista Charger
 Barbed Spike
+Barbed-Back Wurm
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
@@ -88,6 +90,7 @@ Collective Defiance
 Commander Greven il-Vec
 Concerted Defense
 Consecrate
+Consumptive Goo
 Coronation of Chaos
 Corpse Knight
 Covenant of Blood
@@ -117,10 +120,12 @@ Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
 Echoing Truth
+Electrozoa
 Elvish Champion
 Elvish Hydromancer
 Embodiment of Insight
 Empyreal Voyager
+Enter the Infinite
 Errand-Rider of Gondor
 Escape from Orthanc
 Essence of Orthodoxy
@@ -153,6 +158,7 @@ Ghor-Clan Rampager
 Giant Warthog
 Gibbering Fiend
 Gideon's Lawkeeper
+Gift of Orzhova
 Gilt-Leaf Winnower
 Glimpse of Freedom
 Glyph Elemental
@@ -168,6 +174,7 @@ Hard Evidence
 Harmonic Prodigy
 Hate Mirage
 Haunted Mire
+Havoc Jester
 Healer of the Glade
 Healer of the Pride
 Hecatomb
@@ -180,24 +187,29 @@ Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
 Hunted Witness
+Hush
 Hypnotic Specter
 Illusionary Informant
 Indomitable Archangel
 Instill Furor
 Intimidation
 Into the Core
+Into the Wilds
 Invigorated Rampage
 Ionize
 Ironshell Beetle
 Island
+Jacked Rabbit
 Jinx
 Jinxed Idol
+Judge's Familiar
 Jukai Naturalist
 Juntu Stakes
 Kaervek, the Spiteful
 Keldon Raider
 Kelsien, the Plague
 Kessig Naturalist
+Ketria Crystal
 Kiora Bests the Sea God
 Knight of Dawn's Light
 Kor Aeronaut
@@ -211,6 +223,7 @@ Life
 Lightning Shrieker
 Liliana's Shade
 Liliana's Spoils
+Lunar Hatchling
 Lunge
 Lure of Prey
 Mad Ratter
@@ -219,6 +232,7 @@ MagicConsecrated Sphinx
 Makindi Ox
 Malcator's Watcher
 March from the Tomb
+Marcus, Mutant Mayor
 Mardu Hateblade
 Martyr for the Cause
 Mass Calcify
@@ -235,6 +249,7 @@ Moriok Rigger
 Mountain
 Mourning Thrull
 Mox Pearl
+Munda's Vanguard
 Murderer's Axe
 Mushroom Watchdogs
 Mutant's Prey
@@ -250,7 +265,9 @@ No Way Out
 Nuisance Engine
 Nurgle's Rot
 Oakgnarl Warrior
+Ogre Savant
 Oni of Wild Places
+Oracle's Vault
 Origin of Black Widow
 Overseer of the Damned
 Painsmith
@@ -292,11 +309,14 @@ Ring of Immortals
 Rites of Reaping
 Ronin Warclub
 Rotcrown Ghoul
+Ruination Wurm
 Run Afoul
 Runeboggle
+Ruric Thar, the Unbowed
 Rush the Room
 Safe Haven
 Saltwater Stalwart
+Samut, Vizier of Naktamun
 Sandcrafter Mage
 Sanguinary Mage
 Saprazzan Cove
@@ -309,6 +329,7 @@ Secret Rendezvous
 Seizan, Perverter of Truth
 Sensory Deprivation
 Sentinel Sarah Lyons
+Seraph of the Masses
 Shadow Alley Denizen
 Shadow Guildmage
 Shadow Lance
@@ -369,12 +390,14 @@ The First Eruption
 The Howling Commandos
 The Triumph of Anax
 Their Name Is Death
+Thought Courier
 Thriving Grubs
 Thriving Rhino
 Tobias Andrion
 Tolsimir Wolfblood
 Toph, Earthbending Master
 Touch of the Eternal
+Trapped in the Tower
 Traumatic Revelation
 Treasury Thrull
 Treetop Recluse
@@ -396,6 +419,7 @@ Venerable Monk
 Veteran Cathar
 Veteran Swordsmith
 Viper, Cruel Conspirator
+Vision, Synthezoid Avenger
 Vitality Charm
 Vodalian Hypnotist
 Voice of Law
@@ -422,3 +446,4 @@ Young Red Dragon
 Zektar Shrine Expedition
 Zerapa Minotaur
 Zhang He, Wei General
+Zimone, Infinite Analyst

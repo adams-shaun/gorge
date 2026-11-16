@@ -57,6 +57,7 @@ Cenn's Enlistment
 Centaur Safeguard
 Cephalid Scout
 Chainflail Centipede
+Chameleon Blur
 Charisma Bobblehead
 Chill of Foreboding
 Choking Sands
@@ -69,6 +70,7 @@ Conquer
 Consider
 Consume Spirit
 Countermand
+Creative Technique
 Crucible of Fire
 Crumbling Vestige
 Crystal Chimes
@@ -103,7 +105,10 @@ Dreadlight Monstrosity
 Dreamstalker Manticore
 Drinker of Sorrow
 Dromar's Cavern
+Duergar Cave-Guard
 Eat to Extinction
+Electrolyze
+Electrostatic Infantry
 Elena, Turk Recruit
 Elephant Guide
 Elspeth's Nightmare
@@ -205,6 +210,7 @@ Kyren Negotiations
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
 Leonin Elder
+Leonin Iconoclast
 Lignify
 Livonya Silone
 Lone Revenant
@@ -217,6 +223,7 @@ Magma Vein
 Makeshift Battalion
 Mantle of Tides
 Markov Crusader
+Memory Worm
 Meng Huo's Horde
 Mercy Killing
 Merfolk Mesmerist
@@ -226,6 +233,7 @@ Mind Rot
 Mindslicer
 Minion Missile
 Mirage Mockery
+Mirko Vosk, Mind Drinker
 Mischief and Mayhem
 Mob Rule
 Mockingbird, Bobbi Morse
@@ -239,6 +247,7 @@ Mutant's Prey
 Muxus, Goblin Grandee
 Myr Galvanizer
 Mysterio's Mirage
+Nalia de'Arnise
 Natural Connection
 Natural Selection
 Nesting Wurm
@@ -276,6 +285,7 @@ Pyromancer's Gauntlet
 Pyromania
 Qala, Ajani's Pridemate
 Radiant's Dragoons
+Rakdos Locket
 Rally the Forces
 Ramirez DePietro
 Ramosian Sky Marshal
@@ -290,6 +300,7 @@ Reparations
 Reservoir Kraken
 Resplendent Mentor
 Restore the Peace
+Reverence
 Riptide Biologist
 Riptide Entrancer
 Rise to the Challenge
@@ -297,6 +308,7 @@ River Darter
 Rockslide Sorcerer
 Rosethorn Halberd
 Royal Assassin
+Sagu Mauler
 Saheeli's Artistry
 Sakura-Tribe Scout
 Sandstalker Moloch
@@ -307,6 +319,7 @@ Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Sea Gate Colossus
 Seal of Cleansing
 Searing Light
 Sentry of the Underworld
@@ -326,6 +339,7 @@ Siren Lookout
 Skeletal Grimace
 Sky Diamond
 Skyknight Vanguard
+Skymark Roc
 Skyshroud Elite
 Skywatcher Adept
 Slay
@@ -364,6 +378,8 @@ Stronghold Confessor
 Subira, Tulzidi Caravanner
 Sudden Impact
 Sulfurous Springs
+Sunder Shaman
+Sunder from Within
 Supply Runners
 Suspended Sentence
 Swamp
@@ -399,6 +415,7 @@ Titanic Bulvox
 Tragic Slip
 Tranquility
 Trinket Mage
+Triskaidekaphile
 Tunneling Geopede
 Twinblade Slasher
 Two-Headed Dragon
@@ -430,6 +447,7 @@ Warden of Evos Isle
 Warden of the Wall
 Warp Artifact
 Warship Scout
+Weary Prisoner
 Weaver of Currents
 Weldfast Wingsmith
 Whipcorder
@@ -438,6 +456,7 @@ White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Woodfall Primus
 Wu Scout
 Youthful Knight
 Zhalfirin Void

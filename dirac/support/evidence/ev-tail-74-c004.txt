@@ -1,4 +1,5 @@
 A-Plate Armor
+Abzan Runemark
 Ajani's Mantra
 Aven Trooper
 Barrel Down Sokenzan
@@ -27,6 +28,7 @@ Entish Restoration
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
@@ -37,6 +39,7 @@ Gloomhunter
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
+Golden Ratio
 Guardian of the Guildpact
 Halberdier
 Hamletback Goliath
@@ -49,6 +52,7 @@ Inferno Fist
 Insidious Bookworms
 Island
 Khenra Charioteer
+Kiora's Follower
 Land Leeches
 Lava Axe
 Liliana's Standard Bearer
@@ -62,6 +66,7 @@ Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Moldervine Reclamation
 Momentum Rumbler
 Mountain
 Mulch
@@ -69,10 +74,12 @@ Multiform Wonder
 Necromancer's Familiar
 Nexus of Fate
 Nomads' Assembly
+Novellamental
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
 Pathbreaker Ibex
+Patient Rebuilding
 Plains
 Planar Portal
 Pool Resources
@@ -97,6 +104,7 @@ Runeclaw Bear
 Sacred Cat
 Sanctify
 Scoria Wurm
+Scrivener
 Scurry Oak
 Sheltering Landscape
 Sigarda's Summons
@@ -118,6 +126,7 @@ The Shattered States Era
 Thopter Assembly
 Towering Indrik
 Treetop Scout
+Tuya Bearclaw
 Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
@@ -129,3 +138,4 @@ Viridian Longbow
 Wall of Heat
 Wei Scout
 Weirding Shaman
+Whispers of the Muse

@@ -6,6 +6,7 @@ Aegis of the Gods
 Aeronaut's Wings
 Aether Inspector
 Agonizing Syphon
+Akroma, Angel of Fury
 Alesha, Who Smiles at Death
 Algae Gharial
 Almost Perfect
@@ -15,9 +16,11 @@ An-Zerrin Ruins
 Ancient Hydra
 Ancient Ooze
 Angel of the Dire Hour
+Angelic Guardian
 Anointed Procession
 Arborea Pegasus
 Archetype of Aggression
+Ardent Electromancer
 Argivian Blacksmith
 Artifact Mutation
 Ashen Monstrosity
@@ -35,6 +38,7 @@ Bad Deal
 Bad Moon
 Balloon Peddler
 Battle Hurda
+Beacon Bolt
 Beastmaster's Magemark
 Beregond of the Guard
 Bishop of Rebirth
@@ -42,6 +46,8 @@ Black Dragon
 Black Panther, Most Dangerous
 Blades of Velis Vel
 Blistergrub
+Blockbuster
+Blood Researcher
 Bloodrage Vampire
 Bloodsky Berserker
 Bog Rats
@@ -64,12 +70,14 @@ Chandra's Outrage
 Chatterstorm
 Chromatic Star
 Claws of Gix
+Clone Legion
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
 Consulate Crackdown
 Copper Gnomes
 Coronation of Chaos
+Count Nefaria
 Court Street Denizen
 Crashing Footfalls
 Cremate
@@ -83,6 +91,7 @@ Cultivator of Blades
 Cumber Stone
 Dampening Pulse
 Dark Banishing
+Deadly Recluse
 Debt to the Kami
 Defabricate
 Desecrated Tomb
@@ -99,6 +108,8 @@ Dragon Arch
 Dragon Moose
 Dragonlair Spider
 Dragonsoul Knight
+Dream Pillager
+Duelist's Flame
 Dungeon Geists
 Ecologist's Terrarium
 Elder Spawn
@@ -106,11 +117,14 @@ Elderleaf Mentor
 Elephant Ambush
 Elvish Harbinger
 Elvish Reclaimer
+Emissary of the Sleepless
+Empyrial Archangel
 Enlarge
 Enormous Baloth
 Ephara's Radiance
 Erinis, Gloom Stalker
 Essence Depleter
+Etali, Primal Conqueror
 Everett K. Ross, Hapless Attaché
 Exclude
 Exhaustion
@@ -118,6 +132,8 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
+Fire Dragon
+Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
 Fleshtaker
@@ -130,15 +146,19 @@ Furnace Strider
 Fylamarid
 Gandalf, Shadow's Foe
 Gang of Devils
+Gert and Old Lace, Runaways
 Giant Caterpillar
 Gibbering Hyenas
 Gift of Estates
+Gimli of the Glittering Caves
 Gimli, Mournful Avenger
 Gleam of Resistance
 Glint-Sleeve Artisan
+Glóin, Dwarf Emissary
 Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
+Goblin Spymaster
 Grafted Skullcap
 Grandmother Sengir
 Grasping Current
@@ -157,9 +177,11 @@ Hierophant's Chalice
 Hobgoblin Bandit Lord
 Howl of the Night Pack
 Huatli's Snubhorn
+Ian the Reckless
 Ichneumon Druid
 Illusionary Wall
 Illusory Ambusher
+Impulsivity
 Inkfathom Infiltrator
 Inspiring Captain
 Insurrection
@@ -169,16 +191,20 @@ Invigorating Falls
 Island
 Ivy Seer
 Ixalli's Diviner
+Izzet Cluestone
 Jandor's Saddlebags
+Jubilant Mascot
 Judge Unworthy
 Juvenile Mist Dragon
 Kaijin of the Vanishing Touch
 Karmic Guide
+Katara's Reversal
 Keening Apparition
 Keepsake Gorgon
 Kinsbaile Skirmisher
 Kirtar's Desire
 Knighthood
+Komodo Rhino
 Kor Bladewhirl
 Kozilek's Predator
 Krenko's Command
@@ -190,6 +216,7 @@ Latch Seeker
 Lavastep Raider
 Leo's Guidance
 Level Up
+Lifeforce
 Lifeline
 Lumengrid Augur
 Ma Chao, Western Warrior
@@ -200,6 +227,7 @@ Magistrate's Veto
 Mammoth Growth
 Mardu Runemark
 Mass Manipulation
+Massive Raid
 Matoc, Lavamancer
 Medusa, Inhuman Queen
 Memory Lapse
@@ -218,11 +246,13 @@ Mishra's Onslaught
 Mistveil Plains
 Misty Rainforest
 Molimo, Maro-Sorcerer
+Molten-Tail Masticore
 Mosscoat Goriak
 Mountain
 Muddle the Mixture
 Myr Convert
 Mystic Meditation
+Mystic Sanctuary
 Nantuko Blightcutter
 Nantuko Disciple
 Necrogoyf
@@ -242,6 +272,7 @@ Ornery Kudu
 Orochi Ranger
 Pack Mastiff
 Paragon of Gathering Mists
+Penregon Strongbull
 Piercing Light
 Pilfered Plans
 Plains
@@ -254,17 +285,20 @@ Protect
 Prowess of the Fair
 Prowling Nightstalker
 Psychic Pickpocket
+Purple Pentapus
 Pyrokinesis
 Radiant Fountain
 Raised by Giants
 Rakdos Ringleader
 Rakdos Trumpeter
+Rakdos's Return
 Rakshasa's Secret
 Ral's Dispersal
 Ranger en-Vec
 Raven Guild Master
 Ravenous Sailback
 Ready to Rumble
+Reckless Spite
 Recurring Insight
 Redcap Raiders
 Relic Axe
@@ -275,6 +309,7 @@ Revenant
 Reverse Engineer
 Reward the Faithful
 Rimrock Knight
+Risen Sanctuary
 Rishkar, Peema Renegade
 Rite of the Raging Storm
 Rodolf Duskbringer
@@ -287,6 +322,7 @@ Sanguine Guard
 Sawblade Scamp
 Sawtooth Loon
 Scorched Rusalka
+Scorchmark
 Scourgemark
 Seedling Charm
 Seek the Horizon
@@ -313,6 +349,8 @@ Shrapnel Blast
 Shriekgeist
 Shrine of Loyal Legions
 Shu Elite Infantry
+Shuri, Vibranium Technologist
+Silent Observer
 Silver Drake
 Silverclaw Griffin
 Silverquill Silencer
@@ -320,6 +358,7 @@ Simic Ragworm
 Skarrg, the Rage Pits
 Skinrender
 Skophos Reaver
+Sky Scourer
 Skycat Sovereign
 Skyclave Sentinel
 Slaughter Drone
@@ -345,6 +384,7 @@ Stormchaser Mage
 Stronghold Confessor
 Subterranean Tremors
 Sunder the Gateway
+Sunscape Apprentice
 Swamp
 Swarm Intelligence
 Sworn Guardian
@@ -356,6 +396,7 @@ Thalia, Guardian of Thraben
 Thassa's Ire
 The Bear Force Pilot
 The Binding of the Titans
+The Darkhold
 The Whizzer, Classic Speedster
 Their Number Is Legion
 Thieving Magpie
@@ -376,24 +417,29 @@ Tribute Mage
 Triumph of Ferocity
 Trumpet Blast
 Turbulent Wilderness
+Tyrant's Familiar
 Unesh, Criosphinx Sovereign
 Unholy Heat
 Unleash Shell
 Uurg, Spawn of Turg
 Vampire's Zeal
+Vampires' Vengeance
 Vampiric Touch
 Vaporous Djinn
 Verdant Catacombs
 Vernal Bloom
+Vile Rebirth
 Vivien's Crocodile
 Volcanic Spite
 Vulturous Aven
 Wall of Water
 Weaver of Blossoms
 Weirded Vampire
+Wheel of Fortune
 Whelming Wave
 Windborne Charge
 Wizard Class
 Wolverine Riders
 Yotian Medic
+Zebra Unicorn
 Zodiac Snake
