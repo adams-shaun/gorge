@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Restless Dead
+Revive
+Swamp

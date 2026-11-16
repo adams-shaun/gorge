@@ -300,17 +300,25 @@ func (s *State) phasedCtrl(p uint8) slotMask {
 
 // phasedPT is the P/T gorge projects for a phased-out creature: no
 // continuous effect applies to it (CR 702.26b; gorge matchesWithCharsPT), so
-// its base P/T plus its P/T counters: +1/+1 and -1/-1, and the -0/-1 and
-// -2/-1 kinds ptGen reads (CR 122.1a; a counter stays on a phased-out
-// permanent). The projection alone reads it; nothing in play sees a
-// phased-out permanent.
+// its base P/T plus its P/T counters. Counters stay on a phased-out permanent
+// (CR 702.26d), every kind ptGen honours (chars_gen.go), so the -0/-1 and
+// -2/-1 counters ride beside the +1/+1 and -1/-1 ones; the until-end-of-turn
+// and layer-7c override terms do not (they are continuous effects). The
+// projection alone reads it; nothing in play sees a phased-out permanent.
 //
 //go:noinline
 func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
 	p := &s.perms[sl]
 	c := p.ctrLow(int(kop.CtrP1P1)) - p.ctrLow(int(kop.CtrM1M1))
+	var m0m1, m2m1 int
+	if k.ctrMana {
+		m0m1 = p.ctrN(s, int(kop.CtrM0M1)) // -0/-1 counters (mana_countercost.go)
+	}
+	if k.gen != nil && k.gen.anyM2M1 {
+		m2m1 = p.ctrN(s, int(kop.CtrM2M1)) // CR 122.1a -2/-1 counters (ctr_hone.go prepM2M1)
+	}
 	if s.faceDown(k, sl) {
-		return 2 + c, 2 + c // it stays face down (CR 110.5, 708.2)
+		return 2 + c - 2*m2m1, 2 + c - m0m1 - m2m1 // it stays face down (CR 110.5, 708.2)
 	}
 	bp, bt := s.phasedBasePT(k, sl)
 	if s.fxM.has(sl) {
@@ -318,16 +326,63 @@ func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
 			bp, bt = ep, et // a copy exception's P/T is copiable (CR 707.9b)
 		}
 	}
-	dp, dt := 0, 0
-	if k.ctrMana {
-		dt -= p.ctrN(s, int(kop.CtrM0M1)) // -0/-1 counters (mana_countercost.go)
+	return bp + c - 2*m2m1, bt + c - m0m1 - m2m1
+}
+
+// phasedTypes is the types the projection shows for a phased-out permanent:
+// the base it was dealt (its printed card types, or the face-down
+// Creature) plus its layer-1 copy exceptions (copiable values, CR 707.9b)
+// and its own rule-based type switches (tyPostTy, kw_impending.go: bestow
+// CR 702.114e, impending CR 702.176a, reconfigure CR 702.151b). No continuous
+// effect applies to it (CR 702.26b; gorge matchesWithCharsPT), so no layer-4
+// effect does -- the switches are derived from live state outside the layer
+// walk (gorge chars/types.go), not effects, so they stand while phased out.
+//
+//go:noinline
+func (s *State) phasedTypes(k *prep, sl Slot, base kop.TypeMask) kop.TypeMask {
+	t := base
+	if s.fxM.has(sl) {
+		t |= s.copyExcTypes(k, sl)
+		if s.copyExcNoLegendary(k, sl) {
+			t &^= kop.TLegendary
+		}
 	}
-	if k.gen != nil && k.gen.anyM2M1 {
-		m := p.ctrN(s, int(kop.CtrM2M1)) // -2/-1 counters (ctr_hone.go)
-		dp -= 2 * m
-		dt -= m
+	if k.gen != nil {
+		t = s.tyPostTy(k, sl, t)
 	}
-	return bp + c + dp, bt + c + dt
+	return t
+}
+
+// phasedIsCreature reports whether the projection treats the phased-out
+// permanent at sl as a creature: its own rule-based type switches stand (see
+// phasedTypes), so an attached bestow or reconfigure card is not one, and its
+// P/T is not projected (gorge's IsCreature; CR 702.114e, 702.151b).
+//
+//go:noinline
+func (s *State) phasedIsCreature(k *prep, sl Slot) bool {
+	return s.phasedTypes(k, sl, k.t.Cards[s.cardAt(sl)].Types&^kop.TToken)&kop.TCreature != 0
+}
+
+// phasedPTShown reports whether the projection writes Power/Toughness for
+// the permanent at sl, and which: a phased-out permanent's own rule-based
+// type switches stand (phasedIsCreature, CR 702.26b), so an attached bestow
+// or reconfigure card is not a creature and its P/T is not projected, and a
+// phased-out creature's P/T is phasedPT's.
+func (s *State) phasedPTShown(k *prep, sl Slot) (bool, int, int) {
+	hid := k.phasing && s.hiddenAt(sl)
+	cr := s.isCreature(k, sl)
+	if hid && !s.faceDown(k, sl) {
+		cr = s.phasedIsCreature(k, sl)
+	}
+	if !cr && !(hid && s.faceDown(k, sl)) {
+		return false, 0, 0
+	}
+	if hid {
+		pw, tg := s.phasedPT(k, sl)
+		return true, pw, tg
+	}
+	pw, tg := s.pt(k, sl)
+	return true, pw, tg
 }
 
 // phasedBasePT is a phased-out permanent's printed P/T, or its own

@@ -67,6 +67,8 @@ func selfDamageBit(kind kop.ReplKind) uint32 {
 		return rbPrevCtrSelf
 	case kop.ReplDamageHealFirst:
 		return rbHealSelf
+	case kop.ReplPreventDamageFilt, kop.ReplPreventDamageN:
+		return rbPlusDmg // a static prevention (repl_staticprevent.go) opens the damage sites as a damage replacement does; replPlus reads the ability kinds and finds none
 	}
 	return rbPrevToSelf
 }
