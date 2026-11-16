@@ -107,7 +107,11 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 // then has no mana of its own to take out, and removing its printed mana would
 // take a floating unit of the pool instead: Cabal Pit's {B},{T}, sacrifice
 // beside Price of Glory, paid by the {B} a scripted prefix tapped from a
-// Swamp into the pool (CR 602.2b). The test is availFor's skip.
+// Swamp into the pool (CR 602.2b). The test is availFor's skip; the caller
+// exempts the plain gap units availTapsDeferIn counted (a.gapIn): their
+// removal is a census unit's, and skipping it lets a source's own mana fund
+// its own tap-cost ability (the Gate to Tumbledown seek beside the same
+// watcher, gorge's planner withholds).
 func (s *State) availLeavesOut(k *prep, sl Slot) bool {
 	if !s.deferLive(k) || s.g.availX&(availWalk|availHyp|availGaps|availAny) != 0 {
 		return false
@@ -313,10 +317,14 @@ func (s *State) landSetGap(k *prep, sl Slot) bool {
 // play (flushPrefixTriggers), as gorge's stepwise payment answers do -- or,
 // when the script search finds no prefix, to the planner's pass 2
 // (planTiered0). The units are the same addTapsDeferUnits adds: the
-// production and the StatTapExtra beside it.
+// production and the StatTapExtra beside it. The counted sources are
+// recorded in a.gapIn, so removeSrc takes a cost's own tap out of them
+// (CR 602.2b) instead of trusting availLeavesOut's availFor premise.
 func (s *State) availTapsDeferIn(k *prep, p uint8, a *avail) {
 	s.availFor(k, p, a)
-	for b := s.scriptTapsDeferPlain(k, p); b.any(); b = b.rest() {
+	m := s.scriptTapsDeferPlain(k, p)
+	a.gapIn = m
+	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
 		pc := s.manaPCGen(k, sl)
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))

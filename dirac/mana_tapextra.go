@@ -454,10 +454,12 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 
 // removeSrc takes out of a the mana the permanent at sl would make by tapping
 // for mana through pc, the extra its tap brings included: a cost that taps the
-// source leaves it neither.
+// source leaves it neither. The plain gap units a counts (a.gapIn,
+// availTapsDeferIn) are not the skip's case: availFor never counted them, but
+// availTapsDeferIn did, so their unit is taken out like any census unit's.
 func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
-	if s.availLeavesOut(k, sl) {
-		return // availFor never counted it: the units standing are the pool's
+	if s.availLeavesOut(k, sl) && !a.gapIn.has(sl) {
+		return // availFor never counted it and neither did availTapsDeferIn: the units standing are the pool's
 	}
 	noGrantWalk := k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0
 	if noGrantWalk && s.manaGranted(k, sl) {

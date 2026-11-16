@@ -121,6 +121,15 @@ type avail struct {
 	// credit once at the leaf (CR 702.66a). Zero everywhere else, so every
 	// other caller prices exactly as before.
 	delve int
+	// gapIn: the plain Taps-deferred gap units this availability counts
+	// (availTapsDeferIn; empty in every other build). A unit the play's own
+	// cost taps is taken out like any census unit's (CR 602.2b), so
+	// removeSrc's availLeavesOut skip -- whose premise is that availFor never
+	// counted the source -- does not apply to these: the Gate to Tumbledown
+	// seek's own {T} takes its {R} out of its own {3}{R} beside the Price of
+	// Glory deferrals ( gorge's planner withholds the same play,
+	// pay plancost.go's withheld gap units).
+	gapIn slotMask
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
