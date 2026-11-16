@@ -1,5 +1,192 @@
+A-Esika's Chariot
+A-Gnarlid Colony
+A-Pyre-Sledge Arsonist
+Accursed Marauder
+Ajani's Sunstriker
+Ancient Ziggurat
+Ant-Man, Elusive Avenger
+Archon of Emeria
+Archway Commons
+Argothian Wurm
+Armguard Familiar
+Assemble the Entmoot
+Atalya, Samite Master
+Banshee of the Dread Choir
+Battering Krasis
+Battering Sliver
+Beastmaster Ascension
+Benalish Veteran
+Berserkers of Blood Ridge
+Blood Pact
+Bolshack Dragon
+Boros Cluestone
+Burgeoning
+Cavern Harpy
+Chaos Channeler
+Chill
+Choking Miasma
+Cling to Dust
+Clockwork Beetle
+Colorful Feiyi Sparrow
+Combine Chrysalis
+Common Iguana
+Congregate
+Consign to Dream
+Corpsejack Menace
+Courageous Outrider
+Court Cleric
+Crypt Cobra
+Crypt Rats
+Crystalline Armor
+Curse of Vitality
+Dark Triumph
+Dauntless Onslaught
+Dawnbringer Cleric
+Day's Undoing
+Demogorgon's Clutches
+Dense Foliage
+Desecration Elemental
+Drana's Emissary
+Dromoka Dunecaster
+Dry Spell
+Durkwood Boars
+Elda, Conjurer of Spectacle
+Elusive Tormentor
+Elvish Mystic
+Envoy of the Ancestors
+Errant and Giada
+Exsanguinator Cavalry
+Fact or Fiction
+Fast
+Flooded Strand
+Flowering of the White Tree
 Forest
+Forked Bolt
+Game-Trail Changeling
+Geistflame Reservoir
+Ghave, Guru of Spores
+Ghost Quarter
+Ghoul's Feast
+Gibbering Barricade
+Glacial Grasp
+Glorious Charge
+Golem Artisan
+Grumgully, the Generous
+HYDRA Disintegrator
+Hangar Scrounger
+Herald of Hadar
+Hero's Resolve
+Hewed Stone Retainers
+Hidden Guerrillas
+Hobble
+Hostile Realm
+Instill Infection
 Island
+It's Clobberin' Time!
+Kasmina's Transmutation
+Lance
+Late to Dinner
+Lay of the Land
+Leonin Bladetrap
+Lightning Shrieker
+Lord of the Accursed
+Lotus Bloom
+Manalith
+Marchesa's Emissary
+Mark of the Vampire
+Mind Whip
+Mobile Fort
+Moonstone Eulogist
 Mountain
+Mulldrifter
+Mystic Retrieval
+Nameless One
+Narcissism
+Nemesis Mask
+Oblivion Crown
+Oji, the Exquisite Blade
+Oona's Grace
+Orchard Spirit
+Overseer of the Damned
+Paroxysm
+Phantom Wings
 Plains
+Power Fist
+Priest of Gix
+Quandrix Campus
+Rack and Ruin
+Rage of Purphoros
+Ragged Recluse
+Rakka Mar
+Rally at the Hornburg
+Renewed Faith
+Rhystic Shield
+Riot Piker
+Riverwheel Aerialists
+Ronin Warclub
+Rotten Reunion
+Ruinous Minotaur
+Safeguard
+Scourge of Fleets
+Scurry of Squirrels
+Sentinels of Glen Elendra
+Shambling Ghast
+Sheltering Boughs
+Shriek of Dread
+Sigil of Distinction
+Signal Pest
+Silburlind Snapper
+Sink into Takenuma
+Skyshroud Elite
+Sleeper's Guile
+Smokespew Invoker
+Soaring Thought-Thief
+Solemn Recruit
+Soul Transfer
+Spartan Veteran
+Spellweaver Eternal
+Splitting Slime
+Springmane Cervin
+Squire's Devotion
+Stasis Field
+Steward of Valeron
+Stingerfling Spider
+Storm's Wrath
 Swamp
+Swan Song
+Tajuru Snarecaster
+Takenuma Bleeder
+Talas Scout
+Taoist Hermit
+Tempered Sliver
+The Falcon, Airship Restored
+Time of Heroes
+Timely Interference
+Tin Street Cadet
+Tivadar's Crusade
+Tooth and Nail
+Trophy Hunter
+Twinblade Assassins
+Ugin's Construct
+Ulasht, the Hate Seed
+Underworld Sentinel
+Urborg Drake
+Vengevine
+Victor Mancha, Runaway
+Wakening Sun's Avatar
+Wall of Fire
+Warped Landscape
+Warriors of Wakanda
+Welcoming Vampire
+Whetwheel
+Winter Eladrin
+Witch of the Moors
+Wondrous Revival
+Woodland Changeling
+Wort, Boggart Auntie
+Wrecking Ball
+Wrenn's Resolve
+Yawgmoth's Agenda
+Yuan Shao, the Indecisive
+Zar Ojanen, Scion of Efrava
+Zuko, Firebending Master

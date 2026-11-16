@@ -15,6 +15,7 @@ Bitterbow Sharpshooters
 Blessing of Leeches
 Blink of an Eye
 Blood Curdle
+Bone Shredder
 Broken Wings
 Campfire
 Captain Sisay
@@ -26,27 +27,40 @@ Claws of Gix
 Colossal Dreadmaw
 Cone of Flame
 Consul's Lieutenant
+Convulsing Licid
 Dark Ritual
 Dauthi Horror
+Desert of the Fervent
 Dyfed, the Guiding Hand
 Elspeth's Smite
 Elvish Visionary
+Energy Flux
+Exile
 Explosive Vegetation
 Explosive Welcome
 Extinguish All Hope
 Fell Gravship
+Filth
+Fireball
 Forest
 Ghost Lantern
+Gideon's Sacrifice
+Gifted Aetherborn
+Granitic Titan
 Heart Warden
+Hoodwink
 Infernal Vessel
+Inner Demon
 Insidious Fungus
 Island
 Kamahl, Heart of Krosa
+Kavu Primarch
 Kor Hookmaster
 Kyren Negotiations
 Lightning Bolt
 Lotus Petal
 Mana Short
+Memnite
 Mentor of the Meek
 Mind Stone
 Mindcrank
@@ -64,6 +78,7 @@ Overrun
 Perimeter Captain
 Pir, Imaginative Rascal
 Pit Keeper
+Plagon, Lord of the Beach
 Plains
 Pox
 Pressure Point
@@ -87,9 +102,15 @@ Swamp
 Tainted Strike
 Temporal Fissure
 Thunderdrum Soloist
+Thunderwave
+Tibalt's Rager
 Toby, Beastie Befriender
+Tolaria West
 Toski, Bearer of Secrets
+Totally Lost
 Trollbred Guardian
+Twisted Abomination
+Two-Handed Axe
 Undercity Informer
 Unseal the Necropolis
 Unwavering Initiate
@@ -98,4 +119,7 @@ Vastwood Surge
 Veteran Armorer
 Vile Consumption
 Vine Mare
+Walker of Secret Ways
 Whip Silk
+Windgrace Acolyte
+You Find Some Prisoners

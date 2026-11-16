@@ -6,7 +6,7 @@ import "testing"
 // games: a no-{T} sacrifice-an-artifact mana source beside a depletion land
 // (the MBC pool's SubCounter riders, Peat Bog and Sandstone Needle among them)
 // offers and pays the same on both sides — the tap-another search branches the
-// deferred gap like gorge's one search, and its node reads gorge's offer. The
+// deferred gap like gorge's one search. The
 // recordings were the MBC run's divergent pairs 9 and 31 (gorge offers the cast
 // the kernel did not) and 41, 46 and 48 (the two searches paid with different
 // sources, the depletion land sacrificed in gorge, Krark-Clan Ironworks in its
