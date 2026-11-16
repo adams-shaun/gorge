@@ -1887,6 +1887,10 @@ type paymentPlanCensus struct {
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
+	// gapGains: some ability the census misses may raise the mana a payment
+	// has to spend; false when every one nets no mana (manaAbilityNetsNoMana),
+	// so the covered sources and the pool bound the supply by count.
+	gapGains bool
 }
 
 // boundedProof returns the census a bounded necessary-condition proof runs
@@ -1974,6 +1978,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				continue
 			}
 			out.complete = false
+			out.gapGains = out.gapGains || !manaFeeNetsNoMana(e.manaAbilityCC(p, id, ma).Cost, effects.ManaOf(ma), e.potentialTapExtra(id, ma))
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
