@@ -1,8 +1,11 @@
 A-Mentor's Guidance
+Ageless Guardian
+Agent of the Shadow Thieves
 An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
+Arbor Elf
 Arcane Flight
 Arm-Mounted Anchor
 Aven Trailblazer
@@ -12,10 +15,14 @@ Bast, Panther Goddess
 Bazaar Krovod
 Black Lotus
 Blighted Steppe
+Blink Dog
 Blockade Runner
 Blockbuster
 Blood Clock
+Bloodboil Sorcerer
+Boarding Party
 Boggart Arsonists
+Boggart Brute
 Boon of Safety
 Brambleweft Behemoth
 Brawn
@@ -27,15 +34,22 @@ Cathartic Adept
 Cave of the Frost Dragon
 Champion Lancer
 Child of Thorns
+Cloud Djinn
 Company Commander
+Condescend
+Consulate Turret
 Copperline Gorge
+Crash
+Crash the Party
 Crash the Ramparts
 Crown of Empires
 Crude Rampart
 Cruel Deceiver
+Crusade
 Crystal Ball
 Cult Guildmage
 Custodian of the Trove
+Cut Down
 Dark Inquiry
 Dark Salvation
 Dawn Charm
@@ -45,6 +59,9 @@ Dirty Rat
 District Guide
 Douse
 Drelnoch
+Drowner of Secrets
+Durable Coilbug
+Dust Elemental
 Dwarven Patrol
 Earthshape
 Eldrazi Confluence
@@ -54,6 +71,10 @@ Elegant Entourage
 Embargo
 Embersmith
 Endurance Bobblehead
+Enter the Unknown
+Etherium-Horn Sorcerer
+Evanescent Intellect
+Feral Ridgewolf
 First Volley
 Folk of An-Havva
 Forest
@@ -62,16 +83,24 @@ Gerrard's Battle Cry
 Ghalma's Warden
 Glasspool Mimic
 Glimmer of Genius
+Gnottvold Hermit
 Gossamer Phantasm
 Grim Guardian
+Grim Return
+Grizzled Outrider
+Ground Seal
 Guise of Fire
+Haunt of the Dead Marshes
 Hawkeye, Clint Barton
 Hired Poisoner
 Hoard Hauler
 Hookblade
+Hunter's Edge
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
+Indulgent Aristocrat
+Infest
 Inspiration
 Invasion of Ergamon
 Invasion of Innistrad
@@ -81,46 +110,64 @@ Kazandu Refuge
 Keeper of the Accord
 Kitesail Apprentice
 Knotvine Paladin
+Kolaghan Skirmisher
+Kronch Wrangler
 Leave in the Dust
 Leeching Bite
 Leonin Armorguard
 Leyline of Anticipation
 Light the Way
+Locthwain Gargoyle
 Loran's Escape
 Lothlórien Lookout
 Luke Cage, Hero for Hire
 Malachite Golem
+Marchesa's Infiltrator
 Master of the Pearl Trident
 Midnight Entourage
+Mind Over Matter
 Ministrant of Obligation
 Morale
 Mountain
+Neurok Stealthsuit
 Night Market Guard
 Nimana Sell-Sword
+Notorious Assassin
 Nurturer Initiate
 Obsidian Obelisk
 Ogre Jailbreaker
+Olivia's Wrath
+Order of Yawgmoth
 Orzhov Locket
 Otherworldly Outburst
+Peace of Mind
 Pegasus Stampede
 Pharika's Chosen
+Pillar of Light
 Plains
 Press into Service
 Quest for the Nihil Stone
 Quirion Explorer
 Rain of Rust
+Raise the Alarm
 Ramosian Sergeant
+Reduce
 Repulsor Rays
 Retreat to Coralhelm
+Revenge of the Hunted
 Rile
+Riot Piker
 Rising of the Day
 Ruin Crab
 Ruination
 Rukh Egg
+Saheeli's Silverwing
 Sai of the Shinobi
 Salvage Slasher
 Sand Silos
+Scorch Rider
 Scouting Hawk
+Seagraf Skaab
 Shadow Rift
 Shifting Wall
 Sibsig Icebreakers
@@ -128,12 +175,22 @@ Siege Zombie
 Siegecraft
 Silence
 Silkbind Faerie
+Silver Myr
 Skittering Invasion
 Slate of Ancestry
+Sokka's Charge
 Soltari Trooper
+Soul's Might
+Sphere of Grace
 Sphinx of Jwar Isle
 Spidersilk Armor
 Spike-Tailed Ceratops
+Sprite Dragon
+Storm Sculptor
+Stun
+Suffocating Blast
+Summoning Materia
+Sunastian Falconer
 Sunder Shaman
 Swamp
 Tandem Takedown
@@ -141,28 +198,41 @@ Teardrop Kami
 The Roaring Toeclaws
 The Thanos-Copter
 Thumbscrews
+Tide Drifter
+Tilonalli's Crown
 Toil to Renown
 Tombfire
 Touch of Death
+Toxic Scorpion
 Tribal Flames
 Trickster Mage
 Troll-Horn Cameo
 Twilight Panther
 Typhoid Rats
+Ulvenwald Captive
+Umara Wizard
 Undercellar Myconid
 Unlikely Aid
+Unnatural Growth
 Unwavering Initiate
+Venom, Eddie Brock
 Veteran's Powerblade
+Viashino Runner
 Vigilant Baloth
 Vivisection
 Voice of All
 Void Squall
 Vortex Runner
+Vow of Lightning
 Warpath Ghoul
 Wash Out
 Wasp, Shrinking Savior
+Wasteful Harvest
+Watchwing Scarecrow
 Whisper of the Dross
 Whitesun's Passage
+Wild Elephant
 Witness the End
 Xenk, Paladin Unbroken
+Xerex Strobe-Knight
 Young Pyromancer

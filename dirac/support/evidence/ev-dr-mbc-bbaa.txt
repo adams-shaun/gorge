@@ -78,7 +78,9 @@ Renegade Warlord
 Reverent Mantra
 Rogue's Passage
 Sage's Reverie
+Scholar of the Ages
 Sea Gate
+Sea Gate Oracle
 Send in the Pest
 Sheoldred, Whispering One
 Sign in Blood
@@ -86,6 +88,7 @@ Skeletal Wurm
 Sparkmage Apprentice
 Spectral Sailor
 Spitting Earth
+Stand Together
 Starlit Angel
 Stromgald Crusader
 Swamp

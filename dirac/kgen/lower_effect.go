@@ -2781,6 +2781,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 	if ct == "ExistingCounter" {
 		return lc.putCounterExisting(ps, obj, n)
 	}
+	if strings.Contains(ct, ",") {
+		return lc.putCounterChoice(obj, n, ct) // lower_counterchoice.go
+	}
 	in := lInstr{Op: "PutCounter", Obj: obj, A: n, CS: ct}
 	if err := putCounterRememberPut(ps, &in); err != nil { // lower_putcounterparams.go
 		return err

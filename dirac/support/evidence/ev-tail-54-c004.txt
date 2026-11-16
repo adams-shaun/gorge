@@ -1,7 +1,10 @@
+Alley Grifters
+Angelic Accord
 Aurochs
 Bag of Holding
 Biting-Palm Ninja
 Black Market Connections
+Blaring Recruiter
 Blight Mamba
 Boggart Shenanigans
 Bontu's Last Reckoning
@@ -9,6 +12,7 @@ Brokers Veteran
 Burnt Offering
 Chimeric Egg
 Clarion Cathars
+Crippling Blight
 Cultivator Colossus
 Cursed Land
 Deathgreeter
@@ -16,9 +20,12 @@ Deepwood Denizen
 Dispense Justice
 Dragon's Presence
 Elspeth's Devotee
+Energy Bolt
+Esior, Wardwing Familiar
 Fire Nation Ambushers
 Fleecemane Lion
 Forest
+Fortified Rampart
 Foulmire Knight
 Frillscare Mentor
 Ghoulcaller's Accomplice
@@ -34,12 +41,15 @@ Immersturm Raider
 Incubation
 Infested Fleshcutter
 Island
+Jolt
 Judge's Familiar
 Kabira Vindicator
 Karametra's Blessing
 Kitchen Imp
 Lava Dart
 Liliana's Specter
+Liquify
+Lord of Atlantis
 Lost Leonin
 Loyal Cathar
 Makindi Stampede
@@ -47,25 +57,34 @@ Massive Might
 Meteor Shower
 Miss Highwater
 Mountain
+Night Terrors
 Nyx Weaver
 Plains
 Pridemalkin
+Prologue to Phyresis
+Promise of Aclazotz
 Pyromancer's Swath
 Rain of Blades
+Raze to the Ground
 Remote Isle
+Riptide Biologist
 Roc Charger
 Sarulf's Packmate
 Scouring Swarm
+Search Warrant
 Sensor Splicer
 Shadow of Mortality
+Shivan Phoenix
 Slinking Serpent
 Soltari Visionary
 Soul's Attendant
 Sphinx of New Prahv
+Stalwart Aven
 Stonecloaker
 Stonehands
 Sunblast Angel
 Swamp
+Switcheroo
 Tempest Caller
 Temple Bell
 The Duke, Rebel Sentry
@@ -80,3 +99,4 @@ Visions of Beyond
 Volcanic Spray
 Vraan, Executioner Thane
 War Priest of Thune
+Weaponcraft Enthusiast

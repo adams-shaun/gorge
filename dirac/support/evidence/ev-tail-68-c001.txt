@@ -1,88 +1,155 @@
 A-Elven Bow
 A-Glittermonger
 Abyssal Horror
+Aether Poisoner
+Alpine Meadow
+Ammit Eternal
+Angel's Feather
 Angelic Purge
 Awakener Druid
 Azimaet Drake
+Basal Thrull
+Blastfire Bolt
 Blight Grenade
+Blighted Shaman
 Boros Guildmage
 Bull Cerodon
 Buried Alive
+Captain America's Motorcycle
 Chakram Slinger
 Cinder Storm
+Cliffhaven Vampire
 Cogwork Assembler
 Courier Hawk
 Courier's Capsule
 Creeping Trailblazer
+Crushing Disappointment
 Curse of Shallow Graves
+Daring Apprentice
+Daring Fiendbonder
+Dimir Locket
+Eladamri, Lord of Leaves
+Embersmith
 Empty the Laboratory
+Erratic Mutation
 Erratic Visionary
 Ethereal Champion
 Ethereal Usher
 Experimental Overload
 Faith Healer
+Fated Intervention
 Feral Lightning
+Festergloom
+Fill with Fright
+Fire of Orthanc
 Firebird, Blazing Ranger
 Flow of Ideas
 Forest
 Gargadon
 Geth's Grimoire
 Giant Tortoise
+Gilacorn
 Gitaxian Anatomist
 Glory Bearers
+Grave Peril
+Gruesome Discovery
 Hanabi Blast
+Hedge Troll
+Hulking Bugbear
 Intrepid Ace
 Intruder Alarm
 Iroas's Champion
 Island
+Isolate
 Jace's Scrutiny
+James, Wandering Dad
 Kamahl's Druidic Vow
 Karvanista, Loyal Lupari
+Kasmina's Transmutation
+Kobold Taskmaster
 Kor Skyfisher
 Leather Armor
 Lightning Spear
 Lightning-Core Excavator
 Liliana's Influence
+Loam Dryad
+Lone Rider
 Lorehold Command
 Lorescale Coatl
 Malachite Talisman
+Malakir Bloodwitch
 Manamorphose
+Marwyn, the Nurturer
+Mogg Flunkies
+Monstrify
 Moss Monster
+Mother Kangaroo
 Mountain
 Nagging Thoughts
+Nardole, Resourceful Cyborg
 Norn's Disassembly
+Oashra Cultivator
 Onyx Talisman
 Penumbra Bobcat
+Phantasmal Dragon
 Plains
 Plaxmanta
+Plummet
 Pol Jamaar, Illusionist
+Polis Crusher
 Pollywog Prodigy
+Priest of Gix
 Prosperous Bandit
+Rakdos Ragemutt
 Rathi Assassin
 Ravenous Intruder
 Ray of Erasure
 Raze to the Ground
+Reveille Squad
+Revitalize
 Rockslide Sorcerer
+Rustrazor Butcher
 Samite Archer
 Sandcrafter Mage
+Sangrophage
+Scrapper Champion
 Searing Barb
+Sentinel Sliver
 Serra Paladin
+Shambling Ghoul
+Shivan Harvest
 Sledding Otter-Penguin
 Slither Blade
 Sol Grail
 Solid Footing
+Soulhunter Rakshasa
 Spark Mage
 Sparring Collar
 Spider-Man 2099, Miguel O'Hara
+Spiraling Duelist
 Stitcher's Apprentice
+Stormbind
+Strangling Soot
+Stratozeppelid
 Sun Ce, Young Conquerer
+Sunrise Seeker
+Surrak and Goreclaw
+Surrakar Banisher
 Swamp
 The Whizzer, Classic Speedster
 Thunderous Might
 Tranquil Path
 Troublesome Spirit
+Tune the Narrative
+Twin-Silk Spider
+Vampiric Tutor
+Wanderlust
 Warkite Marauder
 Wasp Lancer
 Whispering Wizard
 Wildfire Cerberus
+Yavimaya Granger
 Yavimaya Sapherd
+Yotian Frontliner
+Zephyr Gull
+Zhalfirin Shapecraft

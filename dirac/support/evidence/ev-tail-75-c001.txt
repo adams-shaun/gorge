@@ -6,24 +6,30 @@ Anointer Priest
 Ashen Monstrosity
 Attune with Aether
 Avatar of Growth
+Aven Fogbringer
 Azure Drake
 Backfire
 Barrow Witches
 Bathe in Dragonfire
 Battle of Hoover Dam
 Belligerent Sliver
+Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
 Bloodmark Mentor
+Blustersquall
 Bond of Flourishing
 Bond of Insight
 Bonehoard
+Bonepicker Skirge
 Bound in Silence
 Brandywine Farmer
 Burning Fields
+Captive Weird
 Catacomb Sifter
 Chaotic Backlash
 Clip Wings
+Crookclaw Elder
 Cunning Survivor
 Death's Shadow
 Desynchronize
@@ -32,6 +38,7 @@ Double Negative
 Dragonlord Silumgar
 Drainpipe Vermin
 Dread Tiller
+Dreamshackle Geist
 Dune Mover
 Dust Corona
 Easy Prey
@@ -39,6 +46,7 @@ Ethereal Investigator
 Falkenrath Marauders
 Ferocious Zheng
 Fireblade Charger
+Flare of Denial
 Forest
 Gift of Paradise
 Gild
@@ -49,21 +57,27 @@ Guul Draz Mucklord
 Haazda Officer
 Herd Gnarr
 Hibernation
+Honden of Life's Web
 Howl of the Night Pack
 Huatli, Radiant Champion
 Hurloon Battle Hymn
 Island
 Jace's Erasure
+Jalum Tome
 Kayla's Reconstruction
 Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
+Launch
 Leapfrog
+Lost in the Mist
 Mana Vault
+Markov Patrician
 Mass Mutiny
 Master of Winds
 Master the Way
 Metathran Elite
+Mijae Djinn
 Mind Over Matter
 Minotaur, Roxxon CEO
 Momentum Rumbler
@@ -73,11 +87,15 @@ Myrel, Shield of Argive
 Nebelgast Herald
 Neonate's Rush
 Nezumi Freewheeler
+Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Paradigm Shift
 Parallel Lives
 Peregrine Mask
 Perimeter Captain
+Personal Tutor
+Pillage
 Plains
 Portent of Betrayal
 Power of Persuasion
@@ -85,17 +103,25 @@ Precinct Captain
 Privileged Position
 Pyrrhic Blast
 Quest for Renewal
+Radstorm
+Rageblood Shaman
 Rally the Peasants
+Return from Extinction
+Rishadan Cutpurse
 Rishkar's Expertise
+Rockshard Elemental
 Rooftop Nuisance
 Sage Aven
 Sailor of Means
 School of Piranha
 Seething Pathblazer
+Selhoff Occultist
 Sizzle
 Skyline Cascade
 Sonic Screwdriver
 Spectacle Mage
+Spindrift Drake
+Spirit Shackle
 Spitebellows
 Spitfire Handler
 Stormscape Apprentice
@@ -103,16 +129,20 @@ Sunscorched Desert
 Swamp
 Swarm of Rats
 Tectonic Edge
+Territorial Boar
 Thopter Assembly
 Threnody Singer
 Thundersteel Colossus
 Trained Caracal
 Tui and La, Moon and Ocean
 Twiddle
+Ugin's Insight
 Undead Servant
+Urza, Powerstone Prodigy
 Venomous Changeling
 Viscerid Deepwalker
 Warmonger Hellkite
+Will-o'-the-Wisp
 Winged Shepherd
 Wizard Replica
 Woodland Stream

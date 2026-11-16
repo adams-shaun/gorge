@@ -1,100 +1,285 @@
+A-Blood Artist
 A-Haywire Mite
+A-Manticore
 Aang, Airbending Master
 Academy Raider
+Advance Scout
+Adverse Conditions
+Ahn-Crop Invader
+Ajani Fells the Godsire
 Akroma's Will
 Almighty Brushwagg
 Altac Bloodseeker
+Angel of Invention
+Angelheart Vial
 Apocalypse Demon
+Apprentice Necromancer
+Arlinn's Wolf
+Armament Master
+Assaultron Dominator
+Aven Sunstriker
+Azorius Cluestone
+Backwoods Survivalists
+Balustrade Spy
+Banefire
+Barter in Blood
 Battle Hymn
+Benalish Veteran
+Birthing Boughs
+Birthing Ritual
+Bloodsworn Steward
+Bog Glider
 Bold Impaler
+Brainstone
 Brave the Elements
+Briarberry Cohort
+Briarblade Adept
 Butch DeLoria, Tunnel Snake
+Call to Serve
+Catalyst Elemental
+Cathartic Pyre
 Char
+Charismatic Vanguard
+Child of Gaea
+Chimeric Mass
 Chittering Rats
 Chocobo Knights
+Cinder Seer
 Cinderbones
+Cloudthresher
 Combat Medic
+Compulsion
 Coral Eel
 Count Nefaria
 Cunning Sparkmage
+Deathknell Berserker
+Deepwater Hypnotist
 Diamond Knight
+Disentomb
 Dispel
 Dragonspark Reactor
+Drowned Rusalka
+Druid's Call
 Duskmantle Prowler
+Dwarven Grunt
 Dwarven Lieutenant
+Eagle of the Watch
+Enduring Scalelord
+Enforcer Griffin
+Enlightened Tutor
+Enlistment Officer
+Excavation Technique
 Farsight Adept
+Feedback Bolt
+Feral Thallid
 Festering Thicket
+Fire Imp
+Flesh to Dust
 Flood of Tears
+Flower
+Fog on the Barrow-Downs
+Force of Despair
 Forest
 Funeral Longboat
 Garrison Griffin
+Genesis
 Geralf's Masterpiece
+Geralf, Visionary Stitcher
+Geyserfield Stalker
+Glacial Stalker
+Gliding Licid
+Gloomwidow's Feast
+Glowrider
+Gnarled Mass
+Goblin Marshal
 Goblin Tutor
 Goldmane Griffin
+Golem Artisan
+Gorgon Flail
+Gourmand's Talent
+Growing Ranks
+Guardian Gladewalker
+Guardian of Ghirapur
+Gustcloak Harrier
+Gustcloak Savior
 Hand of Death
 Heliod's Emissary
+Hexgold Halberd
+Hickory Woodlot
 Highway Robber
+Holy Armor
 Honden of Seeing Winds
+Hopeful Initiate
+Hurloon Battle Hymn
+Hydra Omnivore
 Impending Flux
+Increasing Devotion
+Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
+Intervene
+Into the Void
+Invasion of Azgol
+Iron Man, Armored Avenger
 Irradiate
+Irreverent Revelers
 Island
+Jasmine Seer
+Jedit Ojanen of Efrava
+Jhoira, Ageless Innovator
+Kavu Climber
+Kaya's Ghostform
+Kinjalli's Sunwing
 Kjeldoran War Cry
+Knowing
+Kraken's Eye
+Kyren Glider
 Laboratory Brute
+Landroval, Horizon Witness
+Last Caress
+Laurine, the Diversion
 Leonardo, Worldly Warrior
+Leonin Armorguard
 Levitation
+Lich's Caress
+MACH-1, Swooping Scoundrel
+Macabre Mockery
+Manaplasm
 Mantle of Leadership
+Marchesa's Decree
 Mardu Shadowspear
+Martyr of Dusk
 Maximize Altitude
+Medicine Bag
 Memory Erosion
 Mephitic Ooze
+Mind's Eye
+Mine Collapse
+Mishra's Self-Replicator
+Molten Nursery
+Molten Rain
+Moment of Truth
 Mountain
+Mutilate
+Muzzio, Visionary Architect
+Nausea
 Neck Snap
+Niblis of the Mist
+Nikara, Lair Scavenger
 Nissa, Worldwaker
+Nyxborn Triton
 Ominous Cemetery
 Ophiomancer
 Oriq Loremage
 Ornamental Courage
+Owl Familiar
 Pardic Arsonist
+Patagia Viper
 Peer Through Depths
+Phyrexian Juggernaut
 Phyrexian Tribute
+Phyrexian War Beast
+Plague Spitter
 Plains
+Portent of Betrayal
 Primal Growth
+Primordial Sage
 Propaganda
+Prophetic Titan
+Prying Blade
 Pteramander
+Qasali Pridemage
 Quirion Dryad
+Rain of Tears
+Ramosian Sergeant
 Rampant Rejuvenator
+Ranger-Captain of Eos
 Raph's Bravado
 Rat Colony
+Rats of Rath
+Relic Robber
+Repository Skaab
+Reprocess
 Restoration Angel
+Retrofitter Foundry
 Revel of the Fallen God
+Rise to the Challenge
+Rishadan Pawnshop
+Rude Awakening
 Run Aground
+Rushwood Herbalist
+Rusting Golem
+Sanctifier of Souls
+Sanguimancy
+Savannah Sage
 Scour All Possibilities
+Scourge of Valkas
 Screeching Sliver
 Security Blockade
+Seismic Shudder
+Serum Powder
 Seven-Tail Mentor
 Sewer Rats
 Shadowmage Infiltrator
+Sheoldred, Whispering One
+Sifter Wurm
+Silverquill Apprentice
+Slimebind
 Slingshot Goblin
+Sliptide Serpent
+Slumbering Dragon
 Solar Tide
+Sonic Assault
 Sophic Centaur
+Soul Shred
+Soul of Innistrad
 Souldrinker
 Spinneret Sliver
 Spirit of the Spires
 Spiritual Asylum
+Spontaneous Mutation
 Steam Augury
+Steel Overseer
 Steelshaper's Gift
+Storm of Souls
+Sudden Edict
+Sudden Spinnerets
 Swamp
+Swamp Mosquito
+Tamiyo's Epiphany
+Tana, the Bloodsower
 Terror
+Thanos, Death's Consort
 Thassa, Deep-Dwelling
+Thaumatic Compass
 The Circle of Loyalty
 Third Path Savant
+Thumbscrews
+Thundering Chariot
+Thundermare
 Thunderwolf Cavalry
 Torment
+Tramway Station
 Tread Upon
+Treebeard, Gracious Host
+Treeshaker Chimera
+Tromp the Domains
+Ugin's Mastery
 Underhanded Designs
 Undying Beast
+Unnatural Restoration
+Unnerve
+Unquestioned Authority
+Urborg Skeleton
+Uthros Research Craft
+Uurg, Spawn of Turg
 Vampire Noble
 Vedalken Anatomist
+Vigil for the Lost
+Vindictive Mob
 Viscera Seer
+Vivid Creek
+Waste Away
+Waterfront Bouncer
+Wither and Bloom
+Withering Boon

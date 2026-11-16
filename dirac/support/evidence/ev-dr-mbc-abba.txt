@@ -22,6 +22,7 @@ Chandra, Novice Pyromancer
 Charcoal Diamond
 Chomping Changeling
 Citanul Woodreaders
+Cliffgate
 Cloudgoat Ranger
 Colossal Skyturtle
 Commune with Nature
@@ -57,11 +58,13 @@ Hunting Cheetah
 Impulsive Pilferer
 Invigorated Rampage
 Island
+Joraga Treespeaker
 Jwar Isle Avenger
 Kiki-Jiki, Mirror Breaker
 Kitesail Skirmisher
 Lava Hounds
 Lord of the Accursed
+Miner's Bane
 Miss Highwater
 Mountain
 Mr. Foxglove
@@ -81,6 +84,7 @@ Pyrite Spellbomb
 Raffine's Informant
 Rain of Thorns
 Rampaging Brontodon
+Ramunap Ruins
 Rancor
 Rankle, Master of Pranks
 Ratadrabik of Urborg

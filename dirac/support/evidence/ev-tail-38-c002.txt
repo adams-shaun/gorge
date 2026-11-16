@@ -3,22 +3,38 @@ Academy Journeymage
 Amoeboid Changeling
 Angelsong
 Anticipate
+Armed Response
 Armix, Filigree Thrasher
+Augur il-Vec
 Awaken the Bear
+Awakening of Vitu-Ghazi
 Ayumi, the Last Visitor
+Bane Alley Blackguard
 Bearded Axe
 Bitterbow Sharpshooters
+Brass Secretary
+Breach
 Captain of Umbar
 Cast into Darkness
+Caustic Hound
 Cavalcade of Calamity
 Charity Extractor
+Cloud Pirates
+Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crash the Ramparts
+Crumbling Ashes
 Cultivator of Blades
+Custodi Lich
+Cutthroat Contender
+Darksteel Axe
 Dauntless River Marshal
 Deepcavern Imp
 Deepwater Hypnotist
+Deface
 Demonlord Belzenlok
+Disciples of Gix
 Distorted Curiosity
 Doomwake Giant
 Dovin's Dismissal
@@ -26,20 +42,32 @@ Dual Strike
 Dusk Urchins
 Dwarven Armory
 Easterling Vanguard
+Edge of the Divinity
 Emerald Dragonfly
 Entomb
+Ephara's Enlightenment
+Evacuation
+Faith Unbroken
 False Demise
 Fear of Death
 Feral Ferocity
 Feral Thallid
 Festering March
 Fiery Intervention
+Flame Spirit
+Flameshadow Conjuring
 Flourishing Hunter
 Forest
+Fumulus, the Infestation
+Furor of the Bitten
 Future Sight
+Gargoyle Sentinel
 Garrison Cat
 Ghost Warden
 Gitaxian Raptor
+Gixian Skullflayer
+Glissa's Courier
+Glóin the Mighty
 Goblin Spelunkers
 Goblin Turncoat
 God-Favored General
@@ -50,72 +78,127 @@ Hazoret's Monument
 Heavy Infantry
 Hibernation Sliver
 Hook Swords
+Horizon Seed
 Impulse
+Inkling Summoning
 Into Thin Air
 Island
+Jolted Awake
 Kaervek's Hex
 Kalemne's Captain
 Kalemne, Disciple of Iroas
+Kayla's Reconstruction
 Kothophed, Soul Hoarder
 Laboratory Drudge
+Leave in the Dust
+Lena, Selfless Champion
 Leonin Lightbringer
 Lifecraft Cavalry
 Liliana's Reaver
+Lion Sash
+Loyal Gryff
 Magnetic Flux
+Malachite Golem
+Malakir Familiar
 Megatherium
 Minamo Sightbender
+Mindclaw Shaman
 Mirrorworks
+Mizzium Tank
 Mountain
 Mournful Zombie
 Myr Servitor
+Mystic Crusader
 Nephalia Seakite
 Nettle Swine
 Noxious Hatchling
+Ojutai Exemplars
 One With the Wind
+Panic Spellbomb
 Paradise Plume
 Perish
 Phyrexian Prowler
+Pia Nalaar
 Pit Raptor
 Pit Scorpion
+Plague Mare
 Plains
 Poisonbelly Ogre
+Predatory Hunger
 Puncture Blast
 Rallying Roar
 Rampaging Aetherhood
 Relearn
 Render Inert
+Renegade's Getaway
 Respite
+Riven Turnbull and Princess Lucrezia
+Roar of the Kha
 Saiba Cryptomancer
 Scaldkin
+Scare Tactics
+Scattershot
+Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
+Serum Visionary
 Shambling Ghoul
 Shauku's Minion
+Shelter
 Shimmer Myr
+Shrieking Drake
+Shu Farmer
 Siren Reaver
 Snapback
 Snare the Skies
 Soldevi Sage
+Soulknife Spy
 Soulless One
+Spark Harvest
 Spellrune Painter
 Spined Wurm
+Spitfire Handler
+Squash
+Stalking Bloodsucker
+Steamcore Weird
+Stoic Star-Captain
 Stone Idol Generator
+Stunning Shot
 Suture Spirit
 Swamp
 Sweatworks Brawler
+Tandem Tactics
 Tar Snare
 Thalia, Heretic Cathar
+That's Rough Buddy
+Thaumaturge's Familiar
+The One Ring
 The Restoration of Eiganjo
+Thriving Rats
+Throttle
 Thunderclap Wyvern
+Tidal Force
+Tidal Visionary
 Tireless Missionaries
 Trailblazing Historian
+Tranquil Grove
+Uglúk of the White Hand
 Unbender Tine
 Undercity's Embrace
+Unified Strike
+Unyielding Krumar
 Vedalken Orrery
 Veil of Birds
 Vile Consumption
+Viridian Scout
+Virulent Wound
 Vodalian Soldiers
+Voracious Vacuum
 Warren Pilferers
+Wasp Lancer
+Wave of Indifference
 Windborne Charge
 Wither and Bloom
+Woebearer
+Wriggling Grub

@@ -29,6 +29,10 @@ func (s *State) ctrPickOptions(k *prep, d *Decision, kind uint8) {
 	}
 	a := &s.g.ask[0]
 	in := &k.t.Cards[a.card].Abilities[uint8(a.ab)].Prog[a.pc-1]
+	if in.Ext() == kop.ExtPutCounterChoice {
+		pccOptions(d, in) // ctr_choice.go
+		return
+	}
 	for _, c := range ctrPickKinds(in) {
 		if kind == akCtrPick2 && c == uint8(s.perms[a.sl].chosen) {
 			continue
@@ -41,6 +45,10 @@ func (s *State) ctrPickOptions(k *prep, d *Decision, kind uint8) {
 // the second asked; the second puts the counters. true: the program goes on.
 func (s *State) ctrPickAnswer(k *prep, ask askRec, a Action) bool {
 	p := &s.perms[ask.sl]
+	if ask.kind == akCtrPick && k.t.Cards[ask.card].Abilities[uint8(ask.ab)].Prog[ask.pc-1].Ext() == kop.ExtPutCounterChoice {
+		s.pccEnterAnswer(k, ask, a) // ctr_choice.go
+		return true
+	}
 	if ask.kind == akCtrPick {
 		p.chosen = objWord(a.Mode())
 		s.queueAskAt(ask.sl, akCtrPick2, ask.card, uint8(ask.ab), ask.pc)

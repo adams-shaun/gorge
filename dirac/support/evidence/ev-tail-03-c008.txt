@@ -1,4 +1,6 @@
+Ajani's Mantra
 Arbor Armament
+Armored Pegasus
 Azorius Skyguard
 Battle Rampart
 Bitter Reunion
@@ -7,7 +9,9 @@ Bloody Betrayal
 Bog Gnarr
 Bonebreaker Giant
 Borderland Ranger
+Bound in Silence
 Bridgeworks Battle
+Cenn's Heir
 Cerulean Wyvern
 Citanul Woodreaders
 Colossus, Steel Stalwart
@@ -20,6 +24,7 @@ Elvish Vanguard
 Falkenrath Celebrants
 Fauna Shaman
 Forest
+Githzerai Monk
 Glissa Sunslayer
 Gnat Alley Creeper
 Goblin King
@@ -27,9 +32,21 @@ Grave Bramble
 Invincible Hymn
 Island
 Jamie McCrimmon
+Kraul Raider
+Leeching Licid
+Minion Missile
 Mountain
 Narcolepsy
 Plains
+Reshape
+Rousing of Souls
+Sapphire Medallion
 Spined Megalodon
+Stream of Acid
 Swamp
+Syphon Sliver
+The Battle of Bywater
 Torbran, Thane of Red Fell
+Unlikely Alliance
+Vraan, Executioner Thane
+Zo-Zu the Punisher

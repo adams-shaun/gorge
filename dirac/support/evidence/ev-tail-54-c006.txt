@@ -1,5 +1,7 @@
+Alley Grifters
 Astrid Peth
 Bag of Holding
+Basal Sliver
 Biting-Palm Ninja
 Black Market Connections
 Bontu's Last Reckoning
@@ -10,6 +12,7 @@ Deathgreeter
 Demon's Due
 Dispense Justice
 Fathom Mage
+Festercreep
 Fire Nation Ambushers
 Fleecemane Lion
 Forest
@@ -17,10 +20,13 @@ Foulmire Knight
 Gate to Tumbledown
 Ghoulcaller's Accomplice
 Glacial Stalker
+Glistening Oil
 Gluntch, the Bestower
+Golden Demise
 Goldmeadow Lookout
 Grond, the Gatebreaker
 Harbor Bandit
+Harvester of Souls
 Hero of Precinct One
 Hold the Line
 Homarid Explorer
@@ -28,6 +34,7 @@ Incubation
 Island
 Jor Kadeen, First Goldwarden
 Kabira Vindicator
+Kaervek the Merciless
 Karametra's Blessing
 Kolaghan Monument
 Laser Screwdriver
@@ -37,12 +44,19 @@ Lost Leonin
 Loyal Cathar
 Makindi Stampede
 Malignant Growth
+Mindstab Thrull
 Mountain
+Night Terrors
+Olivia Voldaren
 Paladin of the Bloodstained
+Plague Stinger
 Plains
+Promise of Aclazotz
+Pyre Zombie
 Rain of Blades
 Roc Charger
 Sandsower
+Savage Gorger
 Secure the Wastes
 Shadow of Mortality
 Shard Volley
@@ -53,6 +67,7 @@ Sphinx of New Prahv
 Spirit Weaver
 Stonecloaker
 Storm Fleet Negotiator
+Strands of Undeath
 Sunblast Angel
 Swamp
 The Duke, Rebel Sentry
@@ -62,3 +77,4 @@ Urban Evolution
 Vampire Champion
 Vraan, Executioner Thane
 Wall of Hope
+Weaponcraft Enthusiast
