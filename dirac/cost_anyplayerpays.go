@@ -34,7 +34,8 @@ func (s *State) payEachNext(k *prep) {
 
 // posePay sets the raGenPay ask for payer p (execPay's tail).
 func (s *State) posePay(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
-	if !s.canPayGen(k, p, kind, amt, in.B.N, in.F) && !s.windowPays(k, p, kind, skip, amt, in.B.N) {
+	if !s.canPayGen(k, p, kind, amt, in.B.N, in.F) && !s.windowPays(k, p, kind, skip, amt, in.B.N) &&
+		!(kind == kop.PayMana && s.unlessRestrAffords(k, p, amt, in.B.N)) {
 		skip |= pfNoPay
 	}
 	s.g.pickF = skip

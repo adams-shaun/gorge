@@ -176,7 +176,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
 	if stackSelfGone || !s.canPayGen(k, p, kind, amt, pips, in.F) && !s.windowPays(k, p, kind, skip, amt, pips) &&
-		!s.trigCostPotentialPays(k, p, kind, skip, amt, pips, in.F) {
+		!s.trigCostPotentialPays(k, p, kind, skip, amt, pips, in.F) &&
+		!(kind == kop.PayMana && skip&pfModes != 0 && s.unlessRestrAffords(k, p, amt, pips)) {
 		skip |= pfNoPay // still asked, decline only (gorge poses it)
 	}
 	s.g.pickF = skip

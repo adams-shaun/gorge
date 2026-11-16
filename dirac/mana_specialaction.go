@@ -36,6 +36,32 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
 	return m
 }
 
+// unlessRestrAffords is the unless offer gate's restricted arm (execPay's
+// pfNoPay decision, cost_anyplayerpays.go posePay): the restricted mana a
+// non-spell payment may spend -- the floating batches (State.rb) and the
+// restricted sources whose restriction admits it (plotRestrFallback, CR
+// 106.6) -- may fund a mana cost the plain census (canPayGen) leaves short.
+// gorge's offer gate prices the pool AvailableFor holds, the batches the
+// payment admits included, and its window units count the admitted sources
+// too (pay.UnlessCostValuePayable, rules paid_mana_census.go); the pay
+// answer's window (payWindow) spends exactly these batches first, so the
+// gate may offer a pay they complete and never one they cannot. Cold:
+// reached only when canPayGen, windowPays and the trigger-cost over-bound
+// all failed.
+//
+//go:noinline
+func (s *State) unlessRestrAffords(k *prep, p uint8, amt int, pips int16) bool {
+	if k.gen == nil || !(k.restrSrc || s.rbAny(SeatIx(p))) {
+		return false
+	}
+	c := manaOf(amt, pips)
+	var av avail
+	av.xd, av.xdOn = payDesc{class: pdOther}, true
+	s.availWindowFor(k, p, &av)
+	av.xdOn = false
+	return s.plotRestrFallback(k, p, &c, &av)
+}
+
 // restrNonSpellKind: a source of the table with the spend restriction batch kind kind names admits a
 // non-spell payment.
 func (s *State) restrNonSpellKind(k *prep, kind uint8) bool {
