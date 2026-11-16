@@ -14,8 +14,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // any-card ManaRestrictAb.
 var DebugManaRestrictActNone bool
 
-// restrActAnyCard: the activated restriction f is the match-anything filter.
+// restrActAnyCard: the activated restriction f is the match-anything filter
+// (kgen marks its zone-free clause kop.ZoneAny).
 func restrActAnyCard(k *prep, f kop.FilterID) bool {
 	fl := &k.t.Filters[f]
-	return fl.Or == 0 && *fl == kop.Filter{}
+	return fl.Or == 0 && *fl == kop.Filter{Zone: kop.ZoneAny}
 }

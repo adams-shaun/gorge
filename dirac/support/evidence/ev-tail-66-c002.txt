@@ -1,7 +1,249 @@
+A-Radha, Coalition Warlord
+A-Wizard Class
+Abiding Grace
+Academy Wall
+Akki Ronin
+Ambuscade Shaman
+Amok
+Angel of Fury
+Archetype of Courage
+Argivian Avenger
+Armor Sliver
+Atarka Beastbreaker
+Avatar Kyoshi, Earthbender
+Axebane Guardian
+Ayara, First of Locthwain
+Balustrade Spy
+Bartered Cow
+Betrothed of Fire
+Black Poplar Shaman
+Blinkmoth Infusion
+Bloodfire Mentor
+Bloodshot Cyclops
+Blossom Prancer
+Bomber Corps
+Boon Reflection
+Boros Swiftblade
+Bumi's Feast Lecture
+Celestial Regulator
+Chains of Custody
+Champion of the Flame
+Cloudkill
 Commissar Severina Raine
+Composer of Spring
+Confront the Assault
+Corpse Blockade
 Corpse Knight
+Crop Rotation
+Cruel Revival
+Cunning Wish
+Dagger Caster
+Dawn Elemental
+Deadeye Harpooner
+Defy Death
+Deviant Skytech
+Diabolic Intent
+Dimir Informant
+Drain the Well
+Drudge Skeletons
+Ebon Dragon
+Eloise, Nephalia Sleuth
+Elspeth, Sun's Nemesis
+Elvish Reclaimer
+End Hostilities
+Explosive Welcome
+Extortion
+Faerie Tauntings
+Faultgrinder
+Feign Death
+Field Marshal
+Fiery Fall
+Fiery Finish
+Fireblast
+Flametongue Kavu
+Flaring Flame-Kin
+Fledgling Osprey
+Forced Fruition
 Forest
+Frilled Deathspitter
+Frog-Squirrels
+Gathering Throng
+General Leo Cristophe
+Ghitu Fire-Eater
+Gixian Puppeteer
+Glissa's Scorn
+Gnarlid Pack
+Goblin Bird-Grabber
+Goblin Diplomats
+Goblin Glory Chaser
+Godhunter Octopus
+Golem's Heart
+Granite Gargoyle
+Grave Venerations
+Grazilaxx, Illithid Scholar
+Greater Good
+Grizzly Fate
+Gruul Keyrune
+Guise of Fire
+Haru-Onna
+Haunting Hymn
+Hazoret the Fervent
+Headless Horseman
+Heaven Sent
+Hero of Iroas
+Hexgold Halberd
+Hieroglyphic Illumination
+Hooded Kavu
+Hunger of the Howlpack
+Illuminated Wings
+Immobilizing Ink
+Imperial Seal
+Increasing Confusion
+Inspiring Refrain
+Intervene
+Iron Suitcase
 Island
+Izzet Chronarch
+Jace's Phantasm
+Jackal Pup
+Jeskai Barricade
+Kalemne's Captain
+Karoo Meerkat
+Ken, Burning Brawler
+Knight's Pledge
+Kor Outfitter
+Kuon, Ogre Ascendant
+Leonin Elder
+Leonin Sun Standard
+Manacles of Decay
+Manamorphose
+Manhole Cover
+Marauding Maulhorn
+Marchesa's Infiltrator
+Mardu Banner
+Mark of Mutiny
+Mask of Immolation
+Master of Death
+Maze of Ith
+Mentor's Guidance
+Mind Flayer
+Mise
+Mist Dancer
+Mithril Coat
+Mob Mentality
 Mountain
+Mukotai Ambusher
+Nezumi Informant
+Nico Minoru, Runaway
+Noxious Field
+Nullmage Shepherd
+Oath of Chandra
+Oggyar Battle-Seer
+Pentarch Ward
+Phylath, World Sculptor
 Plains
+Plated Pegasus
+Poisonbelly Ogre
+Primordial Ooze
+Prized Griffin
+Psychic Overload
+Radiant, Archangel
+Rage-Scarred Berserker
+Raging Minotaur
+Raven's Run Dragoon
+Regathan Firecat
+Regrowth
+Rhox Veteran
+Rotting Fensnake
+Rowan Treefolk
+Sacred Rites
+Sacrifice
+Sage of Epityr
+Sage of Mysteries
+Sarkhan, Dragonsoul
+Savage Gorger
+Scaled Wurm
+Scavenging Harpy
+Scourge of Kher Ridges
+Scouring Sands
+Scrapyard Salvo
+Seeker of Skybreak
+Sentinel Sliver
+Shadowcloak Vampire
+She-Hulk, Wallbreaker
+Shimmerwing Chimera
+Shivan Wurm
+Shreds of Sanity
+Sick and Tired
+Silverstrike
+Slash the Ranks
+Slay
+Slime Molding
+Slobad, Goblin Tinkerer
+Snuff Out
+Soaring Drake
+Sol Talisman
+Soltari Crusader
+Somnomancer
+Sonic Burst
+Soratami Mindsweeper
+Soul of Theros
+Spellskite
+Spike Worker
+Spined Sliver
+Spirit of Malevolence
+Sporeback Wolf
+Squee's Embrace
+Staggering Insight
+Stalking Assassin
+Stampede Rider
+Standing Troops
+Steadfast Armasaur
+Stimulus Package
+Stratozeppelid
+Street Urchin
+Subjugator Angel
+Sudden Shock
+Sunastian Falconer
 Swamp
+Swift Demise
+Talons of Wildwood
+Temmet, Vizier of Naktamun
+Territorial Allosaurus
+Territorial Baloth
+Thallid Devourer
+The Squadron Sinister
+Thoughtflare
+Thraben Watcher
+Thrashing Wumpus
+Throes of Chaos
+Time Spiral
+Tolarian Scholar
+Torch Courier
+Torsten Von Ursus
+Tragic Poet
+Tymora's Invoker
+Undead Hand Ninja
+Undertaker
+Unhallowed Pact
+Unyaro Bee Sting
+Urza's Cave
+Valeron Outlander
+Vedalken Plotter
+Vine Trellis
+Volcanic Awakening
+Wakandan Shield Guard
+Wall of Mist
+Wall of Souls
+Warren Instigator
+Warren Pilferers
+Wear
+Weight of the Underworld
+Welder Automaton
+Wind Drake
+Wing Splicer
+Wirecat
+Yavimaya Iconoclast
+You Look Upon the Tarrasque
+Zealous Inquisitor
+Zenith Festival

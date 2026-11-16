@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Scute Mob
+Searing Light
+Swamp
