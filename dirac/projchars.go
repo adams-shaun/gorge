@@ -35,9 +35,12 @@ func (s *State) ProjectChars(p *Projection) {
 		if k.phasing && s.hiddenAt(sl) {
 			// no continuous effect applies to a phased-out permanent
 			// (CR 702.26b; gorge matchesWithCharsPT), but its layer-1
-			// copy exceptions are copiable values (CR 707.9b), so they
-			// stay even while it is phased out
-			if s.faceDown(k, sl) {
+			// copy exceptions are copiable values (CR 707.9b) and its
+			// own rule-based type switches are derived outside the layer
+			// walk (phasedTypes, kw_phasing.go), so both stay while it is
+			// phased out
+			fd := s.faceDown(k, sl)
+			if fd {
 				// a face-down permanent stays face down while phased out
 				// (CR 110.5, 708.2): a nameless, colourless 2/2 creature.
 				// A copy of it still keeps its layer-1 copiable exceptions
@@ -51,11 +54,8 @@ func (s *State) ProjectChars(p *Projection) {
 				c.Types, c.Colors, c.Kw = cd.Types&^kop.TToken, cd.Colors&^kop.ColC, cd.Keywords
 				c.Subs, c.AllSub = cd.Subtypes, cd.AllCreatureTypes
 			}
+			c.Types = s.phasedTypes(k, sl, c.Types)
 			if s.fxM.has(sl) {
-				c.Types |= s.copyExcTypes(k, sl)
-				if s.copyExcNoLegendary(k, sl) {
-					c.Types &^= kop.TLegendary
-				}
 				c.Subs = c.Subs.Or(s.copyExcSubs(k, sl))
 				c.AllSub = c.AllSub || s.copyExcAll(k, sl)
 				c.Colors = s.copyExcCol(k, sl, c.Colors) &^ kop.ColC

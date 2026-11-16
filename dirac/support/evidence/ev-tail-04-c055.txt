@@ -1,0 +1,6 @@
+Forest
+Island
+Metallic Sliver
+Mountain
+Plains
+Swamp

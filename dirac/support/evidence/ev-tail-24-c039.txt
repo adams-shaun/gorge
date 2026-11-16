@@ -1,0 +1,7 @@
+Forest
+Golgari Guildmage
+Greenweaver Druid
+Island
+Mountain
+Plains
+Swamp
