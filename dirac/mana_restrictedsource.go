@@ -393,7 +393,11 @@ func (s *State) restrChoseHas(k *prep, sl Slot, c CardID) bool {
 }
 
 // restrActMatch: the activated ability d describes has a source matching
-// the activated restriction f of the mana source at sl.
+// the activated restriction f of the mana source at sl. A source that is no
+// permanent (an unearth from the graveyard, a cycling from the hand) matches
+// only a zone-free alternative (kop.ZoneAny): a ZoneNone one is kgen's
+// inZoneBattlefield (gorge restrictValidTermMatches' needsBattlefield, CR
+// 106.6).
 func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payDesc) bool {
 	if d.src != NoSlot {
 		return s.matchPerm(k, f, d.src, p, sl)
@@ -402,6 +406,9 @@ func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payD
 		fl := k.t.Filters[f]
 		if fl.Special != 0 {
 			continue // a Static.* alternative: never an activated ability
+		}
+		if fl.Zone == kop.ZoneNone {
+			continue // a battlefield-only alternative
 		}
 		fl.Zone = kop.ZoneNone
 		chosen := fl.Flags2&kop.F2ChosenType != 0

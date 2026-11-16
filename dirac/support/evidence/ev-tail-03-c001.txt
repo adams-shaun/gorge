@@ -42,6 +42,7 @@ Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Bramble Armor
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -95,13 +96,16 @@ Dega Disciple
 Demonic Appetite
 Devils' Playground
 Dire Fleet Neckbreaker
+Dirge of Dread
 Dismal Failure
 Dominating Licid
 Dragon Roost
 Drana, Liberator of Malakir
 Drift of Phantasms
+Duergar Hedge-Mage
 Dust Elemental
 Eerie Procession
+Eiganjo Uprising
 Elvish Eulogist
 Elvish Vanguard
 Ember Beast
@@ -129,6 +133,7 @@ Flowstone Infusion
 Fogwalker
 Font of Mythos
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
@@ -145,6 +150,7 @@ Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin Chainwhirler
+Goblin Dynamo
 Goblin King
 Goblinslide
 Golden Ratio
@@ -289,6 +295,7 @@ Predator, Flagship
 Prismatic Strands
 Profit
 Prophet of Kruphix
+Prosperous Partnership
 Psychic Allergy
 Puppet Conjurer
 Raging Spirit
@@ -333,6 +340,7 @@ Silundi Vision
 Silvan Reveler
 Silver Drake
 Simic Cluestone
+Simic Locket
 Sire of Insanity
 Skirk Ridge Exhumer
 Skitterbeam Battalion
@@ -398,6 +406,7 @@ Ulgrotha Charm
 Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
+Urza, Prince of Kroog
 Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
@@ -418,7 +427,9 @@ Wax
 Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
+Wirewood Symbiote
 Wit's End
+Wizard Class
 Woebearer
 Wolfcaller's Howl
 Word of Binding

@@ -73,6 +73,7 @@ Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Famished Foragers
 Fast Forward
 Feast of Dreams
 Fencing Ace

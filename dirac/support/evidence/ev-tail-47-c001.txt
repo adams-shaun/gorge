@@ -58,6 +58,7 @@ Conclave Sledge-Captain
 Conquer
 Consume Spirit
 Countermand
+Creative Technique
 Crucible of Fire
 Crumbling Vestige
 Crystal Chimes
@@ -87,6 +88,7 @@ Dread Return
 Dreadlight Monstrosity
 Dreamstalker Manticore
 Drinker of Sorrow
+Duergar Cave-Guard
 Eat to Extinction
 Electrostatic Infantry
 Elephant Guide
@@ -105,6 +107,7 @@ Eyeless Watcher
 Ezio, Brash Novice
 Fallen Ideal
 Fangblade Brigand
+Fearless Skald
 Festerhide Boar
 Field Creeper
 Fiendslayer Paladin
@@ -114,6 +117,7 @@ First Response
 Flailing Ogre
 Fleshgrafter
 Flowering of the White Tree
+Force of Nature
 Forest
 Foul Familiar
 Fowl Play
@@ -157,6 +161,7 @@ Hurler Cyclops
 Ich-Tekik, Salvage Splicer
 Immolating Souleater
 Increasing Savagery
+Inkfathom Divers
 Insidious Will
 Inspiration
 Invisible Stalker
@@ -205,6 +210,7 @@ Mogg War Marshal
 Moment of Heroism
 Mordenkainen
 Mountain
+Multani's Acolyte
 Mutant's Prey
 Muxus, Goblin Grandee
 Myr Galvanizer
@@ -261,6 +267,7 @@ Rise to the Challenge
 Rockslide Sorcerer
 Rosethorn Halberd
 Royal Assassin
+Sagu Mauler
 Saheeli's Artistry
 Sakura-Tribe Scout
 Sarkhan's Rage
@@ -309,6 +316,7 @@ Sparkmage Apprentice
 Spawning Kraken
 Spectral Sliver
 Sphinx of New Prahv
+Spiketail Hatchling
 Spoils of Victory
 Sprout
 Squirrel Mob
@@ -335,6 +343,7 @@ Teferi's Tutelage
 Tel-Jilad Archers
 Tempest Harvester
 Tempted by the Oriq
+Temur Sabertooth
 Terra Eternal
 Tezzeret's Ambition
 Thalakos Scout
@@ -375,6 +384,7 @@ Walking Corpse
 Wandering Stream
 Wandering Treefolk
 War Behemoth
+Warbeast of Gorgoroth
 Warchanter Skald
 Warden of Evos Isle
 Warden of the Wall

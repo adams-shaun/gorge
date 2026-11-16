@@ -322,6 +322,14 @@ func (s *State) ownManaUsable(k *prep, sl Slot) bool {
 		pc := s.manaGateView(k, sl, c, k.gen.manaVar(c))
 		return pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly) && !s.genLost(k, sl)
 	}
+	if k.gen.flags[c]&gfManaRefl != 0 {
+		// a reflected source's own ability is its view of the colours it
+		// reads now: one that reads none (Hidden Hideout with no commander,
+		// CR 903.4f) makes no mana, and gorge's census holds no unit for it,
+		// so a granted ability (Weirding Wood's) is the source's only one
+		pc := s.manaReflView(k, sl, c, k.gen.manaVar(c))
+		return pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly) && !s.genLost(k, sl)
+	}
 	pc := &k.cards[c]
 	if !(pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly) || k.gen.flags[c]&gfManaVar != 0) || k.gen.flags[c]&gfManaVar != 0 && s.varManaEmpty(k, sl, c) {
 		return false

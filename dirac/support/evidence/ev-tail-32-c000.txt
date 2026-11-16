@@ -118,6 +118,7 @@ General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
 Ghostly Visit
+Glare of Subdual
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
@@ -202,6 +203,7 @@ Oashra Cultivator
 Obliterate
 Ondu Cleric
 Oni Possession
+Overrule
 Peer Through Depths
 Penance Stare
 Pest Infestation

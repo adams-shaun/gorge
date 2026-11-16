@@ -33,6 +33,7 @@ Bolshack Dragon
 Bountiful Harvest
 Breaching Hippocamp
 Brimstone Volley
+Burning Fields
 Burning Hands
 Captain's Hook
 Carnage Wurm
@@ -78,6 +79,7 @@ Flywheel Racer
 Forerunner of Slaughter
 Forest
 Franklin Richards, Ascendant
+From Beyond
 Fungus Elemental
 Furnace Spirit
 Gala Greeters
@@ -99,6 +101,7 @@ Greater Auramancy
 Guardian Scalelord
 Hammerhead, Maggia Boss
 Hangarback Walker
+Harvest Wurm
 Haunted Cadaver
 Heavyweight Demolisher
 Helm of the Host
@@ -127,6 +130,7 @@ Leadership Vacuum
 Leonin of the Lost Pride
 Living Lands
 Loamcrafter Faun
+Looter il-Kor
 Lucid Dreams
 Lurking Nightstalker
 Lys Alana Huntmaster
@@ -179,6 +183,7 @@ Reality Heist
 Reborn Hope
 Resplendent Griffin
 Ridgescale Tusker
+Sabertooth Outrider
 Sacred Armory
 Samut's Sprint
 Sandstorm
@@ -237,6 +242,7 @@ Trench Stalker
 Tribal Unity
 Tribute to Horobi
 Trostani's Summoner
+Trufflesnout
 Turntimber Ranger
 Twitch
 Ultimate Price

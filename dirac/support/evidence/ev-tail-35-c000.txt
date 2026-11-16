@@ -122,6 +122,7 @@ Goatnapper
 Goblin Lore
 Godtracker of Jund
 Graaz, Unstoppable Juggernaut
+Granger Guildmage
 Gravel Slinger
 Grayscaled Gharial
 Gruul Cluestone
@@ -135,6 +136,7 @@ Helldozer
 Herald of War
 Herbology Instructor
 Hideous Visage
+Hoofprints of the Stag
 Hookblade
 Hoverguard Observer
 Hypnotic Grifter
@@ -170,6 +172,7 @@ Living Lightning
 Longbow Archer
 Loyal Warhound
 Lu Meng, Wu General
+Lulu, Loyal Hollyphant
 Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
