@@ -59,6 +59,7 @@ Corrosive Mentor
 Cryptic Pursuit
 Cynette, Jelly Drover
 Dakmor Lancer
+Darkblast
 Dauntless Escort
 Dawn of Hope
 Deadeye Tormentor
@@ -120,8 +121,10 @@ Gold Myr
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
+Grotag Bug-Catcher
 Groundbreaker
 Gryffwing Cavalry
+Guardian of Vitu-Ghazi
 Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter

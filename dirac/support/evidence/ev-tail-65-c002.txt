@@ -59,10 +59,12 @@ Obelisk of Urd
 Obsessive Search
 Ohran Frostfang
 Ore-Scale Guardian
+Perilous Forays
 Phyrexian Scriptures
 Pick Up the Pace
 Pitiless Plunderer
 Plains
+Priests of Norn
 Prison Sentence
 Prodigal Pyromancer
 Professor's Warning
@@ -81,10 +83,12 @@ Serrated Scorpion
 Siegecraft
 Skybind
 Skyfire Kirin
+Spectral Force
 Spontaneous Combustion
 Stern Constable
 Stromgald Crusader
 Swamp
+Sylvan Ranger
 Talruum Minotaur
 Tormenting Voice
 Uktabi Orangutan
@@ -94,4 +98,5 @@ Wall of Fire
 Winds of Rebuke
 Winged Words
 Wish Good Luck
+Withstand Death
 Zombie Master

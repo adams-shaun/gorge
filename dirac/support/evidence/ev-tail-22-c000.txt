@@ -254,6 +254,7 @@ Necrotic Sliver
 Needlepeak Spider
 Neurok Prodigy
 Nezumi Shadow-Watcher
+Niambi, Esteemed Speaker
 Nightsquad Commando
 Nihil Spellbomb
 Nim Shrieker
@@ -276,6 +277,7 @@ Pearl-Ear, Imperial Advisor
 Penumbra Spider
 Perilous Shadow
 Phantom Nantuko
+Pillar of Origins
 Pillardrop Rescuer
 Pin to the Earth
 Plains

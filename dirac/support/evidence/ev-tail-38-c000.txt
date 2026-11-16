@@ -226,6 +226,7 @@ Rampaging Aetherhood
 Ravenous Demon
 Razing Snidd
 Reckless Racer
+Recover
 Relearn
 Render Inert
 Renegade Freighter
@@ -353,5 +354,6 @@ Wing Snare
 Wither and Bloom
 Woebearer
 Wriggling Grub
+X-23, Deadly Weapon
 Xavier Sal, Infested Captain
 Zendikar Resurgent

@@ -13,6 +13,7 @@ Amass the Components
 Anax, Hardened in the Forge
 Annex
 Arcane Denial
+Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
 Auntie Blyte, Bad Influence
@@ -82,6 +83,7 @@ Drafna, Founder of Lat-Nam
 Drake Familiar
 Dramatic Finale
 Dreamshackle Geist
+Dyfed, the Guiding Hand
 Elder Druid
 Elder Gargaroth
 Eldrazi Repurposer
@@ -110,6 +112,7 @@ Frenetic Raptor
 Frost Breath
 Gargadon
 Gerrard's Battle Cry
+Ghost-Lit Warder
 Ghostly Changeling
 Gimli, Counter of Kills
 Gingerbehemoth
@@ -135,6 +138,7 @@ Hookblade
 Hoverguard Observer
 Hypnotic Grifter
 Hyrax Tower Scout
+Impaler Shrike
 Implement of Malice
 In Oketra's Name
 Infantry Veteran
@@ -163,6 +167,7 @@ Leyline of the Meek
 Linvala, the Preserver
 Longbow Archer
 Loyal Warhound
+Lu Meng, Wu General
 Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
@@ -199,6 +204,7 @@ Orzhov Locket
 Otherworldly Outburst
 Overwhelming Intellect
 Pain Distributor
+Pest Rescuer
 Pestilence
 Pile On
 Plains

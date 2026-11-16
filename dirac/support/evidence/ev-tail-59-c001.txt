@@ -39,6 +39,7 @@ Barbarian Riftcutter
 Barbed Sliver
 Barrage of Boulders
 Battle Brawler
+Battle Plan
 Battlefield Medic
 Belonging
 Benthic Behemoth
@@ -125,6 +126,7 @@ Drag to the Bottom
 Dragon Bell Monk
 Dragon Throne of Tarkir
 Dragon's Desire
+Dragonsoul Knight
 Dramatic Finale
 Dread Drone
 Dress Down
@@ -243,6 +245,7 @@ Kokusho, the Evening Star
 Krakilin
 Krav, the Unredeemed
 Krile Baldesion
+Kulrath Knight
 Kurgadon
 Lattice-Blade Mantis
 Lazotep Plating
@@ -366,6 +369,7 @@ Sabertooth Outrider
 Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
+Sauron, the Lidless Eye
 Sautekh Immortal
 Savage Lands
 Savai Thundermane

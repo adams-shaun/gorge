@@ -45,6 +45,8 @@ Black Dragon
 Black Panther, Most Dangerous
 Blades of Velis Vel
 Blistergrub
+Blockbuster
+Blood Researcher
 Bloodrage Vampire
 Bloodsky Berserker
 Bog Rats
@@ -104,6 +106,7 @@ Dragon Arch
 Dragon Moose
 Dragonlair Spider
 Dragonsoul Knight
+Duelist's Flame
 Dungeon Geists
 Ecologist's Terrarium
 Elder Spawn
@@ -137,12 +140,15 @@ Furnace Strider
 Fylamarid
 Gandalf, Shadow's Foe
 Gang of Devils
+Gert and Old Lace, Runaways
 Giant Caterpillar
 Gibbering Hyenas
 Gift of Estates
+Gimli of the Glittering Caves
 Gimli, Mournful Avenger
 Gleam of Resistance
 Glint-Sleeve Artisan
+Glóin, Dwarf Emissary
 Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
@@ -168,6 +174,7 @@ Huatli's Snubhorn
 Ichneumon Druid
 Illusionary Wall
 Illusory Ambusher
+Impulsivity
 Inkfathom Infiltrator
 Inspiring Captain
 Insurrection
@@ -201,6 +208,7 @@ Latch Seeker
 Lavastep Raider
 Leo's Guidance
 Level Up
+Lifeforce
 Lifeline
 Lumengrid Augur
 Ma Chao, Western Warrior
@@ -256,6 +264,7 @@ Ornery Kudu
 Orochi Ranger
 Pack Mastiff
 Paragon of Gathering Mists
+Penregon Strongbull
 Piercing Light
 Pilfered Plans
 Plains

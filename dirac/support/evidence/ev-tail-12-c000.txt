@@ -21,6 +21,7 @@ Arbor Colossus
 Arlinn's Wolf
 Armament Master
 Asmira, Holy Avenger
+Assaultron Dominator
 Assert Authority
 Automatic Librarian
 Aven Sunstriker
@@ -115,12 +116,14 @@ Forest
 Funeral Longboat
 Garrison Griffin
 Garruk's Warsteed
+General Tazri
 Genesis
 Geralf's Masterpiece
 Get the Point
 Geyserfield Stalker
 Glacial Stalker
 Gliding Licid
+Gloomwidow's Feast
 Glowrider
 Gnarled Mass
 Go for the Throat
@@ -161,6 +164,7 @@ Infernal Idol
 Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
+Intervene
 Into the Void
 Invasion of Azgol
 Iron Man, Armored Avenger
@@ -275,6 +279,7 @@ Royal Warden
 Rude Awakening
 Run Aground
 Rushwood Herbalist
+Rusting Golem
 Salt Flats
 Sanctifier of Souls
 Sandsteppe Mastodon
@@ -349,6 +354,7 @@ Treebeard, Gracious Host
 Tromp the Domains
 Turn to Dust
 Two-Headed Giant of Foriys
+Ugin's Mastery
 Ulamog, the Ceaseless Hunger
 Underhanded Designs
 Undying Beast
@@ -356,6 +362,7 @@ Unnatural Restoration
 Unnerve
 Unquestioned Authority
 Urborg Skeleton
+Urza's Factory
 Urza's Rebuff
 Uthros Research Craft
 Vampire Noble

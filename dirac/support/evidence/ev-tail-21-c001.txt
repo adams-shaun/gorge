@@ -7,14 +7,18 @@ Ancient Brontodon
 Archon of Cruelty
 Ardent Recruit
 Arrest
+Artillery Blast
 Aspect of Mongoose
 Backup Agent
 Balduvian Rage
 Bamboo Grove Archer
 Base Camp
 Battle-Scarred Goblin
+Beasts of Bogardan
 Bellowing Elk
 Bellowing Mauler
+Bestial Fury
+Bionic Blow
 Black Sun's Twilight
 Blightspeaker
 Blood Researcher
@@ -47,6 +51,7 @@ Darksteel Relic
 Dazzling Lights
 Death Cultist
 Deepfathom Skulker
+Defang
 Destined
 Diabolic Revelation
 Diplomatic Immunity
@@ -59,12 +64,14 @@ Dread Warlock
 Dread of Night
 Drown in Filth
 Dual Strike
+Durable Handicraft
 Elephant-Mandrill
 Elixir of Vitality
 Elvish Berserker
 Esquire of the King
 Extremis Elite
 Farbog Revenant
+Fear
 Felhide Spiritbinder
 Fencer's Magemark
 Fire of Orthanc
@@ -118,6 +125,8 @@ Kagemaro's Clutch
 Kalonian Behemoth
 Karametra's Acolyte
 Karn's Bastion
+Krazy Kow
+Krosan Colossus
 Krovikan Scoundrel
 Lambholt Raconteur
 Lampad of Death's Vigil
@@ -127,6 +136,8 @@ Lay Bare
 Layla Hassan
 Leaden Fists
 Leonin Snarecaster
+Leyline of Abundance
+Lifecrafter's Bestiary
 Lightning Berserker
 Magmatic Core
 Mana Geode
@@ -152,6 +163,7 @@ Nightmares and Daydreams
 Oath of Druids
 Oketra the True
 Omen of Fire
+One with the Stars
 Open Fire
 Order of the Sacred Bell
 Ox of Agonas
@@ -229,6 +241,7 @@ The Howling Commandos
 The Mending of Dominaria
 Thraben Watcher
 Tomb of the Spirit Dragon
+Tori D'Avenant, Fury Rider
 Tormenting Voice
 Torpid Moloch
 Tower Worker
@@ -236,6 +249,7 @@ Trigon of Mending
 Turbulent Wilderness
 Umbilicus
 Undead Minotaur
+Unspeakable Symbol
 Urza, Chief Artificer
 Valiant Veteran
 Vampire Hexmage

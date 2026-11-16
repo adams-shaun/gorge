@@ -91,6 +91,7 @@ Faerie Guidemother
 Fated Intervention
 Fencer Clique
 Feral Deceiver
+Ferocious Tigorilla
 Festergloom
 Fill with Fright
 Finale of Eternity
@@ -99,6 +100,7 @@ Fire of Orthanc
 Flameborn Viron
 Flamecast Wheel
 Fleetfeather Sandals
+Followed Footsteps
 Forest
 Freyalise, Llanowar's Fury
 Furious Resistance
@@ -241,6 +243,7 @@ Sporemound
 Spreading Rot
 Squirrel Wrangler
 Stitcher's Apprentice
+Stormbind
 Strandwalker
 Strangling Soot
 Strangling Spores

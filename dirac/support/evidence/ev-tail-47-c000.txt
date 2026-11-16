@@ -223,6 +223,7 @@ Magma Vein
 Makeshift Battalion
 Mantle of Tides
 Markov Crusader
+Memory Worm
 Meng Huo's Horde
 Mercy Killing
 Merfolk Mesmerist
@@ -298,6 +299,7 @@ Reparations
 Reservoir Kraken
 Resplendent Mentor
 Restore the Peace
+Reverence
 Riptide Biologist
 Riptide Entrancer
 Rise to the Challenge
@@ -410,6 +412,7 @@ Titanic Bulvox
 Tragic Slip
 Tranquility
 Trinket Mage
+Triskaidekaphile
 Tunneling Geopede
 Twinblade Slasher
 Two-Headed Dragon

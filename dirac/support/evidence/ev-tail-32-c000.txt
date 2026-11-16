@@ -29,6 +29,7 @@ Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
 Blunt the Assault
+Boggart Arsonists
 Book of Rass
 Border Guard
 Boreal Elemental
@@ -42,6 +43,7 @@ Cateran Enforcer
 Cavalry Pegasus
 Channel the Suns
 Chaotic Goo
+Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Cloak of Feathers
@@ -68,6 +70,7 @@ Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
 Duskhunter Bat
+Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
 Eidolon of Countless Battles
@@ -83,6 +86,7 @@ Essence Flare
 Eternal Skylord
 Ethercaste Knight
 Evangel of Synthesis
+Evaporate
 Eviscerator's Insight
 Expedition Diviner
 Explosive Impact
@@ -90,6 +94,7 @@ Eye of Nowhere
 Facevaulter
 Familiar Ground
 Farm
+Fault Riders
 Filigree Fracture
 Flamekin Harbinger
 Flamespeaker's Will
@@ -111,6 +116,7 @@ Ghostly Visit
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
 Hall of Oracles
@@ -145,6 +151,7 @@ Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
 Levitating Statue
+Leyline Dowser
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -252,6 +259,7 @@ The Prydwen, Steel Flagship
 The Royal Scions
 Thorn Lieutenant
 Thraben Gargoyle
+Thran Lens
 Thriving Ibex
 Thunder Wall
 Tolarian Sentinel

@@ -26,6 +26,8 @@ Breaching Hippocamp
 Brimstone Volley
 Burning Hands
 Captain's Hook
+Carnage Wurm
+Carrion Call
 Cessation
 Cinder Barrens
 Cleanse
@@ -134,6 +136,7 @@ Protective Bubble
 Psychic Impetus
 Ral's Dispersal
 Reality Heist
+Reborn Hope
 Resplendent Griffin
 Samut's Sprint
 Savai Sabertooth
@@ -160,6 +163,7 @@ Spiderwig Boggart
 Spike Drone
 Steelfin Whale
 Stolen Grain
+Stolen Vitality
 Strength from the Fallen
 Strength of Isolation
 Sunbringer's Touch
@@ -167,6 +171,7 @@ Sunken Hope
 Suppression Bonds
 Swamp
 Sweatworks Brawler
+Swelter
 Tajuru Stalwart
 Temperamental Oozewagg
 Temporal Manipulation

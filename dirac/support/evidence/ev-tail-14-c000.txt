@@ -37,6 +37,7 @@ Blight Mamba
 Blight Titan
 Bloated Processor
 Blood Aspirant
+Bloodcrazed Socialite
 Blustersquall
 Body Launderer
 Bolg, Erebor's Reckoning
@@ -217,6 +218,7 @@ Mindwrack Demon
 Mirran Spy
 Mishra's Juggernaut
 Mishra's Workshop
+Miss Highwater
 Mockingbird, Bobbi Morse
 Mogg Bombers
 Molten Monstrosity

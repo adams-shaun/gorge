@@ -139,6 +139,7 @@ Ember Beast
 Embercleave
 Emeria Angel
 End the Festivities
+Endless Obedience
 Enthusiastic Mechanaut
 Epicenter
 Essence Infusion
@@ -168,6 +169,7 @@ Flesh-Eater Imp
 Flickering Ward
 Flowstone Kavu
 Foil
+Forerunner of the Coalition
 Forest
 Forsaken City
 Frenzied Fugue
@@ -450,6 +452,7 @@ Those Who Serve
 Thousand-Year Elixir
 Thran Dynamo
 Thriving Moor
+Thunderstaff
 Thurid, Mare of Destiny
 Timbermaw Larva
 Time Reversal

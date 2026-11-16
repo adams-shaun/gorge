@@ -4,6 +4,7 @@ A-Social Climber
 A-Teferi, Time Raveler
 Abomination, World Ravager
 Absorb
+Abzan Runemark
 Ajani's Mantra
 Alley Grifters
 Aphotic Wisps
@@ -65,6 +66,7 @@ Fanatical Fever
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
@@ -126,12 +128,14 @@ Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
+Novellamental
 Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
 Paladin Danse, Steel Maverick
 Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
@@ -201,6 +205,7 @@ Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
 Unholy Indenture

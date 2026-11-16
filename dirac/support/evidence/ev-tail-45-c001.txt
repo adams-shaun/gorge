@@ -18,7 +18,10 @@ Argothian Opportunist
 Argothian Treefolk
 Arisen Gorgon
 Ashes to Ashes
+Asmira, Holy Avenger
 Atzocan Archer
+Aven Initiate
+Axebane Beast
 Ayumi, the Last Visitor
 Bag End Banquet
 Balduvian Dead
@@ -48,23 +51,27 @@ Cast Out
 Chainflinger
 Chameleon Spirit
 Citizen's Crowbar
+Clairvoyance
 Clearwater Goblet
 Coalhauler Swine
 Coastal Bulwark
 Colossus Hammer
 Constricting Sliver
 Copper Longlegs
+Coppercoat Vanguard
 Corrupted Harvester
 Court Archers
 Crossroads Consecrator
 Culling Mark
 Curse of the Nightly Hunt
+Cursed Wombat
 Dakkon, Shadow Slayer
 Dance of the Skywise
 Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Darksteel Juggernaut
+Dauntless Escort
 Dauthi Jackal
 Deadeye Tracker
 Defiler of Souls
@@ -73,6 +80,8 @@ Detained by Legionnaires
 Devoted Paladin
 Dinosaur Stampede
 Discombobulate
+Distract
+Djinn of the Lamp
 Dragonshift
 Dreamscape Artist
 Dregscape Zombie
@@ -92,6 +101,7 @@ Elite Javelineer
 Elite Skirmisher
 Elven Palisade
 Elvish Dreadlord
+Ephemeron
 Eris, Roar of the Storm
 Ethereal Elk
 Exorcist
@@ -104,6 +114,7 @@ Feign Death
 Felidar Guardian
 Fendeep Summoner
 Fiery Conclusion
+Fight to the Death
 Finale of Devastation
 Fire Snake
 Fires of Undeath
@@ -138,19 +149,24 @@ Haze of Pollen
 Heart Sliver
 Heartbeat of Spring
 Hellfire Mongrel
+Herald of Kozilek
 Herald of Secret Streams
 Herald of War
 Hero's Demise
 Heronblade Elite
 Hidden Guerrillas
 Hill Giant Herdgorger
+Homarid Warrior
 Hua Tuo, Honored Physician
 Hungry Spriggan
 Hunter's Insight
+Ikiral Outrider
+Illusory Gains
 Improbable Alliance
 Initiate's Companion
 Inquisition of Kozilek
 Iron Lad, Young Avenger
+Ironclad Slayer
 Island
 Izzet Charm
 Jawbone Skulkin
@@ -158,18 +174,24 @@ Jewel-Eyed Cobra
 Jolrael, Empress of Beasts
 Joust
 Jund Panorama
+Kami of Industry
 Karok Wrangler
 Kavu Aggressor
 Kavu Mauler
 Keening Banshee
 Keldon Arsonist
 Keldon Necropolis
+Keldon Vandals
 Kiku, Night's Flower
 King Harald's Revenge
 Kraul Raider
+Lantern Kami
 Laser Screwdriver
 Lawbringer
 Leatherback Baloth
+Looming Hoverguard
+Lowland Giant
+MagicConsecrated Sphinx
 Magus of the Order
 Many Partings
 March of the Drowned
@@ -185,6 +207,7 @@ Molten Ravager
 Monk Idealist
 Moss Diamond
 Mountain
+Ms. Marvel, Elastic Ally
 Mudhole
 Murasa Pyromancer
 Nebelgast Herald
@@ -198,9 +221,11 @@ Nyxathid
 Obelisk of Bant
 Ogre Jailbreaker
 Ogre Warrior
+Omen of the Sea
 Omenspeaker
 One with the Kami
 Onulet
+Owlin Spiralmancer
 Phantom Centaur
 Pitiless Gorgon
 Plains
@@ -208,6 +233,8 @@ Pollenbright Druid
 Polymorphist's Jest
 Quicksilver, Pietro Maximoff
 Quirion Ranger
+Raking Canopy
+Rancid Rats
 Rankle, Master of Pranks
 Rathi Intimidator
 Razorclaw Bear
@@ -217,7 +244,9 @@ Reclaim the Wastes
 Redcap Heelslasher
 Redwood Treefolk
 Regenerate
+Regress
 Renata, Called to the Hunt
+Repeal
 Repentant Blacksmith
 Respite
 Reverent Hunter
@@ -228,17 +257,21 @@ Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Rusted Slasher
+Safehold Duo
 Safehold Sentry
 Samut, the Tested
 Sanctum Weaver
 Sanctum of Tranquil Light
 Saproling Migration
+Saw It Coming
 Scalebane's Elite
 Scattershot
 Scoria Cat
 Seasoned Pyromancer
 Second Breakfast
+Seekers' Squire
 Sensory Deprivation
+Serum-Core Chimera
 Shaman of the Great Hunt
 Shambling Remains
 Shivan Devastator
@@ -246,6 +279,7 @@ Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
 Sire of Stagnation
+Sister Hospitaller
 Skarrgan Skybreaker
 Sky Skiff
 Smiting Helix
@@ -258,6 +292,7 @@ Soulmender
 Sovereign's Bite
 Spare Supplies
 Spider-Man, Miles Morales
+Spire Winder
 Splinterfright
 Spoils of Evil
 Sporesower Thallid
@@ -269,6 +304,8 @@ Stew the Coneys
 Stoic Builder
 Storm of Steel
 Stormchaser Chimera
+Stormwatch Eagle
+Stromgald Crusader
 Stronghold Overseer
 Succumb to Temptation
 Sultai Flayer
@@ -277,10 +314,13 @@ Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Syr Konrad, the Grim
 Séance
 Tajic, Blade of the Legion
 Tempestra, Dame of Games
 Tempted by the Oriq
+Thalisse, Reverent Medium
+Thallid Soothsayer
 Thassa's Oracle
 The Antiquities War
 The Immortal Weapons
@@ -302,6 +342,7 @@ Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
+Vedalken Mesmerist
 Vengeful Reaper
 Vivien, Arkbow Ranger
 Volatile Arsonist
@@ -313,10 +354,13 @@ Weakstone
 Webweaver Changeling
 Weird Harvest
 Welding Sparks
+Whimwader
 Whispers of Emrakul
 Willow Elf
 Windstorm
 Winged Hive Tyrant
+Wings of Velis Vel
+Wipe Away
 Withstand Death
 Wizard's Staff
 Wound Reflection
@@ -327,3 +371,4 @@ Yargle and Multani
 Yotian Medic
 You See a Guard Approach
 Zhang He, Wei General
+Zombie Mob

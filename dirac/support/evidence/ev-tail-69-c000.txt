@@ -25,6 +25,7 @@ Baloth Null
 Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
+Battle at the Helvault
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
@@ -94,6 +95,7 @@ Earthshaker
 Echoing Return
 Ecstatic Awakener
 Ekthi, Contaminator Priest
+Elephant Grass
 Elspeth, Knight-Errant
 Elven Warhounds
 Elvish Doomsayer

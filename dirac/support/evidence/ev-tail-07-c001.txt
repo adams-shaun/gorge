@@ -1,6 +1,9 @@
 A-Kona, Rescue Beastie
+A-Leyline of Resonance
 A-Scout the Wilderness
+A-Skyclave Shadowcat
 Abbot of Keral Keep
+Abduction
 Aberrant Researcher
 Aether Membrane
 Airborne Aid
@@ -16,18 +19,25 @@ Apocalypse
 April O'Neil, Human Element
 Archmage Emeritus
 Ascended Lawmage
+Assault on Osgiliath
 Assemble the Entmoot
+Atarka Pummeler
 Avabruck Caretaker
+Aven Envoy
 Azorius Herald
 Baird, Argivian Recruiter
 Banewhip Punisher
+Barge In
+Barrage of Expendables
 Basking Rootwalla
+Basri, Devoted Paladin
 Beast in Show
 Bilbo's Burglaring
 Biogenic Ooze
 Bird Admirer
 Biting Tether
 Bladed Ambassador
+Blazing Hellhound
 Blind Zealot
 Blood Price
 Blood Speaker
@@ -42,6 +52,7 @@ Cantivore
 Captain's Defense
 Carapace Forger
 Carrier Pigeons
+Carrion
 Cavalier of Thorns
 Caves of Koilos
 Centaur Courser
@@ -50,17 +61,22 @@ Charging Paladin
 Chief Magistrate of Mercadia
 Cinder Giant
 Cliffside Lookout
+Clinging Anemones
 Cloaked Siren
 Clockwork Condor
 Consuming Aetherborn
 Consuming Vapors
 Contact Other Plane
+Control Magic
 Crabapple Cohort
 Craterize
 Crook of Condemnation
 Crystacean
+Cunning Strike
 Cyclopean Mummy
+Daredevil, Fearless Fighter
 Darien, King of Kjeldor
+Darksteel Gargoyle
 Darting Merfolk
 Dawn Evangel
 Deathgaze Cockatrice
@@ -68,12 +84,14 @@ Decimator Web
 Desert
 Displacer Kitten
 Disruption Protocol
+Distorting Wake
 Divine Offering
 Diviner of Mist
 Doc Ock, Evil Inventor
 Doomsday Specter
 Druid of the Anima
 Dune Diviner
+Dunes of the Dead
 Duskfang Mentor
 Dust to Dust
 Dwarven Strike Force
@@ -95,6 +113,7 @@ Favor of the Overbeing
 Feeling of Dread
 Feral Prowler
 Feroz's Ban
+Fire
 Fire Dragon
 Firebreathing
 Firemantle Mage
@@ -110,6 +129,7 @@ Frogify
 Frostveil Ambush
 Frozen Aether
 Furyblade Vampire
+Gadrak, the Crown-Scourge
 Gamekeeper
 Gargantos, the Endbringer
 Garrison Sergeant
@@ -120,9 +140,12 @@ Ghost-Lit Nourisher
 Gilt-Leaf Palace
 Give
 Glimmerpoint Stag
+Glint Hawk
 Glorious Enforcer
 Goblin Firebug
 Goblin Grenade
+Goblin Spelunkers
+Gouged Zealot
 Graceblade Artisan
 Grasp of Fate
 Grayscaled Gharial
@@ -130,6 +153,7 @@ Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
 Hallowed Respite
+Harness Infinity
 Harvester Troll
 Headhunter
 Heroes' Reunion
@@ -137,18 +161,22 @@ Hotshot Mechanic
 Hunter's Prowess
 Hushwing Gryff
 Hypervolt Grasp
+Ice Over
 Ichor Drinker
 In the Eye of Chaos
 Indomitable Will
+Iroas's Blessing
 Iron League Steed
 Ironclad Revolutionary
 Island
 Johtull Wurm
+Jukai Preserver
 Jungle Barrier
 Karametra's Acolyte
 Keldon Berserker
 Kessig Recluse
 Kiss of Death
+Kjeldoran Dead
 Knacksaw Clique
 Knight of Autumn
 Knight of the Keep
@@ -157,8 +185,10 @@ Krark-Clan Engineers
 Kuldotha Cackler
 Landslide
 Legion Guildmage
+Leonin Warleader
 Letter of Acceptance
 Leyline Prowler
+Lich's Tomb
 Lightning Coils
 Liliana's Mastery
 Liliana's Shade
@@ -169,8 +199,10 @@ Mageta the Lion
 Magus of the Wheel
 Majestic Metamorphosis
 Mandible Justiciar
+Manor Skeleton
 Manticore
 Martyr of Dusk
+Master of Waves
 Merchant of the Vale
 Mercurial Geists
 Messenger Drake
@@ -178,6 +210,7 @@ Mighty Leap
 Mirkwood Spider
 Mnemonic Sphere
 Mogg Raider
+Mogis's Favor
 Molting Snakeskin
 Moment of Truth
 Morgue Thrull
@@ -185,7 +218,9 @@ Mountain
 Myrkul's Invoker
 Myth Realized
 Nadier, Agent of the Duskenel
+Natural Emergence
 Neoform
+Neurok Prodigy
 Niblis of the Mist
 Niblis of the Urn
 Ninth Bridge Patrol
@@ -198,12 +233,15 @@ Ojutai's Command
 Olivia's Attendants
 Ondu Spiritdancer
 One with Death
+Orcish Cannonade
 Order
 Order of the Golden Cricket
 Orzhov Keyrune
 Pacification Array
 Pack's Disdain
 Papercraft Decoy
+Pearl-Ear, Imperial Advisor
+Perimeter Sergeant
 Piston-Fist Cyclops
 Plains
 Plated Geopede
@@ -212,10 +250,13 @@ Private Research
 Pulse of Murasa
 Purge
 Purple-Crystal Crab
+Putrid Goblin
 Pyromancer's Assault
+Quagmire Lamprey
 Queen's Commission
 Quick-Draw Dagger
 Rabble-Rouser
+Rabid Bloodsucker
 Raging Regisaur
 Rainbow Efreet
 Rampaging Brontodon
@@ -227,16 +268,25 @@ Renowned Weaver
 Repentance
 Resurrection
 Rhox Maulers
+Riddlekeeper
 Righteous Avengers
 Ring of Thune
+Ripscale Predator
+Riptide Director
+Rishadan Dockhand
 Rite of Belzenlok
 Rockslide Elemental
 Roiling Waters
+Roku's Mastery
+Rona's Vortex
 Rubblebelt Rioters
+Rust Elemental
 Sage's Reverie
 Salvage
+Samut, Voice of Dissent
 Sanguine Statuette
 Satyr Nyx-Smith
+Saving Grasp
 Scatter Ray
 Scattershot Archer
 Scoria Elemental
@@ -248,13 +298,17 @@ Select for Inspection
 Senate Griffin
 Serpent of the Endless Sea
 Serum Raker
+Sethron, Hurloon General
 Shadowheart, Dark Justiciar
+Sharding Sphinx
 Sharpened Pitchfork
 Shattering Blow
 Shefet Monitor
 Sheoldred's Edict
 Shore Keeper
 Sight of the Scalelords
+Skarrg Goliath
+Skull of Orm
 Somberwald Spider
 Spaceshift
 Spark Mage
@@ -262,15 +316,20 @@ Spark Reaper
 Speaker of the Heavens
 Spectral Shepherd
 Spectral Sliver
+Sphinx's Tutelage
 Spider-Man, Hometown Hero
 Spider-Man, Web-Spinner
 Spike Drone
 Spiked Baloth
 Spire Patrol
+Spirit Mantle
 Spitting Slug
 Stamina
 Starstorm
+Stench of Decay
+Stinging Shot
 Stoneforge Mystic
+Storm Skreelix
 Sudden Spinnerets
 Sunblade Samurai
 Suntouched Myr
@@ -279,27 +338,35 @@ Swamp
 Sweet-Gum Recluse
 Sylvan Bounty
 Symbiosis
+Taigam's Strike
 Talisman of Impulse
 Taunting Kobold
+Telim'Tor's Darts
+Tempest Caller
 Thalia, Guardian of Thraben
 The Mending of Dominaria
 The Torment of Gollum
 Thrive
 Thriving Rats
 Throne of Geth
+Thwart the Grave
 Titanium Golem
 Tooth and Claw
+Trail of Crumbs
 Tread Upon
 Treason of Isengard
 Triton Shorethief
 Two-Headed Cerberus
+Tyrant's Scorn
 Uktabi Wildcats
 Ulvenwald Bear
 Urborg Skeleton
+Valko Indorian
 Vampire Bats
 Vernal Bloom
 Veteran Armorsmith
 Victor Mancha, Runaway
+Violent Outburst
 Violent Ultimatum
 Viridian Revel
 Virtue's Ruin
@@ -319,10 +386,15 @@ Wellwisher
 Whipstitched Zombie
 Wildgrowth Walker
 Will of the All-Hunter
+Windrider Patrol
 Wolfsbane, Highland Hero
 Woodvine Elemental
 Wormhole Serpent
+Wreak Havoc
 Wurm's Tooth
+Yavimaya Iconoclast
+You Find the Villains' Lair
+Zap
 Zektar Shrine Expedition
 Zephid
 Zof Consumption

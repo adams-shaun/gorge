@@ -6,6 +6,7 @@ Academy Elite
 Acidic Slime
 Aerie Auxiliary
 Akki Blizzard-Herder
+Akroma's Vengeance
 Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
@@ -57,25 +58,32 @@ Cryptbreaker
 Damn
 Daru Warchief
 Deepwood Ghoul
+Defensive Maneuvers
 Defiant Strike
 Demon's Jester
 Diabolic Edict
+Disciple of Grace
 Dragonwing Glider
 Dreadhound
+Dreadlight Monstrosity
 Dromoka Warrior
 Drowner Initiate
 Druidic Satchel
 Drumbellower
 Dual Shot
+Ebony Treefolk
 Efreet Flamepainter
 Eiganjo Exemplar
 Electrosiphon
 Elemental Augury
 Elephant Resurgence
+Ellivere of the Wild Court
 Epiphany at the Drownyard
 Essence Infusion
 Evaporate
 Everbark Shaman
+Evie Frye
+Extract from Darkness
 Extremis Elite
 Falkenrath Torturer
 Fallaji Archaeologist
@@ -85,13 +93,16 @@ Final Flourish
 Final Strike
 Fire Diamond
 Flailing Soldier
+Flamekin Village
 Flayed One
+Flicker of Fate
 Fodder Cannon
 Force of Negation
 Forebear's Blade
 Forest
 Frenzied Devils
 From the Rubble
+Frost Trickster
 Galerider Sliver
 Giant Octopus
 Glen Elendra Liege
@@ -107,6 +118,7 @@ Graveblade Marauder
 Gravity Sphere
 Great-Horn Krushok
 Grisly Survivor
+Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
 Guardians of Oboro
@@ -114,7 +126,9 @@ Guilty Conscience
 Halberdier
 Hammerhead Shark
 Healing Hands
+Hero of Goma Fada
 Hithlain Knots
+Hold at Bay
 Horizon Scholar
 Horizon Spellbomb
 Hormagaunt Horde
@@ -125,6 +139,7 @@ Infernal Contract
 Infuriate
 Iona's Judgment
 Island
+Izzet Keyrune
 Jilt
 Jodah's Avenger
 Kaleidoscorch
@@ -144,17 +159,23 @@ Life Burst
 Lightning Javelin
 Lizard Warrior
 Loamcrafter Faun
+Longbow Archer
 Lotleth Troll
 Luminescent Rain
+Maraleaf Pixie
 Marble Titan
 Massacre
+Melira's Keepers
+Mental Misstep
 Messenger's Speed
 Militia Rallier
+Mindculling
 Miracle Worker
 Misers' Cage
 Mob Justice
 Mountain
 Myojin of Infinite Rage
+Myr Sire
 Márton Stromgald
 Nausea
 Neheb, the Eternal
@@ -166,6 +187,7 @@ Origin of Black Widow
 Orochi Sustainer
 Orzhov Signet
 Ossuary Rats
+Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
 Phantom Centaur
@@ -177,6 +199,7 @@ Pincer Spider
 Pinnacle of Rage
 Plains
 Popular Entertainer
+Predator's Rapport
 Rampant Rejuvenator
 Ransom Note
 Ray of Enfeeblement
@@ -185,9 +208,11 @@ Razorverge Thicket
 Reliquary Monk
 Renegade Warlord
 Repel the Vile
+Reprieve
 Resolute Archangel
 Resupply
 Rhox Charger
+Ring of Immortals
 Riptide Mangler
 River Kaijin
 Roar of the Kha
@@ -195,6 +220,8 @@ Rush of Blood
 Rush of Knowledge
 Sacred Knight
 Salt Marsh
+Sanctum Custodian
+School of Piranha
 Scorch Rider
 Scrap Trawler
 Self-Inflicted Wound
@@ -220,10 +247,12 @@ Spiteful Prankster
 Spitting Sliver
 Squee's Embrace
 Squelching Leeches
+Squirrel Sovereign
 Staff of the Storyteller
 Stave Off
 Stern Marshal
 Stick, Fearless Mentor
+Stone Calendar
 Stone Drake
 Strangle
 Stromkirk Occultist
@@ -235,6 +264,7 @@ Suppression Bonds
 Svyelunite Priest
 Swamp
 Talrand's Invocation
+Tanglebloom
 Temporal Mastery
 The Destined Black Mage
 The Mary Janes
@@ -245,8 +275,11 @@ Titanium Man
 Tolarian Entrancer
 Tortured Existence
 Traveling Philosopher
+Treasure Vault
+Trench Gorger
 Trench Wurm
 Trip Noose
+Tromokratis
 Trusty Companion
 Trynn, Champion of Freedom
 Two-Headed Sliver
@@ -266,6 +299,7 @@ Vivien's Grizzly
 Vizkopa Vampire
 Wake the Dragon
 Wake the Past
+Walker of the Grove
 Walking Atlas
 Warlock Class
 Wave of Indifference
@@ -275,6 +309,7 @@ Whetwheel
 Wind Dancer
 Winterflame
 Wirewood Elf
+Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
 Wyrm's Crossing Patrol
@@ -282,5 +317,6 @@ You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net
 Zhao Zilong, Tiger General
+Zhuge Jin, Wu Strategist
 Zimone, Quandrix Prodigy
 Zurgo Bellstriker

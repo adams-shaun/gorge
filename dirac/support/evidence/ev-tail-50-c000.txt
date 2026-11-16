@@ -107,6 +107,7 @@ Dawn of the Dead
 Death Cloud
 Death Pit Offering
 Descendant of Masumaro
+Desert of the Fervent
 Deviant Glee
 Dina, Essence Brewer
 Donatello's Science Lesson
@@ -314,6 +315,7 @@ Pyre Charger
 Rainbow Efreet
 Ranger-Captain of Eos
 Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Recoil

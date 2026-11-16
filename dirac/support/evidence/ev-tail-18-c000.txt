@@ -23,6 +23,7 @@ Avatar of Might
 Aven Cloudchaser
 Aven Eternal
 Awaken the Bear
+Azorius Knight-Arbiter
 Azorius Signet
 Baird, Steward of Argive
 Balduvian Barbarians
@@ -371,6 +372,7 @@ Solidarity
 Soratami Cloudskater
 Soul Rend
 Soul's Might
+Soulquake
 Soulstealer Axe
 Spawn-Gang Commander
 Spectral Rider

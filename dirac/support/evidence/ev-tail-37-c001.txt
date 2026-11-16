@@ -43,12 +43,14 @@ Chrome Host Seedshark
 Clairvoyance
 Cliff Threader
 Cloudseeder
+Commander's Authority
 Conductor of Cacophony
 Constant Mists
 Controlled Instincts
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
+Curse of Chaos
 Dance with Devils
 Deadbridge Shaman
 Deal Broker
@@ -76,11 +78,14 @@ Eldrazi Linebreaker
 Elenda's Hierophant
 Elusive Krasis
 Esper Cormorants
+Faerie Impostor
 Fallaji Excavation
+Fate Forgotten
 Flame Slash
 Flame Spirit
 Flame of Anor
 Flameshot
+Fledgling Dragon
 Fleshbag Marauder
 Flowstone Slide
 Force of Despair
@@ -115,9 +120,12 @@ Jungle Delver
 Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
+Kasimir the Lone Wolf
 Kavu Climber
 Kavu Glider
 Kavu Scout
+Kindred Denial
+Knight of Cliffhaven
 Kolaghan Monument
 Lazotep Reaver
 Lieutenant Kirtar
@@ -133,12 +141,16 @@ Master Apothecary
 Maze Rusher
 Midnight Scavengers
 Millennial Gargoyle
+Millstone
 Mindless Automaton
+Mindstatic
 Mirror Wall
 Monk Realist
 Morbid Plunder
 Mountain
 Mystifying Maze
+Navigation Orb
+Niambi, Faithful Healer
 Nishoba Brawler
 Noxious Dragon
 Organ Hoarder
@@ -160,7 +172,9 @@ Quirion Sentinel
 Ravenous Skirge
 Reach of Branches
 Reap and Sow
+Regal Bloodlord
 Rhox Oracle
+Riptide
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
@@ -175,9 +189,12 @@ Shadowfeed
 Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
+Sickle Ripper
 Silkguard
+Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
+Snap
 Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
@@ -198,15 +215,19 @@ The Meathook Massacre
 The Torment of Gollum
 Thragtusk
 Towashi Guide-Bot
+Undead Butler
 Undergrowth Scavenger
 Vanquish the Foul
+Vectis Dominator
 Voices from the Void
+Vorel of the Hull Clade
 Vraska, Scheming Gorgon
 Walking Archive
 Walking Corpse
 Warped Physique
 Wei Elite Companions
 Whisper Squad
+White Glove Gourmand
 Wicker Witch
 Wildfire Emissary
 Will-o'-the-Wisp

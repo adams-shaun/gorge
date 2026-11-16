@@ -3,6 +3,7 @@ A-Jackhammer
 A-Omnath, Locus of Creation
 Agonizing Syphon
 Ajani's Influence
+Altar of Bone
 Amazing Alliance
 Ambush
 Aragorn and Arwen, Wed
@@ -36,7 +37,9 @@ Chimney Goyf
 Chittering Skitterling
 Chorus of Might
 Clattering Augur
+Cloakwood Swarmkeeper
 Confound
+Consider
 Contingency Plan
 Daredevil, Fearless Fighter
 Daring Apprentice
@@ -52,8 +55,10 @@ Disturbed Burial
 Dreadmalkin
 Elemental Summoning
 Ellyn Harbreeze, Busybody
+Embraal Gear-Smasher
 Etherium Abomination
 Exuberant Wolfbear
+False Mourning
 Fangren Hunter
 Farfinder
 Farmstead
@@ -62,6 +67,7 @@ Fell Flagship
 Filigree Crawler
 Filigree Fracture
 Final Revels
+Fire Whip
 Font of Progress
 Force of Vigor
 Forest
@@ -70,14 +76,17 @@ Freyalise, Llanowar's Fury
 Gift of Granite
 Gift of Wrath
 Gobbling Ooze
+Goblin Cadets
 Goblin Chariot
 Goblin Chieftain
 Goblin War Drums
 Gravel-Hide Goblin
 Grimdancer
+Grisly Spectacle
 Hawkeye, Trick Shot
 Hellcarver Demon
 High Score
+Hog-Monkey Rampage
 Howlpack Wolf
 Hunted Ghoul
 Ifh-Bíff Efreet
@@ -111,6 +120,7 @@ Mwonvuli Acid-Moss
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
+Ogre Menial
 One with Nature
 Ongoing Investigation
 Onslaught
@@ -186,6 +196,7 @@ The Falcon, Airship Restored
 Thistledown Duo
 Towering Viewpoint
 Tromp the Domains
+Turn Aside
 Vampire Revenant
 Verdant Rebirth
 Viashino Runner

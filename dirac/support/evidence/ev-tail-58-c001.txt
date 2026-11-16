@@ -103,6 +103,7 @@ Hog-Monkey Rampage
 Hold the Gates
 Hook Swords
 Hound of the Farbogs
+House Guildmage
 Hunger of the Nim
 Illustrious Historian
 Inspired Insurgent
@@ -115,6 +116,7 @@ Kamber, the Plunderer
 Khorvath Brightflame
 Kithkin Daggerdare
 Knighted Myr
+Knights' Charge
 Krovikan Plague
 Kujar Seedsculptor
 Kurgadon

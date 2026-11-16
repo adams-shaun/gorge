@@ -37,6 +37,7 @@ Aven Windreader
 Axebane Stag
 Axgard Artisan
 Ayula's Influence
+Baloth Gorger
 Barbed Battlegear
 Barishi
 Baru, Fist of Krosa
@@ -139,6 +140,7 @@ Forcemage Advocate
 Forest
 Fortify
 Fungusaur
+Fylamarid
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
@@ -255,6 +257,7 @@ Niall Silvain
 Night Market Lookout
 Nimbleclaw Adept
 Nivix Barrier
+No One Left Behind
 Obscura Storefront
 Okina, Temple to the Grandfathers
 Ondu Greathorn
@@ -278,6 +281,7 @@ Phantasmagorian
 Phantasmal Abomination
 Pilgrim's Eye
 Pillardrop Warden
+Pitiless Pontiff
 Plains
 Polukranos, World Eater
 Portcullis Vine

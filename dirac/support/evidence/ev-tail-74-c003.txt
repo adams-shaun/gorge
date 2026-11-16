@@ -1,6 +1,7 @@
 A-Guide of Souls
 A-Plate Armor
 Abomination, World Ravager
+Abzan Runemark
 Ajani's Mantra
 Aurora Eidolon
 Aven Trooper
@@ -48,6 +49,7 @@ Faithbearer Paladin
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
@@ -87,6 +89,7 @@ Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Moldervine Reclamation
 Momentum Rumbler
 Moonveil Dragon
 Mountain
@@ -96,11 +99,13 @@ Navigation Orb
 Necromancer's Familiar
 Nexus of Fate
 Nomads' Assembly
+Novellamental
 Nylea's Huntmaster
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
 Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
@@ -127,6 +132,7 @@ Runeclaw Bear
 Sacred Cat
 Sanctify
 Savai Thundermane
+Scrivener
 Sheltering Landscape
 Sigarda's Summons
 Sign in Blood
@@ -175,4 +181,5 @@ Wall of Heat
 Weapon Rack
 Wei Scout
 Weirding Shaman
+Whispers of the Muse
 Willow-Wind

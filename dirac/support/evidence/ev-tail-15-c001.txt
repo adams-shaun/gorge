@@ -1,9 +1,11 @@
 A-Buy Your Silence
 A-Sepulcher Ghoul
+Afflict
 Alexi's Cloak
 Amarant Coral
 Angelheart Protector
 Angelheart Vial
+Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
 Arrows of Justice
@@ -12,23 +14,29 @@ Augury Owl
 Avatar of Will
 Aven Brigadier
 Aven Eternal
+Bayou Dragonfly
 Bedeck
 Black Widow, Agile Avenger
 Blazing Rootwalla
 Blessed Spirits
 Blinding Radiance
+Bloodflow Connoisseur
 Brightclimb Pathway
 Brilliant Restoration
 Brimstone Mage
 Brood Butcher
 Buoyancy
 Burden of Guilt
+Cabal Archon
 Carrion Howler
 Catapult Squad
 Chatterstorm and Awaken the Woods
 Child of Night
+Chime of Night
+Chrome Cat
 Cleanse
 Colossus Hammer
+Conclave's Blessing
 Copperhoof Vorrac
 Courier Griffin
 Crimson Roc
@@ -46,6 +54,7 @@ Desynchronize
 Dihada's Ploy
 Dingus Staff
 Diplomacy of the Wastes
+Displace
 Domri, Anarch of Bolas
 Drossclaw
 Dúnedain Blade
@@ -54,16 +63,21 @@ Eerie Interlude
 Efreet Flamepainter
 Electric Eel
 Elemental Bond
+Elspeth Tirel
 Engineered Plague
 Enthrall
 Erebos's Emissary
 Erebos, Bleak-Hearted
 Eternal Skylord
 Ethereal Ambush
+Everflame Eidolon
 Evil Eye of Urborg
 Eyes of the Watcher
+Faithful Pikemaster
+Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
+Fated Conflagration
 Femeref Scouts
 Festival of the Guildpact
 Filigree Sages
@@ -72,6 +86,7 @@ Flameshot
 Flanking Troops
 Flowstone Strike
 Forest
+Foundry Street Denizen
 Free from Flesh
 Fungus Elemental
 Furious Assault
@@ -91,20 +106,26 @@ Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
 Grim Feast
+Grim Guardian
 Grip of Desolation
+Growth-Chamber Guardian
 Gustha Ebbasdotter
 Gutter Skulk
 Gwaihir the Windlord
 Haazda Snare Squad
 Headlong Rush
+Healing Leaves
 Helionaut
 Highspire Infusion
 Hope Against Hope
 Horror of Horrors
 Human Frailty
+Ill-Tempered Cyclops
 Infuse
 Inner Calm, Outer Strength
 Innocuous Researcher
+Inspired Inventor
+Into the Time Vortex
 Inviolability
 Island
 Jackal Familiar
@@ -123,6 +144,7 @@ Leinore, Autumn Sovereign
 Leshrac's Sigil
 Leyline of Punishment
 Lightning Blast
+Lose Calm
 Lychguard
 Madame Hydra, Reanimated
 Magus of the Disk
@@ -130,17 +152,23 @@ Makeshift Mauler
 Mana Flare
 Mana Skimmer
 Manaform Hellkite
+Manriki-Gusari
+Map the Wastes
 Maralen of the Mornsong
 Maro
 Marsh Viper
 Marshmist Titan
 Mary Read and Anne Bonny
+Mending Hands
+Messenger Drake
 Michiko's Reign of Truth
 Midnight Covenant
 Mind Knives
+Mindwarper
 Minion of Tevesh Szat
 Minion's Return
 Mirari's Wake
+Mire Boa
 Misery Charm
 Moan of the Unhallowed
 Moonfolk Puzzlemaker
@@ -153,9 +181,11 @@ Nessian Game Warden
 Nightstalker Engine
 Nissa's Triumph
 Novellamental
+Nyxborn Marauder
 Obelisk of Esper
 Otherworld Atlas
 Oxidize
+Ozox, the Clattering King
 Parasitic Grasp
 Pawn of Ulamog
 Pendrell Mists
@@ -176,6 +206,8 @@ Raven Familiar
 Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
+Reckless Scholar
+Regisaur Alpha
 Release to Memory
 Relic of Progenitus
 Retreat to Hagra
@@ -186,18 +218,23 @@ Sand Golem
 Sanguine Glorifier
 Saprazzan Heir
 Saprazzan Outrigger
+Scion of Glaciers
 Seal of Fire
 Seer's Vision
+Selesnya Evangel
 Serene Steward
 Shared Trauma
 Shimmerscale Drake
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
+Sign in Blood
 Sindbad
 Sip of Hemlock
+Skeletal Kathari
 Skullslither Worm
 Skyfisher Spider
+Skyshroud Ranger
 Slagwurm Armor
 Slum Reaper
 Smitten Swordmaster
@@ -224,10 +261,12 @@ Sunscorch Regent
 Swamp
 TVA Bureaucrat
 Talisman of Resilience
+Teething Wurmlet
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
 Treasure Hunter
+Trokin High Guard
 Tui and La, Moon and Ocean
 Turbulent Wetlands
 Turret Ogre
@@ -241,6 +280,7 @@ Undercity Uprising
 Urza's Science Fair Project
 Valeron Outlander
 Vertigo Spawn
+Volcanic Spray
 Vulshok Splitter
 Wake the Reflections
 Wanderlust
@@ -251,6 +291,7 @@ Whirlermaker
 Woeleecher
 Wound Reflection
 Wrack with Madness
+Xun Yu, Wei Advisor
 Yavimaya Barbarian
 Yawgmoth, Thran Physician
 Ziatora's Proving Ground

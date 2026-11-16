@@ -1,5 +1,6 @@
 A-Baleful Beholder
 A-Pseudodragon Familiar
+A-Pyre-Sledge Arsonist
 A-The One Ring
 Adamaro, First to Desire
 Aerial Modification
@@ -29,6 +30,7 @@ Bedevil
 Benalish Heralds
 Benevolent Hydra
 Binding the Old Gods
+Biolume Egg
 Blasting Station
 Blinding Light
 Bloodhusk Ritualist
@@ -55,6 +57,7 @@ Court of Bounty
 Crackdown
 Crimson Caravaneer
 Crippling Blight
+Crowd's Favor
 Crush
 Crux of Fate
 Crypt Creeper
@@ -74,6 +77,7 @@ Disciple of Perdition
 Disciple of Tevesh Szat
 Discontinuity
 Displacement Wave
+Distemper of the Blood
 Diviner of Mist
 Doomsday
 Dragonsguard Elite
@@ -92,6 +96,7 @@ Ellivere of the Wild Court
 Elvish Skysweeper
 Emberwilde Caliph
 Ensoul Artifact
+Entropic Eidolon
 Ethersworn Adjudicator
 Exalted Flamer of Tzeentch
 Executioner's Swing
@@ -105,9 +110,13 @@ Feral Animist
 Fight Rigging
 Final Flare
 Firefiend Elemental
+Flailing Drake
+Flame Elemental
+Flamespeaker's Will
 Flanking Troops
 Flaring Pain
 Fledgling Griffin
+Fleeting Aven
 Forced March
 Forest
 Forsaken Drifters
@@ -120,6 +129,7 @@ Ghoultree
 Gilt-Leaf Seer
 Glimmer Bairn
 Glint-Sleeve Artisan
+Gluttonous Troll
 Gnarlid Pack
 Go Blank
 Goblin Motivator
@@ -140,6 +150,7 @@ Herald of Slaanesh
 Hero of Bladehold
 Hero's Heirloom
 Heroic Teamwork
+Hobblefiend
 Hordeling Outburst
 Horror of the Dim
 Hungry for More
@@ -155,7 +166,9 @@ Invisibility
 Island
 Izoni, Thousand-Eyed
 Jace's Ingenuity
+Jackdaw
 Jackhammer
+Jedit Ojanen
 Jedit's Dragoons
 Jori En, Ruin Diver
 Jungle Troll
@@ -177,6 +190,7 @@ Llanowar Augur
 Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
+Lucky the Pizza Dog
 Luke Cage, Hero for Hire
 Luminarch Aspirant
 Luminous Wake
@@ -187,8 +201,10 @@ Make Mischief
 Malevolent Noble
 Maraxus of Keld
 Mardu Strike Leader
+Maritime Guard
 Marsh Viper
 Masked Admirers
+Mass Manipulation
 Master Skald
 Mausoleum Harpy
 Minamo Sightbender
@@ -230,6 +246,7 @@ Patriar's Seal
 Phantasmagorian
 Pharika's Chosen
 Pink Horror
+Pitiless Vizier
 Plague Wind
 Plains
 Plundering Barbarian
@@ -239,9 +256,12 @@ Powerstone Engineer
 Pride Sovereign
 Prismari Campus
 Psionic Entity
+Puppeteer Clique
 Radha's Firebrand
 Rampart Crawler
 Read the Bones
+Reckless Reveler
+Reckless Stormseeker
 Recruit the Worthy
 Referee Squad
 Resolute Rider
@@ -257,6 +277,7 @@ Rot Shambler
 Rotlung Reanimator
 Sabertooth Wyvern
 Sage of Lat-Nam
+Sage of Shaila's Claim
 Sage of the Unknowable
 Saheeli's Silverwing
 Sanctum Gargoyle
@@ -270,6 +291,7 @@ Seasoned Pyromancer
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
+Selesnya Sagittars
 Selfless Samurai
 Serra Ascendant
 Serra's Liturgy
@@ -305,6 +327,7 @@ Spectral Cloak
 Sphere Grid
 Spike Breeder
 Spinal Parasite
+Spirit of the Hearth
 Springjaw Trap
 Sram, Senior Edificer
 Staggershock
@@ -326,11 +349,13 @@ Sword of the Chosen
 Sworn Companions
 Sworn Defender
 Sylvan Yeti
+Séance Board
 Tainted Pact
 Talisman of Impulse
 Talrand, Sky Summoner
 Tangle Hulk
 Taste for Mayhem
+Taunting Kobold
 Teferi, Timebender
 Telepathic Spies
 Telling Time
@@ -340,8 +365,10 @@ The Keeper of the Yellow Hat
 Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw
+Tidewater Minion
 Time Wipe
 Tome Anima
+Traitorous Instinct
 Traxos, Scourge of Kroog
 Tuknir Deathlock
 Tymaret, the Murder King

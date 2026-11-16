@@ -1,4 +1,6 @@
 A-Dokuchi Silencer
+A-Rockslide Sorcerer
+A-Rulik Mons, Warren Chief
 Aerial Assault
 Aethershield Artificer
 Against All Odds
@@ -10,19 +12,26 @@ Alms Beast
 Aquatic Incursion
 Augury Adept
 Avatar of the Resolute
+Aven Trailblazer
 Axebane Guardian
 Battlefield Medic
 Bayek of Siwa
 Blade Splicer
 Blisterspit Gremlin
+Buccaneer's Bravado
 Bull Cerodon
 Buried Alive
 Burn the Impure
+Burst of Speed
 Butcher Ghoul
+Caldera Pyremaw
 Castle
+Chain Lightning
+Claim the Firstborn
 Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
+Common Iguana
 Conservator
 Contagion
 Corpse Knight
@@ -32,6 +41,7 @@ Courier's Capsule
 Crop Rotation
 Culling Mark
 Dauntless Survivor
+Deadshot
 Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
@@ -39,6 +49,7 @@ Demon's Grasp
 Demonic Rising
 Dismantling Blow
 Domri, Anarch of Bolas
+Ekthi, Contaminator Priest
 Enslaved Dwarf
 Erratic Visionary
 Essence Warden
@@ -48,12 +59,17 @@ Explosive Welcome
 Fain, the Broker
 Final-Sting Faerie
 Firebird, Blazing Ranger
+Floodhound
 Flow of Ideas
 Flux Channeler
 Forest
 Fuel for the Cause
 Fungal Sprouting
+Furnace Celebration
+Furnace Hellkite
 Gluttonous Zombie
+Goblin Glider
+Goblin Racketeer
 Grim Monolith
 Hadran, Naya Sunseeder
 Helitrooper
@@ -62,16 +78,22 @@ Honed Khopesh
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
+Independent Troops
+Infernal Pet
 Inspiring Refrain
 Intrepid Ace
 Invasion of Tolvada
+Irencrag Pyromancer
 Iroas's Champion
 Iron Suitcase
 Island
 Jackalope Herd
 Keen-Eyed Raven
 Kirtar's Wrath
+Knight of the Keep
+Knights of the Black Rose
 Leafkin Druid
+Lightning Hounds
 Lightning Reaver
 Lightning-Core Excavator
 Liliana's Influence
@@ -83,10 +105,13 @@ Manticore Eternal
 Mardu Strike Leader
 Mausoleum Secrets
 Metropolis Reformer
+Mirror of Galadriel
 Mise
+Mogg Sentry
 Mogis's Warhound
 Moonglove Changeling
 Moss Monster
+Mothrider Patrol
 Mountain
 Nagging Thoughts
 Natural Emergence
@@ -99,12 +124,16 @@ Pennon Blade
 Pilfering Imp
 Plains
 Primeval Force
+Prosper, Tome-Bound
+Purifying Dragon
 Python
 Rage Weaver
 Rally to Battle
+Ranger en-Vec
 Ravos, Soultender
 Ray of Erasure
 Reckless Charge
+Reckless Handling
 Reduce to Ashes
 Revelation of Power
 Samite Pilgrim
@@ -113,15 +142,19 @@ Savra, Queen of the Golgari
 Scion of Vitu-Ghazi
 Sculpted Perfection
 Searing Barb
+Searing Blood
 Sentinel Sliver
 Settle the Score
 Shake the Foundations
 Shepherd of the Lost
+Skitter of Lizards
 Slinking Giant
 Solid Footing
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
 Squee's Embrace
+Steam Blast
+Streetbreaker Wurm
 Swamp
 Symmetry Sage
 Tale of Momo
@@ -131,6 +164,7 @@ Task Force
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
 The Bears of Littjara
+The Bloodsky Massacre
 The Whizzer, Classic Speedster
 Thrull Retainer
 Thrór's Map
@@ -138,12 +172,15 @@ Thunder Drake
 Thwart the Grave
 Titan's Strength
 Topan Freeblade
+Tor Giant
 Tormod's Cryptkeeper
+Trenching Steed
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
 Unholy Hunger
 Vine Trellis
+Voldaren Stinger
 Warped Devotion
 Way of the Thief
 Weight of the Underworld

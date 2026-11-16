@@ -43,6 +43,7 @@ Dispel
 Dragonspark Reactor
 Drowned Rusalka
 Duskmantle Prowler
+Dwarven Grunt
 Dwarven Lieutenant
 Enforcer Griffin
 Enlightened Tutor
@@ -69,6 +70,7 @@ Highway Robber
 Holy Armor
 Honden of Seeing Winds
 Impending Flux
+Increasing Devotion
 Inspired Charge
 Insufferable Balladeer
 Irradiate
@@ -124,10 +126,12 @@ Rats of Rath
 Restoration Angel
 Revel of the Fallen God
 Rishadan Pawnshop
+Rude Awakening
 Run Aground
 Rushwood Herbalist
 Rusting Golem
 Sanguimancy
+Savannah Sage
 Scour All Possibilities
 Scourge of Valkas
 Screeching Sliver
@@ -138,6 +142,7 @@ Seven-Tail Mentor
 Sewer Rats
 Shadowmage Infiltrator
 Sheoldred, Whispering One
+Sifter Wurm
 Slingshot Goblin
 Solar Tide
 Sophic Centaur
@@ -149,11 +154,13 @@ Spirit of the Spires
 Spiritual Asylum
 Spontaneous Mutation
 Steam Augury
+Steel Overseer
 Steelshaper's Gift
 Sudden Edict
 Sudden Spinnerets
 Swamp
 Swamp Mosquito
+Tamiyo's Epiphany
 Terror
 Thassa, Deep-Dwelling
 Thaumatic Compass
@@ -169,10 +176,13 @@ Underhanded Designs
 Undying Beast
 Unnatural Restoration
 Unnerve
+Unquestioned Authority
 Urborg Skeleton
 Vampire Noble
 Vedalken Anatomist
+Vigil for the Lost
 Vindictive Mob
 Viscera Seer
 Waste Away
+Wither and Bloom
 Withering Boon

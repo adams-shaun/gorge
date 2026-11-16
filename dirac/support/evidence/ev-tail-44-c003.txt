@@ -1,28 +1,45 @@
 A-Excavation Explosion
+Academy Raider
 Aetherwind Basker
 Aggression
 Artificer's Assistant
+Ashenmoor Gouger
 Attunement
 Auntie Blyte, Bad Influence
 Balduvian Horde
+Balduvian Rage
+Barbarian General
 Black Vise
+Blood Knight
+Blossoming Wreath
+Blur of Blades
+Bond of Insight
 Chaos Lord
 Chaos Warp
 Chief of the Foundry
+Citadel of Pain
 Combo Attack
 Corpse Hauler
+Cragplate Baloth
+Crazed Goblin
 Creature Bond
 Cruel Tutor
+Cunning Advisor
 Darksteel Citadel
 Dawn of a New Age
 Day of Destiny
 Deadly Allure
 Death Wish
+Deathcult Rogue
+Deconstruct
 Diregraf Rebirth
 Douse in Gloom
 Dream Twist
 Dystopia
+End the Festivities
 Essence Flux
+Explosive Revelation
+Fa'adiyah Seer
 Fatestitcher
 Feldon of the Third Path
 Finale of Eternity
@@ -30,15 +47,22 @@ Fireblast
 Flame Slash
 Flatline
 Forest
+Forge Devil
+Funeral Pyre
 Gamma Grotesque
 Ghostly Changeling
 Glamdring
+Goblin Balloon Brigade
 Gravedigger
 Grim Discovery
 Grim Flayer
 Harvest Gwyllion
 Headwater Sentries
+Hearth Charm
+Hissing Iguanar
 Horizon Drake
+Hurler Cyclops
+Hyena Pack
 Ill-Gotten Inheritance
 Inheritance
 Island
@@ -47,28 +71,46 @@ Juri, Master of the Revue
 Karplusan Strider
 Keldon Arsonist
 Kiku, Night's Flower
+Krav, the Unredeemed
+Lightning Wolf
+Liliana, the Last Hope
+Make a Wish
 Mana-Charged Dragon
+Mardu Heart-Piercer
+Mayhem Devil
 Mega Flare
+Mob Rule
 Mountain
+Mountain Bandit
+Mythic Proportions
 Nantuko Shaman
+Navigator's Ruin
 Nezumi Graverobber
 No Way Out
 Norika Yamazaki, the Poet
 Nullmage Advocate
 Nut Collector
 Obsidian Giant
+Ogre Siegebreaker
 Oran-Rief Survivalist
 Overgrown Battlement
+Pact of Negation
 Pestilent Wolf
 Plains
 Price of Fame
+Priest of Forgotten Gods
+Putrid Warrior
 Reanimate
 Recon Craft Theta
+Rendclaw Trow
+Retreat to Emeria
 Rhonas's Monument
+Rising of the Day
 Sabertooth Nishoba
 Scribe of the Mindful
 Scroll of Avacyn
 Seasoned Pyromancer
+Sedge Troll
 Shattered Dreams
 Shinka, the Bloodsoaked Keep
 Shorikai, Genesis Engine
@@ -76,18 +118,32 @@ Shrapnel Slinger
 Sift
 Silverchase Fox
 Slag Strider
+Soldevi Steam Beast
+Spectacular Showdown
+Spider-Man, Hometown Hero
 Squirming Mass
 Stolen Goods
+Storm-Kiln Artist
+Street Riot
 Strength of Cedars
+Structural Distortion
+Sunbond
 Swamp
+Sylvan Awakening
+Tajuru Snarecaster
+Teshar, Ancestor's Apostle
 Thassa's Oracle
 Thermo-Alchemist
 Thornglint Bridge
 Thrashing Mudspawn
+Tiger Shark, Abyssal Hunter
 Tinder Wall
 Tolabow, Loch Rascal
 Toski, Bearer of Secrets
 Traitorous Instinct
+Transgress the Mind
+Tremor
+True Love's Kiss
 Tuktuk the Explorer
 Uncanny Speed
 Urza's Chalice
@@ -95,7 +151,10 @@ Utopia Vow
 Vengeful Reaper
 Voice of Reason
 Wake of Vultures
+War-Torch Goblin
 Warleader's Helix
+Weaselback Redcap
+Wild Nacatl
 Woodland Mystic
 Zephyr Sprite
 Zombie Infestation

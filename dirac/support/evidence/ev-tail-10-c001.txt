@@ -1,4 +1,7 @@
+A-Blessed Hippogriff
+A-High-Rise Sawjack
 A-Steadfast Unicorn
+Abbey Matron
 Abjure
 Access Denied
 Acid Web Spider
@@ -21,6 +24,7 @@ Aysen Highway
 Baloth Packhunter
 Baneblade Scoundrel
 Basilica Bell-Haunt
+Basking Rootwalla
 Bastion of Remembrance
 Battalion Foot Soldier
 Battlegrowth
@@ -59,8 +63,10 @@ Coastal Drake
 Colossal Whale
 Commander Sofia Daguerre
 Cosmic Epiphany
+Cosmic Larva
 Counsel of the Soratami
 Crazed Goblin
+Crushing Canopy
 Cunning Geysermage
 Curfew
 Cylian Elf
@@ -68,12 +74,15 @@ D'Avenant Trapper
 Darksteel Gargoyle
 Dazzling Ramparts
 Deadly Rollick
+Decimator Beetle
 Demolisher Spawn
 Desperate Sentry
 Diabolic Vision
 Diviner Spirit
 Donatello's Science Lesson
 Doric, Nature's Warden
+Doublecast
+Dwarven Bloodboiler
 Elaborate Firecannon
 Elite Archers
 Elvish Lookout
@@ -105,6 +114,9 @@ Gang of Elk
 Glasspool Mimic
 Glint
 Goblin Caves
+Goblin Cohort
+Goblin Gardener
+Goblin Picker
 Goblin Shrine
 Grapeshot Catapult
 Grasping Thrull
@@ -113,6 +125,7 @@ Halo Forager
 Halo Hopper
 Hand of Justice
 Hapatra's Mark
+Harmonious Archon
 Haunted Cadaver
 Heal the Scars
 Heart-Piercer Bow
@@ -137,6 +150,7 @@ Invasion of Kaladesh
 Ironclaw Orcs
 Island
 Ivora, Insatiable Heir
+Ivory Cup
 Jace's Archivist
 Jeskai Sage
 Jhovall Queen
@@ -146,19 +160,25 @@ Kaervek, the Spiteful
 Karsus Depthguard
 Kaya's Onslaught
 Kenrith, the Returned King
+Kinetic Ooze
 King Suleiman
 Kismet
 Kjeldoran Gargoyle
 Knight of the White Orchid
+Kraul Foragers
+Kraul Warrior
 Kuldotha Flamefiend
 Leapfrog
 Leonin Squire
+Liliana's Devotee
 Lingering Souls
 Living Terrain
 Lizard Warrior
+Lothlórien Blade
 Lu Xun, Scholar General
 Magefire Wings
 Mageta the Lion
+Magma Giant
 Mahamoti Djinn
 Maja, Bretagard Protector
 Marang River Skeleton
@@ -175,6 +195,7 @@ Mists of Littjara
 Momir Vig, Simic Visionary
 Monumental Henge
 Mountain
+Murasa Behemoth
 Mystic Denial
 Mystic Zealot
 Need for Speed
@@ -183,9 +204,12 @@ Nightscape Apprentice
 Nightscape Master
 Nim Grotesque
 Noble's Purse
+Oathkeeper, Takeno's Daisho
 Ondu Giant
+One with Nothing
 Oran-Rief Recluse
 Oraxid
+Orcish Mechanics
 Ori, Plate Stacker
 Ornery Kudu
 Orthion, Hero of Lavabrink
@@ -207,7 +231,9 @@ Prison Realm
 Prodigal Sorcerer
 Radiant Purge
 Raffine's Informant
+Ragged Veins
 Raging Gorilla
+Ravenous Squirrel
 Ravos, Soultender
 Raze
 Realm Seekers
@@ -227,6 +253,7 @@ Roil Eruption
 Rorix Bladewing
 Royal Trooper
 Rubblebelt Recluse
+Rumbleweed
 Sanctuary Lockdown
 Sandsteppe Scavenger
 Sapphire Medallion
@@ -236,6 +263,7 @@ Scrapheap
 Scroll Thief
 Sea Eagle
 Seahunter
+Searing Flesh
 Seraph of the Scales
 Seton's Desire
 Shadow Summoning
@@ -277,6 +305,7 @@ Suki, Kyoshi Captain
 Sunscape Familiar
 Surge of Salvation
 Suspension Field
+Suspicious Bookcase
 Suture Priest
 Swamp
 Swirling Sandstorm
@@ -297,6 +326,7 @@ Trostani, Selesnya's Voice
 Turn Aside
 Twigwalker
 Tymaret Calls the Dead
+Tyrranax Rex
 Undercity Scrounger
 Underdark Basilisk
 Underworld Breach
@@ -307,6 +337,7 @@ Vexing Beetle
 Vicious Battlerager
 Village Elder
 Vivisurgeon's Insight
+Vulshok Heartstoker
 War Flare
 Warded Battlements
 Warm Welcome
@@ -321,4 +352,5 @@ Yanling's Harbinger
 Yavimaya Granger
 Yotian Soldier
 You Come to a River
+Zendikar Farguide
 Zulaport Enforcer

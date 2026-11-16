@@ -6,6 +6,7 @@ Arcane Teachings
 Archmage's Charm
 Arctic Merfolk
 Argent Mutation
+Armada Wurm
 Armistice
 Armory of Iroas
 Aspect of Manticore
@@ -29,14 +30,17 @@ Bone Saw
 Breakneck Berserker
 Brinebarrow Intruder
 Bring Low
+Brion Stoutarm
 Bumi's Feast Lecture
 Burning Wish
 Bygone Marvels
+Cabal Conditioning
 Calamity of Cinders
 Campfire
 Carapace
 Caregiver
 Cavalier of Flame
+Celestial Archon
 Charnel Serenade
 Cinder Hellion
 Converter Beast
@@ -54,9 +58,12 @@ Delayed Blast Fireball
 Devoted Paladin
 Devout Monk
 Donatello's Science Lesson
+Dream Stalker
 Dripping-Tongue Zubera
 Dross Hopper
+Dross Ripper
 Drowsing Tyrannodon
+Dungeon Shade
 Echoes of the Kin Tree
 Eiganjo Free-Riders
 Elderfang Disciple
@@ -67,6 +74,7 @@ Equestrian Skill
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Ertai Resurrected
+Eviscerator's Insight
 Evolution Charm
 Excoriate
 Eyeblight Massacre
@@ -80,12 +88,17 @@ Forest
 Fountain Watch
 Gallant Cavalry
 Giant Ox
+Gideon's Battle Cry
 Gift of Growth
 Goblin Battle Jester
+Goblin Brigand
 Goblin Sharpshooter
 Guardian Augmenter
+Guild Thief
 Gut Shot
 Guul Draz Overseer
+Headstrong Brute
+Heiko Yamazaki, the General
 Hell Mongrel
 Hellraiser Goblin
 Hibernation Sliver
@@ -102,24 +115,32 @@ Infantry Veteran
 Innistrad Charm
 Island
 Isolation Cell
+Ivory Charm
 Jace Beleren
+Jackhammer
 Jodah's Codex
 Jousting Lance
 Kalonian Twingrove
 Kaya's Ghostform
+Keldon Warlord
 Kithkin Billyrider
 Kitsune Bonesetter
+Knight Exemplar
 Knight of Sorrows
+Kolaghan Aspirant
 Kraul Foragers
 Latch Seeker
 Lathnu Hellion
 Let the Galaxy Burn
 Leveler
+Life Insurance
 Lightning Elemental
+Loathsome Curator
 Long-Lost Lances
 Magus of the Future
 Make Mischief
 Mass Appeal
+Militant Inquisitor
 Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
@@ -129,9 +150,13 @@ Most Wanted
 Mountain
 Mwonvuli Ooze
 Nadier's Nightblade
+Natural Spring
 Naya Battlemage
 Necroskitter
+Needle Storm
+Nighthawk, Dark Defender
 Nimbus Swimmer
+Nissa's Judgment
 Noble Steeds
 Nomad Mythmaker
 Onyx Mage
@@ -144,10 +169,12 @@ Plunder
 Pouncing Cheetah
 Prava of the Steel Legion
 Presence of the Wise
+Professor of Zoomancy
 Protection Magic
 Psionic Snoop
 Purraj of Urborg
 Pygmy Pyrosaur
+Quick-Draw Dagger
 Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
@@ -155,6 +182,8 @@ Raven Wings
 Regent's Authority
 Rejuvenating Springs
 Repentant Vampire
+Requiem Angel
+Retreat to Valakut
 Riddle Gate Gargoyle
 Rigging Runner
 Risona, Asari Commander
@@ -164,8 +193,11 @@ Rorix Bladewing
 Rosecot Knight
 Roving Harper
 Royal Falcon
+Rubblebelt Boar
 Salvage Titan
 Sandsteppe War Riders
+Sarkhan's Catharsis
+Satyr's Cunning
 Scourge of the Nobilis
 Screams of the Damned
 Seagraf Skaab
@@ -178,23 +210,32 @@ Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
 Shocker
+Show of Confidence
+Sigiled Skink
+Silverclad Ferocidons
 Siren of the Silent Song
+Skulking Fugitive
 Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
+Smashing Spree
 Smelt
 Snapping Thragg
 Soul Barrier
 Soul-Strike Technique
 Spark Reaper
+Sphinx's Insight
 Spidersilk Net
 Spire Golem
 Spitemare
+Spring
+Springsage Ritual
 Stabbing Pain
 Start from Scratch
 Stir the Pride
 Straw Soldiers
 Street Spasm
+Strength in Numbers
 Stronghold Assassin
 Summit Apes
 Sun Droplet
@@ -202,9 +243,11 @@ Sunscape Apprentice
 Supernatural Stamina
 Swamp
 Swift Maneuver
+Swirling Sandstorm
 Synchronous Sliver
 Syphon Sliver
 Take Flight
+Tavern Ruffian
 Tegan Jovanka
 Terramorph
 The Hive
@@ -212,18 +255,25 @@ The Spike Cactus
 Thornscape Apprentice
 Thundering Tanadon
 Thunderous Wrath
+Thunderwolf Cavalry
 Thwart
 Tormented Hero
 Tourach's Canticle
 Tresserhorn Sinks
 Ulrich's Kindred
 Undercover Butler
+Unexpected Windfall
+Unholy Officiant
+Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
+Veiled Apparition
 Wall Off
+Wall of Blood
 Warbeast of Gorgoroth
 Weldfast Engineer
 Wight
 Wolfrider's Saddle
+Wooden Cane
 Workshop Assistant
 Zulaport Cutthroat

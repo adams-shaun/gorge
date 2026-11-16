@@ -36,9 +36,11 @@ Bogbrew Witch
 Bone Saw
 Breakneck Berserker
 Brilliant Restoration
+Brion Stoutarm
 Bumi's Feast Lecture
 Burning Wish
 Bygone Marvels
+Cache Raiders
 Cackling Fiend
 Calamity of Cinders
 Campfire
@@ -73,10 +75,12 @@ Devout Monk
 Disciple of Kangee
 Diviner's Lockbox
 Donatello's Science Lesson
+Dream Stalker
 Dross Hopper
 Dross Ripper
 Drove of Elves
 Drowsing Tyrannodon
+Dungeon Shade
 Durkwood Tracker
 Early Frost
 Echoes of the Kin Tree
@@ -205,12 +209,14 @@ Needle Storm
 Nettletooth Djinn
 Nighthawk, Dark Defender
 Nimbus Swimmer
+Nissa's Judgment
 Noble Purpose
 Noble Steeds
 Nomad Mythmaker
 Olivia, Mobilized for War
 One-Clown Band
 Onyx Mage
+Oona's Gatewarden
 Oraxid
 Ox Drover
 Oxidda Finisher
@@ -243,10 +249,12 @@ Raven Wings
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
+Reject
 Rejuvenating Springs
 Repentant Vampire
 Requiem Angel
 Resolute Blademaster
+Retreat to Valakut
 Reveka, Wizard Savant
 Revenge of Ravens
 Rhystic Syphon
@@ -259,11 +267,13 @@ Rosecot Knight
 Rotting Giant
 Roving Harper
 Royal Falcon
+Rubblebelt Boar
 Rural Recruit
 Ruthless Predation
 Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
+Satyr's Cunning
 Scourge of the Nobilis
 Screams of the Damned
 Seagraf Skaab
@@ -279,6 +289,7 @@ Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
 Shocker
+Show of Confidence
 Sigiled Skink
 Siren of the Silent Song
 Skulking Fugitive
@@ -289,6 +300,7 @@ Skyshroud Troopers
 Skysnare Spider
 Smelt
 Snapping Thragg
+Sootwalkers
 Soul Barrier
 Soul-Strike Technique
 Spark Reaper
@@ -297,6 +309,7 @@ Spectral Bears
 Spidersilk Net
 Spire Golem
 Spitemare
+Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
@@ -320,8 +333,10 @@ Swift Maneuver
 Synchronous Sliver
 Syphon Sliver
 Take Flight
+Tavern Ruffian
 Tegan Jovanka
 Terramorph
+Territorial Hammerskull
 Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
@@ -339,11 +354,13 @@ Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
+Unexpected Windfall
 Unholy Officiant
 Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Ghoul
+Veiled Apparition
 Verdant Automaton
 Verdant Force
 Vulshok Battlegear
@@ -351,6 +368,7 @@ Vulshok War Boar
 Wall Off
 Wall of Mist
 Warbeast of Gorgoroth
+Weldfast Engineer
 Wight
 Wooden Cane
 Workshop Assistant

@@ -245,6 +245,7 @@ Magmatic Sprinter
 Malanthrope
 Malevolent Awakening
 Malevolent Whispers
+Malfunction
 Malignant Growth
 Mana Severance
 Maniacal Rage

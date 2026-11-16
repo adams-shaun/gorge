@@ -1,5 +1,6 @@
 A-Hullbreaker Horror
 A-Orcish Bowmasters
+A-Stitched Assistant
 Akiri, Line-Slinger
 Angelic Exaltation
 Anthousa, Setessan Hero
@@ -26,6 +27,7 @@ Borrowed Grace
 Bramble Creeper
 Browse
 Canyon Jerboa
+Carapace Forger
 Catapult Fodder
 Caustic Rain
 Celestial Unicorn
@@ -47,6 +49,7 @@ Deadly Wanderings
 Death-Greeter's Champion
 Deathbloom Ritualist
 Deathbloom Thallid
+Deepwood Drummer
 Demonic Collusion
 Desperate Castaways
 Devotee of Strength
@@ -77,7 +80,9 @@ Goblin Gathering
 Golgari Death Swarm
 Greel's Caress
 Grim Flowering
+Gryff Vanguard
 Gustcloak Skirmisher
+Hammer of Nazahn
 Hammers of Moradin
 Hardy Veteran
 Haunted Angel
@@ -99,11 +104,13 @@ Kami of Transience
 Keskit, the Flesh Sculptor
 Kessig Prowler
 Kithkin Rabble
+Knickknack Ouphe
 Leeching Licid
 Leyline Dowser
 Light of Day
 Llanowar Loamspeaker
 Loathsome Chimera
+Locust Swarm
 Loxodon Partisan
 Loxodon Restorer
 Lumengrid Sentinel
@@ -111,11 +118,13 @@ Lyse Hext
 Mage Duel
 March from the Tomb
 Metallic Sliver
+Might Sliver
 Mortality Spear
 Mortiphobia
 Mountain
 Nahiri's Binding
 Nantuko Shade
+Necrotic Wound
 Nim Replica
 Ninja of the New Moon
 Nova Cleric
@@ -150,6 +159,7 @@ Ravenous Gigamole
 Ravenous Vampire
 Razorfin Hunter
 Reprisal
+Retreat to Coralhelm
 Riddleform
 Ring of Valkas
 Riparian Tiger
@@ -170,6 +180,7 @@ Shiny Impetus
 Sierra, Nuka's Biggest Fan
 Sigil of Myrkul
 Sin Collector
+Skalla Wolf
 Skrelv, Defector Mite
 Skull Raid
 Smash to Smithereens
@@ -183,7 +194,9 @@ Spinehorn Minotaur
 Spoils of Evil
 Squirrel Sanctuary
 Star Whale
+Steward of Valeron
 Storm Front
+Storm Seeker
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
@@ -198,19 +211,25 @@ Tishana's Wayfinder
 Tomb Robber
 Towashi Songshaper
 Tower Defense
+Tower Winder
 Tranquility
 Tribute Mage
 Trigon of Mending
 Trusty Retriever
+Turn the Earth
 Underdark Explorer
 Unhallowed Phalanx
 Vampire Scrivener
+Vampiric Feast
 Vault 87: Forced Evolution
 Viashino Warrior
+Victual Sliver
 Village Elder
+Vindictive Triumph
 Vodalian Serpent
 Voice of the Provinces
 Voracious Null
+Wall of Runes
 Wall of Tombstones
 Warpath Ghoul
 Watchful Automaton

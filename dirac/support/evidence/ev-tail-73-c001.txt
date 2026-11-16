@@ -13,6 +13,7 @@ Anara, Wolvid Familiar
 Ancient Stirrings
 Angelic Protector
 Appetite for Brains
+Arm-Mounted Anchor
 Arrogant Poet
 Aspect of Lamprey
 Atarka, World Render
@@ -24,6 +25,7 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Bone Dragon
 Bonesplitter
 Boneyard Wurm
 Bottle Gnomes
@@ -53,6 +55,7 @@ Continue?
 Contraband Livestock
 Copper Gnomes
 Cunning Evasion
+Cunning Geysermage
 Curio Vendor
 Curse of Verbosity
 Dauntless Bodyguard
@@ -60,6 +63,7 @@ Death's-Head Buzzard
 Deep-Sea Terror
 Deepglow Skate
 Delusions of Mediocrity
+Demonic Dread
 Deny Existence
 Desecrated Earth
 Diabolic Tutor
@@ -136,6 +140,7 @@ Heap Doll
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
+Hixus, Prison Warden
 Hobgoblin Captain
 Holy Armor
 Holy Light
@@ -156,6 +161,7 @@ Island
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jhessian Thief
 Jodah's Avenger
 Judge of Currents
 Jund Battlemage
@@ -164,6 +170,8 @@ Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
 Kithkin Healer
+Kithkin Spellduster
+Kragma Warcaller
 Kudo, King Among Bears
 Labyrinth Adversary
 Leap
@@ -252,6 +260,7 @@ Samite Alchemist
 Sandstorm Charger
 Scavenged Weaponry
 Scour the Laboratory
+Scourge of Numai
 Scurry Oak
 Seafloor Oracle
 Searing Blood
@@ -308,6 +317,7 @@ Survey the Wreckage
 Swamp
 Sword of the Animist
 Sylvan Ranger
+TVA Bureaucrat
 Tallyman of Nurgle
 Tar Pit Warrior
 Tarkir Duneshaper
@@ -331,6 +341,7 @@ Union of the Third Path
 Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
+Vedalken Ghoul
 Verdurous Gearhulk
 Veteran Armorer
 Violet Pall
@@ -349,5 +360,6 @@ Wicked Slumber
 Windstorm
 Wispweaver Angel
 Witch's Web
+Witching Well
 Zealous Persecution
 Zhalfirin Shapecraft

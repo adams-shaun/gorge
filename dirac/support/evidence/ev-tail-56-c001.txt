@@ -3,9 +3,11 @@ A-Stimulus Package
 Addle
 Adorable Kitten
 Adverse Conditions
+Aerie Worshippers
 Aether Flash
 Aetherflux Car
 Agate Instigator
+Alarum
 Alchemist's Greeting
 Anchor to the Aether
 Ancient Grudge
@@ -16,6 +18,8 @@ Arachnoid Adaptation
 Arashin Foremost
 Arcade Gannon
 Armament Master
+Ascendant Packleader
+Aura Fracture
 Avacynian Priest
 Aven Smokeweaver
 Banefire
@@ -37,6 +41,7 @@ Blue Sun's Twilight
 Bonds of Quicksilver
 Bone Flute
 Bounding Krasis
+Brass Gnat
 Brave the Sands
 Briar Hydra
 Briar Shield
@@ -48,6 +53,8 @@ Cartouche of Strength
 Caustic Wasps
 Cavern Crawler
 Chained Brute
+Champion of Dusk
+Chimeric Egg
 Circle of the Land Druid
 Cirith Ungol Patrol
 Clay Statue
@@ -57,11 +64,13 @@ Cleric of Life's Bond
 Close Quarters
 Cloudreader Sphinx
 Coffin Purge
+Coiled Tinviper
 Conclave Guildmage
 Copperhorn Scout
 Crocodile of the Crossing
 Cryoclasm
 Curiosity
+Dai Li Censor
 Daring Archaeologist
 Daring Demolition
 Dark Nourishment
@@ -77,6 +86,7 @@ Divine Arrow
 Dockside Extortionist
 Doomskar
 Drogskol Captain
+Duskmantle Prowler
 Earth Servant
 Earthcraft
 Elderfang Disciple
@@ -90,6 +100,9 @@ Fathom Fleet Boarder
 Feldon of the Third Path
 Fencer Clique
 Fiery Finish
+Finishing Blow
+Fire Ambush
+Fires of Yavimaya
 Flailing Manticore
 Flowstone Sculpture
 For the Ancestors
@@ -105,14 +118,19 @@ Gixian Infiltrator
 Gluntch, the Bestower
 Goblin Cavaliers
 Goblin Chirurgeon
+Goblin Spy
 Godo's Irregulars
+Golgari Guildmage
 Great Teacher's Decree
 Greenwood Sentinel
 Grey Host Reinforcements
+Griffin Rider
 Grisly Transformation
 Ground Seal
+Gruesome Deformity
 Gulping Scraptrap
 Gush
+Haazda Exonerator
 Hapatra, the Desert Fang
 Happy Hogan, Bodyguard
 Harrier Naga
@@ -140,19 +158,24 @@ Jasmine Seer
 Jor Kadeen, the Prevailer
 Joraga Warcaller
 Kabira Crossroads
+Kamahl, Fist of Krosa
 Keen Sense
+Khenra Charioteer
 Kheru Bloodsucker
+Kin-Tree Invocation
 Knights of Dol Amroth
 Kor Celebrant
 Kor Hookmaster
 Kraul Stinger
 Krosan Adaptation
 Last Rites
+Lay Bare the Heart
 Legolas, Master Archer
 Leonin Warleader
 Life Finds a Way
 Lifecrafter's Gift
 Lightning Angel
+Lightning Runner
 Looming Hoverguard
 Markov Dreadknight
 Markov Waltzer
@@ -179,6 +202,7 @@ Mowu, Loyal Companion
 Ms. Marvel, Elastic Ally
 Mudbrawler Cohort
 Myr Prototype
+Myrkul's Edict
 Mystic Denial
 Necrogen Censer
 Necrogen Scudder
@@ -193,6 +217,7 @@ Nightwing Shade
 Nova Cleric
 Null Caller
 O'aka, Traveling Merchant
+Oblation
 Olivia's Bloodsworn
 Olivia's Dragoon
 On Wings of Gold
@@ -200,6 +225,7 @@ Oracle of Nectars
 Ozolith, the Shattered Spire
 Parasitic Impetus
 Peace Strider
+Phase Dolphin
 Pheres-Band Brawler
 Pheres-Band Raiders
 Pierce the Sky
@@ -211,6 +237,7 @@ Power Conduit
 Power Fist
 Pox
 Prismatic Lens
+Prizefight
 Pursued Whale
 Put Away
 Pygmy Allosaurus
@@ -235,13 +262,17 @@ Sea Hag
 Searing Flesh
 Sedge Scorpion
 Seed of Hope
+Seismic Assault
+Shaper Apprentice
 Shapers' Sanctuary
 Sheltering Word
 Shepherd of Rot
 Shrine Steward
 Silent Dart
 Silent Departure
+Silkwrap
 Simplify
+Skorpekh Destroyer
 Skyfisher Spider
 Skyshaper
 Soltari Priest
@@ -249,12 +280,14 @@ Somberwald Alpha
 Spawnbed Protector
 Spell Snuff
 Spellrune Painter
+Spidersilk Net
 Sporecap Spider
 Stampeding Wildebeests
 Startling Development
 Storm, Queen of Wakanda
 Stratadon
 Sunhome, Fortress of the Legion
+Sunmane Pegasus
 Swamp
 Tarpan
 Temur Battle Rage
@@ -279,6 +312,7 @@ Vivid Meadow
 Weed-Pruner Poplar
 Whipflare
 World Breaker
+Yarok's Wavecrasher
 Yasova Dragonclaw
 Zhentarim Bandit
 Zombie Apocalypse

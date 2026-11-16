@@ -242,6 +242,7 @@ Mask of the Jadecrafter
 Maze Skullbomb
 Mending Hands
 Messenger Drake
+Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
 Mind Knives
@@ -340,6 +341,7 @@ Seraph of New Capenna
 Serene Steward
 Shaper Guildmage
 Shared Trauma
+Shark Typhoon
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host

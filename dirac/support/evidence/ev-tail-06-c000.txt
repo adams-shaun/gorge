@@ -1,6 +1,7 @@
 A-Imperial Subduer
 A-Kargan Warleader
 A-Radha's Firebrand
+A-Syndicate Infiltrator
 Abzan Kin-Guard
 Adeline, Resplendent Cathar
 Aeronaut Tinkerer
@@ -19,6 +20,7 @@ Angel of Sanctions
 Angelic Sell-Sword
 Anvilwrought Raptor
 Apothecary Initiate
+Archfiend of Ifnir
 Argivian Find
 Armored Cancrix
 Armored Skaab
@@ -92,6 +94,7 @@ Cruel Grimnarch
 Cutthroat Negotiator
 Cylian Elf
 Dawnglare Invoker
+Dead Man's Chest
 Deadeye Quartermaster
 Death Stroke
 Deathbloom Gardener
@@ -116,6 +119,7 @@ Empty-Shrine Kannushi
 Enraged Ceratok
 Epicenter
 Erdwal Ripper
+Ethereal Absolution
 Evil Eye of Urborg
 Experimental Armor
 Explosive Entry
@@ -184,6 +188,7 @@ Hunger of the Howlpack
 Hymn to Tourach
 Illusionary Informant
 Illusory Angel
+Imperious Oligarch
 Innocent Blood
 Invoke the Divine
 Iron-Heart Chimera
@@ -215,6 +220,7 @@ Launch Party
 Lazotep Behemoth
 Leaf Gilder
 Leafcrown Dryad
+Lesser Masticore
 Leyline of Vitality
 Lightning Surge
 Liliana's Talent
@@ -263,6 +269,7 @@ Nylea's Disciple
 Oath of Druids
 Obelisk Spider
 Obelisk of Bant
+Obstinate Gargoyle
 On Serra's Wings
 Onward
 Oona's Grace
@@ -352,6 +359,7 @@ Soltari Lancer
 Soot Imp
 Soratami Mirror-Guard
 Soul Collector
+Soul Link
 Soul of Ravnica
 Soul's Grace
 Spellbound Dragon

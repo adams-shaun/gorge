@@ -1,9 +1,11 @@
+Aether Flash
 Akroan Hoplite
 Amphin Pathmage
 Amugaba
 Angelic Curator
 Ant-Man, Scott Lang
 Arcanist's Owl
+Aria of Flame
 Armageddon
 Artifact Ward
 Ashling the Pilgrim
@@ -13,8 +15,10 @@ Batroc the Leaper
 Batterbone
 Blightbeetle
 Blurred Mongoose
+Bog Initiate
 Boon Reflection
 Boros Swiftblade
+Brand
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
@@ -64,6 +68,8 @@ Expedite
 Extinguish the Light
 Faerie Duelist
 Farid, Enterprising Salvager
+Feral Appetite
+Ferocious Pup
 Festering Newt
 Fevered Strength
 Feywild Visitor
@@ -97,6 +103,7 @@ Horizon Scholar
 Howling Golem
 Humongulus
 Hunted Dragon
+Incriminate
 Inspired Fire
 Inspiring Veteran
 Island
@@ -155,8 +162,10 @@ Poison Arrow
 Prison Term
 Prodigy's Prototype
 Psychomancer
+Pyknite
 Quicksilver Fisher
 RMS Titanic
+Radha, Heart of Keld
 Rain of Salt
 Raking Claws
 Rampaging Cyclops
@@ -182,6 +191,7 @@ Scale Blessing
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
 Sigarda, Heron's Grace
@@ -190,6 +200,7 @@ Silverquill Command
 Sleeper Agent
 Soul Shred
 Soulshriek
+Spawn-Gang Commander
 Stinging Hivemaster
 Stonefury
 Storm Fleet Sprinter
@@ -221,6 +232,7 @@ Vectis Silencers
 Vector Asp
 Vengeful Dead
 Verix Bladewing
+Viridian Harvest
 Virtue's Ruin
 Voracious Fell Beast
 Vorrac Battlehorns
@@ -236,6 +248,7 @@ Wildwood Geist
 Willow Faerie
 Willow-Wind
 Wing Puncture
+Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman

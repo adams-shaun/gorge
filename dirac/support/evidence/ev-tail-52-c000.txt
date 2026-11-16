@@ -70,6 +70,7 @@ Carapace
 Caress of Phyrexia
 Cenn's Enlistment
 Cephalid Looter
+Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
 Chimeric Coils
@@ -81,6 +82,7 @@ Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
+Colfenor's Urn
 Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor

@@ -151,6 +151,7 @@ Frenetic Efreet
 Fruit of Tizerus
 Funnel-Web Recluse
 Fyndhorn Elder
+Garruk's Horde
 Gavony Silversmith
 Geralf's Messenger
 Ghost-Lit Nourisher
@@ -426,6 +427,7 @@ War Falcon
 Warcry Phoenix
 Wardscale Crocodile
 Warlord's Elite
+Warped Tusker
 Water Elemental
 Wayward Soul
 Weakness

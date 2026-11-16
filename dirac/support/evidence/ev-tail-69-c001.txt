@@ -1,27 +1,46 @@
 A-Sewer Crocodile
+A-Steadfast Unicorn
 Abzan Beastmaster
 Accorder's Shield
 Afterlife Insurance
+Ainok Guide
 Ajani, Strength of the Pride
 Amphin Cutthroat
+Amy Rose
+Angelic Blessing
 Anje's Ravager
 Archangel of Thune
 Arctic Aven
+Atrocious Experiment
 Auriok Sunchaser
+Aven Skirmisher
+Bala Ged Scorpion
+Balduvian Bears
 Baloth Null
+Baneful Omen
+Bard, Heir of Girion
+Barrin's Codex
+Battlefield Raptor
 Baxter, Fly in the Ointment
 Benalish Emissary
+Bishop of Rebirth
+Blessed Orator
+Blisterpod
 Bloodfire Mentor
 Board the Weatherlight
 Bolt of Keranos
 Bond of Revival
+Boneclad Necromancer
 Bootleggers' Stash
+Bottle of Suleiman
 Branchloft Pathway
 Briarberry Cohort
 Brindle Shoat
 Bring to Light
+Brushstrider
 Brutal Deceiver
 Bull's Strength
+Burden of Guilt
 Cackling Counterpart
 Captain America's Motorcycle
 Cateran Summons
@@ -32,52 +51,84 @@ Chamber of Manipulation
 Change of Fortune
 Claws of Gix
 Clearwater Goblet
+Cliffhaven Kitesail
+Compulsory Rest
 Conifer Strider
 Contagious Vorrac
 Corpse Traders
 Corrupt
+Countless Gears Renegade
+Crackdown
 Cranial Ram
 Criminal Enterprise
+Crypt Ripper
+Dakmor Plague
 Dark Offering
+Daru Healer
 Daughter of the Deep
 Dauthi Mercenary
 Davriel's Shadowfugue
+Demogorgon's Clutches
 Depart the Realm
 Desert Twister
 Diabolic Vision
+Dispeller's Capsule
 Divine Favor
+Drannith Magistrate
+Dreadful Apathy
 Dukhara Peafowl
+Earthshaker
+Echoing Return
 Ecstatic Awakener
 Ekthi, Contaminator Priest
 Elspeth, Knight-Errant
 Elvish Doomsayer
+Entropic Specter
 Epistolary Librarian
 Escape Routes
 Essence Extraction
+Etherium Pteramander
+Everdawn Champion
 Explosive Shot
+Eyeblight Massacre
 Face of Fear
 Faerie Bladecrafter
+Faerie Swarm
+Falcon and Redwing
 Falkenrath Torturer
 Favor of the Woods
 Feast of Flesh
+Filigree Crawler
 Filter Out
 Fire Nation Soldier
 Forest
+Foriysian Brigade
 Forsake the Worldly
 Fretwork Colony
+Frightcrawler
+Galvanic Blast
 Gateway Plaza
+Geistflame
 Genju of the Fields
 Giant Harbinger
+Gift of Granite
 Gilded Sentinel
 Gleeful Arsonist
+Glimmer Lens
+Go Blank
+Goblin Recruiter
 Goblin War Cry
 Gorgon's Head
 Grab the Reins
 Granulate
+Grasp of Phantoms
 Guildless Commons
 Gust-Skimmer
+Gut, True Soul Zealot
 Hammerfist Giant
+Hanweir Militia Captain
 Healer's Flock
+Heed the Mists
 Heir of the Wilds
 Heroes Remembered
 Hesitation
@@ -85,42 +136,60 @@ Hidden Ancients
 Hidden Stockpile
 High Score
 Highland Forest
+Highspire Artisan
 Holdout Settlement
+Honey Mammoth
+Honored Hierarch
 Hooded Assassin
 How to Keep an Izzet Mage Busy
 Hunter's Insight
 Hunting Cheetah
+Hypnotic Cloud
 Icatian Moneychanger
 Illicit Shipment
+Illusory Demon
 Impending Disaster
 Infectious Host
 Invasion of Belenon
+Invisible Force Field
+Iroas's Champion
 Island
 Ivory Charm
 Jagged-Scar Archers
+Javelin of Lightning
 Jeskai Sage
+Jeweled Torque
 Jirina, Dauntless General
 Jungle Wurm
 Jwar Isle Refuge
+Kami of the Waning Moon
 Killer Bees
+Kithkin Zealot
 Knightly Valor
 Krovikan Scoundrel
+Kytheon's Tactics
 Labyrinth Raptor
 Lantern Scout
 Leonin Den-Guard
 Lightning Cloud
+Lokhust Heavy Destroyer
 Maggot Therapy
 Magmatic Channeler
 Magmatic Chasm
 Make Disappear
+Marsh Goblins
 Master of Death
 Memorial to Glory
+Memory's Journey
 Mephidross Vampire
+Militia's Pride
 Mindsplice Apparatus
+Mire Triton
 Mishra, Excavation Prodigy
 Molten Frame
 Moon-Circuit Hacker
 Mountain
+Mox Amber
 Mox Sapphire
 Myr Matrix
 Myr Scrapling
@@ -129,13 +198,17 @@ Natural Spring
 Nature's Resurgence
 Night Market Lookout
 Nightshade Harvester
+Nimana Skitter-Sneak
 Noxious Revival
 Nyxborn Seaguard
+Ob Nixilis, the Ascended
 Obscura Storefront
+Obzedat's Aid
 Ogre Shaman
 On the Trail
 Orah, Skyclave Hierophant
 Orcish Artillery
+Organ Grinder
 Otherworldly Journey
 Outmaneuver
 Overmaster
@@ -151,32 +224,47 @@ Pia and Kiran Nalaar
 Plains
 Political Triumph
 Prodigious Growth
+Putrefy
 Pyre-Sledge Arsonist
+Pyreswipe Hawk
 Quickling
 Rage-Scarred Berserker
 Ranger's Guile
+Raze the Effigy
 Razorfield Thresher
 Reckless Embermage
+Reconstruction
+Regent's Authority
 Reiver Demon
 Relic Sloth
 Research Thief
 Reviving Dose
 Rites of Initiation
+Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Salvage Scout
 Scale the Heights
+Searchlight Geist
 Seize the Day
+Serra Avenger
 Serum-Core Chimera
 Shard Convergence
 Shattering Blow
+Shivan Emissary
+Shu Elite Companions
 Sigarda's Aid
+Sigil of the Empty Throne
+Silent-Chant Zubera
+Singing Bell Strike
 Sixth Sense
 Skeletal Crocodile
 Sky Theater Strix
 Skyshroud Vampire
 Sparkmage's Gambit
 Spellshock
+Starnheim Aspirant
 Stensia Innkeeper
 Stone Spirit
 Stream Hopper
@@ -187,30 +275,46 @@ Swamp
 Tales of Master Seshiro
 Taranika, Akroan Veteran
 Tel-Jilad Exile
+Tempest Drake
 Theft of Dreams
+Thriving Ibex
 Thunderfoot Baloth
+Titania's Boon
 Toolcraft Exemplar
+Topplegeist
 Tori D'Avenant, Fury Rider
 Torpor Dust
 Torrential Gearhulk
 Tortoise Formation
 Training Grounds
 Traitorous Blood
+Treasure Hunt
 Underworld Connections
 Unhinge
 Unwind
 Urza's Filter
 Vampire Hexmage
+Vampire's Bite
 Venomcrawler
 Vex
+Vigilant Sentry
+Vogar, Necropolis Tyrant
+Void
 Volcanic Torrent
+Vraska's Contempt
+Wall of Blossoms
+War-Wing Siren
+Warm Welcome
 Watcher Sliver
 Whetstone
 Whirlwind Adept
+White Scarab
 Wild Nacatl
 Wilderness Reclamation
 Winged Coatl
 World Breaker
+Wrath of the Skies
 Wreak Havoc
 Yavimaya Sojourner
 Youthful Scholar
+Zodiac Ox

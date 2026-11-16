@@ -16,20 +16,25 @@ Archfiend of the Dross
 Armorer Guildmage
 Artificer's Epiphany
 Ashnod's Harvester
+Atreus, Impulsive Son
 Avenging Angel
 Balduvian Atrocity
 Baleful Eidolon
 Bant Battlemage
+Battle of Frost and Fire
 Battle-Rage Blessing
 Battlefly Swarm
+Battlewing Mystic
 Bay Falcon
 Believe in the Cleave
 Benalish Trapper
 Betrayal of Flesh
+Blaze
 Blessed Respite
 Blessing of Belzenlok
 Bola Slinger
 Boros Keyrune
+Boulderfall
 Breath of Malfegor
 Brimaz, Blight of Oreskos
 Bring to Trial
@@ -43,6 +48,7 @@ Cephalid Looter
 Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
+Civic Gardener
 Clackbridge Troll
 Clawing Torment
 Cliffrunner Behemoth
@@ -53,12 +59,14 @@ Commander Sofia Daguerre
 Conclave Mentor
 Cone of Flame
 Coral Commando
+Corpse Harvester
 Cruel Finality
 Crush
 Crystal Rod
 Curse of the Forsaken
 Customs Depot
 Cutthroat Centurion
+Cyclops Electromancer
 D'Avenant Trapper
 Dark Bargain
 Dark Tutelage
@@ -68,6 +76,7 @@ Daybreak Chimera
 Deadly Insect
 Deathrender
 Demon of Catastrophes
+Deny Reality
 Devastating Summons
 Devoted Paladin
 Dictate of Erebos
@@ -78,6 +87,7 @@ Dragon-Scarred Bear
 Dragonborn Looter
 Dream Cache
 Dueling Rapier
+Dusk Legion Zealot
 Eagle of the Watch
 Elspeth, Sun's Nemesis
 Emissary of Sunrise
@@ -95,6 +105,7 @@ Fendeep Summoner
 Ferocious Zheng
 Fervent Strike
 Field of Souls
+Fists of the Anvil
 Floodwater Dam
 Fogwell's Gym
 Forest
@@ -105,11 +116,15 @@ Frost Marsh
 Funeral March
 Furnace Skullbomb
 Geomancer's Gambit
+Ghirapur Guide
 Gitaxian Probe
 Glacial Crasher
 Glistening Dawn
 Glorious Anthem
 Goblin Bruiser
+Goblin Offensive
+Goblin Shortcutter
+Goblin War Wagon
 Goldmeadow Harrier
 Golgari Germination
 Gorilla Warrior
@@ -150,17 +165,21 @@ Khenra Spellspear
 Kindle
 Klothys's Design
 Knight of the Reliquary
+Kobold Overlord
 Kor Blademaster
 Lantern Scout
+Lead Golem
 Leech Fanatic
 Leery Fogbeast
 Lethal Exploit
+Lightning Stormkin
 Lithomantic Barrage
 Llanowar Dead
 Llanowar Elite
 Lord Jyscal Guado
 Lord of the Void
 Loxodon Partisan
+Loxodon Restorer
 Luminous Bonds
 Lunarch Mantle
 Lyzolda, the Blood Witch
@@ -168,6 +187,7 @@ Makindi Shieldmate
 Mana Skimmer
 Mandroid Squadron
 Mask of Avacyn
+Maular, the Next Evolution
 Mazirek, Kraul Death Priest
 Megatherium
 Mental Agony
@@ -176,6 +196,7 @@ Meteor Storm
 Metropolis Angel
 Migloz, Maze Crusher
 Momo, Rambunctious Rascal
+Moonveil Regent
 Morgul-Knife Wound
 Mountain
 Mwonvuli Ooze
@@ -183,9 +204,12 @@ Myr Turbine
 Mystic Redaction
 Mystical Dispute
 Naya Battlemage
+Necromaster Dragon
 Neurok Commando
+Noggle Bandit
 Oak Street Innkeeper
 Occult Epiphany
+Ondu Champion
 P-Joven and Chandler
 Palinchron
 Papercraft Decoy
@@ -202,11 +226,13 @@ Pinpoint Avalanche
 Pit Trap
 Plains
 Pouncing Cheetah
+Power Matrix
 Practical Research
 Predatory Hunger
 Priest of Iroas
 Prime Speaker Vannifar
 Purge
+Purphoros's Emissary
 Purple Worm
 Pyre-Sledge Arsonist
 Pyretic Ritual
@@ -216,20 +242,25 @@ Rag Dealer
 Rakish Heir
 Rally of Wings
 Rampart Crawler
+Razor Swine
 Razortip Whip
 Reborn Hero
 Reclaim
 Regathan Firecat
 Relearn
 Release to Memory
+Relic Retriever
 Relief Captain
 Remember the Fallen
+Return of the Wildspeaker
 Reveka, Wizard Savant
 Revelation of Power
 Revelsong Horn
 Rionya, Fire Dancer
 Rock Badger
+Root Maze
 Rootless Yew
+Rotted Hystrix
 Royal Talon Fighter Jet
 Rubblebelt Raiders
 Russet Wolves
@@ -239,6 +270,7 @@ Salvage Titan
 Sanctum of Tranquil Light
 Sandsteppe Outcast
 Saprazzan Breaker
+Savageborn Hydra
 Scalebane's Elite
 Scavenger Drake
 Scourge of Valkas
@@ -249,6 +281,7 @@ Serpent Skin
 Serpent Warrior
 Shanodin Dryads
 Shatterstorm
+Shinen of Fury's Fire
 Sigarda's Summons
 Simic Growth Chamber
 Sinister Sabotage
@@ -266,10 +299,12 @@ Specter's Wail
 Spectral Cloak
 Spell Syphon
 Spellbinding Soprano
+Sphinx's Revelation
 Splendor Mare
 Sporoloth Ancient
 Stampeding Rhino
 Starnheim Memento
+Steamclaw
 Stirge
 Storm of Steel
 Strangling Spores
@@ -281,16 +316,21 @@ Syndicate Infiltrator
 Synth Infiltrator
 Take to the Streets
 Talas Researcher
+Temporal Trespass
 Tenured Inkcaster
 Terashi's Verdict
+Tezzeret, Master of the Bridge
 The Falcon, Sam Wilson
 Thelonite Druid
+Thing Swing
+Thorn Lieutenant
 Thrór's Map
 Thunderous Orator
 Tireless Tribe
 Titanium Golem
 Towering Titan
 Tribune of Rot
+Urza's Guilt
 Utter Insignificance
 Vampire Warlord
 Varchild, Betrayer of Kjeldor
@@ -300,11 +340,14 @@ Viashino Grappler
 Visara the Dreadful
 Vision, Spectral Synthezoid
 Visions of Beyond
+Voldaren Duelist
 Vona's Hunger
 Vraska's Scorn
 Wakanda Forever!
 Wall of Tanglecord
 Weigh Down
+Werebear
+Wild Ceratok
 Windreaper Falcon
 Witness the Future
 Woe Strider

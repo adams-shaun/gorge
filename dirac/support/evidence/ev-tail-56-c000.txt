@@ -245,6 +245,7 @@ Merfolk Pupil
 Metallic Mimic
 Metalwork Colossus
 Millicent, Restless Revenant
+Mind Funeral
 Mind's Eye
 Minsc, Beloved Ranger
 Mirran Banesplitter
@@ -372,6 +373,7 @@ Stampeding Wildebeests
 Startling Development
 Statute of Denial
 Storm, Queen of Wakanda
+Stormtide Leviathan
 Stratadon
 Submerged Boneyard
 Sunhome, Fortress of the Legion

@@ -167,6 +167,7 @@ Giant-Man, Gargantuan Genius
 Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
+Goblin Anarchomancer
 Goblin Assault Team
 Goblin Cadets
 Goblin Cavaliers
@@ -326,6 +327,7 @@ Rockslide Ambush
 Rogue's Gloves
 Rolling Thunder
 Rubblebelt Maaka
+Rubblebelt Raiders
 Ruthless Winnower
 Sai, Master Thopterist
 Sandblast
@@ -449,6 +451,7 @@ Voracious Wurm
 Vraska's Scorn
 Wall of Tanglecord
 War-Spike Changeling
+Warden of the Chained
 Warning
 Waterfront Bouncer
 Welkin Guide

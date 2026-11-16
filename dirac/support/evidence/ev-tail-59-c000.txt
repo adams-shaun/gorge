@@ -17,6 +17,7 @@ Amateur Hero
 Ambitious Assault
 Ambitious Farmhand
 Ancestor's Chosen
+Angel of Despair
 Angelic Rocket
 Animist's Awakening
 Ant Queen
@@ -38,6 +39,7 @@ Barbarian Riftcutter
 Barbed Sliver
 Barrage of Boulders
 Battle Brawler
+Battle Plan
 Battlefield Medic
 Belonging
 Benthic Behemoth
@@ -101,8 +103,10 @@ Death Wind
 Death's Caress
 Death-Greeter's Champion
 Debilitating Injury
+Debt to the Deathless
 Debtor's Pulpit
 Decision Paralysis
+Defacing Duskmage
 Dehydration
 Demonic Appetite
 Demonlord of Ashmouth
@@ -182,10 +186,12 @@ Ghostly Prison
 Ghoulcaller's Chant
 Giant Mantis
 Gideon's Battle Cry
+Glasswing Grace
 Gnottvold Slumbermound
 Goblin Assault Team
 Goliath Sphinx
 Goliath Truck
+Gorgon Recluse
 Grasp of Darkness
 Grave Pact
 Gravelgill Axeshark
@@ -328,6 +334,7 @@ Phyrexian Boon
 Phyrexian Debaser
 Phyrexian Ornithopter
 Phyrexian Soulgorger
+Phyrexian Triniform
 Phyrexian Walker
 Pixie Queen
 Plains
@@ -481,6 +488,7 @@ Tyrite Sanctum
 Uncontrollable Anger
 Underworld Connections
 Unliving Psychopath
+Unmake
 Urbis Protector
 Ursapine
 Urza's Rage
@@ -519,3 +527,4 @@ Yellow Scarves Troops
 Yoke of the Damned
 Zhou Yu, Chief Commander
 Zodiac Monkey
+Éomer, Marshal of Rohan
