@@ -1106,12 +1106,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaRestrict = id
 	}
 	if m.RestrictAb != nil {
-		// a battlefield-only clause keeps ZoneNone, a zone-free one carries
-		// kop.ZoneAny (kernel restrActMatch's off-battlefield source)
-		if len(m.RestrictAbZones) != len(m.RestrictAb.Clauses) {
-			return fmt.Errorf("mana restriction's activated half: %d zones for %d clauses", len(m.RestrictAbZones), len(m.RestrictAb.Clauses))
-		}
-		id, err := cb.filterZones(m.RestrictAb, m.RestrictAbZones)
+		id, err := cb.manaRestrictAb(m)
 		if err != nil {
 			return err
 		}
@@ -1140,6 +1135,16 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		ka.ManaHasteValid = id
 	}
 	return nil
+}
+
+// manaRestrictAb builds m's activated half: a battlefield-only clause keeps
+// ZoneNone, a zone-free one carries kop.ZoneAny (kernel restrActMatch's
+// source off the battlefield; lowerCtx.restrictAbZones).
+func (cb *cardBuilder) manaRestrictAb(m *lMana) (kop.FilterID, error) {
+	if len(m.RestrictAbZones) != len(m.RestrictAb.Clauses) {
+		return 0, fmt.Errorf("mana restriction's activated half: %d zones for %d clauses", len(m.RestrictAbZones), len(m.RestrictAb.Clauses))
+	}
+	return cb.filterZones(m.RestrictAb, m.RestrictAbZones)
 }
 
 var stepMap = map[string]kop.Step{"Upkeep": kop.StepUpkeep, "End": kop.StepEnd, "BeginCombat": kop.StepBeginCombat,
