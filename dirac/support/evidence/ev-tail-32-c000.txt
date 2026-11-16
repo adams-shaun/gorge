@@ -161,6 +161,7 @@ Leo's Guidance
 Lesser Gargadon
 Levitating Statue
 Leyline Dowser
+Light the Way
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -185,6 +186,7 @@ Mesa Lynx
 Metallic Mastery
 Mind Drain
 Mindless Null
+Mire Blight
 Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
@@ -214,6 +216,7 @@ Pious Evangel
 Plains
 Plateau
 Pollenbright Wings
+Prakhata Pillar-Bug
 Precognition Field
 Provoke
 Psychic Spear

@@ -324,6 +324,7 @@ Occult Epiphany
 Ochran Assassin
 Ogre Battledriver
 Ohran Frostfang
+Ojutai, Soul of Winter
 Oketra's Last Mercy
 One with the Machine
 Onslaught
@@ -404,6 +405,7 @@ Shard of the Nightbringer
 Sigiled Starfish
 Silent Specter
 Silver Erne
+Silverstorm Samurai
 Sixth Sense
 Skeletal Grimace
 Skeletal Wurm
@@ -509,6 +511,7 @@ Witherbloom Pledgemage
 Wonder
 Workshop Elders
 Wort, Boggart Auntie
+Wrath of Sod
 Wreck and Rebuild
 Yellow Scarves Troops
 Zof Shade

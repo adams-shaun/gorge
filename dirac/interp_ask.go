@@ -36,6 +36,20 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
+		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+			// the floating restricted mana this payment admits is pool too
+			// (CR 106.6: gorge's unless, ward and trigger-cost gates price
+			// AvailableFor's PurposeOther view, which restores every batch a
+			// non-spell payment may spend — Karn's nonartifact-spell {C}
+			// pays an unless tax)
+			var rn [kop.NumManaKinds]uint8
+			s.rbUnits(p, m, &rn)
+			for ci, n := range rn {
+				if n != 0 {
+					av.addUnits(1<<uint(ci), n)
+				}
+			}
+		}
 		av.xdOn = false
 		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
 			s.restrAvailAdd(p, m, &av) // floating restricted mana a non-spell payment may spend (CR 106.6; gorge AvailableFor)
@@ -1339,7 +1353,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
 			parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
 		} else {
-			s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
+			s.copyResumedEnter(k, in, t, NoSlot) // the enters program reads the choice
 			s.g.pre = preAsk{}
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
@@ -1397,7 +1411,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
 			parked = s.sweepAnswer(k, in, t, s.objs[a.Source()].slot)
 		} else {
-			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
+			s.copyResumedEnter(k, in, t, s.objs[a.Source()].slot)
 			r.ask = raNone
 			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
 			if !parked {

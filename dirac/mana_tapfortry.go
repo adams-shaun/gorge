@@ -30,6 +30,12 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	if s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor) {
 		return false
 	}
+	// the planner has no witness for the taxed cost: the CR 601.2g window pays it when its sources do
+	// (a filter funded by the floating mana, castWindowReachable), and only then is the cast reversed
+	c := xFolded(*cost, int(e.x))
+	if ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, s.bld().pipN == 0, false); ok || s.winPaused() {
+		return false
+	}
 	s.releaseCostTaps(k, saved)
 	s.reverseCast(k)
 	return true

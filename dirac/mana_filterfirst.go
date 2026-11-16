@@ -125,7 +125,7 @@ func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 			if other < 0 {
 				other = s.filtOtherMana(k, p)
 			}
-			if other < s.filtFee(k, sl) {
+			if other+s.filtFeeRestrSrc(k, p, sl) < s.filtFee(k, sl) {
 				continue
 			}
 		}

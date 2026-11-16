@@ -425,13 +425,27 @@ func holdsNameChooserN(decks [][]*cards.Card) bool {
 					}
 				}
 				for _, ab := range f.Abilities {
-					for a := ab; a != nil; a = a.Sub {
-						if a.API == "NameCard" {
-							return true
-						}
+					if chainNamesCard(ab) {
+						return true
+					}
+				}
+				for i := range f.Triggers {
+					if chainNamesCard(f.Triggers[i].Effect) {
+						return true
 					}
 				}
 			}
+		}
+	}
+	return false
+}
+
+// chainNamesCard reports whether an ability, or a SubAbility linked from it,
+// is a NameCard (a triggered one is Cheering Fanatic's attack trigger).
+func chainNamesCard(sa *cards.SA) bool {
+	for a := sa; a != nil; a = a.Sub {
+		if a.API == "NameCard" {
+			return true
 		}
 	}
 	return false

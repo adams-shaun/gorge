@@ -442,19 +442,33 @@ func costAnnouncesXRef(c *Cost) bool {
 // itself (CR 115.5), so excludeSelf is the card id. A cost that announces an
 // X (printed {X} or a SpellAbility Cost$ PayEnergy<X>) relaxes an X-bound
 // spec to the post-announcement backstop (costAnnouncesX above).
+//
+// A split card in a zone that combines its halves (CR 709.4: hand, graveyard,
+// exile) is judged as the one-half spell it becomes (CR 709.3b), so protection
+// from a colour only the other half carries (Blightbeetle's protection from
+// green against Armed, red, of the green Armed // Dangerous) withholds nothing.
+// A fused cast keeps both halves' colours and asks splitCastTargetsAvailable.
 func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
-	xPending := false
-	if !targetsReadXPending(sa) {
-		// xPending is never read for this shape (targetsReadXPending).
-		return e.targetsAvailable(p, id, id, sa, false)
+	run := func() bool {
+		xPending := false
+		if !targetsReadXPending(sa) {
+			// xPending is never read for this shape (targetsReadXPending).
+			return e.targetsAvailable(p, id, id, sa, false)
+		}
+		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+			xPending = costAnnouncesXRef(&e.faceCompiledCost(o.Face()).Cost)
+			if ab := o.Face().SpellAbility(); ab != nil {
+				xPending = xPending || costAnnouncesXRef((&e.abilityCompiledCost(ab).Cost))
+			}
+		}
+		return e.targetsAvailable(p, id, id, sa, xPending)
 	}
-	if o := e.G.Obj(id); o != nil && o.Face() != nil {
-		xPending = costAnnouncesXRef(&e.faceCompiledCost(o.Face()).Cost)
-		if ab := o.Face().SpellAbility(); ab != nil {
-			xPending = xPending || costAnnouncesXRef((&e.abilityCompiledCost(ab).Cost))
+	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack {
+		if _, split := o.SplitHalves(); split {
+			return e.offerAsSpellOnStack(id, run)
 		}
 	}
-	return e.targetsAvailable(p, id, id, sa, xPending)
+	return run()
 }
 
 // abilityTargetsAvailable is the activated-ability offer guard. It is what

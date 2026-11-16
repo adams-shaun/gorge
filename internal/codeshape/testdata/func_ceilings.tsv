@@ -48,7 +48,7 @@ dirac (*State).replDamage	96	70
 dirac (*State).resolveOptionsGen	314	107
 dirac (*State).resolveTop	238	122
 dirac (*State).sba	336	131
-dirac (*State).scriptOffers	149	107
+dirac (*State).scriptOffers	149	105
 dirac (*State).stepRaw	153	63
 dirac (*State).windowColOwed	143	64
 dirac (*State).windowTapWalk	129	73
@@ -56,7 +56,7 @@ dirac (*State).wordPerm3	92	51
 dirac (*filtSearch).otherGap	228	70
 dirac (*filtSearch).visit	142	57
 dirac (*grantSrch).visit	274	105
-dirac (*tapXSearch).visit	266	74
+dirac (*tapXSearch).visit	266	65
 dirac arenaUses	114	58
 dirac prepare	208	116
 dirac prepareGen	1084	431

@@ -24,7 +24,7 @@ func TestSupport(t *testing.T) {
 	sc := newScenTable(t, tbl, Config{NoElide: true})
 	s, k := sc.s, sc.k
 	src, b1, b2, b3 := sc.perm(bear, 0), sc.perm(bear, 0), sc.perm(bear, 1), sc.perm(bear, 1)
-	s.res.e.obj, s.res.e.ctrl = src, 0
+	s.res.e.obj, s.res.e.ctrl, s.res.e.srcVer = src, 0, s.objs[src].ver
 	if s.support(k, &sup[0]) {
 		t.Fatal("eligible creatures: support must ask")
 	}

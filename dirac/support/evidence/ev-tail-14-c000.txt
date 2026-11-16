@@ -112,6 +112,7 @@ Empty the Catacombs
 Empty the Warrens
 Enfeeblement
 Enshrined Memories
+Enslaved Scout
 Entrails Feaster
 Entrapment Maneuver
 Erebos, God of the Dead
@@ -208,6 +209,7 @@ Kiora's Follower
 Knight of Cliffhaven
 Krosan Drover
 Krumar Bond-Kin
+Kuro's Taken
 Lagomos, Hand of Hatred
 Laid to Rest
 Leering Emblem
