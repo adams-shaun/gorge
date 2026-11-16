@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -276,9 +275,6 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if sl == NoSlot {
 			return false, held
 		}
-		if DebugPlanTrace {
-			traceTag(fmt.Sprintf("PICK p=%d sl=%d card=%q gap=%v cost=%v clamp=%v anyColor=%v", p, sl, k.t.Cards[s.cardAt(sl)].Name, gap, *cost, clamp, anyColor))
-		}
 		if gap {
 			if s.windowCtrGapTap(k, p, sl) {
 				continue
@@ -338,9 +334,6 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		var owed kop.ManaCost
 		col := s.windowColOwed(k, p, cost, s.windowOwedCost(k, p, cost, &owed), sl, pc, anyColor, noOwed)
-		if DebugPlanTrace {
-			traceTag(fmt.Sprintf("TAP sl=%d card=%q col=%d pcCol=%s pcN=%d", sl, k.t.Cards[s.cardAt(sl)].Name, col, colStr(uint8(pc.manaCol)), pc.manaN))
-		}
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
@@ -3108,10 +3101,6 @@ func (s *State) manaStep(k *prep) bool {
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
-		if DebugPlanTrace {
-			traceTag(fmt.Sprintf("MANASTEP spell card=%q cost=%v x=%d sfAnyMana=%v bflAnyColor=%v pipN=%d lowered=%v planCut=%v",
-				k.t.Cards[e.card].Name, cost, e.x, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0, s.bld().pipN, s.bld().bfl&bflLowered != 0, planCut))
-		}
 		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
 			s.loweredPipWindow(k, e, &cost)
 		}

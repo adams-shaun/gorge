@@ -1507,11 +1507,13 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					// ability that pays life (payment_plan.go
 					// paymentPlanManaUnitsOnlyCompute). The paired pain unit
 					// sits on the pass the source's census group is; a
-					// pain-only source's shape is its own ability's (Elves
-					// of Deep Shadow's {B} is deterministic, in the shared
-					// census)
+					// pain-only source's shape is its own ability's, so a
+					// cost-of-life one (Blightsoil Druid's {T}, Pay 1 life:
+					// pay.ManaFreeCost rejects PayLife) joins the appended
+					// group, while a damage rider (Elves of Deep Shadow's
+					// Add {B}. deals 1) is a free-cost unit in place
 					want := 0
-					if choice {
+					if choice || pc.painOnly && pc.painLife {
 						want = 1
 					}
 					if s.painUnit(k, sl, pc, pass, pk, i, want) {
@@ -1640,9 +1642,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 	if pk.dry {
 		return
-	}
-	if DebugPlanTrace {
-		s.tracePlan(k, p, pk)
 	}
 	if k.gen != nil {
 		s.limitPlan(k, pk)
