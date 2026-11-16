@@ -65,14 +65,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //kmanifest:ext ExtDemoNoop
 func (s *State) demoNoop(k *prep, in *kop.Instr) (ok, done bool) { return true, true }
 
-// demoPickOptions builds raDemoPick's options.
+// demoPickOptions builds raZDemoPick's options.
 //
-//kmanifest:askopts raDemoPick
+//kmanifest:askopts raZDemoPick
 func (s *State) demoPickOptions(k *prep, d *Decision) {}
 
-// demoPickAnswer applies raDemoPick's answer.
+// demoPickAnswer applies raZDemoPick's answer.
 //
-//kmanifest:askapply raDemoPick
+//kmanifest:askapply raZDemoPick
 func (s *State) demoPickAnswer(k *prep, a Action) {}
 `
 
@@ -86,7 +86,7 @@ func TestNewOpTouchesOnlyItsOwnFiles(t *testing.T) {
 	ov := overlay{real, fstest.MapFS{
 		Dir + "/ExtOp/ExtDemoNoop": {Data: []byte("family: ExtOp\nname: ExtDemoNoop\nvalue: next\nstatus: active\n")},
 		Dir + "/Pred/PredDemo":     {Data: []byte("family: Pred\nname: PredDemo\nvalue: next\nstatus: reserved\n")},
-		Dir + "/ask/raDemoPick":    {Data: []byte("family: ask\nname: raDemoPick\nvalue: next\nstatus: active\n")},
+		Dir + "/ask/raZDemoPick":   {Data: []byte("family: ask\nname: raZDemoPick\nvalue: next\nstatus: active\n")},
 		"dirac/act_demonoop.go":    {Data: []byte(demoFeature)},
 	}}
 
@@ -128,7 +128,7 @@ func TestNewOpTouchesOnlyItsOwnFiles(t *testing.T) {
 	}
 	want := map[string][]string{
 		KopGen:   {"const ExtDemoNoop ExtOp =", "const PredDemo Pred ="},
-		DiracGen: {"const raDemoPick uint8 =", "return s.demoNoop(k, in)", "s.demoPickOptions(k, d)", "s.demoPickAnswer(k, a)"},
+		DiracGen: {"const raZDemoPick uint8 =", "return s.demoNoop(k, in)", "s.demoPickOptions(k, d)", "s.demoPickAnswer(k, a)"},
 		KgenGen:  {`enum[kop.Pred]("kop.PredDemo", kop.PredDemo)`},
 	}
 	for _, p := range GenFiles {

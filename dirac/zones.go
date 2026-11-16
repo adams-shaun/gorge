@@ -280,6 +280,9 @@ func (s *State) draw(p uint8) {
 // drawExcl is draw with the draw replacements already applied to this
 // draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
 func (s *State) drawExcl(p uint8, ch drawChain) {
+	if s.g.on && s.dredgeHeld(p) {
+		return // kw_dredge.go: a dredge candidate on a draw no ask was posed for
+	}
 	pl := &s.pl[p]
 	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw, p) {
 		return // static_cantdraw.go: before the empty-library mark
