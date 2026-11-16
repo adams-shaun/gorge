@@ -96,8 +96,10 @@ func TestPlannerPaysGrantedSpawnCast(t *testing.T) {
 		t.Errorf("the Spawn left the battlefield paying {R}, want it tapped, not sacrificed")
 	}
 	// both units pay {1}{G}: the granted tap makes the {G}, the printed
-	// sacrifice the generic one, the token tapped and then sacrificed.
-	sc2, id2, objs2 := pathSpawnScen(t, Config{NoElide: true, GorgeLowering: true}, "Path of Annihilation", "c_0_1_eldrazi_spawn_sac")
+	// sacrifice the generic one, the token tapped and then sacrificed. A
+	// Goblin Taskmaster keeps a target the sacrifice leaves (with the Spawn
+	// the only creature gorge withholds the cast: mana_grantwitness_test.go).
+	sc2, id2, objs2 := pathSpawnScen(t, Config{NoElide: true, GorgeLowering: true}, "Path of Annihilation", "c_0_1_eldrazi_spawn_sac", "Goblin Taskmaster")
 	spawn2 := objs2[1]
 	ltl := sc2.hand(id2["Larger Than Life"], 0)
 	sc2.do(t, AkCast, TCode(ltl), scAny)
