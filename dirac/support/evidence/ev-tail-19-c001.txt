@@ -6,10 +6,12 @@ Academy Elite
 Acidic Slime
 Aerie Auxiliary
 Akki Blizzard-Herder
+Akroma's Vengeance
 Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
 Allied Reinforcements
+Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
 Armor of Faith
@@ -22,18 +24,22 @@ Bartolomé del Presidio
 Beast Mode
 Befoul
 Bellowing Saddlebrute
+Black Widow, Intel Expert
 Blade Sliver
 Bladed Bracers
 Bladehold War-Whip
 Blood Funnel
 Bonesplitter Sliver
 Boots of Speed
+Brainspoil
 Bristling Hydra
+Buoyancy
 Burning Sun's Fury
 Burst of Speed
 Buy Your Silence
 Cavern Crawler
 Cephalid Aristocrat
+Chief of the Foundry
 Clash of Wills
 Clip Wings
 Commander Mustard
@@ -45,42 +51,58 @@ Cosmic Larva
 Court Archers
 Cradle to Grave
 Crashing Footfalls
+Crop Sigil
+Cruel Celebrant
 Crypt Creeper
 Cryptbreaker
 Damn
 Daru Warchief
 Deepwood Ghoul
+Defensive Maneuvers
 Defiant Strike
 Demon's Jester
 Diabolic Edict
+Disciple of Grace
 Dragonwing Glider
 Dreadhound
+Dreadlight Monstrosity
 Dromoka Warrior
+Drowner Initiate
 Druidic Satchel
 Drumbellower
 Dual Shot
+Ebony Treefolk
 Efreet Flamepainter
 Eiganjo Exemplar
 Electrosiphon
+Elemental Augury
 Elephant Resurgence
+Ellivere of the Wild Court
 Epiphany at the Drownyard
 Essence Infusion
 Evaporate
+Everbark Shaman
+Evie Frye
+Extract from Darkness
 Extremis Elite
 Falkenrath Torturer
 Fallaji Archaeologist
 Fated Return
 Fiery Hellhound
 Final Flourish
+Final Strike
 Fire Diamond
 Flailing Soldier
+Flamekin Village
 Flayed One
+Flicker of Fate
 Fodder Cannon
 Force of Negation
 Forebear's Blade
 Forest
 Frenzied Devils
 From the Rubble
+Frost Trickster
 Galerider Sliver
 Giant Octopus
 Glen Elendra Liege
@@ -96,6 +118,7 @@ Graveblade Marauder
 Gravity Sphere
 Great-Horn Krushok
 Grisly Survivor
+Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
 Guardians of Oboro
@@ -103,41 +126,56 @@ Guilty Conscience
 Halberdier
 Hammerhead Shark
 Healing Hands
+Hero of Goma Fada
 Hithlain Knots
+Hold at Bay
+Horizon Scholar
+Horizon Spellbomb
 Hormagaunt Horde
+Hydromorph Gull
 Idolized
 Indestructibility
 Infernal Contract
 Infuriate
 Iona's Judgment
 Island
+Izzet Keyrune
 Jilt
 Jodah's Avenger
 Kaleidoscorch
 Kashi-Tribe Warriors
 Kazuul Warlord
+Keldon Mantle
 Kogla, the Titan Ape
 Kraken Hatchling
 Kraum, Ludevic's Opus
 Krenko's Command
 Krovikan Fetish
 Last Kiss
+Lava Zombie
+Lead by Example
 Leonin Abunas
 Life Burst
 Lightning Javelin
 Lizard Warrior
 Loamcrafter Faun
+Longbow Archer
 Lotleth Troll
 Luminescent Rain
+Maraleaf Pixie
 Marble Titan
 Massacre
+Melira's Keepers
+Mental Misstep
 Messenger's Speed
 Militia Rallier
+Mindculling
 Miracle Worker
 Misers' Cage
 Mob Justice
 Mountain
 Myojin of Infinite Rage
+Myr Sire
 Márton Stromgald
 Nausea
 Neheb, the Eternal
@@ -146,8 +184,10 @@ Obelisk of Alara
 Opal Gargoyle
 Orcish Cannoneers
 Origin of Black Widow
+Orochi Sustainer
 Orzhov Signet
 Ossuary Rats
+Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
 Phantom Centaur
@@ -156,8 +196,11 @@ Phyrexian Delver
 Phyrexian Espionage
 Pierce Strider
 Pincer Spider
+Pinnacle of Rage
 Plains
 Popular Entertainer
+Predator's Rapport
+Rampant Rejuvenator
 Ransom Note
 Ray of Enfeeblement
 Razormane Masticore
@@ -165,15 +208,20 @@ Razorverge Thicket
 Reliquary Monk
 Renegade Warlord
 Repel the Vile
+Reprieve
 Resolute Archangel
 Resupply
 Rhox Charger
+Ring of Immortals
 Riptide Mangler
 River Kaijin
 Roar of the Kha
 Rush of Blood
 Rush of Knowledge
 Sacred Knight
+Salt Marsh
+Sanctum Custodian
+School of Piranha
 Scorch Rider
 Scrap Trawler
 Self-Inflicted Wound
@@ -189,16 +237,22 @@ Shinechaser
 Sif's Spearmaster
 Silas Renn, Seeker Adept
 Skeletal Wurm
+Sky Diamond
+Sky Theater Strix
 Soldier Replica
 Spell Contortion
 Spike Soldier
 Spiraling Duelist
 Spiteful Prankster
 Spitting Sliver
+Squee's Embrace
 Squelching Leeches
+Squirrel Sovereign
 Staff of the Storyteller
 Stave Off
 Stern Marshal
+Stick, Fearless Mentor
+Stone Calendar
 Stone Drake
 Strangle
 Stromkirk Occultist
@@ -210,15 +264,22 @@ Suppression Bonds
 Svyelunite Priest
 Swamp
 Talrand's Invocation
+Tanglebloom
 Temporal Mastery
+The Destined Black Mage
 The Mary Janes
+Theater of Horrors
 Theros Charm
 Thornwatch Scarecrow
 Titanium Man
+Tolarian Entrancer
 Tortured Existence
 Traveling Philosopher
+Treasure Vault
+Trench Gorger
 Trench Wurm
 Trip Noose
+Tromokratis
 Trusty Companion
 Trynn, Champion of Freedom
 Two-Headed Sliver
@@ -232,16 +293,23 @@ Vampiric Fury
 Vampiric Sliver
 Vandalize
 Vanquisher's Axe
+Vedalken Aethermage
 Vendetta
 Vivien's Grizzly
+Vizkopa Vampire
+Wake the Dragon
+Wake the Past
+Walker of the Grove
 Walking Atlas
 Warlock Class
 Wave of Indifference
+Weaver of Harmony
 Where We're Going . . .
 Whetwheel
 Wind Dancer
 Winterflame
 Wirewood Elf
+Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
 Wyrm's Crossing Patrol
@@ -249,5 +317,6 @@ You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net
 Zhao Zilong, Tiger General
+Zhuge Jin, Wu Strategist
 Zimone, Quandrix Prodigy
 Zurgo Bellstriker

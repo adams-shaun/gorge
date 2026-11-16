@@ -78,6 +78,7 @@ Dalakos, Crafter of Wonders
 Dancing Scimitar
 Dangerous Wager
 Darkthicket Wolf
+Daru Spiritualist
 Dauthi Cutthroat
 Death Mutation
 Death Pulse
@@ -100,6 +101,7 @@ Elvish Archers
 Elvish Ranger
 Embereth Skyblazer
 Emberwilde Augur
+Emmara Tandris
 Energizer
 Enslaved Dwarf
 Entrails Feaster
@@ -192,6 +194,7 @@ Llanowar Wastes
 Lofty Denial
 Loki's Scepter
 Long-Range Sensor
+Lorehold Archivist
 Loxodon Wayfarer
 Lucky Clover
 Lumengrid Warden
@@ -219,6 +222,7 @@ Motivated Pony
 Mountain
 Mox Opal
 Murmuring Phantasm
+Mystic Remora
 Nahiri, Storm of Stone
 Nantuko Mentor
 Narset's Reversal
@@ -325,6 +329,7 @@ Stalking Assassin
 Stampeding Serow
 Steadfast Sentry
 Steam Frigate
+Steelclaw Lance
 Stirring Address
 Stitch Together
 Storm World
@@ -343,6 +348,7 @@ Takenuma, Abandoned Mire
 Talas Explorer
 Talon Gates of Madara
 Tear Asunder
+Temur War Shaman
 Tethmos High Priest
 Thallid Germinator
 The Hunger Tide Rises
@@ -363,12 +369,14 @@ Troll Ascetic
 Tuktuk Grunts
 Turntimber Ascetic
 Twisted Landscape
+Ukud Cobra
 Uncovered Clues
 Unexpected Fangs
 Urborg Repossession
 Urza's Guilt
 Urza's Tome
 Valiant Knight
+Vanquish
 Venomthrope
 Venser, Visionary Traveler
 Verge Rangers

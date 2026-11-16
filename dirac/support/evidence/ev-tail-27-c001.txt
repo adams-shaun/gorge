@@ -2,114 +2,298 @@ A-Blood Artist
 A-Umara Mystic
 Abuna's Chant
 Adaptive Shimmerer
+Aegis of the Gods
+Aetherstorm Roc
+Agonizing Syphon
+Air Elemental
+Allied Assault
 Alpine Watchdog
+Altac Bloodseeker
+Altar of the Brood
 Amarant Coral
+Amphin Mutineer
+Anarchy
+Ancient Crab
+Apes of Rath
 Apex Hawks
+Arachnoid
+Arborea Pegasus
 Arc Runner
+Arctic Merfolk
+Argothian Wurm
+Armix, Filigree Thrasher
+Arrows of Justice
+Aspiring Aeronaut
+Aura Flux
 Avatar of Woe
+Aven Wind Mage
+Azure Drake
 Barbed Lightning
 Bee Sting
+Belligerent Hatchling
+Bident of Thassa
 Blasphemous Act
+Blessing
 Blight Keeper
 Blowfly Infestation
 Boros Recruit
+Bottomless Pit
+Bounding Krasis
+Brink of Disaster
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
+Canopy Dragon
+Captain of the Mists
+Captured Sunlight
 Carrion Beetles
+Cathar's Shield
+Chromatic Sphere
+Cloak of Mists
+Cobalt Golem
 Conch Horn
+Conclave Naturalists
 Crimson Muckwader
+Cursed Flesh
 Daggersail Aeronaut
 Damnation
+Dark Nourishment
+Dark Petition
 Deal Gone Bad
 Deathforge Shaman
+Deft Duelist
+Deliberate
 Demonic Taskmaster
+Destroy the Evidence
+Dispersing Orb
 Douser of Lights
+Dream Twist
+Dryad's Revival
+Duergar Assailant
+Dwarven Armorer
+Dwarven Lieutenant
+Dwarven Weaponsmith
+Elemental Mastery
 Elemental Uprising
+Elven Warhounds
+Elvish Hunter
+Embargo
+Enraging Licid
 Entomber Exarch
+Erebor Flamesmith
 Erratic Cyclops
+Evernight Shade
 Evolved Sleeper
 Extractor Demon
+Eyekite
+Eyeless Watcher
+Fabricate
 Fandaniel, Telophoroi Ascian
+Fang, Roku's Companion
 Ferropede
+Fiend Binder
+Fight as One
 Finishing Blow
 Flaring Flame-Kin
 Flourishing Defenses
+Flowstone Giant
 Font of Vigor
+For the Ancestors
+Force of Rowan
 Forest
+Forlorn Pseudamma
 Frogtosser Banneret
 Frondland Felidar
+Fruition
+Furnace Gremlin
 Gaea's Might
+Galepowder Mage
 Geistflame
+Ghor-Clan Bloodscale
+Ghoulcaller's Accomplice
 Giant Ladybug
+Giant Octopus
+Gift of Strands
 Glint-Horn Buccaneer
 Glistening Deluge
+Goblin Dark-Dwellers
 Goblin Razerunners
 Goblin Trailblazer
+God-Favored General
+Goldmane Griffin
+Gossamer Phantasm
+Grim Lavamancer
 Guul Draz Specter
+Gyre Engineer
+Harsh Deceiver
+Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+Hidden Spider
+High Alert
 Hollowsage
+Honorable Scout
 Hornet Queen
+Hulking Cyclops
 Hungry Ridgewolf
 Hypnotic Cloud
+Ichorclaw Myr
 Idyllic Tutor
+Increasing Confusion
 Infectious Horror
 Inflame
 Inquisitive Puppet
 Invoke Despair
 Island
+Jewel Thief
+Krosan Constrictor
 Lagac Lizard
 Lamentation
+Legolas Greenleaf
+Lightning Axe
+Llanowar Druid
+Lord of the Unreal
+Lore Weaver
 Maestros Initiate
+Mage il-Vec
+Mage's Attendant
+Magus of the Tabernacle
+Marauding Looter
+Marauding Raptor
 Mardu Blazebringer
 Marker Beetles
+Master Decoy
+Merchant of Venom
+Metallic Sliver
+Midnight Arsonist
 Mishra's Bauble
 Mobilization
+Molten Birth
 Monstrous Growth
 Mountain
+Myrkul's Invoker
+Namor, Scourge of the Seas
 Natural Reclamation
+Necrogenesis
+Necron Deathmark
+Neheb, Dreadhorde Champion
+Neverwinter Dryad
+Night Revelers
 Nirkana Assassin
+Nissa Revane
+Noble Stand
+Norwood Riders
+Noxious Grasp
+Null Brooch
+Nyxborn Wolf
 Offalsnout
+Old Ghastbark
+Onyx Goblet
+Ornery Goblin
+Out of the Way
 Overload
 Pangosaur
 Paradise Druid
+Pardic Collaborator
+Pause for Reflection
 Phoenix of Ash
 Phyrexian Pegasus
 Plains
+Promise of Power
 Pygmy Kavu
+Python
+Rakdos the Defiler
+Ravenous Baboons
 Realm Seekers
+Red Ghost, Intangible Genius
 Reign of Terror
+Rhystic Deluge
 Ripscale Predator
 Rite of Flame
+Ritual of Soot
 Rogue Elephant
 Rotlung Reanimator
+Sage of the Falls
+Sarah Jane Smith
+Sarcomite Myr
+Satyr Rambler
+Sawblade Scamp
+Scion of Vitu-Ghazi
 Scorch Spitter
 Seashell Cameo
+Sedraxis Alchemist
+Seek New Knowledge
+Serra Paladin
+Shivan Hellkite
+Shorecomber Crab
 Shreds of Sanity
+Silent Attendant
 Silt Crawler
+Silumgar Monument
 Skinrender
+Skyclave Plunder
+Skyshroud Poacher
 Smother
+Snake Basket
+Soul of Mirrodin
+Southern Paladin
+Speaker of the Heavens
+Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
+Steppe Glider
 Sticky Fingers
 Stinging Hivemaster
+Storm Front
 Storm-Kiln Artist
+Stormcloud Spirit
+Stormfist Crusader
 Stun
+Sudden Reclamation
+Surgespanner
 Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
 Sylvok Explorer
+Syphon Life
+Tail Slash
+Tattermunge Maniac
+Teferi's Protege
+Temur Banner
+Tendrils of Corruption
 Thallid Shell-Dweller
+Thieving Magpie
 Third Path Iconoclast
+Thirsting Roots
 Three Tragedies
 Thrull Retainer
+Thrull Surgeon
+Timmy, Power Gamer
+Tormented Thoughts
+Trained Condor
 Troubled Healer
+Tundra Wolves
 Twinferno
 Ulvenwald Oddity
+Untethered Express
+Unwind
 Valiant Guard
 Vampire Lacerator
+Vedalken Infiltrator
+Vengeful Devil
+Vertigo Spawn
+Veteran's Powerblade
 Viconia, Drow Apostate
+Vildin-Pack Outcast
+Visara the Dreadful
+Vodalian Hexcatcher
+Void Shatter
+Volcanic Hammer
+Wildwood Tracker
 Woodborn Behemoth
+Workshop Assistant
+Yuffie, Materia Hunter
+Zuri, Warrior of Wakanda

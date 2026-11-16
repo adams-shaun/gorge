@@ -1,5 +1,7 @@
 A-Imperial Subduer
+A-Kargan Warleader
 A-Radha's Firebrand
+A-Syndicate Infiltrator
 Abzan Kin-Guard
 Adeline, Resplendent Cathar
 Aeronaut Tinkerer
@@ -15,8 +17,10 @@ Anaba Spirit Crafter
 Ancestral Mask
 Ancestral Vengeance
 Angel of Sanctions
+Angelic Sell-Sword
 Anvilwrought Raptor
 Apothecary Initiate
+Archfiend of Ifnir
 Argivian Find
 Armored Cancrix
 Armored Skaab
@@ -56,6 +60,7 @@ Brood Weaver
 Brotherhood Patriarch
 Brothers of Fire
 Brought Back
+Budoka Gardener
 Burning-Yard Trainer
 Cacophodon
 Caldera Lake
@@ -81,6 +86,7 @@ Conscripted Infantry
 Control of the Court
 Coral Helm
 Corpse Churn
+Court of Embereth
 Crosstown Courier
 Crown of Skemfar
 Crucible of Fire
@@ -88,6 +94,7 @@ Cruel Grimnarch
 Cutthroat Negotiator
 Cylian Elf
 Dawnglare Invoker
+Dead Man's Chest
 Deadeye Quartermaster
 Death Stroke
 Deathbloom Gardener
@@ -112,6 +119,7 @@ Empty-Shrine Kannushi
 Enraged Ceratok
 Epicenter
 Erdwal Ripper
+Ethereal Absolution
 Evil Eye of Urborg
 Experimental Armor
 Explosive Entry
@@ -149,6 +157,7 @@ Glacial Wall
 Glamorous Grapplers
 Gleeful Demolition
 Gluttonous Troll
+Goblin Digging Team
 Goblin King
 Goblin Wizardry
 Gold-Forged Thopteryx
@@ -179,6 +188,7 @@ Hunger of the Howlpack
 Hymn to Tourach
 Illusionary Informant
 Illusory Angel
+Imperious Oligarch
 Innocent Blood
 Invoke the Divine
 Iron-Heart Chimera
@@ -200,6 +210,7 @@ Kemba, Kha Enduring
 Kezzerdrix
 Kiki-Jiki, Mirror Breaker
 Killian, Decisive Mentor
+King Darien XLVIII
 Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
@@ -210,6 +221,7 @@ Launch Party
 Lazotep Behemoth
 Leaf Gilder
 Leafcrown Dryad
+Lesser Masticore
 Leyline of Vitality
 Lightning Surge
 Liliana's Talent
@@ -218,15 +230,18 @@ Long Road Home
 Looming Spires
 Lost Soul
 Loxodon Warhammer
+Luminesce
 Luminous Angel
 Magnetic Mine
 Magus of the Bridge
 Malcator, Purity Overseer
 Mammoth Spider
+Manifestation Sage
 Mantle of Webs
 Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
+Master Healer
 Master's Call
 Merchant Raiders
 Merrow Harbinger
@@ -248,6 +263,7 @@ Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
 Nissa, Vital Force
+Niv-Mizzet, Dracogenius
 Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
@@ -255,6 +271,7 @@ Nylea's Disciple
 Oath of Druids
 Obelisk Spider
 Obelisk of Bant
+Obstinate Gargoyle
 On Serra's Wings
 Onward
 Oona's Grace
@@ -262,8 +279,11 @@ Ordruun Veteran
 Outnumber
 Outrider of Jhess
 Overwhelmed Apprentice
+Overwhelming Intellect
+Owlbear
 Ox of Agonas
 P-Joven and Chandler
+Paragon of the Amesha
 Pardic Firecat
 Peek
 Pemmin's Aura
@@ -272,10 +292,12 @@ Pestilence Demon
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
+Phyrexian Marauder
 Pious Kitsune
 Plague Mare
 Plains
 Poison-Tip Archer
+Pounce
 Pre-War Formalwear
 Press the Advantage
 Primal Whisperer
@@ -283,12 +305,14 @@ Prison Sentence
 Pull from the Deep
 Pulse of the Tangle
 Putrefax
+Quantum Misalignment
 RMS Titanic
 Ragefire Hellkite
 Rakdos Pit Dragon
 Rats of Rath
 Ray of Enfeeblement
 Reality Anchor
+Reality Strobe
 Reckless Embermage
 Reckless Ogre
 Recoup
@@ -302,6 +326,7 @@ Revenge of Ravens
 Rhizome Lurcher
 Ritual of the Machine
 Root Snare
+Rosemane Centaur
 Rotten Reunion
 Rule of Law
 Runeclaw Bear
@@ -311,6 +336,7 @@ Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sarkhan's Triumph
 Scale the Heights
+Scaled Behemoth
 Scurrilous Sentry
 Second Thoughts
 Selhoff Entomber
@@ -319,6 +345,8 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shepherd of Heroes
+Shinen of Stars' Light
 Shinka, the Bloodsoaked Keep
 Shoal Serpent
 Silent Observer
@@ -334,6 +362,7 @@ Soltari Lancer
 Soot Imp
 Soratami Mirror-Guard
 Soul Collector
+Soul Link
 Soul of Ravnica
 Soul's Grace
 Spellbound Dragon
@@ -371,6 +400,7 @@ The Brute
 The First Eruption
 The Modern Age
 The One Ring
+Thickest in the Thicket
 Thopter Engineer
 Thorn of Amethyst
 Thraben Gargoyle

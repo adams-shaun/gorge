@@ -28,6 +28,7 @@ Archway Commons
 Artful Dodge
 Assembly-Worker
 Astonishing Spider-Man
+Astral Wingspan
 Atalan Jackal
 Atarka, World Render
 Audacious Thief
@@ -41,6 +42,7 @@ Banners Raised
 Bartered Cow
 Battering Sliver
 Beacon Behemoth
+Beledros Witherbloom
 Beskir Shieldmate
 Black Market Tycoon
 Bladebrand
@@ -127,6 +129,7 @@ Dire Fleet Ravager
 Dire Mimic
 Disciple of Griselbrand
 Dissolve
+Djeru and Hazoret
 Double Trouble
 Dragonspark Reactor
 Drake Familiar
@@ -139,6 +142,7 @@ Dying Wail
 Elite Vanguard
 Elusive Spellfist
 Embereth Shieldbreaker
+Epic Experiment
 Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
@@ -150,6 +154,7 @@ Faerie Guidemother
 Fallen Angel
 Fallen Cleric
 Fanatical Devotion
+Far
 Fatal Frenzy
 Festering Evil
 Fiery Temper
@@ -177,16 +182,19 @@ Galadriel, Gift-Giver
 Galvanic Key
 Gargoyle Flock
 Geist of the Archives
+Gelectrode
 Geothermal Kami
 Ghitu Journeymage
 Ghostly Wings
 Gideon's Defeat
 Glacial Crasher
+Gleam of Battle
 Glintwing Invoker
 Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
 Goblin Spy
+Golos, Tireless Pilgrim
 Grandmother Goby
 Grassland Crusader
 Graveborn Muse
@@ -198,6 +206,7 @@ Gyre Sage
 Hail of Arrows
 Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
+Haunted Mire
 Haze of Pollen
 Hazoret's Favor
 Heavenly Qilin
@@ -205,6 +214,7 @@ Hellcarver Demon
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
+Hit
 Hollowhenge Scavenger
 Holy Armor
 Holy Light
@@ -242,6 +252,8 @@ Jötun Owl Keeper
 Karametra's Blessing
 Kashi-Tribe Reaver
 Kashi-Tribe Warriors
+Kavu Runner
+Keiga, the Tide Star
 Kemba's Banner
 Kemba, Kha Enduring
 Kinsbaile Skirmisher
@@ -249,6 +261,7 @@ Kitchen
 Knight of Stromgald
 Kodama of the North Tree
 Kor Scythemaster
+Kozilek's Shrieker
 Kyren Legate
 Labyrinth Adversary
 Last Rites
@@ -310,6 +323,7 @@ Oppressive Will
 Oracle of Nectars
 Orcish Cannonade
 Ordruun Veteran
+Ore Gorger
 Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil
@@ -324,6 +338,7 @@ Phantasmal Form
 Pheres-Band Warchief
 Phyrexian Revoker
 Pieces of the Puzzle
+Pillar of the Paruns
 Piranha Marsh
 Plague Rats
 Plains
@@ -427,6 +442,7 @@ Southern Elephant
 Spellshock
 Spined Thopter
 Spined Wurm
+Spirit Away
 Spirit Mirror
 Spirit of the Hunt
 Spiteful Motives
@@ -452,6 +468,7 @@ Surrakar Banisher
 Survey the Wreckage
 Swamp
 Swathcutter Giant
+Swordsman's Steel
 Tablet of Epityr
 Taeko, the Patient Avalanche
 Talon Sliver
