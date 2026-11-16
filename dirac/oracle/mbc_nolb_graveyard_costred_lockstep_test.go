@@ -6,9 +6,7 @@ import "testing"
 // targets a creature card with mana value 3 or less"): at decision 160 of
 // tail-47 pair 10 (seed 5628159775108598851) gorge offered the cast whose
 // reduction the graveyard target satisfies; the kernel priced the full cost
-// and offered none. The recording replays on pool custom: its decks were
-// dealt from a synth tail bucket, whose membership shifts with the tree, and
-// a tail-47 pin broke at the land rebase.
+// and offered none.
 func TestMBCNoOneLeftBehindReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "nolb_graveyard_costred")
