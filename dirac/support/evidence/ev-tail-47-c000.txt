@@ -57,6 +57,7 @@ Cenn's Enlistment
 Centaur Safeguard
 Cephalid Scout
 Chainflail Centipede
+Chameleon Blur
 Charisma Bobblehead
 Chill of Foreboding
 Choking Sands
@@ -370,6 +371,7 @@ Stronghold Confessor
 Subira, Tulzidi Caravanner
 Sudden Impact
 Sulfurous Springs
+Sunder Shaman
 Sunder from Within
 Supply Runners
 Suspended Sentence
@@ -446,6 +448,7 @@ White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Woodfall Primus
 Wu Scout
 Youthful Knight
 Zhalfirin Void

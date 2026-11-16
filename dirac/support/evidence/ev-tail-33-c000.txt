@@ -35,6 +35,7 @@ Armorcraft Judge
 Ash Barrens
 Atraxa's Fall
 Audacity
+Aura Extraction
 Autumnal Gloom
 Avaricious Dragon
 Baboon Spirit
@@ -153,6 +154,7 @@ Ferocious Pup
 Feroz's Ban
 Fill with Fright
 Final Flourish
+Fire Nation Occupation
 Flame Elemental
 Flawless Maneuver
 Flip the Switch
@@ -202,6 +204,7 @@ Infected Defector
 Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Inspiring Veteran
 Insurrection
 Invasive Species
 Ire of Kaminari

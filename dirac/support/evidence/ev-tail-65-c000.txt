@@ -182,6 +182,7 @@ Mortis Dogs
 Mother Bear
 Mountain
 Mournwillow
+Murderous Redcap
 Mycoid Shepherd
 Mystic Skyfish
 Mystic Snake
@@ -221,6 +222,7 @@ Quest for Renewal
 Radiant Destiny
 Radiant Essence
 Rage Reflection
+Rakdos Shred-Freak
 Rapid Hybridization
 Reach Through Mists
 Reckless Brute
@@ -229,6 +231,7 @@ Reinterpret
 Reptilian Reflection
 Reservoir Kraken
 Resounding Silence
+Restless Apparition
 Rhys the Exiled
 Ritual of Steel
 Rogue Elephant

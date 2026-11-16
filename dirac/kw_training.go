@@ -36,7 +36,7 @@ func (s *State) subAmongTotal(k *prep, p uint8, c *kop.Cost, src Slot) int {
 	n := 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.matchPerm(k, c.Filter, sl, p, NoSlot) {
+		if s.matchPerm(k, c.Filter, sl, p, src) {
 			n += permCtrN(s, &s.perms[sl], int(c.Ctr))
 		}
 	}
@@ -93,7 +93,7 @@ func (s *State) subAmongOptions(k *prep, d *Decision) bool {
 			if a.Cost.Filter == 0 && sl != src {
 				continue
 			}
-			if a.Cost.Filter != 0 && !s.matchPerm(k, a.Cost.Filter, sl, e.ctrl, NoSlot) {
+			if a.Cost.Filter != 0 && !s.matchPerm(k, a.Cost.Filter, sl, e.ctrl, src) {
 				continue
 			}
 			o := s.perms[sl].obj
