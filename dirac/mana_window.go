@@ -1872,6 +1872,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 		return c
 	}
 	var mask uint8
+	var chosenPC *pcard
 	off := 0
 	if anyR.has(sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
@@ -1889,14 +1890,22 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	} else if a, ok := s.riderAbilityOf(k, sl); ok {
 		mask = uint8(a.ManaColors)
 	} else {
-		mask = uint8(s.manaPCGen(k, sl).manaCol)
+		pc := s.manaPCGen(k, sl)
+		mask = s.srcMaskAt(pc, sl)
+		if pc.manaChosen {
+			chosenPC = pc
+		}
 	}
 	var order [kop.NumManaKinds]uint8
 	no := 0
-	for col := uint8(0); col < kop.NumManaKinds; col++ {
-		if mask&(1<<col) != 0 {
-			order[no] = col
-			no++
+	if chosenPC != nil {
+		no = s.chosenAskOrder(k, sl, chosenPC, (*[5]uint8)(order[:5])) // gorge's ask: printed colours, then the chosen one
+	} else {
+		for col := uint8(0); col < kop.NumManaKinds; col++ {
+			if mask&(1<<col) != 0 {
+				order[no] = col
+				no++
+			}
 		}
 	}
 	if c >= no {
