@@ -104,3 +104,31 @@ func (s *State) pccEnterAnswer(k *prep, ask askRec, a Action) {
 		s.placeCounters(k, ask.sl, int(a.Mode()), 1, p.ctrl, ctrPutEffect)
 	}
 }
+
+// FeatCtrChoiceRank is the printed position of counter kind in the pending
+// ExtPutCounterChoice ask, or -1 when the pending decision is no such ask (or
+// kind is not offered). The decision's options are sorted canonically (kernel
+// kind order), but gorge's bot answers its first offer in the printed list
+// order, so a kernel bot that matches it reads the order here.
+func (s *State) FeatCtrChoiceRank(kind uint8) int {
+	var in *kop.Instr
+	switch {
+	case s.ctl == ctlResolve && s.res.ask == raRemCtrAny:
+		in = &s.prog(s.k())[s.res.pc]
+	case s.ctl == ctlGenAsk && s.g.nask > 0 && s.g.ask[0].kind == akCtrPick:
+		a := &s.g.ask[0]
+		in = &s.k().t.Cards[a.card].Abilities[uint8(a.ab)].Prog[a.pc-1]
+	default:
+		return -1
+	}
+	if in.Op != kop.OpExt || in.Ext() != kop.ExtPutCounterChoice {
+		return -1
+	}
+	ks, n := in.PutCtrChoiceKinds()
+	for i, k := range ks[:n] {
+		if k == kind {
+			return i
+		}
+	}
+	return -1
+}

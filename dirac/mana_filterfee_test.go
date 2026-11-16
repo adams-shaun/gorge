@@ -31,11 +31,8 @@ func TestFiltFeeUnitSlotOrder(t *testing.T) {
 		}
 		var filt [maxFaceFilters]Slot
 		filt[0] = sl
-		w := av
-		if !s.filtActivate(k, &w, &filt, 1, &cost, false) {
-			t.Fatalf("lands %v: the filter's fee is not payable", lands)
-		}
-		if got := w.maxX(&cost, pipMaskOf(&cost)); got != 0 {
+		w := filtWalk{s: s, k: k, filt: &filt, cost: &cost}
+		if got := w.activate(av, filtPos{set: 1}); got != 0 {
 			t.Errorf("lands %v: maxX with the filter %d, want 0", lands, got)
 		}
 	}
