@@ -72,10 +72,12 @@ Criminal Enterprise
 Crypt Ripper
 Dakmor Plague
 Dark Offering
+Dark Supplicant
 Daru Healer
 Dauntless River Marshal
 Dauthi Mercenary
 Davriel's Shadowfugue
+Deeproot Warrior
 Defensive Maneuvers
 Demogorgon's Clutches
 Demonspine Whip
@@ -87,6 +89,7 @@ Dispeller's Capsule
 Drannith Magistrate
 Dreadful Apathy
 Dukhara Peafowl
+Duskdale Wurm
 Earthshaker
 Echoing Return
 Ecstatic Awakener
@@ -95,6 +98,7 @@ Elspeth, Knight-Errant
 Elven Warhounds
 Elvish Doomsayer
 Elvish Farmer
+Emerald Charm
 Empyrial Plate
 Enduring Scalelord
 Entropic Specter
@@ -129,11 +133,14 @@ Foul Watcher
 Fretwork Colony
 Frightcrawler
 Fulminator Mage
+Fyndhorn Brownie
 Galvanic Blast
+Garruk Wildspeaker
 Gateway Plaza
 Gauntlet of Might
 Geistflame
 Genju of the Fields
+Ghostly Wings
 Giant Harbinger
 Gift of Granite
 Gilded Sentinel
@@ -242,11 +249,13 @@ Nantuko Elder
 Naru Meha, Master Wizard
 Natural Spring
 Nature's Resurgence
+Necropouncer
 Necrotic Fumes
 Night Market Lookout
 Nightshade Harvester
 Nimana Skitter-Sneak
 Noxious Revival
+Nullhide Ferox
 Nyxborn Seaguard
 Obscura Storefront
 Obzedat's Aid
@@ -305,10 +314,12 @@ Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Rust Goliath
 Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
 Saprazzan Heir
+Sarulf's Packmate
 Scale the Heights
 Searchlight Geist
 Seize the Day
@@ -341,6 +352,7 @@ Structural Assault
 Sulfur Elemental
 Surge Conductor
 Swamp
+Sylvan Anthem
 Tales of Master Seshiro
 Taranika, Akroan Veteran
 Tavern Swindler
@@ -380,6 +392,7 @@ Vigilant Sentry
 Vogar, Necropolis Tyrant
 Void
 Volcanic Torrent
+Voracious Typhon
 Voyager Staff
 Vraska's Contempt
 Wall of Blossoms

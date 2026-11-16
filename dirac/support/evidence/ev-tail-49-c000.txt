@@ -50,6 +50,7 @@ Bucky Barnes, Eager Ally
 Butcher's Cleaver
 Cacophony Unleashed
 Call the Cavalry
+Call the Scions
 Captain America, Steve Rogers
 Casting of Bones
 Catalog
@@ -171,6 +172,7 @@ Greater Auramancy
 Greater Good
 Greenwarden of Murasa
 Hagra Constrictor
+Hatching Plans
 Havengul Vampire
 Hell Swarm
 Heroic Charge
@@ -304,6 +306,7 @@ Reverent Hoplite
 Rhystic Shield
 Righteous Cause
 Righteous Fury
+Riptide Pilferer
 Rishkar's Expertise
 Roc Charger
 Rock Basilisk
@@ -376,6 +379,7 @@ Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Swat
 Swell of Growth
 Sylvan Anthem
 Symbiotic Elf
@@ -387,6 +391,7 @@ Tar Pitcher
 Taunting Arbormage
 Teeterpeak Ambusher
 Terrain Elemental
+Terror Ballista
 The Rack
 Thorncaster Sliver
 Thought Collapse

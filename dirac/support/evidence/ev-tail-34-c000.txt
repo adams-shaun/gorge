@@ -11,6 +11,7 @@ An-Havva Inn
 Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
+Appeal
 Arbalest Engineers
 Arbor Elf
 Arcane Flight
@@ -61,6 +62,7 @@ Brindle Boar
 Bringer of the Black Dawn
 Brutal Nightstalker
 Bushmeat Poacher
+Butterbur, Bree Innkeeper
 Calix, Guided by Fate
 Cartouche of Zeal
 Cathartic Adept
@@ -177,6 +179,7 @@ Harvest Gwyllion
 Haunt of the Dead Marshes
 Havengul Runebinder
 Hawkeye, Clint Barton
+Heartstone
 Henrika Domnathi
 Herald of Serra
 Heroes for Hire
@@ -369,6 +372,7 @@ Storm Fleet Sprinter
 Storm Sculptor
 Stun
 Subterranean Spirit
+Suffocating Blast
 Summoning Materia
 Sunastian Falconer
 Swamp

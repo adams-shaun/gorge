@@ -24,6 +24,7 @@ Arcane Denial
 Archmage Emeritus
 Armed Assailant
 Armored Skaab
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -269,6 +270,7 @@ Noble Templar
 Novice Occultist
 Oketra's Monument
 Old Stickfingers
+Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
 Oran-Rief, the Vastwood

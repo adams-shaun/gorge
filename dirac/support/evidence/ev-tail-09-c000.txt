@@ -173,6 +173,7 @@ Lulu, Stern Guardian
 Madcap Skills
 Marauding Dreadship
 Mask of Immolation
+Master's Guidance
 Melira, the Living Cure
 Mephitic Vapors
 Might of the Old Ways
@@ -301,6 +302,7 @@ Unnerve
 Untethered Express
 Vault Robber
 Vedalken Infuser
+Verdant Force
 Vertigo
 Vial of Dragonfire
 Viashino Slasher

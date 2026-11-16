@@ -11,6 +11,7 @@ Aethersnipe
 Akoum Refuge
 Akroan Sergeant
 Alluring Suitor
+Alpha Tyrranax
 Amulet of Unmaking
 Angelic Exaltation
 Angelic Gift
@@ -43,6 +44,7 @@ Bewilder
 Beyeen Veil
 Big Score
 Bill the Pony
+Blistercoil Weird
 Blood Burglar
 Bloodbraid Elf
 Bloodline Culling
@@ -151,6 +153,7 @@ Forest
 Forked Bolt
 Franklin Richards, Ascendant
 From Beyond
+Fungus Elemental
 Furnace Spirit
 Gala Greeters
 Galadhrim Bow
@@ -211,6 +214,7 @@ Intrepid Hero
 Invasion of Xerex
 Island
 Izzet Signet
+Jedit Ojanen, Mercenary
 Jousting Dummy
 Junk Winder
 Kamahl's Desire
@@ -257,6 +261,7 @@ Mite Overseer
 Mogg Alarm
 Moonlit Wake
 Mordant Dragon
+Morkrut Banshee
 Mossbeard Ancient
 Mosstodon
 Motivated Pony
@@ -451,6 +456,7 @@ Whisper Agent
 Wild Celebrants
 Wings of Hope
 Wolf's Quarry
+Woodland Bellower
 Wrangle
 Wrenn's Resolve
 Wyluli Wolf

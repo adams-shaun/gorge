@@ -16,6 +16,7 @@ Angelic Ascension
 Ant-Man, Reformed Rogue
 Anthroplasm
 Arbalest Engineers
+Archangel of Thune
 Ardent Electromancer
 Argivian Restoration
 Arlinn, Voice of the Pack
@@ -44,6 +45,7 @@ Blessed Respite
 Blood-Chin Fanatic
 Bog Smugglers
 Bonds of Mortality
+Bottomless Vault
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burly Breaker
@@ -63,12 +65,15 @@ Chandra's Pyreling
 Chasm Guide
 Cinder Hellion
 Cinderclasm
+Cirith Ungol Patrol
 Clergy en-Vec
 Cogwork Spy
 Collateral Damage
 Coma Veil
 Composer of Spring
+Consign to the Pit
 Containment Breach
+Contingency Plan
 Coral Eel
 Council's Judgment
 Cragplate Baloth
@@ -92,6 +97,7 @@ Dread Slag
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
+Earthen Goo
 Eerie Soultender
 Elemental Bond
 Ellie, Vengeful Hunter
@@ -103,6 +109,7 @@ Emiel the Blessed
 Emrakul's Influence
 Enthralling Victor
 Environmental Sciences
+Erkenbrand, Lord of Westfold
 Errant Doomsayers
 Escape Protocol
 Ethereal Whiskergill
@@ -143,6 +150,8 @@ Geosurge
 Giant Cockroach
 Gift of Estates
 Gift of Tusks
+Gimli's Reckless Might
+Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
@@ -294,6 +303,7 @@ Rockslide Ambush
 Rolling Thunder
 Romana II
 Roughshod Mentor
+Ruin Raider
 Ruination
 Rumbling Crescendo
 Rumor Gatherer
@@ -370,9 +380,11 @@ The Stasis Coffin
 Thoughtcutter Agent
 Thriving Isle
 Throne of Empires
+Tibalt, Rakish Instigator
 Timberpack Wolf
 Tooth and Claw
 Toph, Greatest Earthbender
+Torsten Von Ursus
 Tower of Calamities
 Treasure Mage
 Tree of Tales
@@ -403,3 +415,4 @@ Yavimaya Ants
 You Are Already Dead
 Ziatora's Proving Ground
 Zombie Cutthroat
+Zombie Master

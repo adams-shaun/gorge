@@ -325,6 +325,7 @@ Rusted Sentinel
 Ruthless Sniper
 Sabertooth Wyvern
 Sacred Guide
+Safewright Quest
 Sage-Eye Avengers
 Saheeli Rai
 Said
@@ -403,6 +404,7 @@ Tavern Brawler
 Telethopter
 Tempered Veteran
 Tenured Oilcaster
+The Cabbage Merchant
 The Fair Basilica
 The Frightful Four
 The Juzam Master

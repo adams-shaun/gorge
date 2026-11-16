@@ -4,7 +4,9 @@ Aether Swooper
 Akoum Warrior
 Angelic Skirmisher
 Apprentice Necromancer
+Artful Takedown
 Assault on Osgiliath
+Blood-Chin Rager
 Boon of Erebos
 Carrion Feeder
 Cathartic Reunion
@@ -18,9 +20,11 @@ Cultist's Staff
 Dawnstrider
 Deface
 Demonic Vigor
+Disciple of the Old Ways
 Dockside Chef
 Dreamscape Artist
 Dwarven Reinforcements
+Dying Wail
 Eldrazi Aggressor
 Elesh Norn, Grand Cenobite
 Elvish Bard
@@ -34,6 +38,7 @@ Final Reward
 Final Strike
 Flamecore Elemental
 Forest
+Ghostblade Eidolon
 Gix's Caress
 Gnaw to the Bone
 Goblin Guide
@@ -41,14 +46,17 @@ Gretchen Titchwillow
 Growth Cycle
 Gryff Vanguard
 Heliod's Punishment
+Holy Strength
 Hullbreaker Horror
 Hydra Broodmaster
 Hythonia the Cruel
 Ilysian Caryatid
+Imposing Sovereign
 Indulgent Aristocrat
 Insolent Neonate
 Island
 Ivory Guardians
+Jolrael's Favor
 Keeper of Progenitus
 Kor Cartographer
 Leaf Dancer
@@ -59,9 +67,12 @@ Managorger Hydra
 Minotaur Sureshot
 Mountain
 Mutilate
+Nature's Spiral
 Ooze Garden
+Oran-Rief Invoker
 Patagia Viper
 Plains
+Rallying Roar
 Return of the Mole Man
 Rishadan Airship
 Roaring Primadox
@@ -69,18 +80,23 @@ Ruination Rioter
 Samut, Vizier of Naktamun
 Savageborn Hydra
 Saving Grasp
+Scrollshift
 Scuzzback Scrapper
+Sentinel of the Eternal Watch
 Settle Beyond Reality
 Shatterskull Giant
 Shu Grain Caravan
 Song of Serenity
 Spectral Hunt-Caller
+Summer Bloom
 Swamp
+Thraben Heretic
 Titania's Command
 Tormented Angel
 Totem-Guide Hartebeest
 Tradewind Rider
 Undead Butler
+Uproot
 Vampiric Spirit
 Viashino Spearhunter
 War Horn

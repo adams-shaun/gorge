@@ -195,6 +195,7 @@ Mountain
 Mudbrawler Cohort
 Multani's Decree
 Murmuring Mystic
+Muse Drake
 Natural Obsolescence
 Naturalize
 Nemata, Grove Guardian
@@ -328,6 +329,7 @@ Vivien's Crocodile
 Waking Nightmare
 Wall of Razors
 Weathered Wayfarer
+Welkin Tern
 Whisper of the Dross
 Wight of Precinct Six
 Woebringer Demon

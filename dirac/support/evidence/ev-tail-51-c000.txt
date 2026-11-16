@@ -41,13 +41,16 @@ Bone Saw
 Boseiju, Who Endures
 Botanical Plaza
 Breakneck Berserker
+Brilliant Restoration
 Brinebarrow Intruder
+Bring Low
 Bring to Trial
 Brion Stoutarm
 Bumi's Feast Lecture
 Burning Oil
 Burning Wish
 Bygone Marvels
+Cache Raiders
 Cackling Fiend
 Calamity of Cinders
 Campfire
@@ -68,6 +71,7 @@ Court of Ardenvale
 Crash the Party
 Craven Giant
 Crippling Fear
+Crumble
 Curse of Vitality
 Cursed Minotaur
 Cut Down
@@ -79,6 +83,7 @@ Darksteel Ingot
 Dauthi Trapper
 Daxiver, Izzet Electromancer
 Death Cloud
+Decimate
 Deepwood Wolverine
 Defend the Campus
 Delayed Blast Fireball
@@ -123,6 +128,7 @@ Errand-Rider of Gondor
 Ertai Resurrected
 Essence Extraction
 Eternal Isolation
+Evasive Action
 Eviscerator's Insight
 Evolution Charm
 Excoriate
@@ -144,6 +150,7 @@ Freewind Equenaut
 Furnace Hellkite
 Galepowder Mage
 Gallant Cavalry
+Gemhide Sliver
 General Thunderbolt Ross
 Generous Pup
 Ghastbark Twins
@@ -163,6 +170,7 @@ Goliath Paladin
 Gorilla Chieftain
 Grazing Whiptail
 Green Sun's Zenith
+Grim Hireling
 Grim Poppet
 Grimgrin, Corpse-Born
 Grizzled Angler
@@ -170,6 +178,7 @@ Grizzly Bears
 Grozoth
 Guardian Augmenter
 Guide of Souls
+Guild Thief
 Gut Shot
 Guul Draz Assassin
 Guul Draz Overseer
@@ -181,6 +190,7 @@ Haunted Fengraf
 Headless Skaab
 Headstrong Brute
 Heedless One
+Heiko Yamazaki, the General
 Hell Mongrel
 Helldozer
 Hellraiser Goblin
@@ -209,6 +219,7 @@ Jiang Yanggu, Wildcrafter
 Jodah's Codex
 Jousting Lance
 Jugan, the Rising Star
+Junktown
 Kalonian Twingrove
 Kaya's Ghostform
 Keen Sense
@@ -239,6 +250,7 @@ Life Chisel
 Light of Hope
 Lightning Elemental
 Living Wish
+Loathsome Curator
 Long-Lost Lances
 Lotus-Eye Mystics
 Loxodon Mystic
@@ -261,6 +273,7 @@ Mistblade Shinobi
 Moldgraf Millipede
 Monastery Swiftspear
 Morbid Plunder
+Morphling
 Mosstodon
 Most Wanted
 Mountain
@@ -285,6 +298,7 @@ Obsidian Battle-Axe
 One-Clown Band
 Onyx Mage
 Oran-Rief, the Vastwood
+Oraxid
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
@@ -293,7 +307,9 @@ Passwall Adept
 Path of Discovery
 Patron Wizard
 Pestilence Rats
+Phantom Flock
 Photon, Lady of Light
+Phylath, World Sculptor
 Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
@@ -346,6 +362,7 @@ Royal Falcon
 Rubblebelt Boar
 Rural Recruit
 Ruthless Predation
+Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
 Sarkhan's Catharsis
@@ -370,6 +387,7 @@ Shielded by Faith
 Shocker
 Show of Confidence
 Sigiled Skink
+Silverclad Ferocidons
 Simic Growth Chamber
 Siren of the Silent Song
 Skittering Invasion
@@ -382,6 +400,7 @@ Smashing Spree
 Smelt
 Snapping Thragg
 Soramaro, First to Dream
+Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Soulquake
@@ -397,6 +416,7 @@ Stabbing Pain
 Start from Scratch
 Steal Artifact
 Steelform Sliver
+Stew the Coneys
 Stir the Pride
 Stone-Throwing Devils
 Stonybrook Angler
@@ -453,6 +473,7 @@ Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Anatomist
 Vedalken Ghoul
+Veiled Apparition
 Verdant Automaton
 Verdant Force
 Vessel of Ephemera
@@ -470,6 +491,7 @@ Wight
 Wild Growth
 Wind-Kin Raiders
 Wolfrider's Saddle
+Wooden Cane
 Workshop Assistant
 Write into Being
 Wu Elite Cavalry

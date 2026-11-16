@@ -25,6 +25,7 @@ Ethereal Usher
 Experimental Overload
 Faith Healer
 Feral Lightning
+Fire of Orthanc
 Firebird, Blazing Ranger
 Flow of Ideas
 Forest
@@ -52,10 +53,12 @@ Malachite Talisman
 Manamorphose
 Marwyn, the Nurturer
 Moss Monster
+Mother Kangaroo
 Mountain
 Nagging Thoughts
 Nardole, Resourceful Cyborg
 Norn's Disassembly
+Oashra Cultivator
 Onyx Talisman
 Penumbra Bobcat
 Phantasmal Dragon
@@ -78,6 +81,7 @@ Sledding Otter-Penguin
 Slither Blade
 Sol Grail
 Solid Footing
+Soulhunter Rakshasa
 Spark Mage
 Sparring Collar
 Spider-Man 2099, Miguel O'Hara

@@ -18,6 +18,7 @@ Alluring Scent
 Anarchist
 Ancient Brontodon
 Ancient Tomb
+Angelic Sleuth
 Anoint
 Anointer of Champions
 Anvilwrought Raptor
@@ -187,7 +188,9 @@ Ghostfire Blade
 Gimli's Axe
 Glory Bearers
 Gnaw to the Bone
+Gnottvold Slumbermound
 Goblin Assault
+Goblin Bomb
 Goblin Boom Keg
 Goblin Locksmith
 Goldmeadow Dodger
@@ -221,6 +224,7 @@ Idyllic Beachfront
 Ifnir Deadlands
 Ignite the Future
 Imaginary Friends
+Immersturm Skullcairn
 Implement of Combustion
 Invasion of Dominaria
 Invasion of Kaldheim
@@ -257,6 +261,7 @@ Looming Shade
 Lotus Petal
 Lucky Offering
 Lux Cannon
+Mage-Ring Network
 Magus of the Mind
 Make a Wish
 Mark of Sakiko
@@ -391,6 +396,7 @@ Sparksmith
 Sparring Construct
 Spiked Corridor
 Spiteful Sliver
+Spurred Wolverine
 Staff of the Death Magus
 Stampeding Serow
 Stampeding Wildebeests
@@ -408,6 +414,7 @@ Talas Air Ship
 Talonrend
 Talrand, Sky Summoner
 Targ Nar, Demon-Fang Gnoll
+Tattered Drake
 Telekinetic Sliver
 Temporary Lockdown
 Temur Battle Rage
@@ -434,6 +441,7 @@ Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
 Venerable Lammasu
+Vengeant Vampire
 Verdigris
 Verix Bladewing
 Veteran Cavalier
@@ -446,6 +454,7 @@ Vodalian Merchant
 Vodalian Zombie
 Vulshok Berserker
 Vulshok Heartstoker
+Wall of Bone
 Wall of Hope
 Wave Goodbye
 Web

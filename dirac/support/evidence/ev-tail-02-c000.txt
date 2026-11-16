@@ -2,10 +2,12 @@ A-Eiganjo Exemplar
 A-Unholy Heat
 Abbey Matron
 Abomination, Irradiated Brute
+Abyssal Horror
 Aerith, Last Ancient
 Ajani's Welcome
 Akroan Conscriptor
 Alesha's Vanguard
+Altar Golem
 Amphibian Downpour
 Ancient Stirrings
 Angel of Invention
@@ -50,6 +52,7 @@ Centaur Omenreader
 Chain of Plasma
 Chainflail Centipede
 Chamber of Manipulation
+Char-Rumbler
 Chief Jim Hopper
 Cho-Manno's Blessing
 Chrome Steed
@@ -109,6 +112,7 @@ Fallaji Chaindancer
 Farideh's Fireball
 Fateful End
 Favorable Winds
+Feasting Troll King
 Fell the Profane
 Festive Funeral
 Final Flare
@@ -127,6 +131,7 @@ Gauntlets of Light
 General Kudro of Drannith
 Ghost Tactician
 Giant's Skewer
+Glaze Fiend
 Glóin, Dwarf Emissary
 Goblin Anarchomancer
 Goblin Bully
@@ -147,6 +152,7 @@ Hidden Herbalists
 Hieroglyphic Illumination
 Horned Troll
 Hydrolash
+Hyperion's Atomic Vision
 Immolating Gyre
 Incorrigible Youths
 Infernal Contract
@@ -154,6 +160,7 @@ Inflame
 Invade the City
 Invoke the Divine
 Invoke the Winds
+Irini Sengir
 Iron Myr
 Isamaru, Hound of Konda
 Island
@@ -190,6 +197,7 @@ Magmatic Sprinter
 Major Teroh
 Malakir Rebirth
 Manaform Hellkite
+Mardu Hordechief
 Marshaling Cry
 Master Apothecary
 Master of Etherium
@@ -235,6 +243,7 @@ Pillar of War
 Plains
 Planar Collapse
 Poison the Blade
+Pol Jamaar, Illusionist
 Press the Advantage
 Primal Druid
 Prosperity
@@ -286,6 +295,7 @@ Showstopper
 Skirsdag Supplicant
 Skittering Horror
 Skittering Precursor
+Skola Grovedancer
 Skyshroud Ridgeback
 Sleeping Potion
 Smash to Smithereens
@@ -306,6 +316,7 @@ Subterranean Scout
 Swamp
 Sword Dancer
 Syndic of Tithes
+Take Vengeance
 Tel-Jilad Fallen
 Temporary Lockdown
 The Shire
@@ -332,6 +343,7 @@ Voltaic Key
 Vulshok Replica
 Wailing Ghoul
 Wake of Vultures
+Walking Skyscraper
 Wall of Light
 Wall of Pine Needles
 Wall of Runes

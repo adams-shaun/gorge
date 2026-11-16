@@ -178,6 +178,7 @@ Natural Reclamation
 Necrogenesis
 Necron Deathmark
 Neheb, Dreadhorde Champion
+Neverwinter Dryad
 Night Revelers
 Nirkana Assassin
 Noble Stand
@@ -235,6 +236,7 @@ Snake Basket
 Soul Manipulation
 Soul of Mirrodin
 Southern Paladin
+Speaker of the Heavens
 Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus

@@ -78,6 +78,7 @@ Earth Surge
 Earthblighter
 Echoes of the Kin Tree
 Ekundu Griffin
+Eldrazi Displacer
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
@@ -233,6 +234,7 @@ Nucklavee
 Nullmage Shepherd
 Oakheart Dryads
 Observant Alseid
+Okina, Temple to the Grandfathers
 Old Gnawbone
 Olivia Voldaren
 Orim's Prayer
@@ -342,6 +344,7 @@ Stormscape Familiar
 Strands of Undeath
 Summon: Ixion
 Sunblast Angel
+Sunfall
 Suq'Ata Assassin
 Survivors' Encampment
 Swamp
@@ -357,6 +360,7 @@ Tazeem Raptor
 Temple Bell
 Terra Ravager
 The Duke, Rebel Sentry
+Thousand-Year Elixir
 Thundermare
 Tidal Kraken
 Tideshaper Mystic

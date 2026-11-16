@@ -78,6 +78,7 @@ Dalakos, Crafter of Wonders
 Dancing Scimitar
 Dangerous Wager
 Darkthicket Wolf
+Daru Spiritualist
 Dauthi Cutthroat
 Death Mutation
 Death Pulse
@@ -192,6 +193,7 @@ Llanowar Wastes
 Lofty Denial
 Loki's Scepter
 Long-Range Sensor
+Lorehold Archivist
 Loxodon Wayfarer
 Lucky Clover
 Lumengrid Warden
@@ -219,6 +221,7 @@ Motivated Pony
 Mountain
 Mox Opal
 Murmuring Phantasm
+Mystic Remora
 Nahiri, Storm of Stone
 Nantuko Mentor
 Narset's Reversal
@@ -343,6 +346,7 @@ Takenuma, Abandoned Mire
 Talas Explorer
 Talon Gates of Madara
 Tear Asunder
+Temur War Shaman
 Tethmos High Priest
 Thallid Germinator
 The Hunger Tide Rises
