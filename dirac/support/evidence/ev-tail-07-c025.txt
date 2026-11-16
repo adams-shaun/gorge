@@ -1,16 +1,27 @@
+Assault Intercessor
 Azorius Herald
+Deathgaze Cockatrice
 Displacer Kitten
 Emerge Unscathed
 Exuberant Fuseling
+Flower
 Force Spike
 Forest
 Frogify
+Glorious Enforcer
 Island
+Kiss of Death
 Kor Celebrant
 Liliana's Mastery
 Majestic Metamorphosis
+Martyr of Dusk
 Mogg Raider
+Morgue Thrull
 Mountain
+Niblis of the Mist
+Niblis of the Urn
+Ninth Bridge Patrol
+Pack's Disdain
 Plains
 Rampaging Brontodon
 Salvage
@@ -21,4 +32,6 @@ Sudden Spinnerets
 Supernatural Stamina
 Swamp
 Taunting Kobold
+Veteran Armorsmith
+Viridian Revel
 Wellwisher

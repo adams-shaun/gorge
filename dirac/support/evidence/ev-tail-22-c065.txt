@@ -1,0 +1,6 @@
+Forest
+Island
+Mountain
+Null Champion
+Plains
+Swamp

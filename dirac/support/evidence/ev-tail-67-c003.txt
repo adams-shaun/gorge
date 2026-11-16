@@ -1,34 +1,81 @@
+A-Dokuchi Silencer
 Aethershield Artificer
 Against All Odds
 Air Nomad Student
 Akki Underminer
 Akrasan Squire
+Angelic Renewal
+Aquatic Incursion
 Archaeomender
+Augury Adept
+Avatar of the Resolute
+Axebane Guardian
+Black Market
 Blade Splicer
 Burn the Impure
+Butcher Ghoul
 Cogwork Assembler
+Commissar Severina Raine
+Conservator
+Corpse Knight
+Courier's Capsule
+Crop Rotation
 Culling Mark
 Daring Fiendbonder
+Dauntless Survivor
+Deathless Angel
+Deep Reconnaissance
 Deepwood Ghoul
 Deft Dismissal
+Demon's Grasp
+Demonic Rising
 Dyfed, the Guiding Hand
+Earthen Goo
 Erratic Visionary
+Essence Warden
+Eternal Witness
 Ethereal Champion
 Ethereal Usher
+Explosive Welcome
+Fain, the Broker
+Firebird, Blazing Ranger
 Flow of Ideas
+Flux Channeler
 Forest
+Fungal Sprouting
+Gluttonous Zombie
+Grim Monolith
+Hanna, Ship's Navigator
+Hemlock Vial
+Honed Khopesh
+Hooting Mandrills
 Horizon Chimera
+Horseshoe Crab
 Hound of the Farbogs
+Inkrise Infiltrator
+Inspiring Refrain
+Intrepid Ace
 Iroas's Champion
+Iron Suitcase
+Ironclad Krovod
 Island
+Jackalope Herd
 Keen-Eyed Raven
 Leafkin Druid
+Lightning Reaver
 Liliana's Influence
 Lodestone Myr
+Longtusk Cub
+Lush Growth
+MJ, Rising Star
+Manaforce Mace
 Manamorphose
 Manticore Eternal
 Mausoleum Secrets
+Metropolis Reformer
+Mise
 Mogis's Warhound
+Moss Monster
 Mountain
 Nagging Thoughts
 Natural Emergence
@@ -36,21 +83,62 @@ Necrobite
 Nemesis of Reason
 Nezumi Bladeblesser
 Norn's Disassembly
+Oblation
+Pentarch Ward
+Pernicious Deed
 Pilfering Imp
 Plains
 Pollywog Prodigy
+Primeval Force
+Prosper, Tome-Bound
+Prosperous Innkeeper
 Python
 Rage Weaver
+Ravos, Soultender
+Ray of Erasure
 Reality Ripple
 Reckless Charge
+Reduce to Ashes
+Relic Barrier
+Repel
 Revelation of Power
 Rogue Refiner
 Sandcrafter Mage
+Savra, Queen of the Golgari
+Scion of Vitu-Ghazi
 Searing Barb
+Sentinel Sliver
 Shepherd of the Lost
 Slinking Giant
+Sol Grail
 Solid Footing
+Spined Fluke
+Squee's Embrace
 Swamp
 Tale of Momo
+Talons of Falkenrath
+Talons of Wildwood
+Temmet, Vizier of Naktamun
+Territorial Allosaurus
+The Bears of Littjara
 The Whizzer, Classic Speedster
+Thorn Thallid
+Thrór's Map
+Thwart the Grave
+Titan's Strength
 Tormod's Cryptkeeper
+Trueheart Duelist
+Umbris, Fear Manifest
+Undercity Scavenger
+Unholy Hunger
+Vine Trellis
+Warped Devotion
+Way of the Thief
+Weight of the Underworld
+Welder Automaton
+Whispering Wizard
+Wirecat
+Wrath of Oko
+You Look Upon the Tarrasque
+Zephyr Falcon
+Zodiac Ox

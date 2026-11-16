@@ -1,29 +1,196 @@
+A-Pseudodragon Familiar
+A-Tatyova, Steward of Tides
+A-Urza, Powerstone Prodigy
+Aether Mutation
+Aim for the Head
+Ainok Artillerist
+Alaborn Trooper
+Ammit Eternal
+Angelic Voices
 Animist's Might
 Arc Spitter
+Arcane Spyglass
+Ascendant Evincar
+Balance of Power
+Balefire Dragon
+Banewasp Affliction
 Barkchannel Pathway
+Batterhorn
+Battleflight Eagle
 Bereavement
+Blind with Anger
+Blinding Mage
+Blitz Automaton
 Blossoming Calm
+Bonded Herdbeast
+Bone Shards
 By Invitation Only
+Carrion Howler
+Carrion Locust
 Celebrate the Harvest
+Charred Graverobber
+Choking Fumes
+Clash of Realities
+Clear
+Clickslither
+Coastal Tower
+Cockatrice
+Confidence from Strength
+Corpsehatch
+Costly Plunder
+Court of Garenbrig
+Crabapple Cohort
+Crafty Pathmage
+Crimson Manticore
+Curator of Mysteries
+Darklit Gargoyle
+Dawnhart Disciple
+Destructive Force
+Diabolic Machine
+Dig Up
+Disciple of the Vault
+Dispersing Orb
 Eastfarthing Farmer
+Eddytrail Hawk
+Eternity Vessel
+Eyes in the Skies
 False Mourning
+Fellwar Stone
 Flamekin Brawler
+Flashfires
+Flinthoof Boar
+Font of Fertility
 Forest
+Fortifying Draught
+Gaea's Cradle
 Glaze Fiend
+Glorious Dragon-Kin
+Goblin Heelcutter
+Goblin Picker
+Guardian of the Great Conduit
+Guild Artisan
+Harvest Wurm
+Hasran Ogress
+Hatred
+Helm of Awakening
+Homarid Shaman
+Homarid Spawning Bed
+Hyperion's Atomic Vision
+Implement of Examination
+Infernal Grasp
+Infernal Plunge
+Inspired Tinkering
 Island
+Jungle Lion
+Kamigawa Charm
+Kazuul Warlord
 Khabál Ghoul
+Killer Whale
 Kithkin Shielddare
 Kyren Legate
+Leonardo, the Balance
+Llawan, Cephalid Empress
+Locked in the Cemetery
+Loran, Disciple of History
+Lotus Path Djinn
+Lu Su, Wu Advisor
+Magnetic Mine
+Mana Geode
+Mana Severance
+Marble Chalice
+Master of Waves
 Meekstone
+Minor Misstep
+Mogg Conscripts
+Mogg Flunkies
+Molten Nursery
+Moor Fiend
+Mordor Muster
 Mountain
+Myr Battlesphere
+Nahiri's Machinations
+Nightguard Patrol
 Nighthawk, Dark Defender
+Nimbus Wings
+Notorious Assassin
+Omenspeaker
+Orcish Medicine
+Origin Spellbomb
+Paradox Zone
+Penumbra Kavu
 Pestilence Rats
+Petals of Insight
+Petrahydrox
+Petrified Plating
+Plagued Rusalka
 Plains
+Polluted Delta
 Predator's Howl
+Pride of the Perfect
+Profaner of the Dead
+Puppeteer
+Rakdos Carnarium
+Recollect
+Recover
+Renowned Weaponsmith
+Rionya, Fire Dancer
+Riverwise Augur
 Roc Egg
+Roofstalker Wight
+Royal Warden
+Rupture Spire
+Rush of Battle
+Ruthless Instincts
+Sage-Eye Harrier
+Sandstone Bridge
+Savage Order
+Scapeshift
+Scepter of Fugue
 Seeds of Strength
+Seer of the Last Tomorrow
+Selfless Cathar
 Shock Troops
+Short Circuit
+Sinister Strength
+Skaab Wrangler
+Skeletal Snake
+Sleek Schooner
+Soul Snuffers
+Soul's Majesty
+Spellkeeper Weird
+Spire Mangler
+Spirit of the Hunt
+Splendid Reclamation
+Spontaneous Mutation
+Stoic Champion
 Stormfront Pegasus
+Stream of Consciousness
+Summoning Materia
 Swamp
+Sylvan Safekeeper
+Tear Asunder
+Tenza, Godo's Maul
+The Revelations of Ezio
 Thrilling Discovery
+Tobias Andrion
+Torch Drake
+Torch Gauntlet
+Torture
+Trained Condor
+Transcendent Master
+Turn Against
 Unlikely Alliance
+Vat of Rebirth
+Vault of Whispers
+Venser's Sliver
+Vessel of Nascency
+Viashino Sandswimmer
+Vibrating Sphere
+Viridescent Wisps
+Volcanic Geyser
+Warg Rider
+Waterwhirl
+Wind Shear
+Wing It
+Woodcutter's Grit
+Zhou Yu, Chief Commander

@@ -1044,9 +1044,12 @@ PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
 PrevScopeAll	untyped int	8
+PrevScopeAnyPlayer	untyped int	16384
 PrevScopeColourShift	untyped int	8
 PrevScopeCombat	untyped int	16
 PrevScopeCreatures	untyped int	2
+PrevScopeFiltered	untyped int	32
+PrevScopeOppPlayer	untyped int	8192
 PrevScopePlayer	untyped int	1
 PrevScopeSrcCreature	untyped int	4
 PropCardManaCost	uint8	3
@@ -1178,6 +1181,20 @@ ReplPreventDamageCounters	ReplKind	36
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplRewriteTokens	ReplKind	30
+ReplSPAllBut	untyped int	512
+ReplSPAmtV	untyped int	256
+ReplSPAnyPerm	untyped int	4
+ReplSPCombat	untyped int	8
+ReplSPDmgLE	untyped int	128
+ReplSPLimitCtr	untyped int	1024
+ReplSPNonCombat	untyped int	16
+ReplSPOpp	untyped int	2
+ReplSPOptional	untyped int	2048
+ReplSPRecipSnow	untyped int	4096
+ReplSPSrcInPlay	untyped int	64
+ReplSPSrcSpell	untyped int	8192
+ReplSPYou	untyped int	1
+ReplSPYourTurn	untyped int	32
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8

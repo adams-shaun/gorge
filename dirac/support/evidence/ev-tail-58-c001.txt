@@ -1,42 +1,225 @@
+A-Hobbling Zombie
+A.I.M. Bot
+Abu Ja'far
 Abundant Harvest
 Abzan Banner
+Accumulated Knowledge
+Aetherling
 Age of Ultron
+Alabaster Potion
+Alesha's Vanguard
+Altar of Bhaal
+Amok
+Angel of Renewal
 Animist's Awakening
+Anoint with Affliction
+Ant-Man's Air Force
 Argothian Elder
+Augmenting Automaton
+Aven Smokeweaver
+Baboon Spirit
+Basalt Monolith
 Beacon Hawk
+Blanchwood Treefolk
+Blitz of the Thunder-Raptor
+Bloodfire Infusion
+Bogardan Firefiend
+Boggart Forager
+Bonds of Quicksilver
+Break of Day
 Briarhorn
+Bronze Cudgels
+Brood Weaver
+Calamity's Wake
+Ceremonious Rejection
+Chaos Maw
+Chimeric Mass
+Chrome Mox
+Cleansing Nova
+Cogwork Librarian
+Compulsory Rest
+Concentrate
+Contagious Vorrac
 Council of Advisors
+Covert Technician
+Dauthi Horror
+Deathbonnet Sprout
+Debtor's Pulpit
+Desperate Plea
+Disciple of Grace
+Distant Melody
 Dramatic Finale
 Dreadmobile
+Druid of the Anima
 Dungrove Elder
 Early Frost
 Eccentric Farmer
 Elite Headhunter
+Emissary of the Sleepless
+Essence Flare
 Eternal Flame
+Farsight Mask
+Fateful Handoff
+Favorable Winds
+Fists of Ironwood
 Flameborn Viron
 Forest
+Fragmentize
+From Beyond
+Frost Marsh
+Funeral Pyre
 Funeral Rites
+Garenbrig Carver
+General's Enforcer
+Giant Dustwasp
+Goblin Engineer
 Goblin Lore
+Goblin Soothsayer
+Grasping Current
+Grasping Dunes
+Grave Strength
+Gravedig
+Grismold, the Dreadsower
 Hamato Ninpō
+Haunted Crossroads
+Hellfire
 Hog-Monkey Rampage
+Hook Swords
+Illustrious Historian
+Inspired Insurgent
+Inspired Sphinx
+Involuntary Cooldown
+Iron Myr
 Island
 Jarl of the Forsaken
 Kamber, the Plunderer
+Khorvath Brightflame
+Kithkin Daggerdare
+Knighted Myr
 Krovikan Plague
+Kujar Seedsculptor
 Kurgadon
+Lambholt Harrier
+Lawless Broker
+Lembas
 Lethal Exploit
+Llanowar Visionary
+Looming Spires
+Lucky Offering
+Mass Diminish
+Master Splicer
+Mesmeric Orb
+Might of Murasa
 Mire Triton
+Molting Snakeskin
+Moria Marauder
+Mortal Obstinacy
 Mountain
+Mox Diamond
+Mystic Compass
 Natural Obsolescence
+Netherborn Altar
+Nicol Bolas
+Nightshade Stinger
+Nissa's Judgment
 Novice Dissector
 Ojutai's Command
+Omen of the Hunt
+One-Clown Band
+Opportunity
+Oreskos Sun Guide
+Overflowing Basin
+Peat Bog
+Peema Aether-Seer
+Phantatog
+Pheres-Band Tromper
 Plague Beetle
+Plague Witch
 Plains
+Prophet of Distortion
+Pyrostatic Pillar
+Quarrel's End
+Rainbow Crow
+Rakdos Ickspitter
+Ranger's Longbow
+Rank Officer
+Ransack the Lab
+Rat King, Pale Piper
+Reshape the Earth
+Ring of Renewal
+Rith's Grove
 Rooftop Bypass
+Rootwater Diver
+Rumbleweed
+Runechanter's Pike
+Runed Stalactite
+Sanctuary Cat
+Sandstone Deadfall
+Screaming Seahawk
+Sengir Bats
+Serpent of the Endless Sea
+Serra's Boon
+Setessan Oathsworn
+Shadowborn Demon
+Shard Volley
+Shriekdiver
+Silverwing Squadron
+Simian Brawler
+Simic Charm
+Skittering Horror
+Skyhunter Cub
+Skystrike Officer
+Snow-Covered Island
+Soul Rend
+Soul of Innistrad
+Sparkmage's Gambit
+Spidery Grasp
+Spine of Ish Sah
+Sprouting Phytohydra
+Stag Beetle
+Steadfast Guard
 Stone-Seeder Hierophant
+Storm Shaman
+Sudden Strength
+Summit Apes
+Suspended Sentence
 Swamp
 Tainted Strike
+Tainted Well
+Telepathy
+Tempered Veteran
+Temple Thief
+Tendershoot Dryad
+The Magic Mirror
 Theater of Horrors
+Thraben Sentry
+Thrull Parasite
+Thunder Spirit
+Thundersong Trumpeter
+Tiamat's Fanatics
+Traverse the Outlands
+Treacherous Blessing
 Tuinvale Treefolk
+Umbral Mantle
+Universal Solvent
 Urbis Protector
+Vebulid
+Veiled Apparition
+Vela the Night-Clad
+Vessel of Paramnesia
+Viashino Grappler
+Vigilance
+Vinelasher Kudzu
+Vivify
+Vraska's Stoneglare
+Wailing Ghoul
+Wheel of Fortune
+Whipcorder
+Wishcoin Crab
+Witness of Tomorrows
+Woebringer Demon
 Wolfbriar Elemental
+Woodland Patrol
+Yellow Scarves Cavalry
+Yotian Frontliner
+Zealous Conscripts

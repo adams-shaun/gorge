@@ -4,4 +4,4 @@ value: 97
 forge: FEATHER
 census: ctr FEATHER all=3 std=0 mbc=0 sole=0
 state: code 0
-status: active
+status: reserved

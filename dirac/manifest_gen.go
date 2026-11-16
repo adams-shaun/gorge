@@ -4,6 +4,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// ask (dirac/manifest/ask/raDredge)
+const raDredge uint8 = 146
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -687,6 +690,9 @@ func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	switch s.res.ask {
+	case raDredge:
+		s.dredgeAskOptions(k, d) // kw_dredge.go
+		return true
 	}
 	return false
 }
@@ -697,6 +703,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 //go:noinline
 func (s *State) applyAskGen(k *prep, a Action) bool {
 	switch s.res.ask {
+	case raDredge:
+		s.dredgeAskAnswer(k, a) // kw_dredge.go
+		return true
 	}
 	return false
 }

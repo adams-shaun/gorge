@@ -1858,6 +1858,12 @@ const ReplRollPlanarDice ReplKind = 62
 // DamageDone (dirac/manifest/ReplKind/ReplPreventDamageToSelf)
 const ReplPreventDamageToSelf ReplKind = 63
 
+// DamageDone (dirac/manifest/ReplKind/ReplPreventDamageFilt)
+const ReplPreventDamageFilt ReplKind = 64
+
+// DamageDone (dirac/manifest/ReplKind/ReplPreventDamageN)
+const ReplPreventDamageN ReplKind = 65
+
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
 

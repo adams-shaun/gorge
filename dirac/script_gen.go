@@ -187,6 +187,21 @@ func hasOption(d *Decision, a Action) bool {
 	return false
 }
 
+// scriptRelax reports whether gorge's census is relaxable on p's board.
+// unrelax holds the live sources that make it unrelaxable on their own: a
+// two-permanent source (Baylen), a Combo Any gap, a sacrifice-any one
+// (Krark-Clan Ironworks: tapXSacAnyBound). So does a fourth filter, or a
+// dynamic one out of bounds (mana_filter.go filtRelaxable). A live dead
+// counter-cost gap (Component Pouch) is unrelaxable as well: gorge's census
+// records it while the cost is payable and paymentPlanRelaxedAlternatives
+// enumerates no colour for its production (potential_plan.go), so the prefix
+// search runs on the any-mana walk and the search's slot accounting counts
+// every insufficient play whatever it finds; the dead gap contributes no units
+// to either walk (availCtr).
+func (s *State) scriptRelax(k *prep, p uint8, filt slotMask, unrelax bool) bool {
+	return !unrelax && !s.scriptGaps(k, p).any() && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -214,15 +229,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// insufficient and no search, so it takes none of the searches
 	// (potential_plan.go paymentPlanRelaxProof), and the candidates are
 	// the gaps walk's alone (one walk, not two).
-	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
-	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
-	// A live dead counter-cost gap (Component Pouch) is unrelaxable as well:
-	// gorge's census records it while the cost is payable and
-	// paymentPlanRelaxedAlternatives enumerates no colour for its production
-	// (potential_plan.go), so the prefix search runs on the any-mana walk and
-	// the search's slot accounting counts every insufficient play whatever it
-	// finds; the dead gap contributes no units to either walk (availCtr).
-	relax := !s.scriptGaps(k, p).any() && !ca && !twoLive && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
+	// A live Baylen makes the census unrelaxable (gorge paymentPlanRelaxedAlternatives,
+	// no once-only cost): every walk play is searched; so is every play beside a live
+	// Krark-Clan Ironworks when the potential bound is open. On a closed bound the
+	// Ironworks' plays are the gaps walk's (sacAny; tapXSacAnyBound).
+	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
+	twoLive := k.tapMana && s.tapXTwoLive(k, p) || sacOpen
+	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -231,7 +244,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
-	if !relax {
+	if !relax && !sacAny {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
@@ -323,8 +336,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
 		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
-			if !s.tapXScript(k, a, p, false) && !(s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p)) {
-				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go)
+			if !s.tapXScript(k, a, p, false) && !s.grantBesideTapXGaps(k, a, p) {
+				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_countercost.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {
@@ -736,13 +749,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
-		} else if g.cheaper && !hasOption(d, a) {
+		} else if (g.cheaper || g.storeStep()) && !hasOption(d, a) {
 			// gorge's planner prices the play again at every search node
 			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
 			// found prefix answered lowered the cost under the root price the
 			// offer builder priced the play with (Gran-Gran's loot discarding a
 			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
-			// lists what the builder left off
+			// lists what the builder left off; so does a prefix that activates a
+			// storage battery, whose counters the builder's units leave out
+			// (mana_grantstore.go)
 			d.add(a)
 		}
 	}

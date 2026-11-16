@@ -4,34 +4,52 @@ Absorb
 Ajani's Mantra
 Avatar of Growth
 Aven Trooper
+Barricade Breaker
+Bearer of Memory
 Black Sun's Twilight
+Blood Vassal
 Blue Marvel, Adam Brashear
 Boiling Blood
 Brainsurge
+Bramblecrush
 Brood Sliver
+Captain's Hook
+Captured by Lagacs
 Chaos Maw
 Chicken Egg
 Chilling Trap
 Choke
+Chromatic Star
 Cinder Pyromancer
+City of Brass
+Cloudcrown Oak
 Curse of Opulence
 Curse of Predation
+Dauntless Bodyguard
+Deadly Insect
 Death Speakers
+Defenestrate
 Doom's Servo-Guards
 Dragonborn Looter
 Echoing Calm
+Eiganjo Castle
 Ember-Fist Zubera
+Enclave Cryptologist
 Encroaching Wastes
 Feral Maaka
+Ferocious Charge
 Field Marshal
 Fire Ambush
 Flameskull
 Forest
 Frightcrawler
+Gaea's Bounty
 Ghoulcaller's Bell
+Gloomhunter
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
+Gruul Keyrune
 Guardian of the Guildpact
 Halberdier
 Hardened Scales
@@ -42,64 +60,97 @@ Immortal Phoenix
 Insidious Bookworms
 Island
 Jhoira's Familiar
+Kazandu Mammoth
 Khenra Charioteer
+Kongming, "Sleeping Dragon"
+Kor Blademaster
 Lady Spider, Maybelle Reilly
+Land Leeches
 Laquatus's Creativity
 Lava Axe
 Liliana's Elite
 Liliana's Standard Bearer
+Lore Seeker
+MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Master the Way
 Meadowboon
 Meng Huo, Barbarian King
 Millstone
 Mist-Syndicate Naga
+Mold Folk
 Momentum Rumbler
 Moonveil Dragon
 Mountain
 Multiform Wonder
+Nantuko Mentor
+Navigation Orb
 Necromancer's Familiar
 Nexus of Fate
+Orazca Frillback
+Oreskos Swiftclaw
 Pathbreaker Ibex
 Peggy Carter, Secret Agent
 Plains
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Primal Whisperer
 Pull from Tomorrow
+Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
 Rag Dealer
 Raging Kavu
+Rancid Rats
 Reaver Ambush
+Return to the Earth
 Riddlekeeper
 Roar of the Crowd
 Roc Hunter
 Rockshard Elemental
+Rundvelt Hordemaster
 Sacred Cat
 Sanctify
 Scoria Wurm
+Scurry Oak
 Silverflame Squire
 Silverskin Armor
 Skirsdag Flayer
 Smash to Dust
+Snow-Covered Forest
+Speakeasy Server
+Spectral Rider
 Spitfire Handler
+Spurnmage Advocate
+Stampeding Rhino
+Stenchskipper
 Storm Fleet Pyromancer
+Strip Mine
 Sunstrike Legionnaire
+Sunweb
 Swamp
 Talisman of Unity
 The Indomitable
 The Shattered States Era
 Thopter Assembly
 Thoughtweft Gambit
+Towering Indrik
+Traumatize
 Triceraton Regenta
 Tuktuk Rubblefort
+Two-Headed Zombie
 Unholy Indenture
 Unquestioned Authority
 Urabrask the Hidden
 Urza, Powerstone Prodigy
+Venser's Journal
+Verge Rangers
 Vineweft
+Violet Pall
 Viridian Longbow
 Warmonger Hellkite
 Weapon Rack
+Wei Strike Force
+Weirding Shaman
 Willow-Wind
