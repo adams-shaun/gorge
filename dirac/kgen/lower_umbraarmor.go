@@ -34,4 +34,7 @@ func dumpKeywordFlags(w io.Writer, c *lCard) {
 	if c.UmbraArmor {
 		fmt.Fprintf(w, " umbra-armor")
 	}
+	if c.Dredge != 0 {
+		fmt.Fprintf(w, " dredge=%d", c.Dredge)
+	}
 }

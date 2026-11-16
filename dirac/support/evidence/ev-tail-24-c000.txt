@@ -1,3 +1,4 @@
+A-Baleful Beholder
 A-Civil Servant
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
@@ -33,6 +34,7 @@ Bedevil
 Benalish Heralds
 Benevolent Hydra
 Binding the Old Gods
+Biolume Egg
 Bladewing, Deathless Tyrant
 Blasting Station
 Blinding Light
@@ -45,6 +47,7 @@ Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
 Brandywine Farmer
 Braulios of Pheres Band
+Bruse Tarl, Boorish Herder
 Brutal Nightstalker
 Brute Force
 Capashen Standard
@@ -54,6 +57,7 @@ Carnival of Souls
 Chainer's Edict
 Chakram Retriever
 Chandra's Triumph
+Chandra, Legacy of Fire
 Cleansing Wildfire
 Collector's Case
 Conifer Strider
@@ -89,6 +93,7 @@ Diviner of Mist
 Doomsday
 Doubtless One
 Dragonsguard Elite
+Drake Stone
 Dream Fracture
 Dredge
 Drinker of Sorrow
@@ -101,6 +106,7 @@ Elder Druid
 Eldrazi Devastator
 Elemental Spectacle
 Elephant Guide
+Elite Skirmisher
 Ellivere of the Wild Court
 Elvish Skysweeper
 Emberwilde Caliph
@@ -121,10 +127,12 @@ Final Flare
 Fire Nation Archers
 Firefiend Elemental
 Flailing Drake
+Flame Elemental
 Flamespeaker's Will
 Flanking Troops
 Flaring Pain
 Fledgling Griffin
+Fleeting Aven
 Forbid
 Force Void
 Forced March
@@ -135,7 +143,9 @@ Fracture
 Fungus Sliver
 Fungusaur
 Gallantry
+Gallows at Willow Hill
 Generous Visitor
+Getaway Car
 Ghoultree
 Gilt-Leaf Seer
 Glimmer Bairn
@@ -144,9 +154,11 @@ Gloom Pangolin
 Gluttonous Troll
 Gnarlid Pack
 Go Blank
+Goblin Motivator
 Goblin Ringleader
 Golden Bear
 Golgari Guildmage
+Grapeshot
 Greenweaver Druid
 Griffin Dreamfinder
 Grim Hireling
@@ -171,6 +183,8 @@ Hungry for More
 Hunting Grounds
 Hydromorph Gull
 Ice Cage
+Ignoble Hierarch
+Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
 Infectious Horror
@@ -182,7 +196,9 @@ Izoni, Thousand-Eyed
 Jace's Ingenuity
 Jackdaw
 Jackhammer
+Jedit Ojanen
 Jedit's Dragoons
+Jerrard of the Closed Fist
 Jori En, Ruin Diver
 Jungle Troll
 Kederekt Leviathan
@@ -233,6 +249,7 @@ Mobile Garrison
 Mogg Raider
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Monster Mashup
 Mother Bear
 Mountain
 Muxus, Goblin Grandee
@@ -244,6 +261,7 @@ Nessian Wanderer
 Neutralizing Blast
 Nighthawk Scavenger
 Nim Shambler
+Nirkana Assassin
 Nomadic Elf
 Norwood Archers
 Nyx Weaver
@@ -275,6 +293,7 @@ Pouncing Lynx
 Powerstone Engineer
 Pride Sovereign
 Psionic Entity
+Puppeteer Clique
 Pyromancer's Assault
 Radha's Firebrand
 Rampart Crawler
@@ -283,6 +302,7 @@ Reckless Reveler
 Reckless Stormseeker
 Recruit the Worthy
 Referee Squad
+Reknit
 Remand
 Resolute Rider
 Retrofitted Transmogrant
@@ -301,6 +321,7 @@ Rotlung Reanimator
 Sabertooth Wyvern
 Sage of Lat-Nam
 Sage of Shaila's Claim
+Sage of the Unknowable
 Saheeli's Silverwing
 Sanctuary Raptor
 Sanctum Gargoyle
@@ -317,6 +338,7 @@ Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
 Selesnya Sagittars
+Selfless Samurai
 Serra Ascendant
 Serra's Liturgy
 Serum Visionary
@@ -324,6 +346,7 @@ Shady Traveler
 Shaggy Camel
 Shattered Crypt
 Shorecomber Crab
+Showdown of the Skalds
 Shroofus Sproutsire
 Siegehorn Ceratops
 Sightless Ghoul
@@ -333,6 +356,7 @@ Sir Shandlar of Eberyn
 Skaab Wrangler
 Skophos Warleader
 Sky Tether
+Skyblade of the Legion
 Skyline Predator
 Smashing Success
 Smite the Monstrous
@@ -354,6 +378,7 @@ Sphere Grid
 Sphinx of Uthuun
 Spike Breeder
 Spinal Parasite
+Spirit of the Hearth
 Springjaw Trap
 Sram, Senior Edificer
 Staggershock
@@ -367,6 +392,7 @@ Strangleroot Geist
 Stronghold Machinist
 Sunblade Elf
 Sunlance
+Suntouched Myr
 Supply Drop
 Surge of Thoughtweft
 Survival Cache
@@ -390,12 +416,14 @@ Tenth District Guard
 Territorial Scythecat
 The Great Mound
 The Keeper of the Yellow Hat
+The Wanderer
 Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw
 Tidewater Minion
 Time Wipe
 Tome Anima
+Traitorous Instinct
 Transguild Promenade
 Traxos, Scourge of Kroog
 Trollhide

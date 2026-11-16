@@ -1,119 +1,256 @@
 A-Sewer Crocodile
+A-Steadfast Unicorn
+Accomplished Automaton
 Accorder's Shield
 Afterlife Insurance
+Ainok Guide
 Ajani, Strength of the Pride
+Amy Rose
+Angelic Blessing
 Anje's Ravager
 Arctic Aven
+Atrocious Experiment
 Auriok Sunchaser
+Aven Skirmisher
+Bala Ged Scorpion
+Balduvian Bears
+Baneful Omen
+Bard, Heir of Girion
+Barrin's Codex
+Battlefield Raptor
 Baxter, Fly in the Ointment
+Bishop of Rebirth
+Blessed Orator
+Blisterpod
+Bloodfire Mentor
 Bond of Revival
+Boneclad Necromancer
+Bottle of Suleiman
 Briarberry Cohort
 Brindle Shoat
+Brushstrider
+Brutal Deceiver
+Burden of Guilt
 Cackling Counterpart
 Captain America's Motorcycle
 Cavern Lampad
 Chamber of Manipulation
+Change of Fortune
 Chime of Night
 Claws of Gix
 Clearwater Goblet
+Cliffhaven Kitesail
+Compulsory Rest
 Conifer Strider
 Contagious Vorrac
 Corrupt
+Crackdown
+Crypt Ripper
+Dakmor Plague
 Dark Offering
+Daru Healer
+Dauntless River Marshal
 Dauthi Mercenary
 Davriel's Shadowfugue
+Demogorgon's Clutches
 Depart the Realm
+Diabolical Salvation
+Dispeller's Capsule
+Drannith Magistrate
+Dreadful Apathy
+Echoing Return
 Ecstatic Awakener
 Elspeth, Knight-Errant
+Envoy of the Ancestors
 Epistolary Librarian
 Escape Routes
 Essence Extraction
+Etherium Pteramander
+Everdawn Champion
+Exorcist
 Explosive Shot
+Eyeblight Massacre
 Face of Fear
 Faerie Bladecrafter
+Filigree Crawler
 Filter Out
 Forest
+Foriysian Brigade
 Forsake the Worldly
+Frightcrawler
+Galvanic Blast
+Geistflame
 Giant Harbinger
+Gift of Granite
 Glass Golem
+Gleeful Arsonist
+Gnoll War Band
+Go Blank
+Goblin Recruiter
 Goblin War Cry
 Gorgon's Head
 Grab the Reins
+Granulate
+Grasp of Phantoms
 Gust-Skimmer
+Gut, True Soul Zealot
+Hanweir Militia Captain
+Healer's Flock
+Heed the Mists
 Heir of the Wilds
 Hesitation
 Hidden Ancients
+Hidden Stockpile
+Highspire Artisan
 Holdout Settlement
+Honored Hierarch
+Hot Soup
 How to Keep an Izzet Mage Busy
 Hunter's Insight
+Hypnotic Cloud
 Icatian Moneychanger
+Illusory Demon
+Impending Disaster
+Ingenuity Engine
+Invisible Force Field
 Island
 Ivory Charm
 Jagged-Scar Archers
+Javelin of Lightning
 Jeskai Sage
+Jeweled Torque
 Jungle Wurm
 Killer Bees
+Kithkin Zealot
+Knight of Dusk's Shadow
+Knight of the Tusk
 Krovikan Scoundrel
+Kytheon's Tactics
 Labyrinth Raptor
 Lantern Scout
 Lightning Cloud
+Lokhust Heavy Destroyer
 Maggot Therapy
+Magmatic Channeler
+Magmatic Chasm
 Make Disappear
 Matt Murdock, Justice Seeker
+Memory's Journey
 Mephidross Vampire
+Militia's Pride
 Mindsplice Apparatus
+Mindwrack Demon
+Mire Triton
 Mishra, Excavation Prodigy
 Molten Lavamancer
 Moon-Circuit Hacker
 Mountain
+Mox Amber
 Nantuko Elder
 Natural Spring
 Nature's Resurgence
 Necrotic Fumes
 Nightshade Harvester
+Nimana Skitter-Sneak
 Noxious Revival
 Nyxborn Seaguard
+Ob Nixilis, the Ascended
 Obscura Storefront
+Ogre Shaman
+Orah, Skyclave Hierophant
+Orcish Artillery
+Organ Grinder
 Otherworldly Journey
 Outmaneuver
+Overmaster
+Oxidda Daredevil
 Paladin of Atonement
+Paragon of Fierce Defiance
 Phantom Beast
+Phyrexian Ironworks
+Pia and Kiran Nalaar
 Plains
+Political Triumph
+Pyre-Sledge Arsonist
+Pyreswipe Hawk
 Quickling
 Ranger's Guile
+Raze the Effigy
 Razorfield Thresher
+Reckless Embermage
+Reconstruction
 Red XIII, Proud Warrior
+Regent's Authority
 Research Thief
+Restore the Peace
 Reviving Dose
 Rites of Initiation
+Ritual Guardian
+Rotting Fensnake
 Rough
 Rubble Reading
 Rushwood Herbalist
+Salvage Scout
 Scale the Heights
+Searchlight Geist
+Serra Avenger
 Shard Convergence
 Shattering Blow
+Shepherd of the Lost
+Shining Aerosaur
+Shivan Emissary
+Shu Elite Companions
+Sigil of the Empty Throne
+Silent-Chant Zubera
+Singing Bell Strike
+Skirk Commando
+Sky Spirit
 Sky Theater Strix
+Sparkmage's Gambit
+Spectral Shield
 Spellshock
+Starnheim Aspirant
+Stensia Innkeeper
+Stone Spirit
+Stream Hopper
 Structural Assault
 Sunhome Guildmage
 Swamp
 Tales of Master Seshiro
 Tel-Jilad Exile
+Tempest Drake
+Temple Bell
+Thriving Ibex
 Thunderfoot Baloth
+Titania's Boon
 Toolcraft Exemplar
+Topplegeist
 Tori D'Avenant, Fury Rider
 Torrential Gearhulk
 Tortoise Formation
 Training Grounds
+Traitorous Blood
+Treasure Hunt
 Trollbred Guardian
 Underworld Connections
 Unhinge
 Unwind
 Urza's Filter
+Vampire's Bite
 Vex
+Vibranium Mining Mech
+Vigilant Sentry
 Volcanic Torrent
+Wall of Blossoms
+War-Wing Siren
+Warm Welcome
 Watcher Sliver
+Wayfaring Temple
 Whirlwind Adept
+White Scarab
+Wolfir Avenger
 World Breaker
+Wrath of the Skies
 Wreak Havoc
 Youthful Scholar
+Zodiac Ox

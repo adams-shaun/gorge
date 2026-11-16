@@ -4,11 +4,14 @@ Act of Treason
 Adric, Mathematical Genius
 Aerial Guide
 Aether Swooper
+Aether Tradewinds
+Air-Cult Elemental
 Akoum Warrior
 Allied Assault
 Alpha Authority
 Amazing Spider-Girl
 Ancient Hydra
+Angel of Sanctions
 Angel of Serenity
 Angelic Skirmisher
 Angrath's Marauders
@@ -88,6 +91,7 @@ Dwarven Reinforcements
 Dying Wail
 Earth Elemental
 East-Mark Cavalier
+Edgar's Awakening
 Ekthi, Contaminator Priest
 Elder of Laurels
 Eldrazi Aggressor
@@ -136,6 +140,7 @@ Goblin Elite Infantry
 Goblin Grenade
 Goblin Guide
 Goblin Tinkerer
+Golem Foundry
 Grave Titan
 Gretchen Titchwillow
 Growth Cycle
@@ -149,6 +154,7 @@ Hero's Heirloom
 Holy Strength
 Hoof Skulkin
 Hopping Automaton
+Hoverguard Sweepers
 Hullbreaker Horror
 Hythonia the Cruel
 Ignite Disorder
@@ -159,6 +165,7 @@ Indulgent Aristocrat
 Infected Vermin
 Infectious Bite
 Infernal Kirin
+Infestation Expert
 Insolent Neonate
 Iron Man, Titan of Innovation
 Island
@@ -176,6 +183,7 @@ Kitsune Loreweaver
 Kor Cartographer
 Koth's Courier
 Krosan Grip
+Last March of the Ents
 Legion Loyalist
 Liberate
 Lifesmith
@@ -192,9 +200,14 @@ Manticore of the Gauntlet
 Marshmist Titan
 Mask of the Jadecrafter
 Masterwork of Ingenuity
+Maze Abomination
+Memnarch, the Warden
+Merry, Warden of Isengard
 Mesmeric Trance
+Metropolis Angel
 Mind Slash
 Minotaur Sureshot
+Moth Herb Elixir
 Mountain
 Mutilate
 Myconid Spore Tender
@@ -207,13 +220,16 @@ Noble Vestige
 Oath of Eorl
 Oath of Scholars
 Offering to Asha
+Okiba Reckoner Raid
 Old Rutstein
+Old Stickfingers
 Omen of the Forge
 Ooze Garden
 Oran-Rief Invoker
 Orcish Veteran
 Overmaster
 Patagia Viper
+Patchwork Gnomes
 Pestilence
 Phyrexian Reclamation
 Piercing Light
@@ -223,15 +239,18 @@ Plains
 Planar Gate
 Plated Onslaught
 Plated Slagwurm
+Pollenbright Wings
 Port of Karfell
 Possessed Nomad
 Predatory Nightstalker
 Price of Glory
+Primal Beyond
 Primal Command
 Primal Frenzy
 Primal Rage
 Putrid Cyclops
 Quietus Spike
+Quirion Beastcaller
 Radagast, Wizard of Wilds
 Radiant Purge
 Raging Goblin
@@ -244,6 +263,7 @@ Relentless Skaabs
 Return of the Mole Man
 Return to Nature
 Revered Elder
+Rhystic Scrying
 Rishadan Airship
 Road of Return
 Roaring Primadox
@@ -260,6 +280,7 @@ Scrollshift
 Scuzzback Scrapper
 Scythe Leopard
 Seashell Cameo
+Sedgemoor Witch
 Sentinel of the Eternal Watch
 Servo Schematic
 Settle Beyond Reality
@@ -267,6 +288,7 @@ Shanna, Purifying Blade
 Shatterskull Giant
 Shoal Kraken
 Shu Grain Caravan
+Sickle Dancer
 Sigil Blessing
 Silent Attendant
 Silk Net
@@ -294,7 +316,9 @@ Staff of Zegon
 Star Whale
 Start
 Steel of the Godhead
+Stonebound Mentor
 Stonecloaker
+Stormbound Geist
 Summer Bloom
 Svogthos, the Restless Tomb
 Swamp
@@ -312,9 +336,11 @@ The Monumental Facade
 Thought-Knot Seer
 Thraben Heretic
 Thundering Giant
+Timely Hordemate
 Titania's Command
 Tormented Angel
 Totem-Guide Hartebeest
+Tourach, Dread Cantor
 Toxic Stench
 Tradewind Rider
 Transmogrifying Licid
