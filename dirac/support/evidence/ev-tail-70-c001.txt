@@ -3,22 +3,30 @@ Aerial Guide
 Aether Swooper
 Akoum Warrior
 Alpha Authority
+Amazing Spider-Girl
+Angel of Sanctions
 Angelic Skirmisher
 Apprentice Necromancer
 Artifact Mutation
 Ashen Powder
+Aurochs Herd
+Awakening
+Baloth Cage Trap
 Baloth Packhunter
 Baneblade Scoundrel
 Bayou Groff
 Bladed Pinions
 Bloodhusk Ritualist
+Bloodletter Quill
 Bloodthirsty Adversary
 Bog Tatters
 Bonded Horncrest
 Boon of Erebos
+Boulderbranch Golem
 Caller of the Pack
 Carrion Feeder
 Cathartic Reunion
+Cavalry Drillmaster
 Centaur Omenreader
 Cephalid Coliseum
 Chain Devil
@@ -107,6 +115,7 @@ Indulgent Aristocrat
 Infected Vermin
 Infectious Bite
 Infernal Kirin
+Infestation Expert
 Insolent Neonate
 Iron Man, Titan of Innovation
 Island
@@ -128,9 +137,11 @@ Lifesmith
 Lightning Javelin
 Loxodon Smiter
 Mage-Ring Responder
+Magnivore
 Makeshift Munitions
 Managorger Hydra
 Manticore of the Gauntlet
+Marshmist Titan
 Mask of the Jadecrafter
 Maze Abomination
 Memnarch, the Warden
@@ -139,10 +150,12 @@ Metropolis Angel
 Minotaur Sureshot
 Mountain
 Mutilate
+Myconid Spore Tender
 Myr Retriever
 Narnam Renegade
 Nature's Spiral
 Necrotic Fumes
+Noble Vestige
 Oath of Eorl
 Offering to Asha
 Okiba Reckoner Raid
@@ -158,14 +171,18 @@ Phyrexian Reclamation
 Piper of the Swarm
 Plains
 Planar Gate
+Plated Onslaught
 Plated Slagwurm
 Possessed Nomad
 Predatory Nightstalker
 Primal Command
+Primal Frenzy
 Putrid Cyclops
 Quietus Spike
 Quirion Beastcaller
+Radiant Purge
 Raging Goblin
+Raised by Giants
 Rallying Roar
 Reaper of Flight Moonsilver
 Reclaiming Vines
@@ -185,6 +202,8 @@ Saving Grasp
 Scion of Opulence
 Scrap
 Scythe Leopard
+Seashell Cameo
+Sedgemoor Witch
 Sentinel of the Eternal Watch
 Servo Schematic
 Settle Beyond Reality
@@ -193,11 +212,14 @@ Shoal Kraken
 Shu Grain Caravan
 Sickle Dancer
 Sigil Blessing
+Silk Net
 Silverflame Squire
 Skull Rend
 Slaughter Specialist
+Slavering Nulls
 Smelt-Ward Ignus
 Smothering Abomination
+Soilshaper
 Song of Serenity
 Soratami Seer
 Souldrinker
@@ -205,8 +227,10 @@ Spectral Hunt-Caller
 Spinal Centipede
 Spire Barrage
 Spire Tracer
+Spiritmonger
 Staff of Zegon
 Start
+Stonecloaker
 Summer Bloom
 Swamp
 Sylvok Lifestaff

@@ -210,6 +210,7 @@ Kemba, Kha Enduring
 Kezzerdrix
 Kiki-Jiki, Mirror Breaker
 Killian, Decisive Mentor
+King Darien XLVIII
 Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
@@ -235,6 +236,7 @@ Magnetic Mine
 Magus of the Bridge
 Malcator, Purity Overseer
 Mammoth Spider
+Manifestation Sage
 Mantle of Webs
 Marang River Skeleton
 Marsh Boa
@@ -343,6 +345,7 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shepherd of Heroes
 Shinen of Stars' Light
 Shinka, the Bloodsoaked Keep
 Shoal Serpent

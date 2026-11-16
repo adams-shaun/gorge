@@ -50,6 +50,7 @@ Benalish Emissary
 Biolume Egg
 Black Dragon Gate
 Black Oak of Odunos
+Blademane Baku
 Bladewing's Thrall
 Blessed Reversal
 Blightspeaker
@@ -227,6 +228,7 @@ Longtusk Cub
 Loxodon Mender
 Luminarch Aspirant
 Lurking Deadeye
+Luxa River Shrine
 MJ, Rising Star
 Magmaw
 Malefic Scythe

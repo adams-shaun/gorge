@@ -56,6 +56,7 @@ Celestial Colonnade
 Chamber of Manipulation
 Chandra Nalaar
 Change of Fortune
+Clamavus
 Claws of Gix
 Clearwater Goblet
 Cliffhaven Kitesail
@@ -329,6 +330,7 @@ Scale the Heights
 Seal of Removal
 Searchlight Geist
 Seize the Day
+Sergeant John Benton
 Serra Avenger
 Shard Convergence
 Shattering Blow
@@ -366,6 +368,7 @@ Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thing in the Ice
 Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
@@ -409,6 +412,7 @@ Warm Welcome
 Watcher Sliver
 Waterfront District
 Wayfaring Temple
+Wedding Announcement
 Whetstone
 Whirlwind Adept
 White Scarab

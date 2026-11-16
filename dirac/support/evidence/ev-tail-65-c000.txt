@@ -118,6 +118,7 @@ Glimmer of Genius
 Glitterfang
 Glorious Anthem
 Gold Myr
+Golgari Locket
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
@@ -129,6 +130,7 @@ Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
 Hedron Detonator
+Hellion Crucible
 Helm of the Gods
 Herald of the Dreadhorde
 Hero of Leina Tower
@@ -221,6 +223,7 @@ Propaganda
 Proper Burial
 Protocol Knight
 Pygmy Razorback
+Quakebringer
 Quest for Renewal
 Radiant Destiny
 Radiant Essence
@@ -291,6 +294,7 @@ Talruum Minotaur
 The Mana Rig
 Thran Quarry
 Throne of Bone
+Thunderblust
 Tibalt, the Fiend-Blooded
 Tide Skimmer
 Tonic Peddler

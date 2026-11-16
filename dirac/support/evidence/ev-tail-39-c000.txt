@@ -34,6 +34,7 @@ Aspect of Hydra
 Assemble the Entmoot
 Atalya, Samite Master
 Audacious Thief
+Auger Spree
 Avatar of Growth
 Aven Redeemer
 Azra Smokeshaper
@@ -54,6 +55,7 @@ Bloodvial Purveyor
 Blot Out
 Bolshack Dragon
 Bonds of Mortality
+Bounty Hunter
 Branchsnap Lorian
 Brushland
 Bulette
@@ -145,6 +147,7 @@ Fervent Paincaster
 Fevered Convulsions
 Fleshgrafter
 Flooded Strand
+Florian, Voldaren Scion
 Flowering of the White Tree
 Flowstone Slide
 Forest
@@ -162,11 +165,13 @@ Geralf's Mindcrusher
 Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
+Ghostflame Sliver
 Ghostly Touch
 Ghoul's Feast
 Gifted Aetherborn
 Glacial Grasp
 Glaive of the Guildpact
+Gleaming Overseer
 Glenn, the Voice of Calm
 Glint Hawk Idol
 Glittermonger
@@ -182,7 +187,9 @@ Hada Spy Patrol
 Hag of Inner Weakness
 Halimar Excavator
 Hall of Tagsin
+Hammerhead Tyrant
 Hangar Scrounger
+Heartmender
 Herald of Hadar
 Hermes, Overseer of Elpis
 Hero's Resolve
@@ -195,6 +202,7 @@ Humble the Brute
 Humongulus
 Hundroog
 Hydromorph Guardian
+Imperial Cosmographer
 Infectious Bloodlust
 Inheritance
 Inspirit
@@ -206,6 +214,7 @@ Island
 It's Clobberin' Time!
 Jukai Messenger
 Jungle Wayfinder
+Junkyard Genius
 Jwari Scuttler
 Kamigawa Charm
 Kazandu Mammoth
@@ -333,7 +342,9 @@ Sentinels of Glen Elendra
 Serene Sunset
 Shadowblood Egg
 Shambling Ghast
+Shardless Agent
 Sheltering Boughs
+Shield of the Avatar
 Shivan Gorge
 Shriek of Dread
 Siege Dragon

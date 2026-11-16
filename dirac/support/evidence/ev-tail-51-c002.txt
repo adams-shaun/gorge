@@ -69,6 +69,7 @@ Eiganjo Free-Riders
 Elderfang Disciple
 Elite Archers
 Elven Lyre
+Emerald Dragonfly
 Emissary of Hope
 Equestrian Skill
 Erkenbrand, Lord of Westfold
@@ -163,12 +164,14 @@ Onyx Mage
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
+Parapet Watchers
 Plaguemaw Beast
 Plains
 Plunder
 Pouncing Cheetah
 Prava of the Steel Legion
 Presence of the Wise
+Pridemalkin
 Professor of Zoomancy
 Protection Magic
 Psionic Snoop

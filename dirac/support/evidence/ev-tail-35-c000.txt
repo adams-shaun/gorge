@@ -9,6 +9,7 @@ Aerial Boost
 Aether Spike
 Akki Rockspeaker
 Alchemist's Refuge
+Alibou, Ancient Witness
 Amass the Components
 Anax, Hardened in the Forge
 Annex
@@ -165,6 +166,7 @@ Leave in the Dust
 Leery Fogbeast
 Leyline of the Meek
 Linvala, the Preserver
+Living Lightning
 Longbow Archer
 Loyal Warhound
 Lu Meng, Wu General
@@ -192,11 +194,13 @@ Nantuko Tracer
 Necrogenesis
 Nezumi Cutthroat
 Night Market Aeronaut
+Nip Gwyllion
 Nissa's Defeat
 No-Dachi
 Noble Benefactor
 Oath of Ajani
 Obsidian Obelisk
+Olog-hai Crusher
 Opal Acrolith
 Order of Leitbur
 Ori, Plate Stacker
@@ -204,10 +208,12 @@ Orzhov Locket
 Otherworldly Outburst
 Overwhelming Intellect
 Pain Distributor
+Pain Seer
 Pest Rescuer
 Pestilence
 Pile On
 Plains
+Planar Birth
 Presence of Gond
 Prey's Vengeance
 Primal Cocoon

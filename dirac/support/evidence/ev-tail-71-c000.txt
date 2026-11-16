@@ -209,6 +209,7 @@ Island
 Jawbone Duelist
 Jeska, Warrior Adept
 Jhessian Balmgiver
+Join the Dance
 Journey for the Elixir
 Junk Jet
 K-9, Mark I
@@ -264,6 +265,7 @@ Nefashu
 Nexus of Fate
 Nezumi Graverobber
 Nightmare Shepherd
+Nightmare Void
 Nim Abomination
 Nimble Mongoose
 Nuka-Cola Vending Machine
@@ -317,6 +319,7 @@ Rise of the Witch-king
 Rishkar, Peema Renegade
 Rising Populace
 Rites of Refusal
+Roc Hatchling
 Rummaging Goblin
 Sanctifier of Souls
 Sawtooth Ogre
@@ -347,13 +350,16 @@ Sky Crier
 Skycat Sovereign
 Skyswirl Harrier
 Slagstone Refinery
+Slice and Dice
 Slinking Skirge
 Slurrk, All-Ingesting
+Sly Instigator
 Smell Fear
 Snowfield Sinkhole
 Soaring Thought-Thief
 Sokka, Wolf Cove's Protector
 Sonic Seizure
+Soulblade Corrupter
 Soulcatcher
 Spawnwrithe
 Spiked Ripsaw
@@ -365,6 +371,7 @@ Staff of the Sun Magus
 Stampede Rider
 Starlight
 Starlit Mantle
+Starlit Sanctum
 Starnheim Courser
 Steal Artifact
 Steel Golem
@@ -384,6 +391,7 @@ Tavern Ruffian
 Terminal Agony
 Tezzeret's Gambit
 The Battle of Bywater
+The Cauldron of Eternity
 The Thing
 Thornwatch Scarecrow
 Thragtusk
@@ -412,6 +420,7 @@ Vectis Dominator
 Veiled Sentry
 Vent Sentinel
 Viashino Firstblade
+Vivien, Nature's Avenger
 Vodalian Soldiers
 Voltaic Brawler
 Voodoo Doll

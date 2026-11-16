@@ -145,6 +145,7 @@ Fire Drake
 Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
+Flickering Spirit
 Flickerwisp
 Font of Ire
 Forced Adaptation
@@ -216,6 +217,7 @@ Incursion Specialist
 Indatha Triome
 Inner Fire
 Inquisitor's Ox
+Instrument of the Bards
 Iron Bully
 Iron-Barb Hellion
 Island
@@ -399,6 +401,7 @@ Survey the Wreckage
 Swamp
 Sylvan Paradise
 Sylvan Reclamation
+Synchronized Spellcraft
 T'Challa, the Black Panther
 Taigam's Strike
 Tainted Wood

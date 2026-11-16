@@ -2,10 +2,13 @@
 A-Hagra Constrictor
 A-Mishra, Excavation Prodigy
 A-Tanazir Quandrix
+A-Young Red Dragon
 Aarakocra Sneak
 Abrupt Decay
 Abzan Beastmaster
+Abzan Kin-Guard
 Adverse Conditions
+Agent of Acquisitions
 All That Glitters
 Alluring Scent
 Ancient Brontodon
@@ -14,8 +17,10 @@ Anoint
 Arachnoid Adaptation
 Aragorn and Arwen, Wed
 Arashin Foremost
+Archangel Avacyn
 Archnemesis
 Arctic Wolves
+Argent Mutation
 Assassinate
 Aurochs
 Autumnal Gloom
@@ -33,21 +38,26 @@ Bloodpyre Elemental
 Bonds of Quicksilver
 Bone Picker
 Border Guard
+Boros Signet
 Bosco, Just a Bear
 Bosk Banneret
 Braids, Cabal Minion
 Bump in the Night
+Burning Hands
 Burnt Offering
 Caustic Wasps
 Cavalier of Night
 Cavern Crawler
+Chilling Trap
 Cho-Arrim Legate
 Chromanticore
 Circle of Dreams Druid
+Circle of Flame
 Cirith Ungol Patrol
 City of Traitors
 Civic Gardener
 Cloudreader Sphinx
+Coal Stoker
 Cogworker's Puzzleknot
 Collective Voyage
 Conservatory
@@ -59,6 +69,7 @@ Crocodile of the Crossing
 Cruel Edict
 Crystal Slipper
 Curiosity
+Cybermen Squadron
 Damping Matrix
 Deep-Sea Terror
 Desperate Castaways
@@ -74,6 +85,7 @@ Elven Fortress
 Encampment Keeper
 Endless Ranks of the Dead
 Enlightened Maniac
+Epiphany Storm
 Eternal Thirst
 Evolutionary Leap
 Extortion
@@ -81,14 +93,19 @@ Ezuri, Stalker of Spheres
 Faceless Butcher
 Faerie Conclave
 Falcon, Joaquin Torres
+Farid, Enterprising Salvager
 Fate Unraveler
 Fathom Fleet Boarder
 Fearsome Awakening
 Feed the Clan
+Feral Maaka
+Fervent Paincaster
 Fierce Guardianship
 Fire Ants
 Fire Covenant
+Fire Nation Soldier
 Fireborn Knight
+Firemane Commando
 Fireslinger
 Firewake Sliver
 Fissure Wizard
@@ -116,6 +133,7 @@ Gnaw to the Bone
 Gnottvold Hermit
 Goblin Assault
 Goblin Locksmith
+Granite Grip
 Grim Physician
 Grizzled Leotau
 Grizzly Bears
@@ -123,6 +141,8 @@ Gruul Charm
 Guardian Gladewalker
 Hag Hedge-Mage
 Hag of Twisted Visions
+Hall of Triumph
+Hangar Scrounger
 Hapato's Might
 Hardy Veteran
 Harrowing Journey
@@ -148,6 +168,8 @@ Katilda, Dawnhart Prime
 Keepers of the Faith
 Kiku's Shadow
 King Macar, the Gold-Cursed
+Kinsbaile Borderguard
+Kirtar's Wrath
 Kitchen
 Kolaghan Monument
 Kor Hookmaster
@@ -158,6 +180,7 @@ Liliana's Specter
 Living Terrain
 Loathsome Curator
 Lotus Petal
+Lucky Offering
 Lux Cannon
 Mark of Sakiko
 Match the Odds
@@ -166,6 +189,7 @@ Mercy Killing
 Merfolk Pupil
 Merfolk Trickster
 Metallic Mimic
+Military Discipline
 Mishra's Helix
 Mistcutter Hydra
 Mobilized District
@@ -220,7 +244,9 @@ Regress
 Ring of Thune
 Rona's Vortex
 Rootbound Crag
+Rough
 Sadistic Slash
+Scion of Calamity
 Scorchmark
 Sea Gate
 Sever Soul
@@ -233,9 +259,13 @@ Skirsdag Supplicant
 Skyclave Shade
 Skyfisher Spider
 Slimefoot, the Stowaway
+Slingbow Trap
+Smash to Dust
 Soaring Seacliff
 Soul Channeling
 Soul Kiss
+Sparksmith
+Spiteful Sliver
 Stampeding Serow
 Stampeding Wildebeests
 Staunch Throneguard
@@ -249,6 +279,7 @@ Talas Air Ship
 Talonrend
 Targ Nar, Demon-Fang Gnoll
 Tattered Drake
+Telekinetic Sliver
 Temur Battle Rage
 Tenacious Hunter
 Terra Ravager

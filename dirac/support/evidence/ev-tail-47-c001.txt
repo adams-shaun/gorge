@@ -29,6 +29,7 @@ Blisterstick Shaman
 Bloodlust Inciter
 Bloodrite Invoker
 Bloodthirsty Blade
+Bloodthirsty Ogre
 Bloodthrone Vampire
 Bomat Bazaar Barge
 Bow of Nylea
@@ -160,6 +161,7 @@ Insidious Will
 Inspiration
 Invisible Stalker
 Iona's Judgment
+Iron Man, Tony Stark
 Iron Star
 Island
 Ivy Elemental
@@ -204,6 +206,7 @@ Moment of Heroism
 Mordenkainen
 Mountain
 Mutant's Prey
+Muxus, Goblin Grandee
 Myr Galvanizer
 Mysterio's Mirage
 Natural Connection

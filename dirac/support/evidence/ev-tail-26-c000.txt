@@ -33,6 +33,7 @@ Boros Mastiff
 Boulder Salvo
 Brimstone Dragon
 Brindle Shoat
+Bringer of the Blue Dawn
 Butch DeLoria, Tunnel Snake
 Candlelight Vigil
 Castle Raptors
@@ -104,6 +105,7 @@ Island
 Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
+Kami of Fire's Roar
 Karakas
 Kavu Chameleon
 Killer Bees
@@ -113,6 +115,7 @@ Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Living Lands
 Lord of Extinction
@@ -145,6 +148,7 @@ No Escape
 Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
+Oblivion Ring
 Open the Vaults
 Orzhov Racketeers
 Paradise Mantle
@@ -162,8 +166,10 @@ Portal to Phyrexia
 Possessed Aven
 Psionic Blast
 Pyretic Charge
+Quandrix Pledgemage
 Quickening Licid
 Rally the Ranks
+Rampaging Aetherhood
 Ransack
 Reality Ripple
 Reckless Air Strike
@@ -176,6 +182,7 @@ Rootwater Diver
 Rubblebelt Recluse
 Rundvelt Hordemaster
 Sacred Cat
+Saiba Trespassers
 Saltfield Recluse
 Satyr Enchanter
 Satyr Grovedancer
@@ -197,6 +204,7 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
 Spellbook

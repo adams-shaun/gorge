@@ -20,6 +20,7 @@ Arachnus Web
 Arcane Proxy
 Argentum Armor
 Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
@@ -27,6 +28,7 @@ Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
+Awesome Presence
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -282,6 +284,7 @@ Maximize Velocity
 Menagerie Liberator
 Mer-Ek Nightblade
 Metastatic Evangel
+Midnight Clock
 Minamo, School at Water's Edge
 Mind Harness
 Mind Maggots

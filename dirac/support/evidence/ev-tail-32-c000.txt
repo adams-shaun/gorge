@@ -1,7 +1,9 @@
 Abstruse Interference
 Advanced Hoverguard
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
+Aether Shockwave
 Ageless Guardian
 Akki Rockspeaker
 Akoum Boulderfoot
@@ -60,6 +62,7 @@ Curious Altisaur
 Cut
 Dakmor Plague
 Dark Betrayal
+Dark Ritual
 Darksteel Brute
 Death-Hood Cobra
 Definitely Not a Turtle
@@ -74,6 +77,7 @@ Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
 Eidolon of Countless Battles
+Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
@@ -100,6 +104,7 @@ Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Flywheel Racer
 Footfall Crater
 Forest
@@ -119,14 +124,17 @@ Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grip of Desolation
 Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
+Hasran Ogress
 Haunted Cloak
 Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Highway Robber
+Hold the Line
 Hollowhenge Overlord
 Honor the Past
 Howlpack Resurgence
@@ -160,14 +168,17 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Lydia Frye
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
 Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -180,6 +191,7 @@ Mistmeadow Skulk
 Monstrous Hound
 Mortician Beetle
 Mountain
+Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
@@ -189,6 +201,7 @@ Nyxborn Marauder
 Oashra Cultivator
 Obliterate
 Ondu Cleric
+Oni Possession
 Peer Through Depths
 Penance Stare
 Pest Infestation
@@ -209,6 +222,7 @@ Rakka Mar
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
+Reckless Imp
 Relic of Progenitus
 Renounce
 Returned Centaur
@@ -225,6 +239,7 @@ Rust Monster
 Salt Marsh
 Sandstone Warrior
 Savage Thallid
+Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
@@ -232,6 +247,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sizzle
 Skyclave Cleric
 Skyclave Shade
 Skyshroud Troll
@@ -239,6 +255,7 @@ Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Soul Bleed
 Spellseeker
 Spitting Spider
 Spontaneous Flight
@@ -248,6 +265,7 @@ Star of Extinction
 Steel Golem
 Steeple Roc
 Storm Crow
+Strandwalker
 Strength of Arms
 Strike It Rich
 Surreal Memoir
@@ -264,6 +282,7 @@ Thriving Ibex
 Thunder Wall
 Tolarian Sentinel
 Tomb Fortress
+Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
@@ -286,6 +305,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wildfire Eternal
 Windreader Sphinx

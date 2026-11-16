@@ -4,6 +4,7 @@ Abuna's Chant
 Adaptive Shimmerer
 Aegis of the Gods
 Aetherstorm Roc
+Agonizing Syphon
 Air Elemental
 Allied Assault
 Alpine Watchdog
@@ -15,13 +16,17 @@ Anarchy
 Ancient Crab
 Apes of Rath
 Apex Hawks
+Arachnoid
 Arborea Pegasus
 Arc Runner
 Arctic Merfolk
 Argothian Wurm
+Armix, Filigree Thrasher
 Arrows of Justice
 Aspiring Aeronaut
+Aura Flux
 Avatar of Woe
+Aven Wind Mage
 Azure Drake
 Barbed Lightning
 Bee Sting
@@ -34,9 +39,11 @@ Blowfly Infestation
 Boros Recruit
 Bottomless Pit
 Bounding Krasis
+Brink of Disaster
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
+Buried Alive
 Burning Sands
 Canopy Dragon
 Captain of the Mists
@@ -53,6 +60,7 @@ Cursed Flesh
 Daggersail Aeronaut
 Damnation
 Dark Nourishment
+Dark Petition
 Deal Gone Bad
 Deathforge Shaman
 Deft Duelist
@@ -106,6 +114,7 @@ Geistflame
 Ghor-Clan Bloodscale
 Ghoulcaller's Accomplice
 Giant Ladybug
+Giant Octopus
 Gift of Strands
 Glint-Horn Buccaneer
 Glistening Deluge
@@ -145,6 +154,7 @@ Lamentation
 Legolas Greenleaf
 Lightning Axe
 Llanowar Druid
+Lord of the Unreal
 Lore Weaver
 Maestros Initiate
 Mage il-Vec
@@ -180,6 +190,7 @@ Null Brooch
 Nyxborn Wolf
 Offalsnout
 Old Ghastbark
+Onyx Goblet
 Ornery Goblin
 Out of the Way
 Overload
@@ -246,6 +257,7 @@ Swamp
 Swiftgear Drake
 Swooping Lookout
 Sylvok Explorer
+Syphon Life
 Tail Slash
 Tattermunge Maniac
 Teferi's Protege
@@ -259,18 +271,23 @@ Three Tragedies
 Thrull Retainer
 Thrull Surgeon
 Timmy, Power Gamer
+Tormented Thoughts
 Trained Condor
 Troubled Healer
 Tundra Wolves
 Twinferno
 Ulvenwald Oddity
 Untethered Express
+Unwind
 Valiant Guard
 Vampire Lacerator
+Vedalken Infiltrator
 Vengeful Devil
 Vertigo Spawn
+Veteran's Powerblade
 Viconia, Drow Apostate
 Vildin-Pack Outcast
+Visara the Dreadful
 Vodalian Hexcatcher
 Void Shatter
 Volcanic Hammer

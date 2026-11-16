@@ -15,6 +15,7 @@ Ancestral Statue
 Ant Queen
 Aphetto Grifter
 Arachnus Web
+Argentum Armor
 Argothian Elder
 Armored Wolf-Rider
 Artful Maneuver
@@ -76,6 +77,7 @@ Cosmic Hunger
 Counterspell
 Court Cleric
 Creeping Crystal Coating
+Crenellated Wall
 Crimson Fleet Commodore
 Crowd's Favor
 Curious Homunculus
@@ -169,7 +171,9 @@ Hellhole Rats
 Highland Game
 Hopeful Eidolon
 Hulk, Strongest There Is
+Hungry Mist
 Icatian Scout
+Ichor Wellspring
 Illusionary Armor
 Implement of Combustion
 Impostor of the Sixth Pride
@@ -185,6 +189,7 @@ Karfell Kennel-Master
 Kargan Dragonlord
 Karoo
 Keeper of the Lens
+Kemba's Skyguard
 Kill! Maim! Burn!
 Kitesail Cleric
 Knowledge Is Power
@@ -243,9 +248,13 @@ Needle Storm
 Niblis of Frost
 Occult Epiphany
 Ogre Battledriver
+Ohran Frostfang
+Oketra's Last Mercy
 One with the Machine
 Onslaught
+Otarian Juggernaut
 Outnumber
+Overgrown Battlement
 Pact of the Titan
 Path of Discovery
 Pinnacle Monk
@@ -258,6 +267,7 @@ Qarsi High Priest
 Quiet Disrepair
 Quirion Trailblazer
 Rakdos Guildmage
+Rambunctious Mutt
 Ramosian Captain
 Ramunap Hydra
 Ravenous Baloth
@@ -277,6 +287,7 @@ Rhystic Deluge
 Ricochet Trap
 Riptide Chimera
 Rofellos's Gift
+Ronom Unicorn
 Rootgrapple
 Rootwalla
 Rootwater Hunter
@@ -297,6 +308,7 @@ Shard of the Nightbringer
 Sigiled Starfish
 Silent Specter
 Silver Erne
+Sixth Sense
 Skeletal Wurm
 Skull Prophet
 Sky Terror
@@ -369,5 +381,6 @@ White Shield Crusader
 Wind Shear
 Windbrisk Raptor
 Wort, Boggart Auntie
+Wrath of Sod
 Wreck and Rebuild
 Zof Shade

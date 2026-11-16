@@ -23,6 +23,7 @@ Avatar of Will
 Aven Brigadier
 Aven Eternal
 Axgard Artisan
+Azor's Elocutors
 Bamboo Grove Archer
 Basri's Aegis
 Battle Frenzy
@@ -357,6 +358,7 @@ Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
 Slippery Karst
+Sludge Monster
 Slum Reaper
 Smitten Swordmaster
 Song of Eärendil

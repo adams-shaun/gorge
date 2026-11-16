@@ -285,6 +285,7 @@ Pyromancer's Gauntlet
 Pyromania
 Qala, Ajani's Pridemate
 Radiant's Dragoons
+Rakdos Locket
 Rally the Forces
 Ramirez DePietro
 Ramosian Sky Marshal
@@ -307,6 +308,7 @@ River Darter
 Rockslide Sorcerer
 Rosethorn Halberd
 Royal Assassin
+Sagu Mauler
 Saheeli's Artistry
 Sakura-Tribe Scout
 Sandstalker Moloch
@@ -317,6 +319,7 @@ Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Sea Gate Colossus
 Seal of Cleansing
 Searing Light
 Sentry of the Underworld

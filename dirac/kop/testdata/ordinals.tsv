@@ -1065,6 +1065,18 @@ PutCtrChoiceNone	untyped int	255
 PutCtrRemAmount	untyped int	5
 PutCtrRememberPut	untyped int	2
 R	untyped int	3
+RdrAsAttached	int16	16
+RdrAsSelf	int16	8
+RdrAsSrcCtrl	int16	32
+RdrAsTgtCtrl	int16	64
+RdrCombatOnly	int16	512
+RdrGateEquipped	int16	256
+RdrGateUntapped	int16	128
+RdrSrcChosen	int16	2048
+RdrSrcUnblocked	int16	1024
+RdrToEnchanted	int16	4
+RdrToYou	int16	1
+RdrToYouPerms	int16	2
 ReduceAbEquip	untyped int	8
 ReduceAbMinShift	untyped int	4
 ReduceAbPowerUp	untyped int	4

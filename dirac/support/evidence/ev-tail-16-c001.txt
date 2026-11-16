@@ -7,6 +7,7 @@ Alert Heedbonder
 Ambuscade
 Angel of Mercy
 Angelic Benediction
+Angler Turtle
 Anoint with Affliction
 Arcane Encyclopedia
 Archghoul of Thraben
@@ -26,6 +27,7 @@ Battle Mammoth
 Beloved Chaplain
 Bhaal's Invoker
 Black Cat
+Black Lotus
 Black Widow, Deadly Hunter
 Blood Clock
 Blood Hound
@@ -52,6 +54,7 @@ Chainwhip Cyclops
 Chandra's Spitfire
 Charmbreaker Devils
 Chastise
+Chittering Skitterling
 Chrome Prowler
 Clay Statue
 Cloud Dragon
@@ -76,6 +79,7 @@ Dawntreader Elk
 Daxos, Blessed by the Sun
 Daze
 Deadeye Brawler
+Deadly Alliance
 Deepwood Drummer
 Defensive Stance
 Demon's Horn
@@ -107,6 +111,7 @@ Ertai's Scorn
 Evasive Action
 Exhume
 Eye Collector
+Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
@@ -123,6 +128,7 @@ Fires of Undeath
 Flickerwisp
 Font of Ire
 Forced Adaptation
+Forced Landing
 Forest
 Foul Imp
 Foundry Champion
@@ -133,6 +139,7 @@ Frilled Sea Serpent
 Frodo, Determined Hero
 Frontier Guide
 Furnace Strider
+Furtive Analyst
 Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
@@ -156,10 +163,13 @@ Goring Warplow
 Graf Harvest
 Grandmother Goby
 Granite Grip
+Grave Exchange
+Groundbreaker
 Gryff's Boon
 Guardian Zendikon
 Guardian of Solitude
 Guardians of Koilos
+Hagra Crocodile
 Haunted Guardian
 Havoc Demon
 Heart-Piercer Manticore
@@ -179,6 +189,7 @@ Icy Blast
 Ignite the Beacon
 Incursion Specialist
 Inner Fire
+Inquisitor's Ox
 Iron Bully
 Iron-Barb Hellion
 Island
@@ -248,6 +259,7 @@ Ordruun Commando
 Origin Spellbomb
 Oriq Loremage
 Orzhov Racketeers
+Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Phantom Whelp
@@ -265,8 +277,10 @@ Ramroller
 Rancor
 Raven Clan War-Axe
 Reckless Amplimancer
+Recumbent Bliss
 Reduce to Ashes
 Renegade Firebrand
+Resolute Archangel
 Rishadan Brigand
 Ritual of the Machine
 Rock Slide
@@ -279,6 +293,7 @@ Ruthless Winnower
 Sai, Master Thopterist
 Sandblast
 Scab-Clan Berserker
+Scavenged Brawler
 Scent of Nightshade
 Schismotivate
 Scourge Devil
@@ -305,6 +320,7 @@ Skalla Wolf
 Skylasher
 Skyline Despot
 Skyshroud Falcon
+Sleep
 Slip Through Space
 Smite the Monstrous
 Soaring Show-Off
@@ -348,6 +364,7 @@ Thalakos Seer
 Thassa's Emissary
 The Marvelous Scientist
 Thermal Glider
+Thought Erasure
 Thranduil the Strategist
 Thrash of Raptors
 Throne of Bone
@@ -389,5 +406,6 @@ Wily Goblin
 Winged Boots
 Wishful Merfolk
 Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits

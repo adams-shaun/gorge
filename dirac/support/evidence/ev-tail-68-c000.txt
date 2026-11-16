@@ -41,12 +41,15 @@ Captain Lannery Storm
 Cateran Brute
 Cavalier of Night
 Cavern Harpy
+Cephalid Vandal
 Charging Paladin
 Cinder Giant
 Citadel Castellan
 Cliffhaven Vampire
+Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Cold Storage
 Colorful Feiyi Sparrow
 Conservator
@@ -102,6 +105,7 @@ Flamecast Wheel
 Fleetfeather Sandals
 Followed Footsteps
 Forest
+Fractal Summoning
 Freyalise, Llanowar's Fury
 Furious Resistance
 Garruk's Packleader
@@ -147,6 +151,7 @@ Keeper of Fables
 Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Kor Skyfisher
+Krovikan Sorcerer
 Labyrinth Adversary
 Lazotep Reaver
 Leather Armor
@@ -217,6 +222,7 @@ Scaled Herbalist
 Scaled Hulk
 Scarred Vinebreeder
 Scrapper Champion
+Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
 Shambling Ghoul
@@ -231,6 +237,7 @@ Silverglade Pathfinder
 Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
+Snag
 Sol Grail
 Solid Footing
 Soulhunter Rakshasa

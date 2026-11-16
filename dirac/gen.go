@@ -589,7 +589,7 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 // carries rbPlusDmg too, and its order ask changes the amount, so a table with
 // one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev)
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr)
 }
 
 type grantRef struct {
@@ -1183,6 +1183,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
+				case kop.ReplDamageRedirect:
+					prepStatRdrCard(g, pc)
 				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf, kop.ReplPreventDamageFilt, kop.ReplPreventDamageN:
 					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true

@@ -243,6 +243,7 @@ Palazzo Archers
 Parapet Watchers
 Pawn of Ulamog
 Peak Eruption
+Penumbra Spider
 Perilous Shadow
 Phantom Nantuko
 Pillardrop Rescuer
@@ -268,6 +269,7 @@ Ral's Reinforcements
 Ramirez DePietro, Pillager
 Ranger's Longbow
 Rapacious Guest
+Ratadrabik of Urborg
 Ravaging Blaze
 Ravaging Horde
 Ravenous Baloth
@@ -325,6 +327,7 @@ Steal Enchantment
 Steam Spitter
 Steel Leaf Champion
 Steel Sabotage
+Stomp and Howl
 Stone Catapult
 Stone Quarry
 Stormcaller of Keranos

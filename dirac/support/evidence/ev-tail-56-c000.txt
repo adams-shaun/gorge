@@ -18,6 +18,7 @@ Anchor to the Aether
 Ancient Grudge
 Angelic Gift
 Anointer of Champions
+Arachnogenesis
 Arachnoid
 Arachnoid Adaptation
 Arashin Foremost
@@ -320,6 +321,7 @@ Reduce
 Reject Imperfection
 Repel the Darkness
 Repentance
+Replicating Ring
 Reprisal
 Resculpt
 Retreat to Hagra

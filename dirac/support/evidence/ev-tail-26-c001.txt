@@ -5,6 +5,7 @@ Acid Rain
 Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Ancestral Vengeance
 Ancient Runes
 Angelic Overseer
@@ -14,31 +15,40 @@ Armorcraft Judge
 Arno Dorian
 Asceticism
 Ashcoat Bear
+Auriok Sunchaser
 Auspicious Ancestor
 Baloth Prime
 Barrel Down Sokenzan
 Blade of the Bloodchief
 Blood Knight
+Bloodhall Priest
 Bloodscale Prowler
+Blue Scarab
 Boros Mastiff
+Brimstone Dragon
 Brindle Shoat
+Bringer of the Blue Dawn
 Butch DeLoria, Tunnel Snake
+Candlelight Vigil
 Castle Raptors
 Cavalry Drillmaster
 Celebrity Fencer
 Chain Devil
+Chakram Slinger
 Champion of the Parish
 Chasm Drake
 Chastise
 Chemister's Insight
 Chrome Mox
 City of Shadows
+Cloud Manta
 Colossal Badger
 Contract Killing
 Copper Tablet
 Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
+Cutthroat Negotiator
 Cyclopean Snare
 Cystbearer
 Dark Temper
@@ -47,16 +57,19 @@ Death of a Thousand Stings
 Declare Dominance
 Despondent Killbot
 Dirty Rat
+Divebomber Griffin
 Dragon Bell Monk
 Dragon Hatchling
 Dralnu's Crusade
 Eel-Hounds
 Empty the Warrens
+Empyrial Armor
 Faithless Looting
 Fast Forward
 Feast of Dreams
 Fencing Ace
 Flowstone Crusher
+Force of Savagery
 Forest
 Foul-Tongue Shriek
 Frantic Inventory
@@ -67,25 +80,32 @@ Gideon's Lawkeeper
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Firebug
+Graceful Cat
+Grappling Sundew
 Grave Betrayal
 Grizzly Ghoul
+Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
 Island
 Jeskai Ascendancy
+Jewel-Eyed Cobra
 Jhessian Infiltrator
 Junk Golem
 Kami of False Hope
+Kami of Fire's Roar
 Kavu Chameleon
 King Crab
 Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Lord of Extinction
 Lulu, Stern Guardian
 Magma Rift
+Make Your Mark
 Makeshift Battalion
 Mana Geyser
 Markov Enforcer
@@ -103,12 +123,14 @@ Necrosquito
 Nested Shambler
 Nighthawk Scavenger
 Nightmarish End
+Nikya of the Old Ways
 No Escape
 Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
 Open the Vaults
 Orzhov Racketeers
+Paradise Mantle
 Pardic Arsonist
 Patriot, Young Avenger
 Paupers' Cage
@@ -119,15 +141,21 @@ Pit Keeper
 Plains
 Polluted Bonds
 Portal to Phyrexia
+Possessed Aven
 Psionic Blast
 Pyretic Charge
+Quickening Licid
 Rally the Ranks
 Ransack
+Reality Ripple
 Reckless Air Strike
+Rhox Brute
 Rise from the Nether
+Road of Return
 Rubblebelt Recluse
 Rundvelt Hordemaster
 Sacred Cat
+Saiba Trespassers
 Saltfield Recluse
 Satyr Grovedancer
 Savage Swipe
@@ -144,6 +172,7 @@ Skyhunter Prowler
 Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
+Snake Pit
 Spark Elemental
 Sparkspitter
 Spellbook
@@ -156,6 +185,7 @@ Stony Strength
 Sunset Revelry
 Sunspire Griffin
 Swamp
+Swift Maneuver
 Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
@@ -165,6 +195,7 @@ Thundering Spineback
 Tide Drifter
 Tigereye Cameo
 Tower of Calamities
+Triad of Fates
 Unholy Strength
 Urabrask's Anointer
 Urza's Filter
@@ -172,7 +203,9 @@ Vapor Snag
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
+Warkite Marauder
 Warlord's Axe
+Warthog
 Wasp, Shrinking Savior
 Wei Night Raiders
 Whirler Rogue

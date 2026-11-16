@@ -32,6 +32,7 @@ Banehound
 Banish from Edoras
 Banisher Priest
 Basal Sliver
+Batterskull
 Battlewand Oak
 Bearscape
 Benalish Honor Guard
@@ -272,6 +273,7 @@ Peach Garden Oath
 Pest Summoning
 Pestilent Syphoner
 Phantom Wurm
+Pharaoh Rama-Tut
 Phyrexian Broodstar
 Pilgrim of the Ages
 Pit Scorpion
@@ -412,6 +414,7 @@ The Thanos-Copter
 Think Tank
 Third Path Iconoclast
 Thran Foundry
+Thundercloud Elemental
 Tidal Wave
 Tishana's Wayfinder
 Tomb Robber

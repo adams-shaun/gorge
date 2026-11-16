@@ -57,6 +57,7 @@ Botanical Plaza
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Briber's Purse
 Brinebarrow Intruder
 Broken Concentration
 Broodbirth Viper
@@ -272,6 +273,7 @@ Necroskitter
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer
+Nissa, Nature's Artisan
 Noble Hierarch
 Nomad Mythmaker
 Noose Constrictor
@@ -399,6 +401,7 @@ Stromkirk Captain
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Survivor of the Unseen
 Swamp
 Swarmyard

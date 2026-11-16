@@ -44,6 +44,7 @@ Bloodcrazed Hoplite
 Bloodcurdling Scream
 Bloodmist Infiltrator
 Blot Out
+Boot Nipper
 Borderland Marauder
 Boris Devilboon
 Brightmare
@@ -127,6 +128,7 @@ Flickering Ward
 Flight of Fancy
 Flood
 Fodder Tosser
+Foreshadow
 Forest
 Forfend
 Fork in the Road

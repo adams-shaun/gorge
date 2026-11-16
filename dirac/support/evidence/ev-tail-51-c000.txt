@@ -1,5 +1,6 @@
 A-Celestial Regulator
 Abandon Reason
+Academy Journeymage
 Acquisition Octopus
 Aerial Maneuver
 Aetheric Amplifier
@@ -15,6 +16,7 @@ Arid Mesa
 Armada Wurm
 Armistice
 Armory of Iroas
+Artifact Unknown Shores
 Ashiok's Skulker
 Aspect of Manticore
 Astral Steel
@@ -91,6 +93,7 @@ Delayed Blast Fireball
 Demon's Due
 Dense Canopy
 Devoted Paladin
+Devour in Flames
 Devout Monk
 Diregraf Rebirth
 Disciple of Kangee
@@ -188,6 +191,7 @@ Gyre Sage
 Hag of Mage's Doom
 Halo Hunter
 Haunted Fengraf
+Havoc
 Headless Skaab
 Headstrong Brute
 Heedless One
@@ -248,6 +252,7 @@ Let the Galaxy Burn
 Leveler
 Leyline Invocation
 Life Chisel
+Life Insurance
 Light of Hope
 Lightning Elemental
 Living Wish
@@ -302,6 +307,7 @@ Onyx Mage
 Oona's Gatewarden
 Oran-Rief, the Vastwood
 Oraxid
+Ostracize
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
@@ -324,6 +330,7 @@ Presence of the Wise
 Pridemalkin
 Primal Frenzy
 Prismatic Vista
+Prismite
 Professor of Zoomancy
 Protection Magic
 Psionic Snoop
@@ -399,6 +406,7 @@ Skull Catapult
 Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
+Skysnare Spider
 Smashing Spree
 Smelt
 Snapping Thragg
@@ -412,6 +420,7 @@ Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
 Spectral Bears
+Sphinx's Insight
 Spidersilk Net
 Spire Golem
 Spring

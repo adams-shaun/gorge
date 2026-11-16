@@ -42,6 +42,7 @@ Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
 Brandywine Farmer
 Braulios of Pheres Band
+Bruse Tarl, Boorish Herder
 Brute Force
 Capashen Standard
 Captain America, Steve Rogers
@@ -150,6 +151,7 @@ Herald of Slaanesh
 Hero of Bladehold
 Hero's Heirloom
 Heroic Teamwork
+Hivestone
 Hobblefiend
 Hordeling Outburst
 Horror of the Dim
@@ -178,6 +180,7 @@ Khalni Garden
 Knotvine Paladin
 Kolaghan, the Storm's Fury
 Lampad of Death's Vigil
+Lash of the Balrog
 Last March of the Ents
 Last Word
 Lava Spike
@@ -257,6 +260,7 @@ Pride Sovereign
 Prismari Campus
 Psionic Entity
 Puppeteer Clique
+Pyrohemia
 Radha's Firebrand
 Rampart Crawler
 Read the Bones

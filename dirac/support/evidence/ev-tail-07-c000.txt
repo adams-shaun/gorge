@@ -129,6 +129,7 @@ Exuberant Fuseling
 Eye of Ugin
 Fable of the Mirror-Breaker
 Faeburrow Elder
+Faramir, Steward of Gondor
 Favor of the Overbeing
 Feeling of Dread
 Feral Prowler
@@ -346,6 +347,7 @@ Sejiri Refuge
 Select for Inspection
 Senate Griffin
 Serpent of the Endless Sea
+Serrated Arrows
 Serum Raker
 Sethron, Hurloon General
 Settlement Blacksmith
@@ -398,6 +400,7 @@ Symbiosis
 Taigam's Strike
 Talisman of Impulse
 Taunting Kobold
+Teferi's Moat
 Telim'Tor's Darts
 Tempest Caller
 Thalia, Guardian of Thraben
@@ -441,6 +444,7 @@ Wallop
 Wandering Treefolk
 War Screecher
 Warmonger
+Warped Researcher
 Waterfront District
 Wayward Servant
 Wellwisher

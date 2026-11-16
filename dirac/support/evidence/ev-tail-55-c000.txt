@@ -64,6 +64,7 @@ Bosh, Iron Golem
 Bosk Banneret
 Braids, Cabal Minion
 Brainbite
+Breath of the Sleepless
 Briar Hydra
 Brokers Veteran
 Bubble Snare
@@ -449,6 +450,7 @@ Ur-Golem's Eye
 Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
+Venarian Gold
 Venerable Lammasu
 Vengeant Vampire
 Verdigris

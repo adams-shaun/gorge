@@ -1,25 +1,33 @@
+A-Cori-Steel Cutter
 A-Dragonborn Looter
 A-Meria's Outrider
 A-Ominous Parcel
+Accursed Horde
 Aerial Engineer
+Aether Adept
 Aether Inspector
 Aethersnipe
+Akoum Refuge
 Angelic Gift
 Angler Turtle
+Answered Prayers
 Anurid Barkripper
 Anurid Murkdiver
 Arc Trail
 Ardent Soldier
+Armored Ascension
 Armory Guard
 Ashiok's Adept
 Attended Healer
 Audacious Infiltrator
 Aven Mindcensor
 Awakened Awareness
+Baloth Prime
 Barrage Tyrant
 Barrowgoyf
 Basic Conjuration
 Bastion Enforcer
+Besmirch
 Bewilder
 Beyeen Veil
 Blistercoil Weird
@@ -30,6 +38,7 @@ Bloodrite Invoker
 Bloodshed Fever
 Bog Elemental
 Boggart Forager
+Boil
 Bonded Construct
 Boon of Boseiju
 Brawl-Bash Ogre
@@ -37,7 +46,9 @@ Breaching Hippocamp
 Brimstone Volley
 Burning Hands
 Captain's Hook
+Carnage Wurm
 Carrion Call
+Chaos Terminator Lord
 Choking Restraints
 Cinder Barrens
 Cloak and Dagger
@@ -76,6 +87,7 @@ Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
 Essence Depleter
+Exemplar of Strength
 Faerie Swarm
 Fiddlehead Kami
 Fissure
@@ -93,6 +105,7 @@ Franklin Richards, Ascendant
 From Beyond
 Furnace Spirit
 Gala Greeters
+Galadhrim Bow
 Galvanic Juggernaut
 Gauntlet of Might
 Ghoulsteed
@@ -117,12 +130,15 @@ Harvest Wurm
 Haunted Cadaver
 Havoc Devils
 Helm of the Host
+Horizon Explorer
+Horn of Gondor
 Horned Stoneseeker
 Hornet Sting
 Hovermyr
 Icatian Store
 Idle Thoughts
 Illustrious Wanderglyph
+Immolating Souleater
 Imoti, Celebrant of Bounty
 Imperial Cosmographer
 Incremental Growth
@@ -164,6 +180,7 @@ Moonlit Wake
 Mosstodon
 Motivated Pony
 Mountain
+Mugging
 Myr Adapter
 Mystic Snake
 Naru Meha, Master Wizard
@@ -178,6 +195,8 @@ Ob Nixilis, the Fallen
 Oni of Wild Places
 Organ Grinder
 Ornithopter
+Overload
+Painful Lesson
 Painwracker Oni
 Park Heights Pegasus
 Pelakka Predation
@@ -185,6 +204,7 @@ Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
+Petravark
 Phyrexian Colossus
 Phyrexian Denouncer
 Phyrexian Totem
@@ -212,19 +232,25 @@ Scalding Devil
 Scholar of Athreos
 Scythecat Cub
 Separatist Voidmage
+Serene Steward
 Setessan Starbreaker
 Sewer Rats
 Shadow Summoning
+Shadow of Mortality
 Shaman of the Pack
 Shamble Back
 Shapers' Sanctuary
 Shard of the Nightbringer
+Shauku's Minion
 Shriek of Dread
 Shu Cavalry
+Silt Crawler
 Silver Raven
 Silverquill Lecturer
 Silverwing Squadron
+Simic Sky Swallower
 Singing Tree
+Skullmane Baku
 Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
@@ -245,6 +271,7 @@ Swamp
 Sweatworks Brawler
 Swelter
 Swift Response
+Sylvan Reclamation
 Tatyova, Steward of Tides
 Temperamental Oozewagg
 Thalia's Lancers
@@ -263,6 +290,7 @@ Treetop Bracers
 Trench Stalker
 Tribute to Horobi
 Trostani's Summoner
+Trufflesnout
 Tunneler Wurm
 Twitch
 Tyrranax
@@ -296,6 +324,8 @@ Wild Celebrants
 Wings of Aesthir
 Wings of Hope
 Woodland Bellower
+Wrangle
+Wrenn's Resolve
 Wyluli Wolf
 Yavimaya Scion
 Zirilan of the Claw
