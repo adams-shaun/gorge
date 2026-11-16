@@ -7,6 +7,7 @@ Accursed Horde
 Advanced Stitchwing
 Aether Vial
 Aftershock
+Agent of Horizons
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
@@ -29,6 +30,7 @@ Blood Speaker
 Bond of Passion
 Bonded Herdbeast
 Bontu the Glorified
+Book of Rass
 Bramblecrush
 Brazen Buccaneers
 Briarpack Alpha
@@ -52,6 +54,7 @@ Curious Pair
 Darwin, Adaptive Mutant
 Davriel, Rogue Shadowmage
 Deadly Recluse
+Death Tyrant
 Deathbloom Thallid
 Demonic Lore
 Depose
@@ -65,6 +68,7 @@ Drelnoch
 Drill-Skimmer
 Dross Golem
 Déjà Vu
+Ebon Drake
 Ebony Charm
 Ebony Horse
 Electric Revelation
@@ -78,6 +82,7 @@ Ferocious Pup
 Feroz's Ban
 Fill with Fright
 Final Flourish
+Fire Nation Occupation
 Flame Elemental
 Flip the Switch
 Force Spike
@@ -85,12 +90,15 @@ Forest
 Freejam Regent
 Furious Resistance
 Furnace Gremlin
+Gaea's Might
 Gearsmith Prodigy
 Gleam of Authority
+Gluttonous Guest
 Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Gristle Grinner
 Hadana's Climb
 Harvesttide Infiltrator
 Hazoret's Monument
@@ -98,9 +106,11 @@ Honor's Reward
 Hysterical Blindness
 Indulgent Tormentor
 Inexorable Tide
+Infernal Reckoning
 Inner Fire
 Innocent Traveler
 Ire of Kaminari
+Ironclad Revolutionary
 Island
 Jabs, Mistress of Mockery
 Jace's Triumph
@@ -113,10 +123,13 @@ Kor Line-Slinger
 Kozilek's Unsealing
 Krark-Clan Grunt
 Land Grant
+Lava Coil
 Leaden Fists
 Lightfoot Rogue
 Lightning Elemental
+Liliana's Influence
 Lone Revenant
+Long-Forgotten Gohei
 Looming Altisaur
 Lumengrid Sentinel
 Lunk Errant
@@ -136,11 +149,13 @@ Mox Amber
 Murder Investigation
 Myr Enforcer
 Mystery Key
+Mystic Might
 Nath's Buffoon
 Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
 Never
+Nezumi Freewheeler
 Noxious Grasp
 Nyxathid
 Obelisk of Naya
@@ -164,7 +179,9 @@ Puppet Conjurer
 Purify
 Quag Sickness
 Quirion Dryad
+Razorjaw Oni
 Reanimate
+Reaver Drone
 Reckoner's Bargain
 Rending Volley
 Reverent Hunter
@@ -184,6 +201,7 @@ Sea Snidd
 Seasoned Hallowblade
 Seed Guardian
 Sharktocrab
+Shinen of Fear's Chill
 Showstopping Surprise
 Shredded Sails
 Shu Grain Caravan
@@ -192,6 +210,7 @@ Sisay's Ring
 Skizzik Surger
 Skyclave Relic
 Skyreaping
+Sling-Gang Lieutenant
 Smoldering Efreet
 Sol Talisman
 Solar Blast
@@ -235,6 +254,7 @@ Vinelasher Kudzu
 Viridian Zealot
 Voidwielder
 Vulshok War Boar
+Walking Dead
 Wall of Roots
 Wall of Wonder
 Wand of the Elements
@@ -249,4 +269,6 @@ Winter Soldier, Bucky Barnes
 Witch's Cottage
 You Look Upon the Tarrasque
 Yuan Shao, the Indecisive
+Yuriko, the Tiger's Shadow
+Zhalfirin Decoy
 Zulaport Duelist

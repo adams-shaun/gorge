@@ -1,94 +1,156 @@
+A-Druidic Ritual
+Aether Flash
 Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
+Amugaba
+Angelic Curator
+Ant-Man, Scott Lang
+Arc Mage
+Arc Spitter
+Aria of Flame
+Armageddon
+Artifact Ward
 Ashling the Pilgrim
+Ashling, the Extinguisher
+Augmenting Automaton
 Augur of Bolas
 Avaricious Dragon
 Aven Sunstriker
+Bad Moon
+Batterbone
+Battle Mammoth
 Berserk Murlodont
 Biomathematician
 Black Widow, Deadly Hunter
 Blightbeetle
 Blistergrub
+Blistering Barrier
+Bloodthrone Vampire
 Blurred Mongoose
 Boneyard Wurm
 Boon Reflection
 Bosk Banneret
+Brand
+Briarhorn
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
 Cacophony Unleashed
+Call the Cavalry
+Call the Scions
+Captain America, Steve Rogers
 Casting of Bones
 Catalog
 Centaur Glade
 Cephalid Broker
+Chandra's Outburst
 Change of Fortune
+Changeling Outcast
 Chapel Geist
 Charge Across the Araba
 Checkpoint Officer
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Centaurs
+Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
+Cobblebrute
+Connive
 Corpse Connoisseur
 Countryside Crusher
+Cradle Clearcutter
 Crash
 Crimson Cowl, Master of Evil
 Crushing Disappointment
 Curse of Bounty
+Cyberdrive Awakener
 Dance with Devils
+Daredevil's Billy Club
 Dark Bargain
+Darksteel Myr
 Dauntless Aven
 Dauntless Unity
+Death Cloud
 Demon's Jester
 Depala, Pilot Exemplar
 Deputized Protester
 Desert of the Indomitable
 Dimir Signet
+Disciple of Perdition
 Disentomb
+Dismember
+Double Trouble
 Dragon Whelp
 Drake Haven
+Druid's Deliverance
 Electrify
+Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Piper
+Elvish Scrapper
 Elvish Visionary
+Emmara, Soul of the Accord
 Empty the Pits
 Enduring Bondwarden
+Enlightened Ascetic
 Ent's Fury
+Escape Velocity
+Eternity Vessel
 Ever After
 Evernight Shade
 Expedite
 Explosive Revelation
 Extinguish the Light
+Eye Spy
 Faerie Duelist
+Fallen Shinobi
+Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
 Fated Retribution
+Fencing Ace
+Feral Appetite
+Ferocious Pup
 Fevered Strength
 Feywild Visitor
+Fiery Mantle
+Fissure Wizard
+Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
 Forest
 Fortified Rampart
+Fountain of Youth
 Frost Trickster
+Fungal Rebirth
 Garruk's Companion
 Gate to Phyrexia
 Geistblast
+Generous Stray
 Ghirapur Aether Grid
 Glimmering Angel
 Glistener Elf
 Gluttonous Guest
+Gnat Alley Creeper
 Goblin Marshal
 Goblin Skycutter
+Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
+Grasping Dunes
 Gravetiller Wurm
+Great Desert Prospector
 Greater Auramancy
 Greater Good
+Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
 Hell Swarm
+Hellion Eruption
 Heroic Charge
 Hobblefiend
 Hookhand Mariner
@@ -97,100 +159,202 @@ Horrific Assault
 Howling Golem
 Humongulus
 Hunted Dragon
+Incriminate
 Inspired Fire
+Invigorating Boon
 Island
 Island of Wak-Wak
+Jadecraft Artisan
 Jaya, Venerated Firemage
+Junktroller
 Kaldra Compleat
+Kayla's Command
+Kessig Wolfrider
 Kiln Walker
+Kor Cartographer
+Kor Entanglers
+Kor Scythemaster
+Kuldotha Rebirth
+Lantern of Revealing
+Lantern of the Lost
+Lapis Lazuli Talisman
+Laquatus's Creativity
 Last Caress
 Library
+Life
 Living Wish
 Long-Finned Skywhale
+Lu Su, Wu Advisor
 Lurking Roper
+Magistrate's Veto
 Malicious Intent
+Maned Serval
 Manifold Key
 Manta Riders
+Mask of Law and Grace
+Mass Hysteria
+Maze Skullbomb
+Merfolk Observer
+Metamorphic Wurm
 Mightstone's Animation
+Mindmelter
+Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
+Motivated Pony
 Mountain
+Myr Convert
+Mystery Key
 Naiad of Hidden Coves
+Nantuko Tracer
 Nico Minoru, Runaway
+Nightshade Seer
+Nim Grotesque
 Noose Constrictor
 Nylea's Colossus
+Nylea's Forerunner
+Oblivion Strike
 Ocular Halo
 Ogre Gatecrasher
 Omnath, Locus of Rage
+Orochi Hatchery
+Pallid Mycoderm
 Part the Veil
 Patagia Golem
+Patch Up
+Peace Strider
 Perilous Forays
 Perilous Research
 Pillaging Horde
 Pillarfield Ox
+Pip-Boy 3000
 Plains
 Poison Arrow
 Prison Term
 Prowling Pangolin
+Psychomancer
+Pyknite
+Quantum Entanglement
 Quicksilver Fisher
 RMS Titanic
+Radha, Heart of Keld
+Rain of Salt
 Raking Claws
 Rampaging Cyclops
+Raptor Companion
 Ravenous Demon
+Ray of Dissolution
+Razorgrass Ambush
+Razortide Bridge
 Reaping the Rewards
 Red Ghost, Intangible Genius
+Refocus
 Renari, Merchant of Marvels
 Renegade Silent
+Resplendent Mentor
 Reverent Hoplite
+Rhystic Shield
+Righteous Cause
 Righteous Fury
+Riptide Pilferer
+Rishkar's Expertise
+Roc Charger
+Rock Basilisk
+Rocksteady, Mutant Marauder
+Rogue's Gloves
+Rootbreaker Wurm
+Rubble Slinger
 Runebound Wolf
+Runner's Bane
+Rustvine Cultivator
 Sacred Fire
+Sage of Epityr
+Salt Road Quartermasters
+Sanctum of Stone Fangs
+Sandstorm Eidolon
 Sarpadian Simulacrum
+Sauroform Hybrid
 Saw It Coming
+Scale Blessing
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
+Serpent-Blade Assailant
 Serra Ascendant
 Shao Jun
+Shape the Sands
+Shower of Coals
 Sigarda, Heron's Grace
+Sigiled Paladin
 Silverquill Command
+Skinshifter
+Slaughterhorn
+Sleeper Agent
 Slippery Bogle
+Smelt
+Snow-Covered Mountain
 So Shiny
+Soratami Savant
 Soulshriek
+Spawn-Gang Commander
 Squadron Hawk
+Squirrel Sanctuary
+Stone Catapult
+Stone Rain
 Stonefury
 Storm Fleet Sprinter
+Storm Shaman
+Stormchaser Mage
+Stormfront Pegasus
 Struggle for Skemfar
 Stump Stomp
 Sunken City
 Supply Caravan
+Supreme Will
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Swat
 Swell of Growth
 Sylvan Anthem
 Synod Sanctum
 Tallyman of Nurgle
 Tar Pitcher
+Taunting Arbormage
 Teeterpeak Ambusher
+Terrain Elemental
 The Rack
+Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Tidings
+Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Twisted Embrace
+Ultimate Magic: Holy
+Untamed Might
+Vanquish the Weak
 Vault Guardsman
 Vectis Silencers
 Vector Asp
 Vengeful Dead
 Vengeful Firebrand
+Vengeful Rebirth
+Viridian Harvest
 Virtue's Ruin
+Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warlock Class
@@ -198,13 +362,21 @@ Warpath
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
+Whiptongue Frog
+Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
+Wirewood Lodge
+Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
+Xathrid Slyblade
 Xun Yu, Wei Advisor
+Yeva, Nature's Herald
 Yuriko, the Tiger's Shadow
+Zephyr Charge
 Zoologist

@@ -1,39 +1,192 @@
 A-Galvanic Discharge
+A-Heartfire Hero
+A-Symmetry Sage
+Abomination
+Aerie Auxiliary
 Aetherstorm Roc
+Akki Blizzard-Herder
+Akroma's Vengeance
 Akroma, Angel of Fury
+Angel of Glory's Rise
+Armory Guard
+Attended Knight
+Ballista Watcher
+Bellowing Saddlebrute
+Black Widow, Intel Expert
+Blade Sliver
 Bladehold War-Whip
+Bonesplitter Sliver
 Boots of Speed
+Brainspoil
+Buoyancy
+Cavern Crawler
+Chief of the Foundry
+Clash of Wills
+Conquering Manticore
+Copper Myr
 Coppercoat Vanguard
+Crashing Footfalls
+Crop Sigil
+Cruel Celebrant
+Crypt Creeper
 Cryptbreaker
 Damn
+Deathmark Prelate
+Deepwood Ghoul
+Defensive Maneuvers
+Defiant Strike
+Demon's Jester
+Diabolic Edict
+Disciple of Grace
 Disciple of the Ring
+Dreadlight Monstrosity
+Drowner Initiate
 Drumbellower
+Dual Shot
 Dustin, Gadget Genius
+Efreet Flamepainter
 Electrosiphon
+Ellivere of the Wild Court
+Essence Infusion
+Everbark Shaman
+Evie Frye
+Extremis Elite
+Falkenrath Torturer
 Fallaji Archaeologist
+Final Strike
+Flailing Soldier
+Flamekin Village
+Flayed One
+Flicker of Fate
 Forest
+Frenzied Devils
+From the Rubble
+Frost Trickster
 Galerider Sliver
+Goblin Barrage
+Goblin Blast-Runner
+Goblin Bombardment
+Goblin Bushwhacker
+Goblin Locksmith
 Gonti, Lord of Luxury
 Grave Peril
+Graveblade Marauder
+Gravity Sphere
+Grizzled Leotau
 Guardians of Oboro
+Halberdier
+Hammerhead Shark
+Hero of Goma Fada
+Hold at Bay
+Horizon Scholar
+Horizon Spellbomb
 Hunted Phantasm
+Hydromorph Gull
+Infernal Contract
+Infuriate
+Iona's Judgment
 Island
+Izzet Keyrune
+Kazuul Warlord
+Keldon Mantle
+Kogla, the Titan Ape
+Kraken Hatchling
 Kuldotha Ringleader
+Last Kiss
+Lead by Example
+Lightning Javelin
 Lizard Warrior
+Loamcrafter Faun
+Longbow Archer
+Marble Titan
+Melira's Keepers
+Mental Misstep
 Messenger's Speed
+Mindculling
+Misers' Cage
+Mob Justice
 Mountain
+Myr Sire
+Márton Stromgald
 Nimble Innovator
+Obelisk of Alara
+Orzhov Signet
+Pang Tong, "Young Phoenix"
+Pearl Medallion
+Phyrexian Colossus
 Pick Up the Pace
 Pincer Spider
+Pinnacle of Rage
 Plains
+Predator's Rapport
+Ransom Note
 Razormane Masticore
+Renegade Warlord
+Repel the Vile
+Reprieve
+Ring of Immortals
+Riptide Mangler
+River Kaijin
+Sacred Knight
+Sanctum Custodian
+School of Piranha
+Scrap Trawler
 Sea Sprite
+Sell-Sword Brute
+Sepulcher Ghoul
+Shatterskull Charger
+Shatterskull Smashing
+Shield-Wall Sentinel
 Shimmering Wings
+Shinechaser
+Sif's Spearmaster
+Sky Diamond
+Sky Theater Strix
+Soldier Replica
+Spell Contortion
+Spitting Sliver
+Squee's Embrace
+Squelching Leeches
+Squirrel Sovereign
+Staff of the Storyteller
+Stern Marshal
+Stick, Fearless Mentor
+Stone Calendar
+Strangle
+Stromkirk Occultist
+Sultai Banner
 Svyelunite Priest
 Swamp
+Tanglebloom
+The Destined Black Mage
+Theros Charm
 Thornwatch Scarecrow
+Tolarian Entrancer
+Traveling Philosopher
+Treasure Vault
+Trench Gorger
+Trench Wurm
+Tromokratis
+Two-Headed Sliver
+Unseal the Necropolis
+Unworthy Dead
+Vampire Noble
+Vampiric Fury
 Vampiric Sliver
+Vedalken Aethermage
+Vendetta
 Visage of Bolas
+Vizkopa Vampire
+Wake the Past
+Walker of the Grove
+Warlock Class
 Where We're Going . . .
+Whetwheel
 Wind Dancer
+Wirewood Herald
+You Hear Something on Watch
+You're Ambushed on the Road
 Zephyr Net
+Zhao Zilong, Tiger General
+Zhuge Jin, Wu Strategist
+Zurgo Bellstriker

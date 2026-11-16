@@ -412,7 +412,8 @@ func (d *CommanderDrafter) Pick(v PickView, r *rand.Rand) string {
 // deck to exactly DeckSize cards, commanders included (0 means
 // build.CommanderDeckSize), with basics of the identity's colours split by
 // pip share. The land count scales with the size (cmdrLandsFor: 23 at 60,
-// 19 at 50). A pool without a commander yields a deck without one, which
+// 19 at 50) and with the identity's width (cmdrLandsForWidth: 24 at 60 for
+// three colours or more). A pool without a commander yields a deck without one, which
 // ValidateCommanderSize refuses.
 type CommanderBuilder struct {
 	Lookup   CardLookup
@@ -430,8 +431,8 @@ func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck 
 		cs[i] = cmdrFacts(b.Lookup, ref, b.Value)
 	}
 	size := cmdrDeckSize(b.DeckSize)
-	nLands := cmdrLandsFor(size)
 	plan, ok := bestOption(cs, size)
+	nLands := cmdrLandsForWidth(size, plan.mask)
 	var d build.Deck
 	in := map[int]bool{}
 	if ok {
@@ -484,21 +485,6 @@ func (b *CommanderBuilder) Build(set string, pool []limited.CardRef) build.Deck 
 	}
 	d.Basics = splitBasicsFor(cs, plan, lands, sel, size-len(d.Main), pips)
 	return d
-}
-
-// deckSources counts, per colour, the deck's mana sources: the lands and
-// the commanders and spells that are sources of it.
-func deckSources(cs []cmdrCard, groups ...[]int) (n [5]int) {
-	for _, g := range groups {
-		for _, i := range g {
-			for c := 0; c < 5; c++ {
-				if cs[i].src&(1<<c) != 0 {
-					n[c]++
-				}
-			}
-		}
-	}
-	return n
 }
 
 // colourNeeds is the sources each colour of the deck's identity needs in a
@@ -650,7 +636,7 @@ func fillSources(cs []cmdrCard, plan cmdrOption, lands, sel, rest []int, size, n
 	short := func(sel []int) float64 {
 		basics := size - len(plan.idx) - len(lands) - len(sel)
 		need := colourNeeds(cs, plan.mask, size-len(plan.idx)-len(sel), plan.idx, sel)
-		have := deckSources(cs, plan.idx, lands, sel)
+		have := identitySources(cs, plan.mask, plan.idx, lands, sel)
 		alloc, _ := basicsFor(basics, have, need)
 		return shortfall(have, alloc, need)
 	}
@@ -696,7 +682,7 @@ func fillSources(cs []cmdrCard, plan cmdrOption, lands, sel, rest []int, size, n
 // the colour needs, or by pip share (splitBasics) when no colour has a need.
 func splitBasicsFor(cs []cmdrCard, plan cmdrOption, lands, sel []int, n int, pips [5]int) [5]int {
 	need := colourNeeds(cs, plan.mask, n+len(lands), plan.idx, sel)
-	if out, ok := basicsFor(n, deckSources(cs, plan.idx, lands, sel), need); ok {
+	if out, ok := basicsFor(n, identitySources(cs, plan.mask, plan.idx, lands, sel), need); ok {
 		return out
 	}
 	return splitBasics(n, plan.mask, pips)

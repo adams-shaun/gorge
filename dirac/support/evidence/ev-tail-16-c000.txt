@@ -30,6 +30,7 @@ Barkchannel Pathway
 Barren Moor
 Battle Mammoth
 Beloved Chaplain
+Benthic Djinn
 Bhaal's Invoker
 Black Cat
 Black Lotus
@@ -53,6 +54,7 @@ Call for Blood
 Call of the Herd
 Call the Bloodline
 Canal Monitor
+Canopy Surge
 Cantivore
 Cathartic Reunion
 Cathedral of War
@@ -81,6 +83,7 @@ Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkblade Agent
 Darkbore Pathway
 Darkness
 Dauntless Survivor
@@ -105,6 +108,7 @@ Disrupt
 Draconic Lore
 Dragon Tyrant
 Dragonfly Suit
+Dromar, the Banisher
 Dross Crocodile
 Drowned
 Dunland Crebain
@@ -118,6 +122,7 @@ Enchanted Carriage
 Enchantress's Presence
 Encroaching Wastes
 Encrust
+Endure
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
@@ -127,6 +132,7 @@ Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
+Fathom Fleet Captain
 Favor of the Woods
 Feebleness
 Ferocious Charge
@@ -139,6 +145,7 @@ Fire Drake
 Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
+Flickering Spirit
 Flickerwisp
 Font of Ire
 Forced Adaptation
@@ -158,8 +165,10 @@ Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
 Giant-Man, Gargantuan Genius
+Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
+Goblin Anarchomancer
 Goblin Assault Team
 Goblin Cadets
 Goblin Cavaliers
@@ -208,6 +217,7 @@ Incursion Specialist
 Indatha Triome
 Inner Fire
 Inquisitor's Ox
+Instrument of the Bards
 Iron Bully
 Iron-Barb Hellion
 Island
@@ -256,10 +266,13 @@ Mindleech Ghoul
 Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
+Mirror Entity
 Misshapen Fiend
+Molten Tributary
 Mosscoat Goriak
 Mountain
 Mox Emerald
+Munitions Expert
 Myrel, Shield of Argive
 Myriad Landscape
 Nacatl Outlander
@@ -277,6 +290,7 @@ Oboro Envoy
 Obsessive Search
 Ogre Errant
 Oketra's Last Mercy
+Omnibian
 Orcish Bloodpainter
 Orcish Oriflamme
 Ordruun Commando
@@ -315,12 +329,14 @@ Rockslide Ambush
 Rogue's Gloves
 Rolling Thunder
 Rubblebelt Maaka
+Rubblebelt Raiders
 Ruthless Winnower
 Sai, Master Thopterist
 Sandblast
 Scab-Clan Berserker
 Scavenged Brawler
 Scent of Nightshade
+Schismotivate
 Scourge Devil
 Scourge of Geier Reach
 Scrapyard Mongrel
@@ -385,6 +401,7 @@ Survey the Wreckage
 Swamp
 Sylvan Paradise
 Sylvan Reclamation
+Synchronized Spellcraft
 T'Challa, the Black Panther
 Taigam's Strike
 Tainted Wood
@@ -398,6 +415,8 @@ Thassa's Emissary
 The Marvelous Scientist
 The Shire
 Thermal Glider
+Thought Erasure
+Thranduil the Strategist
 Thrash of Raptors
 Throne of Bone
 Thrull Parasite
@@ -428,12 +447,14 @@ Violent Eruption
 Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
+Vodalian Illusionist
 Voidwielder
 Vona, Butcher of Magan
 Voracious Wurm
 Vraska's Scorn
 Wall of Tanglecord
 War-Spike Changeling
+Warden of the Chained
 Warning
 Waterfront Bouncer
 Welkin Guide
@@ -446,6 +467,7 @@ Wishful Merfolk
 Witherbloom Pledgemage
 Woodland Mystic
 Wu Light Cavalry
+Wydwen, the Biting Gale
 You're Ambushed on the Road
 Young Wei Recruits
 Zhur-Taa Swine

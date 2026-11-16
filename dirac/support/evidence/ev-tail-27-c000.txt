@@ -8,6 +8,7 @@ Allied Assault
 Alpine Watchdog
 Altac Bloodseeker
 Altar of the Brood
+Amphin Mutineer
 Anarchy
 Ancient Crab
 Apes of Rath
@@ -18,16 +19,23 @@ Arctic Merfolk
 Argothian Wurm
 Armix, Filigree Thrasher
 Arrogant Outlaw
+Arrows of Justice
 Aspiring Aeronaut
 Aura Flux
 Avatar of Woe
+Aven Wind Mage
 Azorius First-Wing
+Azure Drake
 Barbed Lightning
 Bee Sting
+Belligerent Hatchling
+Bident of Thassa
+Blessing
 Blight Keeper
 Blowfly Infestation
 Boseiju Reaches Skyward
 Bottomless Pit
+Bounding Krasis
 Bountiful Landscape
 Brink of Disaster
 Bronzebeak Moa
@@ -58,11 +66,15 @@ Deft Duelist
 Deliberate
 Demonic Taskmaster
 Destroy the Evidence
+Dinrova Horror
 Dispersing Orb
 Douser of Lights
 Dream Twist
 Dryad's Revival
+Duergar Assailant
 Dwarven Armorer
+Dwarven Lieutenant
+Dwarven Weaponsmith
 Electrosiphon
 Elemental Mastery
 Elemental Uprising
@@ -98,6 +110,7 @@ Fruition
 Furnace Gremlin
 Galepowder Mage
 Geistflame
+Ghor-Clan Bloodscale
 Ghoulcaller's Accomplice
 Giant Ladybug
 Giant Octopus
@@ -110,14 +123,18 @@ God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
 Grim Lavamancer
+Gruul Locket
 Guul Draz Specter
+Gyre Engineer
 Harsh Deceiver
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+Helvault
 Hero of the Dunes
 Hidden Spider
 High Alert
+High Priest of Penance
 Hollowsage
 Honorable Scout
 Hulking Cyclops
@@ -131,8 +148,11 @@ Inflame
 Invoke Despair
 Island
 Jewel Thief
+Kangee, Sky Warden
 Krosan Constrictor
+Lagac Lizard
 Lamentation
+Legolas Greenleaf
 Lightning Axe
 Llanowar Druid
 Lord of the Unreal
@@ -147,7 +167,9 @@ Marauding Raptor
 Mardu Blazebringer
 Mary Read and Anne Bonny
 Master Decoy
+Merchant of Venom
 Metallic Sliver
+Midnight Arsonist
 Mishra's Bauble
 Mobilization
 Molten Birth
@@ -156,17 +178,24 @@ Mountain
 Myrkul's Invoker
 Namor, Scourge of the Seas
 Natural Reclamation
+Necrogenesis
 Necron Deathmark
 Neheb, Dreadhorde Champion
+Neverwinter Dryad
+Night Revelers
 Nirkana Assassin
+Nissa Revane
 Noble Stand
 Norwood Riders
+Noxious Grasp
 Null Brooch
 Nyxborn Wolf
 Offalsnout
+Old Ghastbark
 Onyx Goblet
 Ornery Goblin
 Orzhov Keyrune
+Out of the Way
 Overload
 Pangosaur
 Paradise Druid
@@ -178,73 +207,99 @@ Plains
 Polukranos Reborn
 Promise of Power
 Python
+Rakdos the Defiler
 Ravenous Baboons
+Red Ghost, Intangible Genius
 Reign of Terror
+Rhystic Deluge
 Rite of Flame
 Ritual of Soot
 Rotlung Reanimator
+Sage of the Falls
+Sarah Jane Smith
+Sarcomite Myr
 Satyr Rambler
 Sawblade Scamp
 Scion of Vitu-Ghazi
 Scorch Spitter
 Seashell Cameo
 Sedraxis Alchemist
+Seek New Knowledge
 Selesnya Signet
 Serpentine Curve
 Serra Paladin
 Shadowstorm Vizier
 Shivan Hellkite
+Shorecomber Crab
 Silent Attendant
 Silt Crawler
 Silumgar Monument
 Skinrender
 Skull Rend
+Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket
+Soul Manipulation
 Soul of Mirrodin
 Southern Paladin
+Speaker of the Heavens
 Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
+Steppe Glider
 Sticky Fingers
 Stinging Hivemaster
 Storm Front
 Stormcloud Spirit
+Stormfist Crusader
 Stun
 Stunning Shot
 Sudden Reclamation
+Surgespanner
 Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
+Sword of Sinew and Steel
 Syphon Life
 Tail Slash
 Tainted Isle
 Tattermunge Maniac
+Teferi's Protege
+Temur Banner
 Tendrils of Corruption
 Thallid Shell-Dweller
 The Locust God
 Thieving Magpie
 Third Path Iconoclast
+Thirsting Roots
 Three Tragedies
 Thrull Retainer
 Thrull Surgeon
 Timmy, Power Gamer
 Tormented Thoughts
 Trained Condor
+Tundra Wolves
 Twinferno
 Untethered Express
+Unwind
 Valiant Guard
 Vampire Lacerator
 Vedalken Infiltrator
 Vengeful Devil
 Venser's Journal
+Vertigo Spawn
 Veteran's Powerblade
 Viconia, Drow Apostate
 Vildin-Pack Outcast
+Visara the Dreadful
 Vodalian Hexcatcher
 Vodalian Zombie
+Void Shatter
 Volcanic Hammer
+Wildwood Tracker
 Woodborn Behemoth
 Workshop Assistant
+Yuffie, Materia Hunter
+Zuri, Warrior of Wakanda

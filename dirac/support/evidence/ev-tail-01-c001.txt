@@ -1,158 +1,321 @@
+A-Dueling Coach
 A-Leyline of Resonance
 A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Aetherling
+Aethersnipe
+Aethersquall Ancient
+Agent of Erebos
 Aim for the Head
 Ainok Artillerist
+Akroan Mastiff
 Alaborn Trooper
+Ambush Krotiq
 Ammit Eternal
+Angelic Captain
 Angelic Voices
 Animist's Might
+Anowon, the Ruin Thief
 Arc Spitter
 Arcane Spyglass
 Ascendant Evincar
+Aven Fateshaper
+Aven Squire
+Bail Out
 Balance of Power
+Balduvian Dead
 Banewasp Affliction
 Barkchannel Pathway
 Batterhorn
+Battle of Hoover Dam
 Battleflight Eagle
 Bereavement
+Black Market Connections
+Blighted Agent
 Blind with Anger
 Blinding Mage
 Blitz Automaton
+Bloated Contaminator
+Blockade Runner
+Bloodchief's Thirst
 Blossoming Calm
+Bond of Discipline
 Bonded Herdbeast
 Bone Shards
+Brain Weevil
+Brawn, Amadeus Cho
 Bulette
 By Invitation Only
+Cabal Slaver
+Cabaretti Initiate
+Cadaver Imp
+Careless Celebrant
 Carrion Howler
 Carrion Locust
+Cartouche of Ambition
+Cateran Persuader
+Cathedral Acolyte
+Ceaseless Conflict
 Celebrate the Harvest
 Centaur Battlemaster
+Centaur's Herald
+Chambered Nautilus
 Charred Graverobber
 Choking Fumes
+City of Death
 Clash of Realities
 Clear
 Cliffhaven Vampire
+Cloak and Dagger
+Coastal Hornclaw
 Coastal Tower
+Coerced Confession
+Coiling Woodworm
+Collar the Culprit
 Confidence from Strength
+Contagion Engine
+Conversion Chamber
 Corpsehatch
 Costly Plunder
 Court of Garenbrig
 Crimson Manticore
 Crossroads Consecrator
+Cudgel Troll
 Darklit Gargoyle
+Darkwater Egg
+Dauthi Horror
 Dawnhart Disciple
+Dawnstrider
+Death Wish
 Deeproot Warrior
+Defiant Ogre
+Demon's Grasp
+Denethor, Stone Seer
+Depths of Desire
 Destructive Force
 Diabolic Machine
 Dig Up
 Disciple of the Vault
 Dispersing Orb
+Doomskar Titan
+Doubtless One
+Draconian Cylix
 Dragon's Smile
+Dragonshift
+Dread Reaper
+Duskfang Mentor
+ED-E, Lonesome Eyebot
+Earthblighter
 Eastfarthing Farmer
 Eddytrail Hawk
+Escape Routes
 Eternity Vessel
 Executioner's Hood
+Exuberant Wolfbear
 Eyes in the Skies
 False Mourning
+Fangren Firstborn
+Farmstead Gleaner
+Fascination
+Felhide Petrifier
 Fellwar Stone
+Fervent Denial
+Field of the Dead
+Filigree Angel
 Flamekin Brawler
 Flashfires
+Fleeting Spirit
 Flinthoof Boar
+Flowstone Embrace
 Fog
 Font of Fertility
+Forerunner of the Legion
 Forest
 Fortifying Draught
 Fíli and Kíli, Joyous
 Gaea's Cradle
+Galvanic Arc
+Gate to the Citadel
 Generous Stray
+Generous Visitor
+Genesis Chamber
+Get the Point
+Ghitu Amplifier
+Ghitu Fire-Eater
+Ghostly Flicker
+Ghoulcaller's Chant
+Giant Adephage
+Gibbering Fiend
 Glaze Fiend
 Glorious Dragon-Kin
+Goblin Assault
+Goblin General
 Goblin Heelcutter
 Goblin Picker
+Goblin War Drums
 Grave Titan
 Greensleeves, Maro-Sorcerer
+Grendel, Spawn of Knull
+Grotag Siege-Runner
+Guardian Naga
 Guardian of the Great Conduit
 Guild Artisan
+Haazda Marshal
+Hard Evidence
 Harvest Wurm
 Hasran Ogress
 Hatred
+Headless Specter
+Heavy Ballista
 Helm of Awakening
+Hero of the Games
+Hoard-Smelter Dragon
+Hollowborn Barghest
 Homarid Shaman
 Homarid Spawning Bed
+Hornswoggle
+Hulk, Bruce Banner
 Hunted Wumpus
 Hyperion's Atomic Vision
+Ichthyomorphosis
+Illusionary Servant
+Illustrious Wanderglyph
+Imperial Recruiter
 Implement of Examination
+Improvised Weaponry
+Incendiary
 Infernal Grasp
 Infernal Plunge
+Ingot Chewer
+Inner Calm, Outer Strength
 Inspired Tinkering
+Inundate
+Ire of Kaminari
 Island
+Ith, High Arcanist
+Jasmine Boreal
+Jetmir's Garden
 Jungle Lion
 Kamigawa Charm
 Kazuul Warlord
+Kefnet's Monument
+Kessig Prowler
 Khabál Ghoul
 Killer Whale
 Kithkin Shielddare
 Kjeldoran Frostbeast
+Knight of the Pilgrim's Road
+Kozilek's Sentinel
 Krark-Clan Ogre
 Kyren Legate
+Lagonna-Band Trailblazer
+Legion's Landing
 Leonardo, the Balance
+Life Goes On
+Lightwalker
+Living Lies of Loki
 Llawan, Cephalid Empress
 Locked in the Cemetery
 Loran, Disciple of History
 Lord of Extinction
 Lotus Path Djinn
+Lu Bu, Master-at-Arms
 Lu Su, Wu Advisor
+Lurking Roper
 Magnetic Mine
+Magus of the Disk
 Mana Geode
 Mana Severance
+Maniacal Rage
+Manipulate Fate
 Marble Chalice
+Mark of Fury
+Mark of Sakiko
 Master of Waves
+Master the Way
+Mavren Fein, Dusk Apostle
+Maze Behemoth
 Meekstone
+Meneldor, Swift Savior
+Merfolk Seer
+Metallurgic Summonings
+Minion of Tevesh Szat
 Minor Misstep
+Mire Kavu
 Mogg Conscripts
 Mogg Flunkies
 Molten Nursery
+Monstrous Vortex
 Moor Fiend
 Mordor Muster
 Mountain
 Myr Battlesphere
 Nahiri's Machinations
+Neglected Heirloom
 Nessian Wanderer
 Nightguard Patrol
 Nighthawk, Dark Defender
 Nimbus Wings
+Nissa's Triumph
 Notorious Assassin
+Nyx Herald
 Oathkeeper, Takeno's Daisho
 Omenspeaker
+Open the Graves
 Orcish Medicine
 Origin Spellbomb
+Ossuary Rats
+Overwhelming Victory
 Palace Familiar
 Paradox Zone
+Parasitic Strix
+Peer into the Abyss
 Penumbra Kavu
 Pestilence Rats
 Petals of Insight
 Petrified Plating
+Pillory of the Sleepless
 Plagued Rusalka
 Plains
 Polluted Delta
+Polygoyf
+Pondering Mage
 Predator's Howl
 Pride of the Perfect
+Primaris Eliminator
 Profaner of the Dead
+Psychic Spiral
+Pull Under
 Puppeteer
+Pyrite Spellbomb
+Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
+Rally
+Rathi Trapper
+Ravnica at War
 Recollect
 Recover
+Recycla-bird
+Reef Shaman
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
+Rishadan Port
+River Hoopoe
 Riverwise Augur
+Robobrain War Mind
 Roc Egg
+Roil's Retribution
 Roofstalker Wight
+Rosnakht, Heir of Rohgahh
 Royal Warden
+Ruin Rat
+Rumbling Crescendo
+Rummaging Wizard
+Rune Snag
 Rupture Spire
 Rush of Battle
 Ruthless Instincts
@@ -160,57 +323,129 @@ Sage-Eye Harrier
 Sandstone Bridge
 Savage Order
 Scapeshift
+Scar
+Scarecrone
 Scepter of Fugue
 Scion of Draco
+Scourge of Skola Vale
+Seafloor Oracle
+Seal of Doom
 Seeds of Strength
 Seer of the Last Tomorrow
 Selfless Cathar
+Sewer Crocodile
+Shady Traveler
+Shambling Suit
+Sheltering Boughs
+Shichifukujin Dragon
+Shielded by Faith
+Shimmering Mirage
 Shock Troops
 Short Circuit
 Sinister Strength
 Skaab Wrangler
 Skeletal Snake
+Skulking Ghost
+Skull Prophet
+Skybridge Towers
+Skyhunter Patrol
 Sleek Schooner
+Smokespew Invoker
+Sophic Centaur
 Soul Snuffers
 Soul's Majesty
+Spare Dagger
+Specimen Collector
+Spellbinding Soprano
 Spellkeeper Weird
+Spiked Pit Trap
 Spire Mangler
 Spirit of the Hunt
+Spitting Gourna
 Splendid Reclamation
 Spontaneous Mutation
+Squire's Devotion
+Stonebrow, Krosan Hero
+Stonefare Crocodile
+Storm Fleet Aerialist
 Stormfront Pegasus
 Stream of Consciousness
+Stronghold Assassin
+Stymied Hopes
+Sudden Breakthrough
 Sumala Woodshaper
 Summoning Materia
+Sunscorched Divide
 Swamp
+Swarm Guildmage
 Sylvan Safekeeper
+Tandem Takedown
 Tear Asunder
+Temporal Mastery
+Tendo Ice Bridge
 Tenza, Godo's Maul
+Terramorph
+Thallid Omnivore
+Thallid Shell-Dweller
+The Hunter Maze
+The Mana Rig
+The Modern Age
 The Revelations of Ezio
+Thraben Standard Bearer
+Thrasios, Triton Hero
+Thraxodemon
+Thriving Moor
+Thriving Skyclaw
 Thunderous Snapper
+Tithe Drinker
 Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Trained Caracal
 Trained Condor
 Transcendent Master
 Turn Against
+Tyrranax Atrocity
 Unearth
+Unforgiving One
 Unlikely Alliance
+Urban Evolution
+Vampiric Touch
 Vat of Rebirth
+Vault Skirge
 Vault of Whispers
+Venomous Dragonfly
 Venser's Sliver
+Verdurous Gearhulk
+Vesperlark
 Vessel of Nascency
+Veteran Armorsmith
 Viashino Sandswimmer
 Vibrating Sphere
+Vicious Shadows
 Viridescent Wisps
+Vodalian Merchant
 Volcanic Geyser
+Voracious Fell Beast
+Vow of Wildness
+Walk the Plank
 Wanderguard Sentry
+War Screecher
+Warded Battlements
 Warg Rider
 Wasteland Scorpion
 Waterwhirl
+Weaver of Blossoms
+Wind Dancer
 Wind Shear
 Wing It
+Wing Puncture
+Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
+Woodland Changeling
+Wrenn and Seven
+Zealots en-Dal
+Zenith Festival
 Zhentarim Bandit

@@ -5,12 +5,14 @@ A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
 Adorable Kitten
+Ajani, Valiant Protector
 Alabaster Host Sanctifier
 Alarum
 Albino Troll
 Ambush Commander
 Ancestor's Chosen
 Ancestral Tribute
+Angel of Retribution
 Arcane Teachings
 Archfiend of the Dross
 Archmage's Charm
@@ -27,10 +29,17 @@ Aura Thief
 Autumn Willow, Harmony
 Aven Augur
 Aven Surveyor
+Avenging Angel
+Axegrinder Giant
 Azure Mage
+Balduvian Atrocity
+Balduvian Horde
 Baleful Eidolon
+Bant Battlemage
+Battle of Frost and Fire
 Battle-Rage Blessing
 Battlefly Swarm
+Battlewing Mystic
 Bay Falcon
 Beacon Bolt
 Believe in the Cleave
@@ -45,28 +54,36 @@ Blue Dragon
 Bola Slinger
 Boros Keyrune
 Boros Signet
+Boulderfall
 Brainstone
 Breath of Malfegor
 Bring to Trial
 Cabal Paladin
+Cabal Torturer
 Cabal Trainee
 Cackling Fiend
 Calming Licid
 Canoptek Scarab Swarm
+Capashen Knight
 Captain of Umbar
 Carapace
 Caress of Phyrexia
+Cenn's Enlistment
 Cephalid Looter
+Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
 Chimeric Coils
 Civic Gardener
 Clackbridge Troll
 Clawing Torment
+Cliffgate
 Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
+Colfenor's Urn
+Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor
 Cone of Flame
@@ -86,8 +103,10 @@ Dark Bargain
 Dark Privilege
 Dark Tutelage
 Darksteel Ingot
+Dawnhart Wardens
 Daybreak Chimera
 Deadly Insect
+Deathrender
 Deceptive Landscape
 Deem Worthy
 Demon of Catastrophes
@@ -100,14 +119,17 @@ Dimir Informant
 Diviner's Lockbox
 Doctor Spectrum
 Dogged Hunter
+Doom Blade
 Dragon-Scarred Bear
 Dragonborn Looter
 Dream Cache
+Dreamstalker Manticore
 Dueling Rapier
 Dusk Legion Zealot
 Eagle of the Watch
 Elite Archers
 Elspeth, Sun's Nemesis
+Emeria Captain
 Emissary of Hope
 Emissary of Sunrise
 Entangling Vines
@@ -122,6 +144,7 @@ Expendable Troops
 Eyeblight Cullers
 Eyeblight Massacre
 Faerie Mastermind
+Faerie Tauntings
 Fanatic of Mogis
 Fascination
 Felhide Minotaur
@@ -130,6 +153,7 @@ Ferocious Zheng
 Fervent Strike
 Field of Souls
 Final Judgment
+Fists of the Anvil
 Fogwell's Gym
 Forceful Denial
 Forest
@@ -157,11 +181,14 @@ Goblin Sharpshooter
 Goblin Shortcutter
 Goblin War Wagon
 Goldmeadow Harrier
+Golgari Germination
 Gorilla Warrior
 Grand Arbiter Augustin IV
 Grand Warlord Radha
+Graverobber Spider
 Graveyard Shovel
 Green Sun's Zenith
+Greenside Watcher
 Griffin Guide
 Grim Affliction
 Grimgrin, Corpse-Born
@@ -169,10 +196,14 @@ Hanged Executioner
 Hardened-Scale Armor
 Hate Weaver
 Headwater Sentries
+Healing Hands
 Heedless One
 Hell Mongrel
 Helldozer
+Herald of Torment
+Hipparion
 Honey Mammoth
+Honored Hydra
 Hyena Pack
 Hysterical Blindness
 Ichor Wellspring
@@ -189,21 +220,28 @@ Jeskai Banner
 Join the Ranks
 Jousting Lance
 Jugan, the Rising Star
+Junk Golem
+Justice Strike
 Kalastria Healer
 Kalonian Twingrove
 Kapsho Kitefins
+Karma
 Kaya's Ghostform
 Keeper of the Cadence
 Keldon Vandals
 Kenrith's Transformation
 Kessig Dire Swine
+Khenra Spellspear
 Kiku's Shadow
 Kindle
 Kindred Denial
+Klothys's Design
+Knight of the Reliquary
 Kobold Overlord
 Kor Blademaster
 Kor Sanctifiers
 Kormus Bell
+Lantern Scout
 Law-Rune Enforcer
 Lead Golem
 Leech Fanatic
@@ -216,40 +254,53 @@ Lithomantic Barrage
 Llanowar Dead
 Llanowar Elite
 Llanowar Vanguard
+Lord Jyscal Guado
 Lord of the Void
 Lounge
 Loxodon Mystic
+Loxodon Partisan
+Loxodon Restorer
 Luminous Bonds
+Lunarch Mantle
 Lyzolda, the Blood Witch
 Mana Prism
 Mana Skimmer
 Mandroid Squadron
 Mask of Avacyn
+Maular, the Next Evolution
 Mazirek, Kraul Death Priest
 Megatherium
 Meng Huo's Horde
 Mental Agony
 Merfolk Windrobber
 Meriadoc Brandybuck
+Meteor Storm
 Migloz, Maze Crusher
 Mind Twist
 Mire in Misery
 Mistblade Shinobi
 Mogg Toady
 Molten Rain
+Momo, Rambunctious Rascal
+Moonveil Regent
 Morgul-Knife Wound
 Mountain
 Mournwhelk
 Mox Ruby
 Mwonvuli Ooze
+Myr Turbine
 Mystic Redaction
 Mystical Dispute
 Naya Battlemage
+Necromaster Dragon
 Nephalia Drownyard
 Neurok Commando
 Noble Steeds
+Noggle Bandit
 Novijen, Heart of Progress
 Oak Street Innkeeper
+Occult Epiphany
+Ondu Champion
 Order of Yawgmoth
 P-Joven and Chandler
 Palinchron
@@ -262,6 +313,7 @@ Perplex
 Pestermite
 Phantasmal Dragon
 Phantom General
+Phantom Nantuko
 Phytoburst
 Pincher Beetles
 Pinnacle of Rage
@@ -273,16 +325,24 @@ Pouncing Cheetah
 Power Matrix
 Practical Research
 Predatory Hunger
+Priest of Fell Rites
 Priest of Iroas
 Primal Frenzy
+Prime Speaker Vannifar
+Purge
 Purphoros's Emissary
+Purple Worm
 Pyre-Sledge Arsonist
 Pyretic Ritual
+Quandrix Apprentice
 Radical Idea
 Rag Dealer
 Rage Thrower
 Rain of Embers
+Rakdos Headliner
 Rakdos Pit Dragon
+Rakish Heir
+Rally of Wings
 Rampart Crawler
 Razor Swine
 Razortip Whip
@@ -293,41 +353,54 @@ Regathan Firecat
 Relearn
 Release to Memory
 Relic Putrescence
+Relic Retriever
 Relief Captain
 Remember the Fallen
 Resolute Blademaster
+Return of the Wildspeaker
 Reveka, Wizard Savant
 Revelation of Power
 Revelsong Horn
 Rigging Runner
+Rionya, Fire Dancer
 Rise of the Dread Marn
 Rivendell
 Rix Maadi, Dungeon Palace
 Rock Badger
 Root Maze
+Rootless Yew
 Rotted Hystrix
+Royal Talon Fighter Jet
 Russet Wolves
 Rustspore Ram
+Sacred Fire
 Sadistic Hypnotist
 Sakura-Tribe Elder
 Salvage Titan
 Sanctum of Tranquil Light
+Sandsteppe Outcast
 Saprazzan Breaker
+Savageborn Hydra
+Scalebane's Elite
 Scavenger Drake
 Scourge of Valkas
 Sea God's Revenge
 Select for Inspection
 Selesnya Sentry
 Serpent Skin
+Serpent Warrior
 Shadows of the Past
 Shambling Strider
 Shambling Suit
 Shambling Vent
 Shanodin Dryads
 Shatterstorm
+Shinen of Fury's Fire
 Shivan Meteor
 Sigarda's Summons
 Simic Growth Chamber
+Sinister Sabotage
+Sir Shandlar of Eberyn
 Skinwing
 Skyline Despot
 Skyrider Patrol
@@ -344,16 +417,20 @@ Soratami Savant
 Soul Warden
 Soul of Mirrodin
 Soulquake
+Specter of the Fens
 Specter's Wail
 Spectral Cloak
 Spell Syphon
 Spellbinding Soprano
 Sphinx of Clear Skies
+Sphinx's Revelation
+Splendor Mare
 Sporoloth Ancient
 Stampeding Rhino
 Starnheim Memento
 Stasis Cocoon
 Steamclaw
+Stirge
 Stone-Throwing Devils
 Storm of Steel
 Strangling Spores
@@ -371,9 +448,13 @@ Take to the Streets
 Talas Researcher
 Tana, the Bloodsower
 Temporal Trespass
+Tenured Inkcaster
+Terashi's Verdict
 Terrain Generator
+Tezzeret, Master of the Bridge
 The Spike Cactus
 Thelonite Druid
+Thermo-Alchemist
 Thing Swing
 Thorn Lieutenant
 Thriss, Nantuko Primus
@@ -384,8 +465,10 @@ Timber Gorge
 Tireless Tribe
 Titanium Golem
 Tolarian Scholar
+Towering Titan
 Traitorous Greed
 Tresserhorn Sinks
+Tribune of Rot
 Urza's Guilt
 Utter Insignificance
 Valeria Richards, Precocious
@@ -399,9 +482,11 @@ Visara the Dreadful
 Vision, Spectral Synthezoid
 Visions of Beyond
 Voldaren Duelist
+Vona's Hunger
 Vraska's Scorn
 Wakanda Forever!
 Wall of Tanglecord
+War Dance
 Werebear
 Wicked Slumber
 Wild Ceratok

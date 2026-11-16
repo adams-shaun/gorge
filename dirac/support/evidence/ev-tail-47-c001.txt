@@ -6,44 +6,69 @@ Acidic Sliver
 Aeronaut Cavalry
 Anaba Bodyguard
 Anaconda
+Anafenza, Kin-Tree Spirit
 Angelic Protector
+Annoyed Altisaur
 Arcane Melee
+Archers' Parapet
+Argothian Enchantress
+Argothian Sprite
+Armistice
 Armored Cancrix
+Arms of Hadar
+Army Ants
 Ashes to Ashes
+Aven Tactician
 Aven Wind Mage
 Barony Vampire
+Basilisk Gate
+Behold the Multiverse
+Berserkers' Onslaught
 Biting Rain
 Blisterstick Shaman
 Bloodlust Inciter
 Bloodrite Invoker
 Bloodthirsty Blade
+Bloodthirsty Ogre
 Bloodthrone Vampire
+Bomat Bazaar Barge
 Bow of Nylea
 Brain Gorgers
+Breath of Life
 Brilliant Halo
 Burn Bright
+Call to Heel
+Callous Deceiver
 Capashen Knight
 Captain Sisay
 Capture of Jingzhou
 Cartouche of Solidarity
 Cephalid Scout
 Chainflail Centipede
+Chameleon Blur
+Charisma Bobblehead
 Chill of Foreboding
+Choking Sands
 Chosen by Heliod
 Chub Toad
+Clattering Augur
 Cleanup Crew
+Clear the Stage
 Conclave Sledge-Captain
 Conquer
 Consume Spirit
+Countermand
 Crucible of Fire
 Crumbling Vestige
 Crystal Chimes
 Culling Dais
 Dalek Squadron
+Daring Fiendbonder
 Dark Ritual
 Darksteel Angel
 Dawnhart Mentor
 Deathbellow Raider
+Definitely Not a Turtle
 Delighted Killbot
 Demonic Lore
 Depths of Desire
@@ -51,7 +76,9 @@ Deranged Outcast
 Devilthorn Fox
 Dictate of Karametra
 Diligent Farmhand
+Dimir Aqueduct
 Dire Fleet Interloper
+Dire Fleet Ravager
 Dirge of Dread
 Dirgur Nemesis
 Djinni Windseer
@@ -61,10 +88,19 @@ Dreadlight Monstrosity
 Dreamstalker Manticore
 Drinker of Sorrow
 Eat to Extinction
+Electrostatic Infantry
+Elephant Guide
+Elspeth's Nightmare
 Elvish Berserker
+Emberstrike Duo
+Embodiment of Insight
 Energy Tap
 Environmental Sciences
+Erase
+Evincar's Justice
 Evolution Witness
+Expendable Troops
+Eye Collector
 Eyeless Watcher
 Ezio, Brash Novice
 Fallen Ideal
@@ -72,8 +108,12 @@ Fangblade Brigand
 Festerhide Boar
 Field Creeper
 Fiendslayer Paladin
+Fiery Intervention
 Fireblade Charger
+First Response
 Flailing Ogre
+Fleshgrafter
+Flowering of the White Tree
 Forest
 Foul Familiar
 Fowl Play
@@ -83,24 +123,35 @@ Gaea's Balance
 Garruk, Unleashed
 Genju of the Cedars
 Ghor-Clan Savage
+Giant Badger
 Gibbering Hyenas
 Gideon's Reproach
+Glissa Sunslayer
 Glistening Oil
 Go-Shintai of Boundless Vigor
 Goblin Masons
+Goblin Rabblemaster
 Gold-Forged Sentinel
 Golden Wish
+Goldhound
+Goring Warplow
 Grasping Scoundrel
 Grazilaxx, Illithid Scholar
+Grenzo, Havoc Raiser
 Grixis Battlemage
+Gruesome Fate
 Guardian of Tazeem
 Hag of Ceaseless Torment
 Harried Artisan
 Harsh Deceiver
 Harvester of Souls
+Haunting Hymn
 Hazoret's Favor
+Heal
 Hearts on Fire
 Highland Berserker
+Holy Light
+Horn of Deafening
 Howling Banshee
 Hurler Cyclops
 Ich-Tekik, Salvage Splicer
@@ -110,20 +161,35 @@ Insidious Will
 Inspiration
 Invisible Stalker
 Iona's Judgment
+Iron Man, Tony Stark
 Iron Star
 Island
+Ivy Elemental
+Izzet Signet
+Jackal Familiar
 Jarad's Orders
 Jedit Ojanen of Efrava
+Jungle Lion
 Kaervek the Merciless
 Karplusan Wolverine
+Khalni Ambush
 Killmonger, Ruthless Usurper
+King of the Pride
 Knowledge Is Power
 Kodama of the West Tree
+Krosan Verge
+Kyren Negotiations
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
+Leonin Elder
 Lignify
+Lone Revenant
+Luminous Broodmoth
+Lurking Green Dragon
 Mage's Guile
+Magistrate's Scepter
 Makeshift Battalion
+Mantle of Tides
 Markov Crusader
 Meng Huo's Horde
 Mercy Killing
@@ -132,6 +198,7 @@ Midnight Covenant
 Might Weaver
 Mind Rot
 Minion Missile
+Mirage Mockery
 Mischief and Mayhem
 Mob Rule
 Mogg War Marshal
@@ -139,6 +206,7 @@ Moment of Heroism
 Mordenkainen
 Mountain
 Mutant's Prey
+Muxus, Goblin Grandee
 Myr Galvanizer
 Mysterio's Mirage
 Natural Connection
@@ -146,6 +214,7 @@ Natural Selection
 Nesting Wurm
 Nine-Ringed Bo
 Nourish
+Oath of Liliana
 Open the Vaults
 Origin of the Hidden Ones
 Oswald Fiddlebender
@@ -153,20 +222,35 @@ Ovalchase Dragster
 Overtaker
 Ozolith, the Shattered Spire
 Painful Lesson
+Paladin en-Vec
 Paupers' Cage
+Peggy Carter, Secret Agent
+Phyrexian Defiler
 Phyrexian Digester
+Pianna, Nomad Captain
 Piper of the Swarm
 Plains
+Plasmancer
 Plated Wurm
+Platinum Angel
+Poison the Well
+Power Boost
+Priest of the Blood Rite
 Pyromancer's Gauntlet
 Pyromania
+Qala, Ajani's Pridemate
+Radiant's Dragoons
 Rakish Heir
 Rally the Forces
+Ramirez DePietro
 Ramosian Sky Marshal
+Rapacious Guest
 Realm-Cloaked Giant
 Reckoner Bankbuster
+Refreshing Rain
 Rend Spirit
 Renegade Map
+Renegade Silent
 Reparations
 Reservoir Kraken
 Resplendent Mentor
@@ -176,17 +260,22 @@ Riptide Entrancer
 Rise to the Challenge
 Rockslide Sorcerer
 Rosethorn Halberd
+Royal Assassin
+Saheeli's Artistry
 Sakura-Tribe Scout
+Sarkhan's Rage
 Sarpadian Simulacrum
 Savai Triome
 Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Seal of Cleansing
 Searing Light
 Sentry of the Underworld
 Shadowbeast Sighting
 Shaman of the Great Hunt
+Shambling Strider
 Shivan Gorge
 Shoal Kraken
 Shockmaw Dragon
@@ -201,29 +290,41 @@ Sky Diamond
 Skyknight Vanguard
 Skymark Roc
 Skyshroud Elite
+Skywatcher Adept
+Sleeper's Guile
 Sleeper's Robe
 Slingbow Trap
 Sliver Construct
 Snare Tactician
 Snooping Newsie
+Snorting Gahr
+Solphim, Mayhem Dominus
 Somberwald Alpha
 Somberwald Vigilante
 Song of the Worldsoul
 Soul Shepherd
+Spaceshift
 Spark Harvest
 Sparkmage Apprentice
 Spawning Kraken
 Spectral Sliver
 Sphinx of New Prahv
 Spoils of Victory
+Sprout
 Squirrel Mob
+Stallion of Ashmouth
+Startled Awake
 Stern Constable
 Stern Lesson
+Stir the Grave
 Stonehoof Chieftain
 Stormchaser Chimera
+Story Seeker
 Stronghold Confessor
+Subira, Tulzidi Caravanner
 Sudden Impact
 Sulfurous Springs
+Sunder from Within
 Suspended Sentence
 Swamp
 Szarekh, the Silent King
@@ -237,30 +338,48 @@ Tempted by the Oriq
 Terra Eternal
 Tezzeret's Ambition
 Thalakos Scout
+Thallid Germinator
 The Everforger
 The Hunger Tide Rises
 The Reality Chip
 Thirsting Shade
+Three Tragedies
+Thundering Ceratok
 Tilling Treefolk
+Time Bomb
 Time of Ice
 Tin Street Dodger
 Titanic Bulvox
+Tranquility
 Tunneling Geopede
 Two-Headed Dragon
 Tyrranax
+Ulgrotha Charm
+Vampire Champion
 Vaporkin
 Vastwood Fortification
 Vastwood Zendikon
+Vengeful Dead
 Vesperlark
+Veteran Explorer
+Viashino Sandstalker
 Viridian Shaman
+Vivid Grove
+Vivid Marsh
 Vizzerdrix
 Volcanic Island
 Voracious Vampire
 Vow of Wildness
+Voyage's End
 Walking Corpse
+Wandering Stream
 Wandering Treefolk
+War Behemoth
 Warchanter Skald
+Warden of Evos Isle
 Warden of the Wall
+Warp Artifact
+Warship Scout
 Weaver of Currents
 Weldfast Wingsmith
 Whipcorder
@@ -270,4 +389,6 @@ Wicked Reward
 Wild Jhovall
 Witch Enchanter
 Wu Scout
+Youthful Knight
+Zhalfirin Void
 Zhang Liao, Hero of Hefei

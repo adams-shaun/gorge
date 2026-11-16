@@ -1,45 +1,79 @@
 A-Kenku Artificer
 A-Riveteers Initiate
+A-Stimulus Package
 Accursed Centaur
 Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Amrou Scout
 Ancient Runes
+Angelic Overseer
 Arc Lightning
+Arena Trickster
 Armor of Shadows
 Armorcraft Judge
+Arno Dorian
 Asceticism
 Ashcoat Bear
+Aura Shards
 Auriok Sunchaser
 Auspicious Ancestor
+Ayula, Queen Among Bears
 Baloth Prime
 Barrel Down Sokenzan
+Birchlore Rangers
+Birthing Pod
 Blade of the Bloodchief
 Blood Knight
+Bloodhall Priest
 Bloodscale Prowler
+Blue Scarab
 Boros Mastiff
 Boulder Salvo
+Brimstone Dragon
+Brindle Shoat
 Butch DeLoria, Tunnel Snake
+Candlelight Vigil
+Castle Raptors
 Celebrity Fencer
+Chakram Slinger
+Chasm Drake
+Chastise
 Chemister's Insight
 Chrome Mox
 City of Shadows
+Cloud Manta
+Colossal Badger
+Contract Killing
+Copper Tablet
 Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
+Cutthroat Negotiator
 Cyclopean Snare
+Cyclops Superconductor
+Cystbearer
 Dark Temper
 Deadly Dispute
 Death of a Thousand Stings
+Declare Dominance
+Despondent Killbot
 Dirty Rat
 Divebomber Griffin
+Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
+Drider
 Eel-Hounds
+Elven Bow
 Empty the Warrens
+Empyrial Armor
+Enigma Eidolon
+Excogitator Sphinx
 Faithless Looting
 Fast Forward
+Feast of Dreams
 Fencing Ace
 Flowstone Crusher
 Force of Savagery
@@ -47,33 +81,46 @@ Forest
 Foul-Tongue Shriek
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate Hound
 Gerrard's Irregulars
 Gideon's Lawkeeper
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Firebug
+Graceful Cat
 Grappling Sundew
 Grave Betrayal
+Gravity Well
 Greenseeker
+Grizzly Ghoul
 Gruul Guildmage
+Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
+Hero of Precinct One
 Hesitation
 Island
+Jewel-Eyed Cobra
 Junk Golem
 Kami of False Hope
 Karakas
 Kavu Chameleon
 Killer Bees
 King Crab
+Kithkin Mourncaller
+Knight of Dawn's Light
 Lava Axe
+Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Living Lands
+Lord of Extinction
 Lulu, Stern Guardian
 Mageta's Boon
 Magma Rift
+Make Your Mark
 Makeshift Battalion
 Mana Geyser
 Markov Enforcer
@@ -88,12 +135,23 @@ Moss Kami
 Mountain
 Necra Sanctuary
 Necroblossom Snarl
+Necrogen Spellbomb
+Necrosquito
 Nested Shambler
+Niall Silvain
 Nighthawk Scavenger
 Nightmarish End
+Nikya of the Old Ways
 No Escape
+Noble Panther
+Nullmage Advocate
 Nyxborn Hydra
+Oblivion Ring
+Open the Vaults
+Orzhov Racketeers
 Paradise Mantle
+Pardic Arsonist
+Patriot, Young Avenger
 Paupers' Cage
 Pharika's Libation
 Phyrexian Ghoul
@@ -107,19 +165,30 @@ Possessed Aven
 Psionic Blast
 Pyretic Charge
 Quickening Licid
+Rally the Ranks
 Ransack
+Reality Ripple
 Reckless Air Strike
 Rhox Brute
+Riptide Crab
 Rise from the Nether
 Risona, Asari Commander
 Road of Return
+Rootwater Diver
 Rubblebelt Recluse
+Rundvelt Hordemaster
+Sacred Cat
 Saltfield Recluse
+Satyr Enchanter
 Satyr Grovedancer
+Savage Swipe
 Savai Sabertooth
+Scarwood Treefolk
 Scathe Zombies
+Sentinel
 Serpent Warrior
 Shambling Goblin
+Shessra, Death's Whisper
 Shrieking Affliction
 Silent Specter
 Skulltap
@@ -130,7 +199,11 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
+Spark Elemental
 Sparkspitter
+Spellbook
+Spined Fluke
 Spite
 Spontaneous Combustion
 Steadfast Unicorn
@@ -141,24 +214,33 @@ Strategic Intervention
 Sunset Revelry
 Sunspire Griffin
 Swamp
+Swift Maneuver
 Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
+Tenth District Guard
 The Surgical Bay
+The Wretched
 Thieves' Guild Enforcer
+Thundering Spineback
 Tide Drifter
 Tigereye Cameo
+Titania, Nature's Force
 Tower of Calamities
 Twins of Maurer Estate
 Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Verduran Emissary
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith
 Warkite Marauder
 Warlord's Axe
+Warthog
+Wasp, Shrinking Savior
+Watchful Blisterzoa
 Wei Night Raiders
 Whirler Rogue
 Wight of Precinct Six

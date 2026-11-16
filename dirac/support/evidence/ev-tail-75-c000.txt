@@ -62,6 +62,7 @@ Bountiful Promenade
 Brackwater Elemental
 Brandywine Farmer
 Bronze Guardian
+Bugenhagen, Wise Elder
 Burning Fields
 Cabal Patriarch
 Cabaretti Courtyard
@@ -83,12 +84,16 @@ City of Brass
 Civilized Scholar
 Clear a Path
 Clip Wings
+Colossal Dreadmaw and Storm Crow
 Concordant Crossroads
 Continue?
+Crackling Drake
 Creakwood Liege
 Creeping Corrosion
+Crookclaw Elder
 Crosstown Courier
 Cunning Survivor
+Curiosity Crafter
 Curse of Opulence
 Daggersail Aeronaut
 Dawning Angel
@@ -124,6 +129,7 @@ Dust Corona
 Dwarven Hold
 Easy Prey
 Ebony Treefolk
+Eccentric Pestfinder
 Echoing Calm
 Eiganjo Castle
 Elvish Dreadlord
@@ -182,8 +188,10 @@ Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
 Hardened Scales
+Harmless Assault
 Harpoon Sniper
 Herd Gnarr
+Herd Migration
 Hero of the Dunes
 Hibernation
 Honden of Life's Web
@@ -198,11 +206,13 @@ Imaginary Pet
 Immortal Phoenix
 Incarnation Technique
 Incisor Steed
+Inspire Awe
 Island
 Jace's Erasure
 Jade Idol
 Jalum Tome
 Jhoira's Familiar
+Jolrael, Voice of Zhalfir
 Judith, the Scourge Diva
 Kayla's Reconstruction
 Kazandu Tuskcaller
@@ -223,12 +233,15 @@ Liliana of the Veil
 Liliana's Elite
 Liliana's Standard Bearer
 Lingering Mirage
+Lonis, Genetics Expert
+Lorthos, the Tidemaker
 Lost in the Mist
 Lost in the Spirit World
 Luxa River Shrine
 Lys Alana Huntmaster
 MACH-1, Swooping Scoundrel
 Magma Vein
+Magmatic Insight
 Magnify
 Malcator's Watcher
 Malicious Advice
@@ -273,6 +286,7 @@ Neonate's Rush
 Nexus of Fate
 Nezumi Freewheeler
 Nightveil Predator
+Niv-Mizzet, the Firemind
 Nivix Barrier
 Nomads' Assembly
 Nyx-Fleece Ram
@@ -315,6 +329,7 @@ Raging Kavu
 Rally Maneuver
 Rally the Peasants
 Rampaging Cyclops
+Raugrin Triome
 Reaver Ambush
 Reckless Barbarian
 Reclaim the Wastes
@@ -356,7 +371,9 @@ Show of Valor
 Shrine Keeper
 Siege Dragon
 Sigarda's Summons
+Sigil of Valor
 Sign in Blood
+Silent Extraction
 Silent Sentinel
 Silverflame Squire
 Silverskin Armor
@@ -380,6 +397,7 @@ Spectacle Mage
 Spectral Rider
 Spike Breeder
 Spindrift Drake
+Spirit Shackle
 Spitebellows
 Spiteful Squad
 Spitfire Handler
@@ -393,14 +411,17 @@ Swamp
 Swarm Surge
 Swarm of Rats
 Sword of the Animist
+Sygg, River Guide
 Tamiyo's Immobilizer
 Tamiyo's Safekeeping
 Tectonic Edge
 Tel-Jilad Outrider
 Telepathic Spies
 Tempestra, Dame of Games
+Territorial Boar
 The Indomitable
 Thirst for Discovery
+Thistledown Duo
 Thopter Assembly
 Thopter Mechanic
 Thraben Standard Bearer

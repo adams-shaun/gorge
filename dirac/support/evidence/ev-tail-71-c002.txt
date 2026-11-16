@@ -1,9 +1,14 @@
+A-Dokuchi Silencer
+A-Orcish Bowmasters
 A-Skull Skaab
 A-The Meathook Massacre
 Alchemax Slayer-Bots
+Alchemist's Gift
 Alluring Suitor
 Alms of the Vein
+Amateur Auteur
 Ambulatory Edifice
+Anaconda
 Angel's Tomb
 Arrow Volley Trap
 Assault on Osgiliath
@@ -11,6 +16,7 @@ Assembly-Worker
 Aven of Enduring Hope
 Barrin, Tolarian Archmage
 Battlefield Raptor
+Benalish Honor Guard
 Bident of Thassa
 Bladebrand
 Blazing Volley
@@ -19,22 +25,40 @@ Bloodvial Purveyor
 Bone Pit Brute
 Boomerang
 Boon Satyr
+Boon of Safety
+Bounty of Might
 Bower Passage
+Braingeyser
 Callous Dismissal
+Campaign of Vengeance
 Canyon Lurkers
+Cathedral Sanctifier
+Caustic Caterpillar
 Chain Stasis
 Commando Raid
+Coordinated Barrage
 Cordial Vampire
+Cosmic Hunger
 Cruel Sadist
+Crypt Cobra
 Cyclops Electromancer
+Daggerclaw Imp
 Deathsprout
+Defend the Hearth
 Demon Bolt
 Desert Sandstorm
+Detective of the Month
 Dockside Chef
+Doomed Necromancer
 Doomed Traveler
 Double Trouble
+Drana, Kalastria Bloodchief
+Elven Cache
 Elvish Piper
+Elvish Visionary
 Emerald Medallion
+Eutropia the Twice-Favored
+Evolution Charm
 Expedition Envoy
 Extract from Darkness
 Fatal Frenzy
@@ -45,31 +69,48 @@ Firemantle Mage
 Firescreamer
 Flowstone Wall
 Forest
+Garbage Elemental
+Garruk's Warsteed
 Gather Courage
 Geothermal Bog
 Ghostly Wings
+Giant Inheritance
+Gnarled Sage
 Gone Missing
 Gravel Slinger
+Growth Cycle
+Guardian Automaton
 Gut, True Soul Zealot
 Harnessed Lightning
+Harsh Sustenance
 Haze of Pollen
+Hearth Kami
+Hideous End
 Hippo-Cows
+Hit-Monkey
 Horn of Gondor
 Hostile Minotaur
+Huatli's Snubhorn
 Humble
 Imposing Visage
 Invasion of Segovia
 Island
+Jawbone Duelist
+Join the Dance
 Jolrael, Empress of Beasts
 Journey for the Elixir
 K-9, Mark I
 Kardur's Vicious Return
 Kashi-Tribe Warriors
 Keepsake Gorgon
+Kessig Naturalist
 Killing Glare
+Kin-Tree Warden
 Knight of the Tusk
 Kor Scythemaster
 Krosan Avenger
+Llanowar Vanguard
+Lumberknot
 Mage il-Vec
 Magma Jet
 Makeshift Munitions
@@ -78,70 +119,114 @@ Marked by Honor
 Mazzy, Truesword Paladin
 Memorial to Unity
 Militant Inquisitor
+Mine Worker
 Moku, Meandering Drummer
 Molderhulk
 Molten Ravager
 Momentary Blink
 Monk Idealist
+Morningtide
 Mountain
 Mukotai Ambusher
 Murasa Ranger
 Myr Retriever
 Myth Realized
 Nightmare Shepherd
+Nim Abomination
 Nimble Mongoose
+Nylea's Colossus
 Nylea's Disciple
+Nylea, God of the Hunt
+Ob Nixilis's Cruelty
+Ogre Slumlord
 Pact of Negation
 Palace Sentinels
 Patagia Viper
 Phyrexian Missionary
 Piranha Marsh
 Plains
+Planar Despair
+Predatory Wurm
 Prized Elephant
 Puppet's Verdict
 Quirion Beastcaller
+Radiant Epicure
 Rampaging Monument
 Reckless Reveler
 Regenesis
 Renegade Warlord
 Repercussion
+Restock
+Rise of the Witch-king
+Rishkar, Peema Renegade
 Rising Populace
 Rummaging Goblin
 Sanctifier of Souls
 Scaled Behemoth
+Scarab Feast
+Scion Summoner
+Scoria Wurm
+Scryb Sprites
 Scuttlegator
 Season of Growth
+Season of Renewal
+Serene Heart
 Shu Farmer
 Shu Grain Caravan
+Sibsig Icebreakers
 Sighted-Caste Sorcerer
 Sky Crier
 Slurrk, All-Ingesting
+Smell Fear
+Soaring Thought-Thief
+Sonic Seizure
 Soulcatcher
+Spawnwrithe
+Spiked Ripsaw
+Splatter Goblin
+Squee's Toy
 Staff of the Sun Magus
 Stampede Rider
+Starlit Sanctum
 Steal Artifact
 Stensia Bloodhall
 Storm Seeker
+Striking Sliver
 Sunbringer's Touch
 Sungrace Pegasus
 Sunmane Pegasus
 Surrakar Banisher
 Swamp
+Tattermunge Witch
 Terminal Agony
 Tezzeret's Gambit
+The Thing
 Throne of the God-Pharaoh
+Tooth and Nail
+Tormod's Crypt
+Torture
+Tragic Fall
+Trespassing Souleater
 Tribute to the Wild
 Twisted Justice
 Ukkima, Stalking Shadow
 Undead Butler
 Unseal the Necropolis
+Utvara Scalper
 Vapor Snag
 Vectis Dominator
 Veiled Sentry
 Vent Sentinel
+Vodalian Soldiers
+Voltaic Brawler
+Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror
+Weldfast Wingsmith
 Wing Shards
+Winged Coatl
 Witherbloom Command
+Yawgmoth Demon
 Yomiji, Who Bars the Way
+Yotian Tactician

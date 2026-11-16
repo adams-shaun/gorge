@@ -1,3 +1,4 @@
+A-Manticore
 Almighty Brushwagg
 Altac Bloodseeker
 Asmira, Holy Avenger
@@ -7,11 +8,15 @@ Containment Protocol
 Count Nefaria
 Crashing Centaur
 Dawnglare Invoker
+Disentomb
 Dispel
 Dragonspark Reactor
 Duskmantle Prowler
+Dwarven Grunt
+Elixir of Vitality
 Farsight Adept
 Forest
+Geyserfield Stalker
 Go for the Throat
 Hand of Death
 Heliod's Emissary
@@ -21,12 +26,15 @@ Inspired Charge
 Irradiate
 Island
 Khenra Eternal
+Lich's Caress
 Mad Auntie
 Mardu Shadowspear
 Mephitic Ooze
 Moriok Scavenger
 Mountain
+Nausea
 Ominous Cemetery
+Owl Familiar
 Plains
 Possessed Centaur
 Pteramander
@@ -37,9 +45,11 @@ Repository Skaab
 Revel of the Fallen God
 Rotwidow Pack
 Run Aground
+Savannah Sage
 Scour All Possibilities
 Seedling Charm
 Seven-Tail Mentor
+Sheoldred, Whispering One
 Shining Armor
 Skorpekh Destroyer
 Souldrinker
@@ -48,17 +58,21 @@ Steam Augury
 Steelshaper's Gift
 Sunhome Enforcer
 Swamp
+Tamiyo's Epiphany
 Terra Stomper
 Terror
+Thanos, Death's Consort
 The Circle of Loyalty
 Torment
 Tread Upon
 Underhanded Designs
 Undying Beast
+Unquestioned Authority
 Vampire Noble
 Viscera Seer
 Warden of the Chained
 Weapon Surge
 Wildwood Patrol
+Wither and Bloom
 Woodland Sleuth
 Worldgorger Dragon

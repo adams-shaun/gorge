@@ -4,13 +4,16 @@ A-Geology Enthusiast
 A-Guide of Souls
 A-Plate Armor
 A-Social Climber
+A-Tatyova, Steward of Tides
 A-Teferi, Time Raveler
 Aang, Airbending Master
+Abhorrent Overlord
 Abomination, World Ravager
 Abzan Runemark
 Aegis of the Heavens
 Aim for the Head
 Ajani's Mantra
+Akroma, Angel of Wrath
 Aku Djinn
 Alchemist's Greeting
 Alley Grifters
@@ -18,6 +21,7 @@ Ancient Animus
 Angelic Purge
 Aphotic Wisps
 Arashin Sovereign
+Armorer Guildmage
 Assault Formation
 Astarion's Thirst
 Astral Dragon
@@ -68,6 +72,7 @@ City of Brass
 Civic Guildmage
 Civilized Scholar
 Cleopatra, Exiled Pharaoh
+Clickslither
 Cloudkill
 Colossal Dreadmaw
 Concordant Crossroads
@@ -75,6 +80,7 @@ Condemn
 Confessor
 Constable of the Realm
 Constricting Tendrils
+Contortionist Troupe
 Contraband Livestock
 Corrupt
 Creature Bond
@@ -85,10 +91,12 @@ Cutthroat il-Dal
 Daemogoth Titan
 Danitha Capashen, Paragon
 Darkslick Shores
+Darksteel Brute
 Deadeye Plunderers
 Deadly Insect
 Deadly Wanderings
 Death Speakers
+Deathleaper, Terror Weapon
 Debtor's Pulpit
 Decree of Savagery
 Deepwood Tantiv
@@ -112,11 +120,13 @@ Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
+Eldrazi Mimic
 Elenda's Hierophant
 Ember-Fist Zubera
 Emeria Angel
 Enclave Cryptologist
 Encroaching Wastes
+Endless Wurm
 Entish Restoration
 Equestrian Skill
 Esika's Chariot
@@ -125,6 +135,7 @@ Ethersworn Adjudicator
 Euroakus
 Fact or Fiction
 Faithbearer Paladin
+Fanatical Fever
 Fangs of Kalonia
 Feeding Frenzy
 Feldon, Ronom Excavator
@@ -138,11 +149,13 @@ Firemaw Kavu
 Flameskull
 Forest
 Forge, Neverwinter Charlatan
+Fortress Cyclops
 Frightcrawler
 From the Rubble
 Frontier Mastodon
 Fume Spitter
 Gaea's Bounty
+Gamekeeper
 Gang of Devils
 Gaze of Granite
 Ghalma's Warden
@@ -189,12 +202,17 @@ Involuntary Cooldown
 Island
 Jhoira's Familiar
 Jinxed Idol
+Keldon Strike Team
 Kindle
+Kindred Boon
+Kiora's Follower
 Kjeldoran Pride
 Knights of Dol Amroth
 Kolvori, God of Kinship
 Kor Blademaster
 Kraken of the Straits
+Kratos, Stoic Father
+Krosan Wayfarer
 Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
@@ -210,6 +228,7 @@ Liliana's Standard Bearer
 Loathsome Troll
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
+Mad Auntie
 Magmatic Core
 Malach of the Dawn
 Malevolent Awakening
@@ -218,11 +237,13 @@ Maraxus of Keld
 Markov Dreadknight
 Marsh Hulk
 Marshaling Cry
+Mayael the Anima
 Meadowboon
 Mega Flare
 Meng Huo, Barbarian King
 Merchant of Venom
 Merciless Executioner
+Metallic Mastery
 Midnight Angel Armor
 Midnight Duelist
 Mighty Emergence
@@ -253,10 +274,12 @@ Oran-Rief Ooze
 Orazca Frillback
 Ordeal of Heliod
 Oreskos Swiftclaw
+Orthodoxy Enforcer
 Outbreak
 Oversold Cemetery
 Painwracker Oni
 Paladin Danse, Steel Maverick
+Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
@@ -271,9 +294,11 @@ Portent of Betrayal
 Precision Bolt
 Preening Champion
 Preordain
+Prey Upon
 Priest of Ancient Lore
 Primal Whisperer
 Prismari Apprentice
+Protect
 Psychic Strike
 Psychotic Haze
 Pull from Tomorrow
@@ -293,6 +318,7 @@ Rally Maneuver
 Rancid Rats
 Razorfin Abolisher
 Razortooth Rats
+Reaper of the Wilds
 Reaping the Rewards
 Reaver Ambush
 Reckoner's Bargain
@@ -300,6 +326,7 @@ Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Revel in Riches
 Reverent Mantra
 Riddlekeeper
 Ring of Three Wishes
@@ -311,12 +338,15 @@ Ruby Medallion
 Rukh Egg
 Rundvelt Hordemaster
 Runeclaw Bear
+Runes of the Deus
 Ruthless Disposal
+Sabertooth Nishoba
 Sacred Cat
 Saheeli's Artistry
 Sanctify
 Sandsteppe Mastodon
 Sapphire Dragon
+Sarinth Greatwurm
 Saruman, the White Hand
 Savai Thundermane
 Scoria Wurm
@@ -371,6 +401,7 @@ Sword of the Animist
 Talisman of Unity
 Tar Pit Warrior
 Tawnos's Tinkering
+Tawnos, Urza's Apprentice
 Tel-Jilad Outrider
 Temporal Adept
 Territorial Baloth
@@ -393,6 +424,8 @@ Triceraton Regenta
 Tuktuk Rubblefort
 Tuktuk the Explorer
 Turntimber Ascetic
+Turntimber Symbiosis
+Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
 Undead Executioner
@@ -400,6 +433,7 @@ Unholy Indenture
 Unholy Officiant
 Unquestioned Authority
 Urza, Powerstone Prodigy
+Vagrant Plowbeasts
 Vampire Envoy
 Vengeful Vampire
 Venom, Eddie Brock
@@ -429,6 +463,7 @@ Western Paladin
 Whispers of the Muse
 Wildfire Eternal
 Willow-Wind
+Woodland Liege
 Word of Seizing
 World-Weary
 Zealous Persecution

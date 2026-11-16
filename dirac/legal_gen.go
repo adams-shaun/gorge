@@ -809,12 +809,18 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 
 // BuildModes is the modes already picked for the spell or ability being
 // put on the stack (0 outside a build): the oracle's adapter indexes the
-// remaining mode options densely, as gorge lists them.
+// remaining mode options densely, as gorge lists them. The result is a bit
+// per mode chosen at least once: a repeatable charm (CanRepeatModes$) keeps a
+// count per mode in the entry, which ModeSet folds to that bitmask.
 func (s *State) BuildModes() uint8 {
 	if s.ctl != ctlBuild {
 		return 0
 	}
-	return s.bld().e.mode
+	e := &s.bld().e
+	if cards := s.k().t.Cards; int(e.card) < len(cards) && int(e.ab) < len(cards[e.card].Abilities) {
+		return cards[e.card].Abilities[e.ab].ModeSet(e.mode)
+	}
+	return e.mode
 }
 
 // affordsFor: p can pay cost now (a ward's pay answer that can't be paid

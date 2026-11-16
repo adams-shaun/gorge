@@ -2,109 +2,274 @@ A-Cosmos Elixir
 A-Prosperous Thief
 Abandon Reason
 Aberrant Return
+Adanto Vanguard
+Aetherflux Car
+Aggressive Sabotage
 Akki Drillmaster
+Alaborn Cavalier
+Alert Heedbonder
+Aligned Hedron Network
+Alloy Animist
 Angelic Page
 Anodet Lurker
+Apostle of Invasion
+Appetite for Brains
 Archetype of Aggression
+Arrow Volley Trap
+Assault Intercessor
+Atzocan Archer
 Auriok Steelshaper
 Azra Oddsmaker
+Baleful Ammit
+Balthor the Stout
+Barishi
+Battlewise Aven
+Benalish Emissary
 Big Play
 Black Oak of Odunos
+Bladewing's Thrall
+Blessed Reversal
+Blightspeaker
 Bloodshot Cyclops
+Bond of Agony
+Braidwood Cup
+Bramble Creeper
+Bramblewood Paragon
+Branded Brawlers
 Break Down
 Broken Concentration
 Brush with Death
+Cabal Paladin
 Campaign of Vengeance
+Candlegrove Witch
 Capashen Templar
 Capital Guard
 Castle Ardenvale
 Cemetery Gate
+Cephalid Scout
+Champion of Lambholt
+Chaos Harlequin
+Charge of the Mites
 Collar the Culprit
+Collision
 Combat Professor
 Corrupt Eunuchs
+Cower in Fear
 Crackling Drake
+Craterize
 Craven Knight
+Crux of Fate
 Cryptic Serpent
+Curse of Death's Hold
+Dawn Elemental
+Death Denied
+Defile
+Descendant of Kiyomaro
 Dismantling Blow
 Dowsing Shaman
+Drumbellower
+Dwarven Berserker
+Dwarven Priest
+Easy Prey
+Elesh Norn, Grand Cenobite
+Elspeth, Knight-Errant
+Elvish Bard
+Ember Hauler
 Emeria's Call
+Epitaph Golem
+Erdwal Ripper
+Essence Harvest
 Etherium-Horn Sorcerer
+Failed Inspection
 Fairgrounds Warden
+Fire Servant
+Firefiend Elemental
 Fleshbag Marauder
+Flow of Maggots
 Forest
+Frantic Confrontation
+Frondland Felidar
+Gallowbraid
 General's Kabuto
 Ghitu Amplifier
 Ghitu War Cry
 Gift of Tusks
+Glitch Interpreter
+Golden-Tail Trainer
 Goldnight Commander
+Goliath Sphinx
 Great Desert Prospector
+Great Whale
+Grixis Illusionist
+Hallowed Priest
 Hallowed Spiritkeeper
+Harbinger of the Hunt
+Harvesttide Infiltrator
+Heat Ray
+Heaven
+Hecatomb
+Hidden Path
+Hoarding Ogre
+Honden of Infinite Rage
 Hot Soup
 Hunted Troll
+Hurricane
+Hymn to Tourach
 Hypochondria
+Insolent Neonate
+Inspired Fire
+Isamaru and Yoshimaru
 Island
+It's Clobberin' Time!
+Jace's Ruse
 Jackdaw
+Jugan, the Rising Star
 Jungleborn Pioneer
+Juniper Order Druid
 Jwari Shapeshifter
+Kamahl's Sledge
 Kathari Remnant
 Keensight Mentor
 Kirtar's Desire
+Kor Sanctifiers
 Kraul Warrior
+Leech Fanatic
+Leonin Snarecaster
 Leyline of Abundance
+Lingering Death
+Liturgy of Blood
 Loch Korrigan
+Lone Missionary
+Longtusk Cub
+Loxodon Mender
 Luminarch Aspirant
+Lurking Deadeye
 Magmatic Scorchwing
+Malefic Scythe
 Mardu Hordechief
 Masked Vandal
+Mass Mutiny
 Mending Hands
 Mesmerizing Dose
+Mikaeus, the Lunarch
 Militia Bugler
+Mind Warp
+Mindstab
+Minotaur Abomination
+Mobilization
+Mona Lisa, Ever Adaptable
 Morbid Hunger
 Mountain
+Necrogen Mists
 Necrosquito
+Network Terminal
+Neurok Hoversail
+Nightwind Glider
+Nimble Innovator
 Null Brooch
 Olivia, Mobilized for War
+Oneirophage
+Orcish Siegemaster
 Pheres-Band Raiders
+Phyrexian Vivisector
+Pious Warrior
 Pitiless Plunderer
 Plains
 Praetor's Counsel
+Pride of Conquerors
+Primordial Wurm
 Psychic Membrane
 Pulsemage Advocate
+Punish the Enemy
+Pursuit of Flight
 Pyre Spawn
 Quest for Pure Flame
+Rally the Forces
+Ravenous Rats
 Razortip Whip
+Reach of Shadows
+Reckless Fireweaver
+Reconstruct History
 Reef Pirates
+Refurbish
+Rekindling Phoenix
+Rescuer Chwinga
+Rhox Faithmender
 Righteous Cause
 Rogue Kavu
+Rookie Mistake
 Rootwater Mystic
+Rot-Tide Gargantua
 Rousing Read
+Rumor Gatherer
 Ruthless Cullblade
+Sacred Wolf
+Samite Herbalist
+Sanctum Seeker
 Sanguimancy
 Sanitarium Skeleton
+Scepter of Dominance
+Scorched Rusalka
 Segovian Angel
+Seize the Storm
+Setessan Skirmisher
+Settle Beyond Reality
+Shambling Ghast
 Shang-Chi, Martial Mentor
+Shellshock
 Shriekgeist
 Silumgar's Command
+Silvergill Douser
+Skarrg Guildmage
+Skitter Eel
 Skulking Fugitive
+Skull Collector
 Skyblade of the Legion
 Skyshroud Ridgeback
+Slimefoot's Survey
 Smitten Swordmaster
+Somberwald Spider
 Soul Partition
+Soul of Ravnica
 Spawnwrithe
+Specter's Shroud
+Spike Worker
 Splinterfright
+Staff of Domination
+Staff of the Mind Magus
 Steel Exemplar
+Storm, Queen of Wakanda
+Stream of Unconsciousness
 Sultai Banner
+Surge Node
 Svyelun of Sea and Sky
 Swamp
+Tendershoot Dryad
+Tezzeret's Gatebreaker
+Thicket Crasher
 Thran Spider
 Three Visits
+Thrill of the Hunt
+Thundersteel Colossus
+Thunderwave
+Titanic Bulvox
 Transcendent Envoy
 Travel Preparations
+Tri-Sentinel, Act of Vengeance
+Triplicate Spirits
+Urza's Chalice
 Veteran Explorer
+Veteran of the Depths
+Vitalizing Wind
 Wanda's Vision
 Wandering Stream
 Warren-Scourge Elf
 Wheel and Deal
+Wild Beastmaster
 Wild Hunger
+Wildfire Emissary
+Wipe Clean
 Witches' Eye
+Woodwraith Strangler
+Wrap in Flames
 Xenograft

@@ -8,6 +8,8 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
+Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
 Alabaster Wall
@@ -25,16 +27,20 @@ Arcade Cabinet
 Arcane Laboratory
 Archon of Emeria
 Armageddon
+Ascended Lawmage
 Ascending Aven
 Asylum Visitor
 Atalya, Samite Master
 Auger Spree
 Augur of Bolas
 Avatar of Might
+Aven Battle Priest
 Azorius Keyrune
 Balshan Collaborator
 Banishing Slash
+Baron Sengir
 Baru, Wurmspeaker
+Bast, Panther Goddess
 Bastion of Remembrance
 Battle Sliver
 Beetleform Mage
@@ -47,14 +53,17 @@ Bloodline Necromancer
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
+Cankerbloom
 Carnage Altar
 Carrion Wall
 Castle Embereth
@@ -63,12 +72,18 @@ Cenn's Heir
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Charitable Levy
 Charmbreaker Devils
+Charmed Stray
 Charnel Troll
 Child of the Pack
+Cho-Manno, Revolutionary
 Choking Fumes
 Choose Your Weapon
+Chronomancer
+Cinder Crawler
 Cinderbones
+Citanul Woodreaders
 Clan Guildmage
 Cleric of Chill Depths
 Cliffhaven Sell-Sword
@@ -84,31 +99,39 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crimson Hellkite
 Crumbling Colossus
 Crypt Ghast
+D'Avenant Healer
 Daraja Griffin
 Daxos of Meletis
 Deepcavern Imp
 Defender of Law
 Deflection
+Dehydration
 Destroy Evil
 Devils' Playground
 Dhund Operative
 Digsite Engineer
 Dire Fleet Neckbreaker
 Dirtwater Wraith
+Domri's Nodorog
 Dragon Egg
 Dragonstorm
 Drannith Ruins
 Draugr Thought-Thief
+Dreadwaters
 Drifter il-Dal
 Drover of the Mighty
 Dune Beetle
 Dungeoneer's Pack
 Dynacharge
+E. Honda, Sumo Champion
 Elvish Clancaller
 Elvish Harbinger
 Encampment Keeper
+Endless Scream
+Ertai's Scorn
 Everbark Shaman
 Experimental Armor
 Extraction Specialist
@@ -119,6 +142,7 @@ Feldon, Ronom Excavator
 Felhide Petrifier
 Fetid Imp
 Field of Reality
+Filigree Attendant
 Flight Spellbomb
 Flowstone Crusher
 Flux Channeler
@@ -150,13 +174,17 @@ Gnoll War Band
 Gnome-Made Engine
 Goblin Bruiser
 Goblin Mutant
+Goring Ceratops
 Great-Horn Krushok
 Greater Forgeling
+Hadran, Naya Sunseeder
 Hangar Scrounger
 Hatred
 Haywire Mite
+Heartless Summoning
 Hedron Crawler
 Helitrooper
+Hell Mongrel
 Hellfire Mongrel
 High Alert
 Highspire Mantis
@@ -179,6 +207,7 @@ Island
 Isolate
 Jaheira's Respite
 Jokulmorder
+Kabira Outrider
 Kami of Celebration
 Kami of the Hunt
 Kardur, Doomscourge
@@ -186,6 +215,7 @@ Kargan Dragonlord
 Keeper of Fables
 Killian, Ink Duelist
 Knight of Infamy
+Knowledge and Power
 Kolaghan Forerunners
 Krakilin
 Land Grant
@@ -209,8 +239,11 @@ Machine Man, Model X-51
 Mage Duel
 Manabond
 Manglehorn
+Mardu Banner
 Maw of the Obzedat
+Mech Hangar
 Meldweb Curator
+Meng Huo, Barbarian King
 Mental Discipline
 Mental Misstep
 Merchant Scroll
@@ -222,6 +255,7 @@ Mind Burst
 Mindwarper
 Minion of the Mighty
 Minotaur Skullcleaver
+Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
@@ -231,19 +265,25 @@ Mortal's Ardor
 Mossbeard Ancient
 Mountain
 Mountain Bandit
+Mournful Zombie
 Mysterious Pathlighter
 Namora, the Sea Queen
+Nantuko Shade
 Necrogen Mists
 Needlebug
 Nemesis Mask
+Nephalia Drownyard
 Nightveil Sprite
+Nimraiser Paladin
 Noggle Bridgebreaker
 Noxious Toad
 Oasis
 Oath of the Ancient Wood
 Obelisk of Esper
+Octavia, Living Thesis
 Oji, the Exquisite Blade
 Omen of the Sun
+Oracle of Tragedy
 Orchard Spirit
 Ordeal of Purphoros
 Ore-Scale Guardian
@@ -264,6 +304,7 @@ Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
 Qasali Pridemage
+Quintorius, History Chaser
 Rage Forger
 Ragged Recluse
 Rakdos Cluestone
@@ -273,6 +314,9 @@ Ravenous Bloodseeker
 Razorfin Hunter
 Reiterate
 Reito Lantern
+Reiver Demon
+Relic Bane
+Relic Sloth
 Repercussion
 Rescue
 Resourceful Return
@@ -307,12 +351,15 @@ Sentinel Spider
 Sentinel's Eyes
 Shadowblood Egg
 Shaggy Camel
+Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
+Shield Mare
 Shriek of Dread
 Shriekhorn
 Shrill Howler
+Shrivel
 Siege Wurm
 Sigil of Distinction
 Silburlind Snapper
@@ -327,6 +374,7 @@ Slimefoot, the Stowaway
 Slinking Skirge
 Smolder Initiate
 Snapcaster Mage
+Snarling Warg
 Solemn Recruit
 Soltari Crusader
 Song of Eärendil
@@ -339,6 +387,7 @@ Sphinx of Magosi
 Spinehorn Minotaur
 Spire Mangler
 Spirit Away
+Sprouting Renewal
 Steam Blast
 Steward of Valeron
 Stone Rain
@@ -361,6 +410,7 @@ Swerve
 Synapse Sliver
 Tah-Crop Skirmisher
 Tajuru Beastmaster
+Take Possession
 Talisman of Curiosity
 Taunting Challenge
 Teferi's Ageless Insight
@@ -373,6 +423,7 @@ Thing Swing
 Thorn Mammoth
 Thornling
 Thoughtseize
+Thoughtweft Gambit
 Thrasher Brute
 Thriss, Nantuko Primus
 Thunder Strike
@@ -382,11 +433,14 @@ Tigereye Cameo
 Time Wipe
 Time of Heroes
 Timely Interference
+Titans' Vanguard
+Topan Ascetic
 Tormented Hero
 Tower Defense
 Tower Drake
 Triad of Fates
 Triton Shorethief
+Tunnel
 Turbulent Crater
 Turn the Tide
 Turnabout
@@ -397,11 +451,14 @@ Undercity Shade
 Underworld Charger
 Untamed Might
 Unwilling Recruit
+Unyaro Griffin
 Urborg Mindsucker
 Valor of the Worthy
 Vampire Revenant
+Vampire Warlord
 Vastwood Gorger
 Vengeful Regrowth
+Venom Blast
 Venser, Fervent Forger
 Vineshaper Mystic
 Vivid Revival
@@ -409,8 +466,10 @@ Vivisurgeon's Insight
 Voltaic Key
 Volunteer Militia
 Vulshok Refugee
+Waker of Waves
 Wand of Denial
 Wand of the Elements
+Wandering Tombshell
 War Priest of Thune
 Warfire Javelineer
 Warped Landscape

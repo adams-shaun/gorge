@@ -1,224 +1,449 @@
 A-Kargan Warleader
+A-Tome Shredder
 A-Zar Ojanen, Scion of Efrava
 Abundant Growth
 Aerial Assault
 Aerial Predation
 Aerial Volley
+Ajani, Mentor of Heroes
 Akki Underling
+Alaborn Musketeer
 Alesha, Who Smiles at Death
+Ambuscade Shaman
 Ancestral Memories
+Ancient Stone Idol
 Angelfire Crusader
+Angelic Skirmisher
 Anoint
 Anurid Brushhopper
+Ao, the Dawn Sky
 Apprentice Wizard
 Archweaver
 Argothian Enchantress
 Artificer's Epiphany
 Ascendant Acolyte
+Assassin Gauntlet
 Assassin's Strike
+Assure
+Atlas, Sizable Stooge
 Auramancer
+Avacyn, Angel of Hope
 Axebane Stag
+Baffling End
 Balduvian Barbarians
 Balduvian Hydra
+Ballista Charger
+Barbed Spike
+Barbed-Back Wurm
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
+Battering Wurm
+Battle-Scarred Goblin
+Beanstalk Giant
+Beastcaller Savant
 Belbe's Portal
+Benevolent Hydra
 Betrothed of Fire
+Bitter Revelation
+Black Scarab
+Blazing Specter
 Blight
 Blightwidow
+Blood Host
 Bloodline Culling
+Blot Out the Sky
 Boarded Window
+Boggart Harbinger
 Bojuka Bog
 Bontu's Monument
 Boris Devilboon
+Bravado
 Breach the Multiverse
 Breath of Life
+Brigone, Soldier of Meletis
 Bull Aurochs
+Bull-Rush Bruiser
 Bumbling Pangolin
+Burdened Aerialist
+Cackling Flames
+Callous Bloodmage
 Camaraderie
 Campus Renovation
+Cavern-Hoard Dragon
 Cemetery Reaper
+Chain Stasis
 Chalice of Life
+Champion of the Parish
 Chaos Terminator Lord
+Chariot of the Sun
+Chief Magistrate of Mercadia
+Chorus of Woe
 Chromatic Sphere
 Civic Stalwart
+Claim
 Clay Revenant
+Cleansing Nova
+Clergy en-Vec
 Cliffrunner Behemoth
 Collective Defiance
+Commander Greven il-Vec
+Concerted Defense
 Consecrate
+Consumptive Goo
+Coronation of Chaos
+Corpse Knight
+Covenant of Blood
+Crown of Empires
+Cruel Deceiver
+Crushing Vines
+Curse of the Forsaken
 Cursed Flesh
+Darksteel Sentinel
+Deadapult
+Deadly Derision
 Decanter of Endless Water
 Defiant Ogre
 Defile
 Demon's Horn
 Devouring Light
+Dire Wolf Prowler
+Discordant Piper
 Distemper of the Blood
 Divine Retribution
 Doctor Strange, Surgeon
+Doomwake Giant
 Dragonscale General
+Drainpipe Vermin
+Drowsing Tyrannodon
+Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
+Echoing Truth
+Electrozoa
+Elvish Champion
+Elvish Hydromancer
 Embodiment of Insight
 Empyreal Voyager
+Enter the Infinite
 Errand-Rider of Gondor
+Escape from Orthanc
 Essence of Orthodoxy
+Evangel of Synthesis
+Expanded Anatomy
 Exterminatus
 Exuberant Firestoker
 Ezuri's Brigade
+Faerie Invaders
 Fatal Push
 Fated Intervention
 Fervent Champion
 Fettergeist
 Firefist Adept
+Firemind's Foresight
 Fit of Rage
 Flaming Fist Officer
+Flight of Equenauts
+Folk Medicine
 Forest
+Forestfolk
 Frazzle
 Frontline Devastator
+Gallia of the Endless Dance
 General Kreat, the Boltbringer
 Geralf, Visionary Stitcher
 Gerrard's Wisdom
+Ghitu Chronicler
 Ghor-Clan Rampager
+Giant Warthog
 Gibbering Fiend
 Gideon's Lawkeeper
+Gift of Orzhova
+Gilt-Leaf Winnower
+Glimpse of Freedom
+Glyph Elemental
+Goblin Morningstar
 Goblin Trenches
+God-Pharaoh's Faithful
 Godo, Bandit Warlord
 Gourmand's Talent
+Grafted Growth
 Gryffwing Cavalry
 Hall of Heliod's Generosity
 Hard Evidence
+Harmonic Prodigy
+Hate Mirage
 Haunted Mire
+Havoc Jester
+Healer of the Glade
+Healer of the Pride
 Hecatomb
 Highborn Ghoul
+Hightide Hermit
+Hoard Robber
 Honden of Life's Web
+Hooded Hydra
 Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
+Hunted Witness
+Hush
+Hypnotic Specter
+Illusionary Informant
 Indomitable Archangel
 Instill Furor
+Intimidation
 Into the Core
+Into the Wilds
 Invigorated Rampage
 Ionize
+Ironshell Beetle
 Island
+Jacked Rabbit
+Jinx
 Jinxed Idol
+Judge's Familiar
+Jukai Naturalist
+Juntu Stakes
 Kaervek, the Spiteful
+Keldon Raider
+Kelsien, the Plague
 Kessig Naturalist
+Ketria Crystal
 Kiora Bests the Sea God
 Knight of Dawn's Light
+Kor Aeronaut
+Lace with Moonglove
+Lacerate Flesh
 Laid to Rest
 Lancer Sliver
+Legolas, Master Archer
+Levitation
 Life
+Lightning Shrieker
+Liliana's Shade
 Liliana's Spoils
+Lunar Hatchling
 Lunge
+Lure of Prey
+Mad Ratter
 Mage's Attendant
 MagicConsecrated Sphinx
 Makindi Ox
 Malcator's Watcher
+March from the Tomb
+Marcus, Mutant Mayor
+Mardu Hateblade
+Martyr for the Cause
+Mass Calcify
 Master Trinketeer
 Midnight Angel Armor
 Mighty Leap
 Mind Shatter
 Mind Sludge
+Mindcrank
 Minotaur Warrior
+Moonfolk Puzzlemaker
+Moriok Reaver
 Moriok Rigger
 Mountain
+Mourning Thrull
+Mox Pearl
+Munda's Vanguard
+Murderer's Axe
 Mushroom Watchdogs
+Mutant's Prey
+Myr Servitor
+Mystic Visionary
 Nakaya Shade
 Naturalize
 Neurok Invisimancer
+Nimana Sell-Sword
+Nimbus Naiad
 Ninja of the New Moon
+No Way Out
 Nuisance Engine
+Nurgle's Rot
 Oakgnarl Warrior
+Ogre Savant
+Oni of Wild Places
+Oracle's Vault
 Origin of Black Widow
+Overseer of the Damned
+Painsmith
 Paladin's Shield
 Patron of the Valiant
 Pattern of Rebirth
 Perilous Voyage
 Pheres-Band Thunderhoof
+Phyrexian Battleflies
 Plains
+Plated Geopede
+Plated Spider
+Polymorphist's Jest
 Power Sink
+Practical Research
 Precognition Field
 Primeval Titan
+Pyre Hound
 Quandrix Pledgemage
 Raff, Weatherlight Stalwart
+Raging Bull
 Ramosian Captain
 Rampage of the Valkyries
+Ramunap Excavator
+Raven Guild Master
 Ray of Distortion
 Razaketh, the Foulblooded
+Razormane Masticore
 Reaper of Flight Moonsilver
+Reclusive Artificer
+Red Elemental Blast
+Rending Volley
 Reservoir Walker
+Retrieval Agent
+Revered Dead
 Revered Unicorn
 Rhox Meditant
 Ring of Immortals
 Rites of Reaping
+Ronin Warclub
+Rotcrown Ghoul
+Ruination Wurm
+Run Afoul
+Runeboggle
+Ruric Thar, the Unbowed
 Rush the Room
 Safe Haven
 Saltwater Stalwart
+Samut, Vizier of Naktamun
+Sandcrafter Mage
 Sanguinary Mage
+Saprazzan Cove
 Savage Gorilla
 Savage Twister
+Scavenger Folk
+Scribe of the Mindful
 Seahunter
+Secret Rendezvous
+Seizan, Perverter of Truth
 Sensory Deprivation
+Sentinel Sarah Lyons
+Seraph of the Masses
 Shadow Alley Denizen
+Shadow Guildmage
 Shadow Lance
+Shadowcloak Vampire
+Shapeshifter
 Sheoldred's Restoration
 Show of Confidence
 Shriekmaw
+Siani, Eye of the Storm
+Sibling Rivalry
+Silhana Wayfinder
 Silumgar Monument
 Silverback Shaman
+Silvercoat Lion
 Silversmote Ghoul
 Simic Slaw
+Sinuous Vermin
+Skullknocker Ogre
 Skyrider Trainee
+Slayers' Stronghold
 Sleep of the Dead
 Slith Ascendant
+Sly Spy
+Solid Footing
+Soothsayer Adept
+Soratami Cloudskater
 Soul Sear
+Spartan Veteran
 Spellbane Centaur
 Stall for Time
 Stalwart Shield-Bearers
+Starnheim Courser
+Steal Enchantment
 Steel Seraph
 Stinkdrinker Daredevil
 Stoneshock Giant
+Storm Caller
 Stormfront Riders
 Strange Augmentation
 Strionic Resonator
+Stronghold Machinist
 Sunrise Sovereign
 Surge Node
 Surgespanner
 Swamp
+Swarming Goblins
 Swelter
 Sworn Guardian
+Sylvan Might
+Tajic, Blade of the Legion
 Tangled Skyline
+Tanglepool Bridge
 Tapping at the Window
 Teferi's Protege
 Teshar, Ancestor's Apostle
+Testament Bearer
 The First Eruption
+The Howling Commandos
+The Triumph of Anax
 Their Name Is Death
+Thought Courier
 Thriving Grubs
 Thriving Rhino
+Tobias Andrion
 Tolsimir Wolfblood
 Toph, Earthbending Master
 Touch of the Eternal
+Trapped in the Tower
+Traumatic Revelation
+Treasury Thrull
 Treetop Recluse
+Tuskguard Captain
 Tyrant of Kher Ridges
+Uktabi Faerie
+Ultimate Alliance
+Undead Leotau
+Underground Sea
+Undergrowth Stadium
 Unified Strike
 Unsubstantiate
 Uproot
 Urabrask's Anointer
 Urborg Syphon-Mage
 Vashta Nerada
+Vastwood Gorger
 Venerable Monk
+Veteran Cathar
 Veteran Swordsmith
+Viper, Cruel Conspirator
+Vision, Synthezoid Avenger
+Vitality Charm
 Vodalian Hypnotist
 Voice of Law
+Volcanic Dragon
+Volrath's Gardens
+Vraska's Finisher
 Wall of Blood
 Wandering Tombshell
+War-Name Aspirant
 Water Wurm
+Wellspring
+White Sun's Zenith
+White Widow, Yelena Belova
 Wildwood Tracker
 Winding Way
+Winding Wurm
 Witherbloom Apprentice
 Writhing Necromass
+Wu Admiral
+Wurmweaver Coil
+Yavimaya Ants
 You're Confronted by Robbers
 Young Red Dragon
 Zektar Shrine Expedition
 Zerapa Minotaur
+Zhang He, Wei General
+Zimone, Infinite Analyst
