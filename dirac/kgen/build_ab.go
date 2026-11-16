@@ -2638,6 +2638,14 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "PreventNoncombatToOthers":
 		rp.Kind = kop.ReplPreventNoncombatToOthers
+	case "DamageRedirect":
+		rp.Kind = kop.ReplDamageRedirect
+		rp.C = int16(r.Bits) // the recipient filter, the new recipient and the gates (kop/staticredirect.go)
+		if r.F2 != nil {
+			if rp.Filter2, err = cb.filter(r.F2, kop.ZoneBattlefield); err != nil {
+				return ka, err
+			}
+		}
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
 	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf", "PreventDamageFilt", "PreventDamageN":
