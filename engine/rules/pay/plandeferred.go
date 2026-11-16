@@ -43,7 +43,11 @@ type GapUnit struct {
 // gap route funds (dirac mana_tapsdefer.go: "Any other production stays
 // unmodelled"); a shape deferral ("source:target", "source:rider", ...) and a
 // multi-unit or choice production stay deferred, exactly as the kernel's
-// first pass leaves them.
+// first pass leaves them. A RestrictValid$ ability is no gap unit either: the
+// kernel's plain gap floats plain mana and leaves a restricted source out
+// (dirac scriptTapsDeferWalk: "the ability is restricted"), and the census
+// never admits it without a payment to match (withhold, restrictedRefused), so
+// Steelswarm Operator under a Cryoshatter funds no artifact spell.
 func paymentPlanGapGate(e Engine, p state.PlayerID, id state.ObjID, alt Alt) bool {
 	if alt.Tier != TierDeferred || alt.Ma == nil {
 		return false
@@ -51,7 +55,7 @@ func paymentPlanGapGate(e Engine, p state.PlayerID, id state.ObjID, alt Alt) boo
 	if _, _, detail := PaymentPlanAbilityTier(e, p, id, alt.Ma); !strings.HasPrefix(detail, "source:interference") {
 		return false
 	}
-	if !PaymentPlanTapOnlyCost(AbilityCompiledCost(e, alt.Ma).Cost) {
+	if !PaymentPlanTapOnlyCost(AbilityCompiledCost(e, alt.Ma).Cost) || e.Eval().ManaStatic(alt.Ma).RestrictValid {
 		return false
 	}
 	total := 0

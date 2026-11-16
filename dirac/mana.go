@@ -1741,6 +1741,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if ty.xt != 0 {
 			s.addXv(p, &ty.xv)
 		}
+		if pk.tapsIn && !ty.sacOnly {
+			// the second pass taps a Taps-deferred source: its unfoldable
+			// TapsForMana trigger (Rikala's gated extra) resolves at the tap
+			// itself, as the script route's tapGap floats it (addExtra)
+			s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
+		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {
 			// a restricted evaluated amount (Helga) floats restricted beside
