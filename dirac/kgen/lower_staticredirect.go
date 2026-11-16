@@ -124,8 +124,6 @@ func (lc *lowerCtx) staticDmgRedirect(rp *params, w *cards.SA, rl *lRepl) (bool,
 	return true, nil
 }
 
-// ensure the C-bit block stays inside kop's int16 Repl.C
-
 // rdrRepl builds the ReplDamageRedirect ability: the C bits carry the
 // recipient filter, the new recipient and the gates (kop/staticredirect.go),
 // Filter2 the damage source.

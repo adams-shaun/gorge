@@ -62,6 +62,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		return 0 // protection from each opponent, or from everything, prevents it first (CR 702.16e; static_playerstats.go, static_plprot.go)
 	}
 	if g.anyRepl&rbPrevCol != 0 && !combat {
+		if s.statRdrStall(k, srcCtrl, srcSl, srcCard, code, false) {
+			return 0 // a static redirect beside a shield: gorge asks the order (repl_staticredirect.go)
+		}
 		// Ext PreventNext's depleting shield (the combat events take it in replCombatGen)
 		if m, ok := s.prevNextTake(k, srcCtrl, srcSl, srcCard, code, rcp, sl, false, n); ok {
 			if k.anyRedNC && m > 0 {
@@ -71,6 +74,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		}
 	}
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
+		if s.statRdrStall(k, srcCtrl, srcSl, srcCard, code, combat) {
+			return 0 // a static redirect beside the prevention: gorge asks the order (repl_staticredirect.go)
+		}
 		if g.anyRedir {
 			s.redirBeside(code, rcp) // a redirect is a candidate too: gorge asks the order (repl_dmgredirect.go)
 		}
