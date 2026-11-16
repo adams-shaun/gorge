@@ -1978,6 +1978,7 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
           // above ran under the default; the concede step turns the rule off (the setting
           // applies when a table loads) and reloads, so the next priority window is shown.
           if (wire === 'manabrew') {
+            // 'gorge.mbcompat.v1' is COMPAT_KEY in web/src/lib/manabrew/compat.ts; the page cannot be imported here.
             await page.evaluate(() => localStorage.setItem('gorge.mbcompat.v1', 'off'));
             await page.reload({ waitUntil: 'domcontentloaded' });
             await page.locator('.quadrant').first().waitFor({ state: 'visible', timeout: WAIT_MS });
