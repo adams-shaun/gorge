@@ -273,6 +273,7 @@ CtrlHitBySrc	CtrlSel	4
 CtrlOpp	CtrlSel	2
 CtrlTgtOwner	untyped int	128
 CtrlYou	CtrlSel	1
+CumulativeScaled	untyped int	2
 CzBattleGrave	untyped int	8
 CzGraveLibrary	untyped int	128
 CzHandGrave	untyped int	32
@@ -1175,6 +1176,20 @@ ReplPreventDamageCounters	ReplKind	36
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplRewriteTokens	ReplKind	30
+ReplSPAllBut	untyped int	512
+ReplSPAmtV	untyped int	256
+ReplSPAnyPerm	untyped int	4
+ReplSPCombat	untyped int	8
+ReplSPDmgLE	untyped int	128
+ReplSPLimitCtr	untyped int	1024
+ReplSPNonCombat	untyped int	16
+ReplSPOpp	untyped int	2
+ReplSPOptional	untyped int	2048
+ReplSPRecipSnow	untyped int	4096
+ReplSPSrcInPlay	untyped int	64
+ReplSPSrcSpell	untyped int	8192
+ReplSPYou	untyped int	1
+ReplSPYourTurn	untyped int	32
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8

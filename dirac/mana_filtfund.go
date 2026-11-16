@@ -66,10 +66,18 @@ func (fs *filtSearch) fundColours(k *prep, t *State, sl Slot, pc *pcard, mask ui
 //
 //go:noinline
 func (s *State) fundSac(k *prep, sl Slot) {
-	if pc := s.manaPCGen(k, sl); !pc.manaSac && !(k.sacOnlyMana && pc.manaSacOnly) {
+	if pc := s.manaPCGen(k, sl); !pc.manaSac && !s.canSacOnlyNow(k, sl, pc) {
 		return
 	}
 	s.sacFilterSource(k, sl)
+}
+
+// fundsBySac reports whether sl funds a filter by sacrificing itself with no
+// {T} (an Eldrazi Spawn's "Sacrifice this creature: Add {C}", CR 605.1a): a
+// tapped or summoning-sick one funds too, and funding does not tap it.
+func (s *State) fundsBySac(k *prep, sl Slot) bool {
+	pc := s.manaPCGen(k, sl)
+	return pc.manaSacOnly && s.canSacOnlyNow(k, sl, pc)
 }
 
 // sacFilterSource sacrifices the mana source at sl: its Sacrificed triggers
@@ -86,10 +94,12 @@ func (s *State) sacFilterSource(k *prep, sl Slot) {
 	}
 }
 
-// canFundFee reports whether the funding source at sl can be activated by the
-// search: an untapped tap source, or an Eldrazi Spawn, which funds a fee by
-// being sacrificed (a last-resort planner unit whose activation gorge lists at
-// priority, CR 605.1a).
-func (s *State) canFundFee(k *prep, sl Slot) bool {
-	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl)
+// fundOut: sl is tapped and cannot fund by sacrifice either.
+func (s *State) fundOut(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl)
+}
+
+// fundFree: sl funds a filter now, tapped for mana or sacrificed.
+func (s *State) fundFree(k *prep, sl Slot) bool {
+	return s.canTapForMana(k, sl) || s.fundsBySac(k, sl)
 }

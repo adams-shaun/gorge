@@ -11,14 +11,13 @@ import (
 // Anything else that reaches an unmodelled stall in lockstepRun or sonRunStalls
 // fails.
 var unmodelledKnown = map[string]bool{
-	"TestAdversaryLockstep|kernel numtimes": true,
-	"TestFiredmgLockstep|kernel replplus":   true,
-	"TestFiredmgMutation|kernel replplus":   true,
-	"TestOjerLockstep|kernel replplus":      true,
+	"TestFiredmgLockstep|kernel replplus": true,
+	"TestFiredmgMutation|kernel replplus": true,
+	"TestOjerLockstep|kernel replplus":    true,
 }
 
 // maxUnmodelledKnown is the list's size. Lower it with the list; never raise it.
-const maxUnmodelledKnown = 4
+const maxUnmodelledKnown = 3
 
 // unmodelledStallError is the failure of test (its top-level name) reaching res's
 // stall, nil when the stall is a capacity, or there is none, or the list names it.
