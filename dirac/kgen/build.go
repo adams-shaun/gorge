@@ -1799,6 +1799,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredEquipped
 	case cmpEnchanted:
 		kf.Pred = kop.PredEnchanted
+		kf.PredN = int16(c.CmpN) // 1: "!enchanted"
 	case cmpAttached:
 		kf.Pred = kop.PredAttached
 	case cmpActiveCtrl:
