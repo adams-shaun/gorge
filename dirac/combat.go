@@ -552,6 +552,9 @@ func (s *State) canBlock(k *prep, b, a Slot) bool {
 	if k.gen != nil && k.gen.anySuspect && s.suspectNoBlock(k, b) {
 		return false // a suspected creature can't block (CR 701.60a)
 	}
+	if k.unleash && s.unleashNoBlock(k, b) {
+		return false // an Unleash creature with a +1/+1 counter can't block (CR 702.86a; kw_unleash.go)
+	}
 	return true
 }
 

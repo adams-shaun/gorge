@@ -1,0 +1,4 @@
+Forest
+Mountain
+Plains
+Swamp
