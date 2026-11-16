@@ -130,11 +130,13 @@ Fortified Rampart
 Fountain of Youth
 Frost Trickster
 Fungal Rebirth
+Gainsay
 Garruk's Companion
 Gate to Phyrexia
 Geistblast
 Generous Stray
 Ghirapur Aether Grid
+Gibbering Barricade
 Glimmering Angel
 Glistener Elf
 Gluttonous Guest
@@ -178,12 +180,14 @@ Kiln Walker
 Kor Cartographer
 Kor Entanglers
 Kor Scythemaster
+Krosan Druid
 Kuldotha Rebirth
 Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
 Laquatus's Creativity
 Last Caress
+Lawmage's Binding
 Library
 Life
 Living Wish
@@ -238,6 +242,7 @@ Pip-Boy 3000
 Plains
 Poison Arrow
 Prison Term
+Prodigy's Prototype
 Prowling Pangolin
 Psychomancer
 Pyknite
@@ -259,6 +264,7 @@ Refocus
 Renari, Merchant of Marvels
 Renegade Silent
 Resplendent Mentor
+Response
 Reverent Hoplite
 Rhystic Shield
 Righteous Cause

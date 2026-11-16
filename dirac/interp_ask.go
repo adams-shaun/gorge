@@ -51,6 +51,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 			}
 		}
 		av.xdOn = false
+		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
+			s.restrAvailAdd(p, m, &av) // floating restricted mana a non-spell payment may spend (CR 106.6; gorge AvailableFor)
+		}
 		// a restricted source whose restriction admits a non-spell payment (a
 		// Powerstone's {C}, CR 106.6) funds an unless cost too: gorge's
 		// PurposeOther descriptor admits it (restrSrcAffords asks only once av alone fails)

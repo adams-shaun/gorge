@@ -188,6 +188,7 @@ Implement of Ferocity
 Independent Troops
 Indigo Faerie
 Infernal Pet
+Infested Fleshcutter
 Inkrise Infiltrator
 Inspiring Refrain
 Intrepid Ace

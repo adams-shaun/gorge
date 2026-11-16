@@ -52,7 +52,9 @@ Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darksteel Forge
 Daxiver, Izzet Electromancer
+Deepwood Wolverine
 Defend the Campus
 Delayed Blast Fireball
 Devoted Paladin
@@ -88,6 +90,7 @@ Firefly
 Forest
 Fountain Watch
 Gallant Cavalry
+Gemhide Sliver
 Giant Ox
 Gideon's Battle Cry
 Gift of Growth
@@ -98,6 +101,7 @@ Guardian Augmenter
 Guild Thief
 Gut Shot
 Guul Draz Overseer
+Gyre Sage
 Headstrong Brute
 Heiko Yamazaki, the General
 Hell Mongrel
@@ -113,6 +117,7 @@ Ideas Unbound
 Impetuous Protege
 Industrial Advancement
 Infantry Veteran
+Inhumaniac
 Innistrad Charm
 Island
 Isolation Cell
@@ -136,6 +141,7 @@ Let the Galaxy Burn
 Leveler
 Life Insurance
 Lightning Elemental
+Living Wish
 Loathsome Curator
 Long-Lost Lances
 Magus of the Future
@@ -147,6 +153,7 @@ Mirror of Galadriel
 Mishra's Research Desk
 Moldgraf Millipede
 Monastery Swiftspear
+Mosstodon
 Most Wanted
 Mountain
 Mwonvuli Ooze
@@ -155,6 +162,7 @@ Natural Spring
 Naya Battlemage
 Necroskitter
 Needle Storm
+Nettletooth Djinn
 Nighthawk, Dark Defender
 Nimbus Swimmer
 Nissa's Judgment
@@ -165,6 +173,7 @@ Ox Drover
 Oxidda Finisher
 Paradigm Shift
 Parapet Watchers
+Pestilence Rats
 Plaguemaw Beast
 Plains
 Plunder
@@ -197,6 +206,7 @@ Rosecot Knight
 Roving Harper
 Royal Falcon
 Rubblebelt Boar
+Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
 Sarkhan's Catharsis
@@ -205,6 +215,7 @@ Scourge of the Nobilis
 Screams of the Damned
 Seagraf Skaab
 Seek New Knowledge
+Serpent's Gift
 Seshiro the Anointed
 Sewer Crocodile
 Shade of Trokair
@@ -221,9 +232,11 @@ Skulking Fugitive
 Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
+Skysnare Spider
 Smashing Spree
 Smelt
 Snapping Thragg
+Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Spark Reaper
@@ -235,6 +248,7 @@ Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Stew the Coneys
 Stir the Pride
 Straw Soldiers
 Street Spasm
@@ -274,9 +288,11 @@ Veiled Apparition
 Wall Off
 Wall of Blood
 Warbeast of Gorgoroth
+Warbriar Blessing
 Weldfast Engineer
 Wight
 Wolfrider's Saddle
 Wooden Cane
+Woodripper
 Workshop Assistant
 Zulaport Cutthroat
