@@ -1,23 +1,33 @@
 A-Blood Artist
 Alchemist's Apprentice
+Allied Assault
 Alpine Watchdog
 Amarant Coral
+Anarchy
+Ancient Crab
 Apex Hawks
 Arc Runner
+Arctic Merfolk
+Armix, Filigree Thrasher
 Arrogant Outlaw
+Aura Flux
 Avatar of Woe
+Aven Wind Mage
 Azorius First-Wing
 Barbed Lightning
 Bee Sting
+Bident of Thassa
 Blasphemous Act
 Blight Keeper
 Blowfly Infestation
 Boros Recruit
 Boseiju Reaches Skyward
+Bounding Krasis
 Bronzebeak Moa
 Brotherhood Outcast
 Brushstrider
 Burning Sands
+Captured Sunlight
 Crimson Fleet Commodore
 Crimson Muckwader
 Damnation
@@ -25,18 +35,24 @@ Darksteel Forge
 Dash Hopes
 Deal Gone Bad
 Deathforge Shaman
+Deft Duelist
 Demonic Taskmaster
+Dinrova Horror
 Douser of Lights
 Drana's Chosen
 Dwarven Lieutenant
+Electrosiphon
+Elemental Mastery
 Elemental Uprising
 Elsha, Threefold Master
 Entomber Exarch
+Erebor Flamesmith
 Erratic Cyclops
 Evolved Sleeper
 Extractor Demon
 Fandaniel, Telophoroi Ascian
 Ferropede
+Fiend Binder
 Finishing Blow
 Flameborn Hellion
 Flaring Flame-Kin
@@ -44,15 +60,20 @@ Font of Vigor
 Forest
 Frogtosser Banneret
 Frondland Felidar
+Furnace Gremlin
 Gaea's Might
 Geistflame
 Giant Ladybug
 Glint-Horn Buccaneer
 Glistening Deluge
 Goblin Trailblazer
+Gossamer Phantasm
 Guul Draz Specter
+Gyre Engineer
 Hedge Troll
 Heir of Falkenrath
+High Alert
+High Priest of Penance
 Hollowsage
 Hornet Queen
 Humbler of Mortals
@@ -65,21 +86,30 @@ Inquisitive Puppet
 Invoke Despair
 Island
 Joven
+Kangee, Sky Warden
+Lagac Lizard
 Lamentation
 Lightning Angel
+Lightning Axe
+Lord of the Unreal
 Lull
 Maestros Initiate
 Major Teroh
+Marauding Looter
 Mardu Blazebringer
 Marker Beetles
 Mary Read and Anne Bonny
+Midnight Arsonist
 Mishra's Bauble
 Mobilization
+Molten Birth
 Moon-Blessed Cleric
 Mountain
 Natural Reclamation
+Night Revelers
 Nirkana Assassin
 Offalsnout
+Old Ghastbark
 Overload
 Pain Kami
 Pangosaur
@@ -88,43 +118,56 @@ Phoenix of Ash
 Phyrexian Pegasus
 Pilgrim of the Ages
 Plains
+Promise of Power
 Pygmy Kavu
+Rakdos, Lord of Riots
 Realm Seekers
 Reign of Terror
 Ripscale Predator
 Rise of the Hobgoblins
 Rite of Flame
+Riven Turnbull
 Rotlung Reanimator
+Sarah Jane Smith
+Scion of Vitu-Ghazi
 Scorch Spitter
 Seashell Cameo
 Selesnya Signet
+Shadowstorm Vizier
 Shreds of Sanity
 Sigiled Contender
 Silt Crawler
 Skinrender
 Skull Rend
 Smother
+Soul Manipulation
 Southern Paladin
 Splatter Goblin
 Staff of the Flame Magus
 Sticky Fingers
 Storm-Kiln Artist
+Stormfist Crusader
 Stun
 Stunning Shot
+Surgespanner
 Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
 Sylvok Explorer
+Teferi's Protege
 Thallid Shell-Dweller
+Thieving Magpie
 Third Path Iconoclast
 Three Tragedies
 Thrull Retainer
 Tonic Peddler
 Troubled Healer
 Twinferno
+Untethered Express
 Valiant Guard
 Vampire Lacerator
+Vertigo Spawn
 Viconia, Drow Apostate
 Voracious Cobra
 Walker of the Wastes

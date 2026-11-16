@@ -47,6 +47,7 @@ Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
 Combust
 Conclave Mentor
@@ -69,6 +70,7 @@ Drown in Ichor
 Duskhunter Bat
 Dwell on the Past
 Eastfarthing Farmer
+Eidolon of Countless Battles
 Electric Revelation
 Elite Scaleguard
 Elspeth Tirel

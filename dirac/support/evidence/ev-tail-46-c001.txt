@@ -1,11 +1,18 @@
 A-Oran-Rief Ooze
+A-Revel Ruiner
+Adeliz, the Cinder Wind
+Akroan Skyguard
 Alpha Tyrranax
 Anaconda
+Anthousa, Setessan Hero
 Aphetto Alchemist
 Arc Lightning
+Archfiend of Despair
 Argothian Opportunist
 Argothian Treefolk
+Astarion's Thirst
 Auriok Transfixer
+Back in Town
 Battlefront Krushok
 Belligerent Whiptail
 Blaring Recruiter
@@ -19,8 +26,12 @@ Bounding Wolf
 Brain Weevil
 Brassclaw Orcs
 Brazen Buccaneers
+Brink of Madness
 Brood Monitor
+Bygone Marvels
+Cackling Imp
 Cagemail
+Capashen Templar
 Captain Ripley Vance
 Cast Out
 Cenn's Enlistment
@@ -37,6 +48,7 @@ Consider
 Council's Judgment
 Crumbling Vestige
 Death-Hood Cobra
+Deathcap Cultivator
 Debt to the Kami
 Deekah, Fractal Theorist
 Deepglow Skate
@@ -48,16 +60,19 @@ Doorkeeper
 Dormant Grove
 Draconic Muralists
 Dragonfly Suit
+Dragonscale Boon
 Dreadhorde Arcanist
 Dress Down
 Drudge Sentinel
 Duty-Bound Dead
+Earsplitting Rats
 Elena, Turk Recruit
 Elite Guardmage
 Emerald Charm
 Empress Galina
 Endless Ranks of the Dead
 Esper Sentinel
+Essence Pulse
 Eternal Warrior
 Everythingamajig
 Eviscerator
@@ -73,6 +88,7 @@ Floral Evoker
 Forerunner of the Heralds
 Forerunner of the Legion
 Forest
+Foul-Tongue Shriek
 Frozen Shade
 Gaea's Embrace
 Gaea's Skyfolk
@@ -83,6 +99,7 @@ Gift of Strands
 Gnarled Mass
 Goldenhide Ox
 Grasping Scoundrel
+Grisly Survivor
 Hammer of Purphoros
 Haystack
 Heir of the Ancient Fang
@@ -90,7 +107,10 @@ Herald of Secret Streams
 Hoarding Ogre
 Holy Day
 Hungry Spriggan
+Hunting Grounds
 Incisor Steed
+Infuse with Vitality
+Introduction to Prophecy
 Island
 Jedit Ojanen of Efrava
 Jukai Trainee
@@ -103,11 +123,14 @@ Leyline of the Meek
 Lifeline
 Lightning Blow
 Lost in the Woods
+Lumengrid Gargoyle
 Magma Giant
 Marshal of Zhalfir
 Merfolk Branchwalker
 Midnight Guard
+Millicent, Restless Revenant
 Mind Peel
+Mirrodin Avenged
 Mizzium Skin
 Moss Diamond
 Mountain
@@ -117,16 +140,21 @@ Mycoid Shepherd
 Nearheath Stalker
 Nihil Spellbomb
 Nurturing Presence
+Otherworldly Journey
 Panther Robot
 Pest Summoning
+Phalanx Leader
 Pit Imp
 Plains
+Protector of the Wastes
 Psionic Entity
 Pull from the Deep
+Qasali Slingers
 Quicksilver Wall
 Raise the Alarm
 Rank Officer
 Ravenous Bloodseeker
+Reave Soul
 Reckless Spite
 Renegade Troops
 Repentant Blacksmith
@@ -134,7 +162,9 @@ Repulsor Bots
 Resolute Watchdog
 Revenge of the Drowned
 Reverent Hunter
+Ring of Valkas
 Ritual of Hope
+Rosethorn Acolyte
 Rot Wolf
 Rout
 Rowan's Stalwarts
@@ -148,10 +178,13 @@ Scoria Cat
 Second Breakfast
 Secure Detention
 Seizan, Perverter of Truth
+Shadow Stinger
 Shadow in the Warp
 Shu General
+Sidisi's Pet
 Silverback Elder
 Sisters of the Flame
+Skeletal Snake
 Sky Skiff
 Skywinder Drake
 Smoldering Tar
@@ -160,9 +193,13 @@ Somberwald Dryad
 Sorin's Vengeance
 Sparksmith
 Spawn of Thraxes
+Splinter Twin
 Sprite Dragon
+Stab Wound
 Steelgaze Griffin
+Steward of Solidarity
 Storm Strike
+Strength of the Harvest
 Sudden Impact
 Sudden Insight
 Summer Bloom
@@ -171,21 +208,31 @@ Survive the Night
 Swamp
 Talas Explorer
 Tempest Harvester
+Terra Stomper
 Throne of the High City
 Tireless Hauler
+Torens, Fist of the Angels
+Treefolk Harbinger
 Trenchpost
+Tromell, Seymour's Butler
 Tura Kennerüd, Skyknight
 Twisted Experiment
 Unexpected Windfall
 Urborg Stalker
 Ureni's Counsel
 Verdant Field
+Victory's Envoy
 Voltstorm Angel
+Wall of One Thousand Cuts
 Warbriar Blessing
 Weaver of Lightning
 Weldfast Wingsmith
 Whipcorder
 Whirler Virtuoso
+White Tiger, Amulet Keeper
+Wing It
+Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
 Yotian Medic
+Zombie Infestation

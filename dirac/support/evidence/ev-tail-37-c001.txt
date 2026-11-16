@@ -24,6 +24,7 @@ Avenging Angel
 Barricade Breaker
 Beast Whisperer
 Benalish Heralds
+Blackcleave Goblin
 Blind Zealot
 Blitz Leech
 Bog Tatters
@@ -79,6 +80,7 @@ Fallaji Excavation
 Flame Slash
 Flame Spirit
 Flame of Anor
+Flameshot
 Fleshbag Marauder
 Flowstone Slide
 Force of Despair
@@ -190,6 +192,7 @@ Swamp
 Tainted Indulgence
 Tangle Mantis
 Target Minotaur
+Terminal Agony
 The Brute
 The Meathook Massacre
 The Torment of Gollum

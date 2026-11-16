@@ -223,6 +223,7 @@ Knight of the Tusk
 Kor Scythemaster
 Kyoshi Warrior Guard
 Lair Delve
+Lightning Rift
 Lightning Spear
 Llanowar Cavalry
 Llanowar Vanguard

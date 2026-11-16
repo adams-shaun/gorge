@@ -19,6 +19,7 @@ Angelic Guardian
 Anointed Procession
 Arborea Pegasus
 Archetype of Aggression
+Ardent Electromancer
 Argivian Blacksmith
 Artifact Mutation
 Ashen Monstrosity
@@ -407,12 +408,14 @@ Vampiric Touch
 Vaporous Djinn
 Verdant Catacombs
 Vernal Bloom
+Vile Rebirth
 Vivien's Crocodile
 Volcanic Spite
 Vulturous Aven
 Wall of Water
 Weaver of Blossoms
 Weirded Vampire
+Wheel of Fortune
 Whelming Wave
 Windborne Charge
 Wizard Class

@@ -303,6 +303,7 @@ Pine Barrens
 Pitchstone Wall
 Plague Wind
 Plains
+Planar Guide
 Pounce
 Practiced Tactics
 Prehistoric Turtlesaurus
@@ -392,6 +393,7 @@ Standing Troops
 Starfall
 Steelshaper Apprentice
 Stinging Scorpion
+Stone of Erech
 Stormcaller's Boon
 Subdue
 Subterranean Scout

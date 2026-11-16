@@ -77,10 +77,12 @@ Gravel-Hide Goblin
 Grimdancer
 Hawkeye, Trick Shot
 Hellcarver Demon
+High Score
 Howlpack Wolf
 Hunted Ghoul
 Ifh-Bíff Efreet
 Ihsan's Shade
+Implode
 Infuriate
 Iridescent Angel
 Irregular Cohort
@@ -131,6 +133,7 @@ Ravenous Lindwurm
 Razor Swine
 Reforge the Soul
 Relic Robber
+Relic Vial
 Reprobation
 Resistance Reunited
 Resounding Silence
@@ -157,6 +160,7 @@ Smogsteed Rider
 Solitary Defiance
 Sootfeather Flock
 Spiketail Drake
+Spitting Drake
 Spotter Thopter
 Staff of the Storyteller
 Stalwart Pathlighter

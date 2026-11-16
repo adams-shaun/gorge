@@ -95,6 +95,7 @@ Furnace Spirit
 Gala Greeters
 Galvanic Juggernaut
 Gauntlet of Might
+Ghoulsteed
 Gleeful Demolition
 Glimpse the Unthinkable
 Glint Raker
@@ -110,6 +111,7 @@ Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
+Guardian Scalelord
 Hangarback Walker
 Harvest Wurm
 Haunted Cadaver
@@ -131,6 +133,7 @@ Island
 Izzet Signet
 Jousting Dummy
 Kill-Zone Acrobat
+Kindly Customer
 King of the Pride
 Kinsbaile Courier
 Krosan Archer
@@ -190,6 +193,7 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Psychic Impetus
 Ral's Dispersal
 Reborn Hope
 Renegade Reaper
@@ -213,6 +217,8 @@ Shadow Summoning
 Shaman of the Pack
 Shamble Back
 Shapers' Sanctuary
+Shard of the Nightbringer
+Shriek of Dread
 Shu Cavalry
 Silver Raven
 Silverquill Lecturer
@@ -262,6 +268,7 @@ Tyrranax
 Ultimate Price
 Umbilicus
 Unbreathing Horde
+Undead Warchief
 Unicycle
 Unraveling Mummy
 Urza's Guilt

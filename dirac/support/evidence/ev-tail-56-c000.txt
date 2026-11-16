@@ -366,6 +366,7 @@ Spawnbed Protector
 Spell Snuff
 Spellrune Painter
 Spidersilk Net
+Spike Jester
 Squall Drifter
 Stampeding Wildebeests
 Startling Development
@@ -416,6 +417,7 @@ Vithian Stinger
 Vivid Meadow
 Volrath's Stronghold
 Wandering Mind
+Water Servant
 Weed-Pruner Poplar
 Whipflare
 World Breaker

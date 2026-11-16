@@ -1,54 +1,76 @@
 A.I.M. Bot
 Accursed Centaur
+Addle
 Aethertide Whale
 Ambassador Oak
 Ancient Brontodon
 Archon of Cruelty
 Ardent Recruit
+Arrest
+Aspect of Mongoose
 Backup Agent
 Balduvian Rage
 Bamboo Grove Archer
 Base Camp
 Battle-Scarred Goblin
+Bellowing Elk
 Bellowing Mauler
+Black Sun's Twilight
 Blightspeaker
 Blood Researcher
+Bloodline Keeper
 Bloodrock Cyclops
 Blossom Dryad
+Bonecaller Cleric
 Boneshard Slasher
+Boseiju, Who Endures
 Brago, King Eternal
 Braulios of Pheres Band
 Bravado
 Brightcap Badger
 Brion Stoutarm
+Brutal Expulsion
 Caldera Pyremaw
+Cave of the Frost Dragon
+Celestial Colonnade
+Charge Across the Araba
 Chief Engineer
 Cinder Seer
 Clear the Stage
+Courageous Outrider
 Crossover Collaboration
 Crosswinds
 Curse of Chaos
 Curse of the Nightly Hunt
 Cursebreak
 Darksteel Relic
+Dazzling Lights
+Death Cultist
 Deepfathom Skulker
 Destined
 Diabolic Revelation
 Diplomatic Immunity
+Dismissive Pyromancer
+Distant Melody
 Draconic Lore
 Dragon Blood
 Dragonloft Idol
 Dread Warlock
 Dread of Night
 Drown in Filth
+Dual Strike
 Elephant-Mandrill
 Elixir of Vitality
+Elvish Berserker
 Esquire of the King
 Extremis Elite
+Farbog Revenant
+Felhide Spiritbinder
 Fencer's Magemark
 Fire of Orthanc
 Firedrinker Satyr
 Firemane Avenger
+Flagstones of Trokair
 Flaming Sword
 Flayer Husk
 Fledgling Djinn
@@ -64,38 +86,55 @@ Ghitu Slinger
 Gift of Compleation
 Glimmerdust Nap
 Glittering Wish
+Goblin Chariot
 Goblin Kaboomist
+Goblin Tunneler
 Golden-Tail Trainer
 Grand Arbiter Augustin IV
 Grateful Apparition
 Green Scarab
 Grendel, Spawn of Knull
 Grounded
+Hag of Dark Duress
+Hapless Researcher
+Havoc Sower
 Hidden Blade
 High Ground
+Hooded Assassin
 Hope Tender
 Horn of Valhalla
+Hornbash Mentor
+How to Keep an Izzet Mage Busy
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
+Impulse
 Invasion of Kylem
 Island
 It That Heralds the End
 Jolt
 Jushi Apprentice
 Kagemaro's Clutch
+Kalonian Behemoth
 Karametra's Acolyte
 Karn's Bastion
+Krovikan Scoundrel
 Lambholt Raconteur
 Lampad of Death's Vigil
 Lash of Thorns
 Lava Storm
+Lay Bare
 Layla Hassan
+Leaden Fists
 Leonin Snarecaster
+Lightning Berserker
 Magmatic Core
+Mana Geode
 Marrow-Gnawer
 Meloku the Clouded Mirror
 Meneldor, Swift Savior
+Mesmeric Orb
+Meteorite
 Mind Carver
 Misthoof Kirin
 Mogg Squad
@@ -105,8 +144,10 @@ Mountain
 Murderer's Axe
 Necra Sanctuary
 Nested Ghoul
+Network Disruptor
 Night Revelers
 Nightmare Unmaking
+Nightmare's Thirst
 Nightmares and Daydreams
 Oath of Druids
 Oketra the True
@@ -128,8 +169,11 @@ Psychic Barrier
 Queen's Commission
 Rageblood Shaman
 Raging Kronch
+Raging Regisaur
+Rancid Earth
 Ravenous Leucrocota
 Ravenous Necrotitan
+Redcap Melee
 Reflexes
 Reyav, Master Smith
 Rhovanion Rampager
@@ -140,6 +184,7 @@ Robot Chicken
 Run for Your Life
 Sacred Wolf
 Sage of Mysteries
+Sanguinary Mage
 Sapphire Dragon
 Sardian Cliffstomper
 Scrap Trawler
@@ -149,21 +194,29 @@ Secluded Steppe
 Secretkeeper
 Seedguide Ash
 Seismic Shift
+Seismic Strike
 Serene Offering
 Serra Zealot
 Servo Exhibition
 Siege Modification
+Skygames
 Skyline Predator
+Skymarcher Aspirant
+Skyship Stalker
 Skyshroud Condor
 Slagwurm Armor
+Snow-Covered Plains
 Soltari Monk
 Song of Freyalise
 Soul Bleed
 Sparkshaper Visionary
+Spirit Link
 Standing Troops
 Steelshaper Apprentice
 Subterranean Scout
+Sulfurous Springs
 Sultai Skullkeeper
+Survive the Night
 Swallowing Plague
 Swamp
 Sylvan Tutor
@@ -175,17 +228,28 @@ The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
 Thraben Watcher
+Tomb of the Spirit Dragon
 Tormenting Voice
 Torpid Moloch
+Tower Worker
+Trigon of Mending
+Turbulent Wilderness
 Umbilicus
+Undead Minotaur
 Urza, Chief Artificer
 Valiant Veteran
+Vampire Hexmage
+Vaultbreaker
 Veil of Assimilation
+Wake the Reflections
 Walking Wall
 Wasteful Harvest
 Weaponcraft Enthusiast
 Whip Sergeant
 Whiptail Moloch
+Wild Jhovall
 Windgrace's Judgment
+Winged Sliver
+Wirefly Hive
 Yasmin Khan
 Zealot's Conviction

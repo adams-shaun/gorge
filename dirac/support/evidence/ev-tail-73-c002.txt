@@ -1,3 +1,4 @@
+A-Circuit Mender
 Abomination of Llanowar
 Agent of Shauku
 Agility Bobblehead
@@ -8,11 +9,13 @@ Amy Rose
 Ancient Stirrings
 Arrogant Poet
 Atarka, World Render
+Automated Artificer
 Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
 Bloodlust Inciter
+Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
 Cave-In
@@ -35,7 +38,10 @@ Depose
 Diabolic Tutor
 Dimir Aqueduct
 Dromad Purebred
+Dromoka Dunecaster
 Drownyard Temple
+Dúnedain Blade
+Earthbending Student
 Embereth Shieldbreaker
 Enclave Cryptologist
 Epitaph Golem
@@ -53,14 +59,18 @@ Flameshadow Conjuring
 Flaring Pain
 Fleeting Image
 Flowstone Surge
+For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
+Frilled Sandwalla
+Fungal Plots
 Furtive Analyst
 Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
 Genju of the Falls
+Gerrard Capashen
 Ghitu Journeymage
 Gladecover Scout
 Goblin Engineer
@@ -72,6 +82,7 @@ Gouged Zealot
 Grapeshot
 Grasp of Phantoms
 Great Goblin, Foul-Hearted
+Great Hart
 Grotag Siege-Runner
 Ground Rift
 Guild Thief
@@ -93,17 +104,22 @@ Island
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jhessian Thief
 Judge of Currents
 Jungle Basin
 Kapsho Kitefins
 Kin-Tree Invocation
 Kinjalli's Sunwing
+Kithkin Spellduster
 Lord of Change
 Lore Seeker
 Maniacal Rage
+Marauder's Axe
 Mask of Memory
 Memorial to Folly
 Mightstone
+Mindbreak Trap
+Mirran Mettle
 Mirrorpool
 Misguided Rage
 Morphling
@@ -123,11 +139,13 @@ Ordeal of Heliod
 Paradise Mantle
 Phantasmal Sphere
 Pheres-Band Warchief
+Pitfall Trap
 Plains
 Poison-Tip Archer
 Prizefight
 Professor Hulk
 Protective Bubble
+Puppeteer
 Qilin's Blessing
 Raise Dead
 Ramosian Lieutenant
@@ -137,22 +155,33 @@ Reclaim
 Reprocess
 Rocksteady, Mutant Marauder
 Rotted Hystrix
+Saddled Rimestag
 Sagu Archer
 Samite Alchemist
+Scour the Laboratory
 Seafloor Oracle
 Seed the Land
 Selfless Spirit
 Senate Courier
+Serra Aviary
 Shuri's Fabricator
 Silas Renn, Seeker Adept
+Sivvi's Ruse
 Skittish Kavu
 Skulking Ghost
+Skyreach Manta
+Skyshroud Blessing
+Skyshroud Falcon
 Skysnare Spider
+Smogsteed Rider
 Snake Pit
 Snow-Covered Plains
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
+Spawning Kraken
+Spelltithe Enforcer
+Spider-Man, Peter Parker
 Spiteful Motives
 Spore Frog
 Steelform Sliver
@@ -161,6 +190,7 @@ Stern Dismissal
 Stinging Shot
 Stoneshaker Shaman
 Stoneskin
+Stonybrook Schoolmaster
 Storm the Seedcore
 Strip Mine
 Sun-Collared Raptor
@@ -169,19 +199,24 @@ Survey the Wreckage
 Swamp
 Sword of the Animist
 Sylvan Ranger
+TVA Bureaucrat
 Tar Pit Warrior
 Thraben Charm
 Thunder Totem
 Tideshaper Mystic
+Timid Drake
 Tranquil Grove
 Traumatize
 Treefolk Healer
 Twinscroll Shaman
+Ulvenwald Hydra
 Undercity Troll
 Unholy Officiant
 Unnatural Growth
 Urborg Shambler
+Vedalken Ghoul
 Verdurous Gearhulk
+Veteran Armorer
 Viashino Outrider
 Violet Pall
 Virtus the Veiled
@@ -189,7 +224,9 @@ Vital Splicer
 Void Helix
 Voidmage Prodigy
 Waking the Trolls
+Warhorn Blast
 Wei Strike Force
+Wicked Slumber
 Will of the All-Hunter
 Windstorm
 Witch's Web

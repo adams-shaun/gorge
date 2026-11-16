@@ -35,6 +35,7 @@ Barter in Blood
 Battle Hymn
 Benalish Veteran
 Birthing Boughs
+Birthing Ritual
 Blessed Wind
 Blind-Spot Giant
 Bloodsworn Steward
@@ -62,6 +63,7 @@ Champion of Arashin
 Char
 Chariot of Victory
 Charismatic Vanguard
+Child of Gaea
 Chimeric Mass
 Chittering Rats
 Chocobo Knights
@@ -94,6 +96,7 @@ Dwarven Lieutenant
 E. Honda, Sumo Champion
 Eagle of the Watch
 Emergency Weld
+Enforcer Griffin
 Enlightened Tutor
 Exalted Angel
 Excavation Technique
@@ -112,6 +115,7 @@ Forest
 Funeral Longboat
 Garrison Griffin
 Garruk's Warsteed
+Genesis
 Geralf's Masterpiece
 Get the Point
 Geyserfield Stalker
@@ -145,6 +149,7 @@ Holy Armor
 Honden of Seeing Winds
 Hopeful Initiate
 Hornbash Mentor
+Hostile Desert
 Hurloon Battle Hymn
 Hydra Omnivore
 Impending Flux
@@ -164,6 +169,7 @@ Irreverent Revelers
 Island
 Jasmine Seer
 Jedit Ojanen of Efrava
+Jhoira, Ageless Innovator
 Kavu Climber
 Kaya's Ghostform
 Kinjalli's Sunwing
@@ -181,10 +187,12 @@ Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
 Mad Auntie
+Mana Confluence
 Manaplasm
 Mantle of Leadership
 Marchesa's Decree
 Mardu Shadowspear
+Marsh Flats
 Martyr of Dusk
 Maximize Altitude
 Medicine Bag
@@ -233,6 +241,7 @@ Possessed Centaur
 Power Armor
 Primal Growth
 Primordial Sage
+Prying Blade
 Pteramander
 Pyretic Prankster
 Qasali Pridemage
@@ -293,6 +302,7 @@ Slingshot Goblin
 Sliptide Serpent
 Slumbering Dragon
 Sly Requisitioner
+Sonic Assault
 Sophic Centaur
 Soul Shred
 Soul Summons
@@ -310,6 +320,7 @@ Sudden Breakthrough
 Sudden Edict
 Sudden Spinnerets
 Sunhome Enforcer
+Surtland Frostpyre
 Survivors' Bond
 Swamp
 Swamp Mosquito
@@ -328,12 +339,14 @@ The Tabernacle at Pendrell Vale
 Third Path Savant
 Thumbscrews
 Thundering Chariot
+Thundermare
 Thunderwolf Cavalry
 Torment
 Tramway Station
 Tranquil Expanse
 Tread Upon
 Treebeard, Gracious Host
+Tromp the Domains
 Turn to Dust
 Two-Headed Giant of Foriys
 Ulamog, the Ceaseless Hunger
@@ -348,6 +361,7 @@ Uthros Research Craft
 Vampire Noble
 Vigil for the Lost
 Vindictive Mob
+Viridescent Bog
 Viscera Seer
 Vivid Creek
 War Flare

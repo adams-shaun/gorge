@@ -225,6 +225,7 @@ Library
 Liliana's Triumph
 Living Totem
 Lone Missionary
+Loxodon Mystic
 Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
@@ -265,6 +266,7 @@ Nomads en-Kor
 O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
+Orim's Thunder
 Otherworld Atlas
 Overtaker
 Paradise Druid

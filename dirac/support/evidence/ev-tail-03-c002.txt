@@ -5,6 +5,7 @@ Arbor Armament
 Archivist of Oghma
 Armored Pegasus
 Auriok Salvagers
+Band Together
 Battle Rampart
 Bitter Reunion
 Blade Banish
@@ -13,6 +14,7 @@ Bloody Betrayal
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Brushwagg
 Buccaneer's Bravado
 Bygone Bishop
 Carnival
@@ -20,6 +22,8 @@ Cenn's Heir
 Cerulean Wyvern
 Choke
 Citanul Woodreaders
+Clear the Land
+Clever Lumimancer
 Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
@@ -36,27 +40,34 @@ Dega Disciple
 Demonic Appetite
 Dire Fleet Neckbreaker
 Dragon Roost
+Drana, Liberator of Malakir
 Drawn from Dreams
 Drift of Phantasms
 Dust Elemental
 Elvish Eulogist
 Elvish Vanguard
 Endless One
+Ephemerate
 Falkenrath Celebrants
 Fauna Shaman
+Festering Newt
 Flicker of Fate
 Fogwalker
 Forest
 Funeral Longboat
 Furor of the Bitten
+Furyblade Vampire
 Githzerai Monk
 Glyph Elemental
+Gnarlwood Dryad
 Gnat Alley Creeper
+Goblin Chainwhirler
 Goblin King
 Golden Ratio
 Grave Bramble
 Graveyard Marshal
 Greater Forgeling
+Grey Knight Paragon
 Grim Captain's Call
 Halcyon Glaze
 Half-Elf Monk
@@ -69,22 +80,30 @@ Headstone
 Hedron Scrabbler
 Hermetic Study
 Hoar Shade
+Horned Kavu
+Howl from Beyond
 Hungry Mist
+Hunt the Hunter
+Implement of Malice
 In Too Deep
 Invincible Hymn
 Island
+Jace, Memory Adept
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
+Knighthood
 Kor Castigator
 Kraul Raider
+Lamentation
 Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
 Loxodon Stalwart
 Maddening Wind
+Mantle of Webs
 March from the Black Gate
 Martial Glory
 Maulfist Squad
@@ -93,6 +112,7 @@ Merciless Eviction
 Merfolk Seer
 Merfolk of the Pearl Trident
 Minion Missile
+Minotaur Warrior
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
@@ -105,12 +125,14 @@ Narcolepsy
 Nezumi Bone-Reader
 Nightmare Shepherd
 Ollenbock Escort
+Oona's Blackguard
 Orcish Artillery
 Palace Sentinels
 Patrol Hound
 Phyrexian Rebirth
 Plains
 Predator, Flagship
+Prismatic Strands
 Psychic Allergy
 Raging Spirit
 Rakdos Signet
@@ -137,12 +159,15 @@ Spined Megalodon
 Spreading Rot
 Sprout
 Start
+Stonewood Invoker
 Stream of Acid
+Stromkirk Condemned
 Summary Judgment
 Sunlance
 Surge Conductor
 Swamp
 Sweet Oblivion
+Sylvan Safekeeper
 Syphon Sliver
 Teval's Judgment
 The Battle of Bywater
@@ -154,10 +179,12 @@ Unlikely Alliance
 Vastwood Animist
 Vegetation Abomination
 Vraan, Executioner Thane
+Wall of Essence
 Wall of Torches
 Warden of the First Tree
 Wilson, Refined Grizzly
 Wolfcaller's Howl
+Word of Binding
 Zephyr Spirit
 Zhalfirin Lancer
 Zo-Zu the Punisher

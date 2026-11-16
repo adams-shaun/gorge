@@ -16,6 +16,7 @@ Barricade Breaker
 Bearer of Memory
 Black Sun's Twilight
 Blindblast
+Blinding Mage
 Blood Vassal
 Blue Marvel, Adam Brashear
 Boggart Ram-Gang
@@ -56,9 +57,11 @@ Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
 Ember-Fist Zubera
+Emeria Angel
 Encroaching Wastes
 Entish Restoration
 Euroakus
+Fanatical Fever
 Ferocious Charge
 Field Marshal
 Fire Ambush
@@ -88,12 +91,14 @@ Inferno Fist
 Insidious Bookworms
 Island
 Jhoira's Familiar
+Jinxed Idol
 Khenra Charioteer
 Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Lava Axe
+Lignify
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
@@ -115,11 +120,13 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Nature's Chant
 Navigation Orb
 Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
+Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
@@ -213,4 +220,5 @@ Weapon Rack
 Wei Scout
 Weirding Shaman
 Willow-Wind
+Woodland Liege
 Zhalfirin Shapecraft

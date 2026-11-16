@@ -18,6 +18,7 @@ Attunement
 Balduvian Horde
 Banishment Decree
 Black Vise
+Blossoming Wreath
 Blur of Blades
 Bone Sabres
 Bonepicker Skirge
@@ -39,6 +40,7 @@ Crazed Goblin
 Creature Bond
 Cruel Tutor
 Crush of Wurms
+Cunning Advisor
 Curse of Chains
 Cutthroat Maneuver
 Darksteel Citadel
@@ -48,6 +50,7 @@ Delusions of Mediocrity
 Deny Entry
 Devout Monk
 Diregraf Rebirth
+Discordant Dirge
 Donald Blake, Guise of Thor
 Draconic Disciple
 Dream Twist
@@ -59,6 +62,8 @@ Essence Flux
 Fable of Wolf and Owl
 Fatestitcher
 Feldon of the Third Path
+Fin-Clade Fugitives
+Finale of Devastation
 Fireblast
 Five Hundred Year Diary
 Flame Slash
@@ -89,6 +94,7 @@ Howling Gale
 Icon of Ancestry
 Ill-Gotten Inheritance
 Imperial Outrider
+Infectious Inquiry
 Inheritance
 Island
 Jhoira's Toolbox
@@ -121,13 +127,16 @@ Onyx Mage
 Oran-Rief Survivalist
 Orb of Dreams
 Overgrown Battlement
+Ovinize
 Parasitic Strix
 Patron Wizard
 Pestilent Wolf
 Photon, Lady of Light
+Phyrexian Reaper
 Plains
 Price of Fame
 Putrid Warrior
+Quartzwood Crasher
 Reanimate
 Rebuild
 Recon Craft Theta
@@ -142,6 +151,7 @@ Scribe of the Mindful
 Scroll of Avacyn
 Seasoned Pyromancer
 Shapers of Nature
+Shelob's Ambush
 Shinka, the Bloodsoaked Keep
 Shrapnel Slinger
 Sift
@@ -155,6 +165,7 @@ Strength of Cedars
 Structural Distortion
 Sundial of the Infinite
 Swamp
+Sylvan Awakening
 Telekinetic Sliver
 Teshar, Ancestor's Apostle
 Thassa's Oracle
@@ -166,6 +177,7 @@ Tinder Wall
 Tolabow, Loch Rascal
 Toski, Bearer of Secrets
 Traitorous Instinct
+Transgress the Mind
 Tuktuk the Explorer
 Twinblade Assassins
 Twitch
@@ -178,6 +190,7 @@ Utopia Vow
 Vampire of the Dire Moon
 Vampiric Link
 Vengeful Reaper
+Vengeful Rebel
 Voice of Reason
 Wake of Vultures
 Warleader's Helix

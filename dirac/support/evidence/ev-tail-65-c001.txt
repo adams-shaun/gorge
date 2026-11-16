@@ -9,8 +9,10 @@ Bastion Protector
 Beacon of Immortality
 Blood Burglar
 Bolt Hound
+Brawler's Plate
 Brink of Madness
 Burning Sun's Fury
+Burning-Fist Minotaur
 Call to the Feast
 Canyon Lurkers
 Catacomb Slug
@@ -23,44 +25,68 @@ Debtors' Transport
 Devastation Tide
 Dictate of Erebos
 Dispense Justice
+Distress
 Drifting Shade
 Dry Spell
 Dwarven Armory
 Dwarven Patrol
+Embereth Shieldbreaker
 Emberstrike Duo
 Embraal Bruiser
 Ettercap
 Excise the Imperfect
 Eyeblight Cullers
+Faith Healer
+Fallaji Excavation
+Field-Tested Frying Pan
 Fire Nation's Conquest
+Flame-Kin Zealot
+Font of Fortunes
 Forest
+Fortifying Draught
+Furnace Spirit
 Gitaxian Anatomist
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
+Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
+Hedron Detonator
 Herald of the Dreadhorde
 Hibernation
 Horned Cheetah
+Horned Helm
 Hungering Hydra
 Hunter's Ambush
+Inner Sanctum
 Insatiable Gorgers
 Instill Infection
 Island
 Jagwasp Swarm
+Jhoira's Toolbox
+Joraga Visionary
 Kabuto Moth
 Kami of the Crescent Moon
+Kardur's Vicious Return
+Kheru Bloodsucker
 Leonin Iconoclast
 Light of Day
 Lightning Visionary
+Livaan, Cultist of Tiamat
+Manacles of Decay
 Momentary Blink
+Mortis Dogs
 Mountain
+Nimble-Blade Khenra
 Norn's Disassembly
 Observant Alseid
 On Serra's Wings
+Ore-Scale Guardian
 Oreskos Swiftclaw
 Organic Extinction
+Pick Up the Pace
+Pitiless Plunderer
 Plains
 Prison Sentence
 Prodigal Pyromancer
@@ -68,27 +94,47 @@ Prodigal Sorcerer
 Professor's Warning
 Rapid Hybridization
 Reach Through Mists
+Reckless Brute
+Reinforced Ronin
+Restless Apparition
+Rhys the Exiled
+Rotting Rats
 Ruthless Cullblade
+Ruthless Invasion
+Sage Aven
+Scouring Swarm
 Serpentine Ambush
+Serrated Scorpion
 Shadows' Verdict
 Shang-Chi, Martial Mentor
 Shauku, Endbringer
+Siegecraft
+Skitterskin
+Skybind
+Skyfire Kirin
 Slavering Nulls
 Spectral Force
 Spined Basher
 Spirit of the Spires
 Spontaneous Combustion
+Stern Constable
+Stormclaw Rager
 Stromgald Crusader
 Swamp
+Talruum Minotaur
+Tormenting Voice
 Trip Noose
+Uktabi Orangutan
 Undercity Informer
 Underworld Sentinel
 Vile Requiem
 Vorrac Battlehorns
 Vulshok Gauntlets
+Wall of Fire
 Winds of Rebuke
 Windswept Heath
 Winged Words
+Wish Good Luck
 Withstand Death
 Wurmcalling
 Zombie Master
