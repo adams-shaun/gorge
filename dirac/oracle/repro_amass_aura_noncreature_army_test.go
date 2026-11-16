@@ -20,7 +20,9 @@ import (
 // second player's is One with the Stars. The game is recorded by
 // TestReproAmassAuraNoncreatureArmyRecord (PINS_RECORD=1) and replayed by
 // TestReproAmassAuraNoncreatureArmyReach, which requires an Aura on a token
-// followed by an amass.
+// followed by an amass. The recording is a custom-pool fixture under
+// testdata/ (not testdata/repro/): only this test reads it, so it is not one
+// of the standard-pool recordings the repro globs replay.
 func amassAuraNoncreatureArmyCase() effectLongCase {
 	return effectLongCase{
 		name:   "repro_amass_aura_noncreature_army_makes_fresh_token",
@@ -68,7 +70,7 @@ func TestReproAmassAuraNoncreatureArmyReach(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	c := amassAuraNoncreatureArmyCase()
-	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
+	r, err := ReadRepro(filepath.Join("testdata", c.name+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +111,7 @@ func TestReproAmassAuraNoncreatureArmyRecord(t *testing.T) {
 			continue
 		}
 		r.setActions(res.Actions)
-		if err := r.Write(filepath.Join("testdata", "repro", c.name+".repro.json")); err != nil {
+		if err := r.Write(filepath.Join("testdata", c.name+".repro.json")); err != nil {
 			t.Fatal(err)
 		}
 		t.Logf("seed %d: %d decisions", seed, len(res.Actions))
