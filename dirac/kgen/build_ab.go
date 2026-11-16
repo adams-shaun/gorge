@@ -2738,7 +2738,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, err
 		}
 		rp.A, rp.C = int16(r.N.N), k
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+		if rp.Filter, err = cb.addCountersFilter(r.F); err != nil { // lower_counterrepl.go
 			return ka, err
 		}
 	case "TurnUpProgram":

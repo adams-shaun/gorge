@@ -1022,6 +1022,10 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
+	// Bushido (CR 702.45a): gorge kwBushido's two triggers, Mode$ Blocks and
+	// Mode$ AttackerBlocked (ValidCard$ Card.Self), each a DB$ Pump of
+	// Defined$ Self +N/+N until end of turn (every op already lowers)
+	"Bushido": true,
 	// Level up (CR 702.87a): gorge kwLevelUp (cards/kw_levelup.go) appends one
 	// sorcery-speed AB$ PutCounter of a LEVEL counter on the source; the level
 	// bands are the card's own statics (a two-compare IsPresent$ gate:
