@@ -115,6 +115,7 @@ Drunau Corpse Trawler
 Dryad of the Ilysian Grove
 Duergar Mine-Captain
 Dusk Legion Dreadnought
+Dwarven Hold
 Dwarven Recruiter
 Dwarven Trader
 Eagle of Deliverance
@@ -136,6 +137,7 @@ Final Death
 Final Payment
 Fists of Flame
 Flare
+Flay
 Flourishing Strike
 Flowstone Mauler
 Forest
@@ -216,6 +218,7 @@ Lesser Werewolf
 Leyline Prowler
 Library
 Liliana's Triumph
+Living Totem
 Lone Missionary
 Lucky the Pizza Dog
 Lynx
@@ -228,6 +231,7 @@ Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
+Mawloc
 Memorial to Unity
 Merchant Raiders
 Mercurial Pretender
@@ -294,6 +298,7 @@ Reverent Mantra
 Riddle Gate Gargoyle
 Rift Bolt
 Righteous Charge
+Righteous Fury
 Righteous Valkyrie
 Rob the Archives
 Rustspore Ram
@@ -320,6 +325,7 @@ Sinstriker's Will
 Siphon Insight
 Six-Sided Die
 Skirk Outrider
+Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
@@ -346,6 +352,7 @@ Storm Fleet Aerialist
 Strafe
 Stroke of Genius
 Sublime Archangel
+Summon Undead
 Summon: Kujata
 Sunlit Marsh
 Suspicious Bookcase
@@ -404,6 +411,7 @@ Wall of Opposition
 War Falcon
 Warcry Phoenix
 Wardscale Crocodile
+Warlord's Elite
 Water Elemental
 Wayward Soul
 Weakness

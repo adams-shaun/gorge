@@ -17,6 +17,7 @@ Albino Troll
 Amateur Hero
 Ancestral Blade
 Ancient Grudge
+Angelfire Ignition
 Animal Sanctuary
 Arashin Cleric
 Arborback Stomper
@@ -95,6 +96,7 @@ Dimir Guildmage
 Diregraf Captain
 Dismantling Wave
 Doric, Nature's Warden
+Dramatic Rescue
 Dreadbringer Lampads
 Dreadwaters
 Druid's Call
@@ -414,6 +416,7 @@ Vitaspore Thallid
 Vodalian Wave-Knight
 Vortex Runner
 Wake Thrasher
+Wakening Sun's Avatar
 Wall of Stone
 Wand of Vertebrae
 Wardscale Crocodile

@@ -110,6 +110,7 @@ Eidolon of Philosophy
 Eldrazi Devastator
 Elenda, the Dusk Rose
 Embermage Goblin
+Enclave Cryptologist
 Energy Tap
 Enhanced Awareness
 Ephara's Dispersal
@@ -133,6 +134,7 @@ Flowstone Strike
 Forest
 Franklin Richards, Ascendant
 Frilled Sea Serpent
+Future Sight
 Fyndhorn Brownie
 Gaea's Anthem
 Gala Greeters
@@ -200,6 +202,7 @@ Leyline Dowser
 Light of Day
 Llanowar Loamspeaker
 Loathsome Chimera
+Locust Swarm
 Loxodon Partisan
 Lumengrid Sentinel
 Lurching Rotbeast
@@ -406,6 +409,7 @@ Vampire Scrivener
 Vampiric Feast
 Vault 87: Forced Evolution
 Viashino Warrior
+Victual Sliver
 Village Elder
 Vindictive Triumph
 Vodalian Serpent

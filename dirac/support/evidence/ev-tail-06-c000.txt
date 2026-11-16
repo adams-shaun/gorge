@@ -276,6 +276,7 @@ Pious Kitsune
 Plague Mare
 Plains
 Poison-Tip Archer
+Pounce
 Pre-War Formalwear
 Press the Advantage
 Primal Whisperer
@@ -283,6 +284,7 @@ Prison Sentence
 Pull from the Deep
 Pulse of the Tangle
 Putrefax
+Quantum Misalignment
 RMS Titanic
 Ragefire Hellkite
 Rakdos Pit Dragon
@@ -371,6 +373,7 @@ The Brute
 The First Eruption
 The Modern Age
 The One Ring
+Thickest in the Thicket
 Thopter Engineer
 Thorn of Amethyst
 Thraben Gargoyle

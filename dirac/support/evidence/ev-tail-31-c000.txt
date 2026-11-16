@@ -45,6 +45,7 @@ Blot Out
 Borderland Marauder
 Boris Devilboon
 Brightmare
+Bronzeplate Boar
 Brood Birthing
 Bull-Rush Bruiser
 Burlfist Oak
@@ -86,6 +87,7 @@ Distorting Wake
 Divine Retribution
 Divine Transformation
 Dogged Pursuit
+Dormant Grove
 Dreadmobile
 Dreg Reaver
 Dromad Purebred
@@ -120,6 +122,7 @@ Flight of Fancy
 Flood
 Fodder Tosser
 Forest
+Fork in the Road
 Fortress Crab
 Frenzied Tilling
 Frenzy Sliver
@@ -163,6 +166,7 @@ Impatience
 Impede Momentum
 Improvised Weaponry
 Incendiary Sabotage
+Infested Roothold
 Inner-Flame Acolyte
 Inquisitor's Ox
 Integrity
@@ -192,6 +196,7 @@ Lumbering Falls
 Lumithread Field
 Mageta's Boon
 Mana Cylix
+Mardu Skullhunter
 Marsh Flats
 Metathran Elite
 Metathran Soldier
@@ -243,6 +248,8 @@ Putrid Leech
 Pyrophobia
 Quarry Beetle
 Quest for the Gemblades
+Rage of Purphoros
+Ramosian Sky Marshal
 Rancor
 Reckless Rage
 Recurring Insight
@@ -261,6 +268,7 @@ River Heralds' Boon
 Ronom Unicorn
 Rubblebelt Runner
 Ruinous Minotaur
+Rummaging Goblin
 Run Aground
 Saltblast
 Sanguinary Mage

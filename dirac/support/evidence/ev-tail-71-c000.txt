@@ -6,6 +6,7 @@ A-The Meathook Massacre
 Academy Elite
 Acrobatic Maneuver
 Act of Treason
+Aerial Guide
 Aerie Mystics
 Alaborn Cavalier
 Alchemax Slayer-Bots
@@ -15,6 +16,7 @@ Alluring Suitor
 Altar of the Goyf
 Amateur Auteur
 Ambulatory Edifice
+Anaconda
 Ancient Carp
 Angel of Flight Alabaster
 Angel's Tomb
@@ -40,6 +42,7 @@ Blazing Hope
 Blazing Volley
 Blind with Anger
 Blood Pet
+Bloodfire Expert
 Bloodforged Battle-Axe
 Bloodvial Purveyor
 Bola Warrior
@@ -382,6 +385,7 @@ Veiled Sentry
 Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
+Voltaic Brawler
 Voodoo Doll
 Wakeroot Elemental
 Wanderer's Twig

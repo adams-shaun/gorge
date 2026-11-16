@@ -238,6 +238,7 @@ Loamcrafter Faun
 Looter il-Kor
 Lucid Dreams
 Lurking Nightstalker
+Lys Alana Huntmaster
 Lyzolda, the Blood Witch
 Maga, Traitor to Mortals
 Mage's Guile
@@ -411,6 +412,7 @@ Traitor's Clutch
 Trench Stalker
 Tribal Unity
 Tribute to Horobi
+Trigon of Corruption
 Trufflesnout
 Tunneler Wurm
 Turntimber Ranger
