@@ -1,11 +1,16 @@
+Aether Tradewinds
 Ainok Tracker
 Ajani's Pridemate
 Amphin Pathmage
 Ancient Craving
 Angelic Page
+Ashaya's Enduring Bond
+Aven Mindcensor
 Bane's Invoker
 Birds of Paradise
+Blanchwood Prowler
 Boss Uramon, Shadow's Reach
+Brallin, Skyshark Rider
 Breakthrough
 Breath Weapon
 Cartouche of Ambition
@@ -93,9 +98,11 @@ Trial of Ambition
 Unexpected Windfall
 Valor
 Venser, Visionary Traveler
+View from Above
 Virus Beetle
 Visara the Dreadful
 Volcanic Spite
+Vow of Malice
 Wander in Death
 Weaponcraft Enthusiast
 Wheel and Deal

@@ -1,14 +1,21 @@
+Aethershield Artificer
 Akki Underminer
 Akroan Crusader
+Alms Beast
 Altar of Dementia
 Angelic Renewal
 Archaeomender
 Buried Alive
 Cloud of Faeries
 Cogwork Assembler
+Conservator
+Corpse Knight
 Cosmos Elixir
+Crop Rotation
 Cyclops Superconductor
 Daring Fiendbonder
+Deathless Angel
+Deep Reconnaissance
 Deepwood Ghoul
 Demon's Grasp
 Demonic Rising
@@ -19,35 +26,56 @@ Ethereal Usher
 Expansion
 Fain, the Broker
 Forest
+Fungal Sprouting
 Glory Bearers
 Hanna, Ship's Navigator
 Hemlock Vial
 Hound of the Farbogs
+Inkrise Infiltrator
+Inspiring Refrain
 Island
+Jackalope Herd
+Kirtar's Wrath
+Leafkin Druid
 Lightning Reaver
 Lightning-Core Excavator
 Liliana's Influence
+Longtusk Cub
+MJ, Rising Star
 Mai and Zuko
+Manaforce Mace
 Mardu Strike Leader
 Mausoleum Secrets
 Merciless Eviction
+Metropolis Reformer
+Mise
 Mogis's Warhound
 Mountain
 Nagging Thoughts
+Natural Emergence
 Necrobite
 Nemesis of Reason
+Oblation
 Phantasmal Dragon
 Pilfering Imp
 Plains
 Pollywog Prodigy
+Prosper, Tome-Bound
+Prosperous Innkeeper
+Ravos, Soultender
 Reality Ripple
+Rustvine Cultivator
 Samite Archer
+Slash of Talons
 Slinking Giant
 Spider-Man 2099, Miguel O'Hara
 Swamp
 Temmet, Vizier of Naktamun
 The Whizzer, Classic Speedster
+Thrór's Map
 Thunder Drake
 Tormod's Cryptkeeper
+Vine Trellis
 Warped Devotion
+Way of the Thief
 Whispering Wizard

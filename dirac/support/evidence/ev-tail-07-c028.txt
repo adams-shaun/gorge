@@ -1,18 +1,34 @@
 Azorius Herald
+Decimator Web
 Doomsday Specter
 Druid of the Anima
+Duskfang Mentor
 Emerge Unscathed
 Exuberant Fuseling
+Firebreathing
+Flower
 Force Spike
 Forest
 Frogify
 Gamekeeper
+Goblin Firebug
+Headhunter
+Iron League Steed
 Island
 Kor Celebrant
+Landslide
 Liliana's Mastery
 Majestic Metamorphosis
+Mandible Justiciar
 Mogg Raider
 Mountain
+Niblis of the Mist
+Niblis of the Urn
+Ninth Bridge Patrol
+Ondu Spiritdancer
+One with Death
+Order
+Pack's Disdain
 Plains
 Rampaging Brontodon
 Salvage
@@ -23,4 +39,7 @@ Sudden Spinnerets
 Supernatural Stamina
 Swamp
 Taunting Kobold
+Urborg Skeleton
+War Screecher
+Warmonger
 Wellwisher
