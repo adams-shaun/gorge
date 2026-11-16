@@ -591,6 +591,10 @@ type filtStep struct {
 	// ability beside the census one, and the search reads no restriction
 	// (mana_restrictedsource.go)
 	restr bool
+	// sacOnly: a funding source whose mana ability costs only its own
+	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
+	// (mana_sacsource.go)
+	sacOnly bool
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -740,6 +744,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	}
 	s.fireFiltAbilityCast(k, p, st) // the activation precedes its cost's tap and sacrifice
 	pl := &s.pl[SeatIx(p)]
+	if st.sacOnly {
+		s.fundSacOnly(k, p, st.sl) // (mana_filtfund.go)
+		return
+	}
 	if st.gap && st.ans > 0 {
 		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
 	} else if st.gap || st.restr || !s.fundsBySac(k, st.sl) {
@@ -895,11 +903,8 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	return false
 }
 
-// visit is one priority node of the search.
-func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
-	if !fs.tick() {
-		return false
-	}
+// stateKey is the visited-state key of node t.
+func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 	p := fs.p
 	key := filtKey{pool: t.pl[SeatIx(p)].pool, rb: t.rb[SeatIx(p)], sp: t.sp, hand: t.pl[SeatIx(p)].handN, gy: t.pl[SeatIx(p)].graveN}
 	if k.artMana {
@@ -911,6 +916,16 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			key.tapped = key.tapped.with(sl)
 		}
 	}
+	return key
+}
+
+// visit is one priority node of the search.
+func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	p := fs.p
+	key := fs.stateKey(k, t)
 	for i := 0; i < fs.nseen; i++ {
 		if fs.seen[i] == key {
 			return false
@@ -990,6 +1005,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
+				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
+					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
+				}
 				continue
 			}
 			if free && rm != 0 && !fs.tick() {
