@@ -3,9 +3,12 @@ A.I.M. Bot
 Abu Ja'far
 Abundant Harvest
 Abzan Banner
+Accelerate
 Accumulated Knowledge
+Aerie Ouphes
 Aetherling
 Age of Ultron
+Ajani, the Greathearted
 Alabaster Potion
 Alesha's Vanguard
 Altar of Bhaal
@@ -15,6 +18,7 @@ Animist's Awakening
 Anoint with Affliction
 Ant-Man's Air Force
 Argothian Elder
+Assassin's Strike
 Augmenting Automaton
 Aven Smokeweaver
 Baboon Spirit
@@ -31,10 +35,13 @@ Briarhorn
 Bronze Cudgels
 Brood Weaver
 Calamity's Wake
+Casting of Bones
 Ceremonious Rejection
 Chaos Maw
+Charging Bandits
 Chimeric Mass
 Chrome Mox
+Cinder Pyromancer
 Cleansing Nova
 Cogwork Librarian
 Compulsory Rest
@@ -50,8 +57,11 @@ Disciple of Grace
 Distant Melody
 Dramatic Finale
 Dreadmobile
+Dreadwing
 Druid of the Anima
 Dungrove Elder
+Dusk Feaster
+Dwarven Strike Force
 Early Frost
 Eccentric Farmer
 Elite Headhunter
@@ -61,6 +71,7 @@ Eternal Flame
 Farsight Mask
 Fateful Handoff
 Favorable Winds
+Festival Crasher
 Fists of Ironwood
 Flameborn Viron
 Forest
@@ -75,16 +86,24 @@ Giant Dustwasp
 Goblin Engineer
 Goblin Lore
 Goblin Soothsayer
+Graf Reaver
 Grasping Current
 Grasping Dunes
 Grave Strength
+Gravecrawler
 Gravedig
 Grismold, the Dreadsower
+Guma
 Hamato Ninpō
+Harbor Bandit
 Haunted Crossroads
 Hellfire
+Hellkite Punisher
 Hog-Monkey Rampage
+Hold the Gates
 Hook Swords
+Hound of the Farbogs
+Hunger of the Nim
 Illustrious Historian
 Inspired Insurgent
 Inspired Sphinx
@@ -103,13 +122,17 @@ Lambholt Harrier
 Lawless Broker
 Lembas
 Lethal Exploit
+Lightning Dragon
 Llanowar Visionary
 Looming Spires
 Lucky Offering
+Marionette Master
 Mass Diminish
 Master Splicer
+Mesmeric Fiend
 Mesmeric Orb
 Might of Murasa
+Minion's Return
 Mire Triton
 Molting Snakeskin
 Moria Marauder
@@ -118,14 +141,18 @@ Mountain
 Mox Diamond
 Mystic Compass
 Natural Obsolescence
+Nether Void
 Netherborn Altar
+Nezumi Prowler
 Nicol Bolas
 Nightshade Stinger
 Nissa's Judgment
+No Mercy
 Novice Dissector
 Ojutai's Command
 Omen of the Hunt
 One-Clown Band
+Opportunistic Dragon
 Opportunity
 Oreskos Sun Guide
 Overflowing Basin
@@ -141,11 +168,15 @@ Pyrostatic Pillar
 Quarrel's End
 Rainbow Crow
 Rakdos Ickspitter
+Rampaging Classmate
 Ranger's Longbow
 Rank Officer
 Ransack the Lab
 Rat King, Pale Piper
+Reckless One
+Relic Runner
 Reshape the Earth
+Resolute Blademaster
 Ring of Renewal
 Rith's Grove
 Rooftop Bypass
@@ -155,6 +186,7 @@ Runechanter's Pike
 Runed Stalactite
 Sanctuary Cat
 Sandstone Deadfall
+Sanguinary Priest
 Screaming Seahawk
 Sengir Bats
 Serpent of the Endless Sea
@@ -197,6 +229,8 @@ Thrull Parasite
 Thunder Spirit
 Thundersong Trumpeter
 Tiamat's Fanatics
+Ticked Off
+Touch of Death
 Traverse the Outlands
 Treacherous Blessing
 Tuinvale Treefolk
@@ -204,6 +238,7 @@ Umbral Mantle
 Universal Solvent
 Urbis Protector
 Vebulid
+Vedalken Blademaster
 Veiled Apparition
 Vela the Night-Clad
 Vessel of Paramnesia
@@ -212,6 +247,7 @@ Vigilance
 Vinelasher Kudzu
 Vivify
 Vraska's Stoneglare
+Vryn Wingmare
 Wailing Ghoul
 Wheel of Fortune
 Whipcorder
@@ -221,5 +257,6 @@ Woebringer Demon
 Wolfbriar Elemental
 Woodland Patrol
 Yellow Scarves Cavalry
+Yisan, the Wanderer Bard
 Yotian Frontliner
 Zealous Conscripts

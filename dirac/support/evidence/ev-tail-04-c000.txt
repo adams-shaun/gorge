@@ -146,6 +146,7 @@ Fyndhorn Brownie
 Gaea's Anthem
 Gala Greeters
 Gather the Pack
+Gempalm Polluter
 Glass Golem
 Gluttonous Zombie
 Goblin Fireslinger
@@ -171,6 +172,7 @@ Harbor Serpent
 Hardy Veteran
 Havoc Devils
 Headlong Rush
+Hearthcage Giant
 Hellhole Rats
 Hidden Path
 Honor the God-Pharaoh

@@ -290,6 +290,7 @@ Psychic Membrane
 Pulse of Murasa
 Purge
 Purple-Crystal Crab
+Putrid Goblin
 Pyromancer's Assault
 Quagmire Lamprey
 Quarantine Field
@@ -418,6 +419,7 @@ Tyrant's Scorn
 Uktabi Wildcats
 Ulvenwald Bear
 Urborg Skeleton
+Uro, Titan of Nature's Wrath
 Valko Indorian
 Vampire Bats
 Vernal Bloom

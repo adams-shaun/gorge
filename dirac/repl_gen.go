@@ -241,6 +241,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		if ev.n <= 0 {
 			continue
 		}
+		if s.g.ro.on && s.frozenDealtSync(k, r, ev) {
+			continue // the CR 616.1 walk already dealt this event (repl_pluswalk.go)
+		}
 		src := &s.perms[ev.src]
 		var code TCode
 		if ev.dst == NoSlot {
@@ -471,10 +474,11 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
 		// gorge's scan order: the controller's battlefield in entry order.
-		// A table whose only damage replacement is a plus-N addition competes
-		// on commuting sums (replPlusOnly): collect it here so the order walk
-		// poses gorge's no-op ask (trig_oneormore.go).
-		plusOnly := replPlusOnly(g)
+		// A plus-N addition is collected beside every other kind: beside
+		// another addition the orders commute to one sum (replPlusOnly), so
+		// the walk poses gorge's no-op ask (trig_oneormore.go); beside a
+		// doubling they do not, and the walk applies the picks as made
+		// (repl_pluswalk.go).
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(sc, s.statM.and(s.ctrlM[sc]), bf[:], 0)] {
 			if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
@@ -484,7 +488,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 				}
 				ro.cand[n] = s.perms[b].obj
 				n++
-			} else if plusOnly && g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
+			} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
 				if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
 					if n == len(ro.cand) {
 						s.capFull(StallReplCands) // loud: never truncate the candidates
@@ -524,7 +528,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.pcol = 0
 		var cand [4]Obj
 		var pm uint8
-		if n = s.prevColCands(k, col, fsl, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
+		if n = s.prevColCands(k, col, fsl, fe.card, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
 			return 0
 		}
 		ro.prev |= pm
@@ -644,9 +648,11 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 		if c := s.replOrderCandsFz(k, fe); c >= 2 {
 			ro.askS, ro.askD, ro.n, ro.used = fe.src, fe.dst, uint8(c), 0
 			ro.an, ro.ac, ro.apl = fe.n, uint8(c), fe.apl
-			if ro.plus != 0 {
+			if ro.plus != 0 && !s.roPlusPend() {
 				// the plus additions are commutative and were already applied by
-				// replCombatGen (replPlus defers to this walk only for the ask)
+				// replCombatGen (replPlus defers to this walk only for the ask);
+				// beside a doubling the picks are applied as made (roPlusPend),
+				// so the asked amount stays the event's own
 				for i := 0; i < r.nev; i++ {
 					if ev := r.ev[i]; ev.src == fe.src && ev.dst == fe.dst {
 						ro.an = ev.n
@@ -777,9 +783,28 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	// gorge (replacement_damage.go handleDamageReplacementChoice) applies
 	// each picked replacement as it is picked and re-collects the rest
 	// after the last pick: a candidate the state-based actions at a pause
-	// removed applies only if it was picked
+	// removed applies only if it was picked. With a plus-N addition beside a
+	// doubling (roPlusPend) the picks were applied as made (replOrderPick), so
+	// only the last remaining candidate applies here; without one the
+	// additions are already in ro.an and every live candidate applies in scan
+	// order (they commute).
+	pend := s.roPlusPend()
 	for i := 0; i < int(ro.ac) && n > 0; i++ {
-		if ro.plus&(1<<i) != 0 || ro.pnx&(1<<i) != 0 {
+		if ro.pnx&(1<<i) != 0 {
+			continue // the shield was spent as picked (prevNextPick)
+		}
+		if pend && ro.prev&(1<<i) == 0 {
+			if ro.used&(1<<i) != 0 || !s.replCandLive(k, i) {
+				continue
+			}
+			if ro.plus&(1<<i) != 0 {
+				n += s.roPlusAdd(k, i, n) // the last remaining addition
+			} else if n < 1<<12 {
+				n *= 2
+			}
+			continue
+		}
+		if ro.plus&(1<<i) != 0 {
 			continue // already in ro.an (replCombatGen applied the additions; a shield was spent as picked)
 		}
 		if ro.used&(1<<i) == 0 && !s.replCandLive(k, i) {
@@ -790,6 +815,11 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		} else if n < 1<<12 {
 			n *= 2
 		}
+	}
+	if pend {
+		// the picked order dealt n; the recomputed pass applied the additions
+		// before the doublings (replPlus): align its copy of the event
+		s.syncAskedEv(k, r, n)
 	}
 	if k.gen.anyPrevFrom && s.occ.has(ro.askS) && s.prevCombatFrom(k, ro.askS) {
 		n = 0 // the source's prevention (preventFromGen)
@@ -907,7 +937,10 @@ func (s *State) replOrderOptions(d *Decision) {
 }
 
 // replOrderPick records the pick; true when the ask is posed again (a
-// doubling picked, two or more replacements left).
+// doubling picked, two or more replacements left). With a plus-N addition
+// beside a doubling (roPlusPend) the picked addition or doubling applies as
+// it is picked (gorge handleDamageReplacementChoice, CR 616.1e): the two do
+// not commute, so the walk carries the running amount in ro.an.
 func (s *State) replOrderPick(a Action) bool {
 	ro := &s.g.ro
 	if i := a.Mode(); i < ro.n {
@@ -917,6 +950,13 @@ func (s *State) replOrderPick(a Action) bool {
 		}
 		if ro.pnx&(1<<i) != 0 {
 			return s.prevNextPick(int(i))
+		}
+		if ro.on && s.roPlusPend() && ro.prev&(1<<i) == 0 {
+			if ro.plus&(1<<i) != 0 {
+				ro.an = s.sat16(int(ro.an) + s.roPlusAdd(s.k(), int(i), int(ro.an)))
+			} else if ro.an < 1<<12 {
+				ro.an *= 2
+			}
 		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
@@ -1193,7 +1233,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
 		var unused [4]Obj
-		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
+		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, srcCard, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
 			return false
 		}
 		prev |= pcol

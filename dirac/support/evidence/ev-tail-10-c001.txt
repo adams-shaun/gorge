@@ -9,6 +9,7 @@ Airdrop Aeronauts
 Alpine Grizzly
 Anax, Hardened in the Forge
 Angel of Light
+Angelic Benediction
 Angelic Rocket
 Argent Dais
 Armillary Sphere
@@ -19,28 +20,38 @@ Auramancer
 Aysen Highway
 Baloth Packhunter
 Baneblade Scoundrel
+Basilica Bell-Haunt
+Bastion of Remembrance
 Battalion Foot Soldier
 Battlegrowth
 Battlewise Valor
+Behold the Beyond
 Bellowing Saddlebrute
 Benevolent Ancestor
 Black Carriage
 Blade Sliver
+Blightcaster
 Blighted Fen
 Blinding Light
 Blinking Spirit
 Blood Curdle
+Bloodfire Colossus
 Blossoming Wreath
 Blot Out the Sky
+Bog Imp
 Bogardan Dragonheart
 Bronze Sable
 Bruna, the Fading Light
 Brutalizer Exarch
+Cacophodon
 Call of the Conclave
 Canopy Claws
 Carrier Thrall
+Case of the Shifting Visage
 Celestial Archon
+Ceremonious Rejection
 Chitterspitter
+Chromescale Drake
 Clockwork Fox
 Cloud Dragon
 Cloudgoat Ranger
@@ -51,6 +62,7 @@ Cosmic Epiphany
 Counsel of the Soratami
 Crazed Goblin
 Cunning Geysermage
+Curfew
 Cylian Elf
 D'Avenant Trapper
 Darksteel Gargoyle
@@ -58,6 +70,12 @@ Dazzling Ramparts
 Deadly Rollick
 Demolisher Spawn
 Desperate Sentry
+Diabolic Vision
+Diviner Spirit
+Donatello's Science Lesson
+Doric, Nature's Warden
+Elaborate Firecannon
+Elite Archers
 Elvish Lookout
 Enervate
 Enlistment Officer
@@ -66,14 +84,18 @@ Exalted Flamer of Tzeentch
 Excavation Explosion
 Exiled Boggart
 Eye of Malcator
+Faith of the Devoted
 Faithful Watchdog
 Falkenrath Reaver
 Fang of Shigeki
 Feed the Infection
 Felhide Spiritbinder
 Fend Off
+Festering Evil
+Fire Snake
 Flowstone Shambler
 Forest
+Forget
 Foxfire
 Frost Breath
 Frostburn Weird
@@ -83,7 +105,9 @@ Gang of Elk
 Glasspool Mimic
 Glint
 Goblin Caves
+Goblin Shrine
 Grapeshot Catapult
+Grasping Thrull
 Grey Host Reinforcements
 Halo Forager
 Halo Hopper
@@ -91,25 +115,34 @@ Hand of Justice
 Hapatra's Mark
 Haunted Cadaver
 Heal the Scars
+Heart-Piercer Bow
 Heated Debate
 Helvault
+Hemlock Vial
 Herbal Poultice
 Hobbit's Sting
 Holy Justiciar
 Honden of Cleansing Fire
 Howlgeist
 Hungry Megasloth
+Hunted Lammasu
 Ichor Rats
 Icy Blast
 Ignite the Beacon
+Illusory Wrappings
+Indulging Patrician
+Inner Demon
+Inspiring Commander
 Invasion of Kaladesh
 Ironclaw Orcs
 Island
 Ivora, Insatiable Heir
 Jace's Archivist
+Jeskai Sage
 Jhovall Queen
 Join Forces
 Jolting Merfolk
+Kaervek, the Spiteful
 Karsus Depthguard
 Kaya's Onslaught
 Kenrith, the Returned King
@@ -121,16 +154,22 @@ Kuldotha Flamefiend
 Leapfrog
 Leonin Squire
 Lingering Souls
+Living Terrain
+Lizard Warrior
+Lu Xun, Scholar General
 Magefire Wings
 Mageta the Lion
 Mahamoti Djinn
 Maja, Bretagard Protector
 Marang River Skeleton
 Marsh Flitter
+Marsh Threader
 Master of Arms
+Mauhúr, Uruk-hai Captain
 Merfolk Traders
 Merfolk Windrobber
 Mightstone's Animation
+Mindwrack Harpy
 Mischievous Poltergeist
 Mists of Littjara
 Momir Vig, Simic Visionary
@@ -141,7 +180,9 @@ Mystic Zealot
 Need for Speed
 Neurok Stealthsuit
 Nightscape Apprentice
+Nightscape Master
 Nim Grotesque
+Noble's Purse
 Ondu Giant
 Oran-Rief Recluse
 Oraxid
@@ -149,12 +190,17 @@ Ori, Plate Stacker
 Ornery Kudu
 Orthion, Hero of Lavabrink
 Outland Colossus
+Pain Distributor
 Palace Siege
 Paragon of Open Graves
+Paranoid Parish-Blade
 Patrician's Scorn
 People of the Woods
+Perplexing Test
 Phantom Nishoba
+Phyrexian Broodlings
 Phyrexian Denouncer
+Phyrexian Pegasus
 Plains
 Pointed Discussion
 Prison Realm
@@ -162,8 +208,11 @@ Prodigal Sorcerer
 Radiant Purge
 Raffine's Informant
 Raging Gorilla
+Ravos, Soultender
 Raze
+Realm Seekers
 Reave Soul
+Reckless Abandon
 Regal Unicorn
 Repel
 Restock
@@ -171,9 +220,13 @@ Return the Past
 Reward the Faithful
 Ribskiff
 Ridgeline Rager
+Righteous Blow
 Ripjaw Raptor
 Ritual of Restoration
+Roil Eruption
+Rorix Bladewing
 Royal Trooper
+Rubblebelt Recluse
 Sanctuary Lockdown
 Sandsteppe Scavenger
 Sapphire Medallion
@@ -181,7 +234,12 @@ Savage Smash
 Scalding Tongs
 Scrapheap
 Scroll Thief
+Sea Eagle
 Seahunter
+Seraph of the Scales
+Seton's Desire
+Shadow Summoning
+Shi'ar Soldier
 Shields of Velis Vel
 Shimmering Grotto
 Shinewend
@@ -192,10 +250,14 @@ Sinew Dancer
 Skarrg, the Rage Pits
 Skeletal Changeling
 Skittering Precursor
+Skyhunter Strike Force
+Skyrider Trainee
+Slaughter Pact
 Snapsail Glider
 Soldier On
 Somberwald Dryad
 Soulbound Guardians
+Sparktongue Dragon
 Spike Feeder
 Spined Tyrranax
 Spirit en-Kor
@@ -204,7 +266,9 @@ Springmane Cervin
 Squad Captain
 Squash
 Stalking Tiger
+Steam Catapult
 Stir the Pride
+Stoic Rebuttal
 Stomper Cub
 Stoneskin
 Stormscape Apprentice
@@ -217,28 +281,41 @@ Suture Priest
 Swamp
 Swirling Sandstorm
 Sword of Hours
+Tainted Indulgence
 Teferi, Time Raveler
 Temporal Fissure
+Tempting Witch
+Terror of the Fairgrounds
 The Mirari Conjecture
 Thornscape Familiar
 Tireless Tribe
+Torch Gauntlet
+Transcendent Envoy
+Trapfinder's Trick
 Traveling Minister
 Trostani, Selesnya's Voice
 Turn Aside
+Twigwalker
 Tymaret Calls the Dead
 Undercity Scrounger
+Underdark Basilisk
 Underworld Breach
+Universal Automaton
+Urgent Exorcism
 Vedalken Blademaster
 Vexing Beetle
+Vicious Battlerager
 Village Elder
 Vivisurgeon's Insight
 War Flare
 Warded Battlements
 Warm Welcome
+Warstorm Surge
 Waterspout Djinn
 Westfold Rider
 Whispergear Sneak
 Whispers of the Muse
+Witchstalker
 Wolfwillow Haven
 Yanling's Harbinger
 Yavimaya Granger

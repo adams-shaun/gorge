@@ -57,6 +57,7 @@ Cenn's Enlistment
 Centaur Safeguard
 Cephalid Scout
 Chainflail Centipede
+Chameleon Blur
 Charisma Bobblehead
 Chill of Foreboding
 Choking Sands
@@ -231,6 +232,7 @@ Mind Rot
 Mindslicer
 Minion Missile
 Mirage Mockery
+Mirko Vosk, Mind Drinker
 Mischief and Mayhem
 Mob Rule
 Mockingbird, Bobbi Morse
@@ -244,6 +246,7 @@ Mutant's Prey
 Muxus, Goblin Grandee
 Myr Galvanizer
 Mysterio's Mirage
+Nalia de'Arnise
 Natural Connection
 Natural Selection
 Nesting Wurm
@@ -370,6 +373,7 @@ Stronghold Confessor
 Subira, Tulzidi Caravanner
 Sudden Impact
 Sulfurous Springs
+Sunder Shaman
 Sunder from Within
 Supply Runners
 Suspended Sentence
@@ -446,6 +450,7 @@ White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Woodfall Primus
 Wu Scout
 Youthful Knight
 Zhalfirin Void

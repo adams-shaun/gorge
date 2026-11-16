@@ -1,52 +1,81 @@
 A-Canopy Tactician
 A-Luminarch Aspirant
+A-Navigation Orb
 Aang, Air Nomad
 Abbey Gargoyles
 Aerie Auxiliary
 Aether Adept
 Aggressive Urge
 Aid the Fallen
+Akki Scrapchomper
 Alabaster Kirin
 Albino Troll
+Amateur Hero
+Angelfire Ignition
+Arashin Cleric
 Arborback Stomper
 Architect of the Untamed
 Argivian Phalanx
+Army of the Damned
 Artifact Blast
 Assert Authority
 Avacyn, Angel of Hope
 Aven Fleetwing
 Baleful Ammit
 Bash to Bits
+Battle Rampart
+Baxter, Fly in the Ointment
+Beaming Defiance
 Bellowing Mauler
+Benalish Sleeper
+Bereavement
 Birthing Ritual
+Bladed Ambassador
+Blightbeetle
 Bloodcrazed Paladin
 Boil
+Boltwing Marauder
 Bomat Bazaar Barge
 Bravado
+Brazen Borrower
 Breakneck Berserker
+Brushfire Elemental
+Burgeoning
+Burning-Yard Trainer
 Canal Dredger
 Candlelit Cavalry
+Canoptek Spyder
+Careful Consideration
+Carnage Tyrant
 Castle Embereth
 Champion's Helm
+Child of Night
 Chishiro, the Shattered Blade
 Coalhauler Swine
 Cognivore
+Command the Storm
 Conformer Shuriken
+Confront the Assault
 Coral Merfolk
 Cragcrown Pathway
+Crash of Rhino Beetles
 Crumble
+Cultivator Colossus
 Darigaaz's Caldera
 Daring Skyjek
 Dark Withering
 Daru Encampment
+Daybreak Charger
 Deadly Dispute
 Deceive the Messenger
 Deem Inferior
 Demonic Gifts
 Desecrated Tomb
 Desolate Mire
+Destructive Revelry
 Dismantling Wave
 Doric, Nature's Warden
+Dreadbringer Lampads
 Dreadwaters
 Druid's Call
 Druid's Deliverance
@@ -54,14 +83,24 @@ Dualcaster Mage
 Duelist of Deep Faith
 Elder Cathar
 Ellie, Vengeful Hunter
+Elvish Clancaller
+Embodiment of Spring
+Engulfing Eruption
 Enigma Eidolon
 Ephara's Enlightenment
 Eron the Relentless
+Erratic Portal
+Escape Artist
+Excavation Explosion
+Exile into Darkness
 Expose Evil
+Extricator of Sin
 Fabled Hero
 Famished Foragers
 Farbog Explorer
 Field-Tested Frying Pan
+Fists of Ironwood
+Fleeting Image
 Floodwaters
 Forbidden Alchemy
 Forerunner of the Coalition
@@ -71,68 +110,111 @@ Foriysian Brigade
 Fortuitous Find
 Foul Presence
 Gate to Seatower
+Ghor-Clan Savage
+Glistener Elf
 Gnawing Zombie
 Goblin Recruiter
 Goblin Swine-Rider
 Gorma, the Gullet
+Grave Defiler
+Gravedigger
 Gravity Well
 Greatsword of Tyr
 Gríma Wormtongue
+Guardian of the Guildpact
 H.E.R.B.I.E., Lovable Robot
 Hag of Dark Duress
+Hair-Strung Koto
+Hammerfist Giant
+Hancock, Ghoulish Mayor
+Heart-Piercer Manticore
+Higure, the Still Wind
 Homarid Warrior
 Honor the Fallen
+Humbler of Mortals
+Hunted Ghoul
 Hunter of Eyeblights
 Hyperion Blacksmith
 Hystrodon
 Icefall Regent
+Ifh-Bíff Efreet
+Ignition Team
+Immolating Gyre
+Impetuous Protege
 Indomitable Ancients
+Insight
 Inspired Skypainter
+Invasion of Muraganda
 Iron Fist, Hero for Hire
 Irreverent Revelers
 Island
 Ithilien Kingfisher
+Ixidor's Will
 Jeskai Student
 Jhessian Lookout
 Kami's Flare
 Kavu Predator
 Kin-Tree Warden
+Knight's Pledge
+Knucklebone Witch
 Koskun Falls
 Kozilek's Channeler
 Kozilek's Shrieker
+Krosan Beast
 Krosan Restorer
 Krosan Verge
 Lacerate Flesh
+Lash of Malice
 Lavafume Invoker
+Lead-Belly Chimera
 Lena, Selfless Champion
 Lightwielder Paladin
+Living Lightning, Charged Up
 Llanowar Empath
 Loxodon Anchorite
+Loyal Warhound
 Lynx
+Maggot Carrier
+Magus of the Bridge
 Mana Cylix
 Marsh Gas
 Martial Coup
 Masked Admirers
+Master of Etherium
 Melira, the Living Cure
+Melt Terrain
 Mending Touch
+Mental Note
 Mesa Enchantress
 Meteorite
 Mind Control
 Minister of Pain
+Minotaur Explorer
+Mirri the Cursed
+Mirror Wall
+Misdirection
 Mist Dancer
 Mob
 Moonglove Changeling
+More of That Strange Oil...
 Mountain
 Mukotai Soulripper
+Myrsmith
 Mystic Visionary
+Narstad Scrapper
 Nath of the Gilt-Leaf
 Necrogen Scudder
+Needlepeak Spider
 Neurok Prodigy
+Nightsquad Commando
+Nihil Spellbomb
 Null Champion
 Oath of Jace
 Obelisk of Urd
 Ojutai Exemplars
+Oketra the True
 Ophidian Eye
+Ornithopter of Paradise
 Oxidda Golem
 Palazzo Archers
 Parapet Watchers
@@ -144,37 +226,66 @@ Pillardrop Rescuer
 Pin to the Earth
 Plains
 Planar Bridge
+Potatoes
 Precognitive Perception
+Predator, Flagship
 Primordial Wurm
+Prodigal Pyromancer
 Psionic Gift
+Psychic Barrier
 Pyre Zombie
+Quilled Sliver
+Rack and Ruin
+Radiant Flames
+Raffine's Silencer
 Ragavan, Nimble Pilferer
 Ragged Recluse
+Ral's Reinforcements
 Ramirez DePietro, Pillager
+Ranger's Longbow
 Rapacious Guest
+Ravaging Blaze
+Ravaging Horde
 Ravenous Baloth
 Regal Unicorn
 Relic Golem
+Render Inert
+Retract
 Revolutionary Rebuff
 Righteous Blow
 Rites of Spring
 Root Greevil
+Roots of Wisdom
+Rootwire Amalgam
 Rot-Tide Gargantua
 Rustmouth Ogre
 Sage's Row Savant
 Sakura-Tribe Springcaller
+Sandbar Merfolk
+Scepter of Empires
 Scourge Servant
+Sea Gate Loremaster
 Sedge Troll
 See Red
 See the Unwritten
 Seer's Vision
 Seismic Assault
+Shackles of Treachery
+Shifting Wall
+Shivan Zombie
 Show of Valor
 Silhana Wayfinder
 Skorpekh Lord
+Skyshroud Behemoth
+Slag Fiend
 Slaughterhorn
+Slinking Giant
+Soldier of Fortune
+Soldier of the Grey Host
 Soratami Mirror-Mage
 Soul Manipulation
+Soul Shepherd
+Sparring Collar
 Sphinx-Bone Wand
 Spiritual Guardian
 Spitting Dilophosaurus
@@ -188,36 +299,67 @@ Steel Leaf Champion
 Steel Sabotage
 Stone Catapult
 Stone Quarry
+Stormcaller of Keranos
+Strategic Intervention
+Strength of Night
 Strongarm Thug
 Subjugator Angel
+Summoner's Sending
+Sundering Eruption
 Surge of Strength
 Surly Badgersaur
+Survivors' Bond
 Swamp
 Sword of the Chosen
 Symbiotic Wurm
 Tabaxi Toucaneers
 Tahngarth's Rage
+Takenuma Bleeder
+Teferi's Wavecaster
 Tel-Jilad Lifebreather
+Tempered in Solitude
+Temporal Eddy
 Terminal Moraine
 Territorial Boar
 Teyo, the Shieldmage
+The Crafter
+The Duke, Rebel Sentry
+Third Path Savant
 Thorned Moloch
+Thran Forge
 Thud
 Toll of the Invasion
 Treacherous Werewolf
 Treefolk Seedlings
 Treetop Warden
 Trumpeting Herd
+Tymaret, the Murder King
 Ultron, Machine Overlord
+Uncomfortable Chill
 Unnatural Restoration
+Utility Knife
+Valakut Invoker
+Valor Singer
+Venarian Glimmer
 Vengeful Rebirth
 Viper's Kiss
+Virulent Plague
+Vitaspore Thallid
 Vodalian Wave-Knight
+Vortex Runner
+Wake Thrasher
+Wakening Sun's Avatar
 Wall of Stone
+Wand of Vertebrae
 Wardscale Crocodile
 Warmind Infantry
+Waterspout Djinn
+Wavebreak Hippocamp
+Wavecrash Triton
+Wildfire Elemental
 Wings of Velis Vel
 Xander's Pact
+Yasmin Khan
 Zealot of the God-Pharaoh
 Zephid's Embrace
 Zodiac Goat

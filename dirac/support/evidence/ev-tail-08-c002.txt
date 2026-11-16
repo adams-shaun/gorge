@@ -11,6 +11,9 @@ Benalish Missionary
 Blind-Spot Giant
 Cabal Inquisitor
 Captain America, Liberator
+Coercive Impetus
+Courier Griffin
+Courtly Provocateur
 Crash Landing
 Darien, King of Kjeldor
 Dromoka's Gift
@@ -54,6 +57,7 @@ Lone Missionary
 Lucky the Pizza Dog
 Malakir Bloodwitch
 Mardu Hateblade
+Marsh Casualties
 Mass Appeal
 Military Discipline
 Minions' Murmurs
@@ -65,6 +69,7 @@ Paradox Engine
 Pearled Unicorn
 Pious Wayfarer
 Plains
+Precinct Captain
 Protector of the Wastes
 Queen's Agent
 Ral's Outburst
@@ -94,6 +99,7 @@ Tangle Asp
 Taunting Arbormage
 Teval's Judgment
 Thalia's Lieutenant
+That Which Was Taken
 Thraben Valiant
 Thran War Machine
 Tor Giant
@@ -102,6 +108,7 @@ Tukatongue Thallid
 Uktabi Wildcats
 Unbreakable Formation
 Updraft
+Urborg Drake
 Vampire Outcasts
 Veilborn Ghoul
 Vengeful Vampire

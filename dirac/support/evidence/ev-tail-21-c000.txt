@@ -126,6 +126,7 @@ Enchanted Carriage
 Enduring Bondwarden
 Errant Doomsayers
 Esquire of the King
+Exquisite Blood
 Extremis Elite
 Fade from Memory
 Fangren Marauder
@@ -190,6 +191,7 @@ Horned Stoneseeker
 Horror of Horrors
 Horseshoe Crab
 Hover Barrier
+How to Keep an Izzet Mage Busy
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
@@ -301,6 +303,7 @@ Pine Barrens
 Pitchstone Wall
 Plague Wind
 Plains
+Planar Guide
 Pounce
 Practiced Tactics
 Prehistoric Turtlesaurus
@@ -390,6 +393,7 @@ Standing Troops
 Starfall
 Steelshaper Apprentice
 Stinging Scorpion
+Stone of Erech
 Stormcaller's Boon
 Subdue
 Subterranean Scout

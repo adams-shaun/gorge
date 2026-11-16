@@ -17,11 +17,13 @@ Amateur Hero
 Ambitious Assault
 Ambitious Farmhand
 Ancestor's Chosen
+Angel of Despair
 Angelic Rocket
 Animist's Awakening
 Ant Queen
 Aquus Steed
 Arashin Foremost
+Archangel Elspeth
 Ardent Plea
 Arena Rector
 Artificer's Dragon
@@ -38,6 +40,7 @@ Barbed Sliver
 Barrage of Boulders
 Battle Brawler
 Battlefield Medic
+Belonging
 Benthic Behemoth
 Binding Grasp
 Blaring Captain
@@ -59,6 +62,7 @@ Brotherhood's End
 Builder's Blessing
 Burning-Tree Emissary
 Canyon Drake
+Captive Flame
 Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
@@ -101,6 +105,7 @@ Debilitating Injury
 Debt to the Deathless
 Debtor's Pulpit
 Decision Paralysis
+Defacing Duskmage
 Dehydration
 Demonic Appetite
 Demonlord of Ashmouth
@@ -132,9 +137,11 @@ Eager Beaver
 Eagle of Deliverance
 Eccentric Farmer
 Eiganjo Dynastorian
+Eladamri's Call
 Elemental Appeal
 Elite Scaleguard
 Elvish Herder
+Elvish Pioneer
 Embermage Goblin
 Emergent Woodwurm
 Ent's Fury
@@ -154,6 +161,7 @@ Fetid Horror
 Fiery Cannonade
 Fire Sprites
 Fissure Vent
+Flame Jet
 Flameborn Viron
 Fleetwheel Cruiser
 Flinthoof Boar
@@ -173,17 +181,21 @@ Genesis
 Ghostly Prison
 Giant Mantis
 Gideon's Battle Cry
+Glasswing Grace
 Gnottvold Slumbermound
 Goblin Assault Team
 Goliath Sphinx
 Goliath Truck
+Gorgon Recluse
 Grasp of Darkness
 Grave Pact
+Gravelgill Axeshark
 Gray Ogre
 Greenweaver Druid
 Grim Initiate
 Grim Wanderer
 Guardian of the Forgotten
+Guardian's Magemark
 Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
@@ -196,6 +208,7 @@ Heavy Mattock
 Hellspark Elemental
 Hog-Monkey Rampage
 Hostile Desert
+Hostile Realm
 Hunters' Feast
 Hunting Wilds
 Hydra Omnivore
@@ -209,6 +222,7 @@ Iraxxa, Empress of Mars
 Iridescent Drake
 Island
 Izzet Boilerworks
+Jace, Arcane Strategist
 Jangling Automaton
 Jarl of the Forsaken
 Jhovall Rider
@@ -218,8 +232,10 @@ Jungle Troll
 Kalonian Hydra
 Kappa Cannoneer
 Kavu Lair
+Keeper of Progenitus
 Keeper of the Lens
 Kinsbaile Balloonist
+Kiora Bests the Sea God
 Kitchen Imp
 Kitesail Cleric
 Knowledge Is Power
@@ -256,9 +272,11 @@ Marionette Apprentice
 Markov Enforcer
 Marsh Hulk
 Mascot Interception
+Mass Production
 Maverick Thopterist
 Merfolk Skyscout
 Merrow Levitator
+Metathran Zombie
 Militant Monk
 Mire Triton
 Mirran Bardiche
@@ -266,7 +284,9 @@ Mistral Singer
 Mold Shambler
 Molder Beast
 Molting Skin
+Monstrous Hound
 Monstrous Onslaught
+Moon Sprite
 Moonveil Regent
 Mordor Muster
 Mountain
@@ -301,6 +321,7 @@ Phase Dolphin
 Pheres-Band Warchief
 Phyrexian Boon
 Phyrexian Debaser
+Phyrexian Ornithopter
 Phyrexian Soulgorger
 Phyrexian Walker
 Pixie Queen
@@ -312,6 +333,7 @@ Power Conduit
 Power Plant Worker
 Practiced Tactics
 Prismari Pianist
+Psychotic Fury
 Pyrohemia
 Pyrotechnics
 Queen of Ice
@@ -359,6 +381,7 @@ Sequence Engine
 Serpent of Yawning Depths
 Serum Snare
 Setessan Training
+Seton's Scout
 Shichifukujin Dragon
 Shield Wall
 Shifting Ceratops
@@ -417,6 +440,7 @@ Telling Time
 Tempered Veteran
 The Terror of Serpent's Pass
 The Thing
+The Underworld Cookbook
 Thistledown Liege
 Thoughtbound Phantasm
 Thraben Foulbloods
@@ -444,6 +468,7 @@ Tyrite Sanctum
 Uncontrollable Anger
 Underworld Connections
 Unliving Psychopath
+Unmake
 Urbis Protector
 Ursapine
 Urza's Rage
@@ -466,6 +491,7 @@ Warping Wail
 Weakstone
 Welcome the Dead
 Welding Sparks
+Wheel of Fate
 Whisk Away
 Wild Ox
 Witch's Web
@@ -481,4 +507,6 @@ Wreck and Rebuild
 Yellow Scarves Troops
 Yoke of the Damned
 Zhou Yu, Chief Commander
+Zodiac Monkey
 Zuko, Avatar Hunter
+Éomer, Marshal of Rohan

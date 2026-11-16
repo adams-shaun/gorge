@@ -212,6 +212,7 @@ Liliana's Indignation
 Liliana, Death Wielder
 Liliana, the Last Hope
 Limestone Golem
+Lingering Tormentor
 Lord of Change
 Lumbering Falls
 Lunar Force
@@ -293,6 +294,7 @@ Reanimate
 Rebuild
 Recon Craft Theta
 Remorseful Cleric
+Rendclaw Trow
 Renegade Demon
 Replication Specialist
 Retreat to Emeria

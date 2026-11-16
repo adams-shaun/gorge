@@ -41,6 +41,7 @@ Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Bumbling Pangolin
 Butcher's Glee
 Cackling Flames
 Canopy Gorger
@@ -59,9 +60,11 @@ Cogwork Spy
 Confound
 Consider
 Consign
+Constable of the Realm
 Contingency Plan
 Courier's Briefcase
 Covert Operative
+Crackling Doom
 Crested Herdcaller
 Crimson Hellkite
 Curious Killbot
@@ -190,6 +193,7 @@ Maulfist Doorbuster
 Mending Touch
 Merfolk Observer
 Merfolk of the Depths
+Meriadoc Brandybuck
 Mesa Unicorn
 Metathran Soldier
 Mindeye Drake
@@ -380,5 +384,6 @@ Wretched Anurid
 Wrong Turn
 Wu Longbowman
 Yeva's Forcemage
+Yomiji, Who Bars the Way
 Yore-Tiller Nephilim
 Zulaport Duelist

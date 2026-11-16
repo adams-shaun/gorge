@@ -5,6 +5,7 @@ Adamaro, First to Desire
 Aerial Modification
 Aeromunculus
 Aggressive Crag
+Air Nomad Student
 Alaborn Veteran
 Ambassador Laquatus
 Amulet of Kroog
@@ -89,6 +90,7 @@ Elemental Spectacle
 Elephant Guide
 Ellivere of the Wild Court
 Elvish Skysweeper
+Emberwilde Caliph
 Ensoul Artifact
 Ethersworn Adjudicator
 Exalted Flamer of Tzeentch
@@ -175,6 +177,7 @@ Llanowar Augur
 Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
+Luke Cage, Hero for Hire
 Luminarch Aspirant
 Luminous Wake
 M.O.D.O.K., Evil Intellect
@@ -201,6 +204,7 @@ Monster Mashup
 Mother Bear
 Mountain
 Muxus, Goblin Grandee
+Mycologist
 Mystic Subdual
 Necromantic Summons
 Nessian Asp

@@ -30,22 +30,31 @@ Consul's Lieutenant
 Convulsing Licid
 Dark Ritual
 Dauthi Horror
+Desert of the Fervent
 Dyfed, the Guiding Hand
 Elspeth's Smite
 Elvish Visionary
+Energy Flux
+Exile
 Explosive Vegetation
 Explosive Welcome
 Extinguish All Hope
 Fell Gravship
+Filth
+Fireball
 Forest
 Ghost Lantern
+Gideon's Sacrifice
 Gifted Aetherborn
+Granitic Titan
 Heart Warden
 Hoodwink
 Infernal Vessel
+Inner Demon
 Insidious Fungus
 Island
 Kamahl, Heart of Krosa
+Kavu Primarch
 Kor Hookmaster
 Kyren Negotiations
 Lightning Bolt
@@ -105,6 +114,7 @@ Two-Handed Axe
 Undercity Informer
 Unseal the Necropolis
 Unwavering Initiate
+Valakut Predator
 Vanish into Eternity
 Vastwood Surge
 Veteran Armorer

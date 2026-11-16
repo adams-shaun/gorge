@@ -178,6 +178,7 @@ High Score
 Highland Forest
 Highspire Artisan
 Holdout Settlement
+Honey Mammoth
 Honored Hierarch
 Hot Soup
 How to Keep an Izzet Mage Busy
@@ -330,6 +331,7 @@ Serra Avenger
 Shard Convergence
 Shattering Blow
 Shepherd of the Lost
+Shielding Plax
 Shining Aerosaur
 Shivan Emissary
 Shu Elite Companions

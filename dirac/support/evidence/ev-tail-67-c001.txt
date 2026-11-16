@@ -92,6 +92,7 @@ Hydra's Growth
 Implement of Ferocity
 Inkrise Infiltrator
 Inspiring Refrain
+Irencrag Pyromancer
 Iroas's Champion
 Iron Suitcase
 Island
@@ -122,6 +123,7 @@ Mogis's Warhound
 Moonlight Hunt
 Mortal's Ardor
 Moss Monster
+Mother of Runes
 Mountain
 Murkfiend Liege
 Nagging Thoughts
@@ -169,6 +171,7 @@ Stormcrag Elemental
 Stormrider Rig
 Summon: Good King Mog XII
 Swamp
+Symmetry Sage
 Talons of Falkenrath
 Talons of Wildwood
 Temmet, Vizier of Naktamun

@@ -119,5 +119,10 @@ func (s *State) heldReferenced(o Obj) bool {
 			return true
 		}
 	}
+	for i := range g.prevCol { // a filtered scoped prevention finds its filters from its object's card
+		if g.prevCol[i].obj == o && g.prevCol[i].sc&kop.PrevScopeFiltered != 0 {
+			return true
+		}
+	}
 	return false
 }

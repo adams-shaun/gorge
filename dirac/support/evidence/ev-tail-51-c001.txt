@@ -1,4 +1,5 @@
 Abandon Reason
+Acquisition Octopus
 Aerial Maneuver
 Alena, Kessig Trapper
 Altar of the Brood
@@ -33,6 +34,7 @@ Blood Pact
 Bloodchief's Thirst
 Bogbrew Witch
 Bone Saw
+Breakneck Berserker
 Brilliant Restoration
 Bumi's Feast Lecture
 Burning Wish
@@ -94,6 +96,7 @@ Essence Extraction
 Eternal Isolation
 Eviscerator's Insight
 Evolution Charm
+Excoriate
 Explosive Impact
 Eyeblight Massacre
 Falkenrath Pit Fighter
@@ -205,6 +208,7 @@ Nimbus Swimmer
 Noble Purpose
 Noble Steeds
 Nomad Mythmaker
+Olivia, Mobilized for War
 One-Clown Band
 Onyx Mage
 Oraxid
@@ -213,6 +217,8 @@ Oxidda Finisher
 Paradigm Shift
 Parapet Watchers
 Path of Discovery
+Patron Wizard
+Phantom Flock
 Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
@@ -229,6 +235,7 @@ Purraj of Urborg
 Pygmy Pyrosaur
 Rage Thrower
 Rain of Embers
+Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Ravages of War
@@ -312,6 +319,7 @@ Swamp
 Swift Maneuver
 Synchronous Sliver
 Syphon Sliver
+Take Flight
 Tegan Jovanka
 Terramorph
 Teysa, Orzhov Scion
@@ -332,6 +340,7 @@ Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
 Unholy Officiant
+Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Ghoul

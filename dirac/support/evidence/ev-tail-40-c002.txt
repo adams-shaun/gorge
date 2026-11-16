@@ -4,7 +4,9 @@ A-Young Blue Dragon
 Aberrant
 Aegis Automaton
 Agent of Masks
+Ajani Goldmane
 Akoum Flameseeker
+Alabaster Wall
 Altar Golem
 Amulet of Vigor
 Ancient Copper Dragon
@@ -13,29 +15,38 @@ Ant-Man, Elusive Avenger
 Arcade Cabinet
 Arcane Laboratory
 Armageddon
+Ascending Aven
 Asylum Visitor
 Atalya, Samite Master
 Avatar of Might
 Azorius Keyrune
 Balshan Collaborator
 Banishing Slash
+Baron Sengir
+Baru, Wurmspeaker
 Basri's Aegis
+Bast, Panther Goddess
 Bastion of Remembrance
 Battle Sliver
 Blessed Light
 Blood Ogre
 Bloodline Necromancer
+Bloodthorn Taunter
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Carnage Altar
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
 Charmbreaker Devils
+Charmed Stray
 Charnel Troll
+Choking Fumes
+Choose Your Weapon
 Chronomancer
 Cinderbones
 Citanul Woodreaders
@@ -51,46 +62,61 @@ Conformer Shuriken
 Crack the Earth
 Creeping Mold
 Crumbling Colossus
+D'Avenant Healer
+Defender of Law
 Deflection
 Devils' Playground
 Dhund Operative
 Dire Fleet Neckbreaker
 Dirtwater Wraith
+Domri's Nodorog
 Dragon Egg
 Draugr Thought-Thief
+Dreadwaters
 Drifter il-Dal
 Dune Beetle
+Dungeoneer's Pack
 Elvish Harbinger
 Endless Scream
+Eye of Yawgmoth
 Faceless Devourer
 Fast
 Feldon, Ronom Excavator
 Felhide Petrifier
 Fetid Imp
 Field of Reality
+Filigree Attendant
 Flowstone Crusher
+Forced Retreat
 Forest
 Foul Play
+Foundry Helix
 Free from Flesh
 Freed from the Real
 Frog-Squirrels
 Frontline Medic
 Furnace Scamp
 Gavony Trapper
+Geist Snatch
 Ghost Lantern
 Gluttonous Slug
 Gnoll War Band
 Gnome-Made Engine
 Goblin Bruiser
 Goblin Mutant
+Great-Horn Krushok
+Hadran, Naya Sunseeder
 Hangar Scrounger
+Hedron Crawler
 Helitrooper
 Hell Mongrel
 High Alert
+Highspire Mantis
 Hornswoggle
 Hunters' Feast
 Idol of Oblivion
 Inferno Titan
+Infused Arrows
 Invasion of Lorwyn
 Invasive Species
 Ironroot Treefolk
@@ -99,14 +125,19 @@ Isolate
 Jaheira's Respite
 Kardur, Doomscourge
 Kargan Dragonlord
+Knight of Infamy
 Krakilin
 Lava Zombie
+Legion Lieutenant
 Legion's Judgment
+Leinore, Autumn Sovereign
 Leonin Scimitar
+Lightning Cloud
 Liliana's Scrounger
 Lingering Phantom
 Locus Cobra
 Lorehold Excavation
+Machine Man, Model X-51
 Manglehorn
 Maw of the Obzedat
 Mental Discipline
@@ -117,18 +148,22 @@ Midnight Haunting
 Mind Burst
 Minion of the Mighty
 Minotaur Skullcleaver
+Mist Dragon
 Mnemonic Wall
+Mogg Alarm
 Mortal's Ardor
 Moss Kami
 Mossbeard Ancient
 Mountain
 Mountain Bandit
 Mysterious Pathlighter
+Namora, the Sea Queen
 Nantuko Shade
 Needlebug
 Nightveil Sprite
 Nimraiser Paladin
 Omen of the Sun
+Oracle of Tragedy
 Ore-Scale Guardian
 Ovalchase Daredevil
 Patrol Signaler
@@ -138,6 +173,7 @@ Platinum Angel
 Plummet
 Porcelain Legionnaire
 Poultrygeist
+Precognitive Perception
 Press for Answers
 Primordial Ooze
 Prophetic Flamespeaker
@@ -148,9 +184,11 @@ Reiterate
 Reito Lantern
 Reiver Demon
 Relic Bane
+Rescue
 Resourceful Return
 Ring of Three Wishes
 Riot Spikes
+Rip Apart
 Rooting Kavu
 Roughshod Mentor
 Rousing of Souls
@@ -173,19 +211,24 @@ Shadowblood Egg
 Shaggy Camel
 Shelter
 Sheoldred's Edict
+Shepherd of the Cosmos
+Shield Mare
 Shrivel
 Silumgar's Command
+Sinking Feeling
 Six-Sided Die
 Skyclave Geopede
 Skylasher
 Slimefoot, the Stowaway
 Smolder Initiate
+Snapcaster Mage
 Snarling Warg
 Solemn Recruit
 Song of Eärendil
 Southern Elephant
 Spark Trooper
 Spartan Veteran
+Spellskite
 Sphinx of Magosi
 Spinehorn Minotaur
 Sprouting Renewal
@@ -196,6 +239,7 @@ Stormtide Leviathan
 Strength of Night
 Structural Distortion
 Subtle Strike
+Sunhome Guildmage
 Swamp
 Synapse Sliver
 Tah-Crop Skirmisher
@@ -208,14 +252,17 @@ Thing Swing
 Thorn Mammoth
 Thornling
 Thrasher Brute
+Thriss, Nantuko Primus
 Thunder Strike
 Tidespout Tyrant
 Tidings
 Tigereye Cameo
 Time of Heroes
+Titans' Vanguard
 Triton Shorethief
 Turn the Tide
 Turnabout
+Uncaged Fury
 Undercity Shade
 Untamed Might
 Unwilling Recruit
@@ -234,3 +281,4 @@ Wei Elite Companions
 Whisper Agent
 Xiahou Dun, the One-Eyed
 Yuan Shao, the Indecisive
+Zhao, the Seething Flame

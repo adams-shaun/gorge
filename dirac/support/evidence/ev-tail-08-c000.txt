@@ -48,6 +48,7 @@ Blur Sliver
 Boggart Trawler
 Bolt of Keranos
 Boreal Druid
+Bounty Agent
 Bronze Sword
 Bronze Walrus
 Brush with Death
@@ -82,6 +83,7 @@ Cover of Darkness
 Cracked Earth Technique
 Crash Landing
 Craterize
+Crisis of Conscience
 Crystal Golem
 Culling Dais
 Cyclops Tyrant
@@ -123,6 +125,7 @@ Dwarven Trader
 Eagle of Deliverance
 Earthshaking Si
 Electrify
+Elite Javelineer
 Elvish Hunter
 Energy Arc
 Enfeeblement
@@ -222,6 +225,7 @@ Library
 Liliana's Triumph
 Living Totem
 Lone Missionary
+Loxodon Mystic
 Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
@@ -262,6 +266,7 @@ Nomads en-Kor
 O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
+Orim's Thunder
 Otherworld Atlas
 Overtaker
 Paradise Druid
@@ -343,6 +348,7 @@ Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler

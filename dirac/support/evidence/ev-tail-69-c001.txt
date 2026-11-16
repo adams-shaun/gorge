@@ -11,6 +11,7 @@ Auriok Sunchaser
 Baloth Null
 Baxter, Fly in the Ointment
 Benalish Emissary
+Bloodfire Mentor
 Board the Weatherlight
 Bolt of Keranos
 Bond of Revival
@@ -19,6 +20,7 @@ Branchloft Pathway
 Briarberry Cohort
 Brindle Shoat
 Bring to Light
+Brutal Deceiver
 Bull's Strength
 Cackling Counterpart
 Captain America's Motorcycle
@@ -27,6 +29,7 @@ Cathartic Pyre
 Cavern Lampad
 Celestial Colonnade
 Chamber of Manipulation
+Change of Fortune
 Claws of Gix
 Clearwater Goblet
 Conifer Strider
@@ -66,16 +69,20 @@ Gateway Plaza
 Genju of the Fields
 Giant Harbinger
 Gilded Sentinel
+Gleeful Arsonist
 Goblin War Cry
 Gorgon's Head
 Grab the Reins
+Granulate
 Guildless Commons
 Gust-Skimmer
 Hammerfist Giant
+Healer's Flock
 Heir of the Wilds
 Heroes Remembered
 Hesitation
 Hidden Ancients
+Hidden Stockpile
 High Score
 Highland Forest
 Holdout Settlement
@@ -85,6 +92,7 @@ Hunter's Insight
 Hunting Cheetah
 Icatian Moneychanger
 Illicit Shipment
+Impending Disaster
 Infectious Host
 Invasion of Belenon
 Island
@@ -102,6 +110,8 @@ Lantern Scout
 Leonin Den-Guard
 Lightning Cloud
 Maggot Therapy
+Magmatic Channeler
+Magmatic Chasm
 Make Disappear
 Master of Death
 Memorial to Glory
@@ -122,20 +132,31 @@ Nightshade Harvester
 Noxious Revival
 Nyxborn Seaguard
 Obscura Storefront
+Ogre Shaman
 On the Trail
+Orah, Skyclave Hierophant
+Orcish Artillery
 Otherworldly Journey
 Outmaneuver
+Overmaster
+Oxidda Daredevil
 Paladin of Atonement
+Paragon of Fierce Defiance
 Pendulum of Patterns
 Peregrination
 Phantom Beast
+Phyrexian Ironworks
 Phyrexian Revoker
+Pia and Kiran Nalaar
 Plains
+Political Triumph
 Prodigious Growth
+Pyre-Sledge Arsonist
 Quickling
 Rage-Scarred Berserker
 Ranger's Guile
 Razorfield Thresher
+Reckless Embermage
 Reiver Demon
 Relic Sloth
 Research Thief
@@ -154,7 +175,11 @@ Sixth Sense
 Skeletal Crocodile
 Sky Theater Strix
 Skyshroud Vampire
+Sparkmage's Gambit
 Spellshock
+Stensia Innkeeper
+Stone Spirit
+Stream Hopper
 Structural Assault
 Sulfur Elemental
 Sunhome Guildmage
@@ -170,6 +195,7 @@ Torpor Dust
 Torrential Gearhulk
 Tortoise Formation
 Training Grounds
+Traitorous Blood
 Underworld Connections
 Unhinge
 Unwind

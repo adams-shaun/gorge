@@ -2,16 +2,23 @@ A-Goggles of Night
 Abnormal Endurance
 Abyssal Hunter
 Agent of the Iron Throne
+Ambush
+Ancient Excavation
+Argothian Pixies
 Arms of Hadar
 Arwen's Gift
 Balloon Peddler
 Barrage of Boulders
 Bitter Revelation
 Blood Fountain
+Blood Ogre
+Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
+Borrowed Hostility
 Bull Rush
 Canal Monitor
 Carrion
+Cateran Slaver
 Ceaseless Conflict
 Cleric of the Forward Order
 Clutch of Undeath
@@ -21,34 +28,51 @@ Crash of Rhinos
 Crossway Vampire
 Cyclonic Rift
 Dakmor Sorceress
+Dark Prophecy
 Dawnray Archer
 Deconstruct
 Detective of the Month
 Donate
 Dream Stalker
 Earsplitting Rats
+Electrostatic Bolt
+Electrostatic Field
 Enraged Killbot
 Evincar's Justice
 Fallen Ferromancer
 Far
+Farmstead
+Fathom Fleet Firebrand
+Festering March
+Fit of Rage
 Flowstone Blade
+Flowstone Overseer
 Flying Men
 Forest
 Foundry Screecher
 Freedom Fighter Recruit
+Frenzied Raptor
 Frost Lynx
 Frost Walker
 Furnace Celebration
+Ghost Lantern
 Giant Cockroach
 Gitaxian Probe
 Glasswing Grace
+Glimpse the Unthinkable
 Gloom Sower
+Goblin Berserker
+Goblin Machinist
 Goblin Raider
 Goblin Wizardry
+Gravelighter
+Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
 Hissing Miasma
+Hollowhenge Spirit
 Hunter's Bow
+Igneous Elemental
 Indulgent Tormentor
 Ironhoof Ox
 Island
@@ -56,16 +80,26 @@ Jhovall Queen
 Jinxed Ring
 Kamahl, Heart of Krosa
 Kelsinko Ranger
+Ken, Burning Brawler
 Kingfisher
+Lady Orca
 Lay Bare
 Magus of the Bazaar
 Marauding Dreadship
 Mask of Immolation
+Mephitic Vapors
+Mistral Charger
+Monoskelion
 Mossdog
 Mountain
 Muzzio, Visionary Architect
+Nemesis of Reason
+Neonate's Rush
+Nomads' Assembly
 Numbing Jellyfish
 Okina Nightwatch
+Onakke Ogre
+Outpost Siege
 Ozox, the Clattering King
 Pelargir Survivor
 Phantom Monster
@@ -74,21 +108,33 @@ Phyrexian Rager
 Pit Keeper
 Plains
 Prophetic Bolt
+Pterodon Knight
 Pulse of the Grid
+Pyric Salamander
 Pyrotechnics
 Quench
+Rage Nimbus
 Raging Cougar
+Ray of Distortion
 Reckless Assault
+Rend Flesh
+Repopulate
+Revered Elder
 Ridged Kusite
 Rishadan Cutpurse
 Royal Assassin
 Rude Awakening
+Rushblade Commander
 Saurian Symbiote
+Scampering Scorcher
 Seize the Storm
 Serra's Embrace
 Shadowstorm
 Skirk Outrider
+Skithiryx, the Blight Dragon
 Skyclave Pick-Axe
+Sleep with the Fishes
+Snare Tactician
 Sonic Assault
 Soul Diviner
 Soul Salvage
@@ -96,13 +142,18 @@ Squall
 Stark's Ingenuity
 Stoic Rebuttal
 Swamp
+Target Minotaur
 Taunting Sliver
 Temporal Spring
 Thassa's Rebuff
 Touch of Darkness
 Unnerve
 Untethered Express
+Vault Robber
+Vertigo
 Vial of Dragonfire
+Viashino Slasher
 Victual Sliver
+Voice of All
 Warmonger's Chariot
 Weary Prisoner

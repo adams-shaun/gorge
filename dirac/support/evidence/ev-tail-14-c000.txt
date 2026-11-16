@@ -2,6 +2,7 @@ A-Dreamshackle Geist
 A-High-Rise Sawjack
 A-Knockout Blow
 A-Psionic Snoop
+A-Splitting the Powerstone
 A-Tome Shredder
 Abyssal Nightstalker
 Adarkar Wastes
@@ -34,9 +35,11 @@ Blazethorn Scarecrow
 Bleeding Edge
 Blight Mamba
 Blight Titan
+Bloated Processor
 Blood Aspirant
 Blustersquall
 Body Launderer
+Bolg, Erebor's Reckoning
 Bone Saw
 Boon of Erebos
 Boros Reckoner
@@ -81,6 +84,7 @@ Demonspine Whip
 Denethor, Stone Seer
 Dewdrop Spy
 Dimir Keyrune
+Dissipation Field
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
@@ -97,6 +101,7 @@ Enfeeblement
 Enshrined Memories
 Entrails Feaster
 Entrapment Maneuver
+Erebos, God of the Dead
 Erstwhile Trooper
 Essence Drain
 Eunuchs' Intrigues
@@ -115,6 +120,7 @@ Firja, Judge of Valor
 Flensermite
 Flight
 Flitterstep Eidolon
+Fog of War
 Font of Progress
 Foothill Guide
 Force of Nature
@@ -133,7 +139,9 @@ Goblin Machinist
 Goblin Sledder
 Goblin Wardriver
 Gold Myr
+Golgari Rotwurm
 Goretusk Firebeast
+Gravel-Hide Goblin
 Grip of the Roil
 Gruul Ragebeast
 Guard Duty
@@ -155,8 +163,10 @@ Hexmark Destroyer
 Hightide Hermit
 Hissing Iguanar
 Hitchclaw Recluse
+Hobbling Zombie
 Hollowhenge Beast
 Hookblade Veteran
+Hound of Urabrask
 Hymn of Rebirth
 Illusionary Forces
 Inferno Project
@@ -170,11 +180,13 @@ Jaspera Sentinel
 Join the Dance
 Journeyer's Kite
 Joven and Chandler
+Karsus Depthguard
 Kavu Scout
 Kazuul's Fury
 Kiora's Follower
 Knight of Cliffhaven
 Krosan Drover
+Krumar Bond-Kin
 Lagomos, Hand of Hatred
 Leering Emblem
 Leonin of the Lost Pride
@@ -196,11 +208,14 @@ Manaform Hellkite
 Mandibular Kite
 Mardu Outrider
 Mesmeric Sliver
+Mighty Emergence
+Migloz, Maze Crusher
 Mind Whip
 Mindsplice Apparatus
 Mindswipe
 Mindwrack Demon
 Mirran Spy
+Mishra's Juggernaut
 Mishra's Workshop
 Mockingbird, Bobbi Morse
 Mogg Bombers
@@ -225,20 +240,25 @@ Ogre Resister
 Olog-hai Crusher
 Omega Myr
 Onakke Ogre
+Ophidian Eye
 Orah, Skyclave Hierophant
 Origin of the Hulk
 Paladin Elizabeth Taggerdy
 Palladium Myr
+Patron of the Vein
 Personal Tutor
+Persuasion
 Phantasmal Shieldback
 Phenomenon Investigators
 Phyrexian Broodlings
 Pia and Kiran Nalaar
 Pieces of the Puzzle
+Pit Spawn
 Pitfall Trap
 Pixie Illusionist
 Plague Myr
 Plains
+Planar Disruption
 Plated Rootwalla
 Plea for Guidance
 Power Boost
@@ -277,11 +297,13 @@ Revitalizing Repast
 Reviving Melody
 Ribbon Snake
 Ring of Kalonia
+Ringwarden Owl
 Riptide Pilferer
 Rite of Passage
 Rock Lobster
 Ruination Rioter
 Sagittars' Volley
+Salivating Gremlins
 Sandwurm Convergence
 Saprazzan Legate
 Scaldkin
@@ -319,6 +341,7 @@ Soul of Zendikar
 Soulscour
 Soulstinger
 Spawning Bed
+Spinal Villain
 Spread the Sickness
 Squealing Devil
 Starnheim Aspirant
@@ -365,6 +388,7 @@ Trigon of Infestation
 True-Faith Censer
 Tundra Wolves
 Turbulent Steppe
+Twice Upon a Time
 Ugin's Mastery
 Umbris, Fear Manifest
 Unbreathing Horde
@@ -377,6 +401,7 @@ Vanishing Verse
 Vanishment
 Vastwood Hydra
 Vault 87: Forced Evolution
+Vault Skyward
 Veteran Armorer
 Vicious Battlerager
 Villainous Ogre
@@ -400,3 +425,4 @@ Wyleth, Soul of Steel
 Yanling's Harbinger
 Zimone, Mystery Unraveler
 Zof Consumption
+Zuran Spellcaster

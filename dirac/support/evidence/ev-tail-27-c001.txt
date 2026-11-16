@@ -6,9 +6,11 @@ Alpine Watchdog
 Amarant Coral
 Apex Hawks
 Arc Runner
+Arctic Merfolk
 Avatar of Woe
 Barbed Lightning
 Bee Sting
+Bident of Thassa
 Blasphemous Act
 Blight Keeper
 Blowfly Infestation
@@ -24,6 +26,7 @@ Daggersail Aeronaut
 Damnation
 Deal Gone Bad
 Deathforge Shaman
+Deft Duelist
 Demonic Taskmaster
 Douser of Lights
 Elemental Uprising
@@ -47,7 +50,9 @@ Glint-Horn Buccaneer
 Glistening Deluge
 Goblin Razerunners
 Goblin Trailblazer
+Gossamer Phantasm
 Guul Draz Specter
+Gyre Engineer
 Hedge Troll
 Heir of Falkenrath
 Hollowsage
@@ -97,6 +102,7 @@ Sticky Fingers
 Stinging Hivemaster
 Storm-Kiln Artist
 Stun
+Surgespanner
 Survivor of Korlis
 Swamp
 Swiftgear Drake
@@ -109,7 +115,9 @@ Thrull Retainer
 Troubled Healer
 Twinferno
 Ulvenwald Oddity
+Untethered Express
 Valiant Guard
 Vampire Lacerator
+Vertigo Spawn
 Viconia, Drow Apostate
 Woodborn Behemoth

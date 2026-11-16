@@ -3,21 +3,31 @@ Aerial Guide
 Aether Swooper
 Akoum Warrior
 Alpha Authority
+Amazing Spider-Girl
 Ancient Hydra
 Angel of Sanctions
 Angelic Skirmisher
 Apprentice Necromancer
 Artful Takedown
+Artifact Mutation
 Ashen Powder
 Aurochs Herd
+Awakening
+Baloth Cage Trap
+Bayou Groff
+Bladed Pinions
 Blood-Chin Rager
+Bloodhusk Ritualist
 Bloodthirsty Adversary
 Bog Tatters
 Boon of Erebos
+Boulderbranch Golem
 Carrion Feeder
 Cathartic Reunion
+Cavalry Drillmaster
 Chain Devil
 Charge
+Chrome Host Seedshark
 Cloud Manta
 Commanding Presence
 Conviction
@@ -51,10 +61,17 @@ Faultgrinder
 Feed the Clan
 Feeding Frenzy
 Final Reward
+Fire Bowman
 Firewing Phoenix
+First Little Pig
 Flamecore Elemental
+Flamekin Brawler
+Flamewright
+Fleecemane Lion
+Flight
 Forbidden Friendship
 Forest
+Forging the Tyrite Sword
 Geist-Fueled Scarecrow
 Ghost Hounds
 Ghostblade Eidolon
@@ -103,6 +120,7 @@ Mutilate
 Myr Retriever
 Narnam Renegade
 Noble Vestige
+Oath of Eorl
 Okiba Reckoner Raid
 Old Rutstein
 Old Stickfingers
@@ -111,13 +129,16 @@ Overmaster
 Patagia Viper
 Pestilence
 Phyrexian Reclamation
+Piercing Light
 Piper of the Swarm
 Plains
 Plated Onslaught
 Predatory Nightstalker
 Putrid Cyclops
 Quirion Beastcaller
+Radiant Purge
 Rallying Roar
+Relentless Hunter
 Relentless Skaabs
 Rhystic Scrying
 Roaring Primadox
@@ -133,21 +154,30 @@ Settle Beyond Reality
 Shatterskull Giant
 Shoal Kraken
 Shu Grain Caravan
+Sickle Dancer
+Sigil Blessing
+Silverflame Squire
 Skull Rend
 Slaughter Specialist
 Slavering Nulls
+Smelt-Ward Ignus
 Smothering Abomination
 Soratami Seer
 Souldrinker
 Spectral Hunt-Caller
 Spellshock
 Spinal Centipede
+Spire Barrage
 Spiritmonger
 Start
+Steel of the Godhead
+Stonecloaker
 Summer Bloom
 Swamp
 Syndicate Guildmage
 Take Possession
+Tapestry of the Ages
+Tenacious Hunter
 The Juzam Master
 Thraben Heretic
 Thundering Giant
@@ -167,6 +197,7 @@ Village Cannibals
 Voiceless Spirit
 Vow of Flight
 War Horn
+Wings of the Guard
 Witherbloom Command
 Wolfkin Bond
 Zephid's Embrace

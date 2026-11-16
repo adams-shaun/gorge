@@ -154,6 +154,7 @@ Fortitude
 Fortress Crab
 Frenetic Sliver
 Frilled Sandwalla
+Frostveil Ambush
 Funeral March
 Fungal Plots
 Furtive Analyst
@@ -162,6 +163,7 @@ Geist-Honored Monk
 Gem of Becoming
 Gerrard Capashen
 Getaway Car
+Ghostway
 Giant Solifuge
 Gladecover Scout
 Goblin Fire Fiend
@@ -224,6 +226,7 @@ Kalemne, Disciple of Iroas
 Kenrith, the Returned King
 Kinjalli's Sunwing
 Kithkin Healer
+Kithkin Spellduster
 Koma's Faithful
 Kragma Warcaller
 Kudo, King Among Bears
@@ -446,6 +449,7 @@ Treefolk Healer
 Treetop Rangers
 Twinscroll Shaman
 Tyrant's Familiar
+Ulasht, the Hate Seed
 Ulvenwald Hydra
 Unholy Officiant
 Union of the Third Path
@@ -460,6 +464,7 @@ Verge Rangers
 Veteran Armorer
 Veteran Brawlers
 Viashino Outrider
+Vine Snare
 Violet Pall
 Virtus the Veiled
 Vital Splicer

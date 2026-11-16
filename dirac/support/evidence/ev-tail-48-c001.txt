@@ -27,8 +27,11 @@ Fallen Ideal
 Forest
 Foul Watcher
 Gelatinous Genesis
+Gnoll Hunter
 Hanged Executioner
 Hedron Crab
+Hexavus
+Hope-Ender Coatl
 Humble Naturalist
 Illusionary Forces
 Imperial Outrider
@@ -42,6 +45,9 @@ Krark-Clan Shaman
 Lantern of the Lost
 Living Lies of Loki
 Living Plane
+Mage Slayer
+Malevolent Rumble
+Mausoleum Secrets
 Maze Behemoth
 Merfolk Mesmerist
 Militant Monk
@@ -55,10 +61,13 @@ Plains
 Plated Wurm
 Primeval Herald
 Profit
+Ragavan, Nimble Pilferer
 Rishadan Pawnshop
 Rushwood Legate
 Saber Ants
+Scarwood Bandits
 Scent of Cinder
+Screeching Drake
 Seismic Stomp
 Shield-Wall Sentinel
 Shu Yun, the Silent Tempest
@@ -70,11 +79,14 @@ Squirrel Mob
 Steeple Creeper
 Swamp
 Swamp Mosquito
+Szarekh, the Silent King
 Terra Eternal
 Tilonalli's Crown
 Topan Ascetic
 Trestle Troll
 Tunneling Geopede
 Two-Headed Dragon
+Ulcerate
+Unruly Mob
 Urza's Command
 Vedalken Infuser

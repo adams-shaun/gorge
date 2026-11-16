@@ -10,6 +10,7 @@ Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
 Allied Reinforcements
+Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
 Armor of Faith
@@ -22,18 +23,22 @@ Bartolomé del Presidio
 Beast Mode
 Befoul
 Bellowing Saddlebrute
+Black Widow, Intel Expert
 Blade Sliver
 Bladed Bracers
 Bladehold War-Whip
 Blood Funnel
 Bonesplitter Sliver
 Boots of Speed
+Brainspoil
 Bristling Hydra
+Buoyancy
 Burning Sun's Fury
 Burst of Speed
 Buy Your Silence
 Cavern Crawler
 Cephalid Aristocrat
+Chief of the Foundry
 Clash of Wills
 Clip Wings
 Commander Mustard
@@ -45,6 +50,8 @@ Cosmic Larva
 Court Archers
 Cradle to Grave
 Crashing Footfalls
+Crop Sigil
+Cruel Celebrant
 Crypt Creeper
 Cryptbreaker
 Damn
@@ -56,22 +63,26 @@ Diabolic Edict
 Dragonwing Glider
 Dreadhound
 Dromoka Warrior
+Drowner Initiate
 Druidic Satchel
 Drumbellower
 Dual Shot
 Efreet Flamepainter
 Eiganjo Exemplar
 Electrosiphon
+Elemental Augury
 Elephant Resurgence
 Epiphany at the Drownyard
 Essence Infusion
 Evaporate
+Everbark Shaman
 Extremis Elite
 Falkenrath Torturer
 Fallaji Archaeologist
 Fated Return
 Fiery Hellhound
 Final Flourish
+Final Strike
 Fire Diamond
 Flailing Soldier
 Flayed One
@@ -104,7 +115,10 @@ Halberdier
 Hammerhead Shark
 Healing Hands
 Hithlain Knots
+Horizon Scholar
+Horizon Spellbomb
 Hormagaunt Horde
+Hydromorph Gull
 Idolized
 Indestructibility
 Infernal Contract
@@ -116,12 +130,15 @@ Jodah's Avenger
 Kaleidoscorch
 Kashi-Tribe Warriors
 Kazuul Warlord
+Keldon Mantle
 Kogla, the Titan Ape
 Kraken Hatchling
 Kraum, Ludevic's Opus
 Krenko's Command
 Krovikan Fetish
 Last Kiss
+Lava Zombie
+Lead by Example
 Leonin Abunas
 Life Burst
 Lightning Javelin
@@ -146,6 +163,7 @@ Obelisk of Alara
 Opal Gargoyle
 Orcish Cannoneers
 Origin of Black Widow
+Orochi Sustainer
 Orzhov Signet
 Ossuary Rats
 Pardic Swordsmith
@@ -156,8 +174,10 @@ Phyrexian Delver
 Phyrexian Espionage
 Pierce Strider
 Pincer Spider
+Pinnacle of Rage
 Plains
 Popular Entertainer
+Rampant Rejuvenator
 Ransom Note
 Ray of Enfeeblement
 Razormane Masticore
@@ -174,6 +194,7 @@ Roar of the Kha
 Rush of Blood
 Rush of Knowledge
 Sacred Knight
+Salt Marsh
 Scorch Rider
 Scrap Trawler
 Self-Inflicted Wound
@@ -189,16 +210,20 @@ Shinechaser
 Sif's Spearmaster
 Silas Renn, Seeker Adept
 Skeletal Wurm
+Sky Diamond
+Sky Theater Strix
 Soldier Replica
 Spell Contortion
 Spike Soldier
 Spiraling Duelist
 Spiteful Prankster
 Spitting Sliver
+Squee's Embrace
 Squelching Leeches
 Staff of the Storyteller
 Stave Off
 Stern Marshal
+Stick, Fearless Mentor
 Stone Drake
 Strangle
 Stromkirk Occultist
@@ -211,10 +236,13 @@ Svyelunite Priest
 Swamp
 Talrand's Invocation
 Temporal Mastery
+The Destined Black Mage
 The Mary Janes
+Theater of Horrors
 Theros Charm
 Thornwatch Scarecrow
 Titanium Man
+Tolarian Entrancer
 Tortured Existence
 Traveling Philosopher
 Trench Wurm
@@ -232,11 +260,16 @@ Vampiric Fury
 Vampiric Sliver
 Vandalize
 Vanquisher's Axe
+Vedalken Aethermage
 Vendetta
 Vivien's Grizzly
+Vizkopa Vampire
+Wake the Dragon
+Wake the Past
 Walking Atlas
 Warlock Class
 Wave of Indifference
+Weaver of Harmony
 Where We're Going . . .
 Whetwheel
 Wind Dancer
