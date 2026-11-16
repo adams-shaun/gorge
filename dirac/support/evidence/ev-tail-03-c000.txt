@@ -52,6 +52,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Call the Skybreaker
 Campus Renovation
 Capsize
 Celestial Crusader
@@ -108,6 +109,7 @@ Dust Elemental
 Eerie Procession
 Eiganjo Uprising
 Eiganjo, Seat of the Empire
+Eldrazi Ravager
 Elvish Vanguard
 Ember Beast
 Enchantress's Presence
@@ -136,6 +138,7 @@ Fogwalker
 Font of Mythos
 Forbid
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
@@ -194,6 +197,7 @@ Innocent Blood
 Inspired Tinkering
 Iridescent Angel
 Island
+Jace, Memory Adept
 Jamie McCrimmon
 Jeskai Student
 Jolrael, Mwonvuli Recluse
@@ -229,6 +233,7 @@ Makindi Sliderunner
 Mantle of Webs
 March from the Black Gate
 Martial Glory
+Martyrs of Korlis
 Mavren Fein, Dusk Apostle
 Merciless Eviction
 Merfolk Seer
@@ -247,14 +252,17 @@ Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Muzzle
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent
+Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
 Nessian Asp
 Nesting Dragon
+Neutralize
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker
@@ -336,6 +344,7 @@ Sigiled Skink
 Silundi Vision
 Silvan Reveler
 Simic Cluestone
+Simic Locket
 Skirk Ridge Exhumer
 Skitterbeam Battalion
 Slab Hammer

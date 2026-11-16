@@ -35,6 +35,7 @@ Armorcraft Judge
 Ash Barrens
 Atraxa's Fall
 Audacity
+Aura Extraction
 Autumnal Gloom
 Avaricious Dragon
 Baboon Spirit
@@ -42,10 +43,12 @@ Bag End Porter
 Battlefront Krushok
 Belligerent Brontodon
 Belligerent Hatchling
+Blast Zone
 Blighted Agent
 Blightreaper Thallid
 Blistering Dieflyn
 Blood Divination
+Blood Speaker
 Bloodshot Trainee
 Bloodstone Cameo
 Blurred Mongoose
@@ -109,6 +112,7 @@ Dewdrop Spy
 Dimir Machinations
 Dire Tactics
 Diving Griffin
+Docent of Perfection
 Donate
 Dovescape
 Draconic Destiny
@@ -150,6 +154,7 @@ Ferocious Pup
 Feroz's Ban
 Fill with Fright
 Final Flourish
+Fire Nation Occupation
 Flame Elemental
 Flawless Maneuver
 Flip the Switch
@@ -177,6 +182,7 @@ Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Gristle Grinner
 Grozoth
 Gwaihir, Greatest of the Eagles
@@ -199,6 +205,7 @@ Infected Defector
 Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Inspiring Veteran
 Insurrection
 Invasive Species
 Ire of Kaminari
@@ -210,6 +217,7 @@ Jaspera Sentinel
 Jelenn Sphinx
 Jhoira's Familiar
 Kamahl, Pit Fighter
+Kambal, Consul of Allocation
 Katara, Heroic Healer
 Kavu Aggressor
 Kindly Stranger
@@ -244,6 +252,7 @@ Mawcor
 Maximize Altitude
 Memorial to Folly
 Military Intelligence
+Mimic
 Mindless Conscription
 Ministrant of Obligation
 Mjölnir's Might
@@ -292,6 +301,7 @@ Psychotic Fury
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quarantine Field
 Quirion Dryad
 Raiders' Spoils
 Rattlechains
@@ -314,6 +324,7 @@ Rip Apart
 Riptide Chronologist
 Roar of the Wurm
 Rona, Disciple of Gix
+Roofstalker Wight
 Royal Falcon
 Ruin Crab
 Runehorn Hellkite
@@ -367,6 +378,7 @@ Stamina
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
+Striped Riverwinder
 Subversion
 Sunder Shaman
 Swamp
@@ -429,6 +441,7 @@ Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
+Weatherlight Compleated
 Weatherseed Totem
 Wei Infantry
 Weird Harvest
@@ -436,11 +449,13 @@ Wild Griffin
 Willow Faerie
 Wilson, Refined Grizzly
 Winged Hive Tyrant
+Wingfold Pteron
 Winter Soldier, Bucky Barnes
 Witch's Cottage
 Wizened Cenn
 You Look Upon the Tarrasque
 Yuan Shao, the Indecisive
+Yuriko, the Tiger's Shadow
 Zhalfirin Decoy
 Zodiac Dragon
 Zulaport Duelist

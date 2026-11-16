@@ -10,10 +10,12 @@ Agent of Horizons
 Aggressive Crag
 Agonizing Memories
 Akki Underminer
+Akoum Firebird
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
 Animal Boneyard
+Anointer Priest
 Arachnoid Adaptation
 Arachnus Spinner
 Archweaver
@@ -42,13 +44,16 @@ Bloodcrazed Hoplite
 Bloodcurdling Scream
 Bloodmist Infiltrator
 Blot Out
+Boot Nipper
 Borderland Marauder
 Boris Devilboon
 Brightmare
+Bronzeplate Boar
 Brood Birthing
 Bull-Rush Bruiser
 Burlfist Oak
 Cabal Surgeon
+Cached Defenses
 Calix, Guided by Fate
 Caller of the Claw
 Carrion Wall
@@ -60,6 +65,7 @@ Charge Through
 Circle of Dreams Druid
 Claim of Erebos
 Clinging Darkness
+Combine Chrysalis
 Conclave Phalanx
 Conjurer's Closet
 Consuming Fervor
@@ -82,10 +88,12 @@ Deprive
 Destructive Digger
 Detainment Spell
 Dictate of Heliod
+Diplomatic Immunity
 Distorting Wake
 Divine Retribution
 Divine Transformation
 Dogged Pursuit
+Dormant Grove
 Dreadmobile
 Dreg Reaver
 Dromad Purebred
@@ -97,6 +105,7 @@ Ebony Owl Netsuke
 Ebony Rhino
 Eliminate
 Elite Inquisitor
+Entangling Vines
 Epic Proportions
 Era of Enlightenment
 Eternal Scourge
@@ -119,7 +128,10 @@ Flickering Ward
 Flight of Fancy
 Flood
 Fodder Tosser
+Foreshadow
 Forest
+Forfend
+Fork in the Road
 Fortress Crab
 Frenzied Tilling
 Frenzy Sliver
@@ -148,6 +160,8 @@ Gustcloak Sentinel
 Gustrider Exuberant
 Guul Draz Overseer
 Hagra Constrictor
+Hamletback Goliath
+Harsh Judgment
 Heartless Pillage
 Heavy Mattock
 Herald of Ilharg
@@ -163,10 +177,12 @@ Impatience
 Impede Momentum
 Improvised Weaponry
 Incendiary Sabotage
+Infested Roothold
 Inner-Flame Acolyte
 Inquisitor's Ox
 Integrity
 Into the Time Vortex
+Intrepid Adversary
 Inventor's Axe
 Island
 Ivory Guardians
@@ -174,6 +190,8 @@ Jiang Yanggu
 Jund Panorama
 Jungle Creeper
 Justice Strike
+Kami of Tattered Shoji
+Kami of Transience
 Kaysa
 Keen Glidemaster
 Keeper of Keys
@@ -181,17 +199,20 @@ Keldon Overseer
 Kite Shield
 Kithkin Harbinger
 Kitsune Loreweaver
+Kumena's Awakening
 Languish
 Lantern of Revealing
 Leopard-Spotted Jiao
 Lim-Dûl's High Guard
 Living Lightning, Charged Up
 Living Twister
+Long-Range Sensor
 Loxodon Line Breaker
 Lumbering Falls
 Lumithread Field
 Mageta's Boon
 Mana Cylix
+Mardu Skullhunter
 Marsh Flats
 Metathran Elite
 Metathran Soldier
@@ -226,6 +247,7 @@ Ogre Painbringer
 Ondu Inversion
 Opal Gargoyle
 Opaline Bracers
+Open the Gates
 Orzhov Guildmage
 Parcel Myr
 Pathrazer of Ulamog
@@ -237,19 +259,26 @@ Phyrexian Vivisector
 Pious Interdiction
 Plains
 Pre-War Formalwear
+Prismatic Ward
 Profane Tutor
 Purify the Grave
 Putrid Leech
+Pyre Spawn
 Pyrophobia
 Quarry Beetle
 Quest for the Gemblades
+Qumulox
+Rage of Purphoros
+Ramosian Sky Marshal
 Rancor
 Reckless Rage
+Reclusive Taxidermist
 Recurring Insight
 Reef Pirates
 Repay in Kind
 Restless Dead
 Retrofitted Transmogrant
+Revenge of the Drowned
 Revive
 Rhonas's Last Stand
 Ridgetop Raptor
@@ -261,6 +290,7 @@ River Heralds' Boon
 Ronom Unicorn
 Rubblebelt Runner
 Ruinous Minotaur
+Rummaging Goblin
 Run Aground
 Saltblast
 Sanguinary Mage
@@ -280,10 +310,12 @@ Seismic Tutelage
 Selesnya Cluestone
 Sengir Vampire
 Serum Tank
+Setessan Champion
 Shadow Glider
 Shadowspear
 Shadowstorm
 Shapers of Nature
+Shipwreck Patrol
 Shivan Fire
 Shriek Raptor
 Silent Dart
@@ -299,16 +331,20 @@ Solemn Offering
 Solid Ground
 Soul Link
 Spark Spray
+Spectral Deluge
 Spectral Reserves
 Spider-Man, Web-Spinner
 Spined Basher
 Spinning Wheel
 Stalwart Pathlighter
+Steel Leaf Paladin
 Stirring Address
 Stolen Goods
 Stone Idol Generator
 Strix Serenade
+Stromgald Cabal
 Stromkirk Patrol
+Stronghold Biologist
 Sun-Crowned Hunters
 Sunflare Shaman
 Sustenance
@@ -321,8 +357,10 @@ Talruum Minotaur
 Teetering Peaks
 Teferi's Sentinel
 Tel-Jilad Fallen
+Temple Acolyte
 Temporal Fissure
 Terrain Elemental
+Thalakos Mistfolk
 That Which Was Taken
 Thunderhawk Gunship
 Tidal Courier
@@ -340,6 +378,7 @@ Troll Ascetic
 Trudge Garden
 Tunneling Geopede
 Twiddle
+Tyvar's Stand
 Umara Mystic
 Undead Augur
 Undercity Informer
@@ -347,9 +386,11 @@ Undying Beast
 Updraft
 Utopia Tree
 Utopia Vow
+Valeria Richards, Precocious
 Vampire Aristocrat
 Vanquisher's Axe
 Vashta Nerada
+Vedalken Outlander
 Vial of Poison
 Vicious Hunger
 Vindictive Flamestoker
@@ -359,9 +400,11 @@ Viridian Scout
 Vodalian Mage
 Voice of Truth
 Volt Charge
+Vulpine Goliath
 Vulshok Morningstar
 Wall of Vines
 Wary Okapi
+Weather the Storm
 White Scarab
 Wild Growth
 Wirewood Elf
@@ -370,6 +413,7 @@ Woodwraith Corrupter
 Worn Powerstone
 Worthy Knight
 Wreath of Geists
+Wretched Throng
 Xenk, Paladin Unbroken
 Zendikar Incarnate
 Zephyr Net

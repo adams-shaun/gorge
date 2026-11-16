@@ -75,6 +75,7 @@ Caustic Wasps
 Celestial Archon
 Ceremonious Rejection
 Chandra, Pyrogenius
+Chandra, the Firebrand
 Child of the Pack
 Chosen of Markov
 Chromescale Drake
@@ -99,6 +100,7 @@ Cylian Elf
 D'Avenant Trapper
 Darksteel Gargoyle
 Dash Hopes
+Dawn of a New Age
 Dazzling Ramparts
 Decanter of Endless Water
 Decimator Beetle
@@ -149,6 +151,7 @@ Forest
 Forget
 Foxfire
 Frost Breath
+Frost Fair Lure Fish
 Frostburn Weird
 Gallantry
 Galvanic Juggernaut
@@ -159,6 +162,7 @@ Glasspool Mimic
 Glint
 Goblin Caves
 Goblin Cohort
+Goblin Furrier
 Goblin Gardener
 Goblin Picker
 Goblin Shrine
@@ -168,6 +172,7 @@ Grapeshot Catapult
 Grasping Thrull
 Grey Host Reinforcements
 Grim Monolith
+Gwafa Hazid, Profiteer
 Halo Forager
 Halo Hopper
 Hapatra's Mark
@@ -194,6 +199,7 @@ Idyllic Grange
 Ignite the Beacon
 Illusory Wrappings
 Indulging Patrician
+Inner Demon
 Inspiring Commander
 Invasion of Ergamon
 Invasion of Kaladesh
@@ -350,6 +356,7 @@ Scalding Tongs
 Scrapheap
 Screeching Phoenix
 Scroll Thief
+Scuzzback Marauders
 Scuzzback Scrapper
 Sea Eagle
 Seahunter
@@ -414,6 +421,7 @@ Teferi, Time Raveler
 Temporal Fissure
 Tempting Witch
 Terror of the Fairgrounds
+The Locust God
 The Mirari Conjecture
 Thornscape Familiar
 Thrilling Discovery
@@ -433,12 +441,14 @@ Undercity Scrounger
 Underdark Basilisk
 Underworld Breach
 Universal Automaton
+Unquenchable Thirst
 Urgent Exorcism
 Uthros Research Craft
 Vedalken Blademaster
 Veteran's Voice
 Vicious Battlerager
 Village Elder
+Vivien's Talent
 Vivisurgeon's Insight
 Vizier of Tumbling Sands
 Vulshok Heartstoker

@@ -66,15 +66,13 @@ func checkCarrier(t *testing.T, accepted []string, refused map[string]string, li
 // TestCantAttackStatic: S:Mode$ CantAttack (gorge combat.AttackBlocked).
 func TestCantAttackStatic(t *testing.T) {
 	checkCarrier(t,
-		[]string{"Moat", "Pacifism", "Sea Monster", "Bound in Silence", "Harbor Serpent", "Vow of Duty"},
-		map[string]string{
-			"Blazing Archon": "CantAttack Target$",
-		},
+		[]string{"Moat", "Pacifism", "Sea Monster", "Bound in Silence", "Harbor Serpent", "Vow of Duty", "Blazing Archon"},
+		nil,
 		[]string{
 			"static CantAttack F={types=0x2 WithoutFlying}",                                                 // Moat
 			"static CantAttack F={types=0x2 EnchantedBy}",                                                   // Pacifism
 			"static CantAttack F={types=0x0 Self} F2=nil cond=Present({types=0x0 sub=Island ctrl=2},op3,0)", // Sea Monster
-			"static CantAttack F={types=0x2 ctrl=2 EnchantedBy}",                                            // Vow of Duty
+			"static CantAttack F={types=0x2} F2=nil",                                                        // Blazing Archon (Target$ scope is the static's flags, CR 508.1b-c)
 		})
 }
 

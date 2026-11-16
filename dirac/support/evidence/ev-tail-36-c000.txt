@@ -50,6 +50,7 @@ Benalish Emissary
 Biolume Egg
 Black Dragon Gate
 Black Oak of Odunos
+Blademane Baku
 Bladewing's Thrall
 Blessed Reversal
 Blightspeaker
@@ -205,6 +206,7 @@ Kathari Remnant
 Kaya's Onslaught
 Keensight Mentor
 Kindercatch
+Kindred Discovery
 Kindred Dominance
 Kirtar's Desire
 Kitesail Freebooter
@@ -226,6 +228,7 @@ Longtusk Cub
 Loxodon Mender
 Luminarch Aspirant
 Lurking Deadeye
+Luxa River Shrine
 MJ, Rising Star
 Magmaw
 Malefic Scythe
@@ -376,6 +379,7 @@ Thought Scour
 Thran Spider
 Three Visits
 Thrill of the Hunt
+Throwing Knife
 Thundering Spineback
 Thundersteel Colossus
 Thunderwave

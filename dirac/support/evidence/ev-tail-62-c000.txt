@@ -6,6 +6,7 @@ Aegis of the Gods
 Aeronaut's Wings
 Aether Inspector
 Agonizing Syphon
+Akroma, Angel of Fury
 Alesha, Who Smiles at Death
 Algae Gharial
 Almost Perfect
@@ -19,6 +20,7 @@ Angelic Guardian
 Anointed Procession
 Arborea Pegasus
 Archetype of Aggression
+Ardent Electromancer
 Argivian Blacksmith
 Artifact Mutation
 Ashen Monstrosity
@@ -36,6 +38,7 @@ Bad Deal
 Bad Moon
 Balloon Peddler
 Battle Hurda
+Beacon Bolt
 Beastmaster's Magemark
 Beregond of the Guard
 Bishop of Rebirth
@@ -43,6 +46,8 @@ Black Dragon
 Black Panther, Most Dangerous
 Blades of Velis Vel
 Blistergrub
+Blockbuster
+Blood Researcher
 Bloodrage Vampire
 Bloodsky Berserker
 Bog Rats
@@ -65,6 +70,7 @@ Chandra's Outrage
 Chatterstorm
 Chromatic Star
 Claws of Gix
+Clone Legion
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
@@ -102,6 +108,8 @@ Dragon Arch
 Dragon Moose
 Dragonlair Spider
 Dragonsoul Knight
+Dream Pillager
+Duelist's Flame
 Dungeon Geists
 Ecologist's Terrarium
 Elder Spawn
@@ -110,11 +118,13 @@ Elephant Ambush
 Elvish Harbinger
 Elvish Reclaimer
 Emissary of the Sleepless
+Empyrial Archangel
 Enlarge
 Enormous Baloth
 Ephara's Radiance
 Erinis, Gloom Stalker
 Essence Depleter
+Etali, Primal Conqueror
 Everett K. Ross, Hapless Attaché
 Exclude
 Exhaustion
@@ -122,6 +132,7 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
+Fire Dragon
 Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
@@ -135,12 +146,15 @@ Furnace Strider
 Fylamarid
 Gandalf, Shadow's Foe
 Gang of Devils
+Gert and Old Lace, Runaways
 Giant Caterpillar
 Gibbering Hyenas
 Gift of Estates
+Gimli of the Glittering Caves
 Gimli, Mournful Avenger
 Gleam of Resistance
 Glint-Sleeve Artisan
+Glóin, Dwarf Emissary
 Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
@@ -163,9 +177,11 @@ Hierophant's Chalice
 Hobgoblin Bandit Lord
 Howl of the Night Pack
 Huatli's Snubhorn
+Ian the Reckless
 Ichneumon Druid
 Illusionary Wall
 Illusory Ambusher
+Impulsivity
 Inkfathom Infiltrator
 Inspiring Captain
 Insurrection
@@ -175,11 +191,14 @@ Invigorating Falls
 Island
 Ivy Seer
 Ixalli's Diviner
+Izzet Cluestone
 Jandor's Saddlebags
+Jubilant Mascot
 Judge Unworthy
 Juvenile Mist Dragon
 Kaijin of the Vanishing Touch
 Karmic Guide
+Katara's Reversal
 Keening Apparition
 Keepsake Gorgon
 Kinsbaile Skirmisher
@@ -197,6 +216,7 @@ Latch Seeker
 Lavastep Raider
 Leo's Guidance
 Level Up
+Lifeforce
 Lifeline
 Lumengrid Augur
 Ma Chao, Western Warrior
@@ -232,6 +252,7 @@ Mountain
 Muddle the Mixture
 Myr Convert
 Mystic Meditation
+Mystic Sanctuary
 Nantuko Blightcutter
 Nantuko Disciple
 Necrogoyf
@@ -251,6 +272,7 @@ Ornery Kudu
 Orochi Ranger
 Pack Mastiff
 Paragon of Gathering Mists
+Penregon Strongbull
 Piercing Light
 Pilfered Plans
 Plains
@@ -276,6 +298,7 @@ Ranger en-Vec
 Raven Guild Master
 Ravenous Sailback
 Ready to Rumble
+Reckless Spite
 Recurring Insight
 Redcap Raiders
 Relic Axe
@@ -286,6 +309,7 @@ Revenant
 Reverse Engineer
 Reward the Faithful
 Rimrock Knight
+Risen Sanctuary
 Rishkar, Peema Renegade
 Rite of the Raging Storm
 Rodolf Duskbringer
@@ -298,6 +322,7 @@ Sanguine Guard
 Sawblade Scamp
 Sawtooth Loon
 Scorched Rusalka
+Scorchmark
 Scourgemark
 Seedling Charm
 Seek the Horizon
@@ -324,6 +349,8 @@ Shrapnel Blast
 Shriekgeist
 Shrine of Loyal Legions
 Shu Elite Infantry
+Shuri, Vibranium Technologist
+Silent Observer
 Silver Drake
 Silverclaw Griffin
 Silverquill Silencer
@@ -357,6 +384,7 @@ Stormchaser Mage
 Stronghold Confessor
 Subterranean Tremors
 Sunder the Gateway
+Sunscape Apprentice
 Swamp
 Swarm Intelligence
 Sworn Guardian
@@ -368,6 +396,7 @@ Thalia, Guardian of Thraben
 Thassa's Ire
 The Bear Force Pilot
 The Binding of the Titans
+The Darkhold
 The Whizzer, Classic Speedster
 Their Number Is Legion
 Thieving Magpie
@@ -394,16 +423,19 @@ Unholy Heat
 Unleash Shell
 Uurg, Spawn of Turg
 Vampire's Zeal
+Vampires' Vengeance
 Vampiric Touch
 Vaporous Djinn
 Verdant Catacombs
 Vernal Bloom
+Vile Rebirth
 Vivien's Crocodile
 Volcanic Spite
 Vulturous Aven
 Wall of Water
 Weaver of Blossoms
 Weirded Vampire
+Wheel of Fortune
 Whelming Wave
 Windborne Charge
 Wizard Class

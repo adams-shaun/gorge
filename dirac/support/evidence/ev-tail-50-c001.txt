@@ -18,8 +18,10 @@ Augur of Bolas
 Auriok Glaivemaster
 Auton Soldier
 Aven Sunstriker
+Aviary Mechanic
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
+Balshan Beguiler
 Bat Whisperer
 Battle Hymn
 Belligerent Whiptail
@@ -33,6 +35,7 @@ Bloodmark Mentor
 Blunt the Assault
 Bone Saw
 Boon Reflection
+Borborygmos Enraged
 Botanical Plaza
 Bramble Wurm
 Bramblewood Paragon
@@ -40,13 +43,16 @@ Branching Evolution
 Brazen Wolves
 Brinebarrow Intruder
 Broodbirth Viper
+Broodhunter Wurm
 Burning Oil
 By Invitation Only
 Byway Courier
 Cabal Archon
 Cabal Pit
 Canopy Spider
+Capricious Sliver
 Careful Study
+Catalog
 Cathartic Adept
 Celestial Kirin
 Cemetery Reaper
@@ -57,9 +63,11 @@ Chandra's Fury
 Chitinous Cloak
 Chittering Witch
 Chulane, Teller of Tales
+Citadel Siege
 Citanul Stalwart
 Civic Guildmage
 Cloakwood Swarmkeeper
+Cloven Casting
 Cold-Eyed Selkie
 Combat Research
 Condemn
@@ -81,6 +89,7 @@ Dovin's Veto
 Draconic Disciple
 Dragon Mantle
 Dragon Whelp
+Dragonlord Atarka
 Dread Statuary
 Dross Hopper
 Drove of Elves
@@ -94,10 +103,13 @@ Elvish Farmer
 Elvish Lyrist
 Elvish Visionary
 Empyrial Armor
+Ephemeral Shields
 Evolution Charm
 Excavation Mole
 Explosive Impact
+Expressive Iteration
 Falkenrath Pit Fighter
+Fandaniel, Telophoroi Ascian
 Fang Dragon
 Farid, Enterprising Salvager
 Feral Appetite
@@ -113,6 +125,7 @@ Furnace Hellkite
 Garruk's Companion
 Geist of the Archives
 Geistblast
+Ghostly Sentinel
 Ghoulcaller's Harvest
 Gimli, Counter of Kills
 Gingerbread Cabin
@@ -126,6 +139,7 @@ Grasping Scoundrel
 Grave Betrayal
 Grim Physician
 Grizzled Angler
+Gruul Nodorog
 Guardians' Pledge
 Gush
 Gut Shot
@@ -135,12 +149,15 @@ Headless Rider
 Heartfire
 Hero of the Pride
 Highland Giant
+Hired Blade
 Hive Stirrings
+Holy Day
 Hookhand Mariner
 Hunted Dragon
 Hurly-Burly
 Hymn of Rebirth
 Ichor Synthesizer
+Idolized
 Impostor of the Sixth Pride
 Incremental Blight
 Infantry Veteran
@@ -151,6 +168,7 @@ Island
 Ivory Giant
 Jace's Sentinel
 Jhoira, Weatherlight Captain
+Join the Ranks
 Jungle Wayfinder
 Kaijin of the Vanishing Touch
 Karplusan Forest
@@ -165,7 +183,9 @@ Kor Entanglers
 Kraul Foragers
 Krenko, Tin Street Kingpin
 Lead by Example
+Ledger Shredder
 Library
+Living Hive
 Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
@@ -175,6 +195,7 @@ Lu Bu, Master-at-Arms
 Make Mischief
 Mana Seism
 Manor Gate
+Mantle of Leadership
 Marble Gargoyle
 Mardu Warshrieker
 Mesa Cavalier
@@ -186,7 +207,9 @@ Morbid Plunder
 Morningtide
 Mother of Runes
 Mountain
+Mox Sapphire
 Natural Affinity
+Nature's Ruin
 Neurok Replica
 Nightwind Glider
 Nomad Mythmaker
@@ -201,6 +224,7 @@ Outpost Siege
 Paradigm Shift
 Parch
 Perilous Research
+Petrified Wood-Kin
 Phyrexian Broodstar
 Plaguemaw Beast
 Plains
@@ -225,6 +249,7 @@ Renegade Map
 Revenge of Ravens
 Reverent Hoplite
 Revive the Shire
+Revoke Existence
 Riptide
 Riverglide Pathway
 Robe of Mirrors
@@ -239,10 +264,12 @@ Sandstone Bridge
 Scrollshift
 Segmented Wurm
 Seller of Songbirds
+Serra Zealot
 Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
 Shivan Harvest
+Shu Defender
 Shuko
 Sigarda, Champion of Light
 Silkenfist Order
@@ -254,8 +281,11 @@ Skyrider Patrol
 Skyspear Cavalry
 Skywarp Skaab
 Skywing Aven
+Slash the Ranks
 Slashing Tiger
 So Shiny
+Soratami Mindsweeper
+Soul Collector
 Soul of Theros
 Spider-Man, New Champion
 Spiked Baloth
@@ -264,7 +294,10 @@ Squadron Hawk
 Steamclaw
 Stonefury
 Storm Fleet Sprinter
+Stormfront Riders
+Strength of Unity
 Stroke of Genius
+Stromkirk Captain
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
@@ -273,6 +306,7 @@ Swamp
 Swarmyard
 Swell of Growth
 Switcheroo
+Syndicate Trafficker
 Synod Artificer
 Syphon Mind
 Talas Lookout
@@ -282,17 +316,22 @@ Temporal Machinations
 Teysa, Envoy of Ghosts
 Thalia's Lieutenant
 The Rack
+Thopter Squadron
 Thor, Asgard's Avenger
 Tide Skimmer
+Tivadar of Thorn
 Touch of Brilliance
 Towering-Wave Mystic
+Traitor's Clutch
 Tranquil Thicket
 Traveling Minister
 Tremble
+Uchuulon
 Ulrich's Kindred
 Undead Warchief
 Unfriendly Fire
 Vampire Opportunist
+Vampire's Kiss
 Vectis Silencers
 Verdant Automaton
 Vessel of Ephemera
@@ -305,6 +344,7 @@ Vulshok War Boar
 Wake Thrasher
 Wall of Ice
 Wandering Goblins
+Warden of the Woods
 Warlock Class
 Warpath
 Wary Okapi
@@ -318,5 +358,6 @@ Wrath of Marit Lage
 Wrath of the Skies
 Yavimaya Hollow
 Yuriko, the Tiger's Shadow
+Zealous Strike
 Zodiac Dog
 Zodiac Horse
