@@ -147,6 +147,7 @@ Master of Diversion
 Maximus, Knight Apparent
 Mental Journey
 Merrow Grimeblotter
+Metalwork Colossus
 Midnight Scavengers
 Mind Games
 Mistford River Turtle
@@ -154,6 +155,7 @@ Mogg Jailer
 Moku, Meandering Drummer
 Mountain
 Mudhole
+Myojin of Cryptic Dreams
 Myr Battlesphere
 Mystic of the Hidden Way
 Nahiri's Binding

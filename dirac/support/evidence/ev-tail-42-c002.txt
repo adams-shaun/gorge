@@ -1,5 +1,6 @@
 A-Cori-Steel Cutter
 A-Dragonborn Looter
+A-Meria's Outrider
 Accursed Horde
 Adaptive Snapjaw
 Aerial Engineer
@@ -19,6 +20,7 @@ Baloth Prime
 Barrage Tyrant
 Barrowgoyf
 Basic Conjuration
+Besmirch
 Bewilder
 Beyeen Veil
 Blistercoil Weird
@@ -64,6 +66,7 @@ Emergency Weld
 Enigmatic Incarnation
 Entropic Specter
 Essence Depleter
+Exemplar of Strength
 Fireflux Squad
 Fissure
 Fissure Vent
@@ -132,6 +135,7 @@ Maga, Traitor to Mortals
 Mage's Guile
 Manipulate Fate
 Marauding Looter
+Mardu Runemark
 Meteoric Mace
 Mogg Alarm
 Morkrut Banshee

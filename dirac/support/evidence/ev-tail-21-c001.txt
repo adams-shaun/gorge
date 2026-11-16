@@ -9,6 +9,7 @@ Ardent Recruit
 Arrest
 Artillery Blast
 Aspect of Mongoose
+Avacynian Missionaries
 Backup Agent
 Balduvian Rage
 Bamboo Grove Archer
@@ -18,6 +19,7 @@ Beasts of Bogardan
 Bellowing Elk
 Bellowing Mauler
 Bestial Fury
+Bill the Pony
 Bionic Blow
 Black Sun's Twilight
 Blightspeaker
@@ -50,6 +52,7 @@ Cursebreak
 Darksteel Relic
 Dazzling Lights
 Death Cultist
+Deathbringer Regent
 Deepfathom Skulker
 Defang
 Destined
@@ -57,6 +60,7 @@ Diabolic Revelation
 Diplomatic Immunity
 Dismissive Pyromancer
 Distant Melody
+Dosan's Oldest Chant
 Draconic Lore
 Dragon Blood
 Dragonloft Idol
@@ -68,10 +72,13 @@ Durable Handicraft
 Elephant-Mandrill
 Elixir of Vitality
 Elvish Berserker
+Errant Doomsayers
 Esquire of the King
 Extremis Elite
+Fade from Memory
 Farbog Revenant
 Fear
+Feed the Infection
 Felhide Spiritbinder
 Fencer's Magemark
 Fire of Orthanc
@@ -81,6 +88,7 @@ Flagstones of Trokair
 Flaming Sword
 Flayer Husk
 Fledgling Djinn
+Flowering Field
 Flying Dolphin-Fish
 Foot Soldiers
 Forbidden Lore
@@ -91,6 +99,7 @@ Fury Sliver
 Galvanic Key
 Ghitu Slinger
 Gift of Compleation
+Glade Gnarr
 Glimmerdust Nap
 Glittering Wish
 Goblin Chariot
@@ -116,6 +125,7 @@ Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
 Impulse
+In the Web of War
 Invasion of Kylem
 Island
 It That Heralds the End
@@ -147,6 +157,7 @@ Meneldor, Swift Savior
 Mesmeric Orb
 Meteorite
 Mind Carver
+Mishra's Domination
 Misthoof Kirin
 Mogg Squad
 Mortuary
@@ -165,6 +176,7 @@ Oketra the True
 Omen of Fire
 One with the Stars
 Open Fire
+Opportunist
 Order of the Sacred Bell
 Ox of Agonas
 Palladia-Mors
@@ -200,6 +212,7 @@ Sanguinary Mage
 Sapphire Dragon
 Sardian Cliffstomper
 Scrap Trawler
+Scrapbasket
 Screaming Shield
 Sea Spirit
 Secluded Steppe
@@ -234,11 +247,13 @@ Swamp
 Sylvan Tutor
 Syphon Essence
 Take Vengeance
+Talonrend
 Tenacious Dead
 Thalakos Mistfolk
 The Dross Pits
 The Howling Commandos
 The Mending of Dominaria
+Thoughtbound Phantasm
 Thraben Watcher
 Tomb of the Spirit Dragon
 Tori D'Avenant, Fury Rider

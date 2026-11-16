@@ -3,6 +3,7 @@ A-Radha, Coalition Warlord
 A-Wizard Class
 Abiding Grace
 Academy Drake
+Academy Wall
 Aethersphere Harvester
 Akki Ronin
 Ambuscade Shaman
@@ -15,6 +16,7 @@ Argivian Avenger
 Armor Sliver
 Ashnod's Harvester
 Atarka Beastbreaker
+Avatar Kyoshi, Earthbender
 Axebane Guardian
 Ayara, First of Locthwain
 Balduvian Atrocity
@@ -70,6 +72,7 @@ Drain the Well
 Drown in Filth
 Ebon Dragon
 Elephant-Mandrill
+Eloise, Nephalia Sleuth
 Elspeth, Sun's Nemesis
 Elvish Hexhunter
 Elvish Reclaimer
@@ -91,13 +94,16 @@ Frilled Deathspitter
 Frog-Squirrels
 Funeral Rites
 Gathering Throng
+General Leo Cristophe
 Ghitu Fire-Eater
 Gilacorn
+Gixian Puppeteer
 Glissa's Scorn
 Gnarlid Pack
 Goblin Bird-Grabber
 Goblin Diplomats
 Goblin Glory Chaser
+Godhunter Octopus
 Golem's Heart
 Goma Fada Vanguard
 Granite Gargoyle
@@ -107,11 +113,13 @@ Grizzly Fate
 Gruul Keyrune
 Guise of Fire
 Haazda Marshal
+Haru-Onna
 Haunted Angel
 Haunting Hymn
 Hazoret the Fervent
 Headless Horseman
 Heaven Sent
+Hero of Iroas
 Hexgold Halberd
 Hieroglyphic Illumination
 Honor Guard
@@ -156,6 +164,7 @@ Mask of Immolation
 Master of Death
 Maze of Ith
 Meloku the Clouded Mirror
+Mentor's Guidance
 Mind Flayer
 Minister of Inquiries
 Mirrorworks
@@ -179,8 +188,10 @@ Passionate Archaeologist
 Pentarch Ward
 Phylath, World Sculptor
 Plains
+Plated Pegasus
 Poisonbelly Ogre
 Primordial Ooze
+Prized Griffin
 Prophet of Distortion
 Psychic Overload
 Radiant, Archangel
@@ -219,10 +230,12 @@ Shunt
 Sick and Tired
 Sidisi, Undead Vizier
 Silverback Shaman
+Silverstrike
 Slash the Ranks
 Slime Molding
 Slobad, Goblin Tinkerer
 Snuff Out
+Sol Talisman
 Soltari Crusader
 Somnomancer
 Sonic Burst
@@ -240,8 +253,11 @@ Sporeback Wolf
 Squee's Embrace
 Staggering Insight
 Stampede Rider
+Standing Troops
+Steadfast Armasaur
 Stimulus Package
 Street Urchin
+Subjugator Angel
 Sun-Blessed Mount
 Sunastian Falconer
 Sunspring Expedition
@@ -275,6 +291,7 @@ Valeron Outlander
 Vault of Whispers
 Veiled Shade
 Vine Trellis
+Volcanic Awakening
 Vow of Lightning
 Wakandan Shield Guard
 Wall of Mist

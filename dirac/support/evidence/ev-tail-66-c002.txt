@@ -1,5 +1,7 @@
 A-Radha, Coalition Warlord
+A-Wizard Class
 Abiding Grace
+Academy Wall
 Akki Ronin
 Ambuscade Shaman
 Amok
@@ -8,6 +10,7 @@ Archetype of Courage
 Argivian Avenger
 Armor Sliver
 Atarka Beastbreaker
+Avatar Kyoshi, Earthbender
 Axebane Guardian
 Ayara, First of Locthwain
 Balustrade Spy
@@ -16,11 +19,13 @@ Betrothed of Fire
 Black Poplar Shaman
 Blinkmoth Infusion
 Bloodfire Mentor
+Bloodshot Cyclops
 Blossom Prancer
 Bomber Corps
 Boon Reflection
 Boros Swiftblade
 Bumi's Feast Lecture
+Chains of Custody
 Champion of the Flame
 Cloudkill
 Commissar Severina Raine
@@ -34,6 +39,7 @@ Cunning Wish
 Dagger Caster
 Dawn Elemental
 Deadeye Harpooner
+Defy Death
 Deviant Skytech
 Diabolic Intent
 Dimir Informant
@@ -59,11 +65,16 @@ Forced Fruition
 Forest
 Frilled Deathspitter
 Frog-Squirrels
+Gathering Throng
+General Leo Cristophe
 Ghitu Fire-Eater
+Gixian Puppeteer
+Glissa's Scorn
 Gnarlid Pack
 Goblin Bird-Grabber
 Goblin Diplomats
 Goblin Glory Chaser
+Godhunter Octopus
 Golem's Heart
 Granite Gargoyle
 Grave Venerations
@@ -72,9 +83,11 @@ Greater Good
 Grizzly Fate
 Gruul Keyrune
 Guise of Fire
+Haru-Onna
 Haunting Hymn
 Hazoret the Fervent
 Headless Horseman
+Hero of Iroas
 Hexgold Halberd
 Hieroglyphic Illumination
 Hooded Kavu
@@ -88,6 +101,7 @@ Intervene
 Iron Suitcase
 Island
 Jace's Phantasm
+Jackal Pup
 Jeskai Barricade
 Kalemne's Captain
 Karoo Meerkat
@@ -107,6 +121,7 @@ Mark of Mutiny
 Mask of Immolation
 Master of Death
 Maze of Ith
+Mentor's Guidance
 Mind Flayer
 Mise
 Mist Dancer
@@ -117,21 +132,26 @@ Mukotai Ambusher
 Nezumi Informant
 Nico Minoru, Runaway
 Noxious Field
+Nullmage Shepherd
 Oath of Chandra
 Oggyar Battle-Seer
 Pentarch Ward
 Phylath, World Sculptor
 Plains
+Plated Pegasus
 Poisonbelly Ogre
 Primordial Ooze
+Prized Griffin
 Psychic Overload
 Radiant, Archangel
 Rage-Scarred Berserker
 Raging Minotaur
+Raven's Run Dragoon
 Regathan Firecat
 Regrowth
 Rhox Veteran
 Rotting Fensnake
+Rowan Treefolk
 Sacred Rites
 Sacrifice
 Sage of Epityr
@@ -148,13 +168,17 @@ Sentinel Sliver
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
 Shimmerwing Chimera
+Shivan Wurm
 Shreds of Sanity
 Sick and Tired
+Silverstrike
 Slash the Ranks
 Slay
+Slime Molding
 Slobad, Goblin Tinkerer
 Snuff Out
 Soaring Drake
+Sol Talisman
 Soltari Crusader
 Somnomancer
 Sonic Burst
@@ -169,9 +193,12 @@ Squee's Embrace
 Staggering Insight
 Stalking Assassin
 Stampede Rider
+Standing Troops
+Steadfast Armasaur
 Stimulus Package
 Stratozeppelid
 Street Urchin
+Subjugator Angel
 Sudden Shock
 Sunastian Falconer
 Swamp
@@ -200,6 +227,7 @@ Urza's Cave
 Valeron Outlander
 Vedalken Plotter
 Vine Trellis
+Volcanic Awakening
 Wakandan Shield Guard
 Wall of Mist
 Wall of Souls
@@ -207,8 +235,10 @@ Warren Instigator
 Warren Pilferers
 Weight of the Underworld
 Welder Automaton
+Wind Drake
 Wing Splicer
 Wirecat
 Yavimaya Iconoclast
 You Look Upon the Tarrasque
+Zealous Inquisitor
 Zenith Festival

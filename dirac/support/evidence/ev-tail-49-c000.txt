@@ -130,6 +130,7 @@ Expedite
 Extinguish the Light
 Eye Spy
 Faerie Duelist
+Fallen Shinobi
 Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
@@ -155,6 +156,7 @@ Frost Trickster
 Fungal Rebirth
 Gainsay
 Garruk's Companion
+Garruk, Cursed Huntsman
 Gate to Phyrexia
 Gates of Istfell
 Geistblast
@@ -209,6 +211,7 @@ Kazandu Blademaster
 Kei Takahashi
 Kessig Wolfrider
 Kiln Walker
+Kiri-Onna
 Kiss of Death
 Knickknack Ouphe
 Kor Cartographer
@@ -246,6 +249,7 @@ Merciless Eternal
 Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
+Mindmelter
 Misery Charm
 Misery's Shadow
 Moldgraf Scavenger

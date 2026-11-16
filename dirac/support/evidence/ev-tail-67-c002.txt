@@ -9,6 +9,7 @@ Akki Underminer
 Akrasan Squire
 Akroan Crusader
 Alms Beast
+Animate Land
 Aquatic Incursion
 Augury Adept
 Avatar of the Resolute
@@ -17,6 +18,7 @@ Axebane Guardian
 Battlefield Medic
 Bayek of Siwa
 Blade Splicer
+Blight Sickle
 Blisterspit Gremlin
 Buccaneer's Bravado
 Bull Cerodon
@@ -24,9 +26,11 @@ Buried Alive
 Burn the Impure
 Burst of Speed
 Butcher Ghoul
+Cacophony Scamp
 Caldera Pyremaw
 Castle
 Chain Lightning
+Champion's Helm
 Claim the Firstborn
 Cling to Dust
 Cogwork Assembler
@@ -40,6 +44,7 @@ Cosmos Elixir
 Courier's Capsule
 Crop Rotation
 Culling Mark
+Custodi Soulbinders
 Dauntless Survivor
 Deadshot
 Death's-Head Buzzard
@@ -47,6 +52,7 @@ Deathless Angel
 Deep Reconnaissance
 Demon's Grasp
 Demonic Rising
+Despise
 Dismantling Blow
 Domri, Anarch of Bolas
 Ekthi, Contaminator Priest
@@ -70,10 +76,12 @@ Furnace Hellkite
 Gluttonous Zombie
 Goblin Glider
 Goblin Racketeer
+Golgari Raiders
 Grim Monolith
 Hadran, Naya Sunseeder
 Helitrooper
 Hemlock Vial
+Heroes of the Revel
 Honed Khopesh
 Horizon Chimera
 Horseshoe Crab
@@ -119,12 +127,15 @@ Necrobite
 Nemesis of Reason
 Norn's Disassembly
 Oblation
+Obscura Initiate
 Oceanus Dragon
 Pennon Blade
 Pilfering Imp
 Plains
 Primeval Force
+Prizefighter Construct
 Prosper, Tome-Bound
+Psychotrope Thallid
 Purifying Dragon
 Python
 Rage Weaver
@@ -136,13 +147,17 @@ Reckless Charge
 Reckless Handling
 Reduce to Ashes
 Revelation of Power
+Rhox Oracle
+Rolling Thunder
 Samite Pilgrim
 Sandcrafter Mage
+Savage Conception
 Savra, Queen of the Golgari
 Scion of Vitu-Ghazi
 Sculpted Perfection
 Searing Barb
 Searing Blood
+Secure the Scene
 Sentinel Sliver
 Settle the Score
 Shake the Foundations
@@ -157,6 +172,7 @@ Steam Blast
 Streetbreaker Wurm
 Swamp
 Symmetry Sage
+Tale of Katara and Toph
 Tale of Momo
 Talons of Falkenrath
 Talons of Wildwood
@@ -175,19 +191,25 @@ Topan Freeblade
 Tor Giant
 Tormod's Cryptkeeper
 Trenching Steed
+Trigon of Rage
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
 Unholy Hunger
+Vampire Lacerator
+Viashino Fangtail
 Vine Trellis
 Voldaren Stinger
+Walker of Secret Ways
 Warped Devotion
 Way of the Thief
 Weight of the Underworld
 Welder Automaton
 Whispering Wizard
+Windgrace Acolyte
 Wirecat
 Wrath of Oko
 You Look Upon the Tarrasque
+Young Blue Dragon
 Zephyr Falcon
 Zodiac Ox

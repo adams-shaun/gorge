@@ -7,12 +7,15 @@ Aerial Engineer
 Aether Adept
 Aether Inspector
 Aethersnipe
+Akoum Refuge
 Angelic Gift
 Angler Turtle
+Answered Prayers
 Anurid Barkripper
 Anurid Murkdiver
 Arc Trail
 Ardent Soldier
+Armored Ascension
 Armory Guard
 Ashiok's Adept
 Attended Healer
@@ -24,6 +27,7 @@ Barrage Tyrant
 Barrowgoyf
 Basic Conjuration
 Bastion Enforcer
+Besmirch
 Bewilder
 Beyeen Veil
 Blistercoil Weird
@@ -42,6 +46,7 @@ Breaching Hippocamp
 Brimstone Volley
 Burning Hands
 Captain's Hook
+Carnage Wurm
 Carrion Call
 Chaos Terminator Lord
 Choking Restraints
@@ -82,6 +87,7 @@ Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
 Essence Depleter
+Exemplar of Strength
 Faerie Swarm
 Fiddlehead Kami
 Fissure
@@ -99,6 +105,7 @@ Franklin Richards, Ascendant
 From Beyond
 Furnace Spirit
 Gala Greeters
+Galadhrim Bow
 Galvanic Juggernaut
 Gauntlet of Might
 Ghoulsteed
@@ -123,6 +130,7 @@ Harvest Wurm
 Haunted Cadaver
 Havoc Devils
 Helm of the Host
+Horizon Explorer
 Horn of Gondor
 Horned Stoneseeker
 Hornet Sting
@@ -187,6 +195,7 @@ Ob Nixilis, the Fallen
 Oni of Wild Places
 Organ Grinder
 Ornithopter
+Overload
 Painful Lesson
 Painwracker Oni
 Park Heights Pegasus
@@ -223,6 +232,7 @@ Scalding Devil
 Scholar of Athreos
 Scythecat Cub
 Separatist Voidmage
+Serene Steward
 Setessan Starbreaker
 Sewer Rats
 Shadow Summoning
@@ -238,6 +248,7 @@ Silt Crawler
 Silver Raven
 Silverquill Lecturer
 Silverwing Squadron
+Simic Sky Swallower
 Singing Tree
 Skullmane Baku
 Skyblade's Boon
@@ -260,6 +271,7 @@ Swamp
 Sweatworks Brawler
 Swelter
 Swift Response
+Sylvan Reclamation
 Tatyova, Steward of Tides
 Temperamental Oozewagg
 Thalia's Lancers
@@ -278,6 +290,7 @@ Treetop Bracers
 Trench Stalker
 Tribute to Horobi
 Trostani's Summoner
+Trufflesnout
 Tunneler Wurm
 Twitch
 Tyrranax
@@ -311,6 +324,7 @@ Wild Celebrants
 Wings of Aesthir
 Wings of Hope
 Woodland Bellower
+Wrangle
 Wrenn's Resolve
 Wyluli Wolf
 Yavimaya Scion

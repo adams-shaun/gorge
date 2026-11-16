@@ -22,6 +22,7 @@ Baleful Eidolon
 Baleful Force
 Banners Raised
 Bartered Cow
+Beledros Witherbloom
 Beskir Shieldmate
 Blastoderm
 Blazing Specter
@@ -59,6 +60,7 @@ Collector's Case
 Combustible Gearhulk
 Congregation at Dawn
 Conservator
+Courser of Kruphix
 Coursers' Accord
 Court of Ire
 Cradle of Vitality
@@ -70,11 +72,14 @@ Daggerdrome Imp
 Deadly Allure
 Death Pits of Rath
 Death's-Head Buzzard
+Decision Paralysis
 Decorated Champion
 Demon of Catastrophes
 Desert Sandstorm
 Dimir Aqueduct
 Dire Fleet Ravager
+Disciple of Griselbrand
+Dissolve
 Djeru and Hazoret
 Djeru's Renunciation
 Drake Familiar
@@ -108,15 +113,19 @@ Foul Orchard
 Frantic Salvage
 Frenetic Efreet
 Fresh-Faced Recruit
+Fugitive Wizard
 Galadriel, Gift-Giver
+Gandalf the Grey
 Geothermal Kami
 Ghostly Wings
+Glacial Crasher
 Gleam of Battle
 Glintwing Invoker
 Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
 Goblin Spy
+Grandmother Goby
 Grassland Crusader
 Graveborn Muse
 Grimclaw Bats
@@ -124,6 +133,7 @@ Gruesome Discovery
 Guild Thief
 Gut, True Soul Zealot
 Gyre Sage
+Hail of Arrows
 Hardened-Scale Armor
 Haze of Pollen
 Hazoret's Favor
@@ -160,6 +170,7 @@ Jötun Owl Keeper
 Karametra's Blessing
 Kashi-Tribe Reaver
 Kashi-Tribe Warriors
+Keiga, the Tide Star
 Kemba's Banner
 Kinsbaile Skirmisher
 Kitchen
@@ -198,9 +209,11 @@ Necklace of Girion
 Nettle Sentinel
 Nettle Swine
 Neurok Replica
+Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
 Novice Occultist
+Nylea's Intervention
 Ondu Greathorn
 Oppressive Will
 Oracle of Nectars
@@ -212,8 +225,11 @@ Overwhelming Victory
 Pact of Negation
 Paranoid Parish-Blade
 Pardic Wanderer
+Patron of the Valiant
 Pestilence Demon
+Phantasmal Forces
 Pheres-Band Warchief
+Pieces of the Puzzle
 Plague Rats
 Plains
 Planar Atlas
@@ -224,18 +240,21 @@ Political Triumph
 Polluted Bonds
 Potatoes
 Prepare
+Primal Growth
 Prosperous Innkeeper
 Protective Bubble
 Prowling Nightstalker
 Psychic Overload
 Psychosis Crawler
 Puca's Covenant
+Puppet Strings
 Qilin's Blessing
 Quicken
 Quicksilver Fisher
 Quicksilver Geyser
 Raise Dead
 Ramosian Lieutenant
+Ranger of Eos
 Raven's Crime
 Reckless Reveler
 Reclaim
@@ -266,19 +285,24 @@ Scavenged Weaponry
 Scholar of Stars
 Scrapheap
 Scrappy Bruiser
+Screeching Sliver
 Scythecat Cub
+Searing Spear
 Secure the Wastes
 Seed of Hope
 Seer's Sundial
 Selfless Spirit
 Serendib Sorcerer
 Serra's Sanctum
+Setessan Petitioner
 Shadow-Rite Priest
 Shizo, Death's Storehouse
+Shrewd Negotiation
 Shu Farmer
 Shuri, Vibranium Technologist
 Sight of the Scalelords
 Silkenfist Fighter
+Sindbad
 Sinister Starfish
 Skittering Monstrosity
 Skittish Kavu
@@ -318,6 +342,7 @@ Tavern Brawler
 Tavern Ruffian
 Temporal Spring
 The Battle of Bywater
+The Lady of Otaria
 The Lady of the Mountain
 The Monumental Facade
 The Spear of Leonidas
@@ -348,6 +373,7 @@ Veiled Sentry
 Vengeful Regrowth
 Verdant Touch
 Viashino Outrider
+Voice of the Vermin
 Volcanic Upheaval
 Wall of Souls
 Wall of Swords
