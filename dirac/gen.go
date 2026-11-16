@@ -357,7 +357,7 @@ type genPrep struct {
 	anyCharmV       bool           // some card has CardDef.ModesPickV: a dynamic charm pick count (modal_charmcmp.go)
 	anyCharmPick    bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend    bool           // some ability costs CostWaterbend (act_waterbend.go)
-	anyXBoundAb     bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
+	anyXBoundAb     bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it; or a tap-another cost part can strand its mana (cost_collectevidence.go)
 	anyLure         bool           // some card is a lure (CardDef.Lure), or the table can make one (StatLure, mechLure; combat_lure.go)
 	anyLureStat     bool           // a StatLure static (combat_lure.go isLure)
 	anyMustBlock    bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)
@@ -2018,7 +2018,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    Obj             // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
+	tgtSelf    Obj             // the card a feasibility check is for, plus one (0: none): a graveyard or exile card leaves that zone for the stack when cast, and the spell build a post-push sweep prices (its X ask) is on the stack already; CR 115.5 makes both no target of their own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
@@ -2297,8 +2297,9 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
-	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
-	// 4-7 are free. Cleared at the turn change. Taken from rsv.
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 7:
+	// the walk in progress is an unless / ward window (setUnlessWin,
+	// mana_window.go), set and cleared around it. Bits 4-6 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
