@@ -4,33 +4,63 @@ Aggressive Urge
 Anara, Wolvid Familiar
 Anzrag, the Quake-Mole
 Avatar of Growth
+Aven Squire
+Banisher Priest
+Banshee of the Dread Choir
 Bassara Tower Archer
+Benevolent Ancestor
 Benevolent Blessing
 Betrayal of Flesh
 Bitterbow Sharpshooters
 Blessing of Leeches
+Blink of an Eye
 Blood Curdle
+Bone Shredder
 Broken Wings
+Campfire
 Captain Sisay
+Cathartic Pyre
+Cephalid Illusionist
+Chandra's Pyrohelix
+Chief Magistrate of Mercadia
+Claws of Gix
 Colossal Dreadmaw
+Cone of Flame
+Consul's Lieutenant
+Convulsing Licid
 Dark Ritual
 Dauthi Horror
+Desert of the Fervent
 Dyfed, the Guiding Hand
 Elspeth's Smite
 Elvish Visionary
+Energy Flux
+Exile
 Explosive Vegetation
+Explosive Welcome
 Extinguish All Hope
 Fell Gravship
+Filth
+Fireball
 Forest
 Ghost Lantern
+Gideon's Sacrifice
+Gifted Aetherborn
+Granitic Titan
 Heart Warden
+Hoodwink
 Infernal Vessel
+Inner Demon
 Insidious Fungus
 Island
 Kamahl, Heart of Krosa
+Kavu Primarch
+Kor Hookmaster
+Kyren Negotiations
 Lightning Bolt
 Lotus Petal
 Mana Short
+Memnite
 Mentor of the Meek
 Mind Stone
 Mindcrank
@@ -38,24 +68,59 @@ Mirri's Guile
 Mortuary
 Mountain
 Mystic Retrieval
+Nahiri's Machinations
 Nature's Claim
 Oakhame Adversary
+Order of Yawgmoth
+Orochi Eggwatcher
+Otherworldly Journey
 Overrun
 Perimeter Captain
 Pir, Imaginative Rascal
+Pit Keeper
+Plagon, Lord of the Beach
 Plains
+Pox
+Pressure Point
+Prison Term
+Rapacious One
+Rishadan Port
 Secret Rendezvous
+Secrets of the Golden City
+Shower of Coals
 Shrike Force
 Silver Myr
+Smash to Dust
+Spectral Sliver
+Spirit Link
+Sprite Noble
+Stoke the Flames
+Subjugator Angel
+Sunblade Angel
 Supreme Will
 Swamp
+Tainted Strike
+Temporal Fissure
 Thunderdrum Soloist
+Thunderwave
+Tibalt's Rager
 Toby, Beastie Befriender
+Tolaria West
 Toski, Bearer of Secrets
+Totally Lost
 Trollbred Guardian
+Twisted Abomination
+Two-Handed Axe
 Undercity Informer
 Unseal the Necropolis
+Unwavering Initiate
+Valakut Predator
+Vanish into Eternity
 Vastwood Surge
+Veteran Armorer
 Vile Consumption
 Vine Mare
+Walker of Secret Ways
 Whip Silk
+Windgrace Acolyte
+You Find Some Prisoners

@@ -46,6 +46,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -292,7 +293,14 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	d := &decision.Decision{Player: card.Owner, Kind: decision.KTriggerOptional,
 		Min: 1, Max: 1, Source: card.ID, ResumeKind: "madness",
 		Prompt: "Cast " + name + " for its madness cost?"}
+	// offerCastablePotential's mana gate is a per-colour upper bound: a Citadel
+	// Gate's "{W} or the chosen colour" counts one of each, so it prices a
+	// {1}{B} cost as payable from that one land. The planner knows a source
+	// taps once (CR 106.1, 605.3b); only its "insufficient" verdict is a
+	// proof, any other leaves the bound's answer standing.
+	plan := e.potentialModeCastPlan(card.Owner, decision.Option{Kind: "cast", Obj: card.ID, Mode: altMode(altMadness)})
 	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope(m.mode), false) &&
+		(plan.Plan != nil || plan.Reason != pay.ReasonInsufficient) &&
 		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
 		raw, _ := card.Face().KeywordParam(m.head)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",

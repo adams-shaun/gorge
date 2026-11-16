@@ -4,12 +4,14 @@ Acrobatic Cheerleader
 Altanak, the Thrice-Called
 Anthropede
 Appendage Amalgam
+Arabella, Abandoned Doll
 Attack-in-the-Box
 Balustrade Wurm
 Baseball Bat
 Bashful Beastie
 Bear Trap
 Beastie Beatdown
+Bedhead Beastie
 Betrayer's Bargain
 Blazemire Verge
 Bleeding Woods
@@ -28,6 +30,7 @@ Commune with Evil
 Conductive Machete
 Cracked Skull
 Creeping Peeper
+Cryptid Inspector
 Cursed Recording
 Cursed Windbreaker
 Cynical Loner
@@ -153,10 +156,12 @@ Raucous Carnival
 Razorkin Hordecaller
 Razorkin Needlehead
 Razortrap Gorge
+Reluctant Role Model
 Restricted Office
 Resurrected Cultist
 Rip, Spawn Hunter
 Ripchain Razorkin
+Rite of the Moth
 Rootwise Survivor
 Savior of the Small
 Saw
@@ -166,6 +171,7 @@ Seized from Slumber
 Shardmage's Rescue
 Sheltered by Ghosts
 Shrewd Storyteller
+Shroudstomper
 Slavering Branchsnapper
 Spineseeker Centipede
 Split Up
@@ -191,6 +197,7 @@ Tunnel Surveyor
 Turn Inside Out
 Twist Reality
 Twitching Doll
+Tyvar, the Pummeler
 Unable to Scream
 Under the Skin
 Underwater Tunnel

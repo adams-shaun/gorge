@@ -1,4 +1,5 @@
 A.I.M. Labs
+A.I.M. Scientists
 A.I.M. Synthoids
 Abomination, Terrifying Titan
 Aerial Doombot
@@ -20,9 +21,11 @@ Atlantis Attacks
 Attuma, Atlantean Warlord
 Avengers Assemble!
 Avengers Disassembled
+Avengers Hangar
 Avengers Tower
 Avengers: Under Siege
 Baron Strucker, HYDRA Overlord
+Baxter Building
 Beast, Erudite Aerialist
 Birnin Zana Plaza
 Black Panther, Vanguard
@@ -30,6 +33,7 @@ Black Widow, Double Agent
 Black Widow, Super Spy
 Blazing Crescendo
 Bold Biochemist
+Borough Backup
 Brave Brawler
 Call Damage Control
 Captain America's Shield
@@ -66,6 +70,8 @@ Fisk Tower
 Forest
 Frozen in Ice
 Futurist Forge
+Gathering Place
+Ghost, Spectral Saboteur
 Giant Growth
 Giant-Sized Flying Ant
 Gleaming Bastion
@@ -91,9 +97,11 @@ Hidden Lair
 Hire a Crew
 Hour of Defeat
 Hulk, Gamma Goliath
+Hulkling, Burgeoning Bruiser
 Human Torch, Johnny Storm
 Hydraulic Helper
 I Am Iron Man
+Iron Lad, Diverging Destiny
 Iron Man, Master of Machines
 Island
 Jennifer Walters
@@ -101,6 +109,7 @@ Jessica Jones, Private Eye
 Justice, Vance Astrovik
 K'un-Lun Warrior
 Ka-Zar of the Savage Land
+Kang, Temporal Tyrant
 Killmonger, Scourge of Wakanda
 King T'Challa
 Kingpin's Enforcers
@@ -108,6 +117,7 @@ Knight of Wundagore
 Kree Commandos
 Kree Sentinel
 Lightning Strike
+Loki Laufeyson
 Los Diablos Missile Base
 Luke Cage, Power Man
 M.O.D.O.K.
@@ -143,21 +153,29 @@ Quake, Agent of S.H.I.E.L.D.
 Quicksilver, Brash Blur
 Rapid Rescue
 Red Guardian, Super-Soldier
+Red Hulk
 Red Room Recruit
 Reptil, Dinomorpher
 Repulsor Blast
 Restorative Technique
+Rewrite History
 Rick Jones, Destined Sidekick
 Roxxon Brutes
 S.H.I.E.L.D. Deployment Drone
 S.H.I.E.L.D. Flying Car
 S.H.I.E.L.D. Helicarrier
 S.H.I.E.L.D. Spy Kit
+Savage Land Dinosaur
+Scientist Supreme of A.I.M.
 Serpent Specialist
+Shang-Chi, Master of Kung Fu
 She-Hulk, Jade Defender
 Shuri, Wakandan Inventor
+Speed, Young Avenger
 Speedball, New Warrior
 Spider-Man, To the Rescue
+Spider-Woman, Secret Agent
+Stark Industries
 Stark Industries Executive
 Stolen Stark Tech
 Subterranean Cavern
@@ -166,18 +184,21 @@ Super Speed
 Super Strength
 Super Suit
 Super Villain Lockup
+Super-Adaptoid
 Super-Skrull
 Surveillance Room
 Swamp
 Swordsman, Sharp Scoundrel
 Take Up the Shield
 Team Tactics
+The Astonishing Ant-Man
 The Coming of Galactus
 The Masters of Evil
 The Ruinous Wrecking Crew
 The Scarlet Witch
 The Sentry, Golden Guardian
 The Serpent Society
+The Ten Rings
 The Thing, Ben Grimm
 The Unbeatable Squirrel Girl
 The Vision
@@ -215,5 +236,6 @@ White Widow, Free Agent
 Wiccan, Rising Magician
 Widow's Bite
 Winter Soldier, Icy Assassin
+Wolverine, Fierce Fighter
 Worlds Within Worlds
 Yellowjacket, Heartless Marauder

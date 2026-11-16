@@ -4,6 +4,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// ask (dirac/manifest/ask/raDredge)
+const raDredge uint8 = 146
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -665,6 +668,44 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.nameCardExt(k, in) // repl_namecard.go
 	case kop.ExtPutContract:
 		return s.putContract(k, in) // ctr_contract.go
+	case kop.ExtPutCounterChoice:
+		return s.putCounterChoice(k, in) // ctr_choice.go
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
+}
+
+// execOpGen runs a hot-band op whose handler is marked //kmanifest:op in its
+// feature file: the cold op chain's last call (execGen); done=false: not one of them.
+//
+//go:noinline
+func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
+	switch in.Op {
+	}
+	return true, false
+}
+
+// askOptionsGen builds the options of a resolution ask whose handlers are marked
+// //kmanifest:askopts in their feature file (askOptionsCold1's last call); false: not one of them.
+//
+//go:noinline
+func (s *State) askOptionsGen(k *prep, d *Decision) bool {
+	switch s.res.ask {
+	case raDredge:
+		s.dredgeAskOptions(k, d) // kw_dredge.go
+		return true
+	}
+	return false
+}
+
+// applyAskGen applies an answer to a resolution ask whose handlers are marked
+// //kmanifest:askapply in their feature file (applyAskCold1's last call); false: not one of them.
+//
+//go:noinline
+func (s *State) applyAskGen(k *prep, a Action) bool {
+	switch s.res.ask {
+	case raDredge:
+		s.dredgeAskAnswer(k, a) // kw_dredge.go
+		return true
+	}
+	return false
 }

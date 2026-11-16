@@ -817,8 +817,12 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 		}
 		d := c.Pending()
 		for guard := 0; d != nil && d.Player != p && guard < 8; guard++ {
-			if d.Kind != decision.KPriority && waits > 0 {
-				break // another player's answer to a waiting trigger: searched below
+			if d.Kind != decision.KPriority {
+				// Another player's own ask the payment's activations
+				// set off (the order of their simultaneous triggers a
+				// sacrificed source triggered, CR 603.3b): searched
+				// below, like the acting player's own ask.
+				break
 			}
 			// Another player's priority while a trigger resolves: pass.
 			pass := -1
@@ -827,7 +831,7 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 					pass = opt.Index
 				}
 			}
-			if d.Kind != decision.KPriority || pass < 0 || c.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}) != nil {
+			if pass < 0 || c.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}) != nil {
 				return false
 			}
 			d = c.Pending()
@@ -839,10 +843,13 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			return true
 		}
 		// A trigger the paying sacrifice set off waits for the cast to
-		// finish (CR 601.2g, 603.3b): its controller's answer to it, when the
-		// walk lets it resolve first, is any answer (Zoetic Glyph's discover
-		// after its Treasure paid).
-		other := d != nil && d.Player != p && d.Kind != decision.KPriority && waits > 0
+		// finish (CR 601.2g, 603.3b): its controller's answer to it, when
+		// the walk lets it resolve first, is any answer (Zoetic Glyph's
+		// discover after its Treasure paid) -- and so is the order of
+		// that player's own simultaneous triggers a sacrificed source
+		// triggered (Dreadhound over the Eldrazi Spawn whose activation
+		// pays), which reaches the witness before p can finish paying.
+		other := d != nil && d.Player != p && d.Kind != decision.KPriority
 		if d == nil || d.Player != p && !other || c.G.Over || c.G.Turn != turn || c.G.Step != step {
 			return false
 		}

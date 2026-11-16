@@ -56,6 +56,7 @@ Dark Knight's Greatsword
 Deadly Embrace
 Delivery Moogle
 Demon Wall
+Diamond Weapon
 Dion, Bahamut's Dominant
 Dragoon's Lance
 Dragoon's Wyvern
@@ -86,6 +87,7 @@ Genji Glove
 Gigantoad
 Giott, King of the Dwarves
 Gladiolus Amicitia
+Gogo, Master of Mimicry
 Gohn, Town of Ruin
 Golbez, Crystal Collector
 Gongaga, Reactor Town
@@ -246,6 +248,7 @@ Treno, Dark City
 Ultima
 Ultima Weapon
 Ultimecia, Temporal Threat
+Ultros, Obnoxious Octopus
 Undercity Dire Rat
 Valkyrie Aerial Unit
 Vayne's Treachery

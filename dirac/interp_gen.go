@@ -134,6 +134,7 @@ const (
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
+	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1030,7 +1031,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return s.execSetState(k, in)
 		}
 		if in.Op >= kop.OpPutCounterAll {
-			if ok, done := s.execCold1(k, in); done {
+			if ok, done := s.execColdOps(k, in); done {
 				return ok, true
 			}
 		}
@@ -2055,7 +2056,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		nf := 0
 		// the scan window in scan order (DuRememberRevealed's reveal list:
 		// gorge appends every revealed card, found ones included, at the end
-		// of the player's walk)
+		// of the player's walk; DuFoundWithRevealed's rest list, same order)
 		var all [MaxDeck]Obj
 		na := 0
 		cmc := 0
@@ -2064,10 +2065,8 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		// Amount$ still reveals nothing (gorge's amount > 0 gate).
 		for i := 0; (resumed || minCMC > 0 && want > 0 && cmc < minCMC || minCMC == 0 && found < want) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
 			o := pl.lib[int(pl.libLo)+i]
-			if fl&kop.DuRememberRevealed != 0 {
-				all[na] = o
-				na++
-			}
+			all[na] = o
+			na++
 			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && (minCMC > 0 || found < want) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
@@ -2110,8 +2109,15 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 			}
 		}
 		if fl&kop.DuFoundWithRevealed != 0 {
-			for i := 0; i < nf; i++ {
-				rev[nr] = fnd[i]
+			// the rest is the whole revealed pile in scan order, the found
+			// cards at their own scan positions (Forge DigUntilEffect: with
+			// no FoundDestination$ the found-move block is skipped and the
+			// final loop walks `revealed` — the collection the scan built;
+			// gorge effDigUntil's toReturn). Appending the found cards last
+			// landed the lands on top of a Mirko Vosk mill's graveyard batch.
+			nr = 0
+			for i := 0; i < na; i++ {
+				rev[nr] = all[i]
 				nr++
 			}
 			nf = 0

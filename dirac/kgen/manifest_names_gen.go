@@ -1173,6 +1173,12 @@ func init() { enum[kop.ReplKind]("kop.ReplRollPlanarDice", kop.ReplRollPlanarDic
 // dirac/manifest/ReplKind/ReplPreventDamageToSelf
 func init() { enum[kop.ReplKind]("kop.ReplPreventDamageToSelf", kop.ReplPreventDamageToSelf) }
 
+// dirac/manifest/ReplKind/ReplPreventDamageFilt
+func init() { enum[kop.ReplKind]("kop.ReplPreventDamageFilt", kop.ReplPreventDamageFilt) }
+
+// dirac/manifest/ReplKind/ReplPreventDamageN
+func init() { enum[kop.ReplKind]("kop.ReplPreventDamageN", kop.ReplPreventDamageN) }
+
 // dirac/manifest/StaticKind/StatOptionalAttackCost
 func init() { enum[kop.StaticKind]("kop.StatOptionalAttackCost", kop.StatOptionalAttackCost) }
 

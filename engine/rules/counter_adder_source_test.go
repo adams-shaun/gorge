@@ -251,8 +251,11 @@ func TestCounterModularCauseTriggered(t *testing.T) {
 	}
 	e.priorityRound()
 	passUntilStackEmpty(t, e, 20)
-	if got := e.G.Obj(id).Counter("P1P1"); got != 2 {
-		t.Fatalf("Zabaz on a modular trigger's 1-counter put = %d, want 2 (Triggered.Modular matches)", got)
+	// K:Modular:1 now also expands to its own entry counter (a replacement,
+	// not a triggered ability, so Zabaz leaves it at 1); the trigger's put
+	// of 1 is doubled to 2.
+	if got := e.G.Obj(id).Counter("P1P1"); got != 3 {
+		t.Fatalf("Zabaz on a modular trigger's 1-counter put = %d, want 3 (1 entry + 1 doubled to 2)", got)
 	}
 	replayCheck(t, e, cfg)
 }
