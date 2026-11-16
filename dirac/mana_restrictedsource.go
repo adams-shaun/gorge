@@ -188,19 +188,14 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			if a.ManaEach {
 				prepEachMana(a, &v)
 			}
-			firstSpellOnly := false
-			for i := range g.rs.recs {
-				rec := &g.rs.recs[i]
-				if rec.card == id && rec.kind != rkDyn && c.Abilities[rec.ab].ManaRestrictAb == 0 {
-					firstSpellOnly = true
-				}
-			}
-			if n > 1 && a.ManaRestrictAb != 0 && firstSpellOnly {
-				// the activation-only larger ability beside a spell-only first
-				// one (Steelswarm Operator's {U}{U}): a tap of it can overpay,
-				// so its unit floats restricted (plan) and the window payment
-				// takes payRestrX's route. A sole restricted ability of more
-				// than one mana keeps the old unit.
+			if n > 1 {
+				// a restricted ability of more than one mana with no census
+				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
+				// Workshop's {C}{C}{C}): a tap of it can overpay, so its unit
+				// floats restricted (plan) and the window payment takes
+				// payRestrX's route. What a cheaper spell leaves of Workshop's
+				// three stays under "artifact spells only" and no activation
+				// may spend it (CR 106.6).
 				v.restrFloat = true
 				g.rs.over = true
 			}
