@@ -110,6 +110,7 @@ Enormous Baloth
 Ephara's Radiance
 Erinis, Gloom Stalker
 Essence Depleter
+Etali, Primal Conqueror
 Everett K. Ross, Hapless Attaché
 Exclude
 Exhaustion
@@ -162,6 +163,7 @@ Howl of the Night Pack
 Huatli's Snubhorn
 Illusionary Wall
 Illusory Ambusher
+Impulsivity
 Inkfathom Infiltrator
 Inspiring Captain
 Insurrection
@@ -174,8 +176,11 @@ Ivy Seer
 Ixalli's Diviner
 Izzet Cluestone
 Jandor's Saddlebags
+Jubilant Mascot
+Judge Unworthy
 Juvenile Mist Dragon
 Kaijin of the Vanishing Touch
+Katara's Reversal
 Keening Apparition
 Keepsake Gorgon
 Kinsbaile Skirmisher
@@ -217,6 +222,7 @@ Mishra's Bauble
 Mishra's Command
 Mishra's Onslaught
 Molimo, Maro-Sorcerer
+Molten-Tail Masticore
 Mosscoat Goriak
 Mountain
 Mystic Meditation
@@ -232,6 +238,7 @@ Oakenform
 Oakheart Dryads
 Oboro Envoy
 Obsessive Collector
+Ondu Giant
 Onslaught
 Oracle of Mul Daya
 Orochi Ranger
@@ -255,6 +262,7 @@ Purple Pentapus
 Pyrokinesis
 Raised by Giants
 Rakdos Ringleader
+Rakdos Trumpeter
 Rakshasa's Secret
 Ral's Dispersal
 Ranger en-Vec
@@ -309,10 +317,12 @@ Shoot Down
 Shrapnel Blast
 Shriekgeist
 Shrine of Loyal Legions
+Shu Elite Infantry
 Shuri, Vibranium Technologist
 Silent Observer
 Silver Drake
 Silverclaw Griffin
+Silverquill Silencer
 Simic Ragworm
 Skinrender
 Skophos Reaver
@@ -349,6 +359,7 @@ Thalia, Guardian of Thraben
 Thassa's Ire
 The Bear Force Pilot
 The Binding of the Titans
+The Darkhold
 The Whizzer, Classic Speedster
 Their Number Is Legion
 Thieving Magpie
@@ -390,6 +401,7 @@ Wheel of Fortune
 Whelming Wave
 Windborne Charge
 Wizard Class
+Wolverine Riders
 Yotian Medic
 Zebra Unicorn
 Zodiac Snake

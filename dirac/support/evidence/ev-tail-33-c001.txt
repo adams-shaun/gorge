@@ -14,6 +14,7 @@ Afterlife Insurance
 Aftershock
 Agent of Horizons
 Agent of Masks
+Aid from the Cowl
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
@@ -68,6 +69,7 @@ Charforger
 Chittering Witch
 Circle of Flame
 Citywatch Sphinx
+Cold-Water Snapper
 Commander Greven il-Vec
 Confront the Unknown
 Consult the Necrosages
@@ -96,6 +98,7 @@ Deranged Whelp
 Despondent Killbot
 Destroy Evil
 Destructive Digger
+Detonate
 Dewdrop Spy
 Dimir Machinations
 Dire Tactics
@@ -105,6 +108,7 @@ Dovescape
 Draconic Destiny
 Dragonlord Silumgar
 Dragonwing Glider
+Drawn from Dreams
 Dread Warlock
 Drelnoch
 Dripping Dead
@@ -144,6 +148,7 @@ Force Spike
 Forceful Cultivator
 Forest
 Freejam Regent
+Frontline Sage
 Furious Resistance
 Furnace Gremlin
 Gaea's Might
@@ -158,12 +163,14 @@ Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Grozoth
 Gwaihir, Greatest of the Eagles
 Hammer of Purphoros
 Harvesttide Infiltrator
 Haunted Dead
 Hazoret's Monument
+Healer's Headdress
 History of Benalia
 Honor's Reward
 Horrific Assault
@@ -217,9 +224,11 @@ Manabond
 Marauding Boneslasher
 Marauding Knight
 Mass Hysteria
+Mawcor
 Maximize Altitude
 Memorial to Folly
 Military Intelligence
+Mimic
 Mindless Conscription
 Ministrant of Obligation
 Mogg Conscripts
@@ -266,7 +275,9 @@ Purify
 Quarantine Field
 Quirion Dryad
 Raiders' Spoils
+Rattlechains
 Ravenous Leucrocota
+Razaketh's Rite
 Raze
 Razorjaw Oni
 Reanimate
@@ -274,6 +285,7 @@ Reaver Drone
 Reckoner's Bargain
 Redemption Choir
 Regeneration
+Relentless Advance
 Remember the Fallen
 Rending Volley
 Renounce
@@ -281,6 +293,7 @@ Reverent Hunter
 Rewind
 Rhys the Redeemed
 Rip Apart
+Riptide Chronologist
 Roar of the Wurm
 Rona, Disciple of Gix
 Roofstalker Wight
@@ -315,6 +328,7 @@ Shu Grain Caravan
 Sibling Rivalry
 Sifter of Skulls
 Sisay's Ring
+Sivitri Scarzam
 Skizzik Surger
 Skyclave Relic
 Skyreaping
@@ -369,7 +383,9 @@ Undead Servant
 Undo
 Unyaro Bee Sting
 Urborg Shambler
+Urza's Command
 Utvara Scalper
+Vedalken Engineer
 Verdant Crescendo
 Verdant Embrace
 Vernal Fen

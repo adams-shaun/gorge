@@ -59,7 +59,9 @@ Choking Restraints
 Chorus of Might
 Churning Eddy
 Clattering Augur
+Cloakwood Swarmkeeper
 Cogwork Spy
+Concord with the Kami
 Confound
 Consider
 Consign
@@ -91,10 +93,12 @@ Doomskar
 Dreadmalkin
 Dromoka Monument
 Drumhunter
+Duskworker
 Earthlink
 Elemental Summoning
 Ellyn Harbreeze, Busybody
 Elvish Handservant
+Embraal Gear-Smasher
 Empty City Ruse
 Endless Cockroaches
 Entish Restoration
@@ -125,6 +129,7 @@ Frontier Mastodon
 Furious Assault
 Garruk, Caller of Beasts
 Genestealer Locus
+Ghost-Lit Raider
 Gift of Granite
 Gift of Wrath
 Glistening Extractor
@@ -176,6 +181,7 @@ Jade Guardian
 Jagwasp Swarm
 Jon Irenicus, the Exile
 Just the Wind
+K-9, Mark I
 Kaleidoscorch
 Karn's Bastion
 Kessig Wolfrider
@@ -197,6 +203,7 @@ Mana Prism
 Manor Gate
 Mardu Outrider
 Maulfist Doorbuster
+Maximize Velocity
 Mending Touch
 Merfolk Observer
 Merfolk of the Depths
@@ -271,6 +278,7 @@ Resounding Silence
 Returned Pastcaller
 Reverberate
 Rhonas's Monument
+Rhovanion Rampager
 Rhystic Study
 Riders of Rohan
 Roc Egg
@@ -282,6 +290,7 @@ Sandstorm
 Savage Silhouette
 Scarlet Witch, Wanda Maximoff
 Secrets of the Golden City
+Selesnya Locket
 Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
@@ -380,6 +389,7 @@ Wakandan Tusker
 Walking Skyscraper
 Wall of Limbs
 War Chariot
+Ward Sliver
 Watchful Giant
 Waterlogged Teachings
 Wave of Terror

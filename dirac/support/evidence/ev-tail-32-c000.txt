@@ -1,7 +1,9 @@
 Abstruse Interference
 Advanced Hoverguard
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
+Aether Shockwave
 Ageless Guardian
 Akki Rockspeaker
 Akoum Boulderfoot
@@ -60,6 +62,7 @@ Curious Altisaur
 Cut
 Dakmor Plague
 Dark Betrayal
+Dark Ritual
 Darksteel Brute
 Death-Hood Cobra
 Definitely Not a Turtle
@@ -74,6 +77,7 @@ Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
 Eidolon of Countless Battles
+Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
@@ -120,14 +124,17 @@ Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grip of Desolation
 Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
+Hasran Ogress
 Haunted Cloak
 Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Highway Robber
+Hold the Line
 Hollowhenge Overlord
 Honor the Past
 Howlpack Resurgence
@@ -184,6 +191,7 @@ Mistmeadow Skulk
 Monstrous Hound
 Mortician Beetle
 Mountain
+Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
@@ -214,6 +222,7 @@ Rakka Mar
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
+Reckless Imp
 Relic of Progenitus
 Renounce
 Returned Centaur
@@ -230,6 +239,7 @@ Rust Monster
 Salt Marsh
 Sandstone Warrior
 Savage Thallid
+Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
@@ -272,6 +282,7 @@ Thriving Ibex
 Thunder Wall
 Tolarian Sentinel
 Tomb Fortress
+Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler

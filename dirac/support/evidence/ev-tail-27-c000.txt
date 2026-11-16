@@ -197,6 +197,7 @@ Ornery Goblin
 Orzhov Keyrune
 Out of the Way
 Overload
+Owen Grady, Raptor Trainer
 Pangosaur
 Paradise Druid
 Pardic Collaborator
@@ -208,12 +209,14 @@ Polukranos Reborn
 Promise of Power
 Python
 Rakdos the Defiler
+Rakdos, Lord of Riots
 Ravenous Baboons
 Red Ghost, Intangible Genius
 Reign of Terror
 Rhystic Deluge
 Rite of Flame
 Ritual of Soot
+Riven Turnbull
 Rotlung Reanimator
 Sage of the Falls
 Sarah Jane Smith

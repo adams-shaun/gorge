@@ -35,6 +35,7 @@ Blinding Souleater
 Blood Pact
 Bloodchief's Thirst
 Bogbrew Witch
+Bolrac-Clan Crusher
 Bone Saw
 Breakneck Berserker
 Brilliant Restoration
@@ -164,6 +165,7 @@ Ivory Charm
 Jackhammer
 Jodah's Codex
 Jousting Lance
+Joven and Chandler
 Jugan, the Rising Star
 Kalonian Twingrove
 Kaya's Ghostform
@@ -184,6 +186,7 @@ Leaf-Crowned Visionary
 Let the Galaxy Burn
 Leveler
 Leyline Invocation
+Life Insurance
 Light of Hope
 Lightning Elemental
 Living Wish
@@ -238,6 +241,7 @@ Pouncing Cheetah
 Practical Research
 Prava of the Steel Legion
 Presence of the Wise
+Pridemalkin
 Primal Frenzy
 Protection Magic
 Psionic Snoop
@@ -295,7 +299,9 @@ Shielded by Faith
 Shocker
 Show of Confidence
 Sigiled Skink
+Silverclad Ferocidons
 Siren of the Silent Song
+Skittering Invasion
 Skulking Fugitive
 Skull Catapult
 Skyblinder Staff
@@ -359,6 +365,7 @@ Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
+Undercover Butler
 Unexpected Windfall
 Unholy Officiant
 Unity of Purpose

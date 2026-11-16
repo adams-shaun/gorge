@@ -50,6 +50,7 @@ Blitz Automaton
 Blood Ogre
 Bloodcrazed Neonate
 Bloodline Necromancer
+Bloodstone Goblin
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
@@ -99,6 +100,7 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 Crypt Ghast

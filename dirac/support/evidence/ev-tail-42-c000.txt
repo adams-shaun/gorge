@@ -65,6 +65,7 @@ Burning Oil
 Captain's Hook
 Carnage Wurm
 Carrion Call
+Cascade Seer
 Caustic Crawler
 Centaur Healer
 Cerulean Drake
@@ -169,6 +170,7 @@ Glint Raker
 Gloomwidow's Feast
 Gnathosaur
 Go for the Throat
+Go-Shintai of Life's Origin
 Gobland
 Goblin Diplomats
 Goblin Matron

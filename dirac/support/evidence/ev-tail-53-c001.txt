@@ -42,6 +42,7 @@ Brilliant Plan
 Brimaz, Blight of Oreskos
 Brimstone Mage
 Burning Prophet
+Burning Sands
 Cabal Evangel
 Cabal Pit
 Cage of Hands
@@ -55,6 +56,8 @@ Challenger Troll
 Chandra's Pyrohelix
 Chlorophant
 Cinder Shade
+Cinder Wall
+Coastal Piracy
 Colossal Dreadmaw and Storm Crow
 Colossodon Yearling
 Commune with Dinosaurs
@@ -62,13 +65,17 @@ Conquering Manticore
 Contract Hero
 Corrupted Zendikon
 Cranial Ram
+Cryptbreaker
 Cunning Wish
 Cut the Earthly Bond
+Daring Archaeologist
 Daring Leap
 Dark Banishing
+Davriel, Rogue Shadowmage
 Deathgreeter
 Deathsprout
 Decorated Champion
+Deep-Slumber Titan
 Deepchannel Mentor
 Deepwood Denizen
 Denizen of the Deep
@@ -81,6 +88,7 @@ Drag Under
 Drowned Secrets
 Dueling Rapier
 Eager Beaver
+Earth Elemental
 Earthshaker Giant
 Earthshaking Si
 Elturgard Ranger
@@ -88,11 +96,18 @@ Embraal Gear-Smasher
 Enraging Licid
 Etherium Spinner
 Evolved Sleeper
+Exhume
 Fa'adiyah Seer
 Face of Fear
+Faerie Seer
+Famine
+Fangren Pathcutter
 Faramir, Steward of Gondor
+Feral Hydra
 Field Creeper
 Field Surgeon
+Fists of the Demigod
+Flailing Ogre
 Flame Discharge
 Flicker
 Flow of Ideas
@@ -105,14 +120,17 @@ Glimmer Bairn
 Glintwing Invoker
 Gluntch, the Bestower
 Gnottvold Recluse
+Goblin Settler
 God-Pharaoh's Faithful
 Goldmeadow Lookout
 Golem Foundry
 Greater Basilisk
 Greed
 Grizzled Wolverine
+Grond, the Gatebreaker
 Gruesome Realization
 Hapatra, Vizier of Poisons
+Headhunter
 Heat Ray
 Hekma Sentinels
 Hellrider
@@ -123,15 +141,18 @@ Iconic Shield
 Increasing Savagery
 Incubation
 Infiltrator il-Kor
+Insufferable Balladeer
 Inventor's Apprentice
 Island
 Jagged Poppet
+Jarl of the Forsaken
 Jinxed Choker
 Joint Exploration
 Juniper Order Rootweaver
 Junk Winder
 Jwar Isle Avenger
 Kabuto Moth
+Karfell Kennel-Master
 Kazandu Stomper
 Kelpie Guide
 Kitchen Imp
@@ -148,6 +169,8 @@ Loxodon Stalwart
 Loyal Cathar
 Lu Xun, Scholar General
 Lunar Hatchling
+Magma Spray
+Magus of the Wheel
 Makeshift Munitions
 Man-o'-War
 Marauder's Axe
@@ -171,7 +194,9 @@ Necromancer's Familiar
 Netherborn Phalanx
 Never
 Niblis of the Breath
+Nightmare Unmaking
 Nimana Skydancer
+Nirkana Revenant
 Noble Benefactor
 Nullmage Shepherd
 Nyxborn Courser
@@ -182,13 +207,16 @@ Okiba Salvage
 Old One Eye
 Ondu Knotmaster
 Ondu War Cleric
+Ophiomancer
 Oracle of Mul Daya
 Ordeal of Thassa
 Ornithopter of Paradise
 Paladin of the Bloodstained
 Pearl Lake Ancient
+Pendrell Drake
 Phyrexian Digester
 Phyrexian Juggernaut
+Pit Raptor
 Pit Trap
 Plains
 Plated Sliver
@@ -197,6 +225,8 @@ Psionic Snoop
 Psychic Miasma
 Pulsemage Advocate
 Pyreswipe Hawk
+Queen's Bay Soldier
+Rage Reflection
 Ranger's Path
 Recalibrate
 Renewal
@@ -212,6 +242,7 @@ Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
 Scrabbling Claws
+Scrappy Bruiser
 Sea Gate Banneret
 Seascape Aerialist
 Sedraxis Alchemist
@@ -222,11 +253,13 @@ Shanna, Sisay's Legacy
 Shared Summons
 Sifa Grent
 Sigil of the Empty Throne
+Silverclaw Griffin
 Sinew Sliver
 Skittering Heartstopper
 Skull Catapult
 Skullmead Cauldron
 Skyblinder Staff
+Skywhaler's Shot
 Slagwoods Bridge
 Smoke Bomb
 Sneaky Homunculus
@@ -235,6 +268,7 @@ Solemn Offering
 Soul's Attendant
 Soulcatcher
 Sparring Golem
+Spiteflame Witch
 Spore Flower
 Squall
 Stitched Drake
@@ -244,31 +278,40 @@ Submerge
 Sunblast Angel
 Sunspring Expedition
 Swamp
+Swooping Lookout
 Sylvan Yeti
 Syndicate Messenger
+Tahngarth's Rage
 Tail Swipe
 Tattered Apparition
 Tempest Caller
 Temur Runemark
 The Fabulous Frog-Man
 The Gaffer
+Tidal Courier
 Timberland Guide
 Timberwatch Elf
+Titania, Proud Pummeler
 To Arms!
 Torch Drake
 Torpor Dust
+Tribute to Urborg
 Triton Cavalry
 Umara Entangler
 Underworld Coinsmith
 Unyaro Bees
 Upheaval
 Urban Daggertooth
+Utvara Hellkite
 Vampire of the Dire Moon
 Vigilant Drake
 Viral Drake
+Viscera Seer
 Vitalizing Cascade
 Voice of the Blessed
+Voltaic Whip
 Vraska's Finisher
+Vug Lizard
 Waking Nightmare
 Walking Ballista
 War Oracle
@@ -276,7 +319,10 @@ War Priest of Thune
 Watchwing Scarecrow
 White Dragon
 Wild Wanderer
+Winter Sky
 Witherbloom Apprentice
+Wizard's Lightning
 Worm Harvest
+Wrecking Ogre
 Yavimaya Wurm
 Zephyr Gull
