@@ -8,6 +8,7 @@ Ajani, Adversary of Tyrants
 Altar's Light
 Ancestral Memories
 Animating Faerie
+Applied Biomancy
 Arbalest Elite
 Arbor Armament
 Arcade Cabinet
@@ -20,6 +21,7 @@ Artillerize
 Ash Barrens
 Assault Zeppelid
 Auriok Salvagers
+Avatar of Will
 Aven Heartstabber
 Azorius Skyguard
 Azra Oddsmaker
@@ -40,6 +42,7 @@ Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Bramble Armor
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -49,6 +52,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Campus Renovation
 Capsize
 Celestial Crusader
 Cenn's Heir
@@ -64,6 +68,7 @@ Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Conclave Phalanx
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
@@ -91,13 +96,16 @@ Dega Disciple
 Demonic Appetite
 Devils' Playground
 Dire Fleet Neckbreaker
+Dirge of Dread
 Dismal Failure
 Dominating Licid
 Dragon Roost
 Drana, Liberator of Malakir
 Drift of Phantasms
+Duergar Hedge-Mage
 Dust Elemental
 Eerie Procession
+Eiganjo Uprising
 Elvish Eulogist
 Elvish Vanguard
 Ember Beast
@@ -110,6 +118,7 @@ Ephemerate
 Eternal Thirst
 Ethercaste Knight
 Eutropia the Twice-Favored
+Excise
 Extravagant Spirit
 Falkenrath Celebrants
 Falkenrath Pit Fighter
@@ -124,6 +133,7 @@ Flowstone Infusion
 Fogwalker
 Font of Mythos
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
@@ -140,6 +150,7 @@ Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin Chainwhirler
+Goblin Dynamo
 Goblin King
 Goblinslide
 Golden Ratio
@@ -171,6 +182,7 @@ Horned Kavu
 Howl from Beyond
 Howling Wolf
 Hungry Mist
+Hunt the Hunter
 Immortal Servitude
 Impale
 Implement of Malice
@@ -216,8 +228,10 @@ Magmatic Chasm
 Makindi Sliderunner
 Mantle of Webs
 March from the Black Gate
+Martial Glory
 Maulfist Squad
 Mavren Fein, Dusk Apostle
+Merciless Eviction
 Merfolk Seer
 Metropolis Sprite
 Mine Collapse
@@ -235,9 +249,11 @@ Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Muzzle
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent
+Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
@@ -257,6 +273,7 @@ Ogre Painbringer
 Oko's Hospitality
 Ollenbock Escort
 One-Eyed Scarecrow
+Oona's Blackguard
 Orcish Artillery
 Pack Mastiff
 Palace Sentinels
@@ -278,6 +295,7 @@ Predator, Flagship
 Prismatic Strands
 Profit
 Prophet of Kruphix
+Prosperous Partnership
 Psychic Allergy
 Puppet Conjurer
 Raging Spirit
@@ -303,6 +321,7 @@ Sailors' Bane
 Salvage Scuttler
 Samite Herbalist
 Samut, Voice of Dissent
+Sanctum of Fruitful Harvest
 Sapphire Medallion
 Sarinth Steelseeker
 Scavenger Folk
@@ -321,6 +340,7 @@ Silundi Vision
 Silvan Reveler
 Silver Drake
 Simic Cluestone
+Simic Locket
 Sire of Insanity
 Skirk Ridge Exhumer
 Skitterbeam Battalion
@@ -341,6 +361,7 @@ Springmantle Cleric
 Sprout
 Stalking Drone
 Start
+Stillmoon Cavalier
 Stonewood Invoker
 Storm Fleet Pyromancer
 Strange Augmentation
@@ -357,6 +378,7 @@ Sweet Oblivion
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
+Tamiyo, Inquisitive Student
 Tazeem Roilmage
 Temur Battle Rage
 Tergrid's Shadow
@@ -371,6 +393,7 @@ The Triumph of Anax
 Thermal Blast
 Thran Golem
 Thunderscape Familiar
+Tidehollow Sculler
 Tireless Provisioner
 Tocatli Honor Guard
 Tome Shredder
@@ -378,9 +401,12 @@ Torbran, Thane of Red Fell
 Trailblazer
 Transgress the Mind
 Twisted Justice
+Tyvar Kell
 Ulgrotha Charm
+Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
+Urza, Prince of Kroog
 Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
@@ -392,6 +418,7 @@ Voidslime
 Volrath's Stronghold
 Vorapede
 Vraan, Executioner Thane
+Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
 Wandering Wolf
@@ -400,7 +427,9 @@ Wax
 Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
+Wirewood Symbiote
 Wit's End
+Wizard Class
 Woebearer
 Wolfcaller's Howl
 Word of Binding

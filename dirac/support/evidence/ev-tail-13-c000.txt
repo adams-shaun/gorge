@@ -1,3 +1,4 @@
+A-Case the Joint
 A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
 A-Thran Spider
@@ -24,6 +25,7 @@ Arcane Denial
 Archmage Emeritus
 Armed Assailant
 Armored Skaab
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -119,6 +121,7 @@ Elvish Pioneer
 Emissary of Hope
 Ensoul Artifact
 Enthrall
+Evil Eye of Orms-by-Gore
 Evolving Adaptive
 Expendable Lackey
 Extinguish All Hope
@@ -157,6 +160,7 @@ Giant Caterpillar
 Gilded Scuttler
 Gladehart Cavalry
 Glaring Aegis
+Glen Elendra Archmage
 Glimmer Lens
 Go-Shintai of Lost Wisdom
 Goblin Champion
@@ -269,6 +273,7 @@ Noble Templar
 Novice Occultist
 Oketra's Monument
 Old Stickfingers
+Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
 Oran-Rief, the Vastwood
@@ -331,6 +336,7 @@ Rubbleback Rhino
 Rubblebelt Rioters
 Runic Shot
 Rupture
+Ruthless Waterbender
 Ryusei, the Falling Star
 Sabertooth Alley Cat
 Sanctum Custodian

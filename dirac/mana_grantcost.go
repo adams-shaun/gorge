@@ -269,12 +269,14 @@ func (s *State) grantSacApply(k *prep, p uint8, st *grantStep) {
 	s.grantSacDo(k, st.sl)
 }
 
-// sacrificed: the path holds a step that sacrificed its source (the play's
-// only target, or the Equipment's creature, may be gone: waitsForStack
-// re-reads the offer).
+// sacrificed: the path holds a step that sacrificed its source, or a
+// sacrifice-another source's candidate (stepSacX; mana_grantsacx.go): the play's
+// only target, or the Equipment's creature, may be gone (waitsForStack
+// re-reads the offer), and a later candidate may be the permanent gone
+// (visit skips it).
 func (g *grantSrch) sacrificed() bool {
 	for i := 0; i < g.np; i++ {
-		if g.path[i].kind == stepAct && g.path[i].sac {
+		if (g.path[i].kind == stepAct && g.path[i].sac) || g.path[i].gi == stepSacX {
 			return true
 		}
 	}

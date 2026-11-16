@@ -20,6 +20,7 @@ Arachnus Web
 Arcane Proxy
 Argentum Armor
 Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
@@ -27,6 +28,7 @@ Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
+Awesome Presence
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -88,6 +90,7 @@ Coral Merfolk
 Corporeal Projection
 Cosmic Hunger
 Counterspell
+Courier Bat
 Court Cleric
 Creeping Crystal Coating
 Crenellated Wall
@@ -138,6 +141,7 @@ Ember Beast
 Embercleave
 Emeria Angel
 End the Festivities
+Endless Obedience
 Enthusiastic Mechanaut
 Epicenter
 Essence Infusion
@@ -167,6 +171,7 @@ Flesh-Eater Imp
 Flickering Ward
 Flowstone Kavu
 Foil
+Forerunner of the Coalition
 Forest
 Forsaken City
 Frenzied Fugue
@@ -244,6 +249,7 @@ Kitesail Cleric
 Knight of Sorrows
 Knowledge Is Power
 Kokusho, the Evening Star
+Koskun Falls
 Krav, the Unredeemed
 Kruphix's Insight
 Landscaper Colos
@@ -278,6 +284,7 @@ Maximize Velocity
 Menagerie Liberator
 Mer-Ek Nightblade
 Metastatic Evangel
+Midnight Clock
 Minamo, School at Water's Edge
 Mind Harness
 Mind Maggots
@@ -286,6 +293,7 @@ Mind Sculpt
 Mindwhip Sliver
 Minotaur, Roxxon CEO
 Mirozel
+Mirror-Sigil Sergeant
 Mischief and Mayhem
 Mishra's Domination
 Mist Leopard
@@ -305,6 +313,7 @@ Namora, the Sea Queen
 Narset's Reversal
 Narwhal
 Needle Storm
+Nezahal, Primal Tide
 Niblis of Frost
 Nimble Hobbit
 Nimbleclaw Adept
@@ -446,6 +455,7 @@ Those Who Serve
 Thousand-Year Elixir
 Thran Dynamo
 Thriving Moor
+Thunderstaff
 Thurid, Mare of Destiny
 Timbermaw Larva
 Time Reversal

@@ -441,6 +441,21 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if manaChoiceResolving(d) {
 		return false
 	}
+	if g.storageXAsk(d) {
+		// A storage battery tapped in a payment window announces its X
+		// (rules/pay ManaCostSubCounterStage, maximum first). The kernel takes
+		// every counter (dirac mana_countercost.go storeGap), as gorge's
+		// non-interactive activation does, so the window's ask is no canonical
+		// decision: answer it with the maximum.
+		g.Stats.Internal++
+		if g.OnInternal != nil {
+			g.OnInternal(d, d.Options[0].Index)
+		}
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			g.fail(fmt.Errorf("oracle: storage X answer refused: %w", err))
+		}
+		return true
+	}
 	if d.Options[0].Kind == "block_mana" {
 		// The declare-blockers block-tax window (rules/attack_cost.go
 		// askNextBlockPay): one tap per ask, answered with the first source
@@ -493,6 +508,23 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	}
 	if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: picks}); err != nil {
 		g.fail(fmt.Errorf("oracle: payment window answer refused: %w", err))
+	}
+	return true
+}
+
+// storageXAsk reports whether d is the announced-X ask of a mana ability being
+// activated for a payment (a SubCounter<X/KIND> storage battery, Sand Silos):
+// the pending mana-cost activation is on d's source and has not announced yet,
+// and every option is an X value.
+func (g *GorgeSide) storageXAsk(d *decision.Decision) bool {
+	md := g.E.ManaCost
+	if md == nil || md.SubXAnnounced || md.Source != d.Source || !md.Interactive {
+		return false
+	}
+	for _, o := range d.Options {
+		if o.Kind != "x" {
+			return false
+		}
 	}
 	return true
 }

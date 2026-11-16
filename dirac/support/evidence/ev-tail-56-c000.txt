@@ -18,12 +18,15 @@ Anchor to the Aether
 Ancient Grudge
 Angelic Gift
 Anointer of Champions
+Arachnogenesis
 Arachnoid
 Arachnoid Adaptation
 Arashin Foremost
 Arcade Gannon
 Archon of Cruelty
 Armament Master
+Arrogant Outlaw
+Ascendant Packleader
 Aura Fracture
 Autumnal Gloom
 Avacynian Priest
@@ -41,6 +44,7 @@ Belligerent Brontodon
 Berserk Murlodont
 Big Boa Constrictor
 Bladetusk Boar
+Blanchwood Prowler
 Blighted Woodland
 Blink of an Eye
 Blistering Firecat
@@ -99,12 +103,15 @@ Desert Drake
 Destructive Tampering
 Dimir Signet
 Dingus Staff
+Dire Fleet Captain
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
 Dragonlord Ojutai
 Drifter il-Dal
 Drogskol Captain
+Duskmantle Prowler
+Dust Stalker
 Earth Servant
 Earthcraft
 Echo Inspector
@@ -124,6 +131,7 @@ Fencer Clique
 Fiery Finish
 Finishing Blow
 Fire Ambush
+Fires of Yavimaya
 First-Sphere Gargantua
 Flailing Manticore
 Flaming Gambit
@@ -145,6 +153,7 @@ Gluntch, the Bestower
 Gnottvold Hermit
 Gobhobbler Rats
 Goblin Chirurgeon
+Goblin Legionnaire
 Goblin Mutant
 Goblin Spy
 Godo's Irregulars
@@ -183,6 +192,7 @@ Hulking Devil
 Hurloon Minotaur
 Ignite Disorder
 In the Eye of Chaos
+Incisor Glider
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
@@ -221,6 +231,7 @@ Looming Hoverguard
 Lorehold Command
 Maelstrom Wanderer
 Magnus the Red
+Marchesa's Emissary
 Markov Waltzer
 Massive Might
 Master of Winds
@@ -235,6 +246,7 @@ Merfolk Pupil
 Metallic Mimic
 Metalwork Colossus
 Millicent, Restless Revenant
+Mind Funeral
 Mind's Eye
 Minsc, Beloved Ranger
 Mirran Banesplitter
@@ -285,6 +297,7 @@ Pheres-Band Raiders
 Phyrexian Vatmother
 Pierce the Sky
 Pink Horror
+Pinpoint Avalanche
 Plaguemaw Beast
 Plains
 Poison-Blade Mentor
@@ -300,6 +313,7 @@ Put Away
 Pygmy Allosaurus
 Rabid Wombat
 Raking Claws
+Raphael, the Muscle
 Rathi Fiend
 Reclusive Wight
 Red Scarab
@@ -307,6 +321,7 @@ Reduce
 Reject Imperfection
 Repel the Darkness
 Repentance
+Replicating Ring
 Reprisal
 Resculpt
 Retreat to Hagra
@@ -354,11 +369,13 @@ Spawnbed Protector
 Spell Snuff
 Spellrune Painter
 Spidersilk Net
+Spike Jester
 Squall Drifter
 Stampeding Wildebeests
 Startling Development
 Statute of Denial
 Storm, Queen of Wakanda
+Stormtide Leviathan
 Stratadon
 Submerged Boneyard
 Sunhome, Fortress of the Legion
@@ -385,6 +402,7 @@ Traverse the Ulvenwald
 Treetop Bracers
 Treetop Sentinel
 Tribal Flames
+Troll of Khazad-dûm
 Truefire Paladin
 Tsabo's Decree
 Turntimber Grove
@@ -403,6 +421,7 @@ Vithian Stinger
 Vivid Meadow
 Volrath's Stronghold
 Wandering Mind
+Water Servant
 Weed-Pruner Poplar
 Whipflare
 World Breaker
