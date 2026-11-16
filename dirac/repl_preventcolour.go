@@ -52,7 +52,7 @@ func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) b
 		if r.col != 0 {
 			sc = s.srcColors(k, sl, c) // only a colour-filtered record reads it
 		}
-		if r.sc != 0 && s.prevScopeHit(k, r, sl, sc, t, combat) {
+		if r.sc != 0 && s.prevScopeHit(k, r, sl, c, sc, t, combat) {
 			return !s.noPrev(k, combat)
 		}
 	}
@@ -72,11 +72,11 @@ var DebugNoPrevCol bool
 // source of colours col to cand after its first n entries (gorge collects
 // each Effect's replacement as its own candidate, in registration order),
 // marking each in *pm; -1 when cand overflows (a loud stall).
-func (s *State) prevColCands(k *prep, col kop.ColorMask, srcSl Slot, t prevTgt, combat bool, cand *[4]Obj, n int, _ *[4]Obj, pm *uint8) int {
+func (s *State) prevColCands(k *prep, col kop.ColorMask, srcSl Slot, srcCard CardID, t prevTgt, combat bool, cand *[4]Obj, n int, _ *[4]Obj, pm *uint8) int {
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
 		if r.sc != 0 {
-			if !s.prevScopeHit(k, r, srcSl, col, t, combat) {
+			if !s.prevScopeHit(k, r, srcSl, srcCard, col, t, combat) {
 				continue
 			}
 		} else if r.col == 0 || r.col&col == 0 || DebugNoPrevCol {

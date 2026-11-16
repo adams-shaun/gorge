@@ -1044,9 +1044,12 @@ PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
 PrevScopeAll	untyped int	8
+PrevScopeAnyPlayer	untyped int	16384
 PrevScopeColourShift	untyped int	8
 PrevScopeCombat	untyped int	16
 PrevScopeCreatures	untyped int	2
+PrevScopeFiltered	untyped int	32
+PrevScopeOppPlayer	untyped int	8192
 PrevScopePlayer	untyped int	1
 PrevScopeSrcCreature	untyped int	4
 PropCardManaCost	uint8	3
