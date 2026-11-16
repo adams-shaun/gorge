@@ -168,7 +168,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// (kw_teamwork.go): either may be castable alone
 			tgtOK, twOK = s.teamworkTargets(k, c, p)
 		} else {
-			tgtOK = s.spellTargetsFeasible(k, c, p)
+			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
 			continue
@@ -1161,6 +1161,9 @@ func spellAb(k *prep, c CardID) uint8 {
 // graveyard has no target and is not offered.
 func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
 	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
+		if z == kop.ZoneHand {
+			return s.spellTargetsFeasibleHand(k, c, p, o) // cast_handleaves.go
+		}
 		return s.spellTargetsFeasible(k, c, p)
 	}
 	s.g.tgtSelf = o + 1

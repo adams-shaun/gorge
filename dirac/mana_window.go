@@ -1149,7 +1149,17 @@ func restrTapMana(a *kop.Ability) bool {
 //
 //go:noinline
 func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pips int16) bool {
-	return kind == kop.PayMana && skip&(pfWard|pfModes) != 0 && s.windowAffordsN(k, p, amt, pips)
+	if kind != kop.PayMana || skip&(pfWard|pfModes) == 0 {
+		return false
+	}
+	if s.windowAffordsN(k, p, amt, pips) {
+		return true
+	}
+	// An unless cost is no spell's payment: restricted mana whose restriction
+	// admits a non-spell payment (a Powerstone's {C}, CR 106.6) pays it, as it
+	// pays a ward (nonSpellRestrAffords).
+	c := manaOf(amt, pips)
+	return s.nonSpellRestrAffords(k, p, &c)
 }
 
 // restrKinds is how many distinct spend restrictions a table's restricted
