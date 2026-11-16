@@ -1,3 +1,4 @@
+Ajani's Welcome
 Archaeomancer
 Ardent Elementalist
 Armored Ascension
@@ -10,6 +11,7 @@ Barrage of Boulders
 Bloodchief's Thirst
 Blossom Dryad
 Careful Study
+Cast Out
 Citadel Gate
 Conifer Strider
 Crossbow Infantry

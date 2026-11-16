@@ -118,6 +118,7 @@ default	field	genState.tokDefSet	1048	1
 default	field	genState.entHost	1049	1
 default	field	genState.dmg	1050	16
 default	field	genState.ndmg	1066	1
+default	field	genState.fbProbe	1067	1
 default	field	genState.may	1068	128
 default	field	genState.nmay	1196	1
 default	field	genState.parad	1197	2
@@ -365,6 +366,7 @@ default	field	genPrep.anyCastBF	62	1
 default	field	genPrep.flags	64	24
 default	field	genPrep.smallRecs	88	24
 default	field	genPrep.leyline	112	1
+default	field	genPrep.anyUmbra	113	1
 default	field	genPrep.grantPC	120	24
 default	field	genPrep.grantOf	144	24
 default	field	genPrep.grantRestr	168	24
@@ -697,7 +699,9 @@ default	field	genPrep.anyWhileHost	3703	1
 default	field	genPrep.anyEmbCtrl	3704	1
 default	field	genPrep.anyWhileTapped	3705	1
 default	field	genPrep.anyOvCantAtk	3706	1
-default	field	genPrep.anySrcMark	3707	1
+default	field	genPrep.anyCantAtk	3707	1
+default	field	genPrep.anyCantAtkScope	3708	1
+default	field	genPrep.anySrcMark	3709	1
 default	field	genPrep.dmgBy	3712	24
 default	field	genPrep.crewerRec	3736	24
 default	field	genPrep.crewBy	3760	24

@@ -1,6 +1,10 @@
 package kgen
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // reduceAbility lowers a ReduceCost static of activated abilities (Type$
 // Ability, or no Type$ with ValidSpell$ Activated.Exhaust,
@@ -68,6 +72,11 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 	}
 	if a, ok := sp.get("Activator"); ok && a != "You" {
 		return refuse("ReduceCost Activator %q", a)
+	} else if !ok && arm == 1 {
+		// no Activator$: any player's activation of a matching source is
+		// reduced (Heartstone's opponent-controlled creatures; gorge
+		// costActorMatches applies an actor-less static to every actor)
+		st.Flags = append(st.Flags, "AnyCaster")
 	}
 	var err error
 	if st.F, err = readF("ValidCard"); err != nil {
@@ -92,4 +101,27 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 		return err
 	}
 	return nil
+}
+
+// reduceAbBits is a StatReduceAbility static's B (the arm bit and the MinMana$
+// floor) and StFlags (kop.StReduceAny when no Activator$ names the activator)
+// from its lowered form.
+func reduceAbBits(s lStatic) (b int16, fl kop.StaticFlags) {
+	switch s.AbilityRed {
+	case 2:
+		b = 1
+	case 3:
+		b = kop.ReduceAbUnlock
+	case 4:
+		b = kop.ReduceAbPowerUp
+	case 5:
+		b = kop.ReduceAbEquip
+	}
+	b |= int16(s.MinMana) << kop.ReduceAbMinShift
+	for _, f := range s.Flags {
+		if f == "AnyCaster" {
+			fl |= kop.StReduceAny // no Activator$: every activator (cost_reduceability.go)
+		}
+	}
+	return b, fl
 }

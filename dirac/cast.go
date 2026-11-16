@@ -746,9 +746,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if k.gen != nil && k.gen.anyStation && s.stationPick(k, d) {
 					return true // Station's tap pick precedes the push (ctr_kinds.go)
 				}
-				if (e.kind == seSpell || e.kind == seAbility && k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb)) && s.noProgress() {
-					s.bld().bfl |= bflNoProg
-				}
+				s.pushNoProg(e.kind)
 				s.pushBuild(k)
 			}
 			if e.faceDown() {
@@ -1797,13 +1795,20 @@ func (s *State) finishBuild(k *prep) {
 		s.syncBuild()
 		s.ctl = ctlPlaceTriggers
 	}
-	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 {
-		// gorge's step() head runs startDefeatedCast after any cast or
-		// activation: ask a battle defeated earlier this step first.
-		s.wakeDefeat()
-	}
+	s.wakeDefeatAfterBuild(k, e.kind)
 	if s.parkedWaiting() {
 		s.ctl = ctlExileOrder // a cost's parked move (repl_exilemark.go)
+	}
+}
+
+// wakeDefeatAfterBuild wakes a battle defeated earlier this step after a
+// finished build: gorge's step() head runs startDefeatedCast after any cast or
+// activation, so that ask comes first. A trigger's push is not one: gorge's
+// drainTriggers pushes it and grants priority inside the same step(), so a
+// combat defeat's ask stays deferred (CR 310.11; face_battle.go).
+func (s *State) wakeDefeatAfterBuild(k *prep, kind uint8) {
+	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 && kind != seTrigger {
+		s.wakeDefeat()
 	}
 }
 
@@ -2259,6 +2264,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			s.sacShort(k, d)
 			return true
 		}
+		if s.bld().pickK == pkDiscard && pc.DiscardRandom {
+			s.randomDiscardPick(d)
+			d.N = 0
+			continue
+		}
 		if s.bld().pickK == pkTapX && int(d.N) == int(s.bld().pickLeft) {
 			for i := 0; i < int(d.N); i++ {
 				s.recordPick(Obj(d.Options[i].Source()))
@@ -2649,6 +2659,16 @@ func (s *State) pendCount(p uint8) int {
 // (the same turn and step, no object written).
 func (s *State) noProgress() bool {
 	return s.heldTurn == uint16(s.turn) && s.heldStep == s.step && s.heldTouch == s.touchN
+}
+
+// pushNoProg arms bflNoProg on the build when the spell or activation being
+// pushed is itself no progress: the CR 733.2 hold-out counts the reversal of
+// every card, not only beside waterbend or an X-bound ability (gorge
+// abortCast arms suppressedCast for any card's second no-progress abort).
+func (s *State) pushNoProg(kind uint8) {
+	if (kind == seSpell || kind == seAbility) && s.noProgress() {
+		s.bld().bfl |= bflNoProg
+	}
 }
 
 // castHeldOut: gorge holds out a card's cast after its second undo in a

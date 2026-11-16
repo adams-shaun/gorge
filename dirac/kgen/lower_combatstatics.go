@@ -11,10 +11,12 @@ import (
 // cantAttack lowers S:Mode$ CantAttack (gorge combat.AttackBlocked's face
 // static walk) to kop.StatCantAttack. The kernel is two-player, so the
 // defender-dependent parameters map exactly only in these shapes:
-//   - Target$ absent: every defender.
-//   - Target$ You,Planeswalker.YouCtrl: every attack target the creature
-//     could have belongs to the static's controller exactly when the
-//     creature is an opponent's, so the restriction is ValidCard$ +OppCtrl.
+//   - Target$ absent: every defender (canAttack blocks the creature blind).
+//   - Target$ You: only the attack on the static's controller (StCantAtkPlayer);
+//     Planeswalker.YouCtrl: only an attack on a planeswalker that player
+//     controls (StCantAtkWalker); You,Planeswalker.YouCtrl: both. A battle is
+//     neither target, so a scoped static never blocks a battle pair (gorge
+//     RestrictionTargetMatches; combat_cantattack.go).
 //   - UnlessDefender$ [!]controls<spec> on ValidCard$ Card.Self: the
 //     defender is the opponent of the static's controller, so the gate is
 //     IsPresent$ <spec>+OppCtrl (EQ0 for the positive form, GE1 negated).
@@ -25,12 +27,17 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	if vc == "" {
 		return refuse("CantAttack without ValidCard$")
 	}
-	oppOnly := false
 	if t, ok := sp.get("Target"); ok {
 		switch {
 		case strings.ReplaceAll(t, " ", "") == "You,Planeswalker.YouCtrl":
-			oppOnly = true
-			lc.twoSeat("CantAttack Target$ you and your planeswalkers read as OppCtrl")
+			lc.twoSeat("CantAttack Target$ you and your planeswalkers read per attack target")
+			st.Flags = append(st.Flags, "AtkPlayer", "AtkWalker")
+		case t == "You":
+			lc.twoSeat("CantAttack Target$ you reads per attack target")
+			st.Flags = append(st.Flags, "AtkPlayer")
+		case t == "Planeswalker.YouCtrl":
+			lc.twoSeat("CantAttack Target$ your planeswalkers reads per attack target")
+			st.Flags = append(st.Flags, "AtkWalker")
 		case t == ownerAttackTarget && vc == "Card.Self":
 			// Xantcha, Sleeper Agent: gorge RestrictionTargetMatches blocks the
 			// attack on the source's OWNER (Player.CardOwner) and on the
@@ -97,20 +104,6 @@ func (lc *lowerCtx) cantAttack(sp *params, st *lStatic) error {
 	f, err := lc.filter(vc)
 	if err != nil {
 		return err
-	}
-	if oppOnly {
-		// every clause also requires an opponent's creature, set on the
-		// lowered filter (not as a textual suffix, which a spaced referent
-		// such as EnchantedBy <Aura.YouCtrl> makes ambiguous)
-		if f.Players != 0 {
-			return refuse("CantAttack Target$ with a player filter %q", vc)
-		}
-		for i := range f.Clauses {
-			if c := &f.Clauses[i]; c.Ctrl != whoAny && c.Ctrl != whoOpp {
-				return refuse("CantAttack Target$ with a controller filter %q", vc)
-			}
-			f.Clauses[i].Ctrl = whoOpp
-		}
 	}
 	st.F = f
 	sp.consume("Secondary")

@@ -1,0 +1,6 @@
+Forest
+Island
+Meteorite
+Mountain
+Plains
+Swamp

@@ -29,6 +29,12 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
 				continue
 			}
+			if a.Cost.Flags&kop.CostSac != 0 && s.countCostSac(k, p, &a.Cost, NoSlot) < int(a.Cost.N) {
+				// a sacrifice part needs its candidates on the battlefield:
+				// Edge of Autumn's cycling ("Sacrifice a land") is no option
+				// before the first land drop (legal.go's canActivate census)
+				continue
+			}
 			pd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 			aff := av.affords(mana, pipMaskOf(mana), 0)
 			if !aff && s.rbAny(p) {
@@ -54,7 +60,9 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if a.AFlags&kop.AfNinjutsu != 0 && !s.ninjutsuOfferOK(k, a, p, o) {
 				continue // its window and its Return candidate (kw_ninjutsu.go)
 			}
-			if s.abilityTargetsFeasible(k, a, p, NoSlot, 0xff) {
+			// the source is the card in hand: protection from its colours or
+			// qualities bars a target (CR 702.16b; Channel at Empty-Shrine Kannushi)
+			if s.probeAbilityFrom(k, a, p, s.objs[o].card) {
 				d.add(MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 			}
 		}

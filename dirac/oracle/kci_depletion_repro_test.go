@@ -6,7 +6,7 @@ import "testing"
 // games: a no-{T} sacrifice-an-artifact mana source beside a depletion land
 // (the MBC pool's SubCounter riders, Peat Bog and Sandstone Needle among them)
 // offers and pays the same on both sides — the tap-another search branches the
-// deferred gap like gorge's one search, and its node reads gorge's offer. The
+// deferred gap like gorge's one search. The
 // recordings were the MBC run's divergent pairs 9 and 31 (gorge offers the cast
 // the kernel did not) and 41, 46 and 48 (the two searches paid with different
 // sources, the depletion land sacrificed in gorge, Krark-Clan Ironworks in its
@@ -24,6 +24,11 @@ func TestReproKCIDepletionLandLockstep(t *testing.T) {
 		// bound, so its walk lists the second Ironworks and the search pays it
 		// by sacrificing the Treasure, then the Ironworks itself
 		"sacrifice_mana_sacrifices_treasure_then_itself",
+		// dr-mbc-bbbb pair 58: the sacrifice-another source and the granted
+		// mana ability pay one cast together (Abundant Growth on an untapped
+		// Forest beside two untapped Ironworks, a Brood Monitor in hand); the
+		// grant search lists the sacrifice gap as a candidate (mana_grantsacx.go)
+		"sacrifice_mana_and_granted_mana_pay_a_cast",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()

@@ -205,6 +205,9 @@ func (s *State) beginStep(k *prep) {
 		s.g.drawFirst = true  // repl_draw.go: the first card drawn in this draw step
 		s.g.drawStepN = 0     // trig_drawstep.go: no card drawn in this draw step yet
 		if !s.out(s.active) { // a departed active player draws nothing (gorge turn.go)
+			if s.dredgeTurnAsk(k) {
+				return // kw_dredge.go: the active player's dredge ask comes first
+			}
 			s.draw(s.active)
 		}
 		s.g.drawFirst = false
@@ -602,9 +605,8 @@ func (s *State) sba(k *prep) bool {
 						s.regenerate(sl)
 						continue
 					}
-					if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
-						s.cfgx |= cfgxShieldPass // CR 122.1c: the counter goes instead, the damage stays marked for the next pass
-						continue
+					if s.sbaSpare(k, sl, &die) {
+						continue // the shield counter or umbra armor took the destruction (kw_umbraarmor.go)
 					}
 					die = die.with(sl)
 				}
@@ -664,9 +666,7 @@ func (s *State) sba(k *prep) bool {
 		if k.ctrMana {
 			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
 		}
-		if k.gen != nil && k.gen.anyM2M1 {
-			s.sbaCtrTough(k, kop.CtrM2M1, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1)
-		}
+		s.sbaPTKinds(k, &die, &gy) // -2/-1 counters (ctr_hone.go prepM2M1) and the other toughness-lowering kinds (ctr_ptkinds.go)
 		var wld slotMask
 		if k.gen != nil && k.gen.anyWorld {
 			wld = s.worldLosers(k) // CR 704.5k (zone_worldrule.go)
