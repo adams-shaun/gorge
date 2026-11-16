@@ -47,6 +47,7 @@ Blot Out
 Boot Nipper
 Borderland Marauder
 Boris Devilboon
+Boromir, Gondor's Hope
 Brightmare
 Bronzeplate Boar
 Brood Birthing
@@ -232,6 +233,7 @@ Natural Order
 Nettlecyst
 Neurok Familiar
 Nightbird's Clutches
+Nighthaze
 Nightmare Lash
 Nightpack Ambusher
 Nissa's Expedition
@@ -250,6 +252,7 @@ Opaline Bracers
 Open the Gates
 Orzhov Guildmage
 Parcel Myr
+Part Water
 Pathrazer of Ulamog
 Patriot, Young Avenger
 Pharika's Disciple
@@ -267,6 +270,7 @@ Pyre Spawn
 Pyrophobia
 Quarry Beetle
 Quest for the Gemblades
+Quicksilver, Speedster
 Qumulox
 Rage of Purphoros
 Ramosian Sky Marshal
@@ -415,5 +419,6 @@ Worthy Knight
 Wreath of Geists
 Wretched Throng
 Xenk, Paladin Unbroken
+Zealous Guardian
 Zendikar Incarnate
 Zephyr Net

@@ -11,6 +11,7 @@ Anje's Ravager
 Antagonize
 Aphetto Vulture
 Arachnoform
+Arbaaz Mir
 Arcade Cabinet
 Arcane Laboratory
 Argothian Swine
@@ -158,6 +159,7 @@ Horned Sliver
 Hungry Megasloth
 Hunter's Bow
 Idol of Oblivion
+Indebted Samurai
 Indomitable Archangel
 Inescapable Blaze
 Infernal Grasp

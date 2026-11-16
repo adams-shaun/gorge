@@ -997,7 +997,8 @@ type lAbility struct {
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
-	Index           int // position in the card's ability list (latent abilities included)
+	SplitPrev       bool // a split line's half but the first: the printed identity on the stack is the preceding ability (kop.Ability.SplitPrev)
+	Index           int  // position in the card's ability list (latent abilities included)
 	Name            string
 	Cost            lCost
 	Optional        bool // the cost is optional ("you may pay ... if you do")
@@ -1194,6 +1195,7 @@ type lOverride struct {
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
 	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 }
 

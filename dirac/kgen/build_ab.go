@@ -686,6 +686,7 @@ var abKinds = [...]kop.AbilityKind{akSpell: kop.AbSpell, akActivated: kop.AbActi
 func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	var ka kop.Ability
 	ka.Kind = abKinds[a.Kind]
+	ka.SplitPrev = a.SplitPrev
 	var err error
 	if a.Latent {
 		ka.AFlags |= kop.AfLatent

@@ -66,6 +66,7 @@ Curse of Bounty
 Curse of Shallow Graves
 Daring Apprentice
 Daring Fiendbonder
+Deeptread Merrow
 Deepwood Ghoul
 Devotee of Strength
 Didgeridoo
@@ -140,6 +141,7 @@ Inkrise Infiltrator
 Inspired Charge
 Intrepid Ace
 Intruder Alarm
+Isao, Enlightened Bushi
 Island
 Isolate
 Jace's Scrutiny

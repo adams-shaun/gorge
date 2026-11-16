@@ -13,6 +13,7 @@ Ancient Amphitheater
 Angel's Mercy
 Angelic Wall
 Appeal
+Araba Mothrider
 Arbalest Engineers
 Arbor Elf
 Arcane Flight
@@ -220,6 +221,7 @@ Keeper of the Accord
 Keldon Halberdier
 Killian, Ink Duelist
 Kitesail Apprentice
+Kitsune Dawnblade
 Knotvine Paladin
 Kobold Drill Sergeant
 Kolaghan Skirmisher
@@ -363,6 +365,7 @@ Silverchase Fox
 Sinister Sabotage
 Slate of Ancestry
 Slinza, the Spiked Stampede
+Smokebraider
 Snooping Newsie
 Sokka's Charge
 Soltari Trooper
