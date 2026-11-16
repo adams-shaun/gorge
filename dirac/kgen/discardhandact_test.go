@@ -27,8 +27,7 @@ func discardHandSynth(t *testing.T, src string) []refusal {
 
 // TestDiscardHandActCostLowers: Discard<N/Hand> in an activated ability's
 // cost lowers to the DiscardHand table byte (the whole hand, in hand order,
-// no choice and an empty hand payable); Discard<N/Random> stays an
-// unless-cost selection method and refuses by name.
+// no choice and an empty hand payable); a second discard part refuses.
 func TestDiscardHandActCostLowers(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Reverberating Summons")
@@ -60,7 +59,7 @@ func TestDiscardHandActCostLowers(t *testing.T) {
 	}
 
 	const body = "Name:Discard Hand Probe\nManaCost:1\nTypes:Artifact\nA:AB$ GainLife | Cost$ %s | LifeAmount$ 1\n"
-	if got := keclReason(discardHandSynth(t, strings.Replace(body, "%s", "1 Discard<1/Random>", 1))); !strings.Contains(got, `discard cost "Random" outside an unless cost`) {
-		t.Errorf("Discard<1/Random>: refusals %q, want the unless-cost reason", got)
+	if got := keclReason(discardHandSynth(t, strings.Replace(body, "%s", "1 Discard<1/Hand> Discard<1/Random>", 1))); !strings.Contains(got, "more than one discard part") {
+		t.Errorf("two discard parts: refusals %q, want the one-discard-part reason", got)
 	}
 }

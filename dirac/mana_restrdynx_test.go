@@ -21,7 +21,7 @@ func TestRestrictedAmountWitnessX(t *testing.T) {
 	if got := av.maxX(&cost, pipMaskOf(&cost)); got != -1 {
 		t.Fatalf("the lands alone price X = %d, want none (no blue)", got) // the precondition: Helga's blue is what pays {U}
 	}
-	if got := restrWitnessX(3, av, []uint8{2}, &cost); got != 4 {
+	if got := restrWitnessX(3, av, []dynUnit{{n: 2, cols: 0x1f}}, &cost); got != 4 {
 		t.Errorf("witness X beside Helga's two mana = %d, want 4", got)
 	}
 }

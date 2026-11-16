@@ -75,10 +75,10 @@ func (s *State) canActivateAny(k *prep, sl Slot, a *kop.Ability, who uint8, sorc
 	if k.gen.anyCantAct && s.actForbiddenBy(k, sl, who, false, false) {
 		return false
 	}
-	if k.gen.anyWaterbend || k.gen.anyXBoundAb {
-		if s.castHeldOut(p.obj) {
-			return false
-		}
+	if s.castHeldOut(p.obj) {
+		// the CR 733.2 hold-out is read on every table (canActivate's consult
+		// and cast.go's push arm are no longer waterbend-scoped)
+		return false
 	}
 	if k.anyGate && !s.gateOK(sl, a) {
 		return false
@@ -89,7 +89,13 @@ func (s *State) canActivateAny(k *prep, sl Slot, a *kop.Ability, who uint8, sorc
 	}
 	if mana.MV() > 0 {
 		pd := payDesc{class: pdAct, card: s.cardAt(sl), src: sl, instant: a.Cost.Flags&kop.CostSorcery == 0}
-		if !av.affords(&mana, pipMaskOf(&mana), 0) && !(s.rbAny(who) && s.actPoolAffordsDesc(k, who, &mana, pd, av)) {
+		// the activator's restricted sources count for exactly the payments
+		// their restriction admits, an activation always one (CR 106.6): the
+		// same fall-backs as abilityAffords on the ordinary walk (a Powerstone
+		// beside the census mana an any-player {4} activation spends)
+		if !av.affords(&mana, pipMaskOf(&mana), 0) &&
+			!(k.restrSrc && s.actRestrAffords(k, sl, a, &mana, av, NoSlot, who)) &&
+			(!s.rbAny(who) || !s.actPoolAffordsDesc(k, who, &mana, pd, av)) {
 			return false
 		}
 	}

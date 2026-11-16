@@ -2,5 +2,7 @@ Diligent Farmhand
 Drinker of Sorrow
 Forest
 Island
+Mage's Guile
+Mountain
 Plains
 Swamp

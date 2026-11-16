@@ -1,0 +1,6 @@
+Forest
+Mountain
+Plains
+Swamp
+Waste Away
+Weapons Trainer

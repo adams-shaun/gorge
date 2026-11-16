@@ -27,10 +27,18 @@ func CreatureManaCandidates(e Engine, p state.PlayerID, source state.ObjID, sour
 	var ids []state.ObjID
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		o := g.Obj(id)
-		if o == nil || o.Tapped || (sourceTaps && id == source) || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || !slices.Contains(e.Chars().DerivedTypes(id), "Creature") {
+		if o == nil || tapPayBlocked(o) || (sourceTaps && id == source) || !slices.Contains(e.Chars().DerivedTypes(id), "Creature") {
 			continue
 		}
 		ids = append(ids, id)
 	}
 	return ids
+}
+
+// tapPayBlocked reports a permanent no contribution (convoke, improvise,
+// harmonize, waterbend, creature mana) can tap: already tapped, phased out
+// (CR 702.26b: treated as though it does not exist), without a face, or
+// attached as a Bestow or Reconfigure card.
+func tapPayBlocked(o *state.Object) bool {
+	return o.Tapped || o.PhasedOut || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached()
 }

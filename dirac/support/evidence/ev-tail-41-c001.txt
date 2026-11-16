@@ -1,84 +1,281 @@
+A-Luminarch Aspirant
+Akroan Jailer
 Akroma's Memorial
 Alpha Kavu
 Angelic Gift
+Anje's Ravager
+Antagonize
+Aphetto Vulture
+Arcade Cabinet
+Arcane Laboratory
 Armor Sliver
 Ashcoat Bear
+Aurora Griffin
+Barbed Field
+Basri's Aegis
+Battle Cry Goblin
+Blessed Sanctuary
+Blightbelly Rat
+Blood Mist
 Bond of Discipline
+Bonesplitter
+Borrowed Time
+Boundless Realms
+Bring Low
+Brotherhood Outcast
+Butterbur, Bree Innkeeper
+Call the Cavalry
 Canoptek Spyder
+Cathar's Companion
 Caustic Crawler
+Celestial Regulator
+Cenn's Heir
 Cephalid Retainer
+Ceta Sanctuary
+Chandra's Pyreling
+Chaos Harlequin
 Charging Monstrosaur
+Chilling Grasp
 Chivalric Alliance
+Clockwork Vorrac
+Collateral Damage
+Colos Yearling
+Combat Thresher
+Commissar Severina Raine
+Conjurer's Bauble
+Coral Atoll
+Courier Hawk
+Court of Garenbrig
+Covert Operative
+Crack the Earth
+Criminal Enterprise
+Cruel Bargain
+Crypt Ghast
+Curse of Death's Hold
+Darksteel Axe
 Dauntless Cathar
+Dawn Gryff
+Death's Presence
+Defense of the Heart
+Digsite Engineer
+Dihada's Ploy
+Dive Bomber
+Diving Griffin
+Drifter il-Dal
 Dross Scorpion
+Dungeon Shade
+Dwarven Forge-Chanter
+ED-E, Lonesome Eyebot
 Eccentric Pestfinder
+Elanor Gardner
+Energy Flux
+Eternal Warrior
 Evolutionary Escalation
+Faceless Devourer
 Faerie Invaders
+Faerie Vandal
 Fiend Binder
 Flare of Duplication
+Flood of Recollection
 Flowstone Overseer
+Flutterfox
+Foresight
 Forest
+Forgeborn Oreads
+Fortifying Provisions
+Furnace Scamp
+Gaea's Revenge
+Gainsay
+Gallifrey Stands
+Galvanic Discharge
+Gamble
 General Marhault Elsdragon
+Genju of the Realm
 Ghirapur Guide
+Ghost Tactician
+Giant Ox
+Giant Tortoise
 Goblin Diplomats
 Goblin General
+Goblin Outlander
 Goblin War Party
+Hand of Silumgar
 Hangarback Walker
 Heirs of Stromkirk
 High-Rise Sawjack
 Hollow Trees
 Hungry Megasloth
+Indomitable Archangel
+Infernal Grasp
+Intangible Virtue
+Iron Tusk Elephant
 Isamaru, Hound of Konda
 Island
+Jhovall Rider
+Joyous Respite
 Jungle Delver
 Karok Wrangler
 Kinsbaile Courier
 Kor Sky Climber
 Kris Mage
+Krosan Cloudscraper
+Kruphix's Insight
+Lambholt Raconteur
+Lancers en-Kor
 Lead-Belly Chimera
+Leatherhead, Iron Gator
+Legion Conquistador
+Leyline of Vitality
+Lightning Dart
+Lightning Diadem
+Lonis, Genetics Expert
+Loxodon Lifechanter
 Magma Rift
+Magus of the Moat
+Mammoth Growth
+Manic Scribe
 Marble Diamond
+Mardu Heart-Piercer
+Massive Raid
+Maular, the Next Evolution
+Maw of the Mire
 Merfolk Sovereign
 Meria's Outrider
 Mesa Lynx
+Midnight Haunting
+Minion of the Mighty
 Minister of Pain
+Misfortune's Gain
+Mister Fantastic
+Moorland Drifter
+Morale
+Morkrut Necropod
+Moss Kami
+Mossbeard Ancient
 Mountain
+Mountain Bandit
+Mu Yanling, Sky Dancer
+Multani's Acolyte
+Multiversal Recruitment
+Myojin of Blooming Dawn
+Nacatl Savage
+Night
+Nightveil Sprite
+Niveous Wisps
 Nurturing Licid
+Nylea, God of the Hunt
+Oath of the Grey Host
+Oread of Mountain's Blaze
+Overcharged Amalgam
+Overcome
 Overwhelming Encounter
 Overwhelming Stampede
+Pact of the Titan
+Panic Spellbomb
+Pegasus Charger
+Pharika's Cure
+Phyrexian Lens
 Plains
+Potion of Healing
+Pure Reflection
+Pyroclastic Elemental
+Quicksilver Geyser
+Rage Forger
+Raksha Golden Cub
+Rally the Ranks
 Rampaging Ferocidon
+Ravenous Baboons
 Reckless Abandon
+Reinforced Ronin
+Reito Lantern
+Remove Soul
+Renowned Weaponsmith
+Retributive Wand
+Rhythmic Water Vortex
+Rimrock Knight
+Rockslide Ambush
+Root Snare
 Rottenheart Ghoul
+Rousing Refrain
+Salvage Slasher
 Samite Pilgrim
+Sanctified Charge
+Scepter of Celebration
 Scourglass
+Sea Kings' Blessing
 Seal of Doom
 Searchlight Companion
+Seascape Aerialist
 Senate Guildmage
+Sengir Vampire
 Separatist Voidmage
+Shabraz, the Skyshark
 Shadow Prophecy
+Shadow-Rite Priest
 Shamanic Revelation
+Shard of Broken Glass
+Shrieking Mogg
 Silver-Inlaid Dagger
 Skittering Monstrosity
 Skulltap
+Skywinder Drake
 Skywing Aven
 Slaughter Pact
+Slaughter Specialist
+Sly Requisitioner
 Smoke Bomb
+Spear Spewer
 Spire Barrage
 Stature, Young Avenger
+Staunch Defenders
+Steam Frigate
 Stone Retrieval Unit
+Storm Fleet Swashbuckler
+Strength of Night
 Striking Sliver
 Sturmgeist
+Submerge
+Subtle Strike
+Sultai Runemark
+Sungold Barrage
+Survival Cache
 Swamp
 Swift Justice
 Tattered Haunter
+Temmet, Vizier of Naktamun
+Teroh's Vanguard
+The Mightstone and Weakstone
+Thing from the Deep
 Thirsting Bloodlord
+Thornling
 Thrummingbird
+Thunder Strike
 Thunderscape Familiar
 Timberwatch Elf
 Tormod's Crypt
+Torsten, Founder of Benalia
 Tracker's Instincts
+Twinscroll Shaman
+Uncage the Menagerie
+Uncle Istvan
+Underworld Charger
 Unexpected Fangs
+Unleash Shell
+Unnatural Predation
+Untamed Might
+Urborg Mindsucker
+Vampire Envoy
+Vampire's Zeal
+Vastwood Gorger
+Venser, Visionary Traveler
+Volunteer Militia
+Wall of Lost Thoughts
 Warfire Javelineer
+Warlord's Elite
+Warped Physique
 Warren Soultrader
+Weaponize the Monsters
+Wild Colos
+Woodland Sleuth
+Xathrid Slyblade
 Zhao, the Seething Flame

@@ -84,6 +84,9 @@ func (lc *lowerCtx) etbPutCounter(ps *params, node, sa *cards.SA, other bool, co
 	if d, hasD := ps.get("Defined"); !ps.is("ETB", "True") || hasD && strings.TrimSpace(d) != want {
 		return refuse("ETB counter shape")
 	}
+	if strings.Contains(ps.str("CounterType"), ",") {
+		return lc.etbCounterChoice(ps, node, sa, other) // lower_counterchoice.go
+	}
 	n, err := lc.amount(ps, "CounterNum", 1)
 	if err != nil {
 		return err

@@ -1,130 +1,315 @@
 A-Guide of Souls
 A-Plate Armor
+A-Social Climber
+A-Tatyova, Steward of Tides
 A-Teferi, Time Raveler
+Aang, Airbending Master
+Abhorrent Overlord
+Abomination, World Ravager
 Absorb
+Agony Warp
 Ajani's Mantra
+Alchemist's Greeting
+Alley Grifters
+Alrund's Epiphany
+Angelic Purge
+Aphotic Wisps
 Aragorn, King of Gondor
+Astarion's Thirst
+Astral Dragon
 Avatar of Growth
 Aven Trooper
+Aven Windreader
+Barricade Breaker
+Battleflight Eagle
 Bearer of Memory
+Black Sun's Twilight
+Blackbloom Rogue
+Blindblast
+Blinding Mage
+Blood Vassal
+Boiling Blood
+Boulderfall
+Bounty of the Luxa
 Brainsurge
+Bramblecrush
 Bronze Guardian
 Capashen Unicorn
+Captain N'ghathrod
 Captured by Lagacs
+Cephalid Illusionist
+Chain Lightning
+Chaos Maw
+Chasm Drake
 Chicken Egg
+Chilling Trap
 Choke
 Chromatic Star
+City of Brass
 Civic Guildmage
+Cleopatra, Exiled Pharaoh
+Clickslither
 Colossal Dreadmaw
 Concordant Crossroads
+Constable of the Realm
+Creature Bond
 Curse of Predation
+Cursed Totem
+Daemogoth Titan
+Deadeye Plunderers
+Deadly Insect
+Deadly Wanderings
 Death Speakers
+Deathleaper, Terror Weapon
 Deepwood Tantiv
+Defenestrate
 Descendant of Kiyomaro
+Desecrated Earth
+Despondency
+Devouring Swarm
+Disciple of Freyalise
+Divine Smite
 Dragonborn Looter
 Dread Tiller
 Ebony Treefolk
 Echoing Calm
+Eiganjo Castle
+Ember-Fist Zubera
+Emeria Angel
+Enclave Cryptologist
 Encroaching Wastes
+Entish Restoration
+Equestrian Skill
+Esika's Chariot
+Eternal of Harsh Truths
 Euroakus
+Fanatical Fever
+Fangs of Kalonia
+Feldon, Ronom Excavator
 Ferocious Charge
 Field Marshal
+Fight Rigging
+Finale of Glory
 Fire Ambush
+Fire Prophecy
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
 From the Rubble
 Frontier Mastodon
 Gaea's Bounty
+Gamekeeper
 Ghoulcaller's Bell
+Gift of Paradise
+Gimli's Axe
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
+Goblin Bushwhacker
+Goblin Commando
 Goblin Tinkerer
+Golden Ratio
 Grave Exchange
+Griptide
+Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
+Guul Draz Assassin
+Halberdier
 Hardened Scales
 Harpoon Sniper
+Haunted Crossroads
+Hellkite Igniter
 Horned Cheetah
 Horned Helm
+Hornet Cannon
 Hornet Cobra
+Hulk, Always Angry
+Inferno Fist
 Insidious Bookworms
+Involuntary Cooldown
 Island
 Jhoira's Familiar
+Jinxed Idol
 Khenra Charioteer
+Kindle
+Kiora's Follower
+Knights of Dol Amroth
+Kolvori, God of Kinship
+Kor Blademaster
+Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
 Lava Axe
+Lignify
+Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
+Lore Seeker
 MACH-1, Swooping Scoundrel
 Malevolent Awakening
+Malicious Advice
+Marsh Hulk
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
+Metallic Mastery
 Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Mistwalker
+Mold Folk
+Moldervine Reclamation
 Momentum Rumbler
 Moonveil Dragon
 Mountain
+Mulch
 Multiform Wonder
+Nature's Chant
+Navigation Orb
 Necromancer's Familiar
 Needlethorn Drake
 Nev, the Practical Dean
 Nexus of Fate
 Nomads' Assembly
+Novellamental
+Oathsworn Vampire
+Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
+Orthodoxy Enforcer
+Painwracker Oni
+Paladin Danse, Steel Maverick
 Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
+Phyrexian Prowler
 Plains
 Planar Portal
 Pool Resources
 Precision Bolt
+Preening Champion
+Priest of Ancient Lore
+Psychotic Haze
+Purple Pentapus
 Putrid Imp
 Pyrrhic Blast
+Rag Dealer
+Raging Bull
 Raging Kavu
 Rally Maneuver
 Rancid Rats
+Raugrin Crystal
+Razortooth Rats
+Reaper of the Wilds
 Reaver Ambush
+Reckoner's Bargain
 Rekindled Flame
+Relief Captain
 Return to the Earth
 Reveille Squad
 Riddlekeeper
 Roar of the Crowd
+Roc Hunter
+Rockshard Elemental
+Ruby Medallion
+Rukh Egg
 Rundvelt Hordemaster
 Runeclaw Bear
 Sacred Cat
+Saheeli's Artistry
 Sanctify
+Sarinth Greatwurm
 Scoria Wurm
+Scrapwork Cohort
+Scrivener
+Scurry Oak
+Sedraxis Specter
+Shagrat, Loot Bearer
+Sheltering Landscape
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
 Silverflame Squire
 Silverskin Armor
+Skirsdag Flayer
 Skizzik Surger
 Sleeper Agent
 Smash to Dust
+Smoldering Crater
+Snow-Covered Forest
+Sorcerous Sight
+Soul Salvage
+Speakeasy Server
+Spectral Rider
 Spitfire Handler
 Spurnmage Advocate
+Stampeding Rhino
 Steel Leaf Paladin
+Stenchskipper
+Storm Fleet Pyromancer
+String of Disappearances
+Strip Mine
 Sudden Reclamation
 Sunstrike Legionnaire
 Sunweb
+Supreme Will
 Surrakar Marauder
 Swamp
+Sweep the Skies
+Sword of the Animist
 Talisman of Unity
 Telepathic Spies
+The Blue Spirit
+The Indomitable
 The Shattered States Era
+The Stasis Coffin
+The Unspeakable
 Thopter Assembly
+Thought Collapse
+Thunder Totem
+Thunderbolt
+Thunderhead Squadron
+Tideshaper Mystic
+Tiller Engine
+Topaz Dragon
+Towering Indrik
+Traumatize
+Treacherous Vampire
+Treetop Rangers
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuktuk the Explorer
+Tuya Bearclaw
+Two-Headed Zombie
+Undead Executioner
+Unholy Indenture
+Unholy Officiant
 Unquestioned Authority
+Urza, Powerstone Prodigy
 Vedalken Heretic
+Venom, Eddie Brock
+Venser's Journal
+Verge Rangers
+Vhati il-Dal
+Viashino Bladescout
+Vilis, Broker of Blood
+Vineweft
 Vintara Snapper
 Viridian Longbow
+Vulshok Replica
+Wall of Heat
+Warren Weirding
+Warren-Scourge Elf
+Waterkin Shaman
 Weapon Rack
 Wei Scout
+Wei Strike Force
+Weirding Shaman
+Western Paladin
+Whispers of the Muse
+Willow-Wind
+Zhalfirin Shapecraft
