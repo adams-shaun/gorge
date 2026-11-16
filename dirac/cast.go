@@ -500,11 +500,7 @@ func (s *State) beginActivate(k *prep, o Obj, ab uint8) {
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
-	if s.cfg&cfgGorgeUnpriced != 0 && ab < abCascade {
-		if c := &k.t.Cards[s.bld().e.card].Abilities[ab].Cost.Mana; c.Hyb[0] != 0 && !c.Phyrexian() && c.X == 0 && c.Generic == 0 && pipMaskOf(c) == 0 {
-			s.lowerHybridActivation(k, c)
-		}
-	}
+	s.lowerHybridOnly(k, ab)
 }
 
 // buildAbility returns the ability being built (nil for a permanent spell).

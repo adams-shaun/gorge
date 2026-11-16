@@ -479,6 +479,9 @@ func (s *State) activateGen(k *prep, a Action) bool {
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
+	if a.Mode()&0x80 == 0 {
+		s.lowerHybridOnly(k, a.Mode()) // a hand or graveyard ability (cycling {U/B}): the same witness lowering as a battlefield one
+	}
 	return true
 }
 
