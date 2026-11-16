@@ -75,6 +75,7 @@ Citanul Flute
 Clan Crafter
 Cobblebrute
 Coiling Oracle
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Cradle Clearcutter
@@ -139,6 +140,7 @@ Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
 Fissure Wizard
 Flame-Kin Zealot
 Flamecore Elemental

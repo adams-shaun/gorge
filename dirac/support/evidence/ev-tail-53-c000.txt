@@ -80,6 +80,7 @@ Corrupted Zendikon
 Cosmic Crucible
 Countryside Crusher
 Cranial Ram
+Crowded Crypt
 Crumbling Necropolis
 Cryptbreaker
 Cunning Wish
@@ -153,6 +154,7 @@ Geth's Verdict
 Ghoulcaller's Accomplice
 Glimmer Bairn
 Glintwing Invoker
+Glory of Warfare
 Gluntch, the Bestower
 Gnottvold Recluse
 Goblin Settler

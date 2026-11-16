@@ -120,6 +120,7 @@ Enormous Baloth
 Ephara's Radiance
 Erinis, Gloom Stalker
 Essence Depleter
+Etali, Primal Conqueror
 Everett K. Ross, Hapless Attaché
 Exclude
 Exhaustion
@@ -387,6 +388,7 @@ Thalia, Guardian of Thraben
 Thassa's Ire
 The Bear Force Pilot
 The Binding of the Titans
+The Darkhold
 The Whizzer, Classic Speedster
 Their Number Is Legion
 Thieving Magpie
@@ -413,6 +415,7 @@ Unholy Heat
 Unleash Shell
 Uurg, Spawn of Turg
 Vampire's Zeal
+Vampires' Vengeance
 Vampiric Touch
 Vaporous Djinn
 Verdant Catacombs

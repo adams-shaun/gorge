@@ -31,6 +31,7 @@ Battlefield Butcher
 Battlefield Percher
 Battleground Geist
 Blade of the Bloodchief
+Blaster Mage
 Blazethorn Scarecrow
 Bleeding Edge
 Blight Mamba
@@ -50,14 +51,17 @@ Brothers of Fire
 Buy Your Silence
 Call to Serve
 Caravan Hurda
+Carnassid
 Cartouche of Knowledge
 Carven Caryatid
 Cement Shoes
 Centaur Glade
 Centaur Veteran
 Cessation
+Chalice of Life
 Chalice of the Void
 Chandra's Firemaw
+Charging Tuskodon
 Chatterstorm and Awaken the Woods
 Chicken Egg
 Chief Engineer
@@ -97,6 +101,7 @@ Dystopia
 Elder Owyn Lyons
 Elvish Herder
 Elvish Warmaster
+Empty the Catacombs
 Empty the Warrens
 Enfeeblement
 Enshrined Memories
@@ -128,6 +133,7 @@ Force of Nature
 Forest
 Forgotten Sentinel
 Foul Presence
+Fungal Bloom
 Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
@@ -151,6 +157,7 @@ Gutter Skulk
 Gutwrencher Oni
 Guul Draz Specter
 Hag of Ceaseless Torment
+Harabaz Druid
 Harrier Griffin
 Hate Weaver
 Haunted Library
@@ -235,6 +242,7 @@ Mystic of the Hidden Way
 Nael, Avizoa Aeronaut
 Nantuko Calmer
 Narnam Cobra
+Nightscape Apprentice
 Nourish
 Nyxborn Rollicker
 Octavia, Living Thesis
@@ -340,6 +348,7 @@ Snow-Covered Swamp
 Solemn Recruit
 Solitary Camel
 Soul of Zendikar
+Soulcatchers' Aerie
 Soulscour
 Soulstinger
 Spawning Bed
@@ -377,6 +386,7 @@ Thirst for Meaning
 Throat Slitter
 Throttle
 Thunderous Snapper
+Tilling Treefolk
 Toe-Breaking Helmet
 Toothy, Imaginary Friend
 Tormod, the Desecrator

@@ -1,80 +1,176 @@
+A-Cosmos Elixir
+A-Elven Bow
 A-Forge Boss
 A-Splitting the Powerstone
 Abbot of Keral Keep
+Accorder's Shield
 Akki Avalanchers
 Akoum Battlesinger
+Akroma's Memorial
+Amoeboid Changeling
 Angelheart Protector
 Araña, Heart of the Spider
 Barbtooth Wurm
+Bastion Mastodon
+Bellowing Tanglewurm
 Binding the Old Gods
+Bird Maiden
 Blood Cultist
 Bone Pit Brute
+Broken Bond
+Canopy Baloth
+Capricious Sorcerer
+Carnivorous Canopy
 Casey Jones, Asphalt Hooligan
+Cast into the Fire
+Cateran Enforcer
+Chandra, Hope's Beacon
+Checkpoint Officer
 Children of Korlis
+Chub Toad
+Cliffhaven Sell-Sword
+Coast Watcher
+Conclave Sledge-Captain
 Court Hussar
+Crystal Seer
+Dawnhart Disciple
 Dawnhart Rejuvenator
 Daxos the Returned
+Deal Gone Bad
+Deathgazer
+Dega Sanctuary
+Dirty Wererat
 District Guide
 Doomfall
+Drake Hatchling
+Dread of Night
 Dreadhorde Butcher
 Drogskol Shieldmate
+Eerie Soultender
 Emberwilde Augur
+Epic Confrontation
 Fairgrounds Patrol
 Favored of Iroas
 Fiery Cannonade
+Filter Out
+Firefist Adept
 Foggy Nelson, On Retainer
 Forest
+Foulmire Knight
 Frost Lynx
+Galestrike
 Garruk's Lost Wolf
+Gatekeeper Gargoyle
+Gloomhunter
+Goblin Replica
+Grafted Wargear
+Green Goblin, Back for More
 Grimgrin, Corpse-Born
 Gwyllion Hedge-Mage
+Hammerheim Deadeye
 Hawkeye, Trick Shot
+Haystack
 Hearthfire Hobgoblin
+Heated Debate
 Hieromancer's Cage
 High Ground
+Icatian Scout
 Ingenious Infiltrator
+Ink-Eyes, Servant of Oni
 Intrusive Packbeast
+Invasion of Ulgrotha
 Island
 Jhoira, Weatherlight Captain
+Jousting Lance
 Knight Paladin
+Kodama of the North Tree
+Leyline Phantom
 Liliana's Spoils
 Littjara Glade-Warden
+Living Wall
+Lossarnach Captain
+Ludevic's Test Subject
 Magma Jet
+Midnight Scavengers
+Mind Games
 Mistford River Turtle
 Mountain
+Mudhole
+Myr Battlesphere
 Mystic of the Hidden Way
 Need for Speed
+Noxious Groodion
 Nykthos Paragon
+Nyxborn Brute
 Nyxborn Shieldmate
 Odric's Outrider
 Ornamental Courage
+Pendrell Mists
 Penregon Strongbull
 Phyrexian Rebirth
+Plague Sliver
 Plains
 Plow Through Reito
+Polyraptor
+Press into Service
+Prickly Marmoset
 Priest of Titania
+Prowling Serpopard
 Purge the Profane
 Putrefy
+Quill-Slinger Boggart
 Ramosian Lieutenant
+Return of the Mole Man
+Revoke Demise
+River's Favor
 Road
+Root Spider
+Sai of the Shinobi
+Scavenging Scarab
+Scion of the Swarm
+Sea Sprite
+Sequence Engine
+Seshiro the Anointed
+Shadow, Mysterious Assassin
+Shiny Impetus
+Sinister Strength
+Skyshroud Claim
 Slaughter-Priest of Mogis
+Smothering Tithe
 Solar Blast
+Sootfeather Flock
 Speakeasy Server
 Spiraling Embers
 Spirit en-Kor
 Squeeze
 Stabbing Pain
 Staff of the Flame Magus
+Stampede
 Stealer of Secrets
+Strider, Ranger of the North
 Sturmgeist
 Swamp
 Swarm of Rats
+Sylvok Replica
+Talisman of Resilience
+Tar Pit Warrior
+Thornscape Familiar
 Thundering Raiju
+Tibalt's Rager
 Totally Lost
+Tracker's Instincts
+Triumph of Cruelty
+Turtle-Seals
 Vengeful Firebrand
 Vigorspore Wurm
 Vine Mare
 Voice of Duty
+Voldaren Epicure
+Wall of Earth
 Watchwolf
+Whispersilk Cloak
+Wild Aesthir
+Wildsize
 Wind Zendikon
 Wing Commando
+Zodiac Pig

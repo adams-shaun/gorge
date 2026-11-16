@@ -36,6 +36,7 @@ Basalt Monolith
 Basri's Solidarity
 Beacon Hawk
 Benthic Biomancer
+Biomathematician
 Blanchwood Treefolk
 Blitz of the Thunder-Raptor
 Bloodfire Infusion
@@ -152,6 +153,7 @@ Grasping Dunes
 Grave Strength
 Gravecrawler
 Gravedig
+Grief Tyrant
 Grotag Night-Runner
 Ground Rift
 Guardian of Pilgrims
@@ -208,6 +210,7 @@ Liliana, the Necromancer
 Llanowar Visionary
 Looming Spires
 Lucky Offering
+Magma Mine
 Malakir Soothsayer
 Mandible Justiciar
 Mardu Warshrieker
@@ -317,6 +320,7 @@ Setessan Oathsworn
 Shadowborn Demon
 Shambling Vent
 Shard Volley
+Shield of the Realm
 Short Sword
 Shriekdiver
 Shrieking Grotesque

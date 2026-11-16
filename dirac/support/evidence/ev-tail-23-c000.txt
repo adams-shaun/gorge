@@ -96,6 +96,7 @@ Daru Lancer
 Dauntless Aven
 Day's Undoing
 Daybreak Charger
+Deepchannel Mentor
 Defender en-Vec
 Deflecting Swat
 Dense Canopy
@@ -120,6 +121,7 @@ Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
 Exhibition Magician
+Exile
 Experimental Synthesizer
 Explore
 Extruder
@@ -231,6 +233,7 @@ Makindi Griffin
 Malfegor
 Maritime Guard
 Master Skald
+Master Transmuter
 Mastermind's Acquisition
 Mausoleum Guard
 Mechanized Warfare
@@ -291,6 +294,7 @@ Prison Realm
 Prized Unicorn
 Profound Journey
 Prosperous Pirates
+Rampart Architect
 Rankle, Master of Pranks
 Rath's Edge
 Reef Worm
@@ -330,6 +334,7 @@ Siegehorn Ceratops
 Slither Blade
 Sliver Construct
 Smash
+Smokestack
 Smuggler's Copter
 Solarion
 Somberwald Sage
@@ -401,6 +406,7 @@ Warden of Geometries
 Warning
 Warriors' Lesson
 Waste Not
+Waterfall Aerialist
 Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog

@@ -54,6 +54,7 @@ Bloodvial Purveyor
 Blot Out
 Bolshack Dragon
 Bonds of Mortality
+Bounty Hunter
 Branchsnap Lorian
 Brushland
 Bulette
@@ -167,6 +168,7 @@ Ghoul's Feast
 Gifted Aetherborn
 Glacial Grasp
 Glaive of the Guildpact
+Gleaming Overseer
 Glenn, the Voice of Calm
 Glint Hawk Idol
 Glittermonger
@@ -182,6 +184,7 @@ Hada Spy Patrol
 Hag of Inner Weakness
 Halimar Excavator
 Hall of Tagsin
+Hammerhead Tyrant
 Hangar Scrounger
 Herald of Hadar
 Hermes, Overseer of Elpis
@@ -195,6 +198,7 @@ Humble the Brute
 Humongulus
 Hundroog
 Hydromorph Guardian
+Imperial Cosmographer
 Infectious Bloodlust
 Inheritance
 Inspirit
@@ -333,7 +337,9 @@ Sentinels of Glen Elendra
 Serene Sunset
 Shadowblood Egg
 Shambling Ghast
+Shardless Agent
 Sheltering Boughs
+Shield of the Avatar
 Shivan Gorge
 Shriek of Dread
 Siege Dragon

@@ -13,6 +13,7 @@ Ashcoat Bear
 Aurora Griffin
 Barbed Field
 Basri's Aegis
+Battle Cry Goblin
 Blessed Sanctuary
 Blightbelly Rat
 Blood Mist
@@ -67,6 +68,7 @@ Dwarven Forge-Chanter
 ED-E, Lonesome Eyebot
 Eccentric Pestfinder
 Elanor Gardner
+Energy Flux
 Eternal Warrior
 Evolutionary Escalation
 Faceless Devourer
@@ -118,11 +120,13 @@ Kor Sky Climber
 Kris Mage
 Krosan Cloudscraper
 Kruphix's Insight
+Lambholt Raconteur
 Lancers en-Kor
 Lead-Belly Chimera
 Leatherhead, Iron Gator
 Legion Conquistador
 Leyline of Vitality
+Lightning Dart
 Lightning Diadem
 Lonis, Genetics Expert
 Loxodon Lifechanter
@@ -142,6 +146,7 @@ Midnight Haunting
 Minion of the Mighty
 Minister of Pain
 Misfortune's Gain
+Mister Fantastic
 Moorland Drifter
 Morale
 Morkrut Necropod
@@ -151,6 +156,7 @@ Mountain
 Mountain Bandit
 Mu Yanling, Sky Dancer
 Multani's Acolyte
+Multiversal Recruitment
 Myojin of Blooming Dawn
 Nacatl Savage
 Night
@@ -168,9 +174,11 @@ Pact of the Titan
 Panic Spellbomb
 Pegasus Charger
 Pharika's Cure
+Phyrexian Lens
 Plains
 Potion of Healing
 Pure Reflection
+Pyroclastic Elemental
 Quicksilver Geyser
 Rage Forger
 Raksha Golden Cub
@@ -182,6 +190,7 @@ Reinforced Ronin
 Reito Lantern
 Remove Soul
 Renowned Weaponsmith
+Retributive Wand
 Rhythmic Water Vortex
 Rimrock Knight
 Rockslide Ambush
@@ -209,6 +218,7 @@ Shrieking Mogg
 Silver-Inlaid Dagger
 Skittering Monstrosity
 Skulltap
+Skywinder Drake
 Skywing Aven
 Slaughter Pact
 Slaughter Specialist
@@ -218,11 +228,13 @@ Spear Spewer
 Spire Barrage
 Stature, Young Avenger
 Staunch Defenders
+Steam Frigate
 Stone Retrieval Unit
 Storm Fleet Swashbuckler
 Strength of Night
 Striking Sliver
 Sturmgeist
+Submerge
 Subtle Strike
 Sultai Runemark
 Sungold Barrage
@@ -257,11 +269,13 @@ Vampire's Zeal
 Vastwood Gorger
 Venser, Visionary Traveler
 Volunteer Militia
+Wall of Lost Thoughts
 Warfire Javelineer
 Warlord's Elite
 Warped Physique
 Warren Soultrader
 Weaponize the Monsters
+Wild Colos
 Woodland Sleuth
 Xathrid Slyblade
 Zhao, the Seething Flame

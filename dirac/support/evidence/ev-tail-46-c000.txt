@@ -215,6 +215,7 @@ Karplusan Wolverine
 Karstoderm
 Kazuul's Toll Collector
 Kederekt Leviathan
+Keeper of the Nine Gales
 Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
@@ -317,6 +318,7 @@ Rot Wolf
 Rout
 Rowan's Stalwarts
 Rune-Cervin Rider
+Runic Repetition
 Rushwood Grove
 Rusted Slasher
 Sage-Eye Harrier

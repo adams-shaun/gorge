@@ -100,6 +100,7 @@ Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Flywheel Racer
 Footfall Crater
 Forest
@@ -160,14 +161,17 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Lydia Frye
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
 Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -189,6 +193,7 @@ Nyxborn Marauder
 Oashra Cultivator
 Obliterate
 Ondu Cleric
+Oni Possession
 Peer Through Depths
 Penance Stare
 Pest Infestation
@@ -232,6 +237,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sizzle
 Skyclave Cleric
 Skyclave Shade
 Skyshroud Troll
@@ -248,6 +254,7 @@ Star of Extinction
 Steel Golem
 Steeple Roc
 Storm Crow
+Strandwalker
 Strength of Arms
 Strike It Rich
 Surreal Memoir
@@ -286,6 +293,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wildfire Eternal
 Windreader Sphinx

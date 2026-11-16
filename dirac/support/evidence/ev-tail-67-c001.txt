@@ -1,5 +1,6 @@
 A-Dokuchi Silencer
 A-Elven Bow
+A-Rulik Mons, Warren Chief
 A-Umara Mystic
 Accelerated Evolution
 Aerial Assault
@@ -26,7 +27,9 @@ Blight Grenade
 Blisterspit Gremlin
 Buried Alive
 Burn the Impure
+Burning Palm Efreet
 Butcher Ghoul
+Caldera Pyremaw
 Cao Cao, Lord of Wei
 Caravan Escort
 Chain Lightning
@@ -53,6 +56,7 @@ Demonic Rising
 Dismantling Blow
 Domri, Anarch of Bolas
 Drag Down
+Dragon's Approach
 Dramatic Reversal
 Dynavolt Tower
 Earthen Goo
@@ -75,13 +79,18 @@ Fleshpulper Giant
 Floodhound
 Flow of Ideas
 Flux Channeler
+Fog of Gnats
 Forest
 Fungal Sprouting
+Furnace Celebration
 Genku, Future Shaper
 Glittermonger
 Glory Bearers
 Gluttonous Zombie
+Gnome-Made Engine
 Go Forth
+Goblin Glider
+Goblin Racketeer
 Golden Egg
 Grazilaxx, Illithid Scholar
 Grim Monolith
@@ -99,6 +108,7 @@ Horseshoe Crab
 Hound of the Farbogs
 Hydra's Growth
 Implement of Ferocity
+Independent Troops
 Indigo Faerie
 Infernal Pet
 Inkrise Infiltrator
@@ -122,6 +132,7 @@ Lightning-Core Excavator
 Liliana's Influence
 Lodestone Myr
 Longtusk Cub
+Lowland Oaf
 Lucas, the Sharpshooter
 Lush Growth
 MJ, Rising Star
@@ -134,12 +145,14 @@ Might Weaver
 Mirror of Galadriel
 Mise
 Misery's Shadow
+Mogg Sentry
 Mogis's Warhound
 Moonglove Changeling
 Moonlight Hunt
 Mortal's Ardor
 Moss Monster
 Mother of Runes
+Mothrider Patrol
 Mountain
 Mourning
 Murkfiend Liege
@@ -155,11 +168,14 @@ Onulet
 Organ Hoarder
 Orim's Touch
 Pentarch Ward
+Phyrexian Etchings
 Plains
 Pol Jamaar, Illusionist
+Preeminent Captain
 Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Purifying Dragon
 Python
 Quest for Pure Flame
 Rage Weaver
@@ -180,6 +196,7 @@ Scion of Vitu-Ghazi
 Searing Barb
 Searing Blood
 Sentinel Sliver
+Shake the Foundations
 Shore Keeper
 Simplify
 Skullknocker Ogre
@@ -190,11 +207,14 @@ Sol Grail
 Soul of Theros
 Spined Fluke
 Squee's Embrace
+Steam Blast
 Stormcrag Elemental
 Stormrider Rig
+Streetbreaker Wurm
 Summon: Good King Mog XII
 Swamp
 Symmetry Sage
+Tactical Advantage
 Talons of Falkenrath
 Talons of Wildwood
 Tawnos's Wand
@@ -209,6 +229,7 @@ Thunder Drake
 Thwart the Grave
 Titan's Strength
 Topan Freeblade
+Tor Giant
 Tormod's Cryptkeeper
 Tranquil Path
 Transcendent Master

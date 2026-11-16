@@ -127,6 +127,7 @@ Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faerie Guidemother
 Faithbearer Paladin
@@ -192,6 +193,7 @@ Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
 Heap Doll
+Helica Glider
 Hellspark Elemental
 Hieromancer's Cage
 Hobgoblin Captain
@@ -379,6 +381,7 @@ Skulking Ghost
 Skullslither Worm
 Skullsnatcher
 Skyboon Evangelist
+Skyknight Vanguard
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon

@@ -68,6 +68,7 @@ Filigree Crawler
 Filigree Fracture
 Final Revels
 Fire Whip
+Fires of Victory
 Font of Progress
 Force of Vigor
 Forest
@@ -212,3 +213,4 @@ Whiptail Wurm
 Whirlwind Technique
 Wizened Cenn
 Wretched Anurid
+Zulaport Duelist

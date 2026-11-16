@@ -188,6 +188,7 @@ Gyre Sage
 Hag of Mage's Doom
 Halo Hunter
 Haunted Fengraf
+Havoc
 Headless Skaab
 Headstrong Brute
 Heedless One
@@ -324,6 +325,7 @@ Presence of the Wise
 Pridemalkin
 Primal Frenzy
 Prismatic Vista
+Prismite
 Professor of Zoomancy
 Protection Magic
 Psionic Snoop

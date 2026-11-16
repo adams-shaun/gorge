@@ -34,6 +34,7 @@ Bob, Reluctant HYDRA Agent
 Bog Gnarr
 Bone Flute
 Boon Satyr
+Boon of the Spirit Realm
 Borrowed Hostility
 Brilliant Spectrum
 Brokers Veteran
@@ -73,6 +74,7 @@ Detective of the Month
 Dire Fleet Poisoner
 Disciple of Tevesh Szat
 Djinn of the Lamp
+Dolmen Gate
 Donate
 Dormant Volcano
 Dragon Blood

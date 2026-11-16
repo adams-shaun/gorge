@@ -99,6 +99,7 @@ Eagle of the Watch
 Emergency Weld
 Enforcer Griffin
 Enlightened Tutor
+Enlistment Officer
 Exalted Angel
 Excavation Technique
 Farsight Adept
@@ -108,6 +109,7 @@ Firemaw Kavu
 Flameblade Adept
 Flesh to Dust
 Flood of Tears
+Flower
 Flowstone Salamander
 Fog on the Barrow-Downs
 Force of Despair
@@ -119,6 +121,7 @@ Garruk's Warsteed
 General Tazri
 Genesis
 Geralf's Masterpiece
+Geralf, Visionary Stitcher
 Get the Point
 Geyserfield Stalker
 Glacial Stalker
@@ -187,6 +190,7 @@ Laurine, the Diversion
 Legions to Ashes
 Leonin Armorguard
 Lich's Caress
+Loch Dragon
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
@@ -232,11 +236,13 @@ Oriq Loremage
 Ornamental Courage
 Orochi Hatchery
 Oswald Fiddlebender
+Owl Familiar
 Pardic Arsonist
 Patagia Viper
 Peer Through Depths
 Petravark
 Pheres-Band Centaurs
+Phyrexian Juggernaut
 Phyrexian War Beast
 Plague Spitter
 Plains
@@ -365,6 +371,7 @@ Urborg Skeleton
 Urza's Factory
 Urza's Rebuff
 Uthros Research Craft
+Uurg, Spawn of Turg
 Vampire Noble
 Vigil for the Lost
 Vindictive Mob

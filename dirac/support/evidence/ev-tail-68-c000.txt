@@ -41,12 +41,15 @@ Captain Lannery Storm
 Cateran Brute
 Cavalier of Night
 Cavern Harpy
+Cephalid Vandal
 Charging Paladin
 Cinder Giant
 Citadel Castellan
 Cliffhaven Vampire
+Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Cold Storage
 Colorful Feiyi Sparrow
 Conservator
@@ -147,6 +150,7 @@ Keeper of Fables
 Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Kor Skyfisher
+Krovikan Sorcerer
 Labyrinth Adversary
 Lazotep Reaver
 Leather Armor
@@ -217,6 +221,7 @@ Scaled Herbalist
 Scaled Hulk
 Scarred Vinebreeder
 Scrapper Champion
+Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
 Shambling Ghoul

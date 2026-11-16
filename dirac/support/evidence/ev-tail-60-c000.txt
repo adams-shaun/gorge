@@ -20,6 +20,7 @@ Arachnus Web
 Arcane Proxy
 Argentum Armor
 Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
@@ -282,6 +283,7 @@ Maximize Velocity
 Menagerie Liberator
 Mer-Ek Nightblade
 Metastatic Evangel
+Midnight Clock
 Minamo, School at Water's Edge
 Mind Harness
 Mind Maggots

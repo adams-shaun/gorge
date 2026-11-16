@@ -9,6 +9,7 @@ Airdrop Condor
 Ajani's Influence
 Ajani, Valiant Protector
 Alhammarret, High Arbiter
+Aligned Heart
 Altar of Bhaal
 Altar of Bone
 Amazing Alliance
@@ -19,11 +20,13 @@ Araña, Heart of the Spider
 Argivian Blacksmith
 Ark of Blight
 Asha's Favor
+Atraxi Warden
 Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
 Avabruck Caretaker
+Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
@@ -100,6 +103,7 @@ Etherium Abomination
 Exuberant Wolfbear
 Eyeblight's Ending
 Fallen Ferromancer
+False Mourning
 Fangren Hunter
 Farfinder
 Farmstead
@@ -145,6 +149,7 @@ Heartless Pillage
 Hellcarver Demon
 Henge of Ramos
 Heron's Grace Champion
+High Score
 Hog-Monkey Rampage
 Howlpack Wolf
 Huatli's Raptor
@@ -165,6 +170,7 @@ Iridescent Angel
 Irradiate
 Irregular Cohort
 Island
+It That Heralds the End
 Izzet Chronarch
 Jade Guardian
 Jagwasp Swarm
@@ -267,6 +273,7 @@ Reverberate
 Rhonas's Monument
 Rhystic Study
 Riders of Rohan
+Roc Egg
 Rocco, Cabaretti Caterer
 Safe Haven
 Safehold Sentry
@@ -280,6 +287,7 @@ Shabraz, the Skyshark
 Shaman of the Pack
 Shaper Apprentice
 Shapeshifter
+Shatterskull Recruit
 Sheltering Light
 Shoreline Ranger
 Sigardian Priest
@@ -319,6 +327,7 @@ Stupor
 Summon the School
 Summon: Good King Mog XII
 Sunweb
+Surge of Righteousness
 Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp

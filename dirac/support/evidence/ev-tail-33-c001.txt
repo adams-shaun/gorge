@@ -263,6 +263,7 @@ Psychotic Fury
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quarantine Field
 Quirion Dryad
 Raiders' Spoils
 Ravenous Leucrocota
@@ -335,6 +336,7 @@ Striped Bears
 Subversion
 Swamp
 Sylvan Hierophant
+Sythis, Harvest's Hand
 Tajuru Warcaller
 Temple Elder
 Temporal Machinations

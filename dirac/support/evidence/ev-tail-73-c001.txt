@@ -1,6 +1,7 @@
 A-Forge Boss
 A-Social Climber
 Abomination of Llanowar
+Aboshan, Cephalid Emperor
 Abzan Battle Priest
 Agent Frank Horrigan
 Agent of Shauku
@@ -16,6 +17,7 @@ Appetite for Brains
 Arm-Mounted Anchor
 Arrogant Poet
 Aspect of Lamprey
+Assault Strobe
 Atarka, World Render
 Automated Artificer
 Avenging Huntbonder
@@ -69,6 +71,7 @@ Desecrated Earth
 Diabolic Tutor
 Dimir Aqueduct
 Djeru's Renunciation
+Dragon Mantle
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
@@ -83,6 +86,7 @@ Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faerie Guidemother
 Falter
@@ -106,6 +110,7 @@ Forest
 Forgotten Cave
 Fortitude
 Frilled Sandwalla
+Fungal Plots
 Furtive Analyst
 Galazeth Prismari
 Garruk's Horde
@@ -131,6 +136,7 @@ Grisly Ritual
 Grotag Siege-Runner
 Ground Rift
 Gruesome Fate
+Gudul Lurker
 Guild Thief
 Gust-Skimmer
 Hapatra, Vizier of Poisons
@@ -155,8 +161,10 @@ Increasing Devotion
 Infernal Tribute
 Inner Struggle
 Invading Manticore
+Invasion of Karsus
 Iroas's Blessing
 Iron Man, Modern Marvel
+Iron Suitcase
 Island
 Ivy Seer
 Jade Guardian
@@ -204,6 +212,7 @@ Morkrut Behemoth
 Morphling
 Moss Viper
 Mountain
+Mountain Goat
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -258,6 +267,7 @@ Saber Ants
 Sagu Archer
 Samite Alchemist
 Sandstorm Charger
+Scab-Clan Charger
 Scavenged Weaponry
 Scour the Laboratory
 Scourge of Numai
@@ -292,6 +302,7 @@ Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
 Spawning Kraken
+Spider-Man, Peter Parker
 Spirit Cairn
 Spiritual Sanctuary
 Spiteful Motives
@@ -321,6 +332,7 @@ TVA Bureaucrat
 Tallyman of Nurgle
 Tar Pit Warrior
 Tarkir Duneshaper
+Taste for Mayhem
 The Stasis Coffin
 Thraben Charm
 Thunder Totem
@@ -335,6 +347,7 @@ Treacherous Vampire
 Treefolk Healer
 Twinscroll Shaman
 Tyrant's Familiar
+Ulvenwald Hydra
 Undercity Troll
 Unholy Officiant
 Union of the Third Path

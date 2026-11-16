@@ -5,6 +5,7 @@ Acid Rain
 Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Ancestral Vengeance
 Ancient Runes
 Angelic Overseer
@@ -14,15 +15,19 @@ Armorcraft Judge
 Arno Dorian
 Asceticism
 Ashcoat Bear
+Auriok Sunchaser
 Auspicious Ancestor
 Baloth Prime
 Barrel Down Sokenzan
 Blade of the Bloodchief
 Blood Knight
 Bloodscale Prowler
+Blue Scarab
 Boros Mastiff
+Brimstone Dragon
 Brindle Shoat
 Butch DeLoria, Tunnel Snake
+Candlelight Vigil
 Castle Raptors
 Cavalry Drillmaster
 Celebrity Fencer
@@ -39,6 +44,7 @@ Copper Tablet
 Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
+Cutthroat Negotiator
 Cyclopean Snare
 Cystbearer
 Dark Temper
@@ -47,11 +53,13 @@ Death of a Thousand Stings
 Declare Dominance
 Despondent Killbot
 Dirty Rat
+Divebomber Griffin
 Dragon Bell Monk
 Dragon Hatchling
 Dralnu's Crusade
 Eel-Hounds
 Empty the Warrens
+Empyrial Armor
 Faithless Looting
 Fast Forward
 Feast of Dreams
@@ -67,8 +75,10 @@ Gideon's Lawkeeper
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Firebug
+Graceful Cat
 Grave Betrayal
 Grizzly Ghoul
+Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
 Island
@@ -82,10 +92,12 @@ Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Lord of Extinction
 Lulu, Stern Guardian
 Magma Rift
+Make Your Mark
 Makeshift Battalion
 Mana Geyser
 Markov Enforcer
@@ -103,12 +115,14 @@ Necrosquito
 Nested Shambler
 Nighthawk Scavenger
 Nightmarish End
+Nikya of the Old Ways
 No Escape
 Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
 Open the Vaults
 Orzhov Racketeers
+Paradise Mantle
 Pardic Arsonist
 Patriot, Young Avenger
 Paupers' Cage
@@ -121,9 +135,11 @@ Polluted Bonds
 Portal to Phyrexia
 Psionic Blast
 Pyretic Charge
+Quickening Licid
 Rally the Ranks
 Ransack
 Reckless Air Strike
+Rhox Brute
 Rise from the Nether
 Rubblebelt Recluse
 Rundvelt Hordemaster
@@ -156,6 +172,7 @@ Stony Strength
 Sunset Revelry
 Sunspire Griffin
 Swamp
+Swift Maneuver
 Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
@@ -172,6 +189,7 @@ Vapor Snag
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
+Warkite Marauder
 Warlord's Axe
 Wasp, Shrinking Savior
 Wei Night Raiders
