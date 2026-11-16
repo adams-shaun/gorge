@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Swamp
+Will-Forged Golem
+Woodborn Behemoth

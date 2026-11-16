@@ -1,5 +1,6 @@
 Accursed Marauder
 Aether Vial
+Alirios, Enraptured
 Angelic Gift
 Angelic Protector
 Aqueous Form
@@ -44,6 +45,7 @@ Fire-Belly Changeling
 Flaring Pain
 Flickerwisp
 Forest
+Fumble
 Fury Sliver
 Gatekeeper of Malakir
 Gempalm Incinerator

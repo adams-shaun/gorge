@@ -1,0 +1,6 @@
+Island
+Mountain
+Plains
+Slitherwisp
+Smother
+Swamp

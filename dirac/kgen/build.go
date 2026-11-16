@@ -154,6 +154,7 @@ func buildCard(pt *poolTables, c *lCard) built {
 	if err := cb.record(); err != nil {
 		cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "record", Reason: err.Error()})
 	}
+	cb.out.def.SplitSecond = c.SplitSecond // CR 702.61a (lower_splitsecond.go)
 	if len(c.Refusals) > 0 {
 		// A refused card keeps its static record only.
 		cb.out.def.Abilities = nil
@@ -445,6 +446,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
+	"OMEN":       kop.CtrOmen,       // Soulcipher Board's omen counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
@@ -1026,7 +1028,7 @@ func (cb *cardBuilder) record() error {
 		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
-	d.World = c.World
+	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
@@ -1052,7 +1054,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
-	d.Ascend = c.Ascend
+	d.Ascend, d.Unleash = c.Ascend, c.Unleash
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1180,6 +1182,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardHand {
 		out.DiscardHand = true
 	}
+	out.DiscardRandom = discardRandomPart(c)
 	if c.DiscardF != nil {
 		// a filtered discard shares Cost.N (the card count) and Cost.Filter
 		// (the candidates' spec, the hand zone): alone among the counted
@@ -1796,6 +1799,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredEquipped
 	case cmpEnchanted:
 		kf.Pred = kop.PredEnchanted
+		kf.PredN = int16(c.CmpN) // 1: "!enchanted"
 	case cmpAttached:
 		kf.Pred = kop.PredAttached
 	case cmpActiveCtrl:

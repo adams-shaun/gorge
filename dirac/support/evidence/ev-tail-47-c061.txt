@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Squirrel Mob
+Stern Constable
+Swamp

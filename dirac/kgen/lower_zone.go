@@ -1621,6 +1621,13 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 	if ps.is("NoReveal", "True") && !has("RememberPeeked") && !has("RevealOptional") && !has("RevealValid") {
 		// the bare look that remembers nothing (Mishra's Bauble): gorge's
 		// look_ack when the library holds a card, no other effect
+		if who.Kind == rEachPlayer {
+			// each player's library is its own look_ack, the controller's
+			// first, then the opponent (gorge's AliveFrom(controller) order; Case the
+			// Joint): OpLookAck reads one player
+			lc.emit(lInstr{Op: "LookAck", Obj: lRef{Kind: rYou}, A: n, CS: "Library"})
+			who = lRef{Kind: rEachOpp}
+		}
 		lc.emit(lInstr{Op: "LookAck", Obj: who, A: n, CS: "Library"})
 		return nil
 	}
@@ -3833,11 +3840,11 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)
-	case prod == "Combo ColorID":
-		// Cryptic Spires' "one of the circled colors" (CR 207.5): no circle is
-		// recorded in a game, so gorge's effMana adds nothing for it (the
-		// unhandled Produced$ note) and its payment planner counts no mana. The
-		// word is no colour string, and its capital C would read as colourless.
+	case prod == "ColorID" || prod == "Combo ColorID":
+		// "the circled colors" (Cryptic Spires): gorge's ProducedCounts claims
+		// no mana for the word, so the land is a source of no colour, which
+		// the kernel leaves out of payment (the ColorIdentity rider case)
+		ps.str("TriggersWhenSpent")
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)

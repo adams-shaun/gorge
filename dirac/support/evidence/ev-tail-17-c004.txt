@@ -1,5 +1,112 @@
+Act on Impulse
+Aether Vial
+Arbalest Engineers
+Astarion, the Decadent
+Avarice Amulet
+Barbed Shocker
+Basking Broodscale
+Bedlam
+Beskir Shieldmate
+Big Game Hunter
+Big Score
+Black Panther, Claws of Bast
+Branchsnap Lorian
+Burrenton Shield-Bearers
+Chasm Guide
+Composer of Spring
+Cragplate Baloth
+Dega Sanctuary
+Doomed Artisan
+Dragonlair Spider
+Drogskol Shieldmate
+Eerie Soultender
+Elves of Deep Shadow
+Enthralling Victor
+Far Wanderings
+Festercreep
+Fevered Convulsions
+Fists of the Anvil
+Fleet-Footed Monk
+Font of Fortunes
 Forest
+Foul Imp
+Galvanic Blast
+Geosurge
+Giant Scorpion
+Gleaming Overseer
+Goatnapper
+Goblin Piledriver
+Gorging Vulture
+Gravelgill Duo
+Headless Rider
+Heaven
+In the Web of War
+Ironclaw Buzzardiers
 Island
+Kavu Runner
+Kazandu Stomper
+Kitsune Riftwalker
+Krosan Colossus
+Kytheon's Irregulars
+Landbind Ritual
+Landroval, Horizon Witness
+Larder Zombie
+Lay Down Arms
+Lazotep Chancellor
+Liliana, the Necromancer
+Lobber Crew
+Looming Shade
+Lurking Nightstalker
+Mad Dog
+Masked Blackguard
+Moderation
+Moira, Urborg Haunt
 Mountain
+Nav Squad Commandos
+Needle Specter
+Night of Souls' Betrayal
+Norn's Inquisitor
+Ojutai, Soul of Winter
+Owl Familiar
+Pallid Mycoderm
+Parch
+Peregrine Drake
+Plague Fiend
+Plague Sliver
 Plains
+Plover Knights
+Plundering Predator
+Pollenbright Druid
+Raffine's Informant
+Rage Nimbus
+Rathi Intimidator
+Restrain
+Roc of Kher Ridges
+Rockslide Ambush
+Rumbling Crescendo
+Rumor Gatherer
+Ruthless Disposal
+Sai, Master Thopterist
+Scour from Existence
+Searchlight Geist
+Serra Avenger
+Shagrat, Loot Bearer
+Slith Bloodletter
+Specter of the Fens
+Sphinx's Tutelage
+Splendid Agony
+Stingscourger
+Stonebound Mentor
+Storm of Memories
+Street Riot
+Street Urchin
+Strike It Rich
+Suki, Kyoshi Captain
+Summary Judgment
 Swamp
+Sygg, River Guide
+Tectonic Rift
+The Binding of the Titans
+Undead Augur
+You Are Already Dead
+Zombie Cutthroat
