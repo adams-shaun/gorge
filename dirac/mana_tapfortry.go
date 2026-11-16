@@ -6,7 +6,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the plan and reports true, or taps nothing and reports false when the
 // planner has none (tapForRider panics there, a kernel defect for a cost the
 // offer priced). Only a cost the offer could not price yet, as a per-target
-// raise charged after the targets (cost_raise.go), uses it.
+// raise charged after the targets (cost_raise.go), and an Improvise payment
+// re-planned on the artifacts the player announced (improvisePlanPay), use it.
 func (s *State) tapForTry(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
 	var pk planner
 	pk.try = true
@@ -27,6 +28,12 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		return false
 	}
 	if s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor) {
+		return false
+	}
+	// the planner has no witness for the taxed cost: the CR 601.2g window pays it when its sources do
+	// (a filter funded by the floating mana, castWindowReachable), and only then is the cast reversed
+	c := xFolded(*cost, int(e.x))
+	if ok, _ := s.windowTapUseful(k, e.ctrl, &c, &c, true, anyColor, s.bld().pipN == 0, false); ok || s.winPaused() {
 		return false
 	}
 	s.releaseCostTaps(k, saved)

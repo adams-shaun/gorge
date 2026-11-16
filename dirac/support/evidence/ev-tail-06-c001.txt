@@ -17,6 +17,7 @@ Atomize
 Augur of Skulls
 Awaken the Sky Tyrant
 Azorius Chancery
+Balm of Restoration
 Bandage
 Barbary Apes
 Barl's Cage
@@ -48,19 +49,24 @@ Cloudthresher
 Conscripted Infantry
 Control of the Court
 Corpse Churn
+Court of Embereth
 Crosstown Courier
 Cutthroat Negotiator
 Dawnhart Wardens
 Deathbloom Gardener
 Deb Thomas
 Decree of Savagery
+Diregraf Scavenger
+Dramatic Entrance
 Dream Trawler
+Dreamdrinker Vampire
 Drizzt Do'Urden
 Edge of Autumn
 Eldrazi Mimic
 Emberwilde Caliph
 Embodiment of Fury
 Erdwal Ripper
+Evil Eye of Urborg
 Experimental Armor
 Eye of Yawgmoth
 Faerie Seer
@@ -91,6 +97,7 @@ Griselbrand
 Hagra Diabolist
 Halo Scarab
 Heliod, God of the Sun
+Herald of Hadar
 Hobgoblin Bandit Lord
 Honor the Fallen
 Hornet Nest
@@ -107,14 +114,19 @@ Jeering Homunculus
 Jewel Thief
 Jolted Awake
 Juntu Stakes
+Kaseto, Orochi Archmage
 Kemba, Kha Enduring
 Kyoshi Warrior Exemplars
 Leaf Gilder
+Leafcrown Dryad
+Lesser Masticore
 Lightning Surge
 Locthwain Lancer
+Long Road Home
 Lost Soul
 Loxodon Warhammer
 Luminous Angel
+Magnetic Mine
 Magus of the Bridge
 Mammoth Spider
 Manor Skeleton
@@ -126,12 +138,16 @@ Minds Aglow
 Mindstab
 Moan of the Unhallowed
 Molten Vortex
+Mothdust Changeling
 Mountain
 Mystic Melting
 Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
+Noosegraf Mob
 Nuka-Cola Vending Machine
+Nylea's Disciple
+Obstinate Gargoyle
 On Serra's Wings
 Order of the Ebon Hand
 Outnumber
@@ -141,8 +157,10 @@ Peek
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
+Phyrexian Marauder
 Plague Mare
 Plains
+Poison-Tip Archer
 Pre-War Formalwear
 Press the Advantage
 Prison Sentence
@@ -162,6 +180,8 @@ Sacred Armory
 Sailors' Bane
 Sanctum of Shattered Heights
 Saprazzan Bailiff
+Sarkhan's Triumph
+Scaled Behemoth
 Sentinel's Mark
 Seraph of the Masses
 Servant of Volrath
@@ -184,6 +204,8 @@ Spore Swarm
 Steel Dromedary
 Stensia Banquet
 Strangle
+Stronghold Taskmaster
+Sudden Spoiling
 Sungrace Pegasus
 Suntail Hawk
 Swamp
@@ -193,6 +215,7 @@ Teferi's Ageless Insight
 Teleportation Circle
 Teller of Tales
 Thalakos Scout
+Thassa, Deep-Dwelling
 The Antiquities War
 The Modern Age
 The One Ring

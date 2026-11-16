@@ -4,6 +4,7 @@ A-Social Climber
 A-Teferi, Time Raveler
 Abomination, World Ravager
 Absorb
+Abzan Runemark
 Ajani's Mantra
 Alley Grifters
 Aphotic Wisps
@@ -12,10 +13,14 @@ Assault Strobe
 Astarion's Thirst
 Avatar of Growth
 Aven Trooper
+Aven Windreader
 Barricade Breaker
 Bearer of Memory
+Beastmaster's Magemark
+Betrayal
 Black Sun's Twilight
 Blindblast
+Blinding Mage
 Blood Vassal
 Blue Marvel, Adam Brashear
 Boggart Ram-Gang
@@ -36,32 +41,42 @@ Chromatic Star
 Cinder Pyromancer
 City of Brass
 Civic Guildmage
+Cleopatra, Exiled Pharaoh
 Colossal Dreadmaw
 Concordant Crossroads
 Confessor
 Constable of the Realm
+Constricting Tendrils
 Curse of Predation
 Daemogoth Titan
+Danitha Capashen, Paragon
 Dauntless Bodyguard
 Deadly Insect
 Death Speakers
+Deathleaper, Terror Weapon
 Defenestrate
 Descendant of Kiyomaro
 Devouring Swarm
 Disciple of Freyalise
+Divine Smite
 Doom's Servo-Guards
 Dragonborn Looter
 Dread Tiller
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
+Eldrazi Mimic
 Ember-Fist Zubera
+Emeria Angel
 Encroaching Wastes
+Endless Wurm
 Entish Restoration
 Euroakus
+Fanatical Fever
 Ferocious Charge
 Field Marshal
 Fire Ambush
+Firemaw Kavu
 Flameskull
 Forest
 Frightcrawler
@@ -71,29 +86,38 @@ Fumarole
 Gaea's Bounty
 Gaze of Granite
 Ghoulcaller's Bell
+Glittering Wish
 Gloomhunter
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
+Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
+Guul Draz Assassin
 Halberdier
 Hardened Scales
 Horned Cheetah
 Horned Helm
+Hornet Cannon
 Hornet Cobra
 Hulk, Always Angry
 Immortal Phoenix
 Inferno Fist
 Insidious Bookworms
+Involuntary Cooldown
 Island
 Jhoira's Familiar
+Jinxed Idol
 Khenra Charioteer
 Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
+Late to Dinner
 Lava Axe
+Lignify
+Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
@@ -101,7 +125,9 @@ MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Malicious Advice
 Maniacal Rage
+Marshaling Cry
 Master the Way
+Mayael the Anima
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
@@ -115,25 +141,33 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Nature's Chant
 Navigation Orb
+Naya Sojourners
 Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
+Norn's Inquisitor
+Novellamental
+Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
 Painwracker Oni
 Paladin Danse, Steel Maverick
 Pathbreaker Ibex
+Patient Rebuilding
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
+Quilled Slagwurm
 Rag Dealer
 Raging Kavu
 Rally Maneuver
@@ -144,6 +178,7 @@ Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Reverent Mantra
 Riddlekeeper
 Roar of the Crowd
 Roaring Slagwurm
@@ -151,12 +186,15 @@ Roc Hunter
 Rockshard Elemental
 Rundvelt Hordemaster
 Runeclaw Bear
+Sabertooth Nishoba
 Sacred Cat
 Saheeli's Artistry
 Sanctify
 Savai Thundermane
 Scoria Wurm
 Scrapwork Cohort
+Scrivener
+Selfless Spirit
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
@@ -174,8 +212,10 @@ Spitfire Handler
 Spurnmage Advocate
 Stampeding Rhino
 Steel Leaf Paladin
+Steelshaper's Gift
 Stenchskipper
 Storm Fleet Pyromancer
+String of Disappearances
 Strip Mine
 Sunstrike Legionnaire
 Sunweb
@@ -184,24 +224,30 @@ Swamp
 Sword of the Animist
 Talisman of Unity
 The Blue Spirit
+The Indomitable
 The Shattered States Era
 The Stasis Coffin
 Thopter Assembly
 Thunder Totem
 Tiller Engine
+Topaz Dragon
 Towering Indrik
 Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
+Undead Executioner
 Unholy Indenture
 Unquestioned Authority
 Urza, Powerstone Prodigy
+Vagrant Plowbeasts
 Venom, Eddie Brock
 Venser's Journal
 Verge Rangers
+Vhati il-Dal
 Vineweft
 Vintara Snapper
 Viridian Longbow
@@ -209,8 +255,10 @@ Vital Splicer
 Vulshok Replica
 Wall of Heat
 Warmonger Hellkite
+Waterkin Shaman
 Weapon Rack
 Wei Scout
 Weirding Shaman
 Willow-Wind
+Woodland Liege
 Zhalfirin Shapecraft

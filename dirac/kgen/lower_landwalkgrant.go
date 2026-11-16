@@ -12,9 +12,11 @@ import "strings"
 // kernel reads kop.Static.Landwalk the way it reads a printed
 // CardDef.Landwalk (the spec's parameter up to a second colon).
 //
-// Only a global grant ("Other Goblins have mountainwalk") lowers: an
-// Equipment's or Aura's grant (Affected$ ...EquippedBy / ...EnchantedBy) has
-// no lockstep repro, so it stays refused.
+// A global grant ("Other Goblins have mountainwalk") and an Equipment's
+// (Trailblazer's Boots: "Equipped creature has nonbasic landwalk") lower; the
+// equipped creature is the static's filter, so the kernel reads the grant the
+// way it reads a global one. An Aura's grant (Affected$ ...EnchantedBy) has no
+// lockstep repro, so it stays refused.
 func (lc *lowerCtx) splitLandwalkGrant(kw, affected string) (string, *lFilter, error) {
 	var rest []string
 	var out *lFilter
@@ -25,17 +27,57 @@ func (lc *lowerCtx) splitLandwalkGrant(kw, affected string) (string, *lFilter, e
 			rest = append(rest, k)
 			continue
 		}
-		if strings.Contains(affected, "Equipped") || strings.Contains(affected, "Enchanted") {
+		if strings.Contains(affected, "Enchanted") || strings.Contains(affected, "Equipped") && lc.out.Types&tArtifact == 0 {
 			return "", nil, refuse("keyword %q: a granted landwalk from an attached host", k)
 		}
-		spec, _, _ := strings.Cut(param, ":") // gorge LandwalkSpec: a second colon starts the description
-		spec = strings.TrimSpace(spec)
-		if spec == "" {
-			return "", nil, refuse("keyword %q: landwalk with no land spec", k)
-		}
-		f, err := lc.filter(spec)
+		f, err := lc.landwalkFilter(k, param)
 		if err != nil {
-			return "", nil, refuse("keyword %q: %v", k, err)
+			return "", nil, err
+		}
+		if out == nil {
+			out = f
+		} else {
+			out = &lFilter{Clauses: append(append([]lClause(nil), out.Clauses...), f.Clauses...)}
+		}
+	}
+	return strings.Join(rest, " & "), out, nil
+}
+
+// landwalkFilter lowers one "Landwalk:<spec>" keyword term's land filter (k is
+// the whole term, param what follows its first colon): the spec up to a second
+// colon, which gorge's LandwalkSpec reads and starts the description at.
+func (lc *lowerCtx) landwalkFilter(k, param string) (*lFilter, error) {
+	spec, _, _ := strings.Cut(param, ":")
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return nil, refuse("keyword %q: landwalk with no land spec", k)
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return nil, refuse("keyword %q: %v", k, err)
+	}
+	return f, nil
+}
+
+// splitLandwalkPump takes the "Landwalk:<spec>" terms out of a Pump's KW$ list
+// (Piracy Charm's "target creature gains islandwalk until end of turn"): the
+// rest of the list and one filter holding every term's clauses, as
+// splitLandwalkGrant builds it. pumpBody applies it as an end-of-turn override
+// record carrying the filter (kop.Override.Landwalk), which the kernel reads
+// beside a printed or statically granted landwalk.
+func (lc *lowerCtx) splitLandwalkPump(kw string) (string, *lFilter, error) {
+	var rest []string
+	var out *lFilter
+	for _, k := range strings.Split(kw, "&") {
+		k = strings.TrimSpace(k)
+		head, param, ok := strings.Cut(k, ":")
+		if !ok || head != "Landwalk" {
+			rest = append(rest, k)
+			continue
+		}
+		f, err := lc.landwalkFilter(k, param)
+		if err != nil {
+			return "", nil, err
 		}
 		if out == nil {
 			out = f

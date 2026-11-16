@@ -134,6 +134,7 @@ const (
 	ChGenPlayer                               // mode = the seat of the opponent a permanent chooses as it enters (gorge effChoosePlayer's "player" option; repl_chooseplayer.go)
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
+	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -2055,7 +2056,7 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		nf := 0
 		// the scan window in scan order (DuRememberRevealed's reveal list:
 		// gorge appends every revealed card, found ones included, at the end
-		// of the player's walk)
+		// of the player's walk; DuFoundWithRevealed's rest list, same order)
 		var all [MaxDeck]Obj
 		na := 0
 		cmc := 0
@@ -2064,10 +2065,8 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 		// Amount$ still reveals nothing (gorge's amount > 0 gate).
 		for i := 0; (resumed || minCMC > 0 && want > 0 && cmc < minCMC || minCMC == 0 && found < want) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
 			o := pl.lib[int(pl.libLo)+i]
-			if fl&kop.DuRememberRevealed != 0 {
-				all[na] = o
-				na++
-			}
+			all[na] = o
+			na++
 			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && (minCMC > 0 || found < want) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
@@ -2110,8 +2109,15 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 			}
 		}
 		if fl&kop.DuFoundWithRevealed != 0 {
-			for i := 0; i < nf; i++ {
-				rev[nr] = fnd[i]
+			// the rest is the whole revealed pile in scan order, the found
+			// cards at their own scan positions (Forge DigUntilEffect: with
+			// no FoundDestination$ the found-move block is skipped and the
+			// final loop walks `revealed` — the collection the scan built;
+			// gorge effDigUntil's toReturn). Appending the found cards last
+			// landed the lands on top of a Mirko Vosk mill's graveyard batch.
+			nr = 0
+			for i := 0; i < na; i++ {
+				rev[nr] = all[i]
 				nr++
 			}
 			nf = 0
@@ -2207,6 +2213,7 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 // copyCardToken is execCopyToken's creation of the token copies of card c,
 // shared with the named-card copy (copy_named.go), whose card is no object.
 func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
+	s.res.flags &^= rfCopyGrp
 	e := &s.res.e
 	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
 		was := e.ctrl
@@ -2255,6 +2262,14 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 // copyTokens creates n token copies of card c for the resolving entry's
 // controller (execCopyToken).
 func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
+	parked := s.copyTokensRun(k, in, c, n)
+	if !parked {
+		s.res.flags &^= rfCopyGrp
+	}
+	return parked
+}
+
+func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 	e := &s.res.e
 	if src := s.objRefObj(in.Obj); src != NoObj && s.faceDownAt(k, src) {
 		for i := 0; i < n; i++ {
@@ -2304,9 +2319,18 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
 		s.copyTokenEnter(k, in, t, host, &eb)
+		s.res.flags |= rfCopyGrp
 		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
 	}
 	return false
+}
+
+// copyResumedEnter enters the copy token t a parked as-enters ask held back
+// and marks the op as having made a copy (rfCopyGrp), so the copies after it
+// join the first one's AtEOT$ sacrifice trigger (copyTokenEnterFrom).
+func (s *State) copyResumedEnter(k *prep, in *kop.Instr, t Obj, host Slot) {
+	s.copyTokenEnter(k, in, t, host, nil)
+	s.res.flags |= rfCopyGrp
 }
 
 // copyTokenEnter puts copy token t onto the battlefield, attached to host
@@ -2399,12 +2423,16 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		// one resolution's copies share one delayed triggered ability (CR 603.7;
 		// gorge effCopyPermanent registers one group): a later copy joins the
 		// first one's trigger
+		// A copy resumed from a parked as-enters ask (an Aura copy's host, a
+		// token choice) enters with no batch; rfCopyGrp says the op already
+		// made a copy, so this one is no head.
+		later := eb != nil && eb.n >= 2 || s.res.flags&rfCopyGrp != 0
 		switch {
 		case upk:
-			if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUpkeep) {
+			if !later || !s.sacAtEndJoin(t, dlyUpkeep) {
 				s.sacAtUpkeepUntracked(t, e.ctrl) // trig_upkeepsac.go
 			}
-		case eb == nil || eb.n < 2 || !s.sacAtEndJoin(t, dlyUntracked):
+		case !later || !s.sacAtEndJoin(t, dlyUntracked):
 			s.sacAtEndUntracked(t, e.ctrl) // trig_tokenateot.go
 		}
 	}

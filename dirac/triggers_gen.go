@@ -225,7 +225,15 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		tpl = s.promisedAt(l.obj) // the promised opponent, snapshotted at queue (kw_gift.go)
 	}
 	n := s.npend
-	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
+	ab := l.ab
+	if a.SplitPrev {
+		// a split line's second+ half: the printed identity it carries on the
+		// stack is the first half's, the ability the gorge projection maps the
+		// printed trigger through (kop.Ability.SplitPrev); the body is the
+		// same lowering
+		ab = l.ab - 1
+	}
+	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, ab, l.ctrl, tobj, tpl, amt)
 	if s.npend > n {
 		s.pend[n].remVer = objWord(l.host) // a granted trigger's host rides remVer (stackEntry.trigHost)
 	}
@@ -451,6 +459,12 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 		// (s.res.active false there), so reading the resolving entry is
 		// also the combat exclusion.
 		if t.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(l.ctrl, t) {
+			return
+		}
+		// FirstTime$ True (gorge firstLifeLossThisTurn): only the turn's
+		// first loss for who. loseLife added amt to lifeLost before firing,
+		// so the first loss is the one that leaves the tally at amt.
+		if t.Flags2&kop.Tf2FirstTime != 0 && int(s.pl[who].lifeLost) != int(amt) {
 			return
 		}
 	case kop.TrigDrawn:

@@ -223,6 +223,13 @@ type Override struct {
 	// 7c, CR 613.4c) instead of a base P/T; HasPT is false. A PumpAll
 	// Duration$ UntilYourNextTurn NumAtt$/NumDef$ (V'Ger, the Intruder).
 	PTDelta bool
+	// Landwalk: a Pump KW$ Landwalk:<land spec> grant (Piracy Charm's
+	// "gains islandwalk until end of turn", CR 702.14): while the record
+	// lasts the permanent can't be blocked as the defending player controls a
+	// land matching this battlefield filter (as CardDef.Landwalk reads it).
+	// A layer-6 grant: it does not survive a later loss of the permanent's
+	// abilities. 0 = none.
+	Landwalk FilterID
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).

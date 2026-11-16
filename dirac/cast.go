@@ -500,11 +500,7 @@ func (s *State) beginActivate(k *prep, o Obj, ab uint8) {
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
-	if s.cfg&cfgGorgeUnpriced != 0 && ab < abCascade {
-		if c := &k.t.Cards[s.bld().e.card].Abilities[ab].Cost.Mana; c.Hyb[0] != 0 && !c.Phyrexian() && c.X == 0 && c.Generic == 0 && pipMaskOf(c) == 0 {
-			s.lowerHybridActivation(k, c)
-		}
-	}
+	s.lowerHybridOnly(k, ab)
 }
 
 // buildAbility returns the ability being built (nil for a permanent spell).
@@ -746,9 +742,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if k.gen != nil && k.gen.anyStation && s.stationPick(k, d) {
 					return true // Station's tap pick precedes the push (ctr_kinds.go)
 				}
-				if (e.kind == seSpell || e.kind == seAbility && k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb)) && s.noProgress() {
-					s.bld().bfl |= bflNoProg
-				}
+				s.pushNoProg(e.kind)
 				s.pushBuild(k)
 			}
 			if e.faceDown() {
@@ -903,7 +897,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				hi = s.exileXClamp(k, hi)
 			}
 			if np := s.convokeXCredit(k); np > 0 {
-				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
+				hi = convokeXHi(mx, hi, np, &av) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
 			if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX {
 				mx, hi = s.counterXClamp(k, mx, hi) // a shared {X} / SubCounter<X/KIND> is bounded by the source's counters
@@ -1296,6 +1290,9 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		s.excludeTapSource(k, &av)
 	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
+	}
+	if e.kind == seSpell {
+		s.addDeferredUnits(k, e.ctrl, &av) // mana_deferred.go
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
 	if cost.Hyb[0] == kop.HybTwobrid {
@@ -2661,6 +2658,16 @@ func (s *State) pendCount(p uint8) int {
 // (the same turn and step, no object written).
 func (s *State) noProgress() bool {
 	return s.heldTurn == uint16(s.turn) && s.heldStep == s.step && s.heldTouch == s.touchN
+}
+
+// pushNoProg arms bflNoProg on the build when the spell or activation being
+// pushed is itself no progress: the CR 733.2 hold-out counts the reversal of
+// every card, not only beside waterbend or an X-bound ability (gorge
+// abortCast arms suppressedCast for any card's second no-progress abort).
+func (s *State) pushNoProg(kind uint8) {
+	if (kind == seSpell || kind == seAbility) && s.noProgress() {
+		s.bld().bfl |= bflNoProg
+	}
 }
 
 // castHeldOut: gorge holds out a card's cast after its second undo in a

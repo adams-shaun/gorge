@@ -295,6 +295,11 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 	case dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
 		return firstMode(d)
 	}
+	if d.Sub == dirac.ChRemCtrKind {
+		if i := ctrChoiceFirst(s, d); i >= 0 {
+			return i
+		}
+	}
 	if bt.fetchNeed && d.Sub == dirac.ChGenSearch {
 		if i := bt.fetchLand(s, d); i >= 0 { // fetch.go
 			return i
@@ -543,4 +548,18 @@ func (bt *Bot) manaColour(d *dirac.Decision) int {
 		}
 	}
 	return -1
+}
+
+// ctrChoiceFirst is gorge's first offer of a counter-kind choice (a PutCounter
+// whose CounterType$ lists kinds): the first kind in the printed list. The
+// kernel's options sit in kernel kind order, so the order is read off the ask.
+// -1: the decision is no such choice.
+func ctrChoiceFirst(s *dirac.State, d *dirac.Decision) int {
+	best, br := -1, 0
+	for i := 0; i < int(d.N); i++ {
+		if r := s.FeatCtrChoiceRank(d.Options[i].Mode()); r >= 0 && (best < 0 || r < br) {
+			best, br = i, r
+		}
+	}
+	return best
 }

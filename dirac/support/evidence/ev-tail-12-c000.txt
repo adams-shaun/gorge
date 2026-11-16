@@ -1,3 +1,4 @@
+A-Blood Artist
 A-Haywire Mite
 A-Manticore
 A-Sunbathing Rootwalla
@@ -20,24 +21,32 @@ Arbor Colossus
 Arlinn's Wolf
 Armament Master
 Asmira, Holy Avenger
+Assaultron Dominator
 Assert Authority
 Automatic Librarian
 Aven Sunstriker
 Awakening
 Awe for the Guilds
+Azorius Cluestone
 Backwoods Survivalists
 Badlands
 Balustrade Spy
+Banefire
+Barter in Blood
 Battle Hymn
 Benalish Veteran
+Birthing Boughs
+Birthing Ritual
 Blessed Wind
 Blind-Spot Giant
+Bloodsworn Steward
 Bog Glider
 Boggart Birth Rite
 Bold Impaler
 Brainstone
 Brave the Elements
 Briarberry Cohort
+Briarblade Adept
 Brood of Cockroaches
 Broodstar
 Butch DeLoria, Tunnel Snake
@@ -48,6 +57,7 @@ Call to Heel
 Call to Serve
 Cankerbloom
 Carrier Pigeons
+Catalyst Elemental
 Cathartic Pyre
 Centaur Archer
 Center Soul
@@ -55,6 +65,7 @@ Champion of Arashin
 Char
 Chariot of Victory
 Charismatic Vanguard
+Child of Gaea
 Chimeric Mass
 Chittering Rats
 Chocobo Knights
@@ -70,6 +81,7 @@ Crashing Centaur
 Crowded Crypt
 Cunning Sparkmage
 Dawnglare Invoker
+Deepwater Hypnotist
 Defender en-Vec
 Diamond Knight
 Disentomb
@@ -79,21 +91,29 @@ Double Cleave
 Dragon's Approach
 Dragonspark Reactor
 Dramatic Entrance
+Drowned Rusalka
+Druid's Call
 Duskmantle Prowler
+Dwarven Grunt
 Dwarven Lieutenant
 E. Honda, Sumo Champion
 Eagle of the Watch
 Emergency Weld
+Enduring Scalelord
+Enforcer Griffin
 Enlightened Tutor
+Enlistment Officer
 Exalted Angel
 Excavation Technique
 Farsight Adept
 Feedback Bolt
+Feral Thallid
 Fire Imp
 Firemaw Kavu
 Flameblade Adept
 Flesh to Dust
 Flood of Tears
+Flower
 Flowstone Salamander
 Fog on the Barrow-Downs
 Force of Despair
@@ -102,10 +122,15 @@ Forest
 Funeral Longboat
 Garrison Griffin
 Garruk's Warsteed
+General Tazri
+Genesis
 Geralf's Masterpiece
+Geralf, Visionary Stitcher
 Get the Point
 Geyserfield Stalker
 Glacial Stalker
+Gliding Licid
+Gloomwidow's Feast
 Glowrider
 Gnarled Mass
 Go for the Throat
@@ -113,12 +138,16 @@ Goblin Marshal
 Goblin Tutor
 Golden-Scale Aeronaut
 Goldmane Griffin
+Golem Artisan
 Gorgon Flail
 Gourmand's Talent
 Granger Guildmage
 Ground Assault
+Growing Ranks
 Growth Spurt
+Guardian Gladewalker
 Guardian of Ghirapur
+Gustcloak Harrier
 Gustcloak Savior
 Hag of Death's Legion
 Hand of Death
@@ -126,59 +155,85 @@ Heliod's Emissary
 Hexgold Halberd
 Hickory Woodlot
 Highway Robber
+Hobgoblin Captain
+Holy Armor
 Honden of Seeing Winds
+Hopeful Initiate
 Hornbash Mentor
+Hostile Desert
 Hurloon Battle Hymn
 Hydra Omnivore
+Illusionist's Stratagem
 Impending Flux
 Imperious Oligarch
 Impulsivity
+Increasing Devotion
 Indicate
 Infernal Idol
+Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
+Intervene
 Into the Void
+Invasion of Azgol
 Iron Man, Armored Avenger
 Irradiate
+Irreverent Revelers
 Island
 Jasmine Seer
 Jedit Ojanen of Efrava
+Jhoira, Ageless Innovator
 Kavu Climber
 Kaya's Ghostform
 Kinjalli's Sunwing
 Kjeldoran War Cry
+Knowing
 Kraken's Eye
 Kyren Glider
 Landroval, Horizon Witness
+Last Caress
+Laurine, the Diversion
+Legion Loyalist
 Legions to Ashes
 Leonin Armorguard
 Lich's Caress
+Loch Dragon
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
+Macabre Mockery
 Mad Auntie
+Mana Confluence
 Manaplasm
 Mantle of Leadership
 Marchesa's Decree
 Mardu Shadowspear
+Marsh Flats
 Martyr of Dusk
 Maximize Altitude
 Medicine Bag
 Medusa, Inhuman Queen
 Memory Erosion
 Mephitic Ooze
+Mind's Eye
+Mine Collapse
+Minotaur Tactician
 Mishra's Self-Replicator
 Misty Rainforest
+Molten Nursery
 Molten Rain
+Moment of Truth
 Momentous Fall
 Moriok Scavenger
 Mossfire Valley
 Mountain
 Mushroom Watchdogs
 Mutilate
+Muzzio, Visionary Architect
 Nausea
 Neck Snap
 Nether Spirit
 Niblis of the Mist
+Nikara, Lair Scavenger
 Nissa, Worldwaker
 Nyxborn Triton
 Ominous Cemetery
@@ -188,17 +243,22 @@ Oriq Loremage
 Ornamental Courage
 Orochi Hatchery
 Oswald Fiddlebender
+Owl Familiar
 Pardic Arsonist
 Patagia Viper
 Peer Through Depths
 Petravark
 Pheres-Band Centaurs
+Phyrexian Juggernaut
 Phyrexian War Beast
+Plague Spitter
 Plains
+Portent of Betrayal
 Possessed Centaur
 Power Armor
 Primal Growth
 Primordial Sage
+Prying Blade
 Pteramander
 Pyretic Prankster
 Qasali Pridemage
@@ -224,12 +284,15 @@ Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
+Rise to the Challenge
 Rishadan Pawnshop
+Rix Maadi, Dungeon Palace
 Rotwidow Pack
 Royal Warden
 Rude Awakening
 Run Aground
 Rushwood Herbalist
+Rusting Golem
 Salt Flats
 Sanctifier of Souls
 Sandsteppe Mastodon
@@ -246,18 +309,25 @@ Serum Powder
 Seton's Desire
 Seven-Tail Mentor
 Sewer Rats
+Sheoldred, Whispering One
 Shire Terrace
+Sifter Wurm
 Silverquill Apprentice
 Skittering Cicada
 Slimebind
 Slimy Piper
 Slingshot Goblin
+Sliptide Serpent
 Slumbering Dragon
+Sly Requisitioner
+Sonic Assault
 Sophic Centaur
+Soul Shred
 Soul Summons
 Soul of Innistrad
 Soul of the Harvest
 Sphere of Resistance
+Sphinx of Magosi
 Spirit of the Spires
 Spiritual Asylum
 Spontaneous Mutation
@@ -269,30 +339,36 @@ Sudden Breakthrough
 Sudden Edict
 Sudden Spinnerets
 Sunhome Enforcer
+Surtland Frostpyre
 Survivors' Bond
 Swamp
 Swamp Mosquito
 Tale of Katara and Toph
 Tamiyo's Epiphany
+Tana, the Bloodsower
 Team Transmitter
 Tempest of Light
 Terra Stomper
 Terror
 Thanos, Death's Consort
 Thassa, Deep-Dwelling
+Thaumatic Compass
 The Circle of Loyalty
 The Tabernacle at Pendrell Vale
 Third Path Savant
 Thumbscrews
 Thundering Chariot
+Thundermare
 Thunderwolf Cavalry
 Torment
 Tramway Station
 Tranquil Expanse
 Tread Upon
 Treebeard, Gracious Host
+Tromp the Domains
 Turn to Dust
 Two-Headed Giant of Foriys
+Ugin's Mastery
 Ulamog, the Ceaseless Hunger
 Underhanded Designs
 Undying Beast
@@ -300,10 +376,14 @@ Unnatural Restoration
 Unnerve
 Unquestioned Authority
 Urborg Skeleton
+Urza's Factory
 Urza's Rebuff
+Uthros Research Craft
+Uurg, Spawn of Turg
 Vampire Noble
 Vigil for the Lost
 Vindictive Mob
+Viridescent Bog
 Viscera Seer
 Vivid Creek
 War Flare
@@ -311,7 +391,10 @@ Warden of the Chained
 Waste Away
 Waterfront Bouncer
 Weapon Surge
+Well of Discovery
 Wildwood Patrol
+Wither and Bloom
+Withering Boon
 Wooded Ridgeline
 Woodland Sleuth
 Worldgorger Dragon

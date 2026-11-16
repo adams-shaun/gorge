@@ -70,6 +70,7 @@ Carapace
 Caress of Phyrexia
 Cenn's Enlistment
 Cephalid Looter
+Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
 Chimeric Coils
@@ -81,6 +82,7 @@ Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
+Colfenor's Urn
 Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor
@@ -92,6 +94,7 @@ Cruel Finality
 Crush
 Crystal Rod
 Curse of the Forsaken
+Cursed Ronin
 Customs Depot
 Cutthroat Centurion
 Cyclops Electromancer
@@ -127,6 +130,7 @@ Dusk Legion Zealot
 Eagle of the Watch
 Elite Archers
 Elspeth, Sun's Nemesis
+Emeria Captain
 Emissary of Hope
 Emissary of Sunrise
 Entangling Vines
@@ -185,6 +189,7 @@ Grand Warlord Radha
 Graverobber Spider
 Graveyard Shovel
 Green Sun's Zenith
+Greenside Watcher
 Griffin Guide
 Grim Affliction
 Grimgrin, Corpse-Born
@@ -255,6 +260,7 @@ Lord of the Void
 Lounge
 Loxodon Mystic
 Loxodon Partisan
+Loxodon Restorer
 Luminous Bonds
 Lunarch Mantle
 Lyzolda, the Blood Witch
@@ -290,7 +296,9 @@ Naya Battlemage
 Necromaster Dragon
 Nephalia Drownyard
 Neurok Commando
+Nezumi Ronin
 Noble Steeds
+Noggle Bandit
 Novijen, Heart of Progress
 Oak Street Innkeeper
 Occult Epiphany

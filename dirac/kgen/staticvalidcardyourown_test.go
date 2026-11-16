@@ -44,7 +44,7 @@ func TestStaticValidCardYourOwn(t *testing.T) {
 		{"defender, ValidAttacked unread", "Creature Bear", "S:Mode$ CanAttackDefender | ValidCard$ Creature.YouCtrl | ValidAttacked$ Player | Description$ x", "ValidAttacked", ""},
 		{"defender, no ValidCard", "Creature Bear", "S:Mode$ CanAttackDefender | Description$ x", "CanAttackDefender without ValidCard$", ""},
 		{"cant attack, enchanted by own aura", "Creature Bear", "S:Mode$ CantAttack | ValidCard$ Creature.EnchantedBy Aura.YouCtrl | Target$ You,Planeswalker.YouCtrl | Description$ x", "", "static CantAttack"},
-		{"cant attack, creature side controller", "Creature Bear", "S:Mode$ CantAttack | ValidCard$ Creature.YouCtrl | Target$ You,Planeswalker.YouCtrl | Description$ x", "CantAttack Target$ with a controller filter", ""},
+		{"cant attack, creature side controller", "Creature Bear", "S:Mode$ CantAttack | ValidCard$ Creature.YouCtrl | Target$ You,Planeswalker.YouCtrl | Description$ x", "", "static CantAttack"},
 		{"cant attack, opponent controller restated", "Creature Bear", "S:Mode$ CantAttack | ValidCard$ Creature.OppCtrl | Target$ You,Planeswalker.YouCtrl | Description$ x", "", "static CantAttack"},
 		{"cant attack, other target", "Creature Bear", "S:Mode$ CantAttack | ValidCard$ Creature.EnchantedBy Aura.YouCtrl | Target$ Player | Description$ x", "CantAttack Target$", ""},
 	} {
