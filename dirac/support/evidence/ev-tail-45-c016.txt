@@ -1,7 +1,41 @@
+Atzocan Archer
+Balduvian Horde
+Bonesplitter Sliver
+Brazen Freebooter
+Constricting Sliver
+Dark Tutelage
+Dinosaur Stampede
+Domri's Nodorog
+Dragonshift
+Dregscape Zombie
+Dungeon Geists
+Elite Javelineer
+Elven Palisade
+Farhaven Elf
+Fires of Undeath
+Flame Slash
 Forest
+Garbage Elemental
+Garruk Wildspeaker
+Heart Sliver
 Island
 Mountain
+Mudhole
+Nyxathid
+Ogre Warrior
 Plains
+Redcap Heelslasher
+Reverent Hunter
+Saproling Migration
+Scalebane's Elite
+Seasoned Pyromancer
+Shambling Remains
+Smothering Abomination
+Sprite Dragon
 Swamp
 Trenchpost
 Utility Knife
+Webweaver Changeling
+Willow Elf
+Witch's Oven
+Withstand Death

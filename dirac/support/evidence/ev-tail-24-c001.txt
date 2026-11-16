@@ -1,135 +1,402 @@
+A-Baleful Beholder
+A-Pseudodragon Familiar
+A-Pyre-Sledge Arsonist
+A-The One Ring
 Adamaro, First to Desire
+Aerial Modification
+Aeromunculus
 Aggressive Crag
+Air Nomad Student
+Alaborn Veteran
+Ambassador Laquatus
+Amulet of Kroog
+Ancestral Mask
+Angel of Mercy
+Angel's Tomb
 Angrath's Rampage
 Annex Sentry
+Arc Trail
+Archdemon of Unx
+Archivist
 Armored Pegasus
 Ashiok's Forerunner
 Attrition
+Auriok Glaivemaster
 Aysen Bureaucrats
+Bandage
+Battlegrace Angel
+Bazaar Trademage
 Bedevil
+Benalish Heralds
+Benevolent Hydra
 Binding the Old Gods
+Biolume Egg
 Blasting Station
+Blinding Light
+Bloodhusk Ritualist
 Bog Wraith
 Bone Devourer
 Bone Picker
+Boreal Druid
 Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
+Brandywine Farmer
+Braulios of Pheres Band
+Bruse Tarl, Boorish Herder
 Brute Force
+Capashen Standard
 Captain America, Steve Rogers
 Carnival of Souls
 Chainer's Edict
 Chandra's Triumph
 Cleansing Wildfire
+Collector's Case
+Conifer Strider
+Consulate Crackdown
+Control Win Condition
 Court of Bounty
 Crackdown
 Crimson Caravaneer
+Crippling Blight
+Crowd's Favor
 Crush
 Crux of Fate
 Crypt Creeper
 Daggerclaw Imp
+Darwin, Adaptive Mutant
+Dauntless Dourbark
+Davvol, Evincar of Rath
+Daybreak Chimera
 Death Watch
+Deepwood Tantiv
+Deflection
 Deny Reality
+Depth Charge Colossus
+Dimir Guildmage
+Dirgur Nemesis
 Disciple of Perdition
 Disciple of Tevesh Szat
 Discontinuity
+Displacement Wave
+Distemper of the Blood
+Diviner of Mist
+Doomsday
 Dragonsguard Elite
+Dredge
+Drinker of Sorrow
+Durkwood Boars
 Dust Bowl
+Dust to Dust
 Earthbending Student
+Egon, God of Death
+Elder Druid
 Eldrazi Devastator
+Elemental Spectacle
+Elephant Guide
 Ellivere of the Wild Court
+Elvish Skysweeper
+Emberwilde Caliph
+Ensoul Artifact
+Entropic Eidolon
+Ethersworn Adjudicator
+Exalted Flamer of Tzeentch
+Executioner's Swing
+Expel from Orazca
+Explosive Vegetation
 Fade from Memory
+Fae of Wishes
 Fallen Angel
 Favored of Iroas
+Feral Animist
+Fight Rigging
+Final Flare
 Firefiend Elemental
+Flailing Drake
+Flame Elemental
+Flamespeaker's Will
+Flanking Troops
+Flaring Pain
 Fledgling Griffin
+Fleeting Aven
 Forced March
 Forest
 Forsaken Drifters
+Fortuitous Find
 Fracture
+Fungus Sliver
+Gallantry
+Generous Visitor
 Ghoultree
 Gilt-Leaf Seer
+Glimmer Bairn
+Glint-Sleeve Artisan
+Gluttonous Troll
+Gnarlid Pack
+Go Blank
+Goblin Motivator
+Goblin Ringleader
+Golden Bear
+Grapeshot
+Greenweaver Druid
+Griffin Dreamfinder
 Grim Hireling
 Grisly Spectacle
+Grixis Panorama
+Growth Spurt
+Gruesome Realization
 Hall
+Havenwood Wurm
+Hedgewitch's Mask
 Herald of Slaanesh
+Hero of Bladehold
 Hero's Heirloom
+Heroic Teamwork
+Hivestone
+Hobblefiend
 Hordeling Outburst
 Horror of the Dim
+Hungry for More
 Hunting Grounds
+Ice Cage
+Imperial Subduer
 Impetuous Sunchaser
+Indrik Stomphowler
+Infectious Horror
+Inferno Elemental
 Insubordination
+Invisibility
 Island
+Izoni, Thousand-Eyed
+Jace's Ingenuity
+Jackdaw
 Jackhammer
+Jedit Ojanen
+Jedit's Dragoons
+Jori En, Ruin Diver
+Jungle Troll
+Kederekt Leviathan
+Key to the City
+Khalni Garden
+Knotvine Paladin
+Kolaghan, the Storm's Fury
+Lampad of Death's Vigil
+Lash of the Balrog
 Last March of the Ents
+Last Word
 Lava Spike
+Lethargy Trap
 Liability
 Lightning Bolt
+Lightning Stormkin
+Linvala, Keeper of Silence
 Llanowar Augur
+Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
+Lucky the Pizza Dog
+Luke Cage, Hero for Hire
+Luminarch Aspirant
 Luminous Wake
 M.O.D.O.K., Evil Intellect
+Machine Man, Model X-51
+Magefire Wings
+Make Mischief
 Malevolent Noble
 Maraxus of Keld
+Mardu Strike Leader
+Maritime Guard
 Marsh Viper
+Masked Admirers
+Mass Manipulation
+Master Skald
+Mausoleum Harpy
+Minamo Sightbender
+Mind Peel
 Minotaur Abomination
+Mirari's Wake
+Mnemonic Wall
 Mobile Garrison
+Mogg Raider
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Monster Mashup
+Mother Bear
 Mountain
 Muxus, Goblin Grandee
+Mycologist
+Mystic Subdual
+Necromantic Summons
+Nessian Asp
+Nessian Wanderer
+Neutralizing Blast
 Nighthawk Scavenger
+Nim Shambler
+Nirkana Assassin
+Nomadic Elf
+Norwood Archers
+Nyx Weaver
+Oath of the Grey Host
+Octoprophet
 Odylic Wraith
 Omen
+Orc Sureshot
+Order of Whiteclay
 Order of the Sacred Torch
 Order of the White Shield
 Ovinize
+Paralyzing Grasp
+Patriar's Seal
 Phantasmagorian
+Pharika's Chosen
+Pink Horror
+Pitiless Vizier
+Plague Wind
 Plains
+Plundering Barbarian
 Polluted Dead
+Pouncing Lynx
 Powerstone Engineer
 Pride Sovereign
+Prismari Campus
+Psionic Entity
+Puppeteer Clique
+Pyrohemia
 Radha's Firebrand
 Rampart Crawler
+Read the Bones
+Reckless Reveler
+Reckless Stormseeker
 Recruit the Worthy
+Referee Squad
 Resolute Rider
 Retrofitted Transmogrant
+Rhox Maulers
+Rhystic Syphon
 Riot Ringleader
+Rip-Clan Crasher
 Ripjaw Raptor
 Roaming Ghostlight
+Rooftop Nuisance
 Rot Shambler
+Rotlung Reanimator
+Sabertooth Wyvern
+Sage of Lat-Nam
+Sage of Shaila's Claim
+Sage of the Unknowable
+Saheeli's Silverwing
+Sanctum Gargoyle
+Sandblast
+Sanguinary Priest
+Sanguine Sacrament
+Satyr Piper
+Savannah
+Scryb Ranger
+Seasoned Pyromancer
+Seismic Elemental
+Sejiri Steppe
 Selesnya Cluestone
+Selesnya Sagittars
+Selfless Samurai
+Serra Ascendant
 Serra's Liturgy
+Serum Visionary
 Shady Traveler
+Shaggy Camel
+Shattered Crypt
 Shorecomber Crab
+Shroofus Sproutsire
+Siegehorn Ceratops
 Sightless Ghoul
 Silk Net
+Sinister Possession
 Sir Shandlar of Eberyn
+Skaab Wrangler
 Skophos Warleader
+Sky Tether
+Skyblade of the Legion
+Skyline Predator
 Smite the Monstrous
+Smog Elemental
+Sneaky Homunculus
+Soldevi Machinist
+Solve the Equation
+Sorcerer's Strongbox
 Sorin, Imperious Bloodlord
 Soul Net
+Soul Transfer
 Soul Warden
+Soulshriek
 Sparkspitter
+Spectral Cloak
+Sphere Grid
 Spike Breeder
+Spinal Parasite
+Spirit of the Hearth
+Springjaw Trap
+Sram, Senior Edificer
 Staggershock
 Steadfast Armasaur
+Steadfast Paladin
 Stitched Assistant
 Stonefare Crocodile
+Stonehoof Chieftain
 Strangleroot Geist
+Sunblade Elf
+Sunlance
+Suntouched Myr
+Supply Drop
+Surge of Thoughtweft
+Survival Cache
+Suspension Field
 Swamp
+Sword of the Chosen
 Sworn Companions
 Sworn Defender
 Sylvan Yeti
+Séance Board
 Tainted Pact
 Talisman of Impulse
+Talrand, Sky Summoner
+Tangle Hulk
 Taste for Mayhem
+Taunting Kobold
+Teferi, Timebender
+Telepathic Spies
+Telling Time
+Territorial Scythecat
 The Great Mound
+The Keeper of the Yellow Hat
+Thopter Spy Network
+Thraben Sentry
+Thriving Skyclaw
+Tidewater Minion
+Time Wipe
+Tome Anima
+Traitorous Instinct
+Traxos, Scourge of Kroog
+Tuknir Deathlock
 Tymaret, the Murder King
+Tyrannize
 Underworld Dreams
 Underworld Rage-Hound
 Undying Rage
+Untamed Kavu
+Vedalken Heretic
+Vengeant Earth
+View from Above
+Vile Deacon
+Vito, Thorn of the Dusk Rose
+Vivid Crag
+Vodalian Serpent
 Voyage's End
 Wall of Tears
+Warmth
+Waterfall Aerialist
+Whirler Rogue
 Whirling Strike
+Willow Geist
+Writhing Chrysalis
+Wu Spy
+Yawning Fissure
+Yoked Ox
 Éowyn, Lady of Rohan

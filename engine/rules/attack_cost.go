@@ -1649,7 +1649,10 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 			// CR 506.3, 508.1b: only a planeswalker can be attacked, by its
 			// CURRENT types (layer 4) -- a planeswalker Imprisoned in the
 			// Moon is a land and no longer one.
-			if o != nil && !o.FaceDown && o.Face() != nil && e.hasType(o, "Planeswalker") {
+			// CR 702.26b: a phased-out planeswalker is treated as though it
+			// doesn't exist, so it is no defender (Kaito Shizuki, phased out
+			// through the opponent's turn).
+			if o != nil && !o.PhasedOut && !o.FaceDown && o.Face() != nil && e.hasType(o, "Planeswalker") {
 				walkerTargets = append(walkerTargets, wid)
 			}
 		}
@@ -1817,7 +1820,7 @@ func (e *Engine) battleDefenders(p state.PlayerID) []battleTarget {
 	for _, ctrl := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, ctrl) {
 			o := e.G.Obj(id)
-			if o == nil || o.FaceDown || o.Face() == nil || !e.hasType(o, "Battle") {
+			if o == nil || o.PhasedOut || o.FaceDown || o.Face() == nil || !e.hasType(o, "Battle") {
 				continue
 			}
 			if !o.ProtectorValid || o.Protector == p ||
@@ -1844,7 +1847,7 @@ func (e *Engine) canAttackBattle(id state.ObjID, p state.PlayerID) bool {
 		}
 	}
 	o := e.G.Obj(id)
-	if o != nil && !o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil && e.hasType(o, "Planeswalker") {
+	if o != nil && !o.PhasedOut && !o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil && e.hasType(o, "Planeswalker") {
 		return o.Controller != p
 	}
 	return false

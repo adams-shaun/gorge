@@ -24,7 +24,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const stepTapX int16 = -3
 
 // grantTapXGaps: p's one-permanent tap-another sources on a board whose
-// census gaps the tap-another search models (scriptTapXModelled).
+// census gaps the tap-another search models (scriptTapXModelled). A
+// sacrifice-another source is not one: beside a granted mana ability the
+// grant search activates it as a candidate of its own (grantSacXGaps,
+// mana_grantsacx.go), the way gorge's one prefix search does.
 func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	var m slotMask
 	if !k.tapMana {
@@ -33,7 +36,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXMana(a) || kop.SacAnyManaAb(a) { // (an all-at-once sacrifice-another source is the tap-another search's alone; a sacrifice-any one is a candidate, sacXBranch)
+		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXMana(a) {
 			m = m.with(sl)
 		}
 	}
@@ -45,9 +48,6 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 	var cs [MaxPerm]Slot
 	nc := t.tapXCands(g.k, g.p, sl, &cs)
-	if kop.SacAnyManaAb(g.k.tapXAbOf(t.cardAt(sl))) {
-		return g.sacAnyBranch(t, i, sl, cs[:nc])
-	}
 	if nc > 1 && !g.node() { // the creature ask
 		return false
 	}
@@ -87,9 +87,10 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 // a play it pays. A source the grant search covers is tried in gorge's one
 // prefix search beside the grants, whose budget the granted gaps spend
 // (rules scriptSearch.visit), so the tap-another search alone, which skips
-// the grants, must not keep a play that search gave up on.
+// the grants, must not keep a play that search gave up on. A
+// sacrifice-another source is covered too (grantSacXGaps, mana_grantsacx.go).
 func (s *State) tapXOffGrant(k *prep, p uint8) bool {
-	return s.scriptTapXModelled(k, p).andNot(s.grantTapXGaps(k, p)).any()
+	return s.scriptTapXModelled(k, p).andNot(s.grantTapXGaps(k, p)).andNot(s.grantSacXGaps(k, p)).any()
 }
 
 // tapXSecondLive: p has a live tap-another source that is a later ability
@@ -100,39 +101,6 @@ func (s *State) tapXSecondLive(k *prep, p uint8) bool {
 		if k.tapXSecond(s.cardAt(b.first())) {
 			return true
 		}
-	}
-	return false
-}
-
-// sacAnyBranch activates candidate i's (slot sl) sacrifice-any ability
-// (Krark-Clan Ironworks) on copies of t: each permanent its cost may sacrifice,
-// the "sacrifice" ask only with two or more candidates and no colour ask (the
-// production is fixed), as tapXSearch does (mana_tapanother.go). An answer that
-// takes the source itself is tried: the next node ends it (playSourceGone,
-// sacrificed).
-func (g *grantSrch) sacAnyBranch(t *State, i int, sl Slot, cs []Slot) bool {
-	if len(cs) > 1 && !g.node() { // the sacrifice ask
-		return false
-	}
-	for _, cand := range cs {
-		if g.np >= len(g.path) {
-			return false
-		}
-		u := t.fork()
-		u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cand, cand2: NoSlot, kind: tapXAct})
-		g.path[g.np] = grantStep{i: uint8(i), gi: stepTapX, sl: sl, cand: cand}
-		g.np++
-		var ok bool
-		if g.tapsLive {
-			ok = g.settle(u) // (the sacrifice may have fired a trigger)
-		} else {
-			ok = g.visit(u)
-		}
-		t.unfork()
-		if ok {
-			return true
-		}
-		g.np--
 	}
 	return false
 }

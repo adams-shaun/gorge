@@ -1,100 +1,249 @@
 A-Celestial Regulator
+Abandon Reason
+Academy Journeymage
+Acquisition Octopus
 Aerial Maneuver
+Aetheric Amplifier
+Agadeem Occultist
 Alena, Kessig Trapper
+Altar of the Brood
 Arcane Teachings
 Archmage's Charm
 Arctic Merfolk
+Ardenvale Tactician
 Argent Mutation
 Arid Mesa
+Armada Wurm
 Armistice
+Armory of Iroas
+Artifact Unknown Shores
 Ashiok's Skulker
 Aspect of Manticore
+Astral Steel
 Aura Flux
+Auriok Glaivemaster
 Autumn Willow, Harmony
+Aveline de Grandpré
 Aven Reedstalker
 Bad River
+Baloth Woodcrasher
 Barkhide Troll
+Bat Whisperer
+Battle Brawler
 Battlefield Promotion
 Battlefly Swarm
+Battlewise Valor
 Benthic Giant
 Black Dragon
+Blessed Defiance
 Blinding Souleater
+Blood Pact
+Bloodchief's Thirst
 Bogbrew Witch
+Bone Saw
+Boseiju, Who Endures
+Botanical Plaza
+Breakneck Berserker
+Brilliant Restoration
+Brinebarrow Intruder
+Bring Low
 Bring to Trial
+Brion Stoutarm
 Bumi's Feast Lecture
+Burning Oil
 Burning Wish
 Bygone Marvels
+Cache Raiders
 Cackling Fiend
 Calamity of Cinders
 Campfire
 Carapace
 Caregiver
 Cavalier of Flame
+Celestial Archon
+Certain Death
 Charnel Serenade
 Cinder Hellion
 Clackbridge Troll
+Consulate Dreadnought
 Consulate Skygate
+Converter Beast
 Coordinated Assault
 Coral Commando
+Court of Ardenvale
+Crash the Party
+Craven Giant
+Crippling Fear
+Crumble
+Curse of Vitality
 Cursed Minotaur
+Cut Down
+Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darksteel Forge
+Darksteel Ingot
+Dauthi Trapper
+Daxiver, Izzet Electromancer
+Death Cloud
+Decimate
+Deepwood Wolverine
+Defend the Campus
 Delayed Blast Fireball
+Demon's Due
+Dense Canopy
 Devoted Paladin
+Devour in Flames
 Devout Monk
+Diregraf Rebirth
+Disciple of Kangee
 Diviner's Lockbox
+Donatello's Science Lesson
+Douse in Gloom
+Draconic Disciple
+Dragon Mantle
+Dream Stalker
+Dripping-Tongue Zubera
+Dross Hopper
+Dross Ripper
+Drove of Elves
 Drowsing Tyrannodon
+Dungeon Shade
+Durkwood Tracker
+Dwarven Mine
+Early Frost
 Echoes of the Kin Tree
+Eddytrail Hawk
+Eiganjo Free-Riders
+Elderfang Disciple
+Eldrazi Repurposer
+Electrodominance
 Elite Archers
+Elven Chorus
 Elven Lyre
+Elvish Farmer
+Emerald Dragonfly
 Emissary of Hope
 Enduring Victory
+Epic Proportions
 Equestrian Skill
+Erkenbrand, Lord of Westfold
+Errand-Rider of Gondor
 Ertai Resurrected
+Essence Extraction
+Eternal Isolation
+Evasive Action
+Eviscerator's Insight
 Evolution Charm
+Excoriate
+Explosive Impact
 Eyeblight Massacre
 Falkenrath Pit Fighter
+False Prophet
+Famine
 Fanatic of Mogis
 Fascination
 Fell Stinger
+Fervent Strike
 Final-Sting Faerie
+Firefly
+Flames of the Firebrand
 Forest
 Fountain Watch
+Freewind Equenaut
+Furnace Hellkite
 Galepowder Mage
+Gallant Cavalry
+Gemhide Sliver
+General Thunderbolt Ross
+Generous Pup
 Ghastbark Twins
+Giant Ox
+Gideon's Battle Cry
 Gift of Growth
+Gimli, Counter of Kills
 Glacial Crasher
+Glint-Sleeve Siphoner
+Gnarled Effigy
+Goblin Battle Jester
+Goblin Brigand
+Goblin Masons
 Goblin Sharpshooter
+Golgari Longlegs
+Goliath Paladin
 Gorilla Chieftain
+Grazing Whiptail
 Green Sun's Zenith
+Grim Hireling
+Grim Poppet
 Grimgrin, Corpse-Born
+Grizzled Angler
+Grizzly Bears
+Grozoth
 Guardian Augmenter
+Guide of Souls
+Guild Thief
+Gut Shot
+Guul Draz Assassin
 Guul Draz Overseer
+Gwafa Hazid, Profiteer
+Gyre Sage
+Hag of Mage's Doom
+Halo Hunter
+Haunted Fengraf
+Havoc
+Headless Skaab
+Headstrong Brute
 Heedless One
+Heiko Yamazaki, the General
 Hell Mongrel
 Helldozer
 Hellraiser Goblin
+Hibernation Sliver
+Highland Giant
 Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Ichor Explosion
 Ideas Unbound
 Impetuous Protege
 Index
 Industrial Advancement
+Inescapable Brute
+Infantry Veteran
+Inhumaniac
 Innistrad Charm
+Innocence Kami
 Inspiring Commander
 Island
+Isolation Cell
+Ivory Charm
+Jackhammer
+Jiang Yanggu, Wildcrafter
 Jodah's Codex
 Jousting Lance
 Jugan, the Rising Star
+Junktown
 Kalonian Twingrove
 Kaya's Ghostform
+Keen Sense
 Keldon Vandals
+Keldon Warlord
 Kessig Dire Swine
+Killing Glare
 Kithkin Billyrider
+Kitsune Bonesetter
+Knight Exemplar
+Knight of Sorrows
+Kobolds of Kher Keep
+Kolaghan Aspirant
 Kor Sanctifiers
 Kormus Bell
+Korozda Gorgon
+Kraul Foragers
+Krenko, Tin Street Kingpin
+Lady Zhurong, Warrior Queen
 Latch Seeker
 Lathnu Hellion
 Leaf-Crowned Visionary
@@ -102,74 +251,185 @@ Legacy Weapon
 Let the Galaxy Burn
 Leveler
 Leyline Invocation
+Life Chisel
+Life Insurance
+Light of Hope
 Lightning Elemental
+Living Wish
+Loathsome Curator
 Long-Lost Lances
+Lotus-Eye Mystics
 Loxodon Mystic
 Magus of the Future
+Make Mischief
+Mana Seism
+Manor Gate
+Mardu Warshrieker
+Mass Appeal
+Master Splicer
 Merfolk Windrobber
+Might Beyond Reason
 Migloz, Maze Crusher
+Militant Inquisitor
 Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
+Misshapen Fiend
 Mistblade Shinobi
 Moldgraf Millipede
+Monastery Swiftspear
+Morbid Plunder
+Morphling
+Mosstodon
 Most Wanted
 Mountain
+Mulldrifter
 Mwonvuli Ooze
 Nadier's Nightblade
+Natural Spring
 Naya Battlemage
+Necroskitter
+Needle Storm
+Nettletooth Djinn
+Nick Fury, Spymaster
+Nighthawk, Dark Defender
+Nightwind Glider
+Nimbus Swimmer
+Nissa's Judgment
+Noble Purpose
 Noble Steeds
+Nomad Mythmaker
 Northern Paladin
+Obsidian Battle-Axe
+Olivia, Mobilized for War
+One-Clown Band
+Onyx Mage
+Oona's Gatewarden
+Oran-Rief, the Vastwood
+Oraxid
+Ostracize
+Ox Drover
 Oxidda Finisher
+Paradigm Shift
+Parapet Watchers
 Passwall Adept
 Path of Discovery
+Patron Wizard
+Pestilence Rats
+Phantom Flock
 Photon, Lady of Light
+Phylath, World Sculptor
+Phyrexian Monitor
+Plague Beetle
+Plaguemaw Beast
 Plains
 Plunder
 Pouncing Cheetah
+Prava of the Steel Legion
 Presence of the Wise
+Pridemalkin
 Primal Frenzy
 Prismatic Vista
+Prismite
+Professor of Zoomancy
+Protection Magic
 Psionic Snoop
 Purraj of Urborg
+Pygmy Pyrosaur
+Quick-Draw Dagger
+Rabid Wolverines
 Rage Thrower
 Rain of Embers
+Rain of Rust
 Ranger Class
+Ranger-Captain of Eos
+Ravages of War
 Raven Wings
+Ravenous Sailback
 Reconstructed Thopter
 Regathan Firecat
+Regent's Authority
+Reject
 Rejuvenating Springs
+Repentant Vampire
+Requiem Angel
+Retreat to Valakut
 Reveka, Wizard Savant
+Revenge of Ravens
+Rhystic Syphon
+Riddle Gate Gargoyle
 Rigging Runner
+Risona, Asari Commander
+Riverglide Pathway
 Roar of Reclamation
 Robber Fly
+Robe of Mirrors
 Rorix Bladewing
+Rosecot Knight
+Rotting Giant
+Roving Harper
+Royal Falcon
+Rubblebelt Boar
 Rural Recruit
+Ruthless Predation
+Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
+Sarkhan's Catharsis
+Satyr Hoplite
+Satyr's Cunning
+Scale Blessing
 Screams of the Damned
+Scrollshift
 Seagraf Skaab
 Seek New Knowledge
+Serendib Efreet
+Serpent's Gift
+Seshiro the Anointed
 Sewer Crocodile
+Shade of Trokair
+Shambling Remains
 Shambling Strider
+Sheoldred
 Sheoldred, Whispering One
 Shield Mate
+Shielded by Faith
 Shocker
+Show of Confidence
+Sigiled Skink
+Silverclad Ferocidons
 Simic Growth Chamber
 Siren of the Silent Song
+Skittering Invasion
+Skulking Fugitive
+Skull Catapult
 Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
+Skysnare Spider
+Smashing Spree
 Smelt
 Snapping Thragg
+Sootwalkers
+Soramaro, First to Dream
+Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Soulquake
 Spark Reaper
 Sparkhunter Masticore
+Specter's Wail
+Spectral Bears
+Sphinx's Insight
 Spidersilk Net
 Spire Golem
+Spring
+Springsage Ritual
 Stabbing Pain
+Start from Scratch
+Steal Artifact
+Steelform Sliver
+Stew the Coneys
 Stir the Pride
 Stone-Throwing Devils
 Stonybrook Angler
@@ -177,29 +437,81 @@ Strangling Soot
 Strangling Spores
 Straw Soldiers
 Street Spasm
+Strength in Numbers
+Strider Harness
 Stronghold Assassin
 Summit Apes
 Sun Droplet
+Sunscape Apprentice
+Supernatural Stamina
 Swamp
 Swift Maneuver
+Swirling Sandstorm
+Switcheroo
 Sword of the Paruns
 Synchronous Sliver
+Syphon Sliver
+Take Flight
+Talas Warrior
+Tavern Ruffian
+Tegan Jovanka
 Terrain Generator
 Terramorph
+Territorial Hammerskull
+Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+The Third Doctor
+Theoretical Duplication
+Thor, Asgard's Avenger
+Thought Erasure
 Thundering Tanadon
 Thunderous Wrath
+Thunderwolf Cavalry
 Thwart
+Tivadar's Crusade
+Tormented Hero
+Touch of Brilliance
+Tourach's Canticle
+Treetop Warden
 Tresserhorn Sinks
+Tuktuk Rubblefort
+Ulrich's Kindred
+Ultron's Auxiliary
+Undercover Butler
+Unexpected Windfall
+Unfriendly Fire
+Unholy Officiant
+Unity of Purpose
+Unstoppable Ogre
 Valeria Richards, Precocious
 Vaultbreaker
+Vedalken Anatomist
+Vedalken Ghoul
+Veiled Apparition
+Verdant Automaton
+Verdant Force
+Vessel of Ephemera
+Vindictive Mob
 Vulshok Battlegear
+Vulshok War Boar
 Wall Off
+Wall of Blood
+Wall of Mist
 Warbeast of Gorgoroth
+Warbriar Blessing
+Wayward Soul
+Weldfast Engineer
 Wight
+Wild Growth
+Wind-Kin Raiders
+Wolfrider's Saddle
+Wooden Cane
+Workshop Assistant
+Write into Being
 Wu Elite Cavalry
 Wurmcoil Engine
+Yavimaya Hollow
 Zhao Zilong, Tiger General
 Zopandrel, Hunger Dominus
 Zulaport Cutthroat

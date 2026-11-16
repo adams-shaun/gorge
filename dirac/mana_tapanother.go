@@ -49,7 +49,9 @@ import (
 // {T}, the sacrifice (whose dies triggers queue), the mana (sacXDo). A path
 // that sacrifices the searched ability's own source dead-ends at the next node
 // (gorge scriptSearch.leftOwnZone). The manual ward and unless windows do not
-// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps).
+// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps) —
+// beside a granted mana ability it activates the source as a candidate of its
+// own now (mana_grantsacx.go).
 
 // DebugNoTapMana hides the tap-another-permanent gaps (the caretaker
 // mutation test proves the pool's plays need them).

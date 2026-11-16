@@ -8,46 +8,71 @@ Aspect of Manticore
 Autumn Willow, Harmony
 Aven Reedstalker
 Battlefly Swarm
+Bladewing, Deathless Tyrant
 Blinding Souleater
 Bogbrew Witch
+Brinebarrow Intruder
+Brion Stoutarm
 Burning Wish
+Cache Raiders
 Cackling Fiend
 Campfire
+Celestial Archon
 Charnel Serenade
 Cinder Hellion
 Coordinated Assault
 Coral Commando
+Court of Ardenvale
+Curse of Vitality
 Cursed Minotaur
 Daring Escape
 Dark Privilege
 Delayed Blast Fireball
 Devoted Paladin
+Douse in Gloom
 Emissary of Hope
 Equestrian Skill
+Errand-Rider of Gondor
+Eternal Isolation
+Excoriate
 Fanatic of Mogis
 Fell Stinger
 Final-Sting Faerie
+Firefly
 Forest
+Freewind Equenaut
 Gift of Growth
+Goblin Battle Jester
+Goblin Brigand
+Guide of Souls
 Guul Draz Overseer
 Heedless One
+Heiko Yamazaki, the General
 Hellraiser Goblin
 Highspire Mantis
 Hulking Ogre
 Impetuous Protege
 Industrial Advancement
 Island
+Ivory Charm
 Jace Beleren
+Jackhammer
 Jousting Lance
 Kaya's Ghostform
 Kessig Dire Swine
+Kitsune Bonesetter
 Leveler
 Long-Lost Lances
 Loxodon Mystic
 Merfolk Windrobber
 Mire in Misery
 Mountain
+Nighthawk, Dark Defender
 Noble Steeds
+Olivia, Mobilized for War
+One-Clown Band
+Ox Drover
+Patron Wizard
 Piru, the Volatile
 Plains
 Plunder
@@ -57,6 +82,7 @@ Purraj of Urborg
 Rage Thrower
 Rain of Embers
 Raven Wings
+Ravenous Sailback
 Rejuvenating Springs
 Resolute Blademaster
 Reveka, Wizard Savant
@@ -64,9 +90,11 @@ Riddle Gate Gargoyle
 Rigging Runner
 Robber Fly
 Rorix Bladewing
+Royal Falcon
 Screams of the Damned
 Sheoldred, Whispering One
 Shocker
+Sigiled Skink
 Skyblinder Staff
 Soul Barrier
 Soul-Strike Technique
@@ -74,11 +102,16 @@ Spidersilk Net
 Spire Golem
 Spitemare
 Stabbing Pain
+Start from Scratch
 Stir the Pride
 Stronghold Assassin
 Sun Droplet
 Swamp
+Talas Warrior
+Tegan Jovanka
 Thunderous Wrath
 Tresserhorn Sinks
+Unholy Officiant
 Vaultbreaker
 Warbeast of Gorgoroth
+Wooden Cane

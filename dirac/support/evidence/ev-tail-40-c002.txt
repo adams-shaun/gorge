@@ -1,124 +1,306 @@
+A-Gnarlid Colony
 A-Syndicate Infiltrator
 A-Young Blue Dragon
 Aberrant
 Aegis Automaton
 Agent of Masks
+Aggravated Assault
+Ajani Goldmane
 Akoum Flameseeker
+Alabaster Wall
+Altar Golem
 Amulet of Vigor
+Ancient Copper Dragon
+Angrath's Marauders
+Ant-Man, Elusive Avenger
 Arcade Cabinet
 Arcane Laboratory
 Armageddon
+Ascending Aven
+Asylum Visitor
+Atalya, Samite Master
 Avatar of Might
+Azorius Keyrune
 Balshan Collaborator
 Banishing Slash
+Baron Sengir
+Baru, Wurmspeaker
 Basri's Aegis
+Bast, Panther Goddess
 Bastion of Remembrance
 Battle Sliver
+Blessed Light
+Blitz Automaton
 Blood Ogre
+Bloodline Necromancer
+Bloodthorn Taunter
+Boon of Emrakul
 Brass Secretary
+Bright-Palm, Soul Awakener
+Brilliant Plan
+Broken Visage
+Bubble Matrix
+Cankerbloom
+Carnage Altar
+Chainer's Edict
+Chandra's Fury
 Charcoal Diamond
+Charmbreaker Devils
+Charmed Stray
+Charnel Troll
+Choking Fumes
+Choose Your Weapon
+Chronomancer
+Cinder Crawler
+Cinderbones
+Citanul Woodreaders
 Cleric of Chill Depths
 Cliffhaven Sell-Sword
 Cloud Crusader
 Cogwork Archivist
 Colossal Majesty
+Common Iguana
 Compulsion
 Concordia Pegasus
+Conformer Shuriken
 Crack the Earth
 Creeping Mold
 Crumbling Colossus
+D'Avenant Healer
+Defender of Law
 Deflection
 Devils' Playground
+Dhund Operative
+Dire Fleet Neckbreaker
+Dirtwater Wraith
+Domri's Nodorog
 Dragon Egg
+Draugr Thought-Thief
+Dreadwaters
 Drifter il-Dal
+Dune Beetle
+Dungeoneer's Pack
 Elvish Harbinger
+Endless Scream
+Eye of Yawgmoth
+Faceless Devourer
+Fast
 Feldon, Ronom Excavator
+Felhide Petrifier
+Fetid Imp
 Field of Reality
+Filigree Attendant
 Flowstone Crusher
+Flux Channeler
+Forced Retreat
 Forest
+Foul Play
+Foundry Helix
+Free from Flesh
+Freed from the Real
 Frog-Squirrels
 Frontline Medic
+Furnace Dragon
 Furnace Scamp
+Gavony Trapper
+Geist Snatch
+Ghost Lantern
+Gluttonous Slug
 Gnoll War Band
+Gnome-Made Engine
+Goblin Bruiser
+Goblin Mutant
+Great-Horn Krushok
+Greater Forgeling
+Hadran, Naya Sunseeder
+Hangar Scrounger
+Heartless Summoning
+Hedron Crawler
+Helitrooper
+Hell Mongrel
+Hellfire Mongrel
+High Alert
+Highspire Mantis
+Hornswoggle
 Hunters' Feast
 Idol of Oblivion
 Inferno Titan
+Infused Arrows
+Into the Story
+Invasion of Lorwyn
+Invasive Species
 Ironroot Treefolk
 Island
 Isolate
 Jaheira's Respite
+Kardur, Doomscourge
+Kargan Dragonlord
+Knight of Infamy
 Krakilin
+Lava Zombie
+Legion Lieutenant
 Legion's Judgment
+Leinore, Autumn Sovereign
+Leonin Scimitar
+Lightning Cloud
+Lightning Serpent
+Liliana's Scrounger
+Lingering Phantom
 Locus Cobra
+Lorehold Excavation
+Machine Man, Model X-51
+Mage Duel
+Manabond
 Manglehorn
+Maw of the Obzedat
+Mental Discipline
 Mental Misstep
 Merchant Scroll
+Mercurial Transformation
 Midnight Haunting
+Mind Burst
 Minion of the Mighty
+Minotaur Skullcleaver
+Mist Dragon
 Mnemonic Wall
+Mogg Alarm
+Mortal's Ardor
 Moss Kami
 Mossbeard Ancient
 Mountain
 Mountain Bandit
+Mysterious Pathlighter
+Namora, the Sea Queen
+Nantuko Shade
+Needlebug
 Nightveil Sprite
+Nimraiser Paladin
+Noxious Toad
+Oath of the Ancient Wood
 Omen of the Sun
+Oracle of Tragedy
+Ordeal of Purphoros
 Ore-Scale Guardian
 Ovalchase Daredevil
 Patrol Signaler
+Phantom Wings
 Plains
+Platinum Angel
 Plummet
 Porcelain Legionnaire
+Poultrygeist
+Precognitive Perception
+Press for Answers
 Primordial Ooze
 Prophetic Flamespeaker
 Rage Forger
+Rakka Mar
 Ravenous Baboons
+Ravenous Bloodseeker
 Reiterate
 Reito Lantern
+Reiver Demon
+Relic Bane
+Rescue
+Resourceful Return
+Ring of Three Wishes
+Riot Spikes
+Rip Apart
 Rooting Kavu
 Roughshod Mentor
+Rousing of Souls
+Ruination Wurm
+Safeguard
 Sandsteppe Outcast
+Sanguine Bond
 Scion of Glaciers
 Scourge of Skola Vale
 Screamreach Brawler
 Sea Kings' Blessing
 Season of Renewal
 Second Harvest
+Second Thoughts
 Seed Guardian
+Selesnya Sentry
 Sengir Vampire
 Sentinel Spider
+Shadowblood Egg
 Shaggy Camel
 Shelter
+Sheoldred's Edict
+Shepherd of the Cosmos
+Shield Mare
+Shrivel
+Silumgar's Command
+Sinking Feeling
 Six-Sided Die
 Skyclave Geopede
 Skylasher
+Slimefoot, the Stowaway
 Smolder Initiate
+Snapcaster Mage
+Snarling Warg
+Solemn Recruit
 Song of Eärendil
 Southern Elephant
+Spark Trooper
+Spartan Veteran
+Spellskite
 Sphinx of Magosi
 Spinehorn Minotaur
+Sprouting Renewal
 Steam Blast
+Steward of Valeron
+Stone Rain
 Stormtide Leviathan
 Strength of Night
+Structural Distortion
+Stunted Growth
 Subtle Strike
+Sunhome Guildmage
 Swamp
 Synapse Sliver
 Tah-Crop Skirmisher
 Tajuru Beastmaster
+Talisman of Curiosity
+Tegan Jovanka
+Tenured Oilcaster
 Terror of the Fairgrounds
+The Destined White Mage
 Thing Swing
 Thorn Mammoth
 Thornling
+Thrasher Brute
+Thriss, Nantuko Primus
 Thunder Strike
 Tidespout Tyrant
 Tidings
 Tigereye Cameo
+Time of Heroes
+Titans' Vanguard
 Triton Shorethief
 Turn the Tide
 Turnabout
+Uncaged Fury
+Uncanny Speed
 Undercity Shade
 Untamed Might
+Unwilling Recruit
+Urborg Mindsucker
+Valor of the Worthy
+Vampire Revenant
+Vampire Warlord
 Vastwood Gorger
+Venom Blast
 Vineshaper Mystic
 Vivid Revival
 Vivisurgeon's Insight
 Volunteer Militia
+Wand of the Elements
+Wandering Tombshell
+Wei Elite Companions
+Whisper Agent
+Xiahou Dun, the One-Eyed
+You Come to the Gnoll Camp
+Yuan Shao, the Indecisive
+Zhao, the Seething Flame
