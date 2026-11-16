@@ -1812,13 +1812,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// colour (potentialUnbounded) for the view and a cast. A trigger's
 					// own cost reads it at the counters it can remove, one mana each
 					// (rules potential_subcounter.go: pay ManaSubCounterXBound).
-					if d != nil && d.class == pdOther {
-						if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
-							add(sl, uint8(ab.ManaColors), uint8(min(n, 255)))
-						}
-						continue
-					}
-					open = true // every other payment keeps gorge's unbounded read
+					open = s.storePotential(open, sl, ab, d, add)
 					continue
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, add, &anyFree, &open) {
