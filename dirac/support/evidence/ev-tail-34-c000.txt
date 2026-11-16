@@ -126,6 +126,7 @@ Drowner of Secrets
 Durable Coilbug
 Dust Elemental
 Dwarven Patrol
+Edric, Spymaster of Trest
 Eidolon of Blossoms
 Elder Gargaroth
 Eldrazi Repurposer
@@ -167,6 +168,7 @@ Godhunter Octopus
 Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
 Grafted Butcher
+Grazing Kelpie
 Grim Bounty
 Grim Guardian
 Grim Haruspex
