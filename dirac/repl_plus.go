@@ -74,7 +74,7 @@ func (s *State) parkShape() uint8 {
 	switch {
 	case s.g.nc.n == ncPend:
 		return replParkPend
-	case ro.n != 0 && ro.plus != 0 && ro.plus == (1<<ro.n)-1 && ro.rs == 0 &&
+	case ro.n != 0 && ro.plus != 0 && ro.plus == (1<<ro.n)-1 && // the low mask only: no raise body above them
 		ro.prev == 0 && ro.shld == 0 && ro.pnx == 0 && ro.pcol == 0 && s.g.nc.n > 0:
 		return replParkPlus
 	}

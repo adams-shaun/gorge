@@ -345,6 +345,14 @@ const (
 	akwDeathtouch
 )
 
+// ro.plus's bits.
+const (
+	plRaiseShift = 4 // the raise bodies (Ojer Axonil) among the candidates, above the plus-N additions' low nibble: the noncombat walk applies one as picked while the amount is below its host's power (repl_pluswalk.go)
+)
+
+// plRaise lifts the plus-N additions' mask b into the raise bodies' nibble.
+func plRaise(b uint8) uint8 { return b << plRaiseShift }
+
 type replHdr struct {
 	// the asked combat event as it stood when asked (gorge's assignment is
 	// fixed then: a source or recipient the state-based actions remove
@@ -358,8 +366,7 @@ type replHdr struct {
 	n             uint8  // its candidates (0 = no ask in progress)
 	used          uint8  // candidates applied so far (bit per cand)
 	prev          uint8  // candidates that prevent the damage (bit per cand)
-	plus          uint8  // candidates that are a plus-N addition already in the asked amount (bit per cand; the order walk)
-	rs            uint8  // candidates that are a raise body (Ojer Axonil), bit per cand: the noncombat walk applies it as picked, while the amount is below the host's power (repl_pluswalk.go)
+	plus          uint8  // the candidates of the order walk: the plus-N additions already in the asked amount, low nibble (bit per cand), the raise bodies (Ojer Axonil) above them, high nibble (plRaise): the noncombat walk applies a raise as picked, while the amount is below its host's power (repl_pluswalk.go)
 	p             uint8  // the affected player, who answers
 	cand          [4]Obj // the replacements' sources
 	nca           bool   // a parked noncombat event's ask is posed (ncDmg)

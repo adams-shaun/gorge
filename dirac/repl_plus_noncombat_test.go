@@ -75,8 +75,8 @@ func TestReplPlusNoncombatRaiseWalks(t *testing.T) {
 	if ok := sc.s.parkNC(sc.k, 0, sc.slot(src), v.GrizzlyBears, TCode(PlayerTarget1), 3, 0); !ok {
 		t.Fatalf("raise beside two additions: park failed (stall %s)", StallName(sc.s.StallReason()))
 	}
-	if ro := sc.s.g.ro; ro.n != 3 || ro.rs != 1<<2 {
-		t.Fatalf("raise beside two additions: %d candidates, rs %d, want 3 and the raise's bit", ro.n, ro.rs)
+	if ro := sc.s.g.ro; ro.n != 3 || ro.plus&plRaise(0x0F) != plRaise(1<<2) || ro.plus&0x03 != 0x03 {
+		t.Fatalf("raise beside two additions: %d candidates, plus %d, want 3 candidates, the raise's bit and the two additions'", ro.n, ro.plus)
 	}
 	if sc.s.g.nc.n != ncPend {
 		t.Fatalf("raise beside two additions: parked amount %d, want the pend sentinel", sc.s.g.nc.n)

@@ -52,7 +52,7 @@ func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code
 		return false
 	}
 	ro := &s.g.ro
-	ro.replHdr = replHdr{n: uint8(c), plus: plus, rs: rs, p: rcp, cand: cand,
+	ro.replHdr = replHdr{n: uint8(c), plus: plus | rs<<plRaiseShift, p: rcp, cand: cand,
 		ac: uint8(c), an: int16(min(n, 1<<14)), askS: srcSl, askD: sl, actl: ctrl, apl: rcp}
 	nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: ncPend}
 	if srcSl != NoSlot {
@@ -73,7 +73,7 @@ func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code
 // raise picked after a doubling has pushed it past the power applies nothing.
 func (s *State) ncPlusPickNC(i int) {
 	ro := &s.g.ro
-	if ro.plus&(1<<i) == 0 && ro.rs&(1<<i) == 0 {
+	if ro.plus&(plRaise(1<<i)|1<<i) == 0 {
 		if ro.an < 1<<12 {
 			ro.an *= 2 // a doubling
 		}
@@ -106,7 +106,7 @@ func (s *State) ncPlusPickNC(i int) {
 // other candidate's match does not read the amount.
 func (s *State) ncPlusLive(i int) bool {
 	ro := &s.g.ro
-	if ro.rs&(1<<i) == 0 {
+	if ro.plus&plRaise(1<<i) == 0 {
 		return true
 	}
 	sl := s.objs[ro.cand[i]].slot
