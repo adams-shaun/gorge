@@ -70,8 +70,8 @@ func TestJoinForcesLockstep(t *testing.T) {
 
 // joinForcesPool is the synthetic pool holding every card of deck, and its
 // matchup table. These cards are outside the Standard lists, so they sit in a
-// tail-NN bucket that moves whenever the lowered set grows: the pool is found
-// by name, never fixed.
+// tail-NN bucket chosen by each card's own name hash: the pool is found by
+// name, never fixed, and a deck whose cards hash apart would find none.
 func joinForcesPool(t *testing.T, deck []cardset.Entry) (cardset.Set, *kop.Table) {
 	t.Helper()
 	for _, name := range cardsettest.SynthNames(t) {

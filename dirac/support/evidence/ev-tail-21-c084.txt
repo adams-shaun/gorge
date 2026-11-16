@@ -1,0 +1,6 @@
+Forest
+Island
+Mountain
+Plains
+Scatter Arc
+Swamp

@@ -32,6 +32,7 @@ type genPrep struct {
 	flags     []uint32
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
+	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -286,7 +287,7 @@ type genPrep struct {
 	anyConspire     bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm        bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
-	anySplitSecond  bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
+	anySplitSecond  bool           // some card has printed split second or a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anyOffZonePT    bool           // some card has a StatOffZonePT: an AffectedZone$ All P/T grant (static_offzonept.go)
 	anySplit        bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
@@ -582,9 +583,11 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 
 // replPlusOnly reports whether the table's only damage replacement kind is
 // ReplDamagePlus, so two or more of them competing for one event are a sum
-// no order changes (CR 616.1e; trig_oneormore.go).
+// no order changes (CR 616.1e; trig_oneormore.go). A static prevention host
+// carries rbPlusDmg too, and its order ask changes the amount, so a table with
+// one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev)
 }
 
 type grantRef struct {
@@ -810,6 +813,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepKC(t, g)
 	prepPoisonHigh(t, g)
 	prepShield(t, g)
+	prepUmbra(t, g) // kw_umbraarmor.go
 	prepDiesNC(t, g)
 	prepMcombat(t, g)
 	prepAltFree(t, g, p) // cast_altfree.go
@@ -834,7 +838,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
-	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
+	// prepSpellCond first: it sets anySpellCond, which an || must not skip
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
@@ -1176,7 +1181,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
-				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf:
+				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf, kop.ReplPreventDamageFilt, kop.ReplPreventDamageN:
 					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
@@ -1928,6 +1933,9 @@ type genState struct {
 		amt  uint8
 	}
 	ndmg uint8
+	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
+	// both-instances flashback classification (legal.go fbProbeRoot).
+	fbProbe bool
 
 	may  [maxMay]mayPlay
 	nmay uint8
@@ -2466,7 +2474,6 @@ const (
 	StallRestrX        = 58  // a reflected search's restricted mana past the batches State.rb holds (mana_reflected.go)
 	StallEndureN       = 59  // an Endure Spirit mint a CreateToken replacement multiplies (act_endure.go)
 	StallLinkCtr       = 60  // an until-leaves return rider's counters on a card that does not enter inline (a returning Aura asked its host, an as-enters choice asked first; zone_untilleaves.go)
-	StallNumTimes      = 61  // an open Announce$ NumTimes (no AnnounceMax$) whose eighth repetition is still payable (cast_announcetimes.go)
 	StallAegis         = 62  // an Assimilation Aegis copy that cannot be kept (a second exiled card, a bearer already a copy; zone_exilethenattach.go)
 	StallSacOther      = 63  // a Mobilize group sacrifice whose member another player controls (gorge checks no controller; kw_mobilize.go)
 	StallObsSrc        = 70  // a second observed mana source (Spell.ManaFromCard.StrictlySelf reader) tapped by one cast (mana_spendtrigger.go)

@@ -1,0 +1,6 @@
+Forest
+Hatchery Spider
+Island
+Mountain
+Plains
+Swamp

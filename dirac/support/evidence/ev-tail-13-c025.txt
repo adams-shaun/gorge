@@ -1,0 +1,6 @@
+Forest
+Hold at Bay
+Island
+Mountain
+Plains
+Swamp
