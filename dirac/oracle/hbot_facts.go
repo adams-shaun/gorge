@@ -75,8 +75,6 @@ func HBotFactsSet(reg *cards.Registry, tbl *kop.Table, names map[string]string, 
 				sa = face.SpellAbility()
 			} else if gi, ok := sc.gorgeAbility(dirac.CardID(i), uint8(j)); ok {
 				sa = sc.gorgeSA(dirac.CardID(i), gi)
-			} else if ka.AFlags&kop.AfLatent != 0 {
-				sa = hbotReflexiveBody(sc, face, dirac.CardID(i), j) // a reflexive trigger's targeted body
 			}
 			if sa == nil {
 				continue
@@ -105,29 +103,6 @@ func HBotFactsSet(reg *cards.Registry, tbl *kop.Table, names map[string]string, 
 		}
 	}
 	return f
-}
-
-// hbotReflexiveBody is the Execute$ body of the ImmediateTrigger ability
-// before latent ability j (Boilerbilges Ripper's "when you do, 2 damage to any
-// target": the kernel's latent ability asks the body's targets, which gorge
-// ranks by that SA). nil when none.
-func hbotReflexiveBody(sc *SBTCards, f *cards.Face, card dirac.CardID, j int) *cards.SA {
-	abs := sc.tbl.Cards[card].Abilities
-	for p := j - 1; p >= 0; p-- {
-		if abs[p].AFlags&kop.AfLatent != 0 {
-			continue
-		}
-		gi, ok := sc.gorgeAbility(card, uint8(p))
-		if !ok {
-			return nil
-		}
-		sa := sc.gorgeSA(card, gi)
-		if sa == nil || sa.API != "ImmediateTrigger" {
-			return nil
-		}
-		return cards.ResolveSVar(f.SVars, strings.TrimSpace(sa.Params["Execute"]))
-	}
-	return nil
 }
 
 // hbotLabelCost is botpolicy's abilityCost: the label's first digit run,

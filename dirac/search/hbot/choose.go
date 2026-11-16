@@ -80,13 +80,6 @@ func (bt *Bot) firstObj(s *dirac.State, d *dirac.Decision) int {
 	switch d.Sub {
 	case dirac.ChGenEnterDefender:
 		return bt.firstBy(s, d, func(a dirac.Action) uint32 { return uint32(s.FeatEnterDefenderIndex(a.Source())) })
-	case dirac.ChRemCtrKind:
-		// a counter kind choice asks the first listed kind (gorge's first offer);
-		// the kernel sorts its options, so a PutCounterChoice ask reads the
-		// printed order (ctr_choice.go), any other counter ask keeps its first
-		return bt.firstBy(s, d, func(a dirac.Action) uint32 {
-			return uint32(s.FeatCounterChoiceIndex(uint8(a.Mode())) + 1) // code-ok: a counter kind
-		})
 	case dirac.ChKsrTarget, dirac.ChGenResTarget:
 		return bt.firstBy(s, d, func(a dirac.Action) uint32 {
 			if p, ok := codePlayer(a.Source()); ok {

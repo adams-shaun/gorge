@@ -50,33 +50,6 @@ func pccOptions(d *Decision, in *kop.Instr) {
 	}
 }
 
-// FeatCounterChoiceIndex is kind's index in the printed list of the pending
-// ExtPutCounterChoice ask (its option list, before the kernel's canonical sort),
-// so a bot answering in gorge's order (the first listed kind) reads it; -1 when
-// no such ask is pending or kind is not offered.
-func (s *State) FeatCounterChoiceIndex(kind uint8) int {
-	var in *kop.Instr
-	switch {
-	case s.res.ask == raRemCtrAny:
-		in = &s.prog(s.k())[s.res.pc]
-	case s.g.nask > 0 && s.g.ask[0].kind == akCtrPick:
-		a := &s.g.ask[0]
-		in = &s.k().t.Cards[a.card].Abilities[uint8(a.ab)].Prog[a.pc-1]
-	default:
-		return -1
-	}
-	if in.Op != kop.OpExt || in.Ext() != kop.ExtPutCounterChoice {
-		return -1
-	}
-	ks, n := in.PutCtrChoiceKinds()
-	for i, c := range ks[:n] {
-		if c == kind {
-			return i
-		}
-	}
-	return -1
-}
-
 // pccAnswer takes the resolving form's pick and puts the counter.
 func (s *State) pccAnswer(k *prep, in *kop.Instr, a Action) {
 	s.res.ask = raNone
