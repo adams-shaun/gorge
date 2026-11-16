@@ -245,7 +245,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
-	if !relax {
+	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
@@ -293,7 +293,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&castMayPlay == 0 && k.t.Cards[s.objs[Obj(a.Source())].card].HasMultikicker {
 			continue // nor for a Multikicker card's plain cast: gorge's planner declines the face (payment_plan.go "shape:optional_cost"), so a plain cast only a census gap pays is not offered (Gnarlid Pack beside Jaspera Sentinel); the multikicked cast keeps its own offer gate (legal_walk_hand.go phMultikicker)
 		}
-		if s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd || s.contribCast(k, p, a) {
+		if s.scriptShapeSkip(k, p, a) {
 			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
 		}
 		kk := s.walkKey(a, p, i)
@@ -805,6 +805,66 @@ func (s *State) contribCast(k *prep, p uint8, a Action) bool {
 	}
 	o := Obj(a.Source())
 	return s.contribPays(k, p, s.objs[o].card, o, s.objs[o].zone == kop.ZoneHand)
+}
+
+// scriptShapeSkip is scriptOffers' shape skip for the cast a: an exile,
+// forage, return, blight or evidence part (shape:additional_cost;
+// objPartCast) beside no either-or pay, or a contribution cast (shape:
+// contribution; kw_delve.go contribPays) whose credit is empty (improvise
+// alone, improviseAloneCast) still goes to gorge's prefix search.
+func (s *State) scriptShapeSkip(k *prep, p uint8, a Action) bool {
+	return s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd ||
+		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a)
+}
+
+// improviseAloneCast reports whether a plain cast of p's card c carries
+// improvise and no other shape:contribution keyword or priced extra, and
+// credits no artifact: gorge's planner plans such a cast plainly (its
+// improviseTaps are empty — improviseCost credits generic only, so a cast
+// without generic or without an untapped artifact credits nothing), the
+// credited census misses the pips and the prefix search funds a census gap's
+// fee beside them: the cast is offered (CR 601.2g; Geralf's Messenger beside
+// Inspiring Statuary, decision 389 of tail-08 pair 541). A cast whose credit
+// is not empty goes through gorge's planImprovise instead, whose
+// "unsupported cost:credit" runs no prefix search (payment_plan_improvise.go)
+// — a mode, a may-play/face/warp form, a target, an additional cost, an
+// announced X or a live artifact credit keeps the contribution shape.
+func (s *State) improviseAloneCast(k *prep, p uint8, a Action) bool {
+	if a.Kind() != AkCast || a.Mode()&3 != 0 || a.Mode()&(castMayPlay|castFace|castWarp) != 0 || a.Target() != 0 {
+		return false
+	}
+	o := Obj(a.Source())
+	ob := &s.objs[o]
+	if ob.zone == kop.ZoneBattlefield {
+		return false // a permanent on the battlefield is never a spell being cast (kw_delve.go)
+	}
+	c := ob.card
+	fromHand := ob.zone == kop.ZoneHand
+	if k.t.Cards[c].Cost.X != 0 || k.t.Cards[c].Cost.XRed != 0 || k.t.Cards[c].Cost.XPip != 0 {
+		return false // the X ask keeps the manual window (payment_plan.go costAnnouncesX)
+	}
+	if sp := k.t.Cards[c].SpellCost; sp.Flags != 0 || sp.N != 0 || sp.Ctr != 0 {
+		return false // an additional sacrifice or tap part keeps it (payment_plan.go spellCost)
+	}
+	if !s.isImprovise(k, p, c, o, fromHand) || s.hasConvoke(k, p, c, o, fromHand) ||
+		s.hasCastDelve(k, p, c, o, fromHand) {
+		return false
+	}
+	return k.t.Cards[c].Cost.Generic == 0 || !s.improviseCreditLive(k, p)
+}
+
+// improviseCreditLive reports an untapped artifact of p's the improvise
+// credit could tap (gorge improviseCost's candidates, kw_convoke.go
+// tapPayCand with imp).
+func (s *State) improviseCreditLive(k *prep, p uint8) bool {
+	var ord [MaxPerm]Slot
+	n := s.battlefieldOrder(SeatIx(p), s.ctrlM[SeatIx(p)].and(s.occ), ord[:], 0)
+	for _, sl := range ord[:n] {
+		if s.tapPayCand(k, sl, true) {
+			return true
+		}
+	}
+	return false
 }
 
 // objPartPrinted reports whether the printed sources pay objPartCast a's

@@ -107,6 +107,7 @@ Descendant of Kiyomaro
 Desecrated Earth
 Despondency
 Devil Dinosaur
+Devoted Retainer
 Devouring Swarm
 Dina, Soul Steeper
 Dire Fleet Interloper
@@ -343,6 +344,7 @@ Ruthless Disposal
 Sabertooth Nishoba
 Sacred Cat
 Saheeli's Artistry
+Samurai Enforcers
 Sanctify
 Sandsteppe Mastodon
 Sapphire Dragon

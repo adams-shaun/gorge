@@ -265,6 +265,7 @@ Monstrous Onslaught
 Morgue Theft
 Mortal's Ardor
 Mossbeard Ancient
+Mothrider Samurai
 Mountain
 Mountain Bandit
 Mournful Zombie
@@ -328,6 +329,7 @@ Ring of Three Wishes
 Ringwarden Owl
 Riot Spikes
 Rip Apart
+Ronin Cliffrider
 Ronin Warclub
 Rooting Kavu
 Roughshod Mentor
@@ -460,6 +462,7 @@ Valor of the Worthy
 Vampire Revenant
 Vampire Warlord
 Vastwood Gorger
+Vectis Gloves
 Vengeful Regrowth
 Venom Blast
 Venser, Fervent Forger

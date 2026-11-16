@@ -39,6 +39,7 @@ Bolrac-Clan Crusher
 Bone Saw
 Breakneck Berserker
 Brilliant Restoration
+Bring Low
 Brion Stoutarm
 Bumi's Feast Lecture
 Burning Wish
@@ -69,6 +70,7 @@ Darksteel Forge
 Darksteel Ingot
 Dauthi Trapper
 Daxiver, Izzet Electromancer
+Deepwood Wolverine
 Defend the Campus
 Delayed Blast Fireball
 Demon's Due
@@ -85,6 +87,7 @@ Drove of Elves
 Drowsing Tyrannodon
 Dungeon Shade
 Durkwood Tracker
+Dwarven Mine
 Early Frost
 Echoes of the Kin Tree
 Eddytrail Hawk
@@ -128,6 +131,7 @@ Glint-Sleeve Siphoner
 Gnarled Effigy
 Goblin Battle Jester
 Goblin Brigand
+Goblin Masons
 Goblin Sharpshooter
 Grazing Whiptail
 Green Sun's Zenith
@@ -155,6 +159,7 @@ Ichor Explosion
 Ideas Unbound
 Impetuous Protege
 Industrial Advancement
+Inescapable Brute
 Infantry Veteran
 Inhumaniac
 Innistrad Charm
@@ -173,6 +178,8 @@ Keldon Vandals
 Keldon Warlord
 Kessig Dire Swine
 Kithkin Billyrider
+Kitsune Bonesetter
+Knight Exemplar
 Knight of Sorrows
 Kobolds of Kher Keep
 Kolaghan Aspirant
@@ -243,6 +250,8 @@ Prava of the Steel Legion
 Presence of the Wise
 Pridemalkin
 Primal Frenzy
+Prismite
+Professor of Zoomancy
 Protection Magic
 Psionic Snoop
 Purraj of Urborg
@@ -254,6 +263,7 @@ Ranger Class
 Ranger-Captain of Eos
 Ravages of War
 Raven Wings
+Ravenous Sailback
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
@@ -315,6 +325,7 @@ Soul Barrier
 Soul-Strike Technique
 Spark Reaper
 Sparkhunter Masticore
+Specter's Wail
 Spectral Bears
 Spidersilk Net
 Spire Golem
@@ -332,6 +343,7 @@ Strangling Soot
 Strangling Spores
 Straw Soldiers
 Street Spasm
+Strength in Numbers
 Strider Harness
 Stronghold Assassin
 Summit Apes
@@ -340,6 +352,7 @@ Sunscape Apprentice
 Supernatural Stamina
 Swamp
 Swift Maneuver
+Swirling Sandstorm
 Synchronous Sliver
 Syphon Sliver
 Take Flight

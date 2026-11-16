@@ -710,6 +710,29 @@ func scriptSubsets(d *decision.Decision, mk func([]int) decision.Intent) []decis
 	return out
 }
 
+// scriptStepNeed is the colours the pending ask's activation produces: the
+// witness replay (witnessReachesMode) answers the ask the step's plan
+// expected first, scriptOrderAnswers keeping engine order inside each half.
+// The ask follows steps[next-1]: the replay submitted it to reach this ask,
+// and its Produces are the exact mana the plan counts on it floating. The
+// answer set is unchanged; the replay is budget-capped, not complete, and an
+// any-colour activation (a Treasure's sacrifice) otherwise spends the budget
+// proving every colour the plan does not use dead -- between each activation,
+// with the sacrifice's own triggers asking between them (Havoc Jester) --
+// before the first one it does.
+func scriptStepNeed(steps []decision.PaymentActivation, next int) [state.MC + 1]bool {
+	var need [state.MC + 1]bool
+	if next <= 0 || next > len(steps) {
+		return need
+	}
+	for c, n := range steps[next-1].Produces {
+		if n > 0 && c <= state.MC {
+			need[c] = true
+		}
+	}
+	return need
+}
+
 // scriptOrderAnswers stably reorders an ask's valid answers so the ones that
 // name a colour the searched play's cost asks for come first, engine order
 // kept inside each half. The answer SET is unchanged, but the search is
@@ -854,7 +877,8 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			return false
 		}
 		if d.Kind != decision.KPriority {
-			for _, in := range scriptAnswers(d) {
+			// the replay answers the step's own colours first (scriptStepNeed)
+			for _, in := range scriptOrderAnswers(d, scriptAnswers(d), scriptStepNeed(steps, next)) {
 				child := pool.hypClone(c)
 				ok := child.Submit(in) == nil && visit(child, next, expect, waits)
 				pool.hypRelease(child)

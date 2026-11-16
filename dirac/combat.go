@@ -1435,6 +1435,9 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 		s.ctl = ctlDivide
 		return
 	}
+	if fog && first {
+		s.markFogFirst(k) // combatDamage would have marked them (combat_fogfirst.go)
+	}
 	if !fog && s.combatDamage(k, first) {
 		return // paused on a replacement-order ask
 	}
