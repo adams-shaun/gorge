@@ -6,19 +6,29 @@ Ambitious Farmhand
 Aphetto Grifter
 Aquus Steed
 Back to Basics
+Bad River
 Barbarian Riftcutter
 Brackwater Elemental
+Brawn
 Brightling
 Builder's Blessing
 Cavalier of Dawn
+Cephalid Retainer
 Cho-Manno, Revolutionary
+Commune with the Gods
+Control Win Condition
+Creeping Crystal Coating
 Crowd's Favor
 Curious Altisaur
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Deploy to the Front
 Desperate Farmer
+Die Young
+Displacer Kitten
 Dogpile
+Dress Down
 Drumhunter
 Durable Coilbug
 Eagle of Deliverance
@@ -28,40 +38,70 @@ Fiery Cannonade
 Forest
 Frenzied Fugue
 Frost Ogre
+Giant Mantis
 Grasp of Darkness
 Grave Pact
 Guardian of the Forgotten
 Hamza, Guardian of Arashin
+Hapato's Might
 Hydra Omnivore
 Hydroform
 Icatian Scout
 Imposing Vantasaur
 Inundate
 Island
+Join the Maestros
+Judge of Currents
 Kappa Cannoneer
+Kavu Lair
 Keeper of the Lens
+Kitchen Imp
 Kitesail Cleric
 Kokusho, the Evening Star
 Krav, the Unredeemed
 Lattice-Blade Mantis
 Lazotep Plating
+Leafkin Druid
+Leech Gauntlet
+Lily Bowen, Raging Grandma
 Livonya Silone
+Lord of the Pit
+Malachite Talisman
 Marionette Apprentice
 Maverick Thopterist
+Mold Shambler
 Moonveil Regent
+Mordor Muster
 Mountain
 Munda's Vanguard
+Murasa Ranger
+Needlebug
 Nightmarish End
 Nimble Hobbit
+Nine-Ringed Bo
 Null Rod
+Nulldrifter
 Otherworldly Gaze
+Overgrowth Elemental
+Painful Memories
 Pearl Dragon
 Pest Infestation
+Pheres-Band Warchief
 Plains
+Plated Seastrider
+Plea for Guidance
+Porcelain Legionnaire
+Raven's Crime
+Rebel Informer
+Redemption Arc
 Returned Phalanx
+Reveka, Wizard Savant
 Riptide Chimera
+Rith's Grove
 Rubblebelt Maaka
+Ruthless Instincts
 Satyr Rambler
+Sautekh Immortal
 Screaming Fury
 Seal of Cleansing
 Search Warrant
@@ -70,22 +110,33 @@ Secure the Scene
 Serum Snare
 Shield Wall
 Shoreline Raider
+Sight Beyond Sight
 Skeletal Wurm
+Soulless One
 Stormbound Geist
+Stratus Walk
 Strength Bobblehead
 Sunseed Nurturer
 Sunset Revelry
+Supply Drop
 Swamp
+Sylvan Messenger
 Tandem Tactics
 Topiary Stomper
 Tragic Fall
+Travel Preparations
 Treebeard, Gracious Host
+Trophy Hunter
 Trostani, Selesnya's Voice
+Twenty-Toed Toad
+Twilight Panther
 Unliving Psychopath
 Ursapine
 Vanish into Eternity
+Void Helix
 Voracious Hydra
 Welding Sparks
 Wild Ox
+Wizard Replica
 Wonder
 Words of Wisdom

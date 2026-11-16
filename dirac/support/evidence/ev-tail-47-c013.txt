@@ -1,23 +1,29 @@
 A-Dwarfhold Champion
 A-Young Red Dragon
 Acidic Sliver
+Aeronaut Cavalry
+Blessed Wind
 Bloodthrone Vampire
 Brain Gorgers
 Brilliant Halo
 Capashen Knight
+Captain Sisay
 Capture of Jingzhou
 Cartouche of Solidarity
 Chainflail Centipede
 Chosen by Heliod
 Consume Spirit
+Crumbling Vestige
 Crystal Chimes
 Dalek Squadron
 Dark Ritual
 Dawnhart Mentor
 Demonic Lore
+Depths of Desire
 Diligent Farmhand
 Dragonstalker
 Drinker of Sorrow
+Elvish Berserker
 Energy Tap
 Environmental Sciences
 Eyeless Watcher
@@ -26,17 +32,23 @@ Fiendslayer Paladin
 Forest
 Foul Familiar
 Fowl Play
+Gaea's Balance
 Gibbering Hyenas
+Go-Shintai of Boundless Vigor
 Hag of Ceaseless Torment
 Harsh Deceiver
 Harvester of Souls
+Highland Berserker
 Howling Banshee
 Ich-Tekik, Salvage Splicer
 Immolating Souleater
+Iona's Judgment
 Island
+Karplusan Wolverine
 Laurine, the Diversion
 Markov Crusader
 Meng Huo's Horde
+Mercy Killing
 Merfolk Mesmerist
 Midnight Covenant
 Might Weaver
@@ -44,42 +56,66 @@ Mind Rot
 Minion Missile
 Mischief and Mayhem
 Mogg War Marshal
+Mordenkainen
 Mountain
 Myr Galvanizer
+Natural Connection
 Natural Selection
+Open the Vaults
 Painful Lesson
+Paupers' Cage
 Piper of the Swarm
 Plains
 Rally the Forces
+Realm-Cloaked Giant
+Reckoner Bankbuster
 Renegade Map
+Resplendent Mentor
+Restore the Peace
 Riptide Biologist
+Rosethorn Halberd
 Savai Triome
 Screeching Buzzard
 Screeching Skaab
 Searing Light
+Shadowbeast Sighting
 Shivan Gorge
 Sigarda's Imprisonment
+Silver Myr
+Simian Simulacrum
+Simic Ragworm
 Singing Bell Strike
 Sky Diamond
 Sleeper's Robe
 Slingbow Trap
 Sliver Construct
 Snooping Newsie
+Soul Shepherd
 Spark Harvest
 Spectral Sliver
+Stern Constable
 Stern Lesson
 Stronghold Confessor
 Sulfurous Springs
 Swamp
 Swamp Mosquito
+Tangleclaw Werewolf
 Teferi's Tutelage
 Tezzeret's Ambition
+The Hunger Tide Rises
 Time of Ice
 Tin Street Dodger
 Vaporkin
 Vastwood Fortification
+Venerable Lammasu
+Verduran Enchantress
 Vesperlark
+Viridian Shaman
 Volcanic Island
 Voracious Vampire
+Vow of Wildness
 Walking Corpse
+Whipcorder
+White Tiger, Amulet Keeper
 Wicked Reward
+Witch Enchanter

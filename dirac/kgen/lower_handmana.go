@@ -10,6 +10,9 @@ import "strings"
 // sources are battlefield slots only: an inert lowering would diverge there
 // (oracle TestSpiritGuideGorgeWindow measures it).
 func handManaRefusal(kind int, cost string) error {
+	if err := discardRandomManaRefusal(kind, cost); err != nil {
+		return err
+	}
 	if kind != akMana || !strings.Contains(cost, "ExileFromHand<1/CARDNAME") {
 		return nil
 	}

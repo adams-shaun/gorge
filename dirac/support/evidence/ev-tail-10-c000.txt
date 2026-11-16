@@ -1,39 +1,471 @@
+A-Blessed Hippogriff
+A-Galvanic Discharge
+A-Goggles of Night
+A-High-Rise Sawjack
 A-Steadfast Unicorn
+Abbey Matron
+Abjure
+Access Denied
+Acid Web Spider
+Adventure Awaits
+Aerial Engineer
+Aether Meltdown
+Aether Swooper
+Agent of the Fates
 Airdrop Aeronauts
+Alpine Grizzly
+Alpine Houndmaster
+Amphin Pathmage
 Anax, Hardened in the Forge
 Angel of Light
+Angelic Benediction
+Angelic Rocket
+Aquus Steed
+Arch of Orazca
+Archangel Elspeth
+Argent Dais
+Armillary Sphere
+Armored Wolf-Rider
+Artifact Unknown Shores
+Ascend from Avernus
+Auramancer
+Aven Fisher
+Aysen Highway
+Ballynock Cohort
+Baloth Packhunter
+Baneblade Scoundrel
+Banners Raised
+Basilica Bell-Haunt
+Basking Rootwalla
+Bastion of Remembrance
 Battalion Foot Soldier
 Battlegrowth
+Battlewise Valor
+Behold the Beyond
+Bellowing Saddlebrute
 Benevolent Ancestor
+Big Apple, 3 a.m.
+Black Carriage
 Blade Sliver
+Blightcaster
+Blighted Fen
+Blinding Light
 Blinking Spirit
+Blinkmoth Well
 Blood Curdle
+Bloodfire Colossus
+Blossoming Wreath
+Bog Elemental
+Bog Imp
+Bogardan Dragonheart
+Boggart Sprite-Chaser
+Bonehoard
+Brash Taunter
+Bronze Sable
+Bruna, the Fading Light
+Brutalizer Exarch
+Cacophodon
+Call of the Conclave
+Canopy Claws
+Cao Ren, Wei Commander
 Carrier Thrall
+Carrion Feeder
+Case of the Shifting Visage
+Caustic Wasps
 Celestial Archon
+Ceremonious Rejection
+Chandra, Pyrogenius
+Child of the Pack
+Chosen of Markov
+Chromescale Drake
+Clockwork Fox
+Cloud Dragon
+Cloud Spirit
 Cloudgoat Ranger
+Coercive Recruiter
+Colossal Whale
+Commander Sofia Daguerre
+Coral Atoll
+Cosmic Epiphany
+Cosmic Larva
+Counsel of the Soratami
+Cragcrown Pathway
+Crazed Goblin
+Crosis's Catacombs
+Crushing Canopy
+Cunning Geysermage
+Curfew
+Cylian Elf
+D'Avenant Trapper
+Darksteel Gargoyle
+Dash Hopes
+Dazzling Ramparts
+Decanter of Endless Water
+Decimator Beetle
+Demolisher Spawn
+Demonic Vigor
+Desert
+Desert of the Glorified
+Desperate Sentry
+Diabolic Vision
+Disowned Ancestor
+Diviner Spirit
+Doctor Doom, Unrivaled
+Donatello's Science Lesson
+Doric, Nature's Warden
+Doublecast
+Drana's Chosen
+Dreg Recycler
+Dromosaur
+Duskborne Skymarcher
+Dwarven Bloodboiler
 Dáin of the Ancient Halls
+Eater of the Dead
+Elaborate Firecannon
+Eldrazi Aggressor
+Elite Archers
+Elvish Lookout
+Ember Shot
+Enervate
+Enlistment Officer
+Esper Sentinel
+Exalted Flamer of Tzeentch
+Excavation Explosion
+Exiled Boggart
+Expedite
+Eye of Malcator
+Faith of the Devoted
+Faithful Watchdog
+Falkenrath Reaver
+Fang of Shigeki
+Feed the Infection
+Felhide Spiritbinder
+Fend Off
+Festering Evil
+Festering Goblin
+Fire Snake
+Flowstone Shambler
 Forest
+Forget
+Foxfire
+Frost Breath
+Frost Fair Lure Fish
+Frostburn Weird
+Gallantry
+Galvanic Juggernaut
+Gang of Elk
+Geyser Glider
+Glassblower's Puzzleknot
+Glasspool Mimic
+Glint
+Goblin Caves
+Goblin Cohort
+Goblin Gardener
+Goblin Picker
+Goblin Shrine
+Goblin War Paint
+Golgari Rot Farm
+Grapeshot Catapult
+Grasping Thrull
+Grey Host Reinforcements
+Grim Monolith
+Halo Forager
+Halo Hopper
+Hapatra's Mark
+Harmonious Archon
+Haunted Cadaver
+Headstone
+Heal the Scars
+Heart-Piercer Bow
+Heated Debate
+Hedron Crawler
+Hemlock Vial
+Herbal Poultice
+Hexgold Slith
+Highland Giant
+Hobbit's Sting
+Holy Justiciar
+Honden of Cleansing Fire
+Howlgeist
+Hungry Megasloth
+Hunted Lammasu
+Ichor Rats
+Icy Blast
+Idyllic Grange
+Ignite the Beacon
+Illusory Wrappings
+Indulging Patrician
+Inspiring Commander
+Invasion of Ergamon
+Invasion of Kaladesh
+Ironclaw Orcs
 Island
+Ivora, Insatiable Heir
+Ivory Cup
+Jace's Archivist
+Jaya's Greeting
+Jeskai Sage
+Jeskai Windscout
+Jhovall Queen
+Join Forces
+Jolting Merfolk
+Kaervek, the Spiteful
+Kappa Cannoneer
+Karsus Depthguard
+Kaya's Onslaught
+Keldon Berserker
+Kenrith, the Returned King
+Kinetic Ooze
+King Suleiman
+Kjeldoran Gargoyle
+Knight of Stromgald
+Knight of the White Orchid
+Kraul Foragers
+Kraul Warrior
+Krosan Druid
+Kuldotha Flamefiend
+Leaf Arrow
+Leapfrog
+Leonin Squire
+Lightning Bolt
+Liliana's Devotee
+Lingering Souls
+Living Terrain
+Lizard Warrior
+Loam Larva
+Lothlórien Blade
+Lu Xun, Scholar General
+Magefire Wings
+Mageta the Lion
+Magma Giant
+Magmaquake
+Mahamoti Djinn
 Maja, Bretagard Protector
+Majestic Genesis
+Mangara's Blessing
 Marang River Skeleton
 Marsh Flitter
+Marsh Threader
+Mascot Interception
 Master of Arms
+Mauhúr, Uruk-hai Captain
+Merfolk Traders
+Merfolk Windrobber
+Might of the Masses
+Mightstone's Animation
+Mindwrack Harpy
+Minions' Murmurs
+Mire in Misery
+Mire's Grasp
 Mischievous Poltergeist
+Mishra, Excavation Prodigy
+Mists of Littjara
+Mnemonic Sliver
+Momir Vig, Simic Visionary
+Monumental Henge
+Moonlit Scavengers
+Morgue Theft
 Mountain
+Murasa Behemoth
+Mystic Denial
+Mystic Zealot
+Narcissism
+Need for Speed
+Neurok Stealthsuit
+Nightscape Master
+Nim Grotesque
+Nim Mongoose
+Nim Replica
+Noble's Purse
+Oathkeeper, Takeno's Daisho
+Ob Nixilis, the Fallen
+Omen of Fire
+Ondu Giant
+One with Nothing
+Oppression
+Oran-Rief Recluse
+Oraxid
+Orcish Mechanics
+Orcish Medicine
+Ori, Plate Stacker
+Ornery Kudu
 Orthion, Hero of Lavabrink
 Outland Colossus
+Pain Distributor
+Palace Siege
+Pale Bears
 Paragon of Open Graves
+Paranoid Parish-Blade
+Patrician's Scorn
+Pegasus Guardian
+People of the Woods
+Perplexing Test
+Petrifying Meddler
+Phantom Nishoba
+Phyrexian Broodlings
+Phyrexian Denouncer
+Phyrexian Pegasus
+Pia Nalaar
 Plains
+Pointed Discussion
+Pontiff of Blight
+Prison Realm
+Prodigal Sorcerer
+Prophetic Flamespeaker
+Prophetic Ravings
+Proteus Staff
+Purphoros's Emissary
+Radiant Purge
+Raffine's Informant
+Ragged Veins
+Raging Gorilla
+Ravenous Squirrel
+Ravos, Soultender
+Raze
+Realm Seekers
 Reave Soul
+Reckless Abandon
+Regal Force
+Regal Unicorn
+Repel
 Restock
+Return the Past
+Reward the Faithful
+Ribskiff
+Ridgeline Rager
+Righteous Blow
+Riot Devils
+Riot Gear
+Ripjaw Raptor
+Ritual of Restoration
+Roil Eruption
 Root-Kin Ally
+Rorix Bladewing
+Royal Trooper
+Rubblebelt Recluse
+Rumbleweed
+Sanctuary Lockdown
+Sandsteppe Scavenger
+Savage Smash
+Scalding Tongs
+Scrapheap
+Screeching Phoenix
+Scroll Thief
+Scuzzback Scrapper
+Sea Eagle
+Seahunter
+Searing Flesh
+Selective Memory
+Senator Peacock
+Seraph of the Scales
+Servant of Nefarox
+Seton's Desire
+Shadow Stinger
+Shadow Summoning
+Sheltering Landscape
+Sheoldred's Restoration
+Shi'ar Soldier
+Shields of Velis Vel
+Shimmering Grotto
+Shinewend
+Shivan Oasis
 Sigil of the New Dawn
+Silverback Ape
+Skarrg, the Rage Pits
 Skeletal Changeling
+Skitterbeam Battalion
+Skittering Precursor
+Skyhunter Strike Force
+Skyrider Trainee
+Slaughter Pact
+Smoldering Efreet
+Snapsail Glider
+Soldier On
+Somberwald Dryad
+Sorin's Guide
+Soul-Guide Gryff
+Sparktongue Dragon
+Spawnbinder Mage
+Spike Feeder
+Spined Tyrranax
+Spreading Flames
+Springmane Cervin
+Squad Captain
+Squash
+Stalking Tiger
+Steam Catapult
+Stir the Pride
+Stoic Rebuttal
+Stoneskin
+Storm World
+Stormscape Apprentice
+Street Spasm
+Stuffed Bear
+Suki, Kyoshi Captain
 Sunscape Familiar
 Surge of Salvation
+Suspension Field
+Suspicious Bookcase
+Suture Priest
 Swamp
+Swirling Sandstorm
+Sword of Hours
+Tainted Indulgence
+Teferi, Time Raveler
+Temporal Fissure
+Tempting Witch
+Terror of the Fairgrounds
+The Locust God
+The Mirari Conjecture
+Thornscape Familiar
+Thrilling Discovery
 Tireless Tribe
+Torch Gauntlet
+Towering Thunderfist
+Transcendent Envoy
+Trapfinder's Trick
 Traveling Minister
+Trostani, Selesnya's Voice
+Turn Aside
+Twigwalker
+Tymaret Calls the Dead
+Tyrranax Rex
+Undercity Scavenger
+Undercity Scrounger
+Underdark Basilisk
 Underworld Breach
+Universal Automaton
+Urgent Exorcism
+Uthros Research Craft
+Vedalken Blademaster
+Veteran's Voice
+Vicious Battlerager
+Village Elder
+Vivisurgeon's Insight
+Vizier of Tumbling Sands
+Vulshok Heartstoker
+War Flare
+Warded Battlements
+Warm Welcome
+Warstorm Surge
+Waterspout Djinn
+Weigh Down
+Westfold Rider
+Wharf Infiltrator
+Whispergear Sneak
+Whispers of the Muse
+Wildfire Cerberus
+Witchstalker
+Withered Wretch
+Wizards of Thay
+Wolfwillow Haven
+Wu Admiral
+Yanling's Harbinger
 Yavimaya Granger
+Yotian Soldier
+You Come to a River
+Zagoth Crystal
+Zendikar Farguide
+Zephyr Sentinel
+Zombie Mob
 Zulaport Enforcer

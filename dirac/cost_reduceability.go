@@ -59,7 +59,7 @@ func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.Ma
 // caller's.
 func (s *State) abReduceStaticApplies(k *prep, st statSrc, a *kop.Ability, sl Slot, ctrl uint8) bool {
 	sa := &st.a.Static
-	if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatReduceAbility || st.ctrl != ctrl {
+	if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatReduceAbility || st.ctrl != ctrl && sa.StFlags&kop.StReduceAny == 0 {
 		return false
 	}
 	if sa.B&kop.ReduceAbUnlock != 0 {

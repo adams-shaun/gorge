@@ -1,35 +1,60 @@
 Akroma's Memorial
 Alpha Kavu
 Angelic Gift
+Antagonize
 Armor Sliver
 Ashcoat Bear
+Barbed Field
+Bring Low
+Butterbur, Bree Innkeeper
 Caustic Crawler
 Cephalid Retainer
+Ceta Sanctuary
+Chandra's Pyreling
 Charging Monstrosaur
+Crack the Earth
 Dauntless Cathar
 Dawn Gryff
 Evolutionary Escalation
+Faceless Devourer
 Faerie Invaders
 Flowstone Overseer
+Flutterfox
 Forest
+Furnace Scamp
+Ghirapur Guide
+Ghost Tactician
 Goblin General
+Goblin War Party
 Heirs of Stromkirk
 Isamaru, Hound of Konda
 Island
 Jungle Delver
 Kitesail Scout
 Kris Mage
+Mammoth Growth
 Marble Diamond
+Massive Raid
 Merfolk Sovereign
 Meria's Outrider
 Mesa Lynx
+Minion of the Mighty
 Minister of Pain
 Mountain
+Mountain Bandit
+Night
+Niveous Wisps
 Nurturing Licid
+Nylea, God of the Hunt
+Orzhov Basilica
+Panic Spellbomb
 Plains
 Rampaging Ferocidon
+Reinforced Ronin
+Reito Lantern
 Rottenheart Ghoul
 Samite Pilgrim
+Scepter of Celebration
 Seal of Doom
 Searchlight Companion
 Senate Guildmage
@@ -42,14 +67,19 @@ Skywing Aven
 Slaughter Pact
 Smoke Bomb
 Stone Retrieval Unit
+Strength of Night
 Striking Sliver
 Sturmgeist
 Swamp
 Swift Justice
 Tattered Haunter
+Thornling
+Thunder Strike
+Timberwatch Elf
 Tormod's Crypt
 Tracker's Instincts
 Twincast
 Unexpected Fangs
+Untamed Might
 Warfire Javelineer
 Zhao, the Seething Flame
