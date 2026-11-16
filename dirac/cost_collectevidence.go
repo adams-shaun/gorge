@@ -72,6 +72,13 @@ func prepCostEvidence(t *kop.Table, g *genPrep) {
 				for ti := 0; ti < int(a.NTargets); ti++ {
 					g.anyXBoundAb = g.anyXBoundAb || xBoundTarget(t, &a.Targets[ti])
 				}
+				// a tap-another pick can take the mana source the rest of the cost
+				// needs: gorge reverses that activation before any mana ability
+				// (reverseStrandedPayment, CR 733.1) and holds it out after its
+				// second no-progress reversal (CR 733.2)
+				if a.Cost.Flags&kop.CostTapX != 0 && (a.Cost.Mana.MV() > 0 || a.Cost.Mana.X != 0) {
+					g.anyXBoundAb = true
+				}
 			}
 		}
 	}

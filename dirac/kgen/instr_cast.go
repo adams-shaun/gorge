@@ -109,6 +109,13 @@ func (ic *instrCtx) opMayPlay() error {
 		ki.A = kop.Const(kop.DurYourNextTurn)
 	case "WhileExiled":
 		ki.A = kop.Const(kop.DurPermanent) // for as long as it remains exiled
+		if in.F != nil {
+			// the remembered cards the grant admits (Vivien, Champion of
+			// the Wilds: Creature.IsRemembered), matched as the record is made
+			if err := ic.objFilter(kop.ZoneExile); err != nil {
+				return err
+			}
+		}
 	case "WhileSrc":
 		ki.A = kop.Const(kop.DurWhileSrcMay) // for as long as the Effect's source is on the battlefield
 	case "WhileValid":

@@ -90,12 +90,14 @@ var stallCapacityReasons = [...]uint8{
 	StallDmgBatch,   // a ninth DamageDealtOnce line of one DamageAll sweep's batch latched (armRes.dmgB; trig_dmgbatch.go)
 	StallRedirCap,   // a fifth Ext DmgRedirect record in one turn (genState.redir; repl_dmgredirect.go)
 	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
+	// a scaled cumulative upkeep cost past the packed ask (trig_cumulativepay.go)
+	StallCumulativeCost,
 }
 
 var stallUnmodelledReasons = [...]uint8{
 	StallInfect, StallReplPlus, StallLifeRepl, StallDrawRepl, StallProlif, StallCtrOrder,
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
-	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
+	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer, StallTokRewrite,
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
@@ -119,6 +121,8 @@ var stallUnmodelledReasons = [...]uint8{
 	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
 	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
+	StallDredge,            // a draw path other than the turn draw or an OpDraw card meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
+	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
@@ -140,6 +144,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
+	case staticPrevStall(g):
+		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement
 	case g.dhMix:
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.caMix:
@@ -217,6 +223,10 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
 		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
 	case StallReplPlus:
+		if staticPrevStall(g) {
+			text, a, b = staticPrevPair(g)
+			break
+		}
 		if g.anyRepl&rbPrevMill == 0 || g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) == 0 {
 			text, a, b = selfDamagePair(g)
 			break
