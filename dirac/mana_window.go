@@ -685,13 +685,26 @@ func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcar
 	return s.windowColOwed(k, p, raw, &owed, sl, pc, anyColor, noOwed)
 }
 
+// windowFallbackCol is the colour a window source makes when no owed colour
+// picks one: the lowest of mask, except a fixed first ability beside a
+// chosen-colour twin (Quirion Elves), whose ability 0 is the fixed colour even
+// when the chosen colour is lower.
+func windowFallbackCol(pc *pcard, mask uint8) int {
+	if pc.manaFixedChosen {
+		if m := srcMask(pc); m != 0 {
+			return bits.TrailingZeros8(m)
+		}
+	}
+	return bits.TrailingZeros8(mask)
+}
+
 // windowColOwed is windowCol for a cost whose shortfall the pool is measured against as owed:
 // cost less the restricted mana the payment may spend (windowOwedCost). cost is the full
 // (raw) cost: the helpers that price the restricted pool themselves (windowDemand,
 // windowUseful) read it, so the mana is not taken off it twice, while owed is the shortfall.
 func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	mask := s.windowOwnMask(k, sl)
-	col := bits.TrailingZeros8(mask)
+	col := windowFallbackCol(pc, mask)
 	if anyColor {
 		col = s.windowAnyColour(p, owed, mask, pc.manaMulti)
 	} else if !noOwed {
@@ -1136,7 +1149,17 @@ func restrTapMana(a *kop.Ability) bool {
 //
 //go:noinline
 func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pips int16) bool {
-	return kind == kop.PayMana && skip&(pfWard|pfModes) != 0 && s.windowAffordsN(k, p, amt, pips)
+	if kind != kop.PayMana || skip&(pfWard|pfModes) == 0 {
+		return false
+	}
+	if s.windowAffordsN(k, p, amt, pips) {
+		return true
+	}
+	// An unless cost is no spell's payment: restricted mana whose restriction
+	// admits a non-spell payment (a Powerstone's {C}, CR 106.6) pays it, as it
+	// pays a ward (nonSpellRestrAffords).
+	c := manaOf(amt, pips)
+	return s.nonSpellRestrAffords(k, p, &c)
 }
 
 // restrKinds is how many distinct spend restrictions a table's restricted
@@ -2463,7 +2486,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 // counts the amounts too, as gorge's witness does (rules
 // potentialModeCastPlan: paymentPlanCensusTotal / base.X), so Helga's two
 // beside three lands lift {X}{U} to X = 4, not the lands' 3.
-func restrWitnessX(x int, t avail, multi []uint8, cost *kop.ManaCost) int {
+func restrWitnessX(x int, t avail, multi []dynUnit, cost *kop.ManaCost) int {
 	return restrWitnessXPlus(x, t, multi, cost, 0)
 }
 
