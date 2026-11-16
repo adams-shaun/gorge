@@ -24,6 +24,7 @@ Azusa, Lost but Seeking
 Badlands
 Balance of Power
 Baleful Force
+Banquet Guests
 Bartolomé del Presidio
 Basilica Screecher
 Beanstalk Giant
@@ -32,6 +33,7 @@ Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
 Blazing Sunsteel
+Blinding Drone
 Blitz Leech
 Blowfly Infestation
 Bob, Reluctant HYDRA Agent
@@ -98,6 +100,7 @@ Dusk Imp
 Earth-Cult Elemental
 Ebon Praetor
 Eliminate
+Elven Riders
 Elvish Berserker
 Elvish Mystic
 Emancipation Angel
@@ -199,6 +202,7 @@ Loathsome Chimera
 Loch Korrigan
 Lorehold Pledgemage
 Lurking Crocodile
+Lys Alana Scarblade
 Mage Slayer
 Magus of the Mind
 Malevolent Rumble
@@ -234,6 +238,7 @@ Natural Selection
 Nature's Spiral
 Neck Snap
 Night
+Nimbus Swimmer
 Nine-Ringed Bo
 Norn's Wellspring
 Oath of Gideon
@@ -254,11 +259,13 @@ Plated Wurm
 Polluted Dead
 Preening Champion
 Pride Sovereign
+Pseudodragon Familiar
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
 Ramosian Sky Marshal
 Ravenous Lindwurm
 Reckless Racer
+Reconnaissance
 Renegade Map
 Renegade Wheelsmith
 Resolute Watchdog

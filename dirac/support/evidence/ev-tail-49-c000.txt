@@ -19,6 +19,7 @@ Arc Mage
 Arc Spitter
 Arcanist's Owl
 Archivist
+Argivian Restoration
 Aria of Flame
 Armageddon
 Ashling the Pilgrim
@@ -40,6 +41,7 @@ Blind Phantasm
 Blistering Barrier
 Bloodthrone Vampire
 Blurred Mongoose
+Bog Initiate
 Boon Reflection
 Boros Swiftblade
 Brand
@@ -425,6 +427,7 @@ Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warlock Class

@@ -4,6 +4,7 @@ Accursed Centaur
 Act on Impulse
 Advance Scout
 Akki Lavarunner
+Akroan Hoplite
 Amrou Scout
 Ancient Runes
 Angelic Overseer
@@ -59,6 +60,7 @@ Declare Dominance
 Despondent Killbot
 Dirty Rat
 Divebomber Griffin
+Domri's Ambush
 Dragon Hatchling
 Dralnu's Crusade
 Drider
@@ -133,8 +135,10 @@ Necroblossom Snarl
 Necrogen Spellbomb
 Necrosquito
 Nested Shambler
+Niall Silvain
 Nighthawk Scavenger
 Nightmarish End
+Nikya of the Old Ways
 No Escape
 Noble Panther
 Nullmage Advocate

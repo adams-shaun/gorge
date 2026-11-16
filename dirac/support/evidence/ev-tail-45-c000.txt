@@ -148,6 +148,7 @@ Foundry Assembler
 Foundry Helix
 Freewind Falcon
 Frozen Shade
+Fíli and Kíli, Joyous
 Garbage Elemental
 Garruk Wildspeaker
 General's Kabuto
@@ -271,6 +272,7 @@ Polar Kraken
 Pollenbright Druid
 Polymorphist's Jest
 Promising Duskmage
+Pyreheart Wolf
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Raking Canopy
@@ -361,6 +363,7 @@ Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Syr Konrad, the Grim
 Séance
 Tattered Mummy
 Tectonic Fiend

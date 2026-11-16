@@ -349,6 +349,7 @@ Scuttling Doom Engine
 Scythecat Cub
 Seek the Horizon
 Separatist Voidmage
+Serene Steward
 Serpent-Blade Assailant
 Setessan Starbreaker
 Severed Legion
@@ -420,6 +421,7 @@ Trench Stalker
 Tribal Unity
 Tribute to Horobi
 Trigon of Corruption
+Trostani's Summoner
 Trufflesnout
 Tunneler Wurm
 Turntimber Ranger

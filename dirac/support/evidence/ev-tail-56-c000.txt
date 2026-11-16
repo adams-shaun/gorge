@@ -152,6 +152,7 @@ Gluntch, the Bestower
 Gnottvold Hermit
 Gobhobbler Rats
 Goblin Chirurgeon
+Goblin Legionnaire
 Goblin Mutant
 Goblin Spy
 Godo's Irregulars
@@ -190,6 +191,7 @@ Hulking Devil
 Hurloon Minotaur
 Ignite Disorder
 In the Eye of Chaos
+Incisor Glider
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
@@ -228,6 +230,7 @@ Looming Hoverguard
 Lorehold Command
 Maelstrom Wanderer
 Magnus the Red
+Marchesa's Emissary
 Markov Waltzer
 Massive Might
 Master of Winds
@@ -394,6 +397,7 @@ Traverse the Ulvenwald
 Treetop Bracers
 Treetop Sentinel
 Tribal Flames
+Troll of Khazad-dûm
 Truefire Paladin
 Tsabo's Decree
 Turntimber Grove

@@ -11,6 +11,7 @@ Alexi's Cloak
 Amoeboid Changeling
 Angelheart Protector
 Araña, Heart of the Spider
+Arbor Colossus
 Avacyn's Memorial
 Barbtooth Wurm
 Base Camp
@@ -56,6 +57,7 @@ Daxos the Returned
 Deal Gone Bad
 Deathgazer
 Debtors' Transport
+Decisive Denial
 Dega Sanctuary
 Devastation
 Dirty Wererat
@@ -139,6 +141,8 @@ Lost Leonin
 Magma Jet
 Master of Diversion
 Maximus, Knight Apparent
+Mental Journey
+Merrow Grimeblotter
 Midnight Scavengers
 Mind Games
 Mistford River Turtle
@@ -146,10 +150,12 @@ Mogg Jailer
 Moku, Meandering Drummer
 Mountain
 Mudhole
+Myr Battlesphere
 Mystic of the Hidden Way
 Nahiri's Binding
 Nature's Wrath
 Need for Speed
+Nissa, Genesis Mage
 Noxious Groodion
 Nyxborn Brute
 Nyxborn Shieldmate
@@ -171,6 +177,7 @@ Priest of Titania
 Princess Lucrezia
 Prowling Serpopard
 Purge the Profane
+Quill-Slinger Boggart
 Ramosian Lieutenant
 Return of the Mole Man
 Revoke Demise
@@ -184,6 +191,8 @@ Scab-Clan Berserker
 Scavenging Scarab
 Scion of the Swarm
 Sea Sprite
+Sentinel's Mark
+Seshiro the Anointed
 Shadow, Mysterious Assassin
 Shiny Impetus
 Sigil of the New Dawn
@@ -227,6 +236,7 @@ Tibalt's Rager
 Totally Lost
 Tracker's Instincts
 Treason of Isengard
+Triplicate Titan
 Triumph of Cruelty
 Trove Tracker
 Turtle-Seals
@@ -240,10 +250,12 @@ Voldaren Epicure
 Wall of Earth
 Wand of Denial
 Warping Wail
+Watchwolf
 Whispersilk Cloak
 Wild Aesthir
 Wildsize
 Wind Zendikon
 Wing Commando
 Yellow Scarves Cavalry
+Zar Ojanen, Scion of Efrava
 Zodiac Pig

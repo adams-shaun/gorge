@@ -250,6 +250,7 @@ Karametra's Blessing
 Kashi-Tribe Reaver
 Kashi-Tribe Warriors
 Kavu Runner
+Keiga, the Tide Star
 Kemba's Banner
 Kemba, Kha Enduring
 Kinsbaile Skirmisher
@@ -319,6 +320,7 @@ Oppressive Will
 Oracle of Nectars
 Orcish Cannonade
 Ordruun Veteran
+Ore Gorger
 Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil

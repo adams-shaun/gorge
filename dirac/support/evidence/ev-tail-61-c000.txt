@@ -284,6 +284,7 @@ Slith Firewalker
 Slobad, Goblin Tinkerer
 Smogsteed Rider
 Solitary Defiance
+Songbird, Sonic Screamer
 Sootfeather Flock
 Soul Snuffers
 Soul's Majesty
@@ -299,6 +300,7 @@ Steppe Lynx
 Stitched Mangler
 Stonewood Invocation
 Stream of Consciousness
+Strongarm Monk
 Stun Sniper
 Stupor
 Summon the School

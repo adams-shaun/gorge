@@ -35,6 +35,7 @@ Avatar Kyoshi, Earthbender
 Avoid Fate
 Axebane Guardian
 Ayara, First of Locthwain
+Azra Bladeseeker
 Balshan Griffin
 Balustrade Spy
 Bant Panorama
@@ -51,6 +52,7 @@ Blossom Prancer
 Bog Raiders
 Bomber Corps
 Bone Harvest
+Boomer Scrapper
 Boon Reflection
 Bumi's Feast Lecture
 Call to the Grave
@@ -341,10 +343,12 @@ Street Urchin
 Strength-Testing Hammer
 Subjugator Angel
 Sudden Shock
+Sun-Blessed Mount
 Sunastian Falconer
 Sunspring Expedition
 Surgehacker Mech
 Swamp
+Swathcutter Giant
 Swift Demise
 Sylvan Paradise
 Syndicate Guildmage

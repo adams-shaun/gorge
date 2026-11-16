@@ -156,6 +156,7 @@ Ghor-Clan Rampager
 Giant Warthog
 Gibbering Fiend
 Gideon's Lawkeeper
+Gift of Orzhova
 Gilt-Leaf Winnower
 Glimpse of Freedom
 Glyph Elemental
@@ -183,6 +184,7 @@ Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
 Hunted Witness
+Hush
 Hypnotic Specter
 Illusionary Informant
 Indomitable Archangel
@@ -194,8 +196,10 @@ Invigorated Rampage
 Ionize
 Ironshell Beetle
 Island
+Jacked Rabbit
 Jinx
 Jinxed Idol
+Judge's Familiar
 Jukai Naturalist
 Juntu Stakes
 Kaervek, the Spiteful
@@ -316,6 +320,7 @@ Secret Rendezvous
 Seizan, Perverter of Truth
 Sensory Deprivation
 Sentinel Sarah Lyons
+Seraph of the Masses
 Shadow Alley Denizen
 Shadow Guildmage
 Shadow Lance

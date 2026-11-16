@@ -62,6 +62,7 @@ Caress of Phyrexia
 Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
+Cavalier of Flame
 Centaur Peacemaker
 Chasm Guide
 Chief of the Scale
@@ -98,6 +99,7 @@ Drag to the Bottom
 Dragon Arch
 Dragonsguard Elite
 Dramatic Reversal
+Dream Thrush
 Dromoka Warrior
 Dying Wish
 Earth Rift
@@ -308,6 +310,7 @@ Runeboggle
 Sacellum Archers
 Sacred Guide
 Salivating Gremlins
+Sanctum of Ugin
 Saruli Caretaker
 Savage Offensive
 Savra, Queen of the Golgari
