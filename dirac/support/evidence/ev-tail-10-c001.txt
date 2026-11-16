@@ -1,26 +1,247 @@
 A-Steadfast Unicorn
+Abjure
+Access Denied
+Acid Web Spider
+Aerial Engineer
+Aether Meltdown
+Aether Swooper
+Airdrop Aeronauts
+Alpine Grizzly
 Anax, Hardened in the Forge
 Angel of Light
+Angelic Rocket
+Argent Dais
+Armillary Sphere
+Armored Wolf-Rider
+Artifact Unknown Shores
+Ascend from Avernus
+Auramancer
+Aysen Highway
+Baloth Packhunter
+Baneblade Scoundrel
 Battalion Foot Soldier
+Battlegrowth
+Battlewise Valor
+Bellowing Saddlebrute
 Benevolent Ancestor
+Black Carriage
 Blade Sliver
+Blighted Fen
+Blinding Light
 Blinking Spirit
 Blood Curdle
+Blossoming Wreath
+Blot Out the Sky
+Bogardan Dragonheart
+Bronze Sable
+Bruna, the Fading Light
+Brutalizer Exarch
+Call of the Conclave
+Canopy Claws
+Carrier Thrall
+Celestial Archon
+Chitterspitter
+Clockwork Fox
+Cloud Dragon
 Cloudgoat Ranger
+Coastal Drake
+Colossal Whale
+Commander Sofia Daguerre
+Cosmic Epiphany
+Counsel of the Soratami
+Crazed Goblin
+Cunning Geysermage
+Cylian Elf
+D'Avenant Trapper
+Darksteel Gargoyle
+Dazzling Ramparts
+Deadly Rollick
+Demolisher Spawn
+Desperate Sentry
+Elvish Lookout
+Enervate
+Enlistment Officer
+Esper Sentinel
+Exalted Flamer of Tzeentch
+Excavation Explosion
+Exiled Boggart
+Eye of Malcator
+Faithful Watchdog
+Falkenrath Reaver
+Fang of Shigeki
+Feed the Infection
+Felhide Spiritbinder
+Fend Off
+Flowstone Shambler
 Forest
+Foxfire
+Frost Breath
+Frostburn Weird
+Gallantry
+Galvanic Juggernaut
+Gang of Elk
+Glasspool Mimic
+Glint
+Goblin Caves
+Grapeshot Catapult
+Grey Host Reinforcements
+Halo Forager
+Halo Hopper
+Hand of Justice
+Hapatra's Mark
+Haunted Cadaver
+Heal the Scars
+Heated Debate
+Helvault
+Herbal Poultice
+Hobbit's Sting
+Holy Justiciar
+Honden of Cleansing Fire
+Howlgeist
+Hungry Megasloth
+Ichor Rats
+Icy Blast
+Ignite the Beacon
+Invasion of Kaladesh
+Ironclaw Orcs
 Island
+Ivora, Insatiable Heir
+Jace's Archivist
+Jhovall Queen
+Join Forces
+Jolting Merfolk
+Karsus Depthguard
+Kaya's Onslaught
+Kenrith, the Returned King
+King Suleiman
+Kismet
+Kjeldoran Gargoyle
+Knight of the White Orchid
+Kuldotha Flamefiend
+Leapfrog
+Leonin Squire
+Lingering Souls
+Magefire Wings
+Mageta the Lion
+Mahamoti Djinn
+Maja, Bretagard Protector
+Marang River Skeleton
+Marsh Flitter
 Master of Arms
+Merfolk Traders
+Merfolk Windrobber
+Mightstone's Animation
 Mischievous Poltergeist
+Mists of Littjara
+Momir Vig, Simic Visionary
+Monumental Henge
 Mountain
+Mystic Denial
+Mystic Zealot
+Need for Speed
+Neurok Stealthsuit
+Nightscape Apprentice
+Nim Grotesque
+Ondu Giant
+Oran-Rief Recluse
+Oraxid
+Ori, Plate Stacker
+Ornery Kudu
 Orthion, Hero of Lavabrink
 Outland Colossus
+Palace Siege
+Paragon of Open Graves
+Patrician's Scorn
+People of the Woods
+Phantom Nishoba
+Phyrexian Denouncer
 Plains
+Pointed Discussion
+Prison Realm
+Prodigal Sorcerer
+Radiant Purge
+Raffine's Informant
+Raging Gorilla
+Raze
+Reave Soul
+Regal Unicorn
+Repel
+Restock
+Return the Past
+Reward the Faithful
+Ribskiff
+Ridgeline Rager
+Ripjaw Raptor
+Ritual of Restoration
+Royal Trooper
+Sanctuary Lockdown
+Sandsteppe Scavenger
+Sapphire Medallion
+Savage Smash
+Scalding Tongs
+Scrapheap
+Scroll Thief
+Seahunter
+Shields of Velis Vel
+Shimmering Grotto
+Shinewend
+Shivan Oasis
 Sigil of the New Dawn
+Silverback Ape
+Sinew Dancer
+Skarrg, the Rage Pits
 Skeletal Changeling
+Skittering Precursor
+Snapsail Glider
+Soldier On
+Somberwald Dryad
+Soulbound Guardians
+Spike Feeder
+Spined Tyrranax
+Spirit en-Kor
+Spreading Flames
+Springmane Cervin
+Squad Captain
+Squash
+Stalking Tiger
+Stir the Pride
+Stomper Cub
+Stoneskin
+Stormscape Apprentice
+Stormwing Entity
+Suki, Kyoshi Captain
 Sunscape Familiar
 Surge of Salvation
+Suspension Field
+Suture Priest
 Swamp
+Swirling Sandstorm
+Sword of Hours
+Teferi, Time Raveler
+Temporal Fissure
+The Mirari Conjecture
+Thornscape Familiar
 Tireless Tribe
 Traveling Minister
+Trostani, Selesnya's Voice
+Turn Aside
+Tymaret Calls the Dead
+Undercity Scrounger
 Underworld Breach
+Vedalken Blademaster
+Vexing Beetle
+Village Elder
+Vivisurgeon's Insight
+War Flare
+Warded Battlements
+Warm Welcome
+Waterspout Djinn
+Westfold Rider
+Whispergear Sneak
+Whispers of the Muse
+Wolfwillow Haven
+Yanling's Harbinger
 Yavimaya Granger
+Yotian Soldier
+You Come to a River
+Zulaport Enforcer

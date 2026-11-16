@@ -142,6 +142,8 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
+	case staticPrevStall(g):
+		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement
 	case g.dhMix:
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
 	case g.caMix:
@@ -219,6 +221,10 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
 		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
 	case StallReplPlus:
+		if staticPrevStall(g) {
+			text, a, b = staticPrevPair(g)
+			break
+		}
 		if g.anyRepl&rbPrevMill == 0 || g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) == 0 {
 			text, a, b = selfDamagePair(g)
 			break

@@ -3,91 +3,242 @@ Afterlife
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
+Anoint with Affliction
 Arboreal Alliance
 Arcane Encyclopedia
+Armory of Iroas
+Artisan's Sorrow
 Avacyn and Griselbrand
+Aven Trooper
+Awakened Awareness
+Barkchannel Pathway
+Barren Moor
 Battle Mammoth
 Beloved Chaplain
 Bhaal's Invoker
+Black Cat
+Blood Clock
+Blood Hound
+Bloodhunter Bat
+Border Patrol
+Brazen Freebooter
+Bronze Cudgels
+Burn Down the House
+Burning Anger
 Cabal Ritual
+Call of the Herd
+Call the Bloodline
+Cantivore
 Caustic Tar
+Chastise
 Chrome Prowler
+Clay Statue
+Clergy en-Vec
+Coastal Hornclaw
 Coercive Impetus
 Conduit of Ruin
 Courtly Provocateur
+Crippling Chill
 Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkness
+Dauntless Survivor
+Dawntreader Elk
+Daxos, Blessed by the Sun
+Deadeye Brawler
+Defensive Stance
+Descend upon the Sinful
+Desert Sandstorm
 Dimir Cluestone
+Dimir House Guard
+Dunland Crebain
 Dusk's Landing
 Electrostatic Bolt
+Elvish Lyrist
 Emiel the Blessed
 Enchanted Carriage
+Encroaching Wastes
 Encrust
+Ethereal Ambush
+Exhume
 Eye Collector
+Ezzaroot Channeler
+Family's Favor
+Favor of the Woods
+Ferocious Charge
 Fierce Retribution
+Fight to the Death
+Fires of Undeath
+Fleet-Footed Monk
+Flickerwisp
+Forced Adaptation
 Forest
+Foul Imp
+Foundry Champion
 Fountain of Renewal
+Frenzied Raptor
+Frilled Sea Serpent
+Furnace Strider
+Gathering Throng
+Ghirapur Gearcrafter
+Giant-Man, Gargantuan Genius
 Glowrider
+Gluttonous Cyclops
+Goblin Assault Team
 Goblin Cadets
+Goblin Roughrider
+Goblin Shortcutter
+Golden Egg
 Goring Warplow
+Grave Exchange
+Growth Spasm
+Gryff's Boon
+Guardian Zendikon
+Guardian of Solitude
+Guardians of Koilos
+Haunted Guardian
+Havoc Demon
 Heart-Piercer Manticore
 Hearth Charm
+Heedless One
+Hired Poisoner
 Hoard-Smelter Dragon
 Hope Charm
+Hunter's Prowess
 Incursion Specialist
 Iron Bully
 Iron-Barb Hellion
 Island
+Iymrith, Desert Doom
 Kaito's Pursuit
 Karoo
 Kazandu Nectarpot
+Keldon Necropolis
 Knight Errant
+Kor Sky Climber
+Krenko, Tin Street Kingpin
+Lorehold Campus
+Madame Vastra
 Mantle of the Wolf
 March from the Black Gate
 Marsh Lurker
 Martyrs' Tomb
+Merfolk Branchwalker
 Mesmeric Trance
+Methods of the Mighty
+Metropolis Reformer
 Might of the Old Ways
+Mindleech Ghoul
 Mindshrieker
+Mirkwood Spider
+Mosscoat Goriak
 Mountain
+Myrel, Shield of Argive
+Nevinyrral's Disk
+Niambi, Esteemed Speaker
+Niblis of Dusk
+Nimble Hobbit
 Oakhame Adversary
 Oblivion's Hunger
+Oboro Envoy
+Octomancer
+Ogre Errant
 Oketra's Last Mercy
 Ordruun Commando
+Origin Spellbomb
 Orzhov Racketeers
+Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
+Pestilent Cauldron
 Plains
 Priest of the Crossing
 Provoke
 Puncture Bolt
+Quicken
+Rancor
+Raven Clan War-Axe
+Reduce to Ashes
+Resolute Archangel
+Rishadan Brigand
 Ritual of the Machine
 Rock Slide
+Rogue's Gloves
 Rolling Thunder
+Rubblebelt Maaka
+Sai, Master Thopterist
 Sandblast
+Scrapyard Mongrel
 Search Party Captain
+Secret Rendezvous
+Shield Wall
+Siege Zombie
+Sigarda, Champion of Light
+Silent Sentinel
 Silumgar Sorcerer
+Silver-Inlaid Dagger
+Simian Simulacrum
 Sin Collector
+Sinister Starfish
 Skalla Wolf
+Skylasher
+Slip Through Space
+Smite the Monstrous
+Soaring Show-Off
+Soulsurge Elemental
 Sparktongue Dragon
 Sparring Construct
 Spearbreaker Behemoth
+Specter's Shroud
+Spell Crumple
+Spell Syphon
 Spire Tracer
 Spore Cloud
+Star-Crowned Stag
+Stingscourger
+Stone Retrieval Unit
+Stonybrook Angler
 Stormcaller of Keranos
 Strands of Undeath
+Strength of Cedars
+Sunspire Griffin
+Suntail Hawk
+Survey the Wreckage
 Swamp
 Sylvan Paradise
+Taigam's Strike
+Tarkir Charm
 Tarpan
+Thalakos Seer
 Thassa's Emissary
+Thermal Glider
+Thranduil the Strategist
+Thrull Parasite
+Thunderfoot Baloth
+Tilonalli's Knight
 Titan Hunter
+Towashi Songshaper
 Trelasarra, Moon Dancer
 Tribute to Horobi
+Trickster's Talisman
+Tuya Bearclaw
+Unesh, Criosphinx Sovereign
+Venerable Knight
 Viper, Cruel Conspirator
+Vivify
+Voidwielder
+Voracious Wurm
 Vraska's Scorn
+War-Spike Changeling
 Warning
 Waterfront Bouncer
+Welkin Guide
 Wildest Dreams
+Wily Goblin
+Wishful Merfolk
+Woodland Mystic
+World Shaper
 You're Ambushed on the Road
+Young Wei Recruits

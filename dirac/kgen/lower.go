@@ -787,6 +787,7 @@ func (lc *lowerCtx) lowerRecord() {
 		if t == "World" {
 			out.World = true // CR 704.5k (kernel zone_worldrule.go)
 		}
+		out.Snow = out.Snow || t == "Snow"
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.TextWords = textWordsOf(lc.card)

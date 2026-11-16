@@ -1205,6 +1205,7 @@ type lRepl struct {
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
+	F2      *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 }
 
 // lCard is a lowered card.
@@ -1298,6 +1299,7 @@ type lCard struct {
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
 	World          bool      // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
+	Snow           bool      // the printed Snow supertype (CR 205.4a): CardDef.Snow
 	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring

@@ -583,7 +583,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 		fmt.Fprintln(w)
 	}
 	for _, r := range c.Repls {
-		fmt.Fprintf(w, "  repl %s F=%s cond=%s\n", r.Kind, r.F, r.Cond)
+		dumpRepl(w, r) // lower_staticprevent.go
 		for i, in := range r.Prog {
 			fmt.Fprintf(w, "    %2d %s\n", i, in)
 		}
