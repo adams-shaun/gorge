@@ -37,6 +37,10 @@ const (
 	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
 	akEtbOrder uint8 = 14
 	akPlayer   uint8 = 16 // an as-enters opponent (OpExt ExtChoosePlayer; repl_chooseplayer.go)
+	// akUnleash is 33, past akCard (17, repl_choosecard.go), akPayETB (30,
+	// repl_paybeforeetb.go) and the EnterCtrPick pair (31, 32,
+	// repl_enterctrpick.go): the ask kinds continue across their files.
+	akUnleash uint8 = 33 // an Unleash entry's counter election (CR 702.86a; kw_unleash.go)
 )
 
 // placeEntryCounters places an entry-characteristic counter grant on the
@@ -64,7 +68,8 @@ func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) in
 // and applies the as-enters replacements (its own and other permanents').
 func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if face == 0 {
-		s.payETBStray(k, o) // repl_paybeforeetb.go
+		s.payETBStray(k, o)         // repl_paybeforeetb.go
+		s.unleashEntryAsk(k, sl, o) // kw_unleash.go: the CR 702.86a counter ask, gorge's parked move (a face-down entry poses nothing, CR 708.5)
 	}
 	s.touch(o)
 	s.clearFx(sl)
@@ -322,8 +327,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = nameAskKind(in)
 				case kop.ExtChooseCardEnter:
 					kind = akCard // repl_choosecard.go
-				case kop.ExtEnterCtrPick:
-					kind = akCtrPick // repl_enterctrpick.go
+				case kop.ExtEnterCtrPick, kop.ExtPutCounterChoice:
+					kind = akCtrPick // repl_enterctrpick.go, ctr_choice.go
 				case kop.ExtChoosePlayer:
 					kind = akPlayer
 				default:
@@ -972,10 +977,15 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		s.prio = holder
 		return false
 	}
-	// the queue is drained: the ForgetPlayed$ marker has served its casts
-	// (cast.go finishBuild drops a committed card; a refused or reversed one
-	// stays remembered)
-	s.g.freeP &^= freeForget
+	// the queue is drained: the play's register has served its casts (a
+	// committed card was dropped in cast.go finishBuild; a refused or
+	// reversed one stays remembered). The whole register dies with the
+	// queue: ReplaceGraveyard$ Exile belongs to the played spells (gorge
+	// state.ExilesInsteadOfGraveyard is per cast), and a stale bit would
+	// exile a later unrelated free cast's spell on leave instead of its
+	// owner's graveyard (CR 701.5a).
+	s.g.freeP = 0
+
 	if s.res.ask == raGenFreeParked {
 		s.resumeFreeCast(k) // the rest were refused: the parked tail runs
 		return false
@@ -987,6 +997,10 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 }
 
 func (s *State) genAskOptions(k *prep, d *Decision) bool {
+	if s.dredgeTurnAsked() {
+		s.dredgeOptions(k, s.active, d) // kw_dredge.go
+		return true
+	}
 	if s.g.untapOn && s.g.untapAns == 0 {
 		s.untapAskOptions(d)
 		return true
@@ -1080,6 +1094,10 @@ func (s *State) popAsk() {
 }
 
 func (s *State) applyGen(k *prep, a Action) {
+	if s.dredgeTurnAsked() {
+		s.dredgeTurnAnswer(k, a) // kw_dredge.go
+		return
+	}
 	if s.g.untapOn && s.g.untapAns == 0 {
 		s.untapAnswer(a)
 		return
@@ -1216,6 +1234,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		if !s.ctrPickAnswer(k, ask, a) { // repl_enterctrpick.go
 			return // the second pick is asked
 		}
+	} else if ask.kind == akUnleash {
+		s.unleashAnswer(k, ask, a) // kw_unleash.go
 	} else if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
 	} else if ask.kind == akCard {
@@ -1381,6 +1401,12 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akCtrPick || kind == akCtrPick2 {
 		s.ctrPickOptions(k, d, kind) // repl_enterctrpick.go
+		return
+	}
+	if kind == akUnleash {
+		// kw_unleash.go: only the generated ask queue poses this kind (the
+		// pre-ask paths never carry it), so ask[0] is the ask
+		s.unleashOptions(d, s.g.ask[0])
 		return
 	}
 	if kind == akColor {

@@ -4,6 +4,20 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// lowerHybridOnly lowers the activation being built (ability ab of the build's
+// card) when its mana cost is hybrid pips alone: the activation gorge lowers
+// by tapping the planner's witness before activating, however the source
+// is activated (a battlefield permanent's ability, a hand or graveyard
+// ability such as cycling, a granted one).
+func (s *State) lowerHybridOnly(k *prep, ab uint8) {
+	if s.cfg&cfgGorgeUnpriced == 0 || ab >= abCascade {
+		return
+	}
+	if c := &k.t.Cards[s.bld().e.card].Abilities[ab].Cost.Mana; c.Hyb[0] != 0 && !c.Phyrexian() && c.X == 0 && c.Generic == 0 && pipMaskOf(c) == 0 {
+		s.lowerHybridActivation(k, c)
+	}
+}
+
 // lowerHybridActivation taps the witness of a hybrid activation the
 // oracle lowers (kverify-c4: Puresight Merrow's {W/U}{Q}). gorge offers
 // an activation as is through its autopay offer only when the cost has
@@ -28,9 +42,49 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	// Roots' any-colour token is not the {G} face the {G/W} prices.
 	ng, ax := s.g.noGrant, s.g.availX
 	s.g.noGrant, s.g.availX = true, s.g.availX|availPlain
+	// The activated source's own {T} cost is paid from it (CR 602.2b,
+	// 601.2h), so it is no mana source for the witness: gorge's planner
+	// reserves it, and the manual window holds it tapped across the mana
+	// step the same way (mana_window.go). Without this the witness taps an
+	// Azorius Locket for the {W/U} its own draw ability then needs to tap for.
+	sl := s.srcSlot()
+	held := sl != NoSlot && k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab].Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
+	if held {
+		s.perms[sl].flags |= pfTapped
+	}
 	r := s.hybResolve(k, p, *c, 0)
 	s.g.noGrant, s.g.availX = ng, ax
 	s.tapFor(k, p, &r, 0, NoObj)
+	if held {
+		s.perms[sl].flags &^= pfTapped
+	}
+}
+
+// hybAbilityUnwitnessed: gorge arms no witness for this activation: the cost
+// its arm gate (rules armAbilityAutoPay's abilityCostNeedsMana) reads prices
+// no generic or coloured pip, a cost of hybrid pips alone, so no plan is
+// armed at the activation's begin whatever the pool and sources fund, and
+// the pips' answers never re-plan one. Its mana is the ordinary manual
+// CR 601.2g window's, not a plan's.
+func (s *State) hybAbilityUnwitnessed(k *prep, e *stackEntry, a *kop.Ability, sl Slot) bool {
+	c := s.abPlannedCost(k, a, sl, e.ctrl)
+	return c.Hyb[0] != 0 && c.Generic == 0 && pipMaskOf(&c) == 0
+}
+
+// hybWindowPay pays a hybrid-only activation through gorge's ordinary manual
+// CR 601.2g window (the case arm hybAbilityUnwitnessed approved): the first
+// useful source in battlefield order (Creakwood Ghoul's {B/G}{B/G} over a
+// {G} pool: Vivid Meadow's plain {T} floats a {W} before Forest's {G} pays).
+// The window can run dry when a source's first ability is not the colour owed
+// (a granted basic land type: static_landtype.go; a filter's free {C}); gorge
+// then aborts the activation and keeps the taps, as for the off-plan window.
+// It reports whether the activation continues.
+func (s *State) hybWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if !s.windowTapHeldOK(k, e.ctrl, cost) && k.gen != nil && (k.gen.blgOn || k.gen.anyFilt) {
+		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
+		return false
+	}
+	return true
 }
 
 // hybAbilityOffPlan: gorge arms a hybrid activation the pool does not pay

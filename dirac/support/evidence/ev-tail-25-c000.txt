@@ -68,14 +68,17 @@ Clawing Torment
 Cloistered Youth
 Collector Ouphe
 Commune with the Gods
+Congregation at Dawn
 Consuming Blob
 Containment Membrane
 Court of Bounty
+Cragsmasher Yeti
 Crater's Claws
 Craven Giant
 Crimson Caravaneer
 Crippling Blight
 Crook of Condemnation
+Crushing Pain
 Crux of Fate
 Cudgel Troll
 Curious Homunculus
@@ -85,12 +88,14 @@ Dark Hatchling
 Dark Privilege
 Darkest Hour
 Daybreak Chaplain
+Deadly Designs
 Deathbringer Thoctar
 Deathknell Berserker
 Deepfathom Skulker
 Deeproot Champion
 Defiant Falcon
 Demonic Rising
+Descent into Avernus
 Desperate Farmer
 Destructor Dragon
 Deviant Glee
@@ -106,6 +111,7 @@ Dread Statuary
 Dream Fracture
 Dromoka Monument
 Dromoka's Gift
+Duel for Dominance
 Dunland Crebain
 Dutiful Thrull
 Eater of Hope
@@ -120,7 +126,9 @@ Erebos, Bleak-Hearted
 Etherium Spinner
 Everflame Eidolon
 Expedition Skulker
+Fable of the Mirror-Breaker
 Failed Conversion
+Fall to Earth
 Fallen Cleric
 Fang Dragon
 Fangren Hunter
@@ -134,6 +142,7 @@ Forging the Anchor
 Foul-Tongue Shriek
 Fractal Harness
 Frantic Inventory
+Fresh Volunteers
 Fungusaur
 Furious Reprisal
 Future Flight
@@ -147,6 +156,7 @@ Glassblower's Puzzleknot
 Glimpse of Freedom
 Gloom Pangolin
 Goblin Striker
+Gods' Hall Guardian
 Golgari Cluestone
 Gone Missing
 Griffin Sentinel
@@ -157,6 +167,7 @@ Hada Freeblade
 Harrowing Journey
 Harvest Season
 Hawkeye's Shot
+Healing Salve
 Heart Warden
 Heavy Arbalest
 Henchfiend of Ukor
@@ -169,6 +180,7 @@ Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
+Hyperion, Supreme Hero
 Hypnotic Sprite
 Ichor Synthesizer
 Illusions of Grandeur
@@ -199,6 +211,8 @@ Llanowar Mentor
 Lorehold Campus
 Lulu, Stern Guardian
 Lurking Green Dragon
+Magnus the Red
+Magus of the Library
 Makindi Stampede
 Malefic Scythe
 Marble Gargoyle
@@ -211,7 +225,9 @@ Memory Erosion
 Merfolk Pupil
 Might Sliver
 Mindmelter
+Miner's Bane
 Minister of Impediments
+Mirrorshell Crab
 Mogg Sentry
 Moggcatcher
 Molder Beast
@@ -226,6 +242,8 @@ Necron Deathmark
 Necropede
 Necrotic Hex
 Nessian Game Warden
+Nesting Dovehawk
+Nexus Wardens
 Nightscape Familiar
 Nightveil Predator
 Noble Stand
@@ -270,6 +288,7 @@ Quicksmith Genius
 Radha, Coalition Warlord
 Radical Idea
 Ragefire
+Rampaging Hippo
 Ransack
 Razor Hippogriff
 Reckless Amplimancer
@@ -293,6 +312,7 @@ Rot Shambler
 Rotting Mastodon
 Rubblebelt Recluse
 Sachi, Daughter of Seshiro
+Safehold Elite
 Sage of the Falls
 Sally Sparrow
 Salt Road Patrol
@@ -324,6 +344,7 @@ Silverglade Elemental
 Silverquill Lecturer
 Sire of Insanity
 Skillful Lunge
+Skinbrand Goblin
 Skophos Warleader
 Skorpekh Lord
 Skyclave Shadowcat
@@ -340,6 +361,7 @@ Sorin, Imperious Bloodlord
 Soulsworn Jury
 Spellgorger Barbarian
 Spire Owl
+Spirit of Resistance
 Spiritual Sanctuary
 Spitebellows
 Spore Crawler
@@ -353,11 +375,13 @@ Stonerise Spirit
 Striding Shotcaller
 Strix Serenade
 Stromkirk Mentor
+Summoner's Bane
 Sun Clasp
 Svyelun of Sea and Sky
 Swamp
 Sweltering Suns
 Sword Coast Serpent
+T'Challa, the Black Panther
 Tajuru Beastmaster
 Talas Scout
 Tall as a Beanstalk
@@ -402,6 +426,7 @@ Vermin Gorger
 Vessel of Paramnesia
 Viashino Sandscout
 Viconia, Drow Apostate
+Vigilant Drake
 Viridescent Bog
 Voda Sea Scavenger
 Voice of the Blessed
@@ -427,6 +452,7 @@ Wilt-Leaf Cavaliers
 Windgrace's Judgment
 Winter's Grasp
 Wistful Thinking
+Witch's Cottage
 Woeleecher
 Worldslayer
 Wretched Throng

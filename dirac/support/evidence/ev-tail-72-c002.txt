@@ -33,6 +33,7 @@ Charging Badger
 Chariot of the Sun
 Chronomancer
 Citanul Hierophants
+Clan Defiance
 Cleansing Screech
 Cleaving Skyrider
 Cleaving Sliver
@@ -66,6 +67,7 @@ Dwarven Berserker
 Dying Wail
 Elite Vanguard
 Embereth Shieldbreaker
+Epic Experiment
 Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
@@ -73,6 +75,7 @@ Expedition Healer
 Faerie Guidemother
 Fallen Cleric
 Fanatical Devotion
+Far
 Fatal Frenzy
 Festering Evil
 Fiery Temper
@@ -88,8 +91,10 @@ Forgotten Cave
 Fortitude
 Frenetic Efreet
 Galadriel, Gift-Giver
+Gandalf the Grey
 Gargoyle Flock
 Geist of the Archives
+Gelectrode
 Geothermal Kami
 Ghostly Wings
 Gladecover Scout
@@ -198,6 +203,7 @@ Psychosis Crawler
 Pursue Glory
 Pyre Charger
 Qilin's Blessing
+Raff, Weatherlight Stalwart
 Raise Dead
 Ramosian Lieutenant
 Raven's Crime

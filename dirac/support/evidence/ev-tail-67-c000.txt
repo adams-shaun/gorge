@@ -145,6 +145,7 @@ Flux Channeler
 Foe-liage
 Fog of Gnats
 Forest
+Fountain of Cho
 Fungal Sprouting
 Furnace Celebration
 Furnace Hellkite
@@ -205,6 +206,7 @@ Knight of the Keep
 Knights of the Black Rose
 Kor Castigator
 Kor Skyfisher
+Lattice Library
 Leafkin Druid
 Leather Armor
 Lightning Hounds
@@ -257,6 +259,7 @@ Novice Dissector
 Oblation
 Obscura Initiate
 Onulet
+Orcish Bowmasters
 Organ Hoarder
 Orim's Touch
 Paradox Engine
@@ -344,9 +347,11 @@ Spider-Man 2099, Miguel O'Hara
 Spike Worker
 Spined Fluke
 Spirit Weaver
+Sporogenesis
 Spreading Rot
 Squee's Embrace
 Steam Blast
+Stinging Barrier
 Stormcrag Elemental
 Stormrider Rig
 Streetbreaker Wurm
@@ -377,6 +382,7 @@ Throes of Chaos
 Thrull Retainer
 Thrór's Map
 Thunder Drake
+Thundering Sparkmage
 Thwart the Grave
 Tibor and Lumia
 Tidal Bore
@@ -408,6 +414,7 @@ Warped Devotion
 Way of the Thief
 Weight of the Underworld
 Welder Automaton
+Well-Laid Plans
 Whack
 Whispering Wizard
 Wildfire

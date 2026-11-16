@@ -12,6 +12,7 @@ Angelic Page
 Angelic Reward
 Aphetto Alchemist
 Arboreal Grazer
+Arcades, the Strategist
 Arid Mesa
 Armadillo Cloak
 Armed Response
@@ -125,6 +126,7 @@ Fodder Cannon
 Foresee
 Forest
 Forge Boss
+Form of the Dragon
 Foundry of the Consuls
 Fully Grown
 Gargoyle Sentinel
@@ -229,6 +231,7 @@ Loch Dragon
 Lost in the Woods
 Lotho, Corrupt Shirriff
 Loyal Pegasus
+Magebane Armor
 Make Obsolete
 Malakir Familiar
 Mana Matrix
@@ -272,8 +275,10 @@ Pennon Blade
 Pewter Golem
 Pharika's Cure
 Phobian Phantasm
+Phyrexian Slayer
 Piety Charm
 Piranha Marsh
+Piston-Fist Cyclops
 Plains
 Powerstone Fracture
 Priest of Forgotten Gods
@@ -404,6 +409,7 @@ Trickster's Talisman
 Tumble Magnet
 Tundra Wall
 Tura Kennerüd, Skyknight
+Tuvasa the Sunlit
 Ulvenwald Bear
 Unburden
 Unclaimed Territory

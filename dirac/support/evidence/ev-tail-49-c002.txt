@@ -1,16 +1,29 @@
+Aether Flash
 Akroan Hoplite
 Amphin Pathmage
+Amugaba
+Angelic Curator
+Ant-Man, Scott Lang
 Arcanist's Owl
+Aria of Flame
+Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Augur of Bolas
 Avaricious Dragon
+Batroc the Leaper
+Batterbone
 Blightbeetle
 Blurred Mongoose
+Bog Initiate
 Boon Reflection
+Boros Swiftblade
+Brand
 Briarpack Alpha
 Broodbirth Viper
 Butcher's Cleaver
 Cacophony Unleashed
+Call the Cavalry
 Casting of Bones
 Catalog
 Celestial Kirin
@@ -26,6 +39,7 @@ Corpse Connoisseur
 Countryside Crusher
 Crash
 Crimson Cowl, Master of Evil
+Daredevil's Billy Club
 Dark Bargain
 Dauntless Aven
 Dauntless Unity
@@ -33,21 +47,29 @@ Demon's Jester
 Depala, Pilot Exemplar
 Desert of the Indomitable
 Dimir Signet
+Disciple of Perdition
 Disentomb
+Dismember
+Double Trouble
 Dragon Whelp
 Drake Haven
 Electrify
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Scrapper
 Elvish Visionary
+Emmara, Soul of the Accord
 Enduring Bondwarden
 Ent's Fury
+Eternity Vessel
 Ever After
 Evernight Shade
 Expedite
 Extinguish the Light
 Faerie Duelist
 Farid, Enterprising Salvager
+Feral Appetite
+Ferocious Pup
 Festering Newt
 Fevered Strength
 Feywild Visitor
@@ -55,14 +77,19 @@ Flames of the Firebrand
 Fleeting Spirit
 Forest
 Fortified Rampart
+Gainsay
 Garruk's Companion
 Gate to Phyrexia
 Gaze of Adamaro
 Geistblast
+Gloomdrifter
+Gnat Alley Creeper
 Goblin Marshal
 Goblin Skycutter
+Goldmeadow Lookout
 Golgari Death Swarm
 Graceful Restoration
+Great Desert Prospector
 Greater Auramancy
 Greater Good
 Hagra Constrictor
@@ -76,29 +103,44 @@ Horizon Scholar
 Howling Golem
 Humongulus
 Hunted Dragon
+Incriminate
 Inspired Fire
 Inspiring Veteran
 Island
 Island of Wak-Wak
 Jaya, Venerated Firemage
 Kaldra Compleat
+Kazandu Blademaster
 Kei Takahashi
+Kessig Wolfrider
 Kiln Walker
+Kor Entanglers
+Kor Outfitter
+Kor Scythemaster
+Kuldotha Rebirth
 Kyoshi Warrior Guard
+Lantern of Revealing
+Lantern of the Lost
 Last Caress
+Lawmage's Binding
 Library
 Living Wish
 Long-Finned Skywhale
+Magistrate's Veto
+Manic Scribe
 Manifold Key
 Manta Riders
+Masticore
 Memory Plunder
 Mightstone's Animation
 Mind Harness
+Misery's Shadow
 Monologue Tax
 Moonwing Moth
 Moorish Cavalry
 Mountain
 Murderous Compulsion
+Mystery Key
 Mythic Proportions
 Naiad of Hidden Coves
 Nico Minoru, Runaway
@@ -106,8 +148,11 @@ Noose Constrictor
 Nylea's Colossus
 Ogre Gatecrasher
 Omnath, Locus of Rage
+Oversold Cemetery
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
+Patch Up
 Perilous Forays
 Perilous Research
 Pillaging Horde
@@ -115,33 +160,54 @@ Pillarfield Ox
 Plains
 Poison Arrow
 Prison Term
+Prodigy's Prototype
+Psychomancer
+Pyknite
 Quicksilver Fisher
 RMS Titanic
+Radha, Heart of Keld
+Rain of Salt
 Raking Claws
 Rampaging Cyclops
+Ray of Dissolution
+Reaver Titan
+Refocus
 Renari, Merchant of Marvels
+Response
 Reverent Hoplite
+Righteous Cause
 Righteous Fury
+Riptide Pilferer
+Roc Charger
 Runebound Wolf
+Runner's Bane
 Sacred Fire
+Sage of Epityr
+Sanctum of Stone Fangs
 Sarpadian Simulacrum
 Saruman the White
 Saw It Coming
+Scale Blessing
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
 Sigarda, Heron's Grace
 Silver Bolt
 Silverquill Command
+Sleeper Agent
 Soul Shred
 Soulshriek
+Spawn-Gang Commander
+Stinging Hivemaster
 Stonefury
 Storm Fleet Sprinter
 Struggle for Skemfar
 Stump Stomp
 Supply Caravan
+Surgical Skullbomb
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
@@ -155,15 +221,18 @@ Teeterpeak Ambusher
 The Rack
 Thought Collapse
 Thundercloud Shaman
+Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
 Vagrant Plowbeasts
+Vanquish the Weak
 Vault Guardsman
 Vectis Silencers
 Vector Asp
 Vengeful Dead
 Verix Bladewing
+Viridian Harvest
 Virtue's Ruin
 Voracious Fell Beast
 Vorrac Battlehorns
@@ -174,9 +243,12 @@ Warpath
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
+Whiptongue Frog
 Wildwood Geist
 Willow Faerie
+Willow-Wind
 Wing Puncture
+Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman

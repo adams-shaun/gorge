@@ -127,12 +127,21 @@ func (s *State) multikickMax(k *prep) int {
 		// gorge multikickAsk bounds a non-X count by the FLOATING POOL at ask
 		// time (its "pool-only at ask time"): the oracle's lowering witness
 		// has tapped base + one payment into it. Untapped sources do not
-		// count, exactly as an {X}-less cast's pool-only bound.
+		// count, exactly as an {X}-less cast's pool-only bound. Gorge's pool
+		// holds its restricted units (RestrictedMana is provenance beside
+		// them), so the units the cast of this card may spend count here
+		// (restrSpendable, CR 106.6) — Karn, Legacy Reforged's artifact-only
+		// {C} pays a multikicker {2} beside an artifact spell. Dirac's pool
+		// holds them beside it in rb; this is availForBuilt's tail on the
+		// pool-only walk.
 		pl := &s.pl[e.ctrl]
 		for c := 0; c < kop.NumManaKinds; c++ {
 			if n := pl.pool[c]; n > 0 {
 				av.addUnits(1<<uint(c), n)
 			}
+		}
+		if s.rbAny(e.ctrl) {
+			s.restrAvail(k, e.ctrl, e.card, s.payDescNow(NoObj).og, &av)
 		}
 		// a twobrid multikicker cost takes the delve credit per face (the
 		// affordsTb leaf, gorge FeasibleAny's delve argument); the plain

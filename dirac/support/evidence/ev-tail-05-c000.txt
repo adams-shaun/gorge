@@ -137,6 +137,7 @@ Goblin Gang Leader
 Goblin Gathering
 Goblin War Strike
 Goldenhide Ox
+Gorilla Shaman
 Graveyard Marshal
 Griffin Aerie
 Guardians of Meletis
@@ -394,4 +395,5 @@ Witch of the Moors
 Woodweaver's Puzzleknot
 Xander's Pact
 Yavimaya Hollow
+Yotian Dissident
 Zhalfirin Decoy

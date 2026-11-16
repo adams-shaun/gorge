@@ -34,6 +34,7 @@ Bob, Reluctant HYDRA Agent
 Bog Gnarr
 Bone Flute
 Boon Satyr
+Boon of the Spirit Realm
 Borrowed Hostility
 Brilliant Spectrum
 Brokers Veteran
@@ -73,6 +74,7 @@ Detective of the Month
 Dire Fleet Poisoner
 Disciple of Tevesh Szat
 Djinn of the Lamp
+Dolmen Gate
 Donate
 Dormant Volcano
 Dragon Blood
@@ -86,6 +88,7 @@ Electrostatic Field
 Elfhame Palace
 Enraged Killbot
 Erratic Visionary
+Etched Monstrosity
 Etherium Pteramander
 Everythingamajig
 Evincar's Justice
@@ -97,6 +100,7 @@ Farmstead
 Fate Foretold
 Fathom Fleet Firebrand
 Fathom Mage
+Feral Lightning
 Festering March
 Fit of Rage
 Flaming Fist
@@ -165,6 +169,7 @@ Kelsinko Ranger
 Ken, Burning Brawler
 Kingfisher
 Koilos Roc
+Lady Orca
 Landbind Ritual
 Lattice-Blade Mantis
 Lay Bare
@@ -173,6 +178,7 @@ Lulu, Stern Guardian
 Madcap Skills
 Marauding Dreadship
 Mask of Immolation
+Master's Guidance
 Melira, the Living Cure
 Mephitic Vapors
 Might of the Old Ways
@@ -198,6 +204,7 @@ Onakke Ogre
 Oran-Rief Survivalist
 Outpost Siege
 Ozox, the Clattering King
+Pack Leader
 Pegasus Refuge
 Pelargir Survivor
 Phantom Monster
@@ -301,6 +308,7 @@ Unnerve
 Untethered Express
 Vault Robber
 Vedalken Infuser
+Verdant Force
 Vertigo
 Vial of Dragonfire
 Viashino Slasher

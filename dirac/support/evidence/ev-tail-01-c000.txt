@@ -17,6 +17,7 @@ Ammit Eternal
 Angelic Captain
 Angelic Voices
 Animist's Might
+Anowon, the Ruin Thief
 Arc Spitter
 Arcane Spyglass
 Ascendant Evincar
@@ -70,6 +71,7 @@ Clickslither
 Cloak and Dagger
 Coastal Hornclaw
 Coastal Tower
+Coerced Confession
 Coiling Woodworm
 Collar the Culprit
 Confidence from Strength
@@ -105,6 +107,7 @@ Doomskar Titan
 Doubtless One
 Draconian Cylix
 Dragon's Smile
+Dragonshift
 Dread Reaper
 Duskfang Mentor
 ED-E, Lonesome Eyebot
@@ -134,6 +137,7 @@ Font of Fertility
 Forerunner of the Legion
 Forest
 Fortifying Draught
+Frontline Medic
 Frostweb Spider
 Gaea's Cradle
 Galvanic Arc
@@ -173,6 +177,7 @@ Heavy Ballista
 Helm of Awakening
 Hero of the Games
 Hoard-Smelter Dragon
+Hollowborn Barghest
 Homarid Shaman
 Homarid Spawning Bed
 Hornswoggle
@@ -206,6 +211,7 @@ Kefnet's Monument
 Kessig Prowler
 Khabál Ghoul
 Killer Whale
+Killian, Decisive Mentor
 Kithkin Shielddare
 Kjeldoran Frostbeast
 Knight of the Pilgrim's Road
@@ -236,6 +242,7 @@ Marble Chalice
 Mark of Fury
 Mark of Sakiko
 Master of Waves
+Master the Way
 Mavren Fein, Dusk Apostle
 Maze Behemoth
 Meekstone
@@ -253,6 +260,7 @@ Mordor Muster
 Mountain
 Myr Battlesphere
 Nahiri's Machinations
+Neglected Heirloom
 Nessian Wanderer
 Nighthawk, Dark Defender
 Nimbus Wings
@@ -302,6 +310,7 @@ Recollect
 Recover
 Recycla-bird
 Reef Shaman
+Reinterpret
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
@@ -397,11 +406,13 @@ The Mana Rig
 The Modern Age
 The Revelations of Ezio
 Thraben Standard Bearer
+Thrasios, Triton Hero
 Thraxodemon
 Thrilling Discovery
 Thriving Moor
 Thriving Skyclaw
 Tithe Drinker
+Tizerus Charger
 Tobias Andrion
 Tolarian Serpent
 Torch Drake
@@ -442,6 +453,7 @@ War Screecher
 Warded Battlements
 Warg Rider
 Wasteland Scorpion
+Watcher for Tomorrow
 Waterwhirl
 Weaver of Blossoms
 Wind Dancer
@@ -452,6 +464,7 @@ Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
+Wrenn and Seven
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit
