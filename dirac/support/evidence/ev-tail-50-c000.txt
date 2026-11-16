@@ -57,6 +57,7 @@ Botanical Plaza
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Briber's Purse
 Brinebarrow Intruder
 Broken Concentration
 Broodbirth Viper
@@ -399,6 +400,7 @@ Stromkirk Captain
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Survivor of the Unseen
 Swamp
 Swarmyard

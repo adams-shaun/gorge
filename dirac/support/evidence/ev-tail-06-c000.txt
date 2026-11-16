@@ -235,6 +235,7 @@ Magnetic Mine
 Magus of the Bridge
 Malcator, Purity Overseer
 Mammoth Spider
+Manifestation Sage
 Mantle of Webs
 Marang River Skeleton
 Marsh Boa
@@ -343,6 +344,7 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shepherd of Heroes
 Shinen of Stars' Light
 Shinka, the Bloodsoaked Keep
 Shoal Serpent

@@ -105,6 +105,7 @@ Flamecast Wheel
 Fleetfeather Sandals
 Followed Footsteps
 Forest
+Fractal Summoning
 Freyalise, Llanowar's Fury
 Furious Resistance
 Garruk's Packleader
@@ -236,6 +237,7 @@ Silverglade Pathfinder
 Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
+Snag
 Sol Grail
 Solid Footing
 Soulhunter Rakshasa

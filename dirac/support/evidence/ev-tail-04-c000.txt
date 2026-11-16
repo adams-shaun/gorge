@@ -32,6 +32,7 @@ Banehound
 Banish from Edoras
 Banisher Priest
 Basal Sliver
+Batterskull
 Battlewand Oak
 Bearscape
 Benalish Honor Guard
@@ -413,6 +414,7 @@ The Thanos-Copter
 Think Tank
 Third Path Iconoclast
 Thran Foundry
+Thundercloud Elemental
 Tidal Wave
 Tishana's Wayfinder
 Tomb Robber

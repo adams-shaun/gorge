@@ -294,6 +294,7 @@ Prison Realm
 Prized Unicorn
 Profound Journey
 Prosperous Pirates
+Radiant Kavu
 Rampart Architect
 Rankle, Master of Pranks
 Rath's Edge
@@ -346,6 +347,7 @@ Spark Jolt
 Spellstutter Sprite
 Sphinx-Bone Wand
 Sporoloth Ancient
+Stand United
 Starlit Angel
 Stomp and Howl
 Stone Quarry

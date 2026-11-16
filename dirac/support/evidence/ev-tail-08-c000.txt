@@ -184,6 +184,7 @@ Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
 Hornet Nest
+Hour of Revelation
 Hunter's Edge
 Hydra Broodmaster
 Hyperion Blacksmith
@@ -434,6 +435,7 @@ Wayward Soul
 Weakness
 White Widow, Yelena Belova
 Willow Elf
+Winds of Rath
 Wingmate Roc
 Wormhole Serpent
 Wu Scout
