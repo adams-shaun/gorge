@@ -456,6 +456,9 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 // for mana through pc, the extra its tap brings included: a cost that taps the
 // source leaves it neither.
 func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
+	if s.availLeavesOut(k, sl) {
+		return // availFor never counted it: the units standing are the pool's
+	}
 	if k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0 && s.manaGranted(k, sl) {
 		return // an activated ability's prefix search leaves a granted-only source out of a (availFor): nothing of it to take out
 	}

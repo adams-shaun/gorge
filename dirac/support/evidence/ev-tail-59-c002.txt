@@ -1,77 +1,182 @@
 A-Civil Servant
+Aerial Responder
+Aetherwind Basker
 Affa Protector
+Akki War Paint
 Aligned Hedron Network
 Amateur Hero
 Ambitious Farmhand
+Ant Queen
+Aquus Steed
+Arashin Foremost
+Artificer's Dragon
 Assassin's Ink
 Back to Basics
+Bad River
+Baloth Woodcrasher
 Barbarian Riftcutter
+Barrage of Boulders
+Battle Brawler
+Benthic Behemoth
 Blaring Captain
+Boggart Shenanigans
+Boiling Seas
 Brackwater Elemental
 Branchblight Stalker
+Brawn
 Brightling
 Builder's Blessing
 Burning-Tree Emissary
 Cavalier of Dawn
+Cephalid Retainer
+Chandra's Triumph
+Chimney Rabble
 Cho-Manno, Revolutionary
+Commune with the Gods
+Control Win Condition
+Convolute
+Copy Artifact
 Cradle of Safety
+Creeping Crystal Coating
 Crowd's Favor
+Crystal Golem
 Curious Altisaur
+Daggerback Basilisk
+Darkest Hour
 Dawn of the Dead
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Death-Greeter's Champion
+Decision Paralysis
+Dehydration
 Demonlord of Ashmouth
+Deploy to the Front
 Desperate Farmer
+Die Young
+Displacer Kitten
+Divine Offering
 Dogpile
+Dragon Bell Monk
 Dread Drone
+Dress Down
 Drumhunter
+Duchess, Wayward Tavernkeep
 Durable Coilbug
+Duskworker
 Eagle of Deliverance
 Epicenter
+Essence Filter
+Expedition Healer
+Experiment One
+Ezuri's Archers
+Fade from History
 Festering Mummy
+Fetid Horror
 Fiery Cannonade
+Fire Sprites
+Flinthoof Boar
 Flowstone Kavu
+Fogwell's Gym
 Forest
 Frenzied Fugue
 Frost Ogre
+Giant Mantis
+Gnottvold Slumbermound
+Goliath Sphinx
 Grasp of Darkness
 Grave Pact
+Greenweaver Druid
+Grim Initiate
 Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
+Hair-Strung Koto
 Hamza, Guardian of Arashin
+Hapato's Might
+Heavy Mattock
+Hellspark Elemental
+Hunters' Feast
 Hydra Omnivore
 Hydroform
 Icatian Scout
+Impetuous Sunchaser
 Inundate
+Iridescent Drake
 Island
+Izzet Boilerworks
+Join the Maestros
+Judge of Currents
+Kappa Cannoneer
+Kavu Lair
 Keeper of the Lens
+Kitchen Imp
 Kitesail Cleric
 Knowledge Is Power
 Kokusho, the Evening Star
+Krakilin
 Krav, the Unredeemed
 Lattice-Blade Mantis
 Lazotep Plating
+Leafkin Druid
+Lily Bowen, Raging Grandma
+Living Armor
+Loran, Disciple of History
 Lorehold Archivist
 Magmaroth
+Malachite Talisman
 Marionette Apprentice
 Maverick Thopterist
+Mold Shambler
+Molder Beast
+Momir Vig, Simic Visionary
+Monstrous Onslaught
+Mordor Muster
 Mountain
+Murasa Ranger
+Needlebug
+Niblis of Frost
 Nightmarish End
 Nimble Hobbit
+Nimbleclaw Adept
+Nine-Ringed Bo
 Notion Rain
 Null Rod
+Nulldrifter
+Nylea's Forerunner
 Opportunist
 Otherworldly Gaze
+Overgrowth Elemental
+Painful Memories
 Paired Tactician
 Pearl Dragon
 Pest Infestation
 Phase Dolphin
+Pheres-Band Warchief
 Phyrexian Boon
+Phyrexian Walker
 Plains
+Plated Seastrider
+Porcelain Legionnaire
+Power Conduit
+Power Plant Worker
+Pyrotechnics
+Rakdos Cluestone
+Raven's Crime
+Rebel Informer
+Reckless Handling
+Redemption Arc
 Returned Phalanx
+Reveka, Wizard Savant
+Riptide Chimera
+Rith's Grove
+Rod of Ruin
+Rupture
+Ruthless Instincts
+Sacred Peaks
+Sandsteppe War Riders
 Satyr Rambler
+Sautekh Immortal
 Screaming Fury
 Seal of Cleansing
 Search Warrant
@@ -82,33 +187,64 @@ Serum Snare
 Shield Wall
 Shoal Serpent
 Shoreline Raider
+Shuko
+Siani, Eye of the Storm
+Sight Beyond Sight
 Silent Specter
 Skeletal Wurm
+Skemfar Elderhall
 Skull Prophet
+Slimebind
+Soulless One
+Spitting Hydra
+Squee, Goblin Nabob
+Steadfast Guard
+Stone Golem
 Stormbound Geist
+Stratus Walk
 Strength Bobblehead
 Stun Sniper
 Sunseed Nurturer
 Sunset Revelry
+Supply Drop
+Svyelunite Priest
 Swamp
+Sylvan Messenger
 Talas Lookout
 Tandem Tactics
 The Terror of Serpent's Pass
+The Thing
 Thraben Foulbloods
+Thriving Turtle
+Titanic Brawl
 Topiary Stomper
 Tragic Fall
+Travel Preparations
 Treebeard, Gracious Host
 Trench Wurm
+Trophy Hunter
 Trostani, Selesnya's Voice
+Trufflesnout
+Tumble Magnet
+Twenty-Toed Toad
 Uncontrollable Anger
 Unliving Psychopath
 Ursapine
 Vanish into Eternity
 Victor Timely, Wily Tycoon
+Vivid Flying Fish
+Vizzerdrix
+Voice of Reason
+Void Helix
 Voracious Hydra
+Wall of Ice
+Weakstone
 Welcome the Dead
 Welding Sparks
 Wild Ox
+Witch's Web
+Wizard Replica
 Wonder
 Words of Wisdom
 Workshop Elders
+Zhou Yu, Chief Commander

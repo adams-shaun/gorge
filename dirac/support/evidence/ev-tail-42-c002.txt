@@ -1,27 +1,259 @@
+A-Cori-Steel Cutter
+A-Dragonborn Looter
+Accursed Horde
+Adaptive Snapjaw
+Aerial Engineer
+Aether Adept
+Aethersnipe
+Alluring Suitor
+Answered Prayers
+Anurid Barkripper
 Arachnoform
+Arc Trail
 Ardent Soldier
+Armored Ascension
+Ashiok's Adept
+Attended Healer
+Avatar of Woe
+Baloth Prime
 Barrage Tyrant
+Barrowgoyf
+Basic Conjuration
 Bewilder
 Beyeen Veil
+Blistercoil Weird
+Blood Burglar
+Bloodline Culling
+Bloodrite Invoker
 Boggart Forager
+Boil
+Bolshack Dragon
+Bountiful Harvest
+Breaching Hippocamp
+Brimstone Volley
+Burning Hands
+Captain's Hook
+Carnage Wurm
+Carrion Call
+Cessation
+Chaos Terminator Lord
+Cinder Barrens
+Claws of Valakut
+Cleanse
+Clever Concealment
+Cloak and Dagger
+Cone of Flame
+Confidence from Strength
+Conqueror's Pledge
 Consuming Corruption
+Corpse Cur
+Corrupted Resolve
+Crooked Custodian
+Cruel Witness
+Cystbearer
+Dark Prophecy
+Delraich
 Dire Fleet Warmonger
+Disciple of the Vault
+Dread Slaver
+Dross Crocodile
+Echoing Ruin
+Elfhame Palace
 Ember Hauler
+Emergency Weld
+Enigmatic Incarnation
+Entropic Specter
+Essence Depleter
+Fireflux Squad
+Fissure
+Fissure Vent
+Flaming Fist
+Flatten
+Fleshpulper Giant
+Fling
+Flywheel Racer
+Forerunner of Slaughter
 Forest
+Franklin Richards, Ascendant
+Fungus Elemental
+Furnace Spirit
+Gala Greeters
+Galvanic Juggernaut
+Gauntlet of Might
+Ghoulsteed
 Gleeful Demolition
+Glimpse the Unthinkable
+Gloomwidow's Feast
+Go for the Throat
+Gobland
+Goblin Diplomats
+Goblin Matron
+Goblin Scouts
+God-Eternal Bontu
+Goreclaw, Terror of Qal Sisma
+Grasp of Darkness
+Greater Auramancy
+Guardian Scalelord
+Hammerhead, Maggia Boss
+Hangarback Walker
+Haunted Cadaver
+Heavyweight Demolisher
+Helm of the Host
+Herald of Anguish
+High-Rise Sawjack
+Horn of Gondor
+Hornet Sting
+Hovermyr
+Icatian Store
+Idle Thoughts
+Ill-Gotten Inheritance
+Illusory Angel
+Immolating Souleater
 Imoti, Celebrant of Bounty
+Imperial Cosmographer
+Incremental Growth
+Invasion of Xerex
+Ishai, Ojutai Dragonspeaker
 Island
+Izzet Signet
+Kamahl's Desire
+Kill-Zone Acrobat
+Kindly Customer
+Krosan Archer
+Leadership Vacuum
+Leonin of the Lost Pride
+Living Lands
+Loamcrafter Faun
 Lucid Dreams
+Lurking Nightstalker
+Lys Alana Huntmaster
+Lyzolda, the Blood Witch
+Maga, Traitor to Mortals
+Mage's Guile
+Manipulate Fate
 Marauding Looter
+Meteoric Mace
+Mogg Alarm
+Morkrut Banshee
+Mossbeard Ancient
+Mosstodon
 Mountain
+Mugging
+Naru Meha, Master Wizard
+Nectar Faerie
+Needlethorn Drake
+Nest Robber
 Night Market Aeronaut
 Nirkana Cutthroat
+Nova Flame
+Ob Nixilis, the Fallen
+Ogre Menial
+Orcish Veteran
+Organ Grinder
+Ornithopter
+Overload
+Pack's Betrayal
+Painful Lesson
+Painwracker Oni
+Paradox Zone
+Park Heights Pegasus
+Pelakka Predation
+Perimeter Captain
+Petravark
+Petrifying Meddler
+Phenomenon Investigators
+Pheres-Band Centaurs
+Phyrexian Denouncer
 Plains
+Polluted Mire
+Priests of Norn
+Prismatic Strands
+Protective Bubble
+Psychic Impetus
+Ral's Dispersal
+Reality Heist
+Reborn Hope
+Resplendent Griffin
+Ridgescale Tusker
+Sacred Armory
+Samut's Sprint
+Sandstorm
+Savai Sabertooth
+Scalding Devil
+Scholar of Athreos
+Scythecat Cub
+Separatist Voidmage
+Severed Legion
+Sewer Rats
+Shadow of Mortality
+Shaman of the Pack
+Shamble Back
+Shapers' Sanctuary
+Shared Discovery
+Shriek of Dread
+Silt Crawler
 Silver Raven
+Silverquill Lecturer
+Simic Sky Swallower
+Singing Tree
+Skyshroud Lookout
+Smother
+Soldevi Machinist
+Soul Strings
+Soulblade Djinn
+Spectral Adversary
+Spellbook
+Spider Spawning
+Spiderwig Boggart
+Spike Drone
+Steelfin Whale
+Stolen Grain
+Stolen Vitality
+Strength from the Fallen
+Strength of Isolation
+Sunbringer's Touch
 Sunken Hope
+Suppression Bonds
 Swamp
+Sweatworks Brawler
+Swelter
+Tajuru Stalwart
+Temperamental Oozewagg
+Temporal Manipulation
+Thalia's Lancers
+Thoughtcutter Agent
 Thrasher Brute
+Thrummingbird
+Thunderscape Familiar
+Tidal Surge
+Tidepool Turtle
+Tracker's Instincts
+Traitor's Clutch
+Trench Stalker
+Tribal Unity
+Tribute to Horobi
+Trostani's Summoner
+Turntimber Ranger
 Twitch
+Ultimate Price
+Unbreathing Horde
+Undead Warchief
+Unicycle
 Unraveling Mummy
 Urza's Guilt
+Viashino Firstblade
+Viashino Shanktail
+Villainous Ogre
+Volcanic Fallout
+War-Torch Goblin
+Water Servant
+Weight of the Underworld
+Welder Automaton
+Weldfast Engineer
+Wings of Aesthir
+Wings of Hope
+Wrangle
+Wrenn's Resolve
+Wyluli Wolf
 Yavimaya Scion
+Zirilan of the Claw

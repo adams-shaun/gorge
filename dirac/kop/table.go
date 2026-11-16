@@ -125,9 +125,17 @@ type CardDef struct {
 	// Aura's enchanted permanent, were it destroyed, instead loses all its
 	// damage and this Aura is destroyed (kernel kw_umbraarmor.go).
 	UmbraArmor bool
+	// Dredge is printed K:Dredge:N (CR 702.52a, kop.KwDredge), N here (0:
+	// none): while the card is in its owner's graveyard, a draw of theirs
+	// may instead mill N and return it to their hand (kernel kw_dredge.go).
+	Dredge uint8
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
+	// Snow is the printed Snow supertype (CR 205.4a), read by the static
+	// damage preventions' ReplSPRecipSnow (Goblin Furrier). Printed only: a
+	// layer effect that adds or removes it is not read.
+	Snow bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -360,6 +368,10 @@ type CardDef struct {
 	// blessing once they control ten or more permanents, and an instant or
 	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
 	Ascend bool
+	// Unleash is printed Unleash (CR 702.86; kop.KwUnleash): the permanent
+	// may enter with a +1/+1 counter (the as-enters ask, dirac/kw_unleash.go)
+	// and can't block while it has a +1/+1 counter on it.
+	Unleash bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a

@@ -2,6 +2,7 @@ Abzan Battle Priest
 Abzan Beastmaster
 Armix, Filigree Thrasher
 Augur of Skulls
+Azra Bladeseeker
 Balmor, Battlemage Captain
 Basri's Solidarity
 Battle Cry Goblin
@@ -18,11 +19,17 @@ Coralhelm Guide
 Court Hussar
 Cultivate
 Curse of Predation
+Daru Spiritualist
 Disrupt
 Dragon Fodder
+Dream Thrush
+Dwarven Hammer
+Elven Riders
 Elvish Reclaimer
+Everflowing Chalice
 Evil Eye of Urborg
 Evolution Sage
+Expedition Raptor
 Fairgrounds Warden
 Fearless Fledgling
 Feed the Swarm
@@ -31,6 +38,7 @@ Fin-Clade Fugitives
 Fleshbag Marauder
 Flux Channeler
 Forest
+Forked Lightning
 Fynn, the Fangbearer
 Ghost Ship
 Gods Willing
@@ -47,13 +55,16 @@ Island
 Jabs, Mistress of Mockery
 Jace's Phantasm
 Land Grant
+Magmatic Insight
 Majestic Metamorphosis
 Manglehorn
 Manifold Key
 Massive Might
 Might of the Masses
+Mobilize
 Mountain
 Nameless Inversion
+Natural Order
 Neutralize
 Nikko-Onna
 Nimble Birdsticker
@@ -62,11 +73,14 @@ Opportunity
 Opt
 Personify
 Plains
+Planar Disruption
 Prava of the Steel Legion
 Prismatic Strands
 Prodigal Sorcerer
+Promise of Bunrei
 Queen's Agent
 Reclamation Sage
+Rikala, Homarid King
 Rite of the Raging Storm
 River Serpent
 Rupture
@@ -81,6 +95,7 @@ Skeletal Changeling
 Soul Snuffers
 Spitebellows
 Spore Swarm
+Spreading Seas
 Spyglass Siren
 Stifle
 Stingerfling Spider
@@ -103,6 +118,7 @@ Vindictive Vampire
 Viral Drake
 Volcanic Rush
 Wall of Fire
+Ward Sliver
 Winding Way
 Wonder
 Yavimaya Granger
