@@ -143,8 +143,16 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			// A bounded rider source: the planner defers its first ability
 			// (riderDeferred) or, with a plain first ability, its later
 			// rider (Grove of the Burnwillows). Both are prefix gaps; the
-			// activation pays the ability's own cost (mana_rider.go).
-			if s.manaGranted(k, sl) || k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) ||
+			// activation pays the ability's own cost (mana_rider.go). A
+			// granted mana ability beside the rider does not exclude the
+			// gap: the grant stays the census unit availGrant counts
+			// (ownManaUsable is false for a rider-first source, so the
+			// grant is all its census keeps) and the rider is the prefix
+			// gap the script taps beside it (gorge's plan prices a play
+			// with both: Sandstone Needle's "{T}, Remove a depletion
+			// counter: Add {R}{R}" beside Rain of Filth's granted
+			// sacrifice on the same land).
+			if k.gen.has(c, gfRestr|gfAnyR|gfEachCol|gfFilt|gfDeferred) ||
 				!s.riderActivatable(k, p, sl, a) {
 				continue
 			}
