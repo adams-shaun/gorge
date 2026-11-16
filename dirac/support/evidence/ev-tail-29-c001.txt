@@ -10,16 +10,20 @@ Akroma's Memorial
 Amoeboid Changeling
 Angelheart Protector
 Araña, Heart of the Spider
+Arbor Colossus
 Barbtooth Wurm
 Bastion Mastodon
 Bellowing Tanglewurm
 Binding the Old Gods
 Bird Maiden
 Blood Cultist
+Boggart Birth Rite
+Bonds of Faith
 Bone Pit Brute
 Broken Bond
 Canopy Baloth
 Capricious Sorcerer
+Captain America, Skybound
 Carnivorous Canopy
 Casey Jones, Asphalt Hooligan
 Cast into the Fire
@@ -32,22 +36,31 @@ Cliffhaven Sell-Sword
 Coast Watcher
 Conclave Sledge-Captain
 Court Hussar
+Cradle of Safety
 Crystal Seer
 Dawnhart Disciple
 Dawnhart Rejuvenator
 Daxos the Returned
 Deal Gone Bad
 Deathgazer
+Debtors' Transport
+Decisive Denial
 Dega Sanctuary
 Dirty Wererat
+Dispersal Shield
 District Guide
 Doomfall
+Dragon Throne of Tarkir
 Drake Hatchling
 Dread of Night
 Dreadhorde Butcher
+Drelnoch
 Drogskol Shieldmate
 Eerie Soultender
+Eldrazi Monument
+Electrostatic Pummeler
 Emberwilde Augur
+Empty the Laboratory
 Epic Confrontation
 Fairgrounds Patrol
 Favored of Iroas
@@ -62,10 +75,12 @@ Galestrike
 Garruk's Lost Wolf
 Gatekeeper Gargoyle
 Gloomhunter
+Goblin Lookout
 Goblin Replica
 Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Guardian of Tazeem
 Gwyllion Hedge-Mage
 Hammerheim Deadeye
 Hawkeye, Trick Shot
@@ -74,6 +89,7 @@ Hearthfire Hobgoblin
 Heated Debate
 Hieromancer's Cage
 High Ground
+Howling Banshee
 Icatian Scout
 Ingenious Infiltrator
 Ink-Eyes, Servant of Oni
@@ -89,6 +105,7 @@ Liliana's Spoils
 Littjara Glade-Warden
 Living Wall
 Lossarnach Captain
+Lost Leonin
 Ludevic's Test Subject
 Magma Jet
 Midnight Scavengers
@@ -98,15 +115,19 @@ Mountain
 Mudhole
 Myr Battlesphere
 Mystic of the Hidden Way
+Nahiri's Binding
 Need for Speed
 Noxious Groodion
 Nykthos Paragon
 Nyxborn Brute
 Nyxborn Shieldmate
+Octomancer
 Odric's Outrider
+Oppressive Will
 Ornamental Courage
 Pendrell Mists
 Penregon Strongbull
+Phantom Wings
 Phyrexian Rebirth
 Plague Sliver
 Plains
@@ -134,12 +155,15 @@ Seshiro the Anointed
 Shadow, Mysterious Assassin
 Shiny Impetus
 Sinister Strength
+Skullmead Cauldron
 Skyshroud Claim
 Slaughter-Priest of Mogis
 Smothering Tithe
 Solar Blast
 Sootfeather Flock
+Soul of the Rapids
 Speakeasy Server
+Spiderwig Boggart
 Spiraling Embers
 Spirit en-Kor
 Squeeze
@@ -147,6 +171,7 @@ Stabbing Pain
 Staff of the Flame Magus
 Stampede
 Stealer of Secrets
+Stormcloud Djinn
 Strider, Ranger of the North
 Sturmgeist
 Swamp
@@ -157,8 +182,10 @@ Tar Pit Warrior
 Thornscape Familiar
 Thundering Raiju
 Tibalt's Rager
+Titan Forge
 Totally Lost
 Tracker's Instincts
+Treason of Isengard
 Triumph of Cruelty
 Turtle-Seals
 Vengeful Firebrand
@@ -167,6 +194,7 @@ Vine Mare
 Voice of Duty
 Voldaren Epicure
 Wall of Earth
+Warping Wail
 Watchwolf
 Whispersilk Cloak
 Wild Aesthir

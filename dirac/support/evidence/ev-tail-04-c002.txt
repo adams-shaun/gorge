@@ -2,6 +2,7 @@ A-Hullbreaker Horror
 A-Orcish Bowmasters
 A-Stitched Assistant
 Akiri, Line-Slinger
+Alpha Myr
 Angelic Exaltation
 Anthousa, Setessan Hero
 Arbor Armament
@@ -14,9 +15,11 @@ Banehound
 Banish from Edoras
 Banisher Priest
 Basal Sliver
+Batterskull
 Bearscape
 Benalish Honor Guard
 Bestial Fury
+Bewilder
 Birds of Paradise
 Bituminous Blast
 Blight Mound
@@ -33,6 +36,7 @@ Caustic Rain
 Celestial Unicorn
 Champion of the Perished
 Charging Badger
+Chorus of Might
 Churning Eddy
 Cleanfall
 Clear the Mind
@@ -62,13 +66,17 @@ Duskshell Crawler
 Edgar's Awakening
 Eidolon of Philosophy
 Embermage Goblin
+Energy Tap
 Enhanced Awareness
 Ephara's Dispersal
 Evolutionary Leap
+Expose Evil
 Exultant Cultist
 Fantastic Elasticity
 Fierce Witchstalker
+Filigree Sages
 Fire
+Flitterstep Eidolon
 Forest
 Frilled Sea Serpent
 Gaea's Anthem
@@ -79,13 +87,17 @@ Gluttonous Zombie
 Goblin Gathering
 Golgari Death Swarm
 Greel's Caress
+Greensleeves, Maro-Sorcerer
 Grim Flowering
+Grotesque Demise
 Gryff Vanguard
 Gustcloak Skirmisher
 Hammer of Nazahn
 Hammers of Moradin
+Harbor Serpent
 Hardy Veteran
 Haunted Angel
+Havoc Devils
 Hidden Path
 Hua Tuo, Honored Physician
 Hungry Flames
@@ -105,6 +117,7 @@ Keskit, the Flesh Sculptor
 Kessig Prowler
 Kithkin Rabble
 Knickknack Ouphe
+Krovikan Mist
 Leeching Licid
 Leyline Dowser
 Light of Day
@@ -119,11 +132,13 @@ Mage Duel
 March from the Tomb
 Metallic Sliver
 Might Sliver
+Moldgraf Millipede
 Mortality Spear
 Mortiphobia
 Mountain
 Nahiri's Binding
 Nantuko Shade
+Necklace of Girion
 Necrotic Wound
 Nim Replica
 Ninja of the New Moon
@@ -144,6 +159,7 @@ Plains
 Planar Gate
 Prakhata Pillar-Bug
 Prize Pig
+Profane Prayers
 Promise of Aclazotz
 Prophetic Titan
 Protect the Negotiators
@@ -159,6 +175,7 @@ Ravenous Gigamole
 Ravenous Vampire
 Razorfin Hunter
 Reprisal
+Rescue, Pepper Potts
 Retreat to Coralhelm
 Riddleform
 Ring of Valkas
@@ -166,6 +183,7 @@ Riparian Tiger
 Riptide Director
 Rise Again
 River Kaijin
+Rootwater Commando
 Rune Snag
 Rushwood Legate
 Sadistic Slash
@@ -174,6 +192,7 @@ Selenia, Dark Angel
 Sentinel's Eyes
 Seraph of Dawn
 Settlement Blacksmith
+Shadow Prophecy
 Shadow, Mysterious Assassin
 Sheoldred's Headcleaver
 Shiny Impetus
@@ -194,15 +213,20 @@ Spinehorn Minotaur
 Spoils of Evil
 Squirrel Sanctuary
 Star Whale
+Stern Dismissal
 Steward of Valeron
 Storm Front
 Storm Seeker
+Sun Sentinel
+Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
+Teferi's Tutelage
 Teferi's Wavecaster
 Temporary Insanity
 Tendrils of Corruption
+Territorial Kavu
 The Blackstaff of Waterdeep
 Think Tank
 Thran Foundry
@@ -237,5 +261,7 @@ Weakstone's Subjugation
 Well of Life
 Whisperer of the Wilds
 Windfall
+Woodborn Behemoth
 Worldfire
 Zephyr Winder
+Zerapa Minotaur

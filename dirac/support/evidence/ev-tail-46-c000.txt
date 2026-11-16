@@ -35,6 +35,7 @@ Beast of Burden
 Belligerent Whiptail
 Benalish Trapper
 Benthic Giant
+Bespoke Battlewagon
 Blaring Recruiter
 Bleed Dry
 Blessed Wine
@@ -66,6 +67,7 @@ Cast Out
 Castigate
 Cenn's Enlistment
 Cephalopod Sentry
+Champion of the Perished
 Chandler
 Chaos Charm
 Chatterstorm
@@ -83,6 +85,7 @@ Colossal Growth
 Combat Medic
 Conclave Tribunal
 Consider
+Coretapper
 Council's Judgment
 Cradle Guard
 Crocodile of the Crossing
@@ -417,6 +420,7 @@ Thundercloud Shaman
 Tilling Treefolk
 Tireless Hauler
 Tolarian Geyser
+Tome of the Guildpact
 Topple the Statue
 Torens, Fist of the Angels
 Tormented Thoughts

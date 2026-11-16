@@ -6,6 +6,7 @@ Aegis of the Gods
 Aeronaut's Wings
 Aether Inspector
 Agonizing Syphon
+Akroma, Angel of Fury
 Alesha, Who Smiles at Death
 Algae Gharial
 Almost Perfect
@@ -69,6 +70,7 @@ Chandra's Outrage
 Chatterstorm
 Chromatic Star
 Claws of Gix
+Clone Legion
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
@@ -106,6 +108,7 @@ Dragon Arch
 Dragon Moose
 Dragonlair Spider
 Dragonsoul Knight
+Dream Pillager
 Duelist's Flame
 Dungeon Geists
 Ecologist's Terrarium
@@ -128,6 +131,7 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
+Fire Dragon
 Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
@@ -172,6 +176,7 @@ Hierophant's Chalice
 Hobgoblin Bandit Lord
 Howl of the Night Pack
 Huatli's Snubhorn
+Ian the Reckless
 Ichneumon Druid
 Illusionary Wall
 Illusory Ambusher
@@ -187,6 +192,7 @@ Ivy Seer
 Ixalli's Diviner
 Izzet Cluestone
 Jandor's Saddlebags
+Jubilant Mascot
 Judge Unworthy
 Juvenile Mist Dragon
 Kaijin of the Vanishing Touch

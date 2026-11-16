@@ -91,6 +91,7 @@ Ebony Fly
 Eidolon of Philosophy
 Elenda, the Dusk Rose
 Embermage Goblin
+Energy Tap
 Enhanced Awareness
 Ephara's Dispersal
 Erase
@@ -98,6 +99,7 @@ Evolutionary Leap
 Expose Evil
 Exultant Cultist
 Fantastic Elasticity
+Feebleness
 Fierce Witchstalker
 Filigree Sages
 Fire
@@ -131,10 +133,12 @@ Hapatra, the Desert Frost
 Harbor Serpent
 Hardy Veteran
 Hatchery Spider
+Havoc Devils
 Headlong Rush
 Hellhole Rats
 Herd Baloth
 Hidden Path
+Honor the God-Pharaoh
 Hua Tuo, Honored Physician
 Hungry Flames
 Icefall Regent
@@ -173,6 +177,7 @@ Loxodon Partisan
 Lumengrid Sentinel
 Lyse Hext
 Mage Duel
+Man-o'-War
 March from the Tomb
 Marvelous Melee
 Mazirek, Kraul Death Priest
@@ -181,6 +186,8 @@ Metallic Sliver
 Might Sliver
 Might of Alara
 Minion Reflector
+Moldgraf Millipede
+Molten Primordial
 Moon-Boy, Dino Rider
 Mortiphobia
 Mountain
@@ -247,6 +254,7 @@ Riptide Director
 Rise Again
 River Kaijin
 Rolling Stones
+Rootwater Commando
 Rootwater Hunter
 Rotwidow Pack
 Rune Snag
@@ -286,6 +294,7 @@ Sokka, Swordmaster
 Solitary Defiance
 Soul of Migration
 Sound the Call
+Spellgorger Weird
 Spellstutter Sprite
 Sphinx's Revelation
 Spinehorn Minotaur
@@ -301,14 +310,18 @@ Steward of Valeron
 Storm Front
 Storm Seeker
 Stormcaller's Boon
+Sudden Impact
 Sun Sentinel
 Sun-Crowned Hunters
 Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
+Teferi's Tutelage
 Temporary Insanity
+Territorial Kavu
 Terror of Towashi
+Thassa's Devourer
 The Blackstaff of Waterdeep
 Think Tank
 Third Path Iconoclast
@@ -330,6 +343,7 @@ Twisted Experiment
 Underdark Explorer
 Unhallowed Phalanx
 Unsubstantiate
+Vampiric Feast
 Vault 87: Forced Evolution
 Viashino Warrior
 Village Elder
@@ -339,6 +353,7 @@ Volcanic Salvo
 Voltaic Brawler
 Voracious Null
 Wall of Runes
+Wall of Tombstones
 War Oracle
 Warpath Ghoul
 Wasteland Viper

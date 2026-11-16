@@ -1,8 +1,10 @@
 A-Circle of the Land Druid
 A-Haywire Mite
+A-Mightstone's Animation
 A-Oran-Rief Ooze
 A-Revel Ruiner
 Adeliz, the Cinder Wind
+Aether Spellbomb
 Akroan Skyguard
 Alms Beast
 Alpha Tyrranax
@@ -19,9 +21,14 @@ Argothian Treefolk
 Armory Veteran
 Astarion's Thirst
 Auriok Transfixer
+Ayara, First of Locthwain
 Back in Town
+Battle Hurda
 Battlefront Krushok
+Beast of Burden
 Belligerent Whiptail
+Benalish Trapper
+Benthic Giant
 Bespoke Battlewagon
 Blaring Recruiter
 Bleed Dry
@@ -37,6 +44,7 @@ Bounding Wolf
 Brain Weevil
 Brassclaw Orcs
 Brazen Buccaneers
+Breaker of Armies
 Brink of Madness
 Brood Monitor
 Bygone Marvels
@@ -76,6 +84,7 @@ Debt to the Kami
 Deekah, Fractal Theorist
 Deepglow Skate
 Defense of the Heart
+Defensive Stance
 Defiant Elf
 Demolish
 Demolition Stomper
@@ -96,6 +105,7 @@ Dromosaur
 Drudge Sentinel
 Drudge Skeletons
 Duty-Bound Dead
+Dwarven Reinforcements
 Dwarven Song
 Earsplitting Rats
 Elena, Turk Recruit
@@ -132,6 +142,7 @@ Gaea's Skyfolk
 Gandalf, Shadow's Foe
 Garruk's Gorehorn
 Geistlight Snare
+Geode Golem
 Gerrard's Command
 Gift of Strands
 Gnarled Mass
@@ -139,9 +150,11 @@ Goblin Gaveleer
 Goblin Skycutter
 Goldenhide Ox
 Grasping Scoundrel
+Gray Harbor Merfolk
 Grisly Survivor
 Gustcloak Sentinel
 Hammer of Purphoros
+Haunted Fengraf
 Haystack
 Heir of the Ancient Fang
 Heir of the Wilds
@@ -153,7 +166,9 @@ Horribly Awry
 Howl of the Horde
 Hungry Spriggan
 Hunting Grounds
+Illusions of Grandeur
 Immolation
+Impassioned Orator
 Incisor Steed
 Infuse with Vitality
 Intimidator Initiate
@@ -161,6 +176,7 @@ Introduction to Prophecy
 Irontread Crusher
 Island
 Jedit Ojanen of Efrava
+Joraga Bard
 Jukai Trainee
 Kalonian Twingrove
 Karn, Silver Golem
@@ -171,23 +187,31 @@ Kessig Wolf
 Lagonna-Band Elder
 Launch Mishap
 Leaping Master
+Ledev Guardian
 Lesser Gargadon
 Level Up
 Leyline of the Meek
 Lifeline
 Lightning Blow
+Liquimetal Coating
 Lost in the Woods
 Lumengrid Gargoyle
 Magma Giant
 Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
+Meandering River
+Memory Deluge
+Mercurial Transformation
 Merfolk Branchwalker
+Merfolk of the Pearl Trident
 Midnight Guard
 Might of Old Krosa
 Millicent, Restless Revenant
 Mind Peel
+Minion of the Mighty
 Mirrodin Avenged
+Mistfire Adept
 Mizzium Skin
 Mogg Salvage
 Moss Diamond
@@ -198,10 +222,12 @@ Murasa Rootgrazer
 Muscle Sliver
 Mycoid Shepherd
 N'Yami-Class Mother Ship
+Natural State
 Nearheath Stalker
 Nihil Spellbomb
 Nurturing Presence
 Ordeal of Heliod
+Orim, Samite Healer
 Otherworldly Journey
 Panther Robot
 Pest Summoning
@@ -218,11 +244,13 @@ Putrefaction
 Qasali Slingers
 Quicksilver Wall
 Raise the Alarm
+Rally Maneuver
 Rank Officer
 Ravenous Bloodseeker
 Reave Soul
 Reckless Spite
 Renegade Troops
+Renounce the Guilds
 Repentant Blacksmith
 Repulsor Bots
 Resolute Watchdog
@@ -230,6 +258,7 @@ Revenge of the Drowned
 Reverent Hunter
 Ring of Valkas
 Ritual of Hope
+Robber Fly
 Robe of Mirrors
 Root Cage
 Rosethorn Acolyte
@@ -237,6 +266,7 @@ Rot Wolf
 Rout
 Rowan's Stalwarts
 Rune-Cervin Rider
+Runic Repetition
 Rushwood Grove
 Rusted Slasher
 Sage-Eye Harrier
@@ -245,6 +275,7 @@ Sanctum of Tranquil Light
 Saproling Migration
 Sarkhan's Scorn
 Scarwood Goblins
+Scent of Brine
 Scoria Cat
 Scythe Tiger
 Searchlight Companion
@@ -252,6 +283,7 @@ Second Breakfast
 Secure Detention
 Seek the Wilds
 Seizan, Perverter of Truth
+Senate Courier
 Sentry of the Underworld
 Shadow Stinger
 Shadow in the Warp
@@ -264,6 +296,7 @@ Silverback Elder
 Sisters of the Flame
 Skeletal Snake
 Skilled Animator
+Skittering Cicada
 Sky Skiff
 Skyclave Geopede
 Skywinder Drake
@@ -303,6 +336,7 @@ Sudden Insight
 Summer Bloom
 Sure-Footed Infiltrator
 Survive the Night
+Suspicious Stowaway
 Swamp
 Take Up Arms
 Talas Air Ship
@@ -316,7 +350,9 @@ Thallid Devourer
 The Flux
 Throne of the High City
 Thunderbreak Regent
+Thundercloud Shaman
 Tireless Hauler
+Tolarian Geyser
 Tome of the Guildpact
 Topple the Statue
 Torens, Fist of the Angels
@@ -333,6 +369,7 @@ Urborg Stalker
 Ureni's Counsel
 Veil of Birds
 Verdant Field
+Vessel of Malignity
 Victory's Envoy
 Voltstorm Angel
 Walking Wall
@@ -340,15 +377,19 @@ Wall of One Thousand Cuts
 Wanderer's Twig
 Warbriar Blessing
 Warden of Geometries
+Warmth
 Weaver of Lightning
 Weldfast Wingsmith
 Wellwisher
 Whipcorder
 Whirler Virtuoso
 White Tiger, Amulet Keeper
+Windrider Eel
+Winds of Rebuke
 Wing It
 Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
 Yotian Medic
+Zephid
 Zombie Infestation

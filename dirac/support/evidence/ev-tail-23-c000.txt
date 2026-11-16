@@ -146,6 +146,7 @@ Fylamarid
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
+Gempalm Incinerator
 Giant Warthog
 Gitaxian Raptor
 Gix's Caress
@@ -288,6 +289,7 @@ Pitiless Pontiff
 Plains
 Polukranos, World Eater
 Portcullis Vine
+Predatory Advantage
 Preordain
 Prismatic Lens
 Prison Realm
@@ -380,6 +382,7 @@ Tricks of the Trade
 Trollhide
 Trudge Garden
 Trusty Machete
+Trygon Prime
 Turn to Slag
 Twilight Prophet
 Twinblade Slasher

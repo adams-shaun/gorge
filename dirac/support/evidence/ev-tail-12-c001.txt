@@ -13,6 +13,7 @@ Apocalypse Demon
 Apprentice Necromancer
 Arlinn's Wolf
 Armament Master
+Azorius Cluestone
 Backwoods Survivalists
 Balustrade Spy
 Banefire
@@ -23,10 +24,13 @@ Birthing Ritual
 Bloodsworn Steward
 Bog Glider
 Bold Impaler
+Brainstone
 Brave the Elements
+Briarblade Adept
 Butch DeLoria, Tunnel Snake
 Call to Serve
 Catalyst Elemental
+Cathartic Pyre
 Char
 Charismatic Vanguard
 Child of Gaea
@@ -40,6 +44,7 @@ Compulsion
 Coral Eel
 Count Nefaria
 Cunning Sparkmage
+Deathknell Berserker
 Deepwater Hypnotist
 Diamond Knight
 Disentomb
@@ -66,8 +71,10 @@ Genesis
 Geralf's Masterpiece
 Geralf, Visionary Stitcher
 Geyserfield Stalker
+Gliding Licid
 Gloomwidow's Feast
 Gnarled Mass
+Goblin Marshal
 Goblin Tutor
 Goldmane Griffin
 Growing Ranks
@@ -81,8 +88,10 @@ Honden of Seeing Winds
 Hurloon Battle Hymn
 Impending Flux
 Increasing Devotion
+Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
+Invasion of Azgol
 Irradiate
 Irreverent Revelers
 Island
@@ -92,6 +101,7 @@ Kavu Climber
 Kaya's Ghostform
 Kjeldoran War Cry
 Knowing
+Kyren Glider
 Laboratory Brute
 Landroval, Horizon Witness
 Last Caress
@@ -113,6 +123,8 @@ Molten Nursery
 Molten Rain
 Moment of Truth
 Mountain
+Mutilate
+Muzzio, Visionary Architect
 Nausea
 Neck Snap
 Niblis of the Mist
@@ -134,13 +146,17 @@ Plains
 Portent of Betrayal
 Primal Growth
 Propaganda
+Prophetic Titan
 Pteramander
 Quirion Dryad
+Rain of Tears
 Ramosian Sergeant
 Rampant Rejuvenator
 Raph's Bravado
 Rat Colony
 Rats of Rath
+Repository Skaab
+Reprocess
 Restoration Angel
 Revel of the Fallen God
 Rise to the Challenge
@@ -162,10 +178,13 @@ Sewer Rats
 Shadowmage Infiltrator
 Sheoldred, Whispering One
 Sifter Wurm
+Silverquill Apprentice
+Slimebind
 Slingshot Goblin
 Sliptide Serpent
 Slumbering Dragon
 Solar Tide
+Sonic Assault
 Sophic Centaur
 Soul Shred
 Soul of Innistrad
@@ -184,6 +203,7 @@ Swamp Mosquito
 Tamiyo's Epiphany
 Tana, the Bloodsower
 Terror
+Thanos, Death's Consort
 Thassa, Deep-Dwelling
 Thaumatic Compass
 The Circle of Loyalty

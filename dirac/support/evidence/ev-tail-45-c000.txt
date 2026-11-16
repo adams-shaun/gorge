@@ -16,6 +16,7 @@ Anara, Wolvid Familiar
 Anthroplasm
 Aphetto Alchemist
 Apothecary Initiate
+Arc Blade
 Arc Lightning
 Argothian Opportunist
 Arisen Gorgon
@@ -80,6 +81,7 @@ Crossroads Consecrator
 Cruel Ultimatum
 Crystal Seer
 Culling Mark
+Curator's Ward
 Curse of the Nightly Hunt
 Cursed Wombat
 Dance of the Skywise

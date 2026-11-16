@@ -47,6 +47,7 @@ Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
 Brandywine Farmer
 Braulios of Pheres Band
+Bruse Tarl, Boorish Herder
 Brutal Nightstalker
 Brute Force
 Capashen Standard
@@ -92,6 +93,7 @@ Diviner of Mist
 Doomsday
 Doubtless One
 Dragonsguard Elite
+Drake Stone
 Dream Fracture
 Dredge
 Drinker of Sorrow
@@ -104,6 +106,7 @@ Elder Druid
 Eldrazi Devastator
 Elemental Spectacle
 Elephant Guide
+Elite Skirmisher
 Ellivere of the Wild Court
 Elvish Skysweeper
 Emberwilde Caliph
@@ -151,9 +154,11 @@ Gloom Pangolin
 Gluttonous Troll
 Gnarlid Pack
 Go Blank
+Goblin Motivator
 Goblin Ringleader
 Golden Bear
 Golgari Guildmage
+Grapeshot
 Greenweaver Druid
 Griffin Dreamfinder
 Grim Hireling
@@ -179,6 +184,7 @@ Hunting Grounds
 Hydromorph Gull
 Ice Cage
 Ignoble Hierarch
+Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
 Infectious Horror
@@ -192,6 +198,7 @@ Jackdaw
 Jackhammer
 Jedit Ojanen
 Jedit's Dragoons
+Jerrard of the Closed Fist
 Jori En, Ruin Diver
 Jungle Troll
 Kederekt Leviathan
@@ -242,6 +249,7 @@ Mobile Garrison
 Mogg Raider
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Monster Mashup
 Mother Bear
 Mountain
 Muxus, Goblin Grandee
@@ -253,6 +261,7 @@ Nessian Wanderer
 Neutralizing Blast
 Nighthawk Scavenger
 Nim Shambler
+Nirkana Assassin
 Nomadic Elf
 Norwood Archers
 Nyx Weaver
@@ -284,6 +293,7 @@ Pouncing Lynx
 Powerstone Engineer
 Pride Sovereign
 Psionic Entity
+Puppeteer Clique
 Pyromancer's Assault
 Radha's Firebrand
 Rampart Crawler
@@ -292,6 +302,7 @@ Reckless Reveler
 Reckless Stormseeker
 Recruit the Worthy
 Referee Squad
+Reknit
 Remand
 Resolute Rider
 Retrofitted Transmogrant
