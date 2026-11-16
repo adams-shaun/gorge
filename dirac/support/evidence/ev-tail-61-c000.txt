@@ -221,6 +221,7 @@ Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
 Mysterious Tome
+Nagao, Bound by Honor
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
@@ -230,6 +231,7 @@ Nettle Drone
 Nightshade Harvester
 Nissa, Resurgent Animist
 Novijen, Heart of Progress
+Ogre Menial
 One with Nature
 Ongoing Investigation
 Onslaught
@@ -291,6 +293,7 @@ Sandstorm
 Savage Silhouette
 Scarlet Witch, Wanda Maximoff
 Secrets of the Golden City
+Security Bypass
 Selesnya Locket
 Sengir Autocrat
 Shabraz, the Skyshark
@@ -314,6 +317,7 @@ Slinza, the Spiked Stampede
 Slith Firewalker
 Slobad, Goblin Tinkerer
 Smogsteed Rider
+Sokenzan Spellblade
 Solitary Defiance
 Songbird, Sonic Screamer
 Sootfeather Flock

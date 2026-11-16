@@ -177,6 +177,14 @@ type Ability struct {
 	// (CR 700.2i, 107.18). RepBudget 0 = no budget.
 	RepCost   [4]uint8
 	RepBudget uint8
+	// SplitPrev: one printed trigger lowered as several kernel triggers
+	// (kgen lowerTriggerSplit: an anyToGrave line's ToGraveyard/Dies halves, a
+	// trigger-zone line's halves). This is a half but the first, so the
+	// printed identity it carries on the stack is the PRECEDING ability's --
+	// the half whose origin the gorge projection maps the printed trigger
+	// through (canon's set.AbilityOrigin) -- and its body is the same
+	// lowering. queueTrig enqueues the printed index. A table byte, not State.
+	SplitPrev bool
 }
 
 // Timing is when a card may be cast.

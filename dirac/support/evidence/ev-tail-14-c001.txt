@@ -2,6 +2,7 @@ A-Splitting the Powerstone
 A-Tome Shredder
 Abyssal Nightstalker
 Agent of the Fates
+Akroan Line Breaker
 Alley Evasion
 Alphinaud Leveilleur
 Amaranthine Wall
@@ -11,15 +12,20 @@ Arashin War Beast
 Archivist of Oghma
 Armor Thrull
 Auriok Champion
+Avacynian Priest
 Avalanche Riders
 Awaken the Woods
 Battle Squadron
 Battlefield Butcher
 Battleground Geist
 Beneath the Sands
+Blade of the Bloodchief
 Bleeding Edge
 Blight Titan
 Blustersquall
+Body Launderer
+Bone Saw
+Boon of Erebos
 Briar Shield
 Brinelin, the Moon Kraken
 Burning-Fist Minotaur
@@ -27,11 +33,13 @@ Call to Serve
 Caravan Hurda
 Cartouche of Knowledge
 Carven Caryatid
+Cement Shoes
 Centaur Glade
 Centaur Veteran
 Cessation
 Chandra's Firemaw
 Charging Tuskodon
+Chicken Egg
 Citywatch Sphinx
 Colos Yearling
 Colossal Growth
@@ -39,6 +47,7 @@ Complete Disregard
 Conjurer's Bauble
 Coral Commando
 Core Prowler
+Corpse Blockade
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
@@ -48,24 +57,30 @@ Curse of Opulence
 Darkling Stalker
 Dauthi Mindripper
 Death Watch
+Deluge of Doom
 Denethor, Stone Seer
+Dewdrop Spy
 Dimir Keyrune
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
 Drakestown Forgotten
 Dreadhorde Twins
+Duelcraft Trainer
 Dystopia
 Elder Owyn Lyons
 Elvish Herder
 Emperor Mihail II
+Empty the Catacombs
 Empty the Warrens
 Enraged Ceratok
 Enshrined Memories
 Entrails Feaster
 Entrapment Maneuver
+Erebos, God of the Dead
 Erstwhile Trooper
 Essence Drain
+Eunuchs' Intrigues
 Eviscerate
 Experimental Augury
 Eyes in the Skies
@@ -83,6 +98,7 @@ Foothill Guide
 Force of Nature
 Forest
 Forgotten Sentinel
+Foul Presence
 Gearsmith Guardian
 Glasses of Urza
 Goblin Berserker
@@ -106,6 +122,7 @@ Hag of Ceaseless Torment
 Harabaz Druid
 Hate Weaver
 Headsplitter
+Heartfire
 Heartless Summoning
 Heartstabber Mosquito
 Heliod, God of the Sun
@@ -126,6 +143,7 @@ Joel, Resolute Survivor
 Join the Dance
 Journeyer's Kite
 Joven and Chandler
+Karsus Depthguard
 Kazuul's Fury
 Kiora's Follower
 Knight of Cliffhaven
@@ -134,6 +152,7 @@ Leering Emblem
 Leonin of the Lost Pride
 Lethal Protection
 Lightning Dart
+Lightning Diadem
 Lightwalker
 Living Lightning
 Living Tsunami
@@ -151,6 +170,8 @@ Mesmeric Sliver
 Mind Whip
 Mindswipe
 Mindwrack Demon
+Mishra's Workshop
+Miss Highwater
 Mockingbird, Bobbi Morse
 Molten Monstrosity
 Momentum
@@ -177,11 +198,13 @@ Phyrexian Broodlings
 Pia and Kiran Nalaar
 Pieces of the Puzzle
 Pitfall Trap
+Pixie Illusionist
 Plains
 Power Boost
 Pride of Conquerors
 Priest of Ancient Lore
 Puncturing Blow
+Quicksand
 Quiet Contemplation
 Radiating Lightning
 Rain of Salt
@@ -193,6 +216,7 @@ Ravenous Harpy
 Ready to Rumble
 Reality Heist
 Reality Hemorrhage
+Reconstructed Thopter
 Reminisce
 Rend Flesh
 Resupply
@@ -204,6 +228,7 @@ Ribbon Snake
 Ring of Kalonia
 Riptide Pilferer
 Rite of Passage
+Rock Lobster
 Safewright Quest
 Sagittars' Volley
 Saprazzan Legate
@@ -219,6 +244,7 @@ Serra Aviary
 Setessan Petitioner
 Shadows' Verdict
 Shambling Goblin
+Shore Snapper
 Silent Extraction
 Sinister Possession
 Slate Street Ruffian
@@ -227,6 +253,8 @@ Smoldering Butcher
 Snarling Warg
 Snow-Covered Swamp
 Soulstinger
+Spawning Bed
+Spitting Spider
 Spread the Sickness
 Squealing Devil
 Starnheim Aspirant
@@ -240,6 +268,8 @@ Summon: Ixion
 Swamp
 Swift Demise
 Syr Elenora, the Discerning
+Taiga
+Tatterkite
 Tattermunge Witch
 Tazeem Roilmage
 Tel-Jilad Stylus
@@ -249,6 +279,7 @@ Temporal Manipulation
 Tend the Pests
 Territorial Aetherkite
 Tethered Skirge
+Thassa's Emissary
 Thirst for Discovery
 Thirst for Meaning
 Throat Slitter
@@ -261,23 +292,32 @@ Trapjaw Tyrant
 Triassic Egg
 Trigon of Infestation
 True-Faith Censer
+Turbulent Steppe
 Ugin's Mastery
 Unbreathing Horde
 Unfulfilled Desires
+Vampiric Dragon
 Vampiric Link
 Vanishing Verse
 Vanishment
 Vastwood Hydra
+Veldrane of Sengir
 Veteran Armorer
 Vicious Battlerager
+Villainous Ogre
 Vision Skeins
 Void Grafter
+Wall of Stone
 Warden of Evos Isle
 Warehouse Thief
+Watertrap Weaver
+Wild Celebrants
 Willow Dryad
 Wipe Clean
+Withering Hex
 Wolf Cove Villager
 Woodcaller Automaton
 Wooden Cane
+Yanling's Harbinger
 Zimone, Mystery Unraveler
 Zof Consumption

@@ -196,6 +196,7 @@ Gustha Ebbasdotter
 Hag of Syphoned Breath
 Hag of Twisted Visions
 Hamlet Vanguard
+Hand of Cruelty
 Hawkeye's Shot
 Headless Skaab
 Heartstabber Mosquito
@@ -218,6 +219,7 @@ Illusory Demon
 Imperial Subduer
 Implement of Improvement
 Inkwell Leviathan
+Inner-Chamber Guard
 Invigorated Rampage
 Ironsoul Enforcer
 Island
