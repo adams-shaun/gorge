@@ -8,6 +8,7 @@ Aerial Engineer
 Aether Adept
 Aether Inspector
 Aethersnipe
+Agent of Stromgald
 Akoum Refuge
 Akroan Sergeant
 Alluring Suitor
@@ -31,6 +32,7 @@ Astral Dragon
 Attended Healer
 Audacious Infiltrator
 Auton Soldier
+Avatar of Woe
 Aven Mindcensor
 Awakened Awareness
 Baloth Prime
@@ -62,6 +64,7 @@ Brimstone Volley
 Burning Fields
 Burning Hands
 Burning Oil
+Caligo Skin-Witch
 Captain's Hook
 Carnage Wurm
 Carrion Call
@@ -374,6 +377,7 @@ Silverquill Lecturer
 Silverwing Squadron
 Simic Sky Swallower
 Singing Tree
+Skullmane Baku
 Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
