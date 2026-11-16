@@ -1,5 +1,5 @@
 family: ReplKind
 name: ReplDamageRedirect
-value: next
+value: 66
 forge: DamageDone
 status: active
