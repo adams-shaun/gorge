@@ -49,7 +49,9 @@ import (
 // {T}, the sacrifice (whose dies triggers queue), the mana (sacXDo). A path
 // that sacrifices the searched ability's own source dead-ends at the next node
 // (gorge scriptSearch.leftOwnZone). The manual ward and unless windows do not
-// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps).
+// offer it (windowTapXOffer), nor does the grant search (grantTapXGaps) —
+// beside a granted mana ability it activates the source as a candidate of its
+// own now (mana_grantsacx.go).
 
 // DebugNoTapMana hides the tap-another-permanent gaps (the caretaker
 // mutation test proves the pool's plays need them).
@@ -925,16 +927,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		var d Decision
 		t.restrOptions(k, &d, p)
 		offered = hasOption(&d, rs.a)
-		// gorge's before-dedup question (potentialScript.visit's sr.offered,
-		// the node decision's options, the window's) is asked even at a node
-		// the seen-key dedup would refuse, so the window's mirror answers
-		// first: the pool alone pays it (FeatPoolPays), or its planner prices
-		// it (FeatPlannedCast, gorgeOffers). The kernel walk's offer alone
-		// would also list a play gorge's planner declines the shape of, so
-		// the window gates the early answer; the walk's offer alone still
-		// answers after the dedup (the kept half of the question)
-		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 &&
-			t.gorgeOffers(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
+		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 && t.FeatPoolPays(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
 			return true
 		}
 	}

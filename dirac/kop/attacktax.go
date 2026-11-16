@@ -22,6 +22,21 @@ const (
 	StAtkTaxWalker = StAnyManaType
 )
 
+// StCantAtkPlayer and StCantAtkWalker are a StatCantAttack static's Target$
+// scope, the same grammar as the attack tax's StAtkTaxPlayer and
+// StAtkTaxWalker: an attack on the static's controller (Target$ You) and on a
+// planeswalker that player controls (Planeswalker.YouCtrl). A battle is
+// neither target, so no battle pair is blocked (gorge
+// combat.RestrictionTargetMatches: a player part is read only when nothing
+// permanent is attacked, the walker clause needs a Planeswalker. head).
+// Neither set is no Target$: every attack is forbidden. StaticFlags is full
+// at 16 bits, so they alias the MayPlayFrom-only StOncePerTurn and
+// StAnyManaType, which StatCantAttack never reads (as StAtkTaxPlayer does).
+const (
+	StCantAtkPlayer = StOncePerTurn
+	StCantAtkWalker = StAnyManaType
+)
+
 // RefTaxedAttacker is the creature an attack-tax charge is being priced for
 // (Nils, Discipline Enforcer's RememberingAttacker$): atkTaxCharge binds it
 // beside each (attacker, defender) pair it prices, the charge

@@ -1,0 +1,6 @@
+Forest
+Hovermyr
+Island
+Mountain
+Plains
+Swamp

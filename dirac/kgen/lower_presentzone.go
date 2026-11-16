@@ -119,7 +119,8 @@ func (lc *lowerCtx) presentPlayerCond(c lCond, pp, pz, ip string) (lCond, error)
 // permanent card, presentSpecForZone, which the kernel's card matcher
 // already does): Battlefield is c itself; Graveyard / Exile count the
 // cards there (every graveyard / exile zone, the filter's owner terms
-// narrowing); a list sums. Hand, Library, Stack and Command refuse.
+// narrowing); Hand / Library count the hands / libraries the same way; a list
+// sums. Stack and Command refuse.
 func presentZoneCond(c lCond, zones, spec string, lc *lowerCtx) (lCond, error) {
 	var sum lValue
 	for i, z := range strings.Split(zones, ",") {
@@ -162,6 +163,13 @@ func presentZoneValue(zn, zones, spec string, lc *lowerCtx) (lValue, error) {
 		return lValue{Kind: vCountGraveyard, F: f}, nil
 	case "Exile":
 		return lValue{Kind: vCountExile, F: f}, nil
+	case "Hand":
+		// ExCountHand over every hand (gorge presentZoneCount walks each
+		// seat's zone): the filter's owner terms narrow, and a card off the
+		// battlefield is controlled by its owner
+		return lValue{Kind: vCountHand, F: f}, nil
+	case "Library":
+		return lValue{Kind: vCountHand, N: 1, F: f}, nil // Count$ValidLibrary's read: every library
 	}
 	return lValue{}, refuse("PresentZone %q", zones)
 }
