@@ -297,12 +297,15 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			}
 		}
 	}
-	return s.flags2Obj(f, o)
+	return s.flags2Obj(f&^kop.F2Kicked, o) // a permanent's kicked mark was read above
 }
 
-// flags2Obj checks the object-identity flags (remembered, chosen,
+// flags2Obj checks the object-identity flags (kicked spell, remembered, chosen,
 // attached to target 0, targeted) and the per-turn damage record.
 func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
+	if f&kop.F2Kicked != 0 && !s.spellKicked(o) {
+		return false // a spell on the stack reads its entry's kick flag (filter_spellkicked.go)
+	}
 	if f&kop.F2Remembered != 0 && !s.inSet(&s.g.rem, s.g.nrem, o) {
 		return false
 	}
@@ -615,12 +618,13 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fd {
 		ty = kop.TCreature // CR 708.4: a face-down spell is seen only as a 2/2 creature
 	}
-	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
-		return false
-	}
-	cols := s.splitCols(k, c, o, cd.Colors) // CR 709.4 (filter_splitcolors.go)
+	cols := cd.Colors
 	if fd {
 		cols = 0 // CR 708.2/708.4: a face-down permanent or spell is colourless
+	}
+	ty, cols = s.splitHalvesChars(k, c, o, fd, ty, cols) // CR 709.4: a split card off the stack has both halves' types and colours
+	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
+		return false
 	}
 	if fl.Colors != 0 && cols&fl.Colors == 0 || cols&fl.NotColors != 0 {
 		return false
@@ -693,7 +697,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			}
 			f2 &^= kop.F2ChosenColor
 		}
-		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
+		if f2&(kop.F2Emblem|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false
 		}
 		if f2&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.cardRoleF2(k, f2, owner) {
@@ -706,7 +710,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return false
 		}
 		if o == NoObj {
-			if f2&(kop.F2EnteredThisTurn|kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2SharesColorRem|kop.F2NotTriggerObj|kop.F2WasDamaged) != 0 {
+			if f2&(kop.F2Kicked|kop.F2EnteredThisTurn|kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2SharesColorRem|kop.F2NotTriggerObj|kop.F2WasDamaged) != 0 {
 				return false
 			}
 		} else {

@@ -76,7 +76,22 @@ func (s *State) phyCastPlanSettles(k *prep, e *stackEntry, half, settled kop.Man
 // witness when every pip was paid with life, else gorge's manual CR 601.2g
 // window over the resolved cost.
 //
+// phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
+// settled, armed on the mana half; the manual window when none exists
+// (mana_phyrexian.go).
+//
 //go:noinline
+func (s *State) phyAbilityMana(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8) {
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	half := a.Cost.Mana
+	half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
+	if s.abilityPlanSettles(k, e, half, half, *cost, saved) {
+		s.tapFor(k, e.ctrl, cost, int(e.x), NoObj)
+	} else {
+		s.phyPay(k, e.ctrl, cost, int(e.x), NoObj)
+	}
+}
+
 func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj) {
 	if s.phyAllLife(k) {
 		s.tapFor(k, p, cost, x, exclude)

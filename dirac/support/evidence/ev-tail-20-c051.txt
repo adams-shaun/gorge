@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Storm Herd
+Subterranean Shambler
+Swamp

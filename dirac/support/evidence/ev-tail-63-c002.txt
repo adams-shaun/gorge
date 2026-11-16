@@ -3,92 +3,213 @@ A-Geological Appraiser
 Abyssal Nightstalker
 Abyssal Specter
 Abzan Advantage
+Accorder Paladin
 Aetherworks Marvel
 Aggressive Instinct
 Ahn-Crop Invader
+Airlift Chaplain
+Ajani's Welcome
+Akki Avalanchers
+Ambush Paratrooper
+Angel of the Dawn
+Angelic Field Marshal
+Arch of Orazca
 Arrester's Zeal
 Aurochs Herd
 Azorius Charm
 Bala Ged Recovery
 Become the Avalanche
+Blade-Blizzard Kitsune
 Blanchwood Treefolk
+Blaring Captain
 Bloodmist Infiltrator
 Boggart Loggers
+Bottle Golems
 Bramblesnap
 Breath of Darigaaz
+Brightwood Tracker
 Brute Strength
+Cabaretti Initiate
+Cage of Hands
 Centaur Chieftain
+Chandra's Outrage
+Chromescale Drake
+Coiled Tinviper
+Compelled Duel
+Consul's Lieutenant
+Consulate Crackdown
+Court Street Denizen
+Crookshank Kobolds
 Crow Storm
 Cruel Grimnarch
+Crusade
+Crystal Dragon
 Curfew
 Custody Battle
 Darkthicket Wolf
+Deploy to the Front
 Detainment Spell
 Dragon's Eye Sentry
+Drannith Magistrate
 Dread Fugue
+Drider
+Dwarven Armorer
+Empyrial Plate
+Enlarge
+Ensnare
+Erratic Mutation
 Escape Velocity
 Esika's Chariot
 Evie Frye
 Expedition Skulker
+Expel
 Eye Gouge
+Feast of Dreams
 Floodhound
+Fog Elemental
 Foresee
 Forest
 Forgehammer Centurion
 Freejam Regent
+Freewind Equenaut
+Freyalise Supplicant
+Gerrard's Irregulars
+Giant Solifuge
+Glass of the Guildpact
 Glint Hawk Idol
 Goblin War Wagon
 Goma Fada Vanguard
+Graceful Adept
+Greel's Caress
+Greenwarden of Murasa
+Griffin Sentinel
 Grim Reaper's Scythe
+Hamlet Vanguard
+Hedron Rover
+Hero of Iroas
+Heron of Hope
+Hordeling Outburst
+Huatli's Snubhorn
 Ichor Drinker
 Illusory Demon
+Imperial Subduer
+Inspiring Cleric
+Invasion of Dominaria
+Invigorated Rampage
 Island
+Jace's Sanctum
 Kashi-Tribe Elite
+Kor Bladewhirl
 Kuldotha Rebirth
 Kumena's Awakening
+Kyren Negotiations
 Lash of the Whip
 Lavastep Raider
+Lawmage's Binding
 Learn from the Past
+Light 'Em Up
+Maggot Carrier
+Master's Guidance
 Maze Abomination
+Merfolk Skydiver
+Merry, Warden of Isengard
 Mesa Cavalier
+Metamorphic Wurm
 Midnight Charm
+Mindless Null
 Minion Reflector
 Mountain
 Mourning
+Myr Convert
 Myr Kinsmith
+Mysterious Tome
 Mystical Tutor
+Narnam Cobra
+Nearheath Chaplain
 Necrotic Hex
+Nesting Dovehawk
+Nikya of the Old Ways
 Noble Vestige
+Order of the Mirror
 Orochi Merge-Keeper
+Outland Boar
+Phobian Phantasm
+Phyresis
+Phyrexian Driver
 Plains
+Predators' Hour
 Predatory Nightstalker
+Prescient Chimera
+Priest of Urabrask
+Purge the Profane
+Pygmy Razorback
 Pyknite
+Pyroclastic Elemental
+Pyromantic Pilgrim
+Pyrophobia
+Radiant Fountain
+Rakalite
+Ral's Reinforcements
+Ramosian Commander
+Ravenous Chupacabra
+Ravenous Sailback
+Red Elemental Blast
 Replication Technique
+Riot Devils
 Rishadan Brigand
 Rishkar, Peema Renegade
+Rodolf Duskbringer
 Rofellos's Gift
 Savage Thallid
 Screeching Bat
 Scryb Sprites
+Scurry of Gremlins
 Servant of Tymaret
 Shelob's Ambush
 Silvar, Devourer of the Free
+Singer of Swift Rivers
 Skillful Lunge
 Smoldering Werewolf
+Snarling Undorak
+Somberwald Vigilante
 Spell Crumple
+Spellgorger Barbarian
 Spider-Man, Peter Parker
+Spring
 Staff of the Wild Magus
+Stalking Bloodsucker
+Steel-Plume Marshal
+Stoneforge Mystic
+Stonybrook Banneret
 Stratus Walk
 Student of Ojutai
+Stymied Hopes
 Suit Up
 Surge Engine
 Swamp
+Talas Merchant
 Taste of Blood
 Terravore
+Thalakos Deceiver
+Thallid
 Thaumatic Compass
+Thriving Bluff
+Thrun, the Last Troll
+Timberland Guide
 Toil
 Tomakul Honor Guard
+Tomb of the Spirit Dragon
+Topplegeist
+Tremor
+Urgoros, the Empty One
 Vampiric Tutor
+Venser, Fervent Forger
 War Dance
+Weatherseed Faeries
+Whitewater Naiads
+Wild Aesthir
 Windrider Wizard
+Yoked Ox
+Zarichi Tiger
+Zendikar Incarnate
 Zhuge Jin, Wu Strategist

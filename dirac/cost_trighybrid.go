@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A printed trigger's own optional cost with hybrid mana ("you may pay
 // {G/W}", Emiel the Blessed; kgen lower_trighybrid.go). gorge's
@@ -42,16 +46,21 @@ func (s *State) payPipOptions(k *prep, d *Decision) {
 // gate over the announced cost).
 func (s *State) applyPayPip(k *prep, a Action) {
 	n := 0
-	for v := s.payHyb; v != 0; v >>= 3 {
-		n++
+	if s.payHyb != 0 {
+		n = bits.Len8(s.payHyb) - 1
 	}
-	s.payHyb |= (a.Mode() + 1) << (3 * n)
+	face := uint8(0) // 1: the pip took its second printed face
+	if first, _ := hybColours(s.resPayCost(k), 0); uint8(first) != a.Mode() {
+		face = 1
+	}
+	s.payHyb = s.payHyb&(1<<n-1) | face<<n | 1<<(n+1)
 	if c := s.resPayCost(k); c.Hyb[0] != 0 {
 		return // the next pip's face
 	}
 	in := &s.prog(k)[s.res.pc]
 	p, amt := s.g.pickP, int(s.g.pickLeft)
-	if !s.canPayGen(k, p, kop.PayMana, amt, in.B.N, in.F) && !s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, amt, in.B.N, in.F) {
+	pips := s.cumPips(k, in.B.N) // trig_cumulativepay.go
+	if !s.canPayGen(k, p, kop.PayMana, amt, pips, in.F) && !s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, amt, pips, in.F) {
 		s.g.pickF |= pfNoPay
 	}
 	s.res.ask = raGenPay
@@ -60,19 +69,27 @@ func (s *State) applyPayPip(k *prep, a Action) {
 // announcedHyb resolves c's leading hybrid pips to the faces announced so
 // far (none outside a trigger's own hybrid ask).
 func (s *State) announcedHyb(c *kop.ManaCost) {
-	for v := s.payHyb; v != 0 && c.Hyb[0] != 0; v >>= 3 {
-		*c = c.Resolve(int(v&7) - 1)
+	v := s.payHyb
+	if v == 0 {
+		return
+	}
+	for i, n := 0, bits.Len8(v)-1; i < n && c.Hyb[0] != 0; i++ {
+		first, second := hybColours(*c, 0)
+		if v>>i&1 != 0 {
+			first = second
+		}
+		*c = c.Resolve(first)
 	}
 }
 
 // resPayCost is the parked PayMana ask's cost: pickLeft generic, the
-// instruction's coloured pips (NumTimes-scaled) and, on a PayMana
-// instruction (whose F is no filter), its hybrid pips.
+// instruction's coloured pips (NumTimes-scaled, numTimesCost) and, on a
+// PayMana instruction (whose F is no filter), its hybrid pips.
 func (s *State) resPayCost(k *prep) kop.ManaCost {
 	in := &s.prog(k)[s.res.pc]
-	c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, in.B.N))
+	c := s.numTimesCost(k, int(s.g.pickLeft), s.cumPips(k, in.B.N))
 	if in.IsPayMana() {
-		kop.PayManaHyb(in.F, &c)
+		s.payManaHyb(k, in.F, &c)
 		s.announcedHyb(&c)
 	}
 	return c

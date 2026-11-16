@@ -188,19 +188,14 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			if a.ManaEach {
 				prepEachMana(a, &v)
 			}
-			firstSpellOnly := false
-			for i := range g.rs.recs {
-				rec := &g.rs.recs[i]
-				if rec.card == id && rec.kind != rkDyn && c.Abilities[rec.ab].ManaRestrictAb == 0 {
-					firstSpellOnly = true
-				}
-			}
-			if n > 1 && a.ManaRestrictAb != 0 && firstSpellOnly {
-				// the activation-only larger ability beside a spell-only first
-				// one (Steelswarm Operator's {U}{U}): a tap of it can overpay,
-				// so its unit floats restricted (plan) and the window payment
-				// takes payRestrX's route. A sole restricted ability of more
-				// than one mana keeps the old unit.
+			if n > 1 {
+				// a restricted ability of more than one mana with no census
+				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
+				// Workshop's {C}{C}{C}): a tap of it can overpay, so its unit
+				// floats restricted (plan) and the window payment takes
+				// payRestrX's route. What a cheaper spell leaves of Workshop's
+				// three stays under "artifact spells only" and no activation
+				// may spend it (CR 106.6).
 				v.restrFloat = true
 				g.rs.over = true
 			}
@@ -579,7 +574,7 @@ func restrSrcNone(rs *restrData, d *payDesc, cost *kop.ManaCost, av *avail, extr
 // spend counted: a widened source's own unit becomes a unit of the widened
 // colours; an evaluated amount (Helga) is returned apart (multi[:nm]): that
 // many mana of one colour.
-func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot) (t avail, multi [2]uint8, nm int) {
+func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot) (t avail, multi [2]dynUnit, nm int) {
 	return s.restrSrcAvailD(k, p, d, av, skip, false)
 }
 
@@ -588,7 +583,7 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 // never lists a source whose tap fires an unvetted Taps watcher
 // (mana_tapsdefer.go), restricted or not, so its restricted mana funds no
 // planned payment; the potential walks still count it.
-func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]uint8, nm int) {
+func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]dynUnit, nm int) {
 	t = *av
 	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
@@ -630,11 +625,27 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			}
 			t.addXv(v)
 		case rkDyn:
+			if v.manaCol&kop.ColAny != kop.ColAny {
+				// a fixed-colour amount (Vhal's {C}) is units of those colours,
+				// not mana of one colour of the payment's choosing
+				t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+				continue
+			}
 			if nm == len(multi) {
 				s.capFull(StallRestrSrc)
 				continue
 			}
-			multi[nm] = v.manaN
+			if oneColour(v.manaCol & (kop.ColAny | kop.ColC)) {
+				// a fixed colour's evaluated amount ({C} beside a colour: Vhal,
+				// Candlekeep Researcher's toughness of {C}) is that much mana of
+				// that colour, with no payer's choice; gorge's census adds it as
+				// units of the colour and the plan's unit is srcMaskAt's mask
+				// (mana.go's rkDyn arm), so the offer walk must not hand it to
+				// affordsMulti's any-colour choice
+				t.addUnits(uint8(v.manaCol&(kop.ColAny|kop.ColC)), v.manaN)
+				break
+			}
+			multi[nm] = dynUnit{n: v.manaN, cols: uint8(v.manaCol) & 0x3f}
 			nm++
 		}
 	}
@@ -662,15 +673,23 @@ func (a *avail) addXv(v *pcard) {
 	}
 }
 
+// dynUnit is one evaluated-amount restricted source's unit (rkDyn): n mana
+// of one colour of cols (the ability's own colours: Helga's any colour, Vhal,
+// Candlekeep Researcher's {C} alone).
+type dynUnit struct{ n, cols uint8 }
+
 // affordsMulti: a, with each of ns a unit of that many mana of one colour
 // (any of W U B R G), pays cost plus extra generic.
-func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []uint8) bool {
+func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []dynUnit) bool {
 	if len(ns) == 0 {
 		return a.affords(cost, pipMaskOf(cost), extra)
 	}
-	for c := 0; c < 5; c++ {
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if ns[0].cols&(1<<c) == 0 {
+			continue
+		}
 		b := a
-		b.addUnits(1<<c, ns[0])
+		b.addUnits(1<<c, ns[0].n)
 		if b.affordsMulti(cost, extra, ns[1:]) {
 			return true
 		}
@@ -774,6 +793,7 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	t.filtPlay(k, p, fs.path[:fs.n])
 	if !passed {
 		passed = t.npend != 0 || t.sp != sp0 // a step the search settled through (try's npend grew)
@@ -912,14 +932,17 @@ func (s *State) wideSrcAvailAdd(k *prep, p uint8, a *avail, d *payDesc, skip Slo
 }
 
 // maxXMulti is maxX with each of ns a unit of that many mana of one colour.
-func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
+func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []dynUnit) int {
 	if len(ns) == 0 {
 		return a.maxX(cost, pipMask)
 	}
 	best := -1
-	for c := 0; c < 5; c++ {
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if ns[0].cols&(1<<c) == 0 {
+			continue
+		}
 		b := a
-		b.addUnits(1<<c, ns[0])
+		b.addUnits(1<<c, ns[0].n)
 		best = max(best, b.maxXMulti(cost, pipMask, ns[1:]))
 	}
 	return best
@@ -927,12 +950,14 @@ func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
 
 // actRestrAffords: av, with the restricted sources an activation of the
 // ability of the source at sl may spend counted, pays cost. skip is the
-// source the activation's own {T} taps. Callers ask only after av alone
+// source the activation's own {T} taps. who is the activation's activator:
+// the permanent's controller on the ordinary walk, the paying player for an
+// any-player ability (CR 602.2a). Callers ask only after av alone
 // failed (legal.go abilityAffords): restrSrcNone's precondition.
 //
 //go:noinline
-func (s *State) actRestrAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail, skip Slot) bool {
-	p := s.perms[sl].ctrl
+func (s *State) actRestrAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail, skip Slot, who uint8) bool {
+	p := who
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl, instant: a.Cost.Flags&kop.CostSorcery == 0}
 	if m := s.restrPoolAct(k, p, &d); m != 0 {
 		// the floating restricted mana beside the restricted sources
