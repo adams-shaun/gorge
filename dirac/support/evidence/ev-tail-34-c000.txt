@@ -22,6 +22,7 @@ Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
+Aura Mutation
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
@@ -197,6 +198,7 @@ Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
+Indatha Crystal
 Indulgent Aristocrat
 Infernal Pet
 Inferno
@@ -450,6 +452,7 @@ Whisper of the Dross
 Whitesun's Passage
 Wild Elephant
 Wild Ox
+Winds of Qal Sisma
 Witness the End
 Xenk, Paladin Unbroken
 Xerex Strobe-Knight

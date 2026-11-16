@@ -1,5 +1,6 @@
 A-Kenku Artificer
 A-Riveteers Initiate
+A-Stimulus Package
 Accursed Centaur
 Act on Impulse
 Advance Scout
@@ -80,6 +81,7 @@ Forest
 Foul-Tongue Shriek
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate Hound
 Gerrard's Irregulars
 Gideon's Lawkeeper
@@ -226,6 +228,7 @@ Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Verduran Emissary
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith
