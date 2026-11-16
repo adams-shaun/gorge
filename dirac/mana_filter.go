@@ -681,9 +681,14 @@ type filtKey struct {
 	// Three Tree Mascot's {W} over a Plains' {W} is a new state
 	art    uint8
 	tapped slotMask
-	sp     uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
-	hand   uint8
-	gy     uint8
+	// ctr: the counters of the counter-cost gaps (Vivid Meadow's charge
+	// counters): gorge's key reads every own permanent's counters
+	// (scriptStateKey), so Meadow's {W} made by removing a counter is a new
+	// state beside its plain {W} (mana_filterctrkey.go)
+	ctr  [4]uint16
+	sp   uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
+	hand uint8
+	gy   uint8
 }
 
 const maxFiltPath = 16
@@ -988,6 +993,7 @@ func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 			key.tapped = key.tapped.with(sl)
 		}
 	}
+	fs.ctrKey(k, t, &key)
 	return key
 }
 
