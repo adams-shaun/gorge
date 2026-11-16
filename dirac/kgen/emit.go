@@ -173,6 +173,19 @@ func validPoolName(name string) bool {
 
 func init() { _ = sort.Strings }
 
+// keepPartyRoles adds the four party roles (CR 700.8) the pool table has to
+// set. The kernel finds them by name (partyRoles, value_party.go), so a
+// matchup whose cards count a party but name no role in a filter would drop
+// them from its remap, and a Cleric, Rogue, Warrior or Wizard on the
+// battlefield would fill no role: Count$Party ran below gorge's count.
+func keepPartyRoles(pt *poolTables, set map[uint8]bool) {
+	for _, w := range [...]string{"Cleric", "Rogue", "Warrior", "Wizard"} {
+		if i, ok := pt.subIdx[w]; ok {
+			set[uint8(i)] = true
+		}
+	}
+}
+
 // refSubs walks every filter a card's abilities reach (targets, costs,
 // triggers, statics, replacements, instruction filters, the filters inside
 // its exprs, conds and override values, and the emblems it creates) and returns
@@ -226,6 +239,9 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 			filt(kop.FilterID(v.N))
 		case kop.VExpr:
 			e := pt.exprs[v.N]
+			if e.Kind == kop.ExParty {
+				keepPartyRoles(pt, set)
+			}
 			if e.Kind == kop.ExSacrificedThisTurn && e.N == kop.SacrificedFood {
 				// the kernel tallies the Food cards by subtype name
 				// (prepTurnTallies), so the matchup keeps it

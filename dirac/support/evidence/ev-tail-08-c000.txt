@@ -48,6 +48,7 @@ Blur Sliver
 Boggart Trawler
 Bolt of Keranos
 Boreal Druid
+Bounty Agent
 Bronze Sword
 Bronze Walrus
 Brush with Death
@@ -82,6 +83,7 @@ Cover of Darkness
 Cracked Earth Technique
 Crash Landing
 Craterize
+Crisis of Conscience
 Crystal Golem
 Culling Dais
 Cyclops Tyrant
@@ -123,6 +125,7 @@ Dwarven Trader
 Eagle of Deliverance
 Earthshaking Si
 Electrify
+Elite Javelineer
 Elvish Hunter
 Energy Arc
 Enfeeblement
@@ -343,6 +346,7 @@ Sorcerer's Strongbox
 Soul Channeling
 Soulblade Djinn
 Spectral Flight
+Sphere of Reason
 Sphinx of Clear Skies
 Spontaneous Artist
 Spore Crawler

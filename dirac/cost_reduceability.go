@@ -8,7 +8,8 @@ import (
 
 // abReduced returns activated ability a's mana cost c after the
 // StatReduceAbility statics of its battlefield source sl
-// (ability): every static of the activator ctrl whose condition holds, whose
+// (ability): every static of the activator ctrl (of any activator when it has no
+// Activator$, kop.StReduceAny: Heartstone) whose condition holds, whose
 // filter matches the source and, for B bit 0 only for an Exhaust ability,
 // for B bit 2 only for a Power-up ability and for B bit 3 only for an Equip
 // ability, subtracts its amount from the generic part, floored at zero after

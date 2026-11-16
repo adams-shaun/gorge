@@ -129,7 +129,7 @@ const StBanOpp = StRaiseOpp
 // StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
 // the spells of either player (a ReduceCost with no Activator$, Helm of
 // Awakening), where a ReduceCost with Activator$ You reduces its controller's.
-// On a StatReduceAbility it is every activator's (Heartstone).
+// On a StatReduceAbility it is the same gate over activations (Heartstone).
 const StReduceAny = StRaiseOpp
 
 // OpCounter C: Destination$ of the countered spell card (0 graveyard).
