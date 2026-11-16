@@ -12,6 +12,7 @@ Angelic Page
 Angelic Reward
 Aphetto Alchemist
 Arboreal Grazer
+Arcades, the Strategist
 Arid Mesa
 Armadillo Cloak
 Armed Response
@@ -406,6 +407,7 @@ Trickster's Talisman
 Tumble Magnet
 Tundra Wall
 Tura Kennerüd, Skyknight
+Tuvasa the Sunlit
 Ulvenwald Bear
 Unburden
 Unclaimed Territory
