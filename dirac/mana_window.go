@@ -873,6 +873,14 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 // census one (windowRestrOwed): mana gorge's census prices as a typed unit
 // (castWindowReachable), which the real walk on a fork can count.
 func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr bool) {
+	ok, known, restr, _ = s.windowDryWalk(k, p, cost, anyColor)
+	return ok, known, restr
+}
+
+// windowDryWalk is windowDryRestr, and also reports whether the walk stopped
+// unknown only at a sacrifice-only source (sacStop): a last-resort unit the
+// payment planner prices where this walk does not (an Eldrazi Spawn).
+func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr, sacStop bool) {
 	pool := s.pl[p].pool
 	var tapped [MaxPerm]Slot
 	var flags [MaxPerm]uint16
@@ -909,9 +917,10 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 			}
 		}
 		pc := s.windowGrantPC(k, sl)
-		if gap || windowSacOnly(k, pc) || s.perms[sl].flags&pfTapped != 0 ||
-			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
+		dyn := k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0
+		if gap || windowSacOnly(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
 			ok, known = false, false
+			sacStop = !gap && !dyn && windowSacOnly(k, pc) && s.perms[sl].flags&pfTapped == 0
 			break
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, false)
@@ -925,7 +934,7 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]
 	}
 	s.pl[p].pool = pool
-	return ok, known, restr
+	return ok, known, restr, sacStop
 }
 
 // windowDryFilter is windowDry's step over a first-only filter the floating mana
@@ -3341,11 +3350,20 @@ func (s *State) reverseActivation(k *prep, saved *[len(build{}.picks)]uint8, hos
 // does: the window must not tap and float mana for a cast the census already
 // reverses before any mana ability (CR 733.1).
 func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	return s.paymentStrandedPlan(k, e, cost, false)
+}
+
+// paymentStrandedPlan is paymentStranded for a payment the planner has already
+// failed to plan (planFailed): a dry walk that stops at a sacrifice-only source
+// (an Eldrazi Spawn, which the planner prices as a last resort and gorge's
+// census counts, castWindowPays) then leaves the payment stranded, not open.
+func (s *State) paymentStrandedPlan(k *prep, e *stackEntry, cost *kop.ManaCost, planFailed bool) bool {
 	if k.gen == nil || s.bld().pickN == 0 || !s.committedPicks() || !s.windowCensusComplete(k, e) {
 		return false
 	}
 	anyColor := s.bld().bfl&bflAnyColor != 0
-	ok, known, restr := s.windowDryRestr(k, e.ctrl, cost, anyColor)
+	ok, known, restr, sacStop := s.windowDryWalk(k, e.ctrl, cost, anyColor)
+	dead := known && !ok || planFailed && sacStop
 	if !known && restr {
 		saved := s.fork()
 		defer s.unfork()
@@ -3354,7 +3372,7 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		s.CopyFrom(saved)
 		return !ok
 	}
-	if known && !ok && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
+	if dead && k.gen.anyFilt && s.scriptFilt(k, e.ctrl).any() {
 		// The greedy walk never activates a paid-fee filter ({1},{T}: any
 		// colour); gorge's census (castWindowReachable) searches them, so the
 		// window opens when some filter set pays the cost (CR 601.2g-h).
@@ -3371,7 +3389,7 @@ func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 		s.ctrlM[e.ctrl] = held
 		return !reach
 	}
-	return known && !ok
+	return dead
 }
 
 // committedPicks reports whether a pick commits a permanent to a tap cost or as a
