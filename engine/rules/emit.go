@@ -369,7 +369,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	defenseBefore := int32(0)
 	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
 		if o := e.G.Obj(ev.Obj); o != nil {
-			defenseBefore = o.Counter("DEFENSE")
+			defenseBefore = battleDefenseBefore(o)
 		}
 		// CR 608.2b/h departure boundary: this is the last moment a departing
 		// target of the resolving chain still carries the counters the

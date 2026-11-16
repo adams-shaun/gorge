@@ -1,4 +1,10 @@
+Airborne Aid
 Azorius Herald
+Blind Zealot
+Consuming Aetherborn
+Cyclopean Mummy
+Deathgaze Cockatrice
+Duskfang Mentor
 Emerge Unscathed
 Exuberant Fuseling
 Feral Prowler
@@ -7,20 +13,33 @@ Force Spike
 Forest
 Frogify
 Gamekeeper
+Glorious Enforcer
+Graceblade Artisan
+Gryff's Boon
+Hajar, Loyal Bodyguard
 Island
 Kor Celebrant
 Liliana's Mastery
 Majestic Metamorphosis
 Mogg Raider
 Mountain
+Myrkul's Invoker
+Ninth Bridge Patrol
+One with Death
+Order
+Overrule
+Pack's Disdain
 Plains
 Rampaging Brontodon
 Salvage
 Sheoldred's Edict
 Speaker of the Heavens
+Spire Patrol
 Spitting Slug
 Sudden Spinnerets
 Supernatural Stamina
 Swamp
 Taunting Kobold
+Thriving Rats
+Warmonger
 Wellwisher

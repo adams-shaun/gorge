@@ -137,6 +137,15 @@ func (s *State) landSetView(k *prep, sl Slot, c CardID) *pcard {
 	return &g.setPC[int(g.setIdx[c])*32+int(m&0x1f)]
 }
 
+// landSetIntrinsic reports whether pc is a land-type setter's intrinsic view
+// of card c (landSetView: manaAb names no ability of the card), the plain
+// unrestricted "{T}: Add [c]" that CR 305.6 gives the land. Under a Taps
+// watcher gorge's planner defers (Contaminated Ground's life loss) it is a
+// census gap like the printed ability of a land that is not under the setter.
+func (s *State) landSetIntrinsic(k *prep, c CardID, pc *pcard) bool {
+	return k.gen.landSet && pc.manaAb >= 0 && int(pc.manaAb) == len(k.t.Cards[c].Abilities)
+}
+
 // landSetAlts lists the payment planner's alternatives of unit u when its
 // source lost its own abilities to a land-type setter: the intrinsic ability
 // of each colour of the unit's mask, in W U B R G order (gorge appends them

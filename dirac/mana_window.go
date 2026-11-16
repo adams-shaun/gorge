@@ -685,13 +685,26 @@ func (s *State) windowCol(k *prep, p uint8, raw *kop.ManaCost, sl Slot, pc *pcar
 	return s.windowColOwed(k, p, raw, &owed, sl, pc, anyColor, noOwed)
 }
 
+// windowFallbackCol is the colour a window source makes when no owed colour
+// picks one: the lowest of mask, except a fixed first ability beside a
+// chosen-colour twin (Quirion Elves), whose ability 0 is the fixed colour even
+// when the chosen colour is lower.
+func windowFallbackCol(pc *pcard, mask uint8) int {
+	if pc.manaFixedChosen {
+		if m := srcMask(pc); m != 0 {
+			return bits.TrailingZeros8(m)
+		}
+	}
+	return bits.TrailingZeros8(mask)
+}
+
 // windowColOwed is windowCol for a cost whose shortfall the pool is measured against as owed:
 // cost less the restricted mana the payment may spend (windowOwedCost). cost is the full
 // (raw) cost: the helpers that price the restricted pool themselves (windowDemand,
 // windowUseful) read it, so the mana is not taken off it twice, while owed is the shortfall.
 func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
 	mask := s.windowOwnMask(k, sl)
-	col := bits.TrailingZeros8(mask)
+	col := windowFallbackCol(pc, mask)
 	if anyColor {
 		col = s.windowAnyColour(p, owed, mask, pc.manaMulti)
 	} else if !noOwed {
@@ -2473,7 +2486,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 // counts the amounts too, as gorge's witness does (rules
 // potentialModeCastPlan: paymentPlanCensusTotal / base.X), so Helga's two
 // beside three lands lift {X}{U} to X = 4, not the lands' 3.
-func restrWitnessX(x int, t avail, multi []uint8, cost *kop.ManaCost) int {
+func restrWitnessX(x int, t avail, multi []dynUnit, cost *kop.ManaCost) int {
 	return restrWitnessXPlus(x, t, multi, cost, 0)
 }
 

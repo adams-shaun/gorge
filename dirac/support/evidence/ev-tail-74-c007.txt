@@ -1,29 +1,43 @@
 A-Guide of Souls
 A-Plate Armor
+A-Social Climber
 A-Teferi, Time Raveler
 Ajani's Mantra
+Astarion's Thirst
 Avatar of Growth
 Aven Trooper
 Black Sun's Twilight
+Blindblast
 Boiling Blood
 Boulderfall
 Brainsurge
 Brimstone Trebuchet
 Captured by Lagacs
+Chain Lightning
 Chicken Egg
+Chill of the Grave
 Chilling Trap
+Chimney Imp
 Choke
 Cinder Pyromancer
+City of Brass
+Civic Guildmage
 Civilized Scholar
 Colossal Dreadmaw
 Concordant Crossroads
+Confessor
 Curse of Opulence
 Curse of Predation
+Dauntless Bodyguard
 Death Speakers
 Defenestrate
+Depth Charge Colossus
+Descendant of Kiyomaro
 Doom's Servo-Guards
 Dragonborn Looter
 Echoing Calm
+Eiganjo Castle
+Eloise, Nephalia Sleuth
 Ember-Fist Zubera
 Encroaching Wastes
 Euroakus
@@ -33,23 +47,30 @@ Flameskull
 Forest
 Frightcrawler
 Frontier Mastodon
+Gaea's Bounty
 Ghoulcaller's Bell
 Gloomhunter
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
 Grave Exchange
+Gruesome Fate
+Gruul Keyrune
 Guardian of the Guildpact
 Halberdier
 Harpoon Sniper
 Horned Helm
 Hornet Cobra
+Hulk, Always Angry
+Inferno Fist
 Insidious Bookworms
 Island
 Jhoira's Familiar
 Khenra Charioteer
+Kor Blademaster
 Laquatus's Creativity
 Lava Axe
+Lightning Coils
 Liliana's Elite
 Liliana's Standard Bearer
 MACH-1, Swooping Scoundrel
@@ -60,58 +81,91 @@ Mighty Emergence
 Millstone
 Mind Ravel
 Mist-Syndicate Naga
+Mob Justice
+Mold Folk
+Moonveil Dragon
 Mountain
 Multiform Wonder
+Navigation Orb
 Necromancer's Familiar
 Nexus of Fate
 Nomads' Assembly
+Nylea's Huntmaster
 Orazca Frillback
 Oreskos Swiftclaw
+Oversold Cemetery
 Painwracker Oni
 Peggy Carter, Secret Agent
 Plains
 Planar Portal
 Pool Resources
+Portent of Betrayal
 Precision Bolt
+Purple Pentapus
 Putrid Imp
 Rag Dealer
 Raging Kavu
 Rancid Rats
 Razortooth Rats
 Reaver Ambush
+Rekindled Flame
 Return to the Earth
 Riddlekeeper
 Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
 Rockshard Elemental
+Rundvelt Hordemaster
 Runeclaw Bear
 Sacred Cat
+Saheeli's Artistry
 Sanctify
 Scoria Wurm
+Scrapwork Cohort
+Sheltering Landscape
 Silverflame Squire
 Silverskin Armor
 Skirsdag Flayer
 Smash to Dust
+Smoldering Crater
+Snow-Covered Forest
 Spitfire Handler
 Spurnmage Advocate
 Steel Leaf Paladin
+Steelform Sliver
 Stenchskipper
+Strip Mine
+Sunweb
 Surrakar Marauder
 Swamp
+Sword of the Animist
+Talisman of Unity
 Tel-Jilad Outrider
 Telepathic Spies
 The Indomitable
 The Shattered States Era
+The Stasis Coffin
 Thopter Assembly
+Tideshaper Mystic
 Tiller Engine
+Treetop Rangers
 Treetop Scout
 Triceraton Regenta
 Tuktuk Rubblefort
+Two-Headed Zombie
+Unholy Officiant
 Unquestioned Authority
 Urza, Powerstone Prodigy
+Venser's Journal
+Verge Rangers
 Vineweft
+Violet Pall
 Viridian Longbow
+Vulshok Replica
 Warmonger Hellkite
 Weapon Rack
+Wei Strike Force
+Weirding Shaman
+Willow-Wind
+Zhalfirin Shapecraft
 Zhur-Taa Ancient

@@ -1,137 +1,476 @@
+A-Kona, Rescue Beastie
+A-Master of Winds
 Aether Spellbomb
+Afterlife
+Agility Bobblehead
 Air Servant
+Ajani's Mantra
 Akoum Refuge
+Alabaster Potion
+Ali Baba
+Alrund's Epiphany
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Apprentice Sharpshooter
+Arachnus Web
+Archwing Dragon
+Ardent Elementalist
+Artificer Class
 Ashen Monstrosity
+Aspect of Lamprey
+Assemble the Legion
 Attune with Aether
+Avatar of Discord
+Avatar of Growth
+Aven Fogbringer
+Aven Trooper
 Azure Drake
 Back in Town
 Backfire
+Baloth Null
+Banishment
+Barkhide Troll
 Barony Vampire
 Barrow Witches
+Basilica Skullbomb
 Bathe in Dragonfire
+Battle of Hoover Dam
 Belligerent Sliver
+Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
+Black Widow, Natasha Romanoff
+Blind Creeper
+Blood Fountain
+Bloodbond Vampire
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
+Blue Marvel, Adam Brashear
+Blustersquall
+Boggart Ram-Gang
+Bond of Flourishing
 Bond of Insight
+Bone Devourer
 Bonehoard
+Boneknitter
+Bonepicker Skirge
+Boulderfall
 Bound in Silence
+Bountiful Promenade
+Brackwater Elemental
 Brandywine Farmer
+Bronze Guardian
+Bugenhagen, Wise Elder
 Burning Fields
+Cabal Patriarch
+Cabaretti Courtyard
+Call of the Herd
+Cao Cao, Lord of Wei
+Capashen Unicorn
+Captive Weird
+Catacomb Sifter
+Chainweb Aracnir
+Change the Equation
 Chaos Charm
+Chaos Lord
 Chaotic Backlash
+Choking Sands
+Chromatic Star
+Cinder Pyromancer
+Cinder Shade
+City of Brass
+Civilized Scholar
+Clear a Path
 Clip Wings
+Colossal Dreadmaw and Storm Crow
+Concordant Crossroads
+Continue?
+Crackling Drake
+Creakwood Liege
+Creeping Corrosion
+Crookclaw Elder
+Crosstown Courier
 Cunning Survivor
+Curiosity Crafter
+Curse of Opulence
+Daggersail Aeronaut
+Dawning Angel
 Dawning Purist
+Death Speakers
 Death's Shadow
 Deepwood Wolverine
+Delraich
+Demon's Disciple
+Dense Foliage
+Depth Charge Colossus
+Deputized Protester
+Desert of the Indomitable
+Desolate Mire
 Desynchronize
+Devouring Light
+Devouring Swarm
+Dina, Essence Brewer
+Dina, Soul Steeper
 Doom Whisperer
+Doom's Servo-Guards
+Dragon-Scarred Bear
 Drainpipe Vermin
+Dread Tiller
+Dream Thief
+Dreamshackle Geist
 Drifting Shade
+Drossclaw
+Drown in Dreams
+Dualcaster Mage
 Dune Mover
+Dust Corona
+Dwarven Hold
 Easy Prey
+Ebony Treefolk
+Eccentric Pestfinder
+Echoing Calm
+Eiganjo Castle
+Elvish Dreadlord
+Ember-Fist Zubera
+Enrage
+Erstwhile Trooper
 Etched Monstrosity
 Ethereal Investigator
+Euroakus
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Familiar's Ruse
+Farewell
+Fateful Showdown
+Feral Instinct
+Feral Maaka
 Ferocious Zheng
+Fetid Imp
+Field Marshal
+Fiendslayer Paladin
+Fire Ambush
 Fireblade Charger
 Fissure
+Flare of Denial
+Flowstone Charger
 Forest
+Foxfire Oak
+Frightcrawler
+From the Rubble
+Furious Spinesplitter
+Gaze of Granite
+Genestealer Locus
 Geralf's Mindcrusher
+Ghoulcaller's Bell
+Gift of Fangs
 Gift of Paradise
 Gild
+Gingerbread Cabin
 Glen Elendra Liege
 Glimmervoid
+Gloomhunter
 Gnarled Effigy
+Goblin Arsonist
+Goblin Bushwhacker
+Goblin Deathraiders
+Goblin Tinkerer
+Grave Exchange
+Great Defender
+Greater Harvester
 Griffin Aerie
+Grim Tutor
 Grixis Slavedriver
+Guardian of the Guildpact
 Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
+Hardened Scales
+Harpoon Sniper
 Herd Gnarr
+Herd Migration
+Hero of the Dunes
 Hibernation
+Honden of Life's Web
+Horned Helm
+Hornet Cobra
 Howl of the Night Pack
+Huatli, Radiant Champion
+Hulk, Brutal Brawler
 Hurloon Battle Hymn
+Illicit Shipment
+Imaginary Pet
+Immortal Phoenix
+Incarnation Technique
+Incisor Steed
 Island
 Jace's Erasure
+Jade Idol
+Jalum Tome
+Jhoira's Familiar
+Jolrael, Voice of Zhalfir
 Judith, the Scourge Diva
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
+Khenra Charioteer
+Khenra Eternal
 Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
+Kodama's Reach
+Krark-Clan Grunt
+Launch
+Lava Axe
 Leapfrog
+Leyline of Punishment
+Lightwielder Paladin
+Liliana of the Veil
+Liliana's Elite
+Liliana's Standard Bearer
 Lingering Mirage
+Lonis, Genetics Expert
+Lorthos, the Tidemaker
+Lost in the Mist
+Lost in the Spirit World
+Luxa River Shrine
 Lys Alana Huntmaster
+MACH-1, Swooping Scoundrel
+Magma Vein
+Magmatic Insight
+Magnify
+Malcator's Watcher
+Malicious Advice
+Mammoth Spider
 Mana Vault
+Manalith
+Marauding Boneslasher
+Mardu Woe-Reaper
+Mark of the Oni
+Markov Patrician
+Masked Blackguard
 Mass Calcify
 Mass Mutiny
 Master of Winds
+Master the Way
+Maze Rusher
+Meadowboon
+Merciless Executioner
 Metathran Elite
+Mijae Djinn
+Millstone
 Mind Over Matter
+Mind Ravel
 Mindwrack Harpy
 Minotaur, Roxxon CEO
+Mobile Fort
+Mold Demon
+Momentum Rumbler
+Mortal Wound
+Mossbridge Troll
 Mountain
+Mox Tantalite
 Muck Rats
+Mulch
 Myrel, Shield of Argive
+Mystic Repeal
+Mystic Skull
+Nakaya Shade
 Nebelgast Herald
+Needlethorn Drake
 Neonate's Rush
+Nexus of Fate
 Nezumi Freewheeler
 Nightveil Predator
+Niv-Mizzet, the Firemind
+Nivix Barrier
+Nomads' Assembly
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Obelisk of Grixis
+Ogre Taskmaster
+Ondu Knotmaster
+One-Eyed Scarecrow
+Order of the Sacred Torch
+Painwracker Oni
+Panic Attack
+Paradigm Shift
 Parallel Lives
+Patrol Hound
+Peggy Carter, Secret Agent
 Peregrine Mask
 Perimeter Captain
+Personal Tutor
 Phantasmal Dreadmaw
+Pillage
 Plains
 Plasmancer
 Poison the Well
+Port Inspector
+Portent of Betrayal
 Power of Persuasion
 Precinct Captain
+Precision Bolt
+Privileged Position
+Psychic Frog
+Pull from Tomorrow
+Pyrrhic Blast
 Quest for Renewal
+Quirion Explorer
+Rabid Wolverines
+Radstorm
+Rag Dealer
+Rageblood Shaman
+Raging Kavu
+Rally Maneuver
 Rally the Peasants
+Rampaging Cyclops
+Reaver Ambush
 Reckless Barbarian
 Reclaim the Wastes
+Reduce in Stature
+Return from Extinction
+Return of the Nightstalkers
+Reveille Squad
+Reverberate
+Riddlekeeper
+Rimewood Falls
+Rishadan Cutpurse
 Rishkar's Expertise
 Riven Turnbull
+River Sneak
+Roaring Slagwurm
+Rockshard Elemental
 Rooftop Nuisance
+Rout
+Rune-Cervin Rider
+Runeclaw Bear
+Sacred Prey
 Sage Aven
+Sage of Fables
 Sailor of Means
+Salvaging Station
+Sanctify
 Sanctum of Stone Fangs
 Scab-Clan Mauler
+Scalding Devil
 School of Piranha
+Scoria Wurm
+Scour All Possibilities
 Sedgemoor Witch
 Seething Pathblazer
+Selhoff Occultist
+Shaman of Spring
+Shimmer of Possibility
+Show of Valor
+Shrine Keeper
 Siege Dragon
+Sigarda's Summons
+Sigil of Valor
+Sign in Blood
+Silent Extraction
+Silent Sentinel
+Silverflame Squire
+Silverskin Armor
+Simian Brawler
+Singing Tree
+Sinkhole
 Sizzle
+Skittering Skirge
+Skizzik Surger
+Skyclave Shadowcat
 Skyline Cascade
+Slagwoods Bridge
+Sleeper Agent
+Smoldering Crater
+Snow-Covered Forest
+Songstitcher
 Sonic Screwdriver
 Sootstoke Kindler
+Soulmender
+Spectacle Mage
+Spectral Rider
+Spike Breeder
+Spindrift Drake
+Spirit Shackle
 Spitebellows
+Spiteful Squad
+Spitfire Handler
+Steel Leaf Paladin
 Stormscape Apprentice
+Sudden Reclamation
+Sultai Emissary
 Sunscorched Desert
+Surge Engine
 Swamp
+Swarm Surge
 Swarm of Rats
+Sword of the Animist
+Sygg, River Guide
+Tamiyo's Immobilizer
+Tamiyo's Safekeeping
 Tectonic Edge
+Tel-Jilad Outrider
+Telepathic Spies
+Tempestra, Dame of Games
+Territorial Boar
+The Indomitable
+Thirst for Discovery
+Thistledown Duo
+Thopter Assembly
+Thopter Mechanic
+Thraben Standard Bearer
 Threnody Singer
 Thundercloud Elemental
 Thundersteel Colossus
+Timbermaw Larva
+Timin, Youthful Geist
+Tomebound Lich
+Trail of Evidence
+Trailblazing Historian
 Trained Caracal
+Treetop Scout
 Tui and La, Moon and Ocean
+Turntimber Grove
+Tuskguard Captain
 Twiddle
+Twilight's Call
+Ugin's Insight
+Umezawa's Charm
 Undead Servant
+Unholy Hunger
+Urabrask the Hidden
+Ursine Champion
+Urza's Rebuff
+Urza, Powerstone Prodigy
 Venomous Changeling
 Verdant Sun's Avatar
+Vilis, Broker of Blood
+Vineweft
+Vintara Snapper
 Viscerid Deepwalker
+Volcanic Torrent
+Volcanic Upheaval
+Voyager Staff
+Wall of Vines
+Warmonger Hellkite
+Waterknot
+Weapon Rack
+Wedding Invitation
+Wei Scout
+Whiptail Moloch
+Whiptail Wurm
+Will-o'-the-Wisp
+Winding Canyons
+Wingsteed Rider
 Wizard Replica
+Wolfwillow Haven
 Woodland Stream
+Yawgmoth Demon
+Yoshimaru, Ever Faithful
 Zap
+Zealot's Conviction
 Zendikar Farguide
+Zuran Enchanter
