@@ -539,8 +539,12 @@ var potentialMembersVerify = derivedMemoVerifyFlag != ""
 // the listed colours, so it bounds each of them like a dual's two abilities;
 // pricing it unbounded in every colour offered a "pay {R}" no red source
 // could fund (CR 118.3). "Combo Any" stays open through producedOpenSet, and
-// any other Combo word (ColorIdentity, Chosen) keeps a non-colour rune.
-var potentialProducedStrip = strings.NewReplacer("{", "", "}", "", " ", "", "Combo", "")
+// any other Combo word (ColorIdentity, Chosen) keeps a non-colour rune. The
+// ColorID word (Cryptic Spires' "the circled colors") is stripped to nothing:
+// cards.ProducedCounts claims no mana for it, so the source adds none and
+// pricing it unbounded offered Eye of Vecna's "pay {2}" beside one untapped
+// Spires (CR 118.3).
+var potentialProducedStrip = strings.NewReplacer("{", "", "}", "", " ", "", "Combo", "", "ColorID", "")
 
 // addPotentialMana folds one mana ability into the potential accumulator. The
 // amount and production parsing mirrors AvailableMana's addAvailable (the
