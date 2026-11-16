@@ -4,6 +4,8 @@ Aerie Bowmasters
 Ancestral Mask
 Ancient Stirrings
 Anim Pakal, Thousandth Moon
+Armed
+Arrogant Wurm
 Axgard Cavalry
 Balustrade Spy
 Barter in Blood
@@ -11,6 +13,7 @@ Behold the Multiverse
 Beneath the Sands
 Blazing Crescendo
 Blightbeetle
+Blightsoil Druid
 Blood Knight
 Blot Out
 Bushmeat Poacher
@@ -50,6 +53,7 @@ Ingot Chewer
 Island
 Jaheira, Friend of the Forest
 Jewel Thief
+Kappa Tech-Wrecker
 Karlach, Fury of Avernus
 Kaya's Ghostform
 Looter il-Kor
@@ -80,6 +84,7 @@ Propaganda
 Raiders' Wake
 Ramos, Dragon Engine
 Reckless Impulse
+Reckless Wurm
 Resolute Reinforcements
 Restoration Specialist
 Ringwarden Owl
