@@ -70,6 +70,7 @@ Carapace
 Caress of Phyrexia
 Cenn's Enlistment
 Cephalid Looter
+Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
 Chimeric Coils
@@ -81,6 +82,7 @@ Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
+Colfenor's Urn
 Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor
@@ -127,6 +129,7 @@ Dusk Legion Zealot
 Eagle of the Watch
 Elite Archers
 Elspeth, Sun's Nemesis
+Emeria Captain
 Emissary of Hope
 Emissary of Sunrise
 Entangling Vines

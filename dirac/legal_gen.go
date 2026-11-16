@@ -541,7 +541,7 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if k.gen.anyProtCol && s.protPrinted(k, sl)&c != 0 {
 		return false
 	}
-	if k.gen.anyProtF && (srcSl != NoSlot || spell || s.curEntry() != nil) && s.protQuality(k, sl, srcSl, card) {
+	if k.gen.anyProtF && (srcSl != NoSlot || spell || s.curEntry() != nil || s.g.probe.off) && s.protQuality(k, sl, srcSl, card) {
 		return false
 	}
 	return true
@@ -579,7 +579,8 @@ func (s *State) probeAbility(k *prep, a *kop.Ability, p uint8, src Slot, modes u
 }
 
 // probeAbilityFrom is abilityTargetsFeasible for an activated ability of the
-// card c that works off the battlefield (Renew from a graveyard): its source
+// card c that works off the battlefield (Renew from a graveyard, Channel from
+// the hand): its source
 // is the card, so protection from its colours bars a target (CR 115.2, 702.16b).
 func (s *State) probeAbilityFrom(k *prep, a *kop.Ability, p uint8, c CardID) bool {
 	if k.gen == nil || s.g.probe.kind != 0 {

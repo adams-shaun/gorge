@@ -75,6 +75,7 @@ Caustic Wasps
 Celestial Archon
 Ceremonious Rejection
 Chandra, Pyrogenius
+Chandra, the Firebrand
 Child of the Pack
 Chosen of Markov
 Chromescale Drake
@@ -99,6 +100,7 @@ Cylian Elf
 D'Avenant Trapper
 Darksteel Gargoyle
 Dash Hopes
+Dawn of a New Age
 Dazzling Ramparts
 Decanter of Endless Water
 Decimator Beetle
@@ -160,6 +162,7 @@ Glasspool Mimic
 Glint
 Goblin Caves
 Goblin Cohort
+Goblin Furrier
 Goblin Gardener
 Goblin Picker
 Goblin Shrine
@@ -169,6 +172,7 @@ Grapeshot Catapult
 Grasping Thrull
 Grey Host Reinforcements
 Grim Monolith
+Gwafa Hazid, Profiteer
 Halo Forager
 Halo Hopper
 Hapatra's Mark
@@ -195,6 +199,7 @@ Idyllic Grange
 Ignite the Beacon
 Illusory Wrappings
 Indulging Patrician
+Inner Demon
 Inspiring Commander
 Invasion of Ergamon
 Invasion of Kaladesh
@@ -436,6 +441,7 @@ Undercity Scrounger
 Underdark Basilisk
 Underworld Breach
 Universal Automaton
+Unquenchable Thirst
 Urgent Exorcism
 Uthros Research Craft
 Vedalken Blademaster

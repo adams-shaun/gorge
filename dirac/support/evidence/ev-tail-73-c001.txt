@@ -1,6 +1,7 @@
 A-Forge Boss
 A-Social Climber
 Abomination of Llanowar
+Aboshan, Cephalid Emperor
 Abzan Battle Priest
 Agent Frank Horrigan
 Agent of Shauku
@@ -13,9 +14,12 @@ Anara, Wolvid Familiar
 Ancient Stirrings
 Angelic Protector
 Appetite for Brains
+Arm-Mounted Anchor
 Arrogant Poet
 Aspect of Lamprey
+Assault Strobe
 Atarka, World Render
+Automated Artificer
 Avenging Huntbonder
 Bala Ged Scorpion
 Bankrupt in Blood
@@ -23,6 +27,7 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Bone Dragon
 Bonesplitter
 Boneyard Wurm
 Bottle Gnomes
@@ -41,6 +46,7 @@ Cinder Wall
 Cleaving Sliver
 Cleon, Merry Champion
 Clockwork Beetle
+Clockwork Drawbridge
 Cloud Pirates
 Cloudcrown Oak
 Cold-Eyed Selkie
@@ -51,29 +57,36 @@ Continue?
 Contraband Livestock
 Copper Gnomes
 Cunning Evasion
+Cunning Geysermage
 Curio Vendor
 Curse of Verbosity
 Dauntless Bodyguard
 Death's-Head Buzzard
 Deep-Sea Terror
+Deepglow Skate
 Delusions of Mediocrity
+Demonic Dread
 Deny Existence
 Desecrated Earth
 Diabolic Tutor
 Dimir Aqueduct
 Djeru's Renunciation
+Dragon Mantle
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
+Dúnedain Blade
 Elite Vanguard
 Embereth Shieldbreaker
 Embrace the Unknown
 Enclave Cryptologist
 Endless Cockroaches
 Engineered Might
+Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faerie Guidemother
 Falter
@@ -96,7 +109,10 @@ For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
+Frilled Sandwalla
+Fungal Plots
 Furtive Analyst
+Galazeth Prismari
 Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
@@ -120,6 +136,7 @@ Grisly Ritual
 Grotag Siege-Runner
 Ground Rift
 Gruesome Fate
+Gudul Lurker
 Guild Thief
 Gust-Skimmer
 Hapatra, Vizier of Poisons
@@ -129,6 +146,7 @@ Heap Doll
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
+Hixus, Prison Warden
 Hobgoblin Captain
 Holy Armor
 Holy Light
@@ -143,12 +161,15 @@ Increasing Devotion
 Infernal Tribute
 Inner Struggle
 Invading Manticore
+Invasion of Karsus
 Iroas's Blessing
 Iron Man, Modern Marvel
+Iron Suitcase
 Island
 Ivy Seer
 Jade Guardian
 Jalira, Master Polymorphist
+Jhessian Thief
 Jodah's Avenger
 Judge of Currents
 Jund Battlemage
@@ -156,6 +177,9 @@ Kapsho Kitefins
 Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
+Kithkin Healer
+Kithkin Spellduster
+Kragma Warcaller
 Kudo, King Among Bears
 Labyrinth Adversary
 Leap
@@ -169,7 +193,9 @@ Magmatic Sprinter
 Malanthrope
 Malfegor
 Malfunction
+Mana Severance
 Maniacal Rage
+Marauder's Axe
 Martial Glory
 Mask of Memory
 Masumaro, First to Live
@@ -186,6 +212,7 @@ Morkrut Behemoth
 Morphling
 Moss Viper
 Mountain
+Mountain Goat
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -193,6 +220,7 @@ Nettle Drone
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
+Nomad Decoy
 Norwood Priestess
 Nylea's Huntmaster
 Oathsworn Vampire
@@ -210,6 +238,7 @@ Patagia Tiger
 Phantasmal Sphere
 Pheres-Band Warchief
 Pillage
+Pitfall Trap
 Plague Spitter
 Plains
 Poison-Tip Archer
@@ -223,6 +252,7 @@ Qilin's Blessing
 Quirion Trailblazer
 Raging Bull
 Ramosian Lieutenant
+Ransack
 Raven's Crime
 Reckless Scholar
 Reckoner's Bargain
@@ -236,19 +266,25 @@ Ruin Raider
 Saber Ants
 Sagu Archer
 Samite Alchemist
+Sandstorm Charger
+Scab-Clan Charger
 Scavenged Weaponry
 Scour the Laboratory
+Scourge of Numai
 Scurry Oak
 Seafloor Oracle
 Searing Blood
 Seed the Land
 Selfless Spirit
 Senate Courier
+Serra Aviary
 Shuri's Fabricator
 Sidewinder Naga
+Sigarda's Imprisonment
 Silas Renn, Seeker Adept
 Silkguard
 Silverquill Apprentice
+Sivvi's Ruse
 Skirk Shaman
 Skittish Kavu
 Skulking Ghost
@@ -259,12 +295,15 @@ Skysnare Spider
 Sly Spy
 Smogsteed Rider
 Snake Pit
+Snapback
 Snow-Covered Plains
 Soratami Mirror-Mage
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
 Spawning Kraken
+Spider-Man, Peter Parker
+Spirit Cairn
 Spiritual Sanctuary
 Spiteful Motives
 Spoils of Victory
@@ -289,9 +328,11 @@ Survey the Wreckage
 Swamp
 Sword of the Animist
 Sylvan Ranger
+TVA Bureaucrat
 Tallyman of Nurgle
 Tar Pit Warrior
 Tarkir Duneshaper
+Taste for Mayhem
 The Stasis Coffin
 Thraben Charm
 Thunder Totem
@@ -306,12 +347,14 @@ Treacherous Vampire
 Treefolk Healer
 Twinscroll Shaman
 Tyrant's Familiar
+Ulvenwald Hydra
 Undercity Troll
 Unholy Officiant
 Union of the Third Path
 Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
+Vedalken Ghoul
 Verdurous Gearhulk
 Veteran Armorer
 Violet Pall
@@ -324,10 +367,12 @@ Voldaren Pariah
 Waking the Trolls
 Wall of Lava
 Warclamp Mastiff
+Warhorn Blast
 Wei Strike Force
 Wicked Slumber
 Windstorm
 Wispweaver Angel
 Witch's Web
+Witching Well
 Zealous Persecution
 Zhalfirin Shapecraft

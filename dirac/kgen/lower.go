@@ -1172,10 +1172,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Ascend = true
 		case head == "Unleash" && param == "": // CR 702.86: the as-enters ask and the block gate (lower_unleash.go)
 			lc.lowerUnleash()
-		case head == "Bloodthirst":
-			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
-			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
-			lc.guard(node, func() error { return lc.lowerBloodthirst(param) })
+		case lc.lowerParamKeyword(node, head, param): // Bloodthirst, Dredge (lower_dredge.go)
 		case head == "Wither" && param == "":
 			lc.out.Wither = true // CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackAlone && param == "":

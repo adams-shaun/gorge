@@ -746,9 +746,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if k.gen != nil && k.gen.anyStation && s.stationPick(k, d) {
 					return true // Station's tap pick precedes the push (ctr_kinds.go)
 				}
-				if (e.kind == seSpell || e.kind == seAbility && k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb)) && s.noProgress() {
-					s.bld().bfl |= bflNoProg
-				}
+				s.pushNoProg(e.kind)
 				s.pushBuild(k)
 			}
 			if e.faceDown() {
@@ -2661,6 +2659,16 @@ func (s *State) pendCount(p uint8) int {
 // (the same turn and step, no object written).
 func (s *State) noProgress() bool {
 	return s.heldTurn == uint16(s.turn) && s.heldStep == s.step && s.heldTouch == s.touchN
+}
+
+// pushNoProg arms bflNoProg on the build when the spell or activation being
+// pushed is itself no progress: the CR 733.2 hold-out counts the reversal of
+// every card, not only beside waterbend or an X-bound ability (gorge
+// abortCast arms suppressedCast for any card's second no-progress abort).
+func (s *State) pushNoProg(kind uint8) {
+	if (kind == seSpell || kind == seAbility) && s.noProgress() {
+		s.bld().bfl |= bflNoProg
+	}
 }
 
 // castHeldOut: gorge holds out a card's cast after its second undo in a

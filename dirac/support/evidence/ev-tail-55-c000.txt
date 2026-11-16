@@ -64,6 +64,7 @@ Bosh, Iron Golem
 Bosk Banneret
 Braids, Cabal Minion
 Brainbite
+Breath of the Sleepless
 Briar Hydra
 Brokers Veteran
 Bubble Snare
@@ -161,6 +162,8 @@ Fiddlehead Kami
 Fierce Guardianship
 Fire Ants
 Fire Nation Soldier
+Fireborn Knight
+Firemane Avenger
 Firemane Commando
 Fireslinger
 Firestorm Hellkite
@@ -202,6 +205,7 @@ Grizzled Leotau
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
+Guardian of the Forgotten
 Gush
 Gust of Wind
 Hag Hedge-Mage
@@ -446,6 +450,7 @@ Ur-Golem's Eye
 Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
+Venarian Gold
 Venerable Lammasu
 Vengeant Vampire
 Verdigris

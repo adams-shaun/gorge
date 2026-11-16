@@ -14,6 +14,7 @@ Afterlife Insurance
 Aftershock
 Agent of Horizons
 Agent of Masks
+Aid from the Cowl
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
@@ -68,6 +69,7 @@ Charforger
 Chittering Witch
 Circle of Flame
 Citywatch Sphinx
+Cold-Water Snapper
 Commander Greven il-Vec
 Confront the Unknown
 Consult the Necrosages
@@ -96,6 +98,7 @@ Deranged Whelp
 Despondent Killbot
 Destroy Evil
 Destructive Digger
+Detonate
 Dewdrop Spy
 Dimir Machinations
 Dire Tactics
@@ -105,21 +108,26 @@ Dovescape
 Draconic Destiny
 Dragonlord Silumgar
 Dragonwing Glider
+Drawn from Dreams
 Dread Warlock
 Drelnoch
+Dripping Dead
 Dross Golem
 Dross Prowler
 Dwarven Forge-Chanter
 Dwarven Priest
 Dwarven Weaponsmith
+Dáin's Company
 Déjà Vu
 Eager First-Year
 Earthshape
+Ebon Drake
 Ebony Charm
 Ebony Horse
 Electric Revelation
 Elven Ambush
 Ember-Eye Wolf
+Encroach
 Eternal Taskmaster
 Ethereal Absolution
 Extinction
@@ -140,6 +148,7 @@ Force Spike
 Forceful Cultivator
 Forest
 Freejam Regent
+Frontline Sage
 Furious Resistance
 Furnace Gremlin
 Gaea's Might
@@ -154,12 +163,14 @@ Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Grozoth
 Gwaihir, Greatest of the Eagles
 Hammer of Purphoros
 Harvesttide Infiltrator
 Haunted Dead
 Hazoret's Monument
+Healer's Headdress
 History of Benalia
 Honor's Reward
 Horrific Assault
@@ -169,8 +180,10 @@ Illustrious Historian
 Indulgent Tormentor
 Inexorable Tide
 Infected Defector
+Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Inspiring Veteran
 Insurrection
 Invasive Species
 Ire of Kaminari
@@ -179,6 +192,7 @@ Island
 Jabs, Mistress of Mockery
 Jace's Triumph
 Jaspera Sentinel
+Jelenn Sphinx
 Jhoira's Familiar
 Kambal, Consul of Allocation
 Katara, Heroic Healer
@@ -194,6 +208,7 @@ Land Grant
 Lava Coil
 Leaden Fists
 Legolas Greenleaf
+Liege of the Pit
 Lightfoot Rogue
 Lightning Elemental
 Liliana's Influence
@@ -204,13 +219,16 @@ Lumengrid Sentinel
 Lunk Errant
 Mace of the Valiant
 Magistrate's Scepter
+Magnetic Theft
 Manabond
 Marauding Boneslasher
 Marauding Knight
 Mass Hysteria
+Mawcor
 Maximize Altitude
 Memorial to Folly
 Military Intelligence
+Mimic
 Mindless Conscription
 Ministrant of Obligation
 Mogg Conscripts
@@ -241,6 +259,7 @@ Overgrowth
 Pack's Disdain
 Pashalik Mons
 Pegasus Refuge
+Perilous Shadow
 Phantom Nishoba
 Phoenix Chick
 Photon, Mighty Marvel
@@ -253,9 +272,12 @@ Psychotic Fury
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quarantine Field
 Quirion Dryad
 Raiders' Spoils
+Rattlechains
 Ravenous Leucrocota
+Razaketh's Rite
 Raze
 Razorjaw Oni
 Reanimate
@@ -263,6 +285,7 @@ Reaver Drone
 Reckoner's Bargain
 Redemption Choir
 Regeneration
+Relentless Advance
 Remember the Fallen
 Rending Volley
 Renounce
@@ -270,6 +293,7 @@ Reverent Hunter
 Rewind
 Rhys the Redeemed
 Rip Apart
+Riptide Chronologist
 Roar of the Wurm
 Rona, Disciple of Gix
 Roofstalker Wight
@@ -304,6 +328,7 @@ Shu Grain Caravan
 Sibling Rivalry
 Sifter of Skulls
 Sisay's Ring
+Sivitri Scarzam
 Skizzik Surger
 Skyclave Relic
 Skyreaping
@@ -325,6 +350,7 @@ Striped Bears
 Subversion
 Swamp
 Sylvan Hierophant
+Sythis, Harvest's Hand
 Tajuru Warcaller
 Temple Elder
 Temporal Machinations
@@ -338,6 +364,7 @@ Thresher Lizard
 Timberland Ancient
 Tin Street Hooligan
 Tin-Wing Chimera
+Tolsimir, Friend to Wolves
 Towering Thunderfist
 Trained Armodon
 Trained Jackal
@@ -356,7 +383,9 @@ Undead Servant
 Undo
 Unyaro Bee Sting
 Urborg Shambler
+Urza's Command
 Utvara Scalper
+Vedalken Engineer
 Verdant Crescendo
 Verdant Embrace
 Vernal Fen

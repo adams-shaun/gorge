@@ -10,6 +10,7 @@ Arc Mage
 Arc Spitter
 Aria of Flame
 Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Ashling, the Extinguisher
 Augmenting Automaton
@@ -17,8 +18,10 @@ Augur of Bolas
 Avaricious Dragon
 Aven Sunstriker
 Bad Moon
+Batroc the Leaper
 Batterbone
 Battle Mammoth
+Battlefly Swarm
 Berserk Murlodont
 Biomathematician
 Black Widow, Deadly Hunter
@@ -52,10 +55,12 @@ Checkpoint Officer
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Centaurs
 Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
 Cobblebrute
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Cradle Clearcutter
@@ -88,6 +93,7 @@ Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
 Elvish Piper
+Elvish Promenade
 Elvish Scrapper
 Elvish Visionary
 Emmara, Soul of the Accord
@@ -104,6 +110,7 @@ Explosive Revelation
 Extinguish the Light
 Eye Spy
 Faerie Duelist
+Fallen Shinobi
 Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
@@ -156,6 +163,7 @@ Howling Golem
 Humongulus
 Hunted Dragon
 Incriminate
+Inferno Fist
 Inspired Fire
 Invigorating Boon
 Island
@@ -168,6 +176,7 @@ Kayla's Command
 Kessig Wolfrider
 Kiln Walker
 Kor Cartographer
+Kor Entanglers
 Kor Scythemaster
 Kuldotha Rebirth
 Lantern of Revealing
@@ -179,17 +188,22 @@ Library
 Life
 Living Wish
 Long-Finned Skywhale
+Lu Su, Wu Advisor
 Lurking Roper
+Magistrate's Veto
 Malicious Intent
 Maned Serval
+Manic Scribe
 Manifold Key
 Manta Riders
 Mask of Law and Grace
 Mass Hysteria
 Maze Skullbomb
+Merciless Eternal
 Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
+Mindmelter
 Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
@@ -210,6 +224,7 @@ Ocular Halo
 Ogre Gatecrasher
 Omnath, Locus of Rage
 Orochi Hatchery
+Overflowing Basin
 Pallid Mycoderm
 Part the Veil
 Patagia Golem
@@ -278,6 +293,7 @@ Selesnya Sanctuary
 Serendib Efreet
 Serpent-Blade Assailant
 Serra Ascendant
+Shalai, Voice of Plenty
 Shao Jun
 Shape the Sands
 Shower of Coals
@@ -293,6 +309,7 @@ Snow-Covered Mountain
 So Shiny
 Soratami Savant
 Soulshriek
+Spawn-Gang Commander
 Squadron Hawk
 Squirrel Sanctuary
 Stone Catapult
@@ -300,6 +317,7 @@ Stone Rain
 Stonefury
 Storm Fleet Sprinter
 Storm Shaman
+Stormchaser Mage
 Stormfront Pegasus
 Struggle for Skemfar
 Stump Stomp
@@ -338,6 +356,7 @@ Vector Asp
 Vengeful Dead
 Vengeful Firebrand
 Vengeful Rebirth
+Viridian Harvest
 Virtue's Ruin
 Vitu-Ghazi Guildmage
 Voracious Fell Beast
@@ -355,6 +374,7 @@ Whiptongue Frog
 Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Wirewood Lodge

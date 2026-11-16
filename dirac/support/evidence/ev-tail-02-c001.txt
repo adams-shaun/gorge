@@ -1,92 +1,166 @@
 A-Unholy Heat
 Aerith, Last Ancient
+Ajani's Welcome
 Akroma's Blessing
 Alesha's Vanguard
+Atsushi, the Blazing Sky
+Barbary Apes
+Bash to Bits
 Bedeck
+Belligerent Guest
 Bloodboil Sorcerer
 Bloodgift Demon
 Borderland Marauder
+Bringer of the White Dawn
 Bristling Boar
 Burning Palm Efreet
+Burning Prophet
 Butcher of Malakir
+Callous Giant
 Captain's Call
 Celestine, the Living Saint
+Centaur Omenreader
+Chain of Plasma
+Char-Rumbler
 Cho-Manno's Blessing
+Complex Automaton
 Counterspell
+Crookshank Kobolds
 Curse of the Restless Dead
 Demon of Loathing
+Devilish Valet
+Disciple of Bolas
 Eidolon of Rhetoric
 Eldritch Evolution
+Elegant Edgecrafters
+Ember Swallower
 Erebos, God of the Dead
+Expedition Envoy
 Faceless Butcher
 Falkenrath Perforator
 Farideh's Fireball
+Favorable Winds
+Feasting Troll King
 Fell the Profane
+Festive Funeral
+Firecannon Blast
 Firedrinker Satyr
+Flowstone Channeler
+Force Void
 Forest
 Gadrak, the Crown-Scourge
+Gang of Elk
 Gods Willing
 Grapple with the Past
 Hapatra, the Desert Frost
 Harried Artisan
 Haughty Djinn
+Hawkeater Moth
+Hearts on Fire
+Hidden Herbalists
 Hollowhead Sliver
 Horned Troll
 Hydrolash
+Incorrigible Youths
+Inexorable Tide
+Inflame
 Island
+Jade Bearer
 Jangling Automaton
 Keepers of the Faith
+Kessig Malcontents
+Kismet
 Knight of Obligation
 Knight of the Stampede
+Korlessa, Scale Singer
+Lead the Stampede
+Lifebane Zombie
 Lingering Souls
 Loxodon Lifechanter
 Magmatic Sprinter
 Malakir Rebirth
 Master of Etherium
 Melesse Spirit
+Mire Shade
 Mistwalker
+Moonstone Eulogist
+Moss Monster
 Mountain
 Mox Ruby
+Mystic Forge
 Nightshade Stinger
+Nylea's Huntmaster
 Nyxborn Colossus
+Obsessive Skinner
 Ohabi Caleria
+Ojutai Interceptor
+On the Trail
+Ondu Cleric
+Otherworldly Outburst
 Owlbear Shepherd
+Persistent Specimen
+Pestilent Syphoner
 Plains
 Planar Collapse
 Psychic Miasma
 Quicksilver, Speedster
 Rathi Trapper
+Reality Anchor
 Reaper of the Wilds
+Reborn Hero
 Reckless Air Strike
 Reckless One
 Rewind
 Rite of Passage
+Roar of the Crowd
+Rumbling Sentry
+Scent of Cinder
+Scout the Borders
+Screeching Phoenix
 Selesnya Keyrune
+Shatter Assumptions
+Showstopper
 Sivitri Scarzam
 Skatewing Spy
+Skirsdag Supplicant
+Skittering Precursor
+Skola Grovedancer
+Skyshroud Ridgeback
 Snorting Gahr
 Sokenzan Bruiser
 Solitary Camel
+Sparring Golem
 Spawning Pit
+Sphere of Truth
 Stolen Vitality
 Swamp
+Sword Dancer
+Take Vengeance
 Tel-Jilad Fallen
 Temple Altisaur
+Thorned Moloch
 Thrun, Breaker of Silence
+Toil
 Tome Raider
 Tormentor Exarch
 Trade Routes
 Tranquilize
+Untamed Wilds
 Urgent Exorcism
 Venerable Warsinger
 Viashino Heretic
 Vithian Renegades
+Voltaic Key
+Wake of Vultures
+Wall of Pine Needles
 Wall of Runes
 Wayward Guide-Beast
+Whispers of Emrakul
 Wicker Warcrawler
 Wild Research
 Wild Wurm
 Wispmare
 Worldly Tutor
 Wring Flesh
+Yawning Fissure
 Zebra Unicorn

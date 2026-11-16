@@ -20,6 +20,7 @@ Arachnus Web
 Arcane Proxy
 Argentum Armor
 Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
@@ -27,6 +28,7 @@ Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
+Awesome Presence
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -139,6 +141,7 @@ Ember Beast
 Embercleave
 Emeria Angel
 End the Festivities
+Endless Obedience
 Enthusiastic Mechanaut
 Epicenter
 Essence Infusion
@@ -168,6 +171,7 @@ Flesh-Eater Imp
 Flickering Ward
 Flowstone Kavu
 Foil
+Forerunner of the Coalition
 Forest
 Forsaken City
 Frenzied Fugue
@@ -280,6 +284,7 @@ Maximize Velocity
 Menagerie Liberator
 Mer-Ek Nightblade
 Metastatic Evangel
+Midnight Clock
 Minamo, School at Water's Edge
 Mind Harness
 Mind Maggots
@@ -450,6 +455,7 @@ Those Who Serve
 Thousand-Year Elixir
 Thran Dynamo
 Thriving Moor
+Thunderstaff
 Thurid, Mare of Destiny
 Timbermaw Larva
 Time Reversal

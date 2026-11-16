@@ -18,6 +18,7 @@ Anchor to the Aether
 Ancient Grudge
 Angelic Gift
 Anointer of Champions
+Arachnogenesis
 Arachnoid
 Arachnoid Adaptation
 Arashin Foremost
@@ -245,6 +246,7 @@ Merfolk Pupil
 Metallic Mimic
 Metalwork Colossus
 Millicent, Restless Revenant
+Mind Funeral
 Mind's Eye
 Minsc, Beloved Ranger
 Mirran Banesplitter
@@ -319,6 +321,7 @@ Reduce
 Reject Imperfection
 Repel the Darkness
 Repentance
+Replicating Ring
 Reprisal
 Resculpt
 Retreat to Hagra
@@ -366,11 +369,13 @@ Spawnbed Protector
 Spell Snuff
 Spellrune Painter
 Spidersilk Net
+Spike Jester
 Squall Drifter
 Stampeding Wildebeests
 Startling Development
 Statute of Denial
 Storm, Queen of Wakanda
+Stormtide Leviathan
 Stratadon
 Submerged Boneyard
 Sunhome, Fortress of the Legion
@@ -416,6 +421,7 @@ Vithian Stinger
 Vivid Meadow
 Volrath's Stronghold
 Wandering Mind
+Water Servant
 Weed-Pruner Poplar
 Whipflare
 World Breaker

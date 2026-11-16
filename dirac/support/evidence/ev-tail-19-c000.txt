@@ -9,6 +9,7 @@ Acidic Slime
 Aerie Auxiliary
 Aetherstorm Roc
 Akki Blizzard-Herder
+Akroma's Vengeance
 Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
@@ -412,6 +413,7 @@ Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
 Wormfang Behemoth
+Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
 Yavimaya Gnats
 Yavimaya Sapherd

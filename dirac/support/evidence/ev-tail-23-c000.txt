@@ -37,6 +37,7 @@ Aven Windreader
 Axebane Stag
 Axgard Artisan
 Ayula's Influence
+Baloth Gorger
 Barbed Battlegear
 Barishi
 Baru, Fist of Krosa
@@ -95,6 +96,7 @@ Daru Lancer
 Dauntless Aven
 Day's Undoing
 Daybreak Charger
+Deepchannel Mentor
 Defender en-Vec
 Deflecting Swat
 Dense Canopy
@@ -119,6 +121,7 @@ Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
 Exhibition Magician
+Exile
 Experimental Synthesizer
 Explore
 Extruder
@@ -139,9 +142,11 @@ Forcemage Advocate
 Forest
 Fortify
 Fungusaur
+Fylamarid
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
+Gempalm Incinerator
 Giant Warthog
 Gitaxian Raptor
 Gix's Caress
@@ -229,6 +234,7 @@ Makindi Griffin
 Malfegor
 Maritime Guard
 Master Skald
+Master Transmuter
 Mastermind's Acquisition
 Mausoleum Guard
 Mechanized Warfare
@@ -255,6 +261,7 @@ Niall Silvain
 Night Market Lookout
 Nimbleclaw Adept
 Nivix Barrier
+No One Left Behind
 Obscura Storefront
 Okina, Temple to the Grandfathers
 Ondu Greathorn
@@ -278,15 +285,19 @@ Phantasmagorian
 Phantasmal Abomination
 Pilgrim's Eye
 Pillardrop Warden
+Pitiless Pontiff
 Plains
 Polukranos, World Eater
 Portcullis Vine
+Predatory Advantage
 Preordain
 Prismatic Lens
 Prison Realm
 Prized Unicorn
 Profound Journey
 Prosperous Pirates
+Radiant Kavu
+Rampart Architect
 Rankle, Master of Pranks
 Rath's Edge
 Reef Worm
@@ -326,6 +337,7 @@ Siegehorn Ceratops
 Slither Blade
 Sliver Construct
 Smash
+Smokestack
 Smuggler's Copter
 Solarion
 Somberwald Sage
@@ -337,6 +349,7 @@ Spark Jolt
 Spellstutter Sprite
 Sphinx-Bone Wand
 Sporoloth Ancient
+Stand United
 Starlit Angel
 Stomp and Howl
 Stone Quarry
@@ -369,6 +382,7 @@ Tricks of the Trade
 Trollhide
 Trudge Garden
 Trusty Machete
+Trygon Prime
 Turn to Slag
 Twilight Prophet
 Twinblade Slasher
@@ -397,6 +411,7 @@ Warden of Geometries
 Warning
 Warriors' Lesson
 Waste Not
+Waterfall Aerialist
 Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog

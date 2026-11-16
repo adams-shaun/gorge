@@ -223,6 +223,7 @@ Leonin Lightbringer
 Ley Druid
 Lifecrafter's Bestiary
 Lifecrafter's Gift
+Liliana, Death's Majesty
 Lithatog
 Llanowar Envoy
 Lodestone Golem
@@ -241,6 +242,7 @@ Meekstone
 Melancholy
 Merchant of Truth
 Merciless Repurposing
+Merrow Reejerey
 Mesa Unicorn
 Midnight Assassin
 Mikaeus, the Lunarch
@@ -257,6 +259,7 @@ Nameless One
 Nessian Courser
 Night Incarnate
 Night of Souls' Betrayal
+Nikko-Onna
 Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
@@ -368,6 +371,7 @@ Survivor of the Unseen
 Swamp
 Swarming of Moria
 Swift Spinner
+Sylvok Battle-Chair
 Tail Swipe
 Tajuru Blightblade
 Tales of Master Seshiro

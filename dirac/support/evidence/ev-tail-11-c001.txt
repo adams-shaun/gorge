@@ -16,6 +16,7 @@ Alpine Guide
 Anarchy
 Anax and Cymede
 Angelic Voices
+Anje, Maid of Dishonor
 Annihilating Glare
 Aphemia, the Cacophony
 Archdemon of Paliano
@@ -30,6 +31,7 @@ Astral Steel
 Atalan Jackal
 Aven Heartstabber
 Azusa's Many Journeys
+Bag End Porter
 Bane Alley Blackguard
 Barbarian Lunatic
 Battle Frenzy
@@ -70,11 +72,13 @@ Cinder Storm
 Citadel of Pain
 City of Traitors
 Clearwater Pathway
+Cleric of Life's Bond
 Cloak of Mists
 Cloudgoat Ranger
 Cobalt Golem
 Collective Nightmare
 Comparative Analysis
+Consecrate
 Consecrated by Blood
 Constricting Sliver
 Control of the Court
@@ -86,6 +90,7 @@ Curse Artifact
 Dakmor Sorceress
 Dauthi Warlord
 Dawnbringer Cleric
+Day of the Dragons
 Deadeye Harpooner
 Defiant Falcon
 Deglamer
@@ -96,6 +101,7 @@ Destructive Revelry
 Devour Flesh
 Devour in Shadow
 Diabolic Revelation
+Disfigure
 Dismiss
 Divine Verdict
 Domesticated Hydra
@@ -105,11 +111,15 @@ Dragon's Approach
 Dragonscale Boon
 Dragonstalker
 Dragonstorm
+Dream's Grip
 Druidic Satchel
+Dwarven Hammer
 Electrostatic Field
 Elephant Graveyard
+Elspeth, Sun's Champion
 Elven Rite
 Elvish Warmaster
+Emry, Lurker of the Loch
 Enlightened Ascetic
 Ensouled Scimitar
 Ephara's Warden
@@ -124,6 +134,7 @@ Feral Shadow
 Firebolt
 Fireflux Squad
 Flametongue Kavu
+Fleshtaker
 Florian, Voldaren Scion
 Flowstone Embrace
 Flying Carpet
@@ -158,6 +169,7 @@ Goldmire Bridge
 Grappling Sundew
 Grave Strength
 Graveborn Muse
+Gravelgill Duo
 Grim Flowering
 Grotag Thrasher
 Grotesque Demise
@@ -166,6 +178,7 @@ Hazezon Tamar
 Hellkite Whelp
 Hematite Golem
 Henge Guardian
+Heron-Blessed Geist
 Hideous End
 Hideous Visage
 Highland Weald
@@ -181,6 +194,7 @@ Insight
 Ironroot Warlord
 Irresistible Prey
 Island
+Jace's Sanctum
 Jamie McCrimmon
 Junkyard Genius
 Justiciar's Portal
@@ -188,10 +202,12 @@ Juvenile Mist Dragon
 Kagemaro's Clutch
 Kamahl's Desire
 Kami of Ancient Law
+Kami of Twisted Reflection
 Kindly Stranger
 Kinsbaile Balloonist
 Kjeldoran Dead
 Knight of Autumn
+Labyrinth Champion
 Larder Zombie
 Last-Ditch Effort
 Lay Down Arms
@@ -206,7 +222,9 @@ Lightning Dragon
 Living Wall
 Llanowar Loamspeaker
 Loam Lion
+Lose Hope
 Lost in a Labyrinth
+Lotus Bloom
 Loxodon Punisher
 Loxodon Wayfarer
 Lunar Avenger
@@ -215,6 +233,7 @@ Magic Missile
 Magus of the Tabernacle
 Makindi Aeronaut
 Malakir Rebirth
+Mana Cannons
 Mana Confluence
 Mana Geyser
 Many Partings
@@ -223,6 +242,7 @@ Marisi's Twinclaws
 Master of Diversion
 Maul Splicer
 Max, the Daredevil
+Mer Man
 Metathran Transport
 Minas Tirith
 Mind Knives
@@ -243,13 +263,16 @@ Murasa Brute
 Murder of Crows
 Myr Propagator
 Nantuko Blightcutter
+Naya Panorama
 Nekrataal
 Nema Siltlurker
 Nemesis Mask
 Nemesis of Mortals
 Nighthowler
+Nissa, Worldwaker
 Noggle Hedge-Mage
 Noxious Revival
+Numbing Jellyfish
 Nyx Infusion
 Nyxborn Seaguard
 Ob Nixilis's Cruelty
@@ -257,9 +280,11 @@ Of Herbs and Stewed Rabbit
 Ojutai's Breath
 Ojutai's Summons
 Opaline Bracers
+Overcome
 Palazzo Archers
 Parallax Tide
 Path of Bravery
+Pathway Arrows
 Petrified Plating
 Phyrexian Fleshgorger
 Phyrexian Warhorse
@@ -301,14 +326,18 @@ Seedcradle Witch
 Seer's Lantern
 Seize the Initiative
 Self-Assembler
+Send to Sleep
 Sentinels of Glen Elendra
 Setessan Griffin
+Shacklegeist
 Sheltered Thicket
 Shire Scarecrow
+Shire Terrace
 Shiv's Embrace
 Shu Elite Companions
 Silkenfist Order
 Silumgar Butcher
+Silver Seraph
 Sinkhole
 Skorpekh Destroyer
 Skyclave Apparition
@@ -339,6 +368,7 @@ Squealing Devil
 Stampede Driver
 Star Pupil
 Starfall
+Steel Sabotage
 Stormrider Spirit
 Striding Shotcaller
 Subterranean Tremors
@@ -388,6 +418,7 @@ Ulcerate
 Unagi's Spray
 Unconventional Tactics
 Unnatural Speed
+Vampire Opportunist
 Vermiculos
 Viashino Sandstalker
 Vicious Offering
@@ -397,6 +428,7 @@ Voice of Law
 Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
+Wash Out
 Waste Away
 Weapons Trainer
 Welkin Hawk

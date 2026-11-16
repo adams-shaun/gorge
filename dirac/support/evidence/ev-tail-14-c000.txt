@@ -2,6 +2,7 @@ A-Dreamshackle Geist
 A-High-Rise Sawjack
 A-Knockout Blow
 A-Psionic Snoop
+A-Splitting the Powerstone
 A-Tome Shredder
 Abyssal Nightstalker
 Adarkar Wastes
@@ -14,6 +15,7 @@ Ambush Krotiq
 Angrath, Captain of Chaos
 Anointed Deacon
 Arashin War Beast
+Archivist of Oghma
 Archnemesis
 Argivian Archaeologist
 Armor Thrull
@@ -30,13 +32,18 @@ Battlefield Butcher
 Battlefield Percher
 Battleground Geist
 Blade of the Bloodchief
+Blaster Mage
 Blazethorn Scarecrow
 Bleeding Edge
 Blight Mamba
 Blight Titan
+Bloated Processor
 Blood Aspirant
+Bloodcrazed Socialite
 Blustersquall
 Body Launderer
+Bolg, Erebor's Reckoning
+Bone Sabres
 Bone Saw
 Boon of Erebos
 Boros Reckoner
@@ -46,14 +53,17 @@ Brothers of Fire
 Buy Your Silence
 Call to Serve
 Caravan Hurda
+Carnassid
 Cartouche of Knowledge
 Carven Caryatid
 Cement Shoes
 Centaur Glade
 Centaur Veteran
 Cessation
+Chalice of Life
 Chalice of the Void
 Chandra's Firemaw
+Charging Tuskodon
 Chatterstorm and Awaken the Woods
 Chicken Egg
 Chief Engineer
@@ -75,28 +85,36 @@ Darkling Stalker
 Dauthi Marauder
 Dauthi Mindripper
 Death Watch
+Deem Worthy
+Defiant Bloodlord
 Deglamer
 Deluge of Doom
 Demonspine Whip
 Denethor, Stone Seer
 Dewdrop Spy
 Dimir Keyrune
+Dire Undercurrents
+Dirgur Focusmage
+Dissipation Field
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
 Drakestown Forgotten
 Dread Fugue
 Dreadhorde Twins
+Dripping-Tongue Zubera
 Duelcraft Trainer
 Dystopia
 Elder Owyn Lyons
 Elvish Herder
 Elvish Warmaster
+Empty the Catacombs
 Empty the Warrens
 Enfeeblement
 Enshrined Memories
 Entrails Feaster
 Entrapment Maneuver
+Erebos, God of the Dead
 Erstwhile Trooper
 Essence Drain
 Eunuchs' Intrigues
@@ -122,6 +140,7 @@ Force of Nature
 Forest
 Forgotten Sentinel
 Foul Presence
+Fungal Bloom
 Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
@@ -132,10 +151,15 @@ Goblin Firestarter
 Goblin Glory Chaser
 Goblin Machinist
 Goblin Sledder
+Goblin Traprunner
 Goblin Wardriver
 Gold Myr
+Golgari Rotwurm
 Goretusk Firebeast
+Gravel-Hide Goblin
 Grip of the Roil
+Groffskithur
+Groundshaker Sliver
 Gruul Ragebeast
 Guard Duty
 Guardian Idol
@@ -143,6 +167,7 @@ Gutter Skulk
 Gutwrencher Oni
 Guul Draz Specter
 Hag of Ceaseless Torment
+Harabaz Druid
 Harrier Griffin
 Hate Weaver
 Haunted Library
@@ -156,11 +181,15 @@ Hexmark Destroyer
 Hightide Hermit
 Hissing Iguanar
 Hitchclaw Recluse
+Hobbling Zombie
 Hollowhenge Beast
 Hookblade Veteran
+Hound of Urabrask
 Hymn of Rebirth
 Illusionary Forces
+Incriminating Impetus
 Inferno Project
+Initiate of Blood
 Inspiring Unicorn
 Ior Ruin Expedition
 Iron Man, Futurist Paragon
@@ -171,12 +200,16 @@ Jaspera Sentinel
 Join the Dance
 Journeyer's Kite
 Joven and Chandler
+Karsus Depthguard
 Kavu Scout
 Kazuul's Fury
+Keeper of the Accord
 Kiora's Follower
 Knight of Cliffhaven
 Krosan Drover
+Krumar Bond-Kin
 Lagomos, Hand of Hatred
+Laid to Rest
 Leering Emblem
 Leonin of the Lost Pride
 Lethal Protection
@@ -195,9 +228,12 @@ Lurking Skirge
 Mana Flare
 Manaform Hellkite
 Mandibular Kite
+Manglehorn
 Mardu Outrider
+Merfolk Wayfinder
 Mesmeric Sliver
 Mighty Emergence
+Migloz, Maze Crusher
 Mind Whip
 Mindsplice Apparatus
 Mindswipe
@@ -205,6 +241,7 @@ Mindwrack Demon
 Mirran Spy
 Mishra's Juggernaut
 Mishra's Workshop
+Miss Highwater
 Mockingbird, Bobbi Morse
 Mogg Bombers
 Molten Monstrosity
@@ -221,27 +258,36 @@ Mystic of the Hidden Way
 Nael, Avizoa Aeronaut
 Nantuko Calmer
 Narnam Cobra
+Nether Traitor
+Nightscape Apprentice
 Nourish
 Nyxborn Rollicker
 Octavia, Living Thesis
+Ocular Halo
+Odious Trow
 Ogre Resister
 Olog-hai Crusher
 Omega Myr
 Onakke Ogre
+Ophidian Eye
 Orah, Skyclave Hierophant
 Origin of the Hulk
 Paladin Elizabeth Taggerdy
 Palladium Myr
+Patron of the Vein
 Personal Tutor
+Persuasion
 Phantasmal Shieldback
 Phenomenon Investigators
 Phyrexian Broodlings
 Pia and Kiran Nalaar
 Pieces of the Puzzle
+Pit Spawn
 Pitfall Trap
 Pixie Illusionist
 Plague Myr
 Plains
+Planar Disruption
 Plated Rootwalla
 Plea for Guidance
 Power Boost
@@ -280,13 +326,16 @@ Revitalizing Repast
 Reviving Melody
 Ribbon Snake
 Ring of Kalonia
+Ringwarden Owl
 Riptide Pilferer
 Rite of Passage
 Rock Lobster
 Ruination Rioter
 Sagittars' Volley
+Salivating Gremlins
 Sandwurm Convergence
 Saprazzan Legate
+Saruman's Trickery
 Scaldkin
 Scaled Herbalist
 Scholar of Stars
@@ -319,15 +368,19 @@ Snow-Covered Swamp
 Solemn Recruit
 Solitary Camel
 Soul of Zendikar
+Soulcatchers' Aerie
 Soulscour
 Soulstinger
 Spawning Bed
+Spinal Villain
+Spitting Spider
 Spread the Sickness
 Squealing Devil
 Starnheim Aspirant
 Starved Rusalka
 Steel Dromedary
 Stensia Banquet
+Stoke the Flames
 Stone Kavu
 Storm Entity
 Storm's Wrath
@@ -355,8 +408,10 @@ Thirst for Meaning
 Throat Slitter
 Throttle
 Thunderous Snapper
+Tilling Treefolk
 Toe-Breaking Helmet
 Toothy, Imaginary Friend
+Tor Wauki the Younger
 Tormod, the Desecrator
 Torpid Moloch
 Toucan-Puffin
@@ -368,6 +423,7 @@ Trigon of Infestation
 True-Faith Censer
 Tundra Wolves
 Turbulent Steppe
+Twice Upon a Time
 Ugin's Mastery
 Umbris, Fear Manifest
 Unbreathing Horde
@@ -380,6 +436,7 @@ Vanishing Verse
 Vanishment
 Vastwood Hydra
 Vault 87: Forced Evolution
+Vault Skyward
 Veteran Armorer
 Vicious Battlerager
 Villainous Ogre
@@ -403,3 +460,4 @@ Wyleth, Soul of Steel
 Yanling's Harbinger
 Zimone, Mystery Unraveler
 Zof Consumption
+Zuran Spellcaster

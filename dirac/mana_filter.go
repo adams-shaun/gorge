@@ -294,16 +294,9 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 		n++
 	}
 	best := -1
+	w := filtWalk{s: s, k: k, filt: &filt, cost: cost, anyColor: anyColor}
 	for set := 1; set < 1<<n; set++ {
-		t := *av
-		if !s.filtActivate(k, &t, &filt, set) {
-			continue
-		}
-		if anyColor {
-			best = max(best, t.maxXAnyColor(cost))
-		} else {
-			best = max(best, t.maxX(cost, pipMaskOf(cost)))
-		}
+		best = max(best, w.activate(*av, filtPos{set: set}))
 	}
 	return best
 }
@@ -326,57 +319,110 @@ func (s *State) filtBoundExtra(k *prep, p uint8) int {
 	return n
 }
 
-// filtActivate activates the filters of set (bits of filt) on t: each gives up
-// its free ability's mana, pays its fee out of the mana made so far and adds
-// its own. The fees are paid in an order that funds them, the filters that
-// add at least what they cost first; false when some fee cannot be paid.
-func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set int) bool {
-	for pass := 0; pass < 2; pass++ {
-		for progress := true; progress && set != 0; {
-			progress = false
-			for i := range filt {
-				if set&(1<<i) == 0 {
-					continue
-				}
-				sl := filt[i]
-				var pc *pcard
-				if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
-					pc = s.manaPCGen(k, sl)
-				}
-				ownN := 0
-				if pc != nil {
-					ownN = int(pc.manaN)
-				}
-				fee, units := s.filtFee(k, sl), s.filtUnits(k, sl)
-				if pass == 0 && units < ownN+fee || t.total-ownN < fee {
-					continue
-				}
-				if pc != nil {
-					s.removeSrc(k, t, sl, pc)
-				}
-				t.total -= fee
-				a := s.filtAb(k, sl)
-				addFiltUnits(t, a, uint8(units))
-				if manaOneColour(a, uint8(units)) {
-					s.addOneColour(t, uint8(units))
-				}
-				if !comboFiltAb(a) {
-					// the filter's tap brings the TapsForMana extra
-					// (mana_tapextra.go filtExtra); a combination filter's
-					// activation keeps the stall (filtDo)
-					xv := s.filtExtra(k, sl)
-					for c := range xv {
-						if xv[c] != 0 {
-							t.addUnits(1<<c, xv[c])
-						}
-					}
-				}
-				set &^= 1 << i
-				progress = true
+// filtWalk is one activation of a set of filters on the window's mana (CR
+// 605.3b): filtMaxX runs it per set and it prices each result.
+type filtWalk struct {
+	s        *State
+	k        *prep
+	filt     *[maxFaceFilters]Slot
+	cost     *kop.ManaCost
+	anyColor bool
+}
+
+// filtPos is where a walk stands: the filters still to activate, the sweep
+// (pass 0 takes the filters that add at least what they cost, pass 1 the
+// rest), the next filter to try in it and whether this sweep activated one.
+type filtPos struct {
+	set, pass, i int
+	progress     bool
+}
+
+// activate activates the filters of pos.set on t: each gives up its free
+// ability's mana, pays its fee out of the mana made so far and adds its own.
+// The fees are paid in an order that funds them, the filters that add at
+// least what they cost first. It returns the largest X any way of paying the
+// fees leaves, -1 when some fee cannot be paid.
+func (w *filtWalk) activate(t avail, st filtPos) int {
+	s, k, filt := w.s, w.k, w.filt
+	for {
+		if st.i >= len(filt) {
+			if st.progress && st.set != 0 {
+				st.i, st.progress = 0, false
+				continue
 			}
+			if st.pass == 1 || st.set == 0 {
+				break
+			}
+			st.pass, st.i, st.progress = 1, 0, false
+			continue
 		}
+		i := st.i
+		st.i++
+		if st.set&(1<<i) == 0 {
+			continue
+		}
+		sl := filt[i]
+		var pc *pcard
+		if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
+			pc = s.manaPCGen(k, sl)
+		}
+		ownN := 0
+		if pc != nil {
+			ownN = int(pc.manaN)
+		}
+		fee, units := s.filtFee(k, sl), s.filtUnits(k, sl)
+		if st.pass == 0 && units < ownN+fee || t.total-ownN < fee {
+			continue
+		}
+		if pc != nil {
+			s.removeSrc(k, &t, sl, pc)
+		}
+		st.set &^= 1 << i
+		st.progress = true
+		// The fee is generic mana, but the units it spends are gone from the
+		// colours the rest of the cost can use (a floating U that fed a Signet
+		// no longer pays a {U} pip), and only from what was made before this
+		// filter: its own mana cannot fund its fee. Each way of spending it
+		// is tried; a board with painful units held out of the groups keeps
+		// the total-only reading.
+		if fee == 0 || t.pain.on {
+			t.total -= fee
+			return w.activated(t, st, sl)
+		}
+		return w.spendFee(t, st, sl, fee, 0)
 	}
-	return set == 0
+	if st.set != 0 {
+		return -1
+	}
+	return t.maxXScore(w.cost, w.anyColor)
+}
+
+// spendFee takes owed more units of the filter's fee out of t's groups, from
+// group index from on (a multiset of groups), then goes on with the walk.
+func (w *filtWalk) spendFee(t avail, st filtPos, sl Slot, owed, from int) int {
+	if owed == 0 {
+		return w.activated(t, st, sl)
+	}
+	best, found := -1, false
+	for g := from; g < t.n; g++ {
+		if t.cnt[g] == 0 {
+			continue
+		}
+		u := t
+		u.removeWide(u.mask[g], 1)
+		best, found = max(best, w.spendFee(u, st, sl, owed-1, g)), true
+	}
+	if !found {
+		t.total -= owed // no group can pay it: the total-only reading
+		return w.activated(t, st, sl)
+	}
+	return best
+}
+
+// activated adds the filter sl's own mana (its fee already paid) and goes on.
+func (w *filtWalk) activated(t avail, st filtPos, sl Slot) int {
+	w.s.filtProduce(w.k, &t, sl)
+	return w.activate(t, st)
 }
 
 // windowFiltUseful: sl's filter can make a colour in want now, its fee

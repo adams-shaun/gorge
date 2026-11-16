@@ -1,4 +1,6 @@
 Abandon Reason
+Academy Journeymage
+Acquisition Octopus
 Aerial Maneuver
 Alena, Kessig Trapper
 Altar of the Brood
@@ -28,15 +30,20 @@ Beacon Bolt
 Benthic Giant
 Black Dragon
 Blade Historian
+Blessed Defiance
 Blinding Souleater
 Blood Pact
 Bloodchief's Thirst
 Bogbrew Witch
+Bolrac-Clan Crusher
 Bone Saw
+Breakneck Berserker
 Brilliant Restoration
+Brion Stoutarm
 Bumi's Feast Lecture
 Burning Wish
 Bygone Marvels
+Cache Raiders
 Cackling Fiend
 Calamity of Cinders
 Campfire
@@ -71,10 +78,12 @@ Devout Monk
 Disciple of Kangee
 Diviner's Lockbox
 Donatello's Science Lesson
+Dream Stalker
 Dross Hopper
 Dross Ripper
 Drove of Elves
 Drowsing Tyrannodon
+Dungeon Shade
 Durkwood Tracker
 Early Frost
 Echoes of the Kin Tree
@@ -94,6 +103,7 @@ Essence Extraction
 Eternal Isolation
 Eviscerator's Insight
 Evolution Charm
+Excoriate
 Explosive Impact
 Eyeblight Massacre
 Falkenrath Pit Fighter
@@ -109,6 +119,7 @@ Fountain Watch
 Freewind Equenaut
 Gallant Cavalry
 Gemhide Sliver
+General Thunderbolt Ross
 Generous Pup
 Giant Ox
 Gideon's Battle Cry
@@ -151,8 +162,10 @@ Innocence Kami
 Island
 Isolation Cell
 Ivory Charm
+Jackhammer
 Jodah's Codex
 Jousting Lance
+Joven and Chandler
 Jugan, the Rising Star
 Kalonian Twingrove
 Kaya's Ghostform
@@ -173,6 +186,7 @@ Leaf-Crowned Visionary
 Let the Galaxy Burn
 Leveler
 Leyline Invocation
+Life Insurance
 Light of Hope
 Lightning Elemental
 Living Wish
@@ -202,17 +216,22 @@ Needle Storm
 Nettletooth Djinn
 Nighthawk, Dark Defender
 Nimbus Swimmer
+Nissa's Judgment
 Noble Purpose
 Noble Steeds
 Nomad Mythmaker
+Olivia, Mobilized for War
 One-Clown Band
 Onyx Mage
+Oona's Gatewarden
 Oraxid
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
 Parapet Watchers
 Path of Discovery
+Patron Wizard
+Phantom Flock
 Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
@@ -222,6 +241,7 @@ Pouncing Cheetah
 Practical Research
 Prava of the Steel Legion
 Presence of the Wise
+Pridemalkin
 Primal Frenzy
 Protection Magic
 Psionic Snoop
@@ -229,6 +249,7 @@ Purraj of Urborg
 Pygmy Pyrosaur
 Rage Thrower
 Rain of Embers
+Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Ravages of War
@@ -236,10 +257,12 @@ Raven Wings
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
+Reject
 Rejuvenating Springs
 Repentant Vampire
 Requiem Angel
 Resolute Blademaster
+Retreat to Valakut
 Reveka, Wizard Savant
 Revenge of Ravens
 Rhystic Syphon
@@ -252,11 +275,13 @@ Rosecot Knight
 Rotting Giant
 Roving Harper
 Royal Falcon
+Rubblebelt Boar
 Rural Recruit
 Ruthless Predation
 Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
+Satyr's Cunning
 Scourge of the Nobilis
 Screams of the Damned
 Seagraf Skaab
@@ -272,8 +297,11 @@ Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
 Shocker
+Show of Confidence
 Sigiled Skink
+Silverclad Ferocidons
 Siren of the Silent Song
+Skittering Invasion
 Skulking Fugitive
 Skull Catapult
 Skyblinder Staff
@@ -282,6 +310,7 @@ Skyshroud Troopers
 Skysnare Spider
 Smelt
 Snapping Thragg
+Sootwalkers
 Soul Barrier
 Soul-Strike Technique
 Spark Reaper
@@ -290,6 +319,7 @@ Spectral Bears
 Spidersilk Net
 Spire Golem
 Spitemare
+Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
@@ -312,11 +342,15 @@ Swamp
 Swift Maneuver
 Synchronous Sliver
 Syphon Sliver
+Take Flight
+Tavern Ruffian
 Tegan Jovanka
 Terramorph
+Territorial Hammerskull
 Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+Theoretical Duplication
 Thor, Asgard's Avenger
 Thornscape Apprentice
 Thundering Tanadon
@@ -331,10 +365,14 @@ Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
+Undercover Butler
+Unexpected Windfall
 Unholy Officiant
+Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Ghoul
+Veiled Apparition
 Verdant Automaton
 Verdant Force
 Vulshok Battlegear
@@ -342,9 +380,11 @@ Vulshok War Boar
 Wall Off
 Wall of Mist
 Warbeast of Gorgoroth
+Weldfast Engineer
 Wight
 Wooden Cane
 Workshop Assistant
+Write into Being
 Wu Elite Cavalry
 Wurmcoil Engine
 Zhao Zilong, Tiger General

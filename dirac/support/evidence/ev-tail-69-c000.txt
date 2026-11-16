@@ -25,6 +25,7 @@ Baloth Null
 Baneful Omen
 Bard, Heir of Girion
 Barrin's Codex
+Battle at the Helvault
 Battlefield Raptor
 Baxter, Fly in the Ointment
 Bishop of Rebirth
@@ -55,6 +56,7 @@ Celestial Colonnade
 Chamber of Manipulation
 Chandra Nalaar
 Change of Fortune
+Clamavus
 Claws of Gix
 Clearwater Goblet
 Cliffhaven Kitesail
@@ -94,6 +96,7 @@ Earthshaker
 Echoing Return
 Ecstatic Awakener
 Ekthi, Contaminator Priest
+Elephant Grass
 Elspeth, Knight-Errant
 Elven Warhounds
 Elvish Doomsayer
@@ -178,6 +181,7 @@ High Score
 Highland Forest
 Highspire Artisan
 Holdout Settlement
+Honey Mammoth
 Honored Hierarch
 Hot Soup
 How to Keep an Izzet Mage Busy
@@ -326,10 +330,12 @@ Scale the Heights
 Seal of Removal
 Searchlight Geist
 Seize the Day
+Sergeant John Benton
 Serra Avenger
 Shard Convergence
 Shattering Blow
 Shepherd of the Lost
+Shielding Plax
 Shining Aerosaur
 Shivan Emissary
 Shu Elite Companions
@@ -362,6 +368,7 @@ Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thing in the Ice
 Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
@@ -405,6 +412,7 @@ Warm Welcome
 Watcher Sliver
 Waterfront District
 Wayfaring Temple
+Wedding Announcement
 Whetstone
 Whirlwind Adept
 White Scarab

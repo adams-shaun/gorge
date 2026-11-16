@@ -182,6 +182,7 @@ Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Gristle Grinner
 Grozoth
 Gwaihir, Greatest of the Eagles
@@ -322,6 +323,7 @@ Rip Apart
 Riptide Chronologist
 Roar of the Wurm
 Rona, Disciple of Gix
+Roofstalker Wight
 Royal Falcon
 Ruin Crab
 Runehorn Hellkite
@@ -438,6 +440,7 @@ Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
+Weatherlight Compleated
 Weatherseed Totem
 Wei Infantry
 Weird Harvest
@@ -445,6 +448,7 @@ Wild Griffin
 Willow Faerie
 Wilson, Refined Grizzly
 Winged Hive Tyrant
+Wingfold Pteron
 Winter Soldier, Bucky Barnes
 Witch's Cottage
 Wizened Cenn
