@@ -535,6 +535,15 @@ func sacOnlyManaAb(a *kop.Ability) bool {
 	return !(a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || comboAnyMana(a))
 }
 
+// registersGapOther: mana ability j of c (a) is a census gap of its own, for
+// gfGapOther. Not Quirion Elves' chosen {T}, which prepMultiMana folds into the
+// source's unit (registering it as a gap would keep a filter beside it off the
+// filtScript path), and not a sacrifice-only one, a census unit in the
+// last-resort tier (a filter beside it stays filter-only).
+func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
+	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a)
+}
+
 // filtOnly: p's census gaps are filters alone (no other activatable source
 // with a mana ability the census misses: a Bloom Tender, Giada, a
 // Courtyard, Lupinflower Village's restricted {W}, or a deferred
