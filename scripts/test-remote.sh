@@ -8,9 +8,14 @@
 #
 # Settings (the machine's, in ~/.config/gorge/test-targets.env; unset means local only):
 #   GORGE_REMOTE_HOST       user@host of the box (or GORGE_REMOTE_HOST_FILE: a "running <type> <az> <ip> ..." line)
+#   GORGE_REMOTE_HOSTS      several boxes, "user@box-a user@box-b" (GORGE_REMOTE_HOST, when set, wins): each run
+#                           probes them all at once (GORGE_REMOTE_PROBE_TIMEOUT seconds each, default 5) and goes to
+#                           the one with a free run slot and the most idle cores; it waits only when every box is
+#                           full, and a box whose probe fails is skipped for that run. Every box has the same layout
+#                           (GORGE_REMOTE_KEY, GORGE_REMOTE_REPO, GORGE_REMOTE_CARDS, GORGE_REMOTE_GOROOT).
 #   GORGE_REMOTE_KEY        ssh identity file
 #   GORGE_REMOTE_REPO       the bare repository on the box (its sibling tt-wt/ holds the scratch worktrees)
-#   GORGE_REMOTE_MIN_IDLE   fewest idle cores on the box worth shipping for (default 24)
+#   GORGE_REMOTE_MIN_IDLE   fewest idle cores on the box worth shipping for (default 12)
 #   GORGE_REMOTE_OFF        1 turns the remote runner off
 #   GORGE_REMOTE_MODES      the modes that go to the box (default "one targeted smart"); "targeted smart" keeps
 #                           the light test-one here
@@ -18,10 +23,11 @@
 #                           once); GORGE_REMOTE_POLL is the re-probe interval (20)
 #   GORGE_REMOTE_FALLBACK_CPU  the CPUQuota percent of a run that fell back here (default 200: -p 2, GOMAXPROCS 2),
 #                           so a box outage does not put every seat's heavy run on this machine at the full cap
-# Optional: GORGE_REMOTE_MAX_RUNS (concurrent remote runs, default 4), GORGE_REMOTE_WEIGHT (CPUWeight, default
+# Optional: GORGE_REMOTE_MAX_RUNS (concurrent remote runs per box; unset, each box has max(2, nproc/6), 5 on 32
+# cores), GORGE_REMOTE_WEIGHT (CPUWeight, default
 # 20; the landing gate's rgate.scope runs at 100), GORGE_REMOTE_NICE (the run's nice level, default 5; the gate
-# runs at 0), GORGE_REMOTE_CPU (CPUQuota percent, 2400), GORGE_REMOTE_MEM
-# (48G), GORGE_REMOTE_PROCS (GOMAXPROCS, 16), GORGE_REMOTE_CARDS (the corpus path on the box, default this
+# runs at 0), GORGE_REMOTE_CPU (CPUQuota percent, 1200), GORGE_REMOTE_MEM
+# (48G), GORGE_REMOTE_PROCS (GOMAXPROCS, 8), GORGE_REMOTE_CARDS (the corpus path on the box, default this
 # worktree's .cards target), GORGE_REMOTE_GOROOT (go on the box).
 #
 # Not shipped remotely (they run here): list, a smart run on a dirty tree, and any run that writes files
@@ -39,8 +45,8 @@ rt_ssh() { # rt_ssh COMMAND...: ssh to the box (-F /dev/null: the system config 
 }
 
 rt_box() { # rt_box VERB RUN [MODE]: a verb of test-remote-box.sh, with the settings the box script reads
-	local a=(env "TT_MAXRUNS=$rt_maxruns" "TT_WEIGHT=${GORGE_REMOTE_WEIGHT:-20}" "TT_CPU=${GORGE_REMOTE_CPU:-2400}"
-		"TT_MEM=${GORGE_REMOTE_MEM:-48G}" "TT_PROCS=${GORGE_REMOTE_PROCS:-16}" "TT_CARDS=$rt_cards"
+	local a=(env "TT_MAXRUNS=$rt_maxruns" "TT_WEIGHT=${GORGE_REMOTE_WEIGHT:-20}" "TT_CPU=${GORGE_REMOTE_CPU:-1200}"
+		"TT_MEM=${GORGE_REMOTE_MEM:-48G}" "TT_PROCS=${GORGE_REMOTE_PROCS:-8}" "TT_CARDS=$rt_cards"
 		"TT_NICE=${GORGE_REMOTE_NICE:-5}")
 	[ -z "${GORGE_REMOTE_GOROOT:-}" ] || a+=("TT_GOROOT=$GORGE_REMOTE_GOROOT")
 	# test-targets.sh's own switches ride along to the box, where test-targets.sh runs: GORGE_TEST_SMART_GATES=1 (the
@@ -87,25 +93,33 @@ remote_try() {
 	[ "${GORGE_REMOTE_OFF:-}" != 1 ] || return 0
 	[ "$mode" != list ] || return 0
 	case " ${GORGE_REMOTE_MODES:-one targeted smart} " in *" $mode "*) ;; *) return 0 ;; esac
-	[ -n "${GORGE_REMOTE_HOST:-}${GORGE_REMOTE_HOST_FILE:-}" ] && [ -n "${GORGE_REMOTE_KEY:-}" ] && [ -n "${GORGE_REMOTE_REPO:-}" ] || return 0 # not configured
+	[ -n "${GORGE_REMOTE_HOST:-}${GORGE_REMOTE_HOSTS:-}${GORGE_REMOTE_HOST_FILE:-}" ] && [ -n "${GORGE_REMOTE_KEY:-}" ] && [ -n "${GORGE_REMOTE_REPO:-}" ] || return 0 # not configured
 	# Runs that write files into the worktree, and a smart run that will refuse a dirty tree, stay here.
 	[ -z "${UPDATE:-}${TESTENV:-}" ] || return 0
 	if [ "$mode" = smart ] && [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then return 0; fi
-	rt_host=${GORGE_REMOTE_HOST:-}
-	if [ -z "$rt_host" ]; then
+	rt_hosts=()
+	if [ -n "${GORGE_REMOTE_HOST:-}" ]; then
+		rt_hosts=("$GORGE_REMOTE_HOST")
+	elif [ -n "${GORGE_REMOTE_HOSTS:-}" ]; then
+		read -r -a rt_hosts <<<"${GORGE_REMOTE_HOSTS//,/ }"
+	else
 		local st ip
 		read -r st _ _ ip _ <"$GORGE_REMOTE_HOST_FILE" 2>/dev/null
 		if [ "$st" = running ] && [ -n "$ip" ]; then
-			rt_host=${GORGE_REMOTE_USER:-ubuntu}@$ip
+			rt_hosts=("${GORGE_REMOTE_USER:-ubuntu}@$ip")
 		else
 			rt_fallback "remote: $GORGE_REMOTE_HOST_FILE says the box is '${st:-missing}'; running locally"
 			return 0
 		fi
 	fi
+	[ "${#rt_hosts[@]}" -gt 0 ] || return 0
+	# rt_host names every box until a run picks one (the notes), then that box (rt_box, rt_cleanup, the notes).
+	rt_label=${rt_hosts[*]}
+	rt_host=$rt_label
 	[ -r "$GORGE_REMOTE_KEY" ] || { rt_fallback "remote: key $GORGE_REMOTE_KEY is not readable; running locally"; return 0; }
 	rt_script=$(dirname "${BASH_SOURCE[0]}")/test-remote-box.sh
 	[ -r "$rt_script" ] || { rt_fallback "remote: no $rt_script; running locally"; return 0; }
-	rt_maxruns=${GORGE_REMOTE_MAX_RUNS:-4}
+	rt_maxruns=${GORGE_REMOTE_MAX_RUNS:-} # empty: each box's own max(2, nproc/6) (test-remote-box.sh)
 	rt_cards=${GORGE_REMOTE_CARDS:-$(readlink -f .cards 2>/dev/null)}
 	local wait=${GORGE_REMOTE_WAIT:-0} poll=${GORGE_REMOTE_POLL:-20} waited=0
 	rt_reruns_left=1
@@ -115,6 +129,7 @@ remote_try() {
 		rt_run=
 		rt_why=
 		rt_code=
+		rt_host=$rt_label
 		if rt_try_run; then
 			echo "$rt_vline"
 			exit "$rt_code"
@@ -141,24 +156,64 @@ remote_try() {
 	return 0
 }
 
+# rt_pick LOCAL_LOCK: probe every box at once (one short ssh each) and set rt_host to the one with a free run slot,
+# enough idle cores and this corpus, the most idle cores first (rt_idle: its idle cores); 1 with rt_why when none
+# will take the run. A box that is full makes it "busy:" (worth waiting for); one that fails its probe is skipped.
+rt_pick() {
+	local d i h out rc idle free slots lock r best= bidle= busy= minidle=${GORGE_REMOTE_MIN_IDLE:-12} pids=() why=()
+	d=$(mktemp -d "${TMPDIR:-/tmp}/tt-probe.XXXXXX") || { rt_why="no tmp dir"; return 1; }
+	for i in "${!rt_hosts[@]}"; do
+		(
+			rt_host=${rt_hosts[$i]}
+			RT_TIMEOUT=${GORGE_REMOTE_PROBE_TIMEOUT:-5} rt_box probe "" >"$d/$i" 2>/dev/null
+			echo "$?" >"$d/$i.rc"
+		) &
+		pids+=("$!")
+	done
+	wait "${pids[@]}" 2>/dev/null
+	for i in "${!rt_hosts[@]}"; do
+		h=${rt_hosts[$i]} r=
+		rc=$(cat "$d/$i.rc" 2>/dev/null)
+		out=$(grep -m1 '^probe ' "$d/$i" 2>/dev/null)
+		idle=$(sed -n 's/.* idle=\([0-9.]*\).*/\1/p' <<<"$out")
+		free=$(sed -n 's/.* free=\([0-9]*\).*/\1/p' <<<"$out")
+		slots=$(sed -n 's/.* slots=\([0-9]*\).*/\1/p' <<<"$out")
+		lock=$(sed -n 's/.* lock=\([0-9a-f]*\).*/\1/p' <<<"$out")
+		if [ "$rc" != 0 ]; then r="unreachable or not set up (ssh)"
+		elif [ -z "$idle" ] || [ -z "$free" ]; then r="unreadable probe '$out'"
+		elif [ "$free" -le 0 ]; then r="busy: all ${slots:-$rt_maxruns} remote run slots are taken"
+		elif ! awk -v i="$idle" -v m="$minidle" 'BEGIN { exit !(i >= m) }'; then r="busy: $idle idle cores, need $minidle"
+		elif [ "$lock" != "$1" ]; then r="the box's corpus differs from this one (cards.lock)"
+		elif [ -z "$best" ] || awk -v i="$idle" -v b="$bidle" 'BEGIN { exit !(i > b) }'; then best=$h bidle=$idle
+		fi
+		[ -z "$r" ] || why+=("$h: ${r#busy: }")
+		case $r in busy:*) busy=1 ;; esac
+		[ "${#rt_hosts[@]}" -gt 1 ] || [ -z "$r" ] || rt_why=$r # one box: its own words, as before
+	done
+	rm -rf "$d"
+	if [ -n "$best" ]; then
+		rt_host=$best rt_idle=$bidle rt_why=
+		return 0
+	fi
+	if [ "${#rt_hosts[@]}" -gt 1 ]; then
+		local IFS=';'
+		r="${why[*]}"
+		r=${r//;/; }
+		if [ -n "$busy" ]; then rt_why="busy: every box is full ($r)"; else rt_why="no box will take the run ($r)"; fi
+	fi
+	return 1
+}
+
 # rt_try_run: 0 when the box's verdict is trusted (rt_vline, rt_code set, the json copied back), 1 to fall back
 # (rt_why says why). Everything in between is infrastructure and returns 1.
 rt_try_run() {
-	local base_sha head_sha out idle free lock llock ti patch= vf lg le x rrc sf vst contended why
-	local minidle=${GORGE_REMOTE_MIN_IDLE:-24}
+	local base_sha head_sha idle llock ti patch= vf lg le x rrc sf vst contended why
 	head_sha=$(git rev-parse HEAD 2>/dev/null) || { rt_why="no HEAD"; return 1; }
 	base_sha=$(git rev-parse --verify -q "$BASE^{commit}") || { rt_why="BASE does not resolve"; return 1; }
 	llock=$(sha256sum .cards/cards.lock 2>/dev/null | cut -c1-16)
 	[ -n "$llock" ] || { rt_why="no local .cards/cards.lock to compare with the box's"; return 1; }
-	out=$(RT_TIMEOUT=30 rt_box probe "" 2>/dev/null) || { rt_why="unreachable or not set up (ssh)"; return 1; }
-	out=$(grep -m1 '^probe ' <<<"$out")
-	idle=$(sed -n 's/.* idle=\([0-9.]*\).*/\1/p' <<<"$out")
-	free=$(sed -n 's/.* free=\([0-9]*\).*/\1/p' <<<"$out")
-	lock=$(sed -n 's/.* lock=\([0-9a-f]*\).*/\1/p' <<<"$out")
-	[ -n "$idle" ] && [ -n "$free" ] || { rt_why="unreadable probe '$out'"; return 1; }
-	[ "$free" -gt 0 ] || { rt_why="busy: all $rt_maxruns remote run slots are taken"; return 1; }
-	awk -v i="$idle" -v m="$minidle" 'BEGIN { exit !(i >= m) }' || { rt_why="busy: $idle idle cores, need $minidle"; return 1; }
-	[ "$lock" = "$llock" ] || { rt_why="the box's corpus differs from this one (cards.lock)"; return 1; }
+	rt_pick "$llock" || return 1
+	idle=$rt_idle
 	rt_run=$(id -un)-$$-$(date +%s)
 	# The uncommitted diff, untracked files included, as a patch (a private index: this worktree's is untouched).
 	if [ "$mode" != smart ]; then

@@ -1,10 +1,13 @@
 Accursed Spirit
+Adanto Vanguard
 Aerie Bowmasters
 Ancestral Mask
 Ancient Stirrings
 Anim Pakal, Thousandth Moon
 Axgard Cavalry
 Balustrade Spy
+Barter in Blood
+Behold the Multiverse
 Beneath the Sands
 Blazing Crescendo
 Blightbeetle
@@ -13,11 +16,15 @@ Blot Out
 Bushmeat Poacher
 Carrion Feeder
 Cerulean Wisps
+Code of Constraint
 Contagious Vorrac
+Cower in Fear
 Cragsmasher Yeti
 Dawntreader Elk
+Death Denied
 Destiny Spinner
 Destructive Tampering
+Divination
 Dragon Mage
 Dragon's Smile
 Drift of Phantasms
@@ -25,52 +32,82 @@ Ekthi, Contaminator Priest
 Elda, Conjurer of Spectacle
 Enclave Cryptologist
 Escape Tunnel
+Exotic Orchard
 Explore
 Fanatical Devotion
+Feign Death
 Fell
 Fire Servant
 Forest
 Freed from the Real
+Gelatinous Genesis
+Ghost-Lit Stalker
 Gold-Forged Thopteryx
 Harmonize
+Hickory Woodlot
 Imperial Oath
 Ingot Chewer
 Island
+Jaheira, Friend of the Forest
 Jewel Thief
 Karlach, Fury of Avernus
 Kaya's Ghostform
 Looter il-Kor
 Make a Stand
 Marionette Apprentice
+Massacre
 Maular, the Next Evolution
 Meekstone
 Mountain
 Murmuring Mystic
+Nezumi Prowler
+Nightwind Glider
 Omnath, Locus of Creation
+Ophidian Eye
 Outmaneuver
 Overgrown Battlement
+Painful Lesson
+Palace Sentinels
 Pemmin's Aura
 Pendrell Drake
+Phantom Centaur
+Phyrexian Rager
+Phyrexian Reclamation
 Plains
 Poison Dart Frog
 Propaganda
+Raiders' Wake
 Ramos, Dragon Engine
 Reckless Impulse
 Resolute Reinforcements
+Restoration Specialist
 Ringwarden Owl
+Rot Hulk
 Saber Ants
 Season of Growth
+Sengir Autocrat
+Sentinel Sliver
 Sheltered by Ghosts
 Shroofus Sproutsire
+Sigiled Starfish
 Silverglade Pathfinder
+Soltari Trooper
+Specimen Collector
+Spiritmonger
 Spore Frog
 Sticky Fingers
+Storm Sculptor
 Struggle for Skemfar
+Sunscape Familiar
 Supernatural Stamina
 Swamp
 Tidy Conclusion
+Unburial Rites
 Underworld Breach
 Vengeful Reaper
 Virtue's Ruin
+Void Beckoner
+Vow of Duty
+Waker of Waves
 Wasteland Viper
 Wild Hunger

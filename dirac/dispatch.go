@@ -4,6 +4,29 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// execColdOps runs an op of the cold chain (execCold1...), then of the
+// generated switch (execOpGen, the //kmanifest:op handlers); done=false: neither.
+func (s *State) execColdOps(k *prep, in *kop.Instr) (ok, done bool) {
+	if ok, done = s.execCold1(k, in); done {
+		return ok, true
+	}
+	return s.execOpGen(k, in)
+}
+
+// askOptionsChain builds a resolution ask's options from the cold chain
+// (askOptionsCold1...), then the generated switch (askOptionsGen, the
+// //kmanifest:askopts handlers); false: neither.
+func (s *State) askOptionsChain(k *prep, d *Decision) bool {
+	return s.askOptionsCold1(k, d) || s.askOptionsGen(k, d)
+}
+
+// applyAskChain applies an answer to a resolution ask: the cold chain
+// (applyAskCold1...), then applyAskGen (the //kmanifest:askapply handlers);
+// false: neither.
+func (s *State) applyAskChain(k *prep, a Action) bool {
+	return s.applyAskCold1(k, a) || s.applyAskGen(k, a)
+}
+
 // Ops: cold arms, reached only from
 // execGen's default branch. done=false means the op is not one of these.
 //
