@@ -11,8 +11,10 @@ Alexi's Cloak
 Amoeboid Changeling
 Angelheart Protector
 Araña, Heart of the Spider
+Arbor Colossus
 Avacyn's Memorial
 Barbtooth Wurm
+Base Camp
 Bastion Mastodon
 Battlegrace Angel
 Bellowing Tanglewurm
@@ -24,6 +26,7 @@ Boggart Birth Rite
 Bonds of Faith
 Bone Pit Brute
 Brain Maggot
+Brightclimb Pathway
 Broken Bond
 Brotherhood's End
 Burn the Accursed
@@ -35,6 +38,7 @@ Casey Jones, Asphalt Hooligan
 Cast into the Fire
 Cateran Enforcer
 Cateran Persuader
+Cavern Thoctar
 Chakra Meditation
 Chandra, Hope's Beacon
 Chaos Terminator Lord
@@ -44,6 +48,7 @@ Chorus of the Tides
 Chub Toad
 Cliffhaven Sell-Sword
 Coast Watcher
+Communal Brewing
 Conclave Sledge-Captain
 Court Hussar
 Cradle of Safety
@@ -54,6 +59,7 @@ Daxos the Returned
 Deal Gone Bad
 Deathgazer
 Debtors' Transport
+Decisive Denial
 Dega Sanctuary
 Devastation
 Dirty Wererat
@@ -97,7 +103,10 @@ Goblin Replica
 Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Scrapper
+Gruul Signet
 Guardian of Tazeem
+Gwyllion Hedge-Mage
 Hammerheim Deadeye
 Havengul Runebinder
 Hawkeye, Trick Shot
@@ -120,6 +129,7 @@ Island
 Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
+Kabira Crossroads
 Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
@@ -131,9 +141,14 @@ Liliana's Spoils
 Littjara Glade-Warden
 Living Wall
 Lossarnach Captain
+Lost Leonin
+Ludevic's Test Subject
 Magma Jet
 Master of Diversion
 Maximus, Knight Apparent
+Mental Journey
+Merrow Grimeblotter
+Metalwork Colossus
 Midnight Scavengers
 Mind Games
 Mistford River Turtle
@@ -141,10 +156,13 @@ Mogg Jailer
 Moku, Meandering Drummer
 Mountain
 Mudhole
+Myojin of Cryptic Dreams
+Myr Battlesphere
 Mystic of the Hidden Way
 Nahiri's Binding
 Nature's Wrath
 Need for Speed
+Nissa, Genesis Mage
 Noxious Groodion
 Nyxborn Brute
 Nyxborn Shieldmate
@@ -159,13 +177,18 @@ Phyrexian Rebirth
 Plague Sliver
 Plains
 Plow Through Reito
+Polyraptor
 Press into Service
 Prickly Marmoset
 Priest of Titania
+Princess Lucrezia
 Prowling Serpopard
 Purge the Profane
+Quill-Slinger Boggart
 Ramosian Lieutenant
 Return of the Mole Man
+Revoke Demise
+Rhox Bodyguard
 River's Favor
 Road
 Root Spider
@@ -175,6 +198,9 @@ Scab-Clan Berserker
 Scavenging Scarab
 Scion of the Swarm
 Sea Sprite
+Sentinel's Mark
+Sequence Engine
+Seshiro the Anointed
 Shadow, Mysterious Assassin
 Shiny Impetus
 Sigil of the New Dawn
@@ -183,6 +209,7 @@ Skullmead Cauldron
 Skyshroud Claim
 Slaughter-Priest of Mogis
 Smothering Tithe
+Soaring Seacliff
 Solar Blast
 Sootfeather Flock
 Soul of the Rapids
@@ -194,6 +221,7 @@ Spiraling Embers
 Spirit en-Kor
 Squeeze
 Stabbing Pain
+Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Steelshaper Apprentice
@@ -201,18 +229,23 @@ Stormcloud Djinn
 Strategic Planning
 Strength of the Pack
 Strider, Ranger of the North
+Study
 Sturmgeist
 Swamp
 Swarm of Rats
 Sylvok Replica
 Talisman of Resilience
 Tar Pit Warrior
+Terisiare's Devastation
+Thalakos Drifters
 Thornscape Familiar
 Thundering Raiju
 Tibalt's Rager
+Titan Forge
 Totally Lost
 Tracker's Instincts
 Treason of Isengard
+Triplicate Titan
 Triumph of Cruelty
 Trove Tracker
 Turtle-Seals
@@ -226,10 +259,12 @@ Voldaren Epicure
 Wall of Earth
 Wand of Denial
 Warping Wail
+Watchwolf
 Whispersilk Cloak
 Wild Aesthir
 Wildsize
 Wind Zendikon
 Wing Commando
 Yellow Scarves Cavalry
+Zar Ojanen, Scion of Efrava
 Zodiac Pig

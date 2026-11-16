@@ -787,6 +787,7 @@ func (lc *lowerCtx) lowerRecord() {
 		if t == "World" {
 			out.World = true // CR 704.5k (kernel zone_worldrule.go)
 		}
+		out.Snow = out.Snow || t == "Snow"
 		out.Subtypes = append(out.Subtypes, t)
 	}
 	out.TextWords = textWordsOf(lc.card)
@@ -1021,6 +1022,10 @@ var expandedKeywords = map[string]bool{
 	// Echo (CR 702.30a): gorge kwEcho's upkeep trigger, gated by Echo$ True,
 	// whose body is DB$ Echo (lower_echo.go)
 	"Echo": true,
+	// Bushido (CR 702.45a): gorge kwBushido's two triggers, Mode$ Blocks and
+	// Mode$ AttackerBlocked (ValidCard$ Card.Self), each a DB$ Pump of
+	// Defined$ Self +N/+N until end of turn (every op already lowers)
+	"Bushido": true,
 	// Level up (CR 702.87a): gorge kwLevelUp (cards/kw_levelup.go) appends one
 	// sorcery-speed AB$ PutCounter of a LEVEL counter on the source; the level
 	// bands are the card's own statics (a two-compare IsPresent$ gate:
@@ -1167,14 +1172,11 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (dirac/kw_speed.go); the keyword's other text is the
 			// card's own lines
 			lc.out.Engines = true
-		case head == "Ascend" && param == "":
-			// CR 702.131: the city's blessing is the kernel's post-placement
-			// scan and the spell's resolution grant (dirac/kw_ascend.go)
+		case head == "Ascend" && param == "": // CR 702.131: the blessing scans and grant (dirac/kw_ascend.go)
 			lc.out.Ascend = true
-		case head == "Bloodthirst":
-			// CR 702.54a: gorge bloodthirstEntryMatch's synthetic Moved
-			// replacement, lowered as gorge builds it (lower_bloodthirst.go)
-			lc.guard(node, func() error { return lc.lowerBloodthirst(param) })
+		case head == "Unleash" && param == "": // CR 702.86: the as-enters ask and the block gate (lower_unleash.go)
+			lc.lowerUnleash()
+		case lc.lowerParamKeyword(node, head, param): // Bloodthirst, Dredge (lower_dredge.go)
 		case head == "Wither" && param == "":
 			lc.out.Wither = true // CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackAlone && param == "":
@@ -1198,18 +1200,7 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Landwalk":
 			// gorge rules/combat/block.go LandwalkSpec: the parameter up to
 			// a second colon is a filter over the defender's lands
-			spec, _, _ := strings.Cut(param, ":")
-			spec = strings.TrimSpace(spec)
-			if spec == "" || lc.out.Landwalk != nil {
-				lc.refuseNode(node, "landwalk %q", param)
-				continue
-			}
-			f, err := lc.filter(spec)
-			if err != nil {
-				lc.refuseNode(node, "landwalk %q: %v", param, err)
-				continue
-			}
-			lc.out.Landwalk = f
+			lc.lowerLandwalk(node, param)
 		case head == "Unearth":
 			// CR 702.84a: gorge kwUnearth expands it into one graveyard
 			// AB$ ChangeZone (Unearth$ True), lowered from that line
@@ -2030,6 +2021,24 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.lowerKeywordElse(node, head, param) // lower_kwhandlers.go
 		}
 	}
+}
+
+// lowerLandwalk is lowerKeywords' K:Landwalk arm (gorge
+// rules/combat/block.go LandwalkSpec): the parameter up to a second colon is
+// a filter over the defender's lands.
+func (lc *lowerCtx) lowerLandwalk(node, param string) {
+	spec, _, _ := strings.Cut(param, ":")
+	spec = strings.TrimSpace(spec)
+	if spec == "" || lc.out.Landwalk != nil {
+		lc.refuseNode(node, "landwalk %q", param)
+		return
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		lc.refuseNode(node, "landwalk %q: %v", param, err)
+		return
+	}
+	lc.out.Landwalk = f
 }
 
 // faceHasKeyword reports whether the face carries the parameterless keyword

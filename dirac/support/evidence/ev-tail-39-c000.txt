@@ -34,6 +34,7 @@ Aspect of Hydra
 Assemble the Entmoot
 Atalya, Samite Master
 Audacious Thief
+Auger Spree
 Avatar of Growth
 Aven Redeemer
 Azra Smokeshaper
@@ -54,6 +55,7 @@ Bloodvial Purveyor
 Blot Out
 Bolshack Dragon
 Bonds of Mortality
+Bounty Hunter
 Branchsnap Lorian
 Brushland
 Bulette
@@ -118,6 +120,7 @@ Dovin's Dismissal
 Draco
 Drakewing Krasis
 Drana's Emissary
+Dread Presence
 Drey Keeper
 Dromoka Dunecaster
 Dry Spell
@@ -144,6 +147,7 @@ Fervent Paincaster
 Fevered Convulsions
 Fleshgrafter
 Flooded Strand
+Florian, Voldaren Scion
 Flowering of the White Tree
 Flowstone Slide
 Forest
@@ -152,18 +156,22 @@ Fowl Play
 Freedom Fighter Recruit
 Frontline Rebel
 Frostwind Invoker
+Fungal Sprouting
 Gallows Warden
 Game-Trail Changeling
 Gatebreaker Ram
 Geistflame Reservoir
+Geralf's Mindcrusher
 Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
+Ghostflame Sliver
 Ghostly Touch
 Ghoul's Feast
 Gifted Aetherborn
 Glacial Grasp
 Glaive of the Guildpact
+Gleaming Overseer
 Glenn, the Voice of Calm
 Glint Hawk Idol
 Glittermonger
@@ -179,10 +187,13 @@ Hada Spy Patrol
 Hag of Inner Weakness
 Halimar Excavator
 Hall of Tagsin
+Hammerhead Tyrant
 Hangar Scrounger
+Heartmender
 Herald of Hadar
 Hermes, Overseer of Elpis
 Hero's Resolve
+Heroes Remembered
 Hewed Stone Retainers
 Hidden Guerrillas
 Highspire Infusion
@@ -192,6 +203,7 @@ Humble the Brute
 Humongulus
 Hundroog
 Hydromorph Guardian
+Imperial Cosmographer
 Infectious Bloodlust
 Inheritance
 Inspirit
@@ -203,6 +215,7 @@ Island
 It's Clobberin' Time!
 Jukai Messenger
 Jungle Wayfinder
+Junkyard Genius
 Jwari Scuttler
 Kamigawa Charm
 Kazandu Mammoth
@@ -294,6 +307,7 @@ Rage of Purphoros
 Ragged Recluse
 Raging Kronch
 Raging Swordtooth
+Raiders' Wake
 Rakka Mar
 Rally at the Hornburg
 Ravenous Necrotitan
@@ -329,7 +343,9 @@ Sentinels of Glen Elendra
 Serene Sunset
 Shadowblood Egg
 Shambling Ghast
+Shardless Agent
 Sheltering Boughs
+Shield of the Avatar
 Shivan Gorge
 Shriek of Dread
 Siege Dragon
@@ -413,6 +429,7 @@ Wall of Fire
 Warped Devotion
 Warped Landscape
 Warriors of Wakanda
+Wash Away
 Welcoming Vampire
 Whetwheel
 Wild Slash

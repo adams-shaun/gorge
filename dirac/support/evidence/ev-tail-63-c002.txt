@@ -21,6 +21,7 @@ Bala Ged Recovery
 Become the Avalanche
 Blade-Blizzard Kitsune
 Blanchwood Treefolk
+Blaring Captain
 Bloodmist Infiltrator
 Boggart Loggers
 Bottle Golems
@@ -87,12 +88,14 @@ Hamlet Vanguard
 Hedron Rover
 Hero of Iroas
 Heron of Hope
+Hordeling Outburst
 Huatli's Snubhorn
 Ichor Drinker
 Illusory Demon
 Imperial Subduer
 Inspiring Cleric
 Invasion of Dominaria
+Invigorated Rampage
 Island
 Jace's Sanctum
 Kashi-Tribe Elite
@@ -139,6 +142,7 @@ Predatory Nightstalker
 Prescient Chimera
 Priest of Urabrask
 Purge the Profane
+Pygmy Razorback
 Pyknite
 Pyroclastic Elemental
 Pyromantic Pilgrim
@@ -167,7 +171,9 @@ Singer of Swift Rivers
 Skillful Lunge
 Smoldering Werewolf
 Snarling Undorak
+Somberwald Vigilante
 Spell Crumple
+Spellgorger Barbarian
 Spider-Man, Peter Parker
 Spring
 Staff of the Wild Magus
@@ -185,6 +191,7 @@ Talas Merchant
 Taste of Blood
 Terravore
 Thalakos Deceiver
+Thallid
 Thaumatic Compass
 Thriving Bluff
 Thrun, the Last Troll
@@ -199,6 +206,7 @@ Vampiric Tutor
 Venser, Fervent Forger
 War Dance
 Weatherseed Faeries
+Whitewater Naiads
 Wild Aesthir
 Windrider Wizard
 Yoked Ox

@@ -1,21 +1,36 @@
+A-Briar Hydra
 A-Dokuchi Silencer
+A-Rockslide Sorcerer
+Aerial Assault
 Aethershield Artificer
 Against All Odds
 Air Nomad Student
 Akki Underminer
 Akrasan Squire
+Angelic Field Marshal
 Angelic Renewal
+Appa, the Vigilant
 Aquatic Incursion
 Archaeomender
 Augury Adept
 Avatar of the Resolute
+Aven Trailblazer
 Axebane Guardian
 Black Market
 Blade Splicer
+Boldwyr Intimidator
+Buccaneer's Bravado
 Burn the Impure
+Burning Palm Efreet
+Burst of Speed
 Butcher Ghoul
+Cacophony Scamp
+Chain Lightning
+Claim the Firstborn
 Cogwork Assembler
 Commissar Severina Raine
+Common Iguana
+Conclave Guildmage
 Conservator
 Corpse Knight
 Courier's Capsule
@@ -23,14 +38,17 @@ Crop Rotation
 Culling Mark
 Daring Fiendbonder
 Dauntless Survivor
+Deadshot
 Deathless Angel
 Deep Reconnaissance
 Deepwood Ghoul
 Deft Dismissal
 Demon's Grasp
 Demonic Rising
+Dragon's Approach
 Dyfed, the Guiding Hand
 Earthen Goo
+Ekthi, Contaminator Priest
 Erratic Visionary
 Essence Warden
 Eternal Witness
@@ -39,22 +57,30 @@ Ethereal Usher
 Explosive Welcome
 Fain, the Broker
 Firebird, Blazing Ranger
+Flashfires
+Floodhound
 Flow of Ideas
 Flux Channeler
 Forest
 Fungal Sprouting
+Furnace Celebration
 Gluttonous Zombie
+Goblin Racketeer
 Grim Monolith
 Hanna, Ship's Navigator
 Hemlock Vial
+Heroes of the Revel
 Honed Khopesh
 Hooting Mandrills
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
+Independent Troops
+Infernal Pet
 Inkrise Infiltrator
 Inspiring Refrain
 Intrepid Ace
+Irencrag Pyromancer
 Iroas's Champion
 Iron Suitcase
 Ironclad Krovod
@@ -62,6 +88,7 @@ Island
 Jackalope Herd
 Keen-Eyed Raven
 Leafkin Druid
+Lightning Hounds
 Lightning Reaver
 Liliana's Influence
 Lodestone Myr
@@ -73,9 +100,12 @@ Manamorphose
 Manticore Eternal
 Mausoleum Secrets
 Metropolis Reformer
+Mirror of Galadriel
 Mise
+Mogg Sentry
 Mogis's Warhound
 Moss Monster
+Mothrider Patrol
 Mountain
 Nagging Thoughts
 Natural Emergence
@@ -84,6 +114,7 @@ Nemesis of Reason
 Nezumi Bladeblesser
 Norn's Disassembly
 Oblation
+Path of Anger's Flame
 Pentarch Ward
 Pernicious Deed
 Pilfering Imp
@@ -93,27 +124,34 @@ Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
 Python
+Quest for Pure Flame
 Rage Weaver
 Ravos, Soultender
 Ray of Erasure
 Reality Ripple
 Reckless Charge
+Reckless Handling
 Reduce to Ashes
 Relic Barrier
 Repel
 Revelation of Power
 Rogue Refiner
+Rolling Thunder
 Sandcrafter Mage
 Savra, Queen of the Golgari
 Scion of Vitu-Ghazi
 Searing Barb
+Searing Blood
 Sentinel Sliver
+Shake the Foundations
 Shepherd of the Lost
+Skitter of Lizards
 Slinking Giant
 Sol Grail
 Solid Footing
 Spined Fluke
 Squee's Embrace
+Steam Blast
 Swamp
 Tale of Momo
 Talons of Falkenrath
@@ -130,7 +168,9 @@ Tormod's Cryptkeeper
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
+Undying Rage
 Unholy Hunger
+Viashino Fangtail
 Vine Trellis
 Warped Devotion
 Way of the Thief

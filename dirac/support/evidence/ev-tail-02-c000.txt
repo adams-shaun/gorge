@@ -2,20 +2,26 @@ A-Eiganjo Exemplar
 A-Unholy Heat
 Abbey Matron
 Abomination, Irradiated Brute
+Abyssal Horror
+Acolyte of Affliction
 Aerith, Last Ancient
 Ajani's Welcome
 Akroan Conscriptor
 Alesha's Vanguard
+Altar Golem
+Amphibian Downpour
 Ancient Stirrings
 Angel of Invention
 Angel of Renewal
 Angelic Captain
+Anikthea, Hand of Erebos
 Apes of Rath
 Ardent Recruit
 Armored Guardian
 Atalya, Samite Master
 Atsushi, the Blazing Sky
 Automatic Librarian
+Azorius First-Wing
 Azorius Ploy
 Barbary Apes
 Barbed Batterfist
@@ -37,24 +43,31 @@ Bristling Boar
 Burning Palm Efreet
 Burning Prophet
 Butcher of Malakir
+Call to Mind
+Callous Giant
 Captain's Call
 Carrier Thrall
 Cartographer
+Cateran Kidnappers
 Celestine, the Living Saint
 Centaur Omenreader
 Chain of Plasma
 Chainflail Centipede
+Chamber of Manipulation
+Char-Rumbler
 Chief Jim Hopper
 Cho-Manno's Blessing
 Chrome Steed
 Chronicler of Heroes
 Cloud Sprite
 Coldsteel Heart
+Complex Automaton
 Conservatory
 Contraband Livestock
 Copper-Leaf Angel
 Counterspell
 Crazed Skirge
+Creakwood Ghoul
 Creeping Mold
 Crimson Mage
 Crookshank Kobolds
@@ -62,10 +75,13 @@ Cultist's Staff
 Custody Battle
 Cybermen Squadron
 Daily Regimen
+Dark Offering
+Daru Lancer
 Dauthi Marauder
 Dauthi Mindripper
 Deadly Derision
 Deathbonnet Sprout
+Deathreap Ritual
 Deception
 Defiant Greatmaw
 Denethor, Ruling Steward
@@ -74,13 +90,16 @@ Detained by Legionnaires
 Devilish Valet
 Disciple of Bolas
 Diver Skaab
+Dokuchi Shadow-Walker
 Douse
 Drakewing Krasis
 Dread Shade
 Dukhara Peafowl
+Dune Mover
 Eidolon of Rhetoric
 Eivor, Battle-Ready
 Eldritch Evolution
+Elegant Edgecrafters
 Ember Swallower
 Endless One
 Erebos, God of the Dead
@@ -96,6 +115,7 @@ Fallaji Chaindancer
 Farideh's Fireball
 Fateful End
 Favorable Winds
+Feasting Troll King
 Fell the Profane
 Festive Funeral
 Final Flare
@@ -103,16 +123,20 @@ Firecannon Blast
 Firedrinker Satyr
 Fires of Victory
 First Sliver's Chosen
+Five-Alarm Fire
 Flowstone Channeler
 Force Void
 Forest
 Fracturing Gust
 Gallia of the Endless Dance
 Gandalf the Grey
+Gang of Elk
 Gauntlets of Light
 General Kudro of Drannith
 Ghost Tactician
 Giant's Skewer
+Glaze Fiend
+Glimmerdust Nap
 Glóin, Dwarf Emissary
 Goblin Anarchomancer
 Goblin Bully
@@ -124,21 +148,26 @@ Grunn, the Lonely King
 Hapatra, the Desert Frost
 Harried Artisan
 Haughty Djinn
+Hawkeater Moth
 Hazardous Conditions
 Hearts on Fire
 Heartwarming Redemption
 Hekma Sentinels
+Hero of Oxid Ridge
 Hidden Herbalists
 Hieroglyphic Illumination
 Horned Troll
 Hydrolash
+Hyperion's Atomic Vision
 Immolating Gyre
 Incorrigible Youths
+Inexorable Tide
 Infernal Contract
 Inflame
 Invade the City
 Invoke the Divine
 Invoke the Winds
+Irini Sengir
 Iron Myr
 Isamaru, Hound of Konda
 Island
@@ -164,7 +193,9 @@ Korlessa, Scale Singer
 Krosan Beast
 Lead the Stampede
 Leadership Vacuum
+Lifebane Zombie
 Light of Promise
+Lingering Mirage
 Lingering Souls
 Lowland Giant
 Loxodon Lifechanter
@@ -174,6 +205,7 @@ Magmatic Sprinter
 Major Teroh
 Malakir Rebirth
 Manaform Hellkite
+Mardu Hordechief
 Marshaling Cry
 Master Apothecary
 Master of Etherium
@@ -189,8 +221,11 @@ Mox Ruby
 Mystic Forge
 Namor, Scourge of the Seas
 Nautiloid Ship
+Nested Ghoul
 Nightshade Stinger
+Nuisance Engine
 Null Champion
+Nylea's Huntmaster
 Nyxborn Colossus
 Oath of the Ancient Wood
 Oathsworn Giant
@@ -203,6 +238,7 @@ Ojutai's Breath
 On the Trail
 Ondu Cleric
 Orcish Mechanics
+Orzhova, the Church of Deals
 Otherworldly Gaze
 Otherworldly Outburst
 Owlbear Shepherd
@@ -210,11 +246,13 @@ Ox Drover
 Paradoxical Outcome
 Path of Peace
 Persistent Specimen
+Pestilent Kathari
 Pestilent Syphoner
 Pillar of War
 Plains
 Planar Collapse
 Poison the Blade
+Pol Jamaar, Illusionist
 Press the Advantage
 Primal Druid
 Prosperity
@@ -225,13 +263,16 @@ Qarsi Sadist
 Quartzwood Crasher
 Quicksilver, Speedster
 Racers' Ring
+Ral, Caller of Storms
 Rathi Trapper
+Raven Wings
 Ravenous Daggertooth
 Reality Anchor
 Reaper of the Wilds
 Reborn Hero
 Reckless Air Strike
 Reckless Charge
+Red Cliffs Armada
 Refresh
 Renewed Solidarity
 Renounce the Guilds
@@ -251,6 +292,7 @@ Saprazzan Legate
 Sarkhan Vol
 Savannah Sage
 Scare Tactics
+Scathe Zombies
 Scent of Cinder
 Scion of Opulence
 Scout the Borders
@@ -263,8 +305,10 @@ Showstopper
 Skirsdag Supplicant
 Skittering Horror
 Skittering Precursor
+Skola Grovedancer
 Skyshroud Ridgeback
 Sleeping Potion
+Slitherwisp
 Smash to Smithereens
 Sokenzan Bruiser
 Solitary Camel
@@ -272,6 +316,7 @@ Soltari Visionary
 Soul of Eternity
 Sparring Golem
 Spawning Pit
+Sphere of Truth
 Spindrift Drake
 Spined Megalodon
 Sporesower Thallid
@@ -283,7 +328,9 @@ Subterranean Scout
 Swamp
 Sword Dancer
 Syndic of Tithes
+Take Vengeance
 Tel-Jilad Fallen
+Temple Altisaur
 Temporary Lockdown
 The Shire
 Thorned Moloch
@@ -309,6 +356,8 @@ Voltaic Key
 Vulshok Replica
 Wailing Ghoul
 Wake of Vultures
+Walking Skyscraper
+Wall of Light
 Wall of Pine Needles
 Wall of Runes
 Warship Scout
@@ -331,5 +380,7 @@ Worldly Tutor
 Wring Flesh
 Yawning Fissure
 Yorvo, Lord of Garenbrig
+You Are Already Dead
 Zealous Strike
 Zebra Unicorn
+Zodiac Dragon

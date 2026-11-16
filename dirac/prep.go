@@ -233,6 +233,10 @@ type prep struct {
 	// (kw_ascend.go); a prep bool, not a genPrep one, so the hot hooks
 	// (enterNF, ctrlMove, sba, resolveTop) cost one byte load
 	ascend bool
+	// unleash: some card prints Unleash: the as-enters counter ask queues at
+	// entry and the block gate reads it (kw_unleash.go); a prep bool like
+	// ascend, for the same reason
+	unleash bool
 	// engAsc: engines || ascend, enterNF's single entry-hook guard
 	engAsc bool
 	// painMana: some card has a painful mana alternative (pcard.painCol;
@@ -277,6 +281,7 @@ func prepare(t *kop.Table) *prep {
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
+	p.unleash = tableHasUnleash(t)
 	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
 		c := &t.Cards[i]

@@ -1853,10 +1853,20 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
             }
             // The seat's answerable slot is prompt-independent (ActionCluster gates undo on the sole
             // human seat and an in-flight post), so an ask a rewind re-parks needs no answer: it
-            // would only commit an intent the next undo takes back again.
+            // would only commit an intent the next undo takes back again. But the click itself must
+            // wait for a parked decision: the server accepts an undo whenever the seat has a logged
+            // intent left — it need not be pending (Registry.Undo reserves one intent per click,
+            // server/host/undo.go) — so a click fired while nothing is parked, and every further
+            // click the 100 ms poll fires through that stretch (the machine acting between
+            // decisions, /pending a 409), queues another rewind; the queued rewinds then walk back
+            // past the land play and across the turn's draw, where the hand can never equal
+            // handBefore again (measured on the gate box: a red at 23.6 s with the walk-back's whole
+            // budget gone). Skipping the click until a decision is parked keeps one rewind per
+            // click, and the hold below keeps the next one queued behind a landing rewind.
             const asking = await pendingSeq(seat);
+            if (asking === null) return false;
             const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
-            if (!clicked || asking === null) return false;
+            if (!clicked) return false;
             clicks++;
             // The server answers an undo with 204 and rewinds later, on the match's own goroutine,
             // and each rewind takes back one of the seat's own actions. Hold the next click until
@@ -1960,6 +1970,19 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
 
           await page.locator('section.transcript .line[data-seq]').first().waitFor({ state: 'attached', timeout: WAIT_MS });
 
+          // Concede rides a priority prompt the page shows. On the ManaBrew wire the compat rule
+          // (web/src/lib/manabrew/compat.ts, default on) passes every priority prompt the seat has
+          // nothing to do in unseen, so once the spell is cast and the hand holds no land or
+          // castable card, the seat is shown no prompt until a later draw gives it one. The
+          // random deal and draws decide how long that is: it outlasted STALL_MS in CI. The play
+          // above ran under the default; the concede step turns the rule off (the setting
+          // applies when a table loads) and reloads, so the next priority window is shown.
+          if (wire === 'manabrew') {
+            // 'gorge.mbcompat.v1' is COMPAT_KEY in web/src/lib/manabrew/compat.ts; the page cannot be imported here.
+            await page.evaluate(() => localStorage.setItem('gorge.mbcompat.v1', 'off'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await page.locator('.quadrant').first().waitFor({ state: 'visible', timeout: WAIT_MS });
+          }
           // Concede is offered with an open ask, and the spell may have left the seat without one.
           const concede = page.locator('[data-concede-control]:enabled');
           await expect.poll(async () => {

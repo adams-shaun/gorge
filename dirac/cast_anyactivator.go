@@ -75,10 +75,10 @@ func (s *State) canActivateAny(k *prep, sl Slot, a *kop.Ability, who uint8, sorc
 	if k.gen.anyCantAct && s.actForbiddenBy(k, sl, who, false, false) {
 		return false
 	}
-	if k.gen.anyWaterbend || k.gen.anyXBoundAb {
-		if s.castHeldOut(p.obj) {
-			return false
-		}
+	if s.castHeldOut(p.obj) {
+		// the CR 733.2 hold-out is read on every table (canActivate's consult
+		// and cast.go's push arm are no longer waterbend-scoped)
+		return false
 	}
 	if k.anyGate && !s.gateOK(sl, a) {
 		return false

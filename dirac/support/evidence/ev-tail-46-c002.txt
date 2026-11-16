@@ -1,48 +1,90 @@
+A-Circle of the Land Druid
+A-Haywire Mite
 A-Oran-Rief Ooze
+A-Revel Ruiner
+Adeliz, the Cinder Wind
+Aether Spellbomb
+Alms Beast
 Alpha Tyrranax
+Ambush Paratrooper
 Anaconda
+Anarchist
+Anthousa, Setessan Hero
 Aphetto Alchemist
+Arcane Teachings
+Archfiend of Despair
 Argothian Opportunist
 Argothian Treefolk
 Aria of Flame
 Armored Cancrix
+Armory Veteran
 Auriok Transfixer
+Back in Town
 Blessed Wine
 Blight Pile
+Blind Phantasm
 Blistering Barrier
+Blood Funnel
 Bloodrite Invoker
 Blur of Blades
 Bogardan Rager
+Bola Warrior
 Bounding Wolf
 Brain Weevil
 Brassclaw Orcs
 Brazen Buccaneers
+Bygone Marvels
+Cackling Imp
 Cagemail
+Call of the Wild
+Capashen Templar
 Cast Out
+Castigate
 Cenn's Enlistment
 Cephalopod Sentry
+Champion of the Perished
+Chandler
+Chaos Charm
 Chatterstorm
 Children of Korlis
+Chivalric Alliance
 Chosen of Markov
 Citizen's Crowbar
+Clay Revenant
+Cleaver Riot
 Cloud Elemental
 Coastal Bulwark
+Colossal Growth
+Combat Medic
 Conclave Tribunal
 Consider
+Crocodile of the Crossing
 Death-Hood Cobra
 Debt to the Kami
 Deepglow Skate
+Defense of the Heart
+Demolish
+Demolition Stomper
+Demon Bolt
 Descent into Avernus
+Desert Drake
+Dictate of Heliod
 Dimir Machinations
 Djinn of Infinite Deceits
+Doombot Harbinger
 Doorkeeper
 Dormant Grove
 Dragonfly Suit
+Dragonscale Boon
 Dread Return
 Dreadhorde Arcanist
 Dress Down
+Dromosaur
 Drudge Sentinel
+Drudge Skeletons
 Duty-Bound Dead
+Dwarven Song
+Earsplitting Rats
 Elena, Turk Recruit
 Elite Guardmage
 Emerald Charm
@@ -54,102 +96,200 @@ Expedition Champion
 Falcon Abomination
 Fangs of Kalonia
 Fated Conflagration
+Fated Retribution
+Fathom Fleet Cutthroat
 Feedback Bolt
 Feral Animist
 Fire Snake
 Floral Evoker
+Foot Soldiers
+Forerunner of Slaughter
 Forest
 Gaea's Embrace
 Gaea's Skyfolk
 Gandalf, Shadow's Foe
+Garruk's Gorehorn
 Geistlight Snare
 Gerrard's Command
 Gloomdrifter
+Goblin Gaveleer
+Goblin Skycutter
+Gustcloak Sentinel
 Hammer of Purphoros
 Heir of the Ancient Fang
+Heir of the Wilds
 Herald of Secret Streams
 Holy Day
+Honor's Reward
+Horribly Awry
+Howl of the Horde
+Hunting Grounds
+Immolation
 Incisor Steed
+Intimidator Initiate
+Introduction to Prophecy
+Irontread Crusher
 Island
 Jewel-Eyed Cobra
 Jukai Trainee
+Kalonian Twingrove
 Karn, Silver Golem
+Karstoderm
+Kessig Wolf
+Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
+Leaping Master
+Lesser Gargadon
+Level Up
 Leyline of the Meek
 Lifeline
 Lightning Blow
 Lorehold Pledgemage
 Lost in the Woods
+Lumengrid Gargoyle
 Magma Giant
 Marshal of Zhalfir
+Master Symmetrist
+Match the Odds
 Merfolk Branchwalker
 Midnight Guard
+Might of Old Krosa
 Mind Peel
+Mirrodin Avenged
+Mogg Salvage
 Moss Diamond
+Mossfire Egg
 Mountain
 Murasa Rootgrazer
 Muscle Sliver
+N'Yami-Class Mother Ship
 Nearheath Stalker
 Netcaster Spider
 Nihil Spellbomb
 Nimble Trapfinder
 Nurturing Presence
+Ordeal of Heliod
 Orochi Eggwatcher
 Panther Robot
 Pit Imp
+Placid Rottentail
 Plains
+Prophecy
 Psionic Entity
 Pull from the Deep
+Qasali Slingers
 Quicksilver Wall
 Radiant Flames
 Raise the Alarm
 Rank Officer
 Ravenous Bloodseeker
+Reave Soul
 Renegade Troops
 Resolute Watchdog
 Revenge of the Drowned
+Ring of Valkas
 Ritual of Hope
+Robe of Mirrors
+Root Cage
+Rosethorn Acolyte
 Rout
 Rowan's Stalwarts
 Rune-Cervin Rider
+Rushwood Grove
 Rusted Slasher
+Sage-Eye Harrier
+Samite Healer
 Sanctum of Tranquil Light
+Saproling Migration
 Sarkhan's Scorn
 Scoria Cat
+Scythe Tiger
+Searchlight Companion
 Second Breakfast
 Secure Detention
+Seek the Wilds
 Seizan, Perverter of Truth
+Shadow Stinger
 Shadow in the Warp
+Sharpshooter Elf
+Shield of Kaldra
+Shire Shirriff
+Siege Wurm
 Sisters of the Flame
+Skeletal Snake
 Sky Skiff
+Skyclave Geopede
 Skywinder Drake
+Slith Predator
+Sluggishness
+Smolder Initiate
+Snare Thopter
 Soltari Foot Soldier
+Soul Read
+Soul's Grace
 Soulcage Fiend
+Sower of Temptation
+Spark Spray
 Sparksmith
 Spatial Contortion
+Spectral Grasp
+Spike Soldier
+Spiteful Prankster
+Splinter Twin
+Spontaneous Generation
+Spore Frog
+Squallmonger
+Stalwart Shield-Bearers
 Steel of the Godhead
 Steelgaze Griffin
 Storm Strike
+Stormwing Entity
+Strength of the Harvest
 Sudden Insight
 Summer Bloom
 Sure-Footed Infiltrator
 Survive the Night
 Swamp
+Take Up Arms
+Talas Air Ship
 Talas Explorer
+Talas Merchant
+Tempered Sliver
 Tempest Harvester
+Terra Stomper
+Tethered Skirge
+Thallid Devourer
+The Flux
+Thunderbreak Regent
+Thundercloud Shaman
 Tireless Hauler
+Topple the Statue
+Torens, Fist of the Angels
+Toski, Bearer of Secrets
+Trained Orgg
+Treefolk Harbinger
 Trenchpost
 Tura Kennerüd, Skyknight
 Twisted Experiment
 Unexpected Windfall
+Unexplained Disappearance
 Urborg Stalker
+Veil of Birds
 Verdant Field
 Wake the Dragon
+Walking Wall
+Wall of Denial
+Wall of One Thousand Cuts
+Wanderer's Twig
 Warbriar Blessing
+Warden of Geometries
 Weldfast Wingsmith
+Wellwisher
 Whipcorder
 Whirler Virtuoso
+White Tiger, Amulet Keeper
+Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
 Yotian Medic
