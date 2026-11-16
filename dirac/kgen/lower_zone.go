@@ -2358,6 +2358,17 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		if len(ss) != 1 {
 			return refuse("Effect static %q", st)
 		}
+		// A may-play over the remembered cards that partitionMayPlay did not
+		// lower: gorge keeps the permission per remembered card (CR 611.2a,
+		// effectRemembered registers the static with the whole Remembered
+		// list), and an emblem's IsRemembered filter reads the set the
+		// chain's DBCleanup emptied, so lowering it would grant nothing
+		// (Extract Power, Dead Man's Chest, Vivien, Champion of the Wilds).
+		// Anything still outside the gate refuses by name; it never becomes
+		// an emblem.
+		if sp := newParams(ss[0].Params); ss[0].Mode == "Continuous" && sp.is("MayPlay", "True") && affectedRemembered(sp.str("Affected")) {
+			return refuse("Effect MayPlay over the remembered cards, unsupported shape")
+		}
 		return lc.emblemStatic(ps, ss[0])
 	}
 	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
@@ -2480,11 +2491,9 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect CantBlockBy RememberObjects LKICopy")
 			}
 		}
-		if exHaste {
-			lc.emit(lInstr{Op: "ExHaste", Obj: obj, C: exC, Note: "until end of turn: blockable only by creatures with haste, or not by creatures whose power compares (C)"})
-			break
+		if err := lc.cantBlockGrant(ps, obj, exHaste, exC); err != nil {
+			return err
 		}
-		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: "Unblockable"})
 	case "CanAttackDefender":
 		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
@@ -4597,17 +4606,29 @@ func (lc *lowerCtx) animateGraveMayPlay(ps *params, spec string) error {
 	return nil
 }
 
-// partitionMayPlay lowers Soul Partition's permanent permission:
-// Duration$ Permanent, RememberObjects$ Remembered, ForgetOnMoved$ Exile and
-// two statics -- MayPlay over Card.IsRemembered in exile for the card's
-// owner (MayPlayPlayer$ CardOwner) and an optional RaiseCost$ of a literal
-// {N} on a spell cast that way: by an opponent of the effect's controller
-// (Activator$ Opponent) or, with the Activator$ left out, by whoever casts
-// it (Zero, Incorporeal Sensate -- the permission admits only the owner, so
-// the owner pays).
+// partitionMayPlay lowers a permanent permission over the remembered exiled
+// cards: Duration$ Permanent, RememberObjects$ Remembered and one or two
+// statics -- MayPlay over the remembered cards in exile. The lifetime is
+// ForgetOnMoved$ Exile (Soul Partition, the Digs, Extract Power) or Dead
+// Man's Chest's grant with none: the per-card WhileExiled record lives for as
+// long as the card remains exiled either way, and an emblem's IsRemembered
+// filter would read the remembered set the chain's DBCleanup emptied by then.
+// The permission is
+//   - the card's owner's (MayPlayPlayer$ CardOwner: Soul Partition), with an
+//     optional RaiseCost$ of a literal {N} on a spell cast that way: by an
+//     opponent of the effect's controller (Activator$ Opponent) or, with the
+//     Activator$ left out, by whoever casts it (Zero, Incorporeal Sensate --
+//     the permission admits only the owner, so the owner pays), or
+//   - the effect controller's (no MayPlayPlayer$: the Digs, Extract Power,
+//     Dead Man's Chest, Vivien, Champion of the Wilds), alone in the Effect,
+//     with the riders partitionRiders reads and the Affected$ the
+//     rememberedAffected gate admits.
+//
 // It emits one MayPlay over the remembered exiled card with the WhileExiled
-// duration, kop.MayPlayOwner and the surcharge (B >> kop.MayPlayRaiseShift).
-// It reports whether the shape was this one.
+// duration, the record's flags (kop.MayPlayOwner and the surcharge
+// B >> kop.MayPlayRaiseShift; a while-exiled Affected$ gate rides F, read by
+// dirac mayPlayRemembered as the record is made) and reports whether the
+// shape was this one.
 func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error) {
 	obj := lRef{Kind: rRemembered}
 	if lc.exileLandStage == 1 && ps.str("RememberObjects") == "Imprinted" && len(ss) == 1 {
@@ -4618,7 +4639,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	} else if ps.str("RememberObjects") != "Remembered" {
 		return false, nil
 	}
-	if ps.str("ForgetOnMoved") != "Exile" || len(ss) < 1 || len(ss) > 2 {
+	if _, shapeOK := partitionLifetime(ps, ss); !shapeOK {
 		return false, nil
 	}
 	may := newParams(ss[0].Params)
@@ -4627,15 +4648,17 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	// cards a face-down Dig exiled), alone in the Effect, with the
 	// MayPlayIgnoreType$ rider as an any-type record
 	owner := may.str("MayPlayPlayer") == "CardOwner"
-	affected := may.str("Affected")
 	_, checked := may.get("CheckSVar")
-	nonLand := affected == "Card.IsRemembered+nonLand" && !owner && !checked && ps.str("Duration") == "Permanent"
-	if ss[0].Mode != "Continuous" || !may.is("MayPlay", "True") || affected != "Card.IsRemembered" && !nonLand ||
+	// plain: the controller permission whose Affected$ may carry the
+	// remembered card's type (a Dig's nonLand) or a creature gate (Vivien,
+	// Champion of the Wilds's "you may cast it if it's a creature spell")
+	plain := !owner && !checked && ps.str("Duration") == "Permanent"
+	flags, gate, affOK := lc.rememberedAffected(may.str("Affected"), plain)
+	if ss[0].Mode != "Continuous" || !may.is("MayPlay", "True") || !affOK ||
 		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1)) {
 		return false, nil
 	}
 	may.consume("Mode", "Description", "MayPlay", "Affected", "AffectedZone", "MayPlayPlayer")
-	flags := 0
 	if lc.blind != nil && !owner && may.is("MayLookAt", "True") {
 		// the look the blind Dig's exile leaves to this static
 		// (lower_blinddig.go): the kernel's looker is the exiler
@@ -4648,21 +4671,11 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	if owner {
 		flags = kop.MayPlayOwner
 	}
-	if v, ok := may.get("MayPlayIgnoreType"); ok {
-		if strings.TrimSpace(v) != "True" || owner {
-			return true, refuse("Effect MayPlayIgnoreType %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
-		}
-		flags |= kop.MayPlayAnyType
+	riders, err := partitionRiders(may, owner)
+	if err != nil {
+		return true, err
 	}
-	if v, ok := may.get("MayPlayIgnoreColor"); ok {
-		// "you may spend mana as though it were mana of any color to cast
-		// it" (Brainstealer Dragon, Siphon Insight): the record's any-colour
-		// rider, as the end-of-turn grant above carries it
-		if strings.TrimSpace(v) != "True" || owner {
-			return true, refuse("Effect MayPlayIgnoreColor %q beside a %s permission", v, map[bool]string{true: "card-owner", false: "controller"}[owner])
-		}
-		flags |= kop.MayPlayIgnoreColor
-	}
+	flags |= riders
 	var valid *lFilter
 	if name, ok := may.get("CheckSVar"); ok && !owner {
 		spec, isValid := strings.CutPrefix(lc.face.SVars[name], "Count$Valid ")
@@ -4674,8 +4687,6 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 			return true, err
 		}
 		valid = f
-	} else if nonLand {
-		flags |= kop.MayPlayNonLand // the remembered card's type, read once as the record is made
 	}
 	if left := may.unread(); len(left) > 0 {
 		if !owner {
@@ -4715,10 +4726,103 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
+	} else if gate != nil {
+		in.F = gate // WhileExiled: the remembered cards the grant admits (dirac mayPlayRemembered)
 	}
 	in.B = cst(flags | raise<<kop.MayPlayRaiseShift)
 	lc.emit(in)
 	return true, nil
+}
+
+// partitionRiders reads the controller permission's record riders
+// (gorge mayPlayParamsScan), in this order, each spelled True only:
+// MayPlayIgnoreType$ (an any-type record), MayPlayIgnoreColor$ ("you may
+// spend mana as though it were mana of any color to cast it": Brainstealer
+// Dragon, Siphon Insight), MayPlayWithoutManaCost$ ("you may play them
+// without paying their mana costs for as long as they remain exiled":
+// Extract Power), as the end-of-turn grant above carries them. A card-owner
+// permission takes none of them.
+func partitionRiders(may *params, owner bool) (int, error) {
+	flags := 0
+	for _, r := range [...]struct {
+		key string
+		bit int
+	}{{"MayPlayIgnoreType", kop.MayPlayAnyType}, {"MayPlayIgnoreColor", kop.MayPlayIgnoreColor}, {"MayPlayWithoutManaCost", kop.MayPlayFree}} {
+		v, ok := may.get(r.key)
+		if !ok {
+			continue
+		}
+		if strings.TrimSpace(v) != "True" || owner {
+			return 0, refuse("Effect %s %q beside a %s permission", r.key, v, map[bool]string{true: "card-owner", false: "controller"}[owner])
+		}
+		flags |= r.bit
+	}
+	return flags, nil
+}
+
+// rememberedAffected reads the Affected$ of a permanent permission over the
+// remembered exiled cards: Card.IsRemembered, or, for a plain controller
+// permission (plain: no CheckSVar$, Duration$ Permanent), the remembered
+// card's type read once as the record is made -- Card.IsRemembered+nonLand
+// or Card.nonLand+IsRemembered, the same trio either way (kop.MayPlayNonLand),
+// or Vivien, Champion of the Wilds's Creature.IsRemembered ("you may cast it
+// if it's a creature spell"), whose gate rides the instruction's F (dirac
+// mayPlayRemembered). ok false: another Affected$.
+func (lc *lowerCtx) rememberedAffected(affected string, plain bool) (flags int, gate *lFilter, ok bool) {
+	switch {
+	case affected == "Card.IsRemembered":
+		return 0, nil, true
+	case plain && nonLandRemembered(affected):
+		return kop.MayPlayNonLand, nil, true
+	case plain && affected == "Creature.IsRemembered":
+		f, err := lc.filter("Creature")
+		return 0, f, err == nil
+	}
+	return 0, nil, false
+}
+
+// nonLandRemembered reports whether aff is the remembered nonland spelling,
+// compared order-insensitively: Card.IsRemembered+nonLand (the Digs) and
+// Card.nonLand+IsRemembered (Dead Man's Chest) are the same three terms.
+func nonLandRemembered(aff string) bool {
+	terms := strings.FieldsFunc(aff, func(r rune) bool { return r == '.' || r == '+' })
+	if len(terms) != 3 {
+		return false
+	}
+	slices.Sort(terms)
+	return terms[0] == "Card" && terms[1] == "IsRemembered" && terms[2] == "nonLand"
+}
+
+// affectedRemembered reports whether an Affected$ names the remembered set
+// (some clause carries the IsRemembered term; !IsRemembered does not).
+func affectedRemembered(aff string) bool {
+	for _, clause := range strings.Split(aff, ",") {
+		for _, term := range strings.Split(clause, "+") {
+			if term == "IsRemembered" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// chestMayPlayShape reports Dead Man's Chest's grant: a permanent Effect with
+// no ForgetOnMoved$ whose one static lets the controller cast the remembered
+// nonland cards while they stay exiled. The per-card WhileExiled record is
+// that lifetime; an emblem filter over IsRemembered would read the set
+// Cleanup has emptied by then.
+func chestMayPlayShape(ps *params, ss []cards.Static) bool {
+	_, exileOnMoved := ps.get("ExileOnMoved")
+	return ps.str("ForgetOnMoved") == "" && !exileOnMoved && len(ss) == 1 &&
+		nonLandRemembered(newParams(ss[0].Params).str("Affected")) && ps.str("Duration") == "Permanent"
+}
+
+// partitionLifetime reports whether the Effect's lifetime and static count are
+// one partitionMayPlay reads: ForgetOnMoved$ Exile with one or two statics, or
+// Dead Man's Chest's grant (chest).
+func partitionLifetime(ps *params, ss []cards.Static) (chest, ok bool) {
+	chest = chestMayPlayShape(ps, ss)
+	return chest, len(ss) >= 1 && len(ss) <= 2 && (chest || ps.str("ForgetOnMoved") == "Exile")
 }
 
 // animateLivePT reads an Animate staticAbilities$ grant that is one

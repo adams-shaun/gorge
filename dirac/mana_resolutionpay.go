@@ -28,9 +28,22 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	// Roots' any-colour token is not the {G} face the {G/W} prices.
 	ng, ax := s.g.noGrant, s.g.availX
 	s.g.noGrant, s.g.availX = true, s.g.availX|availPlain
+	// The activated source's own {T} cost is paid from it (CR 602.2b,
+	// 601.2h), so it is no mana source for the witness: gorge's planner
+	// reserves it, and the manual window holds it tapped across the mana
+	// step the same way (mana_window.go). Without this the witness taps an
+	// Azorius Locket for the {W/U} its own draw ability then needs to tap for.
+	sl := s.srcSlot()
+	held := sl != NoSlot && k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab].Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
+	if held {
+		s.perms[sl].flags |= pfTapped
+	}
 	r := s.hybResolve(k, p, *c, 0)
 	s.g.noGrant, s.g.availX = ng, ax
 	s.tapFor(k, p, &r, 0, NoObj)
+	if held {
+		s.perms[sl].flags &^= pfTapped
+	}
 }
 
 // hybAbilityUnwitnessed: gorge arms no witness for this activation: the cost

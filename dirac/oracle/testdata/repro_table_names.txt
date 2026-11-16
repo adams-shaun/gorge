@@ -915,6 +915,7 @@ unless_discard_is_effect_discard std-fdn
 unless_draw_x_declined_and_zero_x_decline_only std-msh
 unless_draw_x_paid_opponent_draws std-msh
 unless_evaluated_amount std-msh
+unless_offer_counts_restricted_mana custom
 unless_pay_reaches_deferred_rider_source std-dsk
 unless_pay_reaches_deferred_rider_source_full std-dsk
 unless_tap_extra_offers_pay std-tla

@@ -2,6 +2,7 @@ A-Orcish Bowmasters
 Akiri, Line-Slinger
 Alchemist's Retrieval
 Anaba Shaman
+Andúril, Narsil Reforged
 Angelic Exaltation
 Anthousa, Setessan Hero
 Arbor Armament
@@ -9,7 +10,9 @@ Arena Rector
 Ashiok's Adept
 Attended Socialite
 Atzocan Seer
+Aven Sentry
 Avengers Quinjet
+Backup Agent
 Banehound
 Banish from Edoras
 Banisher Priest
@@ -22,6 +25,7 @@ Bewilder
 Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blessed Hippogriff
 Bloated Contaminator
 Blood Servitor
 Bloodline Shaman
@@ -61,6 +65,7 @@ Desperate Castaways
 Devotee of Strength
 Diplomatic Escort
 Distract
+Divine Arrow
 Doomfall
 Douser of Lights
 Dragon Hatchling
@@ -76,6 +81,7 @@ Enhanced Awareness
 Ephara's Dispersal
 Erase
 Evolutionary Leap
+Expose Evil
 Exultant Cultist
 Fantastic Elasticity
 Fierce Witchstalker
@@ -97,9 +103,11 @@ Greatsword of Tyr
 Greel's Caress
 Grim Affliction
 Grim Flowering
+Grotesque Demise
 Gruul Scrapper
 Guardian Zendikon
 Gustcloak Skirmisher
+Hammer of Nazahn
 Hammers of Moradin
 Hapatra, the Desert Frost
 Harbor Serpent
@@ -132,6 +140,8 @@ Krovikan Mist
 Kurgadon
 Kyren Glider
 Larceny
+Law-Rune Enforcer
+Layla Hassan
 Leeching Licid
 Leyline Dowser
 Light of Day
@@ -193,6 +203,7 @@ Replication Specialist
 Reprisal
 Rescue, Pepper Potts
 Restore
+Return the Past
 Righteousness
 Ring of Valkas
 Riptide Chimera
@@ -238,6 +249,7 @@ Splendid Reclamation
 Spoils of Evil
 Spreading Insurrection
 Squirrel Sanctuary
+Stall for Time
 Stampeding Elk Herd
 Star Whale
 Stern Dismissal
@@ -245,6 +257,7 @@ Steward of Valeron
 Storm Front
 Storm Seeker
 Stormcaller's Boon
+Sun Sentinel
 Sun-Crowned Hunters
 Sunbeam Spellbomb
 Swaggering Corsair
@@ -282,10 +295,12 @@ Wall of Runes
 War Oracle
 Warpath Ghoul
 Wasteland Viper
+Watcher Sliver
 Watchful Blisterzoa
 Weakstone's Subjugation
 Well of Life
 Whisperer of the Wilds
 Windfall
+Woodborn Behemoth
 Zephyr Winder
 Zo-Zu the Punisher
