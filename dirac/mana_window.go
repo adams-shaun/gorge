@@ -2123,6 +2123,17 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	var spill [kop.NumManaKinds]uint8
 	for i := 0; i < m; i++ {
 		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, int(path[i]), &spill)
+		if s.npend != 0 {
+			// gorge answers each gap's activation as its own decision, so the
+			// trigger queue is drained before the next tap: two lands under
+			// different Contaminated Grounds stack in tap order (CR 603.3b); a
+			// tap that queued two of one controller's is gorge's order ask,
+			// answered as the script does before the next tap
+			s.flushPrefixTriggers(k)
+			if s.npend != 0 {
+				s.resolvePrefixStack(k, s.sp, false)
+			}
+		}
 	}
 }
 
