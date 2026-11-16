@@ -191,7 +191,11 @@ type scriptSearch struct {
 	limited   bool // the budget ran out
 	approx    bool // a branch assumed an answer it did not enumerate
 	seen      map[string]bool
-	path      []ScriptStep
+	// score is the branch-order preference per source, computed once at the
+	// root: a free source making a needed colour is tried before a paid
+	// filter's branches when the node budget is tight (see visit).
+	score map[state.ObjID]int
+	path  []ScriptStep
 	// pool is the live engine whose hypothetical-clone pool backs the
 	// search's nested witness checks (hypclone.go); set by run.
 	pool *Engine
@@ -208,6 +212,51 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 	}
 	if altCost <= 0 {
 		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
+	}
+	// The node budget (potentialScriptNodes) is spent in option order; rank a
+	// source that makes a needed colour for free ahead of a paid filter's
+	// branches (Elven Chorus's granted "{T}: Add one mana of any color." on two
+	// creatures behind Heap Gate's "{1}, {T}" filter reached the bound before
+	// the two free taps: Emerald Dragonfly, pair 66). The score is a
+	// branch-order preference only; every option stays.
+	sr.score = make(map[state.ObjID]int, len(e.G.Zone(state.ZBattlefield, p)))
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		best := 0
+		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+			mf := e.manaStaticFor(p, id, ma)
+			if mf.Amount <= 0 || mf.RestrictValid {
+				continue
+			}
+			sc := 0
+			if mf.Any {
+				for i := 0; i <= state.MC; i++ {
+					if sr.need[i] {
+						sc = 4
+						break
+					}
+				}
+				if sc == 0 {
+					sc = 2
+				}
+			} else {
+				for i, n := range mf.Counts {
+					if n > 0 && i <= state.MC && sr.need[i] {
+						sc = 3
+						break
+					}
+				}
+				if sc == 0 {
+					sc = 1
+				}
+			}
+			if !mf.FreeCost {
+				sc--
+			}
+			if sc > best {
+				best = sc
+			}
+		}
+		sr.score[id] = best
 	}
 	return sr
 }
@@ -546,7 +595,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 		if !gap && sr.gapsOnly && funded >= sr.funding {
 			break
 		}
-		for _, oi := range scriptRankedActivations(c, p, d, sr.need, gaps, gap) {
+		for _, oi := range scriptRankedActivations(d, gaps, gap, sr.score) {
 			opt := &d.Options[oi]
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
@@ -594,83 +643,25 @@ func scriptGap(gaps []state.ObjID, id state.ObjID) bool {
 
 // scriptRankedActivations is the search's activate options of one gap class
 // (gap true: an uncovered source; false: a covered one the prefix may fund a
-// fee with), ranked so a source that makes a needed colour for free is tried
-// first. The search's node budget (potentialScriptNodes) is otherwise spent
-// on a paid filter's branches before a direct free-tap line: Elven Chorus's
-// granted "{T}: Add one mana of any color." on two creatures behind Heap
-// Gate's "{1}, {T}" filter reached the bound before the two free taps
-// (Emerald Dragonfly, pair 66). A stable sort keeps the decision's own
-// option order on a tie, so the walk stays deterministic.
-func scriptRankedActivations(c *Engine, p state.PlayerID, d *decision.Decision, need [state.MC + 1]bool, gaps []state.ObjID, gap bool) []int {
+// fee with), stably sorted by the branch-order score visit precomputed. A
+// source that makes a needed colour for free is tried first; equal scores keep
+// the decision's own option order, so the walk stays deterministic.
+func scriptRankedActivations(d *decision.Decision, gaps []state.ObjID, gap bool, score map[state.ObjID]int) []int {
 	type ranked struct{ opt, score int }
 	var rs []ranked
 	for i := range d.Options {
-		opt := &d.Options[i]
-		if opt.Kind != "activate" || scriptGap(gaps, opt.Obj) != gap {
-			continue
+		if opt := &d.Options[i]; opt.Kind == "activate" && scriptGap(gaps, opt.Obj) == gap {
+			rs = append(rs, ranked{opt: i, score: score[opt.Obj]})
 		}
-		rs = append(rs, ranked{opt: i, score: scriptActivationScore(c, p, opt.Obj, need)})
 	}
-	if len(rs) < 2 {
-		out := make([]int, len(rs))
-		for i := range rs {
-			out[i] = rs[i].opt
-		}
-		return out
+	if len(rs) >= 2 {
+		sort.SliceStable(rs, func(a, b int) bool { return rs[a].score > rs[b].score })
 	}
-	sort.SliceStable(rs, func(a, b int) bool { return rs[a].score > rs[b].score })
 	out := make([]int, len(rs))
 	for i := range rs {
 		out[i] = rs[i].opt
 	}
 	return out
-}
-
-// scriptActivationScore ranks one source for scriptRankedActivations: the
-// best of its currently available mana abilities, preferring a free ability
-// that makes a needed colour (a Produced$ Any ability counts for every
-// colour) over a paid one. The score is a branch-order preference only: it
-// never excludes an option.
-func scriptActivationScore(c *Engine, p state.PlayerID, id state.ObjID, need [state.MC + 1]bool) int {
-	if id == 0 || c.G.Obj(id) == nil {
-		return 0
-	}
-	best := 0
-	for _, ma := range c.availableManaAbilitiesForWindow(p, id, false) {
-		mf := c.manaStaticFor(p, id, ma)
-		if mf.Amount <= 0 || mf.RestrictValid {
-			continue
-		}
-		score := 0
-		if mf.Any {
-			for i := 0; i <= state.MC; i++ {
-				if need[i] {
-					score = 4
-					break
-				}
-			}
-			if score == 0 {
-				score = 2
-			}
-		} else {
-			for i, n := range mf.Counts {
-				if n > 0 && i <= state.MC && need[i] {
-					score = 3
-					break
-				}
-			}
-			if score == 0 {
-				score = 1
-			}
-		}
-		if !mf.FreeCost {
-			score--
-		}
-		if score > best {
-			best = score
-		}
-	}
-	return best
 }
 
 // scriptStepOf records answer in of d as a ScriptStep.
@@ -842,15 +833,20 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 	// A mana-ability choice with no concrete symbol is a Produced$ Any body
 	// (the colour is asked after the ability is chosen): it can make every
 	// needed colour, so it is tried before a concrete colour the cost does
-	// not name. Without it the search spends its node budget on the printed
-	// sacrifice ability of a dual-ability source (an Eldrazi Spawn's {C})
-	// before the granted any-colour tap that pays the play.
-	anyColour := func(o *decision.Option) bool {
-		return o.Kind == "mana" && o.ManaSymbol == ""
+	// not name. A GRANTED such body is tried before a printed one: the kernel
+	// lists the granted any-colour tap before a printed sacrifice ability on
+	// the same source, and the canonical choose action does not name the
+	// ability, so the script must take the same one or the two engines pay
+	// with different abilities (an Eldrazi Spawn tapped versus sacrificed).
+	grantedFlex := func(o *decision.Option) bool {
+		return o.ManaSymbol == "" && o.Granted
 	}
-	var first, flexible, rest []decision.Intent
+	anyColour := func(o *decision.Option) bool {
+		return o.ManaSymbol == ""
+	}
+	var first, granted, flexible, rest []decision.Intent
 	for _, in := range answers {
-		wanted, flex := false, false
+		wanted, grantedPick, flex := false, false, false
 		for _, ch := range in.Choices {
 			for i := range d.Options {
 				o := &d.Options[i]
@@ -859,6 +855,8 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 				}
 				if symNeeded(o) {
 					wanted = true
+				} else if grantedFlex(o) {
+					grantedPick = true
 				} else if anyColour(o) {
 					flex = true
 				}
@@ -867,12 +865,15 @@ func scriptOrderAnswers(d *decision.Decision, answers []decision.Intent, need [s
 		switch {
 		case wanted:
 			first = append(first, in)
+		case grantedPick:
+			granted = append(granted, in)
 		case flex:
 			flexible = append(flexible, in)
 		default:
 			rest = append(rest, in)
 		}
 	}
+	first = append(first, granted...)
 	first = append(first, flexible...)
 	return append(first, rest...)
 }
