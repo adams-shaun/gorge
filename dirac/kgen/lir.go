@@ -562,6 +562,7 @@ type lInstr struct {
 	// (gorge effAttach's "attach to player" event, defined() player arms).
 	W    lRef
 	F    *lFilter
+	F2   *lFilter // PreventDamageScope: the recipient permanents' filter (F is the damage source's)
 	Cond lCond
 	Skip int
 	Note string // semantic note carried into the dump (not emitted)
@@ -596,6 +597,9 @@ func (in lInstr) String() string {
 	}
 	if in.W.Kind != rNone {
 		parts = append(parts, "W="+in.W.String())
+	}
+	if in.F2 != nil {
+		parts = append(parts, "F2="+in.F2.String())
 	}
 	if in.F != nil {
 		parts = append(parts, "F="+in.F.String())
@@ -1205,6 +1209,7 @@ type lRepl struct {
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
+	F2      *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 }
 
 // lCard is a lowered card.
@@ -1281,6 +1286,7 @@ type lCard struct {
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Delve          bool      // K:Delve (CR 702.66a): the cast exiles graveyard cards toward its generic cost (dirac/kw_delve.go)
+	SplitSecond    bool      // K:Split second (CR 702.61a): CardDef.SplitSecond (lower_splitsecond.go, dirac/kw_splitsecond.go)
 	Rebound        *lAbility // K:Rebound (CR 702.88a): the latent free-cast-from-exile body of the upkeep recast (dirac/kw_rebound.go)
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
 	Aftermath      bool      // K:Aftermath on a split card's right half (CR 702.127a): CardDef.Aftermath (dirac/face_aftermath.go)
@@ -1297,6 +1303,7 @@ type lCard struct {
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
 	World          bool      // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
+	Snow           bool      // the printed Snow supertype (CR 205.4a): CardDef.Snow
 	SelfFlash      bool      // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
 	Changeling     bool      // K:Changeling: every creature type (CR 702.73a), in every zone
 	Offspring      *manaCost // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
