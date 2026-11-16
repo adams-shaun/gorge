@@ -202,35 +202,32 @@ func lowerPool(p *pool) *lowered {
 	for k := range tokSet {
 		keys = append(keys, k)
 	}
+	// A token may make tokens of its own (Diabolical Salvation's Devil makes
+	// a Treasure as it dies): lower them too, until no new key appears.
+	byKey := map[string]*lCard{}
+	for len(keys) > 0 {
+		sort.Strings(keys)
+		var next []string
+		for _, k := range keys {
+			tc := lowerTokenEntry(p, lw.cards, k)
+			byKey[k] = tc
+			for _, t := range tc.Tokens {
+				if !tokSet[t] {
+					tokSet[t] = true
+					next = append(next, t)
+				}
+			}
+		}
+		keys = next
+	}
+	for k := range tokSet {
+		keys = append(keys, k)
+	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		if strings.HasPrefix(k, faceKeyPrefix) {
-			lw.tokens = append(lw.tokens, lowerFaceEntry(p, k))
-			continue
-		}
-		if strings.HasPrefix(k, fuseKeyPrefix) {
-			lw.tokens = append(lw.tokens, lowerFusedEntry(p, k)) // lower_fuse.go
-			continue
-		}
-		if strings.HasPrefix(k, roomKeyPrefix) {
-			lw.tokens = append(lw.tokens, lowerRoomEntry(p, k)) // lower_rooms.go
-			continue
-		}
-		if k == undercityKey {
-			lw.tokens = append(lw.tokens, lowerDungeonEntry(p, k)) // lower_initiative.go
-			continue
-		}
-		if strings.HasPrefix(k, nameCardKey) {
-			lw.tokens = append(lw.tokens, nameCard(lw.cards, k))
-			continue
-		}
-		if strings.HasPrefix(k, copyCardKey) {
-			lw.tokens = append(lw.tokens, lowerCopyCardEntry(p, k)) // lower_copynamed.go
-			continue
-		}
-		c, _ := p.reg.Token(k)
-		lw.tokens = append(lw.tokens, lowerCard(p, k, c, true))
+		lw.tokens = append(lw.tokens, byKey[k])
 	}
+	refuseByNestedToken(lw.tokens) // nested_tokens.go
 	// A card whose token is refused is refused too.
 	refusedTok := map[string]bool{}
 	for _, t := range lw.tokens {
@@ -246,6 +243,27 @@ func lowerPool(p *pool) *lowered {
 		}
 	}
 	return lw
+}
+
+// lowerTokenEntry lowers one token key of the pool: a face, fused, room,
+// dungeon, named-card or copy-card entry, else a token script.
+func lowerTokenEntry(p *pool, cards []*lCard, k string) *lCard {
+	switch {
+	case strings.HasPrefix(k, faceKeyPrefix):
+		return lowerFaceEntry(p, k)
+	case strings.HasPrefix(k, fuseKeyPrefix):
+		return lowerFusedEntry(p, k) // lower_fuse.go
+	case strings.HasPrefix(k, roomKeyPrefix):
+		return lowerRoomEntry(p, k) // lower_rooms.go
+	case k == undercityKey:
+		return lowerDungeonEntry(p, k) // lower_initiative.go
+	case strings.HasPrefix(k, nameCardKey):
+		return nameCard(cards, k)
+	case strings.HasPrefix(k, copyCardKey):
+		return lowerCopyCardEntry(p, k) // lower_copynamed.go
+	}
+	c, _ := p.reg.Token(k)
+	return lowerCard(p, k, c, true)
 }
 
 // dumpLIR writes a readable LIR listing.
@@ -390,9 +408,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Casualty != 0 {
 		fmt.Fprintf(w, " casualty=%d", c.Casualty)
 	}
-	if c.Wither {
-		fmt.Fprintf(w, " wither")
-	}
+	dumpKeywordFlags(w, c) // lower_umbraarmor.go
 	if c.AloneAtk {
 		fmt.Fprintf(w, " alone-atk")
 	}
@@ -567,7 +583,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 		fmt.Fprintln(w)
 	}
 	for _, r := range c.Repls {
-		fmt.Fprintf(w, "  repl %s F=%s cond=%s\n", r.Kind, r.F, r.Cond)
+		dumpRepl(w, r) // lower_staticprevent.go
 		for i, in := range r.Prog {
 			fmt.Fprintf(w, "    %2d %s\n", i, in)
 		}

@@ -1,0 +1,6 @@
+Island
+Mountain
+Plains
+Psychic Strike
+Putrid Imp
+Swamp

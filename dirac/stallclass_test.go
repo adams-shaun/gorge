@@ -23,10 +23,10 @@ var (
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "dmgbatch", "replcands", "replplusbatch", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
 		"exiledwith", "breach", "netlock", "panharmgrant", "exilegrant", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
-		"extrablockcap", "restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder"}
+		"extrablockcap", "restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder", "cumulativecost"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
-		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
+		"endure", "linkctr", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
 		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "comboanymix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared", "textchange", "prevscopecopy"}
 )

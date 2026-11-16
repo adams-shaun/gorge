@@ -71,6 +71,12 @@ func TestFamiliesMatchOrdinals(t *testing.T) {
 	for _, r := range tr.Ordinals {
 		types[r.Type]++
 	}
+	if errs := tr.Validate(); len(errs) > 0 {
+		t.Fatalf("the source tree's manifest: %v", errs)
+	}
+	for _, r := range tr.EntryOrdinals() {
+		types[r.Type]++
+	}
 	for _, f := range Families {
 		if f.Pkg != "kop" || f.Name == "KwID" { // KwID is new at the cutover
 			continue
@@ -78,9 +84,6 @@ func TestFamiliesMatchOrdinals(t *testing.T) {
 		if types[f.Name] == 0 {
 			t.Errorf("family %s: no ordinals.tsv row has that type", f.Name)
 		}
-	}
-	if errs := tr.Validate(); len(errs) > 0 {
-		t.Errorf("the source tree's manifest: %v", errs)
 	}
 }
 
