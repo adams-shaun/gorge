@@ -156,7 +156,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	anyMana = anyMana || mode&castFree == 0 && s.convAnyType(k, p, o) // mana_convertcreature.go
 	if pc.land {
 		if landOK {
-			d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
+			s.offerLandOnce(d, o)
 		}
 		return
 	}
@@ -809,12 +809,18 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 
 // BuildModes is the modes already picked for the spell or ability being
 // put on the stack (0 outside a build): the oracle's adapter indexes the
-// remaining mode options densely, as gorge lists them.
+// remaining mode options densely, as gorge lists them. The result is a bit
+// per mode chosen at least once: a repeatable charm (CanRepeatModes$) keeps a
+// count per mode in the entry, which ModeSet folds to that bitmask.
 func (s *State) BuildModes() uint8 {
 	if s.ctl != ctlBuild {
 		return 0
 	}
-	return s.bld().e.mode
+	e := &s.bld().e
+	if cards := s.k().t.Cards; int(e.card) < len(cards) && int(e.ab) < len(cards[e.card].Abilities) {
+		return cards[e.card].Abilities[e.ab].ModeSet(e.mode)
+	}
+	return e.mode
 }
 
 // affordsFor: p can pay cost now (a ward's pay answer that can't be paid
@@ -985,4 +991,18 @@ func (s *State) tgtSource(k *prep) (spell bool, card CardID, c kop.ColorMask, sr
 		return false, 0, 0, NoSlot, false
 	}
 	return spell, card, c, srcSl, true
+}
+
+// offerLandOnce adds o's land play unless d already lists it. Two permissions
+// over one exiled land (Ignite the Future cast from a graveyard grants the
+// plain and the free play) are one play of that land (CR 305.1), and gorge
+// lists it once.
+func (s *State) offerLandOnce(d *Decision, o Obj) {
+	a := MakeAction(AkPlayLand, TCode(o), 0, 0)
+	for i := 0; i < int(d.N); i++ {
+		if d.Options[i] == a {
+			return
+		}
+	}
+	d.add(a)
 }

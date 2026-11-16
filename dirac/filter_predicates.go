@@ -131,10 +131,10 @@ func (s *State) predPermKind(k *prep, fl *kop.Filter, sl Slot) bool {
 	for m := s.occ; m.any(); m = m.rest() {
 		q := m.first()
 		if s.perms[q].attached == sl && s.typesGen(k, q)&kind != 0 {
-			return true
+			return fl.PredN == 0
 		}
 	}
-	return false
+	return fl.PredN != 0 // PredEnchanted with PredN 1: "!enchanted"
 }
 
 // predCardKind is predPermKind for a card off the battlefield (printed
@@ -149,6 +149,8 @@ func predCardKind(k *prep, fl *kop.Filter, c CardID) bool {
 			return true
 		}
 		return fl.PredN != 0 && int(fl.PredN-1) < len(k.t.Subtypes) && cd.Subtypes.Has(int(fl.PredN-1))
+	case kop.PredEnchanted:
+		return fl.PredN != 0 // nothing off the battlefield is enchanted: only "!enchanted" matches
 	}
 	return false
 }
