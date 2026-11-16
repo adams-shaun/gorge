@@ -1,11 +1,13 @@
 A-Hobbling Zombie
 A-Skyclave Shadowcat
 Aerie Worshippers
+Agent of Acquisitions
 Air Bladder
 Altar's Reap
 Archangel's Light
 Archers of Qarsi
 Argothian Pixies
+Atog
 Atrocious Experiment
 Beast Whisperer
 Benalish Heralds
@@ -13,10 +15,13 @@ Bog Tatters
 Bogstomper
 Brotherhood Vertibird
 Built to Last
+Built to Smash
 Centaur's Herald
 Clairvoyance
 Cliff Threader
+Cloudseeder
 Conclave Evangelist
+Conductor of Cacophony
 Crumbling Ashes
 Crusher Zendikon
 Deadbridge Shaman
@@ -26,26 +31,58 @@ Demon of Wailing Agonies
 Deploy the Gatewatch
 Despondency
 Dire Mimic
+Dreadhorde Twins
 Drogskol Cavalry
 Eidolon of Blossoms
 Eladamri's Call
+Elenda's Hierophant
 Enlisted Wurm
 Fallaji Excavation
 Fleshbag Marauder
+Force of Despair
 Forest
+Frogmite
+God-Eternal Rhonas
 Gray Merchant of Asphodel
+Gustcloak Harrier
 Honor the God-Pharaoh
+Igneous Golem
+Infiltrate
 Island
 Karlach, Fury of Avernus
 Kavu Climber
+Lightning Wolf
+Llanowar Stalker
 Looter il-Kor
+Malevolent Rumble
+Master Apothecary
+Midnight Scavengers
 Monk Realist
 Mountain
 Mystifying Maze
+Organ Hoarder
+Paralyzing Grasp
+Phyrexian Etchings
 Plains
+Pradesh Gypsies
 Presence of Gond
+Presence of the Master
 Quest for Pure Flame
+Quirion Sentinel
+Reach of Branches
+Rootwater Commando
+Silkguard
+Skyway Sniper
 Steel Overseer
+Stinging Scorpion
 Supply Runners
 Swamp
+Tangle Mantis
+The Torment of Gollum
+Towashi Guide-Bot
+Travel Preparations
+Vernal Sovereign
+Veteran Explorer
+Voices from the Void
 Will-o'-the-Wisp
+Wizard's Lightning

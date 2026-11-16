@@ -9,6 +9,7 @@ Cursed Wombat
 Cyclical Evolution
 Daring Fiendbonder
 Dramatic Reversal
+Dredge
 Drowner of Secrets
 Erratic Visionary
 Experimental Overload
@@ -23,8 +24,10 @@ Lorehold Command
 Lorescale Coatl
 Matter Reshaper
 Mausoleum Secrets
+Misery's Shadow
 Moonblade Shinobi
 Mountain
+Murkfiend Liege
 Nagging Thoughts
 Phantasmal Dragon
 Plains
@@ -43,3 +46,4 @@ Swamp
 The Whizzer, Classic Speedster
 Tokka & Rahzar, Unsupervised
 Tranquil Path
+Whispering Wizard

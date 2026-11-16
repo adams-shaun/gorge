@@ -22,6 +22,7 @@ Hornet Queen
 Humbler of Mortals
 Island
 Joven
+Lagac Lizard
 Lull
 Marker Beetles
 Mishra's Bauble
@@ -30,12 +31,15 @@ Mountain
 Natural Reclamation
 Nyxborn Behemoth
 Paradise Druid
+Phoenix of Ash
 Plains
 Pygmy Kavu
 Rogue Elephant
 Skull Rend
 Swamp
 Sylvok Explorer
+Syphon Life
+Tattermunge Maniac
 Thallid Shell-Dweller
 Troubled Healer
 Ulvenwald Oddity

@@ -1,8 +1,12 @@
 A-Hall of Tagsin
+A-Urza's Command
 Aetheric Amplifier
 Agadeem Occultist
+Akrasan Squire
 Alaborn Grenadier
 Altar of the Brood
+Ancient Craving
+Ancient Den
 Angel of Retribution
 Arcane Investigator
 Argent Mutation
@@ -12,23 +16,34 @@ Augur of Bolas
 Auriok Glaivemaster
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
+Belligerent Whiptail
 Berserk Murlodont
 Bladeback Sliver
 Blind Creeper
 Bloodchief's Thirst
 Bloodcrazed Hoplite
+Bloodmark Mentor
 Blunt the Assault
 Bone Saw
+Boneshard Slasher
+Boomerang
 Bramblewood Paragon
 Branching Evolution
 Brinebarrow Intruder
 Burning Oil
+Byway Courier
 Cabal Archon
+Cabal Pit
 Canopy Spider
+Careful Study
 Casting of Bones
+Cathartic Adept
+Cemetery Reaper
 Centaur Peacemaker
 Certain Death
+Chandra's Fury
 Charge Across the Araba
+Chocobo Knights
 Citanul Stalwart
 Cloakwood Swarmkeeper
 Combat Research
@@ -37,16 +52,23 @@ Converter Beast
 Corpse Connoisseur
 Crackling Club
 Craven Giant
+Curse of Predation
 Cyclops of Eternal Fury
 Cyclops of One-Eyed Pass
 Dark Heart of the Wood
+Dawn of the Dead
 Descendant of Masumaro
+Deviant Glee
+Dina, Essence Brewer
+Doom Whisperer
 Dovin's Veto
 Draconic Disciple
 Dragon Mantle
+Dread Statuary
 Dross Hopper
 Drove of Elves
 Eiganjo Free-Riders
+Elite Cat Warrior
 Elspeth's Nightmare
 Elvish Farmer
 Elvish Lyrist
@@ -58,11 +80,14 @@ Explosive Impact
 Falkenrath Pit Fighter
 Fang Dragon
 Fervent Strike
+Festering Mummy
 Final Parting
 Flamecast Wheel
 Forebear's Blade
 Forest
 Frost Trickster
+Fully Grown
+Furious Reprisal
 Furnace Hellkite
 Garruk's Companion
 Geist of the Archives
@@ -73,19 +98,28 @@ Glimmering Angel
 Goblin Warrens
 Goliath Paladin
 Grasp of Fate
+Grasping Scoundrel
+Grim Physician
+Grim Reaper's Scythe
 Guardians' Pledge
+Gush
 Gut Shot
 Guul Draz Assassin
 Haldir, Lórien Lieutenant
 Haunted Fengraf
+Headless Rider
 Heartfire
 Hero of the Pride
 Hive Stirrings
 Hookhand Mariner
 Hurly-Burly
 Hymn of Rebirth
+Ichor Synthesizer
+Impostor of the Sixth Pride
 Incremental Blight
 Infiltrator il-Kor
+Intrepid Ace
+Ironwright's Cleansing
 Island
 Jace's Sentinel
 Jhoira, Weatherlight Captain
@@ -110,16 +144,21 @@ Lu Bu, Master-at-Arms
 Make Mischief
 Mana Seism
 Manor Gate
+Marble Gargoyle
 Mardu Warshrieker
+Mesa Cavalier
+Metallic Mimic
 Moldering Karok
 Monastery Swiftspear
 Morningtide
 Mother of Runes
 Mountain
 Natural Affinity
+Neurok Replica
 Nightwind Glider
 Noose Constrictor
 Novablast Wurm
+Nurturing Licid
 Oath of Mages
 Oathsworn Giant
 Ondu Champion
@@ -127,8 +166,11 @@ Outpost Siege
 Paradigm Shift
 Passwall Adept
 Perilous Research
+Phyrexian Broodstar
 Plaguemaw Beast
 Plains
+Plunder
+Polluted Mire
 Prava of the Steel Legion
 Prime Speaker Vannifar
 Prodigy's Prototype
@@ -139,8 +181,11 @@ Pygmy Pyrosaur
 Pyre Charger
 Rampaging Cyclops
 Reaping the Rewards
+Reckless Barbarian
 Recoil
+Renegade Map
 Revenge of Ravens
+Reverent Hoplite
 Revive the Shire
 Riptide
 Riverglide Pathway
@@ -149,20 +194,31 @@ Rotted Hulk
 Roving Harper
 Runed Servitor
 Sabertooth Alley Cat
+Sagu Archer
+Sandstone Bridge
 Scrollshift
 Segmented Wurm
+Seller of Songbirds
 Seshiro the Anointed
+Shadowbeast Sighting
+Sheltering Word
 Shivan Harvest
+Shuko
 Sigarda, Champion of Light
 Skeleton Crew
+Skirk Outrider
 Skull Catapult
 Skyhunter Strike Force
 Skyrider Patrol
 Skyspear Cavalry
+Skywing Aven
 So Shiny
+Soratami Mindsweeper
 Spider-Man, New Champion
 Spiked Baloth
+Spitting Slug
 Steamclaw
+Stern Proctor
 Stonefury
 Storm Fleet Sprinter
 Stroke of Genius
@@ -176,10 +232,15 @@ Syphon Mind
 Talas Warrior
 Teachings of the Kirin
 Temporal Machinations
+Thalia's Lieutenant
 The Rack
+Thirsting Bloodlord
 Thor, Asgard's Avenger
 Touch of Brilliance
 Towering-Wave Mystic
+Traitor's Clutch
+Traveling Minister
+Tremble
 Undead Warchief
 Unfriendly Fire
 Vectis Silencers
@@ -188,9 +249,11 @@ Vessel of Ephemera
 Veteran of the Depths
 Village Bell-Ringer
 Vindictive Mob
+Vivid Flying Fish
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
+Wall of Ice
 Warlock Class
 Warpath
 Wary Okapi

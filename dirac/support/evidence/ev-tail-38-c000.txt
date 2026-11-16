@@ -1,17 +1,30 @@
 A-You Come to a River
 Abyssal Gatekeeper
 Academy Journeymage
+Against All Odds
+Ajani's Influence
+Akki Drillmaster
+Alabaster Dragon
 Amoeboid Changeling
+An-Havva Constable
 Ancient Ooze
 Angelsong
+Animating Faerie
 Anticipate
+Aphetto Grifter
+Apprentice Sorcerer
+Armed Response
 Armix, Filigree Thrasher
 Aspect of Wolf
+Augur il-Vec
 Auriok Bladewarden
 Avatar of Slaughter
 Awaken the Bear
+Awakening of Vitu-Ghazi
+Axgard Armory
 Ayumi, the Last Visitor
 Baloth Cage Trap
+Bane Alley Blackguard
 Batterbone
 Battering Sliver
 Bearded Axe
@@ -19,33 +32,61 @@ Billiard Room
 Bitterbow Sharpshooters
 Blazethorn Scarecrow
 Blessed Reversal
+Blood Bairn
 Bloodbond Vampire
 Bloodhall Ooze
 Boldwyr Intimidator
+Bone to Ash
+Brass Secretary
+Breach
+Bristling Boar
+Bushmaster, Coiled Henchman
 Captain of Umbar
 Cast into Darkness
+Cathartic Operation
 Cavalcade of Calamity
+Chandra's Defeat
+Charge Through
 Charity Extractor
 Choking Tethers
+Cleaving Skyrider
+Cloud Pirates
+Coma Veil
 Commander's Authority
 Consecrated Sphinx
+Crack Open
+Crash the Ramparts
+Crumbling Ashes
 Cultivator of Blades
+Cunning Breezedancer
+Cutthroat Contender
+Darksteel Axe
 Dauntless River Marshal
+Deal Broker
 Deepcavern Imp
 Deepwater Hypnotist
+Deface
 Demonlord Belzenlok
+Disciples of Gix
 Distorted Curiosity
 Doomskar Oracle
 Doomwake Giant
 Dovin's Dismissal
+Dragon Whisperer
 Dread Slag
 Dual Strike
 Dusk Urchins
 Dwarven Armory
 Easterling Vanguard
+Edge of the Divinity
+Elephant Resurgence
+Elves of Deep Shadow
 Emerald Dragonfly
 Entomb
+Ephara's Enlightenment
+Evacuation
 Experimental Aviator
+Faith Unbroken
 False Demise
 Fear of Death
 Fearless Halberdier
@@ -56,14 +97,27 @@ Fiery Intervention
 Flourishing Hunter
 Forest
 Fortify
+Fumulus, the Infestation
+Furor of the Bitten
 Future Sight
+Gargoyle Sentinel
 Garrison Cat
+Gate to Manorborn
+Geothermal Kami
+Ghitu Firebreathing
 Ghost Warden
 Gigantiform
 Gitaxian Raptor
+Gixian Skullflayer
+Glimmervoid
+Glissa's Courier
+Glitterfang
+Glory Seeker
+Glóin the Mighty
 Goblin Spelunkers
 Goblin Turncoat
 God-Favored General
+Golden Hind
 Gothmog, Morgul Lieutenant
 Great Teacher's Decree
 Griffin Canyon
@@ -72,102 +126,218 @@ Gunner Conscript
 Halt Order
 Haunt of the Dead Marshes
 Hazoret's Monument
+Heal the Scars
 Heavy Infantry
 Henchfiend of Ukor
+Herd Gnarr
 Hibernation Sliver
+Hissing Quagmire
 Hook Swords
+Hussar Patrol
+Ignite the Future
 Impulse
+Inertia Bubble
+Infectious Host
+Insatiable Appetite
 Into Thin Air
+Invasion of Kaladesh
 Island
+Jace's Archivist
 Juniper Order Druid
 Kaervek's Hex
 Kalemne's Captain
 Kamahl's Sledge
+Kayla's Reconstruction
 Komodo Rhino
 Kothophed, Soul Hoarder
+Krosan Grip
 Laboratory Drudge
 Labyrinth Minotaur
+Leave
+Leave in the Dust
+Lena, Selfless Champion
 Leonin Lightbringer
 Lifecraft Cavalry
 Liliana's Reaver
+Lion Sash
+Living Airship
+Loyal Gryff
+Loyal Retainers
 Lure
 Magnetic Flux
+Malachite Golem
+Manaforce Mace
+Master of Arms
 Mechanical Glider
 Megatherium
+Memorial to War
+Mesmerizing Benthid
 Minamo Sightbender
+Mindclaw Shaman
+Mines of Moria
 Mirrorworks
+Mizzium Tank
+Most Wanted
 Mountain
 Mournful Zombie
 Myr Servitor
+Mystic Crusader
+Nema Siltlurker
 Nephalia Seakite
 Nettle Swine
 Nightmare
+Norwood Ranger
 Noxious Hatchling
+Ojutai Exemplars
+Omen of the Sun
 One With the Wind
 Orgg
+Orzhov Basilica
+Panic Spellbomb
 Paradise Plume
 Perish
+Petrahydrox
+Phantom Monster
 Phyrexian Prowler
 Phyrexian Slayer
+Pia Nalaar
 Pip-Boy 3000
 Pit Raptor
 Pit Scorpion
 Pitchburn Devils
+Plague Mare
 Plains
 Poisonbelly Ogre
+Precise Strike
+Predatory Hunger
 Psionic Sliver
 Puncture Blast
+Quiet Purity
 Rallying Roar
 Rampaging Aetherhood
+Ravenous Demon
 Razing Snidd
 Reckless Racer
 Relearn
 Render Inert
+Renegade Freighter
+Renegade's Getaway
 Respite
+Revel Ruiner
+Ring of Gix
+Roar of the Kha
 Saiba Cryptomancer
+Samut's Sprint
 Scaldkin
+Scare Tactics
 Scatter the Seeds
+Scattershot
 Scion of Calamity
 Scourge Wolf
+Scrap Mastery
+Scrapskin Drake
 Seacoast Drake
 Seluma, Light of Aysen
 Serpentine Curve
+Serum Visionary
 Shambling Ghoul
 Shauku's Minion
+Shelter
 Shimmer Myr
+Shrieking Drake
+Shrine Steward
+Shu Farmer
+Silverback Elder
 Siren Reaver
 Slayer's Plate
 Snapback
 Snare the Skies
+Sneaking Guide
 Soldevi Sage
+Soulknife Spy
 Soulless One
+Spark Harvest
+Spell Snuff
 Spellrune Painter
 Spined Wurm
+Spire Monitor
+Spiritual Asylum
+Spitfire Handler
+Squash
+Squirrel Mob
+Stalking Bloodsucker
+Steadfastness
+Steamcore Weird
+Stoic Star-Captain
 Stone Idol Generator
+Stunning Shot
+Super Mutant Scavenger
 Suture Spirit
 Swamp
+Swashbuckling
 Sweatworks Brawler
+Synth Infiltrator
+Tandem Tactics
+Tangle Mantis
 Tar Snare
 Telim'Tor's Darts
+Terashi's Cry
+Terravore
 Thalia, Heretic Cathar
+That's Rough Buddy
+Thaumaturge's Familiar
+The Gaffer
+The One Ring
 The Restoration of Eiganjo
+The Royal Scions
+Thriving Rats
+Throne of the God-Pharaoh
+Throttle
 Thunder Dragon
 Thunderclap Wyvern
+Tidal Force
+Tidal Visionary
 Tireless Missionaries
+Toll of the Invasion
+Torrent of Fire
+Trade Routes
 Trailblazing Historian
 Transmogrifying Wand
+Triumph of Ferocity
 Tropical Island
+Turbulent Wetlands
 Undercity's Embrace
+Unified Strike
+Unyielding Krumar
+Valiant Guard
 Vedalken Orrery
 Veil of Birds
+Vent Sentinel
 Viashino Slaughtermaster
 Vile Consumption
+Village Bell-Ringer
 Vines of the Recluse
+Vineshaper Prodigy
+Vintara Elephant
 Viridian Harvest
+Viridian Joiner
+Viridian Lorebearers
+Viridian Scout
+Virulent Wound
 Vodalian Soldiers
+Voracious Vacuum
+Wall of Razors
+Wall of Wood
 Warren Pilferers
+Wasp Lancer
+Whirlwind
+Wild-Field Scarecrow
+Wildfire
 Windborne Charge
 Windbrisk Heights
 Wing Snare
 Wither and Bloom
+Woebearer
+Wriggling Grub
+Xavier Sal, Infested Captain
 Zendikar Resurgent

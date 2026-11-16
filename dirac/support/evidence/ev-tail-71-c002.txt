@@ -2,19 +2,24 @@ A-Skull Skaab
 A-The Meathook Massacre
 Alchemax Slayer-Bots
 Alluring Suitor
+Alms of the Vein
 Ambulatory Edifice
 Angel's Tomb
 Arrow Volley Trap
+Assault on Osgiliath
 Assembly-Worker
 Aven of Enduring Hope
 Barrin, Tolarian Archmage
 Battlefield Raptor
+Bident of Thassa
 Bladebrand
 Blazing Volley
 Blood Pet
 Bloodvial Purveyor
+Bone Pit Brute
 Boomerang
 Boon Satyr
+Bower Passage
 Callous Dismissal
 Canyon Lurkers
 Chain Stasis
@@ -37,6 +42,7 @@ Fated Infatuation
 Fire Servant
 Fireforger's Puzzleknot
 Firemantle Mage
+Firescreamer
 Flowstone Wall
 Forest
 Gather Courage
@@ -94,6 +100,7 @@ Plains
 Prized Elephant
 Puppet's Verdict
 Quirion Beastcaller
+Rampaging Monument
 Reckless Reveler
 Regenesis
 Renegade Warlord
@@ -101,6 +108,7 @@ Repercussion
 Rising Populace
 Rummaging Goblin
 Sanctifier of Souls
+Scaled Behemoth
 Scuttlegator
 Season of Growth
 Shu Farmer

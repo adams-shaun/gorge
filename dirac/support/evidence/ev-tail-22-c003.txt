@@ -13,6 +13,7 @@ Avacyn, Angel of Hope
 Aven Fleetwing
 Birthing Ritual
 Boil
+Boltwing Marauder
 Bomat Bazaar Barge
 Breakneck Berserker
 Cabaretti Charm
@@ -57,6 +58,7 @@ Gravity Well
 Greatsword of Tyr
 Gríma Wormtongue
 H.E.R.B.I.E., Lovable Robot
+Hammerfist Giant
 Homarid Warrior
 Honor the Fallen
 Hyperion Blacksmith
@@ -84,6 +86,7 @@ Mending Touch
 Mesa Enchantress
 Meteorite
 Mind Control
+Minister of Pain
 Mountain
 Mystic Visionary
 Necrogen Scudder

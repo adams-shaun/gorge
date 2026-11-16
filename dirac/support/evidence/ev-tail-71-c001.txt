@@ -1,5 +1,7 @@
 A-Skull Skaab
 A-The Meathook Massacre
+Aerial Guide
+Aether Swooper
 Alaborn Cavalier
 Alchemax Slayer-Bots
 All Is Dust
@@ -16,6 +18,7 @@ Barrin, Tolarian Archmage
 Battlefield Raptor
 Bident of Thassa
 Bladebrand
+Blazing Hope
 Blazing Volley
 Blood Pet
 Bloodvial Purveyor

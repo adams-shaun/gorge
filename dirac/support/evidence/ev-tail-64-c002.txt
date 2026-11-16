@@ -9,6 +9,7 @@ Airlift Chaplain
 Alseid of Life's Bounty
 Ambush Paratrooper
 Ana Sanctuary
+Angel of the Dawn
 Arm with Aether
 Armory Veteran
 Arrester's Zeal
@@ -25,14 +26,17 @@ Common Bond
 Compelled Duel
 Corridor Monitor
 Crookshank Kobolds
+Crow Storm
 Curfew
 Curse Artifact
 Custodi Soulbinders
 Danitha, New Benalia's Light
 Dawn to Dusk
+Dawnfluke
 Detainment Spell
 Devil Dinosaur
 Dispeller's Capsule
+Drannith Magistrate
 Dusk Legion Zealot
 Duskrider Peregrine
 Dwarven Armorer
@@ -46,24 +50,31 @@ Eureka Moment
 Evie Frye
 Expedition Skulker
 Eye Gouge
+Feral Krushok
 Flamekin Spitfire
 Fog Elemental
 Forest
 Forgehammer Centurion
+Freewind Equenaut
 Gerrard's Irregulars
 Ghitu Firebreathing
 Glass of the Guildpact
 Gruesome Deformity
 Hoard Robber
+Innovative Metatect
+Invasion of Dominaria
 Island
 Ivy Elemental
 Junk Diver
+Kashi-Tribe Reaver
 Keeneye Aven
 Kuldotha Rebirth
 Lawmage's Binding
 Learn from the Past
 Legion Guildmage
 Light 'Em Up
+Lily Bowen, Raging Grandma
+Lionheart Maverick
 Living Airship
 Mage-Ring Bully
 Master Symmetrist
@@ -91,6 +102,7 @@ Ray Fillet, Wave Warrior
 Refocus
 Resplendent Griffin
 Riders of Rohan
+Rock Lobster
 Rootborn Defenses
 Sarkhan's Dragonfire
 Savage Thallid
@@ -101,18 +113,25 @@ Skillful Lunge
 Skyshroud Sentinel
 Smoldering Werewolf
 Spiked Ripsaw
+Stormrider Spirit
 Stratus Walk
 Stromgald Crusader
+Sudden Edict
 Suit Up
 Suspicious Stowaway
 Swamp
 Terravore
 Thaumatic Compass
+Thrun, the Last Troll
 Tidy Conclusion
+Tolarian Winds
 Topplegeist
+Tower Winder
 Tremor
 Vampiric Tutor
 Wall of Pine Needles
 War Chariot
+Weldfast Monitor
+White Knight
 Zarichi Tiger
 Zof Shade

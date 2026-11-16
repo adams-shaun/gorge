@@ -1,5 +1,6 @@
 A-Riveteers Initiate
 Abduction
+Abstruse Interference
 Academy Drake
 Aether Helix
 Agent of Erebos
@@ -16,6 +17,7 @@ Blade of Selves
 Blood Money
 Bloodtracker
 Brash Taunter
+Breaching Leviathan
 Brood of Cockroaches
 Broodhunter Wurm
 Brutal Expulsion
@@ -25,6 +27,7 @@ Canyon Drake
 Canyon Minotaur
 Chainbreaker
 Charnel Troll
+Chillbringer
 Chronicler of Heroes
 Citadel of Pain
 Cloak of Mists
@@ -36,6 +39,7 @@ Cryptolith Rite
 Dauthi Warlord
 Deglamer
 Destructive Revelry
+Dismiss
 Downsize
 Dragon Mask
 Dragonscale Boon
@@ -68,6 +72,7 @@ Highland Weald
 Hostile Takeover
 Ill-Tempered Cyclops
 In Bolas's Clutches
+Incendiary Sabotage
 Incremental Growth
 Insight
 Island
@@ -81,20 +86,24 @@ Lightning Dragon
 Live Fast
 Living Wall
 Loxodon Punisher
+Lunar Avenger
 Machinate
 Makindi Aeronaut
 Mana Confluence
 Many Partings
 Marauding Raptor
 Master of Diversion
+Mindculling
 Mire Kavu
 Mishra's Factory
 Moment of Defiance
 Mountain
 Mtenda Lion
+Murder of Crows
 Nighthowler
 Ob Nixilis's Cruelty
 Ojutai's Breath
+Ojutai's Summons
 Phyrexian Fleshgorger
 Plains
 Promise of Power
@@ -104,6 +113,7 @@ Radiant Epicure
 Raid Bombardment
 Razaketh's Rite
 Reap the Seagraf
+Rescue
 Righteous Charge
 Rotting Giant
 Runes of the Deus
@@ -113,6 +123,8 @@ Seize the Initiative
 Shiv's Embrace
 Silumgar Butcher
 Sima Yi, Wei Field Marshal
+Skyscanner
+Soramaro, First to Dream
 Sparkcaster
 Spelleater Wolverine
 Spiketail Hatchling

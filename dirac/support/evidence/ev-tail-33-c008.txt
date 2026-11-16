@@ -1,8 +1,20 @@
+A-Guide of Souls
+A-Oran-Rief Ooze
+A-Urza, Powerstone Prodigy
+Abzan Advantage
+Aesi, Tyrant of Gyre Strait
+Aether Vial
 Aim High
+Ajani's Sunstriker
+Anaba Bodyguard
+Ancestral Knowledge
 Animal Boneyard
 Ardent Elementalist
+Armorcraft Judge
 Audacity
 Belligerent Brontodon
+Bonded Herdbeast
+Bramblecrush
 Bringer of the Green Dawn
 Broodhatch Nantuko
 Canopy Baloth
@@ -10,6 +22,7 @@ Circle of Flame
 Confront the Unknown
 Cruel Cut
 Curious Pair
+Depose
 Destructive Digger
 Draconic Destiny
 Extinction
@@ -17,14 +30,19 @@ Fill with Fright
 Forest
 Forget
 Fyndhorn Pollen
+Gearsmith Prodigy
+Gleam of Authority
 Golden Bear
 Golden Hind
 Gwaihir, Greatest of the Eagles
+Hazoret's Monument
 Howling Fury
 Inexorable Tide
 Island
+Jhoira's Familiar
 Kavu Aggressor
 Kor Line-Slinger
+Looming Altisaur
 Magistrate's Scepter
 Manabond
 Marauding Knight
@@ -32,16 +50,29 @@ Mountain
 Overgrowth
 Photon, Mighty Marvel
 Plains
+Pride Guardian
+Quirion Dryad
 Rip Apart
 Scab-Clan Charger
 Seasoned Hallowblade
+Shu Grain Caravan
 Spearpoint Oread
+Spore Cloud
 Streetwise Negotiator
 Swamp
+Sythis, Harvest's Hand
 The First Iroan Games
+Tin-Wing Chimera
 Trained Armodon
 Traverse the Outlands
 Unchecked Growth
 Verdant Crescendo
+Verdant Embrace
+Vinelasher Kudzu
 Viridian Zealot
+Voidwielder
+Vulshok War Boar
+Warden of the Wall
 Warren Instigator
+You Look Upon the Tarrasque
+Zhalfirin Decoy

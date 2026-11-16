@@ -79,6 +79,8 @@ Ixalli's Diviner
 Juvenile Mist Dragon
 Knighthood
 Kor Bladewhirl
+Krosan Adaptation
+Krosan Groundshaker
 Kyoki, Sanity's Eclipse
 Lavastep Raider
 Level Up
@@ -98,6 +100,7 @@ Mirran Mettle
 Mishra's Command
 Mishra's Onslaught
 Molimo, Maro-Sorcerer
+Mosscoat Goriak
 Mountain
 Mystic Meditation
 Nantuko Disciple
@@ -108,6 +111,7 @@ Nocturnal Feeder
 Oakenform
 Oboro Envoy
 Onslaught
+Orochi Ranger
 Pack Mastiff
 Piercing Light
 Plaguebearer
@@ -137,11 +141,13 @@ Sands of Delirium
 Sawblade Scamp
 Sawtooth Loon
 Scorched Rusalka
+Seek the Horizon
 Selvala's Charge
 Sepulcher Ghoul
 Seraph of the Suns
 Serra Sphinx
 Serum Sovereign
+Setessan Starbreaker
 Sever the Bloodline
 Shadow Guildmage
 Shivan Zombie
@@ -172,6 +178,7 @@ Uurg, Spawn of Turg
 Vampire's Zeal
 Vampiric Touch
 Verdant Catacombs
+Vernal Bloom
 Volcanic Spite
 Weaver of Blossoms
 Wizard Class

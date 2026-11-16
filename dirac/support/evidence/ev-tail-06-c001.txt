@@ -7,6 +7,7 @@ Akki Ronin
 Akoum Hellkite
 Akroma, Angel of Wrath
 Alley Strangler
+Anaba Spirit Crafter
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
@@ -14,6 +15,7 @@ Armored Skaab
 Artistic Refusal
 Atomize
 Augur of Skulls
+Awaken the Sky Tyrant
 Azorius Chancery
 Bandage
 Barbary Apes
@@ -71,6 +73,7 @@ Flow of Knowledge
 Forest
 Freed from the Real
 Frenzied Devils
+Frenzied Rage
 Fry
 Fugitive Wizard
 Galadhrim Guide
@@ -87,7 +90,9 @@ Grinning Demon
 Griselbrand
 Hagra Diabolist
 Halo Scarab
+Heliod, God of the Sun
 Hobgoblin Bandit Lord
+Honor the Fallen
 Hornet Nest
 Humiliate
 Hymn to Tourach
@@ -116,6 +121,7 @@ Manor Skeleton
 Mantle of Webs
 Marsh Boa
 Mascot Exhibition
+Master's Call
 Minds Aglow
 Mindstab
 Moan of the Unhallowed
@@ -141,6 +147,7 @@ Pre-War Formalwear
 Press the Advantage
 Prison Sentence
 Pulse of the Tangle
+RMS Titanic
 Ragefire Hellkite
 Raging Swordtooth
 Rats of Rath
@@ -166,6 +173,7 @@ Sire of the Storm
 Skarrg Goliath
 Skullport Merchant
 Soltari Lancer
+Soot Imp
 Soul Collector
 Soul's Grace
 Spellbound Dragon
@@ -176,6 +184,7 @@ Spore Swarm
 Steel Dromedary
 Stensia Banquet
 Strangle
+Sungrace Pegasus
 Suntail Hawk
 Swamp
 Take to the Streets
@@ -191,12 +200,14 @@ Thopter Engineer
 Thorn of Amethyst
 Thran Lens
 Thunderhawk Gunship
+Toggo, Goblin Weaponsmith
 Trapfinder's Trick
 Tremble
 Turn
 Ultimate Magic: Holy
 Underdark Basilisk
 Valorous Steed
+Vampiric Spirit
 Vault 75: Middle School
 Venser, Shaper Savant
 Vessel of Endless Rest

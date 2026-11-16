@@ -1,4 +1,5 @@
 A-Dokuchi Silencer
+Aerial Assault
 Aethershield Artificer
 Against All Odds
 Air Nomad Student
@@ -18,19 +19,25 @@ Bull Cerodon
 Buried Alive
 Burn the Impure
 Butcher Ghoul
+Castle
+Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Conservator
+Contagion
 Corpse Knight
+Corrupted Zendikon
 Cosmos Elixir
 Courier's Capsule
 Crop Rotation
 Culling Mark
 Dauntless Survivor
+Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
 Demon's Grasp
 Demonic Rising
+Dismantling Blow
 Domri, Anarch of Bolas
 Enslaved Dwarf
 Erratic Visionary
@@ -39,6 +46,7 @@ Eternal Witness
 Ethereal Champion
 Explosive Welcome
 Fain, the Broker
+Final-Sting Faerie
 Firebird, Blazing Ranger
 Flow of Ideas
 Flux Channeler
@@ -48,6 +56,7 @@ Fungal Sprouting
 Gluttonous Zombie
 Grim Monolith
 Hadran, Naya Sunseeder
+Helitrooper
 Hemlock Vial
 Honed Khopesh
 Horizon Chimera
@@ -76,6 +85,7 @@ Mausoleum Secrets
 Metropolis Reformer
 Mise
 Mogis's Warhound
+Moonglove Changeling
 Moss Monster
 Mountain
 Nagging Thoughts
@@ -91,17 +101,21 @@ Plains
 Primeval Force
 Python
 Rage Weaver
+Rally to Battle
 Ravos, Soultender
 Ray of Erasure
 Reckless Charge
 Reduce to Ashes
 Revelation of Power
+Samite Pilgrim
 Sandcrafter Mage
 Savra, Queen of the Golgari
 Scion of Vitu-Ghazi
 Sculpted Perfection
 Searing Barb
 Sentinel Sliver
+Settle the Score
+Shake the Foundations
 Shepherd of the Lost
 Slinking Giant
 Solid Footing
@@ -109,17 +123,21 @@ Spider-Man 2099, Miguel O'Hara
 Spined Fluke
 Squee's Embrace
 Swamp
+Symmetry Sage
 Tale of Momo
 Talons of Falkenrath
 Talons of Wildwood
+Task Force
 Temmet, Vizier of Naktamun
 Territorial Allosaurus
 The Bears of Littjara
 The Whizzer, Classic Speedster
+Thrull Retainer
 Thrór's Map
 Thunder Drake
 Thwart the Grave
 Titan's Strength
+Topan Freeblade
 Tormod's Cryptkeeper
 Trueheart Duelist
 Umbris, Fear Manifest

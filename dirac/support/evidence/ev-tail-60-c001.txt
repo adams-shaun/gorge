@@ -1,139 +1,240 @@
 A-Civil Servant
+Accumulated Knowledge
 Acridian
+Act of Treason
 Aerial Caravan
+Affa Protector
+Ainok Tracker
 Alabaster Mage
+Alaborn Trooper
 Algorithmic Ferocity
+Altar's Reap
 Anaba Shaman
+Ancestral Statue
 Ant Queen
 Aphetto Grifter
 Arachnus Web
+Argothian Elder
 Armored Wolf-Rider
+Artful Maneuver
 Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
+Aven Gagglemaster
 Back to Basics
 Back to Nature
 Baloth Gorger
 Barbarian Riftcutter
 Bastion Protector
 Batterskull
+Battlegrowth
 Beast Hunt
 Befriending the Moths
+Bellowing Aegisaur
 Binding Grasp
+Birds of Paradise
 Blaring Captain
 Blaster Mage
 Blessing
+Bloodrage Vampire
+Bloodtracker
+Boros Reckoner
 Brackwater Elemental
+Brave the Elements
 Breach
+Briar Hydra
+Bridgeworks Battle
 Brightstone Ritual
 Brine Shaman
+Broodhatch Nantuko
 Builder's Blessing
 Burning-Tree Emissary
+Cabal Initiate
+Call the Gatewatch
 Candlegrove Witch
 Canopy Stalker
+Canyon Jerboa
 Captain America, Skybound
 Catacomb Crocodile
 Centaur Nurturer
 Cerulean Wisps
 Chambered Nautilus
+Chief of the Edge
 Child of Gaea
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
+Cliffside Lookout
 Clone Legion
+Cogworker's Puzzleknot
+Collective Nightmare
+Combat Thresher
 Contentious Plan
+Coral Merfolk
 Corporeal Projection
 Cosmic Hunger
+Counterspell
+Court Cleric
 Creeping Crystal Coating
+Crimson Fleet Commodore
 Crowd's Favor
 Curious Homunculus
 Cybermat
+Dauntless Cathar
 Dawnhart Rejuvenator
+Dead
 Death Bomb
 Dehydration
+Demon of Wailing Agonies
 Demonlord of Ashmouth
 Demotion
 Deserted Temple
 Desperate Farmer
 Dingus Egg
 Dirty Wererat
+Doctor Strange, Surgeon
 Dogpile
 Dragon Tyrant
 Dragonlord Ojutai
 Dread Drone
+Dreadfeast Demon
 Dross Harvester
 Drumhunter
 Dryad Greenseeker
 Dueling Coach
 Dáin's Company
 Eagle of Deliverance
+Earth Servant
+Earth-Origin Yak
+Elixir of Immortality
 Elvish Warrior
 Ember Beast
 Embercleave
+Enthusiastic Mechanaut
 Essence Infusion
+Eternal Flame
 Etherium Sculptor
 Excise the Imperfect
+Execute
 Exemplar of Strength
+Expedition Champion
 Fade from History
 Faerie Harbinger
+Faithless Looting
+Fallaji Dragon Engine
 Fallaji Vanguard
 Familiar Ground
+Felhide Brawler
+Festival of Trokin
 Fiery Mantle
 Five Hundred Year Diary
 Fleetwheel Cruiser
 Flesh-Eater Imp
+Flickering Ward
 Flowstone Kavu
 Forest
+Forsaken City
 Frenzied Fugue
 Ghost-Spider, Gwen Stacy
+Gild
 Gird for Battle
 Glorifier of Dusk
 Goblin Replica
+Goblin Striker
 Goblin Tunneler
 Golden Wish
+Grab the Reins
 Grasp of Darkness
 Grave Pact
 Great Oak Guardian
+Greenhilt Trainee
 Grindstone
+Guardians of Akrasa
 Gutless Ghoul
+Haazda Snare Squad
 Hag of Syphoned Breath
+Hagra Diabolist
+Hamlet Vanguard
+Hammer Helper
+Hammers of Moradin
+Hardened Scales
+Harnessed Lightning
+Harrier Naga
 Harrow
 Healing Salve
+Healing Technique
+Heartwood Treefolk
+Heightened Reflexes
+Hellhole Rats
 Highland Game
 Hopeful Eidolon
+Hulk, Strongest There Is
 Icatian Scout
 Illusionary Armor
+Implement of Combustion
 Impostor of the Sixth Pride
+Invasion of Eldraine
 Island
+Island of Wak-Wak
+Ivory Crane Netsuke
+Janjeet Sentry
+Journey of Discovery
 Jund Battlemage
+Kami of Whispered Hopes
 Karfell Kennel-Master
+Kargan Dragonlord
+Karoo
 Keeper of the Lens
 Kill! Maim! Burn!
 Kitesail Cleric
 Knowledge Is Power
 Kokusho, the Evening Star
 Krav, the Unredeemed
+Kruphix's Insight
 Lava Hounds
+Leechridden Swamp
 Life's Legacy
+Lightning-Core Excavator
+Lithophage
 Littjara Glade-Warden
 Livonya Silone
+Lockjaw Snapper
+Lore Broker
 Lorehold Archivist
+Lorehold Excavation
 Loxodon Gatekeeper
 Mad Ratter
 Magmaroth
+Mardu Blazebringer
+Mardu Shadowspear
 Marionette Apprentice
+Mark of the Oni
+Markov Waltzer
 Markov Warlord
+Master Thief
 Matsu-Tribe Birdstalker
+Maw of Kozilek
+Menagerie Liberator
+Mer-Ek Nightblade
 Metastatic Evangel
 Minamo, School at Water's Edge
+Mind Harness
+Mind Maggots
+Mind Ravel
+Mind Sculpt
 Mindwhip Sliver
 Mirozel
+Mischief and Mayhem
 Mishra's Domination
+Mist Leopard
 Mistmeadow Skulk
 Mogg Mob
 Molder Slug
+Momir Vig, Simic Visionary
 Monstrify
 Morgue Burst
+Moria Marauder
 Morkrut Banshee
+Mortuary
 Mountain
 Myr Mindservant
 Namora, the Sea Queen
@@ -142,28 +243,57 @@ Niblis of Frost
 Occult Epiphany
 Ogre Battledriver
 One with the Machine
+Onslaught
+Outnumber
 Pact of the Titan
+Path of Discovery
+Pinnacle Monk
+Pir, Imaginative Rascal
 Plains
+Planar Cleansing
+Poison the Blade
+Power of Fire
+Qarsi High Priest
+Quiet Disrepair
 Quirion Trailblazer
 Rakdos Guildmage
+Ramosian Captain
+Ramunap Hydra
+Ravenous Baloth
+Razor Golem
+Razortooth Rats
 Reckless Ogre
 Red Cliffs Armada
+Refresh
 Reject
 Repudiate
+Restoration Gearsmith
+Retreat to Kazandu
 Retrieval Agent
 Returned Phalanx
+Reviving Dose
 Rhystic Deluge
+Ricochet Trap
 Riptide Chimera
+Rofellos's Gift
+Rootgrapple
+Rootwalla
 Rootwater Hunter
 Rotting Rats
 Rowan Treefolk
+Sardian Cliffstomper
 Satyr Rambler
+Scion of Ugin
+Sculpted Perfection
+Secluded Glen
 Secrets of the Golden City
 Seismic Tutelage
+Sengir Nosferatu
 Serene Sunset
 Serum Snare
 Setessan Training
 Shard of the Nightbringer
+Sigiled Starfish
 Silent Specter
 Silver Erne
 Skeletal Wurm
@@ -172,36 +302,68 @@ Sky Terror
 Skyreach Manta
 Sling-Gang Lieutenant
 Smiting Helix
+Soltari Emissary
 Sonic Burst
 Spectral Guardian
 Spider Spawning
+Split-Tail Miko
+Sporecap Spider
+Spurnmage Advocate
+Steadfast Sentry
+Stenchskipper
 Stern Proctor
+Stitched Assistant
 Stronghold Biologist
+Sulfurous Blast
+Sultai Skullkeeper
 Summoner's Bane
+Sun Ce, Young Conquerer
 Swamp
 Syndicate Heavy
+Syphon Flesh
+Tainted Strike
+Tarkir Charm
 Tawnos's Wand
+Tek
 Tenacity
+Terrain Generator
 Thallid Omnivore
 The Terror of Serpent's Pass
 Theoretical Duplication
+Those Who Serve
 Thousand-Year Elixir
+Thran Dynamo
 Thriving Moor
 Toe-Breaking Helmet
+Touch of Darkness
+Towashi Guide-Bot
 Toxic Abomination
 Tragic Fall
 Trash for Treasure
+Treacherous Werewolf
 Treebeard, Gracious Host
 Trench Wurm
 Tymaret, Chosen from Death
 Uktabi Efreet
 Unliving Psychopath
 Veiled Shade
+Venomous Hierophant
 Vesper Ghoul
+Vestige of Emrakul
 Vexilus Praetor
+Viridian Claw
 Voice of Duty
+Voldaren Pariah
 Voracious Hydra
+Wall of Distortion
+Warpath
+Warrior's Honor
 Watertrap Weaver
+Waterwhirl
+Wave Elemental
 White Shield Crusader
+Wind Shear
 Windbrisk Raptor
+Wort, Boggart Auntie
 Wreck and Rebuild
+Zof Shade

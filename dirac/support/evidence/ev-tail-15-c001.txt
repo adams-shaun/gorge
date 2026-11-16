@@ -2,6 +2,7 @@ A-Buy Your Silence
 Alexi's Cloak
 Angelheart Protector
 Angelheart Vial
+Anurid Murkdiver
 Apex Devastator
 Arrows of Justice
 Artful Maneuver
@@ -34,7 +35,9 @@ Deathbloom Ritualist
 Declare Dominance
 Delightful Discovery
 Deluge of Doom
+Desynchronize
 Dingus Staff
+Diplomacy of the Wastes
 Drossclaw
 Dúnedain Blade
 Ebon Drake
@@ -81,12 +84,14 @@ Highspire Infusion
 Hope Against Hope
 Horror of Horrors
 Human Frailty
+Infuse
 Inner Calm, Outer Strength
 Island
 Jackal Familiar
 Josu Vess, Lich Knight
 Kalonian Hydra
 Kami of Whispered Hopes
+Kazuul's Fury
 Kederekt Parasite
 Kenrith's Transformation
 Knight Watch
@@ -97,18 +102,22 @@ Leinore, Autumn Sovereign
 Leshrac's Sigil
 Leyline of Punishment
 Lightning Blast
+Madame Hydra, Reanimated
 Magus of the Disk
 Makeshift Mauler
 Mana Flare
 Mana Skimmer
+Manaform Hellkite
 Maralen of the Mornsong
 Maro
 Marshmist Titan
 Michiko's Reign of Truth
+Midnight Covenant
 Mind Knives
 Minion of Tevesh Szat
 Minion's Return
 Misery Charm
+Moan of the Unhallowed
 Moonfolk Puzzlemaker
 Mountain
 Nael, Avizoa Aeronaut
@@ -122,6 +131,7 @@ Obelisk of Esper
 Otherworld Atlas
 Oxidize
 Parasitic Grasp
+Pawn of Ulamog
 Pendrell Mists
 Perimeter Patrol
 Pheres-Band Brawler
@@ -140,6 +150,7 @@ Reaver Drone
 Reckless Amplimancer
 Release to Memory
 Relic of Progenitus
+Rise Again
 Rolling Hamsphere
 Romana II
 Sand Golem
@@ -156,6 +167,7 @@ Sibsig Host
 Sindbad
 Sip of Hemlock
 Skullslither Worm
+Skyfisher Spider
 Soratami Seer
 Sorcerer's Wand
 Soulblade Corrupter
@@ -197,6 +209,7 @@ Waterknot
 Whipflare
 Whirlermaker
 Woeleecher
+Wound Reflection
 Wrack with Madness
 Yavimaya Barbarian
 Ziatora's Proving Ground

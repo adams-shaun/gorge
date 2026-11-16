@@ -1,44 +1,92 @@
 A-Hobbling Zombie
 A-Skyclave Shadowcat
+Adric, Mathematical Genius
 Aerie Worshippers
+Aether Sting
+Agent of Acquisitions
 Air Bladder
+Air-Cult Elemental
 Altar's Reap
 Archers of Qarsi
 Argothian Pixies
+Atog
 Atrocious Experiment
+Automated Artificer
 Beast Whisperer
 Blitz Leech
 Bog Tatters
 Bogstomper
 Brotherhood Vertibird
+Brutal Deceiver
 Built to Last
+Built to Smash
+Cabal Executioner
 Centaur's Herald
+Chain of Plasma
+Champion's Drake
+Chrome Host Seedshark
 Clairvoyance
 Cliff Threader
 Cloudseeder
 Conductor of Cacophony
+Culling Ritual
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
 Demon of Wailing Agonies
 Despondency
+Deviant Skytech
 Dire Mimic
+Dreadhorde Twins
 Eidolon of Blossoms
 Elusive Krasis
+Esper Cormorants
+Flame Spirit
 Fleshbag Marauder
+Force of Despair
 Forest
+Frogmite
 Gray Merchant of Asphodel
+Harmonic Prodigy
 Honor the God-Pharaoh
+Infiltrate
 Island
+Juzám Djinn
 Karlach, Fury of Avernus
 Kavu Climber
+Kavu Scout
+Lightning Axe
+Lightning Wolf
+Llanowar Stalker
 Looter il-Kor
 Midnight Scavengers
+Mirror Wall
 Mountain
+Organ Hoarder
 Plains
+Pradesh Gypsies
 Presence of Gond
+Presence of the Master
+Quarrel's End
 Quest for Pure Flame
+Quirion Sentinel
+Ruby Medallion
+Shimmering Mirage
+Skyway Sniper
 Steel Overseer
+Stinging Scorpion
+Subira, Tulzidi Caravanner
 Supply Runners
 Swamp
+Tainted Indulgence
+Tangletrap
+Thassa, God of the Sea
+The Torment of Gollum
+Towashi Guide-Bot
+Travel Preparations
+Voices from the Void
+Walking Archive
+Wildfire Emissary
 Will-o'-the-Wisp
+Wizard's Lightning
+Zuran Spellcaster

@@ -1,26 +1,55 @@
 A-Nael, Avizoa Aeronaut
 Adeliz, the Cinder Wind
 Aether Spike
+Alchemist's Refuge
 Amass the Components
+Archmage's Charm
+Atraxa's Skitterfang
+Blade of Selves
+Blinding Souleater
+Blitz of the Thunder-Raptor
 Blockade Runner
 Bramble Armor
+Brood Sliver
+Brute Force
 Choose Your Weapon
+Cunning Survivor
+Dawn Charm
+Decimator Web
+Defabricate
+Discontinuity
 Dissolve
+Elite Vanguard
 Embargo
+Encrust
+Esper Panorama
 Faerie Impostor
 Fate Forgotten
 Forest
+Forsake the Worldly
+Foundry Assembler
 Gerrard's Battle Cry
+Ghostly Changeling
+Gimli, Counter of Kills
 Glint-Nest Crane
+Grayscaled Gharial
 Hookblade
+Impaler Shrike
+Infantry Veteran
 Island
+Jeskai Barricade
 Keeper of the Accord
 Lab Rats
+Lady Spider, Maybelle Reilly
 Lay Bare the Heart
 Loyal Warhound
+Lush Growth
 Monoskelion
+Moonlit Wake
 Mountain
+Mountain Valley
 Myojin of Cleansing Fire
+Myr Galvanizer
 Mystic Zealot
 Opal Acrolith
 Order of Leitbur
@@ -29,17 +58,29 @@ Plains
 Prohibit
 Rebuke
 Royal Talon Fighter Jet
+Sacred Rites
 Samite Healer
 Scouting Hawk
+Secretkeeper
+Seer of the Last Tomorrow
 Selhoff Entomber
 Shalai's Acolyte
+Shaleskin Bruiser
 Shimmer Dragon
 Silence
+Skyshroud Forest
 Soaring Hope
 Sphinx of Enlightenment
+Spiketail Drake
 Spirit of Malevolence
 Swamp
+Synapse Sliver
+Tel-Jilad Outrider
+Thassa's Oracle
+The Blue Spirit
 Triclopean Sight
 Twenty-Toed Toad
 Unwavering Initiate
 Vitalizing Cascade
+Watcher in the Mist
+Weakstone's Subjugation

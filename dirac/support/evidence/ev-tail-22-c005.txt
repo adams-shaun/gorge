@@ -76,6 +76,7 @@ Island
 Ithilien Kingfisher
 Jeskai Student
 Jhessian Lookout
+Joel, Resolute Survivor
 Kami's Flare
 Kavu Predator
 Kin-Tree Warden
@@ -89,6 +90,7 @@ Llanowar Empath
 Loxodon Anchorite
 Lynx
 Mana Cylix
+Marsh Crocodile
 Marsh Gas
 Martial Coup
 Masked Admirers
@@ -97,6 +99,7 @@ Mending Touch
 Mesa Enchantress
 Meteorite
 Mind Control
+Minister of Pain
 Mist Dancer
 Moonglove Changeling
 Mountain
@@ -117,6 +120,7 @@ Precognitive Perception
 Primordial Wurm
 Psionic Gift
 Ragavan, Nimble Pilferer
+Ragged Recluse
 Rapacious Guest
 Ravenous Baloth
 Regal Unicorn

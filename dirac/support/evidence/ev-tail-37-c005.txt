@@ -4,6 +4,7 @@ Aerie Worshippers
 Aether Sting
 Agent of Acquisitions
 Air Bladder
+Air-Cult Elemental
 Akki Raider
 Aladdin's Ring
 Altar's Reap
@@ -55,11 +56,13 @@ Earth-Cult Elemental
 Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
+Eldrazi Linebreaker
 Elenda's Hierophant
 Enlisted Wurm
 Esper Cormorants
 Fallaji Excavation
 Flame Spirit
+Flame of Anor
 Fleshbag Marauder
 Force of Despair
 Forest
@@ -94,6 +97,7 @@ Lumithread Field
 Malevolent Rumble
 Marionette Master
 Master Apothecary
+Maze Rusher
 Midnight Scavengers
 Mindless Automaton
 Mirror Wall
@@ -116,6 +120,7 @@ Quirion Sentinel
 Reach of Branches
 Rhox Oracle
 Rootwater Commando
+Rubblebelt Runner
 Ruby Medallion
 Sandstorm Charger
 Scrubland
@@ -141,6 +146,7 @@ The Brute
 The Torment of Gollum
 Tithebearer Giant
 Towashi Guide-Bot
+Travel Preparations
 Undergrowth Scavenger
 Vanquish the Foul
 Voices from the Void

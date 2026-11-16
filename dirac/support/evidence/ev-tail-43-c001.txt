@@ -1,41 +1,88 @@
 A-Dragonborn Looter
+A-Plate Armor
 A-Wizard Class
 Ajani, Wise Counselor
+Algorithmic Ferocity
+Amulet of Unmaking
 Angelic Sleuth
+Annex Sentry
+Antagonize
 Arcane Infusion
+Archangel
 Ardent Soldier
+Argoth, Sanctum of Nature
 Arlinn's Wolf
 Armory Guard
 Audacious Infiltrator
+Aven Augur
 Bail Out
+Barbed Lightning
 Bastion Enforcer
 Beacon of Destruction
 Beguiler of Wills
+Bhaal's Invoker
 Bill the Pony
+Biting Tether
 Black Cat
+Blessings of Nature
+Blight Keeper
 Blistering Dieflyn
+Bloodscent
 Bloodthorn Taunter
+Boggart Loggers
 Bonded Construct
+Bonescythe Sliver
 Boon of Boseiju
 Borne Upon a Wind
+Bower Passage
 Brilliant Wings
 Brittle Effigy
+Burlfist Oak
+Burn Down the House
 Careful Study
 Carnifex Demon
+Carrion Locust
+Cavalcade of Calamity
+Cemetery Gate
 Choking Restraints
 Citadel Siege
+Cloudcrown Oak
 Cloudheath Drake
+Code of Constraint
+Collective Defiance
+Combustible Gearhulk
+Concentrated Fire
+Conscripted Infantry
+Contract Hero
+Controlled Instincts
 Copper Host Crusher
+Court Street Denizen
 Court of Ambition
 Crenellated Wall
 Crimson Kobolds
+Crimson Muckwader
 Crowned Ceratok
+Curio Vendor
+Cursecatcher
+Custodian of the Trove
+Cyclops of One-Eyed Pass
+Dancing Scimitar
 Dangerous Wager
+Darkthicket Wolf
 Dauthi Cutthroat
+Death Pulse
+Deceptive Landscape
+Defender of Chaos
 Desperate Charge
+Despotic Scepter
+Distortion Strike
 Donald Blake, Guise of Thor
+Drownyard Amalgam
 Duelcraft Trainer
+Dungrove Elder
 Dwarven Trader
+Echoing Calm
+Elderfang Ritualist
 Elemental, My Dear
 Elite Inquisitor
 Elvish Archers
@@ -43,127 +90,287 @@ Elvish Ranger
 Embereth Skyblazer
 Emberwilde Augur
 Endless Scream
+Energizer
+Enslaved Dwarf
 Entrails Feaster
+Eviscerate
 Excogitator Sphinx
+Explore the Underdark
+Extinction
+Farhaven Elf
+Fighting Drake
+Final Death
 Firehoof Cavalry
+Flametongue Yearling
 Flatline
 Fledgling Mawcor
 Flesh Carver
+Fomori Nomad
+Forceful Denial
 Forest
+Forgotten Cave
+Foundation Breaker
+Fruit of the First Tree
+Gargantos, the Endbringer
+Garruk's Harbinger
+Gates Ablaze
+Gavony Township
+Geistpack Alpha
+Generated Horizons
+Gloomwidow
 Gnoll Hunter
+Goblin Chieftain
+Goblin Chirurgeon
 Goblin Goon
 Goblin War Strike
+Goldlust Triad
 Gravity Sphere
+Great Sable Stag
 Greataxe
 Grotesque Mutation
 Gruul Nodorog
 Gruul War Chant
+Hadana's Climb
 Hall Monitor
 Halo Hunter
 Hand of Emrakul
+Hard Cover
 Havoc Devils
 Hazoret's Undying Fury
+High Market
+History of Benalia
+Hive Stirrings
+Hollowhead Sliver
+Hunt the Weak
+Hydroform
+Hypersonic Dragon
 Icewind Stalwart
 Immaculate Magistrate
 Infernal Medusa
 Instruments of War
+Insubordination
 Invisible Woman
 Ironclad Slayer
 Ironshell Beetle
 Island
 Jadelight Ranger
 Jukai Messenger
+Junún Efreet
+Kelinore Bat
 King of the Pride
 Kird Ape
+Kitesail Scout
+Kjeldoran Outrider
 Knight of the Reliquary
 Knowing
+Kraul Stinger
+Krosan Drover
+Lash of the Whip
+Lava Dart
+Lay of the Land
 Leaping Lizard
 Legion Vanguard
+Liberated Dwarf
 Lifespark Spellbomb
+Liliana's Scrounger
+Living Armor
 Llanowar Wastes
 Lofty Denial
+Loki's Scepter
 Long-Range Sensor
 Lumengrid Warden
 Mad Prophet
+Maggot Therapy
 Makindi Patrol
 Mana Short
+Marrow Shards
+Matter Reshaper
+Melesse Spirit
+Memnite
 Merfolk Skyscout
 Merrow Reejerey
 Metal Fatigue
 Miara, Thorn of the Glade
 Might of Alara
 Mindwrack Liege
+Mirror Image
+Moderation
+Mogg Mob
 Molten Primordial
+Momentum Rumbler
 Mortality Spear
+Mortus Strider
 Motivated Pony
 Mountain
+Mox Opal
+Murmuring Phantasm
+Nahiri, Storm of Stone
+Nantuko Mentor
+Narset's Reversal
 Nature's Will
 Night Market Aeronaut
+Nightfire Giant
 Nirkana Cutthroat
 No-Dachi
 Noxious Field
+Nyxborn Behemoth
+Oath of Jace
 Ojutai Interceptor
+Opal Caryatid
 Oppression
+Order of the Sacred Bell
+Ordruun Commando
+Origin of Captain America
 Orzhov Cluestone
+Outflank
+Paladin of Predation
 Panicked Bystander
+Park Heights Maverick
+Penumbra Kavu
 Penumbra Wurm
 Peppersmoke
+Persecute
+Pheres-Band Thunderhoof
 Phyrexian Colossus
 Piper Wright, Publick Reporter
 Plains
 Plow Through Reito
+Poison Arrow
 Precise Strike
+Primal Forcemage
 Prying Eyes
+Pulverize
+Puresight Merrow
 Purestrain Genestealer
 Purify the Grave
 Putrefax
+Quag Vampires
 Raised by Wolves
+Ramunap Ruins
+Raven Clan War-Axe
 Razor Golem
 Razorgrass Ambush
+Regal Force
+Reinforced Bulwark
+Relentless Skaabs
+Reminisce
 Renegade Reaper
 Return from Extinction
 Riot Control
+Ritual of Rejuvenation
+River Bear
+Rona, Disciple of Gix
 Root Cage
+Rooting Kavu
+Ruins Recluse
 Ruins of Oran-Rief
 Run Afoul
+Rusted Relic
+Rusted Slasher
+Saberclaw Golem
+Sakura-Tribe Scout
 Sally Sparrow
 Sarkhan's Catharsis
 Scholar of Athreos
+Scorchwalker
+Screeching Buzzard
 Scurrilous Sentry
 Seat of the Synod
 Seek the Horizon
+Selvala, Explorer Returned
+Serendib Sorcerer
 Serum Powder
 Shelinda, Yevon Acolyte
 Shivan Devastator
 Sidisi, Undead Vizier
+Silent Skimmer
 Sky Tether
+Skyscythe Engulfer
 Sleep with the Fishes
 Snubhorn Sentry
 Sokka's Charge
+Solar Tide
 Soldier On
+Soulbound Guardians
+Spearpoint Oread
+Sphinx of Jwar Isle
+Spike Rogue
+Spireside Infiltrator
+Spore Burst
+Spore Swarm
+Stalking Assassin
+Stampeding Serow
 Steadfast Sentry
+Stirring Address
 Stitch Together
+Storm World
 Stormclaw Rager
 Stromkirk Occultist
+Stunt Double
+Survivors' Encampment
+Sustainer of the Realm
 Swamp
+Swarming of Moria
 Sweep Away
+Sylvan Basilisk
 Symbiotic Elf
+Takenuma, Abandoned Mire
+Talas Explorer
 Talon Trooper
+Tear Asunder
+Temur War Shaman
+Tethmos High Priest
 Thallid Germinator
+The Hunger Tide Rises
+The Restoration of Eiganjo
+Thraben Charm
+Three Dreams
+Thunder Strike
+Thundermaw Hellkite
 Tireless Provisioner
 Titania, Nature's Force
+Tooth Collector
+Torrential Gearhulk
 Triton Shorestalker
 Tsabo's Decree
+Tuktuk Grunts
 Turntimber Ascetic
+Twisted Landscape
+Ukud Cobra
+Uncovered Clues
+Unexpected Fangs
 Urborg Repossession
 Urza's Guilt
+Urza's Tome
 Utvara Hellkite
+Vanquish
 Venomthrope
 Venser, Visionary Traveler
+Verge Rangers
+Vessel of Ephemera
+Viashino Heretic
+Viashino Sandscout
+Vile Consumption
+Vine Dryad
+Vision Skeins
 Voldaren Stinger
+Voracious Hydra
 Wakandan Shield Guard
 Wall of Light
+Wandering Champion
+Wanderwine Hub
+War Horn
+Warcry Phoenix
+Westvale Abbey
 White Glove Gourmand
 White Sun's Zenith
 Wily Bandar
+Windstorm Drake
 Wispweaver Angel
+Wizard's Retort
+Wondrous Revival
+Wrath of Oko
+Yavimaya's Embrace
+Zegana, Utopian Speaker
+Zephyr Spirit
+Zuko, Avatar Hunter
