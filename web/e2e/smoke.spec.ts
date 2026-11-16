@@ -1813,35 +1813,75 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
       // pass on into the next turn before the undo lands, and each undo then takes back one pass.
       // The hand is compared by engine id, which an undo keeps (see nativeHand).
       const handBefore = await nativeHand(seat);
+      // The walk back's target: the seq of the decision the play will answer. The land control is
+      // drawn by the machine's own-turn floor, so the seat is parked on exactly that decision here,
+      // and the rewind that takes the play back re-parks it under the same seq (the replay is
+      // deterministic). Read over the API, not from the page, so no client lag can move it.
+      // /pending can 409 between decisions, so read with a short retry: a null target would make
+      // the walk-back guard below unwinnable and burn WAIT_MS before failing with a timeout
+      // instead of the real cause.
+      const landSeq = await (async () => {
+        for (let i = 0; i < 20; i++) {
+          const seq = await pendingSeq(seat);
+          if (seq !== null) return seq;
+          await page.waitForTimeout(100);
+        }
+        throw new Error(`${label} no pending decision to read the walk-back target from`);
+      })();
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
         if (undone) {
           land = true;
         } else {
-          // The client may already have passed priority after the land, so it can take a second undo.
-          // undos counts the undos clicked since the last answer.
-          let undos = 0;
+          // The client may already have passed priority after the land — the pass-after-acting run
+          // the play armed answers the re-asked window on its own — so the walk back gives back one
+          // action per rewind until the land decision is pending again. Judged against the land
+          // decision's seq, not against the seq a click read: the machine can answer the read window
+          // between that read and the rewind landing, and a rewind that takes back exactly that
+          // answer re-parks the same seq (measured in CI: a 5 s wait for a fall that had already
+          // happened). The seq comparison alone can also be true one action early — a queued undo
+          // that walked past the play — so the hand carries the verdict (see nativeHand). Success
+          // needs the play's own window seen above the target first and one undo clicked: a client
+          // still parked on the land decision (its view lagging the play POST) must not pass the
+          // first poll with nothing undone.
+          let clicks = 0;
+          let sawAbove = false;
           await expect.poll(async () => {
-            // An ask that opened since the land (a late mulligan round) hides the hand until answered.
-            // An ask seen right after one undo is the one that undo reopened by taking its answer
-            // back (a land's enter trigger choosing a target): answering it again would only be
-            // undone again, so the next undo goes on to take back the land itself.
-            if ((await visible(asked)) && undos !== 1) {
-              await answerOpenAsk(page);
-              undos = 0;
-              return false;
+            const now = await pendingSeq(seat);
+            if (now !== null && now > landSeq) sawAbove = true;
+            if (sawAbove && clicks > 0 && now !== null && now <= landSeq) {
+              if ((await nativeHand(seat)) === handBefore) return true;
             }
-            undos++;
+            // The seat's answerable slot is prompt-independent (ActionCluster gates undo on the sole
+            // human seat and an in-flight post), so an ask a rewind re-parks needs no answer: it
+            // would only commit an intent the next undo takes back again. But the click itself must
+            // wait for a parked decision: the server accepts an undo whenever the seat has a logged
+            // intent left — it need not be pending (Registry.Undo reserves one intent per click,
+            // server/host/undo.go) — so a click fired while nothing is parked, and every further
+            // click the 100 ms poll fires through that stretch (the machine acting between
+            // decisions, /pending a 409), queues another rewind; the queued rewinds then walk back
+            // past the land play and across the turn's draw, where the hand can never equal
+            // handBefore again (measured on the gate box: a red at 23.6 s with the walk-back's whole
+            // budget gone). Skipping the click until a decision is parked keeps one rewind per
+            // click, and the hold below keeps the next one queued behind a landing rewind.
             const asking = await pendingSeq(seat);
+            if (asking === null) return false;
             const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
             if (!clicked) return false;
-            // The server answers an undo with 204 and rewinds later, on the match's own goroutine.
-            // The next click must wait for that rewind, or it queues a second undo behind the first and
-            // takes back one action too many, past the land. A rewind lowers the pending decision's seq.
-            const rewound = await expect.poll(async () => {
-              const now = await pendingSeq(seat);
-              return asking !== null && now !== null && now < asking;
+            clicks++;
+            // The server answers an undo with 204 and rewinds later, on the match's own goroutine,
+            // and each rewind takes back one of the seat's own actions. Hold the next click until
+            // the pending seq moves off the value read at the click, or the walk back is already
+            // done, so a second undo never queues behind an unlanded first: queued undos are
+            // serviced in order, and walking more than one action past the land crosses the turn's
+            // draw, where the hand can never equal handBefore again. The move may be a fall (the
+            // rewind landed) or a rise (the machine answered the read window in between, and the
+            // queued rewind will take that answer back); both leave the next click pointed at the
+            // action this walk back wants.
+            await expect.poll(async () => {
+              const later = await pendingSeq(seat);
+              return later !== asking || (later !== null && later <= landSeq);
             }, { timeout: 5_000, intervals: [100] }).toBe(true).then(() => true, () => false);
-            return rewound && (await nativeHand(seat)) === handBefore;
+            return false;
           }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
           undone = true;
         }
@@ -1930,6 +1970,19 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
 
           await page.locator('section.transcript .line[data-seq]').first().waitFor({ state: 'attached', timeout: WAIT_MS });
 
+          // Concede rides a priority prompt the page shows. On the ManaBrew wire the compat rule
+          // (web/src/lib/manabrew/compat.ts, default on) passes every priority prompt the seat has
+          // nothing to do in unseen, so once the spell is cast and the hand holds no land or
+          // castable card, the seat is shown no prompt until a later draw gives it one. The
+          // random deal and draws decide how long that is: it outlasted STALL_MS in CI. The play
+          // above ran under the default; the concede step turns the rule off (the setting
+          // applies when a table loads) and reloads, so the next priority window is shown.
+          if (wire === 'manabrew') {
+            // 'gorge.mbcompat.v1' is COMPAT_KEY in web/src/lib/manabrew/compat.ts; the page cannot be imported here.
+            await page.evaluate(() => localStorage.setItem('gorge.mbcompat.v1', 'off'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await page.locator('.quadrant').first().waitFor({ state: 'visible', timeout: WAIT_MS });
+          }
           // Concede is offered with an open ask, and the spell may have left the seat without one.
           const concede = page.locator('[data-concede-control]:enabled');
           await expect.poll(async () => {

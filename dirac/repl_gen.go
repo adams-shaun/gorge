@@ -114,6 +114,7 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	}
 	if g.anyRepl&rbPlusDmg != 0 {
 		n = s.replPlus(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
+		n = s.statPrevNC(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_staticprevent.go
 	}
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
 		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
@@ -240,6 +241,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		if ev.n <= 0 {
 			continue
 		}
+		if s.g.ro.on && s.frozenDealtSync(k, r, ev) {
+			continue // the CR 616.1 walk already dealt this event (repl_pluswalk.go)
+		}
 		src := &s.perms[ev.src]
 		var code TCode
 		if ev.dst == NoSlot {
@@ -274,6 +278,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		}
 		if k.gen.anyRedir && s.redirCombat(k, r, ev, ordered, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
 			continue // Ext DmgRedirect: all of it dealt to the record's recipient as a new event
+		}
+		if s.spCombatEv(k, r, ev, src.ctrl, code) {
+			continue // a static prevention took this event's damage (repl_staticprevent.go)
 		}
 		n := s.replDamage(k, src.ctrl, ev.src, s.cardAt(ev.src), code, true, int(ev.n))
 		if n == 0 && ev.dst != NoSlot && k.gen.anyRepl&rbPrevSelf != 0 && s.selfDamageHost(k, ev.dst, rbPrevSelf) {
@@ -320,14 +327,20 @@ type replOrd struct {
 // replHdr is the ask's header: the candidates, the answers so far and the
 // asked event. Every reset (parkNC, the untap ask, the post-resolution ask,
 // the answered ask) clears this alone.
+// replHdr.akw's bits.
+const (
+	akwLifelink uint8 = 1 << iota
+	akwDeathtouch
+)
+
 type replHdr struct {
 	// the asked combat event as it stood when asked (gorge's assignment is
 	// fixed then: a source or recipient the state-based actions remove
 	// before the answer still has it dealt): its amount, the source's
 	// controller, lifelink / deathtouch, the player hit (dst NoSlot)
-	an            int16 // before the doublings (gorge applies each pick as made)
-	actl, apl, ac uint8 // ac: the candidates asked
-	all, adt      bool
+	an            int16  // before the doublings (gorge applies each pick as made)
+	actl, apl, ac uint8  // ac: the candidates asked
+	akw           uint8  // the asked source's keywords: akwLifelink, akwDeathtouch (one byte: the header's size is pinned)
 	on            bool   // a combat damage pass is paused: the events marked below are dealt
 	fin           bool   // the asks for the event (askS, askD) are done: deal it
 	n             uint8  // its candidates (0 = no ask in progress)
@@ -341,6 +354,7 @@ type replHdr struct {
 	pcol          uint8  // candidates that are an Ext PreventColor record's prevention (bit per cand; cast_altfree.go)
 	pnx           uint8  // candidates that are an Ext PreventNext shield, cand its prevCol index (bit per cand; repl_prevnext.go)
 	nfz           uint8  // the frozen events (fz)
+	spv           uint8  // candidates that are a static damage prevention, cand its host's object (bit per cand; spOptionalAsk: a lone optional line; repl_staticprevent.go)
 	// the dealt events, by identity (an index into the order would shift
 	// only across runs, and the walk is frozen, but the marks also gate the
 	// events of a source the recomputed pass gives back): every event of a
@@ -460,10 +474,11 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
 		// gorge's scan order: the controller's battlefield in entry order.
-		// A table whose only damage replacement is a plus-N addition competes
-		// on commuting sums (replPlusOnly): collect it here so the order walk
-		// poses gorge's no-op ask (trig_oneormore.go).
-		plusOnly := replPlusOnly(g)
+		// A plus-N addition is collected beside every other kind: beside
+		// another addition the orders commute to one sum (replPlusOnly), so
+		// the walk poses gorge's no-op ask (trig_oneormore.go); beside a
+		// doubling they do not, and the walk applies the picks as made
+		// (repl_pluswalk.go).
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(sc, s.statM.and(s.ctrlM[sc]), bf[:], 0)] {
 			if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
@@ -473,7 +488,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 				}
 				ro.cand[n] = s.perms[b].obj
 				n++
-			} else if plusOnly && g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
+			} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
 				if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
 					if n == len(ro.cand) {
 						s.capFull(StallReplCands) // loud: never truncate the candidates
@@ -513,7 +528,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		ro.pcol = 0
 		var cand [4]Obj
 		var pm uint8
-		if n = s.prevColCands(k, col, fsl, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
+		if n = s.prevColCands(k, col, fsl, fe.card, prevTgt{rcp, fe.dst}, true, &ro.cand, n, &cand, &pm); n < 0 {
 			return 0
 		}
 		ro.prev |= pm
@@ -633,9 +648,11 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 		if c := s.replOrderCandsFz(k, fe); c >= 2 {
 			ro.askS, ro.askD, ro.n, ro.used = fe.src, fe.dst, uint8(c), 0
 			ro.an, ro.ac, ro.apl = fe.n, uint8(c), fe.apl
-			if ro.plus != 0 {
+			if ro.plus != 0 && !s.roPlusPend() {
 				// the plus additions are commutative and were already applied by
-				// replCombatGen (replPlus defers to this walk only for the ask)
+				// replCombatGen (replPlus defers to this walk only for the ask);
+				// beside a doubling the picks are applied as made (roPlusPend),
+				// so the asked amount stays the event's own
 				for i := 0; i < r.nev; i++ {
 					if ev := r.ev[i]; ev.src == fe.src && ev.dst == fe.dst {
 						ro.an = ev.n
@@ -645,7 +662,13 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 			}
 			skw := s.kw(k, fe.src)
 			ro.actl = s.perms[fe.src].ctrl
-			ro.all, ro.adt = skw&kop.KwLifelink != 0, skw&kop.KwDeathtouch != 0
+			ro.akw = 0
+			if skw&kop.KwLifelink != 0 {
+				ro.akw |= akwLifelink
+			}
+			if skw&kop.KwDeathtouch != 0 {
+				ro.akw |= akwDeathtouch
+			}
 			s.g.ctlRet = ctlDivide
 			s.ctl = ctlGenAsk
 			return true
@@ -760,9 +783,28 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	// gorge (replacement_damage.go handleDamageReplacementChoice) applies
 	// each picked replacement as it is picked and re-collects the rest
 	// after the last pick: a candidate the state-based actions at a pause
-	// removed applies only if it was picked
+	// removed applies only if it was picked. With a plus-N addition beside a
+	// doubling (roPlusPend) the picks were applied as made (replOrderPick), so
+	// only the last remaining candidate applies here; without one the
+	// additions are already in ro.an and every live candidate applies in scan
+	// order (they commute).
+	pend := s.roPlusPend()
 	for i := 0; i < int(ro.ac) && n > 0; i++ {
-		if ro.plus&(1<<i) != 0 || ro.pnx&(1<<i) != 0 {
+		if ro.pnx&(1<<i) != 0 {
+			continue // the shield was spent as picked (prevNextPick)
+		}
+		if pend && ro.prev&(1<<i) == 0 {
+			if ro.used&(1<<i) != 0 || !s.replCandLive(k, i) {
+				continue
+			}
+			if ro.plus&(1<<i) != 0 {
+				n += s.roPlusAdd(k, i, n) // the last remaining addition
+			} else if n < 1<<12 {
+				n *= 2
+			}
+			continue
+		}
+		if ro.plus&(1<<i) != 0 {
 			continue // already in ro.an (replCombatGen applied the additions; a shield was spent as picked)
 		}
 		if ro.used&(1<<i) == 0 && !s.replCandLive(k, i) {
@@ -773,6 +815,11 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		} else if n < 1<<12 {
 			n *= 2
 		}
+	}
+	if pend {
+		// the picked order dealt n; the recomputed pass applied the additions
+		// before the doublings (replPlus): align its copy of the event
+		s.syncAskedEv(k, r, n)
 	}
 	if k.gen.anyPrevFrom && s.occ.has(ro.askS) && s.prevCombatFrom(k, ro.askS) {
 		n = 0 // the source's prevention (preventFromGen)
@@ -812,12 +859,12 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		p := &s.perms[sl]
 		s.touchSl(sl)
 		s.dmgPerm(k, sl, p, n)
-		if ro.adt {
+		if ro.akw&akwDeathtouch != 0 {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}
 	}
 	if fe := s.replOrderFz(ro.askS, ro.askD); fe != nil {
-		fe.n, fe.ll, fe.ctrl = int16(n), ro.all, ro.actl // a gone recipient's event still gains (as asked)
+		fe.n, fe.ll, fe.ctrl = int16(n), ro.akw&akwLifelink != 0, ro.actl // a gone recipient's event still gains (as asked)
 	}
 	return n
 }
@@ -886,16 +933,30 @@ func (s *State) replOrderOptions(d *Decision) {
 			d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i))) // mode: gorge's scan index
 		}
 	}
+	s.spOptions(d) // an optional static prevention's skip (repl_staticprevent.go)
 }
 
 // replOrderPick records the pick; true when the ask is posed again (a
-// doubling picked, two or more replacements left).
+// doubling picked, two or more replacements left). With a plus-N addition
+// beside a doubling (roPlusPend) the picked addition or doubling applies as
+// it is picked (gorge handleDamageReplacementChoice, CR 616.1e): the two do
+// not commute, so the walk carries the running amount in ro.an.
 func (s *State) replOrderPick(a Action) bool {
 	ro := &s.g.ro
 	if i := a.Mode(); i < ro.n {
 		ro.used |= 1 << i
+		if ro.spv&(1<<i) != 0 {
+			return s.spPick(int(i)) // repl_staticprevent.go
+		}
 		if ro.pnx&(1<<i) != 0 {
 			return s.prevNextPick(int(i))
+		}
+		if ro.on && s.roPlusPend() && ro.prev&(1<<i) == 0 {
+			if ro.plus&(1<<i) != 0 {
+				ro.an = s.sat16(int(ro.an) + s.roPlusAdd(s.k(), int(i), int(ro.an)))
+			} else if ro.an < 1<<12 {
+				ro.an *= 2
+			}
 		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
@@ -928,6 +989,7 @@ func (s *State) applyReplOrder(a Action) {
 	}
 	if !ro.on {
 		s.prevNextNC()
+		s.spNC()
 		ro.replHdr = replHdr{} // a noncombat event: deal it, then the state-based actions
 		s.dealNC(s.k())
 		s.ctl = s.g.ctlRet
@@ -1073,6 +1135,9 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // the shield. Protection prevents the damage before the replacements
 // (gorge emit).
 func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask) bool {
+	if parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw); handled {
+		return parked // a static prevention's ask (repl_staticprevent.go)
+	}
 	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
@@ -1161,20 +1226,14 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	// the recipient's own printed K:Prevent "all damage" line (replDamage's
 	// prevAnyTo arm): a printed match, so it is offered before the shield
 	// (gorge appends the shield after the printed matches)
-	if sl != NoSlot && s.prevAnyTo(k, sl, false) {
-		if c == len(cand) {
-			s.capFull(StallReplCands) // loud: never truncate the candidates
-			return false
-		}
-		cand[c] = s.perms[sl].obj
-		prev |= 1 << c
-		c++
+	if c = s.parkPrevAny(k, &cand, c, sl, &prev); c < 0 {
+		return false
 	}
 	var pcol uint8
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventColor's effect records (cast_altfree.go)
 		var unused [4]Obj
-		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
+		if c = s.prevColCands(k, s.srcColors(k, srcSl, srcCard), srcSl, srcCard, prevTgt{rcp, sl}, false, &cand, c, &unused, &pcol); c < 0 {
 			return false
 		}
 		prev |= pcol
@@ -1244,6 +1303,22 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	s.g.nc = nc
 	return true
+}
+
+// parkPrevAny appends the recipient's own printed K:Prevent "all damage" line
+// to parkNC's candidates when it has one (replDamage's prevAnyTo arm): the new
+// count, or -1 after a loud stall (the candidates overflow).
+func (s *State) parkPrevAny(k *prep, cand *[4]Obj, c int, sl Slot, prev *uint8) int {
+	if sl == NoSlot || !s.prevAnyTo(k, sl, false) {
+		return c
+	}
+	if c == len(cand) {
+		s.capFull(StallReplCands) // loud: never truncate the candidates
+		return -1
+	}
+	cand[c] = s.perms[sl].obj
+	*prev |= 1 << c
+	return c + 1
 }
 
 // dealNC deals the parked noncombat damage after the ask is answered: the

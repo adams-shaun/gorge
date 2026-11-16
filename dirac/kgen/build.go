@@ -154,6 +154,7 @@ func buildCard(pt *poolTables, c *lCard) built {
 	if err := cb.record(); err != nil {
 		cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "record", Reason: err.Error()})
 	}
+	cb.out.def.SplitSecond = c.SplitSecond // CR 702.61a (lower_splitsecond.go)
 	if len(c.Refusals) > 0 {
 		// A refused card keeps its static record only.
 		cb.out.def.Abilities = nil
@@ -445,6 +446,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"TASK":       kop.CtrTask,       // Heliod's Punishment's named counter (CR 122.1)
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
+	"OMEN":       kop.CtrOmen,       // Soulcipher Board's omen counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
@@ -1026,7 +1028,7 @@ func (cb *cardBuilder) record() error {
 		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
-	d.World = c.World
+	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
@@ -1047,12 +1049,12 @@ func (cb *cardBuilder) record() error {
 	d.Cascade = uint8(c.Cascade)
 	d.AllCreatureTypes = c.Changeling
 	d.Evasion = c.Evasion
-	d.Wither = c.Wither
+	d.Wither, d.UmbraArmor, d.Dredge = c.Wither, c.UmbraArmor, c.Dredge
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
-	d.Ascend = c.Ascend
+	d.Ascend, d.Unleash = c.Ascend, c.Unleash
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1180,6 +1182,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardHand {
 		out.DiscardHand = true
 	}
+	out.DiscardRandom = discardRandomPart(c)
 	if c.DiscardF != nil {
 		// a filtered discard shares Cost.N (the card count) and Cost.Filter
 		// (the candidates' spec, the hand zone): alone among the counted
@@ -1271,11 +1274,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.PayLife > 0 && c.LifeX {
 		return out, refuse("life cost: PayLife<N> beside PayLife<X>")
 	}
-	if c.PayLife > 0 && c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN {
-		// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
-		// lower_altexilehand.go): the two parts share Cost.N, one count
-		out.Flags |= kop.CostPayLife
-	} else if c.PayLife > 0 {
+	if !lifeSharesCount(&c, &out) && c.PayLife > 0 {
 		set(kop.CostPayLife, c.PayLife)
 	}
 	if c.LifeX {
@@ -1353,10 +1352,49 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if counted > 1 {
+	if counted > 1 && !discardBesideSac(&c, &out, counted) {
 		return out, fmt.Errorf("cost with two counted parts")
 	}
 	return out, nil
+}
+
+// lifeSharesCount sets out's PayLife part when c's PayLife<N> sits beside a
+// counted part that carries the life on a field of its own, and reports it.
+// PayLife<N> beside ExileFromHand<N/Spec> (an alternative cost,
+// lower_altexilehand.go): the two parts share Cost.N, one count. Beside a
+// sacrifice (Strands of Night): Cost.N stays the sacrifice's count and the
+// life rides Cost.Ctr, as a may-play raise's does (raiseCost; kernel
+// lifeCostOwed).
+func lifeSharesCount(c *lCost, out *kop.Cost) bool {
+	switch {
+	case c.PayLife == 0:
+		return false
+	case c.ExileG != nil && c.ExileHand && c.PayLife == c.ExileGN:
+		out.Flags |= kop.CostPayLife
+	case lifeBesideSac(c, out):
+		out.Flags |= kop.CostPayLife
+		out.Ctr = kop.CounterKind(c.PayLife)
+	default:
+		return false
+	}
+	return true
+}
+
+// lifeBesideSac: c's PayLife<N> follows a plain Sac<N/Spec> and nothing else
+// counted, so the life can ride Cost.Ctr (a field the sacrifice never reads).
+func lifeBesideSac(c *lCost, out *kop.Cost) bool {
+	return c.PayLife <= 255 && c.Sac != nil && c.SacN > 0 && out.Flags&^kop.CostTap == kop.CostSac && out.Ctr == 0 &&
+		out.Mana.X == 0 && c.DiscardN == 0 && c.TapN == 0 && c.ExileG == nil
+}
+
+// discardBesideSac: the two counted parts are a Discard<N/Card> and a
+// Sac<N/Spec> of the same count (Dreamscape Artist: Discard<1/Card>,
+// Sac<1/Land>), so they share Cost.N; the discard is unfiltered, so Cost.Filter
+// is the sacrifice's alone. gorge asks the sacrifice, then the discard
+// (costObjectAsks), the kernel's pick order by flag bit.
+func discardBesideSac(c *lCost, out *kop.Cost, counted int) bool {
+	return counted == 2 && c.Sac != nil && c.SacN > 0 && c.SacN == c.DiscardN && c.DiscardF == nil && !c.DiscardHand &&
+		c.Discard2N == 0 && !c.DiscardSelf && out.Flags&(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) == kop.CostSac|kop.CostDiscard
 }
 
 // filter interns an LIR filter (objects only) as a chain of kop filters.
@@ -1761,6 +1799,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredEquipped
 	case cmpEnchanted:
 		kf.Pred = kop.PredEnchanted
+		kf.PredN = int16(c.CmpN) // 1: "!enchanted"
 	case cmpAttached:
 		kf.Pred = kop.PredAttached
 	case cmpActiveCtrl:

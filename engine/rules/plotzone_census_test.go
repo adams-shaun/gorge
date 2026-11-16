@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestPlotZoneCarrierCensus(t *testing.T) {
@@ -15,7 +17,7 @@ func TestPlotZoneCarrierCensus(t *testing.T) {
 	if !effects.Supported()["stat:PlotZone"] {
 		t.Fatal("effects.Supported() lacks stat:PlotZone")
 	}
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	files := map[string]string{}
 	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

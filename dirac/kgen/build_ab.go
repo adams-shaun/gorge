@@ -650,6 +650,11 @@ func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
 	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
 		return true
+	case vCountersOn:
+		// the source's own counters (Vile Requiem: up to X targets, X the verse
+		// counters on CARDNAME): gorge's bound context anchors Source at the
+		// ability's object, the kernel's entry context reads it the same way
+		return v.Ref.Kind == rSelf && v.S != "ALL"
 	case vOppExtreme:
 		// the asking player's living opponents (PlayerCountPlayers$Amount
 		// is their count plus one): gorge's bound context holds the asker
@@ -1879,22 +1884,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if err := amounts(s.Amount, lValue{}); err != nil {
 				return ka, nil, err
 			}
-			if s.AbilityRed == 2 {
-				st.B = 1
-			}
-			if s.AbilityRed == 3 {
-				st.B |= kop.ReduceAbUnlock
-			}
-			if s.AbilityRed == 4 {
-				st.B |= kop.ReduceAbPowerUp
-			}
+			rb, rf := reduceAbBits(s)
+			st.B, st.StFlags = st.B|rb, st.StFlags|rf
 			if s.AbilityRed == 5 {
-				st.B |= kop.ReduceAbEquip
 				if err := targets2(); err != nil { // the equip's target (Cloud's Card.Self)
 					return ka, nil, err
 				}
 			}
-			st.B |= int16(s.MinMana) << kop.ReduceAbMinShift
 			break
 		}
 		st.Kind = kop.StatReduceCost
@@ -2257,6 +2253,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		if err := atkScopeBits(st, "CantAttack", s.Flags); err != nil {
+			return ka, nil, err
+		}
 	case "CantAttackUnless":
 		st.Kind = kop.StatAttackTax // lower_attacktax.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2265,15 +2264,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Amount, lValue{}); err != nil {
 			return ka, nil, err
 		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "TaxPlayer":
-				st.StFlags |= kop.StAtkTaxPlayer
-			case "TaxWalker":
-				st.StFlags |= kop.StAtkTaxWalker
-			default:
-				return ka, nil, fmt.Errorf("CantAttackUnless flag %q", fl)
-			}
+		if err := atkScopeBits(st, "CantAttackUnless", s.Flags); err != nil {
+			return ka, nil, err
 		}
 	case "CantBlockUnless":
 		st.Kind = kop.StatBlockTax // lower_blocktax.go
@@ -2355,7 +2347,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// sacrifice shape with the permanents returned (kernel cast_altfree.go
 		// altReturnCost, the cast's pkReturn picks)
 		sacAlt = sacAlt || ka.Cost.Flags == kop.CostReturn && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && !(altDiscardShape(&ka.Cost) && cb.altSacOK()) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
+		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && !(altSacGatedShape(&ka.Cost) && cb.altSacOK()) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
 			// part (Daze, Force of Will) would never be offered
@@ -2644,7 +2636,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
-	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf":
+	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf", "PreventDamageFilt", "PreventDamageN":
 		if err = cb.selfDamageRepl(rp, r); err != nil { // lower_preventtoself.go
 			return ka, err
 		}
@@ -2932,4 +2924,28 @@ func originMask(from string) int {
 		}
 	}
 	return m
+}
+
+// atkScopeBits folds a lowered combat static's Target$ scope flags into its
+// StFlags bits (kop/attacktax.go): the CantAttack player/walker pair bits
+// and the CantAttackUnless tax's (lower_attacktax.go). One flag per scope
+// clause; an unknown flag is a lowering bug, refused.
+func atkScopeBits(st *kop.Static, which string, flags []string) error {
+	for _, fl := range flags {
+		var bit kop.StaticFlags
+		switch {
+		case which == "CantAttack" && fl == "AtkPlayer":
+			bit = kop.StCantAtkPlayer
+		case which == "CantAttack" && fl == "AtkWalker":
+			bit = kop.StCantAtkWalker
+		case which == "CantAttackUnless" && fl == "TaxPlayer":
+			bit = kop.StAtkTaxPlayer
+		case which == "CantAttackUnless" && fl == "TaxWalker":
+			bit = kop.StAtkTaxWalker
+		default:
+			return fmt.Errorf("%s flag %q", which, fl)
+		}
+		st.StFlags |= bit
+	}
+	return nil
 }

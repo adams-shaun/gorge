@@ -274,18 +274,17 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtChooseNumberMid:
 		return s.chooseNumberMid(k, in), true // repl_choosenumber.go
 	case kop.ExtChooseName:
-		// the same, for the as-enters nonland card name (repl_choosename.go)
-		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
-			if kind := nameAskKind(in); kind != akNameHand || !s.nameHandNone(k, s.perms[s.objs[o].slot].ctrl) {
-				s.queueAsk(s.objs[o].slot, kind)
-			}
-		}
+		s.enterNameAsk(k, in) // the as-enters nonland card name (repl_choosename.go)
 		return true, true
 	case kop.ExtChooseCardEnter:
 		// the same, for the as-enters object choice (repl_choosecard.go)
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && !s.enterCardNone(k, s.objs[o].slot, s.cardAt(s.objs[o].slot)) {
 			s.queueAsk(s.objs[o].slot, akCard)
 		}
+		return true, true
+	case kop.ExtEnterCtrPick:
+		// only inside an as-enters program: runReplProgAs queues the ask
+		// (repl_enterctrpick.go)
 		return true, true
 	case kop.ExtExploit:
 		s.exploitOp(k) // kw_exploit.go

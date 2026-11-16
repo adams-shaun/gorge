@@ -555,7 +555,7 @@ func drainSetMechanic(t *testing.T, e *Engine, pick func(*decision.Decision) []i
 // error on the absent directory rather than silently matching nothing.
 func TestSetMechanicTriggerModeCarrierCensus(t *testing.T) {
 	t.Parallel()
-	root := filepath.Join("..", "..", ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	files := map[string]string{}
 	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

@@ -362,15 +362,16 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 
 // tapXScriptOffered searches play a for the tap-another script, and when that
 // finds none, for the grant search beside the grants it covers: a
-// second-ability tap-another source's (tapXSecondLive), and a
-// sacrifice-another source's (sacXBesideGrant) — gorge's one prefix search
-// activates every gap of the board, the grants beside its census gaps
-// (rules scriptSearch.visit; mana_granttapx.go, mana_grantsacx.go).
+// second-ability tap-another source's (tapXSecondLive) or a counter-cost gap
+// (grantBesideTapXGaps), and a sacrifice-another source's (sacXBesideGrant) —
+// gorge's one prefix search activates every gap of the board, the grants
+// beside its census gaps (rules scriptSearch.visit; mana_granttapx.go,
+// mana_countercost.go, mana_grantsacx.go).
 func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) bool {
 	if s.tapXScript(k, a, p, false) {
 		return true
 	}
-	return s.tapXSecondLive(k, p) && s.liveGrantGap(k, p) && s.grantActScript(k, a, p) ||
+	return s.grantBesideTapXGaps(k, a, p) ||
 		s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)
 }
 
@@ -763,13 +764,16 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
-		} else if g.cheaper && !hasOption(d, a) {
+		} else if (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a)) && !hasOption(d, a) {
 			// gorge's planner prices the play again at every search node
 			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
 			// found prefix answered lowered the cost under the root price the
 			// offer builder priced the play with (Gran-Gran's loot discarding a
 			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
-			// lists what the builder left off
+			// lists what the builder left off; so does a prefix that activates a
+			// storage battery, whose counters the builder's units leave out
+			// (mana_grantstore.go), except a plain cast under the autopay
+			// surface, which gorge reaches only by that script and drops
 			d.add(a)
 		}
 	}

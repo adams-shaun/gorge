@@ -1494,6 +1494,20 @@ const ExtNameCard ExtOp = 93
 
 func init() { extOpNames[ExtNameCard] = "NameCard" }
 
+// EnterCtrPick (dirac/manifest/ExtOp/ExtEnterCtrPick)
+//
+// ExtEnterCtrPick: an as-enters "enters with your choice of two different counters on it from among X, Y and Z" (CR 614.1c, 614.12; gorge's ETB PutCounter with ChooseDifferent$ 2 over a three-kind CounterType$ list: Grimdancer's menace, deathtouch and lifelink). The entering permanent's controller picks two of the three kinds, one pick per decision (gorge's two-pick "counter_kinds" KChoose, a ChRemCtrKind decision, mode = the kernel counter kind: every kind first, then the two left), asked once the permanent is on the battlefield; the permanent then has one counter of each picked kind. The kinds are B (the first), C's low byte (the second) and C's high byte (the third), in the card's printed order. Only the lone instruction of an enters program. dirac/repl_enterctrpick.go.
+const ExtEnterCtrPick ExtOp = 96
+
+func init() { extOpNames[ExtEnterCtrPick] = "EnterCtrPick" }
+
+// PutCounterChoice (dirac/manifest/ExtOp/ExtPutCounterChoice)
+//
+// ExtPutCounterChoice: PutCounter with a comma-listed CounterType$ (up to four kinds): the resolving controller picks one kind from the list (gorge effPutCounter's counterKinds>1 arm, a Min=Max=1 "counter" KChoose over the listed kinds; the kernel poses it as a ChRemCtrKind decision, the oracle comparing the options by kind) and one counter of it is put. The resolving form (Obj the recipient) asks mid-resolution (raRemCtrAny / ChRemCtrKind); the as-enters form (Obj RefReplaced, ETB$ True) asks once the permanent is on the battlefield, as ExtEnterCtrPick does. The kinds are B's low byte, B's high byte, C's low byte and C's high byte (0 = none beyond the last), in the card's printed order. dirac/ctr_choice.go.
+const ExtPutCounterChoice ExtOp = 98
+
+func init() { extOpNames[ExtPutCounterChoice] = "PutCounterChoice" }
+
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
 
@@ -1843,6 +1857,12 @@ const ReplRollPlanarDice ReplKind = 62
 
 // DamageDone (dirac/manifest/ReplKind/ReplPreventDamageToSelf)
 const ReplPreventDamageToSelf ReplKind = 63
+
+// DamageDone (dirac/manifest/ReplKind/ReplPreventDamageFilt)
+const ReplPreventDamageFilt ReplKind = 64
+
+// DamageDone (dirac/manifest/ReplKind/ReplPreventDamageN)
+const ReplPreventDamageN ReplKind = 65
 
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22

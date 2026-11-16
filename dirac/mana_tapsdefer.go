@@ -100,6 +100,22 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 	return d
 }
 
+// availLeavesOut reports whether availFor left the planner-deferred source at
+// sl out of the availability its walk is building: a deferred source is no
+// census unit (gorge's census never lists it) and only the any-mana and gaps
+// modes (availScript) put its relaxed unit back. A cost that taps the source
+// then has no mana of its own to take out, and removing its printed mana would
+// take a floating unit of the pool instead: Cabal Pit's {B},{T}, sacrifice
+// beside Price of Glory, paid by the {B} a scripted prefix tapped from a
+// Swamp into the pool (CR 602.2b). The test is availFor's skip.
+func (s *State) availLeavesOut(k *prep, sl Slot) bool {
+	if !s.deferLive(k) || s.g.availX&(availWalk|availHyp|availGaps|availAny) != 0 {
+		return false
+	}
+	p := s.perms[sl].ctrl
+	return s.scriptTapsDefer(k, p).has(sl) && s.planDeferred(k, p, sl)
+}
+
 // scriptTapsDefer is p's activatable Taps-deferred mana sources, a slot
 // mask: the census gap a live Defer-class watcher makes of a source's tap.
 // Which sources defer is a runtime fact of the watchers alive, so no card
@@ -169,11 +185,11 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
-		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
+		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
-		if !s.tapsGapActivatable(k, sl) {
-			continue
+		if !s.tapsGapReady(k, sl) || s.genLost(k, sl) && !s.landSetLost(k, sl) {
+			continue // a land under a land-type setter still taps for its intrinsic mana (CR 305.7)
 		}
 		m = m.with(sl)
 	}
@@ -185,14 +201,20 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 // CantBeActivated lock (cast_cantactivate.go). Every script gap arm that taps
 // its source asks it.
 func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) &&
+	return s.tapsGapReady(k, sl) && !s.genLost(k, sl)
+}
+
+// tapsGapReady is tapsGapActivatable without the lost-abilities test: the
+// source is untapped, not summoning-sick and under no CantBeActivated lock.
+func (s *State) tapsGapReady(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
-// tapsDeferColour is the production scriptTapsDefer models: any colour, or
-// exactly one of WUBRG.
+// tapsDeferColour is the production scriptTapsDefer models: any colour,
+// exactly one of WUBRG, or {C} (Crumbling Vestige under Brink of Disaster).
 func tapsDeferColour(c kop.ColorMask) bool {
-	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
+	return c == kop.ColAny || c == kop.ColC || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
 }
 
 // restrTapsGapShape: the source at sl is a restricted planner source whose
@@ -413,4 +435,28 @@ func prepSelfTapsPain(c *kop.CardDef, pc *pcard) bool {
 	}
 	pc.painCol, pc.painN, pc.painOnly = a.ManaColors, n, true
 	return true
+}
+
+// hideDeferred taps, on the search's node copy t, every untapped source of p
+// the planner defers (planDeferred) that scriptTapsDefer does not model: a
+// two-colour land under a Defer-class Taps watcher (Turbulent Fen beside Price
+// of Glory). gorge's census holds it back as a gap, so the node's offer and
+// pricing (scriptSearch.visit) never count its mana, but the plain walk would
+// and list the play a tap early; the play's payment would then tap the
+// source after the prefix's other taps, putting its trigger above the play.
+//
+// A source tapsDef holds is the search's own gap: availFor already leaves its
+// unit out (availLeavesOut), and tapping it here would also take away the
+// {T} a cost of its own pays (Cabal Pit's {B},{T}, sacrifice beside Price of
+// Glory, CR 602.2b), so it stays untapped.
+func (t *State) hideDeferred(k *prep, p uint8, tapsDef slotMask) {
+	if !t.deferLive(k) {
+		return
+	}
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
+		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && !tapsDef.has(sl) && t.planDeferred(k, p, sl) {
+			t.perms[sl].flags |= pfTapped
+			t.touchSl(sl)
+		}
+	}
 }

@@ -29,7 +29,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // stepSacX is the gi of a prefix step that activates a candidate's
 // sacrifice-another mana ability (cand the permanent it sacrifices; the
 // production is fixed, no colour).
-const stepSacX int16 = -8
+const stepSacX int16 = -10
 
 // grantSacXGaps: p's sacrifice-another mana sources the tap-another search
 // models (scriptTapXModelled), a slot mask, for a play the grant search
