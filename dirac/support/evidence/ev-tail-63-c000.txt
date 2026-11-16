@@ -49,6 +49,7 @@ Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Blaring Captain
 Blindblast
+Blinding Fog
 Bloodhall Priest
 Bloodhaze Wolverine
 Bloodmist Infiltrator
@@ -451,6 +452,7 @@ Thriving Bluff
 Throes of Chaos
 Thrun, the Last Troll
 Tideforce Elemental
+Time Elemental
 Titanic Pelagosaur
 Toil
 Toil to Renown

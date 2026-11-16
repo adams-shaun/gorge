@@ -127,6 +127,7 @@ Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faerie Guidemother
 Faithbearer Paladin
@@ -154,6 +155,7 @@ Fortitude
 Fortress Crab
 Frenetic Sliver
 Frilled Sandwalla
+Frostveil Ambush
 Funeral March
 Fungal Plots
 Furtive Analyst
@@ -162,6 +164,7 @@ Geist-Honored Monk
 Gem of Becoming
 Gerrard Capashen
 Getaway Car
+Ghostway
 Giant Solifuge
 Gladecover Scout
 Goblin Fire Fiend
@@ -190,6 +193,7 @@ Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
 Heap Doll
+Helica Glider
 Hellspark Elemental
 Hieromancer's Cage
 Hobgoblin Captain
@@ -224,6 +228,7 @@ Kalemne, Disciple of Iroas
 Kenrith, the Returned King
 Kinjalli's Sunwing
 Kithkin Healer
+Kithkin Spellduster
 Koma's Faithful
 Kragma Warcaller
 Kudo, King Among Bears
@@ -242,6 +247,7 @@ Magmatic Sprinter
 Malanthrope
 Malevolent Awakening
 Malevolent Whispers
+Malfunction
 Malignant Growth
 Mana Severance
 Maniacal Rage
@@ -375,6 +381,7 @@ Skulking Ghost
 Skullslither Worm
 Skullsnatcher
 Skyboon Evangelist
+Skyknight Vanguard
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon
@@ -446,6 +453,7 @@ Treefolk Healer
 Treetop Rangers
 Twinscroll Shaman
 Tyrant's Familiar
+Ulasht, the Hate Seed
 Ulvenwald Hydra
 Unholy Officiant
 Union of the Third Path
@@ -460,6 +468,7 @@ Verge Rangers
 Veteran Armorer
 Veteran Brawlers
 Viashino Outrider
+Vine Snare
 Violet Pall
 Virtus the Veiled
 Vital Splicer

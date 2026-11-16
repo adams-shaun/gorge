@@ -211,6 +211,7 @@ Kefnet's Monument
 Kessig Prowler
 Khabál Ghoul
 Killer Whale
+Killian, Decisive Mentor
 Kithkin Shielddare
 Kjeldoran Frostbeast
 Knight of the Pilgrim's Road
@@ -411,6 +412,7 @@ Thrilling Discovery
 Thriving Moor
 Thriving Skyclaw
 Tithe Drinker
+Tizerus Charger
 Tobias Andrion
 Tolarian Serpent
 Torch Drake
@@ -462,6 +464,7 @@ Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
+Wrenn and Seven
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit

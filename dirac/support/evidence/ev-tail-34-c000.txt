@@ -22,6 +22,7 @@ Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
+Aura Mutation
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
@@ -126,6 +127,7 @@ Drowner of Secrets
 Durable Coilbug
 Dust Elemental
 Dwarven Patrol
+Edric, Spymaster of Trest
 Eidolon of Blossoms
 Elder Gargaroth
 Eldrazi Repurposer
@@ -167,6 +169,7 @@ Godhunter Octopus
 Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
 Grafted Butcher
+Grazing Kelpie
 Grim Bounty
 Grim Guardian
 Grim Haruspex
@@ -195,6 +198,7 @@ Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
 Implement of Malice
+Indatha Crystal
 Indulgent Aristocrat
 Infernal Pet
 Inferno
@@ -307,6 +311,7 @@ Quirion Explorer
 Quirion Sentinel
 Rain of Rust
 Raise the Alarm
+Rakdos Riteknife
 Ramosian Sergeant
 Rampaging Ferocidon
 Rapacious One
@@ -363,6 +368,7 @@ Sokka's Charge
 Soltari Trooper
 Soul's Might
 Sound the Call
+Sphere of Grace
 Spidersilk Armor
 Spike-Tailed Ceratops
 Spiked Corridor
@@ -447,6 +453,7 @@ Whisper of the Dross
 Whitesun's Passage
 Wild Elephant
 Wild Ox
+Winds of Qal Sisma
 Witness the End
 Xenk, Paladin Unbroken
 Xerex Strobe-Knight

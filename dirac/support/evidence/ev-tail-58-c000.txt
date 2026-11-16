@@ -12,6 +12,7 @@ Abzan Banner
 Accelerate
 Accumulated Knowledge
 Admiral's Order
+Aerie Ouphes
 Aetherling
 Ajani, the Greathearted
 Alabaster Potion
@@ -35,6 +36,7 @@ Basalt Monolith
 Basri's Solidarity
 Beacon Hawk
 Benthic Biomancer
+Biomathematician
 Blanchwood Treefolk
 Blitz of the Thunder-Raptor
 Bloodfire Infusion
@@ -151,6 +153,7 @@ Grasping Dunes
 Grave Strength
 Gravecrawler
 Gravedig
+Grief Tyrant
 Grotag Night-Runner
 Ground Rift
 Guardian of Pilgrims
@@ -181,8 +184,10 @@ Iron Will
 Island
 Ivory Tower
 Jarl of the Forsaken
+Journey to Oblivion
 Kamber, the Plunderer
 Kari Zev's Expertise
+Kavu Primarch
 Khorvath Brightflame
 Kinjalli's Caller
 Kitesail Apprentice
@@ -206,6 +211,7 @@ Liliana, the Necromancer
 Llanowar Visionary
 Looming Spires
 Lucky Offering
+Magma Mine
 Malakir Soothsayer
 Mandible Justiciar
 Mardu Warshrieker
@@ -240,6 +246,7 @@ No Mercy
 Novice Dissector
 Nullhide Ferox
 Ojutai's Command
+Oketra's Attendant
 Omen of the Hunt
 One-Clown Band
 Opportunistic Dragon
@@ -315,6 +322,7 @@ Setessan Oathsworn
 Shadowborn Demon
 Shambling Vent
 Shard Volley
+Shield of the Realm
 Short Sword
 Shriekdiver
 Shrieking Grotesque
@@ -337,6 +345,7 @@ Spider-Man 2099, Miguel O'Hara
 Spidery Grasp
 Spike Tiller
 Spirit Loop
+Spoils of Adventure
 Sprouting Phytohydra
 Squee's Toy
 Staff of Titania

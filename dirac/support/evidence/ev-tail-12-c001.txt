@@ -14,6 +14,8 @@ Apprentice Necromancer
 Arlinn's Wolf
 Armament Master
 Backwoods Survivalists
+Balustrade Spy
+Banefire
 Barter in Blood
 Battle Hymn
 Benalish Veteran
@@ -23,6 +25,8 @@ Bog Glider
 Bold Impaler
 Brave the Elements
 Butch DeLoria, Tunnel Snake
+Call to Serve
+Catalyst Elemental
 Char
 Charismatic Vanguard
 Child of Gaea
@@ -43,7 +47,9 @@ Dispel
 Dragonspark Reactor
 Drowned Rusalka
 Duskmantle Prowler
+Dwarven Grunt
 Dwarven Lieutenant
+Eagle of the Watch
 Enforcer Griffin
 Enlightened Tutor
 Farsight Adept
@@ -58,27 +64,36 @@ Funeral Longboat
 Garrison Griffin
 Genesis
 Geralf's Masterpiece
+Geralf, Visionary Stitcher
 Geyserfield Stalker
 Gloomwidow's Feast
+Gnarled Mass
 Goblin Tutor
 Goldmane Griffin
+Growing Ranks
 Guardian Gladewalker
 Hand of Death
 Heliod's Emissary
+Hexgold Halberd
 Highway Robber
 Holy Armor
 Honden of Seeing Winds
+Hurloon Battle Hymn
 Impending Flux
+Increasing Devotion
 Inspired Charge
 Insufferable Balladeer
 Irradiate
+Irreverent Revelers
 Island
+Jedit Ojanen of Efrava
 Jhoira, Ageless Innovator
 Kavu Climber
 Kaya's Ghostform
 Kjeldoran War Cry
 Knowing
 Laboratory Brute
+Landroval, Horizon Witness
 Last Caress
 Leonardo, Worldly Warrior
 Levitation
@@ -93,11 +108,14 @@ Maximize Altitude
 Medicine Bag
 Memory Erosion
 Mephitic Ooze
+Mine Collapse
+Molten Nursery
 Molten Rain
 Moment of Truth
 Mountain
 Nausea
 Neck Snap
+Niblis of the Mist
 Nikara, Lair Scavenger
 Nissa, Worldwaker
 Ominous Cemetery
@@ -108,10 +126,12 @@ Owl Familiar
 Pardic Arsonist
 Patagia Viper
 Peer Through Depths
+Phyrexian Juggernaut
 Phyrexian Tribute
 Phyrexian War Beast
 Plague Spitter
 Plains
+Portent of Betrayal
 Primal Growth
 Propaganda
 Pteramander
@@ -123,11 +143,14 @@ Rat Colony
 Rats of Rath
 Restoration Angel
 Revel of the Fallen God
+Rise to the Challenge
 Rishadan Pawnshop
+Rude Awakening
 Run Aground
 Rushwood Herbalist
 Rusting Golem
 Sanguimancy
+Savannah Sage
 Scour All Possibilities
 Scourge of Valkas
 Screeching Sliver
@@ -138,7 +161,10 @@ Seven-Tail Mentor
 Sewer Rats
 Shadowmage Infiltrator
 Sheoldred, Whispering One
+Sifter Wurm
 Slingshot Goblin
+Sliptide Serpent
+Slumbering Dragon
 Solar Tide
 Sophic Centaur
 Soul Shred
@@ -149,11 +175,14 @@ Spirit of the Spires
 Spiritual Asylum
 Spontaneous Mutation
 Steam Augury
+Steel Overseer
 Steelshaper's Gift
 Sudden Edict
 Sudden Spinnerets
 Swamp
 Swamp Mosquito
+Tamiyo's Epiphany
+Tana, the Bloodsower
 Terror
 Thassa, Deep-Dwelling
 Thaumatic Compass
@@ -165,14 +194,19 @@ Torment
 Tread Upon
 Treeshaker Chimera
 Tromp the Domains
+Ugin's Mastery
 Underhanded Designs
 Undying Beast
 Unnatural Restoration
 Unnerve
+Unquestioned Authority
 Urborg Skeleton
 Vampire Noble
 Vedalken Anatomist
+Vigil for the Lost
 Vindictive Mob
 Viscera Seer
 Waste Away
+Waterfront Bouncer
+Wither and Bloom
 Withering Boon

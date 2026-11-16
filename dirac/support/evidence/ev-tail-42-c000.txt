@@ -122,6 +122,7 @@ Elvish Ranger
 Ember Hauler
 Emergency Weld
 Endless Sands
+Energy Storm
 Enigmatic Incarnation
 Entrails Feaster
 Entropic Specter
@@ -369,6 +370,7 @@ Silt Crawler
 Silver Raven
 Silverquill Lecturer
 Silverwing Squadron
+Simic Sky Swallower
 Singing Tree
 Skyblade's Boon
 Skymark Roc

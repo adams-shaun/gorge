@@ -101,7 +101,9 @@ Guard Duty
 Guardian Idol
 Gutter Skulk
 Gutwrencher Oni
+Guul Draz Specter
 Hag of Ceaseless Torment
+Harabaz Druid
 Hate Weaver
 Headsplitter
 Heartless Summoning
@@ -237,6 +239,7 @@ Strength of Isolation
 Summon: Ixion
 Swamp
 Swift Demise
+Syr Elenora, the Discerning
 Tattermunge Witch
 Tazeem Roilmage
 Tel-Jilad Stylus

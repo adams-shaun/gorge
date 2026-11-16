@@ -63,6 +63,7 @@ Cephalid Vandal
 Chainflinger
 Chameleon Spirit
 Citizen's Crowbar
+Cityscape Leveler
 Clairvoyance
 Clearwater Goblet
 Clock of Omens
@@ -179,6 +180,7 @@ Hero's Demise
 Heronblade Elite
 Hidden Guerrillas
 Hill Giant Herdgorger
+Hollow One
 Homarid Warrior
 Hua Tuo, Honored Physician
 Hungry Spriggan
@@ -265,6 +267,7 @@ Onulet
 Outland Liberator
 Owlin Spiralmancer
 Patron Wizard
+Personal Sanctuary
 Phantom Centaur
 Pilfering Imp
 Plains

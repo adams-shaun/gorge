@@ -59,6 +59,7 @@ Corrosive Mentor
 Cryptic Pursuit
 Cynette, Jelly Drover
 Dakmor Lancer
+Darkblast
 Dauntless Escort
 Dawn of Hope
 Deadeye Tormentor
@@ -117,15 +118,19 @@ Glimmer of Genius
 Glitterfang
 Glorious Anthem
 Gold Myr
+Golgari Locket
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
+Grotag Bug-Catcher
 Groundbreaker
 Gryffwing Cavalry
+Guardian of Vitu-Ghazi
 Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
 Hedron Detonator
+Hellion Crucible
 Helm of the Gods
 Herald of the Dreadhorde
 Hero of Leina Tower
@@ -138,6 +143,7 @@ Hungering Hydra
 Hunter's Ambush
 Incursion Specialist
 Industrial Advancement
+Inner Sanctum
 Inner Struggle
 Insatiable Gorgers
 Instill Infection
@@ -163,6 +169,7 @@ Kranioceros
 Light of Day
 Lightning Visionary
 Livaan, Cultist of Tiamat
+Losheel, Clockwork Scholar
 Maestros Initiate
 Magma Phoenix
 Magmatic Force
@@ -180,6 +187,7 @@ Mortis Dogs
 Mother Bear
 Mountain
 Mournwillow
+Murderous Redcap
 Mycoid Shepherd
 Mystic Skyfish
 Mystic Snake
@@ -215,10 +223,12 @@ Propaganda
 Proper Burial
 Protocol Knight
 Pygmy Razorback
+Quakebringer
 Quest for Renewal
 Radiant Destiny
 Radiant Essence
 Rage Reflection
+Rakdos Shred-Freak
 Rapid Hybridization
 Reach Through Mists
 Reckless Brute
@@ -227,6 +237,7 @@ Reinterpret
 Reptilian Reflection
 Reservoir Kraken
 Resounding Silence
+Restless Apparition
 Rhys the Exiled
 Ritual of Steel
 Rogue Elephant
@@ -283,6 +294,7 @@ Talruum Minotaur
 The Mana Rig
 Thran Quarry
 Throne of Bone
+Thunderblust
 Tibalt, the Fiend-Blooded
 Tide Skimmer
 Tonic Peddler

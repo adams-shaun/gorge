@@ -9,6 +9,7 @@ Acidic Slime
 Aerie Auxiliary
 Aetherstorm Roc
 Akki Blizzard-Herder
+Akroma's Vengeance
 Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
@@ -42,6 +43,7 @@ Bloodbraid Challenger
 Bonesplitter Sliver
 Boots of Speed
 Borborygmos
+Brainspoil
 Brilliant Spectrum
 Bumi, Eclectic Earthbender
 Buoyancy
@@ -109,6 +111,7 @@ Elemental Augury
 Elephant Resurgence
 Ellivere of the Wild Court
 Elvish Promenade
+Emeria, the Sky Ruin
 Emmara, Soul of the Accord
 Epiphany at the Drownyard
 Essence Infusion
@@ -410,6 +413,7 @@ Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
 Wormfang Behemoth
+Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
 Yavimaya Gnats
 Yavimaya Sapherd

@@ -19,6 +19,7 @@ Angelic Guardian
 Anointed Procession
 Arborea Pegasus
 Archetype of Aggression
+Ardent Electromancer
 Argivian Blacksmith
 Artifact Mutation
 Ashen Monstrosity
@@ -44,6 +45,8 @@ Black Dragon
 Black Panther, Most Dangerous
 Blades of Velis Vel
 Blistergrub
+Blockbuster
+Blood Researcher
 Bloodrage Vampire
 Bloodsky Berserker
 Bog Rats
@@ -103,6 +106,7 @@ Dragon Arch
 Dragon Moose
 Dragonlair Spider
 Dragonsoul Knight
+Duelist's Flame
 Dungeon Geists
 Ecologist's Terrarium
 Elder Spawn
@@ -116,6 +120,7 @@ Enormous Baloth
 Ephara's Radiance
 Erinis, Gloom Stalker
 Essence Depleter
+Etali, Primal Conqueror
 Everett K. Ross, Hapless Attaché
 Exclude
 Exhaustion
@@ -136,12 +141,15 @@ Furnace Strider
 Fylamarid
 Gandalf, Shadow's Foe
 Gang of Devils
+Gert and Old Lace, Runaways
 Giant Caterpillar
 Gibbering Hyenas
 Gift of Estates
+Gimli of the Glittering Caves
 Gimli, Mournful Avenger
 Gleam of Resistance
 Glint-Sleeve Artisan
+Glóin, Dwarf Emissary
 Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
@@ -167,6 +175,7 @@ Huatli's Snubhorn
 Ichneumon Druid
 Illusionary Wall
 Illusory Ambusher
+Impulsivity
 Inkfathom Infiltrator
 Inspiring Captain
 Insurrection
@@ -200,6 +209,7 @@ Latch Seeker
 Lavastep Raider
 Leo's Guidance
 Level Up
+Lifeforce
 Lifeline
 Lumengrid Augur
 Ma Chao, Western Warrior
@@ -255,6 +265,7 @@ Ornery Kudu
 Orochi Ranger
 Pack Mastiff
 Paragon of Gathering Mists
+Penregon Strongbull
 Piercing Light
 Pilfered Plans
 Plains
@@ -377,6 +388,7 @@ Thalia, Guardian of Thraben
 Thassa's Ire
 The Bear Force Pilot
 The Binding of the Titans
+The Darkhold
 The Whizzer, Classic Speedster
 Their Number Is Legion
 Thieving Magpie
@@ -403,16 +415,19 @@ Unholy Heat
 Unleash Shell
 Uurg, Spawn of Turg
 Vampire's Zeal
+Vampires' Vengeance
 Vampiric Touch
 Vaporous Djinn
 Verdant Catacombs
 Vernal Bloom
+Vile Rebirth
 Vivien's Crocodile
 Volcanic Spite
 Vulturous Aven
 Wall of Water
 Weaver of Blossoms
 Weirded Vampire
+Wheel of Fortune
 Whelming Wave
 Windborne Charge
 Wizard Class

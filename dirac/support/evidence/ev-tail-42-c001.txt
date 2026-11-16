@@ -1,7 +1,10 @@
+A-Cori-Steel Cutter
 A-Dragonborn Looter
 A-Meria's Outrider
 A-Ominous Parcel
+Accursed Horde
 Aerial Engineer
+Aether Adept
 Aether Inspector
 Aethersnipe
 Angelic Gift
@@ -16,6 +19,7 @@ Attended Healer
 Audacious Infiltrator
 Aven Mindcensor
 Awakened Awareness
+Baloth Prime
 Barrage Tyrant
 Barrowgoyf
 Basic Conjuration
@@ -30,6 +34,7 @@ Bloodrite Invoker
 Bloodshed Fever
 Bog Elemental
 Boggart Forager
+Boil
 Bonded Construct
 Boon of Boseiju
 Brawl-Bash Ogre
@@ -38,6 +43,7 @@ Brimstone Volley
 Burning Hands
 Captain's Hook
 Carrion Call
+Chaos Terminator Lord
 Choking Restraints
 Cinder Barrens
 Cloak and Dagger
@@ -95,6 +101,7 @@ Furnace Spirit
 Gala Greeters
 Galvanic Juggernaut
 Gauntlet of Might
+Ghoulsteed
 Gleeful Demolition
 Glimpse the Unthinkable
 Glint Raker
@@ -110,17 +117,20 @@ Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Grenzo, Havoc Raiser
 Griffin Dreamfinder
+Guardian Scalelord
 Hangarback Walker
 Harvest Wurm
 Haunted Cadaver
 Havoc Devils
 Helm of the Host
+Horn of Gondor
 Horned Stoneseeker
 Hornet Sting
 Hovermyr
 Icatian Store
 Idle Thoughts
 Illustrious Wanderglyph
+Immolating Souleater
 Imoti, Celebrant of Bounty
 Imperial Cosmographer
 Incremental Growth
@@ -131,6 +141,7 @@ Island
 Izzet Signet
 Jousting Dummy
 Kill-Zone Acrobat
+Kindly Customer
 King of the Pride
 Kinsbaile Courier
 Krosan Archer
@@ -155,11 +166,13 @@ Mesa Lynx
 Metal Fatigue
 Meteoric Mace
 Mishra's Command
+Mite Overseer
 Mogg Alarm
 Moonlit Wake
 Mosstodon
 Motivated Pony
 Mountain
+Mugging
 Myr Adapter
 Mystic Snake
 Naru Meha, Master Wizard
@@ -174,6 +187,7 @@ Ob Nixilis, the Fallen
 Oni of Wild Places
 Organ Grinder
 Ornithopter
+Painful Lesson
 Painwracker Oni
 Park Heights Pegasus
 Pelakka Predation
@@ -181,6 +195,7 @@ Penumbra Wurm
 Peppersmoke
 Peregrine Griffin
 Perennial Behemoth
+Petravark
 Phyrexian Colossus
 Phyrexian Denouncer
 Phyrexian Totem
@@ -190,6 +205,7 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Psychic Impetus
 Ral's Dispersal
 Reborn Hope
 Renegade Reaper
@@ -210,14 +226,20 @@ Separatist Voidmage
 Setessan Starbreaker
 Sewer Rats
 Shadow Summoning
+Shadow of Mortality
 Shaman of the Pack
 Shamble Back
 Shapers' Sanctuary
+Shard of the Nightbringer
+Shauku's Minion
+Shriek of Dread
 Shu Cavalry
+Silt Crawler
 Silver Raven
 Silverquill Lecturer
 Silverwing Squadron
 Singing Tree
+Skullmane Baku
 Skyblade's Boon
 Skymark Roc
 Skyshroud Lookout
@@ -262,6 +284,7 @@ Tyrranax
 Ultimate Price
 Umbilicus
 Unbreathing Horde
+Undead Warchief
 Unicycle
 Unraveling Mummy
 Urza's Guilt
@@ -288,6 +311,7 @@ Wild Celebrants
 Wings of Aesthir
 Wings of Hope
 Woodland Bellower
+Wrenn's Resolve
 Wyluli Wolf
 Yavimaya Scion
 Zirilan of the Claw

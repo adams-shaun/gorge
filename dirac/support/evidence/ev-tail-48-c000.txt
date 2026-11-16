@@ -136,6 +136,7 @@ Gateway Plaza
 Gelatinous Genesis
 Ghost-Lit Redeemer
 Ghoulish Procession
+Gideon's Sacrifice
 Gift of Strength
 Gimli's Fury
 Glamorous Grapplers
@@ -143,6 +144,7 @@ Gnoll Hunter
 Goblin Masons
 Goblin Piledriver
 Gorehorn Minotaurs
+Grave Upheaval
 Gravedig
 Greatsword
 Green Sun's Zenith
@@ -154,6 +156,7 @@ Hanged Executioner
 Heavenly Qilin
 Hedron Crab
 Hellkite Charger
+Hexavus
 Hexgold Hoverwings
 Highland Berserker
 Highland Game
@@ -241,6 +244,7 @@ Night
 Nimbus Swimmer
 Nine-Ringed Bo
 Norn's Wellspring
+Noxious Hatchling
 Oath of Gideon
 Oblivion Crown
 Olivia's Dragoon

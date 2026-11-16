@@ -212,6 +212,7 @@ Liliana's Indignation
 Liliana, Death Wielder
 Liliana, the Last Hope
 Limestone Golem
+Lingering Tormentor
 Lord of Change
 Lumbering Falls
 Lunar Force
@@ -293,6 +294,7 @@ Reanimate
 Rebuild
 Recon Craft Theta
 Remorseful Cleric
+Rendclaw Trow
 Renegade Demon
 Replication Specialist
 Retreat to Emeria
@@ -366,6 +368,7 @@ Sylvan Awakening
 Tajuru Snarecaster
 Telekinetic Sliver
 Terashi's Verdict
+Termination Facilitator
 Teshar, Ancestor's Apostle
 Thassa's Oracle
 Thermo-Alchemist
@@ -433,6 +436,7 @@ Wings of Aesthir
 Wings of the Guard
 Wirewood Pride
 Witch's Cauldron
+Wolfkin Outcast
 Woodland Mystic
 Worldly Tutor
 Xiahou Dun, the One-Eyed

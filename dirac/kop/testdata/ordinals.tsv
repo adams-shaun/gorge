@@ -1044,9 +1044,12 @@ PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
 PrevScopeAll	untyped int	8
+PrevScopeAnyPlayer	untyped int	16384
 PrevScopeColourShift	untyped int	8
 PrevScopeCombat	untyped int	16
 PrevScopeCreatures	untyped int	2
+PrevScopeFiltered	untyped int	32
+PrevScopeOppPlayer	untyped int	8192
 PrevScopePlayer	untyped int	1
 PrevScopeSrcCreature	untyped int	4
 PropCardManaCost	uint8	3
@@ -1057,6 +1060,8 @@ PumpEachPower	untyped int	1
 PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
+PutCtrChoiceMax	untyped int	4
+PutCtrChoiceNone	untyped int	255
 PutCtrRemAmount	untyped int	5
 PutCtrRememberPut	untyped int	2
 R	untyped int	3
@@ -1273,6 +1278,8 @@ StAtkTaxWalker	StaticFlags	4
 StBanOpp	StaticFlags	256
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
+StCantAtkPlayer	StaticFlags	2
+StCantAtkWalker	StaticFlags	4
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384

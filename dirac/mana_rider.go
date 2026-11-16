@@ -175,6 +175,9 @@ func (s *State) riderPlainFirst(k *prep, sl Slot) bool {
 // sl can be activated now: untapped (and not summoning sick when its cost taps
 // a creature) and its own counters enough.
 func (s *State) riderActivatable(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
+	if s.unlessSkipsRider(a) {
+		return false // a depletion land is no part of an unless / ward window (mana_window.go)
+	}
 	if !s.occ.has(sl) || s.genLost(k, sl) || s.activationSick(k, sl) ||
 		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false

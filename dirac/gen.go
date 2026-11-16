@@ -357,7 +357,7 @@ type genPrep struct {
 	anyCharmV       bool           // some card has CardDef.ModesPickV: a dynamic charm pick count (modal_charmcmp.go)
 	anyCharmPick    bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend    bool           // some ability costs CostWaterbend (act_waterbend.go)
-	anyXBoundAb     bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
+	anyXBoundAb     bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it; or a tap-another cost part can strand its mana (cost_collectevidence.go)
 	anyLure         bool           // some card is a lure (CardDef.Lure), or the table can make one (StatLure, mechLure; combat_lure.go)
 	anyLureStat     bool           // a StatLure static (combat_lure.go isLure)
 	anyMustBlock    bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)
@@ -399,6 +399,8 @@ type genPrep struct {
 	anyEmbCtrl      bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped  bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk    bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
+	anyCantAtk      bool           // some card or emblem has a StatCantAttack static (combat_cantattack.go)
+	anyCantAtkScope bool           // some StatCantAttack static carries a Target$ scope bit (combat_cantattack.go)
 	anySrcMark      bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
 	dmgBy           []bool         // per card: its damage is recorded (an ability's filter reads F2DamagedBy; nil when none)
 	crewerRec       []bool         // per card: the Vehicles it crews are recorded (an ability's filter reads W7CrewedBySrc; nil when none; filter_props.go)
@@ -838,7 +840,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
-	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
+	// prepSpellCond first: it sets anySpellCond, which an || must not skip
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
@@ -1422,11 +1425,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.anyFiltPip = true
 					}
 				}
-				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) &&
-					!kop.ChosenSecondManaAb(&t.Cards[i], firstManaAb(&t.Cards[i]), j) && g.gapOther(CardID(i)) < 0 {
-					// (Quirion Elves' chosen {T} is folded into the source's
-					// unit by prepMultiMana, not a census gap: registering it as
-					// one would keep a filter beside it off the filtScript path)
+				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}
@@ -1716,6 +1715,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepCantAtkScope(t, g) // combat_cantattack.go: the CantAttack Target$ scope bits
 	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepTokListAdd(t, g)   // repl_toklistadd.go
@@ -1934,6 +1934,9 @@ type genState struct {
 		amt  uint8
 	}
 	ndmg uint8
+	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
+	// both-instances flashback classification (legal.go fbProbeRoot).
+	fbProbe bool
 
 	may  [maxMay]mayPlay
 	nmay uint8
@@ -2020,7 +2023,7 @@ type genState struct {
 	noTgtRed   bool            // cost computation without target-dependent reductions
 	mayPlayAny bool            // the may-play cast being priced is under the any-type rider
 	probe      probe           // the spell / ability a priority feasibility check is for
-	tgtSelf    Obj             // the graveyard or exile card a feasibility check is for, plus one (0: none): it leaves that zone for the stack when cast, so it is no target of its own cast
+	tgtSelf    Obj             // the card a feasibility check is for, plus one (0: none): a graveyard or exile card leaves that zone for the stack when cast, and the spell build a post-push sweep prices (its X ask) is on the stack already; CR 115.5 makes both no target of their own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
@@ -2299,8 +2302,9 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
-	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
-	// 4-7 are free. Cleared at the turn change. Taken from rsv.
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 7:
+	// the walk in progress is an unless / ward window (setUnlessWin,
+	// mana_window.go), set and cleared around it. Bits 4-6 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255

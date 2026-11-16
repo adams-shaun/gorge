@@ -8,6 +8,7 @@ Alluring Scent
 Almighty Brushwagg
 Ancient Tomb
 Angelfire Crusader
+Angelic Chorus
 Arashin Cleric
 Archers' Parapet
 Arena of the Ancients
@@ -45,6 +46,7 @@ Brought Back
 Bulwark Giant
 Burst of Strength
 Candlelight Vigil
+Carnival
 Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
@@ -53,6 +55,7 @@ City of Death
 Clarion Cathars
 Cloak of the Bat
 Cloud Crusader
+Coiling Oracle
 Copper Longlegs
 Copper-Leaf Angel
 Copy Artifact
@@ -77,6 +80,7 @@ Destructive Tampering
 Dinosaur Stampede
 Dispense Justice
 Divination
+Djeru, With Eyes Open
 Downhill Charge
 Dramatic Rescue
 Drowner of Hope
@@ -111,6 +115,7 @@ Flame-Blessed Bolt
 Flaming Fist Officer
 Fleecemane Lion
 Fleshmad Steed
+Flycatcher Giraffid
 Font of Fertility
 Forest
 Fortified Rampart
@@ -166,6 +171,7 @@ Implement of Combustion
 Imps' Taunt
 Incubation
 Infested Fleshcutter
+Infested Thrinax
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge

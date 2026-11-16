@@ -29,6 +29,7 @@ Elvish Reclaimer
 Everflowing Chalice
 Evil Eye of Urborg
 Evolution Sage
+Expedition Raptor
 Fairgrounds Warden
 Fearless Fledgling
 Feed the Swarm
@@ -117,6 +118,7 @@ Vindictive Vampire
 Viral Drake
 Volcanic Rush
 Wall of Fire
+Ward Sliver
 Winding Way
 Wonder
 Yavimaya Granger

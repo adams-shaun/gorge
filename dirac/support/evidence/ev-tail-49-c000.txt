@@ -22,6 +22,7 @@ Archivist
 Argivian Restoration
 Aria of Flame
 Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Ashling, the Extinguisher
 Augmenting Automaton
@@ -74,6 +75,7 @@ Citanul Flute
 Clan Crafter
 Cobblebrute
 Coiling Oracle
+Connive
 Corpse Connoisseur
 Countryside Crusher
 Cradle Clearcutter
@@ -138,6 +140,7 @@ Ferocious Pup
 Fevered Strength
 Feywild Visitor
 Fiery Mantle
+Fireball
 Fissure Wizard
 Flame-Kin Zealot
 Flamecore Elemental
@@ -237,7 +240,9 @@ Mark of the Vampire
 Mask of Law and Grace
 Mass Hysteria
 Masticore
+Maze Skullbomb
 Memory Plunder
+Merciless Eternal
 Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation

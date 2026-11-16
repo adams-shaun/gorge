@@ -23,6 +23,7 @@ Avatar of Will
 Aven Brigadier
 Aven Eternal
 Axgard Artisan
+Azor's Elocutors
 Bamboo Grove Archer
 Basri's Aegis
 Battle Frenzy
@@ -190,6 +191,7 @@ Inner Calm, Outer Strength
 Innocuous Researcher
 Inspired Inventor
 Into the Time Vortex
+Inviolability
 Island
 Jace's Erasure
 Jackal Familiar
@@ -201,6 +203,7 @@ Kathari Screecher
 Kederekt Parasite
 Kenrith's Transformation
 King Cheetah
+Kitchen Finks
 Knight Watch
 Knight of New Benalia
 Kor Duelist
@@ -240,6 +243,7 @@ Mask of the Jadecrafter
 Maze Skullbomb
 Mending Hands
 Messenger Drake
+Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
 Mind Knives
@@ -338,6 +342,7 @@ Seraph of New Capenna
 Serene Steward
 Shaper Guildmage
 Shared Trauma
+Shark Typhoon
 Shrieking Drake
 Shrouded Serpent
 Sibsig Host
@@ -353,6 +358,7 @@ Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
 Slippery Karst
+Sludge Monster
 Slum Reaper
 Smitten Swordmaster
 Song of Eärendil

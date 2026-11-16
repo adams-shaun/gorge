@@ -23,6 +23,7 @@ Avatar of Might
 Aven Cloudchaser
 Aven Eternal
 Awaken the Bear
+Azorius Knight-Arbiter
 Azorius Signet
 Baird, Steward of Argive
 Balduvian Barbarians
@@ -69,6 +70,7 @@ Cache Raiders
 Cacophony Unleashed
 Calming Verse
 Capital Guard
+Carnage Interpreter
 Carven Caryatid
 Cast into the Fire
 Catapult Fodder
@@ -193,6 +195,7 @@ Hero of the Pride
 High Priest of Penance
 Highland Lake
 Hinterland Drake
+Hoodwink
 Hornet Cobra
 Hour of Promise
 Howling Giant
@@ -371,6 +374,7 @@ Solidarity
 Soratami Cloudskater
 Soul Rend
 Soul's Might
+Soulquake
 Soulstealer Axe
 Spawn-Gang Commander
 Spectral Rider

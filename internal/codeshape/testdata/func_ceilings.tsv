@@ -17,7 +17,7 @@ dirac (*State).availPotentialFor	142	66
 dirac (*State).beginCast	226	121
 dirac (*State).beginStep	156	65
 dirac (*State).buildCostPreRaw	124	81
-dirac (*State).buildStep	538	226
+dirac (*State).buildStep	536	226
 dirac (*State).canActivate	132	84
 dirac (*State).combatDamage	238	75
 dirac (*State).convokeOptions	163	63

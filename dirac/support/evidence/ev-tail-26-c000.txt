@@ -1,5 +1,6 @@
 A-Kenku Artificer
 A-Riveteers Initiate
+A-Stimulus Package
 Accursed Centaur
 Act on Impulse
 Advance Scout
@@ -80,6 +81,7 @@ Forest
 Foul-Tongue Shriek
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate Hound
 Gerrard's Irregulars
 Gideon's Lawkeeper
@@ -111,6 +113,7 @@ Knight of Dawn's Light
 Lava Axe
 Leela, Sevateem Warrior
 Legion Leadership
+Leisure Bicycle
 Lightning Prowess
 Living Lands
 Lord of Extinction
@@ -143,6 +146,7 @@ No Escape
 Noble Panther
 Nullmage Advocate
 Nyxborn Hydra
+Oblivion Ring
 Open the Vaults
 Orzhov Racketeers
 Paradise Mantle
@@ -181,6 +185,7 @@ Savage Swipe
 Savai Sabertooth
 Scarwood Treefolk
 Scathe Zombies
+Sentinel
 Serpent Warrior
 Shambling Goblin
 Shessra, Death's Whisper
@@ -194,6 +199,7 @@ Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
 Snake Pit
+Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
 Spellbook
@@ -226,6 +232,7 @@ Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Verduran Emissary
 Volcanic Dragon
 Volcanic Rush
 Wall of Faith

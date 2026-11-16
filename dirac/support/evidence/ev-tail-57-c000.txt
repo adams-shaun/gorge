@@ -99,6 +99,7 @@ Desperate Plea
 Despoiler of Souls
 Devout Harpist
 Diligent Excavator
+Dissenter's Deliverance
 Doctor Jane Foster
 Doorkeeper
 Draco
@@ -318,6 +319,7 @@ Sandbar Serpent
 Sanguine Praetor
 Sawblade Slinger
 Scatter Arc
+Scavenging Ghoul
 Scroll of Avacyn
 Sculpting Steel
 Searing Touch
@@ -336,6 +338,7 @@ Silklash Spider
 Silver Bolt
 Silverquill Command
 Simian Brawler
+Sisay, Weatherlight Captain
 Sisterhood of Karn
 Skarrg Guildmage
 Skittering Heartstopper

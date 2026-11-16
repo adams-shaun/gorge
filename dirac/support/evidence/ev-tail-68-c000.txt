@@ -41,12 +41,15 @@ Captain Lannery Storm
 Cateran Brute
 Cavalier of Night
 Cavern Harpy
+Cephalid Vandal
 Charging Paladin
 Cinder Giant
 Citadel Castellan
 Cliffhaven Vampire
+Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
+Clutch of the Undercity
 Cold Storage
 Colorful Feiyi Sparrow
 Conservator
@@ -75,6 +78,7 @@ Eladamri, Lord of Leaves
 Elderwood Scion
 Electrickery
 Elvish Archers
+Embersmith
 Engineered Might
 Errant and Giada
 Erratic Mutation
@@ -90,6 +94,7 @@ Faerie Guidemother
 Fated Intervention
 Fencer Clique
 Feral Deceiver
+Ferocious Tigorilla
 Festergloom
 Fill with Fright
 Finale of Eternity
@@ -98,7 +103,10 @@ Fire of Orthanc
 Flameborn Viron
 Flamecast Wheel
 Fleetfeather Sandals
+Followed Footsteps
 Forest
+Fractal Summoning
+Freyalise, Llanowar's Fury
 Furious Resistance
 Garruk's Packleader
 Gem of Becoming
@@ -125,6 +133,7 @@ Hollowsage
 Honden of Seeing Winds
 Hound of the Farbogs
 Howling Fury
+Hulking Bugbear
 Hushwing Gryff
 Inkrise Infiltrator
 Inspired Charge
@@ -142,6 +151,7 @@ Keeper of Fables
 Kobold Taskmaster
 Kongming, "Sleeping Dragon"
 Kor Skyfisher
+Krovikan Sorcerer
 Labyrinth Adversary
 Lazotep Reaver
 Leather Armor
@@ -212,6 +222,7 @@ Scaled Herbalist
 Scaled Hulk
 Scarred Vinebreeder
 Scrapper Champion
+Sea Gate Oracle
 Sentinel Sliver
 Serene Offering
 Shambling Ghoul
@@ -226,6 +237,7 @@ Silverglade Pathfinder
 Slaughterhouse Bouncer
 Sledding Otter-Penguin
 Slither Blade
+Snag
 Sol Grail
 Solid Footing
 Soulhunter Rakshasa
@@ -238,6 +250,7 @@ Sporemound
 Spreading Rot
 Squirrel Wrangler
 Stitcher's Apprentice
+Stormbind
 Strandwalker
 Strangling Soot
 Strangling Spores
@@ -269,6 +282,7 @@ Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
 Twin-Silk Spider
+Tyrant of Kher Ridges
 Undercity Scavenger
 Unholy Hunger
 Urgoros, the Empty One

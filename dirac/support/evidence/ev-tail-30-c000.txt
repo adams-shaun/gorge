@@ -34,6 +34,7 @@ Balduvian Barbarians
 Balduvian Hydra
 Ballista Charger
 Barbed Spike
+Barbed-Back Wurm
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
@@ -124,6 +125,7 @@ Elvish Champion
 Elvish Hydromancer
 Embodiment of Insight
 Empyreal Voyager
+Enter the Infinite
 Errand-Rider of Gondor
 Escape from Orthanc
 Essence of Orthodoxy
@@ -172,6 +174,7 @@ Hard Evidence
 Harmonic Prodigy
 Hate Mirage
 Haunted Mire
+Havoc Jester
 Healer of the Glade
 Healer of the Pride
 Hecatomb
@@ -206,6 +209,7 @@ Kaervek, the Spiteful
 Keldon Raider
 Kelsien, the Plague
 Kessig Naturalist
+Ketria Crystal
 Kiora Bests the Sea God
 Knight of Dawn's Light
 Kor Aeronaut
@@ -219,6 +223,7 @@ Life
 Lightning Shrieker
 Liliana's Shade
 Liliana's Spoils
+Lunar Hatchling
 Lunge
 Lure of Prey
 Mad Ratter
@@ -227,6 +232,7 @@ MagicConsecrated Sphinx
 Makindi Ox
 Malcator's Watcher
 March from the Tomb
+Marcus, Mutant Mayor
 Mardu Hateblade
 Martyr for the Cause
 Mass Calcify
@@ -243,6 +249,7 @@ Moriok Rigger
 Mountain
 Mourning Thrull
 Mox Pearl
+Munda's Vanguard
 Murderer's Axe
 Mushroom Watchdogs
 Mutant's Prey
@@ -260,6 +267,7 @@ Nurgle's Rot
 Oakgnarl Warrior
 Ogre Savant
 Oni of Wild Places
+Oracle's Vault
 Origin of Black Widow
 Overseer of the Damned
 Painsmith
@@ -308,6 +316,7 @@ Ruric Thar, the Unbowed
 Rush the Room
 Safe Haven
 Saltwater Stalwart
+Samut, Vizier of Naktamun
 Sandcrafter Mage
 Sanguinary Mage
 Saprazzan Cove

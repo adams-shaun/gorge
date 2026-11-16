@@ -21,6 +21,8 @@ Angelfire Ignition
 Animal Sanctuary
 Arashin Cleric
 Arborback Stomper
+Arcade Gannon
+Arcanist's Owl
 Architect of the Untamed
 Argivian Phalanx
 Armadillo Cloak
@@ -144,6 +146,7 @@ Glistener Elf
 Gnawing Zombie
 Goblin Recruiter
 Goblin Swine-Rider
+Goblin Taskmaster
 Gorma, the Gullet
 Grave Defiler
 Gravedigger
@@ -251,12 +254,14 @@ Necrotic Sliver
 Needlepeak Spider
 Neurok Prodigy
 Nezumi Shadow-Watcher
+Niambi, Esteemed Speaker
 Nightsquad Commando
 Nihil Spellbomb
 Nim Shrieker
 Null Champion
 Oath of Jace
 Obelisk of Urd
+Obscuring Haze
 Ojutai Exemplars
 Oketra the True
 Ophidian Eye
@@ -272,10 +277,12 @@ Pearl-Ear, Imperial Advisor
 Penumbra Spider
 Perilous Shadow
 Phantom Nantuko
+Pillar of Origins
 Pillardrop Rescuer
 Pin to the Earth
 Plains
 Planar Bridge
+Plumeveil
 Potatoes
 Precognitive Perception
 Predator, Flagship
@@ -348,6 +355,7 @@ Soul Shepherd
 Sparkmage Apprentice
 Sparring Collar
 Sphinx-Bone Wand
+Spire Patrol
 Spiritual Guardian
 Spitting Dilophosaurus
 Sporeweb Weaver
@@ -393,6 +401,7 @@ Third Path Savant
 Thorned Moloch
 Thran Forge
 Thud
+Thwart the Enemy
 Tithe Drinker
 Tolabow, Loch Rascal
 Toll of the Invasion

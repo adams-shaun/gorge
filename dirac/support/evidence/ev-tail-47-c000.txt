@@ -57,6 +57,7 @@ Cenn's Enlistment
 Centaur Safeguard
 Cephalid Scout
 Chainflail Centipede
+Chameleon Blur
 Charisma Bobblehead
 Chill of Foreboding
 Choking Sands
@@ -222,6 +223,7 @@ Magma Vein
 Makeshift Battalion
 Mantle of Tides
 Markov Crusader
+Memory Worm
 Meng Huo's Horde
 Mercy Killing
 Merfolk Mesmerist
@@ -231,6 +233,7 @@ Mind Rot
 Mindslicer
 Minion Missile
 Mirage Mockery
+Mirko Vosk, Mind Drinker
 Mischief and Mayhem
 Mob Rule
 Mockingbird, Bobbi Morse
@@ -244,6 +247,7 @@ Mutant's Prey
 Muxus, Goblin Grandee
 Myr Galvanizer
 Mysterio's Mirage
+Nalia de'Arnise
 Natural Connection
 Natural Selection
 Nesting Wurm
@@ -281,6 +285,7 @@ Pyromancer's Gauntlet
 Pyromania
 Qala, Ajani's Pridemate
 Radiant's Dragoons
+Rakdos Locket
 Rally the Forces
 Ramirez DePietro
 Ramosian Sky Marshal
@@ -295,6 +300,7 @@ Reparations
 Reservoir Kraken
 Resplendent Mentor
 Restore the Peace
+Reverence
 Riptide Biologist
 Riptide Entrancer
 Rise to the Challenge
@@ -302,6 +308,7 @@ River Darter
 Rockslide Sorcerer
 Rosethorn Halberd
 Royal Assassin
+Sagu Mauler
 Saheeli's Artistry
 Sakura-Tribe Scout
 Sandstalker Moloch
@@ -312,6 +319,7 @@ Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Sea Gate Colossus
 Seal of Cleansing
 Searing Light
 Sentry of the Underworld
@@ -370,6 +378,7 @@ Stronghold Confessor
 Subira, Tulzidi Caravanner
 Sudden Impact
 Sulfurous Springs
+Sunder Shaman
 Sunder from Within
 Supply Runners
 Suspended Sentence
@@ -406,6 +415,7 @@ Titanic Bulvox
 Tragic Slip
 Tranquility
 Trinket Mage
+Triskaidekaphile
 Tunneling Geopede
 Twinblade Slasher
 Two-Headed Dragon
@@ -446,6 +456,7 @@ White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Woodfall Primus
 Wu Scout
 Youthful Knight
 Zhalfirin Void

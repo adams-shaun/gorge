@@ -28,6 +28,7 @@ Azorius First-Wing
 Azure Drake
 Barbed Lightning
 Bee Sting
+Belligerent Hatchling
 Bident of Thassa
 Blessing
 Blight Keeper
@@ -122,12 +123,14 @@ God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
 Grim Lavamancer
+Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+Helvault
 Hero of the Dunes
 Hidden Spider
 High Alert
@@ -206,6 +209,7 @@ Promise of Power
 Python
 Rakdos the Defiler
 Ravenous Baboons
+Red Ghost, Intangible Genius
 Reign of Terror
 Rhystic Deluge
 Rite of Flame
@@ -232,6 +236,7 @@ Silt Crawler
 Silumgar Monument
 Skinrender
 Skull Rend
+Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket

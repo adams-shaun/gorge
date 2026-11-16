@@ -24,6 +24,7 @@ Barbed Field
 Basri's Aegis
 Bastion of Remembrance
 Battle Cry Goblin
+Blessed Sanctuary
 Blightbelly Rat
 Blinkmoth Well
 Blood Mist
@@ -106,6 +107,7 @@ Eccentric Pestfinder
 Eerie Interlude
 Elanor Gardner
 Empyreal Voyager
+Energy Flux
 Eternal Warrior
 Evolutionary Escalation
 Excavation Mole
@@ -215,7 +217,9 @@ Mindwrack Liege
 Minion of the Mighty
 Minister of Pain
 Misfortune's Gain
+Mister Fantastic
 Mogg Fanatic
+Moira Brown, Guide Author
 Moorland Drifter
 Morale
 Morbid Hunger
@@ -281,6 +285,7 @@ Reito Lantern
 Remove Soul
 Renowned Weaponsmith
 Rescind
+Retributive Wand
 Returned Centaur
 Rhythmic Water Vortex
 Rimeshield Frost Giant

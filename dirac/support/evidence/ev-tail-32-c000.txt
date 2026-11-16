@@ -29,6 +29,7 @@ Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
 Blunt the Assault
+Boggart Arsonists
 Book of Rass
 Border Guard
 Boreal Elemental
@@ -42,11 +43,13 @@ Cateran Enforcer
 Cavalry Pegasus
 Channel the Suns
 Chaotic Goo
+Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
 Combust
 Conclave Mentor
@@ -67,8 +70,10 @@ Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
 Duskhunter Bat
+Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Eidolon of Countless Battles
 Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
@@ -81,6 +86,7 @@ Essence Flare
 Eternal Skylord
 Ethercaste Knight
 Evangel of Synthesis
+Evaporate
 Eviscerator's Insight
 Expedition Diviner
 Explosive Impact
@@ -88,11 +94,13 @@ Eye of Nowhere
 Facevaulter
 Familiar Ground
 Farm
+Fault Riders
 Filigree Fracture
 Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Flywheel Racer
 Footfall Crater
 Forest
@@ -109,6 +117,7 @@ Ghostly Visit
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
 Hall of Oracles
@@ -143,6 +152,7 @@ Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
 Levitating Statue
+Leyline Dowser
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -151,14 +161,17 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Lydia Frye
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
 Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -180,6 +193,7 @@ Nyxborn Marauder
 Oashra Cultivator
 Obliterate
 Ondu Cleric
+Oni Possession
 Peer Through Depths
 Penance Stare
 Pest Infestation
@@ -223,6 +237,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sizzle
 Skyclave Cleric
 Skyclave Shade
 Skyshroud Troll
@@ -230,6 +245,7 @@ Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Soul Bleed
 Spellseeker
 Spitting Spider
 Spontaneous Flight
@@ -239,6 +255,7 @@ Star of Extinction
 Steel Golem
 Steeple Roc
 Storm Crow
+Strandwalker
 Strength of Arms
 Strike It Rich
 Surreal Memoir
@@ -250,6 +267,7 @@ The Prydwen, Steel Flagship
 The Royal Scions
 Thorn Lieutenant
 Thraben Gargoyle
+Thran Lens
 Thriving Ibex
 Thunder Wall
 Tolarian Sentinel
@@ -276,6 +294,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wildfire Eternal
 Windreader Sphinx

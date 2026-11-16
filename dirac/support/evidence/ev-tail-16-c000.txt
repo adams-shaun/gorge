@@ -122,6 +122,7 @@ Enchanted Carriage
 Enchantress's Presence
 Encroaching Wastes
 Encrust
+Endure
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
@@ -144,6 +145,7 @@ Fire Drake
 Fire Nation Ambushers
 Fires of Undeath
 Fleet-Footed Monk
+Flickering Spirit
 Flickerwisp
 Font of Ire
 Forced Adaptation
@@ -166,6 +168,7 @@ Giant-Man, Gargantuan Genius
 Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
+Goblin Anarchomancer
 Goblin Assault Team
 Goblin Cadets
 Goblin Cavaliers
@@ -214,6 +217,7 @@ Incursion Specialist
 Indatha Triome
 Inner Fire
 Inquisitor's Ox
+Instrument of the Bards
 Iron Bully
 Iron-Barb Hellion
 Island
@@ -325,6 +329,7 @@ Rockslide Ambush
 Rogue's Gloves
 Rolling Thunder
 Rubblebelt Maaka
+Rubblebelt Raiders
 Ruthless Winnower
 Sai, Master Thopterist
 Sandblast
@@ -396,6 +401,7 @@ Survey the Wreckage
 Swamp
 Sylvan Paradise
 Sylvan Reclamation
+Synchronized Spellcraft
 T'Challa, the Black Panther
 Taigam's Strike
 Tainted Wood
@@ -448,6 +454,7 @@ Voracious Wurm
 Vraska's Scorn
 Wall of Tanglecord
 War-Spike Changeling
+Warden of the Chained
 Warning
 Waterfront Bouncer
 Welkin Guide

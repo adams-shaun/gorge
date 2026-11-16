@@ -3,6 +3,7 @@ A-Unholy Heat
 Abbey Matron
 Abomination, Irradiated Brute
 Abyssal Horror
+Acolyte of Affliction
 Aerith, Last Ancient
 Ajani's Welcome
 Akroan Conscriptor
@@ -43,6 +44,7 @@ Burning Palm Efreet
 Burning Prophet
 Butcher of Malakir
 Call to Mind
+Callous Giant
 Captain's Call
 Carrier Thrall
 Cartographer
@@ -121,6 +123,7 @@ Firecannon Blast
 Firedrinker Satyr
 Fires of Victory
 First Sliver's Chosen
+Five-Alarm Fire
 Flowstone Channeler
 Force Void
 Forest
@@ -158,6 +161,7 @@ Hydrolash
 Hyperion's Atomic Vision
 Immolating Gyre
 Incorrigible Youths
+Inexorable Tide
 Infernal Contract
 Inflame
 Invade the City
@@ -191,6 +195,7 @@ Lead the Stampede
 Leadership Vacuum
 Lifebane Zombie
 Light of Promise
+Lingering Mirage
 Lingering Souls
 Lowland Giant
 Loxodon Lifechanter
@@ -258,6 +263,7 @@ Qarsi Sadist
 Quartzwood Crasher
 Quicksilver, Speedster
 Racers' Ring
+Ral, Caller of Storms
 Rathi Trapper
 Raven Wings
 Ravenous Daggertooth
@@ -310,6 +316,7 @@ Soltari Visionary
 Soul of Eternity
 Sparring Golem
 Spawning Pit
+Sphere of Truth
 Spindrift Drake
 Spined Megalodon
 Sporesower Thallid
@@ -323,6 +330,7 @@ Sword Dancer
 Syndic of Tithes
 Take Vengeance
 Tel-Jilad Fallen
+Temple Altisaur
 Temporary Lockdown
 The Shire
 Thorned Moloch
@@ -375,3 +383,4 @@ Yorvo, Lord of Garenbrig
 You Are Already Dead
 Zealous Strike
 Zebra Unicorn
+Zodiac Dragon

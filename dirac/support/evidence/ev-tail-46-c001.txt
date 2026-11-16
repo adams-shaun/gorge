@@ -1,132 +1,226 @@
+A-Circle of the Land Druid
+A-Haywire Mite
 A-Oran-Rief Ooze
+A-Revel Ruiner
+Adeliz, the Cinder Wind
+Akroan Skyguard
+Alms Beast
 Alpha Tyrranax
+Ambush Paratrooper
 Anaconda
+Anarchist
+Anthousa, Setessan Hero
 Aphetto Alchemist
 Arc Lightning
+Arcane Teachings
+Archfiend of Despair
 Argothian Opportunist
 Argothian Treefolk
+Armory Veteran
+Astarion's Thirst
 Auriok Transfixer
+Back in Town
 Battlefront Krushok
 Belligerent Whiptail
+Bespoke Battlewagon
 Blaring Recruiter
 Bleed Dry
 Blessed Wine
 Blight Pile
+Blind Phantasm
 Blistering Barrier
+Blood Funnel
 Blur of Blades
 Bogardan Rager
+Bola Warrior
 Bounding Wolf
 Brain Weevil
 Brassclaw Orcs
 Brazen Buccaneers
+Brink of Madness
 Brood Monitor
+Bygone Marvels
+Cackling Imp
 Cagemail
+Call of the Wild
+Capashen Templar
 Captain Ripley Vance
 Cast Out
+Castigate
 Cenn's Enlistment
 Cephalopod Sentry
+Champion of the Perished
+Chandler
 Chandra's Embercat
+Chaos Charm
 Charnelhoard Wurm
 Chatterstorm
 Children of Korlis
+Chivalric Alliance
 Citizen's Crowbar
+Clay Revenant
+Cleaver Riot
 Cloud Elemental
 Coastal Bulwark
 Collision
+Colossal Growth
+Combat Medic
 Consider
 Council's Judgment
+Crocodile of the Crossing
 Crumbling Vestige
+Dark-Dweller Oracle
 Death-Hood Cobra
+Deathcap Cultivator
 Debt to the Kami
 Deekah, Fractal Theorist
 Deepglow Skate
+Defense of the Heart
 Defiant Elf
+Demolish
+Demolition Stomper
+Demon Bolt
 Descent into Avernus
+Desert Drake
 Dire Fleet Hoarder
 Dire Fleet Interloper
+Doombot Harbinger
 Doorkeeper
 Dormant Grove
 Draconic Muralists
 Dragonfly Suit
+Dragonscale Boon
 Dreadhorde Arcanist
 Dress Down
+Dromosaur
 Drudge Sentinel
+Drudge Skeletons
 Duty-Bound Dead
+Dwarven Song
+Earsplitting Rats
 Elena, Turk Recruit
 Elite Guardmage
 Emerald Charm
 Empress Galina
 Endless Ranks of the Dead
 Esper Sentinel
+Essence Pulse
 Eternal Warrior
 Everythingamajig
 Eviscerator
 Expedition Champion
+Eye of Malcator
 Falcon Abomination
 False Summoning
 Fangs of Kalonia
 Fated Conflagration
+Fated Retribution
+Fathom Fleet Cutthroat
 Feedback Bolt
 Feral Animist
 Fire Snake
 Floral Evoker
+Foot Soldiers
+Forerunner of Slaughter
 Forerunner of the Heralds
 Forerunner of the Legion
 Forest
+Foul-Tongue Shriek
 Frozen Shade
 Gaea's Embrace
 Gaea's Skyfolk
 Gandalf, Shadow's Foe
+Garruk's Gorehorn
 Geistlight Snare
 Gerrard's Command
 Gift of Strands
 Gnarled Mass
+Goblin Gaveleer
+Goblin Skycutter
 Goldenhide Ox
 Grasping Scoundrel
+Grisly Survivor
+Gustcloak Sentinel
 Hammer of Purphoros
 Haystack
 Heir of the Ancient Fang
+Heir of the Wilds
 Herald of Secret Streams
 Hoarding Ogre
 Holy Day
+Honor's Reward
+Horribly Awry
+Howl of the Horde
 Hungry Spriggan
+Hunting Grounds
+Immolation
 Incisor Steed
+Infuse with Vitality
+Intimidator Initiate
+Introduction to Prophecy
+Irontread Crusher
 Island
 Jedit Ojanen of Efrava
 Jukai Trainee
+Kalonian Twingrove
 Karn, Silver Golem
+Karstoderm
 Kazuul's Toll Collector
 Kederekt Leviathan
+Kessig Wolf
 Lagonna-Band Elder
 Launch Mishap
+Leaping Master
+Lesser Gargadon
+Level Up
 Leyline of the Meek
 Lifeline
 Lightning Blow
 Lost in the Woods
+Lumengrid Gargoyle
 Magma Giant
 Marshal of Zhalfir
+Master Symmetrist
+Match the Odds
 Merfolk Branchwalker
 Midnight Guard
+Might of Old Krosa
+Millicent, Restless Revenant
 Mind Peel
+Mirrodin Avenged
 Mizzium Skin
+Mogg Salvage
 Moss Diamond
+Mossfire Egg
 Mountain
+Mu Yanling, Celestial Wind
 Murasa Rootgrazer
 Muscle Sliver
 Mycoid Shepherd
+N'Yami-Class Mother Ship
 Nearheath Stalker
 Nihil Spellbomb
 Nurturing Presence
+Ordeal of Heliod
+Otherworldly Journey
 Panther Robot
 Pest Summoning
+Phalanx Leader
+Phyrexian Rager
 Pit Imp
+Placid Rottentail
 Plains
+Prophecy
+Protector of the Wastes
 Psionic Entity
 Pull from the Deep
+Putrefaction
+Qasali Slingers
 Quicksilver Wall
 Raise the Alarm
 Rank Officer
 Ravenous Bloodseeker
+Reave Soul
 Reckless Spite
 Renegade Troops
 Repentant Blacksmith
@@ -134,58 +228,127 @@ Repulsor Bots
 Resolute Watchdog
 Revenge of the Drowned
 Reverent Hunter
+Ring of Valkas
 Ritual of Hope
+Robe of Mirrors
+Root Cage
+Rosethorn Acolyte
 Rot Wolf
 Rout
 Rowan's Stalwarts
 Rune-Cervin Rider
+Rushwood Grove
 Rusted Slasher
+Sage-Eye Harrier
+Samite Healer
 Sanctum of Tranquil Light
 Saproling Migration
 Sarkhan's Scorn
 Scarwood Goblins
 Scoria Cat
+Scythe Tiger
+Searchlight Companion
 Second Breakfast
 Secure Detention
+Seek the Wilds
 Seizan, Perverter of Truth
+Sentry of the Underworld
+Shadow Stinger
 Shadow in the Warp
+Sharpshooter Elf
+Shield of Kaldra
+Shire Shirriff
 Shu General
+Sidisi's Pet
 Silverback Elder
 Sisters of the Flame
+Skeletal Snake
+Skilled Animator
 Sky Skiff
+Skyclave Geopede
 Skywinder Drake
+Slith Predator
+Sluggishness
+Smolder Initiate
 Smoldering Tar
+Snare Thopter
 Soltari Foot Soldier
 Somberwald Dryad
 Sorin's Vengeance
+Soul Read
+Soul's Grace
+Sower of Temptation
+Spark Spray
 Sparksmith
 Spawn of Thraxes
+Spectral Grasp
+Spike Soldier
+Spiteful Prankster
+Splinter Twin
+Spontaneous Generation
+Spore Frog
 Sprite Dragon
+Squallmonger
+Stab Wound
+Stalwart Shield-Bearers
+Steam Augury
+Steelclad Serpent
 Steelgaze Griffin
+Steward of Solidarity
 Storm Strike
+Stormwing Entity
+Strength of the Harvest
 Sudden Impact
 Sudden Insight
 Summer Bloom
 Sure-Footed Infiltrator
 Survive the Night
 Swamp
+Take Up Arms
+Talas Air Ship
 Talas Explorer
+Talas Merchant
+Tempered Sliver
 Tempest Harvester
+Terra Stomper
+Tethered Skirge
+Thallid Devourer
+The Flux
 Throne of the High City
+Thunderbreak Regent
 Tireless Hauler
+Tome of the Guildpact
+Topple the Statue
+Torens, Fist of the Angels
+Toski, Bearer of Secrets
+Trained Orgg
+Treefolk Harbinger
 Trenchpost
+Tromell, Seymour's Butler
 Tura Kennerüd, Skyknight
 Twisted Experiment
 Unexpected Windfall
+Unexplained Disappearance
 Urborg Stalker
 Ureni's Counsel
+Veil of Birds
 Verdant Field
+Victory's Envoy
 Voltstorm Angel
+Walking Wall
+Wall of One Thousand Cuts
+Wanderer's Twig
 Warbriar Blessing
+Warden of Geometries
 Weaver of Lightning
 Weldfast Wingsmith
+Wellwisher
 Whipcorder
 Whirler Virtuoso
+White Tiger, Amulet Keeper
+Wing It
+Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
 Yotian Medic
+Zombie Infestation

@@ -38,6 +38,7 @@ Casey Jones, Asphalt Hooligan
 Cast into the Fire
 Cateran Enforcer
 Cateran Persuader
+Cavern Thoctar
 Chakra Meditation
 Chandra, Hope's Beacon
 Chaos Terminator Lord
@@ -47,6 +48,7 @@ Chorus of the Tides
 Chub Toad
 Cliffhaven Sell-Sword
 Coast Watcher
+Communal Brewing
 Conclave Sledge-Captain
 Court Hussar
 Cradle of Safety
@@ -103,6 +105,7 @@ Green Goblin, Back for More
 Grimgrin, Corpse-Born
 Gruul Signet
 Guardian of Tazeem
+Gwyllion Hedge-Mage
 Hammerheim Deadeye
 Havengul Runebinder
 Hawkeye, Trick Shot
@@ -138,6 +141,7 @@ Littjara Glade-Warden
 Living Wall
 Lossarnach Captain
 Lost Leonin
+Ludevic's Test Subject
 Magma Jet
 Master of Diversion
 Maximus, Knight Apparent
@@ -233,6 +237,7 @@ Thalakos Drifters
 Thornscape Familiar
 Thundering Raiju
 Tibalt's Rager
+Titan Forge
 Totally Lost
 Tracker's Instincts
 Treason of Isengard
