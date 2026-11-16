@@ -58,13 +58,13 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	} else {
 		return n
 	}
-	if g.anyRepl&rbPlProt != 0 && sl == NoSlot && s.plProtected(k, srcCtrl, rcp, combat) {
-		return 0 // protection from each opponent prevents it first (CR 702.16e; static_playerstats.go)
-	}
-	if sl == NoSlot && s.plProtAll(k, rcp) && !s.noPrev(k, combat) {
-		return 0 // protection from everything prevents it -- the player's only: a walker or battle they control still takes it (CR 702.16e; static_plprot.go)
+	if sl == NoSlot && s.plProtPrevent(k, srcCtrl, rcp, combat) {
+		return 0 // protection from each opponent, or from everything, prevents it first (CR 702.16e; static_playerstats.go, static_plprot.go)
 	}
 	if g.anyRepl&rbPrevCol != 0 && !combat {
+		if s.statRdrStall(k, srcCtrl, srcSl, srcCard, code, false) {
+			return 0 // a static redirect beside a shield: gorge asks the order (repl_staticredirect.go)
+		}
 		// Ext PreventNext's depleting shield (the combat events take it in replCombatGen)
 		if m, ok := s.prevNextTake(k, srcCtrl, srcSl, srcCard, code, rcp, sl, false, n); ok {
 			if k.anyRedNC && m > 0 {
@@ -74,6 +74,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		}
 	}
 	if g.anyRepl&rbPrevCol != 0 && s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
+		if s.statRdrStall(k, srcCtrl, srcSl, srcCard, code, combat) {
+			return 0 // a static redirect beside the prevention: gorge asks the order (repl_staticredirect.go)
+		}
 		if g.anyRedir {
 			s.redirBeside(code, rcp) // a redirect is a candidate too: gorge asks the order (repl_dmgredirect.go)
 		}
@@ -84,6 +87,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	}
 	if g.anyRepl&rbProtCol != 0 && sl != NoSlot && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), combat) {
 		return 0 // protection from the source's colour, likewise
+	}
+	if s.statRdrTake(k, srcCtrl, srcSl, srcCard, code, rcp, sl, combat, n) {
+		return 0 // ReplDamageRedirect: the event's damage lands on its recipient instead (repl_staticredirect.go)
 	}
 	if g.anyRedir && !combat {
 		// Ext DmgRedirect: dealt to the record's recipient instead (the combat events: replCombatGen)
@@ -250,6 +256,12 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			code = src.atk // an attacker's damage to the player it attacks
 		} else {
 			code = TCode(s.perms[ev.dst].obj)
+		}
+		if k.gen.uses.has(useStatRdr) {
+			// ReplDamageRedirect: the combat pass's static redirects (repl_staticredirect.go)
+			if s.statRdrCombat(k, r, ev, ordered, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
+				continue
+			}
 		}
 		if ordered {
 			if m, ok := s.prevNextTake(k, src.ctrl, ev.src, s.cardAt(ev.src), code, s.recipientCtl(ev.dst, code), ev.dst, true, int(ev.n)); ok {
@@ -644,6 +656,12 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 		if bd.srcDone.has(fe.src) || fe.dst == NoSlot && bd.plDone.has(fe.src) || fe.src == Slot(ro.cur) && fe.dst != NoSlot && bd.dstDone.has(fe.dst) {
 			s.preventFrozenEv(k, r, fe) // dealt (or prevented): fe holds what it dealt
 			continue
+		}
+		if k.gen.uses.has(useStatRdr) && s.statRdrFrozen(k, fe) {
+			// a static redirect matches this frozen event: the walk's candidates
+			// do not carry it, so gorge's ask is unanswerable here — loud (repl_staticredirect.go)
+			s.capFull(StallRedirOrder)
+			return false
 		}
 		if c := s.replOrderCandsFz(k, fe); c >= 2 {
 			ro.askS, ro.askD, ro.n, ro.used = fe.src, fe.dst, uint8(c), 0
@@ -1135,6 +1153,9 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // the shield. Protection prevents the damage before the replacements
 // (gorge emit).
 func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask) bool {
+	if s.statRdrStall(k, ctrl, srcSl, srcCard, code, false) {
+		return false // a static redirect beside another candidate is gorge's ask: stalled (repl_staticredirect.go)
+	}
 	if parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw); handled {
 		return parked // a static prevention's ask (repl_staticprevent.go)
 	}
@@ -1386,4 +1407,14 @@ func (s *State) srcColors(k *prep, sl Slot, c CardID) kop.ColorMask {
 		return s.colorsGen(k, sl)
 	}
 	return k.t.Cards[c].Colors
+}
+
+// plProtPrevent is replDamage's player-protection pair: protection from each
+// opponent (static_playerstats.go), then protection from everything (the
+// player's only: a walker or battle they control still takes it,
+// static_plprot.go). Protection prevents before the replacements (CR 702.16e).
+func (s *State) plProtPrevent(k *prep, srcCtrl, rcp uint8, combat bool) bool {
+	g := k.gen
+	return g.anyRepl&rbPlProt != 0 && s.plProtected(k, srcCtrl, rcp, combat) ||
+		s.plProtAll(k, rcp) && !s.noPrev(k, combat)
 }
