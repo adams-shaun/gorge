@@ -97,6 +97,8 @@ func (cb *cardBuilder) selfDamageRepl(rp *kop.Repl, r lRepl) (err error) {
 		rp.Kind, rp.C = kop.ReplPreventDamageCounters, int16(r.Bits)
 	case "DamageHealFirst":
 		rp.Kind = kop.ReplDamageHealFirst
+	case "PreventDamageFilt", "PreventDamageN":
+		err = cb.staticPrevRepl(rp, r) // lower_staticprevent.go
 	default:
 		rp.Kind, rp.C = kop.ReplPreventDamageToSelf, int16(r.Bits)
 		if r.F != nil {

@@ -1,6 +1,7 @@
 A Little Chat
 A-Bretagard Stronghold
 A.I.M. Bot
+Aang, A Lot to Learn
 Accursed Centaur
 Addle
 Aethertide Whale
@@ -54,6 +55,7 @@ Brago, King Eternal
 Brass-Talon Chimera
 Braulios of Pheres Band
 Bravado
+Breath of Malfegor
 Brightcap Badger
 Brokers Initiate
 Broodwarden
@@ -91,6 +93,7 @@ Deathbloom Gardener
 Deathbringer Regent
 Deathcult Rogue
 Deepfathom Skulker
+Defang
 Defiant Greatmaw
 Demonlord of Ashmouth
 Deny Existence
@@ -106,6 +109,7 @@ Draconic Destiny
 Draconic Lore
 Dragon Blood
 Dragonloft Idol
+Dralnu's Crusade
 Dread Warlock
 Dread of Night
 Drown in Filth
@@ -122,8 +126,10 @@ Enchanted Carriage
 Enduring Bondwarden
 Errant Doomsayers
 Esquire of the King
+Exquisite Blood
 Extremis Elite
 Fade from Memory
+Fangren Marauder
 Farbog Revenant
 Fear
 Feed the Infection
@@ -185,6 +191,7 @@ Horned Stoneseeker
 Horror of Horrors
 Horseshoe Crab
 Hover Barrier
+How to Keep an Izzet Mage Busy
 Howl from Beyond
 Huatli's Spurring
 Hussar Patrol
@@ -294,7 +301,9 @@ Phantom Wurm
 Phyrexian Awakening
 Pine Barrens
 Pitchstone Wall
+Plague Wind
 Plains
+Planar Guide
 Pounce
 Practiced Tactics
 Prehistoric Turtlesaurus
@@ -326,6 +335,7 @@ Righteous Valkyrie
 Roadside Reliquary
 Roast
 Robot Chicken
+Rot Hulk
 Run for Your Life
 Rush the Room
 Sacred Wolf
@@ -356,6 +366,7 @@ Silent Submersible
 Silverglade Elemental
 Simian Grunts
 Skittering Surveyor
+Skull Skaab
 Skygames
 Skyline Predator
 Skymarcher Aspirant
@@ -382,6 +393,7 @@ Standing Troops
 Starfall
 Steelshaper Apprentice
 Stinging Scorpion
+Stone of Erech
 Stormcaller's Boon
 Subdue
 Subterranean Scout
@@ -450,6 +462,7 @@ Wildslayer Elves
 Will of the Mardu
 Windgrace's Judgment
 Winged Sliver
+Wirefly Hive
 Yasmin Khan
 Yellow Scarves Troops
 Zealot's Conviction

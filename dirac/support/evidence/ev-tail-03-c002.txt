@@ -1,3 +1,5 @@
+Abyssal Gatekeeper
+Ainok Bond-Kin
 Ajani's Mantra
 Animating Faerie
 Arbalest Elite
@@ -5,14 +7,20 @@ Arbor Armament
 Archivist of Oghma
 Armored Pegasus
 Auriok Salvagers
+Avatar of Will
+Aven Heartstabber
+Back to Basics
+Band Together
 Battle Rampart
 Bitter Reunion
 Blade Banish
 Blessings of Nature
 Bloody Betrayal
+Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Brushwagg
 Buccaneer's Bravado
 Bygone Bishop
 Carnival
@@ -20,10 +28,15 @@ Cenn's Heir
 Cerulean Wyvern
 Choke
 Citanul Woodreaders
+Clear Shot
+Clear the Land
+Clever Lumimancer
 Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Conclave Phalanx
+Counterbalance
 Cowl Prowler
 Crown of Flames
 Cryptothrall
@@ -31,32 +44,45 @@ Cyclopean Snare
 Damning Verdict
 Dawnstrike Paladin
 Deadeye Brawler
+Deadly Visit
 Defend the Campus
 Dega Disciple
 Demonic Appetite
 Dire Fleet Neckbreaker
+Dismal Failure
 Dragon Roost
+Drana, Liberator of Malakir
 Drawn from Dreams
 Drift of Phantasms
 Dust Elemental
 Elvish Eulogist
 Elvish Vanguard
 Endless One
+Ephemerate
+Eternal Thirst
+Excise
 Falkenrath Celebrants
 Fauna Shaman
+Festering Newt
 Flicker of Fate
 Fogwalker
 Forest
+Fumarole
 Funeral Longboat
 Furor of the Bitten
+Furyblade Vampire
+Galecaster Colossus
 Githzerai Monk
 Glyph Elemental
+Gnarlwood Dryad
 Gnat Alley Creeper
+Goblin Chainwhirler
 Goblin King
 Golden Ratio
 Grave Bramble
 Graveyard Marshal
 Greater Forgeling
+Grey Knight Paragon
 Grim Captain's Call
 Halcyon Glaze
 Half-Elf Monk
@@ -69,22 +95,34 @@ Headstone
 Hedron Scrabbler
 Hermetic Study
 Hoar Shade
+Horncaller's Chant
+Horned Kavu
+Howl from Beyond
+Howling Wolf
 Hungry Mist
+Hunt the Hunter
+Impale
+Implement of Malice
 In Too Deep
 Invincible Hymn
 Island
+Jace, Memory Adept
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Karplusan Strider
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
+Knighthood
 Kor Castigator
 Kraul Raider
+Lamentation
 Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
 Loxodon Stalwart
 Maddening Wind
+Mantle of Webs
 March from the Black Gate
 Martial Glory
 Maulfist Squad
@@ -93,6 +131,8 @@ Merciless Eviction
 Merfolk Seer
 Merfolk of the Pearl Trident
 Minion Missile
+Minotaur Warrior
+Mirkwood Channeler
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
@@ -101,17 +141,28 @@ Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Muzzle
+Myr Kinsmith
+Mystic Speculation
 Narcolepsy
 Nezumi Bone-Reader
 Nightmare Shepherd
+Noxious Ghoul
+Nymris, Oona's Trickster
+Oakgnarl Warrior
 Ollenbock Escort
+Oona's Blackguard
 Orcish Artillery
 Palace Sentinels
 Patrol Hound
+Pheres-Band Tromper
+Phthisis
 Phyrexian Rebirth
 Plains
 Predator, Flagship
+Prismatic Strands
 Psychic Allergy
+Puppet Conjurer
 Raging Spirit
 Rakdos Signet
 Raphael, Fiendish Savior
@@ -119,9 +170,16 @@ Reap What Is Sown
 Reshape the Earth
 Revoke Existence
 Rootwalla
+Rural Recruit
 Saddled Rimestag
+Sailors' Bane
+Salvage Scuttler
 Samite Herbalist
+Sanctum of Fruitful Harvest
+Sapphire Medallion
 Sarinth Steelseeker
+Scarblade Elite
+Scute Mob
 Seraph of the Scales
 Servant of the Scale
 Shifting Ceratops
@@ -137,27 +195,43 @@ Spined Megalodon
 Spreading Rot
 Sprout
 Start
+Stonewood Invoker
+Strange Augmentation
 Stream of Acid
+Stromkirk Condemned
 Summary Judgment
 Sunlance
 Surge Conductor
 Swamp
 Sweet Oblivion
+Sylvan Safekeeper
+Sylvan Shepherd
 Syphon Sliver
+Tamiyo, Inquisitive Student
 Teval's Judgment
 The Battle of Bywater
 Thran Golem
+Tireless Provisioner
+Tome Shredder
 Torbran, Thane of Red Fell
 Twisted Justice
 Ulgrotha Charm
+Ulvenwald Observer
+Unburial Rites
 Unlikely Alliance
 Vastwood Animist
 Vegetation Abomination
+Vorapede
 Vraan, Executioner Thane
+Vraska's Stoneglare
+Wall of Essence
 Wall of Torches
 Warden of the First Tree
+Wei Ambush Force
 Wilson, Refined Grizzly
 Wolfcaller's Howl
+Word of Binding
+You Happen On a Glade
 Zephyr Spirit
 Zhalfirin Lancer
 Zo-Zu the Punisher

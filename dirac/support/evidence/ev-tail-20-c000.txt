@@ -41,6 +41,7 @@ Captain America, Unbowed
 Capture Sphere
 Carapace
 Careful Consideration
+Careful Cultivation
 Carnivorous Plant
 Catacomb Slug
 Catalyst Elemental
@@ -75,6 +76,7 @@ Danitha Capashen, Paragon
 Daring Saboteur
 Dawnstrike Paladin
 Daysquad Marshal
+Deathbellow War Cry
 Deem Inferior
 Deluge
 Dematerialize
@@ -87,14 +89,18 @@ Dirtcowl Wurm
 Doc Ock, Evil Inventor
 Doomsday
 Dragon Egg
+Drana's Silencer
+Dreamcatcher
 Drifting Djinn
 Drownyard Lurker
+Druid Lyrist
 Dusk
 Duskrider Falcon
 Dust Bowl
 Edge of Autumn
 Eidolon of the Great Revel
 Eiganjo Free-Riders
+Elder Gargaroth
 Eldritch Evolution
 Embereth Skyblazer
 Envelop
@@ -148,6 +154,7 @@ Hapatra's Mark
 Haunter of Nightveil
 Healer of the Pride
 Herald of Dromoka
+Hero of the Nyxborn
 Hero's Blade
 Hero's Demise
 Hexplate Golem
@@ -168,6 +175,7 @@ Infernal Idol
 Invasion of Shandalar
 Irenicus's Vile Duplication
 Island
+Isolation Zone
 Isperia, Supreme Judge
 Istvan, Butcher of Eln
 Jarvis, Earth's Mightiest Butler
@@ -196,6 +204,7 @@ Ma Chao, Western Warrior
 Magus of the Library
 Majestic Heliopterus
 Manic Vandal
+Mark of Asylum
 Markov Crusader
 Maw of the Obzedat
 Menagerie Liberator
@@ -204,6 +213,7 @@ Mind Control
 Mindclaw Shaman
 Mindcrank
 Mine Bearer
+Minotaur Aggressor
 Mirri's Guile
 Mise
 Mizzium Meddler
@@ -244,6 +254,7 @@ Phantom Ninja
 Phyrexian Bloodstock
 Phyrexian Espionage
 Pilfered Plans
+Pious Kitsune
 Plains
 Planequake
 Plate Armor
@@ -306,6 +317,7 @@ Sick and Tired
 Sigil Blessing
 Silent Submersible
 Silhana Ledgewalker
+Silkweaver Elite
 Silkwing Scout
 Silver Raven
 Silverbluff Bridge
@@ -335,6 +347,7 @@ Stone Spirit
 Stonehands
 Stonehorn Chanter
 Storm God's Oracle
+Storm Herd
 Structural Assault
 Sundial of the Infinite
 Sungrass Egg
@@ -349,6 +362,7 @@ The Blackstaff of Waterdeep
 Thran Dynamo
 Thraxodemon
 Time of Need
+Tishana, Voice of Thunder
 Titania's Chosen
 Tramway Station
 Transmogrifying Licid
@@ -357,6 +371,7 @@ True Love's Kiss
 Trumpet Blast
 Trusty Retriever
 Turtle-Seals
+Uktabi Kong
 Undead Hand Ninja
 Underworld Breach
 Unlikely Aid
@@ -366,6 +381,7 @@ Vastwood Surge
 Vectis Agents
 Veil of Assimilation
 Vigorspore Wurm
+Vivien, Champion of the Wilds
 Volatile Claws
 Volatile Fjord
 Votary of the Conclave
@@ -373,6 +389,7 @@ Vulturous Aven
 Wakestone Gargoyle
 Wall of Lost Thoughts
 Wall of Spears
+Wander in Death
 Warren Weirding
 Waste Not
 Weapon Rack

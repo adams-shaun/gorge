@@ -26,6 +26,7 @@ Annihilate
 Apostle of Purifying Light
 Archetype of Imagination
 Archfiend of Despair
+Arnjlot's Ascent
 Aspect of Gorgon
 Aven of Enduring Hope
 Azorius Cluestone
@@ -62,6 +63,7 @@ Caress of Phyrexia
 Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
+Cavalier of Flame
 Centaur Peacemaker
 Chasm Guide
 Chief of the Scale
@@ -98,6 +100,7 @@ Drag to the Bottom
 Dragon Arch
 Dragonsguard Elite
 Dramatic Reversal
+Dream Thrush
 Dromoka Warrior
 Dying Wish
 Earth Rift
@@ -220,6 +223,7 @@ Leonin Lightbringer
 Ley Druid
 Lifecrafter's Bestiary
 Lifecrafter's Gift
+Liliana, Death's Majesty
 Lithatog
 Llanowar Envoy
 Lodestone Golem
@@ -238,6 +242,7 @@ Meekstone
 Melancholy
 Merchant of Truth
 Merciless Repurposing
+Merrow Reejerey
 Mesa Unicorn
 Midnight Assassin
 Mikaeus, the Lunarch
@@ -254,6 +259,7 @@ Nameless One
 Nessian Courser
 Night Incarnate
 Night of Souls' Betrayal
+Nikko-Onna
 Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
@@ -305,8 +311,10 @@ Ridgescale Tusker
 Rograkh, Son of Rohgahh
 Roots of Wisdom
 Runeboggle
+Sacellum Archers
 Sacred Guide
 Salivating Gremlins
+Sanctum of Ugin
 Saruli Caretaker
 Savage Offensive
 Savra, Queen of the Golgari
@@ -363,6 +371,7 @@ Survivor of the Unseen
 Swamp
 Swarming of Moria
 Swift Spinner
+Sylvok Battle-Chair
 Tail Swipe
 Tajuru Blightblade
 Tales of Master Seshiro
