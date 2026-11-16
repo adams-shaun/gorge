@@ -32,3 +32,13 @@ func TestMBCFlashbackCastWaitsForPrefixTriggerReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "flashback_cast_waits_for_prefix_trigger")
 }
+
+// CR 603.3b: a scripted tap that queues two of one controller's triggers (two
+// Contaminated Grounds on one land) is gorge's trigger-order ask, answered
+// before the next tap, so the pair sits beneath the later tap's trigger
+// (tail-34 pair 25, decision 269). The kernel left the pair pending until the
+// end of the prefix, placing the active player's later trigger first.
+func TestMBCTapsDeferredPrefixOneTapTwoTriggersOrderReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReproNamed(t, "taps_deferred_prefix_one_tap_two_triggers_order")
+}
