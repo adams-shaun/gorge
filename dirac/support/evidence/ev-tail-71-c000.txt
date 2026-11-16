@@ -91,6 +91,7 @@ Daggerclaw Imp
 Dalek Drone
 Dangerous Wager
 Deadbridge Shaman
+Deadshot Minotaur
 Deathsprout
 Defend the Hearth
 Defy Death
@@ -441,6 +442,7 @@ Wistful Selkie
 Witherbloom Command
 Wizards of Thay
 Wolfcaller's Howl
+Wormwood Dryad
 Wrath of Marit Lage
 Wyleth, Soul of Steel
 Xathrid Necromancer
