@@ -995,7 +995,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// sets ride the registration for Affected$ Card.IsRemembered and
 				// <base>.RememberedPlayerCtrl specs (Taunt from the Rampart,
 				// Mark for Death); lifetime is the Effect's own.
-				effectContinuous(h, state.ContinuousEffect{
+				ce := state.ContinuousEffect{
 					Source:            c.Source,
 					Controller:        c.Controller,
 					Layer:             state.LAbilities,
@@ -1014,7 +1014,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost:     imprintOnHost,
 					ForgetOnCast:      forgetOnCast,
 					ChosenNumber:      chosenNumber,
-				})
+				}
+				if lockEffectGrant(h, c, &ce) { // CR 611.2c
+					effectContinuous(h, ce)
+				}
 				registered = true
 			} else if n, affected, ok := adjustLandPlaysGrantFromLine(params); ok {
 				// AdjustLandPlays$ (Explore, Scale the Heights, Urban
