@@ -10,5 +10,15 @@
     "policy": "random",
     "mulligans": 0,
     "file": "maze_of_ith_prevention_beside_shield_ask_options"
-  }
+  },
+  "evidence": [
+    "ev-tail-57-c000",
+    "ev-tail-57-c001",
+    "ev-tail-66-c000",
+    "ev-tail-66-c001",
+    "ev-tail-66-c002",
+    "ev-tail-66-c003",
+    "ev-tail-66-c004",
+    "ev-tail-66-c005"
+  ]
 }
