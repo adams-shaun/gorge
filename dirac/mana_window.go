@@ -2476,7 +2476,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 // counts the amounts too, as gorge's witness does (rules
 // potentialModeCastPlan: paymentPlanCensusTotal / base.X), so Helga's two
 // beside three lands lift {X}{U} to X = 4, not the lands' 3.
-func restrWitnessX(x int, t avail, multi []uint8, cost *kop.ManaCost) int {
+func restrWitnessX(x int, t avail, multi []dynUnit, cost *kop.ManaCost) int {
 	return restrWitnessXPlus(x, t, multi, cost, 0)
 }
 
