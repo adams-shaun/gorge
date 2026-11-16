@@ -406,5 +406,38 @@ func (e *Engine) sbaQuietEntry(id state.ObjID) bool {
 	if e.speedStarts(o) || e.ascendPossible() || e.storiedPossible() {
 		return false
 	}
+	if auraOnColorsYouCtrlBearer(e.G, e) {
+		return false
+	}
 	return !e.IsCreature(id) || e.Toughness(id) > 0
+}
+
+// auraBearerReader is the slice of Engine auraOnColorsYouCtrlBearer reads.
+type auraBearerReader interface {
+	isAura(*state.Object) bool
+	Keywords(state.ObjID) []string
+}
+
+// auraOnColorsYouCtrlBearer reports whether some battlefield Aura is attached
+// to a permanent with protection from the colors of permanents its controller
+// controls (Empty-Shrine Kannushi). That protection reads every colour its
+// controller's board carries, so ANY permanent entering can make the Aura
+// illegal (CR 704.5m): an entry is not provably inert while one stands.
+func auraOnColorsYouCtrlBearer(g *state.Game, r auraBearerReader) bool {
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil || o.AttachedTo == 0 || o.HasAttachedPlayer || !r.isAura(o) {
+				continue
+			}
+			if b := g.Obj(o.AttachedTo); b != nil && b.Zone == state.ZBattlefield {
+				for _, kw := range r.Keywords(b.ID) {
+					if q, ok := protectionQuality(kw); ok && q == protectionColorsYouCtrl {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
