@@ -792,6 +792,7 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	t.filtPlay(k, p, fs.path[:fs.n])
 	if !passed {
 		passed = t.npend != 0 || t.sp != sp0 // a step the search settled through (try's npend grew)

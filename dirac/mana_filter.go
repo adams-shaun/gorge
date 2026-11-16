@@ -678,6 +678,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t := s.fork()
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
+	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	if !fs.visit(k, t, 0, false) {
 		return false
 	}
