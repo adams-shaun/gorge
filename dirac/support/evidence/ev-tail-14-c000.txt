@@ -115,6 +115,7 @@ Firja, Judge of Valor
 Flensermite
 Flight
 Flitterstep Eidolon
+Fog of War
 Font of Progress
 Foothill Guide
 Force of Nature
@@ -196,11 +197,13 @@ Manaform Hellkite
 Mandibular Kite
 Mardu Outrider
 Mesmeric Sliver
+Mighty Emergence
 Mind Whip
 Mindsplice Apparatus
 Mindswipe
 Mindwrack Demon
 Mirran Spy
+Mishra's Juggernaut
 Mishra's Workshop
 Mockingbird, Bobbi Morse
 Mogg Bombers

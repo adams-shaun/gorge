@@ -1049,7 +1049,7 @@ func (cb *cardBuilder) record() error {
 	d.Cascade = uint8(c.Cascade)
 	d.AllCreatureTypes = c.Changeling
 	d.Evasion = c.Evasion
-	d.Wither, d.UmbraArmor = c.Wither, c.UmbraArmor
+	d.Wither, d.UmbraArmor, d.Dredge = c.Wither, c.UmbraArmor, c.Dredge
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
