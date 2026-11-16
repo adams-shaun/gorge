@@ -95,7 +95,7 @@ func TestPayWindowTapsLowestColour(t *testing.T) {
 	crag := sc.perm(id["Wind-Scarred Crag"], 0)
 	sc.s.perms[sc.slot(crag)].flags &^= pfTapped // it entered long ago
 	c := cost(0, kop.R)
-	_, short := sc.s.payWindow(sc.k, 0, &c)
+	_, short := sc.s.payWindow(sc.k, 0, &c, false)
 	var want [kop.NumManaKinds]uint8
 	want[kop.W] = 1
 	if !sc.tapped(crag) || !short || sc.s.pl[0].pool != want {

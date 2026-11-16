@@ -8,9 +8,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (rules split_second.go filterSplitSecondActions), keeping the land play, the
 // mana abilities and the face-up turn (Station and Crew are activated abilities,
 // CR 702.184a, 702.122a, and are withheld).
-// The keyword exists in the kernel as a StatStackKw grant (Samut, Tyrant of
-// Naktamun's instants and sorceries), read live off each spell on the stack.
-// Cold: behind genPrep.anySplitSecond.
+// The keyword is printed (CardDef.SplitSecond: Sudden Shock, Krosan Grip; a
+// copy of the spell is the same card, CR 707.2) or a StatStackKw grant (Samut,
+// Tyrant of Naktamun's instants and sorceries), read live off each spell on
+// the stack. Cold: behind genPrep.anySplitSecond.
 
 // DebugNoSplitSecond (a mutation switch): the priority offer is left whole.
 var DebugNoSplitSecond bool
@@ -26,6 +27,9 @@ func (s *State) splitSecondHolds(k *prep) bool {
 		e := &s.stack[i]
 		if e.kind != seSpell {
 			continue
+		}
+		if k.t.Cards[e.card].SplitSecond {
+			return true // printed: a copy of the spell has it too (CR 707.2)
 		}
 		if n, _ := s.stackKwN(k, kop.StackKwSplitSecond, e.card, e.obj, e.ctrl, true); n > 0 {
 			return true

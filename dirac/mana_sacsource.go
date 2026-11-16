@@ -42,6 +42,15 @@ func (s *State) anySacSource(k *prep, p uint8) bool {
 // pass each) before it gives up (potential_script.go witnessReachesFrom, waits >= 4).
 const witnessWaits = 4
 
+// witnessOverWaits: the witness for p's sorcery-speed cast of o stacked n triggers
+// (a Lifeline's dies trigger per sacrificed Eldrazi Scion), more than the wait budget
+// lets resolve, so gorge's witness execution gives up before the cast is offered again
+// (potential_script.go witnessReachesMode, waits >= 4). An instant-speed cast is offered
+// with them still on the stack, which ends that walk at once.
+func (s *State) witnessOverWaits(k *prep, p uint8, c CardID, o Obj, n int) bool {
+	return n > witnessWaits && !k.cards[c].instant && !s.castFlash(k, p, c)
+}
+
 // xWitnessEats: gorge does not take the witness for spell c's {X} at x, so it plans the
 // largest X that keeps its sources (potentialWitnessKeeping). It is not taken when the
 // witness sacrifices the last permanent the spell could target (For the Common Good paid
@@ -622,13 +631,18 @@ func (s *State) pendNeedsDecision(k *prep, i int) bool {
 	return a.NTargets != 0 || a.NModes != 0
 }
 
+// castTimingNeutral is the AkCast mode bits that leave the card's own timing:
+// bit 0 kicked, bit 1 flashback (legal_gen.go).
+const castTimingNeutral uint8 = 1<<0 | 1<<1
+
 // castNeedsEmptyStack reports whether the plain cast a is sorcery-speed: a
 // card that is neither an instant nor flashed may be cast only with the stack
 // empty (CR 307.1, 117.1a). gorge's script search keeps going through a pass
 // while the prefix's trigger is on the stack until the play is offered
 // (potential_script.go waitsForStack), so the trigger resolves first.
 func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
-	if a.Kind() != AkCast || a.Mode() != 0 {
+	if a.Kind() != AkBestow && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
+		// (a bestowed, kicked or flashback cast is timed as its card: CR 702.103a, 702.34a, 307.1)
 		return false
 	}
 	o := Obj(a.Source())

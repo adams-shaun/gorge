@@ -186,10 +186,25 @@ func (s *State) offerFaceDown(k *prep, d *Decision, p uint8, o Obj, fam uint8) {
 	if s.statM.any() || k.gen != nil {
 		cost = s.adjustCost(k, p, c, o, cost)
 	}
-	if !s.poolPays(p, &cost) {
+	if !s.poolPays(p, &cost) && !s.poolPaysRestr(k, p, c, o, &cost) {
 		return
 	}
 	d.add(MakeAction(AkCast, TCode(o), 0, castFaceDown))
+}
+
+// poolPaysRestr is poolPays with the restricted mana p's cast of card c may
+// spend (CR 106.6): gorge prices the offer from the floating pool alone, and a
+// Geosurge's {R} for a creature spell pays the face-down creature spell's {3}.
+// The restriction reads card c's printed characteristics, as the card's other
+// offers do.
+func (s *State) poolPaysRestr(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	if !s.rbAny(SeatIx(p)) {
+		return false
+	}
+	var av avail
+	s.availPool(p, &av)
+	s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av)
+	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
 // offerTurnFaceUp offers the turn-face-up special action (CR 708.6): a
