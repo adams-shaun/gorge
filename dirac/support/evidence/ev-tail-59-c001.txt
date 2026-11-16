@@ -17,15 +17,18 @@ Amateur Hero
 Ambitious Assault
 Ambitious Farmhand
 Ancestor's Chosen
+Angel of Despair
 Angelic Rocket
 Animist's Awakening
 Ant Queen
 Aquus Steed
 Arashin Foremost
+Archangel Elspeth
 Ardent Plea
 Arena Rector
 Artificer's Dragon
 Artillerize
+Assassin Den
 Assassin's Ink
 Back to Basics
 Bad River
@@ -33,10 +36,16 @@ Baleful Beholder
 Baloth Woodcrasher
 Bane of Progress
 Barbarian Riftcutter
+Barbed Sliver
 Barrage of Boulders
 Battle Brawler
+Battle Plan
+Battlefield Medic
+Belonging
 Benthic Behemoth
+Binding Grasp
 Blaring Captain
+Blighted Bat
 Blood for the Blood God!
 Bloodbraid Challenger
 Blue Elemental Blast
@@ -46,11 +55,15 @@ Boggart Sprite-Chaser
 Boiling Seas
 Brackwater Elemental
 Branchblight Stalker
+Brawn
 Brightling
+Brittle Effigy
 Bronze Sword
+Brotherhood's End
 Builder's Blessing
 Burning-Tree Emissary
 Canyon Drake
+Captive Flame
 Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
@@ -59,15 +72,25 @@ Chimney Rabble
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
 Citanul Hierophants
+Civic Stalwart
+Cleric of the Forward Order
+Cloudskate
 Colossus of Sardia
+Commune with Lava
+Commune with the Gods
 Consume the Meek
 Control Win Condition
 Convolute
 Copy Artifact
 Cradle of Safety
 Creeping Crystal Coating
+Crossbow Ambush
+Crovax the Cursed
 Crowd's Favor
 Crush Contraband
+Crush Dissent
+Crusher Zendikon
+Cryptwailing
 Crystal Golem
 Cumber Stone
 Curious Altisaur
@@ -77,26 +100,33 @@ Dawn of the Dead
 Dawnhart Rejuvenator
 Death Bomb
 Death Wind
+Death's Caress
 Death-Greeter's Champion
 Debilitating Injury
 Debt to the Deathless
 Debtor's Pulpit
 Decision Paralysis
+Defacing Duskmage
 Dehydration
+Demonic Appetite
 Demonlord of Ashmouth
 Deploy to the Front
 Desperate Farmer
 Die Young
 Discordant Dirge
+Disease Carriers
 Disempower
 Displacer Kitten
+Distorting Lens
 Distress
 Divine Offering
 Dogpile
 Down
+Drag to the Bottom
 Dragon Bell Monk
 Dragon Throne of Tarkir
 Dragon's Desire
+Dragonsoul Knight
 Dramatic Finale
 Dread Drone
 Dress Down
@@ -108,11 +138,15 @@ Duskworker
 Eager Beaver
 Eagle of Deliverance
 Eccentric Farmer
+Eiganjo Dynastorian
+Eladamri's Call
 Elemental Appeal
 Elite Scaleguard
 Elvish Herder
+Elvish Pioneer
 Embermage Goblin
 Emergent Woodwurm
+Ent's Fury
 Epicenter
 Esper Battlemage
 Essence Filter
@@ -125,33 +159,45 @@ Ezuri's Archers
 Fade from History
 Feast of Succession
 Festering Mummy
+Fetid Horror
 Fiery Cannonade
+Fire Sprites
 Fissure Vent
+Flame Jet
 Flameborn Viron
 Fleetwheel Cruiser
 Flinthoof Boar
 Flowstone Kavu
+Fogwell's Gym
 Forest
 Foriysian Interceptor
 Founding of Omashu
 Fraying Omnipotence
 Frenzied Fugue
+Frilled Mystic
 Frost Ogre
+Frostfist Strider
+Fuel for the Cause
 Furious Strength
 Genesis
 Ghostly Prison
 Giant Mantis
 Gideon's Battle Cry
+Glasswing Grace
 Gnottvold Slumbermound
 Goblin Assault Team
 Goliath Sphinx
+Goliath Truck
+Gorgon Recluse
 Grasp of Darkness
 Grave Pact
+Gravelgill Axeshark
 Gray Ogre
 Greenweaver Druid
 Grim Initiate
 Grim Wanderer
 Guardian of the Forgotten
+Guardian's Magemark
 Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
@@ -164,6 +210,7 @@ Heavy Mattock
 Hellspark Elemental
 Hog-Monkey Rampage
 Hostile Desert
+Hostile Realm
 Hunters' Feast
 Hunting Wilds
 Hydra Omnivore
@@ -177,13 +224,20 @@ Iraxxa, Empress of Mars
 Iridescent Drake
 Island
 Izzet Boilerworks
+Jace, Arcane Strategist
+Jangling Automaton
 Jarl of the Forsaken
+Jhovall Rider
 Join the Maestros
 Judge of Currents
 Jungle Troll
+Kalonian Hydra
 Kappa Cannoneer
 Kavu Lair
+Keeper of Progenitus
 Keeper of the Lens
+Kinsbaile Balloonist
+Kiora Bests the Sea God
 Kitchen Imp
 Kitesail Cleric
 Knowledge Is Power
@@ -191,12 +245,14 @@ Kokusho, the Evening Star
 Krakilin
 Krav, the Unredeemed
 Krile Baldesion
+Kulrath Knight
 Kurgadon
 Lattice-Blade Mantis
 Lazotep Plating
 Lead Astray
 Leafkin Druid
 Legion Loyalty
+Leyline of Singularity
 Lightning Surge
 Lily Bowen, Raging Grandma
 Living Armor
@@ -213,18 +269,27 @@ Lucky Offering
 Lyse Hext
 Magmaroth
 Malachite Talisman
+Malicious Affliction
 Manakin
 Marionette Apprentice
 Markov Enforcer
 Marsh Hulk
+Mascot Interception
+Mass Production
 Maverick Thopterist
 Merfolk Skyscout
+Merrow Levitator
+Metathran Zombie
+Militant Monk
 Mire Triton
 Mirran Bardiche
+Mistral Singer
 Mold Shambler
 Molder Beast
 Molting Skin
+Monstrous Hound
 Monstrous Onslaught
+Moon Sprite
 Moonveil Regent
 Mordor Muster
 Mountain
@@ -240,6 +305,8 @@ Niblis of Frost
 Nightmarish End
 Nimble Hobbit
 Nimbleclaw Adept
+Nine-Ringed Bo
+Nothic
 Notion Rain
 Null Rod
 Nulldrifter
@@ -256,31 +323,41 @@ Pest Infestation
 Phase Dolphin
 Pheres-Band Warchief
 Phyrexian Boon
+Phyrexian Debaser
+Phyrexian Ornithopter
 Phyrexian Soulgorger
 Phyrexian Walker
 Pixie Queen
 Plains
 Plated Seastrider
+Plea for Guidance
 Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
+Practiced Tactics
 Prismari Pianist
+Psychotic Fury
 Pyrohemia
 Pyrotechnics
 Queen of Ice
+Quicksilver Behemoth
+Quiet Contemplation
 Quirion Ranger
 Rakdos Cluestone
 Rakdos Guildmage
 Ranger's Path
 Raven's Crime
+Reach Through Mists
 Rebel Informer
 Rebuff the Wicked
 Reckless Assault
 Reckless Handling
 Redemption Arc
+Resurrection
 Returned Phalanx
 Reveka, Wizard Savant
 Riptide Chimera
+Rise of the Dread Marn
 Rise to Glory
 Rith's Grove
 Rod of Ruin
@@ -292,7 +369,9 @@ Sabertooth Outrider
 Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
+Sauron, the Lidless Eye
 Sautekh Immortal
+Savage Lands
 Savai Thundermane
 Scholar of Combustion
 Scion of the Swarm
@@ -301,9 +380,12 @@ Seal of Cleansing
 Search Warrant
 Second Wind
 Secure the Scene
+Self-Assembler
 Sequence Engine
+Serpent of Yawning Depths
 Serum Snare
 Setessan Training
+Seton's Scout
 Shichifukujin Dragon
 Shield Wall
 Shifting Ceratops
@@ -314,28 +396,40 @@ Siani, Eye of the Storm
 Sight Beyond Sight
 Silent Specter
 Silkwing Scout
+Simic Fluxmage
 Sinister Gnarlbark
 Skeletal Wurm
 Skull Prophet
 Slimebind
 Sluggishness
 Smash
+Snapping Creeper
+Soldevi Simulacrum
 Song of the Worldsoul
 Soul Rend
+Soul Stair Expedition
+Soul Strings
 Soulless One
+Spawning Pit
 Spear Spewer
+Spiritual Guardian
 Spitting Hydra
+Splitting Headache
+Spreading Flames
 Spring-Leaf Avenger
 Squee's Toy
 Squee, Goblin Nabob
+Starfield Mystic
 Stasis Cocoon
 Steadfast Guard
 Stone Golem
 Storm Shaman
 Stormbound Geist
 Stratus Walk
+Straw Golem
 Strength Bobblehead
 Stun Sniper
+Stupefying Touch
 Sudden Spoiling
 Sunder the Gateway
 Sunseed Nurturer
@@ -350,6 +444,8 @@ Telling Time
 Tempered Veteran
 The Terror of Serpent's Pass
 The Thing
+The Underworld Cookbook
+Thistledown Liege
 Thoughtbound Phantasm
 Thraben Foulbloods
 Thraben Sentry
@@ -358,28 +454,35 @@ Thriving Turtle
 Thunder Spirit
 Thundering Giant
 Titanic Brawl
+Tolaria West
 Tomakul Scrapsmith
 Topiary Stomper
 Tragic Fall
 Travel Preparations
 Traveling Philosopher
 Trench Wurm
+Trolls of Tel-Jilad
 Trophy Hunter
 Trostani, Selesnya's Voice
 Tuktuk Grunts
 Tumble Magnet
 Twenty-Toed Toad
+Twilight Panther
 Tyrite Sanctum
 Uncontrollable Anger
+Underworld Connections
 Unliving Psychopath
+Unmake
 Urbis Protector
 Ursapine
 Urza's Rage
+Uthden Troll
 Valorous Charge
 Vanish into Eternity
 Venomous Vines
 Vesper Ghoul
 Victor Timely, Wily Tycoon
+Village Watch
 Vivid Flying Fish
 Vizzerdrix
 Vodalian Arcanist
@@ -392,9 +495,11 @@ Warping Wail
 Weakstone
 Welcome the Dead
 Welding Sparks
+Wheel of Fate
 Whisk Away
 Wild Ox
 Witch's Web
+Withstand
 Witty Roastmaster
 Wizard Replica
 Wizard's Staff
@@ -404,5 +509,8 @@ Workshop Elders
 Wort, the Raidmother
 Wreck and Rebuild
 Yellow Scarves Troops
+Yoke of the Damned
 Zhou Yu, Chief Commander
+Zodiac Monkey
 Zuko, Avatar Hunter
+Éomer, Marshal of Rohan

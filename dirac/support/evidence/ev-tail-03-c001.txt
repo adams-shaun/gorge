@@ -8,6 +8,7 @@ Ajani, Adversary of Tyrants
 Altar's Light
 Ancestral Memories
 Animating Faerie
+Applied Biomancy
 Arbalest Elite
 Arbor Armament
 Arcade Cabinet
@@ -20,6 +21,7 @@ Artillerize
 Ash Barrens
 Assault Zeppelid
 Auriok Salvagers
+Avatar of Will
 Aven Heartstabber
 Azorius Skyguard
 Azra Oddsmaker
@@ -49,6 +51,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Campus Renovation
 Capsize
 Celestial Crusader
 Cenn's Heir
@@ -64,6 +67,7 @@ Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Conclave Phalanx
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
@@ -110,6 +114,7 @@ Ephemerate
 Eternal Thirst
 Ethercaste Knight
 Eutropia the Twice-Favored
+Excise
 Extravagant Spirit
 Falkenrath Celebrants
 Falkenrath Pit Fighter
@@ -171,6 +176,7 @@ Horned Kavu
 Howl from Beyond
 Howling Wolf
 Hungry Mist
+Hunt the Hunter
 Immortal Servitude
 Impale
 Implement of Malice
@@ -216,13 +222,16 @@ Magmatic Chasm
 Makindi Sliderunner
 Mantle of Webs
 March from the Black Gate
+Martial Glory
 Maulfist Squad
 Mavren Fein, Dusk Apostle
+Merciless Eviction
 Merfolk Seer
 Metropolis Sprite
 Mine Collapse
 Minion Missile
 Minotaur Warrior
+Mirkwood Channeler
 Mirri, Cat Warrior
 Mirror-Sigil Sergeant
 Mishra's Self-Replicator
@@ -234,9 +243,11 @@ Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Muzzle
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent
+Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
@@ -256,6 +267,7 @@ Ogre Painbringer
 Oko's Hospitality
 Ollenbock Escort
 One-Eyed Scarecrow
+Oona's Blackguard
 Orcish Artillery
 Pack Mastiff
 Palace Sentinels
@@ -275,6 +287,7 @@ Plated Wurm
 Plundering Barbarian
 Predator, Flagship
 Prismatic Strands
+Profit
 Prophet of Kruphix
 Psychic Allergy
 Puppet Conjurer
@@ -301,6 +314,7 @@ Sailors' Bane
 Salvage Scuttler
 Samite Herbalist
 Samut, Voice of Dissent
+Sanctum of Fruitful Harvest
 Sapphire Medallion
 Sarinth Steelseeker
 Scavenger Folk
@@ -339,6 +353,7 @@ Springmantle Cleric
 Sprout
 Stalking Drone
 Start
+Stillmoon Cavalier
 Stonewood Invoker
 Storm Fleet Pyromancer
 Strange Augmentation
@@ -355,6 +370,7 @@ Sweet Oblivion
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
+Tamiyo, Inquisitive Student
 Tazeem Roilmage
 Temur Battle Rage
 Tergrid's Shadow
@@ -369,6 +385,7 @@ The Triumph of Anax
 Thermal Blast
 Thran Golem
 Thunderscape Familiar
+Tidehollow Sculler
 Tireless Provisioner
 Tocatli Honor Guard
 Tome Shredder
@@ -376,7 +393,9 @@ Torbran, Thane of Red Fell
 Trailblazer
 Transgress the Mind
 Twisted Justice
+Tyvar Kell
 Ulgrotha Charm
+Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
 Varchild, Betrayer of Kjeldor
@@ -390,6 +409,7 @@ Voidslime
 Volrath's Stronghold
 Vorapede
 Vraan, Executioner Thane
+Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
 Wandering Wolf

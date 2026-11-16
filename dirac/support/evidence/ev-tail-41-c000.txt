@@ -24,6 +24,7 @@ Barbed Field
 Basri's Aegis
 Bastion of Remembrance
 Battle Cry Goblin
+Blessed Sanctuary
 Blightbelly Rat
 Blinkmoth Well
 Blood Mist
@@ -64,6 +65,7 @@ Coercion
 Cogwork Archivist
 Collateral Damage
 Colos Yearling
+Colossus of Sardia
 Combat Thresher
 Commissar Severina Raine
 Conjurer's Bauble
@@ -89,6 +91,7 @@ Death Frenzy
 Death's Presence
 Defense of the Heart
 Digsite Engineer
+Dimensional Infiltrator
 Dive Bomber
 Divine Sacrament
 Diving Griffin
@@ -104,6 +107,7 @@ Eccentric Pestfinder
 Eerie Interlude
 Elanor Gardner
 Empyreal Voyager
+Energy Flux
 Eternal Warrior
 Evolutionary Escalation
 Excavation Mole
@@ -179,10 +183,12 @@ Kor Sky Climber
 Kris Mage
 Krovikan Elementalist
 Kruphix's Insight
+Lambholt Raconteur
 Lead-Belly Chimera
 Leather Armor
 Leatherhead, Iron Gator
 Legion Conquistador
+Legolas, Counter of Kills
 Leyline of Vitality
 Lightning Dart
 Lightning Skelemental
@@ -211,7 +217,9 @@ Mindwrack Liege
 Minion of the Mighty
 Minister of Pain
 Misfortune's Gain
+Mister Fantastic
 Mogg Fanatic
+Moira Brown, Guide Author
 Moorland Drifter
 Morale
 Morbid Hunger
@@ -220,12 +228,15 @@ Moss Kami
 Mountain
 Mountain Bandit
 Mournwhelk
+Mu Yanling, Sky Dancer
 Mudbutton Torchrunner
 Multani's Acolyte
 Multiversal Recruitment
 Murderous Compulsion
+Myojin of Roaring Blades
 Nacatl Savage
 Necrobite
+Necroduality
 Nephalia Seakite
 Night
 Nightveil Sprite
@@ -274,11 +285,14 @@ Reito Lantern
 Remove Soul
 Renowned Weaponsmith
 Rescind
+Retributive Wand
 Returned Centaur
 Rhythmic Water Vortex
 Rimeshield Frost Giant
 Rimrock Knight
 Ring of Three Wishes
+Riptide Laboratory
+River of Tears
 Rockslide Ambush
 Rograkh, Son of Rohgahh
 Root Snare
@@ -300,15 +314,19 @@ Seal of Doom
 Searchlight Companion
 Seascape Aerialist
 Secret Passage
+Secrets of the Golden City
+Seedguide Ash
 Selesnya Eulogist
 Senate Guildmage
 Sensor Splicer
 Separatist Voidmage
+Shabraz, the Skyshark
 Shadow Glider
 Shadow Prophecy
 Shamanic Revelation
 Shard of Broken Glass
 Sheltering Light
+Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
@@ -332,6 +350,7 @@ Spell Contortion
 Sphinx of Magosi
 Spire Barrage
 Spontaneous Flight
+Springmantle Cleric
 Stature, Young Avenger
 Staunch Defenders
 Staunch-Hearted Warrior
@@ -391,6 +410,7 @@ Valiant Knight
 Vampire Envoy
 Vampire's Zeal
 Vastwood Gorger
+Venomthrope
 Venser, Visionary Traveler
 Verdant Field
 Verdant Rebirth
@@ -404,9 +424,11 @@ Warren Soultrader
 Weaponize the Monsters
 Weirding Shaman
 Where Ancients Tread
+Whispering Shade
 Wild Colos
 Wild Onslaught
 Woe Strider
+Woodland Sleuth
 Woodripper
 Wretched Confluence
 Xander's Lounge

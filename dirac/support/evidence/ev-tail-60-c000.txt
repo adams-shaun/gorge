@@ -5,6 +5,7 @@ Acridian
 Act of Treason
 Aethersquall Ancient
 Affa Protector
+Ainok Tracker
 Akki War Paint
 Akroan Crusader
 Alabaster Mage
@@ -19,6 +20,7 @@ Arachnus Web
 Arcane Proxy
 Argentum Armor
 Argothian Elder
+Arixmethes, Slumbering Isle
 Arm with Aether
 Armored Wolf-Rider
 Artful Maneuver
@@ -26,6 +28,7 @@ Artificer Class
 Assimilate Essence
 Atreus, Impulsive Son
 Aven Gagglemaster
+Awesome Presence
 Back to Basics
 Back to Nature
 Baleful Beholder
@@ -40,12 +43,14 @@ Bellowing Aegisaur
 Biblioplex Assistant
 Binding Grasp
 Birds of Paradise
+Bladestitched Skaab
 Blaster Mage
 Blessing
 Bloated Toad
 Bloodrage Vampire
 Bloodtracker
 Boros Cluestone
+Boros Reckoner
 Brackwater Elemental
 Brave the Elements
 Breach
@@ -53,6 +58,7 @@ Briar Hydra
 Bridgeworks Battle
 Brightstone Ritual
 Brine Shaman
+Bringer of the Red Dawn
 Broodhatch Nantuko
 Builder's Blessing
 Cabal Initiate
@@ -67,6 +73,7 @@ Centaur Nurturer
 Cerulean Wisps
 Chambered Nautilus
 Charnel Serenade
+Chief of the Edge
 Child of Gaea
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
@@ -74,6 +81,7 @@ Choking Miasma
 Cliffside Lookout
 Clone Legion
 Cogworker's Puzzleknot
+Collective Nightmare
 Combat Thresher
 Compelling Argument
 Contentious Plan
@@ -82,6 +90,7 @@ Coral Merfolk
 Corporeal Projection
 Cosmic Hunger
 Counterspell
+Courier Bat
 Court Cleric
 Creeping Crystal Coating
 Crenellated Wall
@@ -91,6 +100,7 @@ Crystal Golem
 Curious Homunculus
 Curse of Wizardry
 Cybermat
+Dark Salvation
 Dauntless Cathar
 Dawnhart Rejuvenator
 Dead
@@ -131,18 +141,24 @@ Ember Beast
 Embercleave
 Emeria Angel
 End the Festivities
+Endless Obedience
+Enthusiastic Mechanaut
 Epicenter
 Essence Infusion
 Eternal Flame
 Etherium Sculptor
 Excise
 Excise the Imperfect
+Execute
 Exemplar of Strength
 Expedition Champion
+Extract the Truth
 Eyes of the Wisent
+Ezio, Blade of Vengeance
 Fade from History
 Faerie Harbinger
 Faithless Looting
+Fallaji Dragon Engine
 Fallaji Vanguard
 Familiar Ground
 Felhide Brawler
@@ -155,6 +171,7 @@ Flesh-Eater Imp
 Flickering Ward
 Flowstone Kavu
 Foil
+Forerunner of the Coalition
 Forest
 Forsaken City
 Frenzied Fugue
@@ -191,11 +208,13 @@ Harmattan Efreet
 Harnessed Lightning
 Harrier Naga
 Harrow
+Hawkeye, Bowslinger
 Healing Salve
 Heartwood Treefolk
 Heavy Mattock
 Hedron Detonator
 Heightened Reflexes
+Hellhole Rats
 Highland Game
 Hopeful Eidolon
 Hulk, Always Angry
@@ -216,6 +235,7 @@ Ivory Crane Netsuke
 Jadelight Ranger
 Janjeet Sentry
 Journey of Discovery
+Journey to Eternity
 Jund Battlemage
 Kamahl, Heart of Krosa
 Kami of Whispered Hopes
@@ -229,6 +249,7 @@ Kitesail Cleric
 Knight of Sorrows
 Knowledge Is Power
 Kokusho, the Evening Star
+Koskun Falls
 Krav, the Unredeemed
 Kruphix's Insight
 Landscaper Colos
@@ -244,27 +265,35 @@ Loathsome Catoblepas
 Lockjaw Snapper
 Lore Broker
 Lorehold Archivist
+Lorehold Excavation
 Loxodon Gatekeeper
 Loyal Retainers
 Mad Ratter
 Magmaroth
 Marble Chalice
+Mardu Blazebringer
 Mardu Shadowspear
 Marionette Apprentice
 Mark of the Oni
+Markov Waltzer
 Markov Warlord
 Master Thief
 Matsu-Tribe Birdstalker
+Maw of Kozilek
 Maximize Velocity
 Menagerie Liberator
+Mer-Ek Nightblade
 Metastatic Evangel
+Midnight Clock
 Minamo, School at Water's Edge
 Mind Harness
 Mind Maggots
 Mind Ravel
 Mind Sculpt
 Mindwhip Sliver
+Minotaur, Roxxon CEO
 Mirozel
+Mirror-Sigil Sergeant
 Mischief and Mayhem
 Mishra's Domination
 Mist Leopard
@@ -284,6 +313,7 @@ Namora, the Sea Queen
 Narset's Reversal
 Narwhal
 Needle Storm
+Nezahal, Primal Tide
 Niblis of Frost
 Nimble Hobbit
 Nimbleclaw Adept
@@ -323,6 +353,8 @@ Quirion Trailblazer
 Rabid Rats
 Rakdos Guildmage
 Rambunctious Mutt
+Ramosian Captain
+Rampage of the Valkyries
 Ramunap Hydra
 Ravenous Baloth
 Razor Golem
@@ -333,6 +365,8 @@ Red Cliffs Armada
 Refresh
 Reject
 Repudiate
+Restoration Gearsmith
+Retreat to Kazandu
 Retrieval Agent
 Reviving Dose
 Rhystic Deluge
@@ -354,8 +388,10 @@ Sanctuary Smasher
 Sardian Cliffstomper
 Satyr Rambler
 Sawtooth Thresher
+Scatter the Seeds
 Scion of Ugin
 Scrounger of Souls
+Sculpted Perfection
 Scuttling Sliver
 Secluded Glen
 Seismic Tutelage
@@ -386,6 +422,7 @@ Spectral Guardian
 Spider Spawning
 Split-Tail Miko
 Sporecap Spider
+Spurnmage Advocate
 Stasis Field
 Steadfast Sentry
 Stenchskipper
@@ -402,6 +439,7 @@ Sun Ce, Young Conquerer
 Swamp
 Sylvok Explorer
 Syphon Flesh
+Tainted Strike
 Tangle Golem
 Tarkir Charm
 Tawnos's Wand
@@ -417,11 +455,14 @@ Those Who Serve
 Thousand-Year Elixir
 Thran Dynamo
 Thriving Moor
+Thunderstaff
 Thurid, Mare of Destiny
 Timbermaw Larva
 Time Reversal
 Toe-Breaking Helmet
+Tombfire
 Touch of Darkness
+Towashi Guide-Bot
 Toxic Abomination
 Tragic Fall
 Trash for Treasure
@@ -433,15 +474,19 @@ Tymaret, Chosen from Death
 Tymora's Invoker
 Uktabi Efreet
 Uncontrollable Anger
+Undead Slayer
+Unfathomable Truths
 Unliving Psychopath
 Urza's Rage
 Vapor Snare
 Veiled Shade
+Venomous Hierophant
 Vesper Ghoul
 Vestige of Emrakul
 Vexilus Praetor
 Viridian Claw
 Voice of Duty
+Volcanic Rambler
 Voldaren Pariah
 Voracious Hydra
 Wall of Distortion
@@ -463,6 +508,7 @@ Windbrisk Raptor
 Witherbloom Pledgemage
 Wonder
 Workshop Elders
+Wort, Boggart Auntie
 Wreck and Rebuild
 Yellow Scarves Troops
 Zof Shade

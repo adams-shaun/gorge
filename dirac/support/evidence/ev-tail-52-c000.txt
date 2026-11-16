@@ -5,6 +5,7 @@ A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
 Adorable Kitten
+Ajani, Valiant Protector
 Alabaster Host Sanctifier
 Alarum
 Albino Troll
@@ -31,9 +32,11 @@ Aven Surveyor
 Avenging Angel
 Axegrinder Giant
 Azure Mage
+Balduvian Atrocity
 Balduvian Horde
 Baleful Eidolon
 Bant Battlemage
+Battle of Frost and Fire
 Battle-Rage Blessing
 Battlefly Swarm
 Battlewing Mystic
@@ -67,16 +70,19 @@ Carapace
 Caress of Phyrexia
 Cenn's Enlistment
 Cephalid Looter
+Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
 Chimeric Coils
 Civic Gardener
 Clackbridge Troll
 Clawing Torment
+Cliffgate
 Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
+Colfenor's Urn
 Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor
@@ -123,6 +129,7 @@ Dusk Legion Zealot
 Eagle of the Watch
 Elite Archers
 Elspeth, Sun's Nemesis
+Emeria Captain
 Emissary of Hope
 Emissary of Sunrise
 Entangling Vines
@@ -181,6 +188,7 @@ Grand Warlord Radha
 Graverobber Spider
 Graveyard Shovel
 Green Sun's Zenith
+Greenside Watcher
 Griffin Guide
 Grim Affliction
 Grimgrin, Corpse-Born
@@ -251,6 +259,7 @@ Lord of the Void
 Lounge
 Loxodon Mystic
 Loxodon Partisan
+Loxodon Restorer
 Luminous Bonds
 Lunarch Mantle
 Lyzolda, the Blood Witch
@@ -279,12 +288,15 @@ Mountain
 Mournwhelk
 Mox Ruby
 Mwonvuli Ooze
+Myr Turbine
 Mystic Redaction
 Mystical Dispute
 Naya Battlemage
+Necromaster Dragon
 Nephalia Drownyard
 Neurok Commando
 Noble Steeds
+Noggle Bandit
 Novijen, Heart of Progress
 Oak Street Innkeeper
 Occult Epiphany
@@ -313,6 +325,7 @@ Pouncing Cheetah
 Power Matrix
 Practical Research
 Predatory Hunger
+Priest of Fell Rites
 Priest of Iroas
 Primal Frenzy
 Prime Speaker Vannifar
@@ -326,6 +339,7 @@ Radical Idea
 Rag Dealer
 Rage Thrower
 Rain of Embers
+Rakdos Headliner
 Rakdos Pit Dragon
 Rakish Heir
 Rally of Wings
@@ -410,6 +424,7 @@ Spell Syphon
 Spellbinding Soprano
 Sphinx of Clear Skies
 Sphinx's Revelation
+Splendor Mare
 Sporoloth Ancient
 Stampeding Rhino
 Starnheim Memento
@@ -436,6 +451,7 @@ Temporal Trespass
 Tenured Inkcaster
 Terashi's Verdict
 Terrain Generator
+Tezzeret, Master of the Bridge
 The Spike Cactus
 Thelonite Druid
 Thermo-Alchemist

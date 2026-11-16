@@ -181,15 +181,15 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(pc.manaCol) ||
-			pc.manaChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
+		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl)), pc.manaChosen) ||
+			pc.manaFixedChosen || pc.manaOne || pc.manaMulti || pc.manaDyn {
 			continue
 		}
-		if int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0 {
+		if !s.landSetIntrinsic(k, c, pc) && (int(pc.manaAb) >= len(k.t.Cards[c].Abilities) || k.t.Cards[c].Abilities[pc.manaAb].ManaRestrict != 0) {
 			continue // the ability is restricted (Pillar of the Paruns): the gap floats plain mana
 		}
-		if !s.tapsGapActivatable(k, sl) {
-			continue
+		if !s.tapsGapReady(k, sl) || s.genLost(k, sl) && !s.landSetLost(k, sl) {
+			continue // a land under a land-type setter still taps for its intrinsic mana (CR 305.7)
 		}
 		m = m.with(sl)
 	}
@@ -201,14 +201,41 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 // CantBeActivated lock (cast_cantactivate.go). Every script gap arm that taps
 // its source asks it.
 func (s *State) tapsGapActivatable(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && !s.genLost(k, sl) &&
+	return s.tapsGapReady(k, sl) && !s.genLost(k, sl)
+}
+
+// tapsGapReady is tapsGapActivatable without the lost-abilities test: the
+// source is untapped, not summoning-sick and under no CantBeActivated lock.
+func (s *State) tapsGapReady(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) &&
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
-// tapsDeferColour is the production scriptTapsDefer models: any colour, or
-// exactly one of WUBRG.
-func tapsDeferColour(c kop.ColorMask) bool {
-	return c == kop.ColAny || c != 0 && c&^kop.ColAny == 0 && c&(c-1) == 0
+// tapsDeferColour is the production scriptTapsDefer models: any colour, {C}
+// (Crumbling Vestige under Brink of Disaster), or exactly one of WUBRG. A
+// chosen-colour source (Cliffgate's R or the chosen colour) names its printed
+// colours beside the chosen one, so any colours of WUBRG: gorge's mana ask
+// lists each.
+func tapsDeferColour(c kop.ColorMask, chosen bool) bool {
+	return c == kop.ColAny || c == kop.ColC || c != 0 && c&^kop.ColAny == 0 && (chosen || c&(c-1) == 0)
+}
+
+// chosenAskOrder writes, as WUBRG indexes, the colours of the chosen-colour
+// source at sl in the order gorge's mana ask lists them: the printed colours
+// in their printed order (manaColourOrder), then the chosen colour last
+// (pay.SubstituteChosenProduced rewrites the value's last token, dropping a
+// repeat of a printed colour). Cliffgate with white chosen asks R then W,
+// though the engine order is W then R. It returns how many it wrote.
+func (s *State) chosenAskOrder(k *prep, sl Slot, pc *pcard, out *[5]uint8) int {
+	ab := k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb] // a stack copy: only ManaColors changes
+	printed := srcMask(pc)
+	ab.ManaColors = kop.ColorMask(printed)
+	n := manaColourOrder(&ab, out)
+	if ch := s.perms[sl].chosen; ch < 5 && printed&(1<<ch) == 0 {
+		out[n] = uint8(ch)
+		n++
+	}
+	return n
 }
 
 // restrTapsGapShape: the source at sl is a restricted planner source whose
@@ -306,7 +333,7 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 		}
 		return n
 	}
-	return uint8(bits.OnesCount8(uint8(s.manaPCGen(k, sl).manaCol)))
+	return uint8(bits.OnesCount8(s.srcMaskAt(s.manaPCGen(k, sl), sl)))
 }
 
 // tapDeferPlain floats a rider source's plain first ability at sl, the
@@ -343,7 +370,7 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 		return
 	}
 	pc := s.manaPCGen(k, sl)
-	mask := uint8(pc.manaCol)
+	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
 	for i := 0; i < c; i++ {
 		mask &= mask - 1
 	}
@@ -429,4 +456,28 @@ func prepSelfTapsPain(c *kop.CardDef, pc *pcard) bool {
 	}
 	pc.painCol, pc.painN, pc.painOnly = a.ManaColors, n, true
 	return true
+}
+
+// hideDeferred taps, on the search's node copy t, every untapped source of p
+// the planner defers (planDeferred) that scriptTapsDefer does not model: a
+// two-colour land under a Defer-class Taps watcher (Turbulent Fen beside Price
+// of Glory). gorge's census holds it back as a gap, so the node's offer and
+// pricing (scriptSearch.visit) never count its mana, but the plain walk would
+// and list the play a tap early; the play's payment would then tap the
+// source after the prefix's other taps, putting its trigger above the play.
+//
+// A source tapsDef holds is the search's own gap: availFor already leaves its
+// unit out (availLeavesOut), and tapping it here would also take away the
+// {T} a cost of its own pays (Cabal Pit's {B},{T}, sacrifice beside Price of
+// Glory, CR 602.2b), so it stays untapped.
+func (t *State) hideDeferred(k *prep, p uint8, tapsDef slotMask) {
+	if !t.deferLive(k) {
+		return
+	}
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
+		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && !tapsDef.has(sl) && t.planDeferred(k, p, sl) {
+			t.perms[sl].flags |= pfTapped
+			t.touchSl(sl)
+		}
+	}
 }

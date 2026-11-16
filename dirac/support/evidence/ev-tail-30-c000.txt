@@ -11,6 +11,7 @@ Alaborn Musketeer
 Alesha, Who Smiles at Death
 Ambuscade Shaman
 Ancestral Memories
+Ancient Stone Idol
 Angelfire Crusader
 Angelic Skirmisher
 Anoint
@@ -23,15 +24,21 @@ Artificer's Epiphany
 Ascendant Acolyte
 Assassin Gauntlet
 Assassin's Strike
+Assure
+Atlas, Sizable Stooge
 Auramancer
+Avacyn, Angel of Hope
 Axebane Stag
+Baffling End
 Balduvian Barbarians
 Balduvian Hydra
 Ballista Charger
 Barbed Spike
+Barbed-Back Wurm
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
+Battering Wurm
 Battle-Scarred Goblin
 Beanstalk Giant
 Beastcaller Savant
@@ -54,7 +61,9 @@ Boris Devilboon
 Bravado
 Breach the Multiverse
 Breath of Life
+Brigone, Soldier of Meletis
 Bull Aurochs
+Bull-Rush Bruiser
 Bumbling Pangolin
 Burdened Aerialist
 Cackling Flames
@@ -79,15 +88,19 @@ Clergy en-Vec
 Cliffrunner Behemoth
 Collective Defiance
 Commander Greven il-Vec
+Concerted Defense
 Consecrate
+Consumptive Goo
 Coronation of Chaos
 Corpse Knight
+Covenant of Blood
 Crown of Empires
 Cruel Deceiver
 Crushing Vines
 Curse of the Forsaken
 Cursed Flesh
 Darksteel Sentinel
+Deadapult
 Deadly Derision
 Decanter of Endless Water
 Defiant Ogre
@@ -107,10 +120,12 @@ Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
 Echoing Truth
+Electrozoa
 Elvish Champion
 Elvish Hydromancer
 Embodiment of Insight
 Empyreal Voyager
+Enter the Infinite
 Errand-Rider of Gondor
 Escape from Orthanc
 Essence of Orthodoxy
@@ -128,21 +143,26 @@ Firefist Adept
 Firemind's Foresight
 Fit of Rage
 Flaming Fist Officer
+Flight of Equenauts
 Folk Medicine
 Forest
 Forestfolk
 Frazzle
 Frontline Devastator
+Gallia of the Endless Dance
 General Kreat, the Boltbringer
 Geralf, Visionary Stitcher
 Gerrard's Wisdom
+Ghitu Chronicler
 Ghor-Clan Rampager
 Giant Warthog
 Gibbering Fiend
 Gideon's Lawkeeper
+Gift of Orzhova
 Gilt-Leaf Winnower
 Glimpse of Freedom
 Glyph Elemental
+Goblin Morningstar
 Goblin Trenches
 God-Pharaoh's Faithful
 Godo, Bandit Warlord
@@ -154,10 +174,12 @@ Hard Evidence
 Harmonic Prodigy
 Hate Mirage
 Haunted Mire
+Havoc Jester
 Healer of the Glade
 Healer of the Pride
 Hecatomb
 Highborn Ghoul
+Hightide Hermit
 Hoard Robber
 Honden of Life's Web
 Hooded Hydra
@@ -165,23 +187,29 @@ Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
 Hunted Witness
+Hush
 Hypnotic Specter
+Illusionary Informant
 Indomitable Archangel
 Instill Furor
 Intimidation
 Into the Core
+Into the Wilds
 Invigorated Rampage
 Ionize
 Ironshell Beetle
 Island
+Jacked Rabbit
 Jinx
 Jinxed Idol
+Judge's Familiar
 Jukai Naturalist
 Juntu Stakes
 Kaervek, the Spiteful
 Keldon Raider
 Kelsien, the Plague
 Kessig Naturalist
+Ketria Crystal
 Kiora Bests the Sea God
 Knight of Dawn's Light
 Kor Aeronaut
@@ -192,8 +220,10 @@ Lancer Sliver
 Legolas, Master Archer
 Levitation
 Life
+Lightning Shrieker
 Liliana's Shade
 Liliana's Spoils
+Lunar Hatchling
 Lunge
 Lure of Prey
 Mad Ratter
@@ -202,6 +232,7 @@ MagicConsecrated Sphinx
 Makindi Ox
 Malcator's Watcher
 March from the Tomb
+Marcus, Mutant Mayor
 Mardu Hateblade
 Martyr for the Cause
 Mass Calcify
@@ -218,8 +249,10 @@ Moriok Rigger
 Mountain
 Mourning Thrull
 Mox Pearl
+Munda's Vanguard
 Murderer's Axe
 Mushroom Watchdogs
+Mutant's Prey
 Myr Servitor
 Mystic Visionary
 Nakaya Shade
@@ -232,7 +265,9 @@ No Way Out
 Nuisance Engine
 Nurgle's Rot
 Oakgnarl Warrior
+Ogre Savant
 Oni of Wild Places
+Oracle's Vault
 Origin of Black Widow
 Overseer of the Damned
 Painsmith
@@ -243,11 +278,14 @@ Perilous Voyage
 Pheres-Band Thunderhoof
 Phyrexian Battleflies
 Plains
+Plated Geopede
+Plated Spider
 Polymorphist's Jest
 Power Sink
 Practical Research
 Precognition Field
 Primeval Titan
+Pyre Hound
 Quandrix Pledgemage
 Raff, Weatherlight Stalwart
 Raging Bull
@@ -271,11 +309,14 @@ Ring of Immortals
 Rites of Reaping
 Ronin Warclub
 Rotcrown Ghoul
+Ruination Wurm
 Run Afoul
 Runeboggle
+Ruric Thar, the Unbowed
 Rush the Room
 Safe Haven
 Saltwater Stalwart
+Samut, Vizier of Naktamun
 Sandcrafter Mage
 Sanguinary Mage
 Saprazzan Cove
@@ -284,8 +325,11 @@ Savage Twister
 Scavenger Folk
 Scribe of the Mindful
 Seahunter
+Secret Rendezvous
 Seizan, Perverter of Truth
 Sensory Deprivation
+Sentinel Sarah Lyons
+Seraph of the Masses
 Shadow Alley Denizen
 Shadow Guildmage
 Shadow Lance
@@ -296,6 +340,7 @@ Show of Confidence
 Shriekmaw
 Siani, Eye of the Storm
 Sibling Rivalry
+Silhana Wayfinder
 Silumgar Monument
 Silverback Shaman
 Silvercoat Lion
@@ -312,6 +357,7 @@ Solid Footing
 Soothsayer Adept
 Soratami Cloudskater
 Soul Sear
+Spartan Veteran
 Spellbane Centaur
 Stall for Time
 Stalwart Shield-Bearers
@@ -344,11 +390,14 @@ The First Eruption
 The Howling Commandos
 The Triumph of Anax
 Their Name Is Death
+Thought Courier
 Thriving Grubs
 Thriving Rhino
+Tobias Andrion
 Tolsimir Wolfblood
 Toph, Earthbending Master
 Touch of the Eternal
+Trapped in the Tower
 Traumatic Revelation
 Treasury Thrull
 Treetop Recluse
@@ -365,12 +414,16 @@ Uproot
 Urabrask's Anointer
 Urborg Syphon-Mage
 Vashta Nerada
+Vastwood Gorger
 Venerable Monk
 Veteran Cathar
 Veteran Swordsmith
 Viper, Cruel Conspirator
+Vision, Synthezoid Avenger
+Vitality Charm
 Vodalian Hypnotist
 Voice of Law
+Volcanic Dragon
 Volrath's Gardens
 Vraska's Finisher
 Wall of Blood
@@ -393,3 +446,4 @@ Young Red Dragon
 Zektar Shrine Expedition
 Zerapa Minotaur
 Zhang He, Wei General
+Zimone, Infinite Analyst

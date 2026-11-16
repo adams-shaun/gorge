@@ -23,6 +23,7 @@ Avatar of Might
 Aven Cloudchaser
 Aven Eternal
 Awaken the Bear
+Azorius Knight-Arbiter
 Azorius Signet
 Baird, Steward of Argive
 Balduvian Barbarians
@@ -69,6 +70,7 @@ Cache Raiders
 Cacophony Unleashed
 Calming Verse
 Capital Guard
+Carnage Interpreter
 Carven Caryatid
 Cast into the Fire
 Catapult Fodder
@@ -167,6 +169,7 @@ Giant Scorpion
 Glade Watcher
 Glass of the Guildpact
 Gleeful Arsonist
+Glenn, the Voice of Calm
 Glimmerpost
 Glimpse of Nature
 Glorious Charge
@@ -192,6 +195,7 @@ Hero of the Pride
 High Priest of Penance
 Highland Lake
 Hinterland Drake
+Hoodwink
 Hornet Cobra
 Hour of Promise
 Howling Giant
@@ -272,6 +276,7 @@ On Wings of Gold
 Oracle of Tragedy
 Ornithopter
 Owlbear Shepherd
+Pain
 Painsmith
 Paragon of Open Graves
 Parch
@@ -323,6 +328,7 @@ Rusted Sentinel
 Ruthless Sniper
 Sabertooth Wyvern
 Sacred Guide
+Safewright Quest
 Sage-Eye Avengers
 Saheeli Rai
 Said
@@ -355,6 +361,7 @@ Shriekdiver
 Shrink
 Sigardian Savior
 Silverbeak Griffin
+Silverquill Pledgemage
 Simian Grunts
 Sinister Gnarlbark
 Skarrgan Pit-Skulk
@@ -367,6 +374,7 @@ Solidarity
 Soratami Cloudskater
 Soul Rend
 Soul's Might
+Soulquake
 Soulstealer Axe
 Spawn-Gang Commander
 Spectral Rider
@@ -380,6 +388,7 @@ Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
 Steadfastness
+Steel Leaf Champion
 Stingscourger
 Stronghold Overseer
 Summon Undead
@@ -399,6 +408,7 @@ Tavern Brawler
 Telethopter
 Tempered Veteran
 Tenured Oilcaster
+The Cabbage Merchant
 The Fair Basilica
 The Frightful Four
 The Juzam Master
@@ -436,6 +446,7 @@ Vedalken Mesmerist
 Venomous Brutalizer
 Vernal Sovereign
 Vesper Ghoul
+Vexing Bauble
 Vicious Offering
 Village Rites
 Virtus the Veiled
@@ -444,6 +455,7 @@ Voltaic Construct
 Wall of Denial
 Wall of Distortion
 Wall of Hope
+War Elemental
 Warlord's Fury
 Warped Landscape
 Watcher in the Mist

@@ -14,6 +14,7 @@ Alpha Deathclaw
 Always Watching
 Amulet of Vigor
 And They Shall Know No Fear
+Angel of the Ruins
 Apostle of Purifying Light
 Appetite for the Unnatural
 Aqueous Form
@@ -58,6 +59,7 @@ Corrosive Mentor
 Cryptic Pursuit
 Cynette, Jelly Drover
 Dakmor Lancer
+Darkblast
 Dauntless Escort
 Dawn of Hope
 Deadeye Tormentor
@@ -73,6 +75,7 @@ Dispense Justice
 Distress
 Draconian Cylix
 Drifting Shade
+Drooling Groodion
 Dry Spell
 Dwarven Armory
 Dwarven Patrol
@@ -93,9 +96,11 @@ Eyeblight Cullers
 Faith Healer
 Falkenrath Celebrants
 Fallaji Excavation
+Fallaji Vanguard
 Fanged Flames
 Field-Tested Frying Pan
 Fire Nation's Conquest
+Flame-Kin Zealot
 Flensermite
 Flowstone Infusion
 Font of Fortunes
@@ -113,17 +118,22 @@ Glimmer of Genius
 Glitterfang
 Glorious Anthem
 Gold Myr
+Golgari Locket
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
+Grotag Bug-Catcher
 Groundbreaker
 Gryffwing Cavalry
+Guardian of Vitu-Ghazi
 Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
 Hedron Detonator
+Hellion Crucible
 Helm of the Gods
 Herald of the Dreadhorde
+Hero of Leina Tower
 Hibernation
 Homicidal Seclusion
 Hope Tender
@@ -133,9 +143,11 @@ Hungering Hydra
 Hunter's Ambush
 Incursion Specialist
 Industrial Advancement
+Inner Sanctum
 Inner Struggle
 Insatiable Gorgers
 Instill Infection
+Ishkanah, Grafwidow
 Island
 Ixalli's Keeper
 Jagwasp Swarm
@@ -148,6 +160,7 @@ Joraga Visionary
 Kabuto Moth
 Kami of the Crescent Moon
 Kangee's Lieutenant
+Kardur's Vicious Return
 Kazandu Tuskcaller
 Kefnet's Last Word
 Kenku Artificer
@@ -156,10 +169,13 @@ Kranioceros
 Light of Day
 Lightning Visionary
 Livaan, Cultist of Tiamat
+Losheel, Clockwork Scholar
 Maestros Initiate
 Magma Phoenix
 Magmatic Force
 Makeshift Mauler
+Manacles of Decay
+Marchesa's Smuggler
 Mask of Riddles
 Merchant of Secrets
 Might of Old Krosa
@@ -171,6 +187,7 @@ Mortis Dogs
 Mother Bear
 Mountain
 Mournwillow
+Murderous Redcap
 Mycoid Shepherd
 Mystic Skyfish
 Mystic Snake
@@ -188,6 +205,7 @@ On Serra's Wings
 Oran-Rief Ooze
 Ore-Scale Guardian
 Oreskos Swiftclaw
+Organic Extinction
 Perilous Forays
 Petrified Field
 Phyrexian Scriptures
@@ -202,12 +220,15 @@ Prodigal Sorcerer
 Profaner of the Dead
 Professor's Warning
 Propaganda
+Proper Burial
 Protocol Knight
 Pygmy Razorback
+Quakebringer
 Quest for Renewal
 Radiant Destiny
 Radiant Essence
 Rage Reflection
+Rakdos Shred-Freak
 Rapid Hybridization
 Reach Through Mists
 Reckless Brute
@@ -215,6 +236,8 @@ Reinforced Ronin
 Reinterpret
 Reptilian Reflection
 Reservoir Kraken
+Resounding Silence
+Restless Apparition
 Rhys the Exiled
 Ritual of Steel
 Rogue Elephant
@@ -248,6 +271,7 @@ Siegecraft
 Silhana Ledgewalker
 Skitterskin
 Skybind
+Skyfire Kirin
 Slavering Nulls
 Spark of Creativity
 Spectral Force
@@ -270,6 +294,7 @@ Talruum Minotaur
 The Mana Rig
 Thran Quarry
 Throne of Bone
+Thunderblust
 Tibalt, the Fiend-Blooded
 Tide Skimmer
 Tonic Peddler
@@ -280,6 +305,7 @@ Trip Noose
 Trophy Mage
 Turbulent Fen
 Uktabi Orangutan
+Ultron the Annihilator
 Umara Mystic
 Unagi's Spray
 Undercity Informer

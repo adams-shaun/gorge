@@ -32,6 +32,7 @@ Dreadmalkin
 Ebony Fly
 Electrickery
 Encampment Keeper
+Equilibrium
 Ethereal Haze
 Expel from Orazca
 Exultant Skymarcher
@@ -40,6 +41,7 @@ Falthis, Shadowcat Familiar
 Fearless Skald
 Foil
 Forest
+Frenzied Saddlebrute
 Frogify
 Future Sight
 Gemhide Sliver
@@ -47,13 +49,16 @@ General Kreat, the Boltbringer
 Genju of the Fields
 Grakk the Pacifist
 Gray Merchant of Asphodel
+Grinding Station
 Hada Spy Patrol
 Hand of Death
+Havoc Jester
 Helm of the Ghastlord
 Hunger of the Howlpack
 Innocent Blood
 Irregular Cohort
 Island
+Jubilant Mascot
 Kami of the Crescent Moon
 Karoo
 Keldon Strike Team
@@ -70,6 +75,7 @@ Momentary Blink
 Mothdust Changeling
 Mountain
 Multani, Yavimaya's Avatar
+Mystic Speculation
 Nantuko Elder
 Oblivion Ring
 Phantom Flock
@@ -78,6 +84,7 @@ Pollenbright Druid
 Pongify
 Presence of Gond
 Priest of Gix
+Pyreheart Wolf
 Rain of Filth
 Rapid Hybridization
 Reanimate
@@ -87,6 +94,7 @@ Ricochet Trap
 Rite of Consumption
 Roar of Challenge
 Rootborn Defenses
+Scrapwork Mutt
 Searing Spear
 Shambling Ghast
 Shiny Impetus
@@ -117,6 +125,8 @@ Volcanic Geyser
 Voldaren Epicure
 Wall of Tears
 Warchief Giant
+Watcher for Tomorrow
 Wight of Precinct Six
+Windrider Eel
 Witch's Mark
 Writhing Chrysalis

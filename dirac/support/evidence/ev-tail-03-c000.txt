@@ -4,6 +4,7 @@ Acolyte of the Inferno
 Ainok Bond-Kin
 Ainok Guide
 Ajani's Mantra
+Ajani, Adversary of Tyrants
 Altar's Light
 Ancestral Memories
 Applied Biomancy
@@ -51,6 +52,7 @@ Buccaneer's Bravado
 Bulwark
 Bygone Bishop
 Cabal Executioner
+Call the Skybreaker
 Campus Renovation
 Capsize
 Celestial Crusader
@@ -67,6 +69,7 @@ Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
+Conclave Phalanx
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
@@ -106,6 +109,7 @@ Dust Elemental
 Eerie Procession
 Eiganjo Uprising
 Eiganjo, Seat of the Empire
+Eldrazi Ravager
 Elvish Vanguard
 Ember Beast
 Enchantress's Presence
@@ -134,6 +138,7 @@ Fogwalker
 Font of Mythos
 Forbid
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruit of Tizerus
 Fruitcake Elemental
@@ -192,6 +197,7 @@ Innocent Blood
 Inspired Tinkering
 Iridescent Angel
 Island
+Jace, Memory Adept
 Jamie McCrimmon
 Jeskai Student
 Jolrael, Mwonvuli Recluse
@@ -245,14 +251,17 @@ Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
+Muzzle
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent
+Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
 Nessian Asp
 Nesting Dragon
+Neutralize
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker
@@ -283,12 +292,14 @@ Phthisis
 Phyrexian Metamorph
 Phyrexian Monitor
 Phyrexian Rebirth
+Plagon, Lord of the Beach
 Plains
 Plated Wurm
 Plundering Barbarian
 Prismatic Strands
 Profit
 Prophet of Kruphix
+Prosperous Partnership
 Psychic Allergy
 Puppet Conjurer
 Raging Spirit
@@ -313,6 +324,7 @@ Sailors' Bane
 Salvage Scuttler
 Samite Herbalist
 Samut, Voice of Dissent
+Sanctum of Fruitful Harvest
 Sapphire Medallion
 Sarinth Steelseeker
 Scarblade Elite
@@ -331,6 +343,7 @@ Sigiled Skink
 Silundi Vision
 Silvan Reveler
 Simic Cluestone
+Simic Locket
 Skirk Ridge Exhumer
 Skitterbeam Battalion
 Slab Hammer
@@ -396,6 +409,7 @@ Ulgrotha Charm
 Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
+Urza, Prince of Kroog
 Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
@@ -417,6 +431,7 @@ Wei Ambush Force
 Wild Beastmaster
 Wilson, Refined Grizzly
 Wintermoon Mesa
+Wirewood Symbiote
 Wizard Class
 Woebearer
 Wolfcaller's Howl

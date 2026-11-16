@@ -390,10 +390,11 @@ func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][
 // holdsNameChooser reports whether a deck card chooses a card name as it
 // enters (an ETB replacement whose effect is NameCard: Kai Winn, Faithless
 // Leader) or mid-resolution (gorge effNameCard's SP$/DB$/AB$ NameCard:
-// Demonic Consultation, Cheering Fanatic). Either ask ranges over the
-// matchup's name universe, which the kernel lists (Table.NameCards,
-// Table.NameCardsAny), so a game where one of them may ask names only its
-// own cards.
+// Demonic Consultation, Cheering Fanatic — whose ask is a trigger body's
+// Execute$ chain, so Triggers walk beside Repls and Abilities). Either ask
+// ranges over the matchup's name universe, which the kernel lists
+// (Table.NameCards, Table.NameCardsAny), so a game where one of them may ask
+// names only its own cards.
 func holdsNameChooser(decks [2][]*cards.Card) bool {
 	return holdsNameChooserN(decks[:])
 }
@@ -408,6 +409,13 @@ func holdsNameChooserN(decks [][]*cards.Card) bool {
 			for _, f := range c.Faces {
 				if f == nil {
 					continue
+				}
+				for _, t := range f.Triggers {
+					for a := t.Effect; a != nil; a = a.Sub {
+						if a.API == "NameCard" {
+							return true
+						}
+					}
 				}
 				for _, r := range f.Repls {
 					for a := r.With; a != nil; a = a.Sub {

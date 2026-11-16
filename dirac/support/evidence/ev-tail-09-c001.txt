@@ -2,53 +2,93 @@ A-Goggles of Night
 Abnormal Endurance
 Abyssal Hunter
 Agent of the Iron Throne
+Ambush
+Ancient Excavation
+Archon of Emeria
+Argothian Pixies
 Arms of Hadar
 Arwen's Gift
+Axelrod Gunnarson
 Balloon Peddler
 Barrage of Boulders
 Bitter Revelation
 Blood Fountain
+Blood Ogre
+Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
+Borrowed Hostility
 Bull Rush
 Canal Monitor
 Carrion
+Cateran Slaver
 Ceaseless Conflict
+Citizen's Crowbar
 Cleric of the Forward Order
 Clutch of Undeath
 Concentrated Fire
 Contagion
 Crash of Rhinos
+Creepy Puppeteer
 Crossway Vampire
+Crude Rampart
 Cyclonic Rift
 Dakmor Sorceress
+Dark Prophecy
+Dawning Purist
 Dawnray Archer
 Deconstruct
+Demanding Dragon
 Detective of the Month
 Donate
 Dream Stalker
 Earsplitting Rats
+Electrostatic Bolt
+Electrostatic Field
 Enraged Killbot
 Evincar's Justice
 Fallen Ferromancer
 Far
+Farmstead
+Fathom Fleet Firebrand
+Feral Lightning
+Festering March
+Fit of Rage
+Flaming Fist
 Flowstone Blade
+Flowstone Overseer
 Flying Men
+Footfall Crater
 Forest
 Foundry Screecher
 Freedom Fighter Recruit
+Frenzied Raptor
 Frost Lynx
 Frost Walker
 Furnace Celebration
+Ghost Lantern
 Giant Cockroach
 Gitaxian Probe
 Glasswing Grace
+Glimpse the Unthinkable
 Gloom Sower
+Goblin Berserker
+Goblin Grenadiers
+Goblin Machinist
 Goblin Raider
 Goblin Wizardry
+Gravelighter
+Grenzo's Cutthroat
+Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Harpoon Sniper
 Hissing Miasma
+Hollowhenge Spirit
 Hunter's Bow
+Igneous Elemental
+Ill-Tempered Loner
+Immortal Servitude
+Increasing Vengeance
 Indulgent Tormentor
 Ironhoof Ox
 Island
@@ -56,17 +96,32 @@ Jhovall Queen
 Jinxed Ring
 Kamahl, Heart of Krosa
 Kelsinko Ranger
+Ken, Burning Brawler
 Kingfisher
+Lady Orca
+Landbind Ritual
 Lay Bare
+Madcap Skills
 Magus of the Bazaar
 Marauding Dreadship
 Mask of Immolation
+Mephitic Vapors
+Mistral Charger
+Moat
+Monoskelion
 Mossdog
 Mountain
 Muzzio, Visionary Architect
+Nemesis of Reason
+Neonate's Rush
+Nomads' Assembly
 Numbing Jellyfish
+Nyxborn Courser
 Okina Nightwatch
+Onakke Ogre
+Outpost Siege
 Ozox, the Clattering King
+Pegasus Refuge
 Pelargir Survivor
 Phantom Monster
 Phyrexian Crusader
@@ -74,35 +129,66 @@ Phyrexian Rager
 Pit Keeper
 Plains
 Prophetic Bolt
+Pterodon Knight
 Pulse of the Grid
+Pyric Salamander
 Pyrotechnics
 Quench
+Rage Nimbus
 Raging Cougar
+Rakdos Firewheeler
+Ray of Distortion
 Reckless Assault
+Rend Flesh
+Repopulate
+Restrain
+Revered Elder
+Rhox Pikemaster
 Ridged Kusite
 Rishadan Cutpurse
+Rites of Initiation
+Rogue Kavu
 Royal Assassin
 Rude Awakening
+Rushblade Commander
+Safe Passage
 Saurian Symbiote
+Scampering Scorcher
+Scourglass
+Security Detail
 Seize the Storm
+Serenity
 Serra's Embrace
 Shadowstorm
 Skirk Outrider
+Skithiryx, the Blight Dragon
 Skyclave Pick-Axe
+Skyhunter Skirmisher
+Sleep with the Fishes
+Snare Tactician
 Sonic Assault
 Soul Diviner
 Soul Salvage
 Squall
 Stark's Ingenuity
 Stoic Rebuttal
+Stone Drake
 Swamp
+Target Minotaur
 Taunting Sliver
 Temporal Spring
 Thassa's Rebuff
 Touch of Darkness
+Tymna the Weaver
 Unnerve
 Untethered Express
+Vault Robber
+Vertigo
 Vial of Dragonfire
+Viashino Slasher
 Victual Sliver
+Vithian Stinger
+Voice of All
+War Falcon
 Warmonger's Chariot
 Weary Prisoner

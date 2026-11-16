@@ -7,18 +7,22 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
+Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
 Alabaster Wall
 Aladdin's Ring
 Altar Golem
 Amulet of Vigor
+Anaba Ancestor
 Ancient Kavu
 Angrath's Marauders
 Ant-Man, Elusive Avenger
 Antagonize
 Arcane Laboratory
 Armageddon
+Ascended Lawmage
 Ascending Aven
 Asylum Visitor
 Atalya, Samite Master
@@ -28,6 +32,7 @@ Avatar of Might
 Aven Battle Priest
 Azorius Keyrune
 Banishing Slash
+Baron Sengir
 Baru, Wurmspeaker
 Basri's Aegis
 Bast, Panther Goddess
@@ -43,12 +48,14 @@ Bloodline Necromancer
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
 Cankerbloom
@@ -66,6 +73,8 @@ Cho-Manno, Revolutionary
 Choking Fumes
 Choose Your Weapon
 Chronomancer
+Cinder Crawler
+Cinderbones
 Citanul Woodreaders
 Cleric of Chill Depths
 Cloud Crusader
@@ -79,11 +88,14 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 Dalek Drone
 Daraja Griffin
+Daxos of Meletis
 Deepcavern Imp
+Defender of Law
 Deflection
 Dehydration
 Destroy Evil
@@ -92,7 +104,9 @@ Dhund Operative
 Digsite Engineer
 Dire Fleet Neckbreaker
 Dirtwater Wraith
+Domri's Nodorog
 Dragon Egg
+Dragonstorm
 Drannith Ruins
 Dreadwaters
 Drover of the Mighty
@@ -126,10 +140,12 @@ Freed from the Real
 Frog-Squirrels
 Frostfist Strider
 Fumble
+Furnace Dragon
 Furnace Scamp
 Futurist Sentinel
 Game-Trail Changeling
 Gavony Trapper
+Geist Snatch
 Geistblast
 Generous Patron
 Gift of the Viper
@@ -164,14 +180,17 @@ Inferno Titan
 Infinity Formula
 Infused Arrows
 Into the Story
+Invasion of Lorwyn
 Invasive Species
 Ironroot Treefolk
 Island
 Isolate
+Jokulmorder
 Kardur, Doomscourge
 Kargan Dragonlord
 Killian, Ink Duelist
 Knight of Infamy
+Knowledge and Power
 Kolaghan Forerunners
 Krakilin
 Land Grant
@@ -194,6 +213,7 @@ Mage Duel
 Magmatic Channeler
 Manabond
 Manglehorn
+Mardu Banner
 Maw of the Obzedat
 Megrim
 Meldweb Curator
@@ -227,6 +247,7 @@ Noxious Toad
 Oasis
 Oath of the Ancient Wood
 Obelisk of Esper
+Octavia, Living Thesis
 Oji, the Exquisite Blade
 Omen of the Sun
 Oracle of Tragedy
@@ -253,6 +274,7 @@ Ravenous Baboons
 Ravenous Bloodseeker
 Razorfin Hunter
 Reito Lantern
+Reiver Demon
 Relic Bane
 Relic Sloth
 Repercussion
@@ -268,6 +290,7 @@ Rousing of Souls
 Ruination Wurm
 Safeguard
 Sandsteppe Outcast
+Sanguine Bond
 Scion of Glaciers
 Scourge of Skola Vale
 Screamreach Brawler
@@ -287,6 +310,7 @@ Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
+Shield Mare
 Shriekhorn
 Shrill Howler
 Shrivel
@@ -327,6 +351,7 @@ Survival Cache
 Swamp
 Swan Song
 Swarmyard
+Swerve
 Tah-Crop Skirmisher
 Tajuru Beastmaster
 Take Possession
@@ -341,6 +366,7 @@ The Destined White Mage
 Thing Swing
 Thorn Mammoth
 Thoughtseize
+Thoughtweft Gambit
 Thrasher Brute
 Thriss, Nantuko Primus
 Thunder Strike
@@ -348,12 +374,14 @@ Tidings
 Tigereye Cameo
 Time Wipe
 Time of Heroes
+Titans' Vanguard
 Topan Ascetic
 Tormented Hero
 Torsten, Founder of Benalia
 Tower Defense
 Tower Drake
 Triton Shorethief
+Tunnel
 Turn the Tide
 Turnabout
 Uktabi Efreet
@@ -369,6 +397,7 @@ Vampire Revenant
 Vampire Warlord
 Vengeful Regrowth
 Venom Blast
+Venser, Fervent Forger
 Vineshaper Mystic
 Vivid Revival
 Vivisurgeon's Insight
@@ -387,4 +416,5 @@ Whisper Agent
 Xiahou Dun, the One-Eyed
 You Come to the Gnoll Camp
 Yuan Shao, the Indecisive
+Zhao, the Seething Flame
 Zuran Orb

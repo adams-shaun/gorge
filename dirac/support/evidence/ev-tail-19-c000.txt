@@ -3,15 +3,18 @@ A-Heartfire Hero
 A-Phylath, World Sculptor
 A-Symmetry Sage
 Aarakocra Sneak
+Abomination
 Academy Elite
 Acidic Slime
 Aerie Auxiliary
 Aetherstorm Roc
 Akki Blizzard-Herder
+Akroma's Vengeance
 Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
 Allied Reinforcements
+Alpha Deathclaw
 Ancient Lumberknot
 Angel of Glory's Rise
 Ankh of Mishra
@@ -40,6 +43,7 @@ Bloodbraid Challenger
 Bonesplitter Sliver
 Boots of Speed
 Borborygmos
+Brainspoil
 Brilliant Spectrum
 Bumi, Eclectic Earthbender
 Buoyancy
@@ -77,7 +81,9 @@ Cryptbreaker
 Crystalline Nautilus
 Damn
 Daru Warchief
+Death Mutation
 Death's Caress
+Deathmark Prelate
 Deepwood Ghoul
 Defensive Maneuvers
 Defiant Strike
@@ -87,6 +93,7 @@ Disciple of Grace
 Disciple of the Ring
 Dragon's Desire
 Dragonwing Glider
+Drain the Well
 Dreadhound
 Dreadlight Monstrosity
 Dromoka Warrior
@@ -95,6 +102,7 @@ Druid of Horns
 Druidic Satchel
 Drumbellower
 Dual Shot
+Ebony Treefolk
 Efreet Flamepainter
 Eiganjo Exemplar
 Electrosiphon
@@ -103,10 +111,12 @@ Elemental Augury
 Elephant Resurgence
 Ellivere of the Wild Court
 Elvish Promenade
+Emeria, the Sky Ruin
 Emmara, Soul of the Accord
 Epiphany at the Drownyard
 Essence Infusion
 Evaporate
+Everbark Shaman
 Evie Frye
 Extract from Darkness
 Extremis Elite
@@ -193,6 +203,7 @@ Kazuul Warlord
 Keeper of Secrets
 Keldon Mantle
 Knight of Dusk
+Kogla, the Titan Ape
 Kraken Hatchling
 Kraum, Ludevic's Opus
 Krenko's Command
@@ -209,6 +220,7 @@ Lizard Warrior
 Llanowar Sentinel
 Loamcrafter Faun
 Longbow Archer
+Maraleaf Pixie
 Marble Titan
 Massacre
 Melira's Keepers
@@ -221,12 +233,14 @@ Miracle Worker
 Misers' Cage
 Mistvault Bridge
 Mob Justice
+Molten Echoes
 Mortipede
 Mountain
 Murasa Brute
 Myojin of Infinite Rage
 Myr Sire
 Márton Stromgald
+Nature's Embrace
 Nausea
 Neheb, the Eternal
 Nimble Innovator
@@ -240,6 +254,7 @@ Origin of Black Widow
 Orochi Sustainer
 Orzhov Signet
 Ossuary Rats
+Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
 Phantom Centaur
@@ -253,6 +268,7 @@ Pinnacle of Rage
 Plains
 Popular Entertainer
 Possessed Aven
+Predator's Rapport
 Pulse of Murasa
 Quicksilver Amulet
 Quicksilver Dagger
@@ -288,6 +304,7 @@ School of Piranha
 Scorch Rider
 Scorchwalker
 Scrap Trawler
+Scrapwork Mutt
 Sea Sprite
 Self-Inflicted Wound
 Sell-Sword Brute
@@ -297,6 +314,7 @@ Shatterskull Charger
 Shatterskull Smashing
 Shield-Wall Sentinel
 Shimmering Wings
+Shinechaser
 Shinen of Life's Roar
 Sickleslicer
 Sif's Spearmaster
@@ -319,6 +337,8 @@ Squelching Leeches
 Squirrel Sovereign
 Staff of the Storyteller
 Stave Off
+Stern Marshal
+Stick, Fearless Mentor
 Stone Calendar
 Stone Drake
 Strangle
@@ -333,6 +353,7 @@ Swamp
 Talrand's Invocation
 Tanglebloom
 Temporal Mastery
+The Destined Black Mage
 The Keeper of the Yellow Hat
 The Mary Janes
 Theater of Horrors
@@ -376,6 +397,7 @@ Wake the Dragon
 Wake the Past
 Walker of the Grove
 Walking Atlas
+Wall of Roots
 Warlock Class
 Wave of Indifference
 Weaver of Harmony
@@ -391,6 +413,7 @@ Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
 Wormfang Behemoth
+Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
 Yavimaya Gnats
 Yavimaya Sapherd

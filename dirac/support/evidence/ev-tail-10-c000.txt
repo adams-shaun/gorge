@@ -14,6 +14,7 @@ Aether Swooper
 Agent of the Fates
 Airdrop Aeronauts
 Alpine Grizzly
+Alpine Houndmaster
 Amphin Pathmage
 Anax, Hardened in the Forge
 Angel of Light
@@ -24,6 +25,7 @@ Arch of Orazca
 Archangel Elspeth
 Argent Dais
 Armillary Sphere
+Armored Wolf-Rider
 Artifact Unknown Shores
 Ascend from Avernus
 Auramancer
@@ -63,14 +65,17 @@ Bronze Sable
 Bruna, the Fading Light
 Brutalizer Exarch
 Cacophodon
+Call of the Conclave
 Canopy Claws
 Cao Ren, Wei Commander
 Carrier Thrall
+Carrion Feeder
 Case of the Shifting Visage
 Caustic Wasps
 Celestial Archon
 Ceremonious Rejection
 Chandra, Pyrogenius
+Chandra, the Firebrand
 Child of the Pack
 Chosen of Markov
 Chromescale Drake
@@ -95,6 +100,7 @@ Cylian Elf
 D'Avenant Trapper
 Darksteel Gargoyle
 Dash Hopes
+Dawn of a New Age
 Dazzling Ramparts
 Decanter of Endless Water
 Decimator Beetle
@@ -110,6 +116,7 @@ Doctor Doom, Unrivaled
 Donatello's Science Lesson
 Doric, Nature's Warden
 Doublecast
+Drana's Chosen
 Dreg Recycler
 Dromosaur
 Duskborne Skymarcher
@@ -144,6 +151,7 @@ Forest
 Forget
 Foxfire
 Frost Breath
+Frost Fair Lure Fish
 Frostburn Weird
 Gallantry
 Galvanic Juggernaut
@@ -154,6 +162,7 @@ Glasspool Mimic
 Glint
 Goblin Caves
 Goblin Cohort
+Goblin Furrier
 Goblin Gardener
 Goblin Picker
 Goblin Shrine
@@ -163,6 +172,7 @@ Grapeshot Catapult
 Grasping Thrull
 Grey Host Reinforcements
 Grim Monolith
+Gwafa Hazid, Profiteer
 Halo Forager
 Halo Hopper
 Hapatra's Mark
@@ -170,6 +180,7 @@ Harmonious Archon
 Haunted Cadaver
 Headstone
 Heal the Scars
+Heart-Piercer Bow
 Heated Debate
 Hedron Crawler
 Hemlock Vial
@@ -188,7 +199,9 @@ Idyllic Grange
 Ignite the Beacon
 Illusory Wrappings
 Indulging Patrician
+Inner Demon
 Inspiring Commander
+Invasion of Ergamon
 Invasion of Kaladesh
 Ironclaw Orcs
 Island
@@ -234,6 +247,7 @@ Magmaquake
 Mahamoti Djinn
 Maja, Bretagard Protector
 Majestic Genesis
+Mangara's Blessing
 Marang River Skeleton
 Marsh Flitter
 Marsh Threader
@@ -252,6 +266,7 @@ Mischievous Poltergeist
 Mishra, Excavation Prodigy
 Mists of Littjara
 Mnemonic Sliver
+Momir Vig, Simic Visionary
 Monumental Henge
 Moonlit Scavengers
 Morgue Theft
@@ -291,6 +306,7 @@ Pegasus Guardian
 People of the Woods
 Perplexing Test
 Petrifying Meddler
+Phantom Nishoba
 Phyrexian Broodlings
 Phyrexian Denouncer
 Phyrexian Pegasus
@@ -340,6 +356,8 @@ Scalding Tongs
 Scrapheap
 Screeching Phoenix
 Scroll Thief
+Scuzzback Marauders
+Scuzzback Scrapper
 Sea Eagle
 Seahunter
 Searing Flesh
@@ -371,6 +389,7 @@ Snapsail Glider
 Soldier On
 Somberwald Dryad
 Sorin's Guide
+Soul-Guide Gryff
 Sparktongue Dragon
 Spawnbinder Mage
 Spike Feeder
@@ -380,6 +399,7 @@ Springmane Cervin
 Squad Captain
 Squash
 Stalking Tiger
+Steam Catapult
 Stir the Pride
 Stoic Rebuttal
 Stoneskin
@@ -397,31 +417,38 @@ Swamp
 Swirling Sandstorm
 Sword of Hours
 Tainted Indulgence
+Teferi, Time Raveler
 Temporal Fissure
 Tempting Witch
 Terror of the Fairgrounds
+The Locust God
 The Mirari Conjecture
 Thornscape Familiar
+Thrilling Discovery
 Tireless Tribe
 Torch Gauntlet
 Towering Thunderfist
 Transcendent Envoy
 Trapfinder's Trick
 Traveling Minister
+Trostani, Selesnya's Voice
 Turn Aside
 Twigwalker
 Tymaret Calls the Dead
+Tyrranax Rex
 Undercity Scavenger
 Undercity Scrounger
 Underdark Basilisk
 Underworld Breach
 Universal Automaton
+Unquenchable Thirst
 Urgent Exorcism
 Uthros Research Craft
 Vedalken Blademaster
 Veteran's Voice
 Vicious Battlerager
 Village Elder
+Vivien's Talent
 Vivisurgeon's Insight
 Vizier of Tumbling Sands
 Vulshok Heartstoker
@@ -436,6 +463,7 @@ Wharf Infiltrator
 Whispergear Sneak
 Whispers of the Muse
 Wildfire Cerberus
+Witchstalker
 Withered Wretch
 Wizards of Thay
 Wolfwillow Haven

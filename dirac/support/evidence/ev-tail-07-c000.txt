@@ -1,3 +1,4 @@
+A-Capenna Express
 A-Kona, Rescue Beastie
 A-Leyline of Resonance
 A-Scout the Wilderness
@@ -16,12 +17,15 @@ Ambassador Laquatus
 Ambush Commander
 Ancestral Knowledge
 Angelic Observer
+Angrath, Captain of Chaos
 Answered Prayers
+Apocalypse
 April O'Neil, Human Element
 Archmage Emeritus
 Archon of Sun's Grace
 Ascended Lawmage
 Assault Intercessor
+Assault on Osgiliath
 Assemble the Entmoot
 Astrid Peth
 Atarka Pummeler
@@ -34,6 +38,7 @@ Banewhip Punisher
 Barge In
 Barrage of Expendables
 Basking Rootwalla
+Basri, Devoted Paladin
 Bazaar of Baghdad
 Beast in Show
 Bilbo's Burglaring
@@ -84,6 +89,7 @@ Crystacean
 Cunning Strike
 Cyclopean Mummy
 Daredevil, Fearless Fighter
+Darien, King of Kjeldor
 Darksteel Gargoyle
 Darting Merfolk
 Dawn Evangel
@@ -104,6 +110,7 @@ Druid of the Anima
 Dune Diviner
 Dunes of the Dead
 Duskfang Mentor
+Dust to Dust
 Dwarven Strike Force
 Eager Cadet
 Ekundu Griffin
@@ -121,10 +128,13 @@ Eternal Scourge
 Exuberant Fuseling
 Eye of Ugin
 Fable of the Mirror-Breaker
+Faeburrow Elder
+Faramir, Steward of Gondor
 Favor of the Overbeing
 Feeling of Dread
 Feral Prowler
 Feroz's Ban
+Fevered Suspicion
 Fierce Guardianship
 Fire
 Fire Dragon
@@ -133,9 +143,11 @@ Firemantle Mage
 Flare of Denial
 Flower
 Flowstone Mauler
+Flying Crane Technique
 Force Spike
 Foreshadow
 Forest
+Foriysian Interceptor
 Fragmentize
 Fresh Meat
 Frogify
@@ -143,6 +155,7 @@ Frostveil Ambush
 Frozen Aether
 Furyblade Vampire
 Gadrak, the Crown-Scourge
+Gallifrey Stands
 Gamekeeper
 Gargantos, the Endbringer
 Garrison Sergeant
@@ -153,18 +166,22 @@ Ghost-Lit Nourisher
 Gilt-Leaf Palace
 Give
 Gix's Command
+Glimmerpoint Stag
 Glint Hawk
 Glorious Enforcer
 Goblin Firebug
 Goblin Grenade
 Goblin Spelunkers
 Gods' Eye, Gate to the Reikai
+Gouged Zealot
 Graceblade Artisan
 Grasp of Fate
 Grayscaled Gharial
 Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
+Hallowed Respite
+Harness Infinity
 Harvester Troll
 Headhunter
 Heroes' Reunion
@@ -196,6 +213,7 @@ Knacksaw Clique
 Knight of Autumn
 Knight of the Keep
 Kor Celebrant
+Krark-Clan Engineers
 Kuldotha Cackler
 Landslide
 Legion Guildmage
@@ -210,6 +228,7 @@ Lock and Load
 Lone Rider
 Lost in Memories
 Luxurious Libation
+Mageta the Lion
 Magus of the Wheel
 Majestic Metamorphosis
 Mandible Justiciar
@@ -246,7 +265,9 @@ Noggle Hedge-Mage
 Noise Marine
 Nomad Stadium
 Norwood Ranger
+Novablast Wurm
 Obstinate Baloth
+Ojutai's Command
 Olivia's Attendants
 Ondu Spiritdancer
 One with Death
@@ -270,11 +291,14 @@ Psychic Membrane
 Pulse of Murasa
 Purge
 Purple-Crystal Crab
+Putrid Goblin
 Pyromancer's Assault
 Quagmire Lamprey
 Quarantine Field
+Queen's Commission
 Quick-Draw Dagger
 Rabble-Rouser
+Rabid Bloodsucker
 Raging Regisaur
 Rainbow Efreet
 Rampaging Brontodon
@@ -306,6 +330,7 @@ Rust Elemental
 Sage of Lat-Nam
 Sage's Reverie
 Salvage
+Samut, Voice of Dissent
 Sanguine Statuette
 Satyr Nyx-Smith
 Saving Grasp
@@ -322,11 +347,14 @@ Sejiri Refuge
 Select for Inspection
 Senate Griffin
 Serpent of the Endless Sea
+Serrated Arrows
 Serum Raker
 Sethron, Hurloon General
+Settlement Blacksmith
 Shadowheart, Dark Justiciar
 Sharding Sphinx
 Sharpened Pitchfork
+Shattering Blow
 Sheoldred's Edict
 Shimmer Myr
 Shimmering Barrier
@@ -337,6 +365,7 @@ Siphon Insight
 Sisay, Weatherlight Captain
 Skarrg Goliath
 Skull of Orm
+Slipstream Eel
 Somberwald Spider
 Spaceshift
 Spark Mage
@@ -371,6 +400,7 @@ Symbiosis
 Taigam's Strike
 Talisman of Impulse
 Taunting Kobold
+Teferi's Moat
 Telim'Tor's Darts
 Tempest Caller
 Thalia, Guardian of Thraben
@@ -392,6 +422,7 @@ Tyrant's Scorn
 Uktabi Wildcats
 Ulvenwald Bear
 Urborg Skeleton
+Uro, Titan of Nature's Wrath
 Valko Indorian
 Vampire Bats
 Vernal Bloom
@@ -413,12 +444,16 @@ Wallop
 Wandering Treefolk
 War Screecher
 Warmonger
+Warped Researcher
 Waterfront District
 Wayward Servant
 Wellwisher
 Whipstitched Zombie
+Wildgrowth Walker
+Will of the All-Hunter
 Windrider Patrol
 Wolfsbane, Highland Hero
+Woodvine Elemental
 Wormhole Serpent
 Wreak Havoc
 Wurm's Tooth

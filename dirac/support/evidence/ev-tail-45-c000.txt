@@ -16,6 +16,7 @@ Anara, Wolvid Familiar
 Anthroplasm
 Aphetto Alchemist
 Apothecary Initiate
+Arc Blade
 Arc Lightning
 Argothian Opportunist
 Arisen Gorgon
@@ -27,9 +28,11 @@ Assault Formation
 Atzocan Archer
 Aven Initiate
 Awesome Presence
+Axebane Beast
 Ayumi, the Last Visitor
 Bag End Banquet
 Balduvian Horde
+Barkhide Mauler
 Barrier Breach
 Basic Conjuration
 Battering Craghorn
@@ -61,6 +64,7 @@ Cephalid Vandal
 Chainflinger
 Chameleon Spirit
 Citizen's Crowbar
+Cityscape Leveler
 Clairvoyance
 Clearwater Goblet
 Clock of Omens
@@ -77,6 +81,7 @@ Crossroads Consecrator
 Cruel Ultimatum
 Crystal Seer
 Culling Mark
+Curator's Ward
 Curse of the Nightly Hunt
 Cursed Wombat
 Dance of the Skywise
@@ -146,6 +151,7 @@ Foundry Assembler
 Foundry Helix
 Freewind Falcon
 Frozen Shade
+Fíli and Kíli, Joyous
 Garbage Elemental
 Garruk Wildspeaker
 General's Kabuto
@@ -176,6 +182,7 @@ Hero's Demise
 Heronblade Elite
 Hidden Guerrillas
 Hill Giant Herdgorger
+Hollow One
 Homarid Warrior
 Hua Tuo, Honored Physician
 Hungry Spriggan
@@ -210,6 +217,7 @@ King Harald's Revenge
 Kraul Raider
 Lantern Kami
 Laser Screwdriver
+Lawbringer
 Leatherback Baloth
 Ledger Shredder
 Lightning Reaver
@@ -259,7 +267,9 @@ Omenspeaker
 One with the Kami
 Onulet
 Outland Liberator
+Owlin Spiralmancer
 Patron Wizard
+Personal Sanctuary
 Phantom Centaur
 Pilfering Imp
 Plains
@@ -267,6 +277,7 @@ Polar Kraken
 Pollenbright Druid
 Polymorphist's Jest
 Promising Duskmage
+Pyreheart Wolf
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Raking Canopy
@@ -298,6 +309,7 @@ Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Rusted Slasher
+Safehold Duo
 Safehold Sentry
 Sanctum of Tranquil Light
 Saproling Migration
@@ -315,6 +327,7 @@ Shivan Devastator
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
+Sister Hospitaller
 Sky Skiff
 Skywinder Drake
 Sly Instigator
@@ -355,12 +368,14 @@ Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Syr Konrad, the Grim
 Séance
 Tattered Mummy
 Tectonic Fiend
 Tempestra, Dame of Games
 Tempted by the Oriq
 Territorial Roc
+Thalisse, Reverent Medium
 Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons

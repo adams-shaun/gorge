@@ -23,9 +23,13 @@ Arrows of Justice
 Aspiring Aeronaut
 Aura Flux
 Avatar of Woe
+Aven Wind Mage
 Azorius First-Wing
+Azure Drake
 Barbed Lightning
 Bee Sting
+Belligerent Hatchling
+Bident of Thassa
 Blessing
 Blight Keeper
 Blowfly Infestation
@@ -70,6 +74,7 @@ Dryad's Revival
 Duergar Assailant
 Dwarven Armorer
 Dwarven Lieutenant
+Dwarven Weaponsmith
 Electrosiphon
 Elemental Mastery
 Elemental Uprising
@@ -118,12 +123,14 @@ God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
 Grim Lavamancer
+Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+Helvault
 Hero of the Dunes
 Hidden Spider
 High Alert
@@ -141,6 +148,7 @@ Inflame
 Invoke Despair
 Island
 Jewel Thief
+Kangee, Sky Warden
 Krosan Constrictor
 Lagac Lizard
 Lamentation
@@ -173,18 +181,23 @@ Natural Reclamation
 Necrogenesis
 Necron Deathmark
 Neheb, Dreadhorde Champion
+Neverwinter Dryad
 Night Revelers
 Nirkana Assassin
+Nissa Revane
 Noble Stand
 Norwood Riders
 Noxious Grasp
 Null Brooch
 Nyxborn Wolf
 Offalsnout
+Old Ghastbark
 Onyx Goblet
 Ornery Goblin
 Orzhov Keyrune
+Out of the Way
 Overload
+Owen Grady, Raptor Trainer
 Pangosaur
 Paradise Druid
 Pardic Collaborator
@@ -195,12 +208,18 @@ Plains
 Polukranos Reborn
 Promise of Power
 Python
+Rakdos the Defiler
+Rakdos, Lord of Riots
 Ravenous Baboons
+Red Ghost, Intangible Genius
 Reign of Terror
+Rhystic Deluge
 Rite of Flame
 Ritual of Soot
+Riven Turnbull
 Rotlung Reanimator
 Sage of the Falls
+Sarah Jane Smith
 Sarcomite Myr
 Satyr Rambler
 Sawblade Scamp
@@ -220,12 +239,14 @@ Silt Crawler
 Silumgar Monument
 Skinrender
 Skull Rend
+Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket
 Soul Manipulation
 Soul of Mirrodin
 Southern Paladin
+Speaker of the Heavens
 Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
@@ -238,14 +259,18 @@ Stormfist Crusader
 Stun
 Stunning Shot
 Sudden Reclamation
+Surgespanner
 Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
+Sword of Sinew and Steel
 Syphon Life
 Tail Slash
 Tainted Isle
 Tattermunge Maniac
+Teferi's Protege
+Temur Banner
 Tendrils of Corruption
 Thallid Shell-Dweller
 The Locust God
@@ -280,3 +305,4 @@ Wildwood Tracker
 Woodborn Behemoth
 Workshop Assistant
 Yuffie, Materia Hunter
+Zuri, Warrior of Wakanda

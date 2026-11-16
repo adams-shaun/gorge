@@ -4,7 +4,9 @@ A-Pseudodragon Familiar
 A-Tatyova, Steward of Tides
 A-Urza, Powerstone Prodigy
 Aether Mutation
+Aetherling
 Aethersnipe
+Aethersquall Ancient
 Agent of Erebos
 Aim for the Head
 Ainok Artillerist
@@ -15,6 +17,7 @@ Ammit Eternal
 Angelic Captain
 Angelic Voices
 Animist's Might
+Anowon, the Ruin Thief
 Arc Spitter
 Arcane Spyglass
 Ascendant Evincar
@@ -44,8 +47,10 @@ Bond of Discipline
 Bonded Herdbeast
 Bone Shards
 Brain Weevil
+Brawn, Amadeus Cho
 Bulette
 By Invitation Only
+Cabal Slaver
 Cabaretti Initiate
 Cadaver Imp
 Careless Celebrant
@@ -66,6 +71,7 @@ Clickslither
 Cloak and Dagger
 Coastal Hornclaw
 Coastal Tower
+Coerced Confession
 Coiling Woodworm
 Collar the Culprit
 Confidence from Strength
@@ -101,6 +107,7 @@ Doomskar Titan
 Doubtless One
 Draconian Cylix
 Dragon's Smile
+Dragonshift
 Dread Reaper
 Duskfang Mentor
 ED-E, Lonesome Eyebot
@@ -130,6 +137,7 @@ Font of Fertility
 Forerunner of the Legion
 Forest
 Fortifying Draught
+Frontline Medic
 Frostweb Spider
 Gaea's Cradle
 Galvanic Arc
@@ -137,6 +145,7 @@ Gate to the Citadel
 Generous Stray
 Generous Visitor
 Genesis Chamber
+Get the Point
 Ghitu Amplifier
 Ghitu Fire-Eater
 Ghostly Flicker
@@ -153,6 +162,7 @@ Goblin War Drums
 Grave Titan
 Greensleeves, Maro-Sorcerer
 Grendel, Spawn of Knull
+Grotag Siege-Runner
 Guardian Naga
 Guardian of the Great Conduit
 Guild Artisan
@@ -167,6 +177,8 @@ Heavy Ballista
 Helm of Awakening
 Hero of the Games
 Hoard-Smelter Dragon
+Hollowborn Barghest
+Homarid Shaman
 Homarid Spawning Bed
 Hornswoggle
 Hraesvelgr of the First Brood
@@ -199,6 +211,7 @@ Kefnet's Monument
 Kessig Prowler
 Khabál Ghoul
 Killer Whale
+Killian, Decisive Mentor
 Kithkin Shielddare
 Kjeldoran Frostbeast
 Knight of the Pilgrim's Road
@@ -229,6 +242,7 @@ Marble Chalice
 Mark of Fury
 Mark of Sakiko
 Master of Waves
+Master the Way
 Mavren Fein, Dusk Apostle
 Maze Behemoth
 Meekstone
@@ -246,6 +260,7 @@ Mordor Muster
 Mountain
 Myr Battlesphere
 Nahiri's Machinations
+Neglected Heirloom
 Nessian Wanderer
 Nighthawk, Dark Defender
 Nimbus Wings
@@ -295,10 +310,12 @@ Recollect
 Recover
 Recycla-bird
 Reef Shaman
+Reinterpret
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
 Rishadan Port
+River Hoopoe
 Riverwise Augur
 Robobrain War Mind
 Roc Egg
@@ -307,6 +324,7 @@ Roofstalker Wight
 Rosnakht, Heir of Rohgahh
 Ruin Rat
 Rumbling Crescendo
+Rummaging Wizard
 Rune Snag
 Rupture Spire
 Rush of Battle
@@ -315,6 +333,7 @@ Sage-Eye Harrier
 Sandstone Bridge
 Savage Order
 Scapeshift
+Scar
 Scarecrone
 Scepter of Fugue
 Scion of Draco
@@ -328,6 +347,7 @@ Sewer Crocodile
 Shady Traveler
 Shambling Suit
 Sheltering Boughs
+Shichifukujin Dragon
 Shielded by Faith
 Shimmering Mirage
 Shock Troops
@@ -358,6 +378,7 @@ Splendid Reclamation
 Spontaneous Mutation
 Squire's Devotion
 Stoic Champion
+Stonebrow, Krosan Hero
 Stonefare Crocodile
 Storm Fleet Aerialist
 Stormfront Pegasus
@@ -385,11 +406,13 @@ The Mana Rig
 The Modern Age
 The Revelations of Ezio
 Thraben Standard Bearer
+Thrasios, Triton Hero
 Thraxodemon
 Thrilling Discovery
 Thriving Moor
 Thriving Skyclaw
 Tithe Drinker
+Tizerus Charger
 Tobias Andrion
 Tolarian Serpent
 Torch Drake
@@ -405,10 +428,12 @@ Undersea Invader
 Unearth
 Unforgiving One
 Unlikely Alliance
+Urban Evolution
 Vampiric Touch
 Vat of Rebirth
 Vault Skirge
 Vault of Whispers
+Venomous Dragonfly
 Venser's Sliver
 Verdurous Gearhulk
 Vesperlark
@@ -428,6 +453,7 @@ War Screecher
 Warded Battlements
 Warg Rider
 Wasteland Scorpion
+Watcher for Tomorrow
 Waterwhirl
 Weaver of Blossoms
 Wind Dancer
@@ -438,6 +464,7 @@ Wing Snare
 Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
+Wrenn and Seven
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit

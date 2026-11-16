@@ -541,7 +541,7 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if k.gen.anyProtCol && s.protPrinted(k, sl)&c != 0 {
 		return false
 	}
-	if k.gen.anyProtF && (srcSl != NoSlot || spell || s.curEntry() != nil) && s.protQuality(k, sl, srcSl, card) {
+	if k.gen.anyProtF && (srcSl != NoSlot || spell || s.curEntry() != nil || s.g.probe.off) && s.protQuality(k, sl, srcSl, card) {
 		return false
 	}
 	return true
@@ -579,7 +579,8 @@ func (s *State) probeAbility(k *prep, a *kop.Ability, p uint8, src Slot, modes u
 }
 
 // probeAbilityFrom is abilityTargetsFeasible for an activated ability of the
-// card c that works off the battlefield (Renew from a graveyard): its source
+// card c that works off the battlefield (Renew from a graveyard, Channel from
+// the hand): its source
 // is the card, so protection from its colours bars a target (CR 115.2, 702.16b).
 func (s *State) probeAbilityFrom(k *prep, a *kop.Ability, p uint8, c CardID) bool {
 	if k.gen == nil || s.g.probe.kind != 0 {
@@ -809,12 +810,18 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 
 // BuildModes is the modes already picked for the spell or ability being
 // put on the stack (0 outside a build): the oracle's adapter indexes the
-// remaining mode options densely, as gorge lists them.
+// remaining mode options densely, as gorge lists them. The result is a bit
+// per mode chosen at least once: a repeatable charm (CanRepeatModes$) keeps a
+// count per mode in the entry, which ModeSet folds to that bitmask.
 func (s *State) BuildModes() uint8 {
 	if s.ctl != ctlBuild {
 		return 0
 	}
-	return s.bld().e.mode
+	e := &s.bld().e
+	if cards := s.k().t.Cards; int(e.card) < len(cards) && int(e.ab) < len(cards[e.card].Abilities) {
+		return cards[e.card].Abilities[e.ab].ModeSet(e.mode)
+	}
+	return e.mode
 }
 
 // affordsFor: p can pay cost now (a ward's pay answer that can't be paid

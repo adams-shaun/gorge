@@ -16,6 +16,7 @@ Ancient Den
 Angel of Deliverance
 Angel of Retribution
 Arcane Investigator
+Architect of the Untamed
 Armory of Iroas
 Army of Allah
 Army of the Damned
@@ -26,6 +27,7 @@ Augur of Bolas
 Auriok Glaivemaster
 Auton Soldier
 Aven Sunstriker
+Aviary Mechanic
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
 Balshan Beguiler
@@ -49,11 +51,13 @@ Bog Initiate
 Bone Saw
 Boneshard Slasher
 Boomerang
+Borborygmos Enraged
 Boseiju, Who Endures
 Botanical Plaza
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Briber's Purse
 Brinebarrow Intruder
 Broken Concentration
 Broodbirth Viper
@@ -104,6 +108,7 @@ Dawn of the Dead
 Death Cloud
 Death Pit Offering
 Descendant of Masumaro
+Desert of the Fervent
 Deviant Glee
 Dina, Essence Brewer
 Donatello's Science Lesson
@@ -131,6 +136,7 @@ Elvish Lyrist
 Elvish Visionary
 Emmessi Tome
 Empyrial Armor
+Ephemeral Shields
 Evolution Charm
 Excavation Mole
 Explosive Impact
@@ -231,6 +237,7 @@ Ledger Shredder
 Library
 Lithomantic Barrage
 Living Hive
+Loam Dweller
 Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
@@ -266,6 +273,7 @@ Necroskitter
 Neurok Replica
 Nightwind Glider
 Nimbus Swimmer
+Nissa, Nature's Artisan
 Noble Hierarch
 Nomad Mythmaker
 Noose Constrictor
@@ -287,12 +295,15 @@ Paradigm Shift
 Parch
 Passwall Adept
 Perilous Research
+Petrified Wood-Kin
+Phyrexian Broodstar
 Phyrexian Gargantua
 Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
 Prava of the Steel Legion
+Primal Empathy
 Prime Speaker Vannifar
 Prodigy's Prototype
 Prophetic Ravings
@@ -306,6 +317,7 @@ Pyre Charger
 Rainbow Efreet
 Ranger-Captain of Eos
 Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Recoil
@@ -326,11 +338,13 @@ Roil Elemental
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Savage Twister
 Scale Blessing
 Scaretiller
 Scrapwork Rager
@@ -387,6 +401,7 @@ Stromkirk Captain
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Survivor of the Unseen
 Swamp
 Swarmyard

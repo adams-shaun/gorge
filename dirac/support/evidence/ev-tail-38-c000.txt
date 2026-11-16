@@ -1,3 +1,4 @@
+A-Metropolis Angel
 A-You Come to a River
 Abyssal Gatekeeper
 Academy Journeymage
@@ -21,6 +22,7 @@ Auriok Bladewarden
 Avatar of Slaughter
 Awaken the Bear
 Awakening of Vitu-Ghazi
+Axebane Guardian
 Axgard Armory
 Ayumi, the Last Visitor
 Baloth Cage Trap
@@ -44,6 +46,7 @@ Bushmaster, Coiled Henchman
 Captain of Umbar
 Cast into Darkness
 Cathartic Operation
+Caustic Hound
 Cavalcade of Calamity
 Chandra's Defeat
 Charge Through
@@ -59,6 +62,7 @@ Crash the Ramparts
 Crumbling Ashes
 Cultivator of Blades
 Cunning Breezedancer
+Custodi Lich
 Cutthroat Contender
 Darksteel Axe
 Dauntless River Marshal
@@ -94,12 +98,16 @@ Feral Ferocity
 Feral Thallid
 Festering March
 Fiery Intervention
+Flame Spirit
+Flameshadow Conjuring
 Flourishing Hunter
+Flowstone Hellion
 Forest
 Fortify
 Fumulus, the Infestation
 Furor of the Bitten
 Future Sight
+Gargoyle Sentinel
 Garrison Cat
 Gate to Manorborn
 Geothermal Kami
@@ -132,16 +140,19 @@ Herd Gnarr
 Hibernation Sliver
 Hissing Quagmire
 Hook Swords
+Horizon Seed
 Hussar Patrol
 Ignite the Future
 Impulse
 Inertia Bubble
 Infectious Host
+Inkling Summoning
 Insatiable Appetite
 Into Thin Air
 Invasion of Kaladesh
 Island
 Jace's Archivist
+Jolted Awake
 Juniper Order Druid
 Kaervek's Hex
 Kalemne's Captain
@@ -152,6 +163,7 @@ Kothophed, Soul Hoarder
 Krosan Grip
 Laboratory Drudge
 Labyrinth Minotaur
+Leave
 Leave in the Dust
 Lena, Selfless Champion
 Leonin Lightbringer
@@ -160,6 +172,7 @@ Liliana's Reaver
 Lion Sash
 Living Airship
 Loyal Gryff
+Loyal Retainers
 Lure
 Magnetic Flux
 Malachite Golem
@@ -177,6 +190,7 @@ Mizzium Tank
 Most Wanted
 Mountain
 Mournful Zombie
+Myojin of Life's Web
 Myr Servitor
 Mystic Crusader
 Nema Siltlurker
@@ -185,6 +199,7 @@ Nettle Swine
 Nightmare
 Norwood Ranger
 Noxious Hatchling
+Oakhame Ranger
 Ojutai Exemplars
 Omen of the Sun
 One With the Wind
@@ -205,7 +220,9 @@ Pitchburn Devils
 Plague Mare
 Plains
 Poisonbelly Ogre
+Precise Strike
 Predatory Hunger
+Prize Pig
 Psionic Sliver
 Puncture Blast
 Quiet Purity
@@ -214,6 +231,7 @@ Rampaging Aetherhood
 Ravenous Demon
 Razing Snidd
 Reckless Racer
+Recover
 Relearn
 Render Inert
 Renegade Freighter
@@ -221,6 +239,7 @@ Renegade's Getaway
 Respite
 Revel Ruiner
 Ring of Gix
+Riven Turnbull and Princess Lucrezia
 Roar of the Kha
 Saiba Cryptomancer
 Samut's Sprint
@@ -228,14 +247,18 @@ Scaldkin
 Scare Tactics
 Scatter the Seeds
 Scattershot
+Scholar of the Ages
 Scion of Calamity
 Scourge Wolf
 Scrap Mastery
 Scrapskin Drake
 Seacoast Drake
+Seal of Fire
+Segmented Wurm
 Seluma, Light of Aysen
 Serpentine Curve
 Serum Visionary
+Shadow in the Warp
 Shambling Ghoul
 Shauku's Minion
 Shelter
@@ -243,6 +266,7 @@ Shimmer Myr
 Shrieking Drake
 Shrine Steward
 Shu Farmer
+Sigarda, Heron's Grace
 Silverback Elder
 Siren Reaver
 Slayer's Plate
@@ -261,11 +285,13 @@ Spiritual Asylum
 Spitfire Handler
 Squash
 Squirrel Mob
+Stalking Bloodsucker
 Steadfastness
 Steamcore Weird
 Stoic Star-Captain
 Stone Idol Generator
 Stunning Shot
+Super Mutant Scavenger
 Suture Spirit
 Swamp
 Swashbuckling
@@ -280,6 +306,7 @@ Terravore
 Thalia, Heretic Cathar
 That's Rough Buddy
 Thaumaturge's Familiar
+The Gaffer
 The One Ring
 The Restoration of Eiganjo
 The Royal Scions
@@ -295,13 +322,16 @@ Toll of the Invasion
 Torrent of Fire
 Trade Routes
 Trailblazing Historian
+Tranquil Grove
 Transmogrifying Wand
 Triumph of Ferocity
 Tropical Island
 Turbulent Wetlands
+Uglúk of the White Hand
 Undercity's Embrace
 Unified Strike
 Unyielding Krumar
+Valentina Allegra de Fontaine
 Valiant Guard
 Vedalken Orrery
 Veil of Birds
@@ -318,10 +348,13 @@ Viridian Lorebearers
 Viridian Scout
 Virulent Wound
 Vodalian Soldiers
+Volcanic Geyser
 Voracious Vacuum
 Wall of Razors
 Wall of Wood
 Warren Pilferers
+Wasp Lancer
+Wave of Indifference
 Whirlwind
 Wild-Field Scarecrow
 Wildfire
@@ -331,4 +364,6 @@ Wing Snare
 Wither and Bloom
 Woebearer
 Wriggling Grub
+X-23, Deadly Weapon
+Xavier Sal, Infested Captain
 Zendikar Resurgent

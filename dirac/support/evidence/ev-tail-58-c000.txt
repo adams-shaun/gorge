@@ -12,6 +12,7 @@ Abzan Banner
 Accelerate
 Accumulated Knowledge
 Admiral's Order
+Aerie Ouphes
 Aetherling
 Ajani, the Greathearted
 Alabaster Potion
@@ -22,6 +23,7 @@ Ana Disciple
 Angel of Renewal
 Animist's Awakening
 Anoint with Affliction
+Apocalypse Hydra
 Ardent Plea
 Argothian Elder
 Assassin's Strike
@@ -34,6 +36,7 @@ Basalt Monolith
 Basri's Solidarity
 Beacon Hawk
 Benthic Biomancer
+Biomathematician
 Blanchwood Treefolk
 Blitz of the Thunder-Raptor
 Bloodfire Infusion
@@ -91,6 +94,7 @@ Distant Melody
 Distress
 Dormant Sliver
 Dovin's Acuity
+Dreadwing
 Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
@@ -103,6 +107,7 @@ Elder Owyn Lyons
 Elder Spawn
 Elgaud Inquisitor
 Elite Arrester
+Elite Headhunter
 Ember Weaver
 Enraged Giant
 Enraged Killbot
@@ -148,11 +153,13 @@ Grasping Dunes
 Grave Strength
 Gravecrawler
 Gravedig
+Grief Tyrant
 Grotag Night-Runner
 Ground Rift
 Guardian of Pilgrims
 Guma
 Hair-Strung Koto
+Hajar, Loyal Bodyguard
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
@@ -163,6 +170,7 @@ Hold the Gates
 Hollowhenge Spirit
 Hook Swords
 Hound of the Farbogs
+House Guildmage
 Hunger of the Nim
 Icingdeath, Frost Tyrant
 Incite
@@ -176,13 +184,16 @@ Iron Will
 Island
 Ivory Tower
 Jarl of the Forsaken
+Journey to Oblivion
 Kamber, the Plunderer
 Kari Zev's Expertise
+Kavu Primarch
 Khorvath Brightflame
 Kinjalli's Caller
 Kitesail Apprentice
 Kithkin Daggerdare
 Knighted Myr
+Knights' Charge
 Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
@@ -196,9 +207,11 @@ Lethal Exploit
 Lifeblood Hydra
 Lightning Dragon
 Lightning Talons
+Liliana, the Necromancer
 Llanowar Visionary
 Looming Spires
 Lucky Offering
+Magma Mine
 Malakir Soothsayer
 Mandible Justiciar
 Mardu Warshrieker
@@ -206,6 +219,7 @@ Marionette Master
 Mass Diminish
 Master Splicer
 Maul of the Skyclaves
+Meletis Astronomer
 Mesmeric Fiend
 Mesmeric Orb
 Michelangelo, On the Scene
@@ -232,6 +246,7 @@ No Mercy
 Novice Dissector
 Nullhide Ferox
 Ojutai's Command
+Oketra's Attendant
 Omen of the Hunt
 One-Clown Band
 Opportunistic Dragon
@@ -307,8 +322,10 @@ Setessan Oathsworn
 Shadowborn Demon
 Shambling Vent
 Shard Volley
+Shield of the Realm
 Short Sword
 Shriekdiver
+Shrieking Grotesque
 Sigiled Behemoth
 Silverwing Squadron
 Simian Brawler
@@ -328,6 +345,7 @@ Spider-Man 2099, Miguel O'Hara
 Spidery Grasp
 Spike Tiller
 Spirit Loop
+Spoils of Adventure
 Sprouting Phytohydra
 Squee's Toy
 Staff of Titania
@@ -392,6 +410,7 @@ Voltaic Construct
 Vryn Wingmare
 Wailing Ghoul
 Wall of Kelp
+Warchief Giant
 Weatherseed Faeries
 Welkin Guide
 Wheel of Fortune

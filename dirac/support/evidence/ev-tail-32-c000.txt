@@ -1,8 +1,13 @@
+Abstruse Interference
 Advanced Hoverguard
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
+Aether Shockwave
 Ageless Guardian
 Akki Rockspeaker
+Akoum Boulderfoot
+Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
@@ -11,9 +16,12 @@ Apprentice Sorcerer
 Arashin Sovereign
 Archfiend of Sorrows
 Arctic Treeline
+Ashling the Pilgrim
 Atarka Beastbreaker
 Attune with Aether
+Avenger of Zendikar
 Axgard Armory
+Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
 Blasted Landscape
@@ -23,20 +31,27 @@ Bloodcrusher of Khorne
 Bloodfire Colossus
 Blue Sun's Zenith
 Blunt the Assault
+Boggart Arsonists
 Book of Rass
 Border Guard
 Boreal Elemental
 Bottle Golems
 Brand
 Brood Birthing
+Cartouche of Zeal
 Cast Down
+Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Channel the Suns
+Chaotic Goo
+Charging Monstrosaur
 Chatter of the Squirrel
+Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
+Cloudchaser Kestrel
 Cold Storage
 Combust
 Conclave Mentor
@@ -47,6 +62,7 @@ Curious Altisaur
 Cut
 Dakmor Plague
 Dark Betrayal
+Dark Ritual
 Darksteel Brute
 Death-Hood Cobra
 Definitely Not a Turtle
@@ -57,8 +73,12 @@ Drana, Liberator of Malakir
 Draugr Thought-Thief
 Drown in Ichor
 Duskhunter Bat
+Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Eidolon of Countless Battles
+Elas il-Kor, Sadistic Pilgrim
+Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
 Elvish Eulogist
@@ -67,19 +87,24 @@ Endurance Bobblehead
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
+Eternal Skylord
 Ethercaste Knight
 Evangel of Synthesis
+Evaporate
 Eviscerator's Insight
 Expedition Diviner
+Explosive Impact
 Eye of Nowhere
 Facevaulter
 Familiar Ground
 Farm
+Fault Riders
 Filigree Fracture
 Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
+Flying Dolphin-Fish
 Flywheel Racer
 Footfall Crater
 Forest
@@ -88,21 +113,28 @@ Fourth Bridge Prowler
 Frontline Devastator
 Garrison Griffin
 Geier Reach Sanitarium
+Genasi Enforcers
+General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
 Ghostly Visit
 Glimmerbell
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
+Grip of Desolation
 Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
+Hasran Ogress
 Haunted Cloak
+Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Highway Robber
+Hold the Line
 Hollowhenge Overlord
 Honor the Past
 Howlpack Resurgence
@@ -113,6 +145,7 @@ Idle Thoughts
 Ifnir Deadlands
 Ignition Team
 Inferno
+Into Thin Air
 Invasion of Segovia
 Irini Sengir
 Island
@@ -126,6 +159,7 @@ Lavakin Brawler
 Leo's Guidance
 Lesser Gargadon
 Levitating Statue
+Leyline Dowser
 Liliana's Defeat
 Liliana's Devotee
 Lilting Refrain
@@ -134,13 +168,17 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Lydia Frye
+Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Manaweft Sliver
+Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
+Mercurial Spelldancer
 Merrow Bonegnawer
 Mesa Lynx
 Metallic Mastery
@@ -153,6 +191,7 @@ Mistmeadow Skulk
 Monstrous Hound
 Mortician Beetle
 Mountain
+Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
@@ -162,10 +201,12 @@ Nyxborn Marauder
 Oashra Cultivator
 Obliterate
 Ondu Cleric
+Oni Possession
 Peer Through Depths
 Penance Stare
 Pest Infestation
 Pestermite
+Phantasmal Sphere
 Pillar of Light
 Pious Evangel
 Plains
@@ -181,6 +222,7 @@ Rakka Mar
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
+Reckless Imp
 Relic of Progenitus
 Renounce
 Returned Centaur
@@ -191,11 +233,13 @@ Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
+Rotting Mastodon
 Ruin Ghost
 Rust Monster
 Salt Marsh
 Sandstone Warrior
 Savage Thallid
+Scragnoth
 Scroll of Origins
 Seeker
 Seismic Strike
@@ -203,6 +247,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sizzle
 Skyclave Cleric
 Skyclave Shade
 Skyshroud Troll
@@ -210,14 +255,17 @@ Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Soul Bleed
 Spellseeker
 Spitting Spider
 Spontaneous Flight
 Squall Line
+Stampeding Horncrest
 Star of Extinction
 Steel Golem
 Steeple Roc
 Storm Crow
+Strandwalker
 Strength of Arms
 Strike It Rich
 Surreal Memoir
@@ -229,10 +277,12 @@ The Prydwen, Steel Flagship
 The Royal Scions
 Thorn Lieutenant
 Thraben Gargoyle
+Thran Lens
 Thriving Ibex
 Thunder Wall
 Tolarian Sentinel
 Tomb Fortress
+Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
@@ -246,6 +296,7 @@ Untamed Wilds
 Valkyrior Skyrider
 Vaporkin
 Venomous Vines
+Vexing Sphinx
 Viashivan Dragon
 Viridian Zealot
 Vivisection
@@ -254,6 +305,7 @@ Vraska's Contempt
 Wake of Destruction
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wildfire Eternal
 Windreader Sphinx
