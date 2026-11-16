@@ -23,6 +23,7 @@ Aven Windreader
 Barricade Breaker
 Battleflight Eagle
 Bearer of Memory
+Betrayal
 Black Sun's Twilight
 Blackbloom Rogue
 Blindblast
@@ -103,6 +104,7 @@ Gamekeeper
 Ghoulcaller's Bell
 Gift of Paradise
 Gimli's Axe
+Glittering Wish
 Gloomhunter
 Go-Shintai of Hidden Cruelty
 Goblin Arsonist
@@ -142,6 +144,7 @@ Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
+Late to Dinner
 Lava Axe
 Lignify
 Liliana's Elite
@@ -152,6 +155,7 @@ MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Malicious Advice
 Marsh Hulk
+Marshaling Cry
 Meadowboon
 Meng Huo, Barbarian King
 Merciless Executioner
@@ -175,6 +179,7 @@ Needlethorn Drake
 Nev, the Practical Dean
 Nexus of Fate
 Nomads' Assembly
+Norn's Inquisitor
 Novellamental
 Oathsworn Vampire
 Oran-Rief Ooze
@@ -211,6 +216,7 @@ Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Reverent Mantra
 Riddlekeeper
 Roar of the Crowd
 Roc Hunter
@@ -228,6 +234,7 @@ Scrapwork Cohort
 Scrivener
 Scurry Oak
 Sedraxis Specter
+Selfless Spirit
 Shagrat, Loot Bearer
 Sheltering Landscape
 Sigarda's Summons
@@ -249,6 +256,7 @@ Spitfire Handler
 Spurnmage Advocate
 Stampeding Rhino
 Steel Leaf Paladin
+Steelshaper's Gift
 Stenchskipper
 Storm Fleet Pyromancer
 String of Disappearances

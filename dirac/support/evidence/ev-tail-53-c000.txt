@@ -39,6 +39,7 @@ Big Play
 Big Wheel
 Bladed Bracers
 Blasphemous Act
+Blazing Archon
 Blood Host
 Bloodroot Apothecary
 Boggart Trawler
@@ -394,6 +395,7 @@ War Oracle
 War Priest of Thune
 Warchanter of Mogis
 Watchwing Scarecrow
+Weathered Bodyguards
 Westfold Rider
 Whisper, Blood Liturgist
 White Dragon
@@ -406,3 +408,4 @@ Worm Harvest
 Wrecking Ogre
 Yavimaya Wurm
 Zephyr Gull
+Éomer, King of Rohan

@@ -18,6 +18,7 @@ Banehound
 Bar the Door
 Barbarian General
 Basim Ibn Ishaq
+Battalion Foot Soldier
 Bayou Dragonfly
 Become the Avalanche
 Bedlam
@@ -91,6 +92,7 @@ Earthshape
 Ebon Dragon
 Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
+Elvish Hexhunter
 Emblem of the Warmind
 Enraged Revolutionary
 Escarpment Fortress
@@ -119,6 +121,7 @@ Frillscare Mentor
 Frostwind Invoker
 Gaea's Avenger
 Gamma Grotesque
+Geistcatcher's Rig
 Giant Fly
 Gilt-Leaf Winnower
 Glademuse
@@ -151,6 +154,7 @@ Hopping Automaton
 Horizon Chimera
 Howling Wolf
 Hurly-Burly
+Impede Momentum
 Impending Flux
 Iname, Death Aspect
 Infiltrator's Magemark
@@ -207,6 +211,7 @@ Nesting Wurm
 Netherborn Altar
 Nimble Pilferer
 Nylea's Emissary
+Obliterate
 One with the Stars
 Ooze Garden
 Orc General
@@ -222,6 +227,7 @@ Piety
 Plains
 Powerstone Engineer
 Powerstone Shard
+Prepare
 Prickly Marmoset
 Prison Term
 Prizefighter Construct
@@ -237,6 +243,7 @@ Rakdos Ickspitter
 Raven Familiar
 Ravenous Intruder
 Ray Fillet, Wave Warrior
+Reap What Is Sown
 Reckless Imp
 Reduce to Memory
 Relic Crush
@@ -245,6 +252,7 @@ Repulse
 Restoration Specialist
 Revenant
 Rewards of Diversity
+Rhox Veteran
 Ridgeline Rager
 Riot Ringleader
 Rod of Ruin
@@ -266,6 +274,7 @@ Sever Soul
 Shalai, Voice of Plenty
 Shifting Sliver
 Short Sword
+Shuri, the Black Panther
 Sigardian Savior
 Silklash Spider
 Silver Bolt
@@ -290,6 +299,7 @@ Spined Karok
 Spiteful Blow
 Spreading Insurrection
 Springsage Ritual
+Squadron Hawk
 Stalking Tiger
 Standstill
 Start Your Engines
@@ -303,6 +313,7 @@ Swell of Growth
 Symbiosis
 Symmetry Matrix
 Syndicate Infiltrator
+Tangled Florahedron
 Tel-Jilad Stylus
 Telim'Tor's Edict
 Tentative Connection
@@ -324,6 +335,7 @@ Toxic Scorpion
 Trostani's Judgment
 Trygon Prime
 Tyranid Invasion
+Ulrich's Kindred
 Unnatural Predation
 Unyaro Griffin
 Valor in Akros
@@ -338,6 +350,7 @@ Vile Requiem
 Violet Pall
 Virtuous Variant
 Vulshok Refugee
+Wall of Brambles
 Wall of Mulch
 Wall of Omens
 Wall of Wood

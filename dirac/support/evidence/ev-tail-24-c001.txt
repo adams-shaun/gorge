@@ -23,6 +23,7 @@ Ashiok's Forerunner
 Attrition
 Auriok Glaivemaster
 Aysen Bureaucrats
+Balefire Dragon
 Bandage
 Battlegrace Angel
 Bazaar Trademage
@@ -49,6 +50,7 @@ Captain America, Steve Rogers
 Carnival of Souls
 Chainer's Edict
 Chandra's Triumph
+Chandra, Legacy of Fire
 Cleansing Wildfire
 Collector's Case
 Conifer Strider
@@ -98,6 +100,7 @@ Elvish Skysweeper
 Emberwilde Caliph
 Ensoul Artifact
 Entropic Eidolon
+Estwald Shieldbasher
 Ethersworn Adjudicator
 Exalted Flamer of Tzeentch
 Executioner's Swing
@@ -126,6 +129,7 @@ Fracture
 Fungus Sliver
 Gallantry
 Generous Visitor
+Getaway Car
 Ghoultree
 Gilt-Leaf Seer
 Glimmer Bairn
@@ -144,6 +148,7 @@ Grisly Spectacle
 Grixis Panorama
 Growth Spurt
 Gruesome Realization
+Gruul War Plow
 Hall
 Havenwood Wurm
 Hedgewitch's Mask
@@ -172,6 +177,7 @@ Jackdaw
 Jackhammer
 Jedit Ojanen
 Jedit's Dragoons
+Jerrard of the Closed Fist
 Jori En, Ruin Diver
 Jungle Troll
 Kederekt Leviathan
@@ -284,6 +290,7 @@ Sage of Lat-Nam
 Sage of Shaila's Claim
 Sage of the Unknowable
 Saheeli's Silverwing
+Sanctuary Raptor
 Sanctum Gargoyle
 Sandblast
 Sanguinary Priest
@@ -340,6 +347,7 @@ Steadfast Paladin
 Stitched Assistant
 Stonefare Crocodile
 Stonehoof Chieftain
+Storm Fleet Arsonist
 Strangleroot Geist
 Sunblade Elf
 Sunlance
@@ -383,6 +391,7 @@ Undying Rage
 Untamed Kavu
 Vedalken Heretic
 Vengeant Earth
+Verduran Enchantress
 View from Above
 Vile Deacon
 Vito, Thorn of the Dusk Rose

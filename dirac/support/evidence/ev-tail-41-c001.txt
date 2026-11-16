@@ -1,6 +1,7 @@
 A-Luminarch Aspirant
 Akroan Jailer
 Akroma's Memorial
+Alabaster Host Sanctifier
 Alpha Kavu
 Angelic Gift
 Anje's Ravager
@@ -37,6 +38,7 @@ Chaos Harlequin
 Charging Monstrosaur
 Chilling Grasp
 Chivalric Alliance
+Cloak of the Bat
 Clockwork Vorrac
 Collateral Damage
 Colos Yearling
@@ -55,18 +57,22 @@ Curse of Death's Hold
 Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
+Daybreak Chaplain
 Death's Presence
 Defense of the Heart
 Digsite Engineer
 Dihada's Ploy
 Dive Bomber
+Divine Sacrament
 Diving Griffin
+Drag Down
 Drifter il-Dal
 Dross Scorpion
 Dungeon Shade
 Dwarven Forge-Chanter
 ED-E, Lonesome Eyebot
 Eccentric Pestfinder
+Eerie Interlude
 Elanor Gardner
 Energy Flux
 Eternal Warrior
@@ -99,6 +105,7 @@ Goblin Diplomats
 Goblin General
 Goblin Outlander
 Goblin War Party
+Grounded
 Hand of Silumgar
 Hangarback Walker
 Heirs of Stromkirk
@@ -114,7 +121,9 @@ Island
 Jhovall Rider
 Joyous Respite
 Jungle Delver
+Karametra's Favor
 Karok Wrangler
+Kels, Fight Fixer
 Kinsbaile Courier
 Kor Sky Climber
 Kris Mage
@@ -136,6 +145,7 @@ Mammoth Growth
 Manic Scribe
 Marble Diamond
 Mardu Heart-Piercer
+Marked by Honor
 Massive Raid
 Maular, the Next Evolution
 Maw of the Mire
@@ -180,6 +190,7 @@ Potion of Healing
 Pure Reflection
 Pyroclastic Elemental
 Quicksilver Geyser
+Radjan Spirit
 Rage Forger
 Raksha Golden Cub
 Rally the Ranks
@@ -197,6 +208,7 @@ Rockslide Ambush
 Root Snare
 Rottenheart Ghoul
 Rousing Refrain
+Runaway Carriage
 Salvage Slasher
 Samite Pilgrim
 Sanctified Charge
@@ -242,6 +254,7 @@ Survival Cache
 Swamp
 Swift Justice
 Tattered Haunter
+Teachings of the Kirin
 Temmet, Vizier of Naktamun
 Teroh's Vanguard
 The Mightstone and Weakstone
@@ -258,12 +271,14 @@ Tracker's Instincts
 Twinscroll Shaman
 Uncage the Menagerie
 Uncle Istvan
+Undercity Scrounger
 Underworld Charger
 Unexpected Fangs
 Unleash Shell
 Unnatural Predation
 Untamed Might
 Urborg Mindsucker
+Valiant Knight
 Vampire Envoy
 Vampire's Zeal
 Vastwood Gorger
@@ -276,6 +291,7 @@ Warped Physique
 Warren Soultrader
 Weaponize the Monsters
 Wild Colos
+Wild Onslaught
 Woodland Sleuth
 Xathrid Slyblade
 Zhao, the Seething Flame

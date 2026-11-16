@@ -254,6 +254,7 @@ Phantom Ninja
 Phyrexian Bloodstock
 Phyrexian Espionage
 Pilfered Plans
+Pious Kitsune
 Plains
 Planequake
 Plate Armor
@@ -346,6 +347,7 @@ Stone Spirit
 Stonehands
 Stonehorn Chanter
 Storm God's Oracle
+Storm Herd
 Structural Assault
 Sundial of the Infinite
 Sungrass Egg
@@ -387,6 +389,7 @@ Vulturous Aven
 Wakestone Gargoyle
 Wall of Lost Thoughts
 Wall of Spears
+Wander in Death
 Warren Weirding
 Waste Not
 Weapon Rack

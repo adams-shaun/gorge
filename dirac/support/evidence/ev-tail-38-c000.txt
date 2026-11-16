@@ -51,6 +51,7 @@ Cavalcade of Calamity
 Chandra's Defeat
 Charge Through
 Charity Extractor
+Chevill, Bane of Monsters
 Choking Tethers
 Cleaving Skyrider
 Cloud Pirates
@@ -226,6 +227,7 @@ Prize Pig
 Psionic Sliver
 Puncture Blast
 Quiet Purity
+Ragefire Hellkite
 Rallying Roar
 Rampaging Aetherhood
 Ravenous Demon
@@ -241,6 +243,7 @@ Revel Ruiner
 Ring of Gix
 Riven Turnbull and Princess Lucrezia
 Roar of the Kha
+Rumbling Slum
 Saiba Cryptomancer
 Samut's Sprint
 Scaldkin

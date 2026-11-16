@@ -13,8 +13,11 @@ Assault Strobe
 Astarion's Thirst
 Avatar of Growth
 Aven Trooper
+Aven Windreader
 Barricade Breaker
 Bearer of Memory
+Beastmaster's Magemark
+Betrayal
 Black Sun's Twilight
 Blindblast
 Blinding Mage
@@ -38,12 +41,15 @@ Chromatic Star
 Cinder Pyromancer
 City of Brass
 Civic Guildmage
+Cleopatra, Exiled Pharaoh
 Colossal Dreadmaw
 Concordant Crossroads
 Confessor
 Constable of the Realm
+Constricting Tendrils
 Curse of Predation
 Daemogoth Titan
+Danitha Capashen, Paragon
 Dauntless Bodyguard
 Deadly Insect
 Death Speakers
@@ -80,10 +86,12 @@ Fumarole
 Gaea's Bounty
 Gaze of Granite
 Ghoulcaller's Bell
+Glittering Wish
 Gloomhunter
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
+Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
@@ -91,6 +99,7 @@ Halberdier
 Hardened Scales
 Horned Cheetah
 Horned Helm
+Hornet Cannon
 Hornet Cobra
 Hulk, Always Angry
 Immortal Phoenix
@@ -105,6 +114,7 @@ Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
 Laquatus's Creativity
+Late to Dinner
 Lava Axe
 Lignify
 Liliana's Defeat
@@ -115,6 +125,7 @@ MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Malicious Advice
 Maniacal Rage
+Marshaling Cry
 Master the Way
 Mayael the Anima
 Meadowboon
@@ -137,6 +148,7 @@ Necromancer's Familiar
 Needlethorn Drake
 Nexus of Fate
 Nomads' Assembly
+Norn's Inquisitor
 Novellamental
 Oran-Rief Ooze
 Orazca Frillback
@@ -151,6 +163,7 @@ Planar Portal
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
@@ -165,6 +178,7 @@ Rekindled Flame
 Relief Captain
 Return to the Earth
 Reveille Squad
+Reverent Mantra
 Riddlekeeper
 Roar of the Crowd
 Roaring Slagwurm
@@ -172,6 +186,7 @@ Roc Hunter
 Rockshard Elemental
 Rundvelt Hordemaster
 Runeclaw Bear
+Sabertooth Nishoba
 Sacred Cat
 Saheeli's Artistry
 Sanctify
@@ -197,8 +212,10 @@ Spitfire Handler
 Spurnmage Advocate
 Stampeding Rhino
 Steel Leaf Paladin
+Steelshaper's Gift
 Stenchskipper
 Storm Fleet Pyromancer
+String of Disappearances
 Strip Mine
 Sunstrike Legionnaire
 Sunweb
@@ -222,12 +239,15 @@ Tuktuk Rubblefort
 Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
+Undead Executioner
 Unholy Indenture
 Unquestioned Authority
 Urza, Powerstone Prodigy
+Vagrant Plowbeasts
 Venom, Eddie Brock
 Venser's Journal
 Verge Rangers
+Vhati il-Dal
 Vineweft
 Vintara Snapper
 Viridian Longbow
@@ -235,6 +255,7 @@ Vital Splicer
 Vulshok Replica
 Wall of Heat
 Warmonger Hellkite
+Waterkin Shaman
 Weapon Rack
 Wei Scout
 Weirding Shaman
