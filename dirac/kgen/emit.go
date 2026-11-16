@@ -277,6 +277,8 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		val(ab.Static.VA)
 		val(ab.Static.VB)
 		filt(ab.Repl.Filter)
+		filt(ab.Repl.Filter2)
+		val(ab.Repl.V)
 		cond(ab.Repl.Cond)
 		filt(ab.ManaRestrict)
 		filt(ab.ManaRestrictAb)

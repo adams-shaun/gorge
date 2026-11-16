@@ -88,6 +88,7 @@ Coral Merfolk
 Corporeal Projection
 Cosmic Hunger
 Counterspell
+Courier Bat
 Court Cleric
 Creeping Crystal Coating
 Crenellated Wall
@@ -244,6 +245,7 @@ Kitesail Cleric
 Knight of Sorrows
 Knowledge Is Power
 Kokusho, the Evening Star
+Koskun Falls
 Krav, the Unredeemed
 Kruphix's Insight
 Landscaper Colos
@@ -286,6 +288,7 @@ Mind Sculpt
 Mindwhip Sliver
 Minotaur, Roxxon CEO
 Mirozel
+Mirror-Sigil Sergeant
 Mischief and Mayhem
 Mishra's Domination
 Mist Leopard
@@ -305,6 +308,7 @@ Namora, the Sea Queen
 Narset's Reversal
 Narwhal
 Needle Storm
+Nezahal, Primal Tide
 Niblis of Frost
 Nimble Hobbit
 Nimbleclaw Adept

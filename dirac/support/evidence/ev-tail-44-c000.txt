@@ -113,6 +113,7 @@ Emancipation Angel
 Emissary of Despair
 End the Festivities
 Entrancing Melody
+Equilibrium
 Essence Flux
 Explosive Revelation
 Extinguish
@@ -335,6 +336,7 @@ Solarion
 Soldevi Steam Beast
 Soul of the Rapids
 Soul-Strike Technique
+Species Specialist
 Spectacular Showdown
 Spider-Man, Hometown Hero
 Spinning Wheel Kick
@@ -410,6 +412,7 @@ Vision, Synthezoid Avenger
 Voice of Reason
 Volatile Fjord
 Vow of Torment
+Vraska, Relic Seeker
 Vrestin, Menoptra Leader
 Vulshok Battlegear
 Wake of Vultures

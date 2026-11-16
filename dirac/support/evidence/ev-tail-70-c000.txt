@@ -200,6 +200,7 @@ Mask of the Jadecrafter
 Masterwork of Ingenuity
 Maze Abomination
 Memnarch, the Warden
+Merry, Warden of Isengard
 Mesmeric Trance
 Metropolis Angel
 Mind Slash
@@ -239,6 +240,7 @@ Port of Karfell
 Possessed Nomad
 Predatory Nightstalker
 Price of Glory
+Primal Beyond
 Primal Command
 Primal Frenzy
 Primal Rage

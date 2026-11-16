@@ -17,6 +17,7 @@ Ammit Eternal
 Angelic Captain
 Angelic Voices
 Animist's Might
+Anowon, the Ruin Thief
 Arc Spitter
 Arcane Spyglass
 Ascendant Evincar
@@ -70,6 +71,7 @@ Clickslither
 Cloak and Dagger
 Coastal Hornclaw
 Coastal Tower
+Coerced Confession
 Coiling Woodworm
 Collar the Culprit
 Confidence from Strength
@@ -257,6 +259,7 @@ Mordor Muster
 Mountain
 Myr Battlesphere
 Nahiri's Machinations
+Neglected Heirloom
 Nessian Wanderer
 Nighthawk, Dark Defender
 Nimbus Wings
@@ -402,6 +405,7 @@ The Mana Rig
 The Modern Age
 The Revelations of Ezio
 Thraben Standard Bearer
+Thrasios, Triton Hero
 Thraxodemon
 Thrilling Discovery
 Thriving Moor

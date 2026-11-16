@@ -212,6 +212,7 @@ Jaspera Sentinel
 Jelenn Sphinx
 Jhoira's Familiar
 Kamahl, Pit Fighter
+Kambal, Consul of Allocation
 Katara, Heroic Healer
 Kavu Aggressor
 Kindly Stranger
@@ -369,6 +370,7 @@ Stamina
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
+Striped Riverwinder
 Subversion
 Sunder Shaman
 Swamp

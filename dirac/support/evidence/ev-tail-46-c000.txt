@@ -177,6 +177,7 @@ Goldenhide Ox
 Grasping Scoundrel
 Gray Harbor Merfolk
 Grisly Survivor
+Gustcloak Sentinel
 Hammer of Purphoros
 Haunted Fengraf
 Haystack
@@ -450,6 +451,7 @@ Wellwisher
 Whipcorder
 Whirler Virtuoso
 White Tiger, Amulet Keeper
+Windrider Eel
 Winds of Rebuke
 Wing It
 Witness the End

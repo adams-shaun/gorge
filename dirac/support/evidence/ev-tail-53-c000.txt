@@ -40,6 +40,7 @@ Big Wheel
 Bladed Bracers
 Blasphemous Act
 Blood Host
+Bloodroot Apothecary
 Boggart Trawler
 Branching Evolution
 Brass Herald
@@ -78,6 +79,7 @@ Coordinated Charge
 Corrupted Zendikon
 Cosmic Crucible
 Countryside Crusher
+Cranial Ram
 Crumbling Necropolis
 Cryptbreaker
 Cunning Wish
@@ -178,6 +180,7 @@ Insufferable Balladeer
 Inventor's Apprentice
 Iron Man, Tony Stark
 Island
+Jagged Poppet
 Jarl of the Forsaken
 Jinxed Choker
 Joint Exploration

@@ -23,6 +23,7 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Bonesplitter
 Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
@@ -31,6 +32,7 @@ Cabal Evangel
 Canopy Stalker
 Cat Oven
 Cave-In
+Chameleon Colossus
 Chaplain's Blessing
 Chariot of the Sun
 Chasm Drake
@@ -50,6 +52,7 @@ Contraband Livestock
 Copper Gnomes
 Cunning Evasion
 Curio Vendor
+Curse of Verbosity
 Dauntless Bodyguard
 Death's-Head Buzzard
 Deep-Sea Terror
@@ -108,6 +111,7 @@ Goblin Roughrider
 God-Eternal Bontu
 Gouged Zealot
 Grapeshot
+Gravetiller Wurm
 Great Goblin, Foul-Hearted
 Great Hart
 Great Whale
@@ -147,6 +151,7 @@ Jade Guardian
 Jalira, Master Polymorphist
 Jodah's Avenger
 Judge of Currents
+Jund Battlemage
 Kapsho Kitefins
 Kenrith, the Returned King
 Kin-Tree Invocation
@@ -155,10 +160,12 @@ Kudo, King Among Bears
 Labyrinth Adversary
 Leap
 Liliana of the Veil
+Lodestone Myr
 Lord of Change
 Lore Seeker
 Lunar Frenzy
 Lydia Frye
+Magmatic Sprinter
 Malanthrope
 Malfegor
 Malfunction
@@ -222,6 +229,7 @@ Reckoner's Bargain
 Reclaim
 Reito Lantern
 Reprocess
+Reroute
 Rotted Hystrix
 Rotting Legion
 Ruin Raider
@@ -237,21 +245,26 @@ Seed the Land
 Selfless Spirit
 Senate Courier
 Shuri's Fabricator
+Sidewinder Naga
 Silas Renn, Seeker Adept
 Silkguard
 Silverquill Apprentice
+Skirk Shaman
 Skittish Kavu
 Skulking Ghost
 Skyboon Evangelist
+Skyreach Manta
 Skyshroud Falcon
 Skysnare Spider
 Sly Spy
 Smogsteed Rider
 Snake Pit
 Snow-Covered Plains
+Soratami Mirror-Mage
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
+Spawning Kraken
 Spiritual Sanctuary
 Spiteful Motives
 Spoils of Victory
@@ -268,6 +281,7 @@ Stonybrook Schoolmaster
 Storm the Seedcore
 Strip Mine
 Stronghold Taskmaster
+Sulfur Elemental
 Sun-Blessed Mount
 Sun-Collared Raptor
 Sunken City
@@ -284,6 +298,7 @@ Thunder Totem
 Thunderous Wrath
 Tideshaper Mystic
 Timid Drake
+Tireless Hauler
 Tower Geist
 Tranquil Grove
 Traumatize
@@ -310,6 +325,7 @@ Waking the Trolls
 Wall of Lava
 Warclamp Mastiff
 Wei Strike Force
+Wicked Slumber
 Windstorm
 Wispweaver Angel
 Witch's Web

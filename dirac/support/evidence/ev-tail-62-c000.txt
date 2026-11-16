@@ -291,6 +291,7 @@ Revenant
 Reverse Engineer
 Reward the Faithful
 Rimrock Knight
+Risen Sanctuary
 Rishkar, Peema Renegade
 Rite of the Raging Storm
 Rodolf Duskbringer
@@ -331,6 +332,7 @@ Shriekgeist
 Shrine of Loyal Legions
 Shu Elite Infantry
 Shuri, Vibranium Technologist
+Silent Observer
 Silver Drake
 Silverclaw Griffin
 Silverquill Silencer

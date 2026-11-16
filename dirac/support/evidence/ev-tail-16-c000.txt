@@ -286,6 +286,7 @@ Oboro Envoy
 Obsessive Search
 Ogre Errant
 Oketra's Last Mercy
+Omnibian
 Orcish Bloodpainter
 Orcish Oriflamme
 Ordruun Commando
@@ -409,6 +410,7 @@ The Marvelous Scientist
 The Shire
 Thermal Glider
 Thought Erasure
+Thranduil the Strategist
 Thrash of Raptors
 Throne of Bone
 Thrull Parasite

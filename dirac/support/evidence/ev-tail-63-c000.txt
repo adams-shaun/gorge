@@ -35,6 +35,7 @@ Arrester's Zeal
 Ashiok's Forerunner
 Atmosphere Surgeon
 Aurochs Herd
+Aven Wind Guide
 Awakened Amalgam
 Azorius Charm
 Bala Ged Recovery
@@ -113,6 +114,7 @@ Desmond Miles
 Detainment Spell
 Devil Dinosaur
 Dire Fleet Warmonger
+Dovin's Dismissal
 Drag Under
 Dragon Whelp
 Dragon's Eye Sentry
@@ -437,6 +439,7 @@ Tabaxi Toucaneers
 Talas Merchant
 Talons of Wildwood
 Taste of Blood
+Tempting Licid
 Terravore
 Thalakos Deceiver
 Thallid

@@ -295,8 +295,10 @@ Noble Steeds
 Nomad Mythmaker
 Northern Paladin
 Obsidian Battle-Axe
+Olivia, Mobilized for War
 One-Clown Band
 Onyx Mage
+Oona's Gatewarden
 Oran-Rief, the Vastwood
 Oraxid
 Ox Drover
@@ -399,6 +401,7 @@ Skyshroud Troopers
 Smashing Spree
 Smelt
 Snapping Thragg
+Sootwalkers
 Soramaro, First to Dream
 Sorcerer of the Fang
 Soul Barrier
@@ -440,6 +443,7 @@ Synchronous Sliver
 Syphon Sliver
 Take Flight
 Talas Warrior
+Tavern Ruffian
 Tegan Jovanka
 Terrain Generator
 Terramorph
@@ -464,6 +468,7 @@ Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
 Ultron's Auxiliary
+Undercover Butler
 Unexpected Windfall
 Unfriendly Fire
 Unholy Officiant

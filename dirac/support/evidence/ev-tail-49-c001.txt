@@ -1,16 +1,24 @@
+A-Druidic Ritual
+Aether Flash
 Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
+Amugaba
+Angelic Curator
 Ant-Man, Scott Lang
 Arc Mage
 Arc Spitter
 Aria of Flame
+Armageddon
 Ashling the Pilgrim
 Ashling, the Extinguisher
 Augmenting Automaton
 Augur of Bolas
 Avaricious Dragon
 Aven Sunstriker
+Bad Moon
+Batterbone
+Battle Mammoth
 Berserk Murlodont
 Biomathematician
 Black Widow, Deadly Hunter
@@ -22,6 +30,7 @@ Blurred Mongoose
 Boneyard Wurm
 Boon Reflection
 Bosk Banneret
+Brand
 Briarhorn
 Briarpack Alpha
 Broodbirth Viper
@@ -34,28 +43,34 @@ Casting of Bones
 Catalog
 Centaur Glade
 Cephalid Broker
+Chandra's Outburst
 Change of Fortune
+Changeling Outcast
 Chapel Geist
 Charge Across the Araba
 Checkpoint Officer
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
 Cobblebrute
 Corpse Connoisseur
 Countryside Crusher
+Cradle Clearcutter
 Crash
 Crimson Cowl, Master of Evil
 Crushing Disappointment
 Curse of Bounty
+Cyberdrive Awakener
 Dance with Devils
 Daredevil's Billy Club
 Dark Bargain
 Darksteel Myr
 Dauntless Aven
 Dauntless Unity
+Death Cloud
 Demon's Jester
 Depala, Pilot Exemplar
 Deputized Protester
@@ -67,6 +82,7 @@ Dismember
 Double Trouble
 Dragon Whelp
 Drake Haven
+Druid's Deliverance
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
@@ -86,6 +102,7 @@ Evernight Shade
 Expedite
 Explosive Revelation
 Extinguish the Light
+Eye Spy
 Faerie Duelist
 Fallowsage
 Farid, Enterprising Salvager
@@ -96,6 +113,9 @@ Feral Appetite
 Ferocious Pup
 Fevered Strength
 Feywild Visitor
+Fiery Mantle
+Fissure Wizard
+Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
 Forest
@@ -119,8 +139,10 @@ Golgari Death Swarm
 Graceful Restoration
 Grasping Dunes
 Gravetiller Wurm
+Great Desert Prospector
 Greater Auramancy
 Greater Good
+Greenwarden of Murasa
 Hagra Constrictor
 Havengul Vampire
 Hell Swarm
@@ -135,6 +157,7 @@ Humongulus
 Hunted Dragon
 Incriminate
 Inspired Fire
+Invigorating Boon
 Island
 Island of Wak-Wak
 Jadecraft Artisan
@@ -144,10 +167,12 @@ Kaldra Compleat
 Kayla's Command
 Kessig Wolfrider
 Kiln Walker
+Kor Cartographer
 Kor Scythemaster
 Kuldotha Rebirth
 Lantern of Revealing
 Lantern of the Lost
+Lapis Lazuli Talisman
 Laquatus's Creativity
 Last Caress
 Library
@@ -162,6 +187,7 @@ Manta Riders
 Mask of Law and Grace
 Mass Hysteria
 Maze Skullbomb
+Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
 Moldgraf Scavenger
@@ -169,10 +195,13 @@ Monologue Tax
 Moonwing Moth
 Motivated Pony
 Mountain
+Myr Convert
+Mystery Key
 Naiad of Hidden Coves
 Nantuko Tracer
 Nico Minoru, Runaway
 Nightshade Seer
+Nim Grotesque
 Noose Constrictor
 Nylea's Colossus
 Nylea's Forerunner
@@ -181,8 +210,10 @@ Ocular Halo
 Ogre Gatecrasher
 Omnath, Locus of Rage
 Orochi Hatchery
+Pallid Mycoderm
 Part the Veil
 Patagia Golem
+Patch Up
 Peace Strider
 Perilous Forays
 Perilous Research
@@ -205,6 +236,7 @@ Rampaging Cyclops
 Raptor Companion
 Ravenous Demon
 Ray of Dissolution
+Razorgrass Ambush
 Razortide Bridge
 Reaping the Rewards
 Red Ghost, Intangible Genius
@@ -213,26 +245,34 @@ Renari, Merchant of Marvels
 Renegade Silent
 Resplendent Mentor
 Reverent Hoplite
+Rhystic Shield
 Righteous Cause
 Righteous Fury
 Riptide Pilferer
+Rishkar's Expertise
+Roc Charger
 Rock Basilisk
 Rocksteady, Mutant Marauder
 Rogue's Gloves
+Rootbreaker Wurm
 Rubble Slinger
 Runebound Wolf
 Runner's Bane
 Rustvine Cultivator
 Sacred Fire
+Sage of Epityr
 Salt Road Quartermasters
 Sanctum of Stone Fangs
 Sandstorm Eidolon
 Sarpadian Simulacrum
 Sauroform Hybrid
 Saw It Coming
+Scale Blessing
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
@@ -240,7 +280,9 @@ Serpent-Blade Assailant
 Serra Ascendant
 Shao Jun
 Shape the Sands
+Shower of Coals
 Sigarda, Heron's Grace
+Sigiled Paladin
 Silverquill Command
 Skinshifter
 Slaughterhorn
@@ -258,6 +300,7 @@ Stone Rain
 Stonefury
 Storm Fleet Sprinter
 Storm Shaman
+Stormfront Pegasus
 Struggle for Skemfar
 Stump Stomp
 Sunken City
@@ -266,6 +309,7 @@ Supreme Will
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
+Swat
 Swell of Growth
 Sylvan Anthem
 Synod Sanctum
@@ -279,6 +323,7 @@ Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Tidings
 Torment
 Touch of Brilliance
 Towering-Wave Mystic
@@ -294,9 +339,11 @@ Vengeful Dead
 Vengeful Firebrand
 Vengeful Rebirth
 Virtue's Ruin
+Vitu-Ghazi Guildmage
 Voracious Fell Beast
 Vorrac Battlehorns
 Wake Thrasher
+Wall of Corpses
 Wall of Essence
 Wall of Reverence
 Warlock Class
@@ -305,6 +352,7 @@ Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
 Whiptongue Frog
+Whirlwind Technique
 Wildwood Geist
 Willow Faerie
 Wing Puncture
@@ -314,7 +362,9 @@ Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
+Xathrid Slyblade
 Xun Yu, Wei Advisor
 Yeva, Nature's Herald
 Yuriko, the Tiger's Shadow
+Zephyr Charge
 Zoologist
