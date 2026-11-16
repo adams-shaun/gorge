@@ -548,6 +548,14 @@ var potentialProducedStrip = strings.NewReplacer("{", "", "}", "", " ", "", "Com
 // one divergence: anything the executor cannot statically price -- an
 // alternative production or an indeterminate amount -- is UNBOUNDED here
 // rather than zero, because this bound must never lose an action.
+//
+// The unbounded claim is per produced face, not per slot: an ability whose
+// Produced$ names fixed colours can never make mana outside them (CR 107.4a),
+// so an indeterminate Amount$ prices those faces unbounded and the rest of
+// the vector at zero. Only an open production (Any / Chosen / an unknown
+// token) is unbounded in every slot. Pricing every slot unbounded offered a
+// "pay {G}" no produced face could fund (Fountain of Cho's {W}-per-storage-
+// counter, CR 118.3), the same defect the Combo strip below fixed.
 func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	mp := effects.ManaOf(ma)
 	amt, indeterminate := potentialAmount(mp)
@@ -569,7 +577,11 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 		}
 		return
 	}
-	if indeterminate || producedOpen(raw) {
+	if indeterminate {
+		addIndeterminatePotentialMana(m, raw)
+		return
+	}
+	if producedOpen(raw) {
 		for i := range m {
 			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
 		}
@@ -579,6 +591,23 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	for _, r := range s {
 		i := state.ManaIndex(byte(r))
 		m[i] = saturatingPotentialMana(m[i], amt)
+	}
+}
+
+// addIndeterminatePotentialMana prices an indeterminate Amount$'s production:
+// unbounded in every slot for an open production, unbounded in exactly the
+// fixed produced faces otherwise.
+func addIndeterminatePotentialMana(m *state.Mana, raw string) {
+	if producedOpen(raw) {
+		for i := range m {
+			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
+		}
+		return
+	}
+	s := potentialProducedStrip.Replace(raw)
+	for _, r := range s {
+		i := state.ManaIndex(byte(r))
+		m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
 	}
 }
 
@@ -604,7 +633,20 @@ func computePotentialManaAdd(mp *effects.ManaParams) potentialManaAdd {
 		}
 		return f
 	}
-	if indeterminate || producedOpen(raw) {
+	if indeterminate {
+		if producedOpen(raw) {
+			f.unbounded = true
+			return f
+		}
+		// Unbounded in exactly the fixed produced faces (CR 107.4a): the
+		// per-slot saturating add of potentialUnbounded reads the same as the
+		// unbounded flag would for those slots and leaves the rest at zero.
+		for _, r := range potentialProducedStrip.Replace(raw) {
+			f.add[state.ManaIndex(byte(r))] += int64(potentialUnbounded)
+		}
+		return f
+	}
+	if producedOpen(raw) {
 		f.unbounded = true
 		return f
 	}

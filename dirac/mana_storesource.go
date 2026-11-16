@@ -19,10 +19,11 @@ func (s *State) storeSourceCounts(k *prep, p uint8, sl Slot) bool {
 // storePotential folds the storage battery at sl into availPotentialFor's walk
 // and returns the walk's open flag: a trigger's own cost (pdOther) adds one mana
 // of the battery's colour per counter, every other payment keeps gorge's
-// unbounded read (open).
+// unbounded read, in the battery's one produced colour alone (CR 107.4a).
 func (s *State) storePotential(open bool, sl Slot, ab *kop.Ability, d *payDesc, add func(Slot, uint8, uint8)) bool {
 	if d == nil || d.class != pdOther {
-		return true
+		add(sl, uint8(ab.ManaColors), potentialOpenUnits)
+		return open
 	}
 	if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
 		add(sl, uint8(ab.ManaColors), uint8(min(n, 255)))
