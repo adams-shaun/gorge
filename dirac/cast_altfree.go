@@ -120,6 +120,15 @@ func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		return
 	}
 	if a.Cost.Mana == (kop.ManaCost{}) {
+		if s.freeOwes(k) {
+			// the free cast still pays the cost statics' increases (CR 601.2f,
+			// 118.9d: Thalia's {1} on Refreshing Rain). The planner surface
+			// skips AltCostIndex options, so it is offered only while the
+			// floating pool pays what it owes, as the mana alternative below
+			if ac := s.adjustCost(k, p, c, o, a.Cost.Mana); ac != (kop.ManaCost{}) && (!av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false)) {
+				return
+			}
+		}
 		d.add(MakeAction(AkCast, TCode(o), 0, castMayPlay|castFree))
 		return
 	}

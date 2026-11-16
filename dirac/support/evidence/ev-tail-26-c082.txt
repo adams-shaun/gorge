@@ -1,0 +1,6 @@
+Abomination
+Forest
+Island
+Mountain
+Plains
+Swamp

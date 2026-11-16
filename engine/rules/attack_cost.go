@@ -1648,8 +1648,10 @@ func (e *Engine) attackOffersCompute() []attackOffer {
 			o := e.G.Obj(wid)
 			// CR 506.3, 508.1b: only a planeswalker can be attacked, by its
 			// CURRENT types (layer 4) -- a planeswalker Imprisoned in the
-			// Moon is a land and no longer one. A phased-out one is treated as
-			// though it doesn't exist (CR 702.26b), so it isn't attackable.
+			// Moon is a land and no longer one.
+			// CR 702.26b: a phased-out planeswalker is treated as though it
+			// doesn't exist, so it is no defender (Kaito Shizuki, phased out
+			// through the opponent's turn).
 			if o != nil && !o.PhasedOut && !o.FaceDown && o.Face() != nil && e.hasType(o, "Planeswalker") {
 				walkerTargets = append(walkerTargets, wid)
 			}

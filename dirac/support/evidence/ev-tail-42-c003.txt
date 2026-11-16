@@ -1,20 +1,74 @@
 A-Ominous Parcel
+Angler Turtle
 Armory Guard
 Audacious Infiltrator
+Barrage Tyrant
+Bewilder
+Blood Burglar
+Breaching Hippocamp
 Burning Hands
 Centaur Healer
 Consuming Corruption
+Cystbearer
+Dark Prophecy
+Feral Abomination
+Flywheel Racer
+Forerunner of Slaughter
 Forest
+Funnel-Web Recluse
+Furnace Spirit
+Gadwick, the Wizened
+Gauntlet of Might
+Glimpse the Unthinkable
+Goblin Scouts
+Goreclaw, Terror of Qal Sisma
+Griffin Dreamfinder
+Hovermyr
+Idle Thoughts
 Intrepid Hero
 Island
+Krosan Archer
+Legion Leadership
 Lifelink
+Living Lands
+Lucid Dreams
+Manipulate Fate
+Master Transmuter
+Mogg Alarm
+Mosstodon
 Mountain
+Mystic Snake
+Nether Horror
 Night Market Aeronaut
+Ob Nixilis, the Fallen
+Oni of Wild Places
 Plains
+Prismatic Strands
+Ral's Dispersal
 Resurrection Orb
+Samut's Sprint
 Scalding Devil
+Silver Raven
+Skymark Roc
+Spellbook
+Spiderwig Boggart
+Spike Drone
+Squirrel Nest
+Stolen Grain
 Swamp
+Thalia's Lancers
+The Cauldron of Eternity
+Thirsting Bloodlord
+Thoughtcutter Agent
+Traitor's Clutch
+Twitch
+Ultimate Price
+Unicycle
 Viashino Firstblade
 Villainous Ogre
 Volcanic Fallout
+War-Torch Goblin
+Water Servant
+Weldfast Engineer
 Wellspring
+Zirilan of the Claw

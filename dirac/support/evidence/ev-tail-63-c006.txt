@@ -1,5 +1,6 @@
 Aggressive Instinct
 Ahn-Crop Invader
+Akki Avalanchers
 Alseid of Life's Bounty
 Angel of the Dawn
 Arch of Orazca
@@ -21,27 +22,55 @@ Escape Velocity
 Evie Frye
 Expedition Skulker
 Expel
+Feast of Worms
 Floodhound
 Foresee
 Forest
+Forgehammer Centurion
+Freejam Regent
+Gemstone Mine
 Goma Fada Vanguard
+Graceful Adept
 Griffin Sentinel
 Grim Reaper's Scythe
+Hamlet Vanguard
+Hero of Goma Fada
+Heron of Hope
+Imperial Subduer
 Island
 Kuldotha Rebirth
+Kyren Negotiations
+Lady Zhurong, Warrior Queen
 Lash of the Whip
+Lavastep Raider
 Lily Bowen, Raging Grandma
+Lithatog
+Mesa Cavalier
 Mountain
+Mourning
+Nesting Dovehawk
 Noble Vestige
 Order of the Mirror
 Orochi Merge-Keeper
 Plains
+Prescient Chimera
 Pyknite
+Pyroclastic Elemental
+Pyromantic Pilgrim
+Red Dragon
 Red Elemental Blast
+Riot Devils
 Scryb Sprites
 Servant of Tymaret
 Silvar, Devourer of the Free
 Skillful Lunge
+Spell Crumple
+Stymied Hopes
+Suit Up
 Swamp
+Taste of Blood
+Thaumatic Compass
 Traverse Eternity
+Trawler Drake
 Vampiric Tutor
+Zhuge Jin, Wu Strategist
