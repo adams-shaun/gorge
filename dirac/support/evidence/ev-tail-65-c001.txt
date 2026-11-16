@@ -1,42 +1,94 @@
+A-Celebrity Fencer
 A-Tenured Inkcaster
 Aberrant Researcher
+Abu Ja'far
 Alpha Deathclaw
+Always Watching
 Aqueous Form
+Bastion Protector
 Beacon of Immortality
+Blood Burglar
+Bolt Hound
 Brink of Madness
 Burning Sun's Fury
 Call to the Feast
+Canyon Lurkers
 Catacomb Slug
+Cavalry Pegasus
 Chandra's Outburst
+Clarion Cathars
 Corrosive Mentor
 Deathgazer
 Debtors' Transport
 Devastation Tide
 Dictate of Erebos
+Dispense Justice
+Drifting Shade
+Dry Spell
+Dwarven Armory
+Dwarven Patrol
 Emberstrike Duo
 Embraal Bruiser
+Ettercap
+Excise the Imperfect
+Eyeblight Cullers
 Fire Nation's Conquest
 Forest
+Gitaxian Anatomist
+Graceblade Artisan
+Grateful Apparition
 Grip of the Roil
 Happy Hogan, Dauntless Driver
+Headsplitter
+Herald of the Dreadhorde
+Hibernation
+Horned Cheetah
+Hungering Hydra
+Hunter's Ambush
 Insatiable Gorgers
+Instill Infection
 Island
+Jagwasp Swarm
 Kabuto Moth
 Kami of the Crescent Moon
 Leonin Iconoclast
+Light of Day
+Lightning Visionary
+Momentary Blink
 Mountain
+Norn's Disassembly
 Observant Alseid
+On Serra's Wings
+Oreskos Swiftclaw
+Organic Extinction
 Plains
+Prison Sentence
 Prodigal Pyromancer
 Prodigal Sorcerer
 Professor's Warning
 Rapid Hybridization
 Reach Through Mists
+Ruthless Cullblade
+Serpentine Ambush
+Shadows' Verdict
+Shang-Chi, Martial Mentor
+Shauku, Endbringer
 Slavering Nulls
+Spectral Force
+Spined Basher
+Spirit of the Spires
 Spontaneous Combustion
 Stromgald Crusader
 Swamp
+Trip Noose
 Undercity Informer
+Underworld Sentinel
+Vile Requiem
+Vorrac Battlehorns
+Vulshok Gauntlets
 Winds of Rebuke
+Windswept Heath
 Winged Words
+Withstand Death
+Wurmcalling
 Zombie Master

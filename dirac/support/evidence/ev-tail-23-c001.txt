@@ -8,10 +8,12 @@ Aisling Leprechaun
 Alliance of Arms
 Alpine Watchdog
 Ambassador Laquatus
+Ancient Gold Dragon
 Ancient Silverback
 Angel of Light
 Angel's Feather
 Arctic Nishoba
+Arden Angel
 Arno Dorian
 Arrest
 Asceticism
@@ -29,20 +31,25 @@ Axgard Artisan
 Ayula's Influence
 Barbed Battlegear
 Barishi
+Basalt Monolith
 Behold the Unspeakable
 Berserkers' Onslaught
 Bilbo's Ring
 Bile Urchin
 Blacklance Paragon
 Bladed Sentinel
+Blight Titan
 Blister Beetle
 Blood Bairn
 Blood Price
 Blood Reckoning
+Bloodline Shaman
 Boggart Brute
 Boggart Harbinger
 Boiling Blood
+Bone Miser
 Boneknitter
+Boomerang, Blade Flinger
 Boros Mastiff
 Brass Herald
 Breath Weapon
@@ -79,6 +86,7 @@ Dauntless Aven
 Day's Undoing
 Daybreak Charger
 Deepchannel Mentor
+Defender en-Vec
 Deflecting Swat
 Dense Canopy
 Deny the Divine
@@ -90,21 +98,25 @@ Dread Shade
 Dreg Recycler
 Dwarfhold Champion
 Earth-Origin Yak
+El-Hajjâj
 Elemental Mastery
 Emblem of the Warmind
 Engineered Plague
 Enormous Baloth
 Ensnaring Bridge
 Ensouled Scimitar
+Entomber Exarch
 Eron the Relentless
 Experimental Synthesizer
 Explore
 Eyes of the Watcher
+Fan Bearer
 Fang Skulkin
 Farmstead Gleaner
 Fearful Villager
 Fiery Conclusion
 Fighting Drake
+Fire Nation Archers
 Fire Nation Turret
 Firebird, Blazing Ranger
 Fleetfeather Cockatrice
@@ -134,6 +146,7 @@ Gorilla Warrior
 Grapeshot Catapult
 Gruul Turf
 Gurmag Swiftwing
+Gwaihir, Greatest of the Eagles
 Harabaz Druid
 Hawkeater Moth
 Hawkeye, Clint Barton
@@ -153,12 +166,15 @@ Hulking Devil
 Hypochondria
 Illusory Wrappings
 Imps' Taunt
+Imskir Iron-Eater
 Inevitable End
 Inhumaniac
 Innistrad Charm
+Integrity
 Intrepid Hero
 Invasion of Mercadia
 Island
+Iwamori of the Open Fist
 Jeskai Windscout
 Jiang Yanggu, Wildcrafter
 Journeyer's Kite
@@ -198,6 +214,7 @@ Merfolk of the Depths
 Meria's Outrider
 Metathran Transport
 Meteor Blast
+Might Makes Right
 Millennial Gargoyle
 Minister of Inquiries
 Ministrant of Obligation
@@ -208,7 +225,9 @@ Moonglove Extract
 Mountain
 Myrkul's Edict
 Narcolepsy
+Necroskitter
 Niall Silvain
+Night Market Lookout
 Nimbleclaw Adept
 Nivix Barrier
 Obscura Storefront
@@ -227,6 +246,7 @@ Patchwork Automaton
 Patriar's Seal
 Pawn of Ulamog
 Peacewalker Colossus
+Penumbra Bobcat
 Phantasmagorian
 Phantasmal Abomination
 Phantasmal Forces
@@ -238,6 +258,7 @@ Predatory Advantage
 Preordain
 Prismatic Lens
 Prison Realm
+Profound Journey
 Prosperous Pirates
 Rankle, Master of Pranks
 Rath's Edge
@@ -278,6 +299,7 @@ Spark Elemental
 Spark Jolt
 Spectral Lynx
 Spellstutter Sprite
+Sphinx-Bone Wand
 Sporoloth Ancient
 Stand United
 Starlit Angel
@@ -287,6 +309,7 @@ Story Seeker
 Suit Up
 Sunflare Shaman
 Sunrise Seeker
+Sunseed Nurturer
 Swamp
 Symbiote Spawn
 Tenement Crasher
@@ -318,6 +341,7 @@ Underworld Hermit
 Universal Automaton
 Valor of the Worthy
 Vampirism
+Vebulid
 Vengeful Devil
 Viashino Branchrider
 Vincent, Vengeful Atoner
@@ -330,9 +354,11 @@ Wall of Earth
 Wall of Mulch
 Wall of Resistance
 Warden of Geometries
+Warning
 Warriors' Lesson
 Waste Not
 Waterfall Aerialist
+Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog
 White Knight

@@ -1108,7 +1108,7 @@ func (e *Engine) convokeCountCredit(pc *pendingCast, m Cost) Cost {
 	var cands []candidate
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() ||
+		if o == nil || o.Tapped || o.PhasedOut || o.Face() == nil || o.BestowedAttached() ||
 			o.ReconfiguredAttached() || e.convokeCommitted(pc, id) {
 			continue
 		}

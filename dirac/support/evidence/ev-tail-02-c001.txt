@@ -9,7 +9,9 @@ Borderland Marauder
 Bristling Boar
 Burning Palm Efreet
 Butcher of Malakir
+Captain's Call
 Celestine, the Living Saint
+Cho-Manno's Blessing
 Counterspell
 Curse of the Restless Dead
 Demon of Loathing
@@ -20,17 +22,20 @@ Faceless Butcher
 Falkenrath Perforator
 Farideh's Fireball
 Fell the Profane
+Firedrinker Satyr
 Forest
 Gadrak, the Crown-Scourge
 Gods Willing
 Grapple with the Past
 Hapatra, the Desert Frost
+Harried Artisan
 Haughty Djinn
 Hollowhead Sliver
 Horned Troll
 Hydrolash
 Island
 Jangling Automaton
+Keepers of the Faith
 Knight of Obligation
 Knight of the Stampede
 Lingering Souls
@@ -41,11 +46,13 @@ Master of Etherium
 Melesse Spirit
 Mistwalker
 Mountain
+Mox Ruby
 Nightshade Stinger
 Nyxborn Colossus
 Ohabi Caleria
 Owlbear Shepherd
 Plains
+Planar Collapse
 Psychic Miasma
 Quicksilver, Speedster
 Rathi Trapper
@@ -64,6 +71,7 @@ Spawning Pit
 Stolen Vitality
 Swamp
 Tel-Jilad Fallen
+Temple Altisaur
 Thrun, Breaker of Silence
 Tome Raider
 Tormentor Exarch
@@ -76,7 +84,9 @@ Vithian Renegades
 Wall of Runes
 Wayward Guide-Beast
 Wicker Warcrawler
+Wild Research
 Wild Wurm
+Wispmare
 Worldly Tutor
 Wring Flesh
 Zebra Unicorn

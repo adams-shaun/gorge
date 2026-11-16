@@ -13,9 +13,11 @@ Annihilate
 Apostle of Purifying Light
 Archfiend of Despair
 Aspect of Gorgon
+Aven of Enduring Hope
 Azorius Cluestone
 Balshan Beguiler
 Barrage Ogre
+Beckon Apparition
 Blessed Hippogriff
 Blighted Cataract
 Blizzard Elemental
@@ -24,23 +26,32 @@ Brazen Wolves
 Bringer of the Blue Dawn
 Broodstar
 Burning Cloak
+Caress of Phyrexia
+Cast into Darkness
 Cateran Kidnappers
+Chief of the Scale
 Confirm Suspicions
 Consulate Turret
 Coral Helm
 Curious Killbot
+Daze
+Dematerialize
 Demon's Disciple
 Diamond Valley
 Dig Up the Body
 Diversionary Tactics
+Divert
 Dominating Licid
 Doomed Dissenter
 Drag to the Bottom
 Dragon Arch
+Dromoka Warrior
 Earthquake
 Eidolon of Astral Winds
 Elven Rite
 Emmessi Tome
+Enchantmentize
+Exotic Curse
 Expendable Lackey
 Explosive Apparatus
 Faith Unbroken
@@ -54,15 +65,20 @@ Fire at Will
 Flailing Drake
 Fleeting Memories
 Flickerwisp
+Forced Worship
 Forest
 Forest Bear
+Fortifying Provisions
 Foundry Inspector
+Frogify
 Ganax, Astral Hunter
 Geist of the Moors
 Ghastly Death Tyrant
 Ghitu Chronicler
 Ghost-Lit Stalker
 Gigapede
+Golden-Tail Disciple
+Gonti, Lord of Luxury
 Grafted Butcher
 Gravecrawler
 Grizzled Wolverine
@@ -84,25 +100,38 @@ Keldon Halberdier
 Kinjalli's Caller
 Kogla, the Titan Ape
 Lava Coil
+Lavastep Raider
 Leering Gargoyle
 Lifecrafter's Bestiary
+Llanowar Envoy
+Lodestone Golem
+Lost in Memories
 Lunar Mystic
 Lunarch Mantle
+Mana Vault
 Masterwork of Ingenuity
 Melancholy
 Merciless Repurposing
+Midnight Assassin
 Mikaeus, the Lunarch
 Misers' Cage
+Mold Folk
 Moldervine Reclamation
 Mountain
 Mugging
 Murmuring Mystic
+Nameless One
+Nessian Courser
+Night of Souls' Betrayal
 Nip Gwyllion
+Norn's Wellspring
 Oblivion Strike
 Orazca Raptor
 Ordeal of Purphoros
 Orim's Touch
+Pardic Lancer
 Pensive Minotaur
+Perish
 Pippin's Bravery
 Plains
 Plated Crusher
@@ -117,6 +146,7 @@ Rapid Decay
 Reality Strobe
 Reconstruction
 Recruiter of the Guard
+Resistance Skywarden
 Return Upon the Tide
 Ridgescale Tusker
 Rograkh, Son of Rohgahh
@@ -129,12 +159,15 @@ Scrapper Champion
 Searing Spear
 Sigiled Sentinel
 Silvergill Douser
+Skittering Skirge
 Skybind
 Skymarch Bloodletter
 Skyshroud Blessing
+Slinking Serpent
 Soldevi Golem
 Sorin's Guide
 Spectral Grasp
+Spell Rupture
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
@@ -163,9 +196,11 @@ Tezzeret's Betrayal
 The Fair Basilica
 Thistledown Liege
 Thor, Guardian of Midgard
+Thoughtpicker Witch
 Tocasia's Dig Site
 Tomebound Lich
 Tranquil Domain
+Trespasser's Curse
 Triskelion
 Tromokratis
 Tyrannize
@@ -173,18 +208,25 @@ Ultimate Alliance
 Unnatural Endurance
 Urza's Factory
 Vampire Aristocrat
+Vexing Gull
 Viridian Joiner
 Virtuous Variant
 Vitality Charm
 Voice of Grace
+Vow of Torment
 Walking Dead
 Warrior's Charge
+Watchful Automaton
+Wei Infantry
 Wei Night Raiders
 Wild Griffin
 Wilderness Reclamation
+Wilt
 Wind Zendikon
 Wintermoor Commander
 Wipe Away
 Wolf's Quarry
 Yeva, Nature's Herald
+Zamriel, Seraph of Steel
 Zodiac Monkey
+Zombie Apocalypse

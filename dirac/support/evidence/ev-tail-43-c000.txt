@@ -31,7 +31,9 @@ Blessings of Nature
 Blight Keeper
 Blistering Dieflyn
 Bloodscent
+Bloodshot Trainee
 Bloodthorn Taunter
+Boggart Loggers
 Bonded Construct
 Bonescythe Sliver
 Boon of Boseiju
@@ -76,6 +78,7 @@ Dalakos, Crafter of Wonders
 Dancing Scimitar
 Dangerous Wager
 Darkthicket Wolf
+Daru Spiritualist
 Dauthi Cutthroat
 Death Mutation
 Death Pulse
@@ -98,6 +101,7 @@ Elvish Archers
 Elvish Ranger
 Embereth Skyblazer
 Emberwilde Augur
+Emmara Tandris
 Energizer
 Enslaved Dwarf
 Entrails Feaster
@@ -160,6 +164,7 @@ Icewind Stalwart
 Immaculate Magistrate
 Infernal Medusa
 Insubordination
+Iona, Shield of Emeria
 Ironclad Slayer
 Ironshell Beetle
 Island
@@ -189,6 +194,7 @@ Llanowar Wastes
 Lofty Denial
 Loki's Scepter
 Long-Range Sensor
+Lorehold Archivist
 Loxodon Wayfarer
 Lucky Clover
 Lumengrid Warden
@@ -216,6 +222,8 @@ Motivated Pony
 Mountain
 Mox Opal
 Murmuring Phantasm
+Mystic Remora
+Nahiri, Storm of Stone
 Nantuko Mentor
 Narset's Reversal
 Nature's Will
@@ -245,6 +253,7 @@ Pheres-Band Thunderhoof
 Phyrexian Colossus
 Phytoburst
 Piper Wright, Publick Reporter
+Plague Spores
 Plains
 Plow Through Reito
 Poison Arrow
@@ -253,10 +262,13 @@ Precise Strike
 Primal Forcemage
 Profound Journey
 Pulverize
+Puresight Merrow
 Purestrain Genestealer
 Purify the Grave
 Quag Vampires
 Ral's Dispersal
+Ramunap Ruins
+Raven Clan War-Axe
 Razor Golem
 Razorfield Ripper
 Razorgrass Ambush
@@ -317,6 +329,7 @@ Stalking Assassin
 Stampeding Serow
 Steadfast Sentry
 Steam Frigate
+Steelclaw Lance
 Stirring Address
 Stitch Together
 Storm World
@@ -335,11 +348,13 @@ Takenuma, Abandoned Mire
 Talas Explorer
 Talon Gates of Madara
 Tear Asunder
+Temur War Shaman
 Tethmos High Priest
 Thallid Germinator
 The Hunger Tide Rises
 The Odd Acorn Gang
 The Restoration of Eiganjo
+Thraben Charm
 Thraben Heretic
 Three Dreams
 Thunder Strike
@@ -360,6 +375,7 @@ Urborg Repossession
 Urza's Guilt
 Urza's Tome
 Valiant Knight
+Vanquish
 Venomthrope
 Venser, Visionary Traveler
 Verge Rangers

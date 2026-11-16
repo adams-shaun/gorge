@@ -1,5 +1,6 @@
 A-Falcon Abomination
 A-Skemfar Avenger
+A-Sorin, Imperious Bloodlord
 Abstergo Entertainment
 Adriana, Captain of the Guard
 Aether Herder
@@ -12,9 +13,11 @@ Alliance of Arms
 Alpine Watchdog
 Ambassador Laquatus
 Ancient Gold Dragon
+Ancient Silverback
 Ancient Ziggurat
 Angel of Light
 Angel's Feather
+Angelic Shield
 Arctic Nishoba
 Arden Angel
 Armored Galleon
@@ -56,6 +59,7 @@ Boiling Blood
 Boneknitter
 Boomerang, Blade Flinger
 Boros Mastiff
+Brago, King Eternal
 Brass Herald
 Breath Weapon
 Broken Fall
@@ -70,6 +74,7 @@ Chandra, Flamecaller
 Charging Slateback
 Chrome Steed
 Cinder Glade
+Cleon, Merry Champion
 Clockwork Condor
 Cloud Sprite
 Coat with Venom
@@ -88,14 +93,18 @@ Crypt Incursion
 Darkwatch Elves
 Daru Lancer
 Dauntless Aven
+Day's Undoing
 Daybreak Charger
 Defender en-Vec
 Deflecting Swat
 Dense Canopy
+Deny the Divine
 Desert Cerodon
 Disrupting Scepter
 Doctor Jane Foster
+Doomed Dissenter
 Dragon's Eye Sentry
+Dread Rider
 Dreg Recycler
 Dwarfhold Champion
 Earth-Origin Yak
@@ -105,12 +114,16 @@ Elephant Graveyard
 Emblem of the Warmind
 Engineered Plague
 Enormous Baloth
+Ensnaring Bridge
 Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
+Exhibition Magician
 Experimental Synthesizer
 Explore
 Extruder
+Eyes of the Watcher
+Ezuri's Archers
 Fan Bearer
 Fang Skulkin
 Farmstead Gleaner
@@ -118,12 +131,14 @@ Fearful Villager
 Fiery Conclusion
 Fighting Drake
 Fire Nation Archers
+Fire Nation Turret
 Firebird, Blazing Ranger
 Flying Carpet
 Fogwalker
 Forcemage Advocate
 Forest
 Fortify
+Fungusaur
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
@@ -162,18 +177,23 @@ Horned Turtle
 Horrifying Revelation
 Hound of Griselbrand
 Hour of Revelation
+Hraesvelgr of the First Brood
 Hulking Devil
 Hunt the Hunter
 Hypochondria
 Illusory Wrappings
+Imp's Mischief
 Imps' Taunt
+Imskir Iron-Eater
 Inevitable End
 Inhumaniac
 Innistrad Charm
+Instruments of War
 Integrity
 Intrepid Hero
 Invasion of Kylem
 Invasion of Mercadia
+Ion Storm
 Iridescent Drake
 Island
 Iwamori of the Open Fist
@@ -192,10 +212,12 @@ Kitsune Riftwalker
 Knight Watch
 Knight of the White Orchid
 Kolaghan Skirmisher
+Kuldotha Forgemaster
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
 Liliana's Specter
+Lim-Dûl's High Guard
 Linvala, Keeper of Silence
 Llanowar Knight
 Lonesome Unicorn
@@ -231,6 +253,7 @@ Nature's Will
 Necroskitter
 Niall Silvain
 Night Market Lookout
+Nimbleclaw Adept
 Nivix Barrier
 Obscura Storefront
 Okina, Temple to the Grandfathers
@@ -244,22 +267,27 @@ Orochi Eggwatcher
 Ossification
 Overwhelming Denial
 Pack's Favor
+Panther Warriors
 Paraselene
 Patchwork Automaton
 Patriar's Seal
 Pawn of Ulamog
+Peacewalker Colossus
 Penumbra Bobcat
 Phantasmagorian
 Phantasmal Abomination
 Pilgrim's Eye
 Pillardrop Warden
 Plains
+Polukranos, World Eater
 Portcullis Vine
 Preordain
 Prismatic Lens
 Prison Realm
 Prized Unicorn
 Profound Journey
+Prosperous Pirates
+Rankle, Master of Pranks
 Rath's Edge
 Reef Worm
 Reprobation
@@ -271,6 +299,8 @@ Ritual of Rejuvenation
 Riveteers Overlook
 Rock Badger
 Rot Wolf
+Rubblehulk
+Rush of Inspiration
 Salvaged Manaworker
 Samwise Gamgee
 Sand Silos
@@ -278,11 +308,13 @@ Sardian Avenger
 Scourge of Kher Ridges
 Sea Eagle
 Sea Gate Restoration
+Sea God's Scorn
 Seal of Primordium
 Searing Wind
 Seething Landscape
 Seismic Mage
 Selfless Savior
+Sentinel Spider
 Serpentine Ambush
 Serra's Guardian
 Shared Trauma
@@ -291,6 +323,7 @@ Shuri, the Black Panther
 Sidewinder Naga
 Siege Mastodon
 Siegehorn Ceratops
+Slither Blade
 Sliver Construct
 Smash
 Smuggler's Copter
@@ -301,7 +334,9 @@ Sovereign's Bite
 Sowing Mycospawn
 Spark Elemental
 Spark Jolt
+Spellstutter Sprite
 Sphinx-Bone Wand
+Sporoloth Ancient
 Starlit Angel
 Stomp and Howl
 Stone Quarry
@@ -314,6 +349,8 @@ Sunseed Nurturer
 Swamp
 Symbiote Spawn
 Tenement Crasher
+Tezzeret's Betrayal
+The Birth of Meletis
 The Destined White Mage
 The Lady of the Mountain
 Thran Foundry
@@ -321,6 +358,7 @@ Thunderclap
 Thunderscape Apprentice
 Timely Interference
 Toils of Night and Day
+Tolarian Serpent
 Tortured Existence
 Towering Gibbon
 Traxos, Scourge of Kroog
@@ -337,6 +375,7 @@ Twinblade Slasher
 Twins of Maurer Estate
 Twisted Spider-Clone
 Two-Handed Axe
+Tymaret Calls the Dead
 Umezawa's Jitte
 Universal Automaton
 Valor of the Worthy
@@ -362,8 +401,10 @@ Welcoming Vampire
 Whalebone Glider
 Whiptongue Frog
 White Knight
+Will of the Temur
 Winding Canyons
 Woodweaver's Puzzleknot
 Your Temple Is Under Attack
+Yuan-Ti Scaleshield
 Zealot il-Vec
 Zephid's Embrace

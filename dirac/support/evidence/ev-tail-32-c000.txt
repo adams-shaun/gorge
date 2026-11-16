@@ -1,8 +1,11 @@
+Abstruse Interference
 Advanced Hoverguard
 Aeolipile
 Aeronaut's Wings
 Ageless Guardian
 Akki Rockspeaker
+Akoum Boulderfoot
+Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
@@ -11,9 +14,12 @@ Apprentice Sorcerer
 Arashin Sovereign
 Archfiend of Sorrows
 Arctic Treeline
+Ashling the Pilgrim
 Atarka Beastbreaker
 Attune with Aether
+Avenger of Zendikar
 Axgard Armory
+Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
 Blasted Landscape
@@ -29,11 +35,15 @@ Boreal Elemental
 Bottle Golems
 Brand
 Brood Birthing
+Cartouche of Zeal
 Cast Down
+Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Channel the Suns
+Chaotic Goo
 Chatter of the Squirrel
+Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
@@ -59,6 +69,7 @@ Drown in Ichor
 Duskhunter Bat
 Dwell on the Past
 Eastfarthing Farmer
+Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
 Elvish Eulogist
@@ -67,10 +78,12 @@ Endurance Bobblehead
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
+Eternal Skylord
 Ethercaste Knight
 Evangel of Synthesis
 Eviscerator's Insight
 Expedition Diviner
+Explosive Impact
 Eye of Nowhere
 Facevaulter
 Familiar Ground
@@ -88,6 +101,8 @@ Fourth Bridge Prowler
 Frontline Devastator
 Garrison Griffin
 Geier Reach Sanitarium
+Genasi Enforcers
+General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
 Ghostly Visit
@@ -100,6 +115,7 @@ Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
 Haunted Cloak
+Heart Sliver
 Heliod's Pilgrim
 Heroic Charge
 Highway Robber
@@ -113,6 +129,7 @@ Idle Thoughts
 Ifnir Deadlands
 Ignition Team
 Inferno
+Into Thin Air
 Invasion of Segovia
 Irini Sengir
 Island
@@ -138,6 +155,7 @@ Madame Hydra, Reanimated
 Magma Phoenix
 Magnivore
 Magus of the Candelabra
+Mandibular Kite
 Master Decoy
 Meldweb Strider
 Memory Worm
@@ -166,6 +184,7 @@ Peer Through Depths
 Penance Stare
 Pest Infestation
 Pestermite
+Phantasmal Sphere
 Pillar of Light
 Pious Evangel
 Plains
@@ -191,6 +210,7 @@ Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
+Rotting Mastodon
 Ruin Ghost
 Rust Monster
 Salt Marsh
@@ -214,6 +234,7 @@ Spellseeker
 Spitting Spider
 Spontaneous Flight
 Squall Line
+Stampeding Horncrest
 Star of Extinction
 Steel Golem
 Steeple Roc
@@ -246,6 +267,7 @@ Untamed Wilds
 Valkyrior Skyrider
 Vaporkin
 Venomous Vines
+Vexing Sphinx
 Viashivan Dragon
 Viridian Zealot
 Vivisection

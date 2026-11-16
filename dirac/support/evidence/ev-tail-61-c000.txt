@@ -1,13 +1,19 @@
 A-Circuit Mender
 A-Eyes of the Beholder
 A-Jackhammer
+Abyssal Hunter
 Active Volcano
+Aeronaut Admiral
 Agonizing Syphon
+Airdrop Condor
 Ajani's Influence
 Ajani, Valiant Protector
 Alhammarret, High Arbiter
+Altar of Bhaal
+Altar of Bone
 Amazing Alliance
 Ambush
+An-Havva Inn
 Aragorn and Arwen, Wed
 Araña, Heart of the Spider
 Argivian Blacksmith
@@ -17,6 +23,7 @@ Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
+Avabruck Caretaker
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
@@ -24,31 +31,43 @@ Ballroom
 Baloth Gorger
 Barbtooth Wurm
 Basilica Screecher
+Bastion Enforcer
 Beetleback Chief
 Benalish Sleeper
 Benthic Biomancer
 Blasted Landscape
 Boon-Bringer Valkyrie
+Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Butcher's Glee
 Cackling Flames
+Canopy Gorger
 Carrion Ants
+Cartouche of Knowledge
 Case of the Shifting Visage
 Centaur Garden
 Cerodon Yearling
+Charity Extractor
 Chimney Goyf
 Choking Restraints
 Chorus of Might
+Churning Eddy
 Clattering Augur
 Cogwork Spy
 Confound
 Consider
+Consign
+Constable of the Realm
 Contingency Plan
+Courier's Briefcase
 Covert Operative
+Crackling Doom
 Crested Herdcaller
 Crimson Hellkite
 Curious Killbot
+Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
 Dawnhart Geist
@@ -87,7 +106,9 @@ Fell Flagship
 Filigree Crawler
 Filigree Fracture
 Fire Whip
+Fireblade Artist
 Fires of Victory
+Firewing Phoenix
 Fleetwheel Cruiser
 Font of Progress
 Force of Vigor
@@ -100,6 +121,7 @@ Garruk, Caller of Beasts
 Genestealer Locus
 Gift of Granite
 Gift of Wrath
+Glistening Extractor
 Gobbling Ooze
 Goblin Artillery
 Goblin Cadets
@@ -112,12 +134,15 @@ Goldnight Commander
 Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
+Grovetender Druids
 Hanabi Blast
 Harsh Scrutiny
 Hatchery Spider
 Hawkeye, Trick Shot
+Heartless Pillage
 Hellcarver Demon
 Henge of Ramos
+Heron's Grace Champion
 Hog-Monkey Rampage
 Howlpack Wolf
 Huatli's Raptor
@@ -128,8 +153,10 @@ Ifh-Bíff Efreet
 Ihsan's Shade
 Imaginary Friends
 Implode
+Incremental Blight
 Incubation Sac
 Indicate
+Infected Vermin
 Infuriate
 Insatiable Gorgers
 Iridescent Angel
@@ -137,19 +164,25 @@ Irradiate
 Irregular Cohort
 Island
 Izzet Chronarch
+Jade Guardian
 Jagwasp Swarm
 Jon Irenicus, the Exile
 Just the Wind
+Kaleidoscorch
 Karn's Bastion
 Kessig Wolfrider
 Kjeldoran Pride
 Klothys's Design
+Kor Duelist
 Koth's Courier
 Kranioceros
 Krosan Archer
 Leech Gauntlet
+Legacy Weapon
 Liliana's Scorn
 Lingering Phantom
+Llawan, Cephalid Empress
+Lumbering Satyr
 Magma Sliver
 Makindi Aeronaut
 Mana Prism
@@ -161,18 +194,23 @@ Merfolk Observer
 Merfolk of the Depths
 Mesa Unicorn
 Metathran Soldier
+Mindeye Drake
+Minotaur Illusionist
 Mirkwood Channeler
+Moira, Urborg Haunt
 Molten Rebuke
 Monastery Flock
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
+Mysterious Tome
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
 Neglected Heirloom
 Nekrataal
 Nettle Drone
+Nightshade Harvester
 Nissa, Resurgent Animist
 Novijen, Heart of Progress
 One with Nature
@@ -184,21 +222,28 @@ Outbreak
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
+Peel from Reality
 Pegasus Courser
 Peppersmoke
 Phalanx Vanguard
 Phantom Warrior
+Pharika's Libation
 Phyresis
 Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
+Pincer Spider
+Plague Rats
 Plains
 Planar Atlas
 Plated Spider
+Possessed Centaur
 Pouncing Lynx
+Power Sink
 Predict
 Press for Answers
 Primordial Sage
+Prince Imrahil the Fair
 Prismari Apprentice
 Protector of Gondor
 Pygmy Troll
@@ -216,7 +261,9 @@ Resistance Reunited
 Resounding Silence
 Returned Pastcaller
 Reverberate
+Rhonas's Monument
 Rhystic Study
+Riders of Rohan
 Rocco, Cabaretti Caterer
 Safe Haven
 Safehold Sentry
@@ -225,6 +272,7 @@ Sandstorm
 Savage Silhouette
 Scarlet Witch, Wanda Maximoff
 Secrets of the Golden City
+Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
 Shaper Apprentice
@@ -234,7 +282,10 @@ Shoreline Ranger
 Sigardian Priest
 Sigiled Paladin
 Silverquill Campus
+Sip of Hemlock
 Skirk Commando
+Skittering Crustacean
+Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
 Skyshroud Claim
@@ -243,8 +294,10 @@ Slith Firewalker
 Slobad, Goblin Tinkerer
 Smogsteed Rider
 Solitary Defiance
+Songbird, Sonic Screamer
 Sootfeather Flock
 Soul Snuffers
+Soul's Majesty
 Spiketail Drake
 Spitting Drake
 Spotter Thopter
@@ -257,26 +310,33 @@ Steppe Lynx
 Stitched Mangler
 Stonewood Invocation
 Stream of Consciousness
+Strongarm Monk
 Stun Sniper
 Stupor
 Summon the School
 Summon: Good King Mog XII
 Sunweb
+Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
 Swordwise Centaur
+Syndicate Messenger
 Syphon Life
 Talon Gates of Madara
 Tarfire
 Tavern Swindler
+Teardrop Kami
 Teetering Peaks
 Tempest Owl
 Temporal Eddy
 Tenth District Veteran
+Teroh's Faithful
 Thalakos Sentry
 Thanos, Death's Consort
+Thassa's Rebuff
 The Falcon, Airship Restored
 Thistledown Duo
+Thornscape Apprentice
 Thran Quarry
 Timber Protector
 Timeless Lotus
@@ -284,7 +344,9 @@ Tin Street Cadet
 Titans' Vanguard
 Tooth of Chiss-Goria
 Towering Viewpoint
+Town Gossipmonger
 Trading Post
+Trigon of Thought
 Twincast
 Unbreakable Formation
 Uninvited Geist
@@ -294,6 +356,7 @@ Verdant Rebirth
 Vexing Bauble
 Viashino Runner
 Viridian Corrupter
+Viscerid Deepwalker
 Vivid Crag
 Vizier of the Scorpion
 Volatile Rig
@@ -301,6 +364,7 @@ Volcanic Spite
 Vrock
 Wakandan Tusker
 Walking Skyscraper
+Wall of Limbs
 War Chariot
 Watchful Giant
 Waterlogged Teachings

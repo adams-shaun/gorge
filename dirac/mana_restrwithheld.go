@@ -48,10 +48,10 @@ func (s *State) restrWithheldMana(k *prep, p uint8, d payDesc) int {
 
 // restrWitnessXPlus is restrWitnessX with withheld more mana in the census
 // total X divides into.
-func restrWitnessXPlus(x int, t avail, multi []uint8, cost *kop.ManaCost, withheld int) int {
+func restrWitnessXPlus(x int, t avail, multi []dynUnit, cost *kop.ManaCost, withheld int) int {
 	tot := t.total + withheld
 	for _, n := range multi {
-		tot += int(n)
+		tot += int(n.n)
 	}
 	return min(max(x, t.maxXMulti(cost, pipMaskOf(cost), multi)), tot/int(cost.X))
 }

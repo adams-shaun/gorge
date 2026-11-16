@@ -26,6 +26,7 @@ Annihilate
 Apostle of Purifying Light
 Archetype of Imagination
 Archfiend of Despair
+Arnjlot's Ascent
 Aspect of Gorgon
 Aven of Enduring Hope
 Azorius Cluestone
@@ -56,11 +57,14 @@ Brindle Boar
 Bringer of the Black Dawn
 Bringer of the Blue Dawn
 Broodstar
+Bull Cerodon
 Burning Cloak
 Caress of Phyrexia
 Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
+Cavalier of Flame
+Centaur Peacemaker
 Chasm Guide
 Chief of the Scale
 Chilling Apparition
@@ -96,6 +100,7 @@ Drag to the Bottom
 Dragon Arch
 Dragonsguard Elite
 Dramatic Reversal
+Dream Thrush
 Dromoka Warrior
 Dying Wish
 Earth Rift
@@ -104,6 +109,7 @@ Ebony Fly
 Eidolon of Astral Winds
 Elemental Appeal
 Elemental, My Dear
+Elf Replica
 Elven Rite
 Embrace the Unknown
 Emergent Growth
@@ -178,6 +184,7 @@ Hooded Kavu
 Hormagaunt Horde
 Howling Moon
 Huang Zhong, Shu General
+Huatli, Radiant Champion
 Humble Budoka
 Hydrosurge
 Hypervolt Grasp
@@ -196,6 +203,7 @@ Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
 Kathari Remnant
+Kazuul's Toll Collector
 Keen Glidemaster
 Keep Safe
 Keldon Halberdier
@@ -215,6 +223,7 @@ Leonin Lightbringer
 Ley Druid
 Lifecrafter's Bestiary
 Lifecrafter's Gift
+Lithatog
 Llanowar Envoy
 Lodestone Golem
 Lost in Memories
@@ -252,6 +261,7 @@ Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
 Oblivion Strike
+Ohabi Caleria
 Ondu Spiritdancer
 Opaline Unicorn
 Orazca Raptor
@@ -290,6 +300,7 @@ Ratchet Bomb
 Reality Strobe
 Reconstruction
 Recruiter of the Guard
+Reflective Golem
 Resistance Skywarden
 Return Upon the Tide
 Reyhan, Last of the Abzan
@@ -297,8 +308,10 @@ Ridgescale Tusker
 Rograkh, Son of Rohgahh
 Roots of Wisdom
 Runeboggle
+Sacellum Archers
 Sacred Guide
 Salivating Gremlins
+Sanctum of Ugin
 Saruli Caretaker
 Savage Offensive
 Savra, Queen of the Golgari
@@ -337,6 +350,7 @@ Spire Garden
 Spite of Mogis
 Spread the Sickness
 Stalking Stones
+Star of Extinction
 Start from Scratch
 Steel Wall
 Stifle
@@ -372,7 +386,9 @@ Thistledown Liege
 Thor, Guardian of Midgard
 Thoughtpicker Witch
 Thraben Valiant
+Thran Vigil
 Thundering Tanadon
+Tin Street Market
 Titania's Command
 Tocasia's Dig Site
 Tomebound Lich
@@ -414,8 +430,10 @@ Wintermoor Commander
 Wipe Away
 Wolf's Quarry
 Woodcutter's Grit
+Worldgorger Dragon
 Wu Infantry
 Yeva, Nature's Herald
 You're Confronted by Robbers
 Zamriel, Seraph of Steel
 Zodiac Monkey
+Zombie Apocalypse

@@ -1,3 +1,5 @@
+A-Baleful Beholder
+A-Civil Servant
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
 A-The One Ring
@@ -16,6 +18,7 @@ Angel's Tomb
 Angrath's Rampage
 Annex Sentry
 Arc Trail
+Archdemon of Unx
 Archivist
 Armored Pegasus
 Artificer's Intuition
@@ -28,8 +31,10 @@ Bastion Inventor
 Battlegrace Angel
 Bazaar Trademage
 Bedevil
+Benalish Heralds
 Benevolent Hydra
 Binding the Old Gods
+Biolume Egg
 Bladewing, Deathless Tyrant
 Blasting Station
 Blinding Light
@@ -51,6 +56,7 @@ Carnival of Souls
 Chainer's Edict
 Chakram Retriever
 Chandra's Triumph
+Chandra, Legacy of Fire
 Cleansing Wildfire
 Collector's Case
 Conifer Strider
@@ -67,15 +73,21 @@ Crypt Creeper
 Daggerclaw Imp
 Darwin, Adaptive Mutant
 Dauntless Dourbark
+Davvol, Evincar of Rath
+Daybreak Chimera
 Death Watch
 Deeproot Champion
 Deepwood Tantiv
+Deflection
 Deny Reality
 Depth Charge Colossus
+Dimir Guildmage
+Dirgur Nemesis
 Disciple of Perdition
 Disciple of Tevesh Szat
 Discontinuity
 Displacement Wave
+Distemper of the Blood
 Diviner of Mist
 Doomsday
 Doubtless One
@@ -90,15 +102,19 @@ Earthbending Student
 Egon, God of Death
 Elder Druid
 Eldrazi Devastator
+Elemental Spectacle
 Elephant Guide
 Ellivere of the Wild Court
 Elvish Skysweeper
+Emberwilde Caliph
 Ensoul Artifact
+Entropic Eidolon
 Estwald Shieldbasher
 Ethersworn Adjudicator
 Exalted Flamer of Tzeentch
 Executioner's Swing
 Expel from Orazca
+Explosive Vegetation
 Fade from Memory
 Fae of Wishes
 Fallen Angel
@@ -108,18 +124,25 @@ Final Flare
 Fire Nation Archers
 Firefiend Elemental
 Flailing Drake
+Flame Elemental
+Flamespeaker's Will
 Flanking Troops
 Flaring Pain
 Fledgling Griffin
+Fleeting Aven
 Forbid
 Force Void
 Forced March
 Forest
 Forsaken Drifters
+Fortuitous Find
 Fracture
 Fungus Sliver
 Fungusaur
+Gallantry
+Gallows at Willow Hill
 Generous Visitor
+Getaway Car
 Ghoultree
 Gilt-Leaf Seer
 Glimmer Bairn
@@ -142,11 +165,14 @@ Gruul War Plow
 Gurmag Drowner
 Hall
 Hampering Snare
+Havenwood Wurm
 Hedgewitch's Mask
 Herald of Slaanesh
 Hero of Bladehold
 Hero's Heirloom
 Heroic Teamwork
+Hivestone
+Hobblefiend
 Hordeling Outburst
 Hungry for More
 Hunting Grounds
@@ -154,34 +180,45 @@ Hydromorph Gull
 Ice Cage
 Impetuous Sunchaser
 Indrik Stomphowler
+Infectious Horror
 Insubordination
 Invisibility
 Iron Man, Futurist Paragon
 Island
+Izoni, Thousand-Eyed
 Jace's Ingenuity
+Jackdaw
 Jackhammer
+Jedit Ojanen
 Jedit's Dragoons
 Jori En, Ruin Diver
+Jungle Troll
 Kederekt Leviathan
 Key to the City
 Khalni Garden
 Knotvine Paladin
+Kolaghan, the Storm's Fury
 Korlessa, Scale Singer
 Lampad of Death's Vigil
+Lash of the Balrog
+Last Word
 Lava Spike
 Lethargy Trap
 Liability
 Lightning Bolt
 Lightning Stormkin
+Linvala, Keeper of Silence
 Llanowar Augur
 Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
 Lucky the Pizza Dog
 Luke Cage, Hero for Hire
+Luminarch Aspirant
 Luminous Wake
 M.O.D.O.K., Evil Intellect
 Machine Man, Model X-51
+Magefire Wings
 Make Mischief
 Malevolent Noble
 Maraxus of Keld
@@ -207,8 +244,12 @@ Momo, Rambunctious Rascal
 Mother Bear
 Mountain
 Muxus, Goblin Grandee
+Mycologist
 Mystic Subdual
+Necromantic Summons
 Nessian Asp
+Nessian Wanderer
+Neutralizing Blast
 Nighthawk Scavenger
 Nim Shambler
 Nomadic Elf
@@ -226,8 +267,10 @@ Order of the White Shield
 Ovinize
 Paralyzing Grasp
 Patriar's Seal
+Perennial Behemoth
 Persuasion
 Phantasmagorian
+Pharika's Chosen
 Phyrexia's Core
 Pink Horror
 Pitiless Vizier
@@ -239,9 +282,12 @@ Port Inspector
 Pouncing Lynx
 Powerstone Engineer
 Pride Sovereign
+Psionic Entity
+Pyromancer's Assault
 Radha's Firebrand
 Rampart Crawler
 Read the Bones
+Reckless Reveler
 Reckless Stormseeker
 Recruit the Worthy
 Referee Squad
@@ -259,14 +305,17 @@ Roaming Ghostlight
 Rockslide Elemental
 Rooftop Nuisance
 Rot Shambler
+Rotlung Reanimator
 Sabertooth Wyvern
 Sage of Lat-Nam
 Sage of Shaila's Claim
+Sage of the Unknowable
 Saheeli's Silverwing
 Sanctuary Raptor
 Sanctum Gargoyle
 Sandblast
 Sanguinary Priest
+Sanguine Sacrament
 Satyr Piper
 Savannah
 Scryb Ranger
@@ -276,19 +325,24 @@ Seasoned Pyromancer
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
+Selesnya Sagittars
+Serra Ascendant
 Serra's Liturgy
 Serum Visionary
 Shady Traveler
 Shaggy Camel
+Shattered Crypt
 Shorecomber Crab
 Shroofus Sproutsire
 Siegehorn Ceratops
 Sightless Ghoul
 Silk Net
+Sinister Possession
 Sir Shandlar of Eberyn
 Skaab Wrangler
 Skophos Warleader
 Sky Tether
+Skyblade of the Legion
 Skyline Predator
 Smashing Success
 Smite the Monstrous
@@ -296,6 +350,7 @@ Smog Elemental
 Sneaky Homunculus
 Soldevi Machinist
 Solve the Equation
+Sootstoke Kindler
 Soratami Mirror-Guard
 Sorcerer's Strongbox
 Sorin, Imperious Bloodlord
@@ -309,9 +364,11 @@ Sphere Grid
 Sphinx of Uthuun
 Spike Breeder
 Spinal Parasite
+Springjaw Trap
 Sram, Senior Edificer
 Staggershock
 Steadfast Armasaur
+Steadfast Paladin
 Stitched Assistant
 Stonefare Crocodile
 Stonehoof Chieftain
@@ -320,6 +377,7 @@ Strangleroot Geist
 Stronghold Machinist
 Sunblade Elf
 Sunlance
+Suntouched Myr
 Supply Drop
 Surge of Thoughtweft
 Survival Cache
@@ -329,6 +387,7 @@ Sword of the Chosen
 Sworn Companions
 Sworn Defender
 Sylvan Yeti
+Séance Board
 Tainted Pact
 Talisman of Impulse
 Talrand, Sky Summoner
@@ -341,10 +400,14 @@ Telling Time
 Tenth District Guard
 Territorial Scythecat
 The Great Mound
+The Keeper of the Yellow Hat
+Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw
 Tidewater Minion
+Time Wipe
 Tome Anima
+Traitorous Instinct
 Transguild Promenade
 Traxos, Scourge of Kroog
 Trollhide
@@ -357,6 +420,7 @@ Untamed Kavu
 Vedalken Heretic
 Veinwitch Coven
 Vengeant Earth
+Verduran Enchantress
 Viashino Sandsprinter
 View from Above
 Vile Deacon
@@ -365,6 +429,7 @@ Vito, Thorn of the Dusk Rose
 Vivid Crag
 Voda Sea Scavenger
 Vodalian Serpent
+Volley of Boulders
 Voyage's End
 Wall of Tears
 Warmth

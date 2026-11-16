@@ -23,6 +23,7 @@ Ashen-Skin Zubera
 Ashenmoor Gouger
 Asphyxiate
 Assimilate Essence
+Atarka, World Render
 Attunement
 Auntie Blyte, Bad Influence
 Balduvian Horde
@@ -45,6 +46,7 @@ Bonepicker Skirge
 Brain Gorgers
 Burrenton Shield-Bearers
 Cabal Patriarch
+Captain N'ghathrod
 Castle Raptors
 Catacomb Crocodile
 Cavalier of Thorns
@@ -84,8 +86,10 @@ Dawn to Dusk
 Day of Destiny
 Deadly Allure
 Death Wish
+Deathcult Rogue
 Deathgaze Cockatrice
 Deconstruct
+Delusions of Mediocrity
 Demonlord Belzenlok
 Devout Monk
 Diabolic Machine
@@ -109,7 +113,9 @@ Emancipation Angel
 Emissary of Despair
 End the Festivities
 Entrancing Melody
+Equilibrium
 Essence Flux
+Explosive Revelation
 Extinguish
 Fa'adiyah Seer
 Fable of Wolf and Owl
@@ -121,6 +127,7 @@ Fin-Clade Fugitives
 Finale of Devastation
 Fireblast
 Five Hundred Year Diary
+Fixer, Techno Terror
 Flame Slash
 Flood Plain
 Floodbringer
@@ -162,6 +169,7 @@ Havoc Demon
 Headwater Sentries
 Hearth Charm
 Heckling Fiends
+Hissing Iguanar
 Holy Justiciar
 Holy Strength
 Horizon Drake
@@ -170,6 +178,7 @@ Hornet Harasser
 Howling Gale
 Humility
 Hunted Troll
+Hurler Cyclops
 Hyena Pack
 Ill-Gotten Inheritance
 Imperial Outrider
@@ -198,13 +207,17 @@ Krav, the Unredeemed
 Lavabelly Sliver
 Leitmotif Composer
 Leyline Binding
+Lightning Wolf
 Liliana's Indignation
 Liliana, Death Wielder
+Liliana, the Last Hope
 Limestone Golem
+Lingering Tormentor
 Lord of Change
 Lumbering Falls
 Lunar Force
 Madame Vastra
+Maja, Bretagard Protector
 Majestic Heliopterus
 Make a Wish
 Makindi Shieldmate
@@ -226,7 +239,9 @@ Mountain Bandit
 Mox Pearl
 Mystic Compass
 Mystic Redaction
+Mythic Proportions
 Nantuko Shaman
+Navigator's Ruin
 Nephalia Moondrakes
 Nettle Sentinel
 Neurok Invisimancer
@@ -269,7 +284,9 @@ Plaxmanta
 Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
+Putrid Warrior
 Qarsi Sadist
+Quartzwood Crasher
 Rakdos Keyrune
 Rathi Fiend
 Ravenous Gigamole
@@ -277,6 +294,7 @@ Reanimate
 Rebuild
 Recon Craft Theta
 Remorseful Cleric
+Rendclaw Trow
 Renegade Demon
 Replication Specialist
 Retreat to Emeria
@@ -286,6 +304,7 @@ Rhonas's Monument
 Rise of Eagles
 Rise of the Witch-king
 Rise to Glory
+Rising of the Day
 Runehorn Hellkite
 Sabertooth Nishoba
 Saddle of the Cavalier
@@ -319,7 +338,9 @@ Solarion
 Soldevi Steam Beast
 Soul of the Rapids
 Soul-Strike Technique
+Species Specialist
 Spectacular Showdown
+Spider-Man, Hometown Hero
 Spinning Wheel Kick
 Spitting Image
 Squirming Mass
@@ -371,12 +392,14 @@ Transguild Promenade
 Tremor
 True Love's Kiss
 Tuktuk the Explorer
+Twinblade Assassins
 Twitch
 Uncanny Speed
 Uncle Istvan
 Uncomfortable Chill
 Uninvited Geist
 Unknown Shores
+Urborg Uprising
 Urza's Chalice
 Utopia Vow
 Utrom Monitor
@@ -391,6 +414,7 @@ Vision, Synthezoid Avenger
 Voice of Reason
 Volatile Fjord
 Vow of Torment
+Vraska, Relic Seeker
 Vrestin, Menoptra Leader
 Vulshok Battlegear
 Wake of Vultures

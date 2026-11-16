@@ -19,6 +19,7 @@ Atog
 Atrocious Experiment
 Automated Artificer
 Avalanche Riders
+Avatar of the Resolute
 Avenging Angel
 Barricade Breaker
 Beast Whisperer
@@ -27,6 +28,7 @@ Blind Zealot
 Blitz Leech
 Bog Tatters
 Born to Drive
+Boseiju Reaches Skyward
 Bountiful Promenade
 Brightstone Ritual
 Brotherhood Vertibird
@@ -50,6 +52,7 @@ Dance with Devils
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
+Decompose
 Demon of Wailing Agonies
 Deploy the Gatewatch
 Despondency
@@ -57,9 +60,11 @@ Deviant Skytech
 Dire Mimic
 Drag to the Underworld
 Dragon Moose
+Dragon Roost
 Dreadhorde Twins
 Driven
 Drogskol Cavalry
+Dusk's Landing
 Dynavolt Tower
 Earth-Cult Elemental
 Ebony Rhino
@@ -104,6 +109,7 @@ Intrepid Provisioner
 Invading Manticore
 Island
 Isolation Cell
+Jungle Delver
 Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
@@ -135,11 +141,13 @@ Nishoba Brawler
 Noxious Dragon
 Organ Hoarder
 Paralyzing Grasp
+Parapet Thrasher
 Pestilent Souleater
 Phyrexian Etchings
 Pierce the Sky
 Plains
 Pradesh Gypsies
+Prakhata Club Security
 Presence of Gond
 Presence of the Master
 Protomatter Powder
@@ -185,6 +193,7 @@ Target Minotaur
 The Brute
 The Meathook Massacre
 The Torment of Gollum
+Thragtusk
 Towashi Guide-Bot
 Undergrowth Scavenger
 Vanquish the Foul

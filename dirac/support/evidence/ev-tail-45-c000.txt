@@ -27,9 +27,11 @@ Assault Formation
 Atzocan Archer
 Aven Initiate
 Awesome Presence
+Axebane Beast
 Ayumi, the Last Visitor
 Bag End Banquet
 Balduvian Horde
+Barkhide Mauler
 Barrier Breach
 Basic Conjuration
 Battering Craghorn
@@ -146,6 +148,7 @@ Foundry Assembler
 Foundry Helix
 Freewind Falcon
 Frozen Shade
+Fíli and Kíli, Joyous
 Garbage Elemental
 Garruk Wildspeaker
 General's Kabuto
@@ -210,6 +213,7 @@ King Harald's Revenge
 Kraul Raider
 Lantern Kami
 Laser Screwdriver
+Lawbringer
 Leatherback Baloth
 Ledger Shredder
 Lightning Reaver
@@ -259,6 +263,7 @@ Omenspeaker
 One with the Kami
 Onulet
 Outland Liberator
+Owlin Spiralmancer
 Patron Wizard
 Phantom Centaur
 Pilfering Imp
@@ -267,6 +272,7 @@ Polar Kraken
 Pollenbright Druid
 Polymorphist's Jest
 Promising Duskmage
+Pyreheart Wolf
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Raking Canopy
@@ -298,6 +304,7 @@ Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Rusted Slasher
+Safehold Duo
 Safehold Sentry
 Sanctum of Tranquil Light
 Saproling Migration
@@ -315,6 +322,7 @@ Shivan Devastator
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
+Sister Hospitaller
 Sky Skiff
 Skywinder Drake
 Sly Instigator
@@ -355,12 +363,14 @@ Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Syr Konrad, the Grim
 Séance
 Tattered Mummy
 Tectonic Fiend
 Tempestra, Dame of Games
 Tempted by the Oriq
 Territorial Roc
+Thalisse, Reverent Medium
 Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons

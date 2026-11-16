@@ -8,200 +8,370 @@ Abzan Falconer
 Accorder Paladin
 Ahn-Crop Invader
 Airlift Chaplain
+Alive
 Alseid of Life's Bounty
 Ambush Paratrooper
 Ana Sanctuary
+Angelic Renewal
 Apostle of Invasion
 Arch of Orazca
 Arm with Aether
 Armory Veteran
 Arrester's Zeal
+Ashmouth Hound
+Atog
 Aura Mutation
 Aven Envoy
 Aysen Highway
 Azorius Charm
+Baleful Beholder
+Binding Agony
 Birthing Pod
+Bitterbow Sharpshooters
+Blasting Station
+Bleed Dry
 Bloodsworn Steward
 Bottle Golems
 Bramblesnap
 Brokers Initiate
+Butcher's Cleaver
 Call to Glory
+Canopy Cover
+Canopy Tactician
+Celestial Kirin
+Cerulean Wyvern
 Chameleon Colossus
 Chant of the Skifsang
 Charging Troll
 Charismatic Vanguard
+Cockatrice
+Cogwork Archivist
+Coming In Hot
 Common Bond
 Compelled Duel
+Consuming Aetherborn
+Copperhorn Scout
+Coral Barrier
 Crookshank Kobolds
 Crosis's Catacombs
 Crow Storm
 Cruel Fate
+Culling the Weak
 Curfew
 Curious Obsession
 Curse Artifact
 Custodi Soulbinders
 Cutthroat Centurion
+Dakmor Bat
+Dance of the Skywise
 Danitha, New Benalia's Light
+Daring Demolition
 Dark Betrayal
 Dawn to Dusk
 Dawnfluke
+Debilitating Injury
+Defend the Celestus
+Desperate Ravings
+Destructor Dragon
 Detainment Spell
 Devil Dinosaur
 Devkarin Dissident
+Dig Up the Body
 Diregraf Horde
 Dispeller's Capsule
+Doctor Doom, Unrivaled
 Drannith Magistrate
+Dread Return
+Dreadwurm
+Drizzt Do'Urden
 Dusk Legion Zealot
 Duskrider Peregrine
 Dwarven Armorer
+Eastern Paladin
 Eladamri, Lord of Leaves
+Elvish Soultiller
 Empty City Ruse
 Empyrial Plate
 Enclave Elite
+Enlarge
 Ensnare
+Erinis, Gloom Stalker
 Escape Velocity
 Eureka Moment
 Evie Frye
+Eviscerator
 Evolution Sage
 Expedition Skulker
 Eye Gouge
+Faerie Macabre
+Fallaji Archaeologist
+Fatal Frenzy
+Fateful End
+Fear of Death
 Feast of Dreams
+Fell Stinger
 Fen Hauler
 Feral Krushok
+Flame On!
 Flamekin Spitfire
+Fleet Swallower
+Fleshbag Marauder
+Flood of Recollection
 Fog Elemental
 Folk of the Pines
+Foothill Guide
+Force of Will
 Foresee
 Forest
+Forsaken Drifters
+Foundry Champion
 Freewind Equenaut
 Fugue
+Gelatinous Genesis
+Genju of the Spires
 Gerrard's Irregulars
 Ghostfire Slice
 Glass of the Guildpact
+Glint Raker
 Glissa's Scorn
+Gloom Sower
+Greenwood Sentinel
+Grid Monitor
+Grisly Ritual
 Gruesome Deformity
+Guardian of Cloverdell
+Gustcloak Runner
+Gutwrencher Oni
+Hardy Outlander
+Healing Technique
+Hedron Alignment
+Hedron Crab
 Heralds of Tzeentch
 Heroes of the Revel
+Heron of Hope
+Hexplate Wallbreaker
 Hidden Spider
 Hoard Robber
 Hobbling Zombie
 Hold the Gates
+Honored Crop-Captain
+Honored Heirloom
+Howlpack Piper
+Hydromorph Guardian
+Igneous Golem
 Illusory Demon
+In the Trenches
+Indestructibility
+Inescapable Blaze
+Ingenious Thief
 Inkling Summoning
 Innovative Metatect
 Inspiring Cleric
 Invasion of Dominaria
+Invasion of Tolvada
+Ironclad Krovod
 Island
+Ivora, Insatiable Heir
 Ivy Elemental
 Jace's Sanctum
+Jade Mage
 Jaheira, Friend of the Forest
 Jinxed Choker
+Jungleborn Pioneer
 Junk Diver
+Kalonian Tusker
+Karn's Touch
 Kashi-Tribe Elite
 Kashi-Tribe Reaver
 Kayla's Command
+Kelsinko Ranger
+Kinsbaile Cavalier
 Kiora's Dambreaker
+Krenko's Enforcer
 Kuldotha Rebirth
 Kumena's Awakening
+Kyoki, Sanity's Eclipse
 Learn from the Past
 Legion Guildmage
+Legions to Ashes
+Life and Limb
+Lightning-Rig Crew
+Liliana's Standard Bearer
+Liliana, Death Wielder
 Lily Bowen, Raging Grandma
 Limestone Golem
 Lionheart Maverick
+Live Fast
 Living Airship
+Lotus Path Djinn
 Lurking Predators
 Mage-Ring Bully
+Manta Riders
 March of the Returned
+Marrow-Gnawer
 Marsh Threader
 Marshdrinker Giant
 Master Symmetrist
+Maximus, Knight Apparent
 Merfolk Secretkeeper
 Merfolk Skydiver
 Merry, Warden of Isengard
 Midnight Charm
+Mindleech Ghoul
+Mishra's Onslaught
+Molder Slug
 Mountain
 Munitions Expert
+Muscle Sliver
 Mystic Familiar
 Mystical Tutor
+Nantuko Husk
 Natural End
+Nature's Resurgence
+Nebelgast Intruder
 Necrogen Spellbomb
+Needleshot Gourna
+Needletooth Raptor
 Nevinyrral's Disk
+Norwood Warrior
 Obelisk of Grixis
 Obelisk of Jund
+Ogre Recluse
+Ordeal of Thassa
 Order of the Mirror
 Outland Boar
+Overgrown Armasaur
+Paragon of New Dawns
 Pemmin's Aura
+Pendulum of Patterns
 Pestilent Souleater
 Phyrexian Lens
 Pitiless Pontiff
 Plains
+Poultice Sliver
+Predators' Hour
 Priest of Urabrask
 Pyrophobia
+Quickling
+Rabble-Rouser
+Radha's Firebrand
+Radiant, Archangel
 Ral's Reinforcements
 Ramosian Commander
+Rathi Assassin
 Ray Fillet, Wave Warrior
 Reaver Ambush
+Recantation
 Refocus
+Renegade Krasis
+Repentant Vampire
 Resplendent Griffin
+Retrieve
+Revive
 Rise of the Ants
+Rise of the Hobgoblins
+Ritual of Steel
 Rock Lobster
 Rofellos's Gift
+Root-Kin Ally
 Rootborn Defenses
+Rouse
 Ruthless Invasion
+Sanguine Spy
 Sarkhan's Dragonfire
 Savage Thallid
+Scourge Servant
 Screeching Bat
 Scryb Sprites
+Sea Spirit
 Secret Passage
+Segmented Krotiq
+Selenia, Dark Angel
 Self-Inflicted Wound
+Seraph of Dawn
 Seton's Scout
 Shacklegeist
 Shauku, Endbringer
+Shu Soldier-Farmers
+Sigiled Contender
 Singer of Swift Rivers
 Skillful Lunge
+Skull Fracture
 Skyshroud Sentinel
 Smoldering Werewolf
+Social Climber
 Spectacular Showdown
 Spider-Man, Peter Parker
 Spiked Ripsaw
 Spiteful Bully
 Squeeze
+Starlight
+Stinkdrinker Daredevil
+Stitched Mangler
 Stormrider Spirit
+Strangleroot Geist
 Stratus Walk
 Strength in Numbers
 Stromgald Crusader
 Sudden Death
 Sudden Edict
 Suit Up
+Surveilling Sprite
 Suspicious Stowaway
+Swaggering Corsair
 Swamp
+Swarm of Bloodflies
+Swift Justice
+Syndicate Enforcer
+Tainted Pact
+Temperamental Oozewagg
+Tenacity
 Terravore
+Territorial Allosaurus
 Thaumatic Compass
 The Crafter
+The Rack
 The Reality Chip
 Thought Harvester
+Thresher Lizard
 Thrun, the Last Troll
 Tidy Conclusion
+Time Reversal
+Time Walk
 Tolarian Winds
 Tomb of the Spirit Dragon
 Tower Winder
+Treasure Hunter
+Trelasarra, Moon Dancer
 Tremor
 Triskelavus
+Tukatongue Thallid
 Unruly Krasis
+Urborg Syphon-Mage
+Valkyrior Skyrider
 Vampiric Tutor
 Vat Emergence
 Vault of the Archangel
+Veiled Sentry
+Venomous Brutalizer
+Vincent, Vengeful Atoner
+Vitalize
 Vitaspore Thallid
 Vito, Thorn of the Dusk Rose
+Voltaic Servant
+Vraska, Scheming Gorgon
 Wall of Blossoms
 Wall of Pine Needles
 War Chariot
 War Dance
 Weather the Storm
 Weldfast Monitor
+Whiptongue Hydra
 White Knight
 Wild Aesthir
 Windrider Wizard
+Wurmcoil Larva
 Yoked Ox
 Zarichi Tiger
+Zeriam, Golden Wind
 Zof Shade

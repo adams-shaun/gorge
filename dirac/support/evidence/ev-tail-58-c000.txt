@@ -12,6 +12,7 @@ Abzan Banner
 Accelerate
 Accumulated Knowledge
 Admiral's Order
+Aerie Ouphes
 Aetherling
 Ajani, the Greathearted
 Alabaster Potion
@@ -22,6 +23,7 @@ Ana Disciple
 Angel of Renewal
 Animist's Awakening
 Anoint with Affliction
+Apocalypse Hydra
 Ardent Plea
 Argothian Elder
 Assassin's Strike
@@ -91,6 +93,7 @@ Distant Melody
 Distress
 Dormant Sliver
 Dovin's Acuity
+Dreadwing
 Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
@@ -103,6 +106,7 @@ Elder Owyn Lyons
 Elder Spawn
 Elgaud Inquisitor
 Elite Arrester
+Elite Headhunter
 Ember Weaver
 Enraged Giant
 Enraged Killbot
@@ -153,6 +157,7 @@ Ground Rift
 Guardian of Pilgrims
 Guma
 Hair-Strung Koto
+Hajar, Loyal Bodyguard
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
@@ -163,6 +168,7 @@ Hold the Gates
 Hollowhenge Spirit
 Hook Swords
 Hound of the Farbogs
+House Guildmage
 Hunger of the Nim
 Icingdeath, Frost Tyrant
 Incite
@@ -183,6 +189,7 @@ Kinjalli's Caller
 Kitesail Apprentice
 Kithkin Daggerdare
 Knighted Myr
+Knights' Charge
 Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
@@ -196,6 +203,7 @@ Lethal Exploit
 Lifeblood Hydra
 Lightning Dragon
 Lightning Talons
+Liliana, the Necromancer
 Llanowar Visionary
 Looming Spires
 Lucky Offering
@@ -206,6 +214,7 @@ Marionette Master
 Mass Diminish
 Master Splicer
 Maul of the Skyclaves
+Meletis Astronomer
 Mesmeric Fiend
 Mesmeric Orb
 Michelangelo, On the Scene
@@ -309,6 +318,7 @@ Shambling Vent
 Shard Volley
 Short Sword
 Shriekdiver
+Shrieking Grotesque
 Sigiled Behemoth
 Silverwing Squadron
 Simian Brawler
@@ -392,6 +402,7 @@ Voltaic Construct
 Vryn Wingmare
 Wailing Ghoul
 Wall of Kelp
+Warchief Giant
 Weatherseed Faeries
 Welkin Guide
 Wheel of Fortune

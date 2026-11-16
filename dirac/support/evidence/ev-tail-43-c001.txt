@@ -197,6 +197,7 @@ Mirror Image
 Moderation
 Mogg Mob
 Molten Primordial
+Momentum Rumbler
 Mortality Spear
 Mortus Strider
 Motivated Pony
@@ -215,6 +216,7 @@ Noxious Field
 Nyxborn Behemoth
 Oath of Jace
 Ojutai Interceptor
+Opal Caryatid
 Oppression
 Order of the Sacred Bell
 Ordruun Commando
@@ -244,6 +246,7 @@ Purify the Grave
 Putrefax
 Quag Vampires
 Raised by Wolves
+Ramunap Ruins
 Raven Clan War-Axe
 Razor Golem
 Razorgrass Ambush
@@ -315,6 +318,7 @@ Takenuma, Abandoned Mire
 Talas Explorer
 Talon Trooper
 Tear Asunder
+Temur War Shaman
 Tethmos High Priest
 Thallid Germinator
 The Hunger Tide Rises
@@ -332,12 +336,14 @@ Tsabo's Decree
 Tuktuk Grunts
 Turntimber Ascetic
 Twisted Landscape
+Ukud Cobra
 Uncovered Clues
 Unexpected Fangs
 Urborg Repossession
 Urza's Guilt
 Urza's Tome
 Utvara Hellkite
+Vanquish
 Venomthrope
 Venser, Visionary Traveler
 Verge Rangers

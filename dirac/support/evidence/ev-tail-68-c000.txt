@@ -37,12 +37,14 @@ Blighted Shaman
 Blood Reckoning
 Brokers Hideout
 Captain America's Motorcycle
+Captain Lannery Storm
 Cateran Brute
 Cavalier of Night
 Cavern Harpy
 Charging Paladin
 Cinder Giant
 Citadel Castellan
+Cliffhaven Vampire
 Clot Sliver
 Cloudreader Sphinx
 Cold Storage
@@ -55,6 +57,7 @@ Corpulent Corpse
 Corrupted Roots
 Courier's Capsule
 Crater's Claws
+Crushing Disappointment
 Crystal Ball
 Curse of Bounty
 Curse of Shallow Graves
@@ -69,8 +72,10 @@ Drag Down
 Dramatic Reversal
 Dredge
 Eladamri, Lord of Leaves
+Elderwood Scion
 Electrickery
 Elvish Archers
+Embersmith
 Engineered Might
 Errant and Giada
 Erratic Mutation
@@ -95,6 +100,7 @@ Flameborn Viron
 Flamecast Wheel
 Fleetfeather Sandals
 Forest
+Freyalise, Llanowar's Fury
 Furious Resistance
 Garruk's Packleader
 Gem of Becoming
@@ -121,6 +127,7 @@ Hollowsage
 Honden of Seeing Winds
 Hound of the Farbogs
 Howling Fury
+Hulking Bugbear
 Hushwing Gryff
 Inkrise Infiltrator
 Inspired Charge
@@ -157,6 +164,7 @@ Maul Splicer
 Mausoleum Secrets
 Mesmeric Fiend
 Miasmic Mummy
+Mist-Syndicate Naga
 Mogg Flunkies
 Monstrify
 Moonlight Hunt
@@ -188,6 +196,7 @@ Priest of Gix
 Proud Pack-Rhino
 Psychic Strike
 Python
+Rakdos Ragemutt
 Ranging Raptors
 Rashka the Slayer
 Ray of Erasure
@@ -204,6 +213,7 @@ Sangrophage
 Sanguine Spy
 Scaled Herbalist
 Scaled Hulk
+Scarred Vinebreeder
 Scrapper Champion
 Sentinel Sliver
 Serene Offering
@@ -247,12 +257,14 @@ Swift Spinner
 Tangleclaw Werewolf
 Tarfire
 Tattered Mummy
+Team Transmitter
 Tel-Jilad Justice
 Terra Eternal
 Thaumaturge's Familiar
 Think Tank
 Thirst
 Tishana's Wayfinder
+Tolsimir Wolfblood
 Tormod's Cryptkeeper
 Tower of Eons
 Traumatize
@@ -260,6 +272,7 @@ Trespasser il-Vec
 Treva's Ruins
 Tune the Narrative
 Twin-Silk Spider
+Tyrant of Kher Ridges
 Undercity Scavenger
 Unholy Hunger
 Urgoros, the Empty One
@@ -273,6 +286,7 @@ Warkite Marauder
 Whispering Wizard
 White Shield Crusader
 Windrider Wizard
+Wingmate Roc
 Wolfbriar Elemental
 Wolfkin Bond
 Wooden Sphere

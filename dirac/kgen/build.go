@@ -1028,7 +1028,7 @@ func (cb *cardBuilder) record() error {
 		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
-	d.World = c.World
+	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
@@ -1054,7 +1054,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
-	d.Ascend = c.Ascend
+	d.Ascend, d.Unleash = c.Ascend, c.Unleash
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1799,6 +1799,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredEquipped
 	case cmpEnchanted:
 		kf.Pred = kop.PredEnchanted
+		kf.PredN = int16(c.CmpN) // 1: "!enchanted"
 	case cmpAttached:
 		kf.Pred = kop.PredAttached
 	case cmpActiveCtrl:

@@ -167,6 +167,7 @@ Giant Scorpion
 Glade Watcher
 Glass of the Guildpact
 Gleeful Arsonist
+Glenn, the Voice of Calm
 Glimmerpost
 Glimpse of Nature
 Glorious Charge
@@ -272,6 +273,7 @@ On Wings of Gold
 Oracle of Tragedy
 Ornithopter
 Owlbear Shepherd
+Pain
 Painsmith
 Paragon of Open Graves
 Parch
@@ -323,6 +325,7 @@ Rusted Sentinel
 Ruthless Sniper
 Sabertooth Wyvern
 Sacred Guide
+Safewright Quest
 Sage-Eye Avengers
 Saheeli Rai
 Said
@@ -355,6 +358,7 @@ Shriekdiver
 Shrink
 Sigardian Savior
 Silverbeak Griffin
+Silverquill Pledgemage
 Simian Grunts
 Sinister Gnarlbark
 Skarrgan Pit-Skulk
@@ -380,6 +384,7 @@ Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
 Steadfastness
+Steel Leaf Champion
 Stingscourger
 Stronghold Overseer
 Summon Undead
@@ -399,6 +404,7 @@ Tavern Brawler
 Telethopter
 Tempered Veteran
 Tenured Oilcaster
+The Cabbage Merchant
 The Fair Basilica
 The Frightful Four
 The Juzam Master
@@ -436,6 +442,7 @@ Vedalken Mesmerist
 Venomous Brutalizer
 Vernal Sovereign
 Vesper Ghoul
+Vexing Bauble
 Vicious Offering
 Village Rites
 Virtus the Veiled
@@ -444,6 +451,7 @@ Voltaic Construct
 Wall of Denial
 Wall of Distortion
 Wall of Hope
+War Elemental
 Warlord's Fury
 Warped Landscape
 Watcher in the Mist

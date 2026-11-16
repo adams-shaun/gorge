@@ -129,6 +129,7 @@ Dust Corona
 Dwarven Hold
 Easy Prey
 Ebony Treefolk
+Eccentric Pestfinder
 Echoing Calm
 Eiganjo Castle
 Elvish Dreadlord
@@ -189,6 +190,7 @@ Harbinger of Night
 Hardened Scales
 Harpoon Sniper
 Herd Gnarr
+Herd Migration
 Hero of the Dunes
 Hibernation
 Honden of Life's Web
@@ -237,6 +239,7 @@ Luxa River Shrine
 Lys Alana Huntmaster
 MACH-1, Swooping Scoundrel
 Magma Vein
+Magmatic Insight
 Magnify
 Malcator's Watcher
 Malicious Advice
@@ -324,6 +327,7 @@ Raging Kavu
 Rally Maneuver
 Rally the Peasants
 Rampaging Cyclops
+Raugrin Triome
 Reaver Ambush
 Reckless Barbarian
 Reclaim the Wastes
@@ -365,6 +369,7 @@ Show of Valor
 Shrine Keeper
 Siege Dragon
 Sigarda's Summons
+Sigil of Valor
 Sign in Blood
 Silent Extraction
 Silent Sentinel

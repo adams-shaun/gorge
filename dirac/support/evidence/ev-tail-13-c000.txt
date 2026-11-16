@@ -7,6 +7,7 @@ Academy Rector
 Acolyte of Xathrid
 Adaptive Omnitool
 Adaptive Sporesinger
+Ajani's Last Stand
 Akiri, Line-Slinger
 Akroan Horse
 Akroma's Blessing
@@ -23,6 +24,7 @@ Arcane Denial
 Archmage Emeritus
 Armed Assailant
 Armored Skaab
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -42,6 +44,7 @@ Basalt Gargoyle
 Battering Craghorn
 Berserkers of Blood Ridge
 Black Panther, Claws of Bast
+Bladewing the Risen
 Blaze
 Bloodsky Berserker
 Bloodtallow Candle
@@ -155,13 +158,16 @@ Giant Caterpillar
 Gilded Scuttler
 Gladehart Cavalry
 Glaring Aegis
+Glen Elendra Archmage
 Glimmer Lens
 Go-Shintai of Lost Wisdom
 Goblin Champion
 Goblin Lookout
 Goblin Wardriver
 Golden-Tail Disciple
+Goro-Goro, Disciple of Ryusei
 Grasp of the Hieromancer
+Green Goblin, Nemesis
 Grindclock
 Groundskeeper
 Guardian Lions
@@ -265,6 +271,7 @@ Noble Templar
 Novice Occultist
 Oketra's Monument
 Old Stickfingers
+Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
 Oran-Rief, the Vastwood
@@ -278,6 +285,7 @@ Owlin Spiralmancer
 Paragon of Eternal Wilds
 Pardic Wanderer
 Patagia Tiger
+Peacekeeper
 Perception Bobblehead
 Pharika's Mender
 Phyrexian Boon
@@ -309,7 +317,9 @@ Reaper from the Abyss
 Recruitment Officer
 Redress Fate
 Refuse to Yield
+Relic Putrescence
 Resistance Fighter
+Resounding Scream
 Retrieve
 Rhox Pummeler
 Rift Sower
@@ -317,12 +327,14 @@ Rites of Refusal
 Ritual of Restoration
 Riverwise Augur
 Rocky Tar Pit
+Rohgahh, Kher Keep Overlord
 Rolling Temblor
 Rot Shambler
 Rubbleback Rhino
 Rubblebelt Rioters
 Runic Shot
 Rupture
+Ruthless Waterbender
 Ryusei, the Falling Star
 Sabertooth Alley Cat
 Sanctum Custodian
@@ -435,6 +447,7 @@ Wanda's Vision
 Warmonger
 Weathered Wayfarer
 Welkin Tern
+Westgate Regent
 Whisper of the Dross
 Wight of Precinct Six
 Wind-Kin Raiders

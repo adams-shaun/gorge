@@ -6,8 +6,10 @@ A-The Meathook Massacre
 Academy Elite
 Acrobatic Maneuver
 Act of Treason
+Aerial Guide
 Aerie Mystics
 Alaborn Cavalier
+Alandra, Sky Dreamer
 Alchemax Slayer-Bots
 Alchemist's Gift
 All Is Dust
@@ -15,6 +17,7 @@ Alluring Suitor
 Altar of the Goyf
 Amateur Auteur
 Ambulatory Edifice
+Anaconda
 Ancient Carp
 Angel of Flight Alabaster
 Angel's Tomb
@@ -27,6 +30,7 @@ Aven of Enduring Hope
 Awe for the Guilds
 Banners Raised
 Barrin, Tolarian Archmage
+Basilica Shepherd
 Baton of Courage
 Battlefield Raptor
 Battleground Geist
@@ -40,8 +44,10 @@ Blazing Hope
 Blazing Volley
 Blind with Anger
 Blood Pet
+Bloodfire Expert
 Bloodforged Battle-Axe
 Bloodvial Purveyor
+Bogbrew Witch
 Bola Warrior
 Bone Pit Brute
 Boomerang
@@ -57,6 +63,7 @@ Cabal Surgeon
 Callous Dismissal
 Campaign of Vengeance
 Canyon Lurkers
+Captivating Gyre
 Captured Sunlight
 Cat Oven
 Cathedral Sanctifier
@@ -65,15 +72,18 @@ Cerodon Yearling
 Chain Stasis
 Chronomancer
 Cleaving Skyrider
+Clinging Darkness
 Cloud Djinn
 Commando Raid
 Conquer
 Coordinated Barrage
 Cordial Vampire
+Cosmic Hunger
 Cruel Sadist
 Crumbling Necropolis
 Crypt Cobra
 Crystal Chimes
+Cut Your Losses
 Cyclops Electromancer
 D'Avenant Archer
 Daggerclaw Imp
@@ -86,6 +96,7 @@ Demanding Dragon
 Demon Bolt
 Desert Sandstorm
 Desperate Charge
+Detective of the Month
 Dire Fleet Poisoner
 Dismal Failure
 Dispel
@@ -101,11 +112,13 @@ Dying Wail
 Earthshaker Giant
 Eccentric Farmer
 Electropotence
+Elven Cache
 Elvish Piper
 Elvish Visionary
 Emerald Medallion
 Enduring Victory
 Ensnare
+Eutropia the Twice-Favored
 Evolution Charm
 Expedition Envoy
 Extract from Darkness
@@ -116,9 +129,11 @@ Fanatical Devotion
 Fatal Frenzy
 Fated Infatuation
 Ferrovore
+Feywild Visitor
 Field Research
 Field of Souls
 Fire Servant
+Fire Shrine Keeper
 Fireforger's Puzzleknot
 Firemantle Mage
 Firescreamer
@@ -134,7 +149,9 @@ Forest
 Frantic Salvage
 Freewind Falcon
 Frenetic Efreet
+Frenzied Saddlebrute
 Fungal Plots
+Garbage Elemental
 Gargoyle Flock
 Garruk's Warsteed
 Gather Courage
@@ -150,15 +167,18 @@ Gone Missing
 Goretusk Firebeast
 Granite Gargoyle
 Gravel Slinger
+Gristleback
 Growth Cycle
 Gruesome Discovery
 Guardian Automaton
 Guardian Lions
 Gut, True Soul Zealot
+Gwaihir the Windlord
 Hallowed Healer
 Hanna, Ship's Navigator
 Harnessed Lightning
 Harsh Sustenance
+Hateflayer
 Hawkeye, Avenging Archer
 Haze of Pollen
 Hearth Kami
@@ -166,12 +186,14 @@ Heavenly Qilin
 Hidden Gibbons
 Hideous End
 Hippo-Cows
+Hit-Monkey
 Hold for Questioning
 Horn of Gondor
 Hostile Minotaur
 Huatli's Snubhorn
 Humble
 Hunting Moa
+Hydrolash
 Imperial Ceratops
 Imposing Visage
 Inescapable Brute
@@ -181,6 +203,7 @@ Inner-Flame Acolyte
 Inspirit
 Invasion of Segovia
 Invincible Hymn
+Iron Star
 Island
 Jawbone Duelist
 Jeska, Warrior Adept
@@ -198,6 +221,7 @@ Kin-Tree Warden
 Knight of the Tusk
 Kor Scythemaster
 Kyoshi Warrior Guard
+Lair Delve
 Lightning Spear
 Llanowar Cavalry
 Llanowar Vanguard
@@ -213,6 +237,7 @@ Mask of Memory
 Masumaro, First to Live
 Mechanical Glider
 Meldweb Curator
+Meldweb Strider
 Memorial to Unity
 Mephitic Ooze
 Metastatic Evangel
@@ -224,6 +249,7 @@ Moku, Meandering Drummer
 Molten Ravager
 Momentary Blink
 Monk Idealist
+Morbid Opportunist
 Morningtide
 Mortal Wound
 Mountain
@@ -239,6 +265,7 @@ Nightmare Shepherd
 Nim Abomination
 Nimble Mongoose
 Nuka-Cola Vending Machine
+Nylea's Colossus
 Nylea's Disciple
 Nylea, God of the Hunt
 Ob Nixilis's Cruelty
@@ -261,6 +288,7 @@ Portal to Phyrexia
 Predator's Strike
 Predatory Wurm
 Prepare
+Primal Boost
 Prized Elephant
 Psychic Overload
 Puppet's Verdict
@@ -277,6 +305,7 @@ Remorseful Cleric
 Renegade Krasis
 Renegade Warlord
 Repercussion
+Restock
 Retribution of the Meek
 Revolutionary Rebuff
 Revolutionist
@@ -300,6 +329,7 @@ Scuttlegator
 Season of Growth
 Season of Renewal
 Seer's Sundial
+Serene Heart
 Serum Sovereign
 Shield Mate
 Shocker
@@ -311,6 +341,7 @@ Sighted-Caste Sorcerer
 Siren Song Lyre
 Skatewing Spy
 Sky Crier
+Skycat Sovereign
 Skyswirl Harrier
 Slagstone Refinery
 Slinking Skirge
@@ -323,6 +354,8 @@ Sonic Seizure
 Soulcatcher
 Spawnwrithe
 Spiked Ripsaw
+Spikefield Hazard
+Spirit Summoning
 Splatter Goblin
 Squee's Toy
 Staff of the Sun Magus
@@ -348,12 +381,15 @@ Tavern Ruffian
 Terminal Agony
 Tezzeret's Gambit
 The Battle of Bywater
+The Thing
+Thornwatch Scarecrow
 Thragtusk
 Threnody Singer
 Throne of the God-Pharaoh
 Thunderous Might
 Time Bomb
 Tocasia's Onulet
+Tooth and Nail
 Tormod's Crypt
 Torture
 Tragic Fall
@@ -374,14 +410,18 @@ Veiled Sentry
 Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
+Voltaic Brawler
 Voodoo Doll
 Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror
+Webspinner Cuff
+Weight of Memory
 Weldfast Wingsmith
 Whirlermaker
 Wing Shards
+Winged Coatl
 Wistful Selkie
 Witherbloom Command
 Wizards of Thay
@@ -392,4 +432,5 @@ Xathrid Necromancer
 Yawgmoth Demon
 Yisan, the Wanderer Bard
 Yomiji, Who Bars the Way
+Yotian Tactician
 Zopandrel, Hunger Dominus

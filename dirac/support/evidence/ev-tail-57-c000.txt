@@ -1,8 +1,11 @@
 A-Circle of the Land Druid
 A-Deal Gone Bad
+A-Skemfar Elderhall
 Advocate of the Beast
+Aetherflux Conduit
 Air Bladder
 Akki Battle Squad
+Akroan Phalanx
 Alaborn Veteran
 Alchemist's Greeting
 All Is Dust
@@ -17,14 +20,17 @@ Archaeomancer
 Archaeomender
 Arena Trickster
 Arm the Cathars
+Arwen's Gift
 Aspect of Mongoose
 Aura of Dominion
 Auriok Transfixer
 Aven Flock
+Azorius Charm
 Baboon Spirit
 Banehound
 Bar the Door
 Barbarian General
+Barrenton Medic
 Battalion Foot Soldier
 Bayou Dragonfly
 Become the Avalanche
@@ -73,6 +79,7 @@ Cogwork Assembler
 Combat Research
 Concentrate
 Consul's Lieutenant
+Consuming Bonfire
 Containment Breach
 Coralhelm Guide
 Corpse Harvester
@@ -94,6 +101,8 @@ Devout Harpist
 Diligent Excavator
 Doctor Jane Foster
 Doorkeeper
+Draco
+Dragon-Style Twins
 Dragonloft Idol
 Drogskol Captain
 Dromoka Captain
@@ -105,11 +114,15 @@ Earthshape
 Ebon Dragon
 Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
+Eldrazi Linebreaker
+Elspeth's Devotee
+Elvish Hexhunter
 Ember Weaver
 Emblem of the Warmind
 Enraged Revolutionary
 Escarpment Fortress
 Essence of Orthodoxy
+Experiment One
 Fabricate
 Fangren Pathcutter
 Far Wanderings
@@ -118,6 +131,7 @@ Fervor
 Festergloom
 Filthy Cur
 Final Reward
+Firestorm Hellkite
 Flamekin Herald
 Flaming Sword
 Fledgling Griffin
@@ -140,12 +154,17 @@ Giant Fly
 Gilt-Leaf Winnower
 Glademuse
 Gnathosaur
+Goblin Elite Infantry
 Goblin Firestarter
+God-Eternal Oketra
 Golgari Cluestone
 Goring Ceratops
+Grakmaw, Skyclave Ravager
 Grappler Spider
+Grassland Crusader
 Gravelighter
 Greenwood Sentinel
+Grenzo's Ruffians
 Grim Feast
 Grisly Transformation
 Growth Spasm
@@ -164,11 +183,15 @@ Hexgold Slith
 Hidden Ancients
 Hijack
 Hope Against Hope
+Hope Charm
 Hopping Automaton
+Horizon Chimera
 Hound Tamer
 Howling Wolf
+Huatli, the Sun's Heart
 Hurly-Burly
 Impede Momentum
+Impending Flux
 Iname, Death Aspect
 Infiltrator's Magemark
 Ingenious Thief
@@ -181,19 +204,23 @@ Jaya, Venerated Firemage
 Jovial Evil
 Keening Apparition
 Kessig Flamebreather
+Knockout Blow
 Koma's Faithful
 Kraken of the Straits
 Kraken's Eye
 Krosan Adaptation
 Kujar Seedsculptor
 Kumena's Speaker
+Kytheon's Irregulars
 Lembas
 Leonin Scimitar
 Life and Limb
 Lifeblood Hydra
 Lightfoot Rogue
 Lilting Refrain
+Linvala, the Preserver
 Lion Sash
+Living Plane
 Lotus Field
 Lunar Frenzy
 Makindi Patrol
@@ -207,6 +234,7 @@ Mawloc
 Maze of Ith
 Merchant Scroll
 Merfolk Looter
+Midnight Banshee
 Mightstone
 Mind Burst
 Mind's Eye
@@ -227,6 +255,7 @@ Needleshot Gourna
 Needletooth Raptor
 Nemesis of Mortals
 Nesting Wurm
+Netherborn Altar
 Nimble Pilferer
 Nylea's Emissary
 Obliterate
@@ -240,6 +269,7 @@ Otarian Juggernaut
 Oxidda Golem
 Paradoxical Outcome
 Paragon of New Dawns
+Pelargir Survivor
 Petrified Field
 Petrified Wood-Kin
 Phantasmal Shieldback
@@ -251,6 +281,7 @@ Prepare
 Prickly Marmoset
 Prison Term
 Prizefighter Construct
+Prophetic Bolt
 Qarsi High Priest
 Quantum Misalignment
 Queen of Ice
@@ -261,24 +292,29 @@ Rage Weaver
 Rain of Thorns
 Rakdos Ickspitter
 Raven Familiar
+Ravenous Intruder
 Ray Fillet, Wave Warrior
 Razing Snidd
 Reap What Is Sown
 Reckless Imp
+Reduce to Memory
 Relic Crush
 Renegade Reaper
 Repulse
 Restoration Specialist
+Revenant
 Rewards of Diversity
 Rhox Veteran
 Ridgeline Rager
 Riot Ringleader
 Rod of Ruin
 Rootwater Diver
+Rowan's Stalwarts
 Ruthless Sniper
 Sakiko, Mother of Summer
 Salt Road Patrol
 Sanctum Seeker
+Sandbar Serpent
 Sanguine Praetor
 Sawblade Slinger
 Scatter Arc
@@ -300,6 +336,7 @@ Silklash Spider
 Silver Bolt
 Silverquill Command
 Simian Brawler
+Sisay, Weatherlight Captain
 Sisterhood of Karn
 Skarrg Guildmage
 Skittering Heartstopper
@@ -311,11 +348,14 @@ Soaring Show-Off
 Soltari Foot Soldier
 Song of Freyalise
 Sorin's Thirst
+Soul Feast
 Soul Reap
 Soul of New Phyrexia
+Soulcage Fiend
 Soulsurge Elemental
 Sparkmage's Gambit
 Spidery Grasp
+Spikeshot Goblin
 Spine of Ish Sah
 Spined Karok
 Spiteful Blow
@@ -340,11 +380,13 @@ Symmetry Matrix
 Syndicate Infiltrator
 Tangled Florahedron
 Tel-Jilad Stylus
+Telim'Tor's Edict
 Tentative Connection
 Terashi's Grasp
 Territory Culler
 Testament of Faith
 Teysa, Orzhov Scion
+Thalakos Seer
 The Spike Cactus
 Thermal Blast
 Thieves' Guild Enforcer
@@ -356,6 +398,7 @@ Thundermaw Hellkite
 Timberland Ancient
 Tocasia's Onulet
 Tormod's Cryptkeeper
+Tormod, the Desecrator
 Tovolar's Huntmaster
 Towering-Wave Mystic
 Toxic Scorpion
@@ -365,11 +408,13 @@ Trygon Prime
 Tsunami
 Twilight Drover
 Tyranid Invasion
+Tyrant Guard
 Ulrich's Kindred
 Unnatural Predation
 Unyaro Griffin
 Urborg Elf
 Valor in Akros
+Vanquish the Foul
 Vedalken Entrancer
 Veiled Apparition
 Vela the Night-Clad
@@ -380,8 +425,11 @@ Victory's Envoy
 Vigilance
 Vile Requiem
 Violet Pall
+Virtuous Variant
 Vitu-Ghazi, the City-Tree
+Volcanic Island
 Vulshok Refugee
+Wall of Brambles
 Wall of Mulch
 Wall of Omens
 Wall of Wood
@@ -393,6 +441,7 @@ Warriors' Lesson
 Wee Dragonauts
 Welcome the Dead
 Wheel of Fortune
+Will-Forged Golem
 Windstorm Drake
 Winterthorn Blessing
 Withering Hex

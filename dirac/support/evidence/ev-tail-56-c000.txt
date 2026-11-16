@@ -1,4 +1,5 @@
 A-Mishra, Excavation Prodigy
+A-Nezumi Prowler
 A-Soul of Windgrace
 A-Stimulus Package
 Abiding Grace
@@ -23,11 +24,14 @@ Arashin Foremost
 Arcade Gannon
 Archon of Cruelty
 Armament Master
+Arrogant Outlaw
+Ascendant Packleader
 Aura Fracture
 Autumnal Gloom
 Avacynian Priest
 Aven Smokeweaver
 Avian Changeling
+Awaken the Ancient
 Baku Altar
 Banefire
 Banishment Decree
@@ -35,9 +39,11 @@ Barbed Battlegear
 Battlewise Aven
 Beast Attack
 Bee Sting
+Belligerent Brontodon
 Berserk Murlodont
 Big Boa Constrictor
 Bladetusk Boar
+Blanchwood Prowler
 Blighted Woodland
 Blink of an Eye
 Blistering Firecat
@@ -64,6 +70,7 @@ Cartouche of Strength
 Cathedral of War
 Caustic Wasps
 Cavern Crawler
+Champion of Dusk
 Charging Tuskodon
 Chimeric Egg
 Circle of the Land Druid
@@ -71,6 +78,7 @@ Cirith Ungol Patrol
 Citywide Bust
 Clay Statue
 Cleansing Meditation
+Clear
 Cleric of Life's Bond
 Close Quarters
 Cloudreader Sphinx
@@ -88,15 +96,21 @@ Dark Nourishment
 Dauthi Jackal
 Dauthi Slayer
 Death-Rattle Oni
+Debtors' Knell
 Demon of Dark Schemes
 Desert Drake
 Destructive Tampering
 Dimir Signet
 Dingus Staff
+Dire Fleet Captain
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
+Dragonlord Ojutai
 Drifter il-Dal
+Drogskol Captain
+Duskmantle Prowler
+Dust Stalker
 Earth Servant
 Earthcraft
 Echo Inspector
@@ -110,11 +124,14 @@ Faerie Conclave
 Faerie Harbinger
 Farewell
 Fathom Fleet Boarder
+Feldon of the Third Path
 Felidar Guardian
 Fencer Clique
 Fiery Finish
 Finishing Blow
 Fire Ambush
+Fires of Yavimaya
+First-Sphere Gargantua
 Flailing Manticore
 Flaming Gambit
 Flowstone Sculpture
@@ -128,14 +145,18 @@ Gatecreeper Vine
 Gates Ablaze
 Gavony Township
 Gempalm Strider
+Gideon's Resolve
 Gixian Infiltrator
+Glimmering Angel
 Gluntch, the Bestower
 Gnottvold Hermit
 Gobhobbler Rats
 Goblin Chirurgeon
+Goblin Legionnaire
 Goblin Mutant
 Goblin Spy
 Godo's Irregulars
+Golgari Guildmage
 Great Teacher's Decree
 Greenwood Sentinel
 Grey Host Reinforcements
@@ -143,8 +164,10 @@ Griffin Rider
 Grisly Transformation
 Ground Seal
 Gruesome Deformity
+Gruul Charm
 Gush
 Gyome, Master Chef
+Haazda Exonerator
 Hall of Oracles
 Halo Scarab
 Hapatra, the Desert Fang
@@ -155,6 +178,7 @@ Havoc Sower
 Heavy Ballista
 Hellkite Punisher
 Herald of the Dreadhorde
+Hex
 Hexplate Golem
 Honden of Cleansing Fire
 Honor of the Pure
@@ -167,9 +191,11 @@ Hulking Devil
 Hurloon Minotaur
 Ignite Disorder
 In the Eye of Chaos
+Incisor Glider
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
+Into the Core
 Into the Void
 Invasion of Belenon
 Ionize
@@ -188,10 +214,13 @@ Khenra Charioteer
 Kheru Bloodsucker
 Kin-Tree Invocation
 Kindercatch
+Kor Celebrant
 Kor Hookmaster
 Kraul Stinger
 Krosan Adaptation
 Last Rites
+Lay Bare the Heart
+Leafdrake Roost
 Leonin Warleader
 Life Finds a Way
 Lifecrafter's Gift
@@ -201,12 +230,15 @@ Looming Hoverguard
 Lorehold Command
 Maelstrom Wanderer
 Magnus the Red
+Marchesa's Emissary
 Markov Waltzer
 Massive Might
 Master of Winds
 Maze Glider
 Meatsqueak, Hoard Lord
+Mechanized Warfare
 Meditation Puzzle
+Memnarch
 Memnarch, the Warden
 Memorial to War
 Merfolk Pupil
@@ -248,16 +280,22 @@ Nova Cleric
 Null Caller
 Nyxborn Wolf
 O'aka, Traveling Merchant
+Oblation
 Olivia's Bloodsworn
 Olivia's Dragoon
 On Wings of Gold
+Oracle of Nectars
 Owlbear
+Ozolith, the Shattered Spire
+Parasitic Impetus
 Peace Strider
 Phase Dolphin
 Pheres-Band Brawler
 Pheres-Band Raiders
+Phyrexian Vatmother
 Pierce the Sky
 Pink Horror
+Pinpoint Avalanche
 Plaguemaw Beast
 Plains
 Poison-Blade Mentor
@@ -272,6 +310,8 @@ Pursued Whale
 Put Away
 Pygmy Allosaurus
 Rabid Wombat
+Raking Claws
+Raphael, the Muscle
 Rathi Fiend
 Reclusive Wight
 Red Scarab
@@ -314,6 +354,7 @@ Silent Departure
 Silkwrap
 Simplify
 Skorpekh Destroyer
+Skullport Merchant
 Skyfisher Spider
 Skyshaper
 Soltari Priest
@@ -356,6 +397,7 @@ Traverse the Ulvenwald
 Treetop Bracers
 Treetop Sentinel
 Tribal Flames
+Troll of Khazad-dûm
 Truefire Paladin
 Tsabo's Decree
 Turntimber Grove

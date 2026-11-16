@@ -21,6 +21,7 @@ Astral Steel
 Aura Flux
 Auriok Glaivemaster
 Autumn Willow, Harmony
+Aveline de Grandpré
 Aven Reedstalker
 Bad River
 Baloth Woodcrasher
@@ -40,11 +41,16 @@ Bone Saw
 Boseiju, Who Endures
 Botanical Plaza
 Breakneck Berserker
+Brilliant Restoration
+Brinebarrow Intruder
+Bring Low
 Bring to Trial
+Brion Stoutarm
 Bumi's Feast Lecture
 Burning Oil
 Burning Wish
 Bygone Marvels
+Cache Raiders
 Cackling Fiend
 Calamity of Cinders
 Campfire
@@ -56,6 +62,7 @@ Certain Death
 Charnel Serenade
 Cinder Hellion
 Clackbridge Troll
+Consulate Dreadnought
 Consulate Skygate
 Converter Beast
 Coordinated Assault
@@ -64,6 +71,7 @@ Court of Ardenvale
 Crash the Party
 Craven Giant
 Crippling Fear
+Crumble
 Curse of Vitality
 Cursed Minotaur
 Cut Down
@@ -75,6 +83,7 @@ Darksteel Ingot
 Dauthi Trapper
 Daxiver, Izzet Electromancer
 Death Cloud
+Decimate
 Deepwood Wolverine
 Defend the Campus
 Delayed Blast Fireball
@@ -89,6 +98,7 @@ Donatello's Science Lesson
 Douse in Gloom
 Draconic Disciple
 Dragon Mantle
+Dream Stalker
 Dripping-Tongue Zubera
 Dross Hopper
 Dross Ripper
@@ -118,6 +128,7 @@ Errand-Rider of Gondor
 Ertai Resurrected
 Essence Extraction
 Eternal Isolation
+Evasive Action
 Eviscerator's Insight
 Evolution Charm
 Excoriate
@@ -139,6 +150,8 @@ Freewind Equenaut
 Furnace Hellkite
 Galepowder Mage
 Gallant Cavalry
+Gemhide Sliver
+General Thunderbolt Ross
 Generous Pup
 Ghastbark Twins
 Giant Ox
@@ -148,6 +161,7 @@ Gimli, Counter of Kills
 Glacial Crasher
 Glint-Sleeve Siphoner
 Gnarled Effigy
+Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
 Goblin Sharpshooter
@@ -156,6 +170,7 @@ Goliath Paladin
 Gorilla Chieftain
 Grazing Whiptail
 Green Sun's Zenith
+Grim Hireling
 Grim Poppet
 Grimgrin, Corpse-Born
 Grizzled Angler
@@ -163,6 +178,7 @@ Grizzly Bears
 Grozoth
 Guardian Augmenter
 Guide of Souls
+Guild Thief
 Gut Shot
 Guul Draz Assassin
 Guul Draz Overseer
@@ -174,6 +190,7 @@ Haunted Fengraf
 Headless Skaab
 Headstrong Brute
 Heedless One
+Heiko Yamazaki, the General
 Hell Mongrel
 Helldozer
 Hellraiser Goblin
@@ -190,6 +207,7 @@ Index
 Industrial Advancement
 Inescapable Brute
 Infantry Veteran
+Inhumaniac
 Innistrad Charm
 Innocence Kami
 Inspiring Commander
@@ -201,13 +219,16 @@ Jiang Yanggu, Wildcrafter
 Jodah's Codex
 Jousting Lance
 Jugan, the Rising Star
+Junktown
 Kalonian Twingrove
 Kaya's Ghostform
 Keen Sense
 Keldon Vandals
 Keldon Warlord
 Kessig Dire Swine
+Killing Glare
 Kithkin Billyrider
+Kitsune Bonesetter
 Knight Exemplar
 Knight of Sorrows
 Kobolds of Kher Keep
@@ -229,6 +250,7 @@ Life Chisel
 Light of Hope
 Lightning Elemental
 Living Wish
+Loathsome Curator
 Long-Lost Lances
 Lotus-Eye Mystics
 Loxodon Mystic
@@ -251,6 +273,7 @@ Mistblade Shinobi
 Moldgraf Millipede
 Monastery Swiftspear
 Morbid Plunder
+Morphling
 Mosstodon
 Most Wanted
 Mountain
@@ -267,13 +290,17 @@ Nighthawk, Dark Defender
 Nightwind Glider
 Nimbus Swimmer
 Nissa's Judgment
+Noble Purpose
 Noble Steeds
 Nomad Mythmaker
 Northern Paladin
 Obsidian Battle-Axe
+Olivia, Mobilized for War
 One-Clown Band
 Onyx Mage
+Oona's Gatewarden
 Oran-Rief, the Vastwood
+Oraxid
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
@@ -282,7 +309,9 @@ Passwall Adept
 Path of Discovery
 Patron Wizard
 Pestilence Rats
+Phantom Flock
 Photon, Lady of Light
+Phylath, World Sculptor
 Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
@@ -306,7 +335,9 @@ Rain of Embers
 Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
+Ravages of War
 Raven Wings
+Ravenous Sailback
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
@@ -320,6 +351,7 @@ Revenge of Ravens
 Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
+Risona, Asari Commander
 Riverglide Pathway
 Roar of Reclamation
 Robber Fly
@@ -332,6 +364,7 @@ Royal Falcon
 Rubblebelt Boar
 Rural Recruit
 Ruthless Predation
+Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
 Sarkhan's Catharsis
@@ -354,7 +387,9 @@ Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
 Shocker
+Show of Confidence
 Sigiled Skink
+Silverclad Ferocidons
 Simic Growth Chamber
 Siren of the Silent Song
 Skittering Invasion
@@ -366,20 +401,25 @@ Skyshroud Troopers
 Smashing Spree
 Smelt
 Snapping Thragg
+Sootwalkers
 Soramaro, First to Dream
+Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Soulquake
 Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
+Spectral Bears
 Spidersilk Net
 Spire Golem
 Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Steal Artifact
 Steelform Sliver
+Stew the Coneys
 Stir the Pride
 Stone-Throwing Devils
 Stonybrook Angler
@@ -387,6 +427,8 @@ Strangling Soot
 Strangling Spores
 Straw Soldiers
 Street Spasm
+Strength in Numbers
+Strider Harness
 Stronghold Assassin
 Summit Apes
 Sun Droplet
@@ -400,6 +442,8 @@ Sword of the Paruns
 Synchronous Sliver
 Syphon Sliver
 Take Flight
+Talas Warrior
+Tavern Ruffian
 Tegan Jovanka
 Terrain Generator
 Terramorph
@@ -407,6 +451,7 @@ Territorial Hammerskull
 Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
+The Third Doctor
 Theoretical Duplication
 Thor, Asgard's Avenger
 Thought Erasure
@@ -423,6 +468,7 @@ Tresserhorn Sinks
 Tuktuk Rubblefort
 Ulrich's Kindred
 Ultron's Auxiliary
+Undercover Butler
 Unexpected Windfall
 Unfriendly Fire
 Unholy Officiant
@@ -430,7 +476,9 @@ Unity of Purpose
 Unstoppable Ogre
 Valeria Richards, Precocious
 Vaultbreaker
+Vedalken Anatomist
 Vedalken Ghoul
+Veiled Apparition
 Verdant Automaton
 Verdant Force
 Vessel of Ephemera
@@ -438,14 +486,17 @@ Vindictive Mob
 Vulshok Battlegear
 Vulshok War Boar
 Wall Off
+Wall of Blood
 Wall of Mist
 Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul
 Weldfast Engineer
 Wight
+Wild Growth
 Wind-Kin Raiders
 Wolfrider's Saddle
+Wooden Cane
 Workshop Assistant
 Write into Being
 Wu Elite Cavalry

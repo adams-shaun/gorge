@@ -1,4 +1,5 @@
 A-Imperial Subduer
+A-Kargan Warleader
 A-Radha's Firebrand
 Abzan Kin-Guard
 Adeline, Resplendent Cathar
@@ -15,6 +16,7 @@ Anaba Spirit Crafter
 Ancestral Mask
 Ancestral Vengeance
 Angel of Sanctions
+Angelic Sell-Sword
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
@@ -56,6 +58,7 @@ Brood Weaver
 Brotherhood Patriarch
 Brothers of Fire
 Brought Back
+Budoka Gardener
 Burning-Yard Trainer
 Cacophodon
 Caldera Lake
@@ -81,6 +84,7 @@ Conscripted Infantry
 Control of the Court
 Coral Helm
 Corpse Churn
+Court of Embereth
 Crosstown Courier
 Crown of Skemfar
 Crucible of Fire
@@ -149,6 +153,7 @@ Glacial Wall
 Glamorous Grapplers
 Gleeful Demolition
 Gluttonous Troll
+Goblin Digging Team
 Goblin King
 Goblin Wizardry
 Gold-Forged Thopteryx
@@ -227,6 +232,7 @@ Mantle of Webs
 Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
+Master Healer
 Master's Call
 Merchant Raiders
 Merrow Harbinger
@@ -248,10 +254,12 @@ Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
 Nissa, Vital Force
+Niv-Mizzet, Dracogenius
 Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
 Nylea's Disciple
+Oath of Druids
 Obelisk Spider
 Obelisk of Bant
 On Serra's Wings
@@ -261,8 +269,11 @@ Ordruun Veteran
 Outnumber
 Outrider of Jhess
 Overwhelmed Apprentice
+Overwhelming Intellect
+Owlbear
 Ox of Agonas
 P-Joven and Chandler
+Paragon of the Amesha
 Pardic Firecat
 Peek
 Pemmin's Aura
@@ -271,10 +282,12 @@ Pestilence Demon
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
+Phyrexian Marauder
 Pious Kitsune
 Plague Mare
 Plains
 Poison-Tip Archer
+Pounce
 Pre-War Formalwear
 Press the Advantage
 Primal Whisperer
@@ -282,12 +295,14 @@ Prison Sentence
 Pull from the Deep
 Pulse of the Tangle
 Putrefax
+Quantum Misalignment
 RMS Titanic
 Ragefire Hellkite
 Rakdos Pit Dragon
 Rats of Rath
 Ray of Enfeeblement
 Reality Anchor
+Reality Strobe
 Reckless Embermage
 Reckless Ogre
 Recoup
@@ -301,6 +316,7 @@ Revenge of Ravens
 Rhizome Lurcher
 Ritual of the Machine
 Root Snare
+Rosemane Centaur
 Rotten Reunion
 Rule of Law
 Runeclaw Bear
@@ -310,6 +326,7 @@ Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sarkhan's Triumph
 Scale the Heights
+Scaled Behemoth
 Scurrilous Sentry
 Second Thoughts
 Selhoff Entomber
@@ -318,6 +335,7 @@ Seraph of the Masses
 Servant of Volrath
 Shadowheart, Dark Justiciar
 Shamble Back
+Shinen of Stars' Light
 Shinka, the Bloodsoaked Keep
 Shoal Serpent
 Silent Observer
@@ -370,6 +388,7 @@ The Brute
 The First Eruption
 The Modern Age
 The One Ring
+Thickest in the Thicket
 Thopter Engineer
 Thorn of Amethyst
 Thraben Gargoyle

@@ -16,6 +16,7 @@ Ancient Den
 Angel of Deliverance
 Angel of Retribution
 Arcane Investigator
+Architect of the Untamed
 Armory of Iroas
 Army of Allah
 Army of the Damned
@@ -26,6 +27,7 @@ Augur of Bolas
 Auriok Glaivemaster
 Auton Soldier
 Aven Sunstriker
+Aviary Mechanic
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
 Balshan Beguiler
@@ -49,6 +51,7 @@ Bog Initiate
 Bone Saw
 Boneshard Slasher
 Boomerang
+Borborygmos Enraged
 Boseiju, Who Endures
 Botanical Plaza
 Bramblewood Paragon
@@ -131,6 +134,7 @@ Elvish Lyrist
 Elvish Visionary
 Emmessi Tome
 Empyrial Armor
+Ephemeral Shields
 Evolution Charm
 Excavation Mole
 Explosive Impact
@@ -231,6 +235,7 @@ Ledger Shredder
 Library
 Lithomantic Barrage
 Living Hive
+Loam Dweller
 Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
@@ -287,6 +292,8 @@ Paradigm Shift
 Parch
 Passwall Adept
 Perilous Research
+Petrified Wood-Kin
+Phyrexian Broodstar
 Phyrexian Gargantua
 Plaguemaw Beast
 Plains
@@ -326,11 +333,13 @@ Roil Elemental
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Savage Twister
 Scale Blessing
 Scaretiller
 Scrapwork Rager

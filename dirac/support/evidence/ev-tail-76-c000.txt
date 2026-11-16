@@ -6,6 +6,7 @@ Aether Meltdown
 Amrou Scout
 Ancestral Recall
 Anticipate
+April O'Neil, Live on the Scene
 Arboreal Grazer
 Arena of the Ancients
 Armguard Familiar
@@ -22,6 +23,7 @@ Black Widow, Daring Operative
 Blacksmith's Skill
 Blight Pile
 Blightbelly Rat
+Body Dropper
 Bojuka Brigand
 Borrowed Grace
 Bow of Nylea
@@ -56,6 +58,7 @@ Dutiful Attendant
 Dying to Serve
 Elvish Lookout
 Emergent Sequence
+Enigmatic Incarnation
 Epicure of Blood
 Ertai, Wizard Adept
 Essence Drain
@@ -146,7 +149,11 @@ Plant Elemental
 Predation Steward
 Prickly Boggart
 Primal Huntbeast
+Promise of Bunrei
 Pyretic Ritual
+Ramirez DePietro, Pillager
+Ramosian Greatsword
+Ramses Overdark
 Raphael, Fiendish Savior
 Razorfield Thresher
 Rebel Salvo
@@ -161,6 +168,7 @@ Rockcaster Platoon
 Ruins of Oran-Rief
 Sage Owl
 Salvager of Ruin
+Savage Gorilla
 Scapegoat
 Scattered Thoughts
 Scornful Egotist
@@ -196,6 +204,7 @@ Terror
 Teyo, the Shieldmage
 Tezzeret's Ambition
 Tezzeret's Gambit
+The Balrog, Flame of Udûn
 The First Iroan Games
 The Shattered States Era
 Thraben Purebloods
@@ -213,6 +222,7 @@ Unbreakable Bond
 Undercity Shade
 Unhinge
 Unliving Psychopath
+Valkyrie's Sword
 Vanish into Eternity
 Vastwood Fortification
 Vedalken Archmage
@@ -228,6 +238,7 @@ Wall of Torches
 Warmonger Hellkite
 Wasteland
 Whipstitched Zombie
+Whirler Virtuoso
 White Sun's Twilight
 Wurmskin Forger
 Zuko's Offense

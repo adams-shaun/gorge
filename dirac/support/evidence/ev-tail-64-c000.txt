@@ -18,6 +18,7 @@ All That Glitters
 Alseid of Life's Bounty
 Ambush Paratrooper
 Ana Sanctuary
+Angel of Condemnation
 Angel of the Dawn
 Angelic Guardian
 Angelic Renewal
@@ -96,6 +97,7 @@ Dark Betrayal
 Dawn to Dusk
 Dawnfluke
 Debilitating Injury
+Decree of Annihilation
 Defend the Celestus
 Defender of Chaos
 Desperate Ravings
@@ -207,10 +209,12 @@ Impeccable Timing
 In the Trenches
 Indestructibility
 Inescapable Blaze
+Infuse with the Elements
 Ingenious Thief
 Innovative Metatect
 Inspiring Cleric
 Invasion of Dominaria
+Invasion of Tolvada
 Ironclad Krovod
 Ironclaw Orcs
 Ironhoof Boar
@@ -238,27 +242,32 @@ Koll, the Forgemaster
 Krenko's Enforcer
 Kuldotha Rebirth
 Kumena's Awakening
+Kyoki, Sanity's Eclipse
 Labyrinth Raptor
 Lapse of Certainty
 Learn from the Past
 Legion Guildmage
+Legions to Ashes
 Leitmotif Composer
 Leyline Prowler
 Life and Limb
 Light 'Em Up
 Lightning Blast
 Lightning Skelemental
+Lightning-Rig Crew
 Liliana's Standard Bearer
 Liliana, Death Wielder
 Lily Bowen, Raging Grandma
 Limestone Golem
 Lionheart Maverick
+Liquimetal Torque
 Live Fast
 Living Airship
 Lotus Path Djinn
 Lulu, Loyal Hollyphant
 Luminarch Ascension
 Lurking Predators
+Magda, Brazen Outlaw
 Mage-Ring Bully
 Manta Riders
 Marang River Prowler
@@ -275,8 +284,10 @@ Merfolk Skydiver
 Merry, Warden of Isengard
 Midnight Charm
 Midnight Haunting
+Migratory Route
 Mina and Denn, Wildborn
 Mindleech Ghoul
+Miscast
 Mishra's Factory
 Mishra's Onslaught
 Mogg Maniac
@@ -347,10 +358,12 @@ Retrieve
 Revive
 Riders of Rohan
 Rise of the Ants
+Rise of the Hobgoblins
 Ritual of Steel
 Rock Lobster
 Rofellos's Gift
 Rooftop Bypass
+Root-Kin Ally
 Rootborn Defenses
 Rouse
 Run for Your Life
@@ -369,6 +382,7 @@ Searing Meditation
 Secret Passage
 Seeker of the Way
 Segmented Krotiq
+Selenia, Dark Angel
 Self-Inflicted Wound
 Seraph of Dawn
 Setessan Oathsworn
@@ -443,6 +457,7 @@ Tome Anima
 Topplegeist
 Torrent of Fire
 Tower Winder
+Tragic Lesson
 Treasure Hunter
 Trelasarra, Moon Dancer
 Tremor

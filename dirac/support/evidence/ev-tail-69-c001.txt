@@ -182,6 +182,7 @@ Watcher Sliver
 Whetstone
 Whirlwind Adept
 Wild Nacatl
+Wilderness Reclamation
 Winged Coatl
 World Breaker
 Wreak Havoc

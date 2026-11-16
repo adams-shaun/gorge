@@ -583,9 +583,11 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 
 // replPlusOnly reports whether the table's only damage replacement kind is
 // ReplDamagePlus, so two or more of them competing for one event are a sum
-// no order changes (CR 616.1e; trig_oneormore.go).
+// no order changes (CR 616.1e; trig_oneormore.go). A static prevention host
+// carries rbPlusDmg too, and its order ask changes the amount, so a table with
+// one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev)
 }
 
 type grantRef struct {
@@ -836,7 +838,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
-	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
+	// prepSpellCond first: it sets anySpellCond, which an || must not skip
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
@@ -1178,7 +1181,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
-				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf:
+				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf, kop.ReplPreventDamageFilt, kop.ReplPreventDamageN:
 					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true
 				case kop.ReplDoubleTokens, kop.ReplRewriteTokens, kop.ReplAddToken, kop.ReplCopyFirstToken:
@@ -1418,11 +1421,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.anyFiltPip = true
 					}
 				}
-				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) &&
-					!kop.ChosenSecondManaAb(&t.Cards[i], firstManaAb(&t.Cards[i]), j) && g.gapOther(CardID(i)) < 0 {
-					// (Quirion Elves' chosen {T} is folded into the source's
-					// unit by prepMultiMana, not a census gap: registering it as
-					// one would keep a filter beside it off the filtScript path)
+				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}
@@ -1930,6 +1929,9 @@ type genState struct {
 		amt  uint8
 	}
 	ndmg uint8
+	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
+	// both-instances flashback classification (legal.go fbProbeRoot).
+	fbProbe bool
 
 	may  [maxMay]mayPlay
 	nmay uint8

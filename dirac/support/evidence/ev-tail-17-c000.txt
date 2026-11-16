@@ -16,6 +16,7 @@ Angelic Ascension
 Ant-Man, Reformed Rogue
 Anthroplasm
 Arbalest Engineers
+Archangel of Thune
 Ardent Electromancer
 Argivian Restoration
 Arlinn, Voice of the Pack
@@ -44,6 +45,7 @@ Blessed Respite
 Blood-Chin Fanatic
 Bog Smugglers
 Bonds of Mortality
+Bottomless Vault
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burly Breaker
@@ -53,6 +55,7 @@ Canopy Claws
 Canopy Dragon
 Canopy Spider
 Canyon Wildcat
+Caravan Hurda
 Catapult Fodder
 Caustic Tar
 Centaur Safeguard
@@ -62,13 +65,17 @@ Chandra's Pyreling
 Chasm Guide
 Cinder Hellion
 Cinderclasm
+Cirith Ungol Patrol
 Clergy en-Vec
 Cogwork Spy
 Collateral Damage
 Coma Veil
 Composer of Spring
+Consign to the Pit
 Containment Breach
+Contingency Plan
 Coral Eel
+Council's Judgment
 Cragplate Baloth
 Crushing Pain
 Cunning Lethemancer
@@ -90,6 +97,7 @@ Dread Slag
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
+Earthen Goo
 Eerie Soultender
 Elemental Bond
 Ellie, Vengeful Hunter
@@ -101,6 +109,7 @@ Emiel the Blessed
 Emrakul's Influence
 Enthralling Victor
 Environmental Sciences
+Erkenbrand, Lord of Westfold
 Errant Doomsayers
 Escape Protocol
 Ethereal Whiskergill
@@ -141,6 +150,8 @@ Geosurge
 Giant Cockroach
 Gift of Estates
 Gift of Tusks
+Gimli's Reckless Might
+Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
@@ -168,6 +179,7 @@ Hidden Footblade
 Highland Berserker
 Hollowhenge Beast
 Horn of Greed
+Hostile Minotaur
 Howlpack Resurgence
 Immersturm Raider
 Imp's Mischief
@@ -221,6 +233,7 @@ Manifold Key
 March of the Drowned
 Masked Blackguard
 Melancholy
+Metal Fatigue
 Meteoric Mace
 Might of the Old Ways
 Mirran Bardiche
@@ -291,6 +304,7 @@ Rockslide Ambush
 Rolling Thunder
 Romana II
 Roughshod Mentor
+Ruin Raider
 Ruination
 Rumbling Crescendo
 Rumor Gatherer
@@ -300,6 +314,7 @@ Sacred Mesa
 Sagu Mauler
 Sai, Master Thopterist
 Salvager of Secrets
+Sands of Delirium
 Sandstone Warrior
 Sangrite Surge
 Sapphire Drake
@@ -308,14 +323,17 @@ Scour from Existence
 Scrapwork Rager
 Scrivener
 Sea Drake
+Sea Gate
 Searchlight Geist
 Selvala's Enforcer
+Seraph of the Suns
 Serra Avenger
 Shadow Rift
 Shagrat, Loot Bearer
 Shambleshark
 Shard of the Void Dragon
 Shatter
+Sigarda, Font of Blessings
 Sigiled Behemoth
 Silvos, Rogue Elemental
 Siren Lookout
@@ -363,9 +381,11 @@ The Stasis Coffin
 Thoughtcutter Agent
 Thriving Isle
 Throne of Empires
+Tibalt, Rakish Instigator
 Timberpack Wolf
 Tooth and Claw
 Toph, Greatest Earthbender
+Torsten Von Ursus
 Tower of Calamities
 Treasure Mage
 Tree of Tales
@@ -388,6 +408,7 @@ Wild Shape
 Wildest Dreams
 Winding Wurm
 Winged Portent
+Witch Hunter
 Witching Well
 Witness the Future
 Worm Harvest
@@ -395,3 +416,4 @@ Yavimaya Ants
 You Are Already Dead
 Ziatora's Proving Ground
 Zombie Cutthroat
+Zombie Master

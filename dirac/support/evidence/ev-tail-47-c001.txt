@@ -7,11 +7,15 @@ Aeronaut Cavalry
 Anaba Bodyguard
 Anaconda
 Angelic Protector
+Annoyed Altisaur
 Arcane Melee
+Archers' Parapet
 Armored Cancrix
+Army Ants
 Ashes to Ashes
 Aven Wind Mage
 Barony Vampire
+Behold the Multiverse
 Biting Rain
 Blisterstick Shaman
 Bloodlust Inciter
@@ -29,8 +33,10 @@ Cartouche of Solidarity
 Cephalid Scout
 Chainflail Centipede
 Chill of Foreboding
+Choking Sands
 Chosen by Heliod
 Chub Toad
+Clattering Augur
 Cleanup Crew
 Conclave Sledge-Captain
 Conquer
@@ -61,10 +67,13 @@ Dreadlight Monstrosity
 Dreamstalker Manticore
 Drinker of Sorrow
 Eat to Extinction
+Elspeth's Nightmare
 Elvish Berserker
+Embodiment of Insight
 Energy Tap
 Environmental Sciences
 Evolution Witness
+Eye Collector
 Eyeless Watcher
 Ezio, Brash Novice
 Fallen Ideal
@@ -74,6 +83,7 @@ Field Creeper
 Fiendslayer Paladin
 Fireblade Charger
 Flailing Ogre
+Fleshgrafter
 Forest
 Foul Familiar
 Fowl Play
@@ -85,20 +95,24 @@ Genju of the Cedars
 Ghor-Clan Savage
 Gibbering Hyenas
 Gideon's Reproach
+Glissa Sunslayer
 Glistening Oil
 Go-Shintai of Boundless Vigor
 Goblin Masons
 Gold-Forged Sentinel
 Golden Wish
+Goldhound
 Grasping Scoundrel
 Grazilaxx, Illithid Scholar
 Grixis Battlemage
+Gruesome Fate
 Guardian of Tazeem
 Hag of Ceaseless Torment
 Harried Artisan
 Harsh Deceiver
 Harvester of Souls
 Hazoret's Favor
+Heal
 Hearts on Fire
 Highland Berserker
 Howling Banshee
@@ -112,6 +126,7 @@ Invisible Stalker
 Iona's Judgment
 Iron Star
 Island
+Jackal Familiar
 Jarad's Orders
 Jedit Ojanen of Efrava
 Kaervek the Merciless
@@ -119,9 +134,11 @@ Karplusan Wolverine
 Killmonger, Ruthless Usurper
 Knowledge Is Power
 Kodama of the West Tree
+Kyren Negotiations
 Lae'zel, Vlaakith's Champion
 Laurine, the Diversion
 Lignify
+Lurking Green Dragon
 Mage's Guile
 Makeshift Battalion
 Markov Crusader
@@ -157,16 +174,21 @@ Paupers' Cage
 Phyrexian Digester
 Piper of the Swarm
 Plains
+Plasmancer
 Plated Wurm
+Priest of the Blood Rite
 Pyromancer's Gauntlet
 Pyromania
 Rakish Heir
 Rally the Forces
+Ramirez DePietro
 Ramosian Sky Marshal
+Rapacious Guest
 Realm-Cloaked Giant
 Reckoner Bankbuster
 Rend Spirit
 Renegade Map
+Renegade Silent
 Reparations
 Reservoir Kraken
 Resplendent Mentor
@@ -176,6 +198,7 @@ Riptide Entrancer
 Rise to the Challenge
 Rockslide Sorcerer
 Rosethorn Halberd
+Royal Assassin
 Sakura-Tribe Scout
 Sarpadian Simulacrum
 Savai Triome
@@ -201,11 +224,13 @@ Sky Diamond
 Skyknight Vanguard
 Skymark Roc
 Skyshroud Elite
+Skywatcher Adept
 Sleeper's Robe
 Slingbow Trap
 Sliver Construct
 Snare Tactician
 Snooping Newsie
+Solphim, Mayhem Dominus
 Somberwald Alpha
 Somberwald Vigilante
 Song of the Worldsoul
@@ -217,8 +242,10 @@ Spectral Sliver
 Sphinx of New Prahv
 Spoils of Victory
 Squirrel Mob
+Startled Awake
 Stern Constable
 Stern Lesson
+Stir the Grave
 Stonehoof Chieftain
 Stormchaser Chimera
 Stronghold Confessor
@@ -237,6 +264,7 @@ Tempted by the Oriq
 Terra Eternal
 Tezzeret's Ambition
 Thalakos Scout
+Thallid Germinator
 The Everforger
 The Hunger Tide Rises
 The Reality Chip
@@ -252,15 +280,20 @@ Vaporkin
 Vastwood Fortification
 Vastwood Zendikon
 Vesperlark
+Veteran Explorer
+Viashino Sandstalker
 Viridian Shaman
 Vizzerdrix
 Volcanic Island
 Voracious Vampire
 Vow of Wildness
 Walking Corpse
+Wandering Stream
 Wandering Treefolk
 Warchanter Skald
+Warden of Evos Isle
 Warden of the Wall
+Warp Artifact
 Weaver of Currents
 Weldfast Wingsmith
 Whipcorder

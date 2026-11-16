@@ -54,6 +54,7 @@ Call for Blood
 Call of the Herd
 Call the Bloodline
 Canal Monitor
+Canopy Surge
 Cantivore
 Cathartic Reunion
 Cathedral of War
@@ -261,11 +262,13 @@ Mindleech Ghoul
 Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
+Mirror Entity
 Misshapen Fiend
 Molten Tributary
 Mosscoat Goriak
 Mountain
 Mox Emerald
+Munitions Expert
 Myrel, Shield of Argive
 Myriad Landscape
 Nacatl Outlander
@@ -283,6 +286,7 @@ Oboro Envoy
 Obsessive Search
 Ogre Errant
 Oketra's Last Mercy
+Omnibian
 Orcish Bloodpainter
 Orcish Oriflamme
 Ordruun Commando
@@ -406,6 +410,7 @@ The Marvelous Scientist
 The Shire
 Thermal Glider
 Thought Erasure
+Thranduil the Strategist
 Thrash of Raptors
 Throne of Bone
 Thrull Parasite
@@ -436,6 +441,7 @@ Violent Eruption
 Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
+Vodalian Illusionist
 Voidwielder
 Vona, Butcher of Magan
 Voracious Wurm
