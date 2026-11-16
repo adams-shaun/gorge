@@ -50,6 +50,7 @@ Brood Birthing
 Bull-Rush Bruiser
 Burlfist Oak
 Cabal Surgeon
+Cached Defenses
 Calix, Guided by Fate
 Caller of the Claw
 Carrion Wall
@@ -191,6 +192,7 @@ Leopard-Spotted Jiao
 Lim-Dûl's High Guard
 Living Lightning, Charged Up
 Living Twister
+Long-Range Sensor
 Loxodon Line Breaker
 Lumbering Falls
 Lumithread Field
@@ -316,6 +318,7 @@ Stirring Address
 Stolen Goods
 Stone Idol Generator
 Strix Serenade
+Stromgald Cabal
 Stromkirk Patrol
 Sun-Crowned Hunters
 Sunflare Shaman
@@ -370,6 +373,7 @@ Volt Charge
 Vulshok Morningstar
 Wall of Vines
 Wary Okapi
+Weather the Storm
 White Scarab
 Wild Growth
 Wirewood Elf

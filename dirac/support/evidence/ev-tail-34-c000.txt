@@ -2,6 +2,7 @@ A-Mentor's Guidance
 A-Sprouting Goblin
 Aboshan's Desire
 Advanced Stitchwing
+Aether Mutation
 Ageless Guardian
 Agent of the Shadow Thieves
 Alms of the Vein
@@ -136,6 +137,7 @@ Encase in Ice
 Endurance Bobblehead
 Enter the Unknown
 Era of Innovation
+Etherium-Horn Sorcerer
 Evanescent Intellect
 Exoskeletal Armor
 Experimental Augury
@@ -183,6 +185,7 @@ Hoard Hauler
 Hookblade
 Hoverguard Observer
 Hunter's Edge
+Hydroid Krasis
 Hythonia the Cruel
 Ichorclaw Myr
 Imperial Recovery Unit
@@ -299,8 +302,10 @@ Rain of Rust
 Raise the Alarm
 Ramosian Sergeant
 Rampaging Ferocidon
+Rapacious One
 Reality Hemorrhage
 Reclusive Wight
+Reduce
 Repulsor Rays
 Resurrection Orb
 Retreat to Coralhelm
@@ -357,6 +362,7 @@ Spiketail Drakeling
 Spire Owl
 Spitting Dilophosaurus
 Spitting Hydra
+Sprite Dragon
 Squelching Leeches
 Staff of the Wild Magus
 Storm Fleet Sprinter
@@ -397,6 +403,7 @@ Uglúk of the White Hand
 Ulamog's Crusher
 Ulvenwald Captive
 Ulvenwald Hydra
+Umara Wizard
 Undercellar Myconid
 Undercity Necrolisk
 Undo
@@ -410,6 +417,7 @@ Venerable Monk
 Venom, Eddie Brock
 Veteran's Powerblade
 Veteran's Voice
+Viashino Outrider
 Viashino Runner
 Vigilant Baloth
 Viral Drake
@@ -418,6 +426,7 @@ Vodalian Arcanist
 Voice of All
 Void Squall
 Vortex Runner
+Vow of Lightning
 Wake the Past
 Warpath Ghoul
 Wash Out

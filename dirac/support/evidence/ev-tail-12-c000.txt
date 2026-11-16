@@ -113,6 +113,7 @@ Goblin Marshal
 Goblin Tutor
 Golden-Scale Aeronaut
 Goldmane Griffin
+Golem Artisan
 Gorgon Flail
 Gourmand's Talent
 Granger Guildmage
@@ -126,6 +127,7 @@ Heliod's Emissary
 Hexgold Halberd
 Hickory Woodlot
 Highway Robber
+Hobgoblin Captain
 Honden of Seeing Winds
 Hornbash Mentor
 Hurloon Battle Hymn
@@ -166,6 +168,7 @@ Medicine Bag
 Medusa, Inhuman Queen
 Memory Erosion
 Mephitic Ooze
+Mine Collapse
 Mishra's Self-Replicator
 Misty Rainforest
 Molten Rain
@@ -312,6 +315,7 @@ Waste Away
 Waterfront Bouncer
 Weapon Surge
 Wildwood Patrol
+Wither and Bloom
 Wooded Ridgeline
 Woodland Sleuth
 Worldgorger Dragon

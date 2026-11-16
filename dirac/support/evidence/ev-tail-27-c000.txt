@@ -23,6 +23,7 @@ Arrows of Justice
 Aspiring Aeronaut
 Aura Flux
 Avatar of Woe
+Aven Wind Mage
 Azorius First-Wing
 Azure Drake
 Barbed Lightning
@@ -203,6 +204,7 @@ Promise of Power
 Python
 Ravenous Baboons
 Reign of Terror
+Rhystic Deluge
 Rite of Flame
 Ritual of Soot
 Rotlung Reanimator

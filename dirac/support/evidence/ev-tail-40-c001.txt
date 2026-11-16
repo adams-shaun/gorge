@@ -46,6 +46,7 @@ Bloodline Necromancer
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
@@ -303,6 +304,7 @@ Shamanic Revelation
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
+Shield Mare
 Shriekhorn
 Shrill Howler
 Shrivel

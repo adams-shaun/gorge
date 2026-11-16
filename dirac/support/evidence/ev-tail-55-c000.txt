@@ -58,6 +58,7 @@ Border Guard
 Boros Garrison
 Boros Signet
 Bosco, Just a Bear
+Bosh, Iron Golem
 Bosk Banneret
 Braids, Cabal Minion
 Brainbite
@@ -173,6 +174,7 @@ Forced Landing
 Forcemage Advocate
 Forest
 Forgotten Harvest
+Fracture
 Fresh Meat
 Furnace Skullbomb
 Fyndhorn Elves

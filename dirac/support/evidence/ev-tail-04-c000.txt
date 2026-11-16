@@ -22,6 +22,7 @@ Atlantean Skirmisher
 Attended Socialite
 Atzocan Seer
 Avarax
+Aven Archer
 Aven Sentry
 Avengers Quinjet
 Backup Agent
@@ -184,6 +185,7 @@ Junji, the Midnight Sky
 Juvenile Gloomwidow
 Kami of Old Stone
 Kami of Transience
+Keskit, the Flesh Sculptor
 Kessig Prowler
 Kithkin Rabble
 Knickknack Ouphe
@@ -241,6 +243,7 @@ Open the Armory
 Orazca Raptor
 Order
 Order of Midnight
+Ornery Dilophosaur
 Otawara, Soaring City
 Outrider of Jhess
 Overcharged Amalgam
@@ -349,6 +352,7 @@ Smoldering Butcher
 Smoldering Spires
 Sokka, Swordmaster
 Solitary Defiance
+Soul Barrier
 Soul of Migration
 Sound the Call
 Spectral Reserves
@@ -422,6 +426,7 @@ Wall of Tombstones
 War Oracle
 Warpath Ghoul
 Wasteland Viper
+Watcher Sliver
 Watchful Automaton
 Watchful Blisterzoa
 Weakstone's Subjugation

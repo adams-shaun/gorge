@@ -317,6 +317,7 @@ Shadow Prophecy
 Shamanic Revelation
 Shard of Broken Glass
 Sheltering Light
+Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
@@ -416,6 +417,7 @@ Where Ancients Tread
 Wild Colos
 Wild Onslaught
 Woe Strider
+Woodland Sleuth
 Woodripper
 Wretched Confluence
 Xander's Lounge

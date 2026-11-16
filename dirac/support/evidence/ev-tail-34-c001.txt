@@ -53,6 +53,7 @@ Dirty Rat
 District Guide
 Douse
 Drelnoch
+Dust Elemental
 Dwarven Patrol
 Earthshape
 Eldrazi Confluence
@@ -63,6 +64,7 @@ Embargo
 Embersmith
 Endurance Bobblehead
 Enter the Unknown
+Etherium-Horn Sorcerer
 Evanescent Intellect
 Feral Ridgewolf
 First Volley
@@ -109,6 +111,7 @@ Loran's Escape
 Lothlórien Lookout
 Luke Cage, Hero for Hire
 Malachite Golem
+Marchesa's Infiltrator
 Master of the Pearl Trident
 Midnight Entourage
 Ministrant of Obligation
@@ -117,6 +120,7 @@ Mountain
 Neurok Stealthsuit
 Night Market Guard
 Nimana Sell-Sword
+Notorious Assassin
 Nurturer Initiate
 Obsidian Obelisk
 Ogre Jailbreaker
@@ -131,7 +135,9 @@ Press into Service
 Quest for the Nihil Stone
 Quirion Explorer
 Rain of Rust
+Raise the Alarm
 Ramosian Sergeant
+Reduce
 Repulsor Rays
 Retreat to Coralhelm
 Revenge of the Hunted
@@ -145,6 +151,7 @@ Salvage Slasher
 Sand Silos
 Scorch Rider
 Scouting Hawk
+Seagraf Skaab
 Shadow Rift
 Shifting Wall
 Sibsig Icebreakers
@@ -162,6 +169,7 @@ Spike-Tailed Ceratops
 Sprite Dragon
 Storm Sculptor
 Stun
+Summoning Materia
 Sunastian Falconer
 Sunder Shaman
 Swamp
@@ -171,6 +179,7 @@ The Roaring Toeclaws
 The Thanos-Copter
 Thumbscrews
 Tide Drifter
+Tilonalli's Crown
 Toil to Renown
 Tombfire
 Touch of Death
@@ -180,12 +189,14 @@ Trickster Mage
 Troll-Horn Cameo
 Twilight Panther
 Typhoid Rats
+Ulvenwald Captive
 Umara Wizard
 Undercellar Myconid
 Unlikely Aid
 Unwavering Initiate
 Venom, Eddie Brock
 Veteran's Powerblade
+Viashino Runner
 Vigilant Baloth
 Vivisection
 Voice of All
@@ -199,6 +210,7 @@ Wasteful Harvest
 Watchwing Scarecrow
 Whisper of the Dross
 Whitesun's Passage
+Wild Elephant
 Witness the End
 Xenk, Paladin Unbroken
 Xerex Strobe-Knight

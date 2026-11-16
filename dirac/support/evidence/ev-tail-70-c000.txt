@@ -88,6 +88,7 @@ Dwarven Reinforcements
 Dying Wail
 Earth Elemental
 East-Mark Cavalier
+Edgar's Awakening
 Ekthi, Contaminator Priest
 Elder of Laurels
 Eldrazi Aggressor
@@ -294,6 +295,7 @@ Staff of Zegon
 Star Whale
 Start
 Steel of the Godhead
+Stonebound Mentor
 Stonecloaker
 Summer Bloom
 Svogthos, the Restless Tomb
