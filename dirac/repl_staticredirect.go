@@ -54,12 +54,11 @@ func tableHasStatRdr(t *kop.Table) bool {
 }
 
 // prepStatRdrCard is the gen scan's ReplDamageRedirect case (gen.go): the
-// printed static damage redirects. rbPlusDmg opens every damage site as a
-// damage replacement does, and no card carries the bit (selfDamageBit's
-// opener, repl_preventtoself.go), so replPlus and the static preventions read
-// the ability kinds and find nothing.
+// printed static damage redirects (useStatRdr gates the arms). rbPlusDmg
+// opens every damage site as a damage replacement does, and no card carries
+// the bit (selfDamageBit's opener, repl_preventtoself.go), so replPlus and
+// the static preventions read the ability kinds and find nothing.
 func prepStatRdrCard(g *genPrep, pc *pcard) {
-	g.anyStatRdr = true
 	g.anyRepl |= rbPlusDmg
 	pc.hasStat = true
 }
@@ -228,7 +227,7 @@ func (s *State) statRdrCompetes(k *prep, e *rdrEv) bool {
 // reports true, so nothing answers before the ask. A redirect that matches
 // alone is no stall (gorge asks only for two or more candidates).
 func (s *State) statRdrStall(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool) bool {
-	if k.gen == nil || !k.gen.anyStatRdr {
+	if k.gen == nil || !k.gen.uses.has(useStatRdr) {
 		return false
 	}
 	e, ok := s.rdrEvOf(srcCtrl, srcSl, srcCard, code, combat)
@@ -253,7 +252,7 @@ func (s *State) statRdrStall(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 // replacement_damage.go's single emit). It reports whether it answered the
 // event (applied it, or stalled so nothing else may).
 func (s *State) statRdrTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, combat bool, n int) bool {
-	if k.gen == nil || !k.gen.anyStatRdr || combat || n <= 0 {
+	if k.gen == nil || !k.gen.uses.has(useStatRdr) || combat || n <= 0 {
 		return false // the combat events are taken in replCombatGen
 	}
 	e, ok := s.rdrEvOf(srcCtrl, srcSl, srcCard, code, false)

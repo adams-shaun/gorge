@@ -248,7 +248,7 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 		} else {
 			code = TCode(s.perms[ev.dst].obj)
 		}
-		if k.gen.anyStatRdr {
+		if k.gen.uses.has(useStatRdr) {
 			// ReplDamageRedirect: the combat pass's static redirects (repl_staticredirect.go)
 			if s.statRdrCombat(k, r, ev, ordered, code, s.recipientCtl(ev.dst, code)) && ev.n <= 0 {
 				continue
@@ -647,7 +647,7 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 			s.preventFrozenEv(k, r, fe) // dealt (or prevented): fe holds what it dealt
 			continue
 		}
-		if k.gen.anyStatRdr && s.statRdrFrozen(k, fe) {
+		if k.gen.uses.has(useStatRdr) && s.statRdrFrozen(k, fe) {
 			// a static redirect matches this frozen event: the walk's candidates
 			// do not carry it, so gorge's ask is unanswerable here — loud (repl_staticredirect.go)
 			s.capFull(StallRedirOrder)
