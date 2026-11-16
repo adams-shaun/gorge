@@ -20,14 +20,20 @@ Bonehoard
 Bound in Silence
 Brandywine Farmer
 Burning Fields
+Chaotic Backlash
+Clip Wings
 Cloud, Ex-SOLDIER
 Cunning Survivor
 Death's Shadow
 Deepwood Wolverine
+Desynchronize
 Doom Whisperer
 Double Negative
+Drainpipe Vermin
+Drifting Shade
 Dune Mover
 Easy Prey
+Etched Monstrosity
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
@@ -38,14 +44,18 @@ Forest
 Geralf's Mindcrusher
 Ghen, Arcanum Weaver
 Gift of Paradise
+Gild
 Glen Elendra Liege
+Glimmervoid
 Gnarled Effigy
 Greater Tanuki
 Griffin Aerie
 Grixis Slavedriver
 Guul Draz Mucklord
 Haazda Officer
+Harbinger of Night
 Hearthhull, the Worldseed
+Herd Gnarr
 Hibernation
 Howl of the Night Pack
 Huatli, Radiant Champion
@@ -56,22 +66,27 @@ Judith, the Scourge Diva
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
+Khenra Spellspear
 Kher Keep
 Kjeldoran Outrider
 Leapfrog
 Lingering Mirage
+Lys Alana Huntmaster
 Malanthrope
+Mana Vault
 Mass Calcify
 Mass Mutiny
 Master of Winds
 Metathran Elite
 Mind Over Matter
+Mindwrack Harpy
 Minotaur, Roxxon CEO
 Mountain
 Muck Rats
 Myrel, Shield of Argive
 Nebelgast Herald
 Neonate's Rush
+Nezumi Freewheeler
 Nightveil Predator
 Nyx-Fleece Ram
 Oak Street Innkeeper
@@ -81,10 +96,13 @@ Phantasmal Dreadmaw
 Plains
 Plasmancer
 Poison the Well
+Power of Persuasion
 Precinct Captain
 Privileged Position
 Pure
 Quest for Renewal
+Rally the Peasants
+Reclaim the Wastes
 Rishkar's Expertise
 Riven Turnbull
 Rooftop Nuisance
@@ -109,6 +127,7 @@ Swarm of Rats
 Tectonic Edge
 Threnody Singer
 Thundercloud Elemental
+Thundersteel Colossus
 Tombstalker
 Trained Caracal
 Tui and La, Moon and Ocean

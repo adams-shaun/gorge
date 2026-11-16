@@ -42,6 +42,15 @@ func (s *State) anySacSource(k *prep, p uint8) bool {
 // pass each) before it gives up (potential_script.go witnessReachesFrom, waits >= 4).
 const witnessWaits = 4
 
+// witnessOverWaits: the witness for p's sorcery-speed cast of o stacked n triggers
+// (a Lifeline's dies trigger per sacrificed Eldrazi Scion), more than the wait budget
+// lets resolve, so gorge's witness execution gives up before the cast is offered again
+// (potential_script.go witnessReachesMode, waits >= 4). An instant-speed cast is offered
+// with them still on the stack, which ends that walk at once.
+func (s *State) witnessOverWaits(k *prep, p uint8, c CardID, o Obj, n int) bool {
+	return n > witnessWaits && !k.cards[c].instant && !s.castFlash(k, p, c)
+}
+
 // xWitnessEats: gorge does not take the witness for spell c's {X} at x, so it plans the
 // largest X that keeps its sources (potentialWitnessKeeping). It is not taken when the
 // witness sacrifices the last permanent the spell could target (For the Common Good paid
