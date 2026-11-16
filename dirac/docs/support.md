@@ -31,7 +31,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 265 | 0 | 9 | 256 | 254 |
 | MBC | 2195 | 1942 | 1 | 146 | 1795 | 1749 |
-| ALL | 34442 | 24637 | 21 | 873 | 23743 | 23536 |
+| ALL | 34442 | 24637 | 21 | 872 | 23744 | 23537 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -48,18 +48,18 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-dr-mbc-aaaa | 180 |
 | ev-dr-mbc-aaab | 188 |
 | ev-dr-mbc-aaba | 158 |
-| ev-dr-mbc-aabb | 109 |
+| ev-dr-mbc-aabb | 96 |
 | ev-dr-mbc-abaa | 200 |
 | ev-dr-mbc-abab | 109 |
-| ev-dr-mbc-abba | 134 |
-| ev-dr-mbc-abbb | 153 |
-| ev-dr-mbc-baaa | 200 |
+| ev-dr-mbc-abba | 87 |
+| ev-dr-mbc-abbb | 152 |
+| ev-dr-mbc-baaa | 187 |
 | ev-dr-mbc-baab | 200 |
 | ev-dr-mbc-baba | 145 |
 | ev-dr-mbc-babb | 200 |
 | ev-dr-mbc-bbaa | 200 |
 | ev-dr-mbc-bbab | 143 |
-| ev-dr-mbc-bbba | 166 |
+| ev-dr-mbc-bbba | 159 |
 | ev-dr-mbc-bbbb | 125 |
 | ev-std-big | 200 |
 | ev-std-blb | 200 |
@@ -345,7 +345,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-03-c075 | 16 |
 | ev-tail-03-c076 | 16 |
 | ev-tail-03-c077 | 16 |
-| ev-tail-04-c000 | 7 |
+| ev-tail-04-c000 | 6 |
 | ev-tail-04-c001 | 14 |
 | ev-tail-04-c002 | 14 |
 | ev-tail-04-c003 | 4 |
@@ -491,7 +491,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-05-c060 | 8 |
 | ev-tail-05-c061 | 8 |
 | ev-tail-06 | 216 |
-| ev-tail-06-c000 | 3 |
+| ev-tail-06-c000 | 5 |
 | ev-tail-06-c001 | 78 |
 | ev-tail-06-c002 | 8 |
 | ev-tail-06-c003 | 8 |
@@ -1288,7 +1288,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-16-c073 | 8 |
 | ev-tail-16-c074 | 8 |
 | ev-tail-17 | 157 |
-| ev-tail-17-c000 | 2 |
+| ev-tail-17-c000 | 8 |
 | ev-tail-17-c001 | 8 |
 | ev-tail-17-c002 | 7 |
 | ev-tail-17-c003 | 30 |
@@ -2558,7 +2558,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-33-c044 | 8 |
 | ev-tail-33-c045 | 8 |
 | ev-tail-33-c046 | 32 |
-| ev-tail-34-c000 | 5 |
+| ev-tail-34-c000 | 99 |
 | ev-tail-34-c001 | 115 |
 | ev-tail-34-c002 | 15 |
 | ev-tail-34-c003 | 16 |
@@ -2870,7 +2870,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-39-c014 | 8 |
 | ev-tail-39-c015 | 16 |
 | ev-tail-39-c016 | 16 |
-| ev-tail-40-c000 | 3 |
+| ev-tail-40-c000 | 123 |
 | ev-tail-40-c001 | 126 |
 | ev-tail-40-c002 | 129 |
 | ev-tail-40-c003 | 200 |
@@ -3478,7 +3478,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-49-c020 | 6 |
 | ev-tail-49-c021 | 7 |
 | ev-tail-49-c022 | 6 |
-| ev-tail-50-c000 | 193 |
+| ev-tail-50-c000 | 8 |
 | ev-tail-50-c001 | 192 |
 | ev-tail-50-c002 | 8 |
 | ev-tail-50-c003 | 128 |
@@ -3934,7 +3934,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-57-c019 | 8 |
 | ev-tail-57-c020 | 8 |
 | ev-tail-57-c021 | 200 |
-| ev-tail-58-c000 | 121 |
+| ev-tail-58-c000 | 7 |
 | ev-tail-58-c001 | 200 |
 | ev-tail-58-c002 | 28 |
 | ev-tail-58-c003 | 25 |
@@ -4801,7 +4801,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-70-c070 | 8 |
 | ev-tail-70-c071 | 16 |
 | ev-tail-70-c072 | 16 |
-| ev-tail-71-c000 | 25 |
+| ev-tail-71-c000 | 4 |
 | ev-tail-71-c001 | 6 |
 | ev-tail-71-c002 | 45 |
 | ev-tail-71-c003 | 8 |
