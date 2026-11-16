@@ -1421,11 +1421,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.anyFiltPip = true
 					}
 				}
-				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) &&
-					!kop.ChosenSecondManaAb(&t.Cards[i], firstManaAb(&t.Cards[i]), j) && g.gapOther(CardID(i)) < 0 {
-					// (Quirion Elves' chosen {T} is folded into the source's
-					// unit by prepMultiMana, not a census gap: registering it as
-					// one would keep a filter beside it off the filtScript path)
+				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}
