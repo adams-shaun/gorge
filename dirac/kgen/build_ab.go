@@ -1884,22 +1884,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if err := amounts(s.Amount, lValue{}); err != nil {
 				return ka, nil, err
 			}
-			if s.AbilityRed == 2 {
-				st.B = 1
-			}
-			if s.AbilityRed == 3 {
-				st.B |= kop.ReduceAbUnlock
-			}
-			if s.AbilityRed == 4 {
-				st.B |= kop.ReduceAbPowerUp
-			}
+			rb, rf := reduceAbBits(s)
+			st.B, st.StFlags = st.B|rb, st.StFlags|rf
 			if s.AbilityRed == 5 {
-				st.B |= kop.ReduceAbEquip
 				if err := targets2(); err != nil { // the equip's target (Cloud's Card.Self)
 					return ka, nil, err
 				}
 			}
-			st.B, st.StFlags = reduceAbilityBits(st.B, st.StFlags, s)
 			break
 		}
 		st.Kind = kop.StatReduceCost
@@ -2649,7 +2640,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplPreventNoncombatToOthers
 	case "PreventMillOpps":
 		rp.Kind = kop.ReplPreventMillOpps
-	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf":
+	case "PreventDamageCounters", "DamageHealFirst", "PreventDamageToSelf", "PreventDamageFilt", "PreventDamageN":
 		if err = cb.selfDamageRepl(rp, r); err != nil { // lower_preventtoself.go
 			return ka, err
 		}

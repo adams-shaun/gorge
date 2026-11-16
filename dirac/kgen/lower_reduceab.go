@@ -72,10 +72,10 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 	}
 	if a, ok := sp.get("Activator"); ok && a != "You" {
 		return refuse("ReduceCost Activator %q", a)
-	} else if !ok && arm != 3 {
-		// no Activator$: whoever activates the matched source's ability pays
-		// the reduced cost (CR 602.2b; gorge costActorMatches reads Activator$
-		// only when present: Heartstone lowers an opponent's creature too)
+	} else if !ok && arm == 1 {
+		// no Activator$: any player's activation of a matching source is
+		// reduced (Heartstone's opponent-controlled creatures; gorge
+		// costActorMatches applies an actor-less static to every actor)
 		st.Flags = append(st.Flags, "AnyCaster")
 	}
 	var err error
@@ -103,15 +103,24 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 	return nil
 }
 
-// reduceAbilityBits adds a lowered ReduceCost-of-abilities static s's MinMana$
-// floor to the static's B and its no-Activator$ mark (the AnyCaster flag
-// reduceAbility appends) to its StFlags as kop.StReduceAny: any player's
-// activation of the matched source pays the reduced cost.
-func reduceAbilityBits(b int16, fl kop.StaticFlags, s lStatic) (int16, kop.StaticFlags) {
+// reduceAbBits is a StatReduceAbility static's B (the arm bit and the MinMana$
+// floor) and StFlags (kop.StReduceAny when no Activator$ names the activator)
+// from its lowered form.
+func reduceAbBits(s lStatic) (b int16, fl kop.StaticFlags) {
+	switch s.AbilityRed {
+	case 2:
+		b = 1
+	case 3:
+		b = kop.ReduceAbUnlock
+	case 4:
+		b = kop.ReduceAbPowerUp
+	case 5:
+		b = kop.ReduceAbEquip
+	}
 	b |= int16(s.MinMana) << kop.ReduceAbMinShift
 	for _, f := range s.Flags {
 		if f == "AnyCaster" {
-			fl |= kop.StReduceAny
+			fl |= kop.StReduceAny // no Activator$: every activator (cost_reduceability.go)
 		}
 	}
 	return b, fl

@@ -141,6 +141,9 @@ func synthTail(std []synthList, cardsDir string) (tail []synthList, unlowered []
 		}
 	}
 	for i, b := range cardset.TailBuckets(lowered) {
+		if len(b) == 0 {
+			continue
+		}
 		tail = append(tail, synthList{name: fmt.Sprintf("tail-%02d", i), names: b})
 	}
 	slices.Sort(unlowered)

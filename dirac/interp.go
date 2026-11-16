@@ -276,12 +276,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 		}
 	case kop.OpFight, kop.OpBite:
-		a := s.objRef(k, in.Obj)
-		if in.Obj == kop.RefDelayedRemembered && (a == NoSlot || s.reflexStale()) {
-			if in.Op == kop.OpBite && s.reflexBiteGone(k, in) {
-				break // the gone capture dealt its last known power (zone_rememberwrites.go)
-			}
-			a = NoSlot // the reflexive capture changed zones since (zone_rememberwrites.go)
+		a, dealt := s.fightSource(k, in)
+		if dealt {
+			break // a departed source dealt its last known power (act_bitelki.go)
 		}
 		if in.Op == kop.OpBite && s.biteEachTarget(k, in, a) {
 			break

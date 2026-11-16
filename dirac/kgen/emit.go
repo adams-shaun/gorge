@@ -277,6 +277,8 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		val(ab.Static.VA)
 		val(ab.Static.VB)
 		filt(ab.Repl.Filter)
+		filt(ab.Repl.Filter2)
+		val(ab.Repl.V)
 		cond(ab.Repl.Cond)
 		filt(ab.ManaRestrict)
 		filt(ab.ManaRestrictAb)
@@ -361,6 +363,7 @@ func buildPool(lw *lowered) ([]*lCard, []built, *poolTables, error) {
 	if err := refuseInactiveCodes(pt, all, bs); err != nil {
 		return nil, nil, nil, err
 	}
+	refuseByNestedBuiltToken(all, bs, len(lw.cards)) // nested_tokens.go
 	// A card whose token was refused at build time is refused too.
 	for i, c := range lw.cards {
 		for _, ti := range bs[i].tokens {
