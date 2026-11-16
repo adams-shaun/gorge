@@ -1,14 +1,23 @@
 A-Geological Appraiser
+Accorder Paladin
 Ahn-Crop Invader
+Angelic Field Marshal
+Arborea Pegasus
+Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Cage of Hands
 Chandra's Outrage
+Curse Artifact
 Custody Battle
 Dwarven Armorer
+Fleshtaker
 Foresee
 Forest
+Forgehammer Centurion
 Freejam Regent
+Gale Swooper
 Giant Solifuge
 Goma Fada Vanguard
 Grim Reaper's Scythe
@@ -17,7 +26,22 @@ Island
 Kuldotha Rebirth
 Kyren Negotiations
 Lavastep Raider
+Maggot Carrier
+Midnight Charm
 Mountain
+Mourning
+Nearheath Chaplain
+Nesting Dovehawk
 Plains
+Purge the Profane
+Pyromantic Pilgrim
 Rakalite
+Ravenous Chupacabra
+Shauku, Endbringer
+Shelob's Ambush
+Skirsdag Cultist
+Soulhunter Rakshasa
 Swamp
+Taste of Blood
+Thaumatic Compass
+Toil

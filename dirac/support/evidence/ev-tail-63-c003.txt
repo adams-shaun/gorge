@@ -1,31 +1,55 @@
 A-Blessed Hippogriff
 A-Geological Appraiser
+Abyssal Nightstalker
 Abyssal Specter
 Abzan Advantage
+Accorder Paladin
+Aetherworks Marvel
 Aggressive Instinct
 Ahn-Crop Invader
+Ajani's Welcome
+Akki Avalanchers
 Alseid of Life's Bounty
+Ambush Paratrooper
+Ancient Hydra
+Angel of the Dawn
 Angelic Field Marshal
+Arborea Pegasus
 Aurochs Herd
+Azorius Charm
 Bala Ged Recovery
+Blade-Blizzard Kitsune
 Blanchwood Treefolk
+Bloodmist Infiltrator
+Border Patrol
 Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Cage of Hands
 Centaur Chieftain
+Chandra's Outrage
+Clash of Wills
+Coiled Tinviper
 Compelled Duel
+Consulate Crackdown
+Coronation of Chaos
 Corridor Monitor
 Crow Storm
+Cruel Grimnarch
+Crystal Dragon
 Curfew
 Curse Artifact
 Custody Battle
 Darkthicket Wolf
+Deploy to the Front
 Detainment Spell
 Devil Dinosaur
 Drag Under
 Dragon's Eye Sentry
 Dread Fugue
+Drider
+Enlarge
 Ensnare
 Erratic Mutation
 Escape Velocity
@@ -33,6 +57,7 @@ Esika's Chariot
 Evie Frye
 Expedition Skulker
 Eye Gouge
+Feast of Dreams
 Flash Counter
 Floodhound
 Foresee
@@ -42,64 +67,120 @@ Freejam Regent
 Freewind Equenaut
 Gale Swooper
 Giant Solifuge
+Gisa and Geralf
+Glass of the Guildpact
 Glint Hawk Idol
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
+Griffin Sentinel
 Grim Reaper's Scythe
+Growth-Chamber Guardian
+Gustha Ebbasdotter
 Hamlet Vanguard
 Headless Skaab
+Hedron Rover
+Hero of Goma Fada
 Heroes of the Revel
+Heron of Hope
+Hush
+Ichor Drinker
 Imperial Subduer
 Island
+Jace's Sanctum
 Kuldotha Rebirth
 Kumena's Awakening
 Kyren Negotiations
+Lamplighter of Selhoff
 Lash of the Whip
 Lavastep Raider
 Learn from the Past
 Lily Bowen, Raging Grandma
+Luxurious Libation
+Maggot Carrier
 Maze Abomination
+Merfolk Skydiver
 Merry, Warden of Isengard
 Mesa Cavalier
+Metamorphic Wurm
 Midnight Charm
+Mindless Null
 Minion Reflector
 Mountain
+Mourning
+Myr Kinsmith
 Mysterious Tome
 Mystical Tutor
 Nikya of the Old Ways
 Noble Vestige
+Ornery Kudu
 Orochi Merge-Keeper
+Pardic Lancer
+Phobian Phantasm
+Phyresis
+Phyrexian Driver
 Plains
 Predatory Nightstalker
+Prescient Chimera
+Purphoros, God of the Forge
 Pyknite
+Pyromantic Pilgrim
+Radiant Fountain
 Rakalite
 Ral's Reinforcements
+Ravenous Sailback
+Ray Fillet, Wave Warrior
+Red Dragon
 Red Elemental Blast
+Regenerate
 Replication Technique
+Rimrock Knight
+Riot Devils
+Rishadan Brigand
 Rishkar, Peema Renegade
+Rodolf Duskbringer
 Rofellos's Gift
+Rushwood Dryad
 Sanctuary Raptor
 Savage Thallid
 Scryb Sprites
 Scurry of Gremlins
+Servant of Tymaret
+Shelob's Ambush
+Silvar, Devourer of the Free
 Skillful Lunge
 Smoldering Werewolf
+Snarling Undorak
 Spell Crumple
+Spring
+Sprite Noble
 Staff of the Wild Magus
+Stalking Bloodsucker
 Steel-Plume Marshal
 Stonybrook Banneret
 Stratus Walk
+Student of Ojutai
+Stymied Hopes
 Subterranean Spirit
+Suit Up
+Surge Engine
 Swamp
+Tajuru Archer
 Talas Merchant
 Taste of Blood
 Terravore
+Thalakos Deceiver
 Thaumatic Compass
+Thriving Bluff
 Toil
 Tomakul Honor Guard
 Traverse Eternity
+Trawler Drake
+Urborg Justice
+Urgoros, the Empty One
 Vampiric Tutor
+Wakeroot Elemental
+Weatherseed Faeries
 Windrider Wizard
 Zendikar Incarnate
 Zhuge Jin, Wu Strategist

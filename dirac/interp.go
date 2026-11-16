@@ -30,18 +30,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.damageTo(k, code, s.value(k, in.A))
 		}
 	case kop.OpDraw:
-		q := s.players(k, in.Obj)
-		n := s.value(k, in.A)
-		for i := uint8(0); i < q.n; i++ {
-			p := q.s[i]
-			for i := 0; i < n && !s.over; i++ {
-				if in.C&kop.MvRemember != 0 {
-					s.drawRemember(p, in.C&kop.DrawRememberAll != 0) // RememberDrawn$ (zone_rememberwrites.go)
-				} else {
-					s.draw(p)
-				}
-			}
-		}
+		return s.drawOp(k, in) // kw_dredge.go
 	case kop.OpDestroy:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			if in.C&2 != 0 {
@@ -276,12 +265,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 		}
 	case kop.OpFight, kop.OpBite:
-		a := s.objRef(k, in.Obj)
-		if in.Obj == kop.RefDelayedRemembered && (a == NoSlot || s.reflexStale()) {
-			if in.Op == kop.OpBite && s.reflexBiteGone(k, in) {
-				break // the gone capture dealt its last known power (zone_rememberwrites.go)
-			}
-			a = NoSlot // the reflexive capture changed zones since (zone_rememberwrites.go)
+		a, dealt := s.fightSource(k, in)
+		if dealt {
+			break // a departed source dealt its last known power (act_bitelki.go)
 		}
 		if in.Op == kop.OpBite && s.biteEachTarget(k, in, a) {
 			break

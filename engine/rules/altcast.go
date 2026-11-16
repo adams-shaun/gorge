@@ -46,6 +46,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -292,7 +293,30 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	d := &decision.Decision{Player: card.Owner, Kind: decision.KTriggerOptional,
 		Min: 1, Max: 1, Source: card.ID, ResumeKind: "madness",
 		Prompt: "Cast " + name + " for its madness cost?"}
+	// offerCastablePotential's mana gate is a per-colour upper bound: a Citadel
+	// Gate's "{W} or the chosen colour" counts one of each, so it prices a
+	// {1}{B} cost as payable from that one land. The planner knows a source
+	// taps once (CR 106.1, 605.3b); only its "insufficient" verdict withholds
+	// the offer, and only as a proof: the source census covers every mana
+	// ability the owner could activate, or a relaxation of the ones it misses
+	// still cannot pay (PotentialPaymentPlans' proof). A counter-cost source
+	// the census misses (Vivid Creek's "{T}, remove a charge counter: one mana
+	// of any color") can still make the owed colour (CR 601.2g).
+	provenUnpayable := func() bool {
+		e.beginDerivedMemo()
+		defer e.endDerivedMemo()
+		defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
+		o := decision.Option{Kind: "cast", Obj: card.ID, Mode: altMode(altMadness)}
+		verdict := func() PaymentPlanOutcome { return e.potentialModeCastPlan(card.Owner, o) }
+		if got := verdict(); got.Plan != nil || got.Reason != pay.ReasonInsufficient {
+			return false
+		}
+		hyp := e.PotentialMana(card.Owner)
+		census := e.paymentPlanCensusOf(card.Owner, &hyp)
+		return census.complete || census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
+	}
 	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope(m.mode), false) &&
+		!provenUnpayable() &&
 		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
 		raw, _ := card.Face().KeywordParam(m.head)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",

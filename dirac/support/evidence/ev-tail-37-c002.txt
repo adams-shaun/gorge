@@ -1,0 +1,236 @@
+A-Hobbling Zombie
+A-Skyclave Shadowcat
+Adric, Mathematical Genius
+Aerie Worshippers
+Aeronaut Cavalry
+Aether Sting
+Agent of Acquisitions
+Air Bladder
+Air-Cult Elemental
+Aladdin's Ring
+Altar's Reap
+Ancient Spider
+Angel of the Dawn
+Angelsong
+Archangel's Light
+Archers of Qarsi
+Ardoz, Cobbler of War
+Argothian Pixies
+Atog
+Atrocious Experiment
+Automated Artificer
+Avalanche Riders
+Beast Whisperer
+Behold the Beyond
+Benalish Heralds
+Bird Maiden
+Blackcleave Goblin
+Blind Zealot
+Blitz Leech
+Bog Tatters
+Bogstomper
+Boseiju Reaches Skyward
+Bountiful Promenade
+Brotherhood Vertibird
+Brutal Deceiver
+Built to Last
+Cabal Executioner
+Calming Licid
+Centaur's Herald
+Chain of Plasma
+Champion's Drake
+Chapel Geist
+Cho-Arrim Legate
+Chrome Host Seedshark
+Clairvoyance
+Cliff Threader
+Cloudreach Cavalry
+Cloudseeder
+Commander's Authority
+Conclave Evangelist
+Concordia Pegasus
+Conductor of Cacophony
+Constant Mists
+Crawling Chorus
+Crumbling Ashes
+Crusher Zendikon
+Culling Ritual
+Dance with Devils
+Deadbridge Shaman
+Deal Broker
+Deathbringer Regent
+Deer-Dog
+Delightful Discovery
+Demon of Wailing Agonies
+Deploy the Gatewatch
+Despondency
+Deviant Skytech
+Dire Mimic
+Drag to the Underworld
+Dragon Moose
+Dreadhorde Twins
+Duskrider Falcon
+Earth-Cult Elemental
+Eidolon of Blossoms
+Eiganjo Uprising
+Eladamri's Call
+Elder Cathar
+Emeria's Call
+Enlisted Wurm
+Faithless Salvaging
+Fallaji Excavation
+Fate Forgotten
+Flame Spirit
+Flame of Anor
+Flameshot
+Fleshbag Marauder
+Force of Despair
+Forest
+Forging the Tyrite Sword
+Frogmite
+God-Eternal Rhonas
+Gore Swine
+Gray Merchant of Asphodel
+Great Sable Stag
+Greatsword
+Halvar, God of Battle
+Hand of Silumgar
+Harmonic Prodigy
+Heartbeat of Spring
+Herald of Slaanesh
+Hero of the Games
+Honor the God-Pharaoh
+Icatian Priest
+Igneous Golem
+In the Trenches
+Incubator Drone
+Infiltrate
+Infused Arrows
+Intrepid Provisioner
+Island
+Jhessian Lookout
+Jungle Delver
+Juzám Djinn
+Karlach, Fury of Avernus
+Kavu Climber
+Kavu Glider
+Kavu Scout
+Kaysa
+Kindred Denial
+Kitsune Diviner
+Knight of Cliffhaven
+Lava Serpent
+Lazotep Reaver
+Legion Loyalty
+Lieutenant Kirtar
+Lightning Axe
+Lightning Wolf
+Llanowar Stalker
+Looter il-Kor
+Loxodon Anchorite
+Loxodon Gatekeeper
+Malevolent Rumble
+Marionette Master
+Markov Blademaster
+Master Apothecary
+Maze Rusher
+Midnight Scavengers
+Mindless Automaton
+Mindstatic
+Mirror Wall
+Monk Realist
+Morbid Plunder
+Mountain
+Mystifying Maze
+Nearheath Chaplain
+Nishoba Brawler
+Norika Yamazaki, the Poet
+Nullify
+Off Balance
+Organ Hoarder
+Paralyzing Grasp
+Peregrine Griffin
+Phyrexian Etchings
+Pierce the Sky
+Plains
+Possessed Nomad
+Pradesh Gypsies
+Presence of Gond
+Presence of the Master
+Priest of the Crossing
+Professor Hulk
+Protomatter Powder
+Pumpkin Bombs
+Qilin's Blessing
+Quarrel's End
+Quest for Pure Flame
+Quicksilver Gargantuan
+Quirion Sentinel
+Ral's Outburst
+Raving Visionary
+Reach of Branches
+Reap and Sow
+Rhox Oracle
+Rising Populace
+Roar of Reclamation
+Rootwater Commando
+Rubblebelt Runner
+Ruby Medallion
+Said
+Sandstorm Charger
+Sarkhan's Dragonfire
+Scalding Tongs
+Scrubland
+Sea Legs
+Sejiri Shelter
+Selkie Hedge-Mage
+Shadowfeed
+Shatterstorm
+Shimmering Mirage
+Shrieking Mogg
+Silkguard
+Silundi Vision
+Skin Invasion
+Skyway Sniper
+Slice in Twain
+Soltari Priest
+Soratami Rainshaper
+Sorin's Vengeance
+Soul Reap
+Stand Firm
+Staunch Defenders
+Steadfast Paladin
+Steel Overseer
+Steelburr Champion
+Stinging Scorpion
+Subira, Tulzidi Caravanner
+Sunstrike Legionnaire
+Supply Runners
+Swamp
+Tangle Mantis
+Target Minotaur
+Tenth District Veteran
+Terminal Agony
+The Brute
+The Meathook Massacre
+Thraben Inspector
+Tithebearer Giant
+Towashi Guide-Bot
+Tradewind Rider
+Travel Preparations
+Undergrowth Scavenger
+Vanquish the Foul
+Voices from the Void
+Vorel of the Hull Clade
+Walking Archive
+Walking Corpse
+Warrior's Charge
+Wayfaring Giant
+Wei Elite Companions
+Wildfire Emissary
+Will-o'-the-Wisp
+Witch's Cauldron
+Wizard's Lightning
+Worry Beads
+Yavimaya Ancients
+Zuran Spellcaster

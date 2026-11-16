@@ -1,94 +1,420 @@
+A-Gnarlid Colony
+A-Kenku Artificer
+A-Moon-Circuit Hacker
+A-Young Blue Dragon
 Abattoir Ghoul
 Aberrant
 Aegis Automaton
+Agadeem Occultist
+Agent of Masks
+Aggravated Assault
+Ajani Goldmane
+Akoum Flameseeker
+Akroan Sergeant
+Alabaster Wall
+Aladdin's Ring
+Altar Golem
 Amulet of Vigor
+Anaba Ancestor
+Ancient Kavu
+Angrath's Marauders
+Ant-Man, Elusive Avenger
 Antagonize
 Arcane Laboratory
 Armageddon
+Ascended Lawmage
+Ascending Aven
+Asylum Visitor
+Atalya, Samite Master
+Auger Spree
+Augur of Bolas
+Avatar of Might
+Aven Battle Priest
+Azorius Keyrune
 Banishing Slash
+Baron Sengir
+Baru, Wurmspeaker
 Basri's Aegis
+Bast, Panther Goddess
 Bastion of Remembrance
 Battle Sliver
+Beetleform Mage
+Bereaved Survivor
 Blessed Light
+Blitz Automaton
 Blood Ogre
 Bloodcrazed Neonate
+Bloodline Necromancer
+Bloodthorn Taunter
+Blor the Impervious
+Blot Out
+Bog-Strider Ash
+Bogardan Rager
 Boon of Emrakul
 Brass Secretary
+Bright-Palm, Soul Awakener
 Brilliant Plan
+Broken Visage
+Bubble Matrix
+Bull's Strength
+Butterbur, Bree Innkeeper
+Cankerbloom
+Carnage Altar
+Carrion Wall
+Castle Embereth
 Cenn's Heir
+Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
 Charmbreaker Devils
+Charmed Stray
+Charnel Troll
+Cho-Manno, Revolutionary
+Choking Fumes
+Choose Your Weapon
+Chronomancer
+Cinder Crawler
+Cinderbones
+Citanul Woodreaders
+Cleric of Chill Depths
+Cloud Crusader
 Cogwork Archivist
 Colossal Majesty
+Common Iguana
 Compulsion
+Concordia Pegasus
+Conformer Shuriken
+Cosi's Ravager
+Court of Cunning
 Crack the Earth
+Creeping Mold
+Crescendo of War
+Crimson Hellkite
+Crumbling Colossus
+Dalek Drone
+Daraja Griffin
+Daxos of Meletis
+Deepcavern Imp
+Defender of Law
+Deflection
+Dehydration
+Destroy Evil
+Devils' Playground
+Dhund Operative
+Digsite Engineer
+Dire Fleet Neckbreaker
+Dirtwater Wraith
+Domri's Nodorog
 Dragon Egg
+Dragonstorm
+Drannith Ruins
+Dreadwaters
+Drover of the Mighty
+Dungeoneer's Pack
+Dynacharge
+E. Honda, Sumo Champion
 Elvish Harbinger
+Encampment Keeper
+Endless Scream
+Ertai's Scorn
+Experimental Armor
+Eye of Yawgmoth
+Faceless Devourer
+Fast
 Feldon, Ronom Excavator
+Felhide Petrifier
+Fetid Imp
+Field of Reality
+Filigree Attendant
+Flight Spellbomb
 Flowstone Crusher
+Flux Channeler
+Fog on the Barrow-Downs
+Forced Retreat
 Forest
+Forgehammer Centurion
+Foul Play
+Foundry Helix
+Free from Flesh
+Freed from the Real
+Frog-Squirrels
+Frostfist Strider
+Fumble
+Furnace Dragon
 Furnace Scamp
+Futurist Sentinel
+Game-Trail Changeling
+Gavony Trapper
+Geist Snatch
+Geistblast
+Generous Patron
+Gift of the Viper
+Glimmerpost
+Glimpse of Nature
+Glistening Dawn
+Gluttonous Slug
 Gnoll War Band
+Gnome-Made Engine
+Goblin Bruiser
+Goblin Mutant
+Goring Ceratops
+Great-Horn Krushok
+Greater Forgeling
+Grim Lavamancer
+Hadran, Naya Sunseeder
+Hatred
+Haywire Mite
+Heartless Summoning
+Hedron Crawler
 Helitrooper
+Hell Mongrel
+Hellfire Mongrel
+High Alert
+Highspire Mantis
+Hoard Hauler
+Hunters' Feast
+Hurloon Shaman
 Idol of Oblivion
+Ihsan's Shade
 Inferno Titan
+Infinity Formula
+Infused Arrows
+Into the Story
+Invasion of Lorwyn
+Invasive Species
+Ironroot Treefolk
 Island
 Isolate
+Jokulmorder
 Kardur, Doomscourge
+Kargan Dragonlord
+Killian, Ink Duelist
+Knight of Infamy
+Knowledge and Power
+Kolaghan Forerunners
 Krakilin
+Land Grant
 Lava Zombie
+Legion Lieutenant
+Legion's Judgment
+Leinore, Autumn Sovereign
+Leonin Scimitar
+Leyline of Lightning
+Liberate
+Lightning Cloud
+Lightning Serpent
+Lingering Phantom
+Llanowar Tribe
 Locus Cobra
 Lorehold Excavation
+Machinate
+Machine Man, Model X-51
+Mage Duel
+Magmatic Channeler
+Manabond
 Manglehorn
+Mardu Banner
+Maw of the Obzedat
+Megrim
+Meldweb Curator
+Meng Huo, Barbarian King
+Mental Discipline
+Mental Misstep
 Merchant Scroll
+Miasmic Mummy
+Mind Burst
 Minion of the Mighty
+Minotaur Skullcleaver
+Mist Dragon
+Mnemonic Wall
+Mogg Alarm
+Moment of Heroism
+Monstrous Onslaught
+Morgue Theft
+Mortal's Ardor
 Mountain
 Mountain Bandit
+Mournful Zombie
 Mysterious Pathlighter
+Namora, the Sea Queen
+Nantuko Shade
+Needlebug
+Nephalia Drownyard
+Nightveil Sprite
+Nimraiser Paladin
+Noggle Bridgebreaker
+Noxious Toad
+Oasis
+Oath of the Ancient Wood
+Obelisk of Esper
+Octavia, Living Thesis
+Oji, the Exquisite Blade
 Omen of the Sun
+Oracle of Tragedy
+Ordeal of Purphoros
 Ore-Scale Guardian
 Oread of Mountain's Blaze
 Ovalchase Daredevil
+Patrol Signaler
+Phantom Wings
+Phyrexian Fleshgorger
 Plains
+Plummet
 Porcelain Legionnaire
+Poultrygeist
+Precognitive Perception
+Predator's Howl
+Press for Answers
+Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
+Qasali Pridemage
+Rakdos Cluestone
+Ravenous Baboons
+Ravenous Bloodseeker
+Razorfin Hunter
 Reito Lantern
+Reiver Demon
+Relic Bane
+Relic Sloth
+Repercussion
+Rescue
+Restore
+Ring of Three Wishes
 Ringwarden Owl
+Riot Spikes
+Rip Apart
+Rooting Kavu
+Roughshod Mentor
 Rousing of Souls
+Ruination Wurm
+Safeguard
 Sandsteppe Outcast
+Sanguine Bond
 Scion of Glaciers
+Scourge of Skola Vale
 Screamreach Brawler
+Seaside Haven
 Season of Renewal
+Second Breakfast
 Second Harvest
+Second Thoughts
+Security Detail
+Seed Guardian
 Selesnya Sentry
 Sengir Vampire
 Sentinel Spider
+Sentinel's Eyes
 Shaggy Camel
+Shamanic Revelation
 Shelter
+Sheoldred's Edict
+Shepherd of the Cosmos
+Shield Mare
+Shriekhorn
+Shrill Howler
+Shrivel
+Sigil of Distinction
+Silumgar's Command
+Sinking Feeling
 Six-Sided Die
 Skyclave Geopede
+Skylasher
+Skyspear Cavalry
+Slimefoot, the Stowaway
+Slinking Skirge
 Smolder Initiate
+Snapcaster Mage
+Snarling Warg
+Soltari Crusader
 Song of Eärendil
+Southern Elephant
 Spark Trooper
+Spartan Veteran
+Spellskite
 Sphinx of Magosi
 Spinehorn Minotaur
+Spire Mangler
+Sprouting Renewal
 Steam Blast
 Steward of Valeron
+Stone Rain
+Stoneshaker Shaman
+Stormcrag Elemental
+Strafe
 Strength of Night
+Structural Distortion
+Stunted Growth
 Sumala Rumblers
+Sunhome Guildmage
 Survival Cache
 Swamp
+Swan Song
+Swarmyard
+Swerve
+Tah-Crop Skirmisher
 Tajuru Beastmaster
+Take Possession
+Talisman of Curiosity
+Taunting Challenge
+Teferi's Ageless Insight
 Tegan Jovanka
+Tenured Oilcaster
+Territorial Kavu
+Terror of the Fairgrounds
+The Destined White Mage
+Thing Swing
+Thorn Mammoth
+Thoughtseize
+Thoughtweft Gambit
+Thrasher Brute
+Thriss, Nantuko Primus
 Thunder Strike
+Tidings
 Tigereye Cameo
+Time Wipe
+Time of Heroes
+Titans' Vanguard
+Topan Ascetic
+Tormented Hero
 Torsten, Founder of Benalia
+Tower Defense
+Tower Drake
 Triton Shorethief
+Tunnel
 Turn the Tide
 Turnabout
+Uktabi Efreet
+Uncaged Fury
+Uncanny Speed
 Undercity Shade
+Untamed Might
+Unwilling Recruit
+Unyaro Griffin
+Urborg Mindsucker
 Valor of the Worthy
+Vampire Revenant
+Vampire Warlord
+Vengeful Regrowth
+Venom Blast
+Venser, Fervent Forger
+Vineshaper Mystic
 Vivid Revival
+Vivisurgeon's Insight
+Voltaic Key
 Volunteer Militia
+Vulshok Refugee
+Wand of Denial
+Wand of the Elements
+Wandering Tombshell
+War Priest of Thune
+Warfire Javelineer
+Welcoming Vampire
+When We Were Young
+Whetwheel
+Whisper Agent
+Xiahou Dun, the One-Eyed
+You Come to the Gnoll Camp
+Yuan Shao, the Indecisive
+Zhao, the Seething Flame
+Zuran Orb

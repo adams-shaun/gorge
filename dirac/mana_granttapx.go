@@ -24,7 +24,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const stepTapX int16 = -3
 
 // grantTapXGaps: p's one-permanent tap-another sources on a board whose
-// census gaps the tap-another search models (scriptTapXModelled).
+// census gaps the tap-another search models (scriptTapXModelled). A
+// sacrifice-another source is not one: beside a granted mana ability the
+// grant search activates it as a candidate of its own (grantSacXGaps,
+// mana_grantsacx.go), the way gorge's one prefix search does.
 func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	var m slotMask
 	if !k.tapMana {
@@ -33,7 +36,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		c := s.cardAt(sl)
-		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXEachManaAb(a) { // (a sacrifice-another source is the tap-another search's alone)
+		if a := k.tapXAbOf(c); a.Cost.N == 1 && a.Cost.Flags&kop.CostTap != 0 && !kop.SacXMana(a) {
 			m = m.with(sl)
 		}
 	}
@@ -84,9 +87,10 @@ func (g *grantSrch) tapXBranch(t *State, i int, sl Slot) bool {
 // a play it pays. A source the grant search covers is tried in gorge's one
 // prefix search beside the grants, whose budget the granted gaps spend
 // (rules scriptSearch.visit), so the tap-another search alone, which skips
-// the grants, must not keep a play that search gave up on.
+// the grants, must not keep a play that search gave up on. A
+// sacrifice-another source is covered too (grantSacXGaps, mana_grantsacx.go).
 func (s *State) tapXOffGrant(k *prep, p uint8) bool {
-	return s.scriptTapXModelled(k, p).andNot(s.grantTapXGaps(k, p)).any()
+	return s.scriptTapXModelled(k, p).andNot(s.grantTapXGaps(k, p)).andNot(s.grantSacXGaps(k, p)).any()
 }
 
 // tapXSecondLive: p has a live tap-another source that is a later ability

@@ -91,7 +91,21 @@ func endForgetOtherSnapshot(c *Ctx) {
 func forgetOtherSpecContext(c *Ctx) SpecContext {
 	sel := *c
 	armForgetSelection(&sel, c)
-	return sel.SpecContext(c.Controller)
+	return chainTargetsSpecContext(&sel, c.Controller)
+}
+
+// chainTargetsSpecContext is sel's resolution filter context with the
+// targets a `Card.targetedBy` candidate test reads widened to the whole
+// root-and-chain union (refTargetUnion). A ChangeZone link behind a targeting
+// link (Cloak and Dagger, Entwined: the opponent, then "up to one target
+// creature they control", then "exile a nonland card from their hand or the
+// chosen creature") names a creature the link itself never targeted; the
+// plain context carries only the root's answer, so that creature was never a
+// candidate. A chain with no sub targets unions to exactly Ctx.Targets.
+func chainTargetsSpecContext(sel *Ctx, you state.PlayerID) SpecContext {
+	sc := sel.SpecContext(you)
+	sc.ResolutionTargets = refTargetUnion(sel)
+	return sc
 }
 
 // armForgetSelection is the ONE place a ForgetOtherRemembered$ walk widens
@@ -121,7 +135,7 @@ func forgetOtherPreClearContext(sel, c *Ctx) SpecContext {
 	if c.Forget.Ready {
 		return forgetOtherSpecContext(c)
 	}
-	return sel.SpecContext(sel.Controller)
+	return chainTargetsSpecContext(sel, sel.Controller)
 }
 
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.Zone) {
