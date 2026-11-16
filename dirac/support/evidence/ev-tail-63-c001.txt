@@ -101,6 +101,7 @@ Danitha, New Benalia's Light
 Darklit Gargoyle
 Darkthicket Wolf
 Dauthi Ghoul
+Deadeye Plunderers
 Deadeye Rig-Hauler
 Deathbellow Raider
 Delayed Blast Fireball
@@ -138,6 +139,7 @@ Excavated Wall
 Expedition Skulker
 Expel
 Eye Gouge
+Eyes of the Beholder
 Fearless Fledgling
 Feast of Dreams
 Feast of Sanity
@@ -180,6 +182,7 @@ Goma Fada Vanguard
 Graceful Adept
 Grand Warlord Radha
 Graviton, Fundamental Force
+Greenwheel Liberator
 Griffin Sentinel
 Grim Reaper's Scythe
 Grizzlegom, Hurloon Hero
@@ -213,6 +216,7 @@ Ironsoul Enforcer
 Island
 Jabs, Mistress of Mockery
 Jackalope Herd
+Jaya's Immolating Inferno
 Jubilation
 Jwar Isle Avenger
 Jwari Disruption
@@ -224,6 +228,7 @@ Knight of the Skyward Eye
 Kormus Bell
 Kuldotha Rebirth
 Kyren Negotiations
+Lamplighter of Selhoff
 Lash of the Whip
 Lathnu Hellion
 Lavastep Raider
@@ -259,6 +264,7 @@ Mistvault Bridge
 Mold Demon
 Mountain
 Mourning
+Mycosynth Golem
 Myr Convert
 Myr Kinsmith
 Mysterious Tome
@@ -326,6 +332,7 @@ Ratcatcher
 Ravenous Chupacabra
 Ravenous Sailback
 Ray Fillet, Wave Warrior
+Realmwalker
 Red Dragon
 Red Elemental Blast
 Refocus
@@ -413,11 +420,13 @@ Tabaxi Toucaneers
 Talas Merchant
 Talons of Wildwood
 Taste of Blood
+Tempting Licid
 Terravore
 Thalakos Deceiver
 Thallid
 Thaumatic Compass
 The Autonomous Furnace
+Thicket Basilisk
 Thriving Bluff
 Throes of Chaos
 Thrun, the Last Troll
@@ -465,6 +474,7 @@ Whispergear Sneak
 Whitewater Naiads
 Wild Aesthir
 Windbrisk Raptor
+Windseeker Centaur
 Wojek Halberdiers
 Worry Beads
 Wu Warship

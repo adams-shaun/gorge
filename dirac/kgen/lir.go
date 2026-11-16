@@ -1078,6 +1078,10 @@ type lMana struct {
 	Rider    int
 	RiderCtr string // the source counter kind a deplete rider reads
 	RiderN   int    // the life count
+	// RestrictAbZones is the zone each RestrictAb clause's ability source is
+	// matched in (lowerCtx.restrictAbZones): kop.ZoneBattlefield for an
+	// inZoneBattlefield alternative, kop.ZoneAny for a zone-free one
+	RestrictAbZones []kop.Zone
 }
 
 type lUnless struct {

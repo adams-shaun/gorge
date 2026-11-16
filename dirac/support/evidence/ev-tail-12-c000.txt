@@ -46,6 +46,7 @@ Bold Impaler
 Brainstone
 Brave the Elements
 Briarberry Cohort
+Briarblade Adept
 Brood of Cockroaches
 Broodstar
 Butch DeLoria, Tunnel Snake
@@ -91,12 +92,14 @@ Dragon's Approach
 Dragonspark Reactor
 Dramatic Entrance
 Drowned Rusalka
+Druid's Call
 Duskmantle Prowler
 Dwarven Grunt
 Dwarven Lieutenant
 E. Honda, Sumo Champion
 Eagle of the Watch
 Emergency Weld
+Enduring Scalelord
 Enforcer Griffin
 Enlightened Tutor
 Enlistment Officer
@@ -104,6 +107,7 @@ Exalted Angel
 Excavation Technique
 Farsight Adept
 Feedback Bolt
+Feral Thallid
 Fire Imp
 Firemaw Kavu
 Flameblade Adept
@@ -158,6 +162,7 @@ Hornbash Mentor
 Hostile Desert
 Hurloon Battle Hymn
 Hydra Omnivore
+Illusionist's Stratagem
 Impending Flux
 Imperious Oligarch
 Impulsivity
@@ -187,6 +192,7 @@ Kyren Glider
 Landroval, Horizon Witness
 Last Caress
 Laurine, the Diversion
+Legion Loyalist
 Legions to Ashes
 Leonin Armorguard
 Lich's Caress
@@ -320,6 +326,7 @@ Soul Summons
 Soul of Innistrad
 Soul of the Harvest
 Sphere of Resistance
+Sphinx of Magosi
 Spirit of the Spires
 Spiritual Asylum
 Spontaneous Mutation

@@ -288,6 +288,7 @@ Quicksmith Genius
 Radha, Coalition Warlord
 Radical Idea
 Ragefire
+Rampaging Hippo
 Ransack
 Razor Hippogriff
 Reckless Amplimancer
@@ -451,6 +452,7 @@ Wilt-Leaf Cavaliers
 Windgrace's Judgment
 Winter's Grasp
 Wistful Thinking
+Witch's Cottage
 Woeleecher
 Worldslayer
 Wretched Throng

@@ -1216,8 +1216,8 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]
-		if t.UpTo || t.TFlags&kop.TgfAtResolution != 0 {
-			continue
+		if t.UpTo || t.TFlags&kop.TgfAtResolution != 0 || slotNoneUnkicked(t) {
+			continue // (a kicked-only slot takes no object in the cast this gate prices: Tear Asunder's nonland permanent, CR 601.2c)
 		}
 		if t.TFlags&kop.TgfGiftRange != 0 {
 			return s.giftTargetsFeasible(k, a, p, src)

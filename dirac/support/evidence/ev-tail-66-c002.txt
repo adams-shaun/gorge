@@ -25,6 +25,7 @@ Bomber Corps
 Boon Reflection
 Boros Swiftblade
 Bumi's Feast Lecture
+Celestial Regulator
 Chains of Custody
 Champion of the Flame
 Cloudkill
@@ -46,6 +47,7 @@ Dimir Informant
 Drain the Well
 Drudge Skeletons
 Ebon Dragon
+Eloise, Nephalia Sleuth
 Elspeth, Sun's Nemesis
 Elvish Reclaimer
 End Hostilities
@@ -87,6 +89,7 @@ Haru-Onna
 Haunting Hymn
 Hazoret the Fervent
 Headless Horseman
+Heaven Sent
 Hero of Iroas
 Hexgold Halberd
 Hieroglyphic Illumination
@@ -100,6 +103,7 @@ Inspiring Refrain
 Intervene
 Iron Suitcase
 Island
+Izzet Chronarch
 Jace's Phantasm
 Jackal Pup
 Jeskai Barricade
@@ -233,6 +237,7 @@ Wall of Mist
 Wall of Souls
 Warren Instigator
 Warren Pilferers
+Wear
 Weight of the Underworld
 Welder Automaton
 Wind Drake

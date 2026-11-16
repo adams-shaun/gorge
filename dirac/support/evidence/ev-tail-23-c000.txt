@@ -57,6 +57,7 @@ Bloodline Shaman
 Boggart Brute
 Boggart Harbinger
 Boiling Blood
+Bone Miser
 Boneknitter
 Boomerang, Blade Flinger
 Boros Mastiff
@@ -239,6 +240,7 @@ Mastermind's Acquisition
 Mausoleum Guard
 Mechanized Warfare
 Merfolk Mistbinder
+Merfolk of the Depths
 Meria's Outrider
 Metathran Transport
 Meteor Blast

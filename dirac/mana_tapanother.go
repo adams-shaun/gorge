@@ -409,6 +409,7 @@ const (
 	tapXAnyR                // an any-colour restricted gap (a Flamebraider), col its scriptDFS answer (scriptGapTap)
 	tapXRider               // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
 	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
+	tapXDead                // a Firemind Vessel (AnyDifferent) taps for no mana: gorge's search activates it as a census gap (mana_anydifferent.go)
 )
 
 type tapXKey struct {
@@ -435,6 +436,7 @@ type tapXSearch struct {
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
 	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
+	dead  slotMask               // the AnyDifferent sources among gaps: gorge's census lists them, they add no mana (anyDifferentGaps)
 	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	nodes int
 	nseen int
@@ -495,6 +497,8 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
 	rs.gaps = rs.gaps.or(rs.def)
+	rs.dead = s.anyDifferentGaps(k, p)
+	rs.gaps = rs.gaps.or(rs.dead)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -553,7 +557,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer || st.kind == tapXDead {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -751,6 +755,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	}
 	if st.kind == tapXDefer {
 		s.tapXDeferDo(k, p, st)
+		return
+	}
+	if st.kind == tapXDead {
+		s.windowAnyDifferentTap(k, st.sl) // no mana, no ask (mana_anydifferent.go)
 		return
 	}
 	if st.cand == NoSlot {
@@ -964,6 +972,14 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 		}
+		if rs.dead.has(sl) {
+			// a Firemind Vessel: one activation, no ask and no mana; gorge's
+			// search taps it ahead of the later gap that funds the play
+			if t.anyDifferentAt(k, sl) && rs.try(k, t, tapXStep{kind: tapXDead, sl: sl, cand: NoSlot, cand2: NoSlot}) {
+				return true
+			}
+			continue
+		}
 		if rs.def.has(sl) {
 			if found, handled := rs.deferAsk(k, t, sl); handled {
 				return found
@@ -1020,53 +1036,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			return found
 		}
 		if rider.has(sl) {
-			// a planner-deferred rider source (a Sandstone Needle's "{T}, remove
-			// a depletion counter: Add {R}{R}", its sacrifice rider, or a later
-			// rider beside a plain first ability, Grove of the Burnwillows): one
-			// production ask, whose answers are the plain first ability and the
-			// rider's colours (riderPlainGap, the play's announced ones first),
-			// or one activation of a rider-first source, its fixed production
-			// with no ask and a multi-colour one branched on its colours (the
-			// announced ones first, deferGapAnswers' count)
-			if t.riderPlainFirst(k, sl) {
-				if !rs.tick() { // the production ask
-					return false
-				}
-				for c := uint8(0); c < t.deferGapAnswers(k, sl); c++ {
-					if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: c, act: rs.a}) {
-						return true
-					}
-				}
-				continue
-			}
-			ra, ok := t.riderAbilityOf(k, sl)
-			if !ok {
-				continue
-			}
-			mask := uint8(ra.ManaColors)
-			if !ra.ManaEach && mask&(mask-1) != 0 {
-				// the activation asks its colour: the announced ones first
-				if !rs.tick() { // the colour ask
-					return false
-				}
-				var order [kop.NumManaKinds]uint8
-				no := 0
-				for col := uint8(0); col < kop.NumManaKinds; col++ {
-					if mask&(1<<col) != 0 {
-						order[no] = col
-						no++
-					}
-				}
-				needFirst(order[:no], rs.need)
-				for i := 0; i < no; i++ {
-					if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerBit(mask, int(order[i])))}) {
-						return true
-					}
-				}
-				continue
-			}
-			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl}) { // a fixed production (or every colour at once) asks nothing
-				return true
+			if found, stop := rs.riderStep(k, t, sl); stop {
+				return found
 			}
 			continue
 		}
@@ -1172,6 +1143,60 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		rs.n--
 	}
 	return false
+}
+
+// riderStep is visit's branch for a planner-deferred rider source sl (a
+// Sandstone Needle's "{T}, remove a depletion counter: Add {R}{R}", its
+// sacrifice rider, or a later rider beside a plain first ability, Grove of the
+// Burnwillows): one production ask, whose answers are the plain first ability
+// and the rider's colours (riderPlainGap, the play's announced ones first), or
+// one activation of a rider-first source, its fixed production with no ask and
+// a multi-colour one branched on its colours (the announced ones first,
+// deferGapAnswers' count). stop: visit returns found, else it goes on to the
+// next source.
+func (rs *tapXSearch) riderStep(k *prep, t *State, sl Slot) (found, stop bool) {
+	if t.riderPlainFirst(k, sl) {
+		if !rs.tick() { // the production ask
+			return false, true
+		}
+		for c := uint8(0); c < t.deferGapAnswers(k, sl); c++ {
+			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: c, act: rs.a}) {
+				return true, true
+			}
+		}
+		return false, false
+	}
+	ra, ok := t.riderAbilityOf(k, sl)
+	if !ok {
+		return false, false
+	}
+	mask := uint8(ra.ManaColors)
+	if !ra.ManaEach && mask&(mask-1) != 0 {
+		// the activation asks its colour: the announced ones first
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		var order [kop.NumManaKinds]uint8
+		no := 0
+		for col := uint8(0); col < kop.NumManaKinds; col++ {
+			if mask&(1<<col) != 0 {
+				order[no] = col
+				no++
+			}
+		}
+		needFirst(order[:no], rs.need)
+		for i := 0; i < no; i++ {
+			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerBit(mask, int(order[i])))}) {
+				return true, true
+			}
+		}
+		return false, false
+	}
+	// a fixed production (or every colour at once) asks nothing
+	if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl}) {
+		return true, true
+	}
+	return false, false
 }
 
 // SetDebugTapXMutate is the caretaker lockstep mutation switch (test only):

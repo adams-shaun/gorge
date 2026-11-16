@@ -3652,6 +3652,15 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		if obj, err = lc.delayedRemember(ro, exec); err != nil {
 			return err
 		}
+		if obj.Kind == rRemembered && lc.delayedAllSet() {
+			// the set is a ChangeZoneAll sweep's changed objects (Laezel's
+			// Acrobatics'): the same DpMany program, for the one shape it
+			// returns exactly (lower_delayedlkimany.go)
+			if why := lc.delayedAllManyShape(exec); why != "" {
+				return refuse("delayed trigger Remembered over a ChangeZoneAll's changed set: %s", why)
+			}
+			lkiMany = true
+		}
 	}
 	lat := lc.newLatent("DelayedTrigger")
 	lat.DelayedObjOnly = delayedObjOnly(ro)
@@ -3683,7 +3692,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	}
 	if lkiMany {
 		if len(lat.Prog) != 1 || lat.Prog[0].Op != "Return" || lat.Prog[0].Obj.Kind != rDelayedRemembered {
-			return refuse("delayed trigger RememberedLKI over a multi-object target slot: the body lowered to %d ops, not one Return of the delayed set", len(lat.Prog))
+			return refuse("delayed many-object body lowered to %d ops, not one Return of the delayed set", len(lat.Prog))
 		}
 		if cs := lat.Prog[0].CS; cs == "" {
 			lat.Prog[0].CS = "DelayedMany"
@@ -4079,8 +4088,39 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 		if m.RestrictAb, err = lc.filter(strings.Join(act, ",")); err != nil {
 			return err
 		}
+		var ok bool
+		if m.RestrictAbZones, ok = restrictAbZones(act, m.RestrictAb); !ok {
+			return refuse("mana restriction %q: mixed inZoneBattlefield alternatives that do not line up with their clauses", rv)
+		}
 	}
 	return nil
+}
+
+// restrictAbZones is the zone each clause of the activated half f (lowered
+// from the Card.<spec> alternatives act) is matched in: kop.ZoneBattlefield
+// for an inZoneBattlefield alternative, whose source must be a permanent
+// (gorge restrictValidTermMatches' needsBattlefield: Vedalken Engineer's
+// mana never pays Scrapwork Rager's unearth), kop.ZoneAny for a zone-free
+// one, which pays an ability activated from any zone (CR 106.6, 602.2). ok
+// is false when the alternatives mix the two and do not line up with f's
+// clauses.
+func restrictAbZones(act []string, f *lFilter) (zones []kop.Zone, ok bool) {
+	zones = make([]kop.Zone, len(act))
+	for i, alt := range act {
+		zones[i] = kop.ZoneAny
+		if strings.Contains(alt, "inZoneBattlefield") {
+			zones[i] = kop.ZoneBattlefield
+		}
+	}
+	if len(f.Clauses) == len(zones) {
+		return zones, true
+	}
+	for _, z := range zones[1:] {
+		if z != zones[0] {
+			return nil, false
+		}
+	}
+	return slices.Repeat(zones[:1], len(f.Clauses)), true
 }
 
 // finishMana reads a mana ability's spend restriction and chain.

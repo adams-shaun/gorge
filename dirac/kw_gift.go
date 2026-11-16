@@ -273,6 +273,9 @@ func (s *State) reverseCast(k *prep) {
 		s.refreshWarpRecast(e.obj)
 		s.refreshAirbend(e.obj) // act_airbend.go
 	}
+	if e.kind == seSpell && e.trigPl == trigPlMadness {
+		s.madnessReversed(e.obj) // kw_madness.go
+	}
 	s.heldTurn, s.heldStep, s.heldTouch = uint16(s.turn), s.step, s.touchN
 	if tokenGone {
 		s.heldTouch-- // gorge's token ceases after the reversal: progress (bflTokenGone)

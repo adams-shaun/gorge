@@ -360,6 +360,7 @@ Spur Grappler
 Square Up
 Stalwart Aven
 Stand
+Static Net
 Staunch Shieldmate
 Staunch Throneguard
 Steel Wall

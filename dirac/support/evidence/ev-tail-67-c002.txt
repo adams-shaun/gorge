@@ -1,4 +1,5 @@
 A-Dokuchi Silencer
+A-Eyes of the Beholder
 A-Rockslide Sorcerer
 A-Rulik Mons, Warren Chief
 Aerial Assault
@@ -9,6 +10,7 @@ Akki Underminer
 Akrasan Squire
 Akroan Crusader
 Alms Beast
+Angelic Field Marshal
 Animate Land
 Aquatic Incursion
 Augury Adept
@@ -36,12 +38,15 @@ Cling to Dust
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Conclave Guildmage
+Confront the Unknown
 Conservator
 Contagion
 Corpse Knight
 Corrupted Zendikon
 Cosmos Elixir
 Courier's Capsule
+Crackling Triton
 Crop Rotation
 Culling Mark
 Custodi Soulbinders
@@ -55,6 +60,7 @@ Demonic Rising
 Despise
 Dismantling Blow
 Domri, Anarch of Bolas
+Eidolon of Rhetoric
 Ekthi, Contaminator Priest
 Enslaved Dwarf
 Erratic Visionary
@@ -63,8 +69,10 @@ Eternal Witness
 Ethereal Champion
 Explosive Welcome
 Fain, the Broker
+Femeref Healer
 Final-Sting Faerie
 Firebird, Blazing Ranger
+Flashfires
 Floodhound
 Flow of Ideas
 Flux Channeler
@@ -78,6 +86,7 @@ Goblin Glider
 Goblin Racketeer
 Golgari Raiders
 Grim Monolith
+Guardian Kirin
 Hadran, Naya Sunseeder
 Helitrooper
 Hemlock Vial
@@ -86,6 +95,7 @@ Honed Khopesh
 Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
+Implement of Ferocity
 Independent Troops
 Infernal Pet
 Inspiring Refrain
@@ -105,9 +115,12 @@ Lightning Hounds
 Lightning Reaver
 Lightning-Core Excavator
 Liliana's Influence
+Living End
 Lodestone Myr
 Longtusk Cub
+Lowland Oaf
 Lush Growth
+Mana Matrix
 Manaforce Mace
 Manticore Eternal
 Mardu Strike Leader
@@ -121,6 +134,8 @@ Moonglove Changeling
 Moss Monster
 Mothrider Patrol
 Mountain
+Mourning
+Mummy Paramount
 Nagging Thoughts
 Natural Emergence
 Necrobite
@@ -129,9 +144,13 @@ Norn's Disassembly
 Oblation
 Obscura Initiate
 Oceanus Dragon
+Onulet
+Orim's Touch
+Path of Anger's Flame
 Pennon Blade
 Pilfering Imp
 Plains
+Preeminent Captain
 Primeval Force
 Prizefighter Construct
 Prosper, Tome-Bound
@@ -146,6 +165,7 @@ Ray of Erasure
 Reckless Charge
 Reckless Handling
 Reduce to Ashes
+Replenish
 Revelation of Power
 Rhox Oracle
 Rolling Thunder
@@ -155,6 +175,7 @@ Savage Conception
 Savra, Queen of the Golgari
 Scion of Vitu-Ghazi
 Sculpted Perfection
+Scuttling Butler
 Searing Barb
 Searing Blood
 Secure the Scene
@@ -165,19 +186,24 @@ Shepherd of the Lost
 Skitter of Lizards
 Slinking Giant
 Solid Footing
+Spectral Shepherd
 Spider-Man 2099, Miguel O'Hara
 Spined Fluke
+Spirit Weaver
 Squee's Embrace
 Steam Blast
 Streetbreaker Wurm
+Summon: Good King Mog XII
 Swamp
 Symmetry Sage
+Tactical Advantage
 Tale of Katara and Toph
 Tale of Momo
 Talons of Falkenrath
 Talons of Wildwood
 Task Force
 Temmet, Vizier of Naktamun
+Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara
 The Bloodsky Massacre
@@ -186,10 +212,12 @@ Thrull Retainer
 Thrór's Map
 Thunder Drake
 Thwart the Grave
+Titan Hunter
 Titan's Strength
 Topan Freeblade
 Tor Giant
 Tormod's Cryptkeeper
+Transcendent Master
 Trenching Steed
 Trigon of Rage
 Trueheart Duelist
@@ -199,6 +227,7 @@ Unholy Hunger
 Vampire Lacerator
 Viashino Fangtail
 Vine Trellis
+Voice of the Provinces
 Voldaren Stinger
 Walker of Secret Ways
 Warped Devotion

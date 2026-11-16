@@ -236,6 +236,7 @@ Skinrender
 Skyclave Plunder
 Skyshroud Poacher
 Smother
+Snake Basket
 Soul of Mirrodin
 Southern Paladin
 Speaker of the Heavens

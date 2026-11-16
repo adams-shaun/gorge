@@ -1,0 +1,14 @@
+# a mana restriction's activated half with inZoneBattlefield: the mana
+# pays abilities of artifacts on the battlefield only, never an unearth
+# from the graveyard (dirac/graveact_battlefieldonly_test.go,
+# dirac/oracle/restrictinplay_unearth_lockstep_test.go)
+Plains
+Island
+Swamp
+Vedalken Engineer
+Scrapwork Rager
+Mind Stone
+Mountain
+Grizzly Bears
+Lightning Bolt
+Shock

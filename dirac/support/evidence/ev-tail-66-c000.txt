@@ -119,6 +119,7 @@ Faultgrinder
 Feign Death
 Field Marshal
 Fiery Finish
+Filth
 Fireblade Artist
 Fireblast
 Flametongue Kavu
@@ -252,6 +253,7 @@ Oath of Chandra
 Oggyar Battle-Seer
 Ominous Parcel
 Overgrown Armasaur
+Pariah's Shield
 Passionate Archaeologist
 Pentarch Ward
 Phylath, World Sculptor
@@ -389,6 +391,7 @@ Undertaker
 Unhallowed Pact
 Unmake the Graves
 Unyaro Bee Sting
+Ursine Fylgja
 Urza's Cave
 Urza's Incubator
 Valeron Outlander
