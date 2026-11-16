@@ -16,7 +16,9 @@ const shrineOfBoundlessGrowthRepro = "shrine_of_boundless_growth_potential_offer
 // the kernel's planner views do not count (decision 579 of tail-34 pair 1).
 // The same census counted for casts over-offers them, so the card is refused
 // by name, and the recorded game still shows the divergence with it on the
-// table.
+// table. The recording plays on pool one-off, like every refused card's
+// recording: a refused card cannot build a table, so no glob may replay it
+// (TestStdSetReprosLockstep replays pool custom and fails on any divergence).
 func TestMBCResurrectionOrbReprosLockstep(t *testing.T) {
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
