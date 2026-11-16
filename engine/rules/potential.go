@@ -214,7 +214,11 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					// A payment's bound reads a Chosen source's colour.
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) && !addPotentialIdentityColours(e, &out, p, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
-							e.addPotentialManaOf(&out, ma)
+							prod := ma
+							if bounded, ok := potentialSubCounterBounded(e, p, id, ma); ok {
+								prod = bounded
+							}
+							e.addPotentialManaOf(&out, prod)
 							// A Condition-split ability adds its sub's production instead
 							// when the gate holds (mana_condsplit.go): count both.
 							if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
