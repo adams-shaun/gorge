@@ -8,6 +8,7 @@ Abyssal Nightstalker
 Adarkar Wastes
 Aether Gale
 Agent of the Fates
+Akroan Line Breaker
 Alley Evasion
 Alphinaud Leveilleur
 Amaranthine Wall
@@ -199,8 +200,10 @@ Isperia, Supreme Judge
 Istvan, Butcher of Eln
 Jaspera Sentinel
 Join the Dance
+Josu Vess, Lich Knight
 Journeyer's Kite
 Joven and Chandler
+Jungle Patrol
 Karsus Depthguard
 Kavu Scout
 Kazuul's Fury
@@ -244,6 +247,7 @@ Mirran Spy
 Mishra's Juggernaut
 Mishra's Workshop
 Miss Highwater
+Mistmeadow Witch
 Mockingbird, Bobbi Morse
 Mogg Bombers
 Molten Monstrosity

@@ -127,6 +127,7 @@ Generous Pup
 Giant Ox
 Gideon's Battle Cry
 Gift of Growth
+Gilded Assault Cart
 Glint-Sleeve Siphoner
 Gnarled Effigy
 Goblin Battle Jester
@@ -202,6 +203,7 @@ Loxodon Mystic
 Magus of the Future
 Make Mischief
 Mana Seism
+Mass Appeal
 Master Splicer
 Might Beyond Reason
 Migloz, Maze Crusher
@@ -238,7 +240,9 @@ Paradigm Shift
 Parapet Watchers
 Path of Discovery
 Patron Wizard
+Pestilence Rats
 Phantom Flock
+Phylath, World Sculptor
 Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
@@ -327,6 +331,7 @@ Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
 Spectral Bears
+Sphere of Purity
 Spidersilk Net
 Spire Golem
 Spitemare
@@ -364,6 +369,7 @@ Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
 Theoretical Duplication
+Thermal Navigator
 Thor, Asgard's Avenger
 Thornscape Apprentice
 Thundering Tanadon
@@ -384,6 +390,7 @@ Unholy Officiant
 Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
+Vedalken Anatomist
 Vedalken Ghoul
 Veiled Apparition
 Verdant Automaton
@@ -393,9 +400,11 @@ Vulshok War Boar
 Wall Off
 Wall of Mist
 Warbeast of Gorgoroth
+Wayward Soul
 Weldfast Engineer
 Wight
 Wooden Cane
+Woodripper
 Workshop Assistant
 Write into Being
 Wu Elite Cavalry

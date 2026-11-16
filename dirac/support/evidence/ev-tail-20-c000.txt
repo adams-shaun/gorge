@@ -386,6 +386,7 @@ Volatile Claws
 Volatile Fjord
 Votary of the Conclave
 Vulturous Aven
+Vulturous Zombie
 Wakestone Gargoyle
 Wall of Lost Thoughts
 Wall of Spears

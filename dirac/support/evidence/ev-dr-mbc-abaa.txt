@@ -18,6 +18,7 @@ Canopy Cover
 Cast Down
 Cephalid Broker
 Changeling Outcast
+Cheering Fanatic
 Cloudkill
 Cold-Water Snapper
 Congregate
@@ -29,6 +30,7 @@ Cunning Wish
 Curious Obsession
 Dalkovan Packbeasts
 Deekah, Fractal Theorist
+Deepwood Legate
 Devoted Druid
 Diminish
 Elite Cat Warrior
@@ -94,6 +96,7 @@ Scion of Glaciers
 Serra Sphinx
 Shattered Angel
 Shelter
+Shivan Raptor
 Skullsnatcher
 Spiketail Drake
 Steadfast Unicorn

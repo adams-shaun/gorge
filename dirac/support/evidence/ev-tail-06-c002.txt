@@ -18,6 +18,7 @@ Barl's Cage
 Basilisk Gate
 Beacon of Creation
 Big Mother Mouser
+Blade-Blizzard Kitsune
 Blood Lust
 Bog Badger
 Boros Elite
@@ -29,6 +30,8 @@ Burning-Yard Trainer
 Cacophodon
 Caldera Lake
 Callous Deceiver
+Ceremonial Knife
+Circuit Mender
 Cloudfin Raptor
 Cloudthresher
 Conscripted Infantry
@@ -38,8 +41,10 @@ Dawnhart Wardens
 Deathbloom Gardener
 Deb Thomas
 Decree of Savagery
+Dramatic Entrance
 Eldrazi Mimic
 Embodiment of Fury
+Enraged Ceratok
 Eye of Yawgmoth
 Faerie Seer
 Fight as One
@@ -71,36 +76,54 @@ Jeering Homunculus
 Jewel Thief
 Jolted Awake
 Juntu Stakes
+Kaseto, Orochi Archmage
+Kavu Howler
+Kiora, Behemoth Beckoner
 Krovikan Whispers
 Kyoshi Warrior Exemplars
+Lagonna-Band Elder
 Leaf Gilder
+Leyline of Vitality
 Lightning Surge
 Lost Soul
 Loxodon Warhammer
 Magus of the Bridge
 Mammoth Spider
 Mantle of Webs
+Marang River Skeleton
 Marsh Boa
 Mascot Exhibition
 Molten Vortex
 Mountain
 Mystic Melting
 Nezahal, Primal Tide
+Noosegraf Mob
 Nuka-Cola Vending Machine
+Nylea's Disciple
 On Serra's Wings
 Outnumber
 Overwhelmed Apprentice
 Peek
+Phyrexian Marauder
 Plains
+Poison-Tip Archer
+Pounce
 Pre-War Formalwear
 Press the Advantage
+Primal Whisperer
 Prison Sentence
 Pulse of the Tangle
+Putrefax
 Rats of Rath
 Reality Anchor
 Reconnaissance Mission
+Reflex Sliver
 Renewing Dawn
+Return to the Earth
+Rhizome Lurcher
+Root Snare
 Rule of Law
+Runeclaw Bear
 Sacred Armory
 Sailors' Bane
 Sanctum of Shattered Heights
@@ -120,6 +143,7 @@ Strangle
 Sungrace Pegasus
 Suntail Hawk
 Swamp
+Sylvan Bounty
 Take to the Streets
 Tatyova, Steward of Tides
 Teferi's Ageless Insight
@@ -138,6 +162,7 @@ Tremble
 Turn
 Ultimate Magic: Holy
 Underdark Basilisk
+Undergrowth Scavenger
 Valorous Steed
 Venser, Shaper Savant
 Vindictive Triumph
@@ -151,3 +176,6 @@ Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker
 Yawgmoth's Edict
+Yuna's Decision
+Zarichi Tiger
+Zombie Cannibal

@@ -1,15 +1,24 @@
+A-Buy Your Silence
 A-Esika's Chariot
 A-Gnarlid Colony
 A-Pyre-Sledge Arsonist
+A-Return Upon the Tide
+Absorbing Man and Titania
+Abuna's Chant
 Accursed Marauder
+Aim High
 Ajani's Sunstriker
+Alabaster Kirin
+Ancestral Vision
 Ancient Ziggurat
+Arbalest Elite
 Archon of Emeria
 Archway Commons
 Argothian Wurm
 Armguard Familiar
 Arrogant Bloodlord
 Assemble the Entmoot
+Aven Redeemer
 Ayumi, the Last Visitor
 Banshee of the Dread Choir
 Batterbone
@@ -23,6 +32,7 @@ Bolshack Dragon
 Bonds of Mortality
 Burgeoning
 Callous Bloodmage
+Captured by Lagacs
 Cavern Harpy
 Chaos Channeler
 Chill
@@ -35,18 +45,27 @@ Congregate
 Consign to Dream
 Courageous Outrider
 Court Cleric
+Creeperhulk
+Crimson Cowl, Master of Evil
+Crossway Vampire
+Crowd of Cinders
+Crowned Ceratok
 Crypt Cobra
 Crypt Rats
 Crystalline Armor
 Curse of Vitality
 Dark Triumph
+Darksteel Pendant
 Dauntless Onslaught
 Dawnbringer Cleric
+Dawnhart Mentor
 Day's Undoing
 Deathcurse Ogre
 Demogorgon's Clutches
 Dense Foliage
 Desecration Elemental
+Destructive Force
+Dismantling Wave
 Domri, City Smasher
 Draco
 Drana's Emissary
@@ -56,19 +75,27 @@ Druid Lyrist
 Dry Spell
 Durkwood Boars
 Elda, Conjurer of Spectacle
+Elemental Eruption
 Elvish Mystic
 Envoy of the Ancestors
 Ethereal Haze
+Evolutionary Escalation
+Exalted Angel
+Explosive Shot
 Exsanguinator Cavalry
 Fact or Fiction
 Fast
+Fencer's Magemark
 Flooded Strand
 Flowering of the White Tree
 Forest
 Forked Bolt
+Freedom Fighter Recruit
 Game-Trail Changeling
 Garrison Cat
+Gatebreaker Ram
 Geistflame Reservoir
+Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
 Ghoul's Feast
@@ -87,11 +114,16 @@ Hidden Guerrillas
 Hobble
 Hollow Dogs
 Hydromorph Guardian
+Inheritance
+Instill Furor
 Instill Infection
 Invasive Species
 Island
 It's Clobberin' Time!
 Joraga Warcaller
+Kamigawa Charm
+Kill Shot
+Kyren Sniper
 Lance
 Late to Dinner
 Lay of the Land
@@ -99,10 +131,13 @@ Leonin Bladetrap
 Lightning Shrieker
 Llanowar Tribe
 Lord of the Accursed
+Lost Soul
 Lotus Bloom
 Manalith
+Manticore Eternal
 Marchesa's Emissary
 Mark of the Vampire
+Merfolk Mistbinder
 Mind Whip
 Mobile Fort
 Moonstone Eulogist
@@ -112,41 +147,58 @@ Mystic Retrieval
 Nameless One
 Narcissism
 Nemesis Mask
+Nether Horror
 Oblivion Crown
 Oona's Grace
 Orchard Spirit
+Orcish Cannoneers
 Overseer of the Damned
 Paroxysm
+Pegasus Charger
 Phantom Wings
 Plains
 Power Fist
 Priest of Gix
+Primeval Shambler
+Prized Elephant
 Quandrix Campus
 Rack and Ruin
 Rage of Purphoros
 Ragged Recluse
+Raging Swordtooth
 Rakka Mar
 Rally at the Hornburg
 Rejuvenate
 Renewed Faith
+Repel the Darkness
+Resistance Reunited
 Rhystic Shield
+Riddle of Lightning
+Ridgetop Raptor
 Riot Piker
+Rip-Clan Crasher
 Riverwheel Aerialists
 Ronin Warclub
 Rotten Reunion
 Ruinous Minotaur
+Runebound Wolf
+Rush of Adrenaline
 Safeguard
+Salvaged Manaworker
 Scourge of Fleets
 Scurry of Squirrels
 Sentinels of Glen Elendra
 Shambling Ghast
+Shardless Agent
 Sheltering Boughs
 Shriek of Dread
+Siege Dragon
 Sigil of Distinction
 Signal Pest
 Silburlind Snapper
 Sink into Takenuma
 Skyshroud Elite
+Skystrike Officer
 Slaughterhouse Bouncer
 Sleeper's Guile
 Smokespew Invoker
@@ -156,16 +208,23 @@ Soul Transfer
 Spartan Veteran
 Spellweaver Eternal
 Splitting Slime
+Spotted Griffin
 Springmane Cervin
 Squire's Devotion
+Star-Crowned Stag
 Stasis Field
 Stingerfling Spider
 Storm's Wrath
+Sungold Barrage
 Swamp
+Sweet Oblivion
+Synchronous Sliver
 Tajuru Snarecaster
 Takenuma Bleeder
 Talas Scout
 Taoist Hermit
+Tar Snare
+Teeterpeak Ambusher
 Teferi's Care
 Tempered Sliver
 The Falcon, Airship Restored
@@ -173,10 +232,12 @@ Time of Heroes
 Tin Street Cadet
 Tivadar's Crusade
 Tooth and Nail
+Tribute to the World Tree
 Trophy Hunter
 Twinblade Assassins
 Ugin's Construct
 Ulasht, the Hate Seed
+Underworld Dreams
 Underworld Sentinel
 Urborg Drake
 Vengevine
@@ -195,6 +256,7 @@ Wort, Boggart Auntie
 Wrecking Ball
 Wrenn's Resolve
 Yawgmoth's Agenda
+Youthful Scholar
 Yuan Shao, the Indecisive
 Zagoth Crystal
 Zar Ojanen, Scion of Efrava

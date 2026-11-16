@@ -115,6 +115,7 @@ Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
+Form of the Dragon
 Foundry of the Consuls
 Fully Grown
 Gargoyle Sentinel
@@ -130,6 +131,7 @@ Glowing Anemone
 Goblin Boom Keg
 Goblin Caves
 Goblin Dirigible
+Goblin Electromancer
 Goblin Freerunner
 Goblin Raider
 Goblin Sky Raider
@@ -207,6 +209,7 @@ Lost in the Woods
 Lotho, Corrupt Shirriff
 Loyal Pegasus
 Magebane Armor
+Magma Opus
 Make Obsolete
 Malakir Familiar
 Mana Matrix
@@ -248,6 +251,7 @@ Phobian Phantasm
 Phyrexian Slayer
 Piety Charm
 Piranha Marsh
+Piston-Fist Cyclops
 Plains
 Powerstone Fracture
 Priest of Forgotten Gods
@@ -306,6 +310,7 @@ Silence
 Sinuous Vermin
 Skull Collector
 Skyclave Apparition
+Skyclaw Thrash
 Slayer of the Wicked
 Sleek Schooner
 Smokestack
