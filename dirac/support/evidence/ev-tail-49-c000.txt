@@ -175,6 +175,7 @@ Hagra Constrictor
 Hatching Plans
 Havengul Vampire
 Hell Swarm
+Hellion Eruption
 Heroic Charge
 Hewed Stone Retainers
 Hobblefiend
@@ -209,6 +210,7 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
+Krosan Druid
 Kuldotha Rebirth
 Lantern Spirit
 Lantern of Revealing

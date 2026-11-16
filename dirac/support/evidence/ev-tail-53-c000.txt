@@ -132,6 +132,7 @@ Field Surgeon
 Fists of the Demigod
 Flailing Ogre
 Flame Discharge
+Flame of Anor
 Flesh Allergy
 Flicker
 Flow of Ideas
@@ -254,6 +255,7 @@ Ordeal of Thassa
 Ornate Kanzashi
 Ornithopter of Paradise
 Paladin of the Bloodstained
+Pendrell Drake
 Phyrexian Digester
 Phyrexian Juggernaut
 Phyrexian Tribute

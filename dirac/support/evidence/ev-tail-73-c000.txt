@@ -76,6 +76,7 @@ Clockwork Beetle
 Clockwork Drawbridge
 Cloud Pirates
 Cloudcrown Oak
+Cold-Eyed Selkie
 Collected Company
 Confessor
 Conjurer's Closet
@@ -97,6 +98,7 @@ Deathspore Thallid
 Deep-Sea Terror
 Deepglow Skate
 Delusions of Mediocrity
+Deny Existence
 Depose
 Desecrated Earth
 Devastate
@@ -237,8 +239,10 @@ Lore Seeker
 Lunar Frenzy
 Maelstrom Colossus
 Magmatic Sprinter
+Malanthrope
 Malevolent Awakening
 Malevolent Whispers
+Malignant Growth
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -283,6 +287,7 @@ Ogre Errant
 Old Rutstein
 Oneirophage
 Orc Sureshot
+Orcish Settlers
 Orcish Vandal
 Ordeal of Heliod
 Ordered Migration
@@ -290,9 +295,11 @@ Orgg
 Outmaneuver
 Oversold Cemetery
 Pack Rat
+Pain Kami
 Paladin Danse, Steel Maverick
 Paradise Mantle
 Patagia Tiger
+Penumbra Wurm
 Pestilent Cauldron
 Phantasmal Sphere
 Pheres-Band Warchief
@@ -310,11 +317,13 @@ Puca's Covenant
 Puppet's Verdict
 Puppeteer
 Qilin's Blessing
+Quirion Trailblazer
 Radiating Lightning
 Rage Thrower
 Raging Bull
 Raging Ravine
 Ramosian Lieutenant
+Ransack
 Raven's Crime
 Reckless Scholar
 Reckoner's Bargain
@@ -364,6 +373,7 @@ Skirk Shaman
 Skittish Kavu
 Skulking Ghost
 Skullslither Worm
+Skullsnatcher
 Skyboon Evangelist
 Skyreach Manta
 Skyshroud Blessing
@@ -461,6 +471,7 @@ Waking the Trolls
 Wall of Heat
 Wall of Lava
 Wanderer's Intervention
+Wanderer's Strike
 Warclamp Mastiff
 Warden of the First Tree
 Warhorn Blast

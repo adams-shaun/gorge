@@ -191,6 +191,7 @@ Hangarback Walker
 Harvest Wurm
 Haunted Cadaver
 Havoc Devils
+Heavyweight Demolisher
 Helm of the Host
 Herald of Anguish
 Here Comes a New Hero!
@@ -366,6 +367,7 @@ Shu Cavalry
 Silt Crawler
 Silver Raven
 Silverquill Lecturer
+Silverwing Squadron
 Singing Tree
 Skyblade's Boon
 Skymark Roc

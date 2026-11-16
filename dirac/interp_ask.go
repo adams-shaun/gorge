@@ -213,6 +213,9 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 		return false
 	}
 	other := payDesc{class: pdOther}
+	if s.anyDifferentOpen(k, p) {
+		return true // Firemind Vessel: gorge's potential is unbounded in every colour (mana_anydifferent.go)
+	}
 	if !s.anyManaSource(k, p, &other) {
 		return false
 	}

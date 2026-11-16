@@ -1,3 +1,4 @@
+A-Metropolis Angel
 A-You Come to a River
 Abyssal Gatekeeper
 Academy Journeymage
@@ -94,6 +95,7 @@ Feral Ferocity
 Feral Thallid
 Festering March
 Fiery Intervention
+Flameshadow Conjuring
 Flourishing Hunter
 Forest
 Fortify
@@ -302,10 +304,12 @@ Toll of the Invasion
 Torrent of Fire
 Trade Routes
 Trailblazing Historian
+Tranquil Grove
 Transmogrifying Wand
 Triumph of Ferocity
 Tropical Island
 Turbulent Wetlands
+Uglúk of the White Hand
 Undercity's Embrace
 Unified Strike
 Unyielding Krumar
@@ -330,6 +334,7 @@ Wall of Razors
 Wall of Wood
 Warren Pilferers
 Wasp Lancer
+Wave of Indifference
 Whirlwind
 Wild-Field Scarecrow
 Wildfire

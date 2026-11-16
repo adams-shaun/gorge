@@ -135,6 +135,7 @@ Font of Fertility
 Forerunner of the Legion
 Forest
 Fortifying Draught
+Frontline Medic
 Frostweb Spider
 Gaea's Cradle
 Galvanic Arc
@@ -446,6 +447,7 @@ War Screecher
 Warded Battlements
 Warg Rider
 Wasteland Scorpion
+Watcher for Tomorrow
 Waterwhirl
 Weaver of Blossoms
 Wind Dancer

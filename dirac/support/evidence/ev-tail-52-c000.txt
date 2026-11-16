@@ -185,6 +185,7 @@ Grand Warlord Radha
 Graverobber Spider
 Graveyard Shovel
 Green Sun's Zenith
+Greenside Watcher
 Griffin Guide
 Grim Affliction
 Grimgrin, Corpse-Born
@@ -255,6 +256,7 @@ Lord of the Void
 Lounge
 Loxodon Mystic
 Loxodon Partisan
+Loxodon Restorer
 Luminous Bonds
 Lunarch Mantle
 Lyzolda, the Blood Witch
@@ -291,6 +293,7 @@ Necromaster Dragon
 Nephalia Drownyard
 Neurok Commando
 Noble Steeds
+Noggle Bandit
 Novijen, Heart of Progress
 Oak Street Innkeeper
 Occult Epiphany

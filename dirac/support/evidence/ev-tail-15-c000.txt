@@ -168,6 +168,7 @@ Grim Feast
 Grim Guardian
 Grip of Desolation
 Growth-Chamber Guardian
+Gustha Ebbasdotter
 Gutter Skulk
 Gwaihir the Windlord
 Haazda Snare Squad
@@ -238,6 +239,7 @@ Mary Read and Anne Bonny
 Mask of the Jadecrafter
 Maze Skullbomb
 Mending Hands
+Messenger Drake
 Michiko's Reign of Truth
 Midnight Covenant
 Mind Knives

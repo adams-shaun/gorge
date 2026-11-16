@@ -97,6 +97,7 @@ Farmstead
 Fate Foretold
 Fathom Fleet Firebrand
 Fathom Mage
+Feral Lightning
 Festering March
 Fit of Rage
 Flaming Fist
@@ -165,6 +166,7 @@ Kelsinko Ranger
 Ken, Burning Brawler
 Kingfisher
 Koilos Roc
+Lady Orca
 Landbind Ritual
 Lattice-Blade Mantis
 Lay Bare

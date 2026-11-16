@@ -59,6 +59,7 @@ Canyon Jerboa
 Carapace Forger
 Castle Locthwain
 Catapult Fodder
+Caustic Rain
 Celestial Unicorn
 Centaur Chieftain
 Champion of the Perished
@@ -153,6 +154,7 @@ Golgari Death Swarm
 Gorgon's Head
 Greatsword of Tyr
 Greel's Caress
+Greensleeves, Maro-Sorcerer
 Grim Affliction
 Grim Flowering
 Grotesque Demise

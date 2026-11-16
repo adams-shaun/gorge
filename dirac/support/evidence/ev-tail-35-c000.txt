@@ -97,6 +97,7 @@ Expedition Diviner
 Faerie Impostor
 False Peace
 Fate Forgotten
+Fiend Hunter
 Flatline
 Foe-liage
 Forest
@@ -107,6 +108,7 @@ Frantic Confrontation
 Fraying Omnipotence
 Frenetic Raptor
 Frost Breath
+Gargadon
 Gerrard's Battle Cry
 Ghostly Changeling
 Gimli, Counter of Kills
@@ -166,6 +168,7 @@ Mace of the Valiant
 Magus of the Bazaar
 Manticore of the Gauntlet
 Meatsqueak, Hoard Lord
+Meltdown
 Mindlash Sliver
 Mishra's Groundbreaker
 Mizzium Meddler
@@ -207,6 +210,7 @@ Primeval Titan
 Profane Tutor
 Prohibit
 Rapid Decay
+Raugrin Crystal
 Reach of Branches
 Reinforced Bulwark
 Reject Imperfection
@@ -231,6 +235,7 @@ Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
 Serra's Embrace
+Shaleskin Bruiser
 Shanodin Dryads
 She-Hulk, Attorney-at-Law
 Shimmer Dragon
@@ -280,6 +285,7 @@ Thriving Rhino
 Thundering Ceratok
 Tidal Kraken
 Tiller of Flesh
+Titan of Eternal Fire
 Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback

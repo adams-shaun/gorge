@@ -88,6 +88,7 @@ Detained by Legionnaires
 Devilish Valet
 Disciple of Bolas
 Diver Skaab
+Dokuchi Shadow-Walker
 Douse
 Drakewing Krasis
 Dread Shade
@@ -148,6 +149,7 @@ Hazardous Conditions
 Hearts on Fire
 Heartwarming Redemption
 Hekma Sentinels
+Hero of Oxid Ridge
 Hidden Herbalists
 Hieroglyphic Illumination
 Horned Troll
@@ -213,6 +215,7 @@ Mox Ruby
 Mystic Forge
 Namor, Scourge of the Seas
 Nautiloid Ship
+Nested Ghoul
 Nightshade Stinger
 Nuisance Engine
 Null Champion
@@ -298,6 +301,7 @@ Skittering Precursor
 Skola Grovedancer
 Skyshroud Ridgeback
 Sleeping Potion
+Slitherwisp
 Smash to Smithereens
 Sokenzan Bruiser
 Solitary Camel
@@ -367,5 +371,6 @@ Worldly Tutor
 Wring Flesh
 Yawning Fissure
 Yorvo, Lord of Garenbrig
+You Are Already Dead
 Zealous Strike
 Zebra Unicorn

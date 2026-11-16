@@ -536,6 +536,17 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 // not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
+	if k.sacOnlyMana {
+		// A sacrifice-only source (an Eldrazi Spawn or Scion token's "Sacrifice
+		// this creature: Add {C}") is a payment-plan last resort, not a census
+		// gap (mana_sacsource.go): gorge's planner prices it inside every
+		// plan, so a filter beside it is still a filter-only board.
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); s.manaPCAt(k, sl).manaSacOnly {
+				m = m.without(sl)
+			}
+		}
+	}
 	if k.ctrMana && m.any() {
 		// A counter-cost source with too few counters to remove (Ramos,
 		// Dragon Engine with one +1/+1 counter) cannot be activated either:

@@ -313,6 +313,7 @@ Repulsor Rays
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
+Reyav, Master Smith
 Rhys the Exiled
 Rile
 Riot Piker
@@ -334,6 +335,7 @@ Scouting Hawk
 Seagraf Skaab
 See the Unwritten
 Seeker of Skybreak
+Senseless Rage
 Serra Advocate
 Serum Visions
 Sever the Bloodline

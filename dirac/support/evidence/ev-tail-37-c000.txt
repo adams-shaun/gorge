@@ -99,6 +99,7 @@ Dragon Roost
 Dreadhorde Twins
 Driven
 Drogskol Cavalry
+Drownyard Temple
 Dusk's Landing
 Duskrider Falcon
 Dynavolt Tower
@@ -139,6 +140,7 @@ Frogmite
 Frozen Shade
 Gaea's Touch
 Ghostfire Blade
+Giant Ankheg
 Goblin Patrol
 God-Eternal Rhonas
 Gore Swine
@@ -206,6 +208,7 @@ Markov Blademaster
 Master Apothecary
 Maulfist Doorbuster
 Maze Rusher
+Maze of Shadows
 Meishin, the Mind Cage
 Mephidross Vampire
 Metathran Aerostat
@@ -369,6 +372,7 @@ Vault Guardsman
 Vectis Dominator
 Voices from the Void
 Vorel of the Hull Clade
+Wakedancer
 Walking Archive
 Walking Corpse
 Warped Physique

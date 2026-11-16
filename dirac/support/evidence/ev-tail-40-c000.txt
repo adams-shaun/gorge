@@ -8,6 +8,7 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
 Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
@@ -51,6 +52,7 @@ Bloodline Necromancer
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
+Bog-Strider Ash
 Bogardan Rager
 Boon of Emrakul
 Brass Secretary
