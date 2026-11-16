@@ -838,7 +838,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
-	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
+	// prepSpellCond first: it sets anySpellCond, which an || must not skip
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
