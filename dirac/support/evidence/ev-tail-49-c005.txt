@@ -1,5 +1,154 @@
+Akroan Hoplite
+Amphin Pathmage
+Ashling the Pilgrim
+Augur of Bolas
+Avaricious Dragon
+Biomathematician
+Blightbeetle
+Blurred Mongoose
+Boon Reflection
+Briarpack Alpha
+Butcher's Cleaver
+Catalog
+Cephalid Broker
+Change of Fortune
+Chapel Geist
+Charge Across the Araba
+Checkpoint Officer
+Chieftain en-Dal
+Citadel Gate
+Corpse Connoisseur
+Crimson Cowl, Master of Evil
+Cyclops of Eternal Fury
+Dark Bargain
+Dauntless Aven
+Dauntless Unity
+Demon's Jester
+Depala, Pilot Exemplar
+Desert of the Indomitable
+Dimir Signet
+Disentomb
+Dragon Whelp
+Electrify
+Elixir of Immortality
+Elvish Visionary
+Enduring Bondwarden
+Ever After
+Extinguish the Light
+Faerie Duelist
+Farid, Enterprising Salvager
+Fate Foretold
+Fevered Strength
+Feywild Visitor
+Flame-Kin Zealot
 Forest
+Fortified Rampart
+Frost Trickster
+Garruk's Companion
+Geistblast
+Ghirapur Aether Grid
+Goblin Marshal
+Goblin Skycutter
+Golgari Death Swarm
+Greater Good
+Hagra Constrictor
+Havengul Vampire
+Hell Swarm
+Hobblefiend
+Hookhand Mariner
+Horizon Scholar
+Howling Golem
+Inspired Fire
 Island
+Island of Wak-Wak
+Jhessian Thief
+Kaldra Compleat
+Kiln Walker
+Last Caress
+Library
+Long-Finned Skywhale
+Manifold Key
+Manta Riders
+Mightstone's Animation
+Monologue Tax
+Moonwing Moth
 Mountain
+Murderous Compulsion
+Naiad of Hidden Coves
+Nico Minoru, Runaway
+Obsessive Stitcher
+Ocular Halo
+Ogre Gatecrasher
+Part the Veil
+Patagia Golem
+Perilous Forays
+Perilous Research
+Pillaging Horde
+Pillarfield Ox
 Plains
+Poison Arrow
+Prison Term
+Prowling Pangolin
+Quicksilver Fisher
+RMS Titanic
+Rampaging Cyclops
+Ravenous Demon
+Renari, Merchant of Marvels
+Reverent Hoplite
+Righteous Fury
+Sacred Fire
+Sarpadian Simulacrum
+Saw It Coming
+Scout the Borders
+Scroll of the Masters
+Search the Premises
+Selesnya Sanctuary
+Serendib Efreet
+Sigarda, Heron's Grace
+Silverquill Command
+So Shiny
+Soulshriek
+Stonefury
+Struggle for Skemfar
+Sunken City
+Supply Caravan
+Survivor of the Unseen
 Swamp
+Swarm of Bloodflies
+Swell of Growth
+Synod Sanctum
+Tallyman of Nurgle
+Tar Pitcher
+Teeterpeak Ambusher
+The Rack
+Thought Collapse
+Thundercloud Shaman
+Touch of Brilliance
+Towering-Wave Mystic
+Tranquil Thicket
+Vectis Silencers
+Vector Asp
+Vengeful Dead
+Verix Bladewing
+Virtue's Ruin
+Vogar, Necropolis Tyrant
+Voracious Fell Beast
+Vorrac Battlehorns
+Wakandan Tusker
+Wake Thrasher
+Wall of Essence
+Wall of Reverence
+Warlock Class
+Warpath
+Watcher of the Spheres
+Webspinner Cuff
+Whip Silk
+Whisk Away
+Wildwood Geist
+Willow Faerie
+Wing Puncture
+Woodwraith Strangler
+Wose Pathfinder
+Wu Longbowman
+Xun Yu, Wei Advisor
+Zoologist

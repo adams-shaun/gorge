@@ -118,6 +118,7 @@ default	field	genState.tokDefSet	1048	1
 default	field	genState.entHost	1049	1
 default	field	genState.dmg	1050	16
 default	field	genState.ndmg	1066	1
+default	field	genState.fbProbe	1067	1
 default	field	genState.may	1068	128
 default	field	genState.nmay	1196	1
 default	field	genState.parad	1197	2

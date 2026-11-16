@@ -132,6 +132,10 @@ type CardDef struct {
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
+	// Snow is the printed Snow supertype (CR 205.4a), read by the static
+	// damage preventions' ReplSPRecipSnow (Goblin Furrier). Printed only: a
+	// layer effect that adds or removes it is not read.
+	Snow bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -426,6 +430,11 @@ type CardDef struct {
 	// exiles graveyard cards toward its generic cost (dirac/kw_delve.go).
 	// A granted delve reads the same path.
 	Delve bool
+	// SplitSecond is printed split second (CR 702.61a; no KwMask bit is
+	// free): while the spell, or a copy of it (CR 707.2), is on the stack no
+	// spell is cast and no non-mana ability is activated
+	// (dirac/kw_splitsecond.go). A granted split second reads the same gate.
+	SplitSecond bool
 	// ReboundAb is 1 + the latent ability index of a printed K:Rebound's
 	// recast body (CR 702.88a; 0 = no Rebound): a spell cast from the hand
 	// is exiled as it resolves and, at its controller's next upkeep, the
