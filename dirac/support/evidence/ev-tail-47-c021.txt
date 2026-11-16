@@ -2,6 +2,7 @@ Diligent Farmhand
 Dreadlight Monstrosity
 Forest
 Island
+Lignify
 Mountain
 Plains
 Swamp

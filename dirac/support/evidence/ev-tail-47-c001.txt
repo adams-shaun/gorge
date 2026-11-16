@@ -1,8 +1,306 @@
+A-Dwarfhold Champion
+A-Young Red Dragon
 Abandon the Post
+Abzan Skycaptain
+Acidic Sliver
+Aeronaut Cavalry
+Anaba Bodyguard
+Anaconda
+Angelic Protector
+Annoyed Altisaur
+Arcane Melee
+Archers' Parapet
+Armored Cancrix
+Army Ants
+Ashes to Ashes
+Aven Wind Mage
+Barony Vampire
+Behold the Multiverse
+Biting Rain
+Blisterstick Shaman
+Bloodlust Inciter
+Bloodrite Invoker
+Bloodthirsty Blade
+Bloodthrone Vampire
+Bow of Nylea
+Brain Gorgers
+Brilliant Halo
+Burn Bright
+Capashen Knight
+Captain Sisay
+Capture of Jingzhou
+Cartouche of Solidarity
+Cephalid Scout
+Chainflail Centipede
+Chill of Foreboding
+Choking Sands
+Chosen by Heliod
+Chub Toad
+Clattering Augur
+Cleanup Crew
+Conclave Sledge-Captain
+Conquer
+Consume Spirit
+Crucible of Fire
+Crumbling Vestige
+Crystal Chimes
+Culling Dais
+Dalek Squadron
+Dark Ritual
+Darksteel Angel
+Dawnhart Mentor
+Deathbellow Raider
+Delighted Killbot
+Demonic Lore
+Depths of Desire
+Deranged Outcast
+Devilthorn Fox
+Dictate of Karametra
 Diligent Farmhand
+Dire Fleet Interloper
+Dirge of Dread
+Dirgur Nemesis
+Djinni Windseer
+Dragonstalker
+Dread Return
+Dreadlight Monstrosity
+Dreamstalker Manticore
+Drinker of Sorrow
+Eat to Extinction
+Elspeth's Nightmare
+Elvish Berserker
+Embodiment of Insight
+Energy Tap
+Environmental Sciences
+Evolution Witness
+Eye Collector
+Eyeless Watcher
+Ezio, Brash Novice
+Fallen Ideal
+Fangblade Brigand
+Festerhide Boar
+Field Creeper
+Fiendslayer Paladin
+Fireblade Charger
+Flailing Ogre
+Fleshgrafter
 Forest
+Foul Familiar
+Fowl Play
+Frilled Deathspitter
+Fruitcake Elemental
+Gaea's Balance
+Garruk, Unleashed
+Genju of the Cedars
+Ghor-Clan Savage
+Gibbering Hyenas
+Gideon's Reproach
+Glissa Sunslayer
+Glistening Oil
+Go-Shintai of Boundless Vigor
+Goblin Masons
+Gold-Forged Sentinel
+Golden Wish
+Goldhound
+Grasping Scoundrel
+Grazilaxx, Illithid Scholar
+Grixis Battlemage
+Gruesome Fate
+Guardian of Tazeem
+Hag of Ceaseless Torment
+Harried Artisan
+Harsh Deceiver
+Harvester of Souls
+Hazoret's Favor
+Heal
+Hearts on Fire
+Highland Berserker
+Howling Banshee
+Hurler Cyclops
+Ich-Tekik, Salvage Splicer
+Immolating Souleater
+Increasing Savagery
+Insidious Will
+Inspiration
+Invisible Stalker
+Iona's Judgment
+Iron Star
 Island
+Jackal Familiar
+Jarad's Orders
+Jedit Ojanen of Efrava
+Kaervek the Merciless
+Karplusan Wolverine
+Killmonger, Ruthless Usurper
+Knowledge Is Power
+Kodama of the West Tree
+Kyren Negotiations
+Lae'zel, Vlaakith's Champion
+Laurine, the Diversion
+Lignify
+Lurking Green Dragon
+Mage's Guile
+Makeshift Battalion
+Markov Crusader
+Meng Huo's Horde
+Mercy Killing
+Merfolk Mesmerist
+Midnight Covenant
+Might Weaver
+Mind Rot
+Minion Missile
+Mischief and Mayhem
+Mob Rule
+Mogg War Marshal
+Moment of Heroism
+Mordenkainen
 Mountain
+Mutant's Prey
+Myr Galvanizer
+Mysterio's Mirage
+Natural Connection
+Natural Selection
+Nesting Wurm
+Nine-Ringed Bo
+Nourish
+Open the Vaults
+Origin of the Hidden Ones
+Oswald Fiddlebender
+Ovalchase Dragster
+Overtaker
+Ozolith, the Shattered Spire
+Painful Lesson
+Paupers' Cage
+Phyrexian Digester
+Piper of the Swarm
 Plains
+Plasmancer
+Plated Wurm
+Priest of the Blood Rite
+Pyromancer's Gauntlet
+Pyromania
+Rakish Heir
+Rally the Forces
+Ramirez DePietro
+Ramosian Sky Marshal
+Rapacious Guest
+Realm-Cloaked Giant
+Reckoner Bankbuster
+Rend Spirit
+Renegade Map
+Renegade Silent
+Reparations
+Reservoir Kraken
+Resplendent Mentor
+Restore the Peace
+Riptide Biologist
+Riptide Entrancer
+Rise to the Challenge
+Rockslide Sorcerer
+Rosethorn Halberd
+Royal Assassin
+Sakura-Tribe Scout
+Sarpadian Simulacrum
+Savai Triome
+Scrapyard Mongrel
+Screeching Buzzard
+Screeching Skaab
+Scute Mob
+Searing Light
+Sentry of the Underworld
+Shadowbeast Sighting
+Shaman of the Great Hunt
+Shivan Gorge
+Shoal Kraken
+Shockmaw Dragon
+Sigarda's Imprisonment
+Silver Myr
+Simian Simulacrum
+Simic Ragworm
+Singing Bell Strike
+Siren Lookout
+Skeletal Grimace
+Sky Diamond
+Skyknight Vanguard
+Skymark Roc
+Skyshroud Elite
+Skywatcher Adept
+Sleeper's Robe
+Slingbow Trap
+Sliver Construct
+Snare Tactician
+Snooping Newsie
+Solphim, Mayhem Dominus
+Somberwald Alpha
+Somberwald Vigilante
+Song of the Worldsoul
+Soul Shepherd
+Spark Harvest
+Sparkmage Apprentice
+Spawning Kraken
+Spectral Sliver
+Sphinx of New Prahv
+Spoils of Victory
+Squirrel Mob
+Startled Awake
+Stern Constable
+Stern Lesson
+Stir the Grave
+Stonehoof Chieftain
+Stormchaser Chimera
+Stronghold Confessor
+Sudden Impact
+Sulfurous Springs
+Suspended Sentence
 Swamp
+Szarekh, the Silent King
+Tajuru Stalwart
+Tangleclaw Werewolf
+Tar Pitcher
+Teferi's Tutelage
+Tel-Jilad Archers
+Tempest Harvester
+Tempted by the Oriq
+Terra Eternal
+Tezzeret's Ambition
+Thalakos Scout
+Thallid Germinator
+The Everforger
+The Hunger Tide Rises
+The Reality Chip
+Thirsting Shade
+Tilling Treefolk
 Time of Ice
+Tin Street Dodger
+Titanic Bulvox
+Tunneling Geopede
+Two-Headed Dragon
+Tyrranax
+Vaporkin
+Vastwood Fortification
+Vastwood Zendikon
+Vesperlark
+Veteran Explorer
+Viashino Sandstalker
+Viridian Shaman
+Vizzerdrix
+Volcanic Island
+Voracious Vampire
+Vow of Wildness
+Walking Corpse
+Wandering Stream
+Wandering Treefolk
+Warchanter Skald
+Warden of Evos Isle
+Warden of the Wall
+Warp Artifact
+Weaver of Currents
+Weldfast Wingsmith
+Whipcorder
+Whirling Strike
+White Tiger, Amulet Keeper
+Wicked Reward
+Wild Jhovall
+Witch Enchanter
+Wu Scout
+Zhang Liao, Hero of Hefei

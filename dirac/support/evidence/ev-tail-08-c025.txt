@@ -2,6 +2,8 @@ Forest
 Island
 Mountain
 Plains
+Rift Bolt
 Scent of Nightshade
 Scrap Mastery
 Swamp
+Wyluli Wolf
