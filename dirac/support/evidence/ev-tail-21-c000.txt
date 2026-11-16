@@ -303,6 +303,7 @@ Pine Barrens
 Pitchstone Wall
 Plague Wind
 Plains
+Planar Guide
 Pounce
 Practiced Tactics
 Prehistoric Turtlesaurus
@@ -392,6 +393,7 @@ Standing Troops
 Starfall
 Steelshaper Apprentice
 Stinging Scorpion
+Stone of Erech
 Stormcaller's Boon
 Subdue
 Subterranean Scout
@@ -460,6 +462,7 @@ Wildslayer Elves
 Will of the Mardu
 Windgrace's Judgment
 Winged Sliver
+Wirefly Hive
 Yasmin Khan
 Yellow Scarves Troops
 Zealot's Conviction

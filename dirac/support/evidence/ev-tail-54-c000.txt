@@ -8,6 +8,7 @@ Alluring Scent
 Almighty Brushwagg
 Ancient Tomb
 Angelfire Crusader
+Angelic Accord
 Angelic Chorus
 Arashin Cleric
 Archers' Parapet
@@ -46,6 +47,8 @@ Brought Back
 Bulwark Giant
 Burst of Strength
 Candlelight Vigil
+Carnival
+Catapult Squad
 Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
@@ -54,6 +57,7 @@ City of Death
 Clarion Cathars
 Cloak of the Bat
 Cloud Crusader
+Coiling Oracle
 Copper Longlegs
 Copper-Leaf Angel
 Copy Artifact
@@ -91,6 +95,7 @@ Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
 Enatu Golem
+Energy Bolt
 Ephara's Radiance
 Escaped Null
 Esior, Wardwing Familiar
@@ -113,6 +118,7 @@ Flame-Blessed Bolt
 Flaming Fist Officer
 Fleecemane Lion
 Fleshmad Steed
+Flycatcher Giraffid
 Font of Fertility
 Forest
 Fortified Rampart
@@ -120,6 +126,7 @@ Foulmire Knight
 Foundry Street Denizen
 Fresh Meat
 Frillscare Mentor
+Furnace Host Charger
 Game Trail
 Gavony Silversmith
 General Kudro of Drannith
@@ -162,12 +169,14 @@ Hungry Spriggan
 Hunt the Weak
 Hyalopterous Lemure
 Hystrodon
+Icatian Javelineers
 Ich-Tekik, Salvage Splicer
 Immersturm Raider
 Implement of Combustion
 Imps' Taunt
 Incubation
 Infested Fleshcutter
+Infested Thrinax
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge
@@ -314,6 +323,7 @@ Scatter Ray
 Search Warrant
 Secure the Wastes
 Seismic Spike
+Sengir Connoisseur
 Sensor Splicer
 Setessan Champion
 Shadow of Mortality
@@ -322,6 +332,7 @@ Shinka Gatekeeper
 Shivan Fire
 Shivan Phoenix
 Shock Troops
+Shoreline Ranger
 Shower of Sparks
 Shrieking Specter
 Shu Elite Infantry
@@ -400,8 +411,10 @@ Twigwalker
 Twinferno
 Unchecked Growth
 Unconventional Tactics
+Unwilling Recruit
 Ur-Golem's Eye
 Urban Evolution
+Valakut Predator
 Vampire Champion
 Veteran Cavalier
 Visions of Beyond

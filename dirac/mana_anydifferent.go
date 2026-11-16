@@ -41,6 +41,24 @@ func (s *State) anyDifferentAt(k *prep, sl Slot) bool {
 	return false
 }
 
+// anyDifferentGaps is p's usable AnyDifferent sources as a slot mask: the dead
+// census gaps gorge's prefix search activates in battlefield order beside the
+// gaps that fund a play (scriptSearch.visit), each tapped for no mana.
+//
+//go:noinline
+func (s *State) anyDifferentGaps(k *prep, p uint8) slotMask {
+	var m slotMask
+	if k.gen == nil {
+		return m
+	}
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+		if sl := b.first(); s.anyDifferentAt(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
 // anyDifferentOpen reports whether gorge's potential pool is unbounded in every
 // colour for p: an untapped, usable AnyDifferent source.
 //
@@ -72,10 +90,11 @@ func (s *State) windowAnyDifferentTap(k *prep, o Slot) {
 }
 
 // windowGapListed is windowPick's gap test: a Tender, restricted or Combo Any
-// source the window lists (windowGap), or, in a trigger-cost window (potential),
-// an AnyDifferent source, which the planner lists in its battlefield place.
-func (s *State) windowGapListed(k *prep, p uint8, o Slot, potential bool) bool {
-	return k.gen != nil && (k.gen.anyWindowGap && s.windowGap(k, p, o) || potential && s.anyDifferentAt(k, o))
+// source the window lists (windowGap), or an AnyDifferent source, which the
+// planner lists in its battlefield place in every window (a trigger cost's, a
+// Mystic Remora's pay-{4} ask), not only the potential one.
+func (s *State) windowGapListed(k *prep, p uint8, o Slot) bool {
+	return k.gen != nil && (k.gen.anyWindowGap && s.windowGap(k, p, o) || s.anyDifferentAt(k, o))
 }
 
 // availPotentialPay is availPotentialFor for a trigger cost's payment: an

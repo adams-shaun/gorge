@@ -399,6 +399,8 @@ type genPrep struct {
 	anyEmbCtrl      bool           // some emblem ends when its host's controller changes (kop.Emblem.AsLongAsControl; static_emblemdurations.go)
 	anyWhileTapped  bool           // some override also ends at its host's untap (kop.Override.WhileTapped; static_animatewhiletapped.go)
 	anyOvCantAtk    bool           // some override says its permanent can't attack (kop.Override.CantAttack; filter_combatwords.go)
+	anyCantAtk      bool           // some card or emblem has a StatCantAttack static (combat_cantattack.go)
+	anyCantAtkScope bool           // some StatCantAttack static carries a Target$ scope bit (combat_cantattack.go)
 	anySrcMark      bool           // some filter reads F2DamagedBy or F2CrewedSrc: the source-mark records are kept (filter_combatwords.go)
 	dmgBy           []bool         // per card: its damage is recorded (an ability's filter reads F2DamagedBy; nil when none)
 	crewerRec       []bool         // per card: the Vehicles it crews are recorded (an ability's filter reads W7CrewedBySrc; nil when none; filter_props.go)
@@ -587,7 +589,7 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 // carries rbPlusDmg too, and its order ask changes the amount, so a table with
 // one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev)
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr)
 }
 
 type grantRef struct {
@@ -1181,6 +1183,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventMillOpps:
 					g.replBits[i] |= rbPrevMill
 					pc.hasStat = true
+				case kop.ReplDamageRedirect:
+					prepStatRdrCard(g, pc)
 				case kop.ReplPreventDamageCounters, kop.ReplDamageHealFirst, kop.ReplPreventDamageToSelf, kop.ReplPreventDamageFilt, kop.ReplPreventDamageN:
 					g.replBits[i] |= selfDamageBit(a.Repl.Kind) // repl_preventtoself.go
 					pc.hasStat = true
@@ -1711,6 +1715,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepBatchPool(t, g) // trig_batchmembers.go
 	g.anyCopyElect = g.anyCopyElect || p.casualty
 	prepAtkTax(t, g)       // combat_attacktax.go: after the requirement, Taps and land-type reads it checks
+	prepCantAtkScope(t, g) // combat_cantattack.go: the CantAttack Target$ scope bits
 	prepBlkTax(t, g)       // combat_blocktax.go: the same reads
 	prepChoosePlayer(t, g) // repl_chooseplayer.go
 	prepTokListAdd(t, g)   // repl_toklistadd.go
@@ -2297,8 +2302,9 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
-	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
-	// 4-7 are free. Cleared at the turn change. Taken from rsv.
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 7:
+	// the walk in progress is an unless / ward window (setUnlessWin,
+	// mana_window.go), set and cleared around it. Bits 4-6 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255

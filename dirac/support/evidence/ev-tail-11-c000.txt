@@ -42,6 +42,7 @@ Azusa's Many Journeys
 Bag End Porter
 Bane Alley Blackguard
 Barbarian Lunatic
+Barrenton Cragtreads
 Battle Frenzy
 Battle of Frost and Fire
 Battlewise Hoplite
@@ -286,6 +287,7 @@ Mishra's Factory
 Mistveil Plains
 Moment of Defiance
 Monstrous Growth
+Mordenkainen
 Morgue Burst
 Mortal Obstinacy
 Mountain
@@ -410,6 +412,7 @@ Starfall
 Steel Sabotage
 Stirring Wildwood
 Stormrider Spirit
+Striding Shotcaller
 Subterranean Tremors
 Sudden Death
 Sundering Growth
@@ -478,6 +481,7 @@ Wild Instincts
 Wild-Field Scarecrow
 Wildwood Geist
 Willow Dryad
+Winged Shepherd
 Wirewood Channeler
 Wirewood Hivemaster
 Withering Boon

@@ -188,19 +188,14 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			if a.ManaEach {
 				prepEachMana(a, &v)
 			}
-			firstSpellOnly := false
-			for i := range g.rs.recs {
-				rec := &g.rs.recs[i]
-				if rec.card == id && rec.kind != rkDyn && c.Abilities[rec.ab].ManaRestrictAb == 0 {
-					firstSpellOnly = true
-				}
-			}
-			if n > 1 && a.ManaRestrictAb != 0 && firstSpellOnly {
-				// the activation-only larger ability beside a spell-only first
-				// one (Steelswarm Operator's {U}{U}): a tap of it can overpay,
-				// so its unit floats restricted (plan) and the window payment
-				// takes payRestrX's route. A sole restricted ability of more
-				// than one mana keeps the old unit.
+			if n > 1 {
+				// a restricted ability of more than one mana with no census
+				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
+				// Workshop's {C}{C}{C}): a tap of it can overpay, so its unit
+				// floats restricted (plan) and the window payment takes
+				// payRestrX's route. What a cheaper spell leaves of Workshop's
+				// three stays under "artifact spells only" and no activation
+				// may spend it (CR 106.6).
 				v.restrFloat = true
 				g.rs.over = true
 			}
@@ -519,10 +514,12 @@ func (s *State) restrSrcAffords(k *prep, p uint8, d payDesc, cost *kop.ManaCost,
 		// one-fixed-colour shape, mana_tapsdefer.go restrTapsGap). A source
 		// with a choice between restricted abilities (Steelswarm Operator's
 		// activation-only {U}{U}) the route models no ability choice of:
-		// an instant-speed play still stalls (the declared limit), while a
-		// sorcery-speed one keeps the old behaviour and is not offered.
+		// an instant-speed play still stalls (the declared limit), and so does
+		// a sorcery-speed activation (Meltstrider's Gear's equip {5}, which
+		// gorge offers: its prefix search taps the source first); only a
+		// sorcery-speed cast keeps the old behaviour and is not offered.
 		if t, multi, nm = s.restrSrcAvailD(k, p, d, av, skip, true); t.affordsMulti(cost, extra, multi[:nm]) &&
-			!s.restrDeferScriptable(k, p, skip) && d.instant {
+			!s.restrDeferScriptable(k, p, skip) && (d.instant || d.class == pdAct) {
 			s.capFull(StallRestrDefer)
 		}
 	}

@@ -93,3 +93,13 @@ func (g *grantSrch) storeStep() bool {
 	}
 	return false
 }
+
+// autopayScriptedCast reports a plain cast a under the autopay surface: gorge's
+// priority list drops a plain cast it reaches only by a scripted prefix (the
+// oracle's priorityVocabulary), so a prefix that activates a storage battery
+// does not add it to the offers, where the full surface lists it and an
+// ability the script pays (Iron Suitcase's {3}) is listed either way
+// (CR 601.2g-h).
+func (s *State) autopayScriptedCast(a Action) bool {
+	return s.cfg&cfgGorgeAutopay != 0 && a.Kind() == AkCast && a.Mode() == 0
+}

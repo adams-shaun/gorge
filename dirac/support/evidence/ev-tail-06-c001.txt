@@ -56,6 +56,7 @@ Dawnhart Wardens
 Deathbloom Gardener
 Deb Thomas
 Decree of Savagery
+Diregraf Scavenger
 Dramatic Entrance
 Dream Trawler
 Dreamdrinker Vampire
@@ -65,6 +66,7 @@ Eldrazi Mimic
 Emberwilde Caliph
 Embodiment of Fury
 Erdwal Ripper
+Evil Eye of Urborg
 Experimental Armor
 Eye of Yawgmoth
 Faerie Seer
@@ -112,9 +114,11 @@ Jeering Homunculus
 Jewel Thief
 Jolted Awake
 Juntu Stakes
+Kaseto, Orochi Archmage
 Kemba, Kha Enduring
 Kyoshi Warrior Exemplars
 Leaf Gilder
+Leafcrown Dryad
 Lesser Masticore
 Lightning Surge
 Locthwain Lancer
@@ -140,7 +144,9 @@ Mystic Melting
 Nezahal, Primal Tide
 Nim Shambler
 Nirkana Revenant
+Noosegraf Mob
 Nuka-Cola Vending Machine
+Nylea's Disciple
 Obstinate Gargoyle
 On Serra's Wings
 Order of the Ebon Hand
@@ -151,8 +157,10 @@ Peek
 Phyrexian Battleflies
 Phyrexian Bloodstock
 Phyrexian Debaser
+Phyrexian Marauder
 Plague Mare
 Plains
+Poison-Tip Archer
 Pre-War Formalwear
 Press the Advantage
 Prison Sentence

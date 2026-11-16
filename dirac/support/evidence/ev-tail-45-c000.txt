@@ -16,6 +16,7 @@ Anara, Wolvid Familiar
 Anthroplasm
 Aphetto Alchemist
 Apothecary Initiate
+Arc Blade
 Arc Lightning
 Argothian Opportunist
 Arisen Gorgon
@@ -63,6 +64,7 @@ Cephalid Vandal
 Chainflinger
 Chameleon Spirit
 Citizen's Crowbar
+Cityscape Leveler
 Clairvoyance
 Clearwater Goblet
 Clock of Omens
@@ -79,6 +81,7 @@ Crossroads Consecrator
 Cruel Ultimatum
 Crystal Seer
 Culling Mark
+Curator's Ward
 Curse of the Nightly Hunt
 Cursed Wombat
 Dance of the Skywise
@@ -179,6 +182,7 @@ Hero's Demise
 Heronblade Elite
 Hidden Guerrillas
 Hill Giant Herdgorger
+Hollow One
 Homarid Warrior
 Hua Tuo, Honored Physician
 Hungry Spriggan
@@ -265,6 +269,7 @@ Onulet
 Outland Liberator
 Owlin Spiralmancer
 Patron Wizard
+Personal Sanctuary
 Phantom Centaur
 Pilfering Imp
 Plains

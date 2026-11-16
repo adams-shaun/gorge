@@ -13,7 +13,10 @@ Apocalypse Demon
 Apprentice Necromancer
 Arlinn's Wolf
 Armament Master
+Azorius Cluestone
 Backwoods Survivalists
+Balustrade Spy
+Banefire
 Barter in Blood
 Battle Hymn
 Benalish Veteran
@@ -21,8 +24,13 @@ Birthing Ritual
 Bloodsworn Steward
 Bog Glider
 Bold Impaler
+Brainstone
 Brave the Elements
+Briarblade Adept
 Butch DeLoria, Tunnel Snake
+Call to Serve
+Catalyst Elemental
+Cathartic Pyre
 Char
 Charismatic Vanguard
 Child of Gaea
@@ -36,6 +44,7 @@ Compulsion
 Coral Eel
 Count Nefaria
 Cunning Sparkmage
+Deathknell Berserker
 Deepwater Hypnotist
 Diamond Knight
 Disentomb
@@ -43,7 +52,9 @@ Dispel
 Dragonspark Reactor
 Drowned Rusalka
 Duskmantle Prowler
+Dwarven Grunt
 Dwarven Lieutenant
+Eagle of the Watch
 Enforcer Griffin
 Enlightened Tutor
 Farsight Adept
@@ -58,27 +69,41 @@ Funeral Longboat
 Garrison Griffin
 Genesis
 Geralf's Masterpiece
+Geralf, Visionary Stitcher
 Geyserfield Stalker
+Gliding Licid
 Gloomwidow's Feast
+Gnarled Mass
+Goblin Marshal
 Goblin Tutor
 Goldmane Griffin
+Growing Ranks
 Guardian Gladewalker
 Hand of Death
 Heliod's Emissary
+Hexgold Halberd
 Highway Robber
 Holy Armor
 Honden of Seeing Winds
+Hurloon Battle Hymn
 Impending Flux
+Increasing Devotion
+Ingenious Skaab
 Inspired Charge
 Insufferable Balladeer
+Invasion of Azgol
 Irradiate
+Irreverent Revelers
 Island
+Jedit Ojanen of Efrava
 Jhoira, Ageless Innovator
 Kavu Climber
 Kaya's Ghostform
 Kjeldoran War Cry
 Knowing
+Kyren Glider
 Laboratory Brute
+Landroval, Horizon Witness
 Last Caress
 Leonardo, Worldly Warrior
 Levitation
@@ -93,11 +118,16 @@ Maximize Altitude
 Medicine Bag
 Memory Erosion
 Mephitic Ooze
+Mine Collapse
+Molten Nursery
 Molten Rain
 Moment of Truth
 Mountain
+Mutilate
+Muzzio, Visionary Architect
 Nausea
 Neck Snap
+Niblis of the Mist
 Nikara, Lair Scavenger
 Nissa, Worldwaker
 Ominous Cemetery
@@ -108,26 +138,35 @@ Owl Familiar
 Pardic Arsonist
 Patagia Viper
 Peer Through Depths
+Phyrexian Juggernaut
 Phyrexian Tribute
 Phyrexian War Beast
 Plague Spitter
 Plains
+Portent of Betrayal
 Primal Growth
 Propaganda
+Prophetic Titan
 Pteramander
 Quirion Dryad
+Rain of Tears
 Ramosian Sergeant
 Rampant Rejuvenator
 Raph's Bravado
 Rat Colony
 Rats of Rath
+Repository Skaab
+Reprocess
 Restoration Angel
 Revel of the Fallen God
+Rise to the Challenge
 Rishadan Pawnshop
+Rude Awakening
 Run Aground
 Rushwood Herbalist
 Rusting Golem
 Sanguimancy
+Savannah Sage
 Scour All Possibilities
 Scourge of Valkas
 Screeching Sliver
@@ -138,8 +177,14 @@ Seven-Tail Mentor
 Sewer Rats
 Shadowmage Infiltrator
 Sheoldred, Whispering One
+Sifter Wurm
+Silverquill Apprentice
+Slimebind
 Slingshot Goblin
+Sliptide Serpent
+Slumbering Dragon
 Solar Tide
+Sonic Assault
 Sophic Centaur
 Soul Shred
 Soul of Innistrad
@@ -149,12 +194,16 @@ Spirit of the Spires
 Spiritual Asylum
 Spontaneous Mutation
 Steam Augury
+Steel Overseer
 Steelshaper's Gift
 Sudden Edict
 Sudden Spinnerets
 Swamp
 Swamp Mosquito
+Tamiyo's Epiphany
+Tana, the Bloodsower
 Terror
+Thanos, Death's Consort
 Thassa, Deep-Dwelling
 Thaumatic Compass
 The Circle of Loyalty
@@ -165,14 +214,19 @@ Torment
 Tread Upon
 Treeshaker Chimera
 Tromp the Domains
+Ugin's Mastery
 Underhanded Designs
 Undying Beast
 Unnatural Restoration
 Unnerve
+Unquestioned Authority
 Urborg Skeleton
 Vampire Noble
 Vedalken Anatomist
+Vigil for the Lost
 Vindictive Mob
 Viscera Seer
 Waste Away
+Waterfront Bouncer
+Wither and Bloom
 Withering Boon

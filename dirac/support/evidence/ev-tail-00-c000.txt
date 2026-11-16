@@ -126,6 +126,7 @@ Fodder Cannon
 Foresee
 Forest
 Forge Boss
+Form of the Dragon
 Foundry of the Consuls
 Fully Grown
 Gargoyle Sentinel
@@ -274,6 +275,7 @@ Pennon Blade
 Pewter Golem
 Pharika's Cure
 Phobian Phantasm
+Phyrexian Slayer
 Piety Charm
 Piranha Marsh
 Piston-Fist Cyclops

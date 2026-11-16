@@ -7,6 +7,7 @@ Aberrant
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
+Aggravated Assault
 Ajani Goldmane
 Akoum Flameseeker
 Akroan Sergeant
@@ -54,6 +55,7 @@ Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
+Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
 Cankerbloom
@@ -86,10 +88,12 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 Dalek Drone
 Daraja Griffin
+Daxos of Meletis
 Deepcavern Imp
 Defender of Law
 Deflection
@@ -362,6 +366,7 @@ The Destined White Mage
 Thing Swing
 Thorn Mammoth
 Thoughtseize
+Thoughtweft Gambit
 Thrasher Brute
 Thriss, Nantuko Primus
 Thunder Strike
@@ -376,6 +381,7 @@ Torsten, Founder of Benalia
 Tower Defense
 Tower Drake
 Triton Shorethief
+Tunnel
 Turn the Tide
 Turnabout
 Uktabi Efreet

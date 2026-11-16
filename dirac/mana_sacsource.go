@@ -631,13 +631,18 @@ func (s *State) pendNeedsDecision(k *prep, i int) bool {
 	return a.NTargets != 0 || a.NModes != 0
 }
 
+// castTimingNeutral is the AkCast mode bits that leave the card's own timing:
+// bit 0 kicked, bit 1 flashback (legal_gen.go).
+const castTimingNeutral uint8 = 1<<0 | 1<<1
+
 // castNeedsEmptyStack reports whether the plain cast a is sorcery-speed: a
 // card that is neither an instant nor flashed may be cast only with the stack
 // empty (CR 307.1, 117.1a). gorge's script search keeps going through a pass
 // while the prefix's trigger is on the stack until the play is offered
 // (potential_script.go waitsForStack), so the trigger resolves first.
 func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
-	if a.Kind() != AkCast || a.Mode() != 0 {
+	if a.Kind() != AkBestow && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
+		// (a bestowed, kicked or flashback cast is timed as its card: CR 702.103a, 702.34a, 307.1)
 		return false
 	}
 	o := Obj(a.Source())

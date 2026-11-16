@@ -1179,6 +1179,9 @@ func init() { enum[kop.ReplKind]("kop.ReplPreventDamageFilt", kop.ReplPreventDam
 // dirac/manifest/ReplKind/ReplPreventDamageN
 func init() { enum[kop.ReplKind]("kop.ReplPreventDamageN", kop.ReplPreventDamageN) }
 
+// dirac/manifest/ReplKind/ReplDamageRedirect
+func init() { enum[kop.ReplKind]("kop.ReplDamageRedirect", kop.ReplDamageRedirect) }
+
 // dirac/manifest/StaticKind/StatOptionalAttackCost
 func init() { enum[kop.StaticKind]("kop.StatOptionalAttackCost", kop.StatOptionalAttackCost) }
 

@@ -88,6 +88,7 @@ Dark Hatchling
 Dark Privilege
 Darkest Hour
 Daybreak Chaplain
+Deadly Designs
 Deathbringer Thoctar
 Deathknell Berserker
 Deepfathom Skulker
@@ -424,6 +425,7 @@ Vermin Gorger
 Vessel of Paramnesia
 Viashino Sandscout
 Viconia, Drow Apostate
+Vigilant Drake
 Viridescent Bog
 Voda Sea Scavenger
 Voice of the Blessed

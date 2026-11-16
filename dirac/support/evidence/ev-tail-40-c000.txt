@@ -50,6 +50,7 @@ Blitz Automaton
 Blood Ogre
 Bloodcrazed Neonate
 Bloodline Necromancer
+Bloodstone Goblin
 Bloodthorn Taunter
 Blor the Impervious
 Blot Out
@@ -72,6 +73,7 @@ Cenn's Heir
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Charitable Levy
 Charmbreaker Devils
 Charmed Stray
 Charnel Troll
@@ -98,6 +100,7 @@ Cosi's Ravager
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 Crypt Ghast
@@ -206,6 +209,7 @@ Island
 Isolate
 Jaheira's Respite
 Jokulmorder
+Kabira Outrider
 Kami of Celebration
 Kami of the Hunt
 Kardur, Doomscourge

@@ -327,8 +327,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					kind = nameAskKind(in)
 				case kop.ExtChooseCardEnter:
 					kind = akCard // repl_choosecard.go
-				case kop.ExtEnterCtrPick:
-					kind = akCtrPick // repl_enterctrpick.go
+				case kop.ExtEnterCtrPick, kop.ExtPutCounterChoice:
+					kind = akCtrPick // repl_enterctrpick.go, ctr_choice.go
 				case kop.ExtChoosePlayer:
 					kind = akPlayer
 				default:
@@ -977,10 +977,15 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		s.prio = holder
 		return false
 	}
-	// the queue is drained: the ForgetPlayed$ marker has served its casts
-	// (cast.go finishBuild drops a committed card; a refused or reversed one
-	// stays remembered)
-	s.g.freeP &^= freeForget
+	// the queue is drained: the play's register has served its casts (a
+	// committed card was dropped in cast.go finishBuild; a refused or
+	// reversed one stays remembered). The whole register dies with the
+	// queue: ReplaceGraveyard$ Exile belongs to the played spells (gorge
+	// state.ExilesInsteadOfGraveyard is per cast), and a stale bit would
+	// exile a later unrelated free cast's spell on leave instead of its
+	// owner's graveyard (CR 701.5a).
+	s.g.freeP = 0
+
 	if s.res.ask == raGenFreeParked {
 		s.resumeFreeCast(k) // the rest were refused: the parked tail runs
 		return false

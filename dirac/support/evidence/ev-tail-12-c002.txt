@@ -1,3 +1,4 @@
+A-Manticore
 Aang, Airbending Master
 Academy Rector
 Akki Scrapchomper
@@ -5,10 +6,13 @@ Apocalypse Demon
 Arbor Colossus
 Asmira, Holy Avenger
 Assert Authority
+Backwoods Survivalists
 Battle Hymn
+Bog Glider
 Bold Impaler
 Brood of Cockroaches
 Butch DeLoria, Tunnel Snake
+Call to Serve
 Champion of Arashin
 Char
 Chittering Rats
@@ -17,62 +21,98 @@ Cinderbones
 Containment Protocol
 Count Nefaria
 Dawnglare Invoker
+Disentomb
 Dragonspark Reactor
 Duskmantle Prowler
 E. Honda, Sumo Champion
+Eagle of the Watch
+Enduring Scalelord
 Farsight Adept
+Flower
 Foresight
 Forest
 Funeral Longboat
 Garrison Griffin
 Geralf's Masterpiece
+Geyserfield Stalker
+Gloomwidow's Feast
 Go for the Throat
 Goblin Tutor
 Goldmane Griffin
 Ground Assault
+Growing Ranks
+Guardian Gladewalker
 Hand of Death
 Heliod's Emissary
+Holy Armor
 Hornbash Mentor
 Impending Flux
+Increasing Devotion
 Inspired Charge
 Irradiate
 Island
 Khenra Eternal
+Kinjalli's Sunwing
 Kjeldoran War Cry
+Landroval, Horizon Witness
 Legion's Landing
 Legions to Ashes
+Leonin Armorguard
+Lich's Caress
+Macabre Mockery
 Mantle of Leadership
 Mardu Shadowspear
+Martyr of Dusk
 Maximize Altitude
+Medicine Bag
 Moriok Scavenger
 Mountain
+Nausea
 Ominous Cemetery
 Oriq Loremage
 Ornamental Courage
+Oswald Fiddlebender
 Plains
 Primal Growth
 Pteramander
+Qasali Pridemage
 Quirion Dryad
 Rat Colony
 Restoration Angel
 Revel of the Fallen God
 Reverse Engineer
+Royal Warden
+Sanguimancy
+Savannah Sage
 Scour All Possibilities
 Security Blockade
 Seedling Charm
 Seven-Tail Mentor
+Sheoldred, Whispering One
+Sifter Wurm
+Slimy Piper
 Spiritual Asylum
 Steam Augury
+Steel Overseer
 Steelshaper's Gift
 Stonebrow, Krosan Hero
 Sunhome Enforcer
 Swamp
+Swamp Mosquito
+Tamiyo's Epiphany
+Tana, the Bloodsower
 Thunderwolf Cavalry
 Tread Upon
+Treeshaker Chimera
 Underhanded Designs
 Undying Beast
+Unquestioned Authority
 Vedalken Anatomist
+Vigil for the Lost
 Viscera Seer
+War Flare
 Warden of the Chained
+Waste Away
 Weapon Surge
 Wildwood Patrol
+Wither and Bloom

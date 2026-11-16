@@ -3,6 +3,7 @@ Abbey Griffin
 Aberrant Return
 Acceptable Losses
 Aerial Caravan
+Aether Herder
 Aether Tunnel
 Age of Ultron
 Agent of Stromgald
@@ -151,6 +152,7 @@ Frenetic Efreet
 Fruit of Tizerus
 Funnel-Web Recluse
 Fyndhorn Elder
+Garruk's Horde
 Gavony Silversmith
 Geralf's Messenger
 Ghost-Lit Nourisher
@@ -182,6 +184,7 @@ Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
 Hornet Nest
+Hour of Revelation
 Hunter's Edge
 Hydra Broodmaster
 Hyperion Blacksmith
@@ -225,6 +228,7 @@ Library
 Liliana's Triumph
 Living Totem
 Lone Missionary
+Loxodon Mystic
 Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
@@ -265,6 +269,7 @@ Nomads en-Kor
 O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
+Orim's Thunder
 Otherworld Atlas
 Overtaker
 Paradise Druid
@@ -424,11 +429,13 @@ War Falcon
 Warcry Phoenix
 Wardscale Crocodile
 Warlord's Elite
+Warped Tusker
 Water Elemental
 Wayward Soul
 Weakness
 White Widow, Yelena Belova
 Willow Elf
+Winds of Rath
 Wingmate Roc
 Wormhole Serpent
 Wu Scout

@@ -165,6 +165,7 @@ Indulgent Aristocrat
 Infected Vermin
 Infectious Bite
 Infernal Kirin
+Infestation Expert
 Insolent Neonate
 Iron Man, Titan of Innovation
 Island
@@ -182,6 +183,7 @@ Kitsune Loreweaver
 Kor Cartographer
 Koth's Courier
 Krosan Grip
+Last March of the Ents
 Legion Loyalist
 Liberate
 Lifesmith
@@ -205,6 +207,7 @@ Mesmeric Trance
 Metropolis Angel
 Mind Slash
 Minotaur Sureshot
+Moth Herb Elixir
 Mountain
 Mutilate
 Myconid Spore Tender
@@ -226,6 +229,7 @@ Oran-Rief Invoker
 Orcish Veteran
 Overmaster
 Patagia Viper
+Patchwork Gnomes
 Pestilence
 Phyrexian Reclamation
 Piercing Light
