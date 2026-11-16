@@ -147,6 +147,7 @@ Growing Ranks
 Growth Spurt
 Guardian Gladewalker
 Guardian of Ghirapur
+Gustcloak Harrier
 Gustcloak Savior
 Hag of Death's Legion
 Hand of Death
@@ -326,6 +327,7 @@ Soul Summons
 Soul of Innistrad
 Soul of the Harvest
 Sphere of Resistance
+Sphinx Summoner
 Sphinx of Magosi
 Spirit of the Spires
 Spiritual Asylum

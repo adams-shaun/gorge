@@ -8,6 +8,7 @@ Abyssal Nightstalker
 Adarkar Wastes
 Aether Gale
 Agent of the Fates
+Akroan Line Breaker
 Alley Evasion
 Alphinaud Leveilleur
 Amaranthine Wall
@@ -112,6 +113,7 @@ Empty the Catacombs
 Empty the Warrens
 Enfeeblement
 Enshrined Memories
+Enslaved Scout
 Entrails Feaster
 Entrapment Maneuver
 Erebos, God of the Dead
@@ -198,8 +200,10 @@ Isperia, Supreme Judge
 Istvan, Butcher of Eln
 Jaspera Sentinel
 Join the Dance
+Josu Vess, Lich Knight
 Journeyer's Kite
 Joven and Chandler
+Jungle Patrol
 Karsus Depthguard
 Kavu Scout
 Kazuul's Fury
@@ -208,6 +212,7 @@ Kiora's Follower
 Knight of Cliffhaven
 Krosan Drover
 Krumar Bond-Kin
+Kuro's Taken
 Lagomos, Hand of Hatred
 Laid to Rest
 Leering Emblem
@@ -242,6 +247,7 @@ Mirran Spy
 Mishra's Juggernaut
 Mishra's Workshop
 Miss Highwater
+Mistmeadow Witch
 Mockingbird, Bobbi Morse
 Mogg Bombers
 Molten Monstrosity

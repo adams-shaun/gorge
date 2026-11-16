@@ -6,18 +6,23 @@ Adaptive Omnitool
 Aerial Volley
 Agoraphobia
 Ambition's Cost
+Ancient Copper Dragon
 April O'Neil, Human Element
+Ardent Soldier
 Asha's Favor
 Aven Cloudchaser
 Aven Eternal
 Awaken the Bear
 Azorius Signet
+Baird, Steward of Argive
 Balduvian Barbarians
+Bane's Invoker
 Barbed Shocker
 Battle Mastery
 Befoul
 Bellowing Elk
 Benevolent Blessing
+Beregond of the Guard
 Bessie, the Doctor's Roadster
 Bituminous Blast
 Bladebrand
@@ -32,9 +37,12 @@ Bond of Passion
 Boom
 Boompile
 Boros Elite
+Borrowing 100,000 Arrows
+Branching Bolt
 Branchloft Pathway
 Breath of Darigaaz
 Bred for the Hunt
+Brinelin, the Moon Kraken
 Bronze Walrus
 Bronzeplate Boar
 Bugenhagen, Wise Elder
@@ -49,6 +57,7 @@ Citizen V, Helmut Zemo
 Claim the Firstborn
 Cloakwood Hermit
 Cloudseeder
+Colossal Might
 Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
@@ -62,9 +71,14 @@ Cunning Advisor
 Dagger Caster
 Daring Piracy
 Dark Favor
+Dauntless Onslaught
 Dawn of Hope
 Demonic Dread
+Desert Cerodon
+Desolation Twin
 Devastation Tide
+Diabolic Tutor
+Dictate of Karametra
 Didgeridoo
 Die Young
 Dire Wolf Prowler
@@ -73,6 +87,7 @@ Dragon Engine
 Dragon Mask
 Draugr's Helm
 Drumbellower
+Dune Beetle
 Dwarven Nomad
 Déjà Vu
 Emerald Medallion
@@ -80,6 +95,7 @@ Emrakul's Hatcher
 Enthralling Victor
 Etched Familiar
 Ether Well
+Extinguish the Light
 Exultant Skymarcher
 Ezuri, Claw of Progress
 Falconer Adept
@@ -87,6 +103,7 @@ Fallaji Archaeologist
 Fallow Earth
 Feral Instinct
 Fervent Denial
+Fiery Fall
 Filigree Familiar
 Firebreathing
 Flame Discharge
@@ -95,6 +112,7 @@ Flameblade Adept
 Flare
 Flicker
 Fodder Cannon
+Force of Vigor
 Forest
 Foul Play
 Frostling
@@ -107,18 +125,25 @@ Glass of the Guildpact
 Gleeful Arsonist
 Glimmerpost
 Glimpse of Nature
+Gobhobbler Rats
 Goblin Bully
 Goblin Burrows
 Goblin Warchief
+Gods Willing
 Golgari Rotwurm
 Gore Swine
 Grafted Wargear
 Grim Return
 Grove of the Guardian
+Guardians' Pledge
+Hammerhand
 Hammerhead Shark
 Heirs of Stromkirk
 Highland Lake
 Hinterland Drake
+Hooting Mandrills
+Hornet Cobra
+Hour of Promise
 Howling Giant
 Howling Moon
 Imperial Lancer
@@ -133,6 +158,7 @@ Jace's Sentinel
 Jodah's Codex
 Johnny, Combo Player
 Join the Maestros
+Jushi Apprentice
 Kazandu Refuge
 Kitesail Skirmisher
 Knight of Dusk's Shadow
@@ -142,8 +168,10 @@ Lavaborn Muse
 Lightning Runner
 Llanowar Augur
 Loam Dryad
+Loam Larva
 Lookout's Dispersal
 Lord of the Pit
+Lotleth Giant
 Mage-Ring Bully
 Malevolent Whispers
 Malicious Intent
@@ -153,8 +181,10 @@ Merchant of the Vale
 Mesmerizing Dose
 Michiko Konda, Truth Seeker
 Militia Rallier
+Mind Unbound
 Mogg War Marshal
 Moodmark Painter
+Moon Heron
 Mortarpod
 Mountain
 Mox Jet
@@ -168,9 +198,12 @@ Nulldrifter
 Ochre Jelly
 Odious Trow
 Ogre Arsonist
+On Wings of Gold
 Oracle of Tragedy
 Ornithopter
+Pain
 Painsmith
+Paragon of Open Graves
 Patron of the Arts
 Patron of the Vein
 Peace of Mind
@@ -179,6 +212,7 @@ Penance Stare
 Penumbra Spider
 Pillar of War
 Pirate's Prize
+Pith Driller
 Pitiless Vizier
 Plains
 Plated Onslaught
@@ -192,8 +226,10 @@ Pyroceratops
 Quandrix Campus
 Quilled Sliver
 Raging Minotaur
+Rain of Blades
 Raphael, the Muscle
 Raptor Companion
+Ravenous Vampire
 Reef Shaman
 Relentless Assault
 Remand
@@ -212,7 +248,11 @@ Sandstorm Eidolon
 Sanguine Guard
 Savage Offensive
 Sawblade Slinger
+Scent of Jasmine
 Scrapskin Drake
+Screaming Seahawk
+Seal of Strength
+Seasoned Marshal
 Seller of Songbirds
 Sentinel
 Separatist Voidmage
@@ -229,6 +269,7 @@ Simian Grunts
 Skarrgan Pit-Skulk
 Skirk Prospector
 Skyline Cascade
+Skyline Scout
 Slith Strider
 Slumbering Dragon
 Solidarity
@@ -237,22 +278,28 @@ Soul Rend
 Soul's Might
 Soulstealer Axe
 Spawn-Gang Commander
+Spectral Rider
 Spell Swindle
 Spellbound Dragon
 Sphere of Resistance
+Spined Karok
 Spiteful Prankster
 Split-Tail Miko
 Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
 Steadfastness
+Steel Leaf Champion
 Stingscourger
+Stronghold Overseer
 Summon Undead
 Sundering Eruption
 Sunscape Master
 Svyelunite Priest
 Swamp
 Swarm Surge
+Swarmborn Giant
+Syr Faren, the Hengehammer
 Tajuru Blightblade
 Take Inventory
 Taunting Elf
@@ -265,12 +312,17 @@ The Frightful Four
 The Juzam Master
 The Reaver Cleaver
 Thirst
+Thor, Asgard's Avenger
+Thorn Mammoth
 Thoughtrender Lamia
+Thunder Spirit
 Tibalt, the Fiend-Blooded
 Time of Need
+Tolarian Sentinel
 Topiary Stomper
 Torch Courier
 Treva's Ruins
+Triceraton Regenta
 Tuktuk Scrapper
 Tyrant's Machine
 Ulvenwald Observer
@@ -279,14 +331,17 @@ Unifying Theory
 Unlicensed Hearse
 Vandalize
 Vault Skyward
+Vedalken Dismisser
 Vedalken Mesmerist
 Venomous Brutalizer
 Vicious Offering
 Village Rites
+Virtus the Veiled
 Volley of Boulders
 Voltaic Construct
 Voltaic Whip
 Wall of Distortion
+Wall of Hope
 Warlord's Fury
 Warped Landscape
 Watcher in the Mist
@@ -295,6 +350,7 @@ Whirlwind
 White Dragon
 Wight of the Reliquary
 Wily Goblin
+Winding Way
 Windrider Patrol
 Winged Portent
 Xathrid Necromancer

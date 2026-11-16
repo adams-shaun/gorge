@@ -13,6 +13,7 @@ Aisling Leprechaun
 Ambush Party
 Ankh of Mishra
 Ascendant Acolyte
+Ashen-Skin Zubera
 Ashenmoor Gouger
 Assimilate Essence
 Atarka, World Render
@@ -61,6 +62,7 @@ Dawn to Dusk
 Deadly Allure
 Death Wish
 Deathcult Rogue
+Deathgaze Cockatrice
 Deconstruct
 Delusions of Mediocrity
 Deny Entry
@@ -127,6 +129,7 @@ Infectious Inquiry
 Inheritance
 Island
 Jhoira's Toolbox
+Joyous Respite
 Juri, Master of the Revue
 Kavu Glider
 Keep Safe
@@ -137,6 +140,7 @@ Kiku, Night's Flower
 Krav, the Unredeemed
 Liliana's Indignation
 Liliana, the Last Hope
+Lingering Tormentor
 Lunar Force
 Madame Vastra
 Majestic Heliopterus
@@ -180,6 +184,7 @@ Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
 Putrid Warrior
+Qarsi Sadist
 Quartzwood Crasher
 Ravenous Gigamole
 Reanimate
@@ -220,6 +225,7 @@ Storm-Kiln Artist
 Street Riot
 Strength of Cedars
 Structural Distortion
+Sudden Strength
 Sunbond
 Sundial of the Infinite
 Swamp
@@ -255,10 +261,12 @@ Vengeful Rebel
 Vessel of Nascency
 Voice of Reason
 Wake of Vultures
+Wall of Frost
 Wall of Reverence
 War-Torch Goblin
 Warleader's Helix
 Weaselback Redcap
+Wei Strike Force
 Wild Nacatl
 Will of the Temur
 Wings of the Guard

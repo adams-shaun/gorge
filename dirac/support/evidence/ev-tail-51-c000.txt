@@ -40,6 +40,7 @@ Blinding Souleater
 Blood Pact
 Bloodchief's Thirst
 Bogbrew Witch
+Bolrac-Clan Crusher
 Bone Saw
 Boseiju, Who Endures
 Botanical Plaza
@@ -53,6 +54,7 @@ Bumi's Feast Lecture
 Burning Oil
 Burning Wish
 Bygone Marvels
+Cabal Conditioning
 Cache Raiders
 Cackling Fiend
 Calamity of Cinders
@@ -83,6 +85,7 @@ Daring Escape
 Dark Privilege
 Darksteel Forge
 Darksteel Ingot
+Daughter of the Deep
 Dauthi Trapper
 Daxiver, Izzet Electromancer
 Death Cloud
@@ -300,6 +303,7 @@ Noble Purpose
 Noble Steeds
 Nomad Mythmaker
 Northern Paladin
+Numai Outcast
 Obsidian Battle-Axe
 Olivia, Mobilized for War
 One-Clown Band
@@ -361,10 +365,12 @@ Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
 Risona, Asari Commander
+River Merfolk
 Riverglide Pathway
 Roar of Reclamation
 Robber Fly
 Robe of Mirrors
+Ronin Cavekeeper
 Rorix Bladewing
 Rosecot Knight
 Rotting Giant
@@ -512,6 +518,7 @@ Wild Growth
 Wind-Kin Raiders
 Wolfrider's Saddle
 Wooden Cane
+Woodripper
 Workshop Assistant
 Write into Being
 Wu Elite Cavalry

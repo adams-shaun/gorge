@@ -897,7 +897,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				hi = s.exileXClamp(k, hi)
 			}
 			if np := s.convokeXCredit(k); np > 0 {
-				hi = min(maxXAsk, max(hi, mx+np)) // each announced pick pays one generic (a harmonize pick its power) of the X total
+				hi = convokeXHi(mx, hi, np, &av) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
 			if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX {
 				mx, hi = s.counterXClamp(k, mx, hi) // a shared {X} / SubCounter<X/KIND> is bounded by the source's counters
@@ -1290,6 +1290,9 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		s.excludeTapSource(k, &av)
 	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
+	}
+	if e.kind == seSpell {
+		s.addDeferredUnits(k, e.ctrl, &av) // mana_deferred.go
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
 	if cost.Hyb[0] == kop.HybTwobrid {

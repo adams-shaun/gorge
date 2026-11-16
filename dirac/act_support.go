@@ -22,7 +22,12 @@ func (s *State) supportOK(k *prep, in *kop.Instr, sl Slot) bool {
 	if !s.isCreature(k, sl) {
 		return false
 	}
-	return in.C&0x100 == 0 || s.perms[sl].obj != s.res.e.obj
+	o := s.perms[sl].obj
+	// "Other" excludes the ability's source incarnation only: a source that
+	// left and returned (a blink in response to its own trigger) is a new
+	// object, so the creature on the battlefield now is another one
+	// (CR 400.7, 701.41a); gorge's +Other reads the same incarnation.
+	return in.C&0x100 == 0 || o != s.res.e.obj || s.objs[o].ver != s.res.e.srcVer
 }
 
 // supportOptions lists the unpicked eligible creatures (seat 0's, then

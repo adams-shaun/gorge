@@ -14,6 +14,7 @@ Armory of Iroas
 Army of Allah
 Army of the Damned
 Ashen Powder
+Ashenmoor Cohort
 Augur of Bolas
 Auriok Glaivemaster
 Auton Soldier
@@ -22,6 +23,7 @@ Aviary Mechanic
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
 Balshan Beguiler
+Barrage Tyrant
 Bat Whisperer
 Battle Hymn
 Belligerent Whiptail
@@ -34,6 +36,7 @@ Bloodcrazed Hoplite
 Bloodmark Mentor
 Blunt the Assault
 Bone Saw
+Boneshard Slasher
 Boon Reflection
 Borborygmos Enraged
 Botanical Plaza
@@ -41,6 +44,7 @@ Bramble Wurm
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Briber's Purse
 Brinebarrow Intruder
 Broodbirth Viper
 Broodhunter Wurm
@@ -60,6 +64,8 @@ Centaur Peacemaker
 Cephalid Broker
 Certain Death
 Chandra's Fury
+Chartooth Cougar
+Chillbringer
 Chitinous Cloak
 Chittering Witch
 Chulane, Teller of Tales
@@ -85,6 +91,7 @@ Descendant of Masumaro
 Deviant Glee
 Dina, Essence Brewer
 Donatello's Science Lesson
+Doom Whisperer
 Dovin's Veto
 Draconic Disciple
 Dragon Mantle
@@ -102,6 +109,7 @@ Elspeth's Nightmare
 Elvish Farmer
 Elvish Lyrist
 Elvish Visionary
+Emmessi Tome
 Empyrial Armor
 Ephemeral Shields
 Evolution Charm
@@ -122,6 +130,8 @@ Frost Trickster
 Fully Grown
 Furious Reprisal
 Furnace Hellkite
+Galvanic Discharge
+Garrison Sergeant
 Garruk's Companion
 Geist of the Archives
 Geistblast
@@ -137,6 +147,7 @@ Grakmaw, Skyclave Ravager
 Grasp of Fate
 Grasping Scoundrel
 Grave Betrayal
+Grey Havens Navigator
 Grim Physician
 Grizzled Angler
 Gruul Nodorog
@@ -250,6 +261,7 @@ Revenge of Ravens
 Reverent Hoplite
 Revive the Shire
 Revoke Existence
+Rhythmic Water Vortex
 Riptide
 Riverglide Pathway
 Robe of Mirrors
@@ -261,6 +273,7 @@ Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Scrapyard Steelbreaker
 Scrollshift
 Segmented Wurm
 Seller of Songbirds
@@ -269,6 +282,7 @@ Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
 Shivan Harvest
+Shrapnel Slinger
 Shu Defender
 Shuko
 Sigarda, Champion of Light
@@ -316,6 +330,7 @@ Temporal Machinations
 Teysa, Envoy of Ghosts
 Thalia's Lieutenant
 The Rack
+Thirsting Bloodlord
 Thopter Squadron
 Thor, Asgard's Avenger
 Tide Skimmer
@@ -332,6 +347,7 @@ Undead Warchief
 Unfriendly Fire
 Vampire Opportunist
 Vampire's Kiss
+Vat Emergence
 Vectis Silencers
 Verdant Automaton
 Vessel of Ephemera
@@ -339,6 +355,7 @@ Veteran of the Depths
 Village Bell-Ringer
 Vindictive Mob
 Vivid Flying Fish
+Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
@@ -359,5 +376,6 @@ Wrath of the Skies
 Yavimaya Hollow
 Yuriko, the Tiger's Shadow
 Zealous Strike
+Zhur-Taa Ancient
 Zodiac Dog
 Zodiac Horse

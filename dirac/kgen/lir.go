@@ -997,7 +997,8 @@ type lAbility struct {
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
-	Index           int // position in the card's ability list (latent abilities included)
+	SplitPrev       bool // a split line's half but the first: the printed identity on the stack is the preceding ability (kop.Ability.SplitPrev)
+	Index           int  // position in the card's ability list (latent abilities included)
 	Name            string
 	Cost            lCost
 	Optional        bool // the cost is optional ("you may pay ... if you do")

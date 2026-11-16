@@ -39,6 +39,7 @@ Bolrac-Clan Crusher
 Bone Saw
 Breakneck Berserker
 Brilliant Restoration
+Bring Low
 Brion Stoutarm
 Bumi's Feast Lecture
 Burning Wish
@@ -69,6 +70,7 @@ Darksteel Forge
 Darksteel Ingot
 Dauthi Trapper
 Daxiver, Izzet Electromancer
+Deepwood Wolverine
 Defend the Campus
 Delayed Blast Fireball
 Demon's Due
@@ -85,6 +87,7 @@ Drove of Elves
 Drowsing Tyrannodon
 Dungeon Shade
 Durkwood Tracker
+Dwarven Mine
 Early Frost
 Echoes of the Kin Tree
 Eddytrail Hawk
@@ -124,10 +127,12 @@ Generous Pup
 Giant Ox
 Gideon's Battle Cry
 Gift of Growth
+Gilded Assault Cart
 Glint-Sleeve Siphoner
 Gnarled Effigy
 Goblin Battle Jester
 Goblin Brigand
+Goblin Masons
 Goblin Sharpshooter
 Grazing Whiptail
 Green Sun's Zenith
@@ -155,6 +160,7 @@ Ichor Explosion
 Ideas Unbound
 Impetuous Protege
 Industrial Advancement
+Inescapable Brute
 Infantry Veteran
 Inhumaniac
 Innistrad Charm
@@ -173,6 +179,8 @@ Keldon Vandals
 Keldon Warlord
 Kessig Dire Swine
 Kithkin Billyrider
+Kitsune Bonesetter
+Knight Exemplar
 Knight of Sorrows
 Kobolds of Kher Keep
 Kolaghan Aspirant
@@ -195,6 +203,7 @@ Loxodon Mystic
 Magus of the Future
 Make Mischief
 Mana Seism
+Mass Appeal
 Master Splicer
 Might Beyond Reason
 Migloz, Maze Crusher
@@ -231,7 +240,9 @@ Paradigm Shift
 Parapet Watchers
 Path of Discovery
 Patron Wizard
+Pestilence Rats
 Phantom Flock
+Phylath, World Sculptor
 Phyrexian Monitor
 Plague Beetle
 Plaguemaw Beast
@@ -243,6 +254,8 @@ Prava of the Steel Legion
 Presence of the Wise
 Pridemalkin
 Primal Frenzy
+Prismite
+Professor of Zoomancy
 Protection Magic
 Psionic Snoop
 Purraj of Urborg
@@ -254,6 +267,7 @@ Ranger Class
 Ranger-Captain of Eos
 Ravages of War
 Raven Wings
+Ravenous Sailback
 Reconstructed Thopter
 Regathan Firecat
 Regent's Authority
@@ -315,7 +329,9 @@ Soul Barrier
 Soul-Strike Technique
 Spark Reaper
 Sparkhunter Masticore
+Specter's Wail
 Spectral Bears
+Sphere of Purity
 Spidersilk Net
 Spire Golem
 Spitemare
@@ -332,6 +348,7 @@ Strangling Soot
 Strangling Spores
 Straw Soldiers
 Street Spasm
+Strength in Numbers
 Strider Harness
 Stronghold Assassin
 Summit Apes
@@ -340,6 +357,7 @@ Sunscape Apprentice
 Supernatural Stamina
 Swamp
 Swift Maneuver
+Swirling Sandstorm
 Synchronous Sliver
 Syphon Sliver
 Take Flight
@@ -351,6 +369,7 @@ Teysa, Orzhov Scion
 The Hive
 The Spike Cactus
 Theoretical Duplication
+Thermal Navigator
 Thor, Asgard's Avenger
 Thornscape Apprentice
 Thundering Tanadon
@@ -371,6 +390,7 @@ Unholy Officiant
 Unity of Purpose
 Valeria Richards, Precocious
 Vaultbreaker
+Vedalken Anatomist
 Vedalken Ghoul
 Veiled Apparition
 Verdant Automaton
@@ -380,9 +400,11 @@ Vulshok War Boar
 Wall Off
 Wall of Mist
 Warbeast of Gorgoroth
+Wayward Soul
 Weldfast Engineer
 Wight
 Wooden Cane
+Woodripper
 Workshop Assistant
 Write into Being
 Wu Elite Cavalry

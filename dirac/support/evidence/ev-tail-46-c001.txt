@@ -158,6 +158,7 @@ Haunted Fengraf
 Haystack
 Heir of the Ancient Fang
 Heir of the Wilds
+Helionaut
 Herald of Secret Streams
 Hoarding Ogre
 Holy Day
@@ -180,6 +181,7 @@ Joraga Bard
 Jukai Trainee
 Kalonian Twingrove
 Karn, Silver Golem
+Karplusan Wolverine
 Karstoderm
 Kazuul's Toll Collector
 Kederekt Leviathan
@@ -196,6 +198,7 @@ Lightning Blow
 Liquimetal Coating
 Lost in the Woods
 Lumengrid Gargoyle
+Mad Dog
 Magma Giant
 Marshal of Zhalfir
 Master Symmetrist
@@ -232,6 +235,7 @@ Otherworldly Journey
 Panther Robot
 Pest Summoning
 Phalanx Leader
+Phalanx Tactics
 Phyrexian Rager
 Pit Imp
 Placid Rottentail
