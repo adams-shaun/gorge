@@ -47,7 +47,11 @@ func (s *State) faceDownExile(o, src Obj, looker uint8) {
 	if DebugExileFaceUp || s.objs[o].zone != kop.ZoneExile {
 		return
 	}
-	fl := exwFace
+	// gorge's fold sets ExiledWith with the face-down mark (apply_zone.go),
+	// so the reverse link is live whatever the reading card's text names;
+	// exwPut replaces the bits a record holds, so the write restates the
+	// reverse bit exwExile put for a source that names ExiledWithSource
+	fl := exwFace | exwRev
 	if looker == 1 {
 		fl |= exwLook1
 	}
