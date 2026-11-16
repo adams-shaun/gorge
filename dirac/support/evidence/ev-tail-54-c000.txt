@@ -8,6 +8,7 @@ Alluring Scent
 Almighty Brushwagg
 Ancient Tomb
 Angelfire Crusader
+Angelic Chorus
 Arashin Cleric
 Archers' Parapet
 Arena of the Ancients
@@ -77,6 +78,7 @@ Destructive Tampering
 Dinosaur Stampede
 Dispense Justice
 Divination
+Djeru, With Eyes Open
 Downhill Charge
 Dramatic Rescue
 Drowner of Hope

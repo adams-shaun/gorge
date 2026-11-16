@@ -244,6 +244,7 @@ Phyrexian Vivisector
 Pious Interdiction
 Plains
 Pre-War Formalwear
+Prismatic Ward
 Profane Tutor
 Purify the Grave
 Putrid Leech
@@ -370,6 +371,7 @@ Viridian Scout
 Vodalian Mage
 Voice of Truth
 Volt Charge
+Vulpine Goliath
 Vulshok Morningstar
 Wall of Vines
 Wary Okapi

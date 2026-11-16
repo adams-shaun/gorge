@@ -110,6 +110,7 @@ Dread Statuary
 Dream Fracture
 Dromoka Monument
 Dromoka's Gift
+Duel for Dominance
 Dunland Crebain
 Dutiful Thrull
 Eater of Hope
@@ -178,6 +179,7 @@ Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
+Hyperion, Supreme Hero
 Hypnotic Sprite
 Ichor Synthesizer
 Illusions of Grandeur
@@ -356,6 +358,7 @@ Sorin, Imperious Bloodlord
 Soulsworn Jury
 Spellgorger Barbarian
 Spire Owl
+Spirit of Resistance
 Spiritual Sanctuary
 Spitebellows
 Spore Crawler

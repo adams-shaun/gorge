@@ -90,6 +90,7 @@ Doomsday
 Dragon Egg
 Drifting Djinn
 Drownyard Lurker
+Druid Lyrist
 Dusk
 Duskrider Falcon
 Dust Bowl
@@ -169,6 +170,7 @@ Infernal Idol
 Invasion of Shandalar
 Irenicus's Vile Duplication
 Island
+Isolation Zone
 Isperia, Supreme Judge
 Istvan, Butcher of Eln
 Jarvis, Earth's Mightiest Butler
@@ -197,6 +199,7 @@ Ma Chao, Western Warrior
 Magus of the Library
 Majestic Heliopterus
 Manic Vandal
+Mark of Asylum
 Markov Crusader
 Maw of the Obzedat
 Menagerie Liberator
@@ -308,6 +311,7 @@ Sick and Tired
 Sigil Blessing
 Silent Submersible
 Silhana Ledgewalker
+Silkweaver Elite
 Silkwing Scout
 Silver Raven
 Silverbluff Bridge

@@ -43,6 +43,7 @@ Burning Palm Efreet
 Burning Prophet
 Butcher of Malakir
 Call to Mind
+Callous Giant
 Captain's Call
 Carrier Thrall
 Cartographer
@@ -158,6 +159,7 @@ Hydrolash
 Hyperion's Atomic Vision
 Immolating Gyre
 Incorrigible Youths
+Inexorable Tide
 Infernal Contract
 Inflame
 Invade the City
@@ -310,6 +312,7 @@ Soltari Visionary
 Soul of Eternity
 Sparring Golem
 Spawning Pit
+Sphere of Truth
 Spindrift Drake
 Spined Megalodon
 Sporesower Thallid

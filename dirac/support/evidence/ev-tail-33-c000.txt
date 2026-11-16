@@ -111,6 +111,7 @@ Dewdrop Spy
 Dimir Machinations
 Dire Tactics
 Diving Griffin
+Docent of Perfection
 Donate
 Dovescape
 Draconic Destiny
@@ -247,6 +248,7 @@ Mawcor
 Maximize Altitude
 Memorial to Folly
 Military Intelligence
+Mimic
 Mindless Conscription
 Ministrant of Obligation
 Mjölnir's Might
@@ -445,6 +447,7 @@ Witch's Cottage
 Wizened Cenn
 You Look Upon the Tarrasque
 Yuan Shao, the Indecisive
+Yuriko, the Tiger's Shadow
 Zhalfirin Decoy
 Zodiac Dragon
 Zulaport Duelist

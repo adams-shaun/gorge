@@ -138,6 +138,7 @@ Hungering Hydra
 Hunter's Ambush
 Incursion Specialist
 Industrial Advancement
+Inner Sanctum
 Inner Struggle
 Insatiable Gorgers
 Instill Infection
@@ -163,6 +164,7 @@ Kranioceros
 Light of Day
 Lightning Visionary
 Livaan, Cultist of Tiamat
+Losheel, Clockwork Scholar
 Maestros Initiate
 Magma Phoenix
 Magmatic Force

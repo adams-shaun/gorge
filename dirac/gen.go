@@ -838,7 +838,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
-	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
+	// prepSpellCond first: it sets anySpellCond, which an || must not skip
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
@@ -1932,6 +1933,9 @@ type genState struct {
 		amt  uint8
 	}
 	ndmg uint8
+	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
+	// both-instances flashback classification (legal.go fbProbeRoot).
+	fbProbe bool
 
 	may  [maxMay]mayPlay
 	nmay uint8

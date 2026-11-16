@@ -148,6 +148,7 @@ Forest
 Frantic Salvage
 Freewind Falcon
 Frenetic Efreet
+Frenzied Saddlebrute
 Fungal Plots
 Garbage Elemental
 Gargoyle Flock
@@ -184,6 +185,7 @@ Heavenly Qilin
 Hidden Gibbons
 Hideous End
 Hippo-Cows
+Hit-Monkey
 Hold for Questioning
 Horn of Gondor
 Hostile Minotaur
@@ -199,6 +201,7 @@ Inner-Flame Acolyte
 Inspirit
 Invasion of Segovia
 Invincible Hymn
+Iron Star
 Island
 Jawbone Duelist
 Jeska, Warrior Adept
@@ -283,6 +286,7 @@ Portal to Phyrexia
 Predator's Strike
 Predatory Wurm
 Prepare
+Primal Boost
 Prized Elephant
 Psychic Overload
 Puppet's Verdict
@@ -375,6 +379,7 @@ Tavern Ruffian
 Terminal Agony
 Tezzeret's Gambit
 The Battle of Bywater
+The Thing
 Thornwatch Scarecrow
 Thragtusk
 Threnody Singer
@@ -382,6 +387,7 @@ Throne of the God-Pharaoh
 Thunderous Might
 Time Bomb
 Tocasia's Onulet
+Tooth and Nail
 Tormod's Crypt
 Torture
 Tragic Fall

@@ -13,6 +13,7 @@ Altar of Bhaal
 Altar of Bone
 Amazing Alliance
 Ambush
+An-Havva Inn
 Aragorn and Arwen, Wed
 Araña, Heart of the Spider
 Argivian Blacksmith
@@ -42,6 +43,7 @@ Briarbridge Tracker
 Broken Fall
 Butcher's Glee
 Cackling Flames
+Canopy Gorger
 Carrion Ants
 Cartouche of Knowledge
 Case of the Shifting Visage
@@ -160,6 +162,7 @@ Irradiate
 Irregular Cohort
 Island
 Izzet Chronarch
+Jade Guardian
 Jagwasp Swarm
 Jon Irenicus, the Exile
 Just the Wind
@@ -190,6 +193,7 @@ Merfolk of the Depths
 Mesa Unicorn
 Metathran Soldier
 Mindeye Drake
+Minotaur Illusionist
 Mirkwood Channeler
 Moira, Urborg Haunt
 Molten Rebuke
@@ -197,6 +201,7 @@ Monastery Flock
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
+Mysterious Tome
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
@@ -230,11 +235,13 @@ Plague Rats
 Plains
 Planar Atlas
 Plated Spider
+Possessed Centaur
 Pouncing Lynx
 Power Sink
 Predict
 Press for Answers
 Primordial Sage
+Prince Imrahil the Fair
 Prismari Apprentice
 Protector of Gondor
 Pygmy Troll
@@ -275,6 +282,7 @@ Sigiled Paladin
 Silverquill Campus
 Sip of Hemlock
 Skirk Commando
+Skittering Crustacean
 Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
