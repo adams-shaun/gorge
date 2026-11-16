@@ -1,7 +1,10 @@
 A-Geological Appraiser
+Accorder Paladin
 Aggressive Instinct
 Ahn-Crop Invader
+Ajani's Welcome
 Alseid of Life's Bounty
+Angelic Field Marshal
 Arrester's Zeal
 Asari Captain
 Azorius Charm
@@ -13,6 +16,7 @@ Bramblesnap
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Cage of Hands
 Centaur Chieftain
 Chandra's Outrage
 Compelled Duel
@@ -25,23 +29,30 @@ Darkthicket Wolf
 Devil Dinosaur
 Drag Under
 Dragon's Eye Sentry
+Drider
 Ensnare
 Erratic Mutation
 Esika's Chariot
 Evie Frye
 Expedition Skulker
 Expel
+Feast of Dreams
 Floodhound
 Foresee
 Forest
+Forgehammer Centurion
 Freewind Equenaut
 Freyalise Supplicant
+Gale Swooper
 Goma Fada Vanguard
 Graceful Adept
 Griffin Sentinel
 Hamlet Vanguard
 Hero of Goma Fada
+Heron of Hope
+Ichor Drinker
 Island
+Jace's Ruse
 Jace's Sanctum
 Kashi-Tribe Elite
 Kuldotha Rebirth
@@ -49,33 +60,53 @@ Kumena's Awakening
 Kyren Negotiations
 Lash of the Whip
 Lavastep Raider
+Lawmage's Binding
+Light 'Em Up
 Lily Bowen, Raging Grandma
 Living Airship
 Luxurious Libation
+Maggot Carrier
 Merry, Warden of Isengard
+Mesa Cavalier
+Midnight Charm
+Mindless Null
 Mountain
+Mourning
+Myr Convert
 Mysterious Tome
+Nearheath Chaplain
 Orochi Merge-Keeper
 Outland Boar
+Phyrexian Driver
 Plains
 Predatory Nightstalker
+Prescient Chimera
 Pyknite
 Pyroclastic Elemental
+Pyromantic Pilgrim
 Refocus
+Refreshing Rain
 Replication Technique
 Rishkar, Peema Renegade
+River Hoopoe
 Rofellos's Gift
 Scryb Sprites
 Servant of Tymaret
 Skillful Lunge
 Spell Crumple
+Spring
+Staff of the Wild Magus
+Stonybrook Banneret
 Student of Ojutai
 Stymied Hopes
 Suit Up
+Surge Engine
 Swamp
 Talas Merchant
+Taste of Blood
 Terravore
 Thalakos Deceiver
+Thaumatic Compass
 Thrun, the Last Troll
 Traverse Eternity
 Vampiric Tutor

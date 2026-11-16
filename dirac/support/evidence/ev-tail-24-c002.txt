@@ -1,8 +1,21 @@
+A-Pseudodragon Familiar
+A-The One Ring
 Adamaro, First to Desire
+Air Nomad Student
+Ancestral Mask
+Angel of Mercy
+Angel's Tomb
+Angrath's Rampage
 Annex Sentry
 Armored Pegasus
+Arno Dorian
+Artificer's Intuition
+Ascending Aven
+Ashiok's Forerunner
+Attrition
 Aysen Bureaucrats
 Bastion Inventor
+Battlegrace Angel
 Bedevil
 Binding the Old Gods
 Bog Wraith
@@ -13,75 +26,161 @@ Brutal Nightstalker
 Brute Force
 Carnival of Souls
 Chainer's Edict
+Chakram Retriever
 Chandra's Triumph
+Cleansing Wildfire
+Collector's Case
 Court of Bounty
 Crackdown
+Crimson Caravaneer
 Crippling Blight
 Crush
+Crux of Fate
 Crypt Creeper
 Daggerclaw Imp
 Death Watch
+Deeproot Champion
+Deflection
+Deny Reality
+Depth Charge Colossus
+Dimir Guildmage
+Dirgur Nemesis
 Disciple of Perdition
+Discontinuity
+Diviner of Mist
+Doomsday
 Doubtless One
+Drinker of Sorrow
 Dust Bowl
 Earthbending Student
 Egon, God of Death
+Ellivere of the Wild Court
+Ensoul Artifact
 Fade from Memory
 Fae of Wishes
+Fallen Angel
+Firefiend Elemental
+Fledgling Griffin
+Forced March
 Forest
 Forsaken Drifters
+Fortuitous Find
+Fracture
 Generous Visitor
 Glimmer Bairn
+Glint-Sleeve Artisan
 Go Blank
 Goblin Ringleader
+Griffin Dreamfinder
+Grim Hireling
+Grisly Spectacle
+Herald of Slaanesh
 Hero's Heirloom
+Heroic Teamwork
 Hordeling Outburst
 Horror of the Dim
+Hunting Grounds
+Impetuous Sunchaser
 Insubordination
+Iron Man, Futurist Paragon
 Island
 Jackhammer
 Jori En, Ruin Diver
+Key to the City
+Khalni Garden
 Korlessa, Scale Singer
+Lampad of Death's Vigil
 Lava Spike
+Lightning Bolt
 Lightning Stormkin
 Llanowar Augur
+Long Road Home
+Lucas, the Sharpshooter
+Maraxus of Keld
+Mardu Strike Leader
 Marsh Viper
 Mausoleum Harpy
 Misthollow Griffin
+Mnemonic Wall
+Mobile Garrison
 Moldgraf Scavenger
 Momo, Rambunctious Rascal
+Mother Bear
 Mountain
 Nighthawk Scavenger
+Norwood Archers
+Octoprophet
 Odylic Wraith
 Onward
+Ovinize
 Patriar's Seal
 Phantasmagorian
+Pharika's Chosen
 Plains
+Powerstone Engineer
+Pride Sovereign
 Radha's Firebrand
+Rampart Crawler
+Read the Bones
+Referee Squad
 Retrofitted Transmogrant
 Rhystic Syphon
 Riot Ringleader
+Rip-Clan Crasher
+Rooftop Nuisance
 Saheeli's Silverwing
+Sanctuary Raptor
+Sanctum Gargoyle
 Sanguinary Priest
+Satyr Piper
 Sealock Monster
 Seismic Elemental
+Serra's Liturgy
 Shady Traveler
 Shorecomber Crab
 Sightless Ghoul
 Silk Net
 Skophos Warleader
 Smite the Monstrous
+Sneaky Homunculus
+Soldevi Machinist
+Sorcerer's Strongbox
+Soul Net
+Soul Transfer
+Soul Warden
+Soulshriek
 Sparkspitter
+Spike Breeder
+Spinal Parasite
 Staggershock
 Stitched Assistant
+Stomp and Howl
+Strangleroot Geist
+Strider Harness
+Supply Drop
 Swamp
+Sworn Companions
+Sworn Defender
 Sylvan Yeti
 Tainted Pact
+Talisman of Impulse
+Talrand, Sky Summoner
 Tangled Florahedron
 Taste for Mayhem
+Telepathic Spies
+Telling Time
 Tenth District Guard
 Territorial Scythecat
+Thopter Spy Network
 Thriving Skyclaw
+Tome Anima
+Tuknir Deathlock
 Underworld Dreams
 Underworld Rage-Hound
+Undying Rage
+Untamed Kavu
+Vodalian Serpent
 Voyage's End
+Waterkin Shaman
+Whirler Rogue
+Whirling Strike

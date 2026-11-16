@@ -1853,10 +1853,20 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
             }
             // The seat's answerable slot is prompt-independent (ActionCluster gates undo on the sole
             // human seat and an in-flight post), so an ask a rewind re-parks needs no answer: it
-            // would only commit an intent the next undo takes back again.
+            // would only commit an intent the next undo takes back again. But the click itself must
+            // wait for a parked decision: the server accepts an undo whenever the seat has a logged
+            // intent left — it need not be pending (Registry.Undo reserves one intent per click,
+            // server/host/undo.go) — so a click fired while nothing is parked, and every further
+            // click the 100 ms poll fires through that stretch (the machine acting between
+            // decisions, /pending a 409), queues another rewind; the queued rewinds then walk back
+            // past the land play and across the turn's draw, where the hand can never equal
+            // handBefore again (measured on the gate box: a red at 23.6 s with the walk-back's whole
+            // budget gone). Skipping the click until a decision is parked keeps one rewind per
+            // click, and the hold below keeps the next one queued behind a landing rewind.
             const asking = await pendingSeq(seat);
+            if (asking === null) return false;
             const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
-            if (!clicked || asking === null) return false;
+            if (!clicked) return false;
             clicks++;
             // The server answers an undo with 204 and rewinds later, on the match's own goroutine,
             // and each rewind takes back one of the seat's own actions. Hold the next click until
