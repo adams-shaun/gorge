@@ -242,6 +242,7 @@ Kokusho, the Evening Star
 Krakilin
 Krav, the Unredeemed
 Krile Baldesion
+Kulrath Knight
 Kurgadon
 Lattice-Blade Mantis
 Lazotep Plating
@@ -267,6 +268,7 @@ Lucky Offering
 Lyse Hext
 Magmaroth
 Malachite Talisman
+Malicious Affliction
 Manakin
 Marionette Apprentice
 Markov Enforcer

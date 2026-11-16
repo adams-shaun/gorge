@@ -1,11 +1,18 @@
+A-Celebrity Fencer
 A-Tenured Inkcaster
 Accelerated Mutation
 Aether Shockwave
 Akoum Firebird
 Assault Zeppelid
+Bastion Protector
 Battle Cry Goblin
 Beacon of Immortality
+Bolt Hound
+Box of Free-Range Goblins
+Brawler's Plate
 Brink of Madness
+Burning Sun's Fury
+Burning-Fist Minotaur
 Catacomb Slug
 Chandra's Outburst
 Corrosive Mentor
@@ -14,28 +21,77 @@ Decaying Time Loop
 Deputy of Acquittals
 Devastation Tide
 Dictate of Erebos
+Dispense Justice
+Distress
+Embereth Shieldbreaker
 Embraal Bruiser
+Ettercap
+Excise the Imperfect
+Faith Healer
+Fallaji Excavation
+Field-Tested Frying Pan
 Fire Nation's Conquest
 Flowstone Infusion
+Font of Fortunes
 Forest
+Fortifying Draught
+Furnace Spirit
+Glimmer of Genius
 Glitterfang
+Guardians of Koilos
+Hedron Detonator
+Horned Cheetah
+Horned Helm
+Inner Sanctum
 Inner Struggle
 Insatiable Gorgers
 Island
+Jhoira's Toolbox
+Joraga Visionary
+Kheru Bloodsucker
+Light of Day
+Livaan, Cultist of Tiamat
+Mortis Dogs
 Mountain
+Mystic Snake
+Nimble-Blade Khenra
+Obelisk of Urd
 Obsessive Search
 Ohran Frostfang
+Ore-Scale Guardian
 Phyrexian Scriptures
+Pick Up the Pace
+Pitiless Plunderer
 Plains
+Prison Sentence
 Prodigal Pyromancer
 Professor's Warning
 Radiant Essence
 Reach Through Mists
+Reckless Brute
+Reinforced Ronin
+Resounding Silence
+Rhys the Exiled
+Rotting Rats
+Ruthless Invasion
+Sage Aven
+Sarinth Steelseeker
+Scouring Swarm
+Serrated Scorpion
+Siegecraft
+Skybind
+Skyfire Kirin
 Spontaneous Combustion
+Stern Constable
 Stromgald Crusader
 Swamp
+Talruum Minotaur
+Tormenting Voice
+Uktabi Orangutan
 Undercity Informer
 Valor
+Wall of Fire
 Winds of Rebuke
 Winged Words
+Wish Good Luck
 Zombie Master

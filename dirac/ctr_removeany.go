@@ -120,6 +120,10 @@ func (s *State) askOptionsRca(k *prep, d *Decision) bool {
 		return s.askOptionsPiles(k, d) // act_piles.go
 	}
 	in := &s.prog(k)[s.res.pc]
+	if in.Ext() == kop.ExtPutCounterChoice {
+		pccOptions(d, in) // ctr_choice.go
+		return true
+	}
 	d.Sub = ChRemCtrKind
 	put := in.Ext() == kop.ExtPutCounterExisting // ctr_putexisting.go
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
@@ -145,6 +149,10 @@ func (s *State) applyAskRca(k *prep, a Action) bool {
 	r := &s.res
 	r.ask = raNone
 	in := &s.prog(k)[r.pc]
+	if in.Ext() == kop.ExtPutCounterChoice {
+		s.pccAnswer(k, in, a) // ctr_choice.go
+		return true
+	}
 	if in.Ext() == kop.ExtPutCounterExisting {
 		s.pceAnswer(k, in, a) // ctr_putexisting.go
 		return true

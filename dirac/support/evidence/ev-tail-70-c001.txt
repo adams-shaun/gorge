@@ -9,6 +9,8 @@ Artifact Mutation
 Ashen Powder
 Baloth Packhunter
 Baneblade Scoundrel
+Bayou Groff
+Bladed Pinions
 Bloodhusk Ritualist
 Bloodthirsty Adversary
 Bog Tatters
@@ -22,6 +24,7 @@ Cephalid Coliseum
 Chain Devil
 Chains of Custody
 Charge
+Chrome Host Seedshark
 Civic Wayfinder
 Cloud Djinn
 Cloud Manta
@@ -67,13 +70,17 @@ Feed the Clan
 Feeding Frenzy
 Final Reward
 Final Strike
+Fire Bowman
 Firewing Phoenix
 First Little Pig
+Flamekin Brawler
 Fleecemane Lion
+Flight
 Forbidden Friendship
 Forest
 Garruk's Companion
 Geist-Fueled Scarecrow
+Ghostblade Eidolon
 Gift of Compleation
 Gix's Caress
 Gnaw to the Bone
@@ -101,6 +108,7 @@ Infected Vermin
 Infectious Bite
 Infernal Kirin
 Insolent Neonate
+Iron Man, Titan of Innovation
 Island
 Ivory Guardians
 Jagged Poppet
@@ -126,6 +134,8 @@ Manticore of the Gauntlet
 Mask of the Jadecrafter
 Maze Abomination
 Memnarch, the Warden
+Merry, Warden of Isengard
+Metropolis Angel
 Minotaur Sureshot
 Mountain
 Mutilate
@@ -133,6 +143,7 @@ Myr Retriever
 Narnam Renegade
 Nature's Spiral
 Necrotic Fumes
+Oath of Eorl
 Offering to Asha
 Okiba Reckoner Raid
 Old Rutstein
@@ -141,6 +152,7 @@ Ooze Garden
 Oran-Rief Invoker
 Overmaster
 Patagia Viper
+Patchwork Gnomes
 Pestilence
 Phyrexian Reclamation
 Piper of the Swarm
@@ -184,12 +196,14 @@ Sigil Blessing
 Silverflame Squire
 Skull Rend
 Slaughter Specialist
+Smelt-Ward Ignus
 Smothering Abomination
 Song of Serenity
 Soratami Seer
 Souldrinker
 Spectral Hunt-Caller
 Spinal Centipede
+Spire Barrage
 Spire Tracer
 Staff of Zegon
 Start
@@ -218,6 +232,7 @@ Veil of Summer
 Vexing Beetle
 Viashino Spearhunter
 Vigilant Baloth
+Village Cannibals
 Viridian Lorebearers
 Voiceless Spirit
 Vow of Flight

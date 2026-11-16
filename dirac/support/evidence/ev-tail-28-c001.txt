@@ -2,8 +2,10 @@ A-Falcon Abomination
 A-Manticore
 A-Ready to Rumble
 Aardvark Sloth
+Abattoir Ghoul
 Acceptable Losses
 Act of Aggression
+Air Servant
 Allied Teamwork
 Altar's Light
 Ancient Runes
@@ -16,25 +18,35 @@ Aspect of Gorgon
 Aven of Enduring Hope
 Azorius Cluestone
 Balshan Beguiler
+Bargain
 Barrage Ogre
 Beckon Apparition
+Beyeen Veil
 Blessed Hippogriff
 Blighted Cataract
 Blizzard Elemental
 Bonds of Faith
 Brazen Wolves
+Breath of Fire
+Brightling
+Brindle Boar
 Bringer of the Blue Dawn
 Broodstar
 Burning Cloak
 Caress of Phyrexia
+Carrion Grub
 Cast into Darkness
 Cateran Kidnappers
 Chief of the Scale
+Clan Crafter
+Cloudkin Seer
 Confirm Suspicions
 Consulate Turret
 Coral Helm
 Curious Killbot
 Daze
+Deathbringer Thoctar
+Deathforge Shaman
 Dematerialize
 Demon's Disciple
 Diamond Valley
@@ -45,12 +57,18 @@ Dominating Licid
 Doomed Dissenter
 Drag to the Bottom
 Dragon Arch
+Dragonsguard Elite
+Dream Thrush
 Dromoka Warrior
+Dying Wish
 Earthquake
 Eidolon of Astral Winds
+Elemental Appeal
 Elven Rite
+Embrace the Unknown
 Emmessi Tome
 Enchantmentize
+Entrapment Maneuver
 Exotic Curse
 Expendable Lackey
 Explosive Apparatus
@@ -58,9 +76,11 @@ Faith Unbroken
 Farfinder
 Fearsome Awakening
 Fen Stalker
+Feral Krushok
 Feral Shadow
 Fervor
 Fever Charm
+Fire Urchin
 Fire at Will
 Flailing Drake
 Fleeting Memories
@@ -71,34 +91,53 @@ Forest Bear
 Fortifying Provisions
 Foundry Inspector
 Frogify
+Frozen Aether
 Ganax, Astral Hunter
 Geist of the Moors
 Ghastly Death Tyrant
 Ghitu Chronicler
 Ghost-Lit Stalker
+Ghostfire Slice
+Giant's Ire
+Gift of the Deity
 Gigapede
 Golden-Tail Disciple
 Gonti, Lord of Luxury
 Grafted Butcher
 Gravecrawler
+Griffin Protector
 Grizzled Wolverine
 Hammerhead Tyrant
 Hammerhead, Maggia Boss
 Harbor Serpent
 Harrier Griffin
+Hellraiser Goblin
 Herald of Dromoka
+Herald of the Sun
 Heron-Blessed Geist
 Hooded Kavu
+Howling Moon
+Humble Budoka
 Hydrosurge
+Hypervolt Grasp
 Ice Storm
 Illness in the Ranks
+Illuminate History
+Inferno Titan
+Inspired Sprite
 Island
 Ith, High Arcanist
 Jacked Rabbit
+Kathari Remnant
+Keen Glidemaster
 Keep Safe
 Keldon Halberdier
+Kindred Dominance
 Kinjalli's Caller
 Kogla, the Titan Ape
+Krark-Clan Ogre
+Kris Mage
+Lancers en-Kor
 Lava Coil
 Lavastep Raider
 Leering Gargoyle
@@ -108,6 +147,8 @@ Lodestone Golem
 Lost in Memories
 Lunar Mystic
 Lunarch Mantle
+Mahamoti Djinn
+Make Disappear
 Mana Vault
 Masterwork of Ingenuity
 Melancholy
@@ -115,6 +156,7 @@ Merciless Repurposing
 Midnight Assassin
 Mikaeus, the Lunarch
 Misers' Cage
+Mob Mentality
 Mold Folk
 Moldervine Reclamation
 Mountain
@@ -122,12 +164,16 @@ Mugging
 Murmuring Mystic
 Nameless One
 Nessian Courser
+Night Incarnate
 Night of Souls' Betrayal
 Nip Gwyllion
 Norn's Wellspring
 Oblivion Strike
+Opaline Unicorn
 Orazca Raptor
+Orchard Spirit
 Ordeal of Purphoros
+Original Skullclamp
 Orim's Touch
 Pardic Lancer
 Pensive Minotaur
@@ -135,27 +181,33 @@ Perish
 Pippin's Bravery
 Plains
 Plated Crusher
+Polukranos Reborn
 Pooling Venom
 Power of Fire
 Prakhata Club Security
 Psychosis Crawler
 Puppet Master
 Pure Reflection
+Raging Poltergeist
 Raise the Palisade
 Rapid Decay
+Ratchet Bomb
 Reality Strobe
 Reconstruction
 Recruiter of the Guard
 Resistance Skywarden
 Return Upon the Tide
+Reyhan, Last of the Abzan
 Ridgescale Tusker
 Rograkh, Son of Rohgahh
 Roots of Wisdom
 Runeboggle
 Salivating Gremlins
+Saruli Caretaker
 Savage Offensive
 Scoria Elemental
 Scrapper Champion
+Scurry of Squirrels
 Searing Spear
 Sigiled Sentinel
 Silvergill Douser
@@ -163,15 +215,21 @@ Skittering Skirge
 Skybind
 Skymarch Bloodletter
 Skyshroud Blessing
+Sleeping Potion
 Slinking Serpent
+Slippery Scoundrel
+Slith Firewalker
 Soldevi Golem
 Sorin's Guide
+Spectacle Mage
 Spectral Grasp
 Spell Rupture
 Spelltithe Enforcer
 Sphere of Safety
 Spite of Mogis
+Spread the Sickness
 Stalking Stones
+Star of Extinction
 Start from Scratch
 Steel Wall
 Stifle
@@ -180,10 +238,13 @@ Stitcher's Supplier
 Stoke the Flames
 Stony Strength
 Stonybrook Schoolmaster
+Storm Strike
+Sunlit Hoplite
 Surrakar Spellblade
 Swamp
 Swarming of Moria
 Swift Spinner
+Tail Swipe
 Tajuru Blightblade
 Talon of Pain
 Taunting Elf
@@ -194,12 +255,17 @@ Terror of Towashi
 Tethmos High Priest
 Tezzeret's Betrayal
 The Fair Basilica
+Thing from the Deep
 Thistledown Liege
 Thor, Guardian of Midgard
 Thoughtpicker Witch
+Thraben Valiant
+Tin Street Market
+Titania's Command
 Tocasia's Dig Site
 Tomebound Lich
 Tranquil Domain
+Transmogrifying Wand
 Trespasser's Curse
 Triskelion
 Tromokratis
@@ -207,14 +273,18 @@ Tyrannize
 Ultimate Alliance
 Unnatural Endurance
 Urza's Factory
+Urza's Science Fair Project
 Vampire Aristocrat
 Vexing Gull
+Vigilante Justice
+Village Rites
 Viridian Joiner
 Virtuous Variant
 Vitality Charm
 Voice of Grace
 Vow of Torment
 Walking Dead
+Warden of the Beyond
 Warrior's Charge
 Watchful Automaton
 Wei Infantry
@@ -226,6 +296,9 @@ Wind Zendikon
 Wintermoor Commander
 Wipe Away
 Wolf's Quarry
+Woodcutter's Grit
+Worldgorger Dragon
+Wu Infantry
 Yeva, Nature's Herald
 Zamriel, Seraph of Steel
 Zodiac Monkey

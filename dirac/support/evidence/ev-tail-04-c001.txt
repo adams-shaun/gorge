@@ -64,6 +64,7 @@ Demonic Collusion
 Desperate Castaways
 Devotee of Strength
 Diplomatic Escort
+Distinguished Conjurer
 Distract
 Divine Arrow
 Doomfall
@@ -115,6 +116,7 @@ Hardy Veteran
 Hatchery Spider
 Headlong Rush
 Hellhole Rats
+Herd Baloth
 Hidden Path
 Hua Tuo, Honored Physician
 Hungry Flames
@@ -194,6 +196,7 @@ Pteron Ghost
 Quasiduplicate
 Raging Ravine
 Rakdos Ragemutt
+Rathi Dragon
 Ravenous Daggertooth
 Ravenous Vampire
 Ray of Revelation
@@ -214,6 +217,7 @@ River Kaijin
 Rolling Stones
 Rotwidow Pack
 Rune Snag
+Rushwood Legate
 Sadistic Slash
 Sanctuary Cat
 Sarkhan's Scorn
@@ -285,6 +289,7 @@ Underdark Explorer
 Unhallowed Phalanx
 Unsubstantiate
 Vault 87: Forced Evolution
+Viashino Warrior
 Village Elder
 Vodalian Serpent
 Voice of the Provinces

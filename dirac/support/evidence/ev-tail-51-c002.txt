@@ -1,3 +1,4 @@
+Abandon Reason
 Aerial Maneuver
 Alena, Kessig Trapper
 Angelfire Ignition
@@ -18,12 +19,16 @@ Barkhide Troll
 Battle Brawler
 Battlefield Promotion
 Battlefly Swarm
+Battlewise Valor
 Benthic Giant
 Black Dragon
 Blade Historian
 Bloodchief's Thirst
 Bogbrew Witch
 Bone Saw
+Breakneck Berserker
+Brinebarrow Intruder
+Bring Low
 Bumi's Feast Lecture
 Burning Wish
 Bygone Marvels
@@ -44,6 +49,7 @@ Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
 Daxiver, Izzet Electromancer
+Defend the Campus
 Delayed Blast Fireball
 Devoted Paladin
 Devout Monk
@@ -59,23 +65,30 @@ Elven Lyre
 Emissary of Hope
 Equestrian Skill
 Erkenbrand, Lord of Westfold
+Errand-Rider of Gondor
 Ertai Resurrected
 Evolution Charm
+Excoriate
 Eyeblight Massacre
 Falkenrath Pit Fighter
 False Prophet
 Famine
 Fell Stinger
 Final-Sting Faerie
+Firefly
 Forest
 Fountain Watch
+Gallant Cavalry
+Giant Ox
 Gift of Growth
+Goblin Battle Jester
 Goblin Sharpshooter
 Guardian Augmenter
 Gut Shot
 Guul Draz Overseer
 Hell Mongrel
 Hellraiser Goblin
+Hibernation Sliver
 Highland Giant
 Highspire Mantis
 Hill Giant
@@ -95,6 +108,7 @@ Jousting Lance
 Kalonian Twingrove
 Kaya's Ghostform
 Kithkin Billyrider
+Kitsune Bonesetter
 Knight of Sorrows
 Kraul Foragers
 Latch Seeker
@@ -105,6 +119,7 @@ Lightning Elemental
 Long-Lost Lances
 Magus of the Future
 Make Mischief
+Mass Appeal
 Mire in Misery
 Mirror of Galadriel
 Mishra's Research Desk
@@ -120,6 +135,7 @@ Nimbus Swimmer
 Noble Steeds
 Nomad Mythmaker
 Onyx Mage
+Ox Drover
 Oxidda Finisher
 Paradigm Shift
 Plaguemaw Beast
@@ -132,6 +148,7 @@ Protection Magic
 Psionic Snoop
 Purraj of Urborg
 Pygmy Pyrosaur
+Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Raven Wings
@@ -140,11 +157,13 @@ Rejuvenating Springs
 Repentant Vampire
 Riddle Gate Gargoyle
 Rigging Runner
+Risona, Asari Commander
 Roar of Reclamation
 Robber Fly
 Rorix Bladewing
 Rosecot Knight
 Roving Harper
+Royal Falcon
 Salvage Titan
 Sandsteppe War Riders
 Scourge of the Nobilis
@@ -153,6 +172,8 @@ Seagraf Skaab
 Seek New Knowledge
 Seshiro the Anointed
 Sewer Crocodile
+Shade of Trokair
+Shambling Remains
 Sheoldred, Whispering One
 Shield Mate
 Shielded by Faith
@@ -170,6 +191,7 @@ Spidersilk Net
 Spire Golem
 Spitemare
 Stabbing Pain
+Start from Scratch
 Stir the Pride
 Straw Soldiers
 Street Spasm
@@ -177,10 +199,13 @@ Stronghold Assassin
 Summit Apes
 Sun Droplet
 Sunscape Apprentice
+Supernatural Stamina
 Swamp
 Swift Maneuver
 Synchronous Sliver
 Syphon Sliver
+Take Flight
+Tegan Jovanka
 Terramorph
 The Hive
 The Spike Cactus
@@ -192,10 +217,12 @@ Tormented Hero
 Tourach's Canticle
 Tresserhorn Sinks
 Ulrich's Kindred
+Undercover Butler
 Valeria Richards, Precocious
 Vaultbreaker
 Wall Off
 Warbeast of Gorgoroth
+Weldfast Engineer
 Wight
 Wolfrider's Saddle
 Workshop Assistant

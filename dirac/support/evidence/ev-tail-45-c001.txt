@@ -1,16 +1,23 @@
 A-Exhibition Magician
+Abyssal Specter
+Access Denied
 Acolyte of Xathrid
 Acridian
+Aether Barrier
 Ajani Fells the Godsire
 Akki Raider
 Alchemist's Vial
+Ambitious Aetherborn
 Anara, Wolvid Familiar
+Anthroplasm
 Aphetto Alchemist
+Apothecary Initiate
 Arc Lightning
 Archon of Redemption
 Argothian Opportunist
 Argothian Treefolk
 Arisen Gorgon
+Ashes to Ashes
 Atzocan Archer
 Ayumi, the Last Visitor
 Bag End Banquet
@@ -22,6 +29,7 @@ Battering Craghorn
 Bearscape
 Belbe's Armor
 Benevolent Bodyguard
+Blade of the Sixth Pride
 Blessed Light
 Blightstep Pathway
 Blood Pet
@@ -30,7 +38,9 @@ Bonders' Enclave
 Bonesplitter Sliver
 Boundless Realms
 Brazen Freebooter
+Brine Seer
 Brushland
+Call of the Death-Dweller
 Callous Dismissal
 Captain of the Watch
 Carnage Altar
@@ -51,9 +61,11 @@ Culling Mark
 Curse of the Nightly Hunt
 Dakkon, Shadow Slayer
 Dance of the Skywise
+Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Darksteel Juggernaut
+Dauthi Jackal
 Deadeye Tracker
 Defiler of Souls
 Demonmail Hauberk
@@ -75,10 +87,12 @@ Dwarven Nomad
 Earthlore
 Ebonblade Reaper
 Echoing Truth
+Ecstatic Awakener
 Elite Javelineer
 Elite Skirmisher
 Elven Palisade
 Elvish Dreadlord
+Eris, Roar of the Storm
 Ethereal Elk
 Exorcist
 Ezuri, Renegade Leader
@@ -118,6 +132,8 @@ Great Hart
 Guardian Augmenter
 Gustcloak Savior
 Haazda Officer
+Hag of Death's Legion
+Havengul Skaab
 Haze of Pollen
 Heart Sliver
 Heartbeat of Spring
@@ -133,8 +149,10 @@ Hungry Spriggan
 Hunter's Insight
 Improbable Alliance
 Initiate's Companion
+Inquisition of Kozilek
 Iron Lad, Young Avenger
 Island
+Izzet Charm
 Jawbone Skulkin
 Jewel-Eyed Cobra
 Jolrael, Empress of Beasts
@@ -143,20 +161,25 @@ Jund Panorama
 Karok Wrangler
 Kavu Aggressor
 Kavu Mauler
+Keening Banshee
 Keldon Arsonist
 Keldon Necropolis
+Kiku, Night's Flower
 King Harald's Revenge
 Kraul Raider
 Laser Screwdriver
+Lawbringer
 Leatherback Baloth
 Magus of the Order
 Many Partings
 March of the Drowned
 Markov Warlord
+Marrow Bats
 Martyr for the Cause
 Mercurial Pretender
 Meteor Storm
 Miren, the Moaning Well
+Moaning Spirit
 Mole Module
 Molten Ravager
 Monk Idealist
@@ -186,6 +209,7 @@ Polymorphist's Jest
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Rankle, Master of Pranks
+Rathi Intimidator
 Razorclaw Bear
 Razorfield Rhino
 Reckless Fireweaver
@@ -197,7 +221,9 @@ Renata, Called to the Hunt
 Repentant Blacksmith
 Respite
 Reverent Hunter
+Righteous Confluence
 River Boa
+River Darter
 Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
@@ -212,6 +238,7 @@ Scattershot
 Scoria Cat
 Seasoned Pyromancer
 Second Breakfast
+Sensory Deprivation
 Shaman of the Great Hunt
 Shambling Remains
 Shivan Devastator
@@ -229,17 +256,21 @@ Soul of Shandalar
 Soulcage Fiend
 Soulmender
 Sovereign's Bite
+Spare Supplies
 Spider-Man, Miles Morales
 Splinterfright
 Spoils of Evil
 Sporesower Thallid
 Springing Tiger
+Stasis Cell
 Steel-Plume Marshal
 Steelgaze Griffin
 Stew the Coneys
 Stoic Builder
 Storm of Steel
+Stormchaser Chimera
 Stronghold Overseer
+Succumb to Temptation
 Sultai Flayer
 Sunbathing Rootwalla
 Surgehacker Mech
@@ -254,15 +285,19 @@ Thassa's Oracle
 The Antiquities War
 The Immortal Weapons
 Thoughtflare
+Thrashing Wumpus
 Throne of the High City
 Thrun, the Last Troll
 Timbermare
 Tolabow, Loch Rascal
 Tormented Thoughts
 Toski, Bearer of Secrets
+Toucan-Puffin
+Toxic Abomination
 Trading Post
 Trailtracker Scout
 Trenchpost
+Undercity's Embrace
 Untamed Kavu
 Utility Knife
 Vampire Bats
@@ -283,9 +318,11 @@ Willow Elf
 Windstorm
 Winged Hive Tyrant
 Withstand Death
+Wizard's Staff
 Wound Reflection
 Wriggling Grub
 Wu Elite Cavalry
+Yahenni, Undying Partisan
 Yargle and Multani
 Yotian Medic
 You See a Guard Approach

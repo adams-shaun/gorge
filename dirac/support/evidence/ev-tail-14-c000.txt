@@ -84,6 +84,7 @@ Demonspine Whip
 Denethor, Stone Seer
 Dewdrop Spy
 Dimir Keyrune
+Dissipation Field
 Divine Verdict
 Dosan's Oldest Chant
 Double Vision
@@ -185,6 +186,7 @@ Kazuul's Fury
 Kiora's Follower
 Knight of Cliffhaven
 Krosan Drover
+Krumar Bond-Kin
 Lagomos, Hand of Hatred
 Leering Emblem
 Leonin of the Lost Pride
@@ -243,6 +245,7 @@ Orah, Skyclave Hierophant
 Origin of the Hulk
 Paladin Elizabeth Taggerdy
 Palladium Myr
+Patron of the Vein
 Personal Tutor
 Persuasion
 Phantasmal Shieldback

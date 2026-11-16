@@ -8,12 +8,14 @@ Akki Ronin
 Ambuscade Shaman
 Amok
 Ancient Craving
+And They Shall Know No Fear
 Argivian Avenger
 Armor Sliver
 Ashnod's Harvester
 Axebane Guardian
 Ayara, First of Locthwain
 Balduvian Atrocity
+Balshan Griffin
 Balustrade Spy
 Beast Whisperer
 Black Poplar Shaman
@@ -22,10 +24,12 @@ Bloodshot Cyclops
 Blossom Prancer
 Bog Raiders
 Bond Beetle
+Bone Harvest
 Bringer of the Red Dawn
 Bumi's Feast Lecture
 Carrion Imp
 Chains of Custody
+Chant of the Skifsang
 Cloudkill
 Collected Company
 Commissar Severina Raine
@@ -38,6 +42,7 @@ Crop Rotation
 Cruel Revival
 Crusading Knight
 Crypt Ghast
+Cryptic Annelid
 Cunning Wish
 Dawn Elemental
 Defiant Salvager
@@ -59,6 +64,7 @@ Feign Death
 Fireblade Artist
 Fireblast
 Flametongue Kavu
+Flaring Flame-Kin
 Fledgling Mawcor
 Floral Evoker
 Forest
@@ -67,6 +73,7 @@ Frog-Squirrels
 Gathering Throng
 Ghitu Fire-Eater
 Gilacorn
+Glissa's Scorn
 Gnarlid Pack
 Goblin Diplomats
 Goma Fada Vanguard
@@ -83,13 +90,17 @@ Headless Horseman
 Hexgold Halberd
 Honor Guard
 Hooded Kavu
+Horn of the Mark
 Hunger of the Howlpack
 Hyrax Tower Scout
+Igneous Cur
+Immobilizing Ink
 Imperial Seal
 Increasing Confusion
 Insist
 Iron Suitcase
 Island
+Izzet Chronarch
 Jace's Phantasm
 Jackal Pup
 Jan Jansen, Chaos Crafter
@@ -104,10 +115,12 @@ Kyren Sniper
 Lotus Field
 Manhole Cover
 Mantis Engine
+Marauding Maulhorn
 Mardu Banner
 Maze of Ith
 Meloku the Clouded Mirror
 Mind Flayer
+Minister of Inquiries
 Mirrorworks
 Mise
 Mithril Coat
@@ -116,6 +129,7 @@ Mukotai Ambusher
 Nemata, Grove Guardian
 Nico Minoru, Runaway
 Noose Constrictor
+Ominous Parcel
 Passionate Archaeologist
 Pentarch Ward
 Phylath, World Sculptor
@@ -135,6 +149,7 @@ Revelsong Horn
 Rhox Veteran
 Rolling Temblor
 Rotting Fensnake
+Rowan Treefolk
 Rulik Mons, Warren Chief
 Sacred Rites
 Sacrifice
@@ -216,4 +231,5 @@ Xathrid Demon
 Yavimaya Iconoclast
 You Look Upon the Tarrasque
 Zealous Inquisitor
+Zendikar Resurgent
 Zenith Festival

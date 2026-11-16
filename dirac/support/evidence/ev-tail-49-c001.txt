@@ -10,6 +10,7 @@ Arc Mage
 Arc Spitter
 Aria of Flame
 Armageddon
+Artifact Ward
 Ashling the Pilgrim
 Ashling, the Extinguisher
 Augmenting Automaton
@@ -168,6 +169,7 @@ Kayla's Command
 Kessig Wolfrider
 Kiln Walker
 Kor Cartographer
+Kor Entanglers
 Kor Scythemaster
 Kuldotha Rebirth
 Lantern of Revealing
@@ -180,6 +182,7 @@ Life
 Living Wish
 Long-Finned Skywhale
 Lurking Roper
+Magistrate's Veto
 Malicious Intent
 Maned Serval
 Manifold Key
@@ -355,6 +358,7 @@ Whiptongue Frog
 Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Wirewood Lodge

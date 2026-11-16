@@ -436,3 +436,27 @@ func prepSelfTapsPain(c *kop.CardDef, pc *pcard) bool {
 	pc.painCol, pc.painN, pc.painOnly = a.ManaColors, n, true
 	return true
 }
+
+// hideDeferred taps, on the search's node copy t, every untapped source of p
+// the planner defers (planDeferred) that scriptTapsDefer does not model: a
+// two-colour land under a Defer-class Taps watcher (Turbulent Fen beside Price
+// of Glory). gorge's census holds it back as a gap, so the node's offer and
+// pricing (scriptSearch.visit) never count its mana, but the plain walk would
+// and list the play a tap early; the play's payment would then tap the
+// source after the prefix's other taps, putting its trigger above the play.
+//
+// A source tapsDef holds is the search's own gap: availFor already leaves its
+// unit out (availLeavesOut), and tapping it here would also take away the
+// {T} a cost of its own pays (Cabal Pit's {B},{T}, sacrifice beside Price of
+// Glory, CR 602.2b), so it stays untapped.
+func (t *State) hideDeferred(k *prep, p uint8, tapsDef slotMask) {
+	if !t.deferLive(k) {
+		return
+	}
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
+		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && !tapsDef.has(sl) && t.planDeferred(k, p, sl) {
+			t.perms[sl].flags |= pfTapped
+			t.touchSl(sl)
+		}
+	}
+}
