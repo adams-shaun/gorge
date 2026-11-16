@@ -7,8 +7,9 @@ import "testing"
 // spent to cast a nonartifact spell") may fund. With a Swamp and a Powerstone
 // untapped gorge offered pay and decline while the kernel counted only the
 // Swamp and offered decline alone (decision 388 of tail-41 pair 12 of a
-// Spell Contortion and Stone Retrieval Unit focus). The first recording, tail-41
-// pair 38 (Pontiff of Blight's extort), named cards the pool has since lost.
+// Spell Contortion and Stone Retrieval Unit focus). The recording plays on the
+// "custom" table built from its own decks, so a card the synthetic pool later
+// drops cannot break it (two earlier recordings did).
 func TestMBCPontiffOfBlightReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "unless_pay_offer_powerstone")
