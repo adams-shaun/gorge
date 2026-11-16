@@ -749,7 +749,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 				// price it again on a second budget.
 				capSpent.add(a)
 			}
-		} else if (g.cheaper || g.storeStep()) && !hasOption(d, a) {
+		} else if (g.cheaper || g.storeStep() && !s.autopayScriptedCast(a)) && !hasOption(d, a) {
 			// gorge's planner prices the play again at every search node
 			// (potentialPlayVerdict, mana_grantedoffers.go visit): a trigger the
 			// found prefix answered lowered the cost under the root price the
@@ -757,7 +757,8 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// Lesson into the graveyard, CR 601.2f, 106.4), so gorge's walk
 			// lists what the builder left off; so does a prefix that activates a
 			// storage battery, whose counters the builder's units leave out
-			// (mana_grantstore.go)
+			// (mana_grantstore.go), except a plain cast under the autopay
+			// surface, which gorge reaches only by that script and drops
 			d.add(a)
 		}
 	}

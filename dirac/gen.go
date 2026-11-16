@@ -2297,8 +2297,9 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
-	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bits
-	// 4-7 are free. Cleared at the turn change. Taken from rsv.
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 7:
+	// the walk in progress is an unless / ward window (setUnlessWin,
+	// mana_window.go), set and cleared around it. Bits 4-6 are free. Cleared at the turn change. Taken from rsv.
 	turnF uint8
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
