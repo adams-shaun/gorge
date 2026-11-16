@@ -283,6 +283,25 @@ func (g *grantSrch) sacrificed() bool {
 	return false
 }
 
+// witnessEats: the printed plan pays the cast play at this node only by
+// sacrificing the play's only target (Larger Than Life on the Eldrazi Spawn
+// whose granted {T} floated the {G}, the Spawn's own sacrifice paying the
+// {1}). gorge's scriptSearch.priced replays a plan that consumes a permanent
+// (witnessReachesFrom) and takes it only when the play is still offered after
+// it, so the node does not price the play and the search goes on (gorge's
+// potential_plan.go: a witness that sacrifices the play's only target is not a
+// way to pay it). xWitnessEats is that replay for a spell.
+func (g *grantSrch) witnessEats(t *State, cost *kop.ManaCost) bool {
+	if !g.d.hasPlay || !isCastKind(g.d.play.Kind()) || !t.anySacSource(g.k, g.p) {
+		return false
+	}
+	o := Obj(g.d.play.Source())
+	if o == NoObj || int(o) >= len(t.objs) {
+		return false
+	}
+	return t.xWitnessEats(g.k, g.p, t.objs[o].card, cost, 0, o, 0)
+}
+
 // grantCostLife is the life a granted view's activation pays (0: none).
 func grantCostLife(pc *pcard) uint8 {
 	if pc.painLife && pc.painCol == 0 {
