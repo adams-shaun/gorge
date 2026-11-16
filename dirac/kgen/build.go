@@ -1028,7 +1028,7 @@ func (cb *cardBuilder) record() error {
 		d.TextWords = c.TextWords
 	}
 	d.Leyline = c.Leyline
-	d.World = c.World
+	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
 	d.SpentSelf = c.SpentSelf
@@ -1049,12 +1049,12 @@ func (cb *cardBuilder) record() error {
 	d.Cascade = uint8(c.Cascade)
 	d.AllCreatureTypes = c.Changeling
 	d.Evasion = c.Evasion
-	d.Wither, d.UmbraArmor = c.Wither, c.UmbraArmor
+	d.Wither, d.UmbraArmor, d.Dredge = c.Wither, c.UmbraArmor, c.Dredge
 	d.AloneAtk = c.AloneAtk
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
-	d.Ascend = c.Ascend
+	d.Ascend, d.Unleash = c.Ascend, c.Unleash
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1799,6 +1799,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredEquipped
 	case cmpEnchanted:
 		kf.Pred = kop.PredEnchanted
+		kf.PredN = int16(c.CmpN) // 1: "!enchanted"
 	case cmpAttached:
 		kf.Pred = kop.PredAttached
 	case cmpActiveCtrl:
@@ -2577,6 +2578,14 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics
 	ko.PTDelta = o.PTDelta
+	if o.Landwalk != nil {
+		if ko.Landwalk, err = cb.filter(o.Landwalk, kop.ZoneBattlefield); err != nil {
+			return 0, err
+		}
+		// the land filter's subtypes must survive the matchup remap like any
+		// value's filter does (refSubs walks ovVals)
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.Landwalk)})
+	}
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
 		return 0, err

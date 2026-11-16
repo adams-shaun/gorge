@@ -14,4 +14,7 @@ func keywordFlagUsage(d *kop.CardDef, name string, add func(l, card string)) {
 	if d.UmbraArmor {
 		add("card:UmbraArmor", name)
 	}
+	if d.Dredge != 0 {
+		add("card:Dredge", name)
+	}
 }

@@ -767,6 +767,28 @@ func (s *State) payWaterbend(k *prep) {
 // reduced cost is paid, filtering them by the composed full cost and excluding the
 // picks (convokeCommitted). saved holds which picks holdCostTaps tapped. A plan
 // that stands is tapped here, so the pool pays what follows.
+// waterbendAbilityPay pays a waterbend activation through gorge's fallback
+// window (the case arm waterbendManualPay approved): tap the rider plan's
+// useful sources and float what they produce. A window that cannot fund the
+// cost aborts the activation: gorge's fallback window taps as it walks and
+// leaves the mana abilities' taps and floated mana behind when payCast then
+// aborts the activation (CR 733.1: a tap cannot be undone), so the window's
+// state is kept, unlike a dry probe. It reports whether the activation
+// continues.
+func (s *State) waterbendAbilityPay(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	full := a.Cost.Mana
+	ok, held := s.windowTapRiderUseful(k, e.ctrl, cost, &full, true, false)
+	if !ok {
+		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
+		return false
+	}
+	for c := range held {
+		s.pl[e.ctrl].pool[c] += held[c]
+	}
+	return true
+}
+
 func (s *State) waterbendManualPay(k *prep, e *stackEntry, saved *[len(build{}.picks)]uint8) bool {
 	if k.gen == nil || !k.gen.anyWaterbend || e.kind != seAbility || e.ab == 255 {
 		return false

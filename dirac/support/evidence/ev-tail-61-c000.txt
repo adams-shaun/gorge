@@ -3,22 +3,30 @@ A-Eyes of the Beholder
 A-Jackhammer
 Abyssal Hunter
 Active Volcano
+Aeronaut Admiral
 Agonizing Syphon
+Airdrop Condor
 Ajani's Influence
 Ajani, Valiant Protector
 Alhammarret, High Arbiter
+Aligned Heart
 Altar of Bhaal
+Altar of Bone
 Amazing Alliance
 Ambush
+An-Havva Inn
 Aragorn and Arwen, Wed
 Araña, Heart of the Spider
 Argivian Blacksmith
 Ark of Blight
 Asha's Favor
+Atraxi Warden
 Atsushi, the Blazing Sky
 Attended Knight
 Augur il-Vec
 Aura Blast
+Avabruck Caretaker
+Avenging Hunter
 Awakening Zone
 Azra Smokeshaper
 Bad Deal
@@ -26,34 +34,49 @@ Ballroom
 Baloth Gorger
 Barbtooth Wurm
 Basilica Screecher
+Bastion Enforcer
 Beetleback Chief
 Benalish Sleeper
 Benthic Biomancer
 Blasted Landscape
 Boon-Bringer Valkyrie
+Bootleggers' Stash
 Bottle-Cap Blast
 Briarbridge Tracker
 Broken Fall
+Bumbling Pangolin
+Butcher's Glee
 Cackling Flames
+Canopy Gorger
 Carrion Ants
+Cartouche of Knowledge
 Case of the Shifting Visage
 Centaur Garden
 Cerodon Yearling
+Charity Extractor
 Chimney Goyf
 Choking Restraints
 Chorus of Might
 Churning Eddy
 Clattering Augur
+Cloakwood Swarmkeeper
 Cogwork Spy
+Concord with the Kami
 Confound
 Consider
+Consign
+Constable of the Realm
 Contingency Plan
+Courier's Briefcase
 Covert Operative
+Crackling Doom
 Crested Herdcaller
 Crimson Hellkite
 Curious Killbot
+Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
+Davriel's Shadowfugue
 Dawnhart Geist
 Daxos's Torment
 Death Frenzy
@@ -70,10 +93,12 @@ Doomskar
 Dreadmalkin
 Dromoka Monument
 Drumhunter
+Duskworker
 Earthlink
 Elemental Summoning
 Ellyn Harbreeze, Busybody
 Elvish Handservant
+Embraal Gear-Smasher
 Empty City Ruse
 Endless Cockroaches
 Entish Restoration
@@ -82,6 +107,7 @@ Etherium Abomination
 Exuberant Wolfbear
 Eyeblight's Ending
 Fallen Ferromancer
+False Mourning
 Fangren Hunter
 Farfinder
 Farmstead
@@ -90,7 +116,9 @@ Fell Flagship
 Filigree Crawler
 Filigree Fracture
 Fire Whip
+Fireblade Artist
 Fires of Victory
+Firewing Phoenix
 Fleetwheel Cruiser
 Font of Progress
 Force of Vigor
@@ -101,8 +129,10 @@ Frontier Mastodon
 Furious Assault
 Garruk, Caller of Beasts
 Genestealer Locus
+Ghost-Lit Raider
 Gift of Granite
 Gift of Wrath
+Glistening Extractor
 Gobbling Ooze
 Goblin Artillery
 Goblin Cadets
@@ -116,12 +146,16 @@ Gravel-Hide Goblin
 Grimdancer
 Grisly Spectacle
 Grovetender Druids
+Guardian Seraph
 Hanabi Blast
 Harsh Scrutiny
 Hatchery Spider
 Hawkeye, Trick Shot
+Heartless Pillage
 Hellcarver Demon
 Henge of Ramos
+Heron's Grace Champion
+High Score
 Hog-Monkey Rampage
 Howlpack Wolf
 Huatli's Raptor
@@ -132,40 +166,53 @@ Ifh-Bíff Efreet
 Ihsan's Shade
 Imaginary Friends
 Implode
+Incremental Blight
 Incubation Sac
 Indicate
+Infected Vermin
 Infuriate
 Insatiable Gorgers
 Iridescent Angel
 Irradiate
 Irregular Cohort
 Island
+It That Heralds the End
 Izzet Chronarch
+Jade Guardian
 Jagwasp Swarm
 Jon Irenicus, the Exile
 Just the Wind
+K-9, Mark I
+Kaleidoscorch
 Karn's Bastion
 Kessig Wolfrider
 Kjeldoran Pride
 Klothys's Design
+Kor Duelist
 Koth's Courier
 Kranioceros
 Krosan Archer
 Leech Gauntlet
+Legacy Weapon
 Liliana's Scorn
 Lingering Phantom
 Llawan, Cephalid Empress
+Lumbering Satyr
 Magma Sliver
 Makindi Aeronaut
 Mana Prism
 Manor Gate
 Mardu Outrider
 Maulfist Doorbuster
+Maximize Velocity
 Mending Touch
 Merfolk Observer
 Merfolk of the Depths
+Meriadoc Brandybuck
 Mesa Unicorn
 Metathran Soldier
+Mindeye Drake
+Minotaur Illusionist
 Mirkwood Channeler
 Moira, Urborg Haunt
 Molten Rebuke
@@ -173,6 +220,7 @@ Monastery Flock
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
+Mysterious Tome
 Najal, the Storm Runner
 Narstad Scrapper
 Needlepeak Spider
@@ -191,22 +239,28 @@ Outbreak
 Overwhelming Denial
 Panic Attack
 Patriarch's Desire
+Peel from Reality
 Pegasus Courser
 Peppersmoke
 Phalanx Vanguard
 Phantom Warrior
+Pharika's Libation
 Phyresis
 Phyrexian Archivist
 Pianna, Nomad Captain
 Pillar Tombs of Aku
+Pincer Spider
 Plague Rats
 Plains
 Planar Atlas
 Plated Spider
+Possessed Centaur
 Pouncing Lynx
+Power Sink
 Predict
 Press for Answers
 Primordial Sage
+Prince Imrahil the Fair
 Prismari Apprentice
 Protector of Gondor
 Pygmy Troll
@@ -225,7 +279,10 @@ Resounding Silence
 Returned Pastcaller
 Reverberate
 Rhonas's Monument
+Rhovanion Rampager
 Rhystic Study
+Riders of Rohan
+Roc Egg
 Rocco, Cabaretti Caterer
 Safe Haven
 Safehold Sentry
@@ -234,11 +291,13 @@ Sandstorm
 Savage Silhouette
 Scarlet Witch, Wanda Maximoff
 Secrets of the Golden City
+Selesnya Locket
 Sengir Autocrat
 Shabraz, the Skyshark
 Shaman of the Pack
 Shaper Apprentice
 Shapeshifter
+Shatterskull Recruit
 Sheltering Light
 Shoreline Ranger
 Sigardian Priest
@@ -246,6 +305,7 @@ Sigiled Paladin
 Silverquill Campus
 Sip of Hemlock
 Skirk Commando
+Skittering Crustacean
 Skull Raid
 Sky-Blessed Samurai
 Skyship Stalker
@@ -255,8 +315,10 @@ Slith Firewalker
 Slobad, Goblin Tinkerer
 Smogsteed Rider
 Solitary Defiance
+Songbird, Sonic Screamer
 Sootfeather Flock
 Soul Snuffers
+Soul's Majesty
 Spiketail Drake
 Spitting Drake
 Spotter Thopter
@@ -269,27 +331,36 @@ Steppe Lynx
 Stitched Mangler
 Stonewood Invocation
 Stream of Consciousness
+Strongarm Monk
 Stun Sniper
 Stupor
 Summon the School
 Summon: Good King Mog XII
 Sunweb
+Surge of Righteousness
+Survivor of Korlis
 Sutina, Speaker of the Tajuru
 Swamp
 Swordwise Centaur
+Syndicate Messenger
 Syphon Life
 Talon Gates of Madara
 Tarfire
 Tavern Swindler
 Teardrop Kami
+Tectonic Rift
 Teetering Peaks
 Tempest Owl
 Temporal Eddy
 Tenth District Veteran
+Teroh's Faithful
 Thalakos Sentry
 Thanos, Death's Consort
+Thassa's Rebuff
 The Falcon, Airship Restored
+The Great Juggernaut
 Thistledown Duo
+Thornscape Apprentice
 Thran Quarry
 Timber Protector
 Timeless Lotus
@@ -297,6 +368,7 @@ Tin Street Cadet
 Titans' Vanguard
 Tooth of Chiss-Goria
 Towering Viewpoint
+Town Gossipmonger
 Trading Post
 Trigon of Thought
 Twincast
@@ -308,6 +380,7 @@ Verdant Rebirth
 Vexing Bauble
 Viashino Runner
 Viridian Corrupter
+Viscerid Deepwalker
 Vivid Crag
 Vizier of the Scorpion
 Volatile Rig
@@ -317,6 +390,7 @@ Wakandan Tusker
 Walking Skyscraper
 Wall of Limbs
 War Chariot
+Ward Sliver
 Watchful Giant
 Waterlogged Teachings
 Wave of Terror
@@ -333,5 +407,6 @@ Wretched Anurid
 Wrong Turn
 Wu Longbowman
 Yeva's Forcemage
+Yomiji, Who Bars the Way
 Yore-Tiller Nephilim
 Zulaport Duelist
