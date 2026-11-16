@@ -1621,6 +1621,13 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 	if ps.is("NoReveal", "True") && !has("RememberPeeked") && !has("RevealOptional") && !has("RevealValid") {
 		// the bare look that remembers nothing (Mishra's Bauble): gorge's
 		// look_ack when the library holds a card, no other effect
+		if who.Kind == rEachPlayer {
+			// each player's library is its own look_ack, the controller's
+			// first, then the opponent (gorge's AliveFrom(controller) order; Case the
+			// Joint): OpLookAck reads one player
+			lc.emit(lInstr{Op: "LookAck", Obj: lRef{Kind: rYou}, A: n, CS: "Library"})
+			who = lRef{Kind: rEachOpp}
+		}
 		lc.emit(lInstr{Op: "LookAck", Obj: who, A: n, CS: "Library"})
 		return nil
 	}
@@ -3610,12 +3617,21 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		obj = lRef{Kind: rRemembered}
 	case ro == "RememberedLKI":
 		// the delayed record holds one object (kernel dprog/delayed): a
-		// target slot taking several would return only the first
+		// target slot taking several, or a remembered set one unbounded
+		// ChangeZoneAll Remember sweep wrote, would return only the first
 		if lc.delayedLKIMulti() {
 			// a set of several objects: the kernel's DpMany program, for the
 			// one shape it returns exactly (lower_delayedlkimany.go)
 			if why := lc.delayedLKIManyShape(exec); why != "" {
 				return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+			}
+			lkiMany = true
+		} else if lc.delayedLKISweepMulti() {
+			// the whole set is one ChangeZoneAll RememberChanged$ sweep's
+			// (Planar Guide's "Exile all creatures"): the same DpMany
+			// program, one body shape (lower_delayedlkimany.go)
+			if why := delayedLKIReturnBody(exec); why != "" {
+				return refuse("delayed trigger RememberedLKI over a ChangeZoneAll sweep: %s", why)
 			}
 			lkiMany = true
 		}

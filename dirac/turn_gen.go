@@ -992,6 +992,10 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 }
 
 func (s *State) genAskOptions(k *prep, d *Decision) bool {
+	if s.dredgeTurnAsked() {
+		s.dredgeOptions(k, s.active, d) // kw_dredge.go
+		return true
+	}
 	if s.g.untapOn && s.g.untapAns == 0 {
 		s.untapAskOptions(d)
 		return true
@@ -1085,6 +1089,10 @@ func (s *State) popAsk() {
 }
 
 func (s *State) applyGen(k *prep, a Action) {
+	if s.dredgeTurnAsked() {
+		s.dredgeTurnAnswer(k, a) // kw_dredge.go
+		return
+	}
 	if s.g.untapOn && s.g.untapAns == 0 {
 		s.untapAnswer(a)
 		return

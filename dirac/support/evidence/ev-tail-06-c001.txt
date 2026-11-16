@@ -17,6 +17,7 @@ Atomize
 Augur of Skulls
 Awaken the Sky Tyrant
 Azorius Chancery
+Balm of Restoration
 Bandage
 Barbary Apes
 Barl's Cage
@@ -55,6 +56,7 @@ Dawnhart Wardens
 Deathbloom Gardener
 Deb Thomas
 Decree of Savagery
+Dramatic Entrance
 Dream Trawler
 Dreamdrinker Vampire
 Drizzt Do'Urden
@@ -120,6 +122,7 @@ Long Road Home
 Lost Soul
 Loxodon Warhammer
 Luminous Angel
+Magnetic Mine
 Magus of the Bridge
 Mammoth Spider
 Manor Skeleton
@@ -170,6 +173,7 @@ Sailors' Bane
 Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sarkhan's Triumph
+Scaled Behemoth
 Sentinel's Mark
 Seraph of the Masses
 Servant of Volrath

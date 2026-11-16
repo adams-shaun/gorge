@@ -188,6 +188,7 @@ Guul Draz Mucklord
 Haazda Officer
 Harbinger of Night
 Hardened Scales
+Harmless Assault
 Harpoon Sniper
 Herd Gnarr
 Herd Migration
@@ -205,6 +206,7 @@ Imaginary Pet
 Immortal Phoenix
 Incarnation Technique
 Incisor Steed
+Inspire Awe
 Island
 Jace's Erasure
 Jade Idol
