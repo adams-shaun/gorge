@@ -323,10 +323,40 @@ func (s *State) ownManaUsable(k *prep, sl Slot) bool {
 		return pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly) && !s.genLost(k, sl)
 	}
 	pc := &k.cards[c]
-	if !(pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly) || k.gen.flags[c]&gfManaVar != 0) {
+	if !(pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly) || k.gen.flags[c]&gfManaVar != 0) || k.gen.flags[c]&gfManaVar != 0 && s.varManaEmpty(k, sl, c) {
 		return false
 	}
 	return !s.genLost(k, sl)
+}
+
+// varManaEmpty reports whether c's own variable mana ability makes no mana
+// at sl now: a reflected source reading no colour (Hidden Hideout's "one mana
+// of any color in your commander's color identity" with no commander; CR
+// 903.4 reads nothing, not colourless) or a plain dynamic amount of 0. Such a
+// source has no own ability to be the planner's, so a mana ability an Aura
+// grants it is its only unit (CR 605.1a), as gorge lists it. A gate, pair,
+// split or chosen-colour source keeps its own view.
+func (s *State) varManaEmpty(k *prep, sl Slot, c CardID) bool {
+	g := k.gen
+	vi := g.manaVar(c)
+	if vi < 0 || g.flags[c]&(gfManaGate|gfManaDynPair) != 0 || g.anyCondSplit && g.splitAb(c) >= 0 {
+		return false
+	}
+	if g.flags[c]&gfManaRefl != 0 {
+		return g.varPC[int(vi)+int(s.reflColours(k, sl, c))].manaAb < 0
+	}
+	cd := &k.t.Cards[c]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind != kop.AbMana {
+			continue
+		}
+		if a.AFlags&kop.AfManaChosen != 0 {
+			return false
+		}
+		return g.varPC[int(vi)+min(max(s.dynManaN(k, a, sl), 0), maxDynMana)].manaAb < 0
+	}
+	return false
 }
 
 // windowGrantMask is the colours of the mana abilities effects grant sl,
