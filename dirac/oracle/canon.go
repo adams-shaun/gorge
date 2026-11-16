@@ -399,6 +399,11 @@ func cumulativeKindAlias(kind string) string {
 		return "trigger_cost_" + strings.TrimPrefix(kind, "echo_")
 	case "echo_sac":
 		return "trigger_cost_decline"
+	case "cumulative_action_sac", "cumulative_action_discard":
+		// the choose-exactly-N permanents or cards a sacrifice or discard
+		// cumulative upkeep pays: the kernel poses the same pick an action
+		// echo cost does (dirac/interp_ask.go echoActionPick)
+		return "echo_action_pick"
 	}
 	return kind
 }

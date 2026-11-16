@@ -1,3 +1,4 @@
+A Killer Among Us
 Absolving Lammasu
 Aftermath Analyst
 Agency Coroner
@@ -28,6 +29,7 @@ Case of the Crimson Pulse
 Case of the Filched Falcon
 Case of the Gateway Express
 Case of the Gorgon's Kiss
+Case of the Shattered Pact
 Case of the Stashed Skeleton
 Case of the Trampled Garden
 Case of the Uneaten Feast

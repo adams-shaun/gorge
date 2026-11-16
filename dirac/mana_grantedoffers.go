@@ -653,6 +653,9 @@ type grantSrch struct {
 	// wide: the candidate is a wide second-ability gap (Hermitic Herbalist),
 	// a census gap of gorge's beside the grants (mana_grantwide.go)
 	wide [MaxPerm]bool
+	// store: the candidate is a storage battery (Mercadian Bazaar), a census
+	// gap of gorge's beside the grants (mana_grantstore.go)
+	store [MaxPerm]bool
 	// gap: the candidate is a census gap. Non-gap sources join the search only
 	// to fund a paid gap's fee, as many as funding allows (gorge
 	// scriptSearch.funding: census.fees()).
@@ -766,6 +769,7 @@ func (g *grantSrch) candidates(s *State) {
 	wm := s.wideGaps(g.k, g.p)   // (mana_grantwide.go)
 
 	xm := s.tapsDeferGrantGaps(g.k, g.p, &g.d) // (mana_granttapsdefer.go)
+	sm := s.grantStoreGaps(g.k, g.p)           // (mana_grantstore.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -776,7 +780,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !sm.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -791,7 +795,7 @@ func (g *grantSrch) candidates(s *State) {
 			dropped = dropped.with(sl) // (nor a funding source: it makes no mana the play spends)
 			continue
 		}
-		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm)
+		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, sm)
 		g.gap[g.n] = true
 		if fm.has(sl) {
 			g.funding += s.filtFee(g.k, sl)
@@ -830,7 +834,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
-		g.each[g.n], g.wide[g.n], g.tdef[g.n] = false, false, false
+		g.each[g.n], g.wide[g.n], g.tdef[g.n], g.store[g.n] = false, false, false, false
 		g.gap[g.n] = false
 		g.n++
 	}
@@ -840,17 +844,21 @@ func (g *grantSrch) candidates(s *State) {
 // search's candidates lists: the kinds exclude the later ones, so a source
 // with several gap kinds branches as the first that matches. A holder of a
 // granted ability (ng > 0) branches on the grant side.
-func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm slotMask) {
+func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm, sm slotMask) {
 	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
 	if ng > 0 {
 		g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
-		g.each[n], g.wide[n], g.tdef[n] = false, false, false
+		g.each[n], g.wide[n], g.tdef[n], g.store[n] = false, false, false, false
 		return
 	}
 	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
-	g.each[n], g.wide[n], g.tdef[n] = false, false, false
+	g.each[n], g.wide[n], g.tdef[n], g.store[n] = false, false, false, false
 	if dm.has(sl) {
 		g.def[n] = true // (mana_grantdeferred.go)
+		return
+	}
+	if sm.has(sl) && !fm.has(sl) && !tm.has(sl) {
+		g.store[n] = true // (mana_grantstore.go)
 		return
 	}
 	switch {
@@ -915,6 +923,8 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		return g.deferBranch(t, i, sl), true // its plain {R} (mana_grantdeferred.go)
 	case g.tdef[i]:
 		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
+	case g.store[i]:
+		return g.storeBranch(t, i, sl), true // every counter it holds (mana_grantstore.go)
 	}
 	return false, false
 }
@@ -926,7 +936,7 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 // mana_granttapsdefer.go).
 func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 	return s.deferBesideGrant(k, p) || s.eachBesideGrant(k, p) || s.wideBesideGrant(k, p) ||
-		s.tdBesideGrant(k, p)
+		s.tdBesideGrant(k, p) || s.storeBesideGrant(k, p)
 }
 
 // visit is one payer priority of the search on working copy t: the play
@@ -1682,6 +1692,13 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			continue
 		case stepDeferred:
 			s.deferApply(k, g.p, sl) // (mana_grantdeferred.go)
+			if g.tapTriggers(s, sl) {
+				passed = true
+				s.tapXNext(g.p, &d)
+			}
+			continue
+		case stepStore:
+			s.storeGap(k, g.p, sl, k.ctrAbOf(s.cardAt(sl))) // (mana_grantstore.go)
 			if g.tapTriggers(s, sl) {
 				passed = true
 				s.tapXNext(g.p, &d)

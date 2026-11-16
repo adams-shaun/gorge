@@ -1,0 +1,302 @@
+A-Briar Hydra
+A-Galvanic Discharge
+A-Skemfar Elderhall
+A-Urza's Command
+Adaptive Omnitool
+Aerial Volley
+Agoraphobia
+Ambition's Cost
+April O'Neil, Human Element
+Asha's Favor
+Aven Cloudchaser
+Aven Eternal
+Awaken the Bear
+Azorius Signet
+Balduvian Barbarians
+Barbed Shocker
+Battle Mastery
+Befoul
+Bellowing Elk
+Benevolent Blessing
+Bessie, the Doctor's Roadster
+Bituminous Blast
+Bladebrand
+Blood-Toll Harpy
+Bloodcrusher of Khorne
+Bloodfire Dwarf
+Bloodrage Brawler
+Blue Elemental Blast
+Body of Knowledge
+Bojuka Brigand
+Bond of Passion
+Boom
+Boompile
+Boros Elite
+Branchloft Pathway
+Breath of Darigaaz
+Bred for the Hunt
+Bronze Walrus
+Bronzeplate Boar
+Bugenhagen, Wise Elder
+Calming Verse
+Capital Guard
+Cast into the Fire
+Caustic Hound
+Champion Lancer
+Charcoal Diamond
+Citizen V, Helmut Zemo
+Claim the Firstborn
+Cloakwood Hermit
+Cloudseeder
+Compleated Huntmaster
+Conjurer's Mantle
+Conqueror's Flail
+Contaminated Aquifer
+Contentious Plan
+Crooked Custodian
+Crossover Collaboration
+Crosswinds
+Cryptbreaker
+Cunning Advisor
+Dagger Caster
+Daring Piracy
+Dark Favor
+Dawn of Hope
+Demonic Dread
+Devastation Tide
+Didgeridoo
+Die Young
+Dire Wolf Prowler
+Dissipate
+Dragon Engine
+Dragon Mask
+Draugr's Helm
+Drumbellower
+Dwarven Nomad
+Déjà Vu
+Emerald Medallion
+Emrakul's Hatcher
+Enthralling Victor
+Etched Familiar
+Ether Well
+Exultant Skymarcher
+Ezuri, Claw of Progress
+Falconer Adept
+Fallaji Archaeologist
+Fallow Earth
+Feral Instinct
+Fervent Denial
+Filigree Familiar
+Firebreathing
+Flame Discharge
+Flame Sweep
+Flameblade Adept
+Flare
+Flicker
+Fodder Cannon
+Forest
+Foul Play
+Frostling
+Galerider Sliver
+General Leo Cristophe
+Giant Mantis
+Giant Scorpion
+Glade Watcher
+Glass of the Guildpact
+Gleeful Arsonist
+Glimmerpost
+Glimpse of Nature
+Goblin Bully
+Goblin Burrows
+Goblin Warchief
+Golgari Rotwurm
+Gore Swine
+Grafted Wargear
+Grim Return
+Grove of the Guardian
+Hammerhead Shark
+Heirs of Stromkirk
+Highland Lake
+Hinterland Drake
+Howling Giant
+Howling Moon
+Imperial Lancer
+Inferno Project
+Infinity Formula
+Innocent Traveler
+Inordinate Rage
+Inventor's Axe
+Iron Lad, Young Avenger
+Island
+Jace's Sentinel
+Jodah's Codex
+Johnny, Combo Player
+Join the Maestros
+Kazandu Refuge
+Kitesail Skirmisher
+Knight of Dusk's Shadow
+Krovikan Fetish
+Lava Hounds
+Lavaborn Muse
+Lightning Runner
+Llanowar Augur
+Loam Dryad
+Lookout's Dispersal
+Lord of the Pit
+Mage-Ring Bully
+Malevolent Whispers
+Malicious Intent
+Masked Blackguard
+Mephitic Vapors
+Merchant of the Vale
+Mesmerizing Dose
+Michiko Konda, Truth Seeker
+Militia Rallier
+Mogg War Marshal
+Moodmark Painter
+Mortarpod
+Mountain
+Mox Jet
+Multani's Decree
+Necrotic Wound
+Niblis of Dusk
+Nightfire Giant
+Nim Lasher
+Noosegraf Mob
+Nulldrifter
+Ochre Jelly
+Odious Trow
+Ogre Arsonist
+Oracle of Tragedy
+Ornithopter
+Painsmith
+Patron of the Arts
+Patron of the Vein
+Peace of Mind
+Peema Outrider
+Penance Stare
+Penumbra Spider
+Pillar of War
+Pirate's Prize
+Pitiless Vizier
+Plains
+Plated Onslaught
+Portable Hole
+Prologue to Phyresis
+Protomatter Powder
+Psychic Spiral
+Psychotic Haze
+Pyretic Charge
+Pyroceratops
+Quandrix Campus
+Quilled Sliver
+Raging Minotaur
+Raphael, the Muscle
+Raptor Companion
+Reef Shaman
+Relentless Assault
+Remand
+Renegade Tactics
+Resolute Archangel
+Resupply
+Rite of the Raging Storm
+Rootwire Amalgam
+Rush of Inspiration
+Rusted Sentinel
+Sabertooth Wyvern
+Sacred Guide
+Sage-Eye Avengers
+Said
+Sandstorm Eidolon
+Sanguine Guard
+Savage Offensive
+Sawblade Slinger
+Scrapskin Drake
+Seller of Songbirds
+Sentinel
+Separatist Voidmage
+Sergeant-at-Arms
+Serpentine Kavu
+Serrated Scorpion
+Setessan Griffin
+Shadowfeed
+Shimmerdrift Vale
+Shriekdiver
+Shrink
+Silverbeak Griffin
+Simian Grunts
+Skarrgan Pit-Skulk
+Skirk Prospector
+Skyline Cascade
+Slith Strider
+Slumbering Dragon
+Solidarity
+Soratami Cloudskater
+Soul Rend
+Soul's Might
+Soulstealer Axe
+Spawn-Gang Commander
+Spell Swindle
+Spellbound Dragon
+Sphere of Resistance
+Spiteful Prankster
+Split-Tail Miko
+Sprouting Goblin
+Squee, Goblin Nabob
+Stampede
+Steadfastness
+Stingscourger
+Summon Undead
+Sundering Eruption
+Sunscape Master
+Svyelunite Priest
+Swamp
+Swarm Surge
+Tajuru Blightblade
+Take Inventory
+Taunting Elf
+Taunting Sliver
+Tavern Brawler
+Telethopter
+Tenured Oilcaster
+The Fair Basilica
+The Frightful Four
+The Juzam Master
+The Reaver Cleaver
+Thirst
+Thoughtrender Lamia
+Tibalt, the Fiend-Blooded
+Time of Need
+Topiary Stomper
+Torch Courier
+Treva's Ruins
+Tuktuk Scrapper
+Tyrant's Machine
+Ulvenwald Observer
+Unchained Berserker
+Unifying Theory
+Unlicensed Hearse
+Vandalize
+Vault Skyward
+Vedalken Mesmerist
+Venomous Brutalizer
+Vicious Offering
+Village Rites
+Volley of Boulders
+Voltaic Construct
+Voltaic Whip
+Wall of Distortion
+Warlord's Fury
+Warped Landscape
+Watcher in the Mist
+Westvale Abbey
+Whirlwind
+White Dragon
+Wight of the Reliquary
+Wily Goblin
+Windrider Patrol
+Winged Portent
+Xathrid Necromancer
+Young Pyromancer
+Zamriel, Seraph of Steel
+Zuri, Warrior of Wakanda

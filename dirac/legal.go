@@ -168,7 +168,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// (kw_teamwork.go): either may be castable alone
 			tgtOK, twOK = s.teamworkTargets(k, c, p)
 		} else {
-			tgtOK = s.spellTargetsFeasible(k, c, p)
+			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
 			continue
@@ -654,7 +654,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 			pc = s.manaPCGen(k, sl)
 		}
 		s.removeSrc(k, &av2, sl, pc)
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
+		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -672,7 +672,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -1161,6 +1161,9 @@ func spellAb(k *prep, c CardID) uint8 {
 // graveyard has no target and is not offered.
 func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
 	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
+		if z == kop.ZoneHand {
+			return s.spellTargetsFeasibleHand(k, c, p, o) // cast_handleaves.go
+		}
 		return s.spellTargetsFeasible(k, c, p)
 	}
 	s.g.tgtSelf = o + 1
