@@ -241,6 +241,13 @@ func (s *State) scriptTapsDeferWalk(k *prep, p uint8, arms deferArm) slotMask {
 		if !s.planDeferred(k, p, sl) {
 			continue
 		}
+		if arms == deferArmPlain && s.riderDeferred(k, sl) {
+			// a counter rider (Twitching Doll's nest counter) is a shape
+			// deferral gorge's tier classifier returns before it reads the
+			// watcher: "source:rider", no interference row, so the second
+			// pass (paymentPlanGapGate) never funds it
+			continue
+		}
 		if s.splitDeferred(k, sl) {
 			if arms != deferArmPlain && s.splitUsable(k, sl) {
 				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
