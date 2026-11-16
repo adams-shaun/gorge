@@ -122,6 +122,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
 	StallDredge,            // a draw path other than the turn draw or an OpDraw card meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
+	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
