@@ -1173,14 +1173,9 @@ ReplPrevToCreature	untyped int	4
 ReplPrevToSrcInPlay	untyped int	8
 ReplPrevToYourTurn	untyped int	1
 ReplPreventDamageCounters	ReplKind	36
-ReplPreventDamageFilt	ReplKind	64
-ReplPreventDamageN	ReplKind	65
-ReplPreventDamageToSelf	ReplKind	63
 ReplPreventMillOpps	ReplKind	34
 ReplPreventNoncombatToOthers	ReplKind	11
 ReplRewriteTokens	ReplKind	30
-ReplRollDice	ReplKind	46
-ReplRollPlanarDice	ReplKind	62
 ReplSPAllBut	untyped int	512
 ReplSPAmtV	untyped int	256
 ReplSPAnyPerm	untyped int	4
@@ -1195,7 +1190,6 @@ ReplSPSrcInPlay	untyped int	64
 ReplSPSrcSpell	untyped int	8192
 ReplSPYou	untyped int	1
 ReplSPYourTurn	untyped int	32
-ReplScry	ReplKind	54
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8

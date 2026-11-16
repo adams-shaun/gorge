@@ -1,6 +1,6 @@
 family: ReplKind
 name: ReplPreventDamageN
-value: next
+value: 65
 forge: DamageDone
 state: code 0
 status: active
