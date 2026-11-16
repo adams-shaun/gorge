@@ -753,10 +753,13 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
-			if !s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false) {
-				// Gorge's script search covers every census gap — granted units and
-				// tap-another-permanent gaps alike (CR 605.1a, 601.2g-h) — so the
-				// kernel drops the play only when neither route prices it.
+			if (!s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false)) && !s.scriptCtr(k, p).any() {
+				// Gorge's script search covers every census gap — granted units,
+				// tap-another-permanent gaps and counter-cost mana (Wall of Roots'
+				// counter beside Wrenn and Realmbreaker's grant) alike (CR 605.1a,
+				// 601.2g-h) — so the kernel drops the play only when no route
+				// prices it; a live counter-cost gap leaves the play to
+				// scriptOffers' counter-gap search (scriptDeadEnd).
 				d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 				// The play has had gorge's one prefix search (the grant search
 				// covers a grant board's filters with its grants,
