@@ -544,6 +544,43 @@ func lkiBearer(g *state.Game, o *state.Object) state.ObjID {
 	return o.LastBearer
 }
 
+// departedAuraBearer is the bearer Defined$ Enchanted/Equipped names for the
+// attachment o once it is off the battlefield, or 0.
+//
+// The source left the battlefield as a cost ("{5}, Sacrifice
+// this Aura: Exile enchanted creature"): the move fold cleared
+// AttachedTo but kept the pre-clear bearer as LastBearer, which
+// is the last-known-information read CR 608.2h asks for. The
+// fallback is only for a source that is OFF the battlefield: a
+// source still on the battlefield that is merely unattached (a
+// bearer that died, an Equipment returned unattached) has no
+// "enchanted/equipped creature" and must resolve to nothing,
+// never to a stale LastBearer (CR 400.7: the returned permanent
+// is a new object).
+//
+// The bearer must also be the same object the Aura left: a
+// bearer that was flickered after the Aura attached re-entered
+// with an entry Timestamp newer than the Aura's attach stamp
+// (LayerStamp survives the Aura's departure), so the id now names
+// a new object (CR 400.7) and the Aura's LKI bearer no longer
+// exists (CR 608.2h).
+//
+// A bearer that is itself off the battlefield (it died or was
+// exiled, which is why the Aura left) is not "enchanted
+// creature" either: the card now in the graveyard or exile is a
+// new object (CR 400.7), so a trigger such as Sadistic Glee's
+// "whenever a creature dies, put a +1/+1 counter on enchanted
+// creature" does nothing for it (CR 608.2h).
+func departedAuraBearer(g *state.Game, o *state.Object) state.ObjID {
+	if o.Zone == state.ZBattlefield || lkiBearer(g, o) == 0 {
+		return 0
+	}
+	if b := g.Obj(o.LastBearer); b == nil || b.Zone != state.ZBattlefield {
+		return 0
+	}
+	return o.LastBearer
+}
+
 // attachedByDefinedSelector resolves the prefix `AttachedBy <referent>`
 // selector (Krasis Incubation's `Defined$ AttachedBy Returned`, Parallax
 // Dementia's `AttachedBy TriggeredCardLKICopy`): for each object the referent
@@ -1706,25 +1743,10 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			if o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil {
 				return []state.Target{{Obj: o.AttachedTo}}, true
 			}
-			// The source left the battlefield as a cost ("{5}, Sacrifice
-			// this Aura: Exile enchanted creature"): the move fold cleared
-			// AttachedTo but kept the pre-clear bearer as LastBearer, which
-			// is the last-known-information read CR 608.2h asks for. The
-			// fallback is only for a source that is OFF the battlefield: a
-			// source still on the battlefield that is merely unattached (a
-			// bearer that died, an Equipment returned unattached) has no
-			// "enchanted/equipped creature" and must resolve to nothing,
-			// never to a stale LastBearer (CR 400.7: the returned permanent
-			// is a new object).
-			//
-			// The bearer must also be the same object the Aura left: a
-			// bearer that was flickered after the Aura attached re-entered
-			// with an entry Timestamp newer than the Aura's attach stamp
-			// (LayerStamp survives the Aura's departure), so the id now names
-			// a new object (CR 400.7) and the Aura's LKI bearer no longer
-			// exists (CR 608.2h).
-			if o.Zone != state.ZBattlefield && lkiBearer(g, o) != 0 {
-				return []state.Target{{Obj: o.LastBearer}}, true
+			// The Aura left the battlefield: its LKI bearer, if that is still the same
+			// object on the battlefield (see departedAuraBearer).
+			if b := departedAuraBearer(g, o); b != 0 {
+				return []state.Target{{Obj: b}}, true
 			}
 		}
 		return nil, true
