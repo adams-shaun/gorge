@@ -1,0 +1,20 @@
+# the MBC combat-1 pool: Bushido (Hand of Honor, Kitsune Blademaster, Samurai
+# of the Pale Curtain, Konda), a granted landwalk from Equipment (Trailblazer's
+# Boots, nonbasic landwalk) and from a Pump (Piracy Charm, islandwalk until
+# end of turn), for the oracle's constructed lockstep
+# (dirac/oracle/mbccombat1_test.go)
+Hand of Honor
+Kitsune Blademaster
+Samurai of the Pale Curtain
+Konda, Lord of Eiganjo
+Trailblazer's Boots
+Piracy Charm
+Grizzly Bears
+Hill Giant
+Hallowed Fountain
+Tranquil Cove
+Plains
+Island
+Swamp
+Mountain
+Forest
