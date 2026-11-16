@@ -1,34 +1,69 @@
 A-Radha, Coalition Warlord
+Abiding Grace
+Ancient Craving
+Angel of Fury
+Anje, Maid of Dishonor
+Apothecary Geist
+Argivian Avenger
+Arrester's Admonition
 Axebane Guardian
 Ayara, First of Locthwain
 Balustrade Spy
+Black Poplar Shaman
+Boros Swiftblade
+Carrion Imp
+Champion of the Flame
 Cloudkill
 Confront the Assault
 Crop Rotation
 Cunning Wish
+Cut Your Losses
+Dagger Caster
+Dawn Elemental
+Elvish Hexhunter
 Explosive Welcome
+Extortion
 Fain, the Broker
 Feign Death
 Flametongue Kavu
 Forest
 Gempalm Incinerator
+Granite Gargoyle
 Grazilaxx, Illithid Scholar
 Grizzly Fate
 Haunting Hymn
+Hexgold Halberd
 Hunger of the Howlpack
 Hydra's Growth
+Increasing Confusion
 Iron Suitcase
 Island
+Jace's Phantasm
+Janjeet Sentry
+Jeskai Barricade
 Ken, Burning Brawler
+Knight's Pledge
+Kyren Sniper
+Loyal Gyrfalcon
+Mana Tithe
+Marchesa's Infiltrator
 Mardu Banner
 Maze of Ith
 Mise
+Moriok Reaver
 Mountain
+Overflowing Insight
 Pentarch Ward
 Plains
 Radiant, Archangel
+Recantation
 Regrowth
+Rhox Veteran
+Risen Sanctuary
+Saberclaw Golem
 Sacred Rites
+Sacrifice
+Sage of Epityr
 Savage Gorger
 Scaled Wurm
 Scrapyard Salvo
@@ -36,26 +71,42 @@ Seeker of Skybreak
 Sentinel Sliver
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
+Shrine of Burning Rage
 Sick and Tired
 Slash the Ranks
 Slobad, Goblin Tinkerer
 Snuff Out
+Soltari Crusader
 Somnomancer
 Sootwalkers
 Soratami Mindsweeper
 Soul of Theros
+Spellskite
 Spike Worker
 Squee's Embrace
+Stonewood Invoker
+Strength-Testing Hammer
+Sudden Shock
+Sunastian Falconer
+Sunbeam Spellbomb
 Swamp
 Talons of Wildwood
 Territorial Allosaurus
 Territorial Baloth
 Thallid Devourer
+Thrashing Wumpus
 Throes of Chaos
+Torch Courier
+Torsten Von Ursus
+Tragic Poet
+Unyaro Bee Sting
 Urza's Cave
 Valeron Outlander
+Vedalken Plotter
 Vine Trellis
 Wall of Mist
+Wall of Souls
+Wanderlight Spirit
 Weight of the Underworld
 Welder Automaton
 Wing Splicer

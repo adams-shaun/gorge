@@ -1,48 +1,283 @@
 A-Dokuchi Silencer
 A-Elven Bow
+A-Eyes of the Beholder
+A-Rulik Mons, Warren Chief
+A-Umara Mystic
 Accelerated Evolution
+Aerial Assault
 Aethershield Artificer
+Against All Odds
+Akki Underminer
+Akrasan Squire
 Akroan Crusader
+Angelic Field Marshal
+Angelic Renewal
 Aquatic Incursion
+Archaeomender
+Augury Adept
+Autochthon Wurm
+Avatar of the Resolute
+Aven Trailblazer
+Awakener Druid
+Axebane Guardian
+Azimaet Drake
+Baneful Omen
+Barbarian Lunatic
+Biting Rain
+Blight Grenade
+Blight Sickle
 Blisterspit Gremlin
 Buried Alive
 Burn the Impure
+Burning Palm Efreet
+Burst of Speed
+Butcher Ghoul
+Cacophony Scamp
+Caldera Pyremaw
+Cao Cao, Lord of Wei
+Caravan Escort
+Chain Lightning
+Chakram Slinger
+Champion's Helm
 Cogwork Assembler
+Commissar Severina Raine
+Common Iguana
+Consuming Vapors
+Corpse Knight
+Corrupting Licid
+Corsairs of Umbar
 Cosmos Elixir
+Courier's Capsule
+Crackling Triton
+Crop Rotation
+Culling Mark
+Custodi Soulbinders
 Daring Fiendbonder
+Dauntless Survivor
+Death's-Head Buzzard
+Deathless Angel
+Deep Reconnaissance
 Deepwood Ghoul
+Deft Dismissal
 Demon's Grasp
 Demonic Rising
+Despise
+Dismantling Blow
+Domri, Anarch of Bolas
 Drag Down
+Dragon's Approach
+Dramatic Reversal
+Dynavolt Tower
+Earthen Goo
+Eidolon of Rhetoric
+Eivor, Battle-Ready
+Ekthi, Contaminator Priest
+Erratic Visionary
+Essence Feed
+Essence Warden
+Etched Oracle
+Eternal Witness
+Everglades
+Expansion
+Explosive Welcome
+Fain, the Broker
+Femeref Healer
+Firebird, Blazing Ranger
+Flametongue Kavu
+Flashfires
+Fleetfeather Sandals
+Fleshpulper Giant
+Floodhound
 Flow of Ideas
 Flux Channeler
+Fog of Gnats
 Forest
+Fungal Sprouting
+Furnace Celebration
+Genku, Future Shaper
+Glittermonger
 Glory Bearers
+Gluttonous Zombie
+Gnome-Made Engine
+Go Forth
+Goblin Glider
+Goblin Racketeer
+Golden Egg
+Golgari Raiders
+Grazilaxx, Illithid Scholar
+Grim Monolith
+Hadran, Naya Sunseeder
+Hail Storm
+Hanabi Blast
+Hanna, Ship's Navigator
+Helm of the Ghastlord
 Hemlock Vial
+Hidden Blade
+Honed Khopesh
+Hooting Mandrills
+Horizon Chimera
+Horseshoe Crab
 Hound of the Farbogs
+Hydra's Growth
+Implement of Ferocity
+Independent Troops
+Indigo Faerie
+Infernal Pet
+Infested Fleshcutter
+Inkrise Infiltrator
+Inspiring Refrain
+Irencrag Pyromancer
 Iroas's Champion
+Iron Suitcase
 Island
+Jackalope Herd
+Kaito Shizuki
+Keen-Eyed Raven
+Ken, Burning Brawler
+Khalni Gem
+Kirtar's Wrath
+Kiyomaro, First to Stand
+Knight of the Keep
+Knights of the Black Rose
+Kor Castigator
+Leafkin Druid
+Leather Armor
+Lightning Hounds
 Lightning Reaver
+Lightning-Core Excavator
 Liliana's Influence
+Lodestone Myr
+Longtusk Cub
+Lowland Oaf
+Lucas, the Sharpshooter
+Lush Growth
+MJ, Rising Star
 Malachite Talisman
 Manaforce Mace
+Manticore Eternal
 Mardu Strike Leader
+Metropolis Reformer
+Might Weaver
+Mirror of Galadriel
+Mise
+Misery's Shadow
+Mogg Sentry
 Mogis's Warhound
+Moonglove Changeling
+Moonlight Hunt
+Mortal's Ardor
+Moss Monster
+Mother of Runes
+Mothrider Patrol
 Mountain
+Mourning
+Murkfiend Liege
 Nagging Thoughts
+Natural Emergence
 Necrobite
+Nemesis of Reason
+Neurok Familiar
+Nezumi Bladeblesser
 Norn's Disassembly
+Oblation
+Obscura Initiate
+Onulet
+Organ Hoarder
+Orim's Touch
+Path of Anger's Flame
+Pentarch Ward
+Phyrexian Etchings
 Plains
+Pol Jamaar, Illusionist
+Preeminent Captain
+Primeval Force
 Prosper, Tome-Bound
+Prosperous Innkeeper
+Psychotrope Thallid
+Purifying Dragon
+Python
+Quest for Pure Flame
+Rage Weaver
+Rally to Battle
+Ravos, Soultender
+Ray of Erasure
+Reality Ripple
 Reckless Charge
+Reckless Handling
 Reduce to Ashes
+Relic Barrier
 Revelation of Power
 Rustrazor Butcher
+Samite Pilgrim
 Savra, Queen of the Golgari
+Scavenged Blade
+Scion of Vitu-Ghazi
 Searing Barb
+Searing Blood
+Sentinel Sliver
+Shake the Foundations
+Shore Keeper
+Simplify
+Skullknocker Ogre
+Sky Terror
 Slinking Giant
+Slobad, Goblin Tinkerer
+Sol Grail
+Soul of Theros
+Spined Fluke
+Squee's Embrace
+Steam Blast
+Stormcrag Elemental
+Stormrider Rig
+Streetbreaker Wurm
+Summon: Good King Mog XII
 Swamp
+Symmetry Sage
+Tactical Advantage
+Tale of Katara and Toph
+Talons of Falkenrath
+Talons of Wildwood
+Tawnos's Wand
+Temmet, Vizier of Naktamun
+Tenza, Godo's Maul
+Territorial Allosaurus
+The Bears of Littjara
+Thorn Thallid
+Throes of Chaos
+Thrór's Map
 Thunder Drake
+Thwart the Grave
+Titan Hunter
+Titan's Strength
+Topan Freeblade
+Tor Giant
 Tormod's Cryptkeeper
+Tranquil Path
+Transcendent Master
+Troublesome Spirit
+Trueheart Duelist
+Umbris, Fear Manifest
+Undercity Scavenger
+Unholy Hunger
+Urza's Cave
+Vampire Lacerator
+Venomcrawler
+Viashino Fangtail
+Vine Trellis
+Voldaren Stinger
+Walker of Secret Ways
 Warped Devotion
+Way of the Thief
+Weight of the Underworld
+Welder Automaton
+Well-Laid Plans
 Whispering Wizard
+Windgrace Acolyte
+Wirecat
+Woodland Liege
+Wrath of Oko
+You Look Upon the Tarrasque
+Young Blue Dragon
+Zenith Festival
+Zephyr Falcon
+Zodiac Ox

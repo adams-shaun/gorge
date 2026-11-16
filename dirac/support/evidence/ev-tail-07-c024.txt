@@ -1,18 +1,32 @@
 Azorius Herald
+Blind Zealot
+Boartusk Liege
 Decimator Web
 Desert
+Duskfang Mentor
 Emerge Unscathed
 Exuberant Fuseling
+Firebreathing
 Force Spike
 Forest
 Frogify
 Gamekeeper
+Gargantos, the Endbringer
+Ghost-Lit Nourisher
+Goblin Grenade
+Graceblade Artisan
+Gryff's Boon
+Headhunter
+Hunter's Prowess
+Iron League Steed
 Island
 Kor Celebrant
 Liliana's Mastery
 Majestic Metamorphosis
 Mogg Raider
 Mountain
+One with Death
+Pack's Disdain
 Plains
 Salvage
 Sheoldred's Edict
@@ -20,5 +34,7 @@ Speaker of the Heavens
 Sudden Spinnerets
 Supernatural Stamina
 Swamp
+Sweet-Gum Recluse
+Sylvan Bounty
 Taunting Kobold
 Wellwisher

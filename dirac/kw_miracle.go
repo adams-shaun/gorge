@@ -80,11 +80,23 @@ func (s *State) resolveMiracle(k *prep) {
 
 // miracleCastable: the owner can cast hand card o for its miracle cost
 // (gorge offerCastablePotential): the cost payable and every target slot
-// feasible.
+// feasible. Gorge prices the cost against its potential pool, an over-bound
+// (a source adds one unit of every colour it can make), so a combo land beside
+// an island still "pays" {3}{W} and the yes is offered; the cast then fails to
+// pay. The kernel prices the same bound (availPotentialFor) and so offers it.
 func (s *State) miracleCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].MiracleCost)
-	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost)) && s.spellTargetsFeasible(k, c, p)
+	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.miraclePotentialAffords(k, p, o, &cost)) && s.spellTargetsFeasible(k, c, p)
+}
+
+// miraclePotentialAffords: gorge's potential pool, priced for this spell (a
+// source whose spend restriction refuses it adds nothing), pays cost.
+func (s *State) miraclePotentialAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+	var pot avail
+	s.availPotentialFor(k, p, &pot, &spell)
+	return pot.affords(cost, pipMaskOf(cost), 0)
 }
 
 // miracleAskOptions builds the resolution ask's options.

@@ -31,9 +31,17 @@ const (
 	// TailUnloweredFile lists the non-Standard corpus names no tail bucket holds,
 	// because kgen does not lower them.
 	TailUnloweredFile = "tail-unlowered.txt"
-	// TailBucket is how many cards a tail pool holds. It keeps tables under the
+	// TailBucket is how many cards a tail pool holds on average (TailBucketCount sizes
+	// the cut; a bucket varies around it). It keeps tables under the
 	// limit on a table's subtypes, which refuses a big enough list outright.
 	TailBucket = 250
+	// TailBucketCount is how many tail pools there are: ceil(lowered tail cards /
+	// TailBucket), measured on land by `make dirac-tables` (19,056 lowered cards
+	// -> tail-00 .. tail-76 = 77 pools, the last holding 56). It is fixed rather than derived so that a
+	// card's pool is a function of its name alone: derived from the card count,
+	// every newly lowered card would eventually change it and move every card.
+	// Raise it deliberately, in its own change, when buckets near the table limit.
+	TailBucketCount = 77
 	// DraftSplitCards is the most cards a draft pool's table holds: a longer
 	// draft list splits by hash (dr-mbc-aaaa ...). A split passes its evidence
 	// run only when every one of its games is clean, so one divergent card holds
@@ -67,29 +75,27 @@ func IsSynthName(name string) bool {
 	return strings.HasPrefix(name, "std-") || strings.HasPrefix(name, SynthDraftPrefix) || strings.HasPrefix(name, "tail-")
 }
 
-// TailBuckets cuts names into runs of TailBucket in hash order, breaking a hash tie
-// by name. Each bucket comes back sorted by name.
+// TailBuckets deals names into TailBucketCount buckets by each name's own hash
+// (SynthNameHash mod TailBucketCount), so a card's bucket never depends on which
+// other cards are lowered: lowering or unlowering one card moves only that card.
+// It always returns TailBucketCount buckets, in bucket order; one that no name
+// hashes to is empty, and the caller skips it. Each bucket comes back sorted by name.
 func TailBuckets(names []string) [][]string {
-	sorted := slices.Clone(names)
-	slices.SortFunc(sorted, func(a, b string) int {
-		ha, hb := SynthNameHash(a), SynthNameHash(b)
-		switch {
-		case ha < hb:
-			return -1
-		case ha > hb:
-			return 1
-		}
-		return strings.Compare(a, b)
-	})
-	var out [][]string
-	for len(sorted) > 0 {
-		n := min(TailBucket, len(sorted))
-		bucket := sorted[:n:n]
-		slices.Sort(bucket)
-		out = append(out, bucket)
-		sorted = sorted[n:]
+	out := make([][]string, TailBucketCount)
+	for _, n := range names {
+		i := TailBucketOf(n)
+		out[i] = append(out[i], n)
+	}
+	for _, b := range out {
+		slices.Sort(b)
 	}
 	return out
+}
+
+// TailBucketOf is the tail bucket a lowered card name belongs to, a function of the
+// name alone.
+func TailBucketOf(name string) int {
+	return int(SynthNameHash(name) % TailBucketCount)
 }
 
 // SplitByHash divides names in two on one bit of their hash, keeping their order. It

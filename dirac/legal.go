@@ -168,7 +168,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// (kw_teamwork.go): either may be castable alone
 			tgtOK, twOK = s.teamworkTargets(k, c, p)
 		} else {
-			tgtOK = s.spellTargetsFeasible(k, c, p)
+			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
 			continue
@@ -520,9 +520,12 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if a.Cost.Flags&kop.CostSacSelf != 0 && s.sacBlocked(k, sl) {
 		return false // a self-sacrifice its source can't pay (static_cantsacrifice.go)
 	}
-	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
+	if s.castHeldOut(p.obj) {
 		// gorge holds a card's activation out after its second no-progress
-		// abort in a row (cast_commit.go abortCast, CR 733.2)
+		// abort in a row (cast_commit.go abortCast, CR 733.2), on every
+		// table: not only beside a waterbend card or an X-bound ability, the
+		// families whose reversal the hold-out used to be read beside
+		// (cast.go's push arm now captures bflNoProg for every activation)
 		return false
 	}
 	f := a.Cost.Flags
@@ -654,7 +657,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 			pc = s.manaPCGen(k, sl)
 		}
 		s.removeSrc(k, &av2, sl, pc)
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
+		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -672,7 +675,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -1161,6 +1164,9 @@ func spellAb(k *prep, c CardID) uint8 {
 // graveyard has no target and is not offered.
 func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
 	if z := s.objs[o].zone; z != kop.ZoneGraveyard && z != kop.ZoneExile {
+		if z == kop.ZoneHand {
+			return s.spellTargetsFeasibleHand(k, c, p, o) // cast_handleaves.go
+		}
 		return s.spellTargetsFeasible(k, c, p)
 	}
 	s.g.tgtSelf = o + 1
@@ -1210,8 +1216,8 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]
-		if t.UpTo || t.TFlags&kop.TgfAtResolution != 0 {
-			continue
+		if t.UpTo || t.TFlags&kop.TgfAtResolution != 0 || slotNoneUnkicked(t) {
+			continue // (a kicked-only slot takes no object in the cast this gate prices: Tear Asunder's nonland permanent, CR 601.2c)
 		}
 		if t.TFlags&kop.TgfGiftRange != 0 {
 			return s.giftTargetsFeasible(k, a, p, src)
@@ -1337,7 +1343,11 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		}
 		return s.matchPerm(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
 	case kop.TgtSpell:
-		if ob.zone != kop.ZoneStack || o == self {
+		if ob.zone != kop.ZoneStack || o == self || o+1 == s.g.tgtSelf {
+			// CR 115.5: a spell on the stack is an illegal target for itself;
+			// tgtSelf names the spell being built whose feasibility sweep runs
+			// after its push, the cast card gorge's targetSAAvailable excludes
+			// (xask_self_spell_target: the cmcEQX ask of Spell Blast's X)
 			return false
 		}
 		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
@@ -1396,6 +1406,9 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 	case kop.TgtSpell, kop.TgtSpellTgting:
 		for i := int(s.sp) - 1; i >= 0; i-- {
 			e := &s.stack[i]
+			if e.obj+1 == s.g.tgtSelf {
+				continue // the spell being built (CR 115.5; hasTarget's arm)
+			}
 			if e.kind == seSpell && s.targetOK(k, t, p, src, self, TCode(e.obj)) {
 				out[n] = TCode(e.obj)
 				n++
@@ -1464,29 +1477,13 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 // cost (Inspiration from Beyond's {2}{U} beside its {5}{U}{U}, pair 1841).
 // two reports a distinct granted instance; granted that the cast takes it.
 func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bool) {
-	c := s.objs[o].card
-	cd := &k.t.Cards[c]
-	marked := k.gen != nil && s.fbGranted(k, o)
-	if k.gen == nil || k.cards[c].kw&kop.KwFlashback == 0 || !marked && !s.fbLive(k, o) {
+	pf, gf, pPot, gPot, printedOK, ok := s.fbPotentials(k, p, o)
+	if !ok {
 		return false, false, false
 	}
-	gc := s.fbGrantCost(k, p, o, marked) // the granted instance's cost (kw_fbgrant.go)
-	if gc == cd.AltCost {
-		return false, false, false
+	if s.g.fbProbe {
+		pPot, gPot = true, true // the root's classification (fbProbeRoot), not this node's thinner board
 	}
-	// gorge prices each instance for this spell: a source whose restriction
-	// refuses it adds nothing (Secluded Courtyard's any colour for an instant)
-	spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
-	var pa avail
-	s.availPotentialFor(k, p, &pa, &spell)
-	pf := s.adjustCost(k, p, c, o, cd.AltCost)
-	gf := s.adjustCost(k, p, c, o, gc)
-	pPot, gPot := pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
-	// a printed non-mana part (Group Project's tap three creatures) the
-	// census cannot pay leaves the printed instance uncastable whatever its
-	// mana: gorge offers the granted one (CR 702.34a)
-	printedOK := (cd.FbCost.Flags == 0 || s.pickCostPayable(k, p, &cd.FbCost, o)) && (!cd.FbBehold || s.beholdPayable(k, p, c, o))
-	pPot = pPot && printedOK
 	var av avail
 	s.availFor(k, p, &av)
 	if printedOK && av.affords(&pf, pipMaskOf(&pf), 0) {
@@ -1495,10 +1492,12 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 		return true, false, false
 	}
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 {
-		if pPot && gPot {
+		if pPot && gPot && !s.g.fbProbe {
 			// the planner drops both as ambiguous, but gorge's walk offers an
 			// instance the floating pool pays outright (Fire Nation Attacks'
-			// granted {4}{R} beside its printed {8}{R}, pool-paid)
+			// granted {4}{R} beside its printed {8}{R}, pool-paid). Not in a filter
+			// script's trial node (fbProbe): its pool is the prefix's, and gorge
+			// prices the script's play, the printed instance, from it
 			var pool avail
 			s.availPool(p, &pool)
 			if pool.affords(&gf, pipMaskOf(&gf), 0) {
@@ -1510,6 +1509,49 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	// gorge's own decision lists both: the kernel's one cast takes the
 	// granted instance when its sources cannot pay the printed one
 	return true, false, true
+}
+
+// fbPotentials prices the two flashback instances of o (see fbInstances) against
+// gorge's potential pool: both costs adjusted for this spell, whether each is
+// affordable, and whether the printed one's non-mana part is payable. ok is false
+// when o has no distinct granted instance beside its printed one.
+func (s *State) fbPotentials(k *prep, p uint8, o Obj) (pf, gf kop.ManaCost, pPot, gPot, printedOK, ok bool) {
+	c := s.objs[o].card
+	cd := &k.t.Cards[c]
+	marked := k.gen != nil && s.fbGranted(k, o)
+	if k.gen == nil || k.cards[c].kw&kop.KwFlashback == 0 || !marked && !s.fbLive(k, o) {
+		return
+	}
+	gc := s.fbGrantCost(k, p, o, marked) // the granted instance's cost (kw_fbgrant.go)
+	if gc == cd.AltCost {
+		return
+	}
+	// gorge prices each instance for this spell: a source whose restriction
+	// refuses it adds nothing (Secluded Courtyard's any colour for an instant)
+	spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
+	var pa avail
+	s.availPotentialFor(k, p, &pa, &spell)
+	pf = s.adjustCost(k, p, c, o, cd.AltCost)
+	gf = s.adjustCost(k, p, c, o, gc)
+	pPot, gPot = pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
+	// a printed non-mana part (Group Project's tap three creatures) the
+	// census cannot pay leaves the printed instance uncastable whatever its
+	// mana: gorge offers the granted one (CR 702.34a)
+	printedOK = (cd.FbCost.Flags == 0 || s.pickCostPayable(k, p, &cd.FbCost, o)) && (!cd.FbBehold || s.beholdPayable(k, p, c, o))
+	return pf, gf, pPot && printedOK, gPot, printedOK, true
+}
+
+// fbProbeRoot reports whether a filter script's play a is a flashback cast whose
+// printed and granted instances gorge both lists at s (fbInstances: potential
+// pool affords both). The script's trial nodes keep that classification
+// (fbProbe): the play gorge prices from a prefix's pool is the printed
+// instance, and a node's thinner board must not turn the granted one into it.
+func (s *State) fbProbeRoot(k *prep, p uint8, a Action) bool {
+	if a.Kind() != AkCast || a.Mode()&3 != 2 || s.objs[Obj(a.Source())].zone != kop.ZoneGraveyard {
+		return false
+	}
+	_, _, pPot, gPot, _, ok := s.fbPotentials(k, p, Obj(a.Source()))
+	return ok && pPot && gPot
 }
 
 // availPotential is gorge's potential pool (rules PotentialMana) as an
@@ -1529,9 +1571,10 @@ const potentialOpenUnits = 2 * trigXCap
 // RestrictValid$ refuses it adds nothing and a chosen colour is exact (CR 106.6).
 // Every mana ability of a source counts on its own, and a paid one joins once the
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
+// open reports a bound gorge prices potentialUnbounded in every colour.
 //
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open bool) {
 	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
@@ -1539,7 +1582,6 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 	}
 	var own [MaxPerm][kop.NumManaKinds]int
 	var done [MaxPerm]uint16
-	open := false
 	add := func(sl Slot, mask uint8, n uint8) {
 		for mk := mask; mk != 0; mk &= mk - 1 {
 			c := bits.TrailingZeros8(mk)
@@ -1675,6 +1717,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
+	return open
 }
 
 // filtFeeOwed reports whether the source at sl is a filter whose fee the

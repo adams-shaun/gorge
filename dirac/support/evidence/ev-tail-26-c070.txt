@@ -1,0 +1,7 @@
+Forest
+Island
+Mountain
+Plains
+Swamp
+Totem Speaker
+Treeshaker Chimera

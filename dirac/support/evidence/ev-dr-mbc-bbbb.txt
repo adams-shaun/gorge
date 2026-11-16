@@ -1,6 +1,7 @@
 Abundant Growth
 Act on Impulse
 Angel of Vitality
+Angel of the Ruins
 Archon of Absolution
 Beanstalk Giant
 Binding the Old Gods
@@ -45,6 +46,7 @@ Go for the Throat
 Goblin Bombardment
 Goblin Recruiter
 Grab the Reins
+Hollow Marauder
 Hopeless Nightmare
 Illusory Ambusher
 Irenicus's Vile Duplication

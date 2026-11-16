@@ -74,7 +74,7 @@ func TestCharmRepeatModes(t *testing.T) {
 		}
 		charmnumPickMode(t, sc, 0)
 		sc.do(t, AkDone, scAny, scAny)
-		if got := sc.s.BuildModes(); sc.s.buildAbility(sc.k).ModeCount(got, 0) != 2 {
+		if got := sc.s.bld().e.mode; sc.s.buildAbility(sc.k).ModeCount(got, 0) != 2 {
 			t.Fatalf("chosen modes %b: mode 0 not counted twice", got)
 		}
 		sc.do(t, AkTarget, scAny, TCode(a))

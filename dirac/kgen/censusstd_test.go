@@ -161,15 +161,15 @@ func TestStdBundlesConstructed(t *testing.T) {
 	// distinct A+B cards besides c3 the dedupe is what keeps it at 3.
 }
 
-// TestStdCensusBuildPass pins the build pass: Assemble the Legion is refused only at emit
-// (PutCounter of a counter kind with no kop kind; Aerie Mystics' PumpAll above bit 15 lowers
+// TestStdCensusBuildPass pins the build pass: Spectacle of Destruction is refused only at emit
+// (PutCounter of a counter kind with no kop kind: WRECK is at or above the counter-kind cover; Aerie Mystics' PumpAll above bit 15 lowers
 // since ExtGrantKwAll; Forge, Neverwinter Charlatan's ward—sacrifice lowers since
 // Maha's ward—discard), while Grizzly Bears and
 // Boros Charm build. Boros Charm's "target player or planeswalker" lowers since
 // so it no longer has an emit-refusal row.
 func TestStdCensusBuildPass(t *testing.T) {
 	dir := t.TempDir()
-	names := []string{"Assemble the Legion", "Boros Charm", "Grizzly Bears"}
+	names := []string{"Spectacle of Destruction", "Boros Charm", "Grizzly Bears"}
 	if err := os.WriteFile(filepath.Join(dir, "AAA.txt"), []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func TestStdCensusBuildPass(t *testing.T) {
 	var legion []stdTSVRow
 	for _, r := range res.tsv {
 		switch r.card {
-		case "Assemble the Legion":
+		case "Spectacle of Destruction":
 			legion = append(legion, r)
 		case "Boros Charm":
 			if r.class != "" {
@@ -198,7 +198,7 @@ func TestStdCensusBuildPass(t *testing.T) {
 		}
 	}
 	if !foundEmit {
-		t.Fatalf("Assemble the Legion rows = %+v, want the emit-stage PutCounter refusal", legion)
+		t.Fatalf("Spectacle of Destruction rows = %+v, want the emit-stage PutCounter refusal", legion)
 	}
 }
 

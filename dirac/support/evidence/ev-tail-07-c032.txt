@@ -1,4 +1,7 @@
 Azorius Herald
+Baird, Argivian Recruiter
+Consuming Vapors
+Cyclopean Mummy
 Debt to the Deathless
 Emerge Unscathed
 Eternal Scourge
@@ -7,12 +10,18 @@ Force Spike
 Forest
 Frogify
 Gamekeeper
+Gargantos, the Endbringer
+Graceblade Artisan
+Hunter's Prowess
 Island
 Kor Celebrant
+Landslide
 Liliana's Mastery
 Majestic Metamorphosis
 Mogg Raider
 Mountain
+Niblis of the Mist
+Ninth Bridge Patrol
 Plains
 Rampaging Brontodon
 Salvage
@@ -22,3 +31,5 @@ Sudden Spinnerets
 Supernatural Stamina
 Swamp
 Taunting Kobold
+Voltaic Servant
+Voyaging Satyr
