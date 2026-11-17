@@ -10,25 +10,47 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //   - bit p: player p flipped a coin this turn (Edgar, King of Figaro's
 //     FlipCoinMod: the first flip of the turn comes up heads);
+//
 //   - bit turnExhaustShift+p: player p activated an Exhaust ability this
 //     turn (Elvish Refueler's Activations static).
 //
-// Bits 0-1 hold the flips and 2-3 Exhaust (4-7 free).
+//   - bit turnDamagedShift+p: seat p was dealt positive damage this turn
+//     (Needle Drop's wasDealtDamageThisTurn seat arm; plDmgMark).
+//
+// Bits 0-1 hold the flips, 2-3 Exhaust and 4-5 damage dealt (6-7 free).
 const turnFlipShift = 0
 
-func turnFlipMask(p uint8) uint8 {
+func turnFlipMask(p uint8) turnFT {
 	if p >= MaxSeats {
 		return 0
 	}
 	return 1 << (turnFlipShift + p)
 }
 
-func turnExhaustMask(p uint8) uint8 {
+func turnExhaustMask(p uint8) turnFT {
 	if p >= MaxSeats {
 		return 0
 	}
 	return 1 << (turnExhaustShift + p)
 }
+
+// turnDamagedMask is the bit of seat p's WasDealtDamageThisTurn record in
+// genState.turnF (turnDamagedShift+p); the all-seats mask for p ==
+// allSeatsDamaged. Unlike the flip and Exhaust facts it is written and read
+// without prep.anyTurnF: the seat arm of the wasDealtDamageThisTurn filter
+// word (legal.go targetOK) gates on the lowered filter flag instead.
+func turnDamagedMask(p uint8) turnFT {
+	if p == allSeatsDamaged {
+		return (1<<MaxSeats - 1) << turnDamagedShift
+	}
+	if p >= MaxSeats {
+		return 0
+	}
+	return 1 << (turnDamagedShift + p)
+}
+
+// allSeatsDamaged is turnDamagedMask's argument for every seat's bit.
+const allSeatsDamaged = 0xff
 
 // turnFlipBit reports whether p has flipped a coin this turn.
 func (s *State) turnFlipBit(p uint8) bool { return s.g.turnF&turnFlipMask(p) != 0 }

@@ -2509,6 +2509,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			} else {
 				s.loseLife(k, CodeSeat(code), n)
 			}
+			s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 			toPl = true
 			plM |= 1 << CodeSeat(code)
 		} else {

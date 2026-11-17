@@ -1283,6 +1283,33 @@ func (s *State) objTargetable(k *prep, sl Slot, p uint8) bool {
 	return true
 }
 
+// DebugTgtAnyPlDmgNoGate drops the seat arm's wasDealtDamageThisTurn gate
+// (targetOK's TgtAny branch): gorge still gates the seat on its own record,
+// so a pool that reaches a Needle Drop target ask with a damaged seat
+// diverges. Test-only; dirac/oracle mutation tests set it.
+var DebugTgtAnyPlDmgNoGate bool
+
+// anySeatOK reports whether seat pp is a legal player choice for p's TgtAny
+// slot t: not p itself under TgfOppOnly, and dealt damage this turn when the
+// slot's filter gates the seat arm (anySeatGated).
+func (s *State) anySeatOK(k *prep, t *kop.TargetSpec, p, pp uint8) bool {
+	if t.TFlags&kop.TgfOppOnly != 0 && pp == p {
+		return false
+	}
+	return DebugTgtAnyPlDmgNoGate || !anySeatGated(k, t) || s.g.turnF&turnDamagedMask(pp) != 0
+}
+
+// anySeatGated reports whether a TgtAny slot's filter gates its player arm:
+// wasDealtDamageThisTurn gates BOTH arms through the one flag
+// (kop.F2WasDamaged). The object arm reads dmgTurn (filters_gen.go
+// flags2Perm), the seat arm the seat's own record (genState.turnF's
+// turnDamagedShift bits; gorge state.Player.WasDealtDamageThisTurn, Needle
+// Drop's ValidTgts$ Any.wasDealtDamageThisTurn). Filter 0 (bare Any) carries
+// no flag and gates nothing.
+func anySeatGated(k *prep, t *kop.TargetSpec) bool {
+	return t.Filter != 0 && k.t.Filters[t.Filter].Flags2&kop.F2WasDamaged != 0
+}
+
 // targetOK reports whether code is a legal choice for spec.
 func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, code TCode) bool {
 	if t.ParentPlus1 != 0 && !s.parentTargetOK(t, code) {
@@ -1302,7 +1329,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		}
 		switch t.Kind {
 		case kop.TgtAny:
-			return t.TFlags&kop.TgfOppOnly == 0 || pp != p
+			return s.anySeatOK(k, t, p, pp)
 		case kop.TgtPlayer:
 			if t.TFlags&kop.TgfPlayerCompareOK != 0 && !s.playerThanActiveOK(k, t.TFlags, pp) {
 				return false // tgt_thanactive.go
@@ -1461,8 +1488,11 @@ func (s *State) hasTarget(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Ob
 	}
 	switch t.Kind {
 	case kop.TgtAny:
-		if t.TFlags&kop.TgfOppOnly == 0 {
-			return true // a player is always a legal any-target
+		// a player is always a legal any-target (Bolt), unless the slot's
+		// filter gates the player arm too (anySeatGated: Needle Drop's census
+		// runs like any filtered slot's).
+		if t.TFlags&kop.TgfOppOnly == 0 && !anySeatGated(k, t) {
+			return true
 		}
 	case kop.TgtObject:
 		for m := s.occ; m.any(); m = m.rest() {

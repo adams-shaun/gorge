@@ -969,6 +969,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if isPlayerOrNone(code) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.loseLife(k, CodeSeat(code), n)
+		s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {

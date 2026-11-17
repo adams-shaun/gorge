@@ -117,7 +117,7 @@ func compilePlayerSingle(spec string) []playerAlt {
 		a := playerAlt{}
 		a.base, a.qualifier, a.qualified = strings.Cut(strings.TrimSpace(alt), ".")
 		a.baseCode = playerSpecBaseCodes.Code(a.base)
-		a.qualCode = playerSpecQualifierCodes.Code(a.qualifier)
+		a.qualCode = playerQualifierCode(a.qualifier)
 		if inner, negated := strings.CutPrefix(a.qualifier, "!"); a.qualified && negated {
 			a.negInner, a.inner = true, inner
 			a.innerKnown = matchesPlayerSingleSpecKeys.Has(inner) || playerSpecQualifierCodes.Code(inner) == playerSpecQualifierMaxSpeed
