@@ -356,6 +356,7 @@ first_filter_beside_granted_lands_funds_from_the_first_land std-tla
 first_only_filter_funds_play std-tla
 first_only_filter_funds_play_autopay std-tla
 first_only_filter_in_window std-mkm
+first_time_life_loss_fires_once custom
 flaring_pain_resolves custom
 flashback_dynamic_source_graveyard_amount std-fra
 flashback_grant_clear_keeps_holdout std-otj
