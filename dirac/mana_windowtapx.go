@@ -237,3 +237,18 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	}
 	return true
 }
+
+// windowTapXSecondUseful: source o is a second-ability tap-another source
+// (Holdout Settlement: "{T}: Add {C}" beside "{T}, Tap an untapped creature
+// you control: Add one mana of any color") whose tap-another ability makes a
+// colour the clamp keeps and can be paid now. gorge's paymentSourceUseful reads
+// every mana ability the window offers, so the source stays listed whatever its
+// plain first ability makes, and the window's answer is that first ability
+// (windowCanTap, tapXPlainDo): the source taps for its plain colour.
+func (s *State) windowTapXSecondUseful(k *prep, p uint8, o Slot, want uint8) bool {
+	if !k.tapMana || !k.tapXSecond(s.cardAt(o)) || !s.scriptTapX(k, p).has(o) {
+		return false
+	}
+	a := k.tapXAbOf(s.cardAt(o))
+	return a.Cost.Flags&kop.CostSac == 0 && uint8(a.ManaColors)&want != 0
+}
