@@ -10,6 +10,35 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // integer once-per-turn cap), on mayPlay.kind. The hot walks reach this
 // file only behind genPrep.anyMayKind / anyMayLimit.
 
+// mayVerFollows marks a permission record that follows its card (a kop
+// MayPlayFollows grant): its ver byte holds 0x80|zone instead of the version
+// the grant was made at, so the offers and spends match the card's zone
+// instead of its version.
+const mayVerFollows uint8 = 0x80
+
+// follows reports whether r follows its card. gorge's grant is a continuous
+// effect over the remembered card (CR 611.2c: a rules-of-the-game effect
+// from a resolving ability is not locked to the object set it began with),
+// read every time the card is back in the grant's zone within its duration,
+// and its own cast does not consume it -- Skyclave Shade cast from the
+// graveyard and sacrificed back to it the same turn is offered again, as
+// often as the player can get it there. A version-tied record models a
+// grant gorge ends with the card's first move out of its zone instead (the
+// ForgetOnMoved$-C and ExileOnMoved$ shapes; kgen marks the difference).
+func (r mayPlay) follows() bool { return r.ver&mayVerFollows != 0 }
+
+// followsZone is the zone a follows record offers its card from.
+func (r mayPlay) followsZone() kop.Zone { return kop.Zone(r.ver & kop.MayPlayZoneMask) }
+
+// mayVerAt is the ver byte a record of o carries: the card's version, or the
+// follows mark and the grant's zone for a kop MayPlayFollows grant.
+func mayVerAt(s *State, o Obj, zone kop.Zone, follows bool) uint8 {
+	if follows {
+		return mayVerFollows | uint8(zone)
+	}
+	return s.objs[o].ver
+}
+
 // tableMayPlayKinds reports whether some program of t grants a play
 // permission record with a kind rider (genPrep.anyMayKind).
 func tableMayPlayKinds(t *kop.Table) bool {
@@ -173,10 +202,12 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 		s.g.raiseB = uint8(r.turn) // the cast's surcharge (cast_whileexiled.go)
 	}
 	s.stampMayExile(k, i) // repl_stackexile.go
-	if r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0 {
-		return true // the effect-delivered grant stays live (spendMayRecord's reasoning)
+	if !r.follows() && !(r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0) {
+		// A following record outlives its own cast (gorge's continuous
+		// grant); the effect-delivered graveyard grant also stays live
+		// (spendMayRecord's reasoning).
+		s.removeMay(i)
 	}
-	s.removeMay(i)
 	return true
 }
 
@@ -187,7 +218,7 @@ func (s *State) mayKindAt(k *prep, o Obj, p uint8, mode uint8) int {
 	free := mode&castFree != 0
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		if r.obj != o || r.ctrl != p || r.ver != s.objs[o].ver || (r.kind&kop.MayPlayFree != 0) != free || s.mayLimitSpent(r) ||
+		if r.obj != o || r.ctrl != p || !r.follows() && r.ver != s.objs[o].ver || (r.kind&kop.MayPlayFree != 0) != free || s.mayLimitSpent(r) ||
 			k.gen.anyMayWhileSrc && s.maySrcDead(r) {
 			continue
 		}
@@ -222,7 +253,7 @@ func (s *State) mayRaiseOwed(k *prep, p uint8, a Action) uint8 {
 func (s *State) mayPlayAnyType(k *prep, p uint8, o Obj) bool {
 	if k.gen.anyMayKind {
 		for i := 0; i < int(s.g.nmay); i++ {
-			if r := *s.mayAt(i); r.obj == o && r.ctrl == p && r.ver == s.objs[o].ver && r.kind&kop.MayPlayAnyType != 0 && !s.mayLimitSpent(r) {
+			if r := *s.mayAt(i); r.obj == o && r.ctrl == p && (r.follows() || r.ver == s.objs[o].ver) && r.kind&kop.MayPlayAnyType != 0 && !s.mayLimitSpent(r) {
 				return true
 			}
 		}

@@ -707,6 +707,24 @@ const (
 
 	// MayPlayKinds are the B flags a permission record keeps (mayPlay.kind).
 	MayPlayKinds = MayPlayFree | MayPlayAnyType | MayPlayIgnoreColor | MayPlayLimitMask
+
+	// MayPlayFollows is an OpMayPlay C bit: the zone stays in bits 0-5
+	// (MayPlayZoneMask). kgen sets it when the grant outlives the card's
+	// zone moves: gorge's grant is a continuous effect over the remembered
+	// card (CR 611.2c: a rules-of-the-game effect from a resolving ability
+	// is not locked to the object set it began with), read every time the
+	// card is back in AffectedZone$ C within the effect's duration, and its
+	// own cast does not consume it -- Skyclave Shade cast from the graveyard
+	// and sacrificed back to it the same turn is offered again. A grant
+	// gorge ends with the card's first move out of its zone keeps a
+	// version-tied record instead: a ForgetOnMoved$ equal to C (Abbot of
+	// Keral Keep's exiled card), an ExileOnMoved$ (gorge effectMoveSweep
+	// ends the whole effect), or a zone-lifetime duration (WhileExiled and
+	// friends, CR 611.2b: a "for as long as" duration does not restart).
+	// The kernel's record marks it in the ver byte (dirac mayVerFollows:
+	// 0x80|zone), and the offers and spends match by zone.
+	MayPlayFollows  = 0x40
+	MayPlayZoneMask = 0x3f
 )
 
 // DiscoverDugBottom is OpDiscover's C for Jodah, the Unifier's tail
