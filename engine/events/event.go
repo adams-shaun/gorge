@@ -1341,10 +1341,16 @@ const (
 	// turn and drops it at the turn after. Appended after ExileTurnFaceUp so
 	// every earlier ordinal, hash chain and golden replay is unchanged.
 	SkipPhase
+	// Haunt records CR 702.55b's exile-haunting-a-creature link: Obj is the
+	// exiled haunting card and IDs[0] the creature it haunts. Apply folds it
+	// into state.Object.Haunting (only for a card in exile); the move into
+	// exile is its own preceding MoveZone event. Appended after SkipPhase so
+	// every earlier ordinal, hash chain and golden replay is unchanged.
+	Haunt
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(SkipPhase) + 1
+	NumKinds = int(Haunt) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
