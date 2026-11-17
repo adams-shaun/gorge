@@ -365,11 +365,23 @@ func RecordCastPaymentAnswer(cp *CastPayment, in CastPayAnswer, kind string, cho
 		}
 		cp.ExilePart++
 	case castPayRevealcost:
+		var part costvocab.CostPart
+		if cp.RevealPart < len(cost.Reveal) {
+			part = cost.Reveal[cp.RevealPart]
+		}
 		for _, o := range chosen {
 			paid.Reveals = append(paid.Reveals, o.Obj)
 			paid.RevealHandArm = append(paid.RevealHandArm, true)
 		}
 		cp.RevealPart++
+		// A Reveal<X/Spec> election that ANNOUNCED the count binds the cast's
+		// {X} to the revealed count (CR 601.2b), as the dynamic tap election
+		// does. A pre-announced X is settled exactly by the ask (Min == Max
+		// == X), so binding the count re-writes the same value. XDone cannot
+		// tell the two apart: xAsk has always run before the reveal is paid.
+		if part.Dyn == "X" {
+			*in.X = int32(len(chosen))
+		}
 	case castPayRevealOrChoose:
 		// Either-or cost, REVEAL arm: the elected hand cards are a real
 		// public reveal (RevealHandArm true; EmitChoiceCosts announces them).
