@@ -538,6 +538,17 @@ func (t *State) tapXNext(p uint8, d *Decision) bool {
 		if d.Player == SeatIx(p) {
 			return true
 		}
+		if d.Kind == DkTriggerOrder {
+			// gorge's search answers an order ask the line set off (rules
+			// scriptSearch.visit: scriptAnswers' first answer, every pick in
+			// pose order, CR 603.3b) and continues at the next node: the
+			// opponent's two Profane Mementos triggered by the searched
+			// cast's sacrifice of its own mana source do not end the line.
+			for i := 0; i < int(d.N); i++ {
+				t.Apply(d.Options[i])
+			}
+			continue
+		}
 		pass := MakeAction(AkPass, 0, 0, 0)
 		if d.Kind != DkPriority || !hasOption(d, pass) {
 			return false
