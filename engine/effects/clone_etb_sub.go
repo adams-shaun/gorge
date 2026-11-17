@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -31,9 +32,11 @@ var cloneETBReflexiveKeys = state.NewNameSet(
 // chain lies inside the implemented shapes: any number of unconditional
 // as-it-enters PutCounter links on itself with no asking modifier, then
 // optionally Superior Spider-Man's reflexive exile (CloneETBReflexiveExileOK)
-// with its trailing Cleanup that clears the remembered set. A body with no SubAbility$ is trivially inside it. Any other chain
-// (Moritte of the Frost's DB$ Effect replacement, Undercover Operative's
-// ConditionPresent$ shield counter) fails closed, keeping the body out of the
+// with its trailing Cleanup that clears the remembered set, and
+// Undercover Operative's condition-gated shield-counter rider
+// (cloneETBConditionalCounterOK) as the first link. A body with no SubAbility$ is trivially inside it. Any other chain
+// (Moritte of the Frost's DB$ Effect replacement) fails closed, keeping the
+// body out of the
 // ETB election. The key scan only answers a boolean, so map order cannot
 // reach an event.
 func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
@@ -58,17 +61,24 @@ func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 		if !IsPutCounter(link) {
 			return false
 		}
-		for k := range link.Params {
-			if !cloneETBCounterSubKeys.Has(k) {
-				return false
-			}
-		}
 		pc := PutCounterOf(link)
 		if !pc.ETB || len(pc.Unread) > 0 || DefinedOf(link).Defined.Text != "Self" {
 			return false
 		}
 		if _, has := link.Param(cards.PKSubAbility); has && link.Sub == nil {
 			return false
+		}
+		// Undercover Operative's shield-counter rider: the condition-gated
+		// link shape is classified on its own before the unconditional key
+		// whitelist, which a Condition* key would fail. The shared PutCounter
+		// shape above (Defined$ Self, ETB$ True, fully read) already ran.
+		if _, gated := link.Param(cards.PKConditionDefined); gated {
+			return cloneETBConditionalCounterOK(sa, link, pc)
+		}
+		for k := range link.Params {
+			if !cloneETBCounterSubKeys.Has(k) {
+				return false
+			}
 		}
 		// Dominion Saboteur's rider: "it enters with additional counters on
 		// it equal to the same number and kinds of counters the copied
@@ -89,6 +99,61 @@ func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 		}
 	}
 	return true
+}
+
+// cloneETBConditionalCounterOK classifies the one condition-gated as-enters
+// counter rider this build admits: Undercover Operative's "except it enters
+// with a shield counter on it if you control that creature" (CR 707.9b). The
+// caller has already run the shared PutCounter rider shape (Defined$ Self |
+// ETB$ True, fully read). The root Clone remembers its copy origin
+// (RememberCloneOrigin$ True), and the FIRST chain link's gate is exactly
+// ConditionDefined$ Remembered -- the remembered copy origin -- narrowed by
+// a present ConditionPresent$ spec, with ConditionCompare$ absent or the GE1
+// count. Every other key on the link stays out: the counter keys plus the
+// three Condition* keys cloneETBReflexiveKeys already names (the reflexive
+// exile's gate's own vocabulary), with the reflexive shape's non-condition
+// keys -- Execute$, RememberObjects$, TriggerDescription$ -- rejected typed,
+// so the link stays the bare counter rider and any other Condition* key
+// (ConditionZone$, ConditionPresent2$, ...) fails. The gate is evaluated by
+// the ordinary chain walk (registry.go's linkConditionMet) against the
+// chain-local remembered set, so a copy of an opponent's creature -- and a
+// declined election, where the whole replacement is not applied (CR 614.1c)
+// -- gets no counter. The link's chain is empty or the ClearRemembered$
+// Cleanup.
+func cloneETBConditionalCounterOK(sa, link *cards.SA, pc *PutCounterParams) bool {
+	if link != sa.Sub || !CloneOf(sa).RememberCloneOrigin {
+		return false
+	}
+	if definedSpecCodes.Code(link.ParamStr(cards.PKConditionDefined)) != definedSpecRemembered {
+		return false
+	}
+	if strings.TrimSpace(link.ParamStr(cards.PKConditionPresent)) == "" {
+		return false
+	}
+	if cmp := link.ParamStr(cards.PKConditionCompare); cmp != "" {
+		if len(cmp) < 3 || CmpOpOf(cmp[:2]) != CmpGE {
+			return false
+		}
+		if n, err := strconv.Atoi(strings.TrimSpace(cmp[2:])); err != nil || n != 1 {
+			return false
+		}
+	}
+	for k := range link.Params {
+		if !cloneETBCounterSubKeys.Has(k) && !cloneETBReflexiveKeys.Has(k) {
+			return false
+		}
+	}
+	if link.HasParam(cards.PKExecute) || link.HasParam(cards.PKRememberObjects) ||
+		link.HasParam(cards.PKTriggerDescription) {
+		return false
+	}
+	if n, ok := literalInt(pc.CounterNum); pc.CounterNum.Present && (!ok || n < 0) {
+		return false
+	}
+	if pc.EntryFoldBlocked {
+		return false
+	}
+	return link.Sub == nil || cloneETBCleanupOnly(link.Sub)
 }
 
 // CloneETBReflexiveExileOK reports whether link is exactly Superior
