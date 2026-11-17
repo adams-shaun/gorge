@@ -236,9 +236,14 @@ const UnlimitedHandSize = 1 << 20
 
 // mayLookAtGrantFromLine reads an Effect-delivered MayLookAt$ into a
 // look-only ContinuousEffect, and DELETES the MayLookAt key from params so
-// the rest of the line is read by the ordinary branches. Two shapes:
+// the rest of the line is read by the ordinary branches. Three shapes:
 //   - over exiled cards (AffectedZone$ Exile; every such corpus value is You
 //     or True, the effect's controller -- 13 + 1 raw lines at the pin);
+//   - over face-down battlefield creatures (AffectedZone$ Battlefield with a
+//     faceDown Affected$: Lumbering Laundry's "you may look at face-down
+//     creatures you don't control", You/True only -- the looker is the
+//     effect's controller, CR 708.5's effect exception; rules'
+//     MayLookAtFaceDown reads the grant);
 //   - over the top of the library (AffectedZone$ Library with a TopLibrary
 //     Affected$: The Belligerent, Gwenom, Remorseless): You/True look, Player
 //     reveals the card to every seat (MayLookAtAll, CR 401.5). A rider the
@@ -251,11 +256,17 @@ const UnlimitedHandSize = 1 << 20
 func mayLookAtGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
 	v := strings.TrimSpace(params["MayLookAt"])
 	zone := strings.TrimSpace(params["AffectedZone"])
+	// The zone word is read through parseZone's StrCodes table (the same
+	// vocabulary ParseZones splits); You/True -- the effect's controller as
+	// the looker -- is shared by the exile and battlefield shapes.
+	zb, zoneKnown := parseZone(zone)
+	lookerYou := strings.EqualFold(v, "You") || strings.EqualFold(v, "True")
 	revealAll := false
 	switch {
-	case zone == "Exile" && (strings.EqualFold(v, "You") || strings.EqualFold(v, "True")):
+	case zoneKnown && zb == state.ZExile && lookerYou:
+	case zoneKnown && zb == state.ZBattlefield && strings.Contains(params["Affected"], "faceDown") && lookerYou:
 	case zone == "Library" && strings.Contains(params["Affected"], "TopLibrary") &&
-		(strings.EqualFold(v, "You") || strings.EqualFold(v, "True") || strings.EqualFold(v, "Player")):
+		(lookerYou || strings.EqualFold(v, "Player")):
 		revealAll = strings.EqualFold(v, "Player")
 	default:
 		return state.ContinuousEffect{}, false, false
