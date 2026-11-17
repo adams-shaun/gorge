@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -104,7 +105,7 @@ func TestTappedTurnPermRecord(t *testing.T) {
 	reg := synthReg(t)
 	for _, c := range []effectLongCase{tappedTurnPermCase(), taleTappedTurnCase()} {
 		t.Run(c.name, func(t *testing.T) {
-			set := printedDelveSet(t, c.decks)
+			set := cardset.Raw(printedDelveSet(t, c.decks))
 			for seed := uint64(1); seed <= 400; seed++ {
 				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
 				m, err := r.Matchup(reg)
@@ -142,7 +143,10 @@ func TestTappedTurnPermReprosReach(t *testing.T) {
 				t.Fatal(err)
 			}
 			script := &ScriptPolicy{Actions: r.Actions}
-			res, reached := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), script)
+			// Raw, not the evidence view: a card refused after the recording (11-17:
+			// Captain America, Living Legend) cannot fail its own recorded game's
+			// replay; whether it still diverges is the refusal entry's question.
+			res, reached := effectLongPlay(t, reg, c, r, cardset.Raw(printedDelveSet(t, r.Cards)), script)
 			if res.Div != nil {
 				t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 			}
