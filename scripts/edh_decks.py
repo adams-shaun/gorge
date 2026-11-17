@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """edh_decks.py -- fetch Commander decklists into gorge's repo-deck JSON shape.
 
-Two corpora, written under a gitignored directory (default .edh-decks). The
-decks as fetched are also stored in the committed
-cmd/forgec/testdata/edh-decks.jsonl (one deck per line: source, id, kind,
-commanders, and the non-commander card names repeated by count), which is what
-`forgec edhcover` and the xengine commander diff read.
+Two corpora, written under a gitignored directory (default .edh-decks), never
+committed to this public repo (third-party content; a private repo keeps a copy). `normalise` also writes
+.edh-decks/edh-decks.jsonl (one deck per line: source, id, kind, commanders, and
+the non-commander card names repeated by count) and .edh-decks/edh-manifest.tsv,
+which `forgec edhcover` and the xengine commander diff read.
 
   precon/   every official Commander precon MTGJSON lists (DeckList.json type
             "Commander Deck", every year), plus Commander's Arsenal and the
@@ -22,7 +22,7 @@ Usage (stdlib only, needs network):
 
 `fetch` caches every raw response under <out>/raw/ (a deck already cached is
 never fetched again) and then runs `normalise`, which rewrites precon/,
-popular/ and the committed manifest (cmd/forgec/testdata/edh-manifest.tsv by
+popular/ and the manifest (.edh-decks/edh-manifest.tsv by
 default: ids, names, bracket, rank, source URL and fetch date).
 Requests are paced (-interval seconds apart) with exponential backoff on 429
 and 5xx, honouring Retry-After. The User-Agent is generic.
@@ -50,7 +50,7 @@ ARCHIDEKT_EDH_FORMAT = 3
 # Box sets that are Commander products but not "Commander Deck" in MTGJSON.
 COLLECTION_CODES = {"CM1", "CC1", "CC2"}
 
-DECKLISTS = "cmd/forgec/testdata/edh-decks.jsonl"
+DECKLISTS = ".edh-decks/edh-decks.jsonl"
 
 MANIFEST_HEADER = ["source", "id", "kind", "name", "commander", "bracket",
                    "overall_rank", "bracket_rank", "views", "cards", "released",
@@ -363,7 +363,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("cmd", choices=["fetch", "normalise"])
     ap.add_argument("-out", default=".edh-decks")
-    ap.add_argument("-manifest", default="cmd/forgec/testdata/edh-manifest.tsv")
+    ap.add_argument("-manifest", default=".edh-decks/edh-manifest.tsv")
     ap.add_argument("-decklists", default=DECKLISTS)
     ap.add_argument("-top", type=int, default=1000)
     ap.add_argument("-per-bracket", dest="per_bracket", type=int, default=100)

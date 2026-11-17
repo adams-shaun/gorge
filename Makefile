@@ -468,8 +468,9 @@ clean-cards:
 # never committed: the `card coverage` workflow publishes them on its run page
 # (job summary + artifact). Output is deterministic (no wall clock; every table
 # sorted), so two runs over the same corpus and tree are byte-identical. It also
-# writes .coverage/edh.md and edh.json, the Commander deck coverage (forgec
-# edhcover over the committed cmd/forgec/testdata/edh-decks.jsonl).
+# writes .coverage/edh.md and edh.json, the Commander deck coverage, when the
+# gitignored .edh-decks/edh-decks.jsonl is present (forgec edhcover skips cleanly
+# without it; the lists are kept privately).
 .PHONY: coverage
 coverage: $(BIN_DIR)/forgec
 	$(BIN_DIR)/forgec coverage -dir $(CARDS_DIR) -out .coverage

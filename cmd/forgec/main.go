@@ -37,8 +37,8 @@ func main() {
 	repo := fs.String("repo", cards.ForgeRepo, "Forge git repository to fetch from")
 	top := fs.Int("top", 25, "how many missing primitives to list in report")
 	out := fs.String("out", ".coverage", "coverage, edhcover: gitignored directory to write the tables into")
-	decklists := fs.String("decklists", "cmd/forgec/testdata/edh-decks.jsonl", "edhcover: the stored decks (scripts/edh_decks.py writes them)")
-	manifest := fs.String("manifest", "cmd/forgec/testdata/edh-manifest.tsv", "edhcover: the deck manifest")
+	decklists := fs.String("decklists", ".edh-decks/edh-decks.jsonl", "edhcover: the stored decks (scripts/edh_decks.py writes them; absent: edhcover skips)")
+	manifest := fs.String("manifest", ".edh-decks/edh-manifest.tsv", "edhcover: the deck manifest")
 	diracSupport := fs.String("dirac-support", "dirac/support", "edhcover: dirac's evidence and refused lists (absent: no dirac columns)")
 	fs.Parse(args)
 
@@ -66,7 +66,7 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: forgec fetch|compile|report|coverage|edhcover [-dir .cards] [-repo URL] [-ref master] [-top 25]")
 	fmt.Fprintln(os.Stderr, "       forgec coverage [-out .coverage]")
-	fmt.Fprintln(os.Stderr, "       forgec edhcover [-decklists cmd/forgec/testdata/edh-decks.jsonl] [-manifest cmd/forgec/testdata/edh-manifest.tsv] [-out .coverage] [-top 25]")
+	fmt.Fprintln(os.Stderr, "       forgec edhcover [-decklists .edh-decks/edh-decks.jsonl] [-manifest .edh-decks/edh-manifest.tsv] [-out .coverage] [-top 25]")
 	os.Exit(2)
 }
 

@@ -122,6 +122,30 @@ func TestReadEDHDecklists(t *testing.T) {
 	}
 }
 
+// TestEDHCoverSkipsWithoutLists: absent decklists are not an error, and a
+// stale report is removed rather than republished.
+func TestEDHCoverSkipsWithoutLists(t *testing.T) {
+	t.Parallel()
+	out := t.TempDir()
+	for _, f := range []string{"edh.md", "edh.json"} {
+		if err := os.WriteFile(filepath.Join(out, f), []byte("stale"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	none := filepath.Join(t.TempDir(), "absent")
+	if err := edhCoverCmd(t.TempDir(), none+".jsonl", none+".tsv", "", out, 10); err != nil {
+		t.Fatalf("absent lists: %v", err)
+	}
+	for _, f := range []string{"edh.md", "edh.json"} {
+		if _, err := os.Stat(filepath.Join(out, f)); !os.IsNotExist(err) {
+			t.Errorf("%s survived: %v", f, err)
+		}
+	}
+	if edhInputsPresent(t.TempDir()) {
+		t.Error("a directory counted as an input file")
+	}
+}
+
 func TestEDHPaperWithoutCard(t *testing.T) {
 	t.Parallel()
 	if edhPaper("A-Alrund's Epiphany", nil) {

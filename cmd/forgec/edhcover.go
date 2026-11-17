@@ -19,11 +19,14 @@ import (
 // The edhcover command measures gorge's playable coverage over Commander
 // decklists: every official precon MTGJSON lists and Archidekt's most-viewed
 // community decks, overall and per Commander bracket. scripts/edh_decks.py
-// fetches the lists and writes two committed files under testdata/: the
+// fetches the lists and writes two files under the gitignored .edh-decks/: the
 // manifest, edh-manifest.tsv (ids, names, bracket, rank, source URL, fetch
 // date), and edh-decks.jsonl, the stored decks themselves, one per line (source,
-// id, kind, commanders and the 99 card names). edhcover reads only those two,
-// so a measurement needs no network; the xengine commander diff reuses them.
+// id, kind, commanders and the 99 card names). The decklists are third-party
+// content and are never committed to this public repo; they are kept in a private
+// repo. edhcover reads only those two files, so a
+// measurement needs no network, and when either is absent it skips cleanly
+// (writing nothing and removing any stale edh.md and edh.json).
 //
 // A card is playable by exactly the predicate `make report` and `make
 // coverage` use: Registry.Unsupported against effects.Supported() with
@@ -251,7 +254,7 @@ func readDiracSupported(supportDir string) (map[string]bool, error) {
 	return out, nil
 }
 
-// edhDecklist is one line of testdata/edh-decks.jsonl.
+// edhDecklist is one line of edh-decks.jsonl.
 type edhDecklist struct {
 	Source     string   `json:"source"`
 	ID         string   `json:"id"`
@@ -494,9 +497,28 @@ func renderEDH(rep edhReport, top int) string {
 	return b.String()
 }
 
+// edhInputsPresent reports whether both input files exist.
+func edhInputsPresent(paths ...string) bool {
+	for _, p := range paths {
+		if st, err := os.Stat(p); err != nil || st.IsDir() {
+			return false
+		}
+	}
+	return true
+}
+
 // edhCoverCmd measures the decks manifest names, read from the decklists file,
 // and writes edh.md (and edh.json) into outDir.
 func edhCoverCmd(dir, decklists, manifest, diracSupport, outDir string, top int) error {
+	if !edhInputsPresent(decklists, manifest) {
+		fmt.Fprintf(os.Stderr, "forgec: edhcover: no decklists (%s, %s); skipping Commander deck coverage\n", decklists, manifest)
+		for _, f := range []string{"edh.md", "edh.json"} {
+			if err := os.Remove(filepath.Join(outDir, f)); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+		return nil
+	}
 	mf, err := os.Open(manifest)
 	if err != nil {
 		return err
