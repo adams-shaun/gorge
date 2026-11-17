@@ -2,6 +2,9 @@
 # Abandon Hope (Cost$ X 1 B Discard<X/Card/card>, the announced-X discard)
 # Vexing Devil (UnlessCost$ DamageYou<4>, the literal damage-to-payer cost)
 # Rot Farm Skeleton (Cost$ 2 B G Mill<4>, the activated mill-to-return cost)
+# Deep Spawn (UnlessCost$ Mill<2>, the sacrifice-it-unless-you-mill election)
+# Priest of the Wakening Sun (UnlessCost$ Reveal<1/Creature.Dinosaur>, the
+# reveal-pick "if you do" gain-life election)
 # the forecast family's Reveal<1/CARDNAME> carriers (Pride of the Clouds,
 # Sky Hussar and Karlov's Crossbow: the cost's only candidate is the source
 # itself, CR 201.5, so a battlefield copy can never pay it and the ability
@@ -10,6 +13,8 @@
 Abandon Hope
 Vexing Devil
 Rot Farm Skeleton
+Deep Spawn
+Priest of the Wakening Sun
 Pride of the Clouds
 Sky Hussar
 Karlov's Crossbow

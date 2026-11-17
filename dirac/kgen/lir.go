@@ -793,8 +793,10 @@ type lCost struct {
 	PutLibSelf     bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN        int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
 	BeholdF        *lFilter // the Behold<N/Type> candidates' filter
-	MillN          int      // Mill<N>: mill N cards from the top of the payer's own library (CR 701.17b, 118.3; kop.Cost.Mill, an activated ability's cost only)
+	MillN          int      // Mill<N>: mill N cards from the top of the payer's own library (CR 701.17b, 118.3; kop.Cost.Mill for an activated ability's cost, the unless window's CS=Mill instruction)
 	RevealSelf     bool     // Reveal<1/CARDNAME>: the source card is revealed from its controller's hand and nothing moves (kop.Cost.RevealSelf, the forecast family's cost)
+	RevealN        int      // Reveal<N/Spec> as an UnlessCost$: the payer reveals N hand cards matching RevealF and nothing moves (gorge beginUnlessPayment's "revealcost" pick, unlessflow.go's Note)
+	RevealF        *lFilter // the Reveal<N/Spec> candidates' filter (the payer's hand; a whole-hand or CARDNAME spec stays refused)
 }
 
 // pureMana reports whether the cost is only its mana part. Power-up's
@@ -806,7 +808,13 @@ func (c lCost) pureMana() bool {
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
-		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
+		c.pureManaTail()
+}
+
+// pureManaTail is the rest of pureMana's conjunction: the token and library
+// parts a power-up cost (CR 702.193b) cannot carry beside its mana cost.
+func (c lCost) pureManaTail() bool {
+	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0
 }
 
 // manaCost is a printed mana cost.

@@ -1168,8 +1168,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		// may forage. If you do, ..."): PayForage, kernel act_forage.go's
 		// resolution forage. A forage beside any other part, in an UnlessCost or
 		// deeper in a chain stays refused.
-		if !lc.trigOwnCost || !c.Mana.None || c.DiscardN > 0 || c.Sac != nil || c.PayLife > 0 || c.Energy > 0 ||
-			c.Return != nil || c.ExileG != nil || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.TapN != 0 || c.TapHost {
+		if !lc.trigOwnCost || !c.forageOnly() {
 			return in, refuse("resolution forage cost")
 		}
 		in.CS, in.A, in.F = "Forage", cst(1), c.Forage
@@ -1217,7 +1216,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileStackSelf = false
 	}
 	var err error
-	if n, err = lc.resTokenInstr(c, &in, n); err != nil { // lower_costtokenforms.go
+	if n, err = lc.resTokenInstr(&c, &in, n); err != nil { // lower_costtokenforms.go
 		return in, err
 	}
 	if !c.Mana.None {
@@ -1479,10 +1478,32 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.AddCtr, c.AddCtrRef, c.AddCtrKnd = 0, lRef{}, ""
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX || c.AddCtr != 0 || c.AddCtrRef.Kind != rNone {
+	if !c.resolutionCostShape(n) {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil
+}
+
+// forageOnly reports whether a forage is the cost's only payment part. The
+// Forage arm returns before the final one-part shape check below, so it needs
+// its own complete gate: pureMana's field list covers every other part once
+// the mana cost is checked here and the two fields it does not list
+// (Waterbend, RevealSelf) are excluded.
+func (c lCost) forageOnly() bool {
+	if !c.Mana.None || c.RevealSelf || c.Waterbend != 0 || c.WaterbendX {
+		return false
+	}
+	rest := c
+	rest.Forage = nil
+	return rest.pureMana()
+}
+
+// resolutionCostShape is payInstr's final one-part check: exactly one payment
+// part was lowered and no part is left unconsumed. resTokenInstr clears the
+// Mill/Reveal fields only when its own first-match arm consumes them, so an
+// unconsumed part refuses here instead of being silently dropped.
+func (c lCost) resolutionCostShape(n int) bool {
+	return n == 1 && !c.Tap && !c.SacSelf && c.Loyalty == 0 && c.SubCtr == 0 && c.SubAmongN == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && c.AddCtr == 0 && c.AddCtrRef.Kind == rNone && c.MillN == 0 && c.RevealN == 0 && c.RevealF == nil
 }
 
 // packPips packs WUBRG pip counts 3 bits each.
