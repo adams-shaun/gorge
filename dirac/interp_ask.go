@@ -242,7 +242,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
-	other := payDesc{class: pdOther}
+	other := payDesc{class: pdOther, subBound: true}
 	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
 	}
