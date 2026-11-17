@@ -342,12 +342,26 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	}
 	// The characteristic exceptions ride the copy's CopyExcept (CR 707.9b),
 	// so the as-enters route carries them exactly as the becomes-a-copy
-	// route does. Only values the body resolves without an entry-time
-	// reader are offered: a literal P/T (Quicksilver Gargantuan's 7/7, not
-	// Hulking Metamorph's Count$CardPower), a colour list this build parses
-	// (Vesuvan Doppelganger's SetColor$ Blue), and NonLegendary$ True.
+	// route does: a literal P/T (Quicksilver Gargantuan's 7/7), a colour
+	// list this build parses (Vesuvan Doppelganger's SetColor$ Blue), and
+	// NonLegendary$ True. A P/T setter may also name the entering object's
+	// OWN characteristic through a bare SVar name (Hulking Metamorph's
+	// SetPower$ X, SVar X: Count$CardPower -- "its power and toughness are
+	// equal to CARDNAME's power and toughness", CR 707.9b): the text half
+	// admits only the single-token name shape, and the caller
+	// (CloneETBOffered) holds the carrier's SVar table and verifies the
+	// named body is exactly the own-characteristic read.
 	for _, pt := range [...]ParamText{p.SetPower, p.SetToughness} {
-		if n, ok := literalInt(pt); pt.Present && (!ok || n < 0) {
+		if !pt.Present {
+			continue
+		}
+		if n, ok := literalInt(pt); ok {
+			if n < 0 {
+				return false
+			}
+			continue
+		}
+		if !cloneETBOwnPTName(pt) {
 			return false
 		}
 	}
@@ -376,6 +390,16 @@ func cloneSplitIfNew(kws []string) (rest, ifNew []string) {
 		rest = append(rest, kw)
 	}
 	return rest, ifNew
+}
+
+// cloneETBOwnPTName reports whether a non-literal SetPower$/SetToughness$
+// value is the bare SVar-name shape the own-P/T copy exception admits
+// (Hulking Metamorph's SetPower$ X): one trimmed token with no whitespace
+// and no operator suffix -- a name the caller resolves against the carrier's
+// SVar table (the text half cannot; compileClone sees no SVar table).
+func cloneETBOwnPTName(pt ParamText) bool {
+	t := strings.TrimSpace(pt.Text)
+	return t != "" && !strings.ContainsAny(t, " \t\n\r/") && !strings.HasPrefix(t, "+") && !strings.HasPrefix(t, "-")
 }
 
 // CloneKnownKeys is a copy of cloneKnownKeys, for the census check.

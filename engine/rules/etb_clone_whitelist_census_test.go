@@ -22,11 +22,11 @@ import (
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
 	"Activated Sleeper", "Altered Ego", "Auton Soldier", "Body Double", "Callidus Assassin", "Chameleon, Master of Disguise", "Clever Impersonator", "Clone", "Colossal Clone Master", "Copy Artifact", "Copy Enchantment", "Copy Land",
-	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Dominion Saboteur", "Echoing Deeps", "Evil Twin", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Gigantoplasm", "Glasspool Mimic",
-	"Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mercurial Pretender", "Mirror Image", "Mirrorhall Mimic",
+	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Dominion Saboteur", "Echoing Deeps", "Evil Twin", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Gigantoplasm",
+	"Glasspool Mimic", "Hulking Metamorph", "Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mercurial Pretender", "Mirror Image", "Mirrorhall Mimic",
 	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
 	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima the Impostor", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
-	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Waxen Shapethief",
+	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Undercover Operative", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the
@@ -99,11 +99,18 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		{"Vizier of Many Faces", false}, // SetColor$/AddTypes$ + Embalm$ provenance
 		// The CopyExcept exceptions (CR 707.9b): a literal P/T, a parsed
 		// colour and NonLegendary$ True are offered; an entry-time P/T
-		// reader (Count$CardPower) is not.
+		// reader is offered only through the bare SVar-name shape whose body
+		// is exactly Count$CardPower/Count$CardToughness (Hulking Metamorph;
+		// Living Lore's Remembered$CardManaCost stays out).
 		{"Quicksilver Gargantuan", true},
 		{"Vesuvan Doppelganger", true},
 		{"Auton Soldier", true},
-		{"Hulking Metamorph", false},
+		{"Hulking Metamorph", true},
+		// Living Lore and Thunderbond Vanguard are the corpus's other
+		// non-literal P/T writers, but neither is an ETB Clone carrier the
+		// whitelist classifies (Living Lore's ETBReplacement:Copy body is a
+		// ChangeZone; Thunderbond's EssenceClone names no SetPower$), so
+		// neither can join the census however their SVar reads.
 	}
 	for _, p := range pins {
 		c, ok := reg.Lookup(p.name)
