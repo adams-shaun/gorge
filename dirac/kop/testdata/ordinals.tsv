@@ -702,6 +702,7 @@ MayPlayAdvKind	untyped int	1
 MayPlayAdventure	untyped int	256
 MayPlayAnyType	untyped int	8
 MayPlayExileOnMoved	untyped int	1
+MayPlayFollows	untyped int	64
 MayPlayFree	untyped int	4
 MayPlayIgnoreColor	untyped int	16
 MayPlayInstSorc	untyped int	8192
@@ -713,6 +714,7 @@ MayPlayOpponent	untyped int	16384
 MayPlayOwner	untyped int	512
 MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
+MayPlayZoneMask	untyped int	63
 MinBlockersAll	uint8	255
 MonarchOpp	untyped int	1
 MorphDisguise	uint8	3

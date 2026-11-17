@@ -105,6 +105,9 @@ func (ic *instrCtx) opMayPlay() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.C = kop.OpMayPlay, int16(zoneMap[in.C])
+	if in.Follows {
+		ki.C |= kop.MayPlayFollows // the record follows its card (kop/operands.go)
+	}
 	switch in.CS {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)
