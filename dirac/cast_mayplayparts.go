@@ -45,6 +45,9 @@ func (s *State) mayPlayUnpriced(k *prep, p uint8, o Obj, anyMana bool, av *avail
 	if s.cfg&cfgGorgeUnpriced != 0 {
 		if anyMana {
 			cost := s.adjustCostGen(k, p, s.objs[o].card, o, k.cards[s.objs[o].card].cost)
+			if s.tapPays(k, p, s.objs[o].card, o, false) {
+				cost = s.convokeCredit(k, p, s.objs[o].card, o, cost) // the offer's own credit (offerPlay's castOfferBase): gorge's offer gate prices the tapped-permanent credit too, so the planner picture does not refuse a cast the taps pay (Rogue Class's exiled Artistic Refusal)
+			}
 			cost = planUnderRider(cost, true, false)                                           // a hybrid pip is generic to the plan too (pay.PlanManaUnderRider)
 			unpriced = !s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &cost, av) // (the restricted sources the planner counts price it too)
 		} else {
