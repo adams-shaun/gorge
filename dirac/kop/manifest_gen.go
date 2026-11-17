@@ -2013,6 +2013,11 @@ const StatWitherDamage StaticKind = 68
 // StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model.
 const StatExtraBlock StaticKind = 69
 
+// ManaConvert (dirac/manifest/StaticKind/StatAnyColorSpells)
+//
+// ManaConvert AnyType->AnyColor over a cast card matching Filter (Oath of Nissa).
+const StatAnyColorSpells StaticKind = 70
+
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
 

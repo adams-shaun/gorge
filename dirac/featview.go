@@ -397,6 +397,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
 	}
+	if k.gen != nil && k.gen.uses.has(useAnyColorSpell) && !s.convAnyType(k, SeatIx(p), o) && s.convAnyColor(k, SeatIx(p), o) {
+		cost = planUnderRider(cost, false, true) // the pool spends under the any-colour conversion (mana_convertcreature.go)
+	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
 

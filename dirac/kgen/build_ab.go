@@ -2250,7 +2250,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 	case "ManaConvert":
-		st.Kind = kop.StatAnyTypeCreatures // lower_manaconvert.go
+		st.Kind, st.Filter, err = cb.manaConvertOp(s) // lower_manaconvert.go (err is returned below)
 	case "CantDraw":
 		st.Kind = kop.StatCantDraw
 		if err := banOppFlag(s.Flags, st); err != nil {
@@ -2583,7 +2583,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	default:
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
-	return ka, add, nil
+	return ka, add, err
 }
 
 func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {

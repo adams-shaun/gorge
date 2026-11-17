@@ -1005,6 +1005,10 @@ func (s *State) payFromPoolRider(k *prep, p uint8, cost *kop.ManaCost, x int, an
 		}
 		cost = &c
 	}
+	if k.gen != nil && s.ctl == ctlBuild && s.bld().e.kind == seSpell && s.bld().e.flags&sfAnyMana == 0 && k.gen.uses.has(useAnyColorSpell) && s.convAnyColor(k, p, s.bld().e.obj) {
+		c := s.payConvColorPips(k, p, *cost) // the any-colour conversion: exact colours first (mana_convertcreature.go)
+		cost = &c
+	}
 	switch {
 	case k.gen != nil && k.gen.anyColSpent && s.ctl == ctlBuild:
 		s.payFromPoolSpc(p, cost, x, anyColor) // a cast's colours spent (mana_converge.go)

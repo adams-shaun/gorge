@@ -170,8 +170,7 @@ func (sc *staticCtx) modeActivations() ([]lStatic, bool, error) {
 }
 
 func (sc *staticCtx) modeManaConvert() ([]lStatic, bool, error) {
-	sp := sc.sp
-	if err := manaConvertStatic(sp); err != nil {
+	if err := sc.manaConvertStatic(); err != nil {
 		return nil, true, err // lower_manaconvert.go
 	}
 	return nil, false, nil
