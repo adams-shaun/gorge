@@ -3591,7 +3591,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].flags |= pfLoyaltyUsed
 	}
 	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
-		s.payCounterX(sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
+		s.payCounterX(k, sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
 	}
 	if a.Cost.Exert && sl != NoSlot {
 		// Exert<1/NICKNAME> as an activation cost (CR 702.100a): the
@@ -3605,7 +3605,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	if f&kop.CostRemoveCtr != 0 {
 		s.perms[sl].seeCtr(s)
-		s.perms[sl].subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N)) // trig_counterremoved.go
 	}
 	if f&kop.CostAddCtr != 0 {
 		// a counter put as a cost is no effect (CR 609.1; Doubling Season's

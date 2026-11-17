@@ -891,7 +891,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if p.ctrN(s, int(in.C)) < n {
 				n = p.ctrN(s, int(in.C))
 			}
-			p.subCtrN(s, int(in.C), n)
+			s.subCtrFire(k, sl, int(in.C), n) // trig_counterremoved.go
 			s.g.remCnt = uint16(n)
 		}
 	case kop.OpEnterTapped:

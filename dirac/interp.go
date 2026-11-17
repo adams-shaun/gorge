@@ -99,8 +99,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			n := s.value(k, in.A)
 			s.touchSl(sl)
-			s.perms[sl].seeCtr(s) // gorge lists a kind removed to none at 0
-			s.perms[sl].subCtrN(s, int(in.C), n)
+			s.perms[sl].seeCtr(s)             // gorge lists a kind removed to none at 0
+			s.subCtrFire(k, sl, int(in.C), n) // trig_counterremoved.go
 		}
 	case kop.OpCreateToken:
 		p := s.playerRef(k, in.Obj)

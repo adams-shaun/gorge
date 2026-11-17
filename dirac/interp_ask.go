@@ -899,7 +899,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.touchSl(sl)
 			pp.seeCtr(s)
 			if debugEntersTappedMutate != 3 { // TestSourceCounterCostsMutation: the drain
-				pp.subCtrN(s, kind, int(s.g.pickLeft))
+				s.subCtrFire(k, sl, kind, int(s.g.pickLeft)) // trig_counterremoved.go
 			}
 		case kop.PayTapX:
 			// C: the tap election (one pick per answer); an
@@ -2712,7 +2712,7 @@ func (s *State) paySubCounterAny(k *prep, sl Slot) {
 	if n == 1 {
 		s.touchSl(sl)
 		pp.seeCtr(s)
-		pp.subCtrN(s, first, int(s.g.pickLeft))
+		s.subCtrFire(k, sl, first, int(s.g.pickLeft)) // trig_counterremoved.go
 		s.g.pickLeft = 0
 		s.payDone(k, true)
 		return
@@ -2733,7 +2733,7 @@ func (s *State) applyPaySubCounterPick(k *prep, a Action) {
 	pp := &s.perms[sl]
 	s.touchSl(sl)
 	pp.seeCtr(s)
-	pp.subCtrN(s, kind, 1)
+	s.subCtrFire(k, sl, kind, 1) // trig_counterremoved.go
 	s.g.pickLeft--
 	if s.g.pickLeft == 0 {
 		s.payDone(k, true)
