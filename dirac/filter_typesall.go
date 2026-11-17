@@ -234,8 +234,9 @@ func hasManaAbilityCard(k *prep, c CardID, fd bool) bool {
 // cardMV is card c's mana value as an off-battlefield filter reads it: the
 // printed total, with a face-down card at 0 (CR 708.4), a split card off the
 // stack and battlefield summing its halves (CR 709.4b), and a spell's chosen
-// X added on the stack (CR 202.3e). The CMC arm and PredTypesAllCMCLE share
-// it.
+// X added on the stack (CR 202.3e). PredTypesAllCMCLE (typesAllCMCCard) shares
+// it; a filter's CMC arm reads cardMVIn, which also sees ctx.xmv and
+// ctx.spellMV.
 func (s *State) cardMV(k *prep, c CardID, o Obj, fd bool) int {
 	return s.cardMVRead(k, c, o, fd, false)
 }
