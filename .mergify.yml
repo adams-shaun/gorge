@@ -1,11 +1,15 @@
-# Mergify merge queue trial (operator 11-16). PRs to main labelled `queue` are batched (up to 10 per CI run),
-# gated on the full CI (`ci-ok` aggregates every job, oracle included); a red batch is split and bisected by Mergify.
+# Mergify merge queue, two-step CI (https://docs.mergify.com/merge-queue/two-step/), operator 11-16.
+# A pull request to main labelled `queue` enters the queue once its fast checks pass (`fast`: the diff's packages and
+# the tests that import them; `lint`). Mergify then batches up to 10 queued PRs on a mergify/merge-queue/* branch,
+# where CI runs the full suite once per batch; the batch merges when `ci-ok` is green there. A red batch is split.
 queue_rules:
   - name: default
     queue_conditions:
       - base=main
       - label=queue
       - -draft
+      - check-success=fast
+      - check-success=lint
     merge_conditions:
       - check-success=ci-ok
     batch_size: 10
