@@ -2,27 +2,63 @@ package kgen
 
 import "strings"
 
-// DamageAll with DamageSource$ ParentTarget over
-// "<spec>.NotDefinedTargeted" (CR 120.3; gorge effects/damage.go
-// effDamageAll with damageSourceParam) as OpExt ExtSweepFrom: the chain's one
-// earlier target creature deals the amount (read once) to every matching
-// creature in one damage batch, the source's own slot excluded by the
-// suffix. Anything beyond that shape refuses by name.
+// DamageAll with DamageSource$ over two sweep shapes (CR 120.3; gorge
+// effects/damage.go effDamageAll with damageSourceParam), both OpExt
+// ExtSweepFrom:
+//
+//   - ParentTarget/Targeted over "<spec>.NotDefinedTargeted": the chain's one
+//     earlier target creature deals the amount (read once) to every matching
+//     creature in one damage batch, the source's own slot excluded by the
+//     suffix.
+//   - Remembered in a capturing emblem's DamageDealtOnce body
+//     (lowerCtx.capRem; Arcbond's emblem shape): the captured object is the
+//     damage source (rTriggeredSource), and ValidPlayers$ Player (exactly
+//     that value) adds the player arm after the creatures in the same batch
+//     (C&2). The body's Creature.!IsRemembered folds into the C&1 own-slot
+//     exclusion: the captured object is the sweep source, and the kernel's
+//     emblem does not seed the remembered set a filter flag would read
+//     (emblemCaptureFilter). A plain IsRemembered clause beside the capture
+//     names exactly the captured object (the sweep would hit only its own
+//     source) and refuses; a body that wrote its own set first keeps the
+//     plain Remembered read the definedSpec census owns, so it refuses too.
+//
+// Anything beyond those shapes refuses by name.
 func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
-	for _, k := range []string{"ValidPlayers", "RememberDamaged", "ReplaceDyingDefined", "DamageMap", "ValidTgts"} {
+	for _, k := range []string{"RememberDamaged", "ReplaceDyingDefined", "DamageMap", "ValidTgts"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("DamageAll DamageSource$ beside %s", k)
 		}
 	}
-	if ds = strings.TrimSpace(ds); ds != "ParentTarget" && ds != "Targeted" {
-		return refuse("DamageAll DamageSource$ %q", ds)
+	cap := lc.capRem && strings.TrimSpace(ds) == "Remembered" && !lc.hasRememberWriter()
+	players := false
+	vp, hasVP := ps.get("ValidPlayers")
+	if hasVP && cap {
+		if strings.TrimSpace(vp) != "Player" {
+			return refuse("DamageAll DamageSource$ beside ValidPlayers")
+		}
+		players = true
 	}
-	if len(lc.chainT) != 1 {
-		return refuse("DamageAll DamageSource$ %s over %d target slots", ds, len(lc.chainT))
-	}
-	slot := lc.chainT[0]
-	if t := lc.ab.Targets[slot]; t.Spell || t.F == nil || t.F.Players != 0 || t.Zone != zBattlefield {
-		return refuse("DamageAll DamageSource$ %s names a slot that is not a battlefield object", ds)
+	var src lRef
+	if cap {
+		// the captured object, the trigger's damage source, wherever it is
+		// now (a gone one deals from the resolving effect, as ExtSweepFrom's
+		// NoSlot arm already does)
+		src = lRef{Kind: rTriggeredSource}
+	} else {
+		if ds = strings.TrimSpace(ds); ds != "ParentTarget" && ds != "Targeted" {
+			return refuse("DamageAll DamageSource$ %q", ds)
+		}
+		if len(lc.chainT) != 1 {
+			return refuse("DamageAll DamageSource$ %s over %d target slots", ds, len(lc.chainT))
+		}
+		slot := lc.chainT[0]
+		if t := lc.ab.Targets[slot]; t.Spell || t.F == nil || t.F.Players != 0 || t.Zone != zBattlefield {
+			return refuse("DamageAll DamageSource$ %s names a slot that is not a battlefield object", ds)
+		}
+		src = lRef{Kind: rTarget, N: slot}
+		if hasVP {
+			return refuse("DamageAll DamageSource$ beside ValidPlayers")
+		}
 	}
 	vc, ok := ps.get("ValidCards")
 	if !ok {
@@ -30,10 +66,12 @@ func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
 	}
 	vc = strings.TrimSpace(vc)
 	excl := 0
-	for _, suf := range []string{".NotDefinedTargeted", "+NotDefinedTargeted"} {
-		if rest, ex := strings.CutSuffix(vc, suf); ex {
-			vc, excl = rest, 1
-			break
+	if !cap {
+		for _, suf := range []string{".NotDefinedTargeted", "+NotDefinedTargeted"} {
+			if rest, ex := strings.CutSuffix(vc, suf); ex {
+				vc, excl = rest, 1
+				break
+			}
 		}
 	}
 	f, err := lc.filter(vc)
@@ -48,6 +86,40 @@ func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
 			return refuse("DamageAll DamageSource$ over a non-creature filter %q", vc)
 		}
 	}
-	lc.emit(lInstr{Op: "SweepFrom", Obj: lRef{Kind: rTarget, N: slot}, B: n, F: f, C: excl})
+	if cap {
+		nNot := 0
+		for i := range f.Clauses {
+			if f.Clauses[i].Flags&fNotRemembered != 0 {
+				nNot++
+			}
+		}
+		if nNot != 0 && nNot != len(f.Clauses) {
+			// The clauses are an OR: C&1 skips the capture's slot for all of
+			// them, but a clause without !IsRemembered still matches it in
+			// gorge. Only a filter excluding it in every clause folds.
+			return refuse("DamageAll DamageSource$ over a mixed IsRemembered filter %q", vc)
+		}
+		for i := range f.Clauses {
+			if c := &f.Clauses[i]; c.Flags&fRemembered != 0 {
+				// IsRemembered with no qualifier beside it: the remember set
+				// names exactly the captured object, so gorge's sweep hits
+				// only the source itself -- not a sweep over the battlefield
+				// at all, and not expressible as one without the remembered
+				// set. Fail closed by name.
+				return refuse("DamageAll DamageSource$ over an IsRemembered filter %q", vc)
+			}
+			if c := &f.Clauses[i]; c.Flags&fNotRemembered != 0 {
+				// !IsRemembered: not the captured object, which is the sweep
+				// source
+				excl = 1
+				c.Flags &^= fNotRemembered
+			}
+		}
+	}
+	c := excl
+	if players {
+		c |= 2
+	}
+	lc.emit(lInstr{Op: "SweepFrom", Obj: src, B: n, F: f, C: c})
 	return nil
 }

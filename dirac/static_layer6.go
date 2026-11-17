@@ -213,7 +213,11 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 	if s.fxM.has(sl) {
 		cpKw = s.copyExcKw(k, sl) & p.ovr.kw // the exceptions' keywords, settled into ovr.kw at entry
 	}
-	if eot := (p.eotKw | p.ovr.kw) &^ cpKw; eot != 0 {
+	ctlKw := kop.KwMask(0)
+	if s.fxM.has(sl) {
+		ctlKw = s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+	}
+	if eot := (p.eotKw | p.ovr.kw | ctlKw) &^ cpKw; eot != 0 {
 		if s.fxM.has(sl) {
 			for i := 0; i < int(s.g.nfx); i++ {
 				if r := &s.g.fx[i]; r.sl == sl && r.kind == fxKwGrant {

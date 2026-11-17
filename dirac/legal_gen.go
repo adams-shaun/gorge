@@ -22,6 +22,21 @@ const (
 	castFree    uint8 = 1 << 4
 )
 
+// mayRecordOfferable reports whether play permission record r may offer its
+// play to p: a following record reads the card's zone every time (CR 611.2c,
+// cast_maypermission.go); a version-tied one requires the card unmoved since
+// the grant and still in a playable zone.
+func (s *State) mayRecordOfferable(r mayPlay, p uint8) bool {
+	if r.ctrl != p {
+		return false
+	}
+	ob := &s.objs[r.obj]
+	if r.follows() {
+		return ob.zone == r.followsZone()
+	}
+	return ob.ver == r.ver && (ob.zone == kop.ZoneExile || ob.zone == kop.ZoneGraveyard)
+}
+
 func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail, haveAv bool) {
 	// The caller's priority walk already built the same availability
 	// picture (priorityOptions); reuse it instead of re-walking the mana
@@ -33,10 +48,10 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	pl := &s.pl[p]
 	landOK := sorc && pl.landsPlayed < s.landLimit(k, p)
 	// play permissions
+	var plainSeen objBits
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		ob := &s.objs[r.obj]
-		if r.ctrl != p || ob.ver != r.ver || (ob.zone != kop.ZoneExile && ob.zone != kop.ZoneGraveyard) {
+		if !s.mayRecordOfferable(r, p) {
 			continue
 		}
 		if k.gen.anyMayWhileSrc && s.maySrcDead(r) {
@@ -66,6 +81,15 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			}
 			continue
 		}
+		// gorge's walk dedups its candidates per (zone, id, key)
+		// (mayplay_index.go): two plain grants over the same card offer one
+		// cast -- two landfall triggers while the card sits in the graveyard
+		// both stand. A rider grant's key is its own, so its offer stands
+		// beside a plain one.
+		if plainSeen.has(r.obj) {
+			continue
+		}
+		plainSeen.set(r.obj)
 		s.offerPlay(k, d, p, r.obj, castMayPlay, sorc, landOK, false, false, false, &av)
 		if k.gen.anyZeroAlt {
 			s.offerZeroAlt(k, d, p, r.obj, castMayPlay, true, sorc, &av) // cast_mayzeroalt.go
@@ -145,6 +169,8 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			}
 		})
 	}
+	// gained activated abilities (GainsAbilitiesOf$, static_gainsof.go)
+	s.gainedAbilities(k, d, p, sorc, &av)
 }
 
 // offerPlay offers playing card object o through a permission.
@@ -187,8 +213,8 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			if !av.affordsAnyColor(&cost, 0) {
 				return
 			}
-		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
-			return
+		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
+			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
 	} else if s.freeOwes(k) {
 		// a free cast still pays the cost statics' increases (CR 601.2f, 118.9d)
@@ -362,18 +388,18 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		if r.obj != o || r.ctrl != p || r.ver != s.objs[o].ver || ownWalkerRecord(r) ||
-			s.mayLimitSpent(r) || k.gen.anyMayWhileSrc && s.maySrcDead(r) {
+		if r.obj != o || r.ctrl != p || !(r.follows() || r.ver == s.objs[o].ver) ||
+			ownWalkerRecord(r) || s.mayLimitSpent(r) || k.gen.anyMayWhileSrc && s.maySrcDead(r) {
 			continue
 		}
 		s.stampMayExile(k, i) // repl_stackexile.go
-		if r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0 {
-			// An Effect-delivered graveyard grant stays live after the card
-			// leaves; mayPersistMoved re-arms it when the card returns
-			// (gorge re-reads the effect's static, CR 611.2a).
-			return true
+		if !r.follows() && !(r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0) {
+			// A following record outlives its own cast (gorge's continuous
+			// grant); an Effect-delivered graveyard grant stays live after
+			// the card leaves, and mayPersistMoved re-arms it when the card
+			// returns (gorge re-reads the effect's static, CR 611.2a).
+			s.removeMay(i)
 		}
-		s.removeMay(i)
 		return true
 	}
 	return false
@@ -475,7 +501,16 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 func (s *State) activateGen(k *prep, a Action) bool {
 	o := Obj(a.Source())
 	ob := &s.objs[o]
-	if a.Mode()&0x80 != 0 {
+	if isGainedMode(a.Mode()) {
+		// a gained ability (static_gainsof.go): the foreign card's body,
+		// activated as the recipient's own ability (no granting host)
+		host := Obj(a.Target())
+		hc := s.objs[host].card
+		if s.objs[host].zone == kop.ZoneBattlefield {
+			hc = s.cardAt(s.objs[host].slot)
+		}
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ gainedMode, ctrl: s.prio, trigObj: NoObj}}
+	} else if a.Mode()&0x80 != 0 {
 		host := Obj(a.Target())
 		hc := s.objs[host].card
 		if s.objs[host].zone == kop.ZoneBattlefield {
@@ -490,7 +525,7 @@ func (s *State) activateGen(k *prep, a Action) bool {
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seAbility]
 	s.ctl = ctlBuild
-	if a.Mode()&0x80 == 0 {
+	if !isGainedMode(a.Mode()) && a.Mode()&0x80 == 0 {
 		s.lowerHybridOnly(k, a.Mode()) // a hand or graveyard ability (cycling {U/B}): the same witness lowering as a battlefield one
 	}
 	return true
@@ -688,7 +723,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	// offers one may-play cast per card: Zul Ashur's record beside
 	// Muldrotha's creature static, pair 91243)
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := *s.mayAt(i); r.ctrl == p && s.objs[r.obj].ver == r.ver &&
+		if r := *s.mayAt(i); s.mayRecordOfferable(r, p) &&
 			!ownWalkerRecord(r) &&
 			!(k.gen.anyMayLimit && s.mayLimitSpent(r)) &&
 			!(k.gen.anyMayWhileSrc && s.maySrcDead(r)) {
@@ -764,15 +799,29 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	}
 }
 
+// graveOrExileAct: a printed activated ability priorityGraveAct offers, from
+// the graveyard or from exile (not a granted one: priorityExileGrant's).
+func graveOrExileAct(a *kop.Ability) bool {
+	return a.ActZone == kop.ZoneGraveyard || a.ActZone == kop.ZoneExile && a.AFlags&kop.AfLatent == 0
+}
+
 func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	pl := &s.pl[p]
-	// activated abilities that work from the graveyard
-	for i := 0; i < int(pl.graveN); i++ {
-		o := pl.grave[i]
+	// activated abilities that work from the graveyard, then from exile (a
+	// printed ActivationZone$ Exile ability: Torrent Elemental's; a granted
+	// one is priorityExileGrant's)
+	for i := 0; i < int(pl.graveN)+int(pl.exileN); i++ {
+		z := kop.ZoneGraveyard
+		o := Obj(0)
+		if i < int(pl.graveN) {
+			o = pl.grave[i]
+		} else {
+			z, o = kop.ZoneExile, pl.exile[i-int(pl.graveN)]
+		}
 		cd := &k.t.Cards[s.objs[o].card]
 		for ai := range cd.Abilities {
 			a := &cd.Abilities[ai]
-			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneGraveyard {
+			if a.Kind != kop.AbActivated || a.ActZone != z || a.AFlags&kop.AfLatent != 0 {
 				continue
 			}
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(k, p, o, a) {
@@ -804,8 +853,14 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 					continue // Phantasmagorian's "Discard three cards": legal.go's battlefield check (kfix-cast)
 				}
 			}
+			if !s.millRevealPayable(k, p, o, &a.Cost) {
+				continue // cost_millcost.go: CR 701.17b's library, CR 201.5's self-reveal
+			}
 			if k.costObj && !s.graveActOK(k, a, p, o) {
 				continue
+			}
+			if a.Cost.Flags&kop.CostPayEnergy != 0 && !s.energyPayable(p, &a.Cost) {
+				continue // Unearth's PayEnergy<8> (CR 702.84a): costObj is not set for a pure energy cost
 			}
 			if f := a.Cost.Flags; f&(kop.CostSac|kop.CostTapX|kop.CostPayLife) != 0 {
 				if !s.pickCostPayable(k, p, &a.Cost, o) {
@@ -884,7 +939,7 @@ func (s *State) tapAllStep(k *prep, p uint8) bool {
 // tapOneForMana taps the source at sl into the pool, reporting whether it could.
 func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	if k.gen != nil && s.anyDifferentAt(k, sl) {
-		s.windowAnyDifferentTap(k, sl) // the window lists a Firemind Vessel and its tap makes no mana (mana_anydifferent.go)
+		s.windowAnyDifferentTap(k, p, sl, nil, nil, false, true) // the window lists an AnyDifferent source and floats its N distinct colours
 		return true
 	}
 	if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
@@ -975,7 +1030,7 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 	return s.g.nmay != 0 || g.anyMayPlay || g.anyGraveAct || g.anyHandAct || g.blgOn || len(g.varPC) != 0 ||
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
-		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k)
+		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf)
 }
 
 // tgtSource is the spell or ability the current targeting is for (the entry

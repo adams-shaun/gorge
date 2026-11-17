@@ -90,12 +90,13 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 			ps.consume("ExileOnMoved", "Defined", "ForgetOnMoved")
 		}
 	}
-	eot, next, err := true, false, error(nil)
+	eot, next, durHost, err := true, false, false, error(nil)
 	if !host {
-		if eot, next, err = effectEmblemDuration(ps); err != nil {
+		if eot, next, durHost, err = effectEmblemDuration(ps); err != nil {
 			return err
 		}
 	}
+	host = host || durHost
 	sts := make([]lStatic, 0, len(ss))
 	for _, s := range ss {
 		if host {
@@ -204,19 +205,39 @@ func (lc *lowerCtx) effectEmblemChosenNumber(ps *params, ss []cards.Static) (lVa
 // this-turn boundary; IsNextTurnDuration makes UntilYourNextTurn a real
 // start-of-next-turn boundary. UntilTheEndOfYourNextTurn is also a
 // next-turn duration in gorge, but it lasts through that turn's cleanup, a
-// lifetime the kernel's emblem record does not carry, so it refuses.
-func effectEmblemDuration(ps *params) (eot, next bool, err error) {
+// lifetime the kernel's emblem record does not carry, so it refuses. So does
+// Duration$ Permanent here: only effectEmblemDurationAs with allowPermanent
+// reads it (effectEmblemPrevent, lower_effectemblemprevent.go).
+func effectEmblemDuration(ps *params) (eot, next, host bool, err error) {
+	return effectEmblemDurationAs(ps, false)
+}
+
+// effectEmblemDurationAs is effectEmblemDuration; allowPermanent reads
+// Duration$ Permanent as the emblem with none of the three flags, which no
+// cleanup drops.
+func effectEmblemDurationAs(ps *params, allowPermanent bool) (eot, next, host bool, err error) {
 	d, ok := ps.get("Duration")
 	if !ok {
-		return true, false, nil
+		return true, false, false, nil
 	}
 	switch d {
 	case "EOT", "EndOfTurn", "UntilEndOfTurn", "UntilYourNextEndStep", "ThisTurn":
-		return true, false, nil
+		return true, false, false, nil
 	case "UntilYourNextTurn":
-		return false, true, nil
+		return false, true, false, nil
+	case "Permanent":
+		if allowPermanent {
+			return false, false, false, nil
+		}
+		return false, false, false, refuse("Effect static Duration$ %q", d)
+	case "UntilHostLeavesPlayOrEOT":
+		// "until end of turn, or until the host leaves the battlefield,
+		// whichever is first": both end conditions, joined by OR. The
+		// kernel's WhileHost emblem ends at the host's leave and its
+		// UntilEOT flag at cleanup, so the record carries both.
+		return true, false, true, nil
 	default:
-		return false, false, refuse("Effect static Duration$ %q", d)
+		return false, false, false, refuse("Effect static Duration$ %q", d)
 	}
 }
 
@@ -253,8 +274,8 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			break
 		}
 		// a body that is only the view-only face-down
-		// battlefield look lowers to no static (gorge's effEffect registers
-		// nothing for it: mayLookAtExileGrantFromLine accepts only Exile).
+		// battlefield look lowers to no static: gorge's effEffect registers a
+		// look-only grant, an information read the kernel has no static for.
 		// effectStaticEOT drops the empty static and, when the Effect has no
 		// other static, emits no CreateEmblem at all.
 		if faceDownLookOnly(s.Params) {
@@ -297,6 +318,13 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 	case "CanAttackDefender":
 		// gorge canAttackDefenderGrantParamsReadableKeys
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "ValidCards": true, "ValidTarget": true, "ValidAttacked": true, "Description": true, "Secondary": true}
+	case "AssignNoCombatDamage":
+		// gorge effectCombatStatic's AssignNoCombatDamage restriction
+		// (effect_combatstatics.go), read by rules' combatDamageAmount; the
+		// kernel zeroes the matching creature's assignment in the combat
+		// damage step. ValidCard$ names the effect's source (rewritten to
+		// Self by effectSourceSelf, the host the emblem reads as its source).
+		keys = map[string]bool{"Mode": true, "ValidCard": true, "Description": true}
 	case "ReduceCost":
 		// gorge costStaticParamsReadableKeys
 		keys = map[string]bool{"Mode": true, "Type": true, "ValidCard": true, "ValidSA": true, "ValidPlayer": true, "ValidSpell": true, "ValidTarget": true, "Activator": true, "Caster": true, "Amount": true, "Cost": true, "Announce": true, "Color": true, "MinMana": true, "IgnoreGeneric": true, "RaiseTo": true, "OnlyFirstSpell": true, "IsPresent": true, "PresentZone": true, "PresentCompare": true, "CheckSVar": true, "SVarCompare": true, "CheckSecondSVar": true, "SecondSVarCompare": true, "Condition": true, "EffectZone": true, "AffectedZone": true, "Secondary": true, "Relative": true, "ClassBand": true, "UnlessValidTarget": true, "PlayerTurn": true, "Phases": true, "Description": true, "SpellDescription": true}
@@ -442,10 +470,12 @@ func effectContinuousKeys(p map[string]string) error {
 // head to Self (gorge's EffectSource is the Effect's source card, the host
 // the emblem reads as its source; kernel eachStatic). Only CantBlockBy's
 // attacker side (Gingerbrute's Creature.EffectSource, Giant Koi's and Verdant
-// Outrider's Card.EffectSource) and CanAttackDefender's ValidCard$ (Krotiq
-// Nestguard's Card.EffectSource) are read; any other mode, key or spelling
-// refuses. CanAttackDefender keeps its head (Card.Self, the spelling the
-// printed S: route lowers). found reports whether the body named EffectSource at all.
+// Outrider's Card.EffectSource), CanAttackDefender's ValidCard$ (Krotiq
+// Nestguard's Card.EffectSource) and AssignNoCombatDamage's ValidCard$
+// (Ophidian's Card.EffectSource) are read; any other mode, key or spelling
+// refuses. CanAttackDefender and AssignNoCombatDamage keep their head
+// (Card.Self, the spelling the printed S: route lowers). found reports
+// whether the body named EffectSource at all.
 func effectSourceSelf(s cards.Static) (cards.Static, bool, error) {
 	cp := make(map[string]string, len(s.Params))
 	found := false
@@ -453,7 +483,8 @@ func effectSourceSelf(s cards.Static) (cards.Static, bool, error) {
 		if strings.Contains(v, "EffectSource") {
 			found = true
 			okKey := s.Mode == "CantBlockBy" && k == "ValidAttacker" ||
-				s.Mode == "CanAttackDefender" && k == "ValidCard"
+				s.Mode == "CanAttackDefender" && k == "ValidCard" ||
+				s.Mode == "AssignNoCombatDamage" && k == "ValidCard"
 			if !okKey || (v != "Creature.EffectSource" && v != "Card.EffectSource") {
 				return s, true, refuse("Effect static %s %s$ %q", s.Mode, k, v)
 			}

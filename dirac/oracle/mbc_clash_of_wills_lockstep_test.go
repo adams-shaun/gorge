@@ -7,6 +7,8 @@ import "testing"
 // Feeding the Signet spends the floating U, so no X above 0 can be paid and
 // gorge asks only X = 0. The kernel once kept the spent U in its ceiling and
 // also offered X = 1 (decision 385 of pool tail-19, pair 41).
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCClashOfWillsReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "filter_fee_spends_pool_colour_in_x_ceiling")

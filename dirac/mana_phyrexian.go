@@ -89,13 +89,22 @@ func phyPlanHalf(cost kop.ManaCost) kop.ManaCost {
 
 // phyCastGateAffords is the offer gate's affordability read for p's cast of
 // card c at cost over cav: the printed cost when its own is affordable, else
-// — for a Phyrexian cost — the pip-free mana half alone, gorge pay.PlanManaHalf
-// (each pip's face is announced afterwards, CR 601.2b). A pip behind the
-// payer's life total (its two-life face above it, its colour face left
-// unfundable by the census the planner's lethal guard holds the pain out of)
-// does not withhold a plain cast the planner prices (dr-mbc-baab pair 141,
-// Porcelain Legionnaire at 1 life).
-func (s *State) phyCastGateAffords(cav *avail, cost *kop.ManaCost) bool {
+// — for a Phyrexian cost — the cost again over the cast window's census
+// (availCastWindowFor, availWinCol) when the pip-free mana half, gorge
+// pay.PlanManaHalf, is affordable at all (CR 601.2b: each pip's face is
+// announced afterwards, so the offer prices the whole cost with the
+// assignment the announcement will find).
+//
+// CR 107.4f / CR 119.4 bound a two-life face by the payer's life (the
+// affordsTb guard), so at 1 life every pip must be paid with its colour. A
+// colour face is still payable from a damage-painful source the offer
+// census holds out at 1 life — paying the pain is legal, if lethal — and the
+// window's census counts it (dr-mbc-baab pair 141, Porcelain Legionnaire at
+// 1 life). The pip-free half alone is not enough: a cost whose pips need
+// colour units the census does not have withholds the cast even when its
+// generic half is affordable (phyact seed 510, Moltensteel Dragon's two
+// {R/P} at 1 life from three Mountains and an Island).
+func (s *State) phyCastGateAffords(k *prep, p uint8, cav *avail, cost *kop.ManaCost) bool {
 	if cav.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
@@ -103,34 +112,98 @@ func (s *State) phyCastGateAffords(cav *avail, cost *kop.ManaCost) bool {
 		return false
 	}
 	h := phyPlanHalf(*cost)
-	return cav.affords(&h, pipMaskOf(&h), 0)
+	if !cav.affords(&h, pipMaskOf(&h), 0) {
+		return false
+	}
+	if !k.painMana {
+		return false // no damage-painful source the offer census dropped
+	}
+	var w avail
+	s.availCastWindowFor(k, p, &w)
+	return w.affords(cost, pipMaskOf(cost), 0)
 }
 
 // phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
 // settled, armed on the mana half; the manual window when none exists
-// (mana_phyrexian.go).
+// (mana_phyrexian.go). It reports whether the payment settled. A cost the
+// window cannot fund (a colour face whose only funder is a census gap the
+// window skips, as at 1 life with no source of the pip's colour) is left to
+// the caller to reverse, as gorge reverses an activation it cannot pay
+// (CR 733.1): the pip ask offered the face, but the payment is not owed.
 //
 //go:noinline
-func (s *State) phyAbilityMana(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8) {
+func (s *State) phyAbilityMana(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
 	a := &k.t.Cards[e.card].Abilities[e.ab]
 	half := a.Cost.Mana
 	half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
 	if s.abilityPlanSettles(k, e, half, half, *cost, saved) {
 		s.tapFor(k, e.ctrl, cost, int(e.x), NoObj)
-	} else {
-		s.phyPay(k, e.ctrl, cost, int(e.x), NoObj)
+		return true
 	}
+	return s.phyPay(k, e.ctrl, cost, int(e.x), NoObj)
 }
 
-func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj) {
+// phyPay pays a Phyrexian cost through the manual window and reports whether
+// the cost is settled: a window that ran out of useful sources leaves the
+// payment owed (an activation's caller reverses it, keeping the window's taps
+// and floating mana, CR 733.1).
+func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj) bool {
 	if s.phyAllLife(k) {
 		s.tapFor(k, p, cost, x, exclude)
-		return
+		return true
 	}
-	_, held := s.windowTapRiderUseful(k, p, cost, cost, true, false)
+	if !s.phyWindowReach(k, p, cost) {
+		return false // a face only a filter could make: gorge's window never opens, it reverses
+	}
+	// The window's pick is the first useful source in battlefield order and
+	// its owed colour (or the restricted ability that makes it), as gorge's
+	// manual window answers. The clamp is the window's offer gate: a source
+	// that makes no colour the cost still owes does not tap for nothing.
+	ok, held := s.windowTapRiderUseful(k, p, cost, cost, true, false)
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
+	if s.winPaused() {
+		return true // a tap-another pick is pending: the payment runs on when it answers
+	}
+	return ok && s.windowSpellSettled(k, p, cost, false)
+}
+
+// phyWindowReach reports whether the payment's own pool, the untapped printed
+// sources, the deferred sources the window can tap (a TriggersWhenSpent$ mana
+// ability the planner's census omits, mana_deferred.go), the restricted mana it
+// may spend and the restricted sources whose mana it admits reach cost. The
+// check is the window's opening condition, not
+// the offer's: a colour face only a paid filter could make (pair 11's
+// Souleater beside School of the Unseen) leaves gorge's window unopened, so
+// the activation reverses with no taps; the filter never pays a pip the
+// planner did not plan.
+func (s *State) phyWindowReach(k *prep, p uint8, cost *kop.ManaCost) bool {
+	var av avail
+	s.availFor(k, p, &av)
+	// the planner's census omits a deferred source (Gilanra's {G}), but the
+	// window can tap it, and the pip ask that announced the face counted it
+	// (mana_deferred.go)
+	s.addDeferredUnits(k, p, &av)
+	if av.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
+	if s.rbAny(p) {
+		d := s.payDescNow(NoObj)
+		if m := s.restrFloatAdmits(k, p, &d); m != 0 {
+			s.restrAvailAdd(p, m, &av)
+		}
+	}
+	if av.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
+	// an untapped restricted source (Gwenna's creature-only {R}) is the
+	// clamped window's pick: the pending payment admits its mana (CR 106.6),
+	// whether a plain restricted source or a wide any-colour one.
+	if k.restrSrc && s.restrFaceAffords(k, p, cost, &av, 0) {
+		return true
+	}
+	return k.gen != nil && k.gen.anyMultiR && s.wideFaceAffords(k, p, cost, &av, 0)
 }
 
 // DebugNoPhyrexianLife drops the two-life payment (the phy mutation test).
@@ -143,12 +216,28 @@ var DebugNoPhyrexianLife bool
 // total) and the resolved mana cost affordable from av. gorge (from
 // cr-phyrexian-activation-low-life, 81fb97473) plans the cost with its first
 // k pips as life for each affordable k; every corpus activation's pips share
-// one colour, where that is the same set of assignments.
+// one colour, where that is the same set of assignments. gorge's witness
+// prices the mana half with its planner, which reaches a census-gap source's
+// unit through the script route (Hall of Tagsin's "{1}, {T}: Add one mana of
+// any color"), so the gate counts what av carries, gap units included.
+//
+// A storage battery (Subterranean Hangar) is a census gap, but its live
+// counters are real mana and the planner prices them (mana_countercost.go
+// storeGap): the real offer's gate reads them beside the plain units, or a
+// second activation its counters pay is withheld (pair 149). The plain
+// probes (availPlain: plainOptions and the other probe walks, which model
+// gorge's planner) read without them — the planner reaches a battery only
+// through the script route, so a play its probes list runs unscripted and
+// the battery is never activated (pair 149).
 //
 //go:noinline
 func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.ManaCost, av *avail) bool {
-	if !s.phyActUngrantedOK(k, sl, a, p, c) {
-		return false
+	if k.gen != nil && s.g.availX&availPlain == 0 {
+		var store avail
+		store = *av
+		if s.phyStoreUnits(k, p, &store) {
+			av = &store
+		}
 	}
 	n := min(c.TbN(), 5)
 	life := int(s.pl[p].life)
@@ -171,29 +260,22 @@ func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.M
 	return false
 }
 
-// phyActUngrantedOK is the grant half of a Phyrexian activation's offer under
-// gorge's surface. gorge's planner prices only the mana half of such a cost
-// (pay.PlanManaHalf) and witnesses no mana ability an effect grants, so when
-// that half is paid by the pool and the printed sources the play is a
-// potential play with a witness and no prefix search, and its lowering pays the
-// pips through the offer gate over the printed sources and the life
-// (autoPayPhyrexian). A pip only a granted ability could fund (a Mountain's
-// any-colour mana under Chromatic Lantern, the life short of two) leaves
-// gorge no way to make the play, though CR 602.2b allows it. A mana half the
-// printed sources cannot pay is the scripted route's: grantCap's search.
-func (s *State) phyActUngrantedOK(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.ManaCost) bool {
-	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || k.gen == nil || len(k.gen.grantPC) == 0 {
-		return true
+// phyStoreUnits adds p's untapped storage batteries' live counters to a: each
+// removes any number of its counters for that many mana of its colour, and its
+// announced X is the counters it holds (mana_countercost.go storeGap). It
+// reports whether it added any.
+func (s *State) phyStoreUnits(k *prep, p uint8, a *avail) bool {
+	added := false
+	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		ab := k.ctrAbOf(s.cardAt(sl))
+		if ab == nil || !kop.StoreManaAb(ab) {
+			continue
+		}
+		if n := min(s.perms[sl].ctrN(s, int(ab.Cost.Ctr)), 255); n > 0 {
+			a.addUnits(uint8(ab.ManaColors)&0x3f, uint8(n))
+			added = true
+		}
 	}
-	ex := NoSlot
-	if a.Cost.Flags&kop.CostTap != 0 {
-		ex = sl
-	}
-	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
-	half := c
-	half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
-	if !s.affordsUngrantedFor(k, p, &half, ex, d) {
-		return true
-	}
-	return s.affordsUngrantedFor(k, p, &c, ex, d)
+	return added
 }

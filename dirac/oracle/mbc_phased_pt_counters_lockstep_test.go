@@ -7,6 +7,8 @@ import "testing"
 // Roots's -0/-1 counter still lowers the toughness gorge projects while
 // Guardian of Faith has it phased out (decision 649 of dr-mbc-bbaa pair 52).
 // The kernel's phased P/T read only +1/+1 and -1/-1 counters and showed 0/5.
+// The recording is pooled custom (the table its own decks need): the dr-mbc
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCWallOfRootsReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "phased_out_creature_keeps_pt_counter_kinds")

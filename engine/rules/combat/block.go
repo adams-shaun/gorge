@@ -108,7 +108,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	// the engine uses. Attacker-keyed and per-pair; checked here where every
 	// other can't-block rule lives so the ask's options and the validator's
 	// recompute share one oracle.
-	if LandwalkEvades(b, attacker) {
+	if LandwalkEvades(b, blocker, attacker) {
 		return false
 	}
 	// CR 702.110a: a creature with skulk can't be blocked by creatures with
@@ -172,7 +172,12 @@ func LandwalkSpec(k string) (string, bool) {
 // creature stays ordinarily blockable rather than becoming universally
 // unblockable. Walk order is the defender's deterministic battlefield zone
 // slice, never a map.
-func LandwalkEvades(b Board, attacker state.ObjID) bool {
+//
+// An active `S:Mode$ IgnoreLandWalk` static switches a landwalk line off for
+// this blocker: its ValidKeyword$ names the line (the same land filter; absent
+// = every landwalk line) and its ValidBlocker$ filters the would-be blocker
+// (absent = any blocker).
+func LandwalkEvades(b Board, blocker, attacker state.ObjID) bool {
 	g := b.Game()
 	a := g.Obj(attacker)
 	if a == nil {
@@ -182,7 +187,7 @@ func LandwalkEvades(b Board, attacker state.ObjID) bool {
 	sc := b.LandSpecCtx(defender, attacker)
 	for _, k := range b.Keywords(attacker) {
 		spec, isLandwalk := LandwalkSpec(k)
-		if !isLandwalk || spec == "" {
+		if !isLandwalk || spec == "" || landwalkIgnored(b, blocker, spec) {
 			continue
 		}
 		for _, land := range g.Zone(state.ZBattlefield, defender) {
@@ -190,6 +195,26 @@ func LandwalkEvades(b Board, attacker state.ObjID) bool {
 				return true
 			}
 		}
+	}
+	return false
+}
+
+// landwalkIgnored reports whether an active IgnoreLandWalk static lets blocker
+// block as though the landwalk line with land filter spec were absent.
+func landwalkIgnored(b Board, blocker state.ObjID, spec string) bool {
+	for _, sv := range b.Statics("IgnoreLandWalk") {
+		if !b.StaticGateHolds(sv) {
+			continue
+		}
+		if kw := sv.ParamStr(cards.PKValidKeyword); kw != "" {
+			if named, ok := LandwalkSpec(kw); !ok || named != spec {
+				continue
+			}
+		}
+		if vb := sv.ParamStr(cards.PKValidBlocker); vb != "" && !b.MatchesStaticSpec(vb, blocker, sv) {
+			continue
+		}
+		return true
 	}
 	return false
 }

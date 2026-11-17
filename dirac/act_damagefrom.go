@@ -23,9 +23,10 @@ var DebugDmgSrcPlLKI uint8
 // (gorge lki.Infect); replacements, poison or life loss, lifelink and the
 // damage triggers follow damageTo's order for the resolving source.
 //
-// damageTo's CR 616.1 replacement-order ask (parkNC) is posed only for a
-// pure plus-N competition (replPlusSrcPass); any other event two or more
-// replacements match stalls loudly (dmgSrcOrderStalls).
+// damageTo's CR 616.1 replacement-order ask (parkNC) is posed by
+// replPlusSrcPass for a pure plus-N competition and for the mixed one the
+// picked order decides (a plus-N addition or a raise beside a doubling:
+// repl_pluswalk.go); any other park stalls loudly (dmgSrcOrderStalls).
 //
 // B.N kop.DmgFromEachCtrl is the RepeatEach card body (Rakdos Charm): the
 // source is the loop's object (RefEach, read live; the entry's trigger
@@ -140,7 +141,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		code := PlayerCode(p)
 		m := n
 		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
-			if m = s.replDamage(k, ctrl, sl, card, code, false, m); m <= 0 {
+			if m = s.replDamagePend(k, ctrl, sl, card, code, m, o); m <= 0 {
 				continue
 			}
 		}
@@ -205,7 +206,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	}
 	m := n
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
-		m = s.replDamage(k, ctrl, NoSlot, card, code, false, m)
+		m = s.replDamagePend(k, ctrl, NoSlot, card, code, m, o)
 	}
 	s.g.plusBatchAsked = false
 	if m <= 0 {
@@ -234,11 +235,18 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 // DealDamageFrom pass is one gorge parks on its CR 616.1 order ask (gorge
 // newDamageRider deals through the ordinary replacement collection; parkNC
 // is that collector): the pass deals straight through replDamage, so it
-// never poses the ask. A pure plus-N competition is replPlusSrcPass's, which
-// parks it. parkNC is probed with the ask state saved and restored; it can
-// change nothing else before it reports the park, and a park stops the game.
+// never poses the ask. A pure plus-N competition and the mixed one the
+// picked order decides are replPlusSrcPass's, which parks them; a park whose
+// answer cannot re-execute the op (a shield candidate is spent as picked)
+// stays loud here. The re-executed pass is exempt: its asked event deals from
+// the answered park's record (replDamagePend). parkNC is probed with the ask
+// state saved and restored; it can change nothing else before it reports the
+// park, and a park stops the game.
 func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, kw kop.KwMask, codes []TCode, amts []int) bool {
-	if k.gen == nil || replPlusOnly(k.gen) {
+	if k.gen == nil || s.g.plusBatchAsked {
+		return false // a re-executed pass deals from the answered park's record
+	}
+	if replPlusOnly(k.gen) {
 		return false
 	}
 	saveRO, saveNC := s.g.ro, s.g.nc

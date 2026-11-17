@@ -279,3 +279,18 @@ func (s *State) filtUse(k *prep, sl Slot) {
 	}
 	s.touchSl(sl)
 }
+
+// windowFiltAffords: gorge's ward window lists a first-only filter once the
+// floating mana pays its fee (windowFiltFirstUsable), so the sources that fund
+// the fee plus the filter's output can pay a ward cost the census (availFor:
+// no filter is a unit) prices short. The walk payWindow runs is simulated on
+// a copy (CR 605.3a, 702.21: the ward cost is paid through the mana window).
+func (s *State) windowFiltAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.anyFiltFirst || !s.scriptFilt(k, p).any() {
+		return false
+	}
+	t := s.fork()
+	defer s.unfork()
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, true, false, true, false)
+	return ok
+}

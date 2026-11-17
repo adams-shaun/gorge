@@ -1,0 +1,35 @@
+# the cost-token lockstep pool:
+# Abandon Hope (Cost$ X 1 B Discard<X/Card/card>, the announced-X discard)
+# Vexing Devil (UnlessCost$ DamageYou<4>, the literal damage-to-payer cost)
+# Rot Farm Skeleton (Cost$ 2 B G Mill<4>, the activated mill-to-return cost)
+# Deep Spawn (UnlessCost$ Mill<2>, the sacrifice-it-unless-you-mill election)
+# Priest of the Wakening Sun (UnlessCost$ Reveal<1/Creature.Dinosaur>, the
+# reveal-pick "if you do" gain-life election)
+# Tresserhorn's Lord, Returned (UnlessCost$ Sac<3/Creature> PayLife<3>
+# Draw<3/Player.targetedBy>, one election over three parts)
+# the forecast family's Reveal<1/CARDNAME> carriers (Pride of the Clouds,
+# Sky Hussar and Karlov's Crossbow: the cost's only candidate is the source
+# itself, CR 201.5, so a battlefield copy can never pay it and the ability
+# is withheld on both engines)
+# and the basics that pay them (dirac/oracle/costtokens_lockstep_test.go)
+Abandon Hope
+Vexing Devil
+Rot Farm Skeleton
+Deep Spawn
+Priest of the Wakening Sun
+Pride of the Clouds
+Sky Hussar
+Karlov's Crossbow
+Tresserhorn's Lord, Returned
+Grizzly Bears
+Island
+Mountain
+Swamp
+Forest
+Plains
+# Millikin: the mana ability's own Mill<1> ({T}, Mill a card: Add {C}):
+# no CR 605.1a mana ability's cost moves a library card
+# (cards.IsManaAbilitySA's movesLibraryCard), so gorge resolves the whole
+# ability on the stack as an ordinary activated ability; the kernel lowers
+# it through lower_stackmana.go stackManaAbility the same way.
+Millikin

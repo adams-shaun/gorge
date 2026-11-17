@@ -688,6 +688,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/oracle/cmd/cardaudit": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/oracle/cmd/kfuzz": {
       "tier": "dirac",
       "status": "EXT"

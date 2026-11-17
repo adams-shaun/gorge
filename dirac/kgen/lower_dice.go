@@ -149,13 +149,21 @@ func (lc *lowerCtx) rollDice(ps *params) error {
 // the flip loop, which for one flip is the same order; with more flips it
 // refuses. RememberNumber$ Wins/Losses is consumed, but its tally is not
 // lowered: the ability's Count$RememberedNumber refuses (value.go).
+// ValidTgts$ on the flip declares its own target slot before the flip.
 // Refused: a const Amount$ above 255, Flipper$/Defined$, ForEachPlayer$,
-// FlipUntilYouLose$, the other Remember* forms, a flip with its own targets,
+// FlipUntilYouLose$, the other Remember* forms,
 // and a branch that reads X (gorge's heads tally), takes targets (a named
 // branch is not linked into the cast's targets) or flips or rolls again (it
 // would overwrite the result the next block reads).
 func (lc *lowerCtx) flipCoin(ps *params) error {
 	ps.consume("LockInText")
+	if _, ok := ps.get("ValidTgts"); ok {
+		// the flip's own target slot, announced at cast: the branches' Defined$
+		// Targeted names it through the chain (Aleatory, Chaotic Strike)
+		if _, err := lc.objOrTarget(ps, "Self", zBattlefield); err != nil {
+			return err
+		}
+	}
 	noCall := strings.EqualFold(strings.TrimSpace(ps.str("NoCall")), "True")
 	ps.consume("NoCall")
 	if raw, ok := ps.get("RememberNumber"); ok {

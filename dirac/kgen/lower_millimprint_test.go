@@ -77,12 +77,14 @@ Oracle:probe
 		t.Errorf("IsImprinted with no writer: refusals %v", rf)
 	}
 
-	// a read in another ability than the writer's
+	// a read in another ability than the writer's: the source keeps the
+	// milled card on its Imprinted list (CardDef.ImpPersist), so the
+	// activated reader lowers and reads nothing once the writer's Cleanup
+	// has run, as gorge's empty list does (lower_imppersist.go)
 	cross := src + "A:AB$ ChangeZone | Cost$ T | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Card.IsImprinted | TgtPrompt$ x | SpellDescription$ probe\n"
 	cross = strings.Replace(cross, "Oracle:probe\n", "", 1) + "Oracle:probe\n"
-	rf := lowerScript(t, "Mill Imprint Probe", cross)
-	if len(rf) == 0 || !has(rf, "IsImprinted") {
-		t.Errorf("the cross-ability read: refusals %v, want an IsImprinted refusal", rf)
+	if rf := lowerScript(t, "Mill Imprint Probe", cross); len(rf) != 0 {
+		t.Errorf("the cross-ability read: refusals %v, want none (the source keeps its Imprinted)", rf)
 	}
 
 	// the cross-ability check on lowered instructions

@@ -163,7 +163,14 @@ var baseBuckets = map[string]bucket{
 	// Params (EffectZone$) is the same static parameter map every bStat entry
 	// covers.
 	"pst.Static": bStat,
-	"r":          bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
+	// outer and inner are grantedMaxHandSizeInner's pair for a GRANTED
+	// SetMaxHandSize$ (AddStaticAbility$ naming an SVar): outer is the
+	// granting Continuous staticView (like sv, Affected$/gate read), inner
+	// the cards.Static line cards.ParseStaticLines parsed from that SVar
+	// (SetMaxHandSize$/Affected$) -- both the same static parameter map
+	// every bStat entry covers.
+	"outer": bStat, "inner": bStat,
+	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
 	// slice): each element is a *cards.SA whose Defined$ parameter the
@@ -2371,6 +2378,12 @@ var handRoots = struct {
 		// helper, so a caller of the collector root is not reachable FROM
 		// that root and must be declared here -- the AttackRestrict shape.
 		"TapPowerValue": {"Engine.tapPowerValue"},
+		// countersRemainApplies calls activeStatics with the countersRemainMode
+		// constant (the single home of the CountersRemain word) rather than a
+		// literal, and its off-battlefield arm reads the card's own printed
+		// CountersRemain static. Both are the mode's reads; declare the root
+		// so the scan attributes them.
+		"CountersRemain": {"Engine.countersRemainApplies"},
 	},
 	// The trigger-queue drain and the stack-resolution paths read trigger
 	// params (OptionalDecider$, TriggerDescription$, Static$, ValidCard$)

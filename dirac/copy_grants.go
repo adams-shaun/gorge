@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // As-enters copy grants over the copy layers (CR 707.9b, 707.3, 613.1a).
 //
 // A copy's AddAbilities$ (Mercurial Pretender) is one of its copiable values:
@@ -25,18 +27,44 @@ type cgrantRef struct {
 	src CardID
 }
 
-// copyGrantRecs lists slot sl's as-enters grant records in pool order.
+// copyGrantRecs lists slot sl's as-enters grant records in pool order, a
+// record merged from further identical applications (ovReps) once for each:
+// a Clone's GainThisAbility$ keeps one trigger per copy it passed through.
 func (s *State) copyGrantRecs(sl Slot, out *[maxOvr]cgrantRef) (n int) {
 	if !s.fxM.has(sl) {
 		return 0
 	}
 	for i := 0; i < int(s.g.nfx) && n < len(out); i++ {
 		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxOverride && r.r.idx != 0 && r.r.copyGrant() {
-			out[n] = cgrantRef{r.r.idx, r.r.src}
-			n++
+			// a record stands for reps identical applications: a trigger
+			// grant kept twice (copyGrantPut) is two instances
+			for j := 0; j < r.r.reps() && n < len(out); j++ {
+				out[n] = cgrantRef{r.r.idx, r.r.src}
+				n++
+			}
 		}
 	}
 	return n
+}
+
+// copyGrantOnce reports whether a copy of a copy has grant g once: an
+// ability grant is folded once (gorge hasAbilityLine, a keyword expansion's
+// idempotence), but an AddTriggers$ trigger is appended to the copy face
+// each time (gorge foldCopyExcept), so a copy of a copy of the same
+// exception has two instances (CR 707.3, 707.9b). The AddTriggers$ trigger
+// is the granted trigger with a program: Myriad's grant (lower_myriad.go) is
+// an Attacks trigger with none, kept once like a keyword.
+func (k *prep) copyGrantOnce(g cgrantRef) bool {
+	ov := &k.t.Overrides[g.idx-1]
+	for _, a := range ov.Grant {
+		if a == 0 {
+			continue
+		}
+		if ab := &k.t.Cards[g.src].Abilities[a-1]; ab.Kind == kop.AbTriggered && len(ab.Prog) > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // copyGrantPut applies grant g to sl as an as-enters copy grant unless sl
@@ -45,10 +73,18 @@ func (s *State) copyGrantRecs(sl Slot, out *[maxOvr]cgrantRef) (n int) {
 func (s *State) copyGrantPut(k *prep, sl Slot, g cgrantRef) {
 	var have [maxOvr]cgrantRef
 	for i, n := 0, s.copyGrantRecs(sl, &have); i < n; i++ {
-		if have[i] == g {
+		if have[i] == g && k.copyGrantOnce(g) {
 			return
 		}
 	}
+	s.applyOverrideFl(k, sl, int(g.idx)-1, g.src, ovCopyGrant)
+}
+
+// copyGrantAppend applies grant g to sl as one more copy grant, whether or not
+// sl has it already: a Clone's GainThisAbility$ appends the resolving trigger
+// to the copied face each time (gorge's fold), so a copy of a copy of the same
+// carrier has it twice.
+func (s *State) copyGrantAppend(k *prep, sl Slot, g cgrantRef) {
 	s.applyOverrideFl(k, sl, int(g.idx)-1, g.src, ovCopyGrant)
 }
 
@@ -63,7 +99,7 @@ func (s *State) copyGrantsAdd(k *prep, sl, src Slot) {
 	}
 	var from [maxOvr]cgrantRef
 	for i, n := 0, s.copyGrantRecs(src, &from); i < n; i++ {
-		s.copyGrantPut(k, sl, from[i])
+		s.copyGrantAppend(k, sl, from[i]) // the template's list, repeats and all
 	}
 }
 
@@ -86,6 +122,17 @@ func (s *State) dropCopyGrants(sl Slot) {
 func (s *State) clonePermGrant(sl Slot, grant uint8) {
 	if i := s.copyRec(sl, fxCopyPerm); i >= 0 {
 		s.g.fx[i].r.fl = grant
+	}
+}
+
+// clonePermGrantFrom is clonePermGrant for a Clone's GainThisAbility$: the
+// grant indexes the abilities of card c, the card whose ability resolved, which
+// is not the permanent's printed card once it is a copy showing another's
+// abilities (the marker's t holds c+1, 0 = the printed card).
+func (s *State) clonePermGrantFrom(sl Slot, grant uint8, c CardID) {
+	if i := s.copyRec(sl, fxCopyPerm); i >= 0 {
+		s.g.fx[i].r.fl = grant
+		s.g.fx[i].r.t = int16(c) + 1
 	}
 }
 
@@ -126,7 +173,11 @@ func (s *State) copyGrantList(host Slot, l copyLayer, out *[maxOvr]cgrantRef) (n
 		n = s.copyGrantRecs(src, out)
 	}
 	if l.grant != 0 && n < len(out) {
-		out[n] = cgrantRef{l.grant, s.perms[host].card}
+		c := s.perms[host].card
+		if l.grantSrc != 0 {
+			c = CardID(l.grantSrc - 1)
+		}
+		out[n] = cgrantRef{l.grant, c}
 		n++
 	}
 	return n
@@ -139,7 +190,7 @@ func (s *State) copyGrantsRebase(k *prep, host Slot, l copyLayer) {
 	s.dropCopyGrants(host)
 	var gs [maxOvr]cgrantRef
 	for i, n := 0, s.copyGrantList(host, l, &gs); i < n; i++ {
-		s.copyGrantPut(k, host, gs[i])
+		s.copyGrantAppend(k, host, gs[i])
 	}
 }
 

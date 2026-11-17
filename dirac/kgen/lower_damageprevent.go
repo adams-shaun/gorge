@@ -35,7 +35,7 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
 		return lc.skipUntapEffect(ps)
 	}
-	if ps.is("Duration", "AsLongAsControl") {
+	if ps.is("Duration", "AsLongAsControl") || ps.is("Duration", "AsLongAsInPlay") || ps.is("Duration", "UntilHostLeavesPlay") || ps.is("Duration", "UntilUntaps") {
 		if ok, err := lc.untapLockEffect(ps); ok || err != nil { // lower_untaplock.go
 			return err
 		}
@@ -47,7 +47,7 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 		return lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
 	}
 	if _, ok := ps.get("Duration"); ok {
-		return refuse("Effect replacement Duration$")
+		return lc.effectDurationPrevent(ps) // lower_effectemblemprevent.go: Ajani's Permanent emblem, else refuses
 	}
 	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
 		return err
@@ -56,6 +56,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 		return err
 	}
 	if ok, err := lc.effectDmgDoubleBySource(ps); ok || err != nil { // lower_effectdmgmark.go
+		return err
+	}
+	if ok, err := lc.effectPreventAllTo(ps); ok || err != nil { // lower_preventallto.go
 		return err
 	}
 	for _, k := range []string{"ExileOnMoved", "ForgetOnMoved"} {
@@ -135,7 +138,9 @@ func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
 	}
 	rp := newParams(r.Params)
 	rp.consume("Event")
-	if !rp.is("Prevent", "True") || !rp.is("ActiveZones", "Command") && !rp.is("ActiveZones", "Battlefield") {
+	// an absent ActiveZones$ is the Command zone: gorge registers an Effect's
+	// line there either way (Take the Bait)
+	if az, has := rp.get("ActiveZones"); !rp.is("Prevent", "True") || has && strings.TrimSpace(az) != "Command" && strings.TrimSpace(az) != "Battlefield" {
 		return false, nil
 	}
 	bits := 0

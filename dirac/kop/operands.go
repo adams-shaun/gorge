@@ -38,6 +38,7 @@ const (
 	ClonePick      = 1 << 3 // the Choices$ pick itself (F the candidates)
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
 	CloneBatch     = 1 << 6 // the Choices$ pool is the trigger's batch members in exile (with ClonePick and CloneTmplPick; the copy is of the picked card, not a permanent)
+	CloneGrant     = 1 << 7 // GainThisAbility$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted ability (CR 707.9b)
 )
 
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
@@ -655,7 +656,7 @@ const (
 // OpGainControl riders (B.N).
 const (
 	GcUntap    = 1 << iota // untap it (Untap$ True; a stun counter is removed instead)
-	GcHasteEOT             // it gains haste until end of turn (AddKWs$ Haste on an until-end-of-turn steal)
+	GcHasteEOT             // it gains haste (AddKWs$ Haste): until end of turn on a DurEOT steal, else for as long as the control record lives
 	GcRemember             // the gained permanent joins the remembered set (RememberControlled$; gorge effGainControl)
 )
 
@@ -707,6 +708,24 @@ const (
 
 	// MayPlayKinds are the B flags a permission record keeps (mayPlay.kind).
 	MayPlayKinds = MayPlayFree | MayPlayAnyType | MayPlayIgnoreColor | MayPlayLimitMask
+
+	// MayPlayFollows is an OpMayPlay C bit: the zone stays in bits 0-5
+	// (MayPlayZoneMask). kgen sets it when the grant outlives the card's
+	// zone moves: gorge's grant is a continuous effect over the remembered
+	// card (CR 611.2c: a rules-of-the-game effect from a resolving ability
+	// is not locked to the object set it began with), read every time the
+	// card is back in AffectedZone$ C within the effect's duration, and its
+	// own cast does not consume it -- Skyclave Shade cast from the graveyard
+	// and sacrificed back to it the same turn is offered again. A grant
+	// gorge ends with the card's first move out of its zone keeps a
+	// version-tied record instead: a ForgetOnMoved$ equal to C (Abbot of
+	// Keral Keep's exiled card), an ExileOnMoved$ (gorge effectMoveSweep
+	// ends the whole effect), or a zone-lifetime duration (WhileExiled and
+	// friends, CR 611.2b: a "for as long as" duration does not restart).
+	// The kernel's record marks it in the ver byte (dirac mayVerFollows:
+	// 0x80|zone), and the offers and spends match by zone.
+	MayPlayFollows  = 0x40
+	MayPlayZoneMask = 0x3f
 )
 
 // DiscoverDugBottom is OpDiscover's C for Jodah, the Unifier's tail

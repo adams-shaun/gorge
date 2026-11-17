@@ -36,10 +36,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (replOrderOrder) so a shield depletes across them as gorge's does; a pass that
 // asks about another event deals its lone-shield events at deal time
 // (dealCombatEvent), never from the recomputed amounts.
+//
+// An unbounded shield (instruction flag C&2, col prevNextAll = 255: "prevent all
+// damage that would be dealt to target creature this turn", Shielded Passage,
+// Godtoucher) prevents everything of every event to its recipient and is never
+// spent. It ends when the recipient leaves the battlefield (prevAllLeft: gorge's
+// ExileOnMoved$ Battlefield, and a creature that comes back is a new object) or
+// at the turn change. It never competes: beside a second shield or anything
+// prevNextCompetes reports, the kernel stalls StallPrevNext (a bounded pool
+// stalls at 255 too, so no real pool can look like the sentinel).
 
 // StallPrevNext is a damage event a depleting prevent-the-next-N shield and
 // another damage replacement both match (gorge asks the CR 616.1 order, and
-// it changes the amount prevented and what is left), or an amount past 255
+// it changes the amount prevented and what is left), or an amount of 255 or more
 // (a record's col byte holds the pool).
 const StallPrevNext = 171
 
@@ -48,6 +57,9 @@ func init() { stallNames[StallPrevNext] = "prevnext" }
 // prevNextSc marks a genState.prevCol record as a depleting shield: obj its
 // source, col the damage left (0: spent), ctl the recipient's damage code.
 const prevNextSc uint8 = 1 << 7
+
+// prevNextAll is the col of an unbounded shield: all the damage, never spent.
+const prevNextAll = 255
 
 // prevNextCmb marks a depleting shield that matches combat damage only.
 const prevNextCmb uint8 = 1 << 6
@@ -59,9 +71,12 @@ var DebugNoPrevNext bool
 // prevNextAdd is Ext PreventNext: it installs the shield on the recipient
 // code Obj names, with the amount B read once.
 func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
-	n := s.value(k, in.B)
-	if n <= 0 {
-		return // a shield that prevents nothing is no decision (gorge: total <= 0)
+	all := in.C&2 != 0 // seat-ok: an instruction flag bit
+	n := prevNextAll
+	if !all {
+		if n = s.value(k, in.B); n <= 0 {
+			return // a shield that prevents nothing is no decision (gorge: total <= 0)
+		}
 	}
 	code := s.refCode(k, in.Obj)
 	if code == NoTarget {
@@ -74,7 +89,7 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	} else if int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
 		return // gorge: an object no longer on the battlefield takes none
 	}
-	if n > 255 {
+	if n >= prevNextAll && !all {
 		s.capFull(StallPrevNext) // loud: never truncate the pool
 		return
 	}
@@ -133,6 +148,9 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		return n, false
 	}
 	r := &s.g.prevCol[at]
+	if r.col == prevNextAll {
+		return 0, true // unbounded: everything, never spent
+	}
 	m := min(n, int(r.col))
 	r.col -= kop.ColorMask(m)
 	return n - m, true
@@ -165,6 +183,9 @@ func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard Car
 	}
 	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
+	}
+	if k.embPrev && s.embPrevHit(k, &spEv{srcCtrl, srcSl, srcCard, rcp, sl, combat, 0}) {
+		return true // a live emblem's static prevention (repl_staticprevent_emblem.go)
 	}
 	if sl != NoSlot {
 		if g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
@@ -214,6 +235,12 @@ func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c 
 			c++
 		}
 	}
+	for j := start; c-start > 1 && j < c; j++ {
+		if s.g.prevCol[cand[j]].col == prevNextAll {
+			s.capFull(StallPrevNext) // an unbounded shield and another on one recipient: no order ask
+			return -1
+		}
+	}
 	if c > start && start > 0 {
 		s.capFull(StallPrevNext) // beside another candidate the order changes the amounts
 		return -1
@@ -226,9 +253,25 @@ func (s *State) prevNextCands(k *prep, code TCode, combat bool, cand *[4]Obj, c 
 func (s *State) prevNextSpend(i int) {
 	ro := &s.g.ro
 	r := &s.g.prevCol[ro.cand[i]]
+	if r.col == prevNextAll {
+		ro.an = 0 // unbounded: everything, never spent
+		return
+	}
 	m := min(int(r.col), int(ro.an))
 	r.col -= kop.ColorMask(m)
 	ro.an -= int16(m)
+}
+
+// prevAllLeft ends the unbounded shields on o (spent, col 0) now that it has
+// left the battlefield: gorge's Effect is exiled by ExileOnMoved$ Battlefield.
+//
+//go:noinline
+func (s *State) prevAllLeft(o Obj) {
+	for i := range s.g.prevCol {
+		if r := &s.g.prevCol[i]; r.sc&prevNextSc != 0 && r.col == prevNextAll && r.ctl == TCode(o) {
+			r.col = 0
+		}
+	}
 }
 
 // prevNextPick is replOrderPick for a shield candidate: it applies as picked

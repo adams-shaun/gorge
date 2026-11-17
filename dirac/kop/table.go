@@ -132,10 +132,22 @@ type CardDef struct {
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
+	// Granted: the statics this card's Continuous statics grant their
+	// recipients (S:Mode$ Continuous | AddStaticAbility$ <SVar>; Static.GrantSt
+	// indexes it, 1-based). They are never the card's own: a walk of
+	// Abilities does not see them, and each reads the recipient as its
+	// source and that recipient's controller as "you" (kernel
+	// static_granted.go eachStaticG).
+	Granted []Ability
 	// Snow is the printed Snow supertype (CR 205.4a), read by the static
 	// damage preventions' ReplSPRecipSnow (Goblin Furrier). Printed only: a
 	// layer effect that adds or removes it is not read.
 	Snow bool
+	// SpentSnow: the face reads Count$CastTotalManaSpent Snow — a cast whose
+	// payment spent snow mana (CR 107.4h) counts it. Printed only; kgen does
+	// not set it yet (the kernel's snow-spend bit rides the snow tally,
+	// dirac/mana_snow.go).
+	SpentSnow bool
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -649,6 +661,15 @@ type CardDef struct {
 	// every ability; a Saga sets its reading and its writing chapters (The
 	// Measure of a Man: chapter III returns what chapter I exiled).
 	RemSeed, RemKeep uint32
+	// ImpPersist: the card keeps its Imprinted on the source (gorge's
+	// Object.Imprinted; dirac/zone_srcmem.go).
+	ImpPersist bool
+	// SrcMem: the card keeps its Remembered on the source (gorge's
+	// Object.Remembered; dirac/zone_srcmem.go).
+	SrcMem bool
+	// SmSeed: with SrcMem, the abilities (bit i = Abilities[i]) whose
+	// resolution starts with the kept set.
+	SmSeed uint32
 	// ExiledWith: the card reads the exiled-with source link (PredExiledWith
 	// or ExExiledWithN): its resolutions record the cards they exile
 	// (dirac/zone_exiledwith.go, genPrep.exwRec).

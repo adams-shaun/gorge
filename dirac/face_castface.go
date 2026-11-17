@@ -54,6 +54,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 	}
 	ob := &s.objs[o]
 	was := ob.card
+	frontCredit := s.faceFrontCredit(k, p, o, c)
 	ob.card = c // the probe: no touch, restored below
 	ok := !(k.gen.anyCantCast && s.castForbiddenFace(k, p, c, o)) && s.spellTargetsFeasibleFrom(k, c, p, o) && s.spellCostsFeasible(k, c, p, o)
 	if ok {
@@ -76,7 +77,7 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 		if ok && k.gen.anyFuse && !s.fusePoolGate(k, p, o, c) {
 			ok = false // gorge's planner prices no fused cast: only the floating pool casts it (face_fuse.go)
 		}
-		if ok && s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand) && !s.FeatPoolPays(p, o, facePoolNoTap) {
+		if ok && s.cfg&cfgGorgeUnpriced != 0 && (frontCredit || s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && !s.FeatPoolPays(p, o, facePoolNoTap) {
 			ok = false // a granted-delve face is a "shape:contribution" the planner declines: only the floating pool casts it
 		}
 		if ok && s.cfg&cfgGorgeUnpriced != 0 && facePlannerLimited(k.t.Cards[c].FaceMode) && !s.FeatPoolPays(p, o, 0) {
@@ -90,6 +91,28 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 	}
 	ob.card = was
 	return ok
+}
+
+// faceFrontCredit reports whether card o's live (front) face carries cast
+// credit (convoke, improvise or delve) while the other face c is cast, for a
+// face route gorge's potential planner prices (facePlannerLimited). The
+// planner reads the credit off the live object, not the cast face
+// (potential_plan.go potentialModeCastPlan: `credit := hasCastConvoke(id) ||
+// hasCastImprovise(id) || hasCastDelve(id, false)`) and declines a face mode
+// that is no priced alternative cost "unsupported" / "cost:credit", though
+// the Adventure itself has no convoke (CR 715.4): Chief Engineer's artifact
+// convoke on Horn of Valhalla leaves Ysgard's Call to the floating pool.
+// Read with the front face up, before faceCastable's probe turns the cast
+// face up.
+func (s *State) faceFrontCredit(k *prep, p uint8, o Obj, c CardID) bool {
+	if s.cfg&cfgGorgeUnpriced == 0 {
+		return false
+	}
+	ob := &s.objs[o]
+	if !facePlannerLimited(k.t.Cards[c].FaceMode) {
+		return false
+	}
+	return s.contribPays(k, p, ob.card, o, ob.zone == kop.ZoneHand)
 }
 
 // facePlannerLimited reports whether the potential planner's limits (a refused

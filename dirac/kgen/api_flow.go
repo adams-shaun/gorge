@@ -21,6 +21,7 @@ func init() {
 	apiPS("StoreSVar", (*lowerCtx).storeSVar)
 	apiPS("Demonstrate", (*lowerCtx).demonstrate)
 	apiPS("FlipCoin", (*lowerCtx).flipCoin)
+	apiPS("Clash", (*lowerCtx).clash) // lower_clash.go
 	apiPS("Branch", (*lowerCtx).branch)
 	apiPS("RepeatEach", (*lowerCtx).repeatEachPlayers)
 	apiPS("RollDice", (*lowerCtx).rollDice)
@@ -43,6 +44,15 @@ func (lc *lowerCtx) apiEffect(sa *cards.SA, ps *params) error {
 }
 
 func (lc *lowerCtx) apiCleanup(sa *cards.SA, ps *params) error {
+	// A face that keeps its Imprinted on the source clears it first: gorge's
+	// walker clears after the SA's body and its other riders, and the
+	// kernel's ClearImprinted runs before the rest of this Cleanup.
+	impCleared := false
+	if lc.impPersist && ps.is("ClearImprinted", "True") {
+		ps.consume("ClearImprinted")
+		lc.emit(lInstr{Op: "ClearImprinted"})
+		impCleared = true
+	}
 	if ps.is("ClearRemembered", "True") {
 		lc.emit(lInstr{Op: "ClearRemembered"})
 	}
@@ -62,26 +72,26 @@ func (lc *lowerCtx) apiCleanup(sa *cards.SA, ps *params) error {
 		}
 		lc.colGrant = false
 	}
-	if lc.breachStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") {
+	if !impCleared && lc.breachStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") {
 		ps.consume("ClearImprinted") // Breach the Multiverse: the chosen set is the imprint (lower_repeatgravechoice.go)
 		lc.breachStage = 0
 	}
-	if lc.exileLandStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") && ps.is("ClearRemembered", "True") {
+	if !impCleared && lc.exileLandStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") && ps.is("ClearRemembered", "True") {
 		ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
 		lc.exileLandStage = 0
 	}
-	if (lc.digImprintSetLive() || lc.repeatImprintBody) && ps.is("ClearImprinted", "True") {
+	if !impCleared && (lc.digImprintSetLive() || lc.repeatImprintBody) && ps.is("ClearImprinted", "True") {
 		ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go); or a RepeatDefined$ Imprinted body's per-pass clear before its Dig
 		lc.emit(lInstr{Op: "ClearImprinted"})
 	}
-	if lc.digImprinted && ps.is("ClearImprinted", "True") {
+	if !impCleared && lc.digImprinted && ps.is("ClearImprinted", "True") {
 		// the imprinted card is the kernel's remembered set
 		// (lower_digimprint.go): ClearRemembered$ beside it clears it
 		if !ps.is("ClearRemembered", "True") {
 			return refuse("Cleanup ClearImprinted$ without ClearRemembered$")
 		}
 	}
-	if lc.digImprintChosen && ps.is("ClearImprinted", "True") {
+	if !impCleared && lc.digImprintChosen && ps.is("ClearImprinted", "True") {
 		// the imprint is the kernel's chosen set (lower_digimprint.go):
 		// gorge's seek-found Imprint "clear" clears it
 		ps.consume("ClearImprinted")

@@ -39,7 +39,7 @@ func prepSkipUntap(t *kop.Table, g *genPrep) {
 // of a player's end with that player's next untap step.
 func (s *State) skipUntap(k *prep, in *kop.Instr) {
 	p := s.res.e.ctrl
-	if in.C == kop.SkipUntapLockStep || in.C == kop.SkipUntapLockAny {
+	if in.C == kop.SkipUntapLockStep || in.C == kop.SkipUntapLockAny || in.C == kop.SkipUntapLockHostStep || in.C == kop.SkipUntapLockUntapStep {
 		s.untapLockAdd(k, in) // act_untaplock.go
 		return
 	}
@@ -60,10 +60,13 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 }
 
 // skipsUntap: the active player's untap step does not untap sl (an
-// OpSkipUntap effect of the active player on it, or on their lands).
+// OpSkipUntap effect of the active player on it, or on their lands). The
+// source-bound untap locks are no part of it: gorge's Effect replacement meets
+// the untap after the keep-tapped election, so untapStepGen reads
+// untapLocked itself, once the election is answered.
 func (s *State) skipsUntap(k *prep, sl Slot) bool {
 	a := s.active
-	if s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 || s.g.nul != 0 && s.untapLocked(s.perms[sl].obj, false) {
+	if s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 {
 		return true
 	}
 	if s.g.noUntapL == 0 || s.perms[sl].ctrl != a {

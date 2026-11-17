@@ -1120,6 +1120,9 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	ctx.Repl.Replaced = ev.Obj
 	if ro := e.G.Obj(ev.Obj); ro != nil {
 		ctx.Repl.ReplacedController, ctx.Repl.HasReplacedController = ro.Controller, true
+		if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ro.Zone == state.ZBattlefield {
+			ctx.Repl.ReplacedPower, ctx.Repl.ReplacedToughness, ctx.Repl.ReplacedPTValid = e.Power(ev.Obj), e.Toughness(ev.Obj), true
+		}
 	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		ctx.Repl.ExcludeFromBattlefieldCount = ev.Obj
@@ -1271,7 +1274,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	if ctx != nil && ctx.Layers.DerivedTypes == nil {
 		ctx.Layers = e.boardLayers()
 	}
-	if effects.CloneETBNoCopy(e.G, ctx, with) {
+	if effects.CloneETBNoCopy(e.G, ctx, with, e) {
 		return
 	}
 	// An Effect-created replacement body is a fresh parse (replacementBodySA)
@@ -1412,6 +1415,12 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		if !bodyAbsorbed(absorbed, m) {
 			e.runEntryBody(ctx, &stored, m.repl.With)
+		}
+		if entryCloneBody(m) {
+			// CR 707.5/707.6: the copy's copied face may carry its own
+			// as-enters replacement (Primal Clay's Layer$ Copy choice),
+			// which the pre-move collection could not see.
+			applyInheritedEntryReplacements(e, e.G, stored)
 		}
 		// CR 303.4f: an Aura entering through an Updated body (a copy
 		// election) enters attached once that body has made it the Aura.

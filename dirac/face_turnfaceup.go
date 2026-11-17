@@ -186,6 +186,66 @@ func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.Speci
 	return s.specialAffords(k, p, cost, sp, sl, 0)
 }
 
+// turnUpListed: the keyword turn-up is offered from the pool (turnUpOffered),
+// or from the pool and the untapped sources together at the smallest {X}:
+// gorge lists it as a witnessed potential play (rules' turn_face_up
+// witness, priced at the smallest legal announcement), so the kernel offers
+// the same action without a float. The action's turnFaceUp then taps that
+// witness's sources. A manifested or cloaked card's printed-cost procedure
+// stays pool-only, matching the oracle's keyword-only projection.
+func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
+	if s.turnUpOffered(k, p, cost, sp, sl, kw) {
+		return true
+	}
+	if !kw {
+		// A manifested or cloaked card's printed-cost procedure is not a
+		// potential play yet (the oracle projects only the keyword procedures):
+		// the pool-only offer is the one gorge's ordinary walk has.
+		return false
+	}
+	if !s.turnUpLifeOK(k, p, sl) {
+		// face_morphlife.go: the keyword's PayLife<N> is not payable, so no
+		// tap of the sources can make the action legal (turnUpOffered's gate)
+		return false
+	}
+	c0 := cost.AtX(0)
+	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl)
+}
+
+// turnUpRestrPays: the turn-up's potential witness counts the restricted mana
+// its Static.* restriction admits (CR 106.6, 116.2b): p's floating batches and
+// its untapped restricted sources beside the ordinary sources (Tin Street
+// Gossip's {R}{G} "to turn creatures face up"), as gorge's potential bound
+// counts the floating pool whole and the source's production.
+//
+//go:noinline
+func (s *State) turnUpRestrPays(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot) bool {
+	if k.gen == nil || !k.restrSrc && !s.rbAny(SeatIx(p)) {
+		return false
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	if m := s.restrPoolSpecial(k, p, sp, sl); m != 0 {
+		s.restrAvailAdd(p, m, &av)
+		if av.affords(cost, pipMaskOf(cost), 0) {
+			return true
+		}
+	}
+	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpecial, src: NoSlot, sp: sp, tgt: sl}, cost, &av, NoSlot, 0)
+}
+
+// tapForTurnUp is tapFor for the turn-up's witnessed sources: the planner
+// taps the restricted sources the special action may spend (payDescNow reads
+// the parked special and permanent).
+//
+//go:noinline
+func (s *State) tapForTurnUp(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, o Obj) {
+	ctl, left, f := s.ctl, s.g.pickLeft, s.g.pickF
+	s.ctl, s.g.pickLeft, s.g.pickF = ctlTurnUpTap, uint8(sp), uint16(o)
+	s.tapFor(k, p, cost, 0, NoObj)
+	s.ctl, s.g.pickLeft, s.g.pickF = ctl, left, f
+}
+
 // applyTurnUpX takes the announced X of a parked keyword turn-up.
 func (s *State) applyTurnUpX(k *prep, a Action) {
 	p, mode, o := s.g.pickP, s.g.pickZ, Obj(s.g.pickF)

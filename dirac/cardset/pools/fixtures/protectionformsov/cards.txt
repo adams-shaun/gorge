@@ -1,0 +1,18 @@
+# The override-only granted protection for the oracle's constructed lockstep
+# (dirac/oracle/protectionforms_lockstep_test.go): Eldritch Immunity's Pump
+# KW$ Protection from each color is the pool's only protection, so every
+# opponent Shock and Bolt reads the targetableGen shortcut the override-armed
+# anyProtGrant gate guards, with coloured creatures, burn and removal on the other seat
+# to test the protection against (blocking, damage and targeting).
+Eldritch Immunity
+Savannah Lions
+Hill Giant
+Grizzly Bears
+Shock
+Lightning Bolt
+Terror
+Plains
+Mountain
+Forest
+Swamp
+Wastes

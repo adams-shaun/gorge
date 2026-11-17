@@ -60,6 +60,9 @@ func (s *State) untapStepGen(k *prep) {
 					continue
 				}
 			}
+			if s.g.nul != 0 && s.untapLocked(p.obj, false) {
+				continue // gorge's Effect replacement (Layer$ CantHappen) meets the untap after the election: it stays tapped
+			}
 			c := s.untapCands(k, sl)
 			if s.g.stalled != 0 {
 				return // more than the ask holds: the game stops here, not at the next ask

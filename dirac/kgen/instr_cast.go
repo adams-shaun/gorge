@@ -65,7 +65,7 @@ func (ic *instrCtx) opCastFree() error {
 	ki := &ic.ki
 	in := &ic.in
 	fl := ic.fl
-	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10
+	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10 | Mandatory<<11
 	// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 	// Obj: RefRemembered (P1), a target slot (P2), or
 	// RefNone with F (P3/P4 filter population).
@@ -95,6 +95,9 @@ func (ic *instrCtx) opCastFree() error {
 	if _, ok := fl["SpellMV"]; ok {
 		ki.C |= 1 << 10 // the ValidSA$ mana-value bound reads the spell: a split card counts its front half
 	}
+	if _, ok := fl["Mandatory"]; ok {
+		ki.C |= 1 << 11 // no Optional$ True: the offer has no Done while a candidate is left
+	}
 	if err := ic.objFilter(zoneMap[in.C]); err != nil {
 		return err
 	}
@@ -105,6 +108,9 @@ func (ic *instrCtx) opMayPlay() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.C = kop.OpMayPlay, int16(zoneMap[in.C])
+	if in.Follows {
+		ki.C |= kop.MayPlayFollows // the record follows its card (kop/operands.go)
+	}
 	switch in.CS {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)

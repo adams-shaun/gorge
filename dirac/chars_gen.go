@@ -28,6 +28,9 @@ type statSrc struct {
 	ctrl uint8
 	obj  Obj
 	emb  uint8
+	// gr: a static granted to sl by gsrc's Continuous static (static_granted.go)
+	gr   bool
+	gsrc Slot
 }
 
 // eachStatic calls f for every static ability in force (battlefield
@@ -451,6 +454,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
 		m = m.Or(o.AddSub)
+		if o.ImpSub {
+			m = m.Or(s.impCreatureSub(k, s.perms[sl].obj)) // AddType$ ImprintedCreatureType (zone_imprint.go)
+		}
 		if ovrAllCreat(o) {
 			all = true
 		}
@@ -527,6 +533,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 			}
 			m = m.Or(o.AddSub)
+			if o.ImpSub {
+				m = m.Or(s.impCreatureSub(k, s.perms[sl].obj)) // AddType$ ImprintedCreatureType (zone_imprint.go)
+			}
 			if ovrAllCreat(o) {
 				mAll, allOut = true, true
 			}
@@ -718,6 +727,15 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 			}
 			if sa.StFlags&kop.StDynamic != 0 {
 				ctx := s.ctxStatic(st)
+				if sa.StFlags&kop.StPerAffected != 0 {
+					// the AffectedX convention (kop.StPerAffected): each
+					// amount reads the AFFECTED object as its source (gorge
+					// layers_static.go staticAmountOn's affected anchor), so
+					// a source-relative read inside the count binds the
+					// affected creature, not the static's source (A-Bruenor
+					// Battlehammer's Count$Valid Equipment.Attached).
+					ctx.src, ctx.srcSl = s.perms[sl].obj, sl
+				}
 				bp += s.evalV(k, sa.VA, ctx)
 				bt += s.evalV(k, sa.VB, ctx)
 			} else {
@@ -726,6 +744,9 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 			}
 			return true
 		})
+	}
+	if s.ptSwitched(k, sl) {
+		bp, bt = bt, bp // CR 613.4d: switching applies last (kw_kwmark.go)
 	}
 	return bp, bt
 }
@@ -742,6 +763,9 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 		m = k.cards[s.cardAt(sl)].kw
 	}
 	m |= p.eotKw | p.ovr.kw
+	if s.fxM.has(sl) {
+		m |= s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+	}
 	if !lost && s.nkwx != 0 {
 		m |= s.supKw(sl) // grants an ended loss had suppressed
 	}
@@ -984,9 +1008,22 @@ func (s *State) ovGrantsBetween(k *prep, sl Slot, lo, hi uint32, lost bool, lts 
 			if kinds != grantAny && (k.t.Cards[r.src].Abilities[g-1].GrantedKw) != (kinds == grantKw) {
 				continue
 			}
-			f(r.src, g-1, r.reps())
+			f(r.src, g-1, copyGrantTimes(k, &k.t.Cards[r.src].Abilities[g-1], r))
 		}
 	}
+}
+
+// copyGrantTimes is how many instances of ability ab a grant record r holds:
+// its merged applications, except that in an as-enters copy grant record that
+// also holds a trigger appended each time (copyGrantOnce false: the mixed
+// record, one put whole), an ability that is not such a trigger stays one
+// (gorge's fold keeps an AddAbilities$ ability once, CR 707.3). A record of one
+// ability, a Clone's GainThisAbility$ appended per copy, keeps its repeats.
+func copyGrantTimes(k *prep, ab *kop.Ability, r ovRec) int {
+	if r.copyGrant() && !(ab.Kind == kop.AbTriggered && len(ab.Prog) > 0) && !k.copyGrantOnce(cgrantRef{r.idx, r.src}) {
+		return 1
+	}
+	return r.reps()
 }
 
 // grantedHost returns the permanent granting sl the ability (c, ab) (the

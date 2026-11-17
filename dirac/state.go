@@ -284,9 +284,16 @@ type perm struct {
 	// is general slot i (a seen slot keeps its kind at count 0), then
 	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched).
 	cseen uint8
-	// spare is the byte the 16-bit counter kinds (ck) left ahead of card:
-	// named and never written, so perm has no padding (ObjHash hashes every
-	// byte of it).
+	// atkVer is the object version the attacker's target (atk) had when the
+	// attack was declared. A planeswalker or battle that left the
+	// battlefield and came back is a new object (CR 400.7), not the
+	// declared target, so it is no longer being attacked (CR 506.4c). Zero
+	// for a player or no target. The byte is written, not padding:
+	// ObjHash hashes every byte of perm.
+	atkVer uint8
+	// spare is the byte the 16-bit counter kinds (ck) left ahead of card,
+	// named so perm has no padding (ObjHash hashes every byte of it). Its
+	// one bit in use is spareSwitchPT (kw_kwmark.go).
 	spare uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
@@ -295,6 +302,10 @@ type perm struct {
 // ctrSlots is the number of general (non-+1/+1) counter kinds a permanent
 // stores itself; further kinds go to the overflow table (ctr_sparse.go).
 const ctrSlots = 3
+
+// spareSwitchPT is perm.spare's until-end-of-turn P/T switch parity
+// (ExtKwMark KwMarkSwitchPT, CR 613.4d).
+const spareSwitchPT uint8 = 1
 
 // Slots hold the lowest kinds, so a kind with fewer than ctrSlots general
 // kinds below it is never in the overflow table: ctrLow reads it.
@@ -681,6 +692,10 @@ const (
 	ctlCmdZone5
 	ctlCmdZone6
 	ctlCmdZone7
+	// ctlTurnUpTap: transient inside face_facedown.go's turn-up tap step, so the
+	// planner prices its restricted sources as the special action's payment
+	// (payDescNow); parked in genState.pickLeft/pickF, never a decision.
+	ctlTurnUpTap
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7
@@ -754,6 +769,7 @@ type build struct {
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
 	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
 	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
+	snowPre   uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
 	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
 }
 
@@ -837,6 +853,14 @@ const (
 	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
 	rfRestPh                        // scry/surveil: the top phase closed; the rest cards are being ordered
 	rfCopyGrp                       // a copy op has entered a copy and may park for the next one (interp_gen.go copyTokens): its later copies join the first one's AtEOT$ sacrifice trigger
+	// rfBodyOp / rfBodyTurn mark a pending dredge ask of a draw-replacement
+	// body card (kw_dredge.go dredgeBodyPose): the ask is raDredgeRes, and
+	// the flag says which enclosing site the answer resumes. rfBodyOp: an
+	// OpDraw card (the chain slot rides g.pickP, the loop's res.left /
+	// g.pickZ / g.pickLeft); rfBodyTurn: the turn draw (the chain slot rides
+	// res.left, the answer finishes the draw step).
+	rfBodyOp
+	rfBodyTurn
 )
 
 // resCtx is a resolution in progress.

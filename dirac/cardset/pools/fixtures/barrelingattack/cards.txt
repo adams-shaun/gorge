@@ -1,0 +1,7 @@
+# An end-of-turn Effect on Mode$ AttackerBlocked (Barreling Attack: "When that creature becomes blocked this turn, it gets
+# +1/+1 for each creature blocking it"): vanilla blockers and burn that removes the targeted creature (dirac/oracle/barrelingattack_lockstep_test.go)
+Barreling Attack
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Mountain

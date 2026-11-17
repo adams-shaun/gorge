@@ -26,7 +26,10 @@ type EffEOTTrigStats struct {
 	DmgWithListener int // DamageDone emblem triggers queued by an event with a battlefield DamageDone listener (the hook after the listener walk)
 	DmgBeside       int // DamageDone emblem triggers queued beside another pending trigger of the owner's (the trigger_order ask)
 	DmgMulti        int // DamageDone emblem triggers queued with more than 1 damage dealt
-	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object, or the recipient was not its remembered player
+	BlockedFires    int // become-blocked emblem triggers queued (fireEmblemsBlocked)
+	BlockedMulti    int // of those, for an attacker blocked by more than one creature
+	BlockedLapsed   int // become-blocked emblem hook runs (a block with attackers) with the emblem's capture lapsed (the object left the battlefield)
+	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object, the recipient was not its remembered player, or the damaged permanent was not its remembered object (the recipient capture)
 }
 
 // DebugInnerLightNoAmount is a mutation switch (TestTheInnerLightMutation):
@@ -45,8 +48,12 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 // copy with the source as its trigger object and amt the damage dealt
 // (TriggerCount$DamageAmount, gorge's delayed trigger context). An emblem
 // that remembers a target (kop.Emblem.Capture; State.g.embN holds the object
-// + 1) fires only for that object as the source (Creature.IsRemembered over
-// the registration's Remembered set; gorge matches the object, not a version).
+// + 1) fires only for that object on its captured side: as the damage SOURCE
+// (the ValidSource$ ...IsRemembered shape; Creature.IsRemembered over the
+// registration's Remembered set, gorge matches the object, not a version), or,
+// on the recipient-captured shape (kgen's emblemCaptureFilter leaves the
+// object filter on the line's F2; embRecipientCapture), as the damaged
+// RECIPIENT (emblemTriggerObj).
 //
 //go:noinline
 func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch) {
@@ -67,8 +74,10 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				continue // a permanent emblem's combat damage trigger is not this code's (unverified against gorge)
 			}
 			// A player-captured emblem scopes "that player": the recipient must
-			// be the captured seat + 1. An object-captured emblem keeps the
-			// source check. A player capture never fires for damage to a
+			// be the captured seat + 1. An object capture names the damage
+			// source, or, on the recipient-captured shape (ValidTarget$
+			// ...IsRemembered; F2 is then the object filter), the damaged
+			// permanent. A player capture never fires for damage to a
 			// permanent, even when dpl happens to name a seat.
 			if e.CapturePlayer != kop.RefNone {
 				if !toPlayer || int(s.embNum(pp, i)) != int(dpl)+1 {
@@ -77,7 +86,7 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 					}
 					continue
 				}
-			} else if e.Capture != kop.RefNone && int(s.embNum(pp, i)) != int(srcObj)+1 {
+			} else if e.Capture != kop.RefNone && !s.emblemObjectCaptureOK(k, e, pp, i, srcObj, rcp) {
 				if st := DebugEffEOTTrigStats; st != nil {
 					st.DmgCapSkips++
 				}
@@ -156,13 +165,52 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 						if DebugInnerLightNoAmount {
 							n = 0
 						}
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, s.dmgSeat(rcp, srcCtrl), n)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, s.emblemTriggerObj(k, e, srcObj, rcp), s.dmgSeat(rcp, srcCtrl), n)
 						break
 					}
 				}
 			}
 		}
 	}
+}
+
+// emblemObjectCaptureOK reports whether an object-captured emblem fires for
+// this damage event: the capture names the damage source, or, on the
+// recipient-captured shape (embRecipientCapture), the damaged object.
+func (s *State) emblemObjectCaptureOK(k *prep, e *kop.Emblem, pp uint8, i int, srcObj Obj, rcp TCode) bool {
+	num := int(s.embNum(pp, i))
+	if s.embRecipientCapture(k, e) {
+		return isObjTarget(rcp) && num == int(Obj(rcp))+1
+	}
+	return num == int(srcObj)+1
+}
+
+// emblemTriggerObj is the object a fired emblem trigger reads as its trigger
+// object: the damage source, or the damaged object on a recipient capture
+// (the body's DamageSource$ Remembered).
+func (s *State) emblemTriggerObj(k *prep, e *kop.Emblem, srcObj Obj, rcp TCode) Obj {
+	if e.Capture != kop.RefNone && s.embRecipientCapture(k, e) && isObjTarget(rcp) {
+		return Obj(rcp)
+	}
+	return srcObj
+}
+
+// embRecipientCapture reports whether the emblem's capture names the damage
+// RECIPIENT: one of its DamageDone trigger lines carries an object F2 (the
+// stripped ValidTarget$ ...IsRemembered; kgen's emblemCaptureFilter) and no
+// TfToPlayer. A source-captured emblem's F2 is a player filter or absent, or
+// the planeswalker clause beside TfToPlayer (ValidTarget$ Player,Planeswalker,
+// Hunter's Insight; kgen build_ab.go): a recipient capture names a card, so
+// it never reads players.
+func (s *State) embRecipientCapture(k *prep, e *kop.Emblem) bool {
+	for j := range e.Abilities {
+		a := &e.Abilities[j]
+		if a.Kind == kop.AbTriggered && (a.Trig.Event == kop.TrigDamageDone || a.Trig.Event == kop.TrigDamageDealtOnce) &&
+			a.Trig.Filter2 != 0 && a.Trig.Flags&kop.TfToPlayer == 0 && k.t.Filters[a.Trig.Filter2].Flags&kop.FPlayer == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // emblemRecipientOK is the recipient half of an emblem's DamageDone line
@@ -242,3 +290,69 @@ func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Abilit
 // DebugIgnoreAtkEmblem makes the per-attacker and per-defender emblem hooks
 // queue nothing (the oracle's mutation test: the lockstep must diverge).
 var DebugIgnoreAtkEmblem bool
+
+// DebugIgnoreBlockedEmblem makes the become-blocked emblem hook queue nothing
+// (the oracle's mutation test: the lockstep must diverge).
+var DebugIgnoreBlockedEmblem bool
+
+// fireEmblemsBlocked fires the end-of-turn emblems' become-blocked triggers
+// (gorge checkEffectCombatTriggers, Mode$ AttackerBlocked; Barreling Attack)
+// after fireBlockedGen's listener walk: for each emblem, once per DISTINCT
+// blocked attacker in atk (the order of their first block), as the creating
+// card's latent command-zone copy with the attacker as its trigger object. An
+// emblem that remembers a target (kop.Emblem.Capture; State.g.embN holds the
+// object + 1) fires only for that object (Card.IsRemembered over the
+// registration's Remembered set; a lapsed capture is 0 and fires for none).
+//
+//go:noinline
+func (s *State) fireEmblemsBlocked(k *prep, atk []Slot) {
+	if DebugIgnoreBlockedEmblem {
+		return
+	}
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
+			if !e.UntilEOT {
+				continue
+			}
+			for j := range e.Abilities {
+				ea := &e.Abilities[j]
+				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigBecomesBlocked {
+					continue
+				}
+				c := s.embCard(pp, i)
+				cd := &k.t.Cards[c]
+				for ab := range cd.Abilities {
+					la := &cd.Abilities[ab]
+					if la.Kind != kop.AbTriggered || la.AFlags&kop.AfLatent == 0 || la.Trig.Event != kop.TrigBecomesBlocked || la.Trig.Zone != kop.ZoneCommand {
+						continue
+					}
+					o := s.embObj(pp, i)
+					if st := DebugEffEOTTrigStats; st != nil && e.Capture != kop.RefNone && s.embNum(pp, i) == 0 {
+						st.BlockedLapsed++
+					}
+					for _, as := range atk {
+						ao := s.perms[as].obj
+						if e.Capture != kop.RefNone && int(s.embNum(pp, i)) != int(ao)+1 {
+							continue
+						}
+						if ea.Trig.Filter != 0 && !s.matchPermGen(k, ea.Trig.Filter, as, pp, NoSlot, layerFull) {
+							continue
+						}
+						if st := DebugEffEOTTrigStats; st != nil {
+							st.BlockedFires++
+							if s.perms[as].nblock > 1 {
+								st.BlockedMulti++
+							}
+						}
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, ao, s.perms[as].ctrl, 0)
+					}
+					break
+				}
+			}
+		}
+	}
+}

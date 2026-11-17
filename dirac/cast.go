@@ -725,6 +725,24 @@ func (s *State) srcSlot() Slot {
 	return NoSlot
 }
 
+// freePlayCast reports whether the cast being committed belongs to the freeQ
+// register: a free cast (sfFree) or a paid play's cast (freePaid, a Play
+// without WithoutManaCost$ True). The register's rider bits (freeGY,
+// freeForget) read only then.
+func (s *State) freePlayCast() bool {
+	return s.bld().e.flags&sfFree != 0 || s.g.freeP&freePaid != 0
+}
+
+// targetStageAborts is the cast's target-stage menu chain: the paid play
+// cast's pre-menu gates (playTargetGateAborts) beside the announced-cost
+// casts' menu probes. A hit means the menu withholds every candidate: a
+// required target reverses the cast, an up-to target asks nothing and
+// payCast reverses it in the window.
+func (s *State) targetStageAborts(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
+	return s.playTargetGateAborts(k, t, e) || s.convokeTargetAbort(k) || s.altAddTargetAbort(k) ||
+		s.addCostTargetAbort(k) || s.paidXTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)
+}
+
 // buildStep advances the entry being built; it returns true with d filled
 // when a decision is needed.
 func (s *State) buildStep(k *prep, d *Decision) bool {
@@ -834,12 +852,15 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX && s.loyaltyXOptions(k, d) {
 					return true // a planeswalker's [-X] (cost_loyaltyx.go)
 				}
-				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) && (k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) {
+				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) &&
+					(k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) &&
+					(k.gen == nil || !k.gen.uses.has(useDiscardX) || !s.discardXBuilding(k)) {
 					s.nextStage(k)
 					continue
 				}
-				// an announced PayLife<X> or Sac<X/Spec> with no {X} mana
-				// asks X below (cost_paylifex.go, cost_sacx.go)
+				// an announced PayLife<X>, Sac<X/Spec> or Discard<X/Spec> with
+				// no {X} mana asks X below (cost_paylifex.go, cost_sacx.go,
+				// cost_discardfiltered.go)
 			}
 			// X is announced (CR 601.2b) before the payment window opens, so it is
 			// bounded by what that window can pay (CR 601.2g; gorge xAsk).
@@ -882,20 +903,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// the ask's ceiling needs: the same largest X is offered.
 				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[SeatIx(e.ctrl)].graveN)+s.convokeXCredit(k)+1+int(cost.XRed))
 			}
-			if k.gen != nil && k.gen.anyLifeX {
-				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
-			}
-			if k.gen != nil && k.gen.anySacX {
-				mx = s.sacXClamp(k, &cost, mx) // Sac<X/Spec> bounds the ask by the sacrifice candidates
-			}
-			if k.gen != nil && k.gen.anyExileX {
-				mx = s.exileXClamp(k, mx) // ExileFromGrave<X/Spec> bounds the ask by the graveyard candidates
-			}
+			mx = s.xPartClamps(k, &cost, mx) // announcing parts cap the ask (cast_xclamp.go)
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
 			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
-			if k.gen != nil && k.gen.anyExileX {
-				hi = s.exileXClamp(k, hi)
-			}
+			hi = s.xPartClampsHi(k, &cost, hi)
 			if np := s.convokeXCredit(k); np > 0 {
 				hi = convokeXHi(mx, hi, np, &av) // each announced pick pays one generic (a harmonize pick its power) of the X total
 			}
@@ -1086,7 +1097,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if !s.tgtAsksNothing(k, t, e) && (s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.addCostTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)) {
+			if !s.tgtAsksNothing(k, t, e) && s.targetStageAborts(k, t, e) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
@@ -1288,6 +1299,16 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
+		if s.rbAny(e.ctrl) {
+			// The restricted mana the activation's payment may spend is a
+			// unit of its pip ask too (CR 106.6): gorge's announceFeasible
+			// reads AvailableFor, whose restricted batches the pay spends
+			// first (Gwenna's creature-only {R} beside a Souleater's pip).
+			d := s.payDescNow(NoObj)
+			if m := s.restrFloatAdmits(k, e.ctrl, &d); m != 0 {
+				s.restrAvailAdd(e.ctrl, m, &av)
+			}
+		}
 	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
@@ -1559,6 +1580,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
+	s.snowPreSpend(k, &e)
 	s.payPicks(k)
 	s.payBlightPicks(k)
 	if e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost {
@@ -1621,7 +1643,7 @@ func (s *State) finishBuild(k *prep) {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
 		obsPool, obsOK := s.obsWinPool(e.ctrl)
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness || e.trigPl == trigPlMiracle {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.madnessPlainPay(k, &e) || e.trigPl == trigPlMiracle {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
 			// window, not the priority planner (pair 9954); a cost the
@@ -1699,10 +1721,11 @@ func (s *State) finishBuild(k *prep) {
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			s.bestowPaid(&e) // gorge's pay-time FlagBestowed (kw_bestow.go)
 		}
-		// a free cast with ReplaceGraveyard$ Exile carries bit 4
+		// a free cast, or a paid play (no WithoutManaCost$ True), with
+		// ReplaceGraveyard$ Exile carries bit 4
 		// as sfFreeGY once the build bit is gone (a non-copy spell entry;
 		// resolveTop tests it only on a copy)
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.freePlayCast() && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
 		if k.retrace && s.bld().bfl&bflPushed != 0 && jumpStartEntry(k, &e) && !DebugJumpStartNoExile {
@@ -1711,12 +1734,12 @@ func (s *State) finishBuild(k *prep) {
 			// stamped only now (kw_jumpstart.go)
 			s.stack[s.sp-1].flags |= sfFlashback
 		}
-		// ForgetPlayed$ True: this free cast now sits on the stack
-		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
-		// drops it from the remembered set. A cast refused before the push,
-		// or reversed while its cost was being paid (CR 733.1), never
-		// reaches this commit and keeps its card remembered.
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
+		// ForgetPlayed$ True: this free cast, or this paid play's cast, now
+		// sits on the stack (CR 601.2a), the point where gorge's PlayDone pass
+		// sees it and drops it from the remembered set. A cast refused before
+		// the push, or reversed while its cost was being paid (CR 733.1),
+		// never reaches this commit and keeps its card remembered.
+		if s.freePlayCast() && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
 		if k.gen != nil && k.gen.anyHist {
@@ -2241,6 +2264,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			}
 			s.bld().pickK = rest & -rest
 			s.bld().pickLeft = pc.N
+			if s.bld().pickK == pkDiscard && pc.DiscardX {
+				s.bld().pickLeft = uint8(e.x) // Discard<X/Spec>: the announced X (0 asks nothing)
+			}
 			if s.bld().pickK == pkDiscard {
 				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
 			}
@@ -2374,7 +2400,7 @@ func (s *State) payPicks(k *prep) {
 				s.touchSl(ob.slot)
 				pp.seeCtr(s)
 				if c := int(uint8(f)); pp.ctrN(s, c) > 0 {
-					pp.subCtrN(s, c, 1)
+					s.subCtrFire(k, ob.slot, c, 1) // trig_counterremoved.go
 				}
 			}
 		}

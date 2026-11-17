@@ -1,0 +1,21 @@
+# DB$ Clone with GainThisAbility$: the
+# carriers beside bodies with triggers and keywords, spells that target
+# (heroic), an enchantment (constellation), removal and basics
+# (dirac/oracle/clonegrant_lockstep_test.go)
+Artisan of Forms
+Cryptoplasm
+Protean Thaumaturge
+Giant Growth
+Defiant Strike
+Glorious Anthem
+Serra Angel
+Elvish Visionary
+Pestermite
+Prodigal Sorcerer
+Brokers Veteran
+Llanowar Elves
+Grizzly Bears
+Doom Blade
+Island
+Forest
+Swamp

@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"sort"
@@ -680,6 +681,23 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	return fr
 }
 
+// turnUpPotentialAction is the canonical action of a potential turn-face-up
+// plan (CR 708.6), the offered option's form. Only the Morph-family keyword
+// procedures are projected: a manifested or cloaked card's printed-cost
+// procedure stays the pool-only offer the kernel makes (face_facedown.go's
+// turnUpListed), so the union does not name an action the kernel cannot take.
+func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, bool) {
+	sub := turnUpModeCode(pa.Mode)
+	if sub == 1 || sub == 2 {
+		return 0, false
+	}
+	c, ok := specialCode(pa.Kind)
+	if !ok {
+		return 0, false
+	}
+	return Pack(ActSpecial, ref(pa.Obj), RefNone, c|sub<<4), true
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -943,20 +961,12 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			}
 			note("granted/" + o.SVar)
 		case "ability":
-			if o.SVar != "" && o.GrantSource != 0 && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0 {
-				// An ability another permanent grants (an Equipment's: Fishing
-				// Pole's), offered when the floating pool pays it: the kernel's
-				// latent-ability activation (ability code 255). Its grantor tells
-				// two granted abilities on one permanent apart; a second copy of a
-				// grantor gives the same ability, which stays the first's option.
-				grantor := o.GrantSource
-				for j := range d.Options[:i] {
-					if x := &d.Options[j]; x.Kind == "ability" && x.Obj == o.Obj && x.SVar == o.SVar && x.GrantSource != 0 {
-						grantor = x.GrantSource
-						break
-					}
+			if a, keepDuplicate, ok := grantedOrGainedActivation(o, d.Options[:i], ref); ok {
+				if keepDuplicate {
+					fr.prio = append(fr.prio, prioEntry{a: a, opt: o.Index})
+				} else {
+					add(prioEntry{a: a, opt: o.Index})
 				}
-				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(grantor), 255), opt: o.Index})
 				continue
 			}
 			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && g.selfKeywordGrant(o.Obj, o.Keyword) {
@@ -1086,6 +1096,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
 			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
 				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
+			}
+		case "turn_face_up":
+			var ok bool
+			if a, ok = turnUpPotentialAction(pa, ref); !ok {
+				continue
 			}
 		default:
 			continue
@@ -2033,6 +2048,88 @@ func copyGrantedTriggerOf(o *state.Object, i int) bool {
 	return true
 }
 
+// addTriggerSigs is the matchup's AddTriggers$ trigger signatures: the
+// Params of every trigger line an AddTriggers$ SVar of any card of the
+// matchup names (the table covers every seat's deck and the sideboards),
+// keyed canonically (trigKey). Cached: Table and reg are fixed for the
+// matchup's life. A game can hold no card outside them, and an as-enters
+// copy's granted trigger is folded into its face from one of those lines
+// (CR 707.9b) whatever became of the granting card since, so the trigger's
+// provenance is a property of the matchup's cards, not of the battlefield.
+func (m *Matchup) addTriggerSigs() map[string]bool {
+	if m.addTrigSigs != nil || m.reg == nil {
+		return m.addTrigSigs
+	}
+	sigs := map[string]bool{}
+	for _, n := range m.Table {
+		c, ok := m.reg.Lookup(n)
+		if !ok {
+			continue
+		}
+		for _, f := range c.Faces {
+			for _, raw := range f.SVars {
+				if !strings.Contains(raw, "AddTriggers$") {
+					continue
+				}
+				for _, nm := range strings.Split(parseCloneParam(raw, "AddTriggers"), ",") {
+					if tr, ok := cards.ParseTriggerLine(f.SVars[strings.TrimSpace(nm)]); ok {
+						sigs[trigKey(tr.Params)] = true
+					}
+				}
+			}
+		}
+	}
+	m.addTrigSigs = sigs
+	return sigs
+}
+
+// trigKey is a canonical key for a trigger's Params: its pairs, sorted.
+func trigKey(p map[string]string) string {
+	var b strings.Builder
+	for i, k := range slices.Sorted(maps.Keys(p)) {
+		if i > 0 {
+			b.WriteByte(0x1f)
+		}
+		fmt.Fprintf(&b, "%s=%s", k, p[k])
+	}
+	return b.String()
+}
+
+// copyAddTriggerOf reports whether trigger i of o's face is one an as-enters
+// copy's Clone AddTriggers$ folded into the copy face (Phantasmal Image,
+// Copycrook, Progenitor Mimic; CR 707.9b, events foldCopyExcept): o is a copy
+// (its face is none of its printed card's) and the trigger's Params are an
+// AddTriggers$ line of a card of the matchup — the granting card may have
+// left the battlefield long since, so the battlefield is not asked. The
+// kernel lists it as a granted (latent) trigger, whose stack index is 255.
+func copyAddTriggerOf(m *Matchup, o *state.Object, i int) bool {
+	if m == nil || o == nil || o.Card == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Triggers) {
+		return false
+	}
+	for _, f := range o.Card.Faces {
+		if f == o.Face() {
+			return false // the printed face itself
+		}
+	}
+	return m.addTriggerSigs()[trigKey(o.Face().Triggers[i].Params)]
+}
+
+// copyGrantedTriggerAt reports whether trigger i of o's face is one a copy
+// effect folded in: the Myriad expansion or a Clone AddTriggers$ trigger.
+func copyGrantedTriggerAt(m *Matchup, o *state.Object, i int) bool {
+	return copyGrantedTriggerOf(o, i) || copyAddTriggerOf(m, o, i)
+}
+
+// parseCloneParam reads "Key$ value" out of an SVar body line.
+func parseCloneParam(raw, key string) string {
+	for seg := range strings.SplitSeq(raw, "|") {
+		if k, v, ok := strings.Cut(seg, "$"); ok && strings.TrimSpace(k) == key {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
 // copyGrantedAbilityOf is copyGrantedAbility over the object itself.
 func copyGrantedAbilityOf(o *state.Object, i int) bool {
 	if o == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Abilities) {
@@ -2060,4 +2157,35 @@ func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
 		}
 	}
 	return false
+}
+
+// grantedOrGainedActivation is the canonical action of an "ability" option
+// another permanent's static gives o.Obj, when it is one the kernel models:
+//   - an ability another permanent grants (an Equipment's: Fishing Pole's),
+//     offered when the floating pool pays it: the kernel's latent-ability
+//     activation (ability code 255). Its grantor tells two granted abilities
+//     on one permanent apart; a second copy of a grantor gives the same
+//     ability, which stays the first's option (before: the options listed
+//     ahead of o). Two different abilities one grantor gives one permanent
+//     (Lavamancer's Skill on a Wizard: the 1-damage and the 2-damage
+//     ability, CR 613.1f) are two kernel latent activations that canonicalise
+//     alike, so both offers are kept: keepDuplicate reports it;
+//   - a has-all-abilities-of gained ability (GainsAbilitiesOf$): the foreign
+//     permanent's face ability, told apart by that permanent (the kernel's
+//     AkActivate mode 0xC0, dirac/static_gainsof.go).
+func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref func(state.ObjID) Ref) (Canon, bool, bool) {
+	if o.SVar != "" && o.GrantSource != 0 && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0 {
+		grantor, sameSVar := o.GrantSource, false
+		for j := range before {
+			if x := &before[j]; x.Kind == "ability" && x.Obj == o.Obj && x.SVar == o.SVar && x.GrantSource != 0 {
+				grantor, sameSVar = x.GrantSource, true
+				break
+			}
+		}
+		return Pack(ActActivate, ref(o.Obj), ref(grantor), 255), !sameSVar, true
+	}
+	if o.GainedSource != 0 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.AltCostIndex == 0 && o.GainedIdx >= 0 && o.GainedIdx < 0x80 {
+		return Pack(ActActivate, ref(o.Obj), ref(o.GainedSource), uint8(o.GainedIdx)), false, true
+	}
+	return 0, false, false
 }

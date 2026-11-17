@@ -989,19 +989,7 @@ func layerTablesFor(h Host, sa *cards.SA, c *Ctx) LayerTables {
 		// source carries are filters too.
 		if c != nil {
 			for _, v := range c.SVars {
-				if strings.Contains(v, "with") || strings.Contains(v, "hasKeyword") {
-					want |= LayerKeywords
-				}
-				if SpecReadsPT(v) {
-					want |= LayerCDAPT | LayerBattlefieldPT
-				}
-				if strings.Contains(v, "IsGoaded") {
-					want |= LayerGoads
-				}
-				if strings.Contains(v, "Color") || strings.Contains(v, "Black") || strings.Contains(v, "White") ||
-					strings.Contains(v, "Blue") || strings.Contains(v, "Red") || strings.Contains(v, "Green") {
-					want |= LayerColors
-				}
+				want |= specLayerWants(v)
 			}
 		}
 	}
@@ -1037,13 +1025,38 @@ type copyTargetCandidatesHost interface {
 	CopyTargetCandidates(copier state.PlayerID, spell state.ObjID) []state.Target
 }
 
+// specLayerWants is the one text-to-tables rule: the on-demand LayerTables a
+// filter or count spec (or any parameter value that may hold one) can read.
+// Resolve's layerTablesFor and every SpecContext built outside Resolve (the
+// Count$Valid fold) ask the host through it, so a count or match never reads
+// a printed colour, keyword or P/T when its text can read the layered value
+// (CR 613.3). It is a textual superset: a false positive costs a table build,
+// a false negative is a printed read.
+func specLayerWants(spec string) LayerTableSet {
+	var want LayerTableSet
+	if strings.Contains(spec, "IsGoaded") {
+		want |= LayerGoads
+	}
+	if strings.Contains(spec, "Color") || strings.Contains(spec, "Black") || strings.Contains(spec, "White") ||
+		strings.Contains(spec, "Blue") || strings.Contains(spec, "Red") || strings.Contains(spec, "Green") {
+		want |= LayerColors
+	}
+	if strings.Contains(spec, "with") || strings.Contains(spec, "hasKeyword") {
+		want |= LayerKeywords
+	}
+	if SpecReadsPT(spec) {
+		want |= LayerCDAPT | LayerBattlefieldPT
+	}
+	return want
+}
+
 // saMentionsKeywords reports whether any parameter of sa, or of a
 // sub-ability chained under it (the walk shares one Ctx), can name a
 // with<Keyword>/without<Keyword>/hasKeyword<Keyword> predicate.
 func saMentionsKeywords(sa *cards.SA) bool {
 	for depth := 0; sa != nil && depth < 32; depth++ {
 		for _, v := range sa.Params {
-			if strings.Contains(v, "with") || strings.Contains(v, "hasKeyword") {
+			if specLayerWants(v)&LayerKeywords != 0 {
 				return true
 			}
 		}
@@ -1058,7 +1071,7 @@ func saMentionsKeywords(sa *cards.SA) bool {
 func saMentionsPT(sa *cards.SA) bool {
 	for depth := 0; sa != nil && depth < 32; depth++ {
 		for _, v := range sa.Params {
-			if SpecReadsPT(v) {
+			if specLayerWants(v)&LayerCDAPT != 0 {
 				return true
 			}
 		}
@@ -1072,8 +1085,7 @@ func saMentionsPT(sa *cards.SA) bool {
 // grammar contains).
 func saMentionsColors(sa *cards.SA) bool {
 	for _, v := range sa.Params {
-		if strings.Contains(v, "Color") || strings.Contains(v, "Black") || strings.Contains(v, "White") ||
-			strings.Contains(v, "Blue") || strings.Contains(v, "Red") || strings.Contains(v, "Green") {
+		if specLayerWants(v)&LayerColors != 0 {
 			return true
 		}
 	}
@@ -1082,7 +1094,7 @@ func saMentionsColors(sa *cards.SA) bool {
 
 func saMentionsGoaded(sa *cards.SA) bool {
 	for _, v := range sa.Params {
-		if strings.Contains(v, "IsGoaded") {
+		if specLayerWants(v)&LayerGoads != 0 {
 			return true
 		}
 	}

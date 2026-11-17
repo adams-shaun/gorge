@@ -399,6 +399,7 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 		if o.Controller != cloaker {
 			h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: cloaker, Text: "cloak"})
 		}
+		entryTapped := beginEntryTappedBatch(h, state.ZBattlefield, tapped)
 		// Player rides the CLOAKED card's controller: Secret is what keeps
 		// the event's Obj out of every other seat's projection (redaction
 		// rule 1), and the seat that may look at a face-down card is its
@@ -412,10 +413,7 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			// left alone, the RememberChanged$ convention.
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		}
-		if tapped {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Controller,
-				Text: "entered tapped"})
-		}
+		closeEntryTappedBatch(h, entryTapped, state.ZBattlefield, tapped, id, o.Controller)
 	}
 	if choices {
 		ids, ok := chooseFromZoneForFaceDown(h, c, sa, c.Controller, amount)

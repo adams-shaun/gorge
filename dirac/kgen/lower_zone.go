@@ -1175,6 +1175,9 @@ func overrideString(o *lOverride) string {
 	if o.Landwalk != nil {
 		p = append(p, "landwalk="+o.Landwalk.String())
 	}
+	if o.ProtFrom != nil {
+		p = append(p, "protfrom="+o.ProtFrom.String())
+	}
 	if o.LoseAbilities {
 		p = append(p, "loseabilities")
 	}
@@ -1194,18 +1197,24 @@ func overrideString(o *lOverride) string {
 }
 
 func (lc *lowerCtx) changeZoneAll(ps *params) error {
-	bracket, err := libPlaceAll(ps) // lower_libplace.go
-	if err != nil || !bracket {
-		if err != nil {
-			return err
-		}
+	if (lc.digImprinted || lc.playLibrary) && ps.peek("RandomOrder") == "True" {
+		// a DigUntil/Play chain's own random-order bottom move reads the
+		// remembered/free-queued set, not a zone sweep (lower_digimprint.go,
+		// lower_playlibrary.go): no CR 401.4 bracket
 		return lc.changeZoneAllSweep(ps)
 	}
-	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceArmTop, Note: "count the cards this sweep puts into libraries"})
+	arm, bracket, err := libPlaceAll(ps) // lower_libplace.go
+	if err != nil {
+		return err
+	}
+	if !bracket {
+		return lc.changeZoneAllSweep(ps)
+	}
+	lc.emit(lInstr{Op: "LibPlace", C: arm, Note: "count the cards this sweep puts into libraries"})
 	if err := lc.changeZoneAllSweep(ps); err != nil {
 		return err
 	}
-	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceAsk, Note: "each owner of two or more orders them (CR 401.4)"})
+	lc.emit(lInstr{Op: "LibPlace", C: kop.PlaceAsk, Note: "each owner of two or more orders them; RandomOrder$ shuffle the group"})
 	return nil
 }
 
@@ -2053,15 +2062,15 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 	}
 	ps.consume("DefinedDesc", "IfDesc")
-	// the exile-granted ability's copy is cast paying its mana cost (gorge
-	// beginPlay: the printed cost, mana window and all; lower_exilegrant.go)
-	paid := lc.grantExile && copyCard && ps.m["Valid"] == "Card.Self" && ps.m["WithoutManaCost"] == ""
-	if !paid && !ps.is("WithoutManaCost", "True") {
-		return refuse("Play without WithoutManaCost")
-	}
-	if !ps.is("Optional", "True") {
-		return refuse("Play without Optional")
-	}
+	// WithoutManaCost$ absent, or present and not True, is a PAID play: gorge's
+	// beginPlay begins the ordinary cast paying its printed cost (CR 601.2,
+	// alternative timing) -- mid-resolution it pays through the manual CR
+	// 601.2g window and an unpayable cost reverses the cast (CR 733.1, the
+	// kernel's freeQ drain, turn_gen.go). Only the literal True is the free
+	// cast (the exile-granted ability's copy rides the same bit,
+	// lower_exilegrant.go).
+	paid := !ps.is("WithoutManaCost", "True")
+	mandatory := !ps.is("Optional", "True") // gorge's ask has Min 1 (lower_playshapes.go)
 	if c, ok := ps.get("Controller"); ok && c != "You" {
 		return refuse("Play Controller %q", c)
 	}
@@ -2084,6 +2093,9 @@ func (lc *lowerCtx) play(ps *params) error {
 			return refuse("Play Amount %q", amount)
 		}
 		upTo = true
+	}
+	if err := playMandatoryOK(mandatory, hideDef, copyCard, repeat, upTo); err != nil {
+		return err
 	}
 	forget := false
 	if v, ok := ps.get("ForgetPlayed"); ok {
@@ -2121,7 +2133,8 @@ func (lc *lowerCtx) play(ps *params) error {
 	var err error
 	if !playCommandZone(ps) {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
-		saExpr, err = lc.playSAExpr(ps.str("ValidSA"))
+		sa, _ := playDefaultValidSA(ps)
+		saExpr, err = lc.playSAExpr(sa)
 	}
 	lc.bluffPlay = false
 	if err != nil {
@@ -2134,7 +2147,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		return refuse("Play on a multi-face card")
 	}
 	_, hasVT := ps.m["ValidTgts"]
-	cs := "Optional"
+	cs := playBaseCS(mandatory)
 	if amount == "All" {
 		cs += "|AnyNumber"
 	}
@@ -2394,6 +2407,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	}
 	_, hasTgt := ps.m["ValidTgts"]
 	if _, hasRO := ps.get("RememberObjects"); !hasTgt && !hasRO {
+		if ok, err := lc.lockedCantBlock(ps, ss); ok || err != nil { // lower_effectlockedgrant.go
+			return err
+		}
 		return lc.effectStaticEOT(ps, ss)
 	}
 	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go
@@ -2435,6 +2451,40 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		return lc.attacksOrBlocksIfAble(ps, ss, obj) // lower_effectattacksifable.go
 	}
 	return lc.effectTargetStatic(ps, s, obj)
+}
+
+// mayPlayFollows reports whether the Effect's MayPlay grant lowers to a
+// following record (kop MayPlayFollows on the emitted C). gorge
+// ForgetOnMoved$ (state/continuous.go): a remembered card that moves FROM
+// the forget zone leaves the grant's set. When that zone is C the grant
+// ends with the card's first move out of C, and the version-tied record
+// models it; ExileOnMoved$ and the two-zone AffectedZone$ end it on the
+// move the same way (gorge effectMoveSweep), as does a zone-lifetime
+// duration (WhileExiled, CR 611.2b: a "for as long as" duration does not
+// restart). A grant with no ForgetOnMoved$ is pruned by
+// mayPlayRememberedLeftZone the moment the card leaves C (CR 400.7: a new
+// object), so it is version-tied too. A forget zone the grant cannot be
+// forgotten from on the way back to C -- Skyclave Shade's Exile over a
+// graveyard grant, which fires only if the card is exiled from the
+// graveyard and then leaves exile -- is left to gorge's effectForget: the
+// record follows the card, and the offer stands every time it is back in C
+// within its duration (CR 611.2c: a rules-of-the-game effect is not locked
+// to the object set it began with; its own cast does not consume it). The
+// until-end-of-turn grant of that shape is lowered by mayPlayGraveLifetime
+// to its re-arming WhileGraveForget record instead; this helper covers the
+// longer durations that record does not.
+func mayPlayFollows(ps *params, dur string, zones []int, zone int) bool {
+	if dur != "EOT" && dur != "EndOfYourNextTurn" || len(zones) != 1 {
+		return false
+	}
+	if _, ok := ps.get("ExileOnMoved"); ok {
+		return false
+	}
+	f := strings.TrimSpace(ps.str("ForgetOnMoved"))
+	if f == "" {
+		return false // gorge mayPlayRememberedLeftZone prunes it on the move out of C
+	}
+	return f == "Exile" && zone == zGraveyard
 }
 
 // mayPlayGraveLifetime turns an until-end-of-turn Effect-delivered may-play
@@ -2558,7 +2608,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
-	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked":
+	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked", "AssignNoCombatDamage":
 		if err := lc.asgnGrant(ps, sp, s.Mode, obj); err != nil { // lower_asgngrant.go
 			return err
 		}
@@ -2658,9 +2708,16 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect Duration %q", d)
 			}
 		}
+		// gorge ForgetOnMoved$ (state/continuous.go): an until-end-of-turn
+		// graveyard grant with ForgetOnMoved$ Exile lowers to the re-arming
+		// WhileGraveForget record (mayPlayGraveLifetime); the follows mark
+		// reads the Effect's lifetime for the longer durations it does not
+		// (mayPlayFollows). WhileGraveForget is not a follows duration, so
+		// the two never mark the same record.
 		dur = mayPlayGraveLifetime(ps, sp, zone, zones, dur)
+		follows := mayPlayFollows(ps, dur, zones, zone)
 		ps.consume("ForgetOnMoved")
-		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur}
+		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur, Follows: follows}
 		fl := 0
 		// EffectOwner$ RememberedController (CR 611.2): gorge's effect
 		// belongs to the remembered card's controller, and its may-play
@@ -2758,6 +2815,33 @@ func (lc *lowerCtx) emblemStatic(ps *params, s cards.Static) error {
 	return nil
 }
 
+// emblemTrigDuration refuses an until-end-of-turn Effect's trigger whose
+// event the kernel's emblems do not listen to (an until-your-next-turn one
+// likewise): the effect leaves the command zone at cleanup, so it is the
+// kernel's EOT emblem, and both fire only for the events emblems listen to
+// (emblemTimedMode).
+func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next bool) error {
+	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil) {
+		return refuse("Effect triggers without a permanent duration")
+	}
+	return nil
+}
+
+// emblemExileLapse reads an Effect's ExileOnMoved$ rider: Battlefield lapses
+// the capture when the object leaves (kop.Emblem.CaptureLapse,
+// dirac/static_emblemcapture.go). Any other value, or the rider without a
+// capture, refuses.
+func emblemExileLapse(ps *params, hasCap bool) (bool, error) {
+	xm, ok := ps.get("ExileOnMoved")
+	if !ok {
+		return false, nil
+	}
+	if !hasCap || strings.TrimSpace(xm) != "Battlefield" {
+		return false, refuse("Effect ExileOnMoved$ %q", xm)
+	}
+	return true, nil
+}
+
 // emblem lowers a planeswalker emblem with one trigger (Kaito).
 func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.granted++
@@ -2790,13 +2874,8 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if eot && t.Mode == "TapsForMana" {
 		return effectTapExtraRefuse() // lower_tapextra.go
 	}
-	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
-		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
-		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
-		// the command zone at cleanup) is the kernel's EOT emblem, and an
-		// until-your-next-turn one its next-turn emblem; both fire only for
-		// the events emblems listen to
-		return refuse("Effect triggers without a permanent duration")
+	if err := lc.emblemTrigDuration(t, eot, next); err != nil {
+		return err
 	}
 	if t.Effect == nil {
 		t.Effect = cards.ResolveSVar(lc.face.SVars, t.Params["Execute"])
@@ -2824,16 +2903,31 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 			capture, hasCap = lRef{Kind: rSelf}, true // the emblem remembers the Effect's source object
 		}
 	}
+	lapse, err := emblemExileLapse(ps, hasCap)
+	if err != nil {
+		return err
+	}
 	saved := len(lc.out.Abilities)
-	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
+	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
+	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
+	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount = false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemDmg = false, false, false, false, false
 	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
 		return refuse("emblem trigger lowering")
+	}
+	if t.Mode == "AttackerBlocked" {
+		// the capture ends as gorge forgets the object (lower_effeottrig.go)
+		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
+			return refuse("Effect AttackerBlocked trigger without a captured object and ForgetOnMoved$ Battlefield")
+		}
+		ps.consume("ForgetOnMoved")
+		lapse = true
 	}
 	ab := lc.out.Abilities[saved]
 	if mem.kind != memNone {
@@ -2841,8 +2935,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 			return err
 		}
 	}
+	recipientCap := false
 	if hasCap && !player {
-		if err := emblemCaptureFilter(ab); err != nil {
+		if recipientCap, err = emblemCaptureFilter(ab); err != nil {
 			return err
 		}
 	}
@@ -2850,19 +2945,36 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		if err := emblemFiltersRefuse("Effect trigger", ab.Trigger.F, ab.Trigger.F2); err != nil {
 			return err
 		}
-		if err := eotCombatEmblemRefuse(ab); err != nil {
+		if err := eotCombatEmblemRefuse(ab, recipientCap); err != nil {
 			return err
 		}
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player}
+	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse}
 	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
 	mem.apply(&em, &ce) // lower_effectremember.go
 	lc.out.Emblems = append(lc.out.Emblems, em)
 	ce.C = len(lc.out.Emblems) - 1
 	lc.emit(ce)
 	return nil
+}
+
+// emblemTimedMode reports whether an until-end-of-turn or until-your-next-turn
+// Effect's trigger Mode$ is one the kernel's timed emblem listens to. An
+// end-of-turn DamageDoneOnce line is the per-event DamageDone one (Aphelia,
+// lower_damagedoneonce.go); a DamageDealtOnce one needs the pair capture.
+func emblemTimedMode(mode string, eot, paired bool) bool {
+	switch mode {
+	case "SpellCast", "ChangesZone", "Sacrificed", "DamageDone",
+		"AttackersDeclared", "AttackersDeclaredOneTarget", "Attacks", "AttackerBlocked":
+		return true
+	case "DamageDoneOnce":
+		return eot
+	case "DamageDealtOnce":
+		return paired
+	}
+	return false
 }
 
 // emblemUnimplementedMayPlay consumes an Effect's StaticAbilities$ list
@@ -3201,6 +3313,10 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		if err != nil {
 			return nil, "", false, err
 		}
+		k, err = lc.splitProtFromKW(k, o) // the protection terms ride o.ProtFrom (lower_protgrant.go)
+		if err != nil {
+			return nil, "", false, err
+		}
 		if k != "" {
 			ks, err := pumpKeywords(k)
 			if err != nil {
@@ -3493,11 +3609,20 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		if nc == "You" {
 			ncYou = true // gorge controlPlayerSimpleYou: the resolving controller
 		} else {
-			r, err := lc.defined(nc)
+			// a triggered player resolves through definedPlayer (the one
+			// Triggered* player grammar and its guards); the rest through
+			// Defined$
+			var r lRef
+			var err error
+			if strings.HasPrefix(nc, "Triggered") {
+				r, err = lc.definedPlayer(nc)
+			} else {
+				r, err = lc.defined(nc)
+			}
 			if err != nil {
 				return err
 			}
-			if r.Kind != rTarget && r.Kind != rEachOpp {
+			if r.Kind != rTarget && r.Kind != rEachOpp && r.Kind != rTriggeredPlayer && r.Kind != rTriggeredTgtCtrl {
 				return refuse("GainControl NewController %q", nc)
 			}
 			if r.Kind == rTarget {
@@ -3575,9 +3700,10 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		if err != nil {
 			return err
 		}
-		if dur != "EOT" || len(ks) != 1 || ks[0] != "Haste" {
+		if len(ks) != 1 || ks[0] != "Haste" {
 			// gorge grants AddKWs$ for as long as the control effect lasts;
-			// the kernel has the until-end-of-turn haste only
+			// the kernel has haste only: until end of turn (GcHasteEOT) or
+			// for as long as the control record lives (GcHasteEOT on a longer duration)
 			return refuse("GainControl AddKWs %q with LoseControl %q", k, lcv)
 		}
 		flags = append(flags, "kw="+strings.Join(ks, "&"))
@@ -4436,7 +4562,8 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 }
 
 // animateRemoveKeywords reads an Animate's RemoveKeywords$ (gorge
-// animateGrant.removeKeywords: layer-6 keyword removal, CR 613.1f) and its
+// animateGrant.removeKeywords: layer-6 keyword removal, CR 613.1f; bare or
+// beside a staticAbilities$ grant) and its
 // staticAbilities$ grant, read by one of four routes: a comma list of
 // permission/land-play statics, or a single Mode$ Continuous body over other
 // permanents (an anthem, keyword grant or equipped pump), each lowered as an
@@ -4448,12 +4575,6 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 // WhileHost sets no keyword record).
 func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) error {
 	if v, ok := ps.get("RemoveKeywords"); ok {
-		// Only Surge Engine's shape (beside a CantBlockBy grant) has a
-		// lockstep for single-target Animate; a bare RemoveKeywords$ stays
-		// refused there. AnimateAll reads it bare.
-		if _, has := ps.get("staticAbilities"); !has && !lc.animAll {
-			return refuse("Animate RemoveKeywords$ without staticAbilities$")
-		}
 		ks, err := removeKeywords(v)
 		if err != nil {
 			return err

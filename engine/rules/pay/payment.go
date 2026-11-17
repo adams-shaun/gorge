@@ -21,7 +21,9 @@ const PayLifeProposalText = "paylife proposal"
 
 // manaTaggedLetters[t][i] is state.ManaUnitTags[t]+ManaLetters[i] and
 // manaSnowLetters[i] is "S"+ManaLetters[i]: the spend split's Counter forms,
-// built once instead of per payment.
+// built once instead of per payment. manaSnowTaggedLetter is the composed
+// snow-artifact unit's tag ("SArtifact", the state.SnowTypedCounter
+// spelling); its per-colour counters are that tag + ManaLetters[i].
 var manaTaggedLetters, manaSnowLetters = func() (tagged [len(state.ManaUnitTags)][len(ManaLetters)]string, snow [len(ManaLetters)]string) {
 	for i, letter := range ManaLetters {
 		for t, tag := range state.ManaUnitTags {
@@ -31,6 +33,8 @@ var manaTaggedLetters, manaSnowLetters = func() (tagged [len(state.ManaUnitTags)
 	}
 	return tagged, snow
 }()
+
+const manaSnowTaggedLetter = "SArtifact"
 
 // PayMana spends cost from p's pool and reports whether it could. Every
 // state mutation goes through events, so payment cannot be a direct field
@@ -108,7 +112,7 @@ func PayManaFor(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost C
 // (Jeweled Amulet) keeps its existing split-based note; every other caller
 // keeps the bool-only PayManaFor wrapper, so no other payment site changes
 // shape.
-func PayManaForSpent(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *Conv, rider PipRider) (bool, state.Mana, state.Mana, state.Mana, [7]state.Mana) {
+func PayManaForSpent(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *Conv, rider PipRider) (bool, state.Mana, state.Mana, state.Mana, [8]state.Mana) {
 	class := PurposeSpell
 	if ability {
 		class = PurposeActivated
@@ -118,7 +122,7 @@ func PayManaForSpent(e Engine, p state.PlayerID, id state.ObjID, ability bool, c
 
 // PayManaDescriptorForSpent is the one payment core every PayMana* form
 // reaches: it resolves cost against the pool visible to d and emits the spend.
-func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Cost, conv *Conv, rider PipRider) (bool, state.Mana, state.Mana, state.Mana, [7]state.Mana) {
+func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Cost, conv *Conv, rider PipRider) (bool, state.Mana, state.Mana, state.Mana, [8]state.Mana) {
 	av := AvailableFor(e, p, d)
 	// The payment's persistence attribution: the visible pool's persistent
 	// share (perVis) and its ordinary complement (perFresh). ResolveMana is
@@ -152,19 +156,22 @@ func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Co
 	}
 
 	if !ok {
-		return false, state.Mana{}, state.Mana{}, state.Mana{}, [7]state.Mana{}
+		return false, state.Mana{}, state.Mana{}, state.Mana{}, [8]state.Mana{}
 	}
 	after, afterSnow, afterTyped, lifeSpent := pay.Pool, pay.Snow, pay.Typed, pay.LifeSpent
 	spent := state.Mana{}
 	spentSnow := state.Mana{}
-	spentTyped := [7]state.Mana{}
+	spentTyped := [8]state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
 		// The parallel tallies' own deltas: how many of the units that left
 		// slot i were snow / typed units. ResolveManaWith consumes a plain
 		// unit before a typed one and a typed one before snow wherever a
 		// choice existed, so this is exactly what the payment search did and
-		// each tally never exceeds spent[i].
+		// each tally never exceeds spent[i]. The composed snow-artifact slot
+		// (spentTyped[state.TypedSnowArtifact]) counts the units that were
+		// BOTH: the returned Snow delta (inclusive) and the artifact head's
+		// fold (captureCastSpend adds this slot in) each count them once.
 		spentSnow[i] = beforeSnow[i] - afterSnow[i]
 		for t := range spentTyped {
 			spentTyped[t][i] = beforeTyped[t][i] - afterTyped[t][i]
@@ -175,16 +182,27 @@ func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Co
 	// it was paid as -- so copy the full delta before emitRestrictedManaSpend
 	// carves the restricted batches out of `spent`.
 	spentAll := spent
-	// emitSnow/emitTyped are the emission split's copies of the tallies.
-	// emitRestrictedManaSpend carves the restricted batches out of `spent`
-	// and emits their tagged/snow form DIRECTLY, so the tallies driving the
-	// remaining split must be carved alongside it -- otherwise a restricted
-	// TAGGED unit would be emitted once by the carve and again by the loop
-	// (double-decrementing TypedMana and the pool). The returned spentSnow /
-	// spentTyped keep the FULL deltas the pay-time capture reads.
+	// emitSnow/emitTyped are the emission split's copies of the tallies,
+	// EXCLUSIVE of the composed snow-artifact slot: a composed unit is
+	// emitted once, under its own "SArtifact<colour>" Counter (emitBoth),
+	// and must not also ride the plain snow emission. (emitTyped is the
+	// exclusive ManaUnits partition already -- its Artifact slot never held
+	// the composed unit.) emitRestrictedManaSpend carves the restricted
+	// batches out of `spent` and emits their tagged/snow form DIRECTLY, so
+	// the tallies driving the remaining split must be carved alongside it --
+	// otherwise a restricted TAGGED unit would be emitted once by the carve
+	// and again by the loop (double-decrementing TypedMana and the pool).
+	// The returned spentSnow / spentTyped keep the FULL deltas the pay-time
+	// capture reads.
 	emitSnow := spentSnow
 	emitTyped := spentTyped
-	emitRestrictedManaSpend(e, p, d, &spent, &emitSnow, &emitTyped, &perVis, &perFresh)
+	emitBoth := state.Mana{}
+	for i := range emitBoth {
+		emitBoth[i] = emitTyped[state.TypedSnowArtifact][i]
+		emitSnow[i] -= emitBoth[i]
+		emitTyped[state.TypedSnowArtifact][i] = 0
+	}
+	emitRestrictedManaSpend(e, p, d, &spent, &emitSnow, &emitTyped, &emitBoth, &perVis, &perFresh)
 	for i, letter := range ManaLetters {
 		if spent[i] == 0 {
 			continue
@@ -229,14 +247,23 @@ func PayManaDescriptorForSpent(e Engine, p state.PlayerID, d Descriptor, cost Co
 		}
 		snowSpent := emitSnow[i]
 		typedSpent := int32(0)
-		for t := range emitTyped {
+		for t := range state.ManaUnitTags {
 			typedSpent += emitTyped[t][i]
 		}
-		emitSpend(letter, spent[i]-snowSpent-typedSpent)
+		// The composed snow-artifact units are their own emission: one event
+		// under the "SArtifact<colour>" Counter moves the pool, the Snow
+		// tally, the artifact tally and Player.SnowTyped together, so they
+		// are neither in the plain remainder nor in the exclusive
+		// snow/typed tallies above.
+		composedSpent := emitBoth[i]
+		emitSpend(letter, spent[i]-snowSpent-typedSpent-composedSpent)
 		for t := range state.ManaUnitTags {
 			if emitTyped[t][i] > 0 {
 				emitSpend(manaTaggedLetters[t][i], emitTyped[t][i])
 			}
+		}
+		if composedSpent > 0 {
+			emitSpend(manaSnowTaggedLetter+letter, composedSpent)
 		}
 		if snowSpent > 0 {
 			emitSpend(manaSnowLetters[i], snowSpent)
@@ -309,7 +336,7 @@ func PayExtortPip(e Engine, p state.PlayerID) bool {
 // filter already hid it from the pool.
 type Available struct {
 	Pool  state.Mana
-	Typed [7]state.Mana
+	Typed [8]state.Mana
 }
 
 // Purpose is what a payment pays for, which RestrictValid$ classes read.
@@ -364,6 +391,16 @@ type Descriptor struct {
 	// units, so the offer, the autopay plan and the spend agree. Empty, the
 	// ordinary case, costs one string-empty check.
 	OnlyTag string
+	// Bestowed marks an offer priced for a card's bestowed cast (CR 702.103b:
+	// an Aura spell, not a creature spell). The card is still in hand, so no
+	// stack-side FlagBestowed provenance exists yet to make a RestrictValid$
+	// spell read see an Aura; the payment, made on the stack, does.
+	Bestowed bool
+	// SubCounterBound marks the resolution-time pay gate's descriptor
+	// (respay.go): the potential bound reads a SubCounter<X> mana ability's
+	// Amount$ X at the counters it can remove instead of unbounded
+	// (potential_subcounter.go).
+	SubCounterBound bool
 }
 
 // OnlyTagKnown reports whether tag names a modelled producer tag (the
@@ -460,6 +497,8 @@ func AvailableFor(e Engine, p state.PlayerID, d Descriptor) Available {
 		// The batch is unusable here: hide its typed provenance too.
 		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
 			available.Typed[tag][slot] -= r.Amount
+		} else if slot, ok := state.SnowTypedCounter(r.Color); ok {
+			available.Typed[state.TypedSnowArtifact][slot] -= r.Amount
 		}
 	}
 	if d.OnlyTag != "" {
@@ -520,7 +559,7 @@ func visiblePersistentMana(e Engine, p state.PlayerID, d Descriptor) state.Mana 
 // Capping at the tag's (or snow tally's, or the slot's remaining plain units')
 // actual spend reconciles the carve's restricted-first attribution with the
 // search's plain-first consumption and keeps every emission tally >= 0.
-func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[7]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
+func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[8]state.Mana, emitBoth *state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	capt := e.Session()
 	capt.NoCounterSpend = 0
 	capt.ManaSpentSources = nil
@@ -540,9 +579,10 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 			used = r.Amount
 		}
 		// Cap by the provenance the search actually spent in this slot. A
-		// tagged or snow batch can only carve the units whose parallel tally
-		// left the pool; a plain batch only the slot's remaining plain units
-		// (spent minus every tally still attributed to this slot).
+		// tagged, snow or composed batch can only carve the units whose
+		// parallel tally (or composed slot) left the pool; a plain batch only
+		// the slot's remaining plain units (spent minus every tally still
+		// attributed to this slot, the composed units included).
 		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
 			if emitTyped[tag][slot] < used {
 				used = emitTyped[tag][slot]
@@ -551,12 +591,17 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 			if s := emitSnow[state.ManaIndex(r.Color[1])]; s < used {
 				used = s
 			}
+		} else if slot, ok := state.SnowTypedCounter(r.Color); ok {
+			if b := (*emitBoth)[slot]; b < used {
+				used = b
+			}
 		} else {
 			plain := spent[idx]
 			for t := range emitTyped {
 				plain -= emitTyped[t][idx]
 			}
 			plain -= emitSnow[idx]
+			plain -= (*emitBoth)[idx]
 			if plain < used {
 				used = plain
 			}
@@ -621,13 +666,15 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 			}
 		}
 		// Carve the consumed units out of the emission split's tallies too:
-		// the carve emitted this batch's tagged/snow form directly, so the
-		// split loop must not emit it a second time. The caps above guarantee
-		// neither tally can go below zero.
+		// the carve emitted this batch's tagged/snow/composed form directly,
+		// so the split loop must not emit it a second time. The caps above
+		// guarantee neither tally can go below zero.
 		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
 			emitTyped[tag][slot] -= used
 		} else if len(r.Color) == 2 && r.Color[0] == 'S' {
 			emitSnow[state.ManaIndex(r.Color[1])] -= used
+		} else if slot, ok := state.SnowTypedCounter(r.Color); ok {
+			(*emitBoth)[slot] -= used
 		}
 	}
 }
@@ -803,6 +850,9 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	if !provenanceOK {
 		return false
 	}
+	if d.Bestowed {
+		return bestowedSpecMatches(e, p, d.ID, spec, srcID)
+	}
 	if e.MatchesSpellFrom(spec, d.ID, p, srcID) {
 		return true
 	}
@@ -816,6 +866,46 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
 	return e.MatchesSpellFrom("Card."+spec, d.ID, p, srcID)
+}
+
+// bestowedBarredWords and bestowedKeptWords are the spec words a bestowed
+// cast's Aura spell fails (it is no creature) and holds (it is an Aura and
+// nonCreature) outright.
+var (
+	bestowedBarredWords = []string{"Creature"}
+	bestowedKeptWords   = []string{"nonCreature", "Aura"}
+)
+
+// bestowedSpecMatches reads a RestrictValid$ spell spec the way the bestowed
+// cast will on the stack (CR 702.103b: the spell is an Aura and not a
+// creature): a Creature qualifier fails, nonCreature and Aura hold, and every
+// other qualifier reads the card as it is (it keeps its subtypes and colours).
+// The qualifiers are the spec's "+"- and "."-separated words.
+func bestowedSpecMatches(e Engine, p state.PlayerID, id state.ObjID, spec string, src state.ObjID) bool {
+	for len(spec) > 0 {
+		q := spec
+		spec = ""
+		for i := 0; i < len(q); i++ {
+			if q[i] == '+' || q[i] == '.' {
+				q, spec = q[:i], q[i+1:]
+				break
+			}
+		}
+		if q == "" {
+			continue
+		}
+		if slices.Contains(bestowedBarredWords, q) {
+			return false
+		}
+		if slices.Contains(bestowedKeptWords, q) {
+			continue
+		}
+		// a bare type word is its own base; a qualifier-only word needs Card.
+		if !e.MatchesSpellFrom(q, id, p, src) && !e.MatchesSpellFrom("Card."+q, id, p, src) {
+			return false
+		}
+	}
+	return true
 }
 
 // CostPayableGrant is CostPayable with the may-play ignore-colour rider
@@ -907,7 +997,7 @@ func CostPayable(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost 
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
-func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, kind SAKind, cost Cost, pool state.Mana, typed [7]state.Mana) bool {
+func CostPayablePool(e Engine, p state.PlayerID, id state.ObjID, kind SAKind, cost Cost, pool state.Mana, typed [8]state.Mana) bool {
 	if e.Eval().LifePaymentForbidden(p, kind) {
 		// CR 119.7/119.8: the payer can pay no positive life, so the same
 		// closed-life resolve every other offer gate uses prices this

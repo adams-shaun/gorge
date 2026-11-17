@@ -40,6 +40,10 @@ type evalCtx struct {
 	// only, as gorge's Play ValidSA$ cmc bound reads the printed face (Forge
 	// reads the cast half's mana cost). Set only by castFreeFillGen.
 	spellMV bool
+	// origin is the zone the candidate was in for the event being matched,
+	// when the move has already detached it (a leave-exile trigger reads the
+	// card as it was in exile, CR 603.10a). ZoneNone reads the live zone.
+	origin kop.Zone
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -551,6 +555,18 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		}
 		return NoObj
 	case kop.RefImprinted:
+		if src, ok := s.impRefSrc(ctx); ok {
+			// the expression's source keeps its Imprinted list and this is
+			// not its own resolution: the store's records, store order (the
+			// first one where a single object is read), no zone gate
+			first := NoObj
+			s.impStoreEach(src, func(o Obj) {
+				if first == NoObj {
+					first = o
+				}
+			})
+			return first
+		}
 		if s.g.nimp > 0 {
 			return s.g.imp[0]
 		}
@@ -782,6 +798,13 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 	switch r {
 	case kop.RefImprinted:
 		n := 0
+		if src, ok := s.impRefSrc(ctx); ok {
+			// the expression's source keeps its Imprinted list and this is
+			// not its own resolution: the store's records, store order, no
+			// zone gate (gorge's Defined$ Imprinted)
+			s.impStoreEach(src, func(o Obj) { n += one(o) })
+			return n
+		}
 		for i := 0; i < int(s.g.nimp); i++ {
 			n += one(s.g.imp[i])
 		}

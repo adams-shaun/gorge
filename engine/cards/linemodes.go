@@ -146,7 +146,10 @@ const (
 	// Ranger), appended so every earlier ordinal is unchanged.
 	TriggerBecomeRenowned   TriggerMode = 104
 	TriggerDungeonCompleted TriggerMode = 105
-	TriggerModeCount                    = 106 // one past the last; sizes a dense per-TriggerMode array
+	// DayTimeChanges ("whenever day becomes night or night becomes day",
+	// Brimstone Vandal), appended so every earlier ordinal is unchanged.
+	TriggerDayTimeChanges TriggerMode = 106
+	TriggerModeCount                  = 107 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -255,6 +258,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerFacesDilemma:               "FacesDilemma",
 	TriggerBecomeRenowned:             "BecomeRenowned",
 	TriggerDungeonCompleted:           "DungeonCompleted",
+	TriggerDayTimeChanges:             "DayTimeChanges",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

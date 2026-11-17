@@ -57,6 +57,7 @@ type pcard struct {
 	cdRec      bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
 	food       bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
 	manaTyped  bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
+	manaSnow   bool // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
 	// painCol, painN: the source's painful mana alternative, its colours and
 	// its damage to the controller (a painland's second ability; for
 	// painOnly, a pain-only source's sole one, manaAb itself), gorge's
@@ -104,6 +105,11 @@ type prep struct {
 	gen      *genPrep // generated-table extension (gen.go); nil for hand-written tables
 	gyCont   bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold     coldLayout
+	anyNoDmg bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	// embPrev: some emblem carries a static damage prevention
+	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
+	// genPrep, so the pinned fixed-State inventory is unchanged
+	embPrev  bool
 	cda      bool // some card has a characteristic-defining P/T (StatCDAPT)
 	casualty bool // some card has Casualty (kw_casualty.go): guards the casualty cast offer
 	mayhem   bool // some card has Mayhem (kw_mayhem.go): guards the discard mark, the cast mark and the graveyard offer
@@ -221,6 +227,9 @@ type prep struct {
 	// (act_support.go): guards the combat static checks that skip on an
 	// empty statM
 	embComb bool
+	// embIdem: OpCreateEmblem reads idemEmblemHeld (embComb, or an emblem's
+	// static prevention: repl_staticprevent_emblem.go)
+	embIdem bool
 	// anyPwVsSrc: some CantBlockBy static compares the blocker's power with
 	// its host's (kop.Static.PwVsSrc; static_powercompare.go): the one guard
 	// blockForbiddenGen adds
@@ -324,6 +333,7 @@ func prepare(t *kop.Table) *prep {
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
 		pc.manaTyped = c.Types&kop.TArtifact != 0 || (c.Subtypes[0]&typedSub[0]|c.Subtypes[1]&typedSub[1]) != 0
+		pc.manaSnow = snowMana(c, pc.manaTyped)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
 		pc.creature = c.Types&kop.TCreature != 0
@@ -368,7 +378,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
-					if ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) {
+					if ctrGapAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
@@ -464,13 +474,16 @@ func prepare(t *kop.Table) *prep {
 	// generated extension: forcing prepareGen here would switch every static
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
+	p.embPrev = tableEmbHasStaticPrev(t)
 	p.gen = prepareGen(t, p)
 	p.gyCont = tableHasGyCont(t)
+	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
+	p.embIdem = prepEmbIdem(p) // static_emblemcombat.go
 	p.cold.size()
 	// Only a Commander game can seat a partner pair, so only its layout
 	// carries the record: a non-Commander State's cold buffer stays empty,

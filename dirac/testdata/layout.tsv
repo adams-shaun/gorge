@@ -1,9 +1,9 @@
 # Generated State layout pins (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
 # class	key	value; field rows: class	field	Type.field	offset	size
-default	size	20688
+default	size	21136
 default	perms%64	24
-default	ObjHash	0x505d767e72a2f66
-default	ViewHash	0xf25d008d530f7a0a
+default	ObjHash	0x16dd003d171b5a0e
+default	ViewHash	0x91b10ebe3cc257e3
 default	field	stateCore.tbl	0	2
 default	field	stateCore.cfg	2	1
 default	field	stateCore.ctl	3	1
@@ -350,9 +350,10 @@ default	field	perm.bord	46	1
 default	field	perm.atk	47	1
 default	field	perm.ck	48	6
 default	field	perm.cseen	54	1
-default	field	perm.spare	55	1
-default	field	perm.card	56	2
-default	field	perm.gty	58	2
+default	field	perm.atkVer	55	1
+default	field	perm.spare	56	1
+default	field	perm.card	58	2
+default	field	perm.gty	60	2
 default	field	genPrep.creatSub	0	24
 default	field	genPrep.auraSub	24	1
 default	field	genPrep.graveTrig	32	24
@@ -367,6 +368,8 @@ default	field	genPrep.flags	64	24
 default	field	genPrep.smallRecs	88	24
 default	field	genPrep.leyline	112	1
 default	field	genPrep.anyUmbra	113	1
+default	field	genPrep.anySrcMem	114	1
+default	field	genPrep.anySnow	115	1
 default	field	genPrep.grantPC	120	24
 default	field	genPrep.grantOf	144	24
 default	field	genPrep.grantRestr	168	24

@@ -277,6 +277,7 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 		out.Pips[i] = uint8(m.Pips[i])
 	}
 	out.Pips[kop.C] = uint8(m.C)
+	out.Snow = uint8(m.Snow)
 	if m.X {
 		out.X = 1
 	}
@@ -478,6 +479,13 @@ func (cb *cardBuilder) subIndexes(ws []string) ([]uint8, error) {
 		out = append(out, uint8(i))
 	}
 	return out, nil
+}
+
+// copyKeptSets copies the flags of a card whose abilities keep a remembered or
+// imprinted set past one resolution (zone_rememberpersist.go, zone_srcmem.go).
+func copyKeptSets(d *kop.CardDef, c *lCard) {
+	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
+	d.ImpPersist, d.SrcMem, d.SmSeed = c.ImpPersist, c.SrcMem, c.SmSeed
 }
 
 func (cb *cardBuilder) record() error {
@@ -703,7 +711,7 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
-	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
+	copyKeptSets(d, c)
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
 	d.ProduceCol = c.ProduceCol
@@ -1031,7 +1039,7 @@ func (cb *cardBuilder) record() error {
 	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
-	d.SpentSelf = c.SpentSelf
+	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
 	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
@@ -1110,6 +1118,23 @@ func (cb *cardBuilder) record() error {
 }
 
 // cost builds a kop cost.
+// millRevealCostBytes writes the cost parts that ride their own table bytes:
+// the energy part's flag (kop.CostPayEnergy), Mill<N> which mills the count
+// from the payer's own library's top (CR 701.17b) with no N/Filter share and
+// no pick, and Reveal<1/CARDNAME> (the forecast family) which reveals the
+// source from its controller's hand and moves nothing, so nothing is asked.
+func millRevealCostBytes(out *kop.Cost, c lCost, set func(kop.CostFlags, int)) {
+	if c.Energy > 0 {
+		set(kop.CostPayEnergy, c.Energy)
+	}
+	if c.MillN > 0 {
+		out.Mill = uint8(c.MillN)
+	}
+	if c.RevealSelf {
+		out.RevealSelf = true
+	}
+}
+
 func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	var out kop.Cost
 	var err error
@@ -1179,6 +1204,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardN > 0 {
 		set(kop.CostDiscard, c.DiscardN)
 	}
+	discardXCostPart(c, &out) // Discard<X/Spec>: CostDiscard with N 0, the announced X
 	if c.DiscardHand {
 		out.DiscardHand = true
 	}
@@ -1313,9 +1339,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.Energy > 0 {
-		set(kop.CostPayEnergy, c.Energy)
-	}
+	millRevealCostBytes(&out, c, set)
 	if c.ReturnSelf {
 		out.Flags |= kop.CostReturnSelf
 	}
@@ -1356,6 +1380,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		return out, fmt.Errorf("cost with two counted parts")
 	}
 	return out, nil
+}
+
+// discardXCostPart adds the Discard<X/Spec> part (CostDiscard with N 0, the
+// announced X) to a cost being built. It is a helper so cardBuilder.cost does
+// not grow a branch (codeshape).
+func discardXCostPart(c lCost, out *kop.Cost) {
+	if c.DiscardX {
+		out.Flags |= kop.CostDiscard
+		out.DiscardX = true
+	}
 }
 
 // lifeSharesCount sets out's PayLife part when c's PayLife<N> sits beside a
@@ -1827,8 +1861,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred = kop.PredSameNameT0
-	case cmpSameNameRem:
-		kf.Pred = kop.PredSameNameRem
+	case cmpSameNameRem, cmpSameNameSelf:
+		sameNamePred(&c, &kf)
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
@@ -2362,7 +2396,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
+	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2569,6 +2604,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.SetLandSub = o.SetLandSub
+	ko.ImpSub = o.ImpSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
@@ -2585,6 +2621,11 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 		// the land filter's subtypes must survive the matchup remap like any
 		// value's filter does (refSubs walks ovVals)
 		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.Landwalk)})
+	}
+	if o.ProtFrom != nil {
+		if ko.ProtFrom, err = cb.filter(o.ProtFrom, kop.ZoneBattlefield); err != nil {
+			return 0, err
+		}
 	}
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
@@ -2726,6 +2767,16 @@ func putsTimeCounters(d *kop.CardDef) bool {
 		}
 	}
 	return false
+}
+
+// sameNamePred maps the sharesNameWith compare kinds: Remembered has no
+// PredN, Self carries the ordinary ! negation in PredN.
+func sameNamePred(c *lClause, kf *kop.Filter) {
+	if c.CmpStat == cmpSameNameRem {
+		kf.Pred = kop.PredSameNameRem
+		return
+	}
+	kf.Pred, kf.PredN = kop.PredSameNameSelf, int16(c.CmpN)
 }
 
 // clauseSubtypes fills kf's subtype slots from the clause's Subtype,

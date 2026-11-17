@@ -24,6 +24,11 @@ func (sc *staticCtx) modeContinuous() ([]lStatic, bool, error) {
 	} else if sts, err = lc.continuous(sp, &sc.st); err != nil {
 		return nil, true, err
 	}
+	if sts == nil && !lureOnly { // the one plain Continuous static: nothing else carries the grant
+		if err := lc.grantedStaticParam(sp, &sc.st); err != nil {
+			return nil, true, err // lower_grantedstatic.go
+		}
+	}
 	if err := lc.selfCondCheck(&sc.st); err != nil {
 		return nil, true, err // lower_selfcondition.go
 	}

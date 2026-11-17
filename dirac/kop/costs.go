@@ -64,6 +64,12 @@ type ManaCost struct {
 	// pip ask offers Hybrid[i].A first, so the lowering records it. 0 = the
 	// mask's low colour is first.
 	HybOrd uint8
+	// Snow is the number of {S} pips the cost prints (CR 107.4h): snow mana,
+	// which only mana from a snow source may pay (CR 106.3a). It fills the
+	// byte between HybOrd and Tb, so ManaCost keeps its 18 bytes. It is a
+	// table byte only: kgen does not set it yet (the kernel pays {S} beside
+	// its snow tally, dirac/mana_snow.go).
+	Snow uint8
 	// Tb holds up to five monocoloured hybrid pips ({2/W}, CR 107.4e), three
 	// bits each from bit 0 in printed order: colour+1 (W=1 .. G=5), 0 = no
 	// pip. Hyb[0] is HybTwobrid while Tb != 0 (and Hyb[1] is 0), so every
@@ -279,6 +285,35 @@ type Cost struct {
 	// full). Only a spell's own alternative cost carries them.
 	Discard2N uint8
 	Discard2F FilterID
+	// DiscardX: the CostDiscard part's count is the announced X
+	// (Discard<X/Spec>, CR 107.3, 601.2b, 601.2h; Abandon Hope's
+	// "Discard X cards" beside its printed {X}, Channeled Force's with
+	// none). Cost.N stays 0; the picks read the cast's/activation's
+	// announced X (cost_sacx.go's N == 0 shape; announced only, the matching
+	// hand cards are the bound). A table byte, not a CostFlags bit (the
+	// words are full); only a spell's or an activated ability's own cost
+	// carries it.
+	DiscardX bool
+	// Mill: Mill<N>, the payer mills N cards from the top of their own
+	// library as the cost is paid (CR 701.17b, 118.3; gorge cost.parse's
+	// Mill part, pay.PayMillCost, cast_commit.go's payMillCostParts). A table
+	// byte, not a CostFlags bit (the words are full); only a printed
+	// activated ability's own non-mana cost carries it today (Rot Farm
+	// Skeleton; a mana ability's Mill<1> is a shape kop.ManaAbilityHonoured
+	// does not list). The payment moves cards, so every offer gate prices the
+	// library on it (legal.go's canActivate, the hand and graveyard option
+	// walks) and the payment sits after the life and energy parts, as gorge's
+	// cast_commit pays it (mana_window.go payAbilityCosts, cost_millcost.go).
+	Mill uint8
+	// RevealSelf: the source card is revealed from its controller's hand as
+	// the cost is paid and nothing moves (the forecast family's
+	// Reveal<1/CARDNAME>, CR 702.54a; gorge cast_asks.go revealCostAsk
+	// settles it unasked with the one candidate, cast_commit.go's
+	// EmitChoiceCosts announces it as a Note only). A table byte, not a
+	// CostFlags bit (the words are full). Only a printed activated ability's
+	// own cost carries it, and the source is in hand whenever the ability is
+	// offered (canActivate's gate; the hand walk lists hand cards alone).
+	RevealSelf bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

@@ -48,13 +48,16 @@ type Static struct {
 	Cond    uint8 // reserved condition opcode (0 = always)
 
 	// Appended by dirac/kgen.
-	Cond2    CondID      // the static applies while Table.Conds[Cond2] holds (0 = always)
-	VA, VB   ValueRef    // the amounts when StDynamic (P/T deltas, cost reduction, CDA P/T)
-	StFlags  StaticFlags // kind-specific qualifiers
-	AddSub   SubMask     // subtypes granted (Table.Subtypes indexes)
-	Grant    uint8       // the source card's ability Grant-1 is granted to the affected objects (0 = none)
-	Zone     Zone        // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
-	Override uint16      // StatOverride: Table.Overrides[Override-1]
+	Cond2   CondID      // the static applies while Table.Conds[Cond2] holds (0 = always)
+	VA, VB  ValueRef    // the amounts when StDynamic (P/T deltas, cost reduction, CDA P/T)
+	StFlags StaticFlags // kind-specific qualifiers
+	AddSub  SubMask     // subtypes granted (Table.Subtypes indexes)
+	Grant   uint8       // the source card's ability Grant-1 is granted to the affected objects (0 = none)
+	// GrantSt: the source card's CardDef.Granted[GrantSt-1], a static, is
+	// granted to the affected objects (0 = none). Each recipient is its source.
+	GrantSt  uint8
+	Zone     Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
+	Override uint16 // StatOverride: Table.Overrides[Override-1]
 	// Ward: a StatContinuous grant's ward {Ward} (Kw holds KwWard; CR
 	// 702.21a): each such static is its own ward instance
 	Ward uint8
@@ -109,6 +112,13 @@ type Static struct {
 	// Landwalk:<land spec>, Goblin King's mountainwalk). 0 = none. Armed by
 	// genPrep.anyLandwalk; read by State.landwalkGranted (kw_evasion.go).
 	Landwalk FilterID
+	// GainsOf: a StatContinuous static's GainsAbilitiesOf$ (CR 613.1f):
+	// the static's own source may activate each activated ability of every
+	// battlefield permanent this filter matches (read with the source as its
+	// source and the static's controller as "you"; Zone ZoneNone = the
+	// battlefield). Armed by the useGainsOf genPrep.uses flag; the offer walk is
+	// dirac/static_gainsof.go (AkActivate mode 0xC0|ability index). 0 = none.
+	GainsOf FilterID
 	// WardLife: a StatContinuous grant's "ward—pay N life" amount
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
@@ -200,6 +210,13 @@ type Override struct {
 	// OverwriteColors$; a copy exception's
 	// AddColors$, CR 707.9b; applied after a SetColors).
 	AddColors ColorMask
+	// ImpSub: the object gains the printed creature types of the last card
+	// in its source's kept imprints whose printed face is a creature and
+	// that is still in exile (AddType$ ImprintedCreatureType; gorge
+	// layers.go reads the list from its end, the live object's zone the CR
+	// 607.2a exile test; Duplicant). The static carrying it is the source's
+	// own Self-affected one (dirac/chars_gen.go impCreatureSub).
+	ImpSub bool
 	// RemoveLegendary: a copy exception's NonLegendary$ (CR 707.9b): the
 	// copy's type line loses Legendary; gorge copypermanent.go removeLegendary.
 	RemoveLegendary bool
@@ -230,6 +247,16 @@ type Override struct {
 	// A layer-6 grant: it does not survive a later loss of the permanent's
 	// abilities. 0 = none.
 	Landwalk FilterID
+	// ProtFrom: a Pump's or an Animate's granted protection (CR 702.16): while
+	// the record lasts the permanent is protected from a source matching this
+	// battlefield filter, read with the protected permanent's controller as
+	// the "you" a controller clause names (a Player.Opponent quality judges
+	// the source's controller against it; gorge protection.go's
+	// player-relative arm, which only a live source object has). Its colour
+	// clauses are the "Protection from <colour>" and "from each color"
+	// spellings' colour mask. Read beside a Continuous static's ProtFrom
+	// (protOvF); a layer-6 grant, lost with the permanent's abilities. 0 = none.
+	ProtFrom FilterID
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).
@@ -251,9 +278,13 @@ type Emblem struct {
 	// (the Effect's RememberObjects$ Targeted); RefNone when it remembers
 	// none. OpCreateEmblem stores the object in State.g.embN (object+1;
 	// 0 = none), and a DamageDone trigger of an EOT emblem with Capture set
-	// fires only for that object as the damage source (gorge's
+	// fires only for that object: as the damage source when the trigger's
+	// ValidSource$ carried the Remembered spelling (gorge's
 	// Creature.IsRemembered over the registration's Remembered set; The Inner
-	// Light). The trigger's filter carries no Remembered flag.
+	// Light), or as the damaged permanent when its ValidTarget$ did (Arcbond,
+	// Glyph of Life; the trigger's F2 is then the stripped object filter and
+	// no lowered emblem with a source capture carries one). The trigger's
+	// filter carries no Remembered flag either way.
 	Capture Ref
 	// CapturePlayer: the target slot (a Ref) whose PLAYER the emblem
 	// remembers (an Effect's RememberObjects$ TargetedPlayer over a DamageDone
@@ -332,6 +363,7 @@ func (e *Emblem) HostBound() bool {
 const (
 	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
 	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
+	PanhModeDies       int16 = 3 // ValidCause$ + Origin$ Battlefield + Destination$ Graveyard: a ChangesZone trigger caused by a matching permanent dying (Filter2 = the cause)
 )
 
 // StaticFlags (Static.StFlags).

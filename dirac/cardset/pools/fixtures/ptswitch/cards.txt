@@ -1,0 +1,24 @@
+# The P/T switch pool: Pump / PumpAll KW$ HIDDEN CARDNAME's power and
+# toughness are switched (CR 613.4d, layer 7d after 7c) on a target (Twisted
+# Image, About Face, Invert), on itself (Aeromoeba, Aquamoeba, Calcite
+# Snapper's landfall) and on every creature (Mannichi, the Fevered Dream),
+# beside asymmetric creatures (a 0-toughness result dies to the SBA), a
+# +1/+1 counter source and a pump (the order against 7c), damage and
+# basics, for the oracle's constructed lockstep (dirac/oracle/ptswitch_lockstep_test.go).
+Twisted Image
+About Face
+Invert
+Aeromoeba
+Aquamoeba
+Calcite Snapper
+Mannichi, the Fevered Dream
+Grizzly Bears
+Giant Spider
+Wall of Omens
+Giant Growth
+Travel Preparations
+Shock
+Island
+Mountain
+Forest
+Plains

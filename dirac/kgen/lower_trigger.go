@@ -243,7 +243,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		case tr.Dest == zBattlefield && tr.Origin == zAny:
 			tr.Event = "ETB"
 		case tr.Origin == zBattlefield && tr.Dest == zGraveyard:
-			tr.Event = "Dies"
+			lowerDies(tp, t, tr)
 		case tr.Origin == zBattlefield && tr.Dest == zAny && !giftSelf:
 			// leaves the battlefield to any zone (CR 603.6c, 603.10a): the
 			// kernel's TrigLeaves fires in fireLeave, the permanent still on
@@ -300,11 +300,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Training = true
 		}
-		if v, ok := tp.get("Dethrone"); ok {
-			// K:Dethrone's expansion (lower_dethrone.go)
-			if dethrone, err = dethroneGate(v, tp, tr); err != nil {
-				return err
-			}
+		// K:Dethrone's expansion or Condition$ AttackedPlayerWithMostLife
+		if dethrone, err = dethroneOrMostLifeGate(tp, tr); err != nil { // lower_dethrone.go
+			return err
 		}
 		if v, ok := tp.get("Myriad"); ok {
 			// K:Myriad's expansion (gorge kwMyriad; trigmatch
@@ -891,34 +889,46 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				}
 				alts = append(alts, a)
 			}
-			if len(alts) != 1 {
+			if len(alts) == 0 {
 				return refuse("BecomesTarget shape")
 			}
-			if tr.F, err = lc.filter(alts[0]); err != nil {
+			if tr.F, err = lc.btTargetList(alts); err != nil { // lower_bt_source.go
 				return err
 			}
 			tr.Whose = whoOpp
 			tr.Watch = true
+		case isBTSpellSourceLine(tp):
+			// the spell source forms: lower_bt_source.go
+			if err := lc.lowerBTSpellSource(tp, tr); err != nil {
+				return err
+			}
 		case tp.str("ValidSource") == "" && tp.str("ValidTarget") == "Card.Self" &&
-			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
+			!tp.is("Ward", "True") && !tp.is("Valiant", "True"):
 			// "Whenever this becomes the target of a spell or ability" with
 			// no source restriction (CR 603.2; gorge becomesTargetMatches
 			// with ValidTarget$ Card.Self and no ValidSource$): every
 			// TargetsChosen naming the permanent fires it, its controller's
 			// own included. A TfSelf line with no Whose gate: the kernel's
 			// becameTarget fires it through the plain per-object walk
-			// (fireObjGen), no opponent gate.
+			// (fireObjGen), no opponent gate. FirstTime$ True is this
+			// shape's once-a-turn rider (btSelfFirstTime); any other shape
+			// carrying it falls to the default refuse.
 			tr.F = &lFilter{Clauses: []lClause{{Flags: fSelf}}}
+			if err := btSelfFirstTime(tp, tr); err != nil { // lower_bt_source.go
+				return err
+			}
 		case tp.str("ValidSource") == "" && tp.str("ValidTarget") != "" &&
-			!strings.Contains(tp.str("ValidTarget"), "Card.Self") && !strings.Contains(tp.str("ValidTarget"), ",") &&
+			!strings.Contains(tp.str("ValidTarget"), "Card.Self") &&
 			!tp.is("Ward", "True") && !tp.is("Valiant", "True") && !tp.is("FirstTime", "True"):
 			// the watcher with no source restriction (Daru Spiritualist:
 			// "whenever a Cleric creature you control becomes the target of
 			// a spell or ability"): the opponent-source watcher's arm
 			// without its Whose gate; one trigger per matching chosen
 			// target, the targeted permanent as the trigger object
-			// (gorge becomesTargetReferent)
-			if tr.F, err = lc.filter(tp.str("ValidTarget")); err != nil {
+			// (gorge becomesTargetReferent). ValidTarget$ may be a comma
+			// list of permanent filters: the OR of the alternatives (gorge
+			// matches the whole ValidTarget$ against each chosen target).
+			if tr.F, err = lc.btTargetList(strings.Split(tp.str("ValidTarget"), ",")); err != nil { // lower_bt_source.go
 				return err
 			}
 			tr.Watch = true
@@ -1086,8 +1096,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		} else if ok {
 			tr.Whose = whoYou
 		}
-	case "CounterPlayerAddedAll":
-		if err := lc.ctrPlayerAddedAll(tp, tr); err != nil {
+	case "CounterPlayerAddedAll", "CounterRemoved", "CounterRemovedOnce":
+		if err := lc.ctrRemovedOrPlayerAddedAll(tp, tr, t, readF); err != nil { // lower_counterremoved.go
 			return err
 		}
 	case "Untaps":
@@ -1509,26 +1519,24 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Event, tr.Batch = "Taps", true
 	case "Always":
-		// CR 603.8 state trigger, the counter-threshold shape (Mazemind
-		// Tome: TriggerZones$ Battlefield, IsPresent$
-		// Card.Self+counters_GE<N>_<KIND>, N a literal 1..127:
-		// kop.PredCountersGE packs the threshold in the high byte of an
-		// int16 (PredN), so 128 would wrap negative). gorge
-		// matches every event -- the Always matcher is vacuously true
-		// (trigmatch/registry.go) -- and gates on the condition, which only
-		// a counter put can newly satisfy: counters change only through
-		// counter-put events, and a zone move only empties the count. The
-		// kernel rides the counter-put event of ANY kind on the source
-		// itself (the kind and the threshold ride the condition, not the
-		// event), checked as the event happens and again when an instance
-		// leaves the stack (dirac trig_statectr.go). gorge holds one
-		// instance at a time (stateTriggerOutstanding, trigger_condition.go):
-		// Outstanding marks the latch; noResolvingCheck exempts Mode$ Always
-		// from the resolution recheck (trigger_condition.go), the kernel's
-		// AfCheckOnTrigger. Every other Always shape keeps the refusal: its
-		// condition can newly hold on events the kernel's re-check sites
-		// never see (a life total, a hand size, another object's counters,
-		// a PresentCompare$ or an X threshold).
+		// CR 603.8 state trigger over a board condition: IsPresent$ with
+		// PresentCompare$/PresentZone$, lowered by the generic IsPresent$
+		// path below to the same Present(filter, op, n) condition a static
+		// Condition$ uses (the counter threshold, Mazemind Tome:
+		// Card.Self+counters_GE<N>_<KIND>, is one such filter). gorge matches
+		// every event -- the Always matcher is vacuously true
+		// (trigmatch/registry.go) -- and gates on the condition. The kernel
+		// checks it at the counter-put event of ANY kind on the source itself,
+		// as the state-based actions finish a clean pass (turn.go sba ->
+		// sbaClean), and when an instance leaves the stack (dirac
+		// trig_statectr.go), the points a battlefield or counter change
+		// settles at. gorge holds one instance at a time
+		// (stateTriggerOutstanding, trigger_condition.go): Outstanding marks
+		// the latch; noResolvingCheck exempts Mode$ Always from the
+		// resolution recheck (trigger_condition.go), the kernel's
+		// AfCheckOnTrigger. A condition that is not an IsPresent$ stays
+		// refused (a life total, a hand size or an X threshold has no
+		// re-check site here).
 		if zone != "" {
 			return refuse("Always trigger on an Effect")
 		}
@@ -1536,29 +1544,21 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("Always TriggerZones %q", tp.str("TriggerZones"))
 		}
 		ip := strings.TrimSpace(tp.str("IsPresent"))
-		rest, ok := strings.CutPrefix(ip, "Card.Self+counters_GE")
-		if !ok {
-			return refuse("Always IsPresent$ %q", ip)
+		if ip == "" {
+			return refuse("Always without IsPresent$")
 		}
-		thr, kind, ok := strings.Cut(rest, "_")
-		if !ok {
-			return refuse("Always IsPresent$ %q", ip)
-		}
-		n, err := strconv.Atoi(thr)
-		if err != nil || n < 1 || n > 127 {
-			return refuse("Always IsPresent$ %q (threshold %q)", ip, thr)
-		}
-		if _, err := counterKind(kind); err != nil {
-			return refuse("Always IsPresent$ %q (%v)", ip, err)
+		if err := alwaysCounterThreshold(ip); err != nil {
+			return err
 		}
 		for _, k := range sortedParamKeys(t.Params) {
 			switch k {
-			case "Mode", "Execute", "TriggerZones", "IsPresent", "TriggerDescription":
+			case "Mode", "Execute", "TriggerZones", "IsPresent", "PresentCompare", "PresentZone", "TriggerDescription":
 			default:
 				return refuse("Always %s$", k)
 			}
 		}
 		tr.Event, tr.Step = "CounterAdded", "*"
+		var err error
 		if tr.F, err = lc.filter("Card.Self"); err != nil {
 			return err
 		}
@@ -1798,6 +1798,21 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	return nil
 }
 
+// lowerDies lowers a Battlefield$->Graveyard$ ChangesZone line as a Dies
+// trigger. A listener's "that creature's controller may" (Fecundity) asks the
+// dying creature's last-known controller (CR 603.5; gorge's
+// deciderFromSpecTriggeredCardController), so the entry's trigger player is
+// that controller rather than the listener's.
+func lowerDies(tp *params, t cards.Trigger, tr *lTrigger) {
+	tr.Event = "Dies"
+	if !tr.Optional {
+		return
+	}
+	if od, _ := tp.get("OptionalDecider"); od == "TriggeredCardController" && t.ParamStr(cards.PKValidCard) != "Card.Self" {
+		tr.OptTrigPlayer = true
+	}
+}
+
 // lowerStatic lowers an S: line.
 // trigToGraveyardSet lowers a ChangesZone trigger whose Origin$ is a comma
 // set, the "put into a graveyard from anywhere other than the battlefield"
@@ -1948,4 +1963,27 @@ func spentGateOf(v string, allowX bool) (int16, bool) {
 		return 0, false
 	}
 	return kop.DmgGate(cmp, n), true
+}
+
+// alwaysCounterThreshold bounds the Always counter-threshold shape
+// (Card.Self+counters_GE<N>_<KIND>): kop.PredCountersGE packs the threshold in
+// the high byte of an int16, so N is a literal 1..127, and the kind must
+// exist. Any other IsPresent$ filter passes through to the generic path.
+func alwaysCounterThreshold(ip string) error {
+	rest, ok := strings.CutPrefix(ip, "Card.Self+counters_GE")
+	if !ok {
+		return nil
+	}
+	thr, kind, ok := strings.Cut(rest, "_")
+	if !ok {
+		return refuse("Always IsPresent$ %q", ip)
+	}
+	n, err := strconv.Atoi(thr)
+	if err != nil || n < 1 || n > 127 {
+		return refuse("Always IsPresent$ %q (threshold %q)", ip, thr)
+	}
+	if _, err := counterKind(kind); err != nil {
+		return refuse("Always IsPresent$ %q (%v)", ip, err)
+	}
+	return nil
 }

@@ -19,7 +19,7 @@ into an IR; the engine implements the primitives that IR references. See
   [`dirac/README.md`](dirac/README.md).
 - `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`, `matchrecord`, `spellbench`.
 - `bots/`: `botpolicy`, `heuristic` (the default bot), the registry, hosted bots and their inference runtime.
-- `cmd/`: product and developer tools. `internal/`: ratchets, test support, generators.
+- `cmd/`: product and developer tools. `internal/`: ratchets and generators. `testkit/`: test support (public).
 - `draft/`: the limited stack (`limited`, `event`, `eventhost`, `gorgedevents`, `draftlab`); `cmd/gorged` links it.
 - `scripts/`: contributor and CI scripts. `docs/design/`: living designs and historical notes; parked records are indexed in `docs/design/ARCHIVE.md`.
 - The compliance oracles and the oracle-scenario corpora live in the public

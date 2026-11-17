@@ -10,14 +10,10 @@ import (
 // test and stall. This list only shrinks: maxUnmodelledKnown holds the count down.
 // Anything else that reaches an unmodelled stall in lockstepRun or sonRunStalls
 // fails.
-var unmodelledKnown = map[string]bool{
-	"TestFiredmgLockstep|kernel replplus": true,
-	"TestFiredmgMutation|kernel replplus": true,
-	"TestOjerLockstep|kernel replplus":    true,
-}
+var unmodelledKnown = map[string]bool{}
 
 // maxUnmodelledKnown is the list's size. Lower it with the list; never raise it.
-const maxUnmodelledKnown = 3
+const maxUnmodelledKnown = 0
 
 // unmodelledStallError is the failure of test (its top-level name) reaching res's
 // stall, nil when the stall is a capacity, or there is none, or the list names it.
@@ -58,6 +54,8 @@ func TestUnmodelledStallFailsLockstepRun(t *testing.T) {
 		t.Errorf("a turn cap: %v", err)
 	}
 	listed := &Result{Stall: KernelStallPrefix + "replplus", StallUnmodelled: true}
+	unmodelledKnown["TestOjerLockstep|kernel replplus"] = true
+	defer delete(unmodelledKnown, "TestOjerLockstep|kernel replplus")
 	if err := unmodelledStallError("TestOjerLockstep/sub", listed); err != nil {
 		t.Errorf("a listed test and reason: %v", err)
 	}

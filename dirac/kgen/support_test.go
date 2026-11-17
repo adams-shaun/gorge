@@ -86,11 +86,18 @@ func supportScriptViolation(name string, b []byte) string {
 			}
 		}
 	}
+	if strings.HasSuffix(name, ".tsv") {
+		for _, line := range strings.Split(string(b), "\n") {
+			if len(line) > 400 {
+				return "a line too long for a key row: " + line
+			}
+		}
+	}
 	return ""
 }
 
 func TestSupportHasNoScriptText(t *testing.T) {
-	for _, dir := range []string{cardset.RefusedDir, cardset.EvidenceDir} {
+	for _, dir := range []string{cardset.RefusedDir, cardset.EvidenceDir, "dirac/support/evidence-keys"} {
 		files, err := filepath.Glob(filepath.Join(testRoot, filepath.FromSlash(dir), "*"))
 		if err != nil {
 			t.Fatal(err)
@@ -358,7 +365,9 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 // stale with rises only is logged, not failed: a doc update should not block a merge, and PRs
 // merged together in one queue batch each carry a correct page that no longer matches their
 // union. DIRAC_SUPPORT_STRICT=1
-// (the nightly) compares the page byte for byte.
+// (the nightly) compares the page byte for byte. TestEvidenceCoverageRatchet is its per-card
+// companion (the evidence-keys sidecar against coverage-floor.txt); DIRAC_UPDATE_SUPPORT=1 with
+// -run 'TestSupportDocIsCurrent|TestEvidenceCoverageRatchet' regenerates both.
 func TestSupportDocIsCurrent(t *testing.T) {
 	heavyParallel(t)
 	cardsDir := ratchetCards(t)

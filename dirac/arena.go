@@ -305,6 +305,7 @@ func (s *State) arenaClrSlot(sl Slot) {
 	}
 	s.coldClrSlot(sl) // every perSlot cold region's record (statecopy.go)
 	s.xblkDrop(sl)    // the last blocker's second block (combat_extrablock.go)
+	s.mbaDrop(sl)     // the last permanent's block duties (combat_mustblockatk.go)
 	for i := range s.cold.exMark {
 		if r := &s.cold.exMark[i]; r.sl == sl {
 			r.live = false // the last permanent's exile-instead records end with it (repl_exilemark.go)

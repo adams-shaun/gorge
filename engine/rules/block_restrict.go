@@ -18,6 +18,9 @@ func init() {
 	// it as Option.AttackMustTwo and decision.blockRequiredCore counts the
 	// unit a second blocker obeys.
 	effects.RegisterNonAPI("kw:MustBeBlockedByTwo")
+	// stat:IgnoreLandWalk: combat.LandwalkEvades skips a landwalk line an
+	// active static names (Great Wall, Street Savvy's ValidBlocker$ form).
+	effects.RegisterNonAPI("stat:IgnoreLandWalk")
 }
 
 // capBlockRestrict publishes a BlockRestrict ceiling on the declare-blockers

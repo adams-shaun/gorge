@@ -40,6 +40,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -105,6 +106,21 @@ func addMiniDecks(c *oracle.Corpus, pool []oracle.PoolDeck, n int) error {
 
 // runKernel is the side this run plays against, as a Repro records it.
 var runKernel string
+
+// synthFaceDownPolicy wraps pol with the face-down overlay for a synthetic
+// pool that holds both a Morph-family carrier and a triggered mana source. The
+// face-down cast and the turn-up are priced from the floating pool alone, so
+// only a floater can offer them; a pool without one keeps the base policy.
+// Eligibility reads the same compiled faces the runtime policy reads, so the
+// pool selection and the steering policy cannot disagree about what a floater
+// is.
+func synthFaceDownPolicy(synth string, reg *cards.Registry, set cardset.Set, pol func(uint64) oracle.Policy) func(uint64) oracle.Policy {
+	if synth == "" || !oracle.FaceDownSweepEligible(reg, set) {
+		return pol
+	}
+	base := pol
+	return func(seed uint64) oracle.Policy { return oracle.FaceDownPolicy(base(seed)) }
+}
 
 // kernelLabel names the side a run plays against: the synthetic pool, the
 // card set the fdn path plays, or the kernel flag itself.
@@ -279,11 +295,10 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "kfuzz: -cmd-mini needs -seats above 2, a positive card count and a pool, not -synth")
 		return 2
 	}
-	// synthGorge plays a synthetic pool's decks gorge against gorge, the
-	// harness check of a game of more than two seats.
+	// synthGorge plays a synthetic pool's decks gorge against gorge, a >2-seat harness check.
 	synthGorge := *synth != "" && *seats > 2 && explicit["kernel"] && *kernel == "gorge"
 	if *seats > 2 {
-		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage"} {
+		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage", "branches"} {
 			if explicit[name] {
 				fmt.Fprintf(os.Stderr, "kfuzz: -seats %d cannot be used with -%s\n", *seats, name)
 				return 2
@@ -338,6 +353,7 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 2
 	}
+	*kernel = customKernelFor(*kernel, *reproPath, *synth != "", explicit["kernel"])
 	runKernel = kernelLabel(*synth, *kernel, *setName)
 	var searchCfg *oracle.SearchSeatConfig
 	if *srchSeats != "" || explicit["search"] || explicit["search-sims"] {
@@ -349,14 +365,9 @@ func run() int {
 		searchCfg = &cfg
 	}
 	if *reproPath != "" {
-		rep, err := oracle.ReadRepro(*reproPath)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "kfuzz:", err)
-			return 1
-		}
-		if surfaceName, err = reproRun(rep, *reproPath, surfaceName, explicit["surface"] || explicit["autopay-surface"]); err != nil {
-			fmt.Fprintln(os.Stderr, "kfuzz:", err)
-			return 2
+		var code int
+		if surfaceName, code = checkRepro(*reproPath, surfaceName, explicit["surface"] || explicit["autopay-surface"]); code != 0 {
+			return code
 		}
 	}
 	if *decksDir == "" {
@@ -500,6 +511,7 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "kfuzz: -policy %q: want random, heuristic, explore or first\n", *policy)
 		return 2
 	}
+	pol = synthFaceDownPolicy(*synth, c.Reg, set, pol)
 	var mk oracle.SideFactory
 	switch *kernel {
 	case "gorge":
@@ -574,6 +586,8 @@ func run() int {
 			ps = oracle.PairingsPlayable(c, set, pool, *firstPair, *pairs, *seed)
 		}
 		return runFDN(c, set, rc, ps, o, pol)
+	case customKernel:
+		return runCustomRepro(c, *reproPath, *lead, rc, *cardsDir)
 	default:
 		fmt.Fprintf(os.Stderr, "kfuzz: -kernel %q: want gorge or gorge-api (the real kernel's adapter lands with package kernel)\n", *kernel)
 		return 2
@@ -620,7 +634,7 @@ func run() int {
 	n := 0
 	t0 := time.Now()
 	sum := oracle.Fuzz(c, ps, mk, oracle.FuzzConfig{Run: rc, Mulligans: *mulligans, Policy: pol, StopAtFirst: !*keepGoing,
-		Shrink: *shrink, Workers: *workers, Coverage: coveragePath != "", GameTimeout: *gameLimit, StopOnHang: *gameLimit > 0}, func(i int, p oracle.Pairing, r *oracle.Result) {
+		Shrink: *shrink, Workers: *workers, Coverage: collectsCoverage(), GameTimeout: *gameLimit, StopOnHang: *gameLimit > 0}, func(i int, p oracle.Pairing, r *oracle.Result) {
 		n++
 		if r.Div != nil {
 			fmt.Fprintf(os.Stderr, "pair %d (%s, seed %d): %v\n", p.Index, strings.Join(p.Decks(), " vs "), p.Seed, r.Div)
@@ -652,7 +666,7 @@ func run() int {
 		printUnpriced(sum.Stats.UnpricedPlays)
 	}
 	if sum.Coverage != nil {
-		if err := writeCoverage(coveragePath, sum.Coverage); err != nil {
+		if err := writeCoverageFiles(sum.Coverage); err != nil {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
@@ -844,9 +858,16 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 	}
 }
 
-// coveragePath is -coverage and evidencePath -evidence: with both "" no coverage
-// is collected.
-var coveragePath, evidencePath string
+// coveragePath is -coverage, evidencePath -evidence and branchesPath -branches:
+// with all "" no coverage is collected.
+var coveragePath, evidencePath, branchesPath string
+
+// collectsCoverage reports whether -coverage or -branches asks for coverage.
+func collectsCoverage() bool { return coveragePath != "" || branchesPath != "" }
+
+func init() {
+	flag.StringVar(&branchesPath, "branches", "", "write the run's per-card choice-branch TSV (oracle.Coverage.WriteBranchTSV: card, key, uses, owed) here; reporting only, the -coverage file is unchanged")
+}
 
 // recentSourcesShown is how many of a game's latest sourced actions a bad-game line names.
 const recentSourcesShown = 8
@@ -917,6 +938,33 @@ func writeCoverage(path string, cov *oracle.Coverage) error {
 	fmt.Printf("coverage: cards cast-or-played %d/%d, fully covered %d/%d, ability keys used %d/%d, policy fallbacks %d (of %d decisions in %d games)\n",
 		t.Played, t.Cards, t.Full, t.Cards, t.KeysUsed, t.Keys, cov.Fallbacks, cov.Decisions, cov.Games)
 	return nil
+}
+
+// writeCoverageFiles writes the -coverage TSV and the -branches TSV, each only
+// when its flag is set.
+func writeCoverageFiles(cov *oracle.Coverage) error {
+	if coveragePath != "" {
+		if err := writeCoverage(coveragePath, cov); err != nil {
+			return err
+		}
+	}
+	return writeBranches(branchesPath, cov)
+}
+
+// writeBranches writes cov's branch TSV to path; "" (no -branches) writes nothing.
+func writeBranches(path string, cov *oracle.Coverage) error {
+	if path == "" || cov == nil {
+		return nil
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := cov.WriteBranchTSV(f); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // runVanilla plays package kernel against gorge on dirac/vanilla's decks
@@ -1236,7 +1284,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		ks.install()
 		defer ks.print(set.Name())
 	}
-	collect := coveragePath != "" || evidencePath != "" || o.reach != nil
+	collect := coveragePath != "" || evidencePath != "" || branchesPath != "" || o.reach != nil
 	if evidencePath != "" {
 		o.refused = map[string]bool{}
 		for i, n := range set.Names()[:set.NumCards()] {
@@ -1507,7 +1555,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	var st oracle.Stats
 	var searched [oracle.MaxSeats]int
 	var cov *oracle.Coverage
-	if coveragePath != "" || evidencePath != "" || o.reach != nil {
+	if coveragePath != "" || evidencePath != "" || branchesPath != "" || o.reach != nil {
 		cov = oracle.NewCoverage()
 	}
 	first := -1 // index in ps of the first divergence, pair order
@@ -1665,11 +1713,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	if feat != nil {
 		fmt.Printf("features: %d decisions and %d options compared byte-for-byte\n", feat.Decisions, feat.Options)
 	}
-	if coveragePath != "" {
-		if err := writeCoverage(coveragePath, cov); err != nil {
-			fmt.Fprintln(os.Stderr, "kfuzz:", err)
-			return 1
-		}
+	if err := writeCoverageFiles(cov); err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+		return 1
 	}
 	if evidencePath != "" {
 		if err := writeEvidence(evidencePath, o.refused, cov); err != nil {

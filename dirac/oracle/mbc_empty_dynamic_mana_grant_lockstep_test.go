@@ -11,6 +11,8 @@ import "testing"
 // Hideout as an own source making 0 and so never read the grant. The
 // recording is the first divergence of tail-20 pair 9 (focus Volatile Claws,
 // six per deck), decision 553, gorge leading, on the full surface.
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCEmptyDynamicManaSourceGrantLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "empty_dynamic_mana_source_counts_granted_ability")

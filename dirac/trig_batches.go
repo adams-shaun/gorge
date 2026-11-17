@@ -160,12 +160,7 @@ func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int, ad []Ca
 		if in.Op == kop.OpCreateTokenEx {
 			tapped = in.B.N&kop.TokTapped != 0
 			s.g.tokMade++
-			if in.B.N&kop.TokRememberObj != 0 {
-				s.remember(o)
-			}
-			if in.B.N&kop.TokImprintObj != 0 {
-				s.imprint(o) // zone_imprint.go
-			}
+			s.tokenMemos(in, o) // zone_tokrem.go
 		}
 		sl := s.enterHeld(k, &eb, o, p, tapped, kop.ZoneLibrary)
 		if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
@@ -203,6 +198,7 @@ type dmgHit struct {
 	n        int16
 	ctrl     uint8 // the source's controller as the hit is dealt
 	ll       bool  // the source has lifelink as the hit is dealt
+	pl       uint8 // 0: dst is the battlefield slot; 1+: the seat+1 whose player takes the hit (ExtSweepFrom's player arm)
 }
 
 func (b *hitBatch) add(s *State, src, dst Slot, n int) {
@@ -238,13 +234,16 @@ func (s *State) dealHitsToOne(k *prep, hs []dmgHit) bool {
 }
 
 // replPlusBatch parks a batch whose first hit's damage event is matched by two
-// or more pure plus-N replacements (or, batchOrderAskable, an addition beside
-// a prevention): gorge collects every matching damage
-// replacement and asks the affected player their CR 616.1 order even though the
-// additions commute, so the kernel poses the same no-op ask before the batch
-// lands. The parked event's amount is discarded: the answer resumes the op
-// (interp_ask.go), which re-executes the batch and deals every hit with the
-// summed amount (trig_oneormore.go's exemption). The op-resume shape holds one
+// or more damage replacements whose order the amount does not follow (a pure
+// plus-N competition, an addition beside a prevention) or — like
+// replPlusSrcPass — the mixed one it does (a plus-N addition or a raise
+// beside a doubling, repl_pluswalk.go): gorge collects every matching damage
+// replacement and asks the affected player their CR 616.1 order. A pure
+// plus-N ask is a no-op, so the parked event's amount is discarded: the
+// answer re-executes the batch (interp_ask.go), which deals every hit with
+// the summed amount (trig_oneormore.go's exemption). The mixed competition's
+// answer re-executes the batch too, and the asked hit deals from the record
+// (replDamagePend). The op-resume shape holds one
 // parked event per op, so it parks only a batch whose first hit competes: two
 // or more competing hits would need one ask per event, and a later competing
 // hit would be parked before the earlier hits land. Both are a declared
@@ -260,12 +259,18 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 	// cannot disagree with it.
 	saveRO, saveNC := s.g.ro, s.g.nc
 	n, at := 0, -1
+	hitCode := func(h *dmgHit) TCode {
+		if h.pl != 0 {
+			return PlayerCode(h.pl - 1) // the player arm: trig_batches.go
+		}
+		return TCode(s.perms[h.dst].obj)
+	}
 	for i := range hs {
 		h := &hs[i]
-		if h.n <= 0 || !s.occ.has(h.src) || !s.occ.has(h.dst) {
+		if h.n <= 0 || !s.occ.has(h.src) || h.pl == 0 && !s.occ.has(h.dst) {
 			continue
 		}
-		if s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), TCode(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src)) {
+		if s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), hitCode(h), int(h.n), s.kw(k, h.src)) {
 			n, at = n+1, i
 		}
 		s.g.ro, s.g.nc = saveRO, saveNC
@@ -279,13 +284,13 @@ func (s *State) replPlusBatch(k *prep, hs []dmgHit) (handled bool) {
 		// A hit before the competing one lands before gorge's ask (the batch
 		// is dealt in hit order): parking the whole batch would hide it.
 		for j := 0; j < at; j++ {
-			if h := &hs[j]; h.n > 0 && s.occ.has(h.src) && s.occ.has(h.dst) {
+			if h := &hs[j]; h.n > 0 && s.occ.has(h.src) && (h.pl != 0 || s.occ.has(h.dst)) {
 				s.capFull(StallReplPlusBatch)
 				return true
 			}
 		}
 		h := &hs[at]
-		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), TCode(s.perms[h.dst].obj), int(h.n), s.kw(k, h.src))
+		s.parkNC(k, s.perms[h.src].ctrl, h.src, s.cardAt(h.src), hitCode(h), int(h.n), s.kw(k, h.src))
 		s.g.plusBatchAsked = true
 		return true
 	}
@@ -321,7 +326,11 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 		h := &hs[i]
 		h.n = int16(s.damageHit(k, h))
 		if rl != nil && h.n > 0 {
-			rl.r.ev[rl.r.nev] = dmgEv{src: h.src, dst: h.dst, n: h.n}
+			dst := h.dst
+			if h.pl != 0 {
+				dst = NoSlot // a player hit: the event's dst arm (infectCombat's read)
+			}
+			rl.r.ev[rl.r.nev] = dmgEv{src: h.src, dst: dst, n: h.n}
 			rl.r.nev++
 		}
 	}
@@ -367,7 +376,11 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 			if rl != nil {
 				rl.at = at
 			}
-			s.fireDamageEvGen(k, h.src, h.n, false, false, latch, TCode(s.perms[h.dst].obj), rl)
+			rcp, toPl := TCode(s.perms[h.dst].obj), false
+			if h.pl != 0 {
+				rcp, toPl = PlayerCode(h.pl-1), true
+			}
+			s.fireDamageEvGen(k, h.src, h.n, toPl, false, latch, rcp, rl)
 		}
 	}
 	for i := range hs {
@@ -388,15 +401,22 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 }
 
 // damageHit deals hit h (damage, loyalty for a planeswalker, -1/-1
-// counters for infect, deathtouch) and returns the amount dealt; h's
-// controller and lifelink are read as it is dealt.
+// counters for infect, deathtouch, a player's life for a pl hit) and
+// returns the amount dealt; h's controller and lifelink are read as it is
+// dealt.
 func (s *State) damageHit(k *prep, h *dmgHit) int {
 	a, b, n := h.src, h.dst, int(h.n)
-	if !s.occ.has(a) || !s.occ.has(b) {
+	if !s.occ.has(a) {
+		return 0
+	}
+	if h.pl != 0 {
+		return s.damagePlayerHit(k, h)
+	}
+	if !s.occ.has(b) {
 		return 0
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 && n > 0 {
-		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), false, n)
+		n = s.replDamagePend(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), n, s.perms[a].obj)
 	}
 	if n <= 0 {
 		return 0
@@ -416,6 +436,43 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 	if akw&kop.KwDeathtouch != 0 {
 		p.markDT(1) // gorge marks any permanent deathtouch damages (effects/damage.go)
 	}
+	s.res.lastDmg = int16(n)
+	return n
+}
+
+// damagePlayerHit is damageHit's player arm (ExtSweepFrom's C&2 player
+// hits, one batch with the creature hits): the same prevention and
+// replacement read damageTo's player arm runs (replDamage), then the seat
+// loses the life and takes the wasDealtDamage notes, an infect source's hit
+// as poison counters instead (CR 702.90b; gorge effDamageAll's ValidPlayers$
+// arm through the same rider). Lifelink and the damage triggers are
+// dealHitsLatched's, which owns the batch.
+func (s *State) damagePlayerHit(k *prep, h *dmgHit) int {
+	n := int(h.n)
+	if n <= 0 {
+		return 0
+	}
+	a := h.src
+	pl := h.pl - 1
+	code := PlayerCode(pl)
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), code, false, n)
+	}
+	if n <= 0 {
+		return 0
+	}
+	akw := s.kw(k, a)
+	h.ctrl, h.ll = s.perms[a].ctrl, akw&kop.KwLifelink != 0
+	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
+	s.noteDmgTaken(pl, n)      // kw_bloodthirst.go
+	if k.gen != nil && k.gen.anyInfect && s.infectAt(k, a) {
+		s.addPoison(pl, n)
+		s.plDmgMark(pl, n) // infect damage is dealt damage too
+		s.res.lastDmg = int16(n)
+		return n
+	}
+	s.loseLife(k, pl, n)
+	s.plDmgMark(pl, n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	s.res.lastDmg = int16(n)
 	return n
 }

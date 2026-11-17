@@ -26,11 +26,23 @@ func cloneETBSVarBody(svars map[string]string, name string) (string, bool) {
 	return strings.TrimSpace(body), ok
 }
 
+// DerivedPTSource reads a candidate's layer-derived power and toughness: the
+// Host's own Power/Toughness (rules' Engine). A nil source leaves the printed
+// read.
+type DerivedPTSource interface {
+	Power(state.ObjID) int32
+	Toughness(state.ObjID) int32
+}
+
 // CloneETBSelectorMatches is the common announcement/replacement matcher.
 // Other selectors keep their original resolver-free context; Mockingbird's
 // Y is the mana spent to cast the entering object, and 0 when it was not
 // cast.
-func CloneETBSelectorMatches(g *state.Game, spec string, id state.ObjID, sc SpecContext) bool {
+//
+// pt binds the candidate's layer-derived P/T (CR 613.4) when the selector reads
+// one, so "Creature.YouCtrl+powerGE4" sees an equipped or pumped creature's
+// power rather than its printed face (Deceptive Frostkite).
+func CloneETBSelectorMatches(g *state.Game, spec string, id state.ObjID, sc SpecContext, pt DerivedPTSource) bool {
 	if spec == "" {
 		spec = "Creature.Other"
 	}
@@ -52,6 +64,9 @@ func CloneETBSelectorMatches(g *state.Game, spec string, id state.ObjID, sc Spec
 		sc.Resolve = func(name string) (int32, bool) {
 			return spend, name == mockingbirdSpendName
 		}
+	}
+	if pt != nil && SpecReadsPT(spec) {
+		sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = pt.Power(id), pt.Toughness(id), true
 	}
 	return MatchesSpecCtx(g, spec, id, sc)
 }

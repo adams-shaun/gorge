@@ -85,15 +85,15 @@ func (s *State) declareMustAttack(k *prep) {
 					continue
 				}
 				s.perms[sl].flags |= pfAttacking
-				s.perms[sl].atk = TCode(s.perms[b].obj)  // the battle, as a planeswalker (face_battle.go)
-				s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
+				s.setAttackTarget(&s.perms[sl], TCode(s.perms[b].obj)) // the battle, as a planeswalker (face_battle.go)
+				s.perms[sl].bord = objWord(s.nAttackers)               // declaration order (fireAttacksGen)
 				s.touchSl(sl)
 				s.nAttackers++
 				continue
 			}
 			s.perms[sl].flags |= pfAttacking
-			s.perms[sl].atk = PlayerCode(def)        // two live seats only: mustAttackAsked asks at more
-			s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
+			s.setAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
+			s.perms[sl].bord = objWord(s.nAttackers)         // declaration order (fireAttacksGen)
 			s.touchSl(sl)
 			s.nAttackers++
 		}
@@ -263,17 +263,34 @@ func (s *State) MustAttack(o Obj) bool {
 }
 
 // attackedPerm returns the slot of the planeswalker or battle attacker a
-// attacks, or NoSlot when it attacks a player or the target is gone.
+// attacks, or NoSlot when it attacks a player or the target is gone. The
+// target must still be the object the attack was declared at (atkVer): a
+// planeswalker or battle that left the battlefield and came back is a new
+// object and is not being attacked (CR 400.7, 506.4c).
 func (s *State) attackedPerm(k *prep, a Slot) Slot {
-	t := s.perms[a].atk
+	p := &s.perms[a]
+	t := p.atk
 	if isPlayerOrNone(t) {
 		return NoSlot
 	}
 	ob := &s.objs[t]
-	if ob.zone != kop.ZoneBattlefield || s.typesAt(k, ob.slot)&(kop.TPlaneswalker|kop.TBattle) == 0 {
+	if ob.zone != kop.ZoneBattlefield || ob.ver != p.atkVer ||
+		s.typesAt(k, ob.slot)&(kop.TPlaneswalker|kop.TBattle) == 0 {
 		return NoSlot
 	}
 	return ob.slot
+}
+
+// setAttackTarget records attacker p's declared defender t (CR 508.1) and,
+// for a permanent defender, the object version it had then. A planeswalker
+// or battle that leaves and returns is a new object that is not being
+// attacked (CR 400.7, 506.4c), so attackedPerm compares the version.
+func (s *State) setAttackTarget(p *perm, t TCode) {
+	p.atk = t
+	p.atkVer = 0
+	if !isPlayerOrNone(t) {
+		p.atkVer = s.objs[t].ver
+	}
 }
 
 func (s *State) applyAttack(k *prep, a Action) {
@@ -283,7 +300,7 @@ func (s *State) applyAttack(k *prep, a Action) {
 	}
 	sl := s.objs[a.Source()].slot
 	s.perms[sl].flags |= pfAttacking
-	s.perms[sl].atk = a.Target()
+	s.setAttackTarget(&s.perms[sl], a.Target())
 	s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
 	s.touchSl(sl)
 	s.nAttackers++
@@ -681,7 +698,7 @@ func (s *State) blockerOptions(k *prep, d *Decision) bool {
 	def := s.blockDef()
 	d.Kind, d.Player = DkBlockers, def
 	if k.gen != nil && k.gen.anyMustBlock {
-		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() {
+		if mb := s.mustBlockAttackers(k); mb.any() || s.blockDuty(k).any() || s.mbaDuty() {
 			return s.blockerOptionsReq(k, d, mb) // combat_mustbeblocked.go
 		}
 	}
@@ -968,7 +985,7 @@ func (s *State) finishBlocks(k *prep) {
 			s.touchSl(a)
 		}
 	}
-	if k.gen != nil && s.subs[kop.TrigBecomesBlocked].any() {
+	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}
 	if k.gen != nil && s.subs[kop.TrigBlocks].any() {
@@ -1083,6 +1100,22 @@ func (s *State) dealsNow(k *prep, sl Slot, first bool) bool {
 	return s.perms[sl].flags&pfDealtFirst == 0
 }
 
+// combatAmount is the creature's combat damage assignment amount (CR
+// 510.1): its power, as its toughness under a CombatDamageToughness
+// grant, or zero under an AssignNoCombatDamage static, printed or carried
+// by an emblem (gorge combatDamageAmount,
+// engine/rules/statics_assignment.go).
+func (s *State) combatAmount(k *prep, sl Slot) int {
+	amt := s.power(k, sl)
+	if k.gen != nil && k.gen.anyCdmgTough {
+		amt = s.combatAmtTough(k, sl)
+	}
+	if k.anyNoDmg && s.staticFlag(k, kop.StatNoCombatDamage, sl) {
+		return 0
+	}
+	return amt
+}
+
 // combatDamage assigns and deals one combat damage step. Attacker damage
 // to its blockers goes in block order, lethal to each (1 with deathtouch)
 // and the rest to the last blocker, or with trample to the player (gorge's
@@ -1102,10 +1135,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			ap.flags |= pfDealtFirst
 			s.touchSl(a)
 		}
-		pw := s.power(k, a)
-		if k.gen != nil && k.gen.anyCdmgTough {
-			pw = s.combatAmtTough(k, a)
-		}
+		pw := s.combatAmount(k, a)
 		if pw <= 0 {
 			continue
 		}
@@ -1218,10 +1248,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			bp.flags |= pfDealtFirst
 			s.touchSl(b)
 		}
-		pw := s.power(k, b)
-		if k.gen != nil && k.gen.anyCdmgTough {
-			pw = s.combatAmtTough(k, b)
-		}
+		pw := s.combatAmount(k, b)
 		if pw <= 0 {
 			continue
 		}
@@ -1531,10 +1558,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) {
 			continue
 		}
-		pw := s.power(k, a)
-		if k.gen != nil && k.gen.anyCdmgTough {
-			pw = s.combatAmtTough(k, a)
-		}
+		pw := s.combatAmount(k, a)
 		if pw <= 0 {
 			continue
 		}

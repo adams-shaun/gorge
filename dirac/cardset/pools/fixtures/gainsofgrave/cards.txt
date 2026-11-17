@@ -1,0 +1,13 @@
+# GainsAbilitiesOfZones$ Graveyard (Necrotic Ooze: all activated abilities of
+# the creature cards in all graveyards), beside creatures with non-mana
+# activated abilities (Prodigal Sorcerer's {T} ping, Prava of the Steel
+# Legion's token maker, Jeska, Warrior Adept's {T} ping), plus basics
+# (dirac/oracle/gainsabilitiesof_lockstep_test.go)
+Island
+Jeska, Warrior Adept
+Mountain
+Necrotic Ooze
+Plains
+Prava of the Steel Legion
+Prodigal Sorcerer
+Swamp

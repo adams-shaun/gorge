@@ -90,9 +90,9 @@ these hurt someone other than you.
   or label it a hypothesis.
 - **Don't pin a synthetic pair by index alone.** A pair in `dirac/oracle` is two
   decks dealt from the lowered card list, so lowering one more card moves what
-  every pair holds: a bare `synthPairs(t, pool, []int{...}, nil)` goes silently
-  empty, or red on a game unrelated to the test. Record the game instead:
-  `pinnedGames` (`dirac/oracle/pinned_test.go`) plays games stored under
+  every pair holds: a pair pinned by index goes silently empty, or red on a game
+  unrelated to the test. Record the game instead: pinned pairs go only through
+  `pinnedGames` (`dirac/oracle/pinned_test.go`), which plays games stored under
   `testdata/pins` by card names, seed and actions, and requires each to reach a
   condition on the card or mechanism the test is named for (`cardOut`,
   `onBattlefield`, `cardSeen`). When a change moves a card's behaviour so the

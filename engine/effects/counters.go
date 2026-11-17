@@ -1122,7 +1122,9 @@ func proliferateOnce(h Host, c *Ctx, sa *cards.SA) {
 	var eligible []state.Target
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if o := g.Obj(id); o != nil && hasRealCounters(o.Counters) {
+			// CR 702.26b: a phased-out permanent is treated as though it does
+			// not exist, so a proliferate cannot choose it.
+			if o := g.Obj(id); o != nil && !o.PhasedOut && hasRealCounters(o.Counters) {
 				eligible = append(eligible, state.Target{Obj: id})
 			}
 		}
@@ -1237,14 +1239,16 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target) {
 	}
 }
 
-// effRegenerate grants a this-turn shield consumed by ReplaceDestruction.
+// effRegenerate grants a this-turn shield consumed by ReplaceDestruction. A
+// source that left the battlefield and returned since the ability was pushed
+// is a new object (CR 400.7): "Regenerate CARDNAME" does nothing to it.
 func effRegenerate(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || o.Zone != state.ZBattlefield {
+		if o == nil || o.Zone != state.ZBattlefield || sourceLeftSincePush(h, c, o) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: "Shield", Amount: 1})

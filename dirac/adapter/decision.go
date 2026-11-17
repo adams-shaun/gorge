@@ -100,7 +100,13 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		e.key = zidx << 8
 	case canon.ActActivate:
 		e.opt.Kind, e.opt.Ability = "ability", int(c.Mode())
-		if x.Mode()&0x80 != 0 { // a granted ability has no index of its own (rules' Option.SVar)
+		if x.Mode()&0xC0 == 0xC0 { // a gained ability (GainsAbilitiesOf$): the foreign permanent's face index (rules' Option.GainedSource/GainedIdx)
+			e.opt.Ability = 0
+			e.opt.GainedSource, e.opt.GainedIdx = g.ids.obj(canon.Ref(x.Target())), int(c.Mode())
+			if sa := g.faceSA(g.kp.Objs[x.Target()].Card, c.Mode()); sa != nil {
+				e.opt.Cost = offerCost(sa)
+			}
+		} else if x.Mode()&0x80 != 0 { // a granted ability has no index of its own (rules' Option.SVar)
 			e.opt.Ability = 0
 			if name, sa := g.grantedSA(g.kp.Objs[x.Target()].Card, x.Mode()&^0x80); sa != nil {
 				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(canon.Ref(x.Target()))

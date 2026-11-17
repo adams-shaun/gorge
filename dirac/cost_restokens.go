@@ -61,3 +61,16 @@ func (s *State) payResToken(k *prep) {
 	}
 	s.damageTo(k, PlayerCode(s.g.pickP), int(s.g.pickLeft))
 }
+
+// payDrawToken pays a PayDraw cost: the payer draws, or the instruction's W
+// player does when the cost names another drawer (Draw<N/Player.targetedBy>;
+// Tresserhorn's Lord, "target opponent draws three cards").
+//
+//go:noinline
+func (s *State) payDrawToken(k *prep) {
+	dp := s.g.pickP
+	if in := &s.prog(k)[s.res.pc]; in.W != kop.RefNone {
+		dp = s.payerOf(k, in.W)
+	}
+	s.payDraw(dp, int(s.g.pickLeft))
+}

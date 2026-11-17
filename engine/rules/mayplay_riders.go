@@ -75,13 +75,16 @@ func (w *legalWalk) offerMayPlayFlashAlts(p state.PlayerID, id state.ObjID, f *c
 	}
 }
 
-// mayPlayStaticRider extends r with the payment riders of the printed
-// board statics whose MayPlayPlayer$ names a beneficiary other than the
-// controller (Ian Malcolm, Chaotician's `MayPlayPlayer$ ActivePlayer` +
-// MayPlayIgnoreType$: "mana of any type can be spent to cast it"). Those
-// statics are not registered as ContinuousEffect may-play grants (the printed
-// registration refuses a MayPlayPlayer$), so MayPlayRider's effect walk never
-// sees them. The grant is asked of grantedBy (Engine.mayPlayGrantedBy), the
+// mayPlayStaticRider extends r with the payment riders of the board statics
+// no ContinuousEffect may-play grant carries: those whose MayPlayPlayer$ names
+// a beneficiary other than the controller (Ian Malcolm, Chaotician's
+// `MayPlayPlayer$ ActivePlayer` + MayPlayIgnoreType$: "mana of any type can
+// be spent to cast it"), and a Class level's granted static (Rogue Class's
+// level 3: "you may spend mana as though it were mana of any color to cast
+// those spells", CR 716.2, 609.4b). The printed registration refuses a
+// MayPlayPlayer$, and a Class's AddStaticAbility$ is no registration at all,
+// so MayPlayRider's effect walk never sees them; a static it does see
+// contributes the same bits again. The grant is asked of grantedBy (Engine.mayPlayGrantedBy), the
 // gate chain that offers the cast, so the rider and the offer cannot
 // disagree. A card in hand is never covered: the grant opens another zone's
 // permission, and the hand cast keeps the ordinary cost.
@@ -90,12 +93,12 @@ func mayPlayStaticRider(statics func(string) []staticView, grantedBy func(p stat
 		return r
 	}
 	for _, sv := range statics("Continuous") {
-		if sv.ParamStr(cards.PKMayPlayPlayer) == "" || !mayPlayStaticBenefits(p, &sv) {
-			continue
-		}
 		color := strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayIgnoreColor"]), "True")
 		typ := strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayIgnoreType"]), "True")
-		if (color || typ) && grantedBy(p, o.ID, sv.Source) {
+		if !color && !typ || !mayPlayStaticBenefits(p, &sv) {
+			continue
+		}
+		if grantedBy(p, o.ID, sv.Source) {
 			r.AnyColor = r.AnyColor || color
 			r.AnyType = r.AnyType || typ
 		}

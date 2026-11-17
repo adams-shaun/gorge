@@ -135,6 +135,7 @@ const (
 	ChGenTextWord                             // mode = the word index (0..4 colours WUBRG, 5..9 basic land types) of a ChangeText "from" word, +16 for a "to" word (gorge's changetext_from / changetext_to, two sequential picks; act_changetext.go)
 	ChGenTapOrUntapAll                        // no source; mode 1 = tap all / 0 = untap all (gorge effTapOrUntapAll's "tap" / "untap", in that order; act_taporuntapall.go)
 	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
+	ChGenClash                                // source = the clasher's revealed top card; mode 0 = bottom / 1 = top of its owner's library (gorge's clash_placement "bottom" / "top"; act_clash.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -677,7 +678,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.freeP |= freeCopy // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
 		}
 		if in.C&256 != 0 {
-			s.g.freeP |= freePaid // the copy pays its mana cost (cast_exilegrant.go)
+			s.g.freeP |= freePaid // the copy (cast_exilegrant.go) or the play pays its mana cost (turn_gen.go's drain)
 		}
 		if in.C&16 != 0 {
 			// ForgetPlayed$ True: drop the card once its cast commits. The
@@ -702,7 +703,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			break
 		}
 		o := s.objRefObj(in.Obj)
-		if o == NoObj || s.objs[o].zone != kop.Zone(in.C) {
+		if o == NoObj || s.objs[o].zone != kop.Zone(in.C&kop.MayPlayZoneMask) {
 			break
 		}
 		if in.B.N&kop.MayPlayNonLand != 0 && !DebugMayPlayTargetLands && k.t.Cards[s.objs[o].card].Types&kop.TLand != 0 {
@@ -714,7 +715,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, kop.Zone(in.C&kop.MayPlayZoneMask), in.C&kop.MayPlayFollows != 0), ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
@@ -727,8 +728,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.gen.anyWhileHost && k.t.Emblems[in.C].HostBound() && s.hostEmblemDone(e, p, uint8(in.C)+1) {
 			break // filter_combatwords.go
 		}
-		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
-			break // static_emblemcombat.go
+		if k.embIdem && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
+			break // static_emblemcombat.go, repl_staticprevent_emblem.go
 		}
 		if k.t.Emblems[in.C].NotHere && s.hostNow(e) {
 			break // a registration made with its host on the battlefield ends with it (kop.Emblem.NotHere)
@@ -890,7 +891,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if p.ctrN(s, int(in.C)) < n {
 				n = p.ctrN(s, int(in.C))
 			}
-			p.subCtrN(s, int(in.C), n)
+			s.subCtrFire(k, sl, int(in.C), n) // trig_counterremoved.go
 			s.g.remCnt = uint16(n)
 		}
 	case kop.OpEnterTapped:
@@ -1347,6 +1348,7 @@ func (s *State) remember(o Obj) {
 		s.g.rem[s.g.nrem] = o
 		s.g.nrem++
 	}
+	s.srcMemRemember(o) // a SrcMem source keeps it for its other abilities (zone_srcmemrem.go)
 	// The source's persistent remembered list (gorge's event-backed
 	// o.Remembered, the Choose "remembered" fold each RememberChanged-style
 	// write emits) is non-empty from this resolution on: the host half of a
@@ -1372,6 +1374,7 @@ func (s *State) rememberMarkClr() {
 	if o := s.res.e.obj; o != NoObj {
 		s.mObjClr(s.k(), mechRem, o)
 	}
+	s.srcMemClear() // a SrcMem source's records go with them (zone_srcmemrem.go)
 }
 
 // moveObj moves object o (named by ref r) to zone z of its owner; it
@@ -1510,7 +1513,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
 	exileEx := s.mSl(k, mechExileEx, sl)
 	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && !s.genLost(k, sl) &&
-		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard) == kop.ZoneLibrary
+		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield) == kop.ZoneLibrary
 	// Each matching replacement is a separate CR 616.1 effect. Gorge asks
 	// the affected player to order them when two or more apply, even when
 	// they agree on the destination.
@@ -1537,7 +1540,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 		if exileN > 0 || exileEx || scopeN > 0 {
 			return kop.ZoneExile
 		}
-		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard)
+		return s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard, kop.ZoneBattlefield)
 	}
 	if exileN > 0 || exileEx || scopeN > 0 {
 		return kop.ZoneExile
@@ -1779,6 +1782,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	if in.Op == kop.OpChangeZoneAllEx {
 		mv = in.C >> 3
 	}
+	s.czallArmRev(fl, z) // a battlefield sweep's group is in reverse move order
 	var carry czallCarry // the prefix placed before a CR 903.9b park
 	carry.load(&s.g.pre)
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {
@@ -2392,6 +2396,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	// table with an as-enters copy election adds them here, once it is known.
 	if !early && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl)) && !elected {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+		s.copyGrantsAdd(k, sl, tmpl) // the template's as-enters grants are copiable values too (CR 707.3, 707.9b)
 	}
 	if host != NoSlot && s.occ.has(host) {
 		s.attachTo(k, sl, host) // a copy that enters attached is attached when its enters check looks (CR 303.4f, 603.6a)
@@ -2456,21 +2461,26 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 // targeting: hexproof and shroud do not count, protection does, CR
 // 303.4f, 702.16c) into out, and returns their number.
 func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]TCode) int {
-	t := &k.t.Cards[c].Enchant
 	n := 0
 	for m := s.occ; m.any() && n < MaxOptions; m = m.rest() {
 		sl := m.first()
 		if s.objs[s.perms[sl].obj].of&ofPending != 0 {
 			continue
 		}
-		if s.matchPerm(k, t.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
-			!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
-			!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c)) {
+		if s.enchantHostOK(k, c, p, sl) {
 			out[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}
 	return n
+}
+
+// enchantHostOK reports whether the permanent at sl is a host an Aura of
+// card c under p's control may enchant (enchantCands' per-permanent test).
+func (s *State) enchantHostOK(k *prep, c CardID, p uint8, sl Slot) bool {
+	return s.matchPerm(k, k.t.Cards[c].Enchant.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
+		!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
+		!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c))
 }
 
 // NoSubtypeIdx is a matchup filter's "absent subtype" sentinel minus one.

@@ -898,6 +898,24 @@ const (
 	// comparison. Read by rules latchDamageBatch / closeDamageBatch.
 	// Appended: earlier ordinals stay stable.
 	PKAtLeastOneInstance
+	// TopCardOfLibraryIs$ <filter> on a Mode$ Continuous static: the grant
+	// lives while the static's controller's library is non-empty and its top
+	// card matches the filter (Mul Daya Channelers, Vampire Nocturnus;
+	// CR 611.3a). Read by rules continuousGateHolds. Appended: earlier
+	// ordinals stay stable.
+	PKTopCardOfLibraryIs
+	// RememberSource$ True on a Token (Saproling Burst): each minted token's
+	// memory names the creating source. Read by effects' compileToken.
+	// Appended: earlier ordinals stay stable.
+	PKRememberSource
+	// ValidKeyword$ <Landwalk:Type> on S:Mode$ IgnoreLandWalk, read by
+	// combat.landwalkIgnored. Appended: earlier ordinals stay stable.
+	PKValidKeyword
+	PKWerewolfTransformCondition
+	PKWerewolfUntransformCondition
+	PKRaiseMaxHandSize
+	PKDayTime
+	PKForgetObjects
 	paramKeyCount
 )
 
@@ -1719,6 +1737,14 @@ var paramKeyNames = [paramKeyCount]string{
 	PKManaNotSpent:                     "ManaNotSpent",
 	PKValidAfterStack:                  "ValidAfterStack",
 	PKAtLeastOneInstance:               "AtLeastOneInstance",
+	PKTopCardOfLibraryIs:               "TopCardOfLibraryIs",
+	PKRememberSource:                   "RememberSource",
+	PKValidKeyword:                     "ValidKeyword",
+	PKWerewolfTransformCondition:       "WerewolfTransformCondition",
+	PKWerewolfUntransformCondition:     "WerewolfUntransformCondition",
+	PKRaiseMaxHandSize:                 "RaiseMaxHandSize",
+	PKDayTime:                          "DayTime",
+	PKForgetObjects:                    "ForgetObjects",
 }
 
 // String is the key's Forge text.

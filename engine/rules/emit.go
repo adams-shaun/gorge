@@ -242,14 +242,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 			Text: "entry awaiting counter-replacement-order choice"}
 	}
-	// CountersRemain is a departure property of the battlefield object. Tag the
-	// final, replacement-adjusted MoveZone so events.Apply and replay preserve
-	// the counters in the same fold. Hand and library remain explicit reset
-	// destinations per the static's rules text.
-	if ev.Kind == events.MoveZone && ev.To != state.ZHand && ev.To != state.ZLibrary {
-		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && e.countersRemainApplies(ev.Obj) {
-			ev.Counter = events.MarkCountersRemainMove(ev.Counter)
-		}
+	// CountersRemain tags the final, replacement-adjusted MoveZone so
+	// events.Apply and replay preserve the counters in the same fold: the
+	// battlefield departure (hand and library stay explicit resets) and the
+	// public-zone re-entry whose own printed static is the CR 400.7 exception.
+	if o := e.G.Obj(ev.Obj); o != nil && ev.Kind == events.MoveZone &&
+		countersRemainMoveEligible(o, ev) && e.countersRemainApplies(ev.Obj) {
+		ev.Counter = events.MarkCountersRemainMove(ev.Counter)
 	}
 	// CR 603.10a: "a creature died this turn" reads the permanent as it last
 	// existed on the battlefield. Tag the final departure when its layer-4
@@ -572,22 +571,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.fuseTargets[copyID] = cp
 		}
-		// A copy of a spliced spell carries the spliced text and its targets
-		// (CR 707.10).
-		if ids, ok := e.spliceFor[ev.Obj]; ok && len(ev.IDs) == 0 {
-			if e.spliceFor == nil {
-				e.spliceFor = make(map[state.ObjID][]state.ObjID)
-			}
-			e.spliceFor[copyID] = append([]state.ObjID(nil), ids...)
-			cp := make([][]state.Target, len(e.spliceTargets[ev.Obj]))
-			for i, targets := range e.spliceTargets[ev.Obj] {
-				cp[i] = append([]state.Target(nil), targets...)
-			}
-			if e.spliceTargets == nil {
-				e.spliceTargets = make(map[state.ObjID][][]state.Target)
-			}
-			e.spliceTargets[copyID] = cp
-		}
+		inheritSplice(e.spliceFor, e.spliceTargets, ev.Obj, copyID)
 		// A charm's per-mode target groups are the same split: each mode of the
 		// copy acts on its own group (CR 707.10 copies modes and targets).
 		if groups, ok := e.charmTargets[ev.Obj]; ok && len(ev.IDs) == 0 {

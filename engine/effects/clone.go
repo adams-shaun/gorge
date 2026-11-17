@@ -85,7 +85,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// changed controller and no longer satisfy Choices$ Creature.OppCtrl.
 		// An invalidated optional template means the entering object simply
 		// enters as itself, never as a copy of an object from a former zone.
-		if !cloneETBTemplateLegal(g, c, cp) {
+		if !cloneETBTemplateLegal(g, c, cp, h) {
 			return
 		}
 	}
@@ -568,7 +568,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// One ClonePermanent event per (source, become) pair; the fold
 		// snapshots the source's printed face onto the become object.
 		ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
-			IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName}
+			IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName, From: cloneBasisZone(spec, c.CloneEnter.ETB)}
 		if chosenName != "" {
 			ev.Counter = "chosen-name"
 			ev.Text = chosenName
@@ -792,7 +792,7 @@ func cloneBecome(h Host, c *Ctx, cp *CloneParams) ([]state.Target, bool) {
 // remove the chosen object or change its controller before this replacement
 // applies. The same CloneETBSelectorMatches used for the option list
 // rechecks both the filter grammar and Mockingbird's captured cast spend.
-func cloneETBTemplateLegal(g *state.Game, c *Ctx, cp *CloneParams) bool {
+func cloneETBTemplateLegal(g *state.Game, c *Ctx, cp *CloneParams, pt DerivedPTSource) bool {
 	o := g.Obj(c.CloneEnter.Choice)
 	// The template is checked in the zone the body chooses from (ChoiceZone$,
 	// battlefield when absent): Echoing Deeps copies a land card in a
@@ -800,7 +800,7 @@ func cloneETBTemplateLegal(g *state.Game, c *Ctx, cp *CloneParams) bool {
 	if o == nil || o.Zone != cp.ChoiceZoneKind || o.Face() == nil {
 		return false
 	}
-	return CloneETBSelectorMatches(g, cp.Choices, c.CloneEnter.Choice, c.TableSpecContext(c.Controller))
+	return CloneETBSelectorMatches(g, cp.Choices, c.CloneEnter.Choice, c.TableSpecContext(c.Controller), pt)
 }
 
 // cloneChoiceZone classifies ChoiceZone$, the zone a Choices$ pick draws its
@@ -980,3 +980,15 @@ var cloneDurationCodes = state.NewStrCodes(
 	state.StrEntry[cloneDurationCode]{Key: "untilfacedown", Val: cloneDurationUntilEvent},
 	state.StrEntry[cloneDurationCode]{Key: "untiltargeteduntaps", Val: cloneDurationUntilEvent},
 )
+
+// cloneBasisZone is the ClonePermanent event's From: ZBattlefield when the
+// effect copies an LKI Defined$ source (RememberedLKI, Triggered...LKICopy),
+// meaning the copiable values it had on the battlefield (CR 707.2); the zero
+// zone otherwise, so a card in a graveyard or exile copies its printed face
+// (CR 400.7). An ETB copy's source is always a live battlefield object.
+func cloneBasisZone(spec string, etb bool) state.Zone {
+	if etb || !strings.Contains(spec, "LKI") {
+		return 0
+	}
+	return state.ZBattlefield
+}

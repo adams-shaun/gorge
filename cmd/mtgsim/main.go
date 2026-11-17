@@ -32,6 +32,7 @@ import (
 	sbenv "github.com/adams-shaun/gorge/server/spellbench/env"
 	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
 	"github.com/adams-shaun/gorge/testkit/bench"
+	"github.com/adams-shaun/gorge/testkit/cardcov"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -62,6 +63,12 @@ func main() {
 	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
 	deckDir := flag.String("deckdir", "", "read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
+	coverage := flag.String("coverage", "", "append per-card coverage rows (seed card key used offered clean) to this file")
+	coverageCtx := flag.String("coverage-ctx", "", "free-text context written to the -coverage header (e.g. cmdr4, cmdr2, c60)")
+	// -schedule: a line replays alone as `mtgsim <the mapped single-game
+	// flags>` (see runSchedule), so the hunt's REPRO: lines stay valid.
+	schedule := flag.String("schedule", "", "play the games of this file in one process, one a line, tab-separated: seed format seats decks policies mulligans (# and blank lines skipped; policies as -policies, - keeps the default); a line replays alone as: mtgsim -format F -seats N -decks D -policies P -mulligans M -games 1 -seed S (plus this run's -dir, -deckdir, -verify, -coverage); excludes -decks, -seed, -games, -a, -b, -policies")
+	listKeysFlag := flag.Bool("list-keys", false, "print card<TAB>key for every card in the corpus and exit")
 	cpuProf := flag.String("cpuprofile", "", "write a CPU profile here")
 	memProf := flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	var sbAgents []string
@@ -71,10 +78,30 @@ func main() {
 	})
 	flag.Parse()
 
+	if *listKeysFlag {
+		if err := listKeys(*dir, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "mtgsim:", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *schedule != "" {
+		var clash []string
+		flag.Visit(func(f *flag.Flag) {
+			switch f.Name {
+			case "decks", "seed", "games", "a", "b", "policies":
+				clash = append(clash, "-"+f.Name)
+			}
+		})
+		if len(clash) > 0 {
+			fmt.Fprintf(os.Stderr, "mtgsim: -schedule excludes %s\n", strings.Join(clash, ", "))
+			os.Exit(2)
+		}
+	}
 	o := simOptions{
-		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
+		Schedule: *schedule, Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir, Coverage: *coverage, CoverageCtx: *coverageCtx,
 	}
 	if *policies != "" {
 		o.Policies = strings.Split(*policies, ",")
@@ -130,6 +157,15 @@ type simOptions struct {
 	// name is read from <DeckDir>/<name>.json (an outside pool, such as
 	// cEDH lists) instead of the embedded repo decks. It requires -decks.
 	DeckDir string
+	// Coverage, when non-empty, is the path of the append-only per-card
+	// coverage file (coverage.go); CoverageCtx is the free text its header
+	// carries. Without it no probe is installed and no output changes.
+	Coverage    string
+	CoverageCtx string
+	// Schedule, when non-empty, is the path of a game schedule (schedule.go):
+	// one game a line, each played as its own single-game run in this one
+	// process. It excludes Decks, Seed, Games, PolicyA, PolicyB and Policies.
+	Schedule string
 }
 
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
@@ -141,20 +177,14 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 // Commander deck rules before any game, and plays at 40 life with every
 // seat's commander starting in the command zone.
 func runSim(o simOptions, out io.Writer) error {
+	if o.Schedule != "" {
+		return runSchedule(o, out)
+	}
 	decksFlag, seats, baseSeed, games := o.Decks, o.Seats, o.Seed, o.Games
 	verify, verbose, dir, policyA, policyB, sbAgents := o.Verify, o.Verbose, o.Dir, o.PolicyA, o.PolicyB, o.SBAgents
-	var format rules.Format
-	commander := false
-	switch o.Format {
-	case "constructed":
-	case "commander":
-		commander = true
-		format = rules.FormatCommander
-		if seats < 2 {
-			return fmt.Errorf("-format commander needs at least 2 seats")
-		}
-	default:
-		return fmt.Errorf("-format %q: want constructed or commander", o.Format)
+	format, commander, err := parseFormat(o.Format, seats)
+	if err != nil {
+		return err
 	}
 	if seats < 1 {
 		return fmt.Errorf("-seats must be at least 1, got %d", seats)
@@ -234,6 +264,16 @@ func runSim(o simOptions, out io.Writer) error {
 		shapes = &shapeRun{kind: fmt.Sprintf("%s/%d", o.Format, seats)}
 	}
 
+	var cov *covRun
+	if o.Coverage != "" {
+		c, err := openCoverage(o.Coverage, o.CoverageCtx, o.Format, seats, dir, reg)
+		if err != nil {
+			return err
+		}
+		defer c.f.Close()
+		cov = c
+	}
+
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
@@ -241,8 +281,11 @@ func runSim(o simOptions, out io.Writer) error {
 		if shapes != nil {
 			sg = &shapeGame{}
 		}
-		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg, cov) {
 			failures++
+		}
+		if cov != nil && cov.err != nil {
+			return fmt.Errorf("writing -coverage file %s: %w", o.Coverage, cov.err)
 		}
 		if sg != nil {
 			if err := shapes.writeGame(shapeFile, sg); err != nil {
@@ -368,7 +411,7 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence. shape,
 // when non-nil, observes every decision and records the game's final shape.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame, cov *covRun) (ok bool) {
 	cfg := gameConfig(seed, names, decks, reg, format, cmds, mulligans)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -379,10 +422,23 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	cfg.Spare = spare
 	e := rules.NewStartingPlayerChoice(cfg)
 	var observe func(*rules.Engine, *decision.Decision)
+	var probe *cardcov.Probe
+	if cov != nil {
+		probe = &cardcov.Probe{}
+		probe.Install(e)
+		observe = func(e *rules.Engine, _ *decision.Decision) { probe.Observe(e) }
+	}
 	if shape != nil {
 		shape.seed = seed
 		shape.decks = append([]string(nil), names...)
-		observe = shape.observe
+		if probe != nil {
+			observe = func(e *rules.Engine, d *decision.Decision) {
+				probe.Observe(e)
+				shape.observe(e, d)
+			}
+		} else {
+			observe = shape.observe
+		}
 	}
 	finish := func(n int, status string) {
 		if shape != nil {
@@ -396,6 +452,11 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 			sparePool.Put(spare, e)
 		}
 	}()
+	if cov != nil {
+		// Registered after the recycle above, so it runs first: the rows
+		// read the engine before its storage goes back to the pool.
+		defer func() { cov.writeGame(seed, e, decks, probe, ok) }()
+	}
 	// CR 103.1's winner-chooses ask: pose it before the seats attach so the
 	// table's own policy answers it, and the seat's game_start sees the
 	// choice pending. The drive loop answers the pending decision; no Advance

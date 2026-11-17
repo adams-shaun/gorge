@@ -303,6 +303,7 @@ func (s *State) endStep(next kop.Step) {
 	}
 	s.g.poolArt = [MaxSeats]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
+	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -397,7 +398,7 @@ func (s *State) finishCleanup(k *prep) {
 			p.cseen |= cseenDT // gorge lists the removed mark at 0
 		}
 		p.flags &^= pfDeathtouched | pfDtMore | pfRegen | pfRegenX
-		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
+		p.eotP, p.eotT, p.eotKw, p.eotKwRep, p.spare = 0, 0, 0, [2]kop.KwMask{}, 0 // spare: the P/T switch (kw_kwmark.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}
@@ -435,6 +436,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
 		s.g.poolArt = [MaxSeats]uint8{}
 		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
+		s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty
@@ -474,6 +476,7 @@ func (s *State) clearCombat() {
 		}
 	}
 	s.xblkClear()
+	s.mbaEndCombat() // combat_mustblockatk.go
 	s.nAttackers = 0
 	s.fsStep = false
 }
@@ -581,7 +584,7 @@ func (s *State) sba(k *prep) bool {
 				// A timestamped override record can set the base P/T (a
 				// value-driven Animate: HandSize can be 0), so the printed
 				// toughness is not enough for the no-damage shortcut.
-				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.fxM.has(sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
+				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.sbaPTMoved(k, sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
 					p.ovr.flags&(ovSetPT|ovSetPTEOT|ovCopy) == 0 && k.cards[p.card].tough > 0 {
 					goto noncreature
 				}
@@ -762,7 +765,7 @@ func (s *State) sba(k *prep) bool {
 			if MaxSeats > 2 && s.sweepDeparted(k) {
 				continue
 			}
-			return false
+			return s.sbaClean(k)
 		}
 		// gorge poses the legend ask before any of the pass's casualties
 		// apply (parkLegendChoice): park the creature casualties, which

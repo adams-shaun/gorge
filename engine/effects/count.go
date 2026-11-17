@@ -415,6 +415,9 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
 		return evalSacrificedOK(h, c, strings.TrimSpace(body))
 	}
+	if body, ok := strings.CutPrefix(expr, "ReplacedCardLKI$"); ok {
+		return evalReplacedCardLKIOK(h, c, body, depth)
+	}
 	if n, ok := evalRefProperty(h, c, expr, depth); ok {
 		return n, true
 	}

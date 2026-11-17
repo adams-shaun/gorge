@@ -68,10 +68,14 @@ func effAmass(h Host, c *Ctx, sa *cards.SA) {
 	// asks for an Army CREATURE, and CR 702.73a makes a changeling every
 	// creature type, so the answer must come from current characteristics
 	// (a layer-4 type grant and changeling both count) -- never the printed
-	// face.
+	// face. The match binds the resolution's layer tables (TableSpecContext):
+	// an Army an Aura made a noncreature enchantment (One with the Stars) is
+	// no Army creature (CR 701.47a, 205.1a), which only the derived layer-4
+	// types show.
 	army := state.ObjID(0)
+	sc := c.TableSpecContext(ctl)
 	for _, id := range g.Zone(state.ZBattlefield, ctl) {
-		if MatchesSpecFrom(g, "Creature.Army", id, ctl, c.Source) {
+		if MatchesSpecCtx(g, "Creature.Army", id, sc) {
 			army = id
 			break
 		}

@@ -247,7 +247,7 @@ const (
 	// manifest sub-op takes a free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
 	// unnamed. Raise it only when the free values run out.
-	NumExtOps ExtOp = 321
+	NumExtOps ExtOp = 322
 )
 
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
@@ -312,7 +312,8 @@ func init() {
 // Naga Fleshcrafter). Obj is the becomer (RefSelf or a target slot), or
 // RefNone with F the Valid set of becomers. B.N packs the flags (CloneEOT ..)
 // and the template's target slot (CloneTmplShift); C is the copy exceptions'
-// override index+1 (0 none). With ClonePick set the op is only the Choices$
+// override index+1 (0 none); with CloneGrant the next override record carries
+// the abilities the copy keeps (GainThisAbility$). With ClonePick set the op is only the Choices$
 // pick: the controller picks one battlefield permanent matching F (the
 // template) and the choice rides the resolution's chosen[0]; the copy op that
 // follows (behind an OpMayAsk MayGuardCloneCopy when Optional$) reads it.
@@ -527,10 +528,13 @@ func init() {
 // DamageSource$ ParentTarget over "<spec>.NotDefinedTargeted" ("target
 // creature you control deals damage equal to its power to each other
 // creature", Waltz of Rage, Nibelheim Aflame; gorge effects/damage.go
-// effDamageAll). Obj the source's target slot, B the amount (read once),
-// F the battlefield creature filter, C bit 0 set: the source's own slot is
-// not hit. Every matching creature is hit in one damage batch whose hits all
-// name the source (its deathtouch, lifelink, infect and wither apply).
+// effDamageAll), or DamageSource$ Remembered in a capturing emblem's
+// DamageDealtOnce body (Obj the captured damage source, the Arcbond emblem
+// shape). Obj the source's target slot or the capture, B the amount (read
+// once), F the battlefield creature filter, C bit 0 set: the source's own
+// slot is not hit; C bit 1 set: each living player takes a hit after the
+// creatures. Every matching creature is hit in one damage batch whose hits
+// all name the source (its deathtouch, lifelink, infect and wither apply).
 // dirac/act_sweepdamage.go.
 const ExtSweepFrom ExtOp = 97
 
@@ -829,6 +833,16 @@ func init() { extOpNames[ExtExtort] = "Extort" }
 const ExtRememberImprinted ExtOp = 307
 
 func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
+
+// ExtForgetImprinted: the object Obj (RefTriggered: gorge Pump
+// ForgetImprinted$ TriggeredCard) leaves the resolution's imprinted set, and
+// for a source that keeps its list the per-source memory record goes too
+// (gorge forgetImprinted on Pump: the o.Imprinted half is not auto-pruned on
+// the card's move, so the forget is the write that keeps a later read from
+// seeing a stale imprint). dirac/zone_imprint.go.
+const ExtForgetImprinted ExtOp = 321
+
+func init() { extOpNames[ExtForgetImprinted] = "ForgetImprinted" }
 
 // ExtPreventNext (CR 615.7): prevent the next B damage that would be dealt
 // this turn to the player or permanent Obj (gorge effects/prevent_damage.go

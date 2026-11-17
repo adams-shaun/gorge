@@ -168,6 +168,10 @@ type replChoice struct {
 	// composition's terminal arm, once, under the same parked triggerBefore
 	// snapshot (rc.before) as the synchronous path's own check.
 	stored events.Event
+	// entryCopied marks kind == replChoiceUpdated's entry as having applied an
+	// as-enters COPY body, so a re-parked continuation still owes the copied
+	// face's own as-enters replacement (CR 707.5/707.6).
+	entryCopied bool
 	// absorbed is kind == replChoiceUpdated's set of Updated PutCounter|
 	// ETB$ True bodies (replIdentity) whose placement the entry move's Pairs
 	// payload already carries (engine/rules/entry_counters.go). It is captured from

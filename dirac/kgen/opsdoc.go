@@ -452,20 +452,12 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
 					add("st:RaiseYou", name)
 				}
-				if st.Grant != 0 {
-					add("st:Grant", name)
-				}
-				if st.ProtFrom != 0 {
-					add("st:ProtFrom", name)
-				}
+				grantUsage(&st, name, add)
 				if st.ProtChosen {
 					add("st:ProtChosen", name)
 				}
-				if st.ProtExc != 0 {
-					add("st:ProtExc", name)
-				}
-				if st.Landwalk != 0 {
-					add("st:Landwalk", name)
+				for _, l := range staticFilterLabels(&st) {
+					add(l, name)
 				}
 				if st.Evasion != 0 {
 					add("st:Evasion", name)
@@ -482,6 +474,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				filt(st.ProtFrom)
 				filt(st.ProtExc)
 				filt(st.Landwalk)
+				filt(st.GainsOf)
 				val(st.VA)
 				val(st.VB)
 			}

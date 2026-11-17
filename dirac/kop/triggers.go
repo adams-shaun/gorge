@@ -280,6 +280,15 @@ const (
 // it (gorge trigmatch.valiantFirstTimeTargetedByYouThisTurn).
 const TrigNValiant int16 = 1
 
+// TrigNSrcSpell in Trigger.N of a TrigBecomesTarget watcher (non-Valiant):
+// the targeting stack entry's controller is gated by Whose (WhoseYou /
+// WhoseOpp / WhoseAny) and, when Filter2 is set, its card (gorge
+// becomesTargetMatches ValidSource$ Spell, Spell.YouCtrl, Spell.OppCtrl,
+// Spell.Aura, Instant,Sorcery). The bare Spell base is any stack object, an
+// ability included, as in gorge's matchesBaseSpell; a type word needs a
+// spell. Kernel trig_becomestarget.go btSpellSrcOK.
+const TrigNSrcSpell int16 = 4
+
 // Trigger.N of a TrigAbilityCast trigger: the activated ability's class
 // (gorge abilityCastConstraintHolds). The Opp form also requires the
 // ability's controller to be an opponent of the listener's controller.

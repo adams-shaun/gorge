@@ -225,19 +225,31 @@ func (s *State) Elide(d *Decision) {
 	s.Apply(d.Options[0])
 }
 
+// defeatAtHead is stepRaw's CR 310.11 head: gorge's startDefeatedCast drains
+// the defeat queue at the top of every step(), before the step's own action. A
+// battle defeated during a resolution in THIS step therefore gets its offer at
+// the top of the next step, after the priority round that follows the defeat,
+// not in place of that priority.
+//
+// An answer to the trigger-order ask is no step boundary: gorge's
+// handleTriggerOrder resumes the trigger drain and its grantPriority
+// directly, so a record deferred by combat damage stays asleep until the
+// priority decision that follows the placement has been answered.
+func (s *State) defeatAtHead(k *prep, d *Decision) bool {
+	if k.gen == nil || !k.gen.anyBattle || s.g.nmay == 0 || s.ctl == ctlBuild {
+		return false
+	}
+	if s.ctl != ctlPlaceTriggers {
+		s.wakeDefeat()
+	}
+	d.N = 0
+	return s.defeatAsk(k, d)
+}
+
 func (s *State) stepRaw(d *Decision) {
 	k := s.k()
-	// CR 310.11: gorge's startDefeatedCast drains the defeat queue at the top
-	// of every step(), before the step's own action. A battle defeated during
-	// a resolution in THIS step therefore gets its offer at the top of the
-	// next step, after the priority round that follows the defeat, not in
-	// place of that priority.
-	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 && s.ctl != ctlBuild {
-		s.wakeDefeat()
-		d.N = 0
-		if s.defeatAsk(k, d) {
-			return
-		}
+	if s.defeatAtHead(k, d) {
+		return
 	}
 	for {
 		d.N = 0

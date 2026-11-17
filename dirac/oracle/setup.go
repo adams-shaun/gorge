@@ -65,6 +65,9 @@ type Matchup struct {
 	// chars is the kernel vocabulary the gorge side maps derived
 	// characteristics into (RealKernel sets it; nil: not compared)
 	chars *charVocab
+	// addTrigSigs lazily caches addTriggerSigs() (gorge.go): derived from
+	// reg and Table, both fixed for the matchup's life.
+	addTrigSigs map[string]bool
 }
 
 // MaxSeats is the most seats a matchup holds (gorge plays any number; the

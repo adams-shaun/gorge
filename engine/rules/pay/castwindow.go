@@ -76,16 +76,18 @@ func UndoableWindowTap(e Engine, cp *CastPayment, payer state.PlayerID) (WindowT
 		return WindowTap{}, false
 	}
 	pl := g.Players[payer]
-	var need, snow state.Mana
+	var need, snow, composed state.Mana
 	for _, a := range t.Adds {
 		idx := ManaCounterSlot(a.Counter)
 		need[idx] += a.Amount
 		if len(a.Counter) == 2 {
 			snow[idx] += a.Amount
+		} else if slot, ok := state.SnowTypedCounter(a.Counter); ok {
+			composed[slot] += a.Amount
 		}
 	}
 	for i := range need {
-		if need[i] > pl.Pool[i] || snow[i] > pl.Snow[i] {
+		if need[i] > pl.Pool[i] || snow[i] > pl.Snow[i] || composed[i] > pl.SnowTyped[i] {
 			return WindowTap{}, false
 		}
 	}

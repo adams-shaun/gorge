@@ -210,6 +210,26 @@ func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, ty
 	if hasPT {
 		sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = power, toughness, true
 		sc.BasePower, sc.BaseToughness, sc.HasBasePT = basePower, baseToughness, true
+	} else if atStack == 0 && specBindFacts(affects).pt {
+		// CR 613/611.2c: a layer-4/5/6 match (hasPT false: no layer-7 frame
+		// is on the stack) whose Affected$ predicate names power or
+		// toughness must gate on the object's layer-7 answer, not the
+		// printed face -- Temur Charm mode 3's grant
+		// (`Creature.powerLE3 can't block`) refused a Mesa Cavalier a Giant
+		// Growth had already lifted to 5, so gorge offered no block where
+		// the kernel did (lockstep pair 1232). The bind runs the layer-7
+		// walk over this match's OWN keywords-so-far list -- the same
+		// convention PT's applicability gate uses -- so it cannot recurse:
+		// inside it every layer-7 match binds its in-progress frame, and a
+		// layer-4 match under this very walk (its fresh TypesAndAllCreature
+		// Types, when the caller had no types to hand) is stopped by the
+		// InProgress frame check, which leaves that inner match the
+		// printed-face read the walk always took.
+		if _, busy := e.charsWalk.InProgress(id); !busy {
+			sc.DerivedPower, sc.DerivedToughness, sc.BasePower, sc.BaseToughness =
+				bindWalkPT(asChars(e), &e.charsWalk, e.active(), id, e.G.Obj(id), types, keywords)
+			sc.HasDerivedPT, sc.HasBasePT = true, true
+		}
 	}
 	// CR 613.1e before 613.4c: a layer-7 Affected$ that names a colour
 	// (Heraldic Banner's Creature.ChosenColor) reads the object's finished
@@ -258,4 +278,21 @@ func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, ty
 	// fallback inside evaluate (CR 708.5), so no new printed-colour claim is
 	// introduced for a context whose characteristics do not exist.
 	return effects.MatchesSpecCtxPtr(e.G, affects, id, &sc)
+}
+
+// bindWalkPT is the hasPT-false bind's layer-7 answer: chars.PT over the
+// caller's keywords-so-far list (nil reads the printed-face fallback
+// matchesWithChars documents) and the caller's bound types (haveTypes, the
+// same list computeWith hands PT), so the layer-7 walk's own Affected$
+// matches see exactly the layer-4/6 answer the outer match saw. The
+// returned pair is the current P/T and the CR 613.4 base pair, exactly
+// what matchesSpec binds at activeDepth 0. The frame this call pushes is
+// what stops a bind from re-entering the object whose own keyword walk is
+// running (InProgress at the call site). The pieces come in resolved, not
+// as an *Engine: codeshape's engine-surface ceiling is frozen.
+func bindWalkPT(b chars.Board, s *chars.Scratch, act []state.ContinuousEffect, id state.ObjID, o *state.Object, types, keywords []string) (int32, int32, int32, int32) {
+	if o == nil || o.Face() == nil {
+		return 0, 0, 0, 0
+	}
+	return chars.PT(b, s, id, o, o.Face(), act, keywords, types, types != nil)
 }

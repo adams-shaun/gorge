@@ -203,14 +203,13 @@ func (s *State) waterbendXCharge(k *prep, e *stackEntry, cost kop.ManaCost) kop.
 }
 
 // waterbendOwnPart reports a spell's own waterbend amount: card c's
-// SpellWaterbend, owed only by the card's owner (the static's Activator$ You;
-// o is NoObj when the card is priced bare, which counts as the owner's).
+// SpellWaterbend, owed by whoever casts it. CR 601.2a puts the spell on the
+// stack under its caster before CR 601.2f totals the cost, so the static's
+// Activator$ You is the caster even for a card cast from another player's
+// zone (gorge castersView): Siphon Insight's exiled card owes it to its
+// thief.
 func (s *State) waterbendOwnPart(k *prep, p uint8, c CardID, o Obj) int {
-	n := int(k.t.Cards[c].SpellWaterbend)
-	if n == 0 || o != NoObj && s.objs[o].owner() != p {
-		return 0
-	}
-	return n
+	return int(k.t.Cards[c].SpellWaterbend)
 }
 
 // waterbendCastPart is the waterbend amount the cast being built owes: the

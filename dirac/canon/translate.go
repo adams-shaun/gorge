@@ -315,8 +315,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)
 			return Pack(ActSpecial, src, RefNone, c)
 		}
-		if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
-			return Pack(ActActivate, src, tgt, 255) // a granted ability, told apart by its grantor
+		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
+			return c
 		}
 		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
@@ -888,6 +888,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("trigger_cost_decline"), top, RefNone, 0), true
 	case dirac.ChGenUnleash:
 		return unleashCanon(src), true
+	case dirac.ChGenAddOrRemove:
+		return r.aorChoice(Ref(src), mode)
 	case dirac.ChGenKczZone:
 		return Pack(kind("zone"), RefNone, RefNone, mode), true // gorge's originAlternativeZones pick: the option index
 	case dirac.ChGenBranch:
@@ -950,10 +952,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("no"), RefNone, RefNone, 0), true
 	case dirac.ChGenConfirm:
 		// gorge's hand_move_confirm: a KChoose of yes / no
-		if mode == 1 {
-			return Pack(kind("yes"), RefNone, RefNone, 0), true
-		}
-		return Pack(kind("no"), RefNone, RefNone, 0), true
+		return confirmChoice(mode)
 	case dirac.ChRoom:
 		// gorge's venture "room" KChoose: the option index in the room's
 		// printed NextRoom$ order
@@ -1109,7 +1108,30 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// in option (face) order; the kernel carries that ordinal in Target.
 		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
-	return 0, false
+	return clashCanon(r.D.Sub, src, mode) // translate_clash.go
+}
+
+// aorChoice is the kernel side of gorge's "aor_elect" option: the arm is the
+// canonical choose kind and the mode is the pending election's counter kind,
+// so the oracle compares by kind rather than by the carrier's order.
+func (r *Translator) aorChoice(src Ref, mode uint8) (Canon, bool) {
+	name := "aor_remove"
+	if mode == 1 {
+		name = "aor_put"
+	}
+	code, _ := ChooseCode(name)
+	return Pack(ActChoose+CanonKind(code), src, RefNone, r.S.FeatAddOrRemoveKind()), true
+}
+
+// confirmChoice is a yes/no KChoose (gorge's hand_move_confirm): mode 1 is
+// yes, 0 no.
+func confirmChoice(mode uint8) (Canon, bool) {
+	name := "no"
+	if mode == 1 {
+		name = "yes"
+	}
+	code, _ := ChooseCode(name)
+	return Pack(ActChoose+CanonKind(code), RefNone, RefNone, 0), true
 }
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
@@ -1156,3 +1178,18 @@ func NameOrdinal(v uint16, earlier []string) uint8 {
 // teamworked casts (CastModeOther, nibble 0) and the optional-cost casts
 // (nibble i+1 of a short list).
 const ConspiredCastCode = CastModeOther | 15<<4
+
+// grantedOrGained is the canonical form of an AkActivate whose mode names
+// another permanent's ability: a gained one (mode 0xC0|ab, GainsAbilitiesOf$,
+// dirac/static_gainsof.go) is the foreign permanent's face index, told apart
+// by that permanent (gorge Option.GainedSource/GainedIdx); a granted one
+// (0x80|ab) with no face index of its own is 255, told apart by its grantor.
+func (r *Translator) grantedOrGained(src, tgt Ref, mode uint8) (Canon, bool) {
+	if mode&0xC0 == 0xC0 {
+		return Pack(ActActivate, src, tgt, r.CardAbility(r.KP.Objs[tgt].Card, mode&0x3F)), true
+	}
+	if mode&0x80 != 0 && r.FaceAbility(dirac.Obj(src), mode, false) == 255 {
+		return Pack(ActActivate, src, tgt, 255), true
+	}
+	return 0, false
+}

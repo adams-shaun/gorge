@@ -9,6 +9,8 @@ import "testing"
 // and created one Soldier token more than gorge's two. The recording is the
 // first divergence of dr-mbc-bbaa pair 28: projection NInst at decision 583,
 // gorge leading, on the autopay surface.
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCEvangelOfHeliodReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "mbc_devotion_facedown_cost")
@@ -23,6 +25,8 @@ func TestMBCEvangelOfHeliodReprosLockstep(t *testing.T) {
 // Soldier tokens more than the kernel's four. The recording is the first
 // divergence of dr-mbc-bbaa pair 29: projection NInst at decision 438, gorge
 // leading, on the autopay surface.
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCPhasedOutNoDevotionReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "mbc_devotion_phased_out_cost")

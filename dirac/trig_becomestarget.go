@@ -19,6 +19,18 @@ import (
 // Never set in production.
 var DebugBtSelfOff bool
 
+// BtStats, when DebugBtStats is non-nil, counts the object-targeted
+// BecomesTarget triggers the games queued: the btWatchers walk's queues and
+// the plain self walk's (becameTarget's fireObjGen branch). The lockstep
+// tests read it to prove the games reached the walk; nothing else reads it.
+type BtStats struct {
+	Queues int
+}
+
+// DebugBtStats is the lockstep hook of the BecomesTarget walk. Never set in
+// production.
+var DebugBtStats *BtStats
+
 // btSelfOff reports whether listener ability a is the self form and the
 // mutation switch is on. TfSelf is the structural test: the trigger builder
 // sets it only when the whole filter is the bare self clause, so a future
@@ -55,6 +67,7 @@ func btSelfOff(a *kop.Ability) bool {
 //go:noinline
 func (s *State) btWatchers(k *prep, sl Slot, o Obj, e *stackEntry) {
 	ctrl := s.perms[sl].ctrl
+	n0 := s.npend
 	s.eachTrigger(k, kop.TrigBecomesTarget, func(l trigListener, a *kop.Ability) {
 		if a.Trig.N == kop.TrigNValiant {
 			return
@@ -65,8 +78,18 @@ func (s *State) btWatchers(k *prep, sl Slot, o Obj, e *stackEntry) {
 		if a.Trig.Whose == kop.WhoseOpp && e.ctrl == l.ctrl {
 			return
 		}
-		s.objTrigGen(k, kop.TrigBecomesTarget, l, a, sl, o, ctrl, 0)
+		tpl := ctrl
+		if a.Trig.N == kop.TrigNSrcSpell {
+			if !s.btSpellSrcOK(k, l, a, e) {
+				return
+			}
+			tpl = e.ctrl // the trigger player is the spell's controller (TriggeredSourceController)
+		}
+		s.objTrigGen(k, kop.TrigBecomesTarget, l, a, sl, o, tpl, 0)
 	})
+	if st := DebugBtStats; st != nil && s.npend > n0 {
+		st.Queues++
+	}
 }
 
 // btSpellTarget fires the Tf2SpellToo watchers for spell object o on the
@@ -96,4 +119,20 @@ func (s *State) btSpellTarget(k *prep, o Obj, e *stackEntry) {
 		}
 		s.queueTrig(k, l, a, o, sp.ctrl, 0)
 	})
+}
+
+// btSpellSrcOK is the source gate of a ValidSource$ Spell form. Gorge's bare
+// Spell base (effects matchesBaseSpell) is any object on the stack, so an
+// ability or a triggered ability targeting the permanent matches it too;
+// Spell.YouCtrl compares the stack object's controller with the listener's,
+// and a type word (Spell.Aura, Instant,Sorcery) reads the object's card face,
+// which only a spell has.
+func (s *State) btSpellSrcOK(k *prep, l trigListener, a *kop.Ability, e *stackEntry) bool {
+	if a.Trig.Whose == kop.WhoseYou && e.ctrl != l.ctrl {
+		return false
+	}
+	if a.Trig.Filter2 == 0 {
+		return true
+	}
+	return e.kind == seSpell && s.matchCardAt(k, a.Trig.Filter2, e.card, e.ctrl, l.ctrl, e.obj)
 }

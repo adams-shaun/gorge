@@ -1,0 +1,14 @@
+# the snow spent pool: Graven Lore, Berg Strider and Tundra Fumarole read
+# Count$CastTotalManaSpent Snow, the snow units their cast's payment took
+# (CR 107.4h), over snow and nonsnow basics.
+Graven Lore
+Berg Strider
+Tundra Fumarole
+Hill Giant
+Grizzly Bears
+Lightning Bolt
+Snow-Covered Island
+Snow-Covered Mountain
+Island
+Mountain
+Forest

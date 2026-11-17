@@ -82,7 +82,7 @@ func (s *State) retraceCost(k *prep, e *stackEntry) *kop.Cost {
 // cast route the retrace walk does not price, or on a table with a beam me
 // up grant (the mode-2 target byte is a permission index there). The offer
 // is withheld rather than mispriced (kw_offkwgrant.go).
-const StallRetraceGrant = 182
+const StallRetraceGrant = 181
 
 func init() { stallNames[StallRetraceGrant] = "retracegrant" }
 

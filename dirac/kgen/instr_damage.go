@@ -73,7 +73,8 @@ func (ic *instrCtx) opSweepFrom() error {
 	ki := &ic.ki
 	in := &ic.in
 	// OpExt ExtSweepFrom over Obj, B the amount, C&1 the
-	// source's own slot excluded
+	// source's own slot excluded, C&2 each player after the creatures
+	// (a capturing emblem's DamageSource$ Remembered sweep)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtSweepFrom)), int16(in.C)
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
@@ -316,12 +317,12 @@ func (ic *instrCtx) opPreventNext() error {
 	ki := &ic.ki
 	in := &ic.in
 	cb := ic.cb
-	// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only (dirac/repl_prevnext.go)
+	// OpExt ExtPreventNext on Obj, B the amount, C 1 for combat damage only, C 2 for all damage until the recipient leaves (dirac/repl_prevnext.go)
 	v, err := cb.value(in.A)
 	if err != nil {
 		return err
 	}
-	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&1)
+	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&3)
 	return nil
 }
 

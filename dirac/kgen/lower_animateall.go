@@ -58,9 +58,7 @@ func (lc *lowerCtx) animateAll(ps *params) error {
 		return err
 	}
 	ps.consume("IsCurse")
-	lc.animAll = true
 	o, dur, chosen, err := lc.animateOverride(ps, lRef{})
-	lc.animAll = false
 	if err != nil {
 		return err
 	}

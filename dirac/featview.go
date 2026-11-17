@@ -397,6 +397,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
 	}
+	if k.gen != nil && k.gen.uses.has(useAnyColorSpell) && !s.convAnyType(k, SeatIx(p), o) && s.convAnyColor(k, SeatIx(p), o) {
+		cost = planUnderRider(cost, false, true) // the pool spends under the any-colour conversion (mana_convertcreature.go)
+	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
 
@@ -432,6 +435,9 @@ func (s *State) FeatFacePoolPays(p uint8, o Obj, face uint8, extra *[6]int32) bo
 
 // poolPays reports whether p's floating pool alone pays cost.
 func (s *State) poolPays(p uint8, cost *kop.ManaCost) bool {
+	if cost.Snow != 0 {
+		return s.snowPays(p, cost) // {S}: snow units of the pool (mana_snow.go)
+	}
 	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
@@ -732,8 +738,8 @@ func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 // by a scripted potential play the oracle lowers, which its list omits.
 func (s *State) FeatPlannedActivation(p uint8, o Obj, ab uint8) bool {
 	k := s.k()
-	if k.gen == nil || len(k.gen.grantPC) == 0 || ab&0x80 != 0 {
-		return true
+	if k.gen == nil || len(k.gen.grantPC) == 0 || isGainedMode(ab) || ab&0x80 != 0 {
+		return true // a gained or granted ability names no printed index
 	}
 	cost, ex, ok := s.activationMana(k, o, ab)
 	if !ok {
@@ -1625,7 +1631,15 @@ func (s *State) FeatAbilityPoolPays(p uint8, o Obj, ab uint8, host Obj) bool {
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
 		c = s.cardAt(ob.slot)
 	}
-	if ab&0x80 != 0 {
+	if isGainedMode(ab) {
+		// a gained ability (static_gainsof.go): its cost is the foreign
+		// permanent's card's (the action's target)
+		if host == NoObj || s.objs[host].zone != kop.ZoneBattlefield || s.objs[host].slot == NoSlot {
+			return false
+		}
+		ab &^= gainedMode
+		c = s.cardAt(s.objs[host].slot)
+	} else if ab&0x80 != 0 {
 		// a granted ability: its cost is the granting card's (the action's
 		// target), not the source's
 		if host == NoObj || s.objs[host].zone != kop.ZoneBattlefield || s.objs[host].slot == NoSlot {

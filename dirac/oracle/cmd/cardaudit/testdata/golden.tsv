@@ -1,0 +1,5 @@
+card	g_claim	g_missing	d_claim	d_lists	lir_now	lir_credit	stale	keys	branches	unkeyed	missing	lost	legacy	x_claim	x_bucket	x_keys	delta_open	delta_blame	g_keys
+Gone Card	-	-	unverified	-	aaaabbbbccccdddd	aaaabbbbccccdddd	0	1/1	0/0	0	-	1	0	-	-	-	-	-	-
+Lost Card	-	-	supported	a	deadbeefdeadbeef	-	0	-	-	0	-	0	1	-	-	-	-	-	-
+Push	supported	-	refused	-	aaaabbbbccccdddd	-	0	-	-	0	-	0	0	-	-	-	-	-	-
+Sol Ring	supported	-	supported	a	1111222233334444	1111222233334444	0	3/4	2/3	0	api:TestBranch,api:TestUnused	0	0	-	-	-	-	-	-

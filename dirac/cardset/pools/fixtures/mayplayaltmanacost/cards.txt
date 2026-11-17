@@ -1,0 +1,8 @@
+# a printed MayPlay$ static's MayPlayAltManaCost$: Bolas's Citadel (lands and
+# spells from the top of the library, a spell paid for with life equal to its
+# mana value) beside creatures, a removal spell and lands, for the oracle's
+# constructed lockstep (dirac/oracle/mayplayaltmanacost_lockstep_test.go)
+Bolas's Citadel
+Doom Blade
+Swamp
+Walking Corpse

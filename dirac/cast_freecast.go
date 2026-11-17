@@ -28,7 +28,10 @@ func (s *State) freeQueued(o Obj) bool {
 //     commits; a refused or reversed cast never commits and keeps it).
 //   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
-//   - C bit 8: the copy pays its mana cost; bit 9: a literal Amount$ A (the ask closes after A picks).
+//   - C bit 8: the cast pays its mana cost (a Play without WithoutManaCost$
+//     True: the copy's cast via cast_exilegrant.go, every other card's via
+//     turn_gen.go's drain); bit 9: a literal Amount$ A (the ask closes after A picks).
+//   - C bit 11 (freeMandatory): no Optional$ True, so no Done is offered.
 //   - C bit 10 (freeSpellMV): the filter's mana-value bound is the ValidSA$ one, read on the spell
 //     cast: a split card counts its front half, not the sum of its halves.
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
@@ -43,6 +46,10 @@ func (s *State) freeQueued(o Obj) bool {
 const (
 	// freeSpellMV is OpCastFree's C bit 10 (see the operands above).
 	freeSpellMV = 1 << 10
+	// freeMandatory is OpCastFree's C bit 11: the Play has no Optional$ True
+	// (gorge effPlay's ask has Min 1, or Min = Max under Amount$ All), so the
+	// offer has no Done while a candidate is left.
+	freeMandatory = 1 << 11
 
 	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
 	freeSeatMask  = 1<<freeSeatBits - 1
@@ -64,12 +71,14 @@ var _ = [1<<freeSeatBits - MaxSeats]struct{}{}
 const sfFreeGY uint8 = 1 << 4
 
 // exilesOnLeave reports whether a spell entry leaving the stack for the
-// graveyard is exiled instead: the flashback family, or a free cast with
-// ReplaceGraveyard$ Exile (gorge state.ExilesInsteadOfGraveyard). The one
-// predicate every stack exit reads (finishResolve, the held-spell exit,
-// counterAt), so a new exit cannot miss the rider.
+// graveyard is exiled instead: the flashback family, or a free cast or paid
+// play with ReplaceGraveyard$ Exile (gorge state.ExilesInsteadOfGraveyard).
+// The one predicate every stack exit reads (finishResolve, the held-spell
+// exit, counterAt), so a new exit cannot miss the rider. sfFreeGY is bit 4,
+// stamped on the stack entry at cast.go's finishBuild (during a build the bit
+// is sfFbGranted, and every reader here sees a pushed entry).
 func (e *stackEntry) exilesOnLeave() bool {
-	return e.flags&sfFlashback != 0 || e.flags&sfFree != 0 && e.flags&sfFreeGY != 0 && !DebugM11NoReplaceGY ||
+	return e.flags&sfFlashback != 0 || e.flags&sfFreeGY != 0 && !DebugM11NoReplaceGY ||
 		e.kind == seSpell && e.remVer&spellExileLeave != 0 // an Effect's exile-instead mark (repl_stackexile.go)
 }
 
@@ -190,4 +199,15 @@ func (s *State) forgetRemGen(o Obj) {
 			return
 		}
 	}
+}
+
+// castFreeDoneOption adds the CastFree offer's Done (decline, or stop picking)
+// unless the open offer is mandatory (C bit 11). The hideaway's offer
+// (kw_hideaway.go) rides the same ask over another instruction, so the op is
+// checked first.
+func (s *State) castFreeDoneOption(k *prep, d *Decision) {
+	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpCastFree && in.C&freeMandatory != 0 {
+		return
+	}
+	d.add(MakeAction(AkDone, 0, 0, 0))
 }

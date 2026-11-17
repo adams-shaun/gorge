@@ -517,6 +517,79 @@ func (s *State) windowGrantMask(k *prep, sl Slot) (mask uint8) {
 	return mask
 }
 
+// grantUnit is a source's merged granted mana: the largest amount one
+// activation makes, its colour mask, and whether that amount is all one
+// chosen colour (manaOneColour), which the availability must model as a
+// one-colour unit rather than that many independent any-colour units. alt is
+// the source's own fixed face when a larger one-colour grant governs the
+// merged unit (a colourless host's {C} under Nature's Embrace): the payment
+// takes that face or the grant, never both.
+type grantUnit struct {
+	mask, n       uint8
+	one           bool
+	altMask, altN uint8
+}
+
+// add merges one grant into u: a larger amount governs, and an equal amount
+// is one-colour only when every candidate of that amount is.
+func (u *grantUnit) add(mask, n uint8, one bool) {
+	u.mask |= mask
+	if n > u.n {
+		u.n, u.one = n, one
+	} else if n == u.n {
+		u.one = u.one && one
+	}
+}
+
+// mergeGrantFace joins a source's own tap face with its granted tap face: the
+// permanent taps once, so the two are alternatives. A larger grant, or one of
+// the same amount that is one-colour, governs the merged amount. The own face
+// is kept as the fixed alternative only when it makes {C}, the one colour the
+// grant's WUBRG block cannot choose -- a printed colour is already covered by
+// that block -- so the printed {C} is neither lost nor counted beside the
+// grant (CR 106.4, 106.12a). Otherwise the own face governs, as before.
+func mergeGrantFace(own, grant grantUnit) grantUnit {
+	if grant.mask == 0 {
+		return own
+	}
+	if own.mask == 0 {
+		return grant
+	}
+	if grant.n > own.n || grant.n == own.n && grant.one {
+		if grant.one && own.mask&(1<<kop.C) != 0 {
+			grant.altMask, grant.altN = own.mask, own.n
+		}
+		grant.mask |= own.mask
+		return grant
+	}
+	if grant.n == own.n {
+		grant.one = grant.one && own.one
+	}
+	own.mask |= grant.mask
+	return own
+}
+
+// addGrantUnit adds u's unit to a: its colours and count, and its one-colour
+// constraint when the amount is all one chosen colour. The one-colour entry
+// carries u's group mask so oneColourPays takes this unit's units out even
+// when the source's printed mask joined them (0x3f), and u's fixed
+// alternative face when the printed ability is the other choice.
+func (s *State) addGrantUnit(a *avail, u grantUnit) {
+	if u.mask == 0 {
+		return
+	}
+	s.addGrantUnits(a, u.mask, u.n)
+	if u.one {
+		s.addOneColourAlt(a, u.mask, u.n, u.altMask, u.altN)
+	}
+}
+
+// grantTapNow reports whether sl can pay a {T} ability now: untapped and not
+// summoning sick (CR 302.6).
+func (s *State) grantTapNow(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl)
+}
+
 // availGrant adds slot sl's unit(s) to a (availFor) on a table with
 // Continuous mana grants: its own ability's colours (pc) joined with
 // every granted ability's, one unit (the permanent taps once; gorge's
@@ -550,9 +623,22 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		return
 	}
 	if ng == 0 || (!own && ng == 1) {
+		if ng == 1 {
+			// a grant-only source whose single ability costs a {T} prices
+			// nothing while it cannot tap (CR 302.6): its early return bypasses
+			// the census gate availFor applies
+			if gv := s.grantView(k.gen, gi[0], sl); gv.manaTap && !s.grantTapNow(k, sl) {
+				return
+			}
+		}
 		s.addGrantUnits(a, mask, n)
 		if ng == 0 && pc.manaOne {
 			s.addOneColour(a, n)
+		} else if ng == 1 && s.g.availX&availHyp == 0 {
+			// a source whose only mana is one grant: its "N mana of any one color" is one colour
+			if gv := s.grantView(k.gen, gi[0], sl); gv.manaOne {
+				s.addOneColour(a, gv.manaN)
+			}
 		}
 		s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 		return
@@ -560,32 +646,53 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if s.g.availX&availWalk != 0 {
 		if own {
 			s.addGrantUnits(a, mask, n)
+			if pc.manaOne && s.g.availX&availHyp == 0 {
+				s.addOneColour(a, n) // the printed amount is one colour, whichever is chosen (availFor's census)
+			}
 		}
 		for i := 0; i < ng; i++ {
-			pc := s.grantView(k.gen, gi[i], sl)
-			s.addGrantUnits(a, s.srcMaskAt(pc, sl), pc.manaN)
+			gv := s.grantView(k.gen, gi[i], sl)
+			s.addGrantUnits(a, s.srcMaskAt(gv, sl), gv.manaN)
+			if gv.manaOne && s.g.availX&availHyp == 0 {
+				s.addOneColour(a, gv.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen
+			}
 		}
 		s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 		return
 	}
+	s.availGrantJoin(k, sl, pc, a, &gi, ng, own, mask, n)
+}
+
+// availGrantJoin is availGrant's census of a dual source's grants beside its
+// own ability: the tap is one ability of the join's colours and the larger
+// amount, so the units join (one unit of the larger amount, the colours
+// unioned), a printed or granted sacrifice-only part is a unit of its own
+// beside it, and a one-colour source (a printed manaOne ability or a grant's
+// "N mana of any one color") reads as one colour, whichever is chosen
+// (oneColourPays), as availFor's printed path does. gi holds the granted
+// abilities' indices, ng how many are live.
+func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGrants]int16, ng int, own bool, mask, n uint8) {
 	if !own {
 		mask, n = 0, 0
 	}
+	ownFace := grantUnit{mask: mask, n: n, one: own && pc.manaOne}
 	// A printed sacrifice-only ability (an Eldrazi Spawn's) costs no {T} either:
 	// it is a unit of its own beside a tap grant's, and a tapped source still
 	// pays it, though not the tap grant (CR 602.2b, 605.1a).
 	var pMask, pN uint8
+	pOne := false
 	spawnNoTap := false
 	if own && k.sacOnlyMana && pc.manaSacOnly {
 		pMask, pN = mask, n
-		mask, n = 0, 0
+		pOne = pc.manaOne
+		ownFace = grantUnit{}
 		spawnNoTap = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
 	}
 	// A sacrifice-only grant (Lotus Ring's "Sacrifice this creature: Add three
 	// mana of any one color") costs no {T}: the source taps for its other
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
-	var sMask, sN uint8
+	var su, gu grantUnit
 	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
 	tapsNot := false
 	if ownSac {
@@ -594,38 +701,36 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		// colour) -- the tap makes its mana, then the sacrifice makes its own
 		// (CR 602.2b, 605.1a); a tapped or summoning-sick source has only the
 		// sacrifice (CR 302.6)
-		sMask, sN, mask, n = mask, n, 0, 0
+		su = ownFace
 		tapsNot = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
 	}
 	for i := 0; i < ng; i++ {
-		pc := s.grantView(k.gen, gi[i], sl)
-		if tapsNot && !pc.grantSac {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if tapsNot && !gv.grantSac {
 			continue
 		}
-		if pc.grantSac && s.grantSacLive(sl, pc) {
-			sMask |= s.srcMaskAt(pc, sl)
-			sN = max(sN, pc.manaN)
+		if gv.grantSac && s.grantSacLive(sl, gv) {
+			su.add(s.srcMaskAt(gv, sl), gv.manaN, gv.manaOne)
 			continue
 		}
 		if spawnNoTap {
 			continue // a tapped or summoning-sick Spawn cannot pay a granted {T} ability (CR 302.6)
 		}
-		mask |= s.srcMaskAt(pc, sl)
-		n = max(n, pc.manaN)
+		gu.add(s.srcMaskAt(gv, sl), gv.manaN, gv.manaOne)
 	}
-	if mask == 0 {
-		mask, n, sMask, sN = sMask, sN, 0, 0
+	u := mergeGrantFace(ownFace, gu)
+	if u.mask == 0 {
+		u, su = su, grantUnit{}
 	}
-	if mask != 0 {
-		s.addGrantUnits(a, mask, n)
-	}
-	if sMask != 0 {
-		s.addGrantUnits(a, sMask, sN)
-	}
+	s.addGrantUnit(a, u)
+	s.addGrantUnit(a, su)
 	if pMask != 0 {
 		s.addGrantUnits(a, pMask, pN)
+		if pOne && pN > 1 && pMask == uint8(kop.ColAny) {
+			s.addOneColour(a, pN) // the printed sacrifice-only amount is one colour, whichever is chosen
+		}
 	}
-	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
+	s.availGrantExtra(k, sl, pc, gi, ng, own, a)
 }
 
 // availGrantExtra adds the extra mana a tap of sl brings (mana_tapextra.go) to
@@ -985,7 +1090,12 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.n++
 	}
-	if holders == 0 {
+	if holders == 0 && g.n == 0 {
+		// The activation's own source is the only holder (g.ex): its {T}
+		// cannot also make the mana, so no grant funds it. Another gap kind
+		// (a Taps-deferred source, a filter) still can, and gorge's one
+		// prefix search activates it: keep those candidates and fall back to
+		// the printed sources only when no gap survives.
 		g.n, g.gapN = 0, 0
 		return
 	}
@@ -1026,7 +1136,10 @@ func (g *grantSrch) candidates(s *State) {
 // gapFlags sets candidate n's gap kinds for slot sl, out of the masks one
 // search's candidates lists: the kinds exclude the later ones, so a source
 // with several gap kinds branches as the first that matches. A holder of a
-// granted ability (ng > 0) branches on the grant side.
+// granted ability (ng > 0) branches on the grant side, except a rider-first
+// source whose printed rider is a Taps-deferred gap: that rider is tried
+// first, as gorge's "choose a mana ability" ask lists the printed ability
+// before the grant.
 func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm, cm, sm, am slotMask) {
 	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
 	g.sacx[n] = am.has(sl) && ng == 0 // a holder keeps the grant side (mana_grantsacx.go)
@@ -1036,9 +1149,18 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// rider land): its own production is no planner unit (availGrant counts
 		// the grant alone), so the search taps the rider beside the grants --
 		// first the rider step (gapBranch), then the grants' (visit), never
-		// both taps of one source (CR 605.1a).
+		// both taps of one source (CR 605.1a). Gorge's "choose a mana ability"
+		// ask lists the printed rider first, so the search tries the rider's
+		// step before the grant, and the grant side follows a failed rider
+		// (gapBranch's tdef arm reports not-a-gap then), at every node
+		// (Sandstone Needle beside Rain of Filth: the rider's {R}{R} pays the
+		// play, not the grant's sacrifice — and a play the rider cannot pay
+		// prices the Needle's own grant, not another land's).
 		g.tdef[n] = xm.has(sl) && !fm.has(sl) && !tm.has(sl)
-		g.each[n], g.wide[n], g.ctr[n], g.store[n] = false, false, false, false
+		g.each[n], g.wide[n], g.ctr[n] = false, false, false
+		// a battery that is itself a grant holder keeps both sides: its
+		// counters pay this slot (CR 107.3), its granted {T} the grants'
+		g.store[n] = sm.has(sl) && !fm.has(sl) && !tm.has(sl)
 		return
 	}
 	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
@@ -1070,7 +1192,7 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// makes no mana and a storage battery's X is announced, neither a
 		// branch of this search
 		a := g.k.ctrAbOf(s.cardAt(sl))
-		g.ctr[n] = !deadCtrAb(a) && !kop.StoreManaAb(a) // (mana_countercost.go)
+		g.ctr[n] = !deadCtrAb(a) && !kop.StoreManaAb(a) && !sacCtrManaAb(a) // (mana_countercost.go, mana_sacctr.go)
 	}
 }
 
@@ -1140,9 +1262,28 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		}
 		return false, false
 	case g.tdef[i]:
-		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
+		// its rider or deferred tap (mana_granttapsdefer.go). A grant holder's
+		// failed rider reports not-a-gap so visit runs its grant side: gorge's
+		// "choose a mana ability" ask lists the printed rider first, the
+		// granted ability after (Sandstone Needle beside Rain of Filth, whose
+		// {R}{R} cannot pay the {B} play — the plan taps the Needle's rider
+		// and sacrifices the NEEDLE over its grant, not another land's grant),
+		// and a node the rider's tap reached runs the tapped source's
+		// sacrifice-only grant alone (grantSacLive, mana_grantcost.go)
+		if found := g.tapsDeferBranch(t, i, sl); found || g.ng[i] == 0 {
+			return found, true
+		}
+		return false, false
 	case g.store[i]:
-		return g.storeBranch(t, i, sl), true // every counter it holds (mana_grantstore.go)
+		// every counter it holds (mana_grantstore.go); a failed storage branch
+		// of a grant holder leaves its grant side to visit (CR 605.1a)
+		if g.storeBranch(t, i, sl) {
+			return true, true
+		}
+		if g.ng[i] > 0 {
+			return false, false
+		}
+		return false, true
 	}
 	return false, false
 }
@@ -1219,14 +1360,11 @@ func (g *grantSrch) visit(t *State) bool {
 			return false
 		}
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && g.witnessKeeps(t, &cost) {
 		g.cheaper = cheap
 		return true
 	}
-	if g.nseen < len(g.seen) {
-		g.seen[g.nseen] = key
-		g.nseen++
-	}
+	g.remember(key)
 	sacd := g.sacrificed()
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
@@ -1396,6 +1534,9 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		g.sel = 0
 	}
+	if g.printedSacPass(t, sacd) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+		return true
+	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts).
 	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
@@ -1434,6 +1575,14 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// remember records key as a seen node, while the table has room.
+func (g *grantSrch) remember(key grantKey) {
+	if g.nseen < len(g.seen) {
+		g.seen[g.nseen] = key
+		g.nseen++
+	}
 }
 
 // playSourceGone: the searched activation's source left the battlefield on
@@ -2215,6 +2364,9 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 	need = s.playNeed(k, a)
 	switch a.Kind() {
 	case AkActivate:
+		if isGainedMode(a.Mode()) {
+			return cost, ex, need, false // a gained ability (static_gainsof.go): unpriced, as a granted one
+		}
 		if a.Mode()&0x80 != 0 {
 			return cost, ex, need, false
 		}
@@ -2327,7 +2479,7 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 	switch a.Kind() {
 	case AkActivate:
-		if a.Mode()&0x80 == 0 {
+		if !isGainedMode(a.Mode()) && a.Mode()&0x80 == 0 { // a gained or granted ability names no own index
 			need = s.abilityNeed(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:

@@ -153,6 +153,51 @@ func (e *Engine) revealCostAsk() bool {
 	pc := e.cast
 	for pc.RevealPart < len(pc.cost.Reveal) {
 		part := pc.cost.Reveal[pc.RevealPart]
+		if part.Dyn == "X" {
+			// xAsk has always run by the time the cost objects are chosen
+			// (CR 601.2h), so pc.xDone cannot tell whether another part announced
+			// X: the cost's own announce-bearing parts do (the tap election runs
+			// before xAsk and can read xDone; this one cannot). The "revealcost"
+			// answer arm binds X to the revealed count.
+			pre := costAnnouncesCastX(pc.cost) || pc.announceX != ""
+			cands := pay.CostCandidates(asPayer(e), pc.player, pc.card, state.ZHand, part.Spec, !pc.isAbility(), false)
+			lo, hi, ok := dynRevealRange(len(cands), pre, pc.x)
+			if !ok {
+				e.abortCast(pc, "reveal cost no longer payable; cast aborted", true)
+				return true
+			}
+			if hi == 0 {
+				// Nothing to reveal. When the election itself announced the
+				// count (no printed {X} and no announce-bearing part) the
+				// announcement is X = 0. A pre-announced X is already 0 and
+				// settles with no reveal at all: appending the candidates here
+				// would publish the payer's whole matching hand, the opposite
+				// of "reveal X = 0".
+				if !pre {
+					pc.x = 0
+				}
+				pc.RevealPart++
+				continue
+			}
+			if pre && hi == len(cands) {
+				// The pre-announced X already equals every candidate, so there
+				// is nothing to choose: reveal them all without a decision.
+				pc.Reveals = append(pc.Reveals, cands...)
+				for range cands {
+					pc.RevealHandArm = append(pc.RevealHandArm, true)
+				}
+				pc.RevealPart++
+				continue
+			}
+			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: lo, Max: hi,
+				Prompt: "Choose cards to reveal", Source: pc.card}
+			for _, id := range cands {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "revealcost", Obj: id, Label: e.targetName(id)})
+			}
+			e.choosing = chooseCast
+			e.ask(d)
+			return true
+		}
 		// A whole-hand Reveal (Reveal<N/Hand>) settles without asking: it
 		// reveals the payer's whole hand AS IT STANDS at payment. For a CAST
 		// the spell being paid for has already moved to the stack (CR 601.2a)
@@ -235,6 +280,18 @@ func (e *Engine) revealCostAsk() bool {
 		return true
 	}
 	return false
+}
+
+// dynRevealRange is the pick range of one Reveal<X/Spec> part (cost.dynRevealCost's
+// doc) over nCand matching hand cards: the election announces X, so any count
+// 0..nCand (X = 0 is a legal announcement); a pre-announced X (another
+// announce-bearing part ran xAsk) settles exactly, and ok is false when the
+// hand can no longer reveal that many.
+func dynRevealRange(nCand int, preAnnounced bool, x int32) (lo, hi int, ok bool) {
+	if !preAnnounced {
+		return 0, nCand, true
+	}
+	return int(x), int(x), int(x) <= nCand
 }
 
 // revealCostOrChooseAsk drives the either-or `RevealOrChoose<N/Spec>` parts,

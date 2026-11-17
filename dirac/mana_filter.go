@@ -98,6 +98,9 @@ func (g *genPrep) prepCensusGap(c CardID, j int, a *kop.Ability) {
 	if a.AFlags&kop.AfManaDynamic != 0 {
 		g.anyDynGap = true
 	}
+	if kop.GapLifeManaAb(a) {
+		g.uses.set(useLifeGap)
+	}
 }
 
 // scriptFilt: p's activatable filter sources (untapped), a slot mask.
@@ -734,7 +737,7 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 // (Pyromancer's Goggles) carries gfGapOther too (gen.go): otherGaps does
 // not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
-	m := s.gapMask(k, p, gfGapOther)
+	m := s.gapMask(k, p, gfGapOther).or(s.lifeGapMask(k, p))
 	if k.gen.anyDynGap {
 		for b := m; b.any(); b = b.rest() {
 			sl := b.first()
@@ -804,6 +807,11 @@ type filtStep struct {
 	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
 	// (mana_sacsource.go)
 	sacOnly bool
+	// wide: a funding source's answer is a gate-on pair's larger ability (the
+	// second of Whisperer of the Wilds' two: gorge's ability ask lists both
+	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
+	// mana srcYield's, where the census one makes manaN
+	wide bool
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -869,6 +877,11 @@ type filtSearch struct {
 	// those first, the mirror of gorge's scriptOrderAnswers on the same ask.
 	// It reorders the answers, never the answer set.
 	need [kop.NumManaKinds]bool
+	// lifeUsed: the life-only sources already activated on this path. A life
+	// cost is no {T}, so the source is repeatable, but gorge's prefix search
+	// (scriptSearch.visit) walks its gap list once: each gap activates at most
+	// once per path.
+	lifeUsed slotMask
 }
 
 // filtFunded reports whether gorge's census funds the fees of the filter gaps f:
@@ -1041,7 +1054,11 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	case st.restr:
 		s.filtRestrDo(k, p, st)
 	default:
-		s.poolAdd(p, int(st.ans), int(max(s.manaPCGen(k, st.sl).manaN, 1)))
+		n := int(max(s.manaPCGen(k, st.sl).manaN, 1))
+		if st.wide {
+			n = int(srcYield(s.manaPCGen(k, st.sl)))
+		}
+		s.poolAdd(p, int(st.ans), n)
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
 		s.tapPain(k, p, st.sl, int(st.ans)) // Cabal Pit's rider resolves with its mana (CR 605.3b)
@@ -1068,6 +1085,8 @@ func (s *State) fireFiltAbilityCast(k *prep, p uint8, st filtStep) {
 		s.fireManaAbilityCast(k, c, k.gen.restrRecOf(c).ab, p)
 	case st.gap:
 		s.fireViewAbilityCast(k, p, st.sl, s.manaPCGen(k, st.sl).manaAb)
+	case st.wide:
+		s.fireViewAbilityCast(k, p, st.sl, int8(s.widePairAb(k, st.sl, s.manaPCGen(k, st.sl))))
 	default:
 		s.fireViewAbilityCast(k, p, st.sl, s.manaAbForCol(k, st.sl, int(st.ans)))
 	}
@@ -1107,6 +1126,10 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	c := t.fork()
 	defer t.unfork()
 	q := c.npend
+	life := st.other.kind == otherLife
+	if life {
+		fs.lifeUsed = fs.lifeUsed.with(st.sl) // once per path (gorge's gap list)
+	}
 	c.filtDo(k, fs.p, st)
 	fs.path[fs.n] = st
 	fs.n++
@@ -1121,6 +1144,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 			fs.spill = c.g.stalled
 		}
 		return true
+	}
+	if life {
+		fs.lifeUsed = fs.lifeUsed.without(st.sl)
 	}
 	fs.n--
 	return false
@@ -1141,6 +1167,41 @@ func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
 	}
 	fs.ctrKey(k, t, &key)
 	return key
+}
+
+// skipSlot: sl is not this pass's to activate, or it is already a step of
+// this path: the play's own {T} source (CR 602.2b), a dead gap, a life-only
+// source outside its last-resort pass, or a life source already paid.
+func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap bool) bool {
+	if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
+		return true
+	}
+	if !gap {
+		return false
+	}
+	if fs.lifeUsed.has(sl) {
+		return true
+	}
+	_, life := t.lifeGapSource(k, sl)
+	return life
+}
+
+// lifePass activates one life-only gap of the node's order: the last resort,
+// after the gaps and the funding sources (gorge pays a filter's fee from a
+// land before it pays life).
+func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool {
+	for _, sl := range order {
+		if !fs.other.has(sl) || sl == fs.own || fs.dead.has(sl) || fs.lifeUsed.has(sl) {
+			continue
+		}
+		if _, ok := t.lifeGapSource(k, sl); !ok {
+			continue
+		}
+		if fs.otherGap(k, t, sl, funded) {
+			return true
+		}
+	}
+	return false
 }
 
 // visit is one priority node of the search.
@@ -1168,15 +1229,24 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
-	for pass := 0; pass < 2; pass++ {
+	for pass := 0; pass < 3; pass++ {
+		// pass 0: the gaps; pass 1: the funding sources; pass 2: a life-only
+		// source, the last resort (gorge pays a filter's fee from a land
+		// before it pays life, so a life gap must not pre-empt that funding).
+		if pass == 2 {
+			if fs.lifePass(k, t, order[:n], funded) {
+				return true
+			}
+			continue
+		}
 		gap := pass == 0
 		if !gap && funded >= fs.fees {
-			break
+			continue
 		}
 		for i := 0; i < n; i++ {
 			sl := order[i]
-			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
-				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
+			if fs.skipSlot(k, t, sl, gap) {
+				continue
 			}
 			if gap && fs.other.has(sl) {
 				if fs.otherGap(k, t, sl, funded) {
@@ -1248,7 +1318,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
 						return true
 					}
-				} else if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask))}, funded+1, gapUsed) {
+				} else if fs.fundOne(k, t, sl, pc, mask, funded, gapUsed) {
 					return true
 				}
 			}
@@ -1279,6 +1349,17 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		fs.n--
 	}
 	return false
+}
+
+// fundOne taps the one-colour funding source sl for its census ability, then
+// for a gate-on pair's larger one: gorge's ability ask lists both and the
+// search takes them in turn (filtStep.wide).
+func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8, funded int, gapUsed bool) bool {
+	ans := uint8(bits.TrailingZeros8(mask))
+	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
+		return true
+	}
+	return t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed)
 }
 
 // DebugFiltNoTrigSettle leaves a Taps trigger a filter-search step caused
@@ -1438,6 +1519,12 @@ func (s *State) gapSpendableMask(k *prep, m slotMask, d *payDesc) slotMask {
 // census's own membership, which reads every mana ability).
 func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
 	p := s.perms[sl].ctrl
+	if s.landSetLost(k, sl) {
+		// a land under a land-type setter (Contaminated Ground) lost its own
+		// abilities but taps for the intrinsic mana of its new basic type (CR
+		// 305.7, 305.6), which carries no spend restriction
+		return true
+	}
 	if !s.genLost(k, sl) {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {

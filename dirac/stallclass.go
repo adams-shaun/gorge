@@ -92,6 +92,7 @@ var stallCapacityReasons = [...]uint8{
 	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 	// a scaled cumulative upkeep cost past the packed ask (trig_cumulativepay.go)
 	StallCumulativeCost,
+	StallSrcMem, // a 65th live per-source Remembered/Imprinted record (zone_srcmem.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -118,11 +119,12 @@ var stallUnmodelledReasons = [...]uint8{
 	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
 	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
 	StallTextChange,        // a ChangeText whose from word the target's face reads: gorge rewrites the face, the kernel holds no text (act_changetext.go)
-	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
+	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount of 255 or more (repl_prevnext.go)
 	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
-	StallDredge,            // a draw path other than the turn draw or an OpDraw card meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
+	StallDredge,            // a draw-replacement body (repl_draw.go) or another unresumable draw path meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
 	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
+	StallGainsOf,           // a gained (GainsAbilitiesOf$) mana, limited, once-each-turn, loyalty, exhaust, host-cost or off-battlefield ability, or one past index 63 (static_gainsof.go)
 	StallRetraceGrant,      // a granted retrace offer the retrace walk does not price: gorge offers the cast, the kernel withholds it (kw_retrace.go)
 }
 

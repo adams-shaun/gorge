@@ -1019,6 +1019,26 @@ func isAsLongAsInPlayDuration(dur string) bool {
 	return untilHostLeavesPlayOrEOTCodes.Code(strings.ToLower(strings.TrimSpace(dur))) == asLongAsInPlayYes
 }
 
+// isUntilHostLeavesPlayDuration reports whether a Duration$ value is the bare
+// UntilHostLeavesPlay (Origin of Iron Man's untap lock).
+func isUntilHostLeavesPlayDuration(dur string) bool {
+	return strings.EqualFold(strings.TrimSpace(dur), "UntilHostLeavesPlay")
+}
+
+// anchorLockHostIncarnation anchors an Effect's bodyless CantHappen
+// replacement (an untap lock) whose Duration$ is AsLongAsControl, AsLongAsInPlay
+// or UntilHostLeavesPlay to the host incarnation it was created by: the host
+// bounced and recast is a new object (CR 400.7, 611.2b) and the lock does not
+// come back with it.
+func anchorLockHostIncarnation(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) {
+	if !IsAsLongAsControlDuration(rawDur) && !isAsLongAsInPlayDuration(rawDur) && !isUntilHostLeavesPlayDuration(rawDur) {
+		return
+	}
+	if inc := effectHostIncarnation(h, c); inc != 0 {
+		ce.SourceIncarnation = inc
+	}
+}
+
 // anchorEffectHostIncarnation anchors an UntilHostLeavesPlayOrEOT or
 // AsLongAsInPlay registration to the host incarnation the ability belongs to:
 // a host that leaves and returns is a new object (CR 400.7, 611.2b) the effect

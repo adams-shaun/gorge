@@ -33,6 +33,8 @@ type genPrep struct {
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
 	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
+	anySrcMem bool // some card keeps its Imprinted or Remembered on the source (CardDef.ImpPersist/SrcMem; zone_srcmem.go)
+	anySnow   bool // some card's printed or ability cost asks {S} or reads the snow spent (kop.ManaCost.Snow, CardDef.SpentSnow): the cold region holds the snow tally (mana_snow.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -143,7 +145,7 @@ type genPrep struct {
 	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
 	globTrigGrant bool
 	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom), or a granted one (anyProtGrant)
-	anyProtGrant  bool // a Continuous static has a ProtFrom quality (kop.Static.ProtFrom; kw_protection.go)
+	anyProtGrant  bool // a Continuous static or an Override record has a ProtFrom quality (kop.Static.ProtFrom, kop.Override.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -411,7 +413,7 @@ type genPrep struct {
 	replBits     []uint32
 	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
-	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
+	exileAnyC    []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
 	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
@@ -548,6 +550,15 @@ type genPrep struct {
 	uses useSet
 }
 
+// Per-card bits of genPrep.exileAnyC.
+const (
+	eaAny            uint8 = 1 << iota // its ReplExileOnLeave is the any-zone reading (Repl.C 1)
+	eaSelf                             // ... and its filter is the card itself: it exiles only itself, from any zone
+	eaLibBottom                        // its ReplGraveToLibrary inserts at the bottom (ReplLibBottom)
+	eaLibShuffle                       // ... shuffles after a top insert (ReplLibShuffle)
+	eaLibBattlefield                   // ... applies only to a move from the battlefield (ReplLibBattlefield)
+)
+
 // Replacement bits (genPrep.replBits).
 const (
 	rbDblDmg       uint32 = 1 << iota // ReplDoubleDamageToOpps
@@ -647,7 +658,74 @@ func tableHasReconfigure(t *kop.Table) bool {
 	return false
 }
 
+// noteKeptSets records the card's flags for a kept remembered or imprinted set
+// (zone_rememberpersist.go, zone_srcmem.go).
+func (g *genPrep) noteKeptSets(c *kop.CardDef) {
+	g.anyRemPersist = g.anyRemPersist || c.RemPersist
+	g.anySrcMem = g.anySrcMem || c.ImpPersist || c.SrcMem
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
+// dynamicManaCost reports whether a's Cost$ is a shape the dynamic variants
+// (varPC) price: a bare {T}, or {T} plus sacrificing the source (Lotus
+// Blossom's "Add X mana of any one color"). Any other cost stays off the
+// autopay census.
+func dynamicManaCost(a *kop.Ability) bool {
+	switch a.Cost.Flags {
+	case kop.CostTap, kop.CostTap | kop.CostSacSelf:
+		return true
+	}
+	return false
+}
+
+// exileAnyBits ors bits into card i's genPrep.exileAnyC byte.
+func (g *genPrep) exileAnyBits(t *kop.Table, i int, bits uint8) {
+	if g.exileAnyC == nil {
+		g.exileAnyC = make([]uint8, len(t.Cards))
+	}
+	g.exileAnyC[i] |= bits
+}
+
+// prepExileOnLeave folds one ReplExileOnLeave into g. A self filter with
+// Repl.C 1 is the card's own from-anywhere replacement: no battlefield
+// permanent carries it in another zone, so eaSelf marks the card itself
+// (repl_exileonleave.go).
+func prepExileOnLeave(g *genPrep, t *kop.Table, i int, a *kop.Ability, pc *pcard) {
+	g.replBits[i] |= rbExileOnLeave
+	pc.hasStat = true
+	if g.exileOnLeave == nil {
+		g.exileOnLeave = make([]kop.FilterID, len(t.Cards))
+	}
+	g.exileOnLeave[i] = a.Repl.Filter
+	if a.Repl.C != 1 {
+		return
+	}
+	bits := eaAny
+	if filterSelfOnly(t, a.Repl.Filter) {
+		bits |= eaSelf
+	}
+	g.exileAnyBits(t, i, bits)
+	g.anyExileAny = true
+}
+
+// prepGraveToLibrary folds one ReplGraveToLibrary into g.
+func prepGraveToLibrary(g *genPrep, t *kop.Table, i int, a *kop.Ability) {
+	g.replBits[i] |= rbGraveLib
+	var bits uint8
+	if a.Repl.C&kop.ReplLibBottom != 0 {
+		bits |= eaLibBottom
+	}
+	if a.Repl.C&kop.ReplLibShuffle != 0 {
+		bits |= eaLibShuffle
+	}
+	if a.Repl.C&kop.ReplLibBattlefield != 0 {
+		bits |= eaLibBattlefield
+	}
+	if bits != 0 {
+		g.exileAnyBits(t, i, bits)
+	}
+}
+
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
 	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
@@ -665,6 +743,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		replBits:    make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
 	}
+	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
 		c := &t.Cards[i]
@@ -693,6 +772,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Overrides[i].PTDelta {
 			g.anyPTDelta = true
+		}
+		if t.Overrides[i].ProtFrom != 0 {
+			g.anyProtF, g.anyProtGrant = true, true // an override's granted protection reads (kw_protection.go protOvF)
 		}
 	}
 	for i := range t.Overrides {
@@ -972,9 +1054,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.HasForetell {
 			g.anyForetell = true
 		}
-		if c.RemPersist {
-			g.anyRemPersist = true
-		}
+		g.noteKeptSets(c)
 		if c.ExiledWith {
 			if g.exwRec == nil {
 				g.exwRec = make([]uint8, len(t.Cards))
@@ -1122,7 +1202,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if a.Trig.Event == kop.TrigBecomesTarget &&
 					(a.Trig.Flags&kop.TfSelf == 0 ||
-						a.Trig.Whose == kop.WhoseOpp && a.Trig.N != kop.TrigNValiant) {
+						a.Trig.Whose == kop.WhoseOpp && a.Trig.N != kop.TrigNValiant ||
+						a.Trig.N == kop.TrigNSrcSpell) {
 					// A BecomesTarget watcher, or the self form "whenever
 					// this becomes the target of a spell or ability an
 					// opponent controls" (TfSelf + WhoseOpp;
@@ -1205,18 +1286,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.replBits[i] |= rbDblCtr
 					pc.hasStat = true
 				case kop.ReplExileOnLeave:
-					g.replBits[i] |= rbExileOnLeave
-					pc.hasStat = true
-					if g.exileOnLeave == nil {
-						g.exileOnLeave = make([]kop.FilterID, len(t.Cards))
-					}
-					g.exileOnLeave[i] = a.Repl.Filter
-					if a.Repl.C == 1 {
-						if g.exileAnyC == nil {
-							g.exileAnyC = make([]bool, len(t.Cards))
-						}
-						g.exileAnyC[i], g.anyExileAny = true, true
-					}
+					prepExileOnLeave(g, t, i, a, pc)
 				case kop.ReplDoubleCountersOn:
 					g.replBits[i] |= rbDblCtrOn | ctrWildBits(a)
 					pc.hasStat = true
@@ -1253,7 +1323,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPayBeforeETB:
 					g.replBits[i] |= rbPayETB
 				case kop.ReplGraveToLibrary:
-					g.replBits[i] |= rbGraveLib
+					prepGraveToLibrary(g, t, i, a)
 				case kop.ReplMayNotUntap:
 					g.untapRepl = true // the untap step runs untapStepGen, which asks (repl_untapchoice.go)
 				case kop.ReplOthersDoesntUntap:
@@ -1362,7 +1432,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				}
 			case kop.AbActivated:
-				if a.ActZone == kop.ZoneGraveyard {
+				if graveOrExileAct(a) {
 					g.anyGraveAct = true
 				}
 				if a.ActZone == kop.ZoneHand {
@@ -1439,8 +1509,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if a.AFlags&kop.AfLatent != 0 {
 					var gp pcard
 					gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
+					gp.manaOne = manaOneColour(a, gp.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen (availGrant's one-colour census, as the printed path's)
 					gp.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
-					prepGrantCost(&gp, a) // {T} + pay N life, sacrifice this alone (mana_grantcost.go)
+					gp.manaOne = manaOneColour(a, gp.manaN) // Nature's Embrace's "two mana of any one color": one colour for both (CR 106.1)
+					prepGrantCost(&gp, a)                   // {T} + pay N life, sacrifice this alone (mana_grantcost.go)
 					self := a.AFlags&kop.AfManaReflect != 0 && a.ManaAmong == 0
 					if self {
 						g.prepSelfGrant(gp) // mana_owncolours.go
@@ -1460,12 +1532,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// alternative): an autopay source of that colour
 					pc.manaChosen = true
 				} else {
-					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
+					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && dynamicManaCost(a) && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))
 						for n := 0; n <= maxDynMana; n++ {
-							vp := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true, manaOne: manaOneColour(a, uint8(n))}
+							vp := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaSac: a.Cost.Flags == kop.CostTap|kop.CostSacSelf, manaDyn: true, manaOne: manaOneColour(a, uint8(n))}
 							if n == 0 {
 								vp.manaAb = -1
 							}
@@ -1580,6 +1652,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	g.manaTaps = anyTaps && (manaGrant || manaTapsPrinted || g.anyTapAll)
+	armGrantedStatics(t, g)
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {
@@ -1608,7 +1681,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Trig.Event {
 				case kop.TrigETB, kop.TrigDies, kop.TrigLeaves, kop.TrigSacrificed:
 					g.embObjEv |= 1 << a.Trig.Event
-				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained:
+				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked:
 					g.embCombatEv |= 1 << a.Trig.Event
 				case kop.TrigDamageDealtOnce:
 					g.embCombatEv |= 1 << kop.TrigDamageDone // the same hook (fireEmblemsDmg)
@@ -1669,6 +1742,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
+	prepEmbPrev(p, g)   // repl_staticprevent_emblem.go
 	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card

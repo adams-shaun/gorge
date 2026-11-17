@@ -518,6 +518,36 @@ func MoveCountersRemain(g *state.Game, id state.ObjID, from, to state.Zone) {
 	move(g, id, from, to, true)
 }
 
+// stashMayPlayMarker is the counter kind gorge's may-play-from-exile
+// mechanic stamps on an exiled card (Tinybones, Bauble Burglar's "with a
+// stash counter on it"). The counter grants the may-play while the card
+// sits in exile and is kept on the card it was played from; the kernel
+// mirrors that keeper in its projection, so the CR 400.7 entry clear keeps
+// this marker where it drops every other counter the card carried in its
+// public zone.
+const stashMayPlayMarker = "STASH"
+
+// keepStashMarker drops every counter but the stash may-play marker, in
+// place. Nil and all-marker slices come back untouched.
+func keepStashMarker(cs []state.Counter) []state.Counter {
+	kept := 0
+	for _, c := range cs {
+		if c.Kind == stashMayPlayMarker {
+			kept++
+		}
+	}
+	if kept == len(cs) {
+		return cs
+	}
+	out := cs[:0]
+	for _, c := range cs {
+		if c.Kind == stashMayPlayMarker {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // detachAttachmentsOnDeparture queues the CR 400.7 / CR 704.5m-n break of
 // every attachment to the permanent id that is leaving the battlefield
 // (called only from move's wasBattlefield-and-leaving arm, so the
@@ -954,6 +984,9 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// folds here as a pure function of the event-folded Game.DayNight.
 		if !wasBattlefield && g.DayNight == state.DayNightNight && entersTransformedAtNight(o) {
 			o.SetFaceIdx(1)
+			if o.CopyFaceBack != nil {
+				o.SwapCopyFaces() // a double-faced token copy shows its other edited face (CR 707.8a), as foldFlipFace does
+			}
 		}
 
 		// CR 400.7: a battlefield entry from another zone is a new object and
@@ -981,6 +1014,27 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// breakQueuedAttachmentsOnEntry). First entries have nothing
 			// queued against them and the walk finds no match.
 			breakQueuedAttachmentsOnEntry(g, id)
+			// CR 400.7: the entry is that object's move too, so a counter
+			// that sat on the card in a public zone while it was off the
+			// battlefield -- a curse Aura's {1}{B} counter put on the
+			// creature after it died (Torture) -- does not follow the
+			// entering permanent onto the battlefield. The spell that
+			// becomes the permanent is not a zone move (CR 400.7a-b
+			// continuation), and the CountersRemain static's own exception
+			// is marked on the event by rules' emit, so both keep theirs.
+			// A hidden zone is outside the model for this clear: nothing in
+			// the rules places a counter on a card in a hand or library, and
+			// the existing engine tests use that out-of-model state as a
+			// fixture, so only the public non-stack zones are folded here.
+			// The stash may-play marker is the one keeper beyond that
+			// exception: it is gorge's bookkeeping on the exiled card
+			// (Tinybones, Bauble Burglar), kept on the card played from
+			// exile and mirrored by the kernel's projection, and a land
+			// played from exile reaches the battlefield without the stack
+			// leg that would otherwise carry it.
+			if enteredFrom != state.ZStack && !enteredFrom.Hidden() && !countersRemain {
+				o.Counters = keepStashMarker(o.Counters)
+			}
 			o.AcqTurn = g.Turn
 			o.AcqStep = g.Step
 			// CR 400.7: a battlefield entry from another zone is a new
@@ -1062,6 +1116,14 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 				}
 			}
 			o.RememberedStackBase = 0
+			// The same CR 400.7 reset for the imprint association the leave
+			// arm keeps for leaves triggers. A stack entry was cleared when
+			// the spell went onto the stack and may carry cast-time imprints.
+			if o.Incarnation > 1 && enteredFrom != state.ZStack &&
+				!(o.Card != nil && o.Card.IsTransformingDFC() && o.FaceIdx != 0) {
+				o.Imprinted = nil
+				o.ImprintTokens = nil
+			}
 			// CR 400.7: a battlefield entry is a new object, so the cards
 			// the previous incarnation exiled are no longer its own -- except
 			// where the object continues: a spell becoming its permanent, and
@@ -1134,6 +1196,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.IsAttacking = false
 		o.IsBlocking = false
 		o.AttackingBattle = 0
+		o.AttackingBattleGen = 0
 		o.Band = 0
 		o.BlockedBy = nil
 		// CR 400.7: the this-turn block history is battlefield-stint state
@@ -1211,9 +1274,21 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Unlocked = false
 			o.CastDoor = false
 			o.LockedDoors = 0
+			// Imprinted / ImprintTokens are deliberately NOT reset here, like
+			// Remembered above: a leaves-the-battlefield trigger on the source
+			// (Parallax Nexus) reads "Defined$ Imprinted" after the fold, and
+			// CR 603.10a / 607.2a say it looks back at what the permanent
+			// had exiled. They reset at the next battlefield entry or when
+			// the object is moved onto the stack (below).
+			o.SeekFound = nil
+		}
+		// A recast / flashback begins a new object whose cast-time imprint
+		// writes come after this move, so the previous incarnation's stale
+		// association dies here (the stack-entry arm below cannot tell it
+		// from a cast-time write).
+		if !wasBattlefield && !wasStack && to == state.ZStack {
 			o.Imprinted = nil
 			o.ImprintTokens = nil
-			o.SeekFound = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an

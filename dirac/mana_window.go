@@ -261,7 +261,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if potential {
 			var pot avail
 			other := payDesc{class: pdOther}
-			s.availPotentialPay(k, p, &pot, &other)
+			s.availPotentialFor(k, p, &pot, &other, false)
 			if !pot.affords(cost, pipMaskOf(cost), 0) {
 				return false, held
 			}
@@ -276,7 +276,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			return false, held
 		}
 		if gap {
-			if s.windowCtrGapTap(k, p, sl) {
+			if s.windowCtrGapTap(k, p, sl, census) {
 				continue
 			}
 			if a, ok := s.riderAbilityOf(k, sl); ok && (s.scriptTapsDefer(k, p).has(sl) ||
@@ -309,6 +309,10 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
 				s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, &held)
+				continue
+			}
+			if s.anyDifferentAt(k, sl) {
+				s.windowAnyDifferentTap(k, p, sl, cost, useful, clamp, noOwed)
 				continue
 			}
 			if s.windowGapAnyColour(k, p, sl, cost, useful, clamp, noOwed) {
@@ -347,7 +351,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				col = c // the unsettled generic keeps every colour: the grant that makes the owed pip is listed first (mana_grantfirst.go)
 			}
 		}
-		sacOnly := windowSacOnly(k, pc) // printed or granted (mana_grantcost.go)
+		pc = s.windowGrantAnswer(k, sl, col, pc) // the answer is a colour only a granted ability makes: the tap is the grant's (mana_grantcost.go)
+		sacOnly := windowSacOnly(k, pc)          // printed or granted (mana_grantcost.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
 		}
@@ -428,6 +433,8 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 		return s.restrSpendable(k, p, d.card, d.og)
 	case pdAct:
 		return s.restrPoolAct(k, p, &d)
+	case pdSpecial:
+		return s.restrPoolSpecial(k, p, d.sp, d.tgt)
 	}
 	return s.restrPoolNonSpell(k, p)
 }
@@ -439,7 +446,7 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // skip the source without offering it.
 func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
 	return decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) &&
-		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want)
+		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want)
 }
 
 // windowPick is the window's next source among order (p's battlefield, in
@@ -452,8 +459,9 @@ func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uin
 // so the walk takes it here and riderGap pays its counter, mana and rider
 // (mana_rider.go) in the paying cast's window. A ward or unless window's
 // offer gate (census: windowAffordsTake) counts only rules unlessWindowUnits'
-// sources, so there a rider whose cost is more than a bare tap (Gemstone
-// Mine) cannot make the pay affordable (riderWindowable). The
+// sources, so there a rider whose cost or production the census does not
+// price (Gemstone Mine's any colour) cannot make the pay affordable
+// (riderWindowable); a fixed depletion fee (Remote Farm) can. The
 // potential route (a trigger-cost window, windowTapNoOwed) takes it too:
 // gorge's trigger-cost ask prices the payer's potential mana, whose walk
 // counts the rider's activation, so the elected pay funds it here the same
@@ -483,6 +491,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 				}
 				return o, true
 			}
+		}
+		if census && s.ctrCensusOffer(k, p, o) {
+			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
 		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
 			if !takeDeferred && s.planDeferred(k, p, o) {
@@ -1069,10 +1080,6 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 // restricted source's mana beside it (State.rb, which the cost cannot spend).
 // held stays empty: the restricted mana never enters the pool.
 func (s *State) tapWindowGap(k *prep, p uint8, sl Slot, held *[kop.NumManaKinds]uint8) {
-	if s.anyDifferentAt(k, sl) {
-		s.windowAnyDifferentTap(k, sl) // Firemind Vessel's tap makes no mana (mana_anydifferent.go)
-		return
-	}
 	var into [kop.NumManaKinds]uint8
 	s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &into)
 }
@@ -1135,20 +1142,21 @@ func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
 }
 
 // tapsDefRider: the Taps-deferred source o has a bounded rider ability the
-// window may take (not a depletion land's in an unless / ward window).
+// window may take.
 func (s *State) tapsDefRider(k *prep, o Slot) bool {
-	a, ok := s.riderAbilityOf(k, o)
-	return ok && !s.unlessSkipsRider(a)
+	_, ok := s.riderAbilityOf(k, o)
+	return ok
 }
 
-// unlessSkipsRider: a depletion land's activation (a SubCounter cost) is not
-// in an unless window (not a ward's). gorge's unlessWindowUnits lists only free-cost
-// abilities, so its offer gate never counts Remote Farm's {W}{W} and its tap
-// ask never lists the land; the walk of such a window leaves it alone
-// (payWindow, windowAffordsTake). A ward's window takes it. The potential route and the cast windows
-// still take it.
+// unlessSkipsRider: a depletion land's activation is in an unless window
+// when gorge's unless census prices it -- a fixed, source-anchored counter
+// removal on a production needing no colour choice (Remote Farm, CR 608.2g;
+// riderCensusFree). A choice-shaped one (Gemstone Mine's any colour) stays
+// out, as the census leaves it out (payWindow, windowAffordsTake). A ward's
+// window takes either. The potential route and the cast windows still take
+// them.
 func (s *State) unlessSkipsRider(a *kop.Ability) bool {
-	return s.g.turnF&turnUnlessWin != 0 && a.ManaRider == kop.ManaRiderDeplete
+	return s.g.turnF&turnUnlessWin != 0 && a.ManaRider == kop.ManaRiderDeplete && !riderCensusFree(a)
 }
 
 // turnUnlessWin is genState.turnF's bit 7: the walk is an unless / ward
@@ -1166,35 +1174,29 @@ func (s *State) setUnlessWin(on bool) {
 
 // riderOfferable: some source's first mana ability is a bounded rider
 // activation the window walk can take (windowPick's rider arm): gorge's
-// manual windows list it and the census probes must count it. unless is an
-// unless / ward window, which lists only bare-tap abilities
-// (unlessWindowUnits): a rider that removes counters as its cost (Gemstone
-// Mine) is no unit there, so it is not offerable.
-func (s *State) riderOfferable(k *prep, p uint8, unless bool) bool {
+// manual windows list it and the census probes must count it. census is an
+// unless / ward window, whose offer gate lists the sources gorge's
+// unlessWindowUnits prices (riderCensusFree): a rider whose cost or
+// production the census does not price is no unit there, so it is not
+// offerable.
+func (s *State) riderOfferable(k *prep, p uint8, census bool) bool {
 	if k.gen == nil || !k.gen.anyManaRider {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
-		if s.riderPotential(k, p, m.first()) && !(unless && s.riderCtrCost(k, m.first())) {
+		sl := m.first()
+		if a, ok := s.riderAbilityOf(k, sl); ok && s.riderPotential(k, p, sl) && (!census || riderCensusFree(a)) {
 			return true
 		}
 	}
 	return false
 }
 
-// riderCtrCost: the bounded rider at sl pays a counter-removal cost (a
-// depletion land, Gemstone Mine), which gorge's unless / ward window does not
-// price (unlessWindowUnits lists only mana abilities with a bare-tap cost).
-func (s *State) riderCtrCost(k *prep, sl Slot) bool {
-	a, ok := s.riderAbilityOf(k, sl)
-	return ok && a.Cost.Flags&kop.CostRemoveCtr != 0
-}
-
 // unlessTapsDeferred is scriptTapsDefer as an unless / ward window prices it:
-// without the riders that remove counters as their cost (riderCtrCost).
+// leaving out the riders riderCensusFree rejects.
 func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 	for m := s.scriptTapsDefer(k, p); m.any(); m = m.rest() {
-		if !s.riderCtrCost(k, m.first()) {
+		if a, ok := s.riderAbilityOf(k, m.first()); !ok || riderCensusFree(a) {
 			return true
 		}
 	}
@@ -1202,15 +1204,18 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 }
 
 // windowAffordsTake is windowAffords; unless: the window is an unless cost's,
-// which leaves a depletion land alone (unlessSkipsRider; a ward's takes it).
-// takeDeferred is an unless / ward window
-// (payWindow), which taps a planner-deferred source (a counter-rider mana
-// source, Twitching Doll) once the rest cannot cover the cost: gorge's
-// unlessWindowUnits lists it, so the pay is offered (CR 118.3, 605.3b).
+// which leaves a depletion land alone when its rider is not a census unit
+// (unlessSkipsRider; a ward's takes it). takeDeferred is an unless / ward
+// window (payWindow), which taps a planner-deferred source (a counter-rider
+// mana source, Twitching Doll, or a depletion land the census prices) once
+// the rest cannot cover the cost: gorge's unlessWindowUnits lists it, so the
+// pay is offered (CR 118.3, 605.3b). So does it tap a fixed counter-fee
+// source the census prices (unlessCtrGaps, Weather Maker), whose activation
+// the windowPick census arm takes (ctrCensusOffer).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) bool {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || s.riderOfferable(k, p, takeDeferred)) {
 		return false
 	}
 	t := s.fork()
@@ -1862,20 +1867,54 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // Courtyard's c 0 is the "choose a mana ability" ask's printed ability (no
 // ManaSymbol): engine order there. A counter-cost gap (Vivid Grove's second
 // ability) its counters and mana, the ask's colour (ctrChainTap).
-func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+//
+// It reports whether the tap could be made. The only failure is a life-only
+// gap whose life cost a prefix's earlier activation has already spent: the
+// shared life total is no part of the search's state, so a branch can outrun
+// it. scriptDFS treats that as a failed branch and backtracks; falling
+// through to the ordinary gap path would tap a source with no census ability
+// (eachFee's each-colour index is -1).
+func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) bool {
+	if _, life := s.lifeGapSource(k, sl); life {
+		if !s.isLifeGapAt(k, p, sl) {
+			return false
+		}
+		if s.lifeGapAnswers(k, sl) > 1 {
+			// one of any colour: the answer names a colour in the ask's
+			// scriptOrderAnswers order, which puts the play's announced
+			// colours first (lifeGapDo takes the engine-order colour)
+			var order [5]uint8
+			for i := range order {
+				order[i] = uint8(i)
+			}
+			needFirst(order[:], s.playNeed(k, a))
+			c = int(order[c])
+		}
+		s.lifeGapDo(k, p, sl, c) // pay the life, float the mana (mana_lifegap.go)
+		return true
+	}
 	if ca.has(sl) {
+		if s.anyDifferentAt(k, sl) {
+			// an AnyDifferent source: c is a rank among its distinct-colour
+			// answers (anyDifferentAnswers), mapped to the odometer answer
+			n := max(int(s.anyDifferentAbilityAt(k, sl).ManaN), 1)
+			need := s.playNeed(k, a)
+			s.anyDifferentTap(k, p, sl, anyDifferentRank(n, &need, c))
+			return true
+		}
 		s.caChainTap(k, p, a, sl, c) // a Combo Any source's colour ask (mana_comboany.go)
-		return
+		return true
 	}
 	if ctr.has(sl) {
 		s.ctrChainTap(k, p, a, sl, ctr, restr, c, &[kop.NumManaKinds]uint8{})
-		return
+		return true
 	}
 	if tapsDef.has(sl) && s.riderPlainFirst(k, sl) {
 		s.riderPlainGap(k, p, a, sl, c) // the plain first ability and the rider's colours are one ask (mana_rider.go)
-		return
+		return true
 	}
 	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+	return true
 }
 
 // scriptEngineAnswer maps the script search's answer index c of gap sl to
@@ -2017,7 +2056,8 @@ func (s *State) anyRAnswers(k *prep, sl Slot) uint8 {
 // replaying path's taps, so the play loop allocates nothing.
 func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, anyR, tapsDef, ca slotMask, path []uint8, dead *bool) (int, bool) {
 	var d Decision
-	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	life := s.lifeGapMask(k, p) // a life-only gap among the order (mana_lifegap.go)
+	depth := 0                  // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
 	// An activation's granted mana is the grant search's only for a play its
 	// walk lists (grantCap). A play the walk leaves off -- it needs a
@@ -2030,17 +2070,24 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	// and Skerry's {U}{U} (CR 605.1a, 601.2g-h).
 	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	for {
+		replay := true
 		if depth > 0 {
-			if nodes++; (ctr.any() || ca.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter gaps' answers multiply)
+			if nodes++; (ctr.any() || ca.any() || life.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter, Combo Any and life gaps' answers multiply)
 				return 0, false
 			}
 			t := s.fork()
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill)
+				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill) {
+					// a life-only gap the path's earlier activation made
+					// unpayable: no state under this prefix can tap it, so
+					// fail the branch and backtrack (see scriptGapTap)
+					replay = false
+					break
+				}
 			}
-			t.hideDeferred(k, p, tapsDef)
+			t.hideDeferred(k, p, a, tapsDef)
 			t.restrOptions(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
 			// is among the decision's options (offered). A trigger the path's
@@ -2060,7 +2107,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			// script. The walk mirrors that, on the copy resolvePrefixStack
 			// runs (mana_sacsource.go).
 			resolve := t.playNeedsEmptyStack(k, a)
-			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p, resolve)
+			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p, resolve)
 			if found && t.npend != 0 {
 				t.resolvePrefixPlay(k, a, p, t.sp, resolve)
 				if t.over {
@@ -2083,7 +2130,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			}
 			s.unfork()
 		}
-		if depth < len(order) { // the node's first child
+		if replay && depth < len(order) { // the node's first child
 			path[depth] = 0
 			depth++
 			continue
@@ -2101,8 +2148,16 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
+			case life.has(order[j]):
+				nch = s.lifeGapAnswers(k, order[j])
 			case ca.has(order[j]):
-				nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
+				if s.anyDifferentAt(k, order[j]) {
+					// an AnyDifferent source's distinct-colour answers, not the
+					// Combo Any amount caAmount reads (mana_distinctcolours.go)
+					nch = uint8(anyDifferentAnswers(max(int(s.anyDifferentAbilityAt(k, order[j]).ManaN), 1)))
+				} else {
+					nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
+				}
 			}
 			if path[j]+1 < nch {
 				path[j]++
@@ -2137,8 +2192,9 @@ func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order 
 // scriptDeadEndAny is scriptDeadEnd with a Courtyard, a Taps-deferred source
 // or a counter-cost gap among the gaps.
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
+	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	var order [MaxPerm]Slot
-	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
+	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	dead := true
@@ -2156,8 +2212,9 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	if hasOption(&d, a) {
 		return
 	}
+	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	var order [MaxPerm]Slot
-	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
+	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	var dead bool
@@ -2834,7 +2891,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 		s.pl[p].libRemove(o)
 	}
 	s.objs[o].zone = kop.ZoneNone
-	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z) == kop.ZoneLibrary {
+	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z, kop.ZoneLibrary) == kop.ZoneLibrary {
 		pl := &s.pl[p]
 		for i := len(after) - 1; i >= 0; i-- {
 			if x := after[i]; s.objs[x].zone == kop.ZoneNone {
@@ -3105,6 +3162,7 @@ func (s *State) manaStep(k *prep) bool {
 			s.bld().manaNP = 1 + uint8(s.npend) // the payment's mana abilities queue from here (unpushSpell keeps them)
 		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
+		s.convRouteFlag(k, e, cost) // the any-colour conversion's pool route rides bflAnyColor (mana_convertcreature.go)
 		anyColor := s.bld().bfl&bflAnyColor != 0
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
 			s.tapRiderPlan(k, *e) // (not again after a tap-another pick: the window runs on)
@@ -3300,19 +3358,21 @@ func (s *State) manaStep(k *prep) bool {
 				return true
 			}
 		case k.phyMana && s.phyBuild(k):
-			s.phyAbilityMana(k, e, &cost, &saved) // the plan for the cost its pips settled; the manual window when none (mana_phyrexian.go)
+			if !s.phyAbilityMana(k, e, &cost, &saved) { // the plan for the cost its pips settled; the manual window when none (mana_phyrexian.go)
+				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+				return true
+			}
 		case s.bld().pipN != 0 && s.hybAbilityUnwitnessed(k, e, a, sl) && !s.poolPays(e.ctrl, &cost):
 			if !s.hybWindowPay(k, e, &cost, &saved, hostSl, sl, selfUntapped) {
 				return true // gorge's manual window for the hybrid-only cost (mana_resolutionpay.go)
 			}
 		case s.bld().pipN != 0 && s.hybAbilityOffPlan(k, e.ctrl, &cost) &&
 			!s.abilityPlanSettles(k, e, s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), cost, &saved):
-			// gorge has no plan for the cost the pips settled: its manual window, which can run dry
-			// when a source's first ability is not the colour owed (a
-			// granted basic land type: static_landtype.go; a filter's
-			// free {C}); gorge then aborts the activation and keeps the
-			// taps, as for power-up
-			if !s.windowTapHeldOK(k, e.ctrl, &cost) && k.gen != nil && (k.gen.blgOn || k.gen.anyFilt) {
+			// gorge has no plan for the cost the pips settled: its manual window. A
+			// dry window (a source's first ability is not the colour owed, or the
+			// sources run out) reverses the activation and keeps the taps, as for
+			// power-up (CR 601.2g, 733.1); a paused window waits on its pick.
+			if !s.windowTapHeldOK(k, e.ctrl, &cost) && !s.winPaused() {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 				return true
 			}
@@ -3531,7 +3591,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].flags |= pfLoyaltyUsed
 	}
 	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
-		s.payCounterX(sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
+		s.payCounterX(k, sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
 	}
 	if a.Cost.Exert && sl != NoSlot {
 		// Exert<1/NICKNAME> as an activation cost (CR 702.100a): the
@@ -3545,7 +3605,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	if f&kop.CostRemoveCtr != 0 {
 		s.perms[sl].seeCtr(s)
-		s.perms[sl].subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N)) // trig_counterremoved.go
 	}
 	if f&kop.CostAddCtr != 0 {
 		// a counter put as a cost is no effect (CR 609.1; Doubling Season's
@@ -3569,6 +3629,21 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	if f&kop.CostPayEnergy != 0 {
 		s.payEnergy(e.ctrl, &a.Cost)
+	}
+	if a.Cost.Mill != 0 {
+		// Cost.Mill (CR 701.17b): the payer mills the count from their own
+		// library's top, where gorge's cast_commit pays it -- after the life
+		// and energy parts, before the draws (cost_millcost.go). The offer
+		// gates priced the library, so the count below is a guard only.
+		s.millCostPay(k, e.ctrl, int(a.Cost.Mill))
+	}
+	if a.Cost.RevealSelf {
+		// Cost.RevealSelf (the forecast family's Reveal<1/CARDNAME>, CR
+		// 702.54a): the cost's only candidate is the source itself (CR 201.5;
+		// cast_revealpick.go), so nothing moves: gorge settles it unasked
+		// (cast_asks.go revealCostAsk) and announces it as a Note only
+		// (cast_commit.go's EmitChoiceCosts). The offer gates priced the
+		// source's zone, so this arm is a guard only.
 	}
 	if f&kop.CostTapHost != 0 {
 		s.tapHostGen(k, e)
@@ -3659,8 +3734,11 @@ func (s *State) sacXWindowPays(k *prep, e *stackEntry, cost *kop.ManaCost) bool 
 	if s.bld().bfl&bflMsDone != 0 {
 		return true
 	}
-	if !k.tapMana || DebugNoSacXMana || cost.X != 0 || !s.sacXLive(k, e.ctrl) {
+	if !k.tapMana || DebugNoSacXMana || cost.X != 0 {
 		return false
+	}
+	if !s.sacXLive(k, e.ctrl) {
+		return s.openCensusUnpayable(k, e, cost) // the window runs dry and reverses (mana_openunpayable.go)
 	}
 	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, cost, int(e.x), NoObj, false, false, &chk)

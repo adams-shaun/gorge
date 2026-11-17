@@ -459,16 +459,20 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 	if s.availLeavesOut(k, sl) {
 		return // availFor never counted it: the units standing are the pool's
 	}
-	if k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0 && s.manaGranted(k, sl) {
+	noGrantWalk := k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0
+	if noGrantWalk && s.manaGranted(k, sl) {
 		return // an activated ability's prefix search leaves a granted-only source out of a (availFor): nothing of it to take out
 	}
-	if k.gen != nil && k.gen.anyContGrant {
+	if k.gen != nil && k.gen.anyContGrant && !noGrantWalk {
 		var gi [maxGrants]int16
 		if s.grantIdxs(k, sl, &gi) > 0 {
 			// a source with a granted mana ability is one unit of its own
 			// and the granted colours together (availGrant): taking out its
 			// own mask alone would leave that unit standing, and the tap
-			// that pays the cost would fund the cost's mana too
+			// that pays the cost would fund the cost's mana too. A noGrant
+			// walk left the grant out of the census (availFor), so the
+			// source stands as its printed unit and that is what comes out
+			// (CR 602.2b, 601.2g-h).
 			var u avail
 			u.xd, u.xdOn = a.xd, a.xdOn
 			s.availGrant(k, sl, pc, &u)

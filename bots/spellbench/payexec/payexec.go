@@ -452,6 +452,19 @@ func matchManaProved(d *decision.Decision, act decision.PaymentActivation, prove
 			c := symIndex(o.ManaSymbol)
 			return c == col && want[col] == 1
 		},
+		// A reflected mana ability (Plaza of Heroes' "add one mana of any
+		// color among legendary permanents you control") has no Produced$,
+		// so its wheel label is a bare "Add ": its colours are the board's,
+		// which the witness already priced, and no label says whether it is
+		// the witness's ability. The wheel's Ability index does when it is
+		// the step's own printed one, and it must outrank the any-colour
+		// class: Plaza's restricted "Add any color" fits the colour too, and
+		// the mana it floats is legendary-spell mana no ordinary activation
+		// can spend (CR 106.6).
+		func(o *decision.Option) bool {
+			return act.Ability.Kind == decision.PaymentAbilityPrinted && uint32(o.Ability) == act.Ability.Index &&
+				o.ManaSymbol == "" && bareAddLabel(o.Label)
+		},
 		func(o *decision.Option) bool {
 			if !single || o.ManaSymbol != "" {
 				return false
@@ -606,6 +619,13 @@ func matchAllocation(d *decision.Decision, want decision.ManaAmount) ([]int, boo
 	return choices, true
 }
 
+// bareAddLabel reports whether label names no production: "Add " beside an
+// optional cost prefix ("Sacrifice a land: Add ").
+func bareAddLabel(label string) bool {
+	l := strings.TrimSpace(label)
+	return l == "Add" || strings.HasSuffix(l, ": Add")
+}
+
 func hasCostPrefix(label string) bool {
 	i := strings.LastIndex(label, "Add ")
 	return i > 0 && strings.Contains(label[:i], ":")
@@ -727,15 +747,48 @@ func WindowChoices(d *decision.Decision, owed decision.ManaAmount) []int {
 	}
 	n := len(d.Options) / d.Min
 	out := make([]int, 0, d.Min)
+	var taken []string // option groups already chosen: Decision.Validate's exclusivity (Combo AnyDifferent)
 	for slot := 0; slot < d.Min; slot++ {
 		one := decision.Decision{Options: d.Options[slot*n : (slot+1)*n]}
+		if len(taken) > 0 {
+			one.Options = withoutGroups(one.Options, taken)
+		}
 		i := WindowAnswer(&one, owed)
 		out = append(out, i)
+		if g := d.Options[i].Group; g != "" {
+			taken = append(taken, g)
+		}
 		if c := strings.Index(syms, d.Options[i].ManaSymbol); c >= 0 && len(d.Options[i].ManaSymbol) == 1 && owed[c] > 0 {
 			owed[c]--
 		}
 	}
 	return out
+}
+
+// withoutGroups is opts less the options in one of the named groups: a colour
+// ask whose colours are mutually exclusive (Combo AnyDifferent, one group per
+// colour) offers a later mana only the colours not yet chosen. It is never
+// empty while the ask is satisfiable; if it would be, opts is kept whole.
+func withoutGroups(opts []decision.Option, taken []string) []decision.Option {
+	out := make([]decision.Option, 0, len(opts))
+	for _, o := range opts {
+		if o.Group == "" || !containsString(taken, o.Group) {
+			out = append(out, o)
+		}
+	}
+	if len(out) == 0 {
+		return opts
+	}
+	return out
+}
+
+func containsString(s []string, v string) bool {
+	for _, x := range s {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }
 
 // WindowAnswer is the deterministic answer to a payment window or colour

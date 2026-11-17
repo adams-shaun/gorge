@@ -798,9 +798,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ReplacementEvent:  event, ReplacementParams: params,
 				Chosen: chosenSnap, ChosenBound: chosenBound,
 			}
-			if IsAsLongAsControlDuration(rawDur) {
-				ce.SourceIncarnation = effectHostIncarnation(h, c)
-			}
+			anchorLockHostIncarnation(h, c, rawDur, &ce)
 			if untilUntapsBind(h, c, rawDur, &ce) {
 				effectContinuous(h, ce)
 			}
@@ -997,7 +995,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// sets ride the registration for Affected$ Card.IsRemembered and
 				// <base>.RememberedPlayerCtrl specs (Taunt from the Rampart,
 				// Mark for Death); lifetime is the Effect's own.
-				effectContinuous(h, state.ContinuousEffect{
+				effectContinuousLocked(h, c, state.ContinuousEffect{
 					Source:            c.Source,
 					Controller:        c.Controller,
 					Layer:             state.LAbilities,

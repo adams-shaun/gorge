@@ -389,7 +389,7 @@ func paymentPlanQueryClasses(e Engine, p state.PlayerID, minTier Tier, choices [
 func PaymentSearchEnv(verify bool) Env {
 	return Env{
 		Settle: func(c costvocab.Cost, pool state.Mana, life int32) (state.Mana, bool) {
-			paid, ok := ResolveManaWith(c, pool, state.Mana{}, [7]state.Mana{}, life, false, PipRider{}, nil)
+			paid, ok := ResolveManaWith(c, pool, state.Mana{}, [8]state.Mana{}, life, false, PipRider{}, nil)
 			return paid.Pool, ok
 		},
 		Verify: verify,

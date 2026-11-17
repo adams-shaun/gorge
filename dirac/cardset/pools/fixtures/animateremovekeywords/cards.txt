@@ -1,0 +1,16 @@
+# the bare Animate RemoveKeywords$ pool: Ageless Sentinels (blocks, loses
+# defender), Guardian of the Ages (loses defender and gains trample when a
+# creature attacks its controller), Walking Sponge (target creature loses
+# flying, first strike or trample until end of turn), beside attackers that
+# carry the keywords (dirac/oracle/animateremovekeywords_lockstep_test.go)
+Ageless Sentinels
+Guardian of the Ages
+Walking Sponge
+Wind Drake
+Savannah Lions
+Elite Vanguard
+Grizzly Bears
+Plains
+Island
+Mountain
+Forest

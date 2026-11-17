@@ -173,6 +173,7 @@ const (
 	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
 	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
 	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
+	cmpSameNameSelf   // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
 	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
 	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
 )
@@ -1131,10 +1132,8 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if ok, err := c.faceUpDisguise(p); ok {
 		return err // lower_filterwords.go
 	}
-	if p == "sharesNameWith Remembered" {
-		// gorge sharesNameWith Remembered: any remembered object with the
-		// candidate's printed name (Tainted Pact's repeat gate)
-		return c.setCmp(cmpSameNameRem, 0, 0, "", "")
+	if ok, err := c.sharesNameWithProp(p); ok {
+		return err
 	}
 	if n, ok := filterWordPred(p); ok {
 		return c.setCmp(cmpWord7, 0, n, "", "") // lower_filterwords.go
@@ -1210,6 +1209,25 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.addSubtype(p)
 	}
 	return fmt.Errorf("unknown property %q", p)
+}
+
+// sharesNameWithProp lowers the sharesNameWith property family and reports
+// whether p is one: Remembered reads the remembered set, Self the reading
+// source (Marvin, Murderous Mimic), whose ordinary ! prefix is CmpN 1.
+func (c *lClause) sharesNameWithProp(p string) (bool, error) {
+	switch p {
+	case "sharesNameWith Remembered":
+		// any remembered object with the candidate's printed name (Tainted
+		// Pact's repeat gate)
+		return true, c.setCmp(cmpSameNameRem, 0, 0, "", "")
+	case "sharesNameWith Self", "!sharesNameWith Self":
+		n := 0
+		if p[0] == '!' {
+			n = 1
+		}
+		return true, c.setCmp(cmpSameNameSelf, 0, n, "", "")
+	}
+	return false, nil
 }
 
 // addSubtype fills the clause's first free subtype slot; a third refuses.

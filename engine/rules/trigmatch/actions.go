@@ -381,7 +381,11 @@ const ChainNoTarget = "countered: no legal targets"
 // Glyph Keeper, Kira, the Glasskites, Valiant creatures): true when no EARLIER
 // TargetsChosen event this turn named the same object (or player). Same
 // replay-stable backwards log scan as firstDamageToThisTurn -- no new event
-// kind, no engine field, survives Clone -- stopping at TurnChange.
+// kind, no engine field, survives Clone -- stopping at TurnChange. For an
+// object it also stops at the object's latest zone entry (a MoveZone of id),
+// as valiantFirstTimeTargetedByYouThisTurn does: a left-and-returned permanent
+// is a new object (CR 400.7), which no targeting before the move named. A
+// player never becomes a new object, so the player case scans to TurnChange.
 //
 // Events recorded for the same stack object ev.Obj are the SAME targeting
 // (a spell's later target groups, the event itself when the log already holds
@@ -392,6 +396,11 @@ func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player 
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		le := e.Log().Events[i]
 		if le.Kind == events.TurnChange {
+			return true
+		}
+		// An earlier zone change made this a new object (CR 400.7), which no
+		// targeting before it named.
+		if !player && le.Kind == events.MoveZone && le.Obj == id {
 			return true
 		}
 		if le.Kind == events.MoveZone && le.Text == ChainNoTarget {
@@ -924,10 +933,35 @@ func phaseTriggerMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	if t.ParamStr(cards.PKEcho) == "True" {
 		return e.EchoGateHolds(source)
 	}
+	// CR 603.4: the Innistrad werewolf intervening-ifs. The front face
+	// transforms "if no spells were cast last turn", the back face "if a
+	// player cast two or more spells last turn". Last turn's window is
+	// closed, so the trigger-time check is also the resolution-time answer.
+	// Forge's Trigger reads both as presence flags (hasParam).
+	if t.HasParam(cards.PKWerewolfTransformCondition) {
+		total, _ := SpellsCastLastTurn(e.Log().Events)
+		return total == 0
+	}
+	if t.HasParam(cards.PKWerewolfUntransformCondition) {
+		_, most := SpellsCastLastTurn(e.Log().Events)
+		return most >= 2
+	}
 	return true
 }
 
+// dayTimeChangesMatches implements Mode$ DayTimeChanges ("whenever day
+// becomes night or night becomes day", Brimstone Vandal): a DayNightChange
+// that switched an existing designation. The first designation of a game
+// (neither becoming day or night) is not a change of day to night or night
+// to day.
+func dayTimeChangesMatches(e Board, ev events.Event) bool {
+	return ev.Kind == events.DayNightChange && DayNightSwitched(e.Log().Events, ev)
+}
+
 func init() {
+	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return dayTimeChangesMatches(e, ev)
+	}, "DayTimeChanges")
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return commitCrimeMatches(e, t, source, ev)
 	}, "CommitCrime")

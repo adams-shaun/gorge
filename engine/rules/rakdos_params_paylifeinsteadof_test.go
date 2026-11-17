@@ -14,6 +14,7 @@ package rules
 // side, tested on a second spell's plain {B} pip.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -38,6 +39,18 @@ func krrikEngine(t *testing.T) (*Engine, state.ObjID) {
 	return e, o.ID
 }
 
+// answerKrrikPipAsk takes option 0 of the per-{B} payment ask (CR 601.2h)
+// the grant now poses ahead of targets: the mana payment when mana can pay,
+// otherwise the only feasible face (2 life). A cast that posed no such ask is
+// left alone.
+func answerKrrikPipAsk(t *testing.T, e *Engine) {
+	t.Helper()
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 &&
+		strings.HasPrefix(d.Options[0].Kind, "pay_") {
+		submitChoices(t, e, 0)
+	}
+}
+
 func castDoomBlade(t *testing.T, e *Engine, target state.ObjID) {
 	t.Helper()
 	hand := e.G.Zone(state.ZHand, 0)
@@ -53,6 +66,7 @@ func castDoomBlade(t *testing.T, e *Engine, target state.ObjID) {
 		t.Fatalf("Doom Blade not offered: %+v", d.Options)
 	}
 	submitChoices(t, e, opt)
+	answerKrrikPipAsk(t, e)
 	dt := e.Pending()
 	if dt == nil || dt.Kind != decision.KTarget {
 		t.Fatalf("target ask %+v", dt)
@@ -202,7 +216,7 @@ func TestKrrikGrantPosesManaWindowWhenSourceCanPay(t *testing.T) {
 		t.Fatalf("precondition: the {B} cast must be offered via the life grant: %+v", d.Options)
 	}
 	submitChoices(t, e, castOpt)
-
+	answerKrrikPipAsk(t, e)
 	dt := e.Pending()
 	if dt == nil || dt.Kind != decision.KTarget {
 		t.Fatalf("precondition: the target ask, got %+v", dt)
@@ -266,6 +280,7 @@ func TestKrrikGrantPaysLifeFromWindowWhenNoSourceCan(t *testing.T) {
 		t.Fatalf("precondition: the {B} cast must be offered via the life grant: %+v", d.Options)
 	}
 	submitChoices(t, e, castOpt)
+	answerKrrikPipAsk(t, e)
 	dt := e.Pending()
 	if dt == nil || dt.Kind != decision.KTarget {
 		t.Fatalf("precondition: the target ask, got %+v", dt)

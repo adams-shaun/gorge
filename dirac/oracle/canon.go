@@ -211,10 +211,10 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("convoke")
 			return Pack(ActChoose+CanonKind(code), ref(o.Obj), RefNone, 6), true
 		}
-		if d.ResumeKind == "counter_kind" || d.ResumeKind == "counter_kinds" {
-			return counterKindAction(d, o)
+		if isCounterKindAsk(d.ResumeKind) {
+			return g.counterKindAction(d, o)
 		}
-		code, known := chooseCode(cumulativeKindAlias(o.Kind))
+		code, known := chooseCode(chooseKindAlias(d, o))
 		if !known {
 			// An option kind the table lacks: still canonical as
 			// choose:other over its object (or its index when it names
@@ -408,12 +408,35 @@ func cumulativeKindAlias(kind string) string {
 	return kind
 }
 
+// chooseKindAlias is the choose-table kind of a gorge option: the cumulative
+// upkeep aliases (cumulativeKindAlias), and Crashing Boars' choice pool (gorge
+// effMustBlockChoicePool, ResumeKind "mustblock", Kind "object"), the
+// defending player's creature pick the kernel poses as its ChooseCard
+// (dirac/kgen/lower_mustblock.go).
+func chooseKindAlias(d *decision.Decision, o *decision.Option) string {
+	if d.ResumeKind == "mustblock" && o.Kind == "object" {
+		return "card"
+	}
+	return cumulativeKindAlias(o.Kind)
+}
+
+// isCounterKindAsk reports whether a KChoose's ResumeKind is one of the
+// counter-kind elections: removeCounterAny's per-counter pick, putCounter's
+// ChooseDifferent$ pick, or AddOrRemoveCounter's aor_elect.
+func isCounterKindAsk(resume string) bool {
+	return resume == "counter_kind" || resume == "counter_kinds" || resume == "aor_elect"
+}
+
 // counterKindAction is a counter-kind pick, by its kernel counter kind (the
 // option order is the carrier's slice order, a presentation detail): gorge
 // removeCounterAny's per-counter pick (Glissa Sunslayer; Done is the
-// declaration's ActDone) and putCounter's ChooseDifferent$ pick (Grimdancer,
-// two picks of a kind each).
-func counterKindAction(d *decision.Decision, o *decision.Option) (Canon, bool) {
+// declaration's ActDone), putCounter's ChooseDifferent$ pick (Grimdancer,
+// two picks of a kind each), and AddOrRemoveCounter's aor_elect arm
+// (addOrRemoveKindAction).
+func (g *GorgeSide) counterKindAction(d *decision.Decision, o *decision.Option) (Canon, bool) {
+	if d.ResumeKind == "aor_elect" {
+		return g.addOrRemoveKindAction(o)
+	}
 	if d.ResumeKind == "counter_kind" && o.Kind == "remove_counter_done" {
 		return Pack(ActDone, RefNone, RefNone, 0), true
 	}
@@ -427,4 +450,21 @@ func counterKindAction(d *decision.Decision, o *decision.Option) (Canon, bool) {
 	}
 	code, _ := chooseCode("counter")
 	return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(c)), true
+}
+
+// addOrRemoveKindAction is gorge's "aor_elect" option ("aor_remove:<kind>" /
+// "aor_put:<kind>"): the arm is the canonical choose kind and the mode is the
+// kernel counter kind, so the oracle compares by kind rather than by gorge's
+// carrier order.
+func (g *GorgeSide) addOrRemoveKindAction(o *decision.Option) (Canon, bool) {
+	arm, name, found := strings.Cut(o.Kind, ":")
+	if !found || (arm != "aor_remove" && arm != "aor_put") {
+		return 0, false
+	}
+	c, ok := kernelCounterKind(name)
+	if !ok {
+		return 0, false
+	}
+	code, _ := chooseCode(arm)
+	return Pack(ActChoose+CanonKind(code), g.id.ref(g.E.G, o.Obj), RefNone, uint8(c)), true
 }

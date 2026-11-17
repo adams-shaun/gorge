@@ -16,9 +16,27 @@ import (
 // ability's activation condition beside PlayerTurn$'s. A mana ability and any
 // other ActivationFirstCombat$ value refuse (gorge fails the latter closed);
 // ActivationAfterBlockers$ stays unread, so it refuses with its name.
+//
+// Boast$ True (CR 702.142a) is lowered here too: gorge's boastGateOK reads
+// the source's own AttacksThisTurn and its activations this turn, so the gate
+// is the kernel's mechAttackedObj mask with a Card.Self filter (the same
+// per-object read; a blinked source is a new object, CR 400.7) beside
+// TurnOnce, the once-each-turn limit.
 func (lc *lowerCtx) activationWindow(ps *params, sa *cards.SA, ab *lAbility) error {
 	if ab.Ninjutsu || ab.PutSelf {
 		return nil // the ninjutsu expansion's own window (lower_ninjutsu.go)
+	}
+	if v, ok := ps.get("Boast"); ok {
+		if v != "True" || ab.Kind != akActivated || ab.Zone != 0 {
+			return refuse("Boast$ %q outside a printed battlefield activated ability", v)
+		}
+		f, err := lc.filter("Card.Self")
+		if err != nil {
+			return err
+		}
+		ab.ActCond = andCond(ab.ActCond, lCond{Kind: cValue,
+			A: lValue{Kind: vAttackedTurn, F: f}, Op: opGE, B: cst(1)})
+		ab.TurnOnce = true
 	}
 	_, hasPhases := ps.m["ActivationPhases"]
 	_, hasFirst := ps.m["ActivationFirstCombat"]

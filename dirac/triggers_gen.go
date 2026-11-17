@@ -202,8 +202,8 @@ func (s *State) trigOK(k *prep, l trigListener, a *kop.Ability) bool {
 	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
 		return false
 	}
-	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && a.Trig.Event == kop.TrigCounterAddedOnce && s.counterFirstUsed(k, l) {
-		return false // the turn's first matching counter batch already fired (trig_counterfirst.go)
+	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && firstTimeLatchEvent(a) && s.counterFirstUsed(k, l) {
+		return false // the turn's first matching event already fired (trig_counterfirst.go)
 	}
 	return true
 }
@@ -215,7 +215,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	if a.Trig.Flags&kop.TfOncePerTurn != 0 {
 		s.markUsed(l.obj, l.ab)
 	}
-	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && a.Trig.Event == kop.TrigCounterAddedOnce {
+	if a.Trig.Flags2&kop.Tf2FirstTime != 0 && firstTimeLatchEvent(a) {
 		s.markCounterFirst(k, l) // trig_counterfirst.go
 	}
 	if k.gen.anyGameOnce && a.Trig.Flags3&kop.Tf3GameOnce != 0 {
@@ -247,7 +247,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		// a line limited to once per turn or per game has spent its one trigger
 		// on the original: an additional time would pass the limit again (gorge
 		// queueTriggerLimited, CR 603.2d)
-		s.panharmEcho(k, l, a.Trig.Event, tobj, tpl, n) // trig_doubling.go
+		s.panharmEcho(k, l, panharmEv(a), tobj, tpl, n) // trig_doubling.go
 	}
 	if k.gen.anyBatchPool && s.npend > n && a.Trig.Flags2&kop.Tf2Batch != 0 && readsBatchPool(a) {
 		s.batchMemberNew(n, tobj) // trig_batchmembers.go

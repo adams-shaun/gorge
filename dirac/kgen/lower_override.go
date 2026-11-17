@@ -53,6 +53,34 @@ func creatureOnly(f *lFilter) bool {
 	return true
 }
 
+// selfAffectedOnly reports whether a static's affected set is its own source
+// alone: every clause is Self with no other restriction, so the layer walk
+// applies the record to the carrying permanent and the live P/T anchor
+// (static_layerwalk.go livePTSrc) names it.
+func selfAffectedOnly(f *lFilter) bool {
+	if f == nil || len(f.Clauses) == 0 {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags != fSelf || c.Types != 0 || c.TypesAll != 0 || c.NotTypes != 0 ||
+			c.Subtype != "" || c.NotSubtype != "" || c.Subtype2 != "" ||
+			c.MoreNotSubtype != [4]string{} ||
+			c.Ctrl != 0 || c.Owner != 0 || c.CmpStat != 0 ||
+			c.Colors != "" || c.NotColors != "" || c.Name != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// loseAllNeedsCreatures reports whether a global override's lose-all reaches
+// beyond creatures, which the walk does not serve (a land's mana abilities are
+// read directly by the mana planner). A land-type setter's loss is exempt: the
+// planner reads it through landSetView (dirac/static_landtypesetter.go).
+func loseAllNeedsCreatures(o *lOverride, f *lFilter) bool {
+	return o.LoseAbilities && !o.SetLandSub && !creatureOnly(f)
+}
+
 // overrideStatic lowers the layer-hard statics (Witness Protection,
 // Imprisoned in the Moon) to an override record applied while the static
 // applies.
@@ -99,7 +127,14 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 			if pS == "AffectedX" || tS == "AffectedX" {
 				return nil, refuse("set P/T %q/%q: the per-affected word", pS, tS)
 			}
-			if !attachedOnly(st.F) {
+			// A Self-affected static is admitted beside the attached ones
+			// now that the shape has a lockstep repro: Duplicant's
+			// "has the power, toughness, and creature types of the last
+			// creature card exiled with it" (X/Y = Imprinted$CardPower/
+			// CardToughness, zone_imprint.go impRefSrc). The walk applies a
+			// Self record to its carrying permanent only, and livePTSrc
+			// anchors the read there.
+			if !attachedOnly(st.F) && !selfAffectedOnly(st.F) {
 				return nil, refuse("set P/T %q/%q: a live value on a non-attached static", pS, tS)
 			}
 			pv, tv := cst(0), cst(0)
@@ -154,15 +189,9 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 	}
 	if t, ok := sp.get("AddType"); ok {
 		for _, w := range strings.Split(t, "&") {
-			w = strings.TrimSpace(w)
-			if b, ok := typeAddBit(w); ok {
-				o.SetTypes |= b
-				continue
+			if err := lc.overrideAddTypeWord(strings.TrimSpace(w), st, o); err != nil {
+				return nil, err
 			}
-			if !lc.known(w) {
-				return nil, refuse("AddType %q", w)
-			}
-			o.SetSubtypes = append(o.SetSubtypes, w)
 		}
 	}
 	if k, ok := sp.get("AddKeyword"); ok {
@@ -241,7 +270,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 			// abilities are derived would re-enter the derivation
 			return nil, refuse("global layer-6 override with condition %d", st.Cond.Kind)
 		}
-		if o.LoseAbilities && !creatureOnly(st.F) {
+		if loseAllNeedsCreatures(o, st.F) {
 			// a land's mana abilities (CR 305.6) are not walked: the
 			// mana planner reads them directly
 			return nil, refuse("global lose-all override over non-creatures")
@@ -262,11 +291,41 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 	return []lStatic{*st}, nil
 }
 
+// overrideAddTypeWord lowers one AddType$ word onto o: a card type, the
+// ImprintedCreatureType persist read, or a known creature subtype.
+func (lc *lowerCtx) overrideAddTypeWord(w string, st *lStatic, o *lOverride) error {
+	if b, ok := typeAddBit(w); ok {
+		o.SetTypes |= b
+		return nil
+	}
+	if w == "ImprintedCreatureType" {
+		// Duplicant's AddType$: the last still-exiled creature card
+		// in the source's kept imprints lends its printed creature
+		// types (gorge layers.go: the list read from its end, the
+		// live object's zone the CR 607.2a exile test). The kernel's
+		// layer walk reads the store (chars_gen.go impCreatureSub),
+		// so only the persist shape's own static lowers it.
+		if !lc.impPersist {
+			return refuse("AddType %q outside the persist shape", w)
+		}
+		if !selfAffectedOnly(st.F) {
+			return refuse("AddType %q on a static that reaches past its source", w)
+		}
+		o.ImpSub = true
+		return nil
+	}
+	if !lc.known(w) {
+		return refuse("AddType %q", w)
+	}
+	o.SetSubtypes = append(o.SetSubtypes, w)
+	return nil
+}
+
 // beginsBeforeLayer6 reports whether o has a part in layers 1 to 5 (the
 // reading of ovrKeptOnLoss in the kernel, for a lowered override).
 func (o *lOverride) beginsBeforeLayer6() bool {
 	return o.HasSetTypes || o.SetTypes != 0 || o.AddTypes != 0 || o.HasSetSubtypes || len(o.SetSubtypes) > 0 ||
-		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 || o.HasSetColors || o.AddColors != "" || o.Name != ""
+		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 || o.HasSetColors || o.AddColors != "" || o.Name != "" || o.ImpSub
 }
 
 // keepSubtypes records what removing o's card types leaves, from the words the

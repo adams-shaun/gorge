@@ -449,10 +449,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
+			rider.apply(h, c, id, p, dest)
 			if batchEntry {
 				h.EndZoneBatch()
 			}
-			rider.apply(h, c, id, p, dest)
 			return true
 		}
 		// rest moves the window cards the primary move did not take to the

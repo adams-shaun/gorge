@@ -48,9 +48,16 @@ func substituteManaChosen(produced, chosen string) string {
 // one-unit-per-symbol allocation, and whether the legacy ask suspended.
 func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool, bool) {
 	var colours []string
+	distinct := false
 	switch askManaChoiceCodes.Code(string(produced)) {
 	case askManaChoiceAny:
 		colours = manaChoiceColours
+	case askManaChoiceAnyDifferent:
+		// Combo AnyDifferent is "Add N mana of different colors": N distinct
+		// colours from WUBRG, one mana of each (CR 106.1). It is a bounded
+		// choice, never the open Combo Any allocation.
+		colours = manaChoiceColours
+		distinct = true
 	default:
 		if parsed, ok := ComboColours(produced); ok && len(parsed) > 1 {
 			colours = parsed
@@ -63,6 +70,10 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool,
 	allocation := strings.HasPrefix(produced, "Combo ") && amount > 1
 	if amount <= 0 {
 		return produced, false, false
+	}
+	if distinct && int(amount) > len(colours) {
+		amount = int32(len(colours))
+		allocation = amount > 1
 	}
 	min, max := 1, 1
 	if allocation {
@@ -96,8 +107,16 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool,
 		Prompt: "Choose a color for the mana"}
 	for unit := 0; unit < max; unit++ {
 		for _, colour := range colours {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana",
-				Label: "Add " + colour, ManaSymbol: colour, Obj: c.Source, Player: chooser})
+			option := decision.Option{Index: len(d.Options), Kind: "mana",
+				Label: "Add " + colour, ManaSymbol: colour, Obj: c.Source, Player: chooser}
+			if distinct {
+				// One group per colour: the same colour may be chosen only
+				// once even though each unit offers it. Decision.Validate's
+				// exclusivity rule is the one home; the bot's Clamp and every
+				// script answerer read the same rule.
+				option.Group = "manacolour:" + colour
+			}
+			d.Options = append(d.Options, option)
 		}
 	}
 	// The resolution kernel's answer in hand: the
@@ -109,15 +128,90 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool,
 		if !ok {
 			break
 		}
+		if distinct && d.Validate(in) != nil {
+			continue // a repeated colour or an out-of-arity answer: ask again
+		}
 		ans := d.Chosen(in)
 		if answered, units, ok := manaChoiceProduced(ans); ok {
+			if distinct && hasRepeatedManaSymbol(answered) {
+				continue // a colour may be chosen once; ask again
+			}
 			return answered, units, false
 		}
 	}
 	if !askUnposable(d) && h.Ask(d) {
 		return produced, false, true
 	}
+	if distinct {
+		// The no-host path: the first N distinct colours, deterministically.
+		// A real host always got the KChoose above; this keeps an unattended
+		// resolution adding its N different colours rather than failing the
+		// rune gate.
+		n := min
+		if n > len(colours) {
+			n = len(colours)
+		}
+		if n == 1 {
+			return colours[0], false, false
+		}
+		return strings.Join(colours[:n], ""), true, false
+	}
 	return produced, false, false
+}
+
+// comboManaProduced reports the production shapes that resolve through the
+// KChoose answer: a plain-tap Combo AnyDifferent and every Combo colour list
+// (Combo Any, Combo R G, ...).
+func comboManaProduced(produced string, mp *ManaParams) bool {
+	if mp.AnyDifferent {
+		return true
+	}
+	_, ok := ComboColours(produced)
+	return ok
+}
+
+// resolveComboManaProduced resolves comboManaProduced's answer: *produced and
+// *allocation are rewritten from the choice (or the deterministic no-host
+// pair). It reports whether the ask suspended.
+func resolveComboManaProduced(h Host, c *Ctx, sa *cards.SA, produced *string, allocation *bool) bool {
+	answered, units, asked := askManaChoice(h, c, sa, *produced)
+	if asked {
+		return true
+	}
+	*produced, *allocation = answered, *allocation || units
+	return false
+}
+
+// resolveEachColorAmongProduced resolves a Produced$ Special
+// EachColorAmong_ExiledWith or EachColorAmong_Valid selector; noMana reports
+// the deterministic empty set (for each colour among none adds nothing). The
+// valid-selector spec is evaluated over the battlefield exactly as
+// ManaReflectedCandidates evaluates its Valid$: with the resolving source as
+// Self and its controller as You.
+func resolveEachColorAmongProduced(h Host, c *Ctx, produced string) (string, bool) {
+	if strings.EqualFold(produced, "Special EachColorAmong_ExiledWith") {
+		syms := eachColorAmongExiledWith(h, c)
+		return syms, syms == ""
+	}
+	if sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid "); ok {
+		syms := eachColorAmongValid(h, c, strings.TrimSpace(sel))
+		return syms, syms == ""
+	}
+	return produced, false
+}
+
+// hasRepeatedManaSymbol reports whether produced names a colour more than
+// once. Combo AnyDifferent chooses different colours, so W+W is not a legal
+// answer to it (unlike Combo Any's per-unit allocation).
+func hasRepeatedManaSymbol(produced string) bool {
+	var seen [256]bool
+	for i := 0; i < len(produced); i++ {
+		if seen[produced[i]] {
+			return true
+		}
+		seen[produced[i]] = true
+	}
+	return false
 }
 
 // manaChoiceProduced is the "mana_color" answer's production, exactly as
@@ -163,22 +257,50 @@ func ManaSourceObserved(h Host, source state.ObjID) bool {
 	return o.Face().ReadsSpentManaSource()
 }
 
-// ManaProducerTag encodes producer provenance in one exclusive unit tag.
-// The Artifact bit composes with Treasure/Cave/Desert rather than replacing
-// their historical type: a Treasure Artifact emits ArtifactTreasure, while
-// Sol Ring emits Artifact. All mana producers use this same helper (effMana,
-// effManaReflected, and cumulative-upkeep AddMana). Snow/typed overlap is
-// unmeasured at the corpus pin and retains typed precedence.
+// ManaProducerCounter spells the ManaAdd Counter a producer's unit carries:
+// the tag and the snow bit compose instead of yielding to each other (CR
+// 107.4h with snow a supertype independent of the card types), so a snow
+// Artifact's unit is the composed "S<Tag><colour>" form (today only the
+// Artifact tag composes with snow — ManaProducerTag). events.Apply moves the
+// pool slot, Player.Snow, the typed tally and Player.SnowTyped together
+// through that one event. Every ManaAdd a mana producer emits spells its
+// counter through this one helper (effMana, effManaReflected,
+// cumulative-upkeep AddMana, and the plain fast path).
+func ManaProducerCounter(tag string, snow bool, colour string) string {
+	switch {
+	case tag != "" && snow:
+		return "S" + tag + colour
+	case tag != "":
+		return tag + colour
+	case snow:
+		return "S" + colour
+	}
+	return colour
+}
+
+// ManaProducerTag encodes producer provenance in one unit tag plus an
+// independent snow bit. The Artifact bit composes with Treasure/Cave/Desert
+// rather than replacing their historical type: a Treasure Artifact emits
+// ArtifactTreasure, while Sol Ring emits Artifact. Snow is a supertype
+// independent of the card types (CR 107.4h, 106.3), so it composes with the
+// tag instead of yielding to it: a Snow Artifact's unit is BOTH an Artifact
+// unit and a snow unit, the composed "SArtifact<colour>" ManaAdd counter.
+// Snow Treasure/Cave/Desert is unmeasured at the corpus pin and retains
+// typed precedence there. All mana producers use this same helper (effMana,
+// effManaReflected, cumulative-upkeep AddMana, and the plain fast path).
 func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 	o := h.Game().Obj(source)
 	if o == nil || o.Face() == nil {
 		return "", false
 	}
 	artifact := false
+	snowType := false
 	for _, t := range o.Face().Types {
 		if t == "Artifact" {
 			artifact = true
-			break
+		}
+		if t == "Snow" {
+			snowType = true
 		}
 	}
 	for _, tagWord := range state.TypedManaTags {
@@ -195,12 +317,10 @@ func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 		}
 	}
 	if artifact {
-		return "Artifact", false
+		return "Artifact", snowType
 	}
-	for _, t := range o.Face().Types {
-		if t == "Snow" {
-			return "", true
-		}
+	if snowType {
+		return "", true
 	}
 	return "", false
 }
@@ -243,12 +363,10 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			// historical deterministic colourless result.
 			produced = "C"
 		}
-	} else if _, ok := ComboColours(produced); ok {
-		answered, units, asked := askManaChoice(h, c, sa, produced)
-		if asked {
+	} else if comboManaProduced(produced, mp) {
+		if resolveComboManaProduced(h, c, sa, &produced, &allocation) {
 			return
 		}
-		produced, allocation = answered, allocation || units
 	}
 	if produced == "" {
 		produced = "C"
@@ -319,22 +437,11 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 		produced = b.String()
 	}
-	if strings.EqualFold(produced, "Special EachColorAmong_ExiledWith") {
-		syms := eachColorAmongExiledWith(h, c)
-		if syms == "" {
-			// An empty set is a deterministic no-op, exactly like the
-			// EachColorAmong_Valid empty set: "for each color among none"
-			// adds nothing, and no card is promised mana it cannot get.
+	if strings.HasPrefix(produced, "Special EachColorAmong_") {
+		var noMana bool
+		if produced, noMana = resolveEachColorAmongProduced(h, c, produced); noMana {
 			return
 		}
-		produced = syms
-	}
-	if sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid "); ok {
-		syms := eachColorAmongValid(h, c, strings.TrimSpace(sel))
-		if syms == "" {
-			return
-		}
-		produced = syms
 	}
 	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
@@ -447,6 +554,10 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// Prospecting). Artifact provenance composes with those tags in the
 	// per-unit counter; it never replaces the Treasure/Cave/Desert type or
 	// contributes a second pool unit. An untyped Artifact uses ArtifactC.
+	// A SNOW Artifact's unit is both provenances on one unit — the composed
+	// "SArtifact<colour>" counter moves Player.Snow, the artifact tally and
+	// Player.SnowTyped together — so it can pay a {S} pip and both
+	// Count$CastTotalManaSpent heads count it once.
 	tag, snow := ManaProducerTag(h, c.Source)
 	// TriggersWhenSpent$ is retained alongside any spend restriction: the
 	// ManaRestriction event encoding carries both the restriction and source
@@ -495,13 +606,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 					unitAmount *= ManaEachNum(mp, h, c, 1)
 				}
 			}
-			counter := string(r)
-			switch {
-			case tag != "":
-				counter = tag + counter
-			case snow:
-				counter = "S" + counter
-			}
+			counter := ManaProducerCounter(tag, snow, string(r))
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: counter, Amount: unitAmount}
 			if noCounter != "" {
@@ -600,11 +705,13 @@ type askManaChoiceCode uint16
 
 const (
 	askManaChoiceAny askManaChoiceCode = iota + 1
+	askManaChoiceAnyDifferent
 )
 
 var askManaChoiceCodes = state.NewStrCodes(
 	state.StrEntry[askManaChoiceCode]{Key: "Any", Val: askManaChoiceAny},
 	state.StrEntry[askManaChoiceCode]{Key: "Combo Any", Val: askManaChoiceAny},
+	state.StrEntry[askManaChoiceCode]{Key: "Combo AnyDifferent", Val: askManaChoiceAnyDifferent},
 )
 
 type manaAddsNoCounterCode uint16
