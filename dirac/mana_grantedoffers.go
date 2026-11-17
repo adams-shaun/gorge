@@ -244,6 +244,57 @@ func (s *State) ownSacGrantTap(k *prep, sl Slot) *pcard {
 	return nil
 }
 
+// planGrants is one source's granted abilities the planner prices: a printed
+// sacrifice-only source's granted {T} (ownSacGrantTap), and a printed tap
+// source's granted sacrifice, its joined colours and amount (planGrantSacOf).
+type planGrants struct {
+	tap        *pcard
+	sacM, sacN uint8
+}
+
+// planGrantsOf reads sl's planGrants into g and reports whether it has one.
+func (s *State) planGrantsOf(k *prep, pc *pcard, sl Slot, g *planGrants) bool {
+	g.tap = s.planOwnSacGrant(k, pc, sl)
+	if s.planTapGrantSac(k, sl) {
+		g.sacM, g.sacN, _ = s.planGrantSacOf(k, sl)
+	}
+	return g.tap != nil || g.sacN != 0
+}
+
+// planGrantSacOnly handles a printed tap ability the planner prices that
+// cannot tap now (tapped, summoning sick: CR 302.6) beside a live granted
+// sacrifice-only ability (planTapGrantSacNow, Rain of Filth's land): the grant
+// is the shape's only unit, phase 2's (gorge's planner never sees a granted
+// ability, so a plan with one is reached only when the printed units have no
+// plan), its sacrifice planGrantSacUnit's. It reports whether the source is
+// done for this pass; before phase 2 it only marks the shape as having a grant.
+func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, sl Slot, pc *pcard, phase int, g *planGrants, hasGrant *bool) bool {
+	if g.sacN == 0 || s.canTapForManaPC(k, sl, pc) {
+		return false
+	}
+	if phase < 2 {
+		*hasGrant = true
+		return true
+	}
+	s.planGrantSacUnit(k, p, pk, sl, g.sacM, g.sacN, s.isCreature(k, sl))
+	return true
+}
+
+// planGrantsPhase2 adds sl's granted units in phase 2, after its printed unit:
+// the granted {T} of a sacrifice-only source, and the granted sacrifice of an
+// untapped tap source (its printed unit is phase 0's; planTapGrantSac).
+func (s *State) planGrantsPhase2(k *prep, p uint8, pk *planner, sl Slot, pc *pcard, phase int, g *planGrants, cr bool) {
+	if phase != 2 {
+		return
+	}
+	if g.tap != nil {
+		s.planGrantUnit(k, p, pk, sl, g.tap, cr)
+	}
+	if g.sacN != 0 && s.canTapForManaPC(k, sl, pc) {
+		s.planGrantSacUnit(k, p, pk, sl, g.sacM, g.sacN, cr)
+	}
+}
+
 // planOwnSacGrant is the facts loop's read of a printed sacrifice-only
 // source's granted {T} (ownSacGrantTap), the mirror of a granted sacrifice
 // beside a printed tap (availGrant's ownSac): two units, the grant's tap
@@ -307,6 +358,91 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 }
 
 // ownManaUsable reports whether sl's own card has a usable tap mana
+// planGrantSacUnit (called from plan's phase 2, beside planGrantUnit; gorge's
+// planner never sees a granted ability, so a plan with one is the kernel's,
+// reached only when the printed units have no plan) adds sl's granted
+// sacrifice-only abilities as one unit: the source is sacrificed once (CR
+// 605.1a), the colours joined, the amount the largest. It is the printed
+// last-resort unit's sacrifice (utype.sac) with no tap (sacOnly):
+// grantSacLive costs no {T}, tapped or summoning sick alike (CR 302.6).
+func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, sl Slot, mask, n uint8, cr bool) {
+	if pk.nu >= maxUnits || pk.nt >= maxTypes {
+		return // the caller's loop holds the same guards
+	}
+	dmk := mask
+	fl := uint8(bits.OnesCount8(dmk))
+	ti := -1
+	for t := 0; t < pk.nt; t++ {
+		ty := &pk.types[t]
+		if ty.mask == mask && ty.dmask == dmk && ty.n == n && ty.creat == cr && ty.sac && ty.sacOnly &&
+			ty.pair == 0 && ty.pain == 0 && ty.first == 0 && ty.printed == 0 && ty.flex == fl &&
+			ty.xv == ([kop.NumManaKinds]uint8{}) && !ty.rb {
+			ti = t
+			break
+		}
+	}
+	if ti < 0 {
+		ti = pk.nt
+		pk.nt++
+		pk.types[ti] = utype{mask: mask, dmask: dmk, n: n, creat: cr, flex: fl, sac: true, sacOnly: true, nocol: true, irr: unitIrr(true, cr, false)}
+		if int(n) > pk.maxN {
+			pk.maxN = int(n)
+		}
+	}
+	pk.types[ti].avail++
+	pk.units[pk.nu] = sl
+	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.utyp[pk.nu] = uint8(ti)
+	pk.rkind[pk.nu] = 0
+	pk.rAb[pk.nu] = -1 // planGrantUnit's: the grant's ability number names nothing on sl's own card
+	pk.nu++
+	for c := 0; c < 5; c++ {
+		if dmk&(1<<c) != 0 {
+			pk.colSrc[c]++
+		}
+	}
+}
+
+// planGrantSacOf is the payment plan's read of sl's live granted
+// sacrifice-only abilities, availGrantSacOnly's census shape: the colours
+// joined, the amount the largest (the source is sacrificed once). ok is
+// false when none is live.
+func (s *State) planGrantSacOf(k *prep, sl Slot) (mask, n uint8, ok bool) {
+	if !s.grantSacOK(k, sl) {
+		return 0, 0, false
+	}
+	var gi [maxGrants]int16
+	for i, ng := 0, s.grantIdxs(k, sl, &gi); i < ng; i++ {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if !s.grantSacLive(sl, gv) {
+			continue
+		}
+		mask |= s.srcMaskAt(gv, sl)
+		n = max(n, gv.manaN)
+	}
+	return mask, n, mask != 0
+}
+
+// planTapGrantSac: sl's printed mana ability is a plain tap the planner
+// prices while an effect grants it a live sacrifice-only ability (Rain of
+// Filth's land): plan's phase 2 prices the grant, the mirror of
+// planOwnSacGrant's granted {T} beside a printed sacrifice
+// (availGrantSacOnly counts both on the offer side).
+func (s *State) planTapGrantSac(k *prep, sl Slot) bool {
+	pc := &k.cards[s.cardAt(sl)]
+	if pc.manaAb < 0 || !pc.manaTap || pc.manaSac || pc.manaSacOnly {
+		return false // not a plain printed tap, or phase 1's own shape
+	}
+	return s.grantSacOK(k, sl)
+}
+
+// planTapGrantSacNow is the payment plan's order gate for it: the printed
+// tap cannot be used now (tapped, summoning sick: CR 302.6), so the grant
+// is the shape's only unit.
+func (s *State) planTapGrantSacNow(k *prep, sl Slot) bool {
+	return !s.canTapForMana(k, sl) && s.planTapGrantSac(k, sl)
+}
+
 // ability (one the planner prices: a plain or sacrificing tap, a chosen
 // colour, a dynamic amount) that it has not lost. Beside a granted mana
 // ability it is the planner's source (gorge's census covers it); the
