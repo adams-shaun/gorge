@@ -11,9 +11,9 @@ import (
 // zero, so gorge's census drops it (payment_window_yield.go's
 // manaAbilityYieldsNothing): it can contribute no payment, and no prefix
 // activates it. The kernel's script must do the same. Listing it would let a
-// prefix tap it (and, here, sacrifice it for nothing) even though the cast is
-// already payable, which is a real Sacrificed event gorge never emits and
-// leaves the boards different for every later decision.
+// prefix tap it (and sacrifice it for nothing) even though the Wall's counter
+// mana and the lands already pay the cast, which is a real Sacrificed event
+// gorge never emits and leaves the boards different for every later decision.
 func TestSacCtrZeroCounterSourcePaysNothing(t *testing.T) {
 	tbl := *v.Table
 	tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)

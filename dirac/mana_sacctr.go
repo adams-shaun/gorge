@@ -15,7 +15,10 @@ import (
 // and an activation stay. The kernel lists it among the counter-cost gaps
 // (scriptCtr): the gaps walk counts its live counters (availCtr) and the
 // chain's step taps it, adds that much mana and sacrifices it (ctrGapDo). It
-// is no grant-search candidate and no ward or unless window pick, as before.
+// is no gap at all while it holds no counter: its amount then resolves to
+// zero, so gorge's census drops it (manaAbilityYieldsNothing) and no prefix
+// activates it. It is no grant-search candidate and no ward or unless window
+// pick, as before.
 
 // sacCtrManaAb reports whether mana ability a is that shape: {T} and a
 // sacrifice of the source, no mana, one fixed colour, as many as the counters
