@@ -96,3 +96,35 @@ func TestGainsAbilitiesOfMutation(t *testing.T) {
 		t.Fatal("no seed diverged with the gained-ability walk off")
 	}
 }
+
+// kgainsofGraveDecks: Necrotic Ooze has every activated ability of the
+// creature cards in all graveyards (GainsAbilitiesOfZones$ Graveyard). The
+// creatures carry non-mana abilities (no mana creature: a graveyard mana
+// ability stalls the walk, StallGainsOf), and die in combat or to their own
+// pings, so gorge offers Ooze their abilities from the graveyard.
+func kgainsofGraveDecks() [2][]cardset.Entry {
+	d := []cardset.Entry{
+		{Name: "Necrotic Ooze", Count: 4},
+		{Name: "Prodigal Sorcerer", Count: 4},
+		{Name: "Jeska, Warrior Adept", Count: 4},
+		{Name: "Prava of the Steel Legion", Count: 4},
+		{Name: "Swamp", Count: 9},
+		{Name: "Island", Count: 5},
+		{Name: "Mountain", Count: 5},
+		{Name: "Plains", Count: 5},
+	}
+	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
+}
+
+// TestGainsAbilitiesOfGraveyardLockstep: the graveyard walk of
+// dirac/static_gainsof.go agrees with gorge on every game, and gorge offered
+// at least one gained activation (GainedSource != 0) in them.
+func TestGainsAbilitiesOfGraveyardLockstep(t *testing.T) {
+	t.Parallel()
+	st := new(map[string]int)
+	lockstepRunPolicy(t, "gainsofgrave", kgainsofGraveDecks(), 40, true, nil, nil, kgainsofPolicy(st))
+	if (*st)["gained"] == 0 {
+		t.Fatal("gorge never offered a gained activation in the games; the lockstep proves nothing")
+	}
+	t.Logf("priority decisions offering a gained activation: %d", (*st)["gained"])
+}

@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // gainsAbilitiesOf lowers a Continuous static's GainsAbilitiesOf$ (CR
@@ -14,7 +15,8 @@ import (
 // matches at that moment (gorge layers.go gainedFacesForSpec,
 // legal_granted.go grantedAbilitiesLimited). The filter is read relative to
 // the source (Other excludes it) and lands in kop.Static.GainsOf; the zone
-// stays kop.Static.Zone's ZoneNone (the battlefield, Forge's default). The
+// rides kop.Static.Zone (ZoneNone: the battlefield, Forge's default;
+// ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard). The
 // kernel's offer walk is dirac/static_gainsof.go. Other zones, another
 // recipient, and artifact or land sources (whose mana abilities the walk
 // does not model) are refused by name.
@@ -24,7 +26,8 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 		return nil
 	}
 	z, hasZone := sp.get("GainsAbilitiesOfZones")
-	offField := hasZone && z != "Battlefield"
+	grave := hasZone && z == "Graveyard"
+	offField := hasZone && z != "Battlefield" && !grave
 	f, err := lc.filter(spec)
 	if err != nil {
 		// A zone this lowering does not walk outranks what its filter reads:
@@ -39,7 +42,11 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 		return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
 	}
 	for _, c := range f.Clauses {
-		if c.Types == 0 || c.Types&(tArtifact|tLand) != 0 {
+		// a clause with no card type must name a creature type (Elf): a
+		// subtype-only "Elf" cannot match an artifact or a land, and a
+		// creature's mana ability stalls the walk (StallGainsOf) anyway
+		creatSub := c.Types == 0 && c.Subtype != "" && effects.CreatureTypeWords(c.Subtype)
+		if c.Types&(tArtifact|tLand) != 0 || c.Types == 0 && !creatSub {
 			return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
 		}
 	}
@@ -50,17 +57,26 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 		return refuse("GainsAbilitiesOf Affected %q", aff)
 	}
 	st.GainsOf = f
+	if grave {
+		st.Zone = zGraveyard
+	}
 	return nil
 }
 
-// battlefieldFilterPair builds a Continuous static's two battlefield filter
-// fields, Landwalk and GainsOf (cardBuilder.static's filter closure).
-func battlefieldFilterPair(filter func(*lFilter, kop.Zone) (kop.FilterID, error), landwalk, gainsOf *lFilter) (kop.FilterID, kop.FilterID, error) {
-	lw, err := filter(landwalk, kop.ZoneBattlefield)
+// continuousFilterPair builds a Continuous static's Landwalk (battlefield)
+// and GainsOf filter fields (cardBuilder.static's filter closure). GainsOf is
+// read in the zone GainsAbilitiesOfZones$ names, which also lands in
+// kop.Static.Zone (ZoneNone, the battlefield, unless the graveyard).
+func continuousFilterPair(filter func(*lFilter, kop.Zone) (kop.FilterID, error), s *lStatic, st *kop.Static) (kop.FilterID, kop.FilterID, error) {
+	lw, err := filter(s.Landwalk, kop.ZoneBattlefield)
 	if err != nil {
 		return 0, 0, err
 	}
-	g, err := filter(gainsOf, kop.ZoneBattlefield)
+	gz := kop.ZoneBattlefield
+	if s.GainsOf != nil && s.Zone == zGraveyard {
+		gz, st.Zone = kop.ZoneGraveyard, kop.ZoneGraveyard
+	}
+	g, err := filter(s.GainsOf, gz)
 	return lw, g, err
 }
 
