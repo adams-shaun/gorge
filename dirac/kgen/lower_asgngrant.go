@@ -11,6 +11,8 @@ import (
 // and Mode$ AssignCombatDamageAsUnblocked (Outmaneuver: "assign their combat
 // damage this turn as though they weren't blocked", CR 510.1c-d), both to the
 // kernel's ExtAsgnGrant record on the object (dirac/combat_asgngrant.go).
+// Mode$ AssignNoCombatDamage is the capturing emblem's static instead
+// (rememberedNoCombatDamage, lower_effectnocombt.go).
 //
 // gorge registers either as a continuous effect scoped to Card.IsRemembered
 // that lasts the turn (an absent Duration$ is this turn, effEffect's
@@ -22,6 +24,9 @@ import (
 // covered either way). An Optional$ True body is the controller's election
 // (gorge asUnblockedNeeding), which the kernel has no ask for: refused.
 func (lc *lowerCtx) asgnGrant(ps, sp *params, mode string, obj lRef) error {
+	if mode == "AssignNoCombatDamage" {
+		return lc.rememberedNoCombatDamage(ps, sp, obj) // lower_effectnocombt.go
+	}
 	if obj.Kind != rTarget && obj.Kind != rRemembered {
 		return refuse("Effect %s over %s", mode, obj)
 	}
