@@ -258,6 +258,7 @@ func unrefuseCard(root, card string) error {
 	if err := json.Unmarshal(b, &e); err != nil {
 		return fmt.Errorf("%s: %w", path, err)
 	}
+	restored := false
 	for _, name := range e.Evidence {
 		list := filepath.Join(root, filepath.FromSlash(cardset.EvidenceDir), name+".txt")
 		old, err := os.ReadFile(list)
@@ -271,8 +272,46 @@ func unrefuseCard(root, card string) error {
 		if err := os.WriteFile(list, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 			return err
 		}
+		restored = true
+	}
+	if restored {
+		if err := legacyKeyIfNoRow(root, card); err != nil {
+			return err
+		}
 	}
 	return os.Remove(path)
+}
+
+// legacyKeyIfNoRow adds card to LEGACY.txt (kept sorted) when no evidence-keys sidecar has a
+// row for it: TestEvidenceCoverageRatchet wants every evidenced card to have one or the other.
+func legacyKeyIfNoRow(root, card string) error {
+	rows, _, err := readCoverageRows(os.DirFS(root))
+	if err != nil {
+		return err
+	}
+	if _, ok := rows[card]; ok {
+		return nil
+	}
+	path := filepath.Join(root, filepath.FromSlash(coverageLegacy))
+	old, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	var lines []string
+	for _, l := range strings.Split(string(old), "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			lines = append(lines, l)
+		}
+	}
+	i, found := slices.BinarySearch(lines, card)
+	if found {
+		return nil
+	}
+	lines = slices.Insert(lines, i, card)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644)
 }
 
 // runRefuse is kgen -refuse: cards is the corpus the name must be in.
