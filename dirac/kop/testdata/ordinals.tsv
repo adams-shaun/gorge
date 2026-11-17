@@ -1666,11 +1666,13 @@ W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
 W7NoNameTwinGrave	int16	20
+W7NonSnow	int16	38
 W7NotBlocking	int16	30
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
+W7Snow	int16	37
 W7WithDisguise	int16	22
 W7WithFlashback	int16	26
 W7WithInfect	int16	28
