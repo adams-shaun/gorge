@@ -765,7 +765,7 @@ func (w *legalWalk) handAltCastRows(id state.ObjID, f *cards.Face, ph printedHea
 	e, p, out := w.e, w.p, &w.out
 	for i := range altCastModes {
 		ka := &altCastModes[i]
-		if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) {
+		if !ka.handLoop || (!ph.has(ka.ph) && ka.id != altWarp) || !ka.gateOpen(e.G, e, p, id) {
 			continue
 		}
 		costs := altRowCosts(e, ka, id, f)
