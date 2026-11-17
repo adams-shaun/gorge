@@ -13,11 +13,16 @@ import "strings"
 // SetLandSub beside LoseAbilities (kop.Override.SetLandSub; the kernel's
 // reading is dirac/static_landtypesetter.go).
 //
-// Only the attached form whose AddType$ words are all basic land types is
-// lowered (Spreading Seas, Evil Presence, Contaminated Ground). A global
-// setter (Blood Moon, Harbinger of the Seas, Celestial Dawn) stays refused
-// by name: the walk's lose-all over non-creatures is not modelled. A chosen
-// type (Convincing Mirage's AddType$ ChosenType) is refused by AddType$.
+// Only a setter whose AddType$ words are all basic land types is lowered:
+// the attached form (Spreading Seas, Evil Presence, Contaminated Ground) and
+// the global form over a land filter (Blood Moon, Magus of the Moon,
+// Harbinger of the Seas: "Nonbasic lands are Mountains"), which the layer
+// walk applies to every land the filter matches, its loss reading the
+// same landSetLost view (overrideStatic exempts SetLandSub from its refusal
+// of a global lose-all over non-creatures). A setter with more than the
+// basic types (Celestial Dawn's colour setting, Conversion, Glaciers) stays
+// refused by the words it adds. A chosen type (Convincing Mirage's
+// AddType$ ChosenType) is refused by AddType$.
 func landTypeSetter(v string, st *lStatic, o *lOverride, removesTypes bool) error {
 	if strings.TrimSpace(v) != "True" {
 		return refuse("RemoveLandTypes %q", v)
@@ -34,9 +39,6 @@ func landTypeSetter(v string, st *lStatic, o *lOverride, removesTypes bool) erro
 		default:
 			return refuse("RemoveLandTypes$ adds %q", w)
 		}
-	}
-	if !attachedOnly(st.F) {
-		return refuse("global land-type setter (RemoveLandTypes$)")
 	}
 	o.SetLandSub, o.LoseAbilities = true, true
 	return nil
