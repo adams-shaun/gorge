@@ -150,6 +150,31 @@ func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.M
 	if !s.phyActUngrantedOK(k, sl, a, p, c) {
 		return false
 	}
+	// Under gorge's autopay surface the gate must not count a census-gap
+	// source's gap unit: gorge prices only the cost's mana half with its
+	// planner, whose census misses a mana ability with its own mana cost
+	// (Hall of Tagsin's "{1}, {T}: Add one mana of any color"). A play whose
+	// colour faces only such a source makes is a potential play whose
+	// lowering dead-ends on the Phyrexian faces (oracle/gorge.go, "the play is
+	// not one gorge makes"), so offering it here would diverge from gorge's
+	// canonical list.
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && k.gen != nil && s.phyAnyGapSource(k, p) {
+		// The gap units are normally added by the availScript hook
+		// (availGaps/availAny) or by a grant, so the recompute must run as
+		// the plain, no-grant census: otherwise the very sources the
+		// exclusion drops are added back and the gate re-opens. Only a
+		// source whose own census ability is a gap is excluded: a dual
+		// source keeps its priced half (phyGapCensusSources).
+		gaps := s.phyGapCensusSources(k, p)
+		var plain avail
+		func() {
+			savedX, savedNoGrant := s.g.availX, s.g.noGrant
+			defer func() { s.g.availX, s.g.noGrant = savedX, savedNoGrant }()
+			s.g.availX, s.g.noGrant = availPlain, true
+			s.availForExcluding(k, p, &plain, gaps)
+		}()
+		av = &plain
+	}
 	n := min(c.TbN(), 5)
 	life := int(s.pl[p].life)
 	base := c
@@ -169,6 +194,63 @@ func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.M
 		}
 	}
 	return false
+}
+
+// phyAnyGapSource reports whether p controls a permanent with a mana ability
+// the planner census cannot price (censusGapMana: an activation cost of its
+// own, an each-colour or restricted production). The gate recomputes over the
+// plain census whenever there is one, because availScript would otherwise add
+// its gap unit under the autopay surface.
+func (s *State) phyAnyGapSource(k *prep, p uint8) bool {
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if int(c) >= len(k.t.Cards) {
+			continue
+		}
+		for j := range k.t.Cards[c].Abilities {
+			a := &k.t.Cards[c].Abilities[j]
+			if a.Kind == kop.AbMana && censusGapMana(a) && !sacOnlyManaAb(a) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// phyGapCensusSources is the battlefield slots whose own planner profile is
+// itself a census gap: the ability manaPCGen names (the one availFor counts,
+// pc.manaAb) is a gap, not a priced unit. Only those slots are excluded from
+// the recompute; a dual source keeps its priced half (Hall of Tagsin's bare
+// {T}: Add {C} stays while its "{1}, {T}: Add one mana of any color" gap is
+// suppressed by availFor's plain no-grant mode). A granted ability is the
+// census's profile (manaGranted), and pc.manaAb indexes the grant, not this
+// card, so such a source is not excluded here.
+func (s *State) phyGapCensusSources(k *prep, p uint8) slotMask {
+	var out slotMask
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		if s.manaGranted(k, sl) {
+			continue
+		}
+		pc := s.manaPCGen(k, sl)
+		if pc.manaAb < 0 {
+			continue
+		}
+		c := s.cardAt(sl)
+		if int(c) >= len(k.t.Cards) {
+			continue
+		}
+		cd := &k.t.Cards[c]
+		if int(pc.manaAb) >= len(cd.Abilities) {
+			continue
+		}
+		a := &cd.Abilities[pc.manaAb]
+		if a.Kind == kop.AbMana && censusGapMana(a) && !sacOnlyManaAb(a) {
+			out.set(sl)
+		}
+	}
+	return out
 }
 
 // phyActUngrantedOK is the grant half of a Phyrexian activation's offer under
