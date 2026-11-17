@@ -18,6 +18,7 @@ func init() {
 	instrOp("EnterAttacking", (*instrCtx).opEnterAttacking)
 	instrOp("AttacksIfAble", (*instrCtx).opAttacksIfAble)
 	instrOp("BlocksIfAble", (*instrCtx).opBlocksIfAble)
+	instrOp("MustBlockAttacker", (*instrCtx).opMustBlockAttacker)
 	instrOp("RemoveFromCombat", (*instrCtx).opRemoveFromCombat)
 	instrOp("MustBeBlocked", (*instrCtx).opMustBeBlocked)
 	instrOp("Suspect", (*instrCtx).opSuspect)
@@ -118,6 +119,15 @@ func (ic *instrCtx) opBlocksIfAble() error {
 	ki := &ic.ki
 	// OpExt ExtBlocksIfAble, Obj the target that blocks this turn if able
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBlocksIfAble))
+	return nil
+}
+
+func (ic *instrCtx) opMustBlockAttacker() error {
+	ki := &ic.ki
+	in := &ic.in
+	// OpExt ExtMustBlock, Obj the blocker bound to block the source if
+	// able, C kop.DelayEndCombat for a this-combat duty (lower_mustblock.go)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtMustBlock)), int16(in.C)
 	return nil
 }
 
