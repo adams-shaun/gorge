@@ -268,7 +268,7 @@ func (lc *lowerCtx) referentGate(expr string) error {
 		}
 	}
 	if strings.Contains(expr, "blockingTriggeredAttacker") {
-		if lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "AttackerBlocked" || !lc.trigBody || lc.granted > 0 {
+		if lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "AttackerBlocked" || !lc.trigBody || lc.granted > 0 && !(lc.granted == 1 && lc.emblemBlocked) {
 			return refuse("filter %q: blockingTriggeredAttacker outside an AttackerBlocked trigger", expr)
 		}
 	}

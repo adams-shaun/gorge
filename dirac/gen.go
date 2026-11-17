@@ -1606,7 +1606,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Trig.Event {
 				case kop.TrigETB, kop.TrigDies, kop.TrigLeaves, kop.TrigSacrificed:
 					g.embObjEv |= 1 << a.Trig.Event
-				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained:
+				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked:
 					g.embCombatEv |= 1 << a.Trig.Event
 				case kop.TrigDamageDealtOnce:
 					g.embCombatEv |= 1 << kop.TrigDamageDone // the same hook (fireEmblemsDmg)

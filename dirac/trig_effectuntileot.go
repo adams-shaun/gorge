@@ -26,6 +26,9 @@ type EffEOTTrigStats struct {
 	DmgWithListener int // DamageDone emblem triggers queued by an event with a battlefield DamageDone listener (the hook after the listener walk)
 	DmgBeside       int // DamageDone emblem triggers queued beside another pending trigger of the owner's (the trigger_order ask)
 	DmgMulti        int // DamageDone emblem triggers queued with more than 1 damage dealt
+	BlockedFires    int // become-blocked emblem triggers queued (fireEmblemsBlocked)
+	BlockedMulti    int // of those, for an attacker blocked by more than one creature
+	BlockedLapsed   int // become-blocked emblem hook runs (a block with attackers) with the emblem's capture lapsed (the object left the battlefield)
 	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object, or the recipient was not its remembered player
 }
 
@@ -242,3 +245,69 @@ func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Abilit
 // DebugIgnoreAtkEmblem makes the per-attacker and per-defender emblem hooks
 // queue nothing (the oracle's mutation test: the lockstep must diverge).
 var DebugIgnoreAtkEmblem bool
+
+// DebugIgnoreBlockedEmblem makes the become-blocked emblem hook queue nothing
+// (the oracle's mutation test: the lockstep must diverge).
+var DebugIgnoreBlockedEmblem bool
+
+// fireEmblemsBlocked fires the end-of-turn emblems' become-blocked triggers
+// (gorge checkEffectCombatTriggers, Mode$ AttackerBlocked; Barreling Attack)
+// after fireBlockedGen's listener walk: for each emblem, once per DISTINCT
+// blocked attacker in atk (the order of their first block), as the creating
+// card's latent command-zone copy with the attacker as its trigger object. An
+// emblem that remembers a target (kop.Emblem.Capture; State.g.embN holds the
+// object + 1) fires only for that object (Card.IsRemembered over the
+// registration's Remembered set; a lapsed capture is 0 and fires for none).
+//
+//go:noinline
+func (s *State) fireEmblemsBlocked(k *prep, atk []Slot) {
+	if DebugIgnoreBlockedEmblem {
+		return
+	}
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
+			if !e.UntilEOT {
+				continue
+			}
+			for j := range e.Abilities {
+				ea := &e.Abilities[j]
+				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigBecomesBlocked {
+					continue
+				}
+				c := s.embCard(pp, i)
+				cd := &k.t.Cards[c]
+				for ab := range cd.Abilities {
+					la := &cd.Abilities[ab]
+					if la.Kind != kop.AbTriggered || la.AFlags&kop.AfLatent == 0 || la.Trig.Event != kop.TrigBecomesBlocked || la.Trig.Zone != kop.ZoneCommand {
+						continue
+					}
+					o := s.embObj(pp, i)
+					if st := DebugEffEOTTrigStats; st != nil && e.Capture != kop.RefNone && s.embNum(pp, i) == 0 {
+						st.BlockedLapsed++
+					}
+					for _, as := range atk {
+						ao := s.perms[as].obj
+						if e.Capture != kop.RefNone && int(s.embNum(pp, i)) != int(ao)+1 {
+							continue
+						}
+						if ea.Trig.Filter != 0 && !s.matchPermGen(k, ea.Trig.Filter, as, pp, NoSlot, layerFull) {
+							continue
+						}
+						if st := DebugEffEOTTrigStats; st != nil {
+							st.BlockedFires++
+							if s.perms[as].nblock > 1 {
+								st.BlockedMulti++
+							}
+						}
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, ao, s.perms[as].ctrl, 0)
+					}
+					break
+				}
+			}
+		}
+	}
+}
