@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Aftermath", "kw:Delve",
+	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Disturb", "kw:Flashback", "kw:Aftermath", "kw:Delve",
 		// The alternative-cost keyword family (altcosts): each is implemented
 		// to its CR shape with a named proof test in altcast_test.go --
 		// kw:Evoke (alternative cast + ETB unconditional sacrifice), kw:Dash

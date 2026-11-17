@@ -37,13 +37,14 @@ import (
 var (
 	kwhHarmonize = newKWHead("Harmonize")
 	kwhWarp      = newKWHead("Warp")
+	kwhDisturb   = newKWHead("Disturb")
 )
 
 // graveyardPrintedHeads are the heads whose printed keyword line opens a
 // graveyard route; graveyardDerivedHeads are those read through the derived
 // list (a subset: Warp is a printed-only read).
 var (
-	graveyardPrintedHeads = [...]kwHead{kwhHarmonize, kwhWarp, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
+	graveyardPrintedHeads = [...]kwHead{kwhHarmonize, kwhWarp, kwhDisturb, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
 	graveyardDerivedHeads = [...]kwHead{kwhHarmonize, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
 )
 

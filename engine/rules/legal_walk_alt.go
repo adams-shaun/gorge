@@ -510,6 +510,8 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		}
 	}
 
+	disturbOffers(w, grave)
+
 	// MayPlay static offers are the main-side walk above (mayPlayLandIds /
 	// mayPlaySpellIds over the continuous-effect grants plus the self-grant
 	// scan); the kw-mayplay branch's separate mayPlayGrantOffers walk is
@@ -674,6 +676,32 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 	// Self-carried S:Mode$ AlternativeCost | EffectZone$ Graveyard: the card's
 	// own static is the permission to cast it from this graveyard.
 	w.graveyardAltCostCasts(grave)
+}
+
+// disturbOffers appends the Disturb graveyard casts of grave to w.out.
+func disturbOffers(w *legalWalk, grave []state.ObjID) {
+	e, p := w.e, w.p
+	sorcery := w.sorcery
+	out := &w.out
+	// Disturb (CR 702.146a-b): the card is cast TRANSFORMED from its owner's
+	// graveyard for its disturb cost rather than its mana cost. Like
+	// aftermath, beginCast flips to the back face before the ordinary cast
+	// transaction, so timing, prohibition and targets are judged on the BACK
+	// face (the face the spell will have, CR 712.8 / 702.146b), and the
+	// face's own SP Cost$ extras are still paid on top.
+	for _, id := range grave {
+		bf, dc, ok := disturbCast(e.G.Obj(id))
+		if !ok || w.castRestrictedAsFace(p, id, bf) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !w.spellTimingOK(p, id, bf, sorcery) || !e.castTargetsAvailable(p, id, bf.SpellAbility()) {
+			continue
+		}
+		if w.offerCastableAsFace(p, id, bf, pay.WithSpellAbilityExtras(bf, dc), spellScope("disturb")) {
+			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+				Label: "Cast " + bf.Name + " (disturb)", Obj: id, Mode: "disturb"})
+		}
+	}
 }
 
 // exileCastsWalk is the exile recast section (warp recast).
