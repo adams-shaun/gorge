@@ -173,6 +173,7 @@ type ChangeZoneParams struct {
 	RememberSearcher       bool
 	SameNameAsEach         string
 	ForgetOtherTargets     bool
+	Haunt                  bool // Haunt$ True (K:Haunt expansion, CR 702.55b): events.Haunt links the exiled card to the creature target
 	Tapped                 bool
 	AtRandom               bool
 	NoLooking              bool
@@ -324,7 +325,7 @@ var changeZoneKnownKeys = [...]string{
 	"GainsAbilitiesOf",
 	"GainsTriggerAbsOf",
 	"GameActivationLimit",
-	"GiftDescription", "Hidden",
+	"GiftDescription", "Haunt", "Hidden",
 	"IfDesc",
 	"Image",
 	"Imprint",
@@ -699,6 +700,7 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.RememberSearcher = isTrue(sa.ParamStr(cards.PKRememberSearcher))
 	p.SameNameAsEach = strings.TrimSpace(sa.ParamStr(cards.PKSameNameAsEach))
 	p.ForgetOtherTargets = isTrue(sa.ParamStr(cards.PKForgetOtherTargets))
+	p.Haunt = isTrue(sa.ParamStr(cards.PKHaunt))
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))
 	p.AtRandom = isTrue(sa.ParamStr(cards.PKAtRandom))
 	p.NoLooking = isTrue(sa.ParamStr(cards.PKNoLooking))
