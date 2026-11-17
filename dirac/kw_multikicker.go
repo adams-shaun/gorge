@@ -101,6 +101,119 @@ func (s *State) kickedAffords(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCos
 	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), kc, cav)
 }
 
+// offerKickedHand is the hand walk's kicked offer: the base plus one payment
+// (Multikicker's, else the plain Kicker) with the CR 601.2f modifiers and the
+// any-type conversion composed in, offered when the real pool affords it --
+// or, under gorge's autopay surface, when gorge's potential planner prices it
+// against the potential pool (kickedPotentialPays).
+func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, base kop.ManaCost, cav *avail) {
+	kc := addCost(base, kickerPayment(&k.t.Cards[c]))
+	if s.statM.any() || k.gen != nil {
+		kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
+	}
+	if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
+		kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
+	}
+	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav)
+	if !aff && s.cfg&cfgGorgeAutopay != 0 && s.g.availX == 0 {
+		// the real pool's refusal is not the whole gate under gorge's
+		// autopay surface: gorge keeps the kicked cast as one of its
+		// potential plays (gorgeOffersKicked) and its potential planner
+		// prices it against the potential pool (pair 98: Caligo
+		// Skin-Witch paid through Rain of Filth's grants)
+		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
+		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
+	}
+	if aff && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+		d.add(MakeAction(AkCast, TCode(o), 0, 1))
+	}
+}
+
+// kickedArmOffer reports whether action a is a kicked cast (the mode-1 AkCast
+// offerKickedHand makes) on a kicker or multikicker card: grantCap's
+// walk-not-listed pruning does not drop it, because the walk's plainOptions
+// prices no kicked cast there (the arm runs only at availX == 0, against the
+// real census, while the walk's census is the relaxed one) and gorge's
+// planner prices the mode cast itself (potentialModeCastPlan).
+func (s *State) kickedArmOffer(k *prep, a Action) bool {
+	if a.Kind() != AkCast || a.Mode()&3 != 1 {
+		return false
+	}
+	c := s.objs[Obj(a.Source())].card
+	return k.cards[c].kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker
+}
+
+// kickedPotentialPays is the kicked offer's potential-pool arm under gorge's
+// autopay surface: gorge keeps the kicked cast as one of its potential plays
+// (gorgeOffersKicked) and its potential planner prices it against the
+// potential walk's bound (rules potentialModeCastPlan, the same pool gate
+// fbInstances prices the flashback instances with), so a kicked cast the
+// floats and the untapped production pay is offered even when the real pool
+// cannot (pair 98: Caligo Skin-Witch's {4}{B}{B} through Rain of Filth's
+// sacrifice grants). An open production makes that fold unbounded in every
+// colour, so there the planner's census is the bound: the walk's units' per
+// tap, each open source's natural production once (availPotentialFor's
+// units, the relaxed census paymentPlanRelaxProof bounds the gaps the same
+// way — pair 102: Gemhide Sliver made Keldon Strike Team's kicked cast look
+// payable that the census cannot pay, pair 98's arm beside them). The
+// planner's declines are mirrored (gorgeLowersRider's list) so only plans
+// gorge itself produces are mirrored.
+
+func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, d *payDesc) bool {
+	if s.contribPays(k, p, c, o, true) {
+		return false // the potential planner refuses a credit-bearing cast, and "kicked" is no altCastModes row (cost:credit)
+	}
+	if s.waterbendOwnPart(k, p, c, o) != 0 {
+		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
+	}
+	if kc.Hyb[0] == kop.HybTwobrid {
+		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
+	}
+	if kc.X != 0 {
+		return false // the planner prices the largest X the sources fund: unmodelled here
+	}
+	if sacXCost(spellAddCost(k, c)) {
+		return false // an announced Sac<X> the composition declines too, so only the floating pool offers it (cost_sacx.go)
+	}
+	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
+		// a permanent tapped for the part is no mana source, and a source that
+		// sacrifices itself can use up what the part must sacrifice (CR 601.2g-h;
+		// gorge planReserving)
+		if !s.spellPartDisjoint(k, p, c, o, ac, kc) {
+			return false
+		}
+	}
+	if k.t.Cards[c].HasAltAdd {
+		return false // the either-or part's composition is the plain one (potentialAltAddPlan); unmodelled for a kicked total
+	}
+	// gorge's potential walk (PotentialMana) lists the play: the floats and
+	// what the untapped sources could produce (availPotentialFor's fixpoint,
+	// the granted sacrifice-only abilities and each open source's natural
+	// production once included, units). The over-bound fold prices a
+	// fixed-choice production once per colour, while the planner's real
+	// plans make one mana per tap (CR 118.3c), so the offer needs the
+	// per-tap view too: {2}{G}{B} is no play when the board makes 3 mana, a
+	// "Combo U B" dual beside two Forests among them (the recorded Yahenni
+	// repro's Bog Badger at decision 104). With an open production the fold
+	// is unbounded in every colour and no proof: there the census (the
+	// units' per-tap view, gorge's relaxed census bounds the gaps the same
+	// way) decides, and an incomplete record has no bounded view and
+	// declines.
+	var pa, px avail
+	var pu [maxPotUnits]potUnit
+	open := s.availPotentialFor(k, p, &pa, d, false, &pu)
+	if !pa.affords(kc, pipMaskOf(kc), 0) {
+		return false
+	}
+	if !potUnitsAvail(&px, &pu) {
+		if open {
+			return false // no bounded census beside an unbounded fold
+		}
+		return true // the record is incomplete: keep the over-bound answer
+	}
+	return px.affords(kc, pipMaskOf(kc), 0)
+}
+
 // multikickMax is the largest multikicker count gorge multikickAsk would
 // offer: base + N payments walked through the same affordability check the
 // payment uses, bounded by the floating pool for an {X}-less spell (the
