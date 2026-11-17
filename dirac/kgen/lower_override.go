@@ -53,6 +53,14 @@ func creatureOnly(f *lFilter) bool {
 	return true
 }
 
+// loseAllNeedsCreatures reports whether a global override's lose-all reaches
+// beyond creatures, which the walk does not serve (a land's mana abilities are
+// read directly by the mana planner). A land-type setter's loss is exempt: the
+// planner reads it through landSetView (dirac/static_landtypesetter.go).
+func loseAllNeedsCreatures(o *lOverride, f *lFilter) bool {
+	return o.LoseAbilities && !o.SetLandSub && !creatureOnly(f)
+}
+
 // overrideStatic lowers the layer-hard statics (Witness Protection,
 // Imprisoned in the Moon) to an override record applied while the static
 // applies.
@@ -241,7 +249,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 			// abilities are derived would re-enter the derivation
 			return nil, refuse("global layer-6 override with condition %d", st.Cond.Kind)
 		}
-		if o.LoseAbilities && !creatureOnly(st.F) {
+		if loseAllNeedsCreatures(o, st.F) {
 			// a land's mana abilities (CR 305.6) are not walked: the
 			// mana planner reads them directly
 			return nil, refuse("global lose-all override over non-creatures")
