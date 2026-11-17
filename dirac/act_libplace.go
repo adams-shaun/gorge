@@ -24,11 +24,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // libTally is the placement tally: arm 0 off, 1 the counted placements go to
 // the top, 2 to the bottom; n the cards each owner has received since the arm
-// and ord the owners in first-placed order, two bits each. It lives in the
+// and ord the owners in first-placed order, two bits each; rev marks a group
+// whose top n are in reverse move order (a multi-target op placed each target
+// on top as it moved, unlike a sweep's libTopInOrder). It lives in the
 // resolution's scratch arm (armRes), so State grows by nothing.
 type libTally struct {
-	arm, ord uint8
-	n        [MaxSeats]uint8
+	arm, ord, rev uint8
+	n             [MaxSeats]uint8
 }
 
 // libPlaceExt is OpExt ExtLibPlace; false: an ask is posed.
@@ -42,7 +44,7 @@ func (s *State) libPlaceExt(k *prep, in *kop.Instr) bool {
 	if t.arm == 1 {
 		for i := 0; i < s.libPlaceOwners(); i++ {
 			seat := t.ord >> (2 * i) & 3
-			s.libPlaceLift(seat, s.libPlaceN(seat))
+			s.libPlaceLift(seat, s.libPlaceN(seat), t.rev != 0)
 		}
 	}
 	s.res.left = 0
@@ -76,12 +78,31 @@ func (s *State) libPlaceNote(owner uint8) {
 	}
 }
 
-// libPlaceLift moves the top n cards of seat's library, in order, to the bottom.
-func (s *State) libPlaceLift(seat uint8, n int) {
+// noteLibPlaceRev marks a top-arm group whose multi-target op (a ChangeZone
+// to a library with a multi-object target slot) places each target on top as
+// it moves: the top n are then in reverse move order (libPlaceLift).
+func (s *State) noteLibPlaceRev(in *kop.Instr) {
+	if in.Op == kop.OpToLibrary && in.C == 0 && s.res.active && s.resArm().plc.arm == 1 {
+		s.resArm().plc.rev = 1
+	}
+}
+
+// libPlaceLift moves the top n cards of seat's library to the bottom in move
+// order, which is where gorge's MoveZone appended them before the owner's
+// answer. A sweep's libTopInOrder already left its group in move order; a
+// multi-target op places each target on top as it moves, so its top group is
+// in reverse move order (rev) and is reversed on the way down.
+func (s *State) libPlaceLift(seat uint8, n int, rev bool) {
 	pl := &s.pl[seat]
 	lo, hi := int(pl.libLo), int(pl.libHi)
 	var group [MaxDeck]Obj
-	copy(group[:n], pl.lib[lo:lo+n])
+	if rev {
+		for i := 0; i < n; i++ {
+			group[i] = pl.lib[lo+n-1-i]
+		}
+	} else {
+		copy(group[:n], pl.lib[lo:lo+n])
+	}
 	copy(pl.lib[lo:hi-n], pl.lib[lo+n:hi])
 	copy(pl.lib[hi-n:hi], group[:n])
 }
