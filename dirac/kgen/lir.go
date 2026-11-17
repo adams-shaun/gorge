@@ -941,10 +941,12 @@ type lTrigger struct {
 	TapPlan       uint8 // kop.TapPlan; Taps, non-Self ValidCard$: the payment-planner class of the watcher body (lower_tapsclass.go)
 	TapPainN      uint8 // TapPlanPain: the vetted literal damage amount
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
-	// CauseSpell: LifeLost/LifeLostAll ValidCause$ SpellAbility[.<qual>], the
-	// loss's cause is the spell or ability resolving right now (gorge
-	// lifeLossCauseMatches; kop.Tf4CauseSpellAb): 1 any spell or ability, 2
-	// SpellAbility.YouCtrl, 3 SpellAbility.OppCtrl.
+	// CauseSpell: LifeLost/LifeLostAll/TurnFaceUp ValidCause$
+	// SpellAbility[.<qual>], the event's cause is the spell or ability
+	// resolving right now, or (TurnFaceUp) the special action its controller
+	// takes (gorge lifeLossCauseMatches / turnFaceUpCauseAdmits;
+	// kop.Tf4CauseSpellAb): 1 any spell or ability, 2 SpellAbility.YouCtrl,
+	// 3 SpellAbility.OppCtrl.
 	CauseSpell uint8
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);

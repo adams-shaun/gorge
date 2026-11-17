@@ -1145,6 +1145,7 @@ RefTriggerOpponents	Ref	247
 RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
+RememberAllImprint	untyped int	2
 RememberAllObjOrder	untyped int	1
 RepeatEachSeatOrder	untyped int	2
 ReplAddCountersOn	ReplKind	21

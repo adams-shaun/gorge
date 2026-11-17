@@ -1764,7 +1764,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags4 |= kop.Tf4SingleCauseTarget
 	}
 	if t.CauseSpell != 0 {
-		if t.Event != "LifeLost" && t.Event != "LifeLostAll" {
+		if t.Event != "LifeLost" && t.Event != "LifeLostAll" && t.Event != "TurnFaceUp" {
 			return kt, fmt.Errorf("cause-spell flag on a %s trigger", t.Event)
 		}
 		kt.Flags4 |= kop.Tf4CauseSpellAb

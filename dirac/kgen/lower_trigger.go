@@ -1297,13 +1297,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	case "TurnFaceUp":
 		// CR 708.6: a permanent matching ValidCard$ is turned face up.
 		// gorge trigmatch turnFaceUpMatches reads ValidCard$ against the
-		// permanent; ValidCause$ and Static$ are other shapes.
-		if _, ok := tp.get("ValidCause"); ok {
-			return refuse("TurnFaceUp ValidCause$")
-		}
-		if _, ok := tp.get("Static"); ok {
-			return refuse("TurnFaceUp Static$")
-		}
+		// permanent and ValidCause$ against the turn-up's actor (the
+		// special action's controller or the resolving effect's controller;
+		// trigParams4 reads it). Static$ True is the ordinary off-stack
+		// static-trigger candidate staticTriggerCand settled.
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
 		}
