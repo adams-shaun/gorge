@@ -853,6 +853,9 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 					continue // Phantasmagorian's "Discard three cards": legal.go's battlefield check (kfix-cast)
 				}
 			}
+			if !s.millRevealPayable(k, p, o, &a.Cost) {
+				continue // cost_millcost.go: CR 701.17b's library, CR 201.5's self-reveal
+			}
 			if k.costObj && !s.graveActOK(k, a, p, o) {
 				continue
 			}
