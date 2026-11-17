@@ -2437,6 +2437,30 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	return lc.effectTargetStatic(ps, s, obj)
 }
 
+// mayPlayGraveLifetime turns an until-end-of-turn Effect-delivered may-play
+// grant over a remembered graveyard card into the record that survives the
+// card's stay (DurWhileGrave; DurWhileGraveForget when the effect forgets the
+// card on a move to exile). A limited grant spends its use, and an
+// ExileOnMoved grant ends with the move, so both keep the one-shot duration.
+func mayPlayGraveLifetime(ps, sp *params, zone int, zones []int, dur string) string {
+	if zone != zGraveyard || len(zones) != 1 || dur != "EOT" {
+		return dur
+	}
+	if v, ok := sp.get("MayPlayLimit"); ok && strings.TrimSpace(v) != "0" {
+		return dur
+	}
+	if _, endsOnMove := ps.get("ExileOnMoved"); endsOnMove {
+		return dur
+	}
+	switch strings.TrimSpace(ps.str("ForgetOnMoved")) {
+	case "Exile":
+		return "WhileGraveForget"
+	case "":
+		return "WhileGrave"
+	}
+	return dur
+}
+
 // effectTargetStatic lowers the one static s of a targeted (or remembered)
 // Effect over its resolved object obj.
 func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) error {
@@ -2633,28 +2657,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect Duration %q", d)
 			}
 		}
-		forget := strings.TrimSpace(ps.str("ForgetOnMoved"))
-		if zone == zGraveyard && len(zones) == 1 && dur == "EOT" {
-			// An Effect-delivered graveyard grant outlives the card's stay:
-			// gorge registers the static over the remembered card and reads
-			// it again whenever the card is back in the graveyard (Skyclave
-			// Shade, Ichor Aberration). ForgetOnMoved$ Exile forgets the card
-			// when it moves to exile; a limited grant spends its use, so it
-			// keeps the one-shot record.
-			limited := false
-			if v, ok := sp.get("MayPlayLimit"); ok && strings.TrimSpace(v) != "0" {
-				limited = true
-			}
-			_, endsOnMove := ps.get("ExileOnMoved")
-			if !limited && !endsOnMove {
-				switch forget {
-				case "Exile":
-					dur = "WhileGraveForget"
-				case "":
-					dur = "WhileGrave"
-				}
-			}
-		}
+		dur = mayPlayGraveLifetime(ps, sp, zone, zones, dur)
 		ps.consume("ForgetOnMoved")
 		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur}
 		fl := 0
