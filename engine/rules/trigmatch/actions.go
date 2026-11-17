@@ -381,7 +381,11 @@ const ChainNoTarget = "countered: no legal targets"
 // Glyph Keeper, Kira, the Glasskites, Valiant creatures): true when no EARLIER
 // TargetsChosen event this turn named the same object (or player). Same
 // replay-stable backwards log scan as firstDamageToThisTurn -- no new event
-// kind, no engine field, survives Clone -- stopping at TurnChange.
+// kind, no engine field, survives Clone -- stopping at TurnChange. For an
+// object it also stops at the object's latest zone entry (a MoveZone of id),
+// as valiantFirstTimeTargetedByYouThisTurn does: a left-and-returned permanent
+// is a new object (CR 400.7), which no targeting before the move named. A
+// player never becomes a new object, so the player case scans to TurnChange.
 //
 // Events recorded for the same stack object ev.Obj are the SAME targeting
 // (a spell's later target groups, the event itself when the log already holds
@@ -392,6 +396,11 @@ func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player 
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		le := e.Log().Events[i]
 		if le.Kind == events.TurnChange {
+			return true
+		}
+		// An earlier zone change made this a new object (CR 400.7), which no
+		// targeting before it named.
+		if !player && le.Kind == events.MoveZone && le.Obj == id {
 			return true
 		}
 		if le.Kind == events.MoveZone && le.Text == ChainNoTarget {
