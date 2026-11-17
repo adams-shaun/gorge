@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // DB$ Clone on the battlefield (gorge effects/clone.go
@@ -24,7 +25,7 @@ import (
 // CopyPermanent) can lower it.
 var cloneCopyRefused = []string{
 	"NewName", "AddTypes", "AddColors", "SetColor", "SetPower", "SetToughness", "RemoveCost",
-	"Controller", "GainThisAbility", "AddSVars", "AddTriggers", "AddAbilities", "AddStaticAbilities",
+	"Controller", "AddTriggers", "AddAbilities", "AddStaticAbilities",
 	"ExcludeChosen", "ChoiceZone", "TgtZone", "CloneZone", "ChoiceOptional", "PumpKeywords",
 	"PumpDuration", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveSubTypes", "CopyFromChosenName",
 	"FaceDown", "KeepFacedownFalse", "AttachedTo", "IntoPlayTapped", "RememberCloneOrigin", "IfNew",
@@ -89,7 +90,7 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		if err := cloneTemplateFilter(f); err != nil {
 			return err
 		}
-		exc, hasExc, err := lc.copyExceptions(ps)
+		exc, hasExc, _, err := lc.cloneExceptions(ps, &flags, true)
 		if err != nil {
 			return err
 		}
@@ -217,7 +218,7 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		return refuse("Clone CloneTarget$ %q", ct)
 	}
 
-	exc, hasExc, err := lc.copyExceptions(ps)
+	exc, hasExc, grant, err := lc.cloneExceptions(ps, &flags, false)
 	if err != nil {
 		return err
 	}
@@ -231,9 +232,7 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 	}
 	in := lInstr{Op: "CloneCopy", Obj: becomer, F: valid, B: cst(flags)}
 	if hasExc {
-		lc.out.overrides = append(lc.out.overrides, exc)
-		in.C = len(lc.out.overrides) // index+1
-		in.Note = "except " + overrideString(exc)
+		lc.cloneExceptionRecords(&in, exc, grant)
 	}
 	if optional {
 		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardCloneCopy, Skip: 1, Note: "you may"})
@@ -288,3 +287,80 @@ func cutNotDefinedTargeted(spec string) (string, bool) {
 
 // flagsEOT: the copy ends at cleanup.
 func flagsEOT(flags int) bool { return flags&kop.CloneEOT != 0 }
+
+// cloneGrant reads the CR 707.9b exception copyExceptions does not:
+// GainThisAbility$ True (the copy has the resolving ability: the printed
+// ability this Clone is the body of) returns a grant-only override, which the
+// kernel applies as the copy's granted ability (it follows exc in the override
+// pool, kop.CloneGrant). NewName$ stays refused: the kernel's copy exceptions
+// carry no name. AddSVars$ only carries the SVars that ability's chain reads, which the
+// kernel's own ability already has, so it lowers only beside GainThisAbility$.
+// A grant makes *hasExc true: the pair stays together.
+func (lc *lowerCtx) cloneGrant(ps *params, flags *int, hasExc *bool) (*lOverride, error) {
+	v, ok := ps.get("GainThisAbility")
+	if !ok {
+		if _, ok := ps.get("AddSVars"); ok {
+			return nil, refuse("Clone AddSVars$ without GainThisAbility$")
+		}
+		return nil, nil
+	}
+	if strings.TrimSpace(v) != "True" {
+		return nil, refuse("Clone GainThisAbility$ %q", v)
+	}
+	if lc.ab == nil || lc.ab.Latent || lc.granted > 0 {
+		return nil, refuse("Clone GainThisAbility$ outside a printed ability")
+	}
+	if sv, ok := ps.get("AddSVars"); ok {
+		for _, n := range strings.Split(sv, ",") {
+			if cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(n)) == nil {
+				return nil, refuse("Clone AddSVars$ %q is no SVar of the card", n)
+			}
+		}
+	}
+	if flagsEOT(*flags) {
+		// an until-end-of-turn copy keeps no grant record of its own
+		return nil, refuse("Clone GainThisAbility$ with Duration$ UntilEndOfTurn")
+	}
+	*flags |= kop.CloneGrant
+	*hasExc = true
+	return &lOverride{GrantAbility: []int{lc.ab.Index}}, nil
+}
+
+// cloneBatchGrantRefused: the exile batch pool's Clone keeps no ability.
+func cloneBatchGrantRefused(ps *params) error {
+	for _, k := range []string{"GainThisAbility", "AddSVars"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("Clone %s$ in the exile batch pool", k)
+		}
+	}
+	return nil
+}
+
+// cloneExceptionRecords puts the copy exceptions' override, and the grant-only
+// record the kernel reads right after it (kop.CloneGrant), in the pool and
+// names them in in.
+func (lc *lowerCtx) cloneExceptionRecords(in *lInstr, exc, grant *lOverride) {
+	lc.out.overrides = append(lc.out.overrides, exc)
+	in.C = len(lc.out.overrides) // index+1
+	in.Note = "except " + overrideString(exc)
+	if grant != nil {
+		lc.out.overrides = append(lc.out.overrides, grant)
+		in.Note += " +" + overrideString(grant)
+	}
+}
+
+// cloneExceptions reads a Clone's copy exceptions: copyExceptions' and the
+// grant-only override of GainThisAbility$ (cloneGrant). The exile batch
+// pool's Clone keeps no ability.
+func (lc *lowerCtx) cloneExceptions(ps *params, flags *int, batch bool) (exc *lOverride, has bool, grant *lOverride, err error) {
+	if batch {
+		if err = cloneBatchGrantRefused(ps); err != nil {
+			return
+		}
+	}
+	if exc, has, err = lc.copyExceptions(ps); err != nil {
+		return
+	}
+	grant, err = lc.cloneGrant(ps, flags, &has)
+	return
+}

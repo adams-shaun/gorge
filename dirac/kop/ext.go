@@ -312,7 +312,8 @@ func init() {
 // Naga Fleshcrafter). Obj is the becomer (RefSelf or a target slot), or
 // RefNone with F the Valid set of becomers. B.N packs the flags (CloneEOT ..)
 // and the template's target slot (CloneTmplShift); C is the copy exceptions'
-// override index+1 (0 none). With ClonePick set the op is only the Choices$
+// override index+1 (0 none); with CloneGrant the next override record carries
+// the abilities the copy keeps (GainThisAbility$). With ClonePick set the op is only the Choices$
 // pick: the controller picks one battlefield permanent matching F (the
 // template) and the choice rides the resolution's chosen[0]; the copy op that
 // follows (behind an OpMayAsk MayGuardCloneCopy when Optional$) reads it.

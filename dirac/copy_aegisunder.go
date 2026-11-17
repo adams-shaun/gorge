@@ -91,7 +91,10 @@ type copyLayer struct {
 	ts    uint16
 	idx   uint8 // the copy's own exception override (index+1, 0 none)
 	grant uint8 // an as-enters copy marker's AddAbilities$ override (index+1, 0 none)
-	src   Obj   // the template object (copy markers only)
+	// grantSrc is card+1 of the card the grant's abilities index (a Clone's
+	// GainThisAbility$, clonePermGrantFrom); 0 = the host's printed card
+	grantSrc uint16
+	src      Obj // the template object (copy markers only)
 }
 
 const (
@@ -152,7 +155,7 @@ func (s *State) copyTop(host, skip Slot) copyLayer {
 		src := Obj(s.g.fx[r].r.p)
 		c := s.g.fx[r].r.src
 		if ts := s.g.fx[r].r.ts; !has || ts >= best {
-			l = copyLayer{kind: copyPerm, card: c, ts: ts, idx: s.g.fx[r].r.idx, src: src, grant: s.g.fx[r].r.fl}
+			l = copyLayer{kind: copyPerm, card: c, ts: ts, idx: s.g.fx[r].r.idx, src: src, grant: s.g.fx[r].r.fl, grantSrc: uint16(s.g.fx[r].r.t)}
 			best, has = ts, true
 		}
 	}
