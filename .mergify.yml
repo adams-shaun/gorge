@@ -22,3 +22,11 @@ pull_request_rules:
       - label=queue
     actions:
       queue:
+  - name: Auto-merge approved PRs
+    conditions:
+      - base = main
+      - "#approved-reviews-by >= 0"
+      - check-success = ci/build
+    actions:
+      merge:
+        method: squash
