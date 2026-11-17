@@ -39,10 +39,17 @@ func lockEffectGrant(h Host, c *Ctx, ce *state.ContinuousEffect) bool {
 		return true
 	}
 	gm := h.Game()
+	// The begin-time match reads the board as it is now (CR 611.2c: the
+	// characteristics as they then are, CR 613.3: layers apply first), so
+	// bind every on-demand table ce.Affects can name -- the P/T tables this
+	// spec reads included. The site runs at resolution, outside the layer
+	// walk, so the count fold's P/T skip does not apply.
+	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, ce.Affects, false)
 	var ids []state.ObjID
 	for _, p := range gm.AliveFrom(0) {
 		for _, id := range gm.Zone(state.ZBattlefield, p) {
-			if MatchesSpecCtx(gm, ce.Affects, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(gm, ce.Affects, id, sc) {
 				ids = append(ids, id)
 			}
 		}
