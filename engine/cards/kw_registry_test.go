@@ -167,6 +167,9 @@ var expandedHeads = []string{
 	// Fading (CR 702.32): enters-with fade counters plus the upkeep
 	// sacrifice-or-remove trigger (engine/cards/kw_fading.go). Added after the split.
 	"Fading",
+	// Rampage (CR 702.23): an AttackerBlocked self trigger pumping N per
+	// blocker beyond the first (engine/cards/kw_rampage.go). Added after the split.
+	"Rampage",
 	// Modular (CR 702.43a): an enters-with +1/+1 counters replacement plus an
 	// optional dies trigger moving the last-known count to a target artifact
 	// creature (engine/cards/kw_modular.go). Added after the split.
