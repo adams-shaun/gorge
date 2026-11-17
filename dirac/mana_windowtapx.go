@@ -57,9 +57,10 @@ func (s *State) payWindowAsk(k *prep, p uint8, cost *kop.ManaCost, mode uint8) (
 //
 //go:noinline
 func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool) {
-	if k.tapMana {
-		s.g.winMode = winTrig
-	}
+	// the window's view is the trigger-cost one whether or not a tap-another
+	// source is on the board: a Produced$ ColorIdentity source a rider kept out
+	// of the planner's census is listed here (mana_window.go windowGrantPC)
+	s.g.winMode = winTrig
 	// gorge's trigger-cost window answers with the first listed source, a planner-deferred
 	// one (a depletion land, Twitching Doll) in its battlefield place (payexec.WindowAnswer)
 	s.windowTapWalk(k, p, cost, cost, false, false, true, true, true, false)

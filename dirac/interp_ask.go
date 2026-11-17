@@ -242,6 +242,9 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
+	if s.caPotentialOpen(k, p) {
+		return true // Sage of the Maze: gorge's potential walk prices a Combo Any production unbounded in every colour (mana_comboany.go)
+	}
 	other := payDesc{class: pdOther, subBound: true}
 	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
@@ -282,6 +285,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		}
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)
+		}
+		if s.identityPotentialSource(k, p, sl, d) {
+			return true // a ColorIdentity rider/non-{T} source: gorge's payment-bound fold prices it (CR 903.4)
 		}
 		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
 		// (a commander-identity source whose controller has no commander yields

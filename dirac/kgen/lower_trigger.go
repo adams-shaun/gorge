@@ -885,7 +885,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			if len(alts) == 0 {
 				return refuse("BecomesTarget shape")
 			}
-			if tr.F, err = lc.btTargetList(alts); err != nil { // lower_bt_source.go
+			if tr.F, err = lc.btTargetList(tr, alts); err != nil { // lower_bt_source.go
 				return err
 			}
 			tr.Whose = whoOpp
@@ -921,7 +921,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// (gorge becomesTargetReferent). ValidTarget$ may be a comma
 			// list of permanent filters: the OR of the alternatives (gorge
 			// matches the whole ValidTarget$ against each chosen target).
-			if tr.F, err = lc.btTargetList(strings.Split(tp.str("ValidTarget"), ",")); err != nil { // lower_bt_source.go
+			if tr.F, err = lc.btTargetList(tr, strings.Split(tp.str("ValidTarget"), ",")); err != nil { // lower_bt_source.go
 				return err
 			}
 			tr.Watch = true
