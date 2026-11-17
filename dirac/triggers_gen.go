@@ -247,7 +247,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		// a line limited to once per turn or per game has spent its one trigger
 		// on the original: an additional time would pass the limit again (gorge
 		// queueTriggerLimited, CR 603.2d)
-		s.panharmEcho(k, l, a.Trig.Event, tobj, tpl, n) // trig_doubling.go
+		s.panharmEcho(k, l, panharmEv(a), tobj, tpl, n) // trig_doubling.go
 	}
 	if k.gen.anyBatchPool && s.npend > n && a.Trig.Flags2&kop.Tf2Batch != 0 && readsBatchPool(a) {
 		s.batchMemberNew(n, tobj) // trig_batchmembers.go
