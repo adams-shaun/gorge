@@ -16,7 +16,8 @@ import (
 // legal_granted.go grantedAbilitiesLimited). The filter is read relative to
 // the source (Other excludes it) and lands in kop.Static.GainsOf; the zone
 // rides kop.Static.Zone (ZoneNone: the battlefield, Forge's default;
-// ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard). The
+// ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard;
+// ZoneExile: GainsAbilitiesOfZones$ Exile, every seat's exile zone). The
 // kernel's offer walk is dirac/static_gainsof.go. Other zones, another
 // recipient, and artifact or land sources (whose mana abilities the walk
 // does not model) are refused by name.
@@ -27,12 +28,12 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 	}
 	z, hasZone := sp.get("GainsAbilitiesOfZones")
 	grave := hasZone && z == "Graveyard"
-	offField := hasZone && z != "Battlefield" && !grave
+	exile := hasZone && z == "Exile"
+	offField := hasZone && z != "Battlefield" && !grave && !exile
 	f, err := lc.filter(spec)
 	if err != nil {
-		// A zone this lowering does not walk outranks what its filter reads:
-		// Myr Welder's Card.IsImprinted is an Exile filter, so the card is
-		// held back by its zone, not by the Imprinted reader.
+		// A zone this lowering does not walk (neither the battlefield, the
+		// graveyards nor exile) outranks what its filter reads.
 		if offField {
 			return refuse("GainsAbilitiesOfZones$ %q", z)
 		}
@@ -57,8 +58,11 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 		return refuse("GainsAbilitiesOf Affected %q", aff)
 	}
 	st.GainsOf = f
-	if grave {
+	switch {
+	case grave:
 		st.Zone = zGraveyard
+	case exile:
+		st.Zone = zExile
 	}
 	return nil
 }
@@ -66,7 +70,7 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, aff string) error 
 // continuousFilterPair builds a Continuous static's Landwalk (battlefield)
 // and GainsOf filter fields (cardBuilder.static's filter closure). GainsOf is
 // read in the zone GainsAbilitiesOfZones$ names, which also lands in
-// kop.Static.Zone (ZoneNone, the battlefield, unless the graveyard).
+// kop.Static.Zone (ZoneNone, the battlefield, unless the graveyard or exile).
 func continuousFilterPair(filter func(*lFilter, kop.Zone) (kop.FilterID, error), s *lStatic, st *kop.Static) (kop.FilterID, kop.FilterID, error) {
 	lw, err := filter(s.Landwalk, kop.ZoneBattlefield)
 	if err != nil {
@@ -75,6 +79,9 @@ func continuousFilterPair(filter func(*lFilter, kop.Zone) (kop.FilterID, error),
 	gz := kop.ZoneBattlefield
 	if s.GainsOf != nil && s.Zone == zGraveyard {
 		gz, st.Zone = kop.ZoneGraveyard, kop.ZoneGraveyard
+	}
+	if s.GainsOf != nil && s.Zone == zExile {
+		gz, st.Zone = kop.ZoneExile, kop.ZoneExile
 	}
 	g, err := filter(s.GainsOf, gz)
 	return lw, g, err
