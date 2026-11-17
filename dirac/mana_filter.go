@@ -72,6 +72,34 @@ func comboFiltAb(a *kop.Ability) bool {
 	return a.AFlags&kop.AfManaChoice != 0 && a.ManaColors == kop.ColAny && a.ManaN > 1
 }
 
+// prepTapFilt records ability j of card c as the card's modelled filter
+// (genPrep.filt, gfFilt): a dynamic amount is one that may resolve to zero,
+// which scriptFilt then drops (gorge's census, manaAbilityYieldsNothing);
+// a gated one-pip filter is mana_filterpip.go's.
+func (g *genPrep) prepTapFilt(c CardID, j int, a *kop.Ability) {
+	g.smallFor(c).filt = int8(j)
+	g.setFlag(c, gfFilt)
+	g.anyFilt = true
+	if a.AFlags&kop.AfManaDynamic != 0 {
+		g.anyDynFilt = true
+	}
+	if _, pip := fixedPipFilt(a); pip {
+		g.anyFiltPip = true
+	}
+}
+
+// prepCensusGap records ability j of card c as a census gap the kernel models
+// beside the filter (genPrep.gapOther, gfGapOther); a dynamic amount is one
+// that may resolve to zero, which gapOthers then drops (gorge's census,
+// manaAbilityYieldsNothing).
+func (g *genPrep) prepCensusGap(c CardID, j int, a *kop.Ability) {
+	g.smallFor(c).gapOther = int8(j)
+	g.setFlag(c, gfGapOther)
+	if a.AFlags&kop.AfManaDynamic != 0 {
+		g.anyDynGap = true
+	}
+}
+
 // scriptFilt: p's activatable filter sources (untapped), a slot mask.
 func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	if !k.gen.anyFilt {
@@ -100,6 +128,19 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 		for b := m; b.any(); b = b.rest() {
 			if sl := b.first(); k.gen.has(s.cardAt(sl), gfFiltFee) && s.filtFee(k, sl) == 0 {
 				m = m.without(sl) // free: part of the source's own mana (mana_filterfree.go)
+			}
+		}
+	}
+	// A filter whose amount resolves to zero makes nothing (gorge's
+	// manaAbilityYieldsNothing: Baldur's Gate's "X mana of any one color, X =
+	// other Gates" beside no other Gate). The census lists no ability of it,
+	// so the prefix search must not fund its fee for no mana: the funding is
+	// one covered activation per fee-bearing ability, and an unfunded zero
+	// filter starves the search of the plays the census does pay.
+	if k.gen.anyDynFilt {
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); s.filtUnits(k, sl) == 0 {
+				m = m.without(sl) // the amount is zero: the ability yields nothing
 			}
 		}
 	}
@@ -603,11 +644,24 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 
 // gapOthers: p's activatable sources with a census gap that is no filter. A tap-another
 // source short of what its cost taps (Baylen with one token) cannot be activated, so
-// gorge's census does not miss it. A deferred TriggersWhenSpent$ source
+// gorge's census does not miss it. Neither does an ability that makes nothing
+// (gorge's manaAbilityYieldsNothing: an Amount$ that resolves to zero): it can
+// contribute to no payment, so no prefix activates it and it keeps no filter off the
+// filter search. A deferred TriggersWhenSpent$ source
 // (Pyromancer's Goggles) carries gfGapOther too (gen.go): otherGaps does
 // not fund it (mana_deferred.go).
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
+	if k.gen.anyDynGap {
+		for b := m; b.any(); b = b.rest() {
+			sl := b.first()
+			c := s.cardAt(sl)
+			a := &k.t.Cards[c].Abilities[k.gen.gapOther(c)]
+			if a.AFlags&kop.AfManaDynamic != 0 && s.dynManaN(k, a, sl) == 0 {
+				m = m.without(sl) // the amount is zero: the ability yields nothing
+			}
+		}
+	}
 	if k.sacOnlyMana {
 		// A sacrifice-only source (an Eldrazi Spawn or Scion token's "Sacrifice
 		// this creature: Add {C}") is a payment-plan last resort, not a census
