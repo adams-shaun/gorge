@@ -411,6 +411,10 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 	add := func(ce state.ContinuousEffect) {
 		stampGrantLifetime(&ce, lt)
 		ce.GrantedStatic = lt.GrantedStatic && beginsLate
+		if lt.FromEffect && !lt.GrantedStatic && !lockEffectGrant(h, c, &ce) {
+			registered = true // nothing was in the set when the effect began
+			return
+		}
 		h.AddContinuous(ce)
 		registered = true
 	}

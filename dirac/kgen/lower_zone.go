@@ -2407,6 +2407,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	}
 	_, hasTgt := ps.m["ValidTgts"]
 	if _, hasRO := ps.get("RememberObjects"); !hasTgt && !hasRO {
+		if ok, err := lc.lockedCantBlock(ps, ss); ok || err != nil { // lower_effectlockedgrant.go
+			return err
+		}
 		return lc.effectStaticEOT(ps, ss)
 	}
 	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go

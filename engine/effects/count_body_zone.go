@@ -146,7 +146,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// Built once here and passed to visit as a parameter instead.
 		specCtx := c.SpecContext(c.Controller)
 		specCtx.CounterAdds = counterAddsFor(h, spec)
-		bindSpecLayerTables(h, &specCtx.Layers, spec)
+		bindSpecLayerTables(h, &specCtx.Layers, spec, true)
 		f := zoneCountFold{h: h, g: g, spec: spec, pricedSpell: c.PricedSpell,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, readsPT: SpecReadsPT(spec),
@@ -264,9 +264,15 @@ const countLayerSkip = LayerCDAPT | LayerBattlefieldPT
 // keyword). A cost or mana-amount Ctx built outside Resolve carries none of
 // them; a CDA Ctx (rules' cdaEvalCtx) already carries the mid-walk colours,
 // which this keeps. One host call asks for every table specLayerWants names
-// that t does not already carry.
-func bindSpecLayerTables(h Host, t *LayerTables, spec string) {
-	want := specLayerWants(spec) &^ countLayerSkip
+// that t does not already carry. skipPT drops the P/T tables as well: the
+// Count$Valid fold binds those per candidate and must not ask here (see
+// countLayerSkip); a site matching at resolution, outside the layer walk,
+// passes false so its begin-time P/T read is layered.
+func bindSpecLayerTables(h Host, t *LayerTables, spec string, skipPT bool) {
+	want := specLayerWants(spec)
+	if skipPT {
+		want &^= countLayerSkip
+	}
 	if t.DerivedColors != nil {
 		want &^= LayerColors
 	}
@@ -275,6 +281,12 @@ func bindSpecLayerTables(h Host, t *LayerTables, spec string) {
 	}
 	if t.StaticGoads != nil {
 		want &^= LayerGoads
+	}
+	if t.CDAPTs != nil {
+		want &^= LayerCDAPT
+	}
+	if t.BattlefieldPTs != nil {
+		want &^= LayerBattlefieldPT
 	}
 	if want == 0 {
 		return
@@ -292,5 +304,11 @@ func bindSpecLayerTables(h Host, t *LayerTables, spec string) {
 	}
 	if want&LayerGoads != 0 {
 		t.StaticGoads = got.StaticGoads
+	}
+	if want&LayerCDAPT != 0 {
+		t.CDAPTs = got.CDAPTs
+	}
+	if want&LayerBattlefieldPT != 0 {
+		t.BattlefieldPTs = got.BattlefieldPTs
 	}
 }
