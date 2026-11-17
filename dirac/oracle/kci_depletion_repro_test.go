@@ -29,6 +29,13 @@ func TestReproKCIDepletionLandLockstep(t *testing.T) {
 		// Forest beside two untapped Ironworks, a Brood Monitor in hand); the
 		// grant search lists the sacrifice gap as a candidate (mana_grantsacx.go)
 		"sacrifice_mana_and_granted_mana_pay_a_cast",
+		// dr-mbc-bbbb pair 23: a {4} cast beside the untapped Ironworks and an
+		// untapped Fellwar Stone, the potential bound's B1 R1 + the Ironworks'
+		// {C}{C} listing it and the search paying it with two activations (The
+		// Rack, then the Fellwar Stone); the potential bound admits the
+		// sacrifice-another gap (legal.go potentialGapCost) and the candidates
+		// are the bound's plays (script_gen.go potentialBoundLists)
+		"sacrifice_mana_gap_joins_the_potential_bound",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
