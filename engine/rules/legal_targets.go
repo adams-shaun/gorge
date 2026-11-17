@@ -341,7 +341,7 @@ func (e *Engine) chainTargetsAvailable(p state.PlayerID, id, excludeSelf state.O
 			continue
 		}
 		subExclude := excludeSelf
-		if sub.API == "Attach" {
+		if attachSelfDestination(sub) {
 			subExclude = id
 		}
 		if !targetSAAvailableGift(e, p, id, subExclude, sub, x, xPending, gift) {
@@ -487,7 +487,7 @@ func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *card
 // to the post-announcement backstop.
 func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	var excludeSelf state.ObjID
-	if ab != nil && ab.API == "Attach" {
+	if attachSelfDestination(ab) {
 		excludeSelf = id
 	}
 	if !e.abilityTargetBoundAvailable(p, id, excludeSelf, ab) {

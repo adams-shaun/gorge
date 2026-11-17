@@ -82,7 +82,7 @@ func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 		}
 	}
 	var exclude state.ObjID
-	if !pc.isAbility() || sa.API == "Attach" {
+	if !pc.isAbility() || attachSelfDestination(sa) {
 		exclude = pc.card
 	}
 	return e.targetSAAvailable(pc.player, pc.card, exclude, sa, x, false)

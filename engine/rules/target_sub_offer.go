@@ -49,21 +49,34 @@ func (e *Engine) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Ta
 	return out
 }
 
+// attachSelfDestination reports whether an attach SA (API$ Attach) fastens
+// its own source: Object$ absent or Self, the Equip/Reconfigure expansion's
+// shape. Only then is the source permanent an impossible destination (CR
+// 301.5c: an Equipment can't equip itself; CR 701.3a). An Object$ naming
+// another permanent (ParentTarget, Remembered, Valid, ...) attaches THAT
+// object instead, so the ability's source stays a legal destination -- Brass
+// Squire may attach an Equipment to itself. This is the one home for the
+// exclusion the offer census, the chain availability census and targetAsk all
+// read.
+func attachSelfDestination(sa *cards.SA) bool {
+	if sa == nil || sa.API != "Attach" {
+		return false
+	}
+	if ap := effects.AttachOf(sa); ap.ObjectPresent && ap.Object != "Self" {
+		return false
+	}
+	return true
+}
+
 // attachSelfSource is the permanent an attach SA (API$ Attach) on stack
 // object o may never target: o's source, the exclusion targetAsk applies at
 // activation (CR 301.5c, 701.3a). A new-target census of o (a redirect, or a
 // copy's CR 707.10c election -- the copy keeps the original's source, CR
 // 707.10b) drops it so it offers only what the original could target. Zero
-// when sa is no attach SA or o has no source.
+// when sa is no attach SA, its destination is not its own source, or o has no
+// source.
 func attachSelfSource(o *state.Object, sa *cards.SA) state.ObjID {
-	if sa == nil || sa.API != "Attach" {
-		return 0
-	}
-	// Only an attach that fastens the source itself (Object$ absent or Self)
-	// has the source as an impossible destination; an Object$ naming another
-	// permanent (Swordsman, Sharp Scoundrel's ParentTarget) may well attach it
-	// to the source, as the original announcement allowed.
-	if ap := effects.AttachOf(sa); ap.ObjectPresent && ap.Object != "Self" {
+	if !attachSelfDestination(sa) {
 		return 0
 	}
 	return o.Source
