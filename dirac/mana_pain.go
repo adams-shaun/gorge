@@ -639,14 +639,15 @@ const availWin uint8 = 32
 // availWindowFor is availFor for gorge's unless / ward payability: the
 // shared census's units (painAvailMask), not the planner's.
 func (s *State) availWindowFor(k *prep, p uint8, a *avail) {
-	if !k.painMana {
-		s.availFor(k, p, a)
-		return
-	}
 	x := s.g.availX
-	s.g.availX |= availWin
+	if k.painMana {
+		s.g.availX |= availWin
+	}
 	s.availFor(k, p, a)
 	s.g.availX = x
+	if k.gen != nil && k.gen.anyComboAny && x&3 == 0 {
+		s.availCA(k, p, a) // the window taps a Combo Any source for its amount (mana_comboany.go; Sage of the Maze pays Urza's Chalice's {1})
+	}
 }
 
 // availWinCol is the availFor mode of a manual cast window's affordability
