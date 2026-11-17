@@ -13,7 +13,7 @@ dirac (*State).applyBuild	178	54
 dirac (*State).applyPriority	147	104
 dirac (*State).applyResolve	173	57
 dirac (*State).applyResolveGen	653	196
-dirac (*State).availPotentialFor	135	52
+dirac (*State).availPotentialFor	142	55
 dirac (*State).beginCast	223	117
 dirac (*State).beginStep	156	66
 dirac (*State).buildCostPreRaw	122	72
@@ -47,18 +47,18 @@ dirac (*State).replDamage	96	70
 dirac (*State).resolveOptionsGen	314	107
 dirac (*State).resolveTop	238	122
 dirac (*State).sba	336	131
-dirac (*State).scriptOffers	149	103
+dirac (*State).scriptOffers	149	104
 dirac (*State).stepRaw	144	59
 dirac (*State).windowColOwed	143	64
 dirac (*State).windowTapWalk	129	73
 dirac (*State).wordPerm3	92	51
 dirac (*filtSearch).otherGap	168	51
-dirac (*filtSearch).visit	136	57
+dirac (*filtSearch).visit	136	56
 dirac (*grantSrch).visit	274	105
 dirac (*tapXSearch).visit	197	57
 dirac arenaUses	114	58
-dirac prepare	208	116
-dirac prepareGen	1073	428
+dirac prepare	208	114
+dirac prepareGen	1074	428
 dirac/canon (*Translator).Action	422	155
 dirac/canon (*Translator).generatedChoose	344	115
 dirac/cardset (dataSet).matchup	383	124
@@ -82,7 +82,7 @@ dirac/kgen (*cardBuilder).record	628	186
 dirac/kgen (*cardBuilder).repl	226	91
 dirac/kgen (*cardBuilder).static	785	291
 dirac/kgen (*cardBuilder).target	305	183
-dirac/kgen (*cardBuilder).trigger	575	279
+dirac/kgen (*cardBuilder).trigger	588	287
 dirac/kgen (*instrCtx).opSearch	259	93
 dirac/kgen (*lClause).prop	560	149
 dirac/kgen (*lowerCtx).applyModifier	160	75
@@ -103,7 +103,7 @@ dirac/kgen (*lowerCtx).imprintMoxShape	56	59
 dirac/kgen (*lowerCtx).lowerAbility	535	253
 dirac/kgen (*lowerCtx).lowerKeywords	938	396
 dirac/kgen (*lowerCtx).lowerRepl	280	100
-dirac/kgen (*lowerCtx).lowerTriggered	1727	583
+dirac/kgen (*lowerCtx).lowerTriggered	1720	575
 dirac/kgen (*lowerCtx).manaEffect	165	67
 dirac/kgen (*lowerCtx).nodeCondition	238	78
 dirac/kgen (*lowerCtx).objOrTargetOpt	150	56
@@ -120,7 +120,7 @@ dirac/kgen (*lowerCtx).svarValue	657	238
 dirac/kgen (*lowerCtx).tgtSetParams	101	55
 dirac/kgen (*lowerCtx).token	263	71
 dirac/kgen computeStdCensusAll	232	54
-dirac/kgen dumpLIR	303	100
+dirac/kgen dumpLIR	306	101
 dirac/kgen opsUsage	637	188
 dirac/manifest Adopt	310	104
 dirac/oracle (*GorgeSide).optionAction	233	79
@@ -170,7 +170,7 @@ engine/effects evalCountBodyPaid	508	99
 engine/effects evalCountBodyPlayer	300	58
 engine/effects evalPlayerRefProperty	204	56
 engine/effects evalRefProperty	441	118
-engine/effects handMoveOwnersWalk	347	63
+engine/effects handMoveOwnersWalk	346	61
 engine/effects matchPositive	516	119
 engine/effects matchesPlayerSingleSpec	355	131
 engine/effects moveDefinedLibraryObjects	204	56
@@ -189,7 +189,7 @@ engine/rules (*Engine).checkEventDelayedTriggers	356	59
 engine/rules (*Engine).checkFaceTriggers	798	165
 engine/rules (*Engine).checkGrantedStaticTriggersUsing	269	62
 engine/rules (*Engine).continueCast	237	53
-engine/rules (*Engine).emit	853	246
+engine/rules (*Engine).emit	852	244
 engine/rules (*Engine).forEachTriggerObject	170	53
 engine/rules (*Engine).handleChoose	422	106
 engine/rules (*Engine).handleReplacement	298	79

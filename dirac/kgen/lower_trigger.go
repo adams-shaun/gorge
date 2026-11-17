@@ -604,9 +604,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
 			w, ok = whoChosen, true
 		}
-		if lc.phaseEnchantedBy(tp, tr) { // lower_enchantedby.go
-			w, ok = whoEnchanted, true
-		}
+		w, ok = lc.phaseEnchantedBy(tp, tr, w, ok) // lower_enchantedby.go
 		if tp.str("ValidPlayer") == "You.descended" {
 			// gorge playerSpecQualifierDescended (CR 700.11): a permanent
 			// card entered your graveyard this turn, read as the trigger
@@ -817,19 +815,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return err
 			}
 		}
-		if tp.str("ValidTarget") == atkLastTurnSpec {
-			if err := atkYouLastTurn(tp, tr, t); err != nil { // lower_atklastturn.go
-				return err
-			}
-		} else if tp.str("ValidTarget") == "Player.EnchantedBy" {
-			if err := lc.damageEnchantedBy(tr); err != nil { // lower_enchantedby.go
-				return err
-			}
-		} else if tp.str("ValidTarget") == noContractSpec {
-			if err := noContract(tp, tr, t); err != nil { // lower_contract.go
-				return err
-			}
-		} else if tr.F2, err = readF("ValidTarget"); err != nil {
+		if err := lc.damageTargetSpec(tp, tr, t, readF); err != nil { // lower_enchantedby.go
 			return err
 		}
 		if cd, ok := tp.get("CombatDamage"); ok {

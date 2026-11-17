@@ -1,11 +1,34 @@
 package kgen
 
-// phaseEnchantedBy reports a Phase trigger's ValidPlayer$ Player.EnchantedBy
-// on a printed battlefield listener: gorge playerSpecQualifierEnchantedBy,
-// the player this Aura enchants (Accursed Witch's back face); the kernel
-// reads the listener's attachment (defEnchanted).
-func (lc *lowerCtx) phaseEnchantedBy(tp *params, tr *lTrigger) bool {
-	return tp.str("ValidPlayer") == "Player.EnchantedBy" && lc.granted == 0 && (tr.Zone == zNone || tr.Zone == zBattlefield)
+import "github.com/adams-shaun/gorge/engine/cards"
+
+// phaseEnchantedBy is a Phase trigger's whose (w, ok): ValidPlayer$
+// Player.EnchantedBy on a printed battlefield listener is gorge
+// playerSpecQualifierEnchantedBy, the player this Aura enchants (Accursed
+// Witch's back face); the kernel reads the listener's attachment
+// (defEnchanted). Any other shape keeps the whose already read.
+func (lc *lowerCtx) phaseEnchantedBy(tp *params, tr *lTrigger, w uint8, ok bool) (uint8, bool) {
+	if tp.str("ValidPlayer") == "Player.EnchantedBy" && lc.granted == 0 && (tr.Zone == zNone || tr.Zone == zBattlefield) {
+		return whoEnchanted, true
+	}
+	return w, ok
+}
+
+// damageTargetSpec reads a DamageDone trigger's ValidTarget$: the
+// attacked-you-last-turn (lower_atklastturn.go), Player.EnchantedBy
+// (damageEnchantedBy) and no-contract (lower_contract.go) player specs, else
+// the ordinary filter.
+func (lc *lowerCtx) damageTargetSpec(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) (err error) {
+	switch tp.str("ValidTarget") {
+	case atkLastTurnSpec:
+		return atkYouLastTurn(tp, tr, t)
+	case "Player.EnchantedBy":
+		return lc.damageEnchantedBy(tr)
+	case noContractSpec:
+		return noContract(tp, tr, t)
+	}
+	tr.F2, err = readF("ValidTarget")
+	return err
 }
 
 // damageEnchantedBy lowers a DamageDone ValidTarget$ Player.EnchantedBy:
