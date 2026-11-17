@@ -2853,7 +2853,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 		s.pl[p].libRemove(o)
 	}
 	s.objs[o].zone = kop.ZoneNone
-	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z) == kop.ZoneLibrary {
+	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z, kop.ZoneLibrary) == kop.ZoneLibrary {
 		pl := &s.pl[p]
 		for i := len(after) - 1; i >= 0; i-- {
 			if x := after[i]; s.objs[x].zone == kop.ZoneNone {
