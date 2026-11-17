@@ -54,6 +54,7 @@ Dirty Wererat
 Dispersal Shield
 District Guide
 Doomfall
+Drafna, Founder of Lat-Nam
 Dragon Throne of Tarkir
 Drake Hatchling
 Dread of Night
@@ -66,6 +67,7 @@ Electrostatic Pummeler
 Emberwilde Augur
 Empty the Laboratory
 Epic Confrontation
+Extract Power
 Fairgrounds Patrol
 Favored of Iroas
 Fiery Cannonade
@@ -74,6 +76,7 @@ Firefist Adept
 Foggy Nelson, On Retainer
 Forest
 Foulmire Knight
+Fracturing Gust
 Frost Lynx
 Galestrike
 Garruk's Lost Wolf
@@ -85,6 +88,7 @@ Goblin Replica
 Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Signet
 Guardian of Tazeem
 Gwyllion Hedge-Mage
 Hammerheim Deadeye
@@ -96,6 +100,7 @@ Hieromancer's Cage
 High Ground
 Howling Banshee
 Icatian Scout
+Ideas Unbound
 Ingenious Infiltrator
 Ink-Eyes, Servant of Oni
 Intrusive Packbeast
@@ -123,6 +128,7 @@ Mistford River Turtle
 Moku, Meandering Drummer
 Mountain
 Mudhole
+Myojin of Cryptic Dreams
 Myr Battlesphere
 Mystic of the Hidden Way
 Nahiri's Binding
@@ -153,13 +159,16 @@ Quill-Slinger Boggart
 Ramosian Lieutenant
 Return of the Mole Man
 Revoke Demise
+Rhox Bodyguard
 River's Favor
 Road
 Root Spider
 Sai of the Shinobi
+Saltwater Stalwart
 Scavenging Scarab
 Scion of the Swarm
 Sea Sprite
+Sentinel's Mark
 Sequence Engine
 Seshiro the Anointed
 Shadow, Mysterious Assassin
@@ -191,6 +200,7 @@ Swarm of Rats
 Sylvok Replica
 Talisman of Resilience
 Tar Pit Warrior
+Terisiare's Devastation
 Thalakos Drifters
 Thornscape Familiar
 Thundering Raiju
@@ -201,6 +211,7 @@ Tracker's Instincts
 Treason of Isengard
 Triumph of Cruelty
 Turtle-Seals
+Vat of Rebirth
 Vengeful Firebrand
 Vigorspore Wurm
 Vine Mare

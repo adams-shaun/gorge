@@ -3,14 +3,17 @@ A-Syndicate Infiltrator
 A-Young Blue Dragon
 Aberrant
 Aegis Automaton
+Agadeem Occultist
 Agent of Masks
 Aggravated Assault
 Ajani Goldmane
 Akoum Flameseeker
 Alabaster Wall
+Aladdin's Ring
 Altar Golem
 Amulet of Vigor
 Ancient Copper Dragon
+Ancient Kavu
 Angrath's Marauders
 Ant-Man, Elusive Avenger
 Arcade Cabinet
@@ -34,12 +37,15 @@ Blitz Automaton
 Blood Ogre
 Bloodline Necromancer
 Bloodthorn Taunter
+Bog-Strider Ash
+Bogardan Rager
 Boon of Emrakul
 Brass Secretary
 Bright-Palm, Soul Awakener
 Brilliant Plan
 Broken Visage
 Bubble Matrix
+Bull's Strength
 Cankerbloom
 Carnage Altar
 Chainer's Edict
@@ -63,10 +69,13 @@ Common Iguana
 Compulsion
 Concordia Pegasus
 Conformer Shuriken
+Court of Cunning
 Crack the Earth
 Creeping Mold
+Crimson Hellkite
 Crumbling Colossus
 D'Avenant Healer
+Deepcavern Imp
 Defender of Law
 Deflection
 Devils' Playground
@@ -82,6 +91,8 @@ Dune Beetle
 Dungeoneer's Pack
 Elvish Harbinger
 Endless Scream
+Ertai's Scorn
+Experimental Armor
 Eye of Yawgmoth
 Faceless Devourer
 Fast
@@ -102,9 +113,12 @@ Frog-Squirrels
 Frontline Medic
 Furnace Dragon
 Furnace Scamp
+Futurist Sentinel
+Game-Trail Changeling
 Gavony Trapper
 Geist Snatch
 Ghost Lantern
+Glimpse of Nature
 Gluttonous Slug
 Gnoll War Band
 Gnome-Made Engine
@@ -114,6 +128,8 @@ Great-Horn Krushok
 Greater Forgeling
 Hadran, Naya Sunseeder
 Hangar Scrounger
+Hatred
+Haywire Mite
 Heartless Summoning
 Hedron Crawler
 Helitrooper
@@ -123,7 +139,9 @@ High Alert
 Highspire Mantis
 Hornswoggle
 Hunters' Feast
+Hurloon Shaman
 Idol of Oblivion
+Ihsan's Shade
 Inferno Titan
 Infused Arrows
 Into the Story
@@ -133,10 +151,12 @@ Ironroot Treefolk
 Island
 Isolate
 Jaheira's Respite
+Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
 Knight of Infamy
 Krakilin
+Land Grant
 Lava Zombie
 Legion Lieutenant
 Legion's Judgment
@@ -148,6 +168,7 @@ Liliana's Scrounger
 Lingering Phantom
 Locus Cobra
 Lorehold Excavation
+Machinate
 Machine Man, Model X-51
 Mage Duel
 Manabond
@@ -164,11 +185,14 @@ Minotaur Skullcleaver
 Mist Dragon
 Mnemonic Wall
 Mogg Alarm
+Moment of Heroism
+Monstrous Onslaught
 Mortal's Ardor
 Moss Kami
 Mossbeard Ancient
 Mountain
 Mountain Bandit
+Mournful Zombie
 Mysterious Pathlighter
 Namora, the Sea Queen
 Nantuko Shade
@@ -190,6 +214,7 @@ Plummet
 Porcelain Legionnaire
 Poultrygeist
 Precognitive Perception
+Predator's Howl
 Press for Answers
 Primordial Ooze
 Prophetic Flamespeaker
@@ -201,8 +226,10 @@ Reiterate
 Reito Lantern
 Reiver Demon
 Relic Bane
+Repercussion
 Rescue
 Resourceful Return
+Restore
 Ring of Three Wishes
 Riot Spikes
 Rip Apart
@@ -218,29 +245,35 @@ Scourge of Skola Vale
 Screamreach Brawler
 Sea Kings' Blessing
 Season of Renewal
+Second Breakfast
 Second Harvest
 Second Thoughts
 Seed Guardian
 Selesnya Sentry
 Sengir Vampire
 Sentinel Spider
+Sentinel's Eyes
 Shadowblood Egg
 Shaggy Camel
 Shelter
 Sheoldred's Edict
 Shepherd of the Cosmos
 Shield Mare
+Shriekhorn
+Shrill Howler
 Shrivel
 Silumgar's Command
 Sinking Feeling
 Six-Sided Die
 Skyclave Geopede
 Skylasher
+Skyspear Cavalry
 Slimefoot, the Stowaway
 Smolder Initiate
 Snapcaster Mage
 Snarling Warg
 Solemn Recruit
+Soltari Crusader
 Song of Eärendil
 Southern Elephant
 Spark Trooper
@@ -248,10 +281,12 @@ Spartan Veteran
 Spellskite
 Sphinx of Magosi
 Spinehorn Minotaur
+Spire Mangler
 Sprouting Renewal
 Steam Blast
 Steward of Valeron
 Stone Rain
+Stormcrag Elemental
 Stormtide Leviathan
 Strength of Night
 Structural Distortion
@@ -263,6 +298,7 @@ Synapse Sliver
 Tah-Crop Skirmisher
 Tajuru Beastmaster
 Talisman of Curiosity
+Taunting Challenge
 Tegan Jovanka
 Tenured Oilcaster
 Terror of the Fairgrounds
@@ -278,6 +314,9 @@ Tidings
 Tigereye Cameo
 Time of Heroes
 Titans' Vanguard
+Topan Ascetic
+Tormented Hero
+Tower Defense
 Triton Shorethief
 Turn the Tide
 Turnabout
@@ -291,6 +330,7 @@ Valor of the Worthy
 Vampire Revenant
 Vampire Warlord
 Vastwood Gorger
+Vengeful Regrowth
 Venom Blast
 Vineshaper Mystic
 Vivid Revival
@@ -298,9 +338,12 @@ Vivisurgeon's Insight
 Volunteer Militia
 Wand of the Elements
 Wandering Tombshell
+Warfire Javelineer
 Wei Elite Companions
+When We Were Young
 Whisper Agent
 Xiahou Dun, the One-Eyed
 You Come to the Gnoll Camp
 Yuan Shao, the Indecisive
 Zhao, the Seething Flame
+Zuran Orb

@@ -68,6 +68,7 @@ Charging Tuskodon
 Chatterstorm and Awaken the Woods
 Chicken Egg
 Chief Engineer
+Citywatch Sphinx
 Colos Yearling
 Colossal Growth
 Complete Disregard
@@ -306,6 +307,7 @@ Psychic Pickpocket
 Puncture Bolt
 Puncturing Blow
 Quag Vampires
+Quest for Ula's Temple
 Quicksand
 Quiet Contemplation
 Radiating Lightning
@@ -408,6 +410,7 @@ Temporal Manipulation
 Tend the Pests
 Territorial Aetherkite
 Tethered Skirge
+Thassa's Emissary
 The Scorpion God
 Thirst for Discovery
 Thirst for Meaning
@@ -462,6 +465,7 @@ Wolf Cove Villager
 Woodcaller Automaton
 Wooden Cane
 Woodvine Elemental
+Worldfire
 Wyleth, Soul of Steel
 Yanling's Harbinger
 Zimone, Mystery Unraveler

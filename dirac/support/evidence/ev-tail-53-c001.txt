@@ -1,5 +1,6 @@
 A Little Chat
 A-Death-Priest of Myrkul
+A-Geological Appraiser
 A-Glittermonger
 A-Midnight Assassin
 Adrix and Nev, Twincasters
@@ -16,8 +17,11 @@ Ancestral Statue
 Ancestral Vision
 Ancient Carp
 Aqueous Form
+Araumi of the Dead Tide
 Archers' Parapet
 Arcum Dagsson
+Argothian Swine
+Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
 Astrid Peth
@@ -31,6 +35,8 @@ Battle-Rage Blessing
 Befuddle
 Beloved Princess
 Big Play
+Bladed Bracers
+Blasphemous Act
 Blessed Respite
 Blood Host
 Bloodroot Apothecary
@@ -50,6 +56,8 @@ Calamity's Wake
 Candlelight Vigil
 Canopy Cover
 Cao Ren, Wei Commander
+Capenna Express
+Captivating Crew
 Captivating Unicorn
 Cat Burglar
 Challenger Troll
@@ -64,10 +72,13 @@ Commune with Dinosaurs
 Conquering Manticore
 Contract Hero
 Corrupted Zendikon
+Countryside Crusher
 Cranial Ram
+Crowded Crypt
 Cryptbreaker
 Cunning Wish
 Cut the Earthly Bond
+Dalek Squadron
 Daring Archaeologist
 Daring Leap
 Dark Banishing
@@ -83,14 +94,18 @@ Despotic Scepter
 Devour in Flames
 Discordant Piper
 Divination
+Domineer
 Domri's Ambush
 Drag Under
+Dregscape Zombie
 Drowned Secrets
 Dueling Rapier
 Eager Beaver
+Eager First-Year
 Earth Elemental
 Earthshaker Giant
 Earthshaking Si
+Elemental Summoning
 Elturgard Ranger
 Embraal Gear-Smasher
 Enraging Licid
@@ -109,18 +124,23 @@ Field Surgeon
 Fists of the Demigod
 Flailing Ogre
 Flame Discharge
+Flame of Anor
 Flicker
 Flow of Ideas
 Forest
+Fugue
 Fungal Infection
 Garruk's Packleader
+Geist of the Moors
 Geistwave
 Geralf's Messenger
+Geth's Verdict
 Glimmer Bairn
 Glintwing Invoker
 Gluntch, the Bestower
 Gnottvold Recluse
 Goblin Settler
+Goblin War Paint
 God-Pharaoh's Faithful
 Goldmeadow Lookout
 Golem Foundry
@@ -135,6 +155,7 @@ Heat Ray
 Hekma Sentinels
 Hellrider
 Herald of the Sun
+Hillcomber Giant
 Hunting Cheetah
 Ichor Explosion
 Iconic Shield
@@ -155,6 +176,7 @@ Kabuto Moth
 Karfell Kennel-Master
 Kazandu Stomper
 Kelpie Guide
+Khabál Ghoul
 Kitchen Imp
 Knight of Meadowgrain
 Krosan Reclamation
@@ -162,6 +184,9 @@ Kuldotha Forgemaster
 Lava Dart
 Leaf Dancer
 Leyline Binding
+Liability
+Lightbringer
+Liliana's Caress
 Llanowar Empath
 Lose Hope
 Lost Leonin
@@ -175,15 +200,19 @@ Makeshift Munitions
 Man-o'-War
 Marauder's Axe
 Mausoleum Wanderer
+Megatog
 Merchant of Truth
 Mindbreak Trap
 Mine Bearer
 Mirozel
+Molten Blast
+Moonring Island
 Moonsnare Specialist
 Morgul-Knife Wound
 Mossdog
 Mountain
 Murasa Pyromancer
+Myojin of Towering Might
 Myr Sire
 Mystical Dispute
 Naiad of Hidden Coves
@@ -216,15 +245,20 @@ Pearl Lake Ancient
 Pendrell Drake
 Phyrexian Digester
 Phyrexian Juggernaut
+Phyrexian Tribute
+Pillaging Horde
 Pit Raptor
 Pit Trap
 Plains
 Plated Sliver
+Plundering Predator
 Precognition
+Prosperous Bandit
 Psionic Snoop
 Psychic Miasma
 Pulsemage Advocate
 Pyreswipe Hawk
+Pyroceratops
 Queen's Bay Soldier
 Rage Reflection
 Ranger's Path
@@ -238,6 +272,8 @@ Roil Elemental
 Ruinous Intrusion
 Rumbling Baloth
 Rush of Vitality
+Rust Monster
+Savage Surge
 Scattered Thoughts
 Scavenging Harpy
 Scepter of Dominance
@@ -245,6 +281,7 @@ Scrabbling Claws
 Scrappy Bruiser
 Sea Gate Banneret
 Seascape Aerialist
+Second Sight
 Sedraxis Alchemist
 Segovian Leviathan
 Selvala, Explorer Returned
@@ -271,6 +308,7 @@ Sparring Golem
 Spiteflame Witch
 Spore Flower
 Squall
+Squirrel Nest
 Stitched Drake
 Strength of Arms
 Strength of the Coalition
@@ -288,6 +326,7 @@ Tempest Caller
 Temur Runemark
 The Fabulous Frog-Man
 The Gaffer
+Threaten
 Tidal Courier
 Timberland Guide
 Timberwatch Elf
@@ -296,9 +335,12 @@ To Arms!
 Torch Drake
 Torpor Dust
 Tribute to Urborg
+Trickster Mage
 Triton Cavalry
+Tyrant's Machine
 Umara Entangler
 Underworld Coinsmith
+Unnatural Endurance
 Unyaro Bees
 Upheaval
 Urban Daggertooth
@@ -312,16 +354,23 @@ Voice of the Blessed
 Voltaic Whip
 Vraska's Finisher
 Vug Lizard
+Vulshok Splitter
 Waking Nightmare
 Walking Ballista
+Wall of Heat
+Wanderlight Spirit
 War Oracle
 War Priest of Thune
 Watchwing Scarecrow
+Weathered Bodyguards
+Westfold Rider
+Whisper, Blood Liturgist
 White Dragon
 Wild Wanderer
 Winter Sky
 Witherbloom Apprentice
 Wizard's Lightning
+World-Weary
 Worm Harvest
 Wrecking Ogre
 Yavimaya Wurm

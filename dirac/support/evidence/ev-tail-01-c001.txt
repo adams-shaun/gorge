@@ -435,6 +435,7 @@ War Screecher
 Warded Battlements
 Warg Rider
 Wasteland Scorpion
+Watcher for Tomorrow
 Waterwhirl
 Weaver of Blossoms
 Wind Dancer
@@ -446,6 +447,7 @@ Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
 Wrenn and Seven
+Yoked Plowbeast
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit

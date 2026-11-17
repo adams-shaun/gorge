@@ -18,7 +18,9 @@ Artificer's Epiphany
 Ashnod's Harvester
 Atreus, Impulsive Son
 Avenging Angel
+Axegrinder Giant
 Balduvian Atrocity
+Balduvian Horde
 Baleful Eidolon
 Bant Battlemage
 Battle of Frost and Fire
@@ -64,6 +66,7 @@ Cruel Finality
 Crush
 Crystal Rod
 Curse of the Forsaken
+Cursed Ronin
 Customs Depot
 Cutthroat Centurion
 Cyclops Electromancer
@@ -86,10 +89,12 @@ Doom Blade
 Dragon-Scarred Bear
 Dragonborn Looter
 Dream Cache
+Dreamstalker Manticore
 Dueling Rapier
 Dusk Legion Zealot
 Eagle of the Watch
 Elspeth, Sun's Nemesis
+Emeria Captain
 Emissary of Sunrise
 Epic Confrontation
 Erratic Explosion
@@ -128,6 +133,7 @@ Goblin War Wagon
 Goldmeadow Harrier
 Golgari Germination
 Gorilla Warrior
+Grand Arbiter Augustin IV
 Grand Warlord Radha
 Graverobber Spider
 Graveyard Shovel
@@ -184,12 +190,14 @@ Luminous Bonds
 Lunarch Mantle
 Lyzolda, the Blood Witch
 Makindi Shieldmate
+Mana Prism
 Mana Skimmer
 Mandroid Squadron
 Mask of Avacyn
 Maular, the Next Evolution
 Mazirek, Kraul Death Priest
 Megatherium
+Meng Huo's Horde
 Mental Agony
 Meriadoc Brandybuck
 Meteor Storm
@@ -206,6 +214,7 @@ Mystical Dispute
 Naya Battlemage
 Necromaster Dragon
 Neurok Commando
+Nezumi Ronin
 Noggle Bandit
 Oak Street Innkeeper
 Occult Epiphany
@@ -225,6 +234,7 @@ Pincher Beetles
 Pinpoint Avalanche
 Pit Trap
 Plains
+Plated Slagwurm
 Pouncing Cheetah
 Power Matrix
 Practical Research
@@ -322,6 +332,7 @@ Terashi's Verdict
 Tezzeret, Master of the Bridge
 The Falcon, Sam Wilson
 Thelonite Druid
+Thermo-Alchemist
 Thing Swing
 Thorn Lieutenant
 Thrór's Map

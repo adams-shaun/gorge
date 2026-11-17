@@ -7,22 +7,29 @@ Aggressive Urge
 Agrus Kos, Wojek Veteran
 Alabaster Kirin
 Albino Troll
+Angelfire Ignition
+Arcade Gannon
 Argivian Phalanx
 Aven Fleetwing
 Baleful Ammit
 Bash to Bits
+Battle Rampart
 Baxter, Fly in the Ointment
 Beaming Defiance
 Birthing Ritual
 Bloodcrazed Paladin
 Boil
+Boltwing Marauder
 Bomat Bazaar Barge
 Breakneck Berserker
 Brion Stoutarm
+Brushfire Elemental
 Canal Dredger
 Candlelit Cavalry
+Carnage Tyrant
 Castle Embereth
 Champion's Helm
+Citanul Druid
 Clear the Stage
 Coalhauler Swine
 Conformer Shuriken
@@ -32,11 +39,13 @@ Darigaaz's Caldera
 Daring Skyjek
 Dark Withering
 Daru Encampment
+Daybreak Charger
 Deadly Dispute
 Deceive the Messenger
 Deem Inferior
 Demonic Gifts
 Desolate Mire
+Destructive Revelry
 Dismantling Wave
 Doric, Nature's Warden
 Dreadwaters
@@ -45,6 +54,8 @@ Druid's Deliverance
 Dualcaster Mage
 Elder Cathar
 Ellie, Vengeful Hunter
+Elusive Krasis
+Engulfing Eruption
 Ephara's Enlightenment
 Epiphany Storm
 Eron the Relentless
@@ -56,6 +67,7 @@ Foriysian Brigade
 Fortuitous Find
 Foul Presence
 Gate to Seatower
+Ghor-Clan Savage
 Gnawing Zombie
 Goblin Recruiter
 Goblin Swine-Rider
@@ -77,6 +89,7 @@ Island
 Ithilien Kingfisher
 Jeskai Student
 Jhessian Lookout
+Kalastria Nightwatch
 Kami's Flare
 Kin-Tree Warden
 Kozilek's Channeler
@@ -85,6 +98,7 @@ Krosan Restorer
 Krosan Verge
 Lavafume Invoker
 Lena, Selfless Champion
+Living Lightning, Charged Up
 Llanowar Empath
 Lynx
 Mana Cylix
@@ -96,6 +110,7 @@ Mountain
 Mukotai Soulripper
 Mystic Visionary
 Necrogen Scudder
+Niambi, Esteemed Speaker
 Null Champion
 Ojutai Exemplars
 Oxidda Golem
@@ -110,17 +125,21 @@ Pyre Zombie
 Ragavan, Nimble Pilferer
 Rapacious Guest
 Regal Unicorn
+Render Inert
 Rites of Spring
 Root Greevil
 Rot-Tide Gargantua
 Scourge Servant
 See Red
+Shivan Zombie
 Show of Valor
 Silhana Wayfinder
 Skorpekh Lord
 Soul Manipulation
+Sparkmage Apprentice
 Spitting Dilophosaurus
 Staff of Domination
+Staggershock
 Stand Firm
 Steam Spitter
 Steel Leaf Champion
@@ -130,6 +149,7 @@ Strongarm Thug
 Swamp
 Sword of the Chosen
 Tahngarth's Rage
+Takenuma Bleeder
 Terminal Moraine
 Teyo, the Shieldmage
 Thorned Moloch
@@ -139,6 +159,7 @@ Treacherous Werewolf
 Trumpeting Herd
 Ultron, Machine Overlord
 Vengeful Rebirth
+Virulent Plague
 Wall of Stone
 Warclamp Mastiff
 Warmind Infantry

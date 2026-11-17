@@ -1,3 +1,5 @@
+Aberrant Return
+Age of Ultron
 Agent of Stromgald
 Amateur Auteur
 Ancestral Recall
@@ -7,19 +9,26 @@ Assassin Initiate
 Aven Gagglemaster
 Barrenton Cragtreads
 Barrin's Codex
+Battle Sliver
 Benalish Missionary
 Blind-Spot Giant
+Blood Divination
 Bolt of Keranos
 Cabal Inquisitor
+Cadira, Caller of the Small
 Captain America, Liberator
 Chase Stein, Runaway
+Clockwork Fox
 Coercive Impetus
 Courier Griffin
 Courtly Provocateur
+Cover of Darkness
 Crash Landing
+Crisis of Conscience
 Cyclops Tyrant
 Darien, King of Kjeldor
 Death Speakers
+Drana's Emissary
 Dromoka's Gift
 Drudge Reavers
 Drunau Corpse Trawler
@@ -33,8 +42,10 @@ Enfeeblement
 Eyeblight's Ending
 Feast or Famine
 Final Payment
+Flare
 Flowstone Mauler
 Forest
+Fruit of Tizerus
 Gavony Silversmith
 Ghost-Lit Raider
 Glarewielder
@@ -43,6 +54,7 @@ Goblin Soothsayer
 Grid Monitor
 Gust of Wind
 Hag of Inner Weakness
+Hag of Noxious Nightmares
 Hammerheim Deadeye
 Headless Specter
 Henrika Domnathi
@@ -51,21 +63,26 @@ Hobbit's Sting
 Homicidal Seclusion
 Honored Crop-Captain
 Horizon Explorer
+Hour of Revelation
 Hunter's Edge
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
+Inspiring Cleric
 Iron Fist, Hero for Hire
 Island
 Jeskai Elder
 Kaervek's Torch
 Kavu Howler
 Keeper of the Cadence
+Kolaghan Warmonger
 Krazy Kow
 Last Kiss
 Liliana's Triumph
 Lone Missionary
 Lucky the Pizza Dog
+Magmaroth
+Magmatic Force
 Malakir Bloodwitch
 Mardu Hateblade
 Marsh Casualties
@@ -78,25 +95,39 @@ Mountain
 Mystic Restraints
 Night Terrors
 Nightstalker Engine
+Nishoba Brawler
+Nomads en-Kor
+O'aka, Traveling Merchant
 Overtaker
 Paradox Engine
 Pearled Unicorn
 Pious Wayfarer
 Pitchburn Devils
 Plains
+Portable Hole
 Precinct Captain
 Protector of the Wastes
 Queen's Agent
+Rain of Revelation
 Ral's Outburst
+Rally at the Hornburg
 Ratcatcher
 Reverent Mantra
+Riddle Gate Gargoyle
+Righteous Fury
 Scent of Nightshade
+Scourge of the Nobilis
 Screeching Drake
 Selesnya Charm
+Selfless Savior
+Serra's Boon
 Serum Tank
+Shared Triumph
 Shivan Hellkite
+Silkbind Faerie
 Sinstriker's Will
 Siphon Insight
+Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Sorcerer's Strongbox
@@ -107,8 +138,10 @@ Spore Crawler
 Sprinting Warbrute
 Stalwart Aven
 Stand
+Static Net
 Staunch Shieldmate
 Storm Fleet Aerialist
+Sublime Archangel
 Suspicious Bookcase
 Swamp
 Sylvia Brightspear
@@ -122,21 +155,29 @@ Thraben Valiant
 Thran War Machine
 Tor Giant
 Treespring Lorian
+Troubled Healer
+Troublesome Spirit
+Trusty Packbeast
 Tukatongue Thallid
 Uktabi Wildcats
 Unbreakable Formation
+Uncontrollable Anger
 Updraft
 Urborg Drake
 Vampire Outcasts
 Veilborn Ghoul
+Venerable Warsinger
 Vengeful Vampire
+Vexilus Praetor
 Victual Sliver
 Vulpine Goliath
 Wall of Opposition
 War Falcon
 Water Elemental
 Wayward Soul
+Weakness
 White Widow, Yelena Belova
+Winds of Rath
 Wingmate Roc
 Wydwen, the Biting Gale
 You Meet in a Tavern

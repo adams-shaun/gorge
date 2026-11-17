@@ -1,16 +1,28 @@
++2 Mace
 Abrupt Decay
 Alluring Scent
+Anoint
+Archnemesis
+Assassinate
 Aurochs
 Basal Thrull
+Benevolent Ancestor
+Bile Urchin
+Boon of Boseiju
 Bosco, Just a Bear
+Bosh, Iron Golem
 Braids, Cabal Minion
 Brainbite
+Breath of the Sleepless
 Brokers Veteran
+Bubble Snare
 Burnt Offering
 Caldera Kavu
+Capsize
 Cavern Crawler
 Centaur Rootcaster
 Chandra's Revolution
+Chilling Trap
 Coerced Confession
 Collective Voyage
 Corpse Cur
@@ -19,18 +31,34 @@ Cruel Edict
 Crystal Slipper
 Damping Matrix
 Deep-Sea Terror
+Defiant Salvager
 Dementia Bat
+Desperate Castaways
 Devious Cover-Up
 Diplomacy of the Wastes
 Dreadwurm
+Drogskol Cavalry
 Drowner of Hope
 Electrolyze
+Elven Fortress
+Endless Ranks of the Dead
+Enlightened Maniac
 Ephara's Radiance
+Epiphany Storm
 Eternal Thirst
+Ethereal Investigator
+Evolutionary Leap
 Exile into Darkness
+Exultant Skymarcher
 Faerie Conclave
 Failed Inspection
 Fate Unraveler
+Fearsome Awakening
+Feral Maaka
+Fire Ants
+Fireborn Knight
+Firemane Avenger
+Firemane Commando
 Fireslinger
 Flame Sweep
 Flame-Blessed Bolt
@@ -40,16 +68,21 @@ Flowering Field
 Forcemage Advocate
 Forest
 Forgotten Harvest
+Fracture
 Fresh Meat
 Freyalise's Charm
+Galadhrim Guide
+Gargoyle Flock
 Garruk's Gorehorn
 Ghost-Lit Redeemer
 Ghostfire Blade
 Gimli's Axe
+Granite Grip
 Grim Physician
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
+Hand of Death
 Hapato's Might
 Harrowing Journey
 Heal
@@ -60,11 +93,15 @@ Hunger of the Nim
 Ignite the Future
 Ironwright's Cleansing
 Island
+Journey to Nowhere
 Kabira Vindicator
 Katilda, Dawnhart Prime
 Keepers of the Faith
 Kestia, the Cultivator
+Kiku's Shadow
 Kill Shot
+King Macar, the Gold-Cursed
+Kinsbaile Borderguard
 Kitchen
 Liliana's Specter
 Living Terrain
@@ -78,6 +115,8 @@ Mistcutter Hydra
 Morbid Opportunist
 Mountain
 Multani's Harmony
+Nacatl Savage
+Natural Selection
 Nightshade Assassin
 Nimana Skitter-Sneak
 Nissa, Resurgent Animist
@@ -86,37 +125,50 @@ Oakheart Dryads
 Obelisk of Undoing
 Octoprophet
 Olivia Voldaren
+One Dozen Eyes
 Opaline Unicorn
 Oran-Rief Invoker
 Orthodoxy Enforcer
 Ostiary Thrull
+Override
 Owlbear
+Oxidize
 Panther Warriors
 Parhelion II
+Phantom Beast
 Phyrexian War Beast
 Plains
 Power Matrix
+Psychic Symbiont
 Quilled Wolf
+Radioactive Man
 Rain of Tears
 Ravenous Rats
 Rebel Salvo
 Regress
+Restoration Angel
 Ring of Thune
 Rona's Vortex
 Rootbound Crag
+Rough
+Sadistic Slash
 Samut, Tyrant Smasher
 Sarkhan Vol
+Scion of Calamity
 Serpent Assassin
+Seven-Tail Mentor
 Sever Soul
 Sheltering Word
 Shinka Gatekeeper
 Shroofus Sproutsire
 Siege Veteran
+Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
 Skyclave Shade
 Skyfisher Spider
 Slimefoot, the Stowaway
+Slith Bloodletter
 Soaring Seacliff
 Soul Channeling
 Soul Kiss
@@ -127,19 +179,25 @@ Stensia Innkeeper
 Sultai Charm
 Swamp
 Talonrend
+Telekinetic Sliver
 Tenacious Hunter
 Terra Ravager
 The Surgical Bay
 Thorncaster Sliver
+Thought Monitor
 Thoughts of Ruin
 Toggo, Goblin Weaponsmith
 Twigwalker
 Tyrant's Scorn
 Vandalblast
 Veteran Cavalier
+Veteran's Sidearm
 Vithian Stinger
 Vizier of the Scorpion
 Vodalian Merchant
+Vodalian Zombie
 Whiptongue Hydra
 Whitewater Naiads
+Wild Might
+Yawgmoth's Agenda
 Zombie Cannibal

@@ -54,6 +54,7 @@ Goblin Brigand
 Goblin Sky Raider
 Goblin Soothsayer
 Grid Monitor
+Hag of Noxious Nightmares
 Hammerheim Deadeye
 Hazardous Conditions
 Henrika Domnathi
@@ -77,6 +78,7 @@ Last Kiss
 Liliana's Triumph
 Lone Missionary
 Loxodon Mystic
+Magmaroth
 Mana Leak
 Marionette Apprentice
 Mass Appeal
@@ -105,12 +107,15 @@ Pitchburn Devils
 Plains
 Plateau
 Portable Hole
+Precinct Captain
 Promise of Tomorrow
 Protector of the Wastes
 Rain of Filth
+Rain of Revelation
 Ral's Outburst
 Regisaur Alpha
 Reverent Mantra
+Riddle Gate Gargoyle
 Scent of Nightshade
 Scrap Mastery
 Scroll Thief
@@ -138,6 +143,7 @@ Staunch Shieldmate
 Stitch in Time
 Storm Fleet Aerialist
 Strafe
+Sublime Archangel
 Suspicious Bookcase
 Sustainer of the Realm
 Swamp

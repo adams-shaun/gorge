@@ -219,6 +219,7 @@ Inhumaniac
 Innistrad Charm
 Innocence Kami
 Inspiring Commander
+Ipnu Rivulet
 Island
 Isolation Cell
 Ivory Charm
@@ -226,6 +227,7 @@ Jackhammer
 Jiang Yanggu, Wildcrafter
 Jodah's Codex
 Jousting Lance
+Joven and Chandler
 Jugan, the Rising Star
 Junktown
 Kalonian Twingrove
@@ -342,6 +344,7 @@ Purraj of Urborg
 Pygmy Pyrosaur
 Quick-Draw Dagger
 Rabid Wolverines
+Radiant Grove
 Rage Thrower
 Rain of Embers
 Rain of Rust

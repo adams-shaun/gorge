@@ -75,6 +75,7 @@ Forest
 Foul-Tongue Shriek
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate Hound
 Gerrard's Irregulars
 Gideon's Lawkeeper
@@ -84,6 +85,7 @@ Goblin Firebug
 Graceful Cat
 Grappling Sundew
 Grave Betrayal
+Greenseeker
 Grizzly Ghoul
 Harrow
 Henge of Ramos
@@ -96,6 +98,7 @@ Junk Golem
 Kami of False Hope
 Kami of Fire's Roar
 Kavu Chameleon
+Killer Bees
 King Crab
 Knight of Dawn's Light
 Lava Axe

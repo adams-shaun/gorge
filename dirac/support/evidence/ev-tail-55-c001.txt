@@ -25,6 +25,7 @@ Assassinate
 Aurochs
 Autumnal Gloom
 Avacynian Priest
+Avatar of Slaughter
 Ayula's Influence
 Azusa's Many Journeys
 Banishment Decree
@@ -32,19 +33,24 @@ Basal Thrull
 Battlewise Aven
 Beast Attack
 Behemoth Sledge
+Benevolent Ancestor
 Bile Urchin
 Bloodhaze Wolverine
 Bloodpyre Elemental
 Bonds of Quicksilver
 Bone Picker
+Boon of Boseiju
 Border Guard
 Boros Signet
 Bosco, Just a Bear
+Bosh, Iron Golem
 Bosk Banneret
 Braids, Cabal Minion
+Bubble Snare
 Bump in the Night
 Burning Hands
 Burnt Offering
+Capsize
 Caustic Wasps
 Cavalier of Night
 Cavern Crawler
@@ -72,11 +78,13 @@ Curiosity
 Cybermen Squadron
 Damping Matrix
 Deep-Sea Terror
+Defiant Salvager
 Desperate Castaways
 Diplomacy of the Wastes
 Djinni Windseer
 Dragonspeaker Shaman
 Dreadwurm
+Drogskol Cavalry
 Drowner of Hope
 Duskmantle Operative
 Eidolon of the Great Revel
@@ -87,8 +95,10 @@ Endless Ranks of the Dead
 Enlightened Maniac
 Epiphany Storm
 Eternal Thirst
+Ethereal Investigator
 Evolutionary Leap
 Extortion
+Exultant Skymarcher
 Ezuri, Stalker of Spheres
 Faceless Butcher
 Faerie Conclave
@@ -139,9 +149,11 @@ Grizzled Leotau
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
+Guardian of the Forgotten
 Hag Hedge-Mage
 Hag of Twisted Visions
 Hall of Triumph
+Hand of Death
 Hangar Scrounger
 Hapato's Might
 Hardy Veteran
@@ -163,6 +175,7 @@ Ironwright's Cleansing
 Irresistible Prey
 Island
 Joraga Treespeaker
+Journey to Nowhere
 Kabira Vindicator
 Katilda, Dawnhart Prime
 Keepers of the Faith
@@ -200,6 +213,7 @@ Mossfire Egg
 Mountain
 Multani's Harmony
 Mwonvuli Acid-Moss
+Nacatl Savage
 Natural Selection
 Nessian Boar
 Nikko-Onna
@@ -217,6 +231,7 @@ Opaline Unicorn
 Orthodoxy Enforcer
 Ostiary Thrull
 Out of the Way
+Override
 Overwhelming Stampede
 Owlbear
 Oxidize
@@ -224,6 +239,7 @@ Pang Tong, "Young Phoenix"
 Panther Warriors
 Pathbreaker Ibex
 Peace Strider
+Phantom Beast
 Phyrexian Delver
 Plains
 Pore Over the Pages
@@ -241,6 +257,7 @@ Ravnica at War
 Rebel Salvo
 Reckless Cohort
 Regress
+Restoration Angel
 Ring of Thune
 Rona's Vortex
 Rootbound Crag
@@ -249,6 +266,7 @@ Sadistic Slash
 Scion of Calamity
 Scorchmark
 Sea Gate
+Seven-Tail Mentor
 Sever Soul
 Sheltering Word
 Shinka Gatekeeper
@@ -260,6 +278,7 @@ Skyclave Shade
 Skyfisher Spider
 Slimefoot, the Stowaway
 Slingbow Trap
+Slith Bloodletter
 Smash to Dust
 Soaring Seacliff
 Soul Channeling
@@ -287,6 +306,7 @@ That's Rough Buddy
 The Surgical Bay
 Thopter Engineer
 Thorncaster Sliver
+Thought Monitor
 Thoughts of Ruin
 Théoden, King of Rohan
 Time of Ice

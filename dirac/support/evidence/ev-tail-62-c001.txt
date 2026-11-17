@@ -4,6 +4,7 @@ A-Skull Skaab
 Aegis of the Gods
 Aeronaut's Wings
 Aether Inspector
+Ajani, Wise Counselor
 Akroma, Angel of Fury
 Alesha, Who Smiles at Death
 Algae Gharial
@@ -17,6 +18,7 @@ Anointed Procession
 Archetype of Aggression
 Ardent Electromancer
 Argivian Blacksmith
+Armed
 Artifact Mutation
 Ashen Monstrosity
 Ashnod, Flesh Mechanist
@@ -27,6 +29,7 @@ Augury Owl
 Avacyn's Memorial
 Aven Squire
 Aven Surveyor
+Azorius Herald
 Azorius Knight-Arbiter
 Bad Deal
 Bad Moon
@@ -143,6 +146,7 @@ Go-Shintai of Lost Wisdom
 Goblin Balloon Brigade
 Goblin Grenadiers
 Goblin Spymaster
+Grafted Skullcap
 Grandmother Sengir
 Grasping Current
 Grave Birthing
@@ -180,6 +184,7 @@ Jubilant Mascot
 Judge Unworthy
 Juvenile Mist Dragon
 Kaijin of the Vanishing Touch
+Karmic Guide
 Katara's Reversal
 Keening Apparition
 Keepsake Gorgon
@@ -263,6 +268,7 @@ Pyrokinesis
 Raised by Giants
 Rakdos Ringleader
 Rakdos Trumpeter
+Rakdos's Return
 Rakshasa's Secret
 Ral's Dispersal
 Ranger en-Vec
@@ -402,6 +408,7 @@ Whelming Wave
 Windborne Charge
 Wizard Class
 Wolverine Riders
+Word of Blasting
 Yotian Medic
 Zebra Unicorn
 Zodiac Snake

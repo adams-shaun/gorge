@@ -137,6 +137,7 @@ Fylamarid
 Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
+Gempalm Incinerator
 Giant Warthog
 Gitaxian Raptor
 Gix's Caress
@@ -366,6 +367,7 @@ Turn to Slag
 Twilight Prophet
 Twinblade Slasher
 Twins of Maurer Estate
+Twisted Spider-Clone
 Two-Handed Axe
 Tymaret Calls the Dead
 Umezawa's Jitte

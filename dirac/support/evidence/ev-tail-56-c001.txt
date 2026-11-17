@@ -1,11 +1,14 @@
 A-Mishra, Excavation Prodigy
+A-Nezumi Prowler
 A-Stimulus Package
+Abiding Grace
 Addle
 Adorable Kitten
 Adverse Conditions
 Aerie Worshippers
 Aether Flash
 Aetherflux Car
+Aethertide Whale
 Agate Instigator
 Alarum
 Alchemist's Greeting
@@ -17,11 +20,15 @@ Arachnoid
 Arachnoid Adaptation
 Arashin Foremost
 Arcade Gannon
+Archon of Cruelty
 Armament Master
+Arrogant Outlaw
 Ascendant Packleader
 Aura Fracture
 Avacynian Priest
 Aven Smokeweaver
+Avian Changeling
+Awaken the Ancient
 Banefire
 Banishment Decree
 Barbed Battlegear
@@ -57,6 +64,7 @@ Champion of Dusk
 Chimeric Egg
 Circle of the Land Druid
 Cirith Ungol Patrol
+Citywide Bust
 Clay Statue
 Cleansing Meditation
 Clear
@@ -81,6 +89,7 @@ Debtors' Knell
 Demon of Dark Schemes
 Desert Drake
 Destructive Tampering
+Dingus Staff
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
@@ -90,6 +99,7 @@ Duskmantle Prowler
 Earth Servant
 Earthcraft
 Elderfang Disciple
+Elven Lyre
 Essence Fracture
 Explosive Vegetation
 Faerie Conclave
@@ -103,6 +113,7 @@ Fiery Finish
 Finishing Blow
 Fire Ambush
 Fires of Yavimaya
+First-Sphere Gargantua
 Flailing Manticore
 Flowstone Sculpture
 For the Ancestors
@@ -114,6 +125,7 @@ Gaea's Anthem
 Gatecreeper Vine
 Gates Ablaze
 Gempalm Strider
+Gideon's Resolve
 Gixian Infiltrator
 Gluntch, the Bestower
 Goblin Cavaliers
@@ -130,6 +142,7 @@ Ground Seal
 Gruesome Deformity
 Gulping Scraptrap
 Gush
+Gyome, Master Chef
 Haazda Exonerator
 Hapatra, the Desert Fang
 Happy Hogan, Bodyguard
@@ -139,6 +152,7 @@ Havoc Sower
 Heavy Ballista
 Hellkite Punisher
 Herald of the Dreadhorde
+Hex
 Hexplate Golem
 Honden of Cleansing Fire
 Hope-Ender Coatl
@@ -160,6 +174,7 @@ Joraga Warcaller
 Kabira Crossroads
 Kamahl, Fist of Krosa
 Keen Sense
+Keldon Champion
 Khenra Charioteer
 Kheru Bloodsucker
 Kin-Tree Invocation
@@ -170,6 +185,7 @@ Kraul Stinger
 Krosan Adaptation
 Last Rites
 Lay Bare the Heart
+Leafdrake Roost
 Legolas, Master Archer
 Leonin Warleader
 Life Finds a Way
@@ -196,6 +212,7 @@ Mishra's Helix
 Mobilized District
 Mogg Toady
 Mondrak, Glory Dominus
+Moorish Cavalry
 Mothrider Patrol
 Mountain
 Mowu, Loyal Companion
@@ -228,9 +245,11 @@ Peace Strider
 Phase Dolphin
 Pheres-Band Brawler
 Pheres-Band Raiders
+Phyrexian Vatmother
 Pierce the Sky
 Plaguemaw Beast
 Plains
+Poison-Blade Mentor
 Pore Over the Pages
 Poultrygeist
 Power Conduit
@@ -238,14 +257,18 @@ Power Fist
 Pox
 Prismatic Lens
 Prizefight
+Psychic Allergy
 Pursued Whale
 Put Away
 Pygmy Allosaurus
 Rabid Wombat
+Raphael, the Muscle
+Reclusive Wight
 Reduce
 Reject Imperfection
 Repel the Darkness
 Repentance
+Replicating Ring
 Reprisal
 Resculpt
 Retreat to Hagra
@@ -263,8 +286,10 @@ Searing Flesh
 Sedge Scorpion
 Seed of Hope
 Seismic Assault
+Servant of Nefarox
 Shaper Apprentice
 Shapers' Sanctuary
+Shattered Angel
 Sheltering Word
 Shepherd of Rot
 Shrine Steward
@@ -273,15 +298,18 @@ Silent Departure
 Silkwrap
 Simplify
 Skorpekh Destroyer
+Skullport Merchant
 Skyfisher Spider
 Skyshaper
 Soltari Priest
 Somberwald Alpha
+Soulsworn Jury
 Spawnbed Protector
 Spell Snuff
 Spellrune Painter
 Spidersilk Net
 Sporecap Spider
+Squall Drifter
 Stampeding Wildebeests
 Startling Development
 Storm, Queen of Wakanda
@@ -289,16 +317,22 @@ Stratadon
 Sunhome, Fortress of the Legion
 Sunmane Pegasus
 Swamp
+Talruum Champion
 Tarpan
+Tasseled Dromedary
 Temur Battle Rage
 Testament of Faith
 The Great Juggernaut
 The Wasp, Janet Van Dyne
 Thoughtbind
+Thoughtrender Lamia
+Tithebearer Giant
 Tolarian Kraken
 Tome Scour
 Traitorous Blood
 Traverse the Ulvenwald
+Tribal Flames
+Tsabo's Decree
 Uktabi Drake
 Vandalblast
 Venarian Glimmer
@@ -312,7 +346,10 @@ Vivid Meadow
 Weed-Pruner Poplar
 Whipflare
 World Breaker
+Wort, the Raidmother
+Xorn
 Yarok's Wavecrasher
 Yasova Dragonclaw
+Young Wei Recruits
 Zhentarim Bandit
 Zombie Apocalypse

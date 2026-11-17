@@ -34,6 +34,7 @@ Environmental Sciences
 Escape Protocol
 Ethrimik, Imagined Fiend
 Evolution Witness
+Excommunicate
 Eyeless Watcher
 Ezio, Brash Novice
 Fallen Ideal
@@ -46,7 +47,9 @@ Hall Monitor
 Hanged Executioner
 Hedron Crab
 Hexavus
+Hexgold Hoverwings
 Highland Game
+Hookblade
 Hope-Ender Coatl
 Humble Naturalist
 Illusionary Forces

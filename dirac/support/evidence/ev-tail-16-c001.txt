@@ -12,6 +12,7 @@ Anoint with Affliction
 Arcane Encyclopedia
 Archghoul of Thraben
 Archon of Justice
+Arm the Cathars
 Armory of Iroas
 Artisan's Sorrow
 Asari Captain
@@ -25,6 +26,7 @@ Barge In
 Barkchannel Pathway
 Battle Mammoth
 Beloved Chaplain
+Benthic Djinn
 Bhaal's Invoker
 Black Cat
 Black Lotus
@@ -60,6 +62,7 @@ Clay Statue
 Cloud Dragon
 Coastal Hornclaw
 Coercive Impetus
+Colossal Whale
 Conduit of Ruin
 Consecrated Sphinx
 Contagious Nim
@@ -71,6 +74,7 @@ Daggerback Basilisk
 Dakmor Scorpion
 Darba
 Dark Revenant
+Darkblade Agent
 Darkbore Pathway
 Darkness
 Dauntless Survivor
@@ -125,6 +129,7 @@ Fight to the Death
 Final Payment
 Fire Drake
 Fires of Undeath
+Fleet-Footed Monk
 Flickerwisp
 Font of Ire
 Forced Adaptation
@@ -242,6 +247,7 @@ Munitions Expert
 Myrel, Shield of Argive
 Nacatl Outlander
 Nath's Buffoon
+Nebelgast Beguiler
 Necromancer's Assistant
 Nevinyrral's Disk
 Niambi, Esteemed Speaker
@@ -268,6 +274,7 @@ Pillardrop Warden
 Plague Sliver
 Plains
 Priest of the Crossing
+Primeval Protector
 Provoke
 Puncture Bolt
 Pyre Hound
@@ -355,6 +362,7 @@ Suntail Hawk
 Survey the Wreckage
 Swamp
 Sylvan Paradise
+Synchronized Spellcraft
 Taigam's Strike
 Tarkir Charm
 Tarpan
@@ -363,6 +371,7 @@ Terashi's Grasp
 Thalakos Seer
 Thassa's Emissary
 The Marvelous Scientist
+The Shire
 Thermal Glider
 Thought Erasure
 Thranduil the Strategist
@@ -372,6 +381,7 @@ Thrull Parasite
 Thunder of Hooves
 Thunderfoot Baloth
 Tilonalli's Knight
+Time Ebb
 Titan Hunter
 Towashi Songshaper
 Tribute to Horobi
@@ -390,6 +400,7 @@ Violent Eruption
 Viper, Cruel Conspirator
 Visage of Bolas
 Vivify
+Vodalian Illusionist
 Voidwielder
 Vona, Butcher of Magan
 Voracious Wurm
@@ -403,6 +414,7 @@ Welkin Guide
 Whirlwind Adept
 Wildest Dreams
 Wily Goblin
+Windfall
 Winged Boots
 Wishful Merfolk
 Wu Light Cavalry

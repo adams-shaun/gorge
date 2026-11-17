@@ -103,6 +103,7 @@ Dewdrop Spy
 Dimir Machinations
 Dire Tactics
 Diving Griffin
+Divining Witch
 Donate
 Dovescape
 Draconic Destiny
@@ -114,6 +115,7 @@ Drelnoch
 Dripping Dead
 Dross Golem
 Dross Prowler
+Dross Skullbomb
 Dwarven Forge-Chanter
 Dwarven Priest
 Dwarven Weaponsmith
@@ -126,6 +128,7 @@ Ebony Charm
 Ebony Horse
 Electric Revelation
 Elven Ambush
+Elvish Fury
 Ember-Eye Wolf
 Encroach
 Eternal Taskmaster
@@ -164,6 +167,7 @@ Golden Hind
 Goldwarden's Helm
 Gravitational Shift
 Grimoire of the Dead
+Gristle Grinner
 Grozoth
 Gwaihir, Greatest of the Eagles
 Hammer of Purphoros
@@ -365,6 +369,7 @@ Timberland Ancient
 Tin Street Hooligan
 Tin-Wing Chimera
 Tolsimir, Friend to Wolves
+Tower of Champions
 Towering Thunderfist
 Trained Armodon
 Trained Jackal

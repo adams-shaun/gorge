@@ -1,14 +1,19 @@
 Advance Scout
 Akki Lavarunner
+Angelic Overseer
 Army Ants
+Arno Dorian
 Ashenmoor Gouger
 Ashnod, Flesh Mechanist
 Blade of the Bloodchief
 Blood Knight
+Bloodhall Priest
 Bloodscale Prowler
 Chase Stein, Runaway
 Chemister's Insight
 Chorus of Woe
+Cystbearer
+Dragon Hatchling
 Dralnu's Crusade
 Dunes of the Dead
 Faithless Looting
@@ -16,20 +21,38 @@ Faithless Salvaging
 Fencing Ace
 Forest
 Foul-Tongue Shriek
+Harrow
 Island
 Junk Golem
+Kami of Fire's Roar
+Lava Axe
+Lightning Prowess
+Lord of Extinction
 Lulu, Stern Guardian
+Markov Enforcer
 Mogg Sentry
 Mountain
+Nullmage Advocate
 Oblivion Ring
 Pharika's Libation
+Pit Keeper
 Plains
+Possessed Aven
+Quickening Licid
+Rally the Ranks
+Reality Ripple
 Saltfield Recluse
 Scathe Zombies
 Serpent Warrior
+Sparkspitter
+Spontaneous Combustion
 Steadfast Unicorn
+Sunspire Griffin
 Swamp
 Tide Drifter
+Triad of Fates
+Unholy Strength
+Urabrask's Anointer
 Volcanic Dragon
 Volcanic Rush
 Wall of Opposition
@@ -38,3 +61,4 @@ Whirler Rogue
 Wight of Precinct Six
 Wretched Throng
 Yawgmoth's Vile Offering
+You See a Guard Approach

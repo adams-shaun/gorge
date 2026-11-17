@@ -245,6 +245,7 @@ Lumengrid Sentinel
 Lunk Errant
 Mace of the Valiant
 Magistrate's Scepter
+Magnetic Theft
 Manabond
 Marauding Knight
 Mass Hysteria

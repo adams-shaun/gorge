@@ -66,12 +66,14 @@ Dakmor Plague
 Dark Offering
 Daru Healer
 Daughter of the Deep
+Dauntless River Marshal
 Dauthi Mercenary
 Davriel's Shadowfugue
 Demogorgon's Clutches
 Depart the Realm
 Desert Twister
 Diabolic Vision
+Diabolical Salvation
 Dispeller's Capsule
 Divine Favor
 Drannith Magistrate
@@ -84,11 +86,13 @@ Ekthi, Contaminator Priest
 Elspeth, Knight-Errant
 Elvish Doomsayer
 Entropic Specter
+Envoy of the Ancestors
 Epistolary Librarian
 Escape Routes
 Essence Extraction
 Etherium Pteramander
 Everdawn Champion
+Exorcist
 Explosive Shot
 Eyeblight Massacre
 Face of Fear
@@ -240,6 +244,7 @@ Relic Sloth
 Research Thief
 Reviving Dose
 Rites of Initiation
+Ritual Guardian
 Rotting Fensnake
 Rough
 Rubble Reading
@@ -260,6 +265,7 @@ Silent-Chant Zubera
 Singing Bell Strike
 Sixth Sense
 Skeletal Crocodile
+Skirk Commando
 Sky Theater Strix
 Skyshroud Vampire
 Sparkmage's Gambit
@@ -306,6 +312,8 @@ Wall of Blossoms
 War-Wing Siren
 Warm Welcome
 Watcher Sliver
+Wayfaring Temple
+Wedding Announcement
 Whetstone
 Whirlwind Adept
 White Scarab

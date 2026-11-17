@@ -1,33 +1,67 @@
 A-Kona, Rescue Beastie
+A-Leyline of Resonance
+A-Skyclave Shadowcat
+Abduction
+Aether Channeler
 Airborne Aid
 Alabaster Host Intercessor
 Alisaie Leveilleur
+Alpine Grizzly
 Alpine Meadow
+Ambassador Laquatus
 Angel of the Ruins
+Angelic Observer
 Answered Prayers
+Apocalypse
+Archon of Sun's Grace
 Ascended Lawmage
+Assault on Osgiliath
+Assemble the Entmoot
+Astrid Peth
+Atarka Pummeler
 Avabruck Caretaker
+Aven Envoy
 Aven Wind Guide
 Azorius Herald
 Baird, Argivian Recruiter
 Banewhip Punisher
+Barge In
+Barrage of Expendables
+Battle-Mad Ronin
+Bilbo's Burglaring
+Biogenic Ooze
 Biting Tether
 Bladed Ambassador
+Blazing Hellhound
+Blood Price
 Blood Speaker
+Bloodcurdler
 Bonescythe Sliver
 Brimstone Volley
 Camaraderie
+Canoptek Scarab Swarm
 Cantivore
+Captain's Defense
 Carapace Forger
+Carrier Pigeons
+Carrion
+Centaur Courser
+Centaur Veteran
 Charging Paladin
 Chief Magistrate of Mercadia
 Cinder Giant
+Clinging Anemones
 Cloaked Siren
 Consuming Vapors
 Contact Other Plane
+Coral Fighters
 Craterize
 Crook of Condemnation
+Crystacean
+Cunning Strike
 Cyclopean Mummy
+Darien, King of Kjeldor
+Darksteel Gargoyle
 Darting Merfolk
 Dawn Evangel
 Deathgaze Cockatrice
@@ -35,25 +69,39 @@ Debt to the Deathless
 Decimator Web
 Desert
 Disruption Protocol
+Distorting Wake
 Divine Offering
 Druid of the Anima
+Eager Cadet
+Ekundu Griffin
 Embodiment of Spring
 Emerge Unscathed
 Emissary of Despair
+Encase in Ice
 Enraged Revolutionary
+Erebos's Emissary
+Etched Familiar
 Eternal Scourge
 Exuberant Fuseling
 Eye of Ugin
 Faeburrow Elder
+Faramir, Steward of Gondor
+Favor of the Overbeing
 Feral Prowler
+Fevered Suspicion
+Fierce Guardianship
 Fire Dragon
 Firebreathing
+Firemantle Mage
 Flare of Denial
 Force Spike
 Forest
+Foriysian Interceptor
+Fragmentize
 Frogify
 Frozen Aether
 Furyblade Vampire
+Gadrak, the Crown-Scourge
 Gamekeeper
 Gargantos, the Endbringer
 Garrison Sergeant
@@ -61,10 +109,14 @@ Garruk's Lost Wolf
 Gaze of Justice
 Ghirapur Gearcrafter
 Gilt-Leaf Palace
+Glint Hawk
 Glorious Enforcer
 Goblin Firebug
 Goblin Grenade
+Goblin Spelunkers
+Gods' Eye, Gate to the Reikai
 Graceblade Artisan
+Hallowed Respite
 Harness Infinity
 Headhunter
 Heroes' Reunion
@@ -72,93 +124,195 @@ Hotshot Mechanic
 Hunter's Prowess
 Hushwing Gryff
 Hypervolt Grasp
+Ice Over
+Ichor Drinker
+Indomitable Will
+Iroas's Blessing
 Iron League Steed
 Ironclad Revolutionary
 Island
+Jungle Barrier
+Karametra's Acolyte
 Kasimir the Lone Wolf
 Keldon Berserker
+Kessig Recluse
+Kithkin Rabble
+Kjeldoran Dead
+Knacksaw Clique
 Knight of Autumn
 Kor Celebrant
+Krark-Clan Engineers
 Kuldotha Cackler
 Landslide
+Legion Guildmage
+Leonin Warleader
 Letter of Acceptance
 Leyline Prowler
+Lich's Tomb
+Lightning Coils
 Liliana's Mastery
+Lock and Load
 Lone Rider
 Lost in Memories
+Luxurious Libation
+Mageta the Lion
 Magus of the Wheel
 Majestic Metamorphosis
 Mandible Justiciar
+Manor Skeleton
+Master of Waves
 Messenger Drake
+Mighty Leap
+Mirrodin's Core
+Mists of Littjara
+Mnemonic Sphere
 Mogg Raider
+Mogis's Favor
 Molting Snakeskin
 Moment of Truth
+Mordenkainen's Polymorph
 Mountain
+Neoform
 Nether Spirit
+Neurok Prodigy
 Niblis of the Mist
 Niblis of the Urn
 Ninth Bridge Patrol
 Noggle Hedge-Mage
+Noise Marine
 Nomad Stadium
 Novablast Wurm
+Obstinate Baloth
+Ojutai's Command
 Ondu Spiritdancer
 One with Death
+Orcish Cannonade
 Order
 Order of the Golden Cricket
 Orzhov Keyrune
+Pacification Array
 Pack's Disdain
+Perimeter Sergeant
 Plains
 Plated Geopede
 Poultice Sliver
 Private Research
+Psychic Membrane
+Pulse of Murasa
 Purge
 Purple-Crystal Crab
+Putrid Goblin
+Quagmire Lamprey
 Quick-Draw Dagger
 Rabble-Rouser
+Rabid Bloodsucker
 Rampaging Brontodon
+Ransack the Lab
 Ravenous Squirrel
 Regal Bloodlord
+Reiterate
 Resurrection
+Riddlekeeper
 Righteous Avengers
+Ring of Thune
+Riptide Director
 Rite of Belzenlok
 Rockslide Elemental
 Roiling Waters
+Roku's Mastery
+Rona's Vortex
+Rootwater Mystic
 Rubblebelt Rioters
+Rust Elemental
 Salvage
 Sanguine Statuette
 Satyr Nyx-Smith
+Saving Grasp
+Sawtooth Loon
+Sawtooth Ogre
 Scatter Ray
+Scoria Elemental
 Scrabbling Claws
+Screamreach Brawler
+Scurrid Colony
 Sejiri Refuge
 Select for Inspection
+Senate Griffin
 Serpent of the Endless Sea
+Serrated Arrows
+Sharding Sphinx
 Sharpened Pitchfork
 Sheoldred's Edict
+Shimmer Myr
 Shimmering Barrier
 Shore Keeper
+Shoreline Raider
+Siphon Insight
+Skarrg Goliath
+Skull of Orm
 Spaceshift
+Spark Mage
+Spark Reaper
 Speaker of the Heavens
+Spectral Sliver
 Spider-Man, Hometown Hero
 Spider-Man, Web-Spinner
+Spike Drone
 Spire Patrol
+Spirit Mantle
 Spitting Slug
 Stamina
 Starfield Mystic
+Stench of Decay
+Stinging Shot
+Stoneforge Mystic
+Storm Skreelix
 Sudden Spinnerets
 Suntouched Myr
 Supernatural Stamina
 Swamp
+Taigam's Strike
+Talisman of Impulse
 Taunting Kobold
+Teferi's Moat
+Telim'Tor's Darts
+Tempest Caller
+The Mending of Dominaria
+The Torment of Gollum
+Thrive
 Thriving Rats
+Thwart the Grave
 Titanium Golem
 Tooth and Claw
+Trail of Crumbs
+Tread Upon
 Treason of Isengard
+Triton Shorethief
+Two-Headed Cerberus
+Tyrant's Scorn
+Ulvenwald Bear
 Urborg Skeleton
+Valko Indorian
+Vampire Bats
 Veteran Armorsmith
+Victor Mancha, Runaway
+Violent Outburst
+Virtue's Ruin
+Viscerid Armor
 Volcanic Salvo
 Voltaic Servant
+Vow of Malice
+Vraska's Fall
+Wandering Treefolk
 Warmonger
+Wayward Servant
 Wellwisher
 Whipstitched Zombie
+Will of the All-Hunter
+Windrider Patrol
+Wolfsbane, Highland Hero
 Woodvine Elemental
 Wormhole Serpent
+Yavimaya Iconoclast
+You Find the Villains' Lair
+Zektar Shrine Expedition
