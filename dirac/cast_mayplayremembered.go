@@ -40,9 +40,10 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 		ctrl = s.nextAlive(ctrl) // the permission is the exiler's: the controller's opponent
 	}
 	headed := false // the first limited record heads the grant (cast_mayplaylimit.go)
+	zone := kop.Zone(in.C & kop.MayPlayZoneMask)
 	for i := 0; i < n; i++ {
 		o := set[i]
-		if s.objs[o].zone != kop.Zone(in.C) {
+		if s.objs[o].zone != zone {
 			continue
 		}
 		if in.B.N&kop.MayPlayNonLand != 0 && k.t.Cards[s.objs[o].card].Types&kop.TLand != 0 {
@@ -59,7 +60,7 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 			return
 		}
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, zone, in.C&kop.MayPlayFollows != 0), ctrl: ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		if in.B.N&kop.MayPlayOwner != 0 {
 			s.partitionRecord(s.mayAt(int(s.g.nmay)), o, ctrl, int(in.B.N)>>kop.MayPlayRaiseShift&7) // cast_whileexiled.go
 		}

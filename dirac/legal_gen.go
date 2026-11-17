@@ -22,6 +22,21 @@ const (
 	castFree    uint8 = 1 << 4
 )
 
+// mayRecordOfferable reports whether play permission record r may offer its
+// play to p: a following record reads the card's zone every time (CR 611.2c,
+// cast_maypermission.go); a version-tied one requires the card unmoved since
+// the grant and still in a playable zone.
+func (s *State) mayRecordOfferable(r mayPlay, p uint8) bool {
+	if r.ctrl != p {
+		return false
+	}
+	ob := &s.objs[r.obj]
+	if r.follows() {
+		return ob.zone == r.followsZone()
+	}
+	return ob.ver == r.ver && (ob.zone == kop.ZoneExile || ob.zone == kop.ZoneGraveyard)
+}
+
 func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail, haveAv bool) {
 	// The caller's priority walk already built the same availability
 	// picture (priorityOptions); reuse it instead of re-walking the mana
@@ -33,10 +48,10 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	pl := &s.pl[p]
 	landOK := sorc && pl.landsPlayed < s.landLimit(k, p)
 	// play permissions
+	var plainSeen objBits
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		ob := &s.objs[r.obj]
-		if r.ctrl != p || ob.ver != r.ver || (ob.zone != kop.ZoneExile && ob.zone != kop.ZoneGraveyard) {
+		if !s.mayRecordOfferable(r, p) {
 			continue
 		}
 		if k.gen.anyMayWhileSrc && s.maySrcDead(r) {
@@ -66,6 +81,15 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			}
 			continue
 		}
+		// gorge's walk dedups its candidates per (zone, id, key)
+		// (mayplay_index.go): two plain grants over the same card offer one
+		// cast -- two landfall triggers while the card sits in the graveyard
+		// both stand. A rider grant's key is its own, so its offer stands
+		// beside a plain one.
+		if plainSeen.has(r.obj) {
+			continue
+		}
+		plainSeen.set(r.obj)
 		s.offerPlay(k, d, p, r.obj, castMayPlay, sorc, landOK, false, false, false, &av)
 		if k.gen.anyZeroAlt {
 			s.offerZeroAlt(k, d, p, r.obj, castMayPlay, true, sorc, &av) // cast_mayzeroalt.go
@@ -362,18 +386,18 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
-		if r.obj != o || r.ctrl != p || r.ver != s.objs[o].ver || ownWalkerRecord(r) ||
-			s.mayLimitSpent(r) || k.gen.anyMayWhileSrc && s.maySrcDead(r) {
+		if r.obj != o || r.ctrl != p || !(r.follows() || r.ver == s.objs[o].ver) ||
+			ownWalkerRecord(r) || s.mayLimitSpent(r) || k.gen.anyMayWhileSrc && s.maySrcDead(r) {
 			continue
 		}
 		s.stampMayExile(k, i) // repl_stackexile.go
-		if r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0 {
-			// An Effect-delivered graveyard grant stays live after the card
-			// leaves; mayPersistMoved re-arms it when the card returns
-			// (gorge re-reads the effect's static, CR 611.2a).
-			return true
+		if !r.follows() && !(r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0) {
+			// A following record outlives its own cast (gorge's continuous
+			// grant); an Effect-delivered graveyard grant stays live after
+			// the card leaves, and mayPersistMoved re-arms it when the card
+			// returns (gorge re-reads the effect's static, CR 611.2a).
+			s.removeMay(i)
 		}
-		s.removeMay(i)
 		return true
 	}
 	return false
@@ -688,7 +712,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	// offers one may-play cast per card: Zul Ashur's record beside
 	// Muldrotha's creature static, pair 91243)
 	for i := 0; i < int(s.g.nmay); i++ {
-		if r := *s.mayAt(i); r.ctrl == p && s.objs[r.obj].ver == r.ver &&
+		if r := *s.mayAt(i); s.mayRecordOfferable(r, p) &&
 			!ownWalkerRecord(r) &&
 			!(k.gen.anyMayLimit && s.mayLimitSpent(r)) &&
 			!(k.gen.anyMayWhileSrc && s.maySrcDead(r)) {
