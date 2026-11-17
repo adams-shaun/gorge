@@ -346,6 +346,55 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.offerPreparedCasts(k, d, p, sorc) // face_prepare.go
 	}
 	// activated abilities
+	// A dynamic {T}, sacrifice source (Lotus Blossom) is a census unit for an
+	// activated-ability offer -- gorge's potential planner activates it while
+	// paying -- but not for a cast: its cast planner never plans an
+	// indeterminate amount (availDynSac, gen.go dynamicManaCost).
+	dynWas := s.g.availX
+	if k.gen != nil && len(k.gen.varPC) != 0 {
+		s.g.availX |= availDynSac
+		haveAv = false // rebuild the census with the dynamic units
+	}
+	haveAv = s.activateOffers(k, d, p, sorc, &av, haveAv)
+	if k.gen != nil && k.gen.anyAnyAct {
+		s.offerAnyActivations(k, d, p, sorc, &av, &haveAv) // cast_anyactivator.go
+	}
+	if k.gen != nil {
+		s.priorityGen(k, d, p, sorc, &av, haveAv)
+		if k.gen.anyFaceDown {
+			s.offerTurnFaceUp(k, d, p) // CR 708.6: special action, no stack
+		}
+		if k.anyRoom && sorc {
+			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
+		}
+		s.g.availX = dynWas // the script walks below read their own modes
+		haveAv = false
+		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
+		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
+			s.grantCap(k, d, p, &capSpent)
+		}
+		if s.scriptAny(k) && s.g.availX == 0 {
+			s.scriptOffers(k, d, &capSpent, p)
+		}
+	}
+	if faces {
+		// after the may-play walks: one land play per object (CR 715.3d)
+		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
+	}
+	if k.gen != nil && k.gen.anyNoManaCost {
+		s.dropNoManaCostCasts(k, d) // CR 118.6 (cast_nomanacost.go)
+	}
+	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
+		s.filterSplitSecond(k, d) // kw_splitsecond.go
+	}
+	d.add(MakeAction(AkPass, 0, 0, 0))
+}
+
+// activateOffers appends p's printable activated abilities to d and reports
+// whether av was built. The walk runs with availDynSac set when the table has
+// dynamic-amount variants (priorityOptions): an activated-ability offer
+// prices a dynamic {T}, sacrifice source, unlike a cast.
+func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *avail, haveAv bool) bool {
 	m := s.ctrlM[p]
 	for m.any() {
 		sl := m.first()
@@ -361,7 +410,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue
 			}
 			if !haveAv {
-				s.availFor(k, p, &av)
+				s.availFor(k, p, av)
 				haveAv = true
 			}
 			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 {
@@ -388,41 +437,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
-			if s.canActivate(k, sl, ai, a, sorc, &av) {
+			if s.canActivate(k, sl, ai, a, sorc, av) {
 				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
 			}
 		}
 	}
-	if k.gen != nil && k.gen.anyAnyAct {
-		s.offerAnyActivations(k, d, p, sorc, &av, &haveAv) // cast_anyactivator.go
-	}
-	if k.gen != nil {
-		s.priorityGen(k, d, p, sorc, &av, haveAv)
-		if k.gen.anyFaceDown {
-			s.offerTurnFaceUp(k, d, p) // CR 708.6: special action, no stack
-		}
-		if k.anyRoom && sorc {
-			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
-		}
-		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
-		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
-			s.grantCap(k, d, p, &capSpent)
-		}
-		if s.scriptAny(k) && s.g.availX == 0 {
-			s.scriptOffers(k, d, &capSpent, p)
-		}
-	}
-	if faces {
-		// after the may-play walks: one land play per object (CR 715.3d)
-		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
-	}
-	if k.gen != nil && k.gen.anyNoManaCost {
-		s.dropNoManaCostCasts(k, d) // CR 118.6 (cast_nomanacost.go)
-	}
-	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
-		s.filterSplitSecond(k, d) // kw_splitsecond.go
-	}
-	d.add(MakeAction(AkPass, 0, 0, 0))
+	return haveAv
 }
 
 // addCost sums two costs. It does not merge XRed (the reduction excess

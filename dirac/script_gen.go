@@ -33,6 +33,12 @@ const (
 	availPlain uint8 = 4
 	availWalk  uint8 = 8   // the real mana, no offer surface (grantCap)
 	availHyp   uint8 = 128 // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
+	// availDynSac: count a dynamic-amount source that sacrifices itself
+	// ({T}, Sac<1/CARDNAME>: Lotus Blossom) as a census unit. Only the
+	// activated-ability walk sets it: gorge's cast planner never plans an
+	// indeterminate amount, so a cast offer must not count the source (the
+	// kernel's plain walk otherwise over-offers casts).
+	availDynSac uint8 = 64
 )
 
 // scriptGaps: p's activatable each-colour sources, a slot mask.
