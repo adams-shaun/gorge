@@ -80,8 +80,8 @@ func (e *Engine) playedObject(copyCard bool, id state.ObjID, from state.Zone, mi
 	return 0, 0
 }
 
-// startQueuedPlay drains e.queuedPlays before priority, the suspendedCasts /
-// defeatedCasts shape (engine/rules/turn.go): once the parked cast that stopped
+// startQueuedPlay drains e.queuedPlays before priority, the suspendedCasts
+// shape (engine/rules/turn.go): once the parked cast that stopped
 // runPlays has completed and nothing is pending, the next chosen card is
 // begun; when none is left, the parked resolution continuation resumes.
 func (e *Engine) startQueuedPlay() bool {

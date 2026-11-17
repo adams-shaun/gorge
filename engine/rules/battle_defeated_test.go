@@ -44,11 +44,9 @@ func defeatBattle(t *testing.T, e *Engine, id state.ObjID) {
 	e.checkStateBased()
 }
 
-// awaitDefeatAsk drives the engine exactly the production route drains the
-// defeat queue: at the next step() before priority. battleBoard parks on a
-// priority decision, so the passes get answered first and the offer drains
-// from the queue the moment the engine reaches a decision-free boundary.
-// Returns the posed ask.
+// awaitDefeatAsk drives the engine the production route: the defeat trigger
+// is put on the stack at the next step(), both seats pass priority and the
+// ask is posed as it resolves. Returns the posed ask.
 func awaitDefeatAsk(t *testing.T, e *Engine) *decision.Decision {
 	t.Helper()
 	e.step()
@@ -88,6 +86,11 @@ func TestDefeatedBattleIsExiledNotGraveyarded(t *testing.T) {
 		t.Fatalf("precondition: battle carries %d defense counters, want 5", got)
 	}
 	defeatBattle(t, e, id)
+	if got := e.G.Obj(id).Zone; got != state.ZBattlefield {
+		t.Fatalf("battle at 0 defense went to %v before its trigger resolved, want the battlefield (CR 704.5v)", got)
+	}
+	awaitDefeatAsk(t, e)
+	submitChoices(t, e, 1)
 	if got := e.G.Obj(id).Zone; got != state.ZExile {
 		t.Fatalf("battle at 0 defense went to %v, want exile", got)
 	}
@@ -108,7 +111,7 @@ func TestDefeatedBattleIsExiledNotGraveyarded(t *testing.T) {
 // battle exiled by some other route while it still HAS defense counters was
 // never defeated, so no transformed-cast offer may be posed for it. Apply's
 // Move clears o.Counters as the object leaves the battlefield, so the queue
-// must read the pre-fold defense count (Engine.emit's defenseBefore).
+// must read the pre-fold defense count (siegeDefenseBefore).
 func TestHealthyExiledBattleGetsNoCastOffer(t *testing.T) {
 	t.Parallel()
 	e, id := defeatedBoard(t, "Invasion of Pyrulea")
@@ -124,8 +127,8 @@ func TestHealthyExiledBattleGetsNoCastOffer(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZExile})
 	e.checkStateBased()
 	e.step()
-	if len(e.defeatedCasts) != 0 {
-		t.Fatalf("healthy exile queued %d cast offers, want none", len(e.defeatedCasts))
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("healthy exile queued %d triggers, want none", len(e.pendingTriggers))
 	}
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 &&
 		d.Options[0].Kind == "defeat_cast_yes" {
@@ -152,12 +155,12 @@ func TestDefeatedBattleOffersTransformedCast(t *testing.T) {
 		t.Fatalf("precondition: battle carries %d defense counters, want 4", got)
 	}
 	defeatBattle(t, e, id)
+	// The defeat is CR 310.12b's trigger: it goes on the stack and the offer is
+	// posed only as it resolves, after the exile.
+	d := awaitDefeatAsk(t, e)
 	if got := e.G.Obj(id).Zone; got != state.ZExile {
 		t.Fatalf("precondition: battle went to %v, want exile before the offer", got)
 	}
-	// The offer drains from the queue at the next step() before priority,
-	// after the priority round battleBoard parked on.
-	d := awaitDefeatAsk(t, e)
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
 		d.Options[0].Kind != "defeat_cast_yes" || d.Options[1].Kind != "defeat_cast_no" {
 		t.Fatalf("no defeated-battle cast ask posed, got %+v", d)
@@ -222,8 +225,8 @@ func TestDefeatedBattleDeclineLeavesInExile(t *testing.T) {
 	if o.FaceIdx != 0 {
 		t.Fatalf("declined battle is face index %d, want the unflipped front face 0", o.FaceIdx)
 	}
-	if len(e.defeatedCasts) != 0 {
-		t.Fatalf("decline left %d defeated battles queued, want the queue drained", len(e.defeatedCasts))
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("decline left %d triggers queued, want none", len(e.pendingTriggers))
 	}
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 &&
 		d.Options[0].Kind == "defeat_cast_yes" {

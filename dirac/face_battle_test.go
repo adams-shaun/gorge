@@ -169,19 +169,22 @@ func TestBattleDefeatExiles(t *testing.T) {
 	sc.do(t, AkTarget, scAny, TCode(b))
 	sc.passBoth(t)
 	s := sc.s
-	s.Step() // the state-based actions run before the next priority
+	s.Step() // the state-based actions run, then the defeat trigger is put on the stack
 	ob := &s.objs[b]
+	// CR 704.5v, 310.12b: at 0 defense but the source of a pending defeat
+	// trigger, the Siege stays until the trigger resolves
+	if ob.zone != kop.ZoneBattlefield || sc.defense(b) != 0 || s.sp != 1 || s.stack[0].ab != abSiegeDefeat || s.stack[0].obj != b {
+		t.Fatalf("defeated Siege zone %d defense %d stack %d, want the battlefield at 0 under its trigger", ob.zone, sc.defense(b), s.sp)
+	}
+	sc.passBoth(t)
+	if d := s.Step(); d.Kind != DkChoose || d.Sub != ChDefeatCast {
+		t.Fatalf("after the trigger resolved: decision %v/%d, want the defeat ask", d.Kind, d.Sub)
+	}
 	if ob.zone != kop.ZoneExile || ob.card != front {
 		t.Fatalf("defeated battle zone %d card %d, want exile face 0", ob.zone, ob.card)
 	}
 	if n := s.pl[1].exileN; n != 1 || s.pl[1].exile[0] != b || s.pl[1].graveN != 0 {
 		t.Fatalf("exile %d grave %d, want the battle in exile only", n, s.pl[1].graveN)
-	}
-	if s.g.nmay != 1 {
-		t.Fatalf("%d play records, want 1", s.g.nmay)
-	}
-	if r := s.g.may[0]; r.until != kop.DurDefeated || r.obj != b || r.ver != ob.ver || r.ctrl != 1 {
-		t.Fatalf("record %+v", r)
 	}
 }
 
@@ -194,7 +197,9 @@ func defeatToAsk(t *testing.T, sc *scen, front CardID) Obj {
 	shock := sc.hand(v.Shock, 0)
 	sc.do(t, AkCast, TCode(shock), scAny)
 	sc.do(t, AkTarget, scAny, TCode(b))
-	sc.passBoth(t)
+	sc.passBoth(t) // the Shock resolves
+	sc.s.Step()    // the defeat trigger is put on the stack
+	sc.passBoth(t) // it resolves: the Siege is exiled and its controller asked
 	d := sc.s.Step()
 	if d.Kind != DkChoose || d.Sub != ChDefeatCast || d.Player != 1 {
 		t.Fatalf("after the defeat: decision %v/%d player %d, want the owner's defeat ask", d.Kind, d.Sub, d.Player)

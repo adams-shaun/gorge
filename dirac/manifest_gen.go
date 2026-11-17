@@ -10,11 +10,16 @@ const raDredge uint8 = 146
 // ask (dirac/manifest/ask/raAddOrRemoveCounter)
 const raAddOrRemoveCounter uint8 = 147
 
+// ask (dirac/manifest/ask/raDefeatCast)
+//
+// the transformed free cast ask of a resolving Siege defeat trigger (CR 310.12b, ChDefeatCast; face_battle.go resolveSiegeDefeat)
+const raDefeatCast uint8 = 148
+
 // ask (dirac/manifest/ask/raDredgeRes)
-const raDredgeRes uint8 = 148
+const raDredgeRes uint8 = 149
 
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 149
+const raGenClash uint8 = 150
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -718,6 +723,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raAddOrRemoveCounter:
 		s.aorOptions(k, d) // ctr_addorremove.go
 		return true
+	case raDefeatCast:
+		s.defeatCastOptions(k, d) // face_battle.go
+		return true
 	case raDredge:
 		s.dredgeAskOptions(k, d) // kw_dredge.go
 		return true
@@ -736,6 +744,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 	switch s.res.ask {
 	case raAddOrRemoveCounter:
 		s.aorAnswer(k, a) // ctr_addorremove.go
+		return true
+	case raDefeatCast:
+		s.defeatCastApply(k, a) // face_battle.go
 		return true
 	case raDredge:
 		s.dredgeAskAnswer(k, a) // kw_dredge.go
