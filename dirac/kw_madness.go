@@ -68,6 +68,22 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.ctrWindowAffords(k, p, &cost)) && s.spellTargetsFeasible(k, c, p)
 }
 
+// keywordCastAffords: p can pay cost for card o's keyword cast its resolving
+// trigger offers (madness, miracle). gorge's offerCastablePotential prices the
+// cost against the payment's potential pool (potentialManaFor), an over-bound
+// in which a source of indeterminate amount (Nardole, Resourceful Cyborg's {U}
+// per counter, at no counters) is open in every colour, so a cost the census
+// cannot fund may still be offered; the census and the window go first.
+func (s *State) keywordCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if s.affordsFor(k, p, cost) || s.windowAffords(k, p, cost) {
+		return true
+	}
+	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+	var pa avail
+	s.availPotentialFor(k, p, &pa, &spell)
+	return pa.affords(cost, pipMaskOf(cost), 0)
+}
+
 // ctrWindowAffords: gorge's potential search for the madness cast activates a
 // counter-cost mana source (Vivid Creek's any-colour ability: {T}, remove a
 // charge counter) that neither the planner's sources nor windowAffords' gap

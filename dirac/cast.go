@@ -64,6 +64,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
 	}
+	e.trigPl = miracleCastPl(k, c, mode, tgt, e.trigPl) // priced at the miracle cost from here on (kw_miracle.go)
 	if mode&castFaceDown != 0 {
 		e.ab = 255
 		fam := k.t.Cards[c].MorphFamily
@@ -116,15 +117,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	*s.bld() = build{e: e}
-	if k.gen != nil && s.g.altCast {
-		s.g.altCast = false
-		if mode&2 == 0 {
-			s.bld().altAdd = buildAltCost // cast_altfree.go
-		} else if !k.t.Cards[c].BeamMeUp || s.g.beamGrant {
-			s.bld().altAdd = buildBeamGrant // kw_beammeup.go
-		}
-		s.g.beamGrant = false
-	}
+	s.takeAltCast(k, c, mode) // cast_altfree.go
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seSpell]
 	s.ctl = ctlBuild
@@ -150,7 +143,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		}
 	}
 	n0 := s.npend
-	if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	if e.trigPl == trigPlMiracle {
+		// a miracle cast begun as its trigger resolves has no payment
+		// witness: gorge pays it through the mana window, and a cost the
+		// window cannot finish reverses the cast (kw_miracle.go)
+	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
