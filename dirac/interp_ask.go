@@ -2632,7 +2632,9 @@ func (s *State) cardCandsBase(k *prep, f kop.FilterID, p, ctrl uint8, d *Decisio
 		// (F2CrewedSrc: Fortune, Loyal Steed's "up to one creature that
 		// saddled it") is relative to the source, which no other pick reads.
 		src := NoSlot
-		if chainFlags2(k.t, f)&kop.F2CrewedSrc != 0 {
+		if chainFlags2(k.t, f)&kop.F2CrewedSrc != 0 || chainHasOther(k.t, f) {
+			// FOther ("another creature you control", Wicked Guardian)
+			// excludes the resolving source, as gorge's Other does
 			src = s.objRef(k, kop.RefSelf) // filter_combatwords.go
 		}
 		for m := s.occ; m.any(); m = m.rest() {
