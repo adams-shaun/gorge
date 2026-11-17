@@ -1109,7 +1109,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// in option (face) order; the kernel carries that ordinal in Target.
 		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
-	return 0, false
+	return clashCanon(r.D.Sub, src, mode) // translate_clash.go
 }
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
