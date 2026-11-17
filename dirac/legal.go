@@ -978,6 +978,19 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// prefix search taps it (the availAny/availGaps rule above).
 		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
 	}
+	if cd.HasModeCost && !mayPlay && !modalFloorZero(k, c) {
+		// a Spree or Tiered face whose cheapest mode still costs mana: the
+		// cast planner declines the shape ("shape:modal_cost") and the
+		// potential composition prices the cast only at its printed cost
+		// (potentialModeCastPlan), which is a witness just when the
+		// planner's census -- the printed sources and the pool, not a granted
+		// ability -- pays it; no free mode makes that price the cast's
+		// cheapest legal total (potentialModalCastFreeMode, potential_plan.go).
+		// A may-play cast is composed at its printed cost by that arm's own
+		// mayplay case, so it keeps its gate.
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+	}
 	return true
 }
 
