@@ -413,7 +413,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 {
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -431,6 +431,15 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 					// floating pool alone pays it (Config.GorgeUnpriced). A hybrid
 					// cost without {X} is planned (each pip resolved to a colour:
 					// Puresight Merrow's {W/U}{Q}, kverify-c4).
+					//
+					// A {S} activation (CR 107.4h; PlanCostDetail cost:snow,
+					// Boreal Centaur's {S}: Regenerate) is gated the same way
+					// and on every surface: gorge never plans it, so it is
+					// offered only when the pool's snow units pay it (poolPays
+					// reads snowPays). With cfgGorgeUnpriced off gorge's search
+					// surface would still plan the sources; the kernel keeps
+					// the pool-only gate there too, a declared limitation of
+					// the search surface (avail.affords never affords {S}).
 					continue
 				}
 			}
@@ -439,6 +448,9 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			}
 			if s.canActivate(k, sl, ai, a, sorc, av) {
 				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
+				if st := DebugSnowStats; st != nil && a.Cost.Mana.Snow != 0 {
+					st.Offered++
+				}
 			}
 		}
 	}
@@ -653,7 +665,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			return false
 		}
 	}
-	if mana.MV() > 0 || mana.X > 0 {
+	if sourcesPay(&mana) {
 		manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
 		if f&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
 			manaCost = s.waterbendCredit(k, p.ctrl, sl, a, manaCost)
@@ -672,6 +684,13 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
+}
+
+// sourcesPay reports whether an activation's mana cost is priced against the
+// untapped sources (canActivate). A {S} cost never is: gorge never plans it, and
+// activateOffers gates it on the floating pool's snow units (snowPays).
+func sourcesPay(m *kop.ManaCost) bool {
+	return m.Snow == 0 && (m.MV() > 0 || m.X > 0)
 }
 
 // abilityAffords reports whether av pays the mana cost cost of ability a of

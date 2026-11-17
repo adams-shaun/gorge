@@ -447,6 +447,9 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 
 // affords reports whether a can pay cost plus extra generic.
 func (a *avail) affords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+	if cost.Snow != 0 {
+		return false // gorge never plans a {S} cost (PlanCostDetail cost:snow): only the pool pays it (snowPays)
+	}
 	if cost.Hyb[0] != 0 {
 		return a.affordsHyb(cost, extra)
 	}
@@ -508,6 +511,9 @@ func (a *avail) hallUnits(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 // (gorge pay/solve.go expandCostPips anyColorAlts; CR 107.4c: "any color"
 // never includes colourless).
 func (a *avail) affordsAnyColor(cost *kop.ManaCost, extra int) bool {
+	if cost.Snow != 0 {
+		return false // see affords
+	}
 	if cost.Hyb[0] != 0 {
 		if cost.Hyb[0] == kop.HybTwobrid {
 			return a.affordsTb(cost, extra, true)
@@ -1072,6 +1078,9 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 		}
 		pl.pool[c] -= cost.Pips[c]
 	}
+	if cost.Snow != 0 {
+		s.snowPay(p, cost.Snow) // the {S} pips, after the coloured ones and before the generic (mana_snow.go)
+	}
 	g := int(cost.Generic) + cost.XGeneric(x)
 	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
 	for _, c := range order {
@@ -1176,6 +1185,9 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	}
 	if n > 0 {
 		panic("kernel: payment failed (coloured pips)")
+	}
+	if cost.Snow != 0 {
+		s.snowPay(p, cost.Snow) // mana_snow.go
 	}
 	g := int(cost.Generic) + cost.XGeneric(x)
 	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}

@@ -435,6 +435,9 @@ func (s *State) FeatFacePoolPays(p uint8, o Obj, face uint8, extra *[6]int32) bo
 
 // poolPays reports whether p's floating pool alone pays cost.
 func (s *State) poolPays(p uint8, cost *kop.ManaCost) bool {
+	if cost.Snow != 0 {
+		return s.snowPays(p, cost) // {S}: snow units of the pool (mana_snow.go)
+	}
 	pl := &s.pl[SeatIx(p)]
 	var a avail
 	for c := 0; c < kop.NumManaKinds; c++ {
