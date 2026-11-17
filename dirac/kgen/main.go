@@ -34,6 +34,7 @@ func Main(args []string) int {
 	dumpDir := flags.String("dump", "", "write a per-card IR dump here instead of generating (never commit it)")
 	censusOut := flags.Bool("census", false, "print the (context, param) census instead of generating")
 	lirOut := flags.Bool("lir", false, "print every card's lowered IR and refusals instead of generating")
+	lirKeys := flags.Bool("lir-keys", false, "print card<TAB>key for every card of -card-list (the evidence key: a hash of its -lir CARD block) instead of generating")
 	layerCensus := flags.Bool("layer-census", false, "print the interim layer guard's reach (classified cards, refused pairs and deck pairs) instead of generating")
 	censusStd := flags.Bool("census-std", false, "print refusal classes ranked by Standard-set carry instead of generating")
 	setsFlag := flags.String("sets", "", "with -census-std: comma-separated set codes (default dirac/cardset/standard.txt)")
@@ -121,6 +122,14 @@ func Main(args []string) int {
 	}
 	if *censusOut {
 		runCensus(p, os.Stdout)
+		return 0
+	}
+	if *lirKeys {
+		lw := lowerPool(p)
+		keys := LIRKeys(append(append([]*lCard(nil), lw.cards...), lw.tokens...))
+		for _, n := range sortedKeys(keys) {
+			fmt.Fprintf(os.Stdout, "%s\t%s\n", n, keys[n])
+		}
 		return 0
 	}
 	if *lirOut {
