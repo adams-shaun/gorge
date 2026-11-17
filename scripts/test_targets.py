@@ -51,8 +51,12 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 # tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
+# Pinned$..OnlyGrows: the pin and registration ratchets whose names carry none of the words before them (11-17:
+# #611 registered kw:Modular, left its pin in granted-keyword-gaps.txt, and TestGrantedKeywordHeadsAreRegisteredOrPinned
+# failed only in the Mergify batch, three times). About 66 tests in engine/rules and engine/effects, ~5 s.
 CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|"
-          "PublicBoundary|Acceptance|EnumConst|^TestHeads$|^TestSetHeads$")
+          "PublicBoundary|Acceptance|EnumConst|^TestHeads$|^TestSetHeads$|"
+          "Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows")
 # Sub-second guards of the committed tables (repro compact encoding, repro glob table, kop ordinals) that
 # fail the landing gate and the daemon precheck when a change breaks them. They run for every diff, as
 # named tests, whatever the package's weight: forcing ./dirac/kop whole would be far slower.
