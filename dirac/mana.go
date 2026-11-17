@@ -121,6 +121,15 @@ type avail struct {
 	// credit once at the leaf (CR 702.66a). Zero everywhere else, so every
 	// other caller prices exactly as before.
 	delve int
+	// gapIn: the plain Taps-deferred gap units this availability counts
+	// (availTapsDeferIn; empty in every other build). A unit the play's own
+	// cost taps is taken out like any census unit's (CR 602.2b), so
+	// removeSrc's availLeavesOut skip -- whose premise is that availFor never
+	// counted the source -- does not apply to these: the Gate to Tumbledown
+	// seek's own {T} takes its {R} out of its own {3}{R} beside the Price of
+	// Glory deferrals ( gorge's planner withholds the same play,
+	// pay plancost.go's withheld gap units).
+	gapIn slotMask
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
@@ -378,7 +387,12 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 		// Only the production the script route models is a census gap the
 		// prefix search pays: any other deferred source keeps its ordinary
 		// unit here, or no walk would count it and a play it funds would
-		// vanish from the offer (mana_tapsdefer.go).
+		// vanish from the offer (mana_tapsdefer.go). The plain Taps-deferred
+		// tap itself is counted only by the offer walk's picture
+		// (availTapsDeferIn), which mirrors gorge's census-gap second pass:
+		// the payment then goes to the script route, which taps the gap
+		// first and places its watcher trigger before the play, as gorge's
+		// stepwise payment answers do.
 		deferGap = s.scriptTapsDefer(k, p)
 	}
 	for m.any() {
@@ -406,7 +420,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 			}
 			continue
 		}
-		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) {
+		if deferSkip && deferGap.has(sl) && !a.gapIn.has(sl) && s.planDeferred(k, p, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -803,6 +817,12 @@ type planner struct {
 	// tapsIn: the plan also taps the sources a Taps watcher defers (the
 	// second pass of plan, mana_tapsdefer.go)
 	tapsIn bool
+	// cut: the plan stopped after a tap whose gated extra floated and left the
+	// pool paying payFor (planTapExtra): gorge's stepwise payment takes no
+	// further source once the pool pays
+	cut    bool
+	payOK  bool
+	payFor kop.ManaCost
 	// comboIn: the plan also counts the Combo Any sources gorge's planner
 	// has no witness for (the fallback pass of planTiered, mana_comboanyplan.go)
 	comboIn bool
@@ -960,6 +980,10 @@ func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColo
 func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner) {
 	s.tapNeed(pk, p, cost, x, anyColor)
 	pk.lastSl = NoSlot
+	pk.cut, pk.payOK = false, x == 0 && cost.X == 0 && cost.XPip == 0 && !anyColor
+	if pk.payOK {
+		pk.payFor = *cost
+	}
 	if pk.needT > 0 {
 		pk.first = first
 		s.planTiered(k, p, pk, exclude)
@@ -1340,7 +1364,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 	// insertion sort by timestamp (entry order)
 	for i := 1; i < no; i++ {
-		for j := i; j > 0 && s.perms[order[j]].ts < s.perms[order[j-1]].ts; j-- {
+		for j := i; j > 0 && s.planUnitBefore(k, p, pk, order[j], order[j-1]); j-- {
 			order[j], order[j-1] = order[j-1], order[j]
 		}
 	}
@@ -1684,7 +1708,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 		}
 	}
-	for r := 0; r < bn; r++ {
+	for r := 0; r < bn && !pk.cut; r++ {
 		i := int(run[r])
 		u := best[i]
 		sl := pk.units[u]
@@ -1724,9 +1748,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 			pk.rbOn = true
 		}
-		if ty.xt != 0 {
-			s.addXv(p, &ty.xv)
-		}
+		s.planTapExtra(k, p, sl, pk, ty)
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {
 			// a restricted evaluated amount (Helga) floats restricted beside

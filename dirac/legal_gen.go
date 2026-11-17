@@ -43,7 +43,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	// sources for every generated option build.
 	av := *avp
 	if !haveAv && s.priorityGenReadsAv(k, p) {
-		s.availFor(k, p, &av)
+		s.availTapsDeferIn(k, p, &av) // the same picture the priority walk built (availTapsDeferIn)
 	}
 	pl := &s.pl[p]
 	landOK := sorc && pl.landsPlayed < s.landLimit(k, p)

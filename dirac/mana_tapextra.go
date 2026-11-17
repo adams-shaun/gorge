@@ -272,9 +272,9 @@ func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 // paymentPlanTapExtraMana sums only folded triggers, so the planner's
 // readers never price it -- tapExtraReaches), while the tap itself, which
 // gorge fires the trigger on, still brings it.
-func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
+func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) (floated bool) {
 	if k.gen == nil || !k.gen.anyTapExtra {
-		return
+		return false
 	}
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
@@ -294,8 +294,10 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		}
 		s.tapExtraEchoStall(k, st)
 		s.pl[p].pool[a.A] += uint8(a.B)
+		floated = true
 		return true
 	})
+	return floated
 }
 
 // tapExtraEchoStall stalls (StallTapExtra) when a Panharmonicon static echoes
@@ -445,6 +447,20 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 	s.addXv(p, &xc)
 }
 
+// planTapExtra floats what a plan unit's tap brings beside its mana: the
+// type's fixed extra, and, in the second pass (pk.tapsIn) that taps a
+// Taps-deferred source, its unfoldable TapsForMana trigger (Rikala's gated
+// extra), which resolves at the tap itself as the script route's tapGap
+// floats it (addExtra).
+func (s *State) planTapExtra(k *prep, p uint8, sl Slot, pk *planner, ty *utype) {
+	if ty.xt != 0 {
+		s.addXv(p, &ty.xv)
+	}
+	if pk.tapsIn && !ty.sacOnly && s.addGatedExtra(k, p, sl, s.perms[sl].ctrl) && s.cfg&cfgGorgeAutopay == 0 && pk.payOK && s.poolPays(p, &pk.payFor) {
+		pk.cut = true // gorge's stepwise payment takes no further source once the floated extra pays; its autopay plan is the one shot
+	}
+}
+
 // addXv floats a plan type's fixed extra in p's pool.
 func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 	for c := range xv {
@@ -454,10 +470,12 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 
 // removeSrc takes out of a the mana the permanent at sl would make by tapping
 // for mana through pc, the extra its tap brings included: a cost that taps the
-// source leaves it neither.
+// source leaves it neither. The plain gap units a counts (a.gapIn,
+// availTapsDeferIn) are not the skip's case: availFor never counted them, but
+// availTapsDeferIn did, so their unit is taken out like any census unit's.
 func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
-	if s.availLeavesOut(k, sl) {
-		return // availFor never counted it: the units standing are the pool's
+	if s.availLeavesOut(k, sl) && !a.gapIn.has(sl) {
+		return // availFor never counted it and neither did availTapsDeferIn: the units standing are the pool's
 	}
 	noGrantWalk := k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0
 	if noGrantWalk && s.manaGranted(k, sl) {
