@@ -10,7 +10,7 @@ import (
 // pair 66, pool tail-51, surface autopay): gorge offered pass only; the kernel
 // offered the activation. gorge's prefix search branches a tapped Spawn's
 // printed sacrifice and spends its 160-node budget before reaching the play;
-// the kernel's grantSrch skipped that branch (printedSacVisit) and so reached
+// the kernel's grantSrch skipped that branch (printedSacPass) and so reached
 // it. Both engines now spend the budget alike and neither offers it.
 func TestMBCEmeraldDragonflyReprosLockstep(t *testing.T) {
 	t.Parallel()
