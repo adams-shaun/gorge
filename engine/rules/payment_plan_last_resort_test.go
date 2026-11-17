@@ -211,7 +211,7 @@ func TestPaymentPlanLastResortTreasureSacrifice(t *testing.T) {
 	if !added || !spent {
 		t.Fatalf("Treasure-tagged mana added=%v spent=%v, want both: the typed producer provenance was lost", added, spent)
 	}
-	if units := e.G.Players[0].ManaUnits(); units != ([7]state.Mana{}) {
+	if units := e.G.Players[0].ManaUnits(); units != ([8]state.Mana{}) {
 		t.Fatalf("typed pool after the cast = %v, want empty", units)
 	}
 }

@@ -51,7 +51,7 @@ func TestCantPayLifeBlocksCostLife(t *testing.T) {
 		}
 	}
 	lifeCost := pay.Cost{Life: 2}
-	pool := func(g *Engine) (state.Mana, [7]state.Mana) {
+	pool := func(g *Engine) (state.Mana, [8]state.Mana) {
 		return g.G.Players[1].Pool, g.G.Players[1].ManaUnits()
 	}
 	p1, t1 := pool(e)

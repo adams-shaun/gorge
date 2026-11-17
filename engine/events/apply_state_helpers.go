@@ -61,6 +61,11 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		if t < 3 {
 			// Drain the artifact subset with its parent type tally.
 			p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+		} else {
+			// The Artifact tally includes the snow-artifact overlap; drain
+			// that overlap with its parent (the unit's snow provenance
+			// moves with it).
+			p.SnowTyped[i] -= min(d, p.SnowTyped[i])
 		}
 		n -= d
 	}
@@ -86,6 +91,14 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		}
 		total += p.TypedMana[t][i]
 	}
+	// The snow-artifact overlap follows whichever of its two tallies the
+	// clamps left smaller.
+	if p.SnowTyped[i] > p.Snow[i] {
+		p.SnowTyped[i] = p.Snow[i]
+	}
+	if p.SnowTyped[i] > p.TypedMana[state.TypedArtifact][i] {
+		p.SnowTyped[i] = p.TypedMana[state.TypedArtifact][i]
+	}
 	if over := total - p.Pool[i]; over > 0 {
 		if d := min(over, p.Snow[i]); d > 0 {
 			p.Snow[i] -= d
@@ -101,6 +114,12 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 				p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
 			}
 			over -= d
+		}
+		if p.SnowTyped[i] > p.Snow[i] {
+			p.SnowTyped[i] = p.Snow[i]
+		}
+		if p.SnowTyped[i] > p.TypedMana[state.TypedArtifact][i] {
+			p.SnowTyped[i] = p.TypedMana[state.TypedArtifact][i]
 		}
 	}
 }
@@ -293,6 +312,12 @@ func applyManaAdd(g *state.Game, e *Event) {
 		//                        Treasure/Cave/Desert heads can read how much
 		//                        of a cast's spend came from a producer of
 		//                        that type.
+		//   "SArtifact<colour>" -- BOTH provenances on one unit (a Snow
+		//                        Artifact's mana, CR 107.4h with snow a
+		//                        supertype independent of the card types):
+		//                        Player.Snow, Player.TypedMana[Artifact] and
+		//                        Player.SnowTyped (the overlap the payment
+		//                        partition subtracts) move together.
 		//   a bare WUBRGC letter (or the empty default) -- plain pool mana.
 		idx := manaAddSlot(e.Counter)
 		player.Pool[idx] += e.Amount
@@ -302,7 +327,11 @@ func applyManaAdd(g *state.Game, e *Event) {
 				player.CombatMana[idx] += e.Amount
 			}
 		}
-		if len(e.Counter) == 2 && e.Counter[0] == 'S' {
+		if slot, ok := state.SnowTypedCounter(e.Counter); ok {
+			player.Snow[slot] += e.Amount
+			player.TypedMana[state.TypedArtifact][slot] += e.Amount
+			player.SnowTyped[slot] += e.Amount
+		} else if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 			player.Snow[idx] += e.Amount
 		} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
 			base, artifact := state.ManaUnitTypes(tag)
@@ -408,12 +437,15 @@ func applyManaAdd(g *state.Game, e *Event) {
 }
 
 // manaAddSlot is the pool slot a ManaAdd counter credits: a snow "S<colour>",
-// a typed "<Tag><colour>", a bare WUBRGC letter, or C for the empty default.
+// a typed "<Tag><colour>", the composed snow-artifact "SArtifact<colour>", a
+// bare WUBRGC letter, or C for the empty default.
 func manaAddSlot(counter string) int {
 	idx := state.MC
 	if len(counter) == 2 && counter[0] == 'S' {
 		idx = state.ManaIndex(counter[1])
 	} else if _, slot, ok := state.TypedManaCounter(counter); ok {
+		idx = slot
+	} else if slot, ok := state.SnowTypedCounter(counter); ok {
 		idx = slot
 	} else if counter != "" {
 		idx = state.ManaIndex(counter[0])

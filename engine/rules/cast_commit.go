@@ -21,7 +21,7 @@ import (
 // well-formed client) aborts and REVERSES the push (CR 733.1): the object
 // returns to the zone it came from, nothing remains paid and no cast trigger
 // fires. The land play is also handled here (it never goes on the stack).
-func captureCastSpend(pc *pendingCast, f *cards.Face, triggeredReaderOut bool, spentMana, spentSnow state.Mana, spentTyped [7]state.Mana) {
+func captureCastSpend(pc *pendingCast, f *cards.Face, triggeredReaderOut bool, spentMana, spentSnow state.Mana, spentTyped [8]state.Mana) {
 	if faceWantsCastSpend(f) || triggeredReaderOut {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
@@ -29,7 +29,11 @@ func captureCastSpend(pc *pendingCast, f *cards.Face, triggeredReaderOut bool, s
 		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure])
 		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave]) + manaSpentTotal(spentTyped[state.TypedArtifactCave])
 		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
-		pc.manaSpentArtifact = manaSpentTotal(spentTyped[state.TypedArtifact]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactCave]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
+		// The composed snow-artifact slot counts toward the artifact head
+		// too: its spent units are Artifact units (and snow units — the
+		// spentSnow delta above already includes them), each counted once
+		// per head.
+		pc.manaSpentArtifact = manaSpentTotal(spentTyped[state.TypedArtifact]) + manaSpentTotal(spentTyped[state.TypedSnowArtifact]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactCave]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
 	}
 	// The per-colour vector (Adamant, CR 702.5) is captured from the SAME
 	// full spent delta: spentMana[i] is exactly how much mana of slot i the

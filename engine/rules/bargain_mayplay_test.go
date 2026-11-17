@@ -53,7 +53,7 @@ func TestBargainTypedMayPlayAffordableOnlyAfterDiscount(t *testing.T) {
 	if got.Zone != state.ZStack || got.CastFlags&state.FlagBargained == 0 {
 		t.Fatalf("typed bargained cast = zone %s flags %#x, want stack with Bargained provenance", got.Zone, got.CastFlags)
 	}
-	if units := e.G.Players[0].ManaUnits(); units != ([7]state.Mana{}) {
+	if units := e.G.Players[0].ManaUnits(); units != ([8]state.Mana{}) {
 		t.Fatalf("bargained MayPlay cast did not pay its reduced mana cost: %v", units)
 	}
 	permissionRecorded := false

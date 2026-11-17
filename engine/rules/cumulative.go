@@ -790,12 +790,8 @@ func (e *Engine) continueCumulativeAction() {
 		// Treasure/Cave/Desert/Snow tag effMana stamps rides this ManaAdd's
 		// Counter. Braid of Fire is an Enchantment, so its
 		// corpus shape stays a plain "R"; a typed carrier is tagged.
-		counter := a.spec
-		if tag, snow := effects.ManaProducerTag(e, cu.source); tag != "" {
-			counter = tag + counter
-		} else if snow {
-			counter = "S" + counter
-		}
+		tag, snow := effects.ManaProducerTag(e, cu.source)
+		counter := effects.ManaProducerCounter(tag, snow, a.spec)
 		e.emit(events.Event{Kind: events.ManaAdd, Player: cu.player, Counter: counter, Amount: int32(total)})
 		cu.actionRemaining = 0
 		e.finishCumulative()

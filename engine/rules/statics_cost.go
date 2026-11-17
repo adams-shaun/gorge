@@ -67,11 +67,11 @@ func (e *Engine) manaFeasibleDescriptorKind(p state.PlayerID, d paymentDescripto
 	// batch filtered per composed leaf instead (CR 106.6, 107.4e). With no
 	// restricted batch the per-leaf read is the fixed pool, and the common path
 	// builds no supplier.
-	var avail func(cost Cost) (state.Mana, [7]state.Mana)
+	var avail func(cost Cost) (state.Mana, [8]state.Mana)
 	if len(pl.RestrictedMana) > 0 {
 		template := d
 		template.Cost = nil
-		avail = func(cost Cost) (state.Mana, [7]state.Mana) {
+		avail = func(cost Cost) (state.Mana, [8]state.Mana) {
 			leaf := template.Priced(&cost)
 			// The raw cost's X marker survives composition: WithX clears Cost.X
 			// when XMin folds, but the payment still contains an X component.
@@ -86,7 +86,7 @@ func (e *Engine) manaFeasibleDescriptorKind(p state.PlayerID, d paymentDescripto
 
 // manaFeasiblePoolP is manaFeasiblePool over pointers: *c and *mods are only
 // read, and the common pool-floor refusal never copies either.
-func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability bool, c *Cost, mods *costMods, taxGeneric, delve int32, pool state.Mana, typed [7]state.Mana) bool {
+func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability bool, c *Cost, mods *costMods, taxGeneric, delve int32, pool state.Mana, typed [8]state.Mana) bool {
 	// Without an announcement walk feasibleAny is exactly its composed leaf,
 	// whose first answer is the pool-unit floor (poolUnitsFloor): decide that
 	// here, before the payer's grant and conversion reads the search needs.
@@ -118,7 +118,7 @@ func (e *Engine) manaFeasiblePriced(p state.PlayerID, desc paymentDescriptor, c 
 func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c *Cost, mods *costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
 	pl := &e.G.Players[p]
 	var pool state.Mana
-	var typed [7]state.Mana
+	var typed [8]state.Mana
 	switch {
 	case hyp != nil:
 		// A hypothetical bound is a pure mana bound (see costPayablePool),

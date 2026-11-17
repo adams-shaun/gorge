@@ -157,6 +157,13 @@ const (
 	TypedArtifactTreasure = 4
 	TypedArtifactCave     = 5
 	TypedArtifactDesert   = 6
+	// The snow-artifact slot is orthogonal snow provenance on an Artifact
+	// unit (CR 107.4h: snow is a supertype, independent of the card types,
+	// so a Snow Artifact's unit is BOTH an Artifact unit and a snow unit).
+	// It lives only in the exclusive ManaUnits partition, never in
+	// ManaUnitTags: its ManaAdd counter ("SArtifact<colour>") carries both
+	// provenances and SnowTypedCounter parses it.
+	TypedSnowArtifact = 7
 )
 
 // TypedManaTags names the four public producer-type predicates, in stable
@@ -172,6 +179,9 @@ var ManaUnitTags = [7]string{"Treasure", "Cave", "Desert", "Artifact", "Artifact
 func ManaUnitTypes(unit int) (base int, artifact bool) {
 	if unit >= TypedArtifactTreasure && unit <= TypedArtifactDesert {
 		return unit - TypedArtifactTreasure, true
+	}
+	if unit == TypedSnowArtifact {
+		return TypedArtifact, true
 	}
 	return unit, unit == TypedArtifact
 }
@@ -209,9 +219,10 @@ func TypedManaCounter(counter string) (tag int, slot int, ok bool) {
 }
 
 // ManaSlot maps a ManaAdd counter form to its pool slot: a bare WUBRGC
-// letter (or the empty default), a "S<colour>" snow unit, or a
-// "<Tag><colour>" typed unit. It is the ONE slot reader for a counter that
-// may carry any of the three historically encodable forms -- a restricted
+// letter (or the empty default), a "S<colour>" snow unit, a
+// "<Tag><colour>" typed unit, or the composed "SArtifact<colour>"
+// snow-artifact unit. It is the ONE slot reader for a counter that
+// may carry any of these historically encodable forms -- a restricted
 // batch stores its producing counter verbatim, so state.ManaIndex(c[0])
 // would read a tagged unit's type letter as a colour.
 func ManaSlot(counter string) int {
@@ -224,7 +235,30 @@ func ManaSlot(counter string) int {
 	if _, slot, ok := TypedManaCounter(counter); ok {
 		return slot
 	}
+	if slot, ok := SnowTypedCounter(counter); ok {
+		return slot
+	}
 	return ManaIndex(counter[0])
+}
+
+// snowArtifactTag is the composed ManaAdd counter's producer tag: a unit
+// that is both a snow unit (CR 107.4h) and an Artifact-typed unit, emitted
+// when the producer's tag and snow bit are both set
+// (effects.ManaProducerTag). The tag leads with the snow "S" so the pool
+// slot reader can classify the unit from its first byte.
+const snowArtifactTag = "SArtifact"
+
+// SnowTypedCounter reports the pool slot of a composed snow-typed ManaAdd
+// counter ("SArtifact<colour>"). ok is false for every other counter shape
+// -- a bare WUBRGC letter, the "S<colour>" snow form, or the
+// "<Tag><colour>" typed form: those carry one provenance each, this one
+// carries both and moves Player.Snow, Player.TypedMana[TypedArtifact] and
+// Player.SnowTyped together.
+func SnowTypedCounter(counter string) (slot int, ok bool) {
+	if len(counter) == len(snowArtifactTag)+1 && counter[:len(snowArtifactTag)] == snowArtifactTag {
+		return ManaIndex(counter[len(counter)-1]), true
+	}
+	return 0, false
 }
 
 // ManaIndex maps a WUBRGC symbol to its pool slot. Returns MC for anything
