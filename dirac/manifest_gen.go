@@ -10,8 +10,11 @@ const raDredge uint8 = 146
 // ask (dirac/manifest/ask/raAddOrRemoveCounter)
 const raAddOrRemoveCounter uint8 = 147
 
+// ask (dirac/manifest/ask/raDredgeRes)
+const raDredgeRes uint8 = 148
+
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 148
+const raGenClash uint8 = 149
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -708,6 +711,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raDredge:
 		s.dredgeAskOptions(k, d) // kw_dredge.go
 		return true
+	case raDredgeRes:
+		s.dredgeResOptions(k, d) // kw_dredge.go
+		return true
 	}
 	return false
 }
@@ -723,6 +729,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raDredge:
 		s.dredgeAskAnswer(k, a) // kw_dredge.go
+		return true
+	case raDredgeRes:
+		s.dredgeResAnswer(k, a) // kw_dredge.go
 		return true
 	}
 	return false

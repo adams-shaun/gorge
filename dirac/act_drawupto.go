@@ -61,8 +61,8 @@ func (s *State) drawUptoAnswer(k *prep, a Action) {
 	}
 	n, p := int(r.peekN), r.askP
 	r.ask, r.peekN = raNone, 0
-	for i := 0; i < n && !s.over; i++ {
-		s.draw(p)
+	if !s.dredgeResDraws(k, p, dredgeResUpto, n) {
+		return // the dredge ask is posed (kw_dredge.go); its answer's tail goes on
 	}
 	s.continueRes(k, 0)
 }
