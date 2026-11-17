@@ -222,3 +222,21 @@ func srcYield(pc *pcard) uint8 { return max(pc.manaN, pc.wideN) }
 // view); a dynamic pair view (mana_dynpair.go) does too but the walk reads it
 // as open before this.
 func gatePairPotential(pc *pcard) uint8 { return pc.wideN }
+
+// widePairAb is the index of sl's second mana ability when pc is a gate-on
+// (or evaluated) pair view whose larger alternative the planner and the
+// prefix searches take (wideN beside manaN; prepManaGate, prepManaDynPair),
+// -1 for any other view.
+func (s *State) widePairAb(k *prep, sl Slot, pc *pcard) int {
+	c := s.cardAt(sl)
+	if k.gen == nil || !k.gen.anyGatePair || pc.wideN <= pc.manaN || pc.manaAb < 0 || k.gen.flags[c]&(gfManaGate|gfManaDynPair) == 0 {
+		return -1
+	}
+	cd := &k.t.Cards[c]
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; j != int(pc.manaAb) && a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			return j
+		}
+	}
+	return -1
+}
