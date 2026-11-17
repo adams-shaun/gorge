@@ -7,6 +7,11 @@ var effectReplacementForms = []formCase{
 	{card: "Somnophore", form: "AsLongAsInPlay untap lock", lir: "SkipUntap"},
 	{card: "Tidebinder Mage", form: "AsLongAsInPlay untap lock", lir: "SkipUntap"},
 	{card: "Origin of Iron Man", form: "UntilHostLeavesPlay untap lock (Saga chapter)", lir: "SkipUntap"},
+	{card: "Godtoucher", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
+	{card: "Indestructible Aura", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
+	{card: "Shielded Passage", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
+	{card: "Djeru's Resolve", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
+	{card: "Kurbis, Harvest Celebrant", form: "no ExileOnMoved", refused: "Effect replacement shape"},
 }
 
 func TestEffectReplacementForms(t *testing.T) { checkForms(t, effectReplacementForms) }

@@ -119,7 +119,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
 	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
 	StallTextChange,        // a ChangeText whose from word the target's face reads: gorge rewrites the face, the kernel holds no text (act_changetext.go)
-	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount past 255 (repl_prevnext.go)
+	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount of 255 or more (repl_prevnext.go)
 	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
 	StallDredge,            // a draw path other than the turn draw or an OpDraw card meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)

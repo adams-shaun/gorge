@@ -1,0 +1,13 @@
+# "Prevent all damage that would be dealt to target creature this turn"
+# (Shielded Passage, Indestructible Aura: Effect + bodyless DamageDone
+# Prevent$ True on the remembered creature), against burn, a bear-sized
+# board and combat (dirac/oracle/preventallto_lockstep_test.go)
+Hill Giant
+Indestructible Aura
+Lightning Bolt
+Mountain
+Plains
+Raging Goblin
+Savannah Lions
+Shielded Passage
+Shock
