@@ -310,6 +310,9 @@ func (s *State) pushBuild(k *prep) {
 		s.touch(e.obj)
 		if s.g.on {
 			s.stashClr(k, e.obj) // it leaves exile: gorge's stash counter goes with the move
+			if k.gen != nil && k.gen.exileOnLeave != nil {
+				s.clearExileCounter(e.obj) // it leaves exile: the counter does not follow (CR 400.7, repl_exilectr.go)
+			}
 		}
 		ob.zone = kop.ZoneStack
 		ob.ver++

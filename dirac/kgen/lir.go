@@ -1260,7 +1260,9 @@ type lRepl struct {
 	Cond lCond
 	N    lValue
 	S    string
-	Ctr  string // AddCountersOn and DoubleCountersOn: the counter kind ("": every kind, lower_counterrepl.go)
+	Ctr  string // AddCountersOn and DoubleCountersOn: the counter kind ("": every kind, lower_counterrepl.go); ExileOnLeave: the counter the exiled card enters exile with
+	// CtrN: ExileOnLeave's WithCountersAmount$ (1 when the body names only a kind).
+	CtrN int
 	// Putter: AddCountersOn of every kind only counts counters its controller
 	// puts on the permanent (ValidSource$ You; Doc Samson)
 	Putter bool
