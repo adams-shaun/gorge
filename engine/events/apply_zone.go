@@ -1022,13 +1022,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// becomes the permanent is not a zone move (CR 400.7a-b
 			// continuation), and the CountersRemain static's own exception
 			// is marked on the event by rules' emit, so both keep theirs.
+			// A hidden zone is outside the model for this clear: nothing in
+			// the rules places a counter on a card in a hand or library, and
+			// the existing engine tests use that out-of-model state as a
+			// fixture, so only the public non-stack zones are folded here.
 			// The stash may-play marker is the one keeper beyond that
 			// exception: it is gorge's bookkeeping on the exiled card
 			// (Tinybones, Bauble Burglar), kept on the card played from
 			// exile and mirrored by the kernel's projection, and a land
 			// played from exile reaches the battlefield without the stack
 			// leg that would otherwise carry it.
-			if enteredFrom != state.ZStack && !countersRemain {
+			if enteredFrom != state.ZStack && !enteredFrom.Hidden() && !countersRemain {
 				o.Counters = keepStashMarker(o.Counters)
 			}
 			o.AcqTurn = g.Turn
