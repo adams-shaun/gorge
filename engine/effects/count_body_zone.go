@@ -146,14 +146,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// Built once here and passed to visit as a parameter instead.
 		specCtx := c.SpecContext(c.Controller)
 		specCtx.CounterAdds = counterAddsFor(h, spec)
-		if specCtx.Layers.DerivedKeywords == nil && specNamesKeyword(spec) {
-			// A with<Keyword> filter reads the layer-6 keyword table, which a
-			// cost or mana-amount context does not bind: ask the host for it,
-			// as Resolve does for a body that mentions a keyword.
-			if lh, ok := h.(layerTablesHost); ok {
-				specCtx.Layers.DerivedKeywords = lh.LayerTables(LayerKeywords).DerivedKeywords
-			}
-		}
+		bindSpecLayerTables(h, &specCtx.Layers, spec)
 		f := zoneCountFold{h: h, g: g, spec: spec, pricedSpell: c.PricedSpell,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, readsPT: SpecReadsPT(spec),
@@ -257,9 +250,45 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	return 0, false, false
 }
 
-// specNamesKeyword reports whether a Count$Valid filter spec reads a keyword
-// predicate (with<Keyword>, without<Keyword>, hasKeyword<Keyword>): the same
-// textual test saMentionsKeywords applies to a resolving body.
-func specNamesKeyword(spec string) bool {
-	return strings.Contains(spec, "with") || strings.Contains(spec, "hasKeyword")
+// countLayerSkip is what a Count$Valid fold never asks the host for. The
+// P/T tables are built by walking every CDA/animated object's layer-7 P/T,
+// and the fold already binds the per-candidate P/T it reads (readsPT,
+// GreatestPowerDerivedPTs): asking for them here would recurse into the layer
+// walk a CDA count runs inside.
+const countLayerSkip = LayerCDAPT | LayerBattlefieldPT
+
+// bindSpecLayerTables fills the on-demand tables spec can read into t, which a
+// cost, mana-amount or CDA context built outside Resolve binds none of (CR
+// 613.3: layer 5 and 6 apply before a layer-7a count reads a colour or a
+// keyword). One host call asks for every table specLayerWants names that t
+// does not already carry; a table the caller bound (a CDA Ctx's mid-walk
+// colours) is kept.
+func bindSpecLayerTables(h Host, t *LayerTables, spec string) {
+	want := specLayerWants(spec) &^ countLayerSkip
+	if t.DerivedColors != nil {
+		want &^= LayerColors
+	}
+	if t.DerivedKeywords != nil {
+		want &^= LayerKeywords
+	}
+	if t.StaticGoads != nil {
+		want &^= LayerGoads
+	}
+	if want == 0 {
+		return
+	}
+	lh, ok := h.(layerTablesHost)
+	if !ok {
+		return
+	}
+	got := lh.LayerTables(want)
+	if want&LayerColors != 0 {
+		t.DerivedColors = got.DerivedColors
+	}
+	if want&LayerKeywords != 0 {
+		t.DerivedKeywords = got.DerivedKeywords
+	}
+	if want&LayerGoads != 0 {
+		t.StaticGoads = got.StaticGoads
+	}
 }
