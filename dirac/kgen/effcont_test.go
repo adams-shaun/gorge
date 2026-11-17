@@ -9,14 +9,15 @@ import (
 
 // effcontForms: the Effect Continuous pool's lowering forms
 // (continuous): the multi-static until-your-next-turn emblem, the no-maximum-
-// hand-size and extra-land-play grants, the hidden-keyword cant-block grant,
-// and the shapes that stay refused.
+// hand-size and extra-land-play grants, the power-reading hidden-keyword
+// can't-block grant (a locked resolution-time sweep, not an emblem), and the
+// shapes that stay refused.
 var effcontForms = []formCase{
 	{card: "Kardur, Doomscourge", form: "Effect MustAttack multi-static, UntilYourNextTurn (gorge effEffect MustAttack, absentRememberObjects)", lir: "emblem[0] trigger=0 statics=2 until=next"},
 	{card: "Enter the Infinite", form: "Effect SetMaxHandSize$ Unlimited, UntilYourNextTurn (gorge effEffect static), no maximum hand size", lir: "emblem[0] trigger=0 statics=1 until=next"},
 	{card: "Explore", form: "Effect AdjustLandPlays$ 1, this turn (gorge effEffect static), extra land play", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
 	{card: "Summer Bloom", form: "Effect AdjustLandPlays$ 3, this turn (gorge effEffect static), three extra land plays", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
-	{card: "Mournwillow", form: "Effect AddHiddenKeyword$ cant-block, this turn (gorge effEffect static), hidden keyword", lir: "emblem[0] trigger=0 statics=1 until=EOT"},
+	{card: "Mournwillow", form: "Effect AddHiddenKeyword$ cant-block whose Affected$ reads power: the locked sweep lowers as OpOverrideAll at resolution (lower_effectlockedgrant.go), not an emblem", lir: "OverrideAll CS=EOT F={types=0x2 cmp(1 2 2  )} // override{kw=CantBlock}"},
 	{card: "Gruul Charm", form: "GainControl without a target: AllValid$ Permanent.YouOwn lowers as the object-order OpGainControl sweep (lower_gaincontrolall.go)"},
 	// Coward is a creature type (gorge CreatureTypeWords)
 	// no pool card carries; it lowers to the pool subtype table
@@ -27,7 +28,7 @@ func TestEffcontForms(t *testing.T) { checkForms(t, effcontForms) }
 
 func TestEffcontEmblemFields(t *testing.T) {
 	cardsDir := ratchetCards(t)
-	names := []string{"Kardur, Doomscourge", "Enter the Infinite", "Explore", "Summer Bloom", "Mournwillow"}
+	names := []string{"Kardur, Doomscourge", "Enter the Infinite", "Explore", "Summer Bloom"}
 	dir := t.TempDir()
 	list := filepath.Join(dir, "cards.txt")
 	if err := os.WriteFile(list, []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
@@ -89,14 +90,6 @@ func TestEffcontEmblemFields(t *testing.T) {
 		if st.Kind != "ExtraLandPlay" || !st.Amount.isConst() || st.Amount.N != tc.n {
 			t.Errorf("%s static = %+v, want ExtraLandPlay %d", tc.name, st, tc.n)
 		}
-	}
-
-	ke = oneEmblem("Mournwillow")
-	if !ke.UntilEOT || ke.UntilNextTurn || len(ke.Statics) != 1 {
-		t.Fatalf("Mournwillow emblem = %+v, want one EOT static", ke)
-	}
-	if st := ke.Statics[0]; st.Kind != "CantBlock" || st.F == nil {
-		t.Errorf("Mournwillow static = %+v, want CantBlock with a filter", st)
 	}
 }
 
