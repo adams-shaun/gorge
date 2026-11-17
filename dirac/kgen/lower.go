@@ -101,12 +101,20 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 type lowerCtx struct {
 	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	ddoEvent bool  // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
-	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source (lower_effectcaptured.go)
+	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
+
+	// emblemDmg: lowering the body of a capturing EOT emblem's DamageDone
+	// trigger. On the recipient-captured shape (ValidTarget$ ...IsRemembered,
+	// the recipient branch of lower_effeottrig.go emblemCaptureFilter) the
+	// kernel emblem hook queues the DAMAGED object as the trigger object
+	// (dirac/trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
+	// so a body read of the damage source refuses (lower_effect.go).
+	emblemDmg bool
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
