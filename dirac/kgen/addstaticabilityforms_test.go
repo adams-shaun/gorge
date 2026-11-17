@@ -18,7 +18,7 @@ import (
 var addStaticAbilityForms = []formCase{
 	{card: "Nerd Rage", form: "granted SetMaxHandSize stays closed until gorge reads it (engine ticket)", refused: "AddStaticAbility NoMaxHandSize: granted NoMaxHandSize static: gorge's maxHandSizeFor never reads a granted static"},
 	{card: "Callaphe, Beloved of the Sea", form: "granted RaiseCost (phase 2)", refused: "AddStaticAbility RaiseCost"},
-	{card: "Zurgo, Thunder's Decree", form: "granted CantSacrifice (phase 3)", refused: "AddStaticAbility NoSacEOT"},
+	{card: "Zurgo, Thunder's Decree", form: "granted CantSacrifice behind the outer Phases$ End of Turn gate", lir: "StepIn"},
 	{card: "Tomik, Orzhov Lawmage", form: "granted AttackRestrict (inner mode does not lower)", refused: "AddStaticAbility PWTomik: static mode AttackRestrict"},
 	{card: "Acolyte of Bahamut", form: "granted ReduceCost EffectZone$ Battlefield (inner does not lower)", refused: "AddStaticAbility DragonReduce"},
 	{card: "The Masamune", form: "granted Panharmonicon to the graveyard (inner does not lower)", refused: "AddStaticAbility Masarmonicon"},
