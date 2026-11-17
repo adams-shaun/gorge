@@ -1893,6 +1893,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Power, s.Tough); err != nil {
 			return ka, nil, err
 		}
+		if err := continuousStFlags(s, st); err != nil {
+			return ka, nil, err
+		}
 		if st.Kw, err = kwMask(s.Kw); err != nil {
 			return ka, nil, err
 		}
@@ -2983,6 +2986,28 @@ func originMask(from string) int {
 		}
 	}
 	return m
+}
+
+// continuousStFlags maps a Continuous static's AffectedX convention onto its
+// kop.StFlags bit: StPerAffected (the walk evaluates the dynamic amounts with
+// each AFFECTED object as the reading source, gorge layers_static.go
+// staticAmountOn's affected anchor; the flag aliases StOncePerTurn, a
+// MayPlayFrom/TapPower-only bit).
+func continuousStFlags(s lStatic, st *kop.Static) error {
+	if s.PerAffected {
+		st.StFlags |= kop.StPerAffected
+	}
+	for _, fl := range s.Flags {
+		switch fl {
+		case "FunctionsInGraveyard", "FunctionsInExile":
+			// gyContStFlag sets the Graveyard bit above; a FunctionsInExile
+			// on a Continuous stays silently dropped (this allow-list only
+			// stops the refusal)
+		default:
+			return fmt.Errorf("continuous flag %q", fl)
+		}
+	}
+	return nil
 }
 
 // anyKeptObjectClause reports the one-clause object halves of a player-or-
