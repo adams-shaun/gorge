@@ -2491,21 +2491,15 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "LifeGained":
-				st.A = kop.PanhModeLifeGained
-			case "Drawn":
-				st.A = kop.PanhModeDrawn
-			case "You":
-				st.B = int16(kop.WhoseYou)
-			default:
-				return ka, nil, fmt.Errorf("Panharmonicon flag %s", fl)
-			}
+		if err = panharmoniconFlags(st, s.Flags); err != nil {
+			return ka, nil, err
 		}
 		if s.F2 != nil {
-			// ValidCause$ (the entering permanent): kop.StPanhETB
-			st.StFlags |= kop.StPanhETB
+			// ValidCause$ (the entering permanent): kop.StPanhETB; the dies
+			// form (A == PanhModeDies) reads Filter2 as the dying permanent
+			if st.A != kop.PanhModeDies {
+				st.StFlags |= kop.StPanhETB
+			}
 			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
 				return ka, nil, err
 			}
@@ -3012,6 +3006,26 @@ func atkScopeBits(st *kop.Static, which string, flags []string) error {
 			return fmt.Errorf("%s flag %q", which, fl)
 		}
 		st.StFlags |= bit
+	}
+	return nil
+}
+
+// panharmoniconFlags lowers a Panharmonicon static's mode flags (static_triggers.go
+// modePanharmonicon) onto st: the one trigger mode in A and ValidPlayer$ in B.
+func panharmoniconFlags(st *kop.Static, flags []string) error {
+	for _, fl := range flags {
+		switch fl {
+		case "LifeGained":
+			st.A = kop.PanhModeLifeGained
+		case "Drawn":
+			st.A = kop.PanhModeDrawn
+		case "Dies":
+			st.A = kop.PanhModeDies
+		case "You":
+			st.B = int16(kop.WhoseYou)
+		default:
+			return fmt.Errorf("Panharmonicon flag %s", fl)
+		}
 	}
 	return nil
 }

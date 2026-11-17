@@ -929,6 +929,7 @@ OvEnterWith	untyped int	2
 PTRelEQ	int16	1
 PTRelLT	int16	0
 PTRelNE	int16	2
+PanhModeDies	int16	3
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
 ParentTrigPl	uint8	255
