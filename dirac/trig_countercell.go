@@ -15,14 +15,32 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // gorge. Test-only (TestCtrcellMutation).
 var DebugCtrCellOff bool
 
+// ctrCellHitBit is the counter-cell merge's bit in genState.ctrCellHit (a flag
+// mask, not seat arithmetic); the bits above it are the CounterAddedAll batch
+// marker.
+const ctrCellHitBit uint8 = 1
+
+// ctrCellHit reports the counter-cell merge's bit (genState.ctrCellHit bit 0).
+func (s *State) ctrCellHit() bool { return s.g.ctrCellHit&ctrCellHitBit != 0 }
+
+// setCtrCellHit sets the counter-cell merge's bit, leaving the packed
+// CounterAddedAll batch marker (bits 1-7) alone.
+func (s *State) setCtrCellHit(on bool) {
+	if on {
+		s.g.ctrCellHit |= ctrCellHitBit
+	} else {
+		s.g.ctrCellHit &^= ctrCellHitBit
+	}
+}
+
 // fireCounterCell fires CounterAddedOnce for the n counters a cell-carrying
 // instruction just placed on sl, and enters sl in the action's cell.
 func (s *State) fireCounterCell(k *prep, sl Slot, n int) {
 	if n <= 0 || !s.subs[kop.TrigCounterAddedOnce].any() {
 		return
 	}
-	s.g.ctrCellHit = s.g.ctrCell.has(sl) && !DebugCtrCellOff
+	s.setCtrCellHit(s.g.ctrCell.has(sl) && !DebugCtrCellOff)
 	s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
-	s.g.ctrCellHit = false
+	s.setCtrCellHit(false)
 	s.g.ctrCell.set(sl)
 }

@@ -72,6 +72,12 @@ func (s *State) support(k *prep, in *kop.Instr) bool {
 	}
 	r.left = uint8(min(n, 255))
 	r.ask, r.askP = raGenSupport, r.e.ctrl
+	// Support's picks are one counter-adding action: gorge's putCounterSupport
+	// runs inside effPutCounter's deferred action bracket, so every pick merges
+	// into one CounterAddedAll trigger. The ask spans resumptions and the
+	// marker lives in genState; OpSupport is a top-level counter primitive (no
+	// counter loop calls it), so the marker always opens at 0.
+	s.ctrAllBatchOpen()
 	return false
 }
 
@@ -105,6 +111,7 @@ func (s *State) answerSupport(k *prep, a Action) {
 			return // more to pick
 		}
 	}
+	s.ctrAllBatchClose(0) // the support action's picks end here (trig_counteraddedall.go)
 	r.ask = raNone
 	s.continueRes(k, 0)
 }
