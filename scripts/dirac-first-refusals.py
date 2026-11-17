@@ -486,14 +486,16 @@ def sidecar_row(card, lir, cov):
 
 
 def sidecars(top, lists, before, covs):
-    """pool -> the sidecar's lines for each written list: a card already on its list before this write
-    keeps the row it has (a card with no row stays legacy), and a card the list gains gets one."""
+    """pool -> the sidecar's lines for each written list: a card that was already on its list before
+    this write keeps the row it has (a card with no row stays legacy), and a card the list gains, or
+    regains after its list was removed, gets a current row."""
     lir = lir_keys(top, {c for pool, names in lists.items() for c in names
                          if c not in before.get(pool, ()) and c in covs[pool]})
     files = {}
     for pool, names in lists.items():
         old = sidecar_rows(top, pool)
-        rows = {c: old[c] for c in names if c in old}
+        kept = before.get(pool, ())
+        rows = {c: old[c] for c in names if c in old and c in kept}
         for c in names:
             if c not in rows and c not in before.get(pool, ()) and c in covs[pool]:
                 rows[c] = sidecar_row(c, lir.get(c, ""), covs[pool][c])
@@ -529,6 +531,7 @@ def write_evidence(top, out, pools=None):
     refused = refused_names(top)
     lists = collections.defaultdict(list)
     covs = {}
+    remove = []
     if pools is None:
         cov = merged_coverage(out)
         before = {path_pool(p): set(existing_list(top, path_pool(p)))
@@ -539,8 +542,7 @@ def write_evidence(top, out, pools=None):
                     lists[pool].append(card)
         covs = {pool: cov for pool in lists}
         no_unrefused_drops(top, lists, ran_pools(out) & passed_pools(out), refused)
-        for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
-            os.remove(path)
+        remove = glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt"))
         rows = games_per_run(out)
         lines = [f"{pool}\t{games}" for pool, games in sorted(rows.items())]
     else:
@@ -559,6 +561,8 @@ def write_evidence(top, out, pools=None):
         lines = tsv_rows(top, {p: games[p] for p in pools})
     side = sidecars(top, lists, before, covs)
     os.makedirs(os.path.join(top, KEYS_DIR), exist_ok=True)
+    for path in remove:
+        os.remove(path)
     for pool, names in lists.items():
         with open(os.path.join(top, EVIDENCE_DIR, pool + ".txt"), "w") as f:
             f.writelines(n + "\n" for n in names)
