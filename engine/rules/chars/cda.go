@@ -155,7 +155,7 @@ func cdaSelfAffected(aff string) bool { return aff == "" || aff == "Card.Self" }
 func StaticCDAFlashAdmits(st cards.Static, z state.Zone) bool {
 	// The parser trims every static param value at the script boundary
 	// (cards/parse.go), so the reads below need no TrimSpace.
-	if st.ModeKind() != cards.StaticContinuous || st.ParamStr(cards.PKCharacteristicDefining) != "True" {
+	if st.ModeKind() != cards.StaticContinuous || !st.CharacteristicDefining() {
 		return false
 	}
 	if !cdaSelfAffected(st.ParamStr(cards.PKAffected)) {
