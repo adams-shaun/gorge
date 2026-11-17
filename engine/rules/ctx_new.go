@@ -82,11 +82,23 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 // the same one effects.Resolve binds via the layerTablesHost) so a type-based
 // Count$Valid value sees types other continuous effects GRANTED (CR 604.3/
 // 613.1f: a CDA is evaluated against the characteristics the object actually
-// has, and the layer-4 type grant is already in effect at layer 7a). Without
-// it the count falls through to the printed face. Every CDA Ctx construction
-// site goes through this helper so the reads cannot diverge.
+// has, and the layer-4 type grant is already in effect at layer 7a). It
+// carries the published layer-5 colour table for the same reason (CR 613.1e),
+// so a ChosenColor count sees a permanent a continuous effect recoloured.
+// derivedScalar and derivedCompute publish that table before the layer-7 walk
+// when the face is a CDA and a layer-5 effect is live; with none published the
+// printed face stands, as it does for derivedColorTable mid-walk. Every CDA
+// Ctx construction site goes through this helper so the reads cannot diverge.
 func (e *Engine) cdaEvalCtx(o *state.Object, f *cards.Face) *effects.Ctx {
-	return &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: f.SVars, Layers: effects.LayerTables{DerivedTypes: e.EffectiveTypes()}}
+	var colors []effects.ObjectColors
+	if e.colorsValid && e.colorsEpoch == len(e.L.Events) && e.colorsVersion == e.continuousVersion &&
+		e.colorsObjs == len(e.G.Objs) && e.colorsStatic == e.staticBuildSeq {
+		colors = e.layer5Colors
+	}
+	return &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: f.SVars, Layers: effects.LayerTables{
+		DerivedTypes:  e.EffectiveTypes(),
+		DerivedColors: colors,
+	}}
 }
 
 // manaAmountCtx is the Ctx a mana ability's Amount$ is priced in outside its
