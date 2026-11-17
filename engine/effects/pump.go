@@ -213,6 +213,17 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "forget"})
 		}
 	}
+	// ForgetObjects$ (Celestial Vault's and Spell Queller's DBForget,
+	// Creeping Dread's Imprinted): Forge PumpEffect's host.removeRemembered on
+	// each named object -- both halves of the remembered state forget it, so
+	// a later Defined$ Remembered no longer reads it.
+	if spec := p.ForgetObjects; spec != "" {
+		for _, t := range DefinedSpec(h, c, spec) {
+			if !t.IsPlayer && t.Obj != 0 {
+				forgetRememberedOne(h, c, t.Obj)
+			}
+		}
+	}
 }
 
 // pumpNotes is effPump's ClearNotedCardsFor$ and NoteCards$ notation, run
