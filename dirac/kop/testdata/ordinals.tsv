@@ -990,7 +990,10 @@ PlExtLibrary	untyped int	512
 PlExtOpponents	untyped int	1
 PlExtPlayers	untyped int	0
 PlaceArmBottom	untyped int	1
+PlaceArmBottomRandom	untyped int	5
+PlaceArmSweepBottom	untyped int	3
 PlaceArmTop	untyped int	0
+PlaceArmTopRandom	untyped int	4
 PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
