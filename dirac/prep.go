@@ -378,7 +378,7 @@ func prepare(t *kop.Table) *prep {
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.AFlags&kop.AfLatent == 0 && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && !a.Cost.DiscardHand // (Lion's Eye Diamond is no planner unit: mana_discardhand.go)
 					p.sacMana = p.sacMana || pc.manaSac || pc.manaSacOnly
 					p.sacOnlyMana = p.sacOnlyMana || pc.manaSacOnly
-					if ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) {
+					if ctrGapAb(a) {
 						pc.ctrMana = true
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)

@@ -48,6 +48,10 @@ var addedAfterTheSplit = []string{
 	"Discover", "SeekAll",
 	// "Whenever you face a dilemma" (Star Trek), matching the ModeChosen marker.
 	"FacesDilemma",
+	// "Whenever day becomes night or night becomes day" (CR 731; Brimstone
+	// Vandal), matching the DayNightChange designation event no pre-split
+	// mode read.
+	"DayTimeChanges",
 	// "When CARDNAME becomes renowned" (Relic Seeker) and "Whenever you
 	// complete a dungeon" (Varis), matching the Renowned mark and DungeonComplete.
 	"BecomeRenowned", "DungeonCompleted",
