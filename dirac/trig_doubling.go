@@ -13,8 +13,9 @@ var PanharmLog *[]PanharmRec
 // PanharmRec is one echoed placement: the source card's name and whether the
 // trigger line is a dies line.
 type PanharmRec struct {
-	Card string
-	Dies bool
+	Card  string
+	Dies  bool
+	Token bool // the triggering object is a token (a token's death)
 }
 
 // panharmEcho appends one copy of the pending entry at index n for each
@@ -33,7 +34,7 @@ func (s *State) panharmEcho(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj,
 		s.pend[s.npend] = s.pend[n]
 		s.npend++
 		if PanharmLog != nil {
-			*PanharmLog = append(*PanharmLog, PanharmRec{k.t.Cards[l.card].Name, ev == kop.TrigDies})
+			*PanharmLog = append(*PanharmLog, PanharmRec{k.t.Cards[l.card].Name, ev == kop.TrigDies, tobj != NoObj && s.objs[tobj].of&ofToken != 0})
 		}
 	}
 }
@@ -94,7 +95,11 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 			if a.Static.StFlags&kop.StPanhETB != 0 && !s.panharmCause(k, a, ev, tobj, p.ctrl, sl) {
 				continue
 			}
-			if a.Static.A != 0 && !panharmModeOK(a.Static.A, kop.Whose(a.Static.B), ev, p.ctrl, who) {
+			if a.Static.A == kop.PanhModeDies {
+				if !s.panharmDies(k, a, ev, tobj, p.ctrl, sl) {
+					continue
+				}
+			} else if a.Static.A != 0 && !panharmModeOK(a.Static.A, kop.Whose(a.Static.B), ev, p.ctrl, who) {
 				continue
 			}
 			if s.matchPermGen(k, a.Static.Filter, l.sl, p.ctrl, sl, layerFull) {
@@ -103,6 +108,49 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 		}
 	}
 	return n + s.panharmGrants(l.obj)
+}
+
+// panharmDies reports whether a trigger caused by event ev on triggering object
+// tobj is caused by a permanent dying (a battlefield-to-graveyard move) that
+// matches the dies-form static a's cause filter (static controlled by ctrl at
+// slot sl): gorge doubles any ChangesZone-mode trigger of such a move, and only
+// of one whose origin is the battlefield (Origin$ Battlefield). The kernel's
+// events for it are TrigDies, or TrigLeaves whose object ended in the graveyard
+// (a leave to exile is not a death). TrigToGraveyard is never one: it is the
+// family for a card put into a graveyard from anywhere BUT the battlefield
+// (trig_tograve.go), and a graveyard leave's TrigLeaves is kept out by
+// panharmEv.
+func (s *State) panharmDies(k *prep, a *kop.Ability, ev kop.TrigEvent, tobj Obj, ctrl uint8, sl Slot) bool {
+	if tobj == NoObj {
+		return false
+	}
+	switch ev {
+	case kop.TrigDies:
+	case kop.TrigLeaves:
+		if s.objs[tobj].zone != kop.ZoneGraveyard {
+			return false
+		}
+	default:
+		return false
+	}
+	ob := &s.objs[tobj]
+	return s.matchCardGen(k, a.Static.Filter2, ob.card, ob.owner(), ctrl, tobj)
+}
+
+// panharmEv is the event a trigger line's echo is decided on: the line's own,
+// except that a TrigLeaves line fired for a card leaving a graveyard
+// (Trigger.From the graveyard, or Tf2LeavesGrave, which also reads a
+// graveyard leave) decides as TrigNone. Such a move's object still reads as in
+// the graveyard while the line is queued (detach), so it would pass for a
+// death; gorge's Origin$ Battlefield gate does not echo it. A Tf2LeavesGrave
+// line with a graveyard in its destination mask, the one shape that is also a
+// death line, is left unechoed too: no card is printed so.
+func panharmEv(a *kop.Ability) kop.TrigEvent {
+	t := &a.Trig
+	if t.Event == kop.TrigLeaves && (t.From == kop.ZoneGraveyard || t.Flags2&kop.Tf2LeavesGrave != 0) {
+		return kop.TrigNone
+	}
+	return t.Event
 }
 
 // panharmModeOK reports whether a trigger of event ev about player who is of
