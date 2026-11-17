@@ -648,6 +648,18 @@ func tableHasReconfigure(t *kop.Table) bool {
 }
 
 // prepareGen precomputes a generated table (nil for a hand-written one).
+// dynamicManaCost reports whether a's Cost$ is a shape the dynamic variants
+// (varPC) price: a bare {T}, or {T} plus sacrificing the source (Lotus
+// Blossom's "Add X mana of any one color"). Any other cost stays off the
+// autopay census.
+func dynamicManaCost(a *kop.Ability) bool {
+	switch a.Cost.Flags {
+	case kop.CostTap, kop.CostTap | kop.CostSacSelf:
+		return true
+	}
+	return false
+}
+
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
 	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
@@ -1458,12 +1470,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// alternative): an autopay source of that colour
 					pc.manaChosen = true
 				} else {
-					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && a.Cost.Flags == kop.CostTap && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
+					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && dynamicManaCost(a) && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) {
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))
 						for n := 0; n <= maxDynMana; n++ {
-							vp := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true, manaOne: manaOneColour(a, uint8(n))}
+							vp := pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaSac: a.Cost.Flags == kop.CostTap|kop.CostSacSelf, manaDyn: true, manaOne: manaOneColour(a, uint8(n))}
 							if n == 0 {
 								vp.manaAb = -1
 							}
