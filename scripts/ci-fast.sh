@@ -22,6 +22,12 @@ if grep -qx './dirac/oracle' <<<"$whole"; then
     go test -timeout 15m -short -run "^($rx)\$" ./dirac/oracle || rc=1
   fi
 fi
+# ./dirac/kgen runs uncached (-count=1): its tests open the corpus ~88 times, and go spent 190-300 s hashing those
+# files for a test-result cache that a changed tree never hits, against ~110 s of tests (11-17; ci.yml's shards do the same).
+if grep -qx './dirac/kgen' <<<"$whole"; then
+  whole=$(grep -vx './dirac/kgen' <<<"$whole" || true)
+  go test -timeout 20m -short -count=1 ./dirac/kgen || rc=1
+fi
 if [ -n "$whole" ]; then
   # shellcheck disable=SC2086
   go test -timeout 20m -short $whole || rc=1
