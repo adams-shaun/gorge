@@ -1079,7 +1079,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 			}
 		}
 		lc.unlessCost = lc.ab.Kind != akLatent
-		in, err = lc.payInstr(cost, lRef{}, cost.SubCtr > 0)
+		in, err = lc.unlessPayInstr(cost, lRef{}, cost.SubCtr > 0) // lower_unlesschain.go
 		lc.unlessCost = false
 		if err != nil {
 			return err

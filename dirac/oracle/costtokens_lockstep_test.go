@@ -37,10 +37,10 @@ func kcostTokensDecks() [2][]cardset.Entry {
 		{Name: "Rot Farm Skeleton", Count: 4},
 		{Name: "Deep Spawn", Count: 2},
 		{Name: "Priest of the Wakening Sun", Count: 2},
-		{Name: "Pride of the Clouds", Count: 3},
+		{Name: "Pride of the Clouds", Count: 2},
 		{Name: "Sky Hussar", Count: 2},
 		{Name: "Karlov's Crossbow", Count: 2},
-		{Name: "Grizzly Bears", Count: 1},
+		{Name: "Tresserhorn's Lord, Returned", Count: 2},
 		{Name: "Swamp", Count: 4},
 		{Name: "Forest", Count: 1},
 		// (one Island and one Forest became the Millikins; the lands' colour

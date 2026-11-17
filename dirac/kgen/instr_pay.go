@@ -24,7 +24,7 @@ func (ic *instrCtx) opUnlessPaid() error {
 	} else if in.Op == "UnlessSwitched" {
 		ki.Op = kop.OpUnlessSwitched
 	}
-	pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeSelfMust": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "Mill": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "TapXVar": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+	pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "SacrificeRiders": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeSelfMust": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "Mill": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "TapXVar": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 	if pk == 0 {
 		return fmt.Errorf("pay kind %q", in.CS)
 	}
@@ -48,6 +48,9 @@ func (ic *instrCtx) opUnlessPaid() error {
 		}
 		ki.C = int16(kop.PayTapX | in.Skip<<4)
 		ki.B = kop.Const(n)
+	}
+	if in.CS == "SacrificeRiders" {
+		ki.B = kop.Const(int(in.B.N)) // the packed life and draw riders (lower_unlesschain.go)
 	}
 	if in.CS == "Blight" {
 		ki.B = kop.Const(kop.PayBSubBlight) // a Blight, not a sacrifice
