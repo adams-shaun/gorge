@@ -110,7 +110,7 @@ jobs:
   # and on main, nightly and on demand.
   fast:
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
-    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && !startsWith(github.head_ref, 'hotfix/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -163,7 +163,7 @@ jobs:
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
-    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && !startsWith(github.head_ref, 'hotfix/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
