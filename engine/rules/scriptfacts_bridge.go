@@ -38,6 +38,7 @@ const (
 	phMegamorph               = printedHeads(scriptfacts.Megamorph)
 	phDisguise                = printedHeads(scriptfacts.Disguise)
 	phMayFlashCost            = printedHeads(scriptfacts.MayFlashCost)
+	phSpectacle               = printedHeads(scriptfacts.Spectacle)
 	phAlternateAdditionalCost = printedHeads(scriptfacts.AlternateAdditionalCost)
 	phImpending               = printedHeads(scriptfacts.Impending)
 	phAll                     = printedHeads(scriptfacts.All)

@@ -40,7 +40,7 @@ func TestAltCastFaceCostSidecar(t *testing.T) {
 	c := card(t, "Name:AltCost Sidecar Probe\nManaCost:2 R\nTypes:Creature Test\nPT:2/2\n"+
 		"K:Evoke:1 R\nK:Dash:2 R\nK:Overload:3 R\nK:Warp:4 R\nK:Impending:3:5 R\n"+
 		"K:Bestow:6 R\nK:Blitz:1 R Sac<1/Creature> Sac<1/Creature> Sac<1/Creature>\n"+
-		"K:Madness:8 R\nOracle:x\n")
+		"K:Madness:8 R\nK:Spectacle:9 R\nOracle:x\n")
 	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
 	f := c.Faces[0]
 
@@ -59,8 +59,8 @@ func TestAltCastFaceCostSidecar(t *testing.T) {
 		freshCost, freshOK := m.faceCostRaw(f)
 		var row altFaceCost
 		cachedOK := false
-		if bit := uint8(1) << altCastID(i); ff.altCostMask&bit != 0 {
-			row = ff.altCosts[bits.OnesCount8(ff.altCostMask&(bit-1))]
+		if bit := uint16(1) << altCastID(i); ff.altCostMask&bit != 0 {
+			row = ff.altCosts[bits.OnesCount16(ff.altCostMask&(bit-1))]
 			cachedOK = true
 		}
 		if cachedOK != freshOK || (freshOK && !reflect.DeepEqual(row.cost, freshCost)) {
@@ -167,7 +167,7 @@ func TestWalkFaceFactsAltCostSidecarIsSparse(t *testing.T) {
 	allRows := card(t, "Name:AltCost Sparse AllRows\nManaCost:1 G\nTypes:Creature Test\nPT:1/1\n"+
 		"K:Evoke:1 R\nK:Dash:2 R\nK:Overload:3 R\nK:Warp:4 R\nK:Impending:3:5 R\n"+
 		"K:Bestow:6 R\nK:Blitz:1 R Sac<1/Creature> Sac<1/Creature> Sac<1/Creature>\n"+
-		"K:Madness:8 R\nOracle:x\n")
+		"K:Madness:8 R\nK:Spectacle:9 R\nOracle:x\n")
 	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{plain, allRows}}})
 
 	pf := e.walkFaceFactsOf(plain.Faces[0])
@@ -182,9 +182,9 @@ func TestWalkFaceFactsAltCostSidecarIsSparse(t *testing.T) {
 	if af == nil || !af.keywordsCurrent(allRows.Faces[0]) {
 		t.Fatal("precondition: no current facts for the all-rows face")
 	}
-	// Precondition: the all-rows face really carries all eight rows, so the
+	// Precondition: the all-rows face really carries all nine rows, so the
 	// sparse-length assertion below is not vacuous.
-	if want := uint8(1<<altCastCount - 1); af.altCostMask != want {
+	if want := uint16(1<<altCastCount - 1); af.altCostMask != want {
 		t.Fatalf("precondition: all-rows face mask=%#x, want %#x", af.altCostMask, want)
 	}
 	if len(af.altCosts) != int(altCastCount) {

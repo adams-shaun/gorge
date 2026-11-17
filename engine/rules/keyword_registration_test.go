@@ -58,6 +58,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Bushido":        "TestBushidoPumpsOnBlocksAndBecomesBlocked",
 		"kw:Split second":   "TestVATSSplitSecondWithholdsCastsAndActivations",
 		"kw:Devour":         "TestGorgerWurmDevourAsksAndCountsTheSacrificed",
+		"kw:Spectacle":      "TestSpectacleNeedsAnOpponentToHaveLostLife",
 		"kw:Gravestorm":     "TestOminousHarvestGravestormCopiesPerDeath",
 		"kw:Toxic":          "TestToxicIxhelAddsPoisonOnCombatDamage",
 		"kw:Infect":         "TestInfectDamageToCreatureIsMinusOneCountersNotMarkedDamage",

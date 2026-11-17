@@ -194,7 +194,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.134 | follows | `engine/cards/kw_mentor.go#kwMentor` `engine/rules/mentor.go#Engine.mentorAdmits` | `TestMentorCounterOnLesserPowerAttacker` `TestGrantedMentorFiresAndDoesNotStackWithAPrintedKeyword` |  |
 | 702.135 | follows | `engine/cards/kw_afterlife.go#kwAfterlife` | `TestAfterlifeTitheTakerMintsSpiritTokens` `TestAfterlifeCountScalesWithTheKeyword` |  |
 | 702.136 | follows | `engine/rules/cast_etbchoice.go#Engine.entryETBChoice` `engine/events/entry_counters.go#EntryCounterGrants` | `TestRiotAndHideawayUseRealCorpusCards` `TestRiotCopyKeepsTokenEffectRiders` |  |
-| 702.137 | not-impl | - | - |  |
+| 702.137 | follows | `engine/rules/altcast_modes.go#altCastMode.gateOpen` | `TestSpectacleNeedsAnOpponentToHaveLostLife` `TestSpectacleCardsAreSupported` | spectacle-paid provenance (Card.spectacle) not modelled |
 | 702.138 | follows | `engine/rules/altcast.go#Engine.escapeCost` `engine/rules/legal_walk_alt.go#legalWalk.graveyardCastsOver` | `TestKroxaEscapeCastDoesNotSacrificeOnETB` `TestUnderworldBreachGrantsEscapeAndTheEscapeCastResolves` | Graveyard cast exiling other cards |
 | 702.139 | not-impl | `engine/rules/trigger_match.go` | - |  |
 | 702.140a | follows | `engine/rules/mutate.go#mutateCost` `engine/rules/mutate.go#mutateTargetSA` | `TestBrokkosMayPlayMutateFromTheGraveyard` |  |

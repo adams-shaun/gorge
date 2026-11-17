@@ -39,6 +39,7 @@ const (
 	MayFlashCost
 	AlternateAdditionalCost
 	Impending
+	Spectacle
 	// All answers "maybe" for every head.
 	All Heads = 1<<iota - 1
 )
@@ -121,6 +122,8 @@ func Of(f *cards.Face) Heads {
 			m |= AlternateAdditionalCost
 		case headOfImpending:
 			m |= Impending
+		case headOfSpectacle:
+			m |= Spectacle
 		}
 	}
 	return m
@@ -138,6 +141,7 @@ var Names = [...]struct {
 	{Mutate, "Mutate"}, {Buyback, "Buyback"}, {Suspend, "Suspend"}, {Plot, "Plot"},
 	{Morph, "Morph"}, {Megamorph, "Megamorph"}, {Disguise, "Disguise"},
 	{MayFlashCost, "MayFlashCost"}, {AlternateAdditionalCost, "AlternateAdditionalCost"}, {Impending, "Impending"},
+	{Spectacle, "Spectacle"},
 }
 
 // Verify panics when a clear bit of h is contradicted by f.KeywordParam
@@ -176,6 +180,7 @@ const (
 	headOfMayflashcost
 	headOfAlternateAdditionalCost
 	headOfImpending
+	headOfSpectacle
 )
 
 var headsOfCodes = state.NewStrCodes(
@@ -201,4 +206,5 @@ var headsOfCodes = state.NewStrCodes(
 	state.StrEntry[headCode]{Key: "mayflashcost", Val: headOfMayflashcost},
 	state.StrEntry[headCode]{Key: "alternateadditionalcost", Val: headOfAlternateAdditionalCost},
 	state.StrEntry[headCode]{Key: "impending", Val: headOfImpending},
+	state.StrEntry[headCode]{Key: "spectacle", Val: headOfSpectacle},
 )

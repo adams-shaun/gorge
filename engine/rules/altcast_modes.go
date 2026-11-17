@@ -34,6 +34,7 @@ const (
 	altMadness
 	altBestow
 	altBlitz
+	altSpectacle
 	altCastCount
 )
 
@@ -76,6 +77,9 @@ type altCastMode struct {
 	untargeted bool
 	// potential rows are priced by potentialModeBaseCost.
 	potential bool
+	// oppLostLife rows are offered only when an opponent of the caster lost
+	// life this turn (spectacle, CR 702.137a).
+	oppLostLife bool
 }
 
 // altCastModes is the family, indexed by altCastID. Row order is the order
@@ -90,6 +94,30 @@ var altCastModes = [altCastCount]altCastMode{
 	altMadness:   {id: altMadness, mode: "madness", head: "Madness", potential: true},
 	altBestow:    {id: altBestow, mode: "bestowed", head: "Bestow", flag: state.FlagBestowed, cost: altCostBestow, potential: true},
 	altBlitz:     {id: altBlitz, mode: "blitzed", head: "Blitz", flag: state.FlagBlitzed, cost: altCostBlitzInstance},
+	// Spectacle (CR 702.137a) has no CastFlags bit (the word is full): its
+	// "if the spectacle cost was paid" readers (Card.spectacle) stay
+	// unsupported, so nothing needs the provenance.
+	altSpectacle: {id: altSpectacle, mode: "spectacled", head: "Spectacle", ph: phSpectacle, handLoop: true, cmdLoop: true, potential: true, oppLostLife: true},
+}
+
+// lifeLossLedger is the turn ledger a row's gate reads (Engine's
+// LifeLostThisTurn).
+type lifeLossLedger interface {
+	LifeLostThisTurn(p state.PlayerID) int32
+}
+
+// gateOpen reports whether row m's turn condition holds for caster p:
+// spectacle needs a living opponent of p to have lost life this turn.
+func (m *altCastMode) gateOpen(g *state.Game, h lifeLossLedger, p state.PlayerID) bool {
+	if !m.oppLostLife {
+		return true
+	}
+	for _, q := range g.AliveFrom(0) {
+		if q != p && h.LifeLostThisTurn(q) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // altMode is row id's mode word.
@@ -141,11 +169,11 @@ func (m *altCastMode) faceCost(f *cards.Face, ff *walkFaceFacts) (Cost, bool) {
 	if ff == nil || !ff.keywordsCurrent(f) {
 		return m.faceCostRaw(f)
 	}
-	bit := uint8(1) << m.id
+	bit := uint16(1) << m.id
 	if ff.altCostMask&bit == 0 {
 		return Cost{}, false
 	}
-	c := ff.altCosts[bits.OnesCount8(ff.altCostMask&(bit-1))]
+	c := ff.altCosts[bits.OnesCount16(ff.altCostMask&(bit-1))]
 	return c.cost, c.ok
 }
 

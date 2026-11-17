@@ -17,6 +17,9 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Spectacle (CR 702.137a): the hand/command-zone alternative cast
+		// gated on an opponent having lost life this turn (altSpectacle).
+		"kw:Spectacle",
 		// kw:Mayhem (the Doom Prevails keyword): the graveyard recast and
 		// the bare parameterless land-play form are read directly off the
 		// K: line (engine/rules/legal.go's offers, engine/rules/cast.go's charge,
