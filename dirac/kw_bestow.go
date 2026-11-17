@@ -82,10 +82,12 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	}
 	cd := &k.t.Cards[c]
 	bc := s.adjustCost(k, p, c, o, cd.BestowCost) // the reduction applies to an alternative cost too (CR 601.2f)
-	if len(k.gen.grantPC) != 0 && s.g.availX&availWalk != 0 {
+	if len(k.gen.grantPC) != 0 && (s.g.availX&availWalk != 0 || k.gen.anyGrantRestr()) {
 		// gorge's potential walk counts a restricted mana ability only for a
 		// payment its restriction admits (potentialRestrictionAdmits): a
-		// hand-barred grant puts no cast on the walk grantCap reads
+		// hand-barred grant puts no cast on the walk grantCap reads, and no
+		// bestowed cast on the offer either (grantCap prices plain casts only;
+		// Battery Bearer's {C} beside a nonartifact bestow cost, CR 106.6)
 		var ha avail
 		s.walkHandAvail(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}, &ha)
 		av = &ha
