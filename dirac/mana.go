@@ -295,6 +295,9 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 		} else {
 			pc = &k.cards[s.cardAt(sl)]
 		}
+		if pc.manaDyn && pc.manaSac && s.g.availX&availDynSac == 0 {
+			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (availDynSac)
+		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
 			continue
 		}
