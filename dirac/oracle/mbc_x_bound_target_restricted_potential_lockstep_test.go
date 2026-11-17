@@ -12,4 +12,10 @@ import "testing"
 func TestMBCSequenceEngineReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "x_bound_target_restricted_potential")
+	// CR 601.2b/601.2c/601.2h and 602.2b: the mirror case. One Treasure Token
+	// makes ONE mana of any colour, but gorge's potential bound priced the
+	// open production as unbounded in every slot, so it offered X=3 with a
+	// mana value 3 creature card in the graveyard (tail-29 pair 33, decision
+	// 588) while the kernel, which prices the announcement exactly, did not.
+	stdReproNamed(t, "sequence_engine")
 }
