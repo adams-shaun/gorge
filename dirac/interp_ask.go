@@ -286,6 +286,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)
 		}
+		if s.identityPotentialSource(k, p, sl, d) {
+			return true // a ColorIdentity rider/non-{T} source: gorge's payment-bound fold prices it (CR 903.4)
+		}
 		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
 		// (a commander-identity source whose controller has no commander yields
 		// nothing, CR 903.4f: its view is the no-ability one, gorge
