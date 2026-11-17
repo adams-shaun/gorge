@@ -31,5 +31,8 @@ func init() {
 		// CR 702.153 Casualty: the optional cast-time sacrifice and copy
 		// (Engine.casualtySpec; TestCasualtyPrintedSpellSacrificeCopiesTarget).
 		"kw:Casualty",
+		// CR 702.115 Ingest: engine/cards/kw_ingest.go's combat-damage trigger
+		// digs the damaged player's top card into exile (TestIngestExilesTopCard).
+		"kw:Ingest",
 	)
 }

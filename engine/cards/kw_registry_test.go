@@ -174,6 +174,9 @@ var expandedHeads = []string{
 	// optional dies trigger moving the last-known count to a target artifact
 	// creature (engine/cards/kw_modular.go). Added after the split.
 	"Modular",
+	// Ingest (CR 702.115a): a combat-damage-to-a-player trigger exiling that
+	// player's top card (engine/cards/kw_ingest.go). Added after the split.
+	"Ingest",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
