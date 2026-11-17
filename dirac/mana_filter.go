@@ -219,7 +219,7 @@ func (s *State) availFilt(k *prep, p uint8, a *avail) {
 		units, fee := s.filtUnits(k, b.first()), s.filtFee(k, b.first())
 		if units < fee {
 			// a subset of the relaxed proof (mana_filtersubset.go): this filter is left out
-			if neg++; neg <= 2 && s.g.availX&availGaps != 0 && s.g.availX>>5&(1<<(neg-1)) != 0 {
+			if neg++; neg <= relaxedPaidLimit && s.g.availX&availGaps != 0 && s.filtSkip()&(uint8(1)<<(neg-1)) != 0 {
 				continue
 			}
 		}
