@@ -10,15 +10,24 @@ import (
 
 // FaceDownPolicy is the evidence sweep's face-down steering policy. It prefers,
 // in order, a turn-face-up special action, a cast of a triggered mana source
-// and a face-down cast; everything else is base's answer. The face-down cast
-// and the turn-face-up are priced from the floating pool alone
-// (face_facedown.go's offerFaceDown/offerTurnUpSl), so a game only reaches them
-// after a mana trigger has added to the pool, and the mana source is taken
-// before the face-down cast so its floats bank past the cast: a face-down
-// carrier then stands beside the next float event, which is what offers the
-// turn-up. The overlay does not play lands or otherwise change the base
-// policy's decisions: when none of the three is offered, the game is exactly
-// base's.
+// and a face-down cast; everything else is base's answer. The face-down cast is
+// priced from the floating pool alone (face_facedown.go's offerFaceDown), so a
+// game only reaches it after a mana trigger has added to the pool; the
+// turn-up is priced from the pool or, matching gorge's potential walk, from the
+// seat's untapped sources (offerTurnUpSl's turnUpListed, the potential
+// walk's turn_face_up witness). That second route is what lets a synthetic
+// deck turn the carrier up: a deck holds at most synthMaxCopies of a one-shot ETB floater
+// (dirac/oracle/synth.go), and a floater whose trigger is exactly the face-down
+// price cannot also leave the turn-up's mana, so after the face-down cast the
+// overlay takes the land-funded turn-up instead of waiting for a second float
+// that a two-copy deal may never draw. The mana source is still taken before
+// the face-down cast so its floats pay the cast, and it is taken when no
+// face-down cast is offered (no carrier in hand yet), which is what reaches the
+// carriers. When the base policy would cast a carrier face up, the overlay
+// holds it instead: that cast spends the card the face-down route and the key
+// need, so the carrier waits for a floater. The overlay does not play lands:
+// when none of the three is offered and the base pick is not a face-up
+// carrier, the game is exactly base's.
 func FaceDownPolicy(base Policy) Policy {
 	return PolicyFunc(func(c *PickCtx) Canon {
 		var down, up, floater Canon
@@ -53,8 +62,58 @@ func FaceDownPolicy(base Policy) Policy {
 		case down != 0:
 			return down
 		}
-		return base.Pick(c)
+		pick := base.Pick(c)
+		if f := optionFace(c, pick); isFaceUpCarrierCast(c, pick) && hasTurnFaceUpTrigger(f) {
+			// The base policy would cast a carrier with a TurnFaceUp trigger
+			// face up, spending the only card the face-down cast and turn-up
+			// key need. Hold it: a floater drawn later funds the face-down
+			// cast, and the turn-up is then a land-funded potential play.
+			// Pass is always offered at priority, so the hold never strands
+			// the decision.
+			for _, a := range c.D.Options {
+				if a.Kind() == ActPass {
+					return a
+				}
+			}
+		}
+		return pick
 	})
+}
+
+// isFaceUpCarrierCast reports whether a is the plain cast of a Morph-family
+// carrier: the cast that spends the card the face-down route is for.
+func isFaceUpCarrierCast(c *PickCtx, a Canon) bool {
+	return a.Kind() == ActCast && isFaceDownCarrier(optionFace(c, a))
+}
+
+// isFaceDownCarrier reports whether f carries a Morph-family keyword, the
+// cards a face-down cast can name.
+func isFaceDownCarrier(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, k := range []string{"Morph", "Megamorph", "Disguise"} {
+		if _, ok := f.KeywordParam(k); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasTurnFaceUpTrigger reports whether f is a carrier whose turn-up earns the
+// evidence row this sweep is for (a T: Mode$ TurnFaceUp trigger): the cast
+// face up is worth holding against, while a carrier without one keeps the
+// base policy's ordinary development.
+func hasTurnFaceUpTrigger(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for i := range f.Triggers {
+		if f.Triggers[i].Mode == "TurnFaceUp" {
+			return true
+		}
+	}
+	return false
 }
 
 // sweepWantsFloats reports whether the decision's player has a face-down
@@ -75,11 +134,8 @@ func sweepWantsFloats(c *PickCtx) bool {
 		if ob == nil || ob.Card == nil || len(ob.Card.Faces) == 0 {
 			continue
 		}
-		f := ob.Card.Faces[0]
-		for _, k := range []string{"Morph", "Megamorph", "Disguise"} {
-			if _, ok := f.KeywordParam(k); ok {
-				return true
-			}
+		if isFaceDownCarrier(ob.Card.Faces[0]) {
+			return true
 		}
 	}
 	for _, id := range c.G.E.G.Zone(state.ZBattlefield, p) {
