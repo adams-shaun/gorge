@@ -69,8 +69,10 @@ func TestStateCounterThresholdArm(t *testing.T) {
 }
 
 // TestStateCounterThresholdBounds: kop.PredCountersGE packs the threshold in
-// the high byte of an int16 PredN, so the arm must take 1..127 and refuse
-// everything else instead of lowering a wrapped predicate.
+// the high byte of an int16 PredN, so the GE shape must take 1..127 and refuse
+// everything else instead of lowering a wrapped predicate. A different compare
+// (LE) is no longer this arm's business: it lowers through the generic
+// IsPresent$ path like any other filter.
 func TestStateCounterThresholdBounds(t *testing.T) {
 	refusals, _ := stateCtrProbe(t, "Card.Self+counters_GE127_PAGE", nil)
 	if len(refusals) != 0 {
@@ -80,7 +82,6 @@ func TestStateCounterThresholdBounds(t *testing.T) {
 		"Card.Self+counters_GE128_PAGE",
 		"Card.Self+counters_GE255_PAGE",
 		"Card.Self+counters_GE0_PAGE",
-		"Card.Self+counters_LE4_PAGE",
 		"Card.Self+counters_GE4_NOSUCH",
 	} {
 		refusals, _ := stateCtrProbe(t, isp, nil)
@@ -89,13 +90,17 @@ func TestStateCounterThresholdBounds(t *testing.T) {
 		}
 		t.Logf("%s -> %s", isp, refusals[0])
 	}
+	// Precondition for dropping LE4 from the list above: it lowers.
+	if refusals, _ := stateCtrProbe(t, "Card.Self+counters_LE4_PAGE", nil); len(refusals) != 0 {
+		t.Fatalf("LE4 refused: %v", refusals)
+	}
 }
 
 // TestCounterFilterThresholdBounds: the generic filter path funnels the same
 // PredCountersGE packing through clause's GE arm, so a threshold above 127
 // must be refused there too instead of lowering a wrapped, always-true
-// predicate (the Always state-trigger arm has its own bound and never gets
-// here).
+// predicate (the Always state-trigger arm bounds the GE shape at lowering,
+// TestStateCounterThresholdBounds; this build-level refusal is the backstop).
 func TestCounterFilterThresholdBounds(t *testing.T) {
 	page, err := counterKind("PAGE")
 	if err != nil {

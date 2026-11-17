@@ -2,15 +2,17 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// The counter-threshold state trigger (Mode$ Always lowered over IsPresent$
-// Card.Self+counters_GE<N>_<KIND>, Mazemind Tome; CR 603.8, gorge
+// The state trigger over a board condition (Mode$ Always lowered over
+// IsPresent$, e.g. Card.Self+counters_GE<N>_<KIND>, Mazemind Tome; CR 603.8,
+// gorge
 // trigger_condition.go stateTriggerOutstanding): one instance at a time. A
 // counter put on the source re-checks the threshold condition (objTrigGen's
 // TrigCounterAddedOnce gate skips a put while an instance is queued or on
 // the stack), and the re-check runs again at every resolution's finish
 // (finishResolve) and after the end-of-turn sweep, so the source re-fires
-// while it still meets the threshold. gorge re-checks on every event; for
-// this shape only a counter put can newly satisfy the condition. The
+// while it still meets the threshold. gorge re-checks on every event; the
+// kernel re-checks at a counter put, at the clean end of a state-based
+// pass (sbaClean) and at the points above. The
 // finish-only cadence is sound only while no lowered counter shape removes
 // the source mid-resolution and no lowered ability-counter adds a trigger in
 // that same resolution: gorge would queue on the counter's move before the
@@ -73,4 +75,16 @@ func (s *State) stateCtrRefire(k *prep) {
 		}
 		s.queueTrig(k, l, a, l.obj, l.ctrl, 0)
 	})
+}
+
+// sbaClean ends a state-based pass that applied nothing: a board change (a
+// permanent that left, a creature that entered, a counter removed) has
+// settled, so a state trigger over IsPresent$ re-checks its condition here
+// (gorge checks it at the event; the instance still queues before the
+// priority that follows). It reports false, the game not over.
+func (s *State) sbaClean(k *prep) bool {
+	if k.anyStateCtr {
+		s.stateCtrRefire(k)
+	}
+	return false
 }
