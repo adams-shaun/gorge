@@ -12,8 +12,8 @@ flowchart LR
   wt --> test["failing test<br/>first"]
   test --> fix["fix, keeping<br/>the invariants"]
   fix --> gates["focused tests,<br/>ratchets, sim,<br/>TestHeads"]
-  gates --> pr["PR to develop"]
-  pr --> ci["ci green,<br/>review, merge"]
+  gates --> pr["PR to main"]
+  pr --> ci["fast + lint green,<br/>merge queue"]
 ```
 
 ## Clone and fetch the card corpus
@@ -55,11 +55,11 @@ you push `main` with `RACE=1` set.
 
 Make each change in its own branch, and if you keep several going at once,
 in its own [git worktree](https://git-scm.com/docs/git-worktree), so your main
-checkout stays clean. Branch from `develop`, which is where changes land:
+checkout stays clean. Branch from `origin/main`, which is where pull requests go:
 
 ```sh
 git fetch origin
-git worktree add ../gorge-myfix -b myfix origin/develop
+git worktree add ../gorge-myfix -b myfix origin/main
 ln -s "$PWD/.cards" ../gorge-myfix/.cards      # the corpus is untracked: link it in
 cd ../gorge-myfix
 ```
@@ -103,9 +103,15 @@ what to do.
 
 ## Commits and pull requests
 
-**Branches.** Changes land on `develop` by pull request. The maintainers
-promote landed work to `main` in batches, through pull requests whose CI is the
-full gate (below); nothing is pushed to `main` directly. Open your PR **against `develop`**. ([Branch flow](../repos/index.md#branch-flow).)
+**Branches.** Open your PR **against `main`**. Mergify queues every non-draft PR
+to `main` (no label, no approval) once its `fast` and `lint` checks pass:
+`fast` is `scripts/ci-fast.sh`, the packages your diff touches, every package
+whose tests import them, and the named test groups, run with `-short`. Mergify
+batches up to 10 queued PRs on a `mergify/merge-queue/*` branch, where CI runs
+the full suite once per batch (below). The batch merges with a merge commit when
+`ci-ok` is green there; a red batch is split. Nothing is pushed to `main`
+directly. A fix for a red `main` goes on a `hotfix/*` branch (or carries the
+`hotfix` label): it is batched first and may interrupt a running batch. ([Branch flow](../repos/index.md#branch-flow).)
 
 **Commit messages.**
 
@@ -121,7 +127,7 @@ full gate (below); nothing is pushed to `main` directly. Open your PR **against 
 
 **The pull request.** The template (`.github/pull_request_template.md`) asks
 for an overview, the changes by area, how you tested, and notes for
-reviewers. `make pr PR_BASE=develop` pushes your branch and opens (or
+reviewers. `make pr` (against `main`, origin's default branch) pushes your branch and opens (or
 refreshes) the PR with a generated change overview; it needs an
 authenticated `gh`, and `DRY=1` prints the body without pushing.
 
@@ -140,18 +146,21 @@ authenticated `gh`, and `DRY=1` prints the body without pushing.
 - [ ] Any ratchet entry your change closed is deleted in the same commit.
 
 **What CI runs on your PR.** `lint` (`gofmt`, `go vet ./...`,
-`gentypes -check`); `test`: the corpus is fetched at `FORGE_REF`, the
-packages are split across six shards, Go's test cache from the base branch
-lets unchanged packages report `(cached)`, and `TestHeads` runs as its own
-step; `examples` (`scripts/examples-smoke.sh`, the Python and Java agents); and
-`wire-matrix` ([Wires](../architecture/wires.md)); `dirac-slices`, which
-plays dirac against gorge on the committed FDN and BLB slices (not on a PR to
-`main`, whose trees already passed the dirac gate's slices); and `browser`
-(`make smoke`), the built client in headless Chromium against real servers.
-`browser` isn't part of `ci-ok`, the required check. A PR to `main`
-also runs `oracle`, the whole of `dirac/oracle` in ten parts: no deck pool ships
-with the repo, so it plays committed slices and synthetic decks, and any skip
-outside `dirac/oracle/testdata/poolskips.txt` fails it. A PR that touches
+`gentypes -check`) and `fast` (`scripts/ci-fast.sh`: the packages your diff
+touches, every package whose tests import them, and the named test groups, with
+`-short`). Once both pass, the PR enters the merge queue, and the batch runs
+`test`: the corpus is fetched at `FORGE_REF`, the packages are split across six
+shards, Go's test cache from the base branch lets unchanged packages report
+`(cached)`, and `TestHeads` runs as its own step; `examples`
+(`scripts/examples-smoke.sh`, the Python and Java agents); `wire-matrix`
+([Wires](../architecture/wires.md)); `dirac-slices`, which plays dirac against
+gorge on the committed FDN and BLB slices; and `browser` (`make smoke`), the
+built client in headless Chromium against real servers. `browser` isn't part of
+`ci-ok`, the required check. The whole of `dirac/oracle` in ten parts runs every
+6 hours on `main` (`.github/workflows/oracle.yml`) and on demand (`ci.yml`
+`workflow_dispatch`), never on a pull request or a queue batch: no deck pool
+ships with the repo, so it plays committed slices and synthetic decks, and any
+skip outside `dirac/oracle/testdata/poolskips.txt` fails it. A PR that touches
 `docs/site/`, `dirac/docs/support.md` or `mkdocs.yml` also gets a strict docs build.
 
 ## Reproduce a feedback report

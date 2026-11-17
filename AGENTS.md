@@ -106,8 +106,9 @@ those inputs. Never re-run it, add `-count=1` or `go clean -testcache` to "make 
 suspicious; go re-runs a test by itself when its code, flags, env or input files change. `-timeout`, `-v`, `-json` and
 `-failfast` are part of the cache key, so the make targets keep them fixed.
 
-`make precheck` is an alias for `test-smart`. The full suite runs in CI, never locally: every pull request
-runs the six test shards, and a pull request to `main` also runs the whole `dirac/oracle` in ten parts.
+`make precheck` is an alias for `test-smart`. The full suite runs in CI, never locally: a pull request
+runs the fast stage (`scripts/ci-fast.sh`) and `lint`; the Mergify queue batch runs the six test shards, the wire
+matrix and `dirac-slices`; the whole `dirac/oracle` runs every 6 hours on `main`.
 Rules and rationale: [invariants.md](docs/agents/invariants.md#workflow).
 
 Acceptance commands:
