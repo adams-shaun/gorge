@@ -161,6 +161,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"parse.go":                {true, "the script parser"},
 	"keyword_refs.go":         {false, "runtime KeywordRef vars the cards package asks faces through"},
 	"primitive.go":            {false, "coverage Primitives computed on demand, not stored"},
+	"repl_layer.go":           {false, "runtime replacement-word codes rules compares; compile never calls them"},
 	"repl_shape.go":           {false, "coverage repl shape labels and the CopySpell body parse, computed on demand, not stored"},
 	"printed_facts.go":        {false, "view facts in an unexported Face field gob never encodes; derive recomputes them on load"},
 	"registry.go":             {true, "Registry, CompileDir, Save/LoadRegistry and cacheVersion"},
