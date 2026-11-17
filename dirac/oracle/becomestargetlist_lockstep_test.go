@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -8,15 +9,18 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Fey Steed's and Angelic Cub's lockstep (dirac/kgen/lower_trigger.go's
-// BecomesTarget list and FirstTime arms; kernel trig_becomestarget.go's
-// btWatchers and trig_counterfirst.go's Tf2FirstTime latch): Fey Steed
-// watches a comma list of permanent filters (a creature or planeswalker you
-// control) targeted by an opponent's spell or ability and may draw a card;
-// Angelic Cub's FirstTime$ True self line puts a +1/+1 counter on it the
-// first time it is targeted each turn (a second Lightning Bolt on the same
-// Cub in one turn triggers nothing, the next turn's first one does). The
-// burn can also aim at a player, which neither form answers.
+// Fey Steed's, Angelic Cub's and Silverfur Partisan's lockstep
+// (dirac/kgen/lower_trigger.go's BecomesTarget list and FirstTime arms;
+// kernel trig_becomestarget.go's btWatchers and trig_counterfirst.go's
+// Tf2FirstTime latch): Fey Steed watches a comma list of permanent filters (a
+// creature or planeswalker you control) targeted by an opponent's spell or
+// ability and may draw a card; Angelic Cub's FirstTime$ True self line puts a
+// +1/+1 counter on it the first time it is targeted each turn (a second
+// Lightning Bolt on the same Cub in one turn triggers nothing, the next turn's
+// first one does); Silverfur Partisan's ValidTarget$ Wolf...,Werewolf... list
+// over a ValidSource$ Instant,Sorcery spell fires when a Wolf or Werewolf is
+// targeted by an instant or sorcery. The burn can also aim at a player, which
+// none of the forms answer.
 //
 // The other named carriers do not play here: Kira, Great Glass-Spinner's
 // Counter body refuses (TriggeredSourceSA outside a SpellCast trigger) and
@@ -33,6 +37,23 @@ func becomestargetlistDecks() [2][]cardset.Entry {
 		{Name: "Plains", Count: 8},
 		{Name: "Mountain", Count: 2},
 		{Name: "Forest", Count: 2},
+	}
+	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
+}
+
+// becomestargetlistSpellSourceDecks is the spell-source list arm in games of
+// its own: Silverfur Partisan is the only BecomesTarget carrier in the deck,
+// so the run's queue count can only be this arm's. Watchwolf is the Wolf the
+// opponent's Lightning Bolt targets; Silverfur Partisan is itself a Wolf, so
+// either body proves the list.
+func becomestargetlistSpellSourceDecks() [2][]cardset.Entry {
+	d := []cardset.Entry{
+		{Name: "Silverfur Partisan", Count: 4},
+		{Name: "Watchwolf", Count: 10},
+		{Name: "Lightning Bolt", Count: 8},
+		{Name: "Forest", Count: 8},
+		{Name: "Plains", Count: 5},
+		{Name: "Mountain", Count: 5},
 	}
 	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }
@@ -56,6 +77,54 @@ func btcastFirstPolicy(seed uint64) Policy {
 					ob.Face() != nil && ob.Face().Name == "Angelic Cub" {
 					return a
 				}
+			}
+		}
+		buf := make([]Canon, 0, 8)
+		for _, a := range c.D.Options {
+			switch a.Kind() {
+			case ActCast, ActCastFace, ActActivate, ActPlayLand:
+				buf = append(buf, a)
+			}
+		}
+		if len(buf) == 0 || len(buf) == len(c.D.Options) {
+			return rnd.Pick(c)
+		}
+		d := *c.D
+		d.Options = buf
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
+// btwolfTargetPolicy is btcastFirstPolicy aiming the burn at a Wolf or
+// Werewolf on the battlefield (an opponent's body first) so Silverfur
+// Partisan's spell-source list arm sees a target.
+func btwolfTargetPolicy(seed uint64) Policy {
+	rnd := RandomPolicy(seed)
+	return PolicyFunc(func(c *PickCtx) Canon {
+		if c.D.Kind == DTarget {
+			var opp, any []Canon
+			for _, a := range c.D.Options {
+				o, ok := c.G.GorgeOption(a)
+				if !ok {
+					continue
+				}
+				ob := c.G.E.G.Obj(o.Obj)
+				if ob == nil || ob.Zone != state.ZBattlefield || ob.Face() == nil {
+					continue
+				}
+				if !slices.Contains(ob.Face().Types, "Wolf") && !slices.Contains(ob.Face().Types, "Werewolf") {
+					continue
+				}
+				any = append(any, a)
+				if ob.Controller != state.PlayerID(c.D.Player) {
+					opp = append(opp, a)
+				}
+			}
+			if len(opp) > 0 {
+				return opp[int(c.Seq)%len(opp)]
+			}
+			if len(any) > 0 {
+				return any[int(c.Seq)%len(any)]
 			}
 		}
 		buf := make([]Canon, 0, 8)
@@ -112,4 +181,15 @@ func TestBecomesTargetListLockstep(t *testing.T) {
 		t.Fatal("the FirstTime latch never refused a later targeting in the games; the once-per-turn gate went untested")
 	}
 	t.Logf("BecomesTarget trigger queues: %d; Angelic Cub latch fired %d, refused %d", st.Queues, fired, refused)
+
+	// The spell-source list arm in its own games: Silverfur Partisan is the
+	// only BecomesTarget carrier in these decks, so a queue here is the
+	// ValidTarget$ Wolf...,Werewolf... list over a ValidSource$
+	// Instant,Sorcery spell firing.
+	st.Queues = 0
+	lockstepRunPolicy(t, "becomestargetlist", becomestargetlistSpellSourceDecks(), 60, true, nil, nil, btwolfTargetPolicy)
+	if st.Queues == 0 {
+		t.Fatal("Silverfur Partisan's spell-source ValidTarget$ list never queued in its own games; the lockstep proves nothing for it")
+	}
+	t.Logf("Silverfur Partisan spell-source list trigger queues: %d", st.Queues)
 }
