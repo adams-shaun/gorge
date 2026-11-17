@@ -1181,7 +1181,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) {
+		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) || k.restrSrc && s.restrOnlyUsable(k, p, sl, &rd) || s.planTapGrantSacNow(k, sl) {
 			if deferSkip && s.planDeferred(k, p, sl) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go)
 			}
@@ -1218,7 +1218,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// each source's mana facts, read once for the three passes of every phase
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
-	var grantTap [MaxPerm]*pcard // a printed sacrifice-only source's granted {T} (ownSacGrantTap)
+	var grantTap [MaxPerm]*pcard    // a printed sacrifice-only source's granted {T} (ownSacGrantTap)
+	var gSacM, gSacN [MaxPerm]uint8 // a printed tap source's granted sacrifice: the joined colours and amount (planGrantSacOf)
 	var rv [MaxPerm]uint8
 	var ra [MaxPerm]int8      // the ability a restricted view is (restrViewW)
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
@@ -1242,6 +1243,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			granted[i] = s.manaGranted(k, sl)
 			if grantTap[i] = s.planOwnSacGrant(k, pcs[i], sl); grantTap[i] != nil {
 				hasGrant = true
+			}
+			if s.planTapGrantSac(k, sl) {
+				if gSacM[i], gSacN[i], _ = s.planGrantSacOf(k, sl); gSacN[i] != 0 {
+					hasGrant = true
+				}
 			}
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
@@ -1314,6 +1320,21 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				if sac && pk.kept.any() && pk.kept.has(sl) {
 					continue // reserved for the cost's sacrifice
+				}
+				if gSacN[i] != 0 && !s.canTapForManaPC(k, sl, pc) {
+					// a printed tap ability the planner prices that cannot tap
+					// now (tapped, summoning sick: CR 302.6) beside a live
+					// granted sacrifice-only ability (planTapGrantSacNow, Rain
+					// of Filth's land): the grant is the shape's only unit,
+					// phase 2's (gorge's planner never sees a granted ability,
+					// so a plan with one is reached only when the printed units
+					// have no plan), its sacrifice planGrantSacUnit's
+					if phase < 2 {
+						hasGrant = true
+						continue
+					}
+					s.planGrantSacUnit(k, p, pk, sl, gSacM[i], gSacN[i], s.isCreature(k, sl))
+					continue
 				}
 				// gorge's census lists a source with a deterministic
 				// production first and appends the choice-shaped ones
@@ -1465,6 +1486,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				pk.nu++
 				if phase == 2 && grantTap[i] != nil {
 					s.planGrantUnit(k, p, pk, sl, grantTap[i], cr)
+				}
+				if phase == 2 && gSacN[i] != 0 && s.canTapForManaPC(k, sl, pc) {
+					// the untapped source's printed unit above is phase 0's;
+					// its granted sacrifice joins in phase 2 (planTapGrantSac)
+					s.planGrantSacUnit(k, p, pk, sl, gSacM[i], gSacN[i], cr)
 				}
 				if sac || noUntap {
 					// a last-resort source has no normal alternative, so
