@@ -420,12 +420,11 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 	// Snapshot eligibility before forgetting: an IsRemembered filter must
 	// still admit an answered card after the old set has been cleared.
 	eligibleByOwner := make([][]state.ObjID, len(owners))
+	specMatches := func(id state.ObjID) bool {
+		return MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c))
+	}
 	for i, owner := range owners {
-		for _, id := range zoneOf(g, state.ZHand, owner) {
-			if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
-				eligibleByOwner[i] = append(eligibleByOwner[i], id)
-			}
-		}
+		eligibleByOwner[i] = handPickCandidates(g, owner, specMatches)
 	}
 	forgot := false
 	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
@@ -1136,4 +1135,21 @@ func chooseFromDefinedPool(h Host, c *Ctx, raw string) (map[state.ObjID]bool, bo
 		}
 	}
 	return pool, true
+}
+
+// handPickCandidates lists the cards in owner's hand matches accepts. A token
+// returned to the hand mid-resolution (Flood of Tears) is not a card and
+// ceases to exist at the next state check (CR 111.1, 111.7), so no hand pick
+// may take it.
+func handPickCandidates(g *state.Game, owner state.PlayerID, matches func(state.ObjID) bool) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range zoneOf(g, state.ZHand, owner) {
+		if o := g.Obj(id); o != nil && o.Ephemeral() {
+			continue
+		}
+		if matches(id) {
+			out = append(out, id)
+		}
+	}
+	return out
 }
