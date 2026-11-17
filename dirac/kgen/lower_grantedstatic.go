@@ -23,6 +23,9 @@ import (
 // discard. Open it (set "") with the engine fix.
 var grantedStaticKinds = map[string]string{
 	"NoMaxHandSize": "gorge's maxHandSizeFor never reads a granted static (an enchanted creature's controller keeps a maximum of seven)",
+	// RaiseCost: raiseCostGen and the target-dependent raise walks read it per
+	// recipient (a generic raise only: grantedRaiseShape refuses the rest).
+	"RaiseCost": "",
 	// Zurgo, Thunder's Decree: gorge sacrificeBlockedBy reads grantedStatics
 	// ("CantSacrifice") per recipient, and the kernel's sacBlockedBy walks
 	// eachStaticG.
@@ -113,6 +116,9 @@ func (lc *lowerCtx) grantedStatic(sp *params, st *lStatic, name string) error {
 	if in.Cond.Kind != cNone {
 		return refuse("AddStaticAbility %s: granted static with a condition", name)
 	}
+	if err := grantedRaiseShape(name, in); err != nil {
+		return err
+	}
 	lc.out.GrantedStatics = append(lc.out.GrantedStatics, in)
 	st.GrantSt = len(lc.out.GrantedStatics)
 	sp.consume("AddStaticAbility")
@@ -129,5 +135,24 @@ func (cb *cardBuilder) grantStatic(ka *kop.Ability, s lStatic) error {
 		return fmt.Errorf("granted static %d not emitted", s.GrantSt)
 	}
 	ka.Static.GrantSt = uint8(s.GrantSt)
+	return nil
+}
+
+// grantedRaiseShape: the granted RaiseCost shapes the kernel prices per
+// recipient are the generic raise on the battlefield, with or without a
+// ValidTarget$. A life raise (raiseLifeFor), a per-target raise, and the
+// card's own or stack-source raise (Zone$) read printed statics only.
+func grantedRaiseShape(name string, in lStatic) error {
+	if in.Kind != "RaiseCost" {
+		return nil
+	}
+	for _, f := range in.Flags {
+		if f == "RaiseLife" || f == "RaisePerTarget" {
+			return refuse("AddStaticAbility %s: granted RaiseCost %s", name, f)
+		}
+	}
+	if in.Zone != 0 {
+		return refuse("AddStaticAbility %s: granted RaiseCost with an EffectZone$", name)
+	}
 	return nil
 }
