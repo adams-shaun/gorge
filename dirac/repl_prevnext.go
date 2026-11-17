@@ -96,6 +96,7 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.col == 0 && r.sc == 0 {
 			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, kop.ColorMask(n), prevNextSc, code
+			s.g.prevX[i] = 0
 			if in.C&1 != 0 { // seat-ok: an instruction flag bit
 				r.sc |= prevNextCmb
 			}
@@ -135,9 +136,7 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 	if g.anyRedir && s.redirBeside(code, rcp) {
 		return n, false // a shield and a redirect on one recipient: gorge asks the order (repl_dmgredirect.go)
 	}
-	if sl != NoSlot && (g.anyRepl&rbProtAll != 0 && s.kw(k, sl)&kop.KwProtectionAll != 0 ||
-		g.anyRepl&rbProtCol != 0 && s.protFrom(k, sl, srcSl, srcCard, s.srcColors(k, srcSl, srcCard), combat)) ||
-		sl == NoSlot && g.anyRepl&rbPlProt != 0 && s.plProtected(k, srcCtrl, rcp, combat) {
+	if s.protBeforeRepl(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
 		return n, false // prevented before the replacements: nothing is spent
 	}
 	if s.noPrev(k, combat) {
@@ -177,10 +176,14 @@ func (s *State) combatEvLess(r *dmgRec, ev *dmgEv, code TCode, d int) {
 // it: only the source controller's doublers that match the event compete, so
 // an opponent's Fire Servant is no candidate for this spell).
 func (s *State) prevNextCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
+	return s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) || // a colour or scope record
+		s.replOthersCompete(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+}
+
+// replOthersCompete is prevNextCompetes without the colour and scope records:
+// every other replacement that would also be a candidate for the event.
+func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool) bool {
 	g := k.gen
-	if s.prevColHit(k, srcSl, srcCard, prevTgt{rcp, sl}, combat) {
-		return true // a colour or scope record
-	}
 	if g.anyDmgMark && s.dmgMarkEv(rcp, srcCtrl) > 0 {
 		return true
 	}
