@@ -7,13 +7,27 @@
 #   dirac/oracle/testdata/repro_table_names.txt    append-only snapshot (TestReproGlobMatchesTable): the base's rows,
 #                                                  then the ticket's new ones. The ticket side is PR_REGEN_HEAD (agentctl
 #                                                  open-pr sets it), else MERGE_HEAD (a hand merge in progress)
+#   dirac/kgen/testdata/acceptance.tsv,            kgen's acceptance pins, re-measured over the merged tree from the
+#   dirac/kgen/testdata/build_acceptance.tsv       base's rows (KGEN_REPIN=1 takes a rise, refuses a fall), then held
+#                                                  exact (DIRAC_PIN_STRICT=1): #617 11-17 waited on a resolver seat
 set -uo pipefail
 for f; do
   case $f in
   dirac/docs/support.md | internal/codeshape/testdata/func_ceilings.tsv | dirac/oracle/testdata/repro_table_names.txt) ;;
+  dirac/kgen/testdata/acceptance.tsv | dirac/kgen/testdata/build_acceptance.tsv) ;;
   *) echo "pr-regen: $f is not a generated file this script rebuilds"; exit 2 ;;
+  dirac/kgen/testdata/acceptance.tsv | dirac/kgen/testdata/build_acceptance.tsv)
+    [ -z "$pinned" ] || continue
+    pinned=1
+    source scripts/pr-cards.sh
+    "${cap[@]}" env KGEN_REPIN=1 go test -timeout 5m -run "$pins" ./dirac/kgen >/dev/null 2>&1
+    "${cap[@]}" env DIRAC_PIN_STRICT=1 go test -timeout 5m -run "$pins" ./dirac/kgen ||
+      { echo "pr-regen: kgen acceptance pins did not re-pin (a fall needs a reason: KGEN_REPIN_FALL)"; exit 1; }
+    ;;
   esac
 done
+pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse)$'
+pinned=
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 for f; do
   case $f in
@@ -34,6 +48,14 @@ for f; do
     { cat "$f"; git show "$head:$f"; } | awk 'NF && !seen[$0]++' >"$f.regen" && mv "$f.regen" "$f"
     "${cap[@]}" go test -timeout 5m -run '^TestReproGlobMatchesTable$' ./dirac/oracle ||
       { echo "pr-regen: repro_table_names.txt merged, but TestReproGlobMatchesTable fails"; exit 1; }
+    ;;
+  dirac/kgen/testdata/acceptance.tsv | dirac/kgen/testdata/build_acceptance.tsv)
+    [ -z "$pinned" ] || continue
+    pinned=1
+    source scripts/pr-cards.sh
+    "${cap[@]}" env KGEN_REPIN=1 go test -timeout 5m -run "$pins" ./dirac/kgen >/dev/null 2>&1
+    "${cap[@]}" env DIRAC_PIN_STRICT=1 go test -timeout 5m -run "$pins" ./dirac/kgen ||
+      { echo "pr-regen: kgen acceptance pins did not re-pin (a fall needs a reason: KGEN_REPIN_FALL)"; exit 1; }
     ;;
   esac
 done
