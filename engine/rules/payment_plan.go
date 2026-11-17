@@ -244,6 +244,14 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		rider = rider.Or(asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
 	if len(improviseTaps) != 0 {
+		// The Improvise credit is composed only in the plain-cast branch above,
+		// so this arm never runs under a may-play origin: its rider is the zero
+		// rider or a ConvRider AnyType alone, and both folds are exact -- a zero
+		// rider folds nothing, and "any type" lets even colourless mana pay
+		// every pip (so the folded witness's production always settles the
+		// pre-fold cost). No folded/re-plan shape or coloured-unit prune is
+		// needed here: the arm cannot carry an AnyColor rider, whose fold
+		// erases a pip's need for a coloured unit.
 		mana = pay.PlanManaUnderRider(mana, rider)
 		return planImprovise(asPayer(e), p, cast, mana, &desc, improviseTaps)
 	}
@@ -281,6 +289,12 @@ func planManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, cast decisi
 	alts, n := pay.PlanManaUnderRiderAlternatives(real, rider)
 	desc := pay.DescriptorFor(cast.Object, false, alts[0])
 	got := plan(alts[0], &desc)
+	// The folded plan's own search may have collected alternative witnesses
+	// (pay.Session.PlanAlts, EnsurePaymentPlanAlternatives's readers) priced at
+	// the same folded cost; the folded pip is generic to them too, so an
+	// alternative that funds it from a colourless-only ability would validate
+	// and then strand it -- prune those like plan 0's own verdict does.
+	prunePlanAltsUnderRider(pe, p, life, real, rider, &desc)
 	if got.Plan == nil {
 		return got
 	}
@@ -312,6 +326,36 @@ func planPaysManaUnderRider(pe pay.Engine, p state.PlayerID, life int32, plan de
 	pool := pay.ManaAdd(pay.PlanPool(pe, p, desc), produced)
 	_, ok := resolveManaWith(real, pool, state.Mana{}, [7]state.Mana{}, life, false, rider, nil)
 	return ok
+}
+
+// prunePlanAltsUnderRider drops the alternative witnesses the folded plan's
+// search collected (pay.Session.PlanAlts, priced at the folded cost and
+// appended by EnsurePaymentPlanAlternatives) whose production cannot settle the
+// pre-fold cost under the rider. ValidateCastPayment settles a folded-cost
+// witness against the folded cost with plain pipRider{} -- the folded pips are
+// generic to it -- so an unpruned alternative that funds the folded pip from a
+// colourless-only ability validates and then strands the pip's {C} in the pool:
+// the same defect the folded/re-plan verdict above keeps off plan 0. A pinned
+// alternative is priced at a pinned cost whose coloured pips settle directly,
+// identical under both settles, so the same rule keeps it. Nothing to do
+// without a rider (the fold is then the identity, and every alternative
+// settles its own cost, which is real's) or without collected alternatives
+// (PlanAltsWant is one outside EnsurePaymentPlanAlternatives).
+func prunePlanAltsUnderRider(pe pay.Engine, p state.PlayerID, life int32, real Cost, rider pipRider, desc *pay.Descriptor) {
+	if rider == (pipRider{}) {
+		return
+	}
+	s := pe.Session()
+	if s == nil || len(s.PlanAlts) == 0 {
+		return
+	}
+	kept := s.PlanAlts[:0:0]
+	for _, alt := range s.PlanAlts {
+		if planPaysManaUnderRider(pe, p, life, alt, desc, real, rider) {
+			kept = append(kept, alt)
+		}
+	}
+	s.PlanAlts = kept
 }
 
 // planCastAltAdd prices a plain cast's mandatory either-or additional cost
