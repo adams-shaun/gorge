@@ -569,6 +569,11 @@ type lInstr struct {
 	// Hyb: a trigger's own PayMana cost's hybrid pips, as printed ("GW";
 	// lower_trighybrid.go), packed into the kernel instruction's F.
 	Hyb []string
+	// Follows: a MayPlay grant the record follows its card through (kop
+	// MayPlayFollows on the emitted C): the offer stands every time the card
+	// is back in the grant's zone within the duration (lower_zone.go's
+	// continuous case), not only at the version the grant was made at.
+	Follows bool
 }
 
 func (in lInstr) String() string {
@@ -588,6 +593,9 @@ func (in lInstr) String() string {
 	}
 	if in.CS != "" {
 		parts = append(parts, "CS="+in.CS)
+	}
+	if in.Follows {
+		parts = append(parts, "follows")
 	}
 	if len(in.Hyb) != 0 {
 		parts = append(parts, "hyb="+strings.Join(in.Hyb, ","))
