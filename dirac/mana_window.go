@@ -333,7 +333,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if noOwed && clamp && !anyColor {
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
-				col = s.windowCol(k, p, useful, sl, pc, false, false)
+				col = s.windowAbilityAskCol(k, p, useful, sl, pc)
 			} else if want, decided := s.windowUseful(k, p, useful); decided {
 				// the colour ask lists only what the clamp keeps (gorge
 				// paymentUsefulColours): with the generic covered, an
