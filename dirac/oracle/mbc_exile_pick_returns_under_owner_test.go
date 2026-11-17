@@ -1,6 +1,10 @@
 package oracle
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/testkit/testutil"
+)
 
 // Sengir Nosferatu's Bat token is "{1}{B}, Sacrifice this creature: Return an
 // exiled card named Sengir Nosferatu to the battlefield under its owner's
@@ -13,5 +17,10 @@ import "testing"
 // evidence loop filed under Sengir Nosferatu).
 func TestMBCSengirNosferatuReprosLockstep(t *testing.T) {
 	t.Parallel()
+	// A fresh export has neither a corpus nor a git repository for the corpus
+	// lookup to resolve (CorpusDirOrSkip fails on the latter): skip, never fail.
+	if _, ok := testutil.SharedCorpusDir("."); !ok {
+		t.Skip("no git repository, so no corpus to resolve: a fresh export")
+	}
 	stdReproNamed(t, "exile_pick_returns_under_owner")
 }
