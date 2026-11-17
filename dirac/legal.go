@@ -1910,7 +1910,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
-			s.resolvePrefixStack(k, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
+			s.resolvePrefixPlay(k, a, p, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
 		}
 	}
 	switch a.Kind() {

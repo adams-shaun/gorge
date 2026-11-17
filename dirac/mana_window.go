@@ -2062,7 +2062,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			resolve := t.playNeedsEmptyStack(k, a)
 			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p, resolve)
 			if found && t.npend != 0 {
-				t.resolvePrefixStack(k, t.sp, resolve)
+				t.resolvePrefixPlay(k, a, p, t.sp, resolve)
 				if t.over {
 					found = false
 				} else if resolve {
