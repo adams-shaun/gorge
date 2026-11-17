@@ -1144,7 +1144,7 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 // pool holding restricted mana is refused by the planner
 // (mana_restrictedsource.go's head comment).
 func (s *State) potentialRestrSeed(k *prep, p uint8, d *payDesc, pot *[kop.NumManaKinds]int) {
-	if k.gen == nil || d.class != pdOther {
+	if k.gen == nil || d == nil || d.class != pdOther {
 		return
 	}
 	var t [kop.NumManaKinds]uint8
