@@ -14,11 +14,11 @@ import (
 // census gap (gfGapOther), so the planner prices no unit for it while gorge's
 // potential walk prices it unbounded in every colour (producedOpenSet).
 type comboAnyXProbe struct {
-	sc   *scen
-	tbl  *kop.Table
-	lib  CardID
+	sc  *scen
+	tbl *kop.Table
+	lib CardID
 	src CardID
-	sl   Slot
+	sl  Slot
 }
 
 func comboAnyXProbeBoard(t *testing.T) comboAnyXProbe {
