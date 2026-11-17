@@ -289,7 +289,7 @@ func (e *Engine) etbCloneOptions(you state.PlayerID, card state.ObjID, choices s
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(zone, p) {
 			o := g.Obj(id)
-			if o != nil && o.Face() != nil && effects.CloneETBSelectorMatches(g, spec, id, sc) {
+			if o != nil && o.Face() != nil && effects.CloneETBSelectorMatches(g, spec, id, sc, e) {
 				out = append(out, decision.Option{Index: len(out), Kind: "clone", Obj: id, Label: o.Face().Name})
 			}
 		}
