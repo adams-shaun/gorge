@@ -37,6 +37,9 @@ var allSteps = []state.Step{
 // and tallies every "activate" choice by the step it was made in, reading
 // e.G.Step before each Submit.
 func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 4)
 	e := rules.New(rules.Config{Seed: 0, Names: names, Decks: decks})
 	e.Advance()
@@ -332,6 +335,9 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 // is the copy-paste mirror's guarantee turned into a measured
 // property of the two real adapter halves over a whole game.
 func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	for _, tc := range []struct {
 		name string
 		new  func(uint64) *Bot
@@ -403,6 +409,9 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 // placeholder active seat (MyTurn), and a decision whose seat sits after
 // another seat with permanents (the Cards table's own-zones-first order).
 func TestBotAdaptersAgreeOverPregamePod(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	reg := testutil.CorpusRegistry(t)
 	names, decks, cmds, err := testutil.CommanderAcceptanceDecks(reg)
 	if err != nil {

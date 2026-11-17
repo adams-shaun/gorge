@@ -2,7 +2,8 @@
 # ci-fast.sh <base>: the fast stage of a pull request's CI (Mergify two-step CI, operator 11-16). It runs what
 # `test-targets.sh list` selects for the diff against <base>: the packages the change touches, every package whose
 # tests import them, and the named test groups. The full suite runs once per Mergify batch, on mergify/merge-queue/*
-# (ci.yml), not on every pull request.
+# (ci.yml), not on every pull request. Every run here passes -short, so the slow whole-game self-play/search tests
+# skip it; the Mergify batch runs the suite without -short and runs them (they declare it with testing.Short).
 set -uo pipefail
 list=$(BASE=$1 bash scripts/test-targets.sh list) || { echo "ci-fast: test-targets.sh list failed"; exit 1; }
 printf '%s\n' "$list"
@@ -18,16 +19,16 @@ if grep -qx './dirac/oracle' <<<"$whole"; then
   if git diff --name-only "$1"...HEAD -- dirac/oracle/testdata | grep -q .; then rx=${rx:+$rx|}'Test[A-Za-z0-9]*Repros?[A-Za-z0-9]*Lockstep'; fi
   if [ -n "$rx" ]; then
     echo "ci-fast: ./dirac/oracle runs -run '^($rx)\$' only"
-    go test -timeout 15m -run "^($rx)\$" ./dirac/oracle || rc=1
+    go test -timeout 15m -short -run "^($rx)\$" ./dirac/oracle || rc=1
   fi
 fi
 if [ -n "$whole" ]; then
   # shellcheck disable=SC2086
-  go test -timeout 20m $whole || rc=1
+  go test -timeout 20m -short $whole || rc=1
 fi
 while IFS=$'\t' read -r m p r; do
   [ "$m" = named ] || continue
-  go test -timeout 10m -run "$r" "$p" || rc=1
+  go test -timeout 10m -short -run "$r" "$p" || rc=1
 done <<<"$list"
 [ -n "$list" ] || echo "ci-fast: the diff selects no tests"
 exit $rc

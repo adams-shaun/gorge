@@ -382,6 +382,9 @@ func TestPriorTopKIsInertWithoutANetworkPrior(t *testing.T) {
 // node cache stays exact: the counters a stored point carries (ranked,
 // before) are counted again on a cached walk.
 func TestPriorTopKIsDeterministicAndCacheExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	net := hashNet()
 	for i, r := range measureRoots(t, 4) {
 		run := func(cache int) Result {

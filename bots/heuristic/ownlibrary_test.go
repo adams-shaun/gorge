@@ -91,6 +91,9 @@ func viewLibraryCounts(v view.View, p state.PlayerID, m *deck.Manifest) []int32 
 // own Library list), with the land split matching. Unknown decisions are
 // counted and must stay rare: ordinary games account for the library.
 func TestOwnLibraryIsTheTrueLibraryOverWholeGames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	for _, tc := range []struct {
 		seed  uint64
 		decks []string

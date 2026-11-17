@@ -252,7 +252,7 @@ fresh-clone-check:
 
 # The test targets (scripts/test-targets.sh) replace a raw `go test`: capped, corpus-checked, one verdict line
 # `test-<mode>: PASS|FAIL|ENV|EMPTY|BUDGET|BUSY <sha> <pkgs> <seconds>` (exit 0, 1, 3, 4, 5, 75).
-#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=5m TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
+#   test-one       PKG=./p RUN=TestX [SKIP= V=1 TIMEOUT=5m SHORT=1 TAGS= TESTENV='KGEN_REPIN=1' UPDATE=1]: debugging
 #   test-targeted  the packages the diff vs BASE touches plus every package whose tests import them
 #   test-smart     the precheck, fail-fast, on a committed tree: the affected packages plus the test groups;
 #                  GORGE_TEST_SMART_GATES=1 runs the landing gate's affected and dirac gates instead; precheck is an alias
@@ -262,7 +262,7 @@ export BASE
 .PHONY: test-one test-targeted test-smart precheck
 # $(value …) passes RUN/SKIP/TESTENV verbatim; $(RUN) re-expands and eats $| as a make automatic variable.
 test-one:
-	@PKG='$(PKG)' RUN='$(value RUN)' SKIP='$(value SKIP)' V='$(V)' TIMEOUT='$(TIMEOUT)' TAGS='$(TAGS)' TESTENV='$(value TESTENV)' UPDATE='$(UPDATE)' bash scripts/test-targets.sh one
+	@PKG='$(PKG)' RUN='$(value RUN)' SKIP='$(value SKIP)' V='$(V)' TIMEOUT='$(TIMEOUT)' SHORT='$(SHORT)' TAGS='$(TAGS)' TESTENV='$(value TESTENV)' UPDATE='$(UPDATE)' bash scripts/test-targets.sh one
 test-targeted:
 	@bash scripts/test-targets.sh targeted
 test-smart:
