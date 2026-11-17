@@ -1145,7 +1145,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if a.Trig.Event == kop.TrigBecomesTarget &&
 					(a.Trig.Flags&kop.TfSelf == 0 ||
-						a.Trig.Whose == kop.WhoseOpp && a.Trig.N != kop.TrigNValiant) {
+						a.Trig.Whose == kop.WhoseOpp && a.Trig.N != kop.TrigNValiant ||
+						a.Trig.N == kop.TrigNSrcSpell) {
 					// A BecomesTarget watcher, or the self form "whenever
 					// this becomes the target of a spell or ability an
 					// opponent controls" (TfSelf + WhoseOpp;

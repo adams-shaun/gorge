@@ -160,6 +160,17 @@ func readWatchSourceCtrl(lc *lowerCtx, tr *lTrigger, v string) (lRef, bool) {
 	// sets Whose = opp is ValidSource$ SpellAbility.OppCtrl, so the
 	// controller is an opponent of the listener's controller: in a
 	// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
+	if tr.Watch && tr.SrcSpell {
+		// a spell source form: the controller is the spell's, whichever seat
+		// it is (the kernel's trigger player, btWatchers); a YouCtrl form is
+		// the listener's own controller
+		if tr.Whose == whoYou {
+			return lRef{Kind: rYou}, true
+		}
+		if tr.Whose == whoAny {
+			return lRef{Kind: rTriggeredPlayer}, true
+		}
+	}
 	if !tr.Watch || tr.Whose != whoOpp {
 		return lRef{}, false
 	}

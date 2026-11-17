@@ -1607,6 +1607,7 @@ TrigNAnyCounter	int16	-1
 TrigNCauseSpellOppCtrl	int16	2
 TrigNCauseSpellYouCtrl	int16	1
 TrigNMonarchBeganTurn	int16	1
+TrigNSrcSpell	int16	4
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
 TrigNValiant	int16	1
