@@ -42,7 +42,7 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj, pips *[k
 			g += n * int(st.A)
 		}
 	}
-	s.eachStatic(k, func(stc statSrc) bool {
+	s.eachStaticG(k, func(stc statSrc) bool {
 		a := stc.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatIncreaseCost ||
 			a.Static.Zone == kop.ZoneCommand || a.Static.Zone == kop.ZoneStack {

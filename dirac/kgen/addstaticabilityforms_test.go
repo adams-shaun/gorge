@@ -17,7 +17,7 @@ import (
 // phase, and an inner mode that does not lower refuses with the inner reason.
 var addStaticAbilityForms = []formCase{
 	{card: "Nerd Rage", form: "granted SetMaxHandSize stays closed until gorge reads it (engine ticket)", refused: "AddStaticAbility NoMaxHandSize: granted NoMaxHandSize static: gorge's maxHandSizeFor never reads a granted static"},
-	{card: "Callaphe, Beloved of the Sea", form: "granted RaiseCost (phase 2)", refused: "AddStaticAbility RaiseCost"},
+	{card: "Callaphe, Beloved of the Sea", form: "granted RaiseCost per recipient (phase 2)"},
 	{card: "Zurgo, Thunder's Decree", form: "granted CantSacrifice behind the outer Phases$ End of Turn gate", lir: "StepIn"},
 	{card: "Tomik, Orzhov Lawmage", form: "granted AttackRestrict (inner mode does not lower)", refused: "AddStaticAbility PWTomik: static mode AttackRestrict"},
 	{card: "Acolyte of Bahamut", form: "granted ReduceCost EffectZone$ Battlefield (inner does not lower)", refused: "AddStaticAbility DragonReduce"},

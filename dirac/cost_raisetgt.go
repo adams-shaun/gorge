@@ -45,7 +45,7 @@ func (s *State) boardRaiseTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 		return false
 	}
 	hit := false
-	s.eachStatic(k, func(stc statSrc) bool {
+	s.eachStaticG(k, func(stc statSrc) bool {
 		a := stc.a
 		if !raiseTgtStatic(a) {
 			return true
