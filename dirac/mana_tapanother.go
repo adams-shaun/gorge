@@ -188,7 +188,7 @@ func (s *State) tapXSacAnyBound(k *prep, p uint8) (closed, open bool) {
 		return false, false
 	}
 	var av avail
-	open = s.availPotentialFor(k, p, &av, nil)
+	open = s.availPotentialFor(k, p, &av, nil, false)
 	return !open, open
 }
 
@@ -1228,7 +1228,7 @@ func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
 	}
 	var pot avail
 	d := s.grantPayDesc(k, a)
-	s.availPotentialFor(k, p, &pot, &d)
+	s.availPotentialFor(k, p, &pot, &d, false)
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		// the bound admits each sacrifice-any ability once (its fixed production)
 		if ab := k.tapXAbOf(s.cardAt(b.first())); kop.SacAnyManaAb(ab) {

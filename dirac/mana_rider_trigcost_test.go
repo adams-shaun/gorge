@@ -73,7 +73,7 @@ func TestManaWindowCounterRemovalSource(t *testing.T) {
 	// skipped the source
 	other := payDesc{class: pdOther}
 	var pot avail
-	sc.s.availPotentialFor(sc.k, 0, &pot, &other)
+	sc.s.availPotentialFor(sc.k, 0, &pot, &other, false)
 	if pot.total != 2 {
 		t.Fatalf("potential units %d, want the rider's two {B}", pot.total)
 	}
