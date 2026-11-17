@@ -17,6 +17,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 	for kw, proof := range map[string]string{
 		"kw:Flash":          "TestFlashCreatureIsCastableOffTurn",
 		"kw:Ingest":         "TestIngestExilesTopCard",
+		"kw:Provoke":        "TestProvokeForcesBlock",
 		"kw:Foretell":       "TestForetellActionOfferedOnYourTurnAtTwoGeneric",
 		"kw:Indestructible": "TestIndestructibleSurvivesLethalDamageAndDestroy",
 		"kw:Devoid":         "TestDevoidCreatureIsColourless",

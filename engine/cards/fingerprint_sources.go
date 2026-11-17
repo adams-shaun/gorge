@@ -96,6 +96,7 @@ import "embed"
 //go:embed kw_partner_with.go
 //go:embed kw_persist.go
 //go:embed kw_prevent.go
+//go:embed kw_provoke.go
 //go:embed kw_prowess.go
 //go:embed kw_rampage.go
 //go:embed kw_ravenous.go

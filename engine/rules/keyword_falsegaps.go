@@ -34,5 +34,8 @@ func init() {
 		// CR 702.115 Ingest: engine/cards/kw_ingest.go's combat-damage trigger
 		// digs the damaged player's top card into exile (TestIngestExilesTopCard).
 		"kw:Ingest",
+		// CR 702.39 Provoke: engine/cards/kw_provoke.go's Attacks trigger
+		// untaps its target and binds it to block (TestProvokeForcesBlock).
+		"kw:Provoke",
 	)
 }

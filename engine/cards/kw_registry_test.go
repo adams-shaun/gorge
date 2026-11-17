@@ -177,6 +177,10 @@ var expandedHeads = []string{
 	// Ingest (CR 702.115a): a combat-damage-to-a-player trigger exiling that
 	// player's top card (engine/cards/kw_ingest.go). Added after the split.
 	"Ingest",
+	// Provoke (CR 702.39a): an optional Attacks trigger untapping a target
+	// creature the defending player controls and binding it to block
+	// (engine/cards/kw_provoke.go). Added after the split.
+	"Provoke",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
