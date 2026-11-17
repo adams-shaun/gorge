@@ -91,7 +91,13 @@ jobs:
   prepare:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
-    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    # Once per box: the corpus and tables for this tree, then every shard's test binaries compiled into the box's
+    # shared Go cache (its runners share ~/.cache/go-build). 11-17: six shards on a box compiled the same changed
+    # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
+    strategy:
+      matrix:
+        box: [metal2, metal]
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
         if: runner.environment == 'self-hosted'
@@ -104,6 +110,13 @@ jobs:
         if: runner.environment == 'self-hosted'
         run: |
           bash scripts/ci-corpus.sh
+      - name: Compile the shards' test binaries
+        if: runner.environment == 'self-hosted'
+        run: |
+          # -exec /bin/true builds and vets each test binary and runs none of them.
+          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}')
+          # shellcheck disable=SC2086
+          go test -exec /bin/true $pkgs >/dev/null
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
