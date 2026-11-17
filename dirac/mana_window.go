@@ -1049,8 +1049,12 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 	if k.gen.flags[c]&(gfEachCol|gfRestr) == gfRestr {
 		// CR 106.6: a restricted source whose mana the payment cannot spend is
 		// not offered (gorge's window lists only the abilities the payment meets).
+		// One whose evaluated amount is no mana (Nardole, Resourceful Cyborg
+		// at no counters) is not offered either (gorge's paymentSourceUseful
+		// skips what manaAbilityYieldsNothing reports).
 		d := s.payDescNow(NoObj)
-		return s.restrSrcAdmits(k, p, sl, &k.t.Cards[c].Abilities[k.gen.restr(c)], &d)
+		a := &k.t.Cards[c].Abilities[k.gen.restr(c)]
+		return s.restrSrcAdmits(k, p, sl, a, &d) && (a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0)
 	}
 	return true
 }

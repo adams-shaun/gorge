@@ -155,6 +155,22 @@ const castAltTgt = 1
 // mana cost (buildCostGen prices it).
 const buildAltCost = 2
 
+// takeAltCast marks the build beginCast starts with the alternative cost
+// genState.altCast names (buildAltCost, or kw_beammeup.go's buildBeamGrant)
+// and clears the flags.
+func (s *State) takeAltCast(k *prep, c CardID, mode uint8) {
+	if k.gen == nil || !s.g.altCast {
+		return
+	}
+	s.g.altCast = false
+	if mode&2 == 0 {
+		s.bld().altAdd = buildAltCost
+	} else if !k.t.Cards[c].BeamMeUp || s.g.beamGrant {
+		s.bld().altAdd = buildBeamGrant // kw_beammeup.go
+	}
+	s.g.beamGrant = false
+}
+
 // altCostOf is the adjusted alternative mana cost of the spell being built.
 func (s *State) altCostOf(k *prep) kop.ManaCost {
 	e := &s.bld().e

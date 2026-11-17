@@ -87,16 +87,7 @@ func (s *State) resolveMiracle(k *prep) {
 func (s *State) miracleCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].MiracleCost)
-	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.miraclePotentialAffords(k, p, o, &cost)) && s.spellTargetsFeasible(k, c, p)
-}
-
-// miraclePotentialAffords: gorge's potential pool, priced for this spell (a
-// source whose spend restriction refuses it adds nothing), pays cost.
-func (s *State) miraclePotentialAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
-	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
-	var pot avail
-	s.availPotentialFor(k, p, &pot, &spell)
-	return pot.affords(cost, pipMaskOf(cost), 0)
+	return s.keywordCastAffords(k, p, o, &cost) && s.spellTargetsFeasible(k, c, p)
 }
 
 // miracleAskOptions builds the resolution ask's options.
@@ -121,9 +112,22 @@ func (s *State) applyMiracleAsk(k *prep, a Action) bool {
 		// priority, as gorge resumes after the miracle trigger
 		holder := s.prio
 		s.prio = p
-		s.beginCast(k, o, 0, 0)
+		s.beginCast(k, o, 0, castMiracleTgt) // priced at the miracle cost, no witness lowered
 		s.prio = holder
-		s.bld().e.trigPl = trigPlMiracle
 	}
 	return true
+}
+
+// castMiracleTgt in beginCast's target byte, with mode 0 (from the hand), is
+// the miracle cast applyMiracleAsk begins; no AkCast carries it.
+const castMiracleTgt uint8 = 0xff
+
+// miracleCastPl is beginCast's trigPl for that cast: trigPlMiracle, so it is
+// priced at the miracle cost and lowers no witness from the start; pl
+// otherwise.
+func miracleCastPl(k *prep, c CardID, mode, tgt, pl uint8) uint8 {
+	if mode != 0 || tgt != castMiracleTgt || !k.t.Cards[c].HasMiracle {
+		return pl
+	}
+	return trigPlMiracle
 }
