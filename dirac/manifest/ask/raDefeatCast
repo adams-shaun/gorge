@@ -1,0 +1,5 @@
+family: ask
+name: raDefeatCast
+value: next
+status: active
+doc: the transformed free cast ask of a resolving Siege defeat trigger (CR 310.12b, ChDefeatCast; face_battle.go resolveSiegeDefeat)

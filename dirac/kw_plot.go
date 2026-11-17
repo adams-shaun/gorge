@@ -107,7 +107,7 @@ var DebugPlotInstant bool
 // own walker (warp's recast, plot's free cast), never by the generic play
 // surfaces.
 func ownWalkerRecord(r mayPlay) bool {
-	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurDefeated || r.until == kop.DurAirbend || r.until == kop.DurSuspend || r.until == kop.DurForetell
+	return r.until == kop.DurWarp || r.until == kop.DurPlot || r.until == kop.DurPrepared || r.until == kop.DurAirbend || r.until == kop.DurSuspend || r.until == kop.DurForetell
 }
 
 // plotRecord reports whether p holds a live DurPlot record for o on a turn

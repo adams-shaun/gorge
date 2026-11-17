@@ -558,6 +558,8 @@ mayplay_spree_cast_filter_prefix_search std-otj
 mayplay_target_dependent_several_targets std-otj
 mayplay_twobrid_delve_offer std-tdm
 mayplay_x_cast_census_rider std-mkm
+mbc_battle_trigger_defeat_ask_timing custom
+mbc_radiant_purge_defeat_cast_reoffer custom
 merchant_raiders_target_stays_tapped_through_its_untap_step custom
 michelangelos_technique_dig_total_cmc std-tmt
 michelangelos_technique_second_pick_over_budget std-tmt
@@ -898,6 +900,7 @@ trigger_cost_filter_window_lowest_colour std-woe
 trigger_cost_window_pays_through_converter std-tdm
 trigger_cost_window_skips_restricted_source std-trk
 trigger_limit_look_back std-mkm
+trigger_order_before_defeat_ask custom
 trigger_order_menu_lists_same_pending_triggers std-eoe
 trigger_paid_x_zero_binds std-fdn
 turn_once_resets_while_phased_out std-trk

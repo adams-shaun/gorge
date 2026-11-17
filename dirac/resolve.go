@@ -238,12 +238,7 @@ func (s *State) resolveTop(k *prep) {
 			s.resolveWard(k)
 			return
 		}
-		if e.ab == abMadness {
-			s.resolveMadness(k) // kw_madness.go
-			return
-		}
-		if e.ab == abMiracle {
-			s.resolveMiracle(k) // kw_miracle.go
+		if s.resolveCastTrigger(k, e.ab) {
 			return
 		}
 		if e.ab == abDelayed {
@@ -327,12 +322,6 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		return
 	}
 	s.sp-- // the resolving entry leaves the stack
-	if k.gen != nil && k.gen.anyBattle && s.g.nmay > 0 {
-		// gorge's next step() head runs startDefeatedCast after a resolution:
-		// a battle defeated earlier this step is asked before the next
-		// priority round.
-		s.wakeDefeat()
-	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRemPersist && remPersistKeeps(k, e) {
 		s.remPersistKeep(e) // zone_rememberpersist.go
