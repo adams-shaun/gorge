@@ -11,9 +11,11 @@ import (
 // from the same cached front as specReadsDerived: whether it can read the
 // derived keywords/P/T (reads), the layer-5 colours (colors,
 // layer5colors.go's computeSpecReadsColors), the static-goad table (goaded:
-// it names IsGoaded) and the greatest-power set (greatest: it names
-// greatestPower, effects.GreatestPowerDerivedPTs' own gate). Each is a pure
-// function of the spec, so one lookup answers all four.
+// it names IsGoaded), the greatest-power set (greatest: it names
+// greatestPower, effects.GreatestPowerDerivedPTs' own gate) and whether a
+// predicate names power or toughness at all (pt, effects.SpecReadsPT's own
+// fast path) -- the layer-4/6 match's bind gate in layers_types.go. Each is
+// a pure function of the spec, so one lookup answers all five.
 func specBindFacts(spec string) *specDerivedEntry {
 	slot := &specDerivedFront[provGateSlot(spec)&(1<<specDerivedBits-1)]
 	if ent := slot.Load(); ent != nil && ent.spec == spec {
@@ -24,7 +26,8 @@ func specBindFacts(spec string) *specDerivedEntry {
 
 func storeSpecDerived(slot *atomic.Pointer[specDerivedEntry], spec string) *specDerivedEntry {
 	ent := &specDerivedEntry{spec: spec, reads: computeSpecReadsDerived(spec), colors: computeSpecReadsColors(spec),
-		goaded: strings.Contains(spec, "IsGoaded"), greatest: strings.Contains(spec, "greatestPower")}
+		goaded: strings.Contains(spec, "IsGoaded"), greatest: strings.Contains(spec, "greatestPower"),
+		pt: effects.SpecReadsPT(spec)}
 	slot.Store(ent)
 	return ent
 }
@@ -37,8 +40,8 @@ func computeSpecReadsDerived(spec string) bool {
 }
 
 type specDerivedEntry struct {
-	spec                            string
-	reads, colors, goaded, greatest bool
+	spec                                string
+	reads, colors, goaded, greatest, pt bool
 }
 
 const specDerivedBits = 12
