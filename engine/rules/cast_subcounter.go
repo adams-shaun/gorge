@@ -579,6 +579,12 @@ func (e *Engine) delveAsk() bool {
 	if pc.delveDone {
 		return false
 	}
+	if pay.SpecialOfCastMode(pc.mode) != pay.SpecialNone {
+		// CR 702.62a, 702.126a, 701.34a: a special action is not a spell
+		// cast, so delve (CR 702.66a, a cost reduction for the spell on the
+		// stack) cannot pay it.
+		return false
+	}
 	// CR 601.2b: a twobrid pip (CR 107.4e) is announced as its colour half or
 	// its two-generic half during the pip announcements, which run after this
 	// ask in continueCast. Until they are announced the resolved generic total
