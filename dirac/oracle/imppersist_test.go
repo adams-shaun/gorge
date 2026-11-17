@@ -13,24 +13,30 @@ import (
 // (CardDef.ImpPersist, dirac/zone_imprint.go) and seeds each resolution of
 // the source from it. Naturalize makes a source leave; the list survives the
 // departure and is cleared at the source's next battlefield entry.
+// Saproling Burst's token remembers its creator (RememberSource$) and its
+// P/T is the fade counters on it (kop.CtrOnSrcRem); its leaves trigger reads
+// the imprinted tokens after the departure.
 // The fixture pool is dirac/cardset/pools/fixtures/imppersist.
 
 var impPersistDecks = []fixtureDecks{{
 	{
 		{Name: "Dino DNA", Count: 4}, {Name: "Journey to the Lost City", Count: 3},
-		{Name: "Grizzly Bears", Count: 6}, {Name: "Hill Giant", Count: 6},
+		{Name: "Saproling Burst", Count: 4},
+		{Name: "Grizzly Bears", Count: 6}, {Name: "Hill Giant", Count: 2},
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Forest", Count: 9}, {Name: "Mountain", Count: 8},
 	},
 	{
 		{Name: "Sivriss, Nightmare Speaker", Count: 4}, {Name: "Dino DNA", Count: 2},
 		{Name: "Murder", Count: 4}, {Name: "Naturalize", Count: 4},
-		{Name: "Grizzly Bears", Count: 6}, {Name: "Hill Giant", Count: 4},
+		{Name: "Saproling Burst", Count: 2},
+		{Name: "Grizzly Bears", Count: 6}, {Name: "Hill Giant", Count: 2},
 		{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 8},
 	},
 }}
 
 var impPersistWatch = map[string]bool{
 	"Dino DNA": true, "Journey to the Lost City": true, "Sivriss, Nightmare Speaker": true, "Naturalize": true,
+	"Saproling Burst": true,
 }
 
 func TestImpPersistLockstep(t *testing.T) {
@@ -48,6 +54,12 @@ func TestImpPersistLockstep(t *testing.T) {
 	}
 	if run.casts["Dino DNA"] < 40 {
 		t.Errorf("only %d Dino DNA casts", run.casts["Dino DNA"])
+	}
+	if run.casts["Saproling Burst"] < 10 {
+		t.Errorf("only %d Saproling Burst casts", run.casts["Saproling Burst"])
+	}
+	if st.Matched < 20 {
+		t.Errorf("only %d token reads of the remembered creator", st.Matched)
 	}
 	if st.Recorded < 20 {
 		t.Errorf("only %d imprints recorded: the writers rarely resolved", st.Recorded)

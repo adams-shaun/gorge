@@ -29,7 +29,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     or been replaced (smLiveFor). A clear by one incarnation therefore
 //     leaves an older incarnation's records for the pending trigger that holds
 //     them, and smGC frees a record only when no stack entry or pending
-//     trigger can still read it.
+//     trigger can still read it. The ability arm (seAbility with srcVer,
+//     legal_gen.go) is not a test device only: a resolution-time impSeed
+//     (zone_imprint.go, resolve.go) reads the stamped incarnation's records
+//     through it while the ability resolves.
 //
 // A full table is StallSrcMem. The records are in insertion order, a live
 // prefix that ends at the first empty one (smLen), so State needs no count.
@@ -99,6 +102,13 @@ func (s *State) smLen() int {
 // existing record of the key is left alone, whatever its stamp. A full table
 // is collected first, then StallSrcMem.
 func (s *State) smAdd(o, src Obj, kind uint8) {
+	s.smAddAt(o, src, kind, s.objs[src].ver)
+}
+
+// smAddAt is smAdd with the stamp given: a minted token's record is written
+// before its entry, which bumps its ver (zones.go), so it carries ver+1
+// (zone_tokrem.go).
+func (s *State) smAddAt(o, src Obj, kind, sver uint8) {
 	if kind&smRem != 0 && DebugSrcMemNoRem || kind&(smImp|smImpAny) != 0 && DebugSrcMemNoImp {
 		return
 	}
@@ -116,7 +126,7 @@ func (s *State) smAdd(o, src Obj, kind uint8) {
 			return
 		}
 	}
-	r[n] = smRec{o: o, src: src, sver: s.objs[src].ver, fl: kind}
+	r[n] = smRec{o: o, src: src, sver: sver, fl: kind}
 	if DebugSrcMemStats != nil {
 		DebugSrcMemStats.Recorded++
 	}
@@ -128,13 +138,15 @@ func (s *State) smLiveNow(r *smRec) bool {
 	return ob.zone == kop.ZoneBattlefield && ob.ver == r.sver
 }
 
-// smLiveFor: the record is live now, or e is a trigger of the stamped
-// incarnation (srcVer == sver, or sver+1 for a leaves trigger).
+// smLiveFor: the record is live now, or e is a trigger or an activated
+// ability of the stamped incarnation (srcVer == sver, or sver+1 for a leaves
+// trigger): gorge's source keeps its lists through the departure, so an
+// ability already on the stack still reads them.
 func (s *State) smLiveFor(r *smRec, e *stackEntry) bool {
 	if s.smLiveNow(r) {
 		return true
 	}
-	return e != nil && e.kind == seTrigger && e.obj == r.src && (r.sver == e.srcVer || r.sver+1 == e.srcVer)
+	return e != nil && (e.kind == seTrigger || e.kind == seAbility) && e.obj == r.src && (r.sver == e.srcVer || r.sver+1 == e.srcVer)
 }
 
 // smDrop removes the records for which drop(r) holds, keeping insertion order

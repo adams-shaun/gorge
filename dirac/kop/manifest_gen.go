@@ -1125,6 +1125,11 @@ const ExWasCastFromYourLibrary ExprKind = 162
 // count xColorPaid (dirac/manifest/ExprKind/ExXColorPaid)
 const ExXColorPaid ExprKind = 163
 
+// Remembered$CardCounters (dirac/manifest/ExprKind/ExSrcRemCounters)
+//
+// ExSrcRemCounters (Ctr): the counters of kind Ctr on the object the evaluating source remembers, read live on the battlefield (0 when it is elsewhere): the first live smRem record keyed by the source, which a token minted under TokRememberSrc (RememberSource$ True) keeps for its creator. It is `Remembered$CardCounters.<KIND>` in a token's characteristic-defining P/T (Saproling Burst's token reads the fade counters on the Burst). dirac/zone_tokrem.go.
+const ExSrcRemCounters ExprKind = 164
+
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
 

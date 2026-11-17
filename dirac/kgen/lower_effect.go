@@ -3177,7 +3177,7 @@ func (lc *lowerCtx) token(ps *params) error {
 		}
 		in.C |= 4
 	}
-	if err := lc.tokenImprint(ps, &in); err != nil { // lower_imprintzone.go
+	if err := lc.tokenMemory(ps, script, &in); err != nil { // lower_imprintzone.go, lower_tokenrem.go
 		return err
 	}
 	var pump []string
