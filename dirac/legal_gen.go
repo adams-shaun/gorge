@@ -45,6 +45,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 		if ownWalkerRecord(r) {
 			continue // a warp recast / plotted cast is offered only by its walker (kw_warp.go, kw_plot.go)
 		}
+		if s.freeMayDominates(k, p, i, r) {
+			continue // a free record over the card offers its one cast (cast_maypermission.go)
+		}
 		if k.gen.anyMayKind && r.kind != 0 {
 			if k.gen.anyMayLimit && s.mayLimitSpent(r) {
 				continue // the grant's once-per-turn cap is reached (Flameskull)
