@@ -110,15 +110,14 @@ func (e *Engine) untapOtherStaticsMatch(subject state.ObjID) bool {
 			}
 		}
 	})
-	return matched || e.grantedUntapOtherMatch(subject)
-}
-
-// grantedUntapOtherMatch is untapOtherStaticsMatch's granted half: an
-// AddStaticAbility$ grant of a Mode$ UntapOtherPlayer body (Urban
-// Burgeoning's "Enchanted land has 'Untap this land during each other
-// player's untap step'"). The granted static's source is its host, so
-// ValidCard$ Card.Self names the host, under the same IsPresent$ gate.
-func (e *Engine) grantedUntapOtherMatch(subject state.ObjID) bool {
+	if matched {
+		return true
+	}
+	// The granted half: an AddStaticAbility$ grant of a Mode$
+	// UntapOtherPlayer body (Urban Burgeoning's "Enchanted land has 'Untap
+	// this land during each other player's untap step'"). The granted
+	// static's source is its host, so ValidCard$ Card.Self names the host,
+	// under the same IsPresent$ gate.
 	for _, sv := range e.grantedStatics("UntapOtherPlayer") {
 		st := cards.Static{Mode: "UntapOtherPlayer", Params: sv.Params}
 		if !e.staticPresentHolds(st, sv.Source) {

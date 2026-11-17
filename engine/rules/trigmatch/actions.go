@@ -937,12 +937,13 @@ func phaseTriggerMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	// transforms "if no spells were cast last turn", the back face "if a
 	// player cast two or more spells last turn". Last turn's window is
 	// closed, so the trigger-time check is also the resolution-time answer.
-	if t.ParamStr(cards.PKWerewolfTransformCondition) == "True" {
-		total, _ := e.SpellsCastLastTurn()
+	// Forge's Trigger reads both as presence flags (hasParam).
+	if t.HasParam(cards.PKWerewolfTransformCondition) {
+		total, _ := SpellsCastLastTurn(e.Log().Events)
 		return total == 0
 	}
-	if t.ParamStr(cards.PKWerewolfUntransformCondition) == "True" {
-		_, most := e.SpellsCastLastTurn()
+	if t.HasParam(cards.PKWerewolfUntransformCondition) {
+		_, most := SpellsCastLastTurn(e.Log().Events)
 		return most >= 2
 	}
 	return true
@@ -954,7 +955,7 @@ func phaseTriggerMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 // (neither becoming day or night) is not a change of day to night or night
 // to day.
 func dayTimeChangesMatches(e Board, ev events.Event) bool {
-	return ev.Kind == events.DayNightChange && e.DayNightSwitched(ev)
+	return ev.Kind == events.DayNightChange && DayNightSwitched(e.Log().Events, ev)
 }
 
 func init() {

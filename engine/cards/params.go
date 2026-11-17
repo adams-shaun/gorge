@@ -915,6 +915,7 @@ const (
 	PKWerewolfUntransformCondition
 	PKRaiseMaxHandSize
 	PKDayTime
+	PKForgetObjects
 	paramKeyCount
 )
 
@@ -1743,6 +1744,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKWerewolfUntransformCondition:     "WerewolfUntransformCondition",
 	PKRaiseMaxHandSize:                 "RaiseMaxHandSize",
 	PKDayTime:                          "DayTime",
+	PKForgetObjects:                    "ForgetObjects",
 }
 
 // String is the key's Forge text.

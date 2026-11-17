@@ -162,7 +162,7 @@ func compilePump(sa *cards.SA, dp *DefinedParams) *PumpParams {
 	nd, ndOK := sa.Param(cards.PKNumDef)
 	p.NumDef = ParamText{Text: nd, Present: ndOK}
 	p.ForgetImprinted = strings.TrimSpace(sa.ParamStr(cards.PKForgetImprinted))
-	p.ForgetObjects = strings.TrimSpace(rawParamText(sa, "ForgetObjects").Text)
+	p.ForgetObjects = strings.TrimSpace(sa.ParamStr(cards.PKForgetObjects))
 	p.ReplaceDyingDefined = strings.TrimSpace(sa.ParamStr(cards.PKReplaceDyingDefined))
 	p.DefinedKW = strings.TrimSpace(sa.ParamStr(cards.PKDefinedKW))
 	p.Grant = compilePumpGrant(sa)

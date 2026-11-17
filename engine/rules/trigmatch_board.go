@@ -232,10 +232,6 @@ func (b *trigBoard) ProtectionSource(source state.ObjID) state.ObjID {
 
 func (b *trigBoard) EchoGateHolds(source state.ObjID) bool { return b.eng().echoGateHolds(source) }
 
-func (b *trigBoard) SpellsCastLastTurn() (total, most int) { return b.eng().spellsCastLastTurn() }
-
-func (b *trigBoard) DayNightSwitched(ev events.Event) bool { return b.eng().dayNightSwitched(ev) }
-
 func (b *trigBoard) SpellsCastThisTurn(p state.PlayerID) int {
 	return pay.SpellsCastThisTurn(asPayer(b.eng()), p)
 }

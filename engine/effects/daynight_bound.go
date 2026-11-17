@@ -26,12 +26,13 @@ func init() { Register("DayTime", effDayTime) }
 func effDayTime(h Host, c *Ctx, sa *cards.SA) {
 	cur := h.Game().DayNight
 	to := cur
-	switch v := strings.TrimSpace(sa.ParamStr(cards.PKValue)); {
-	case strings.EqualFold(v, "Day"):
+	v := strings.TrimSpace(sa.ParamStr(cards.PKValue))
+	switch cards.DayTimeOf(v) {
+	case cards.DayTimeDay:
 		to = state.DayNightDay
-	case strings.EqualFold(v, "Night"):
+	case cards.DayTimeNight:
 		to = state.DayNightNight
-	case strings.EqualFold(v, "Switch"):
+	case cards.DayTimeSwitch:
 		switch cur {
 		case state.DayNightDay:
 			to = state.DayNightNight

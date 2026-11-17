@@ -965,7 +965,7 @@ func (e *Engine) replacementConditionHoldsWith(r cards.Repl, source state.ObjID,
 	}
 	// DayTime$ (Brimstone Vandal's "if it's neither day nor night, it becomes
 	// day as this enters"): the CR 731 designation the replacement needs.
-	if dt, ok := r.Param(cards.PKDayTime); ok && !strings.EqualFold(strings.TrimSpace(dt), dayTimeName(e.G.DayNight)) {
+	if dt, ok := r.Param(cards.PKDayTime); ok && cards.DayTimeOf(dt) != dayTimeCode(e.G.DayNight) {
 		return false
 	}
 	if strings.EqualFold(r.ParamStr(cards.PKHellbent), "True") && len(e.G.Zone(state.ZHand, you)) != 0 {
