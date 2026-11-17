@@ -11,5 +11,5 @@ import "testing"
 // recording; tail-21 pair 5, surface autopay).
 func TestMBCStingingScorpionReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "sweep_finality_counter_exiles_on_death")
+	stdReproNamedServed(t, "sweep_finality_counter_exiles_on_death")
 }
