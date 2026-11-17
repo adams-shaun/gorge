@@ -337,6 +337,22 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		amt = 0 // the destination zone, not an amount (trig_zonepairs.go)
 	}
+	if ev == kop.TrigTurnFaceUp && a.Trig.Flags4&kop.Tf4CauseSpellAb != 0 {
+		// ValidCause$ SpellAbility[.<qual>] (gorge turnFaceUpCauseAdmits):
+		// evCtrl is the actor -- the special action's controller or (for an
+		// effect's turn-up) the resolving effect's controller. N is the
+		// controller qualifier; a bare SpellAbility leaves it 0.
+		switch a.Trig.N {
+		case kop.TrigNCauseSpellYouCtrl:
+			if evCtrl != l.ctrl {
+				return
+			}
+		case kop.TrigNCauseSpellOppCtrl:
+			if evCtrl == l.ctrl {
+				return
+			}
+		}
+	}
 	if ev == kop.TrigCounterAddedOnce || ev == kop.TrigCounterAddedAll {
 		if a.Trig.N != kop.TrigNAnyCounter && kop.CounterKind(a.Trig.N) != s.g.lastCK {
 			return

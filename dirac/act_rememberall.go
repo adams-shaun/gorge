@@ -9,6 +9,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) rememberAll(k *prep, in *kop.Instr) {
+	if in.C&kop.RememberAllImprint != 0 {
+		// Copy the triggering object into the imprinted set (gorge Pump
+		// ImprintCards$ TriggeredCard); a source that keeps its list records
+		// it in the per-source store (zone_imprint.go imprint).
+		if o := s.objRefObj(in.Obj); o != NoObj {
+			s.imprint(o)
+		}
+		return
+	}
 	src := s.objRef(k, kop.RefSelf)
 	var hit slotMask
 	for m := s.occ; m.any(); m = m.rest() {
