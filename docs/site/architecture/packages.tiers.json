@@ -503,6 +503,10 @@
       "tier": "tooling",
       "status": "TOOL/SUPP"
     },
+    "testkit/cardcov": {
+      "tier": "tooling",
+      "status": "TOOL"
+    },
     "testkit/conformance": {
       "tier": "tooling",
       "status": "TOOL"
