@@ -1004,17 +1004,19 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 	if len(e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash", p)) == 0 && !e.effectFlashLive() {
 		return false
 	}
-	return e.castWithFlashTargets(p, id, e.costPotentialTargets(p, id, spellScope("")), false)
+	return e.castWithFlashTargets(p, id, e.costPotentialTargets(p, id, spellScope("")), false, false)
 }
 
-// castWithFlashTargets is castWithFlash against an explicit target list. The
+// castWithFlashTargets is castWithFlash against an explicit target list.
+// asPrototype reads the spell's ValidCard$ as the prototyped cast (CR 718.3a:
+// the inset's colour; prototype_flash.go). The
 // whole CastWithFlash collection is read through ONE home -- the battlefield
 // walk every static consumer uses plus the card's OWN face statics, which
 // activeStatics never sees while the card is still in hand (the same two
 // sources alternativeCosts reads for a self-carried AlternativeCost) -- so the
 // offer and the recheck cannot disagree about which statics grant the
 // permission.
-func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets []state.Target, teamworkOffer bool) bool {
+func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets []state.Target, teamworkOffer, asPrototype bool) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return false
@@ -1038,6 +1040,9 @@ func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets 
 		}
 		sc := e.staticSpecCtx(sv)
 		sc.PreparedSpell = e.preparedSpellOf(id)
+		if asPrototype {
+			sc = e.prototypeSpellSpecCtx(sc, id)
+		}
 		if e.matchesSpec(sv.ParamStr(cards.PKValidCard), id, sc) {
 			return true
 		}
@@ -1133,7 +1138,7 @@ func (e *Engine) flashGrantCoversTargets(p state.PlayerID, id state.ObjID, f *ca
 		return true
 	}
 	return e.offerAsFace(id, f, func() bool {
-		return !e.hasTargetConditionalFlash(p, id) || e.castWithFlashTargets(p, id, targets, false)
+		return !e.hasTargetConditionalFlash(p, id) || e.castWithFlashTargets(p, id, targets, false, false)
 	})
 }
 
