@@ -20,7 +20,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 160 | 0 | 0 | 160 | 158 |
 | LCI | 290 | 260 | 1 | 0 | 259 | 256 |
 | MKM | 279 | 252 | 2 | 21 | 229 | 225 |
-| MSH | 276 | 248 | 1 | 4 | 243 | 243 |
+| MSH | 276 | 248 | 2 | 3 | 243 | 243 |
 | OTJ | 276 | 253 | 1 | 1 | 251 | 249 |
 | SOS | 270 | 259 | 0 | 2 | 257 | 257 |
 | SPM | 192 | 169 | 1 | 2 | 166 | 165 |
@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 302 | 0 | 30 | 272 | 269 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 265 | 0 | 6 | 259 | 257 |
-| MBC | 2196 | 1958 | 1 | 144 | 1813 | 1766 |
-| ALL | 34442 | 25056 | 22 | 1017 | 24017 | 23801 |
+| MBC | 2201 | 1959 | 2 | 144 | 1813 | 1766 |
+| ALL | 34442 | 25065 | 24 | 1024 | 24017 | 23801 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -5046,7 +5046,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-22 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -5058,10 +5058,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 3 |
+| projection-Cards.Pos | 1 |
 | projection-Cards.Power | 1 |
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |
 | unmodelled-clonelayer | 1 |
-| unmodelled-landgrant | 2 |
+| unmodelled-landgrant | 3 |
 | unmodelled-tokatkask | 1 |
 | unmodelled-tokenpt | 1 |

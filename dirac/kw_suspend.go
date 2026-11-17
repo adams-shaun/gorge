@@ -132,6 +132,7 @@ func (s *State) suspendTick(k *prep) {
 			continue
 		}
 		r.turn--
+		s.fireCtrRemovedExile(k, o, int(kop.CtrTime), 1, int(r.turn)) // trig_counterremoved.go
 		if r.turn > 0 {
 			continue
 		}

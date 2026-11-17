@@ -36,6 +36,7 @@ const (
 	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
 	otherTapsDefer // a Taps-deferred gap (Grove of the Burnwillows' rider) beside a filter: the script search's answer ans (tapsDeferApply)
 	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
+	otherLife      // a life-only mana ability (kop.GapLifeManaAb): ans is the colour it makes (lifeGapDo)
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -63,7 +64,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
 		return false
 	}
 	filt := s.scriptFilt(k, p).any()
@@ -89,6 +90,9 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 		n++
 	}
 	if s.mixRider(k, p, filt).any() {
+		n++
+	}
+	if s.lifeGapMask(k, p).any() {
 		n++
 	}
 	// A counter source beside no filter stays the counter-gap scripts' (a
@@ -200,7 +204,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		filt := s.scriptFilt(k, p).any()
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.lifeGapMask(k, p))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -255,6 +259,8 @@ func (fs *filtSearch) otherOwnAsk(k *prep, t *State, sl Slot, funded int, try fu
 		return t.perms[sl].flags&pfTapped == 0 && try(otherStep{kind: otherDeferred}), true
 	case t.scriptCtr(k, fs.p).has(sl):
 		return fs.ctrOther(k, t, sl, try), true
+	case t.isLifeGapAt(k, fs.p, sl):
+		return fs.lifeGap(k, t, sl, funded, try), true
 	}
 	return false, false
 }
@@ -596,6 +602,8 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.chosenGapDo(k, p, st.sl, o.plain)
 	case otherTapsDefer:
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
+	case otherLife:
+		s.lifeGapDo(k, p, st.sl, int(o.ans))
 	case otherCtr:
 		if o.plain {
 			// the plain first {T} ability's answer: the counters and the use

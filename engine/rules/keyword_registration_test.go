@@ -16,6 +16,9 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 	sup := effects.Supported()
 	for kw, proof := range map[string]string{
 		"kw:Flash":          "TestFlashCreatureIsCastableOffTurn",
+		"kw:Ingest":         "TestIngestExilesTopCard",
+		"kw:Provoke":        "TestProvokeForcesBlock",
+		"kw:Amplify":        "TestAmplifyEntersWithCounters",
 		"kw:Foretell":       "TestForetellActionOfferedOnYourTurnAtTwoGeneric",
 		"kw:Indestructible": "TestIndestructibleSurvivesLethalDamageAndDestroy",
 		"kw:Devoid":         "TestDevoidCreatureIsColourless",
@@ -65,6 +68,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Battle cry":     "TestBattleCryPumpsOtherAttackingCreatures",
 		"kw:Graft":          "TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt",
 		"kw:Modular":        "TestModularEntersWithCounters",
+		"kw:Soulshift":      "TestSoulshiftReturnsASpirit",
 		"kw:Reinforce":      "TestReinforcePutsCountersFromHand",
 		"kw:Tribute":        "TestTributePaidEntersWithCounters",
 		"kw:Backup":         "TestSaibaCryptomancerBackup",

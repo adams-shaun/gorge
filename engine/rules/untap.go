@@ -110,5 +110,26 @@ func (e *Engine) untapOtherStaticsMatch(subject state.ObjID) bool {
 			}
 		}
 	})
-	return matched
+	if matched {
+		return true
+	}
+	// The granted half: an AddStaticAbility$ grant of a Mode$
+	// UntapOtherPlayer body (Urban Burgeoning's "Enchanted land has 'Untap
+	// this land during each other player's untap step'"). The granted
+	// static's source is its host, so ValidCard$ Card.Self names the host,
+	// under the same IsPresent$ gate.
+	for _, sv := range e.grantedStatics("UntapOtherPlayer") {
+		st := cards.Static{Mode: "UntapOtherPlayer", Params: sv.Params}
+		if !e.staticPresentHolds(st, sv.Source) {
+			continue
+		}
+		spec := st.ParamStr(cards.PKValidCard)
+		if spec == "" {
+			spec = "Card.Self"
+		}
+		if e.matchesSpecFrom(spec, subject, sv.Controller, sv.Source) {
+			return true
+		}
+	}
+	return false
 }

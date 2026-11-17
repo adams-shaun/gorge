@@ -1,0 +1,9 @@
+# a spend-restricted mana ability that makes more {C} than the plain {T} one
+# beside it and is gated on a land count (Shrine of the Forsaken Gods' {C}{C},
+# colorless spells only, seven or more lands): the kernel's restricted pair unit
+# with a colourless larger alternative, present only while the gate holds; the
+# kernel test is dirac/mana_restrictedgatedpair_test.go
+Forest
+Shrine of the Forsaken Gods
+Necropede
+Grizzly Bears
