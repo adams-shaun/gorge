@@ -186,6 +186,27 @@ func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.Speci
 	return s.specialAffords(k, p, cost, sp, sl, 0)
 }
 
+// turnUpListed: the keyword turn-up is offered from the pool (turnUpOffered),
+// or from the pool and the untapped sources together at the smallest {X}:
+// gorge lists it as a witnessed potential play (rules' turn_face_up
+// witness, priced at the smallest legal announcement), so the kernel offers
+// the same action without a float. The action's turnFaceUp then taps that
+// witness's sources. A manifested or cloaked card's printed-cost procedure
+// stays pool-only, matching the oracle's keyword-only projection.
+func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
+	if s.turnUpOffered(k, p, cost, sp, sl, kw) {
+		return true
+	}
+	if !kw {
+		// A manifested or cloaked card's printed-cost procedure is not a
+		// potential play yet (the oracle projects only the keyword procedures):
+		// the pool-only offer is the one gorge's ordinary walk has.
+		return false
+	}
+	c0 := cost.AtX(0)
+	return s.sourcesPay(k, p, &c0)
+}
+
 // applyTurnUpX takes the announced X of a parked keyword turn-up.
 func (s *State) applyTurnUpX(k *prep, a Action) {
 	p, mode, o := s.g.pickP, s.g.pickZ, Obj(s.g.pickF)
