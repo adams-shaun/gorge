@@ -1,0 +1,23 @@
+# CR 305.7 global land-type setters: Blood Moon, Magus of the Moon and
+# Harbinger of the Seas (RemoveLandTypes$ True over Land.nonBasic) on original
+# dual lands, a pain land and Wastes, beside vanilla creatures of the old and
+# the new colours (dirac/oracle/globallandtypesetter_lockstep_test.go)
+Blood Moon
+Magus of the Moon
+Harbinger of the Seas
+Conversion
+Raging Goblin
+Coral Merfolk
+Typhoid Rats
+Grizzly Bears
+Savannah Lions
+Mountain
+Island
+Swamp
+Forest
+Plains
+Wastes
+Tropical Island
+Bayou
+Savannah
+Underground River
