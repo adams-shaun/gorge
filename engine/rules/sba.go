@@ -1247,15 +1247,17 @@ func (e *Engine) planeswalkerZeroLoyalty(b *sbaBatch, tried *sbaAttempts) {
 	}
 }
 
-// battleZeroDefense is the defeat state-based action for battles (CR
-// 704.5h/310.11): a battle with no defense counters is DEFEATED -- exiled,
-// not put into the graveyard -- and its owner's "may cast it transformed
-// without paying its mana cost" offer (CR 310.11) is queued by Engine.emit's
-// exile feed for startDefeatedCast to pose at the next step(). Modeled
-// line-for-line on planeswalkerZeroLoyalty above (CR 704.5i): same tried-set,
-// same AliveFrom(0) battlefield-slice determinism. The move is not destruction: no
-// ReplaceDestruction, no regeneration shield consulted -- exactly the
-// zero-loyalty/zero-toughness treatment.
+// battleZeroDefense is the battle state-based action (CR 704.5v): a battle
+// with no defense counters that is not the source of an ability that has
+// triggered but not yet left the stack is put into its owner's graveyard. A
+// Siege's defeat is NOT this action: CR 310.12b's intrinsic ability triggers
+// when its last defense counter goes (queueSiegeDefeat, siege_defeat.go) and
+// exiles it, then offers the transformed cast, as it resolves; this action
+// only spares the Siege while that ability is pending (siegeDefeatPending).
+// Modeled line-for-line on planeswalkerZeroLoyalty above (CR 704.5i): same
+// tried-set, same AliveFrom(0) battlefield-slice determinism. The move is not
+// destruction: no ReplaceDestruction, no regeneration shield consulted --
+// exactly the zero-loyalty/zero-toughness treatment.
 func (e *Engine) battleZeroDefense(b *sbaBatch, tried *sbaAttempts) {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -1289,29 +1291,17 @@ func (e *Engine) battleZeroDefense(b *sbaBatch, tried *sbaAttempts) {
 			if o.Counter("DEFENSE") > 0 {
 				continue
 			}
+			if siegeDefeatPending(e.G, e.pendingTriggers, id) {
+				// CR 704.5v: a battle that is the source of an ability that has
+				// triggered but not yet left the stack stays (CR 310.12b's
+				// defeat trigger exiles it as it resolves).
+				continue
+			}
 			markTried(&tried.objs, id)
 			b.add(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZBattlefield, To: state.ZExile, Text: "defeated"})
+				From: state.ZBattlefield, To: state.ZGraveyard, Text: "defeated"})
 		}
 	}
-}
-
-// battleDefenseBefore is the defense count the defeat feed (Engine.emit)
-// reads off a permanent that is leaving the battlefield: its DEFENSE counters
-// when it is a face-up front-face battle, and -1 for anything else, so the
-// feed's "no defense counters" test never holds for it. CR 310.11 queues the
-// transformed cast for a battle the defeat state-based action exiled; a
-// battle that was cast transformed and then left as its back face (an
-// Aetherwing exiled by Radiant Purge) is a nonbattle permanent with no
-// defense counters, and is not defeated.
-func battleDefenseBefore(o *state.Object) int32 {
-	if o.FaceDown || o.FaceIdx != 0 {
-		return -1
-	}
-	if f := o.Face(); f == nil || !f.IsBattle() {
-		return -1
-	}
-	return o.Counter("DEFENSE")
 }
 
 // ceaseDeadTokens is CR 704.5d: a token ceases to exist the instant it leaves
