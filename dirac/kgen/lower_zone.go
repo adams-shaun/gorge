@@ -1908,6 +1908,17 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 	return strings.Join(alts, ","), nil
 }
 
+// playSpellMVFlag is OpCastFree's SpellMV flag: set when the filter's mana-value
+// bound comes from ValidSA$ alone (the population's Valid$ has none). gorge
+// reads that bound on the printed (front) face, the spell cast, not on a split
+// card's summed halves in the zone (effects.validSAOK).
+func playSpellMVFlag(saExpr, valid string) string {
+	if strings.Contains(saExpr, "cmc") && !strings.Contains(valid, "cmc") {
+		return "|SpellMV"
+	}
+	return ""
+}
+
 // isCmcLEVar reports a mana-value bound named by a one-letter SVar: cmcLEX,
 // cmcLEY (Captain Benjamin Sisko's Officer count). gorge reads any one
 // capital letter from the resolving ability's SVar table
@@ -2157,6 +2168,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	if replace {
 		cs += "|ReplaceGY"
 	}
+	cs += playSpellMVFlag(saExpr, ps.str("Valid"))
 	def := ps.str("Defined")
 	valid := ps.str("Valid")
 	_, hasValid := ps.m["Valid"]

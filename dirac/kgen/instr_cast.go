@@ -65,7 +65,7 @@ func (ic *instrCtx) opCastFree() error {
 	ki := &ic.ki
 	in := &ic.in
 	fl := ic.fl
-	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9
+	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10
 	// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 	// Obj: RefRemembered (P1), a target slot (P2), or
 	// RefNone with F (P3/P4 filter population).
@@ -91,6 +91,9 @@ func (ic *instrCtx) opCastFree() error {
 	}
 	if _, ok := fl["UpTo"]; ok {
 		ki.C |= 1 << 9 // a literal Amount$ N: the ask closes after A picks
+	}
+	if _, ok := fl["SpellMV"]; ok {
+		ki.C |= 1 << 10 // the ValidSA$ mana-value bound reads the spell: a split card counts its front half
 	}
 	if err := ic.objFilter(zoneMap[in.C]); err != nil {
 		return err
