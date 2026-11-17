@@ -702,7 +702,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			break
 		}
 		o := s.objRefObj(in.Obj)
-		if o == NoObj || s.objs[o].zone != kop.Zone(in.C) {
+		if o == NoObj || s.objs[o].zone != kop.Zone(in.C&kop.MayPlayZoneMask) {
 			break
 		}
 		if in.B.N&kop.MayPlayNonLand != 0 && !DebugMayPlayTargetLands && k.t.Cards[s.objs[o].card].Types&kop.TLand != 0 {
@@ -714,7 +714,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: s.objs[o].ver, ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, kop.Zone(in.C&kop.MayPlayZoneMask), in.C&kop.MayPlayFollows != 0), ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		s.g.nmay++
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go

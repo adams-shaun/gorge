@@ -2437,6 +2437,40 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	return lc.effectTargetStatic(ps, s, obj)
 }
 
+// mayPlayFollows reports whether the Effect's MayPlay grant lowers to a
+// following record (kop MayPlayFollows on the emitted C). gorge
+// ForgetOnMoved$ (state/continuous.go): a remembered card that moves FROM
+// the forget zone leaves the grant's set. When that zone is C the grant
+// ends with the card's first move out of C, and the version-tied record
+// models it; ExileOnMoved$ and the two-zone AffectedZone$ end it on the
+// move the same way (gorge effectMoveSweep), as does a zone-lifetime
+// duration (WhileExiled, CR 611.2b: a "for as long as" duration does not
+// restart). A grant with no ForgetOnMoved$ is pruned by
+// mayPlayRememberedLeftZone the moment the card leaves C (CR 400.7: a new
+// object), so it is version-tied too. A forget zone the grant cannot be
+// forgotten from on the way back to C -- Skyclave Shade's Exile over a
+// graveyard grant, which fires only if the card is exiled from the
+// graveyard and then leaves exile -- is left to gorge's effectForget: the
+// record follows the card, and the offer stands every time it is back in C
+// within its duration (CR 611.2c: a rules-of-the-game effect is not locked
+// to the object set it began with; its own cast does not consume it). The
+// until-end-of-turn grant of that shape is lowered by mayPlayGraveLifetime
+// to its re-arming WhileGraveForget record instead; this helper covers the
+// longer durations that record does not.
+func mayPlayFollows(ps *params, dur string, zones []int, zone int) bool {
+	if dur != "EOT" && dur != "EndOfYourNextTurn" || len(zones) != 1 {
+		return false
+	}
+	if _, ok := ps.get("ExileOnMoved"); ok {
+		return false
+	}
+	f := strings.TrimSpace(ps.str("ForgetOnMoved"))
+	if f == "" {
+		return false // gorge mayPlayRememberedLeftZone prunes it on the move out of C
+	}
+	return f == "Exile" && zone == zGraveyard
+}
+
 // mayPlayGraveLifetime turns an until-end-of-turn Effect-delivered may-play
 // grant over a remembered graveyard card into DurWhileGraveForget, the record
 // that survives the card's stay in the graveyard and is dropped when the card
@@ -2658,9 +2692,16 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect Duration %q", d)
 			}
 		}
+		// gorge ForgetOnMoved$ (state/continuous.go): an until-end-of-turn
+		// graveyard grant with ForgetOnMoved$ Exile lowers to the re-arming
+		// WhileGraveForget record (mayPlayGraveLifetime); the follows mark
+		// reads the Effect's lifetime for the longer durations it does not
+		// (mayPlayFollows). WhileGraveForget is not a follows duration, so
+		// the two never mark the same record.
 		dur = mayPlayGraveLifetime(ps, sp, zone, zones, dur)
+		follows := mayPlayFollows(ps, dur, zones, zone)
 		ps.consume("ForgetOnMoved")
-		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur}
+		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur, Follows: follows}
 		fl := 0
 		// EffectOwner$ RememberedController (CR 611.2): gorge's effect
 		// belongs to the remembered card's controller, and its may-play
