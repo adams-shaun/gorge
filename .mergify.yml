@@ -14,6 +14,14 @@ queue_rules:
     batch_size: 10
     batch_max_wait_time: 5 min
     merge_method: merge
+    # A fix for a red main jumps the queue: label it `hotfix` and it is batched first, interrupting a running batch
+    # (https://docs.mergify.com/merge-queue/priority/).
+    priority_rules:
+      - name: hotfix first
+        conditions:
+          - label=hotfix
+        priority: high
+        allow_checks_interruption: true
 
 merge_queue:
   max_parallel_checks: 2

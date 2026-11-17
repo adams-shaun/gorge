@@ -58,6 +58,9 @@ env:
   SHARDS: 6
   GOFLAGS: -p=4
 
+# Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
+# priority, so a pull request's own checks (fast, lint) run only on the 4 runners labelled gorge-pr. The other 8
+# box runners always stay free for Mergify's queue batches (mergify/merge-queue/*), main, nightly and on demand.
 jobs:
   # A push to main only: did a promote PR's ci-ok already pass this exact tree?
   prior:
@@ -107,7 +110,7 @@ jobs:
   # and on main, nightly and on demand.
   fast:
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
-    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -160,7 +163,7 @@ jobs:
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
-    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
