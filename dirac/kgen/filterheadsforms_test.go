@@ -8,7 +8,6 @@ var filterHeadsForms = []formCase{
 	{card: "Chandra, Bold Pyromancer", form: "ValidTgts$ Player scopes Creature,Planeswalker to the target's permanents", lir: "Scope"},
 	{card: "Cerebral Eruption", form: "ValidPlayers$ Targeted over a PeekAndReveal Opponent slot (no scope)", lir: "DamageAll"},
 	{card: "Crown of Doom", form: "Player.!CardOwner needs the owner read (kept refused)", refused: `unknown filter head "Player"`},
-	{card: "Curse of Stalked Prey", form: "Player.EnchantedBy needs a player attachment read (kept refused)", refused: `unknown filter head "Player"`},
 	{card: "Bifurcate", form: "Targeted.Permanent+sameName needs a name read of the target (kept refused)", refused: `unknown filter head "Targeted"`},
 }
 

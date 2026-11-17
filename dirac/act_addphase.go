@@ -38,8 +38,10 @@ import (
 // splice point's successor. The kind holds the queue to its own entry: any
 // other grant beside it, a grant outside a main phase, or n > 1 is a loud
 // StallLowering (the interleavings of gorge's scan are not reproduced; an
-// unmodelled rule, not a capacity limit). StallAddPhase is the queue's
-// capacity alone.
+// unmodelled rule, not a capacity limit), except a second activation in the
+// running additional main phase (addPhaseMayQueue), which appends after the
+// completed grant and is spliced when the walk leaves that main. StallAddPhase
+// is the queue's capacity alone.
 //
 // The walk is advance's alone (as gorge's is advanceStep's tail): the jumps
 // outside it (declare attackers with no attacker, regular combat damage to
@@ -135,7 +137,7 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 		// the splice point is the step the grant resolves in, a main phase
 		// (the lowering's ConditionPhases$ gate keeps it there)
 		at = uint8(s.step) | kop.AddPhaseCombatMain<<4
-		if s.step != kop.StepMain1 && s.step != kop.StepMain2 || g.nxph > 0 || n > 1 {
+		if s.step != kop.StepMain1 && s.step != kop.StepMain2 || n > 1 || !s.addPhaseMayQueue() {
 			s.capFull(StallLowering) // an interleaving gorge's scan plays that the kernel does not reproduce: not a capacity limit
 			return
 		}
@@ -163,6 +165,26 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 	}
 	g.xph[g.nxph].at, g.xph[g.nxph].n = at, uint8(n)
 	g.nxph++
+}
+
+// addPhaseMayQueue reports whether a CombatMain grant may join the queue. The
+// kind normally holds the queue to its own entry (the interleavings of gorge's
+// scan are not reproduced), with one exception: a completed FollowedBy$ grant's
+// additional main phase is running as the queue's only entry -- consumed, its
+// combat grant spent (n == 0), its follow bit set. Aggravated Assault is a
+// sorcery-speed activation, so a second activation in that main phase appends
+// after it; leaving the main completes that entry (gorge's step 1) before
+// splicing the new one (step 2), which the walk already does.
+func (s *State) addPhaseMayQueue() bool {
+	g := &s.g
+	if g.nxph == 0 {
+		return true
+	}
+	if s.step != kop.StepMain2 || g.nxph != 1 {
+		return false
+	}
+	e := &g.xph[0]
+	return e.n == 0 && e.at&xphFollow != 0 && e.at&xphConsumed != 0
 }
 
 // addPhaseNext is gorge's extraPhaseBoundary: the step advance enters after
