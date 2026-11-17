@@ -4477,7 +4477,8 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 }
 
 // animateRemoveKeywords reads an Animate's RemoveKeywords$ (gorge
-// animateGrant.removeKeywords: layer-6 keyword removal, CR 613.1f) and its
+// animateGrant.removeKeywords: layer-6 keyword removal, CR 613.1f; bare or
+// beside a staticAbilities$ grant) and its
 // staticAbilities$ grant, read by one of four routes: a comma list of
 // permission/land-play statics, or a single Mode$ Continuous body over other
 // permanents (an anthem, keyword grant or equipped pump), each lowered as an
@@ -4489,12 +4490,6 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 // WhileHost sets no keyword record).
 func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) error {
 	if v, ok := ps.get("RemoveKeywords"); ok {
-		// Only Surge Engine's shape (beside a CantBlockBy grant) has a
-		// lockstep for single-target Animate; a bare RemoveKeywords$ stays
-		// refused there. AnimateAll reads it bare.
-		if _, has := ps.get("staticAbilities"); !has && !lc.animAll {
-			return refuse("Animate RemoveKeywords$ without staticAbilities$")
-		}
 		ks, err := removeKeywords(v)
 		if err != nil {
 			return err
