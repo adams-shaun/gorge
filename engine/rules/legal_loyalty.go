@@ -447,19 +447,34 @@ const unboundedActivationLimit = -1
 // withholds; an unresolvable expression stays unenforced, exactly as the
 // per-turn gate already documented.
 func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *cards.SA, ability int, svar string, merged int) bool {
+	return e.activationLimitBlockedFrom(p, id, sa, ability, svar, merged, 0, 0)
+}
+
+// activationLimitBlockedFrom is activationLimitBlocked with the identity of a
+// GAINED ability: gainedFrom != 0 names the foreign card whose face-local
+// ability gainedIdx the recipient id was lent (GainsAbilitiesOf$), and the
+// counts read the GainedAbilityPush/ManaActivate folds
+// (gainedActivationsUsed) instead of the printed and granted identities.
+func (e *Engine) activationLimitBlockedFrom(p state.PlayerID, id state.ObjID, sa *cards.SA, ability int, svar string, merged int, gainedFrom state.ObjID, gainedIdx int) bool {
 	if sa == nil {
 		return false
 	}
+	used := func(thisTurn bool) int {
+		if gainedFrom != 0 {
+			return e.gainedActivationsUsed(id, gainedFrom, gainedIdx, thisTurn)
+		}
+		return e.activationUsedCount(id, ability, svar, thisTurn)
+	}
 	if raw, ok := sa.Param(cards.PKActivationLimit); ok {
 		if limit, ok := e.resolveActivationLimitAt(id, p, raw, merged); ok && limit >= 0 &&
-			e.activationUsedCount(id, ability, svar, true) >= limit {
+			used(true) >= limit {
 			return true
 		}
 	}
 	if raw, ok := sa.Param(cards.PKGameActivationLimit); ok {
 		if limit, ok := e.resolveActivationLimitAt(id, p, raw, merged); ok && limit >= 0 {
 			limit = e.additionalActivationLimit(id, p, sa, limit)
-			if limit >= 0 && e.activationUsedCount(id, ability, svar, false) >= limit {
+			if limit >= 0 && used(false) >= limit {
 				return true
 			}
 		}
@@ -473,7 +488,7 @@ func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *ca
 	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKExhaust)), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKPowerUp)), "True") {
 		limit := e.additionalActivationLimit(id, p, sa, 1)
-		if limit >= 0 && e.activationUsedCount(id, ability, svar, false) >= limit {
+		if limit >= 0 && used(false) >= limit {
 			return true
 		}
 	}

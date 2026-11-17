@@ -305,6 +305,13 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 // "Mairsil can activate each of those abilities only once each turn" is
 // about that object). The caged card's own zone never matters here.
 func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int {
+	return e.gainedActivationsUsed(id, foreign, idx, true)
+}
+
+// gainedActivationsUsed is gainedActivationsThisTurn's fold, over the
+// recipient's whole current stint when thisTurn is false (the lent ability's
+// own GameActivationLimit$, CR 602.5b "activate only once").
+func (e *Engine) gainedActivationsUsed(id, foreign state.ObjID, idx int, thisTurn bool) int {
 	used := 0
 	// CR 400.7: a recipient that changed zones is a new object with its own
 	// per-turn allowance, so only its current stint's activations count.
@@ -313,7 +320,7 @@ func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int
 		ev, sign := activationCounted(e.L.Events[from+i])
 		switch ev.Kind {
 		case events.TurnChange:
-			if int(ev.Player) < len(e.G.Players) {
+			if thisTurn && int(ev.Player) < len(e.G.Players) {
 				used = 0
 			}
 		case events.GainedAbilityPush, events.ManaActivate:
