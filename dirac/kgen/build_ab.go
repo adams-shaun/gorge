@@ -1176,7 +1176,8 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
 	"Evolved":          kop.TrigEvolved,    // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
-	"Unattached":       kop.TrigUnattached} // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"Unattached":       kop.TrigUnattached, // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"LeaveExile":       kop.TrigLeaveExile} // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
@@ -1417,8 +1418,25 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		// a watcher (opponent-source gated or not) or the plain self form
 		// (TfSelf, no gate: "becomes the target of a spell or ability")
 		selfPlain := !t.Watch && kt.Flags&kop.TfSelf != 0 && kt.Whose == kop.WhoseAny
-		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny)) {
+		if t.First && !selfPlain {
+			// the Tf2FirstTime latch (trig_counterfirst.go) is keyed on the
+			// trigger object; only the ungated self line queues on every
+			// targeting gorge's per-object count sees (lower_trigger.go)
+			return kt, fmt.Errorf("FirstTime on a gated BecomesTarget")
+		}
+		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny || t.SrcSpell && kt.Whose == kop.WhoseYou)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
+		}
+		if t.SrcSpell {
+			if !t.Watch {
+				return kt, fmt.Errorf("spell source on a non-watcher BecomesTarget")
+			}
+			kt.N = kop.TrigNSrcSpell
+			if t.SrcF != nil {
+				if kt.Filter2, err = cb.filter(t.SrcF, kop.ZoneStack); err != nil {
+					return kt, err
+				}
+			}
 		}
 		if t.SpellToo {
 			if kt.Flags&kop.TfSelf != 0 {
@@ -1801,6 +1819,19 @@ func splitSelfClause(event string, f *lFilter) (self, selfCreature bool) {
 	return self, selfCreature
 }
 
+// combatAmountFilter builds the two combat-assignment statics (CR 510.1):
+// the kind zeroes the matching creature's combat damage assignment, and the
+// filter reads its creature on the battlefield.
+func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f *lFilter) error {
+	st.Kind = kind
+	if f == nil {
+		return nil
+	}
+	fid, err := cb.filter(f, kop.ZoneBattlefield)
+	st.Filter = fid
+	return err
+}
+
 // static builds a static ability and its granted subtypes.
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
@@ -1878,6 +1909,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		if err := amounts(s.Power, s.Tough); err != nil {
+			return ka, nil, err
+		}
+		if err := continuousStFlags(s, st); err != nil {
 			return ka, nil, err
 		}
 		if st.Kw, err = kwMask(s.Kw); err != nil {
@@ -2274,10 +2308,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 	case "CombatDamageToughness":
-		st.Kind = kop.StatCombatDmgToughness
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
+		return ka, nil, cb.combatAmountFilter(st, kop.StatCombatDmgToughness, s.F)
+	case "AssignNoCombatDamage":
+		return ka, nil, cb.combatAmountFilter(st, kop.StatNoCombatDamage, s.F)
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2586,6 +2619,22 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	return ka, add, err
 }
 
+// graveLibFlags is the Repl.C placement bits of a GraveToLibrary replacement:
+// bottom instead of top, shuffle after the insert, and battlefield-only.
+func graveLibFlags(r lRepl) int16 {
+	var c int16
+	if r.LibBottom {
+		c |= kop.ReplLibBottom
+	}
+	if r.LibShuffle {
+		c |= kop.ReplLibShuffle
+	}
+	if r.LibFromBattlefield {
+		c |= kop.ReplLibBattlefield
+	}
+	return c
+}
+
 func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	ka := kop.Ability{Kind: kop.AbReplacement}
 	rp := &ka.Repl
@@ -2725,6 +2774,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+		rp.C |= graveLibFlags(r)
 	case "DiscardOppToBattlefield":
 		rp.Kind = kop.ReplDiscardOppToBattlefield
 	case "PayBeforeETB":
@@ -2971,6 +3021,28 @@ func originMask(from string) int {
 		}
 	}
 	return m
+}
+
+// continuousStFlags maps a Continuous static's AffectedX convention onto its
+// kop.StFlags bit: StPerAffected (the walk evaluates the dynamic amounts with
+// each AFFECTED object as the reading source, gorge layers_static.go
+// staticAmountOn's affected anchor; the flag aliases StOncePerTurn, a
+// MayPlayFrom/TapPower-only bit).
+func continuousStFlags(s lStatic, st *kop.Static) error {
+	if s.PerAffected {
+		st.StFlags |= kop.StPerAffected
+	}
+	for _, fl := range s.Flags {
+		switch fl {
+		case "FunctionsInGraveyard", "FunctionsInExile":
+			// gyContStFlag sets the Graveyard bit above; a FunctionsInExile
+			// on a Continuous stays silently dropped (this allow-list only
+			// stops the refusal)
+		default:
+			return fmt.Errorf("continuous flag %q", fl)
+		}
+	}
+	return nil
 }
 
 // anyKeptObjectClause reports the one-clause object halves of a player-or-

@@ -10,15 +10,14 @@ import (
 )
 
 // addStaticAbilityForms: AddStaticAbility$ on a Mode$ Continuous static
-// grants a static to ANOTHER object with that object as its source. Phase 1
-// builds the mechanism and the SetMaxHandSize kernel reader, but Nerd Rage
-// stays refused: gorge does not read its granted static (see
+// grants a static to ANOTHER object with that object as its source. The
+// SetMaxHandSize reader is wired on both sides (Nerd Rage, see
 // grantedStaticKinds). Every other granted kind refuses by name until its own
 // phase, and an inner mode that does not lower refuses with the inner reason.
 var addStaticAbilityForms = []formCase{
-	{card: "Nerd Rage", form: "granted SetMaxHandSize stays closed until gorge reads it (engine ticket)", refused: "AddStaticAbility NoMaxHandSize: granted NoMaxHandSize static: gorge's maxHandSizeFor never reads a granted static"},
-	{card: "Callaphe, Beloved of the Sea", form: "granted RaiseCost (phase 2)", refused: "AddStaticAbility RaiseCost"},
-	{card: "Zurgo, Thunder's Decree", form: "granted CantSacrifice (phase 3)", refused: "AddStaticAbility NoSacEOT"},
+	{card: "Nerd Rage", form: "granted SetMaxHandSize (gorge reads it)", lir: "granted-static NoMaxHandSize"},
+	{card: "Callaphe, Beloved of the Sea", form: "granted RaiseCost per recipient (phase 2)"},
+	{card: "Zurgo, Thunder's Decree", form: "granted CantSacrifice behind the outer Phases$ End of Turn gate", lir: "StepIn"},
 	{card: "Tomik, Orzhov Lawmage", form: "granted AttackRestrict (inner mode does not lower)", refused: "AddStaticAbility PWTomik: static mode AttackRestrict"},
 	{card: "Acolyte of Bahamut", form: "granted ReduceCost EffectZone$ Battlefield (inner does not lower)", refused: "AddStaticAbility DragonReduce"},
 	{card: "The Masamune", form: "granted Panharmonicon to the graveyard (inner does not lower)", refused: "AddStaticAbility Masarmonicon"},
@@ -71,17 +70,13 @@ func TestAddStaticAbilityForms(t *testing.T) {
 	}
 }
 
-// TestAddStaticAbilityBuildsGrantedStatic: with the SetMaxHandSize kind open
-// (the day gorge reads it), Nerd Rage lowers the inner static beside its
-// card's own and builds it into CardDef.Granted, never into Abilities, with
-// the outer static naming it; its AddTrigger$ grant keeps working beside it.
-// Not parallel: it opens a package-level gate and closes it on return.
+// TestAddStaticAbilityBuildsGrantedStatic: Nerd Rage lowers the inner static
+// beside its card's own and builds it into CardDef.Granted, never into
+// Abilities, with the outer static naming it; its AddTrigger$ grant keeps
+// working beside it.
 func TestAddStaticAbilityBuildsGrantedStatic(t *testing.T) {
-	old := grantedStaticKinds["NoMaxHandSize"]
-	grantedStaticKinds["NoMaxHandSize"] = ""
-	defer func() { grantedStaticKinds["NoMaxHandSize"] = old }()
-	if old == "" {
-		t.Fatal("precondition: the NoMaxHandSize gate is already open; the test would prove nothing about the closed state")
+	if grantedStaticKinds["NoMaxHandSize"] != "" {
+		t.Fatal("precondition: the NoMaxHandSize gate is not open")
 	}
 	lw := lowerNamedPool(t, []string{"Nerd Rage"})
 	all, bs, _, err := buildPool(lw)

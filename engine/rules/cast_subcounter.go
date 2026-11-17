@@ -63,29 +63,49 @@ func (e *Engine) chosenModesTargetableAt(pc *pendingCast, x int32) bool {
 }
 
 // targetsAnnounceableAt reports whether the target ask that follows xAsk can be
-// answered once X is x, by the rule targetAsk reverses a cast under.
+// answered once X is x, by the rule targetAsk reverses a cast under, and the
+// announce-bound discard part still has a hand card to pay it.
 func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 	o := e.G.Obj(pc.card)
 	if o == nil || pc.faceDown {
 		return true
 	}
 	sa := e.castBaseSA(pc, o, o.Face())
-	if sa == nil || !effects.TargetsOf(sa).Targeted() {
+	if sa == nil {
 		return true
 	}
 	saved := pc.x
 	pc.x = x
 	defer func() { pc.x = saved }()
-	if total, ok := e.castDivisionTotal(pc, sa); ok {
-		if min, _ := e.resolvedTargetBounds(pc.player, pc.card, sa, x); int(total) < min {
-			return false
+	// CR 601.2b announces X before CR 601.2h chooses the discard: an announce-
+	// bound Discard<1/Card.cmcEQX> (Knollspine Invocation) leaves X unanswerable
+	// when no hand card matches at it.
+	for _, part := range pc.cost.Discard {
+		if !part.Announced && e.costSpecAnnounceBound(part.Spec, pc.card) {
+			if !pay.DiscardCostPayable(asPayer(e), pc.player, pc.card, pc.cost.Discard, !pc.isAbility()) {
+				return false
+			}
+			break
 		}
 	}
 	var exclude state.ObjID
 	if !pc.isAbility() || attachSelfDestination(sa) {
 		exclude = pc.card
 	}
-	return e.targetSAAvailable(pc.player, pc.card, exclude, sa, x, false)
+	if effects.TargetsOf(sa).Targeted() {
+		if total, ok := e.castDivisionTotal(pc, sa); ok {
+			if min, _ := e.resolvedTargetBounds(pc.player, pc.card, sa, x); int(total) < min {
+				return false
+			}
+		}
+		if !e.targetSAAvailable(pc.player, pc.card, exclude, sa, x, false) {
+			return false
+		}
+	}
+	// CR 601.2c: every chain link announces its targets on cast too, so an X
+	// that leaves a link's "X target creatures" short is not announceable
+	// (Spinning Wheel Kick's damage link), exactly as the offer gate judges it.
+	return e.chainTargetsAvailable(pc.player, pc.card, exclude, sa, x, false, nil)
 }
 
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
@@ -752,14 +772,12 @@ func (e *Engine) amongCounterAsk(pc *pendingCast, part CostPart, amt int32, rese
 }
 
 // subCounterReservations keeps an earlier counter-cost part from spending
-// the same permanent as the current part. Wildcard units from the current
+// the same permanent as the current part. A permanent chosen for a Sac part
+// is not reserved: the counters come off before the sacrifices settle. Wildcard units from the current
 // part are deliberately absent: wildcardCounterAsk accounts for them by
 // (object, kind), allowing the part itself to span objects and kinds.
 func (pc *pendingCast) subCounterReservations() map[state.ObjID]bool {
 	reserved := map[state.ObjID]bool{}
-	for _, s := range pc.Sacs {
-		reserved[s] = true
-	}
 	for _, p := range pc.SubCounterPays {
 		if p.Part != pc.SubCounterPart {
 			reserved[p.Obj] = true

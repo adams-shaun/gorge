@@ -98,4 +98,6 @@ func TestFxPoolHashStable(t *testing.T) {
 // newest record: the hash covers the override records,
 // so the extra fields and their order change the digest. It moved again when
 // perm.ck widened to 16-bit counter kinds: ObjHash reads the permanent whole.
-const fxPoolHashPin = 0x3e29634684c92abb
+// It moved again when perm gained atkVer (the declared attack target's
+// version, CR 506.4c): every perm byte is hashed, and nothing else changed.
+const fxPoolHashPin = 0x1dccf39e9f48c5ec

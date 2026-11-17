@@ -76,12 +76,15 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 // Crime, kop.SecondTapXManaAb) is not offered here: the window takes the
 // source's plain first ability (windowCanTap), and its tap-another one is not
 // modelled in the windows. A sacrifice-another source (Bolg's Company,
-// kop.SacXEachManaAb) is listed by the cast, activation and ward windows; the
-// unless and trigger-cost windows leave it out.
+// kop.SacXEachManaAb) is listed by the cast, activation, ward and trigger-cost
+// windows; the unless window leaves it out. An echo payment's Ashnod's Altar
+// beside Elven Chorus's granted {T} abilities is a trigger-cost window gorge
+// funds by sacrificing a creature, and its sacrifice is a choose the walk must
+// pause on (ChCostSacrifice) rather than answer by tapping the plain grants.
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
@@ -233,4 +236,19 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 		s.payDone(k, !short)
 	}
 	return true
+}
+
+// windowTapXSecondUseful: source o is a second-ability tap-another source
+// (Holdout Settlement: "{T}: Add {C}" beside "{T}, Tap an untapped creature
+// you control: Add one mana of any color") whose tap-another ability makes a
+// colour the clamp keeps and can be paid now. gorge's paymentSourceUseful reads
+// every mana ability the window offers, so the source stays listed whatever its
+// plain first ability makes, and the window's answer is that first ability
+// (windowCanTap, tapXPlainDo): the source taps for its plain colour.
+func (s *State) windowTapXSecondUseful(k *prep, p uint8, o Slot, want uint8) bool {
+	if !k.tapMana || !k.tapXSecond(s.cardAt(o)) || !s.scriptTapX(k, p).has(o) {
+		return false
+	}
+	a := k.tapXAbOf(s.cardAt(o))
+	return a.Cost.Flags&kop.CostSac == 0 && uint8(a.ManaColors)&want != 0
 }

@@ -163,7 +163,14 @@ var baseBuckets = map[string]bucket{
 	// Params (EffectZone$) is the same static parameter map every bStat entry
 	// covers.
 	"pst.Static": bStat,
-	"r":          bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
+	// outer and inner are grantedMaxHandSizeInner's pair for a GRANTED
+	// SetMaxHandSize$ (AddStaticAbility$ naming an SVar): outer is the
+	// granting Continuous staticView (like sv, Affected$/gate read), inner
+	// the cards.Static line cards.ParseStaticLines parsed from that SVar
+	// (SetMaxHandSize$/Affected$) -- both the same static parameter map
+	// every bStat entry covers.
+	"outer": bStat, "inner": bStat,
+	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
 	// slice): each element is a *cards.SA whose Defined$ parameter the

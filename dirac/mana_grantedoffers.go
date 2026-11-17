@@ -584,6 +584,12 @@ func (s *State) addGrantUnit(a *avail, u grantUnit) {
 	}
 }
 
+// grantTapNow reports whether sl can pay a {T} ability now: untapped and not
+// summoning sick (CR 302.6).
+func (s *State) grantTapNow(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl)
+}
+
 // availGrant adds slot sl's unit(s) to a (availFor) on a table with
 // Continuous mana grants: its own ability's colours (pc) joined with
 // every granted ability's, one unit (the permanent taps once; gorge's
@@ -617,6 +623,14 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		return
 	}
 	if ng == 0 || (!own && ng == 1) {
+		if ng == 1 {
+			// a grant-only source whose single ability costs a {T} prices
+			// nothing while it cannot tap (CR 302.6): its early return bypasses
+			// the census gate availFor applies
+			if gv := s.grantView(k.gen, gi[0], sl); gv.manaTap && !s.grantTapNow(k, sl) {
+				return
+			}
+		}
 		s.addGrantUnits(a, mask, n)
 		if ng == 0 && pc.manaOne {
 			s.addOneColour(a, n)
@@ -1076,7 +1090,12 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.n++
 	}
-	if holders == 0 {
+	if holders == 0 && g.n == 0 {
+		// The activation's own source is the only holder (g.ex): its {T}
+		// cannot also make the mana, so no grant funds it. Another gap kind
+		// (a Taps-deferred source, a filter) still can, and gorge's one
+		// prefix search activates it: keep those candidates and fall back to
+		// the printed sources only when no gap survives.
 		g.n, g.gapN = 0, 0
 		return
 	}
@@ -1117,7 +1136,10 @@ func (g *grantSrch) candidates(s *State) {
 // gapFlags sets candidate n's gap kinds for slot sl, out of the masks one
 // search's candidates lists: the kinds exclude the later ones, so a source
 // with several gap kinds branches as the first that matches. A holder of a
-// granted ability (ng > 0) branches on the grant side.
+// granted ability (ng > 0) branches on the grant side, except a rider-first
+// source whose printed rider is a Taps-deferred gap: that rider is tried
+// first, as gorge's "choose a mana ability" ask lists the printed ability
+// before the grant.
 func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm, cm, sm, am slotMask) {
 	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
 	g.sacx[n] = am.has(sl) && ng == 0 // a holder keeps the grant side (mana_grantsacx.go)
@@ -1127,9 +1149,18 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// rider land): its own production is no planner unit (availGrant counts
 		// the grant alone), so the search taps the rider beside the grants --
 		// first the rider step (gapBranch), then the grants' (visit), never
-		// both taps of one source (CR 605.1a).
+		// both taps of one source (CR 605.1a). Gorge's "choose a mana ability"
+		// ask lists the printed rider first, so the search tries the rider's
+		// step before the grant, and the grant side follows a failed rider
+		// (gapBranch's tdef arm reports not-a-gap then), at every node
+		// (Sandstone Needle beside Rain of Filth: the rider's {R}{R} pays the
+		// play, not the grant's sacrifice — and a play the rider cannot pay
+		// prices the Needle's own grant, not another land's).
 		g.tdef[n] = xm.has(sl) && !fm.has(sl) && !tm.has(sl)
-		g.each[n], g.wide[n], g.ctr[n], g.store[n] = false, false, false, false
+		g.each[n], g.wide[n], g.ctr[n] = false, false, false
+		// a battery that is itself a grant holder keeps both sides: its
+		// counters pay this slot (CR 107.3), its granted {T} the grants'
+		g.store[n] = sm.has(sl) && !fm.has(sl) && !tm.has(sl)
 		return
 	}
 	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
@@ -1231,9 +1262,28 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		}
 		return false, false
 	case g.tdef[i]:
-		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
+		// its rider or deferred tap (mana_granttapsdefer.go). A grant holder's
+		// failed rider reports not-a-gap so visit runs its grant side: gorge's
+		// "choose a mana ability" ask lists the printed rider first, the
+		// granted ability after (Sandstone Needle beside Rain of Filth, whose
+		// {R}{R} cannot pay the {B} play — the plan taps the Needle's rider
+		// and sacrifices the NEEDLE over its grant, not another land's grant),
+		// and a node the rider's tap reached runs the tapped source's
+		// sacrifice-only grant alone (grantSacLive, mana_grantcost.go)
+		if found := g.tapsDeferBranch(t, i, sl); found || g.ng[i] == 0 {
+			return found, true
+		}
+		return false, false
 	case g.store[i]:
-		return g.storeBranch(t, i, sl), true // every counter it holds (mana_grantstore.go)
+		// every counter it holds (mana_grantstore.go); a failed storage branch
+		// of a grant holder leaves its grant side to visit (CR 605.1a)
+		if g.storeBranch(t, i, sl) {
+			return true, true
+		}
+		if g.ng[i] > 0 {
+			return false, false
+		}
+		return false, true
 	}
 	return false, false
 }
@@ -1314,10 +1364,7 @@ func (g *grantSrch) visit(t *State) bool {
 		g.cheaper = cheap
 		return true
 	}
-	if g.nseen < len(g.seen) {
-		g.seen[g.nseen] = key
-		g.nseen++
-	}
+	g.remember(key)
 	sacd := g.sacrificed()
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
@@ -1487,6 +1534,9 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		g.sel = 0
 	}
+	if g.printedSacPass(t, sacd) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+		return true
+	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts).
 	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
@@ -1525,6 +1575,14 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// remember records key as a seen node, while the table has room.
+func (g *grantSrch) remember(key grantKey) {
+	if g.nseen < len(g.seen) {
+		g.seen[g.nseen] = key
+		g.nseen++
+	}
 }
 
 // playSourceGone: the searched activation's source left the battlefield on

@@ -487,6 +487,9 @@ func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
 	if k.gen.anyAegis {
 		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go: before returnLinked drops the link's bit
 	}
+	// The kept Imprinted list is deliberately NOT dropped here: gorge keeps
+	// Object.Imprinted through the departure for the leaves trigger that
+	// reads it, and clears it at the next battlefield entry (impEnter).
 	if k.gen.anyFaces {
 		s.faceReset(k, o) // face_multiface.go
 	}
@@ -971,6 +974,26 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 		}
 		if s.objs[o].zone != kop.Zone((s.g.freeP>>freeZoneShift)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
+		}
+		// freePaid without freeCopy is a Play without WithoutManaCost$ True
+		// (Vaan, Street Thief's dug card, Chandra Acolyte's targeted graveyard
+		// card): gorge's beginPlay begins the ordinary cast paying its printed
+		// cost (CR 601.2, alternative timing). Mid-resolution no payment plan
+		// exists (gorge plans offers only), so the cast is lowered: the manual
+		// CR 601.2g window pays what the pool does not, and a cost neither can
+		// cover reverses the cast (CR 733.1), the card back in its zone and
+		// still remembered (the forget only commits with the cast).
+		if s.g.freeP&freePaid != 0 {
+			holder := s.prio
+			s.prio = ctrl // the caster (beginCast reads it)
+			s.beginCast(k, o, 0, 0)
+			s.prio = holder
+			// gorge's target ask gates an unpayable paid cast before its menu
+			// (CR 601.2c, 733.1) and the CR 601.2g window reverses one it
+			// cannot cover; both read s.g.freeP&freePaid at the cast flow's
+			// target stage (cast.go bsTargets, playTargetAborts).
+			s.bld().bfl |= bflLowered // no plan: the window pays (cast_exilegrant.go's copy does the same)
+			return false
 		}
 		holder := s.prio
 		s.prio = ctrl // the caster (beginCast reads it)

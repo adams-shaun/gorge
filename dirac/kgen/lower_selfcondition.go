@@ -1,5 +1,7 @@
 package kgen
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // selfcond: a static whose condition reads the characteristics the static
 // itself writes (Grond, the Gatebreaker counts Armies while it adds types
 // to itself; Rusted Relic counts artifacts while it makes itself an
@@ -98,6 +100,15 @@ func filterRd(f *lFilter) condRd {
 			cmpActiveCtrl, cmpModified, cmpHasCounters, cmpMonstrous, cmpRenowned:
 			// no layer-3..7 characteristic: mana value, counters,
 			// attachment, designation or the active player
+		case cmpWord7:
+			if c.CmpN != int(kop.W7Imprinted) && c.CmpN != int(kop.W7NotImprinted) {
+				r.all = true
+			}
+			// the imprint reads: the source's kept records and the
+			// candidate's zone (zone_imprint.go impStoreHas), no
+			// layer-3..7 characteristic of a battlefield permanent and no
+			// re-entry into the derivation. Every other sub-kind is
+			// unbounded here.
 		default:
 			r.all = true
 		}
@@ -113,7 +124,10 @@ func valueRd(v lValue) condRd {
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
 		vKicked, vTimesKicked, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
 		vLowestLife, vOppsAttacked, vBlessing:
-	case vCount, vCountAtLeast:
+	case vCount, vCountAtLeast, vCountExile:
+		// vCountExile: the count runs over the exile zones, whose cards no
+		// layer walk derives; filterRd's per-clause bounds still hold
+		// (Duplicant's CheckSVar$ Count$ValidExile Creature.IsImprinted).
 		r = filterRd(v.F)
 	default:
 		r.all = true
@@ -160,7 +174,7 @@ func (lc *lowerCtx) selfCondCheck(st *lStatic) error {
 			wTypes &^= lc.out.Types
 		}
 		setTypes = o.HasSetTypes || o.SetTypes != 0
-		wSub = o.HasSetSubtypes || len(o.SetSubtypes) > 0 || len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub
+		wSub = o.HasSetSubtypes || len(o.SetSubtypes) > 0 || len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.ImpSub
 		wCol = o.HasSetColors
 		wPT = o.HasSetPT
 		wKw = o.LoseAbilities || len(o.AddKw) > 0 || len(o.RemoveKw) > 0

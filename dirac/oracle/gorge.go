@@ -681,6 +681,23 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	return fr
 }
 
+// turnUpPotentialAction is the canonical action of a potential turn-face-up
+// plan (CR 708.6), the offered option's form. Only the Morph-family keyword
+// procedures are projected: a manifested or cloaked card's printed-cost
+// procedure stays the pool-only offer the kernel makes (face_facedown.go's
+// turnUpListed), so the union does not name an action the kernel cannot take.
+func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, bool) {
+	sub := turnUpModeCode(pa.Mode)
+	if sub == 1 || sub == 2 {
+		return 0, false
+	}
+	c, ok := specialCode(pa.Kind)
+	if !ok {
+		return 0, false
+	}
+	return Pack(ActSpecial, ref(pa.Obj), RefNone, c|sub<<4), true
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -1079,6 +1096,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
 			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
 				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
+			}
+		case "turn_face_up":
+			var ok bool
+			if a, ok = turnUpPotentialAction(pa, ref); !ok {
+				continue
 			}
 		default:
 			continue

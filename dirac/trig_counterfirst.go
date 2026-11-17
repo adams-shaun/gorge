@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // "Whenever one or more <kind> counters are put on this permanent for the
 // first time each turn" (Mode$ CounterAddedOnce with FirstTime$ True, U.S.S.
 // Enterprise-D): the first matching CounterChange batch of the turn queues
@@ -41,6 +43,16 @@ type CounterFirstRec struct {
 // enterprise test counts the fired and refused batches; nothing else reads
 // it).
 var CounterFirstLog *[]CounterFirstRec
+
+// firstTimeLatchEvent reports the events whose Tf2FirstTime is the per-source
+// once-a-turn latch of this file: CounterAddedOnce (FirstTime$ True on a
+// Card.Self counter line) and BecomesTarget (FirstTime$ True on the ungated
+// Card.Self self line; kgen lowers only that shape, lower_trigger.go). The
+// other FirstTime events read their own per-turn facts (taps: mechTappedTurn;
+// life lost/gained: the loss and gain amounts).
+func firstTimeLatchEvent(a *kop.Ability) bool {
+	return a.Trig.Event == kop.TrigCounterAddedOnce || a.Trig.Event == kop.TrigBecomesTarget
+}
 
 // counterFirstUsed reports whether a's first-time CounterAddedOnce line
 // already queued a trigger this turn. The caller has checked the event and

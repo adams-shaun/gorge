@@ -1,0 +1,13 @@
+# the manifest-variant pool: Thieving Amalgam (Defined$ ValidLibrary
+# Card.TopLibrary+ActivePlayerCtrl) and Scroll of Fate (Choices$ hand pick)
+# beside creatures, Moxen and basics, for the oracle's constructed lockstep
+# (dirac/oracle/manifest_variant_lockstep_test.go)
+Thieving Amalgam
+Scroll of Fate
+Grizzly Bears
+Mox Emerald
+Mox Pearl
+Mox Jet
+Mox Ruby
+Mox Sapphire
+Swamp

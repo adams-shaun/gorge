@@ -70,11 +70,12 @@ func TestDynPairUnit(t *testing.T) {
 }
 
 // TestDynPairPotentialOpen: gorge's potentialAmount reads Itlimoc's second
-// ability (Amount$ X, X a Count$) as indeterminate, so an untapped Itlimoc
-// makes the potential pool unbounded in every colour, one it cannot make
-// included (Mountain's R here). The kernel's potential walk must open the
-// same way at any creature count, including 0 and 1 where the view is the
-// plain {G}; without Itlimoc the same board is bounded.
+// ability (Amount$ X, X a Count$) as indeterminate and prices it unbounded in
+// exactly the faces it produces (CR 107.4a): an untapped Itlimoc makes the
+// potential pool unbounded in {G} at any creature count, including 0 and 1
+// where the view is the plain {G}, and claims no {R} (Mountain's here) it
+// cannot make. The kernel's potential walk must fold the same way; without
+// Itlimoc the same board is bounded in both colours.
 func TestDynPairPotentialOpen(t *testing.T) {
 	set := cardsettest.Set(t, "dynpair")
 	tbl, err := set.Pool()
@@ -109,9 +110,12 @@ func TestDynPairPotentialOpen(t *testing.T) {
 			var pot avail
 			sc.s.availPotential(sc.k, 0, &pot)
 			red := units(&pot, 1<<kop.R)
+			green := units(&pot, 1<<kop.G)
 			switch {
-			case withItlimoc && red < potentialOpenUnits:
-				t.Errorf("%d creatures, Itlimoc untapped: {R} potential %d units, want open (%d)", creatures, red, potentialOpenUnits)
+			case withItlimoc && green < potentialOpenUnits:
+				t.Errorf("%d creatures, Itlimoc untapped: {G} potential %d units, want open (%d)", creatures, green, potentialOpenUnits)
+			case withItlimoc && red != 0:
+				t.Errorf("%d creatures, Itlimoc untapped: {R} potential %d units, want 0 (Itlimoc makes no {R})", creatures, red)
 			case !withItlimoc && red != 0:
 				t.Errorf("%d creatures, no Itlimoc: {R} potential %d units, want 0 (the board is bounded)", creatures, red)
 			}

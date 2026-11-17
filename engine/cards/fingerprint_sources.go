@@ -96,13 +96,16 @@ import "embed"
 //go:embed kw_persist.go
 //go:embed kw_prevent.go
 //go:embed kw_prowess.go
+//go:embed kw_rampage.go
 //go:embed kw_ravenous.go
 //go:embed kw_reconfigure.go
+//go:embed kw_reinforce.go
 //go:embed kw_renown.go
 //go:embed kw_replicate.go
 //go:embed kw_saddle.go
 //go:embed kw_scavenge.go
 //go:embed kw_soulbond.go
+//go:embed kw_soulshift.go
 //go:embed kw_squad.go
 //go:embed kw_storm.go
 //go:embed kw_sunburst.go

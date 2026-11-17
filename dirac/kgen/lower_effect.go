@@ -179,7 +179,16 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{Kind: rTriggeredNew}, nil
 	case "TriggeredSource", "TriggeredSources", "TriggeredSourceLKICopy":
-		// gorge definedSpecTriggeredSource
+		// gorge definedSpecTriggeredSource. On a capturing emblem's
+		// recipient-captured DamageDone line the kernel emblem hook queues
+		// the DAMAGED object as the trigger object (dirac/
+		// trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
+		// so a read of the damage source would name the damaged creature:
+		// refuse. Every other DamageDone queue carries the source as the
+		// trigger object (dirac/trig_damagedonce.go ddoLine).
+		if lc.emblemDmg && emblemDmgRecipientTrig(lc.ab.Trigger) {
+			return lRef{}, refuse("Defined$ %q beside an emblem trigger that reads the damaged recipient as its trigger object", v)
+		}
 		return lRef{Kind: rTriggeredSource}, nil
 	case "TriggeredPlayer":
 		// gorge definedSpecTriggeredPlayer: the run's Player, which is the
@@ -221,6 +230,11 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
 	case "TriggeredSourceController":
+		// same emblem recipient-capture pin as TriggeredSource above: the
+		// controller read is of the kernel's trigger object
+		if lc.emblemDmg && emblemDmgRecipientTrig(lc.ab.Trigger) {
+			return lRef{}, refuse("Defined$ %q beside an emblem trigger that reads the damaged recipient as its trigger object", v)
+		}
 		// gorge definedSpecTriggeredSourceController (lower_trigrefs.go)
 		r, _, err := lc.triggeredObjectRef(v)
 		return r, err
@@ -253,16 +267,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{Kind: rRemembered}, nil
 	case "Imprinted":
-		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
-		// effectRemembered reads the source's seek-found Imprint, which the
-		// kernel holds in the chosen set (DuImprintFound).
-		if lc.digImprintSetLive() { // lower_digimprintset.go
-			return lRef{Kind: rImprinted}, nil
-		}
-		if !lc.digImprintChosen {
-			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
-		}
-		return lRef{Kind: rChosen}, nil
+		return lc.definedImprinted()
 	case "Player.IsRemembered":
 		if lc.repeatPl == 0 {
 			return lRef{}, refuse("Defined$ %q outside a RepeatEach body", v)
@@ -419,7 +424,11 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		self := true
 		for _, c := range tr.F.Clauses {
 			if c.Flags&fSelf == 0 && c.Ctrl != whoYou {
-				return false
+				if !lc.enchantedByYouCtrl(c) {
+					return false
+				}
+				self = false
+				continue
 			}
 			self = self && c.Flags&fSelf != 0
 		}
@@ -429,6 +438,26 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		return true
 	case "AttackersDeclared":
 		return tr.Whose == whoYou
+	}
+	return false
+}
+
+// enchantedByYouCtrl reports whether c is the "enchanted creature" attacker
+// of an Aura whose printed Enchant word names only a creature its controller
+// controls. That attacker is then controlled by the Aura's controller, so
+// the defending player of its attack is the one opponent (Cloak of
+// Confusion's "defending player discards"; every other attacker's defending
+// player is not the trigger controller's opponent).
+func (lc *lowerCtx) enchantedByYouCtrl(c lClause) bool {
+	if c.Flags != fEnchantedBy || c.Ctrl != whoAny || c.Types != tCreature || lc.face == nil {
+		return false
+	}
+	for _, k := range lc.face.Keywords {
+		if cards.KeywordHead(k) != "Enchant" {
+			continue
+		}
+		spec, _, _ := strings.Cut(strings.TrimPrefix(k, "Enchant:"), ":")
+		return strings.TrimSpace(spec) == "Creature.YouCtrl"
 	}
 	return false
 }
@@ -1050,7 +1079,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 			}
 		}
 		lc.unlessCost = lc.ab.Kind != akLatent
-		in, err = lc.payInstr(cost, lRef{}, cost.SubCtr > 0)
+		in, err = lc.unlessPayInstr(cost, lRef{}, cost.SubCtr > 0) // lower_unlesschain.go
 		lc.unlessCost = false
 		if err != nil {
 			return err
@@ -1060,6 +1089,14 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		in.Op = "UnlessSwitched"
 	} else {
 		in.Op = "UnlessPaid"
+	}
+	// UnlessPayer$ is read here, before fn: the node's own unread check
+	// must not name a key the unless wrapper consumes (Carrion Rats' DB$
+	// Effect static). The payer is still bound after the node, where the
+	// default's own target slot exists.
+	up := "TargetedController"
+	if p, ok := ps.get("UnlessPayer"); ok {
+		up = p
 	}
 	gate, whenPaid, err := unlessSubsMode(ps)
 	if err != nil {
@@ -1074,12 +1111,9 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return err
 	}
 	// gorge unlessProceed (Forge's default): UnlessPayer$ defaults to
-	// TargetedController, the controller of the node's target -- read
-	// after the node so its own target slot exists.
-	up := "TargetedController"
-	if p, ok := ps.get("UnlessPayer"); ok {
-		up = p
-	}
+	// TargetedController, the controller of the node's target -- bound
+	// after the node so its own target slot exists (the key itself was
+	// read before fn, above).
 	if up == "ThisTargetedController" {
 		// gorge's unlessPayerTargetsCodes maps ThisTargetedController to the
 		// same selector code as TargetedController (effects/unless.go), so it
@@ -1134,8 +1168,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		// may forage. If you do, ..."): PayForage, kernel act_forage.go's
 		// resolution forage. A forage beside any other part, in an UnlessCost or
 		// deeper in a chain stays refused.
-		if !lc.trigOwnCost || !c.Mana.None || c.DiscardN > 0 || c.Sac != nil || c.PayLife > 0 || c.Energy > 0 ||
-			c.Return != nil || c.ExileG != nil || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.TapN != 0 || c.TapHost {
+		if !lc.trigOwnCost || !c.forageOnly() {
 			return in, refuse("resolution forage cost")
 		}
 		in.CS, in.A, in.F = "Forage", cst(1), c.Forage
@@ -1183,7 +1216,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileStackSelf = false
 	}
 	var err error
-	if n, err = lc.resTokenInstr(c, &in, n); err != nil { // lower_costtokenforms.go
+	if n, err = lc.resTokenInstr(&c, &in, n); err != nil { // lower_costtokenforms.go
 		return in, err
 	}
 	if !c.Mana.None {
@@ -1445,10 +1478,32 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.AddCtr, c.AddCtrRef, c.AddCtrKnd = 0, lRef{}, ""
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 || c.EvidenceX || c.AddCtr != 0 || c.AddCtrRef.Kind != rNone {
+	if !c.resolutionCostShape(n) {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil
+}
+
+// forageOnly reports whether a forage is the cost's only payment part. The
+// Forage arm returns before the final one-part shape check below, so it needs
+// its own complete gate: pureMana's field list covers every other part once
+// the mana cost is checked here and the two fields it does not list
+// (Waterbend, RevealSelf) are excluded.
+func (c lCost) forageOnly() bool {
+	if !c.Mana.None || c.RevealSelf || c.Waterbend != 0 || c.WaterbendX {
+		return false
+	}
+	rest := c
+	rest.Forage = nil
+	return rest.pureMana()
+}
+
+// resolutionCostShape is payInstr's final one-part check: exactly one payment
+// part was lowered and no part is left unconsumed. resTokenInstr clears the
+// Mill/Reveal fields only when its own first-match arm consumes them, so an
+// unconsumed part refuses here instead of being silently dropped.
+func (c lCost) resolutionCostShape(n int) bool {
+	return n == 1 && !c.Tap && !c.SacSelf && c.Loyalty == 0 && c.SubCtr == 0 && c.SubAmongN == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && c.AddCtr == 0 && c.AddCtrRef.Kind == rNone && c.MillN == 0 && c.RevealN == 0 && c.RevealF == nil
 }
 
 // packPips packs WUBRG pip counts 3 bits each.
@@ -3122,7 +3177,7 @@ func (lc *lowerCtx) token(ps *params) error {
 		}
 		in.C |= 4
 	}
-	if err := lc.tokenImprint(ps, &in); err != nil { // lower_imprintzone.go
+	if err := lc.tokenMemory(ps, script, &in); err != nil { // lower_imprintzone.go, lower_tokenrem.go
 		return err
 	}
 	var pump []string

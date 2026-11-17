@@ -206,6 +206,41 @@ func (g *grantSrch) sacOnlyVisit(t *State, i int, sl Slot) bool {
 	return false
 }
 
+// printedSacPass is visit's last gap step: each holder whose granted {T}
+// ability is spent or unusable still has its PRINTED sacrifice-only mana
+// ability (an Eldrazi Spawn's), which costs no {T}. Gorge's prefix search
+// branches it after the token's tap floated its mana (CR 605.3b, 602.2b) but
+// only once the node is not priced and the other gaps are tried: a node the
+// play is already payable at ends the line there, so a later gap (Gilanra's
+// {G}) is reached before this sacrifice and the node it charges counts against
+// the same budget.
+func (g *grantSrch) printedSacPass(t *State, sacd bool) bool {
+	for i := 0; i < g.gapN; i++ {
+		sl := g.cand[i]
+		if g.ng[i] == 0 || t.grantTapOK(g.k, sl) || g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl) {
+			continue
+		}
+		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
+			continue // sacrificed by an earlier step
+		}
+		if g.printedSacVisit(t, i, sl) {
+			return true
+		}
+	}
+	return false
+}
+
+// printedSacVisit steps candidate i's printed sacrifice-only mana ability at
+// sl (printedSacPass's one branch).
+func (g *grantSrch) printedSacVisit(t *State, i int, sl Slot) bool {
+	ppc := t.manaPCGen(g.k, sl)
+	if !t.canSacOnlyNow(g.k, sl, ppc) || g.k.gen.anyCantAct && t.actForbidden(g.k, sl, true) {
+		return false
+	}
+	g.skipPool = false
+	return g.sacBranch(t, i, sl, -1, ppc, t.srcMaskAt(ppc, sl), true)
+}
+
 // sacBranch is costBranch for a sacrifice-only granted ability: each colour
 // of mask in the source's ask order, the step taken on a fork that floats
 // the mana, sacrifices the source and runs the state-based check (the
@@ -457,6 +492,34 @@ func (s *State) windowGrantYield(k *prep, sl Slot, pc *pcard, col int) uint8 {
 		}
 	}
 	return pc.manaN
+}
+
+// windowGrantAnswer is the view the window's tap of sl takes when its answer
+// col is a colour the source's printed ability pc cannot make: the granted
+// one that does. gorge's choose-a-mana-ability ask lists the printed ability
+// first, the granted one when only it makes the owed colour
+// (mana_grantedoffers.go), so the tap floats the granted ability's
+// production at its own size and pays its own cost (CR 106.4) --
+// windowGrantLife already prices its life cost on this. pc again when the
+// printed ability makes col or no admitted grant does.
+func (s *State) windowGrantAnswer(k *prep, sl Slot, col int, pc *pcard) *pcard {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.srcMaskAt(pc, sl)&(1<<uint(col)) != 0 {
+		return pc
+	}
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	if n > 0 {
+		d := s.payDescNow(NoObj)
+		if n = s.grantsAdmitted(k, sl, &gi, n, &d); n > 0 {
+			for i := 0; i < n; i++ {
+				g := s.grantView(k.gen, gi[i], sl)
+				if s.srcMaskAt(g, sl)&(1<<uint(col)) != 0 && s.grantCostPayable(s.perms[sl].ctrl, g) {
+					return g
+				}
+			}
+		}
+	}
+	return pc
 }
 
 // windowGrantLife is the life a window activation of sl taking colour col

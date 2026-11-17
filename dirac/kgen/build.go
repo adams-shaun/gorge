@@ -277,6 +277,7 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 		out.Pips[i] = uint8(m.Pips[i])
 	}
 	out.Pips[kop.C] = uint8(m.C)
+	out.Snow = uint8(m.Snow)
 	if m.X {
 		out.X = 1
 	}
@@ -1038,7 +1039,7 @@ func (cb *cardBuilder) record() error {
 	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
-	d.SpentSelf = c.SpentSelf
+	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
 	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
@@ -1860,8 +1861,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred = kop.PredSameNameT0
-	case cmpSameNameRem:
-		kf.Pred = kop.PredSameNameRem
+	case cmpSameNameRem, cmpSameNameSelf:
+		sameNamePred(&c, &kf)
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
@@ -2395,7 +2396,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
+	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2602,6 +2604,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.AllCreatureTypes = o.AllCreatureTypes
 	ko.RemoveCreatureSub = o.RemoveCreatureSub
 	ko.SetLandSub = o.SetLandSub
+	ko.ImpSub = o.ImpSub
 	ko.HasColors, ko.SetColors = o.HasSetColors, colorMask(o.SetColors)
 	ko.LoseAbilities = o.LoseAbilities
 	ko.KeepP, ko.KeepT = o.KeepP, o.KeepT
@@ -2764,6 +2767,16 @@ func putsTimeCounters(d *kop.CardDef) bool {
 		}
 	}
 	return false
+}
+
+// sameNamePred maps the sharesNameWith compare kinds: Remembered has no
+// PredN, Self carries the ordinary ! negation in PredN.
+func sameNamePred(c *lClause, kf *kop.Filter) {
+	if c.CmpStat == cmpSameNameRem {
+		kf.Pred = kop.PredSameNameRem
+		return
+	}
+	kf.Pred, kf.PredN = kop.PredSameNameSelf, int16(c.CmpN)
 }
 
 // clauseSubtypes fills kf's subtype slots from the clause's Subtype,

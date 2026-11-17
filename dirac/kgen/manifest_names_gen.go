@@ -815,6 +815,9 @@ func init() { enum[kop.ExprKind]("kop.ExWasCastFromYourLibrary", kop.ExWasCastFr
 // dirac/manifest/ExprKind/ExXColorPaid
 func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 
+// dirac/manifest/ExprKind/ExSrcRemCounters
+func init() { enum[kop.ExprKind]("kop.ExSrcRemCounters", kop.ExSrcRemCounters) }
+
 // dirac/manifest/KwID/KwStickerSheet
 func init() { enum[kop.KwID]("kop.KwStickerSheet", kop.KwStickerSheet) }
 
@@ -1107,6 +1110,9 @@ func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
+// dirac/manifest/Pred/PredSameNameSelf
+func init() { enum[kop.Pred]("kop.PredSameNameSelf", kop.PredSameNameSelf) }
+
 // dirac/manifest/ReplKind/ReplBeginPhase
 func init() { enum[kop.ReplKind]("kop.ReplBeginPhase", kop.ReplBeginPhase) }
 
@@ -1332,6 +1338,9 @@ func init() { enum[kop.StaticKind]("kop.StatExtraBlock", kop.StatExtraBlock) }
 
 // dirac/manifest/StaticKind/StatAnyColorSpells
 func init() { enum[kop.StaticKind]("kop.StatAnyColorSpells", kop.StatAnyColorSpells) }
+
+// dirac/manifest/StaticKind/StatNoCombatDamage
+func init() { enum[kop.StaticKind]("kop.StatNoCombatDamage", kop.StatNoCombatDamage) }
 
 // dirac/manifest/TrigEvent/TrigChaosEnsues
 func init() { enum[kop.TrigEvent]("kop.TrigChaosEnsues", kop.TrigChaosEnsues) }
@@ -1560,6 +1569,9 @@ func init() { enum[kop.TrigEvent]("kop.TrigUntapAll", kop.TrigUntapAll) }
 
 // dirac/manifest/TrigEvent/TrigVisitAttraction
 func init() { enum[kop.TrigEvent]("kop.TrigVisitAttraction", kop.TrigVisitAttraction) }
+
+// dirac/manifest/TrigEvent/TrigLeaveExile
+func init() { enum[kop.TrigEvent]("kop.TrigLeaveExile", kop.TrigLeaveExile) }
 
 // dirac/manifest/Zone/ZonePlanarDeck
 func init() { enum[kop.Zone]("kop.ZonePlanarDeck", kop.ZonePlanarDeck) }

@@ -14,7 +14,9 @@ func (s *State) staticFlagGen(k *prep, sk kop.StaticKind, sl Slot) bool {
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
-		if a.Kind == kop.AbStatic && a.Static.Kind == sk && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
+		if a.Kind == kop.AbStatic && a.Static.Kind == sk && s.statCond(k, st) &&
+			(st.emb == 0 || s.embCaptureOK(k, st.emb, sl)) &&
+			s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
 			hit = true
 			return false
 		}

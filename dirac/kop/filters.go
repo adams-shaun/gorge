@@ -565,6 +565,13 @@ const W7Snow int16 = 37
 // permanent included. Chill to the Bone.
 const W7NonSnow int16 = 38
 
+// W7NotImprinted (PredWord7 sub-kind 39): W7Imprinted's negation, gorge's
+// '!' of the word (contextPredicateBound refuses to invert only the unbound
+// case, and the lowered shape always carries a bound source: the store read
+// of a card that keeps its Imprinted list). Mirror of Life Trapping's
+// TrigReturn pick (Permanent.ExiledWithSource+!IsImprinted).
+const W7NotImprinted int16 = 39
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each

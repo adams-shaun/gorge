@@ -24,13 +24,17 @@ func kcapsTable(t *testing.T, extra ...kop.CardDef) (*kop.Table, []CardID) {
 
 // TestLookWindowFitsTwentyFour: a dig of 24 (genState.look's new width)
 // records the whole window; a 25th card stalls loud with StallLook instead
-// of truncating silently (interp_ask.go startDig).
+// of truncating silently (interp_ask.go startDig). The window is read while
+// the dig holds it open -- the Optional$ All dig parks on its yes/no ask
+// with the window live; once a dig completes its tail drops the window
+// (digWindowDone: it is dead, gorge's reveal rode the move).
 func TestLookWindowFitsTwentyFour(t *testing.T) {
 	build := func(t *testing.T, n int) *scen {
 		t.Helper()
 		tbl, ids := kcapsTable(t, kop.CardDef{Name: "Test Dig", Types: kop.TSorcery,
 			Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{{
-				Op: kop.OpDigEx, Obj: kop.RefController, A: kop.Const(n), B: kop.Const(-1), C: int16(kop.ZoneHand)}}}}})
+				Op: kop.OpDigEx, Obj: kop.RefController, A: kop.Const(n), B: kop.Const(-1),
+				C: int16(kop.ZoneHand) | int16(kop.DigOptional<<3)}}}}})
 		sc := newScenTable(t, tbl, Config{NoElide: true})
 		for i := 0; i < 25; i++ {
 			o := sc.obj(v.Plains, 0)

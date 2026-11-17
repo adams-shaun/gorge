@@ -447,6 +447,9 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 
 // affords reports whether a can pay cost plus extra generic.
 func (a *avail) affords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+	if cost.Snow != 0 {
+		return false // gorge never plans a {S} cost (PlanCostDetail cost:snow): only the pool pays it (snowPays)
+	}
 	if cost.Hyb[0] != 0 {
 		return a.affordsHyb(cost, extra)
 	}
@@ -508,6 +511,9 @@ func (a *avail) hallUnits(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 // (gorge pay/solve.go expandCostPips anyColorAlts; CR 107.4c: "any color"
 // never includes colourless).
 func (a *avail) affordsAnyColor(cost *kop.ManaCost, extra int) bool {
+	if cost.Snow != 0 {
+		return false // see affords
+	}
 	if cost.Hyb[0] != 0 {
 		if cost.Hyb[0] == kop.HybTwobrid {
 			return a.affordsTb(cost, extra, true)
@@ -1072,6 +1078,9 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 		}
 		pl.pool[c] -= cost.Pips[c]
 	}
+	if cost.Snow != 0 {
+		s.snowPay(p, cost.Snow) // the {S} pips, after the coloured ones and before the generic (mana_snow.go)
+	}
 	g := int(cost.Generic) + cost.XGeneric(x)
 	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
 	for _, c := range order {
@@ -1176,6 +1185,9 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	}
 	if n > 0 {
 		panic("kernel: payment failed (coloured pips)")
+	}
+	if cost.Snow != 0 {
+		s.snowPay(p, cost.Snow) // mana_snow.go
 	}
 	g := int(cost.Generic) + cost.XGeneric(x)
 	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
@@ -1488,20 +1500,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					choice = rk[i] == rkExt || DebugRestrictedSource == 3 && rk[i] == rkWiden // a widened unit keeps its census position
 				}
 				if k.painMana && pc.painCol != 0 && phase > 0 {
-					// gorge's census lists a source with a deterministic,
-					// free-cost production in the shared census, at its
-					// battlefield position, and appends the rest after: a
-					// choice-shaped ability, a tap-and-sacrifice one, an
-					// ability that pays life (payment_plan.go
-					// paymentPlanManaUnitsOnlyCompute). The paired pain unit
-					// sits on the pass the source's census group is; a
-					// pain-only source's shape is its own ability's (Elves
-					// of Deep Shadow's {B} is deterministic, in the shared
-					// census)
-					want := 0
-					if choice {
-						want = 1
-					}
+					want := painCensusPass(choice, pc)
 					if s.painUnit(k, sl, pc, pass, pk, i, want) {
 						continue
 					}

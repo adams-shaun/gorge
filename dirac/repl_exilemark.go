@@ -177,13 +177,21 @@ func (s *State) graveMoveSources(k *prep, o Obj, out *[MaxPerm]Obj) int {
 		var hit bool
 		if ob.zone == kop.ZoneBattlefield {
 			hit = s.matchPerm(k, g.exileOnLeave[sc], ob.slot, s.perms[b].ctrl, b)
-		} else {
-			hit = g.anyExileAny && g.exileAnyC[sc] && s.matchCardGen(k, g.exileOnLeave[sc], ob.card, ob.owner(), s.perms[b].ctrl, o)
+		} else if g.exileAnyC == nil || g.exileAnyC[sc]&eaSelf == 0 {
+			// a self filter is not a card matcher; the moving card's own bit is
+			// added after the loop
+			hit = g.anyExileAny && g.exileAnyC[sc]&eaAny != 0 && s.matchCardGen(k, g.exileOnLeave[sc], ob.card, ob.owner(), s.perms[b].ctrl, o)
 		}
 		if hit {
 			out[n] = s.perms[b].obj
 			n++
 		}
+	}
+	if ob.zone != kop.ZoneBattlefield && g.exileAnyC != nil && g.exileAnyC[ob.card]&eaSelf != 0 && n < len(out) {
+		// the moving card's own "from anywhere" replacement: its source is the
+		// card itself, which is not a battlefield permanent here
+		out[n] = o
+		n++
 	}
 	return n
 }
@@ -196,7 +204,7 @@ func (s *State) graveMoveCompetes(k *prep, o Obj) bool {
 	if g == nil || g.anyRepl&rbExileOnLeave == 0 && g.ix[mechExileEx] == arenaNone {
 		return false
 	}
-	if g.anyRepl&rbGraveLib != 0 && s.graveRedirect(k, s.objs[o].card, kop.ZoneGraveyard) == kop.ZoneLibrary {
+	if g.anyRepl&rbGraveLib != 0 && s.graveRedirect(k, s.objs[o].card, kop.ZoneGraveyard, s.objs[o].zone) == kop.ZoneLibrary {
 		return false
 	}
 	if ob := &s.objs[o]; g.anyFinality && ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].ctrN(s, int(kop.CtrFinality)) > 0 {

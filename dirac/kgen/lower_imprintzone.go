@@ -17,13 +17,42 @@ import (
 // stays refused (refuseCrossAbilityImprinted).
 
 // openImprint opens the resolution's imprinted set for the chain being
-// lowered. One chain per card: a second chain with its own writer refuses.
+// lowered. One chain per card, except for a face that keeps its Imprinted on
+// the source (lower_imppersist.go): there every writer may sit in its own
+// chain, as gorge's list does.
 func (lc *lowerCtx) openImprint(what string) error {
-	if lc.chainRoot == nil || lc.digImprintRoot != nil && lc.digImprintRoot != lc.chainRoot {
+	if lc.chainRoot == nil {
+		return refuse("%s outside one chain", what)
+	}
+	if !lc.impPersist && lc.digImprintRoot != nil && lc.digImprintRoot != lc.chainRoot {
 		return refuse("%s outside one chain", what)
 	}
 	lc.digImprintRoot = lc.chainRoot
 	return nil
+}
+
+// definedImprinted lowers Defined$ Imprinted: inside a RepeatEach iteration
+// gorge's spelling names the loop's current subject before the source's
+// persistent pile (effects/context.go definedSpecImprinted; Sivriss, Nightmare
+// Speaker's Mill body names the repeated opponent, so its chained ChangeZone
+// moves no card). A face that keeps its Imprinted on the source reads the
+// persistent ref in any ability (lower_imppersist.go); otherwise the DigUntil
+// ImprintFound$ chain reads the seek-found chosen set (lower_digimprint.go).
+func (lc *lowerCtx) definedImprinted() (lRef, error) {
+	if lc.impPersist && (lc.repeatPl > 0 || lc.repeatCard > 0) {
+		// Inside a RepeatEach iteration gorge's definedSpecImprinted gives
+		// the loop's subject precedence over the source's persistent pile.
+		// Only the persist shape has a pile to fall back to; a repeat on the
+		// one-resolution shapes stays refused.
+		return lRef{Kind: rEach}, nil
+	}
+	if lc.impPersist || lc.digImprintSetLive() { // lower_digimprintset.go
+		return lRef{Kind: rImprinted}, nil
+	}
+	if !lc.digImprintChosen {
+		return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
+	}
+	return lRef{Kind: rChosen}, nil
 }
 
 // tokenImprint reads Token's ImprintTokens$ True: the created tokens join the
@@ -50,7 +79,30 @@ func (lc *lowerCtx) tokenImprint(ps *params, in *lInstr) error {
 // changeZoneImprint reads ChangeZone's Imprint$ True on a targeted or defined
 // exile (the kernel's ExileEx): each moved card joins the imprinted set. A
 // hidden-zone pick, a hand return or any other destination stays refused.
+// Unimprint$ and ImprintLast$ on the same writer exile clear the source's
+// imprint before the move (gorge clearChangeZoneImprint, from
+// changeZonePrelude; at the move ImprintLast replaces rather than appends):
+// the kernel emits the same ExtClearImprinted immediately before its exile
+// instruction.
 func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
+	if in.Op == "Exile" {
+		if v, ok := ps.get("Unimprint"); ok {
+			if v != "True" {
+				return refuse("ChangeZone Unimprint$ %q", v)
+			}
+			if err := lc.changeZoneUnimprint("Unimprint$"); err != nil {
+				return err
+			}
+		}
+		if v, ok := ps.get("ImprintLast"); ok {
+			if v != "True" {
+				return refuse("ChangeZone ImprintLast$ %q", v)
+			}
+			if err := lc.changeZoneUnimprint("ImprintLast$"); err != nil {
+				return err
+			}
+		}
+	}
 	v, ok := ps.get("Imprint")
 	if !ok {
 		return nil
@@ -65,6 +117,20 @@ func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
 		return err
 	}
 	in.CS = strings.TrimPrefix(in.CS+"|ImprintMove", "|")
+	return nil
+}
+
+// changeZoneUnimprint emits the pre-move clear of a writer ChangeZone's
+// Unimprint$/ImprintLast$: the resolution's imprinted set empties and the
+// source's kept records the resolving entry can read go with it (gorge
+// clearChangeZoneImprint uses the same event as Cleanup's ClearImprinted$
+// rider). Only the persist shape lowers it; anywhere else the params stay
+// unread and refuse.
+func (lc *lowerCtx) changeZoneUnimprint(what string) error {
+	if !lc.impPersist {
+		return refuse("ChangeZone %s outside the persist shape", what)
+	}
+	lc.emit(lInstr{Op: "ClearImprinted"})
 	return nil
 }
 
@@ -88,8 +154,9 @@ func (lc *lowerCtx) millImprint(ps *params, in *lInstr) error {
 
 // imprintedFilterGate refuses a filter naming IsImprinted outside a chain
 // that opened the imprinted set: the kernel's set lives for one resolution.
+// A face that keeps its Imprinted on the source reads it in any chain.
 func (lc *lowerCtx) imprintedFilterGate(expr string) error {
-	if strings.Contains(expr, "IsImprinted") && !lc.digImprintSetLive() {
+	if strings.Contains(expr, "IsImprinted") && !lc.impPersist && !lc.digImprintSetLive() {
 		return refuse("filter %q: IsImprinted outside a chain that writes the imprinted set", expr)
 	}
 	return nil
@@ -106,6 +173,17 @@ func filterReadsImprinted(f *lFilter) bool {
 		}
 	}
 	return false
+}
+
+// imprintedPTValue is the Imprinted$CardPower/CardToughness head: the imprint
+// pile's objects' property (gorge count_ref_property.go; the persist shape
+// holds one), the kernel's ExPowerOf/ExToughnessOf over RefImprinted.
+func imprintedPTValue(rest string) lValue {
+	kind := vPowerOf
+	if rest == "CardToughness" {
+		kind = vToughnessOf
+	}
+	return lValue{Kind: kind, Ref: lRef{Kind: rImprinted}}
 }
 
 // imprintWriter reports whether in adds to the resolution's imprinted set.
@@ -148,8 +226,12 @@ func unclearedImprint(prog []lInstr) bool {
 // refuseCrossAbilityImprinted refuses each ability that reads the imprinted
 // set but never writes it in its own program: gorge's imprint persists on the
 // source, the kernel's set does not outlive the resolution (Oblivious
-// Bookworm, Superior Foes of Spider-Man).
+// Bookworm, Superior Foes of Spider-Man). A face that keeps its Imprinted on
+// the source reads another ability's write, so neither refusal applies.
 func (lc *lowerCtx) refuseCrossAbilityImprinted() {
+	if lc.impPersist {
+		return
+	}
 	for _, a := range lc.out.Abilities {
 		reads, writes := false, false
 		for _, in := range a.Prog {

@@ -1,8 +1,12 @@
 package oracle
 
 import (
+	"cmp"
+	"fmt"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -64,13 +68,42 @@ func lockstepSet(t *testing.T, setName string, decks [2][]cardset.Entry, seeds u
 	}
 	reg, set, gd := lockstepPool(t, setName, decks)
 	var clean, casts int
+	var div []lockstepDivergence
 	seedChunks(t, 1, seeds, lockstepChunk, func(t *testing.T, lo, hi uint64, mu *sync.Mutex) {
-		c, n, _ := lockstepSeeds(t, reg, set, setName, decks, gd, lo, hi, true, nil, nil, castFirstPolicy)
+		c, n, d := lockstepSeedsMode(t, reg, set, setName, decks, gd, lo, hi, lockstepQuiet, nil, nil, castFirstPolicy)
 		mu.Lock()
-		clean, casts = clean+c, casts+n
+		clean, casts, div = clean+c, casts+n, append(div, d...)
 		mu.Unlock()
 	})
 	t.Logf("%s: %d seeds, %d clean; %d casts/activations", setName, seeds, clean, casts)
+	if len(div) > 0 {
+		t.Error(divergenceReport(setName, seeds, div))
+	}
+}
+
+// lockstepReportDetail is how many divergent games' full failure text
+// divergenceReport prints; the summary line names the rest.
+const lockstepReportDetail = 3
+
+// divergenceReport is lockstepSet's failure text: one summary line naming every
+// divergent seed, ascending, then the first lockstepReportDetail games' detail
+// in seed order. The chunks run in parallel and finish in any order, and a
+// long failure log is shown cut off, so a failure printed by each chunk reads
+// as a different, smaller set on every run; this text is the same on every
+// run of the same code and holds the whole failing set up front.
+func divergenceReport(setName string, seeds uint64, div []lockstepDivergence) string {
+	div = slices.Clone(div)
+	slices.SortFunc(div, func(a, b lockstepDivergence) int { return cmp.Compare(a.seed, b.seed) })
+	var seedList []uint64
+	for _, d := range div {
+		seedList = append(seedList, d.seed)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s: %d of %d seeds diverge: %v", setName, len(div), seeds, seedList)
+	for _, d := range div[:min(len(div), lockstepReportDetail)] {
+		b.WriteString("\n" + d.msg)
+	}
+	return b.String()
 }
 
 // lockstepChunk is the seeds one parallel subtest of lockstepSet plays
@@ -158,6 +191,44 @@ func lockstepPool(t *testing.T, setName string, decks [2][]cardset.Entry) (*card
 // divergent games (without report, it stops at the first).
 func lockstepSeeds(t *testing.T, reg *cards.Registry, set cardset.Set, setName string, decks [2][]cardset.Entry, gd [2][]*cards.Card, lo, hi uint64, report bool, mutate func(*kop.Table), wrap func(Side) Side, policy func(uint64) Policy) (clean, casts, div int) {
 	t.Helper()
+	clean, casts, divSeeds := lockstepSeedsDiv(t, reg, set, setName, decks, gd, lo, hi, report, mutate, wrap, policy)
+	return clean, casts, len(divSeeds)
+}
+
+// lockstepSeedsDiv is lockstepSeeds returning the divergent seeds themselves.
+func lockstepSeedsDiv(t *testing.T, reg *cards.Registry, set cardset.Set, setName string, decks [2][]cardset.Entry, gd [2][]*cards.Card, lo, hi uint64, report bool, mutate func(*kop.Table), wrap func(Side) Side, policy func(uint64) Policy) (clean, casts int, divSeeds []uint64) {
+	t.Helper()
+	mode := lockstepStopFirst
+	if report {
+		mode = lockstepFailEach
+	}
+	clean, casts, divs := lockstepSeedsMode(t, reg, set, setName, decks, gd, lo, hi, mode, mutate, wrap, policy)
+	for _, d := range divs {
+		divSeeds = append(divSeeds, d.seed)
+	}
+	return clean, casts, divSeeds
+}
+
+// lockstepDivergence is one divergent game: its seed and the failure text
+// lockstepFailEach reports for it.
+type lockstepDivergence struct {
+	seed uint64
+	msg  string
+}
+
+// lockstepMode is what lockstepSeedsMode does with a divergent game.
+type lockstepMode int
+
+const (
+	lockstepStopFirst lockstepMode = iota // log it and stop at the first
+	lockstepFailEach                      // fail the test on each, play on
+	lockstepQuiet                         // only record it, play on
+)
+
+// lockstepSeedsMode is lockstepSeedsDiv with the handling of a divergence
+// chosen by mode.
+func lockstepSeedsMode(t *testing.T, reg *cards.Registry, set cardset.Set, setName string, decks [2][]cardset.Entry, gd [2][]*cards.Card, lo, hi uint64, mode lockstepMode, mutate func(*kop.Table), wrap func(Side) Side, policy func(uint64) Policy) (clean, casts int, divs []lockstepDivergence) {
+	t.Helper()
 	tbl, _, _, err := set.Matchup(decks[0], decks[1])
 	if err != nil {
 		t.Fatal(err)
@@ -196,19 +267,21 @@ func lockstepSeeds(t *testing.T, reg *cards.Registry, set cardset.Set, setName s
 			}
 		}
 		if d := res.Div; d != nil {
-			div++
-			if !report {
-				t.Logf("seed %d diverges (decision %d: %s)", seed, d.At, d.What)
-				return clean, casts, div
-			}
 			from := max(d.At-12, 0)
-			t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[from:d.At]))
-			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			msg := fmt.Sprintf("seed %d last actions %v\nseed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, actionStrings(res.Actions[from:d.At]), seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			divs = append(divs, lockstepDivergence{seed, msg})
+			switch mode {
+			case lockstepStopFirst:
+				t.Logf("seed %d diverges (decision %d: %s)", seed, d.At, d.What)
+				return clean, casts, divs
+			case lockstepFailEach:
+				t.Error(msg)
+			}
 			continue
 		}
 		clean++
 	}
-	return clean, casts, div
+	return clean, casts, divs
 }
 
 // kwardLifeDecks pairs a printed "ward—pay 2 life" (Zul'Ashur, Lich Lord)

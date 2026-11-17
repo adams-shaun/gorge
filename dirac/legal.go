@@ -18,15 +18,27 @@ func (s *State) sorcerySpeed(p uint8) bool {
 }
 
 // castGateAffordable is the hand-cast offer gate's affordability read over
-// cav: the printed cost when its own is affordable (s.phyCastGateAffords,
-// mana_phyrexian.go: a Phyrexian cost's pip-free mana half alone, gorge pay.
-// PlanManaHalf, CR 601.2b), else the restricted-spend fallback (a restricted
-// source the spell may spend prices it, as gorge's planner's prefix search).
+// cav: the printed cost when its own is affordable, else for a Phyrexian
+// cost the whole cost over the cast window's census when its pip-free mana
+// half is (s.phyCastGateAffords, mana_phyrexian.go, CR 601.2b), else the
+// restricted-spend fallback (a restricted source the spell may spend prices
+// it, as gorge's planner's prefix search).
 func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	if s.phyCastGateAffords(cav, cost) {
+	if s.phyCastGateAffords(k, p, cav, cost) {
 		return true
 	}
 	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
+}
+
+// castGateOrPoolPays is the plain cast's affordability read: the gate's own
+// read, or the conversion pool paying the pips (mana_convertcreature.go).
+func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
+}
+
+// kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
+func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
+	return s.kickedAffords(k, p, c, o, kc, cav) || s.convPoolPays(k, p, o, kc)
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {
@@ -165,7 +177,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castGateAffordable(k, p, c, o, cost, cav) && !s.convPoolPays(k, p, o, cost) {
+		if !s.castGateOrPoolPays(k, p, c, o, cost, cav) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -226,7 +238,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 			}
-			if (s.kickedAffords(k, p, c, o, &kc, cav) || s.convPoolPays(k, p, o, &kc)) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, TCode(o), 0, 1))
 			}
 		}
@@ -413,7 +425,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 {
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -431,6 +443,15 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 					// floating pool alone pays it (Config.GorgeUnpriced). A hybrid
 					// cost without {X} is planned (each pip resolved to a colour:
 					// Puresight Merrow's {W/U}{Q}, kverify-c4).
+					//
+					// A {S} activation (CR 107.4h; PlanCostDetail cost:snow,
+					// Boreal Centaur's {S}: Regenerate) is gated the same way
+					// and on every surface: gorge never plans it, so it is
+					// offered only when the pool's snow units pay it (poolPays
+					// reads snowPays). With cfgGorgeUnpriced off gorge's search
+					// surface would still plan the sources; the kernel keeps
+					// the pool-only gate there too, a declared limitation of
+					// the search surface (avail.affords never affords {S}).
 					continue
 				}
 			}
@@ -439,6 +460,9 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			}
 			if s.canActivate(k, sl, ai, a, sorc, av) {
 				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
+				if st := DebugSnowStats; st != nil && a.Cost.Mana.Snow != 0 {
+					st.Offered++
+				}
 			}
 		}
 	}
@@ -653,7 +677,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			return false
 		}
 	}
-	if mana.MV() > 0 || mana.X > 0 {
+	if sourcesPay(&mana) {
 		manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
 		if f&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
 			manaCost = s.waterbendCredit(k, p.ctrl, sl, a, manaCost)
@@ -672,6 +696,13 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
+}
+
+// sourcesPay reports whether an activation's mana cost is priced against the
+// untapped sources (canActivate). A {S} cost never is: gorge never plans it, and
+// activateOffers gates it on the floating pool's snow units (snowPays).
+func sourcesPay(m *kop.ManaCost) bool {
+	return m.Snow == 0 && (m.MV() > 0 || m.X > 0)
 }
 
 // abilityAffords reports whether av pays the mana cost cost of ability a of
@@ -1727,8 +1758,23 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			done[sl] = 1 << pc.manaAb
 		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
-		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment && !pc.manaFixedChosen) {
-			open = s.potentialAnyColourUnit(k, sl, pc, dynamic, boundedAny, add, &anyFree) || open
+		if dynamic {
+			// gorge's potentialAmount prices an indeterminate Amount$
+			// unbounded in exactly the produced faces it names (CR 107.4a;
+			// rules potential.go addIndeterminatePotentialMana), never in a
+			// colour the ability does not make. An open production (any
+			// colour, or a chosen colour at a payment the bound only bounds)
+			// stays gorge's whole-pool open; a fixed one is unbounded in its
+			// own faces alone.
+			if potentialOpenProduction(pc, payment) {
+				open = true
+			} else {
+				add(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
+			}
+			continue
+		}
+		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
+			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, add, &anyFree) || open
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -1777,16 +1823,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				done[sl] |= 1 << j
 				progressed = true
 				if kop.StoreManaAb(ab) {
-					// A storage battery's potential: its announced X
-					// (Count$xPaid) is indeterminate to gorge's potentialAmount,
-					// which folds such a production unbounded in every colour
-					// (potentialUnbounded), while the census's live-counter read
-					// (mana_countercost.go storeGap) serves the exact gates. A
-					// battery with no counter still admits here: its cost
-					// announces X (pay ManaSubCounterXBound floors it at XMin 0),
-					// so gorge's walk prices the ability payable and folds it
-					// open.
-					open = true
+					// A storage battery's announced X (Count$xPaid) is indeterminate to
+					// gorge's potentialAmount, which folds it unbounded in every
+					// colour (potentialUnbounded) for the view and a cast. A trigger's
+					// own cost reads it at the counters it can remove, one mana each
+					// (rules potential_subcounter.go: pay ManaSubCounterXBound).
+					open = s.storePotential(open, sl, ab, d, add)
 					continue
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, add, &anyFree, &open) {
@@ -1821,8 +1863,8 @@ func (s *State) potentialDynamicSource(k *prep, sl Slot, pc *pcard, done *[MaxPe
 
 // potentialAnyColourUnit adds a fixed any-colour source in bounded mode as one
 // unit of any colour; it reports the unbounded case.
-func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, dynamic, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
-	if !boundedAny || dynamic {
+func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
+	if !boundedAny {
 		return true
 	}
 	mask, n := s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc)
@@ -1831,6 +1873,13 @@ func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, dynamic, bou
 	}
 	add(sl, mask, n)
 	return false
+}
+
+// potentialOpenProduction reports whether a mana view's production is open:
+// any colour, or a chosen colour only where the bound bounds (no payment, the
+// choice not fixed), the shape availPotentialFor prices whole-pool open.
+func potentialOpenProduction(pc *pcard, payment bool) bool {
+	return pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment && !pc.manaFixedChosen
 }
 
 // potentialRiderUnit is a rider source's unit in the potential walk.
@@ -1898,8 +1947,15 @@ func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny bool,
 		add(sl, 0x1f, 1)
 		return true
 	}
-	if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 {
+	if ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 {
 		*open = s.potentialExtraUnit(ab, sl, boundedAny, add, anyFree) || *open
+		return true
+	}
+	if ab.AFlags&kop.AfManaDynamic != 0 {
+		// an indeterminate Amount$ is unbounded in the produced faces it
+		// names (CR 107.4a; rules potential.go addIndeterminatePotentialMana),
+		// never in a colour the ability does not make
+		add(sl, uint8(ab.ManaColors), potentialOpenUnits)
 		return true
 	}
 	return false
@@ -1964,9 +2020,7 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
 		// a storage battery (Mage-Ring Network, Dwarven Hold): its cost
 		// announces X ("remove any number"), so gorge's walk prices the
-		// activation payable whatever the counters it holds (pay
-		// ManaSubCounterXBound floors the announced X at XMin 0) and folds the
-		// battery's production open (the fixpoint's StoreManaAb arm)
+		// activation payable (the fixpoint's StoreManaAb arm reads its mana)
 		return true
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot

@@ -101,12 +101,20 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 type lowerCtx struct {
 	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	ddoEvent bool  // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
-	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source (lower_effectcaptured.go)
+	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
+
+	// emblemDmg: lowering the body of a capturing EOT emblem's DamageDone
+	// trigger. On the recipient-captured shape (ValidTarget$ ...IsRemembered,
+	// the recipient branch of lower_effeottrig.go emblemCaptureFilter) the
+	// kernel emblem hook queues the DAMAGED object as the trigger object
+	// (dirac/trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
+	// so a body read of the damage source refuses (lower_effect.go).
+	emblemDmg bool
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
@@ -122,6 +130,8 @@ type lowerCtx struct {
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	stormTrig      int       // the K:Storm expansion trigger's index + 1: it lowers to nothing (lower_storm.go)
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
+	impPersist     bool      // the face keeps its Imprinted on the source (lower_imppersist.go)
+	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
@@ -140,6 +150,7 @@ type lowerCtx struct {
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
+	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
 	trigBodyCost   bool      // the cost parser is reading a printed trigger's own body Cost$ (PayLife<X> by a value, lowerCtx.effect)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
@@ -366,7 +377,8 @@ func lowerCard(p *pool, name string, c *cards.Card, token bool) *lCard {
 		out.printed = lc.face.Name
 	}
 	lc.lowerFace()
-	lc.exwCheck() // lower_exw.go
+	lc.exwCheck()        // lower_exw.go
+	lc.snowSourceCheck() // lower_snowcost.go
 	return out
 }
 
@@ -406,6 +418,9 @@ func (lc *lowerCtx) lowerFace() {
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
+	// lower_imppersist.go: the Imprinted list kept on the source
+	lc.impPersist, lc.impFoldExiled = lc.impPersistShape()
+	lc.out.ImpPersist = lc.impPersist
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
 	if lc.fuseAlt != nil {
@@ -870,7 +885,9 @@ func parsePrintedManaCost(s string) (manaCost, error) { return parseManaCostOpt(
 
 // parseAbilityManaCost is parseManaCost for an activated ability's cost,
 // which also reads a Phyrexian symbol ({W/P}, Forge "WP").
-func parseAbilityManaCost(s string) (manaCost, error) { return parseManaCostSyms(s, false, true) }
+func parseAbilityManaCost(s string) (manaCost, error) {
+	return parseManaCostSyms(s, false, true, false)
+}
 
 // xColorLetter parses Forge's XColor$ value -- colour words ("Black") or a
 // bare WUBRG letter ("R") -- as the one colour the {X} must be paid with.
@@ -911,11 +928,12 @@ func (lc *lowerCtx) xColor(m *manaCost, raw string) error {
 }
 
 func parseManaCostOpt(s string, twobrid bool) (manaCost, error) {
-	return parseManaCostSyms(s, twobrid, twobrid)
+	return parseManaCostSyms(s, twobrid, twobrid, false)
 }
 
-// parseManaCostSyms parses a cost; twobrid admits {2/W}, phyrexian {W/P}.
-func parseManaCostSyms(s string, twobrid, phyrexian bool) (manaCost, error) {
+// parseManaCostSyms parses a cost; twobrid admits {2/W}, phyrexian {W/P},
+// snow {S} (CR 107.4h: an activated ability's cost only, costHand).
+func parseManaCostSyms(s string, twobrid, phyrexian, snow bool) (manaCost, error) {
 	var m manaCost
 	s = strings.TrimSpace(s)
 	if s == "" || s == "no cost" {
@@ -947,6 +965,10 @@ func parseManaCostSyms(s string, twobrid, phyrexian bool) (manaCost, error) {
 		}
 		if t == "C" {
 			m.C++
+			continue
+		}
+		if snow && t == "S" {
+			m.Snow++
 			continue
 		}
 		if i := strings.IndexByte("WUBRG", t[0]); len(t) == 1 && i >= 0 {
@@ -1003,7 +1025,7 @@ var expandedKeywords = map[string]bool{
 	// into the resolution, which kgen never sees.
 	"Undying": true, "Persist": true, "Backup": true, "Fabricate": true, "Living Weapon": true,
 	"Job select": true, "For Mirrodin": true, "Transmute": true, "Outlast": true, "Battle cry": true,
-	"Afterlife": true, "Afflict": true, "Ravenous": true, "Modular": true,
+	"Afterlife": true, "Afflict": true, "Ravenous": true, "Rampage": true, "Modular": true,
 	// Demonstrate (CR 702.144a): gorge kwDemonstrate (cards/kw_demonstrate.go)
 	// appends a "when you cast this spell" trigger whose body is the
 	// __kwDemonstrate SVar, DB$ Demonstrate. (gorge's comment there cites
@@ -2272,6 +2294,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			case isManaSym(t):
 				mana = append(mana, t)
 				continue
+			case t == "S" && lc.snowCostOK():
+				mana = append(mana, t) // {S}, CR 107.4h (lower_snowcost.go)
+				continue
 			case len(t) == 2 && t[1] == 'P' && strings.IndexByte("WUBRG", t[0]) >= 0:
 				mana = append(mana, t) // a Phyrexian pip
 				continue
@@ -2901,9 +2926,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		}
 	}
 	if len(mana) > 0 {
-		mc, err := parseAbilityManaCost(strings.Join(mana, " "))
+		mc, err := parseManaCostSyms(strings.Join(mana, " "), false, true, lc.snowCostOK())
 		if err != nil {
 			return c, refuse("%v", err)
+		}
+		if mc.Snow > 0 && (mc.X || mc.XX || mc.XXX || len(mc.Hybrid) != 0 || len(mc.Twobrid) != 0 || len(mc.Phyrexian) != 0 || mc.XColor != 0) {
+			return c, refuse("{S} beside a flexible pip")
 		}
 		c.Mana = mc
 	} else {
@@ -2957,6 +2985,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
+		lc.foldImprintExiledWith(c)
 		if c.Flags&fNamedAsSource != 0 {
 			// every named<X> is a literal clause (gorge wordNamed ->
 			// sharesName reads the NAME, not the source; CR 201.2):

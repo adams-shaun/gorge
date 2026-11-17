@@ -31,17 +31,46 @@ func libPlaceArranges(ps *params, api string) bool {
 	return api == "ChangeZoneAll" || ps.peek("Hidden") != "True"
 }
 
-// libPlaceAll brackets a ChangeZoneAll sweep into a library: its cards are
-// placed on top (the only position the sweep lowers), so the arm is the top
-// one. A LibraryPosition$ other than the top is refused.
-func libPlaceAll(ps *params) (bracket bool, err error) {
-	if !libPlaceArranges(ps, "ChangeZoneAll") {
-		return false, nil
+// libPlaceAll brackets a ChangeZoneAll sweep into a library. The arm is the
+// sweep's placement: LibraryPosition$ 0 (or absent) is the top and -1 the
+// bottom; RandomOrder$ True marks the arm random, and the kernel then puts the
+// moved set top or bottom in gorge's Fisher-Yates order without asking. Any
+// other position or RandomOrder$ spelling is refused by name. A Shuffle$ True
+// sweep is not bracketed: its shuffle tail owns the placement.
+func libPlaceAll(ps *params) (arm int, bracket bool, err error) {
+	if ps.peek("Destination") != "Library" {
+		return 0, false, nil
 	}
-	if p := ps.peek("LibraryPosition"); p != "" && p != "0" {
-		return false, refuse("ChangeZoneAll LibraryPosition$ %q: the CR 401.4 arrangement is lowered for the top only", p)
+	if ps.peek("Shuffle") == "True" && ps.peek("NoShuffle") != "True" {
+		return 0, false, nil
 	}
-	return true, nil
+	pos, _ := ps.get("LibraryPosition")
+	pos = strings.TrimSpace(pos)
+	if pos != "" && pos != "0" && pos != "-1" {
+		return 0, false, refuse("ChangeZoneAll LibraryPosition$ %q: only the top or the bottom is lowered", pos)
+	}
+	random := false
+	if v, ok := ps.get("RandomOrder"); ok {
+		switch v = strings.TrimSpace(v); v {
+		case "True":
+			random = true
+		case "False", "":
+		default:
+			return 0, false, refuse("ChangeZoneAll RandomOrder$ %q", v)
+		}
+	}
+	bottom := pos == "-1"
+	switch {
+	case bottom && random:
+		arm = kop.PlaceArmBottomRandom
+	case bottom:
+		arm = kop.PlaceArmSweepBottom
+	case random:
+		arm = kop.PlaceArmTopRandom
+	default:
+		arm = kop.PlaceArmTop
+	}
+	return arm, true, nil
 }
 
 // libPlaceTargets brackets a ChangeZone to a library whose object is a

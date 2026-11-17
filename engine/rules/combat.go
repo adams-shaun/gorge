@@ -2082,14 +2082,15 @@ func (e *Engine) dealDamagePass(pass bool) {
 // forward combat damage: the battle object when the creature is attacking a
 // battle (CR 310.7), else the defending player. Object.AttackingBattle is set
 // by events.Apply from the DeclareAttackers event and cleared with IsAttacking.
-// A battle that has left the battlefield since the declaration returns
-// ok=false, which the caller drops -- the recipient no longer exists, the same
+// A battle that has left the battlefield since the declaration (even one
+// that came back as a new object, CR 506.4c) returns ok=false, which the caller drops -- the recipient no longer exists, the same
 // no-assignment shape a departed defender leaves. The ok flag, not a zero
 // value, is the discriminator: seat 0 is a legal defending player, so
 // (player 0, object 0) is a real assignment and cannot mean "no recipient".
 func (e *Engine) combatDefenderTarget(a *state.Object) (state.PlayerID, state.ObjID, bool) {
 	if a.AttackingBattle != 0 {
-		if b := e.G.Obj(a.AttackingBattle); b != nil && b.Zone == state.ZBattlefield {
+		if b := e.G.Obj(a.AttackingBattle); b != nil && b.Zone == state.ZBattlefield &&
+			b.ZoneGen == a.AttackingBattleGen {
 			return 0, a.AttackingBattle, true
 		}
 		return 0, 0, false
@@ -2772,6 +2773,7 @@ func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 			take(n, ts)
 		}
 	}
+	grantedMaxHandSizes(e, p, take)
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.SetMaxHandSize == "" {
@@ -2785,6 +2787,74 @@ func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 		}
 	}
 	return best
+}
+
+// grantedMaxHandSizes reports, through take, every SetMaxHandSize$ a printed
+// Continuous static GRANTS (AddStaticAbility$ naming an SVar, Nerd Rage's
+// "Enchanted creature has 'You have no maximum hand size'"): each object the
+// OUTER Affected$ matches has the inner static, whose Affected$ You is that
+// recipient's controller, so p is affected when p controls a recipient. The
+// outer static's own gate and the inner one's both must hold, and the value's
+// timestamp is the granting source's (CR 613.7). Hosts are walked in seat then
+// battlefield order, so the result is deterministic.
+// grantedHandHost is the narrow engine surface the granted-maximum walk reads:
+// the Game, the live Continuous statics, a static's gate and a spec match.
+type grantedHandHost interface {
+	effects.Host
+	activeStatics(mode string) []staticView
+	continuousGateHolds(sv staticView) bool
+	matchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool
+}
+
+func grantedMaxHandSizes(e grantedHandHost, p state.PlayerID, take func(int, uint32)) {
+	for _, sv := range e.activeStatics("Continuous") {
+		raw := sv.ParamStr(cards.PKAddStaticAbility)
+		src := e.Game().Obj(sv.Source)
+		if src == nil || src.Face() == nil {
+			continue
+		}
+		if sv.SVars == nil {
+			sv.SVars = src.Face().SVars
+		}
+		for _, name := range cards.SplitGrantNames(raw) {
+			inners, ok := cards.ParseStaticLines(sv.SVars[name])
+			if !ok {
+				continue
+			}
+			for _, inner := range inners {
+				grantedMaxHandSizeInner(e, p, sv, inner, src.LayerTimestamp(), take)
+			}
+		}
+	}
+}
+
+// grantedMaxHandSizeInner applies one granted inner static of grantedMaxHandSizes.
+func grantedMaxHandSizeInner(e grantedHandHost, p state.PlayerID, outer staticView, inner cards.Static, ts uint32, take func(int, uint32)) {
+	raw := inner.ParamStr(cards.PKSetMaxHandSize)
+	if inner.ModeKind() != cards.StaticContinuous || raw == "" || !e.continuousGateHolds(outer) {
+		return
+	}
+	affects := outer.ParamStr(cards.PKAffected)
+	for _, hp := range e.Game().AliveFrom(0) {
+		for _, id := range e.Game().Zone(state.ZBattlefield, hp) {
+			host := e.Game().Obj(id)
+			if host == nil || host.PhasedOut || !e.matchesSpecFrom(affects, id, outer.Controller, outer.Source) {
+				continue
+			}
+			if !effects.MatchesPlayerSpecFrom(e.Game(), inner.ParamStr(cards.PKAffected), p, host.Controller, id) {
+				continue
+			}
+			iv := staticView{Source: id, Controller: host.Controller, Params: inner.Params, PS: inner.ParamSetOf(), SVars: outer.SVars}
+			if !e.continuousGateHolds(iv) {
+				continue
+			}
+			if n, ok := effects.HandSizeValueOK(raw); ok {
+				take(n, ts)
+			} else if n, ok := setMaxHandSizeSVar(e, iv, raw); ok {
+				take(n, ts)
+			}
+		}
+	}
 }
 
 // setMaxHandSizeSVar prices a printed SetMaxHandSize$ value that names an

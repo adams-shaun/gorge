@@ -95,22 +95,35 @@ func (s *State) snowClearAll() {
 // unit just added, so a stale count above pool[col]-1 goes first. It is called
 // after the unit is added, from artTag.
 func (s *State) snowTag(k *prep, p uint8, sl Slot, col int) {
-	if k.gen == nil || !k.gen.anySnow {
+	s.snowTagN(k, p, s.cardAt(sl), col, 1)
+}
+
+// poolAddFrom adds n units of colour col that a resolving spell or ability of
+// card produced to p's pool, snow-tagged when card's mana is snow.
+func (s *State) poolAddFrom(k *prep, p uint8, card CardID, col, n int) {
+	s.poolAdd(p, col, n)
+	s.snowTagN(k, p, card, col, n)
+}
+
+// snowTagN is snowTag for n units a resolving spell or ability of card added
+// at once (OpAddMana; the source is the stack entry's card, a snow spell's mana
+// is snow mana as a snow permanent's is, gorge's ManaProducerTag): the stale
+// count above the units the pool held before the add goes first.
+func (s *State) snowTagN(k *prep, p uint8, card CardID, col, n int) {
+	if k.gen == nil || !k.gen.anySnow || n <= 0 {
 		return
 	}
-	pc := &k.cards[s.cardAt(sl)]
-	if !pc.manaSnow && !(DebugSnowTypedIsSnow && pc.manaTyped && k.t.Cards[s.cardAt(sl)].Snow) {
+	pc := &k.cards[card]
+	if !pc.manaSnow && !(DebugSnowTypedIsSnow && pc.manaTyped && k.t.Cards[card].Snow) {
 		return
 	}
 	sx := coldSnow.of(s)
 	i := SeatIx(p)
-	n := &sx[int(i)*kop.NumManaKinds+col]
-	if left := s.pl[i].pool[col] - 1; *n > left {
-		*n = left
+	t := &sx[int(i)*kop.NumManaKinds+col]
+	if left := int(s.pl[i].pool[col]) - n; int(*t) > left {
+		*t = uint8(max(left, 0))
 	}
-	if *n < 255 {
-		*n++
-	}
+	*t = uint8(min(int(*t)+n, 255))
 	s.g.poolArt[i] |= poolArtSnow
 }
 
@@ -136,5 +149,109 @@ func (s *State) snowSync(p uint8) {
 	}
 	if !any {
 		s.g.poolArt[i] &^= poolArtSnow
+	}
+}
+
+// snowTotal is p's snow units in the pool, the tally synced first.
+func (s *State) snowTotal(p uint8) int {
+	s.snowSync(p)
+	n := 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		n += int(s.snowAt(p, c))
+	}
+	return n
+}
+
+// snowPreSpend, as a cast's payment begins, keeps the caster's snow units on
+// the build when the spell's card reads Count$CastTotalManaSpent Snow
+// (CardDef.SpentSnow), for snowSpentRec.
+func (s *State) snowPreSpend(k *prep, e *stackEntry) {
+	if k.gen != nil && k.gen.anySnow && k.t.Cards[e.card].SpentSnow {
+		s.bld().snowPre = uint8(min(s.snowTotal(e.ctrl), 255))
+	}
+}
+
+// snowSpentRec is the amount a cast records as its spend (histCast): for a
+// SpentSnow card the snow units its payment took out of the pool (gorge
+// Object.ManaSnowSpent, which captureCastSpend counts), the units before the
+// payment less the units left; any other card's is the mana spent.
+func (s *State) snowSpentRec(k *prep, e *stackEntry, spent int) int {
+	if DebugSnowSpentTotal || k.gen == nil || !k.gen.anySnow || !k.t.Cards[e.card].SpentSnow {
+		return spent
+	}
+	return max(int(s.bld().snowPre)-s.snowTotal(e.ctrl), 0)
+}
+
+// DebugSnowSpentTotal records a SpentSnow cast's mana value, not its snow
+// units (mutation testing only, TestSnowSpentMutation).
+var DebugSnowSpentTotal bool
+
+// snowPays reports whether p's pool pays cost, which asks {S} pips (CR 107.4h):
+// the coloured pips come off a copy of the pool first (gorge's ResolveManaWith
+// pays them before the {S} pips, and spends a plain unit of a colour before a
+// snow one), the tally is clamped to what is left, cost.Snow snow units are
+// needed across the colours, and the rest of the pool covers Generic. A cost
+// the lowering never emits with {S} (a hybrid or {X} pip) is never paid.
+func (s *State) snowPays(p uint8, cost *kop.ManaCost) bool {
+	if cost.Hyb[0] != 0 || cost.X != 0 {
+		return false
+	}
+	pool := s.pl[SeatIx(p)].pool
+	tot, snow := 0, 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pool[c] < cost.Pips[c] {
+			return false
+		}
+		pool[c] -= cost.Pips[c]
+		tot += int(pool[c])
+		snow += int(min(s.snowAt(p, c), pool[c]))
+	}
+	return snow >= int(cost.Snow) && tot-int(cost.Snow) >= int(cost.Generic)
+}
+
+// DebugSnowAnyUnit lets a {S} pip take any unit of the pool in generic order,
+// not a snow one (mutation testing only, TestSnowCostMutation).
+var DebugSnowAnyUnit bool
+
+// SnowStats counts {S} costs, for oracle tests only.
+type SnowStats struct {
+	PipsPaid int // {S} pips payFromPool paid from a snow unit
+	Offered  int // {S} activations offered
+}
+
+// DebugSnowStats is the test hook; nil in normal play.
+var DebugSnowStats *SnowStats
+
+// snowPay pays n {S} pips from p's pool, after its coloured pips: each takes
+// the first colour of W U B R G C whose snow tally is non-zero (gorge
+// ResolveManaWith alt.Snow), decrementing the pool and the tally. The tally is
+// synced first (a plain unit of a colour goes before a snow one). It panics, as
+// the other payment arms do, when no snow unit is left.
+func (s *State) snowPay(p uint8, n uint8) {
+	s.snowSync(p)
+	pl := &s.pl[SeatIx(p)]
+	order := [kop.NumManaKinds]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C}
+	if DebugSnowAnyUnit {
+		order = [kop.NumManaKinds]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
+	}
+	for ; n > 0; n-- {
+		paid := false
+		for _, c := range order {
+			if pl.pool[c] == 0 || !DebugSnowAnyUnit && s.snowAt(p, c) == 0 {
+				continue
+			}
+			pl.pool[c]--
+			if t := s.snowAt(p, c); t > 0 {
+				s.snowSetAt(p, c, t-1)
+			}
+			paid = true
+			break
+		}
+		if !paid {
+			panic("kernel: payment failed (snow)")
+		}
+		if st := DebugSnowStats; st != nil {
+			st.PipsPaid++
+		}
 	}
 }

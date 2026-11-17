@@ -89,7 +89,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		}
 	} else if targeted {
 		// the X-bound target is judged at the X the fork's mana still pays
-		if !t.spellTargetsFeasible(k, c, p) || !t.spellXBoundPayable(k, c, p, cost) {
+		if !t.spellTargetsFeasible(k, c, p) && !s.announcedTargetKept(k, t, c, p) || !t.spellXBoundPayable(k, c, p, cost) {
 			return true
 		}
 	}
@@ -650,8 +650,10 @@ func (s *State) pendNeedsDecision(k *prep, i int) bool {
 }
 
 // castTimingNeutral is the AkCast mode bits that leave the card's own timing:
-// bit 0 kicked, bit 1 flashback (legal_gen.go).
-const castTimingNeutral uint8 = 1<<0 | 1<<1
+// bit 0 kicked, bit 1 flashback, bit 3 a cast through a permission or static
+// (castMayPlay), bit 4 without paying the mana cost (castFree); offerPlay
+// times all of them as the card (legal_gen.go).
+const castTimingNeutral uint8 = 1<<0 | 1<<1 | castMayPlay | castFree
 
 // castNeedsEmptyStack reports whether the plain cast a is sorcery-speed: a
 // card that is neither an instant nor flashed may be cast only with the stack
@@ -660,7 +662,7 @@ const castTimingNeutral uint8 = 1<<0 | 1<<1
 // (potential_script.go waitsForStack), so the trigger resolves first.
 func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
 	if a.Kind() != AkBestow && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
-		// (a bestowed, kicked or flashback cast is timed as its card: CR 702.103a, 702.34a, 307.1)
+		// (a bestowed, kicked, flashback, permission or free cast is timed as its card: CR 702.103a, 702.34a, 307.1, 117.1a)
 		return false
 	}
 	o := Obj(a.Source())

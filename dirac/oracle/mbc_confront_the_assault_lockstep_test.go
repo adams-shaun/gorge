@@ -8,6 +8,8 @@ import "testing"
 // (Teferi, Time Raveler): prepareGen's `tableHasStatic(...) || prepSpellCond(...)`
 // short-circuited, so anySpellCond stayed false and the spell's cast gate was
 // never read (decision 324 of tail-22 pair 4, p0's draw step, no attacker).
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCConfrontTheAssaultReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "confront_the_assault_attacking_you")

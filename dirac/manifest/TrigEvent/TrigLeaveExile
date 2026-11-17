@@ -1,0 +1,9 @@
+family: TrigEvent
+name: TrigLeaveExile
+value: next
+forge: ChangesZone Origin$ Exile
+census: trig ChangesZone Exile->Any all=4 std=4 mbc=0 sole=3
+state: code 0
+status: active
+ticket: hn-rem-04
+doc: "a card leaves the exile zone" (Mode$ ChangesZone Origin$ Exile, Destination$ Any: the imprint carriers' forget/cleanup lines, Mirror Golem's DBForget, Duplicant's imprinted-card DBCleanup). The kernel fires it in placeFromK while the card is still in exile (CR 603.10a look-back), so a filter read of the imprint association judges the candidate as it was there; no slot subscription (nSubEvents ends at TrigGiveGift) — the firing walk scans the battlefield like the other no-subscription events.

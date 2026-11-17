@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
+)
 
 // The cost tokens costHand parses through a named helper: the body of a
 // function already over the codeshape ceiling does not grow (AGENTS.md), and
@@ -119,13 +123,23 @@ func (lc *lowerCtx) damageYouCost(c *lCost, parts []string, n int, t string) err
 // millCost parses Mill<N> (CR 701.17b, 118.3): the payer mills N cards from
 // the top of their own library as the cost is paid (gorge cost.parse's Mill
 // part, pay.PayMillCost, cast_commit.go's payMillCostParts; kop.Cost.Mill).
-// Only a printed activated ability's own non-mana cost lowers it today: a mana
-// ability's Mill<1> is a shape kop.ManaAbilityHonoured does not list (gorge's
-// payment plan refuses it too, pay.PaymentPlanTapOnlyCost), and an unless or
-// trigger cost's Mill<N> has no kernel pay kind yet (Deep Spawn, Ashcoat of
-// the Shadow Swarm).
+// An activated ability's own cost lowers it into the Cost.Mill byte, an
+// UnlessCost$ into payInstr's CS=Mill instruction (gorge payUnlessCost mills
+// through the shared pay.PayMillCost behind the election, gated
+// pay.MillCostPayable; Deep Spawn), and a mana ability's Mill<N> into the
+// Cost.Mill byte beside its {T} (Millikin): the head's Cost$ is parsed while
+// the ability is still classified akMana -- the reclassification reads the
+// parsed body (lower_stackmana.go stackManaAbility) -- and no CR 605.1a mana
+// ability's cost moves a library card (cards.IsManaAbilitySA's library gate),
+// so gorge resolves the whole ability on the stack as an ordinary activated
+// ability and its activation pays the mill through the same Cost.Mill arm
+// every activated ability pays (mana_window.go payAbilityCosts). A trigger's
+// own Cost$ Mill (Ashcoat of the Shadow Swarm) parses here — costUnless — but
+// payInstr refuses it: gorge's triggered-cost window keeps the component
+// decline-only (cumulative.go triggeredCostComponentsPayable).
 func (lc *lowerCtx) millCost(c *lCost, parts []string, n int, t string) error {
-	if !lc.actCost || len(parts) != 1 || n < 1 || c.MillN != 0 {
+	if !lc.actCost && !lc.unlessParse && (lc.ab == nil || lc.ab.Kind != akMana) ||
+		len(parts) != 1 || n < 1 || c.MillN != 0 {
 		return refuse("mill cost %q", t)
 	}
 	c.MillN = n
@@ -141,7 +155,37 @@ func (lc *lowerCtx) millCost(c *lCost, parts []string, n int, t string) error {
 // filtered, whole-hand or announced-X reveal needs a pick or announcement
 // the activation window does not pose yet (Living Destiny, Sasaya,
 // Illuminated Folio, the Martyr cycle).
+//
+// An UnlessCost$ Reveal<N/Spec> lowers as a filtered hand reveal instead
+// (Priest of the Wakening Sun's Reveal<1/Creature.Dinosaur>, Xyru Specter's
+// Reveal<2/Card.Black>): gorge beginUnlessPayment's "revealcost" pick over the
+// payer's matching hand cards, the settled picks announced as one Note and
+// nothing moved (pay/unlessflow.go AdvanceUnless). A CARDNAME spec matches the
+// source object alone (CR 201.5, engine/effects/filter.go matchesSpecFrom), so
+// a battlefield or stack source has no hand candidate — gorge's offer gate
+// keeps the election decline-only — and a whole-hand (IsWholeHandRevealSpec)
+// or SameColor (Illuminated Folio) spec is the cast window's relational shape.
+// A trigger's own Cost$ Reveal parses here too and payInstr refuses it: gorge's
+// triggered-cost window keeps the component decline-only (cumulative.go
+// triggeredCostComponentsPayable).
 func (lc *lowerCtx) revealSelfCost(c *lCost, parts []string, n int, t string) error {
+	if lc.unlessParse {
+		// One card: gorge's unlessflow asks its N-of-M "revealcost" pick as
+		// ONE KChoose of N selects while the kernel's pay pick asks one card
+		// per answer, so N > 1 would diverge at the decision record (Xyru
+		// Specter's Reveal<2/Card.Black> stays out for that and its
+		// GenericChoice blocker alike).
+		if len(parts) != 2 || n != 1 || c.RevealN != 0 || c.RevealSelf ||
+			parts[1] == "CARDNAME" || parts[1] == "Hand" || costvocab.IsSameColorRevealSpec(parts[1]) {
+			return refuse("reveal cost %q", t)
+		}
+		f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+		if err != nil {
+			return err
+		}
+		c.RevealN, c.RevealF = n, f
+		return nil
+	}
 	if !lc.actCost || n != 1 || len(parts) != 2 || parts[1] != "CARDNAME" || c.RevealSelf {
 		return refuse("reveal cost %q", t)
 	}
@@ -161,12 +205,31 @@ func (lc *lowerCtx) forecastParam(ps *params) {
 	ps.consume("Forecast")
 }
 
+// drawRecipient is the Ref a Draw<N/Who> cost's cards go to. Draw<N/Player
+// .targetedBy> draws for the parent's targeted player, not the payer
+// (Tresserhorn's Lord): the kernel reads the recipient from the instruction's
+// W (interp_ask.go applyResolveGen); "" (Draw<N/You>) is rNone, the payer.
+func (lc *lowerCtx) drawRecipient(who string) (lRef, error) {
+	switch who {
+	case "":
+		return lRef{}, nil
+	case "Player.TriggeredPlayer":
+		return lc.defined("TriggeredPlayer")
+	}
+	return lc.defined("TargetedPlayer")
+}
+
 // resTokenInstr lowers the resolution-time tokens that are payments the
 // kernel performs as effects: Draw<N/Who> (a trigger's own or an unless cost;
-// the drawing player may be the parent's targeted or the triggered player) and
+// the drawing player may be the parent's targeted or the triggered player),
 // DamageYou<N> (the resolving source deals N damage to the payer, a PayDraw
-// carrying kop.PayBSubDamage). It returns the part count payInstr tracks.
-func (lc *lowerCtx) resTokenInstr(c lCost, in *lInstr, n int) (int, error) {
+// carrying kop.PayBSubDamage), the UnlessCost$ Mill<N> (a PayDraw carrying
+// kop.PayBSubMill) and the UnlessCost$ Reveal<N/Spec> (a PayDiscard carrying
+// kop.PayBReveal). It returns the part count payInstr tracks and clears only
+// the Mill/Reveal fields its own arm consumes: the switch is first-match, so a
+// Draw or DamageYou arm leaves a following Mill/Reveal part for payInstr's
+// final one-part shape check to refuse instead of silently dropping it.
+func (lc *lowerCtx) resTokenInstr(c *lCost, in *lInstr, n int) (int, error) {
 	switch {
 	case c.DrawN > 0:
 		// gorge's triggered-cost window (cumulative.go) or an UnlessCost$
@@ -176,21 +239,11 @@ func (lc *lowerCtx) resTokenInstr(c lCost, in *lInstr, n int) (int, error) {
 		}
 		n++
 		in.CS, in.A = "Draw", cst(c.DrawN)
-		if c.DrawWho != "" {
-			// Draw<N/Player.targetedBy> draws for the parent's targeted
-			// player, not the payer (Tresserhorn's Lord): the kernel reads
-			// the recipient from the instruction's W (interp_ask.go
-			// applyResolveGen)
-			who := "TargetedPlayer"
-			if c.DrawWho == "Player.TriggeredPlayer" {
-				who = "TriggeredPlayer"
-			}
-			r, err := lc.defined(who)
-			if err != nil {
-				return n, err
-			}
-			in.W = r // the drawing player (cb.instr fills ki.W)
+		r, err := lc.drawRecipient(c.DrawWho)
+		if err != nil {
+			return n, err
 		}
+		in.W = r // the drawing player (cb.instr fills ki.W)
 	case c.DamageYouN > 0:
 		// an UnlessCost$ DamageYou<N> (gorge payUnlessDamageCost; CR
 		// 118.3): the resolving source deals the amount to the payer
@@ -199,6 +252,30 @@ func (lc *lowerCtx) resTokenInstr(c lCost, in *lInstr, n int) (int, error) {
 		}
 		n++
 		in.CS, in.A = "DamageYou", cst(c.DamageYouN)
+	case c.MillN > 0:
+		// an UnlessCost$ Mill<N> (gorge payUnlessCost: the shared
+		// pay.PayMillCost behind the election, gated pay.MillCostPayable;
+		// Deep Spawn). Alone: the instruction model pays one kind. A
+		// trigger's own Cost$ Mill stays refused — gorge's triggered-cost
+		// window keeps the component decline-only (cumulative.go
+		// triggeredCostComponentsPayable).
+		if !lc.unlessCost || n != 0 {
+			return n, refuse("resolution mill cost shape")
+		}
+		n++
+		in.CS, in.A = "Mill", cst(c.MillN)
+		c.MillN = 0
+	case c.RevealN > 0:
+		// an UnlessCost$ Reveal<N/Spec> (gorge beginUnlessPayment's
+		// "revealcost" pick, the settled picks one Note, nothing moved;
+		// Priest of the Wakening Sun). A trigger's own Cost$ Reveal stays
+		// refused, the same triggered-cost-window reading as the Mill arm.
+		if !lc.unlessCost || n != 0 {
+			return n, refuse("resolution reveal cost shape")
+		}
+		n++
+		in.CS, in.A, in.F = "Reveal", cst(c.RevealN), c.RevealF
+		c.RevealN, c.RevealF = 0, nil
 	}
 	return n, nil
 }

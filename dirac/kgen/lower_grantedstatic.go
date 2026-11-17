@@ -14,15 +14,37 @@ import (
 // same way; the value is the reason a kind that is not open yet refuses ("" =
 // open). A kind absent from the map has no kernel reader at all.
 //
-// NoMaxHandSize (Nerd Rage's "You have no maximum hand size") has its kernel
-// reader (maxHand) but stays closed: gorge's maxHandSizeFor
-// (engine/rules/combat.go) walks the printed Continuous statics and the
-// Effect-delivered ones and never a granted one, so an enchanted creature's
-// controller keeps a maximum of seven in gorge where the rules (and the
-// kernel) give none. Gorge leads; the lockstep would diverge on the cleanup
-// discard. Open it (set "") with the engine fix.
+// NoMaxHandSize (Nerd Rage's "You have no maximum hand size") is open: the
+// kernel reader (maxHand) walks eachStaticG, and gorge's maxHandSizeFor
+// (engine/rules/combat.go) reads the AddStaticAbility$ grant's inner
+// SetMaxHandSize$ against the recipient's controller.
 var grantedStaticKinds = map[string]string{
-	"NoMaxHandSize": "gorge's maxHandSizeFor never reads a granted static (an enchanted creature's controller keeps a maximum of seven)",
+	"NoMaxHandSize": "",
+	// RaiseCost: raiseCostGen and the target-dependent raise walks read it per
+	// recipient (a generic raise only: grantedRaiseShape refuses the rest).
+	"RaiseCost": "",
+	// Zurgo, Thunder's Decree: gorge sacrificeBlockedBy reads grantedStatics
+	// ("CantSacrifice") per recipient, and the kernel's sacBlockedBy walks
+	// eachStaticG.
+	"CantSacrifice": "",
+}
+
+// grantWindow lowers the outer Continuous static's Phases$ window beside a
+// granted static (Zurgo, Thunder's Decree: Phases$ End of Turn beside
+// Condition$ PlayerTurn): gorge grantPhasesHold, the step test
+// continuousGateHolds reads, ANDed with the turn condition into the outer
+// static's Cond2 (the inner static carries no condition of its own).
+func grantWindow(sp *params, st *lStatic) error {
+	ph, ok := sp.get("Phases")
+	if !ok {
+		return nil
+	}
+	c, err := phasesCond("Phases", ph)
+	if err != nil {
+		return err
+	}
+	st.Cond = andCond(st.Cond, c)
+	return nil
 }
 
 // grantedStaticParam lowers a Continuous static's AddStaticAbility$ when no
@@ -33,6 +55,9 @@ func (lc *lowerCtx) grantedStaticParam(sp *params, st *lStatic) error {
 	v, ok := sp.m["AddStaticAbility"]
 	if !ok || sp.used["AddStaticAbility"] || st.Kind != "Continuous" {
 		return nil
+	}
+	if err := grantWindow(sp, st); err != nil {
+		return err
 	}
 	return lc.grantedStatic(sp, st, v)
 }
@@ -88,6 +113,9 @@ func (lc *lowerCtx) grantedStatic(sp *params, st *lStatic, name string) error {
 	if in.Cond.Kind != cNone {
 		return refuse("AddStaticAbility %s: granted static with a condition", name)
 	}
+	if err := grantedRaiseShape(name, in); err != nil {
+		return err
+	}
 	lc.out.GrantedStatics = append(lc.out.GrantedStatics, in)
 	st.GrantSt = len(lc.out.GrantedStatics)
 	sp.consume("AddStaticAbility")
@@ -104,5 +132,24 @@ func (cb *cardBuilder) grantStatic(ka *kop.Ability, s lStatic) error {
 		return fmt.Errorf("granted static %d not emitted", s.GrantSt)
 	}
 	ka.Static.GrantSt = uint8(s.GrantSt)
+	return nil
+}
+
+// grantedRaiseShape: the granted RaiseCost shapes the kernel prices per
+// recipient are the generic raise on the battlefield, with or without a
+// ValidTarget$. A life raise (raiseLifeFor), a per-target raise, and the
+// card's own or stack-source raise (Zone$) read printed statics only.
+func grantedRaiseShape(name string, in lStatic) error {
+	if in.Kind != "RaiseCost" {
+		return nil
+	}
+	for _, f := range in.Flags {
+		if f == "RaiseLife" || f == "RaisePerTarget" {
+			return refuse("AddStaticAbility %s: granted RaiseCost %s", name, f)
+		}
+	}
+	if in.Zone != 0 {
+		return refuse("AddStaticAbility %s: granted RaiseCost with an EffectZone$", name)
+	}
 	return nil
 }

@@ -413,7 +413,7 @@ type genPrep struct {
 	replBits     []uint32
 	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
-	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
+	exileAnyC    []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
 	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
@@ -549,6 +549,15 @@ type genPrep struct {
 	// feature's fact goes instead of a new bool here
 	uses useSet
 }
+
+// Per-card bits of genPrep.exileAnyC.
+const (
+	eaAny            uint8 = 1 << iota // its ReplExileOnLeave is the any-zone reading (Repl.C 1)
+	eaSelf                             // ... and its filter is the card itself: it exiles only itself, from any zone
+	eaLibBottom                        // its ReplGraveToLibrary inserts at the bottom (ReplLibBottom)
+	eaLibShuffle                       // ... shuffles after a top insert (ReplLibShuffle)
+	eaLibBattlefield                   // ... applies only to a move from the battlefield (ReplLibBattlefield)
+)
 
 // Replacement bits (genPrep.replBits).
 const (
@@ -701,6 +710,54 @@ func dynamicManaCost(a *kop.Ability) bool {
 		return true
 	}
 	return false
+}
+
+// exileAnyBits ors bits into card i's genPrep.exileAnyC byte.
+func (g *genPrep) exileAnyBits(t *kop.Table, i int, bits uint8) {
+	if g.exileAnyC == nil {
+		g.exileAnyC = make([]uint8, len(t.Cards))
+	}
+	g.exileAnyC[i] |= bits
+}
+
+// prepExileOnLeave folds one ReplExileOnLeave into g. A self filter with
+// Repl.C 1 is the card's own from-anywhere replacement: no battlefield
+// permanent carries it in another zone, so eaSelf marks the card itself
+// (repl_exileonleave.go).
+func prepExileOnLeave(g *genPrep, t *kop.Table, i int, a *kop.Ability, pc *pcard) {
+	g.replBits[i] |= rbExileOnLeave
+	pc.hasStat = true
+	if g.exileOnLeave == nil {
+		g.exileOnLeave = make([]kop.FilterID, len(t.Cards))
+	}
+	g.exileOnLeave[i] = a.Repl.Filter
+	if a.Repl.C != 1 {
+		return
+	}
+	bits := eaAny
+	if filterSelfOnly(t, a.Repl.Filter) {
+		bits |= eaSelf
+	}
+	g.exileAnyBits(t, i, bits)
+	g.anyExileAny = true
+}
+
+// prepGraveToLibrary folds one ReplGraveToLibrary into g.
+func prepGraveToLibrary(g *genPrep, t *kop.Table, i int, a *kop.Ability) {
+	g.replBits[i] |= rbGraveLib
+	var bits uint8
+	if a.Repl.C&kop.ReplLibBottom != 0 {
+		bits |= eaLibBottom
+	}
+	if a.Repl.C&kop.ReplLibShuffle != 0 {
+		bits |= eaLibShuffle
+	}
+	if a.Repl.C&kop.ReplLibBattlefield != 0 {
+		bits |= eaLibBattlefield
+	}
+	if bits != 0 {
+		g.exileAnyBits(t, i, bits)
+	}
 }
 
 func prepareGen(t *kop.Table, p *prep) *genPrep {
@@ -1154,7 +1211,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if a.Trig.Event == kop.TrigBecomesTarget &&
 					(a.Trig.Flags&kop.TfSelf == 0 ||
-						a.Trig.Whose == kop.WhoseOpp && a.Trig.N != kop.TrigNValiant) {
+						a.Trig.Whose == kop.WhoseOpp && a.Trig.N != kop.TrigNValiant ||
+						a.Trig.N == kop.TrigNSrcSpell) {
 					// A BecomesTarget watcher, or the self form "whenever
 					// this becomes the target of a spell or ability an
 					// opponent controls" (TfSelf + WhoseOpp;
@@ -1237,18 +1295,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.replBits[i] |= rbDblCtr
 					pc.hasStat = true
 				case kop.ReplExileOnLeave:
-					g.replBits[i] |= rbExileOnLeave
-					pc.hasStat = true
-					if g.exileOnLeave == nil {
-						g.exileOnLeave = make([]kop.FilterID, len(t.Cards))
-					}
-					g.exileOnLeave[i] = a.Repl.Filter
-					if a.Repl.C == 1 {
-						if g.exileAnyC == nil {
-							g.exileAnyC = make([]bool, len(t.Cards))
-						}
-						g.exileAnyC[i], g.anyExileAny = true, true
-					}
+					prepExileOnLeave(g, t, i, a, pc)
 				case kop.ReplDoubleCountersOn:
 					g.replBits[i] |= rbDblCtrOn | ctrWildBits(a)
 					pc.hasStat = true
@@ -1285,7 +1332,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPayBeforeETB:
 					g.replBits[i] |= rbPayETB
 				case kop.ReplGraveToLibrary:
-					g.replBits[i] |= rbGraveLib
+					prepGraveToLibrary(g, t, i, a)
 				case kop.ReplMayNotUntap:
 					g.untapRepl = true // the untap step runs untapStepGen, which asks (repl_untapchoice.go)
 				case kop.ReplOthersDoesntUntap:

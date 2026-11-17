@@ -4,17 +4,14 @@ Changeling Berserker
 Changeling Titan
 Chira, All In
 Deftblade Elite
-Divide by Zero
 Earthen Arms
 Emerald Collector
 Encircling Fissure
 Euru, Acorn Scrounger
-First Day of Class
 Hogaak, Arisen Necropolis
 Jet Collector
 Krosan Vorine
 Light Up the Stage
-Moonlit Strider
 Oracle of the Alpha
 Out of Bounds
 Overcooked
@@ -25,7 +22,6 @@ Ruby Collector
 Sapphire Collector
 Skewer the Critics
 Skullmulcher
-Swell of Courage
 The Crowd Goes Wild
 Whtz, the Bibliophile
 Zellix, Sanity Flayer

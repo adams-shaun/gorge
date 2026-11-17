@@ -132,6 +132,19 @@ const StBanOpp = StRaiseOpp
 // On a StatReduceAbility it is the same gate over activations (Heartstone).
 const StReduceAny = StRaiseOpp
 
+// StPerAffected is a StatContinuous pump whose dynamic VA/VB are the
+// AffectedX convention (AddPower$/AddToughness$ AffectedX, gorge
+// effects.AffectedXStaticAmount): the layer walk evaluates each amount with
+// the AFFECTED object as the reading source (gorge layers_static.go
+// staticAmountOn's affected anchor), so a source-relative read inside the
+// count binds the affected creature -- A-Bruenor Battlehammer's
+// `AffectedX:Count$Valid Equipment.Attached/Times.2` counts the equipment
+// attached to EACH creature it pumps, never the static source's own.
+// StaticFlags is full at 16 bits, so it aliases StOncePerTurn, a
+// MayPlayFrom/TapPower-only flag a Continuous never sets or reads (as
+// StAlsoSideboard aliases StYouHexproof).
+const StPerAffected = StOncePerTurn
+
 // OpCounter C: Destination$ of the countered spell card (0 graveyard).
 const (
 	CtrDestExile     = 1

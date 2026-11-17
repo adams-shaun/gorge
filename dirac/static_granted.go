@@ -9,7 +9,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // live in CardDef.Granted, not Abilities, so no printed walk (eachStatic and
 // its siblings, the statM loops) ever sees one: only a reader that walks
 // eachStaticG does, and kgen lowers a granted kind only once its reader has
-// moved (grantedStaticKinds). Wired readers: StatNoMaxHandSize (maxHand).
+// moved (grantedStaticKinds). Wired readers: StatNoMaxHandSize (maxHand);
+// StatIncreaseCost, a generic RaiseCost (raiseCostGen and the target-dependent
+// raise walks boardManaTgtDep, boardRaiseTgtDep: Callaphe's per-recipient
+// "spells your opponents cast that target this cost {1} more"); StatCantSacrifice
+// (sacBlockedBy).
 //
 // Recursion: the recipient set is read at layerKw, below layer 6, exactly as
 // grantsBetween reads the recipients of a granted ability, and no characteristic
@@ -22,8 +26,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func armGrantedStatics(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Granted {
-			if a := &t.Cards[i].Granted[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {
+			a := &t.Cards[i].Granted[j]
+			if a.Kind != kop.AbStatic {
+				continue
+			}
+			switch a.Static.Kind {
+			case kop.StatNoMaxHandSize:
 				g.anyHandSize = true
+			case kop.StatIncreaseCost:
+				g.anyRaise = true
+				g.anyRaiseTgt = g.anyRaiseTgt || raiseTgtStatic(a)
 			}
 		}
 	}

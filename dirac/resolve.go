@@ -65,6 +65,7 @@ func (s *State) resolveTop(k *prep) {
 	}
 	if k.gen != nil {
 		s.g.nimp = 0
+		s.impSeedOnResolve(k, &e)               // its source's kept Imprinted (zone_imprint.go)
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
 		// A state trigger (Tf4StateCtr) starts with nothing remembered too.
@@ -76,6 +77,7 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
+		s.srcMemSeed(k, &e) // its source's kept Remembered (zone_srcmemrem.go)
 		if k.gen.has(e.card, gfEnterRepl) {
 			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}

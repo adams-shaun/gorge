@@ -91,7 +91,7 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 // restricted or any-colour gap, a filter-only gap, a counter-cost source, or
 // a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny || k.gen.uses.has(useAnyDifferent))
+	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny || k.gen.uses.has(useLifeGap) || k.gen.uses.has(useAnyDifferent))
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -143,6 +143,22 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)
 	}
+	// a life-only source (Treasonous Ogre): the prefix search's gap unit, one
+	// of its fixed colour or of any. Only the gaps walk counts it (availGaps;
+	// availScript is called for no availWalk mode), never the plain walk. It
+	// counts each source's unit independently of the shared life total, an
+	// over-count a potential walk may make: scriptDFS fails an activation a
+	// path has made unpayable and backtracks, so no offer survives it.
+	for b := s.lifeGapMask(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.gapOther(s.cardAt(sl))]
+		n := max(ab.ManaN, 1)
+		if ab.ManaColors == kop.ColAny {
+			a.addUnits(0x1f, n)
+			continue
+		}
+		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), n)
+	}
 	// a restricted source (Giada): the prefix search prices with its mana
 	// as with any gap's (the restriction is not read there), and an Angel
 	// spell may then spend it (scriptDeadEnd decides)
@@ -183,7 +199,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 }
 
 // plainOptions is p's priority walk without the script hook, under
-// availFor mode m.
+// availFor mode m. The availPlain mark is the probe's: the walks that model
+// gorge's planner (the Phyrexian offer gate's storage-battery read,
+// mana_phyrexian.go phyActAffords) read without the batteries' counters,
+// which the planner reaches only through the script route (pair 149).
 func (s *State) plainOptions(k *prep, d *Decision, m uint8) {
 	d.N = 0
 	s.g.availX = availPlain | m
@@ -234,7 +253,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		caM = s.caGaps(k, p)
 	}
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
-	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).any() {
+	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
+	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -364,7 +384,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {
 				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
 			}
-		} else if anyR.any() || tapsDef.any() || anyDiff.any() {
+		} else if anyR.any() || tapsDef.any() || anyDiff.any() || life.any() {
 			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
@@ -579,7 +599,8 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	tapsDef := s.scriptTapsDefer(k, p)
 	ctr := s.scriptCtr(k, p)
 	anyDiff := s.anyDifferentGaps(k, p)
-	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).or(anyDiff).any() {
+	life := s.lifeGapMask(k, p)
+	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).or(anyDiff).or(life).any() {
 		// A live grant makes the grant search's candidates the board's
 		// filters too, activated with the grants in battlefield order
 		// (grantSrch.candidates): one search taps both gaps, so a filter
@@ -609,7 +630,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if anyR.any() || tapsDef.any() || anyDiff.any() {
+	if anyR.any() || tapsDef.any() || anyDiff.any() || life.any() {
 		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr, anyDiff)
 		return
 	}
@@ -646,7 +667,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && s.caBoard(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).or(s.lifeGapMask(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && s.caBoard(k, p)) {
 		return false
 	}
 	var d Decision
@@ -954,6 +975,9 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 	cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
 		return
+	}
+	if s.tapXGrantBoard(k, p, a) && !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) && s.tapXScript(k, a, p, true) {
+		return // gorge's one prefix search takes the sacrifice-any source and the grants in battlefield order (mana_tapxgrant.go)
 	}
 	var g grantSrch
 	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) && g.np != 0 {
