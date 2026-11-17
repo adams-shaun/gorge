@@ -36,10 +36,16 @@ func (s *State) czBearerCands(k *prep, in *kop.Instr, o Obj, out *[MaxOptions]TC
 		if k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 			return 0
 		}
-		var buf [MaxOptions]TCode
-		for i, m := 0, s.enchantCands(k, c, ctrl, &buf); i < m; i++ {
-			if s.matchPerm(k, in.F, s.objs[buf[i]].slot, you, NoSlot) {
-				out[n] = buf[i]
+		// The offer is the Enchant restriction and the filter alone: gorge's
+		// changeZoneAttachLegal does not judge protection (CR 702.16c), the entry
+		// gate does, after the pick (czBearerProtected).
+		for m := s.occ; m.any() && n < MaxOptions; m = m.rest() {
+			sl := m.first()
+			if s.objs[s.perms[sl].obj].of&ofPending != 0 {
+				continue
+			}
+			if s.matchPerm(k, k.t.Cards[c].Enchant.Filter, sl, ctrl, NoSlot) && s.matchPerm(k, in.F, sl, you, NoSlot) {
+				out[n] = TCode(s.perms[sl].obj)
 				n++
 			}
 		}
@@ -70,6 +76,9 @@ func (s *State) czBearerHost(k *prep, in *kop.Instr, o Obj) (host Slot, stay boo
 	case n == 0:
 		return NoSlot, k.cards[s.objs[o].card].types&kop.TAura != 0
 	case n == 1 || DebugBearerFirst:
+		if s.czBearerProtected(k, o, buf[0]) {
+			return NoSlot, true
+		}
 		return s.objs[buf[0]].slot, false
 	case k.cards[s.objs[o].card].types&kop.TAura == 0:
 		return NoSlot, false // an Equipment enters first, then the controller chooses (czBearerAfter)
@@ -123,8 +132,19 @@ func (s *State) applyAskBearer(k *prep, a Action) bool {
 	if o := s.objRefObj(in.Obj); s.objs[o].zone == kop.ZoneBattlefield {
 		s.attachTo(k, s.objs[o].slot, s.objs[a.Source()].slot) // the Equipment has entered
 		s.continueRes(k, 0)
+	} else if s.czBearerProtected(k, o, a.Source()) {
+		s.continueRes(k, 0) // the entry gate refuses the protected bearer: the Aura stays in its zone (CR 303.4g)
 	} else if !s.execReturn(k, in, s.objs[a.Source()].slot) {
 		s.continueRes(k, 0)
 	}
 	return true
+}
+
+// czBearerProtected reports whether the returning Aura o may not enchant the
+// picked bearer b: gorge's entry gate (auraEnchantCandidates) drops a bearer
+// the Aura is protected from (CR 702.16c) after the controller picked it, so
+// the Aura stays where it is (CR 303.4g). An Equipment is never refused.
+func (s *State) czBearerProtected(k *prep, o Obj, b TCode) bool {
+	c := s.objs[o].card
+	return k.cards[c].types&kop.TAura != 0 && !s.enchantHostOK(k, c, s.objs[o].owner(), s.objs[Obj(b)].slot)
 }
