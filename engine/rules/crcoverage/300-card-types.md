@@ -86,8 +86,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 310.3 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
 | 310.4-310.4c | follows | `engine/rules/entry_counters.go#Engine.entryBodyCandidates` | `TestBattleEntersWithPrintedDefense` | - |
 | 310.5-310.6 | follows | `engine/rules/attack_cost.go#Engine.canAttackBattle` `engine/events/apply_combat.go#foldDamage` | `TestBattleAttackDealsDefenseCounterDamage` `TestBattleIsOfferedAsAnAttackerOption` | - |
-| 310.7 | deviates | `engine/rules/sba.go#Engine.battleZeroDefense` | - | SBA exiles directly instead of trigger |
-| 310.8 | deviates | `engine/rules/sba.go#Engine.battleZeroDefense` | - | non-Siege also exiled (no corpus non-Siege) |
+| 310.7 | follows | `engine/rules/siege_defeat.go#queueSiegeDefeat` | `TestSiegeDefeatIsAStackTrigger` | the defeat is the Siege's triggered ability |
+| 310.8 | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestCounteredSiegeDefeatTriggerBinsTheBattle` | a non-Siege battle at 0 defense goes to the graveyard |
 | 310.9 | follows | `engine/rules/replacement_etb.go#Engine.applySiegeProtector` | - | protector designation |
 | 310.9a | deviates | `engine/rules/replacement_etb.go#Engine.protectorOpponents` | - | non-Siege protector from opponents (no corpus carrier) |
 | 310.9b-310.9c | follows | `engine/rules/combat.go#Engine.blockAttackers` `engine/rules/attack_cost.go#Engine.canAttackBattle` | `TestProtectorCannotAttackOwnBattle` | - |
@@ -96,7 +96,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 310.11 | partial | `engine/rules/replacement_etb.go#Engine.rechooseDepartedBattleProtector` | - | re-choice derived, not asked; no-protector SBA absent |
 | 310.12 | definition | - | - | Siege subtype |
 | 310.12a | follows | `engine/rules/replacement_etb.go#Engine.applySiegeProtector` | `TestSiegeEntryPosesProtectorChoice` | - |
-| 310.12b | deviates | `engine/rules/sba.go#Engine.battleZeroDefense` | - | modelled as SBA exile + owner offer, no trigger |
+| 310.12b | follows | `engine/rules/siege_defeat.go#Engine.askSiegeDefeat` | `TestSiegeDefeatIsAStackTrigger` `TestDefeatedBattleOffersTransformedCast` | intrinsic trigger: exile it, then the owner may cast it transformed free, as it resolves |
 | 311.1-311.7 | partial | `engine/rules/genesis.go#Engine.genesisDeal` `engine/effects/planechase.go#effPlaneswalk` | - | engine-only Config.PlanarDecks; no planar-controller concept |
 | 312.1-312.7 | not-impl | - | - | SILENT if a phenomenon is put in a planar deck |
 | 313.1-313.7 | n/a | - | - | no Vanguard |

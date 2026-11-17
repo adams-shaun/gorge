@@ -202,7 +202,7 @@ const (
 	DurWarp               = 6                    // a warp exile's recast (CR 702.185a): for as long as the card remains exiled, and only on a later turn
 	DurPlot               = 7                    // the plotted designation (CR 702.170d): for as long as the card remains exiled, cast free at sorcery speed only on a later turn
 	DurPrepared           = 8                    // the prepared designation (CR 722.3a/c): obj/ver = the exile copy, turn = source Obj | source ver<<8; live while the source is on the battlefield with that ver
-	DurDefeated           = 9                    // a defeated battle in exile awaiting its owner's CR 310.11 transformed-cast ask: obj/ver = the exiled card, ctrl = its owner; consumed by the ask
+	DurDefeated           = 9                    // retired: unused since a Siege's defeat became its stack trigger (face_battle.go abSiegeDefeat); the value stays
 	DurAirbend            = 10                   // an airbent card (CR 701.65a): its owner may cast it from exile for {2} for as long as obj/ver stays exiled
 	DurForetell           = 13                   // (11 and 12 are DurWhileSrcMay and DurWhileValid) a foretold card (CR 702.143a): its owner may cast it from exile for its foretell cost, only on a later turn than turn
 	DurSuspend            = 14                   // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)

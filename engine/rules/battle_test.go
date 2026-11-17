@@ -309,7 +309,8 @@ func TestSiegeTwoPlayerRecordsSoleOpponentWithoutAsking(t *testing.T) {
 }
 
 // TestBattlePathReplaysExactly proves the entry grant, the protector choice
-// and the zero-defense SBA are all re-derived from the event stream alone:
+// and the zero-defense SBA pass (which spares a Siege whose CR 310.12b defeat
+// trigger is pending, CR 704.5v) are all re-derived from the event stream alone:
 // folding the log's post-genesis events onto a genesis clone of the game
 // reaches the exact state the live engine holds (the regeneration_test
 // fold idiom). replayFor cannot be used here because the fixture drives the
@@ -355,8 +356,14 @@ func TestBattlePathReplaysExactly(t *testing.T) {
 	if !reflect.DeepEqual(replayed, e.G) {
 		t.Fatal("battle entry, protector choice and zero-defense SBA do not replay exactly from the events")
 	}
+	// The Siege's defeat is CR 310.12b's trigger, not the SBA: losing its last
+	// defense counter queued the trigger, and CR 704.5v spares a battle that is
+	// the source of a pending one, so it stays on the battlefield at 0.
+	if !siegeDefeatPending(e.G, e.pendingTriggers, id) {
+		t.Fatal("precondition: losing the last defense counter queued no Siege defeat trigger")
+	}
 	ro := replayed.Obj(id)
-	if ro == nil || ro.Zone != state.ZExile || ro.Counter("DEFENSE") != 0 {
-		t.Fatalf("replayed battle zone %v defense %d, want exile at 0", ro, ro.Counter("DEFENSE"))
+	if ro == nil || ro.Zone != state.ZBattlefield || ro.Counter("DEFENSE") != 0 {
+		t.Fatalf("replayed battle zone %v defense %d, want battlefield at 0 with its defeat trigger pending", ro.Zone, ro.Counter("DEFENSE"))
 	}
 }

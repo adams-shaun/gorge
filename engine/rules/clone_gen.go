@@ -989,7 +989,6 @@ func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) 
 
 func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.suspendedCasts = append([]state.ObjID(nil), e.suspendedCasts...)
-	c.defeatedCasts = append([]state.ObjID(nil), e.defeatedCasts...)
 	c.queuedPlays = e.queuedPlays.clone(remap)
 	if e.manaActivation != nil {
 		p0 := *e.manaActivation

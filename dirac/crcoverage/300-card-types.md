@@ -93,10 +93,10 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 310.9b-310.9c | n/a | - | - | - |
 | 310.9d-310.9g | n/a | - | - | - |
 | 310.10 | partial | `dirac/face_battle.go#State.enterBattle` | `TestBattleEntersWithDefense` | two players: the sole opponent is recorded in perm.chosen as the protector, no ask (gorge applySiegeProtector); a control change keeps it |
-| 310.11 | partial | `dirac/face_battle.go#State.defeatAsk` `dirac/face_battle.go#State.defeatQueue` | `TestBattleDefeatExiles` `TestBattleLockstep` `TestBattleMutation` | the defeated battle's DurDefeated play record is queued for the owner's transformed free cast; Part B asks whether to cast it (a no declines), then casts the back face free; re-choice derived, not asked; no-protector SBA absent |
+| 310.11 | partial | `dirac/face_battle.go#State.resolveSiegeDefeat` `dirac/face_battle.go#State.defeatCastApply` | `TestBattleDefeatExiles` `TestBattleLockstep` `TestBattleMutation` | the resolving defeat trigger exiles the Siege and asks its controller the transformed free cast (a no declines), then casts the back face free; re-choice derived, not asked; no-protector SBA absent |
 | 310.12 | n/a | - | - | Siege subtype |
 | 310.12a | n/a | - | - | - |
-| 310.12b | follows | `dirac/face_battle.go#State.defeatAsk` | `TestBattleLockstep` | modelled as SBA exile + owner offer, no trigger |
+| 310.12b | follows | `dirac/face_battle.go#State.queueSiegeDefeat` | `TestBattleLockstep` | the intrinsic trigger: kernel-native abSiegeDefeat queued when the last defense counter goes (combat or spell damage), ordered with the event's other triggers |
 | 311.1-311.7 | n/a | - | - | engine-only Config.PlanarDecks; no planar-controller concept |
 | 312.1-312.7 | n/a | - | - | SILENT if a phenomenon is put in a planar deck |
 | 313.1-313.7 | n/a | - | - | no Vanguard |
