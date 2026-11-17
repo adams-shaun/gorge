@@ -2633,6 +2633,28 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect Duration %q", d)
 			}
 		}
+		forget := strings.TrimSpace(ps.str("ForgetOnMoved"))
+		if zone == zGraveyard && len(zones) == 1 && dur == "EOT" {
+			// An Effect-delivered graveyard grant outlives the card's stay:
+			// gorge registers the static over the remembered card and reads
+			// it again whenever the card is back in the graveyard (Skyclave
+			// Shade, Ichor Aberration). ForgetOnMoved$ Exile forgets the card
+			// when it moves to exile; a limited grant spends its use, so it
+			// keeps the one-shot record.
+			limited := false
+			if v, ok := sp.get("MayPlayLimit"); ok && strings.TrimSpace(v) != "0" {
+				limited = true
+			}
+			_, endsOnMove := ps.get("ExileOnMoved")
+			if !limited && !endsOnMove {
+				switch forget {
+				case "Exile":
+					dur = "WhileGraveForget"
+				case "":
+					dur = "WhileGrave"
+				}
+			}
+		}
 		ps.consume("ForgetOnMoved")
 		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur}
 		fl := 0

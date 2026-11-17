@@ -147,6 +147,9 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 		s.g.raiseB = uint8(r.turn) // the cast's surcharge (cast_whileexiled.go)
 	}
 	s.stampMayExile(k, i) // repl_stackexile.go
+	if r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0 {
+		return true // the effect-delivered grant stays live (spendMayRecord's reasoning)
+	}
 	s.removeMay(i)
 	return true
 }

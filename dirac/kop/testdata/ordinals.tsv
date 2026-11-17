@@ -351,6 +351,8 @@ DurSuspend	untyped int	14
 DurUntilYourNextTurn	untyped int	5
 DurWarp	untyped int	6
 DurWhileControlSource	untyped int	4
+DurWhileGrave	untyped int	15
+DurWhileGraveForget	untyped int	31
 DurWhileSource	untyped int	3
 DurWhileSrcMay	untyped int	11
 DurWhileValid	untyped int	12
