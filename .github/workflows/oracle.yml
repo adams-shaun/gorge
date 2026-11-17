@@ -1,0 +1,68 @@
+# The whole of ./dirac/oracle, every 6 hours on main (operator 11-17: "6+ ... if oracle takes almost an hour"; it was
+# hourly). It never runs on a pull request or a Mergify queue batch: those run dirac-slices (ci.yml).
+# GitHub-hosted runners, so it takes nothing from the self-hosted boxes the queue runs on. A run still
+# going when the next one is due finishes first; the next one waits rather than cancelling it.
+name: oracle
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oracle-hourly
+  cancel-in-progress: false
+
+env:
+  GOFLAGS: -p=4
+
+jobs:
+  oracle:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+          restore-keys: gocache-dirac-slices-
+      - name: Build dirac's card tables
+        run: make dirac-tables
+      - name: Stable mtimes for the Go test cache
+        run: bash scripts/ci-stable-mtimes.sh .
+      - name: Test part ${{ matrix.part }} of 10
+        run: bash scripts/ci-oracle-shard.sh ${{ matrix.part }} 10 -timeout 30m
+      - name: Disk left
+        if: always()
+        run: df -h .

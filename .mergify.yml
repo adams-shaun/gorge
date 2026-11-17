@@ -18,6 +18,19 @@ queue_rules:
 merge_queue:
   max_parallel_checks: 2
 
+# A fix for a red main jumps the queue: push it on a hotfix/* branch (or label it `hotfix`) and it is batched first,
+# interrupting a running batch. A hotfix/* branch's own checks also run on every box runner, not only the 4 gorge-pr ones
+# (ci.yml): a label is not in the opened event's payload, so the branch name routes them.
+# (https://docs.mergify.com/merge-queue/priority/).
+priority_rules:
+  - name: hotfix first
+    conditions:
+      - or:
+          - label=hotfix
+          - head~=^hotfix/
+    priority: high
+    allow_checks_interruption: true
+
 pull_request_rules:
   # Mergify recommends the queue over the merge action (batching, the combined-result check), so every PR to main is
   # queued, not merged directly.
