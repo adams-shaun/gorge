@@ -36,7 +36,7 @@ var revealMillCostForms = []formCase{
 	{card: "Ashcoat of the Shadow Swarm", form: "a trigger's own Cost$ Mill<4> (AB$ ChangeZone in the body)", refused: "resolution mill cost shape"},
 	{card: "Xyru Specter", form: "UnlessCost$ Reveal<2/Card.Black> beside DB$ GenericChoice (measured)", refused: "GenericChoice"},
 	{card: "Invasion of the Giants", form: "UnlessCost$ Reveal<1/Giant> beside DB$ Effect ForgetOnCast$ (measured)", refused: "ForgetOnCast"},
-	{card: "Tresserhorn's Lord, Returned", form: "UnlessCost$ Sac<3/Creature> PayLife<3> Draw<3/Player.targetedBy> (measured)", refused: "resolution cost shape"},
+	{card: "Tresserhorn's Lord, Returned", form: "UnlessCost$ Sac<3/Creature> PayLife<3> Draw<3/Player.targetedBy> (one election, lower_unlesschain.go)", lir: "CS=SacrificeRiders"},
 }
 
 func TestRevealMillCostForms(t *testing.T) {
