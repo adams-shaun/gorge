@@ -1651,18 +1651,15 @@ func putCounterReferentLeft(h Host, c *Ctx, sa *cards.SA, o *state.Object) bool 
 		return true
 	}
 	// Defined$ Enchanted/Equipped/AttachedTo names the permanent the source
-	// is attached to. A departed attachment's LastBearer is a card in another
+	// is attached to (the three spellings are the definedSpecEquipped
+	// StrCodes row). A departed attachment's LastBearer is a card in another
 	// zone (Sadistic Glee's "enchanted creature" after its bearer died and
 	// was then exiled): a card in the graveyard or exile is not a creature,
 	// so the counters are not put on it (CR 400.7, 608.2h). The zone-agnostic
 	// loop stays right for referents that are cards by definition (a
 	// suspended card's time counters, CR 122.1); this relation is not one.
 	base, _, _ := strings.Cut(d, ".")
-	switch base {
-	case "Enchanted", "Equipped", "AttachedTo":
-		return true
-	}
-	return false
+	return definedSpecCodes.Code(base) == definedSpecEquipped
 }
 
 // sourceLeftSincePush reports whether o is the resolving ability's source,
