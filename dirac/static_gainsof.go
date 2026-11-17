@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // GainsAbilitiesOfZones$ Graveyard (kop.Static.Zone = ZoneGraveyard) reads
 // the graveyard cards instead: every seat's graveyard in seat order, each in
-// its stored order.
+// its stored order. ZoneExile reads every seat's exile zone the same way.
 //
 // A gained activation is AkActivate{source: the recipient, target: the
 // foreign permanent or graveyard card, mode: 0xC0 | the ability's index in the foreign card}
@@ -93,6 +93,31 @@ func (s *State) gainedAbilities(k *prep, d *Decision, p uint8, sorc bool, av *av
 // stalled.
 func (s *State) gainedFrom(k *prep, d *Decision, st statSrc, sorc bool, av *avail) bool {
 	first := int(d.N)
+	if st.a.Static.Zone == kop.ZoneExile {
+		// GainsAbilitiesOfZones$ Exile: every seat's exile zone in seat order,
+		// each in its stored order. The filter reads the static's source
+		// (ExiledWithSource through exwFlag) and controller; the owner is the
+		// exile zone's seat. A face-down card is never exiled by the carriers
+		// (Dark Impostor, Patchwork Crawler).
+		ctx := evalCtx{src: st.obj, srcSl: st.sl, ctrl: st.ctrl}
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
+			pl := &s.pl[p]
+			for i := 0; i < int(pl.exileN); i++ {
+				o := pl.exile[i]
+				card := s.objs[o].card
+				if !s.matchCardGenAt(k, st.a.Static.GainsOf, card, p, st.ctrl, o, &ctx) {
+					continue
+				}
+				if !s.gainedOffer(k, d, st, first, o, &k.t.Cards[card], sorc, av) {
+					return false
+				}
+			}
+		}
+		return true
+	}
 	if st.a.Static.Zone == kop.ZoneGraveyard {
 		// GainsAbilitiesOfZones$ Graveyard: every seat's graveyard in seat
 		// order, each in its stored order. The filter reads the static's
