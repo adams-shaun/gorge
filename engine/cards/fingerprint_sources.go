@@ -99,6 +99,7 @@ import "embed"
 //go:embed kw_rampage.go
 //go:embed kw_ravenous.go
 //go:embed kw_reconfigure.go
+//go:embed kw_reinforce.go
 //go:embed kw_renown.go
 //go:embed kw_replicate.go
 //go:embed kw_saddle.go
