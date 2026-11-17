@@ -275,15 +275,17 @@ file per card:
 
 ```text
 $ go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
-acceptance_test.go:70: ratchet: 0 of 1338 distinct cards across the repo decks are not fully supported
-paramcensus_test.go:3674: param census: 0 of 1338 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 0 distinct param labels, 0 distinct cost labels
+ratchet: <outstanding> of <cards> distinct cards across the repo decks are not fully supported
+param census: <outstanding> of <cards> distinct repo-deck cards carry at least one unread param or unmodelled cost token; ...
 ```
 
-- **Not fully supported** (0 on 2026-11-08). One file per card goes in
-  `engine/rules/testdata/known-unsupported/`, a directory that doesn't exist while nothing is outstanding.
-- **Parameter census** (0 on 2026-11-08). A listed card would be playable with at least one `$` parameter
-  or cost token that isn't read yet, one file per card in `engine/rules/testdata/paramcensus/`, a directory
-  that doesn't exist while nothing is outstanding.
+The test's log line is the live count.
+
+- **Not fully supported.** One file per outstanding card in
+  `engine/rules/testdata/known-unsupported/`; the directory is absent when nothing is outstanding.
+- **Parameter census.** A listed card would be playable with at least one `$` parameter
+  or cost token that isn't read yet. One file per outstanding card in
+  `engine/rules/testdata/paramcensus/`; the directory is absent when nothing is outstanding.
 
 Both tests fail in **both** directions. A card that newly loses support fails,
 and so does a table entry the build now supports. To fix a card, delete its
