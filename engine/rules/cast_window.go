@@ -683,14 +683,16 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
-	return e.castWindowReachableAfter(cwDeadAfter, p, cost, spellPool, snow, typed, life, conv, rider, units)
+	ok, _ := e.castWindowReachableAfter(cwDeadAfter, p, cost, spellPool, snow, typed, life, conv, rider, units)
+	return ok
 }
 
 // castWindowReachableAfter is castWindowReachable remembering exhausted states
-// once its walk passes deadAfter nodes. A negative deadAfter is the plain walk,
-// with neither that memory nor the reach cap (a test compares the two).
+// once its walk passes deadAfter nodes, and reporting the nodes it walked. A
+// negative deadAfter is the plain walk, with neither that memory nor the reach
+// caps (a test compares the two).
 func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
-	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) (bool, int) {
 	// CR 119.8: under a CantChangeLife static no positive life may be paid,
 	// whether by the cost or by a PayLife source's activation.
 	if asEval(e).LifePaymentForbidden(p, pay.SASpell) {
@@ -703,7 +705,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 		return ok
 	}
 	if payable(spellPool, snow, life) {
-		return true
+		return true, 0
 	}
 	// Every activation adds at least one mana and a minimal sequence spends
 	// some of each, so it needs no more activations than the cost's pips plus
@@ -739,9 +741,12 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	// ignoring them keeps the cap an upper bound.
 	need := cost.PoolUnitsFloor()
 	held := int64(snow.Total())
+	heldMana := snow
 	for _, t := range typed {
 		held += int64(t.Total())
+		heldMana = pay.ManaAdd(heldMana, t)
 	}
+	colours := pay.NewColourCap(cost, heldMana, rider, conv, asEval(e).PayLifeInsteadOfB(p), ordered)
 	best := make([]int32, len(ordered))
 	for i := range ordered {
 		for _, a := range ordered[i].Alts {
@@ -756,6 +761,9 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	canReach := func(pool state.Mana, remaining int) bool {
 		if deadAfter < 0 {
 			return true
+		}
+		if !colours.Reaches(pool, used) {
+			return false
 		}
 		have := int64(pool.Total()) + held
 		for _, i := range rank {
@@ -889,7 +897,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 		}
 		return false
 	}
-	return rec(spellPool, snow, free, snow, life, -1, budget)
+	return rec(spellPool, snow, free, snow, life, -1, budget), nodes
 }
 
 // castWindowTwins maps each unit to the nearest earlier unit the walk cannot
