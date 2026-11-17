@@ -204,7 +204,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		}
 		v = cst(n)
 	case "Count":
-		v, err = lc.countValue(rest, depth)
+		v, err = lc.castSpentCount(rest, depth) // lower_snowspent.go
 	case "Convoked":
 		// Convoked$Amount: the creatures that convoked the source's spell
 		// (Knight-Errant of Eos), read by its own enters trigger: the

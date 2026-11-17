@@ -563,7 +563,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go; PersistentMana$ True: its restriction kind persists (genPrep.restrPers)
 			break
 		}
-		s.poolAdd(p, col, n)
+		s.poolAddFrom(k, p, e.card, col, n) // a snow spell's or source's mana is snow mana (mana_snow.go)
 	case kop.OpReturn:
 		o := s.objRefObj(in.Obj)
 		if o == NoObj {
