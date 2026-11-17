@@ -42,6 +42,7 @@ Bewilder
 Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blazing Salvo
 Blessed Hippogriff
 Blight Mound
 Bloated Contaminator
@@ -49,6 +50,7 @@ Blood Servitor
 Blood Tithe
 Bloodline Shaman
 Blossoming Bogbeast
+Bog Hoodlums
 Bog Rats
 Borrowed Grace
 Bramble Creeper

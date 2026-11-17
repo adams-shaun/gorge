@@ -109,6 +109,7 @@ Merciless Javelineer
 Merciless Resolve
 Mercurial Kite
 Meteor Shower
+Mind Rake
 Mizzium Mortars
 Moment of Defiance
 Mountain
@@ -128,6 +129,7 @@ Plague Belcher
 Plains
 Predation Steward
 Prickly Boggart
+Primal Huntbeast
 Pyretic Ritual
 Ramirez DePietro, Pillager
 Ramosian Greatsword
@@ -174,12 +176,14 @@ Terror
 Teyo, the Shieldmage
 Tezzeret's Ambition
 Tezzeret's Gambit
+The Balrog, Flame of Udûn
 The First Iroan Games
 The Shattered States Era
 Thraben Purebloods
 Time Sieve
 Tocasia's Welcome
 Tokka & Rahzar, Unsupervised
+Touchstone
 Tourach's Canticle
 Transpose
 Tuinvale Treefolk
@@ -193,6 +197,7 @@ Vedalken Archmage
 Verdant Crescendo
 Vernadi Shieldmate
 Vial of Dragonfire
+Vital Splicer
 Voltstorm Angel
 Vow of Duty
 Wall of Spears

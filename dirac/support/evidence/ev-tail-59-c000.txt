@@ -38,6 +38,7 @@ Bane of Progress
 Barbarian Riftcutter
 Barbed Sliver
 Barrage of Boulders
+Barreling Attack
 Battle Brawler
 Battle Plan
 Battlefield Medic

@@ -1,4 +1,5 @@
 A-Goma Fada Vanguard
+A-Knockout Blow
 Aether Gale
 Afterlife
 Aftershock
@@ -10,8 +11,10 @@ Arcane Encyclopedia
 Armory of Iroas
 Artisan's Sorrow
 Asari Captain
+Atarka Monument
 Aven Trooper
 Awakened Awareness
+Baral's Expertise
 Barkchannel Pathway
 Barren Moor
 Battle Mammoth
@@ -33,6 +36,7 @@ Clergy en-Vec
 Coastal Hornclaw
 Coercive Impetus
 Courtly Provocateur
+Cradle of the Accursed
 Crippling Chill
 D'Avenant Archer
 Daggerback Basilisk
@@ -79,6 +83,7 @@ Genesis Ultimatum
 Ghirapur Gearcrafter
 Glowrider
 Goblin Assault Team
+Goblin Cratermaker
 Goblin Gathering
 Goblin Roughrider
 Goblin Swine-Rider
@@ -96,11 +101,13 @@ Hermit Druid
 Hired Poisoner
 Hoar Shade
 Hoard-Smelter Dragon
+Hollowhenge Overlord
 Horned Sliver
 Hunter's Prowess
 Incursion Specialist
 Iron-Barb Hellion
 Island
+Iymrith, Desert Doom
 Junkyo Bell
 Kaito's Pursuit
 Kathari Bomber
@@ -144,8 +151,10 @@ Oboro Envoy
 Octomancer
 Ogre Errant
 Orchard Strider
+Orcish Oriflamme
 Ordruun Commando
 Origin Spellbomb
+Oriq Loremage
 Orzhov Racketeers
 Parish-Blade Trainee
 Peer into the Abyss
@@ -157,9 +166,11 @@ Provoke
 Puncture Bolt
 Quicken
 Reduce to Ashes
+Renegade Firebrand
 Rishadan Brigand
 Ritual of the Machine
 Rock Slide
+Sai, Master Thopterist
 Sandblast
 Scent of Nightshade
 Scourge Devil
@@ -169,6 +180,7 @@ Secret Rendezvous
 Shield Wall
 Shoreline Salvager
 Siege Zombie
+Siegfried, Famed Swordsman
 Silumgar Sorcerer
 Silver-Inlaid Dagger
 Simian Simulacrum
@@ -193,17 +205,20 @@ Strength of Cedars
 Suntail Hawk
 Survey the Wreckage
 Swamp
+Sword of Body and Mind
 Taigam's Strike
 Tarkir Charm
 Tarpan
 Thassa's Emissary
 Thranduil the Strategist
+Thrash of Raptors
 Thrull Parasite
 Thunderfoot Baloth
 Titan Hunter
 Towashi Songshaper
 Tribute to Horobi
 Trickster's Talisman
+Uncle's Musings
 Unyaro Bees
 Vanguard of Brimaz
 Venerable Knight
@@ -211,11 +226,15 @@ Viper, Cruel Conspirator
 Vivify
 Voracious Wurm
 Vraska's Scorn
+Wall of Tanglecord
 War-Spike Changeling
 Waterfront Bouncer
 Welkin Guide
+Wily Goblin
+Winged Boots
 Wishful Merfolk
 Witherbloom Pledgemage
 Woodland Mystic
+Wu Light Cavalry
 You're Ambushed on the Road
 Young Wei Recruits

@@ -46,6 +46,7 @@ Cephalid Broker
 Chain to Memory
 Chainwhip Cyclops
 Charging Rhino
+Charisma
 Chief of the Scale
 Chimney Goyf
 Chronomaton
@@ -237,6 +238,7 @@ Nezumi Cutthroat
 Nightmare Lash
 Nim Mongoose
 Nimbus Wings
+Nine-Fingers Keene
 Noble Purpose
 Obelisk Spider
 Order of Whiteclay
@@ -351,6 +353,7 @@ Thought Harvester
 Thran Temporal Gateway
 Thranduil the Strategist
 Thriving Grove
+Thunderclap Wyvern
 Thundering Chariot
 Thundersong Trumpeter
 Tightening Coils
@@ -358,6 +361,7 @@ Time Walk
 Time of Heroes
 Tinker
 Titania's Chosen
+Tobias, Doomed Conqueror
 Tolarian Emissary
 Tormented Soul
 Toxic Stench

@@ -90,6 +90,7 @@ Crisis of Conscience
 Cyclops of Eternal Fury
 Cyclops of One-Eyed Pass
 Dark Heart of the Wood
+Dawn of the Dead
 Death Cloud
 Death Pit Offering
 Descendant of Masumaro
@@ -224,6 +225,7 @@ Mardu Warshrieker
 Merfolk Traders
 Mesa Cavalier
 Metallic Mimic
+Mind Drain
 Mindblaze
 Moldering Karok
 Monastery Swiftspear
@@ -282,6 +284,7 @@ Reverent Hoplite
 Revive the Shire
 Revoke Existence
 Rhythmic Water Vortex
+Righteous War
 Riptide
 Riverglide Pathway
 Robe of Mirrors
@@ -296,6 +299,7 @@ Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
 Savage Twister
+Scaretiller
 Scrapyard Steelbreaker
 Scrollshift
 Segmented Wurm
@@ -383,6 +387,7 @@ Vessel of Ephemera
 Veteran of the Depths
 Village Bell-Ringer
 Vindictive Mob
+Virtuous Charge
 Vivid Flying Fish
 Voldaren Ambusher
 Voldaren Epicure

@@ -18,6 +18,8 @@ Bastion of Remembrance
 Blessed Light
 Blood Ogre
 Bloodline Necromancer
+Blor the Impervious
+Bogardan Rager
 Boon of Emrakul
 Broken Visage
 Bubble Matrix
@@ -26,19 +28,24 @@ Carrion Wall
 Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Choose Your Weapon
 Cinderbones
 Cliffhaven Sell-Sword
 Cogwork Archivist
 Colossal Majesty
 Compulsion
 Concordia Pegasus
+Conformer Shuriken
+Cosi's Ravager
 Crumbling Colossus
 Daraja Griffin
+Deceptive Frostkite
 Deflection
 Devils' Playground
 Dirtwater Wraith
 Dragon Egg
 Dragonstorm
+Drannith Ruins
 Drifter il-Dal
 Dune Beetle
 Elvish Harbinger
@@ -50,6 +57,7 @@ Field of Reality
 Filigree Attendant
 Flowstone Crusher
 Forest
+Forgehammer Centurion
 Foul Play
 Free from Flesh
 Frog-Squirrels
@@ -57,6 +65,7 @@ Frontline Medic
 Furnace Scamp
 Futurist Sentinel
 Generous Patron
+Glimpse of Nature
 Gluttonous Slug
 Gnoll War Band
 Gnome-Made Engine
@@ -81,13 +90,19 @@ Merchant Scroll
 Mercurial Transformation
 Mind Burst
 Minion of the Mighty
+Minotaur Skullcleaver
 Mnemonic Wall
+Moment of Heroism
+Monstrous Onslaught
 Morgue Theft
 Mortal's Ardor
 Mountain
 Mountain Bandit
 Mysterious Pathlighter
+Namora, the Sea Queen
+Nephalia Drownyard
 Nimraiser Paladin
+Oasis
 Omen of the Sun
 Ore-Scale Guardian
 Oread of Mountain's Blaze
@@ -98,11 +113,13 @@ Plains
 Platinum Angel
 Plummet
 Porcelain Legionnaire
+Precognitive Perception
 Primordial Ooze
 Prophetic Flamespeaker
 Rakka Mar
 Ravenous Baboons
 Reiver Demon
+Rescue
 Resourceful Return
 Ring of Three Wishes
 Ringwarden Owl
@@ -122,6 +139,7 @@ Selesnya Sentry
 Sentinel Spider
 Shaggy Camel
 Shelter
+Shrill Howler
 Six-Sided Die
 Skyclave Geopede
 Skylasher
@@ -137,6 +155,7 @@ Steward of Valeron
 Stone Rain
 Structural Distortion
 Swamp
+Swarmyard
 Tah-Crop Skirmisher
 Tajuru Beastmaster
 Tegan Jovanka
@@ -149,11 +168,14 @@ Thrasher Brute
 Tidespout Tyrant
 Tigereye Cameo
 Time of Heroes
+Topan Ascetic
 Triton Shorethief
 Turn the Tide
 Turnabout
+Uncanny Speed
 Undercity Shade
 Valor of the Worthy
 Vampire Revenant
 Vivid Revival
 Vivisurgeon's Insight
+Zuran Orb

@@ -220,6 +220,7 @@ Mountain
 Ms. Marvel, Elastic Ally
 Mudhole
 Murasa Pyromancer
+Nath's Elite
 Nebelgast Herald
 Necrogen Censer
 Nest Invader
@@ -275,6 +276,7 @@ Safehold Sentry
 Samut, the Tested
 Sanctum Weaver
 Sanctum of Tranquil Light
+Saproling Burst
 Saproling Migration
 Saw It Coming
 Scalebane's Elite
@@ -288,6 +290,7 @@ Serum-Core Chimera
 Shaman of the Great Hunt
 Shambling Remains
 Shivan Devastator
+Shivan Raptor
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone

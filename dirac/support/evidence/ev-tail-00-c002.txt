@@ -13,6 +13,7 @@ Aura Gnarlid
 Avengers Quinjet
 Belligerent Sliver
 Bishop of Wings
+Bishop of the Bloodstained
 Bleeding Edge
 Bloodthirsty Blade
 Bog Glider
@@ -31,10 +32,12 @@ Celebrity Fencer
 Cephalid Broker
 Chain to Memory
 Chainwhip Cyclops
+Charging Rhino
 Chief of the Scale
 Chimney Goyf
 Coal Stoker
 Collector Ouphe
+Colossal Dreadmask
 Conviction
 Corrupted Harvester
 Crackling Club
@@ -61,6 +64,7 @@ Elaborate Firecannon
 Electric Eel
 Electrickery
 Ember-Fist Zubera
+Energy Chamber
 Erratic Explosion
 Escaped Experiment
 Essence Flux
@@ -70,19 +74,24 @@ Fault Line
 Filigree Familiar
 Filthy Cur
 Flame-Kin War Scout
+Flare of Cultivation
 Flash Flood
 Flowstone Blade
 Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
+Forge Boss
+Form of the Dragon
 Foundry of the Consuls
 Fully Grown
 Geist-Honored Monk
 Geth's Grimoire
+Gigapede
 Gilded Sentinel
 Goblin Caves
 Goblin Dirigible
+Goblin Freerunner
 Goblin Sky Raider
 God-Eternal Oketra
 Gods' Hall Guardian
@@ -91,6 +100,7 @@ Golgari Keyrune
 Goliath Beetle
 Gornog, the Red Reaper
 Graceful Cat
+Grave Birthing
 Greater Werewolf
 Griffin Guide
 Gruul War Chant
@@ -98,15 +108,19 @@ Gwyllion Hedge-Mage
 HYDRA Disintegrator
 Hamza, Guardian of Arashin
 Haughty Djinn
+Hengegate Pathway
 Hermetic Study
 High Market
+High-Speed Hoverbike
 Honorable Scout
 Honored Hierarch
 Horn of Deafening
 Hungry Flames
+Hunted Wumpus
 Imperial Seal
 Improvised Club
 Infernal Genesis
+Intelligence Bobblehead
 Iron Verdict
 Iron-Craw Crusher
 Ishi-Ishi, Akki Crackshot
@@ -114,8 +128,10 @@ Island
 Joraga Visionary
 Kalonian Tusker
 King Crab
+Kodama of the South Tree
 Kor Spiritdancer
 Korozda Guildmage
+Kozilek's Channeler
 Krang, the All-Powerful
 Land Leeches
 Let the Galaxy Burn
@@ -123,7 +139,10 @@ Lifebane Zombie
 Light 'Em Up
 Light of Hope
 Loch Dragon
+Lost in the Woods
 Loyal Pegasus
+Magebane Armor
+Make Obsolete
 Mana Matrix
 Masked Vandal
 Megantic Sliver
@@ -144,17 +163,21 @@ Needleverge Pathway
 Nimraiser Paladin
 Noble Purpose
 Ogre Slumlord
+Olivia, Crimson Bride
 Order of the Stars
 Paladin of Predation
 Path of Peril
 Peema Trailblazer
+Pennon Blade
 Pewter Golem
+Pharika's Cure
 Phobian Phantasm
 Piety Charm
 Piranha Marsh
 Plains
 Priest of Forgotten Gods
 Prism Ring
+Prismatic Omen
 Psemilla, Meletian Poet
 Quarry Beetle
 Raiding Nightstalker
@@ -165,6 +188,7 @@ Redcap Raiders
 Refurbished Familiar
 Repulsor Rays
 Retreat to Emeria
+Rot Farm Skeleton
 Rush of Knowledge
 Russet Wolves
 Ruthless Predation
@@ -174,6 +198,7 @@ Scorn Effigy
 Scourge Wolf
 Scryb Ranger
 Search for Tomorrow
+Serpent Assassin
 Shackles of Treachery
 Shatter
 Shattered Perception
@@ -209,8 +234,10 @@ Tattered Haunter
 Teferi, Timebender
 Tentative Connection
 The Mary Janes
+Thelonite Druid
 Thermal Glider
 Thought Harvester
+Thran Temporal Gateway
 Thranduil the Strategist
 Thriving Grove
 Thundering Chariot
@@ -227,11 +254,13 @@ Verdant Embrace
 Victorious Destruction
 Void Squall
 Voracious Typhon
+Vulshok Sorcerer
 Wand of Vertebrae
 Wandering Ones
 Warlord's Axe
 Weave Fate
 Webweaver Changeling
+Wicked Pact
 Wicked Reward
 Wilderness Hypnotist
 Wildwood Rebirth

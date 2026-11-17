@@ -129,6 +129,7 @@ Fowl Play
 Frilled Deathspitter
 Frost Ogre
 Fruitcake Elemental
+Fyndhorn Elves
 Gaea's Balance
 Garruk, Unleashed
 Genju of the Cedars
@@ -212,6 +213,7 @@ Merfolk Mesmerist
 Midnight Covenant
 Might Weaver
 Mind Rot
+Mindslicer
 Minion Missile
 Mirage Mockery
 Mirko Vosk, Mind Drinker
@@ -291,6 +293,7 @@ Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Sea Gate Colossus
 Seal of Cleansing
 Searing Light
 Sentry of the Underworld

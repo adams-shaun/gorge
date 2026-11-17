@@ -219,6 +219,7 @@ Otherworldly Outburst
 Overwhelming Intellect
 Pain Distributor
 Pain Seer
+Patriarch's Desire
 Pest Rescuer
 Pestilence
 Pile On
@@ -296,6 +297,7 @@ Syphon Essence
 Syphon Mind
 Tablet of Epityr
 Taigam's Scheming
+Tainted Aether
 Tears of Valakut
 Tectonic Fiend
 Tel-Jilad Outrider

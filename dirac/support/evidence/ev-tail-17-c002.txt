@@ -15,6 +15,7 @@ Beskir Shieldmate
 Big Game Hunter
 Big Score
 Black Panther, Claws of Bast
+Bladehold War-Whip
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
 Canyon Wildcat
@@ -25,6 +26,7 @@ Cogwork Spy
 Collateral Damage
 Composer of Spring
 Containment Breach
+Council's Judgment
 Curse of Verbosity
 Dega Sanctuary
 Desert Nomads
@@ -46,6 +48,7 @@ Fin-Clade Fugitives
 Fists of the Anvil
 Fleet-Footed Monk
 Font of Fortunes
+Font of Return
 Forced Adaptation
 Forest
 Foul Imp
@@ -60,6 +63,7 @@ Goblin Piledriver
 Golden Demise
 Gorging Vulture
 Grafted Growth
+Gravepurge
 Graypelt Refuge
 Headless Rider
 Heaven
@@ -73,10 +77,12 @@ Iron Man, Titan of Innovation
 Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
+Juniper Order Advocate
 Kavu Runner
 Kazandu Stomper
 Kefnet's Last Word
 Key to the City
+Kithkin Greatheart
 Kitsune Riftwalker
 Kodama of the South Tree
 Kragma Butcher
@@ -99,9 +105,11 @@ Mountain
 Needle Specter
 Norn's Inquisitor
 Ojutai, Soul of Winter
+Orim's Prayer
 Pallid Mycoderm
 Parch
 Park Heights Maverick
+Passwall Adept
 Peel from Reality
 Peregrine Drake
 Plague Fiend
@@ -114,7 +122,10 @@ Provoke
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
+Ray of Erasure
+Redemption Choir
 Renegade Demon
+Renegade Wheelsmith
 Restrain
 Roc of Kher Ridges
 Rockslide Ambush

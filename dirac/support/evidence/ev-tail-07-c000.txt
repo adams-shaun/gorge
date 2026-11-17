@@ -74,6 +74,7 @@ Centaur Veteran
 Charging Paladin
 Chief Magistrate of Mercadia
 Cinder Giant
+Clambassadors
 Cliffside Lookout
 Clinging Anemones
 Cloaked Siren
@@ -181,6 +182,7 @@ Grayscaled Gharial
 Gruul Ragebeast
 Gryff's Boon
 Hajar, Loyal Bodyguard
+Hallowed Burial
 Hallowed Respite
 Harness Infinity
 Harvester Troll

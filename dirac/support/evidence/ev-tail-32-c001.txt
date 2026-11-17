@@ -1,3 +1,4 @@
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
 Ageless Guardian
@@ -17,6 +18,7 @@ Blasted Landscape
 Blood Age General
 Bloodfire Colossus
 Blue Sun's Zenith
+Blunt the Assault
 Boggart Arsonists
 Book of Rass
 Brand
@@ -25,8 +27,11 @@ Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
+Celestial Purge
 Clot Sliver
 Cold Storage
+Colossus of Akros
+Consuming Sinkhole
 Copper Myr
 Court of Grace
 Dakmor Plague
@@ -35,6 +40,7 @@ Definitely Not a Turtle
 Demystify
 Dormant Sliver
 Drana, Liberator of Malakir
+Dryad Greenseeker
 Dwarven Warriors
 Dwell on the Past
 Elite Scaleguard
@@ -45,6 +51,7 @@ Essence Flare
 Eviscerator's Insight
 Expedition Diviner
 Eye of Nowhere
+Facevaulter
 Farm
 Fault Riders
 Feral Ridgewolf
@@ -126,9 +133,11 @@ Pollenbright Wings
 Psychic Spear
 Purifying Dragon
 Quicksilver Dagger
+Raging Spirit
 Raiding Nightstalker
 Raving Oni-Slave
 Razorjaw Oni
+Reckless Imp
 Renounce
 Rescue Retriever
 Returned Centaur
@@ -149,6 +158,7 @@ Skyclave Cleric
 Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
+Sokka, Swordmaster
 Spellseeker
 Spitting Spider
 Spontaneous Flight
@@ -190,6 +200,7 @@ Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
 Wander in Death
+Wild Crocodile
 Wildfire Eternal
 Windreader Sphinx
 Woodland Bellower

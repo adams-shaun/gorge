@@ -334,6 +334,7 @@ Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil
 Pact of Negation
+Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
 Patron of the Valiant
@@ -421,6 +422,7 @@ Seed of Hope
 Seer's Sundial
 Selfless Spirit
 Senate Courier
+Serendib Djinn
 Serendib Sorcerer
 Serra's Sanctum
 Servant of Volrath

@@ -42,6 +42,7 @@ Chill of Foreboding
 Choking Sands
 Chosen by Heliod
 Cinderslash Ravager
+Clattering Augur
 Clear the Stage
 Cloudchaser Eagle
 Conclave Sledge-Captain
@@ -85,6 +86,7 @@ Emberstrike Duo
 Energy Tap
 Environmental Sciences
 Erase
+Evincar's Justice
 Evolution Witness
 Expendable Troops
 Eyeless Watcher
@@ -118,6 +120,7 @@ Goblin Masons
 Goblin Rabblemaster
 Gold-Forged Sentinel
 Golden Wish
+Goldhound
 Grasping Scoundrel
 Grazilaxx, Illithid Scholar
 Grenzo, Havoc Raiser
@@ -262,12 +265,14 @@ Sky Diamond
 Skyknight Vanguard
 Skyshroud Elite
 Skywatcher Adept
+Slay
 Sleeper's Guile
 Sleeper's Robe
 Slingbow Trap
 Sliver Construct
 Snare Tactician
 Snooping Newsie
+Solphim, Mayhem Dominus
 Somberwald Alpha
 Somberwald Vigilante
 Song of the Worldsoul
@@ -327,6 +332,7 @@ Tunneling Geopede
 Twinblade Slasher
 Two-Headed Dragon
 Tyrranax
+Ulgrotha Charm
 Vampire Champion
 Vaporkin
 Vastwood Fortification

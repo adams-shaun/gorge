@@ -238,6 +238,7 @@ Necrogoyf
 New Benalia
 Nimbus of the Isles
 Nissa's Pilgrimage
+Nivix Cyclops
 Noble Panther
 Nocturnal Feeder
 Oakenform
@@ -340,6 +341,7 @@ Soldevi Golem
 Soldevi Sage
 Soltari Trooper
 Soothing Balm
+Soratami Cloud Chariot
 Soulblade Renewer
 Spiketail Drake
 Sporecrown Thallid

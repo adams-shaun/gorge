@@ -1,0 +1,22 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Angelic Shield	8b39d421a58f0345	7	1/1		1/1	
+Charging Slateback	a2a62db63d8beb5b	12	0/0		1/2	cast/alt:morphed
+Disrupting Scepter	2d0a66e4cbf7d281	9	1/1		0/1	ix:resp
+Flying Carpet	783ff830460f6dcc	13	1/1		1/1	
+Gitaxian Raptor	156228a14dfdd79c	19	1/1		1/1	
+Hawkeye, Clint Barton	d501ca72eb7df248	5	0/0		0/0	
+Hedron Scrabbler	3b0272fe8d1691b0	28	1/1		1/1	
+Molly Hayes, Runaway	15160ba95fb56309	12	1/1		1/1	
+Narcolepsy	05d12f2f94002f73	14	1/1		2/2	
+Paraselene	2f49d2f2f75f5f3f	6	0/0		1/2	ix:resp
+Prismatic Lens	82ae84199d318d94	19	2/2		0/1	ix:resp
+Rush of Inspiration	9def29f36ab05ae0	8	1/1		1/2	ix:resp
+Serra's Guardian	fa501eefc46ed70f	4	0/0		0/0	
+Smokestack	0d068042403b4437	10	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Spellstutter Sprite	78c30cf11081fc79	21	1/1		0/1	ix:resp
+Tezzeret's Betrayal	83eb6314206e267b	4	0/0		1/2	ix:resp
+Traxos, Scourge of Kroog	e6aacad5d6b29170	7	1/1		1/1	
+Viashino Branchrider	fbd2fe93f8f352c6	13	1/1		2/3	ix:resp
+Visionary Augmenter	74751bf805d3a3c1	6	1/1		0/1	ix:resp
+Wall of Resistance	a1fbd01017d05c4e	4	1/1		0/1	ix:resp
+Warning	0fcb99f82f4a6b42	4	0/0		1/2	ix:resp

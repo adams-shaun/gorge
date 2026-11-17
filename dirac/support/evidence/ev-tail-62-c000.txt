@@ -83,6 +83,7 @@ Court Street Denizen
 Crashing Footfalls
 Cremate
 Crested Sunmare
+Crookclaw Transmuter
 Crow Storm
 Cruel Cut
 Cruel Tutor
@@ -105,6 +106,7 @@ Dimir Charm
 Dire Tactics
 Disowned Ancestor
 Disruption Protocol
+Drach'Nyen
 Dragon Arch
 Dragon Moose
 Dragonlair Spider

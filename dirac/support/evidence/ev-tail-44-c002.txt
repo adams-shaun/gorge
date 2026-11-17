@@ -23,6 +23,7 @@ Blood Knight
 Blossoming Wreath
 Blur of Blades
 Bond of Insight
+Boros Locket
 Burrenton Shield-Bearers
 Captain N'ghathrod
 Castle Raptors
@@ -109,6 +110,7 @@ Holy Justiciar
 Holy Strength
 Howling Gale
 Humility
+Hunted Troll
 Hurler Cyclops
 Hyena Pack
 Ill-Gotten Inheritance
@@ -153,6 +155,7 @@ Navigator's Ruin
 Nezumi Graverobber
 Nick Fury, Spymaster
 Ninja of the Deep Hours
+Nomadic Elf
 Nullmage Advocate
 Obscura Ascendancy
 Obsidian Giant
@@ -164,6 +167,7 @@ Overgrown Battlement
 Pact of Negation
 Paired Tactician
 Pale Rider of Trostad
+Pangosaur
 Patrolling Peacemaker
 Patron Wizard
 Pestilent Wolf
@@ -176,6 +180,7 @@ Praetor's Counsel
 Price of Fame
 Priest of Forgotten Gods
 Putrid Warrior
+Qarsi Sadist
 Quartzwood Crasher
 Rathi Fiend
 Ravenous Gigamole
@@ -217,6 +222,7 @@ Soul-Strike Technique
 Spectacular Showdown
 Spider-Man, Hometown Hero
 Squirming Mass
+Stone-Throwing Devils
 Storm-Kiln Artist
 Street Riot
 Strength of Cedars

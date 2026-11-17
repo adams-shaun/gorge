@@ -44,6 +44,7 @@ Bay Falcon
 Beacon Bolt
 Believe in the Cleave
 Benalish Trapper
+Berg Strider
 Betrayal of Flesh
 Biomass Mutation
 Blaze
@@ -52,6 +53,7 @@ Blessing of Belzenlok
 Blinding Souleater
 Blue Dragon
 Bola Slinger
+Bonecrusher Giant
 Boros Keyrune
 Boros Signet
 Boulderfall

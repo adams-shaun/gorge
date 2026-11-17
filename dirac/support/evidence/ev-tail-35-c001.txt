@@ -1,19 +1,23 @@
 A-Elderleaf Mentor
 A-Nael, Avizoa Aeronaut
+Absolute Law
 Abundant Countryside
 Acidic Sliver
 Adeliz, the Cinder Wind
 Aether Spike
 Akki Rockspeaker
 Alchemist's Refuge
+Alibou, Ancient Witness
 Amass the Components
 Annex
 Arcane Denial
 Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
+Ballynock Trapper
 Beacon of Unrest
 Bedevil
+Benevolent Bodyguard
 Biogenic Ooze
 Black Widow, Natasha Romanoff
 Blade of Selves
@@ -32,6 +36,7 @@ Bright Reprisal
 Brute Force
 Cathar's Shield
 Cathedral Acolyte
+Centaur Archer
 Chasm Skulker
 Choose Your Weapon
 Claws of Valakut
@@ -53,6 +58,7 @@ Divination
 Divine Light
 Drake Familiar
 Dreamshackle Geist
+Dwarven Thaumaturgist
 Elder Druid
 Elder Gargaroth
 Elite Vanguard
@@ -61,6 +67,7 @@ Encrust
 Energy Chamber
 Esper Panorama
 Faerie Impostor
+False Peace
 Fate Forgotten
 Footlight Fiend
 Forest
@@ -72,18 +79,23 @@ Gerrard's Battle Cry
 Ghostly Changeling
 Giant Ankheg
 Gimli, Counter of Kills
+Gingerbehemoth
 Glint-Nest Crane
+Goatnapper
 Goblin Lore
 Graaz, Unstoppable Juggernaut
+Gravel Slinger
 Grayscaled Gharial
 Hag of Noxious Nightmares
 Hearth Kami
 Herbology Instructor
+Hoofprints of the Stag
 Hookblade
 Hyrax Tower Scout
 Infantry Veteran
 Infernal Pet
 Inferno
+Inspiring Bard
 Iraxxa, Empress of Mars
 Island
 Jadecraft Artisan
@@ -96,13 +108,16 @@ Keeper of the Accord
 Killmonger, Ruthless Usurper
 Lab Rats
 Lady Spider, Maybelle Reilly
+Leery Fogbeast
 Leonin Armorguard
 Linvala, the Preserver
+Living Lightning
 Longbow Archer
 Loyal Warhound
 Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
+Marshal's Anthem
 Megantic Sliver
 Mindlash Sliver
 Mizzium Meddler
@@ -117,7 +132,10 @@ Mystic Zealot
 Nantuko Tracer
 Nezumi Cutthroat
 Nine-Tail White Fox
+No-Dachi
+Oath of Ajani
 Obsidian Obelisk
+Olog-hai Crusher
 Opal Acrolith
 Order of Leitbur
 Ori, Plate Stacker
@@ -126,13 +144,16 @@ Overwhelm
 Pain Distributor
 Plains
 Predatory Wurm
+Primal Order
 Prohibit
 Rebuke
 Reinforced Bulwark
 Repopulate
 Repulsor Rays
+Reservoir Walker
 Rile
 Royal Talon Fighter Jet
+Sacred Rites
 Sadistic Obsession
 Samite Healer
 Scout the Wilderness
@@ -159,18 +180,26 @@ Spirit of Malevolence
 Spirit of the Night
 Spitting Hydra
 Sprouting Renewal
+Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
+Sumala Woodshaper
 Swamp
 Swarmborn Giant
 Syphon Mind
 Tablet of Epityr
+Tectonic Fiend
+Tel-Jilad Outrider
+The Biblioplex
+The Falcon, Sam Wilson
 The Lady of Otaria
 Thorn of the Black Rose
+Thriving Grubs
 Thundering Ceratok
 Tiller of Flesh
 Tor Wauki the Younger
 Tranquil Frillback
+Tree Monkey
 Tribal Flames
 Triclopean Sight
 Twenty-Toed Toad
@@ -178,6 +207,7 @@ Uncovered Clues
 Unifying Theory
 Unwavering Initiate
 Utter End
+Valakut, the Molten Pinnacle
 Vitalizing Cascade
 Vraska's Fall
 Watchful Giant

@@ -173,6 +173,7 @@ Hook Swords
 Hound of the Farbogs
 House Guildmage
 Hunger of the Nim
+Iceberg Cancrix
 Icingdeath, Frost Tyrant
 Incite
 Infernal Captor
@@ -407,10 +408,12 @@ Victory's Envoy
 Vigilance
 Villainous Wealth
 Vinelasher Kudzu
+Visions of Brutality
 Vivify
 Voidslime
 Voldaren Duelist
 Voltaic Construct
+Vraska the Unseen
 Vryn Wingmare
 Wailing Ghoul
 Wall of Kelp

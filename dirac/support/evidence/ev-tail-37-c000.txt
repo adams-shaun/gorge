@@ -20,6 +20,7 @@ Ancient Tomb
 Angel of the Dawn
 Angelic Sell-Sword
 Angelsong
+Arcbond
 Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
@@ -72,6 +73,7 @@ Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
 Contagion Clasp
+Contested War Zone
 Controlled Instincts
 Crawling Chorus
 Crimson Kobolds

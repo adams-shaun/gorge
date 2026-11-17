@@ -1,5 +1,6 @@
 A-Canopy Tactician
 A-Luminarch Aspirant
+A-Navigation Orb
 Aang, Air Nomad
 Aerie Auxiliary
 Aether Adept
@@ -38,6 +39,7 @@ Burgeoning
 Burning-Yard Trainer
 Canal Dredger
 Candlelit Cavalry
+Careful Consideration
 Carnage Tyrant
 Castle Embereth
 Champion's Helm
@@ -168,17 +170,20 @@ More of That Strange Oil...
 Mountain
 Mukotai Soulripper
 Mystic Visionary
+Narstad Scrapper
 Necrogen Scudder
 Necrotic Sliver
 Needlepeak Spider
 Nezumi Shadow-Watcher
 Niambi, Esteemed Speaker
 Nightsquad Commando
+Nihil Spellbomb
 Nim Shrieker
 Null Champion
 Obscuring Haze
 Ojutai Exemplars
 Oketra the True
+Orim's Cure
 Ornithopter of Paradise
 Oxidda Golem
 Parapet Watchers
@@ -244,6 +249,7 @@ Swamp
 Sword of the Chosen
 Tahngarth's Rage
 Takenuma Bleeder
+Teferi's Wavecaster
 Tempered in Solitude
 Temporal Eddy
 Terminal Moraine
@@ -268,6 +274,7 @@ Victim of Night
 Virulent Plague
 Vitaspore Thallid
 Vortex Runner
+Wake Thrasher
 Wall of Stone
 Warclamp Mastiff
 Warmind Infantry

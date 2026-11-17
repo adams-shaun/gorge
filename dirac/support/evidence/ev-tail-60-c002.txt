@@ -1,12 +1,15 @@
 Acridian
 Aethersquall Ancient
+Affa Protector
 Alabaster Mage
+Alaborn Trooper
 Algorithmic Ferocity
 Anaba Shaman
 Ant Queen
 Arachnus Web
 Arcane Proxy
 Armored Wolf-Rider
+Artful Maneuver
 Artificer Class
 Back to Nature
 Baloth Gorger
@@ -28,17 +31,21 @@ Centaur Nurturer
 Cerulean Wisps
 Child of Gaea
 Cho-Manno, Revolutionary
+Choking Miasma
 Contentious Plan
 Cosmic Hunger
+Court Cleric
 Crowd's Favor
 Cybermat
 Dawnhart Rejuvenator
 Death Bomb
 Deathgrip
+Demon of Wailing Agonies
 Demotion
 Deserted Temple
 Desperate Farmer
 Dingus Egg
+Doctor Strange, Surgeon
 Dragonlord Ojutai
 Dross Harvester
 Dryad Greenseeker
@@ -53,8 +60,10 @@ End the Festivities
 Essence Infusion
 Etherium Sculptor
 Excise
+Execute
 Exemplar of Strength
 Faerie Harbinger
+Faithless Looting
 Fallaji Vanguard
 Familiar Ground
 Fiery Mantle
@@ -69,12 +78,14 @@ Gird for Battle
 Glorifier of Dusk
 Glory of Warfare
 Gnottvold Slumbermound
+Goblin Kaboomist
 Goblin Replica
 Goblin Tunneler
 Golden Wish
 Goldmeadow Dodger
 Grindstone
 Hag of Syphoned Breath
+Hammer Helper
 Harrow
 Healing Salve
 Hedron Detonator
@@ -84,14 +95,17 @@ Icatian Scout
 Illusionary Armor
 Impostor of the Sixth Pride
 Island
+Kami of Whispered Hopes
 Keeper of the Lens
 Kill! Maim! Burn!
 Lava Hounds
 Life's Legacy
 Littjara Glade-Warden
 Livonya Silone
+Llanowar Stalker
 Magmaroth
 Mahadi, Emporium Master
+Marble Chalice
 Marionette Apprentice
 Matsu-Tribe Birdstalker
 Maximize Velocity
@@ -117,14 +131,20 @@ Pact of the Titan
 Plains
 Political Trickery
 Power Plant Worker
+Priest of the Haunted Edge
 Quirion Trailblazer
 Rakdos Guildmage
+Rampage of the Valkyries
+Razortooth Rats
 Reckless Ogre
 Reject
 Repudiate
+Retreat to Kazandu
 Retrieval Agent
+Reviving Dose
 Rhystic Deluge
 Riptide Chimera
+Ronom Unicorn
 Rootwater Hunter
 Rotting Rats
 Rowan Treefolk
@@ -140,10 +160,14 @@ Sky Terror
 Skyreach Manta
 Smelted Chargebug
 Smiting Helix
+Soltari Emissary
 Spectral Guardian
 Spider Spawning
+Split-Tail Miko
 Stern Proctor
 Swamp
+Sword of Fire and Ice and War and Peace
+Tek
 Tenacity
 Thallid Omnivore
 The Terror of Serpent's Pass
@@ -152,6 +176,7 @@ Thousand-Year Elixir
 Thriving Moor
 Timbermaw Larva
 Toe-Breaking Helmet
+Tombfire
 Toxic Abomination
 Tragic Fall
 Trench Wurm
@@ -165,6 +190,7 @@ Vizkopa Vampire
 Voice of Duty
 Watertrap Weaver
 White Shield Crusader
+Wind Shear
 Windbrisk Raptor
 Wreck and Rebuild
 Yellow Scarves Troops

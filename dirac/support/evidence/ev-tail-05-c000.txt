@@ -123,6 +123,7 @@ Frenzied Rage
 Furtive Homunculus
 Futurist Sentinel
 Gaea's Touch
+Gangrenous Zombies
 Genasi Enforcers
 Giant Killer
 Giltgrove Stalker
@@ -138,6 +139,7 @@ Goblin Gathering
 Goblin War Strike
 Goldenhide Ox
 Gorilla Shaman
+Graven Lore
 Graveyard Marshal
 Griffin Aerie
 Guardians of Meletis

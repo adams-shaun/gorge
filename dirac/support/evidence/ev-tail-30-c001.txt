@@ -58,6 +58,7 @@ Cackling Flames
 Callous Bloodmage
 Cavern-Hoard Dragon
 Cemetery Reaper
+Chain Stasis
 Chalice of Life
 Chariot of the Sun
 Chief Jim Hopper
@@ -97,6 +98,7 @@ Drowsing Tyrannodon
 Duelist of Deep Faith
 Dungeoneer's Pack
 Echoing Ruin
+Echoing Truth
 Electrozoa
 Elvish Champion
 Elvish Hydromancer
@@ -105,6 +107,7 @@ Empyreal Voyager
 Errand-Rider of Gondor
 Escape from Orthanc
 Essence of Orthodoxy
+Evangel of Synthesis
 Expanded Anatomy
 Exterminatus
 Exuberant Firestoker
@@ -153,6 +156,7 @@ Hooded Hydra
 Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
+Hunted Witness
 Hypnotic Specter
 Indomitable Archangel
 Instill Furor
@@ -229,9 +233,11 @@ Pattern of Rebirth
 Perilous Voyage
 Pheres-Band Thunderhoof
 Phyrexian Battleflies
+Pia's Revolution
 Plains
 Plated Geopede
 Plated Spider
+Polymorphist's Jest
 Power Sink
 Precognition Field
 Primeval Titan
@@ -256,6 +262,7 @@ Rockcaster Platoon
 Ronin Warclub
 Ruination Wurm
 Run Afoul
+Runeboggle
 Ruric Thar, the Unbowed
 Rush the Room
 Rusted Sentinel
@@ -290,6 +297,7 @@ Silversmote Ghoul
 Simic Slaw
 Sinuous Vermin
 Skullknocker Ogre
+Skyclave Squid
 Skyrider Trainee
 Slayers' Stronghold
 Sleep of the Dead

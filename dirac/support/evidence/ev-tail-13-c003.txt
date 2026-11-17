@@ -1,10 +1,12 @@
 A-Psionic Snoop
+Abzan Skycaptain
 Adaptive Sporesinger
 Akiri, Line-Slinger
 Ancient Crab
 Appetite for the Unnatural
 Arcane Denial
 Armed Assailant
+Armored Skaab
 Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
@@ -46,6 +48,7 @@ Dutiful Return
 Earth Tremor
 Ecologist's Terrarium
 Elvish Pioneer
+Enthrall
 Fatal Fumes
 Fire Prophecy
 Flamekin Harbinger
@@ -63,6 +66,7 @@ Glen Elendra Archmage
 Glimmer Lens
 Go-Shintai of Lost Wisdom
 Goblin Champion
+Goblin Wardriver
 Golden-Tail Disciple
 Gulping Scraptrap
 Hanweir Militia Captain
@@ -78,6 +82,7 @@ Hydroelectric Specimen
 Hypnotic Specter
 Hypnotic Sprite
 Iceman and Firestar
+Illusory Ambusher
 Index
 Inertia Bubble
 Insist
@@ -86,6 +91,7 @@ Island
 Izzet Cluestone
 Jedit's Dragoons
 Jinxed Ring
+Kamahl, Pit Fighter
 Kemba's Skyguard
 Kiki-Jiki, Mirror Breaker
 Kite Shield
@@ -99,6 +105,7 @@ Lembas
 Leonardo, Worldly Warrior
 Lizard Blades
 Lock and Load
+Long-Lost Lances
 Mark of Mutiny
 Markov Purifier
 Merrow Commerce
@@ -118,6 +125,7 @@ Pharika's Mender
 Phyrexian Vault
 Plains
 Pull Under
+Putrid Imp
 Quest for the Gravelord
 Rabid Rats
 Rat King, Pale Piper
@@ -137,7 +145,9 @@ Silent Skimmer
 Skeletal Kathari
 Skywatcher Adept
 Slaughter Cry
+Smashing Success
 Smelt-Ward Minotaur
+Soaring Drake
 Soldier Replica
 Sorcerer's Wand
 Soul Partition
@@ -149,8 +159,12 @@ Squirrel Sovereign
 Stitcher's Apprentice
 Storm Entity
 Strength-Testing Hammer
+Stromkirk Patrol
+Surrakar Marauder
 Swamp
+Sword of the Paruns
 Tazeem Raptor
+Tenacious Dead
 The Scorpion God
 Thopter Assembly
 Thopter Spy Network
@@ -175,6 +189,7 @@ Vivien's Crocodile
 Wall of Razors
 Weathered Wayfarer
 Westgate Regent
+Whisper of the Dross
 Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger

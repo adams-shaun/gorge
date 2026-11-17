@@ -10,6 +10,7 @@ Ambassador Laquatus
 Ancient Gold Dragon
 Ancient Silverback
 Angel's Feather
+Angelic Shield
 Arctic Nishoba
 Arden Angel
 Armored Galleon
@@ -55,6 +56,7 @@ Call the Bloodline
 Casey Jones, Back Alley Brute
 Celestial Force
 Ceremonial Knife
+Charging Slateback
 Cleon, Merry Champion
 Clockwork Condor
 Cloud Sprite
@@ -78,6 +80,7 @@ Day's Undoing
 Daybreak Charger
 Deflecting Swat
 Dense Canopy
+Disrupting Scepter
 Doctor Jane Foster
 Doomed Dissenter
 Dragon's Eye Sentry
@@ -110,6 +113,7 @@ Fighting Drake
 Fire Nation Archers
 Firebird, Blazing Ranger
 Fleetfeather Cockatrice
+Flying Carpet
 Fogwalker
 Forest
 Fortify
@@ -119,6 +123,7 @@ Galadriel, Gift-Giver
 Gatekeeper Gargoyle
 Geistflame Reservoir
 Giant Warthog
+Gitaxian Raptor
 Gix's Caress
 Gix's Command
 Glint Hawk
@@ -132,8 +137,10 @@ Guildpact Informant
 Gurmag Swiftwing
 Harabaz Druid
 Hawkeater Moth
+Hawkeye, Clint Barton
 Heaven's Gate
 Hedonist's Trove
+Hedron Scrabbler
 Hematite Talisman
 Henge Guardian
 Heron's Grace Champion
@@ -196,10 +203,12 @@ Minister of Inquiries
 Ministrant of Obligation
 Mire Boa
 Misfortune Teller
+Molly Hayes, Runaway
 Moonglove Extract
 Mountain
 Mtenda Lion
 Myrkul's Edict
+Narcolepsy
 Niall Silvain
 Night Market Lookout
 Nivix Barrier
@@ -214,6 +223,7 @@ Orochi Eggwatcher
 Overwhelming Denial
 Pack's Favor
 Panther Warriors
+Paraselene
 Patriar's Seal
 Pawn of Ulamog
 Penumbra Bobcat
@@ -225,6 +235,7 @@ Pillardrop Warden
 Plains
 Portcullis Vine
 Preordain
+Prismatic Lens
 Prison Realm
 Prized Unicorn
 Profound Journey
@@ -242,6 +253,7 @@ Ritual of Rejuvenation
 Roaring Earth
 Rot Wolf
 Rubblehulk
+Rush of Inspiration
 Salvaged Manaworker
 Sardian Avenger
 Saruman's Trickery
@@ -254,6 +266,7 @@ Seismic Mage
 Selfless Savior
 Sentinel Spider
 Serpentine Ambush
+Serra's Guardian
 Shadewing Laureate
 Shared Trauma
 Shattering Pulse
@@ -262,6 +275,7 @@ Sidewinder Naga
 Siegehorn Ceratops
 Slither Blade
 Smash
+Smokestack
 Smuggler's Copter
 Solarion
 Somberwald Sage
@@ -271,6 +285,7 @@ Sowing Mycospawn
 Spark Elemental
 Spark Jolt
 Spectral Lynx
+Spellstutter Sprite
 Sphinx-Bone Wand
 Sporoloth Ancient
 Stand United
@@ -283,6 +298,7 @@ Sunrise Seeker
 Swamp
 Symbiote Spawn
 Tenement Crasher
+Tezzeret's Betrayal
 The Birth of Meletis
 The Destined White Mage
 The Lady of the Mountain
@@ -294,6 +310,7 @@ Timely Interference
 Tolarian Serpent
 Tortured Existence
 Towering Gibbon
+Traxos, Scourge of Kroog
 Tribute to the Wild
 Tricks of the Trade
 Trollhide
@@ -312,13 +329,17 @@ Vampirism
 Vebulid
 Vengeful Devil
 Verdant Sun's Avatar
+Viashino Branchrider
 Vincent, Vengeful Atoner
 Vine Mare
 Viridian Acolyte
+Visionary Augmenter
 Volunteer Militia
 Wall of Earth
 Wall of Mulch
+Wall of Resistance
 Warden of Geometries
+Warning
 Warriors' Lesson
 Waste Not
 Welcoming Vampire

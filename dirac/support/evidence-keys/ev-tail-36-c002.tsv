@@ -1,0 +1,22 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Assault Intercessor	b352d85f1f8f33dc	5	1/1		1/1	
+Branded Brawlers	5c8e1b9cd98f534a	4	0/0		0/0	
+Dawn Elemental	d30359f4e3a8ab03	5	0/0		0/0	
+Defile	242c609709fc4079	6	0/0		2/2	
+Faithful Watchdog	9ed2b069f15cdd93	4	0/0		0/0	
+Haunted Cloak	ca48eb9537aa400f	6	1/1		0/1	ix:resp
+Honden of Infinite Rage	ec96bfb58a9b7d50	7	1/1		1/1	
+Illuminator Virtuoso	eb5d385a649be3fc	25	1/1		1/1	
+Isamaru and Yoshimaru	990c701a3e9b2527	4	1/1		1/1	
+Kargan Warleader	75ec54b1811df306	3	0/0		0/0	
+Lingering Death	6b09ae6e573580af	3	1/1		2/2	
+Loxodon Mender	afff417bf312ee64	4	1/1		1/1	
+Mass Mutiny	67b6a7f62383e1fe	3	0/0		1/2	ix:resp
+Myr Scrapling	71933408620d0b2b	6	1/1		1/1	
+Phyrexian Vivisector	306846f37d5e0b7a	4	1/1		0/1	ix:resp
+Pride of Conquerors	6c0899e7026fba6b	4	0/0		1/2	ix:resp
+Refurbish	3ede7cb44c29137e	5	0/0		1/2	ix:resp
+Scorched Rusalka	85596b805ebe6b5a	6	1/1		1/1	
+Specter's Shroud	373c91b4f44bea64	6	2/2		1/1	
+Throwing Knife	3614e45a30e2d4cb	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Veteran of the Depths	74d477b9a8da6869	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

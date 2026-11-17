@@ -4,7 +4,9 @@ Abyssal Nightstalker
 Abyssal Specter
 Abzan Advantage
 Accorder Paladin
+Aether Membrane
 Aetherworks Marvel
+Affa Guard Hound
 Aggressive Instinct
 Ahn-Crop Invader
 Ainok Artillerist
@@ -13,18 +15,31 @@ Ajani's Welcome
 Akki Avalanchers
 Ambassador Oak
 Ambush Paratrooper
+Amrou Kithkin
 Angel of the Dawn
 Angelic Field Marshal
+Apocalypse Demon
+Apothecary Geist
+Arcbound Prototype
 Arch of Orazca
+Armed Assailant
 Arrester's Zeal
+Atmosphere Surgeon
 Aurochs Herd
+Aven Wind Guide
 Azorius Charm
 Bala Ged Recovery
+Barbed Shocker
+Bartizan Bats
 Become the Avalanche
+Belle of the Brawl
+Black Vise
 Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Blaring Captain
+Blindblast
 Blinding Fog
+Bloodhaze Wolverine
 Bloodmist Infiltrator
 Boggart Loggers
 Boros Guildmage
@@ -34,11 +49,18 @@ Breath of Darigaaz
 Brightwood Tracker
 Brute Strength
 Bureau Headmaster
+Butcher Ghoul
 Cabaretti Initiate
 Cage of Hands
+Caregiver
+Celestial Unicorn
 Centaur Chieftain
+Champion of the Flame
 Chandra's Outrage
+Changeling Sentinel
 Chromescale Drake
+Citadel Gate
+Civilized Scholar
 Coiled Tinviper
 Compelled Duel
 Consul's Lieutenant
@@ -49,97 +71,144 @@ Crow Storm
 Cruel Grimnarch
 Crusade
 Crystal Dragon
+Cunning Evasion
 Curfew
 Custody Battle
+Cyclops of Eternal Fury
+Daemogoth Titan
+Danitha, New Benalia's Light
+Darklit Gargoyle
 Darkthicket Wolf
+Deadeye Rig-Hauler
+Deathbellow Raider
+Delayed Blast Fireball
 Deploy to the Front
 Detainment Spell
 Dire Fleet Warmonger
+Dovin's Dismissal
+Dragon Whelp
 Dragon's Eye Sentry
 Drannith Magistrate
+Dread Charge
 Dread Fugue
 Drider
+Durkwood Baloth
 Dwarven Armorer
+Elder Land Wurm
 Empyrial Plate
+Energy Arc
 Enlarge
 Ensnare
+Epistolary Librarian
 Erratic Mutation
 Escape Velocity
 Esika's Chariot
+Ethereal Champion
 Evie Frye
+Excavated Wall
 Expedition Skulker
 Expel
 Eye Gouge
 Fearless Fledgling
 Feast of Dreams
+Feast of Sanity
+Firebrand Ranger
+Flameborn Hellion
 Floodhound
 Fog Elemental
 Foresee
 Forest
+Forge Armor
 Forgehammer Centurion
 Freejam Regent
 Freewind Equenaut
 Freyalise Supplicant
 Furious Bellow
 Furyborn Hellkite
+Gaea's Courser
 Gaea's Protector
 Gerrard's Irregulars
 Giant Solifuge
+Gideon Blackblade
 Glass of the Guildpact
 Glint Hawk Idol
 Go-Shintai of Ancient Wars
 Goblin Assailant
+Goblin Medics
+Goblin Pyromancer
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
 Grand Warlord Radha
+Graviton, Fundamental Force
 Greel's Caress
 Greenwarden of Murasa
 Greenwheel Liberator
 Griffin Sentinel
 Grim Reaper's Scythe
+Groundling Pouncer
+Guilty Conscience
+Hag of Syphoned Breath
 Hamlet Vanguard
+Hand of Cruelty
 Hawkeye's Shot
 Hedron Rover
 Heir of the Ancient Fang
 Herald of the Host
 Hero of Iroas
 Heron of Hope
+High Sentinels of Arashin
+Homestead Courage
 Hordeling Outburst
 Howlgeist
 Huatli's Snubhorn
+Hulking Ogre
+Ice Storm
 Ichor Drinker
 Illusory Demon
 Imperial Subduer
+Inner-Chamber Guard
 Inspiring Cleric
 Invasion of Dominaria
 Invigorated Rampage
+Ironsoul Enforcer
 Island
 Jace's Sanctum
 Jackalope Herd
+Jaya's Immolating Inferno
+Jubilation
+Jwar Isle Avenger
 Kashi-Tribe Elite
+Kinetic Augur
+Knight of the Skyward Eye
 Kor Bladewhirl
 Kuldotha Rebirth
 Kumena's Awakening
 Kyren Negotiations
 Lash of the Whip
+Lathnu Hellion
 Lavastep Raider
 Lawmage's Binding
 Learn from the Past
 Light 'Em Up
 Llanowar Cavalry
 Lovisa Coldeyes
+Loxodon Convert
+Lurking Skirge
 Maggot Carrier
+Mardu Scout
 Master's Guidance
 Maze Abomination
 Merfolk Skydiver
 Merry, Warden of Isengard
 Mesa Cavalier
+Mesa Enchantress
 Metamorphic Wurm
 Midnight Charm
 Mindless Null
 Mindswipe
 Minion Reflector
+Misthoof Kirin
 Mountain
 Mourning
 Myr Convert
@@ -151,19 +220,25 @@ Narnam Cobra
 Nearheath Chaplain
 Necrotic Hex
 Nesting Dovehawk
+Netcaster Spider
 Nikya of the Old Ways
+Nils, Discipline Enforcer
 Noble Vestige
 Norwood Priestess
 Nurturer Initiate
+Omen of the Forge
 Order of the Mirror
 Orochi Merge-Keeper
 Outland Boar
+Owlin Shieldmage
 Painiac
+Palace Siege
 Pavel Maliki
 Phantom Blade
 Phobian Phantasm
 Phyresis
 Phyrexian Driver
+Pillarfield Ox
 Plains
 Predators' Hour
 Predatory Nightstalker
@@ -171,6 +246,9 @@ Prescient Chimera
 Priest of Urabrask
 Primal Surge
 Primal Visitation
+Prismatic Boon
+Psionic Gift
+Puncturing Light
 Purge the Profane
 Pygmy Razorback
 Pyknite
@@ -178,6 +256,8 @@ Pyroclastic Elemental
 Pyromancer's Swath
 Pyromantic Pilgrim
 Pyrophobia
+Quagmire Druid
+Radiant Destiny
 Radiant Fountain
 Raised by Wolves
 Rakalite
@@ -189,6 +269,7 @@ Realmwalker
 Red Elemental Blast
 Renewal
 Replication Technique
+Ring of Renewal
 Riot Devils
 Rishadan Brigand
 Rishkar, Peema Renegade
@@ -197,36 +278,57 @@ Rodolf Duskbringer
 Rofellos's Gift
 Salvage
 Savage Thallid
+Scout the Wilderness
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
+Searing Barb
+Selesnya Charm
+Seluma, Light of Aysen
+Sergeant-at-Arms
 Servant of Tymaret
 Shelob's Ambush
+Shimmerwing Chimera
+Shredded Sails
 Silvar, Devourer of the Free
+Singe
 Singer of Swift Rivers
 Skillful Lunge
+Sky-Blessed Samurai
 Skyshooter
 Smoldering Werewolf
 Snarling Undorak
 Somberwald Vigilante
 Sowing Mycospawn
+Sparring Mummy
 Spell Crumple
 Spellgorger Barbarian
 Spider-Man, Peter Parker
+Spire Golem
 Spring
 Staff of the Wild Magus
 Stalking Bloodsucker
 Stalking Drone
 Stampeding Wildebeests
+Steel Exemplar
 Steel-Plume Marshal
+Stitcher's Graft
+Stone Haven Medic
 Stoneforge Mystic
 Stonybrook Banneret
+Stormblood Berserker
+Strands of Night
 Stratus Walk
 Student of Ojutai
+Student of Warfare
+Stupor
 Stymied Hopes
 Suit Up
+Sunhome Enforcer
 Surge Engine
 Swamp
+Swooping Protector
+Tabaxi Toucaneers
 Talas Merchant
 Talons of Wildwood
 Taste of Blood
@@ -237,30 +339,45 @@ Thallid
 Thaumatic Compass
 Thicket Basilisk
 Thriving Bluff
+Throes of Chaos
 Thrun, the Last Troll
 Timberland Guide
+Time Elemental
 Toil
 Toil to Renown
 Tomakul Honor Guard
 Tomb of the Spirit Dragon
 Topplegeist
+Tower of Fortunes
+Towering Viewpoint
 Treetop Rangers
 Tremor
+Triskelavus
+Urbis Protector
+Urborg Justice
 Urgoros, the Empty One
 Vampiric Tutor
+Vastwood Animist
 Vengevine
 Venser, Fervent Forger
 Viridian Shaman
+Volcanic Fallout
 Wallop
 War Dance
+Warbreak Trumpeter
 Weatherseed Faeries
 Whitewater Naiads
 Wild Aesthir
 Windbrisk Raptor
 Windrider Wizard
+Windseeker Centaur
+Wojek Halberdiers
 Yavimaya Gnats
 Yavimaya Sojourner
 Yoked Ox
+Young Wolf
 Zarichi Tiger
 Zendikar Incarnate
 Zhuge Jin, Wu Strategist
+Zirilan of the Claw
+Éowyn, Lady of Rohan

@@ -5,6 +5,7 @@ A-Syndicate Infiltrator
 A-Young Blue Dragon
 Abattoir Ghoul
 Aberrant
+Adder-Staff Boggart
 Aegis Automaton
 Agadeem Occultist
 Agent of Masks
@@ -127,6 +128,7 @@ Drifter il-Dal
 Drover of the Mighty
 Dune Beetle
 Dungeoneer's Pack
+Dwarven Scorcher
 Dynacharge
 E. Honda, Sumo Champion
 Elvish Clancaller

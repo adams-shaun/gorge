@@ -1,15 +1,19 @@
 A-Akki Ronin
 A-Guide of Souls
 A-Oran-Rief Ooze
+A-Psionic Snoop
 A-Urza, Powerstone Prodigy
 Abzan Advantage
 Accursed Horde
+Acrobatic Maneuver
 Advanced Stitchwing
+Aether Chaser
 Aether Vial
 Aftershock
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
+Allay
 Anaba Bodyguard
 Ancestral Knowledge
 Animal Boneyard
@@ -18,17 +22,25 @@ Ardent Elementalist
 Armorcraft Judge
 Atraxa's Fall
 Audacity
+Autumnal Gloom
 Bag End Porter
 Belligerent Brontodon
+Blast Zone
 Blighted Agent
 Blood Divination
+Bloodstone Cameo
+Blurred Mongoose
+Bogardan Dragonheart
 Bramblecrush
 Brazen Buccaneers
+Briarpack Alpha
 Bringer of the Green Dawn
 Broodhatch Nantuko
+Cagemail
 Call of the Wild
 Call to Mind
 Canopy Baloth
+Carnival of Souls
 Caustic Caterpillar
 Circle of Flame
 Citywatch Sphinx
@@ -39,55 +51,82 @@ Creakwood Ghoul
 Cruel Cut
 Cruel Deceiver
 Curious Pair
+Curse of Inertia
 Cyclops Tyrant
 Dakmor Lancer
+Darwin, Adaptive Mutant
 Davriel, Rogue Shadowmage
 Deadly Recluse
 Death Pulse
 Death Tyrant
 Depose
+Deranged Whelp
 Despondent Killbot
 Destroy Evil
 Destructive Digger
 Dewdrop Spy
 Dire Tactics
+Donate
 Draconic Destiny
 Dragonlord Silumgar
+Dragonwing Glider
 Drelnoch
+Drill-Skimmer
 Dross Golem
+Dross Skullbomb
 Dwarven Priest
 Dwarven Weaponsmith
+Dáin's Company
 Déjà Vu
 Eager First-Year
 Earthshape
 Ebony Charm
 Ebony Horse
 Electric Revelation
+Elven Ambush
+Elvish Fury
 Ember-Eye Wolf
+Encroach
 Ethereal Absolution
 Extinction
 Fallaji Dragon Engine
 False Peace
+Farbog Explorer
+Feroz's Ban
 Fill with Fright
 Final Flourish
 Flame Elemental
+Flawless Maneuver
 Flip the Switch
+Flourishing Hunter
+Flumph
+Forbidding Watchtower
 Forceful Cultivator
 Forest
 Furious Resistance
 Furnace Gremlin
+Gates of Istfell
+Gau, Feral Youth
 Gearsmith Prodigy
 Gleam of Authority
+Gluttonous Guest
+Godo, Bandit Warlord
 Golden Bear
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Gwaihir, Greatest of the Eagles
+Hammer of Purphoros
+Haunted Dead
 Hazoret's Monument
 History of Benalia
 Honor's Reward
+Horrific Assault
 Howling Fury
 Hurloon Shaman
+Illustrious Historian
 Inexorable Tide
+Infected Defector
 Inner Fire
 Innocent Traveler
 Island
@@ -100,6 +139,7 @@ Kavu Aggressor
 Kindly Stranger
 Kird Chieftain
 Kithkin Mourncaller
+Kjeldoran Javelineer
 Kor Line-Slinger
 Land Grant
 Leaden Fists
@@ -109,23 +149,30 @@ Liliana's Influence
 Looming Altisaur
 Lumengrid Augur
 Magistrate's Scepter
+Magnetic Theft
 Manabond
 Marauding Knight
 Mass Hysteria
 Mawcor
 Maximize Altitude
+Memorial to Folly
 Metalspinner's Puzzleknot
 Military Intelligence
+Mimic
 Mindless Conscription
 Ministrant of Obligation
+Mjölnir's Might
 Mountain
 Mox Amber
 Murder Investigation
+Muster the Departed
 Myr Enforcer
 Mystery Key
+Mystic Might
 Nebelgast Beguiler
 Necrosynthesis
 Necrotic Sliver
+Never
 Nezumi Freewheeler
 Noxious Grasp
 Obelisk of Naya
@@ -142,13 +189,24 @@ Prickleboar
 Pterodon Knight
 Puppet Conjurer
 Purify
+Quarantine Field
 Quirion Dryad
+Rattlechains
+Raze
+Regeneration
+Remember the Fallen
 Rending Volley
+Renounce
+Reverent Hunter
+Rewind
 Rip Apart
 Royal Falcon
 Ruin Crab
+Sabertooth Mauler
 Sage's Knowledge
+Sage's Row Savant
 Saltblast
+Saruman the White
 Scab-Clan Charger
 Scholar of Combustion
 Scion of Stygia
@@ -156,6 +214,7 @@ Scourge of the Undercity
 Sea God's Revenge
 Sea Snidd
 Seasoned Hallowblade
+Seeker
 Selesnya Sagittars
 Showstopping Surprise
 Shredded Sails
@@ -174,30 +233,54 @@ Spidersilk Armor
 Spirit Bonds
 Spiteful Sliver
 Spore Cloud
+Stamina
 Stensia Uprising
 Streetwise Negotiator
 Swamp
+Sylvan Hierophant
+Sythis, Harvest's Hand
+Temple Elder
+Temporal Machinations
+The Tabernacle at Pendrell Vale
 Thought Monitor
 Thraben Foulbloods
 Thresher Lizard
 Tin-Wing Chimera
+Tolsimir, Friend to Wolves
+Tower of Champions
+Towering Thunderfist
 Trained Armodon
+Trained Jackal
+Tree of Tales
 Trespasser's Curse
 Two-Headed Dragon
+Ultron, Machine Overlord
 Unchecked Growth
 Undo
+Unyaro Bee Sting
 Utvara Scalper
 Verdant Crescendo
 Verdant Embrace
+Vernal Fen
 Vinelasher Kudzu
 Viridian Zealot
+Voice of Truth
 Voidwielder
+Voyaging Satyr
+Vulshok War Boar
 Wall of Roots
 Wall of Wonder
 Wand of the Elements
 Warden of the Wall
+Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
+Wayward Swordtooth
+Weatherlight Compleated
 Wei Infantry
+Wild Griffin
+Willow Faerie
+Wingfold Pteron
 Witch's Cottage
+You Look Upon the Tarrasque
 Zulaport Duelist

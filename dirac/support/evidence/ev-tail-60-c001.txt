@@ -203,6 +203,7 @@ Lightning-Core Excavator
 Lithophage
 Littjara Glade-Warden
 Livonya Silone
+Llanowar Stalker
 Lockjaw Snapper
 Lore Broker
 Lorehold Archivist

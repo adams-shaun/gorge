@@ -1,0 +1,27 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Affa Protector	91fa9f47e1e2951e	6	0/0		0/0	
+Alaborn Trooper	3f9597031e09c99a	8	0/0		0/0	
+Artful Maneuver	0d09cfd7aff97a5d	3	0/0		1/2	ix:resp
+Choking Miasma	2a20039f393c1314	4	0/0		2/4	cast/alt:kicked,ix:resp
+Court Cleric	c8963f8301153974	4	0/0		0/0	
+Demon of Wailing Agonies	40aef97f35d25a6a	4	0/0		0/0	
+Doctor Strange, Surgeon	46bdd94e09167c1a	4	1/1		0/1	ix:resp
+Execute	8140b6310d4a0766	6	0/0		2/2	
+Faithless Looting	9eca9074faf20290	4	0/0		3/4	ix:resp
+Goblin Kaboomist	f78ded4557814052	12	1/1		1/1	
+Hammer Helper	b74f8fe6bf6a5b4a	3	0/0		2/2	
+Kami of Whispered Hopes	272ad7b75e8e4239	4	1/1		0/1	ix:resp
+Llanowar Stalker	e856230c55c29d8d	5	1/1		0/1	ix:resp
+Marble Chalice	8b26646d66813e56	6	1/1		0/1	ix:resp
+Priest of the Haunted Edge	950c09681fd158e3	22	1/1		0/1	ix:resp
+Rampage of the Valkyries	179026eff11cd9f7	4	2/2		0/1	ix:resp
+Razortooth Rats	e628b89e24b1f15d	5	0/0		0/0	
+Retreat to Kazandu	fb1db53642849031	4	1/1		0/1	ix:resp
+Reviving Dose	af43188bef1a2c1e	4	0/0		1/2	ix:resp
+Ronom Unicorn	3d06dc5613458669	4	1/1		0/1	ix:resp
+Soltari Emissary	ff1484bb27439109	5	1/1		0/1	ix:resp
+Split-Tail Miko	c3d082b69e84700f	8	1/1		0/1	ix:resp
+Sword of Fire and Ice and War and Peace	7070582a3ed6c1c7	17	2/2		1/1	
+Tek	cbca7882c393cb11	6	0/0		0/0	
+Tombfire	1ed009276e623a64	3	0/0		2/2	
+Wind Shear	1b2e04831a316862	4	0/0		1/2	ix:resp

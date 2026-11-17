@@ -13,6 +13,7 @@ Akki Raider
 Aladdin's Ring
 Altar's Reap
 Ancient Spider
+Ancient Tomb
 Angel of Flight Alabaster
 Angel of the Dawn
 Angelic Sell-Sword
@@ -58,6 +59,7 @@ Chrome Host Seedshark
 Citizen V, Helmut Zemo
 Clairvoyance
 Cliff Threader
+Cloudreach Cavalry
 Cloudseeder
 Commander's Authority
 Concordia Pegasus
@@ -136,6 +138,7 @@ Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
 Grim Backwoods
+Gruul Turf
 Guild Artisan
 Gustcloak Harrier
 Halo Hopper
@@ -151,6 +154,7 @@ Icatian Priest
 Igneous Golem
 In the Trenches
 Incubator Drone
+Indestructible Aura
 Infiltrate
 Infused Arrows
 Intrepid Provisioner
@@ -180,12 +184,14 @@ Loxodon Anchorite
 Loxodon Gatekeeper
 Lumithread Field
 Lux Cannon
+Maestros Theater
 Malevolent Rumble
 Marionette Master
 Markov Blademaster
 Master Apothecary
 Maulfist Doorbuster
 Maze Rusher
+Maze of Shadows
 Meishin, the Mind Cage
 Mephidross Vampire
 Midnight Scavengers
@@ -216,7 +222,9 @@ Pestilent Souleater
 Phyrexian Etchings
 Phyrexian Missionary
 Pierce the Sky
+Pillar Tombs of Aku
 Plains
+Polluted Delta
 Possessed Nomad
 Pradesh Gypsies
 Prakhata Club Security
@@ -224,8 +232,10 @@ Presence of Gond
 Presence of the Master
 Priest of the Crossing
 Primaris Chaplain
+Prismari Campus
 Professor Hulk
 Protomatter Powder
+Pulse of the Tangle
 Pumpkin Bombs
 Purgatory
 Qilin's Blessing
@@ -242,6 +252,7 @@ Regal Bloodlord
 Rejuvenation Chamber
 Rekindled Flame
 Rhox Oracle
+Rime Dryad
 Riptide
 Rising Populace
 Roar of Reclamation
@@ -261,8 +272,10 @@ Selkie Hedge-Mage
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
+Shivan Oasis
 Shrieking Mogg
 Sickle Ripper
+Siege Smash
 Sightless Ghoul
 Silkguard
 Silumgar Butcher
@@ -296,6 +309,7 @@ Swamp
 Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
+Tangle Spider
 Target Minotaur
 Temur Runemark
 Tenth District Veteran
@@ -304,6 +318,7 @@ Terminal Agony
 The Brute
 The Meathook Massacre
 The Torment of Gollum
+Thornglint Bridge
 Thraben Inspector
 Thragtusk
 Towashi Guide-Bot

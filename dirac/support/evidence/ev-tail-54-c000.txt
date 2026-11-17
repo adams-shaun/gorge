@@ -71,6 +71,7 @@ Culling Sun
 Cultivator Colossus
 Cursed Land
 Cyclone Summoner
+Dark Depths
 Dark-Dweller Oracle
 Deathgreeter
 Deep Dish Pizza
@@ -85,6 +86,7 @@ Divination
 Djeru, With Eyes Open
 Downhill Charge
 Dramatic Rescue
+Drooling Ogre
 Drowner of Hope
 Earth Surge
 Earthblighter

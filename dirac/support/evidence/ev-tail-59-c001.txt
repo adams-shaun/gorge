@@ -68,6 +68,7 @@ Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
 Chandra, Legacy of Fire
+Chimeric Sphere
 Chimney Rabble
 Cho-Manno's Blessing
 Cho-Manno, Revolutionary
@@ -205,6 +206,7 @@ Gutless Ghoul
 HONK!
 Hag of Syphoned Breath
 Hair-Strung Koto
+Hallowed Ground
 Hamza, Guardian of Arashin
 Hapato's Might
 Haunted Library

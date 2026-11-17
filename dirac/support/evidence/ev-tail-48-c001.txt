@@ -26,12 +26,14 @@ Crystalline Sliver
 Day of Destiny
 Dazzling Lights
 Demonic Bargain
+Demotion
 Dictate of Karametra
 Disperse
 Doom's Servo-Guards
 Dragon's Presence
 Drake-Skull Cameo
 Eliminate
+Elven Riders
 Environmental Sciences
 Escape Protocol
 Ethrimik, Imagined Fiend
@@ -39,14 +41,19 @@ Evolution Witness
 Excommunicate
 Eyeless Watcher
 Ezio, Brash Novice
+Falcon, Joaquin Torres
 Fallen Ideal
+Fleetfoot Panther
+Flusterstorm
 Forest
 Foul Watcher
 Gelatinous Genesis
 Gnoll Hunter
+Greatsword
 Green Sun's Zenith
 Hall Monitor
 Hanged Executioner
+Heavenly Qilin
 Hedron Crab
 Hexavus
 Hexgold Hoverwings
@@ -56,14 +63,17 @@ Hope-Ender Coatl
 Humble Naturalist
 Illusionary Forces
 Imperial Outrider
+Imperial Recovery Unit
 Increasing Savagery
 Indoctrination Attendant
 Inquisition of Kozilek
 Island
+Juzám Djinn
 Karplusan Wolverine
 Killmonger, Ruthless Usurper
 Knight of Obligation
 Krark-Clan Shaman
+Kura, the Boundless Sky
 Lantern of the Lost
 Liliana's Reaver
 Living Lies of Loki
@@ -94,7 +104,9 @@ Primeval Herald
 Profit
 Ragavan, Nimble Pilferer
 Ral, Storm Conduit
+Reckless Racer
 Rishadan Pawnshop
+Robaran Mercenaries
 Rushwood Legate
 Saber Ants
 Scarwood Bandits
@@ -113,7 +125,10 @@ Song of the Worldsoul
 Spark Harvest
 Squirrel Mob
 Steeple Creeper
+Stone Haven Pilgrim
 Stoneshock Giant
+Sun Clasp
+Sunken Field
 Swamp
 Swamp Mosquito
 Szarekh, the Silent King
@@ -130,3 +145,4 @@ Unruly Mob
 Urza's Command
 Vance's Blasting Cannons
 Vedalken Infuser
+Vexing Devil

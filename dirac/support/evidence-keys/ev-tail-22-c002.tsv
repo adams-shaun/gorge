@@ -1,0 +1,8 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Navigation Orb	66c41bcfa954682e	6	1/1		0/1	ix:resp
+Careful Consideration	3df230a4c0d31e99	4	0/0		1/2	ix:resp
+Narstad Scrapper	f5f15c11428dcd87	6	1/1		0/1	ix:resp
+Nihil Spellbomb	1bc9ba88ee0c955f	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Orim's Cure	4dc0e0a8d7242696	4	0/0		1/2	ix:resp
+Teferi's Wavecaster	f070d494068c1abb	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Wake Thrasher	23739462a5a83109	4	1/1		1/1	

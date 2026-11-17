@@ -27,6 +27,7 @@ Battlewise Aven
 Benalish Emissary
 Big Play
 Black Oak of Odunos
+Blademane Baku
 Bladewing's Thrall
 Blessed Reversal
 Blightspeaker
@@ -66,6 +67,7 @@ Death Denied
 Defile
 Descendant of Kiyomaro
 Dismantling Blow
+Downpour
 Dowsing Shaman
 Drumbellower
 Dwarven Berserker
@@ -98,6 +100,7 @@ Glitch Interpreter
 Golden-Tail Trainer
 Goldnight Commander
 Goliath Sphinx
+Graceful Adept
 Great Desert Prospector
 Great Whale
 Grixis Illusionist
@@ -161,6 +164,7 @@ Mobilization
 Mona Lisa, Ever Adaptable
 Morbid Hunger
 Mountain
+Myr Scrapling
 Necrogen Mists
 Necrosquito
 Network Terminal
@@ -246,6 +250,7 @@ Surge Node
 Svyelun of Sea and Sky
 Swamp
 Tall as a Beanstalk
+Telethopter
 Tendershoot Dryad
 Tezzeret's Gatebreaker
 Thicket Crasher

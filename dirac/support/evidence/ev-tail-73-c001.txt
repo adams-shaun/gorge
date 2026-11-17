@@ -31,6 +31,7 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blight Grenade
 Blood Lust
 Bold Impaler
 Bone Dragon
@@ -89,6 +90,7 @@ Diver Skaab
 Djeru's Renunciation
 Dogpile
 Dragon Mantle
+Drey Keeper
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
@@ -230,6 +232,7 @@ Malevolent Whispers
 Malfegor
 Malfunction
 Malignant Growth
+Mana Leech
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -253,6 +256,7 @@ Morphling
 Moss Viper
 Mountain
 Mountain Goat
+Mox Diamond
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -315,6 +319,7 @@ Rotted Hystrix
 Rotting Legion
 Ruin Raider
 Saber Ants
+Saddled Rimestag
 Sagu Archer
 Samite Alchemist
 Sandstorm Charger
@@ -351,6 +356,7 @@ Skyknight Vanguard
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon
+Skyshroud Vampire
 Skysnare Spider
 Sly Spy
 Smogsteed Rider
@@ -409,6 +415,7 @@ Tireless Hauler
 Touch of the Eternal
 Tower Geist
 Tranquil Grove
+Transmutation
 Traumatize
 Treacherous Vampire
 Treefolk Healer

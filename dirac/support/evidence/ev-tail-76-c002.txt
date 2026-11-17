@@ -6,10 +6,12 @@ Aether Meltdown
 Amrou Scout
 Ancestral Recall
 Anticipate
+April O'Neil, Live on the Scene
 Arboreal Grazer
 Armguard Familiar
 Arrester's Zeal
 Aspect of Gorgon
+Autonomous Assembler
 Avenging Druid
 Awakening Zone
 Battle Squadron
@@ -22,6 +24,7 @@ Blightbelly Rat
 Bojuka Brigand
 Break Through the Line
 Bumi, Eclectic Earthbender
+Captivating Unicorn
 Carrion Screecher
 Clout of the Dominus
 Commencement of Festivities
@@ -32,6 +35,7 @@ Craw Wurm
 Crimson Manticore
 Cruel Edict
 Crush Contraband
+Daru Cavalier
 Dauthi Cutthroat
 Deathcurse Ogre
 Defiant Khenra
@@ -47,10 +51,12 @@ Epicure of Blood
 Ertai, Wizard Adept
 Essence Drain
 Excavating Anurid
+Far Traveler
 Feral Ferocity
 Fiery Impulse
 First Volley
 Flamekin Herald
+Folk of the Pines
 Forest
 Frazzle
 Frenzy Sliver
@@ -61,13 +67,17 @@ Gladecover Scout
 Goblin Fire Fiend
 Goblin War Party
 Goliath Paladin
+Guard Duty
 Gurgling Anointer
+Haldir, Lórien Lieutenant
 Hamlet Captain
 Hematite Talisman
+Herald of the Fair
 Herald of the Pantheon
 Hobgoblin Dragoon
 Hookblade Veteran
 Icatian Lieutenant
+Icewind Stalwart
 Infiltrator's Magemark
 Island
 Jaya's Firenado
@@ -79,6 +89,7 @@ Kitsune Blademaster
 Kiyomaro, First to Stand
 Kuldotha Ringleader
 Lash of Thorns
+Letter of Acceptance
 Lotho, Corrupt Shirriff
 Luminescent Rain
 Magmatic Sinkhole
@@ -95,16 +106,20 @@ Mizzium Mortars
 Moment of Defiance
 Mountain
 Murderous Rider
+Myojin of Cleansing Fire
 Nantuko Cultivator
 Nephalia Smuggler
 Nocturnal Feeder
 Oathsworn Vampire
 Ojutai's Summons
 One With the Wind
+One with Nature
 Panther Robot
 Plains
 Predation Steward
 Prickly Boggart
+Primal Huntbeast
+Promise of Bunrei
 Pyretic Ritual
 Ramirez DePietro, Pillager
 Ramosian Greatsword
@@ -115,7 +130,9 @@ Repulsor Bots
 Returned Reveler
 Rhonas the Indomitable
 Rishadan Footpad
+Rockcaster Platoon
 Sage Owl
+Salvager of Ruin
 Scapegoat
 Scattered Thoughts
 Scornful Egotist
@@ -124,12 +141,14 @@ Scuttletide
 Searing Wind
 Shadow Sliver
 Shimmerscale Drake
+Sierra, Nuka's Biggest Fan
 Sky Cycle
 Skymarch Bloodletter
 Skywise Teachings
 Smite
 Snarling Wolf
 Spell Swindle
+Sphinx's Disciple
 Spidersilk Armor
 Stealth Mission
 Stitcher's Supplier
@@ -138,23 +157,28 @@ Subterfuge
 Suq'Ata Firewalker
 Swamp
 Sylvan Caryatid
+Tempest Technique
 Terror
 Tezzeret's Ambition
 Tezzeret's Gambit
 The First Iroan Games
 The Shattered States Era
+Time Sieve
 Tocasia's Welcome
 Tokka & Rahzar, Unsupervised
+Touchstone
 Tourach's Canticle
 Transpose
 Tuinvale Treefolk
 Unbreakable Bond
+Undercity Shade
 Unliving Psychopath
 Valkyrie's Sword
 Vastwood Fortification
 Vedalken Archmage
 Verdant Crescendo
 Vial of Dragonfire
+Vital Splicer
 Voltstorm Angel
 Vow of Duty
 Wall of Spears

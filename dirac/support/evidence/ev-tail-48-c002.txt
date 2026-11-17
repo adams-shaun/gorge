@@ -11,6 +11,7 @@ Blinding Drone
 Bob, Reluctant HYDRA Agent
 Bow of Nylea
 Breathstealer
+Burst of Energy
 Bygone Bishop
 Cadaver Imp
 Cinderhaze Wretch
@@ -78,6 +79,7 @@ Nature's Spiral
 Neck Snap
 Nim Lasher
 Nine-Ringed Bo
+Oath of Gideon
 Order of Leitbur
 Persistent Specimen
 Plains

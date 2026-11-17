@@ -41,6 +41,7 @@ Bag End Porter
 Battlefront Krushok
 Belligerent Brontodon
 Belligerent Hatchling
+Blast Zone
 Blighted Agent
 Blistering Dieflyn
 Blood Divination
@@ -112,6 +113,7 @@ Dragonwing Glider
 Drawn from Dreams
 Dread Warlock
 Drelnoch
+Drill-Skimmer
 Dripping Dead
 Dross Golem
 Dross Prowler
@@ -147,6 +149,7 @@ Flawless Maneuver
 Flip the Switch
 Flourishing Hunter
 Flumph
+Forbidding Watchtower
 Force Spike
 Forceful Cultivator
 Forest
@@ -236,6 +239,7 @@ Military Intelligence
 Mimic
 Mindless Conscription
 Ministrant of Obligation
+Mjölnir's Might
 Mogg Conscripts
 Mogg Jailer
 Monastery Mentor
@@ -339,6 +343,7 @@ Sivitri Scarzam
 Skizzik Surger
 Skyclave Relic
 Skyreaping
+Slave of Bolas
 Sling-Gang Lieutenant
 Smoldering Efreet
 Smuggler's Copter
@@ -352,6 +357,7 @@ Spiteful Sliver
 Spore Cloud
 Stamina
 Stensia Uprising
+Stonework Packbeast
 Streetwise Negotiator
 Striped Bears
 Subversion
@@ -415,6 +421,7 @@ Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
+Weatherlight Compleated
 Weatherseed Totem
 Wei Infantry
 Weird Harvest

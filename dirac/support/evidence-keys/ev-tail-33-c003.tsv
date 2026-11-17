@@ -1,0 +1,84 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Psionic Snoop	f0635ede2d5c256c	4	1/1		0/1	ix:resp
+Acrobatic Maneuver	247e280b17403cc2	17	0/0		2/2	
+Aether Chaser	56f00dc43d71e9c9	10	2/2		0/1	ix:resp
+Allay	5ba59f3c68bb7498	13	0/0		3/4	ix:resp
+Autumnal Gloom	b14a4ccd0f6d8f93	10	2/2		1/1	
+Blast Zone	8c1d4fe9faa50dde	25	3/3		0/1	ix:resp
+Bloodstone Cameo	7412cd419d6c7091	8	1/1		1/1	
+Blurred Mongoose	eced1bc83bdf022a	8	0/0		0/0	
+Bogardan Dragonheart	293478e85a0a97df	12	1/1		0/1	ix:resp
+Briarpack Alpha	d364973b75d3c07a	8	1/1		0/1	ix:resp
+Cagemail	747ff68de706ee30	3	0/0		1/2	ix:resp
+Carnival of Souls	fe032e133d0fee78	4	1/1		0/1	ix:resp
+Curse of Inertia	9feb0da0b6a06b95	7	1/1		2/2	
+Darwin, Adaptive Mutant	a27ac2074ed99e7b	8	2/2		0/1	ix:resp
+Deranged Whelp	6d49752c2ed56572	6	0/0		0/0	
+Donate	79539b4e2fcc3643	3	0/0		1/2	ix:resp
+Dragonwing Glider	89460710f1d6408c	6	2/2		0/1	ix:resp
+Drill-Skimmer	d81078525d6372e3	6	0/0		0/0	
+Dross Skullbomb	ca22a6b204328c59	12	2/2		0/1	ix:resp
+Dáin's Company	0b78edbf31cf8c50	6	1/1		0/1	ix:resp
+Elven Ambush	43a078ad50f4ed6f	4	0/0		1/2	ix:resp
+Elvish Fury	80f5e5abc4aef2b0	4	0/0		2/4	cast/alt:buyback,ix:resp
+Encroach	a7e978b66c6e3030	4	0/0		1/2	ix:resp
+Farbog Explorer	df91a0cb57b853c2	4	0/0		0/0	
+Feroz's Ban	4f8a846184fc9d99	4	0/0		0/0	
+Flawless Maneuver	2efc11003abe2966	6	0/0		1/2	ix:resp
+Flourishing Hunter	c64875da0e4e5f77	3	1/1		1/1	
+Flumph	24f1edad24a9ab26	8	1/1		0/1	ix:resp
+Forbidding Watchtower	21a628b6bc9d2128	29	2/2		1/1	
+Gates of Istfell	cb87855dad67f9fd	18	2/2		0/1	ix:resp
+Gau, Feral Youth	373911833ef063cf	6	2/2		0/1	ix:resp
+Gluttonous Guest	bcfe66cd046a8127	4	2/2		0/1	ix:resp
+Godo, Bandit Warlord	d7c8bbbe0d44632d	5	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Grimoire of the Dead	06f3c33478141729	4	2/2		1/1	
+Hammer of Purphoros	0b23b48e4bf5815b	8	1/1		0/1	ix:resp
+Haunted Dead	bcce3c44ff26e22f	8	2/2		0/1	ix:resp
+Horrific Assault	5b204425318b47a4	12	0/0		1/2	ix:resp
+Illustrious Historian	dd4f222db777b10a	14	1/1		0/1	ix:resp
+Infected Defector	07beb7a5bd1ee1f5	5	1/1		1/1	
+Kjeldoran Javelineer	d523656ecd8fc455	8	2/2		0/1	ix:resp
+Magnetic Theft	b8f47f1f4aaf77c6	4	0/0		1/2	ix:resp
+Memorial to Folly	2d751e5f0f1cb89d	25	2/2		0/1	ix:resp
+Mimic	e1b2af1bf78b357b	6	2/2		0/1	ix:resp
+Mjölnir's Might	dded82fb35bd5d26	8	0/0		1/2	ix:resp
+Muster the Departed	9c4d29996da92b06	4	2/2		0/1	ix:resp
+Mystic Might	fa00dcbff6f01b9b	4	1/1		1/2	ix:resp
+Never	d08fdca68740874b	6	0/0		3/5	f1/s,ix:resp
+Quarantine Field	63d99bff5dbee294	3	1/1		0/1	ix:resp
+Rattlechains	310d37941d66a806	7	1/1		1/1	
+Raze	a984d55d00b2ab21	4	0/0		1/2	ix:resp
+Regeneration	196ad4d64628006d	6	1/1		2/2	
+Remember the Fallen	878d2dadc4a9636a	4	0/0		1/2	ix:resp
+Renounce	bcd29bf0b628915d	4	0/0		1/2	ix:resp
+Reverent Hunter	50091cfbfa8184d6	4	1/1		0/1	ix:resp
+Rewind	28ad54c0045a9a43	3	0/0		1/2	ix:resp
+Sabertooth Mauler	4e593b29d03ee605	7	1/1		0/1	ix:resp
+Sage's Row Savant	2472286d9e2a1b76	4	1/1		0/1	ix:resp
+Saruman the White	2969e026d4109951	6	2/2		1/1	
+Seeker	38c39e30d14ed784	16	0/0		1/2	ix:resp
+Stamina	33179de2c3d037e9	3	1/1		1/2	ix:resp
+Sylvan Hierophant	6dc9f80fbdbf0811	5	1/1		0/1	ix:resp
+Sythis, Harvest's Hand	2db016dca8bed8cc	4	1/1		0/1	ix:resp
+Temple Elder	af50e0d4a9811d6c	4	1/1		0/1	ix:resp
+Temporal Machinations	22cc4427f0fd98ea	4	0/0		1/2	ix:resp
+The Tabernacle at Pendrell Vale	8115b89e7a13e281	12	0/0		0/0	
+Tolsimir, Friend to Wolves	63a973be1b7fecd0	4	2/2		0/1	ix:resp
+Tower of Champions	291527bb4d4b4985	5	1/1		1/1	
+Towering Thunderfist	eca2e368ad9bcaf2	6	1/1		1/1	
+Trained Jackal	c5aef7840423e53b	10	0/0		0/0	
+Tree of Tales	389ae19d2a51a021	17	1/1		0/1	ix:resp
+Ultron, Machine Overlord	22e14794f1b74a57	6	0/0		0/0	
+Unyaro Bee Sting	23c8f0d15aad142d	6	0/0		1/2	ix:resp
+Vernal Fen	4f46f46a30745961	21	2/2		0/1	ix:resp
+Voice of Truth	bcd1fdae82ea0d97	16	0/0		0/0	
+Voyaging Satyr	236b5fdb2928ecad	4	1/1		0/1	ix:resp
+Vulshok War Boar	89426965a264776d	4	1/1		1/1	
+Warmonger's Chariot	33527bbdf90c77e9	12	1/1		1/1	
+Wayward Swordtooth	1e2ac23d169b6345	12	0/0		0/0	
+Weatherlight Compleated	e250646646ab0bcb	12	1/1		1/1	
+Wild Griffin	fee89a03f03ffa8b	6	0/0		0/0	
+Willow Faerie	0ce0ba65a1f1e850	6	0/0		0/0	
+Wingfold Pteron	bebaea3b42597bca	3	0/0		0/0	
+You Look Upon the Tarrasque	ff9f0f7dcf48f683	4	0/0		1/2	ix:resp

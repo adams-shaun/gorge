@@ -70,6 +70,7 @@ Conclave Sledge-Captain
 Conquer
 Consider
 Consume Spirit
+Copycrook
 Countermand
 Creative Technique
 Crucible of Fire
@@ -116,6 +117,7 @@ Elspeth's Nightmare
 Elvish Berserker
 Emberstrike Duo
 Embodiment of Insight
+Endangered Armodon
 Energy Tap
 Environmental Sciences
 Erase

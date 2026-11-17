@@ -2,6 +2,7 @@ Abyssal Gatekeeper
 Acolyte of the Inferno
 Ainok Bond-Kin
 Ajani's Mantra
+Ajani, Adversary of Tyrants
 Altar's Light
 Ancestral Memories
 Animating Faerie
@@ -38,6 +39,7 @@ Buccaneer's Bravado
 Bygone Bishop
 Cabal Executioner
 Carnival
+Celestial Crusader
 Cenn's Heir
 Cerulean Wyvern
 Choke
@@ -53,14 +55,17 @@ Colossus, Steel Stalwart
 Conclave Cavalier
 Conclave Phalanx
 Confirm Suspicions
+Consulate Skygate
 Coral Colony
 Counterbalance
 Courier's Capsule
 Cowl Prowler
+Crack the Earth
 Creeping Trailblazer
 Crown of Flames
 Cryptothrall
 Cyclopean Snare
+Dakmor Salvage
 Damning Verdict
 Dawnstrike Paladin
 Deadeye Brawler
@@ -72,6 +77,7 @@ Devils' Playground
 Dire Fleet Neckbreaker
 Dirge of Dread
 Dismal Failure
+Dominating Licid
 Doom Foretold
 Dragon Roost
 Drana, Liberator of Malakir
@@ -82,12 +88,14 @@ Eiganjo Uprising
 Elvish Eulogist
 Elvish Vanguard
 Enchantress's Presence
+Enclave Elite
 Endless One
 Enshrined Memories
 Entomb
 Ephemerate
 Eternal Thirst
 Excise
+Extravagant Spirit
 Falkenrath Celebrants
 Fauna Shaman
 Fen Hauler
@@ -131,6 +139,7 @@ Haunted Angel
 Headstone
 Hedron Scrabbler
 Hermetic Study
+Hill Giant
 Hoar Shade
 Horncaller's Chant
 Horned Kavu
@@ -159,10 +168,12 @@ Kraul Raider
 Lamentation
 Land Tax
 Leeching Licid
+Lion's Eye Diamond
 Living Tempest
 Longshot, Rebel Bowman
 Lore Seeker
 Loxodon Stalwart
+Lunge
 Maddening Wind
 Mantle of Webs
 March from the Black Gate
@@ -189,6 +200,7 @@ Muzzle
 Myr Kinsmith
 Mystic Penitent
 Mystic Speculation
+Nadier's Nightblade
 Narcolepsy
 Nesting Dragon
 Nezumi Bone-Reader
@@ -242,6 +254,7 @@ Shu Defender
 Siege-Gang Commander
 Silvan Reveler
 Silver Drake
+Simic Locket
 Sire of Insanity
 Skitterbeam Battalion
 Slab Hammer
@@ -269,6 +282,7 @@ Sunlance
 Surge Conductor
 Swamp
 Sweet Oblivion
+Sword of Truth and Justice
 Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
@@ -280,10 +294,12 @@ The Covert Blue Mage
 Thran Golem
 Tidehollow Sculler
 Tireless Provisioner
+Tocatli Honor Guard
 Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
 Trynn, Champion of Freedom
+Turbulent Moor
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm

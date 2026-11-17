@@ -6,6 +6,7 @@ Angel of Flight Alabaster
 Angelic Page
 Anodet Lurker
 Archetype of Aggression
+Assault Intercessor
 Auriok Steelshaper
 Avacyn's Pilgrim
 Azra Oddsmaker
@@ -14,6 +15,7 @@ Balthor the Defiled
 Biolume Egg
 Black Oak of Odunos
 Bloodshot Cyclops
+Branded Brawlers
 Break Down
 Brush with Death
 Campaign of Vengeance
@@ -30,6 +32,8 @@ Combat Professor
 Corrupt Eunuchs
 Craven Knight
 Cryptic Serpent
+Dawn Elemental
+Defile
 Dispersal Shield
 Earth Surge
 Eat to Extinction
@@ -37,6 +41,7 @@ Elven Fortress
 Emeria's Call
 Etherium-Horn Sorcerer
 Fairgrounds Warden
+Faithful Watchdog
 Fireborn Knight
 Fleshbag Marauder
 Forest
@@ -47,35 +52,47 @@ Goldnight Commander
 Goliath Truck
 Great Desert Prospector
 Hallowed Spiritkeeper
+Haunted Cloak
 Hero of the Winds
+Honden of Infinite Rage
 Hunted Troll
 Hypochondria
+Illuminator Virtuoso
+Isamaru and Yoshimaru
 Island
 Jackdaw
 Jungleborn Pioneer
+Kargan Warleader
 Kathari Remnant
 Keensight Mentor
 Kirtar's Desire
 Kolvori, God of Kinship
 Lich's Caress
+Lingering Death
+Loxodon Mender
 Luminarch Aspirant
+Mass Mutiny
 Mending Hands
 Militia Bugler
 Mistmeadow Witch
 Mite Overseer
 Mountain
+Myr Scrapling
 Necrosquito
 Novice Knight
 Null Brooch
 Olivia, Mobilized for War
+Phyrexian Vivisector
 Pitiless Plunderer
 Plague Witch
 Plains
 Praetor's Counsel
+Pride of Conquerors
 Psychic Membrane
 Pulsemage Advocate
 Quest for Pure Flame
 Razortip Whip
+Refurbish
 Renowned Weaver
 Righteous Cause
 Rootwater Mystic
@@ -84,6 +101,7 @@ Ruthless Cullblade
 Samite Healer
 Sanguimancy
 Sanitarium Skeleton
+Scorched Rusalka
 Segovian Angel
 Serum Visions
 Shriekgeist
@@ -93,6 +111,7 @@ Skyblade of the Legion
 Skyshroud Ridgeback
 Soul Partition
 Spawnwrithe
+Specter's Shroud
 Splinterfright
 Steel Exemplar
 Sultai Banner
@@ -103,9 +122,11 @@ Tainted Wood
 Take Down
 The Third Doctor
 Thran Spider
+Throwing Knife
 Transcendent Envoy
 Travel Preparations
 Veteran Explorer
+Veteran of the Depths
 Wandering Stream
 War Machine, James Rhodes
 Warren-Scourge Elf

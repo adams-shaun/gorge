@@ -15,6 +15,7 @@ Alpha Deathclaw
 Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
+Arcbound Worker
 Armor of Faith
 Armory Guard
 Ashling, the Extinguisher
@@ -324,6 +325,7 @@ Wirewood Elf
 Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
+Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
 You Hear Something on Watch
 You're Ambushed on the Road

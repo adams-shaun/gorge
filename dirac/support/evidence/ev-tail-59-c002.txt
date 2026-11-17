@@ -10,11 +10,13 @@ Ant Queen
 Aquus Steed
 Arashin Foremost
 Artificer's Dragon
+Artillerize
 Assassin's Ink
 Back to Basics
 Bad River
 Baloth Woodcrasher
 Barbarian Riftcutter
+Barbed Sliver
 Barrage of Boulders
 Battle Brawler
 Benthic Behemoth
@@ -25,13 +27,17 @@ Brackwater Elemental
 Branchblight Stalker
 Brawn
 Brightling
+Brittle Effigy
 Builder's Blessing
 Burning-Tree Emissary
+Canyon Drake
+Captive Flame
 Cavalier of Dawn
 Cephalid Retainer
 Chandra's Triumph
 Chimney Rabble
 Cho-Manno, Revolutionary
+Civic Stalwart
 Commune with the Gods
 Control Win Condition
 Convolute
@@ -55,6 +61,7 @@ Deploy to the Front
 Desperate Farmer
 Die Young
 Displacer Kitten
+Distorting Lens
 Divine Offering
 Dogpile
 Dragon Bell Monk
@@ -65,6 +72,7 @@ Duchess, Wayward Tavernkeep
 Durable Coilbug
 Duskworker
 Eagle of Deliverance
+Eiganjo Dynastorian
 Epicenter
 Essence Filter
 Expedition Healer
@@ -84,8 +92,10 @@ Frost Ogre
 Giant Mantis
 Gnottvold Slumbermound
 Goliath Sphinx
+Goliath Truck
 Grasp of Darkness
 Grave Pact
+Gray Ogre
 Greenweaver Druid
 Grim Initiate
 Gutless Ghoul
@@ -96,15 +106,18 @@ Hamza, Guardian of Arashin
 Hapato's Might
 Heavy Mattock
 Hellspark Elemental
+Hostile Realm
 Hunters' Feast
 Hydra Omnivore
 Hydroform
 Icatian Scout
 Impetuous Sunchaser
+In Too Deep
 Inundate
 Iridescent Drake
 Island
 Izzet Boilerworks
+Jangling Automaton
 Join the Maestros
 Judge of Currents
 Kappa Cannoneer
@@ -119,6 +132,7 @@ Krav, the Unredeemed
 Lattice-Blade Mantis
 Lazotep Plating
 Leafkin Druid
+Lightning Surge
 Lily Bowen, Raging Grandma
 Living Armor
 Loran, Disciple of History
@@ -127,10 +141,14 @@ Magmaroth
 Malachite Talisman
 Marionette Apprentice
 Maverick Thopterist
+Militant Monk
+Mistral Singer
 Mold Shambler
 Molder Beast
 Momir Vig, Simic Visionary
+Monstrous Hound
 Monstrous Onslaught
+Moon Sprite
 Mordor Muster
 Mountain
 Murasa Ranger
@@ -154,6 +172,7 @@ Pest Infestation
 Phase Dolphin
 Pheres-Band Warchief
 Phyrexian Boon
+Phyrexian Debaser
 Phyrexian Walker
 Plains
 Plated Seastrider
@@ -161,6 +180,7 @@ Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
 Pyrotechnics
+Quicksilver Behemoth
 Rakdos Cluestone
 Raven's Crime
 Rebel Informer
@@ -169,6 +189,7 @@ Redemption Arc
 Returned Phalanx
 Reveka, Wizard Savant
 Riptide Chimera
+Rise of the Dread Marn
 Rith's Grove
 Rod of Ruin
 Rupture
@@ -177,6 +198,7 @@ Sacred Peaks
 Sandsteppe War Riders
 Satyr Rambler
 Sautekh Immortal
+Savage Lands
 Screaming Fury
 Seal of Cleansing
 Search Warrant
@@ -195,8 +217,14 @@ Skeletal Wurm
 Skemfar Elderhall
 Skull Prophet
 Slimebind
+Smash
+Snapping Creeper
 Soulless One
+Spawning Pit
+Spirit of the Aldergard
 Spitting Hydra
+Splitting Headache
+Spreading Flames
 Squee, Goblin Nabob
 Steadfast Guard
 Stone Golem
@@ -216,7 +244,10 @@ The Terror of Serpent's Pass
 The Thing
 Thraben Foulbloods
 Thriving Turtle
+Thundering Giant
+Titan's Revenge
 Titanic Brawl
+Tomakul Scrapsmith
 Topiary Stomper
 Tragic Fall
 Travel Preparations
@@ -230,6 +261,7 @@ Twenty-Toed Toad
 Uncontrollable Anger
 Unliving Psychopath
 Ursapine
+Uthden Troll
 Vanish into Eternity
 Victor Timely, Wily Tycoon
 Vivid Flying Fish
@@ -248,3 +280,4 @@ Wonder
 Words of Wisdom
 Workshop Elders
 Zhou Yu, Chief Commander
+Zodiac Monkey

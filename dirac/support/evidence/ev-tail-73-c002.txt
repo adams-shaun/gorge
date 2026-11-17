@@ -1,6 +1,7 @@
 A-Circuit Mender
 Abomination of Llanowar
 Aboshan, Cephalid Emperor
+Abzan Battle Priest
 Agent of Shauku
 Agility Bobblehead
 Agony Warp
@@ -18,11 +19,15 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blood Lust
 Blood Money
 Bloodlust Inciter
+Bold Impaler
+Bonesplitter
 Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
+Bristling Hydra
 Canopy Stalker
 Cave-In
 Chaplain's Blessing
@@ -30,6 +35,7 @@ Chariot of the Sun
 Chasm Drake
 Chorus of the Tides
 Cinder Wall
+Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
 Clockwork Drawbridge
@@ -65,17 +71,20 @@ Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
+Expedition Raptor
 Eye of Nowhere
 Faithbearer Paladin
 Falter
 Fang Skulkin
 Feast of the Unicorn
+Feiyi Snake
 Feral Invocation
 Festering Evil
 Fire Urchin
 Flameshadow Conjuring
 Flaring Pain
 Fleeting Image
+Flowstone Kavu
 Flowstone Surge
 For the Emperor!
 Forest
@@ -102,6 +111,7 @@ Goblin Roughrider
 Gouged Zealot
 Grapeshot
 Grasp of Phantoms
+Grave-Shell Scarab
 Gravetiller Wurm
 Great Goblin, Foul-Hearted
 Great Hart
@@ -119,8 +129,10 @@ Hobgoblin Captain
 Honor Troll
 Hunter's Mark
 Hurloon Minotaur
+Ichorid
 Impaler Shrike
 Infectious Inquiry
+Inner Struggle
 Invading Manticore
 Iroas's Blessing
 Island
@@ -139,8 +151,10 @@ Kin-Tree Invocation
 Kinjalli's Sunwing
 Kithkin Healer
 Kithkin Spellduster
+Koma's Faithful
 Leafkin Avenger
 Lord of Change
+Lord of the Accursed
 Lore Seeker
 Malanthrope
 Malfunction
@@ -178,6 +192,7 @@ Ordered Migration
 Outmaneuver
 Paradise Mantle
 Penumbra Wurm
+Pestilent Cauldron
 Phantasmal Sphere
 Pheres-Band Warchief
 Phyrexian Crusader
@@ -189,6 +204,7 @@ Professor Hulk
 Protective Bubble
 Puppeteer
 Qilin's Blessing
+Quirion Trailblazer
 Raise Dead
 Ramosian Lieutenant
 Raven's Crime
@@ -214,14 +230,18 @@ Selfless Spirit
 Senate Courier
 Serra Aviary
 Shuri's Fabricator
+Sidewinder Naga
 Sigarda's Imprisonment
 Silas Renn, Seeker Adept
+Silkguard
 Sivvi's Ruse
 Skittish Kavu
 Skulking Ghost
+Skullslither Worm
 Skyreach Manta
 Skyshroud Blessing
 Skyshroud Falcon
+Skyshroud Vampire
 Skysnare Spider
 Smogsteed Rider
 Snake Pit
@@ -262,6 +282,8 @@ Tarkir Duneshaper
 Thraben Charm
 Threads of Disloyalty
 Thunder Totem
+Thunderous Wrath
+Thunderscape Apprentice
 Tideshaper Mystic
 Timid Drake
 Tower Geist

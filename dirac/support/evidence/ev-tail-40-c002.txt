@@ -19,6 +19,7 @@ Ant-Man, Elusive Avenger
 Arcade Cabinet
 Arcane Laboratory
 Armageddon
+Ascended Lawmage
 Ascending Aven
 Asylum Visitor
 Atalya, Samite Master
@@ -32,6 +33,7 @@ Basri's Aegis
 Bast, Panther Goddess
 Bastion of Remembrance
 Battle Sliver
+Beetleform Mage
 Blessed Light
 Blitz Automaton
 Blood Ogre
@@ -72,6 +74,7 @@ Conformer Shuriken
 Court of Cunning
 Crack the Earth
 Creeping Mold
+Crescendo of War
 Crimson Hellkite
 Crumbling Colossus
 D'Avenant Healer
@@ -84,6 +87,7 @@ Dire Fleet Neckbreaker
 Dirtwater Wraith
 Domri's Nodorog
 Dragon Egg
+Drannith Ruins
 Draugr Thought-Thief
 Dreadwaters
 Drifter il-Dal
@@ -105,6 +109,7 @@ Flowstone Crusher
 Flux Channeler
 Forced Retreat
 Forest
+Forgehammer Centurion
 Foul Play
 Foundry Helix
 Free from Flesh
@@ -119,6 +124,7 @@ Gavony Trapper
 Geist Snatch
 Generous Patron
 Ghost Lantern
+Glimmerpost
 Glimpse of Nature
 Gluttonous Slug
 Gnoll War Band
@@ -156,6 +162,7 @@ Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
 Knight of Infamy
+Kolaghan Forerunners
 Krakilin
 Land Grant
 Lava Zombie
@@ -175,6 +182,7 @@ Mage Duel
 Manabond
 Manglehorn
 Maw of the Obzedat
+Meldweb Curator
 Mental Discipline
 Mental Misstep
 Merchant Scroll
@@ -198,9 +206,11 @@ Mysterious Pathlighter
 Namora, the Sea Queen
 Nantuko Shade
 Needlebug
+Nephalia Drownyard
 Nightveil Sprite
 Nimraiser Paladin
 Noxious Toad
+Oasis
 Oath of the Ancient Wood
 Omen of the Sun
 Oracle of Tragedy
@@ -296,6 +306,7 @@ Stunted Growth
 Subtle Strike
 Sunhome Guildmage
 Swamp
+Swarmyard
 Synapse Sliver
 Tah-Crop Skirmisher
 Tajuru Beastmaster
@@ -322,6 +333,7 @@ Tower Defense
 Triton Shorethief
 Turn the Tide
 Turnabout
+Uktabi Efreet
 Uncaged Fury
 Uncanny Speed
 Undercity Shade
@@ -338,6 +350,7 @@ Vineshaper Mystic
 Vivid Revival
 Vivisurgeon's Insight
 Volunteer Militia
+Vulshok Refugee
 Wand of the Elements
 Wandering Tombshell
 Warfire Javelineer

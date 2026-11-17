@@ -5,6 +5,7 @@ Alchemist's Refuge
 Amass the Components
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
+Ballynock Trapper
 Balthor the Stout
 Barkhide Mauler
 Battlewing Mystic
@@ -29,6 +30,7 @@ Death Pits of Rath
 Decimator Web
 Divine Light
 Drake Familiar
+Elder Druid
 Elder Gargaroth
 Elite Vanguard
 Esper Panorama
@@ -51,14 +53,18 @@ Herald of War
 Hideous Visage
 Hookblade
 Hoverguard Observer
+In Oketra's Name
 Inferno
 Island
 Jeskai Barricade
+Jet Medallion
 Kaito's Pursuit
 Karlach, Fury of Avernus
 Keeper of the Accord
 Lady Spider, Maybelle Reilly
 Leonin Armorguard
+Lush Growth
+Marshal's Anthem
 Mindlash Sliver
 Monoskelion
 Moonlit Wake
@@ -74,9 +80,12 @@ Order of Leitbur
 Ori, Plate Stacker
 Otherworldly Outburst
 Pain Distributor
+Pain Seer
 Phalanx Leader
 Plains
+Prey's Vengeance
 Prohibit
+Reach of Branches
 Rebuke
 Repulsor Rays
 Sacred Rites
@@ -92,21 +101,27 @@ Spirit of Malevolence
 Spitting Hydra
 Stone Haven Pilgrim
 Storm Caller
+Striped Bears
 Swamp
 Swarmyard Massacre
 Syphon Mind
 Tablet of Epityr
 Tezzeret the Schemer
 Tiller of Flesh
+Tree Monkey
 Tribal Flames
 Twenty-Toed Toad
+Uktabi Drake
 Uncovered Clues
+Undercity Troll
 Utter End
 Victory's Herald
+Viridian Revel
 Vitalizing Cascade
 Void Squall
 Vraska's Fall
 Wash Out
+Witch's Vengeance
 Wrap in Flames
 Wrecking Ball
 Yarok's Fenlurker

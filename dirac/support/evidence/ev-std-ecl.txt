@@ -50,6 +50,7 @@ Dawnhand Dissident
 Dawnhand Eulogist
 Disruptor of Currents
 Dose of Dawnglow
+Dream Harvest
 Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
@@ -117,6 +118,7 @@ Lys Alana Informant
 Meanders Guide
 Midnight Tilling
 Mirrormind Crown
+Mischievous Sneakling
 Mistmeadow Council
 Moon-Vigil Adherents
 Moonglove Extractor
@@ -205,6 +207,7 @@ Virulent Emissary
 Wanderbrine Preacher
 Wanderbrine Trapper
 Wanderwine Distracter
+Wanderwine Farewell
 Warren Torchmaster
 Wild Unraveling
 Wildvine Pummeler

@@ -114,6 +114,7 @@ Enchanted Carriage
 Enchantress's Presence
 Encroaching Wastes
 Encrust
+Endure
 Errant Ephemeron
 Ertai's Scorn
 Evasive Action
@@ -248,6 +249,7 @@ Mindshrieker
 Mirkwood Spider
 Mirror Entity
 Misshapen Fiend
+Molten Tributary
 Mosscoat Goriak
 Mountain
 Mox Emerald
@@ -261,6 +263,7 @@ Necromancer's Assistant
 Nevinyrral's Disk
 Niambi, Esteemed Speaker
 Niblis of Dusk
+Nimble Hobbit
 Nyxborn Brute
 Oakhame Adversary
 Oblivion's Hunger
@@ -279,9 +282,11 @@ Orzhov Racketeers
 Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
+Phantasmal Image
 Phantom Whelp
 Phyrexian Scriptures
 Pillardrop Warden
+Plague Boiler
 Plague Sliver
 Plains
 Priest of the Crossing
@@ -344,6 +349,7 @@ Slip Through Space
 Smite the Monstrous
 Soaring Show-Off
 Soltari Lancer
+Soul Summons
 Soul of Migration
 Soul of Shandalar
 Soulsurge Elemental

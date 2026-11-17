@@ -4,43 +4,68 @@ Akoum Refuge
 Ancestral Blade
 Ancient Gold Dragon
 Anointer Priest
+Archwing Dragon
+Ardent Elementalist
 Ashen Monstrosity
 Attune with Aether
 Avatar of Growth
 Back in Town
 Barrow Witches
 Belligerent Sliver
+Bellowing Mauler
 Big Boa Constrictor
 Black Widow, Intel Expert
+Black Widow, Natasha Romanoff
+Blind Creeper
+Bloodbond Vampire
+Bloodcrazed Neonate
 Bloodmark Mentor
+Bloodthirsty Adversary
 Bond of Insight
 Bonehoard
 Bound in Silence
+Bountiful Promenade
 Brandywine Farmer
 Burning Fields
+Cabaretti Courtyard
 Catacomb Sifter
 Choking Sands
 Clip Wings
+Colossal Dreadmaw and Storm Crow
+Crackling Drake
 Cunning Survivor
+Daggersail Aeronaut
 Death's Shadow
+Dense Foliage
+Desert of the Indomitable
+Desolate Mire
 Devouring Swarm
 Doom Whisperer
 Double Negative
 Drainpipe Vermin
+Dream Thief
 Drifting Shade
+Drossclaw
+Dualcaster Mage
 Dune Mover
 Etched Monstrosity
 Ethereal Investigator
 Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
+Fateful Showdown
+Feral Instinct
 Ferocious Zheng
 Fireblade Charger
 Fissure
+Flare of Denial
+Flatman
 Forest
 Genestealer Locus
+Gift of Fangs
 Gift of Paradise
 Gild
+Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Griffin Aerie
@@ -53,76 +78,126 @@ Herd Gnarr
 Hibernation
 Howl of the Night Pack
 Hurloon Battle Hymn
+Imaginary Pet
+Immortal Phoenix
 Island
 Jace's Erasure
+Jade Idol
+Jalum Tome
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
 Kher Keep
 Lightning-Rig Crew
+Lorthos, the Tidemaker
+Magmatic Insight
 Mana Vault
+Manalith
+Mardu Woe-Reaper
 Mark of the Oni
+Markov Patrician
+Masked Blackguard
 Mass Calcify
 Mass Mutiny
 Master of Winds
 Master the Way
 Metathran Elite
+Mijae Djinn
 Mind Over Matter
 Mindwrack Harpy
+Mobile Fort
 Momentum Rumbler
+Mortal Wound
 Mountain
+Mox Tantalite
 Muck Rats
+Nakaya Shade
 Nebelgast Herald
 Needlethorn Drake
 Neonate's Rush
 Nezumi Freewheeler
 Nightveil Predator
+Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper
+Panic Attack
+Patrol Hound
 Peregrine Mask
 Perimeter Captain
+Personal Tutor
+Pillage
 Plains
 Plasmancer
 Portent of Betrayal
 Power of Persuasion
 Precinct Captain
 Pyrrhic Blast
+Radstorm
 Rally the Peasants
+Raugrin Triome
 Reckless Barbarian
 Reclaim the Wastes
+Rimewood Falls
 Rishkar's Expertise
 Riven Turnbull
 Rooftop Nuisance
+Sacred Prey
 Sage Aven
+Sage of Fables
 Sailor of Means
+Sanctify
 Sanctum of Stone Fangs
 School of Piranha
+Scour All Possibilities
 Seething Pathblazer
+Singing Tree
+Sinkhole
 Sizzle
 Skyline Cascade
+Slagwoods Bridge
 Sonic Screwdriver
 Sootstoke Kindler
 Spectacle Mage
 Spitebellows
 Spitfire Handler
 Sunscorched Desert
+Surge Engine
 Swamp
+Swarm Surge
 Swarm of Rats
+Sword of the Animist
+Tamiyo's Immobilizer
+Tamiyo's Safekeeping
 Tectonic Edge
+Tempestra, Dame of Games
 Thopter Assembly
 Thoughtweft Gambit
 Threnody Singer
 Thundersteel Colossus
+Timin, Youthful Geist
+Trail of Evidence
+Trailblazing Historian
 Trained Caracal
 Tui and La, Moon and Ocean
 Twiddle
+Ugin's Insight
 Undead Servant
+Urza's Rebuff
+Urza, Powerstone Prodigy
 Venomous Changeling
 Verdant Sun's Avatar
 Viscerid Deepwalker
+Volcanic Upheaval
+Voyager Staff
+Wall of Vines
 Warmonger Hellkite
 Wavebreak Hippocamp
+Whiptail Moloch
+Will-o'-the-Wisp
+Winding Canyons
 Wizard Replica
 Woodland Stream
 Zap
+Zealot's Conviction
 Zendikar Farguide
+Zuran Enchanter

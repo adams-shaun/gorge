@@ -107,6 +107,7 @@ Demon's Disciple
 Dense Foliage
 Depth Charge Colossus
 Deputized Protester
+Deranged Assistant
 Desert of the Indomitable
 Desolate Mire
 Desynchronize
@@ -122,6 +123,7 @@ Dread Tiller
 Dream Thief
 Dreamshackle Geist
 Drifting Shade
+Drillworks Mole
 Drossclaw
 Drown in Dreams
 Dualcaster Mage

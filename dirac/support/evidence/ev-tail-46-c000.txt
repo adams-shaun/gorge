@@ -176,6 +176,7 @@ Gloomdrifter
 Gnarled Mass
 Goblin Gaveleer
 Goblin Skycutter
+Goblins of the Flarg
 Goldenhide Ox
 Grasping Scoundrel
 Gray Harbor Merfolk
@@ -223,6 +224,7 @@ Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
+Lava Blister
 Leaping Master
 Ledev Guardian
 Lesser Gargadon

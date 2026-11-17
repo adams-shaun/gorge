@@ -86,6 +86,7 @@ Flowstone Salamander
 Fog on the Barrow-Downs
 Force of Despair
 Forest
+Forever Young
 Funeral Longboat
 Garrison Griffin
 Genesis
@@ -231,6 +232,7 @@ Run Aground
 Rushwood Herbalist
 Rusting Golem
 Sanctifier of Souls
+Sand Squid
 Sanguimancy
 Savannah Sage
 Scour All Possibilities

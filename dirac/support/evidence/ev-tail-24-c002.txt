@@ -34,6 +34,7 @@ Bone Devourer
 Boreal Druid
 Boss Uramon, Shadow's Reach
 Box of Free-Range Goblins
+Brandywine Farmer
 Braulios of Pheres Band
 Brutal Nightstalker
 Brute Force
@@ -146,6 +147,7 @@ Jackdaw
 Jackhammer
 Jade Avenger
 Jedit Ojanen
+Jedit's Dragoons
 Jori En, Ruin Diver
 Key to the City
 Khalni Garden
@@ -158,6 +160,7 @@ Lava Spike
 Lethargy Trap
 Lightning Bolt
 Lightning Stormkin
+Linvala, Keeper of Silence
 Llanowar Augur
 Llanowar Scout
 Long Road Home
@@ -169,6 +172,7 @@ Mardu Strike Leader
 Maritime Guard
 Marsh Viper
 Mass Manipulation
+Master Skald
 Mausoleum Harpy
 Minamo Sightbender
 Mind Peel

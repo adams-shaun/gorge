@@ -5,6 +5,7 @@ A-Psionic Snoop
 A-Urza, Powerstone Prodigy
 Abzan Advantage
 Accursed Horde
+Acrobatic Maneuver
 Advanced Stitchwing
 Aether Vial
 Afterlife Insurance
@@ -30,11 +31,13 @@ Autumnal Gloom
 Avaricious Dragon
 Bag End Porter
 Battlefront Krushok
+Blast Zone
 Blighted Agent
 Blistering Dieflyn
 Blood Divination
 Blood Speaker
 Bloodstone Cameo
+Blurred Mongoose
 Bogardan Dragonheart
 Bond of Passion
 Bonded Herdbeast
@@ -87,6 +90,7 @@ Drelnoch
 Drill-Skimmer
 Dross Golem
 Dwarven Forge-Chanter
+Dáin's Company
 Déjà Vu
 Ebon Drake
 Ebony Charm
@@ -107,13 +111,18 @@ Fill with Fright
 Final Flourish
 Fire Nation Occupation
 Flame Elemental
+Flawless Maneuver
 Flip the Switch
+Flumph
+Forbidding Watchtower
 Force Spike
 Forest
 Freejam Regent
 Furious Resistance
 Furnace Gremlin
 Gaea's Might
+Gates of Istfell
+Gau, Feral Youth
 Gearsmith Prodigy
 Gleam of Authority
 Gluttonous Guest
@@ -121,6 +130,7 @@ Golden Bear
 Golden Hind
 Goldwarden's Helm
 Gravitational Shift
+Grimoire of the Dead
 Gristle Grinner
 Hadana's Climb
 Hammer of Purphoros
@@ -172,12 +182,17 @@ Mass Hysteria
 Mawcor
 Memorial to Folly
 Military Intelligence
+Mimic
 Ministrant of Obligation
+Mjölnir's Might
 Mogg Conscripts
+Mogg Jailer
+Monastery Mentor
 Moonglove Winnower
 Mountain
 Mox Amber
 Murder Investigation
+Muster the Departed
 Myr Enforcer
 Mystery Key
 Mystic Might
@@ -217,6 +232,7 @@ Razorjaw Oni
 Reanimate
 Reaver Drone
 Reckoner's Bargain
+Remember the Fallen
 Rending Volley
 Renounce
 Reverent Hunter
@@ -240,9 +256,11 @@ Seasoned Hallowblade
 Seed Guardian
 Seething Anger
 Sharktocrab
+Shepherd of Rot
 Shinen of Fear's Chill
 Showstopping Surprise
 Shredded Sails
+Shu Foot Soldiers
 Shu Grain Caravan
 Sibling Rivalry
 Sisay's Ring
@@ -255,6 +273,7 @@ Smoldering Efreet
 Sol Talisman
 Solar Blast
 Soltari Trooper
+Soul Kiss
 Spearpoint Oread
 Spectral Deluge
 Spidersilk Armor
@@ -263,6 +282,7 @@ Spiteful Banditry
 Spiteful Sliver
 Spore Cloud
 Square Up
+Stamina
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
@@ -272,6 +292,7 @@ Swamp
 Sythis, Harvest's Hand
 Temple Elder
 Temporal Machinations
+The Tabernacle at Pendrell Vale
 Thought Monitor
 Thraben Foulbloods
 Thresher Lizard
@@ -300,6 +321,7 @@ Urza's Command
 Utvara Scalper
 Verdant Crescendo
 Verdant Embrace
+Vernal Fen
 Victorious Destruction
 Vinelasher Kudzu
 Viridian Zealot
@@ -315,6 +337,7 @@ Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
+Weatherlight Compleated
 Wei Infantry
 Willow Faerie
 Wilson, Refined Grizzly
