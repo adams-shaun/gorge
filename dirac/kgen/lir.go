@@ -1257,7 +1257,12 @@ type lRepl struct {
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
-	F2      *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
+	// LibBottom / LibShuffle / LibFromBattlefield: GraveToLibrary's library
+	// insert (bottom, not top), whether its owner shuffles after a top insert,
+	// and whether it applies only to a move from the battlefield (the R: line's
+	// Origin$ Battlefield / ActiveZones$ Battlefield).
+	LibBottom, LibShuffle, LibFromBattlefield bool
+	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 }
 
 // lCard is a lowered card.

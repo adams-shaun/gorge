@@ -43,8 +43,11 @@ func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) int {
 		sc := s.cardAt(b)
 		// a departed seat's effects no longer apply (CR 800.4a; gorge's
 		// replacement walk visits only living seats' zones)
-		if g.replBits[sc]&rbExileOnLeave == 0 || !g.exileAnyC[sc] || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
+		if g.replBits[sc]&rbExileOnLeave == 0 || g.exileAnyC[sc]&eaAny == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 			continue
+		}
+		if g.exileAnyC[sc]&eaSelf != 0 {
+			continue // a self filter is not a card matcher: the card exiles only itself (exileAnyDest)
 		}
 		if s.matchCardGen(k, g.exileOnLeave[sc], c, owner, s.perms[b].ctrl, o) {
 			n++
@@ -54,20 +57,25 @@ func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) int {
 }
 
 // exileAnyDest is the zone a card o headed for a graveyard really goes to:
-// the exile zone when an any-zone source applies. Called with the table's
-// anyExileAny set.
+// the exile zone when an any-zone source applies, including the moving card's
+// own "from anywhere" replacement (a ReplExileOnLeave with a self filter,
+// whose source is the card itself and so is not a battlefield permanent when
+// it moves from another zone). from is the move's origin.
 //
 //go:noinline
-func (s *State) exileAnyDest(k *prep, o Obj) kop.Zone {
+func (s *State) exileAnyDest(k *prep, o Obj, from kop.Zone) kop.Zone {
 	if DebugExileAnyBattlefieldOnly {
 		return kop.ZoneGraveyard
 	}
 	ob := &s.objs[o]
 	n := s.exileAnyN(k, o, ob.card, ob.owner())
+	if from != kop.ZoneBattlefield && k.gen.exileAnyC != nil && k.gen.exileAnyC[ob.card]&eaSelf != 0 {
+		n++ // the card's own self any-zone replacement
+	}
 	if n == 0 {
 		return kop.ZoneGraveyard
 	}
-	if k.gen.anyRepl&rbGraveLib != 0 && s.graveRedirect(k, ob.card, kop.ZoneGraveyard) == kop.ZoneLibrary {
+	if k.gen.anyRepl&rbGraveLib != 0 && s.graveRedirect(k, ob.card, kop.ZoneGraveyard, from) == kop.ZoneLibrary {
 		n++
 	}
 	if n > 1 && !s.takeAnswered(o) {
