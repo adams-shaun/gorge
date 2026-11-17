@@ -39,7 +39,7 @@ func (lc *lowerCtx) lockedCantBlock(ps *params, ss []cards.Static) (bool, error)
 			return true, refuse("Effect locked can't-block static with %s$", k)
 		}
 	}
-	eot, _, err := effectEmblemDuration(ps)
+	eot, _, _, err := effectEmblemDuration(ps)
 	if err != nil {
 		return true, err
 	}
