@@ -91,9 +91,17 @@ type avail struct {
 	life int16
 	// one: the amount of each source making all its mana in one colour of
 	// its choosing. Those units are also in mask/cnt, where they read as
-	// independent; hallPlain then tries each source's colours.
-	one  [maxOneColour]uint8
-	nOne uint8
+	// independent; hallPlain then tries each source's colours. oneMask is the
+	// group those units were added to (0 reads as ColAny); a source whose own
+	// printed ability joins a larger one-colour grant sits in a 0x3f group.
+	// oneAlt is the source's own fixed face when it is an alternative to that
+	// grant (Trenchpost's {C} under Nature's Embrace): the payment may take
+	// the fixed face or the one-colour block, never both.
+	one        [maxOneColour]uint8
+	oneMask    [maxOneColour]uint8
+	oneAltMask [maxOneColour]uint8
+	oneAltN    [maxOneColour]uint8
+	nOne       uint8
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
@@ -128,12 +136,33 @@ func manaOneColour(a *kop.Ability, n uint8) bool {
 
 //go:noinline
 func (s *State) addOneColour(a *avail, n uint8) {
+	s.addOneColourMask(a, uint8(kop.ColAny), n)
+}
+
+// addOneColourMask is addOneColour for a source whose units went into group
+// mask: oneColourPays takes that group's units out, not a ColAny group's (a
+// printed {C} ability merged with a granted one makes 0x3f).
+func (s *State) addOneColourMask(a *avail, mask, n uint8) bool {
 	if int(a.nOne) == len(a.one) {
 		s.capFull(StallDynMana)
-		return
+		return false
 	}
-	a.one[a.nOne] = n
+	i := a.nOne
+	a.one[i] = n
+	a.oneMask[i] = mask
+	a.oneAltMask[i], a.oneAltN[i] = 0, 0
 	a.nOne++
+	return true
+}
+
+// addOneColourAlt is addOneColourMask for a merged unit that also keeps the
+// source's own fixed face (altMask, altN) as an alternative to its one-colour
+// block.
+func (s *State) addOneColourAlt(a *avail, mask, n, altMask, altN uint8) {
+	if s.addOneColourMask(a, mask, n) && altMask != 0 {
+		i := a.nOne - 1
+		a.oneAltMask[i], a.oneAltN[i] = altMask, altN
+	}
 }
 
 // oneColourFits: a, with each of ns a unit of that many mana of one colour,
@@ -175,17 +204,64 @@ func (a avail) oneColourSplit(cost *kop.ManaCost, pipMask uint8, extra int, n ui
 //go:noinline
 func (a *avail) oneColourPays(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 	b := *a
-	ns := a.one
-	sorted := ns[:a.nOne]
-	for i := 1; i < len(sorted); i++ {
-		for j := i; j > 0 && sorted[j] < sorted[j-1]; j-- {
-			sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+	var order [maxOneColour]uint8
+	for i := uint8(0); i < a.nOne; i++ {
+		m := a.oneMask[i]
+		if m == 0 {
+			m = uint8(kop.ColAny)
+		}
+		if !b.takeWide(m, uint16(a.one[i])) {
+			return false // the group is gone: its entry cannot price the cost
+		}
+		order[i] = i
+	}
+	for i := 1; i < int(a.nOne); i++ {
+		for j := i; j > 0 && a.one[order[j]] < a.one[order[j-1]]; j-- {
+			order[j], order[j-1] = order[j-1], order[j]
 		}
 	}
-	for _, n := range sorted {
-		b.remove(uint8(kop.ColAny), n)
+	var plain [maxOneColour]uint8
+	np := 0
+	var alts [maxOneColour]uint8
+	na := 0
+	for k := uint8(0); k < a.nOne; k++ {
+		i := order[k]
+		if a.oneAltN[i] != 0 {
+			alts[na] = i
+			na++
+			continue
+		}
+		plain[np] = a.one[i]
+		np++
 	}
-	return b.oneColourFits(cost, pipMask, extra, sorted)
+	if na == 0 {
+		return b.oneColourFits(cost, pipMask, extra, plain[:np])
+	}
+	return b.oneColourAltFits(cost, pipMask, extra, alts[:na], plain[:np])
+}
+
+// oneColourAltFits finishes oneColourPays over the sources that keep a fixed
+// alternative face: each takes that face or its one-colour block (the grant),
+// then the plain sources fit as before. The two faces are exclusive, so the
+// printed {C} is neither lost nor counted beside the grant.
+func (a avail) oneColourAltFits(cost *kop.ManaCost, pipMask uint8, extra int, alts, plain []uint8) bool {
+	if len(alts) == 0 {
+		return a.oneColourFits(cost, pipMask, extra, plain)
+	}
+	i := alts[0]
+	b := a
+	b.addUnits(a.oneAltMask[i], a.oneAltN[i])
+	if b.oneColourAltFits(cost, pipMask, extra, alts[1:], plain) {
+		return true
+	}
+	for c := uint8(0); c < 5; c++ {
+		b := a
+		b.addUnits(1<<c, a.one[i])
+		if b.oneColourAltFits(cost, pipMask, extra, alts[1:], plain) {
+			return true
+		}
+	}
+	return false
 }
 
 // satAdd is a+n held at the top of a count: a wrapped count would read as a
@@ -219,26 +295,46 @@ func (a *avail) addUnits(mask, n uint8) {
 // remove takes n units of mask out (a source paying its own {T} cost).
 func (a *avail) remove(mask, n uint8) { a.removeWide(mask, uint16(n)) }
 
-// removeWide is remove for a group's whole count, which can pass a byte.
-func (a *avail) removeWide(mask uint8, n uint16) {
+// takeWide removes n units from group mask without touching the one-colour
+// entries: oneColourPays removes every entry itself, so it must keep their
+// indices intact. It reports whether a group held the units.
+func (a *avail) takeWide(mask uint8, n uint16) bool {
 	for i := 0; i < a.n; i++ {
 		if a.mask[i] == mask && a.cnt[i] >= n {
 			a.cnt[i] -= n
 			a.total -= int(n)
-			if a.nOne != 0 && mask == uint8(kop.ColAny) && n <= 255 {
-				a.dropOneColour(uint8(n))
-			}
-			return
+			return true
 		}
 	}
+	return false
 }
 
-// dropOneColour forgets a removed source's one-colour entry.
-func (a *avail) dropOneColour(n uint8) {
+// removeWide is remove for a group's whole count, which can pass a byte. It
+// reports whether a group held the units.
+func (a *avail) removeWide(mask uint8, n uint16) bool {
+	if !a.takeWide(mask, n) {
+		return false
+	}
+	if a.nOne != 0 && n <= 255 {
+		a.dropOneColour(mask, uint8(n))
+	}
+	return true
+}
+
+// dropOneColour forgets a removed source's one-colour entry: the one added to
+// the same group mask at the same amount.
+func (a *avail) dropOneColour(mask, n uint8) {
 	for i := uint8(0); i < a.nOne; i++ {
-		if a.one[i] == n {
+		m := a.oneMask[i]
+		if m == 0 {
+			m = uint8(kop.ColAny)
+		}
+		if a.one[i] == n && m == mask {
 			a.nOne--
 			a.one[i] = a.one[a.nOne]
+			a.oneMask[i] = a.oneMask[a.nOne]
+			a.oneAltMask[i] = a.oneAltMask[a.nOne]
+			a.oneAltN[i] = a.oneAltN[a.nOne]
 			return
 		}
 	}
