@@ -544,14 +544,32 @@ func prepSelfTapsPain(c *kop.CardDef, pc *pcard) bool {
 // unit out (availLeavesOut), and tapping it here would also take away the
 // {T} a cost of its own pays (Cabal Pit's {B},{T}, sacrifice beside Price of
 // Glory, CR 602.2b), so it stays untapped.
+//
+// Only a source is hidden: a Taps watcher over every creature (Captain America,
+// Living Legend) classes a creature with no mana ability as deferred too, and
+// tapping that one on the node copy would take away the {T} an activation of its
+// own pays (Echo, Perceptive Prodigy's {1},{T} copy, CR 602.2b) that gorge's
+// census never touches.
 func (t *State) hideDeferred(k *prep, p uint8, tapsDef slotMask) {
 	if !t.deferLive(k) {
 		return
 	}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
-		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && !tapsDef.has(sl) && t.planDeferred(k, p, sl) {
+		if sl := b.first(); t.perms[sl].flags&pfTapped == 0 && !tapsDef.has(sl) && t.hasManaAbility(k, sl) && t.planDeferred(k, p, sl) {
 			t.perms[sl].flags |= pfTapped
 			t.touchSl(sl)
 		}
 	}
+}
+
+// hasManaAbility reports whether the permanent at sl has a mana ability, printed
+// or granted: a source the planner could defer, as opposed to a permanent a Taps
+// watcher merely matches.
+func (s *State) hasManaAbility(k *prep, sl Slot) bool {
+	for i := range k.t.Cards[s.cardAt(sl)].Abilities {
+		if k.t.Cards[s.cardAt(sl)].Abilities[i].Kind == kop.AbMana {
+			return true
+		}
+	}
+	return s.manaGranted(k, sl)
 }
