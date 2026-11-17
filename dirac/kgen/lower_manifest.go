@@ -14,24 +14,31 @@ import (
 
 // manifest lowers api:Manifest (gorge effManifest, CR 701.40a): the named
 // player (DefinedPlayer$, default You) manifests Amount$ (default 1) cards
-// from the top of their library. Defined$ object manifests, Choices$ and
-// RememberManifested$ are gorge's unimplemented shapes and refuse.
+// from the top of their library. Defined$ Remembered (manifestRemembered),
+// the Defined$ ValidLibrary Card.TopLibrary+<owner> top-card shape
+// (manifestValidLibrary) and the Choices$ hand pick (manifestChoices) are the
+// object and chooser shapes; Amount$ resolves through the shared value
+// grammar (an X Amount$ still refuses: a manifest count is never the cast's
+// own X). RememberManifested$ is the remember-set family and refuses beside
+// every shape here.
 func (lc *lowerCtx) manifest(ps *params) error {
 	if strings.TrimSpace(ps.str("Defined")) == "Remembered" {
 		return lc.manifestRemembered(ps)
 	}
-	for _, k := range []string{"Defined", "Choices", "RememberManifested"} {
-		if _, ok := ps.get(k); ok {
-			return refuse("Manifest %s$", k)
-		}
+	if _, ok := ps.get("RememberManifested"); ok {
+		return refuse("Manifest RememberManifested$")
 	}
-	if v, ok := ps.get("Amount"); ok {
-		// gorge's effManifest refuses X/Y (and any body Num cannot resolve)
-		// loudly: a manifest count is never the cast's own X value.
-		switch strings.TrimSpace(v) {
-		case "X", "Y":
-			return refuse("Manifest Amount$ %s", strings.TrimSpace(v))
+	if v, ok := ps.get("Choices"); ok {
+		return lc.manifestChoices(ps, v)
+	}
+	if v, ok := ps.get("Defined"); ok {
+		if spec := strings.TrimSpace(v); strings.HasPrefix(spec, "ValidLibrary ") {
+			return lc.manifestValidLibrary(ps, spec)
 		}
+		return refuse("Manifest Defined$ %q", strings.TrimSpace(v))
+	}
+	if v, ok := ps.get("Amount"); ok && strings.TrimSpace(v) == "X" {
+		return refuse("Manifest Amount$ X")
 	}
 	ref := lRef{Kind: rYou}
 	if v, ok := ps.get("DefinedPlayer"); ok {
@@ -46,6 +53,92 @@ func (lc *lowerCtx) manifest(ps *params) error {
 		return err
 	}
 	lc.emit(lInstr{Op: "Manifest", Obj: ref, A: n})
+	return nil
+}
+
+// manifestValidLibrary lowers Defined$ ValidLibrary Card.TopLibrary+<owner>
+// (Orochi Soul-Reaver's "+ControlledBy TriggeredTarget", Thieving Amalgam's
+// "+ActivePlayerCtrl"): the top card of the named player's library manifests
+// under the resolving controller, the card's owner staying the library's
+// owner (gorge manifestObjects over definedSpec, ControlChange then
+// MoveZone; CR 701.40a, 110.2a). ActivePlayerCtrl reads the Phase trigger's
+// player, the active player. An empty library manifests nothing. Any other
+// selector, DefinedPlayer$ beside it and a non-default Amount$ (gorge ignores
+// Amount$ for a defined set) refuse.
+func (lc *lowerCtx) manifestValidLibrary(ps *params, spec string) error {
+	sel, ok := strings.CutPrefix(strings.TrimSpace(strings.TrimPrefix(spec, "ValidLibrary ")), "Card.TopLibrary+")
+	if !ok {
+		return refuse("Manifest Defined$ %q", spec)
+	}
+	var ref lRef
+	switch player, has := strings.CutPrefix(sel, "ControlledBy "); {
+	case has:
+		r, err := lc.definedPlayer(strings.TrimSpace(player))
+		if err != nil {
+			return refuse("Manifest Defined$ %q: %v", spec, err)
+		}
+		ref = r
+	case sel == "ActivePlayerCtrl":
+		if tr := lc.ab.Trigger; tr == nil || tr.Event != "Phase" {
+			return refuse("Manifest Defined$ %q outside a Phase trigger", spec)
+		}
+		r, err := lc.defined("TriggeredPlayer")
+		if err != nil {
+			return refuse("Manifest Defined$ %q: %v", spec, err)
+		}
+		ref = r
+	default:
+		return refuse("Manifest Defined$ %q", spec)
+	}
+	if _, ok := ps.get("DefinedPlayer"); ok {
+		return refuse("Manifest Defined$ ValidLibrary with DefinedPlayer$")
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "1":
+		default:
+			return refuse("Manifest Defined$ ValidLibrary with Amount$ %q", strings.TrimSpace(v))
+		}
+	}
+	lc.emit(lInstr{Op: "Manifest", Obj: ref, A: cst(1), C: kop.CfCloakCtrl,
+		Note: "manifest the library's top card under the resolving controller"})
+	return nil
+}
+
+// manifestChoices lowers the Choices$ hand-pick shape (Scroll of Fate's
+// "AB$ Manifest | Choices$ Card.YouCtrl | ChoiceZone$ Hand"): the resolving
+// controller picks one card of their hand that Choices$ admits and manifests
+// it (gorge effManifest's chooseFromZoneForFaceDown, CR 701.40a). The ask is
+// the mandatory single pick, gorge's option kind "face_down_choice"; an
+// empty pool is no ask and no manifest. A Defined$ or DefinedPlayer$ beside
+// Choices$, a ChoiceZone$ other than Hand and an Amount$ other than the
+// default 1 (gorge asks for min(Amount$, pool) cards; the kernel pick is
+// one) refuse.
+func (lc *lowerCtx) manifestChoices(ps *params, choices string) error {
+	if v, ok := ps.get("Defined"); ok && strings.TrimSpace(v) != "" {
+		return refuse("Manifest Choices$ with Defined$ %q", v)
+	}
+	if _, ok := ps.get("DefinedPlayer"); ok {
+		return refuse("Manifest Choices$ with DefinedPlayer$")
+	}
+	if v, ok := ps.get("ChoiceZone"); ok && strings.TrimSpace(v) != "Hand" {
+		return refuse("Manifest Choices$ with ChoiceZone$ %q", v)
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "1":
+		default:
+			return refuse("Manifest Choices$ Amount$ %q", strings.TrimSpace(v))
+		}
+	}
+	f, err := lc.filter(choices)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zHand, CS: "FaceDownPick",
+		Note: "the manifest-from-hand pick (gorge's face_down_choice)"})
+	lc.emit(lInstr{Op: "Manifest", Obj: lRef{Kind: rYou}, A: cst(1), C: kop.CfChosen,
+		Note: "manifest the pick from where it sits, under the resolving controller"})
 	return nil
 }
 
