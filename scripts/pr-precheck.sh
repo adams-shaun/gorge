@@ -14,7 +14,10 @@ if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^Tes
   cat "$log"; fail "codeshape: $(grep -o -E '[^ ]+ \([^)]*\) grew to [a-z]+ [0-9]+, above its ceiling of [0-9]+' "$log" | head -1)"
 fi
 if grep -q '^dirac/' <<<"$changed"; then
-  "${cap[@]}" go test -timeout 5m -run '^TestSupportDocIsCurrent$' ./dirac/kgen >"$log" 2>&1 || { cat "$log"; fail "dirac/docs/support.md is stale (scripts/pr-regen.sh dirac/docs/support.md)"; }
+  # The support ledger's own checks (dirac/kgen/support_test.go): a refusal against evidence main credited since the
+  # branch cut fails TestEvidenceAndRefusedAreDisjoint though the PR touches neither test (#503, 11-17).
+  ledger='^(TestSupportDocIsCurrent|TestEvidenceAndRefusedAreDisjoint|TestRefusedEntriesWellFormed|TestRefusedReproParses|TestSupportHasNoScriptText)$'
+  "${cap[@]}" go test -timeout 5m -run "$ledger" ./dirac/kgen >"$log" 2>&1 || { cat "$log"; fail "support ledger: $(grep -m1 -A1 -- '--- FAIL' "$log" | tr '\n' ' ') (a stale page: scripts/pr-regen.sh dirac/docs/support.md)"; }
 fi
 for pkg in $(grep '_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u); do
   rx=$(grep "^$pkg/[^/]*_test\.go$" <<<"$changed" | while read -r f; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
