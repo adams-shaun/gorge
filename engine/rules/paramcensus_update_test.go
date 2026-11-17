@@ -85,7 +85,9 @@ func knownKeysCensusWant(api string, d *derivedReads) []string {
 	// join that table: otherwise the resolver still Notes the exact false
 	// positive the census suppressed. Only the entries listed below have a
 	// table to join (the rest are census-only: GenericChoice shares
-	// charmKnownKeys with Charm, so no per-API table can answer its scope).
+	// charmKnownKeys with Charm, so no per-API table can answer its scope;
+	// CharmOf instead filters genericChoicePresentationKeys out of
+	// GenericChoice's unread list).
 	for _, k := range runtimeIgnoredAbilityParams {
 		if a, key, ok := strings.Cut(k, "."); ok && a == api {
 			want[key] = true
