@@ -58,16 +58,31 @@ func (s *State) execDread(k *prep, in *kop.Instr) (ok, done bool) {
 // manifest is OpManifest (gorge effManifest): player Obj manifests A cards
 // from the top of their library (CR 701.40a) -- the real card moves face down
 // and is marked manifested. No event when A <= 0 or the library is empty.
+//
+// B.N = CfChosen manifests the resolution's chosen card from where it sits
+// (the Choices$ hand pick, Scroll of Fate); CfCloakCtrl keeps Obj as the
+// library's owner but the card enters under the resolving controller (gorge's
+// manifestObjects over a ValidLibrary Defined$, Orochi Soul-Reaver, Thieving
+// Amalgam; CR 110.2a).
 func (s *State) manifest(k *prep, in *kop.Instr) {
-	if in.B.N&kop.CfManifestRemembered != 0 {
+	fl := int(in.B.N)
+	if fl&kop.CfManifestRemembered != 0 {
 		s.faceDownRemembered(k, 0, false)
+		return
+	}
+	if fl&kop.CfChosen != 0 {
+		s.faceDownChosen(k, 0, false)
 		return
 	}
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
 		p = s.res.e.ctrl
 	}
-	s.faceDownFromTop(k, p, p, s.value(k, in.A), false, false, false)
+	ctrl := p
+	if fl&kop.CfCloakCtrl != 0 {
+		ctrl = s.res.e.ctrl
+	}
+	s.faceDownFromTop(k, p, ctrl, s.value(k, in.A), false, false, false)
 }
 
 // cloak is OpCloak (gorge effCloak): player Obj cloaks A cards from the top of
@@ -84,7 +99,7 @@ func (s *State) cloak(k *prep, in *kop.Instr) {
 		return
 	}
 	if fl&kop.CfChosen != 0 {
-		s.cloakChosen(k, fl)
+		s.faceDownChosen(k, fl, true)
 		return
 	}
 	p := s.playerRef(k, in.Obj)
@@ -108,14 +123,15 @@ func (s *State) cloak(k *prep, in *kop.Instr) {
 // poses, and an empty pool is no ask (gorge's n <= 0 returns no ids).
 const chooseFaceDownPick = 7
 
-// cloakChosen is OpCloak with CfChosen: the resolution's chosen card (the
-// preceding OpChooseCard's pick, gorge chooseFromZoneForFaceDown) cloaks from
-// where it sits under the resolving controller (CR 110.2a: the cloaking
-// player puts the card onto the battlefield). Nothing moves when no card was
+// faceDownChosen is OpCloak / OpManifest with CfChosen: the resolution's
+// chosen card (the preceding OpChooseCard's pick, gorge
+// chooseFromZoneForFaceDown) cloaks or manifests from where it sits under the
+// resolving controller (CR 110.2a: the cloaking player puts the card onto the
+// battlefield). Nothing moves when no card was
 // picked (an empty pool) or the object is already on the battlefield (gorge's
 // cloak closure skips a battlefield object, and every corpus shape sources
 // from hand/library/exile). A full battlefield stalls and stops the move.
-func (s *State) cloakChosen(k *prep, fl int) {
+func (s *State) faceDownChosen(k *prep, fl int, cloaked bool) {
 	o := s.objRefObj(kop.RefChosen)
 	if o == NoObj {
 		return
@@ -129,7 +145,7 @@ func (s *State) cloakChosen(k *prep, fl int) {
 	}
 	from := s.detach(o)
 	sl := s.enterFaceDown(k, o, s.res.e.ctrl, kop.MorphMorph, from)
-	s.markFaceDown(sl, true)
+	s.markFaceDown(sl, cloaked)
 	s.faceDownRiders(k, o, sl, fl&kop.CfTapped != 0, fl&kop.CfRemember != 0)
 }
 
