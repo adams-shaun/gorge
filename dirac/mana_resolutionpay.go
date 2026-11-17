@@ -133,27 +133,51 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 	if c.Hyb[0] != 0 {
 		c = s.hybResolve(k, p, c, 0)
 	}
+	// the floating restricted mana its restriction admits on a non-spell
+	// payment funds it first (CR 106.6: gorge's planner pool is AvailableFor's
+	// PurposeOther view), so the sources tap only for what it leaves
+	need := s.restrShortNonSpell(k, p, c)
 	var dry planner
 	dry.dry, dry.noGrant = true, true
-	s.tapPlanNeed(k, p, &c, 0, NoObj, true, false, &dry)
+	s.tapPlanNeed(k, p, &need, 0, NoObj, true, false, &dry)
 	if dry.needT > 0 && !dry.found {
 		return s.trigWindowPays(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
 	}
-	for i := 0; i < MaxPerm && !s.poolPays(p, &c); i++ {
+	for i := 0; i < MaxPerm && !s.poolPays(p, &need); i++ {
 		pk := planner{noGrant: true}
-		sl := s.tapForPK(k, p, &c, 0, NoObj, true, false, &pk)
+		sl := s.tapForPK(k, p, &need, 0, NoObj, true, false, &pk)
 		if sl == NoSlot {
 			break
 		}
 		if s.parkedWaiting() {
 			return false // a sacrificed source's order ask: the payment runs again after it
 		}
+		need = s.restrShortNonSpell(k, p, c) // a tapped source may have floated restricted mana
 	}
-	if !s.poolPays(p, &c) {
+	if !s.poolPays(p, &need) {
 		return s.trigWindowPays(k, p, &c)
 	}
-	s.payFromPool(p, &c, 0)
+	s.payTrigPool(k, p, &c)
 	return true
+}
+
+// restrShortNonSpell is cost less p's floating restricted mana that a
+// non-spell payment may spend (restrPoolNonSpell, CR 106.6).
+func (s *State) restrShortNonSpell(k *prep, p uint8, cost kop.ManaCost) kop.ManaCost {
+	if m := s.restrPoolNonSpell(k, p); m != 0 {
+		return s.restrShortAdm(p, m, cost)
+	}
+	return cost
+}
+
+// payTrigPool charges a trigger's own mana cost the pool pays (restrShortNonSpell
+// is covered): the floating restricted mana its restriction admits goes first.
+func (s *State) payTrigPool(k *prep, p uint8, c *kop.ManaCost) {
+	if m := s.restrPoolNonSpell(k, p); m != 0 {
+		s.payRestrSpend(k, p, m, c, 0, NoObj, false)
+		return
+	}
+	s.payFromPool(p, c, 0)
 }
 
 // trigWindowPays runs the manual window for a payment the planner has no
@@ -165,9 +189,12 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 //
 //go:noinline
 func (s *State) trigWindowPays(k *prep, p uint8, c *kop.ManaCost) bool {
-	if s.trigWindowTap(k, p, c) || !s.poolPays(p, c) {
+	if s.trigWindowTap(k, p, c) {
 		return false
 	}
-	s.payFromPool(p, c, 0)
+	if need := s.restrShortNonSpell(k, p, *c); !s.poolPays(p, &need) {
+		return false
+	}
+	s.payTrigPool(k, p, c)
 	return true
 }
