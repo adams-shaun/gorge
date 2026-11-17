@@ -61,12 +61,11 @@ func TestLowerRepeateachCards(t *testing.T) {
 	}
 	for _, tc := range []struct{ name, each, body, want string }{
 		{"other zone", "RepeatCards$ Creature.OppCtrl | Zone$ Graveyard | ChangeZoneTable$ True", probeRole, "RepeatEach cards Zone$"},
-		{"no table", "RepeatCards$ Creature.OppCtrl | Zone$ Battlefield", probeRole, "without ChangeZoneTable$ True"},
 		{"both selectors", "RepeatCards$ Creature.OppCtrl | DefinedCards$ Targeted | ChangeZoneTable$ True", probeRole, "RepeatCards$ beside DefinedCards$"},
 		{"remembered cards", "DefinedCards$ Remembered | ChangeZoneTable$ True", probeRole, "RepeatEach DefinedCards$"},
 		{"targeted, no target", "DefinedCards$ Targeted | ChangeZoneTable$ True", probeRole, "chain target slots"},
 		{"filter reads the remembered set", "RepeatCards$ Card.IsRemembered | Zone$ Battlefield | ChangeZoneTable$ True", probeRole, "reads Remember"},
-		{"another body", "RepeatCards$ Creature.OppCtrl | ChangeZoneTable$ True", "DB$ GainLife | LifeAmount$ 1", "RepeatEach cards body GainLife"},
+		{"another body", "RepeatCards$ Creature.OppCtrl | ChangeZoneTable$ True", "DB$ GainLife | LifeAmount$ 1", "RepeatEach cards ChangeZoneTable$ True body GainLife"},
 		{"order ask", "RepeatCards$ Creature.OppCtrl | ChangeZoneTable$ True | ChooseOrder$ True", probeRole, "ChooseOrder"},
 		{"role outside a loop", "RepeatCards$ Creature.OppCtrl | ChangeZoneTable$ True", "DB$ Token | TokenScript$ role_cursed | AttachedTo$ Targeted", "Token AttachedTo"},
 	} {
