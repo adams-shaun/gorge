@@ -968,7 +968,7 @@ func (s *State) finishBlocks(k *prep) {
 			s.touchSl(a)
 		}
 	}
-	if k.gen != nil && s.subs[kop.TrigBecomesBlocked].any() {
+	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}
 	if k.gen != nil && s.subs[kop.TrigBlocks].any() {

@@ -104,6 +104,9 @@ type lowerCtx struct {
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
+	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
+	emblemBlocked bool
+
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
 	// graveExileCard: lowering a ValidTgts$ ChangeZone over Origin$ Graveyard,Exile (lower_graveexiletgt.go)

@@ -18,7 +18,7 @@ import (
 // the emblem's owner). An AttackersDeclared one counts
 // every attacker of the declaration.
 func eotCombatEmblemRefuse(ab *lAbility) error {
-	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "DamageDealtOnce" || t.Event == "AttackersDeclared" || t.Event == "Attacks") {
+	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "DamageDealtOnce" || t.Event == "AttackersDeclared" || t.Event == "Attacks" || t.Event == "AttackerBlocked") {
 		// the hooks read only these fields: any other trigger rider (an
 		// intervening if, once per turn, your turn only, a batch, ...)
 		// would be dropped
@@ -89,7 +89,7 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 		ps.consume("RememberObjects")
 		return ref, true, true, t, nil
 	}
-	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
+	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" && t.Mode != "AttackerBlocked" {
 		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
 	var ref lRef
@@ -131,12 +131,12 @@ func (lc *lowerCtx) parentCapture() (lRef, error) {
 }
 
 // emblemCaptureFilter strips the Remembered flag from a captured emblem's
-// DamageDone source filter: the kernel matches the emblem's captured object
+// DamageDone source filter (an AttackerBlocked one's ValidCard$): the kernel matches the emblem's captured object
 // as the damage source instead (Emblem.Capture), so the remaining filter is
 // the type check. Any other Remembered read in the trigger refuses.
 func emblemCaptureFilter(ab *lAbility) error {
 	t := ab.Trigger
-	if t == nil || t.Event != "DamageDone" && t.Event != "DamageDealtOnce" || t.F == nil || len(t.F.Clauses) != 1 || t.F.Players != 0 ||
+	if t == nil || t.Event != "DamageDone" && t.Event != "DamageDealtOnce" && t.Event != "AttackerBlocked" || t.F == nil || len(t.F.Clauses) != 1 || t.F.Players != 0 ||
 		t.F.Clauses[0].Flags&fRemembered == 0 {
 		return refuse("Effect RememberObjects$ Targeted beside a trigger that is not ValidSource$ ...IsRemembered")
 	}
@@ -233,4 +233,19 @@ func (lc *lowerCtx) chosenCardCapture(t cards.Trigger, eot bool) (lRef, bool, bo
 	cp["ValidSource"] = "Card.IsRemembered"
 	t.Params = cp
 	return lRef{Kind: rChosen}, true, false, t, nil
+}
+
+// capturedTriggerRef is the object a capturing emblem's trigger body reads as
+// its remembered one: a DamageDealtOnce body's first Remembered is the damage
+// source (lower_effectcaptured.go), and an AttackerBlocked body's RememberedLKI
+// is the trigger object, the blocked attacker (the capture filter makes it the
+// captured object).
+func (lc *lowerCtx) capturedTriggerRef(v string) (lRef, bool) {
+	if v == "Remembered" && lc.capRem && !lc.hasRememberWriter() {
+		return lRef{Kind: rTriggeredSource}, true
+	}
+	if v == "RememberedLKI" && lc.emblemBlocked {
+		return lRef{Kind: rTriggered}, true
+	}
+	return lRef{}, false
 }
