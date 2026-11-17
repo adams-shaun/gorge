@@ -44,6 +44,16 @@ type Set interface {
 	// build the table Matchup builds.
 	MatchupN(decks [][]Entry) (*kop.Table, [][]kop.CardID, error)
 
+	// MatchupInert is Matchup with the matchup guards skipped: it builds the
+	// table the game would play had the guards not refused it, with the
+	// game's compact CardIDs. A diagnostic replay uses it to observe the
+	// divergence or unmodelled stall a refusal hides. A card the set does not
+	// play is still a *RefusedError.
+	MatchupInert(a, b []Entry) (*kop.Table, []kop.CardID, []kop.CardID, error)
+
+	// MatchupNInert is MatchupInert for any number of decks.
+	MatchupNInert(decks [][]Entry) (*kop.Table, [][]kop.CardID, error)
+
 	// Pool builds one kop.Table over the whole pool: every pool card and
 	// every token they make, pool index i at CardID PoolID(i).
 	Pool() (*kop.Table, error)
