@@ -177,7 +177,7 @@ func applyLoseManaReplacement(ev events.Event, m replMatch, p state.Player,
 		}
 		if composed > 0 {
 			converted = append(converted, events.Event{Kind: events.ManaAdd, Player: ev.Player,
-				Amount: composed,
+				Amount:  composed,
 				Counter: "S" + state.ManaUnitTags[state.TypedArtifact] + string(out)})
 			available -= composed
 		}
