@@ -174,6 +174,10 @@ var expandedHeads = []string{
 	// optional dies trigger moving the last-known count to a target artifact
 	// creature (engine/cards/kw_modular.go). Added after the split.
 	"Modular",
+	// Haunt (CR 702.55): the dies/resolved exile-haunting trigger, the
+	// creature's enters trigger and the haunted-creature-dies trigger
+	// (engine/cards/kw_haunt.go). Added after the split.
+	"Haunt",
 	// Ingest (CR 702.115a): a combat-damage-to-a-player trigger exiling that
 	// player's top card (engine/cards/kw_ingest.go). Added after the split.
 	"Ingest",
