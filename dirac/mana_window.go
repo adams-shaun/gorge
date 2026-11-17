@@ -236,11 +236,14 @@ func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCos
 // noOwed is gorge's trigger-cost manual window, whose decision has no
 // ManaPayment, so a source answers its lowest colour (windowCol).
 func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
-	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false)
+	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false, false)
 }
 
 // windowTapWalk is windowTapUseful (takeDeferred is kept for the callers' signature:
-// the walk takes a deferred source in its place either way). The oracle lowers every cast as a plain cast
+// the walk takes a deferred source in its place either way). census is the
+// affordability probe of gorge's unless / ward window (windowAffordsTake), whose
+// offer gate lists only the sources rules unlessWindowUnits prices (windowPick);
+// the window itself (payWindow) lists every usable ability. The oracle lowers every cast as a plain cast
 // (Intent.Payment or the potential play's script, never Intent.Announce), so
 // gorge's window is manaWindowAsk's ordinary one: no ManaPayment, no auto-fill
 // option, and its answer (payexec.WindowAnswer) is the first "activate" option
@@ -248,7 +251,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // like any other, whatever the planner census affords. An Intent.Announce
 // cast's announced window (announcedManaWindowAsk) would offer the auto-fill
 // plan the census covers; no seat sends it here, so the walk never skips.
-func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred bool) (ok bool, held [kop.NumManaKinds]uint8) {
+func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred, census bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	if s.buildLive() && s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 && s.bld().e.kind == seSpell {
 		// the payment's mana abilities queue from here: a reversal (unpushSpell) keeps what they
 		// queued (CR 733.1), whichever window path reverses the cast (Spree's, a hybrid pip's)
@@ -268,7 +271,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		// gorge's manual window lists every untapped source in battlefield order and its
 		// answer is the first listed (payexec.WindowAnswer): a planner-deferred source (a land
 		// under Contaminated Ground's Taps watcher) is taken in its place, whoever calls
-		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, s.deferLive(k), potential)
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, s.deferLive(k), potential, census)
 		if sl == NoSlot {
 			return false, held
 		}
@@ -447,17 +450,19 @@ func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uin
 // window pick in a manual window: gorge's window lists every usable mana
 // ability in its battlefield place and its answer takes the first listed,
 // so the walk takes it here and riderGap pays its counter, mana and rider
-// (mana_rider.go) -- in the paying cast's window, a ward or unless window
-// (payWindow) and their census probes (windowAffordsTake) alike. The
+// (mana_rider.go) in the paying cast's window. A ward or unless window's
+// offer gate (census: windowAffordsTake) counts only rules unlessWindowUnits'
+// sources, so there a rider whose cost is more than a bare tap (Gemstone
+// Mine) cannot make the pay affordable (riderWindowable). The
 // potential route (a trigger-cost window, windowTapNoOwed) takes it too:
 // gorge's trigger-cost ask prices the payer's potential mana, whose walk
 // counts the rider's activation, so the elected pay funds it here the same
 // way (mana_rider.go).
-func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred, potential bool) (sl Slot, gap bool) {
+func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor, takeDeferred, potential, census bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	var tapsDef slotMask
 	if takeDeferred {
-		tapsDef = s.scriptTapsDefer(k, p)
+		tapsDef = s.windowTapsDefer(k, p, census)
 	}
 	if clamp && !anyColor {
 		want, decided = s.windowUseful(k, p, useful)
@@ -468,7 +473,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 		if k.gen != nil && k.gen.anyManaRider {
 			c := s.cardAt(o)
-			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderActivatable(k, p, o, a) {
+			if a, ok := s.riderAbilityOf(k, o); ok && int(k.cards[c].manaAb) == int(k.riderAbOf(c)) && s.riderWindowable(k, p, o, a, census) {
 				mask := uint8(a.ManaColors)
 				if a.ManaEach {
 					mask = uint8(kop.ColAny)
@@ -898,7 +903,7 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, s.deferLive(k), false) // the real walk's pick (windowTapWalk): a deferred source in its place
+		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, s.deferLive(k), false, false) // the real walk's pick (windowTapWalk): a deferred source in its place
 		if sl == NoSlot {
 			ok = false
 			break
@@ -1209,7 +1214,7 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 	}
 	t := s.fork()
 	defer s.unfork()
-	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred)
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred)
 	return ok
 }
 

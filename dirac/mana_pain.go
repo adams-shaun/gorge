@@ -669,7 +669,7 @@ func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {
 //
 //go:noinline
 func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor, xAnnounced bool) bool {
-	ok, held := s.windowTapWalk(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false, xAnnounced)
+	ok, held := s.windowTapWalk(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false, xAnnounced, false)
 	if ok && s.winPaused() {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]
