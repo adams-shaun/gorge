@@ -11,7 +11,8 @@ import (
 // defeats it. A Siege that was defeated and cast transformed is a creature
 // with no defense counters; exiling that creature (Shauku, Endbringer's
 // ability) leaves the card as its front-face battle, but it was never
-// defeated, so its owner is not offered the transformed cast again.
+// defeated: the exile puts no Siege defeat trigger (CR 310.12b) on the stack,
+// so its owner is not offered the transformed cast again.
 func TestTransformedSiegeExiledIsNotDefeated(t *testing.T) {
 	t.Parallel()
 	e, id := defeatedBoard(t, "Invasion of Pyrulea")
@@ -32,7 +33,7 @@ func TestTransformedSiegeExiledIsNotDefeated(t *testing.T) {
 	if o = e.G.Obj(id); o.Zone != state.ZExile || o.FaceIdx != 0 || !o.Face().IsBattle() {
 		t.Fatalf("precondition: want the card exiled as its front-face battle, got zone %v face %d", o.Zone, o.FaceIdx)
 	}
-	if len(e.defeatedCasts) != 0 {
-		t.Fatalf("exiling the transformed creature queued %d defeat-cast offers, want none", len(e.defeatedCasts))
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("exiling the transformed creature queued %d triggers, want no Siege defeat trigger", len(e.pendingTriggers))
 	}
 }

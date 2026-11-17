@@ -64,6 +64,9 @@ type pendingTrigger struct {
 	// the respondable ability resolves.
 	Miracle bool
 	Madness bool
+	// Siege marks CR 310.12b's intrinsic Siege defeat ability (queued by
+	// queueSiegeDefeat when the last defense counter goes; siege_defeat.go).
+	Siege bool
 	// Evoke marks the CR 702.79a mandatory sacrifice follow-up queued by
 	// altCostEnter. It has no yes/no choice; pushTrigger mints a real
 	// respondable keyword-triggered ability on the stack.
