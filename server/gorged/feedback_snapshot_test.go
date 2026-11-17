@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -459,7 +460,13 @@ func TestFeedbackSnapshotDuringAnInFlightMatch(t *testing.T) {
 	errc := make(chan error, 1)
 	type captured struct{ nEvents, nIntents int }
 	captures := make(chan captured, 1024)
+	// started closes after the reader's first completed capture; the main
+	// goroutine waits on it before advancing the match, so at least one
+	// capture overlaps the match however late the reader is scheduled.
+	started := make(chan struct{})
+	var startOnce sync.Once
 	go func() {
+		defer startOnce.Do(func() { close(started) })
 		defer close(errc)
 		defer close(captures)
 		seat0 := state.PlayerID(0)
@@ -488,8 +495,14 @@ func TestFeedbackSnapshotDuringAnInFlightMatch(t *testing.T) {
 			case captures <- captured{n, len(snap.Log.Intents)}:
 			default:
 			}
+			startOnce.Do(func() { close(started) })
 		}
 	}()
+	select {
+	case <-started:
+	case <-time.After(30 * time.Second):
+		t.Fatal("the reader never completed a first capture")
+	}
 	advance(25)
 	close(stop)
 	if err := <-errc; err != nil {
