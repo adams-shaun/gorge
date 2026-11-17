@@ -130,6 +130,9 @@ func restrSrcAb(a *kop.Ability) bool {
 		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
 }
 
+// colOrC is the five colours and colourless: a fixed production's one kind.
+const colOrC = kop.ColAny | kop.ColC
+
 // oneColour: m holds exactly one colour bit.
 func oneColour(m kop.ColorMask) bool { return m != 0 && m&(m-1) == 0 }
 
@@ -176,12 +179,14 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				g.rs.wide, g.rs.chosenPair = true, true
 			case n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
 				(a.ManaColors&kop.ColAny == kop.ColAny ||
-					!a.ManaEach && oneColour(a.ManaColors&kop.ColAny) && a.ManaColors&kop.ColAny == pc.manaCol&kop.ColAny):
+					!a.ManaEach && oneColour(a.ManaColors&colOrC) && a.ManaColors&colOrC == pc.manaCol&colOrC):
 				// several mana of one colour beside the census ability's one,
 				// of any colour or of the census ability's own single colour
-				// (Tablet of Discovery's {R}{R} beside {R}): gorge's planner
-				// offers both alternatives (restrPairUnit)
-				v.wideN, v.wideCol = n, a.ManaColors&kop.ColAny
+				// (Tablet of Discovery's {R}{R} beside {R}; Shrine of the
+				// Forsaken Gods' {C}{C} beside {C}, colourless counting as
+				// one: CR 106.1b): gorge's planner offers both alternatives
+				// (restrPairUnit)
+				v.wideN, v.wideCol = n, a.ManaColors&colOrC
 				g.rs.wide = true
 			}
 			g.rs.views = append(g.rs.views, v)
@@ -464,6 +469,13 @@ func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v
 			continue
 		}
 		a := &k.t.Cards[c].Abilities[rec.ab]
+		if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+			// a gated restricted ability (Shrine of the Forsaken Gods'
+			// "Activate only if you control seven or more lands") is absent
+			// while its gate is off, as gorge's census drops it
+			// (pay.ManaActivationGateHolds; CR 602.5b)
+			continue
+		}
 		switch rec.kind {
 		case rkWiden:
 			if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
