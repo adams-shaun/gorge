@@ -131,6 +131,16 @@ func matchesUnattachedBearer(e Board, spec string, bearer, source state.ObjID, c
 	if o == nil || o.Zone == state.ZBattlefield {
 		return false
 	}
+	if o.Zone == state.ZCeased {
+		// A token or copy bearer that died has ceased to exist (CR 111.7,
+		// CR 707.10h), and the filter matcher rejects a ceased copy for every
+		// spec. It was a battlefield permanent when the detach was queued
+		// (Grafted Wargear on a dying token still triggers), so read it as
+		// the permanent it left as.
+		lki := *o
+		lki.Zone = state.ZBattlefield
+		return e.MatchesObject(spec, &lki, source, ctrl, SpecOpts{})
+	}
 	return e.MatchesSpec(SpellCastPermanentSpec(spec), bearer, source, ctrl, SpecOpts{})
 }
 
