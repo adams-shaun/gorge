@@ -59,7 +59,7 @@ dirac (*grantSrch).visit	274	105
 dirac (*tapXSearch).visit	229	65
 dirac arenaUses	114	58
 dirac prepare	208	116
-dirac prepareGen	1084	431
+dirac prepareGen	1071	431
 dirac/canon (*Translator).Action	422	156
 dirac/canon (*Translator).generatedChoose	345	115
 dirac/cardset (dataSet).matchup	395	127

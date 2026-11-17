@@ -205,7 +205,8 @@ func (s *State) warpedPerm(o Obj) bool {
 // is cast, and the watcher's trigger waits until the cast is done (CR
 // 601.2g, 603.3), so even a sorcery-speed warp keeps its timing. A plain
 // hand cast stays on the census gate, which leaves the source out
-// (cryoshatter_on_restricted_mana_source_does_not_fund_a_cast).
+// (the census gap cryoshatter_taps_test.go pins before the destroy-self
+// vetting: the gap is only over unvetted watchers now).
 func (s *State) warpDeferredRestr(k *prep, p uint8, c CardID, o Obj, wc *kop.ManaCost, av *avail) bool {
 	if !k.restrSrc || !s.deferLive(k) || s.g.availX&(availWalk|availHyp) != 0 {
 		return false
