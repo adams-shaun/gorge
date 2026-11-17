@@ -50,7 +50,6 @@ type ScriptStep struct {
 // search that needs more than 160 clones. (Four plays left a legal play
 // unoffered on boards with a gap source; sixteen was never reached in 1500
 // Standard games, at about 2% more clones than four.)
-
 const (
 	potentialScriptPlays = 16
 	potentialScriptNodes = 160
@@ -101,8 +100,17 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	// search's budget on the sources' free mana first and the fee-carrying
 	// gaps last (their fee is paid from the floating pool, CR 601.2b), so a
 	// plain search that budget-limited on dead fee branches finds the
-	// funding line it walked past.
-	script, found := build(false).run(e)
+	// funding line it walked past. The fallback only takes a script when the
+	// play's own cost sacrifices or returns a permanent (consumes): the
+	// ordering it fixes is the one a cast that sacrifices its own funding
+	// source needs, and the node-for-node mirror does not model it for any
+	// other play, so a recorded game's other offers stay on the plain
+	// script.
+	plain := build(false)
+	if plain == nil {
+		return nil, false
+	}
+	script, found := plain.run(e)
 	if found && len(script) > 0 {
 		return script, true
 	}
@@ -447,7 +455,7 @@ func (sr *scriptSearch) offered(o *decision.Option) bool {
 // is neither a witness nor a proof marks the search unproven.
 func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	defer pay.PaymentPlanQueryEnd(asPayer(c), pay.PaymentPlanQueryBegin(asPayer(c)))
-	o := decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
+	o := sr.option()
 	got, _ := c.potentialPlayVerdict(sr.p, o)
 	// Only a search that leans on these verdicts for its proof (nodePlans)
 	// is weakened by one that proves nothing; the full search's proof is
@@ -458,6 +466,9 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 		}
 		return false
 	}
+	if sr.phased && !sr.consumes(c) {
+		return false // the fallback's scope: only a play whose own cost consumes a permanent
+	}
 	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesFrom(pool, sr.p, o, *got.Plan) {
 		if sr.nodePlans {
 			sr.unproven = true
@@ -465,6 +476,27 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 		return false
 	}
 	return true
+}
+
+// option is sr's play as the planner's option.
+func (sr *scriptSearch) option() decision.Option {
+	return decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
+}
+
+// consumes reports whether sr's play has a sacrifice (or return) in its own
+// cost: the phased fallback's scope. The fallback exists for a cast whose
+// payment consumes a permanent the prefix activated for mana (CR 601.2b: the
+// activation comes before the sacrifice); for any other play the plain order
+// is the script dirac's node-for-node mirror prices, so the fallback must
+// leave that play's offer as the plain search found it.
+func (sr *scriptSearch) consumes(c *Engine) bool {
+	o := sr.option()
+	obj := c.G.Obj(o.Obj)
+	if o.Kind != "cast" || obj == nil || obj.Face() == nil {
+		return false
+	}
+	base, ok := c.potentialModeBaseCost(sr.p, o.Obj, obj.Face(), o)
+	return ok && (len(base.Sac) != 0 || len(base.Return) != 0)
 }
 
 // try submits in to a clone of c and continues the search there. gapUsed
@@ -546,6 +578,9 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	}
 	for i := range d.Options {
 		if sr.offered(&d.Options[i]) {
+			if sr.phased && !sr.consumes(c) {
+				continue // the fallback's scope: only a payment that consumes a permanent
+			}
 			return true
 		}
 	}
@@ -580,15 +615,6 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	}
 	return false
 }
-
-// The visit activation loop's three phases: the uncovered sources whose
-// activatable mana abilities cost no mana, then the covered ones (the
-// funding), then the uncovered ones whose abilities cost mana.
-const (
-	scriptPhaseFreeGap = iota
-	scriptPhaseCovered
-	scriptPhaseFeeGap
-)
 
 // activations is the visit activation loop: sr's children at c, one try an
 // option. The plain order is the one dirac's mirror prices plays by: the
