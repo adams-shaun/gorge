@@ -59,8 +59,6 @@ if [ -n "$fresh" ]; then
   # A clone has a .git, as scripts/fresh-clone-check.sh gives its export: without one testutil.CorpusDirOrSkip fails
   # rather than skips, a false red on every PR with a new corpus test (the #788 seat found it, 11-17).
   git init -q "$scratch"
-  # a clone has a .git: testutil.SharedCorpusDir fails (not skips) where git cannot resolve a repository root
-  git -C "$scratch" init -q
   for pkg in $fresh; do
     rx=$(grep "^$pkg/[^/]*_test\.go$" <<<"$changed" | while read -r f; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
     [ -n "$rx" ] || continue
