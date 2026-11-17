@@ -721,6 +721,15 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 			}
 			if sa.StFlags&kop.StDynamic != 0 {
 				ctx := s.ctxStatic(st)
+				if sa.StFlags&kop.StPerAffected != 0 {
+					// the AffectedX convention (kop.StPerAffected): each
+					// amount reads the AFFECTED object as its source (gorge
+					// layers_static.go staticAmountOn's affected anchor), so
+					// a source-relative read inside the count binds the
+					// affected creature, not the static's source (A-Bruenor
+					// Battlehammer's Count$Valid Equipment.Attached).
+					ctx.src, ctx.srcSl = s.perms[sl].obj, sl
+				}
 				bp += s.evalV(k, sa.VA, ctx)
 				bt += s.evalV(k, sa.VB, ctx)
 			} else {

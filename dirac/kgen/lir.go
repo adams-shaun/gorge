@@ -1130,10 +1130,13 @@ type lStatic struct {
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
 	OutlivesLoss bool
-	Amount       lValue
-	Cost         lCost
-	Zone         int
-	Override     *lOverride
+	// PerAffected: the AffectedX convention on the AddPower$/AddToughness$
+	// amounts (kop.Static.StPerAffected; lower_continuous.go continuousPT)
+	PerAffected bool
+	Amount      lValue
+	Cost        lCost
+	Zone        int
+	Override    *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter
 	// ProtChosen and ProtExc: the host's chosen-colour quality and the

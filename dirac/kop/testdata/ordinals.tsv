@@ -1305,6 +1305,7 @@ StNoPrevCombat	StaticFlags	2
 StNoPrevSpellSelf	StaticFlags	4
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
+StPerAffected	StaticFlags	2
 StRaiseLife	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaisePerTarget	StaticFlags	2
