@@ -11,7 +11,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Ghostform's "dies or is put into exile": the exiled host is that card,
 // gorge's TriggeredNewCardLKICopy; trig_zonepairs.go).
 func (s *State) trigObjMoved(k *prep, e *stackEntry, ob *object) bool {
-	if ob.zone != kop.ZoneGraveyard && !trigLeftTo(k, e, ob.zone) {
+	if ob.zone != kop.ZoneGraveyard && !trigLeftTo(k, e, ob.zone) && !trigSacExiled(k, e, ob) {
 		return true
 	}
 	return e.li != 0 && ob.ver != s.lk(e.li).ver+1
@@ -26,4 +26,19 @@ func trigLeftTo(k *prep, e *stackEntry, z kop.Zone) bool {
 	}
 	a := &abs[e.ab]
 	return a.Kind == kop.AbTriggered && czPairLine(a) && a.Trig.N&(1<<uint(z)) != 0
+}
+
+// trigSacExiled reports whether ob is the card a Sacrificed trigger fired on,
+// still in the exile a replacement (Rest in Peace) sent it to instead of the
+// graveyard: a sacrifice trigger looks back in time (CR 603.10a) and finds the
+// card in the first public zone it went to (CR 603.6c, 400.7e), though the
+// script's Origin$ Graveyard assumes the graveyard (gorge
+// effects.originSatisfiedInExile; It That Betrays). The version check in
+// trigObjMoved still applies, so a card moved again since is a new object.
+func trigSacExiled(k *prep, e *stackEntry, ob *object) bool {
+	if ob.zone != kop.ZoneExile || e.li == 0 {
+		return false
+	}
+	abs := k.t.Cards[e.card].Abilities
+	return int(e.ab) < len(abs) && abs[e.ab].Kind == kop.AbTriggered && abs[e.ab].Trig.Event == kop.TrigSacrificed
 }
