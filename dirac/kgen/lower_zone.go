@@ -29,6 +29,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if err := libPlaceManyDefined(ps); err != nil { // lower_libplace.go
 		return err
 	}
+	if done, err := lc.definedValidGraveyard(ps); done || err != nil {
+		return err
+	}
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
@@ -5088,4 +5091,38 @@ func noCost(c lCost) bool {
 func plainTapCostIgnoringTap(c lCost) bool {
 	c.Tap = true
 	return plainTapCost(c)
+}
+
+// definedValidGraveyard lowers a ChangeZone whose Defined$ is the zone set
+// "ValidGraveyard <filter>" out of the graveyard (Pyrrhic Revival, Faith's
+// Reward, No Rest for the Wicked): gorge's Defined resolves the selector to
+// every graveyard card matching <filter> (effects context.go
+// zoneValidPrefixes) and moves that set, the sweep a ChangeZoneAll
+// ChangeType$ <filter> Origin$ Graveyard makes, so it lowers as that sweep.
+// Every other ChangeZone param is read by the sweep's lowering or left
+// unread (and refused). done is false for any other Defined$.
+func (lc *lowerCtx) definedValidGraveyard(ps *params) (bool, error) {
+	spec, ok := strings.CutPrefix(ps.m["Defined"], "ValidGraveyard ")
+	if !ok || strings.TrimSpace(ps.m["Origin"]) != "Graveyard" {
+		return false, nil
+	}
+	if _, ok := ps.m["ChangeType"]; ok {
+		return true, refuse("ChangeZone Defined$ ValidGraveyard beside ChangeType$")
+	}
+	m := make(map[string]string, len(ps.m))
+	for k, v := range ps.m {
+		if k != "Defined" {
+			m[k] = v
+		}
+	}
+	m["ChangeType"] = strings.TrimSpace(spec)
+	np := newParams(m)
+	ps.consume("Defined")
+	err := lc.changeZoneAll(np)
+	for k := range np.used {
+		if k != "ChangeType" {
+			ps.consume(k)
+		}
+	}
+	return true, err
 }
