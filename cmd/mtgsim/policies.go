@@ -17,11 +17,17 @@ type usageError struct{ msg string }
 
 func (e usageError) Error() string { return e.msg }
 
+// explorePolicy names the coverage-exploration bot (heuristic.NewExploreBot)
+// as a seat policy. It is mtgsim-local on purpose, not a bots registry entry:
+// the bot is deliberately absent from the hosted policy vocabulary, and a
+// registered entry would be offered at live tables.
+const explorePolicy = "explore"
+
 // seatPolicies is each seat's bot policy, one entry per seat, "" for the
 // default heuristic seat. list is -policies split on commas (nil when the
 // flag is absent: -a and -b then name seats 0 and 1). An entry of "-" or ""
-// keeps that seat's default. A list longer than seats, or a name the bots
-// registry does not know, is a usage error.
+// keeps that seat's default. A list longer than seats, or a name that is neither the
+// bots registry's nor explorePolicy, is a usage error.
 func seatPolicies(list []string, a, b string, seats int) ([]string, error) {
 	if list == nil {
 		list = []string{a, b}
@@ -37,9 +43,10 @@ func seatPolicies(list []string, a, b string, seats int) ([]string, error) {
 		if p == "-" {
 			p = ""
 		}
-		if p != "" {
+		if p != "" && p != explorePolicy {
 			if _, ok := bots.Lookup(p); !ok {
-				return nil, usageError{fmt.Sprintf("seat %d: unknown bot policy %q (known: %s)", i, p, strings.Join(bots.Names(), ", "))}
+				known := append(bots.Names(), explorePolicy)
+				return nil, usageError{fmt.Sprintf("seat %d: unknown bot policy %q (known: %s)", i, p, strings.Join(known, ", "))}
 			}
 		}
 		out[i] = p
