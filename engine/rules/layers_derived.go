@@ -42,6 +42,9 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 	// the object's finished layer-5 colours (CR 613.1e before 613.4c), which
 	// only derivedWith's walk stashes for its P/T walk: delegate too.
 	hasLColor := e.activeSummaryOf(active).hasLColor
+	if hasLColor && f.CharacteristicDefining() {
+		e.derivedColorTable() // publish layer 5 for cdaEvalCtx (CR 604.3, 613.1e)
+	}
 	for i := range active {
 		if ce := &active[i]; ce.Layer == LPT && (effects.SpecReadsKeywords(ce.Affects) || hasLColor && specBindFacts(ce.Affects).colors) {
 			d := e.derivedWith(id, 0)
@@ -158,6 +161,11 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	// The layer-4 half is served by the derived-types memo (types_memo.go)
 	// when it applies; the rest of the walk runs as before.
+	if o := e.G.Obj(id); o != nil {
+		if f := o.Face(); f != nil && f.CharacteristicDefining() && e.activeSummaryOf(e.active()).hasLColor {
+			e.derivedColorTable() // publish layer 5 for cdaEvalCtx (CR 604.3, 613.1e)
+		}
+	}
 	if atStack == 0 {
 		if l4, ok := e.layer4Top(id); ok {
 			return chars.ComputeWith(asChars(e), &e.charsWalk, id, 0, &l4)
