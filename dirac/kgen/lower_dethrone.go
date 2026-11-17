@@ -1,6 +1,10 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Dethrone (CR 702.105a): "Whenever this creature attacks the player with
 // the most life or tied for most life, put a +1/+1 counter on this
@@ -31,6 +35,38 @@ func dethroneGate(v string, tp *params, tr *lTrigger) (bool, error) {
 	}
 	if _, ok := tp.get("Attacked"); ok {
 		return false, refuse("Attacks Dethrone beside Attacked$")
+	}
+	tr.Attacked |= atkOpp
+	return true, nil
+}
+
+// dethroneOrMostLifeGate reads an Attacks trigger's two most-life gates (the
+// keyword's expansion, Condition$ AttackedPlayerWithMostLife) and reports
+// whether the shared fire-time condition (dethroneCond) is owed.
+func dethroneOrMostLifeGate(tp *params, tr *lTrigger) (bool, error) {
+	if v, ok := tp.get("Dethrone"); ok {
+		return dethroneGate(v, tp, tr)
+	}
+	return attackedMostLifeGate(tp, tr)
+}
+
+// attackedMostLifeGate reads Condition$ AttackedPlayerWithMostLife on an
+// Attacks trigger (Scourge of the Throne: "if it's attacking the player with
+// the most life or tied for most life"). gorge trigmatch.AttacksMatches reads
+// it as the Dethrone gate, PlayerHasMostLife over the declared defender at the
+// fire only, so it lowers to the same Attacked$ Opponent gate and dethroneCond.
+// Without it the trigger fired whatever the defender's life. The condition is
+// owed (true) only on a Self trigger beside no Attacked$.
+func attackedMostLifeGate(tp *params, tr *lTrigger) (bool, error) {
+	c, ok := tp.get("Condition")
+	if !ok || strings.TrimSpace(c) != "AttackedPlayerWithMostLife" {
+		return false, nil
+	}
+	if v := tp.str("ValidCard"); v != "Creature.Self" && v != "Card.Self" {
+		return false, refuse("Attacks Condition$ AttackedPlayerWithMostLife on ValidCard$ %q", v)
+	}
+	if _, has := tp.get("Attacked"); has {
+		return false, refuse("Attacks Condition$ AttackedPlayerWithMostLife beside Attacked$")
 	}
 	tr.Attacked |= atkOpp
 	return true, nil
