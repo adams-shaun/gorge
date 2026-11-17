@@ -144,7 +144,7 @@ type genPrep struct {
 	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
 	globTrigGrant bool
 	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom), or a granted one (anyProtGrant)
-	anyProtGrant  bool // a Continuous static has a ProtFrom quality (kop.Static.ProtFrom; kw_protection.go)
+	anyProtGrant  bool // a Continuous static or an Override record has a ProtFrom quality (kop.Static.ProtFrom, kop.Override.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -713,6 +713,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Overrides[i].PTDelta {
 			g.anyPTDelta = true
+		}
+		if t.Overrides[i].ProtFrom != 0 {
+			g.anyProtF, g.anyProtGrant = true, true // an override's granted protection reads (kw_protection.go protOvF)
 		}
 	}
 	for i := range t.Overrides {

@@ -52,7 +52,106 @@ func (s *State) protQualityAt(k *prep, sl, srcSl Slot, srcCard CardID, sba bool)
 	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && s.protMatch(k, f, sl, srcSl, srcCard) {
 		return true
 	}
-	return k.gen.anyProtGrant && (s.protGranted(k, sl, srcSl, srcCard, sba) || s.protYours(k, sl, srcSl, srcCard))
+	return k.gen.anyProtGrant && (s.protOvF(k, sl, srcSl, srcCard, sba) || s.protGranted(k, sl, srcSl, srcCard, sba) || s.protYours(k, sl, srcSl, srcCard))
+}
+
+// protOvF: an override record's ProtFrom quality, granted to sl (a Pump's or
+// an Animate's granted protection, kop.Override.ProtFrom), matches the
+// source (CR 702.16; Figure of Fable's protection from each of your
+// opponents, Eldritch Immunity's from each color). A grant is a layer-6
+// effect, so it does not survive a later loss of sl's abilities (the rule
+// protGranted uses). Cold: protQuality calls it behind
+// genPrep.anyProtGrant (an Override record with a ProtFrom arms it too).
+//
+//go:noinline
+func (s *State) protOvF(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) bool {
+	lts, lost := s.lossAt(k, sl)
+	hit := false
+	s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
+		if o.ProtFrom == 0 || lost && ts < lts {
+			return
+		}
+		if s.protOvMatch(k, o.ProtFrom, sl, srcSl, srcCard) {
+			hit = true
+		}
+	})
+	return hit
+}
+
+// grantedProtColKw is the oracle projection's keyword bits for the
+// permanent at sl's granted protection-from-colour qualities (a Continuous
+// static's or an override record's ProtFrom colour clauses, CR 702.16):
+// gorge lists each as a "Protection from <colour>" keyword, and black and
+// red have kernel bits (KwProtBlack, KwProtRed); white, blue and green have
+// none, and the oracle drops the spelling. A quality with any clause beyond
+// a plain colour mask (gorge lists it by its spec, the oracle drops the
+// "Protection:" spellings) projects nothing. A colour the card prints
+// protection from is dropped, as the oracle drops the printed spelling.
+// Cold: projKw calls it behind anyProtGrant.
+//
+//go:noinline
+func (s *State) grantedProtColKw(k *prep, sl Slot) kop.KwMask {
+	lts, lost := s.lossAt(k, sl)
+	var col kop.ColorMask
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.ProtFrom == 0 {
+			return true
+		}
+		if lost && s.grantTs(st) < lts {
+			return true
+		}
+		if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			return true
+		}
+		col |= protColKwOf(k, a.Static.ProtFrom)
+		return true
+	})
+	s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
+		if o.ProtFrom == 0 || lost && ts < lts {
+			return
+		}
+		col |= protColKwOf(k, o.ProtFrom)
+	})
+	return protColourKw(col &^ k.t.Cards[s.cardAt(sl)].ProtColors)
+}
+
+// protColKwOf is a protection quality filter's colour-projection colours:
+// the colours of its colour clauses (CR 702.16), 0 when any clause is beyond
+// a plain colour mask (a type, controller or value term: gorge lists the
+// quality by its spec).
+func protColKwOf(k *prep, f kop.FilterID) kop.ColorMask {
+	var kw kop.ColorMask
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := &k.t.Filters[f]
+		if fl.Types != 0 || fl.NotTypes != 0 || fl.Sub != 0 || fl.NotSub != 0 || fl.NotSubs != [4]uint8{} ||
+			fl.Ctrl != 0 || fl.Owner != 0 || fl.Flags != 0 || fl.Flags2 != 0 || fl.NotColors != 0 ||
+			fl.Pred != 0 || fl.PredV != (kop.ValueRef{}) || fl.Each || fl.Zone != 0 || fl.CtrlTgt != 0 {
+			return 0
+		}
+		kw |= fl.Colors
+	}
+	return kw
+}
+
+// protOvMatch: the protection quality filter f matches the source, read for
+// a permanent controlled as sl is. A live battlefield source is read as a
+// permanent; a resolving or probed spell as its card with ITS controller as
+// the owner (gorge judges a live source object's controller against a
+// player-relative quality, protection.go's player-relative arm). A departed
+// source matches nothing: gorge's arm needs g.Obj(source) != nil.
+func (s *State) protOvMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardID) bool {
+	p := s.perms[sl].ctrl
+	if srcSl != NoSlot && s.occ.has(srcSl) {
+		return s.matchPermGen(k, f, srcSl, p, NoSlot, layerFull)
+	}
+	if e := s.curEntry(); e != nil && e.kind == seSpell && e.card == srcCard {
+		return s.matchCardGen(k, f, srcCard, e.ctrl, p, e.obj)
+	}
+	if s.g.probe.kind == probeSpell && s.g.probe.card == srcCard {
+		return s.matchCardGen(k, f, srcCard, s.g.probe.ctrl, p, NoObj)
+	}
+	return false
 }
 
 // protMatch: the protection quality filter f matches the source, read for
@@ -148,10 +247,20 @@ func prepProtGrant(t *kop.Table, g *genPrep) {
 			g.anyProtGrant, g.anyProtF = true, true
 			g.replBits[i] |= rbProtCol
 		}
+		if ovProtFromIn(t.Cards[i].Abilities, t) {
+			// the card's Animate or Pump grant record carries the protection:
+			// the damage sites gate on rbProtCol the same way (anyProtF and
+			// anyProtGrant are armed by the Table.Overrides scan in prepareGen)
+			g.replBits[i] |= rbProtCol
+		}
 	}
 	for i := range t.Emblems {
 		if protGrantIn(t.Emblems[i].Abilities) {
 			g.anyProtGrant, g.anyProtF = true, true
+			g.anyRepl |= rbProtCol // an emblem has no replBits row: open the damage sites table-wide
+		}
+		if ovProtFromIn(t.Emblems[i].Abilities, t) {
+			g.anyRepl |= rbProtCol
 		}
 	}
 }
@@ -162,6 +271,27 @@ func protGrantIn(abs []kop.Ability) bool {
 	for j := range abs {
 		if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.ProtFrom != 0 || a.Static.ProtChosen) {
 			return true
+		}
+	}
+	return false
+}
+
+// ovProtFromIn reports whether any of the card's abilities applies an
+// Override record (a StatOverride static, an OpOverride or OpOverrideAll
+// program step) whose record grants protection (kop.Override.ProtFrom).
+func ovProtFromIn(abs []kop.Ability, t *kop.Table) bool {
+	for j := range abs {
+		a := &abs[j]
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override != 0 &&
+			t.Overrides[a.Static.Override-1].ProtFrom != 0 { // StatOverride's index is 1-based
+			return true
+		}
+		for _, in := range a.Prog {
+			// the programs' Override index C is 0-based (kop.OpOverride)
+			if (in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll) && int(in.C) < len(t.Overrides) &&
+				t.Overrides[in.C].ProtFrom != 0 {
+				return true
+			}
 		}
 	}
 	return false
