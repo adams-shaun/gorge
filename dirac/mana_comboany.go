@@ -160,6 +160,29 @@ func (s *State) availCA(k *prep, p uint8, a *avail) {
 	}
 }
 
+// caPotentialOpen reports whether p controls an untapped, activatable Combo
+// Any source (gapMask over gfGapOther): gorge's potential walk (rules
+// potential.go addPotentialMana, producedOpenSet) prices a "in any
+// combination of colors" production unbounded in every colour, a dynamic
+// amount indeterminate there, so even a source that can make none now keeps
+// the bound open. A trigger's own mana cost then looks payable beside the
+// decline (CR 118.12): the payer elects pay, the window taps the source
+// (windowGap, windowComboTap), and a charge it cannot fund fails (CR 118.3)
+// and the payer declines.
+//
+//go:noinline
+func (s *State) caPotentialOpen(k *prep, p uint8) bool {
+	if k.gen == nil || !k.gen.anyComboAny {
+		return false
+	}
+	for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
+		if k.isComboAny(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
+}
+
 // caAnswerCount is the answers the colour ask of n units poses (scriptAnswers):
 // a single unit's five, else the first 64 of the 5^n per-unit combinations.
 func caAnswerCount(n int) int {

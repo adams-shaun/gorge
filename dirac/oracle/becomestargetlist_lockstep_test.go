@@ -9,34 +9,39 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Fey Steed's, Angelic Cub's and Silverfur Partisan's lockstep
-// (dirac/kgen/lower_trigger.go's BecomesTarget list and FirstTime arms;
-// kernel trig_becomestarget.go's btWatchers and trig_counterfirst.go's
-// Tf2FirstTime latch): Fey Steed watches a comma list of permanent filters (a
-// creature or planeswalker you control) targeted by an opponent's spell or
-// ability and may draw a card; Angelic Cub's FirstTime$ True self line puts a
-// +1/+1 counter on it the first time it is targeted each turn (a second
-// Lightning Bolt on the same Cub in one turn triggers nothing, the next turn's
-// first one does); Silverfur Partisan's ValidTarget$ Wolf...,Werewolf... list
-// over a ValidSource$ Instant,Sorcery spell fires when a Wolf or Werewolf is
-// targeted by an instant or sorcery. The burn can also aim at a player, which
-// none of the forms answer.
+// The BecomesTarget forms this pool exercises (dirac/kgen/lower_trigger.go's
+// BecomesTarget arms; kernel trig_becomestarget.go's btWatchers and
+// becameTargetPlayer, and trig_counterfirst.go's Tf2FirstTime latch):
+//   - Rayne, Academy Chancellor watches You,Permanent.YouCtrl for an
+//     opponent's spell or ability (the player half queues through the kernel
+//     player walk);
+//   - Loki, God of Mischief watches Player,Permanent for an ability you
+//     control (Prodigal Sorcerer's ping is the ability source);
+//   - Dormant Gomazoa watches You for a spell (the single player target);
+//   - Kira, Great Glass-Spinner's FirstTime line counters the targeting
+//     spell or ability (Defined$ TriggeredSourceSA, the queue's trigSA).
 //
-// The other named carriers do not play here: Kira, Great Glass-Spinner's
-// Counter body refuses (TriggeredSourceSA outside a SpellCast trigger) and
-// Dormant Gomazoa's player target is the pre-existing inert lowering (the
-// kernel's targetedOne walk sees object targets only, the ticket's PARTIAL
-// player-target item) — either would diverge by design.
+// Prodigal Sorcerer's activated ping is the one ability source the pool
+// needs: it targets a player (Loki, Rayne, Dormant) or Kira (the counter
+// body), and Lightning Bolt adds a spell source. The original Fey Steed /
+// Angelic Cub latch pair lives in TestBecomesTargetListLatchLockstep: its
+// attack-trigger target and the FirstTime/reversal interaction predate this
+// pool and are not what this test measures. Silverfur Partisan's ValidTarget$
+// Wolf...,Werewolf... list over a ValidSource$ Instant,Sorcery spell runs in
+// its own decks below, so the spell-source arm still has games of its own.
 func becomestargetlistDecks() [2][]cardset.Entry {
 	d := []cardset.Entry{
-		{Name: "Fey Steed", Count: 4},
-		{Name: "Angelic Cub", Count: 4},
-		{Name: "Lightning Bolt", Count: 8},
+		{Name: "Loki, God of Mischief", Count: 2},
+		{Name: "Rayne, Academy Chancellor", Count: 2},
+		{Name: "Dormant Gomazoa", Count: 2},
+		{Name: "Kira, Great Glass-Spinner", Count: 2},
+		{Name: "Prodigal Sorcerer", Count: 4},
 		{Name: "Grizzly Bears", Count: 8},
-		{Name: "Hill Giant", Count: 4},
-		{Name: "Plains", Count: 8},
-		{Name: "Mountain", Count: 2},
-		{Name: "Forest", Count: 2},
+		{Name: "Lightning Bolt", Count: 4},
+		{Name: "Island", Count: 8},
+		{Name: "Plains", Count: 4},
+		{Name: "Mountain", Count: 3},
+		{Name: "Forest", Count: 1},
 	}
 	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }
@@ -58,25 +63,61 @@ func becomestargetlistSpellSourceDecks() [2][]cardset.Entry {
 	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }
 
+// btPreferredTarget aims the burn and the ping at the target decision's
+// rotating subject so every arm fires: a Kira (the counter body, spell or
+// ability), the opposing player (Loki's player half, Rayne's and Dormant
+// Gomazoa's "you become the target"), or a plain creature (the object half).
+// When the preferred subject is not legal it falls back to the next
+// preference, and with no preferred target the caller picks randomly.
+func btPreferredTarget(c *PickCtx, want int) (Canon, bool) {
+	var best Canon
+	bestScore := 0
+	for _, a := range c.D.Options {
+		o, ok := c.G.GorgeOption(a)
+		if !ok {
+			continue
+		}
+		score := 0
+		if o.Obj != 0 {
+			ob := c.G.E.G.Obj(o.Obj)
+			if ob == nil || ob.Zone != state.ZBattlefield || ob.Face() == nil {
+				continue
+			}
+			switch name := ob.Face().Name; {
+			case want == 0 && name == "Kira, Great Glass-Spinner":
+				score = 3
+			case name == "Kira, Great Glass-Spinner":
+				score = 2
+			case want == 2:
+				score = 1
+			}
+		} else if uint8(o.Player) != c.D.Player {
+			// the opponent: Loki's player half and Rayne's/Dormant Gomazoa's
+			// "you become the target of a spell or ability an opponent controls"
+			if want == 1 {
+				score = 3
+			} else {
+				score = 1
+			}
+		}
+		if score > bestScore {
+			best, bestScore = a, score
+		}
+	}
+	return best, bestScore > 0
+}
+
 // btcastFirstPolicy casts, activates and plays lands whenever it can (so the
-// burn flies and creatures sit on the battlefield as targets), and aims every
-// spell target at a battlefield Angelic Cub when one is legal (the Cub's own
-// first trigger puts a +1/+1 counter on it, so a second Bolt in the same turn
-// finds it still on the battlefield and exercises the once-per-turn latch),
-// else random.
+// burn flies and creatures sit on the battlefield as targets), aims every
+// spell target through btPreferredTarget, else random.
 func btcastFirstPolicy(seed uint64) Policy {
 	rnd := RandomPolicy(seed)
+	targets := 0
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.D.Kind == DTarget {
-			for _, a := range c.D.Options {
-				o, ok := c.G.GorgeOption(a)
-				if !ok {
-					continue
-				}
-				if ob := c.G.E.G.Obj(o.Obj); ob != nil && ob.Zone == state.ZBattlefield &&
-					ob.Face() != nil && ob.Face().Name == "Angelic Cub" {
-					return a
-				}
+			targets++
+			if a, ok := btPreferredTarget(c, targets%3); ok {
+				return a
 			}
 		}
 		buf := make([]Canon, 0, 8)
@@ -163,24 +204,31 @@ func TestBecomesTargetListLockstep(t *testing.T) {
 	if st.Queues == 0 {
 		t.Fatal("no BecomesTarget trigger was queued in the games; the lockstep proves nothing")
 	}
-	var fired, refused int
+	if st.PlayerQueues == 0 {
+		t.Fatal("no BecomesTarget player-target trigger was queued in the games; the player walk went untested")
+	}
+	if st.SrcAbilityQueues == 0 {
+		t.Fatal("no BecomesTarget ability-source trigger was queued in the games; Loki's Ability.YouCtrl gate went untested")
+	}
+	var kiraFired, kiraRefused int
 	for _, r := range recs {
-		if r.Card != "Angelic Cub" {
+		if r.Card != "Kira, Great Glass-Spinner" {
 			continue
 		}
 		if r.Fired {
-			fired++
+			kiraFired++
 		} else {
-			refused++
+			kiraRefused++
 		}
 	}
-	if fired == 0 {
-		t.Fatal("Angelic Cub's FirstTime line never queued in the games; the lockstep proves nothing")
+	if kiraFired == 0 {
+		t.Fatal("Kira, Great Glass-Spinner's FirstTime line never queued; the TriggeredSourceSA counter went untested")
 	}
-	if refused == 0 {
-		t.Fatal("the FirstTime latch never refused a later targeting in the games; the once-per-turn gate went untested")
+	if kiraRefused == 0 {
+		t.Fatal("the FirstTime latch never refused a later Kira targeting; the once-per-turn gate went untested")
 	}
-	t.Logf("BecomesTarget trigger queues: %d; Angelic Cub latch fired %d, refused %d", st.Queues, fired, refused)
+	t.Logf("BecomesTarget trigger queues: %d (player %d, ability source %d); Kira fired %d, refused %d",
+		st.Queues, st.PlayerQueues, st.SrcAbilityQueues, kiraFired, kiraRefused)
 
 	// The spell-source list arm in its own games: Silverfur Partisan is the
 	// only BecomesTarget carrier in these decks, so a queue here is the
