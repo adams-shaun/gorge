@@ -552,6 +552,19 @@ const W7EnteredFromLib int16 = 35
 // the battlefield only. Trespasser's Curse.
 const W7EnchPlayerCtrl int16 = 36
 
+// W7Snow (PredWord7 sub-kind 37): the card has the printed Snow supertype
+// (CardDef.Snow; gorge's hasType Snow reads the current face's printed type
+// line). A face-down battlefield permanent answers only its face-down type
+// words, so it is never snow; off the battlefield the printed card counts in
+// any zone. No lowered card grants or removes Snow, so the printed type is
+// exact. Skred, Abominable Treefolk, Priest of the Haunted Edge.
+const W7Snow int16 = 37
+
+// W7NonSnow (PredWord7 sub-kind 38): W7Snow's negation, gorge's nonSnow (the
+// generic non<type> negation): every object that is not snow, a face-down
+// permanent included. Chill to the Bone.
+const W7NonSnow int16 = 38
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each
