@@ -378,7 +378,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.planAbilityPayment(p, o.Obj, o.Ability), true
 	case o.Kind == "cast" && (o.AltCostIndex == 0 || o.Mode == "mayplay"):
 		return e.potentialModeCastPlan(p, o), true
-	case o.Kind == "turn_face_up":
+	case o.Kind == optTurnFaceUp:
 		// The witness for a turn-face-up special action (CR 708.6): the
 		// turn-up cost the offer walk priced against the hypothetical bound
 		// (turnFaceUpOffers), composed with the same CR 601.2f modifiers

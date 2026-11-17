@@ -21,18 +21,24 @@ var facedownTurnUpDeck = []cardset.Entry{
 	{Name: "Swamp", Count: 19},
 }
 
+// facedownTurnUpSeeds is how many seeds the witness search plays.
+const facedownTurnUpSeeds = 64
+
 // TestFaceDownSweepTurnUp: on a synthetic pool's deal of one ETB floater and
 // one TurnFaceUp carrier, FaceDownPolicy turns the carrier face up in a clean
 // game. The single float is exactly the face-down price, so the turn-up has to
 // be a potential play paid by an untapped land (rules' turn_face_up witness),
 // not a second float: the overlay's preference alone can only spend the one
 // trigger once.
+//
+// The test names neither a pool nor a seed: a pool's membership is a hash cut
+// that any lowered card re-deals, and a seed's game moves with every policy or
+// engine pick. It takes the first synthetic pool that can deal both cards and
+// passes when some seed in 1..facedownTurnUpSeeds casts the carrier face down
+// and then turns a carrier up.
 func TestFaceDownSweepTurnUp(t *testing.T) {
 	t.Parallel()
-	reg, set, decks, tbl := facedownTurnUpEnv(t)
-	if !FaceDownSweepEligible(reg, set) {
-		t.Fatal("tail-63 has no Morph carrier beside a triggered mana source")
-	}
+	reg := synthReg(t)
 	priest, ok := reg.Lookup("Priest of Urabrask")
 	if !ok || priest.Faces[0] == nil || !isTriggerManaFace(priest.Faces[0]) {
 		t.Fatal("Priest of Urabrask's enters trigger does not add mana")
@@ -51,17 +57,25 @@ func TestFaceDownSweepTurnUp(t *testing.T) {
 		t.Fatal("Warbreak Trumpeter has no TurnFaceUp trigger")
 	}
 
-	// Seed 10 casts the Priest, spends its float on the face-down carrier, and
-	// then has only an untapped land left for the {R} turn-up (Warbreak's
-	// smallest {X}{X}{R} announcement at X=0).
-	down, up := sweepSeedActions(t, reg, set, decks, tbl, 10, Config{GorgeAutopaySurface: true})
-	t.Logf("seed 10: face-down casts %d, turn-ups %d", down, up)
-	if down == 0 {
-		t.Fatal("the overlay never cast the carrier face down: no turn-up could follow")
+	set, tbl, name := facedownTurnUpPool(t)
+	decks := facedownTurnUpDecks(t, reg)
+	if !FaceDownSweepEligible(reg, set) {
+		t.Fatalf("%s deals both cards but has no Morph carrier beside a triggered mana source", name)
 	}
-	if up == 0 {
-		t.Fatalf("the overlay turned the carrier face up 0 times: the %d face-down cast(s) never got a land-funded turn-up", down)
+	totalDown, totalUp := 0, 0
+	for seed := uint64(1); seed <= facedownTurnUpSeeds; seed++ {
+		down, up := sweepSeedActions(t, reg, set, decks, tbl, seed, Config{GorgeAutopaySurface: true})
+		totalDown += down
+		totalUp += up
+		if down > 0 && up > 0 {
+			t.Logf("%s seed %d: face-down casts %d, turn-ups %d", name, seed, down, up)
+			return
+		}
 	}
+	if totalDown == 0 {
+		t.Fatalf("%s: no seed in 1..%d cast the carrier face down, so no turn-up could follow", name, facedownTurnUpSeeds)
+	}
+	t.Fatalf("%s: %d face-down casts over %d seeds and no turn-up: the carrier never got a land-funded turn-up", name, totalDown, facedownTurnUpSeeds)
 }
 
 // sweepSeedActions plays one seed under FaceDownPolicy over the sweep's base
@@ -92,18 +106,28 @@ func sweepSeedActions(t *testing.T, reg *cards.Registry, set cardset.Set, decks 
 	return down, up
 }
 
-// facedownTurnUpEnv builds the tail-63 table and two copies of the two-copy
-// deal, asserting the deal really is the synthetic maximum (synthMaxCopies).
-func facedownTurnUpEnv(t *testing.T) (*cards.Registry, cardset.Set, [2][]*cards.Card, *kop.Table) {
+// facedownTurnUpPool is the first synthetic pool whose set deals both cards of
+// facedownTurnUpDeck, with its matchup table and name.
+func facedownTurnUpPool(t *testing.T) (cardset.Set, *kop.Table, string) {
 	t.Helper()
 	for _, e := range facedownTurnUpDeck {
 		if e.Name != "Mountain" && e.Name != "Swamp" && e.Count > synthMaxCopies {
 			t.Fatalf("%s: %d copies, above the synthetic deal's %d", e.Name, e.Count, synthMaxCopies)
 		}
 	}
-	reg := synthReg(t)
-	set := cardsettest.Synth(t, "tail-63")
-	var decks [2][]*cards.Card
+	for _, name := range cardsettest.SynthNames(t) {
+		set := cardsettest.Synth(t, name)
+		if tbl, _, _, err := set.Matchup(facedownTurnUpDeck, facedownTurnUpDeck); err == nil {
+			return set, tbl, name
+		}
+	}
+	t.Fatal("no synthetic pool deals Priest of Urabrask beside Warbreak Trumpeter")
+	return nil, nil, ""
+}
+
+// facedownTurnUpDecks is two copies of facedownTurnUpDeck from the corpus.
+func facedownTurnUpDecks(t *testing.T, reg *cards.Registry) (decks [2][]*cards.Card) {
+	t.Helper()
 	for s := range decks {
 		for _, e := range facedownTurnUpDeck {
 			c, ok := reg.Lookup(e.Name)
@@ -118,9 +142,5 @@ func facedownTurnUpEnv(t *testing.T) (*cards.Registry, cardset.Set, [2][]*cards.
 			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
 		}
 	}
-	tbl, _, _, err := set.Matchup(facedownTurnUpDeck, facedownTurnUpDeck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return reg, set, decks, tbl
+	return decks
 }

@@ -203,6 +203,11 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 		// the pool-only offer is the one gorge's ordinary walk has.
 		return false
 	}
+	if !s.turnUpLifeOK(k, p, sl) {
+		// face_morphlife.go: the keyword's PayLife<N> is not payable, so no
+		// tap of the sources can make the action legal (turnUpOffered's gate)
+		return false
+	}
 	c0 := cost.AtX(0)
 	return s.sourcesPay(k, p, &c0)
 }

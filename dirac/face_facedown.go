@@ -354,7 +354,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 	if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
 		// a witnessed potential play (gorge's plan taps the sources at
 		// priority, then the action pays from the pool): the {X}
-		// of a keyword turn-up is announced afterwards, past the witness
+		// of a keyword turn-up is announced afterwards, past the witness.
+		// turnUpListed has already checked the keyword's life, so this
+		// branch is reached only by an action whose mana the sources pay
 		c0 := cost.AtX(0)
 		s.tapFor(k, p, &c0, 0, NoObj)
 		if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
