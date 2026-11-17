@@ -179,7 +179,16 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{Kind: rTriggeredNew}, nil
 	case "TriggeredSource", "TriggeredSources", "TriggeredSourceLKICopy":
-		// gorge definedSpecTriggeredSource
+		// gorge definedSpecTriggeredSource. On a capturing emblem's
+		// recipient-captured DamageDone line the kernel emblem hook queues
+		// the DAMAGED object as the trigger object (dirac/
+		// trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
+		// so a read of the damage source would name the damaged creature:
+		// refuse. Every other DamageDone queue carries the source as the
+		// trigger object (dirac/trig_damagedonce.go ddoLine).
+		if lc.emblemDmg && emblemDmgRecipientTrig(lc.ab.Trigger) {
+			return lRef{}, refuse("Defined$ %q beside an emblem trigger that reads the damaged recipient as its trigger object", v)
+		}
 		return lRef{Kind: rTriggeredSource}, nil
 	case "TriggeredPlayer":
 		// gorge definedSpecTriggeredPlayer: the run's Player, which is the
@@ -221,6 +230,11 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
 	case "TriggeredSourceController":
+		// same emblem recipient-capture pin as TriggeredSource above: the
+		// controller read is of the kernel's trigger object
+		if lc.emblemDmg && emblemDmgRecipientTrig(lc.ab.Trigger) {
+			return lRef{}, refuse("Defined$ %q beside an emblem trigger that reads the damaged recipient as its trigger object", v)
+		}
 		// gorge definedSpecTriggeredSourceController (lower_trigrefs.go)
 		r, _, err := lc.triggeredObjectRef(v)
 		return r, err

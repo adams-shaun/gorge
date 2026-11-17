@@ -271,9 +271,13 @@ type Emblem struct {
 	// (the Effect's RememberObjects$ Targeted); RefNone when it remembers
 	// none. OpCreateEmblem stores the object in State.g.embN (object+1;
 	// 0 = none), and a DamageDone trigger of an EOT emblem with Capture set
-	// fires only for that object as the damage source (gorge's
+	// fires only for that object: as the damage source when the trigger's
+	// ValidSource$ carried the Remembered spelling (gorge's
 	// Creature.IsRemembered over the registration's Remembered set; The Inner
-	// Light). The trigger's filter carries no Remembered flag.
+	// Light), or as the damaged permanent when its ValidTarget$ did (Arcbond,
+	// Glyph of Life; the trigger's F2 is then the stripped object filter and
+	// no lowered emblem with a source capture carries one). The trigger's
+	// filter carries no Remembered flag either way.
 	Capture Ref
 	// CapturePlayer: the target slot (a Ref) whose PLAYER the emblem
 	// remembers (an Effect's RememberObjects$ TargetedPlayer over a DamageDone
