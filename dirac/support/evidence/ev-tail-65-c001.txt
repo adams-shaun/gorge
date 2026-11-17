@@ -1,11 +1,15 @@
 A-Celebrity Fencer
+A-Imperial Subduer
 A-Tenured Inkcaster
+A-Uurg, Spawn of Turg
 Aberrant Researcher
 Abu Ja'far
 Aether Figment
 Aliban's Tower
 Alpha Deathclaw
 Always Watching
+Amulet of Vigor
+Appetite for the Unnatural
 Aqueous Form
 Bastion Protector
 Beacon of Immortality
@@ -14,6 +18,7 @@ Blood Burglar
 Bogstomper
 Bolt Hound
 Boss Uramon, Shadow's Reach
+Bounteous Kirin
 Box of Free-Range Goblins
 Brawler's Plate
 Brink of Madness
@@ -24,27 +29,36 @@ Call to the Feast
 Canyon Lurkers
 Catacomb Slug
 Cavalry Pegasus
+Centaur Nurturer
 Chandra's Outburst
 Chaosphere
+Civil Servant
 Clarion Cathars
 Corpse Churn
 Corrosive Mentor
+Dakmor Lancer
+Dawn of Hope
 Deadeye Tormentor
+Death-Rattle Oni
 Deathgazer
 Debtors' Transport
 Devastation Tide
+Devout Witness
 Dictate of Erebos
 Dispense Justice
 Distress
 Drifting Shade
+Drooling Groodion
 Dry Spell
 Dwarven Armory
 Dwarven Patrol
+Eidolon of Inspiration
 Embereth Shieldbreaker
 Emberstrike Duo
 Embodiment of Fury
 Embraal Bruiser
 Enter the God-Eternals
+Era of Enlightenment
 Ettercap
 Excise the Imperfect
 Eyeblight Cullers
@@ -57,14 +71,17 @@ Flame-Kin Zealot
 Flensermite
 Font of Fortunes
 Forest
+Formless Genesis
 Fortifying Draught
 Furnace Spirit
 Ganax, Astral Hunter
 Ghoulraiser
 Gitaxian Anatomist
+Glorious Anthem
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
+Gryffwing Cavalry
 Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
@@ -88,6 +105,7 @@ Jhoira's Toolbox
 Joraga Visionary
 Kabuto Moth
 Kami of the Crescent Moon
+Kangee's Lieutenant
 Kardur's Vicious Return
 Kefnet's Last Word
 Kheru Bloodsucker
@@ -96,6 +114,8 @@ Leonin Iconoclast
 Light of Day
 Lightning Visionary
 Livaan, Cultist of Tiamat
+Losheel, Clockwork Scholar
+Maestros Initiate
 Magma Phoenix
 Manacles of Decay
 Marchesa's Smuggler
@@ -104,8 +124,10 @@ Moon-Circuit Hacker
 Mortis Dogs
 Mountain
 Mournwillow
+Mycoid Shepherd
 Nimble-Blade Khenra
 Norn's Disassembly
+Obelisk of Urd
 Observant Alseid
 Oko, Thief of Crowns
 On Serra's Wings
@@ -116,10 +138,12 @@ Perilous Forays
 Pick Up the Pace
 Pitiless Plunderer
 Plains
+Primeval Herald
 Prison Sentence
 Prodigal Pyromancer
 Prodigal Sorcerer
 Professor's Warning
+Quest for Renewal
 Rapid Hybridization
 Reach Through Mists
 Reckless Brute
@@ -131,9 +155,11 @@ Rhys the Exiled
 Rotting Rats
 Ruthless Cullblade
 Ruthless Invasion
+Safeguard
 Sage Aven
 Scavenger Drake
 Scouring Swarm
+Seraph of the Sword
 Serpentine Ambush
 Serrated Scorpion
 Shadows' Verdict
@@ -157,6 +183,7 @@ Stromgald Crusader
 Swamp
 Sylvan Ranger
 Talruum Minotaur
+Tonic Peddler
 Tormented Soul
 Tormenting Voice
 Trip Noose
@@ -166,6 +193,7 @@ Umara Mystic
 Undercity Informer
 Underworld Hermit
 Underworld Sentinel
+Verdant Automaton
 Vile Requiem
 Vorrac Battlehorns
 Vulshok Gauntlets

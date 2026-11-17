@@ -12,6 +12,7 @@ Aggression
 Aisling Leprechaun
 Ambush Party
 Ankh of Mishra
+Artificer's Intuition
 Ascendant Acolyte
 Ashen-Skin Zubera
 Ashenmoor Gouger
@@ -23,6 +24,7 @@ Balduvian Rage
 Banishment Decree
 Barbarian General
 Barrin, Tolarian Archmage
+Bassara Tower Archer
 Black Vise
 Blood Knight
 Blossoming Wreath
@@ -33,14 +35,17 @@ Bonepicker Skirge
 Brain Gorgers
 Butcher's Glee
 Cabal Patriarch
+Captain N'ghathrod
 Castle Raptors
 Catacomb Crocodile
 Cavalier of Thorns
 Chaos Lord
 Chaos Warp
+Charge
 Chief of the Foundry
 Citadel of Pain
 Cleopatra, Exiled Pharaoh
+Cloistered Youth
 Collective Blessing
 Colossal Dreadmask
 Combo Attack
@@ -55,6 +60,7 @@ Creature Bond
 Cruel Tutor
 Crush of Wurms
 Cunning Advisor
+Curious Obsession
 Curse of Chains
 Cutthroat Maneuver
 Darksteel Citadel
@@ -65,10 +71,12 @@ Deathcult Rogue
 Deathgaze Cockatrice
 Deconstruct
 Delusions of Mediocrity
+Demonlord Belzenlok
 Deny Entry
 Devout Monk
 Diregraf Rebirth
 Discordant Dirge
+Dogged Pursuit
 Donald Blake, Guise of Thor
 Draconic Disciple
 Dream Twist
@@ -76,6 +84,7 @@ Duskrider Peregrine
 Dutiful Thrull
 Dystopia
 Echoing Truth
+Ecstatic Electromancer
 Elanor Gardner
 End the Festivities
 Entropic Eidolon
@@ -86,6 +95,7 @@ Fa'adiyah Seer
 Fable of Wolf and Owl
 Fatestitcher
 Feldon of the Third Path
+Fierce Retribution
 Fin-Clade Fugitives
 Finale of Devastation
 Fireblast
@@ -94,6 +104,7 @@ Flame Slash
 For the Family
 Forest
 Forge Devil
+Foundry Hornet
 Frogmite
 Funeral Pyre
 Gamma Grotesque
@@ -117,9 +128,11 @@ Havoc Demon
 Headwater Sentries
 Hearth Charm
 Hissing Iguanar
+Holy Justiciar
 Horn of the Mark
 Hornet Harasser
 Howling Gale
+Humility
 Hurler Cyclops
 Hyena Pack
 Icon of Ancestry
@@ -138,16 +151,23 @@ Keldon Arsonist
 Kelinore Bat
 Kiku, Night's Flower
 Krav, the Unredeemed
+Lavabelly Sliver
+Leyline Binding
+Lightning Wolf
 Liliana's Indignation
 Liliana, the Last Hope
+Limestone Golem
 Lingering Tormentor
 Lunar Force
 Madame Vastra
+Maja, Bretagard Protector
 Majestic Heliopterus
 Make a Wish
 Mana-Charged Dragon
+Mardu Heart-Piercer
 Mayhem Devil
 Michiko's Reign of Truth
+Mindscour Dragon
 Mist Raven
 Mob Rule
 Monastery Flock
@@ -164,16 +184,19 @@ Nullmage Advocate
 Nut Collector
 Odylic Wraith
 Ogre Siegebreaker
+Oko's Accomplices
 Onyx Mage
 Oran-Rief Survivalist
 Orb of Dreams
 Overgrown Battlement
 Ovinize
 Pact of Negation
+Paired Tactician
 Parasitic Strix
 Patrolling Peacemaker
 Patron Wizard
 Pestilent Wolf
+Pewter Golem
 Photon, Lady of Light
 Phyrexian Driver
 Phyrexian Reaper
@@ -186,6 +209,7 @@ Priest of Forgotten Gods
 Putrid Warrior
 Qarsi Sadist
 Quartzwood Crasher
+Rathi Fiend
 Ravenous Gigamole
 Reanimate
 Rebuild
@@ -206,30 +230,36 @@ Scribe of the Mindful
 Scroll of Avacyn
 Seasoned Pyromancer
 Sedge Troll
+Selesnya Keyrune
 Shapers of Nature
 Shelob's Ambush
 Shinka, the Bloodsoaked Keep
 Shrapnel Slinger
 Sift
 Silumgar Sorcerer
+Silver Erne
 Silverchase Fox
 Slash of Talons
 Sliversmith
 Soldevi Steam Beast
+Soul-Strike Technique
 Spectacular Showdown
 Spider-Man, Hometown Hero
 Squirming Mass
 Starved Rusalka
+Stonerise Spirit
 Storm Fleet Swashbuckler
 Storm-Kiln Artist
 Street Riot
 Strength of Cedars
 Structural Distortion
 Sudden Strength
+Summoner's Pact
 Sunbond
 Sundial of the Infinite
 Swamp
 Sylvan Awakening
+Tajuru Snarecaster
 Telekinetic Sliver
 Teshar, Ancestor's Apostle
 Thassa's Oracle
@@ -237,10 +267,12 @@ Thermo-Alchemist
 They Came from the Pipes
 Thrashing Mudspawn
 Thunder Drake
+Thunderclap
 Tiger Shark, Abyssal Hunter
 Tinder Wall
 Tolabow, Loch Rascal
 Toski, Bearer of Secrets
+Totem Speaker
 Traitorous Instinct
 Transgress the Mind
 Tremor
@@ -252,6 +284,8 @@ Uncle Istvan
 Uncomfortable Chill
 Uninvited Geist
 Unknown Shores
+Urban Utopia
+Urborg Uprising
 Urza's Chalice
 Utopia Vow
 Vampire of the Dire Moon
@@ -260,6 +294,7 @@ Vengeful Reaper
 Vengeful Rebel
 Vessel of Nascency
 Voice of Reason
+Vulshok Battlegear
 Wake of Vultures
 Wall of Frost
 Wall of Reverence

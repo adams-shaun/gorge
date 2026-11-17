@@ -1,10 +1,12 @@
 A-Hobbling Zombie
 A.I.M. Bot
+Abbey Gargoyles
 Abu Ja'far
 Abundant Harvest
 Abzan Banner
 Accelerate
 Accumulated Knowledge
+Admiral's Order
 Aerie Ouphes
 Aetherling
 Age of Ultron
@@ -24,6 +26,7 @@ Aven Smokeweaver
 Baboon Spirit
 Basalt Monolith
 Beacon Hawk
+Biomathematician
 Blanchwood Treefolk
 Blitz of the Thunder-Raptor
 Bloodfire Infusion
@@ -36,6 +39,7 @@ Bronze Cudgels
 Brood Weaver
 Calamity's Wake
 Casting of Bones
+Cat Warriors
 Ceremonious Rejection
 Chaos Maw
 Charging Bandits
@@ -49,25 +53,36 @@ Concentrate
 Contagious Vorrac
 Council of Advisors
 Covert Technician
+Cruel Fate
+Dapper Shieldmate
 Dauthi Horror
+Daxiver, Izzet Electromancer
 Deathbonnet Sprout
 Debtor's Pulpit
+Deluge
 Desperate Plea
 Disciple of Grace
+Disempower
 Distant Melody
+Dormant Sliver
+Dovin's Acuity
 Dramatic Finale
 Dreadmobile
 Dreadwing
+Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
 Dusk Feaster
 Dwarven Strike Force
 Early Frost
 Eccentric Farmer
+Elder Owyn Lyons
 Elite Headhunter
 Emissary of the Sleepless
+Enraged Giant
 Essence Flare
 Eternal Flame
+Fantastic Elasticity
 Farsight Mask
 Fateful Handoff
 Favorable Winds
@@ -83,6 +98,7 @@ Funeral Rites
 Garenbrig Carver
 General's Enforcer
 Giant Dustwasp
+Glint-Nest Crane
 Goblin Engineer
 Goblin Lore
 Goblin Soothsayer
@@ -105,15 +121,19 @@ Hook Swords
 Hound of the Farbogs
 House Guildmage
 Hunger of the Nim
+Icingdeath, Frost Tyrant
 Illustrious Historian
+Infernal Captor
 Inspired Insurgent
 Inspired Sphinx
 Involuntary Cooldown
 Iron Myr
 Island
+Ivory Tower
 Jarl of the Forsaken
 Kamber, the Plunderer
 Khorvath Brightflame
+Kinjalli's Caller
 Kithkin Daggerdare
 Knighted Myr
 Knights' Charge
@@ -134,6 +154,7 @@ Master Splicer
 Mesmeric Fiend
 Mesmeric Orb
 Might of Murasa
+Minds Aglow
 Minion's Return
 Mire Triton
 Molting Snakeskin
@@ -141,6 +162,7 @@ Moria Marauder
 Mortal Obstinacy
 Mountain
 Mox Diamond
+Murder of Crows
 Mystic Compass
 Natural Obsolescence
 Nether Void
@@ -156,6 +178,7 @@ Omen of the Hunt
 One-Clown Band
 Opportunistic Dragon
 Opportunity
+Oracle's Insight
 Oreskos Sun Guide
 Overflowing Basin
 Peat Bog
@@ -165,6 +188,7 @@ Pheres-Band Tromper
 Plague Beetle
 Plague Witch
 Plains
+Prognostic Sphinx
 Prophet of Distortion
 Pyrostatic Pillar
 Quarrel's End
@@ -186,9 +210,11 @@ Rootwater Diver
 Rumbleweed
 Runechanter's Pike
 Runed Stalactite
+Rush of Battle
 Sanctuary Cat
 Sandstone Deadfall
 Sanguinary Priest
+Saprazzan Bailiff
 Screaming Seahawk
 Sengir Bats
 Serpent of the Endless Sea
@@ -207,15 +233,18 @@ Snow-Covered Island
 Soul Rend
 Soul of Innistrad
 Sparkmage's Gambit
+Spider-Man 2099, Miguel O'Hara
 Spidery Grasp
 Spine of Ish Sah
 Sprouting Phytohydra
+Staff of Titania
 Stag Beetle
 Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
 Sudden Strength
 Summit Apes
+Summit Prowler
 Suspended Sentence
 Swamp
 Tainted Strike
@@ -226,6 +255,7 @@ Temple Thief
 Tendershoot Dryad
 The Magic Mirror
 Theater of Horrors
+Thoughts of Ruin
 Thraben Sentry
 Thrull Parasite
 Thunder Spirit
@@ -237,6 +267,7 @@ Traverse the Outlands
 Treacherous Blessing
 Tuinvale Treefolk
 Umbral Mantle
+Unbender Tine
 Universal Solvent
 Urbis Protector
 Vebulid
@@ -248,6 +279,7 @@ Viashino Grappler
 Vigilance
 Vinelasher Kudzu
 Vivify
+Voidslime
 Vraska's Stoneglare
 Vryn Wingmare
 Wailing Ghoul

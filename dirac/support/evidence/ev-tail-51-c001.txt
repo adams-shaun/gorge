@@ -68,6 +68,7 @@ Daring Escape
 Dark Privilege
 Darksteel Forge
 Darksteel Ingot
+Daughter of the Deep
 Dauthi Trapper
 Daxiver, Izzet Electromancer
 Deepwood Wolverine
@@ -104,6 +105,7 @@ Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Essence Extraction
 Eternal Isolation
+Evasive Action
 Eviscerator's Insight
 Evolution Charm
 Excoriate
@@ -200,6 +202,7 @@ Lightning Elemental
 Living Wish
 Long-Lost Lances
 Loxodon Mystic
+Machine Over Matter
 Magus of the Future
 Make Mischief
 Mana Seism
@@ -260,6 +263,7 @@ Protection Magic
 Psionic Snoop
 Purraj of Urborg
 Pygmy Pyrosaur
+Rabid Wolverines
 Rage Thrower
 Rain of Embers
 Rain of Rust
@@ -282,8 +286,10 @@ Revenge of Ravens
 Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
+River Merfolk
 Roar of Reclamation
 Robber Fly
+Ronin Cavekeeper
 Rorix Bladewing
 Rosecot Knight
 Rotting Giant
@@ -295,6 +301,7 @@ Ruthless Predation
 Sadistic Obsession
 Salvage Titan
 Sandsteppe War Riders
+Sarkhan's Catharsis
 Satyr's Cunning
 Scourge of the Nobilis
 Screams of the Damned
@@ -322,6 +329,7 @@ Skyblinder Staff
 Skyhunter Strike Force
 Skyshroud Troopers
 Skysnare Spider
+Smashing Spree
 Smelt
 Snapping Thragg
 Sootwalkers
@@ -332,6 +340,7 @@ Sparkhunter Masticore
 Specter's Wail
 Spectral Bears
 Sphere of Purity
+Sphinx's Insight
 Spidersilk Net
 Spire Golem
 Spitemare
@@ -340,6 +349,7 @@ Springsage Ritual
 Stabbing Pain
 Start from Scratch
 Steal Artifact
+Steelform Sliver
 Stew the Coneys
 Stir the Pride
 Stone-Throwing Devils
@@ -361,6 +371,7 @@ Swirling Sandstorm
 Synchronous Sliver
 Syphon Sliver
 Take Flight
+Talas Warrior
 Tavern Ruffian
 Tegan Jovanka
 Terramorph
@@ -398,11 +409,13 @@ Verdant Force
 Vulshok Battlegear
 Vulshok War Boar
 Wall Off
+Wall of Blood
 Wall of Mist
 Warbeast of Gorgoroth
 Wayward Soul
 Weldfast Engineer
 Wight
+Wild Growth
 Wooden Cane
 Woodripper
 Workshop Assistant

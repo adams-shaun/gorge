@@ -24,6 +24,7 @@ Armored Griffin
 Arni Slays the Troll
 Arrogant Poet
 Astarion, the Decadent
+Astonishing Spider-Man
 Atarka Monument
 Audacious Infiltrator
 Aura of Dominion
@@ -192,6 +193,7 @@ Ingenious Smith
 Insatiable Appetite
 Invasion of Zendikar
 Invisible Woman
+Ior Ruin Expedition
 Iron Bully
 Iron Man, Titan of Innovation
 Iron-Heart Chimera

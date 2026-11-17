@@ -299,6 +299,7 @@ Selesnya Sanctuary
 Serendib Efreet
 Serpent-Blade Assailant
 Serra Ascendant
+Shadowmage Infiltrator
 Shalai, Voice of Plenty
 Shao Jun
 Shape the Sands
@@ -352,6 +353,7 @@ Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Turn
 Twisted Embrace
 Ultimate Magic: Holy
 Untamed Might

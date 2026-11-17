@@ -221,6 +221,8 @@ Man-o'-War
 Marauder's Axe
 Master of the Pearl Trident
 Mausoleum Wanderer
+Measure of Wickedness
+Megatog
 Merchant of Truth
 Mindbreak Trap
 Mine Bearer
@@ -230,6 +232,7 @@ Molten Blast
 Moonring Island
 Moonsnare Specialist
 Moorland Drifter
+Mordor on the March
 Morgul-Knife Wound
 Mossdog
 Mountain

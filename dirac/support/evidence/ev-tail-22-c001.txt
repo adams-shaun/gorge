@@ -104,6 +104,7 @@ Escape Artist
 Essence Warden
 Excavation Explosion
 Exile into Darkness
+Expanding Ooze
 Expose Evil
 Extricator of Sin
 Fabled Hero
@@ -321,6 +322,7 @@ Spiritual Guardian
 Spitting Dilophosaurus
 Sporeweb Weaver
 Staff of Domination
+Staggershock
 Stand Firm
 Start Your Engines
 Steal Enchantment

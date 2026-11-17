@@ -108,6 +108,7 @@ Katara, Heroic Healer
 Kavu Chameleon
 Kavu Predator
 Khalni Gem
+Kitsune Blademaster
 Kiyomaro, First to Stand
 Kuldotha Ringleader
 Lash of Thorns
@@ -130,6 +131,7 @@ Meteor Shower
 Mizzium Mortars
 Moment of Defiance
 Mountain
+Multiclass Baldric
 Murderous Rider
 Myojin of Cleansing Fire
 Nantuko Calmer
@@ -210,6 +212,7 @@ The First Iroan Games
 The Shattered States Era
 Thraben Purebloods
 Thriving Heath
+Time Sieve
 Tinder Wall
 Tocasia's Dig Site
 Tocasia's Welcome

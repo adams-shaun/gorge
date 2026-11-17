@@ -95,6 +95,7 @@ Elder Druid
 Eldrazi Devastator
 Elemental Spectacle
 Elephant Guide
+Elite Skirmisher
 Ellivere of the Wild Court
 Elvish Skysweeper
 Emberwilde Caliph
@@ -163,6 +164,7 @@ Horror of the Dim
 Hungry for More
 Hunting Grounds
 Ice Cage
+Ignoble Hierarch
 Imperial Subduer
 Impetuous Sunchaser
 Indrik Stomphowler
@@ -252,6 +254,7 @@ Order of the White Shield
 Ovinize
 Paralyzing Grasp
 Patriar's Seal
+Perennial Behemoth
 Phantasmagorian
 Pharika's Chosen
 Pink Horror
@@ -267,6 +270,7 @@ Prismari Campus
 Psionic Entity
 Puppeteer Clique
 Pyrohemia
+Pyromancer's Assault
 Radha's Firebrand
 Rampart Crawler
 Read the Bones
@@ -374,6 +378,7 @@ Telling Time
 Territorial Scythecat
 The Great Mound
 The Keeper of the Yellow Hat
+The Wanderer
 Thopter Spy Network
 Thraben Sentry
 Thriving Skyclaw

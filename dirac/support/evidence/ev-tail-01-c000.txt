@@ -418,6 +418,7 @@ Tolarian Serpent
 Torch Drake
 Torch Gauntlet
 Torture
+Trailblazer's Boots
 Trained Caracal
 Trained Condor
 Transcendent Master

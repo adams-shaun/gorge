@@ -1,17 +1,24 @@
 Abyssal Gatekeeper
 Ainok Bond-Kin
 Ajani's Mantra
+Altar's Light
+Ancestral Memories
 Animating Faerie
 Arbalest Elite
 Arbor Armament
+Arboreal Alliance
+Arcane Encyclopedia
 Archivist of Oghma
+Argivian Find
 Armored Pegasus
 Auriok Salvagers
 Avatar of Will
 Aven Heartstabber
+Azra Oddsmaker
 Back to Basics
 Band Together
 Battle Rampart
+Befriending the Moths
 Bitter Reunion
 Blade Banish
 Blessings of Nature
@@ -28,6 +35,7 @@ Cenn's Heir
 Cerulean Wyvern
 Choke
 Citanul Woodreaders
+Claim of Erebos
 Clear Shot
 Clear the Land
 Clever Lumimancer
@@ -36,7 +44,9 @@ Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
 Conclave Phalanx
+Confirm Suspicions
 Counterbalance
+Courier's Capsule
 Cowl Prowler
 Crown of Flames
 Cryptothrall
@@ -48,8 +58,10 @@ Deadly Visit
 Defend the Campus
 Dega Disciple
 Demonic Appetite
+Devils' Playground
 Dire Fleet Neckbreaker
 Dismal Failure
+Doom Foretold
 Dragon Roost
 Drana, Liberator of Malakir
 Drawn from Dreams
@@ -58,20 +70,24 @@ Dust Elemental
 Elvish Eulogist
 Elvish Vanguard
 Endless One
+Entomb
 Ephemerate
 Eternal Thirst
 Excise
 Falkenrath Celebrants
 Fauna Shaman
+Fen Hauler
 Festering Newt
 Flicker of Fate
 Fogwalker
 Forest
+Fruitcake Elemental
 Fumarole
 Funeral Longboat
 Furor of the Bitten
 Furyblade Vampire
 Galecaster Colossus
+Gaze of Adamaro
 Githzerai Monk
 Glyph Elemental
 Gnarlwood Dryad
@@ -110,6 +126,7 @@ Jace, Memory Adept
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Kami of False Hope
 Karplusan Strider
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
@@ -117,6 +134,7 @@ Knighthood
 Kor Castigator
 Kraul Raider
 Lamentation
+Land Tax
 Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
@@ -125,6 +143,7 @@ Maddening Wind
 Mantle of Webs
 March from the Black Gate
 Martial Glory
+Martyrs of Korlis
 Maulfist Squad
 Mavren Fein, Dusk Apostle
 Merciless Eviction
@@ -136,6 +155,7 @@ Mirkwood Channeler
 Mirri, Cat Warrior
 Mishra's Self-Replicator
 Mistford River Turtle
+Misthollow Griffin
 Mnemonic Sliver
 Moor Fiend
 Mountain
@@ -143,8 +163,10 @@ Mox Tantalite
 Munda, Ambush Leader
 Muzzle
 Myr Kinsmith
+Mystic Penitent
 Mystic Speculation
 Narcolepsy
+Nesting Dragon
 Nezumi Bone-Reader
 Nightmare Shepherd
 Noxious Ghoul
@@ -161,6 +183,7 @@ Phyrexian Rebirth
 Plains
 Predator, Flagship
 Prismatic Strands
+Profit
 Psychic Allergy
 Puppet Conjurer
 Raging Spirit
@@ -184,17 +207,22 @@ Seraph of the Scales
 Servant of the Scale
 Shifting Ceratops
 Shu Defender
+Siege-Gang Commander
 Silver Drake
 Sire of Insanity
+Slab Hammer
+Slag Strider
 Sliptide Serpent
 Sliversmith
 Smite
 Somberwald Stag
+Song of Serenity
 Soul Feast
 Spined Megalodon
 Spreading Rot
 Sprout
 Start
+Stillmoon Cavalier
 Stonewood Invoker
 Strange Augmentation
 Stream of Acid
@@ -211,9 +239,11 @@ Tamiyo, Inquisitive Student
 Teval's Judgment
 The Battle of Bywater
 Thran Golem
+Tidehollow Sculler
 Tireless Provisioner
 Tome Shredder
 Torbran, Thane of Red Fell
+Trynn, Champion of Freedom
 Twisted Justice
 Ulgrotha Charm
 Ulvenwald Observer
@@ -221,11 +251,13 @@ Unburial Rites
 Unlikely Alliance
 Vastwood Animist
 Vegetation Abomination
+Verdant Confluence
 Vorapede
 Vraan, Executioner Thane
 Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
+Wandering Wolf
 Warden of the First Tree
 Wei Ambush Force
 Wilson, Refined Grizzly

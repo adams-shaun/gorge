@@ -1,3 +1,4 @@
+A-Luminarch Aspirant
 Akroma's Memorial
 Alpha Kavu
 Angelic Gift
@@ -6,30 +7,47 @@ Ashcoat Bear
 Aurora Griffin
 Barbed Field
 Basri's Aegis
+Battle Cry Goblin
+Blessed Sanctuary
 Blinkmoth Well
 Blood Rites
 Bloodcrazed Neonate
+Blossoming Bogbeast
 Bond of Discipline
+Bone Splinters
 Bonesplitter
 Borrowed Time
+Brotherhood Outcast
 Canoptek Spyder
+Canyon Wildcat
 Caustic Crawler
 Celestial Regulator
 Cephalid Retainer
 Charging Monstrosaur
 Chivalric Alliance
+Cloak of the Bat
+Commissar Severina Raine
+Courier Hawk
 Crack the Earth
 Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
+Divine Sacrament
+Drag Down
 Dross Scorpion
+Dryad Sophisticate
 ED-E, Lonesome Eyebot
+Eerie Interlude
 Elanor Gardner
+Empyreal Voyager
 Evolutionary Escalation
+Excavation Mole
+Eye Gouge
 Faerie Invaders
 Flowstone Overseer
 Flutterfox
 Forest
+Gaea's Revenge
 Gallifrey Stands
 Ghirapur Guide
 Giant Ox
@@ -37,35 +55,61 @@ Goblin Diplomats
 Goblin General
 Goblin War Party
 Heirs of Stromkirk
+Hill Giant Herdgorger
+Horned Sliver
 Hungry Megasloth
+Hunter's Bow
+Indebted Samurai
+Indomitable Archangel
+Infernal Grasp
 Isamaru, Hound of Konda
 Island
 Jungle Delver
+Justiciar's Portal
 Karok Wrangler
+Knight of Glory
 Kor Sky Climber
 Kris Mage
 Leyline of Vitality
+Loxodon Lifechanter
+Magus of the Moat
 Manic Scribe
 Marble Diamond
+Marked by Honor
 Meria's Outrider
 Mesa Lynx
+Mindwrack Liege
 Minister of Pain
+Misfortune's Gain
+Morale
+Morbid Hunger
 Mountain
 Mountain Bandit
+Mudbutton Torchrunner
 Nacatl Savage
 Oread of Mountain's Blaze
 Overwhelming Stampede
 Panic Spellbomb
+Panicked Bystander
 Plains
+Potion of Healing
+Propeller Pioneer
+Pure Reflection
 Rampaging Ferocidon
 Reckless Abandon
 Reito Lantern
 Samite Pilgrim
+Sanctified Charge
+Scouting Trek
 Seal of Doom
 Searchlight Companion
 Seascape Aerialist
+Seedguide Ash
+Sensor Splicer
 Separatist Voidmage
+Shadow Glider
 Shamanic Revelation
+Sheltering Light
 Silver-Inlaid Dagger
 Skittering Monstrosity
 Skulltap
@@ -74,14 +118,24 @@ Slaughter Pact
 Smoke Bomb
 Spell Contortion
 Spire Barrage
+Spontaneous Flight
+Staunch Defenders
+Steam Frigate
 Stone Retrieval Unit
+Storm Fleet Swashbuckler
 Strength of Night
 Striking Sliver
 Sungold Barrage
+Survival of the Fittest
 Swamp
 Swift Justice
 Swift Response
+Taoist Hermit
 Tattered Haunter
+Teachings of the Kirin
+Temmet, Vizier of Naktamun
+Teroh's Vanguard
+The Art of Tea
 The Mightstone and Weakstone
 Thirsting Bloodlord
 Thornling
@@ -91,7 +145,14 @@ Thunderscape Familiar
 Timberwatch Elf
 Tormod's Crypt
 Tracker's Instincts
+Trustworthy Scout
+Tunneler Wurm
 Unexpected Fangs
+Vampire's Zeal
+Venomthrope
+Venser, Visionary Traveler
 Violent Impact
 Warfire Javelineer
+Wild Colos
+Wild Onslaught
 Zhao, the Seething Flame

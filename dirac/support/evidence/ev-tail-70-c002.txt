@@ -117,6 +117,7 @@ Metropolis Angel
 Minotaur Sureshot
 Mountain
 Mutilate
+Myconid Spore Tender
 Myr Retriever
 Narnam Renegade
 Noble Vestige
@@ -124,6 +125,7 @@ Oath of Eorl
 Okiba Reckoner Raid
 Old Rutstein
 Old Stickfingers
+Oran-Rief Invoker
 Orcish Veteran
 Overmaster
 Patagia Viper
@@ -134,6 +136,7 @@ Piper of the Swarm
 Plains
 Plated Onslaught
 Predatory Nightstalker
+Primal Frenzy
 Putrid Cyclops
 Quirion Beastcaller
 Radiant Purge
@@ -150,6 +153,7 @@ Saving Grasp
 Scrollshift
 Scythe Leopard
 Sedgemoor Witch
+Sentinel of the Eternal Watch
 Settle Beyond Reality
 Shatterskull Giant
 Shoal Kraken
@@ -168,6 +172,7 @@ Spectral Hunt-Caller
 Spellshock
 Spinal Centipede
 Spire Barrage
+Spire Tracer
 Spiritmonger
 Start
 Steel of the Godhead

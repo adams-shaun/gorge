@@ -9,6 +9,7 @@ Agility Bobblehead
 Agony Warp
 Akroan Phalanx
 Akroan Skyguard
+Akuta, Born of Ash
 Amy Rose
 Anara, Wolvid Familiar
 Ancient Stirrings
@@ -16,6 +17,7 @@ Angelic Protector
 Appetite for Brains
 Arm-Mounted Anchor
 Arrogant Poet
+Ashen Rider
 Aspect of Lamprey
 Assault Strobe
 Atarka, World Render
@@ -27,16 +29,20 @@ Barrin, Master Wizard
 Beacon Behemoth
 Bionic Blow
 Black Market Tycoon
+Blood Lust
+Bold Impaler
 Bone Dragon
 Bonesplitter
 Boneyard Wurm
 Bottle Gnomes
 Brass Gnat
 Bringer of the White Dawn
+Burn the Impure
 Cabal Evangel
 Canopy Stalker
 Cat Oven
 Cave-In
+Celestial Force
 Chameleon Colossus
 Chaplain's Blessing
 Chariot of the Sun
@@ -56,6 +62,8 @@ Conjurer's Closet
 Continue?
 Contraband Livestock
 Copper Gnomes
+Crystal Dragon
+Crystal Slipper
 Cunning Evasion
 Cunning Geysermage
 Curio Vendor
@@ -68,13 +76,17 @@ Delusions of Mediocrity
 Demonic Dread
 Deny Existence
 Desecrated Earth
+Devastate
 Diabolic Tutor
 Dimir Aqueduct
+Diver Skaab
 Djeru's Renunciation
+Dogpile
 Dragon Mantle
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
+Dust Corona
 Dúnedain Blade
 Elite Vanguard
 Embereth Shieldbreaker
@@ -101,14 +113,17 @@ Fiery Confluence
 Fire Urchin
 Flameshadow Conjuring
 Flaring Pain
+Flash Counter
 Flatten
 Fleeting Image
+Flowstone Kavu
 Flowstone Surge
 Fodder Launch
 For the Emperor!
 Forest
 Forgotten Cave
 Fortitude
+Fortress Crab
 Frilled Sandwalla
 Fungal Plots
 Furtive Analyst
@@ -117,8 +132,11 @@ Garruk's Horde
 Geist-Honored Monk
 Gem of Becoming
 Genju of the Falls
+Geosurge
 Gerrard Capashen
 Ghitu Journeymage
+Ghostway
+Giant Solifuge
 Gladecover Scout
 Goblin Fire Fiend
 Goblin Medics
@@ -139,10 +157,12 @@ Gruesome Fate
 Gudul Lurker
 Guild Thief
 Gust-Skimmer
+Guul Draz Mucklord
 Hapatra, Vizier of Poisons
 Hardened-Scale Armor
 Headless Horseman
 Heap Doll
+Helica Glider
 Hellkite Charger
 Hellspark Elemental
 Hieromancer's Cage
@@ -152,11 +172,13 @@ Holy Armor
 Holy Light
 Honor Troll
 Horned Turtle
+Humble Defector
 Hunter's Mark
 Hurloon Minotaur
 Hydra's Growth
 Illusionary Armor
 Impaler Shrike
+Impending Doom
 Increasing Devotion
 Infernal Tribute
 Inner Struggle
@@ -182,17 +204,22 @@ Kithkin Spellduster
 Kragma Warcaller
 Kudo, King Among Bears
 Labyrinth Adversary
+Labyrinth Minotaur
+Leafkin Avenger
 Leap
 Liliana of the Veil
 Lodestone Myr
 Lord of Change
+Lord of the Accursed
 Lore Seeker
 Lunar Frenzy
 Lydia Frye
 Magmatic Sprinter
 Malanthrope
+Malevolent Whispers
 Malfegor
 Malfunction
+Malignant Growth
 Mana Severance
 Maniacal Rage
 Marauder's Axe
@@ -208,6 +235,7 @@ Mirri the Cursed
 Mirri's Guile
 Misguided Rage
 Moggcatcher
+Molimo, Maro-Sorcerer
 Morkrut Behemoth
 Morphling
 Moss Viper
@@ -231,6 +259,7 @@ Orc Sureshot
 Orcish Vandal
 Ordeal of Heliod
 Ordered Migration
+Outmaneuver
 Oversold Cemetery
 Pack Rat
 Paradise Mantle
@@ -248,8 +277,11 @@ Prizefight
 Protective Bubble
 Puca's Covenant
 Puppet's Verdict
+Puppeteer
 Qilin's Blessing
 Quirion Trailblazer
+Radiating Lightning
+Rage Thrower
 Raging Bull
 Ramosian Lieutenant
 Ransack
@@ -260,6 +292,8 @@ Reclaim
 Reito Lantern
 Reprocess
 Reroute
+Rhystic Study
+Roiling Waters
 Rotted Hystrix
 Rotting Legion
 Ruin Raider
@@ -268,6 +302,7 @@ Sagu Archer
 Samite Alchemist
 Sandstorm Charger
 Scab-Clan Charger
+Scarwood Goblins
 Scavenged Weaponry
 Scour the Laboratory
 Scourge of Numai
@@ -284,11 +319,14 @@ Sigarda's Imprisonment
 Silas Renn, Seeker Adept
 Silkguard
 Silverquill Apprentice
+Simic Slaw
+Sisters of the Flame
 Sivvi's Ruse
 Skirk Shaman
 Skittish Kavu
 Skulking Ghost
 Skyboon Evangelist
+Skyknight Vanguard
 Skyreach Manta
 Skyshroud Falcon
 Skysnare Spider
@@ -312,6 +350,7 @@ Starlit Mantle
 Steelform Sliver
 Steppe Glider
 Stern Dismissal
+Sticky Fingers
 Stingerfling Spider
 Stinging Shot
 Stoneshaker Shaman
@@ -333,13 +372,17 @@ Tallyman of Nurgle
 Tar Pit Warrior
 Tarkir Duneshaper
 Taste for Mayhem
+Tectonic Break
 The Stasis Coffin
 Thraben Charm
+Threads of Disloyalty
 Thunder Totem
 Thunderous Wrath
+Thunderscape Apprentice
 Tideshaper Mystic
 Timid Drake
 Tireless Hauler
+Touch of the Eternal
 Tower Geist
 Tranquil Grove
 Traumatize
@@ -347,16 +390,19 @@ Treacherous Vampire
 Treefolk Healer
 Twinscroll Shaman
 Tyrant's Familiar
+Ulasht, the Hate Seed
 Ulvenwald Hydra
 Undercity Troll
 Unholy Officiant
 Union of the Third Path
+Unleash Fury
 Unnatural Growth
 Unwilling Ingredient
 Urborg Shambler
 Vedalken Ghoul
 Verdurous Gearhulk
 Veteran Armorer
+Veteran Brawlers
 Violet Pall
 Virtus the Veiled
 Vital Splicer
@@ -366,6 +412,8 @@ Volcano Imp
 Voldaren Pariah
 Waking the Trolls
 Wall of Lava
+Wanderer's Intervention
+Wanderer's Strike
 Warclamp Mastiff
 Warhorn Blast
 Wei Strike Force
@@ -374,5 +422,6 @@ Windstorm
 Wispweaver Angel
 Witch's Web
 Witching Well
+Yellow Scarves General
 Zealous Persecution
 Zhalfirin Shapecraft

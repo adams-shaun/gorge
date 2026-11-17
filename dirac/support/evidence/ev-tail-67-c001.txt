@@ -1,6 +1,7 @@
 A-Dokuchi Silencer
 A-Elven Bow
 A-Eyes of the Beholder
+A-Most Wanted
 A-Rulik Mons, Warren Chief
 A-Umara Mystic
 Accelerated Evolution
@@ -14,6 +15,7 @@ Angelic Field Marshal
 Angelic Renewal
 Aquatic Incursion
 Archaeomender
+Armor Thrull
 Augury Adept
 Autochthon Wurm
 Avatar of the Resolute
@@ -23,10 +25,12 @@ Axebane Guardian
 Azimaet Drake
 Baneful Omen
 Barbarian Lunatic
+Beast Attack
 Biting Rain
 Blight Grenade
 Blight Sickle
 Blisterspit Gremlin
+Blossom Dryad
 Buried Alive
 Burn the Impure
 Burning Palm Efreet
@@ -39,6 +43,8 @@ Caravan Escort
 Chain Lightning
 Chakram Slinger
 Champion's Helm
+Cling to Dust
+Clutch of Undeath
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
@@ -50,10 +56,12 @@ Cosmos Elixir
 Courier's Capsule
 Crackling Triton
 Crop Rotation
+Crystalline Armor
 Culling Mark
 Custodi Soulbinders
 Daring Fiendbonder
 Dauntless Survivor
+Deadshot
 Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
@@ -62,6 +70,7 @@ Deft Dismissal
 Demon's Grasp
 Demonic Rising
 Despise
+Diligent Excavator
 Dismantling Blow
 Domri, Anarch of Bolas
 Drag Down
@@ -72,6 +81,7 @@ Earthen Goo
 Eidolon of Rhetoric
 Eivor, Battle-Ready
 Ekthi, Contaminator Priest
+Emerge Unscathed
 Erratic Visionary
 Essence Feed
 Essence Warden
@@ -82,6 +92,7 @@ Expansion
 Explosive Welcome
 Fain, the Broker
 Femeref Healer
+Final-Sting Faerie
 Firebird, Blazing Ranger
 Flametongue Kavu
 Flashfires
@@ -90,10 +101,12 @@ Fleshpulper Giant
 Floodhound
 Flow of Ideas
 Flux Channeler
+Foe-liage
 Fog of Gnats
 Forest
 Fungal Sprouting
 Furnace Celebration
+Furnace Hellkite
 Genku, Future Shaper
 Glittermonger
 Glory Bearers
@@ -108,6 +121,7 @@ Grazilaxx, Illithid Scholar
 Grim Monolith
 Hadran, Naya Sunseeder
 Hail Storm
+Hana Kami
 Hanabi Blast
 Hanna, Ship's Navigator
 Helm of the Ghastlord
@@ -128,6 +142,7 @@ Inkrise Infiltrator
 Inspiring Refrain
 Irencrag Pyromancer
 Iroas's Champion
+Iron Bully
 Iron Suitcase
 Island
 Jackalope Herd
@@ -193,12 +208,15 @@ Preeminent Captain
 Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Prowling Pangolin
+Psychic Spear
 Psychotrope Thallid
 Purifying Dragon
 Python
 Quest for Pure Flame
 Rage Weaver
 Rally to Battle
+Ranger en-Vec
 Ravos, Soultender
 Ray of Erasure
 Reality Ripple
@@ -206,17 +224,23 @@ Reckless Charge
 Reckless Handling
 Reduce to Ashes
 Relic Barrier
+Replenish
 Revelation of Power
+Rhox Oracle
 Rustrazor Butcher
 Samite Pilgrim
+Savage Conception
 Savra, Queen of the Golgari
 Scavenged Blade
+Scepter of Celebration
 Scion of Vitu-Ghazi
 Searing Barb
 Searing Blood
+Secure the Scene
 Sentinel Sliver
 Shake the Foundations
 Shore Keeper
+Simic Keyrune
 Simplify
 Skullknocker Ogre
 Sky Terror
@@ -254,16 +278,19 @@ Tor Giant
 Tormod's Cryptkeeper
 Tranquil Path
 Transcendent Master
+Trenching Steed
 Troublesome Spirit
 Trueheart Duelist
 Umbris, Fear Manifest
 Undercity Scavenger
+Undying Rage
 Unholy Hunger
 Urza's Cave
 Vampire Lacerator
 Venomcrawler
 Viashino Fangtail
 Vine Trellis
+Voice of the Provinces
 Voldaren Stinger
 Walker of Secret Ways
 Warped Devotion
@@ -276,6 +303,7 @@ Windgrace Acolyte
 Wirecat
 Woodland Liege
 Wrath of Oko
+Writhing Necromass
 You Look Upon the Tarrasque
 Young Blue Dragon
 Zenith Festival

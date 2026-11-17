@@ -1,16 +1,20 @@
 A-Excavation Explosion
 Aang, Air Nomad
 Academy Raider
+Accursed Spirit
+Acid Rain
 Aggression
 Aisling Leprechaun
 Ambush Party
 Anowon, the Ruin Sage
+Ashenmoor Gouger
 Atarka, World Render
 Attunement
 Balduvian Horde
 Balduvian Rage
 Banishment Decree
 Barbarian General
+Bassara Tower Archer
 Battle Plan
 Black Vise
 Blood Knight
@@ -22,28 +26,36 @@ Captain N'ghathrod
 Castle Raptors
 Chaos Lord
 Chaos Warp
+Charge
 Chief of the Foundry
 Citadel of Pain
 Citanul Centaurs
+Cloistered Youth
 Collective Blessing
 Combo Attack
 Coming In Hot
 Confessor
 Corpse Hauler
 Cragplate Baloth
+Cranial Plating
 Crazed Goblin
 Crimson Kobolds
 Cruel Finality
 Cruel Tutor
 Cunning Advisor
+Curious Obsession
+Cutthroat Maneuver
 Darkblade Agent
 Darksteel Citadel
 Deadly Allure
 Death Wish
 Deathcult Rogue
 Deconstruct
+Demonlord Belzenlok
 Diregraf Rebirth
 Divest
+Dizzy Spell
+Dogged Pursuit
 Downpour
 Draconic Disciple
 Dream Twist
@@ -60,6 +72,7 @@ Explosive Revelation
 Fa'adiyah Seer
 Fatestitcher
 Feldon of the Third Path
+Fierce Retribution
 Fireblast
 Flame Slash
 For the Family
@@ -71,12 +84,15 @@ Gamma Grotesque
 Ghostly Changeling
 Giant Killer
 Goblin Balloon Brigade
+Gorging Vulture
 Grasp of the Hieromancer
 Gravedigger
+Greater Werewolf
 Grim Discovery
 Grim Flayer
 Grim Haruspex
 Grim Poppet
+Grixis Battlemage
 Hammer of Nazahn
 Hampering Snare
 Harvest Gwyllion
@@ -84,14 +100,17 @@ Havoc Demon
 Headwater Sentries
 Hearth Charm
 Hissing Iguanar
+Holy Justiciar
 Holy Strength
 Howling Gale
+Humility
 Hurler Cyclops
 Hyena Pack
 Ill-Gotten Inheritance
 Imperial Outrider
 Improvised Armor
 Incurable Ogre
+Infectious Inquiry
 Inheritance
 Inspiring Roar
 Island
@@ -103,15 +122,21 @@ Kelinore Bat
 Kiku, Night's Flower
 Krav, the Unredeemed
 Lavabelly Sliver
+Leyline Binding
 Lightning Wolf
 Liliana, Death Wielder
+Limestone Golem
+Lingering Tormentor
 Maja, Bretagard Protector
 Make a Wish
 Mana-Charged Dragon
 Mardu Heart-Piercer
+Mayhem Devil
 Mega Flare
+Mindscour Dragon
 Mire Blight
 Mob Rule
+Monastery Flock
 Mountain
 Mountain Bandit
 Mythic Proportions
@@ -124,9 +149,11 @@ Ninja of the Deep Hours
 Nullmage Advocate
 Obscura Ascendancy
 Obsidian Giant
+Onyx Mage
 Oran-Rief Survivalist
 Overgrown Battlement
 Pact of Negation
+Paired Tactician
 Pale Rider of Trostad
 Patrolling Peacemaker
 Patron Wizard
@@ -140,13 +167,17 @@ Price of Fame
 Priest of Forgotten Gods
 Putrid Warrior
 Quartzwood Crasher
+Rathi Fiend
 Ravenous Gigamole
 Reanimate
 Recon Craft Theta
+Remorseful Cleric
+Renegade Demon
 Replication Specialist
 Retreat to Emeria
 Rhonas's Monument
 Rise of the Witch-king
+Rise to Glory
 Rising of the Day
 Runehorn Hellkite
 Sabertooth Nishoba
@@ -163,9 +194,11 @@ Sift
 Silverchase Fox
 Skyshooter
 Slag Strider
+Slash of Talons
 Solarion
 Soldevi Steam Beast
 Soul of the Rapids
+Soul-Strike Technique
 Spectacular Showdown
 Spider-Man, Hometown Hero
 Squirming Mass
@@ -185,6 +218,7 @@ Teshar, Ancestor's Apostle
 Thassa's Oracle
 Thermo-Alchemist
 Thrashing Mudspawn
+Thunderclap
 Tiger Shark, Abyssal Hunter
 Tinder Wall
 Tolabow, Loch Rascal
@@ -194,12 +228,15 @@ Transgress the Mind
 Tremor
 True Love's Kiss
 Tuktuk the Explorer
+Twinblade Assassins
 Uncanny Speed
 Unknown Shores
+Urborg Uprising
 Urza's Chalice
 Vampire of the Dire Moon
 Vengeful Reaper
 Venom Blast
+Vulshok Battlegear
 Wake of Vultures
 Wall of Reverence
 War-Torch Goblin

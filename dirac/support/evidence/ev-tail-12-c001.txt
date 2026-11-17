@@ -93,6 +93,7 @@ Glowrider
 Gnarled Mass
 Goblin Marshal
 Goblin Tutor
+Golden-Scale Aeronaut
 Goldmane Griffin
 Golem Artisan
 Gorgon Flail
@@ -107,6 +108,7 @@ Heliod's Emissary
 Hexgold Halberd
 Hickory Woodlot
 Highway Robber
+Hobgoblin Captain
 Holy Armor
 Honden of Seeing Winds
 Hopeful Initiate
@@ -138,10 +140,12 @@ Laboratory Brute
 Landroval, Horizon Witness
 Last Caress
 Laurine, the Diversion
+Legion Loyalist
 Leonardo, Worldly Warrior
 Leonin Armorguard
 Levitation
 Lich's Caress
+Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
 Manaplasm
@@ -172,6 +176,7 @@ Ominous Cemetery
 Ophiomancer
 Oriq Loremage
 Ornamental Courage
+Oswald Fiddlebender
 Owl Familiar
 Pardic Arsonist
 Patagia Viper
@@ -190,6 +195,7 @@ Prying Blade
 Pteramander
 Qasali Pridemage
 Quirion Dryad
+Ragefire
 Rain of Tears
 Ramosian Sergeant
 Rampant Rejuvenator
