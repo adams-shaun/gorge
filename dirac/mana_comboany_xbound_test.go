@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -9,23 +8,24 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// comboAnyXProbe is a board holding Sage of the Maze ("{T}: Add two mana in
-// any combination of colors") and nothing else: its Combo Any production is a
+// comboAnyXProbe is a board holding Axebane Guardian ("{T}: Add X mana in any
+// combination of colors, where X is the number of creatures with defender you
+// control", X = 0 on this board) and nothing else: its Combo Any production is a
 // census gap (gfGapOther), so the planner prices no unit for it while gorge's
 // potential walk prices it unbounded in every colour (producedOpenSet).
 type comboAnyXProbe struct {
 	sc   *scen
 	tbl  *kop.Table
 	lib  CardID
-	sage CardID
+	src CardID
 	sl   Slot
 }
 
 func comboAnyXProbeBoard(t *testing.T) comboAnyXProbe {
 	t.Helper()
-	const sage = "Sage of the Maze"
-	set := cardsettest.Synth(t, fmt.Sprintf("tail-%02d", cardset.TailBucketOf(sage)))
-	deck := []cardset.Entry{{Name: sage, Count: 1}, {Name: "Plains", Count: 39}}
+	const src = "Axebane Guardian"
+	set := cardsettest.Set(t, "mbc")
+	deck := []cardset.Entry{{Name: src, Count: 1}, {Name: "Plains", Count: 39}}
 	tbl, ids, _, err := set.Matchup(deck, []cardset.Entry{{Name: "Plains", Count: 40}})
 	if err != nil {
 		t.Fatal(err)
@@ -34,17 +34,17 @@ func comboAnyXProbeBoard(t *testing.T) comboAnyXProbe {
 	p.tbl = tbl
 	for _, c := range ids {
 		switch tbl.Cards[c].Name {
-		case sage:
-			p.sage = c
+		case src:
+			p.src = c
 		case "Plains":
 			p.lib = c
 		}
 	}
-	if p.sage == NoCard || p.lib == NoCard {
+	if p.src == NoCard || p.lib == NoCard {
 		t.Fatalf("the probe cards are missing from the table")
 	}
 	p.sc = newScenTableLib(t, tbl, p.lib, Config{NoElide: true})
-	p.sl = p.sc.slot(p.sc.perm(p.sage, 0))
+	p.sl = p.sc.slot(p.sc.perm(p.src, 0))
 	p.sc.s.perms[p.sl].flags &^= pfTapped
 	return p
 }
@@ -58,7 +58,7 @@ func comboAnyXProbeBoard(t *testing.T) comboAnyXProbe {
 func TestComboAnyTriggerXBound(t *testing.T) {
 	p := comboAnyXProbeBoard(t)
 	s, k := p.sc.s, p.sc.k
-	if !k.isComboAny(p.sage) {
+	if !k.isComboAny(p.src) {
 		t.Fatalf("the probe card is not the Combo Any census gap")
 	}
 	if !s.gapMask(k, 0, gfGapOther).has(p.sl) {
