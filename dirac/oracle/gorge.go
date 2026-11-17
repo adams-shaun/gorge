@@ -944,8 +944,12 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			}
 			note("granted/" + o.SVar)
 		case "ability":
-			if a, ok := grantedOrGainedActivation(o, d.Options[:i], ref); ok {
-				add(prioEntry{a: a, opt: o.Index})
+			if a, keepDuplicate, ok := grantedOrGainedActivation(o, d.Options[:i], ref); ok {
+				if keepDuplicate {
+					fr.prio = append(fr.prio, prioEntry{a: a, opt: o.Index})
+				} else {
+					add(prioEntry{a: a, opt: o.Index})
+				}
 				continue
 			}
 			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && g.selfKeywordGrant(o.Obj, o.Keyword) {
@@ -2140,23 +2144,26 @@ func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
 //     activation (ability code 255). Its grantor tells two granted abilities
 //     on one permanent apart; a second copy of a grantor gives the same
 //     ability, which stays the first's option (before: the options listed
-//     ahead of o);
+//     ahead of o). Two different abilities one grantor gives one permanent
+//     (Lavamancer's Skill on a Wizard: the 1-damage and the 2-damage
+//     ability, CR 613.1f) are two kernel latent activations that canonicalise
+//     alike, so both offers are kept: keepDuplicate reports it;
 //   - a has-all-abilities-of gained ability (GainsAbilitiesOf$): the foreign
 //     permanent's face ability, told apart by that permanent (the kernel's
 //     AkActivate mode 0xC0, dirac/static_gainsof.go).
-func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref func(state.ObjID) Ref) (Canon, bool) {
+func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref func(state.ObjID) Ref) (Canon, bool, bool) {
 	if o.SVar != "" && o.GrantSource != 0 && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0 {
-		grantor := o.GrantSource
+		grantor, sameSVar := o.GrantSource, false
 		for j := range before {
 			if x := &before[j]; x.Kind == "ability" && x.Obj == o.Obj && x.SVar == o.SVar && x.GrantSource != 0 {
-				grantor = x.GrantSource
+				grantor, sameSVar = x.GrantSource, true
 				break
 			}
 		}
-		return Pack(ActActivate, ref(o.Obj), ref(grantor), 255), true
+		return Pack(ActActivate, ref(o.Obj), ref(grantor), 255), !sameSVar, true
 	}
 	if o.GainedSource != 0 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.AltCostIndex == 0 && o.GainedIdx >= 0 && o.GainedIdx < 0x80 {
-		return Pack(ActActivate, ref(o.Obj), ref(o.GainedSource), uint8(o.GainedIdx)), true
+		return Pack(ActActivate, ref(o.Obj), ref(o.GainedSource), uint8(o.GainedIdx)), false, true
 	}
-	return 0, false
+	return 0, false, false
 }
