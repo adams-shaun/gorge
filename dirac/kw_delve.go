@@ -108,6 +108,16 @@ func (s *State) delveOfferCreditHand(k *prep, p uint8, c CardID, o Obj, cost kop
 	return s.delveOfferCredit(k, p, c, o, true, cost)
 }
 
+// xDelveCredit is the graveyard credit a cast's X ask may spend on the
+// announced generic (gorge xAsk's graveyard term): the payer's graveyard size
+// while the spell being built has printed or granted delve, else 0.
+func (s *State) xDelveCredit(k *prep, e *stackEntry) int {
+	if k.gen == nil || !k.gen.anyDelve || e.kind != seSpell || !s.hasCastDelve(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)) {
+		return 0
+	}
+	return int(s.pl[SeatIx(e.ctrl)].graveN)
+}
+
 // delvePickCount counts the announced delve picks.
 func (s *State) delvePickCount() int {
 	n := 0

@@ -298,6 +298,13 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	if wbX {
 		hi = min(maxXAsk, max(hi, mx+s.waterbendPickCount()))
 	}
+	// A cast with delve may exile a graveyard card for each generic mana of
+	// the total cost (CR 702.66a), the announced X included: gorge's xAsk
+	// credits the graveyard in its bound, so the ask's ceiling rises by that
+	// credit and xReducedPays prices each value through the same credit.
+	if dl := s.xDelveCredit(k, e); dl > 0 {
+		hi = min(maxXAsk, max(hi, mx+dl))
+	}
 	base := s.buildCost(k)
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	// pays: X = x is payable. An announced convoke pick pays one generic of
