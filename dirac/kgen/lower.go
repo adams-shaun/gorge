@@ -366,7 +366,8 @@ func lowerCard(p *pool, name string, c *cards.Card, token bool) *lCard {
 		out.printed = lc.face.Name
 	}
 	lc.lowerFace()
-	lc.exwCheck() // lower_exw.go
+	lc.exwCheck()        // lower_exw.go
+	lc.snowSourceCheck() // lower_snowcost.go
 	return out
 }
 
@@ -870,7 +871,9 @@ func parsePrintedManaCost(s string) (manaCost, error) { return parseManaCostOpt(
 
 // parseAbilityManaCost is parseManaCost for an activated ability's cost,
 // which also reads a Phyrexian symbol ({W/P}, Forge "WP").
-func parseAbilityManaCost(s string) (manaCost, error) { return parseManaCostSyms(s, false, true) }
+func parseAbilityManaCost(s string) (manaCost, error) {
+	return parseManaCostSyms(s, false, true, false)
+}
 
 // xColorLetter parses Forge's XColor$ value -- colour words ("Black") or a
 // bare WUBRG letter ("R") -- as the one colour the {X} must be paid with.
@@ -911,11 +914,12 @@ func (lc *lowerCtx) xColor(m *manaCost, raw string) error {
 }
 
 func parseManaCostOpt(s string, twobrid bool) (manaCost, error) {
-	return parseManaCostSyms(s, twobrid, twobrid)
+	return parseManaCostSyms(s, twobrid, twobrid, false)
 }
 
-// parseManaCostSyms parses a cost; twobrid admits {2/W}, phyrexian {W/P}.
-func parseManaCostSyms(s string, twobrid, phyrexian bool) (manaCost, error) {
+// parseManaCostSyms parses a cost; twobrid admits {2/W}, phyrexian {W/P},
+// snow {S} (CR 107.4h: an activated ability's cost only, costHand).
+func parseManaCostSyms(s string, twobrid, phyrexian, snow bool) (manaCost, error) {
 	var m manaCost
 	s = strings.TrimSpace(s)
 	if s == "" || s == "no cost" {
@@ -947,6 +951,10 @@ func parseManaCostSyms(s string, twobrid, phyrexian bool) (manaCost, error) {
 		}
 		if t == "C" {
 			m.C++
+			continue
+		}
+		if snow && t == "S" {
+			m.Snow++
 			continue
 		}
 		if i := strings.IndexByte("WUBRG", t[0]); len(t) == 1 && i >= 0 {
@@ -2272,6 +2280,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			case isManaSym(t):
 				mana = append(mana, t)
 				continue
+			case t == "S" && lc.snowCostOK():
+				mana = append(mana, t) // {S}, CR 107.4h (lower_snowcost.go)
+				continue
 			case len(t) == 2 && t[1] == 'P' && strings.IndexByte("WUBRG", t[0]) >= 0:
 				mana = append(mana, t) // a Phyrexian pip
 				continue
@@ -2901,9 +2912,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 		}
 	}
 	if len(mana) > 0 {
-		mc, err := parseAbilityManaCost(strings.Join(mana, " "))
+		mc, err := parseManaCostSyms(strings.Join(mana, " "), false, true, lc.snowCostOK())
 		if err != nil {
 			return c, refuse("%v", err)
+		}
+		if mc.Snow > 0 && (mc.X || mc.XX || mc.XXX || len(mc.Hybrid) != 0 || len(mc.Twobrid) != 0 || len(mc.Phyrexian) != 0 || mc.XColor != 0) {
+			return c, refuse("{S} beside a flexible pip")
 		}
 		c.Mana = mc
 	} else {

@@ -52,6 +52,15 @@ func fixtureWatchPolicy(seed uint64, watch map[string]bool, casts map[string]int
 // table before the games are played (the mutation tests' feature switch).
 func runFixtureLockstep(t *testing.T, fixture string, matchups []fixtureDecks, watch map[string]bool, seeds int, report bool, mutate func(*kop.Table)) fixtureRun {
 	t.Helper()
+	return runFixtureLockstepPolicy(t, fixture, matchups, seeds, report, mutate, func(seed uint64, casts map[string]int) Policy {
+		return fixtureWatchPolicy(seed, watch, casts)
+	})
+}
+
+// runFixtureLockstepPolicy is runFixtureLockstep with the policy built per
+// seed by mk (it records the watched casts into the map it is handed).
+func runFixtureLockstepPolicy(t *testing.T, fixture string, matchups []fixtureDecks, seeds int, report bool, mutate func(*kop.Table), mk func(seed uint64, casts map[string]int) Policy) fixtureRun {
+	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -103,7 +112,7 @@ func runFixtureLockstep(t *testing.T, fixture string, matchups []fixtureDecks, w
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := LockstepLed(m, seed, g, k, fixtureWatchPolicy(seed, watch, run.casts), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30})
+		res := LockstepLed(m, seed, g, k, mk(seed, run.casts), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30})
 		run.scripted += g.Stats.Scripted
 		CloseSide(k)
 		run.games++
