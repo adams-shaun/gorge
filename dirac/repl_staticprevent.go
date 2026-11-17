@@ -21,9 +21,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // is applied as made to the damage left (replHdr.an), the last candidate applies on its own and a
 // prevention that leaves nothing ends the asks. An Optional$ shield alone
 // (Battletide Alchemist) is asked of its controller with a skip option. A
-// combat event, a competition beside an optional line or a DamageAmount$ gate,
-// and a host with two shields stall StallReplPlus: the order walk of a combat
-// pass does not carry these candidates. So does such a competition in a pass
+// combat event's orderable competition is posed by the combat walk
+// (spCombatCands): each pick applies as made (spPick), and dealAsked aligns
+// the recomputed pass's event with the picked order because the candidates
+// need not commute. A competition beside an optional line or a DamageAmount$
+// gate, and a host with two shields, stall StallReplPlus: the walk cannot name
+// such candidates. So does such a competition in a pass
 // that re-executes its op on a plus-N order ask (damageBatch, a hit batch,
 // DealDamageFrom): a static prevention table is never replPlusOnly, since that
 // protocol discards the answer. A table that also has any other
@@ -256,9 +259,11 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 	case s.spBare(k, &cs, c):
 		return 0, true
 	case e.combat && s.spOrderable(k, &cs, c):
-		// gorge's order ask is posed by the combat walk (spCombatCands); the
-		// shields commute (a full prevention takes what is left, a shield
-		// min(N, left)), so the pass applies them all
+		// gorge's order ask is posed by the combat walk (spCombatCands), which
+		// applies each pick as made (spPick). This is only the recomputed
+		// pass's provisional accounting in scan order; dealAsked aligns the
+		// event with the picked order (the candidates need not commute: an
+		// all-but shield beside a prevent-N shield).
 		left := e.n
 		for i := 0; i < c; i++ {
 			left -= s.spPrevented(k, cs[i].b, s.spCandAb(k, cs[i]), left)

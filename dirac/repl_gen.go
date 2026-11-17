@@ -902,6 +902,15 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 			}
 		}
 	}
+	if ro.spv != 0 {
+		// the static preventions were applied to ro.an as picked (spPick),
+		// while the recomputed pass applied every candidate in scan order
+		// (replCombatGen's spApply). The two can differ -- an all-but shield
+		// beside a prevent-N shield does not commute -- so align this event
+		// with the picked order's amount. The mirror arm grows it back when
+		// the scan order fully prevented an event the picked order dealt.
+		s.syncAskedEv(k, r, n)
+	}
 	if ro.askD == NoSlot {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
 		s.noteDmgTaken(ro.apl, n)  // kw_bloodthirst.go
