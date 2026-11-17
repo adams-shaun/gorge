@@ -113,6 +113,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"kw_graft.go":             {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_granted.go":           {false, "runtime synthesizer for layer-6 GRANTED keywords; expandKeywords never calls it"},
 	"kw_gravestorm.go":        {true, "keyword expansion registered at init; shapes compiled abilities"},
+	"kw_haunt.go":             {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_hideaway.go":          {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_increment.go":         {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_jobselect.go":         {true, "keyword expansion registered at init; shapes compiled abilities"},
