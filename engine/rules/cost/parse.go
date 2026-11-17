@@ -231,6 +231,30 @@ const revealChosenCost = `^RevealChosen<(Player|Type)(?:/([^>]*))?>$`
 // fold to "," like every other non-mana head.
 const dynTapCost = `^tapXType<(X|Any)/([^/>]+)(?:/([^>]*))?>$`
 
+// dynRevealCost matches Reveal<X/Spec> (Martyr of Sands' "Reveal X white cards
+// from your hand"): the dynamic mirror of the literal Reveal<N/Spec> head, the
+// count being the ability's X. It parses to a Reveal part with Dyn "X". Like
+// dynTapCost's X form the reveal election itself announces X (CR 601.2b) when no
+// other announce-bearing part does, and the paid count binds Count$xPaid
+// through the pay-time CastInfo; the revealed cards stay in hand.
+const dynRevealCost = `^Reveal<X/([^/>]+)(?:/([^>]*))?>$`
+
+// dynTapPart builds the TapPermanent part of a dynamic tapXType head (see
+// dynTapCost's doc): a part whose count the tap election resolves at payment --
+// "X" announcing the cast's {X}, "Any" free. N is unused.
+func dynTapPart(m groups) CostPart {
+	spec := strings.ReplaceAll(m[2], ";", ",")
+	floor := int32(0)
+	// A withTotalPowerGE<N> group predicate rides the Any form (Crew, Mossbridge
+	// Troll): the set-level floor moves into MinPower and out of the spec. The X
+	// form keeps the predicate in the spec, where the unknown token fails closed
+	// as before.
+	if m[1] == "Any" {
+		spec, floor = stripGroupPowerFloor(spec)
+	}
+	return CostPart{Dyn: m[1], Spec: spec, Desc: m[3], MinPower: floor}
+}
+
 // untapYTypeCost matches Forge's untapYType<N/Spec> cost token -- untapping N
 // permanents matching Spec as the payment (Forge CostUntapType: Benthic
 // Explorers' "untap a tapped land an opponent controls", Halo Fountain's and
@@ -552,19 +576,11 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			if m, ok := matchDynTapCost(t); ok {
-				// The dynamic tapXType heads (see the regex's doc): a TapPermanent
-				// part whose count the tap election resolves at payment -- "X"
-				// announcing the cast's {X}, "Any" free. N is unused.
-				spec := strings.ReplaceAll(m[2], ";", ",")
-				floor := int32(0)
-				// A withTotalPowerGE<N> group predicate rides the Any form (Crew,
-				// Mossbridge Troll): the set-level floor moves into MinPower and
-				// out of the spec. The X form keeps the predicate in the spec,
-				// where the unknown token fails closed as before.
-				if m[1] == "Any" {
-					spec, floor = stripGroupPowerFloor(spec)
-				}
-				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: spec, Desc: m[3], MinPower: floor})
+				c.TapPermanent = append(c.TapPermanent, dynTapPart(m))
+				continue
+			}
+			if m, ok := matchDynRevealCost(t); ok {
+				c.Reveal = append(c.Reveal, CostPart{Dyn: "X", Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
 				continue
 			}
 			if m, ok := matchChoiceCost(t); ok {
