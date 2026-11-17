@@ -313,7 +313,14 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		}
 		hyp := e.PotentialMana(card.Owner)
 		census := e.paymentPlanCensusOf(card.Owner, &hyp)
-		return census.complete || census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
+		if census.complete || census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient {
+			return true
+		}
+		// Energy Refractor's "{2}: Add one mana of any color" is a gap with no
+		// relaxation, yet it never raises the mana total: the count proof.
+		credit := e.hasCastConvoke(card.ID) || e.hasCastImprovise(card.ID) || e.hasCastDelve(card.ID, false)
+		return !census.gapGains && costOutrunsSupply(asPayer(e), card.Owner, int32(e.G.Players[card.Owner].Pool.Total()),
+			e.offerCostFor(card.Owner, card.ID, cost, spellScope(m.mode)), credit)
 	}
 	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope(m.mode), false) &&
 		!provenUnpayable() &&
