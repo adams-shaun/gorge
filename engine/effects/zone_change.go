@@ -1122,6 +1122,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	if cz.Haunt {
+		emitHaunt(h, c, moved)
+	}
 	if len(imprinted) > 0 {
 		if cz.ImprintLast {
 			clearChangeZoneImprint(h, c)

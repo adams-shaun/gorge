@@ -1749,3 +1749,9 @@ func TestReturningCreatureWasNotDealtDamageThisTurn(t *testing.T) {
 		t.Fatal("a creature that re-entered the battlefield is still marked dealt damage this turn")
 	}
 }
+
+func TestHauntKindString(t *testing.T) {
+	if got, want := Haunt.String(), "haunt"; got != want {
+		t.Fatalf("Haunt.String() = %q, want %q", got, want)
+	}
+}
