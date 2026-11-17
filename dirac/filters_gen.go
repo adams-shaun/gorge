@@ -297,7 +297,11 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			}
 		}
 	}
-	return s.flags2Obj(f&^kop.F2Kicked, o) // a permanent's kicked mark was read above
+	so := NoObj
+	if src != NoSlot {
+		so = s.perms[src].obj
+	}
+	return s.flags2ObjSrc(k, f&^kop.F2Kicked, o, so) // a permanent's kicked mark was read above
 }
 
 // flags2Obj checks the object-identity flags (kicked spell, remembered, chosen,
@@ -737,7 +741,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			if f2&kop.F2SharesColorRem != 0 && !s.sharesColorRem(k, o, cols) {
 				return false
 			}
-			if !s.flags2Obj(f2, o) {
+			if !s.flags2ObjCtx(k, f2, o, ctx) {
 				return false
 			}
 		}
