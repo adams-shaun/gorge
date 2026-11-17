@@ -1782,6 +1782,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	if in.Op == kop.OpChangeZoneAllEx {
 		mv = in.C >> 3
 	}
+	s.czallArmRev(fl, z) // a battlefield sweep's group is in reverse move order
 	var carry czallCarry // the prefix placed before a CR 903.9b park
 	carry.load(&s.g.pre)
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {
