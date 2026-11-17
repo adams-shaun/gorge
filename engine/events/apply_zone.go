@@ -156,6 +156,12 @@ func foldMoveZone(g *state.Game, e *Event) {
 		}
 		o.HasExiledBy = false
 		o.ExiledBy = 0
+		// CR 702.55b: the haunt link belongs to one stint in exile, and a
+		// haunted creature that re-enters the battlefield is a new object.
+		o.Haunting = 0
+		if e.To == state.ZBattlefield && !wasBattlefield {
+			clearHauntingOf(g, e.Obj)
+		}
 		if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
 			applyEntryCounterPairs(o, e.Pairs)
 		}
@@ -1539,4 +1545,28 @@ func bearerIncarnation(g *state.Game, id state.ObjID, ahead uint32) uint32 {
 		return b.Incarnation + ahead
 	}
 	return 0
+}
+
+// foldHaunt folds Kind Haunt (CR 702.55b): the exiled card Obj now haunts
+// IDs[0]. A card that is not in exile, or an event with no creature, folds to
+// nothing.
+func foldHaunt(g *state.Game, e *Event) {
+	o := g.Obj(e.Obj)
+	if o == nil || o.Zone != state.ZExile || len(e.IDs) == 0 {
+		return
+	}
+	o.Haunting = e.IDs[0]
+}
+
+// clearHauntingOf ends every haunt of creature id: it re-entered the battlefield
+// as a new object (CR 400.7), so the exiled cards that haunted its old
+// incarnation no longer do.
+func clearHauntingOf(g *state.Game, id state.ObjID) {
+	for p := range g.Players {
+		for _, c := range g.Zone(state.ZExile, state.PlayerID(p)) {
+			if co := g.Obj(c); co != nil && co.Haunting == id {
+				co.Haunting = 0
+			}
+		}
+	}
 }
