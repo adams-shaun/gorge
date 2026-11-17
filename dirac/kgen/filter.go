@@ -621,6 +621,11 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 		if head == "Permanent" {
 			c.BasePermanent = true
 		}
+	} else if head == "Snow" {
+		// the any-type head plus the Snow word (as Card.Snow): Snow.Land+YouCtrl
+		if err := c.setCmp(cmpWord7, 0, int(kop.W7Snow), "", ""); err != nil {
+			return c, fmt.Errorf("%q: %w", alt, err)
+		}
 	} else if head == "Spell" {
 		c.SpellBase = true
 	} else if head == "Outlaw" {
@@ -1067,8 +1072,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		c.Colors = col
 		return nil
 	}
-	if strings.HasPrefix(p, "non") {
-		w := p[3:]
+	if w, ok := cutNon(p); ok {
 		if col, ok := colorWords[w]; ok {
 			if !strings.Contains(c.NotColors, col) {
 				c.NotColors += col
