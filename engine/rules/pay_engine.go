@@ -33,7 +33,7 @@ var manaLetters = pay.ManaLetters
 // offer gate while the card still sat in the granted zone; the payment
 // keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
 // is on the stack and a zone re-derivation would wrongly drop the grant.
-func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [7]state.Mana) {
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [8]state.Mana) {
 	ok, spentAll, _, spentSnow, spentTyped := pay.PayManaDescriptorForSpent(asPayer(e), pc.player, paymentForCast(pc, cost), cost,
 		asEval(e).Conv(pc.player, pc.card, pay.SASpell),
 		pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType})

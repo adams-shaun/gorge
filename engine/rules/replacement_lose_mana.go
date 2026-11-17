@@ -80,6 +80,11 @@ func convertedManaCounter(counter string, color byte) string {
 	if tag, _, ok := state.TypedManaCounter(counter); ok {
 		return state.ManaUnitTags[tag] + string(color)
 	}
+	if _, ok := state.SnowTypedCounter(counter); ok {
+		// Both provenances convert together: the composed
+		// "S<Tag><colour>" spelling (state.SnowTypedCounter parses it).
+		return "S" + state.ManaUnitTags[state.TypedArtifact] + string(color)
+	}
 	return string(color)
 }
 
@@ -120,8 +125,14 @@ func applyLoseManaReplacement(ev events.Event, m replMatch, p state.Player,
 		if out == 0 {
 			continue
 		}
-		// Partition tagged units in the same order as ManaClear's drain.
+		// Partition tagged units in the same order as ManaClear's drain. The
+		// composed snow-artifact units are their own class between the typed
+		// units and the snow ones: they are counted in BOTH p.Snow and
+		// p.TypedMana[Artifact], so both tallies are made exclusive of them
+		// here and they emit under the composed counter.
 		snow := p.Snow[slot]
+		composed := p.SnowTyped[slot]
+		snow -= composed
 		var typed [7]int32
 		for tag := range typed {
 			base, _ := state.ManaUnitTypes(tag)
@@ -131,6 +142,8 @@ func applyLoseManaReplacement(ev events.Event, m replMatch, p state.Player,
 				typed[tag] = p.TypedMana[base][slot]
 				if tag < state.TypedArtifact {
 					typed[tag] -= p.ArtifactTyped[base][slot]
+				} else {
+					typed[tag] -= composed
 				}
 			}
 		}
@@ -142,6 +155,8 @@ func applyLoseManaReplacement(ev events.Event, m replMatch, p state.Player,
 				Amount: batch.Amount, Counter: convertedManaCounter(batch.Color, out), Text: text})
 			if len(batch.Color) == 2 && batch.Color[0] == 'S' {
 				snow -= batch.Amount
+			} else if _, ok := state.SnowTypedCounter(batch.Color); ok {
+				composed -= batch.Amount
 			} else if tag, _, ok := state.TypedManaCounter(batch.Color); ok {
 				typed[tag] -= batch.Amount
 			}
@@ -156,6 +171,15 @@ func applyLoseManaReplacement(ev events.Event, m replMatch, p state.Player,
 					Amount: n, Counter: state.ManaUnitTags[tag] + string(out)})
 				available -= n
 			}
+		}
+		if composed > available {
+			composed = available
+		}
+		if composed > 0 {
+			converted = append(converted, events.Event{Kind: events.ManaAdd, Player: ev.Player,
+				Amount: composed,
+				Counter: "S" + state.ManaUnitTags[state.TypedArtifact] + string(out)})
+			available -= composed
 		}
 		if snow > available {
 			snow = available

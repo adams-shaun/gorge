@@ -70,6 +70,11 @@ func (e *Engine) plainManaAdd(p state.PlayerID, source state.ObjID, ma *cards.SA
 	}
 	tag, snow := effects.ManaProducerTag(e, source)
 	switch {
+	case tag != "" && snow:
+		// Both provenances on one unit: the composed "S<Tag><colour>" form
+		// (today only the Artifact tag composes with snow —
+		// effects.ManaProducerTag).
+		ev.Counter = "S" + tag + produced
 	case tag != "":
 		ev.Counter = tag + produced
 	case snow:

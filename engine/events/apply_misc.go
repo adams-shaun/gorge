@@ -33,6 +33,7 @@ func foldManaClear(g *state.Game, e *Event) {
 			p := &g.Players[e.Player]
 			p.Pool = state.Mana{}
 			p.Snow = state.Mana{}
+			p.SnowTyped = state.Mana{}
 			p.PersistentMana = state.Mana{}
 			p.CombatMana = state.Mana{}
 			for i := range p.TypedMana {

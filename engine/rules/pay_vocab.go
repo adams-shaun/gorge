@@ -31,15 +31,15 @@ type (
 	windowManaUnit = pay.WindowUnit
 )
 
-func resolveMana(c Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+func resolveMana(c Cost, pool, snow state.Mana, typed [8]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
 	return pay.ResolveMana(c, pool, snow, typed, life, conv)
 }
 
-func resolveManaWith(c Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
+func resolveManaWith(c Cost, pool, snow state.Mana, typed [8]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	return pay.ResolveManaWith(c, pool, snow, typed, life, bLifeOK, rider, conv)
 }
 
-func payable(c Cost, pool, snow state.Mana, typed [7]state.Mana, life int32) bool {
+func payable(c Cost, pool, snow state.Mana, typed [8]state.Mana, life int32) bool {
 	return pay.Payable(c, pool, snow, typed, life)
 }
 

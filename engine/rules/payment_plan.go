@@ -1121,7 +1121,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	}
 	desc := pay.DescriptorFor(cast.Object, false, cost)
 	initial := pay.PlanPool(asPayer(e), p, &desc)
-	payment, ok := resolveManaWith(cost, pay.ManaAdd(initial, produced), state.Mana{}, [7]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
+	payment, ok := resolveManaWith(cost, pay.ManaAdd(initial, produced), state.Mana{}, [8]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
 	expected := pay.Witness(cost, initial, produced, nil, payment.Pool)
 	if !ok || pay.ManaAmount(payment.Pool) != plan.PoolAfter || expected.PoolSpend != plan.PoolSpend {
 		return fmt.Errorf("payment witness does not settle")

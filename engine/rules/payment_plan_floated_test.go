@@ -66,7 +66,7 @@ func TestPlannedCastFromFloatedArtifactMana(t *testing.T) {
 	rock := onBoard(t, e, 0, floatedRock)
 	mountain := onBoard(t, e, 0, floatedMountain)
 	floatFrom(t, e, rock)
-	if e.G.Players[0].ManaUnits() == ([7]state.Mana{}) {
+	if e.G.Players[0].ManaUnits() == ([8]state.Mana{}) {
 		t.Fatal("precondition: the rock's mana carries no producer type")
 	}
 	plan := castPlanned(t, e, spell)

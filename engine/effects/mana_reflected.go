@@ -315,6 +315,11 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		}
 		counter := color
 		switch {
+		case tag != "" && snow:
+			// Both provenances on one unit: the composed "S<Tag><colour>"
+			// form (today only the Artifact tag composes with snow —
+			// ManaProducerTag).
+			counter = "S" + tag + color
 		case tag != "":
 			counter = tag + color
 		case snow:

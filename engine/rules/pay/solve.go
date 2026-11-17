@@ -208,35 +208,59 @@ func anyTypeAlts() []PipAlt {
 // Phyrexian face spent. Snow units are always consumed alongside their pool
 // slot (Snow[i] never exceeds Pool[i]); typed units are
 // consumed alongside theirs (TypedMana[k][i] never exceeds Pool[i]).
+// Typed is the exclusive ManaUnits partition, so a snow-ARTIFACT unit
+// (CR 107.4h with snow a supertype independent of the card types) is its
+// own slot: Typed[state.TypedSnowArtifact] counts it, Typed[TypedArtifact]
+// does not, and consuming it moves the pool, the inclusive Snow tally and
+// the composed slot together.
 type Payment struct {
 	Pool      state.Mana
 	Snow      state.Mana
-	Typed     [7]state.Mana
+	Typed     [8]state.Mana
 	LifeSpent int32
 }
 
 // takeUnit consumes one mana unit from slot i of rem/sn/typed, preferring a
 // PLAIN unit when one exists, then the typed units in their fixed
-// Treasure > Cave > Desert order, and a SNOW unit LAST so a snow unit stays
+// Treasure > Cave > Desert order, then a snow-ARTIFACT unit (its composed
+// consumption also leaves the Snow tally — a unit that is both), then the
+// artifact-only typed units, and a SNOW unit LAST so a snow unit stays
 // available for a later {S} Pip (typed units have no pips of their own, so
 // they go before snow but after plain); the backtracking search undoes the
 // choice if the rest of the cost cannot be paid that way. plain is the
-// slot's untagged remainder; each tally is <= the pool by construction.
-func takeUnit(rem, sn *state.Mana, typed *[7]state.Mana, i int) {
+// slot's untagged remainder: the composed slot (TypedSnowArtifact) is part
+// of the inclusive Snow tally already subtracted below, so it is not
+// subtracted again here. Each tally is <= the pool by construction.
+func takeUnit(rem, sn *state.Mana, typed *[8]state.Mana, i int) {
 	plain := (*rem)[i] - (*sn)[i]
-	for t := range *typed {
+	for t := 0; t < len(*typed); t++ {
+		if t == state.TypedSnowArtifact {
+			continue
+		}
 		plain -= (*typed)[t][i]
 	}
 	if plain > 0 {
 		(*rem)[i]--
 		return
 	}
-	for t := range *typed {
-		if (*typed)[t][i] > 0 {
-			(*rem)[i]--
-			(*typed)[t][i]--
-			return
+	for t := 0; t < len(*typed); t++ {
+		if t == state.TypedSnowArtifact || (*typed)[t][i] <= 0 {
+			continue
 		}
+		(*rem)[i]--
+		if t == state.TypedArtifact {
+			// A composed unit is preferred over the artifact-only typed
+			// one: its consumption moves the Snow tally with the pool, so
+			// every head that counts this spend (the {S} and the artifact
+			// one) sees it leave.
+			if (*typed)[state.TypedSnowArtifact][i] > 0 {
+				(*sn)[i]--
+				(*typed)[state.TypedSnowArtifact][i]--
+				return
+			}
+		}
+		(*typed)[t][i]--
+		return
 	}
 	(*rem)[i]--
 	(*sn)[i]--
@@ -264,7 +288,7 @@ func takeUnit(rem, sn *state.Mana, typed *[7]state.Mana, i int) {
 // A payer under a CantChangeLife static never reaches this function: every
 // offer and payment site asks Eval.LifePaymentForbidden first and takes
 // ResolveManaNoLifePay (below) instead.
-func ResolveMana(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *Conv) (Payment, bool) {
+func ResolveMana(c cost.Cost, pool, snow state.Mana, typed [8]state.Mana, life int32, conv *Conv) (Payment, bool) {
 	return ResolveManaWith(c, pool, snow, typed, life, false, PipRider{}, conv)
 }
 
@@ -276,7 +300,7 @@ func ResolveMana(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, life i
 // pays 0 life -- the overwhelming majority, and every pip paid in mana -- is
 // unaffected (CR 119.4b: "Players can always pay 0 life ... even if an effect
 // says players can't pay life").
-func ResolveManaNoLifePay(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, conv *Conv) (Payment, bool) {
+func ResolveManaNoLifePay(c cost.Cost, pool, snow state.Mana, typed [8]state.Mana, conv *Conv) (Payment, bool) {
 	if c.Life > 0 || len(c.LifeX) > 0 || c.LifeHalfUp {
 		return Payment{}, false
 	}
@@ -304,7 +328,7 @@ func ResolveManaNoLifePay(c cost.Cost, pool, snow state.Mana, typed [7]state.Man
 // component pays 0 life, which is always legal, whatever the life total. The
 // Phyrexian/life Pip alternatives inside the search still require life >= 2
 // each, so a dead payer can never pay a Pip with life.
-func ResolveManaWith(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, bLifeOK bool, rider PipRider, conv *Conv) (Payment, bool) {
+func ResolveManaWith(c cost.Cost, pool, snow state.Mana, typed [8]state.Mana, life int32, bLifeOK bool, rider PipRider, conv *Conv) (Payment, bool) {
 	if c.Life > 0 && life < c.Life {
 		return Payment{}, false
 	}
@@ -411,12 +435,18 @@ func ResolveManaWith(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, li
 				// A {S} Pip consumes an actual SNOW unit: both the pool slot
 				// and the parallel snow tally, so the unit that leaves is the
 				// unit that was snow (never a plain unit misattributed into
-				// the tally).
+				// the tally). A unit that is ALSO artifact-typed (the
+				// composed TypedSnowArtifact slot) is preferred: its
+				// consumption moves the composed tally with the snow one, so
+				// the artifact spend head counts the same unit once too.
 				for di, s := range sn {
 					if s > 0 {
 						beforeRem, beforeSn, beforeTyped := rem, sn, tp
 						rem[di]--
 						sn[di]--
+						if tp[state.TypedSnowArtifact][di] > 0 {
+							tp[state.TypedSnowArtifact][di]--
+						}
 						if rec(i+1, generic) {
 							return true
 						}
@@ -471,7 +501,7 @@ func ResolveManaWith(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, li
 // "is there ANY way this cost can be paid right now" -- the same ResolveMana
 // the payment stage uses, so an offered cost and the cost it charges can
 // never disagree.
-func Payable(c cost.Cost, pool, snow state.Mana, typed [7]state.Mana, life int32) bool {
+func Payable(c cost.Cost, pool, snow state.Mana, typed [8]state.Mana, life int32) bool {
 	_, ok := ResolveMana(c, pool, snow, typed, life, nil)
 	return ok
 }
@@ -483,7 +513,7 @@ func PoolCanPay(c cost.Cost, p state.Mana) bool {
 	// here) and a {S} Pip is unpayable. This is the pure pricing question the
 	// corpus invariants ask, and it never treats a hybrid as generic nor lets
 	// colourless `pay` it.
-	_, ok := ResolveMana(c, p, state.Mana{}, [7]state.Mana{}, 0, nil)
+	_, ok := ResolveMana(c, p, state.Mana{}, [8]state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -500,7 +530,7 @@ func PoolPay(c cost.Cost, p state.Mana) (state.Mana, bool) {
 	// a fully resolved cost here). ResolveMana already reserves the coloured
 	// pips and deducts generic, so the returned pool is fully spent. A failed
 	// search returns the input pool untouched.
-	pay, ok := ResolveMana(c, p, state.Mana{}, [7]state.Mana{}, 0, nil)
+	pay, ok := ResolveMana(c, p, state.Mana{}, [8]state.Mana{}, 0, nil)
 	if !ok {
 		return p, false
 	}

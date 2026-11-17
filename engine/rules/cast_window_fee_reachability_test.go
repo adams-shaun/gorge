@@ -32,7 +32,7 @@ func TestCastWindowGenericFeeConsumesTheRealPool(t *testing.T) {
 	}
 	units := e.castWindowUnitsForSourceTest(source, "G", 1)
 	units[0].Alts[0].Amt = 2
-	if e.castWindowReachable(0, ParseCost("C G"), e.G.Players[0].Pool, state.Mana{}, [7]state.Mana{}, 20, nil, pipRider{}, units) {
+	if e.castWindowReachable(0, ParseCost("C G"), e.G.Players[0].Pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("probe claims {C} pays a {1}: add {G}{G} activation followed by a {C}{G} spell")
 	}
 	if !e.untappedManaSource(0, source) {
@@ -52,10 +52,10 @@ func TestCastWindowFeeColourIsThePayersChoice(t *testing.T) {
 	addMana(t, e, 0, "G")
 	addMana(t, e, 0, "G")
 	units := e.castWindowUnitsForSourceTest(source, "W", 1)
-	if !e.castWindowReachable(0, ParseCost("G W W"), e.G.Players[0].Pool, state.Mana{}, [7]state.Mana{}, 20, nil, pipRider{}, units) {
+	if !e.castWindowReachable(0, ParseCost("G W W"), e.G.Players[0].Pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("the probe tried one fee colour only")
 	}
-	if e.castWindowReachable(0, ParseCost("G G W W"), e.G.Players[0].Pool, state.Mana{}, [7]state.Mana{}, 20, nil, pipRider{}, units) {
+	if e.castWindowReachable(0, ParseCost("G G W W"), e.G.Players[0].Pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("the probe claims four mana from three, the fee spent")
 	}
 }
@@ -77,7 +77,7 @@ func TestCastWindowFeeFundingMayExceedSpellPipCount(t *testing.T) {
 		t.Fatalf("precondition pool total = %d, want 1", got)
 	}
 	units := append(e.castWindowUnitsForSourceTest(freeID, "C", 0), e.castWindowUnitsForSourceTest(paidID, "G", 2)...)
-	if !e.castWindowReachable(0, ParseCost("G"), e.G.Players[0].Pool, state.Mana{}, [7]state.Mana{}, 20, nil, pipRider{}, units) {
+	if !e.castWindowReachable(0, ParseCost("G"), e.G.Players[0].Pool, state.Mana{}, [8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("probe missed free {C}, then pay {2}, then produce {G}; search cannot be bounded by the spell's one pip")
 	}
 	if !e.untappedManaSource(0, freeID) {
@@ -109,7 +109,7 @@ func TestCastWindowGenericFeeDebitsSnowProvenance(t *testing.T) {
 	}
 	units := e.castWindowUnitsForSourceTest(source, "G", 2)
 	if e.castWindowReachable(0, ParseCost("S G"), e.G.Players[0].Pool, e.G.Players[0].Snow,
-		[7]state.Mana{}, 20, nil, pipRider{}, units) {
+		[8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("probe claims the {2} fee can spend the only snow {C} and still pay {S}{G}")
 	}
 
@@ -124,7 +124,7 @@ func TestCastWindowGenericFeeDebitsSnowProvenance(t *testing.T) {
 	}
 	units = e.castWindowUnitsForSourceTest(source, "G", 1)
 	if !e.castWindowReachable(0, ParseCost("S G"), e.G.Players[0].Pool, e.G.Players[0].Snow,
-		[7]state.Mana{}, 20, nil, pipRider{}, units) {
+		[8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("probe failed to preserve snow {W} while the {1} fee spends {C}")
 	}
 }
@@ -159,7 +159,7 @@ Oracle:x
 	units := append(e.castWindowUnitsForSourceTest(largeID, "C", 2), e.castWindowUnitsForSourceTest(smallID, "G", 1)...)
 	units[0].Alts[0].Amt = 3
 	if !e.castWindowReachable(0, ParseCost("C C G"), e.G.Players[0].Pool, state.Mana{},
-		[7]state.Mana{}, 20, nil, pipRider{}, units) {
+		[8]state.Mana{}, 20, nil, pipRider{}, units) {
 		t.Fatal("probe missed {C}{C} -> pay {2}, add {C}{C}{C} -> pay {1}, add {G}")
 	}
 	if !e.untappedManaSource(0, largeID) || !e.untappedManaSource(0, smallID) {
