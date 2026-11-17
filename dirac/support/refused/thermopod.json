@@ -1,0 +1,14 @@
+{
+  "card": "Thermopod",
+  "class": "unmodelled-landgrant",
+  "why": "gorge offers both productions of a creature made a Forest land by Ashaya, Soul of the Wild (CR 305.6: the intrinsic {T}: Add {G} beside its own sacrifice-a-creature {R} ability) and the kernel's one-ability pcard holds a single production: a Thermopod under the grant stalls landgrant, dr-mbc-baaa pair 3 (stall landgrant, static_landtype.go blgPlain)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "thermopod_ashaya_grant_over_a_sacrifice_mana_creature_unmodelled"
+  }
+}
