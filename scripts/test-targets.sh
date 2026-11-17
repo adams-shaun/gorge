@@ -2,8 +2,8 @@
 # test-targets.sh <one|targeted|smart|list>: the make targets that replace a raw `go test`.
 #
 #   make test-one PKG=./p RUN='^TestX$'   one package, named tests: debugging, regeneration, scratch probes
-#   make test-targeted [BASE=land]        packages the diff touches, plus every package whose tests import them
-#   make test-smart [BASE=land]           the steps a seat can act on, fail-fast, on a committed tree
+#   make test-targeted [BASE=origin/main]        packages the diff touches, plus every package whose tests import them
+#   make test-smart [BASE=origin/main]           the steps a seat can act on, fail-fast, on a committed tree
 #   make precheck                         an alias for test-smart
 #
 # test-smart's step 4 is GORGE_TEST_SMART_GATES's:
@@ -49,7 +49,7 @@ envfile=${GORGE_TEST_TARGETS_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/gorge/test-t
 # shellcheck disable=SC1090
 [ ! -r "$envfile" ] || { set -a; . "$envfile"; set +a; }
 py=(python3 -I "$top/scripts/test_targets.py")
-BASE=${BASE:-land}
+BASE=${BASE:-origin/main}
 t0=$SECONDS
 sha=$(git rev-parse --short=10 HEAD 2>/dev/null || echo -)
 [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || sha=$sha+dirty
