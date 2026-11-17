@@ -397,7 +397,7 @@ func (s *State) finishCleanup(k *prep) {
 			p.cseen |= cseenDT // gorge lists the removed mark at 0
 		}
 		p.flags &^= pfDeathtouched | pfDtMore | pfRegen | pfRegenX
-		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
+		p.eotP, p.eotT, p.eotKw, p.eotKwRep, p.spare = 0, 0, 0, [2]kop.KwMask{}, 0 // spare: the P/T switch (kw_kwmark.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}
@@ -581,7 +581,7 @@ func (s *State) sba(k *prep) bool {
 				// A timestamped override record can set the base P/T (a
 				// value-driven Animate: HandSize can be 0), so the printed
 				// toughness is not enough for the no-damage shortcut.
-				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.fxM.has(sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
+				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.sbaPTMoved(k, sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
 					p.ovr.flags&(ovSetPT|ovSetPTEOT|ovCopy) == 0 && k.cards[p.card].tough > 0 {
 					goto noncreature
 				}
