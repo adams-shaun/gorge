@@ -12,8 +12,9 @@ import (
 
 // The lockstep: the view-only MayLookAt$ over face-down
 // battlefield creatures. DSK Found Footage carries the printed static; MKM
-// Lumbering Laundry carries it as an Effect-delivered static (its {2}
-// activation resolves doing nothing, like gorge's). The pool also holds the
+// Lumbering Laundry carries it as an Effect-delivered static whose {2}
+// activation registers a look grant (information only; it changes no state
+// and the kernel lowers it to no static). The pool also holds the
 // facedown Morph/Disguise carriers so face-down creatures exist for the look
 // to cover, Grizzly Bears as the vanilla body and Moxen/lands as mana.
 var kmaylookatDeck = []cardset.Entry{
@@ -33,8 +34,8 @@ var kmaylookatDeck = []cardset.Entry{
 }
 
 // kmaylookatCounts counts the two carriers' activations from gorge's own
-// options, plus the unimplemented Note gorge emits when Lumbering Laundry's
-// Effect resolves (the Stop rule: no continuous effect is registered).
+// options, plus any unimplemented-continuous-effect Note Lumbering Laundry's
+// Effect emits. The battlefield look must register, so notes stays 0.
 type kmaylookatCounts struct {
 	laundry, footage int // chosen activations across every game
 	notes            int // "continuous effect Continuous unimplemented" Notes
@@ -135,9 +136,9 @@ func kmaylookatEnv(t *testing.T) (*cards.Registry, cardset.Set, [2][]*cards.Card
 	return reg, set, decks, tbl
 }
 
-// kmaylookatFinish counts the unimplemented Note gorge emits when Lumbering
-// Laundry's Effect resolves. A Note is not a lockstep-compared event; the
-// count proves gorge registered nothing for the battlefield look (Stop rule).
+// kmaylookatFinish counts any unimplemented-continuous-effect Note Lumbering
+// Laundry's Effect emits. A Note is not a lockstep-compared event; the count
+// proves gorge registered the battlefield look (it must stay 0).
 func kmaylookatFinish(c *kmaylookatCounts) func(*GorgeSide) {
 	return func(g *GorgeSide) {
 		for i := range g.E.L.Events {
@@ -204,8 +205,8 @@ func TestMaylookatLockstep(t *testing.T) {
 	if counts.footage < 5 {
 		t.Errorf("Found Footage's surveil-draw activated %d times, want at least 5", counts.footage)
 	}
-	if counts.notes == 0 {
-		t.Errorf("no unimplemented continuous-effect Note: gorge registered the battlefield look")
+	if counts.notes != 0 {
+		t.Errorf("%d unimplemented continuous-effect Notes: gorge did not register the battlefield look", counts.notes)
 	}
 }
 
