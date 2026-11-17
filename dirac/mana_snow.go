@@ -138,3 +138,73 @@ func (s *State) snowSync(p uint8) {
 		s.g.poolArt[i] &^= poolArtSnow
 	}
 }
+
+// snowPays reports whether p's pool pays cost, which asks {S} pips (CR 107.4h):
+// the coloured pips come off a copy of the pool first (gorge's ResolveManaWith
+// pays them before the {S} pips, and spends a plain unit of a colour before a
+// snow one), the tally is clamped to what is left, cost.Snow snow units are
+// needed across the colours, and the rest of the pool covers Generic. A cost
+// the lowering never emits with {S} (a hybrid or {X} pip) is never paid.
+func (s *State) snowPays(p uint8, cost *kop.ManaCost) bool {
+	if cost.Hyb[0] != 0 || cost.X != 0 {
+		return false
+	}
+	pool := s.pl[SeatIx(p)].pool
+	tot, snow := 0, 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pool[c] < cost.Pips[c] {
+			return false
+		}
+		pool[c] -= cost.Pips[c]
+		tot += int(pool[c])
+		snow += int(min(s.snowAt(p, c), pool[c]))
+	}
+	return snow >= int(cost.Snow) && tot-int(cost.Snow) >= int(cost.Generic)
+}
+
+// DebugSnowAnyUnit lets a {S} pip take any unit of the pool in generic order,
+// not a snow one (mutation testing only, TestSnowCostMutation).
+var DebugSnowAnyUnit bool
+
+// SnowStats counts {S} costs, for oracle tests only.
+type SnowStats struct {
+	PipsPaid int // {S} pips payFromPool paid from a snow unit
+	Offered  int // {S} activations offered
+}
+
+// DebugSnowStats is the test hook; nil in normal play.
+var DebugSnowStats *SnowStats
+
+// snowPay pays n {S} pips from p's pool, after its coloured pips: each takes
+// the first colour of W U B R G C whose snow tally is non-zero (gorge
+// ResolveManaWith alt.Snow), decrementing the pool and the tally. The tally is
+// synced first (a plain unit of a colour goes before a snow one). It panics, as
+// the other payment arms do, when no snow unit is left.
+func (s *State) snowPay(p uint8, n uint8) {
+	s.snowSync(p)
+	pl := &s.pl[SeatIx(p)]
+	order := [kop.NumManaKinds]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C}
+	if DebugSnowAnyUnit {
+		order = [kop.NumManaKinds]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
+	}
+	for ; n > 0; n-- {
+		paid := false
+		for _, c := range order {
+			if pl.pool[c] == 0 || !DebugSnowAnyUnit && s.snowAt(p, c) == 0 {
+				continue
+			}
+			pl.pool[c]--
+			if t := s.snowAt(p, c); t > 0 {
+				s.snowSetAt(p, c, t-1)
+			}
+			paid = true
+			break
+		}
+		if !paid {
+			panic("kernel: payment failed (snow)")
+		}
+		if st := DebugSnowStats; st != nil {
+			st.PipsPaid++
+		}
+	}
+}
