@@ -122,7 +122,7 @@ var rawTableUsers = []string{
 	"dirac/synthshapes_test.go", "dirac/xannounce_test.go", "dirac/grantcap_reader_test.go",
 	"dirac/mana_grantedoffers_test.go", "dirac/graveact_restricted_test.go",
 	"dirac/altadd_total_test.go", "dirac/mana_grantedrefused_test.go",
-	"dirac/arena_test.go",
+	"dirac/arena_test.go", "dirac/trig_cost_pay_comboany_test.go",
 }
 
 // rawTableViolation is the selector in src that file may not use, or "".
