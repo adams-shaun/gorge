@@ -23,8 +23,8 @@ func TestAnywhereGraveOwnMoveSilentInSweep(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	const witness = "Name:Anywhere grave witness\nTypes:Creature Human\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Graveyard | ValidCard$ Card.YouOwn | Execute$ Gain\n" +
-		"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Graveyard | ValidCard$ Card.YouOwn | Execute$ Heal\n" +
+		"SVar:Heal:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n"
 	watcher := onBoard(t, e, 0, witness)
 	other := onBoard(t, e, 1, "Name:Other creature\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	var land state.ObjID
@@ -66,8 +66,8 @@ func TestAnywhereGraveSelfLineStillFiresForItsOwnMove(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	const selfLine = "Name:Anywhere grave self\nTypes:Creature Human\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ Gain\n" +
-		"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ Heal\n" +
+		"SVar:Heal:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n"
 	id := onBoard(t, e, 0, selfLine)
 	var land state.ObjID
 	for i := range e.G.Objs {
