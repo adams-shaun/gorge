@@ -67,7 +67,7 @@ the data was not available.
 ## The renderer: `scripts/docs_sets.py`
 
 gorge keeps the renderer. It writes `docs/site/support/_generated_sets.md`,
-which is gitignored and never committed. The file has four sections marked
+which is gitignored and never committed. The file has sections marked
 for `pymdownx.snippets`, and `sets.md` includes each one by name:
 
 | Section | Contents |
@@ -76,6 +76,7 @@ for `pymdownx.snippets`, and `sets.md` includes each one by name:
 | `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set on dirac's support page, joined by set code |
 | `rollup` | the roll-up by set type, then every one of the 591 sets |
 | `charts` | one chart per engine over the Standard sets |
+| `edh` | Commander deck coverage from `forgec edhcover`'s `.coverage/edh.json` (`--edh`); "not available" without it |
 
 To render and build locally:
 
