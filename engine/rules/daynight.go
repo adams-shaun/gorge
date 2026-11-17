@@ -170,3 +170,36 @@ func (e *Engine) spellsCastLastTurn() (total, most int) {
 	}
 	return total, most
 }
+
+// dayNightSwitched reports whether the logged DayNightChange ev switched an
+// existing designation: an earlier DayNightChange precedes it with no CR 727
+// restart between. Only a restart returns the game to neither (the fold
+// ignores any other value), so the first change after the game's start or a
+// restart is neither becoming day or night.
+func (e *Engine) dayNightSwitched(ev events.Event) bool {
+	log := e.L.Events
+	i := len(log) - 1
+	for i >= 0 && log[i].Seq != ev.Seq {
+		i--
+	}
+	for i--; i >= 0; i-- {
+		switch log[i].Kind {
+		case events.DayNightChange:
+			return true
+		case events.GameRestart:
+			return false
+		}
+	}
+	return false
+}
+
+// dayTimeName is Forge's DayTime$ spelling of a designation.
+func dayTimeName(d state.DayNight) string {
+	switch d {
+	case state.DayNightDay:
+		return "Day"
+	case state.DayNightNight:
+		return "Night"
+	}
+	return "Neither"
+}

@@ -1,10 +1,49 @@
 package effects
 
-import "github.com/adams-shaun/gorge/engine/state"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
+)
 
 // dayNightBound reports whether id has daybound or nightbound as a derived
 // keyword. CR 702.145b/e: such a permanent can't transform except by its own
 // daybound/nightbound ability, so SetState Mode$ Transform leaves it alone.
 func dayNightBound(h Host, id state.ObjID) bool {
 	return h.HasKeyword(id, "Daybound") || h.HasKeyword(id, "Nightbound")
+}
+
+func init() { Register("DayTime", effDayTime) }
+
+// effDayTime is DB$ DayTime (CR 731.1): Value$ Day or Night makes it that
+// designation, Value$ Switch turns day into night and night into day (and
+// leaves neither alone). An unchanged designation emits nothing, the same
+// once-per-change discipline rules' setDayNight keeps; the CR 702.145c/f
+// face sync follows at the next state-based re-check
+// (rules' dayNightStateCheck re-checks the faces under a designation).
+func effDayTime(h Host, c *Ctx, sa *cards.SA) {
+	cur := h.Game().DayNight
+	to := cur
+	switch v := strings.TrimSpace(sa.ParamStr(cards.PKValue)); {
+	case strings.EqualFold(v, "Day"):
+		to = state.DayNightDay
+	case strings.EqualFold(v, "Night"):
+		to = state.DayNightNight
+	case strings.EqualFold(v, "Switch"):
+		switch cur {
+		case state.DayNightDay:
+			to = state.DayNightNight
+		case state.DayNightNight:
+			to = state.DayNightDay
+		}
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "unmodelled DayTime Value$ " + v})
+		return
+	}
+	if to == cur {
+		return
+	}
+	h.Emit(events.Event{Kind: events.DayNightChange, Amount: int32(to), Text: to.String()})
 }

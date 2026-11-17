@@ -118,6 +118,9 @@ type Board interface {
 	// spells in all, and the most any one player cast (the werewolf
 	// intervening-ifs, CR 603.4).
 	SpellsCastLastTurn() (total, most int)
+	// DayNightSwitched reports whether the DayNightChange ev turned day into
+	// night or night into day (CR 731), rather than neither into either.
+	DayNightSwitched(ev events.Event) bool
 	// SpellsCastThisTurn and ManaExpendTotal are the per-player turn tallies.
 	SpellsCastThisTurn(p state.PlayerID) int
 	ManaExpendTotal(p state.PlayerID) int32

@@ -948,7 +948,19 @@ func phaseTriggerMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	return true
 }
 
+// dayTimeChangesMatches implements Mode$ DayTimeChanges ("whenever day
+// becomes night or night becomes day", Brimstone Vandal): a DayNightChange
+// that switched an existing designation. The first designation of a game
+// (neither becoming day or night) is not a change of day to night or night
+// to day.
+func dayTimeChangesMatches(e Board, ev events.Event) bool {
+	return ev.Kind == events.DayNightChange && e.DayNightSwitched(ev)
+}
+
 func init() {
+	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return dayTimeChangesMatches(e, ev)
+	}, "DayTimeChanges")
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return commitCrimeMatches(e, t, source, ev)
 	}, "CommitCrime")
