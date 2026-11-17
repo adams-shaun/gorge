@@ -355,9 +355,9 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 
 // TestSupportDocIsCurrent holds dirac/docs/support.md to this tree. By default it fails only on
 // a fall against the stored page (supportFalls): a card losing support is a regression. A page
-// stale with rises only is logged, not failed (operator 11-17: "should doc updates really block
-// a merge? seems like a warning or nightly failure"), because PRs merged together in one queue
-// batch each carry a correct page that no longer matches their union. DIRAC_SUPPORT_STRICT=1
+// stale with rises only is logged, not failed: a doc update should not block a merge, and PRs
+// merged together in one queue batch each carry a correct page that no longer matches their
+// union. DIRAC_SUPPORT_STRICT=1
 // (the nightly) compares the page byte for byte.
 func TestSupportDocIsCurrent(t *testing.T) {
 	heavyParallel(t)
