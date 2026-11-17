@@ -47,6 +47,14 @@ done
 fresh=$(grep -E '^dirac/.*_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u)
 if [ -n "$fresh" ]; then
   scratch=$(mktemp -d -p "${PRECHECK_FRESH_DIR:-$HOME/.cache}" pr-precheck-fresh.XXXXXX)
+  # cardset walks up from the cwd looking for .cards: one above the scratch directory is a corpus, and the step would
+  # read green on tests that must skip (fresh-clone-check.sh has the same guard).
+  d=$scratch
+  while :; do
+    [ ! -e "$d/.cards" ] || { rm -rf "$scratch"; fail "fresh clone: $d/.cards is above the scratch directory: set PRECHECK_FRESH_DIR"; }
+    [ "$d" != / ] || break
+    d=$(dirname "$d")
+  done
   git archive HEAD | tar -x -C "$scratch"
   # A clone has a .git, as scripts/fresh-clone-check.sh gives its export: without one testutil.CorpusDirOrSkip fails
   # rather than skips, a false red on every PR with a new corpus test (the #788 seat found it, 11-17).
