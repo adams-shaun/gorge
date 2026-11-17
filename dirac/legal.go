@@ -2036,6 +2036,24 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					open = s.storePotential(open, sl, ab, d, add)
 					continue
 				}
+				if ab.ManaIdentityPotential {
+					// a Produced$ ColorIdentity source a rider or a cost beyond {T}
+					// kept out of the planner's census (Path of Ancestry, Opal
+					// Palace): a payment's bound prices it at the controller's
+					// commander identity (gorge potential.go
+					// addPotentialIdentityColours), while the plain over-bound prices
+					// the ColorIdentity word unbounded in every colour (CR 903.4).
+					// No commander reads nothing, which adds no unit either way
+					// (gorge potentialIdentityEmpty).
+					if m := s.identityColours(k, s.perms[sl].ctrl); m != 0 {
+						if d == nil {
+							open = true
+						} else {
+							add(sl, uint8(m), max(ab.ManaN, 1))
+						}
+					}
+					continue
+				}
 				if s.censusDynamicAb(k, sl, ab, &cen, fold) {
 					continue
 				}
@@ -2054,6 +2072,57 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// identityPotentialAbility is the source at sl's Produced$ ColorIdentity
+// ability a rider or a cost beyond {T} kept out of the planner's census
+// (kop.Ability.ManaIdentityPotential), and its index on the card.
+func (s *State) identityPotentialAbility(k *prep, sl Slot) (*kop.Ability, int, bool) {
+	if k.gen == nil {
+		return nil, 0, false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if j < 16 && a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && a.ManaIdentityPotential {
+			return a, j, true
+		}
+	}
+	return nil, 0, false
+}
+
+// identityPotentialView is the payment window's view of the source at sl when
+// its identity-potential ability is a plain {T} mana ability: one mana of each
+// colour in its controller's commander identity (CR 903.4). Every other cost
+// shape stays out of the manual window; the potential gate still offers its
+// bound, and a payment it cannot fund declines (CR 118.3), as any over-bound
+// offer does.
+func (s *State) identityPotentialView(k *prep, sl Slot) (*pcard, bool) {
+	a, j, ok := s.identityPotentialAbility(k, sl)
+	if !ok || a.Cost.Flags != kop.CostTap || a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 {
+		return nil, false
+	}
+	m := s.identityColours(k, s.perms[sl].ctrl)
+	if m == 0 {
+		return nil, false
+	}
+	return &pcard{manaAb: int8(j), manaCol: m, manaN: max(a.ManaN, 1), manaTap: true}, true
+}
+
+// identityPotentialSource reports whether the source at sl has a Produced$
+// ColorIdentity ability a rider or a cost beyond {T} kept out of the planner's
+// census (kop.Ability.ManaIdentityPotential) that the potential walk can use
+// for payment d now: its cost payable and a commander identity to read (no
+// commander reads nothing, CR 903.4f). Gorge's payment-bound fold prices such a
+// source at the identity colours (rules potential.go
+// addPotentialIdentityColours), so a trigger's own cost must see it as a source
+// even though the planner lists no unit for it.
+func (s *State) identityPotentialSource(k *prep, p uint8, sl Slot, d *payDesc) bool {
+	if s.identityColours(k, s.perms[sl].ctrl) == 0 {
+		return false
+	}
+	a, j, ok := s.identityPotentialAbility(k, sl)
+	return ok && s.potentialAdmits(k, p, sl, j, a, d)
 }
 
 // potentialDynamicSource reports whether sl's view is an unbounded dynamic

@@ -386,6 +386,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldSkipTurn(g, e)
 	case SkipPhase:
 		foldSkipPhase(g, e)
+	case Haunt:
+		foldHaunt(g, e)
 	case ControlPlayerChange:
 		foldControlPlayerChange(g, e)
 	case ExtraTurn:
