@@ -39,6 +39,7 @@ Cloud Manta
 Commanding Presence
 Complex Automaton
 Contagion Clasp
+Conviction
 Corpsejack Menace
 Court of Ardenvale
 Court of Cunning
@@ -70,6 +71,7 @@ Elusive Tormentor
 Elvish Soultiller
 Emergent Growth
 Enlisted Wurm
+Experimental Overload
 Famished Ghoul
 Far Traveler
 Fast Forward
@@ -135,6 +137,7 @@ Legion Loyalist
 Liberate
 Lifesmith
 Lightning Javelin
+Lion Vulture
 Loxodon Smiter
 Mage-Ring Responder
 Magnivore
@@ -168,6 +171,7 @@ Patagia Viper
 Patchwork Gnomes
 Pestilence
 Phyrexian Reclamation
+Piercing Light
 Piper of the Swarm
 Plains
 Planar Gate
@@ -177,6 +181,7 @@ Possessed Nomad
 Predatory Nightstalker
 Primal Command
 Primal Frenzy
+Primal Rage
 Putrid Cyclops
 Quietus Spike
 Quirion Beastcaller
@@ -240,11 +245,15 @@ Syndicate Guildmage
 Taj-Nar Swordsmith
 Take Possession
 Tenacious Hunter
+Terra Ravager
+Thought-Knot Seer
 Thraben Heretic
 Thundering Giant
+Timely Hordemate
 Titania's Command
 Tormented Angel
 Totem-Guide Hartebeest
+Tourach, Dread Cantor
 Toxic Stench
 Tradewind Rider
 Transmogrifying Licid

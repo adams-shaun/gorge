@@ -82,6 +82,8 @@ Crater Elemental
 Crowded Crypt
 Cunning Sparkmage
 Dawnglare Invoker
+Deathknell Berserker
+Deepfire Elemental
 Deepwater Hypnotist
 Defender en-Vec
 Diamond Knight
@@ -318,6 +320,7 @@ Sheoldred, Whispering One
 Shire Terrace
 Sifter Wurm
 Silverquill Apprentice
+Skirk Fire Marshal
 Skittering Cicada
 Slimebind
 Slimy Piper
@@ -371,6 +374,7 @@ Tramway Station
 Tranquil Expanse
 Tread Upon
 Treebeard, Gracious Host
+Treeshaker Chimera
 Tromp the Domains
 Turn to Dust
 Two-Headed Giant of Foriys

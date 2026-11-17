@@ -45,6 +45,7 @@ Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
 Bramble Armor
+Brass Squire
 Breath of Fire
 Briarknit Kami
 Bridgeworks Battle
@@ -102,6 +103,7 @@ Dire Fleet Neckbreaker
 Dirge of Dread
 Dismal Failure
 Dominating Licid
+Doom Foretold
 Dragon Roost
 Drana, Liberator of Malakir
 Drift of Phantasms
@@ -330,6 +332,7 @@ Samut, Voice of Dissent
 Sanctum of Fruitful Harvest
 Sapphire Medallion
 Sarinth Steelseeker
+Scarblade Elite
 Scavenger Folk
 Scroll of Griselbrand
 Scute Mob

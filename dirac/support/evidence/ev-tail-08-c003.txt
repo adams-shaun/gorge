@@ -1,3 +1,5 @@
+Aberrant Return
+Age of Ultron
 Ancestral Recall
 Angel of Glory's Rise
 Anurid Barkripper
@@ -6,12 +8,16 @@ Assassin Initiate
 Aven Gagglemaster
 Barrenton Cragtreads
 Barrin's Codex
+Battle Sliver
 Benalish Missionary
 Captain America, Liberator
+Clockwork Fox
 Coercive Impetus
 Courier Griffin
 Courtly Provocateur
+Cover of Darkness
 Crash Landing
+Death Speakers
 Death Wind
 Divest
 Domestication
@@ -20,6 +26,7 @@ Drudge Reavers
 Duergar Mine-Captain
 Dusk Legion Dreadnought
 Dwarven Recruiter
+Electrify
 Elvish Hunter
 Energy Arc
 Enfeeblement
@@ -27,19 +34,24 @@ Eyeblight's Ending
 Faerie Macabre
 Feast or Famine
 Fetid Gargantua
+Flare
 Flowstone Mauler
 Forest
 Go-Shintai of Shared Purpose
 Goblin Sky Raider
+Goblin Soothsayer
 Grid Monitor
+Hag of Noxious Nightmares
 Hammerheim Deadeye
 Hazardous Conditions
 Henrika Domnathi
 Hillcomber Giant
+Hobbit's Sting
 Homicidal Seclusion
 Honor-Worn Shaku
 Honored Crop-Captain
 Horizon Explorer
+Hour of Revelation
 Hunter's Edge
 Ingenious Smith
 Innocuous Researcher
@@ -48,10 +60,12 @@ Island
 Jeskai Elder
 Kavu Howler
 Keeper of the Cadence
+Kolaghan Warmonger
 Krazy Kow
 Last Breath
 Last Kiss
 Lone Missionary
+Magmaroth
 Mardu Hateblade
 Marsh Casualties
 Mass Appeal
@@ -68,18 +82,27 @@ Paradise Druid
 Pearled Unicorn
 Pious Wayfarer
 Plains
+Portable Hole
+Precinct Captain
 Propagator Drone
 Protector of the Wastes
 Queen's Agent
+Rain of Revelation
 Ral's Outburst
+Rally at the Hornburg
 Ratcatcher
 Regisaur Alpha
 Reverent Mantra
+Righteous Fury
+Scourge of the Nobilis
 Screeching Drake
 Selesnya Charm
+Selfless Savior
 Sell-Sword Brute
 Serum Tank
+Shared Triumph
 Sifter of Skulls
+Silkbind Faerie
 Skyhunter Patrol
 Slimy Piper
 Sorcerer's Strongbox
@@ -88,8 +111,10 @@ Spectral Flight
 Spore Crawler
 Stalwart Aven
 Stand
+Static Net
 Stonewood Invocation
 Storm Fleet Aerialist
+Sublime Archangel
 Suspicious Bookcase
 Swamp
 Sylvia Brightspear
@@ -104,22 +129,28 @@ Thraben Valiant
 Thran War Machine
 Tor Giant
 Treespring Lorian
+Troubled Healer
 Troublesome Spirit
+Trusty Packbeast
 Tukatongue Thallid
 Uktabi Wildcats
 Unbreakable Formation
+Uncontrollable Anger
 Underhanded Designs
 Updraft
 Valko Indorian
 Vampire Outcasts
 Veilborn Ghoul
 Vengeful Vampire
+Vexilus Praetor
 Victual Sliver
 Vulpine Goliath
 War Falcon
 Water Elemental
 Wayward Soul
+Weakness
 White Widow, Yelena Belova
+Winds of Rath
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher

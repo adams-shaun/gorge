@@ -7,6 +7,7 @@ Accorder's Shield
 Akki Avalanchers
 Akoum Battlesinger
 Akroma's Memorial
+Alexi's Cloak
 Amoeboid Changeling
 Angelheart Protector
 Araña, Heart of the Spider
@@ -57,8 +58,10 @@ Doomfall
 Drafna, Founder of Lat-Nam
 Dragon Throne of Tarkir
 Drake Hatchling
+Dread Cacodemon
 Dread of Night
 Dreadhorde Butcher
+Dream Trawler
 Drelnoch
 Drogskol Shieldmate
 Eerie Soultender
@@ -88,6 +91,7 @@ Goblin Replica
 Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
+Gruul Scrapper
 Gruul Signet
 Guardian of Tazeem
 Gwyllion Hedge-Mage
@@ -99,11 +103,13 @@ Hearthfire Hobgoblin
 Heated Debate
 Hieromancer's Cage
 High Ground
+Hindering Touch
 Howling Banshee
 Icatian Scout
 Ideas Unbound
 Ingenious Infiltrator
 Ink-Eyes, Servant of Oni
+Innovative Metatect
 Intrusive Packbeast
 Invasion of Ulgrotha
 Island
@@ -122,6 +128,7 @@ Lossarnach Captain
 Lost Leonin
 Ludevic's Test Subject
 Magma Jet
+Master of Diversion
 Merrow Grimeblotter
 Metalwork Colossus
 Midnight Scavengers
@@ -184,6 +191,7 @@ Smothering Tithe
 Solar Blast
 Sootfeather Flock
 Soul of the Rapids
+Spark Trooper
 Speakeasy Server
 Spectral Lynx
 Spiderwig Boggart
@@ -195,6 +203,7 @@ Staff of the Flame Magus
 Stampede
 Stealer of Secrets
 Stormcloud Djinn
+Strategic Planning
 Strider, Ranger of the North
 Sturmgeist
 Swamp

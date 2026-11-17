@@ -7,7 +7,9 @@ Aggression
 Aisling Leprechaun
 Ambush Party
 Anowon, the Ruin Sage
+Ashen-Skin Zubera
 Ashenmoor Gouger
+Asphyxiate
 Atarka, World Render
 Attunement
 Balduvian Horde
@@ -52,7 +54,9 @@ Death Wish
 Deathcult Rogue
 Deconstruct
 Demonlord Belzenlok
+Devout Monk
 Diregraf Rebirth
+Discordant Dirge
 Divest
 Dizzy Spell
 Dogged Pursuit
@@ -93,6 +97,7 @@ Grim Flayer
 Grim Haruspex
 Grim Poppet
 Grixis Battlemage
+Gríma Wormtongue
 Hammer of Nazahn
 Hampering Snare
 Harvest Gwyllion
@@ -124,6 +129,7 @@ Krav, the Unredeemed
 Lavabelly Sliver
 Leyline Binding
 Lightning Wolf
+Liliana's Indignation
 Liliana, Death Wielder
 Limestone Golem
 Lingering Tormentor
@@ -133,6 +139,7 @@ Mana-Charged Dragon
 Mardu Heart-Piercer
 Mayhem Devil
 Mega Flare
+Midnight Entourage
 Mindscour Dragon
 Mire Blight
 Mob Rule
@@ -149,6 +156,8 @@ Ninja of the Deep Hours
 Nullmage Advocate
 Obscura Ascendancy
 Obsidian Giant
+Odylic Wraith
+Ogre Siegebreaker
 Onyx Mage
 Oran-Rief Survivalist
 Overgrown Battlement
@@ -158,6 +167,7 @@ Pale Rider of Trostad
 Patrolling Peacemaker
 Patron Wizard
 Pestilent Wolf
+Pewter Golem
 Photon, Lady of Light
 Phyrexian Reaper
 Phyrexian Soulgorger
@@ -172,9 +182,11 @@ Ravenous Gigamole
 Reanimate
 Recon Craft Theta
 Remorseful Cleric
+Rendclaw Trow
 Renegade Demon
 Replication Specialist
 Retreat to Emeria
+Return to Action
 Rhonas's Monument
 Rise of the Witch-king
 Rise to Glory
@@ -185,6 +197,7 @@ Scribe of the Mindful
 Seal of Primordium
 Seasoned Pyromancer
 Sedge Troll
+Selesnya Keyrune
 Shapers of Nature
 Shattered Dreams
 Shinka, the Bloodsoaked Keep
@@ -192,9 +205,11 @@ Shocking Grasp
 Shrapnel Slinger
 Sift
 Silverchase Fox
+Skyscanner
 Skyshooter
 Slag Strider
 Slash of Talons
+Sliversmith
 Solarion
 Soldevi Steam Beast
 Soul of the Rapids
@@ -206,6 +221,7 @@ Storm-Kiln Artist
 Street Riot
 Strength of Cedars
 Structural Distortion
+Summoner's Pact
 Sunbond
 Sundering Vitae
 Sundial of the Infinite
@@ -235,6 +251,7 @@ Urborg Uprising
 Urza's Chalice
 Vampire of the Dire Moon
 Vengeful Reaper
+Vengeful Rebel
 Venom Blast
 Vulshok Battlegear
 Wake of Vultures
@@ -244,6 +261,7 @@ Warleader's Helix
 Weapons Trainer
 Weaselback Redcap
 Weatherseed Treefolk
+Wei Strike Force
 Wild Guess
 Wild Nacatl
 Will of the Temur
@@ -251,3 +269,4 @@ Wings of the Guard
 Woodland Mystic
 Xiahou Dun, the One-Eyed
 Zephyr Sprite
+Zombie Outlander

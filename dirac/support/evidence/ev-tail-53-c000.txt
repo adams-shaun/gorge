@@ -29,6 +29,7 @@ Asgardian Inspiration
 Astrid Peth
 Augury Adept
 Auratog
+Auriok Windwalker
 Aurora Eidolon
 Avenging Arrow
 Balduvian Bears
@@ -345,6 +346,7 @@ Strength of the Coalition
 Submerge
 Sunblast Angel
 Sunspring Expedition
+Supply
 Swamp
 Swooping Lookout
 Sylvan Yeti

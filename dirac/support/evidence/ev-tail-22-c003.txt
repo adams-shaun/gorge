@@ -7,11 +7,15 @@ Agonizing Demise
 Agrus Kos, Wojek Veteran
 Alabaster Kirin
 Albino Troll
+Ancient Grudge
+Arcade Gannon
 Argivian Phalanx
 Artifact Blast
+Assert Authority
 Avacyn, Angel of Hope
 Aven Fleetwing
 Battle Rampart
+Baxter, Fly in the Ointment
 Birthing Ritual
 Boil
 Boltwing Marauder
@@ -24,6 +28,7 @@ Castle Embereth
 Champion's Helm
 Chandra, Flamecaller
 Coalhauler Swine
+Command the Storm
 Conformer Shuriken
 Coral Merfolk
 Cragcrown Pathway
@@ -44,15 +49,22 @@ Druid's Deliverance
 Dualcaster Mage
 Duelist of Deep Faith
 Elder Cathar
+Elusive Krasis
+Elvish Clancaller
+Embodiment of Spring
+Engulfing Eruption
 Epiphany Storm
 Eron the Relentless
+Excavation Explosion
 Expose Evil
 Farbog Explorer
 Field-Tested Frying Pan
+Flesh Carver
 Forbidden Alchemy
 Forest
 Foul Presence
 Gate to Seatower
+Glistener Elf
 Goblin Recruiter
 Gorma, the Gullet
 Gravity Well
@@ -72,6 +84,7 @@ Jhessian Lookout
 Kami's Flare
 Kin-Tree Warden
 Kozilek's Channeler
+Krosan Beast
 Krosan Restorer
 Krosan Verge
 Lavafume Invoker
@@ -83,25 +96,32 @@ Mana Cylix
 Martial Coup
 Masked Admirers
 Melira, the Living Cure
+Melt Terrain
 Mending Touch
 Mesa Enchantress
 Meteorite
 Mind Control
 Minister of Pain
+More of That Strange Oil...
 Mountain
 Mystic Visionary
 Necrogen Scudder
+Needlepeak Spider
 Neurok Prodigy
+Obscuring Haze
+Oketra the True
 Ophidian Eye
 Oxidda Golem
 Parapet Watchers
 Peak Eruption
+Penumbra Spider
 Perilous Shadow
 Phantom Nantuko
 Pillardrop Rescuer
 Plains
 Planar Bridge
 Precognitive Perception
+Rack and Ruin
 Ravenous Baloth
 Regal Unicorn
 Relic Golem
@@ -111,6 +131,7 @@ Righteous Blow
 Rites of Spring
 Root Greevil
 Rot-Tide Gargantua
+Rubbleback Rhino
 Sage's Row Savant
 Sakura-Tribe Springcaller
 Sedge Troll
@@ -120,7 +141,9 @@ Seismic Assault
 Shivan Zombie
 Show of Valor
 Silhana Wayfinder
+Slag Fiend
 Sol'kanar the Swamp King
+Soldier of Fortune
 Soratami Mirror-Mage
 Spitting Dilophosaurus
 Staff of Domination
@@ -130,11 +153,14 @@ Starlit Angel
 Steal Enchantment
 Steel Leaf Champion
 Steel Sabotage
+Stomp and Howl
 Stone Quarry
+Strength of Night
 Strongarm Thug
 Subjugator Angel
 Surge of Strength
 Surly Badgersaur
+Survivors' Bond
 Swamp
 Sword of the Chosen
 Tahngarth's Rage
@@ -142,16 +168,23 @@ Tamanoa
 Tel-Jilad Lifebreather
 Terminal Moraine
 Teyo, the Shieldmage
+Third Path Savant
 Thorned Moloch
 Thud
 Ticked Off
+Tolabow, Loch Rascal
 Treacherous Werewolf
 Treefolk Seedlings
 Treetop Warden
 Trumpeting Herd
 Ultron, Machine Overlord
+Uncomfortable Chill
 Vengeful Rebirth
+Victim of Night
 Wall of Stone
 Warclamp Mastiff
 Wardscale Crocodile
+Waterspout Djinn
+Whisperwood Elemental
 Wings of Velis Vel
+Yasmin Khan

@@ -70,6 +70,7 @@ Caustic Wasps
 Celestial Archon
 Ceremonious Rejection
 Chandra, the Firebrand
+Child of the Pack
 Chitterspitter
 Chosen of Markov
 Chromescale Drake
@@ -190,6 +191,7 @@ Illusory Wrappings
 Indulging Patrician
 Inner Demon
 Inspiring Commander
+Invasion of Ergamon
 Invasion of Kaladesh
 Ironclaw Orcs
 Island
@@ -334,6 +336,8 @@ Savage Smash
 Scalding Tongs
 Scrapheap
 Scroll Thief
+Scuzzback Marauders
+Scuzzback Scrapper
 Sea Eagle
 Seahunter
 Searing Flesh

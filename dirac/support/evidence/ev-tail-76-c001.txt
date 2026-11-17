@@ -161,6 +161,7 @@ Spell Shrivel
 Spell Swindle
 Sphinx's Disciple
 Spidersilk Armor
+Stealth Mission
 Stitcher's Supplier
 Stone-Seeder Hierophant
 Subterfuge

@@ -31,6 +31,7 @@ Ascendant Evincar
 Assassin Initiate
 Astral Steel
 Atalan Jackal
+Aurification
 Aven Heartstabber
 Azusa's Many Journeys
 Bag End Porter
@@ -49,6 +50,7 @@ Blightsteel Colossus
 Blink of an Eye
 Blood Money
 Blood-Toll Harpy
+Bloodbriar
 Bloodsworn Squire
 Bloodtracker
 Brainbite

@@ -4,16 +4,20 @@ A-Mishra, Excavation Prodigy
 A-Tanazir Quandrix
 A-Young Red Dragon
 Aarakocra Sneak
+Abnormal Endurance
 Abrupt Decay
 Abzan Beastmaster
 Abzan Kin-Guard
+Adarkar Sentinel
 Adverse Conditions
 Agent of Acquisitions
 All That Glitters
 Alluring Scent
 Ancient Brontodon
 Ancient Tomb
+Angelic Sleuth
 Anoint
+Anointer of Champions
 Arachnoid Adaptation
 Aragorn and Arwen, Wed
 Arashin Foremost
@@ -23,6 +27,7 @@ Arctic Wolves
 Argent Mutation
 Assassinate
 Aurochs
+Aurora Griffin
 Autumnal Gloom
 Avacynian Priest
 Avatar of Slaughter
@@ -32,6 +37,7 @@ Banishment Decree
 Basal Thrull
 Battlewise Aven
 Beast Attack
+Beast in Show
 Behemoth Sledge
 Benevolent Ancestor
 Bile Urchin
@@ -41,6 +47,7 @@ Bonds of Quicksilver
 Bone Picker
 Boon of Boseiju
 Border Guard
+Boros Garrison
 Boros Signet
 Bosco, Just a Bear
 Bosh, Iron Golem
@@ -54,6 +61,8 @@ Capsize
 Caustic Wasps
 Cavalier of Night
 Cavern Crawler
+Champion of Arashin
+Chariot of Victory
 Chilling Trap
 Cho-Arrim Legate
 Chromanticore
@@ -79,6 +88,7 @@ Cybermen Squadron
 Damping Matrix
 Deep-Sea Terror
 Defiant Salvager
+Demonmail Hauberk
 Desperate Castaways
 Diplomacy of the Wastes
 Djinni Windseer
@@ -88,7 +98,9 @@ Drogskol Cavalry
 Drowner of Hope
 Duskmantle Operative
 Eidolon of the Great Revel
+Eiganjo Exemplar
 Electrolyze
+Ellyn Harbreeze, Busybody
 Elven Fortress
 Encampment Keeper
 Endless Ranks of the Dead
@@ -96,6 +108,7 @@ Enlightened Maniac
 Epiphany Storm
 Eternal Thirst
 Ethereal Investigator
+Ethrimik, Imagined Fiend
 Evolutionary Leap
 Extortion
 Exultant Skymarcher
@@ -142,7 +155,9 @@ Glory Bearers
 Gnaw to the Bone
 Gnottvold Hermit
 Goblin Assault
+Goblin Boom Keg
 Goblin Locksmith
+Goldmeadow Dodger
 Granite Grip
 Grim Physician
 Grizzled Leotau
@@ -150,18 +165,21 @@ Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
 Guardian of the Forgotten
+Gust of Wind
 Hag Hedge-Mage
 Hag of Twisted Visions
 Hall of Triumph
 Hand of Death
 Hangar Scrounger
 Hapato's Might
+Happy Hogan, Bodyguard
 Hardy Veteran
 Harrowing Journey
 Havoc Sower
 Heal
 Hellkite Whelp
 Heroic Teamwork
+Hidden Footblade
 Highborn Ghoul
 Huang Zhong, Shu General
 Humble Naturalist
@@ -169,11 +187,15 @@ Hunger of the Nim
 Idyllic Beachfront
 Ignite the Future
 Imaginary Friends
+Immersturm Skullcairn
+Invasion of Dominaria
 Invasion of Kaldheim
+Ioreth of the Healing House
 Iroh, Firebending Instructor
 Ironwright's Cleansing
 Irresistible Prey
 Island
+Jiang Yanggu
 Joraga Treespeaker
 Journey to Nowhere
 Kabira Vindicator
@@ -192,6 +214,7 @@ Lava Storm
 Liliana's Specter
 Living Terrain
 Loathsome Curator
+Looming Shade
 Lotus Petal
 Lucky Offering
 Lux Cannon
@@ -206,7 +229,9 @@ Military Discipline
 Mishra's Helix
 Mistcutter Hydra
 Mobilized District
+Momentum
 Mondrak, Glory Dominus
+Monk Realist
 Mons's Goblin Raiders
 Morbid Opportunist
 Mossfire Egg
@@ -216,16 +241,21 @@ Mwonvuli Acid-Moss
 Nacatl Savage
 Natural Selection
 Nessian Boar
+Night Market Guard
 Nikko-Onna
 Nimana Skitter-Sneak
 Nissa, Resurgent Animist
 Noble's Purse
+Nomad Stadium
+Northern Paladin
 Nyx Weaver
+Nyxborn Colossus
 Oakheart Dryads
 Oath of Scholars
 Obelisk of Undoing
 Obsidian Giant
 Octoprophet
+Of One Mind
 One Dozen Eyes
 Opaline Unicorn
 Orthodoxy Enforcer
@@ -239,6 +269,7 @@ Pang Tong, "Young Phoenix"
 Panther Warriors
 Pathbreaker Ibex
 Peace Strider
+Perilous Voyage
 Phantom Beast
 Phyrexian Delver
 Plains
@@ -254,46 +285,59 @@ Raging Gorilla
 Rain of Tears
 Rampart Smasher
 Ravnica at War
+Razor Hippogriff
 Rebel Salvo
 Reckless Cohort
 Regress
+Reinforcements
+Research Assistant
 Restoration Angel
 Ring of Thune
 Rona's Vortex
 Rootbound Crag
 Rough
 Sadistic Slash
+Scale of Chiss-Goria
 Scion of Calamity
 Scorchmark
 Sea Gate
 Seven-Tail Mentor
 Sever Soul
+Shell Skulkin
 Sheltering Word
 Shinka Gatekeeper
 Shroofus Sproutsire
 Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
+Skyclave Cleric
 Skyclave Shade
+Skycloud Egg
 Skyfisher Spider
 Slimefoot, the Stowaway
 Slingbow Trap
 Slith Bloodletter
 Smash to Dust
+Snubhorn Sentry
 Soaring Seacliff
+Sokka's Sword Training
+Soliton
 Soul Channeling
 Soul Kiss
 Sparksmith
+Sparring Construct
 Spiteful Sliver
 Stampeding Serow
 Stampeding Wildebeests
 Staunch Throneguard
+Stern Scolding
 Subtle Strike
 Sultai Charm
 Sundering Growth
 Sunken Hope
 Swamp
 Sweep the Skies
+Taj-Nar Swordsmith
 Talas Air Ship
 Talonrend
 Targ Nar, Demon-Fang Gnoll
@@ -302,20 +346,25 @@ Telekinetic Sliver
 Temur Battle Rage
 Tenacious Hunter
 Terra Ravager
+Thalakos Sentry
 That's Rough Buddy
 The Surgical Bay
 Thopter Engineer
 Thorncaster Sliver
 Thought Monitor
+Thought Reflection
 Thoughts of Ruin
 Théoden, King of Rohan
 Time of Ice
+Torch Fiend
 Touch of Invisibility
 Trapmaker's Snare
 Twigwalker
 Tyrant's Scorn
 Ultimate Price
 Urborg Stalker
+Valkyrie Harbinger
+Venarian Gold
 Venerable Lammasu
 Vengeant Vampire
 Verdigris
@@ -330,6 +379,8 @@ Vodalian Merchant
 Vodalian Zombie
 Vulshok Berserker
 Vulshok Heartstoker
+Wall of Bone
+Wave Goodbye
 Web
 Whip Silk
 Whiptongue Hydra
@@ -340,5 +391,8 @@ Wild Might
 Wind Spirit
 Windscouter
 Yawgmoth's Agenda
+Your Temple Is Under Attack
 Yuffie, Materia Hunter
+Zephyr Sentinel
+Zephyr Sprite
 Zombie Cannibal

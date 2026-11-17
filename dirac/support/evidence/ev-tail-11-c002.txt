@@ -1,3 +1,4 @@
+A-Dwarfhold Champion
 A-Riveteers Initiate
 Abstergo Entertainment
 Abstruse Interference
@@ -6,15 +7,21 @@ Aether Helix
 Agent of Erebos
 Anarchy
 Anax and Cymede
+Anje, Maid of Dishonor
 Archwing Dragon
 Arctic Wolves
+Assassin Initiate
 Azami, Lady of Scrolls
 Azusa's Many Journeys
 Battle Frenzy
 Belbe's Percher
 Bellowing Aegisaur
+Benthicore
+Black Market
 Blade of Selves
 Blood Money
+Blood-Toll Harpy
+Bloodsworn Squire
 Brash Taunter
 Brood of Cockroaches
 Broodhunter Wurm
@@ -31,19 +38,24 @@ Chronicler of Heroes
 Citadel of Pain
 Cobalt Golem
 Collective Nightmare
+Consecrate
 Consecrated by Blood
 Countersquall
 Crested Herdcaller
 Cryptolith Rite
 Crystal, Inhuman Princess
+Curse Artifact
 Dauthi Warlord
+Deadeye Harpooner
 Deglamer
 Destructive Revelry
+Disfigure
 Dismiss
 Downsize
 Dragon Mask
 Dragon's Approach
 Dragonscale Boon
+Dwarven Hammer
 Electrostatic Field
 Elvish Warmaster
 Ephara's Warden
@@ -51,19 +63,27 @@ Execute
 Extinguish All Hope
 Faerie Trickery
 Fireflux Squad
+Flametongue Kavu
+Fleshtaker
 Florian, Voldaren Scion
 Flowstone Embrace
+Forbidden Friendship
 Forest
 Fruition
 Game Trail
 Ghoulcaller Gisa
+Gift of Wrath
+Glamdring
 Gloomwidow
 Goblin Gaveleer
+Goblin Razerunners
 Goblin Settler
 Goldenglow Moth
 Grappling Sundew
 Grave Strength
+Gravelgill Duo
 Grotesque Demise
+Hellkite Whelp
 Henge Guardian
 Hideous End
 Highland Weald
@@ -71,12 +91,17 @@ Ill-Tempered Cyclops
 In Bolas's Clutches
 Incendiary Sabotage
 Incremental Growth
+Ironroot Warlord
 Island
+Judith, the Scourge Diva
 Junkyard Genius
 Justiciar's Portal
+Kagemaro's Clutch
 Kamahl's Desire
 Kjeldoran Dead
+Labyrinth Champion
 Last-Ditch Effort
+Leonin Den-Guard
 Library of Alexandria
 Lifeforce
 Live Fast
@@ -88,11 +113,13 @@ Mana Confluence
 Many Partings
 Master of Diversion
 Mindculling
+Mindless Conscription
 Mindslicer
 Mire Kavu
 Mishra's Factory
 Mistveil Plains
 Moment of Defiance
+Morgue Burst
 Mountain
 Murder of Crows
 Nekrataal
@@ -102,6 +129,7 @@ Ob Nixilis's Cruelty
 Ojutai's Breath
 Ojutai's Summons
 Plains
+Powerstone Fracture
 Promise of Power
 Proteus Staff
 Psionic Blast
@@ -113,7 +141,10 @@ Resounding Thunder
 Righteous Charge
 Riot Spikes
 Rotting Giant
+Rotting Regisaur
+Sacrifice
 Sanity Gnawers
+Seedcradle Witch
 Seer's Lantern
 Shire Scarecrow
 Shiv's Embrace
@@ -123,6 +154,7 @@ Sima Yi, Wei Field Marshal
 Sinkhole
 Skyknight Legionnaire
 Skyscanner
+Smelted Chargebug
 Soramaro, First to Dream
 Sparkcaster
 Species Gorger
@@ -130,32 +162,43 @@ Spelleater Wolverine
 Spiketail Hatchling
 Spinal Villain
 Spirit Loop
+Squealing Devil
 Star Pupil
 Starfall
 Subterranean Tremors
+Sudden Death
 Swamp
+Take Heart
 Taunting Challenge
 Tawnos's Tinkering
 Tendrils of Despair
 Territorial Roc
 Testament Bearer
+The Revelations of Ezio
 Three Dreams
 Tibalt, Rakish Instigator
 Timid Drake
 Torch Song
 Treetop Ambusher
+Treetop Scout
 Triangle of War
 True Polymorph
 Ulamog, the Ceaseless Hunger
 Ulcerate
 Unnatural Speed
+Vermiculos
 Viashino Sandstalker
+Vicious Offering
+Voidmage Prodigy
+Voracious Vampire
 Vorstclaw
 Wall of Limbs
 Waste Away
 Weapons Trainer
 Wheel of Fate
+Wild Instincts
 Wild-Field Scarecrow
+Wildwood Geist
 Willow Dryad
 Worldly Counsel
 Worthy Knight

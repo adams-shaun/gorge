@@ -29,6 +29,8 @@ Apothecary Geist
 Arashin War Beast
 Arborea Pegasus
 Arcane Proxy
+Arcbound Prototype
+Arcbound Ravager
 Arch of Orazca
 Armed Assailant
 Arrester's Zeal
@@ -173,6 +175,7 @@ Gerrard's Irregulars
 Gideon Blackblade
 Gift of Orzhova
 Glass of the Guildpact
+Glassdust Hulk
 Glint Hawk Idol
 Glowing Anemone
 Go-Shintai of Ancient Wars

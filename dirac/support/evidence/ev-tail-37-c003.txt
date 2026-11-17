@@ -13,7 +13,9 @@ Atog
 Atrocious Experiment
 Automated Artificer
 Avalanche Riders
+Barricade Breaker
 Beast Whisperer
+Blightreaper Thallid
 Blitz Leech
 Bog Tatters
 Bogstomper
@@ -37,6 +39,7 @@ Controlled Instincts
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
+Darkness
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
@@ -61,6 +64,7 @@ Force of Despair
 Forest
 Fractal Summoning
 Frogmite
+Goblin Patrol
 God-Eternal Rhonas
 Gray Merchant of Asphodel
 Great Sable Stag
@@ -78,6 +82,7 @@ Juzám Djinn
 Kabira Takedown
 Karlach, Fury of Avernus
 Kavu Climber
+Lazotep Reaver
 Lieutenant Kirtar
 Lightning Axe
 Llanowar Stalker
@@ -88,11 +93,13 @@ Marionette Master
 Master Apothecary
 Midnight Scavengers
 Mirror Wall
+Mob
 Monk Realist
 Mountain
 Mystifying Maze
 Organ Hoarder
 Paralyzing Grasp
+Pestilent Souleater
 Phyrexian Etchings
 Plains
 Pradesh Gypsies
@@ -104,8 +111,10 @@ Pumpkin Bombs
 Quarrel's End
 Quest for Pure Flame
 Quirion Sentinel
+Ravenous Skirge
 Reach of Branches
 Rhox Oracle
+Robot Chicken
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
@@ -118,6 +127,8 @@ Shrieking Mogg
 Silkguard
 Skyway Sniper
 Snapping Voidcraw
+Sorin's Vengeance
+Soul Reap
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
@@ -138,6 +149,7 @@ Vanquish the Foul
 Voices from the Void
 Walking Archive
 Whisper Squad
+Wicker Witch
 Wildfire Emissary
 Will-o'-the-Wisp
 Witch's Cauldron

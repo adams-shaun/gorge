@@ -9,6 +9,8 @@ Akroan Conscriptor
 Akroma's Blessing
 Alesha's Vanguard
 Altar Golem
+Amphibian Downpour
+Ancient Stirrings
 Angel of Renewal
 Ardent Recruit
 Armored Guardian
@@ -20,6 +22,7 @@ Barbary Apes
 Barbed Batterfist
 Bash to Bits
 Bedeck
+Believe in the Cleave
 Belligerent Guest
 Bloodboil Sorcerer
 Bloodgift Demon
@@ -35,18 +38,24 @@ Call to Mind
 Callous Giant
 Captain's Call
 Carrier Thrall
+Cateran Kidnappers
 Celestine, the Living Saint
 Centaur Omenreader
 Chain of Plasma
+Chainflail Centipede
 Chamber of Manipulation
 Char-Rumbler
 Chief Jim Hopper
 Cho-Manno's Blessing
 Chronicler of Heroes
+Cloud Sprite
 Complex Automaton
+Conservatory
 Contraband Livestock
 Counterspell
+Crazed Skirge
 Creakwood Ghoul
+Creeping Mold
 Crimson Mage
 Crookshank Kobolds
 Cultist's Staff
@@ -59,9 +68,11 @@ Deathbonnet Sprout
 Deathreap Ritual
 Demon of Loathing
 Denethor, Ruling Steward
+Descendant of Masumaro
 Detained by Legionnaires
 Devilish Valet
 Disciple of Bolas
+Dokuchi Shadow-Walker
 Douse
 Dread Shade
 Dukhara Peafowl
@@ -69,8 +80,10 @@ Dune Mover
 Eidolon of Rhetoric
 Eldritch Evolution
 Elegant Edgecrafters
+Elvish Pathcutter
 Ember Swallower
 Endless One
+Energy Refractor
 Erebos, God of the Dead
 Expedition Envoy
 Exterminatus
@@ -84,6 +97,7 @@ Fell the Profane
 Festive Funeral
 Firecannon Blast
 Firedrinker Satyr
+Five-Alarm Fire
 Flowstone Channeler
 Force Void
 Forest
@@ -103,15 +117,20 @@ Hawkeater Moth
 Hazardous Conditions
 Hearts on Fire
 Hekma Sentinels
+Hero of Oxid Ridge
 Hidden Herbalists
 Hollowhead Sliver
 Horned Troll
+Hour of Reckoning
 Hydrolash
 Hyperion's Atomic Vision
 Incorrigible Youths
 Inexorable Tide
 Inflame
+Invade the City
 Invoke the Divine
+Invoke the Winds
+Irini Sengir
 Isamaru, Hound of Konda
 Island
 Jade Bearer
@@ -130,9 +149,12 @@ Knighted Myr
 Kor Skyfisher
 Korlessa, Scale Singer
 Lead the Stampede
+Leadership Vacuum
 Lifebane Zombie
+Lingering Mirage
 Lingering Souls
 Loxodon Lifechanter
+Lucid Dreams
 Magmatic Sprinter
 Major Teroh
 Malakir Rebirth
@@ -150,8 +172,10 @@ Mountain
 Mox Ruby
 Mystic Forge
 Nautiloid Ship
+Nested Ghoul
 Nightshade Stinger
 Nuisance Engine
+Null Champion
 Nylea's Huntmaster
 Nyxborn Colossus
 Oathsworn Giant
@@ -163,26 +187,33 @@ Ojutai Interceptor
 Ojutai's Breath
 On the Trail
 Ondu Cleric
+Orzhova, the Church of Deals
 Otherworldly Gaze
 Otherworldly Outburst
 Owlbear Shepherd
 Path of Peace
 Persistent Specimen
+Pestilent Kathari
 Pestilent Syphoner
 Plains
 Planar Collapse
+Planar Void
+Pol Jamaar, Illusionist
 Press the Advantage
 Prosperity
 Psychic Miasma
 Quicksilver, Speedster
+Racers' Ring
 Rathi Trapper
 Raven Wings
+Ravenous Daggertooth
 Reality Anchor
 Reaper of the Wilds
 Reborn Hero
 Reckless Air Strike
 Reckless Charge
 Reckless One
+Red Cliffs Armada
 Rewind
 Rikala, Homarid King
 Rite of Passage
@@ -233,11 +264,13 @@ Trade Routes
 Tranquilize
 Trusty Companion
 Unruly Krasis
+Unstable Mutation
 Untamed Wilds
 Urgent Exorcism
 Venerable Warsinger
 Viashino Heretic
 Vithian Renegades
+Vivid Meadow
 Voltaic Key
 Wake of Vultures
 Walking Skyscraper
@@ -247,14 +280,18 @@ Wall of Runes
 Way of the Thief
 Wayward Guide-Beast
 Weldfast Monitor
+Where We're Going . . .
+Whim of Volrath
 Whispering Wizard
 Whispers of Emrakul
 Wicker Warcrawler
 Wild Research
 Wild Wurm
+Wind Strider
 Wispmare
 Wistful Thinking
 Worldly Tutor
 Wring Flesh
 Yawning Fissure
 Zebra Unicorn
+Zodiac Dragon

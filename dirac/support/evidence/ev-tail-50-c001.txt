@@ -1,4 +1,6 @@
+A-Canopy Tactician
 A-Hall of Tagsin
+A-Jackhammer
 A-Speakeasy Server
 A-Urza's Command
 Aetheric Amplifier
@@ -46,6 +48,7 @@ Branching Evolution
 Brazen Wolves
 Briber's Purse
 Brinebarrow Intruder
+Broken Concentration
 Broodbirth Viper
 Broodhunter Wurm
 Burning Oil
@@ -68,6 +71,7 @@ Chartooth Cougar
 Chillbringer
 Chitinous Cloak
 Chittering Witch
+Chocobo Knights
 Chulane, Teller of Tales
 Citadel Siege
 Citanul Stalwart
@@ -80,6 +84,7 @@ Condemn
 Converter Beast
 Corpse Connoisseur
 Crackling Club
+Crafty Pathmage
 Craven Giant
 Crisis of Conscience
 Cyclops of Eternal Fury
@@ -123,7 +128,9 @@ Farid, Enterprising Salvager
 Feral Appetite
 Fervent Strike
 Festering Mummy
+Fire Nation Sentinels
 Flowstone Mauler
+Force of Negation
 Forebear's Blade
 Forest
 Frost Trickster
@@ -164,8 +171,11 @@ Hired Blade
 Hive Stirrings
 Holy Day
 Hookhand Mariner
+Horn of Valhalla
+Howling Giant
 Hunted Dragon
 Hurly-Burly
+Hydrosurge
 Hymn of Rebirth
 Ichor Synthesizer
 Idolized
@@ -191,8 +201,10 @@ Knight of Sorrows
 Kobold Drill Sergeant
 Kolaghan Warmonger
 Kor Entanglers
+Koth of the Hammer
 Kraul Foragers
 Krenko, Tin Street Kingpin
+Latulla, Keldon Overseer
 Lead by Example
 Ledger Shredder
 Library
@@ -209,6 +221,7 @@ Manor Gate
 Mantle of Leadership
 Marble Gargoyle
 Mardu Warshrieker
+Merfolk Traders
 Mesa Cavalier
 Metallic Mimic
 Mindblaze
@@ -223,6 +236,7 @@ Natural Affinity
 Nature's Ruin
 Neurok Replica
 Nightwind Glider
+Noble Hierarch
 Nomad Mythmaker
 Noose Constrictor
 Novablast Wurm
@@ -230,7 +244,9 @@ Nurturing Licid
 Oath of Mages
 Oathsworn Giant
 Ochran Assassin
+Ogre's Cleaver
 Ondu Champion
+Orcish Hellraiser
 Outpost Siege
 Paradigm Shift
 Parch
@@ -250,13 +266,17 @@ Proud Mentor
 Prowling Pangolin
 Pygmy Pyrosaur
 Pyre Charger
+Rainbow Efreet
 Rampaging Cyclops
 Ranger-Captain of Eos
+Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Recoil
 Regent's Authority
 Renegade Map
+Renewing Dawn
 Revenge of Ravens
 Reverent Hoplite
 Revive the Shire
@@ -267,12 +287,15 @@ Riverglide Pathway
 Robe of Mirrors
 Roc of Kher Ridges
 Roil Elemental
+Ronin Houndmaster
 Roving Harper
+Rulik Mons, Warren Chief
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Savage Twister
 Scrapyard Steelbreaker
 Scrollshift
 Segmented Wurm
@@ -281,6 +304,7 @@ Serra Zealot
 Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
+Shire Scarecrow
 Shivan Harvest
 Shrapnel Slinger
 Shu Defender
@@ -298,6 +322,7 @@ Skywing Aven
 Slash the Ranks
 Slashing Tiger
 So Shiny
+Soltari Champion
 Soratami Mindsweeper
 Soul Collector
 Soul of Theros
@@ -306,7 +331,9 @@ Spiked Baloth
 Spitting Slug
 Squadron Hawk
 Steamclaw
+Stern Proctor
 Stonefury
+Stonework Puma
 Storm Fleet Sprinter
 Stormfront Riders
 Strength of Unity
@@ -315,6 +342,7 @@ Stromkirk Captain
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Survivor of the Unseen
 Swamp
 Swarmyard
@@ -345,6 +373,7 @@ Uchuulon
 Ulrich's Kindred
 Undead Warchief
 Unfriendly Fire
+Urn of Godfire
 Vampire Opportunist
 Vampire's Kiss
 Vat Emergence
@@ -367,6 +396,7 @@ Warpath
 Wary Okapi
 Wave-Wing Elemental
 Wicker Witch
+Wild Guess
 Wildwood Geist
 Wind-Kin Raiders
 Wirewood Hivemaster

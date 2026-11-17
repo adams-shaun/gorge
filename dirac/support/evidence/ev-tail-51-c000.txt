@@ -26,6 +26,7 @@ Autumn Willow, Harmony
 Aveline de Grandpré
 Aven Reedstalker
 Bad River
+Baldur's Gate
 Baloth Woodcrasher
 Barkhide Troll
 Bat Whisperer
@@ -83,6 +84,7 @@ Cut Down
 Cyclops of One-Eyed Pass
 Daring Escape
 Dark Privilege
+Darkslick Drake
 Darksteel Forge
 Darksteel Ingot
 Daughter of the Deep
@@ -164,6 +166,7 @@ Ghastbark Twins
 Giant Ox
 Gideon's Battle Cry
 Gift of Growth
+Gilded Assault Cart
 Gimli, Counter of Kills
 Glacial Crasher
 Glint-Sleeve Siphoner
@@ -197,6 +200,7 @@ Haunted Fengraf
 Havoc
 Headless Skaab
 Headstrong Brute
+Heap Gate
 Heedless One
 Heiko Yamazaki, the General
 Hell Mongrel
@@ -265,6 +269,7 @@ Loathsome Curator
 Long-Lost Lances
 Lotus-Eye Mystics
 Loxodon Mystic
+Machine Over Matter
 Magus of the Future
 Make Mischief
 Mana Seism
@@ -477,6 +482,7 @@ The Third Doctor
 Theoretical Duplication
 Thermal Navigator
 Thor, Asgard's Avenger
+Thor, Guardian of Midgard
 Thought Erasure
 Throat Slitter
 Thundering Tanadon
@@ -524,6 +530,7 @@ Wolfrider's Saddle
 Wooden Cane
 Woodripper
 Workshop Assistant
+Wormwood Treefolk
 Write into Being
 Wu Elite Cavalry
 Wurmcoil Engine

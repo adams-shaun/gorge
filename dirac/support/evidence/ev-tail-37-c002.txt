@@ -16,32 +16,40 @@ Archangel's Light
 Archers of Qarsi
 Ardoz, Cobbler of War
 Argothian Pixies
+Aspect of Wolf
 Atog
 Atrocious Experiment
 Automated Artificer
 Avalanche Riders
+Aven Reedstalker
+Barricade Breaker
 Beast Whisperer
 Behold the Beyond
 Benalish Heralds
+Big Wheel
 Bird Maiden
 Blackcleave Goblin
+Blightreaper Thallid
 Blind Zealot
 Blitz Leech
 Bog Tatters
 Bogstomper
 Boseiju Reaches Skyward
 Bountiful Promenade
+Brightstone Ritual
 Brotherhood Vertibird
 Brutal Deceiver
 Built to Last
 Cabal Executioner
 Calming Licid
+Captain Ripley Vance
 Centaur's Herald
 Chain of Plasma
 Champion's Drake
 Chapel Geist
 Cho-Arrim Legate
 Chrome Host Seedshark
+Citizen V, Helmut Zemo
 Clairvoyance
 Cliff Threader
 Cloudreach Cavalry
@@ -51,14 +59,18 @@ Conclave Evangelist
 Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
+Contagion Clasp
 Crawling Chorus
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
+Damn
 Dance with Devils
+Darkness
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
+Decompose
 Deer-Dog
 Delightful Discovery
 Demon of Wailing Agonies
@@ -68,15 +80,22 @@ Deviant Skytech
 Dire Mimic
 Drag to the Underworld
 Dragon Moose
+Dragon Roost
 Dreadhorde Twins
+Driven
+Dusk's Landing
 Duskrider Falcon
+Dynavolt Tower
 Earth-Cult Elemental
+Ebony Rhino
 Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
 Elder Cathar
+Elvish Ranger
 Emeria's Call
 Enlisted Wurm
+Exultant Cultist
 Faithless Salvaging
 Fallaji Excavation
 Fate Forgotten
@@ -87,12 +106,18 @@ Fleshbag Marauder
 Force of Despair
 Forest
 Forging the Tyrite Sword
+Fourth Bridge Prowler
 Frogmite
+Frozen Shade
+Goblin Patrol
 God-Eternal Rhonas
 Gore Swine
+Grave Venerations
 Gray Merchant of Asphodel
 Great Sable Stag
 Greatsword
+Guard Gomazoa
+Guild Artisan
 Halvar, God of Battle
 Hand of Silumgar
 Harmonic Prodigy
@@ -100,6 +125,7 @@ Heartbeat of Spring
 Herald of Slaanesh
 Hero of the Games
 Honor the God-Pharaoh
+Humiliate
 Icatian Priest
 Igneous Golem
 In the Trenches
@@ -107,6 +133,7 @@ Incubator Drone
 Infiltrate
 Infused Arrows
 Intrepid Provisioner
+Invading Manticore
 Island
 Jhessian Lookout
 Jungle Delver
@@ -119,6 +146,7 @@ Kaysa
 Kindred Denial
 Kitsune Diviner
 Knight of Cliffhaven
+Kolaghan Monument
 Lava Serpent
 Lazotep Reaver
 Legion Loyalty
@@ -134,10 +162,13 @@ Marionette Master
 Markov Blademaster
 Master Apothecary
 Maze Rusher
+Meishin, the Mind Cage
+Mephidross Vampire
 Midnight Scavengers
 Mindless Automaton
 Mindstatic
 Mirror Wall
+Mob
 Monk Realist
 Morbid Plunder
 Mountain
@@ -148,10 +179,13 @@ Norika Yamazaki, the Poet
 Nullify
 Off Balance
 Organ Hoarder
+Orochi Merge-Keeper
 Paralyzing Grasp
 Peregrine Griffin
 Phyrexian Etchings
+Phyrexian Missionary
 Pierce the Sky
+Pillar Tombs of Aku
 Plains
 Possessed Nomad
 Pradesh Gypsies
@@ -160,22 +194,32 @@ Presence of the Master
 Priest of the Crossing
 Professor Hulk
 Protomatter Powder
+Psionic Sliver
 Pumpkin Bombs
+Purgatory
 Qilin's Blessing
 Quarrel's End
 Quest for Pure Flame
 Quicksilver Gargantuan
 Quirion Sentinel
 Ral's Outburst
+Rampaging Growth
+Ravenous Skirge
 Raving Visionary
 Reach of Branches
 Reap and Sow
+Reduce to Dreams
+Regal Bloodlord
+Rejuvenation Chamber
 Rhox Oracle
 Rising Populace
 Roar of Reclamation
+Robot Chicken
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
+Rumbling Baloth
+Rustmouth Ogre
 Said
 Sandstorm Charger
 Sarkhan's Dragonfire
@@ -188,49 +232,73 @@ Shadowfeed
 Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
+Sickle Ripper
+Sightless Ghoul
 Silkguard
+Silumgar Butcher
 Silundi Vision
+Siren of the Silent Song
 Skin Invasion
+Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
 Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
+Spellbane Centaur
+Spellheart Chimera
+Spineless Thug
 Stand Firm
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
 Steelburr Champion
 Stinging Scorpion
+Storm, Shaker of Skies
 Subira, Tulzidi Caravanner
+Sun-Collared Raptor
 Sunstrike Legionnaire
 Supply Runners
 Swamp
+Tainted Adversary
 Tangle Mantis
 Target Minotaur
+Temur Runemark
 Tenth District Veteran
+Tergrid's Shadow
 Terminal Agony
 The Brute
 The Meathook Massacre
 Thraben Inspector
+Thragtusk
 Tithebearer Giant
 Towashi Guide-Bot
 Tradewind Rider
 Travel Preparations
+Twilight Prophet
+Undead Butler
 Undergrowth Scavenger
+Undo
+Urza's Blueprints
 Vanquish the Foul
+Vectis Dominator
 Voices from the Void
 Vorel of the Hull Clade
+Wakedancer
 Walking Archive
 Walking Corpse
 Warrior's Charge
 Wayfaring Giant
 Wei Elite Companions
+White Glove Gourmand
+Wicker Witch
 Wildfire Emissary
 Will-o'-the-Wisp
 Witch's Cauldron
 Wizard's Lightning
 Worry Beads
+Wring Flesh
 Yavimaya Ancients
+You See a Pair of Goblins
 Zuran Spellcaster

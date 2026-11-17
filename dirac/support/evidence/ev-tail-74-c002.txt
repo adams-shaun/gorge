@@ -18,6 +18,7 @@ Avatar of Growth
 Aven Trooper
 Aven Windreader
 Barricade Breaker
+Battleflight Eagle
 Bearer of Memory
 Beastmaster's Magemark
 Betrayal
@@ -58,6 +59,7 @@ Dauntless Bodyguard
 Deadly Insect
 Death Speakers
 Deathleaper, Terror Weapon
+Debtor's Pulpit
 Defenestrate
 Descendant of Kiyomaro
 Devoted Retainer
@@ -67,6 +69,7 @@ Divine Smite
 Doom's Servo-Guards
 Dragonborn Looter
 Dread Tiller
+Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
@@ -80,6 +83,7 @@ Esika's Chariot
 Euroakus
 Fanatical Fever
 Feeding Frenzy
+Feldon, Ronom Excavator
 Ferocious Charge
 Field Marshal
 Fire Ambush
@@ -110,6 +114,7 @@ Guul Draz Assassin
 Halberdier
 Hardened Scales
 Haunted Crossroads
+Hero's Resolve
 Horned Cheetah
 Horned Helm
 Hornet Cannon
@@ -141,6 +146,7 @@ Magmatic Core
 Malevolent Awakening
 Malicious Advice
 Maniacal Rage
+Markov Dreadknight
 Marshaling Cry
 Master the Way
 Mayael the Anima
@@ -185,6 +191,7 @@ Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
 Putrid Imp
+Pyromantic Pilgrim
 Quilled Slagwurm
 Rag Dealer
 Raging Kavu
@@ -221,6 +228,7 @@ Scrivener
 Seismic Mage
 Selfless Spirit
 Shagrat, Loot Bearer
+She-Hulk, Jennifer Walters
 Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood

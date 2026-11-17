@@ -8,6 +8,7 @@ Akoum Hellkite
 Akroma, Angel of Wrath
 Alley Strangler
 Anaba Spirit Crafter
+Ancestral Vengeance
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
@@ -17,6 +18,7 @@ Atomize
 Augur of Skulls
 Awaken the Sky Tyrant
 Azorius Chancery
+Balduvian Hydra
 Balm of Restoration
 Bandage
 Barbary Apes
@@ -40,6 +42,7 @@ Cacophodon
 Caldera Lake
 Callous Deceiver
 Cathar's Call
+Cavalier of Dawn
 Cement Shoes
 Champion of Dusk
 Changeling Outcast
@@ -51,10 +54,13 @@ Control of the Court
 Corpse Churn
 Court of Embereth
 Crosstown Courier
+Crucible of Fire
 Cutthroat Negotiator
 Dawnhart Wardens
+Death Stroke
 Deathbloom Gardener
 Deb Thomas
+Decorated Griffin
 Decree of Savagery
 Diregraf Scavenger
 Dramatic Entrance
@@ -65,26 +71,34 @@ Edge of Autumn
 Eldrazi Mimic
 Emberwilde Caliph
 Embodiment of Fury
+Enraged Ceratok
 Erdwal Ripper
 Evil Eye of Urborg
 Experimental Armor
+Explosive Entry
 Eye of Yawgmoth
 Faerie Seer
 Falconer Adept
+Fate Unraveler
 Felhide Minotaur
 Fight as One
 Firebrand Ranger
 Flamewave Invoker
+Flaming Gambit
 Flow of Knowledge
 Forest
+Founding of Omashu
 Freed from the Real
 Frenzied Devils
 Frenzied Rage
 Fry
 Fugitive Wizard
+Gaea's Balance
 Galadhrim Guide
 Galvanic Arc
+Gift of Growth
 Gluttonous Troll
+Goblin Wizardry
 Gold-Forged Thopteryx
 Golem's Heart
 Golgari Germination
@@ -101,6 +115,7 @@ Herald of Hadar
 Hobgoblin Bandit Lord
 Honor the Fallen
 Hornet Nest
+Hot Springs
 Humiliate
 Hymn to Tourach
 Iceman and Firestar
@@ -115,16 +130,22 @@ Jewel Thief
 Jolted Awake
 Juntu Stakes
 Kaseto, Orochi Archmage
+Kavu Howler
 Kemba, Kha Enduring
+King Darien XLVIII
+Kiora, Behemoth Beckoner
 Kyoshi Warrior Exemplars
+Lagonna-Band Elder
 Leaf Gilder
 Leafcrown Dryad
 Lesser Masticore
+Leyline of Vitality
 Lightning Surge
 Locthwain Lancer
 Long Road Home
 Lost Soul
 Loxodon Warhammer
+Luminesce
 Luminous Angel
 Magnetic Mine
 Magus of the Bridge
@@ -162,10 +183,12 @@ Phyrexian Marauder
 Plague Mare
 Plains
 Poison-Tip Archer
+Pounce
 Pre-War Formalwear
 Press the Advantage
 Prison Sentence
 Pulse of the Tangle
+Putrefax
 RMS Titanic
 Ragefire Hellkite
 Raging Swordtooth
@@ -175,8 +198,14 @@ Reckless Embermage
 Reconnaissance Mission
 Renewing Dawn
 Return to Battle
+Return to the Earth
+Rhizome Lurcher
 Ricochet Trap
+Root Snare
+Rosemane Centaur
+Rotten Reunion
 Rule of Law
+Runeclaw Bear
 Sacred Armory
 Sailors' Bane
 Sanctum of Shattered Heights
@@ -186,6 +215,7 @@ Scaled Behemoth
 Sentinel's Mark
 Seraph of the Masses
 Servant of Volrath
+Shadowheart, Dark Justiciar
 Shamble Back
 Silent Observer
 Silent-Chant Zubera
@@ -209,8 +239,11 @@ Stronghold Taskmaster
 Sudden Spoiling
 Sungrace Pegasus
 Suntail Hawk
+Supply-Line Cranes
 Swamp
+Sylvan Bounty
 Take to the Streets
+Talara's Battalion
 Tatyova, Steward of Tides
 Teferi's Ageless Insight
 Teleportation Circle
@@ -225,11 +258,14 @@ Thorn of Amethyst
 Thran Lens
 Thunderhawk Gunship
 Toggo, Goblin Weaponsmith
+Towering Indrik
 Trapfinder's Trick
+Traverse the Ulvenwald
 Tremble
 Turn
 Ultimate Magic: Holy
 Underdark Basilisk
+Undergrowth Scavenger
 Valorous Steed
 Vampiric Spirit
 Vault 75: Middle School
@@ -245,3 +281,6 @@ Wirewood Pride
 Wolfsbane, Highland Hero
 Wooden Sphere
 Wrenn and Realmbreaker
+Yawgmoth's Edict
+Yuna's Decision
+Zarichi Tiger

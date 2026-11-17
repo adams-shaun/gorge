@@ -6,34 +6,45 @@ A-Return Upon the Tide
 Absorbing Man and Titania
 Abuna's Chant
 Accursed Marauder
+Aetherstream Leopard
 Aim High
 Ajani's Sunstriker
+Akki Lavarunner
 Alabaster Kirin
 Ancestral Vision
 Ancient Ziggurat
+Angel of Fury
+Animist's Might
 Arbalest Elite
 Archon of Emeria
 Archway Commons
 Argothian Wurm
 Armguard Familiar
 Arrogant Bloodlord
+Aspect of Hydra
 Assemble the Entmoot
 Aven Redeemer
 Ayumi, the Last Visitor
+Bad Deal
 Banshee of the Dread Choir
 Batterbone
 Battering Krasis
 Beastmaster Ascension
 Benalish Veteran
 Berserkers of Blood Ridge
+Bitter Reunion
 Bitterbow Sharpshooters
+Bladed Sentinel
 Blood Pact
+Bloodvial Purveyor
 Bolshack Dragon
 Bonds of Mortality
+Branchsnap Lorian
 Burgeoning
 Callous Bloodmage
 Captured by Lagacs
 Cavern Harpy
+Center Soul
 Chaos Channeler
 Chill
 Choking Miasma
@@ -50,17 +61,22 @@ Crimson Cowl, Master of Evil
 Crossway Vampire
 Crowd of Cinders
 Crowned Ceratok
+Cruel Witness
 Crypt Cobra
 Crypt Rats
 Crystalline Armor
 Curse of Vitality
 Dark Triumph
+Dark Withering
 Darksteel Pendant
 Dauntless Onslaught
 Dawnbringer Cleric
+Dawnhart Geist
 Dawnhart Mentor
+Dawnray Archer
 Day's Undoing
 Deathcurse Ogre
+Defenestrate
 Demogorgon's Clutches
 Dense Foliage
 Desecration Elemental
@@ -76,14 +92,19 @@ Dry Spell
 Durkwood Boars
 Elda, Conjurer of Spectacle
 Elemental Eruption
+Elena, Turk Recruit
 Elvish Mystic
+Energy Field
 Envoy of the Ancestors
+Erratic Cyclops
+Ethereal Guidance
 Ethereal Haze
 Evolutionary Escalation
 Exalted Angel
 Explosive Shot
 Exsanguinator Cavalry
 Fact or Fiction
+Fallow Earth
 Fast
 Fencer's Magemark
 Flooded Strand
@@ -91,6 +112,8 @@ Flowering of the White Tree
 Forest
 Forked Bolt
 Freedom Fighter Recruit
+Frontline Rebel
+Frostwind Invoker
 Game-Trail Changeling
 Garrison Cat
 Gatebreaker Ram
@@ -98,9 +121,11 @@ Geistflame Reservoir
 Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
+Ghostly Touch
 Ghoul's Feast
 Giant's Ire
 Glacial Grasp
+Glaive of the Guildpact
 Glenn, the Voice of Calm
 Glorious Charge
 God-Favored General
@@ -113,16 +138,22 @@ Hewed Stone Retainers
 Hidden Guerrillas
 Hobble
 Hollow Dogs
+Humongulus
 Hydromorph Guardian
+Infectious Bloodlust
 Inheritance
 Instill Furor
 Instill Infection
+Invasion of Ixalan
 Invasive Species
 Island
 It's Clobberin' Time!
 Joraga Warcaller
+Jungle Wayfinder
 Kamigawa Charm
+Kessig Dire Swine
 Kill Shot
+Krovikan Plague
 Kyren Sniper
 Lance
 Late to Dinner
@@ -137,11 +168,17 @@ Manalith
 Manticore Eternal
 Marchesa's Emissary
 Mark of the Vampire
+Marshal of Zhalfir
 Merfolk Mistbinder
+Metallic Rebuke
+Metalspinner's Puzzleknot
 Mind Whip
 Mobile Fort
+Molten Monstrosity
+Monologue Tax
 Moonstone Eulogist
 Mountain
+Mudbrawler Raiders
 Mulldrifter
 Mystic Retrieval
 Nameless One
@@ -149,10 +186,12 @@ Narcissism
 Nemesis Mask
 Nether Horror
 Oblivion Crown
+Ogre Berserker
 Oona's Grace
 Orchard Spirit
 Orcish Cannoneers
 Overseer of the Damned
+Parcel Myr
 Paroxysm
 Pegasus Charger
 Phantom Wings
@@ -165,9 +204,13 @@ Quandrix Campus
 Rack and Ruin
 Rage of Purphoros
 Ragged Recluse
+Raging Kronch
 Raging Swordtooth
 Rakka Mar
 Rally at the Hornburg
+Ravenous Necrotitan
+Reason
+Recon Craft Theta
 Rejuvenate
 Renewed Faith
 Repel the Darkness
@@ -185,31 +228,39 @@ Runebound Wolf
 Rush of Adrenaline
 Safeguard
 Salvaged Manaworker
+Sanctum Spirit
 Scourge of Fleets
 Scurry of Squirrels
+Second Wind
 Sentinels of Glen Elendra
+Serene Sunset
 Shambling Ghast
 Shardless Agent
 Sheltering Boughs
+Shield of the Avatar
 Shriek of Dread
 Siege Dragon
 Sigil of Distinction
 Signal Pest
 Silburlind Snapper
 Sink into Takenuma
+Siren's Ruse
 Skyshroud Elite
 Skystrike Officer
 Slaughterhouse Bouncer
 Sleeper's Guile
 Smokespew Invoker
+Snapping Drake
 Soaring Thought-Thief
 Solemn Recruit
 Soul Transfer
 Spartan Veteran
 Spellweaver Eternal
+Spinal Centipede
 Splitting Slime
 Spotted Griffin
 Springmane Cervin
+Spur Grappler
 Squire's Devotion
 Star-Crowned Stag
 Stasis Field
@@ -227,6 +278,7 @@ Tar Snare
 Teeterpeak Ambusher
 Teferi's Care
 Tempered Sliver
+The Fabulous Frog-Man
 The Falcon, Airship Restored
 Time of Heroes
 Tin Street Cadet
@@ -237,21 +289,30 @@ Trophy Hunter
 Twinblade Assassins
 Ugin's Construct
 Ulasht, the Hate Seed
+Unctus, Grand Metatect
 Underworld Dreams
 Underworld Sentinel
+Unmask
 Urborg Drake
+Urborg Emissary
+Vedalken Mastermind
 Vengevine
 Victor Mancha, Runaway
+Victor Timely, Wily Tycoon
+Viridescent Wisps
 Wakening Sun's Avatar
 Wall of Fire
 Warped Landscape
 Warriors of Wakanda
 Welcoming Vampire
 Whetwheel
+Wild Slash
+Wingspan Mentor
 Winter Eladrin
 Witch of the Moors
 Wondrous Revival
 Woodland Changeling
+Woodland Druid
 Wort, Boggart Auntie
 Wrecking Ball
 Wrenn's Resolve

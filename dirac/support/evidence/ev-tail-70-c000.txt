@@ -33,6 +33,7 @@ Bladed Pinions
 Blighted Cataract
 Blood-Chin Rager
 Bloodhusk Ritualist
+Bloodletter Quill
 Bloodthirsty Adversary
 Bog Tatters
 Bonded Horncrest
@@ -104,6 +105,7 @@ Elvish Soultiller
 Emergent Growth
 Enlisted Wurm
 Etherium Sculptor
+Ethersworn Shieldmage
 Experimental Overload
 Faceless Devourer
 Fall of the Thran
@@ -316,6 +318,7 @@ Staff of Zegon
 Star Whale
 Start
 Steel of the Godhead
+Stinging Lionfish
 Stonebound Mentor
 Stonecloaker
 Stormbound Geist

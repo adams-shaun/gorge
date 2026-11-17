@@ -1,15 +1,28 @@
 A-Hullbreaker Horror
 A-Orcish Bowmasters
+A-Speakeasy Server
 A-Stitched Assistant
+A-Sunbathing Rootwalla
+Advanced Stitchwing
 Akiri, Line-Slinger
+Alley Evasion
+Alley Strangler
 Alpha Myr
+Amazing Alliance
 Anaba Shaman
+Anax and Cymede
+Andúril, Narsil Reforged
 Angelic Exaltation
 Anthousa, Setessan Hero
+Apex Altisaur
 Arbor Armament
+Arena Rector
 Arni Slays the Troll
 Ashiok's Adept
+Atlantean Skirmisher
 Attended Socialite
+Avarax
+Aven Archer
 Aven Sentry
 Avengers Quinjet
 Backup Agent
@@ -23,8 +36,10 @@ Bearscape
 Benalish Honor Guard
 Bestial Fury
 Bewilder
+Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blessed Hippogriff
 Blight Mound
 Bloated Contaminator
 Blood Servitor
@@ -32,23 +47,30 @@ Blood Tithe
 Blossoming Bogbeast
 Borrowed Grace
 Bramble Creeper
+Brood Monitor
 Browse
+Caller of the Pack
 Canyon Jerboa
 Carapace Forger
+Castle Locthwain
 Catapult Fodder
 Caustic Rain
 Celestial Unicorn
 Centaur Chieftain
 Champion of the Perished
 Charging Badger
+Charging Griffin
+Childhood Horror
 Chimeric Idol
 Chorus of Might
+Chrome Prowler
 Churning Eddy
 Cleanfall
 Clear the Mind
 Clever Lumimancer
 Cliffhaven Kitesail
 Clinging Mists
+Collective Unconscious
 Compelling Deterrence
 Concord with the Kami
 Cosmic Crucible
@@ -56,23 +78,33 @@ Cracked Earth Technique
 Crawl from the Cellar
 Crown of Skemfar
 Cutthroat il-Dal
+Darkwater Catacombs
 Deadly Wanderings
 Death-Greeter's Champion
 Deathbloom Ritualist
 Deathbloom Thallid
 Deepwood Drummer
+Dega Disciple
 Demonic Collusion
+Despark
 Desperate Castaways
 Devotee of Strength
+Devouring Swarm
+Devout Harpist
 Diplomatic Escort
+Distinguished Conjurer
 Distract
 Divine Arrow
 Doomfall
+Doomsday Specter
+Douser of Lights
 Dragon Hatchling
+Dragonlord Dromoka
 Dragonspeaker Shaman
 Duskshell Crawler
 Edgar's Awakening
 Eidolon of Philosophy
+Elenda, the Dusk Rose
 Embermage Goblin
 Energy Tap
 Enhanced Awareness
@@ -81,33 +113,47 @@ Evolutionary Leap
 Expose Evil
 Exultant Cultist
 Fantastic Elasticity
+Feast of Flesh
 Feebleness
 Fierce Witchstalker
 Filigree Sages
 Fire
+Flame Blitz
 Flitterstep Eidolon
+Flood
 Forest
 Frilled Sea Serpent
 Gaea's Anthem
 Gala Greeters
 Gather the Pack
 Giant's Grasp
+Glass Golem
 Gluttonous Zombie
+Goblin Fireslinger
 Goblin Gathering
 Golgari Death Swarm
 Gorgon's Head
+Greatsword of Tyr
 Greel's Caress
 Greensleeves, Maro-Sorcerer
+Grim Affliction
 Grim Flowering
 Grotesque Demise
+Grove of the Burnwillows
 Gryff Vanguard
 Gustcloak Skirmisher
+H.E.R.B.I.E., Lovable Robot
+Half-Elf Monk
 Hammer of Nazahn
 Hammers of Moradin
+Hapatra, the Desert Frost
 Harbor Serpent
 Hardy Veteran
+Hatchery Spider
 Haunted Angel
 Havoc Devils
+Headlong Rush
+Herd Baloth
 Hidden Path
 Hua Tuo, Honored Physician
 Hungry Flames
@@ -120,16 +166,25 @@ Iron Will
 Island
 Jade Idol
 Jilt
+Jon Irenicus, the Exile
 Jump
+Junji, the Midnight Sky
 Juvenile Gloomwidow
+Kami of Old Stone
 Kami of Transience
 Keskit, the Flesh Sculptor
 Kessig Prowler
 Kithkin Rabble
 Knickknack Ouphe
 Krovikan Mist
+Kurgadon
+Kykar, Wind's Fury
+Kyler, Sigardian Emissary
+Larceny
 Law-Rune Enforcer
+Layla Hassan
 Leeching Licid
+Legion's Judgment
 Leyline Dowser
 Light of Day
 Llanowar Loamspeaker
@@ -138,35 +193,53 @@ Locust Swarm
 Loxodon Partisan
 Loxodon Restorer
 Lumengrid Sentinel
+Luminous Angel
 Lyse Hext
 Mage Duel
+Malakir Blood-Priest
+Mana Tithe
 March from the Tomb
+Mazirek, Kraul Death Priest
+Merciless Repurposing
 Metallic Sliver
 Might Sliver
 Might of Alara
+Minamo, School at Water's Edge
+Minion Reflector
+Mitotic Slime
 Moldgraf Millipede
 Mortality Spear
 Mortiphobia
 Mountain
+Myr Matrix
 Nahiri's Binding
 Nantuko Shade
+Nav Squad Commandos
 Necklace of Girion
 Necrotic Wound
 Nim Replica
 Ninja of the New Moon
+Niv-Mizzet, Parun
 Nova Cleric
 Okiba Reckoner Raid
+One Thousand Lashes
+Open the Armory
 Orazca Raptor
+Order
 Order of Midnight
+Otawara, Soaring City
 Outrider of Jhess
+Overcharged Amalgam
 Pack's Betrayal
 Paladin en-Vec
+Parasitic Grasp
 Patient Rebuilding
 Peach Garden Oath
 Pest Summoning
 Pestilent Syphoner
 Phantom Wurm
 Pilgrim of the Ages
+Pit Scorpion
 Placid Rottentail
 Plains
 Planar Gate
@@ -174,65 +247,103 @@ Prakhata Pillar-Bug
 Prize Pig
 Profane Prayers
 Promise of Aclazotz
+Promise of Tomorrow
 Prophetic Titan
 Protect the Negotiators
 Prowler, Misguided Mentor
 Pteron Ghost
+Puppet Master
+Purestrain Genestealer
 Quasiduplicate
 Racecourse Fury
 Radha, Heart of Keld
 Raging Ravine
+Ramosian Commander
 Rathi Dragon
 Ravenous Daggertooth
 Ravenous Gigamole
 Ravenous Vampire
+Ray of Revelation
 Razorfin Hunter
+Redcap Heelslasher
+Repay in Kind
+Repel the Abominable
 Reprisal
 Rescue, Pepper Potts
 Retreat to Coralhelm
+Return the Past
 Riddleform
 Ring of Valkas
 Riot Control
 Riparian Tiger
+Riptide Chimera
 Riptide Director
 Rise Again
 River Kaijin
 Rootwater Commando
+Rootwater Hunter
+Rotwidow Pack
 Rune Snag
 Rushwood Legate
 Sadistic Slash
+Sanctuary Cat
+Sarkhan's Scorn
+Scavenged Blade
+Scoria Cat
 Scourge of Geier Reach
+Screaming Fury
+Seismic Elemental
 Selenia, Dark Angel
 Sentinel's Eyes
 Seraph of Dawn
+Servo Exhibition
 Settlement Blacksmith
 Shadow Prophecy
 Shadow, Mysterious Assassin
+Shell Shield
 Sheoldred's Headcleaver
+Shields of Velis Vel
 Shiny Impetus
+Shorikai, Genesis Engine
 Sierra, Nuka's Biggest Fan
 Sigil of Myrkul
+Sigiled Sentinel
+Simic Charm
 Sin Collector
 Skalla Wolf
+Skittish Kavu
 Skrelv, Defector Mite
 Skull Raid
+Sky-Eel School
+Sleek Schooner
 Smash to Smithereens
 Smoldering Butcher
+Smoldering Spires
 Sokka, Swordmaster
+Solitary Defiance
+Soul Barrier
 Soul of Migration
 Sound the Call
+Spectral Reserves
+Spellgorger Weird
 Spellstutter Sprite
 Sphinx's Revelation
 Spinehorn Minotaur
+Splendid Reclamation
 Spoils of Evil
 Squirrel Sanctuary
+Stall for Time
 Star Whale
+Starlight Invoker
+Statecraft
 Stern Dismissal
 Steward of Valeron
 Storm Front
 Storm Seeker
+Stormcaller's Boon
 Sudden Impact
 Sun Sentinel
+Sun-Crowned Hunters
 Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
@@ -242,24 +353,33 @@ Teferi's Wavecaster
 Temporary Insanity
 Tendrils of Corruption
 Territorial Kavu
+Terror of Towashi
 Thassa's Devourer
 The Blackstaff of Waterdeep
+The Thanos-Copter
 Think Tank
+Third Path Iconoclast
 Thran Foundry
+Thundercloud Elemental
 Tidal Wave
 Tishana's Wayfinder
 Tomb Robber
+Torbran, Thane of Red Fell
 Towashi Songshaper
 Tower Defense
 Tower Winder
+Tower of Murmurs
 Tranquility
 Tribute Mage
 Trigon of Mending
 Trusty Retriever
+Turbulent Crater
 Turn the Earth
 Twisted Experiment
 Underdark Explorer
 Unhallowed Phalanx
+Unseen Walker
+Unsubstantiate
 Vampire Scrivener
 Vampiric Feast
 Vault 87: Forced Evolution
@@ -269,10 +389,12 @@ Village Elder
 Vindictive Triumph
 Vodalian Serpent
 Voice of the Provinces
+Volcanic Salvo
 Voracious Null
 Wall of Runes
 Wall of Tombstones
 Warpath Ghoul
+Watcher Sliver
 Watchful Automaton
 Weakstone's Subjugation
 Well of Life
@@ -282,3 +404,4 @@ Woodborn Behemoth
 Worldfire
 Zephyr Winder
 Zerapa Minotaur
+Zimone, Mystery Unraveler

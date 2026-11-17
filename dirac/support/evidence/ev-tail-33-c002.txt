@@ -1,13 +1,17 @@
 A-Akki Ronin
 A-Guide of Souls
 A-Oran-Rief Ooze
+A-Psionic Snoop
 A-Urza, Powerstone Prodigy
 Abzan Advantage
 Accursed Horde
 Advanced Stitchwing
 Aether Vial
+Afterlife Insurance
 Aftershock
 Agent of Horizons
+Agent of Masks
+Aid from the Cowl
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
@@ -21,12 +25,17 @@ Ardent Elementalist
 Armorcraft Judge
 Atraxa's Fall
 Audacity
+Aura Extraction
 Autumnal Gloom
 Avaricious Dragon
 Bag End Porter
+Battlefront Krushok
 Blighted Agent
+Blistering Dieflyn
 Blood Divination
 Blood Speaker
+Bloodstone Cameo
+Bogardan Dragonheart
 Bond of Passion
 Bonded Herdbeast
 Bontu the Glorified
@@ -36,11 +45,13 @@ Brazen Buccaneers
 Briarpack Alpha
 Bringer of the Green Dawn
 Broodhatch Nantuko
+Cagemail
 Call to Mind
 Canopy Baloth
 Carnival of Souls
 Casey Jones, Asphalt Hooligan
 Caustic Caterpillar
+Charforger
 Circle of Flame
 Citywatch Sphinx
 Cold-Water Snapper
@@ -51,6 +62,7 @@ Cordial Vampire
 Crawl from the Cellar
 Cruel Deceiver
 Curious Pair
+Darling of the Masses
 Darwin, Adaptive Mutant
 Davriel, Rogue Shadowmage
 Deadly Recluse
@@ -58,21 +70,32 @@ Death Tyrant
 Deathbloom Thallid
 Demonic Lore
 Depose
+Deranged Whelp
 Despondent Killbot
 Destroy Evil
 Destructive Digger
 Dewdrop Spy
+Dimir Machinations
+Donate
 Draconic Destiny
 Dragon Whisperer
+Dragonlord Silumgar
+Dragonwing Glider
+Drawn from Dreams
+Dread Warlock
 Drelnoch
 Drill-Skimmer
 Dross Golem
+Dwarven Forge-Chanter
 Déjà Vu
 Ebon Drake
 Ebony Charm
 Ebony Horse
 Electric Revelation
+Elven Ambush
+Elvish Fury
 Ember-Eye Wolf
+Encroach
 Eternal Taskmaster
 Fallaji Dragon Engine
 False Peace
@@ -100,7 +123,9 @@ Goldwarden's Helm
 Gravitational Shift
 Gristle Grinner
 Hadana's Climb
+Hammer of Purphoros
 Harvesttide Infiltrator
+Haunted Dead
 Hazoret's Monument
 Honor's Reward
 Hysterical Blindness
@@ -109,13 +134,16 @@ Inexorable Tide
 Infernal Reckoning
 Inner Fire
 Innocent Traveler
+Invasive Species
 Ire of Kaminari
 Ironclad Revolutionary
 Island
 Jabs, Mistress of Mockery
 Jace's Triumph
 Jaspera Sentinel
+Jelenn Sphinx
 Jhoira's Familiar
+Kambal, Consul of Allocation
 Katara, Heroic Healer
 Kavu Aggressor
 Kithkin Mourncaller
@@ -125,6 +153,7 @@ Krark-Clan Grunt
 Land Grant
 Lava Coil
 Leaden Fists
+Liege of the Pit
 Lightfoot Rogue
 Lightning Elemental
 Liliana's Influence
@@ -133,7 +162,9 @@ Long-Forgotten Gohei
 Looming Altisaur
 Lumengrid Sentinel
 Lunk Errant
+Mace of the Valiant
 Magistrate's Scepter
+Magnetic Theft
 Manabond
 Maraleaf Pixie
 Marauding Knight
@@ -168,6 +199,7 @@ Overgrowth
 Pack's Disdain
 Pashalik Mons
 Pegasus Refuge
+Perilous Shadow
 Phantom Nishoba
 Pincher Beetles
 Plague Dogs
@@ -179,11 +211,14 @@ Puppet Conjurer
 Purify
 Quag Sickness
 Quirion Dryad
+Rattlechains
+Raze
 Razorjaw Oni
 Reanimate
 Reaver Drone
 Reckoner's Bargain
 Rending Volley
+Renounce
 Reverent Hunter
 Rewind
 Rip Apart
@@ -191,7 +226,10 @@ Rona, Disciple of Gix
 Roofstalker Wight
 Royal Falcon
 Ruin Crab
+Sabertooth Mauler
 Sage's Knowledge
+Sage's Row Savant
+Sanguine Glorifier
 Saruman the White
 Scab-Clan Charger
 Scion of Stygia
@@ -200,6 +238,7 @@ Sea God's Revenge
 Sea Snidd
 Seasoned Hallowblade
 Seed Guardian
+Seething Anger
 Sharktocrab
 Shinen of Fear's Chill
 Showstopping Surprise
@@ -207,6 +246,7 @@ Shredded Sails
 Shu Grain Caravan
 Sibling Rivalry
 Sisay's Ring
+Sivitri Scarzam
 Skizzik Surger
 Skyclave Relic
 Skyreaping
@@ -226,26 +266,37 @@ Square Up
 Stensia Uprising
 Streetwise Negotiator
 Striped Bears
+Subversion
 Sunder Shaman
 Swamp
+Sythis, Harvest's Hand
+Temple Elder
 Temporal Machinations
 Thought Monitor
 Thraben Foulbloods
 Thresher Lizard
 Tin-Wing Chimera
+Tolsimir, Friend to Wolves
+Tower of Champions
+Towering Thunderfist
 Trained Armodon
+Trained Jackal
 Tranquil Path
+Trash for Treasure
 Traverse the Outlands
 Tree of Tales
 Trespasser's Curse
+Two-Headed Dragon
 Tyranid Harridan
 Uktabi Faerie
+Ultron, Machine Overlord
 Umezawa's Charm
 Unchecked Growth
 Undead Servant
 Undo
 Unyaro Bee Sting
 Urborg Shambler
+Urza's Command
 Utvara Scalper
 Verdant Crescendo
 Verdant Embrace
@@ -253,20 +304,25 @@ Victorious Destruction
 Vinelasher Kudzu
 Viridian Zealot
 Voidwielder
+Voyaging Satyr
 Vulshok War Boar
 Walking Dead
 Wall of Roots
 Wall of Wonder
 Wand of the Elements
 Warden of the Wall
+Warmonger's Chariot
 Warren Instigator
 Wave Goodbye
 Wayward Swordtooth
 Wei Infantry
 Willow Faerie
+Wilson, Refined Grizzly
 Winged Hive Tyrant
+Wingfold Pteron
 Winter Soldier, Bucky Barnes
 Witch's Cottage
+Wizened Cenn
 You Look Upon the Tarrasque
 Yuan Shao, the Indecisive
 Yuriko, the Tiger's Shadow

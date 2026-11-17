@@ -12,6 +12,7 @@ Angel of Glory's Rise
 Armory Guard
 Attended Knight
 Ballista Watcher
+Befoul
 Bellowing Saddlebrute
 Black Widow, Intel Expert
 Blade Sliver
@@ -21,11 +22,13 @@ Boots of Speed
 Brainspoil
 Buoyancy
 Cavern Crawler
+Cheering Fanatic
 Chief of the Foundry
 Clash of Wills
 Conquering Manticore
 Copper Myr
 Coppercoat Vanguard
+Cradle to Grave
 Crashing Footfalls
 Crop Sigil
 Cruel Celebrant
@@ -40,6 +43,7 @@ Demon's Jester
 Diabolic Edict
 Disciple of Grace
 Disciple of the Ring
+Dreadhound
 Dreadlight Monstrosity
 Drowner Initiate
 Drumbellower
@@ -47,6 +51,7 @@ Dual Shot
 Dustin, Gadget Genius
 Efreet Flamepainter
 Electrosiphon
+Elemental Augury
 Ellivere of the Wild Court
 Essence Infusion
 Everbark Shaman
@@ -55,22 +60,27 @@ Extract from Darkness
 Extremis Elite
 Falkenrath Torturer
 Fallaji Archaeologist
+Fated Return
 Final Flourish
 Final Strike
+Fire Covenant
 Flailing Soldier
 Flamekin Village
 Flayed One
 Flicker of Fate
+Forebear's Blade
 Forest
 Frenzied Devils
 From the Rubble
 Frost Trickster
 Galerider Sliver
+Glen Elendra Liege
 Goblin Barrage
 Goblin Blast-Runner
 Goblin Bombardment
 Goblin Bushwhacker
 Goblin Locksmith
+Goliath, Mass Manipulator
 Gonti, Lord of Luxury
 Grave Peril
 Graveblade Marauder
@@ -90,42 +100,53 @@ Infuriate
 Iona's Judgment
 Island
 Izzet Keyrune
+Karvanista, Loyal Lupari
 Kazuul Warlord
 Keeper of Secrets
 Keldon Mantle
 Kogla, the Titan Ape
 Kraken Hatchling
 Kraum, Ludevic's Opus
+Krovikan Fetish
 Kuldotha Ringleader
 Last Kiss
+Lava Zombie
 Lead by Example
 Lightning Javelin
 Lizard Warrior
+Llanowar Sentinel
 Loamcrafter Faun
 Longbow Archer
 Maraleaf Pixie
 Marble Titan
+Massacre
 Melira's Keepers
 Mental Misstep
 Messenger's Speed
 Mindculling
 Misers' Cage
 Mob Justice
+Molten Echoes
 Mountain
+Murasa Brute
 Myr Sire
 Márton Stromgald
 Nimble Innovator
 Obelisk of Alara
+Origin of Black Widow
 Orzhov Signet
 Pang Tong, "Young Phoenix"
 Pearl Medallion
+Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
+Phyrexian Espionage
 Pick Up the Pace
 Pincer Spider
 Pinnacle of Rage
 Plains
 Predator's Rapport
+Quicksilver Amulet
 Rampant Rejuvenator
 Ransom Note
 Razormane Masticore
@@ -135,6 +156,7 @@ Reprieve
 Ring of Immortals
 Riptide Mangler
 River Kaijin
+Rush of Knowledge
 Sacred Knight
 Sanctum Custodian
 School of Piranha
@@ -149,6 +171,7 @@ Shield-Wall Sentinel
 Shimmering Wings
 Shinechaser
 Sif's Spearmaster
+Silas Renn, Seeker Adept
 Sky Diamond
 Sky Theater Strix
 Soldier Replica
@@ -169,6 +192,7 @@ Swamp
 Talrand's Invocation
 Tanglebloom
 The Destined Black Mage
+Theater of Horrors
 Theros Charm
 Thornwatch Scarecrow
 Tolarian Entrancer
@@ -187,6 +211,7 @@ Vedalken Aethermage
 Vendetta
 Visage of Bolas
 Vizkopa Vampire
+Wake the Dragon
 Wake the Past
 Walker of the Grove
 Warlock Class
@@ -195,6 +220,7 @@ Whetwheel
 Wind Dancer
 Winterflame
 Wirewood Herald
+Woodlot Crawler
 You Hear Something on Watch
 You're Ambushed on the Road
 Zephyr Net

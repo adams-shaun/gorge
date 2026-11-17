@@ -26,6 +26,7 @@ Baleful Eidolon
 Baleful Force
 Banners Raised
 Bartered Cow
+Battering Sliver
 Beledros Witherbloom
 Beskir Shieldmate
 Blastoderm
@@ -145,6 +146,7 @@ Goblin Engineer
 Goblin Fire Fiend
 Goblin Medics
 Goblin Spy
+Golos, Tireless Pilgrim
 Grandmother Goby
 Grassland Crusader
 Graveborn Muse
@@ -175,6 +177,7 @@ Imperial Lancer
 Implement of Improvement
 Inexorable Blob
 Infectious Inquiry
+Infernal Plunge
 Infernal Tribute
 Ingenious Skaab
 Inner-Flame Acolyte
@@ -202,6 +205,7 @@ Kinsbaile Skirmisher
 Kitchen
 Knight of Stromgald
 Kodama of the North Tree
+Kozilek's Shrieker
 Kyren Legate
 Labyrinth Adversary
 Last Rites
@@ -230,6 +234,7 @@ Mobile Garrison
 Molten Ravager
 Molting Harpy
 Momentous Fall
+Moonlit Scavengers
 Morkrut Behemoth
 Moss Viper
 Mountain
@@ -285,6 +290,7 @@ Psychosis Crawler
 Puca's Covenant
 Puppet Strings
 Purphoros, God of the Forge
+Pyre Charger
 Qilin's Blessing
 Quicken
 Quicksilver Fisher
@@ -398,6 +404,7 @@ Thieves' Tools
 Thragtusk
 Timber Protector
 Topple
+Toxic Nim
 Trapmaker's Snare
 Treasure Hunt
 Trespassing Souleater

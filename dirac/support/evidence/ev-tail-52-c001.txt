@@ -5,6 +5,7 @@ A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
 Adorable Kitten
+Ajani, Valiant Protector
 Alabaster Host Sanctifier
 Alarum
 Albino Troll
@@ -51,13 +52,16 @@ Cephalid Looter
 Chandra, Pyrogenius
 Chardalyn Dragon
 Charnel Serenade
+Chimeric Coils
 Civic Gardener
 Clackbridge Troll
 Clawing Torment
+Cliffgate
 Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
+Colfenor's Urn
 Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor
@@ -160,6 +164,7 @@ Inspiring Unicorn
 Intrepid Provisioner
 Island
 Javelin of Lightning
+Jeskai Banner
 Jugan, the Rising Star
 Junk Golem
 Justice Strike
@@ -319,6 +324,7 @@ Spell Syphon
 Spellbinding Soprano
 Sphinx's Revelation
 Splendor Mare
+Splitting the Powerstone
 Sporoloth Ancient
 Stampeding Rhino
 Starnheim Memento
@@ -327,6 +333,7 @@ Stirge
 Storm of Steel
 Strangling Spores
 Sultai Runemark
+Sungrass Prairie
 Sunscorched Desert
 Swamp
 Swarming Goblins
@@ -346,12 +353,14 @@ Thing Swing
 Thorn Lieutenant
 Thrór's Map
 Thunderous Orator
+Timber Gorge
 Tireless Tribe
 Titanium Golem
 Towering Titan
 Tribune of Rot
 Urza's Guilt
 Utter Insignificance
+Valley Rannet
 Vampire Warlord
 Varchild, Betrayer of Kjeldor
 Vault Skirge

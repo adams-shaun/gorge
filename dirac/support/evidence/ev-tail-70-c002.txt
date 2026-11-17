@@ -20,6 +20,7 @@ Blood-Chin Rager
 Bloodhusk Ritualist
 Bloodthirsty Adversary
 Bog Tatters
+Bonded Horncrest
 Boon of Erebos
 Boulderbranch Golem
 Carrion Feeder
@@ -40,6 +41,7 @@ Dawnstrider
 Deface
 Demonic Taskmaster
 Denethor, Ruling Steward
+Desperate Plea
 Disciple of the Old Ways
 Dockside Chef
 Donald Blake, Guise of Thor
@@ -135,20 +137,24 @@ Oran-Rief Invoker
 Orcish Veteran
 Overmaster
 Patagia Viper
+Patchwork Gnomes
 Pestilence
 Phyrexian Reclamation
 Piercing Light
 Piper of the Swarm
 Plains
+Planar Gate
 Plated Onslaught
 Predatory Nightstalker
 Primal Frenzy
+Primal Rage
 Putrid Cyclops
 Quirion Beastcaller
 Radagast, Wizard of Wilds
 Radiant Purge
 Raised by Giants
 Rallying Roar
+Reaper of Flight Moonsilver
 Relentless Hunter
 Relentless Skaabs
 Rhystic Scrying
@@ -160,6 +166,7 @@ Savageborn Hydra
 Saving Grasp
 Scrollshift
 Scythe Leopard
+Seashell Cameo
 Sedgemoor Witch
 Sentinel of the Eternal Watch
 Settle Beyond Reality
@@ -175,6 +182,7 @@ Slaughter Specialist
 Slavering Nulls
 Smelt-Ward Ignus
 Smothering Abomination
+Soilshaper
 Soratami Seer
 Souldrinker
 Spectral Hunt-Caller
@@ -183,6 +191,7 @@ Spinal Centipede
 Spire Barrage
 Spire Tracer
 Spiritmonger
+Star Whale
 Start
 Steel of the Godhead
 Stonecloaker
@@ -193,6 +202,7 @@ Take Possession
 Tapestry of the Ages
 Tenacious Hunter
 The Juzam Master
+Thought-Knot Seer
 Thraben Heretic
 Thundering Giant
 Tormented Angel
@@ -206,6 +216,7 @@ Undermine
 Uproot
 Vampiric Spirit
 Veil of Summer
+Vexing Beetle
 Viashino Spearhunter
 Vigilant Baloth
 Village Cannibals
@@ -215,4 +226,5 @@ War Horn
 Wings of the Guard
 Witherbloom Command
 Wolfkin Bond
+Woodcaller Automaton
 Zephid's Embrace

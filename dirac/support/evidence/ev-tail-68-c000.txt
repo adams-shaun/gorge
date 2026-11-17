@@ -38,6 +38,7 @@ Blight Grenade
 Blighted Shaman
 Blood Reckoning
 Brokers Hideout
+Cabal Therapist
 Captain America's Motorcycle
 Captain Lannery Storm
 Cateran Brute
@@ -52,6 +53,7 @@ Clockwork Vorrac
 Clot Sliver
 Cloudreader Sphinx
 Clutch of the Undercity
+Codsworth, Handy Helper
 Cold Storage
 Colorful Feiyi Sparrow
 Conservator

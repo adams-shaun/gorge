@@ -5,6 +5,7 @@ Aang, Airbending Master
 Academy Raider
 Advance Scout
 Adverse Conditions
+Aether Spike
 Ahn-Crop Invader
 Ajani Fells the Godsire
 Akroma's Will
@@ -27,6 +28,7 @@ Battle Hymn
 Benalish Veteran
 Birthing Boughs
 Birthing Ritual
+Blind-Spot Giant
 Bloodsworn Steward
 Bog Glider
 Bold Impaler
@@ -34,6 +36,7 @@ Brainstone
 Brave the Elements
 Briarberry Cohort
 Briarblade Adept
+Broodstar
 Butch DeLoria, Tunnel Snake
 Call to Serve
 Catalyst Elemental
@@ -51,6 +54,7 @@ Combat Medic
 Compulsion
 Coral Eel
 Count Nefaria
+Crater Elemental
 Cunning Sparkmage
 Deathknell Berserker
 Deepwater Hypnotist
@@ -64,6 +68,7 @@ Duskmantle Prowler
 Dwarven Grunt
 Dwarven Lieutenant
 Eagle of the Watch
+Elixir of Vitality
 Enduring Scalelord
 Enforcer Griffin
 Enlightened Tutor
@@ -77,6 +82,7 @@ Fire Imp
 Flesh to Dust
 Flood of Tears
 Flower
+Flowstone Salamander
 Fog on the Barrow-Downs
 Force of Despair
 Forest
@@ -112,8 +118,10 @@ Hobgoblin Captain
 Holy Armor
 Honden of Seeing Winds
 Hopeful Initiate
+Hostile Desert
 Hurloon Battle Hymn
 Hydra Omnivore
+Illusionist's Stratagem
 Impending Flux
 Increasing Devotion
 Ingenious Skaab
@@ -148,10 +156,12 @@ Lich's Caress
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
+Mana Confluence
 Manaplasm
 Mantle of Leadership
 Marchesa's Decree
 Mardu Shadowspear
+Marsh Flats
 Martyr of Dusk
 Maximize Altitude
 Medicine Bag
@@ -159,11 +169,13 @@ Memory Erosion
 Mephitic Ooze
 Mind's Eye
 Mine Collapse
+Minotaur Tactician
 Mishra's Self-Replicator
 Molten Nursery
 Molten Rain
 Moment of Truth
 Mountain
+Mushroom Watchdogs
 Mutilate
 Muzzio, Visionary Architect
 Nausea
@@ -204,6 +216,7 @@ Raph's Bravado
 Rat Colony
 Rats of Rath
 Relic Robber
+Repair and Recharge
 Repository Skaab
 Reprocess
 Restoration Angel
@@ -211,6 +224,8 @@ Retrofitter Foundry
 Revel of the Fallen God
 Rise to the Challenge
 Rishadan Pawnshop
+Rix Maadi, Dungeon Palace
+Royal Warden
 Rude Awakening
 Run Aground
 Rushwood Herbalist
@@ -231,6 +246,7 @@ Sheoldred, Whispering One
 Sifter Wurm
 Silverquill Apprentice
 Slimebind
+Slimy Piper
 Slingshot Goblin
 Sliptide Serpent
 Slumbering Dragon
@@ -240,6 +256,7 @@ Sophic Centaur
 Soul Shred
 Soul of Innistrad
 Souldrinker
+Sphinx of Magosi
 Spinneret Sliver
 Spirit of the Spires
 Spiritual Asylum
@@ -250,6 +267,7 @@ Steelshaper's Gift
 Storm of Souls
 Sudden Edict
 Sudden Spinnerets
+Surtland Frostpyre
 Swamp
 Swamp Mosquito
 Tamiyo's Epiphany
@@ -277,15 +295,19 @@ Unnatural Restoration
 Unnerve
 Unquestioned Authority
 Urborg Skeleton
+Urza's Factory
 Uthros Research Craft
 Uurg, Spawn of Turg
 Vampire Noble
 Vedalken Anatomist
 Vigil for the Lost
 Vindictive Mob
+Viridescent Bog
 Viscera Seer
 Vivid Creek
+War Flare
 Waste Away
 Waterfront Bouncer
+Well of Discovery
 Wither and Bloom
 Withering Boon

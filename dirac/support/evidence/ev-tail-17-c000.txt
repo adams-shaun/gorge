@@ -1,3 +1,4 @@
+A-Asari Captain
 Abomination of Llanowar
 Acquisition Octopus
 Act on Impulse
@@ -6,6 +7,7 @@ Aether Vial
 Aggression
 Agonizing Demise
 Akroma's Devoted
+Al-abara's Carpet
 Aladdin
 Amass the Components
 Amrou Seekers
@@ -60,6 +62,7 @@ Caravan Hurda
 Catapult Fodder
 Caustic Tar
 Centaur Safeguard
+Cerulean Sphinx
 Chandra's Defeat
 Chandra's Phoenix
 Chandra's Pyreling
@@ -91,6 +94,7 @@ Dega Sanctuary
 Delete
 Desert Nomads
 Desert of the True
+Dig Up
 Dismiss into Dream
 Dispersal Technician
 Doomed Artisan
@@ -103,6 +107,7 @@ Drowned
 Earthen Goo
 Eerie Soultender
 Elemental Bond
+Elemental Masterpiece
 Ellie, Vengeful Hunter
 Elves of Deep Shadow
 Elvish Scout
@@ -144,6 +149,7 @@ Foul Imp
 Fractal Harness
 Freyalise Supplicant
 Freyalise's Charm
+Frostburn Weird
 Gaea's Avenger
 Gaea's Revenge
 Galvanic Blast
@@ -228,14 +234,17 @@ Lazotep Chancellor
 Life Chisel
 Liliana's Elite
 Liliana, the Necromancer
+Lin Sivvi, Defiant Hero
 Liu Bei, Lord of Shu
 Lobber Crew
 Looming Shade
+Lunk Errant
 Lurking Nightstalker
 Mad Dog
 Magus of the Order
 Manifold Key
 March of the Drowned
+Martyrs' Tomb
 Masked Blackguard
 Melancholy
 Metal Fatigue
@@ -288,6 +297,7 @@ Plover Knights
 Plundering Predator
 Pollenbright Druid
 Portable Hole
+Preemptive Strike
 Primal Command
 Prismatic Vista
 Provoke
@@ -381,6 +391,7 @@ Take into Custody
 Talara's Battalion
 Tapestry of the Ages
 Tectonic Rift
+Tenement Crasher
 Thalia's Lancers
 The Binding of the Titans
 The Immortal Weapons

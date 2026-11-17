@@ -32,6 +32,7 @@ Battle Squadron
 Battlefield Butcher
 Battlefield Percher
 Battleground Geist
+Beneath the Sands
 Blade of the Bloodchief
 Blaster Mage
 Blazethorn Scarecrow
@@ -189,6 +190,7 @@ Hollowhenge Beast
 Hookblade Veteran
 Hound of Urabrask
 Hymn of Rebirth
+Ichorplate Golem
 Illusionary Forces
 Incriminating Impetus
 Inferno Project
@@ -320,6 +322,7 @@ Ready to Rumble
 Reality Heist
 Reality Hemorrhage
 Realm-Cloaked Giant
+Reckless Wurm
 Reconstructed Thopter
 Red Dragon
 Regal Sliver
@@ -361,6 +364,7 @@ Shadows' Verdict
 Shambling Goblin
 Shifting Sliver
 Shipwreck Looter
+Shore Snapper
 Silent Extraction
 Sinister Possession
 Sink into Takenuma
@@ -451,6 +455,7 @@ Vicious Battlerager
 Villainous Ogre
 Vision Skeins
 Void Grafter
+Vrestin, Menoptra Leader
 Wall of Stone
 Warden of Evos Isle
 Warehouse Thief

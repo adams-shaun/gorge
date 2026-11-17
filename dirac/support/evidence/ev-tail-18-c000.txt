@@ -14,6 +14,7 @@ Angler Drake
 Ant-Man, Scott Lang
 Anthroplasm
 April O'Neil, Human Element
+Arcbound Javelineer
 Ardent Soldier
 Arni Slays the Troll
 Arrow Storm
@@ -295,6 +296,7 @@ Plains
 Plated Onslaught
 Portable Hole
 Pox
+Profane Memento
 Prologue to Phyresis
 Protomatter Powder
 Psychic Spiral

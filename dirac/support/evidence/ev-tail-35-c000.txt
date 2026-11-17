@@ -1,6 +1,7 @@
 A-Elderleaf Mentor
 A-Nael, Avizoa Aeronaut
 A-You Come to a River
+Abomination, World Ravager
 Absolute Law
 Abundant Countryside
 Adeliz, the Cinder Wind
@@ -59,6 +60,7 @@ Control Magic
 Convolute
 Copper Carapace
 Crovax, Ascendant Hero
+Cryoclasm
 Cunning Survivor
 Curse of Disturbance
 Cursebreak
@@ -94,6 +96,7 @@ Embargo
 Enchantmentize
 Encrust
 Energy Chamber
+Esper Battlemage
 Esper Panorama
 Essence Harvest
 Expedition Diviner
@@ -163,6 +166,7 @@ Keeper of the Accord
 Killmonger, Ruthless Usurper
 Lab Rats
 Lady Spider, Maybelle Reilly
+Lammastide Weave
 Leaf Gilder
 Leave in the Dust
 Leery Fogbeast
@@ -177,8 +181,10 @@ Lush Growth
 Mace of the Valiant
 Magus of the Bazaar
 Manticore of the Gauntlet
+Marshal's Anthem
 Meatsqueak, Hoard Lord
 Meltdown
+Merry, Esquire of Rohan
 Mindlash Sliver
 Mishra's Groundbreaker
 Mizzium Meddler
@@ -197,6 +203,7 @@ Nantuko Tracer
 Necrogenesis
 Nezumi Cutthroat
 Night Market Aeronaut
+Nine-Tail White Fox
 Nip Gwyllion
 Nissa's Defeat
 No-Dachi
@@ -224,6 +231,7 @@ Primal Order
 Primeval Titan
 Profane Tutor
 Prohibit
+Pursue Glory
 Rapid Decay
 Raugrin Crystal
 Reach of Branches
@@ -274,6 +282,7 @@ Spireside Infiltrator
 Spirit of Malevolence
 Spitting Hydra
 Stave Off
+Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
 Stratadon
@@ -288,6 +297,7 @@ Syphon Mind
 Tablet of Epityr
 Taigam's Scheming
 Tears of Valakut
+Tectonic Fiend
 Tel-Jilad Outrider
 Teroh's Faithful
 Thassa's Oracle
@@ -312,6 +322,7 @@ Triton Fortune Hunter
 Triton Waverider
 Tsunami
 Twenty-Toed Toad
+Uktabi Drake
 Uncovered Clues
 Undercity Troll
 Unifying Theory
@@ -319,6 +330,7 @@ Unwavering Initiate
 Utter End
 Viashino Weaponsmith
 Vibranium Strike Gauntlets
+Viridian Revel
 Vitalizing Cascade
 Void Squall
 Volcanic Awakening
@@ -329,6 +341,7 @@ Watchwolf
 Wave Elemental
 Wayfaring Giant
 Weakstone's Subjugation
+Weathered Wayfarer
 Whip-Spine Drake
 Wilt
 Witch's Vengeance

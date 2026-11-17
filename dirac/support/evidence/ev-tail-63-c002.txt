@@ -7,9 +7,11 @@ Accorder Paladin
 Aetherworks Marvel
 Aggressive Instinct
 Ahn-Crop Invader
+Ainok Artillerist
 Airlift Chaplain
 Ajani's Welcome
 Akki Avalanchers
+Ambassador Oak
 Ambush Paratrooper
 Angel of the Dawn
 Angelic Field Marshal
@@ -22,13 +24,16 @@ Become the Avalanche
 Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Blaring Captain
+Blinding Fog
 Bloodmist Infiltrator
 Boggart Loggers
+Boros Guildmage
 Bottle Golems
 Bramblesnap
 Breath of Darigaaz
 Brightwood Tracker
 Brute Strength
+Bureau Headmaster
 Cabaretti Initiate
 Cage of Hands
 Centaur Chieftain
@@ -49,6 +54,7 @@ Custody Battle
 Darkthicket Wolf
 Deploy to the Front
 Detainment Spell
+Dire Fleet Warmonger
 Dragon's Eye Sentry
 Drannith Magistrate
 Dread Fugue
@@ -64,6 +70,7 @@ Evie Frye
 Expedition Skulker
 Expel
 Eye Gouge
+Fearless Fledgling
 Feast of Dreams
 Floodhound
 Fog Elemental
@@ -73,22 +80,33 @@ Forgehammer Centurion
 Freejam Regent
 Freewind Equenaut
 Freyalise Supplicant
+Furious Bellow
+Furyborn Hellkite
+Gaea's Protector
 Gerrard's Irregulars
 Giant Solifuge
 Glass of the Guildpact
 Glint Hawk Idol
+Go-Shintai of Ancient Wars
+Goblin Assailant
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
+Grand Warlord Radha
 Greel's Caress
 Greenwarden of Murasa
+Greenwheel Liberator
 Griffin Sentinel
 Grim Reaper's Scythe
 Hamlet Vanguard
+Hawkeye's Shot
 Hedron Rover
+Heir of the Ancient Fang
+Herald of the Host
 Hero of Iroas
 Heron of Hope
 Hordeling Outburst
+Howlgeist
 Huatli's Snubhorn
 Ichor Drinker
 Illusory Demon
@@ -98,6 +116,7 @@ Invasion of Dominaria
 Invigorated Rampage
 Island
 Jace's Sanctum
+Jackalope Herd
 Kashi-Tribe Elite
 Kor Bladewhirl
 Kuldotha Rebirth
@@ -108,6 +127,8 @@ Lavastep Raider
 Lawmage's Binding
 Learn from the Past
 Light 'Em Up
+Llanowar Cavalry
+Lovisa Coldeyes
 Maggot Carrier
 Master's Guidance
 Maze Abomination
@@ -117,6 +138,7 @@ Mesa Cavalier
 Metamorphic Wurm
 Midnight Charm
 Mindless Null
+Mindswipe
 Minion Reflector
 Mountain
 Mourning
@@ -124,15 +146,21 @@ Myr Convert
 Myr Kinsmith
 Mysterious Tome
 Mystical Tutor
+Nantuko Disciple
 Narnam Cobra
 Nearheath Chaplain
 Necrotic Hex
 Nesting Dovehawk
 Nikya of the Old Ways
 Noble Vestige
+Norwood Priestess
+Nurturer Initiate
 Order of the Mirror
 Orochi Merge-Keeper
 Outland Boar
+Painiac
+Pavel Maliki
+Phantom Blade
 Phobian Phantasm
 Phyresis
 Phyrexian Driver
@@ -141,25 +169,33 @@ Predators' Hour
 Predatory Nightstalker
 Prescient Chimera
 Priest of Urabrask
+Primal Surge
+Primal Visitation
 Purge the Profane
 Pygmy Razorback
 Pyknite
 Pyroclastic Elemental
+Pyromancer's Swath
 Pyromantic Pilgrim
 Pyrophobia
 Radiant Fountain
+Raised by Wolves
 Rakalite
 Ral's Reinforcements
 Ramosian Commander
 Ravenous Chupacabra
 Ravenous Sailback
+Realmwalker
 Red Elemental Blast
+Renewal
 Replication Technique
 Riot Devils
 Rishadan Brigand
 Rishkar, Peema Renegade
+Rites of Spring
 Rodolf Duskbringer
 Rofellos's Gift
+Salvage
 Savage Thallid
 Screeching Bat
 Scryb Sprites
@@ -169,15 +205,19 @@ Shelob's Ambush
 Silvar, Devourer of the Free
 Singer of Swift Rivers
 Skillful Lunge
+Skyshooter
 Smoldering Werewolf
 Snarling Undorak
 Somberwald Vigilante
+Sowing Mycospawn
 Spell Crumple
 Spellgorger Barbarian
 Spider-Man, Peter Parker
 Spring
 Staff of the Wild Magus
 Stalking Bloodsucker
+Stalking Drone
+Stampeding Wildebeests
 Steel-Plume Marshal
 Stoneforge Mystic
 Stonybrook Banneret
@@ -188,27 +228,38 @@ Suit Up
 Surge Engine
 Swamp
 Talas Merchant
+Talons of Wildwood
 Taste of Blood
+Tempting Licid
 Terravore
 Thalakos Deceiver
 Thallid
 Thaumatic Compass
+Thicket Basilisk
 Thriving Bluff
 Thrun, the Last Troll
 Timberland Guide
 Toil
+Toil to Renown
 Tomakul Honor Guard
 Tomb of the Spirit Dragon
 Topplegeist
+Treetop Rangers
 Tremor
 Urgoros, the Empty One
 Vampiric Tutor
+Vengevine
 Venser, Fervent Forger
+Viridian Shaman
+Wallop
 War Dance
 Weatherseed Faeries
 Whitewater Naiads
 Wild Aesthir
+Windbrisk Raptor
 Windrider Wizard
+Yavimaya Gnats
+Yavimaya Sojourner
 Yoked Ox
 Zarichi Tiger
 Zendikar Incarnate

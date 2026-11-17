@@ -129,12 +129,14 @@ In the Web of War
 Invasion of Kylem
 Island
 It That Heralds the End
+Jhessian Balmgiver
 Jolt
 Jushi Apprentice
 Kagemaro's Clutch
 Kalonian Behemoth
 Karametra's Acolyte
 Karn's Bastion
+Kor Halberd
 Krazy Kow
 Krosan Colossus
 Krovikan Scoundrel
@@ -160,6 +162,7 @@ Mind Carver
 Mishra's Domination
 Misthoof Kirin
 Mogg Squad
+Mondrak, Glory Dominus
 Mortuary
 Mothdust Changeling
 Mountain
@@ -180,9 +183,11 @@ Opportunist
 Order of the Sacred Bell
 Ox of Agonas
 Palladia-Mors
+Permission Denied
 Pestilent Haze
 Phantom Nomad
 Phantom Wurm
+Phyrexian Awakening
 Pine Barrens
 Pitchstone Wall
 Plains
@@ -194,6 +199,7 @@ Queen's Commission
 Rageblood Shaman
 Raging Kronch
 Raging Regisaur
+Rally the Peasants
 Rancid Earth
 Ravenous Leucrocota
 Ravenous Necrotitan
@@ -223,6 +229,7 @@ Seismic Strike
 Serene Offering
 Serra Zealot
 Servo Exhibition
+Shining Armor
 Siege Modification
 Skygames
 Skyline Predator
