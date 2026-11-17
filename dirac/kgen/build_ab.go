@@ -2613,6 +2613,22 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	return ka, add, err
 }
 
+// graveLibFlags is the Repl.C placement bits of a GraveToLibrary replacement:
+// bottom instead of top, shuffle after the insert, and battlefield-only.
+func graveLibFlags(r lRepl) int16 {
+	var c int16
+	if r.LibBottom {
+		c |= kop.ReplLibBottom
+	}
+	if r.LibShuffle {
+		c |= kop.ReplLibShuffle
+	}
+	if r.LibFromBattlefield {
+		c |= kop.ReplLibBattlefield
+	}
+	return c
+}
+
 func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	ka := kop.Ability{Kind: kop.AbReplacement}
 	rp := &ka.Repl
@@ -2752,6 +2768,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+		rp.C |= graveLibFlags(r)
 	case "DiscardOppToBattlefield":
 		rp.Kind = kop.ReplDiscardOppToBattlefield
 	case "PayBeforeETB":

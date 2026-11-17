@@ -204,25 +204,11 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	}
 	pl := &s.pl[ob.owner()]
 	if z == kop.ZoneGraveyard && s.g.on {
-		if k.gen != nil && k.gen.anyExileAny {
-			z = s.exileAnyDest(k, o) // Rest in Peace from any zone (repl_exileonleave.go)
+		if k.gen != nil && k.gen.exileAnyC != nil {
+			z = s.exileAnyDest(k, o, from) // Rest in Peace or the card itself from any zone (repl_exileonleave.go)
 		}
 	}
-	if z == kop.ZoneGraveyard && s.g.on && !s.g.graveKept && s.graveRedirect(k, ob.card, z) == kop.ZoneLibrary {
-		// Progenitus: onto the library top, then its owner shuffles (gorge's
-		// ChangeZone object path: one shuffle per replaced move; the top, not
-		// the bottom, is what matches gorge's shuffle in lockstep, pair 9856)
-		if pl.zoneFull(kop.ZoneLibrary) {
-			ob.zone = kop.ZoneNone
-			s.capFull(StallZone)
-			return
-		}
-		ob.zone = kop.ZoneLibrary
-		pl.libTop(o)
-		if s.g.enteredOn {
-			s.noteEnter(o, kop.ZoneLibrary, from, wasCreature)
-		}
-		s.shuffleLib(ob.owner())
+	if s.placeGraveLib(k, o, pl, z, from, wasCreature) {
 		return
 	}
 	if pl.zoneFull(z) {
@@ -280,6 +266,39 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if z == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyToGrave {
 		s.fireToGrave(k, o, from) // trig_tograve.go
 	}
+}
+
+// placeGraveLib places o on its owner's library when a grave-to-library
+// replacement applies (Progenitus, Gravebane Zombie, Nissa's Chosen), and
+// reports whether it handled the move: a full library stalls and is handled too.
+func (s *State) placeGraveLib(k *prep, o Obj, pl *player, z kop.Zone, from kop.Zone, wasCreature bool) bool {
+	if !s.g.on || s.g.graveKept || z != kop.ZoneGraveyard || s.graveRedirect(k, s.objs[o].card, z, from) != kop.ZoneLibrary {
+		return false
+	}
+	// Progenitus: onto the library top, then its owner shuffles (gorge's
+	// ChangeZone object path: one shuffle per replaced move; the top, not
+	// the bottom, is what matches gorge's shuffle in lockstep, pair 9856).
+	// Gravebane Zombie goes top without a shuffle, Nissa's Chosen bottom.
+	ob := &s.objs[o]
+	if pl.zoneFull(kop.ZoneLibrary) {
+		ob.zone = kop.ZoneNone
+		s.capFull(StallZone)
+		return true
+	}
+	ob.zone = kop.ZoneLibrary
+	bottom, shuffle := s.graveLibInsert(k, ob.card)
+	if bottom {
+		pl.libBottom(o)
+	} else {
+		pl.libTop(o)
+	}
+	if s.g.enteredOn {
+		s.noteEnter(o, kop.ZoneLibrary, from, wasCreature)
+	}
+	if shuffle {
+		s.shuffleLib(ob.owner())
+	}
+	return true
 }
 
 // draw draws one card for p. Drawing from an empty library loses at once
@@ -631,7 +650,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	n0 := s.npend
 	merged := false
 	if k.gen != nil && z == kop.ZoneGraveyard && !s.genLost(k, sl) {
-		z = s.graveRedirect(k, p.card, z) // Progenitus does not die, while it has that ability
+		z = s.graveRedirect(k, p.card, z, kop.ZoneBattlefield) // Progenitus does not die, while it has that ability
 	}
 	if z == kop.ZoneGraveyard {
 		cr := s.isCreature(k, sl)
