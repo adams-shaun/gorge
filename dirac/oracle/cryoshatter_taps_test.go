@@ -41,10 +41,13 @@ func cryoshatterCases() []effectLongCase {
 			reached: func(g *GorgeSide) bool { return cryoshatterAttack(g, false) },
 		},
 		{
-			// A Taps-deferred mono-colour dork: gorge's census never lists
-			// the enchanted Elves (its tap fires an unvetted Taps watcher),
-			// so its {G} funds no Bears in the offer.
-			name:   "cryoshatter_on_mono_colour_dork_does_not_fund_a_cast",
+			// The enchanted dork's tap is an ordinary payment unit:
+			// Cryoshatter's Taps watcher's only effect destroys the tapped
+			// permanent itself, a post-payment consequence the planner vets
+			// (CR 605.4a: the mana was produced at the tap; CR 405.6c/603.2:
+			// the trigger resolves after the payment that caused it), so the
+			// {G} funds the Bears cast in the offer.
+			name:   "cryoshatter_on_mono_colour_dork_funds_the_cast",
 			prefer: []string{"Cryoshatter", "Llanowar Elves"},
 			decks: [2][]string{
 				append(deckOf(8, "Cryoshatter"), deckOf(16, "Island")...),
@@ -69,11 +72,11 @@ func cryoshatterCases() []effectLongCase {
 			reached: func(g *GorgeSide) bool { return cryoshatterDorkPriority(g, "Llanowar Elves", 2) },
 		},
 		{
-			// A Taps-deferred source whose only mana is restricted (an
-			// artifact-spell {U}, an artifact-activation {U}{U}): gorge's
-			// census leaves it out for the restricted mana too, so it funds
-			// no artifact creature on the autopay surface.
-			name:   "cryoshatter_on_restricted_mana_source_does_not_fund_a_cast",
+			// The same vetting over a restricted source: the enchanted
+			// Operator's {T}: Add {U} spend-it-only-on-artifact-spells mana is
+			// an ordinary unit, so it funds the artifact-creature cast in the
+			// offer (the {U}{U} activation-restricted ability funds no cast).
+			name:   "cryoshatter_on_restricted_mana_source_funds_the_artifact_cast",
 			prefer: []string{"Cryoshatter", "Steelswarm Operator"},
 			decks: [2][]string{
 				append(deckOf(8, "Cryoshatter"), deckOf(16, "Island")...),
@@ -236,7 +239,7 @@ func TestCryoshatterRecord(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			set := printedDelveSet(t, c.decks)
 			for seed := uint64(1); seed <= 400; seed++ {
-				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
+				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom", Pool: "custom"}
 				m, err := r.Matchup(reg)
 				if err != nil {
 					t.Fatal(err)

@@ -7,12 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestTapsAttachedByDefer: Cryoshatter's "when enchanted creature becomes
-// tapped, destroy it" (ValidCard$ Card.AttachedBy, no ValidPlayer$) lowers as
-// a deferring Taps watcher whose body destroys the trigger object, as gorge's
-// planner defers the enchanted creature's mana tap; an AttachedBy watcher
-// whose body damages the payer (Psychic Venom's shape) still refuses.
-func TestTapsAttachedByDefer(t *testing.T) {
+// TestTapsAttachedByDestroySelf: Cryoshatter's "when enchanted creature
+// becomes tapped, destroy it" (ValidCard$ Card.AttachedBy, no ValidPlayer$)
+// lowers as an ordinary Taps watcher: its only effect destroys the tapped
+// permanent itself, a post-payment consequence gorge's planner vets
+// (pay.PaymentPlanTapDestroySelfTrigger), so the enchanted creature's mana tap
+// stays an ordinary payment unit; an AttachedBy watcher whose body damages the
+// payer (Psychic Venom's shape) still refuses.
+func TestTapsAttachedByDestroySelf(t *testing.T) {
 	cs := lowerNamed(t, []string{"Cryoshatter"})
 	if len(cs) != 1 {
 		t.Fatalf("lowered %d cards, want Cryoshatter", len(cs))
@@ -34,8 +36,8 @@ func TestTapsAttachedByDefer(t *testing.T) {
 		if tr.Whose != whoAny {
 			t.Errorf("Whose %d, want whoAny (any tapper)", tr.Whose)
 		}
-		if tr.TapPlan != uint8(kop.TapPlanDefer) {
-			t.Errorf("TapPlan %d, want Defer", tr.TapPlan)
+		if tr.TapPlan != uint8(kop.TapPlanOrdinary) {
+			t.Errorf("TapPlan %d, want Ordinary", tr.TapPlan)
 		}
 		destroy := false
 		for _, in := range a.Prog {

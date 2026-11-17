@@ -44,6 +44,98 @@ func tapsPlanClass(body *cards.SA) (kop.TapPlan, uint8) {
 	return kop.TapPlanDefer, 0
 }
 
+// tapsAttachedClass is the payment-planner class of the AttachedBy Taps
+// watcher: a body whose only effect is to destroy the tapped permanent itself
+// (Brink of Disaster's, Cryoshatter's) is a post-payment consequence gorge's
+// planner vets (pay PaymentPlanTapDestroySelfTrigger), so the source stays an
+// ordinary unit (kop.TapPlanOrdinary); an unvetted body defers, as gorge's
+// planner defers any tap a non-damage watcher sees; a damage body (Psychic
+// Venom's payer damage) has a payment tiering the kernel does not mirror yet,
+// so the caller refuses it.
+func tapsAttachedClass(t cards.Trigger) (kop.TapPlan, uint8, bool) {
+	tp8, pn := tapsPlanClass(t.Effect)
+	destroySelf := tp8 == kop.TapPlanDefer && tapsDestroySelf(t)
+	if destroySelf {
+		tp8 = kop.TapPlanOrdinary
+	}
+	return tp8, pn, destroySelf
+}
+
+// tapsAttachedClauses vets the clause table of a non-Self Taps watcher with no
+// ValidPlayer$: every clause is a plain ownerless one over your own creature
+// (Ctrl You, no flags, no AttachedBy) or, on the enchanted-permanent watcher
+// (any Ctrl, the EquippedBy flag), carries a plan the payment planner can
+// mirror — a deferring body or a vetted destroy-self one. An unvetted
+// AttachedBy body vetoes the lowering.
+func tapsAttachedClauses(f *lFilter, vc string, tp8 kop.TapPlan, destroySelf bool) bool {
+	att := strings.Contains(vc, "AttachedBy")
+	for _, c := range f.Clauses {
+		ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
+		switch {
+		case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
+		case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer || destroySelf):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// tapsDestroySelf mirrors gorge's planner recognizer (pay
+// PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` watcher: the trigger's
+// keys are the closed world's (Mode, ValidCard, Execute, TriggerZones naming
+// Battlefield and TriggerDescription) and its body is exactly one Destroy of
+// the tapped permanent itself (Brink of Disaster's "when enchanted permanent
+// becomes tapped, destroy it" on the AttachedBy line; Cryoshatter's on
+// EquippedBy). The trigger resolves after the payment that caused it
+// (CR 405.6c/603.2) and its only effect is to destroy the permanent whose tap
+// already produced its mana (CR 605.4a), so it touches no payment resource and
+// the tapped source stays an ordinary planner unit on both engines
+// (kop.TapPlanOrdinary) instead of a deferred one.
+func tapsDestroySelf(t cards.Trigger) bool {
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch k {
+		case cards.PKMode.String(), cards.PKValidCard.String(), cards.PKExecute.String(), cards.PKTriggerDescription.String():
+		case cards.PKTriggerZones.String():
+			if strings.TrimSpace(t.Params[k]) != tapsBattlefieldZone {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	body := t.Effect
+	if body == nil || body.APIKind() != cards.APIDestroy || strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return false
+	}
+	if d := body.ParamStr(cards.PKDefined); strings.Contains(d, " & ") {
+		return false
+	} else if txt := strings.TrimSpace(d); !slices.Contains(tapsDestroySelfRefs, txt) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case tapsDestroySelfAPIKey, cards.PKDefined.String(), cards.PKSpellDescription.String(), cards.PKStackDescription.String():
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// tapsDestroySelfRefs are the Defined$ selectors that name the tapped
+// permanent itself (the LKI copy and the plain card), the closed world of
+// pay.PaymentPlanTapDestroySelfTrigger.
+var tapsDestroySelfRefs = []string{"TriggeredCardLKICopy", "TriggeredCard"}
+
+// tapsDestroySelfAPIKey is the dispatch key a constructed body may keep in
+// Params beside SA.API; tapsBattlefieldZone is the Forge TriggerZones$ spelling
+// the planner's zone check accepts.
+const (
+	tapsDestroySelfAPIKey = "API"
+	tapsBattlefieldZone   = "Battlefield"
+)
+
 // selfTapsPain reads a Self Taps trigger of a card with a mana ability as
 // gorge's planner does (pay.PaymentPlanSelfDamageTrigger, spec 3.2's damage:N
 // row): no trigger parameter beyond Mode, ValidCard, Execute, TriggerZones

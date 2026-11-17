@@ -10,7 +10,9 @@ import (
 // planner class gorge's tier gives the source its tap touches
 // (pay.PaymentPlanAbilityTier): vetted literal player damage is Pain when its
 // referent can name the payer (You, TriggeredCardController) and Ordinary when
-// it cannot (Opponent, EachOpponent); every other body defers the source.
+// it cannot (Opponent, EachOpponent); a destroy of the tapped permanent itself
+// (Brink of Disaster's, Cryoshatter's) is Ordinary too, a post-payment
+// consequence both planners vet; every other body defers the source.
 func TestTapsPlanClass(t *testing.T) {
 	const line = "T:Mode$ Taps | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigX | TriggerDescription$ x"
 	for _, tc := range []struct {
@@ -24,6 +26,10 @@ func TestTapsPlanClass(t *testing.T) {
 		{"damage to the tapped permanent's controller", "SVar:TrigX:DB$ DealDamage | Defined$ TriggeredCardController | NumDmg$ 2", kop.TapPlanPain, 2},
 		{"damage to an opponent", "SVar:TrigX:DB$ DealDamage | Defined$ Opponent | NumDmg$ 2", kop.TapPlanOrdinary, 0},
 		{"damage to the tapper", "SVar:TrigX:DB$ DealDamage | Defined$ TriggeredActivator | NumDmg$ 2", kop.TapPlanDefer, 0},
+		{"destroy the tapped permanent", "SVar:TrigX:DB$ Destroy | Defined$ TriggeredCardLKICopy", kop.TapPlanOrdinary, 0},
+		{"destroy the tapped permanent, plain LKI", "SVar:TrigX:DB$ Destroy | Defined$ TriggeredCard", kop.TapPlanOrdinary, 0},
+		{"destroy something else", "SVar:TrigX:DB$ Destroy | Defined$ Self", kop.TapPlanDefer, 0},
+		{"destroy with a subchain", "SVar:TrigX:DB$ Destroy | Defined$ TriggeredCardLKICopy | SubAbility$ DBX\nSVar:DBX:DB$ Draw | NumCards$ 1", kop.TapPlanDefer, 0},
 	} {
 		why, ab, _ := ktqBuildSV(t, line, tc.sv)
 		if why != "" {
@@ -39,13 +45,15 @@ func TestTapsPlanClass(t *testing.T) {
 		}
 	}
 	// the corpus shapes: Judge of Currents defers, Hawkeye's Bow is ordinary,
-	// Captain America's FirstTime$ untap body defers the source like Judge of Currents
-	for _, c := range lowerNamed(t, []string{"Judge of Currents", "Hawkeye's Bow", "Captain America, Living Legend"}) {
+	// Captain America's FirstTime$ untap body defers the source like Judge of
+	// Currents, and the destroy-self watchers (Brink of Disaster on the
+	// AttachedBy line, Cryoshatter on EquippedBy) are ordinary
+	for _, c := range lowerNamed(t, []string{"Judge of Currents", "Hawkeye's Bow", "Captain America, Living Legend", "Brink of Disaster", "Cryoshatter"}) {
 		if len(c.Refusals) > 0 {
 			t.Errorf("%s: refused: %v", c.Name, c.Refusals)
 			continue
 		}
-		want := map[string]uint8{"Judge of Currents": uint8(kop.TapPlanDefer), "Hawkeye's Bow": uint8(kop.TapPlanOrdinary), "Captain America, Living Legend": uint8(kop.TapPlanDefer)}[c.Name]
+		want := map[string]uint8{"Judge of Currents": uint8(kop.TapPlanDefer), "Hawkeye's Bow": uint8(kop.TapPlanOrdinary), "Captain America, Living Legend": uint8(kop.TapPlanDefer), "Brink of Disaster": uint8(kop.TapPlanOrdinary), "Cryoshatter": uint8(kop.TapPlanOrdinary)}[c.Name]
 		found := false
 		for _, a := range c.Abilities {
 			if a.Trigger != nil && a.Trigger.Event == "Taps" {
