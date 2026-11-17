@@ -154,6 +154,17 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 	return true
 }
 
+// tapPain deals the pain rider of source sl's mana ability that made col,
+// tapped by a filter prefix step (mana_filter.go filtDo): a pain-only
+// source's (Cabal Pit) whatever the colour, a painland's for a colour its
+// normal alternative cannot make, as the manual window does
+// (payWindowAnswer).
+func (s *State) tapPain(k *prep, p uint8, sl Slot, col int) {
+	if pc := s.manaPCGen(k, sl); k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
+		s.painDamage(k, sl, p, int(pc.painN))
+	}
+}
+
 // painDamage is source sl's painland rider: it deals n damage to its
 // controller p as the mana ability resolves (CR 605.3b), outside any stack
 // resolution: the damage replacements (prevention, doubling) apply without

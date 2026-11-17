@@ -893,12 +893,14 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		s.poolAdd(p, c, int(max(pc.manaN, 1)))
 		s.addExtra(k, p, st.sl, pc)
 		s.artTag(k, p, st.sl, c)
+		s.tapPain(k, p, st.sl, c)
 	case st.restr:
 		s.filtRestrDo(k, p, st)
 	default:
 		s.poolAdd(p, int(st.ans), int(max(s.manaPCGen(k, st.sl).manaN, 1)))
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
+		s.tapPain(k, p, st.sl, int(st.ans)) // Cabal Pit's rider resolves with its mana (CR 605.3b)
 		if k.sacMana {
 			s.fundSac(k, st.sl)
 		}
