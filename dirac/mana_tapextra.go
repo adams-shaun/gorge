@@ -445,6 +445,20 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 	s.addXv(p, &xc)
 }
 
+// planTapExtra floats what a plan unit's tap brings beside its mana: the
+// type's fixed extra, and, in the second pass (pk.tapsIn) that taps a
+// Taps-deferred source, its unfoldable TapsForMana trigger (Rikala's gated
+// extra), which resolves at the tap itself as the script route's tapGap
+// floats it (addExtra).
+func (s *State) planTapExtra(k *prep, p uint8, sl Slot, pk *planner, ty *utype) {
+	if ty.xt != 0 {
+		s.addXv(p, &ty.xv)
+	}
+	if pk.tapsIn && !ty.sacOnly {
+		s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
+	}
+}
+
 // addXv floats a plan type's fixed extra in p's pool.
 func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 	for c := range xv {
