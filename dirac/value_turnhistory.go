@@ -64,7 +64,7 @@ func (s *State) histCast(k *prep, e *stackEntry, cost *kop.ManaCost) {
 		}
 	}
 	if k.gen.anySpent {
-		s.recordSpent(e.obj, spentMana)
+		s.recordSpent(e.obj, s.snowSpentRec(k, e, spentMana))
 	}
 	if spent <= 0 {
 		return
