@@ -231,16 +231,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		s.offerBestowIfPrinted(k, d, p, o, c, &av) // kw_bestow.go
 		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
-			kc := addCost(pc.cost, kickerPayment(&k.t.Cards[c]))
-			if s.statM.any() || k.gen != nil {
-				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
-			}
-			if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
-				kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
-			}
-			if s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav) && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
-				d.add(MakeAction(AkCast, TCode(o), 0, 1))
-			}
+			s.offerKickedHand(k, d, p, c, o, pc.cost, cav)
 		}
 	}
 	if s.cfg&cfgCommander != 0 {
@@ -1687,6 +1678,71 @@ func (s *State) availPotentialBoundedFor(k *prep, p uint8, a *avail, d *payDesc)
 	s.availPotentialFor(k, p, a, d, true)
 }
 
+// potUnit is one production of the potential walk as a real plan pays it:
+// n taps or activations, each making one mana of any of mask's colours (a
+// "Combo U B" dual's choice, CR 118.3c). The over-bound fold prices the same
+// production once per colour.
+type potUnit struct {
+	mask uint8
+	n    uint8
+}
+
+// maxPotUnits bounds the units availPotentialFor records for
+// potUnitsAvail: one per production of the walk (a source's own, its granted
+// ones, the fixpoint's), so a board with more productions leaves the record
+// marked incomplete and potUnitsAvail reports no exact view (the caller
+// keeps the over-bound answer).
+const maxPotUnits = 32
+
+// recordPotUnit appends mask/n, merging into the unit of the same mask; the
+// full record (more productions than fit) is the overflow marker units[0]
+// with a zero count.
+func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
+	if units[0].n == 0 && units[0].mask != 0 {
+		return // already overflowed: keep the marker
+	}
+	if mask == 0 || cnt == 0 {
+		return
+	}
+	for i := 0; i < *n; i++ {
+		if units[i].mask == mask {
+			if s := int(units[i].n) + int(cnt); s < 256 {
+				units[i].n = uint8(s)
+			} else {
+				*units = [maxPotUnits]potUnit{{mask: 1}} // the count overflows uint8: the incomplete marker
+			}
+			return
+		}
+	}
+	if *n >= maxPotUnits {
+		*units = [maxPotUnits]potUnit{{mask: 1}} // the overflow marker
+		return
+	}
+	units[*n] = potUnit{mask: mask, n: cnt}
+	*n++
+}
+
+// potUnitsAvail builds the per-tap view of the potential walk's productions:
+// the floating pool and every recorded unit, a production of several colours
+// counted once. It is the planner-shaped bound of availPotentialFor's
+// over-bound: a fixed-choice source's single tap makes one mana of one of its
+// colours, so {2}{G}{B} does not read payable off {G:2, U:1, B:1} when the
+// board makes 3 mana (Submerged Boneyard beside two Forests). ok is false
+// when the record is incomplete (the overflow marker) and the caller keeps
+// the over-bound answer.
+func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit) bool {
+	if units[0].mask != 0 && units[0].n == 0 {
+		return false // the overflow marker: the record is incomplete
+	}
+	for i := 0; i < maxPotUnits; i++ {
+		if units[i].mask == 0 {
+			break
+		}
+		a.addUnits(units[i].mask, units[i].n)
+	}
+	return true
+}
+
 // potentialOpenUnits stands for gorge's potentialUnbounded in each colour: more
 // than any cost the kernel prices, and within an avail's uint8 count.
 const potentialOpenUnits = 2 * trigXCap
@@ -1704,9 +1760,21 @@ const potentialOpenUnits = 2 * trigXCap
 // genuinely unbounded source still opens the bound, and a fixed multi-colour
 // source keeps the per-colour over-count (Dominate's refusal).
 //
+// units, when given, receives the walk's productions as potUnit records (the
+// floating pool first, each production once with its colours' mask) so the
+// caller can price them per tap (potUnitsAvail); the over-bound avail keeps
+// its once-per-colour fold either way.
+//
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, boundedAny bool) (open bool) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, boundedAny bool, units ...*[maxPotUnits]potUnit) (open bool) {
 	payment := d != nil
+	var uarr [maxPotUnits]potUnit
+	un := 0
+	rec := func(mask uint8, n uint8) {
+		if len(units) != 0 {
+			recordPotUnit(&uarr, &un, mask, n)
+		}
+	}
 	var pot [kop.NumManaKinds]int
 	// anyFree counts a fixed any-colour source's units in bounded mode: they
 	// are added to every potential colour for the fixpoint's coverage test,
@@ -1714,18 +1782,23 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 	anyFree := 0
 	for c := range pot {
 		pot[c] = int(s.pl[p].pool[c])
+		rec(1<<uint(c), uint8(min(pot[c], 255)))
 	}
 	// A non-spell payment's potential pool starts from the floating restricted
 	// mana its restriction admits (potentialRestrSeed; a nil d is no payment).
 	s.potentialRestrSeed(k, p, d, &pot)
 	var own [MaxPerm][kop.NumManaKinds]int
 	var done [MaxPerm]uint16
-	add := func(sl Slot, mask uint8, n uint8) {
+	fold := func(sl Slot, mask uint8, n uint8) {
 		for mk := mask; mk != 0; mk &= mk - 1 {
 			c := bits.TrailingZeros8(mk)
 			pot[c] += int(n)
 			own[sl][c] += int(n)
 		}
+	}
+	add := func(sl Slot, mask uint8, n uint8) {
+		rec(mask, n)
+		fold(sl, mask, n)
 	}
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -1774,6 +1847,21 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
+			if len(units) != 0 {
+				// the census (units) records an open source's natural
+				// production once, modal: gorge's planner prices the tap at
+				// one mana of one of the source's colours (its relaxed
+				// census bounds each gap source the same way,
+				// paymentPlanRelaxedAlternatives' per-production
+				// alternatives), so the per-tap view is no unbounded fold
+				// (potentialAnyColourUnit's read, without the X-bound sweep's
+				// wildcard fold that waits in anyFree)
+				if mask := s.srcMaskAt(pc, sl); mask != 0 {
+					if n := s.srcYieldAt(k, sl, pc); n > 0 {
+						add(sl, mask, n)
+					}
+				}
+			}
 			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, add, &anyFree) || open
 			continue
 		}
@@ -1817,6 +1905,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
+				if len(units) != 0 && ab.Cost.Mana.MV() != 0 {
+					// the census (units) is the planner-shaped bound: gorge's
+					// relaxed proof charges a paid ability's fee as generic on
+					// top of the play's cost (paymentPlanRelaxProof), while
+					// the pool mana that covers the fee here is already a
+					// recorded unit, so admitting it would double-count
+					// (White Lotus Hideout's {1},{T} filter). The over-bound
+					// pool beside the census keeps the paid abilities.
+					continue
+				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
 					continue
 				}
@@ -1828,16 +1926,32 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// colour (potentialUnbounded) for the view and a cast. A trigger's
 					// own cost reads it at the counters it can remove, one mana each
 					// (rules potential_subcounter.go: pay ManaSubCounterXBound).
+					if len(units) != 0 {
+						// the census (units) reads the battery at the counters
+						// it can remove, one mana each, never the unbounded
+						// fold the over-bound pool keeps: gorge's relaxed
+						// census bounds a gap source at its natural amount, so
+						// a battery holding no counter makes nothing there
+						// (Dwarven Hold beside a kicked Flourishing Strike)
+						if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
+							rec(uint8(ab.ManaColors), uint8(min(n, 255)))
+						}
+						open = s.storePotential(open, sl, ab, d, fold)
+						continue
+					}
 					open = s.storePotential(open, sl, ab, d, add)
 					continue
 				}
-				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, add, &anyFree, &open) {
+				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, add, &anyFree, &open) {
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 				}
 			}
 		}
 	}
 	s.potentialBuildAvail(a, &pot, open, boundedAny, anyFree)
+	if len(units) != 0 {
+		*units[0] = uarr
+	}
 	return open
 }
 
@@ -1939,15 +2053,23 @@ func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, 
 
 // addAnyDifferentOrOpen is the potential walk's admission rule for a further
 // ability: Combo AnyDifferent adds one unit of each colour (the bounded
-// per-colour cap), an any-colour, dynamic or each-colour production is open,
-// and every other ability is the caller's ordinary add. It reports whether it
-// handled the ability.
-func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
+// per-colour cap), an any-colour or each-colour production is open, and a
+// dynamic one is unbounded in the faces it produces (CR 107.4a); every other
+// ability is the caller's ordinary add. It reports whether it handled the
+// ability. On the census (units) a fixed any-colour production joins modal
+// once, the same bound the walk prices an open source's own tap at, while an
+// each-colour one is unbounded to the census and joins nothing (a dynamic
+// one's faces join unbounded).
+func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
 	if anyDifferentTapAb(ab) {
 		add(sl, 0x1f, 1)
 		return true
 	}
 	if ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 {
+		if census && !boundedAny && ab.ManaColors == kop.ColAny &&
+			ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor|kop.AfManaChoice) == 0 {
+			add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		}
 		*open = s.potentialExtraUnit(ab, sl, boundedAny, add, anyFree) || *open
 		return true
 	}

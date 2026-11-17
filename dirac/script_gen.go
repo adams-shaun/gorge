@@ -733,6 +733,15 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if ak := a.Kind(); ak != AkActivate && !isCastKind(ak) || hasOption(&walk, a) {
 			continue
 		}
+		if ak := a.Kind(); isCastKind(ak) && a.Mode()&3 == 1 && s.kickedArmOffer(k, a) {
+			// the kicked cast the potential arm's census paid: the walk's
+			// plainOptions prices no kicked cast there (the arm runs only at
+			// availX == 0, its census the real one, the walk's relaxed), so
+			// the walk's lack of it is no gorge refusal -- gorge's planner
+			// prices the mode cast itself (potentialModeCastPlan,
+			// kw_multikicker.go)
+			continue
+		}
 		if k.gen.anyTapExtra {
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
