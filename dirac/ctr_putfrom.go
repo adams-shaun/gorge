@@ -103,6 +103,7 @@ func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint16
 		s.capFull(StallCtrOrder)
 		return
 	}
+	ctrOld := s.ctrAllBatchOpen() // one action across the kinds (trig_counteraddedall.go)
 	if p1 > 0 {
 		s.bolsterPut(k, sl, int(kop.CtrP1P1), p1*mult)
 	}
@@ -116,6 +117,7 @@ func (s *State) putCounterSnapshot(k *prep, sl Slot, p1 int, ck [ctrSlots]uint16
 			s.bolsterPut(k, sl, int(x.kind), int(x.n)*mult)
 		}
 	}
+	s.ctrAllBatchClose(ctrOld)
 }
 
 // ctrAddedHeard reports whether a counter-added trigger on the battlefield

@@ -239,8 +239,11 @@ func (g *genPrep) prepEmbGrant(t *kop.Table, c CardID, e *kop.Emblem) {
 		g.anyEmbGrant = true
 		if int(a.Static.Grant) <= len(cd.Abilities) && cd.Abilities[a.Static.Grant-1].Kind != kop.AbMana {
 			g.anyGrant, g.globGrant = true, true
-			if cd.Abilities[a.Static.Grant-1].Kind == kop.AbTriggered {
+			if ga := &cd.Abilities[a.Static.Grant-1]; ga.Kind == kop.AbTriggered {
 				g.globTrigGrant = true
+				if ga.Trig.Event == kop.TrigCounterAddedAll {
+					g.uses.set(grantCtrAllUse)
+				}
 			}
 		}
 	}

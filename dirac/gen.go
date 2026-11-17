@@ -665,6 +665,17 @@ func (g *genPrep) noteKeptSets(c *kop.CardDef) {
 	g.anySrcMem = g.anySrcMem || c.ImpPersist || c.SrcMem
 }
 
+// prepGrantTrig records a static's AddTrigger$ grant for grantTrigHosts.
+// CounterAddedAll's ordinal is past grantTrigEv's 32 bits, so it rides the
+// grantCtrAllUse table flag and the counter sites' Once gate instead
+// (trig_counteraddedall.go).
+func prepGrantTrig(g *genPrep, ga *kop.Ability, pc *pcard) {
+	if ga.Trig.Event == kop.TrigCounterAddedAll {
+		g.uses.set(grantCtrAllUse)
+		pc.trigMask |= 1 << kop.TrigCounterAddedOnce
+	}
+}
+
 // prepareGen precomputes a generated table (nil for a hand-written one).
 // dynamicManaCost reports whether a's Cost$ is a shape the dynamic variants
 // (varPC) price: a bare {T}, or {T} plus sacrificing the source (Lotus
@@ -1564,6 +1575,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if a.Trig.Event == kop.TrigDamageDealtOnce {
 					pc.trigMask |= 1 << kop.TrigDamageDone // the damage paths fire both
 				}
+				if a.Trig.Event == kop.TrigCounterAddedAll {
+					// the batch watcher scans the battlefield (its ordinal is
+					// past nSubEvents); the Once bit is the counter sites'
+					// cheap gate, and fireObj's Once hook runs the watcher
+					// (trig_counteraddedall.go)
+					pc.trigMask |= 1 << kop.TrigCounterAddedOnce
+				}
 			}
 		}
 		for j := range c.Abilities {
@@ -1573,6 +1591,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// the source subscribes for its host (trigSubs adds the host)
 					pc.trigMask |= 1 << ga.Trig.Event
 					g.grantTrigEv |= 1 << ga.Trig.Event
+					prepGrantTrig(g, ga, pc) // CounterAddedAll is past grantTrigEv's 32 bits
 					g.meleeGrant = g.meleeGrant || ga.MeleeGrant
 				}
 			}
@@ -2352,7 +2371,7 @@ type genState struct {
 	marks srcMarks // DamagedBy / CrewedThisTurn source marks this turn (filter_combatwords.go)
 
 	ctrCell    slotMask // the put action's recipients so far (trig_countercell.go)
-	ctrCellHit bool     // the fire in progress is a later kind of one action on one recipient
+	ctrCellHit uint8    // bit 0: the fire in progress is a later kind of one action on one recipient; bits 1-7: the open counter action's first pending index + 1 (trig_counteraddedall.go)
 	ctrEntry   bool     // the fire in progress is the entrant's own counters: their putter is its controller (CR 122.6a)
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)

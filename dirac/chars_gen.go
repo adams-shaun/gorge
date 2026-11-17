@@ -1202,6 +1202,9 @@ func (s *State) subscribeGrants(k *prep, sl Slot) {
 		if a.Kind == kop.AbTriggered && a.Trig.Event < nSubEvents {
 			s.subs[a.Trig.Event].set(sl)
 		}
+		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedAll {
+			s.subs[kop.TrigCounterAddedOnce].set(sl) // the counter sites' gate; fireObj's hook runs the watcher
+		}
 	})
 }
 

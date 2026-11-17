@@ -46,6 +46,7 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 	}
 	var placed [MaxPerm]Slot
 	nplaced := 0
+	ctrOld := s.ctrAllBatchOpen() // one action across the sweep (trig_counteraddedall.go)
 	for _, sl := range ord[:cnt] {
 		m := s.placeCounters(k, sl, int(in.C), n, s.perms[sl].ctrl, ctrPutEffect)
 		if m > 0 {
@@ -66,6 +67,7 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 		}
 	}
+	s.ctrAllBatchClose(ctrOld)
 	if in.B.N == kop.PutCtrRememberPut && !DebugRemPutNever {
 		for _, sl := range placed[:nplaced] {
 			s.remember(s.perms[sl].obj)
