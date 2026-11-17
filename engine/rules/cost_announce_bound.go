@@ -53,11 +53,18 @@ func (e *Engine) costSpecAnnounceBound(spec string, source state.ObjID) bool {
 		return false
 	}
 	f := o.Face()
-	sa := f.SpellAbility()
-	if sa == nil || trimParam(sa.ParamStr(cards.PKAnnounce)) != costAnnounceVarName {
+	// An activation that has paid a printed {X} (Knollspine Invocation: Cost$ X
+	// Discard<1/Card.cmcEQX>, SVar:X:Count$xPaid) binds the same way once its
+	// X is announced: a fresh Count$xPaid read off the not-yet-cast ability
+	// would answer 0 (CR 601.2b announces X before CR 601.2h pays the discard).
+	if trimParam(f.SVars[costAnnounceVarName]) != "Count$xPaid" {
 		return false
 	}
-	if trimParam(f.SVars[costAnnounceVarName]) != "Count$xPaid" {
+	if pc := e.cast; pc != nil && pc.card == source && pc.isAbility() && pc.xDone {
+		return true
+	}
+	sa := f.SpellAbility()
+	if sa == nil || trimParam(sa.ParamStr(cards.PKAnnounce)) != costAnnounceVarName {
 		return false
 	}
 	return pay.FaceCostOf(f).Cost.X == 0
@@ -67,7 +74,7 @@ func (e *Engine) costSpecAnnounceBound(spec string, source state.ObjID) bool {
 // spec: once the pending cast of source has announced X, the comparison is
 // bound to it; before that (the offer gate, the planner) it is open.
 func (e *Engine) matchAnnounceBoundCostSpec(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
-	if pc := e.cast; pc != nil && pc.card == source && !pc.isAbility() && pc.xDone {
+	if pc := e.cast; pc != nil && pc.card == source && pc.xDone {
 		sc := e.specCtx(source, you)
 		prev := sc.Resolve
 		x := pc.x
