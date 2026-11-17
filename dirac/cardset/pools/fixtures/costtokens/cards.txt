@@ -1,0 +1,9 @@
+# the cost-token lockstep pool:
+# Abandon Hope (Cost$ X 1 B Discard<X/Card/card>, the announced-X discard)
+# Vexing Devil (UnlessCost$ DamageYou<4>, the literal damage-to-payer cost)
+# and the basics that pay them (dirac/oracle/costtokens_lockstep_test.go)
+Abandon Hope
+Vexing Devil
+Island
+Mountain
+Swamp

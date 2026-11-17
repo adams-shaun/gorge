@@ -279,6 +279,15 @@ type Cost struct {
 	// full). Only a spell's own alternative cost carries them.
 	Discard2N uint8
 	Discard2F FilterID
+	// DiscardX: the CostDiscard part's count is the announced X
+	// (Discard<X/Spec>, CR 107.3, 601.2b, 601.2h; Abandon Hope's
+	// "Discard X cards" beside its printed {X}, Channeled Force's with
+	// none). Cost.N stays 0; the picks read the cast's/activation's
+	// announced X (cost_sacx.go's N == 0 shape; announced only, the matching
+	// hand cards are the bound). A table byte, not a CostFlags bit (the
+	// words are full); only a spell's or an activated ability's own cost
+	// carries it.
+	DiscardX bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

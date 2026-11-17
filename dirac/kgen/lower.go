@@ -2481,6 +2481,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
+		if head == "Discard" && parts[0] == "X" {
+			if err := lc.discardXCost(&c, parts, t); err != nil { // lower_costtokenforms.go
+				return c, err
+			}
+			continue
+		}
 		n, err := strconv.Atoi(parts[0])
 		if err != nil && head != "PayLife" {
 			return c, refuse("cost token %q", t)
@@ -2619,55 +2625,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			c.ExileTrigNew = true
 		case "Discard":
-			// One discard part per cost: lCost carries a single N/Spec, so a
-			// second token would silently overwrite the first. A spell's own
-			// alternative cost takes one second part (Foil;
-			// lower_discardtwo.go).
-			if c.DiscardN > 0 || c.DiscardSelf || c.DiscardF != nil {
-				if lc.altCostHand {
-					if err := lc.altDiscardTwo(&c, parts, n, t); err != nil {
-						return c, err
-					}
-					continue
-				}
-				return c, refuse("discard cost %q: more than one discard part", t)
+			if err := lc.discardCost(&c, parts, n, t); err != nil { // lower_costtokenforms.go
+				return c, err
 			}
-			if (len(parts) == 2 || len(parts) == 3) && parts[1] == "CARDNAME" && n == 1 {
-				c.DiscardSelf = true // cycling (CR 702.29a): see costHand
-				continue
-			}
-			// Discard<N/Spec[/Description]> (gorge cost.nonManaCost): the
-			// third part is the reminder text only. Card is any N cards;
-			// Random and Hand are the unless-cost selection methods
-			// and are refused outside one.
-			// Gorge's triggered-cost window ignores the count for a Hand
-			// discard (it pays the whole hand whatever the token spells;
-			// the corpus writes the ignored count as 0), so Discard<0/Hand>
-			// reads as Discard<1/Hand>. Every other n < 1 still refuses.
-			if len(parts) == 2 && parts[1] == "Hand" && n == 0 {
-				n = 1
-			}
-			if len(parts) < 2 || len(parts) > 3 || n < 1 {
-				return c, refuse("discard cost %q", t)
-			}
-			switch parts[1] {
-			case "Card":
-				c.DiscardSpec = ""
-			case "Random", "Hand":
-				c.DiscardSpec = parts[1]
-			default:
-				// A filtered discard (CR 118.3, 601.2h; gorge cost
-				// nonManaCost's spec over pay.DiscardCandidates'
-				// MatchesSpecFrom): Solitary Cell's Card.Legendary,
-				// grandeur's Card.named<self>. The filter split keeps a
-				// comma inside a named<Name> argument (splitAlternatives).
-				f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
-				if err != nil {
-					return c, err
-				}
-				c.DiscardF = f
-			}
-			c.DiscardN = n
 		case "AddCounter", "SubCounter", "RemoveAnyCounter":
 			// Counter costs share gorge's reading (cost.parse): N, the kind
 			// ("Any" is the wildcard), and an optional target field. A
@@ -2883,12 +2843,13 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			c.TapN, c.TapF = n, f
 		case "Draw":
-			// Draw<N/You> (gorge cost.parse nonManaCost; paid in the
-			// triggered-cost window by drawing, cumulative.go)
-			if len(parts) != 2 || parts[1] != "You" || n < 1 || c.DrawN != 0 {
-				return c, refuse("cost token %q", t)
+			if err := lc.drawCost(&c, parts, n, t); err != nil { // lower_costtokenforms.go
+				return c, err
 			}
-			c.DrawN = n
+		case "DamageYou":
+			if err := lc.damageYouCost(&c, parts, n, t); err != nil { // lower_costtokenforms.go
+				return c, err
+			}
 		default:
 			return c, refuse("cost token %q", t)
 		}
@@ -3369,9 +3330,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			} else if cost.Mana.X || cost.Mana.XX {
 				return refuse("waterbend cost with an {X} in the mana cost")
 			}
-			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.TapPowN != 0 || cost.Forage != nil || cost.ExileG != nil ||
-				cost.Energy != 0 || cost.ReturnSelf || cost.ExileSelf || cost.Untap || cost.Return != nil || cost.DrawN > 0 {
+			if waterbendOtherPart(cost) {
 				return refuse("waterbend cost beside another non-mana part")
 			}
 		}
@@ -3521,7 +3480,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				}
 			} else if ab.Kind == akMana {
 				return refuse("counter-placing cost outside a non-mana ability")
-			} else if cost.Sac != nil || cost.DiscardN > 0 || cost.Loyalty != 0 || cost.SubCtr > 0 || cost.SubAmongN > 0 || cost.PayLife > 0 || cost.TapN > 0 || cost.TapPowN > 0 || cost.Forage != nil || cost.ExileG != nil || cost.Energy > 0 || cost.Return != nil || cost.DrawN > 0 || cost.Waterbend > 0 || cost.WaterbendX || cost.BlightN > 0 || cost.EvidenceN > 0 {
+			} else if counterPlacingOtherPart(cost) {
 				return refuse("counter-placing cost beside another counted part")
 			}
 		}
