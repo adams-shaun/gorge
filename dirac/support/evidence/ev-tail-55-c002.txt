@@ -1,15 +1,36 @@
 +2 Mace
+A-Hagra Constrictor
+A-Young Red Dragon
+Aarakocra Sneak
+Abnormal Endurance
 Abrupt Decay
+Abzan Beastmaster
+Abzan Kin-Guard
+Adarkar Sentinel
 Agent of Acquisitions
 Alluring Scent
+Ancient Brontodon
 Anoint
+Anointer of Champions
+Aragorn and Arwen, Wed
+Archangel Avacyn
 Archnemesis
+Arctic Wolves
+Argent Mutation
 Assassinate
 Aurochs
+Aurora Griffin
+Avatar of Slaughter
+Ayula's Influence
+Azusa's Many Journeys
 Basal Thrull
+Beast in Show
 Benevolent Ancestor
 Bile Urchin
+Bone Picker
 Boon of Boseiju
+Boros Garrison
+Boros Signet
 Bosco, Just a Bear
 Bosh, Iron Golem
 Braids, Cabal Minion
@@ -17,13 +38,19 @@ Brainbite
 Breath of the Sleepless
 Brokers Veteran
 Bubble Snare
+Bump in the Night
+Burning Hands
 Burnt Offering
 Caldera Kavu
 Capsize
+Cavalier of Night
 Cavern Crawler
 Centaur Rootcaster
+Champion of Arashin
 Chandra's Revolution
 Chilling Trap
+Circle of Flame
+Coal Stoker
 Coerced Confession
 Collective Voyage
 Corpse Cur
@@ -34,13 +61,18 @@ Damping Matrix
 Deep-Sea Terror
 Defiant Salvager
 Dementia Bat
+Demonmail Hauberk
 Desperate Castaways
 Devious Cover-Up
 Diplomacy of the Wastes
+Dragonspeaker Shaman
 Dreadwurm
 Drogskol Cavalry
 Drowner of Hope
+Eidolon of the Great Revel
+Eiganjo Exemplar
 Electrolyze
+Ellyn Harbreeze, Busybody
 Elven Fortress
 Endless Ranks of the Dead
 Enlightened Maniac
@@ -48,15 +80,23 @@ Ephara's Radiance
 Epiphany Storm
 Eternal Thirst
 Ethereal Investigator
+Ethrimik, Imagined Fiend
 Evolutionary Leap
 Exile into Darkness
+Extortion
 Exultant Skymarcher
+Faceless Butcher
 Faerie Conclave
 Failed Inspection
+Farid, Enterprising Salvager
 Fate Unraveler
 Fearsome Awakening
+Feed the Clan
 Feral Maaka
+Fervent Paincaster
+Fiddlehead Kami
 Fire Ants
+Fire Nation Soldier
 Fireborn Knight
 Firemane Avenger
 Firemane Commando
@@ -66,6 +106,7 @@ Flame-Blessed Bolt
 Flaming Gambit
 Fleshmad Steed
 Flowering Field
+Font of Ire
 Forcemage Advocate
 Forest
 Forgotten Harvest
@@ -75,26 +116,42 @@ Freyalise's Charm
 Galadhrim Guide
 Gargoyle Flock
 Garruk's Gorehorn
+Geomancer's Gambit
 Ghost-Lit Redeemer
 Ghostfire Blade
 Gimli's Axe
+Glory Bearers
+Gnaw to the Bone
+Goblin Bomb
+Goblin Boom Keg
+Goldmeadow Dodger
 Granite Grip
 Grim Physician
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
 Gust of Wind
+Hag Hedge-Mage
+Hall of Triumph
 Hand of Death
+Hangar Scrounger
 Hapato's Might
+Happy Hogan, Bodyguard
+Hardy Veteran
 Harrowing Journey
 Heal
 Hellkite Whelp
 Heroic Teamwork
+Hidden Footblade
+Highborn Ghoul
 Huang Zhong, Shu General
 Hunger of the Nim
 Ignite the Future
+Immersturm Skullcairn
+Invasion of Dominaria
 Ironwright's Cleansing
 Island
+Jiang Yanggu
 Journey to Nowhere
 Kabira Vindicator
 Katilda, Dawnhart Prime
@@ -105,27 +162,42 @@ Kill Shot
 King Macar, the Gold-Cursed
 Kinsbaile Borderguard
 Kitchen
+Laboratory Brute
+Lava Storm
 Liliana's Specter
 Living Terrain
 Loathsome Curator
+Looming Shade
 Lotus Petal
+Lucky Offering
 Make a Wish
 Mark of Sakiko
 Match the Odds
+Mausoleum Harpy
+Mercy Killing
 Merfolk Trickster
 Mistcutter Hydra
+Momentum
+Monk Realist
+Mons's Goblin Raiders
 Morbid Opportunist
 Mountain
 Multani's Harmony
+Mwonvuli Acid-Moss
 Nacatl Savage
 Natural Selection
 Nightshade Assassin
 Nimana Skitter-Sneak
 Nissa, Resurgent Animist
 Noble's Purse
+Nomad Stadium
+Northern Paladin
+Nyxborn Colossus
 Oakheart Dryads
 Obelisk of Undoing
+Obsidian Giant
 Octoprophet
+Of One Mind
 Olivia Voldaren
 One Dozen Eyes
 Opaline Unicorn
@@ -133,10 +205,13 @@ Oran-Rief Invoker
 Orthodoxy Enforcer
 Ostiary Thrull
 Override
+Overwhelming Stampede
 Owlbear
 Oxidize
 Panther Warriors
 Parhelion II
+Pathbreaker Ibex
+Perilous Voyage
 Phantom Beast
 Phyrexian War Beast
 Plains
@@ -144,10 +219,14 @@ Power Matrix
 Psychic Symbiont
 Quilled Wolf
 Radioactive Man
+Raging Gorilla
 Rain of Tears
 Ravenous Rats
 Rebel Salvo
+Reckless Cohort
 Regress
+Reinforcements
+Research Assistant
 Restoration Angel
 Ring of Thune
 Rona's Vortex
@@ -156,10 +235,12 @@ Rough
 Sadistic Slash
 Samut, Tyrant Smasher
 Sarkhan Vol
+Scale of Chiss-Goria
 Scion of Calamity
 Serpent Assassin
 Seven-Tail Mentor
 Sever Soul
+Shell Skulkin
 Sheltering Word
 Shinka Gatekeeper
 Shroofus Sproutsire
@@ -167,39 +248,68 @@ Siege Veteran
 Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
+Skyclave Cleric
 Skyclave Shade
+Skycloud Egg
 Skyfisher Spider
 Slimefoot, the Stowaway
+Slingbow Trap
 Slith Bloodletter
+Snubhorn Sentry
 Soaring Seacliff
 Soul Channeling
 Soul Kiss
+Sparksmith
+Sparring Construct
 Spiked Corridor
+Spiteful Sliver
 Stampeding Serow
 Staunch Throneguard
 Stensia Innkeeper
+Stern Scolding
 Sultai Charm
+Sunken Hope
 Swamp
+Taj-Nar Swordsmith
 Talonrend
+Tattered Drake
 Telekinetic Sliver
 Tenacious Hunter
 Terra Ravager
+Thalakos Sentry
 The Surgical Bay
 Thorncaster Sliver
 Thought Monitor
 Thoughts of Ruin
+Time of Ice
 Toggo, Goblin Weaponsmith
+Torch Fiend
+Touch of Invisibility
 Twigwalker
 Tyrant's Scorn
+Urborg Stalker
 Vandalblast
+Venarian Gold
+Venerable Lammasu
+Vengeant Vampire
+Verix Bladewing
 Veteran Cavalier
 Veteran's Sidearm
+Vineweft
+Viridian Corrupter
 Vithian Stinger
 Vizier of the Scorpion
 Vodalian Merchant
 Vodalian Zombie
+Vulshok Berserker
+Wall of Bone
+Wave Goodbye
 Whiptongue Hydra
 Whitewater Naiads
 Wild Might
+Wind Spirit
 Yawgmoth's Agenda
+Your Temple Is Under Attack
+Zephyr Sentinel
+Zephyr Sprite
 Zombie Cannibal

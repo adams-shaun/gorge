@@ -33,6 +33,7 @@ Back to Nature
 Barricade Breaker
 Beast Whisperer
 Benalish Heralds
+Big Wheel
 Blackcleave Goblin
 Blightreaper Thallid
 Blind Zealot
@@ -62,13 +63,16 @@ Commander's Authority
 Concordia Pegasus
 Conductor of Cacophony
 Constant Mists
+Contagion Clasp
 Controlled Instincts
 Crawling Chorus
 Crumbling Ashes
 Crusher Zendikon
 Culling Ritual
 Curse of Chaos
+Damn
 Dance with Devils
+Darkness
 Deadbridge Shaman
 Deal Broker
 Deathbringer Regent
@@ -95,9 +99,11 @@ Eidolon of Blossoms
 Eiganjo Uprising
 Eladamri's Call
 Elder Cathar
+Elderfang Venom
 Eldrazi Linebreaker
 Elenda's Hierophant
 Elusive Krasis
+Elvish Ranger
 Emeria's Call
 Esper Cormorants
 Exultant Cultist
@@ -119,6 +125,7 @@ Forging the Tyrite Sword
 Fourth Bridge Prowler
 Fractal Summoning
 Frogmite
+Frozen Shade
 Ghostfire Blade
 Giant Ankheg
 Goblin Patrol
@@ -201,8 +208,10 @@ Norika Yamazaki, the Poet
 Noxious Dragon
 Off Balance
 Organ Hoarder
+Orochi Merge-Keeper
 Paralyzing Grasp
 Parapet Thrasher
+Peregrine Griffin
 Pestilent Souleater
 Phyrexian Etchings
 Phyrexian Missionary
@@ -224,6 +233,7 @@ Quarrel's End
 Quest for Pure Flame
 Quirion Sentinel
 Ral's Outburst
+Rampaging Growth
 Ravenous Skirge
 Reach of Branches
 Reap and Sow
@@ -245,6 +255,7 @@ Sarkhan's Dragonfire
 Scalding Tongs
 Scorch Spitter
 Scrubland
+Sea Legs
 Sejiri Shelter
 Selkie Hedge-Mage
 Shadowfeed
@@ -252,6 +263,7 @@ Shatterstorm
 Shimmering Mirage
 Shrieking Mogg
 Sickle Ripper
+Sightless Ghoul
 Silkguard
 Silumgar Butcher
 Silundi Vision
@@ -261,15 +273,20 @@ Sky Ruin Drake
 Skyway Sniper
 Slice in Twain
 Snap
+Soltari Priest
 Soratami Rainshaper
 Sorin's Vengeance
 Soul Reap
 Spawning Breath
+Spellbane Centaur
 Spellheart Chimera
+Spineless Thug
+Stand Firm
 Staunch Defenders
 Steadfast Paladin
 Steel Overseer
 Stinging Scorpion
+Storm, Shaker of Skies
 Subira, Tulzidi Caravanner
 Suleiman's Legacy
 Sun-Collared Raptor
@@ -280,6 +297,7 @@ Tainted Adversary
 Tainted Indulgence
 Tangle Mantis
 Target Minotaur
+Temur Runemark
 Tenth District Veteran
 Tergrid's Shadow
 Terminal Agony
@@ -290,18 +308,23 @@ Thraben Inspector
 Thragtusk
 Towashi Guide-Bot
 Trollbred Guardian
+Twilight Prophet
 Undead Butler
 Undergrowth Scavenger
+Undo
+Urza's Blueprints
 Vanquish the Foul
 Vault Guardsman
 Vectis Dominator
 Voices from the Void
 Vorel of the Hull Clade
 Vraska, Scheming Gorgon
+Wakedancer
 Walking Archive
 Walking Corpse
 Warped Physique
 Warrior's Charge
+Wayfaring Giant
 Wei Elite Companions
 Whisper Squad
 White Glove Gourmand
@@ -311,6 +334,7 @@ Will-o'-the-Wisp
 Witch's Cauldron
 Wizard's Lightning
 Worry Beads
+Wring Flesh
 Yavimaya Ancients
 Yorvo, Lord of Garenbrig
 You See a Pair of Goblins

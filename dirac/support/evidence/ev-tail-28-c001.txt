@@ -13,6 +13,7 @@ Alisaie Leveilleur
 Allied Teamwork
 Alora, Merry Thief
 Altar's Light
+Ancient Lumberknot
 Ancient Runes
 Angel of the Dire Hour
 Angelic Overseer
@@ -135,6 +136,7 @@ Ghastly Death Tyrant
 Ghitu Chronicler
 Ghost-Lit Stalker
 Ghostfire Slice
+Giant Spectacle
 Giant's Ire
 Gift of the Deity
 Gigapede
@@ -182,6 +184,7 @@ Keep Safe
 Keldon Halberdier
 Kindred Dominance
 Kinjalli's Caller
+Kiss of the Amesha
 Knight of the New Coalition
 Kodama of the West Tree
 Kogla, the Titan Ape
@@ -195,6 +198,7 @@ Leonin Lightbringer
 Ley Druid
 Lifecrafter's Bestiary
 Lifecrafter's Gift
+Liliana, Death's Majesty
 Lithatog
 Llanowar Envoy
 Lodestone Golem
@@ -202,6 +206,7 @@ Lost in Memories
 Loxodon Punisher
 Lunar Mystic
 Lunarch Mantle
+Lurching Rotbeast
 Mahamoti Djinn
 Make Disappear
 Mana Vault

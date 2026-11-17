@@ -95,6 +95,7 @@ Distress
 Dormant Sliver
 Dovin's Acuity
 Dreadwing
+Drifting Djinn
 Drownyard Explorers
 Druid of the Anima
 Dungrove Elder
@@ -234,6 +235,7 @@ Mortal Obstinacy
 Mountain
 Mox Diamond
 Murder of Crows
+Mutagenic Growth
 Mystic Compass
 Mystic Meditation
 Nether Void
@@ -396,12 +398,14 @@ Utter End
 Vebulid
 Vedalken Blademaster
 Veiled Apparition
+Vengeful Warchief
 Venomspout Brackus
 Vessel of Paramnesia
 Vexing Gull
 Viashino Grappler
 Victory's Envoy
 Vigilance
+Villainous Wealth
 Vinelasher Kudzu
 Vivify
 Voidslime

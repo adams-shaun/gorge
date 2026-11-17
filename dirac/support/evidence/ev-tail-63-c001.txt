@@ -27,6 +27,7 @@ Apocalypse Demon
 Apothecary Geist
 Arborea Pegasus
 Arcane Proxy
+Arcbound Condor
 Arch of Orazca
 Armed Assailant
 Arrester's Zeal
@@ -434,6 +435,7 @@ Thriving Bluff
 Throes of Chaos
 Thrun, the Last Troll
 Tideforce Elemental
+Time Elemental
 Titanic Pelagosaur
 Toil
 Toil to Renown

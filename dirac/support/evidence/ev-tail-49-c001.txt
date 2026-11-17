@@ -1,10 +1,12 @@
 A-Druidic Ritual
+Accursed Marauder
 Aether Flash
 Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
 Amugaba
 Angelic Curator
+Angrath's Fury
 Ant-Man, Scott Lang
 Arc Mage
 Arc Spitter
@@ -32,6 +34,7 @@ Bloodthrone Vampire
 Blurred Mongoose
 Boneyard Wurm
 Boon Reflection
+Boros Swiftblade
 Bosk Banneret
 Brand
 Briarhorn
@@ -69,6 +72,7 @@ Crimson Cowl, Master of Evil
 Crushing Disappointment
 Curse of Bounty
 Cyberdrive Awakener
+Damping Matrix
 Dance with Devils
 Daredevil's Billy Club
 Dark Bargain
@@ -105,6 +109,7 @@ Escape Velocity
 Eternity Vessel
 Ever After
 Evernight Shade
+Exhaustion
 Expedite
 Explosive Revelation
 Extinguish the Light
@@ -125,6 +130,7 @@ Fissure Wizard
 Flamecore Elemental
 Flames of the Firebrand
 Fleeting Spirit
+Flesh-Eater Imp
 Forest
 Fortified Rampart
 Fountain of Youth
@@ -136,6 +142,7 @@ Gate to Phyrexia
 Geistblast
 Generous Stray
 Ghirapur Aether Grid
+Ghitu Encampment
 Gibbering Barricade
 Glimmering Angel
 Glistener Elf
@@ -157,6 +164,7 @@ Havengul Vampire
 Hell Swarm
 Hellion Eruption
 Heroic Charge
+Hewed Stone Retainers
 Hobblefiend
 Hookhand Mariner
 Horizon Scholar
@@ -174,7 +182,9 @@ Jadecraft Artisan
 Jaya, Venerated Firemage
 Junktroller
 Kaldra Compleat
+Karn, Silver Golem
 Kayla's Command
+Kazandu Blademaster
 Kessig Wolfrider
 Kiln Walker
 Kor Cartographer
@@ -182,6 +192,7 @@ Kor Entanglers
 Kor Scythemaster
 Krosan Druid
 Kuldotha Rebirth
+Lantern Spirit
 Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman
@@ -208,6 +219,7 @@ Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
 Mindmelter
+Misery Charm
 Moldgraf Scavenger
 Monologue Tax
 Moonwing Moth
@@ -228,9 +240,11 @@ Ocular Halo
 Ogre Gatecrasher
 Omnath, Locus of Rage
 Orochi Hatchery
+Outland Colossus
 Overflowing Basin
 Pallid Mycoderm
 Part the Veil
+Passionate Archaeologist
 Patagia Golem
 Patch Up
 Peace Strider
@@ -259,6 +273,7 @@ Ray of Dissolution
 Razorgrass Ambush
 Razortide Bridge
 Reaping the Rewards
+Reaver Titan
 Red Ghost, Intangible Genius
 Refocus
 Renari, Merchant of Marvels
@@ -319,6 +334,7 @@ Soulshriek
 Spawn-Gang Commander
 Squadron Hawk
 Squirrel Sanctuary
+Stinging Hivemaster
 Stone Catapult
 Stone Rain
 Stonefury
@@ -337,8 +353,10 @@ Swarm of Bloodflies
 Swat
 Swell of Growth
 Sylvan Anthem
+Symbiotic Elf
 Synod Sanctum
 Tallyman of Nurgle
+Tamiyo's Logbook
 Tar Pitcher
 Taunting Arbormage
 Teeterpeak Ambusher
@@ -382,6 +400,7 @@ Whiptongue Frog
 Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Willow-Wind
 Windborn Muse
 Wing Puncture
 Wirewood Hivemaster

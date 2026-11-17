@@ -10,12 +10,14 @@ Aether Flash
 Aetherflux Car
 Aethertide Whale
 Agate Instigator
+Ageless Entity
 Alarum
 Alchemist's Greeting
 Anchor to the Aether
 Ancient Grudge
 Angelic Gift
 Anointer of Champions
+Arachnogenesis
 Arachnoid
 Arachnoid Adaptation
 Arashin Foremost
@@ -38,6 +40,7 @@ Bee Sting
 Belligerent Brontodon
 Big Boa Constrictor
 Bladetusk Boar
+Blanchwood Prowler
 Blighted Woodland
 Blink of an Eye
 Blood Tithe
@@ -53,9 +56,11 @@ Brave the Sands
 Briar Hydra
 Briar Shield
 Briber's Purse
+Burn Bright
 Burst of Strength
 Cabal Conditioning
 Capture Sphere
+Cartographer's Survey
 Cartouche of Strength
 Caustic Wasps
 Cavern Crawler
@@ -89,17 +94,21 @@ Debtors' Knell
 Demon of Dark Schemes
 Desert Drake
 Destructive Tampering
+Dimir Signet
 Dingus Staff
 Disruptive Student
 Divine Arrow
 Dockside Extortionist
 Doomskar
+Drifter il-Dal
 Drogskol Captain
 Duskmantle Prowler
 Earth Servant
 Earthcraft
+Echo Inspector
 Elderfang Disciple
 Elven Lyre
+Enhanced Awareness
 Essence Fracture
 Explosive Vegetation
 Faerie Conclave
@@ -108,6 +117,7 @@ Failed Conversion
 Farewell
 Fathom Fleet Boarder
 Feldon of the Third Path
+Felidar Guardian
 Fencer Clique
 Fiery Finish
 Finishing Blow
@@ -130,6 +140,7 @@ Gixian Infiltrator
 Gluntch, the Bestower
 Goblin Cavaliers
 Goblin Chirurgeon
+Goblin Mutant
 Goblin Spy
 Godo's Irregulars
 Golgari Guildmage
@@ -140,10 +151,13 @@ Griffin Rider
 Grisly Transformation
 Ground Seal
 Gruesome Deformity
+Gruul Charm
 Gulping Scraptrap
 Gush
 Gyome, Master Chef
 Haazda Exonerator
+Hall of Oracles
+Halo Scarab
 Hapatra, the Desert Fang
 Happy Hogan, Bodyguard
 Harrier Naga
@@ -159,11 +173,16 @@ Hope-Ender Coatl
 Hotshot Mechanic
 Hound of Griselbrand
 Hover Barrier
+Howling Golem
+Hulking Devil
+Hurloon Minotaur
 Ignite Disorder
+In the Eye of Chaos
 Inferno Elemental
 Infiltrator's Magemark
 Inga Rune-Eyes
 Into the Void
+Invasion of Belenon
 Iron Lance
 Irregular Cohort
 Island
@@ -174,10 +193,12 @@ Joraga Warcaller
 Kabira Crossroads
 Kamahl, Fist of Krosa
 Keen Sense
+Kefnet the Mindful
 Keldon Champion
 Khenra Charioteer
 Kheru Bloodsucker
 Kin-Tree Invocation
+Kindercatch
 Knights of Dol Amroth
 Kor Celebrant
 Kor Hookmaster
@@ -193,10 +214,12 @@ Lifecrafter's Gift
 Lightning Angel
 Lightning Runner
 Looming Hoverguard
+Marchesa's Emissary
 Markov Dreadknight
 Markov Waltzer
 Marsh Casualties
 Massive Might
+Master of Winds
 Maze Glider
 Meatsqueak, Hoard Lord
 Memnarch
@@ -207,12 +230,15 @@ Metalwork Colossus
 Millicent, Restless Revenant
 Mind's Eye
 Minsc, Beloved Ranger
+Mirran Banesplitter
 Misdirection
 Mishra's Helix
 Mobilized District
 Mogg Toady
 Mondrak, Glory Dominus
+Moonsnare Specialist
 Moorish Cavalry
+Moriok Replica
 Mothrider Patrol
 Mountain
 Mowu, Loyal Companion
@@ -227,6 +253,7 @@ Necrosynthesis
 Needletooth Raptor
 Neoform
 Nested Shambler
+Nightbird's Clutches
 Nighthowler
 Nightshade Assassin
 Nightsquad Commando
@@ -247,6 +274,7 @@ Pheres-Band Brawler
 Pheres-Band Raiders
 Phyrexian Vatmother
 Pierce the Sky
+Pinpoint Avalanche
 Plaguemaw Beast
 Plains
 Poison-Blade Mentor
@@ -262,6 +290,7 @@ Pursued Whale
 Put Away
 Pygmy Allosaurus
 Rabid Wombat
+Raking Claws
 Raphael, the Muscle
 Reclusive Wight
 Reduce
@@ -275,6 +304,7 @@ Retreat to Hagra
 Returned Phalanx
 Revive the Shire
 Road
+Rousing Read
 Sandstone Deadfall
 Sarkhan's Rage
 Scarland Thrinax
@@ -292,6 +322,7 @@ Shapers' Sanctuary
 Shattered Angel
 Sheltering Word
 Shepherd of Rot
+Shepherd of the Flock
 Shrine Steward
 Silent Dart
 Silent Departure
@@ -302,6 +333,7 @@ Skullport Merchant
 Skyfisher Spider
 Skyshaper
 Soltari Priest
+Somber Hoverguard
 Somberwald Alpha
 Soulsworn Jury
 Spawnbed Protector
@@ -312,11 +344,15 @@ Sporecap Spider
 Squall Drifter
 Stampeding Wildebeests
 Startling Development
+Statute of Denial
 Storm, Queen of Wakanda
+Stormtide Leviathan
 Stratadon
+Submerged Boneyard
 Sunhome, Fortress of the Legion
 Sunmane Pegasus
 Swamp
+Swan Song
 Talruum Champion
 Tarpan
 Tasseled Dromedary
@@ -326,13 +362,19 @@ The Great Juggernaut
 The Wasp, Janet Van Dyne
 Thoughtbind
 Thoughtrender Lamia
+Tightening Coils
 Tithebearer Giant
 Tolarian Kraken
+Tolarian Winds
 Tome Scour
 Traitorous Blood
 Traverse the Ulvenwald
+Treetop Bracers
+Treetop Sentinel
 Tribal Flames
+Troll of Khazad-dûm
 Tsabo's Decree
+Tusked Colossodon
 Uktabi Drake
 Vandalblast
 Venarian Glimmer
@@ -343,6 +385,7 @@ Viashino Racketeer
 Vintara Snapper
 Vithian Stinger
 Vivid Meadow
+Water Servant
 Weed-Pruner Poplar
 Whipflare
 World Breaker
@@ -352,4 +395,5 @@ Yarok's Wavecrasher
 Yasova Dragonclaw
 Young Wei Recruits
 Zhentarim Bandit
+Zodiac Rooster
 Zombie Apocalypse

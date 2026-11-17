@@ -172,6 +172,7 @@ Hellfire Mongrel
 High Alert
 Highspire Mantis
 Hoard Hauler
+Horde of Boggarts
 Hunters' Feast
 Hurloon Shaman
 Idol of Oblivion
@@ -269,6 +270,7 @@ Press for Answers
 Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
+Protector of the Crown
 Qasali Pridemage
 Rakdos Cluestone
 Ravenous Baboons

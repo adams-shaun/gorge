@@ -65,13 +65,16 @@ Chandra's Pyrohelix
 Chlorophant
 Cinder Shade
 Cinder Wall
+Cleanup Crew
 Coastal Piracy
 Colossal Dreadmaw and Storm Crow
 Colossodon Yearling
 Commune with Dinosaurs
 Conquering Manticore
 Contract Hero
+Coordinated Charge
 Corrupted Zendikon
+Cosmic Crucible
 Countryside Crusher
 Cranial Ram
 Crowded Crypt
@@ -97,6 +100,7 @@ Divination
 Domineer
 Domri's Ambush
 Drag Under
+Dream Fracture
 Dregscape Zombie
 Drowned Secrets
 Dueling Rapier
@@ -127,7 +131,9 @@ Flame Discharge
 Flame of Anor
 Flicker
 Flow of Ideas
+Forbidden Alchemy
 Forest
+Foster
 Fugue
 Fungal Infection
 Garruk's Packleader
@@ -199,6 +205,7 @@ Magus of the Wheel
 Makeshift Munitions
 Man-o'-War
 Marauder's Axe
+Master of the Pearl Trident
 Mausoleum Wanderer
 Megatog
 Merchant of Truth
@@ -252,6 +259,7 @@ Pit Trap
 Plains
 Plated Sliver
 Plundering Predator
+Pouncing Jaguar
 Precognition
 Prosperous Bandit
 Psionic Snoop
@@ -334,6 +342,7 @@ Titania, Proud Pummeler
 To Arms!
 Torch Drake
 Torpor Dust
+Treetop Ambusher
 Tribute to Urborg
 Trickster Mage
 Triton Cavalry

@@ -293,6 +293,7 @@ Pip-Boy 3000
 Plains
 Poison Arrow
 Pooling Venom
+Power Depot
 Prison Term
 Prodigy's Prototype
 Psychomancer

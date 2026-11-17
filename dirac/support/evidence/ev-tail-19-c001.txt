@@ -11,6 +11,7 @@ Akroma, Angel of Fury
 Alchemist's Gift
 Alena, Kessig Trapper
 Allied Reinforcements
+Alpha Deathclaw
 Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
@@ -48,6 +49,7 @@ Constant Mists
 Copper Myr
 Coppercoat Vanguard
 Cosmic Larva
+Countervailing Winds
 Court Archers
 Cradle to Grave
 Crashing Footfalls
@@ -66,6 +68,7 @@ Demon's Jester
 Diabolic Edict
 Disciple of Grace
 Dragonwing Glider
+Drain the Well
 Dreadhound
 Dreadlight Monstrosity
 Dromoka Warrior
@@ -115,6 +118,7 @@ Goblin Blast-Runner
 Goblin Bombardment
 Goblin Bushwhacker
 Goblin Locksmith
+Goliath, Mass Manipulator
 Grafted Wargear
 Grave Peril
 Graveblade Marauder
@@ -146,6 +150,7 @@ Izzet Keyrune
 Jilt
 Jodah's Avenger
 Kaleidoscorch
+Karvanista, Loyal Lupari
 Kashi-Tribe Warriors
 Kazuul Warlord
 Keldon Mantle
@@ -161,6 +166,7 @@ Leonin Abunas
 Life Burst
 Lightning Javelin
 Lizard Warrior
+Llanowar Sentinel
 Loamcrafter Faun
 Longbow Archer
 Lotleth Troll
@@ -177,6 +183,7 @@ Miracle Worker
 Misers' Cage
 Mob Justice
 Mountain
+Murasa Brute
 Myojin of Infinite Rage
 Myr Sire
 Márton Stromgald
@@ -203,6 +210,7 @@ Pinnacle of Rage
 Plains
 Popular Entertainer
 Predator's Rapport
+Quicksilver Amulet
 Rampant Rejuvenator
 Ransom Note
 Ray of Enfeeblement
@@ -214,6 +222,7 @@ Repel the Vile
 Reprieve
 Resolute Archangel
 Resupply
+Revitalizing Repast
 Rhox Charger
 Ring of Immortals
 Riptide Mangler

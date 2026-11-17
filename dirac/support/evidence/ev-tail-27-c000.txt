@@ -27,6 +27,7 @@ Aven Wind Mage
 Azorius First-Wing
 Azure Drake
 Barbed Lightning
+Battery Bearer
 Bee Sting
 Belligerent Hatchling
 Bident of Thassa

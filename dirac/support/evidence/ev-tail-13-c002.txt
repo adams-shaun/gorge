@@ -29,10 +29,12 @@ Aysen Bureaucrats
 Bag of Holding
 Ballista Watcher
 Bane of Progress
+Basalt Gargoyle
 Black Panther, Claws of Bast
 Bladewing the Risen
 Blaze
 Bloodsky Berserker
+Bloodtallow Candle
 Bog Raiders
 Bold Defense
 Bonders' Enclave
@@ -79,8 +81,10 @@ Doomskar Oracle
 Dreadhorde Invasion
 Drove of Elves
 Drown in Dreams
+Drunau Corpse Trawler
 Dutiful Return
 Earth Tremor
+Ecologist's Terrarium
 Emissary of Hope
 Enthrall
 Evil Eye of Orms-by-Gore
@@ -95,6 +99,7 @@ Fire Nation Salvagers
 Fire Prophecy
 Flamekin Harbinger
 Flameskull
+Flaming Tyrannosaurus
 Flight Spellbomb
 Floriferous Vinewall
 Flowstone Wyvern
@@ -119,6 +124,7 @@ Goblin Lookout
 Grindclock
 Groundskeeper
 Guardian Lions
+Gulping Scraptrap
 Hanweir Militia Captain
 Haradrim Spearmaster
 Harvester Troll
@@ -146,6 +152,7 @@ Izzet Cluestone
 Jayemdae Tome
 Jedit's Dragoons
 Jerrard of the Closed Fist
+Jinxed Ring
 Kagemaro, First to Suffer
 Kami's Flare
 Keen-Eyed Archers
@@ -214,6 +221,7 @@ Rat King, Pale Piper
 Recruitment Officer
 Redress Fate
 Relic Putrescence
+Resounding Scream
 Rift Sower
 Rites of Refusal
 Riverwise Augur
@@ -245,8 +253,10 @@ Smashing Success
 Smelt-Ward Minotaur
 Soaring Drake
 Soldier Replica
+Sorcerer's Wand
 Sorceress Queen
 Soul Partition
+Space Marine Scout
 Spark of Creativity
 Spelleater Wolverine
 Sphinx's Disciple
@@ -292,6 +302,7 @@ Wanda's Vision
 Warmonger
 Weathered Wayfarer
 Welkin Tern
+Westgate Regent
 Wight of Precinct Six
 Wind-Kin Raiders
 Woebringer Demon

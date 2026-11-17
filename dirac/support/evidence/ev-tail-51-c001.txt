@@ -12,6 +12,7 @@ Argent Mutation
 Armada Wurm
 Armistice
 Armory of Iroas
+Artifact Unknown Shores
 Aspect of Manticore
 Astral Steel
 Aura Flux
@@ -39,11 +40,13 @@ Bolrac-Clan Crusher
 Bone Saw
 Breakneck Berserker
 Brilliant Restoration
+Brinebarrow Intruder
 Bring Low
 Brion Stoutarm
 Bumi's Feast Lecture
 Burning Wish
 Bygone Marvels
+Cabal Conditioning
 Cache Raiders
 Cackling Fiend
 Calamity of Cinders
@@ -54,6 +57,7 @@ Cavalier of Flame
 Celestial Archon
 Charnel Serenade
 Cinder Hellion
+Consulate Dreadnought
 Consulate Skygate
 Coordinated Assault
 Court of Ardenvale
@@ -77,10 +81,12 @@ Delayed Blast Fireball
 Demon's Due
 Dense Canopy
 Devoted Paladin
+Devour in Flames
 Devout Monk
 Disciple of Kangee
 Diviner's Lockbox
 Donatello's Science Lesson
+Douse in Gloom
 Dream Stalker
 Dross Hopper
 Dross Ripper
@@ -95,6 +101,7 @@ Eddytrail Hawk
 Eiganjo Free-Riders
 Elderfang Disciple
 Eldrazi Repurposer
+Electrodominance
 Elite Archers
 Elven Chorus
 Elven Lyre
@@ -143,12 +150,15 @@ Grim Hireling
 Grim Poppet
 Grizzly Bears
 Guide of Souls
+Guild Thief
 Gut Shot
 Guul Draz Overseer
 Gyre Sage
 Halo Hunter
 Havoc
+Headless Skaab
 Headstrong Brute
+Heap Gate
 Heedless One
 Heiko Yamazaki, the General
 Helldozer
@@ -177,11 +187,13 @@ Jodah's Codex
 Jousting Lance
 Joven and Chandler
 Jugan, the Rising Star
+Junktown
 Kalonian Twingrove
 Kaya's Ghostform
 Keldon Vandals
 Keldon Warlord
 Kessig Dire Swine
+Killing Glare
 Kithkin Billyrider
 Kitsune Bonesetter
 Knight Exemplar
@@ -198,10 +210,12 @@ Leaf-Crowned Visionary
 Let the Galaxy Burn
 Leveler
 Leyline Invocation
+Life Chisel
 Life Insurance
 Light of Hope
 Lightning Elemental
 Living Wish
+Loathsome Curator
 Long-Lost Lances
 Loxodon Mystic
 Machine Over Matter
@@ -266,6 +280,7 @@ Protection Magic
 Psionic Snoop
 Purraj of Urborg
 Pygmy Pyrosaur
+Quick-Draw Dagger
 Rabid Wolverines
 Rage Thrower
 Rain of Embers
@@ -280,6 +295,7 @@ Regathan Firecat
 Regent's Authority
 Reject
 Rejuvenating Springs
+Remote Farm
 Repentant Vampire
 Requiem Angel
 Resolute Blademaster
@@ -323,6 +339,7 @@ Shield Mate
 Shielded by Faith
 Shocker
 Show of Confidence
+Shrine of Burning Rage
 Sigiled Skink
 Silverclad Ferocidons
 Siren of the Silent Song
@@ -337,6 +354,8 @@ Smashing Spree
 Smelt
 Snapping Thragg
 Sootwalkers
+Soramaro, First to Dream
+Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Spark Reaper
@@ -387,6 +406,7 @@ Theoretical Duplication
 Thermal Navigator
 Thor, Asgard's Avenger
 Thornscape Apprentice
+Throat Slitter
 Thundering Tanadon
 Thunderous Wrath
 Thunderwolf Cavalry
@@ -398,11 +418,13 @@ Tourach's Canticle
 Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
+Turbulent Shore
 Ulrich's Kindred
 Undercover Butler
 Unexpected Windfall
 Unholy Officiant
 Unity of Purpose
+Unstoppable Ogre
 Valeria Richards, Precocious
 Vaultbreaker
 Vedalken Anatomist
@@ -416,6 +438,7 @@ Wall Off
 Wall of Blood
 Wall of Mist
 Warbeast of Gorgoroth
+Warbriar Blessing
 Wayward Soul
 Weldfast Engineer
 Wight
@@ -423,6 +446,7 @@ Wild Growth
 Wooden Cane
 Woodripper
 Workshop Assistant
+Wormwood Treefolk
 Write into Being
 Wu Elite Cavalry
 Wurmcoil Engine

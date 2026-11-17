@@ -6,6 +6,7 @@ Aegis of the Gods
 Aeronaut's Wings
 Aether Inspector
 Agonizing Syphon
+Ajani, Wise Counselor
 Akroma, Angel of Fury
 Alesha, Who Smiles at Death
 Algae Gharial
@@ -270,6 +271,7 @@ Onslaught
 Oracle of Mul Daya
 Ornery Kudu
 Orochi Ranger
+Otharri, Suns' Glory
 Pack Mastiff
 Paragon of Gathering Mists
 Penregon Strongbull
@@ -440,6 +442,7 @@ Whelming Wave
 Windborne Charge
 Wizard Class
 Wolverine Riders
+Word of Blasting
 Yotian Medic
 Zebra Unicorn
 Zodiac Snake

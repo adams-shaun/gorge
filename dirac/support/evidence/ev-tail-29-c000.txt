@@ -83,6 +83,7 @@ Empty the Laboratory
 Epic Confrontation
 Exert Influence
 Expel
+Extract Power
 Ezio, Blade of Vengeance
 Fairgrounds Patrol
 Favored of Iroas
@@ -121,6 +122,7 @@ Howling Banshee
 Icatian Scout
 Ideas Unbound
 Ingenious Infiltrator
+Injector Crocodile
 Ink-Eyes, Servant of Oni
 Innovative Metatect
 Intimidator Initiate
@@ -167,6 +169,7 @@ Nissa, Genesis Mage
 Noxious Groodion
 Nyxborn Brute
 Nyxborn Shieldmate
+Octomancer
 Odric's Outrider
 Omnispell Adept
 Oppressive Will
@@ -209,6 +212,7 @@ Sinister Strength
 Skullmead Cauldron
 Skyshroud Claim
 Slaughter-Priest of Mogis
+Smoldering Egg
 Smothering Tithe
 Soaring Seacliff
 Solar Blast

@@ -16,6 +16,7 @@ Artificer's Intuition
 Ascendant Acolyte
 Ashen-Skin Zubera
 Ashenmoor Gouger
+Asphyxiate
 Assimilate Essence
 Atarka, World Render
 Attunement
@@ -25,6 +26,7 @@ Banishment Decree
 Barbarian General
 Barrin, Tolarian Archmage
 Bassara Tower Archer
+Beacon Behemoth
 Black Vise
 Blood Knight
 Blossoming Wreath
@@ -74,6 +76,7 @@ Delusions of Mediocrity
 Demonlord Belzenlok
 Deny Entry
 Devout Monk
+Diabolic Machine
 Diregraf Rebirth
 Discordant Dirge
 Dogged Pursuit
@@ -93,6 +96,7 @@ Essence Flux
 Explosive Revelation
 Fa'adiyah Seer
 Fable of Wolf and Owl
+Fatal Blow
 Fatestitcher
 Feldon of the Third Path
 Fierce Retribution
@@ -100,6 +104,7 @@ Fin-Clade Fugitives
 Finale of Devastation
 Fireblast
 Five Hundred Year Diary
+Fixer, Techno Terror
 Flame Slash
 For the Family
 Forest
@@ -167,16 +172,19 @@ Mana-Charged Dragon
 Mardu Heart-Piercer
 Mayhem Devil
 Michiko's Reign of Truth
+Midnight Entourage
 Mindscour Dragon
 Mist Raven
 Mob Rule
 Monastery Flock
 Mountain
 Mountain Bandit
+Mystic Redaction
 Mythic Proportions
 Nantuko Shaman
 Navigator's Ruin
 Nephalia Moondrakes
+Neurok Invisimancer
 Nezumi Graverobber
 Nick Fury, Spymaster
 Ninja of the Deep Hours
@@ -215,6 +223,7 @@ Reanimate
 Rebuild
 Recon Craft Theta
 Remorseful Cleric
+Rendclaw Trow
 Renegade Demon
 Replication Specialist
 Retreat to Emeria
@@ -239,6 +248,7 @@ Sift
 Silumgar Sorcerer
 Silver Erne
 Silverchase Fox
+Skyscanner
 Slash of Talons
 Sliversmith
 Soldevi Steam Beast
@@ -294,6 +304,7 @@ Vengeful Reaper
 Vengeful Rebel
 Vessel of Nascency
 Voice of Reason
+Vraska, Relic Seeker
 Vulshok Battlegear
 Wake of Vultures
 Wall of Frost
@@ -304,6 +315,7 @@ Weaselback Redcap
 Wei Strike Force
 Wild Nacatl
 Will of the Temur
+Windreader Sphinx
 Wings of the Guard
 Wirewood Pride
 Wolfkin Outcast

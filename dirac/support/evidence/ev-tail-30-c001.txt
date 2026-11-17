@@ -5,6 +5,7 @@ Aerial Predation
 Aerial Volley
 Ajani, Mentor of Heroes
 Akki Underling
+Alaborn Musketeer
 Alesha, Who Smiles at Death
 Ambuscade Shaman
 Ancestral Memories
@@ -26,6 +27,7 @@ Axebane Stag
 Balduvian Barbarians
 Balduvian Hydra
 Barbed Spike
+Barbed-Back Wurm
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
@@ -57,6 +59,7 @@ Callous Bloodmage
 Cavern-Hoard Dragon
 Cemetery Reaper
 Chalice of Life
+Chariot of the Sun
 Chief Jim Hopper
 Chief Magistrate of Mercadia
 Chorus of Woe
@@ -141,6 +144,7 @@ Harmonic Prodigy
 Hate Mirage
 Haunted Mire
 Healer of the Glade
+Healer of the Pride
 Hecatomb
 Highborn Ghoul
 Hoard Robber
@@ -179,10 +183,12 @@ Liliana's Spoils
 Lunge
 Lure of Prey
 Macabre Mockery
+Mad Ratter
 Mage's Attendant
 MagicConsecrated Sphinx
 Makindi Ox
 Malcator's Watcher
+March from the Tomb
 Mardu Hateblade
 Martyr for the Cause
 Mass Calcify
@@ -209,12 +215,15 @@ Neurok Invisimancer
 Nimana Sell-Sword
 Ninja of the New Moon
 Nissa, Nature's Artisan
+No Way Out
 Nuisance Engine
 Nurgle's Rot
 Oakgnarl Warrior
 Oni of Wild Places
 Oracle's Vault
 Origin of Black Widow
+Overseer of the Damned
+Painsmith
 Paladin's Shield
 Pattern of Rebirth
 Perilous Voyage

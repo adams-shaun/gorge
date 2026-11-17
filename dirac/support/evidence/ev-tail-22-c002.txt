@@ -5,36 +5,54 @@ Aerie Auxiliary
 Aether Adept
 Aggressive Urge
 Agrus Kos, Wojek Veteran
+Akki Scrapchomper
 Alabaster Kirin
 Albino Troll
+Ancient Grudge
 Angelfire Ignition
+Arashin Cleric
 Arcade Gannon
 Argivian Phalanx
+Army of the Damned
+Assert Authority
 Aven Fleetwing
+Awakener Druid
 Baleful Ammit
 Bash to Bits
 Battle Rampart
 Baxter, Fly in the Ointment
 Beaming Defiance
+Bereavement
 Birthing Ritual
+Bladed Ambassador
+Blightbeetle
 Bloodcrazed Paladin
 Boil
 Boltwing Marauder
 Bomat Bazaar Barge
+Brazen Borrower
 Breakneck Berserker
 Brion Stoutarm
 Brushfire Elemental
+Burgeoning
+Burning-Yard Trainer
 Canal Dredger
 Candlelit Cavalry
 Carnage Tyrant
 Castle Embereth
 Champion's Helm
+Child of Night
 Citanul Druid
 Clear the Stage
 Coalhauler Swine
+Command the Storm
+Concentrate
 Conformer Shuriken
+Consume the Meek
 Cragcrown Pathway
+Crash of Rhino Beetles
 Crumble
+Cultivator Colossus
 Darigaaz's Caldera
 Daring Skyjek
 Dark Withering
@@ -46,8 +64,10 @@ Deem Inferior
 Demonic Gifts
 Desolate Mire
 Destructive Revelry
+Diregraf Captain
 Dismantling Wave
 Doric, Nature's Warden
+Dreadbringer Lampads
 Dreadwaters
 Druid's Call
 Druid's Deliverance
@@ -55,12 +75,22 @@ Dualcaster Mage
 Elder Cathar
 Ellie, Vengeful Hunter
 Elusive Krasis
+Elvish Clancaller
+Embodiment of Spring
 Engulfing Eruption
 Ephara's Enlightenment
 Epiphany Storm
 Eron the Relentless
+Essence Warden
+Excavation Explosion
+Exile into Darkness
+Fairgrounds Warden
 Farbog Explorer
+Fathom Fleet Boarder
 Field-Tested Frying Pan
+Fists of Ironwood
+Fleeting Image
+Flesh Carver
 Forbidden Alchemy
 Forest
 Foriysian Brigade
@@ -68,19 +98,33 @@ Fortuitous Find
 Foul Presence
 Gate to Seatower
 Ghor-Clan Savage
+Glistener Elf
 Gnawing Zombie
 Goblin Recruiter
 Goblin Swine-Rider
+Goblin Taskmaster
 Gorma, the Gullet
+Grave Defiler
+Gravedigger
 Gravity Well
 Greatsword of Tyr
+Grim Flayer
 Gríma Wormtongue
 H.E.R.B.I.E., Lovable Robot
+Hammerfist Giant
+Hancock, Ghoulish Mayor
+Heart-Piercer Manticore
+Hippo-Cows
 Homarid Warrior
 Honor the Fallen
+Hunted Ghoul
 Hunter of Eyeblights
+Hunter's Mark
 Hyperion Blacksmith
 Icefall Regent
+Ignition Team
+Immolating Gyre
+Impetuous Protege
 Indomitable Ancients
 Inspired Skypainter
 Iron Fist, Hero for Hire
@@ -89,52 +133,97 @@ Island
 Ithilien Kingfisher
 Jeskai Student
 Jhessian Lookout
+Joel, Resolute Survivor
 Kalastria Nightwatch
 Kami's Flare
 Kin-Tree Warden
+Knight's Pledge
+Knucklebone Witch
 Kozilek's Channeler
 Kozilek's Shrieker
+Krosan Beast
 Krosan Restorer
 Krosan Verge
+Lash of Malice
 Lavafume Invoker
+Lead-Belly Chimera
 Lena, Selfless Champion
 Living Lightning, Charged Up
 Llanowar Empath
 Lynx
+Maggot Carrier
+Magus of the Bridge
 Mana Cylix
+Marsh Crocodile
 Marsh Gas
 Masked Admirers
+Melt Terrain
 Meteorite
 Mind Control
+Minister of Pain
+Minotaur Explorer
+Mirri the Cursed
+Molder
+More of That Strange Oil...
 Mountain
 Mukotai Soulripper
 Mystic Visionary
 Necrogen Scudder
+Necrotic Sliver
+Needlepeak Spider
+Nezumi Shadow-Watcher
 Niambi, Esteemed Speaker
+Nightsquad Commando
+Nim Shrieker
 Null Champion
+Obscuring Haze
 Ojutai Exemplars
+Oketra the True
+Ornithopter of Paradise
 Oxidda Golem
 Parapet Watchers
 Peak Eruption
+Penumbra Spider
 Perilous Shadow
 Pillardrop Rescuer
 Pin to the Earth
 Plains
+Prodigal Pyromancer
 Psionic Gift
+Psychic Barrier
 Pyre Zombie
+Quilled Sliver
+Rack and Ruin
+Radiant Flames
+Raffine's Silencer
 Ragavan, Nimble Pilferer
+Ragged Recluse
+Ral's Reinforcements
+Ranger's Longbow
 Rapacious Guest
+Ravaging Blaze
+Ravaging Horde
 Regal Unicorn
 Render Inert
 Rites of Spring
 Root Greevil
+Roots of Wisdom
 Rot-Tide Gargantua
+Rubbleback Rhino
+Savage Order
 Scourge Servant
 See Red
+Shackles of Treachery
+Shifting Wall
 Shivan Zombie
 Show of Valor
+Shower of Arrows
 Silhana Wayfinder
 Skorpekh Lord
+Skyshroud Behemoth
+Slag Fiend
+Slinking Giant
+Soldier of Fortune
 Soul Manipulation
 Sparkmage Apprentice
 Spitting Dilophosaurus
@@ -143,28 +232,52 @@ Staggershock
 Stand Firm
 Steam Spitter
 Steel Leaf Champion
+Stomp and Howl
 Stone Catapult
 Stone Quarry
+Stormcaller of Keranos
+Strength of Night
 Strongarm Thug
+Sundering Eruption
+Survivors' Bond
 Swamp
 Sword of the Chosen
 Tahngarth's Rage
 Takenuma Bleeder
+Tempered in Solitude
+Temporal Eddy
 Terminal Moraine
 Teyo, the Shieldmage
+The Crafter
+The Duke, Rebel Sentry
+Third Path Savant
 Thorned Moloch
 Thud
+Thwart the Enemy
+Tolabow, Loch Rascal
 Toll of the Invasion
 Treacherous Werewolf
 Trumpeting Herd
 Ultron, Machine Overlord
+Uncomfortable Chill
+Utility Knife
+Valor Singer
+Valorous Charge
 Vengeful Rebirth
+Victim of Night
 Virulent Plague
+Vitaspore Thallid
+Vortex Runner
 Wall of Stone
 Warclamp Mastiff
 Warmind Infantry
+Waterspout Djinn
+Wavebreak Hippocamp
+Whisperwood Elemental
+Wildfire Elemental
 Wings of Velis Vel
 Xander's Pact
+Yasmin Khan
 Zealot of the God-Pharaoh
 Zephid's Embrace
 Zodiac Goat

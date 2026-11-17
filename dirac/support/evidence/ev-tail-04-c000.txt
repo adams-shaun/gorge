@@ -31,6 +31,7 @@ Balm of Restoration
 Banehound
 Banish from Edoras
 Banisher Priest
+Barktooth Warbeard
 Basal Sliver
 Batterskull
 Battlewand Oak
@@ -51,6 +52,7 @@ Blossoming Bogbeast
 Bog Rats
 Borrowed Grace
 Bramble Creeper
+Breakthrough
 Brokers Confluence
 Brood Monitor
 Browse
@@ -100,10 +102,13 @@ Despark
 Desperate Castaways
 Devotee of Strength
 Devouring Swarm
+Devout Harpist
 Diplomatic Escort
+Distinguished Conjurer
 Distract
 Divine Arrow
 Doomfall
+Doomsday Specter
 Double Negative
 Douser of Lights
 Dragon Hatchling
@@ -195,6 +200,7 @@ Jace, Arcane Strategist
 Jade Idol
 Jeskai Banner
 Jilt
+Jon Irenicus, the Exile
 Jump
 Junji, the Midnight Sky
 Juvenile Gloomwidow
@@ -291,6 +297,7 @@ Prophetic Titan
 Protect the Negotiators
 Prowler, Misguided Mentor
 Pteron Ghost
+Puppet Master
 Purestrain Genestealer
 Quasiduplicate
 Racecourse Fury
@@ -309,6 +316,7 @@ Razorfin Hunter
 Redcap Heelslasher
 Repay in Kind
 Repeal
+Repel the Abominable
 Replication Specialist
 Reprisal
 Rescue, Pepper Potts
@@ -362,6 +370,7 @@ Sifa Grent
 Sigil of Myrkul
 Sigiled Sentinel
 Signpost Scarecrow
+Simic Charm
 Sin Collector
 Skalla Wolf
 Skitterskin
@@ -391,6 +400,7 @@ Stall for Time
 Stampeding Elk Herd
 Star Whale
 Starlight Invoker
+Statecraft
 Stern Dismissal
 Steward of Valeron
 Storm Front
@@ -434,6 +444,7 @@ Turn the Earth
 Twisted Experiment
 Underdark Explorer
 Unhallowed Phalanx
+Unseen Walker
 Unsubstantiate
 Vampire Scrivener
 Vampiric Feast

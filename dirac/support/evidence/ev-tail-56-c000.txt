@@ -38,11 +38,13 @@ Banefire
 Banishment Decree
 Barbed Battlegear
 Battlewise Aven
+Bearer of the Heavens
 Beast Attack
 Bee Sting
 Belligerent Brontodon
 Berserk Murlodont
 Big Boa Constrictor
+Blade Historian
 Bladetusk Boar
 Blanchwood Prowler
 Blighted Woodland
@@ -289,6 +291,7 @@ On Wings of Gold
 Oracle of Nectars
 Owlbear
 Ozolith, the Shattered Spire
+Palisade Giant
 Parasitic Impetus
 Peace Strider
 Phase Dolphin

@@ -13,6 +13,7 @@ Angelic Protector
 Angelic Quartermaster
 Annoyed Altisaur
 Arcane Melee
+Arcbound Mouser
 Archers' Parapet
 Ardent Plea
 Ardenvale Tactician
@@ -148,6 +149,7 @@ Fruitcake Elemental
 Fyndhorn Elves
 Gaea's Balance
 Gaea's Embrace
+Garruk, Unleashed
 General's Enforcer
 Ghor-Clan Savage
 Ghoulraiser

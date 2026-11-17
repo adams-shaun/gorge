@@ -1,5 +1,8 @@
 A-Mentor's Guidance
+A-Midnight Assassin
+A-Vampire Scrivener
 Adarkar Sentinel
+Aether Sting
 Alchemist's Vial
 Angelic Reward
 Aphetto Alchemist
@@ -9,25 +12,33 @@ Atlantean Skirmisher
 Aura Gnarlid
 Avengers Quinjet
 Belligerent Sliver
+Bishop of Wings
 Bleeding Edge
 Bloodthirsty Blade
 Bog Glider
 Bosco, Just a Bear
 Brightwood Tracker
+Built to Smash
 Burrowing Razormaw
+Calamity Bearer
 Captain of the Watch
 Castle Locthwain
 Cat Warriors
+Catacomb Sifter
 Caustic Rain
+Cave People
 Celebrity Fencer
 Cephalid Broker
+Chain to Memory
 Chainwhip Cyclops
 Chief of the Scale
+Chimney Goyf
 Coal Stoker
 Collector Ouphe
 Conviction
 Corrupted Harvester
 Crackling Club
+Crashing Centaur
 Cryptic Pursuit
 Dampening Pulse
 Darkling Stalker
@@ -35,11 +46,17 @@ Dauthi Ghoul
 Dawn Gryff
 Death Cultist
 Decorated Griffin
+Demonic Bargain
 Descend upon the Sinful
 Dirtwater Wraith
+Divine Retribution
+Dockside Extortionist
 Drannith Ruins
 Dread Presence
+Dross Harvester
 Duchess, Wayward Tavernkeep
+Earthlore
+Egon, God of Death
 Elaborate Firecannon
 Electric Eel
 Electrickery
@@ -49,17 +66,22 @@ Escaped Experiment
 Essence Flux
 Evolution Witness
 Fallen Ideal
+Fault Line
 Filigree Familiar
 Filthy Cur
+Flame-Kin War Scout
 Flash Flood
+Flowstone Blade
 Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
 Foundry of the Consuls
 Fully Grown
+Geist-Honored Monk
 Geth's Grimoire
 Gilded Sentinel
+Goblin Caves
 Goblin Dirigible
 Goblin Sky Raider
 God-Eternal Oketra
@@ -71,32 +93,44 @@ Gornog, the Red Reaper
 Graceful Cat
 Greater Werewolf
 Griffin Guide
+Gruul War Chant
 Gwyllion Hedge-Mage
+HYDRA Disintegrator
 Hamza, Guardian of Arashin
+Haughty Djinn
+Hermetic Study
 High Market
 Honorable Scout
 Honored Hierarch
 Horn of Deafening
 Hungry Flames
+Imperial Seal
 Improvised Club
+Infernal Genesis
 Iron Verdict
 Iron-Craw Crusher
+Ishi-Ishi, Akki Crackshot
 Island
 Joraga Visionary
 Kalonian Tusker
 King Crab
 Kor Spiritdancer
+Korozda Guildmage
 Krang, the All-Powerful
 Land Leeches
+Let the Galaxy Burn
 Lifebane Zombie
 Light 'Em Up
 Light of Hope
 Loch Dragon
+Loyal Pegasus
 Mana Matrix
 Masked Vandal
+Megantic Sliver
 Mental Journey
 Mind Flayer
 Mold Shambler
+Morgue Thrull
 Mortis Dogs
 Mountain
 Mulch
@@ -104,6 +138,7 @@ Mycosynth Wellspring
 Natural State
 Nearheath Stalker
 Necroblossom Snarl
+Necromantic Thirst
 Nectar Faerie
 Needleverge Pathway
 Nimraiser Paladin
@@ -114,12 +149,15 @@ Paladin of Predation
 Path of Peril
 Peema Trailblazer
 Pewter Golem
+Phobian Phantasm
+Piety Charm
 Piranha Marsh
 Plains
 Priest of Forgotten Gods
 Prism Ring
 Psemilla, Meletian Poet
 Quarry Beetle
+Raiding Nightstalker
 Razorfin Abolisher
 Rebel Informer
 Recruitment Officer
@@ -128,13 +166,16 @@ Refurbished Familiar
 Repulsor Rays
 Retreat to Emeria
 Rush of Knowledge
+Russet Wolves
 Ruthless Predation
 Sage Owl
 Sautekh Immortal
 Scorn Effigy
+Scourge Wolf
 Scryb Ranger
 Search for Tomorrow
 Shackles of Treachery
+Shatter
 Shattered Perception
 She-Hulk, Jennifer Walters
 Shielding Plax
@@ -147,6 +188,8 @@ Skull Collector
 Soilshaper
 Song-Mad Treachery
 Sorcerer of the Fang
+Spellseeker
+Sphinx of Enlightenment
 Spike Feeder
 Spikeshot Elder
 Spiteful Squad
@@ -155,15 +198,19 @@ Stream of Acid
 Streetwise Negotiator
 Stronghold Discipline
 Swamp
+Swarmyard Massacre
 Sylvan Caryatid
 Sylvan Messenger
 Syphon Flesh
 Séance
 Talons of Falkenrath
+Taste of Death
 Tattered Haunter
 Teferi, Timebender
 Tentative Connection
+The Mary Janes
 Thermal Glider
+Thought Harvester
 Thranduil the Strategist
 Thriving Grove
 Thundering Chariot
@@ -177,6 +224,7 @@ Tumble Magnet
 Valor Singer
 Vampiric Fury
 Verdant Embrace
+Victorious Destruction
 Void Squall
 Voracious Typhon
 Wand of Vertebrae
@@ -187,5 +235,7 @@ Webweaver Changeling
 Wicked Reward
 Wilderness Hypnotist
 Wildwood Rebirth
+Windreaper Falcon
+Wolfrider's Saddle
 Yoshimaru, Ever Faithful
 Zhang Liao, Hero of Hefei

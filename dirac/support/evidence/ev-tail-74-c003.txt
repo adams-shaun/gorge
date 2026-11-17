@@ -11,6 +11,7 @@ Aurora Eidolon
 Aven Trooper
 Aven Windreader
 Barbed Sliver
+Battleflight Eagle
 Bearer of Memory
 Beastmaster's Magemark
 Betrayal
@@ -46,6 +47,7 @@ Deadeye Plunderers
 Deadly Insect
 Death Speakers
 Deathleaper, Terror Weapon
+Debtor's Pulpit
 Deepwood Tantiv
 Defenestrate
 Descendant of Kiyomaro
@@ -55,10 +57,12 @@ Devouring Swarm
 Divine Smite
 Doom's Servo-Guards
 Dragonborn Looter
+Easterling Vanguard
 Echoing Calm
 Eiganjo Castle
 Eldrazi Mimic
 Ember-Fist Zubera
+Emeria Angel
 Encroaching Wastes
 Endless Wurm
 Engineered Might
@@ -68,6 +72,7 @@ Eternal of Harsh Truths
 Euroakus
 Faithbearer Paladin
 Feeding Frenzy
+Feldon, Ronom Excavator
 Ferocious Charge
 Field Marshal
 Fire Ambush
@@ -95,6 +100,7 @@ Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
 Harpoon Sniper
+Hero's Resolve
 Horned Cheetah
 Hornet Cannon
 Hornet Cobra
@@ -122,6 +128,7 @@ Mad Auntie
 Magmatic Core
 Malevolent Awakening
 Malicious Advice
+Markov Dreadknight
 Marshaling Cry
 Master the Way
 Meadowboon
@@ -161,6 +168,7 @@ Psychic Strike
 Psychotic Haze
 Pull from Tomorrow
 Putrid Imp
+Pyromantic Pilgrim
 Quicksilver Wall
 Quilled Slagwurm
 Rag Dealer
@@ -191,6 +199,7 @@ Savai Thundermane
 Scrivener
 Seismic Mage
 Selfless Spirit
+She-Hulk, Jennifer Walters
 Sheltering Landscape
 Sigarda's Summons
 Sign in Blood

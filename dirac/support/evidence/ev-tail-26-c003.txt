@@ -1,6 +1,7 @@
 Advance Scout
 Akki Lavarunner
 Angelic Overseer
+Arc Lightning
 Army Ants
 Arno Dorian
 Ashenmoor Gouger
@@ -9,6 +10,7 @@ Blade of the Bloodchief
 Blood Knight
 Bloodhall Priest
 Bloodscale Prowler
+Brimstone Dragon
 Chase Stein, Runaway
 Chemister's Insight
 Chorus of Woe
@@ -16,11 +18,14 @@ Cystbearer
 Dragon Hatchling
 Dralnu's Crusade
 Dunes of the Dead
+Empty the Warrens
 Faithless Looting
 Faithless Salvaging
+Fast Forward
 Fencing Ace
 Forest
 Foul-Tongue Shriek
+Goblin Firebug
 Harrow
 Island
 Junk Golem

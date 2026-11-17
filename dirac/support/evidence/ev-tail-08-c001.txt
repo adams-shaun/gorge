@@ -11,6 +11,7 @@ Barrin's Codex
 Black Market Tycoon
 Blind-Spot Giant
 Bolt of Keranos
+Brush with Death
 Cabaretti Confluence
 Call to Glory
 Call to the Netherworld
@@ -18,8 +19,10 @@ Captain America, Liberator
 Carnage Tyrant
 Cavern Thoctar
 Certain Death
+Clockwork Fox
 Containment Protocol
 Coral Barrier
+Corrosive Mentor
 Crash Landing
 Culling Dais
 Darkwater Catacombs
@@ -42,6 +45,7 @@ Eyeblight's Ending
 Feast of the Unicorn
 Feast or Famine
 Fetid Gargantua
+Flare
 Flowstone Mauler
 Forest
 Foundry Inspector
