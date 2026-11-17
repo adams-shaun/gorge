@@ -8,7 +8,7 @@ package rules
 // within noise.
 //
 // It must never say "ask-free" for a resolution that asks. Text cannot see
-// board-dependent engine-posed asks (a CR 616.1 replacement-order choice, an
+// board-dependent engine-posed asks (a CR 616.1 replacement-order choice, a CR 310.10 battle-protector choice, an
 // as-enters choice on a permanent another effect moves, a CR 903.9
 // commander-zone choice), so each of those needs a board gate
 // (tapeBoardCompetes). A miss is caught at the one choke point every
@@ -73,7 +73,18 @@ func tapeMayAsk(e *Engine) bool {
 // choosing what it enchants, CR 303.4f: Mischievous Pup bouncing a Banishing
 // Light that holds Imprisoned in the Moon). The exile zones are read first,
 // so the battlefield is walked only when an exiled card could ask.
+//
+// The first gate is the engine construct rule CR 310.10: as a battle enters
+// the battlefield its controller chooses an opponent to protect it
+// (applySiegeProtector). The choice is not card text -- the Oracle line is
+// reminder text -- so cards.FaceEntryMayAsk cannot see it; in a 4-seat game
+// two opponents are legal, so the ask is real (1v1 auto-records its one
+// opponent). The gate is conservative by type: any Battle resolving from the
+// stack is checkpointed, whether or not its entry ends up asking.
 func tapeBoardCompetes(e *Engine) bool {
+	if n := len(e.G.Stack); n > 0 && tapeBattleEntryMayAsk(e.G.Obj(e.G.Stack[n-1])) {
+		return true
+	}
 	if tapeReplMayAsk(e, "AddCounter") || tapeReplMayAsk(e, "PayLife") || tapeAnyReplBodyMayAsk(e) {
 		return true
 	}
@@ -264,25 +275,36 @@ func mayAskObjOnBoard(e *Engine, st uint32, id state.ObjID, o *state.Object, sa 
 }
 
 // tapeEntryMayAsk reports whether the object id asks as it enters the
-// battlefield: its own entry text on any face it could enter as, or the
-// entry replacements on the board that can apply to it (tapeLandReplMayAsk:
-// an election, or two competing).
+// battlefield: its own entry text on any face it could enter as, the entry
+// replacements on the board that can apply to it (tapeLandReplMayAsk: an
+// election, or two competing), or a Battle face -- a non-cast Battle entry
+// (a reanimation, a token copy) poses the CR 310.10 protector ask through
+// applySiegeProtector too, and that construct rule is not card text.
 func tapeEntryMayAsk(e *Engine, id state.ObjID) bool {
 	obj := e.G.Obj(id)
 	if obj == nil {
 		return false
 	}
-	if f := obj.CopyFace; f != nil && cards.FaceEntryOrEnchantMayAsk(f) {
+	if f := obj.CopyFace; f != nil && (cards.FaceEntryOrEnchantMayAsk(f) || f.IsBattle()) {
 		return true
 	}
 	if obj.Card != nil {
 		for _, f := range obj.Card.Faces {
-			if f != nil && cards.FaceEntryOrEnchantMayAsk(f) {
+			if f != nil && (cards.FaceEntryOrEnchantMayAsk(f) || f.IsBattle()) {
 				return true
 			}
 		}
 	}
 	return tapeLandReplMayAsk(e, id)
+}
+
+// tapeBattleEntryMayAsk is the stack-top half of the CR 310.10 gate: a cast
+// Battle spell resolving from the stack is checkpointed whether or not its
+// entry ends up asking (see tapeBoardCompetes). Takes the object, not the
+// engine -- a free func taking *Engine is a codeshape ratchet. No
+// allocation, no protectorOpponents walk -- conservative by type.
+func tapeBattleEntryMayAsk(o *state.Object) bool {
+	return o != nil && o.Face() != nil && o.Face().IsBattle()
 }
 
 // tapeParentSubMayAsk settles cards.MayAskCondParentSub for a spell: a
