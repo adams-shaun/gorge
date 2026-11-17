@@ -1,0 +1,15 @@
+# the board-condition state-trigger pool: Mode$ Always over IsPresent$
+# (CR 603.8) -- Barbarian Outcast and Bog Serpent (no Swamps you control),
+# Endrek Sahr (seven or more Thrulls: Gray Ogre casts make the tokens) and
+# Afiya Grove (no +1/+1 counters on it: its upkeep moves them away) -- beside
+# Stone Rain, which takes the Swamps, for the oracle's constructed lockstep
+# (dirac/oracle/alwaysispresent_lockstep_test.go)
+Afiya Grove
+Barbarian Outcast
+Bog Serpent
+Endrek Sahr, Master Breeder
+Forest
+Gray Ogre
+Mountain
+Stone Rain
+Swamp
