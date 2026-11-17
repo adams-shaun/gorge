@@ -68,6 +68,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Battle cry":     "TestBattleCryPumpsOtherAttackingCreatures",
 		"kw:Graft":          "TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt",
 		"kw:Modular":        "TestModularEntersWithCounters",
+		"kw:Haunt":          "TestHauntExilesAndTriggersOnTheHauntedCreature",
 		"kw:Soulshift":      "TestSoulshiftReturnsASpirit",
 		"kw:Reinforce":      "TestReinforcePutsCountersFromHand",
 		"kw:Tribute":        "TestTributePaidEntersWithCounters",

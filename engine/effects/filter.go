@@ -557,6 +557,15 @@ var predicates = map[string]predFn{
 	"ExiledWithSource": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return exiledBySource(g, o, src)
 	},
+	// HauntedBy: the candidate is the creature the exiled source card haunts
+	// (CR 702.55b), the K:Haunt expansion's "when the creature it haunts dies"
+	// ValidCard$ Creature.HauntedBy. state.Object.Haunting is folded by
+	// events.Apply's Haunt kind, so a dying creature is matched by id after it
+	// left the battlefield.
+	"HauntedBy": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		return s != nil && s.Haunting != 0 && s.Haunting == o.ID
+	},
 	"ExiledWithSourceLKI": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return exiledBySource(g, o, src)
 	},
