@@ -1,0 +1,16 @@
+# the filter-head referent pool: DamageAll ValidPlayers$ Targeted (Chandra's
+# Flame Wave, Chandra, Flame's Fury and Chandra, Bold Pyromancer scope the sweep
+# to a ValidTgts$ Player's permanents; Cerebral Eruption reads the PeekAndReveal
+# Opponent slot unscoped). Lightning Bolt and Shock are burn the sweeps share
+# a table with.
+# (dirac/oracle/filterheads_lockstep_test.go)
+Chandra's Flame Wave
+Chandra, Flame's Fury
+Chandra, Bold Pyromancer
+Cerebral Eruption
+Lightning Bolt
+Shock
+Grizzly Bears
+Hill Giant
+Mountain
+Swamp
