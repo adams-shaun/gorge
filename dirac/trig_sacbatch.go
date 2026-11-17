@@ -36,6 +36,7 @@ func (s *State) sacBatchOpen() uint8 {
 //
 //go:noinline
 func (s *State) payCommitSacs(k *prep) {
+	s.payRidersLife(k) // an UnlessCost$ Sac beside life: the life first (cost_unlesssacriders.go)
 	n := int(s.g.nsac)
 	if n == 0 {
 		return
