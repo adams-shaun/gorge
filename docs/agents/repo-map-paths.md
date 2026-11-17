@@ -47,6 +47,9 @@ The compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`
 | `.githooks/` | pre-commit and pre-merge-commit (run `pkgmap-check`), pre-push (the opt-in `RACE=1` race gate on a push of main) (`core.hooksPath=.githooks`). |
 | `scripts/` | Contributor/CI only: `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `hostbench-pair.sh`, `xengine-bench.sh`, `wire-matrix.sh`, `open-pr.sh` (`make pr`), `dirac-gate.sh`, `dirac-evidence.sh`, `dirac-first-refusals.py`, `docs_sets.py`. |
 | `.github/workflows/` | `ci.yml`; `docs.yml` (builds the site, regenerates the package map); `coverage.yml` (on push to main: `make coverage`, publishes `.coverage/` as the `card-coverage` artifact; commits nothing); `demo-image.yml` (builds the container demo image on a push to main, and pushes it only when the registry secrets are set). |
+| `.github/workflows/oracle.yml` | Runs the whole `dirac/oracle` every 6 hours on main. |
+| `.github/workflows/queue-cancel.yml` | Cancels orphaned merge-queue runs. |
+| `.mergify.yml` | The merge-queue configuration. |
 | `testkit/testutil/testdata/wall_exceptions.txt`, `rss_exceptions.txt` | Shrink-only inventories of tests over the per-test wall / RSS budget. |
 
 ## Untracked but load-bearing
