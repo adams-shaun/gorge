@@ -202,6 +202,26 @@ func (s *State) riderPlainFirst(k *prep, sl Slot) bool {
 	return col != 0 && col&(col-1) == 0
 }
 
+// riderPlainWindow reports whether the manual window's answer
+// (payexec.WindowAnswer) takes the plain-first source's rider over its plain
+// ability. The window lists the plain ability and, for a Combo rider, one
+// option per colour with its symbol; the answer takes the lowest colour, so
+// a rider colour below the plain ability's single colour wins. Only a finite
+// Combo is flattened that way (a fixed single-colour rider carries no symbol
+// and answers the first ability, the plain one).
+func (s *State) riderPlainWindow(k *prep, sl Slot, a *kop.Ability) bool {
+	if !s.riderPlainFirst(k, sl) || a.ManaEach || uint8(a.ManaColors) == uint8(kop.ColAny) {
+		return false
+	}
+	mask := uint8(a.ManaColors) & 0x3f
+	pc := s.manaPCGen(k, sl)
+	plain := uint8(pc.manaCol) & 0x3f
+	if bits.OnesCount8(mask) < 2 || plain == 0 || plain&(plain-1) != 0 {
+		return false
+	}
+	return bits.TrailingZeros8(mask) < bits.TrailingZeros8(plain)
+}
+
 // riderActivatable reports whether the bounded rider ability a of the source at
 // sl can be activated now: untapped (and not summoning sick when its cost taps
 // a creature) and its own counters enough.
