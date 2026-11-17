@@ -1438,6 +1438,12 @@ func (s *State) gapSpendableMask(k *prep, m slotMask, d *payDesc) slotMask {
 // census's own membership, which reads every mana ability).
 func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
 	p := s.perms[sl].ctrl
+	if s.landSetLost(k, sl) {
+		// a land under a land-type setter (Contaminated Ground) lost its own
+		// abilities but taps for the intrinsic mana of its new basic type (CR
+		// 305.7, 305.6), which carries no spend restriction
+		return true
+	}
 	if !s.genLost(k, sl) {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {
