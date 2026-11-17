@@ -8,11 +8,12 @@ import (
 )
 
 // TestReplacedCardLKIPower pins Ravenous Slime's body: the opponent's dying
-// creature is exiled and the Slime gets +1/+1 counters equal to that
-// creature's power as it was on the battlefield (X:ReplacedCardLKI$CardPower).
-// The count reads the power rules captured when the replacement matched
-// (Ctx.Repl.ReplacedPower), because the body's own move to exile has already
-// cleared the creature's counters by the time PutCounter evaluates X.
+// 1/1 carrying a +1/+1 counter (power 2) is exiled and the Slime gets +1/+1
+// counters equal to that creature's power as it was on the battlefield
+// (X:ReplacedCardLKI$CardPower). The count reads the power rules captured when
+// the replacement matched (Ctx.Repl.ReplacedPower), because the body's own move
+// to exile has already cleared the creature's counters by the time PutCounter
+// evaluates X.
 func TestReplacedCardLKIPower(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	slimeCard, ok := reg.Lookup("Ravenous Slime")
@@ -24,10 +25,10 @@ func TestReplacedCardLKIPower(t *testing.T) {
 
 	h := newHost(t, 2)
 	slime := putOnBattlefield(t, h.g, reg, "Ravenous Slime", 0)
-	victim := putOnBattlefield(t, h.g, reg, "Grizzly Bears", 1)
+	victim := putOnBattlefield(t, h.g, reg, "Llanowar Elves", 1)
 	victim.Counters = []state.Counter{{Kind: "P1P1", N: 1}}
-	if h.Power(victim.ID) != 3 {
-		t.Fatalf("precondition: Grizzly Bears with a +1/+1 counter has power %d, want 3", h.Power(victim.ID))
+	if h.Power(victim.ID) != 2 {
+		t.Fatalf("precondition: Llanowar Elves with a +1/+1 counter has power %d, want 2", h.Power(victim.ID))
 	}
 	if n := len(slime.Counters); n != 0 {
 		t.Fatalf("precondition: Slime starts with %d counters", n)
@@ -47,7 +48,7 @@ func TestReplacedCardLKIPower(t *testing.T) {
 			got += k.N
 		}
 	}
-	if got != 3 {
-		t.Fatalf("Ravenous Slime has %d +1/+1 counters, want 3 (the dying creature's power)", got)
+	if got != 2 {
+		t.Fatalf("Ravenous Slime has %d +1/+1 counters, want 2 (the dying creature's power)", got)
 	}
 }
