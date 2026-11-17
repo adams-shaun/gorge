@@ -270,7 +270,7 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 		}
 		return left, true
 	}
-	s.capFull(StallReplPlus) // gorge asks the CR 616.1 order; only a noncombat event is posed (spPark)
+	s.capFull(StallReplPlus) // gorge asks the CR 616.1 order; the walk poses only an orderable competition (spPark/spCombatCands)
 	return e.n, false
 }
 
