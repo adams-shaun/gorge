@@ -585,7 +585,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	// mana of any one color") costs no {T}: the source taps for its other
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
-	var sMask, sN uint8
+	var sMask, sN, oneN uint8
 	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
 	tapsNot := false
 	if ownSac {
@@ -611,13 +611,20 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 			continue // a tapped or summoning-sick Spawn cannot pay a granted {T} ability (CR 302.6)
 		}
 		mask |= s.srcMaskAt(pc, sl)
+		if pc.manaOne && pc.manaN >= n {
+			oneN = pc.manaN // the unit's amount is one granted ability's, all in one colour
+		}
 		n = max(n, pc.manaN)
 	}
 	if mask == 0 {
 		mask, n, sMask, sN = sMask, sN, 0, 0
+		oneN = 0
 	}
 	if mask != 0 {
 		s.addGrantUnits(a, mask, n)
+		if oneN == n && oneN != 0 {
+			s.addOneColour(a, oneN) // as the plain path's manaOne unit: {U}{R} is not payable from one tap (CR 106.1)
+		}
 	}
 	if sMask != 0 {
 		s.addGrantUnits(a, sMask, sN)
