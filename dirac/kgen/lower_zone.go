@@ -2599,7 +2599,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
-	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked":
+	case "CombatDamageToughness", "AssignCombatDamageAsUnblocked", "AssignNoCombatDamage":
 		if err := lc.asgnGrant(ps, sp, s.Mode, obj); err != nil { // lower_asgngrant.go
 			return err
 		}
