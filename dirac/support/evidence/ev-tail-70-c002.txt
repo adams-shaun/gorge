@@ -48,6 +48,7 @@ Dusk Urchins
 Dwarven Reinforcements
 Dying Wail
 Edgar's Awakening
+Elder of Laurels
 Eldrazi Aggressor
 Elephant Ambush
 Elephant-Rat
@@ -72,6 +73,7 @@ Flight
 Forbidden Friendship
 Forest
 Forging the Tyrite Sword
+Garruk's Companion
 Geist-Fueled Scarecrow
 Ghost Hounds
 Ghostblade Eidolon
@@ -92,6 +94,8 @@ Ilysian Caryatid
 Imposing Sovereign
 Indulgent Aristocrat
 Infected Vermin
+Infectious Bite
+Infestation Expert
 Insolent Neonate
 Island
 Jolrael's Favor
@@ -104,6 +108,7 @@ Kor Cartographer
 Koth's Courier
 Krosan Grip
 Legion Loyalist
+Lifespinner
 Lightning Javelin
 Lion Vulture
 Magnivore
@@ -120,6 +125,7 @@ Mutilate
 Myconid Spore Tender
 Myr Retriever
 Narnam Renegade
+Nature's Spiral
 Noble Vestige
 Oath of Eorl
 Okiba Reckoner Raid
@@ -139,7 +145,9 @@ Predatory Nightstalker
 Primal Frenzy
 Putrid Cyclops
 Quirion Beastcaller
+Radagast, Wizard of Wilds
 Radiant Purge
+Raised by Giants
 Rallying Roar
 Relentless Hunter
 Relentless Skaabs
@@ -160,6 +168,7 @@ Shoal Kraken
 Shu Grain Caravan
 Sickle Dancer
 Sigil Blessing
+Silk Net
 Silverflame Squire
 Skull Rend
 Slaughter Specialist
@@ -198,6 +207,7 @@ Uproot
 Vampiric Spirit
 Veil of Summer
 Viashino Spearhunter
+Vigilant Baloth
 Village Cannibals
 Voiceless Spirit
 Vow of Flight

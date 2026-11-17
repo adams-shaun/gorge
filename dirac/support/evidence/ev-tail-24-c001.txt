@@ -286,6 +286,7 @@ Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
 Roaming Ghostlight
+Rockslide Elemental
 Rooftop Nuisance
 Rot Shambler
 Rotlung Reanimator
@@ -331,6 +332,7 @@ Smog Elemental
 Sneaky Homunculus
 Soldevi Machinist
 Solve the Equation
+Sootstoke Kindler
 Sorcerer's Strongbox
 Sorin, Imperious Bloodlord
 Soul Net

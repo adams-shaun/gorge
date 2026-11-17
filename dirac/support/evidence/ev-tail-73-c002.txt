@@ -5,6 +5,7 @@ Agent of Shauku
 Agility Bobblehead
 Agony Warp
 Akroan Skyguard
+Akuta, Born of Ash
 Always Watching
 Amy Rose
 Ancient Stirrings
@@ -42,6 +43,7 @@ Crystal Dragon
 Cunning Evasion
 Cunning Geysermage
 Curio Vendor
+Curse of Verbosity
 Death's-Head Buzzard
 Deep-Sea Terror
 Deepglow Skate
@@ -50,13 +52,16 @@ Depose
 Devastate
 Diabolic Tutor
 Dimir Aqueduct
+Dragon Mantle
 Dromad Purebred
 Dromoka Dunecaster
 Drownyard Temple
+Durkwood Tracker
 Dúnedain Blade
 Earthbending Student
 Embereth Shieldbreaker
 Enclave Cryptologist
+Ephara's Dispersal
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
@@ -86,6 +91,8 @@ Gem of Becoming
 Genju of the Falls
 Gerrard Capashen
 Ghitu Journeymage
+Ghostway
+Giant Solifuge
 Gladecover Scout
 Goblin Engineer
 Goblin Fire Fiend
@@ -95,6 +102,7 @@ Goblin Roughrider
 Gouged Zealot
 Grapeshot
 Grasp of Phantoms
+Gravetiller Wurm
 Great Goblin, Foul-Hearted
 Great Hart
 Grotag Siege-Runner
@@ -121,6 +129,7 @@ Jade Guardian
 Jalira, Master Polymorphist
 Jeering Homunculus
 Jhessian Thief
+Jodah's Avenger
 Judge of Currents
 Jungle Basin
 Kalemne, Disciple of Iroas
@@ -128,6 +137,7 @@ Kapsho Kitefins
 Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
+Kithkin Healer
 Kithkin Spellduster
 Leafkin Avenger
 Lord of Change
@@ -139,6 +149,7 @@ Mana Severance
 Maniacal Rage
 Marauder's Axe
 Mask of Memory
+Masumaro, First to Live
 Memorial to Folly
 Mightstone
 Mindbreak Trap
@@ -149,6 +160,7 @@ Misguided Rage
 Morphling
 Moss Viper
 Mountain
+Mowu, Loyal Companion
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
@@ -195,6 +207,7 @@ Sandstorm Charger
 Scarwood Goblins
 Scour the Laboratory
 Scourge of Numai
+Screams of the Damned
 Seafloor Oracle
 Seed the Land
 Selfless Spirit
@@ -214,14 +227,17 @@ Smogsteed Rider
 Snake Pit
 Snapback
 Snow-Covered Plains
+Soratami Mirror-Mage
 Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
 Spawning Kraken
 Spelltithe Enforcer
 Spider-Man, Peter Parker
+Spirit Cairn
 Spiteful Motives
 Spore Frog
+Starlit Mantle
 Steelform Sliver
 Steppe Glider
 Sterling Grove
@@ -232,6 +248,7 @@ Stoneskin
 Stonybrook Schoolmaster
 Storm the Seedcore
 Strip Mine
+Sulfur Elemental
 Sun-Collared Raptor
 Supreme Will
 Survey the Wreckage
@@ -273,5 +290,6 @@ Wei Strike Force
 Wicked Slumber
 Will of the All-Hunter
 Windstorm
+Wispweaver Angel
 Witch's Web
 Witching Well

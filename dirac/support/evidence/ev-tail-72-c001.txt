@@ -1,5 +1,7 @@
 +2 Mace
 A-Skull Skaab
+A-Unholy Heat
+Advanced Hoverguard
 Adventure Awaits
 Aerial Predation
 Aether Channeler
@@ -11,7 +13,9 @@ Amethyst Dragon
 Animist's Awakening
 Anurid Brushhopper
 Appetite for Brains
+Arc Runner
 Arcane Laboratory
+Archfiend of the Dross
 Archway Commons
 Artful Dodge
 Atalan Jackal
@@ -37,6 +41,7 @@ Branchblight Stalker
 Brass Gnat
 Bronze Guardian
 Cabal Surgeon
+Cabal Trainee
 Call the Gatewatch
 Carefree Swinemaster
 Carnassid
@@ -58,6 +63,7 @@ Cloudfin Raptor
 Cobbled Lancer
 Collector's Case
 Combustible Gearhulk
+Compound Fracture
 Congregation at Dawn
 Conservator
 Courser of Kruphix
@@ -69,29 +75,38 @@ Custodi Lich
 Cyclops Electromancer
 D'Avenant Archer
 Daggerdrome Imp
+Damnation
+Daring Skyjek
 Deadly Allure
 Death Pits of Rath
+Death's Shadow
 Death's-Head Buzzard
 Decision Paralysis
 Decorated Champion
+Defiling Daemogoth
 Demon of Catastrophes
 Desert Sandstorm
+Despoil
 Dimir Aqueduct
 Dire Fleet Ravager
+Dire Mimic
 Disciple of Griselbrand
 Dissolve
 Djeru and Hazoret
 Djeru's Renunciation
+Dragonspark Reactor
 Drake Familiar
 Drown in Shapelessness
 Drowned
 Dying Wail
 Elite Vanguard
 Elusive Spellfist
+Epic Experiment
 Erratic Portal
 Eternal Taskmaster
 Evanescent Intellect
 Expedition Healer
+Explosive Apparatus
 Facet Reader
 Fallen Angel
 Fallen Cleric
@@ -99,6 +114,7 @@ Fanatical Devotion
 Far
 Fatal Frenzy
 Festering Evil
+Fiery Temper
 Final Judgment
 Fire Servant
 Flatten
@@ -115,9 +131,13 @@ Frenetic Efreet
 Fresh-Faced Recruit
 Fugitive Wizard
 Galadriel, Gift-Giver
+Galvanic Key
 Gandalf the Grey
+Gatherer of Graces
+Geist of the Archives
 Geothermal Kami
 Ghostly Wings
+Gideon's Defeat
 Glacial Crasher
 Gleam of Battle
 Glintwing Invoker
@@ -134,11 +154,13 @@ Guild Thief
 Gut, True Soul Zealot
 Gyre Sage
 Hail of Arrows
+Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
 Haze of Pollen
 Hazoret's Favor
 Headless Horseman
 Heavenly Qilin
+Hellcarver Demon
 Hellspark Elemental
 Hieromancer's Cage
 Hollowhenge Scavenger
@@ -150,6 +172,7 @@ Hulking Goblin
 Hunter's Mark
 Iconic Shield
 Imperial Lancer
+Implement of Improvement
 Inexorable Blob
 Infectious Inquiry
 Infernal Tribute
@@ -164,16 +187,20 @@ Jaheira's Respite
 Jeskai Elder
 Jhessian Balmgiver
 Johtull Wurm
+Jorubai Murk Lurker
 Jungle Barrier
 Juniper Order Advocate
 Jötun Owl Keeper
 Karametra's Blessing
 Kashi-Tribe Reaver
 Kashi-Tribe Warriors
+Kavu Runner
 Keiga, the Tide Star
 Kemba's Banner
+Kemba, Kha Enduring
 Kinsbaile Skirmisher
 Kitchen
+Knight of Stromgald
 Kodama of the North Tree
 Kyren Legate
 Labyrinth Adversary
@@ -183,12 +210,15 @@ Leovold's Operative
 Library Larcenist
 Lightbringer
 Liliana of the Veil
+Living Tempest
 Llanowar Cavalry
 Llanowar Sentinel
 Lumbering Satyr
 Manhole Cover
+Maralen of the Mornsong
 Martial Glory
 Matca Rioters
+Megrim
 Mental Note
 Mercurial Kite
 Migration Path
@@ -205,6 +235,7 @@ Moss Viper
 Mountain
 Mudbrawler Raiders
 Murasa Behemoth
+Myr Mindservant
 Necklace of Girion
 Nettle Sentinel
 Nettle Swine
@@ -214,6 +245,7 @@ Nissa's Expedition
 Norwood Priestess
 Novice Occultist
 Nylea's Intervention
+Offalsnout
 Ondu Greathorn
 Oppressive Will
 Oracle of Nectars
@@ -226,9 +258,12 @@ Pact of Negation
 Paranoid Parish-Blade
 Pardic Wanderer
 Patron of the Valiant
+Pentavus
 Pestilence Demon
 Phantasmal Forces
+Phantasmal Form
 Pheres-Band Warchief
+Phyrexian Revoker
 Pieces of the Puzzle
 Plague Rats
 Plains
@@ -241,6 +276,7 @@ Polluted Bonds
 Potatoes
 Prepare
 Primal Growth
+Prismatic Geoscope
 Prosperous Innkeeper
 Protective Bubble
 Prowling Nightstalker
@@ -248,10 +284,13 @@ Psychic Overload
 Psychosis Crawler
 Puca's Covenant
 Puppet Strings
+Purphoros, God of the Forge
 Qilin's Blessing
 Quicken
 Quicksilver Fisher
 Quicksilver Geyser
+Raff, Weatherlight Stalwart
+Raid Bombardment
 Raise Dead
 Ramosian Lieutenant
 Ranger of Eos
@@ -280,13 +319,16 @@ Rumbling Slum
 Rush of Vitality
 Rushwood Elemental
 Sanctifier of Souls
+Saradoc, Master of Buckland
 Scalding Salamander
 Scavenged Weaponry
 Scholar of Stars
 Scrapheap
 Scrappy Bruiser
 Screeching Sliver
+Scroll of Origins
 Scythecat Cub
+Seafloor Stalker
 Searing Spear
 Secure the Wastes
 Seed of Hope
@@ -294,10 +336,13 @@ Seer's Sundial
 Selfless Spirit
 Serendib Sorcerer
 Serra's Sanctum
+Servant of Volrath
 Setessan Petitioner
 Shadow-Rite Priest
+Shield Sphere
 Shizo, Death's Storehouse
 Shrewd Negotiation
+Shriek Raptor
 Shu Farmer
 Shuri, Vibranium Technologist
 Sight of the Scalelords
@@ -344,10 +389,12 @@ Temporal Spring
 The Battle of Bywater
 The Lady of Otaria
 The Lady of the Mountain
+The Magic Mirror
 The Monumental Facade
 The Spear of Leonidas
 The Wasp, Janet Van Dyne
 They Came from the Pipes
+Thieves' Tools
 Thragtusk
 Timber Protector
 Topple
@@ -356,6 +403,7 @@ Treasure Hunt
 Trespassing Souleater
 Troll-Horn Cameo
 Trove Warden
+Turn Against
 Ulvenwald Captive
 Undead Minotaur
 Undercity Troll
@@ -373,16 +421,20 @@ Veiled Sentry
 Vengeful Regrowth
 Verdant Touch
 Viashino Outrider
+Vindictive Vampire
 Voice of the Vermin
 Volcanic Upheaval
 Wall of Souls
 Wall of Swords
 War-Spike Changeling
 Weave Fate
+Wharf Infiltrator
 Wild Wurm
 Wildsize
 Will of the All-Hunter
+Willow Geist
 Wirewood Channeler
+Woodland Weavemaster
 Woodwraith Corrupter
 Yasova Dragonclaw
 Yotian Tactician

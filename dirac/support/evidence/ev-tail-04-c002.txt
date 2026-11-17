@@ -3,13 +3,16 @@ A-Orcish Bowmasters
 A-Stitched Assistant
 Akiri, Line-Slinger
 Alpha Myr
+Anaba Shaman
 Angelic Exaltation
 Anthousa, Setessan Hero
 Arbor Armament
 Arni Slays the Troll
 Ashiok's Adept
 Attended Socialite
+Aven Sentry
 Avengers Quinjet
+Backup Agent
 Balm of Restoration
 Banehound
 Banish from Edoras
@@ -25,6 +28,7 @@ Bituminous Blast
 Blight Mound
 Bloated Contaminator
 Blood Servitor
+Blood Tithe
 Blossoming Bogbeast
 Borrowed Grace
 Bramble Creeper
@@ -34,8 +38,10 @@ Carapace Forger
 Catapult Fodder
 Caustic Rain
 Celestial Unicorn
+Centaur Chieftain
 Champion of the Perished
 Charging Badger
+Chimeric Idol
 Chorus of Might
 Churning Eddy
 Cleanfall
@@ -43,6 +49,7 @@ Clear the Mind
 Clever Lumimancer
 Cliffhaven Kitesail
 Clinging Mists
+Compelling Deterrence
 Concord with the Kami
 Cosmic Crucible
 Cracked Earth Technique
@@ -59,6 +66,7 @@ Desperate Castaways
 Devotee of Strength
 Diplomatic Escort
 Distract
+Divine Arrow
 Doomfall
 Dragon Hatchling
 Dragonspeaker Shaman
@@ -73,6 +81,7 @@ Evolutionary Leap
 Expose Evil
 Exultant Cultist
 Fantastic Elasticity
+Feebleness
 Fierce Witchstalker
 Filigree Sages
 Fire
@@ -86,6 +95,7 @@ Giant's Grasp
 Gluttonous Zombie
 Goblin Gathering
 Golgari Death Swarm
+Gorgon's Head
 Greel's Caress
 Greensleeves, Maro-Sorcerer
 Grim Flowering
@@ -118,6 +128,7 @@ Kessig Prowler
 Kithkin Rabble
 Knickknack Ouphe
 Krovikan Mist
+Law-Rune Enforcer
 Leeching Licid
 Leyline Dowser
 Light of Day
@@ -132,6 +143,7 @@ Mage Duel
 March from the Tomb
 Metallic Sliver
 Might Sliver
+Might of Alara
 Moldgraf Millipede
 Mortality Spear
 Mortiphobia
@@ -154,6 +166,7 @@ Peach Garden Oath
 Pest Summoning
 Pestilent Syphoner
 Phantom Wurm
+Pilgrim of the Ages
 Placid Rottentail
 Plains
 Planar Gate
@@ -179,6 +192,7 @@ Rescue, Pepper Potts
 Retreat to Coralhelm
 Riddleform
 Ring of Valkas
+Riot Control
 Riparian Tiger
 Riptide Director
 Rise Again
@@ -217,6 +231,7 @@ Stern Dismissal
 Steward of Valeron
 Storm Front
 Storm Seeker
+Sudden Impact
 Sun Sentinel
 Sunbeam Spellbomb
 Swaggering Corsair
@@ -227,6 +242,7 @@ Teferi's Wavecaster
 Temporary Insanity
 Tendrils of Corruption
 Territorial Kavu
+Thassa's Devourer
 The Blackstaff of Waterdeep
 Think Tank
 Thran Foundry
@@ -241,6 +257,7 @@ Tribute Mage
 Trigon of Mending
 Trusty Retriever
 Turn the Earth
+Twisted Experiment
 Underdark Explorer
 Unhallowed Phalanx
 Vampire Scrivener

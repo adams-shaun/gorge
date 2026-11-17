@@ -101,6 +101,7 @@ From the Rubble
 Frontier Mastodon
 Gaea's Bounty
 Gamekeeper
+Ghalma's Warden
 Ghoulcaller's Bell
 Gift of Paradise
 Gimli's Axe
@@ -137,6 +138,7 @@ Jinxed Idol
 Khenra Charioteer
 Kindle
 Kiora's Follower
+Kjeldoran Pride
 Knights of Dol Amroth
 Kolvori, God of Kinship
 Kor Blademaster
@@ -210,6 +212,7 @@ Rancid Rats
 Raugrin Crystal
 Razortooth Rats
 Reaper of the Wilds
+Reaping the Rewards
 Reaver Ambush
 Reckoner's Bargain
 Rekindled Flame
@@ -237,6 +240,7 @@ Sedraxis Specter
 Selfless Spirit
 Shagrat, Loot Bearer
 Sheltering Landscape
+Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel

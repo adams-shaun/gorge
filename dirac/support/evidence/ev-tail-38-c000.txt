@@ -111,6 +111,7 @@ Future Sight
 Gargoyle Sentinel
 Garrison Cat
 Gate to Manorborn
+Gavony Unhallowed
 Geothermal Kami
 Ghitu Firebreathing
 Ghost Warden
@@ -174,9 +175,11 @@ Lion Sash
 Living Airship
 Loyal Gryff
 Loyal Retainers
+Lunar Avenger
 Lure
 Magnetic Flux
 Malachite Golem
+Malakir Familiar
 Manaforce Mace
 Master of Arms
 Mechanical Glider

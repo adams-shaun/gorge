@@ -38,6 +38,7 @@ Dalkovan Encampment
 Delta Bloodflies
 Descendant of Storms
 Devoted Duelist
+Dirgur Island Dragon
 Dismal Backwater
 Dispelling Exhale
 Disruptive Stormbrood
@@ -135,6 +136,7 @@ Ringing Strike Mastery
 Rite of Renewal
 Riverwalk Technique
 Roamer's Routine
+Roiling Dragonstorm
 Rugged Highlands
 Runescale Stormbrood
 Sage of the Fang
@@ -188,6 +190,7 @@ Trade Route Envoy
 Tranquil Cove
 Traveling Botanist
 Twin Bolt
+Twinmaw Stormbrood
 Unburied Earthcarver
 Underfoot Underdogs
 Undergrowth Leopard

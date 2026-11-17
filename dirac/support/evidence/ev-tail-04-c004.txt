@@ -2,7 +2,9 @@ A-Orcish Bowmasters
 Alchemist's Retrieval
 Anthousa, Setessan Hero
 Ashiok's Adept
+Atlantean Skirmisher
 Attended Socialite
+Aven Sentry
 Avengers Quinjet
 Balm of Restoration
 Banisher Priest
@@ -32,6 +34,7 @@ Demonic Collusion
 Desperate Castaways
 Diplomatic Escort
 Distract
+Divine Arrow
 Doomfall
 Dragon Hatchling
 Dragonspeaker Shaman
@@ -49,6 +52,7 @@ Gather the Pack
 Glaring Fleshraker
 Goblin Gathering
 Hammers of Moradin
+Havoc Devils
 Hellhole Rats
 Hua Tuo, Honored Physician
 Hungry Flames
@@ -95,7 +99,9 @@ Ravenous Gigamole
 Ravenous Vampire
 Razorclaw Bear
 Razorfin Hunter
+Repel the Abominable
 Ring of Valkas
+Riot Control
 Riptide Crab
 Riptide Director
 Rise of Eagles
@@ -105,6 +111,7 @@ Rune Snag
 Sadistic Slash
 Sanctum Gargoyle
 Sarinth Greatwurm
+Screaming Fury
 Selenia, Dark Angel
 Settlement Blacksmith
 Shadow, Mysterious Assassin
@@ -115,16 +122,22 @@ Sigil of Myrkul
 Skitterskin
 Skrelv, Defector Mite
 Skull Raid
+Sky-Eel School
+Sleek Schooner
 Smash to Smithereens
 Smaug the Impenetrable
 Sokka, Swordmaster
 Soul of Migration
 Sound the Call
 Sphinx's Revelation
+Splendid Reclamation
 Spoils of Evil
 Squirrel Sanctuary
 Star Whale
+Statecraft
+Stern Dismissal
 Storm Front
+Sudden Impact
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
@@ -140,16 +153,19 @@ Tower Defense
 Tribute Mage
 Trigon of Mending
 Trusty Retriever
+Turn the Earth
 Underdark Explorer
 Unhallowed Phalanx
 Vault 87: Forced Evolution
 Village Elder
 Vodalian Serpent
 Voice of the Provinces
+Volcanic Salvo
 Voltaic Brawler
 Voracious Null
 Wasteland Viper
 Well of Life
 Windfall
 Worldfire
+Zerapa Minotaur
 Zo-Zu the Punisher

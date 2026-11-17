@@ -1,5 +1,6 @@
 A-Deal Gone Bad
 Air Bladder
+Akki Battle Squad
 Alaborn Veteran
 All Is Dust
 Altar of the Goyf
@@ -13,10 +14,12 @@ Arm the Cathars
 Arwen's Gift
 Aspect of Mongoose
 Aura of Dominion
+Auriok Transfixer
 Baboon Spirit
 Banehound
 Bar the Door
 Barbarian General
+Barrenton Medic
 Basim Ibn Ishaq
 Battalion Foot Soldier
 Bayou Dragonfly
@@ -49,6 +52,7 @@ Carnophage
 Carrion Crow
 Celestial Purge
 Cephalid Looter
+Chandra's Phoenix
 Charging Tuskodon
 Circular Logic
 Civil Servant
@@ -78,6 +82,7 @@ Despoiler of Souls
 Devout Harpist
 Diligent Excavator
 Dissenter's Deliverance
+Doctor Jane Foster
 Doorkeeper
 Draco
 Dragon-Style Twins
@@ -92,6 +97,7 @@ Earthshape
 Ebon Dragon
 Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
+Eldrazi Linebreaker
 Elvish Hexhunter
 Emblem of the Warmind
 Enraged Revolutionary
@@ -146,6 +152,7 @@ Hagra Sharpshooter
 Hall of Tagsin
 Harbinger of Night
 Hematite Golem
+Hexgold Slith
 Hidden Ancients
 Hijack
 Hope Against Hope
@@ -173,6 +180,7 @@ Kraken of the Straits
 Kraken's Eye
 Krosan Adaptation
 Kumena's Speaker
+Kytheon's Irregulars
 Leonin Scimitar
 Life and Limb
 Lifeblood Hydra
@@ -184,6 +192,7 @@ Lotus Field
 Lunar Frenzy
 Makindi Patrol
 Malakir Cullblade
+Manakin
 Mardu Woe-Reaper
 Marsh Gas
 Mauhúr, Uruk-hai Captain
@@ -269,6 +278,7 @@ Searing Touch
 See Red
 Seething Song
 Serpent Generator
+Serra Disciple
 Sever Soul
 Shalai, Voice of Plenty
 Shifting Sliver
@@ -334,6 +344,7 @@ Toxic Scorpion
 Trostani's Judgment
 Trygon Prime
 Tyranid Invasion
+Tyrant Guard
 Ulrich's Kindred
 Unnatural Predation
 Unyaro Griffin

@@ -2,6 +2,7 @@ Acquisition Octopus
 Act on Impulse
 Aerial Responder
 Aether Vial
+Al-abara's Carpet
 Aladdin
 Ancient Spider
 Angelic Ascension
@@ -19,6 +20,7 @@ Beskir Shieldmate
 Big Game Hunter
 Big Score
 Black Panther, Claws of Bast
+Blessed Respite
 Blood-Chin Fanatic
 Branchsnap Lorian
 Brigone, Soldier of Meletis
@@ -34,7 +36,9 @@ Coma Veil
 Composer of Spring
 Containment Breach
 Cragplate Baloth
+Curate
 Curse of Verbosity
+Dauthi Warlord
 Dega Sanctuary
 Desert Nomads
 Doomed Artisan
@@ -48,6 +52,7 @@ Elvish Scout
 Emergence Zone
 Enthralling Victor
 Errant Doomsayers
+Evil Presence
 Exultant Skymarcher
 Facet Reader
 Fantastic Bounce
@@ -79,6 +84,7 @@ Groundling Pouncer
 Headless Rider
 Heaven
 Herald of Torment
+Herbal Poultice
 Hidden Footblade
 In the Web of War
 Insatiable Appetite
@@ -92,6 +98,7 @@ Join the Maestros
 Kazandu Stomper
 Kefnet's Last Word
 Key to the City
+Kiln Walker
 Kitsune Riftwalker
 Kragma Butcher
 Krosan Colossus
@@ -188,6 +195,7 @@ Vedalken Engineer
 Vedalken Outlander
 Vessel of Malignity
 Virulent Plague
+Wayward Giant
 Wetland Sambar
 Winding Wurm
 Winged Portent

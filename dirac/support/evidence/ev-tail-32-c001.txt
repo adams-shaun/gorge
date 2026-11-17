@@ -102,6 +102,7 @@ Master Decoy
 Meldweb Strider
 Merrow Bonegnawer
 Merrow Witsniper
+Mesa Falcon
 Mesa Lynx
 Metallic Mastery
 Mind Drain
@@ -129,6 +130,7 @@ Raiding Nightstalker
 Raving Oni-Slave
 Razorjaw Oni
 Renounce
+Rescue Retriever
 Returned Centaur
 Rhox Brute
 Righteousness

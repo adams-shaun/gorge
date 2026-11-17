@@ -53,6 +53,7 @@ Bonesplitter Sliver
 Boundless Realms
 Brazen Freebooter
 Brine Seer
+Brine Shaman
 Brutal Cathar
 Call of the Death-Dweller
 Callous Dismissal
@@ -105,6 +106,7 @@ Domri's Nodorog
 Dragonshift
 Dreadful Apathy
 Dreamscape Artist
+Dreamspoiler Witches
 Dregscape Zombie
 Dress Down
 Dromoka Captain

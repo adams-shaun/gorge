@@ -46,6 +46,7 @@ Cackling Fiend
 Calming Licid
 Capashen Knight
 Captain of Umbar
+Cenn's Enlistment
 Cephalid Looter
 Chandra, Pyrogenius
 Chardalyn Dragon
@@ -56,6 +57,7 @@ Clawing Torment
 Cliffrunner Behemoth
 Coastal Bulwark
 Codex Shredder
+Cogwork Librarian
 Colossus, Steel Stalwart
 Commander Sofia Daguerre
 Conclave Mentor
@@ -160,12 +162,14 @@ Island
 Javelin of Lightning
 Jugan, the Rising Star
 Junk Golem
+Justice Strike
 Kalastria Healer
 Kalonian Twingrove
 Kapsho Kitefins
 Karma
 Kaya's Ghostform
 Keeper of the Cadence
+Kenrith's Transformation
 Kessig Dire Swine
 Khenra Spellspear
 Kindle
@@ -249,6 +253,7 @@ Pyretic Ritual
 Quandrix Apprentice
 Radical Idea
 Rag Dealer
+Rakdos Headliner
 Rakish Heir
 Rally of Wings
 Rampart Crawler
@@ -274,6 +279,7 @@ Rotted Hystrix
 Royal Talon Fighter Jet
 Rubblebelt Raiders
 Russet Wolves
+Sacred Fire
 Sadistic Hypnotist
 Sakura-Tribe Elder
 Salvage Titan
@@ -302,8 +308,10 @@ Skyrider Patrol
 Skyswirl Harrier
 Slaughter Drone
 Snare the Skies
+Snow-Covered Island
 Solidarity
 Solstice Zealot
+Soul Warden
 Specter of the Fens
 Specter's Wail
 Spectral Cloak
@@ -319,6 +327,7 @@ Stirge
 Storm of Steel
 Strangling Spores
 Sultai Runemark
+Sunscorched Desert
 Swamp
 Swarming Goblins
 Sword of the Paruns
@@ -356,6 +365,7 @@ Vona's Hunger
 Vraska's Scorn
 Wakanda Forever!
 Wall of Tanglecord
+War Dance
 Weigh Down
 Werebear
 Wild Ceratok
