@@ -47,11 +47,19 @@ func globSet(t *testing.T, pool string, r *Repro) cardset.Set {
 	return cardset.Raw(reproSet(t, pool, r))
 }
 
-// replayDecodedRes is replayReproValue over an already-decoded repro, on the
-// surface the repro records and 200 decisions past its script, without its
-// divergence fatal: a caller that wants the divergence (a mutation test
-// needing one) reads res.Div itself.
+// replayDecodedRes is replayDecodedScript on the repro's own script: its
+// recorded actions, then FirstPolicy.
 func replayDecodedRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
+	t.Helper()
+	return replayDecodedScript(t, reg, set, r, &ScriptPolicy{Actions: r.Actions})
+}
+
+// replayDecodedScript is replayReproValue over an already-decoded repro, on
+// the surface the repro records and 200 decisions past its script, without
+// its divergence fatal: a caller that wants the divergence (a mutation test
+// needing one) reads res.Div itself. The caller owns the policy, so a replay
+// test can check how much of a script it served.
+func replayDecodedScript(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro, pol Policy) Result {
 	t.Helper()
 	m, err := r.Matchup(reg)
 	if err != nil {
@@ -76,7 +84,7 @@ func replayDecodedRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Rep
 		t.Fatal(err)
 	}
 	defer CloseSide(k)
-	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	return Lockstep(m, r.Seed, k, pol, rc)
 }
 
 // replayReproValue fails on the replay's divergence: a recorded game must
@@ -99,6 +107,25 @@ func stdReproNamed(t *testing.T, name string) {
 		t.Fatal(err)
 	}
 	stallCheck(t, r, replayReproValue(t, synthReg(t), globSet(t, r.Pool, r), r), false)
+}
+
+// stdReproNamedServed also requires the recorded prefix to be served whole, so a drifted
+// recording skips actions and fails instead of passing as a different game.
+func stdReproNamedServed(t *testing.T, name string) {
+	t.Helper()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pol := &ScriptPolicy{Actions: r.Actions}
+	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, pol)
+	if pol.next != len(r.Actions) || pol.Skipped != 0 {
+		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)
+	}
+	if res.Div != nil {
+		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	stallCheck(t, r, res, false)
 }
 
 // stallCheck fails a replay whose kernel stall disagrees with the recording:
