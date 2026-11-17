@@ -898,6 +898,12 @@ const (
 	// comparison. Read by rules latchDamageBatch / closeDamageBatch.
 	// Appended: earlier ordinals stay stable.
 	PKAtLeastOneInstance
+	// TopCardOfLibraryIs$ <filter> on a Mode$ Continuous static: the grant
+	// lives while the static's controller's library is non-empty and its top
+	// card matches the filter (Mul Daya Channelers, Vampire Nocturnus;
+	// CR 611.3a). Read by rules continuousGateHolds. Appended: earlier
+	// ordinals stay stable.
+	PKTopCardOfLibraryIs
 	paramKeyCount
 )
 
@@ -1719,6 +1725,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKManaNotSpent:                     "ManaNotSpent",
 	PKValidAfterStack:                  "ValidAfterStack",
 	PKAtLeastOneInstance:               "AtLeastOneInstance",
+	PKTopCardOfLibraryIs:               "TopCardOfLibraryIs",
 }
 
 // String is the key's Forge text.
