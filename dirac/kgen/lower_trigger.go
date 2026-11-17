@@ -243,7 +243,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		case tr.Dest == zBattlefield && tr.Origin == zAny:
 			tr.Event = "ETB"
 		case tr.Origin == zBattlefield && tr.Dest == zGraveyard:
-			tr.Event = "Dies"
+			lowerDies(tp, t, tr)
 		case tr.Origin == zBattlefield && tr.Dest == zAny && !giftSelf:
 			// leaves the battlefield to any zone (CR 603.6c, 603.10a): the
 			// kernel's TrigLeaves fires in fireLeave, the permanent still on
@@ -1786,6 +1786,21 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	}
 	patchIfPaidSkips(ab)
 	return nil
+}
+
+// lowerDies lowers a Battlefield$->Graveyard$ ChangesZone line as a Dies
+// trigger. A listener's "that creature's controller may" (Fecundity) asks the
+// dying creature's last-known controller (CR 603.5; gorge's
+// deciderFromSpecTriggeredCardController), so the entry's trigger player is
+// that controller rather than the listener's.
+func lowerDies(tp *params, t cards.Trigger, tr *lTrigger) {
+	tr.Event = "Dies"
+	if !tr.Optional {
+		return
+	}
+	if od, _ := tp.get("OptionalDecider"); od == "TriggeredCardController" && t.ParamStr(cards.PKValidCard) != "Card.Self" {
+		tr.OptTrigPlayer = true
+	}
 }
 
 // lowerStatic lowers an S: line.
