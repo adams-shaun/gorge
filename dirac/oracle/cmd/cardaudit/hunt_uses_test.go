@@ -36,7 +36,7 @@ func TestHuntOwedUses(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	if err := writeNeed(&b, []row{{Card: "Alpha", DClaim: "supported", Missing: "api:a,api:b", OwedUses: uses}}); err != nil {
+	if err := writeNeed(&b, []row{{Card: "Alpha", DClaim: "supported", Missing: "api:a,api:b", OwedUses: uses, OwedKnown: true}}); err != nil {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimSuffix(b.String(), "\n"), "\n")
@@ -45,5 +45,19 @@ func TestHuntOwedUses(t *testing.T) {
 	}
 	if got := strings.Split(lines[1], "\t")[2]; got != "6" {
 		t.Errorf("owed_uses column = %q, want 6", got)
+	}
+
+	// The hunt recording uses=0 for every owed key is a real zero, not a
+	// missing row: the fallback one-use-per-key count must not replace it.
+	b.Reset()
+	if err := writeNeed(&b, []row{{Card: "Alpha", DClaim: "supported", Missing: "api:a,api:b", OwedUses: 0, OwedKnown: true}}); err != nil {
+		t.Fatal(err)
+	}
+	lines = strings.Split(strings.TrimSuffix(b.String(), "\n"), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("got %d need lines, want header + Alpha:\n%s", len(lines), b.String())
+	}
+	if got := strings.Split(lines[1], "\t")[2]; got != "0" {
+		t.Errorf("owed_uses column with hunt uses=0 = %q, want 0", got)
 	}
 }

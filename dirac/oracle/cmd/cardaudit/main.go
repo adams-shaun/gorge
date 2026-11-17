@@ -23,6 +23,15 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kgen"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+
+	// cardaudit reads effects.Supported() for g_claim but never otherwise
+	// touches rules, so without this blank import none of engine/rules/*.go's
+	// init() functions (each an effects.RegisterNonAPI call) run in this
+	// binary, and Supported() sees "api:" primitives only -- every card whose
+	// deck uses a keyword, trigger, static or replacement primitive would be
+	// reported missing (kw:Flying alone gates thousands). rules_link_test.go's
+	// TestSupportedIncludesNonAPIPrimitives pins that this import stays.
+	_ "github.com/adams-shaun/gorge/engine/rules"
 )
 
 const (
@@ -66,10 +75,11 @@ type row struct {
 	GKeys      string
 
 	// Context the -need file sorts on; not written to rows.tsv.
-	Plays    int
-	OwedUses int // hunt uses of the missing keys; 0 when the hunt has none
-	FourSeat bool
-	sets     []string
+	Plays     int
+	OwedUses  int  // hunt uses of the missing keys
+	OwedKnown bool // the hunt has a row for the card, even when OwedUses is 0
+	FourSeat  bool
+	sets      []string
 }
 
 // lowerResult is one lowering pass: the cards' LIR keys and, when the caller
@@ -237,7 +247,7 @@ func readSidecars(fsys fs.FS) (map[string]sidecarRow, error) {
 		if err != nil {
 			return nil, err
 		}
-		recs, err := readTable(b, '\t')
+		recs, err := readTSV(b)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f, err)
 		}
@@ -318,7 +328,7 @@ func readHunt(file string) (*huntIndex, error) {
 	if err != nil {
 		return nil, err
 	}
-	recs, err := readTable(b, '\t')
+	recs, err := readTSV(b)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", file, err)
 	}
@@ -340,14 +350,14 @@ func readHunt(file string) (*huntIndex, error) {
 			idx.fourSeat[card] = true
 		}
 		// A key's uses are the card's, not the context's: the contexts that
-		// reached the key repeat the same number, so keep the largest.
-		if uses > 0 {
-			if idx.uses[card] == nil {
-				idx.uses[card] = map[string]int{}
-			}
-			if uses > idx.uses[card][key] {
-				idx.uses[card][key] = uses
-			}
+		// reached the key repeat the same number, so keep the largest. The
+		// map exists for every row, so a recorded uses=0 is a real zero and
+		// not the same thing as the hunt having no row for the card.
+		if idx.uses[card] == nil {
+			idx.uses[card] = map[string]int{}
+		}
+		if cur, seen := idx.uses[card][key]; !seen || uses > cur {
+			idx.uses[card][key] = uses
 		}
 	}
 	for _, m := range []map[string][]string{idx.g, idx.x} {
@@ -430,7 +440,7 @@ func readXLedger(file string) (*xledgerIndex, error) {
 	if err != nil {
 		return nil, err
 	}
-	recs, err := readTable(b, ',')
+	recs, err := readCSV(b)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", file, err)
 	}
@@ -481,7 +491,7 @@ func readDiagnosed(file string) (*diagnosedIndex, error) {
 	if err != nil {
 		return nil, err
 	}
-	recs, err := readTable(b, '\t')
+	recs, err := readTSV(b)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", file, err)
 	}
@@ -554,7 +564,7 @@ func readXMage(file string) (map[string]string, error) {
 		}
 		return out, nil
 	}
-	recs, err := readTable(b, '\t')
+	recs, err := readTSV(b)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", file, err)
 	}
@@ -758,6 +768,7 @@ func buildRow(name string, in inputs) row {
 	}
 	if n, ok := in.hunt.owedUses(name, r.Missing); ok {
 		r.OwedUses = n
+		r.OwedKnown = true
 	}
 	return r
 }
@@ -901,11 +912,42 @@ func readLines(b []byte) []string {
 	return out
 }
 
-// readTable reads a headed table. The header is the first non-comment line;
-// columns are addressed by name.
-func readTable(b []byte, comma rune) ([]map[string]string, error) {
+// readTSV reads a headed tab-separated table, splitting fields on raw tabs and
+// never unquoting. A card name such as `"Ach! Hans, Run!"` is a literal name in
+// the sidecar (kgen's readCoverageRows keeps it raw); encoding/csv would strip
+// the quotes, and the lookup would miss, silently dropping the joined columns.
+func readTSV(b []byte) ([]map[string]string, error) {
+	var header []string
+	out := []map[string]string{}
+	for _, line := range strings.Split(string(b), "\n") {
+		line = strings.TrimRight(line, "\r")
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if header == nil {
+			header = fields
+			continue
+		}
+		m := make(map[string]string, len(header)+1)
+		for i, h := range header {
+			if i < len(fields) {
+				m[h] = fields[i]
+			}
+		}
+		out = append(out, m)
+	}
+	if header == nil {
+		return nil, io.EOF
+	}
+	return out, nil
+}
+
+// readCSV reads a headed comma-separated table (the -xledger form). CSV is the
+// right reader there: those fields are generated CSV, not raw card names.
+func readCSV(b []byte) ([]map[string]string, error) {
 	r := csv.NewReader(bytes.NewReader(b))
-	r.Comma = comma
+	r.Comma = ','
 	r.FieldsPerRecord = -1
 	r.LazyQuotes = true
 	r.Comment = '#'
@@ -976,7 +1018,7 @@ func writeNeed(w io.Writer, rows []row) error {
 	}
 	for i, r := range need {
 		owed := len(splitList(r.Missing))
-		if r.OwedUses > 0 {
+		if r.OwedKnown {
 			owed = r.OwedUses
 		}
 		if _, err := fmt.Fprintf(bw, "%s\t%s\t%d\t%d\n", r.Card, r.Missing, owed, i+1); err != nil {
