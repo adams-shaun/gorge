@@ -164,22 +164,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
-		// gorge TriggerBlocker of a Blocks trigger: the source itself when
-		// the trigger is "whenever this blocks" (ValidCard$ Card.Self)
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
-			tr.F.Players == 0 && (tr.F.Clauses[0] == lClause{Flags: fSelf} || tr.F.Clauses[0] == lClause{Types: tCreature, Flags: fSelf}) {
-			return lRef{Kind: rSelf}, nil
-		}
-		if tr := lc.ab.Trigger; tr != nil && tr.ByCreature {
-			// gorge AttackerBlockedByCreature: the blocker's own trigger
-			// names it through TriggerBlocker (the source); the attacker's
-			// remembers the blocker, the trigger object
-			if tr.AnchorBlocker {
-				return lRef{Kind: rSelf}, nil
-			}
-			return lRef{Kind: rTriggered}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a whenever-this-blocks trigger", v)
+		// gorge TriggerBlocker: lower_trigrefs.go pairs it with the modes
+		// whose kernel record carries the blocker
+		r, _, err := lc.triggeredObjectRef(v)
+		return r, err
 	case "TriggeredNewCard", "TriggeredNewCardLKICopy":
 		return lRef{Kind: rTriggeredNew}, nil
 	case "ExiledCards":
@@ -213,31 +201,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "TriggeredAttackedTarget":
 		return lc.triggeredAttackedTargetDefined(v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
-		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
-		// object or player. A per-referent DamageDone line whose ValidTarget$
-		// is an object filter carries the damaged permanent as the trigger
-		// object (gorge's LKI copy names the same object; a recipient that
-		// already left is a gone object, and Destroy of a gone object is a
-		// no-op in the kernel as in gorge).
-		if tr := lc.ab.Trigger; ddoObjectReferent(tr) {
-			return lRef{Kind: rTriggered}, nil
-		}
-		// a BecomesTarget watcher: the targeted permanent (gorge
-		// becomesTargetReferent), the trigger object the kernel's
-		// btWatchers queues
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && v == "TriggeredTarget" {
-			return lRef{Kind: rTriggered}, nil
-		}
-		// The player dealt the damage. The kernel's trigger player there is
-		// the opponent of the source's controller (two players), which is
-		// the damaged player when the damage is combat damage to a player,
-		// or damage to an opponent from a source the listener controls.
-		// seat-exact: with more seats the kernel's trigger player is the
-		// damaged seat itself (dirac dmgSeat).
-		if lc.damagedPlayerIsTriggerPlayer() || ddoPlayerReferent(lc.ab.Trigger) {
-			return lRef{Kind: rTriggeredPlayer}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names", v)
+		// gorge definedSpecTriggeredTarget: the object or player the trigger's
+		// event happened to (lower_trigrefs.go)
+		r, _, err := lc.triggeredObjectRef(v)
+		return r, err
 	case "TriggeredTargetController":
 		// gorge definedSpecTriggeredTargetController (context.go): the
 		// controller of the trigger's target object, read live at
@@ -254,19 +221,9 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
 	case "TriggeredSourceController":
-		// gorge definedSpecTriggeredSourceController: the controller of the
-		// spell or ability that targeted the watched permanent. The watcher
-		// arm that sets Whose = opp is ValidSource$ SpellAbility.OppCtrl, so
-		// the controller is an opponent of the listener's controller: in a
-		// two-player game the one opponent (CR 102.2; Thunderbreak Regent).
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "BecomesTarget" && tr.Watch && tr.Whose == whoOpp {
-			lc.twoSeat("TriggeredSourceController read as the one opponent")
-			return lRef{Kind: rEachOpp}, nil
-		}
-		if dmgSourceIsTriggerObj(lc.ab.Trigger) { // lower_trigsrcctrl.go
-			return lRef{Kind: rTriggeredTgtCtrl}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside an opponent-source BecomesTarget watcher", v)
+		// gorge definedSpecTriggeredSourceController (lower_trigrefs.go)
+		r, _, err := lc.triggeredObjectRef(v)
+		return r, err
 	case "TriggeredCardController", "TriggeredActivator":
 		return lRef{Kind: rTriggeredPlayer}, nil
 	case "Equipped", "Enchanted", "AttachedTo":
