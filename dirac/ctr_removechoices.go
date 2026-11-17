@@ -45,8 +45,10 @@ func (s *State) rmctrOptions(k *prep, in *kop.Instr, d *Decision) int {
 }
 
 // rmctrTake removes one counter of the kind from the permanent at sl (the
-// OpRemoveCounterRem removal); a permanent holding none loses nothing.
-func (s *State) rmctrTake(in *kop.Instr, sl Slot) {
+// OpRemoveCounterRem removal); a permanent holding none loses nothing. One
+// pick is one CounterChange on gorge (removecounter.go's per (object, kind)
+// event), so it fires once (trig_counterremoved.go).
+func (s *State) rmctrTake(k *prep, in *kop.Instr, sl Slot) {
 	kind := int(in.C & 0xFF)
 	if s.perms[sl].ctrN(s, kind) < 1 {
 		return
@@ -54,7 +56,7 @@ func (s *State) rmctrTake(in *kop.Instr, sl Slot) {
 	s.touchSl(sl)
 	p := &s.perms[sl]
 	p.seeCtr(s)
-	p.subCtrN(s, kind, 1)
+	s.subCtrFire(k, sl, kind, 1)
 	if in.C&0x800 != 0 && !DebugRmctrNoRemember {
 		s.g.remCnt++
 	}
@@ -74,7 +76,7 @@ func (s *State) rmctrStart(k *prep, in *kop.Instr) bool {
 		var ord [MaxPerm]Slot
 		cnt := s.sweepHits(k, in.F, &ord)
 		for _, sl := range ord[:cnt] {
-			s.rmctrTake(in, sl)
+			s.rmctrTake(k, in, sl)
 		}
 		return true
 	}
@@ -105,7 +107,7 @@ func (s *State) answerRmctr(k *prep, in *kop.Instr, a Action) {
 			r.peekN++
 		}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
-			s.rmctrTake(in, ob.slot)
+			s.rmctrTake(k, in, ob.slot)
 		}
 		r.left--
 		var d Decision

@@ -171,8 +171,8 @@ func (s *State) aorApply(k *prep, in *kop.Instr, sl Slot) bool {
 		return true
 	}
 	s.touchSl(sl)
-	p.seeCtr(s) // gorge lists a kind removed to none at 0
-	p.subCtrN(s, kind, n)
+	p.seeCtr(s)                  // gorge lists a kind removed to none at 0
+	s.subCtrFire(k, sl, kind, n) // trig_counterremoved.go
 	return true
 }
 
