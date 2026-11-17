@@ -15,7 +15,7 @@ var DebugNoPrevScope bool
 // so each is its own CR 616.1 order candidate beside the others; a fourth in
 // one turn stalls loudly (StallPrevCol).
 func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
-	sc := uint8(in.C & (1<<kop.PrevScopeColourShift - 1))
+	sc := uint8(in.C & (kop.PrevScopeFiltered<<1 - 1)) // the record keeps bits 0-5; bits 6 and 7 are instruction-only
 	scc := kop.ColorMask(in.C >> kop.PrevScopeColourShift)
 	if in.C&kop.PrevScopeFiltered != 0 {
 		scc = 0 // the bits above the shift hold recipient bits, not colours: the filter is read from the instruction
@@ -28,6 +28,10 @@ func (s *State) prevScopeAdd(k *prep, in *kop.Instr) {
 		r := &s.g.prevCol[i]
 		if r.col == 0 && r.sc == 0 {
 			r.obj, r.sc, r.ctl, r.col = s.res.e.obj, sc, TCode(s.res.e.ctrl), scc // code-ok: a scoped record holds its controller's seat in ctl
+			s.g.prevX[i] = 0
+			if in.C&kop.PrevScopeGain != 0 {
+				s.g.prevX[i] = pxRidGain | s.res.e.ctrl<<pxSeatShift // repl_prevx.go
+			}
 			return
 		}
 	}
