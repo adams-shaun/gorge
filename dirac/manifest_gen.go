@@ -7,6 +7,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ask (dirac/manifest/ask/raDredge)
 const raDredge uint8 = 146
 
+// ask (dirac/manifest/ask/raGenClash)
+const raGenClash uint8 = 147
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -662,6 +665,8 @@ const numMech mech = 55
 //go:noinline
 func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
+	case kop.ExtClash:
+		return s.clashExt(k, in) // act_clash.go
 	case kop.ExtClearNamedCard:
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtMustBlock:
