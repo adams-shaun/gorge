@@ -721,6 +721,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 	for i := range fetches {
 		f := &fetches[i]
 		moved := make([]state.ObjID, 0, len(f.ids))
+		entryTapped := beginEntryTappedBatch(h, to, cz.Tapped)
 		for _, id := range f.ids {
 			o := g.Obj(id)
 			// Recheck at the point of movement: a malformed or stale Defined$
@@ -735,10 +736,9 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 			eventForgetChanged(h, c, sa, id)
 			moved = append(moved, id)
 			ateotMoved = append(ateotMoved, id)
-			if to == state.ZBattlefield && cz.Tapped {
-				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: f.owner, Text: "entered tapped"})
-			}
+			emitEntryTapped(h, to, cz.Tapped, id, f.owner)
 		}
+		endEntryTappedBatch(h, entryTapped)
 		source := g.Obj(c.Source)
 		preserveDeferredRest := deferredDigLibraryFetch(g, c, cz) &&
 			!cz.ShuffleTrue && source != nil
