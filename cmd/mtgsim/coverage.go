@@ -86,8 +86,9 @@ type covKey struct{ used, offered bool }
 // "deck" for every distinct dealt card; per dealt card its cast/land key and
 // every Keys / ModeKeys key (so an unused key is a 0 row, the denominator);
 // and a cast row for any card cast that was not dealt. cast and land have no
-// separate offer probe, so offered = used there; a deck row is offered, so
-// used implies offered on every row.
+// separate offer probe, so offered = used there; a deck row is offered.
+// offered is the priority-offer probe only, so a mana or triggered key can be
+// used without ever being offered.
 func covRows(g cardcov.Game, decks [][]*cards.Card, lookup func(string) *cards.Card) map[string]map[string]covKey {
 	rows := map[string]map[string]covKey{}
 	set := func(card, key string, k covKey) {

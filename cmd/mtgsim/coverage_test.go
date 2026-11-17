@@ -2,39 +2,19 @@ package main
 
 import (
 	"bytes"
-	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
-	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/testkit/cardcov"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
-
-// covFailSeat errors on its first decision: the forced failure of a game.
-type covFailSeat struct{}
-
-func (covFailSeat) Decide(context.Context, view.View, decision.Decision) (decision.Intent, error) {
-	return decision.Intent{}, errors.New("coverage test: forced seat failure")
-}
-
-func init() {
-	bots.Register(bots.Entry{
-		Info: bots.Info{Name: "covfail", Label: "covfail", Tier: bots.Experimental},
-		New:  func(bots.Options) (seat.Seat, error) { return covFailSeat{}, nil },
-	})
-}
 
 type covRow struct {
 	seed, card, key        string
@@ -156,9 +136,23 @@ func TestCoverageRows(t *testing.T) {
 	}
 
 	// A game that fails writes clean=0 (and the file keeps one header).
-	if err := runSim(simOptions{Seats: 2, Seed: 4, Games: 1, Dir: dir, Format: "constructed", Coverage: path,
-		Policies: []string{"covfail"}}, &out); err == nil {
-		t.Fatal("forced failure: runSim returned nil")
+	// Force playOne's failure without registering a test bot: a registered
+	// failing policy would join bots.Names() and TestRunPlaysEveryKnownPolicy
+	// plays every entry there. An unknown policy makes matchSeats refuse the
+	// seat before the first decision, which is playOne's false return.
+	cov, err := openCoverage(path, "c60", "constructed", 2, dir, reg)
+	if err != nil {
+		t.Fatalf("openCoverage: %v", err)
+	}
+	var failedOut bytes.Buffer
+	if playOne(&failedOut, 4, names, decks, reg, false, []string{"coverage-test-no-such-policy"}, rules.FormatConstructed, nil, 0, nil, cov) {
+		t.Fatal("forced failure: playOne returned ok")
+	}
+	if !strings.Contains(failedOut.String(), "FAILED") {
+		t.Errorf("forced failure output = %q, want a FAILED line", failedOut.String())
+	}
+	if err := cov.f.Close(); err != nil {
+		t.Fatalf("closing coverage file: %v", err)
 	}
 	raw, _ := os.ReadFile(path)
 	if n := strings.Count(string(raw), "#cov-1"); n != 1 {
