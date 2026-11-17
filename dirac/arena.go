@@ -73,6 +73,22 @@ func arenaDetect(m mech, detect func(t *kop.Table, in *kop.Instr) bool) {
 	arenaDetectors[i] = arenaDetector{m, detect}
 }
 
+// triggerEventUses marks the mechanics a triggered ability's event reaches.
+func triggerEventUses(a *kop.Ability, u *[numMech]bool) {
+	if a.Kind != kop.AbTriggered {
+		return
+	}
+	first := a.Trig.Flags2&kop.Tf2FirstTime != 0
+	switch {
+	case a.Trig.Event == kop.TrigBecomeMonstrous:
+		u[mechMonstrous] = true
+	case a.Trig.Event == kop.TrigTaps && first:
+		u[mechTappedTurn] = true
+	case a.Trig.Event == kop.TrigBecomesTarget && first:
+		u[mechBtTurn] = true // a granted line's grantor card carries it too (trig_counterfirst.go)
+	}
+}
+
 // arenaUses reports which mechanics t's programs and triggers reach, by the
 // predicates the prep flags use (prepGoad, prepMonstrosity) and the
 // registered detectors (arenaDetect).
@@ -112,15 +128,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave {
 				u[mechSBAChain] = true // a state-based batch can park its casualties (repl_exilemark.go)
 			}
-			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigBecomeMonstrous {
-				u[mechMonstrous] = true
-			}
-			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2FirstTime != 0 {
-				u[mechTappedTurn] = true
-			}
-			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigBecomesTarget && a.Trig.Flags2&kop.Tf2FirstTime != 0 {
-				u[mechBtTurn] = true // a granted line's grantor card carries it too (trig_counterfirst.go)
-			}
+			triggerEventUses(a, &u)
 			if a.Kind == kop.AbTriggered && a.Trig.Cond != 0 && t.Conds[a.Trig.Cond].Kind == kop.CondEchoOwed {
 				u[mechEchoOwed] = true // an echo trigger's gate (trig_echo.go)
 			}
