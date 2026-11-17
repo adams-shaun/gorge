@@ -41,7 +41,7 @@ func NewColourCap(c cost.Cost, held state.Mana, rider PipRider, conv *Conv, bLif
 	k.on = true
 	k.best = make([]state.Mana, len(units))
 	for i, u := range units {
-		for _, a := range u.Alts {
+		add := func(a WindowAlt) {
 			m := a.Mana()
 			if a.Any {
 				// An open choice may come out as any type of mana.
@@ -53,6 +53,14 @@ func NewColourCap(c cost.Cost, held state.Mana, rider PipRider, conv *Conv, bLif
 			for j := range m {
 				k.best[i][j] = max(k.best[i][j], m[j])
 			}
+		}
+		for _, a := range u.Alts {
+			add(a)
+		}
+		// A no-tap self-sacrifice beside the unit's tap is a second
+		// activation, so its colours are reachable too (cast_window.go).
+		for _, a := range u.Extras {
+			add(a)
 		}
 	}
 	return k

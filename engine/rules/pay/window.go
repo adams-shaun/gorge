@@ -122,6 +122,16 @@ type WindowUnit struct {
 	ID        state.ObjID
 	FreeCount int
 	Alts      []WindowAlt
+	// Extras are the no-tap activations a source may take AFTER its main
+	// (tap) activation: a self-sacrifice mana ability beside a tap ability
+	// (an Eldrazi Scion that taps for a granted "{T}: Add {C}" and then
+	// sacrifices itself for its printed "{Sacrifice this: Add {C}").
+	// CR 602.2b/605.1a: paying a cost does not stop a permanent's other
+	// abilities from being activated, so the source makes both. Only the
+	// cast-payment probe sets them, and only when the unit already has a
+	// tap activation; the extras are one-shot (self-sacrifice), so the
+	// cast-window search tries them once, after the main activation.
+	Extras []WindowAlt
 }
 
 // AppendUnitAlt appends one alternative to the unit that already
@@ -156,7 +166,9 @@ func SameManaAbility(a, b *cards.SA) bool {
 // alternative by alternative (the verify-mode check of the query cache).
 func SameUnits(a, b []WindowUnit) bool {
 	return slices.EqualFunc(a, b, func(x, y WindowUnit) bool {
-		return x.ID == y.ID && x.FreeCount == y.FreeCount && slices.EqualFunc(x.Alts, y.Alts, SameWindowAlt)
+		return x.ID == y.ID && x.FreeCount == y.FreeCount &&
+			slices.EqualFunc(x.Alts, y.Alts, SameWindowAlt) &&
+			slices.EqualFunc(x.Extras, y.Extras, SameWindowAlt)
 	})
 }
 

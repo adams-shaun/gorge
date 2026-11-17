@@ -278,6 +278,13 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		if o == nil || o.Face() == nil {
 			continue
 		}
+		// postAlts collects the source's no-tap self-sacrifice alternatives.
+		// They are only a SECOND activation when the source also has a tap
+		// one, and the tap alternative can be appended after them (a granted
+		// "{T}: Add {C}" is RestrictValid$, so the shared census withholds
+		// it and this probe adds it later in the same pass), so the split is
+		// made after the source's whole ability list has been read.
+		var postAlts []windowManaAlt
 		for _, ma := range e.castWindowProbeAbilities(p, id) {
 			mp := effects.ManaOf(ma)
 			restricted := mp.RestrictValid != ""
@@ -297,6 +304,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			genericCost := int32(0)
 			var coloredCost state.Mana
 			free := pay.ManaFreeCost(cost)
+			post := false
 			switch {
 			case free:
 				// windowManaUnits already counted a free PLAIN literal
@@ -324,6 +332,12 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					continue
 				}
 				lifeCost = lc
+				// A no-tap self-sacrifice ability is a SECOND activation
+				// beside the source's tap one (CR 602.2b, 605.1a): the tap
+				// makes its mana, then the sacrifice makes its own. It is
+				// never the alternative that replaces the tap, so it joins
+				// the unit's Extras when the unit already has a tap alt.
+				post = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
 			}
 			amt, ok := e.castWindowAmount(p, id, o, ma)
 			if !ok {
@@ -375,11 +389,24 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					}
 					var single [6]int32
 					single[colour] = 1
-					windowUnits = appendCastWindowAlt(windowUnits, id, ma, single, amt, lifeCost, genericCost, coloredCost)
+					alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost}
+					if post {
+						postAlts = append(postAlts, alt)
+					} else {
+						windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+					}
 				}
 				continue
 			}
-			windowUnits = appendCastWindowAlt(windowUnits, id, ma, counts, amt, lifeCost, genericCost, coloredCost)
+			alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost}
+			if post {
+				postAlts = append(postAlts, alt)
+			} else {
+				windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+			}
+		}
+		if len(postAlts) > 0 {
+			windowUnits = e.addCastWindowPostAlts(p, windowUnits, id, postAlts)
 		}
 	}
 	return windowUnits
@@ -667,7 +694,7 @@ func castWindowGenericCostShape(c Cost) bool {
 // appendCastWindowAlt merges one production alternative into the unit for id
 // (creating it if absent), so the affordability search can never tap the same
 // permanent twice through two separate unit entries.
-func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, counts [6]int32, amt, life, costGeneric int32, costColored state.Mana) []windowManaUnit {
+func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, alt windowManaAlt) []windowManaUnit {
 	idx := -1
 	for i := range units {
 		if units[i].ID == id {
@@ -679,8 +706,44 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 		units = append(units, windowManaUnit{ID: id})
 		idx = len(units) - 1
 	}
-	units[idx].Alts = append(units[idx].Alts, windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: life, CostGeneric: costGeneric, CostColored: costColored})
+	units[idx].Alts = append(units[idx].Alts, alt)
 	return units
+}
+
+// addCastWindowPostAlts settles a source's no-tap self-sacrifice alternatives
+// (postAlts) after its whole ability list has been read: beside a tap
+// alternative they are Extras (a SECOND activation, CR 602.2b/605.1a); with no
+// tap activation they are the source's ordinary one-shot alternative and join
+// Alts.
+func (e *Engine) addCastWindowPostAlts(p state.PlayerID, units []windowManaUnit, id state.ObjID, postAlts []windowManaAlt) []windowManaUnit {
+	idx := -1
+	for i := range units {
+		if units[i].ID == id {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		units = append(units, windowManaUnit{ID: id})
+		idx = len(units) - 1
+	}
+	if castWindowUnitTaps(e, p, units[idx]) {
+		units[idx].Extras = append(units[idx].Extras, postAlts...)
+		return units
+	}
+	units[idx].Alts = append(units[idx].Alts, postAlts...)
+	return units
+}
+
+// castWindowUnitTaps reports whether the unit already carries a tap-required
+// activation, so a no-tap self-sacrifice is a second activation beside it.
+func castWindowUnitTaps(e *Engine, p state.PlayerID, u windowManaUnit) bool {
+	for _, a := range u.Alts {
+		if a.Ma != nil && e.manaStaticFor(p, u.ID, a.Ma).Tap {
+			return true
+		}
+	}
+	return false
 }
 
 // castWindowReachable is the cast-only CR 601.2g eligibility search. It is
@@ -777,6 +840,11 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	for i := range ordered {
 		for _, a := range ordered[i].Alts {
 			best[i] = max(best[i], a.Mana().Total())
+		}
+		// A unit with extras can add its best main production AND its best
+		// self-sacrifice production (two activations), so the cap adds them.
+		for _, a := range ordered[i].Extras {
+			best[i] += max(0, a.Mana().Total())
 		}
 	}
 	rank := make([]int, len(ordered))
@@ -898,8 +966,26 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 				tryFee := func(afterFee, afterFeeSnow state.Mana) bool {
 					spent := manaSub(activationPool, afterFee)
 					snowSpent := manaSub(activationSnow, afterFeeSnow)
-					return rec(pay.ManaAdd(manaSub(pool, spent), produced), manaSub(spellSnow, snowSpent),
-						pay.ManaAdd(afterFee, produced), afterFeeSnow, lifeLeft-a.Life, next, remaining-1)
+					nextPool := pay.ManaAdd(manaSub(pool, spent), produced)
+					nextActivation := pay.ManaAdd(afterFee, produced)
+					if rec(nextPool, manaSub(spellSnow, snowSpent), nextActivation, afterFeeSnow,
+						lifeLeft-a.Life, next, remaining-1) {
+						return true
+					}
+					// The source may now take its no-tap self-sacrifice
+					// activation beside the tap (CR 602.2b, 605.1a); the
+					// extra is one-shot and carries no fee or life debit.
+					for _, x := range ordered[i].Extras {
+						if x.Fee() != 0 || x.Life != 0 {
+							continue
+						}
+						if rec(pay.ManaAdd(nextPool, x.Mana()), manaSub(spellSnow, snowSpent),
+							pay.ManaAdd(nextActivation, x.Mana()), afterFeeSnow,
+							lifeLeft-a.Life, next, remaining-2) {
+							return true
+						}
+					}
+					return false
 				}
 				found := tryFee(activationFee.Pool, activationFee.Snow)
 				if !found && a.CostGeneric > 0 && manaCovers(activationPool, a.CostColored) {
@@ -950,11 +1036,18 @@ func castWindowTwins(units []windowManaUnit) []int {
 }
 
 func castWindowUnitsTwin(a, b windowManaUnit) bool {
-	if len(a.Alts) != len(b.Alts) {
+	if len(a.Alts) != len(b.Alts) || len(a.Extras) != len(b.Extras) {
 		return false
 	}
 	for k := range a.Alts {
 		x, y := a.Alts[k], b.Alts[k]
+		x.Ma, y.Ma = nil, nil
+		if x != y {
+			return false
+		}
+	}
+	for k := range a.Extras {
+		x, y := a.Extras[k], b.Extras[k]
 		x.Ma, y.Ma = nil, nil
 		if x != y {
 			return false

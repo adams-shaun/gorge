@@ -239,6 +239,11 @@ func (e *Engine) xAsk() bool {
 		for _, a := range u.Alts {
 			most = max(most, a.Mana().Total())
 		}
+		// A unit's no-tap self-sacrifice beside its tap is a second
+		// activation (cast_window.go), so it raises the ceiling too.
+		for _, a := range u.Extras {
+			most += max(0, a.Mana().Total())
+		}
 		bound += most
 	}
 	// A reduction is mana the announced X can spend (CR 601.2f: the total
