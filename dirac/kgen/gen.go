@@ -686,6 +686,12 @@ func costString(c lCost) string {
 	if c.PayLife > 0 {
 		p = append(p, fmt.Sprintf("Life%d", c.PayLife))
 	}
+	if c.MillN > 0 {
+		p = append(p, fmt.Sprintf("Mill%d", c.MillN))
+	}
+	if c.RevealSelf {
+		p = append(p, "RevealSelf")
+	}
 	if c.LifeX {
 		p = append(p, "LifeX")
 	}

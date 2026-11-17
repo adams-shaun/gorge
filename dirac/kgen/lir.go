@@ -793,6 +793,8 @@ type lCost struct {
 	PutLibSelf     bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN        int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
 	BeholdF        *lFilter // the Behold<N/Type> candidates' filter
+	MillN          int      // Mill<N>: mill N cards from the top of the payer's own library (CR 701.17b, 118.3; kop.Cost.Mill, an activated ability's cost only)
+	RevealSelf     bool     // Reveal<1/CARDNAME>: the source card is revealed from its controller's hand and nothing moves (kop.Cost.RevealSelf, the forecast family's cost)
 }
 
 // pureMana reports whether the cost is only its mana part. Power-up's

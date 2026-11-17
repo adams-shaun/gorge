@@ -116,6 +116,51 @@ func (lc *lowerCtx) damageYouCost(c *lCost, parts []string, n int, t string) err
 	return nil
 }
 
+// millCost parses Mill<N> (CR 701.17b, 118.3): the payer mills N cards from
+// the top of their own library as the cost is paid (gorge cost.parse's Mill
+// part, pay.PayMillCost, cast_commit.go's payMillCostParts; kop.Cost.Mill).
+// Only a printed activated ability's own non-mana cost lowers it today: a mana
+// ability's Mill<1> is a shape kop.ManaAbilityHonoured does not list (gorge's
+// payment plan refuses it too, pay.PaymentPlanTapOnlyCost), and an unless or
+// trigger cost's Mill<N> has no kernel pay kind yet (Deep Spawn, Ashcoat of
+// the Shadow Swarm).
+func (lc *lowerCtx) millCost(c *lCost, parts []string, n int, t string) error {
+	if !lc.actCost || len(parts) != 1 || n < 1 || c.MillN != 0 {
+		return refuse("mill cost %q", t)
+	}
+	c.MillN = n
+	return nil
+}
+
+// revealSelfCost parses Reveal<1/CARDNAME> (the forecast family's activated
+// cost, CR 702.54a; gorge cast_asks.go revealCostAsk): the cost reveals one
+// card named like the source from its controller's hand and nothing moves
+// (kop.Cost.RevealSelf; the candidates are every hand card of that name,
+// gorge pay.CostCandidates' CARDNAME spec). Only there, and only the source
+// spec: a cast's reveal candidates exclude the spell on the stack, and a
+// filtered, whole-hand or announced-X reveal needs a pick or announcement
+// the activation window does not pose yet (Living Destiny, Sasaya,
+// Illuminated Folio, the Martyr cycle).
+func (lc *lowerCtx) revealSelfCost(c *lCost, parts []string, n int, t string) error {
+	if !lc.actCost || n != 1 || len(parts) != 2 || parts[1] != "CARDNAME" || c.RevealSelf {
+		return refuse("reveal cost %q", t)
+	}
+	c.RevealSelf = true
+	return nil
+}
+
+// forecastParam reads a forecast ability's Forecast$ param: gorge reads
+// nothing of it (legal_activation.go's abilityZoneOK: an AB line without
+// ActivationZone$ activates from the battlefield alone, so a hand card's
+// forecast ability is never offered, and the upkeep-only once-each-turn
+// window CR 702.54a asks for is unmodelled). The corpus's forecast family
+// lowers without it, and its Reveal<1/CARDNAME> cost keeps the ability
+// unpayable off the hand on both engines (pay.NonManaCastableP's reveal
+// candidates, canActivate's gate).
+func (lc *lowerCtx) forecastParam(ps *params) {
+	ps.consume("Forecast")
+}
+
 // resTokenInstr lowers the resolution-time tokens that are payments the
 // kernel performs as effects: Draw<N/Who> (a trigger's own or an unless cost;
 // the drawing player may be the parent's targeted or the triggered player) and

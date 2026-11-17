@@ -1,9 +1,21 @@
 # the cost-token lockstep pool:
 # Abandon Hope (Cost$ X 1 B Discard<X/Card/card>, the announced-X discard)
 # Vexing Devil (UnlessCost$ DamageYou<4>, the literal damage-to-payer cost)
+# Rot Farm Skeleton (Cost$ 2 B G Mill<4>, the activated mill-to-return cost)
+# the forecast family's Reveal<1/CARDNAME> carriers (Pride of the Clouds,
+# Sky Hussar and Karlov's Crossbow: the cost's only candidate is the source
+# itself, CR 201.5, so a battlefield copy can never pay it and the ability
+# is withheld on both engines)
 # and the basics that pay them (dirac/oracle/costtokens_lockstep_test.go)
 Abandon Hope
 Vexing Devil
+Rot Farm Skeleton
+Pride of the Clouds
+Sky Hussar
+Karlov's Crossbow
+Grizzly Bears
 Island
 Mountain
 Swamp
+Forest
+Plains
