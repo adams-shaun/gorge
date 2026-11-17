@@ -177,20 +177,19 @@ func TestDeckImport(t *testing.T) {
 	})
 
 	t.Run("unsupported card reported via reg.Unsupported", func(t *testing.T) {
-		// Incinerate is on the ratchet's knownUnsupported list (AGENTS.md,
-		// stat:CantRegenerate): it resolves fine by name but the engine
-		// cannot fully play it yet.
+		// Shahrazad needs api:Subgame, which the engine does not implement: it
+		// resolves fine by name but the engine cannot fully play it.
 		d := mb.Deck{
 			Name:  "unsupported",
-			Cards: []mb.DeckCard{deckCard("Grizzly Bears"), deckCard("Incinerate")},
+			Cards: []mb.DeckCard{deckCard("Grizzly Bears"), deckCard("Shahrazad")},
 		}
 		_, rep, err := ImportDeck(reg, d, supported)
 		if err != nil {
-			t.Fatalf("ImportDeck: %v (Incinerate resolves by name; only its primitives are unsupported)", err)
+			t.Fatalf("ImportDeck: %v (Shahrazad resolves by name; only its primitives are unsupported)", err)
 		}
-		missing, ok := rep.Unsupported["Incinerate"]
+		missing, ok := rep.Unsupported["Shahrazad"]
 		if !ok || len(missing) == 0 {
-			t.Fatalf("Unsupported[%q] = %v, want a non-empty missing-primitive list (report: %+v)", "Incinerate", missing, rep.Unsupported)
+			t.Fatalf("Unsupported[%q] = %v, want a non-empty missing-primitive list (report: %+v)", "Shahrazad", missing, rep.Unsupported)
 		}
 		if _, ok := rep.Unsupported["Grizzly Bears"]; ok {
 			t.Errorf("Grizzly Bears should not be reported unsupported")

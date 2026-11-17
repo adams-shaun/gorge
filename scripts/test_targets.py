@@ -602,10 +602,10 @@ def main(argv=None):
     f.add_argument("--named", default="")
     f.add_argument("--fallback", default="", help="the CPU cap of a fallback run below 4 cores: a timeout is BUSY")
     s = sub.add_parser("select")
-    s.add_argument("--base", default="land")
+    s.add_argument("--base", default="origin/main")
     s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
     c = sub.add_parser("census")
-    c.add_argument("--base", default="land")
+    c.add_argument("--base", default="origin/main")
     a = ap.parse_args(argv)
     pk = [p for p in a.pkgs.split(",") if p] if hasattr(a, "pkgs") else []
     if a.cmd == "verdict":
