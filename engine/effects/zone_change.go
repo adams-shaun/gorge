@@ -281,13 +281,26 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 // moved because it is a new object the resolving ability's source reference
 // cannot find (CR 400.7): the ability went on the stack with its source on
 // the battlefield and that source has since left it or returned as a later
-// incarnation (sourceLeftSincePush -- Wydwen, the Biting Gale bounced and
-// recast between her two bounce activations), or an off-battlefield source
-// has crossed a zone since (sourceReturnedSincePush). The kernel's RefSelf
-// move (dirac/interp.go moveRef) no-ops the same way on the source's
-// changed version.
+// incarnation (Wydwen, the Biting Gale bounced and recast between her two
+// bounce activations), or an off-battlefield source has crossed a zone since
+// (sourceReturnedSincePush). The kernel's RefSelf move (dirac/interp.go
+// moveRef) no-ops the same way on the source's changed version.
+//
+// Only the push-stamped battlefield branch of sourceLeftSincePush applies
+// here. Its off-battlefield fallback (the source-characteristic LKI record
+// for a trigger whose source left before it was put on the stack) is true for
+// every dies trigger, whose own return-from-graveyard effect must still move
+// the card it remembers (Undying, Persist, Weatherseed Treefolk).
 func changeZoneSourceGone(h Host, c *Ctx, o *state.Object) bool {
-	return sourceReturnedSincePush(h, c, o) || sourceLeftSincePush(h, c, o)
+	if sourceReturnedSincePush(h, c, o) {
+		return true
+	}
+	if o.ID != c.Source || c.ResolvingObj == 0 {
+		return false
+	}
+	ro := h.Game().Obj(c.ResolvingObj)
+	return ro != nil && ro.Source == o.ID && ro.PushSourceOnBattlefield &&
+		(o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation)
 }
 
 // SourceIsNewObject reports that ro, an ability on the stack, has a source on the
