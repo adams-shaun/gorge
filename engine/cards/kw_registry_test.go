@@ -196,6 +196,10 @@ var expandedHeads = []string{
 	// Reinforce (CR 702.77a): a hand-zone discard-for-counters activation
 	// (engine/cards/kw_reinforce.go). Added after the split.
 	"Reinforce",
+	// Champion (CR 702.72a): an ETB exile-another-or-sacrifice ChangeZone with
+	// Duration$ UntilHostLeavesPlay (engine/cards/kw_champion.go). Added after
+	// the split.
+	"Champion",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
