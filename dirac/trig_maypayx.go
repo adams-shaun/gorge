@@ -13,7 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // follows (pay is offered with a free cost at X = 0), then the usual step
 // by step mana payment, and on payment the body reads Count$xPaid as the
 // announced X (rp.winPaidX). kop.PayManaX is that cost: A the XMax$ cap, or
-// 64 when the body names none (the mana bound alone).
+// 64 when the body names none (the mana bound alone). The bound is gorge's
+// payment-aware one (rules cumulative.go triggeredCostXAsk).
 // Cold: reached only from a PayManaX instruction.
 
 // raTrigX is the announcement ask; ChTrigX its decision sub-kind (gorge's
@@ -29,10 +30,18 @@ const trigXCap = 64
 // execTrigX poses the announcement; the payer's affordable X values are
 // 0..the largest affordable one at most cap. False = suspended.
 //
+// The bound is gorge's payment-aware one (cumulative.go triggeredCostXAsk,
+// potentialManaFor with the trigger cost as the payment): a Chosen-colour
+// source whose colour is fixed makes exactly its chosen colour, where the
+// plain over-bound prices the production open in every colour and offered X
+// past what the sources can fund (CR 106.6; a cycled Decree of Justice's
+// "you may pay {X}" beside a Sea Gate).
+//
 //go:noinline
 func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	var av avail
-	s.availPotential(k, p, &av)
+	d := payDesc{class: pdOther} // a trigger's own cost is no spell's, an ability's or a cast's
+	s.availPotentialFor(k, p, &av, &d, false)
 	cap = min(cap, trigXCap)
 	mx := 0
 	for x := 1; x <= cap; x++ {
