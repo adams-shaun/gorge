@@ -112,7 +112,10 @@ comments in `event.go` show the form.
   `server/host/manabrewhttp`, `server/gorged`) for its injected sleep, SSE
   keep-alive and deadlines, `draft/eventhost` for its lobby and pick timers, and three
   measurement commands (`cmd/cardfuzz`,
-  `cmd/paymirror`, `cmd/enginebench`) that time only their own runs. Library
+  `cmd/paymirror`, `cmd/enginebench`) that time only their own runs, and six dirac
+  packages (`dirac/oracle` with its lockstep watchdog, `dirac/oracle/cmd/kfuzz`,
+  `dirac/oracle/cmd/khbot`, `dirac/oracle/cmd/ksbt`, `dirac/kgen` for its build
+  timing, `dirac/cmd/dplay` for its timed run), none of which reaches a game. Library
   code that needs timing takes an injected hook.
 - **No ambient randomness.** The engine has one seeded PCG source with a draw
   counter (`engine/rules/rng.go`, `math/rand/v2`); a bot's generator is seeded

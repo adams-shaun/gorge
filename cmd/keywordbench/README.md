@@ -6,7 +6,7 @@ go run ./cmd/keywordbench -decks mono-red-prowess,mono-white-equipment -games 10
 ```
 
 `-games` is **per deck**. Each deck plays two-seat mirror matches, with one
-`seat.NewBot(seed)` shared by the seats as in mtgsim. Every deck uses seeds
+`heuristic.NewBot(seed)` shared by the seats as in mtgsim. Every deck uses seeds
 `seed` through `seed+games-1`; adding a deck does not change another's seeds.
 Commander files use Commander, command zones and 40 life; constructed files use
 20 life. No mulligans. Matches cap at 200 turns / 40,000 intents. Completed
