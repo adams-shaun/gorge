@@ -137,6 +137,27 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					}
 				}
 			}
+			// A GenericChoice of the controller can declare its target on the
+			// choice itself -- Inspirit, Flagship Vessel's "up to one other
+			// target artifact", whose modes then read Defined$ Targeted --
+			// rather than inside each chosen mode. CR 603.3c announces the
+			// mode at placement and CR 603.3d then runs 601.2c's target
+			// choice, so the ability's own target is owed after the modes
+			// answer. Before this, pushTrigger's "!handled" branch left the
+			// placement target ask to the continuation above, which asks only
+			// the chosen modes' targets, so the ability resolved untargeted
+			// and its Defined$ Targeted mode did nothing.
+			if so != nil && so.Ability != nil && effects.TargetsOf(so.Ability).Targeted() {
+				e.askTargetChained(in.Player, id, so.Ability, e.triggerChainPreAsks(so.Ability))
+				// The same chain-link continuation pushTrigger's unhandled
+				// path opens: the root's answer continues into the links, and
+				// a root that asked nothing asks them now.
+				e.startTriggerSubTargets(id, in.Player, so.Ability)
+				if e.Pending() != nil {
+					e.drainAwaitsTarget = true
+					return
+				}
+			}
 		}
 		e.resumeTriggerDrain()
 		return
