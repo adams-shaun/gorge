@@ -1,0 +1,10 @@
+# Animate Abilities$ on the source itself: the end-of-turn override grants the
+# manland its ability (dirac/oracle/animateselfabilities_lockstep_test.go
+# TestAnimateAbilitiesDurationLockstep; kgen lower_zone.go animateSelfAbilities)
+Spawning Pool
+Lavaclaw Reaches
+Raging Goblin
+Grizzly Bears
+Swamp
+Mountain
+Forest

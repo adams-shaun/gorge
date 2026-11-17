@@ -1,0 +1,12 @@
+# Targeted.sameName+Other: every other permanent with the target's name
+# (dirac/oracle/samenameother_lockstep_test.go TestFilterHeadSameNameLockstep;
+# kgen lower_filterreferents.go sameNameT0OtherFilter, kernel sameNameT0)
+Echoing Decay
+Homing Lightning
+Izzet Staticaster
+Grizzly Bears
+Raging Goblin
+Mountain
+Swamp
+Island
+Forest
