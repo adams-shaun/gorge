@@ -441,6 +441,7 @@ type tapXSearch struct {
 	def     slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
 	anyDiff slotMask               // the AnyDifferent sources among gaps: gorge's census lists them, they add N distinct colours
 	need    [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
+	stall   uint8                  // the first stall a failed line's fork latched (stallOf), StallNone none
 	nodes   int
 	nseen   int
 	seen    [potentialScriptNodes]tapXKey
@@ -523,6 +524,14 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	// for an activation: no gap of this search activates a grant, so none prices it
 	t.g.noGrant = true
 	if !rs.settle(k, t, false) || rs.n == 0 {
+		if rs.stall != 0 {
+			// every line failed and one ran into a rule gap the kernel stalls by
+			// name: declare it, not "no payment" (gorge asks the order the
+			// kernel cannot model; the play would be offered only its mana pays
+			// it). A found path is not this: tapXPlay replays it on s, and a
+			// stall on it latches there of its own (filtSearch's fs.spill).
+			s.capFull(rs.stall)
+		}
 		return false
 	}
 	if apply {
@@ -683,10 +692,15 @@ func yesFirstAsk(sub ChoiceKind) bool {
 func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 	var d Decision
 	if !t.tapXNext(rs.p, &d) {
+		rs.stallOf(t)
 		return false
 	}
 	if d.Kind == DkPriority {
-		return rs.visit(k, t, gapUsed)
+		if rs.visit(k, t, gapUsed) {
+			return true
+		}
+		rs.stallOf(t)
+		return false
 	}
 	if !rs.tick() { // the ask
 		return false
@@ -706,6 +720,9 @@ func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 		rs.path[rs.n] = tapXStep{kind: tapXAnswer, act: d.Options[i], sl: NoSlot, cand: NoSlot, cand2: NoSlot}
 		rs.n++
 		ok := rs.settle(k, c, gapUsed)
+		if !ok {
+			rs.stallOf(c)
+		}
 		t.unfork()
 		if ok {
 			return true
@@ -738,6 +755,16 @@ func (rs *tapXSearch) tick() bool {
 	}
 	rs.nodes++
 	return true
+}
+
+// stallOf records the stall a failed line's fork latched (capFull) while the
+// line ran, the first one, so tapXScript declares it on the real state instead
+// of dropping the play as unpayable: the fork cannot go on (its next stepGen
+// ends the game), but the play could have been payable along it.
+func (rs *tapXSearch) stallOf(c *State) {
+	if rs.stall == 0 {
+		rs.stall = c.g.stalled
+	}
 }
 
 // anyDifferentStep branches a Firemind Vessel gap at a search node on its N
@@ -957,6 +984,7 @@ func (rs *tapXSearch) try(k *prep, t *State, st tapXStep) bool {
 	if rs.settle(k, c, true) {
 		return true
 	}
+	rs.stallOf(c) // the line failed; the fork may have latched a stall (c is live until the deferred unfork)
 	rs.n--
 	return false
 }
@@ -1194,6 +1222,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		rs.path[rs.n] = tapXStep{kind: tapXPass, act: pass, sl: NoSlot, cand: NoSlot, cand2: NoSlot}
 		rs.n++
 		ok := rs.settle(k, c, true)
+		if !ok {
+			rs.stallOf(c)
+		}
 		t.unfork()
 		if ok {
 			return true
