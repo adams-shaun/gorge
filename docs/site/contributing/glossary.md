@@ -159,10 +159,10 @@ full gorge commit SHA it builds against, mirrored by the gorge
 pseudo-version in its `go.mod`. Moving it is a pull request in the companion
 ([Pinning](../repos/index.md#pinning)).
 
-**`develop` / `main`.** Changes land on `develop` by pull request. The
-maintainers periodically merge a `develop → main` snapshot, when its checks are
-green, with a merge commit. `main` is what this site and
-the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
+**`main` / merge queue.** Open pull requests against `main`, branching from `origin/main`. Mergify queues every
+non-draft PR once its `fast` and `lint` checks pass, and merges a batch of up to 10 with a merge commit when the full
+suite is green on it; `main` is also what this site and the published coverage are built from
+([Branch flow](../repos/index.md#branch-flow)).
 
 **dirac.** The second rules engine in this repository, for two players, built for search and
 self-play. Its whole game is one flat value and one buffer sized to its card table, cloned with one

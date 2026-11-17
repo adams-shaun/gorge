@@ -122,8 +122,8 @@ fix. A card that lowers and still plays wrong can be refused by name until it's 
 
 ## Where this runs
 
-`make dirac-slices` is the job `dirac-slices` in CI, everywhere but a pull request to `main`, which runs the whole of
-`dirac/oracle` (the job `oracle`) instead: its trees already passed the dirac gate, which plays the same slices.
+`make dirac-slices` is the job `dirac-slices` in CI, on every queue batch and pull request. The whole of
+`dirac/oracle` (the job `oracle`) runs in ten parts every 6 hours on `main` and on demand, never on a pull request or a queue batch.
 `scripts/dirac-gate.sh <base>` holds a change to gorge and dirac together: gorge
 leads, and a change that alters behaviour on a supported card fixes dirac in the same change or refuses the card by name.
 
