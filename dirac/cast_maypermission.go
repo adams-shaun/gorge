@@ -52,6 +52,32 @@ func (s *State) mayLimitSpent(r mayPlay) bool {
 	return lim > 0 && r.until&mayUntilUsed>>4 >= lim
 }
 
+// freeMayDominates reports whether record i, a priced cast permission over a
+// nonland card, is covered by another live free record of p's over the same
+// card (Ignite the Future cast from a graveyard grants the plain and the free
+// play over each card it exiles). Gorge offers a card its grants cover once
+// (rules mayPlaySpellIds' per-card dedupe) and casts it free when any free
+// grant covers it (mayPlayGrant), so the free record's cast is the card's one
+// option and the plain one is not offered beside it. A land's play stays on
+// both records (offerLandOnce lists it once). Only a table with kind
+// records (genPrep.anyMayKind) can hold a free one.
+func (s *State) freeMayDominates(k *prep, p uint8, i int, r mayPlay) bool {
+	if !k.gen.anyMayKind || r.kind&(kop.MayPlayFree|kop.MayPlayAdvKind) != 0 || k.cards[s.objs[r.obj].card].land {
+		return false
+	}
+	for j := 0; j < int(s.g.nmay); j++ {
+		f := *s.mayAt(j)
+		if j == i || f.obj != r.obj || f.ver != r.ver || f.ctrl != p || f.kind&kop.MayPlayFree == 0 || f.kind&kop.MayPlayAdvKind != 0 || f.payLife() || ownWalkerRecord(f) {
+			continue
+		}
+		if k.gen.anyMayWhileSrc && s.maySrcDead(f) || k.gen.anyMayLimit && s.mayLimitSpent(f) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 // enterFromGrantedZone puts o onto the battlefield and folds a land that
 // came from a graveyard or exile into the may-play count (gorge
 // scanMayPlaysThisTurn's MoveZone clause). The return-to-battlefield
