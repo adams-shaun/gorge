@@ -207,8 +207,28 @@ func (s *State) poolPaysRestr(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaC
 	return av.affords(cost, pipMaskOf(cost), 0)
 }
 
+// sourcesPay reports whether p's floating pool and untapped mana sources
+// together pay cost: gorge's potential walk bound (PotentialMana), the census
+// a witnessed potential play is listed against. It is the turn-up's second
+// offer route beside the floating pool (turnUpListed): the pool-only price
+// cannot afford a turn-up after the face-down cast spent the same trigger's
+// mana, while the potential plan taps the seat's lands.
+func (s *State) sourcesPay(k *prep, p uint8, cost *kop.ManaCost) bool {
+	var av avail
+	s.availFor(k, p, &av)
+	if av.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
+	// A restricted source whose mana admits a non-spell payment (Creeping
+	// Peeper's "spend this mana only to turn a permanent face up") is part
+	// of gorge's potential bound too; the ordinary source walk leaves it
+	// out.
+	return s.restrOtherFallback(k, p, cost, &av)
+}
+
 // offerTurnFaceUp offers the turn-face-up special action (CR 708.6): a
-// face-down permanent you control whose Morph cost the floating pool pays.
+// face-down permanent you control whose Morph cost the floating pool or the
+// untapped sources pay (gorge's potential walk's turn_face_up witness).
 // It is not a spell or ability and uses no stack.
 func (s *State) offerTurnFaceUp(k *prep, d *Decision, p uint8) {
 	if DebugIgnoreFaceDown {
@@ -279,13 +299,13 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 			if s.cloaked(sl) {
 				mode = 2
 			}
-			if turnUpHybOK(&cost) && s.specialAffords(k, p, &cost, turnUpSpecial(mode, cd.MorphFamily), sl, 0) {
+			if turnUpHybOK(&cost) && s.turnUpListed(k, p, &cost, turnUpSpecial(mode, cd.MorphFamily), sl, false) {
 				d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, mode))
 			}
 		}
 		if fam := cd.MorphFamily; fam != 0 {
 			cost := s.morphCostAt(k, sl)
-			if turnUpHybOK(&cost) && s.turnUpOffered(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl, true) {
+			if turnUpHybOK(&cost) && s.turnUpListed(k, p, &cost, turnUpSpecial(fam+2, cd.MorphFamily), sl, true) {
 				d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, fam+2))
 			}
 		}
@@ -295,7 +315,7 @@ func (s *State) offerTurnUpSl(k *prep, d *Decision, p uint8, sl Slot) {
 		return
 	}
 	cost := s.morphCostAt(k, sl)
-	if !turnUpHybOK(&cost) || !s.turnUpOffered(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl, true) {
+	if !turnUpHybOK(&cost) || !s.turnUpListed(k, p, &cost, turnUpSpecial(0, cd.MorphFamily), sl, true) {
 		return
 	}
 	d.add(MakeAction(AkTurnFaceUp, TCode(pm.obj), 0, 0))
@@ -328,8 +348,20 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		return
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
-	if !turnUpHybOK(&cost) || !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
+	if !turnUpHybOK(&cost) || !s.turnUpListed(k, p, &cost, sp, sl, kw) {
 		return
+	}
+	if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
+		// a witnessed potential play (gorge's plan taps the sources at
+		// priority, then the action pays from the pool): the {X}
+		// of a keyword turn-up is announced afterwards, past the witness.
+		// turnUpListed has already checked the keyword's life, so this
+		// branch is reached only by an action whose mana the sources pay
+		c0 := cost.AtX(0)
+		s.tapFor(k, p, &c0, 0, NoObj)
+		if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
+			return
+		}
 	}
 	if kw && cost.X > 0 {
 		// CR 107.3m / 702.37: the keyword's {X} is announced first (gorge
