@@ -528,10 +528,13 @@ func init() {
 // DamageSource$ ParentTarget over "<spec>.NotDefinedTargeted" ("target
 // creature you control deals damage equal to its power to each other
 // creature", Waltz of Rage, Nibelheim Aflame; gorge effects/damage.go
-// effDamageAll). Obj the source's target slot, B the amount (read once),
-// F the battlefield creature filter, C bit 0 set: the source's own slot is
-// not hit. Every matching creature is hit in one damage batch whose hits all
-// name the source (its deathtouch, lifelink, infect and wither apply).
+// effDamageAll), or DamageSource$ Remembered in a capturing emblem's
+// DamageDealtOnce body (Obj the captured damage source, the Arcbond emblem
+// shape). Obj the source's target slot or the capture, B the amount (read
+// once), F the battlefield creature filter, C bit 0 set: the source's own
+// slot is not hit; C bit 1 set: each living player takes a hit after the
+// creatures. Every matching creature is hit in one damage batch whose hits
+// all name the source (its deathtouch, lifelink, infect and wither apply).
 // dirac/act_sweepdamage.go.
 const ExtSweepFrom ExtOp = 97
 

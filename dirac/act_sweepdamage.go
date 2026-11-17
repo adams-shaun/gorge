@@ -7,19 +7,49 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // catch it).
 var DebugSweepFromSelf bool
 
-// sweepFrom is ExtSweepFrom (gorge effDamageAll with
-// DamageSource$ ParentTarget): the creature in Obj deals the amount (read
-// once, before any hit) to every creature matching F in gorge's sweep order
-// (seat 0's battlefield in entry order, then seat 1's; not Obj's own slot
-// with C&1), one damage batch whose hits all name that creature (dealHits:
-// its deathtouch, infect and wither per hit, one lifelink gain). A source
-// that is gone leaves the resolving spell the source, as gorge's
-// newDamageRider keeps its own source when the spec names no object.
+// DebugSweepNoPlHits drops ExtSweepFrom's C&2 player arm (mutation testing
+// only: the captured-sweep lockstep's proof that some game reaches the player
+// arm — a player's life then differs).
+var DebugSweepNoPlHits bool
+
+// DebugSweepStats, when non-nil, counts ExtSweepFrom's capture-sweep runs
+// (the sweep-from-captured lockstep's reachability assertion; the test-only
+// callers set it, the kernel never reads it).
+type DebugSweepCounters struct {
+	Runs   int // capture sweeps entered
+	Gone   int // with the source already gone (the NoSlot arm)
+	PlHits int // player hits the batch dealt
+}
+
+var DebugSweepStats *DebugSweepCounters
+
+// ExtSweepFrom's C flag bits (an instruction's flags, seat-ok).
+const (
+	sweepNotSrc = 1 // the source's own slot excluded (the ValidCards$ NotDefinedTargeted suffix, a capture's !IsRemembered)
+	sweepPlHits = 2 // each living player takes a hit after the creatures (a capture sweep's ValidPlayers$ Player)
+)
+
+// sweepFrom is ExtSweepFrom (gorge effDamageAll with a DamageSource$): the
+// object in Obj deals the amount (read once, before any hit) to every
+// creature matching F in gorge's sweep order (seat 0's battlefield in entry
+// order, then seat 1's; not Obj's own slot with C&1), one damage batch whose
+// hits all name that object (dealHits: its deathtouch, infect and wither per
+// hit, one lifelink gain). With C&2 each living player takes a hit after the
+// creatures, the same batch (a capturing emblem's DamageSource$ Remembered
+// sweep; gorge effDamageAll's ValidPlayers$ arm). A source that is gone
+// leaves the resolving spell the source, as gorge's newDamageRider keeps its
+// own source when the spec names no object.
 func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 	src := s.objRef(k, in.Obj)
 	n := s.value(k, in.B)
 	if n <= 0 {
 		return
+	}
+	if dbg := DebugSweepStats; dbg != nil && in.Obj == kop.RefTriggerSource {
+		dbg.Runs++
+		if src == NoSlot {
+			dbg.Gone++
+		}
 	}
 	var ord [MaxPerm]Slot
 	cnt := s.sweepHits(k, in.F, &ord)
@@ -36,17 +66,48 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 				s.damageTo(k, TCode(s.perms[sl].obj), n)
 			}
 		}
+		if in.C&sweepPlHits != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)
+			s.sweepPlayersTo(k, n)
+		}
 		return
 	}
-	var hs [MaxPerm]dmgHit
-	m := 0
+	// hs holds every creature hit (at most MaxPerm: nearCapacity stalls an
+	// entry path at occupancy MaxPerm-4, but the bound is not this function's
+	// to trust) plus one player hit per seat, so it is sized for the sum.
+	var hs [MaxPerm + MaxSeats]dmgHit
+	m, pl0 := 0, 0
 	for i := 0; i < cnt; i++ {
-		if sl := ord[i]; s.isCreature(k, sl) && (in.C&1 == 0 || sl != src) { // seat-ok: an instruction flag bit
+		if sl := ord[i]; s.isCreature(k, sl) && (in.C&sweepNotSrc == 0 || sl != src) { // seat-ok: an instruction flag bit
 			hs[m] = dmgHit{src: src, dst: sl, n: int16(min(n, 1<<14))}
 			m++
 		}
 	}
+	if in.C&sweepPlHits != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)
+		pl0 = m
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
+			hs[m] = dmgHit{src: src, n: int16(min(n, 1<<14)), pl: p + 1}
+			m++
+		}
+	}
 	s.dealHits(k, hs[:m])
+	if dbg := DebugSweepStats; dbg != nil && in.Obj == kop.RefTriggerSource {
+		dbg.PlHits += m - pl0 // the player hits are the tail of the batch
+	}
+}
+
+// sweepPlayersTo is the gone-source sweep's player arm: each living player
+// takes n from the resolving effect, seat order (gorge effDamageAll's
+// ValidPlayers$ arm through the same rider).
+func (s *State) sweepPlayersTo(k *prep, n int) {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		s.damageTo(k, PlayerCode(p), n)
+	}
 }
 
 // sweepReplCompete reports whether two or more damage replacements (a
