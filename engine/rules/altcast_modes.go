@@ -37,6 +37,9 @@ const (
 	altBlitz
 	altProwl
 	altFreerunning
+	// altAwaken (CR 702.113a): the cost half of K:Awaken:<N>:<cost>; the
+	// rider is cards.kwAwaken's Condition$ Awakened chain.
+	altAwaken
 	altCastCount
 )
 
@@ -94,6 +97,10 @@ const (
 	// altGateFreerunning: the caster dealt combat damage to a player this
 	// turn with an Assassin or their commander (CR 702.173a).
 	altGateFreerunning
+	// altGateAwaken: the caster controls a land the awakened cast can target
+	// (awaken's "target land you control" is announced on the awakened cast
+	// only, CR 601.2c, so a landless caster cannot choose the mode).
+	altGateAwaken
 )
 
 // altCastModes is the family, indexed by altCastID. Row order is the order
@@ -118,6 +125,11 @@ var altCastModes = [altCastCount]altCastMode{
 	// Freerunning face does (TestProwlFreerunningCardsAreSupported pins it).
 	altProwl:       {id: altProwl, mode: "prowled", head: "Prowl", flag: state.FlagAltCostPaid, ph: phProwl, handLoop: true, cmdLoop: true, potential: true, gate: altGateProwl},
 	altFreerunning: {id: altFreerunning, mode: "freerun", head: "Freerunning", flag: state.FlagAltCostPaid, ph: phFreerunning, handLoop: true, cmdLoop: true, potential: true, gate: altGateFreerunning},
+	// Awaken stamps FlagAltCostPaid like prowl: the Condition$ Awakened rider
+	// reads it through altCostKeywordPaid(o, "Awaken"). No Awaken face reads
+	// Count$AltCost (TestAwakenCardsAreSupported pins it), so the bit is
+	// unambiguous on one.
+	altAwaken: {id: altAwaken, mode: "awakened", head: "Awaken", flag: state.FlagAltCostPaid, ph: phAwaken, handLoop: true, cmdLoop: true, potential: true, gate: altGateAwaken},
 }
 
 // spellTypeLedger is the layer-4 table a prowl gate reads the spell's
@@ -126,9 +138,16 @@ type spellTypeLedger interface {
 	EffectiveTypes() []effects.ObjectTypes
 }
 
+// altGateHost is what a row's turn gate reads: the layer-4 type table and the
+// target census.
+type altGateHost interface {
+	spellTypeLedger
+	awakenTargetReader
+}
+
 // gateOpen reports whether row m's turn condition holds for caster p
 // casting spell id: prowl and freerunning read combatHitThisTurn.
-func (m *altCastMode) gateOpen(g *state.Game, h spellTypeLedger, p state.PlayerID, id state.ObjID) bool {
+func (m *altCastMode) gateOpen(g *state.Game, h altGateHost, p state.PlayerID, id state.ObjID) bool {
 	switch m.gate {
 	case altGateProwl:
 		o := g.Obj(id)
@@ -138,6 +157,8 @@ func (m *altCastMode) gateOpen(g *state.Game, h spellTypeLedger, p state.PlayerI
 		return combatHitThisTurn(g, p, prowlHit(damageSnapshotTypes(id, o, h.EffectiveTypes())))
 	case altGateFreerunning:
 		return combatHitThisTurn(g, p, freerunningHit(g, p))
+	case altGateAwaken:
+		return awakenLandAvailable(h, g, p, id)
 	}
 	return true
 }

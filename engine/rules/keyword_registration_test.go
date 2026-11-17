@@ -76,6 +76,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Champion":       "TestChampionExilesAndReturns",
 		"kw:Prowl":          "TestProwlNeedsASharedTypeCombatHit",
 		"kw:Freerunning":    "TestFreerunningNeedsAnAssassinCombatHit",
+		"kw:Awaken":         "TestAwakenAnimatesTargetLand",
 		"kw:Backup":         "TestSaibaCryptomancerBackup",
 		"kw:Renown":         "TestConstableOfTheRealmRenownPutsTwoCountersOnce",
 		"kw:Shroud":         "TestPrintedShroudWithholdsCastWhenSoleTarget",
