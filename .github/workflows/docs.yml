@@ -26,7 +26,7 @@ on:
       - cmd/pkgmap/**
       - scripts/docs_compliance_stub.py
       - .github/workflows/docs.yml
-  # A PR (develop -> main above all) builds the site strictly but never
+  # A PR builds the site strictly but never
   # deploys it, so a broken link fails before it reaches the public site.
   pull_request:
     paths:
