@@ -3062,6 +3062,8 @@ func continuousStFlags(s lStatic, st *kop.Static) error {
 			// gyContStFlag sets the Graveyard bit above; a FunctionsInExile
 			// on a Continuous stays silently dropped (this allow-list only
 			// stops the refusal)
+		case offZoneFlag:
+			// continuousKind made it a StatOffZoneGrant (lower_offzone.go)
 		default:
 			return fmt.Errorf("continuous flag %q", fl)
 		}

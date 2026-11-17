@@ -82,7 +82,7 @@ func (lc *lowerCtx) offZoneStatic(sp *params, st *lStatic, aff, az string, z kop
 	// off-zone grant, which gorge projects onto every card of the zone.
 	if aff != "" {
 		if f, ferr := lc.filter(aff); ferr == nil && f != nil && f.Players != 0 {
-			return false, refuse("AffectedZone %q without MayPlay", az)
+			return false, lc.refuseOffZoneKeyword(sp, az, z)
 		}
 	}
 	if _, ok := sp.get("AddKeyword"); ok {
@@ -135,7 +135,7 @@ func (lc *lowerCtx) offZoneKeyword(sp *params, st *lStatic, aff, az string, z ko
 		switch k {
 		case "Mode", "Affected", "AffectedZone", "AddKeyword", "Description", "Condition", "Secondary":
 		default:
-			return refuse("AffectedZone %q without MayPlay", az)
+			return lc.refuseOffZoneKeyword(sp, az, z)
 		}
 	}
 	parts := strings.Split(kw, "&")
@@ -181,9 +181,10 @@ func (lc *lowerCtx) offZoneKeyword(sp *params, st *lStatic, aff, az string, z ko
 }
 
 // refuseOffZoneKeyword keeps the census's existing reason for an unsupported
-// off-zone keyword grant.
+// off-zone grant: a Graveyard keyword grant names its keyword
+// (refuseGraveKwGrant), every other one the generic AffectedZone reason.
 func (lc *lowerCtx) refuseOffZoneKeyword(sp *params, az string, z kop.Zone) error {
-	if z == kop.ZoneGraveyard {
+	if z == kop.ZoneGraveyard && sp.str("AddKeyword") != "" {
 		return refuseGraveKwGrant(sp, az)
 	}
 	return refuse("AffectedZone %q without MayPlay", az)
