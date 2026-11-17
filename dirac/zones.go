@@ -667,6 +667,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
+	s.fireToGraveDies(k, sl, z) // the split's Dies half, before the move mutates the card (trig_tograve.go)
 	p := &s.perms[sl]
 	o := p.obj
 	s.mSlClr(k, mechTappedTurn, sl) // the permanent leaves: its tapped-this-turn mark ends (filter_permmarks.go)
@@ -833,6 +834,9 @@ func (s *State) fireObj(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj, evCtrl 
 			a := &cd.Abilities[i]
 			if a.Kind != kop.AbTriggered || a.Trig.Event != ev {
 				continue
+			}
+			if ev == kop.TrigDies && a.Trig.Flags2&kop.Tf2ToGraveHalf != 0 {
+				continue // fires from the removal point (fireToGraveDies, CR 603.6c)
 			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
 				if ls != evSl {

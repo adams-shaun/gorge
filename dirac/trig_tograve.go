@@ -52,3 +52,36 @@ func (s *State) fireToGrave(k *prep, o Obj, from kop.Zone) {
 		s.queueTrig(k, l, a, o, owner, 0)
 	})
 }
+
+// fireToGraveDies queues the Dies halves of split "whenever a creature card
+// is put into an opponent's graveyard from anywhere" lines (Tf2ToGraveHalf)
+// for the permanent at sl headed into z. It runs from the removal point
+// (removePerm's top), where the permanent is still on the battlefield with
+// every characteristic the dies event reads, and the live subscriptions are
+// exactly gorge's per-move live walk: the listeners the sweep removed before
+// this move are already unsubscribed, so a from-anywhere watcher destroyed by
+// the same wipe fires only for the deaths that complete before its own
+// (CR 603.6c: the spelling is never a leaves-the-battlefield ability, so it
+// has none of CR 603.10a's look-back; gorge trigger_match.go's split gate
+// keeps the printed line in the live pass). The Dies walks skip the marked
+// half, so this is its only firing site. z is the removal's post-dieZone
+// destination: a death replaced to exile or the library fires nothing, the
+// same gate placeFromK puts on fireToGrave.
+//
+//go:noinline
+func (s *State) fireToGraveDies(k *prep, sl Slot, z kop.Zone) {
+	if k.gen == nil || !k.gen.anyToGrave || z != kop.ZoneGraveyard || !s.subs[kop.TrigDies].any() {
+		return
+	}
+	p := &s.perms[sl]
+	o, ctrl := p.obj, p.ctrl
+	if !s.isCreature(k, sl) && !k.gen.anyDiesNC {
+		return // as fireLeave's Dies arm: the filters decide from here
+	}
+	s.eachBattlefieldTrigger(k, kop.TrigDies, func(l trigListener, a *kop.Ability) {
+		if a.Trig.Flags2&kop.Tf2ToGraveHalf == 0 || l.sl == sl {
+			return
+		}
+		s.objTrigGen(k, kop.TrigDies, l, a, sl, o, ctrl, 0)
+	})
+}

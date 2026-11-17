@@ -39,6 +39,9 @@ func (s *State) fireDiesLeaves(k *prep, evSl Slot, evObj Obj, evCtrl uint8, leav
 		s.slotTriggers(k, sl, func(a *kop.Ability) bool {
 			return a.Trig.Event == kop.TrigDies || a.Trig.Event == kop.TrigLeaves
 		}, func(l trigListener, a *kop.Ability) {
+			if a.Trig.Event == kop.TrigDies && a.Trig.Flags2&kop.Tf2ToGraveHalf != 0 {
+				return // fires from the removal point (fireToGraveDies, CR 603.6c)
+			}
 			amt := int16(0)
 			if a.Trig.Event == kop.TrigLeaves {
 				amt = leaveAmt

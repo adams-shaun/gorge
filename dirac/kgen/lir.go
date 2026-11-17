@@ -890,6 +890,7 @@ type lTrigger struct {
 	CastSnap      bool  // SpellCast: the amount reads the instants and sorceries cast this turn, snapshotted (TriggerObjectsCurrentCastSpells)
 	CastSpent     bool  // SpellCast: the amount is the triggering spell's pool mana spent, snapshotted as the trigger fires (opus; gorge TriggeredCard$CastTotalManaSpent)
 	Increment     bool  // SpellCast: Increment$ True -- the source is a creature and the cast's spend exceeds its P/T, read as the trigger fires and rechecked on resolution (gorge kwIncrement's marker, trigmatch.IncrementHolds; kernel Tf2Increment)
+	ToGraveHalf   bool  // the Dies half of a split "from anywhere" -> Graveyard line (kop.Tf2ToGraveHalf): CR 603.6c makes it never a leaves-the-battlefield ability, so the kernel fires it from the removal point (fireToGraveDies), never with the sweep's pre-removal board
 	SpentGate     int16 // SpellCast: ValidSA$/ValidSAonCard$ Spell.ManaSpent <op><n|X>, a kop.DmgGate over the cast's pool mana spent (X = 0xff, the printed mana value); gorge spellCastMatches, kernel spentGateOK
 	NthSpell      int   // SpellCast: the caster's spell count this turn against ActivatorThisTurnCast$ <op>N
 	NthCmp        uint8 // the NthSpell operator as a kop.DmgCmp (0 = EQ, the plain literal; kernel trigCmpOK)
