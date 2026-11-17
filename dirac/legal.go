@@ -1538,9 +1538,12 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	}
 	var av avail
 	s.availFor(k, p, &av)
-	if printedOK && av.affords(&pf, pipMaskOf(&pf), 0) {
+	if printedOK && s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &pf, &av) {
 		// the printed instance is the planner's planned flashback cast,
-		// offered whatever the potential walk says (Think Twice, pair 90106)
+		// offered whatever the potential walk says (Think Twice, pair 90106).
+		// Paid as a hand cast is, restricted sources counted (castAffordsR):
+		// Hermitic Herbalist's two Lesson mana pay Solstice Revelations'
+		// {6}{R} beside Iroh's granted {1}
 		return true, false, false
 	}
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 {
