@@ -7,6 +7,10 @@ bin/
 # ship as a release asset, never in git.
 .pools
 
+# Commander decklists scripts/edh_decks.py fetches (MTGJSON precons, Archidekt
+# community decks): third-party content, never committed. Only the manifest is.
+.edh-decks/
+
 # Oracle-audit author packets (oraclepacket output): corpus-derived
 # printed card text handed to a scenario-writing seat. Never committed.
 .oracle-packets/
