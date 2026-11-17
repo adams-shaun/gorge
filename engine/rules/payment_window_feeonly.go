@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -16,13 +15,16 @@ import (
 // the activation just made). A flexible pip, an any-type rider or an
 // unpriceable fee fails open: false. dirac's windowFeeStalls
 // (mana_filterrepeat.go) is the same rule.
-func (e *Engine) feeOnlyConversionStalls(pc *pendingCast, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
-	if pc.mayPlayIgnore || pc.mayPlayIgnoreType || !repeatableFeeOnlyMana(e, p, id, ma) {
+//
+// comp is the composition still owed and pool the mana the payment may spend;
+// the caller (paymentSourceUseful) prices both and rules out an any-type rider.
+func feeOnlyConversionStalls(pp potentialPricer, p state.PlayerID, id state.ObjID, ma *cards.SA, comp Cost, pool state.Mana) bool {
+	if !repeatableFeeOnlyMana(pp, p, id, ma) {
 		return false
 	}
-	fee := e.manaAbilityCC(p, id, ma).Cost
+	fee := pp.manaAbilityCC(p, id, ma).Cost
 	var made state.Mana
-	e.addPotentialManaOf(&made, ma)
+	pp.addPotentialManaOf(&made, ma)
 	amount, colours := int32(0), 0
 	for _, n := range made {
 		if n > 0 {
@@ -36,11 +38,9 @@ func (e *Engine) feeOnlyConversionStalls(pc *pendingCast, p state.PlayerID, id s
 	if amount > fee.Generic+fee.Colored.Total() {
 		return false
 	}
-	comp := e.manaToPay(pc)
 	if len(comp.Hybrid) != 0 || len(comp.Phyrexian) != 0 || len(comp.Twobrid) != 0 || len(comp.HybridPhyrexian) != 0 {
 		return false
 	}
-	pool := pay.AvailableFor(asPayer(e), p, paymentForCast(pc, comp)).Pool
 	short := func(pool state.Mana) (n int32) {
 		for i := range pool {
 			if comp.Colored[i] > pool[i] {
