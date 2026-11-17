@@ -94,19 +94,39 @@ func (s *State) rcaStep(k *prep, in *kop.Instr, sl Slot) bool {
 		r.peekN++
 		r.left--
 	}
-	s.rcaFinish(sl)
+	s.rcaFinish(k, sl)
 	return true
 }
 
-// rcaFinish removes the picked counters.
-func (s *State) rcaFinish(sl Slot) {
+// rcaFinish removes the picked counters. The election is one batched removal
+// per kind (gorge removeCounterAnyCarrier logs the whole election as one
+// CounterChange per kind when it ends), so each distinct kind fires once with
+// its tally (trig_counterremoved.go).
+func (s *State) rcaFinish(k *prep, sl Slot) {
 	r := &s.res
 	if r.peekN > 0 {
 		s.touchSl(sl)
 		p := &s.perms[sl]
 		p.seeCtr(s) // gorge lists a kind removed to none at 0
 		for i := 0; i < int(r.peekN); i++ {
-			p.subCtrN(s, int(r.peek[i]), 1)
+			kind := int(r.peek[i])
+			dupe := false
+			for j := 0; j < i; j++ {
+				if int(r.peek[j]) == kind {
+					dupe = true
+					break
+				}
+			}
+			if dupe {
+				continue
+			}
+			n := 1
+			for j := i + 1; j < int(r.peekN); j++ {
+				if int(r.peek[j]) == kind {
+					n++
+				}
+			}
+			s.subCtrFire(k, sl, kind, n)
 		}
 	}
 	r.peekN, r.left = 0, 0
@@ -164,7 +184,7 @@ func (s *State) applyAskRca(k *prep, a Action) bool {
 		return true
 	}
 	if a.Kind() == AkDone {
-		s.rcaFinish(sl)
+		s.rcaFinish(k, sl)
 		s.continueRes(k, 0)
 		return true
 	}
