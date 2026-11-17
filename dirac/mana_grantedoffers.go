@@ -1117,7 +1117,10 @@ func (g *grantSrch) candidates(s *State) {
 // gapFlags sets candidate n's gap kinds for slot sl, out of the masks one
 // search's candidates lists: the kinds exclude the later ones, so a source
 // with several gap kinds branches as the first that matches. A holder of a
-// granted ability (ng > 0) branches on the grant side.
+// granted ability (ng > 0) branches on the grant side, except a rider-first
+// source whose printed rider is a Taps-deferred gap: that rider is tried
+// first, as gorge's "choose a mana ability" ask lists the printed ability
+// before the grant.
 func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, wm, xm, cm, sm, am slotMask) {
 	g.cand[n], g.ng[n], g.cobj[n], g.filt[n], g.tapx[n] = sl, uint8(ng), s.perms[sl].obj, fm.has(sl), tm.has(sl)
 	g.sacx[n] = am.has(sl) && ng == 0 // a holder keeps the grant side (mana_grantsacx.go)
@@ -1127,7 +1130,13 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// rider land): its own production is no planner unit (availGrant counts
 		// the grant alone), so the search taps the rider beside the grants --
 		// first the rider step (gapBranch), then the grants' (visit), never
-		// both taps of one source (CR 605.1a).
+		// both taps of one source (CR 605.1a). Gorge's "choose a mana ability"
+		// ask lists the printed rider first, so the search tries the rider's
+		// step before the grant, and the grant side follows a failed rider
+		// (gapBranch's tdef arm reports not-a-gap then), at every node
+		// (Sandstone Needle beside Rain of Filth: the rider's {R}{R} pays the
+		// play, not the grant's sacrifice — and a play the rider cannot pay
+		// prices the Needle's own grant, not another land's).
 		g.tdef[n] = xm.has(sl) && !fm.has(sl) && !tm.has(sl)
 		g.each[n], g.wide[n], g.ctr[n] = false, false, false
 		// a battery that is itself a grant holder keeps both sides: its
@@ -1234,7 +1243,18 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		}
 		return false, false
 	case g.tdef[i]:
-		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
+		// its rider or deferred tap (mana_granttapsdefer.go). A grant holder's
+		// failed rider reports not-a-gap so visit runs its grant side: gorge's
+		// "choose a mana ability" ask lists the printed rider first, the
+		// granted ability after (Sandstone Needle beside Rain of Filth, whose
+		// {R}{R} cannot pay the {B} play — the plan taps the Needle's rider
+		// and sacrifices the NEEDLE over its grant, not another land's grant),
+		// and a node the rider's tap reached runs the tapped source's
+		// sacrifice-only grant alone (grantSacLive, mana_grantcost.go)
+		if found := g.tapsDeferBranch(t, i, sl); found || g.ng[i] == 0 {
+			return found, true
+		}
+		return false, false
 	case g.store[i]:
 		// every counter it holds (mana_grantstore.go); a failed storage branch
 		// of a grant holder leaves its grant side to visit (CR 605.1a)
