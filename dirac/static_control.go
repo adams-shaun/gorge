@@ -615,7 +615,7 @@ func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, s
 	if in.B.N&kop.GcUntap != 0 {
 		if p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 			p.seeCtr(s)
-			p.subCtrN(s, int(kop.CtrStun), 1) // CR 122.1d (gorge TryUntap)
+			s.subCtrFire(k, sl, int(kop.CtrStun), 1) // CR 122.1d (gorge TryUntap)
 		} else if !s.untapBlocked(k, sl) {
 			s.untapEffect(k, sl)
 		}
