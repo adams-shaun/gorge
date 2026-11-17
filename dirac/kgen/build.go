@@ -480,6 +480,13 @@ func (cb *cardBuilder) subIndexes(ws []string) ([]uint8, error) {
 	return out, nil
 }
 
+// copyKeptSets copies the flags of a card whose abilities keep a remembered or
+// imprinted set past one resolution (zone_rememberpersist.go, zone_srcmem.go).
+func copyKeptSets(d *kop.CardDef, c *lCard) {
+	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
+	d.ImpPersist, d.SrcMem, d.SmSeed = c.ImpPersist, c.SrcMem, c.SmSeed
+}
+
 func (cb *cardBuilder) record() error {
 	c := cb.c
 	d := &cb.out.def
@@ -703,7 +710,7 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
-	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
+	copyKeptSets(d, c)
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
 	d.ProduceCol = c.ProduceCol
