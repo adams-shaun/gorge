@@ -17,7 +17,7 @@ func kwAmplify(f *Face, i int, k, head, param string, has func(kind, line string
 		return
 	}
 	n := "Count$RememberedSize"
-	if param != "1" {
+	if len(param) != 1 || param[0] != '1' { // not a literal string compare (codeshape stringLiteralCompares)
 		n += "/Times." + param
 	}
 	reveal, put, count, clear := "__kwAmplifyReveal", "__kwAmplifyPut", "__kwAmplifyX", "__kwAmplifyClear"

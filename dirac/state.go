@@ -692,6 +692,10 @@ const (
 	ctlCmdZone5
 	ctlCmdZone6
 	ctlCmdZone7
+	// ctlTurnUpTap: transient inside face_facedown.go's turn-up tap step, so the
+	// planner prices its restricted sources as the special action's payment
+	// (payDescNow); parked in genState.pickLeft/pickF, never a decision.
+	ctlTurnUpTap
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

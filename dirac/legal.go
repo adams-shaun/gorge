@@ -1757,6 +1757,14 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		if pc.manaAb >= 0 {
 			done[sl] = 1 << pc.manaAb
 		}
+		if payment && pc.manaChosen && s.perms[sl].chosen > 4 {
+			// a Produced$ Chosen source whose colour is not chosen yet: gorge's
+			// exact handler (potential.go addPotentialChosenColour) declines
+			// it, so its fold prices the word open in every colour
+			// (producedOpen), the payment bound included
+			open = true
+			continue
+		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
 		if dynamic {
 			// gorge's potentialAmount prices an indeterminate Amount$

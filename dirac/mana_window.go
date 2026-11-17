@@ -433,6 +433,8 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 		return s.restrSpendable(k, p, d.card, d.og)
 	case pdAct:
 		return s.restrPoolAct(k, p, &d)
+	case pdSpecial:
+		return s.restrPoolSpecial(k, p, d.sp, d.tgt)
 	}
 	return s.restrPoolNonSpell(k, p)
 }

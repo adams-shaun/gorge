@@ -57,14 +57,23 @@ const (
 	pdAct
 	pdOther
 	pdNone // no payment: the restricted sources count for nothing
+	// pdSpecial: a turn-face-up special action (CR 116.2b, 708.6) of the
+	// permanent at tgt, a payment of its own class (gorge pay.PurposeSpecial):
+	// a restriction admits it by a Static.* clause naming sp (Tin Street
+	// Gossip's "turn creatures face up"), never as a spell or ability.
+	pdSpecial
 )
 
 // payDesc describes the payment a plan funds: for a spell the card, for an
 // activated ability the source's card and (when it is a permanent) slot.
 type payDesc struct {
 	class uint8
-	card  CardID
-	src   Slot
+	// sp and tgt: a pdSpecial payment's special action and the permanent it
+	// turns up
+	sp   kop.SpecialMask
+	tgt  Slot
+	card CardID
+	src  Slot
 	// subBound marks the trigger pay gate's descriptor (trigCostPotentialPays,
 	// gorge's resPayNeedsMana: Descriptor.SubCounterBound): only that gate reads
 	// a storage battery at its counters. The numTimes / X asks and the window's
@@ -232,6 +241,9 @@ func (g *genPrep) restrRecOf(c CardID) *restrRec {
 // spell's card, an activated ability's source), else a spell when the
 // caller excludes a hand card from the demand, else other.
 func (s *State) payDescNow(exclude Obj) payDesc {
+	if s.ctl == ctlTurnUpTap { // face_turnfaceup.go tapForTurnUp
+		return payDesc{class: pdSpecial, src: NoSlot, sp: kop.SpecialMask(s.g.pickLeft), tgt: s.objs[Obj(s.g.pickF)].slot}
+	}
 	if s.ctl == ctlBuild {
 		switch e := &s.bld().e; e.kind {
 		case seSpell:
@@ -265,6 +277,8 @@ func (s *State) restrFloatAdmits(k *prep, p uint8, d *payDesc) uint8 {
 		return s.restrSpendable(k, p, d.card, d.og)
 	case pdAct:
 		return s.restrPoolAct(k, p, d)
+	case pdSpecial:
+		return s.restrPoolSpecial(k, p, d.sp, d.tgt)
 	}
 	return s.restrPoolNonSpell(k, p)
 }
@@ -287,6 +301,8 @@ func (s *State) restrSrcAdmits(k *prep, p uint8, sl Slot, a *kop.Ability, d *pay
 			return false
 		}
 		return a.ManaRestrictAb != 0 && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d)
+	case pdSpecial:
+		return a.AFlags&kop.AfManaNonSpell != 0 || a.ManaRestrict != 0 && s.restrSpecialFilter(k, p, sl, a.ManaRestrict, d.sp, d.tgt)
 	}
 	return a.AFlags&kop.AfManaNonSpell != 0
 }
@@ -584,7 +600,7 @@ func (s *State) restrDeferScriptable(k *prep, p uint8, skip Slot) bool {
 // sources' units are already av's, their colours widened: the mana total
 // stays av's) short of the cost's mana total.
 func restrSrcNone(rs *restrData, d *payDesc, cost *kop.ManaCost, av *avail, extra int) bool {
-	if d.class != pdSpell && !rs.nonSpell && DebugRestrictedSource != 1 {
+	if d.class != pdSpell && d.class != pdSpecial && !rs.nonSpell && DebugRestrictedSource != 1 {
 		return true
 	}
 	if rs.ext || av.pain.on {
