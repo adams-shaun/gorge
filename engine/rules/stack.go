@@ -641,13 +641,7 @@ func (e *Engine) resolveTop() {
 	overloaded := o.CastFlags&state.FlagOverloaded != 0
 	if overloaded && sa != nil {
 		if targetSA != nil {
-			for _, cand := range e.affectedCandidates(o.Controller, id, id, targetSA) {
-				if cand.kind == "player" {
-					targets = append(targets, state.Target{Player: cand.player, IsPlayer: true})
-				} else {
-					targets = append(targets, state.Target{Obj: cand.obj})
-				}
-			}
+			targets = append(targets, overloadTargets(e.affectedCandidates(o.Controller, id, id, targetSA), e.G.AliveFrom(o.Controller))...)
 		}
 	}
 	// The spell branch's twin of the ability branch's composition: a modal
