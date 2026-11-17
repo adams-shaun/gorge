@@ -3322,12 +3322,11 @@ func (s *State) manaStep(k *prep) bool {
 			}
 		case s.bld().pipN != 0 && s.hybAbilityOffPlan(k, e.ctrl, &cost) &&
 			!s.abilityPlanSettles(k, e, s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), s.hybResolve(k, e.ctrl, s.abPlannedCost(k, a, sl, e.ctrl), 0), cost, &saved):
-			// gorge has no plan for the cost the pips settled: its manual window, which can run dry
-			// when a source's first ability is not the colour owed (a
-			// granted basic land type: static_landtype.go; a filter's
-			// free {C}); gorge then aborts the activation and keeps the
-			// taps, as for power-up
-			if !s.windowTapHeldOK(k, e.ctrl, &cost) && k.gen != nil && (k.gen.blgOn || k.gen.anyFilt) {
+			// gorge has no plan for the cost the pips settled: its manual window. A
+			// dry window (a source's first ability is not the colour owed, or the
+			// sources run out) reverses the activation and keeps the taps, as for
+			// power-up (CR 601.2g, 733.1); a paused window waits on its pick.
+			if !s.windowTapHeldOK(k, e.ctrl, &cost) && !s.winPaused() {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 				return true
 			}
