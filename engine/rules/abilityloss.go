@@ -261,6 +261,15 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 			// A registered effect (zero), or a static ability that began
 			// applying before layer 6.
 		default:
+			// A part of a remover's OWN static (Humility's layer-7b 1/1 set
+			// beside its layer-6 removal: same source, timestamp and
+			// Affected$) began applying with that remover in layer 6 and
+			// keeps applying even after the ability generating it is
+			// removed (CR 613.6), so it takes the remover's verdict.
+			if k, ok := siblingRemover(list, removers, ce); ok {
+				drop = dead[k]
+				break
+			}
 			// A layer-6 effect that is not itself a remover (a keyword grant:
 			// Gnarlid Colony's "creatures you control with a +1/+1 counter
 			// have trample") depends on a removal of its source's abilities
@@ -461,4 +470,19 @@ func faceMayRemoveAbilities(f *cards.Face) bool {
 		}
 	}
 	return false
+}
+
+// siblingRemover finds the live-or-dead remover (an index into removers)
+// that ce is a part of: the same static, emitted as several layered effects
+// sharing one source, timestamp and Affected$ spec (Humility's layer-6
+// removal and layer-7b set).
+func siblingRemover(list []ContinuousEffect, removers []int, ce *ContinuousEffect) (int, bool) {
+	for k, ri := range removers {
+		r := &list[ri]
+		if r.Source == ce.Source && r.Timestamp == ce.Timestamp && r.Affects == ce.Affects &&
+			r.SourceAbilityLayer == ce.SourceAbilityLayer {
+			return k, true
+		}
+	}
+	return 0, false
 }
