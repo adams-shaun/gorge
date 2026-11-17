@@ -856,6 +856,16 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
+	if cd.HasModeCost && !mayPlay && !modalFloorZero(k, c) {
+		// a Spree or Tiered face whose cheapest mode still costs mana: the
+		// cast planner declines the shape ("shape:modal_cost") and the
+		// potential composition prices the printed cost only when a legal
+		// mode adds nothing (potentialModalCastFreeMode, potential_plan.go),
+		// so no plan witnesses it and no prefix search runs for it. A
+		// may-play cast is composed at its printed cost (that arm's mayplay
+		// case), so it keeps its own gate.
+		return false
+	}
 	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
 		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast
 		// planner; gorge keeps the composition's plan (potentialPlayVerdictShared)
