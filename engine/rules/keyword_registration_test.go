@@ -64,6 +64,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Wither":         "TestWitherVillagePillagersETBDamageAllDealsCounters",
 		"kw:Battle cry":     "TestBattleCryPumpsOtherAttackingCreatures",
 		"kw:Graft":          "TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt",
+		"kw:Modular":        "TestModularEntersWithCounters",
 		"kw:Backup":         "TestSaibaCryptomancerBackup",
 		"kw:Renown":         "TestConstableOfTheRealmRenownPutsTwoCountersOnce",
 		"kw:Shroud":         "TestPrintedShroudWithholdsCastWhenSoleTarget",
