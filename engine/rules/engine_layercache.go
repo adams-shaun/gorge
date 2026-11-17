@@ -47,7 +47,8 @@ type engineLayerCaches struct {
 	staticObjs    int `clone:"deep,if=cloneCarriesStaticMemo"`
 	// staticMemoGated records whether the last full staticEffects build
 	// encountered any Continuous static carrying a continuousGateKeys param
-	// (IsPresent$/IsPresent2$/Condition$/CheckSVar$/ClassBand$), whether or
+	// (IsPresent$/IsPresent2$/Condition$/CheckSVar$/ClassBand$/
+	// TopCardOfLibraryIs$), whether or
 	// not the gate currently passes. A gate that passes now can be flipped
 	// off by a later battlefield-composition change (a token entering), so
 	// the re-stamp admission in layercache.go's staticSafeSince must be

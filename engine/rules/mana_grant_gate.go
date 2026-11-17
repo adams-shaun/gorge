@@ -19,11 +19,16 @@ import (
 // priority offer). An IsPresent$ / IsPresent2$ gate (Forge's
 // StaticAbility.checkConditions: Joraga Treespeaker's "LEVEL 1-4" band,
 // counters_GE1_LEVEL+counters_LE4_LEVEL) is read through presentGatesHold, which
-// mirrors the layer walk's continuousGateHolds reads; present is the
-// engine's presentGate. Every other Condition$ keeps the scan's pre-existing
-// behaviour: not read here.
-func manaGrantConditionHolds(g *state.Game, sv staticView, present func(staticView, string) bool) bool {
+// mirrors the layer walk's continuousGateHolds reads, and a
+// TopCardOfLibraryIs$ gate reads through the same free
+// topCardOfLibraryGateHolds the layer walk uses; present is the engine's
+// presentGate and matches the engine's matchesSpecFrom. Every other
+// Condition$ keeps the scan's pre-existing behaviour: not read here.
+func manaGrantConditionHolds(g *state.Game, sv staticView, present func(staticView, string) bool, matches func(string, state.ObjID, state.PlayerID, state.ObjID) bool) bool {
 	if !presentGatesHold(sv, present) {
+		return false
+	}
+	if !topCardOfLibraryGateHolds(g, sv, matches) {
 		return false
 	}
 	if !isMaxSpeedCondition(sv.ParamStr(cards.PKCondition)) {

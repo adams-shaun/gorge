@@ -30,8 +30,9 @@ func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
 
 // continuousGateKeys are the keys continuousGateHolds reads to decide
 // anything: a static carrying none of them passes every gate (ClassBand$
-// empty, no IsPresent$/IsPresent2$, no Condition$, no CheckSVar$).
-var continuousGateKeys = cards.ParamMaskOf(cards.PKClassBand, cards.PKIsPresent, cards.PKIsPresent2, cards.PKCondition, cards.PKCheckSVar)
+// empty, no IsPresent$/IsPresent2$, no Condition$, no CheckSVar$, no
+// TopCardOfLibraryIs$).
+var continuousGateKeys = cards.ParamMaskOf(cards.PKClassBand, cards.PKIsPresent, cards.PKIsPresent2, cards.PKCondition, cards.PKCheckSVar, cards.PKTopCardOfLibraryIs)
 
 // gainsAbilitiesKeys are gainsAbilitiesOf's keys: with none present it is
 // false.
@@ -395,9 +396,10 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 // every battlefield, PresentCompare$ pricing the count -- default GE1),
 // CheckSVar$/SVarCompare$ (the named SVar -- or inline Count$ expression --
 // compared under the threshold, no compare meaning "nonzero"), and
-// Condition$ (the ability-word condition family). Every evaluator is shared
-// with the restriction/cost/ability gates (engine/rules/statics.go's presentGate,
-// checkSVarHolds and costConditionHolds; engine/rules/legal.go's
+// Condition$ (the ability-word condition family), and TopCardOfLibraryIs$
+// (the controller's library top matches a card filter). Every evaluator is
+// shared with the restriction/cost/ability gates (engine/rules/statics.go's
+// presentGate, checkSVarHolds and costConditionHolds; engine/rules/legal.go's
 // activationConditionOK) so the ONE grammar governs every static family.
 // staticEffects re-runs once per emitted event, so evaluating the gate there
 // is the continuous recheck the grant needs. A gate this build cannot evaluate
@@ -416,12 +418,37 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if !e.continuousConditionHolds(sv) {
 		return false
 	}
+	if !topCardOfLibraryGateHolds(e.G, sv, e.matchesSpecFrom) {
+		return false
+	}
 	if ph := sv.ParamStr(cards.PKPhases); ph != "" {
 		if pp := e.parsedPhaseSpec(ph); !pp.valid || !pp.set.Has(e.G.Step) {
 			return false
 		}
 	}
 	return e.checkSVarHolds(sv)
+}
+
+// topCardOfLibraryGateHolds evaluates TopCardOfLibraryIs$ on a Mode$
+// Continuous static: "as long as the top card of your library is <filter>"
+// (Mul Daya Channelers, Vampire Nocturnus; CR 611.3a). The library is the
+// static controller's ("your"), the top card is read at this instant, and an
+// empty library matches nothing. The value is a card filter, including a
+// comma-separated OR list ("Creature,Artifact") and colour words
+// ("Card.Black"), so it goes through the same spec matcher every other static
+// condition reads. A free function over the game and matcher so the mana
+// grant's direct scan (manaGrantConditionHolds) can share it without adding
+// another Engine method.
+func topCardOfLibraryGateHolds(g *state.Game, sv staticView, matches func(string, state.ObjID, state.PlayerID, state.ObjID) bool) bool {
+	spec, ok := sv.Param(cards.PKTopCardOfLibraryIs)
+	if !ok {
+		return true
+	}
+	lib := g.Zone(state.ZLibrary, sv.Controller)
+	if spec == "" || len(lib) == 0 {
+		return false
+	}
+	return matches(spec, lib[0], sv.Controller, sv.Source)
 }
 
 // continuousConditionHolds evaluates Condition$ on a Mode$ Continuous static
