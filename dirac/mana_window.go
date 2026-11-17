@@ -239,8 +239,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false)
 }
 
-// windowTapWalk is windowTapUseful; takeDeferred is an X-cost payment's CR
-// 601.2g window (xWindowPay). The oracle lowers every cast as a plain cast
+// windowTapWalk is windowTapUseful (takeDeferred is kept for the callers' signature:
+// the walk takes a deferred source in its place either way). The oracle lowers every cast as a plain cast
 // (Intent.Payment or the potential play's script, never Intent.Announce), so
 // gorge's window is manaWindowAsk's ordinary one: no ManaPayment, no auto-fill
 // option, and its answer (payexec.WindowAnswer) is the first "activate" option
@@ -265,7 +265,10 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, takeDeferred && s.deferLive(k), potential)
+		// gorge's manual window lists every untapped source in battlefield order and its
+		// answer is the first listed (payexec.WindowAnswer): a planner-deferred source (a land
+		// under Contaminated Ground's Taps watcher) is taken in its place, whoever calls
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor, s.deferLive(k), potential)
 		if sl == NoSlot {
 			return false, held
 		}
@@ -895,7 +898,7 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		var order [MaxPerm]Slot
 		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, false, false)
+		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor, s.deferLive(k), false) // the real walk's pick (windowTapWalk): a deferred source in its place
 		if sl == NoSlot {
 			ok = false
 			break
