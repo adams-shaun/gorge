@@ -444,7 +444,7 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // skip the source without offering it.
 func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
 	return decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) &&
-		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want)
+		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want)
 }
 
 // windowPick is the window's next source among order (p's battlefield, in
