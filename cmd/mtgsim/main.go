@@ -32,6 +32,7 @@ import (
 	sbenv "github.com/adams-shaun/gorge/server/spellbench/env"
 	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
 	"github.com/adams-shaun/gorge/testkit/bench"
+	"github.com/adams-shaun/gorge/testkit/cardcov"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -62,6 +63,9 @@ func main() {
 	mulligans := flag.Int("mulligans", 0, "London mulligans each seat may take before turn 1 (default 0, none)")
 	deckDir := flag.String("deckdir", "", "read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks")
 	shape := flag.String("shape", "", "write a JSON game-shape census to this file (game rows, then one aggregate)")
+	coverage := flag.String("coverage", "", "append per-card coverage rows (seed card key used offered clean) to this file")
+	coverageCtx := flag.String("coverage-ctx", "", "free-text context written to the -coverage header (e.g. cmdr4, cmdr2, c60)")
+	listKeysFlag := flag.Bool("list-keys", false, "print card<TAB>key for every card in the corpus and exit")
 	cpuProf := flag.String("cpuprofile", "", "write a CPU profile here")
 	memProf := flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	var sbAgents []string
@@ -71,10 +75,17 @@ func main() {
 	})
 	flag.Parse()
 
+	if *listKeysFlag {
+		if err := listKeys(*dir, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "mtgsim:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	o := simOptions{
 		Decks: *decksFlag, Seats: *seats, Seed: *seed, Games: *games,
 		Verify: *verify, Verbose: *verbose, Dir: *dir,
-		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir,
+		PolicyA: *policyA, PolicyB: *policyB, SBAgents: sbAgents, Format: *format, Mulligans: *mulligans, Shape: *shape, DeckDir: *deckDir, Coverage: *coverage, CoverageCtx: *coverageCtx,
 	}
 	if *policies != "" {
 		o.Policies = strings.Split(*policies, ",")
@@ -130,6 +141,11 @@ type simOptions struct {
 	// name is read from <DeckDir>/<name>.json (an outside pool, such as
 	// cEDH lists) instead of the embedded repo decks. It requires -decks.
 	DeckDir string
+	// Coverage, when non-empty, is the path of the append-only per-card
+	// coverage file (coverage.go); CoverageCtx is the free text its header
+	// carries. Without it no probe is installed and no output changes.
+	Coverage    string
+	CoverageCtx string
 }
 
 func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
@@ -234,6 +250,16 @@ func runSim(o simOptions, out io.Writer) error {
 		shapes = &shapeRun{kind: fmt.Sprintf("%s/%d", o.Format, seats)}
 	}
 
+	var cov *covRun
+	if o.Coverage != "" {
+		c, err := openCoverage(o.Coverage, o.CoverageCtx, o.Format, seats, dir, reg)
+		if err != nil {
+			return err
+		}
+		defer c.f.Close()
+		cov = c
+	}
+
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
@@ -241,8 +267,11 @@ func runSim(o simOptions, out io.Writer) error {
 		if shapes != nil {
 			sg = &shapeGame{}
 		}
-		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policies, format, cmds, o.Mulligans, sg, cov) {
 			failures++
+		}
+		if cov != nil && cov.err != nil {
+			return fmt.Errorf("writing -coverage file %s: %w", o.Coverage, cov.err)
 		}
 		if sg != nil {
 			if err := shapes.writeGame(shapeFile, sg); err != nil {
@@ -368,7 +397,7 @@ func gameConfig(seed uint64, names []string, decks [][]*cards.Card, reg *cards.R
 // the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence. shape,
 // when non-nil, observes every decision and records the game's final shape.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame) (ok bool) {
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policies []string, format rules.Format, cmds [][]int, mulligans int, shape *shapeGame, cov *covRun) (ok bool) {
 	cfg := gameConfig(seed, names, decks, reg, format, cmds, mulligans)
 	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -379,10 +408,23 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	cfg.Spare = spare
 	e := rules.NewStartingPlayerChoice(cfg)
 	var observe func(*rules.Engine, *decision.Decision)
+	var probe *cardcov.Probe
+	if cov != nil {
+		probe = &cardcov.Probe{}
+		probe.Install(e)
+		observe = func(e *rules.Engine, _ *decision.Decision) { probe.Observe(e) }
+	}
 	if shape != nil {
 		shape.seed = seed
 		shape.decks = append([]string(nil), names...)
-		observe = shape.observe
+		if probe != nil {
+			observe = func(e *rules.Engine, d *decision.Decision) {
+				probe.Observe(e)
+				shape.observe(e, d)
+			}
+		} else {
+			observe = shape.observe
+		}
 	}
 	finish := func(n int, status string) {
 		if shape != nil {
@@ -396,6 +438,11 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 			sparePool.Put(spare, e)
 		}
 	}()
+	if cov != nil {
+		// Registered after the recycle above, so it runs first: the rows
+		// read the engine before its storage goes back to the pool.
+		defer func() { cov.writeGame(seed, e, decks, probe, ok) }()
+	}
 	// CR 103.1's winner-chooses ask: pose it before the seats attach so the
 	// table's own policy answers it, and the seat's game_start sees the
 	// choice pending. The drive loop answers the pending decision; no Advance
