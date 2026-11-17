@@ -117,7 +117,7 @@ func (e *Engine) grantedAbilitiesLimited(p state.PlayerID, id state.ObjID, apply
 					continue
 				}
 				if applyLimit && ce.GainsLimitPerTurn > 0 &&
-					e.gainedActivationsThisTurn(id, gf.Obj, i) >= ce.GainsLimitPerTurn {
+					e.gainedActivationsUsed(id, gf.Obj, i, true) >= ce.GainsLimitPerTurn {
 					continue
 				}
 				out = append(out, grantedAbility{SA: ab, Source: ce.Source, Stamp: ce.Timestamp,
@@ -295,7 +295,7 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 	return false
 }
 
-// gainedActivationsThisTurn counts how many times the ACTIVATED ability at
+// gainedActivationsUsed counts how many times the ACTIVATED ability at
 // foreign face-local index idx of the foreign card `foreign` has been
 // activated FROM the affected object id this turn. GainedAbilityPush events
 // name all three (Obj = recipient, IDs[0] = foreign card, Amount = index), so
@@ -304,7 +304,11 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 // change (CR 400.7: a Mairsil that leaves and returns is a new object, and
 // "Mairsil can activate each of those abilities only once each turn" is
 // about that object). The caged card's own zone never matters here.
-func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int {
+//
+// With thisTurn false it is the fold over the recipient's whole current stint
+// (the lent ability's own GameActivationLimit$, CR 602.5b "activate only
+// once").
+func (e *Engine) gainedActivationsUsed(id, foreign state.ObjID, idx int, thisTurn bool) int {
 	used := 0
 	// CR 400.7: a recipient that changed zones is a new object with its own
 	// per-turn allowance, so only its current stint's activations count.
@@ -313,7 +317,7 @@ func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int
 		ev, sign := activationCounted(e.L.Events[from+i])
 		switch ev.Kind {
 		case events.TurnChange:
-			if int(ev.Player) < len(e.G.Players) {
+			if thisTurn && int(ev.Player) < len(e.G.Players) {
 				used = 0
 			}
 		case events.GainedAbilityPush, events.ManaActivate:

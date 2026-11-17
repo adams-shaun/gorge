@@ -688,7 +688,7 @@ func (s *State) newTurnGen() {
 	s.mSlZero(s.k(), mechNoRegen) // repl_noregen.go
 	clear(s.cold.exMark)
 	s.mustBlockNewTurn(s.k()) // combat_mustbeblocked.go
-	if k := s.k(); k.gen != nil && (k.gen.anyPermMark || k.gen.anyTappedTurn) {
+	if k := s.k(); k.gen != nil && (k.gen.anyPermMark || k.gen.anyTappedTurn || k.gen.anyBtTurn) {
 		s.permMarkNewTurn(k) // filter_permmarks.go
 	}
 	if k := s.k(); k.gen != nil && (k.gen.anyAttackedObj || k.gen.anyCombatHit) {

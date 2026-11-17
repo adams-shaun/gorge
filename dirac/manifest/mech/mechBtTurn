@@ -1,0 +1,6 @@
+family: mech
+name: mechBtTurn
+value: next
+state: slotbit 16/16
+status: active
+doc: slots whose permanent became a target this turn (BecomesTarget FirstTime$; trig_counterfirst.go)
