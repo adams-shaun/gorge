@@ -692,6 +692,10 @@ const (
 	ctlCmdZone5
 	ctlCmdZone6
 	ctlCmdZone7
+	// ctlTurnUpTap: transient inside face_facedown.go's turn-up tap step, so the
+	// planner prices its restricted sources as the special action's payment
+	// (payDescNow); parked in genState.pickLeft/pickF, never a decision.
+	ctlTurnUpTap
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7
@@ -765,6 +769,7 @@ type build struct {
 	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
 	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
 	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
+	snowPre   uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
 	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
 }
 
@@ -848,6 +853,14 @@ const (
 	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
 	rfRestPh                        // scry/surveil: the top phase closed; the rest cards are being ordered
 	rfCopyGrp                       // a copy op has entered a copy and may park for the next one (interp_gen.go copyTokens): its later copies join the first one's AtEOT$ sacrifice trigger
+	// rfBodyOp / rfBodyTurn mark a pending dredge ask of a draw-replacement
+	// body card (kw_dredge.go dredgeBodyPose): the ask is raDredgeRes, and
+	// the flag says which enclosing site the answer resumes. rfBodyOp: an
+	// OpDraw card (the chain slot rides g.pickP, the loop's res.left /
+	// g.pickZ / g.pickLeft); rfBodyTurn: the turn draw (the chain slot rides
+	// res.left, the answer finishes the draw step).
+	rfBodyOp
+	rfBodyTurn
 )
 
 // resCtx is a resolution in progress.

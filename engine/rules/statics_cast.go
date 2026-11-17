@@ -54,12 +54,53 @@ func (e *Engine) SpellCopyAllowed(id state.ObjID) bool {
 	return true
 }
 
-// countersRemainApplies reports whether the departing permanent itself has
-// an active CountersRemain static. Static lines are read through the canonical
-// activeStatics walk so EffectZone, merged-face and face-down rules stay
-// consistent with the other static consumers.
+// countersRemainMode is the static Mode$ word countersRemainApplies reads.
+// It is a named constant, not a scattered literal: the word appears once
+// here, at the one home of the CountersRemain read.
+const countersRemainMode = "CountersRemain"
+
+// countersRemainMoveEligible reports whether a MoveZone is one of the folds
+// a CountersRemain marking must decide: the battlefield departure other than
+// the hand and library resets (the static's own rules text), or the re-entry
+// from a public zone (a stack spell keeps its stack leg, CR 400.7a-b).
+func countersRemainMoveEligible(o *state.Object, ev events.Event) bool {
+	return o.Zone == state.ZBattlefield && ev.To != state.ZHand && ev.To != state.ZLibrary ||
+		ev.To == state.ZBattlefield && o.Zone != state.ZStack
+}
+
+// countersRemainApplies reports whether the object itself has an active
+// CountersRemain static. On the battlefield the static lines are read through
+// the canonical activeStatics walk so EffectZone, merged-face and face-down
+// rules stay consistent with the other static consumers. Off the battlefield
+// that walk cannot see the card, so its own printed statics are read instead:
+// the CountersRemain exception in the card's own rules text (Skullbriar
+// "retains all its counters as it moves to any zone other than a player's
+// hand or library") follows the card to its public zone and marks the
+// re-entry as well, while every other public-zone entry is a CR 400.7 new
+// object that leaves its wayward counters behind (events.Apply's entry fold).
+// A battlefield-scoped printed static (EffectZone$) does not function in the
+// public zone and is skipped by the same staticEffectZoneOK gate.
 func (e *Engine) countersRemainApplies(id state.ObjID) bool {
-	for _, sv := range e.activeStatics("CountersRemain") {
+	for _, sv := range e.activeStatics(countersRemainMode) {
+		spec := sv.ParamStr(cards.PKValidCard)
+		if spec != "" && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			return true
+		}
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Zone == state.ZBattlefield || e.printedAbilitiesGone(o) {
+		return false
+	}
+	for si, n := 0, o.PileStaticCount(); si < n; si++ {
+		pst, ok := o.PileStaticAt(si)
+		if !ok || pst.Static.Mode != countersRemainMode {
+			continue
+		}
+		if !staticEffectZoneOK(pst.Static, o.Zone) {
+			continue
+		}
+		sv := staticView{Source: id, Controller: o.Controller,
+			Params: pst.Static.Params, PS: pst.Static.ParamSetOf(), SVars: pst.Face.SVars}
 		spec := sv.ParamStr(cards.PKValidCard)
 		if spec != "" && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			return true

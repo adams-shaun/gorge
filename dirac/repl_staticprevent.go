@@ -48,7 +48,7 @@ func tableHasStaticPrev(t *kop.Table) bool {
 			}
 		}
 	}
-	return false
+	return tableEmbHasStaticPrev(t)
 }
 
 // isStaticPrev: a is a static damage prevention (either kind).
@@ -78,15 +78,21 @@ type spCand struct {
 // spMatch reports whether the static prevention a of the host at b is a
 // candidate of event e (gorge damageReplacementMatches).
 func (s *State) spMatch(k *prep, b Slot, a *kop.Ability, e *spEv) bool {
+	return s.spMatchAs(k, s.perms[b].ctrl, b, s.perms[b].obj, a, e)
+}
+
+// spMatchAs is spMatch for a prevention controlled by hc whose host is the
+// permanent at b (object src); an emblem's prevention has no host (b NoSlot,
+// src NoObj).
+func (s *State) spMatchAs(k *prep, hc uint8, b Slot, src Obj, a *kop.Ability, e *spEv) bool {
 	r := &a.Repl
 	c := r.C
-	hc := s.perms[b].ctrl
 	if c&kop.ReplSPCombat != 0 && !e.combat || c&kop.ReplSPNonCombat != 0 && e.combat ||
 		c&kop.ReplSPYourTurn != 0 && s.active != hc || c&kop.ReplSPSrcInPlay != 0 && e.srcSl == NoSlot ||
 		c&kop.ReplSPDmgLE != 0 && e.n > int(r.A) || c&kop.ReplSPSrcSpell != 0 && (e.srcSl != NoSlot || s.res.e.kind != seSpell) {
 		return false
 	}
-	ctx := evalCtx{src: s.perms[b].obj, srcSl: b, ctrl: hc}
+	ctx := evalCtx{src: src, srcSl: b, ctrl: hc}
 	if r.Cond != 0 && !s.condEval(k, r.Cond, ctx) {
 		return false
 	}
@@ -147,7 +153,7 @@ func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 			}
 		}
 	}
-	return n
+	return s.spCollectEmb(k, e, out, n)
 }
 
 // spPrevented is the damage the shield a of the host at b prevents from the
@@ -161,6 +167,8 @@ func (s *State) spPrevented(k *prep, b Slot, a *kop.Ability, left int) int {
 	switch c := r.C; {
 	case c&kop.ReplSPAllBut != 0:
 		m = left - int(r.A)
+	case b >= MaxPerm:
+		return 0 // an emblem has no host to read a counter or a value from (the lowering refuses them)
 	case c&kop.ReplSPLimitCtr != 0:
 		m = s.perms[b].ctrN(s, int(r.A))
 	case c&kop.ReplSPAmtV != 0:
@@ -175,7 +183,7 @@ func (s *State) spPrevented(k *prep, b Slot, a *kop.Ability, left int) int {
 // (gorge allBarePreventions), so no order ask is posed.
 func (s *State) spBare(k *prep, cs *[spMax]spCand, c int) bool {
 	for i := 0; i < c; i++ {
-		a := &k.t.Cards[s.cardAt(cs[i].b)].Abilities[cs[i].ab]
+		a := s.spCandAb(k, cs[i])
 		if a.Repl.Kind != kop.ReplPreventDamageFilt || a.Repl.C&kop.ReplSPOptional != 0 {
 			return false
 		}
@@ -189,13 +197,13 @@ func (s *State) spBare(k *prep, cs *[spMax]spCand, c int) bool {
 // two shields (a pick names the host).
 func (s *State) spOrderable(k *prep, cs *[spMax]spCand, c int) bool {
 	for i := 0; i < c; i++ {
-		a := &k.t.Cards[s.cardAt(cs[i].b)].Abilities[cs[i].ab]
+		a := s.spCandAb(k, cs[i])
 		if a.Repl.C&(kop.ReplSPOptional|kop.ReplSPDmgLE) != 0 {
 			return false
 		}
 		for j := 0; j < i; j++ {
 			if cs[j].b == cs[i].b && (a.Repl.Kind == kop.ReplPreventDamageN ||
-				k.t.Cards[s.cardAt(cs[i].b)].Abilities[cs[j].ab].Repl.Kind == kop.ReplPreventDamageN) {
+				s.spCandAb(k, cs[j]).Repl.Kind == kop.ReplPreventDamageN) {
 				return false
 			}
 		}
@@ -239,7 +247,7 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 	case c <= 0:
 		return e.n, false
 	case c == 1:
-		a := &k.t.Cards[s.cardAt(cs[0].b)].Abilities[cs[0].ab]
+		a := s.spCandAb(k, cs[0])
 		if a.Repl.C&kop.ReplSPOptional != 0 {
 			s.capFull(StallReplPlus) // gorge asks the optional line's "may"; only a noncombat event is posed (spPark)
 			return e.n, false
@@ -312,7 +320,7 @@ func (s *State) spPark(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if c == 0 {
 		return false, false
 	}
-	lone := k.t.Cards[s.cardAt(cs[0].b)].Abilities[cs[0].ab].Repl.C&kop.ReplSPOptional != 0
+	lone := s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0
 	switch {
 	case c == 1 && !lone, c >= 2 && s.spBare(k, &cs, c):
 		return false, false // applied on its own (statPrevNC)
@@ -321,6 +329,10 @@ func (s *State) spPark(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		return false, true
 	case c >= 2 && !s.spOrderable(k, &cs, c):
 		s.capFull(StallReplPlus)
+		return false, true
+	}
+	if cs[0].b >= MaxPerm {
+		s.capFull(StallReplCands) // an emblem is never named by an order ask
 		return false, true
 	}
 	hdr := replHdr{n: uint8(c), p: e.rcp, an: int16(n)}

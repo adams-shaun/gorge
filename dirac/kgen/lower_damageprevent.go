@@ -47,7 +47,7 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 		return lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
 	}
 	if _, ok := ps.get("Duration"); ok {
-		return refuse("Effect replacement Duration$")
+		return lc.effectDurationPrevent(ps) // lower_effectemblemprevent.go: Ajani's Permanent emblem, else refuses
 	}
 	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
 		return err

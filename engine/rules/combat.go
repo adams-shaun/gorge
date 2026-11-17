@@ -2796,7 +2796,23 @@ func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 			take(n, ce.Timestamp)
 		}
 	}
-	return best
+	if best >= unlimitedHandSize {
+		return best
+	}
+	// The additive RaiseMaxHandSize$ Continuous statics affecting p (CR
+	// 402.2: Jin-Gitaxias, Core Augur's "each opponent's maximum hand size is
+	// reduced by seven" is -7, Minamo Scrollkeeper's +1) apply on top of the
+	// set maximum, never below zero. No maximum stays no maximum. A value
+	// that is not an integer literal (none in the corpus) is skipped.
+	for _, sv := range e.activeStatics("Continuous") {
+		n, ok := effects.HandSizeDeltaOK(sv.ParamStr(cards.PKRaiseMaxHandSize))
+		if !ok || !effects.MatchesPlayerSpecFrom(e.G, sv.ParamStr(cards.PKAffected), p, sv.Controller, sv.Source) ||
+			!e.continuousGateHolds(sv) {
+			continue
+		}
+		best += n
+	}
+	return max(best, 0)
 }
 
 // grantedMaxHandSizes reports, through take, every SetMaxHandSize$ a printed

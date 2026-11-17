@@ -32,7 +32,7 @@ func (s *State) attachObj(k *prep, in *kop.Instr) {
 // single-object rule) and remembers it under B = Const 1.
 func (s *State) attachOne(k *prep, in *kop.Instr, dst Slot) {
 	src := s.objRef(k, kop.Ref(in.C))
-	if src == NoSlot || dst == NoSlot || src == dst {
+	if src == NoSlot || dst == NoSlot || src == dst || s.auraRefuses(k, src, dst) {
 		return
 	}
 	s.attachTo(k, src, dst)
@@ -88,10 +88,22 @@ func (s *State) attachRemembered(k *prep, dst Slot) {
 			continue
 		}
 		src := s.objs[o].slot
-		if src == dst {
+		if src == dst || s.auraRefuses(k, src, dst) {
 			continue
 		}
 		s.attachTo(k, src, dst)
 		s.touchSl(src)
 	}
+}
+
+// auraRefuses is gorge's attachRefused for an Aura (CR 701.3b, 303.4f): an
+// Aura whose enchant restriction (a hexproof-blind host test, protection
+// still counted) does not admit the destination does not move, and keeps its
+// bearer. A player-enchanting Aura and every non-Aura answer false.
+func (s *State) auraRefuses(k *prep, src, dst Slot) bool {
+	c := s.objs[s.perms[src].obj].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	return !s.enchantHostOK(k, c, s.perms[src].ctrl, dst)
 }

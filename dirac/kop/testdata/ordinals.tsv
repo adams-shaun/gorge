@@ -526,6 +526,7 @@ ExtExileLandChoose	ExtOp	162
 ExtExploit	ExtOp	298
 ExtExtort	ExtOp	302
 ExtFinalityCtr	ExtOp	198
+ExtForgetImprinted	ExtOp	321
 ExtGrantEncore	ExtOp	320
 ExtGrantExile	ExtOp	249
 ExtGrantKwAll	ExtOp	296
@@ -744,7 +745,7 @@ NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
 NumCounterKinds3	CounterKind	242
 NumCounterKindsX	int	227
-NumExtOps	ExtOp	321
+NumExtOps	ExtOp	322
 NumManaKinds	untyped int	6
 NumSteps	Step	13
 OpAddMana	Op	48
@@ -945,7 +946,9 @@ PayBSubDamage	untyped int	14
 PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
+PayBSubMill	untyped int	17
 PayBSubSacHost	untyped int	7
+PayBSubSacRiders	untyped int	18
 PayBSubSacSelfMust	untyped int	4
 PayBSubStackSelf	untyped int	13
 PayBSubTapXVar	untyped int	16
@@ -987,7 +990,10 @@ PlExtLibrary	untyped int	512
 PlExtOpponents	untyped int	1
 PlExtPlayers	untyped int	0
 PlaceArmBottom	untyped int	1
+PlaceArmBottomRandom	untyped int	5
+PlaceArmSweepBottom	untyped int	3
 PlaceArmTop	untyped int	0
+PlaceArmTopRandom	untyped int	4
 PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
@@ -1181,6 +1187,9 @@ ReplEntersTapped	ReplKind	1
 ReplEntersWithCounters	ReplKind	2
 ReplExileOnLeave	ReplKind	19
 ReplGraveToLibrary	ReplKind	14
+ReplLibBattlefield	int16	4
+ReplLibBottom	int16	1
+ReplLibShuffle	int16	2
 ReplLifeDouble	ReplKind	17
 ReplLifeLossDouble	ReplKind	24
 ReplLifePlus	ReplKind	18
@@ -1304,6 +1313,7 @@ StNoPrevCombat	StaticFlags	2
 StNoPrevSpellSelf	StaticFlags	4
 StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
+StPerAffected	StaticFlags	2
 StRaiseLife	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaisePerTarget	StaticFlags	2
@@ -1552,6 +1562,7 @@ TokExileAtEnd	untyped int	16
 TokImprintObj	untyped int	16384
 TokRemember	untyped int	2
 TokRememberObj	untyped int	4
+TokRememberSrc	untyped int	32768
 TokSacAtEnd	untyped int	8
 TokTapped	untyped int	1
 TpOppSeparates	untyped int	1
@@ -1604,6 +1615,7 @@ TrigNAnyCounter	int16	-1
 TrigNCauseSpellOppCtrl	int16	2
 TrigNCauseSpellYouCtrl	int16	1
 TrigNMonarchBeganTurn	int16	1
+TrigNSrcSpell	int16	4
 TrigNTeamworkTap	int16	1
 TrigNTraining	int16	2
 TrigNValiant	int16	1
@@ -1677,6 +1689,7 @@ W7NonSnow	int16	38
 W7NotBlocking	int16	30
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
+W7NotImprinted	int16	39
 W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7Snow	int16	37

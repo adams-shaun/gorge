@@ -216,7 +216,8 @@ func offerPayment(id state.ObjID, ability bool, scope costScope) paymentDescript
 	if ability {
 		class = paymentActivated
 	}
-	return paymentDescriptor{ID: id, Class: class, OnlyTag: scope.OnlyTag}
+	return paymentDescriptor{ID: id, Class: class, OnlyTag: scope.OnlyTag,
+		Bestowed: !ability && scope.Kind == "Spell" && scope.Mode == altMode(altBestow)}
 }
 
 func (pe *payer) Game() *state.Game                 { return pe.G }
@@ -244,6 +245,12 @@ func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID
 	// Likewise an X the caster announces (cost_announce_bound.go).
 	if e.costSpecAnnounceBound(spec, source) {
 		return e.matchAnnounceBoundCostSpec(spec, id, you, source)
+	}
+	// Likewise the {X} the cost itself pays (cost_paid_x_bound.go).
+	if pc := e.cast; pc != nil && pc.card == source && pc.xDone {
+		if o := e.G.Obj(source); o != nil && o.Face() != nil && costSpecPaidXBound(spec, o.Face().SVars[costPaidXVarName]) {
+			return e.matchesSpec(spec, id, withPaidX(e.specCtx(source, you), pc.x))
+		}
 	}
 	return e.matchesSpecFrom(spec, id, you, source)
 }

@@ -361,10 +361,10 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					if tapped {
 						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 					}
+					rider.apply(h, c, id, p, dest)
 					if batchEntry {
 						h.EndZoneBatch()
 					}
-					rider.apply(h, c, id, p, dest)
 					if o := g.Obj(id); bearer != 0 && o != nil && o.Zone == state.ZBattlefield && o.AttachedTo == 0 {
 						// CR 303.4f: the selected permanent is the Aura's
 						// chosen bearer on this non-cast battlefield entry

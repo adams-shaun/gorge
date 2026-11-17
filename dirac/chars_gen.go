@@ -454,6 +454,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
 		m = m.Or(o.AddSub)
+		if o.ImpSub {
+			m = m.Or(s.impCreatureSub(k, s.perms[sl].obj)) // AddType$ ImprintedCreatureType (zone_imprint.go)
+		}
 		if ovrAllCreat(o) {
 			all = true
 		}
@@ -530,6 +533,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 			}
 			m = m.Or(o.AddSub)
+			if o.ImpSub {
+				m = m.Or(s.impCreatureSub(k, s.perms[sl].obj)) // AddType$ ImprintedCreatureType (zone_imprint.go)
+			}
 			if ovrAllCreat(o) {
 				mAll, allOut = true, true
 			}
@@ -721,6 +727,15 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 			}
 			if sa.StFlags&kop.StDynamic != 0 {
 				ctx := s.ctxStatic(st)
+				if sa.StFlags&kop.StPerAffected != 0 {
+					// the AffectedX convention (kop.StPerAffected): each
+					// amount reads the AFFECTED object as its source (gorge
+					// layers_static.go staticAmountOn's affected anchor), so
+					// a source-relative read inside the count binds the
+					// affected creature, not the static's source (A-Bruenor
+					// Battlehammer's Count$Valid Equipment.Attached).
+					ctx.src, ctx.srcSl = s.perms[sl].obj, sl
+				}
 				bp += s.evalV(k, sa.VA, ctx)
 				bt += s.evalV(k, sa.VB, ctx)
 			} else {

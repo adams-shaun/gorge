@@ -47,7 +47,7 @@ func TestImpPersistSeedsAfterDeparture(t *testing.T) {
 	sc, a, srcObj := impPersistScen(t, []kop.Instr{imprintExile(kop.RefTarget0, kop.MvImprint)})
 	s := sc.s
 	s.runProg(sc.k)
-	if !s.impStoreHas(srcObj, a) {
+	if !s.impStoreHas(srcObj, a, kop.ZoneNone) {
 		t.Fatalf("the write was not recorded on the source: %v", srcMemRecs(s))
 	}
 	// a departure: removePerm bumps the ver, then leaveGen runs.

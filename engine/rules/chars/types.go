@@ -637,10 +637,12 @@ func typeGroup(act []state.ContinuousEffect) (int, int) {
 // its static (Urborg, Tomb of Yawgmoth's Swamp grant) does not exist. CR
 // 613.8a makes the static dependent on the setter, so this holds whatever
 // the timestamps. The setter is matched against the source's PRINTED types
-// (no recursive layer-4 walk of the source); an Effect-created or
-// until-end-of-turn registration is not rules text and is never suppressed.
+// (no recursive layer-4 walk of the source); an Effect-created,
+// until-end-of-turn or resolution-created lasting registration (an Animate
+// with a stated duration: Awakener Druid's Treefolk) is not rules text and is
+// never suppressed.
 func landTypesSetOnSource(b Board, group []state.ContinuousEffect, ce *state.ContinuousEffect) bool {
-	if ce.FromEffect || ce.UntilEOT || ce.RemoveLandTypes {
+	if ce.FromEffect || ce.UntilEOT || ce.RemoveLandTypes || ce.Permanent || ce.Duration != "" {
 		return false
 	}
 	src := b.Game().Obj(ce.Source)

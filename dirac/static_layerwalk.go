@@ -647,7 +647,7 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 	if fl.Pred == kop.PredAttached {
 		return s.predAttached(sl, src)
 	}
-	return s.predPermGen(k, fl, sl, layerKw)
+	return s.predPermGen(k, fl, sl, src, layerKw)
 }
 
 // walkAllOn: a global override static or a subtype lord is in force, so

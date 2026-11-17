@@ -3390,5 +3390,16 @@ func init() {
 		// Modular (CR 702.43): the enters-with-counters replacement and the
 		// dies trigger are expanded from the keyword line in cards/kw_modular.go.
 		"kw:Modular",
+		// Soulshift (CR 702.46a): the optional dies trigger returning a Spirit
+		// card with mana value N or less from the graveyard to hand is expanded
+		// from the keyword line in cards/kw_soulshift.go.
+		"kw:Soulshift",
+		// Reinforce (CR 702.77): the hand-zone discard-for-counters activation
+		// is expanded from the keyword line in cards/kw_reinforce.go.
+		"kw:Reinforce",
+		// Tribute (CR 702.104): the enters-with-counters replacement (the
+		// opponent's pay ask) and the "if tribute wasn't paid" trigger are
+		// expanded from the keyword line in cards/kw_tribute.go.
+		"kw:Tribute",
 	)
 }

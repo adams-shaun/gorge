@@ -99,8 +99,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			n := s.value(k, in.A)
 			s.touchSl(sl)
-			s.perms[sl].seeCtr(s) // gorge lists a kind removed to none at 0
-			s.perms[sl].subCtrN(s, int(in.C), n)
+			s.perms[sl].seeCtr(s)             // gorge lists a kind removed to none at 0
+			s.subCtrFire(k, sl, int(in.C), n) // trig_counterremoved.go
 		}
 	case kop.OpCreateToken:
 		p := s.playerRef(k, in.Obj)
@@ -563,7 +563,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.addManaRestr(k, p, col, n, in.F) // mana_resolverestriction.go; PersistentMana$ True: its restriction kind persists (genPrep.restrPers)
 			break
 		}
-		s.poolAdd(p, col, n)
+		s.poolAddFrom(k, p, e.card, col, n) // a snow spell's or source's mana is snow mana (mana_snow.go)
 	case kop.OpReturn:
 		o := s.objRefObj(in.Obj)
 		if o == NoObj {

@@ -247,7 +247,7 @@ const (
 	// manifest sub-op takes a free value below it (values are pinned by
 	// testdata/ordinals.tsv) and never edits this line. Unused slots stay
 	// unnamed. Raise it only when the free values run out.
-	NumExtOps ExtOp = 321
+	NumExtOps ExtOp = 322
 )
 
 // ExtDrainMana: the player in Obj loses all unspent mana (gorge
@@ -833,6 +833,16 @@ func init() { extOpNames[ExtExtort] = "Extort" }
 const ExtRememberImprinted ExtOp = 307
 
 func init() { extOpNames[ExtRememberImprinted] = "RememberImprinted" }
+
+// ExtForgetImprinted: the object Obj (RefTriggered: gorge Pump
+// ForgetImprinted$ TriggeredCard) leaves the resolution's imprinted set, and
+// for a source that keeps its list the per-source memory record goes too
+// (gorge forgetImprinted on Pump: the o.Imprinted half is not auto-pruned on
+// the card's move, so the forget is the write that keeps a later read from
+// seeing a stale imprint). dirac/zone_imprint.go.
+const ExtForgetImprinted ExtOp = 321
+
+func init() { extOpNames[ExtForgetImprinted] = "ForgetImprinted" }
 
 // ExtPreventNext (CR 615.7): prevent the next B damage that would be dealt
 // this turn to the player or permanent Obj (gorge effects/prevent_damage.go

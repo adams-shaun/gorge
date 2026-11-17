@@ -74,7 +74,7 @@ func (s *State) counterXClamp(k *prep, mx, hi int) (int, int) {
 // CounterChange; CR 606.4 for loyalty, 118.3 for any other kind).
 //
 //go:noinline
-func (s *State) payCounterX(sl Slot, kind int, x uint8) {
+func (s *State) payCounterX(k *prep, sl Slot, kind int, x uint8) {
 	s.perms[sl].seeCtr(s)
-	s.perms[sl].subCtrN(s, kind, int(x))
+	s.subCtrFire(k, sl, kind, int(x)) // trig_counterremoved.go
 }

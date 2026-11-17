@@ -1,0 +1,13 @@
+# the CDA colour and type pool (CR 604.3): colour and type setters on the card
+# itself beside the cards that read colour and type in every zone
+# (dirac/oracle/cdacolortype_lockstep_test.go)
+Transguild Courier
+Ghostfire
+Stonework Packbeast
+Mistform Ultimus
+Doom Blade
+Terror
+Naturalize
+Wizard's Lightning
+Mountain
+Swamp

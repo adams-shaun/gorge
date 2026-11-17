@@ -77,6 +77,7 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
+		s.srcMemSeed(k, &e) // its source's kept Remembered (zone_srcmemrem.go)
 		if k.gen.has(e.card, gfEnterRepl) {
 			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}
@@ -1020,6 +1021,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
+		return TCode(NoTarget)
+	}
+	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
+		// the triggering permanent left and came back meanwhile: a new object
+		// (CR 400.7); the op's referent is none, as objRef resolves it
 		return TCode(NoTarget)
 	}
 	return TCode(o)

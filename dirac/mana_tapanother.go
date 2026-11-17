@@ -397,6 +397,7 @@ type tapXStep struct {
 	cand2    Slot // the second tapped permanent of a two-permanent cost (NoSlot: none)
 	col      uint8
 	kind     uint8
+	gi       int16 // the granted ability a tapXGrant step taps
 	act      Action
 }
 
@@ -410,6 +411,7 @@ const (
 	tapXRider                     // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
 	tapXDefer                     // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
 	tapXAnyDifferent              // a Firemind Vessel (AnyDifferent) taps for N distinct colours: gorge's search activates it as a census gap
+	tapXGrant                     // a plain granted {T} mana ability's holder taps for col (mana_tapxgrant.go)
 )
 
 type tapXKey struct {
@@ -435,6 +437,7 @@ type tapXSearch struct {
 	srcZ    kop.Zone
 	sp0     uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps    slotMask
+	grants  slotMask               // the plain granted-mana holders among gaps (tapXGrantGaps)
 	def     slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
 	anyDiff slotMask               // the AnyDifferent sources among gaps: gorge's census lists them, they add N distinct colours
 	need    [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
@@ -509,6 +512,11 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	for b := rs.gaps; b.any() && !rs.sac; b = b.rest() {
 		rs.sac = k.sacXOf(s.cardAt(b.first()))
 	}
+	if s.tapXGrantBoard(k, p, a) {
+		// beside a sacrifice-any source the grant holders are gaps of this search (mana_tapxgrant.go)
+		rs.grants, _ = s.tapXGrantGaps(k, p, rs.gaps)
+		rs.gaps = rs.gaps.or(rs.grants)
+	}
 	t := s.fork()
 	defer s.unfork()
 	// granted mana is the grant search's (grantPrefix / grantCap), for a cast as
@@ -568,7 +576,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer || st.kind == tapXAnyDifferent {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer || st.kind == tapXAnyDifferent || st.kind == tapXGrant {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -795,6 +803,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.sba(k)
 		return
 	}
+	if st.kind == tapXGrant {
+		s.tapXGrantDo(k, p, st)
+		return
+	}
 	if st.cand == NoSlot {
 		s.ctrGap(k, p, st.sl, int(st.col)) // a counter-cost gap: its counter, its use, its mana
 		s.sba(k)                           // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
@@ -949,6 +961,50 @@ func (rs *tapXSearch) try(k *prep, t *State, st tapXStep) bool {
 	return false
 }
 
+// pairAsk is visit's two-permanent cost (Baylen) at source sl with its nc
+// candidates cs: done reports a result (found, or the budget spent) visit
+// returns; otherwise no pair paid and the search goes on to the next gap.
+func (rs *tapXSearch) pairAsk(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc int, cols *[5]uint8) (ret, done bool) {
+	// a two-permanent cost (Baylen): two candidates are tapped with no
+	// ask; more are asked as one "choose 2" whose answers gorge's
+	// scriptAnswers enumerates as every pair of its candidates in
+	// lexicographic order, 64 at most (a multi-object election, not a
+	// per-unit colour allocation: an odd count is no early stop)
+	if nc > 2 && !rs.tick() {
+		return false, true
+	}
+	npair := tapXPairLimit(nc)
+	for pi := 0; pi < npair; pi++ {
+		qi := pi
+		if debugTapXMutate == 2 {
+			qi = npair - 1 - pi // the last pair first (mutation)
+		}
+		i, j := tapXPairAt(nc, qi)
+		a, b := cs[i], cs[j]
+		if rs.tapXOwnAnswer(a, b) {
+			// A forced tap (no ask: exactly the cost's candidates)
+			// that takes the play's own {T} source is no continuation
+			// (CR 602.2b): gorge's tappedOwnSource rejects the node
+			// the tap reaches, before the colour ask branches, so the
+			// branch costs one node there and none here.
+			continue
+		}
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		for i := 0; i < 5; i++ {
+			c := cols[i]
+			if debugTapXMutate == 1 {
+				c = 0
+			}
+			if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
+				return true, true
+			}
+		}
+	}
+	return false, false
+}
+
 func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	if !rs.tick() { // a payer priority node
 		return false
@@ -1012,6 +1068,12 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		if rs.def.has(sl) {
 			if found, handled := rs.deferAsk(k, t, sl); handled {
 				return found
+			}
+			continue
+		}
+		if rs.grants.has(sl) {
+			if rs.grantAsk(k, t, sl) {
+				return true
 			}
 			continue
 		}
@@ -1091,42 +1153,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			continue
 		}
 		if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
-			// a two-permanent cost (Baylen): two candidates are tapped with no
-			// ask; more are asked as one "choose 2" whose answers gorge's
-			// scriptAnswers enumerates as every pair of its candidates in
-			// lexicographic order, 64 at most (a multi-object election, not a
-			// per-unit colour allocation: an odd count is no early stop)
-			if nc > 2 && !rs.tick() {
-				return false
-			}
-			npair := tapXPairLimit(nc)
-			for pi := 0; pi < npair; pi++ {
-				qi := pi
-				if debugTapXMutate == 2 {
-					qi = npair - 1 - pi // the last pair first (mutation)
-				}
-				i, j := tapXPairAt(nc, qi)
-				a, b := cs[i], cs[j]
-				if rs.tapXOwnAnswer(a, b) {
-					// A forced tap (no ask: exactly the cost's candidates)
-					// that takes the play's own {T} source is no continuation
-					// (CR 602.2b): gorge's tappedOwnSource rejects the node
-					// the tap reaches, before the colour ask branches, so the
-					// branch costs one node there and none here.
-					continue
-				}
-				if !rs.tick() { // the colour ask
-					return false
-				}
-				for i := 0; i < 5; i++ {
-					c := cols[i]
-					if debugTapXMutate == 1 {
-						c = 0
-					}
-					if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
-						return true
-					}
-				}
+			// a two-permanent cost (Baylen): pairAsk
+			if ret, done := rs.pairAsk(k, t, sl, &cs, nc, &cols); done {
+				return ret
 			}
 			continue
 		}

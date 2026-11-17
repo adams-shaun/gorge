@@ -17,16 +17,28 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // The kernel poses the same decision (DkChoose ChGenBranch, mode i = the
 // i-th candidate, the last mode the draw: canonical as gorge's KModes
-// index) at the turn draw (dredgeTurnAsk, ctlGenAsk) and at each card of an
-// OpDraw (dredgeDraws, the resolution ask raDredge). Any other draw path
-// (connive, recruit, the monarch's draw, a draw replacement's body, a draw
-// cost) with a candidate stalls (StallDredge) rather than draw unasked.
+// index) at the turn draw (dredgeTurnAsk, ctlGenAsk), at each card of an
+// OpDraw (dredgeDraws, the resolution ask raDredge) and at every other
+// effect-draw site (raDredgeRes, below: connive, Recruit, the monarch's
+// end-step draw, a Draw Upto's body). A draw paid as a resolution cost is
+// not an effect draw: gorge's draw-bearing triggered cost (rules
+// payDrawCostParts) draws plainly, so the kernel latches each of its cards
+// past the guard. A draw-replacement body card (repl_draw.go drawMore's
+// drawExcl) asks too where the lineage holds exactly one source and the
+// enclosing site is resumable (dredgeBodyPose, below): the turn draw, whose
+// answer finishes the draw step as dredgeTurnAnswer does, and an OpDraw
+// card, whose answer resumes the OpDraw loop past the body batch. A body
+// card of a deeper lineage (two or more replacements in it, CR 616.1e) or
+// of another site still stalls: its resume needs the lineage's whole
+// applied chain, which no res frame holds.
 
 // kwDredge is the manifest keyword CardDef.Dredge stands for.
 const kwDredge = kop.KwDredge
 
-// StallDredge: a draw the kernel cannot suspend on (not the turn draw nor an
-// OpDraw card) meets a dredge candidate: gorge would ask.
+// StallDredge: a draw the kernel cannot suspend on (not the turn draw, an
+// OpDraw card, a raDredgeRes site, nor a single-replacement body card,
+// dredgeBodyPose) meets a dredge candidate: a body card of a deeper lineage
+// or another unresumable path; gorge would ask.
 const StallDredge = 178
 
 func init() { stallNames[StallDredge] = "dredge" }
@@ -162,6 +174,9 @@ func (s *State) dredgeTurnAnswer(k *prep, a Action) {
 		s.cfgx |= cfgxDredgeAsked
 		s.draw(s.active)
 		s.cfgx &^= cfgxDredgeAsked
+		if s.res.ask == raDredgeRes && s.res.flags&rfBodyTurn != 0 {
+			return // the draw's body batch suspended on its first ask (dredgeBodyAnswer)
+		}
 	}
 	s.g.drawFirst = false
 	if s.over {
@@ -252,7 +267,192 @@ func (s *State) dredgeAskAnswer(k *prep, a Action) {
 		s.cfgx |= cfgxDredgeAsked
 		s.dredgeDrawOne(in, p)
 		s.cfgx &^= cfgxDredgeAsked
+		if s.res.ask == raDredgeRes && s.res.flags&rfBodyOp != 0 {
+			return // the draw's body batch suspended on its first ask (dredgeBodyAnswer)
+		}
 	}
+	if s.dredgeDrawLoop(k, in, p, int(s.res.left)-1, s.g.pickZ, int(s.g.pickLeft)) {
+		s.continueRes(k, 0)
+	}
+}
+
+// --- the other effect-draw sites (gorge drawFor asks before each) ---
+
+// raDredgeRes (dirac/manifest/ask/raDredgeRes) is a non-OpDraw effect-draw
+// site's dredge ask: res.askP the drawer, res.left the cards its site still
+// owes counting the asked one, res.chosen the site (dredgeRes*). The site
+// suspends on it (dredgeResPose); the answer's ordinary draw passes
+// dredgeHeld once (cfgxDredgeAsked), the rest of the batch is drawn through
+// dredgeResAnswer, and the site's tail (dredgeResTail) finishes it. Each
+// site keeps its own tail state where it lives: connive's count in g.conn,
+// Recruit's in res.e, Draw Upto's and the monarch's in nothing.
+// A draw-replacement body card's ask (dredgeBodyPose, below) is a
+// raDredgeRes too, marked by res.flags rfBodyOp / rfBodyTurn instead of a
+// site value: dredgeResAnswer routes it to dredgeBodyAnswer.
+const (
+	dredgeResConnive objWord = 1 // act_connive.go: the count and discard after the draws
+	dredgeResRecruit objWord = 2 // act_recruit.go: the discard after the draw
+	dredgeResUpto    objWord = 3 // act_drawupto.go: the program goes on
+	dredgeResMonarch objWord = 4 // act_monarch.go: the delayed trigger finishes
+)
+
+// dredgeResPose poses the dredge ask of a non-OpDraw draw site at p for its
+// left remaining cards; true: no candidate, the caller draws plainly.
+func (s *State) dredgeResPose(k *prep, p uint8, site objWord, left int) bool {
+	if !dredgeOn(k) || s.dredgeCands(k, p, nil) == 0 {
+		return true
+	}
+	s.res.ask, s.res.askP, s.res.left = raDredgeRes, p, uint8(left)
+	s.res.chosen = site
+	return false
+}
+
+// dredgeResDraws draws n cards for p at a non-OpDraw draw site, asking the
+// site's dredge ask before each card that has a candidate; false: an ask is
+// posed and the caller suspends.
+func (s *State) dredgeResDraws(k *prep, p uint8, site objWord, n int) bool {
+	for i := 0; i < n && !s.over; i++ {
+		if !s.dredgeResPose(k, p, site, n-i) {
+			return false
+		}
+		s.draw(p)
+	}
+	return true
+}
+
+// dredgeResOptions poses a non-OpDraw draw site's dredge ask.
+//
+//kmanifest:askopts raDredgeRes
+func (s *State) dredgeResOptions(k *prep, d *Decision) {
+	s.dredgeOptions(k, s.res.askP, d)
+}
+
+// dredgeResAnswer applies a non-OpDraw draw site's dredge answer: the taken
+// candidate, or the ordinary draw (latched past dredgeHeld once), then the
+// rest of the site's batch and its tail.
+//
+//kmanifest:askapply raDredgeRes
+func (s *State) dredgeResAnswer(k *prep, a Action) {
+	if s.res.flags&(rfBodyOp|rfBodyTurn) != 0 {
+		s.dredgeBodyAnswer(k, a) // a draw-replacement body's ask (dredgeBodyPose)
+		return
+	}
+	p, site := s.res.askP, s.res.chosen
+	s.res.ask = raNone
+	if !s.dredgeTake(k, p, a.Mode()) {
+		s.cfgx |= cfgxDredgeAsked
+		s.draw(p)
+		s.cfgx &^= cfgxDredgeAsked
+	}
+	left := int(s.res.left) - 1
+	s.res.left = 0
+	for left > 0 && !s.over {
+		if !s.dredgeResPose(k, p, site, left) {
+			return // the ask is posed again for the rest of the batch
+		}
+		s.draw(p)
+		left--
+	}
+	s.dredgeResTail(k, site, p)
+}
+
+// dredgeResTail finishes the site whose batch is drawn.
+func (s *State) dredgeResTail(k *prep, site objWord, p uint8) {
+	switch site {
+	case dredgeResConnive:
+		s.conniveTail(k, p, int(s.g.conn), true) // g.conn holds the drawn count (act_connive.go)
+	case dredgeResRecruit:
+		s.recruitTail(k, true) // act_recruit.go
+	case dredgeResUpto:
+		s.continueRes(k, 0)
+	case dredgeResMonarch:
+		if k.gen != nil && s.parkReturnAsk() {
+			return // the mill parked a return's ask (zone_untilleavesbatch.go)
+		}
+		if s.g.nask != 0 && s.midResAsk(k) {
+			return // the answered card's as-enters choice (zone_untilleavesbatch.go)
+		}
+		s.finishResolve(k, false)
+	default:
+		panic("kernel: bad dredge draw site")
+	}
+}
+
+// --- a draw-replacement body card (repl_draw.go drawMore's drawExcl) ---
+
+// dredgeBodyPose poses the dredge ask of a draw-replacement body card before
+// its draw, where the lineage holds exactly one source and the enclosing
+// site is resumable: the turn draw (the chain slot rides res.left, and the
+// answer finishes the draw step as dredgeTurnAnswer does) and an OpDraw card
+// (the chain slot rides g.pickP, and the answer resumes the OpDraw loop past
+// the batch; the ask's player is the loop's). g.pickP's loop value is
+// clobbered either way: the answer reads the player from res.askP. A deeper
+// lineage's body card or another site keeps the stall (StallDredge): its
+// resume needs the lineage's whole applied chain. false: pose nothing, the
+// caller draws.
+func (s *State) dredgeBodyPose(k *prep, p uint8, ch drawChain, left int) bool {
+	if ch.n != 1 || left > 255 || !dredgeOn(k) || s.dredgeCands(k, p, nil) == 0 {
+		return false
+	}
+	switch {
+	case s.res.active && s.prog(k)[s.res.pc].Op == kop.OpDraw:
+		// the OpDraw loop's state rides res.left / g.pickZ / g.pickLeft, as
+		// the raDredge pose lays it: the answer's tail re-enters the loop
+		// past the batch (dredgeBodyAnswer)
+		s.res.flags |= rfBodyOp
+		s.g.pickP = uint8(ch.sl[0])
+	case !s.res.active && s.step == kop.StepDraw && s.ctl == ctlStepBegin:
+		// the turn draw (turn.go beginStep, or its answer's ordinary draw):
+		// the body batch has no enclosing frame, so the chain slot rides
+		// the inactive res frame's free byte
+		s.res.flags |= rfBodyTurn
+		s.res.left = uint8(ch.sl[0])
+	default:
+		return false
+	}
+	s.res.ask, s.res.askP, s.res.chosen = raDredgeRes, p, objWord(left)
+	return true
+}
+
+// dredgeBodyAnswer applies a draw-replacement body card's ask (raDredgeRes
+// with rfBodyOp / rfBodyTurn, dredgeBodyPose): the taken candidate, or the
+// ordinary draw of the asked card latched past dredgeHeld once, then the
+// rest of the body batch, then the enclosing site's tail.
+func (s *State) dredgeBodyAnswer(k *prep, a Action) {
+	turn := s.res.flags&rfBodyTurn != 0
+	p := s.res.askP
+	var ch drawChain
+	ch.n = 1
+	if turn {
+		ch.sl[0] = Slot(s.res.left)
+	} else {
+		ch.sl[0] = Slot(s.g.pickP)
+	}
+	s.res.ask = raNone
+	if !s.dredgeTake(k, p, a.Mode()) {
+		s.cfgx |= cfgxDredgeAsked
+		s.drawExcl(p, ch)
+		s.cfgx &^= cfgxDredgeAsked
+	}
+	for left := int(s.res.chosen) - 1; left > 0 && !s.over; left-- {
+		if s.dredgeCands(k, p, nil) != 0 {
+			s.res.ask, s.res.askP, s.res.chosen = raDredgeRes, p, objWord(left)
+			return // the ask is posed again for the rest of the batch
+		}
+		s.drawExcl(p, ch)
+	}
+	s.res.flags &^= rfBodyOp | rfBodyTurn
+	if turn {
+		s.g.drawFirst = false // the draw step's finish, as dredgeTurnAnswer's
+		if s.over {
+			return
+		}
+		s.firePhase(k, kop.StepDraw)
+		s.openPriority()
+		return
+	}
+	// the OpDraw loop goes on past the body batch (dredgeAskAnswer's tail)
+	in := &s.prog(k)[s.res.pc]
 	if s.dredgeDrawLoop(k, in, p, int(s.res.left)-1, s.g.pickZ, int(s.g.pickLeft)) {
 		s.continueRes(k, 0)
 	}

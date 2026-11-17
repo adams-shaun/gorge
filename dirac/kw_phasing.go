@@ -273,6 +273,12 @@ func (s *State) phaseUntap(k *prep) {
 func (s *State) phasedHostLeft(k *prep, sl Slot, host Obj) {
 	for q := 0; q < MaxPerm; q++ {
 		if qs := Slot(q); s.perms[qs].attached == sl && s.hiddenAt(qs) {
+			// A token host is no exception (same as removePerm's
+			// bearer-left arm): it ceased to exist before any checkpoint,
+			// but it WAS a battlefield permanent when the detach was
+			// queued, so gorge's ceased-copy read (the ZCeased retry in
+			// trigmatch/unattached.go) still matches ValidObject$
+			// Permanent (CR 701.3b, 400.7).
 			if s.unattachedFires(k, qs) {
 				s.fireUnattached(k, qs, sl)
 			}

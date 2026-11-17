@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // hexproofOwnColorsKW is the granted keyword lowered to its own static kind
@@ -204,6 +205,14 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, nil
 	}
 	if sp.is("CharacteristicDefining", "True") {
+		folded, err := lc.cdaColorType(sp, st, aff) // lower_cdacolortype.go
+		if err != nil {
+			return nil, err
+		}
+		if _, p := sp.m["SetPower"]; folded && !p && sp.m["SetToughness"] == "" {
+			st.Kind = "" // the printed record carries it: lower to nothing
+			return nil, nil
+		}
 		// gorge CDASetPT: SetPower$/SetToughness$ each set its half; a
 		// missing half keeps the printed value (the "*/4" cards)
 		pw, tg, _ := strings.Cut(lc.face.PT, "/")
@@ -287,15 +296,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, err // lower_canthavekw.go
 		}
 	}
-	if p, ok := sp.get("AddPower"); ok {
-		if st.Power, err = lc.value(p); err != nil {
-			return nil, err
-		}
-	}
-	if t, ok := sp.get("AddToughness"); ok {
-		if st.Tough, err = lc.value(t); err != nil {
-			return nil, err
-		}
+	if err := lc.continuousPT(sp, st); err != nil {
+		return nil, err
 	}
 	if k, ok := sp.get("AddKeyword"); ok {
 		if aff == "You" {
@@ -621,4 +623,51 @@ func splitWardGrant(kw string) (string, int, int, error) {
 		ward = n
 	}
 	return strings.Join(rest, " & "), ward, wardLife, nil
+}
+
+// continuousPT lowers AddPower$/AddToughness$ and marks the AffectedX
+// convention: an amount whose value is the AffectedX SVar reads each AFFECTED
+// object as its source (gorge layers_static.go staticAmountOn's affected
+// anchor, effects.AffectedXStaticAmount), so the static carries the
+// "PerAffected" flag and the walk re-anchors the eval context (kop.
+// StPerAffected). An inline count expression stays anchored on the grantor
+// on both sides. StPerAffected is ONE flag for both amounts, while gorge
+// anchors per amount (engine/rules/chars/derive.go reads AddPowerAffected and
+// AddToughnessAffected separately), so a mixed shape -- one amount AffectedX,
+// the other a dynamic grantor read -- has no shared lowering: the affected
+// creature would feed the grantor's count. It is refused (fail-closed;
+// StaticFlags has no free bit for a per-amount pair), while a mixed shape
+// whose other amount is a constant lowers (the anchor is irrelevant to a
+// constant).
+func (lc *lowerCtx) continuousPT(sp *params, st *lStatic) error {
+	var pAff, tAff bool
+	if p, ok := sp.get("AddPower"); ok {
+		v, err := lc.value(p)
+		if err != nil {
+			return err
+		}
+		st.Power = v
+		pAff = effects.AffectedXStaticAmount(p)
+		st.PerAffected = st.PerAffected || pAff
+	}
+	if t, ok := sp.get("AddToughness"); ok {
+		v, err := lc.value(t)
+		if err != nil {
+			return err
+		}
+		st.Tough = v
+		tAff = effects.AffectedXStaticAmount(t)
+		st.PerAffected = st.PerAffected || tAff
+	}
+	if st.PerAffected {
+		// exactly one amount is AffectedX: the other amount, if it is a
+		// dynamic value, would be re-anchored at the affected object while
+		// gorge keeps it on the grantor
+		pDyn := st.Power.Kind != vNone && !st.Power.isConst()
+		tDyn := st.Tough.Kind != vNone && !st.Tough.isConst()
+		if pAff != tAff && ((pAff && tDyn) || (tAff && pDyn)) {
+			return refuse("mixed AffectedX P/T: StPerAffected re-anchors both amounts (AddPower$ %s, AddToughness$ %s)", st.Power, st.Tough)
+		}
+	}
+	return nil
 }

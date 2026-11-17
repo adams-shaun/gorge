@@ -722,6 +722,24 @@ func (s *State) srcSlot() Slot {
 	return NoSlot
 }
 
+// freePlayCast reports whether the cast being committed belongs to the freeQ
+// register: a free cast (sfFree) or a paid play's cast (freePaid, a Play
+// without WithoutManaCost$ True). The register's rider bits (freeGY,
+// freeForget) read only then.
+func (s *State) freePlayCast() bool {
+	return s.bld().e.flags&sfFree != 0 || s.g.freeP&freePaid != 0
+}
+
+// targetStageAborts is the cast's target-stage menu chain: the paid play
+// cast's pre-menu gates (playTargetGateAborts) beside the announced-cost
+// casts' menu probes. A hit means the menu withholds every candidate: a
+// required target reverses the cast, an up-to target asks nothing and
+// payCast reverses it in the window.
+func (s *State) targetStageAborts(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
+	return s.playTargetGateAborts(k, t, e) || s.convokeTargetAbort(k) || s.altAddTargetAbort(k) ||
+		s.addCostTargetAbort(k) || s.paidXTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)
+}
+
 // buildStep advances the entry being built; it returns true with d filled
 // when a decision is needed.
 func (s *State) buildStep(k *prep, d *Decision) bool {
@@ -1076,7 +1094,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.bld().ti++ // chosen mid-resolution (OpChooseTargets), as gorge asks it
 				continue
 			}
-			if !s.tgtAsksNothing(k, t, e) && (s.convokeTargetAbort(k) || s.altAddTargetAbort(k) || s.addCostTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)) {
+			if !s.tgtAsksNothing(k, t, e) && s.targetStageAborts(k, t, e) {
 				// Gorge's target menu (affordableTargetCandidates) probes the
 				// CR 601.2g window and withholds every candidate of a convoke
 				// cast the announced picks plus the pool cannot complete: a
@@ -1278,6 +1296,16 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
+		if s.rbAny(e.ctrl) {
+			// The restricted mana the activation's payment may spend is a
+			// unit of its pip ask too (CR 106.6): gorge's announceFeasible
+			// reads AvailableFor, whose restricted batches the pay spends
+			// first (Gwenna's creature-only {R} beside a Souleater's pip).
+			d := s.payDescNow(NoObj)
+			if m := s.restrFloatAdmits(k, e.ctrl, &d); m != 0 {
+				s.restrAvailAdd(e.ctrl, m, &av)
+			}
+		}
 	} else if s.rbAny(SeatIx(e.ctrl)) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
@@ -1549,6 +1577,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
+	s.snowPreSpend(k, &e)
 	s.payPicks(k)
 	s.payBlightPicks(k)
 	if e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost {
@@ -1689,10 +1718,11 @@ func (s *State) finishBuild(k *prep) {
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			s.bestowPaid(&e) // gorge's pay-time FlagBestowed (kw_bestow.go)
 		}
-		// a free cast with ReplaceGraveyard$ Exile carries bit 4
+		// a free cast, or a paid play (no WithoutManaCost$ True), with
+		// ReplaceGraveyard$ Exile carries bit 4
 		// as sfFreeGY once the build bit is gone (a non-copy spell entry;
 		// resolveTop tests it only on a copy)
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
+		if s.freePlayCast() && s.g.freeP&freeGY != 0 && s.bld().bfl&bflPushed != 0 {
 			s.stack[s.sp-1].flags |= sfFreeGY
 		}
 		if k.retrace && s.bld().bfl&bflPushed != 0 && jumpStartEntry(k, &e) && !DebugJumpStartNoExile {
@@ -1701,12 +1731,12 @@ func (s *State) finishBuild(k *prep) {
 			// stamped only now (kw_jumpstart.go)
 			s.stack[s.sp-1].flags |= sfFlashback
 		}
-		// ForgetPlayed$ True: this free cast now sits on the stack
-		// (CR 601.2a), the point where gorge's PlayDone pass sees it and
-		// drops it from the remembered set. A cast refused before the push,
-		// or reversed while its cost was being paid (CR 733.1), never
-		// reaches this commit and keeps its card remembered.
-		if s.bld().e.flags&sfFree != 0 && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
+		// ForgetPlayed$ True: this free cast, or this paid play's cast, now
+		// sits on the stack (CR 601.2a), the point where gorge's PlayDone pass
+		// sees it and drops it from the remembered set. A cast refused before
+		// the push, or reversed while its cost was being paid (CR 733.1),
+		// never reaches this commit and keeps its card remembered.
+		if s.freePlayCast() && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
 		if k.gen != nil && k.gen.anyHist {
@@ -2344,7 +2374,7 @@ func (s *State) payPicks(k *prep) {
 				s.touchSl(ob.slot)
 				pp.seeCtr(s)
 				if c := int(uint8(f)); pp.ctrN(s, c) > 0 {
-					pp.subCtrN(s, c, 1)
+					s.subCtrFire(k, ob.slot, c, 1) // trig_counterremoved.go
 				}
 			}
 		}

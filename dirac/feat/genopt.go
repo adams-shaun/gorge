@@ -136,7 +136,20 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 			o.kind = okOpeningYes
 		}
 	default:
+		genOptionRest(d, mode, o)
+	}
+}
+
+// genOptionRest maps the asks genOption has no case of: ChGenClash's
+// "bottom" / "top" over the revealed card (dirac/act_clash.go), else a number.
+func genOptionRest(d *dirac.Decision, mode uint8, o *optIn) {
+	if d.Sub != dirac.ChGenClash {
 		o.kind, o.obj = okNumber, noObj
+		return
+	}
+	o.kind = okBottom
+	if mode == 1 {
+		o.kind = okTop
 	}
 }
 

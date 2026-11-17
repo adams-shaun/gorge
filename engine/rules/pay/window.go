@@ -28,6 +28,22 @@ func ManaFreeCost(c Cost) bool {
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
+// ManaSubCounterOnlyCost reports whether a mana ability's activation cost is
+// a bare tap whose only other resource is fixed, source-anchored SubCounter
+// parts (Remote Farm's "{T}, Remove a depletion counter from CARDNAME: Add
+// {W}{W}"): ManaSubCounterNeedsAsk is false for such a cost, so the
+// activation settles with no ask, and it spends no mana or life a window
+// census would have to price -- the counters come off the producing source
+// itself (PayManaSourceParts). A census arm still checks the source carries
+// every named counter before it admits the ability.
+func ManaSubCounterOnlyCost(c Cost) bool {
+	if len(c.SubCounter) == 0 || ManaSubCounterNeedsAsk(c) {
+		return false
+	}
+	c.SubCounter = nil
+	return ManaFreeCost(c)
+}
+
 // WindowAlt is one deterministic production alternative of a single
 // permanent: the exact ability resolveManaAbility will resolve (so
 // the activation poses no chooseMana sub-ask), its Produced$ colour counts,

@@ -350,7 +350,14 @@ var livelockCandVerify = derivedMemoVerifyFlag != ""
 // period-1 "cycle". A genuinely unbounded minting loop still grows the
 // object arena every iteration, which is exactly the loop shape the
 // runaway backstop exists for, so nothing escapes the watcher.
-var mintingKinds = newKindSet(events.TokenCreate, events.CardToken, events.StackCopy)
+//
+// Proliferate shares the fold for the same reason: each proliferate action
+// is a distinct, finite iteration of "proliferate X times" (CR 701.34a), so
+// Expansion Algorithm at a large X with an unchanged recipient set logs X
+// identical ask/answer/counter iterations that are one resolution, not a
+// period. An unbounded proliferate loop still meets the runaway backstop
+// (no recipient: no ask) or the host decision cap (one ask per iteration).
+var mintingKinds = newKindSet(events.TokenCreate, events.CardToken, events.StackCopy, events.Proliferate)
 
 func newLivelockWatcher(g *LoopGuard) livelockWatcher {
 	return newLivelockWatcherInto(g, nil, nil, nil, nil, nil)

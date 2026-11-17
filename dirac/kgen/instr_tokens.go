@@ -113,7 +113,7 @@ func (ic *instrCtx) opCreateToken() error {
 		return fmt.Errorf("token %q", in.CS)
 	}
 	ki.C = int16(idx)
-	if in.C&(6|24|32|64|128|256|512|1024|2048) == 0 { // tokListBit rides the core op
+	if in.C&(6|24|32|64|128|256|512|1024|2048|tokRemSrcBit) == 0 { // tokListBit rides the core op
 		// the core's CreateToken: B.N = TokenRider flags.
 		ki.Op = kop.OpCreateToken
 		b := 0
@@ -140,6 +140,9 @@ func (ic *instrCtx) opCreateToken() error {
 	}
 	if in.C&2048 != 0 {
 		tf |= kop.TokImprintObj // lower_imprintzone.go
+	}
+	if in.C&tokRemSrcBit != 0 {
+		tf |= kop.TokRememberSrc // lower_tokenrem.go
 	}
 	if in.C&8 != 0 {
 		tf |= kop.TokSacAtEnd

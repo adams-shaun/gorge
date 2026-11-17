@@ -57,14 +57,29 @@ const (
 	pdAct
 	pdOther
 	pdNone // no payment: the restricted sources count for nothing
+	// pdSpecial: a turn-face-up special action (CR 116.2b, 708.6) of the
+	// permanent at tgt, a payment of its own class (gorge pay.PurposeSpecial):
+	// a restriction admits it by a Static.* clause naming sp (Tin Street
+	// Gossip's "turn creatures face up"), never as a spell or ability.
+	pdSpecial
 )
 
 // payDesc describes the payment a plan funds: for a spell the card, for an
 // activated ability the source's card and (when it is a permanent) slot.
 type payDesc struct {
 	class uint8
-	card  CardID
-	src   Slot
+	// sp and tgt: a pdSpecial payment's special action and the permanent it
+	// turns up
+	sp   kop.SpecialMask
+	tgt  Slot
+	card CardID
+	src  Slot
+	// subBound marks the trigger pay gate's descriptor (trigCostPotentialPays,
+	// gorge's resPayNeedsMana: Descriptor.SubCounterBound): only that gate reads
+	// a storage battery at its counters. The numTimes / X asks and the window's
+	// potential gate price a pdOther payment with the battery unbounded, as
+	// gorge's potentialManaFor does without the flag (mana_storesource.go).
+	subBound bool
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin
@@ -124,6 +139,9 @@ func restrSrcAb(a *kop.Ability) bool {
 		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
 }
 
+// colOrC is the five colours and colourless: a fixed production's one kind.
+const colOrC = kop.ColAny | kop.ColC
+
 // oneColour: m holds exactly one colour bit.
 func oneColour(m kop.ColorMask) bool { return m != 0 && m&(m-1) == 0 }
 
@@ -170,12 +188,14 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				g.rs.wide, g.rs.chosenPair = true, true
 			case n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
 				(a.ManaColors&kop.ColAny == kop.ColAny ||
-					!a.ManaEach && oneColour(a.ManaColors&kop.ColAny) && a.ManaColors&kop.ColAny == pc.manaCol&kop.ColAny):
+					!a.ManaEach && oneColour(a.ManaColors&colOrC) && a.ManaColors&colOrC == pc.manaCol&colOrC):
 				// several mana of one colour beside the census ability's one,
 				// of any colour or of the census ability's own single colour
-				// (Tablet of Discovery's {R}{R} beside {R}): gorge's planner
-				// offers both alternatives (restrPairUnit)
-				v.wideN, v.wideCol = n, a.ManaColors&kop.ColAny
+				// (Tablet of Discovery's {R}{R} beside {R}; Shrine of the
+				// Forsaken Gods' {C}{C} beside {C}, colourless counting as
+				// one: CR 106.1b): gorge's planner offers both alternatives
+				// (restrPairUnit)
+				v.wideN, v.wideCol = n, a.ManaColors&colOrC
 				g.rs.wide = true
 			}
 			g.rs.views = append(g.rs.views, v)
@@ -221,6 +241,9 @@ func (g *genPrep) restrRecOf(c CardID) *restrRec {
 // spell's card, an activated ability's source), else a spell when the
 // caller excludes a hand card from the demand, else other.
 func (s *State) payDescNow(exclude Obj) payDesc {
+	if s.ctl == ctlTurnUpTap { // face_turnfaceup.go tapForTurnUp
+		return payDesc{class: pdSpecial, src: NoSlot, sp: kop.SpecialMask(s.g.pickLeft), tgt: s.objs[Obj(s.g.pickF)].slot}
+	}
 	if s.ctl == ctlBuild {
 		switch e := &s.bld().e; e.kind {
 		case seSpell:
@@ -254,6 +277,8 @@ func (s *State) restrFloatAdmits(k *prep, p uint8, d *payDesc) uint8 {
 		return s.restrSpendable(k, p, d.card, d.og)
 	case pdAct:
 		return s.restrPoolAct(k, p, d)
+	case pdSpecial:
+		return s.restrPoolSpecial(k, p, d.sp, d.tgt)
 	}
 	return s.restrPoolNonSpell(k, p)
 }
@@ -276,6 +301,8 @@ func (s *State) restrSrcAdmits(k *prep, p uint8, sl Slot, a *kop.Ability, d *pay
 			return false
 		}
 		return a.ManaRestrictAb != 0 && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d)
+	case pdSpecial:
+		return a.AFlags&kop.AfManaNonSpell != 0 || a.ManaRestrict != 0 && s.restrSpecialFilter(k, p, sl, a.ManaRestrict, d.sp, d.tgt)
 	}
 	return a.AFlags&kop.AfManaNonSpell != 0
 }
@@ -458,6 +485,13 @@ func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v
 			continue
 		}
 		a := &k.t.Cards[c].Abilities[rec.ab]
+		if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+			// a gated restricted ability (Shrine of the Forsaken Gods'
+			// "Activate only if you control seven or more lands") is absent
+			// while its gate is off, as gorge's census drops it
+			// (pay.ManaActivationGateHolds; CR 602.5b)
+			continue
+		}
 		switch rec.kind {
 		case rkWiden:
 			if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
@@ -566,7 +600,7 @@ func (s *State) restrDeferScriptable(k *prep, p uint8, skip Slot) bool {
 // sources' units are already av's, their colours widened: the mana total
 // stays av's) short of the cost's mana total.
 func restrSrcNone(rs *restrData, d *payDesc, cost *kop.ManaCost, av *avail, extra int) bool {
-	if d.class != pdSpell && !rs.nonSpell && DebugRestrictedSource != 1 {
+	if d.class != pdSpell && d.class != pdSpecial && !rs.nonSpell && DebugRestrictedSource != 1 {
 		return true
 	}
 	if rs.ext || av.pain.on {

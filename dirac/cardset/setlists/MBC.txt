@@ -512,6 +512,7 @@ Deep Analysis
 Deepchannel Mentor
 Deepwood Legate
 Defensive Formation
+Deftblade Elite
 Deglamer
 Delina, Wild Mage
 Demand Answers
@@ -542,6 +543,7 @@ Dissenter's Deliverance
 Distortion Strike
 Disturbed Burial
 Dive Down
+Divide by Zero
 Divination
 Dockside Chef
 Doomed Traveler
@@ -728,6 +730,7 @@ Fireblast
 Firecat Blitz
 Fireslinger
 Firewing Phoenix
+First Day of Class
 Fists of Flame
 Flame Elemental
 Flame Jab
@@ -1084,6 +1087,7 @@ Krark, the Thumbless
 Krark-Clan Ironworks
 Kraul Harpooner
 Krosan Tusker
+Krosan Vorine
 Krovikan Sorcerer
 Kuroki, Thief of Talents
 Kutzil, Malamet Exemplar
@@ -1236,6 +1240,7 @@ Monastery Swiftspear
 Moon-Blessed Cleric
 Moon-Circuit Hacker
 Moonglove Changeling
+Moonlit Strider
 Morbid Opportunist
 Mortuary
 Mothdust Changeling
@@ -1849,6 +1854,7 @@ Surgical Skullbomb
 Surrak and Goreclaw
 Suture Priest
 Swarming Goblins
+Swell of Courage
 Swelter
 Swift Justice
 Swiftfoot Boots

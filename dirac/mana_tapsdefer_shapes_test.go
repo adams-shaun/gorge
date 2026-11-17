@@ -56,19 +56,20 @@ func rewriteMana(tbl *kop.Table, c CardID, f func(a *kop.Ability)) {
 }
 
 // TestTapsDeferUnmodelledProductionKeepsItsCensusUnit: a two-mana deferred
-// source (the Core rewritten to "{T}: Add {G}{G}") is no script gap, so
-// availFor must still count it; dropping every deferred source from the
-// walk made a play only it funds unofferable. (A one-mana fixed-colour tap
-// is a modelled gap: mana_tapsdefer_mono_test.go.)
+// source of a choice of colours (the Core rewritten to two mana of G or W)
+// is no script gap, so availFor must still count it; dropping every
+// deferred source from the walk made a play only it funds unofferable. (A
+// fixed-colour tap is a modelled gap, one mana or several:
+// mana_tapsdefer_mono_test.go, mana_tapsdefer_multimana_test.go.)
 func TestTapsDeferUnmodelledProductionKeepsItsCensusUnit(t *testing.T) {
 	tbl, id := tapsDeferShapeTable(t, func(tbl *kop.Table, id map[string]CardID) {
-		rewriteMana(tbl, id["Firdoch Core"], func(a *kop.Ability) { a.ManaColors, a.ManaN = kop.ColG, 2 })
+		rewriteMana(tbl, id["Firdoch Core"], func(a *kop.Ability) { a.ManaColors, a.ManaN = kop.ColG|kop.ColW, 2 })
 	})
 	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
 	core := sc.perm(id["Firdoch Core"], 0)
 	sc.perm(id["Judge of Currents"], 0)
 	if !sc.s.tapsDeferred(sc.k, 0, sc.slot(core)) {
-		t.Fatal("precondition: the two-mana Core is not a deferred source under Judge of Currents")
+		t.Fatal("precondition: the two-mana two-colour Core is not a deferred source under Judge of Currents")
 	}
 	if pc := sc.s.manaPCGen(sc.k, sc.slot(core)); pc.manaN != 2 {
 		t.Fatalf("precondition: the Core's production is %d mana, want 2", pc.manaN)

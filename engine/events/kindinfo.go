@@ -231,7 +231,7 @@ var kindInfo = [NumKinds]KindInfo{
 	ActivationReversed:    {Name: "activation_reversed", Trigger: TriggerNone, Describe: "{player} reverses an activation"},                              // a CR 733.1 reversal: it decrements the source's activation census, nothing triggers
 	TextChange:            {Name: "text_change", Trigger: TriggerNone, Describe: "{obj}'s text changes"},                                                 // CR 612 layer-3 text change; no trigger
 	HadToAttack:           {Name: "had_to_attack", Trigger: TriggerNone, Describe: "the attackers that had to attack are recorded"},                      // CR 506.7 bookkeeping; no trigger
-	DayNightChange:        {Name: "day_night_change", Trigger: TriggerNone, Describe: "It becomes {text}"},                                               // CR 731; no registered trigger mode reads it
+	DayNightChange:        {Name: "day_night_change", Trigger: TriggerFullMatch, Describe: "It becomes {text}"},                                          // CR 731; trig:DayTimeChanges reads it
 	SubTargetRemoved:      {Name: "sub_target_removed", Trigger: TriggerNone},
 	DestroyProposal:       {Name: "destroy_proposal", Trigger: TriggerNone, Describe: "{obj} would be destroyed"},
 	EndCombatPhase:        {Name: "end_combat_phase", Trigger: TriggerNone, Describe: "The combat phase ends"},                                    // CR 724.2
