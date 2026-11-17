@@ -16,7 +16,7 @@
 #
 # Fork PRs get a read-only token and no secrets; nothing here needs either.
 #
-# Runner: pull_request jobs ALWAYS run on GitHub-hosted runners. Push, schedule
+# Runner: pull_request jobs from forks ALWAYS run on GitHub-hosted runners; same-repo PRs use gorge-box (metal2) when CI_SELF_HOSTED. Push, schedule
 # and dispatch jobs run on the maintainers' ephemeral k8s runners (label
 # gorge-box) when the repository variable
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
@@ -83,7 +83,7 @@ jobs:
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
   lint:
-    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -91,6 +91,7 @@ jobs:
           go-version-file: go.mod
           cache: false
       - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/go-build
@@ -107,7 +108,7 @@ jobs:
       - name: A fresh clone builds, and dirac's tests skip without a corpus
         run: make fresh-clone-check
       - name: Save the Go cache
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/go-build
@@ -116,7 +117,7 @@ jobs:
   test:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
-    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -151,6 +152,7 @@ jobs:
           path: .cards
           key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
       - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/go-build
@@ -178,7 +180,7 @@ jobs:
         if: matrix.shard == 0
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules
       - name: Save the Go cache
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/go-build
@@ -221,7 +223,7 @@ jobs:
   wire-matrix:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
-    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -267,7 +269,7 @@ jobs:
   dirac-slices:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
-    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -292,6 +294,7 @@ jobs:
           test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/go-build
@@ -304,7 +307,7 @@ jobs:
       - name: Play the committed slices
         run: make dirac-slices
       - name: Save the Go cache
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/go-build
@@ -347,6 +350,7 @@ jobs:
           test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/go-build
@@ -397,6 +401,7 @@ jobs:
           test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/go-build
@@ -438,7 +443,7 @@ jobs:
             ~/.cache/ms-playwright
           key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
       - name: Save the Go cache
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/go-build
