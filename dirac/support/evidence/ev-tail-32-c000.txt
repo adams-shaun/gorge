@@ -24,6 +24,7 @@ Attune with Aether
 Avenger of Zendikar
 Axgard Armory
 Banish from Edoras
+Barbarian Ring
 Barbed Batterfist
 Bazaar Trademage
 Blade Banish
@@ -177,6 +178,7 @@ Loam Lion
 Loathsome Catoblepas
 Luminarch Ascension
 Lure
+Luxury Suite
 Lydia Frye
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
@@ -190,6 +192,7 @@ Meldweb Strider
 Memory Worm
 Mercurial Spelldancer
 Merrow Bonegnawer
+Merrow Witsniper
 Mesa Lynx
 Metallic Mastery
 Mind Drain
@@ -216,6 +219,7 @@ Oashra Cultivator
 Obliterate
 Ondu Cleric
 Oni Possession
+Ovalchase Daredevil
 Overrule
 Peer Through Depths
 Penance Stare
@@ -271,6 +275,7 @@ Skyswimmer Koi
 Slaughter Cry
 Smashing Spree
 Sokka, Swordmaster
+Sonic Screwdriver
 Soul Bleed
 Spellseeker
 Spitting Spider
@@ -302,6 +307,7 @@ Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
+Turnabout
 Turntimber Ranger
 Tyranid Invasion
 Tyrranax Atrocity
@@ -310,6 +316,7 @@ Umbral Juke
 Unnatural Speed
 Untamed Wilds
 Valkyrior Skyrider
+Value Town
 Vaporkin
 Venomous Vines
 Vexing Sphinx
