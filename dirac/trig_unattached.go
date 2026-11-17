@@ -54,7 +54,9 @@ func (s *State) unattachedFires(k *prep, sl Slot) bool {
 // sl, which just became unattached from the permanent at bearer (dead or
 // alive), RefTriggerObj that bearer. Mirrors fireAttached: no slot
 // subscription, one walk over the attachment's own card, the Panharmonicon
-// grant scanning the same way.
+// grant scanning the same way. The bearer-left arms (removePerm's detach
+// loop, phasedHostLeft) do not call it for a token bearer, which ceases to
+// exist before gorge publishes that detach (ValidObject$ Permanent fails).
 //
 //go:noinline
 func (s *State) fireUnattached(k *prep, sl, bearer Slot) {

@@ -789,13 +789,20 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		m = m.rest()
 		qp := &s.perms[q]
 		if qp.attached == sl {
-			if k.gen != nil && s.unattachedFires(k, q) {
-				// the bearer left: gorge's pending arm publishes the detach
-				// at the next SBA checkpoint with the bearer already gone
-				// (the body is a no-op, the trigger still goes on the
-				// stack). unattachedFires holds it to the arms gorge
-				// publishes: a bestowed card's and an Equipment's; an Aura
-				// takes its CR 704.5m graveyard arm, no Unattached
+			// The bearer left: gorge's pending arm publishes the detach at
+			// the next SBA checkpoint with the bearer already gone (the
+			// body is a no-op, the trigger still goes on the stack).
+			// unattachedFires holds it to the arms gorge publishes: a
+			// bestowed card's and an Equipment's; an Aura takes its CR
+			// 704.5m graveyard arm, no Unattached.
+			//
+			// A token bearer is the exception: by that checkpoint it has
+			// ceased to exist (CR 111.7), so gorge's "becomes unattached
+			// from a permanent" (ValidObject$ Permanent; the PermanentCard
+			// retry in trigmatch/unattached.go) finds no permanent and
+			// fires nothing. The token's own Dies trigger is unaffected
+			// (CR 700.4).
+			if k.gen != nil && s.unattachedFires(k, q) && s.objs[o].of&ofToken == 0 {
 				s.fireUnattached(k, q, sl)
 			}
 			qp.attached = NoSlot
