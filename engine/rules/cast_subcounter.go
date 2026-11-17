@@ -70,22 +70,30 @@ func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 		return true
 	}
 	sa := e.castBaseSA(pc, o, o.Face())
-	if sa == nil || !effects.TargetsOf(sa).Targeted() {
+	if sa == nil {
 		return true
 	}
 	saved := pc.x
 	pc.x = x
 	defer func() { pc.x = saved }()
-	if total, ok := e.castDivisionTotal(pc, sa); ok {
-		if min, _ := e.resolvedTargetBounds(pc.player, pc.card, sa, x); int(total) < min {
-			return false
-		}
-	}
 	var exclude state.ObjID
 	if !pc.isAbility() || attachSelfDestination(sa) {
 		exclude = pc.card
 	}
-	return e.targetSAAvailable(pc.player, pc.card, exclude, sa, x, false)
+	if effects.TargetsOf(sa).Targeted() {
+		if total, ok := e.castDivisionTotal(pc, sa); ok {
+			if min, _ := e.resolvedTargetBounds(pc.player, pc.card, sa, x); int(total) < min {
+				return false
+			}
+		}
+		if !e.targetSAAvailable(pc.player, pc.card, exclude, sa, x, false) {
+			return false
+		}
+	}
+	// CR 601.2c: every chain link announces its targets on cast too, so an X
+	// that leaves a link's "X target creatures" short is not announceable
+	// (Spinning Wheel Kick's damage link), exactly as the offer gate judges it.
+	return e.chainTargetsAvailable(pc.player, pc.card, exclude, sa, x, false, nil)
 }
 
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
