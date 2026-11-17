@@ -31,12 +31,12 @@ func (lc *lowerCtx) cantAttackRemembered(ps *params, ss []cards.Static) (bool, e
 	if err != nil {
 		return true, err
 	}
-	eot, next, err := effectEmblemDuration(ps)
+	eot, next, host, err := effectEmblemDuration(ps)
 	if err != nil {
 		return true, err
 	}
-	if next {
-		return true, refuse("Effect CantAttack over TriggeredPlayer with a next-turn Duration$")
+	if next || host {
+		return true, refuse("Effect CantAttack over TriggeredPlayer with a next-turn or host-leaves Duration$")
 	}
 	cp := make(map[string]string, len(s.Params))
 	for k, v := range s.Params {

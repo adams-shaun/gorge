@@ -119,7 +119,7 @@ func TestEffcontDuration(t *testing.T) {
 		if tc.d != "" {
 			p.m["Duration"] = tc.d
 		}
-		eot, next, err := effectEmblemDuration(p)
+		eot, next, _, err := effectEmblemDuration(p)
 		if tc.refuse {
 			if err == nil {
 				t.Errorf("Duration %q: no refusal", tc.d)

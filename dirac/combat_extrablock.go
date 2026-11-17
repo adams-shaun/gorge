@@ -381,10 +381,7 @@ func (s *State) nextBlockerDivision(k *prep, first bool, order *[MaxPerm]Slot, n
 			if !s.blockedTwo(b) || s.combatArm().divDone.has(b) || !s.dealsNow(k, b, first) {
 				continue
 			}
-			pw := s.power(k, b)
-			if k.gen != nil && k.gen.anyCdmgTough {
-				pw = s.combatAmtTough(k, b)
-			}
+			pw := s.combatAmount(k, b)
 			if pw <= 0 || splits(pw, 2) > 128 {
 				continue
 			}
