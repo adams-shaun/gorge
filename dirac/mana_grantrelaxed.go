@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // no prefix search, however a granted tap would untap a land (Nanoform
 // Sentinel). m is the walk's avail mode. A cast, or an activation with its own
 // {T} source, keeps the walk's answer.
-func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc, m uint8) bool {
+func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc, m uint16) bool {
 	if a.Kind() != AkActivate || ex != NoSlot {
 		return true
 	}

@@ -28,11 +28,11 @@ const potentialScriptPlays = 16 // gorge rules/potential_script.go
 // availFor modes (genState.availX): the gaps' mana added, any mana, or the
 // plain walk without the script hook.
 const (
-	availGaps  uint8 = 1
-	availAny   uint8 = 2
-	availPlain uint8 = 4
-	availWalk  uint8 = 8   // the real mana, no offer surface (grantCap)
-	availHyp   uint8 = 128 // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
+	availGaps  uint16 = 1
+	availAny   uint16 = 2
+	availPlain uint16 = 4
+	availWalk  uint16 = 8   // the real mana, no offer surface (grantCap)
+	availHyp   uint16 = 128 // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
 )
 
 // scriptGaps: p's activatable each-colour sources, a slot mask.
@@ -197,7 +197,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 // gorge's planner (the Phyrexian offer gate's storage-battery read,
 // mana_phyrexian.go phyActAffords) read without the batteries' counters,
 // which the planner reaches only through the script route (pair 149).
-func (s *State) plainOptions(k *prep, d *Decision, m uint8) {
+func (s *State) plainOptions(k *prep, d *Decision, m uint16) {
 	d.N = 0
 	s.g.availX = availPlain | m
 	s.priorityOptions(k, d)
