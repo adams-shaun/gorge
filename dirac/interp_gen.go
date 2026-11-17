@@ -1347,6 +1347,7 @@ func (s *State) remember(o Obj) {
 		s.g.rem[s.g.nrem] = o
 		s.g.nrem++
 	}
+	s.srcMemRemember(o) // a SrcMem source keeps it for its other abilities (zone_srcmemrem.go)
 	// The source's persistent remembered list (gorge's event-backed
 	// o.Remembered, the Choose "remembered" fold each RememberChanged-style
 	// write emits) is non-empty from this resolution on: the host half of a
@@ -1372,6 +1373,7 @@ func (s *State) rememberMarkClr() {
 	if o := s.res.e.obj; o != NoObj {
 		s.mObjClr(s.k(), mechRem, o)
 	}
+	s.srcMemClear() // a SrcMem source's records go with them (zone_srcmemrem.go)
 }
 
 // moveObj moves object o (named by ref r) to zone z of its owner; it

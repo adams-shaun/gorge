@@ -1,0 +1,15 @@
+# the Remembered-on-the-source pool: Dance of Many's enters trigger remembers
+# the token copy, its leaves trigger exiles it and a watch trigger sacrifices
+# Dance when the token leaves; Boomerang and Naturalize make either leave
+# (the kept list survives the departure and is wiped at the next battlefield
+# entry), for the oracle's constructed lockstep
+# (dirac/oracle/srcmemleaves_test.go)
+Dance of Many
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Naturalize
+Boomerang
+Island
+Forest
+Mountain
