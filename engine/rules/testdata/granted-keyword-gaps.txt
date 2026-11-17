@@ -28,5 +28,4 @@ Prowl
 Rampage
 Ripple
 Shaman's Trance
-Soulshift
 UntapAdjust

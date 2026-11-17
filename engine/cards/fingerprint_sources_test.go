@@ -138,6 +138,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"kw_scavenge.go":          {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_station.go":           {false, "runtime synthesizer for the Station push body; expandKeywords never calls it"},
 	"kw_soulbond.go":          {true, "keyword expansion registered at init; shapes compiled abilities"},
+	"kw_soulshift.go":         {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_squad.go":             {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_storm.go":             {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_sunburst.go":          {true, "keyword expansion registered at init; shapes compiled abilities"},
