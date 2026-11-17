@@ -653,6 +653,7 @@ KwKicker	KwMask	2097152
 KwLifelink	KwMask	32
 KwMarkInfect	untyped int	2
 KwMarkIntimidate	untyped int	1
+KwMarkSwitchPT	untyped int	4
 KwMenace	KwMask	512
 KwPreventCombatDamageFrom	KwMask	536870912
 KwPreventCombatDamageTo	KwMask	134217728

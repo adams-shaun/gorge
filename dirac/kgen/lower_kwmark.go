@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // Granted intimidate and infect (CR 702.13a, 702.90). Neither keyword has a
@@ -33,6 +34,13 @@ func splitKwMarks(kw string) (rest string, marks int) {
 		case "Infect":
 			marks |= kop.KwMarkInfect
 		default:
+			if cards.IsHiddenSwitchPTKeyword(k) {
+				// CR 613.4d until end of turn (gorge PumpGrant.SwitchPT, a
+				// layer-7 SubSwitch effect, read by the same helper): the
+				// mark the kernel's P/T fold applies last
+				marks |= kop.KwMarkSwitchPT
+				continue
+			}
 			keep = append(keep, k)
 		}
 	}
@@ -43,6 +51,11 @@ func splitKwMarks(kw string) (rest string, marks int) {
 // list: the rest, and the static's Evasion / Infect grant.
 func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
 	rest, marks := splitKwMarks(kw)
+	if marks&kop.KwMarkSwitchPT != 0 {
+		// a static's switch is no until-end-of-turn mark: keep the term so
+		// the keyword read still refuses it
+		rest = strings.TrimPrefix(rest+" & HIDDEN "+cards.HiddenSwitchPTKeyword, " & ")
+	}
 	if marks&kop.KwMarkIntimidate != 0 {
 		evasion = kop.EvIntimidate
 	}
@@ -57,6 +70,9 @@ func kwMarkNames(marks int) string {
 	}
 	if marks&kop.KwMarkInfect != 0 {
 		w = append(w, "Infect")
+	}
+	if marks&kop.KwMarkSwitchPT != 0 {
+		w = append(w, "SwitchPT")
 	}
 	return strings.Join(w, " & ")
 }

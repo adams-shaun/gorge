@@ -727,6 +727,9 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 			return true
 		})
 	}
+	if s.ptSwitched(k, sl) {
+		bp, bt = bt, bp // CR 613.4d: switching applies last (kw_kwmark.go)
+	}
 	return bp, bt
 }
 
