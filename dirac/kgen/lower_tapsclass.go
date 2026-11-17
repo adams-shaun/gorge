@@ -44,6 +44,48 @@ func tapsPlanClass(body *cards.SA) (kop.TapPlan, uint8) {
 	return kop.TapPlanDefer, 0
 }
 
+// tapsDestroySelf mirrors gorge's planner recognizer (pay
+// PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` watcher: the trigger's
+// keys are the closed world's (Mode, ValidCard, Execute, TriggerZones naming
+// Battlefield and TriggerDescription) and its body is exactly one Destroy of
+// the tapped permanent itself (Brink of Disaster's "when enchanted permanent
+// becomes tapped, destroy it" on the AttachedBy line; Cryoshatter's on
+// EquippedBy). The trigger resolves after the payment that caused it
+// (CR 405.6c/603.2) and its only effect is to destroy the permanent whose tap
+// already produced its mana (CR 605.4a), so it touches no payment resource and
+// the tapped source stays an ordinary planner unit on both engines
+// (kop.TapPlanOrdinary) instead of a deferred one.
+func tapsDestroySelf(t cards.Trigger) bool {
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch k {
+		case "Mode", "ValidCard", "Execute", "TriggerDescription":
+		case "TriggerZones":
+			if strings.TrimSpace(t.Params[k]) != "Battlefield" {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	body := t.Effect
+	if body == nil || body.API != "Destroy" || strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return false
+	}
+	if d := body.ParamStr(cards.PKDefined); strings.Contains(d, " & ") {
+		return false
+	} else if txt := strings.TrimSpace(d); txt != "TriggeredCardLKICopy" && txt != "TriggeredCard" {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case "API", "Defined", "SpellDescription", "StackDescription":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // selfTapsPain reads a Self Taps trigger of a card with a mana ability as
 // gorge's planner does (pay.PaymentPlanSelfDamageTrigger, spec 3.2's damage:N
 // row): no trigger parameter beyond Mode, ValidCard, Execute, TriggerZones

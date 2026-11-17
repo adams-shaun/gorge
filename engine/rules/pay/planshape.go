@@ -424,6 +424,50 @@ func PaymentPlanTapDamageHits(ref params.Ref, carrierCtrl, activator, tappedCtrl
 	}
 }
 
+// PaymentPlanTapDestroySelfTrigger is the destroy-self trigger row: a
+// `Mode$ Taps` trigger on any ValidCard$ whose effect is exactly
+// `DB$ Destroy | Defined$ TriggeredCardLKICopy` (Brink of Disaster's "when
+// enchanted permanent becomes tapped, destroy it"). The trigger resolves
+// after the payment that caused it (CR 405.6c/603.2) and its only effect is
+// to destroy the permanent whose tap already produced its mana (CR 605.4a),
+// so it touches no payment resource and the tapped source stays an ordinary
+// unit. A trigger whose shape the planner cannot vet (another selector, a
+// compound one, a sub-chain, extra body keys) is not known and its source
+// stays deferred. f owns the trigger's Execute$ table.
+func PaymentPlanTapDestroySelfTrigger(f *cards.Face, t cards.Trigger) bool {
+	if t.Mode != "Taps" || !paymentPlanTriggerZoneOK(t) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch paymentPlanTapDestroyTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDestroyTriggerKnown:
+		default:
+			return false
+		}
+	}
+	body := paymentPlanTriggerBody(f, t)
+	if body == nil || body.API != "Destroy" || !paymentPlanSubFree(body) {
+		return false
+	}
+	ref := params.DefinedRefOf(body)
+	if ref.Flags&params.RefCompound != 0 {
+		return false
+	}
+	switch ref.Text {
+	case "TriggeredCardLKICopy", "TriggeredCard":
+	default:
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case "API", "Defined", "SpellDescription", "StackDescription":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // paymentPlanPlayerDamageBody is paymentPlanDamageBody over a player
 // referent: the same literal-amount DealDamage body whose Defined$ names a
 // player the payment cannot move (the payer, an opponent, the tapped
@@ -753,6 +797,20 @@ var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Execute", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "TriggerZones", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "TriggerDescription", Val: paymentPlanTapDamageTriggerKnown},
+)
+
+type paymentPlanTapDestroyTriggerCode uint16
+
+const (
+	paymentPlanTapDestroyTriggerKnown paymentPlanTapDestroyTriggerCode = iota + 1
+)
+
+var paymentPlanTapDestroyTriggerCodes = state.NewStrCodes(
+	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "Mode", Val: paymentPlanTapDestroyTriggerKnown},
+	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDestroyTriggerKnown},
+	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "Execute", Val: paymentPlanTapDestroyTriggerKnown},
+	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "TriggerZones", Val: paymentPlanTapDestroyTriggerKnown},
+	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "TriggerDescription", Val: paymentPlanTapDestroyTriggerKnown},
 )
 
 // UnlessManaReachable reports whether pool plus one production alternative
