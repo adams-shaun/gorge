@@ -9,6 +9,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
+// noDefinedTargetSlot is the refusal of a Defined$ Targeted/ParentTarget(ed)
+// that finds no slot: for Targeted, neither the node's own nor any ancestor's
+// in the chain (lastTarget reads the chain, so a slot an earlier link
+// declared is found).
+func noDefinedTargetSlot(v string) error {
+	if v == "Targeted" {
+		return refuse("Defined$ Targeted with no ancestor target slot")
+	}
+	return refuse("Defined$ %s with no target slot", v)
+}
+
 // defined lowers a Defined$ value to a ref.
 func (lc *lowerCtx) defined(v string) (lRef, error) {
 	switch v {
@@ -49,7 +60,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			t = lc.parentLastTarget() // never the node's own slot (lower_owntarget.go)
 		}
 		if t < 0 {
-			return lRef{}, refuse("Defined$ %s with no target slot", v)
+			return lRef{}, noDefinedTargetSlot(v)
 		}
 		if v == "Targeted" && len(lc.chainT) > 1 {
 			// gorge's Targeted is the union of the chain's targets

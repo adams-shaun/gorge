@@ -304,6 +304,16 @@ func (lc *lowerCtx) putCounterUnion(sa *cards.SA, ps *params) (handled bool, err
 		if p == "TriggeredCards" || strings.ContainsAny(p, ".&") {
 			return true, refuse("PutCounter Defined$ %q: part %q is not a bare single object", d, p)
 		}
+		if p == "Targeted" {
+			// the part names the node's own slot (declared by the first
+			// lowering below) or, with none, the chain's earlier one;
+			// either must hold at most one object (the kernel keeps only a
+			// slot's first object in its target cell)
+			if err := lc.unionTargetedPart(d, ps); err != nil {
+				return true, err
+			}
+			continue
+		}
 		r, err := lc.defined(p)
 		if err != nil {
 			return true, err
@@ -314,9 +324,25 @@ func (lc *lowerCtx) putCounterUnion(sa *cards.SA, ps *params) (handled bool, err
 			return true, refuse("PutCounter Defined$ %q: part %q is not a single object", d, p)
 		}
 	}
-	for _, p := range parts {
-		ps.m["Defined"] = p
-		if err := lc.node(sa, ps); err != nil {
+	// the node's own target slot is declared once, by the first lowering;
+	// later parts read it through the chain
+	later := ps
+	if _, own := ps.m["ValidTgts"]; own {
+		m := make(map[string]string, len(ps.m))
+		for k, v := range ps.m {
+			if k != "ValidTgts" && !strings.HasPrefix(k, "Target") && k != "TgtPrompt" {
+				m[k] = v
+			}
+		}
+		later = &params{m: m, used: ps.used}
+	}
+	for i, p := range parts {
+		use := ps
+		if i > 0 {
+			use = later
+		}
+		use.m["Defined"] = p
+		if err := lc.node(sa, use); err != nil {
 			return true, err
 		}
 	}
@@ -470,5 +496,28 @@ func (lc *lowerCtx) removeCounterAll(ps *params) error {
 		in.Note = "all of the kind"
 	}
 	lc.emit(in)
+	return nil
+}
+
+// unionTargetedPart checks the `Targeted` part of a PutCounter union: with its
+// own ValidTgts$ the slot to be declared must allow one object at most
+// (TargetMax$ absent or 1); without, the chain's last slot must be a constant
+// one-object slot.
+func (lc *lowerCtx) unionTargetedPart(d string, ps *params) error {
+	if _, own := ps.get("ValidTgts"); own {
+		if mx, ok := ps.get("TargetMax"); ok && strings.TrimSpace(mx) != "1" {
+			return refuse("PutCounter Defined$ %q with TargetMax$ %q", d, mx)
+		}
+		ps.consume("TargetMax")
+		return nil
+	}
+	t := lc.lastTarget()
+	if t < 0 {
+		return refuse("PutCounter Defined$ %q with no ancestor target slot", d)
+	}
+	tg := lc.ab.Targets[t]
+	if !tg.Max.isConst() || tg.Max.N != 1 || len(lc.chainT) != 1 {
+		return refuse("PutCounter Defined$ %q: part %q is not a single object", d, "Targeted")
+	}
 	return nil
 }
