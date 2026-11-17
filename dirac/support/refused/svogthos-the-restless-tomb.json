@@ -1,0 +1,14 @@
+{
+  "card": "Svogthos, the Restless Tomb",
+  "class": "options-options",
+  "why": "gorge's prefix search (potentialScriptNodes = 160) for the {3}{B}{G} animate, with green only from a Crossroads Candleguide's repeatable \"{2}: Add one mana of any color\", tries the B answer of the colour ask before the G one (both pips are announced) and spends its budget there (found=false limited=true), so gorge leaves the activation census_incomplete and offers none; the kernel offers it: a priority decision with twelve lands and a Candleguide, tail-71 (was tail-70 pair 4 seed 1)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "svogthos_green_only_from_candleguide_filter_search_unmodelled"
+  }
+}
