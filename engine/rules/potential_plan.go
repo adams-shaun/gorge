@@ -378,6 +378,39 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.planAbilityPayment(p, o.Obj, o.Ability), true
 	case o.Kind == "cast" && (o.AltCostIndex == 0 || o.Mode == "mayplay"):
 		return e.potentialModeCastPlan(p, o), true
+	case o.Kind == optTurnFaceUp:
+		// The witness for a turn-face-up special action (CR 708.6): the
+		// turn-up cost the offer walk priced against the hypothetical bound
+		// (turnFaceUpOffers), composed with the same CR 601.2f modifiers
+		// (morphTurnUpMods) and planned from the seat's own mana sources under
+		// the procedure's special action. An {X} cost is planned at its
+		// smallest legal announcement, as the offer gate prices it. The
+		// witness is then confirmed against the offer gate itself, so a
+		// composition that disagreed with the engine is "unsupported", never
+		// a wrong witness.
+		mf, ok := turnUpCostForMode(e.G.Obj(o.Obj), o.Mode, e.faceCost)
+		if !ok {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, true
+		}
+		mods, ok := e.morphTurnUpMods(p, o.Obj, mf)
+		if !ok {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, true
+		}
+		cost := mf.cost
+		if cost.X != 0 {
+			cost = cost.WithX(max(cost.XMin, 0))
+		}
+		prev := e.planSpecial
+		e.planSpecial = mf.special()
+		got := e.planComposedCost(p, o.Obj, mods.Apply(cost), false, false)
+		e.planSpecial = prev
+		if got.Plan == nil || got.Reason != "" {
+			return got, true
+		}
+		if !e.potentialWitnessOffers(p, o, *got.Plan) {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}, true
+		}
+		return got, true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
 }
