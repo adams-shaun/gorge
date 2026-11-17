@@ -504,7 +504,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	if d.Kind != decision.KPriority {
 		// An ask the activation poses: branch over its answers.
 		answers := scriptAnswers(d)
-		answers = scriptDemoteUnneeded(c.G, c.manaActivation, d, scriptOrderAnswers(d, answers, sr.need), sr.need)
+		answers = scriptOrderAnswers(d, answers, sr.need)
 		if len(answers) == 0 {
 			sr.approx = true
 		}
@@ -878,8 +878,7 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 		}
 		if d.Kind != decision.KPriority {
 			// the replay answers the step's own colours first (scriptStepNeed)
-			need := scriptStepNeed(steps, next)
-			for _, in := range scriptDemoteUnneeded(c.G, c.manaActivation, d, scriptOrderAnswers(d, scriptAnswers(d), need), need) {
+			for _, in := range scriptOrderAnswers(d, scriptAnswers(d), scriptStepNeed(steps, next)) {
 				child := pool.hypClone(c)
 				ok := child.Submit(in) == nil && visit(child, next, expect, waits)
 				pool.hypRelease(child)
@@ -1006,63 +1005,4 @@ func (e *Engine) PotentialPlayScript(p state.PlayerID, a decision.PotentialActio
 		return nil, "search_limit"
 	}
 	return nil, "insufficient"
-}
-
-// scriptDemoteUnneeded stably moves, to the end of a mana-ability choice's
-// answers, the ones that pick a PRINTED ability whose fixed Produced$ names no
-// colour the searched play's cost asks for, but only when the ask also offers
-// a GRANTED ability (CR 601.2g: mana abilities are activated while paying, in
-// any order). An Eldrazi Spawn's sacrifice-only {C} beside Elven Chorus's
-// granted any-colour tap pays a {G}{G} cost only through the tap; tried first,
-// the sacrifice spends the whole search budget and the play is never found.
-// A printed ability that does make a needed colour (an "Add U" beside the
-// grant) keeps its place, so the kernel's choice order is unchanged there. The
-// answer set is unchanged.
-func scriptDemoteUnneeded(g *state.Game, ma *manaActivation, d *decision.Decision, answers []decision.Intent, need [state.MC + 1]bool) []decision.Intent {
-	if ma == nil || d == nil || len(answers) < 2 {
-		return answers
-	}
-	granted, wanted := false, false
-	for _, b := range need {
-		wanted = wanted || b
-	}
-	for i := range d.Options {
-		granted = granted || d.Options[i].Kind == "mana" && d.Options[i].Granted
-	}
-	if !granted || !wanted {
-		return answers
-	}
-	chosen := pay.ChosenProducedColour(g, ma.source)
-	unneeded := func(o *decision.Option) bool {
-		if o.Kind != "mana" || o.Granted || o.Ability < 0 || o.Ability >= len(ma.abilities) {
-			return false
-		}
-		cols, ok := pay.ManaAbilityFixedColours(ma.abilities[o.Ability], chosen)
-		if !ok {
-			return false
-		}
-		for _, c := range cols {
-			if i := state.ManaIndex(c); i <= state.MC && need[i] {
-				return false
-			}
-		}
-		return true
-	}
-	var keep, last []decision.Intent
-	for _, in := range answers {
-		late := false
-		for _, ch := range in.Choices {
-			for i := range d.Options {
-				if o := &d.Options[i]; o.Index == ch && unneeded(o) {
-					late = true
-				}
-			}
-		}
-		if late {
-			last = append(last, in)
-		} else {
-			keep = append(keep, in)
-		}
-	}
-	return append(keep, last...)
 }

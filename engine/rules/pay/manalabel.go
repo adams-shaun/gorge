@@ -109,28 +109,6 @@ func ManaAbilityComboColours(ma *cards.SA, chosen string) ([]string, bool) {
 	return cols, true
 }
 
-// ManaAbilityFixedColours returns the mana symbols (W U B R G C) a mana
-// ability's Produced$ names when it names only literal symbols -- "U", "C",
-// "Combo R G" -- and false when any token is not one (Any, Chosen, a
-// reflected or imprinted source), where the colours are not fixed.
-func ManaAbilityFixedColours(ma *cards.SA, chosen string) ([]byte, bool) {
-	if ma == nil || ma.API != "Mana" {
-		return nil, false
-	}
-	p := SubstituteChosenProduced(params.ManaOf(ma).Produced, chosen)
-	if len(p) > 6 && p[0] == 'C' && p[1] == 'o' && p[5] == ' ' { // "Combo <symbols>"
-		p = p[6:]
-	}
-	var out []byte
-	for i := 0; i < len(p); i += 2 {
-		if p[i] != 'C' && state.ManaIndex(p[i]) == state.MC || i+1 < len(p) && p[i+1] != ' ' {
-			return nil, false
-		}
-		out = append(out, p[i])
-	}
-	return out, len(out) > 0
-}
-
 // manaAbilityProduced reads a mana ability's Produced$ value. Every caller
 // passes a mana ability (the intrinsic-append dedup inside
 // availableManaAbilitiesUsing's CR 305.6 walk), so the param census
