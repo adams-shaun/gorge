@@ -265,7 +265,9 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	fl, bf, fg := s.bld().e.flags, s.bld().bfl, s.bld().fixedGen
 	s.bld().e.flags &^= sfAnyMana
 	s.bld().bfl &^= bflAnyColor | bflCostFixed
-	pc := planUnderRider(s.buildCost(k), fl&sfAnyMana != 0, bf&bflAnyColor != 0)
+	// gorge plans the cost paymentMana leaves, the announced convoke picks
+	// (applyConvoke) already off it
+	pc := planUnderRider(s.convokeApplyPicks(k, s.buildCost(k)), fl&sfAnyMana != 0, bf&bflAnyColor != 0)
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)

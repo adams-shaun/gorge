@@ -153,23 +153,68 @@ func (s *State) convokeCreditFrom(k *prep, p uint8, c CardID, o Obj, fromHand bo
 }
 
 // convokeApplyPicks subtracts the announced convoke picks from cost in pick
-// order (gorge applyConvoke).
+// order (gorge applyConvoke). Under a may-play rider that lets any mana pay,
+// cost is the any-type fold (buildCost turns every pip generic), but gorge
+// prices the picks against the unfolded cost: a creature of an owed colour
+// pays that pip (CR 702.51a), which the fold then reads as one generic.
 func (s *State) convokeApplyPicks(k *prep, cost kop.ManaCost) kop.ManaCost {
+	if e := &s.bld().e; e.flags&sfAnyMana == 0 || e.kind != seSpell {
+		return s.convokeApplyPicksTo(k, cost)
+	}
+	owed := s.convokeCost(k).Pips
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if !isConvokePick(s.bld().pickKs[i]) {
 			continue
 		}
-		col := int(s.bld().pickKs[i] & 7)
-		if col == 7 {
-			// harmonize: the creature's power off the generic part (CR 702.180a)
-			cost.Generic -= s.harmonizeReduce(k, s.objs[s.bld().picks[i]].slot, cost.Generic)
-		} else if col < 5 {
-			if cost.Pips[col] > 0 {
-				cost.Pips[col]--
+		if col := int(s.bld().pickKs[i] & 7); col < 5 {
+			if owed[col] > 0 {
+				owed[col]--
+				if cost.Generic > 0 {
+					cost.Generic--
+				}
 			}
-		} else if cost.Generic > 0 {
-			cost.Generic--
+			continue
 		}
+		cost = s.convokePickTo(k, cost, i)
+	}
+	return cost
+}
+
+// convokeCost is buildCost before a may-play rider's any-type fold: the
+// printed pips gorge's manaToPay hands convokeAsk, whose colour picks are
+// offered against them.
+func (s *State) convokeCost(k *prep) kop.ManaCost {
+	e := &s.bld().e
+	if e.flags&sfAnyMana == 0 || e.kind != seSpell {
+		return s.buildCost(k)
+	}
+	e.flags &^= sfAnyMana
+	c := s.buildCost(k)
+	e.flags |= sfAnyMana
+	return c
+}
+
+func (s *State) convokeApplyPicksTo(k *prep, cost kop.ManaCost) kop.ManaCost {
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if isConvokePick(s.bld().pickKs[i]) {
+			cost = s.convokePickTo(k, cost, i)
+		}
+	}
+	return cost
+}
+
+// convokePickTo applies announced pick i to cost.
+func (s *State) convokePickTo(k *prep, cost kop.ManaCost, i int) kop.ManaCost {
+	col := int(s.bld().pickKs[i] & 7)
+	if col == 7 {
+		// harmonize: the creature's power off the generic part (CR 702.180a)
+		cost.Generic -= s.harmonizeReduce(k, s.objs[s.bld().picks[i]].slot, cost.Generic)
+	} else if col < 5 {
+		if cost.Pips[col] > 0 {
+			cost.Pips[col]--
+		}
+	} else if cost.Generic > 0 {
+		cost.Generic--
 	}
 	return cost
 }
@@ -310,7 +355,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	// manaToPay); the oracle then drops every pick the announced cost no
 	// longer absorbs, so a fully paid announcement still poses a Done-only
 	// menu. Offer only the picks the post-pick remainder absorbs.
-	raw := s.buildCost(k)
+	raw := s.convokeCost(k) // the pips gorge's ask reads, before an any-type rider's fold
 	fromHand := s.castFromHandBy(e, e.ctrl)
 	convoke := s.hasConvoke(k, e.ctrl, e.card, e.obj, fromHand)
 	improvise := s.isImprovise(k, e.ctrl, e.card, e.obj, fromHand)
@@ -375,7 +420,7 @@ func (s *State) convokeOptions(k *prep, d *Decision) bool {
 	// (validateCastContributions) refuses a pick the outstanding cost cannot
 	// absorb on a may-play or alternative-cost cast too (CR 702.51a), and the
 	// oracle offers only the picks that gate admits.
-	cost := s.convokeApplyPicks(k, raw)
+	cost := s.convokeApplyPicksTo(k, raw)
 	var rem [5]uint8
 	for i := range rem {
 		rem[i] = cost.Pips[i]
