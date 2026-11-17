@@ -10,7 +10,7 @@ import (
 
 // castCondCode names the Condition$ values that excuse a chain link's target
 // announcement behind a cast option (castSubCondition).
-type castCondCode uint16
+type castCondCode uint8
 
 const (
 	castCondOther castCondCode = iota
@@ -19,17 +19,21 @@ const (
 	castCondAwakened
 )
 
-var castCondCodes = state.NewStrCodes(
-	state.StrEntry[castCondCode]{Key: "kicked", Val: castCondKicked},
-	state.StrEntry[castCondCode]{Key: "optionalcost", Val: castCondOptionalCost},
-	state.StrEntry[castCondCode]{Key: "awakened", Val: castCondAwakened},
-)
-
 // castSubCondition is sub's bare Condition$ as a cast-option gate: the three
 // values whose outcome is fixed when the cast option is picked, castCondOther
 // for everything else (judged as the link resolves).
 func castSubCondition(sub *cards.SA) castCondCode {
-	return castCondCodes.Code(strings.ToLower(strings.TrimSpace(sub.ParamStr(cards.PKCondition))))
+	word := strings.ToLower(strings.TrimSpace(sub.ParamStr(cards.PKCondition)))
+	switch castModeCodes.Code(word) {
+	case castModeKicked:
+		return castCondKicked
+	case castModeOptionalcost:
+		return castCondOptionalCost
+	}
+	if word == altMode(altAwaken) { // the Condition$ word is the cast mode word
+		return castCondAwakened
+	}
+	return castCondOther
 }
 
 // awakenLink is the spell ability's "target land you control" link kwAwaken

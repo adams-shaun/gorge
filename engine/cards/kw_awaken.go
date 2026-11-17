@@ -4,11 +4,6 @@
 
 package cards
 
-import (
-	"strconv"
-	"strings"
-)
-
 // kwAwaken expands K:Awaken:<N>:<cost> (CR 702.113a). The cost half is an
 // alternative cost rules reads as the altAwaken cast mode; this half adds the
 // rider "If you do, put N +1/+1 counters on target land you control. That
@@ -18,12 +13,18 @@ import (
 // and a plain cast (no Awakened provenance) skips both links and announces
 // no land target (rules' castSubTargetsOwed).
 func kwAwaken(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	n, _, ok := strings.Cut(param, ":")
-	n = strings.TrimSpace(n)
-	if _, err := strconv.Atoi(n); !ok || err != nil {
+	// K:Awaken:<N>:<cost>: the count is the first field (a card prints one
+	// Awaken line, so the minted SVar names need no per-line index).
+	n := KeywordCostField(param)
+	if n == "" {
 		return
 	}
-	put := "__kwAwaken" + strconv.Itoa(i)
+	for j := 0; j < len(n); j++ {
+		if n[j] < '0' || n[j] > '9' {
+			return
+		}
+	}
+	put := "__kwAwaken"
 	if _, done := f.SVars[put]; done {
 		return
 	}
