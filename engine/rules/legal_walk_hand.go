@@ -206,7 +206,7 @@ func (w *legalWalk) handWalk() {
 		// it precedes the one below. The cast is otherwise ordinary -- the same
 		// targets and spell-scope cost modifiers -- and beginCast stamps the
 		// designation at the push (pushCast), before targets and payment.
-		if raw, _, _, ok := state.PrototypeParams(f); ok && w.spellTimingOK(p, id, f, sorcery) {
+		if raw, _, _, ok := state.PrototypeParams(f); ok && prototypeTimingOK(w.e, p, id, f, sorcery, w, func() bool { return mayPlayFlashGranted(w.e.activeStatics, w.e.mayPlayGrantedBy, w.e.G.Obj(id), p) }) {
 			protoCost := ParseCost(raw)
 			if !w.castRestrictedCostPrototype(p, id, protoCost) &&
 				w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, protoCost), spellScope("prototype"), false) &&
