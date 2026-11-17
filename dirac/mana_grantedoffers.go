@@ -517,6 +517,73 @@ func (s *State) windowGrantMask(k *prep, sl Slot) (mask uint8) {
 	return mask
 }
 
+// grantUnit is a source's merged granted mana: the largest amount one
+// activation makes, its colour mask, and whether that amount is all one
+// chosen colour (manaOneColour), which the availability must model as a
+// one-colour unit rather than that many independent any-colour units. alt is
+// the source's own fixed face when a larger one-colour grant governs the
+// merged unit (a colourless host's {C} under Nature's Embrace): the payment
+// takes that face or the grant, never both.
+type grantUnit struct {
+	mask, n       uint8
+	one           bool
+	altMask, altN uint8
+}
+
+// add merges one grant into u: a larger amount governs, and an equal amount
+// is one-colour only when every candidate of that amount is.
+func (u *grantUnit) add(mask, n uint8, one bool) {
+	u.mask |= mask
+	if n > u.n {
+		u.n, u.one = n, one
+	} else if n == u.n {
+		u.one = u.one && one
+	}
+}
+
+// mergeGrantFace joins a source's own tap face with its granted tap face: the
+// permanent taps once, so the two are alternatives. A larger grant, or one of
+// the same amount that is one-colour, governs the merged amount. The own face
+// is kept as the fixed alternative only when it makes {C}, the one colour the
+// grant's WUBRG block cannot choose -- a printed colour is already covered by
+// that block -- so the printed {C} is neither lost nor counted beside the
+// grant (CR 106.4, 106.12a). Otherwise the own face governs, as before.
+func mergeGrantFace(own, grant grantUnit) grantUnit {
+	if grant.mask == 0 {
+		return own
+	}
+	if own.mask == 0 {
+		return grant
+	}
+	if grant.n > own.n || grant.n == own.n && grant.one {
+		if grant.one && own.mask&(1<<kop.C) != 0 {
+			grant.altMask, grant.altN = own.mask, own.n
+		}
+		grant.mask |= own.mask
+		return grant
+	}
+	if grant.n == own.n {
+		grant.one = grant.one && own.one
+	}
+	own.mask |= grant.mask
+	return own
+}
+
+// addGrantUnit adds u's unit to a: its colours and count, and its one-colour
+// constraint when the amount is all one chosen colour. The one-colour entry
+// carries u's group mask so oneColourPays takes this unit's units out even
+// when the source's printed mask joined them (0x3f), and u's fixed
+// alternative face when the printed ability is the other choice.
+func (s *State) addGrantUnit(a *avail, u grantUnit) {
+	if u.mask == 0 {
+		return
+	}
+	s.addGrantUnits(a, u.mask, u.n)
+	if u.one {
+		s.addOneColourAlt(a, u.mask, u.n, u.altMask, u.altN)
+	}
+}
+
 // availGrant adds slot sl's unit(s) to a (availFor) on a table with
 // Continuous mana grants: its own ability's colours (pc) joined with
 // every granted ability's, one unit (the permanent taps once; gorge's
@@ -594,6 +661,7 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	if !own {
 		mask, n = 0, 0
 	}
+	ownFace := grantUnit{mask: mask, n: n, one: own && pc.manaOne}
 	// A printed sacrifice-only ability (an Eldrazi Spawn's) costs no {T} either:
 	// it is a unit of its own beside a tap grant's, and a tapped source still
 	// pays it, though not the tap grant (CR 602.2b, 605.1a).
@@ -603,15 +671,14 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	if own && k.sacOnlyMana && pc.manaSacOnly {
 		pMask, pN = mask, n
 		pOne = pc.manaOne
-		mask, n = 0, 0
+		ownFace = grantUnit{}
 		spawnNoTap = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
 	}
 	// A sacrifice-only grant (Lotus Ring's "Sacrifice this creature: Add three
 	// mana of any one color") costs no {T}: the source taps for its other
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
-	var sMask, sN uint8
-	sOne := false
+	var su, gu grantUnit
 	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
 	tapsNot := false
 	if ownSac {
@@ -620,16 +687,8 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 		// colour) -- the tap makes its mana, then the sacrifice makes its own
 		// (CR 602.2b, 605.1a); a tapped or summoning-sick source has only the
 		// sacrifice (CR 302.6)
-		sMask, sN, mask, n = mask, n, 0, 0
+		su = ownFace
 		tapsNot = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
-	}
-	// oneN: the amount of the one-colour source (a printed manaOne ability or
-	// a "N mana of any one color" grant) the joined units stand for: the units
-	// are one colour, whichever is chosen, and the census reads them so
-	// (oneColourPays), as availFor's printed path does.
-	oneN := uint8(0)
-	if own && pc.manaOne {
-		oneN = n
 	}
 	for i := 0; i < ng; i++ {
 		gv := s.grantView(k.gen, gi[i], sl)
@@ -637,42 +696,20 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 			continue
 		}
 		if gv.grantSac && s.grantSacLive(sl, gv) {
-			sMask |= s.srcMaskAt(gv, sl)
-			if gv.manaN > sN {
-				sN = gv.manaN
-			}
-			if gv.manaOne {
-				sOne = true
-			}
+			su.add(s.srcMaskAt(gv, sl), gv.manaN, gv.manaOne)
 			continue
 		}
 		if spawnNoTap {
 			continue // a tapped or summoning-sick Spawn cannot pay a granted {T} ability (CR 302.6)
 		}
-		mask |= s.srcMaskAt(gv, sl)
-		if gv.manaN > n {
-			n = gv.manaN
-		}
-		if gv.manaOne {
-			oneN = max(oneN, gv.manaN)
-		}
+		gu.add(s.srcMaskAt(gv, sl), gv.manaN, gv.manaOne)
 	}
-	if mask == 0 {
-		mask, n, sMask, sN = sMask, sN, 0, 0
-		oneN = 0
+	u := mergeGrantFace(ownFace, gu)
+	if u.mask == 0 {
+		u, su = su, grantUnit{}
 	}
-	if mask != 0 {
-		s.addGrantUnits(a, mask, n)
-		if oneN == n && n > 1 && mask == uint8(kop.ColAny) {
-			s.addOneColour(a, n) // the joined units are one colour, whichever is chosen
-		}
-	}
-	if sMask != 0 {
-		s.addGrantUnits(a, sMask, sN)
-		if sOne && sN > 1 && sMask == uint8(kop.ColAny) {
-			s.addOneColour(a, sN) // the sacrificed grant's mana is one colour, whichever is chosen
-		}
-	}
+	s.addGrantUnit(a, u)
+	s.addGrantUnit(a, su)
 	if pMask != 0 {
 		s.addGrantUnits(a, pMask, pN)
 		if pOne && pN > 1 && pMask == uint8(kop.ColAny) {
