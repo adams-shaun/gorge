@@ -89,7 +89,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		}
 	} else if targeted {
 		// the X-bound target is judged at the X the fork's mana still pays
-		if !t.spellTargetsFeasible(k, c, p) || !t.spellXBoundPayable(k, c, p, cost) {
+		if !t.spellTargetsFeasible(k, c, p) && !s.announcedTargetKept(k, t, c, p) || !t.spellXBoundPayable(k, c, p, cost) {
 			return true
 		}
 	}
