@@ -340,7 +340,11 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	if s.splitDeferred(k, sl) {
 		pc = s.splitCensusPC(k, sl) // the root's production plus the arm's while its gate holds (mana_condsplit.go)
 	}
-	av.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+	mask := s.srcMaskAt(pc, sl)
+	if col, ok := tapsDeferPainCol(k, pc, mask); ok {
+		mask |= 1 << col // the paid-life ability is one more relaxed alternative of the source
+	}
+	av.addUnits(mask, s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)
 		for c := range xv {
@@ -370,7 +374,32 @@ func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 		}
 		return n
 	}
-	return uint8(bits.OnesCount8(s.srcMaskAt(s.manaPCGen(k, sl), sl)))
+	pc := s.manaPCGen(k, sl)
+	mask := s.srcMaskAt(pc, sl)
+	n := uint8(bits.OnesCount8(mask))
+	if _, ok := tapsDeferPainCol(k, pc, mask); ok && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) >= int(pc.painN) {
+		n++ // the paid-life ability's colour is the last answer (tapDeferFloat)
+	}
+	return n
+}
+
+// tapsDeferPainCol is the colour of a life-pain land's paid-life ability
+// (Ramunap Ruins' "{T}, Pay 1 life: Add {R}" beside its {C}) when it is a
+// planner-deferred gap's extra answer: one WUBRG colour the normal
+// alternative (mask) does not make. gorge's relaxation of a deferred source
+// (paymentPlanRelaxedAlternatives) is one free alternative per mana ability,
+// and its prefix search activates each ability's option in turn, the plain
+// one first, so the kernel's gap answers are the normal colours then this one
+// (CR 605.3b; Price of Glory beside Ruins and an {R} play).
+func tapsDeferPainCol(k *prep, pc *pcard, mask uint8) (int, bool) {
+	if !k.painMana || pc.painOnly || !pc.painLife || pc.painN == 0 {
+		return 0, false
+	}
+	c := uint8(pc.painCol)
+	if c == 0 || c&^0x1f != 0 || bits.OnesCount8(c) != 1 || c&mask != 0 {
+		return 0, false
+	}
+	return bits.TrailingZeros8(c), true
 }
 
 // tapDeferPlain floats a rider source's plain first ability at sl, the
@@ -408,6 +437,14 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	}
 	pc := s.manaPCGen(k, sl)
 	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
+	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == bits.OnesCount8(mask) {
+		// the paid-life ability's answer: its colour and its life (painDamage reads painLife)
+		s.pl[p].pool[pcol]++
+		s.addExtra(k, p, sl, pc)
+		s.artTag(k, p, sl, pcol)
+		s.painDamage(k, sl, p, int(pc.painN))
+		return
+	}
 	for i := 0; i < c; i++ {
 		mask &= mask - 1
 	}
