@@ -650,6 +650,9 @@ func costString(c lCost) string {
 	if c.DiscardN > 0 {
 		p = append(p, fmt.Sprintf("Discard%d", c.DiscardN))
 	}
+	if c.DiscardX {
+		p = append(p, "DiscardX")
+	}
 	if c.DiscardSelf {
 		p = append(p, "DiscardSelf")
 	}
