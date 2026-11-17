@@ -208,11 +208,13 @@ deanna_spacecraft_oberth_s162 std-trk
 deanna_spacecraft_suurok_s193 std-trk
 deathtouch_wither_hit std-mkm
 declined_delve_picks_reverse_the_cast std-tdm
+deferred_dynamic_host_funds_no_cast custom
 deferred_gap_beside_filter std-fdn
 deferred_gap_beside_granted_land std-fdn
 deferred_gap_beside_granted_mana std-fdn
 deferred_mana_funds_trigger_cost std-fdn
 deferred_mana_pays_x_announcement std-fdn
+deferred_multimana_host_funds_no_cast custom
 deferred_red_funds_first_filter_fee std-fdn
 deferred_source_keeps_tap_extra_mana std-tla
 delay_spell_source_bound std-msh
