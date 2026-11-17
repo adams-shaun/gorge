@@ -243,23 +243,28 @@ func takeUnit(rem, sn *state.Mana, typed *[8]state.Mana, i int) {
 		(*rem)[i]--
 		return
 	}
-	for t := 0; t < len(*typed); t++ {
-		if t == state.TypedSnowArtifact || (*typed)[t][i] <= 0 {
-			continue
+	for t := 0; t < state.TypedArtifact; t++ {
+		if (*typed)[t][i] > 0 {
+			(*rem)[i]--
+			(*typed)[t][i]--
+			return
 		}
+	}
+	// A composed snow-artifact unit is preferred over the artifact-only
+	// typed one: its consumption moves the Snow tally with the pool, so
+	// every head that counts this spend (the {S} and the artifact one) sees
+	// it leave. It is checked on its own because the exclusive partition
+	// can hold composed units with an empty artifact-only slot (every
+	// Artifact unit in the slot being snow).
+	if (*typed)[state.TypedSnowArtifact][i] > 0 {
 		(*rem)[i]--
-		if t == state.TypedArtifact {
-			// A composed unit is preferred over the artifact-only typed
-			// one: its consumption moves the Snow tally with the pool, so
-			// every head that counts this spend (the {S} and the artifact
-			// one) sees it leave.
-			if (*typed)[state.TypedSnowArtifact][i] > 0 {
-				(*sn)[i]--
-				(*typed)[state.TypedSnowArtifact][i]--
-				return
-			}
-		}
-		(*typed)[t][i]--
+		(*sn)[i]--
+		(*typed)[state.TypedSnowArtifact][i]--
+		return
+	}
+	if (*typed)[state.TypedArtifact][i] > 0 {
+		(*rem)[i]--
+		(*typed)[state.TypedArtifact][i]--
 		return
 	}
 	(*rem)[i]--

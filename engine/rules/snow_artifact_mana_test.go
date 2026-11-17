@@ -101,3 +101,43 @@ func TestSnowArtifactManaPaysSnowCost(t *testing.T) {
 		t.Fatalf("artifact tally {C} = %d after paying {S}, want 0", got)
 	}
 }
+
+// TestSnowArtifactManaPaysGenericFromComposedOnly pays a generic cost from a
+// pool whose only {C} unit is the composed snow-artifact one: the exclusive
+// payment partition holds it in state.TypedSnowArtifact with an empty
+// artifact-only slot, and the plain-unit search must still consume it from
+// the pool once, moving all three tallies with it.
+func TestSnowArtifactManaPaysGenericFromComposedOnly(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, snowArtifactFixture)
+	rock := e.G.Obj(id)
+	effects.Resolve(e, &effects.Ctx{Source: id, Controller: 0},
+		cards.ResolveSVar(rock.Face().SVars, "M"))
+	if got := e.G.Players[0].SnowTyped[state.MC]; got != 1 {
+		t.Fatalf("precondition: composed tally = %d, want 1 after the production", got)
+	}
+	units := e.G.Players[0].ManaUnits()
+	if units[state.TypedSnowArtifact][state.MC] != 1 || units[state.TypedArtifact][state.MC] != 0 {
+		t.Fatalf("precondition: exclusive partition artifact=%d composed=%d, want 0/1",
+			units[state.TypedArtifact][state.MC], units[state.TypedSnowArtifact][state.MC])
+	}
+
+	cost := ParseCost("1")
+	ok, _, _, _, _ := pay.PayManaDescriptorForSpent(asPayer(e), 0,
+		pay.Descriptor{Class: pay.PurposeOther, Cost: &cost}, cost, nil, pay.PipRider{})
+	if !ok {
+		t.Fatal("the generic cost was not payable from the composed unit")
+	}
+	if got := e.G.Players[0].Pool[state.MC]; got != 0 {
+		t.Fatalf("pool {C} = %d after paying {1}, want 0", got)
+	}
+	if got := e.G.Players[0].Snow[state.MC]; got != 0 {
+		t.Fatalf("snow tally {C} = %d after paying {1}, want 0", got)
+	}
+	if got := e.G.Players[0].TypedMana[state.TypedArtifact][state.MC]; got != 0 {
+		t.Fatalf("artifact tally {C} = %d after paying {1}, want 0", got)
+	}
+	if got := e.G.Players[0].SnowTyped[state.MC]; got != 0 {
+		t.Fatalf("composed tally {C} = %d after paying {1}, want 0", got)
+	}
+}
