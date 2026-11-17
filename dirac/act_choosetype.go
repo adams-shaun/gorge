@@ -317,6 +317,17 @@ func filterChosenType(t *kop.Table, f kop.FilterID) bool {
 // for a spell-cast trigger of the listener at src.
 func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, self Obj) bool {
 	if !k.gen.chosenCardTgt {
+		if k.gen.anySrcMem && chainWord7(k.t, f, kop.W7Imprinted) {
+			// A target filter that reads a source-persistent Imprinted list:
+			// thread the matcher's source (its object, else its slot) instead
+			// of ctxCur, which may still name the resolving entry.
+			srcObj := self
+			if srcObj == NoObj && src != NoSlot {
+				srcObj = s.perms[src].obj
+			}
+			ctx := evalCtx{src: srcObj, srcSl: src, ctrl: ctrl}
+			return s.matchCardGenAt(k, f, c, owner, ctrl, o, &ctx)
+		}
 		return s.matchCardGen(k, f, c, owner, ctrl, o)
 	}
 	return s.matchCardSrc(k, f, c, owner, ctrl, o, src, self)

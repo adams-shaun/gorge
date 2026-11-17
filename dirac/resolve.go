@@ -65,6 +65,7 @@ func (s *State) resolveTop(k *prep) {
 	}
 	if k.gen != nil {
 		s.g.nimp = 0
+		s.impSeedOnResolve(k, &e)               // its source's kept Imprinted (zone_imprint.go)
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
 		// A state trigger (Tf4StateCtr) starts with nothing remembered too.
