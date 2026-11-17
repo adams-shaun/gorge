@@ -91,6 +91,10 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
 		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+	case payKindMill:
+		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
+	case payKindReveal:
+		return s.unlessRevealCands(k, p, f, nil) >= amt // gorge unlessComponentsPayable's "revealcost" candidates
 	case payKindDamage:
 		return amt > 0 // gorge: DamageYou<X> folds only for a positive X (cost_restokens.go)
 	case kop.PaySubCounter:
@@ -139,8 +143,10 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
-	kind = resTokenPayKind(kind, in.B.N) // DamageYou<X> rides PayDraw (cost_restokens.go)
-	kind = unlessPayKind(kind, in)       // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
+	kind = resTokenPayKind(kind, in.B.N)     // DamageYou<X> rides PayDraw (cost_restokens.go)
+	kind = millPayKind(kind, in.B.N)         // an UnlessCost$ Mill<N> rides PayDraw (cost_unlessmill.go)
+	kind = unlessRevealPayKind(kind, in.B.N) // an UnlessCost$ Reveal<N/Spec> rides PayDiscard (cost_unlessreveal.go)
+	kind = unlessPayKind(kind, in)           // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -446,8 +452,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
-		if s.g.pickZ == payKindBehold {
-			s.unlessBeholdOptions(k, d, p) // cost_unlessbehold.go
+		if z := s.g.pickZ; z == payKindBehold || z == payKindReveal {
+			s.unlessRevealOptions(k, d, p) // cost_unlessreveal.go: a Behold rides the same dispatch (cost_unlessbehold.go)
 			break
 		}
 		if s.g.pickZ == kop.PayDiscard {
@@ -726,6 +732,10 @@ func (s *State) autoPayPick(k *prep) bool {
 		s.g.pickLeft = 0 // exactly the candidates owed: beholding moves nothing
 		return true
 	}
+	if s.g.pickZ == payKindReveal {
+		s.g.pickLeft = 0 // exactly the candidates owed: gorge records them unasked (pay/unlessflow.go AdvanceUnless); nothing moves
+		return true
+	}
 	objs := d.Options[:d.N]
 	for i := 1; i < len(objs); i++ { // battlefield (entry) order
 		for j := i; j > 0; j-- {
@@ -846,11 +856,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case payKindTrigNew:
 			s.exileTrigNew() // the triggered card, unasked (trig_mayexile.go)
 		case kop.PayLife:
-			if int(s.pl[s.g.pickP].life) < int(s.g.pickLeft) {
-				s.payDone(k, false) // CR 119.4: a ward's unpayable life (gorge counters)
-				return
-			}
-			s.loseLife(k, s.g.pickP, int(s.g.pickLeft))
+			s.payPickLife(k) // cost_picklife.go: settles paid or declines (CR 119.4)
+			return
 		case kop.PayEnergy:
 			s.payEnergyN(s.g.pickP, s.g.pickLeft)
 		case kop.PayForage:
@@ -860,8 +867,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.paySacSelf(k)
 		case payKindSacHost:
 			s.paySacHost(k)
-		case kop.PayDraw:
-			s.payDrawToken(k)
+		case kop.PayDraw, payKindMill:
+			s.payDrawOrMill(k) // cost_unlessmill.go: a draw, or the unless-mill that rides PayDraw
 		case payKindDamage, payKindPoison:
 			s.payResToken(k) // cost_restokens.go
 		case payKindAddCounter:
@@ -932,10 +939,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.applyTapXVarPick(k, a) // tapXType<X/Spec> (cost_tapxvar.go)
 			return
 		}
-		if s.g.pickZ == payKindBehold {
-			s.g.pickLeft = 0 // beholding moves and marks nothing (cost_unlessbehold.go)
-			s.payDone(k, true)
-			break
+		if s.unlessRevealPick() {
+			if s.unlessRevealAnswer(k) { // cost_unlessreveal.go: beholding and revealing move and mark nothing
+				break
+			}
+			return
 		}
 		if s.g.pickZ == payKindWaterbend {
 			s.applyUnlessWaterbendPick(k, o) // cost_unlesswaterbend.go
