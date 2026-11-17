@@ -1129,7 +1129,10 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// first the rider step (gapBranch), then the grants' (visit), never
 		// both taps of one source (CR 605.1a).
 		g.tdef[n] = xm.has(sl) && !fm.has(sl) && !tm.has(sl)
-		g.each[n], g.wide[n], g.ctr[n], g.store[n] = false, false, false, false
+		g.each[n], g.wide[n], g.ctr[n] = false, false, false
+		// a battery that is itself a grant holder keeps both sides: its
+		// counters pay this slot (CR 107.3), its granted {T} the grants'
+		g.store[n] = sm.has(sl) && !fm.has(sl) && !tm.has(sl)
 		return
 	}
 	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
@@ -1233,7 +1236,15 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 	case g.tdef[i]:
 		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
 	case g.store[i]:
-		return g.storeBranch(t, i, sl), true // every counter it holds (mana_grantstore.go)
+		// every counter it holds (mana_grantstore.go); a failed storage branch
+		// of a grant holder leaves its grant side to visit (CR 605.1a)
+		if g.storeBranch(t, i, sl) {
+			return true, true
+		}
+		if g.ng[i] > 0 {
+			return false, false
+		}
+		return false, true
 	}
 	return false, false
 }
