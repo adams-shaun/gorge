@@ -2392,6 +2392,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	// table with an as-enters copy election adds them here, once it is known.
 	if !early && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl)) && !elected {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
+		s.copyGrantsAdd(k, sl, tmpl) // the template's as-enters grants are copiable values too (CR 707.3, 707.9b)
 	}
 	if host != NoSlot && s.occ.has(host) {
 		s.attachTo(k, sl, host) // a copy that enters attached is attached when its enters check looks (CR 303.4f, 603.6a)
