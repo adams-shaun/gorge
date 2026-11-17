@@ -933,6 +933,18 @@ func phaseTriggerMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	if t.ParamStr(cards.PKEcho) == "True" {
 		return e.EchoGateHolds(source)
 	}
+	// CR 603.4: the Innistrad werewolf intervening-ifs. The front face
+	// transforms "if no spells were cast last turn", the back face "if a
+	// player cast two or more spells last turn". Last turn's window is
+	// closed, so the trigger-time check is also the resolution-time answer.
+	if t.ParamStr(cards.PKWerewolfTransformCondition) == "True" {
+		total, _ := e.SpellsCastLastTurn()
+		return total == 0
+	}
+	if t.ParamStr(cards.PKWerewolfUntransformCondition) == "True" {
+		_, most := e.SpellsCastLastTurn()
+		return most >= 2
+	}
 	return true
 }
 

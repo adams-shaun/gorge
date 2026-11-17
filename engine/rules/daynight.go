@@ -129,3 +129,44 @@ func (e *Engine) dayNightStateCheck(b *sbaBatch) {
 		b.add(events.Event{Kind: events.DayNightChange, Amount: int32(state.DayNightNight), Text: state.DayNightNight.String()})
 	}
 }
+
+// spellsCastLastTurn reads the previous turn's spells off the log: the
+// PutOnStack casts (less CR 733.1 reversals) between the second-to-last and
+// the last TurnChange, in all and the most by any one player. Before a turn
+// has completed there was no last turn and both are zero. Game.PrevTurnSpells
+// is the day/night half of the same window (the outgoing active seat only,
+// CR 731.2); the werewolf intervening-ifs count every player's spells.
+func (e *Engine) spellsCastLastTurn() (total, most int) {
+	log := e.L.Events
+	end := len(log)
+	for end > 0 && log[end-1].Kind != events.TurnChange {
+		end--
+	}
+	if end == 0 {
+		return 0, 0
+	}
+	end--
+	start := end
+	for start > 0 && log[start-1].Kind != events.TurnChange {
+		start--
+	}
+	if start == 0 {
+		return 0, 0
+	}
+	var per [8]int
+	var rev events.CastReversals
+	for i := end - 1; i >= start; i-- {
+		ev := log[i]
+		if rev.Undone(&ev) || ev.Kind != events.PutOnStack {
+			continue
+		}
+		if int(ev.Player) >= 0 && int(ev.Player) < len(per) {
+			per[ev.Player]++
+			total++
+		}
+	}
+	for _, n := range per {
+		most = max(most, n)
+	}
+	return total, most
+}

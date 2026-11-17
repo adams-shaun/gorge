@@ -114,6 +114,10 @@ type Board interface {
 	ProtectionSource(source state.ObjID) state.ObjID
 	// EchoGateHolds is the CR 702.35a echo intervening-if for source.
 	EchoGateHolds(source state.ObjID) bool
+	// SpellsCastLastTurn is the previous turn's spell tally: every player's
+	// spells in all, and the most any one player cast (the werewolf
+	// intervening-ifs, CR 603.4).
+	SpellsCastLastTurn() (total, most int)
 	// SpellsCastThisTurn and ManaExpendTotal are the per-player turn tallies.
 	SpellsCastThisTurn(p state.PlayerID) int
 	ManaExpendTotal(p state.PlayerID) int32

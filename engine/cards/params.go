@@ -911,6 +911,8 @@ const (
 	// ValidKeyword$ <Landwalk:Type> on S:Mode$ IgnoreLandWalk, read by
 	// combat.landwalkIgnored. Appended: earlier ordinals stay stable.
 	PKValidKeyword
+	PKWerewolfTransformCondition
+	PKWerewolfUntransformCondition
 	paramKeyCount
 )
 
@@ -1735,6 +1737,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKTopCardOfLibraryIs:               "TopCardOfLibraryIs",
 	PKRememberSource:                   "RememberSource",
 	PKValidKeyword:                     "ValidKeyword",
+	PKWerewolfTransformCondition:       "WerewolfTransformCondition",
+	PKWerewolfUntransformCondition:     "WerewolfUntransformCondition",
 }
 
 // String is the key's Forge text.
