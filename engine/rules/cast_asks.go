@@ -1061,10 +1061,16 @@ func (e *Engine) castModeAsk() bool {
 	// mana has been floated yet (the CR 601.2g window is in payCast), so the
 	// floating pool alone would wrongly withhold every payable mode.
 	pot := e.PotentialMana(pc.player)
-	// CR 106.6: a source whose RestrictValid$ cannot spend on THIS cast
-	// (Plaza of Heroes' legendary-only mana vs a nonlegendary spell) must
-	// not feed the mode-affordability bound.
-	pot = e.potentialPoolFor(pc.player, offerPayment(pc.card, pc.isAbility(), spellScope(pc.mode)), pot)
+	// CR 106.6, 106.1a: priced against THIS cast's payment, always: a source
+	// whose RestrictValid$ cannot spend on it (Plaza of Heroes' legendary-only
+	// mana vs a nonlegendary spell) is dropped and a Chosen production is its
+	// exact colour, not the plain bound's unbounded one (dirac's
+	// spreeModeAffordable prices the same payment). A witness walk's pool is
+	// already what the plan floats.
+	if !e.potentialWitness {
+		d := offerPayment(pc.card, pc.isAbility(), spellScope(pc.mode))
+		pot = e.potentialManaFor(pc.player, &d)
+	}
 	legal := make([]string, 0, len(choices))
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
