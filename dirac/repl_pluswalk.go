@@ -256,10 +256,12 @@ func (s *State) walkAsksRepl(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 }
 
 // syncAskedEv aligns the recomputed pass's copy of the asked event with the
-// amount the picked order dealt: replCombatGen applied the additions before
-// the doublings (replPlus), while the walk applies each pick as made
-// (CR 616.1e), so the amounts differ when the doubling was picked first.
-// combatEvLess shrinks the accounting; the mirror arm grows it.
+// amount the picked order dealt: replCombatGen applies a fixed order (the
+// additions before the doublings, replPlus; static preventions in scan order,
+// spApply), while the walk applies each pick as made (CR 616.1e), so the
+// amounts differ when a doubling or a non-commuting static shield is picked
+// first. combatEvLess shrinks the accounting; the mirror arm grows it back (a
+// fully prevented event).
 func (s *State) syncAskedEv(k *prep, r *dmgRec, n int) {
 	ro := &s.g.ro
 	for i := 0; i < r.nev; i++ {
