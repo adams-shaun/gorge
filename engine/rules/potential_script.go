@@ -439,6 +439,28 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 	return false
 }
 
+// unattachedSource reports whether the path has detached the source of the
+// searched Reconfigure unattach ability (the prefix sacrificed its bearer):
+// the offer gate withholds an Unattach$ ability while its source is
+// unattached (CR 702.151a: "unattach from a creature" has no legal action
+// there), but the node pricing below reads only the mana, so the search
+// would end in a dead-end script and hide every other prefix (here one that
+// sacrifices some other creature for Ashnod's Altar's mana).
+func (sr *scriptSearch) unattachedSource(c *Engine) bool {
+	if sr.play.Kind != "ability" {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(sr.play.Ability)
+	if !ok || pa.SA == nil {
+		return false
+	}
+	return pa.SA.CompiledAPI() == cards.APIAttach && effects.AttachOf(pa.SA).Unattach && o.AttachedTo == 0
+}
+
 func (sr *scriptSearch) offered(o *decision.Option) bool {
 	a := sr.play
 	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
@@ -597,7 +619,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && sr.priced(pool, c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && !sr.unattachedSource(c) && sr.priced(pool, c) {
 		return true
 	}
 	if sr.activations(pool, c, d, gaps, p, funded, gapUsed) {
