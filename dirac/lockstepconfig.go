@@ -222,13 +222,24 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// source) is deferred by the planner the same way, and CR 601.2g's window
 	// still taps it (mana_rider.go, mana_tapsdefer.go): gorge's xAsk reads the
 	// window, so the ask counts this unit too.
-	if s.g.availX&3 == 0 {
+	//
+	// Only a source availFor actually skipped is added: planDeferred is the
+	// same predicate deferSkip keys the plain walk on. Grove of the
+	// Burnwillows is a plain first ability beside a later rider, so it is not
+	// planner-deferred -- availFor already counts its {C}, and adding the
+	// rider's {R}/{G} too made one land tap twice (Treasure Vault's {X}{X}
+	// offered X = 4 with seven sources). The walk modes count the source
+	// themselves (deferSkip is off there), so they add nothing here either.
+	if s.g.availX&(3|availWalk|availHyp) == 0 {
 		for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
 			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
 				if ra.ManaRider == kop.ManaRiderDeplete {
 					// A depletion land's activation costs a counter, so gorge's window
 					// census (windowManaUnits: a free cost only; castWindowProbeUnits
 					// withholds SubCounter) never counts it in an X announcement.
+					continue
+				}
+				if !s.planDeferred(k, p, b.first()) {
 					continue
 				}
 				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
