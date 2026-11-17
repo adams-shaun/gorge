@@ -255,12 +255,14 @@ func ReadRepro(path string) (*Repro, error) {
 }
 
 // ScriptPolicy serves actions in order, skipping any the decision does not
-// offer, then plays tail (nil: FirstPolicy). Skipped counts the skips.
+// offer, then plays tail (nil: FirstPolicy). Skipped counts the skips;
+// firstSkipAt is the canonical Seq of the first one (readable when Skipped>0).
 type ScriptPolicy struct {
-	Actions []Canon
-	Tail    Policy
-	next    int
-	Skipped int
+	Actions     []Canon
+	Tail        Policy
+	next        int
+	Skipped     int
+	firstSkipAt int
 }
 
 func (s *ScriptPolicy) Pick(c *PickCtx) Canon {
@@ -273,6 +275,9 @@ func (s *ScriptPolicy) Pick(c *PickCtx) Canon {
 			}
 		}
 		s.Skipped++
+		if s.Skipped == 1 {
+			s.firstSkipAt = c.Seq
+		}
 	}
 	if s.Tail == nil {
 		s.Tail = FirstPolicy()
