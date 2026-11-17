@@ -38,6 +38,19 @@ if [ ! -e "$tree/.tables-ok" ] && [ -z "${CI_CORPUS_NO_TABLES:-}" ]; then
 fi
 touch "$tree"
 find "$root/tree" -mindepth 1 -maxdepth 1 -type d -mtime +2 -exec rm -rf {} + 2>/dev/null || true
+# Disk pressure (11-17 22:50: metal's / hit 100%, and runners died "No space left on device" mid-step). Nothing else
+# trims what this box's runners write: the trees above (a full copy per table key, dozens a day) and the shared Go
+# cache. At CI_DISK_TRIM_PCT (85) percent used, remove trees not used for 3 h and Go cache files not used for 6 h.
+# Both are safe while jobs run: a job's .cards is hard links (it keeps its data if its tree goes), and go refreshes
+# a cache entry's mtime at most hourly when it uses it, so a 6 h idle entry is not live work.
+used=$(df --output=pcent / | tail -1 | tr -dc 0-9)
+if [ "${used:-0}" -ge "${CI_DISK_TRIM_PCT:-85}" ]; then
+  echo "ci-corpus: / is ${used}% used; trimming idle corpus trees and Go cache"
+  find "$root/tree" -mindepth 1 -maxdepth 1 -type d ! -path "$tree" -mmin +180 -exec rm -rf {} + 2>/dev/null || true
+  gc=$(go env GOCACHE 2>/dev/null || true)
+  [ -n "$gc" ] && [ -d "$gc" ] && find "$gc" -type f -mmin +360 -delete 2>/dev/null || true
+  df -h / | tail -1
+fi
 # .cards is a real directory of hard links to the tree, not a symlink: filepath.WalkDir does not follow a symlink at
 # its root, so a corpus walk over a symlinked .cards finds nothing (11-16: TestNumericPredicateCorpusCensus "found
 # only 0 numeric tokens"). Hard links take seconds, share the files and keep their mtimes (the Go test cache).
