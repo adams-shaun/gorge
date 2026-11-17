@@ -27,8 +27,11 @@ const ChTrigX ChoiceKind = 249
 // trigXCap is gorge's xFoldBoundCap.
 const trigXCap = 64
 
-// execTrigX poses the announcement; the payer's affordable X values are
-// 0..the largest affordable one at most cap. False = suspended.
+// execTrigX poses the announcement; X runs 0..cap, cap first at trigXCap then
+// at the payment-aware potential pool's total (gorge's potentialManaFor.Total
+// in triggeredCostXAsk). The descriptor matters: a "Produced$ Chosen" source
+// is exact at a payment and one of its faces counts once per colour, where the
+// plain potential prices it unbounded. False = suspended.
 //
 // The bound is gorge's payment-aware one (cumulative.go triggeredCostXAsk,
 // potentialManaFor with the trigger cost as the payment): a Chosen-colour
@@ -43,14 +46,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	d := payDesc{class: pdOther} // a trigger's own cost is no spell's, an ability's or a cast's
 	s.availPotentialFor(k, p, &av, &d, false)
 	cap = min(cap, trigXCap)
-	mx := 0
-	for x := 1; x <= cap; x++ {
-		c := manaOf(x, 0)
-		if !av.affords(&c, 0, 0) {
-			break
-		}
-		mx = x
-	}
+	mx := min(cap, av.total)
 	s.g.pickF = skip
 	s.g.pickZ = kop.PayManaX
 	s.g.pickLeft = uint8(mx)
