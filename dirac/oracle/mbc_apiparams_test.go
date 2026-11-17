@@ -16,8 +16,9 @@ import (
 //     trigger, a fire-time gate on the attacked player having the most life
 //     or tied). The Cutthroat attacks a Grizzly Bears deck that hits back, so
 //     the gate goes both ways; a +1/+1 counter on a Cutthroat is the trigger
-//     resolved. Treasonous Ogre, the MBC carrier, still refuses on its
-//     PayLife mana ability.
+//     resolved. Treasonous Ogre, the MBC carrier, now lowers its PayLife mana
+//     ability (TestMBCLifeGapFundsPaidFilterFeeReprosLockstep covers it; this
+//     test does not exercise the Ogre).
 //   - other:SetState Transform on a layout the kernel does not turn (Sunder
 //     the Gateway's second mode: Incubate 2, then transform an Incubator
 //     token you control): gorge's mandatory "setstate_pick" is posed.
