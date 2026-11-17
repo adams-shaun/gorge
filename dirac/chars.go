@@ -103,6 +103,9 @@ func (s *State) kw(k *prep, sl Slot) kop.KwMask {
 		m = k.cards[s.cardAt(sl)].kw
 	}
 	m |= p.eotKw | p.ovr.kw
+	if s.fxM.has(sl) {
+		m |= s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+	}
 	// CR 122.1b + 613.1c: the counter grant is a BASE keyword (gorge
 	// BaseKeywords, engine/rules/chars/derive.go), so an active
 	// loses-all-abilities effect clears it too (Abigale's Animate then

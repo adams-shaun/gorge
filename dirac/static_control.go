@@ -48,6 +48,22 @@ const (
 	fcArmed    = 1 << 7 // DurYourNextTurn: the controller's next turn is the current one or has begun
 )
 
+// fcHaste is fxRec.r.fl bit 7 of a control record: the record's object has
+// haste while the record lives (gorge grants AddKWs$ for as long as the
+// control effect lasts). fl's bits 0-5 are the multi-seat packing.
+const fcHaste = 1 << 7
+
+// ctrlKw is the keywords sl's live control records grant (GcHasteEOT).
+func (s *State) ctrlKw(sl Slot) kop.KwMask {
+	var m kop.KwMask
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxControl && r.r.fl&fcHaste != 0 {
+			m |= kop.KwHaste
+		}
+	}
+	return m
+}
+
 // the pool's ended set is a uint64 bitmask. maxFx 16 -> 32: a declared
 // capacity since 2026-10-27 (every Storm of Souls
 // entrant takes its own override record); 32 -> 64 since 2026-11-03.
@@ -605,7 +621,13 @@ func (s *State) gainControlOne(k *prep, in *kop.Instr, sl Slot, to, dur uint8, s
 		}
 	}
 	if in.B.N&kop.GcHasteEOT != 0 {
-		s.grantEOT(sl, kop.KwHaste)
+		if dur == kop.DurEOT {
+			s.grantEOT(sl, kop.KwHaste)
+		} else {
+			// AddKWs$ beside a longer LoseControl$ (gorge grants it for as
+			// long as the control effect lasts): the record carries it
+			s.g.fx[s.g.nfx-1].r.fl |= fcHaste // the record gainControl just appended
+		}
 	}
 	if in.B.N&kop.GcRemember != 0 {
 		s.remember(p.obj) // RememberControlled$ (gorge effGainControl)
@@ -625,6 +647,18 @@ func (s *State) ctrlPlayerRef(r kop.Ref) (uint8, bool) {
 		t := s.tgtCode(sl)
 		if isPlayerTarget(t) {
 			return CodeSeat(t), true
+		}
+	case kop.RefTriggerPlayer:
+		// NewController$ TriggeredTarget / TriggeredActivator: the player
+		// the trigger named (gorge definedSpecTriggeredPlayer)
+		if e.trigPl != 255 {
+			return e.trigPl, true
+		}
+	case kop.RefTriggerTgtCtrl:
+		// NewController$ TriggeredSourceController: the trigger object's
+		// controller read live (playerRef)
+		if o := e.trigObj; o != NoObj {
+			return s.ctrlOfObj(o), true
 		}
 	}
 	return 0, false
