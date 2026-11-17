@@ -1,12 +1,12 @@
-# The whole of ./dirac/oracle, hourly on main (operator 11-17: "schedule oracle as a cron job ... once
-# per hour"). It never runs on a pull request or a Mergify queue batch: those run dirac-slices (ci.yml).
+# The whole of ./dirac/oracle, every 4 hours on main (operator 11-17: "once every 4-6 hours"; it was
+# hourly). It never runs on a pull request or a Mergify queue batch: those run dirac-slices (ci.yml).
 # GitHub-hosted runners, so it takes nothing from the self-hosted boxes the queue runs on. A run still
-# going when the next hour starts finishes first; the next one waits rather than cancelling it.
+# going when the next one is due finishes first; the next one waits rather than cancelling it.
 name: oracle
 
 on:
   schedule:
-    - cron: '23 * * * *'
+    - cron: '23 */4 * * *'
   workflow_dispatch:
 
 permissions:

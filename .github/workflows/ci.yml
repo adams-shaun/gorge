@@ -417,7 +417,7 @@ jobs:
   # any skip other than the pool-only tests it lists. A pull request saves no cache, so the test
   # result cache never answers for a shard.
   oracle:
-    # On demand only here: the whole oracle runs hourly in oracle.yml (operator 11-17), never on a pull
+    # On demand only here: the whole oracle runs every 4 hours in oracle.yml (operator 11-17), never on a pull
     # request or a queue batch; dirac-slices covers those.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
@@ -560,7 +560,7 @@ jobs:
           if [ "${{ needs.prior.outputs.passed }}" = true ]; then heavy=skipped; fi
           # Two-step CI: a pull request (not a Mergify queue batch) runs the fast stage instead of the heavy jobs.
           if [ "${{ github.event_name }}" = pull_request ] && [ "${{ startsWith(github.head_ref, 'mergify/merge-queue/') }}" != true ]; then heavy=skipped fast=success; fi
-          # oracle runs on demand only (hourly in oracle.yml); dirac-slices runs everywhere.
+          # oracle runs on demand only (every 4 hours in oracle.yml); dirac-slices runs everywhere.
           oracle=skipped slices=$heavy
           case "${{ github.event_name }}" in workflow_dispatch) oracle=success ;; esac
           [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} dirac-slices=${{ needs.dirac-slices.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
