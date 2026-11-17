@@ -357,7 +357,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			s.manaTapped(k, sl)
 		}
 		life := s.windowGrantLife(k, sl, pc, col)
-		s.poolAdd(p, col, int(pc.manaN))
+		s.poolAdd(p, col, int(s.windowGrantYield(k, sl, pc, col)))
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
 		if life > 0 {
