@@ -1789,9 +1789,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					open = true
 					continue
 				}
-				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
-					open = s.potentialExtraUnit(ab, sl, boundedAny, add, &anyFree) || open
-				} else {
+				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, add, &anyFree, &open) {
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 				}
 			}
@@ -1888,6 +1886,23 @@ func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, 
 	if boundedAny && !open && anyFree > 0 {
 		a.addUnits(uint8(kop.ColAny), uint8(min(anyFree, 255)))
 	}
+}
+
+// addAnyDifferentOrOpen is the potential walk's admission rule for a further
+// ability: Combo AnyDifferent adds one unit of each colour (the bounded
+// per-colour cap), an any-colour, dynamic or each-colour production is open,
+// and every other ability is the caller's ordinary add. It reports whether it
+// handled the ability.
+func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
+	if anyDifferentTapAb(ab) {
+		add(sl, 0x1f, 1)
+		return true
+	}
+	if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 {
+		*open = s.potentialExtraUnit(ab, sl, boundedAny, add, anyFree) || *open
+		return true
+	}
+	return false
 }
 
 // filtFeeOwed reports whether the source at sl is a filter whose fee the

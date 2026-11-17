@@ -91,7 +91,7 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 // restricted or any-colour gap, a filter-only gap, a counter-cost source, or
 // a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny)
+	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny || k.gen.uses.has(useAnyDifferent))
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -170,6 +170,13 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	if k.gen.anyAnyR {
 		s.availAnyR(k, p, a)
 	}
+	// a Firemind Vessel (AnyDifferent) is a census gap the prefix search
+	// pays: its N mana, each any of the five colours here (the distinct-colour
+	// rule is the search's, scriptDeadEndAny), an over-bound like the census's
+	// (mana_distinctcolours.go)
+	for b := s.anyDifferentGaps(k, p); b.any(); b = b.rest() {
+		a.addUnits(0x1f, anyDifferentUnits(s.anyDifferentAbilityAt(k, b.first())))
+	}
 	if k.gen.anyFilt && s.g.availX&availNoFilt == 0 && (s.filtOnly(k, p) || s.mixBoard(k, p)) {
 		s.availFilt(k, p, a) // (beside another gap kind the filter stays unmodelled: mana_filter.go)
 	}
@@ -226,7 +233,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if ca {
 		caM = s.caGaps(k, p)
 	}
-	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
+	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
+	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -356,8 +364,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if found, dead := s.reflScript(k, a, p, false); !found || dead {
 				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
 			}
-		} else if anyR.any() || tapsDef.any() {
-			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), slotMask{}) {
+		} else if anyR.any() || tapsDef.any() || anyDiff.any() {
+			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff) {
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
 		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
@@ -570,7 +578,8 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
 	ctr := s.scriptCtr(k, p)
-	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).any() {
+	anyDiff := s.anyDifferentGaps(k, p)
+	if !gaps.or(restr).or(anyR).or(tapsDef).or(ctr).or(anyDiff).any() {
 		// A live grant makes the grant search's candidates the board's
 		// filters too, activated with the grants in battlefield order
 		// (grantSrch.candidates): one search taps both gaps, so a filter
@@ -600,8 +609,8 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if anyR.any() || tapsDef.any() {
-		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr, slotMask{})
+	if anyR.any() || tapsDef.any() || anyDiff.any() {
+		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr, anyDiff)
 		return
 	}
 	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {
@@ -611,7 +620,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	var d Decision
 	s.plainOptions(k, &d, 0)
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, gaps.or(restr).or(ctr), order[:], 0) // gorge's option order (two Tenders)
+	n := s.battlefieldOrder(p, gaps.or(restr).or(ctr).or(anyDiff), order[:], 0) // gorge's option order (two Tenders)
 	if hasOption(&d, a) {
 		return
 	}

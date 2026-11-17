@@ -56,6 +56,21 @@ type ManaParams struct {
 	// multiplier on every produced colour unit. Absent = 1.
 	Each ParamText
 
+	// PlainTap is Cost$ exactly "{T}": the plain tap a Combo AnyDifferent
+	// production resolves with (Firemind Vessel). A counter or mana cost is
+	// another shape and keeps its prior approximation.
+	PlainTap bool
+
+	// AnyDifferent is a plain-tap Produced$ Combo AnyDifferent (compared as
+	// written, the one reading effMana's resolution and rules' potential
+	// bound share).
+	AnyDifferent bool
+
+	// EachLit/EachIsLit are Each$'s strconv literal (EachIsLit false for a
+	// blank or non-literal value).
+	EachLit   int
+	EachIsLit bool
+
 	// RestrictValid$, trimmed.
 	RestrictValid string
 	// The production riders, trimmed ("" = absent).
@@ -135,6 +150,9 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 
 	each, eachOK := sa.Param(cards.PKEach)
 	p.Each = ParamText{Text: each, Present: eachOK && strings.TrimSpace(each) != ""}
+	if v, err := strconv.Atoi(strings.TrimSpace(each)); err == nil {
+		p.EachLit, p.EachIsLit = v, true
+	}
 
 	p.RestrictValid = strings.TrimSpace(sa.ParamStr(cards.PKRestrictValid))
 	p.AddsNoCounter = strings.TrimSpace(sa.ParamStr(cards.PKAddsNoCounter))
@@ -148,6 +166,8 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 	p.HasDefined = dp.Defined.Set()
 	p.Chooser = strings.TrimSpace(sa.ParamStr(cards.PKChooser))
 
+	p.PlainTap = strings.TrimSpace(sa.ParamStr(cards.PKCost)) == "T"
+	p.AnyDifferent = p.PlainTap && p.Produced == "Combo AnyDifferent"
 	p.PlainSym, p.PlainAmt = plainManaParams(sa, p)
 	if sa.API == "Mana" {
 		p.Unread = unreadKeys(sa, manaKnownKeys[:])
