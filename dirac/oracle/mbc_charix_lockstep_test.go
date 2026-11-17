@@ -2,10 +2,11 @@ package oracle
 
 import "testing"
 
-// CR 601.2b/601.2f/601.2h: Charix, the Raging Isle taxes spells that target it, so a
-// target decision for a spell the caster can afford only without the tax is where the
-// two engines part (decision 632 of tail-34-c000 pair 1: Sever the Bloodline).
+// Charix, the Raging Isle's "spells your opponents cast that target Charix
+// cost {2} more" against a miracle cast: gorge and the kernel must agree on
+// whether Charix is on the target menu of Revenge of the Hunted's miracle cast
+// (decision 299 of tail-34-c000 pair 46, seed 137611).
 func TestMBCCharixTheRagingIsleReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "target_taxed_creature_beyond_mana")
+	stdReproNamed(t, "miracle_target_raise_cost_withheld")
 }
