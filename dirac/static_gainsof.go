@@ -5,13 +5,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // A Continuous static's GainsAbilitiesOf$ (CR 613.1f, "has all activated
 // abilities of ..."; kop.Static.GainsOf, kgen lower_gainsof.go): the static's
 // source, its only recipient (AffectedDefined$ Self), may activate each
-// activated ability of every battlefield permanent the filter matches right
-// now. The walk is stateless: the filter picks the foreign permanents again at
+// activated ability of every battlefield permanent (or graveyard card, Zone
+// ZoneGraveyard) the filter matches right now. The walk is stateless: the filter picks the foreign permanents again at
 // every priority (gorge layers.go gainedFacesForSpec rescans, legal_granted.go
 // grantedAbilitiesLimited lists their faces' AB lines).
 //
+// GainsAbilitiesOfZones$ Graveyard (kop.Static.Zone = ZoneGraveyard) reads
+// the graveyard cards instead: every seat's graveyard in seat order, each in
+// its stored order.
+//
 // A gained activation is AkActivate{source: the recipient, target: the
-// foreign permanent, mode: 0xC0 | the ability's index in the foreign card}
+// foreign permanent or graveyard card, mode: 0xC0 | the ability's index in the foreign card}
 // (ab < 64). activateGen puts it on the stack as the recipient's ability with
 // the foreign card's body (a cost's Self, and the effect's, is the recipient).
 
@@ -84,39 +88,74 @@ func (s *State) gainedAbilities(k *prep, d *Decision, p uint8, sorc bool, av *av
 }
 
 // gainedFrom offers the abilities static st's recipient (its source) gains
-// from each foreign permanent its filter matches; false when the walk stalled.
+// from each foreign permanent its filter matches (or, for a static whose Zone
+// is the graveyard, from each graveyard card it matches); false when the walk
+// stalled.
 func (s *State) gainedFrom(k *prep, d *Decision, st statSrc, sorc bool, av *avail) bool {
+	first := int(d.N)
+	if st.a.Static.Zone == kop.ZoneGraveyard {
+		// GainsAbilitiesOfZones$ Graveyard: every seat's graveyard in seat
+		// order, each in its stored order. The filter reads the static's
+		// source and controller (YouOwn, Other), the owner is the graveyard's
+		// seat.
+		ctx := evalCtx{src: st.obj, srcSl: st.sl, ctrl: st.ctrl}
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
+			pl := &s.pl[p]
+			for i := 0; i < int(pl.graveN); i++ {
+				o := pl.grave[i]
+				card := s.objs[o].card
+				if !s.matchCardGenAt(k, st.a.Static.GainsOf, card, p, st.ctrl, o, &ctx) {
+					continue
+				}
+				if !s.gainedOffer(k, d, st, first, o, &k.t.Cards[card], sorc, av) {
+					return false
+				}
+			}
+		}
+		return true
+	}
 	var order [MaxPerm]Slot
 	n := s.listenerOrder(s.occ, &order)
-	first := int(d.N)
 	for oi := 0; oi < n; oi++ {
 		fs := order[oi]
 		if !s.matchPermGen(k, st.a.Static.GainsOf, fs, st.ctrl, st.sl, layerKw) {
 			continue
 		}
-		abs := k.t.Cards[s.cardAt(fs)].Abilities
-		for j := range abs {
-			a := &abs[j]
-			if a.Kind != kop.AbActivated && a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
-				continue
-			}
-			if !gainedModelled(a, j) {
-				s.capFull(StallGainsOf)
-				return false
-			}
-			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(st.ctrl, &a.Cost.Mana) {
-				// gorge's granted sweep prices a gained ability against the
-				// real pool only (rules.offerCastable with no hypothetical
-				// bound), as the Equipment-granted path in priorityGen
-				continue
-			}
-			if !s.canActivate(k, st.sl, 255, a, sorc, av) {
-				continue
-			}
-			act := MakeAction(AkActivate, TCode(st.obj), TCode(s.perms[fs].obj), gainedMode|uint8(j))
-			if !optionListed(d, first, act) {
-				d.add(act)
-			}
+		if !s.gainedOffer(k, d, st, first, s.perms[fs].obj, &k.t.Cards[s.cardAt(fs)], sorc, av) {
+			return false
+		}
+	}
+	return true
+}
+
+// gainedOffer offers the recipient of st each activated ability of the
+// foreign object fo (card cd); false when the walk stalled.
+func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj, cd *kop.CardDef, sorc bool, av *avail) bool {
+	abs := cd.Abilities
+	for j := range abs {
+		a := &abs[j]
+		if a.Kind != kop.AbActivated && a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		if !gainedModelled(a, j) {
+			s.capFull(StallGainsOf)
+			return false
+		}
+		if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(st.ctrl, &a.Cost.Mana) {
+			// gorge's granted sweep prices a gained ability against the
+			// real pool only (rules.offerCastable with no hypothetical
+			// bound), as the Equipment-granted path in priorityGen
+			continue
+		}
+		if !s.canActivate(k, st.sl, 255, a, sorc, av) {
+			continue
+		}
+		act := MakeAction(AkActivate, TCode(st.obj), TCode(fo), gainedMode|uint8(j))
+		if !optionListed(d, first, act) {
+			d.add(act)
 		}
 	}
 	return true
