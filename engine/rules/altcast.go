@@ -322,7 +322,13 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		return !census.gapGains && costOutrunsSupply(asPayer(e), card.Owner, int32(e.G.Players[card.Owner].Pool.Total()),
 			e.offerCostFor(card.Owner, card.ID, cost, spellScope(m.mode)), credit)
 	}
-	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope(m.mode), false) &&
+	// CR 702.51a / 702.66a: Convoke and Improvise apply to the spell whichever
+	// cost it is cast for, so the madness offer is priced net of the same
+	// greedy credit castOfferBase gives a printed-cost cast (the commitment
+	// stays with convokeAsk). Both are the identity on a card without them.
+	offerCost, taps := e.convokeCost(card.Owner, card.ID, cost)
+	offerCost, _ = e.improviseCost(card.Owner, card.ID, offerCost, taps)
+	if e.offerCastablePotential(card.Owner, card.ID, offerCost, spellScope(m.mode), false) &&
 		!provenUnpayable() &&
 		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
 		raw, _ := card.Face().KeywordParam(m.head)
