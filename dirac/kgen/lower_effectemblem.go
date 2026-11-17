@@ -205,8 +205,17 @@ func (lc *lowerCtx) effectEmblemChosenNumber(ps *params, ss []cards.Static) (lVa
 // this-turn boundary; IsNextTurnDuration makes UntilYourNextTurn a real
 // start-of-next-turn boundary. UntilTheEndOfYourNextTurn is also a
 // next-turn duration in gorge, but it lasts through that turn's cleanup, a
-// lifetime the kernel's emblem record does not carry, so it refuses.
+// lifetime the kernel's emblem record does not carry, so it refuses. So does
+// Duration$ Permanent here: only effectEmblemDurationAs with allowPermanent
+// reads it (effectEmblemPrevent, lower_effectemblemprevent.go).
 func effectEmblemDuration(ps *params) (eot, next, host bool, err error) {
+	return effectEmblemDurationAs(ps, false)
+}
+
+// effectEmblemDurationAs is effectEmblemDuration; allowPermanent reads
+// Duration$ Permanent as the emblem with none of the three flags, which no
+// cleanup drops.
+func effectEmblemDurationAs(ps *params, allowPermanent bool) (eot, next, host bool, err error) {
 	d, ok := ps.get("Duration")
 	if !ok {
 		return true, false, false, nil
@@ -216,6 +225,11 @@ func effectEmblemDuration(ps *params) (eot, next, host bool, err error) {
 		return true, false, false, nil
 	case "UntilYourNextTurn":
 		return false, true, false, nil
+	case "Permanent":
+		if allowPermanent {
+			return false, false, false, nil
+		}
+		return false, false, false, refuse("Effect static Duration$ %q", d)
 	case "UntilHostLeavesPlayOrEOT":
 		// "until end of turn, or until the host leaves the battlefield,
 		// whichever is first": both end conditions, joined by OR. The

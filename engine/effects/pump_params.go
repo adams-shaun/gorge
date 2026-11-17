@@ -84,6 +84,9 @@ type PumpParams struct {
 	NumDef ParamText
 	// ForgetImprinted$, trimmed (a Defined$-grammar selector).
 	ForgetImprinted string
+	// ForgetObjects is ForgetObjects$ (Defined$ grammar): the objects
+	// dropped from the source's remembered state after the pump.
+	ForgetObjects string
 	// ReplaceDyingDefined$ (Forge's "if a permanent ... would die this turn,
 	// exile it instead" rider): a Defined$-list selector ("Targeted" on every
 	// Pump carrier) naming the objects the replacement watches. Empty when the
@@ -159,6 +162,7 @@ func compilePump(sa *cards.SA, dp *DefinedParams) *PumpParams {
 	nd, ndOK := sa.Param(cards.PKNumDef)
 	p.NumDef = ParamText{Text: nd, Present: ndOK}
 	p.ForgetImprinted = strings.TrimSpace(sa.ParamStr(cards.PKForgetImprinted))
+	p.ForgetObjects = strings.TrimSpace(sa.ParamStr(cards.PKForgetObjects))
 	p.ReplaceDyingDefined = strings.TrimSpace(sa.ParamStr(cards.PKReplaceDyingDefined))
 	p.DefinedKW = strings.TrimSpace(sa.ParamStr(cards.PKDefinedKW))
 	p.Grant = compilePumpGrant(sa)
@@ -303,6 +307,7 @@ var pumpKnownKeys = [...]string{
 	"Exclude",
 	"Exhaust",
 	"ForgetImprinted",
+	"ForgetObjects",
 	"ForgetOtherTargets",
 	"FromDesc", "GameActivationLimit",
 	"GiftDescription", "IfDesc",

@@ -80,14 +80,45 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
-	sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
+	build := func(phased bool) *scriptSearch {
+		sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
+		if sr == nil {
+			return nil
+		}
+		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+		sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
+		sr.passes = true
+		sr.phased = phased
+		return sr
+	}
+	// The plain order first: a script it finds is the script dirac's
+	// node-for-node mirror (ctrScript and friends) prices the play by, so it
+	// must stay the search's answer wherever the plain search finds one --
+	// an offer both engines priced yesterday, replayed by a recorded game,
+	// may not change the prefix it is funded by. Only where the plain
+	// search found none does the phased order run: it spends the plain
+	// search's budget on the sources' free mana first and the fee-carrying
+	// gaps last (their fee is paid from the floating pool, CR 601.2b), so a
+	// plain search that budget-limited on dead fee branches finds the
+	// funding line it walked past. The fallback only takes a script when the
+	// play's own cost sacrifices or returns a permanent (consumes): the
+	// ordering it fixes is the one a cast that sacrifices its own funding
+	// source needs, and the node-for-node mirror does not model it for any
+	// other play, so a recorded game's other offers stay on the plain
+	// script.
+	plain := build(false)
+	if plain == nil {
+		return nil, false
+	}
+	script, found := plain.run(e)
+	if found && len(script) > 0 {
+		return script, true
+	}
+	sr := build(true)
 	if sr == nil {
 		return nil, false
 	}
-	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
-	sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
-	sr.passes = true
-	script, found := sr.run(e)
+	script, found = sr.run(e)
 	return script, found && len(script) > 0
 }
 
@@ -167,6 +198,10 @@ type scriptSearch struct {
 	// budget-limited at 160 clones exploring B before G at the deepest asks.
 	need   [state.MC + 1]bool
 	passes bool // also pass priority while the stack is non-empty
+	// phased runs the visit activation loop in its phased order with the
+	// real-payable gates (potentialPrefixScript's fallback run). The plain
+	// run keeps the order and node walk dirac's mirror prices plays by.
+	phased bool
 	// printedOnly: the play is a printed ability, and a granted one sharing its
 	// Ability is another option (only a printed ability reaches the planner).
 	printedOnly bool
@@ -191,9 +226,6 @@ type scriptSearch struct {
 	approx    bool // a branch assumed an answer it did not enumerate
 	seen      map[string]bool
 	path      []ScriptStep
-	// pool is the live engine whose hypothetical-clone pool backs the
-	// search's nested witness checks (hypclone.go); set by run.
-	pool *Engine
 }
 
 func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, altCost, budget int) *scriptSearch {
@@ -279,11 +311,13 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 }
 
 // run searches from a clone of e; found reports a path (possibly empty,
-// when the play is already payable at the root).
+// when the play is already payable at the root). e is threaded through the
+// search as pool, the live engine whose hypothetical-clone pool backs the
+// search's nested witness checks (hypclone.go): the struct holds no engine,
+// so its methods stay off the engine's surface.
 func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
-	sr.pool = e
 	root := e.hypClone(e)
-	found := sr.visit(root, 0, false)
+	found := sr.visit(e, root, 0, false)
 	e.hypRelease(root)
 	if !found {
 		return nil, false
@@ -419,9 +453,9 @@ func (sr *scriptSearch) offered(o *decision.Option) bool {
 // priced reports whether, at c's payer priority, the planner pays the play
 // from the floating pool (a witness that also reaches it); a verdict that
 // is neither a witness nor a proof marks the search unproven.
-func (sr *scriptSearch) priced(c *Engine) bool {
+func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	defer pay.PaymentPlanQueryEnd(asPayer(c), pay.PaymentPlanQueryBegin(asPayer(c)))
-	o := decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
+	o := sr.option()
 	got, _ := c.potentialPlayVerdict(sr.p, o)
 	// Only a search that leans on these verdicts for its proof (nodePlans)
 	// is weakened by one that proves nothing; the full search's proof is
@@ -432,7 +466,10 @@ func (sr *scriptSearch) priced(c *Engine) bool {
 		}
 		return false
 	}
-	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesFrom(sr.pool, sr.p, o, *got.Plan) {
+	if sr.phased && !sr.consumes(c) {
+		return false // the fallback's scope: only a play whose own cost consumes a permanent
+	}
+	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesFrom(pool, sr.p, o, *got.Plan) {
 		if sr.nodePlans {
 			sr.unproven = true
 		}
@@ -441,25 +478,46 @@ func (sr *scriptSearch) priced(c *Engine) bool {
 	return true
 }
 
+// option is sr's play as the planner's option.
+func (sr *scriptSearch) option() decision.Option {
+	return decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
+}
+
+// consumes reports whether sr's play has a sacrifice (or return) in its own
+// cost: the phased fallback's scope. The fallback exists for a cast whose
+// payment consumes a permanent the prefix activated for mana (CR 601.2b: the
+// activation comes before the sacrifice); for any other play the plain order
+// is the script dirac's node-for-node mirror prices, so the fallback must
+// leave that play's offer as the plain search found it.
+func (sr *scriptSearch) consumes(c *Engine) bool {
+	o := sr.option()
+	obj := c.G.Obj(o.Obj)
+	if o.Kind != "cast" || obj == nil || obj.Face() == nil {
+		return false
+	}
+	base, ok := c.potentialModeBaseCost(sr.p, o.Obj, obj.Face(), o)
+	return ok && (len(base.Sac) != 0 || len(base.Return) != 0)
+}
+
 // try submits in to a clone of c and continues the search there. gapUsed
 // records that the path activated an uncovered source (or let the stack
 // resolve): only then can the planner's verdict differ from the root's.
-func (sr *scriptSearch) try(c *Engine, d *decision.Decision, in decision.Intent, funded int, gapUsed bool) bool {
-	child := sr.pool.hypClone(c)
+func (sr *scriptSearch) try(pool *Engine, c *Engine, d *decision.Decision, in decision.Intent, funded int, gapUsed bool) bool {
+	child := pool.hypClone(c)
 	found := false
 	if child.Submit(in) == nil {
 		sr.path = append(sr.path, scriptStepOf(d, in))
-		if found = sr.visit(child, funded, gapUsed); !found {
+		if found = sr.visit(pool, child, funded, gapUsed); !found {
 			sr.path = sr.path[:len(sr.path)-1]
 		}
 	}
 	// The path holds plain values (scriptStepOf), so the clone is dead
 	// either way.
-	sr.pool.hypRelease(child)
+	pool.hypRelease(child)
 	return found
 }
 
-func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
+func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool) bool {
 	if sr.nodes >= sr.budget {
 		sr.limited = true
 		return false
@@ -512,7 +570,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 			if sr.tapsOwnSource(c, d, in) {
 				continue // the ask taps the play's own {T} cost source (CR 602.2b)
 			}
-			if sr.try(c, d, in, funded, gapUsed) {
+			if sr.try(pool, c, d, in, funded, gapUsed) {
 				return true
 			}
 		}
@@ -520,6 +578,9 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 	}
 	for i := range d.Options {
 		if sr.offered(&d.Options[i]) {
+			if sr.phased && !sr.consumes(c) {
+				continue // the fallback's scope: only a payment that consumes a permanent
+			}
 			return true
 		}
 	}
@@ -536,19 +597,81 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && sr.priced(c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && sr.priced(pool, c) {
 		return true
 	}
-	// The uncovered sources first; then the others (under gapsOnly, while
-	// funding lasts: a covered source tapped to pay a filter's fee).
-	for _, gap := range []bool{true, false} {
-		if !gap && sr.gapsOnly && funded >= sr.funding {
-			break
-		}
+	if sr.activations(pool, c, d, gaps, p, funded, gapUsed) {
+		return true
+	}
+	if sr.passes && len(c.G.Stack) > sr.stack {
+		// A trigger an activation caused: let it resolve, the pool floats.
+		// (An object already on the stack at the decision is not the
+		// search's to resolve: the play is then a later decision's.)
 		for i := range d.Options {
-			opt := &d.Options[i]
-			if opt.Kind != "activate" || scriptGap(gaps, opt.Obj) != gap {
+			if d.Options[i].Kind == "pass" {
+				return sr.try(pool, c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{d.Options[i].Index}}, funded, true)
+			}
+		}
+	}
+	return false
+}
+
+// activations is the visit activation loop: sr's children at c, one try an
+// option. The plain order is the one dirac's mirror prices plays by: the
+// uncovered sources first, then the others (under gapsOnly, while funding
+// lasts: a covered source tapped to pay a filter's fee). The phased order
+// (potentialPrefixScript's fallback run) branches the uncovered sources
+// whose mana abilities cost no mana first (their mana is the play's for one
+// step, so the search need not wait), then the covered ones, then the
+// uncovered ones whose abilities themselves cost mana: their fee is paid
+// from the floating pool (CR 601.2b), so the funding floats come before
+// them or their activation drains the pool the prefix still needs (a
+// repeatable "{2}: Add one mana of any color" beside three untapped Swamps
+// never lets the pool reach the {2} its last activation should spend on the
+// play's pip). The phased run also gates every candidate on realPayable,
+// which the plain run may not: the gate's prunings change the node walk,
+// and with it the script the mirror sees.
+func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decision, gaps []state.ObjID, p state.PlayerID, funded int, gapUsed bool) bool {
+	// The phases, in walk order: a plain run is the two original passes,
+	// the uncovered sources then the others; a phased run branches the
+	// uncovered sources whose mana abilities cost no mana first (their mana
+	// is the play's for one step, so the search need not wait), then the
+	// covered ones (the funding), then the uncovered ones whose abilities
+	// themselves cost mana: their fee is paid from the floating pool
+	// (CR 601.2b), so the funding floats come before them or their
+	// activation drains the pool the prefix still needs (a repeatable
+	// "{2}: Add one mana of any color" beside three untapped Swamps never
+	// lets the pool reach the {2} its last activation should spend on the
+	// play's pip). free marks the phases that want a fee-free ability,
+	// gate the ones that drop a source the payer cannot legally activate
+	// at the pool so far (the phased run only: the gate's prunings change
+	// the node walk, and with it the script dirac's mirror prices plays by).
+	n := 2
+	if sr.phased {
+		n = 3
+	}
+	for i := 0; i < n; i++ {
+		ph := scriptPhaseAt(sr.phased, i)
+		if !ph.gap && sr.gapsOnly && funded >= sr.funding {
+			break // under gapsOnly, while funding lasts: a covered source tapped to pay a filter's fee
+		}
+		for j := range d.Options {
+			opt := &d.Options[j]
+			if opt.Kind != "activate" {
 				continue
+			}
+			gap := scriptGap(gaps, opt.Obj)
+			if gap != ph.gap {
+				continue
+			}
+			if ph.gate || ph.free {
+				real, free := sr.payable(c, opt.Obj)
+				if ph.gate && !real {
+					continue // the payer cannot legally activate it at the pool so far (CR 601.2b)
+				}
+				if ph.free && !free {
+					continue
+				}
 			}
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
@@ -557,22 +680,70 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 			if !gap {
 				next++
 			}
-			if sr.try(c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
+			if sr.try(pool, c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
 				return true
 			}
 		}
 	}
-	if sr.passes && len(c.G.Stack) > sr.stack {
-		// A trigger an activation caused: let it resolve, the pool floats.
-		// (An object already on the stack at the decision is not the
-		// search's to resolve: the play is then a later decision's.)
-		for i := range d.Options {
-			if d.Options[i].Kind == "pass" {
-				return sr.try(c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{d.Options[i].Index}}, funded, true)
-			}
+	return false
+}
+
+// scriptPhase is one pass of the visit activation loop over d's options:
+// the uncovered sources (gap) or the others, a fee-free ability only
+// (free), gated on a legally activatable one (gate).
+type scriptPhase struct {
+	gap, free, gate bool
+}
+
+// scriptPhaseAt is pass i of the visit activation loop: the plain run's
+// two passes, the uncovered sources then the others; the phased run's
+// three, the fee-free gaps, the covered funding, then the fee-carrying
+// gaps.
+func scriptPhaseAt(phased bool, i int) scriptPhase {
+	if !phased {
+		if i == 0 {
+			return scriptPhase{gap: true}
+		}
+		return scriptPhase{}
+	}
+	switch i {
+	case 0:
+		return scriptPhase{gap: true, free: true, gate: true}
+	case 1:
+		return scriptPhase{gate: true}
+	}
+	return scriptPhase{gap: true, gate: true}
+}
+
+// payable reports whether the payer can legally activate a mana ability of
+// id at c's floating pool (manaAbilityPayablePool's real-pool gate, hyp
+// nil), and whether one of those abilities costs no mana: a bare {T}, a
+// sacrifice. The search's steps are plays the payer must be able to make:
+// the potential bound that admits a paid ability at an empty pool elsewhere
+// in the planner is not a play, and walking one spends the node budget on
+// an activation whose mana fee drains the pool the prefix still needs (a
+// repeatable "{2}: Add one mana of any color" gap beside three untapped
+// Swamps never lets the pool reach the {2} its last activation should spend
+// on the play's pip). A fee-free source's mana is the play's for one step,
+// so the search need not fund it and tries it before the funding floats.
+func (sr *scriptSearch) payable(c *Engine, id state.ObjID) (real, free bool) {
+	for _, ma := range c.appendAvailableManaAbilitiesGate(nil, nil, sr.p, id, true) {
+		if !c.manaAbilityPayablePool(sr.p, id, ma, nil) {
+			continue
+		}
+		real = true
+		cc := c.manaAbilityCC(sr.p, id, ma)
+		noFee := cc.Cost.Generic == 0 && cc.Cost.X == 0 && cc.Cost.Snow == 0 &&
+			len(cc.Cost.Hybrid) == 0 && len(cc.Cost.Phyrexian) == 0 &&
+			len(cc.Cost.Twobrid) == 0 && len(cc.Cost.HybridPhyrexian) == 0
+		for _, n := range cc.Cost.Colored {
+			noFee = noFee && n == 0
+		}
+		if noFee {
+			return true, true
 		}
 	}
-	return false
+	return real, false
 }
 
 // scriptNodeGaps is the census's missed sources for p at e (a search
