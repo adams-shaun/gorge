@@ -45,10 +45,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	p := s.prio
 	pl := &s.pl[p]
 	sorc := s.sorcerySpeed(p)
-	var av avail
 	// A cast prices a dynamic {T}, sacrifice source on the full surface
 	// (gorge's script route); the autopay surface drops a scripted plain cast
-	// (script_gen.go autopayDropsPlainCast).
+	// (script_gen.go autopayDropsPlainCast). The lowering surface's offer
+	// census counts it too (the witness's lowerWitness, gen.go varPC), while
+	// the cast planner's own census (availFor's default) still leaves it out,
+	// so FeatPlannedCast reports the cast as lowered.
+	var av avail
 	av.dynSac = s.cfg&cfgGorgeAutopay == 0
 	haveAv := false
 	// faces: a table with built faces or a face-down card (one gate keeps
