@@ -179,6 +179,12 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 func (s *State) phyWindowReach(k *prep, p uint8, cost *kop.ManaCost) bool {
 	var av avail
 	s.availFor(k, p, &av)
+	if s.bld().e.kind == seSpell {
+		// a deferred TriggersWhenSpent$ source (Gilanra's {G}) is no census
+		// unit, yet the window taps it and the pip ask counted it
+		// (pipOptions, mana_deferred.go addDeferredUnits; CR 601.2g, 605.3a)
+		s.addDeferredUnits(k, p, &av)
+	}
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
