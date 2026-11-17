@@ -34,10 +34,13 @@ func exileAnyDied() { atomic.AddUint64(&ExileAnyStats[1], 1) }
 
 // exileAnyN counts the any-zone dies-to-exile sources (on the battlefield,
 // abilities not lost) whose filter matches card c (object o, owned by owner)
-// moving to a graveyard.
-func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) int {
+// moving to a graveyard. The second and third results are the counter a
+// matching source leaves on the exiled card (0 when none).
+func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) (int, kop.CounterKind, uint8) {
 	g := k.gen
 	n := 0
+	var ctr kop.CounterKind
+	var ctrN uint8
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
 		sc := s.cardAt(b)
@@ -51,9 +54,12 @@ func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) int {
 		}
 		if s.matchCardGen(k, g.exileOnLeave[sc], c, owner, s.perms[b].ctrl, o) {
 			n++
+			if kind, amount := exileCounterKind(k.t, sc, g.exileOnLeave[sc]); kind != 0 {
+				ctr, ctrN = kind, amount
+			}
 		}
 	}
-	return n
+	return n, ctr, ctrN
 }
 
 // exileAnyDest is the zone a card o headed for a graveyard really goes to:
@@ -68,9 +74,12 @@ func (s *State) exileAnyDest(k *prep, o Obj, from kop.Zone) kop.Zone {
 		return kop.ZoneGraveyard
 	}
 	ob := &s.objs[o]
-	n := s.exileAnyN(k, o, ob.card, ob.owner())
+	n, ctr, ctrN := s.exileAnyN(k, o, ob.card, ob.owner())
 	if from != kop.ZoneBattlefield && k.gen.exileAnyC != nil && k.gen.exileAnyC[ob.card]&eaSelf != 0 {
 		n++ // the card's own self any-zone replacement
+		if kind, amount := exileCounterKind(k.t, ob.card, k.gen.exileOnLeave[ob.card]); kind != 0 {
+			ctr, ctrN = kind, amount
+		}
 	}
 	if n == 0 {
 		return kop.ZoneGraveyard
@@ -80,6 +89,11 @@ func (s *State) exileAnyDest(k *prep, o Obj, from kop.Zone) kop.Zone {
 	}
 	if n > 1 && !s.takeAnswered(o) {
 		s.capFull(StallReplLeave)
+	}
+	if ctr != 0 {
+		// the move is to exile: place the counter anchored one bump back, the
+		// ver the object had when placeFromK brought it here
+		s.stampExileCounterMoved(o, ctr, int(ctrN))
 	}
 	atomic.AddUint64(&ExileAnyStats[0], 1)
 	return kop.ZoneExile
