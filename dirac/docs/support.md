@@ -20,7 +20,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 160 | 0 | 1 | 159 | 157 |
 | LCI | 290 | 260 | 1 | 0 | 259 | 256 |
 | MKM | 279 | 252 | 2 | 21 | 229 | 225 |
-| MSH | 276 | 249 | 2 | 4 | 243 | 243 |
+| MSH | 276 | 250 | 2 | 5 | 243 | 243 |
 | OTJ | 276 | 253 | 1 | 1 | 251 | 249 |
 | SOS | 270 | 259 | 0 | 2 | 257 | 257 |
 | SPM | 192 | 170 | 1 | 3 | 166 | 165 |
@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 302 | 0 | 30 | 272 | 269 |
 | TRK | 311 | 311 | 0 | 0 | 311 | 306 |
 | WOE | 281 | 265 | 0 | 9 | 256 | 254 |
-| MBC | 2202 | 1962 | 2 | 148 | 1812 | 1765 |
-| ALL | 34442 | 25131 | 24 | 1204 | 23903 | 23694 |
+| MBC | 2204 | 1962 | 2 | 148 | 1812 | 1765 |
+| ALL | 34442 | 25134 | 25 | 1206 | 23903 | 23694 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence: no 4-seat game is in the evidence runs.
 
@@ -5046,7 +5046,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-24 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+25 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -5063,6 +5063,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Zone | 1 |
 | projection-NStack | 2 |
 | unmodelled-clonelayer | 1 |
+| unmodelled-gainsof | 1 |
 | unmodelled-landgrant | 3 |
 | unmodelled-tokatkask | 1 |
 | unmodelled-tokenpt | 1 |
