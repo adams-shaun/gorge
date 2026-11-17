@@ -7,7 +7,6 @@ Bands with other
 Battle Cry
 CantSearchLibrary
 Double team
-Freerunning
 LimitSearchLibrary
 MustBeBlockedBy Creature
 MustBeBlockedBy Creature.Dalek
@@ -23,10 +22,7 @@ Protection from cardColors
 Protection from colorsYouCtrl
 Protection from each color
 ProtectionColor
-Provoke
-Prowl
 Rampage
 Ripple
 Shaman's Trance
-Soulshift
 UntapAdjust

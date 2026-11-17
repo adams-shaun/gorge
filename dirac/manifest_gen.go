@@ -7,6 +7,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ask (dirac/manifest/ask/raDredge)
 const raDredge uint8 = 146
 
+// ask (dirac/manifest/ask/raAddOrRemoveCounter)
+const raAddOrRemoveCounter uint8 = 147
+
+// ask (dirac/manifest/ask/raDredgeRes)
+const raDredgeRes uint8 = 148
+
+// ask (dirac/manifest/ask/raGenClash)
+const raGenClash uint8 = 149
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -662,6 +671,10 @@ const numMech mech = 55
 //go:noinline
 func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
+	case kop.ExtAddOrRemoveCounter:
+		return s.addOrRemoveCounter(k, in) // ctr_addorremove.go
+	case kop.ExtClash:
+		return s.clashExt(k, in) // act_clash.go
 	case kop.ExtClearNamedCard:
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtMustBlock:
@@ -692,8 +705,14 @@ func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	switch s.res.ask {
+	case raAddOrRemoveCounter:
+		s.aorOptions(k, d) // ctr_addorremove.go
+		return true
 	case raDredge:
 		s.dredgeAskOptions(k, d) // kw_dredge.go
+		return true
+	case raDredgeRes:
+		s.dredgeResOptions(k, d) // kw_dredge.go
 		return true
 	}
 	return false
@@ -705,8 +724,14 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 //go:noinline
 func (s *State) applyAskGen(k *prep, a Action) bool {
 	switch s.res.ask {
+	case raAddOrRemoveCounter:
+		s.aorAnswer(k, a) // ctr_addorremove.go
+		return true
 	case raDredge:
 		s.dredgeAskAnswer(k, a) // kw_dredge.go
+		return true
+	case raDredgeRes:
+		s.dredgeResAnswer(k, a) // kw_dredge.go
 		return true
 	}
 	return false

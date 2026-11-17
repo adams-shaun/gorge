@@ -77,6 +77,7 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
+		s.srcMemSeed(k, &e) // its source's kept Remembered (zone_srcmemrem.go)
 		if k.gen.has(e.card, gfEnterRepl) {
 			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}
@@ -708,8 +709,12 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 	case kop.RefTriggerTgtCtrl:
 		// gorge TriggeredTargetController: the controller of the trigger's
 		// target object, read live (a referent that left the battlefield
-		// since it was dealt the damage reads its owner). No referent (a
+		// since it was dealt the damage reads its owner). A BecomesTarget
+		// player half carries the targeted seat in btPl; no referent (a
 		// trigger kind that binds no object) keeps the queue-time player.
+		if e.btPl != 0 {
+			return e.btPl - 1
+		}
 		if o := e.trigObj; o != NoObj {
 			return s.ctrlOfObj(o)
 		}
@@ -1031,6 +1036,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {
+		return TCode(NoTarget)
+	}
+	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
+		// the triggering permanent left and came back meanwhile: a new object
+		// (CR 400.7); the op's referent is none, as objRef resolves it
 		return TCode(NoTarget)
 	}
 	return TCode(o)

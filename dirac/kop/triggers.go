@@ -280,6 +280,24 @@ const (
 // it (gorge trigmatch.valiantFirstTimeTargetedByYouThisTurn).
 const TrigNValiant int16 = 1
 
+// TrigNSrcSpell in Trigger.N of a TrigBecomesTarget watcher (non-Valiant):
+// the targeting stack entry's controller is gated by Whose (WhoseYou /
+// WhoseOpp / WhoseAny) and, when Filter2 is set, its card (gorge
+// becomesTargetMatches ValidSource$ Spell, Spell.YouCtrl, Spell.OppCtrl,
+// Spell.Aura, Instant,Sorcery). The bare Spell base is any stack object, an
+// ability included, as in gorge's matchesBaseSpell; a type word needs a
+// spell. Kernel trig_becomestarget.go btSpellSrcOK.
+const TrigNSrcSpell int16 = 4
+
+// TrigNSrcAbility in Trigger.N of a TrigBecomesTarget watcher (non-Valiant):
+// the targeting stack entry must be an ability, not a spell, and its
+// controller is gated by Whose (gorge becomesTargetMatches ValidSource$
+// Ability, Ability.YouCtrl, Ability.OppCtrl). Loki, God of Mischief's
+// "an ability you control" is WhoseYou beside this marker; the bare Spell
+// form above stays the any-stack-object base. Kernel trig_becomestarget.go
+// btSrcOK.
+const TrigNSrcAbility int16 = 5
+
 // Trigger.N of a TrigAbilityCast trigger: the activated ability's class
 // (gorge abilityCastConstraintHolds). The Opp form also requires the
 // ability's controller to be an opponent of the listener's controller.

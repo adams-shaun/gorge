@@ -21,6 +21,12 @@ import (
 // The lockstep's mutation test flips it to prove the pool exercises it.
 var DebugNoTapsDefer bool
 
+// DebugNoTapsDeferYield drops the several-mana shapes from the gap
+// (tapsDeferYield): a multi-mana or dynamic host keeps the ordinary census
+// unit, as before the gap modelled its production. The lockstep's mutation
+// test flips it to prove the recordings exercise it.
+var DebugNoTapsDeferYield bool
+
 // tapsWatchClass classifies a tap of sl for mana against the battlefield's
 // lowered Taps watchers: painN is the damage the tap deals its payer (the
 // Pain-class watchers' amounts, summed), deferSrc whether a Defer-class
@@ -238,8 +244,8 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
-		if pc.manaAb < 0 || !pc.manaTap || pc.manaN != 1 || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl))) ||
-			pc.manaFixedChosen || pc.manaOne || pc.manaDyn {
+		if pc.manaAb < 0 || !pc.manaTap || !tapsDeferColour(kop.ColorMask(s.srcMaskAt(pc, sl))) ||
+			pc.manaFixedChosen || pc.manaOne || !tapsDeferYield(pc, s.srcMaskAt(pc, sl)) {
 			continue
 		}
 		if s.landSetGap(k, sl) {
@@ -269,6 +275,21 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		m = m.with(sl)
 	}
 	return m
+}
+
+// tapsDeferYield reports whether pc's tap is a shape the Taps-deferred gap
+// models: one mana of the colours mask names (any colour, a Combo or one fixed
+// colour), or several mana of ONE fixed colour -- a literal Amount$ above one
+// (Llanowar Tribe's {G}{G}{G}) or a dynamic one the view evaluates now
+// (Priest of Titania's {G} per Elf). gorge's relaxation of such a source is
+// one alternative of the whole production and its prefix search takes it with
+// no colour ask, so the gap floats the full yield (tapDeferFloat); several
+// mana of a choice of colours poses an ask per mana and stays unmodelled.
+func tapsDeferYield(pc *pcard, mask uint8) bool {
+	if pc.manaN == 1 && !pc.manaDyn {
+		return true
+	}
+	return !DebugNoTapsDeferYield && pc.manaN >= 1 && pc.manaN == srcYield(pc) && !pc.manaMulti && bits.OnesCount8(mask) == 1
 }
 
 // landSetGap: sl lost its own abilities to land-type setters alone
@@ -500,8 +521,8 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 		mask &= mask - 1
 	}
 	col := bits.TrailingZeros8(mask)
-	s.pl[p].pool[col]++
-	s.addExtra(k, p, sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
+	s.pl[p].pool[col] += max(pc.manaN, 1) // a several-mana fixed-colour tap floats all of it (tapsDeferYield)
+	s.addExtra(k, p, sl, pc)              // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	s.artTag(k, p, sl, col)
 	if k.painMana && pc.painCol != 0 && pc.painOnly {
 		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)

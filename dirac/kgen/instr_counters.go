@@ -22,6 +22,7 @@ func init() {
 	instrOp("SearchCounters", (*instrCtx).opSearchCounters)
 	instrOp("Cumulative", (*instrCtx).opCumulative)
 	instrOp("PutCounterExisting", (*instrCtx).opPutCounterExisting)
+	instrOp("AddOrRemoveCounter", (*instrCtx).opAddOrRemoveCounter)
 	instrOp("RemoveCounterAny", (*instrCtx).opRemoveCounterAny)
 	instrOp("DistCounters", (*instrCtx).opDistCounters)
 	instrOp("Endure", (*instrCtx).opEndure)

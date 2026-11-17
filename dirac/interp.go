@@ -99,8 +99,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			n := s.value(k, in.A)
 			s.touchSl(sl)
-			s.perms[sl].seeCtr(s) // gorge lists a kind removed to none at 0
-			s.perms[sl].subCtrN(s, int(in.C), n)
+			s.perms[sl].seeCtr(s)             // gorge lists a kind removed to none at 0
+			s.subCtrFire(k, sl, int(in.C), n) // trig_counterremoved.go
 		}
 	case kop.OpCreateToken:
 		p := s.playerRef(k, in.Obj)
@@ -337,7 +337,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			if p := &s.perms[sl]; p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 				p.seeCtr(s)
-				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d)
+				s.subCtrFire(k, sl, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d)
 				s.touchSl(sl)
 				break
 			}
@@ -382,33 +382,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		s.res.left = uint8(n)
 		return false
 	case kop.OpCounter:
-		if k.gen != nil && k.gen.anyStackTgt && s.counterStackTgt(k, in) {
-			break // a stack-ability target (tgt_stackability.go)
-		}
-		o := s.objRefObj(in.Obj)
-		if o != NoObj {
-			if i := s.stackIndexOf(o); i >= 0 {
-				unc, park := false, false
-				if s.stack[i].kind == seSpell && in.C&kop.CtrDestMove == 0 {
-					// gorge effCounter's counterStopped: a spell two or more
-					// uncounter replacements protect asks CR 616.1's order
-					// (repl_uncounterable.go) before it is skipped
-					if unc, park = s.uncGate(k, i); park {
-						return false
-					}
-				}
-				if !unc {
-					s.g.stkCt = s.stack[i].ctrl + 1 // "its controller" reads the spell as it last existed (CR 608.2h)
-					if in.B.N != 0 {
-						s.counterRiders(k, i, int(in.B.N)) // tgt_countershapes.go
-					}
-					if in.C != 0 {
-						s.counterTo(k, i, in.C&^kop.CtrDestMove)
-						break
-					}
-					s.counterAt(k, i)
-				}
-			}
+		if !s.execCounter(k, in) {
+			return false
 		}
 	case kop.OpAttach:
 		src := s.objRef(k, kop.RefSelf)
@@ -651,7 +626,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			p := &s.perms[sl]
 			if blocked := s.untapBlocked(k, sl); !blocked && p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 				p.seeCtr(s)
-				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
+				s.subCtrFire(k, sl, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
 				s.untapEffect(k, sl)
 			}

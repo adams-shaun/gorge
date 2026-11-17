@@ -540,6 +540,31 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	// is all dice, so this changes nothing for them.
 	retained := retainedDice(dice, ignoreLower, strings.EqualFold(sa.ParamStr(cards.PKUseHighestRoll), "True"))
 
+	// Primary result publication (ResultSVar$): one die's own result, the
+	// total of several, or the two-die difference -- over the RETAINED dice,
+	// so an ignored-low die's result does not count (the reading "ignore the
+	// lowest roll" gives every consumer; with no ignore the retained set is
+	// all dice, every existing publication unchanged). It is published BEFORE
+	// the range table: a range sub's amount reads the roll's own result
+	// (Boing!'s "If the result is 3 or less, scry a number of cards equal to
+	// the result"), and the die is already rolled when the sub runs.
+	total := int32(0)
+	for _, r := range retained {
+		total += r
+	}
+	pub := total
+	if strings.EqualFold(sa.ParamStr(cards.PKUseDifferenceBetweenRolls), "True") && len(retained) == 2 {
+		pub = retained[0] - retained[1]
+		if pub < 0 {
+			pub = -pub
+		}
+	}
+	resultName := strings.TrimSpace(sa.ParamStr(cards.PKResultSVar))
+	if resultName != "" {
+		c.Roll.Last, c.Roll.LastName = pub, resultName
+		publish(resultName, pub)
+	}
+
 	// ResultSubAbilities$ is evaluated only after selection: both modifiers
 	// name results, not dice to suppress rolling, so every die is still noted
 	// and remains available to ResultSVar$/chosen-result publications.
@@ -573,27 +598,6 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 
-	// Primary result publication (ResultSVar$): one die's own result, the
-	// total of several, or the two-die difference -- over the RETAINED dice,
-	// so an ignored-low die's result does not count (the reading "ignore the
-	// lowest roll" gives every consumer; with no ignore the retained set is
-	// all dice, every existing publication unchanged).
-	total := int32(0)
-	for _, r := range retained {
-		total += r
-	}
-	pub := total
-	if strings.EqualFold(sa.ParamStr(cards.PKUseDifferenceBetweenRolls), "True") && len(retained) == 2 {
-		pub = retained[0] - retained[1]
-		if pub < 0 {
-			pub = -pub
-		}
-	}
-	resultName := strings.TrimSpace(sa.ParamStr(cards.PKResultSVar))
-	if resultName != "" {
-		c.Roll.Last, c.Roll.LastName = pub, resultName
-		publish(resultName, pub)
-	}
 	// MaxRollsResults$ / EvenOddResults$ (Luck Bobblehead): the counts a
 	// chained sub reads back through the published names.
 	if sa.ParamStr(cards.PKMaxRollsResults) == "True" {

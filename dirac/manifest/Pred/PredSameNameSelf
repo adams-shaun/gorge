@@ -1,0 +1,5 @@
+family: Pred
+name: PredSameNameSelf
+value: next
+status: active
+doc: PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.

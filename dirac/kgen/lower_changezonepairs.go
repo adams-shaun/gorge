@@ -89,6 +89,15 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		// still in Exile, so a bare Permanent ValidCard$ never reads true of
 		// Fire Lord Zuko blinked (Forge and XMage fire it)
 		return false, refuse("ChangesZone Exile->Battlefield: gorge reads the entering source's ValidCard$ on its exile-zone LKI")
+	case tr.Origin == zExile && tr.Dest == zAny && czImprintOnly(tr.F):
+		// "an imprinted card leaves exile" (Mirror Golem's forget line,
+		// Duplicant's imprinted-card cleanup): the kernel's TrigLeaveExile
+		// fires in placeFromK while the card is still in exile (CR 603.10a
+		// look-back; gorge judges the imprint association on the event's LKI
+		// snapshot, whose zone is exile). Only a ValidCard$ every clause of
+		// which is the imprint read lowers: the pre-move match of any other
+		// word could read a zone-bound value the live object no longer holds.
+		tr.Event = "LeaveExile"
 	default:
 		return false, nil
 	}
@@ -96,6 +105,23 @@ func czPair(tr *lTrigger, mask int16, zone string, giftSelf, costBody bool) (ok 
 		return false, refuse("ChangesZone %s->%s trigger zone %d", zoneLabel[tr.Origin], zoneLabel[tr.Dest], tr.Zone)
 	}
 	return true, nil
+}
+
+// czImprintOnly reports whether every clause of f is the bare imprint read:
+// kop.W7Imprinted and nothing else, no flags and no unfolded ExiledWithSource
+// link. The leave-exile firing carries exactly that match (the store read the
+// card still in exile); any other word's pre-move match could read a
+// zone-bound value the live object no longer holds.
+func czImprintOnly(f *lFilter) bool {
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags != 0 || c.CmpStat != cmpWord7 || c.CmpN != int(kop.W7Imprinted) {
+			return false
+		}
+	}
+	return true
 }
 
 // czReadsOwnCast reports a filter whose every clause reads the entering

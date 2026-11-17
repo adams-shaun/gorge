@@ -1,0 +1,23 @@
+# Mode$ BecomesTarget list, player-target and FirstTime forms (Rayne's and
+# Loki's player alternatives, Dormant Gomazoa's single player target, Kira's
+# Counter the targeting spell/ability, Prodigal Sorcerer's activated ping
+# as the ability source, and Silverfur Partisan's ValidTarget$
+# Wolf...,Werewolf... list over a ValidSource$ Instant,Sorcery spell): burn
+# and ping targeting creatures and players, vanilla bodies
+# (dirac/oracle/becomestargetlist_lockstep_test.go).
+Fey Steed
+Angelic Cub
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Plains
+Island
+Mountain
+Forest
+Loki, God of Mischief
+Rayne, Academy Chancellor
+Dormant Gomazoa
+Kira, Great Glass-Spinner
+Prodigal Sorcerer
+Silverfur Partisan
+Watchwolf

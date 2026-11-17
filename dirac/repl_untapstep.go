@@ -71,7 +71,7 @@ func (s *State) untapStepGen(k *prep) {
 			switch {
 			case c == 0 && p.ctrLow(int(kop.CtrStun)) > 0:
 				p.seeCtr(s)
-				p.subCtrN(s, int(kop.CtrStun), 1) // CR 122.1d: only a permanent that would untap spends one
+				s.subCtrFire(k, sl, int(kop.CtrStun), 1) // CR 122.1d: only a permanent that would untap spends one
 				s.touchSl(sl)
 				continue
 			case c == 0:

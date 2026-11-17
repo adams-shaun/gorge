@@ -183,6 +183,21 @@ func paramsMention(p map[string]string, needle string) bool {
 	return false
 }
 
+// leaveExileTrigger reports whether a ChangesZone trigger's zone pair is the
+// leave-exile shape the kernel's TrigLeaveExile fires (Origin$ Exile, no
+// Destination$ or Any, the battlefield trigger zone fireLeaveExile scans).
+func leaveExileTrigger(p map[string]string) bool {
+	if o := strings.TrimSpace(p["Origin"]); o != "Exile" || strings.Contains(o, ",") {
+		return false
+	}
+	d := strings.TrimSpace(p["Destination"])
+	if d != "" && d != "Any" {
+		return false
+	}
+	z := strings.TrimSpace(p["TriggerZones"])
+	return z == "" || z == "Battlefield"
+}
+
 // impPersistShape reports whether the face keeps its Imprinted list on the
 // source for a later ability to read. The second result says whether an
 // IsImprinted+ExiledWithSource clause may fold: every writer is a ChangeZone
@@ -193,7 +208,6 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 		return false, false
 	}
 	for _, bad := range []string{
-		"ForgetImprinted", "Unimprint", "ImprintLast", "!IsImprinted",
 		"ImprintFound", "ImprintRevealed", "ImprintCards", "ImprintOnHost",
 		"ImprintPlayed", "sharesNameWith Imprinted", "ImprintedLKI",
 	} {
@@ -218,7 +232,16 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 		}
 	}
 	for i := range f.Triggers {
-		if paramsMention(f.Triggers[i].Params, "IsImprinted") {
+		if !paramsMention(f.Triggers[i].Params, "IsImprinted") {
+			continue
+		}
+		// The one candidate shape the store's read carries: the leave-exile
+		// line (Origin$ Exile, no Destination$) whose ValidCard$ gorge
+		// judges on the event's LKI snapshot, still in exile — the kernel's
+		// TrigLeaveExile fires the same way, the card still in exile
+		// (placeFromK's hook; lower_changezonepairs.go). Any other trigger's
+		// candidate is judged live and stays refused.
+		if !leaveExileTrigger(f.Triggers[i].Params) {
 			return false, false
 		}
 	}

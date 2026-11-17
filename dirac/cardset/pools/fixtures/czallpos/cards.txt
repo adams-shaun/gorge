@@ -1,0 +1,14 @@
+# the ChangeZoneAll LibraryPosition$ / RandomOrder$ pool
+# Harmonic Convergence (top placement), Zimone's Experiment (bottom in a
+# random order) and Terminus (bottom, the owner's order), with Pacifism as the
+# enchantment Harmonic sweeps and vanilla fillers
+# (dirac/oracle/czall_libraryposition_lockstep_test.go)
+Harmonic Convergence
+Zimone's Experiment
+Pacifism
+Terminus
+Grizzly Bears
+Llanowar Elves
+Forest
+Plains
+Island

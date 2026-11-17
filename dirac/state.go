@@ -491,6 +491,17 @@ type stackEntry struct {
 	crim    uint8
 	trigObj Obj
 	trigPl  uint8
+	// btPl is a BecomesTarget trigger's targeted player + 1 (gorge
+	// TriggerTarget{Player}); 0 = none. trigSA is its targeting spell or
+	// ability + 1 (gorge TriggerStack, Defined$ TriggeredSourceSA); 0 = none,
+	// with trigSASid the ability's stack identity (0 for a spell), so a
+	// counter removes the ability that targeted rather than a trigger on the
+	// same source permanent. Both ride the pending trigger's bytes
+	// (pendingTrig.defSeat/trigSA; its identity there is wardSid): the object
+	// half keeps trigObj, so neither can share that slot.
+	btPl      uint8
+	trigSA    uint8
+	trigSASid uint8
 	// defSeat is an attack trigger's defending player + 1, bound as it was
 	// queued (pendingTrig.defSeat; 0 = none, and always 0 at two seats). It
 	// takes the padding byte before trigAmt.
@@ -559,6 +570,19 @@ type pendingTrig struct {
 	ctrl    uint8
 	trigObj Obj
 	trigPl  uint8
+	// A BecomesTarget player half's targeted player + 1 (gorge
+	// TriggerTarget{Player, IsPlayer}) rides defSeat: that byte is the attack
+	// trigger's defending player, and a player-target trigger never has one,
+	// so the kinds do not overlap (becameTargetPlayer, trig_becomestarget.go;
+	// takePending moves it to stackEntry.btPl only when trigSA is set).
+	// trigSA is the targeting spell or ability + 1 whose targeting queued a
+	// BecomesTarget trigger (gorge TriggerStack / Defined$ TriggeredSourceSA);
+	// 0 = none. trigObj keeps the targeted object (TriggerTarget), so the
+	// source half cannot share its slot (kgen lower_counterspell.go). An
+	// ability's stack identity rides wardSid (the same byte a ward trigger's
+	// answered ability uses): the source permanent can itself be a trigger's
+	// source, so the object alone does not name the entry a counter removes.
+	trigSA  uint8
 	trigAmt int16
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
@@ -576,10 +600,12 @@ type pendingTrig struct {
 	// when the trigger is queued (value_spellmv.go).
 	trigMV objWord
 	// wardSid is the stack identity of the ability a ward trigger answers,
-	// captured when checkWard queues the trigger. The stack at placement can
-	// hold a newer ability of the same source (two triggered abilities of one
-	// source can be pending at once), which is not the warded one (CR 603.3b,
-	// 701.6a). 0 = none: a spell is answered by its trigObj, and a table with
+	// captured when checkWard queues the trigger; it also carries a
+	// BecomesTarget trigger's targeting ability (trigSA's identity, Kira's
+	// Defined$ TriggeredSourceSA). The stack at placement can hold a newer
+	// ability of the same source (two triggered abilities of one source can
+	// be pending at once), which is not the warded/targeting one (CR 603.3b,
+	// 701.6a). 0 = none: a spell is named by its trigObj, and a table with
 	// no ward flag has no identity to stamp.
 	wardSid uint8
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
@@ -692,6 +718,10 @@ const (
 	ctlCmdZone5
 	ctlCmdZone6
 	ctlCmdZone7
+	// ctlTurnUpTap: transient inside face_facedown.go's turn-up tap step, so the
+	// planner prices its restricted sources as the special action's payment
+	// (payDescNow); parked in genState.pickLeft/pickF, never a decision.
+	ctlTurnUpTap
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7
@@ -849,6 +879,14 @@ const (
 	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
 	rfRestPh                        // scry/surveil: the top phase closed; the rest cards are being ordered
 	rfCopyGrp                       // a copy op has entered a copy and may park for the next one (interp_gen.go copyTokens): its later copies join the first one's AtEOT$ sacrifice trigger
+	// rfBodyOp / rfBodyTurn mark a pending dredge ask of a draw-replacement
+	// body card (kw_dredge.go dredgeBodyPose): the ask is raDredgeRes, and
+	// the flag says which enclosing site the answer resumes. rfBodyOp: an
+	// OpDraw card (the chain slot rides g.pickP, the loop's res.left /
+	// g.pickZ / g.pickLeft); rfBodyTurn: the turn draw (the chain slot rides
+	// res.left, the answer finishes the draw step).
+	rfBodyOp
+	rfBodyTurn
 )
 
 // resCtx is a resolution in progress.

@@ -36,7 +36,12 @@ func (s *State) becameTarget(k *prep, sl Slot, e *stackEntry) {
 	if k.gen.btWatch {
 		s.btWatchers(k, sl, p.obj, e) // trig_becomestarget.go
 	} else if !s.printsValiant(k, s.cardAt(sl)) {
+		n0 := s.npend
 		s.fireObjGen(k, kop.TrigBecomesTarget, sl, p.obj, p.ctrl, 0)
+		s.stampBtSA(e, n0) // TriggeredSourceSA (trig_becomestarget.go)
+		if st := DebugBtStats; st != nil && s.npend > n0 {
+			st.Queues++ // trig_becomestarget.go
+		}
 		return
 	}
 	if !s.printsValiant(k, s.cardAt(sl)) {

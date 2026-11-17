@@ -75,7 +75,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if pips == kop.PayBSubBlight {
 			return s.countPermMatch(k, p, f, s.resSrcSlot(k), false) >= 1 // a Blight: one creature, source included
 		}
-		return s.countSac(k, p, f, s.resSrcSlot(k)) >= amt // "another": not the source
+		return s.countSac(k, p, f, s.resSrcSlot(k)) >= amt && s.sacRidersPayable(p, pips) // "another": not the source; an UnlessCost$ with life and draw riders (cost_unlesssacriders.go)
 	case kop.PayLife:
 		return int(s.pl[p].life) >= amt
 	case kop.PayEnergy:
@@ -91,6 +91,10 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
 		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+	case payKindMill:
+		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
+	case payKindReveal:
+		return s.unlessRevealCands(k, p, f, nil) >= amt // gorge unlessComponentsPayable's "revealcost" candidates
 	case payKindDamage:
 		return amt > 0 // gorge: DamageYou<X> folds only for a positive X (cost_restokens.go)
 	case kop.PaySubCounter:
@@ -139,8 +143,10 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
 	}
-	kind = resTokenPayKind(kind, in.B.N) // DamageYou<X> rides PayDraw (cost_restokens.go)
-	kind = unlessPayKind(kind, in)       // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
+	kind = resTokenPayKind(kind, in.B.N)     // DamageYou<X> rides PayDraw (cost_restokens.go)
+	kind = millPayKind(kind, in.B.N)         // an UnlessCost$ Mill<N> rides PayDraw (cost_unlessmill.go)
+	kind = unlessRevealPayKind(kind, in.B.N) // an UnlessCost$ Reveal<N/Spec> rides PayDiscard (cost_unlessreveal.go)
+	kind = unlessPayKind(kind, in)           // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
@@ -236,7 +242,10 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
-	other := payDesc{class: pdOther}
+	if s.caPotentialOpen(k, p) {
+		return true // Sage of the Maze: gorge's potential walk prices a Combo Any production unbounded in every colour (mana_comboany.go)
+	}
+	other := payDesc{class: pdOther, subBound: true}
 	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
 	}
@@ -270,6 +279,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		pc := s.manaPCGen(k, sl)
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
+		}
+		if s.storeSourceCounts(k, p, sl) {
+			return true // a storage battery holding counters (mana_storesource.go)
 		}
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)
@@ -446,8 +458,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
-		if s.g.pickZ == payKindBehold {
-			s.unlessBeholdOptions(k, d, p) // cost_unlessbehold.go
+		if z := s.g.pickZ; z == payKindBehold || z == payKindReveal {
+			s.unlessRevealOptions(k, d, p) // cost_unlessreveal.go: a Behold rides the same dispatch (cost_unlessbehold.go)
 			break
 		}
 		if s.g.pickZ == kop.PayDiscard {
@@ -726,6 +738,11 @@ func (s *State) autoPayPick(k *prep) bool {
 		s.g.pickLeft = 0 // exactly the candidates owed: beholding moves nothing
 		return true
 	}
+	if s.g.pickZ == payKindReveal {
+		s.g.pickLeft = 0 // exactly the candidates owed: gorge records them unasked (pay/unlessflow.go AdvanceUnless); nothing moves
+		return true
+	}
+	s.payRidersLife(k) // life before the sacrifices (cost_unlesssacriders.go)
 	objs := d.Options[:d.N]
 	for i := 1; i < len(objs); i++ { // battlefield (entry) order
 		for j := i; j > 0; j-- {
@@ -846,11 +863,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case payKindTrigNew:
 			s.exileTrigNew() // the triggered card, unasked (trig_mayexile.go)
 		case kop.PayLife:
-			if int(s.pl[s.g.pickP].life) < int(s.g.pickLeft) {
-				s.payDone(k, false) // CR 119.4: a ward's unpayable life (gorge counters)
-				return
-			}
-			s.loseLife(k, s.g.pickP, int(s.g.pickLeft))
+			s.payPickLife(k) // cost_picklife.go: settles paid or declines (CR 119.4)
+			return
 		case kop.PayEnergy:
 			s.payEnergyN(s.g.pickP, s.g.pickLeft)
 		case kop.PayForage:
@@ -860,8 +874,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.paySacSelf(k)
 		case payKindSacHost:
 			s.paySacHost(k)
-		case kop.PayDraw:
-			s.payDrawToken(k)
+		case kop.PayDraw, payKindMill:
+			s.payDrawOrMill(k) // cost_unlessmill.go: a draw, or the unless-mill that rides PayDraw
 		case payKindDamage, payKindPoison:
 			s.payResToken(k) // cost_restokens.go
 		case payKindAddCounter:
@@ -888,7 +902,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.touchSl(sl)
 			pp.seeCtr(s)
 			if debugEntersTappedMutate != 3 { // TestSourceCounterCostsMutation: the drain
-				pp.subCtrN(s, kind, int(s.g.pickLeft))
+				s.subCtrFire(k, sl, kind, int(s.g.pickLeft)) // trig_counterremoved.go
 			}
 		case kop.PayTapX:
 			// C: the tap election (one pick per answer); an
@@ -932,10 +946,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.applyTapXVarPick(k, a) // tapXType<X/Spec> (cost_tapxvar.go)
 			return
 		}
-		if s.g.pickZ == payKindBehold {
-			s.g.pickLeft = 0 // beholding moves and marks nothing (cost_unlessbehold.go)
-			s.payDone(k, true)
-			break
+		if s.unlessRevealPick() {
+			if s.unlessRevealAnswer(k) { // cost_unlessreveal.go: beholding and revealing move and mark nothing
+				break
+			}
+			return
 		}
 		if s.g.pickZ == payKindWaterbend {
 			s.applyUnlessWaterbendPick(k, o) // cost_unlesswaterbend.go
@@ -1470,6 +1485,9 @@ func (s *State) payDone(k *prep, paid bool) {
 		}
 		s.chainCharge(k) // the mana half of a mana-and-exile cost (cost_exilepool.go)
 	}
+	if paid && s.g.pickZ == kop.PaySac {
+		s.payRidersDraw(k) // an UnlessCost$ Sac beside a draw (cost_unlesssacriders.go)
+	}
 	skip := uint8(0)
 	if (f&pfIfPaid != 0) != paid {
 		skip = uint8(f & 0x7ff)
@@ -1503,7 +1521,7 @@ func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	// gorge does: it taps the plain sources and asks which permanent to tap. A
 	// Firemind Vessel is one too: its two distinct colours pay the ward
 	// (mana_distinctcolours.go).
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)) {
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.windowFiltAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)) {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)
@@ -2697,7 +2715,7 @@ func (s *State) paySubCounterAny(k *prep, sl Slot) {
 	if n == 1 {
 		s.touchSl(sl)
 		pp.seeCtr(s)
-		pp.subCtrN(s, first, int(s.g.pickLeft))
+		s.subCtrFire(k, sl, first, int(s.g.pickLeft)) // trig_counterremoved.go
 		s.g.pickLeft = 0
 		s.payDone(k, true)
 		return
@@ -2718,7 +2736,7 @@ func (s *State) applyPaySubCounterPick(k *prep, a Action) {
 	pp := &s.perms[sl]
 	s.touchSl(sl)
 	pp.seeCtr(s)
-	pp.subCtrN(s, kind, 1)
+	s.subCtrFire(k, sl, kind, 1) // trig_counterremoved.go
 	s.g.pickLeft--
 	if s.g.pickLeft == 0 {
 		s.payDone(k, true)

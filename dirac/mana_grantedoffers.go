@@ -584,6 +584,12 @@ func (s *State) addGrantUnit(a *avail, u grantUnit) {
 	}
 }
 
+// grantTapNow reports whether sl can pay a {T} ability now: untapped and not
+// summoning sick (CR 302.6).
+func (s *State) grantTapNow(k *prep, sl Slot) bool {
+	return s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl)
+}
+
 // availGrant adds slot sl's unit(s) to a (availFor) on a table with
 // Continuous mana grants: its own ability's colours (pc) joined with
 // every granted ability's, one unit (the permanent taps once; gorge's
@@ -617,6 +623,14 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		return
 	}
 	if ng == 0 || (!own && ng == 1) {
+		if ng == 1 {
+			// a grant-only source whose single ability costs a {T} prices
+			// nothing while it cannot tap (CR 302.6): its early return bypasses
+			// the census gate availFor applies
+			if gv := s.grantView(k.gen, gi[0], sl); gv.manaTap && !s.grantTapNow(k, sl) {
+				return
+			}
+		}
 		s.addGrantUnits(a, mask, n)
 		if ng == 0 && pc.manaOne {
 			s.addOneColour(a, n)
@@ -1076,7 +1090,12 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.n++
 	}
-	if holders == 0 {
+	if holders == 0 && g.n == 0 {
+		// The activation's own source is the only holder (g.ex): its {T}
+		// cannot also make the mana, so no grant funds it. Another gap kind
+		// (a Taps-deferred source, a filter) still can, and gorge's one
+		// prefix search activates it: keep those candidates and fall back to
+		// the printed sources only when no gap survives.
 		g.n, g.gapN = 0, 0
 		return
 	}
@@ -1173,7 +1192,7 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 		// makes no mana and a storage battery's X is announced, neither a
 		// branch of this search
 		a := g.k.ctrAbOf(s.cardAt(sl))
-		g.ctr[n] = !deadCtrAb(a) && !kop.StoreManaAb(a) // (mana_countercost.go)
+		g.ctr[n] = !deadCtrAb(a) && !kop.StoreManaAb(a) && !sacCtrManaAb(a) // (mana_countercost.go, mana_sacctr.go)
 	}
 }
 
@@ -1345,10 +1364,7 @@ func (g *grantSrch) visit(t *State) bool {
 		g.cheaper = cheap
 		return true
 	}
-	if g.nseen < len(g.seen) {
-		g.seen[g.nseen] = key
-		g.nseen++
-	}
+	g.remember(key)
 	sacd := g.sacrificed()
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
@@ -1518,6 +1534,9 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		g.sel = 0
 	}
+	if g.printedSacPass(t, sacd) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+		return true
+	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts).
 	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
@@ -1556,6 +1575,14 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// remember records key as a seen node, while the table has room.
+func (g *grantSrch) remember(key grantKey) {
+	if g.nseen < len(g.seen) {
+		g.seen[g.nseen] = key
+		g.nseen++
+	}
 }
 
 // playSourceGone: the searched activation's source left the battlefield on

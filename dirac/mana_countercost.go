@@ -51,6 +51,14 @@ func ctrManaAb(a *kop.Ability) bool { return kop.CtrManaAb(a) }
 // walk, and its single chain branch pays the cost and taps without mana.
 func deadCtrAb(a *kop.Ability) bool { return kop.CtrDeadManaAb(a) }
 
+// ctrGapAb reports whether mana ability a is one of the counter- or
+// sacrifice-counter-cost shapes the kernel prices as a counter-cost script
+// gap (mana_countercost.go, mana_sacctr.go). prep marks the card's gap from
+// this one predicate so the census and the script walk cannot diverge.
+func ctrGapAb(a *kop.Ability) bool {
+	return ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) || sacCtrManaAb(a)
+}
+
 // deadCtrMask is p's activatable dead counter-cost sources among scriptCtr.
 // While one is activatable gorge's census is incomplete and unrelaxable
 // (potential_plan.go paymentPlanRelaxedAlternatives enumerates no colour for
@@ -118,7 +126,11 @@ func (s *State) scriptCtr(k *prep, p uint8) slotMask {
 			m = m.with(sl)
 			continue
 		}
-		if kop.StoreManaAb(a) {
+		if sacCtrManaAb(a) {
+			if !s.sacCtrUsable(k, sl, a) {
+				continue // its live counters, its {T} and its sacrifice (mana_sacctr.go)
+			}
+		} else if kop.StoreManaAb(a) {
 			// A storage battery: the announced X is the counters it holds, so
 			// with none there is no activation. Its {T} is read here, not
 			// through canTapForManaPC (whose plain unit prices one mana, not X).
@@ -148,7 +160,7 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 	}
 	for b := m; b.any(); b = b.rest() {
 		a := k.ctrAbOf(s.cardAt(b.first()))
-		if !deadCtrAb(a) && !kop.StoreManaAb(a) {
+		if !deadCtrAb(a) && !kop.StoreManaAb(a) && !sacCtrManaAb(a) {
 			return true // the grant search lists only the plain shapes (candidates)
 		}
 	}
@@ -173,6 +185,12 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 		a := k.ctrAbOf(c)
 		if deadCtrAb(a) {
 			continue // a dead gap: gorge's census lists it, but it adds no mana (mana_countercost.go ctrDeadGap)
+		}
+		if sacCtrManaAb(a) {
+			if n := s.sacCtrUnits(sl, a); n > 0 {
+				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n)) // its live counters (mana_sacctr.go)
+			}
+			continue
 		}
 		if kop.StoreManaAb(a) {
 			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
@@ -234,13 +252,20 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 // no colour in a counter-cost shape: AnnouncedAbilityColours is nil for
 // one), so the window's answer takes it and the counters and the
 // once-each-turn use stay (ctrChainTap's first branch); otherwise the
-// counter, the use, the mana. Reports whether the walk continues past a
-// handled gap.
+// counter, the use, the mana. A census walk's (an unless / ward window's
+// probe) counter-fee shape the unless census prices (ctrCensusAb, the pick
+// ctrCensusOffer made) takes the counter activation itself, the plain first
+// ability's tap pricing the census's other alternative only. Reports whether
+// the walk continues past a handled gap.
 //
 //go:noinline
-func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot) bool {
-	if !k.ctrMana || !s.scriptCtr(k, p).has(sl) {
+func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot, census bool) bool {
+	if !k.ctrMana || !s.scriptCtr(k, p).has(sl) || sacCtrManaAb(k.ctrAbOf(s.cardAt(sl))) {
 		return false
+	}
+	if census && ctrCensusAb(k.ctrAbOf(s.cardAt(sl))) {
+		s.ctrGap(k, p, sl, -1) // the census's fee shape: the counters, the use, the mana (ctrCensusOffer's pick)
+		return true
 	}
 	if k.ctrSecond(s.cardAt(sl)) {
 		s.ctrAb1(k, p, sl, -1)
@@ -255,10 +280,51 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 		return false
 	}
 	a := k.ctrAbOf(s.cardAt(o))
-	if deadCtrAb(a) {
-		return false
+	if deadCtrAb(a) || sacCtrManaAb(a) {
+		return false // (a counter-scaled sacrifice source is no window pick: mana_sacctr.go)
 	}
 	return !decided || uint8(a.ManaColors)&want != 0
+}
+
+// ctrCensusAb reports whether counter-cost ability a is one gorge's unless
+// census prices (rules paid_mana_census.go unlessWindowUnits' SubCounter arm,
+// pay.ManaSubCounterOnlyCost): a bare {T} plus a fixed, source-anchored
+// counter removal on a fixed production of one colour that asks no colour
+// (Weather Maker's "{T}, Remove two charge counters: Add {C}{C}", CR 608.2g).
+// The added-counter shape (Wall of Roots) prices no counter the census counts;
+// a storage battery's announced X is no fixed amount; the dead shape
+// (Component Pouch) resolves to no mana; an any-colour production asks a
+// colour (Vivid Grove's second ability), as the census withholds the plain
+// one. A depletion rider's own shape (Remote Farm, ManaRiderDeplete) is
+// riderCensusFree's, the rider arm's; this is the non-rider one.
+func ctrCensusAb(a *kop.Ability) bool {
+	return a != nil && !deadCtrAb(a) && !kop.StoreManaAb(a) && !ctrAnyColour(a) &&
+		kop.CtrTapSecondManaAb(a) && a.ManaRider == kop.ManaRiderNone
+}
+
+// unlessCtrGaps reports whether p has an activatable counter-cost source the
+// unless census prices (ctrCensusAb): windowAffordsTake's gate takes the walk
+// for it (scriptCtr has already read the counters the fee removes and the
+// source's tap), and windowPick answers the probe with the counter activation
+// (ctrCensusOffer), so the unless / ward offer counts the source exactly when
+// gorge's census lists it.
+func (s *State) unlessCtrGaps(k *prep, p uint8) bool {
+	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
+		if ctrCensusAb(k.ctrAbOf(s.cardAt(b.first()))) {
+			return true
+		}
+	}
+	return false
+}
+
+// ctrCensusOffer: slot o is p's activatable counter-cost source the unless
+// census prices (ctrCensusAb). The probe's windowPick answers it as a gap and
+// windowCtrGapTap's census arm takes the counter activation itself (ctrGap):
+// the plain first ability's tap prices the census's other alternative, never
+// the fee shape's, so the probe would under-price the fee and offer decline
+// only where gorge offers pay.
+func (s *State) ctrCensusOffer(k *prep, p uint8, o Slot) bool {
+	return k.ctrMana && s.scriptCtr(k, p).has(o) && ctrCensusAb(k.ctrAbOf(s.cardAt(o)))
 }
 
 // ctrGap activates counter-cost source sl for p: its counters, its use this
@@ -275,13 +341,18 @@ func (s *State) ctrGap(k *prep, p uint8, sl Slot, col int) {
 // (ctrTry): like the other branches' forks (eachTry) it taps plainly and
 // leaves the tap's trigger passes to grantApply, so the search does not see
 // a trigger of its own step pending (waitsForStack would dead-end the
-// branch). The dead and storage shapes are no grant-search candidates
-// (candidates, mana_grantedoffers.go), so fire reaches only the plain path.
+// branch). The dead, storage and counter-scaled sacrifice shapes are no
+// grant-search candidates (candidates, mana_grantedoffers.go), so fire
+// reaches only the plain path.
 func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 	c := s.cardAt(sl)
 	a := k.ctrAbOf(c)
 	if kop.StoreManaAb(a) {
 		s.storeGap(k, p, sl, a) // the storage battery's announced X (mana_countercost.go)
+		return
+	}
+	if sacCtrManaAb(a) {
+		s.sacCtrGap(k, p, sl, a) // mana_sacctr.go: no fork-side branch reaches it
 		return
 	}
 	if deadCtrAb(a) {
@@ -291,7 +362,12 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-		pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		if fire {
+			s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
+		} else {
+			// the search's fork-side probe leaves the trigger passes to grantApply
+			pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		}
 	} else {
 		n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), p, ctrPutCost) // a cost: only the non-EffectOnly$ replacements
 		if n > 0 && k.anyCtrAdded {
@@ -344,7 +420,7 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 func (s *State) ctrDeadGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	pm := &s.perms[sl]
 	pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-	pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+	s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
 	if a.Cost.Flags&kop.CostTap != 0 {
 		pm.flags |= pfTapped // its {T}
 		s.manaTapped(k, sl)
@@ -665,7 +741,7 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	}
 	s.touchSl(sl)
 	pm.seeCtr(s)
-	pm.subCtrN(s, int(a.Cost.Ctr), n)
+	s.subCtrFire(k, sl, int(a.Cost.Ctr), n)
 	col := bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)
 	s.poolAdd(SeatIx(p), col, n)
 	if taps {

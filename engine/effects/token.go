@@ -332,6 +332,17 @@ func tokenRememberedTargets(h Host, c *Ctx, name string) []state.Target {
 	return DefinedSpec(h, c, name)
 }
 
+// tokenMemoryOf is the set each minted token's persistent memory is bound to:
+// TokenRemembered$'s group, then the creating source under RememberSource$
+// True (Forge's TokenEffect remembers the host on every token it mints).
+func tokenMemoryOf(h Host, c *Ctx, tp *TokenParams) []state.Target {
+	mem := tokenRememberedTargets(h, c, tp.Remembered)
+	if tp.RememberSource && c.Source != 0 {
+		mem = append(mem, state.Target{Obj: c.Source})
+	}
+	return mem
+}
+
 // effToken creates the requested token scripts and applies their token riders.
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	tp := TokenOf(sa)
@@ -597,7 +608,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// already the resolution's Remembered set in this engine.  Other selector
 	// forms use the ordinary Defined resolver, so this remains extensible as
 	// Defined gains readers rather than special-casing individual cards.
-	tokenMemory := tokenRememberedTargets(h, c, tp.Remembered)
+	tokenMemory := tokenMemoryOf(h, c, tp)
 	// All selectors (owner, bearer and memory) have read the old set.
 	forgetOtherRemembered(h, c, sa)
 

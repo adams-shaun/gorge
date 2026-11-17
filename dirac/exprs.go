@@ -40,6 +40,10 @@ type evalCtx struct {
 	// only, as gorge's Play ValidSA$ cmc bound reads the printed face (Forge
 	// reads the cast half's mana cost). Set only by castFreeFillGen.
 	spellMV bool
+	// origin is the zone the candidate was in for the event being matched,
+	// when the move has already detached it (a leave-exile trigger reads the
+	// card as it was in exile, CR 603.10a). ZoneNone reads the live zone.
+	origin kop.Zone
 }
 
 // ctxCur is the context of the resolving entry, else the one being built.
@@ -474,6 +478,10 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 		}
 		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
+		if r == kop.RefTriggerSource && e != nil && e.trigSA != 0 {
+			o := Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+			return s.objPT(k, o, s.slotIfSame(o, s.objs[o].ver))
+		}
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
 			o := e.trigObj
 			// Gorge evaluates it at resolution: the live power
@@ -551,6 +559,18 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		}
 		return NoObj
 	case kop.RefImprinted:
+		if src, ok := s.impRefSrc(ctx); ok {
+			// the expression's source keeps its Imprinted list and this is
+			// not its own resolution: the store's records, store order (the
+			// first one where a single object is read), no zone gate
+			first := NoObj
+			s.impStoreEach(src, func(o Obj) {
+				if first == NoObj {
+					first = o
+				}
+			})
+			return first
+		}
 		if s.g.nimp > 0 {
 			return s.g.imp[0]
 		}
@@ -589,6 +609,9 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 		if r == kop.RefDelayedRemembered && e.remSet && e.trigObj != NoObj &&
 			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
+		}
+		if r == kop.RefTriggerSource && e.trigSA != 0 {
+			return Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 		}
 		return e.trigObj
 	case kop.RefAttached:
@@ -640,7 +663,11 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		}
 		return 255
 	case kop.RefTriggerTgtCtrl:
-		// gorge TriggeredTargetController, read live (resolve.go playerRef)
+		// gorge TriggeredTargetController, read live (resolve.go playerRef).
+		// A BecomesTarget player half carries the targeted seat in btPl.
+		if e.btPl != 0 {
+			return e.btPl - 1
+		}
 		if o := e.trigObj; o != NoObj {
 			return s.ctrlOfObj(o)
 		}
@@ -782,6 +809,13 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 	switch r {
 	case kop.RefImprinted:
 		n := 0
+		if src, ok := s.impRefSrc(ctx); ok {
+			// the expression's source keeps its Imprinted list and this is
+			// not its own resolution: the store's records, store order, no
+			// zone gate (gorge's Defined$ Imprinted)
+			s.impStoreEach(src, func(o Obj) { n += one(o) })
+			return n
+		}
 		for i := 0; i < int(s.g.nimp); i++ {
 			n += one(s.g.imp[i])
 		}

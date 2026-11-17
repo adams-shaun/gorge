@@ -105,13 +105,23 @@ func (s *State) manaRider(k *prep, sl Slot) {
 	}
 }
 
-// riderCensusFree reports whether rider ability a's cost is a bare tap, the
-// only rider gorge's unless census lists (rules unlessWindowUnits reads
-// pay.ManaFreeCost and the paid shapes; a counter removal is neither): a
-// depletion land or Gemstone Mine's "{T}, remove a counter" is left out of a
-// ward or unless window, so its pay is not offered on its account (CR 118.3).
+// riderCensusFree reports whether rider ability a is one gorge's unless
+// census lists (rules unlessWindowUnits): a bare tap, or -- since the
+// unless census prices it (pay.ManaSubCounterOnlyCost) -- a bare tap plus a
+// fixed, source-anchored counter removal on a production needing no colour
+// choice (Remote Farm's "{T}, Remove a depletion counter from CARDNAME: Add
+// {W}{W}", CR 608.2g). The source must still carry the counter
+// (riderActivatable); a choice-shaped production (Gemstone Mine's any
+// colour) stays out, as the census leaves it out (fail closed).
 func riderCensusFree(a *kop.Ability) bool {
-	return a.Cost.Flags&^kop.CostTap == 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+	if a.Cost.Flags&^kop.CostTap == 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 {
+		return true
+	}
+	return a.ManaRider == kop.ManaRiderDeplete &&
+		a.Cost.Flags == kop.CostTap|kop.CostRemoveCtr && a.Cost.N > 0 &&
+		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.ManaColors != 0 && a.ManaColors != kop.ColAny &&
+		a.AFlags&(kop.AfManaChoice|kop.AfManaChosen) == 0
 }
 
 // riderWindowable is riderActivatable as windowPick takes the source: a
@@ -227,7 +237,7 @@ func (s *State) riderPlainWindow(k *prep, sl Slot, a *kop.Ability) bool {
 // a creature) and its own counters enough.
 func (s *State) riderActivatable(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
 	if s.unlessSkipsRider(a) {
-		return false // a depletion land is no part of an unless / ward window (mana_window.go)
+		return false // a depletion land whose rider the unless census cannot price (mana_window.go)
 	}
 	if !s.occ.has(sl) || s.genLost(k, sl) || s.activationSick(k, sl) ||
 		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
@@ -254,7 +264,7 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-		pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
 	}
 	if a.Cost.Flags&kop.CostTap != 0 {
 		pm.flags |= pfTapped

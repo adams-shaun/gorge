@@ -101,12 +101,20 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 type lowerCtx struct {
 	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	ddoEvent bool  // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
-	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source (lower_effectcaptured.go)
+	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
+
+	// emblemDmg: lowering the body of a capturing EOT emblem's DamageDone
+	// trigger. On the recipient-captured shape (ValidTarget$ ...IsRemembered,
+	// the recipient branch of lower_effeottrig.go emblemCaptureFilter) the
+	// kernel emblem hook queues the DAMAGED object as the trigger object
+	// (dirac/trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
+	// so a body read of the damage source refuses (lower_effect.go).
+	emblemDmg bool
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
@@ -142,6 +150,7 @@ type lowerCtx struct {
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
+	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
 	trigBodyCost   bool      // the cost parser is reading a printed trigger's own body Cost$ (PayLife<X> by a value, lowerCtx.effect)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)

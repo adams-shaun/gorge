@@ -888,6 +888,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("trigger_cost_decline"), top, RefNone, 0), true
 	case dirac.ChGenUnleash:
 		return unleashCanon(src), true
+	case dirac.ChGenAddOrRemove:
+		return r.aorChoice(Ref(src), mode)
 	case dirac.ChGenKczZone:
 		return Pack(kind("zone"), RefNone, RefNone, mode), true // gorge's originAlternativeZones pick: the option index
 	case dirac.ChGenBranch:
@@ -950,10 +952,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("no"), RefNone, RefNone, 0), true
 	case dirac.ChGenConfirm:
 		// gorge's hand_move_confirm: a KChoose of yes / no
-		if mode == 1 {
-			return Pack(kind("yes"), RefNone, RefNone, 0), true
-		}
-		return Pack(kind("no"), RefNone, RefNone, 0), true
+		return confirmChoice(mode)
 	case dirac.ChRoom:
 		// gorge's venture "room" KChoose: the option index in the room's
 		// printed NextRoom$ order
@@ -1109,7 +1108,30 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// in option (face) order; the kernel carries that ordinal in Target.
 		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
-	return 0, false
+	return clashCanon(r.D.Sub, src, mode) // translate_clash.go
+}
+
+// aorChoice is the kernel side of gorge's "aor_elect" option: the arm is the
+// canonical choose kind and the mode is the pending election's counter kind,
+// so the oracle compares by kind rather than by the carrier's order.
+func (r *Translator) aorChoice(src Ref, mode uint8) (Canon, bool) {
+	name := "aor_remove"
+	if mode == 1 {
+		name = "aor_put"
+	}
+	code, _ := ChooseCode(name)
+	return Pack(ActChoose+CanonKind(code), src, RefNone, r.S.FeatAddOrRemoveKind()), true
+}
+
+// confirmChoice is a yes/no KChoose (gorge's hand_move_confirm): mode 1 is
+// yes, 0 no.
+func confirmChoice(mode uint8) (Canon, bool) {
+	name := "no"
+	if mode == 1 {
+		name = "yes"
+	}
+	code, _ := ChooseCode(name)
+	return Pack(ActChoose+CanonKind(code), RefNone, RefNone, 0), true
 }
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {

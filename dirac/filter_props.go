@@ -7,6 +7,12 @@ import (
 // DebugWord7Flip is TestFilterWordsZoneAndPowerMutation's switch: every PredWord7 answer is negated.
 var DebugWord7Flip bool
 
+// DebugW7NotImprintedFlip is TestImpForgetMutation's switch: W7NotImprinted
+// answers as W7Imprinted, so Mirror of Life Trapping's TrigReturn pick
+// (Permanent.ExiledWithSource+!IsImprinted) returns the creature it just
+// exiled instead of the other exiled-with cards.
+var DebugW7NotImprintedFlip bool
+
 // wordPerm is PredWord7 on a battlefield permanent (gorge
 // effects/filter.go hasNoName, greatestPower, attackingAlone and filter_word.go
 // inZone<Zone>).
@@ -56,7 +62,7 @@ func (s *State) wordPerm(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 //
 //go:noinline
 func (s *State) wordCard(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
-	return s.wordCardAt(k, fl, c, o, fd, ctrl, NoObj)
+	return s.wordCardAt(k, fl, c, o, fd, ctrl, NoObj, kop.ZoneNone)
 }
 
 // cardFilterSrc is a card matcher's source object: the caller's ctx source,
@@ -68,11 +74,30 @@ func (s *State) cardFilterSrc(ctx *evalCtx) Obj {
 	return s.ctxCur().src
 }
 
+// cardFilterOrigin is a card matcher's event-time origin zone: the caller's
+// ctx origin when it names one (a leave-exile trigger reads the card as it
+// was in exile), else ZoneNone for the live zone.
+func cardFilterOrigin(ctx *evalCtx) kop.Zone {
+	if ctx != nil {
+		return ctx.origin
+	}
+	return kop.ZoneNone
+}
+
+// wordImprintedKind reports whether fl is the word-presence read of a
+// source's Imprinted list (W7Imprinted or its negation), the reads that take
+// the matcher's source and event-time origin zone.
+func wordImprintedKind(fl *kop.Filter) bool {
+	n := fl.PredN & 0xff
+	return n == kop.W7Imprinted || n == kop.W7NotImprinted
+}
+
 // wordCardAt is wordCard with the filter's source object (NoObj when the
-// caller has none), which a source-persistent Imprinted read needs.
-func (s *State) wordCardAt(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8, src Obj) bool {
+// caller has none), which a source-persistent Imprinted read needs, and the
+// event-time origin zone for that read.
+func (s *State) wordCardAt(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8, src Obj, origin kop.Zone) bool {
 	if fl.PredN&0xff >= kop.W7FaceUp {
-		return s.wordCard2(k, fl, c, o, fd, ctrl, src) // filter_props.go
+		return s.wordCard2(k, fl, c, o, fd, ctrl, src, origin) // filter_props.go
 	}
 	ans := false
 	switch fl.PredN & 0xff {
@@ -119,7 +144,17 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 		if src != NoSlot {
 			so = s.perms[src].obj
 		}
-		return s.impHasAt(k, so, s.perms[sl].obj) != DebugWord7Flip
+		return s.impHasAt(k, so, s.perms[sl].obj, kop.ZoneNone) != DebugWord7Flip
+	}
+	if fl.PredN&0xff == kop.W7NotImprinted {
+		so := NoObj
+		if src != NoSlot {
+			so = s.perms[src].obj
+		}
+		if DebugW7NotImprintedFlip { // answers as W7Imprinted (TestImpForgetMutation)
+			return s.impHasAt(k, so, s.perms[sl].obj, kop.ZoneNone) != DebugWord7Flip
+		}
+		return s.impHasAt(k, so, s.perms[sl].obj, kop.ZoneNone) == DebugWord7Flip
 	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordPerm3(k, fl, sl, src) // filter_props.go
@@ -206,7 +241,7 @@ func (s *State) nameInGrave(nm CardID, p uint8) bool {
 // c is the card, ctrl the evaluating controller.
 //
 //go:noinline
-func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8, src Obj) bool {
+func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8, src Obj, origin kop.Zone) bool {
 	if n := fl.PredN & 0xff; n == kop.W7BottomLibrary || n == kop.W7NotBottomLibrary {
 		return s.bottomLibrary(o) == (n == kop.W7BottomLibrary)
 	}
@@ -214,7 +249,13 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		return o != NoObj && s.sharesCrTrigObj(k, o)
 	}
 	if fl.PredN&0xff == kop.W7Imprinted {
-		return o != NoObj && s.impHasAt(k, src, o) != DebugWord7Flip
+		return o != NoObj && s.impHasAt(k, src, o, origin) != DebugWord7Flip
+	}
+	if fl.PredN&0xff == kop.W7NotImprinted {
+		if DebugW7NotImprintedFlip { // answers as W7Imprinted (TestImpForgetMutation)
+			return o != NoObj && s.impHasAt(k, src, o, origin) != DebugWord7Flip
+		}
+		return o == NoObj || s.impHasAt(k, src, o, origin) == DebugWord7Flip
 	}
 	if n := fl.PredN & 0xff; n == kop.W7EnteredFromBF || n == kop.W7EnteredFromLib {
 		from := kop.ZoneBattlefield

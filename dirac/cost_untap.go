@@ -27,7 +27,7 @@ func (s *State) untapCost(k *prep, sl Slot) {
 	s.touchSl(sl)
 	if p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 		p.seeCtr(s)
-		p.subCtrN(s, int(kop.CtrStun), 1)
+		s.subCtrFire(k, sl, int(kop.CtrStun), 1)
 		return
 	}
 	if s.untapBlocked(k, sl) {

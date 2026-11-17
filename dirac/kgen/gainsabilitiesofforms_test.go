@@ -12,6 +12,8 @@ var gainsabilitiesofForms = []formCase{
 	{card: "Thranduil, the Elvenking", form: "Elf.YouOwn in the graveyard", lir: "gainsof="},
 	{card: "Dark Impostor", form: "Creature.ExiledWithSource in exile", lir: "gainsof="},
 	{card: "Patchwork Crawler", form: "Creature.ExiledWithSource in exile", lir: "gainsof="},
+	{card: "Hazel's Brewmaster", form: "Affected$ Food.YouCtrl recipients", lir: "gainsof="},
+	{card: "Marvin, Murderous Mimic", form: "Creature.YouCtrl+!sharesNameWith Self", lir: "gainsof="},
 	{card: "Territory Forge", form: "untyped Card source", refused: "artifact or land sources"},
 	{card: "Trazyn the Infinite", form: "artifact sources", refused: "artifact or land sources"},
 }

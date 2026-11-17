@@ -242,6 +242,7 @@ const (
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
+	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
 	vCount_
 )
 
@@ -358,6 +359,7 @@ var valNames = [...]string{
 	vDmgOppsTaken:        "DmgOppsTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vBlessing:            "Blessing",
+	vSrcRemCounters:      "SrcRemCounters",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -793,8 +795,10 @@ type lCost struct {
 	PutLibSelf     bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN        int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
 	BeholdF        *lFilter // the Behold<N/Type> candidates' filter
-	MillN          int      // Mill<N>: mill N cards from the top of the payer's own library (CR 701.17b, 118.3; kop.Cost.Mill, an activated ability's cost only)
+	MillN          int      // Mill<N>: mill N cards from the top of the payer's own library (CR 701.17b, 118.3; kop.Cost.Mill for an activated ability's cost, the unless window's CS=Mill instruction)
 	RevealSelf     bool     // Reveal<1/CARDNAME>: the source card is revealed from its controller's hand and nothing moves (kop.Cost.RevealSelf, the forecast family's cost)
+	RevealN        int      // Reveal<N/Spec> as an UnlessCost$: the payer reveals N hand cards matching RevealF and nothing moves (gorge beginUnlessPayment's "revealcost" pick, unlessflow.go's Note)
+	RevealF        *lFilter // the Reveal<N/Spec> candidates' filter (the payer's hand; a whole-hand or CARDNAME spec stays refused)
 }
 
 // pureMana reports whether the cost is only its mana part. Power-up's
@@ -806,7 +810,13 @@ func (c lCost) pureMana() bool {
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
-		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
+		c.pureManaTail()
+}
+
+// pureManaTail is the rest of pureMana's conjunction: the token and library
+// parts a power-up cost (CR 702.193b) cannot carry beside its mana cost.
+func (c lCost) pureManaTail() bool {
+	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0
 }
 
 // manaCost is a printed mana cost.
@@ -940,6 +950,19 @@ type lTrigger struct {
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
 	// SpellToo: a creature spell its controller controls counts too.
 	Watch, SpellToo bool
+	// SrcSpell: BecomesTarget watcher whose ValidSource$ is a spell form
+	// (Spell[.YouCtrl|.OppCtrl|.<Type>], Instant,Sorcery); SrcF is its card
+	// filter when it names a type (kop.TrigNSrcSpell, Filter2).
+	SrcSpell bool
+	SrcF     *lFilter
+	// SrcAbility: BecomesTarget watcher whose ValidSource$ is Ability[.YouCtrl|
+	// .OppCtrl], so the targeting stack entry must be an ability
+	// (kop.TrigNSrcAbility).
+	SrcAbility bool
+	// PlayerAlt: F carries a player alternative (You / Player / Opponent).
+	// The builder emits it as an FPlayer chain entry (filterPlayerAlt) and
+	// the kernel's player walk matches it with castTargetsPlayer.
+	PlayerAlt bool
 	// ByCreature: AttackerBlocked lowered from Mode$ AttackerBlockedByCreature,
 	// once per (attacker, blocker) pair; F reads the attacker, F2 the
 	// blocker, exactly one of them Card.Self; the trigger object is the
@@ -1122,10 +1145,13 @@ type lStatic struct {
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
 	OutlivesLoss bool
-	Amount       lValue
-	Cost         lCost
-	Zone         int
-	Override     *lOverride
+	// PerAffected: the AffectedX convention on the AddPower$/AddToughness$
+	// amounts (kop.Static.StPerAffected; lower_continuous.go continuousPT)
+	PerAffected bool
+	Amount      lValue
+	Cost        lCost
+	Zone        int
+	Override    *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter
 	// ProtChosen and ProtExc: the host's chosen-colour quality and the
@@ -1219,6 +1245,7 @@ type lOverride struct {
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
+	ImpSub            bool     // AddType$ ImprintedCreatureType: the imprinted card's creature types (kop.Override.ImpSub; Duplicant)
 	ProtFrom          *lFilter // a granted protection's sources (kop.Override.ProtFrom): colour-mask clauses for the ProtectionFrom<Colour> spellings, lc.filter's clauses for Protection:<spec>
 }
 
@@ -1238,7 +1265,12 @@ type lRepl struct {
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
-	F2      *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
+	// LibBottom / LibShuffle / LibFromBattlefield: GraveToLibrary's library
+	// insert (bottom, not top), whether its owner shuffles after a top insert,
+	// and whether it applies only to a move from the battlefield (the R: line's
+	// Origin$ Battlefield / ActiveZones$ Battlefield).
+	LibBottom, LibShuffle, LibFromBattlefield bool
+	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 }
 
 // lCard is a lowered card.
@@ -1430,7 +1462,11 @@ type lCard struct {
 // lEmblem is an emblem a planeswalker ultimate creates: statics, or one
 // latent triggered ability (by index).
 type lEmblem struct {
-	Statics       []lStatic
+	Statics []lStatic
+	// Repls: the emblem's replacement abilities (a Duration$ Permanent
+	// Effect's all-but-N damage prevention, lower_effectemblemprevent.go); the
+	// emblem's abilities are its Statics, else its Repls, else its Trigger.
+	Repls         []lRepl
 	Trigger       int
 	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
 	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup

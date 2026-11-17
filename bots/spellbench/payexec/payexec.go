@@ -293,7 +293,17 @@ func (x *Execution) StepOn(d *decision.Decision, s Surface) (decision.Intent, St
 	case d.Kind == decision.KPriority:
 		return x.priority(d, s)
 	case d.Kind == decision.KChoose && x.cur >= 0 && manaAsk(d, x.steps[x.cur].Source):
-		return x.manaAsk(d)
+		return x.manaAsk(x.cur, d)
+	case d.Kind == decision.KChoose && x.cur < 0 && x.next > 0 && manaAsk(d, x.steps[x.next-1].Source):
+		// A decision the last activation stacked (its trigger, its
+		// sacrifice's replacement) yielded the execution between the
+		// activation and its follow-up ask: the ask is still that
+		// activation's, so the plan still answers it. Answering it by the
+		// plan keeps the pool the plan predicts, which the priority check
+		// below verifies; the caller's clamp would answer it by option
+		// order and mis-colour the witness's mana (an any-colour unit the
+		// plan put in one colour the clamp puts in another).
+		return x.manaAsk(x.next-1, d)
 	}
 	// Not the lowering's decision: a trigger its activation put on the
 	// stack (to order, to target), an optional trigger. The caller answers;
@@ -345,10 +355,10 @@ func (x *Execution) priority(d *decision.Decision, s Surface) (decision.Intent, 
 }
 
 // manaAsk answers a stage-1 "choose a mana ability" wheel or a stage-2
-// colour ask for the current source with the option(s) producing exactly
+// colour ask for the activation at i with the option(s) producing exactly
 // the witness's Produces.
-func (x *Execution) manaAsk(d *decision.Decision) (decision.Intent, Status) {
-	act := x.steps[x.cur]
+func (x *Execution) manaAsk(i int, d *decision.Decision) (decision.Intent, Status) {
+	act := x.steps[i]
 	choices, ok := matchManaProved(d, act, x.Prove)
 	if !ok {
 		x.abort(ReasonManaUnmatched, fmt.Sprintf("source %d wants %v: %s", act.Source, act.Produces, d.Prompt))
@@ -451,6 +461,19 @@ func matchManaProved(d *decision.Decision, act decision.PaymentActivation, prove
 			}
 			c := symIndex(o.ManaSymbol)
 			return c == col && want[col] == 1
+		},
+		// A reflected mana ability (Plaza of Heroes' "add one mana of any
+		// color among legendary permanents you control") has no Produced$,
+		// so its wheel label is a bare "Add ": its colours are the board's,
+		// which the witness already priced, and no label says whether it is
+		// the witness's ability. The wheel's Ability index does when it is
+		// the step's own printed one, and it must outrank the any-colour
+		// class: Plaza's restricted "Add any color" fits the colour too, and
+		// the mana it floats is legendary-spell mana no ordinary activation
+		// can spend (CR 106.6).
+		func(o *decision.Option) bool {
+			return act.Ability.Kind == decision.PaymentAbilityPrinted && uint32(o.Ability) == act.Ability.Index &&
+				o.ManaSymbol == "" && bareAddLabel(o.Label)
 		},
 		func(o *decision.Option) bool {
 			if !single || o.ManaSymbol != "" {
@@ -604,6 +627,13 @@ func matchAllocation(d *decision.Decision, want decision.ManaAmount) ([]int, boo
 		choices = append(choices, found)
 	}
 	return choices, true
+}
+
+// bareAddLabel reports whether label names no production: "Add " beside an
+// optional cost prefix ("Sacrifice a land: Add ").
+func bareAddLabel(label string) bool {
+	l := strings.TrimSpace(label)
+	return l == "Add" || strings.HasSuffix(l, ": Add")
 }
 
 func hasCostPrefix(label string) bool {

@@ -391,6 +391,16 @@ type Descriptor struct {
 	// units, so the offer, the autopay plan and the spend agree. Empty, the
 	// ordinary case, costs one string-empty check.
 	OnlyTag string
+	// Bestowed marks an offer priced for a card's bestowed cast (CR 702.103b:
+	// an Aura spell, not a creature spell). The card is still in hand, so no
+	// stack-side FlagBestowed provenance exists yet to make a RestrictValid$
+	// spell read see an Aura; the payment, made on the stack, does.
+	Bestowed bool
+	// SubCounterBound marks the resolution-time pay gate's descriptor
+	// (respay.go): the potential bound reads a SubCounter<X> mana ability's
+	// Amount$ X at the counters it can remove instead of unbounded
+	// (potential_subcounter.go).
+	SubCounterBound bool
 }
 
 // OnlyTagKnown reports whether tag names a modelled producer tag (the
@@ -840,6 +850,9 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	if !provenanceOK {
 		return false
 	}
+	if d.Bestowed {
+		return bestowedSpecMatches(e, p, d.ID, spec, srcID)
+	}
 	if e.MatchesSpellFrom(spec, d.ID, p, srcID) {
 		return true
 	}
@@ -853,6 +866,46 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
 	return e.MatchesSpellFrom("Card."+spec, d.ID, p, srcID)
+}
+
+// bestowedBarredWords and bestowedKeptWords are the spec words a bestowed
+// cast's Aura spell fails (it is no creature) and holds (it is an Aura and
+// nonCreature) outright.
+var (
+	bestowedBarredWords = []string{"Creature"}
+	bestowedKeptWords   = []string{"nonCreature", "Aura"}
+)
+
+// bestowedSpecMatches reads a RestrictValid$ spell spec the way the bestowed
+// cast will on the stack (CR 702.103b: the spell is an Aura and not a
+// creature): a Creature qualifier fails, nonCreature and Aura hold, and every
+// other qualifier reads the card as it is (it keeps its subtypes and colours).
+// The qualifiers are the spec's "+"- and "."-separated words.
+func bestowedSpecMatches(e Engine, p state.PlayerID, id state.ObjID, spec string, src state.ObjID) bool {
+	for len(spec) > 0 {
+		q := spec
+		spec = ""
+		for i := 0; i < len(q); i++ {
+			if q[i] == '+' || q[i] == '.' {
+				q, spec = q[:i], q[i+1:]
+				break
+			}
+		}
+		if q == "" {
+			continue
+		}
+		if slices.Contains(bestowedBarredWords, q) {
+			return false
+		}
+		if slices.Contains(bestowedKeptWords, q) {
+			continue
+		}
+		// a bare type word is its own base; a qualifier-only word needs Card.
+		if !e.MatchesSpellFrom(q, id, p, src) && !e.MatchesSpellFrom("Card."+q, id, p, src) {
+			return false
+		}
+	}
+	return true
 }
 
 // CostPayableGrant is CostPayable with the may-play ignore-colour rider

@@ -160,7 +160,7 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV && fl.PredN == 3) && src != NoSlot {
 			return s.powerGEVFrom(k, fl, sl, src) // filter_typesall.go
 		}
-		return s.predPermGen(k, fl, sl, layer)
+		return s.predPermGen(k, fl, sl, src, layer)
 	}
 	return true
 }
@@ -297,7 +297,11 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			}
 		}
 	}
-	return s.flags2Obj(f&^kop.F2Kicked, o) // a permanent's kicked mark was read above
+	so := NoObj
+	if src != NoSlot {
+		so = s.perms[src].obj
+	}
+	return s.flags2ObjSrc(k, f&^kop.F2Kicked, o, so) // a permanent's kicked mark was read above
 }
 
 // flags2Obj checks the object-identity flags (kicked spell, remembered, chosen,
@@ -441,7 +445,7 @@ func xBoundTarget(tb *kop.Table, t *kop.TargetSpec) bool {
 	return false
 }
 
-func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, layer uint8) bool {
+func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer uint8) bool {
 	n := int(fl.PredN)
 	switch fl.Pred {
 	case kop.PredPowerLE, kop.PredPowerGE, kop.PredToughnessLE:
@@ -491,6 +495,17 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, layer uint8) bool 
 		return s.predHasCounters(sl)
 	case kop.PredSameNameRem:
 		return s.sharesNameRem(s.perms[sl].obj, 0, false)
+	case kop.PredSameNameSelf:
+		// gorge sharesNameWith Self: the candidate shares the reading
+		// source's current name (Marvin, Murderous Mimic). The source is the
+		// static's slot src, else the resolving entry's object; PredN 1 is
+		// the ordinary ! negation.
+		cx := s.ctxCur()
+		srcObj := NoObj
+		if src == NoSlot {
+			src, srcObj = cx.srcSl, cx.src
+		}
+		return s.sharesNameSelf(src, srcObj, sl, NoCard, NoObj, false, n == 1)
 	case kop.PredNamedCard:
 		// the card-name property NamedCard (CR 201.4): the permanent shares
 		// the reading source's chosen card name (gorge namePredicate
@@ -737,7 +752,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			if f2&kop.F2SharesColorRem != 0 && !s.sharesColorRem(k, o, cols) {
 				return false
 			}
-			if !s.flags2Obj(f2, o) {
+			if !s.flags2ObjCtx(k, f2, o, ctx) {
 				return false
 			}
 		}
@@ -805,8 +820,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return fl.Pred == kop.PredActiveCtrl && owner == s.active // nothing off the battlefield is attached
 	case kop.PredModified, kop.PredHasCounters:
 		return false // only a battlefield permanent is modified or holds counters here
-	case kop.PredSameNameRem:
-		return s.sharesNameRem(o, c, fd)
+	case kop.PredSameNameRem, kop.PredSameNameSelf:
+		return s.predSameNameCard(fl, c, o, fd, ctx)
 	default:
 		if fl.Pred == kop.PredExiledWith {
 			return s.exwCard(o) // zone_exiledwith.go
@@ -825,10 +840,10 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredWord7 {
 			src := NoObj
-			if fl.PredN&0xff == kop.W7Imprinted {
+			if wordImprintedKind(fl) {
 				src = s.cardFilterSrc(ctx) // filter_props.go: a source-persistent Imprinted read
 			}
-			return s.wordCardAt(k, fl, c, o, fd, ctrl, src)
+			return s.wordCardAt(k, fl, c, o, fd, ctrl, src, cardFilterOrigin(ctx))
 		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go

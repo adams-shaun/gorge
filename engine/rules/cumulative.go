@@ -2785,11 +2785,17 @@ func (e *Engine) triggeredCostNumTimesAsk(tc *triggeredEffectCost) bool {
 			bound = m
 		}
 	}
-	pot := e.PotentialMana(tc.player)
+	// The bound counts only the mana this payment may spend (CR 106.6): a
+	// Plaza of Heroes' legendary-only mana does not fund {G} (Tranquil
+	// Frillback), the same restriction-aware pool resPayNeedsMana reads.
+	unit := tc.numTimes.unit
+	desc := paymentDescriptor{ID: tc.source, Class: paymentOther, Cost: &unit}
+	pot := e.potentialManaFor(tc.player, &desc)
+	typed := pay.AvailableFor(asPayer(e), tc.player, desc).Typed
 	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_x", Label: "0 times", Amount: 0, Obj: tc.source}}
 	for n := int32(1); n <= bound; n++ {
 		v := tc.numTimes.times(n)
-		if !v.Priceable() || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, v, pot, e.G.Players[tc.player].ManaUnits()) {
+		if !v.Priceable() || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, desc.SAKind(), v, pot, typed) {
 			break
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
