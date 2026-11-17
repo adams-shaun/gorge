@@ -1923,6 +1923,12 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 		s.riderPlainGap(k, p, a, sl, c) // the plain first ability and the rider's colours are one ask (mana_rider.go)
 		return true
 	}
+	if tapsDef.has(sl) && s.restrCensusTapsGapShape(k, sl) {
+		// the census float and the restricted colours are one ask
+		// (mana_tapsdefer.go)
+		s.restrCensusDeferGap(k, p, a, sl, c)
+		return true
+	}
 	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
 	return true
 }
@@ -1949,9 +1955,6 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 			return 0
 		}
 		off, c = 1, c-1
-	} else if s.restrCensusTapsGapShape(k, sl) {
-		a := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
-		mask = uint8(a.ManaColors & kop.ColAny)
 	} else if a, ok := s.riderAbilityOf(k, sl); ok {
 		mask = uint8(a.ManaColors)
 	} else {

@@ -432,7 +432,21 @@ func (s *State) restrCensusTapsGap(k *prep, p uint8, sl Slot) bool {
 // is (the play pays it from the floating batches). A source the extra cannot
 // be priced on stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
-	if s.restrCensusTapsGapShape(k, sl) || s.restrTapsGapShape(k, sl) {
+	if s.restrCensusTapsGapShape(k, sl) {
+		// One tap is one alternative of either ability (CR 605.1a): the
+		// census unit beside the restricted colours, gorge's one relaxed
+		// alternative per mana ability, priced as a single unit so one tap
+		// is never spent twice. The census answer still prices a generic or
+		// {C} play the restricted batch cannot pay (Orcish Captain's {1}
+		// flip), the restricted colours an Elemental play's coloured pips
+		// (Flamekin Brawler's {R}).
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
+		pc := s.manaPCGen(k, sl)
+		av.addUnits(s.srcMaskAt(pc, sl)|uint8(ab.ManaColors&kop.ColAny),
+			max(s.srcYieldAt(k, sl, pc), max(ab.ManaN, 1)))
+		return
+	}
+	if s.restrTapsGapShape(k, sl) {
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
 		av.addUnits(uint8(ab.ManaColors&kop.ColAny), max(ab.ManaN, 1))
 		return
@@ -476,8 +490,12 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 // (Grove of the Burnwillows; riderPlainFirst).
 func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
 	if s.restrCensusTapsGapShape(k, sl) {
+		// the census float first (answer 0, the plain first ability's place,
+		// riderPlainFirst), then one answer per colour of the restricted
+		// ability: the activation ask's options are both abilities'
+		// productions (restrCensusDeferGap).
 		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
-		return uint8(bits.OnesCount8(uint8(ab.ManaColors & kop.ColAny)))
+		return 1 + uint8(bits.OnesCount8(uint8(ab.ManaColors&kop.ColAny)))
 	}
 	if s.restrTapsGapShape(k, sl) {
 		return 1 // one fixed colour: no colour ask
@@ -535,6 +553,42 @@ func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot) {
 	}
 }
 
+// restrCensusDeferGap activates a restrCensusTapsGapShape source at sl for
+// the script search's answer c: the source's one activation ask offers the
+// census ability's production (answer 0, the plain first ability's place,
+// riderPlainFirst) before the restricted ability's colours, and gorge's
+// scriptSearch stably reorders those answers by the play's needed pips
+// (scriptOrderAnswers). c indexes that reordered list; the census answer
+// floats its plain {C} (tapDeferPlain), a colour answer floats the restricted
+// mana (floatRestrAb) the payment admits only on an Elemental play (CR
+// 605.1a).
+func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) {
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	if c == 0 {
+		s.tapDeferPlain(k, p, sl)
+		return
+	}
+	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
+	mask := uint8(ab.ManaColors & kop.ColAny)
+	var order [kop.NumManaKinds]uint8
+	no := 0
+	for col := uint8(0); col < kop.NumManaKinds; col++ {
+		if mask&(1<<col) != 0 {
+			order[no] = col
+			no++
+		}
+	}
+	needFirst(order[:no], s.playNeed(k, a))
+	if c-1 >= no {
+		return // unreachable: deferGapAnswers bounds c (one per mask colour)
+	}
+	if !s.floatRestrAb(k, p, sl, ab, int(order[c-1]), max(ab.ManaN, 1)) {
+		s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
+	}
+}
+
 // tapDeferFloat floats the Taps-deferred source at sl's mana in the
 // answer's colour: tapGap's Taps-defer arm, plain pool mana (tapGapChoice
 // and the prefix player tap it first, so manaTapped has queued the
@@ -542,17 +596,6 @@ func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot) {
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		s.manaRiderFloat(k, p, sl, a, c)
-		return
-	}
-	if s.restrCensusTapsGapShape(k, sl) {
-		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
-		mask := uint8(ab.ManaColors & kop.ColAny)
-		for i := 0; i < c; i++ {
-			mask &= mask - 1
-		}
-		if !s.floatRestrAb(k, p, sl, ab, bits.TrailingZeros8(mask), max(ab.ManaN, 1)) {
-			s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
-		}
 		return
 	}
 	if s.restrTapsGapShape(k, sl) {
