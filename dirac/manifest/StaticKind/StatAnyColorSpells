@@ -1,0 +1,6 @@
+family: StaticKind
+name: StatAnyColorSpells
+value: next
+forge: ManaConvert
+status: active
+doc: ManaConvert AnyType->AnyColor over a cast card matching Filter (Oath of Nissa).

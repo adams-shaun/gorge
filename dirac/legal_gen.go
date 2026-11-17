@@ -213,8 +213,8 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			if !av.affordsAnyColor(&cost, 0) {
 				return
 			}
-		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
-			return
+		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
+			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
 	} else if s.freeOwes(k) {
 		// a free cast still pays the cost statics' increases (CR 601.2f, 118.9d)
