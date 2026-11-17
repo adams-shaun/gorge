@@ -326,8 +326,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
 				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
 			}
-		} else if (filt.any() || mix) && a.Kind() == AkActivate && s.liveGrantGap(k, p) {
-			if !s.grantActScript(k, a, p) {
+		} else if (filt.any() || mix) && s.liveGrantGap(k, p) {
+			// a cast beside a filter and a live grant needs both: the grant
+			// search's filter step funds the filter's fee from a granted
+			// sacrifice ability (Rain of Filth's lands; grantSearch's
+			// stepFilt), which the filter-only script skips (grantHasCost).
+			if !s.grantActScript(k, a, p) && !(isCastKind(a.Kind()) && s.filtScript(k, a, p, false)) {
 				continue // no script within gorge's one search's budget (grantActScript)
 			}
 		} else if filt.any() || mix {
