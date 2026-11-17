@@ -429,7 +429,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		//     over the equipped creature (every clause EquippedBy), with no
 		//     ValidPlayer$ (any tapper): Captain America, Living Legend's
 		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy, and
-		//     Cryoshatter's Card.AttachedBy when its body defers the tap.
+		//     Cryoshatter's Card.AttachedBy (a destroy-self body is vetted
+		//     ordinary, tapsDestroySelf; an unvetted body defers the tap).
 		//     A FirstTime$ True line (Captain America, Living Legend) is the
 		//     same watcher with the tapped-this-turn mark consulted first.
 		// FirstTime$ True ("the first time it has become tapped this turn",
@@ -455,21 +456,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					return refuse("Taps ValidPlayer %q", vp)
 				}
 				// AttachedBy lowers to the same flag as EquippedBy
-				// (filter.go): the enchanted-permanent watcher. Its deferring
-				// bodies (Cryoshatter's destroy) lower, as gorge's planner
-				// defers any tap a non-damage watcher sees; a damage body
-				// (Psychic Venom's payer damage) has a payment tiering the
-				// kernel does not mirror yet, so it refuses.
-				tp8, pn := tapsPlanClass(t.Effect)
-				att := strings.Contains(vc, "AttachedBy")
-				for _, c := range tr.F.Clauses {
-					ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
-					switch {
-					case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
-					case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer):
-					default:
-						return refuse("Taps ValidCard %q", vc)
-					}
+				// (filter.go): the enchanted-permanent watcher (tapsAttachedClass,
+				// tapsAttachedClauses).
+				tp8, pn, destroySelf := tapsAttachedClass(t)
+				if !tapsAttachedClauses(tr.F, vc, tp8, destroySelf) {
+					return refuse("Taps ValidCard %q", vc)
 				}
 				tr.TapPlan, tr.TapPainN = uint8(tp8), pn
 				break

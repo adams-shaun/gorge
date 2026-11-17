@@ -649,6 +649,40 @@ func tableHasReconfigure(t *kop.Table) bool {
 	return false
 }
 
+// prepSubtypes records the creature-subtype mask and the Aura subtype index
+// prepareGen's generated table carries.
+func prepSubtypes(t *kop.Table, g *genPrep) {
+	g.auraSub = -1
+	for i, n := range t.Subtypes {
+		if creatureTypeWords[n] {
+			g.creatSub = g.creatSub.With(i)
+		}
+		if n == "Aura" {
+			g.auraSub = int8(i)
+		}
+	}
+}
+
+// prepOverrideFlags records which override kinds the table carries.
+func prepOverrideFlags(t *kop.Table, g *genPrep) {
+	for i := range t.Overrides {
+		if t.Overrides[i].LoseAbilities {
+			g.anyLoseRec = true
+		}
+		if t.Overrides[i].PTDelta {
+			g.anyPTDelta = true
+		}
+		if t.Overrides[i].ProtFrom != 0 {
+			g.anyProtF, g.anyProtGrant = true, true // an override's granted protection reads (kw_protection.go protOvF)
+		}
+		for _, gr := range t.Overrides[i].Grant {
+			if gr != 0 {
+				g.anyGrant = true
+			}
+		}
+	}
+}
+
 // noteKeptSets records the card's flags for a kept remembered or imprinted set
 // (zone_rememberpersist.go, zone_srcmem.go).
 func (g *genPrep) noteKeptSets(c *kop.CardDef) {
@@ -700,33 +734,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.replBits[i] |= rbPrevCombatBy
 		}
 	}
-	g.auraSub = -1
-	for i, n := range t.Subtypes {
-		if creatureTypeWords[n] {
-			g.creatSub = g.creatSub.With(i)
-		}
-		if n == "Aura" {
-			g.auraSub = int8(i)
-		}
-	}
-	for i := range t.Overrides {
-		if t.Overrides[i].LoseAbilities {
-			g.anyLoseRec = true
-		}
-		if t.Overrides[i].PTDelta {
-			g.anyPTDelta = true
-		}
-		if t.Overrides[i].ProtFrom != 0 {
-			g.anyProtF, g.anyProtGrant = true, true // an override's granted protection reads (kw_protection.go protOvF)
-		}
-	}
-	for i := range t.Overrides {
-		for _, gr := range t.Overrides[i].Grant {
-			if gr != 0 {
-				g.anyGrant = true
-			}
-		}
-	}
+	prepSubtypes(t, g)
+	prepOverrideFlags(t, g)
 	g.cpxPT, g.cpxSub, g.cpxCol, g.cpxNoCost, g.cpxTy, g.cpxNoLeg = copyExcFlags(t)
 	for i := range t.Exprs {
 		if t.Exprs[i].Kind == kop.ExYourTurns && t.Exprs[i].N == 0 {
