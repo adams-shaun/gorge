@@ -509,7 +509,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		rcp = s.perms[fe.dst].ctrl
 	}
 	n := 0
-	ro.prev, ro.shld, ro.plus, ro.pnx = 0, 0, 0, 0
+	ro.prev, ro.shld, ro.plus, ro.pnx, ro.spv = 0, 0, 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
 		// gorge's scan order: the controller's battlefield in entry order.
 		// A plus-N addition is collected beside every other kind: beside
@@ -596,6 +596,11 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			return 0
 		}
 		ro.prev &^= ro.pnx
+	}
+	if g.uses.has(useStaticPrev) {
+		if n = s.spCombatCands(k, fe, sc, rcp, n); n < 0 {
+			return 0 // repl_staticprevent.go
+		}
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, sc, n) {
 		return 0 // repl_dmgmark.go
@@ -836,6 +841,9 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	for i := 0; i < int(ro.ac) && n > 0; i++ {
 		if ro.pnx&(1<<i) != 0 {
 			continue // the shield was spent as picked (prevNextPick)
+		}
+		if ro.spv&(1<<i) != 0 {
+			continue // a static prevention was applied to ro.an as picked (spPick)
 		}
 		if pend && ro.prev&(1<<i) == 0 {
 			if ro.used&(1<<i) != 0 || !s.replCandLive(k, i) {
