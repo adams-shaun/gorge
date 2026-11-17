@@ -64,15 +64,15 @@ func sameResult(a, b Result) string {
 // same Result as one without it -- visits, Q, prior, root value, choice
 // and every outcome counter -- and only the walk's cost counters differ.
 func TestNodeCacheIsExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	t.Parallel()
 	roots := measureRoots(t, 18)
 	if len(roots) < 12 {
 		t.Fatalf("only %d searchable roots", len(roots))
 	}
 	sims := 160
-	if testing.Short() {
-		roots, sims = roots[:4], 60
-	}
 	// Each root is searched independently, so the roots run as parallel
 	// subtests: the package's other search tests are serial, and this one's
 	// single-threaded loops left three of the gate cgroup's four CPUs idle
@@ -284,14 +284,14 @@ func landMacros(d *decision.Decision, bot decision.Intent) ([]Macro, Key) {
 // EnvSteps and the cache's own counters is identical, the leaf-depth sums,
 // Truncated and PriorFallbacks included.
 func TestNodeCacheIsExactWithBenchKnobs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	t.Parallel()
 	roots := measureRoots(t, 10)
 	e, d, land := landPlayRoot(t)
 	roots = append(roots, measureRoot{name: "land-play", e: e, d: d, bot: land})
 	sims := 120
-	if testing.Short() {
-		roots, sims = append(roots[:3], roots[len(roots)-1]), 50
-	}
 	type unit struct {
 		name  string
 		gamma float64

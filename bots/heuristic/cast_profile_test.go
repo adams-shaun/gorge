@@ -97,6 +97,9 @@ func newDefaultProfileBot(t *testing.T) func(uint64) *Bot {
 // the two chains reach the same head and the bench baseline
 // `-a cast-profile -b bot` measures the same games as `-a bot -b bot`.
 func TestCastProfileDefaultMatchesBotOverWholeGame(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 4)
 	const seed = 9
 	profile := newDefaultProfileBot(t)
@@ -133,6 +136,9 @@ func TestCastProfileDefaultMatchesBotOverWholeGame(t *testing.T) {
 // would play the default arithmetic and the equality pin above would hold
 // for the wrong reason).
 func TestCastProfileTunedProfileChangesPlay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 4)
 	const seed = 9
 	botRun := playWholeGame(t, seed, names, decks, NewBot, true)
