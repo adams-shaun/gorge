@@ -231,7 +231,7 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 		if !ok {
 			return false, false
 		}
-		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1]), op, want), true
+		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1], sc), op, want), true
 	case strings.HasPrefix(property, "hasFewer"):
 		// hasFewer[Type]sIn[Play|Yard]ThanYou
 		if int(you) >= len(g.Players) {
@@ -254,7 +254,7 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 		default:
 			return false, false
 		}
-		return unlessDefenderTypeCount(g, z, defender, cardType) < unlessDefenderTypeCount(g, z, you, cardType), true
+		return unlessDefenderTypeCount(g, z, defender, cardType, sc) < unlessDefenderTypeCount(g, z, you, cardType, sc), true
 	}
 	return false, false
 }
@@ -299,15 +299,17 @@ func unlessDefenderCompare(tok string) (string, int32, bool) {
 // unlessDefenderTypeCount counts objects of a Forge type word in a player's
 // zone. `Card`/`Any` is the universal type (every object counts), matching
 // CardLists.getType's treatment of the base card type; any other word rides
-// the shared hasType predicate.
-func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, cardType string) int32 {
+// the layer-aware hasTypeCtx over sc, so a permanent a type-changing effect
+// made a creature counts as one (CR 613.1d: Kormus Bell's Swamps against Mogg
+// Toady's hasFewerCreaturesInPlayThanYou) and one that lost the type does not.
+func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, cardType string, sc SpecContext) int32 {
 	n := int32(0)
 	for _, id := range g.Zone(z, p) {
 		o := g.Obj(id)
 		if o == nil {
 			continue
 		}
-		if strings.EqualFold(cardType, "Card") || strings.EqualFold(cardType, "Any") || hasType(o, cardType) {
+		if strings.EqualFold(cardType, "Card") || strings.EqualFold(cardType, "Any") || hasTypeCtxPtr(o, cardType, &sc) {
 			n++
 		}
 	}
