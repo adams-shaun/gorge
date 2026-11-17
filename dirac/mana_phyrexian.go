@@ -215,13 +215,18 @@ var DebugNoPhyrexianLife bool
 // unit through the script route (Hall of Tagsin's "{1}, {T}: Add one mana of
 // any color"), so the gate counts what av carries, gap units included.
 //
+// A storage battery (Subterranean Hangar) is a census gap, but its live
+// counters are real mana and the planner prices them (mana_countercost.go
+// storeGap): the real offer's gate reads them beside the plain units, or a
+// second activation its counters pay is withheld (pair 149). The plain
+// probes (availPlain: plainOptions and the other probe walks, which model
+// gorge's planner) read without them — the planner reaches a battery only
+// through the script route, so a play its probes list runs unscripted and
+// the battery is never activated (pair 149).
+//
 //go:noinline
 func (s *State) phyActAffords(k *prep, sl Slot, a *kop.Ability, p uint8, c kop.ManaCost, av *avail) bool {
-	// A storage battery (Subterranean Hangar) is a census gap, but its live
-	// counters are real mana and the planner prices them (mana_countercost.go
-	// storeGap): the gate reads them beside the plain units, or a second
-	// activation its counters pay is withheld (pair 149).
-	if k.gen != nil {
+	if k.gen != nil && s.g.availX&availPlain == 0 {
 		var store avail
 		store = *av
 		if s.phyStoreUnits(k, p, &store) {
