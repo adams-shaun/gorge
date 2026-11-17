@@ -21,9 +21,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // is applied as made to the damage left (replHdr.an), the last candidate applies on its own and a
 // prevention that leaves nothing ends the asks. An Optional$ shield alone
 // (Battletide Alchemist) is asked of its controller with a skip option. A
-// combat event, a competition beside an optional line or a DamageAmount$ gate,
-// and a host with two shields stall StallReplPlus: the order walk of a combat
-// pass does not carry these candidates. So does such a competition in a pass
+// combat event's orderable competition is posed by the combat walk
+// (spCombatCands): each pick applies as made (spPick), and dealAsked aligns
+// the recomputed pass's event with the picked order because the candidates
+// need not commute. A competition beside an optional line or a DamageAmount$
+// gate, and a host with two shields, stall StallReplPlus: the walk cannot name
+// such candidates. So does such a competition in a pass
 // that re-executes its op on a plus-N order ask (damageBatch, a hit batch,
 // DealDamageFrom): a static prevention table is never replPlusOnly, since that
 // protocol discards the answer. A table that also has any other
@@ -255,8 +258,19 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 		return e.n - s.spPrevented(k, cs[0].b, a, e.n), true
 	case s.spBare(k, &cs, c):
 		return 0, true
+	case e.combat && s.spOrderable(k, &cs, c):
+		// gorge's order ask is posed by the combat walk (spCombatCands), which
+		// applies each pick as made (spPick). This is only the recomputed
+		// pass's provisional accounting in scan order; dealAsked aligns the
+		// event with the picked order (the candidates need not commute: an
+		// all-but shield beside a prevent-N shield).
+		left := e.n
+		for i := 0; i < c; i++ {
+			left -= s.spPrevented(k, cs[i].b, s.spCandAb(k, cs[i]), left)
+		}
+		return left, true
 	}
-	s.capFull(StallReplPlus) // gorge asks the CR 616.1 order; only a noncombat event is posed (spPark)
+	s.capFull(StallReplPlus) // gorge asks the CR 616.1 order; the walk poses only an orderable competition (spPark/spCombatCands)
 	return e.n, false
 }
 
@@ -353,6 +367,42 @@ func (s *State) spPark(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	s.g.nc = nc
 	return true, true
+}
+
+// spCombatCands appends the static prevention candidates of frozen combat
+// event fe (source controller sc, recipient controller rcp) to the walk's
+// ro.cand after the n already collected, marking them in ro.spv, and returns
+// the new count (-1 after a loud stall). Two or more orderable candidates
+// that are not all bare full preventions are gorge's CR 616.1 order ask; each
+// pick is applied as made (spPick) to the amount left (ro.an). A competition
+// beside another kind of candidate stalls (the kinds are not walked together),
+// and one the walk cannot pose is left to spApply's loud stall.
+func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
+	e := spEv{sc, fe.src, fe.card, rcp, fe.dst, true, int(fe.n)}
+	if s.spProtected(k, &e) {
+		return n
+	}
+	var cs [spMax]spCand
+	c := s.spCollect(k, &e, &cs)
+	switch {
+	case c < 0:
+		return -1
+	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
+		return n
+	case n > 0:
+		s.capFull(StallReplPlus)
+		return -1
+	}
+	ro := &s.g.ro
+	for i := 0; i < c; i++ {
+		if cs[i].b >= MaxPerm {
+			s.capFull(StallReplCands) // an emblem is never named by an order ask
+			return -1
+		}
+		ro.cand[i] = s.perms[cs[i].b].obj
+		ro.spv |= 1 << i
+	}
+	return c
 }
 
 // spAbility is the static prevention of the host at b a pick of candidate
