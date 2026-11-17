@@ -353,6 +353,7 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 2
 	}
+	*kernel = customKernelFor(*kernel, *reproPath, *synth != "", explicit["kernel"])
 	runKernel = kernelLabel(*synth, *kernel, *setName)
 	var searchCfg *oracle.SearchSeatConfig
 	if *srchSeats != "" || explicit["search"] || explicit["search-sims"] {
@@ -364,14 +365,9 @@ func run() int {
 		searchCfg = &cfg
 	}
 	if *reproPath != "" {
-		rep, err := oracle.ReadRepro(*reproPath)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "kfuzz:", err)
-			return 1
-		}
-		if surfaceName, err = reproRun(rep, *reproPath, surfaceName, explicit["surface"] || explicit["autopay-surface"]); err != nil {
-			fmt.Fprintln(os.Stderr, "kfuzz:", err)
-			return 2
+		var code int
+		if surfaceName, code = checkRepro(*reproPath, surfaceName, explicit["surface"] || explicit["autopay-surface"]); code != 0 {
+			return code
 		}
 	}
 	if *decksDir == "" {
@@ -590,6 +586,8 @@ func run() int {
 			ps = oracle.PairingsPlayable(c, set, pool, *firstPair, *pairs, *seed)
 		}
 		return runFDN(c, set, rc, ps, o, pol)
+	case customKernel:
+		return runCustomRepro(c, *reproPath, *lead, rc, *cardsDir)
 	default:
 		fmt.Fprintf(os.Stderr, "kfuzz: -kernel %q: want gorge or gorge-api (the real kernel's adapter lands with package kernel)\n", *kernel)
 		return 2
