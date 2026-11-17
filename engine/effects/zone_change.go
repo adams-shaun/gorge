@@ -1082,6 +1082,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// face the permanent enters with. See applyTransformed.
 		if to == state.ZBattlefield {
 			applyTransformed(h, c, cz.Riders.Transformed, o.ID)
+			if cz.Tapped {
+				// Tapped$ sets the entry state AFTER the MoveZone, so hold the
+				// entry's CR 603.6b trigger check until the Tap and the
+				// attacking rider have landed (settleInlinedObjectEntry).
+				h.BeginZoneBatch()
+			}
 		}
 		markChangeZoneAttach(h, c, sa, cz, &ev)
 		entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
@@ -1108,38 +1114,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if withKind != "" && counterDestination(to) && !entryCounters {
 			emitChangeZoneCounters(h, o.ID, withKind, withAmt)
 		}
-		// GainControl$ hands the moved object to the named player (Reanimate:
-		// "return target creature card... to the battlefield under your
-		// control"). Only a battlefield entry can carry a control change (CR
-		// 701.22a controls permanents); a card moved to a hidden or public
-		// non-battlefield zone keeps its owner. Not part of the "inlined
-		// rather than settleChangeZoneMove" scoping above -- GainControl$ is
-		// unconditional on the move landing on the battlefield, the same as
-		// settleChangeZoneMoveAs's own tail call.
-		if to == state.ZBattlefield {
-			changeZoneAttachedTo(h, c, sa, cz, o.ID)
-		}
-		// Tapped$ True (CR 110.5's entry state): the moved permanent enters
-		// tapped. The object path did not apply this rider before, so a
-		// targeted graveyard/exile return carrying it (Zuko's Conviction's
-		// kicked alternate, every "return it to the battlefield tapped"
-		// spell) entered untapped -- the same Tap event applyLibrarySearch
-		// and the hand movers emit, so the entry state is a real event and
-		// replay derives it.
-		if to == state.ZBattlefield && cz.Tapped {
-			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: c.Controller, Text: "entered tapped"})
-		}
-		rider.apply(h, c, o.ID, c.Controller, to)
-		// StaticEffect$ on the inlined object path: the same rider the shared
-		// settle path applies for every other mover (the main loop deliberately
-		// predates settleChangeZoneMoveAs and is not routed through it).
-		if to == state.ZBattlefield {
-			// LeaveBattlefield$ Exile on the inlined object path (Isareth the
-			// Awakener, From the Catacombs): the same promise the shared settle
-			// path registers, on the object this move just landed, after its
-			// entry riders are settled.
-			registerLeaveExile(h, c, o.ID, cz.LeaveBattlefield, "", true)
-		}
+		settleInlinedObjectEntry(h, c, o.ID, sa, cz, to, &rider)
 		if cz.Imprint && (to == state.ZExile || cz.ImprintLast) {
 			if landed := h.Game().Obj(o.ID); landed != nil && landed.Zone == to &&
 				(to == state.ZExile || !landed.IsToken) {
@@ -1213,6 +1188,39 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			position = 1
 		}
 		libraryOrderPlacementAt(h, h.Game().Obj(moved[0]).Owner, moved, position)
+	}
+}
+
+// settleInlinedObjectEntry applies the inlined object-target mover's
+// battlefield entry state after its MoveZone: GainControl$'s AttachedTo$
+// rider, the Tapped$ entry Tap, the Attacking$ rider, then the
+// LeaveBattlefield$ Exile promise. The caller opened a zone batch before the
+// MoveZone when Tapped$ is set, so the entry's CR 603.6b trigger check is
+// held until this state has landed; the close here flushes it, and the
+// "enters tapped" trigger (Amulet of Vigor) sees the tapped permanent.
+func settleInlinedObjectEntry(h Host, c *Ctx, id state.ObjID, sa *cards.SA, cz *ChangeZoneParams, to state.Zone, rider *attackingEntry) {
+	if to != state.ZBattlefield {
+		return
+	}
+	// GainControl$ hands the moved object to the named player (Reanimate:
+	// "return target creature card... to the battlefield under your
+	// control"). Only a battlefield entry can carry a control change (CR
+	// 701.22a controls permanents); a card moved to a hidden or public
+	// non-battlefield zone keeps its owner.
+	changeZoneAttachedTo(h, c, sa, cz, id)
+	// Tapped$ True (CR 110.5's entry state): the moved permanent enters
+	// tapped. The Tap is the same event applyLibrarySearch and the hand
+	// movers emit, so replay derives the entry state.
+	if cz.Tapped {
+		h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: c.Controller, Text: "entered tapped"})
+	}
+	rider.apply(h, c, id, c.Controller, to)
+	// LeaveBattlefield$ Exile on the inlined object path (Isareth the
+	// Awakener, From the Catacombs): the same promise the shared settle path
+	// registers, on the object this move just landed, after its entry riders.
+	registerLeaveExile(h, c, id, cz.LeaveBattlefield, "", true)
+	if cz.Tapped {
+		h.EndZoneBatch()
 	}
 }
 
@@ -2114,6 +2122,10 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	markChangeZoneAttach(h, c, sa, cz, &ev)
 	entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
 	applyStaticEffect(h, c, sa, to, []state.ObjID{id})
+	// The hand-origin Tapped$ rider sets the entry state after the MoveZone,
+	// so hold this entry's CR 603.6b check until the Tap and the attacking
+	// rider have landed; the close below flushes it.
+	entryTapped := beginEntryTappedBatch(h, to, from == state.ZHand && cz.Tapped)
 	emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 	if to == state.ZExile {
 		recordExileReturnFor(h, c, sa, cz.Riders.Duration, id, from, to)
@@ -2168,10 +2180,11 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 		// origin because this helper's OTHER callers (the hidden pick, the
 		// library search's alternative-origin branch) emit their own Tap after
 		// the call and a second one here would double-emit.
-		if from == state.ZHand && cz.Tapped {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
-		}
+		emitEntryTapped(h, to, from == state.ZHand && cz.Tapped, id, player)
 		rider.apply(h, c, id, player, to)
+		if entryTapped {
+			h.EndZoneBatch()
+		}
 		// LeaveBattlefield$ Exile (Isareth the Awakener, From the Catacombs):
 		// the promise rides the entered object for as long as it stays on the
 		// battlefield (engine/effects/leavebattlefield.go) -- no Duration$ on either
