@@ -68,7 +68,21 @@ func (s *State) resolveMadness(k *prep) {
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	cost := s.adjustCost(k, p, c, o, s.convokeCredit(k, p, c, o, k.t.Cards[c].MadnessCost))
-	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.ctrWindowAffords(k, p, &cost)) && s.spellTargetsFeasible(k, c, p)
+	return (s.affordsFor(k, p, &cost) || s.windowAffords(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost)) && s.spellTargetsFeasible(k, c, p)
+}
+
+// restrCastAffords: the restricted sources the madness cast of card o may
+// spend (CR 106.6: an Ancient Ziggurat's mana pays a creature spell) fund cost.
+// gorge's offerCastablePotential prices the cast with this spell's payment
+// descriptor, so such a source counts; the plain census does not take it.
+func (s *State) restrCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if !k.restrSrc {
+		return false
+	}
+	var av avail
+	s.availWindowFor(k, p, &av)
+	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
+	return s.restrSrcAffords(k, p, spell, cost, &av, NoSlot, 0)
 }
 
 // keywordCastAffords: p can pay cost for card o's keyword cast its resolving
