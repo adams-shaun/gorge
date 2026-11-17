@@ -711,7 +711,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if strings.EqualFold(strings.TrimSpace(ab.ParamStr(cards.PKBoast)), "True") && !e.boastGateOK(id, -1, "") {
 							continue
 						}
-						if e.activationLimitBlockedFrom(p, id, ab, -1, "", 0, ga.GainedFrom, ga.GainedIdx) {
+						if activationLimitBlockedFrom(e, p, id, ab, -1, "", 0, ga.GainedFrom, ga.GainedIdx) {
 							continue
 						}
 						*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",

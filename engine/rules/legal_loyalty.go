@@ -447,7 +447,15 @@ const unboundedActivationLimit = -1
 // withholds; an unresolvable expression stays unenforced, exactly as the
 // per-turn gate already documented.
 func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *cards.SA, ability int, svar string, merged int) bool {
-	return e.activationLimitBlockedFrom(p, id, sa, ability, svar, merged, 0, 0)
+	return activationLimitBlockedFrom(e, p, id, sa, ability, svar, merged, 0, 0)
+}
+
+// activationLimitReader is the slice of the Engine the limit gate reads.
+type activationLimitReader interface {
+	resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw string, merged int) (int, bool)
+	additionalActivationLimit(id state.ObjID, actor state.PlayerID, ab *cards.SA, baseline int) int
+	activationUsedCount(id state.ObjID, ability int, svar string, thisTurn bool) int
+	gainedActivationsUsed(id, foreign state.ObjID, idx int, thisTurn bool) int
 }
 
 // activationLimitBlockedFrom is activationLimitBlocked with the identity of a
@@ -455,7 +463,7 @@ func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *ca
 // ability gainedIdx the recipient id was lent (GainsAbilitiesOf$), and the
 // counts read the GainedAbilityPush/ManaActivate folds
 // (gainedActivationsUsed) instead of the printed and granted identities.
-func (e *Engine) activationLimitBlockedFrom(p state.PlayerID, id state.ObjID, sa *cards.SA, ability int, svar string, merged int, gainedFrom state.ObjID, gainedIdx int) bool {
+func activationLimitBlockedFrom(e activationLimitReader, p state.PlayerID, id state.ObjID, sa *cards.SA, ability int, svar string, merged int, gainedFrom state.ObjID, gainedIdx int) bool {
 	if sa == nil {
 		return false
 	}
