@@ -59,3 +59,24 @@ func TestCopyGrantMixedRecordDedupesOnce(t *testing.T) {
 		t.Fatalf("after the second application the copy has %v instances of the Ghoul's abilities, want [1 2]: activated once, trigger twice", got)
 	}
 }
+
+// TestCopyGrantAppendedActivatedKeepsRepeats: a record of one activated
+// ability put then appended (a Clone's GainThisAbility$ on a copy of a copy,
+// copyGrantAppend) is two instances, as gorge appends it each time; only the
+// mixed record's activated ability stays one.
+func TestCopyGrantAppendedActivatedKeepsRepeats(t *testing.T) {
+	sc, k, sl, ov := grantCopyScen(t, false)
+	s := sc.s
+	g := cgrantRef{ov, v.HungryGhoul}
+	if !k.copyGrantOnce(g) || k.t.Cards[v.HungryGhoul].Abilities[0].Kind != kop.AbActivated {
+		t.Fatal("precondition: the record holds one activated ability and no appended trigger")
+	}
+	k.gen.anyGrant = true // the walk grantedAbilitiesN reads only with a grant in the table
+	if got := grantInstances(s, k, sl, v.HungryGhoul); got[0] != 1 {
+		t.Fatalf("precondition: the scenario's one put shows %v instances, want 1 of ability 0", got)
+	}
+	s.copyGrantAppend(k, sl, g) // the copy of the copy appends it again
+	if got := grantInstances(s, k, sl, v.HungryGhoul); got[0] != 2 {
+		t.Fatalf("an activated grant put then appended shows %v instances, want 2 of ability 0", got)
+	}
+}
