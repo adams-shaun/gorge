@@ -23,11 +23,17 @@ func FaceDownPolicy(base Policy) Policy {
 		for _, a := range c.D.Options {
 			switch a.Kind() {
 			case ActCastFace:
-				if s := faceDownScore(c, a); isFaceDownCast(a) && (down == 0 || s > downScore) {
+				if !isFaceDownCast(a) {
+					continue
+				}
+				if s := faceDownScore(c, a); down == 0 || s > downScore {
 					down, downScore = a, s
 				}
 			case ActSpecial:
-				if s := faceDownScore(c, a); isTurnFaceUp(a) && (up == 0 || s > upScore) {
+				if !isTurnFaceUp(a) {
+					continue
+				}
+				if s := faceDownScore(c, a); up == 0 || s > upScore {
 					up, upScore = a, s
 				}
 			case ActCast:
