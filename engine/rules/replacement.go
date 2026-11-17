@@ -1413,6 +1413,12 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		if !bodyAbsorbed(absorbed, m) {
 			e.runEntryBody(ctx, &stored, m.repl.With)
 		}
+		if entryCloneBody(m) {
+			// CR 707.5/707.6: the copy's copied face may carry its own
+			// as-enters replacement (Primal Clay's Layer$ Copy choice),
+			// which the pre-move collection could not see.
+			applyInheritedEntryReplacements(e, e.G, stored)
+		}
 		// CR 303.4f: an Aura entering through an Updated body (a copy
 		// election) enters attached once that body has made it the Aura.
 		settleAuraEntry(e, &stored)
