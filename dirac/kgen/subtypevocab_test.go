@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // TestNonCreatureSubtypeVocabKnown: a non-creature subtype no pool card
@@ -28,9 +29,16 @@ func TestNonCreatureSubtypeVocabKnown(t *testing.T) {
 			t.Errorf("knownSubtype(%q) = true; want false (not a kernel non-creature subtype)", w)
 		}
 	}
-	if _, err := parseFilter("Land.Snow", p.knownSubtype, p.isTypeWord); err == nil ||
-		!strings.Contains(err.Error(), `unknown property "Snow"`) {
-		t.Errorf("parseFilter(Land.Snow) = %v; want unknown property \"Snow\"", err)
+	// Snow is a supertype word, not a known subtype, but the kernel models it
+	// as the PredWord7 sub-kind W7Snow: Land.Snow parses as one Land clause
+	// carrying that word.
+	snow, err := parseFilter("Land.Snow", p.knownSubtype, p.isTypeWord)
+	if err != nil {
+		t.Fatalf("parseFilter(Land.Snow): %v", err)
+	}
+	if len(snow.Clauses) != 1 || snow.Clauses[0].Types != tLand ||
+		snow.Clauses[0].CmpStat != cmpWord7 || snow.Clauses[0].CmpN != int(kop.W7Snow) {
+		t.Errorf("parseFilter(Land.Snow) = %s; want one Land clause with word W7Snow", snow)
 	}
 	f, err := parseFilter("Card.Room", p.knownSubtype, p.isTypeWord)
 	if err != nil {
