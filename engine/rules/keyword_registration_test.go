@@ -71,6 +71,8 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Soulshift":      "TestSoulshiftReturnsASpirit",
 		"kw:Reinforce":      "TestReinforcePutsCountersFromHand",
 		"kw:Tribute":        "TestTributePaidEntersWithCounters",
+		"kw:Prowl":          "TestProwlNeedsASharedTypeCombatHit",
+		"kw:Freerunning":    "TestFreerunningNeedsAnAssassinCombatHit",
 		"kw:Backup":         "TestSaibaCryptomancerBackup",
 		"kw:Renown":         "TestConstableOfTheRealmRenownPutsTwoCountersOnce",
 		"kw:Shroud":         "TestPrintedShroudWithholdsCastWhenSoleTarget",
