@@ -56,7 +56,9 @@ concurrency:
 
 env:
   SHARDS: 6
-  GOFLAGS: -p=4
+  # One build/test cache per box, not per runner directory (without -trimpath
+  # the cache keys include /opt/actions-runner-N/_work). tsgen sets GOROOT itself.
+  GOFLAGS: -p=4 -trimpath
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
 # priority, so a pull request's own checks (fast, lint) run only on the 4 runners labelled gorge-pr. The other 8

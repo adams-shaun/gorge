@@ -13,12 +13,14 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/format"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -64,6 +66,14 @@ func generate(dir string) ([]byte, error) {
 	}
 	// Errors are tolerated: the hand-written codec references the generated
 	// symbols this run is about to (re)write.
+	if build.Default.GOROOT == "" {
+		// A -trimpath binary knows no GOROOT unless its environment gives it one.
+		out, err := exec.Command("go", "env", "GOROOT").Output()
+		if err != nil {
+			return nil, fmt.Errorf("go env GOROOT: %w", err)
+		}
+		build.Default.GOROOT = strings.TrimSpace(string(out))
+	}
 	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil), Error: func(error) {}}
 	pkg, _ := conf.Check("github.com/adams-shaun/gorge/server/protocol/manabrew", fset, files, nil)
 	if pkg == nil {
