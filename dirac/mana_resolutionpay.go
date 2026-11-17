@@ -76,11 +76,13 @@ func (s *State) hybAbilityUnwitnessed(k *prep, e *stackEntry, a *kop.Ability, sl
 // useful source in battlefield order (Creakwood Ghoul's {B/G}{B/G} over a
 // {G} pool: Vivid Meadow's plain {T} floats a {W} before Forest's {G} pays).
 // The window can run dry when a source's first ability is not the colour owed
-// (a granted basic land type: static_landtype.go; a filter's free {C}); gorge
-// then aborts the activation and keeps the taps, as for the off-plan window.
-// It reports whether the activation continues.
+// (a granted basic land type: static_landtype.go; a filter's free {C}) or when
+// the sources simply run out (four hybrid pips settled to a colour no
+// remaining source makes); gorge then aborts the activation and keeps the
+// taps, as for the off-plan window. It reports whether the activation
+// continues.
 func (s *State) hybWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if !s.windowTapHeldOK(k, e.ctrl, cost) && k.gen != nil && (k.gen.blgOn || k.gen.anyFilt) {
+	if !s.windowTapHeldOK(k, e.ctrl, cost) && !s.winPaused() {
 		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
 		return false
 	}
