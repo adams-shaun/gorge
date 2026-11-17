@@ -2552,8 +2552,9 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		// hold, over the X count, before any reduction (rules
 		// potentialModeCastPlan: hi = paymentPlanCensusTotal / base.X): a
 		// reduction paying into {X} cannot lift the witness past it; L is
-		// pool mana gorge's census total counts
-		x = min(x, (av.total+int(L))/int(cost.X))
+		// pool mana gorge's census total counts, and the painful units
+		// painTight held out of a are census sources of the total (censusTotal)
+		x = min(x, (av.censusTotal()+int(L))/int(cost.X))
 		// the restricted sources the payment may spend (the Emperor of
 		// Palamecia's {U} or {R}) are census sources of gorge's witness
 		// too: tapForRider's plan taps them, so count them and cap on the
@@ -2562,7 +2563,8 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			d := s.payDescNow(excl)
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
 			// L is pool mana gorge's census total counts, as the
-			// (av.total+L) bound above; withheld is the sources' own
+			// (censusTotal+L) bound above; withheld is the sources' own
+			t.total = t.censusTotal()
 			x = restrWitnessXPlus(x, t, multi[:nm], &cost, s.restrWithheldMana(k, p, d)+int(L)) // (mana_restrwithheld.go)
 		}
 	}

@@ -502,6 +502,26 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 // Elves under two Priests of Titania pays 22.
 const maxXAsk = 60
 
+// censusTotal is the total an {X} witness's bound divides by X
+// (mana_restrwithheld.go): gorge's census total counts every census source's
+// largest alternative, and the painful units painTight held out of mask/cnt
+// (the pain-only ones: a painland's unit stands in a as its normal ability's)
+// are census sources of that total too, each a mana of its painful colour --
+// the budget holds the plan, not the total. Without them a board of Mana
+// Confluences stopped the witness one X early and tapped one source fewer
+// than gorge floats.
+func (a *avail) censusTotal() int {
+	t := a.total
+	if a.pain.on {
+		for g := uint8(0); g < a.pain.n; g++ {
+			if a.pain.only>>g&1 != 0 {
+				t += int(a.pain.cnt[g])
+			}
+		}
+	}
+	return t
+}
+
 // maxX is the largest X a can pay for cost (bounded by maxXAsk). With L = 0
 // xLcredit prices cost at AtX(0), which differs from cost only in the fields
 // affords never reads (X, XRed, XPip), so the search is the plain one.
