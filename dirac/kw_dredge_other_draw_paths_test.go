@@ -130,11 +130,11 @@ func TestDredgeOtherDrawPaths(t *testing.T) {
 		if s.res.ask != raDredgeRes {
 			t.Fatalf("ask %d, want the monarch draw's dredge ask", s.res.ask)
 		}
-		var d Decision
-		if !s.askOptionsChain(sc.k, &d) || d.Kind != DkChoose || d.Sub != ChGenBranch || d.Player != 0 || d.N != 2 {
+		d := s.Step()
+		if d.Kind != DkChoose || d.Sub != ChGenBranch || d.Player != 0 || d.N != 2 {
 			t.Fatalf("decision kind %d sub %d player %d with %d options, want seat 0's dredge ask", d.Kind, d.Sub, d.Player, d.N)
 		}
-		s.applyAskChain(sc.k, MakeAction(AkChoose, 0, 0, 1)) // the ordinary draw
+		s.Apply(MakeAction(AkChoose, 0, 0, 1)) // the ordinary draw
 		if pl.handN != h+1 || pl.libLen() != l-1 || s.g.stalled != 0 || s.sp != 0 {
 			t.Fatalf("hand %d (was %d), library %d (was %d), stalled %d, stack %d: want one drawn, the trigger done",
 				pl.handN, h, pl.libLen(), l, s.g.stalled, s.sp)
@@ -148,14 +148,12 @@ func TestDredgeOtherDrawPaths(t *testing.T) {
 		lib, hand := pl.libLen(), pl.handN
 		sc.castCard(t, spell)
 		sc.passBoth(t)
-		t.Logf("DBG after pass: ask=%d", s.res.ask)
 		d := s.Step() // the draw-up-to pick
 		if d.Kind != DkChoose || d.Sub != ChDrawUpto || d.N < 1 {
 			t.Fatalf("decision kind %d sub %d with %d options, want the draw-up-to pick", d.Kind, d.Sub, d.N)
 		}
 		s.Apply(d.Options[d.N-1]) // the count's one card (the Done option ends it first)
-		t.Logf("DBG after pick: ask=%d stalled=%d hand=%d", s.res.ask, s.g.stalled, pl.handN)
-		dredgeAsk(t, sc, 2) // the body draw asks
+		dredgeAsk(t, sc, 2)       // the body draw asks
 		s.Apply(MakeAction(AkChoose, 0, 0, 1))
 		if pl.handN != hand || pl.libLen() != lib-1 || s.g.stalled != 0 {
 			t.Fatalf("hand %d (was %d), library %d (was %d), stalled %d: want one drawn, no stall",
