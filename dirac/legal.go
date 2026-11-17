@@ -1722,6 +1722,88 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
 	*n++
 }
 
+// unrecordPotUnit takes cnt of mask's taps back out of the record (a source's
+// tap production the caller folds into a wider one, tapUnit); an overflowed
+// record keeps its marker and a unit left empty is dropped.
+func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt uint8) {
+	if units[0].n == 0 && units[0].mask != 0 {
+		return // overflowed: the record is incomplete anyway
+	}
+	for i := 0; i < *n; i++ {
+		if units[i].mask != mask {
+			continue
+		}
+		if units[i].n > cnt {
+			units[i].n -= cnt
+			return
+		}
+		copy(units[i:*n], units[i+1:*n])
+		*n--
+		units[*n] = potUnit{}
+		return
+	}
+}
+
+// potCensus is availPotentialFor's per-tap record: the units (potUnit) and
+// each source's tap production. A source taps once, so its further {T}
+// abilities widen that one unit's colours instead of adding units (CR 118.3c;
+// gorge's planner makes one mana per tap: Lupinflower Village's {C} beside its
+// restricted {W}).
+type potCensus struct {
+	on    bool
+	n     int
+	units [maxPotUnits]potUnit
+	tap   [MaxPerm]potUnit
+}
+
+func (c *potCensus) rec(mask, n uint8) {
+	if c.on {
+		recordPotUnit(&c.units, &c.n, mask, n)
+	}
+}
+
+// tapRec notes sl's tap production (already recorded) for mergeTap.
+func (c *potCensus) tapRec(sl Slot, mask, n uint8) {
+	if c.on && mask != 0 && n > 0 {
+		c.tap[sl] = potUnit{mask: mask, n: n}
+	}
+}
+
+// recTap records and notes a source's tap production.
+func (c *potCensus) recTap(sl Slot, mask, n uint8) {
+	if n > 0 {
+		c.rec(mask, n)
+		c.tapRec(sl, mask, n)
+	}
+}
+
+// mergeTap widens sl's recorded tap unit by the further {T} ability ab and
+// reports it handled; false when ab is no tap ability or sl has no unit.
+func (c *potCensus) mergeTap(sl Slot, ab *kop.Ability) bool {
+	t := c.tap[sl]
+	if !c.on || ab.Cost.Flags&kop.CostTap == 0 || t.mask == 0 {
+		return false
+	}
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n)
+	t = potUnit{mask: t.mask | uint8(ab.ManaColors), n: max(t.n, max(ab.ManaN, 1))}
+	c.rec(t.mask, t.n)
+	c.tap[sl] = t
+	return true
+}
+
+// censusDynamicAb is the census's read of a further dynamic-amount ability: at
+// what the source makes now (an Everflowing Chalice holding no charge counter
+// makes nothing), the planner's natural amount, while the over-bound pool
+// keeps the unbounded fold. It reports it handled.
+func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus, fold func(Slot, uint8, uint8)) bool {
+	if !c.on || ab.AFlags&kop.AfManaDynamic == 0 || ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 || anyDifferentTapAb(ab) {
+		return false
+	}
+	fold(sl, uint8(ab.ManaColors), potentialOpenUnits)
+	c.recTap(sl, uint8(ab.ManaColors), uint8(min(s.dynManaN(k, ab, sl), 255)))
+	return true
+}
+
 // potUnitsAvail builds the per-tap view of the potential walk's productions:
 // the floating pool and every recorded unit, a production of several colours
 // counted once. It is the planner-shaped bound of availPotentialFor's
@@ -1768,13 +1850,7 @@ const potentialOpenUnits = 2 * trigXCap
 //go:noinline
 func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, boundedAny bool, units ...*[maxPotUnits]potUnit) (open bool) {
 	payment := d != nil
-	var uarr [maxPotUnits]potUnit
-	un := 0
-	rec := func(mask uint8, n uint8) {
-		if len(units) != 0 {
-			recordPotUnit(&uarr, &un, mask, n)
-		}
-	}
+	cen := potCensus{on: len(units) != 0}
 	var pot [kop.NumManaKinds]int
 	// anyFree counts a fixed any-colour source's units in bounded mode: they
 	// are added to every potential colour for the fixpoint's coverage test,
@@ -1782,7 +1858,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 	anyFree := 0
 	for c := range pot {
 		pot[c] = int(s.pl[p].pool[c])
-		rec(1<<uint(c), uint8(min(pot[c], 255)))
+		cen.rec(1<<uint(c), uint8(min(pot[c], 255)))
 	}
 	// A non-spell payment's potential pool starts from the floating restricted
 	// mana its restriction admits (potentialRestrSeed; a nil d is no payment).
@@ -1797,7 +1873,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 	}
 	add := func(sl Slot, mask uint8, n uint8) {
-		rec(mask, n)
+		cen.rec(mask, n)
 		fold(sl, mask, n)
 	}
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
@@ -1849,6 +1925,14 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			// own faces alone.
 			if potentialOpenProduction(pc, payment) {
 				open = true
+			} else if cen.on {
+				// the census reads the source at the amount it makes now, the
+				// planner's natural one (an Everflowing Chalice holding no
+				// charge counter makes nothing); the over-bound pool keeps
+				// the unbounded fold
+				mask := s.srcMaskAt(pc, sl)
+				fold(sl, mask, potentialOpenUnits)
+				cen.recTap(sl, mask, srcYield(pc))
 			} else {
 				add(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
 			}
@@ -1867,6 +1951,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if mask := s.srcMaskAt(pc, sl); mask != 0 {
 					if n := s.srcYieldAt(k, sl, pc); n > 0 {
 						add(sl, mask, n)
+						cen.tapRec(sl, mask, n)
 					}
 				}
 			}
@@ -1881,6 +1966,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
 		}
 		add(sl, mask, pc.manaN)
+		cen.tapRec(sl, mask, pc.manaN)
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
@@ -1942,7 +2028,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 						// a battery holding no counter makes nothing there
 						// (Dwarven Hold beside a kicked Flourishing Strike)
 						if n := s.perms[sl].ctrN(s, int(ab.Cost.Ctr)); n > 0 {
-							rec(uint8(ab.ManaColors), uint8(min(n, 255)))
+							cen.rec(uint8(ab.ManaColors), uint8(min(n, 255)))
 						}
 						open = s.storePotential(open, sl, ab, d, fold)
 						continue
@@ -1950,7 +2036,14 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					open = s.storePotential(open, sl, ab, d, add)
 					continue
 				}
+				if s.censusDynamicAb(k, sl, ab, &cen, fold) {
+					continue
+				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, add, &anyFree, &open) {
+					if cen.mergeTap(sl, ab) {
+						fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+						continue
+					}
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 				}
 			}
@@ -1958,7 +2051,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 	}
 	s.potentialBuildAvail(a, &pot, open, boundedAny, anyFree)
 	if len(units) != 0 {
-		*units[0] = uarr
+		*units[0] = cen.units
 	}
 	return open
 }

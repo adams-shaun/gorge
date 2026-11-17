@@ -190,16 +190,17 @@ func TestKickedGrantCensusOffered(t *testing.T) {
 	}
 }
 
-// TestKickedSecondAbilityPlainAndOffspringOffered: two untapped Ramunap
+// TestKickedSecondAbilityIsOneTap: two untapped Ramunap
 // Ruins ("{T}: Add {C}" beside "{T}, Pay 1 life: Add {R}") and Agate
-// Instigator in hand (plain {1}{R}, Offspring {1}{R}). The cast gate's census
-// prices each source once, its two abilities folded into one either-colour
-// unit, so the plain {1}{R} is gate-affordable and gorge's planner pays it
-// ({R} from one Ruins' second ability, {1} from the other's {C}); the
-// offspring {2}{R}{R} is paid by {C}{C}{R}{R} and offered. A guard that the
-// two-ability census neither drops the plain cast nor misprices the
-// offspring one beside it.
-func TestKickedSecondAbilityPlainAndOffspringOffered(t *testing.T) {
+// Instigator in hand (plain {1}{R}, Offspring {1}{R}). A source taps once, so
+// the census prices each Ruins as one unit of either colour (CR 118.3c): the
+// plain {1}{R} is payable ({R} from one Ruins' second ability, {1} from the
+// other's {C}), while the offspring {2}{R}{R} needs four mana the two lands
+// cannot make and stays unoffered, as gorge's potential planner declines it
+// (the second ability is no extra unit: Lupinflower Village's {C} beside its
+// restricted {W} made the kernel offer a kicked Intrepid Rabbit gorge did not,
+// the BLB repros).
+func TestKickedSecondAbilityIsOneTap(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Agate Instigator", Count: 1},
 		{Name: "Ramunap Ruins", Count: 2},
@@ -211,9 +212,9 @@ func TestKickedSecondAbilityPlainAndOffspringOffered(t *testing.T) {
 	sc.resolveAll(t)
 	agate := sc.hand(id["Agate Instigator"], 0)
 	if !castModeOffered(sc, agate, 0) {
-		t.Fatal("precondition: the plain cast is not offered on {C}{C}{R}{R}")
+		t.Fatal("the plain cast is not offered on two Ruins")
 	}
-	if !offeredKickedCast(sc, agate) {
-		t.Fatal("the offspring cast is not offered on {C}{C}{R}{R}")
+	if offeredKickedCast(sc, agate) {
+		t.Fatal("the offspring cast is offered on two lands that make two mana")
 	}
 }
