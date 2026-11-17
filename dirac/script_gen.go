@@ -164,7 +164,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	if k.gen.anyAnyR {
 		s.availAnyR(k, p, a)
 	}
-	if k.gen.anyFilt && (s.filtOnly(k, p) || s.mixBoard(k, p)) {
+	if k.gen.anyFilt && s.g.availX&availNoFilt == 0 && (s.filtOnly(k, p) || s.mixBoard(k, p)) {
 		s.availFilt(k, p, a) // (beside another gap kind the filter stays unmodelled: mana_filter.go)
 	}
 }
@@ -244,6 +244,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	repeatLive := s.filtRepeatIn(k, filt)
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
+	s.mergeBareGaps(k, &gaps, filt)
 	src := &gaps
 	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
 		s.plainOptions(k, &any, availAny)
@@ -359,6 +360,22 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			}
 		}
 		d.add(a)
+	}
+}
+
+// mergeBareGaps adds to gaps the plays of the gaps walk with the filters left
+// unactivated: a play the other sources pay once the gaps are tapped is in
+// gorge's relaxed proof, whose subsets include the empty one (availNoFilt).
+func (s *State) mergeBareGaps(k *prep, gaps *Decision, filt slotMask) {
+	if !filt.any() {
+		return
+	}
+	var bare Decision
+	s.plainOptions(k, &bare, availGaps|availNoFilt)
+	for i := 0; i < int(bare.N); i++ {
+		if !hasOption(gaps, bare.Options[i]) && int(gaps.N) < MaxOptions {
+			gaps.add(bare.Options[i])
+		}
 	}
 }
 
