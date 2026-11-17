@@ -937,6 +937,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				if ts, ok := knownDefinedTargets(h, c, part); ok {
 					out = appendEffectRememberedObjects(h, out, ts)
 				}
+			default:
+				// The plural attack-batch spelling (Love on the Battlefield's
+				// RememberObjects$ TriggeredAttackers) has ONE home,
+				// definedSpecCodes: read it through the same shared resolver
+				// rather than naming the word in a second table.
+				if definedSpecCodes.Code(part) == definedSpecTriggeredAttackers {
+					if ts, ok := knownDefinedTargets(h, c, part); ok {
+						out = appendEffectRememberedObjects(h, out, ts)
+					}
+				}
 			}
 		}
 	}
