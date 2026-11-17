@@ -208,6 +208,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	s.noteDmgTaken(p, n)       // kw_bloodthirst.go
 	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
 	s.loseLife(k, p, n)
+	s.plDmgMark(p, n) // the rider is damage: wasDealtDamageThisTurn's seat arm (gen.go)
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, sl, false) // filter_permmarks.go
 	}

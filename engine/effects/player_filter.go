@@ -376,8 +376,8 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			if (base == "Player" || base == "Any") && pc.Replaced.IsPlayer && p != pc.Replaced.Player {
 				return true
 			}
-		case playerSpecQualifierIsCorrupted:
-			if playerIsCorrupted(g, p) {
+		case playerSpecQualifierIsCorrupted, playerSpecQualifierWasDealtDamageThisTurn:
+			if playerStateQualifier(g, p, a.qualCode) {
 				return true
 			}
 		case playerSpecQualifierYou:
@@ -652,6 +652,34 @@ func descendedThisTurn(g *state.Game, p state.PlayerID) int32 {
 
 // playerIsCorrupted applies the Corrupted threshold (three or more poison
 // counters) to a valid player seat.
+// playerQualifierCode classifies a player-spec qualifier: the player table's
+// own words, plus wasDealtDamageThisTurn, a word the object filter's
+// wordPredicateWordCodes table owns (one home for the spelling) that a seat
+// reads through playerStateQualifier.
+func playerQualifierCode(q string) playerSpecQualifierCode {
+	if wordPredicateWordCodes.Code(q) == wordPredicateWordWasDealtDamageThisTurn {
+		return playerSpecQualifierWasDealtDamageThisTurn
+	}
+	return playerSpecQualifierCodes.Code(q)
+}
+
+// playerStateQualifier reads the base-independent player-state qualifiers.
+// wasDealtDamageThisTurn is Forge's PlayerProperty on a seat (Needle Drop's
+// ValidTgts$ Any.wasDealtDamageThisTurn): the seat was dealt positive damage
+// since the last TurnChange, poison-replaced or not. It reads
+// state.Player.WasDealtDamageThisTurn, the flag events.Apply's Damage fold
+// records beside the object recipient's (the same fold the object half of the
+// word reads), so it needs no source object; an out-of-range seat fails closed.
+func playerStateQualifier(g *state.Game, p state.PlayerID, code playerSpecQualifierCode) bool {
+	switch code {
+	case playerSpecQualifierIsCorrupted:
+		return playerIsCorrupted(g, p)
+	case playerSpecQualifierWasDealtDamageThisTurn:
+		return int(p) < len(g.Players) && g.Players[p].WasDealtDamageThisTurn
+	}
+	return false
+}
+
 func playerIsCorrupted(g *state.Game, p state.PlayerID) bool {
 	return int(p) >= 0 && int(p) < len(g.Players) && g.Players[p].Counter("POISON") >= 3
 }
@@ -1069,6 +1097,7 @@ const (
 	playerSpecQualifierMoreCardsInHandThanActive
 	playerSpecQualifierMoreLifeThanActive
 	playerSpecQualifierFewerCreaturesInYardThanActive
+	playerSpecQualifierWasDealtDamageThisTurn
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(

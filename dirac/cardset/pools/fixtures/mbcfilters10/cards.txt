@@ -1,0 +1,12 @@
+# MBC filters-10: Needle Drop's ValidTgts$ Any.wasDealtDamageThisTurn target
+# slot -- a seat dealt damage this turn as well as a creature or planeswalker
+# dealt damage this turn, both arms read through the one wasDealtDamageThisTurn
+# word (dirac/oracle/mbc_filters_ten_test.go). Lightning Bolt deals the damage
+# the slot needs; Sulfurous Springs (a painland) deals its rider damage to its
+# controller, which must count as a seat dealt damage too (CR 120.1); Mountain
+# and Grizzly Bears fill the decks out.
+Needle Drop
+Lightning Bolt
+Grizzly Bears
+Mountain
+Sulfurous Springs
