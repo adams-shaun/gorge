@@ -2015,6 +2015,10 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	p := &s.perms[sl]
 	if s.subs[kop.TrigBecomesTarget].any() {
 		s.becameTarget(k, sl, e)
+		// after the walk: this targeting is not an earlier one (gorge's
+		// same-stack-object skip), but the next one must read it, even when no
+		// FirstTime line was live to queue here (mechBtTurn; trig_counterfirst.go)
+		s.mSlSet(k, mechBtTurn, sl)
 	}
 	fd := s.faceDown(k, sl)
 	disguise := fd && s.faceDownWard(k, sl) // never a manifested permanent (CR 701.40a)
