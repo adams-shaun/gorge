@@ -401,6 +401,27 @@ func (s *State) windowPayableGrant(k *prep, sl Slot, gi *[maxGrants]int16, n int
 	return &noManaPC
 }
 
+// windowGrantYield is the mana a window activation of sl taking colour col makes:
+// pc's own count, except when sl's own ability does not make col and an ability
+// an effect granted it does (a Forest under Weirding Wood, "{T}: Add two mana of
+// any one color", answering {R}): the first such grant the payment may spend and
+// its controller can pay for makes its own count, not the Forest's one
+// (CR 605.3b; gorge lists that ability and activates it).
+func (s *State) windowGrantYield(k *prep, sl Slot, pc *pcard, col int) uint8 {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || s.windowOwnMask(k, sl)&(1<<col) != 0 || !s.grantMay(k, sl) {
+		return pc.manaN
+	}
+	var gi [maxGrants]int16
+	d := s.payDescNow(NoObj)
+	n := s.grantsAdmitted(k, sl, &gi, s.grantIdxs(k, sl, &gi), &d)
+	for i := 0; i < n; i++ {
+		if g := s.grantView(k.gen, gi[i], sl); s.srcMaskAt(g, sl)&(1<<col) != 0 && s.grantCostPayable(s.perms[sl].ctrl, g) {
+			return g.manaN
+		}
+	}
+	return pc.manaN
+}
+
 // windowGrantLife is the life a window activation of sl taking colour col
 // pays: pc's own when the window took a life-cost grant view, else, when
 // sl's own ability does not make col, the least a granted ability making col
