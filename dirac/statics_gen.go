@@ -360,7 +360,7 @@ func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(s
 			return true // the card's own permission from a non-battlefield zone (below), not a permanent's
 		}
 		sctx := s.ctxStatic(st)
-		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), p, o, &sctx) {
+		if !s.statCond(k, st) || !s.matchMayPlayFilter(k, a.Static.Filter, ob.card, ob.owner(), p, o, st, &sctx) {
 			return true
 		}
 		if a.Static.StFlags&kop.StOncePerTurn != 0 && s.usedThisTurn(st.obj, uint8(abIndex(k, s.cardAt(st.sl), a))) {
