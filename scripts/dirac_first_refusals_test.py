@@ -118,6 +118,49 @@ class TestWriteEvidencePools(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
         self.assertEqual(self.snapshot(), before, "an unfinished pool must change nothing")
 
+    def pool_p(self, branch_rows):
+        """A pool "p" with four passing runs; only the first run's coverage and branches hold X."""
+        for surface in ("autopay", "full"):
+            for m in (0, 1):
+                form = f"{surface}.m{m}"
+                first = form == "autopay.m0"
+                stem = os.path.join(self.out, f"p.{form}")
+                with open(stem + ".rc", "w") as f:
+                    f.write("0\n")
+                with open(stem + ".coverage", "w") as f:
+                    f.write("card\tcast\tland\tkeys_used\tkeys_total\tunused_keys\n")
+                    if first:
+                        f.write("X\t3\t0\t2\t2\t\n")
+                with open(stem + ".branches", "w") as f:
+                    f.write("card\tkey\tuses\towed\n")
+                    if first:
+                        f.write("".join(f"X\t{r}\n" for r in branch_rows))
+                with open(stem + ".out", "w") as f:
+                    f.write(verdict_line("p", 20) + "\n")
+
+    def keys_file(self, pool):
+        with open(os.path.join(self.top, "dirac/support/evidence-keys", pool + ".tsv")) as f:
+            return f.read()
+
+    def test_sidecar_written_beside_list(self):
+        self.pool_p(["f0/s\t3\t1", "ix:resp\t0\t1"])
+        lir = os.path.join(self.tmp.name, "lir.tsv")
+        with open(lir, "w") as f:
+            f.write("X\t0123456789abcdef\n")
+        os.environ["DFR_LIR_KEYS"] = lir
+        self.addCleanup(os.environ.pop, "DFR_LIR_KEYS", None)
+        self.write(["p"])
+        self.assertEqual(self.list_bytes("p"), b"X\n")
+        self.assertEqual(self.keys_file("p"),
+                         "card\tlir16\tplays\tkeys\tunused\tbranches\tmissing_branches\n"
+                         "X\t0123456789abcdef\t3\t2/2\t\t1/2\tix:resp\n")
+        # A card already in the sidecar keeps its row byte for byte, whatever a later run says.
+        with open(lir, "w") as f:
+            f.write("X\tfedcba9876543210\n")
+        self.write(["p"])
+        self.assertIn("0123456789abcdef", self.keys_file("p"))
+        self.assertNotIn("fedcba9876543210", self.keys_file("p"))
+
     def test_without_pools_rewrites_everything(self):
         """The old behaviour, kept for settle: dirty pools lose their list, clean ones are rebuilt
         from the whole corpus, every tsv row is rewritten."""

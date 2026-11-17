@@ -86,11 +86,18 @@ func supportScriptViolation(name string, b []byte) string {
 			}
 		}
 	}
+	if strings.HasSuffix(name, ".tsv") {
+		for _, line := range strings.Split(string(b), "\n") {
+			if len(line) > 400 {
+				return "a line too long for a key row: " + line
+			}
+		}
+	}
 	return ""
 }
 
 func TestSupportHasNoScriptText(t *testing.T) {
-	for _, dir := range []string{cardset.RefusedDir, cardset.EvidenceDir} {
+	for _, dir := range []string{cardset.RefusedDir, cardset.EvidenceDir, "dirac/support/evidence-keys"} {
 		files, err := filepath.Glob(filepath.Join(testRoot, filepath.FromSlash(dir), "*"))
 		if err != nil {
 			t.Fatal(err)
