@@ -3313,6 +3313,7 @@ Cephalid Vandal
 Cephalopod Sentry
 Cerebral Confiscation
 Cerebral Download
+Cerebral Eruption
 Ceremonial Guard
 Ceremonial Knife
 Ceremonious Rejection
@@ -3380,6 +3381,7 @@ Chandra's Defeat
 Chandra's Embercat
 Chandra's Emberling
 Chandra's Firemaw
+Chandra's Flame Wave
 Chandra's Fury
 Chandra's Magmutt
 Chandra's Outburst
@@ -3390,6 +3392,7 @@ Chandra's Pyrohelix
 Chandra's Revolution
 Chandra's Spitfire
 Chandra's Triumph
+Chandra, Bold Pyromancer
 Chandra, Chill of Compliance
 Chandra, Flamecaller
 Chandra, Flameshaper
@@ -8735,6 +8738,7 @@ Grave Strength
 Grave Titan
 Grave Upheaval
 Grave Venerations
+Grave-Shell Scarab
 Graveblade Marauder
 Graveborn Muse
 Gravecrawler
