@@ -49,12 +49,18 @@ func (s *State) numTimesStart(k *prep, in *kop.Instr) bool {
 	if in.F != 0 {
 		max = numTimesOpenMax // no AnnounceMax$: gorge's own bound
 	}
-	// gorge prices the count against the potential pool, an over-bound (CR 118.3
-	// then refuses a count the sources cannot fund: the payer declines). The
+	// gorge prices the count against the payment-aware potential pool (cumulative.go
+	// triggeredCostNumTimesAsk, potentialManaFor with the trigger cost as the
+	// payment), an over-bound (CR 118.3 then refuses a count the sources cannot
+	// fund: the payer declines). A Chosen-colour source whose colour is fixed
+	// makes exactly that colour (CR 106.6); the plain bound priced it open in
+	// every colour. A trigger's own cost is no spell's, an ability's or a cast's
+	// (payDesc pdOther, as execTrigX). The
 	// scaled cost rides kop.ManaCost's bytes; kgen refused a unit that leaves
 	// one at the bound, so the build below cannot wrap.
 	var av avail
-	s.availPotential(k, e.ctrl, &av)
+	d := payDesc{class: pdOther}
+	s.availPotentialFor(k, e.ctrl, &av, &d, false)
 	m := 0
 	for n := 1; n <= max; n++ {
 		c := kop.ManaCost{Generic: uint8(unit * n)}
