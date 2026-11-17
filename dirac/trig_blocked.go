@@ -51,6 +51,9 @@ func (s *State) fireBlockedGen(k *prep) {
 			}
 		})
 	}
+	if k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0 {
+		s.fireEmblemsBlocked(k, atk[:na]) // after the listeners: gorge checkEffectCombatTriggers
+	}
 }
 
 // fireBlocksGen fires the blocks triggers (TrigBlocks, gorge Mode$ Blocks)

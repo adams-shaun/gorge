@@ -276,8 +276,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if v == "Remembered" && lc.remOppLink() {
 			return lRef{Kind: rEachOpp}, nil // lower_remembered.go
 		}
-		if v == "Remembered" && lc.capRem && !lc.hasRememberWriter() {
-			return lRef{Kind: rTriggeredSource}, nil // lower_effectcaptured.go
+		if ref, ok := lc.capturedTriggerRef(v); ok {
+			return ref, nil // lower_effeottrig.go
 		}
 		// RememberedCard: gorge definedSpecRememberedCard,
 		// the non-player entries of the remembered list, which is all the
