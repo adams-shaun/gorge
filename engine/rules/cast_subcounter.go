@@ -772,14 +772,12 @@ func (e *Engine) amongCounterAsk(pc *pendingCast, part CostPart, amt int32, rese
 }
 
 // subCounterReservations keeps an earlier counter-cost part from spending
-// the same permanent as the current part. Wildcard units from the current
+// the same permanent as the current part. A permanent chosen for a Sac part
+// is not reserved: the counters come off before the sacrifices settle. Wildcard units from the current
 // part are deliberately absent: wildcardCounterAsk accounts for them by
 // (object, kind), allowing the part itself to span objects and kinds.
 func (pc *pendingCast) subCounterReservations() map[state.ObjID]bool {
 	reserved := map[state.ObjID]bool{}
-	for _, s := range pc.Sacs {
-		reserved[s] = true
-	}
 	for _, p := range pc.SubCounterPays {
 		if p.Part != pc.SubCounterPart {
 			reserved[p.Obj] = true
