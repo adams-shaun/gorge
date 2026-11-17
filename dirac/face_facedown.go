@@ -358,7 +358,7 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		// turnUpListed has already checked the keyword's life, so this
 		// branch is reached only by an action whose mana the sources pay
 		c0 := cost.AtX(0)
-		s.tapFor(k, p, &c0, 0, NoObj)
+		s.tapForTurnUp(k, p, &c0, sp, o)
 		if !s.turnUpOffered(k, p, &cost, sp, sl, kw) {
 			return
 		}

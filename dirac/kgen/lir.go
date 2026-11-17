@@ -1454,7 +1454,11 @@ type lCard struct {
 // lEmblem is an emblem a planeswalker ultimate creates: statics, or one
 // latent triggered ability (by index).
 type lEmblem struct {
-	Statics       []lStatic
+	Statics []lStatic
+	// Repls: the emblem's replacement abilities (a Duration$ Permanent
+	// Effect's all-but-N damage prevention, lower_effectemblemprevent.go); the
+	// emblem's abilities are its Statics, else its Repls, else its Trigger.
+	Repls         []lRepl
 	Trigger       int
 	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
 	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup

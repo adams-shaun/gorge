@@ -692,6 +692,10 @@ const (
 	ctlCmdZone5
 	ctlCmdZone6
 	ctlCmdZone7
+	// ctlTurnUpTap: transient inside face_facedown.go's turn-up tap step, so the
+	// planner prices its restricted sources as the special action's payment
+	// (payDescNow); parked in genState.pickLeft/pickF, never a decision.
+	ctlTurnUpTap
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7
@@ -849,6 +853,14 @@ const (
 	rfNoPrev                        // the damage op executing now can't be prevented (static_cantprevent.go)
 	rfRestPh                        // scry/surveil: the top phase closed; the rest cards are being ordered
 	rfCopyGrp                       // a copy op has entered a copy and may park for the next one (interp_gen.go copyTokens): its later copies join the first one's AtEOT$ sacrifice trigger
+	// rfBodyOp / rfBodyTurn mark a pending dredge ask of a draw-replacement
+	// body card (kw_dredge.go dredgeBodyPose): the ask is raDredgeRes, and
+	// the flag says which enclosing site the answer resumes. rfBodyOp: an
+	// OpDraw card (the chain slot rides g.pickP, the loop's res.left /
+	// g.pickZ / g.pickLeft); rfBodyTurn: the turn draw (the chain slot rides
+	// res.left, the answer finishes the draw step).
+	rfBodyOp
+	rfBodyTurn
 )
 
 // resCtx is a resolution in progress.

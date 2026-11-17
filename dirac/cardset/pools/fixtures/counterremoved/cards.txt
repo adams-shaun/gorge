@@ -1,0 +1,7 @@
+# Mode$ CounterRemoved / CounterRemovedOnce on the card itself (Chandra, Fire
+# Artisan's loyalty removal off her -7 cost, Watcher of Hours' suspend time
+# counters removed in exile; dirac/oracle/counterremoved_lockstep_test.go)
+Chandra, Fire Artisan
+Watcher of Hours
+Island
+Mountain
