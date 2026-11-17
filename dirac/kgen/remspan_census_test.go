@@ -262,7 +262,8 @@ func parseRemspanTable(src string) (map[string]int, error) {
 
 // TestRememberedSpanCensus counts the cards the Remembered and Imprinted
 // cross-ability refusals block, by the reader's form and the writer's bound,
-// and holds the table against testdata/remspan.tsv (KGEN_REPIN=1 rewrites it).
+// and holds the table against testdata/remspan.tsv (KGEN_REPIN=1 rewrites it): a
+// bucket that grows fails, one that shrinks fails only under DIRAC_PIN_STRICT=1.
 func TestRememberedSpanCensus(t *testing.T) {
 	heavyParallel(t)
 	p, err := loadCardList(testSetlistPath(t, "ALL"), ratchetCards(t))
@@ -287,14 +288,16 @@ func TestRememberedSpanCensus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A bucket counts refused cards, so a fall is progress: it passes unless DIRAC_PIN_STRICT=1 (the nightly) holds
+	// the table exact. A rise, or a new bucket, always fails.
 	var moved []string
 	for k := range got {
-		if got[k] != want[k] {
+		if got[k] > want[k] || (pinStrict() && got[k] != want[k]) {
 			moved = append(moved, fmt.Sprintf("%s %d -> %d", k, want[k], got[k]))
 		}
 	}
 	for k := range want {
-		if _, ok := got[k]; !ok {
+		if _, ok := got[k]; !ok && pinStrict() {
 			moved = append(moved, fmt.Sprintf("%s %d -> 0", k, want[k]))
 		}
 	}
