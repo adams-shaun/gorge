@@ -48,6 +48,9 @@ fresh=$(grep -E '^dirac/.*_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sor
 if [ -n "$fresh" ]; then
   scratch=$(mktemp -d -p "${PRECHECK_FRESH_DIR:-$HOME/.cache}" pr-precheck-fresh.XXXXXX)
   git archive HEAD | tar -x -C "$scratch"
+  # A clone has a .git, as scripts/fresh-clone-check.sh gives its export: without one testutil.CorpusDirOrSkip fails
+  # rather than skips, a false red on every PR with a new corpus test (the #788 seat found it, 11-17).
+  git init -q "$scratch"
   # a clone has a .git: testutil.SharedCorpusDir fails (not skips) where git cannot resolve a repository root
   git -C "$scratch" init -q
   for pkg in $fresh; do
