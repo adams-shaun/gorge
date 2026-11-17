@@ -610,10 +610,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 	case seSpell:
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
-		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
-			c = cd.AltCost // a granted flashback costs the mana cost
-		} else if e.flags&sfFlashback != 0 && k.gen != nil && k.gen.anyFbGrant && !cd.BeamMeUp && !cd.Aftermath {
-			c = s.fbGrantCost(k, e.ctrl, e.obj, s.bld().fbGrants != 0) // or a live grant's own cost (kw_fbgrant.go)
+		if fb, ok := s.flashbackBase(k, e); ok {
+			c = fb
 		}
 		if e.mode&modeWarped != 0 && e.trigPl == trigPlWarpG {
 			c = s.warpGrantCost(k, e) // a battlefield grant's warp cost (kw_warpgrant.go)
