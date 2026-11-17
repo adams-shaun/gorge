@@ -1330,6 +1330,40 @@ func (e *Engine) checkExertTriggers(ev events.Event) {
 	}
 }
 
+// skipTriggerLine reports a printed trigger line this walk must not match for
+// ev: the leaves-the-battlefield split gate (only the half whose look-back
+// shape matches this pass), and CR 603.6c/603.10/113.6 for a destination-based
+// zone-change line on its own departure.
+//
+// A "put into a graveyard from anywhere" line (ChangesZone/ChangesZoneAll
+// whose Origin$ does not name Battlefield) is never a leaves-the-battlefield
+// ability. It is checked after the move, when a permanent that left has no
+// functional ability (CR 113.6), so its own departure queues nothing: the
+// split gate keeps it off the look-back walk, and the live walk must not read
+// the moving source's LKI for it either. A line that names itself ("when
+// CARDNAME is put into a graveyard from anywhere", Card.Self) and one still
+// functional in the destination zone (TriggerZones$ Graveyard) keep firing
+// for their own move.
+func skipTriggerLine(t *cards.Trigger, source state.ObjID, ev *events.Event, split, leaving bool) bool {
+	if split && looksBackOnDeparture(t) != leaving {
+		return true
+	}
+	if leaving {
+		return false
+	}
+	if source != ev.Obj || ev.Kind != events.MoveZone || ev.From != state.ZBattlefield || ev.To == state.ZBattlefield {
+		return false
+	}
+	if t.ModeKind() != cards.TriggerChangesZone && t.ModeKind() != cards.TriggerChangesZoneAll {
+		return false
+	}
+	if looksBackOnDeparture(t) || strings.Contains(t.ParamStr(cards.PKValidCard), "Self") ||
+		strings.Contains(t.ParamStr(cards.PKValidCards), "Self") {
+		return false
+	}
+	return !zoneChangeFunctionsInZone(t, ev.To)
+}
+
 // checkFaceTriggers separates the read-only matching board from the live
 // queue and firing limits. Both walks use deterministic seat/zone/slice order;
 // the ordinary APNAP drain still asks each controller to order their triggers.
@@ -1539,7 +1573,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// leaves-the-battlefield walk.) Mode$ Unattached looks back the
 				// same way (CR 701.3d/603.10a): the attachment's own departure
 				// is its unattach.
-				if split && looksBackOnDeparture(&t) != leaving {
+				if skipTriggerLine(&t, id, ev, split, leaving) {
 					continue
 				}
 				// CR 603.8 state trigger: its condition is checked against the
