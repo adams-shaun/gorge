@@ -337,12 +337,14 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		amt = 0 // the destination zone, not an amount (trig_zonepairs.go)
 	}
-	if ev == kop.TrigCounterAddedOnce {
+	if ev == kop.TrigCounterAddedOnce || ev == kop.TrigCounterAddedAll {
 		if a.Trig.N != kop.TrigNAnyCounter && kop.CounterKind(a.Trig.N) != s.g.lastCK {
 			return
 		}
-		if s.g.ctrCellHit && a.Trig.Flags4&kop.Tf4CounterCell != 0 {
-			return // this put action already fired it for this recipient (trig_countercell.go)
+		if ev == kop.TrigCounterAddedOnce {
+			if s.ctrCellHit() && a.Trig.Flags4&kop.Tf4CounterCell != 0 {
+				return // this put action already fired it for this recipient (trig_countercell.go)
+			}
 		}
 		// ValidSource$ You: the player putting the counters (the
 		// resolving spell's or ability's controller; Fleeting Flight cast
@@ -357,14 +359,16 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if !whoseOK(a.Trig.Whose, l.ctrl, putter) {
 			return
 		}
-		if a.Trig.Flags4&kop.Tf4StateCtr != 0 {
-			// a state trigger's threshold is its Cond: the put re-checks it
-			// only while no instance is outstanding (CR 603.8, trig_statectr.go)
-			if s.stateTrigOutstanding(l.obj, l.ab) {
-				return
+		if ev == kop.TrigCounterAddedOnce {
+			if a.Trig.Flags4&kop.Tf4StateCtr != 0 {
+				// a state trigger's threshold is its Cond: the put re-checks it
+				// only while no instance is outstanding (CR 603.8, trig_statectr.go)
+				if s.stateTrigOutstanding(l.obj, l.ab) {
+					return
+				}
+			} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
+				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
-		} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
-			return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 		}
 	}
 	tapAll := false
@@ -404,6 +408,12 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 			s.queueTrig(k, l, a, evObj, evCtrl, 1)
 		}
 		return
+	}
+	if ev == kop.TrigCounterAddedAll {
+		DebugCtrAllFires++
+		if s.ctrAllJoin(l, amt) {
+			return // this action's watcher already queued: fold the amount in
+		}
 	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)
 }

@@ -176,6 +176,11 @@ func (s *State) execTriggerAttackers(k *prep, in *kop.Instr) {
 	default:
 		panic("kernel: RefTriggerAttackers under an op that does not run it")
 	}
+	if in.Op == kop.OpPutCounter {
+		// the attacker group is one action (trig_counteraddedall.go)
+		ctrOld := s.ctrAllBatchOpen()
+		defer s.ctrAllBatchClose(ctrOld)
+	}
 	for w, word := range g {
 		for ; word != 0; word &= word - 1 {
 			o := Obj(w*64 + bits.TrailingZeros64(word))

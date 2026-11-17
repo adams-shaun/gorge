@@ -362,6 +362,9 @@ func (s *State) pumpAllEach(k *prep, in *kop.Instr) {
 func (s *State) doubleCountersAll(k *prep, in *kop.Instr) {
 	var ord [MaxPerm]Slot
 	n := s.sweepHits(k, in.F, &ord)
+	// No batch marker: gorge's effMultiplyCounter does not open the action
+	// bracket (only effPutCounter/effPutCounterAll do), so each recipient's
+	// CounterChange is its own CounterAddedAll event (trig_counteraddedall.go).
 	for _, sl := range ord[:n] {
 		s.doubleCountersAt(k, sl, in.C)
 	}

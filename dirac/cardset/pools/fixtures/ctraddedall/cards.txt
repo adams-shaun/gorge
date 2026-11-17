@@ -1,0 +1,15 @@
+# the CounterAddedAll watcher pool: Bioessence Hydra's loyalty batch and
+# Cloaked Cadet's +1/+1 Humans batch (Mode$ CounterAddedAll) beside the
+# planeswalker that adds loyalty (Chandra, Fire Artisan), the Human that puts
+# +1/+1 counters (Luminarch Aspirant) and a mass counter enchantment
+# (Cathars' Crusade), for the oracle's constructed lockstep
+# (dirac/oracle/counteraddedall_lockstep_test.go)
+Bioessence Hydra
+Cathars' Crusade
+Chandra, Fire Artisan
+Cloaked Cadet
+Forest
+Island
+Luminarch Aspirant
+Mountain
+Plains

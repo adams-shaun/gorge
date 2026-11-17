@@ -14,6 +14,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //go:noinline
 func (s *State) putCounterRemembered(k *prep, in *kop.Instr) {
 	n := s.value(k, in.A)
+	ctrOld := s.ctrAllBatchOpen() // the remembered set is one action (trig_counteraddedall.go)
 	for i := 0; i < int(s.g.nrem); i++ {
 		o := s.g.rem[i]
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
@@ -28,6 +29,7 @@ func (s *State) putCounterRemembered(k *prep, in *kop.Instr) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 		}
 	}
+	s.ctrAllBatchClose(ctrOld)
 }
 
 // doubleCountersRemembered is OpDoubleCounters with Obj$ Remembered: gorge's
@@ -39,6 +41,9 @@ func (s *State) putCounterRemembered(k *prep, in *kop.Instr) {
 //
 //go:noinline
 func (s *State) doubleCountersRemembered(k *prep, in *kop.Instr) {
+	// No batch marker: gorge's effMultiplyCounter does not open the action
+	// bracket, so each remembered recipient's CounterChange is its own
+	// CounterAddedAll event (trig_counteraddedall.go).
 	for i := 0; i < int(s.g.nrem); i++ {
 		o := s.g.rem[i]
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {

@@ -13,10 +13,15 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // suspend upkeep removal and so only an exile line; +1/+1 and -1/-1 lines
 // (removed by damage and annihilation, which the kernel does not fire) refuse.
 // ctrRemovedOrPlayerAddedAll routes lowerTriggered's shared
-// "CounterPlayerAddedAll", "CounterRemoved", "CounterRemovedOnce" arm (the
-// function sits at its line ceiling): PlayerAddedAll's player-counter batch
-// goes to ctrPlayerAddedAll, the counter-removed modes to ctrRemovedTrigger.
+// "CounterAddedAll", "CounterPlayerAddedAll", "CounterRemoved",
+// "CounterRemovedOnce" arm (the function sits at its line ceiling):
+// CounterAddedAll's batch watcher goes to ctrAddedAllTrigger, PlayerAddedAll's
+// player-counter batch to ctrPlayerAddedAll, the counter-removed modes to
+// ctrRemovedTrigger.
 func (lc *lowerCtx) ctrRemovedOrPlayerAddedAll(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
+	if t.Mode == "CounterAddedAll" {
+		return lc.ctrAddedAllTrigger(tp, tr, readF)
+	}
 	if t.Mode == "CounterPlayerAddedAll" {
 		return lc.ctrPlayerAddedAll(tp, tr)
 	}
