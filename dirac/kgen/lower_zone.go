@@ -274,7 +274,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if err != nil {
 			return err
 		}
-		if _, has := ps.m["ValidTgts"]; has && !ownSearch && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
+		tgtLib := -1 // the target player's library searched by you (targetLibrarySearch)
+		if !ownSearch {
+			if tgtLib, err = lc.targetLibrarySearch(ps, origin); err != nil {
+				return err
+			}
+		}
+		if _, has := ps.m["ValidTgts"]; has && !ownSearch && tgtLib < 0 && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
@@ -382,6 +388,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			obj, err := lc.searchOwner(ps, arm != nil)
 			if err != nil {
 				return err
+			}
+			if tgtLib >= 0 {
+				obj = lRef{Kind: rTarget, N: tgtLib}
+				flags = append(flags, "ChooserYou")
 			}
 			// Optional$ True/You gates the search on the fetching player's
 			// yes/no before any pick (gorge zone_hand.go optionalConfirmMarker
@@ -5125,4 +5135,36 @@ func (lc *lowerCtx) definedValidGraveyard(ps *params) (bool, error) {
 		}
 	}
 	return true, err
+}
+
+// targetLibrarySearch claims "search target player's library" with ValidTgts$
+// a player filter and no DefinedPlayer$ (Acquire, Bribery, Jester's Cap):
+// gorge's searchPlayersFor reads the owners off the targets and
+// searchChooser makes the resolving controller the chooser for that shape
+// (searchTargetedOwner), as Chooser$ You does. It adds the player target and
+// returns its slot, -1 for any other shape (left to refuse).
+func (lc *lowerCtx) targetLibrarySearch(ps *params, origin int) (int, error) {
+	if origin != zLibrary || ps.peek("ValidTgts") == "" || ps.peek("DefinedPlayer") != "" || ps.peek("Defined") != "" {
+		return -1, nil
+	}
+	if ch := strings.TrimSpace(ps.peek("Chooser")); ch != "" && ch != "You" {
+		return -1, nil
+	}
+	for _, k := range []string{"TargetMin", "TargetMax", "OriginAlternative", "ChooseFromDefined", "RememberSearcher", "TargetUnique"} {
+		if _, ok := ps.m[k]; ok {
+			return -1, nil
+		}
+	}
+	if lc.lastTarget() >= 0 {
+		return -1, refuse("a target player's library search after another target slot")
+	}
+	pf, err := lc.filter(ps.str("ValidTgts"))
+	if err != nil {
+		return -1, err
+	}
+	if len(pf.Clauses) != 0 || pf.Players == 0 {
+		return -1, refuse("library search ValidTgts$ %q", ps.str("ValidTgts"))
+	}
+	ps.consume("Chooser", "TgtPrompt")
+	return lc.addTarget(lTarget{F: pf}), nil
 }

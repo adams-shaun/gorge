@@ -1,0 +1,10 @@
+# "Search target player's library" with ValidTgts$ and no DefinedPlayer$
+# (dirac/oracle/tgtlibsearch_lockstep_test.go TestChangeTypeValidTgtsLockstep;
+# kgen lower_zone.go targetLibrarySearch)
+Acquire
+Bribery
+Jester's Cap
+Grizzly Bears
+Ornithopter
+Island
+Forest
