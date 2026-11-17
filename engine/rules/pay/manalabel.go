@@ -117,12 +117,16 @@ func ManaAbilityFixedColours(ma *cards.SA, chosen string) ([]byte, bool) {
 	if ma == nil || ma.API != "Mana" {
 		return nil, false
 	}
+	p := SubstituteChosenProduced(params.ManaOf(ma).Produced, chosen)
+	if len(p) > 6 && p[0] == 'C' && p[1] == 'o' && p[5] == ' ' { // "Combo <symbols>"
+		p = p[6:]
+	}
 	var out []byte
-	for tok := range strings.FieldsSeq(strings.TrimPrefix(strings.TrimSpace(SubstituteChosenProduced(params.ManaOf(ma).Produced, chosen)), "Combo ")) {
-		if len(tok) != 1 || !strings.Contains("WUBRGC", tok) {
+	for i := 0; i < len(p); i += 2 {
+		if p[i] != 'C' && state.ManaIndex(p[i]) == state.MC || i+1 < len(p) && p[i+1] != ' ' {
 			return nil, false
 		}
-		out = append(out, tok[0])
+		out = append(out, p[i])
 	}
 	return out, len(out) > 0
 }
