@@ -153,7 +153,7 @@ func (s *State) offerSpecialHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		s.walkHandAvail(k, p, payDesc{class: pdOther, src: NoSlot}, &ha)
 		av = &ha
 	}
-	if !av.affords(&pc, pipMaskOf(&pc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.plotRestrFallback(k, p, &pc, av)) {
+	if !av.affords(&pc, pipMaskOf(&pc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrOtherFallback(k, p, &pc, av)) {
 		return
 	}
 	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
