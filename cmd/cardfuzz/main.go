@@ -82,6 +82,7 @@ import (
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/manabrew/mbtest"
 	gbench "github.com/adams-shaun/gorge/testkit/bench"
+	"github.com/adams-shaun/gorge/testkit/cardcov"
 	"github.com/adams-shaun/gorge/testkit/paymirror"
 )
 
@@ -95,7 +96,7 @@ type poolCard struct {
 	card *cards.Card
 	name string
 	land bool
-	// keys is the card's usable-ability inventory (abilityInventory), so the
+	// keys is the card's usable-ability inventory (cardcov.Inventory), so the
 	// sampling weight can ask whether every one has been used.
 	keys []string
 }
@@ -107,7 +108,7 @@ type pool struct {
 	lands  [5][]poolCard
 	all    map[string]bool
 	cards  map[string]*cards.Card
-	keys   map[string][]string // name -> abilityKeys, computed once
+	keys   map[string][]string // name -> cardcov.Keys, computed once
 	basics [5]*cards.Card
 }
 
@@ -159,7 +160,7 @@ func buildPoolOf(reg *cards.Registry, keep func(*cards.Card) bool) (*pool, error
 			continue
 		}
 		id := identity(c)
-		pc := poolCard{card: c, name: cardName(c), land: c.Faces[0].IsLand(), keys: abilityKeys(c)}
+		pc := poolCard{card: c, name: cardName(c), land: c.Faces[0].IsLand(), keys: cardcov.Keys(c)}
 		added := false
 		for i := 0; i < 5; i++ {
 			if id != 0 && id != 1<<i {
@@ -200,12 +201,12 @@ type cov struct {
 	Ability  map[string]int64 `json:"ability"`
 	Fails    map[string]int64 `json:"fails"`
 	// Used counts, per card, the games in which each of its own abilities
-	// (abilityInventory keys) was used. Absent from state files written
+	// (cardcov.Keys keys) was used. Absent from state files written
 	// before it existed; those load with it empty.
 	Used map[string]map[string]int64 `json:"used,omitempty"`
 	// Offered counts, per card, the games in which the engine offered each
 	// of its own activated abilities (inventory keys) to its controller as a
-	// priority action (useProbe.observe). With Used it splits a never-used
+	// priority action (cardcov.Probe.Observe). With Used it splits a never-used
 	// activated ability into "offered, never chosen" (a seat-policy gap) and
 	// "never offered" (an engine offer gap, or a board never reached). Absent
 	// from older state files; those load with it empty.
@@ -453,8 +454,8 @@ type gameResult struct {
 }
 
 // gameCov is one game's coverage: cards cast/played, cards with any ability
-// pushed, and per card the inventory keys used (abilitiesUsed) and offered
-// (abilitiesOffered).
+// pushed, and per card the inventory keys used (cardcov.Used) and offered
+// (cardcov.Offered).
 type gameCov struct {
 	cast, ability map[string]bool
 	used, offered map[string]map[string]bool
@@ -495,54 +496,20 @@ func botSeat(seed uint64, explore, autoPay bool) seat.Seat {
 	return s
 }
 
-// played walks the finished game for which deck cards were cast/land-played,
-// which had an ability put on the stack, and which of their own abilities
-// were used (abilitiesUsed) and offered (abilitiesOffered).
-func played(e *rules.Engine, decks [][]*cards.Card, probe *useProbe) *gameCov {
-	gc := &gameCov{cast: map[string]bool{}, ability: map[string]bool{}}
-	name := func(id state.ObjID) string { return realCardName(e, id) }
-	evs := e.L.Events
-	for i, ev := range evs {
-		switch ev.Kind {
-		case events.PutOnStack:
-			if ev.To == state.ZStack {
-				if n := name(ev.Obj); n != "" {
-					gc.cast[n] = true
-				}
-			}
-		case events.LandPlayed:
-			if n := name(playedLand(evs, i)); n != "" {
-				gc.cast[n] = true
-			}
-		case events.AbilityPush, events.TriggerPush:
-			if n := name(ev.Obj); n != "" {
-				gc.ability[n] = true
+// played is cardcov.Played as a gameCov. The mode keys cardcov credits beside
+// the inventory keys are dropped: this harness's persistent state and weights
+// are over cardcov.Keys alone.
+func played(e *rules.Engine, decks [][]*cards.Card, probe *cardcov.Probe) *gameCov {
+	g := cardcov.Played(e, decks, probe)
+	gc := &gameCov{cast: g.Cast, ability: g.Ability, used: g.Used, offered: g.Offered}
+	for _, keys := range gc.used {
+		for k := range keys {
+			if cardcov.IsModeKey(k) {
+				delete(keys, k)
 			}
 		}
 	}
-	gc.used = abilitiesUsed(e, decks, probe)
-	gc.offered = abilitiesOffered(e, decks, probe)
 	return gc
-}
-
-// playedLand is the object a LandPlayed event (at index i) played. The event
-// carries only the player (engine/rules/cast.go's settleLandPlay: it closes the
-// land-play accounting AFTER the land's entry boundary), so the land is the
-// latest MoveZone before it in the same action -- the scan stops at the
-// Priority event the play_land answer emits before moving the card. The land's
-// own move is normally hand->battlefield; a replacement that fully replaces
-// the entry (CR 305.1: the land was still played) moves it elsewhere, and
-// that move is still the played card's. Returns 0 when none is found.
-func playedLand(evs []events.Event, i int) state.ObjID {
-	for j := i - 1; j >= 0; j-- {
-		switch evs[j].Kind {
-		case events.MoveZone:
-			return evs[j].Obj
-		case events.Priority:
-			return 0
-		}
-	}
-	return 0
 }
 
 // exploreSeat is the seat index that plays the exploration policy in an
@@ -610,11 +577,10 @@ func playGame(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIn
 	var o gbench.Outcome
 	var e *rules.Engine
 	var err error
-	probe := &useProbe{}
+	probe := &cardcov.Probe{}
 	app := &apProbe{ap: ap}
 	var mirrorFailures []failure
 	mirrorVerdicts := map[string]int{}
-	offerSeen := map[probeRef]bool{}
 	board := boardGuard(maxObjects)
 	dumped := false
 	worldRNG := rand.New(rand.NewPCG(seed, seed^0x7a9e))
@@ -622,7 +588,7 @@ func playGame(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIn
 		if tapeWorlds && rules.TapePosed(e) {
 			tapeWorldProbe(e, worldRNG)
 		}
-		probe.observe(e, offerSeen)
+		probe.Observe(e)
 		if d := e.Pending(); d != nil {
 			// apProbe reads d.PaymentActions for EVERY deciding seat -- its
 			// manual_seat_priority_with_plan counter measures plans offered
@@ -651,7 +617,7 @@ func playGame(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIn
 		return board(e)
 	}
 	setup := func(e *rules.Engine) {
-		probe.install(e)
+		probe.Install(e)
 		app.install(e)
 	}
 	var capAbort *rules.LivelockError
@@ -1483,7 +1449,7 @@ func printMissing(p *pool, c *cov) {
 		if len(miss) == 0 {
 			continue
 		}
-		desc := abilityDescs(cd)
+		desc := cardcov.Descs(cd)
 		parts := make([]string, len(miss))
 		for i, k := range miss {
 			parts[i] = k + "(" + desc[k] + ")"
