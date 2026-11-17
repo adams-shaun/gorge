@@ -1,0 +1,13 @@
+# the Defined$ Targeted parent-slot pool: Orcish Captain (FlipCoin's own
+# target slot read by its branches), Drillworks Mole and Beta Ray Bill
+# (PutCounter Defined$ Self & Targeted beside its own ValidTgts$), with
+# Shock to target Beta Ray Bill, for the oracle's lockstep
+# (dirac/oracle/definedtargetedparent_test.go)
+Orcish Captain
+Drillworks Mole
+Beta Ray Bill
+Shock
+Grizzly Bears
+Mountain
+Forest
+Plains
