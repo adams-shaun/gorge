@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -66,9 +67,14 @@ func TestSBV2UndoKeepsHandIDs(t *testing.T) {
 			doc, _ = awaitExtensionRequest(t, base, table, ss, p, func(d stateBody) bool {
 				return decodeHumanExt(t, d.Request.Decision).CanUndo
 			})
-			if status, body := postHumanAction(t, base, send, "tok", doc.Request.RequestID, map[string]bool{"undo": true}); status != http.StatusNoContent {
+			undone := doc.Request.RequestID
+			if status, body := postHumanAction(t, base, send, "tok", undone, map[string]bool{"undo": true}); status != http.StatusNoContent {
 				t.Fatalf("undo: %d %q", status, body)
 			}
+			// The undo is acknowledged before the game rewinds, so the request
+			// it was posted on can still be open here. Answering it would race
+			// the rewind into a 409 stale: wait until the undo replaces it.
+			awaitSuperseded(t, ss, undone)
 			doc, _ = awaitExtensionRequest(t, base, table, ss, p, func(d stateBody) bool {
 				var pl xview.Payload
 				_ = json.Unmarshal(d.Request.Decision.Extensions["x_gorge_view_v1"], &pl)
@@ -78,5 +84,23 @@ func TestSBV2UndoKeepsHandIDs(t *testing.T) {
 				t.Fatalf("after the undo decision %d poses the hand as %v, first posed as %v", first.NativeIndex, got, want)
 			}
 		})
+	}
+}
+
+// awaitSuperseded blocks until the seat's open request is no longer the one
+// numbered id: closed, or replaced by a later one. Request ids only grow.
+func awaitSuperseded(t *testing.T, ss *seatState, id string) {
+	t.Helper()
+	timeout := time.After(30 * time.Second)
+	for {
+		req, wake := ss.snapshot()
+		if req == nil || fmt.Sprint(req.id) != id {
+			return
+		}
+		select {
+		case <-wake:
+		case <-timeout:
+			t.Fatalf("request %s was never superseded", id)
+		}
 	}
 }

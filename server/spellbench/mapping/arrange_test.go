@@ -19,6 +19,9 @@ import (
 func assertArrangementPurpose(t *testing.T, p *mapping.Pose) {
 	t.Helper()
 	for _, candidate := range p.Candidates {
+		if err := candidate.Sem.Check(); err != nil {
+			t.Fatalf("%s candidate is off the wire vocabulary: %v", candidate.Sem.Kind, err)
+		}
 		purpose, carries := candidate.Sem.Fields["purpose"]
 		if carries && (p.Context.Purpose == nil || *p.Context.Purpose != purpose) {
 			t.Fatalf("context purpose %v differs from %s candidate purpose %v", p.Context.Purpose, candidate.Sem.Kind, purpose)
