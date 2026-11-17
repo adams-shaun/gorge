@@ -252,51 +252,110 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 		}
 	}
 	for set := 1; set < 1<<n; set++ {
-		t := *av
-		for i := 0; i < n; i++ {
-			if set&(1<<i) == 0 {
-				continue
+		if s.faceReachSet(k, p, r, extra, *av, &filt, 0, n, uint32(set)) {
+			return true
+		}
+	}
+	return false
+}
+
+// faceReachSet walks the set's filters over t, the avail the window starts
+// with: each activated filter is removed, its fee comes first out of what the
+// window has made so far (CR 605.3b) -- the units the fee spends come out of
+// t's groups too, each way of spending it tried, so a unit that fed the fee
+// pays no pip of its colour after (a floating B that funded Sunscorched
+// Divide's {1} does not also pay a {B} pip) -- then the filter's production
+// joins t and the walk goes on to the set's next filter. When no group holds
+// a unit the fee can take, and on a board with painful units held out of the
+// groups (and restricted units held out of a filter's own fee, CR 106.6),
+// the fee reads off the total alone. It reports whether the set's last avail
+// affords r.
+func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t avail, filt *[maxFaceFilters]Slot, i, n int, set uint32) bool {
+	for ; i < n; i++ {
+		if set&(1<<i) == 0 {
+			continue
+		}
+		sl := filt[i]
+		if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
+			pc := s.manaPCGen(k, sl)
+			s.removeSrc(k, &t, sl, pc)
+		}
+		fee := s.filtFee(k, sl)
+		var held [kop.NumManaKinds]uint8
+		if s.rbAny(p) {
+			s.rbUnits(p, s.restrPoolAdmits(k, p)&^s.filtFeeRestrM(k, p, sl), &held) // restricted mana the payment may spend but the filter's own activation may not (CR 106.6)
+		}
+		nh := 0
+		for c, n := range held {
+			if n != 0 {
+				t.remove(1<<c, n)
+				nh += int(n)
 			}
-			sl := filt[i]
-			if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
-				pc := s.manaPCGen(k, sl)
-				s.removeSrc(k, &t, sl, pc)
-			}
-			// the fee comes first, out of what is made so far (CR 605.3b)
-			fee := s.filtFee(k, sl)
-			var held [kop.NumManaKinds]uint8
-			if s.rbAny(p) {
-				s.rbUnits(p, s.restrPoolAdmits(k, p)&^s.filtFeeRestrM(k, p, sl), &held) // restricted mana the payment may spend but the filter's own activation may not (CR 106.6)
-			}
-			nh := 0
-			for c, n := range held {
-				if n != 0 {
-					t.remove(1<<c, n)
-					nh += int(n)
-				}
-			}
-			if t.total < fee {
-				t.total = -1 << 30
-				break
-			}
+		}
+		if t.total < fee {
+			return false
+		}
+		if fee == 0 || t.pain.on || nh != 0 || t.nOne != 0 {
+			// the total-only reading: the painful and held-out units are out
+			// of the groups, so the groups cannot price the fee; a one-colour
+			// source's units sit in a ColAny group its entry in t.one counts
+			// whole, so a unit taken from the group alone would leave the two
+			// out of step
 			t.total -= fee
 			if nh != 0 && t.total == 0 {
 				// the fee took every unit that could pay it: none stays for the face
 				t.cnt = [16]uint16{}
 				t.nOne = 0
 			}
-			for c, n := range held {
-				if n != 0 {
-					t.addUnits(1<<c, n)
-				}
-			}
-			addFiltUnits(&t, s.filtAb(k, sl), uint8(s.filtUnits(k, sl)))
+			return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i+1, n, set)
 		}
-		if t.affords(r, pipMaskOf(r), extra) {
+		return s.faceFeeSpend(k, p, r, extra, t, fee, 0, held, sl, filt, i+1, n, set)
+	}
+	return t.affords(r, pipMaskOf(r), extra)
+}
+
+// faceFeeSpend takes owed units of the filter's fee out of t's groups, from
+// group index from on, each way of spending it tried, then goes on with the
+// set's remaining filters over what is left (faceReachProduce). When no group
+// holds a unit the rest of the fee can take, the fee reads off the total
+// alone, as on a board with painful units held out of the groups.
+func (s *State) faceFeeSpend(k *prep, p uint8, r *kop.ManaCost, extra int, t avail, owed, from int, held [kop.NumManaKinds]uint8, sl Slot, filt *[maxFaceFilters]Slot, i, n int, set uint32) bool {
+	if owed == 0 {
+		return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i, n, set)
+	}
+	found := false
+	for g := from; g < t.n; g++ {
+		if t.cnt[g] == 0 {
+			continue
+		}
+		found = true
+		u := t
+		u.removeWide(u.mask[g], 1)
+		if s.faceFeeSpend(k, p, r, extra, u, owed-1, g, held, sl, filt, i, n, set) {
 			return true
 		}
 	}
-	return false
+	if found {
+		return false // the fee's units are gone from the groups: none is left to spend
+	}
+	if t.total < owed {
+		return false
+	}
+	t.total -= owed
+	return s.faceReachProduce(k, p, r, extra, t, held, sl, filt, i, n, set)
+}
+
+// faceReachProduce re-adds the held-out restricted mana (it may pay the face,
+// only not this filter's own fee, CR 106.6), joins the filter's production and
+// goes on with the set's remaining filters.
+func (s *State) faceReachProduce(k *prep, p uint8, r *kop.ManaCost, extra int, t avail, held [kop.NumManaKinds]uint8, sl Slot, filt *[maxFaceFilters]Slot, i, n int, set uint32) bool {
+	for c, n := range held {
+		if n != 0 {
+			t.addUnits(1<<c, n)
+		}
+	}
+	addFiltUnits(&t, s.filtAb(k, sl), uint8(s.filtUnits(k, sl)))
+	return s.faceReachSet(k, p, r, extra, t, filt, i, n, set)
 }
 
 // StallFiltX: an {X} announcement on a board with more activatable filters than
@@ -333,6 +392,15 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 		}
 		filt[n] = sl
 		n++
+	}
+	if k.restrSrc {
+		// the restricted sources an announced ability's payment may spend (a
+		// Powerstone's {C}, CR 106.6) fund a filter's fee, itself an
+		// activation, as any other mana; a spell's restricted mana cannot
+		if d := s.payDescNow(NoObj); d.class == pdAct {
+			t, _, _ := s.restrSrcAvail(k, p, d, av, d.src)
+			av = &t
+		}
 	}
 	best := -1
 	w := filtWalk{s: s, k: k, filt: &filt, cost: cost, anyColor: anyColor}
@@ -426,7 +494,7 @@ func (w *filtWalk) activate(t avail, st filtPos) int {
 		// filter: its own mana cannot fund its fee. Each way of spending it
 		// is tried; a board with painful units held out of the groups keeps
 		// the total-only reading.
-		if fee == 0 || t.pain.on {
+		if fee == 0 || t.pain.on || t.nOne != 0 { // (a one-colour source's group and entry move together or not at all)
 			t.total -= fee
 			return w.activated(t, st, sl)
 		}
