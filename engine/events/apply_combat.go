@@ -34,6 +34,10 @@ func foldDeclareAttackers(g *state.Game, e *Event) {
 			// attacking. A player attack leaves Obj zero and the field stays
 			// zero -- the same discriminator a Numeric TargetChosen pair uses.
 			o.AttackingBattle = e.Obj
+			o.AttackingBattleGen = 0
+			if b := g.Obj(e.Obj); b != nil {
+				o.AttackingBattleGen = b.ZoneGen
+			}
 			o.AttacksThisTurn++
 			o.AttackedTurn, o.AttackedCombat = g.Turn, g.CombatsThisTurn
 			// A fresh declaration starts unconstrained; the HadToAttack event
@@ -407,6 +411,10 @@ func foldTokenAttacks(g *state.Game, e *Event) {
 		o.IsAttacking = true
 		o.Attacking = state.PlayerID(e.IDs[0])
 		o.AttackingBattle = battle
+		o.AttackingBattleGen = 0
+		if b := g.Obj(battle); b != nil {
+			o.AttackingBattleGen = b.ZoneGen
+		}
 	}
 }
 
@@ -632,6 +640,7 @@ func phaseOutOne(g *state.Game, o *state.Object, indirect bool) {
 			other.IsAttacking = false
 			other.IsBlocking = false
 			other.AttackingBattle = 0
+			other.AttackingBattleGen = 0
 			other.Band = 0
 			other.BlockedBy = nil
 			continue

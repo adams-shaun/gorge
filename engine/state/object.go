@@ -1212,6 +1212,12 @@ type Object struct {
 	// events.Apply's DeclareAttackers case from the event's Obj and cleared
 	// wherever IsAttacking is.
 	AttackingBattle ObjID
+	// AttackingBattleGen is AttackingBattle's ZoneGen when the attack was
+	// declared (CR 400.7): a battle that left the battlefield and came back is
+	// a new object that is not being attacked (CR 506.4c), so damage routing
+	// compares it with the permanent's current ZoneGen. Zero while
+	// AttackingBattle is zero.
+	AttackingBattleGen uint32
 	// Band names the attacking band this creature is in (CR 702.22c): the
 	// ObjID of the band's first banding member (its leader), 0 when it is in
 	// no band. Written only by events.Apply (the Choose "band" fold) and
@@ -2046,7 +2052,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [20]byte
+	_ [12]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed
