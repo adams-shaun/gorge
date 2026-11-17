@@ -354,11 +354,68 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 	s.availForExcluding(k, p, a, slotMask{})
 }
 
+// identityCensusUnit is a ColorIdentity source's census unit when its planner
+// view lists none (Command Tower with no commander, CR 903.4f): gorge's
+// payment-window units still list the source, as one any-colour mana, so the
+// trigger X cap must count it or undercut the walk.
+func (s *State) identityCensusUnit(k *prep, sl Slot, pc *pcard) (uint8, uint8, bool) {
+	if !pc.manaIdent || pc.manaAb >= 0 {
+		return 0, 0, false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if j < 16 && a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && a.ManaIdentity &&
+			a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 {
+			return uint8(kop.ColAny), max(a.ManaN, 1), true
+		}
+	}
+	return 0, 0, false
+}
+
+// addIdentityCensus counts a ColorIdentity source the planner census keeps out
+// of its units (Command Tower) but which still holds an untapped tap ability:
+// gorge's trigger X supply lists it (triggeredCostXSupply reads
+// PaymentPlanQueryUnits), so the cap must count its one unit or undercut the
+// walk. With no commander the identity is empty, yet that unit is still listed
+// as any-colour mana (identityCensusUnit).
+func (s *State) addIdentityCensus(k *prep, sl Slot, pc *pcard, a *avail) {
+	if m, n, ok := s.identityCensusUnit(k, sl, pc); ok {
+		a.addUnits(m, n)
+		return
+	}
+	ab, _, ok := s.identityPotentialAbility(k, sl)
+	if !ok || ab.Cost.Flags != kop.CostTap || ab.Cost.Mana.MV() != 0 || ab.Cost.Mana.X != 0 {
+		return
+	}
+	if m := s.identityColours(k, s.perms[sl].ctrl); m != 0 {
+		vp := pcard{manaCol: m, manaN: max(ab.ManaN, 1), manaTap: true}
+		if s.canTapForManaPC(k, sl, &vp) {
+			a.addUnits(uint8(m), vp.manaN)
+		}
+	}
+}
+
+// availForCapped is availFor with the planner-deferred sources counted: the
+// trigger X announcement's one-tap cap reads it, because the potential walk
+// above counts a deferred source's tap (a Taps watcher, a mana rider, a
+// Condition split) while the planner census leaves it out. Each source still
+// counts once, at its largest production.
+func (s *State) availForCapped(k *prep, p uint8, a *avail) {
+	s.availForMode(k, p, a, slotMask{}, true)
+}
+
 // availForExcluding is availFor over the battlefield sources except the
 // slots in ex: the Phyrexian activation gate prices a cost the census misses
 // (a mana-fee ability) without those sources under the autopay surface, as
 // gorge's planner does (mana_phyrexian.go phyActAffords).
 func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
+	s.availForMode(k, p, a, ex, false)
+}
+
+// availForMode is availForExcluding with the planner-deferred sources counted
+// when withDeferred is set (availForCapped).
+func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferred bool) {
 	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
@@ -382,7 +439,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 	// battlefield fact, so its gate lifts out of the loop: without a live
 	// TrigTaps listener every source is an ordinary unit, and the potential
 	// walks count a deferred source's tap regardless.
-	deferSkip := s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
+	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	var deferGap slotMask
 	if deferSkip {
 		// Only the production the script route models is a census gap the
@@ -405,6 +462,9 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 			continue // a dynamic {T}, sacrifice source prices only an activated-ability offer (avail.dynSac)
 		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 {
+			if withDeferred && pc.manaIdent && pm.flags&pfTapped == 0 && !s.activationSick(k, sl) {
+				s.addIdentityCensus(k, sl, pc, a)
+			}
 			continue
 		}
 		if !grantOK && k.gen != nil && s.manaGranted(k, sl) {
