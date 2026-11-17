@@ -599,7 +599,11 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		return composed, ok
 	}
 	var rider pipRider
-	plan := func(x int32) PaymentPlanOutcome {
+	// plan's pin >= 0 holds the pinned re-plan's colour (CR 107.4c): the
+	// plain coloured pips stay coloured on it while the rider's other fold
+	// stands, so the plan funds them from a coloured unit the grant lets pay
+	// the printed pip. -1 is the folded plan, every caller's first attempt.
+	plan := func(x int32, pin int) PaymentPlanOutcome {
 		c := base
 		if base.X != 0 {
 			c = base.WithX(x)
@@ -621,24 +625,56 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		prevSpecial := e.planSpecial
 		e.planSpecial = pay.SpecialOfCastMode(o.Mode)
 		defer func() { e.planSpecial = prevSpecial }()
-		got := e.planComposedCost(p, id, pay.PlanManaUnderRider(composed, rider), false, false)
+		got := e.planComposedCost(p, id, planManaHalf(composed, rider, pin), false, false)
 		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
 			return PaymentPlanOutcome{Reason: "insufficient"}
 		}
 		return got
 	}
+	// xsearch finds the largest payable X for the cost the plan closure
+	// currently composes at pin: payability is monotone in X, so the search
+	// runs from the minimum up to what the floating pool and every census
+	// source together could fund (the census bounds a witness; PotentialMana's
+	// bound may be unbounded). The rider's folded plan runs it first; a
+	// pinned re-plan runs it again from the minimum.
+	xsearch := func(pin int, best PaymentPlanOutcome) PaymentPlanOutcome {
+		lo := base.XMin
+		hi := e.paymentPlanCensusTotal(p) / int32(base.X)
+		if xCapOn {
+			if xCap < lo {
+				return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:x"}
+			}
+			if xCap < hi {
+				hi = xCap
+			}
+		}
+		bestX := lo
+		for lo < hi {
+			mid := lo + (hi-lo+1)/2
+			got := plan(mid, pin)
+			if got.Plan != nil && got.Reason == "" {
+				best, lo, bestX = got, mid, mid
+			} else {
+				hi = mid - 1
+			}
+		}
+		if best.Plan != nil && best.Reason == "" {
+			e.planLastX = bestX
+		}
+		return best
+	}
 	lo := base.XMin
-	best := plan(lo)
+	best := plan(lo, -1)
 	if best.Reason == "insufficient" && (o.Mode == "mayplay" || castModeCodes.Code(o.Mode) == castModeBargained) {
 		// The grant may let any mana pay what the printed pips cannot
 		// (MayPlayIgnoreColor$, MayPlayIgnoreType$), as the cast's payment reads it.
 		rider = asEval(e).MayPlayRider(p, id)
-		best = plan(lo)
+		best = plan(lo, -1)
 	}
 	if conv := pay.ConvRider(asEval(e).Conv(p, id, pay.SASpell)); best.Reason == "insufficient" && conv != (pipRider{}) {
 		// So may an AnyType->AnyType conversion (Vizier of the Menagerie, CR 609.4b).
 		rider = rider.Or(conv)
-		best = plan(lo)
+		best = plan(lo, -1)
 	}
 	if best.Reason == "insufficient" {
 		statics := e.collectCostStatics()
@@ -667,32 +703,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		return best
 	}
 	if base.X != 0 {
-		// Payability is monotone in X: binary-search the largest payable X
-		// up to what the floating pool and every census source together
-		// could fund (the census bounds a witness; PotentialMana's bound may
-		// be unbounded).
-		hi := e.paymentPlanCensusTotal(p) / int32(base.X)
-		if xCapOn {
-			if xCap < lo {
-				return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:x"}
-			}
-			if xCap < hi {
-				hi = xCap
-			}
-		}
-		bestX := lo
-		for lo < hi {
-			mid := lo + (hi-lo+1)/2
-			got := plan(mid)
-			if got.Plan != nil && got.Reason == "" {
-				best, lo, bestX = got, mid, mid
-			} else {
-				hi = mid - 1
-			}
-		}
-		if best.Plan != nil && best.Reason == "" {
-			e.planLastX = bestX
-		}
+		best = xsearch(-1, best)
 	}
 	if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" && best.Plan != nil && best.Reason == "" {
 		if got, sacrificeOnly := e.potentialAltAddSacrificePlan(p, o, base, parts); sacrificeOnly {
@@ -710,9 +721,54 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 		if parts := altAddCostParts(f); len(parts) != 0 && (o.Mode == "" || o.Mode == "mayplay") {
 			return e.potentialAltAddPlan(p, o, base, parts)
 		}
-		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+		// The offer walk's own two reads, passed on so the re-plan helper
+		// holds no engine.
+		witnessNeeded := func(plan decision.PaymentPlan) bool { return e.planWitnessOffersNeeded(f, plan) }
+		witnessOffers := func(plan decision.PaymentPlan) bool { return e.potentialWitnessOffers(p, o, plan) }
+		return potentialPinnedColourPlan(base, lo, rider, plan, xsearch, witnessNeeded, witnessOffers)
 	}
 	return best
+}
+
+// potentialPinnedColourPlan is the witness's last arm: the folded plan's pool
+// could not prove a coloured pip's payment (CR 107.4c: "any color" never
+// includes colourless, so the pip needs a coloured unit the fold erased).
+// Re-plan once per concrete colour with the plain coloured pips pinned to it
+// and no fold, and return the first plan the offer walk accepts; a cast whose
+// only source of a coloured unit also produces colourless keeps its witness
+// this way (Flaming Gambit's {R} under You Find Some Prisoners beside a
+// Produced$ C | Produced$ Combo G U land). Without an AnyColor rider there is
+// nothing to re-plan -- an AnyType rider lets even colourless mana pay, so
+// there the fold needs no re-plan -- and the verdict stands.
+func potentialPinnedColourPlan(base Cost, lo int32, rider pipRider,
+	plan func(int32, int) PaymentPlanOutcome, xsearch func(int, PaymentPlanOutcome) PaymentPlanOutcome,
+	witnessNeeded, witnessOffers func(decision.PaymentPlan) bool) PaymentPlanOutcome {
+	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+	if !rider.AnyColor || rider.AnyType {
+		return unsupported
+	}
+	for pi := state.MW; pi <= state.MG; pi++ {
+		retry := plan(lo, int(pi))
+		if base.X != 0 {
+			retry = xsearch(int(pi), retry)
+		}
+		if retry.Plan != nil && retry.Reason == "" &&
+			(!witnessNeeded(*retry.Plan) || witnessOffers(*retry.Plan)) {
+			return retry
+		}
+	}
+	return unsupported
+}
+
+// planManaHalf is the mana half a plan funds: the rider's fold, or -- when
+// pin >= 0, the witness's pinned re-plan -- the fold with the plain coloured
+// pips held coloured on that one colour (pay.PlanManaUnderRiderPinned; the
+// caller pins under an AnyColor rider only).
+func planManaHalf(composed Cost, rider pipRider, pin int) Cost {
+	if pin < 0 {
+		return pay.PlanManaUnderRider(composed, rider)
+	}
+	return pay.PlanManaUnderRiderPinned(composed, rider, pin)
 }
 
 // potentialTargetPriced reports whether o is a cast a ValidTarget$ cost static may
