@@ -110,7 +110,14 @@ func (cb *cardBuilder) abilities() error {
 			}
 			ke.Abilities = append(ke.Abilities, ka)
 		}
-		if len(e.Statics) == 0 {
+		for _, r := range e.Repls {
+			ka, err := cb.repl(r)
+			if err != nil {
+				return bfail(cb.node, "%v", err)
+			}
+			ke.Abilities = append(ke.Abilities, ka)
+		}
+		if len(e.Statics) == 0 && len(e.Repls) == 0 {
 			j, ok := cb.abMap[e.Trigger]
 			if !ok {
 				return bfail(cb.node, "emblem trigger %d not emitted", e.Trigger)
