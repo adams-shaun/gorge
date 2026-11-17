@@ -48,7 +48,7 @@ const (
 	OpDig              // player Obj looks at the top A cards, puts B matching F into zone C (ZoneHand default), rest on the bottom
 	OpSearch           // player Obj searches library for up to A cards matching F, puts them into zone C, shuffles
 	OpCharm            // mode branch: if mode bit C was NOT chosen, skip the next A instructions
-	OpDamageAll        // each creature (and player if B.N=1 via flags) matching F is dealt A damage by the source; B.N bit 2: and each opponent of the controller, bit 4: each permanent matching F, not only creatures
+	OpDamageAll        // each creature (and player if B.N=1 via flags) matching F is dealt A damage by the source; B.N bit 2: and each opponent of the controller, bit 4: each permanent matching F, not only creatures, bit 8: and the player Obj names (ValidPlayers$ Targeted), bit 16: only that player's permanents (a player-kind ValidTgts$)
 	OpDestroyAll       // destroy each permanent matching F; C&1: the ones put into a graveyard are remembered; C&2: they can't be regenerated
 	OpPumpAll          // each creature matching F gets +A/+B until end of turn; keywords C granted too
 	OpChangeZoneAll    // move every object matching F (zone in the filter) to zone C
