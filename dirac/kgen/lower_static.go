@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -388,6 +389,33 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		st.Flags = append(st.Flags, "RaiseCostRemove6CountersFromCreatures")
 		st.Amount = cst(n)
 	}
+	return mayPlayAltManaCost(sp, st)
+}
+
+// mayPlayAltManaCost reads a MayPlay static's MayPlayAltManaCost$ as the
+// permission's alternative cost (CR 118.9). The kernel carries one shape,
+// kop.StMayPayLife: "pay life equal to its mana value rather than pay its
+// mana cost" on a library-top or exile permission (Bolas's Citadel,
+// Valgavoth, Terror Eater), the flag the Effect-delivered library grant
+// (Gwenom, Remorseless) already sets. It rides alone: any other flag on the
+// static (a limit, a waived cost, a raise, a function zone) or any other
+// alternative (a fixed mana cost: Glimpse the Cosmos) is refused, since the
+// kernel static has no field for the cost.
+func mayPlayAltManaCost(sp *params, st *lStatic) error {
+	if slices.Contains(st.Flags, "FreeOnly") {
+		return nil // Dragon's Smile's {0} alternative, consumed above
+	}
+	v, ok := sp.get("MayPlayAltManaCost")
+	if !ok {
+		return nil
+	}
+	if strings.TrimSpace(v) != "PayLife<ConvertedManaCost>" {
+		return refuse("MayPlayAltManaCost %q", v)
+	}
+	if (st.Zone != zLibrary && st.Zone != zExile) || len(st.Flags) > 0 {
+		return refuse("MayPlayAltManaCost %q beside zone %d flags %v", v, st.Zone, st.Flags)
+	}
+	st.Flags = append(st.Flags, "MayPayLife")
 	return nil
 }
 
