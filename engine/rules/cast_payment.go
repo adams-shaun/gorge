@@ -102,6 +102,12 @@ func (e *Engine) convokeAsk() bool {
 		return false
 	}
 	pc.ConvokeDone = true
+	if pay.SpecialOfCastMode(pc.mode) != pay.SpecialNone {
+		// CR 702.62a, 702.126a, 701.34a: suspend, foretell and plot are
+		// special actions, never spell casts, so a cast-time credit
+		// (Convoke/Harmonize/Improvise/Waterbend) cannot pay their cost.
+		return false
+	}
 	// A cast announces Convoke/Harmonize/Improvise; an activated ability
 	// announces only its own waterbend contributions (Giant Koi's
 	// `Cost$ Waterbend<3>`), so the cast-only keyword readers are skipped
