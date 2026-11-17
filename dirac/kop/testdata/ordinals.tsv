@@ -1450,6 +1450,7 @@ Tf2SpellToo	TrigFlags2	134217728
 Tf2SpentBound	TrigFlags2	134217728
 Tf2SrcInPlay	TrigFlags2	67108864
 Tf2TargetsFilter2	TrigFlags2	1024
+Tf2ToGraveHalf	TrigFlags2	16777216
 Tf2ToOpponent	TrigFlags2	16
 Tf2ToYou	TrigFlags2	16777216
 Tf2Unblocked	TrigFlags2	262144

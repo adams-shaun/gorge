@@ -104,6 +104,13 @@ func (lc *lowerCtx) lowerTriggerSplit(t cards.Trigger, zone string) (done bool, 
 		if err := lc.lowerTriggered(bf, zone); err != nil {
 			return true, err
 		}
+		// The Dies half is CR 603.6c's from-anywhere spelling, never a
+		// leaves-the-battlefield ability: mark it so the kernel fires it from
+		// the removal point (fireToGraveDies) instead of with the sweep's
+		// pre-removal board (CR 603.10a).
+		for i := n; i < len(lc.out.Abilities); i++ {
+			lc.out.Abilities[i].Trigger.ToGraveHalf = true
+		}
 		markSplit(n)
 		return true, nil
 	}

@@ -500,6 +500,24 @@ const Tf4StateCtr TrigFlags4 = 1 << 6
 // identical and the SpellCast readers read it as Increment.
 const Tf2Increment TrigFlags2 = 1 << 24
 
+// Tf2ToGraveHalf (Trigger.Flags2): the Dies half of a split
+// "whenever a card is put into a graveyard from anywhere" line
+// (dirac/kgen/lower_anytograve.go's anyToGraveHalves: the ToGraveyard half
+// keeps the non-battlefield origins, the Dies half fires the battlefield
+// deaths). CR 603.6c: an ability that triggers when a card is put into a
+// zone "from anywhere" is never a leaves-the-battlefield ability, so it has
+// none of CR 603.10a's look-back and must not fire with the sweep's
+// pre-removal board: the kernel fires marked halves from the removal point,
+// where the live subscriptions are gorge's per-move live walk
+// (kernel trig_tograve.go fireToGraveDies), and never in the Dies walks.
+//
+// Bit 24, shared with Tf2ToYou and Tf2Increment: both are set and read
+// only on DamageDone-family and SpellCast lines, and no Dies reader tests
+// the bit, so the three event-disjoint flags cannot collide -- the
+// Tf2SpellToo / Tf2SpentBound precedent. Tf2ToGraveHalf has no
+// dirac/kgen/names.go entry (one name per shared bit).
+const Tf2ToGraveHalf TrigFlags2 = 1 << 24
+
 // WhoseNonActive: a SpellCast trigger whose
 // ValidActivatingPlayer$ is Player.NonActive: the caster is not the active
 // player (gorge playerSpecQualifierNonActive, player_filter.go: p != g.Active,
