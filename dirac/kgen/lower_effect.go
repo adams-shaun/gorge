@@ -1817,6 +1817,10 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 		ps.consume("ValidPlayers")
 		return nil
 	}
+	if strings.TrimSpace(ps.str("ValidPlayers")) == "Targeted" {
+		ps.consume("ValidPlayers")
+		return lc.damageAllTargetedPlayers(ps, n) // lower_damagealltargeted.go
+	}
 	in := lInstr{Op: "DamageAll", A: n}
 	if vc, ok := ps.get("ValidCards"); ok {
 		if in.F, err = lc.filter(vc); err != nil {

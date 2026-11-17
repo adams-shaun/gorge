@@ -526,11 +526,14 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 		case "Player":
 			f.Players |= plBoth
 			continue
-		case "Opponent", "Player.Opponent":
-			// gorge's player matcher reads Player.Opponent as Opponent
+		case "Opponent", "Player.Opponent", "Player.Other":
+			// gorge's player matcher reads Player.Opponent and Player.Other
+			// as Opponent (playerSpecQualifierCodes: Other is Opponent)
 			f.Players |= plOpp
 			continue
-		case "You":
+		case "You", "Player.You", "Player.YourTeam":
+			// YourTeam: gorge models no teams, a player's team is that
+			// player alone (playerSpecQualifierCodes)
 			f.Players |= plYou
 			continue
 		case "Any":

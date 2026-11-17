@@ -435,7 +435,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.damageSeqNext(k, n)
 			break
 		}
-		if in.B.N&6 != 0 {
+		if in.B.N&30 != 0 {
 			s.damageAllOpp(k, in, e.ctrl, n) // trig_gravedrawn.go
 			break
 		}
