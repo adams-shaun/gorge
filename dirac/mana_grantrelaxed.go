@@ -24,12 +24,19 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	if k.tapMana {
 		s.availTapX(k, p, &av) // the relaxed census counts a tap-another source as a free any-colour unit (mana_tapanother.go)
 	}
-	if k.gen.anyFilt && s.filtRelaxable(k, s.scriptFilt(k, p)) {
-		// the relaxed proof also appends each subset of the census's paid
-		// alternatives, charging their fees (paymentPlanRelaxProof): Hidden
-		// Grotto's {1},{T} makes the {U} a Forest board lacks, as
-		// relaxRestrRefuses reads it
-		s.availFilt(k, p, &av)
+	var filts [relaxedPaidLimit]Slot
+	nf := 0
+	if k.gen.anyFilt {
+		if f := s.scriptFilt(k, p); s.filtRelaxable(k, f) {
+			// the relaxed proof also appends each subset of the census's paid
+			// alternatives, charging their fees (paymentPlanRelaxProof): Hidden
+			// Grotto's {1},{T} makes the {U} a Forest board lacks, as
+			// relaxRestrRefuses reads it
+			for ; f.any(); f = f.rest() {
+				filts[nf] = f.first()
+				nf++
+			}
+		}
 	}
 	// the floating restricted mana the activation may spend is in the pool
 	// the planner's verdict pays from (gorge AvailableFor; CR 106.6): Cargo
@@ -42,5 +49,26 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	// a restricted planner source the activation may spend is a census unit
 	// of its own (Jasmine Dragon Tea Shop's any colour for an Ally source's
 	// ability, Merchant of Many Hats' {2}{B} from the graveyard; CR 106.6)
-	return av.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && s.restrSrcAffords(k, p, d, cost, &av, NoSlot, 0)
+	// one run per subset of the paid alternatives (availFiltSubset): a
+	// filter whose fee exceeds what it makes (Henge of Ramos's {2},{T}) only
+	// costs mana, so the run that leaves it out is the one that pays
+	for mask := 0; mask < 1<<nf; mask++ {
+		run := av
+		s.availFiltSubset(k, &run, filts[:nf], mask)
+		if run.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && s.restrSrcAffords(k, p, d, cost, &run, NoSlot, 0) {
+			return true
+		}
+	}
+	return false
+}
+
+// availFiltSubset adds to a the filters of f that mask selects, as availFilt
+// adds every paid gap: a free unit of its colours, its fee off the total.
+func (s *State) availFiltSubset(k *prep, a *avail, f []Slot, mask int) {
+	for i, sl := range f {
+		if mask>>i&1 == 1 {
+			addFiltUnits(a, s.filtAb(k, sl), uint8(s.filtUnits(k, sl)))
+			a.total -= s.filtFee(k, sl)
+		}
+	}
 }

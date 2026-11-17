@@ -2284,7 +2284,8 @@ type genState struct {
 	ctrPad   [ctrPadN]uint8 // carries the 16-bit counter kinds' growth to a whole cache line (ctr_sparse.go)
 
 	// Reserved tail: State bytes set aside so later work never edits a struct
-	// definition. Nothing reads or writes these yet. The rule: new State bytes
+	// definition. Nothing reads or writes these yet, except rsv[0], the gaps
+	// walk's filtSkip (mana_filtersubset.go). The rule: new State bytes
 	// come out of rsv, the mech arena, a cold array or a scr overlay; never a
 	// mid-struct insertion, which moves every later field. rsv is named, not _,
 	// so SameGame's == compares it. Together the block grows State by 80 bytes
