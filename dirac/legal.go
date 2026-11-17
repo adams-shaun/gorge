@@ -171,6 +171,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
 			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
+				// the bestow cost needs no affordable mana cost (CR 702.103a)
+				s.offerBestowIfPrinted(k, d, p, o, c, &av)
 				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
 			}
 		}
@@ -215,9 +217,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// the optional-cost cast (cost_optional.go): the kicked action
 			d.add(MakeAction(AkCast, TCode(o), 0, 1))
 		}
-		if k.gen != nil && k.gen.anyBestow && k.t.Cards[c].HasBestow {
-			s.offerBestowHand(k, d, p, o, c, &av) // kw_bestow.go
-		}
+		s.offerBestowIfPrinted(k, d, p, o, c, &av) // kw_bestow.go
 		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
 			kc := addCost(pc.cost, kickerPayment(&k.t.Cards[c]))
 			if s.statM.any() || k.gen != nil {
