@@ -337,7 +337,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 			if p := &s.perms[sl]; p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 				p.seeCtr(s)
-				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d)
+				s.subCtrFire(k, sl, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d)
 				s.touchSl(sl)
 				break
 			}
@@ -651,7 +651,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			p := &s.perms[sl]
 			if blocked := s.untapBlocked(k, sl); !blocked && p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
 				p.seeCtr(s)
-				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
+				s.subCtrFire(k, sl, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
 				s.untapEffect(k, sl)
 			}

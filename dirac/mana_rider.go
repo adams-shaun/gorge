@@ -264,7 +264,7 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-		pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
 	}
 	if a.Cost.Flags&kop.CostTap != 0 {
 		pm.flags |= pfTapped
