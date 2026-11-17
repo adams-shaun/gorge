@@ -454,6 +454,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
 		m = m.Or(o.AddSub)
+		if o.ImpSub {
+			m = m.Or(s.impCreatureSub(k, s.perms[sl].obj)) // AddType$ ImprintedCreatureType (zone_imprint.go)
+		}
 		if ovrAllCreat(o) {
 			all = true
 		}
@@ -530,6 +533,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 				m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 			}
 			m = m.Or(o.AddSub)
+			if o.ImpSub {
+				m = m.Or(s.impCreatureSub(k, s.perms[sl].obj)) // AddType$ ImprintedCreatureType (zone_imprint.go)
+			}
 			if ovrAllCreat(o) {
 				mAll, allOut = true, true
 			}

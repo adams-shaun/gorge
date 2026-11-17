@@ -210,6 +210,13 @@ type Override struct {
 	// OverwriteColors$; a copy exception's
 	// AddColors$, CR 707.9b; applied after a SetColors).
 	AddColors ColorMask
+	// ImpSub: the object gains the printed creature types of the last card
+	// in its source's kept imprints whose printed face is a creature and
+	// that is still in exile (AddType$ ImprintedCreatureType; gorge
+	// layers.go reads the list from its end, the live object's zone the CR
+	// 607.2a exile test; Duplicant). The static carrying it is the source's
+	// own Self-affected one (dirac/chars_gen.go impCreatureSub).
+	ImpSub bool
 	// RemoveLegendary: a copy exception's NonLegendary$ (CR 707.9b): the
 	// copy's type line loses Legendary; gorge copypermanent.go removeLegendary.
 	RemoveLegendary bool
