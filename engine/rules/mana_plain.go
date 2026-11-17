@@ -69,19 +69,7 @@ func (e *Engine) plainManaAdd(p state.PlayerID, source state.ObjID, ma *cards.SA
 		return events.Event{}, false, false
 	}
 	tag, snow := effects.ManaProducerTag(e, source)
-	switch {
-	case tag != "" && snow:
-		// Both provenances on one unit: the composed "S<Tag><colour>" form
-		// (today only the Artifact tag composes with snow —
-		// effects.ManaProducerTag).
-		ev.Counter = "S" + tag + produced
-	case tag != "":
-		ev.Counter = tag + produced
-	case snow:
-		ev.Counter = "S" + produced
-	default:
-		ev.Counter = produced
-	}
+	ev.Counter = effects.ManaProducerCounter(tag, snow, produced)
 	// A producer whose face reads the spent mana's source identity
 	// (Spell.ManaFromCard) adds its units as a source-bearing provenance
 	// batch, exactly as effMana's provenanceOnly arm does.

@@ -163,6 +163,27 @@ func ManaSourceObserved(h Host, source state.ObjID) bool {
 	return o.Face().ReadsSpentManaSource()
 }
 
+// ManaProducerCounter spells the ManaAdd Counter a producer's unit carries:
+// the tag and the snow bit compose instead of yielding to each other (CR
+// 107.4h with snow a supertype independent of the card types), so a snow
+// Artifact's unit is the composed "S<Tag><colour>" form (today only the
+// Artifact tag composes with snow — ManaProducerTag). events.Apply moves the
+// pool slot, Player.Snow, the typed tally and Player.SnowTyped together
+// through that one event. Every ManaAdd a mana producer emits spells its
+// counter through this one helper (effMana, effManaReflected,
+// cumulative-upkeep AddMana, and the plain fast path).
+func ManaProducerCounter(tag string, snow bool, colour string) string {
+	switch {
+	case tag != "" && snow:
+		return "S" + tag + colour
+	case tag != "":
+		return tag + colour
+	case snow:
+		return "S" + colour
+	}
+	return colour
+}
+
 // ManaProducerTag encodes producer provenance in one unit tag plus an
 // independent snow bit. The Artifact bit composes with Treasure/Cave/Desert
 // rather than replacing their historical type: a Treasure Artifact emits
@@ -181,10 +202,10 @@ func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 	artifact := false
 	snowType := false
 	for _, t := range o.Face().Types {
-		switch t {
-		case "Artifact":
+		if t == "Artifact" {
 			artifact = true
-		case "Snow":
+		}
+		if t == "Snow" {
 			snowType = true
 		}
 	}
@@ -504,20 +525,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 					unitAmount *= ManaEachNum(mp, h, c, 1)
 				}
 			}
-			counter := string(r)
-			switch {
-			case tag != "" && snow:
-				// Both provenances on one unit: the composed
-				// "S<Tag><colour>" form (today only the Artifact tag
-				// composes with snow — ManaProducerTag). events.Apply moves
-				// the pool slot, Player.Snow, the typed tally and
-				// Player.SnowTyped together through this one event.
-				counter = "S" + tag + counter
-			case tag != "":
-				counter = tag + counter
-			case snow:
-				counter = "S" + counter
-			}
+			counter := ManaProducerCounter(tag, snow, string(r))
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: counter, Amount: unitAmount}
 			if noCounter != "" {
