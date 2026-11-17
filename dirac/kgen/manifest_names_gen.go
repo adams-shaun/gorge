@@ -1333,6 +1333,9 @@ func init() { enum[kop.StaticKind]("kop.StatExtraBlock", kop.StatExtraBlock) }
 // dirac/manifest/StaticKind/StatAnyColorSpells
 func init() { enum[kop.StaticKind]("kop.StatAnyColorSpells", kop.StatAnyColorSpells) }
 
+// dirac/manifest/StaticKind/StatNoCombatDamage
+func init() { enum[kop.StaticKind]("kop.StatNoCombatDamage", kop.StatNoCombatDamage) }
+
 // dirac/manifest/TrigEvent/TrigChaosEnsues
 func init() { enum[kop.TrigEvent]("kop.TrigChaosEnsues", kop.TrigChaosEnsues) }
 
