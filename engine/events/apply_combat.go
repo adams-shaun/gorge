@@ -241,6 +241,15 @@ func foldDamage(g *state.Game, e *Event) {
 			o.DamageReceivedThisTurn += e.Amount
 		}
 	} else if validPlayer(g, e.Player) {
+		// A positive Damage event records that the seat was dealt damage this
+		// turn, poison-replaced or not -- the same per-turn history the
+		// object branch above records on its recipient (state.Player's
+		// wasDealtDamageThisTurn player property, Needle Drop's
+		// ValidTgts$ Any.wasDealtDamageThisTurn). Cleared at TurnChange with
+		// the other turn watchers (resetTurnWatchers).
+		if e.Amount > 0 {
+			g.Players[e.Player].WasDealtDamageThisTurn = true
+		}
 		if infect && e.Amount > 0 {
 			// CR 702.90b: that many poison counters instead of life loss.
 			// The placement is rules' job (Engine.convertInfectDamage emits

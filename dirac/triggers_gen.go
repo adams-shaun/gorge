@@ -1020,6 +1020,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.toPl[pp] > 0 {
 				s.loseLife(k, pp, int(r.toPl[pp]))
+				s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 			}
 		}
 		for pp := uint8(0); pp < MaxSeats; pp++ {
@@ -1062,6 +1063,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
 			s.loseLife(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
+			s.plDmgMark(CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl])) // wasDealtDamageThisTurn's seat arm (gen.go)
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}

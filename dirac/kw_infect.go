@@ -147,6 +147,7 @@ func (s *State) infectDamageTo(k *prep, code TCode, n int, kw kop.KwMask) {
 	if isPlayerOrNone(code) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.addPoison(CodeSeat(code), n)
+		s.plDmgMark(CodeSeat(code), n) // infect damage is dealt damage too (gorge events.foldDamage)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {

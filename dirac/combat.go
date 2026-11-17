@@ -1297,6 +1297,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 				}
 				s.addPoison(pp, int(r.poison[pp]))
 				s.g.ctrAdder = 0
+				s.plDmgMark(pp, int(r.poison[pp])) // infect combat damage is dealt damage too (gorge events.foldDamage)
 			}
 		}
 		if k.anyInit {
@@ -1310,6 +1311,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		if r.toPl[pp] > 0 {
 			s.loseLife(k, pp, int(r.toPl[pp]))
+			s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 		}
 	}
 	for pp := uint8(0); pp < MaxSeats; pp++ {

@@ -676,8 +676,9 @@ func (s *State) newTurnGen() {
 		s.g.nused = 0
 	}
 	s.g.zoneTurn = objBits{}
-	s.g.dmgTurn = objBits{} // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
-	clear(s.g.dmgAmt[:])    // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
+	s.g.dmgTurn = objBits{}                        // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
+	s.g.turnF &^= turnDamagedMask(allSeatsDamaged) // the seats' WasDealtDamageThisTurn clear with it (gorge TurnChange)
+	clear(s.g.dmgAmt[:])                           // DamageReceivedThisTurn clears with it (gorge TurnChange; value_dmgamount.go)
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)
