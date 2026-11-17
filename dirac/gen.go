@@ -331,6 +331,7 @@ type genPrep struct {
 	anyGoad         bool           // some program is OpGoad (act_goad.go)
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
 	anyTappedTurn   bool           // the table gives mechTappedTurn an arena mask (a Taps FirstTime$ line; filter_permmarks.go)
+	anyBtTurn       bool           // the table gives mechBtTurn an arena mask (a BecomesTarget FirstTime$ line; filter_permmarks.go)
 	anyCombatHit    bool           // some card records its combat hits on players (cdRec) or some expression reads the legendary-hit bit (value_turntallies.go)
 	cdLegOn         bool           // some expression is ExOppsLostLife N 1: record cdLeg bits 0-3
 	cdDamOn         bool           // some expression is ExOppsLostLife N 2: record cdLeg bits 4-7

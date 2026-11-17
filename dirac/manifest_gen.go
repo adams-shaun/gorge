@@ -662,8 +662,18 @@ func init() {
 	mechName[mechEncore] = "encore"
 }
 
+// mech (dirac/manifest/mech/mechBtTurn)
+//
+// slots whose permanent became a target this turn (BecomesTarget FirstTime$; trig_counterfirst.go)
+const mechBtTurn mech = 55
+
+func init() {
+	mechWidth[mechBtTurn] = wSlot
+	mechName[mechBtTurn] = "btTurn"
+}
+
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 55
+const numMech mech = 56
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
