@@ -300,11 +300,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Training = true
 		}
-		if v, ok := tp.get("Dethrone"); ok {
-			// K:Dethrone's expansion (lower_dethrone.go)
-			if dethrone, err = dethroneGate(v, tp, tr); err != nil {
-				return err
-			}
+		// K:Dethrone's expansion or Condition$ AttackedPlayerWithMostLife
+		if dethrone, err = dethroneOrMostLifeGate(tp, tr); err != nil { // lower_dethrone.go
+			return err
 		}
 		if v, ok := tp.get("Myriad"); ok {
 			// K:Myriad's expansion (gorge kwMyriad; trigmatch
