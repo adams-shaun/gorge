@@ -2973,6 +2973,12 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 	case "SpellCast", "ChangesZone", "Sacrificed", "DamageDone",
 		"AttackersDeclared", "AttackersDeclaredOneTarget", "Attacks", "AttackerBlocked":
 		return true
+	case "LifeGained":
+		// the player event's emblem walk (fireEmblemsAmt) is the one a
+		// permanent LifeGained emblem rides; the end-of-turn one is dropped
+		// at cleanup (dropEOTEmblems), gorge's turn-change drop of the
+		// Effect's delayed trigger (False Cure)
+		return eot
 	case "DamageDoneOnce":
 		return eot
 	case "DamageDealtOnce":

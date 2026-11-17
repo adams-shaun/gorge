@@ -1,0 +1,13 @@
+# An until-end-of-turn Effect's LifeGained Triggers$, the end-of-turn emblem
+# (dirac/oracle/efflifegained_lockstep_test.go TestEffectTriggersDurationLockstep;
+# kgen lower_zone.go emblemTimedMode)
+False Cure
+Vizkopa Guildmage
+Soul Warden
+Healing Salve
+Angel's Mercy
+Knight of Meadowgrain
+Grizzly Bears
+Plains
+Swamp
+Forest
