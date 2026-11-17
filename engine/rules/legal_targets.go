@@ -7,6 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -516,13 +517,48 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 	statics := e.collectCostStatics()
 	prev := e.cast
 	defer func() { e.cast = prev }()
+	// The potential bound prices an open "any colour" production as unbounded
+	// in every slot (potential.go), so one Treasure Token can "pay" an X the
+	// seat cannot: one mana of any colour is one unit, not one per colour.
+	// priceExactly confirms an announcement with the payment planner, whose
+	// insufficient verdict is a proof. A ValidTarget$ cost static can reduce
+	// the price for one legal target choice (offerCastableUsing's
+	// potential-target retry), so an unpayable untargeted composition retries
+	// each potential target's composition; an unsupported shape is not a proof
+	// either way and keeps the bound's answer.
+	priceExactly := func(cost Cost) bool {
+		insufficient := func(composed Cost) bool {
+			return e.planComposedCost(p, id, composed, ability, ability).Reason == pay.ReasonInsufficient
+		}
+		if !insufficient(e.offerCostForUsing(statics, p, id, cost, scope)) {
+			return true
+		}
+		if !statics.validTarget {
+			return false
+		}
+		ok := false
+		e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+			if insufficient(e.composedOfferCost(p, id, cost, m, scope)) {
+				return false
+			}
+			ok = true
+			return true
+		})
+		return ok
+	}
 	for x := base.XMin; ; x++ {
 		announced := base.WithX(x)
 		if !e.offerCastableUsing(statics, p, id, &announced, scope, ability, &bound) {
 			return false
 		}
 		e.cast = &pendingCast{player: p, card: id, ability: -1, x: x}
-		if e.targetSAAvailable(p, id, excludeSelf, sa, x, false) {
+		hasTarget := e.targetSAAvailable(p, id, excludeSelf, sa, x, false)
+		// Price the announcement exactly before offering it (or walking past
+		// it to a pricier X).
+		if !priceExactly(announced) {
+			return false
+		}
+		if hasTarget {
 			return true
 		}
 	}
