@@ -796,13 +796,15 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 			// bestowed card's and an Equipment's; an Aura takes its CR
 			// 704.5m graveyard arm, no Unattached.
 			//
-			// A token bearer is the exception: by that checkpoint it has
-			// ceased to exist (CR 111.7), so gorge's "becomes unattached
-			// from a permanent" (ValidObject$ Permanent; the PermanentCard
-			// retry in trigmatch/unattached.go) finds no permanent and
-			// fires nothing. The token's own Dies trigger is unaffected
+			// A token bearer is no exception: it has ceased to exist by
+			// that checkpoint (CR 111.7), but it WAS a battlefield
+			// permanent when the detach was queued, so gorge's ceased-copy
+			// read (the ZCeased retry in trigmatch/unattached.go) still
+			// matches ValidObject$ Permanent and the trigger goes on the
+			// stack even though the sacrifice finds nothing (CR 701.3b,
+			// 400.7). The token's own Dies trigger is unaffected
 			// (CR 700.4).
-			if k.gen != nil && s.unattachedFires(k, q) && s.objs[o].of&ofToken == 0 {
+			if k.gen != nil && s.unattachedFires(k, q) {
 				s.fireUnattached(k, q, sl)
 			}
 			qp.attached = NoSlot
