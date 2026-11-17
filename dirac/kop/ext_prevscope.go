@@ -13,6 +13,10 @@ const (
 	// the opponents of the resolving controller, or every player, are
 	// prevented recipients (ValidTarget$ Opponent / Player); PrevScopePlayer
 	// remains the controller alone.
+	// PrevScopeGain (instruction bit only; the record keeps a rider byte,
+	// genState.prevX): the record's controller gains life equal to the damage it
+	// prevents (Chant of Vitu-Ghazi). Bit 7 stays free.
+	PrevScopeGain      = 1 << 6
 	PrevScopeOppPlayer = 1 << 13
 	PrevScopeAnyPlayer = 1 << 14
 )

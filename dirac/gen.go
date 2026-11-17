@@ -2197,7 +2197,7 @@ type genState struct {
 	// gorge Effect): the card that made it and the colour chosen (col, a
 	// ColorMask bit; 0 = free) whose sources' damage it prevents
 	// (cast_altfree.go; padding before lingerM)
-	prevCol [3]prevRec
+	prevCol [prevColN]prevRec
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
 	// counts each creature once across extra combats). perm.flags has no free bit, so
@@ -2418,7 +2418,9 @@ type genState struct {
 	// in the pool (valid while defSrc is nonzero; defColOf, mana_deferred.go).
 	// Taken from rsv.
 	defCol [(MaxSeats + 1) / 2]uint8
-	rsv    [rsvN]uint8
+	// prevX: one byte per prevCol record, its rider (repl_prevx.go). Taken from rsv.
+	prevX [prevColN]uint8
+	rsv   [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2438,8 +2440,10 @@ type genState struct {
 
 const (
 	maxImp      = 16
-	turnFBytes  = 1 // genState.turnF, taken from rsv
-	dmgAmtN     = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
+	prevColN    = 3        // genState.prevCol records
+	prevXBytes  = prevColN // genState.prevX, taken from rsv
+	turnFBytes  = 1        // genState.turnF, taken from rsv
+	dmgAmtN     = 4        // genState.dmgAmt: reader-card records (value_dmgamount.go)
 	dmgAmtBytes = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// rsvN pads the reserved block to 80 bytes (genState's tail padding
 	// absorbs the rest of the alignment, including tgtSpent): 64, plus the 16
@@ -2448,7 +2452,7 @@ const (
 	// in the class. The redirect records (redirBytes) grow the block by a
 	// whole cache line (64) in every seat class, so the phase holds: rsvN is
 	// what is left of that line after them.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) + 64 - redirBytes - prevXBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0
@@ -2607,7 +2611,7 @@ const (
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	StallRedirOrder    = 184 // a damage event a redirect record and another replacement both match, or a redirect the kernel does not model (infect, a combat pass already in an order ask; repl_dmgredirect.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
-	NumStall           = 193 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	NumStall           = 194 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).
