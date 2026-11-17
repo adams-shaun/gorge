@@ -656,7 +656,7 @@ const (
 // OpGainControl riders (B.N).
 const (
 	GcUntap    = 1 << iota // untap it (Untap$ True; a stun counter is removed instead)
-	GcHasteEOT             // it gains haste until end of turn (AddKWs$ Haste on an until-end-of-turn steal)
+	GcHasteEOT             // it gains haste (AddKWs$ Haste): until end of turn on a DurEOT steal, else for as long as the control record lives
 	GcRemember             // the gained permanent joins the remembered set (RememberControlled$; gorge effGainControl)
 )
 

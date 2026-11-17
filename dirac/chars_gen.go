@@ -745,6 +745,9 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 		m = k.cards[s.cardAt(sl)].kw
 	}
 	m |= p.eotKw | p.ovr.kw
+	if s.fxM.has(sl) {
+		m |= s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+	}
 	if !lost && s.nkwx != 0 {
 		m |= s.supKw(sl) // grants an ended loss had suppressed
 	}
