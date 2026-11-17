@@ -101,7 +101,6 @@ jobs:
         if: runner.environment == 'self-hosted'
         run: |
           bash scripts/ci-corpus.sh
-          flock "$HOME/gorge-cards/.lock" make dirac-tables
 
   lint:
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
@@ -185,8 +184,8 @@ jobs:
           restore-keys: gocache-test${{ matrix.shard }}-
       - name: Build dirac's card tables
         run: |
-          # The box's runners share one .cards (ci-corpus.sh): build its tables under the same lock.
-          if [ "${{ runner.environment }}" = self-hosted ]; then flock "$HOME/gorge-cards/.lock" make dirac-tables; else make dirac-tables; fi
+          # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
+          if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
@@ -284,8 +283,8 @@ jobs:
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Build dirac's card tables
         run: |
-          # The box's runners share one .cards (ci-corpus.sh): build its tables under the same lock.
-          if [ "${{ runner.environment }}" = self-hosted ]; then flock "$HOME/gorge-cards/.lock" make dirac-tables; else make dirac-tables; fi
+          # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
+          if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Run the commit tier
@@ -339,8 +338,8 @@ jobs:
           restore-keys: gocache-dirac-slices-
       - name: Build dirac's card tables
         run: |
-          # The box's runners share one .cards (ci-corpus.sh): build its tables under the same lock.
-          if [ "${{ runner.environment }}" = self-hosted ]; then flock "$HOME/gorge-cards/.lock" make dirac-tables; else make dirac-tables; fi
+          # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
+          if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Play the committed slices

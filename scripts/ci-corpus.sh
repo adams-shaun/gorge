@@ -22,7 +22,16 @@ if ! grep -qs "$ref" "$base/cards.lock"; then
   rm -rf "$base"; mv "$base.tmp" "$base"
 fi
 [ -d "$tree" ] || cp -a "$base" "$tree"
+# dirac's tables for this tree, built once (the first job of the tree: the prepare stage), under the lock.
+if [ ! -e "$tree/.tables-ok" ] && [ -z "${CI_CORPUS_NO_TABLES:-}" ]; then
+  rm -rf .cards; ln -sfn "$tree" .cards
+  make dirac-tables
+  touch "$tree/.tables-ok"
+fi
 touch "$tree"
 find "$root/tree" -mindepth 1 -maxdepth 1 -type d -mtime +2 -exec rm -rf {} + 2>/dev/null || true
-rm -rf .cards; ln -sfn "$tree" .cards
-echo "ci-corpus: .cards -> $tree"
+# .cards is a real directory of hard links to the tree, not a symlink: filepath.WalkDir does not follow a symlink at
+# its root, so a corpus walk over a symlinked .cards finds nothing (11-16: TestNumericPredicateCorpusCensus "found
+# only 0 numeric tokens"). Hard links take seconds, share the files and keep their mtimes (the Go test cache).
+rm -rf .cards; cp -al "$tree" .cards 2>/dev/null || { rm -rf .cards; cp -a "$tree" .cards; }
+echo "ci-corpus: .cards = hard links to $tree"
