@@ -247,7 +247,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	s.payManaHyb(k, life, &c) // cost_trighybrid.go
 	s.announcedHyb(&c)
 	var av avail
-	s.availPotentialFor(k, p, &av, &other)
+	s.availPotentialFor(k, p, &av, &other, false)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 

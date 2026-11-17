@@ -80,7 +80,7 @@ func (s *State) keywordCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) 
 	}
 	spell := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
 	var pa avail
-	s.availPotentialFor(k, p, &pa, &spell)
+	s.availPotentialFor(k, p, &pa, &spell, false)
 	return pa.affords(cost, pipMaskOf(cost), 0)
 }
 

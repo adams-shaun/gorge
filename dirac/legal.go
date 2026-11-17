@@ -1597,7 +1597,7 @@ func (s *State) fbPotentials(k *prep, p uint8, o Obj) (pf, gf kop.ManaCost, pPot
 	// refuses it adds nothing (Secluded Courtyard's any colour for an instant)
 	spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 	var pa avail
-	s.availPotentialFor(k, p, &pa, &spell)
+	s.availPotentialFor(k, p, &pa, &spell, false)
 	pf = s.adjustCost(k, p, c, o, cd.AltCost)
 	gf = s.adjustCost(k, p, c, o, gc)
 	pPot, gPot = pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
@@ -1626,7 +1626,12 @@ func (s *State) fbProbeRoot(k *prep, p uint8, a Action) bool {
 // deliberate over-bound: a source adds one unit of every colour it can make, and
 // an open production (any colour, an unread chosen colour) is unlimited.
 func (s *State) availPotential(k *prep, p uint8, a *avail) {
-	s.availPotentialFor(k, p, a, nil)
+	s.availPotentialFor(k, p, a, nil, false)
+}
+
+// availPotentialBoundedFor is availPotentialFor's exact any-colour mode.
+func (s *State) availPotentialBoundedFor(k *prep, p uint8, a *avail, d *payDesc) {
+	s.availPotentialFor(k, p, a, d, true)
 }
 
 // potentialOpenUnits stands for gorge's potentialUnbounded in each colour: more
@@ -1640,10 +1645,20 @@ const potentialOpenUnits = 2 * trigXCap
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
 // open reports a bound gorge prices potentialUnbounded in every colour.
 //
+// boundedAny is the X-bound target sweep's mode: a fixed any-colour source is
+// one unit of any colour instead of potentialUnbounded in every colour. A lone
+// Paradise Mantle then pays {U}, not {1}{U} (Spell Burst, CR 601.2b-c). A
+// genuinely unbounded source still opens the bound, and a fixed multi-colour
+// source keeps the per-colour over-count (Dominate's refusal).
+//
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open bool) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, boundedAny bool) (open bool) {
 	payment := d != nil
 	var pot [kop.NumManaKinds]int
+	// anyFree counts a fixed any-colour source's units in bounded mode: they
+	// are added to every potential colour for the fixpoint's coverage test,
+	// then priced once as wildcard units in the final avail.
+	anyFree := 0
 	for c := range pot {
 		pot[c] = int(s.pl[p].pool[c])
 	}
@@ -1673,14 +1688,8 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 					// potential walk's units: its fixed production counts
 					// once, an any-colour or all-at-once one is unbounded
 					// (gorge potentialUnbounded; the Deplete land's is fixed)
-					if a, _ := s.riderAbilityOf(k, sl); a.ManaEach || uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 {
-						open = true
-					} else {
-						n := int(a.ManaN)
-						if n < 1 {
-							n = 1
-						}
-						add(sl, uint8(a.ManaColors), uint8(n))
+					if a, ok := s.riderAbilityOf(k, sl); ok {
+						open = s.potentialRiderUnit(a, sl, boundedAny, add, &anyFree) || open
 					}
 					// counted here, so the fixpoint below must not admit the same
 					// ability again (potentialGapCost's Deplete arm): gorge counts it once
@@ -1695,21 +1704,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 		if pc.manaAb >= 0 {
 			done[sl] = 1 << pc.manaAb
 		}
-		dynamic := false
-		if k.gen != nil {
-			if c := s.cardAt(sl); k.gen.flags[c]&gfManaVar != 0 && !s.filtFeeOwed(k, sl, c) {
-				// a gated or reflected source's view already holds its abilities
-				done[sl] = ^uint16(0)
-				if k.gen.anyFiltPip {
-					done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
-				}
-				cd := &k.t.Cards[c]
-				dynamic = pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
-					k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
-			}
-		}
+		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
 		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment && !pc.manaFixedChosen) {
-			open = true
+			open = s.potentialAnyColourUnit(k, sl, pc, dynamic, boundedAny, add, &anyFree) || open
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -1731,7 +1728,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 			for i, ng := 0, s.grantIdxs(k, sl, &gi); i < ng; i++ {
 				gv := s.grantView(k.gen, gi[i], sl)
 				if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
-					open = true
+					open = s.potentialGrantedUnit(gv, sl, boundedAny, add, &anyFree) || open
 					continue
 				}
 				add(sl, s.srcMaskAt(gv, sl), gv.manaN)
@@ -1771,23 +1768,104 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 					continue
 				}
 				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
-					open = true
+					open = s.potentialExtraUnit(ab, sl, boundedAny, add, &anyFree) || open
 				} else {
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 				}
 			}
 		}
 	}
+	s.potentialBuildAvail(a, &pot, open, boundedAny, anyFree)
+	return open
+}
+
+// potentialDynamicSource reports whether sl's view is an unbounded dynamic
+// amount, marking the abilities the walk must not admit again.
+func (s *State) potentialDynamicSource(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uint16) bool {
+	if k.gen == nil {
+		return false
+	}
+	c := s.cardAt(sl)
+	if k.gen.flags[c]&gfManaVar == 0 || s.filtFeeOwed(k, sl, c) {
+		return false
+	}
+	// a gated or reflected source's view already holds its abilities
+	done[sl] = ^uint16(0)
+	if k.gen.anyFiltPip {
+		done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
+	}
+	cd := &k.t.Cards[c]
+	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
+		k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
+}
+
+// potentialAnyColourUnit adds a fixed any-colour source in bounded mode as one
+// unit of any colour; it reports the unbounded case.
+func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, dynamic, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
+	if !boundedAny || dynamic {
+		return true
+	}
+	mask, n := s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc)
+	if mask == uint8(kop.ColAny) {
+		*anyFree += int(n)
+	}
+	add(sl, mask, n)
+	return false
+}
+
+// potentialRiderUnit is a rider source's unit in the potential walk.
+func (s *State) potentialRiderUnit(a *kop.Ability, sl Slot, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
+	if !(a.ManaEach || uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
+		add(sl, uint8(a.ManaColors), max(a.ManaN, 1))
+		return false
+	}
+	if boundedAny && !a.ManaEach && a.AFlags&kop.AfManaChoice == 0 && uint8(a.ManaColors) == uint8(kop.ColAny) {
+		n := int(max(a.ManaN, 1))
+		*anyFree += n
+		add(sl, uint8(kop.ColAny), uint8(n))
+		return false
+	}
+	return true
+}
+
+// potentialGrantedUnit is a granted any-colour unit in the potential walk.
+func (s *State) potentialGrantedUnit(gv *pcard, sl Slot, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
+	if !boundedAny {
+		return true
+	}
+	*anyFree += int(gv.manaN)
+	add(sl, uint8(kop.ColAny), gv.manaN)
+	return false
+}
+
+// potentialExtraUnit is a source's further mana ability in the potential walk.
+func (s *State) potentialExtraUnit(ab *kop.Ability, sl Slot, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
+	if !boundedAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 || ab.ManaColors != kop.ColAny {
+		return true
+	}
+	n := max(ab.ManaN, 1)
+	*anyFree += int(n)
+	add(sl, uint8(kop.ColAny), n)
+	return false
+}
+
+// potentialBuildAvail turns the per-colour potential into a's units. In bounded
+// mode the wildcard units are removed from every colour and added once.
+func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, boundedAny bool, anyFree int) {
 	a.total, a.n = 0, 0
 	for c, n := range pot {
 		if open {
 			n = potentialOpenUnits
+		} else if boundedAny && anyFree > 0 && c < 5 && uint8(kop.ColAny)&(1<<c) != 0 {
+			n -= anyFree
 		}
 		if n > 0 {
 			a.addUnits(1<<c, uint8(min(n, 255)))
 		}
 	}
-	return open
+	if boundedAny && !open && anyFree > 0 {
+		a.addUnits(uint8(kop.ColAny), uint8(min(anyFree, 255)))
+	}
 }
 
 // filtFeeOwed reports whether the source at sl is a filter whose fee the

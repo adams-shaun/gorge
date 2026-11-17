@@ -394,7 +394,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
 		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
 		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
-		s.availPotentialFor(k, p, &pot, &d)
+		s.availPotentialBoundedFor(k, p, &pot, &d)
 	} else {
 		// An activation's announced X is priced against the activation's own
 		// payment too: a source whose RestrictValid$ refuses the ability
@@ -405,7 +405,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// prices each announced X with offerCastableUsing and the ability's
 		// payment descriptor).
 		d := payDesc{class: pdAct, card: s.cardAt(src), src: src, instant: a.Cost.Flags&kop.CostSorcery == 0}
-		s.availPotentialFor(k, p, &pot, &d)
+		s.availPotentialBoundedFor(k, p, &pot, &d)
 	}
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	if src == NoSlot {
