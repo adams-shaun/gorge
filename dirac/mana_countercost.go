@@ -228,6 +228,47 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 // answers the window without it, though its activation is offered and the
 // prefix script's steps activate it (ctrDeadGap).
 //
+// ctrCensusAb reports whether counter-cost ability a is one gorge's unless
+// census prices (rules paid_mana_census.go unlessWindowUnits' SubCounter arm,
+// pay.ManaSubCounterOnlyCost): a bare {T} plus a fixed, source-anchored
+// counter removal on a fixed production of one colour that asks no colour
+// (Weather Maker's "{T}, Remove two charge counters: Add {C}{C}", CR 608.2g).
+// The added-counter shape (Wall of Roots) prices no counter the census counts;
+// a storage battery's announced X is no fixed amount; the dead shape
+// (Component Pouch) resolves to no mana; an any-colour production asks a
+// colour (Vivid Grove's second ability), as the census withholds the plain
+// one. A depletion rider's own shape (Remote Farm, ManaRiderDeplete) is
+// riderCensusFree's, the rider arm's; this is the non-rider one.
+func ctrCensusAb(a *kop.Ability) bool {
+	return a != nil && !deadCtrAb(a) && !kop.StoreManaAb(a) && !ctrAnyColour(a) &&
+		kop.CtrTapSecondManaAb(a) && a.ManaRider == kop.ManaRiderNone
+}
+
+// unlessCtrGaps reports whether p has an activatable counter-cost source the
+// unless census prices (ctrCensusAb): windowAffordsTake's gate takes the walk
+// for it (scriptCtr has already read the counters the fee removes and the
+// source's tap), and windowPick answers the probe with the counter activation
+// (ctrCensusOffer), so the unless / ward offer counts the source exactly when
+// gorge's census lists it.
+func (s *State) unlessCtrGaps(k *prep, p uint8) bool {
+	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
+		if ctrCensusAb(k.ctrAbOf(s.cardAt(b.first()))) {
+			return true
+		}
+	}
+	return false
+}
+
+// ctrCensusOffer: slot o is p's activatable counter-cost source the unless
+// census prices (ctrCensusAb). The probe's windowPick answers it with the
+// counter activation itself (windowTapWalk's census arm, ctrGap): the plain
+// first ability's tap prices the census's other alternative, never the fee
+// shape's, so the probe would under-price the fee and offer decline only
+// where gorge offers pay.
+func (s *State) ctrCensusOffer(k *prep, p uint8, o Slot) bool {
+	return k.ctrMana && s.scriptCtr(k, p).has(o) && ctrCensusAb(k.ctrAbOf(s.cardAt(o)))
+}
+
 // windowCtrGapTap pays a counter-cost source the window picked in a gap.
 // The once-each-turn Produced$ Any shape takes the plain {T} first mana
 // ability: gorge's activation ask lists it first (owedAbilitiesFirst prices

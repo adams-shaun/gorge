@@ -276,6 +276,10 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			return false, held
 		}
 		if gap {
+			if census && s.ctrCensusOffer(k, p, sl) {
+				s.ctrGap(k, p, sl, -1) // the counters, the use, the mana (ctrGapDo): the census's fee shape
+				continue
+			}
 			if s.windowCtrGapTap(k, p, sl) {
 				continue
 			}
@@ -489,6 +493,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 				}
 				return o, true
 			}
+		}
+		if census && s.ctrCensusOffer(k, p, o) {
+			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
 		if s.windowCanTap(k, o) || s.windowSacNow(k, o) {
 			if !takeDeferred && s.planDeferred(k, p, o) {
@@ -1171,9 +1178,9 @@ func (s *State) setUnlessWin(on bool) {
 // activation the window walk can take (windowPick's rider arm): gorge's
 // manual windows list it and the census probes must count it. census is an
 // unless / ward window, whose offer gate lists the sources gorge's
-// unlessWindowUnits prices (riderCensusFree): a rider whose cost is more than
-// a bare tap or that removes a counter on a choice-shaped production is no
-// unit there, so it is not offerable.
+// unlessWindowUnits prices (riderCensusFree): a rider whose cost or
+// production the census does not price is no unit there, so it is not
+// offerable.
 func (s *State) riderOfferable(k *prep, p uint8, census bool) bool {
 	if k.gen == nil || !k.gen.anyManaRider {
 		return false
@@ -1204,11 +1211,13 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 // window (payWindow), which taps a planner-deferred source (a counter-rider
 // mana source, Twitching Doll, or a depletion land the census prices) once
 // the rest cannot cover the cost: gorge's unlessWindowUnits lists it, so the
-// pay is offered (CR 118.3, 605.3b).
+// pay is offered (CR 118.3, 605.3b). So does it tap a fixed counter-fee
+// source the census prices (unlessCtrGaps, Weather Maker), whose activation
+// the windowPick census arm takes (ctrCensusOffer).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) bool {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || s.riderOfferable(k, p, takeDeferred)) {
 		return false
 	}
 	t := s.fork()
