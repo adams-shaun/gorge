@@ -26,6 +26,12 @@ type legalWalk struct {
 	// autoBound is the lazily read PotentialMana bound the autopay offer
 	// (autoPayOffer) prices against; nil until first needed.
 	autoBound *state.Mana
+	// autoCensus is the payment planner's census over autoBound, read once
+	// for the walk (the potential query's census); autoScriptSearched counts
+	// the script-fallback's prefix searches (autoPayScriptOffer), capped like
+	// the potential query's (potentialScriptPlays).
+	autoCensus         *paymentPlanCensus
+	autoScriptSearched int
 	// autoPlain/autoPlainP/autoPlainSet are the lazily built payment-window
 	// census (windowManaUnits) the autopay fast path (autoPayFast) shares
 	// across every ability it prices. autoPlainSet distinguishes "not read
