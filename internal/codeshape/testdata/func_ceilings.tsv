@@ -53,7 +53,7 @@ dirac (*State).stepRaw	153	63
 dirac (*State).windowColOwed	143	64
 dirac (*State).windowTapWalk	129	73
 dirac (*State).wordPerm3	92	51
-dirac (*filtSearch).otherGap	228	70
+dirac (*filtSearch).otherGap	228	57
 dirac (*filtSearch).visit	142	57
 dirac (*grantSrch).visit	274	105
 dirac (*tapXSearch).visit	266	65
