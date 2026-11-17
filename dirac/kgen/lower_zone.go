@@ -2832,7 +2832,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return effectTapExtraRefuse() // lower_tapextra.go
 	}
 	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && !(t.Mode == "DamageDealtOnce" && lc.pairCap != nil) &&
-		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
+		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" && t.Mode != "AttackerBlocked" {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
 		// the command zone at cleanup) is the kernel's EOT emblem, and an
 		// until-your-next-turn one its next-turn emblem; both fire only for
@@ -2868,13 +2868,23 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
 	lc.effCount = mem.kind == memCount
+	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount = false, false
+	lc.capRem, lc.effCount, lc.emblemBlocked = false, false, false
 	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
 		return refuse("emblem trigger lowering")
+	}
+	lapse := false
+	if t.Mode == "AttackerBlocked" {
+		// the capture ends as gorge forgets the object (lower_effeottrig.go)
+		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
+			return refuse("Effect AttackerBlocked trigger without a captured object and ForgetOnMoved$ Battlefield")
+		}
+		ps.consume("ForgetOnMoved")
+		lapse = true
 	}
 	ab := lc.out.Abilities[saved]
 	if mem.kind != memNone {
@@ -2897,7 +2907,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player}
+	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse}
 	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
 	mem.apply(&em, &ce) // lower_effectremember.go
 	lc.out.Emblems = append(lc.out.Emblems, em)
