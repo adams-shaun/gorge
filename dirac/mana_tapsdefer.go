@@ -316,26 +316,21 @@ func (s *State) landSetGap(k *prep, sl Slot) bool {
 		!(k.gen.anyCantAct && s.actForbidden(k, sl, true))
 }
 
-// availTapsDeferIn is availFor with the plain Taps-deferred sources' units
-// counted (scriptTapsDeferPlain): the offer walk's picture of the sources
-// gorge's census-gap second pass funds (engine/rules/pay plandeferred.go).
-// The offer prices a play with them; the payment then goes to the script
-// route, which taps the gap first and places its watcher trigger before the
-// play (flushPrefixTriggers), as gorge's stepwise payment answers do -- or,
-// when the script search finds no prefix, to the planner's pass 2
-// (planTiered0). The units are the same addTapsDeferUnits adds: the
-// production and the StatTapExtra beside it. The counted sources are
-// recorded in a.gapIn, so removeSrc takes a cost's own tap out of them
+// availTapsDeferIn is availFor with the plain Taps-deferred sources counted
+// (scriptTapsDeferPlain): the priority walk's picture of the sources gorge's
+// census-gap second pass funds (engine/rules/pay plandeferred.go). The plain
+// walk the script route consults (plainOptions) counts them too, so a play
+// they pay is listed there and its payment is the planner's second pass
+// (planTiered0), not a prefix -- as gorge's planner pays it. The sources are
+// admitted in availFor's own loop (a.gapIn), so a source with a second
+// ability (Talisman's {G} or {W} beside its {C}) is counted as in the
+// planner's census, and removeSrc takes a cost's own tap out of them
 // (CR 602.2b) instead of trusting availLeavesOut's availFor premise.
 func (s *State) availTapsDeferIn(k *prep, p uint8, a *avail) {
 	if s.g.availX&(availGaps|availAny|availWalk|availHyp) != 0 {
 		// those walks already count the plain gap sources (availScript's
 		// scriptTapsDefer arm; the potential walks' main loop, which skips
-		// no deferred source), so a second unit would double them. A queued
-		// trigger means a prefix search's tap is still waiting for its
-		// placement: the search prices the gaps it has left by its own taps
-		// (foreignPendAsks ends its line on a foreign ask), not by a census
-		// unit that would list the play before its trigger is placed.
+		// no deferred source), so a second unit would double them
 		s.availFor(k, p, a)
 		return
 	}
