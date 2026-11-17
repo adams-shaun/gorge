@@ -804,6 +804,11 @@ type filtStep struct {
 	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
 	// (mana_sacsource.go)
 	sacOnly bool
+	// wide: a funding source's answer is a gate-on pair's larger ability (the
+	// second of Whisperer of the Wilds' two: gorge's ability ask lists both
+	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
+	// mana srcYield's, where the census one makes manaN
+	wide bool
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -1041,7 +1046,11 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	case st.restr:
 		s.filtRestrDo(k, p, st)
 	default:
-		s.poolAdd(p, int(st.ans), int(max(s.manaPCGen(k, st.sl).manaN, 1)))
+		n := int(max(s.manaPCGen(k, st.sl).manaN, 1))
+		if st.wide {
+			n = int(srcYield(s.manaPCGen(k, st.sl)))
+		}
+		s.poolAdd(p, int(st.ans), n)
 		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
 		s.tapPain(k, p, st.sl, int(st.ans)) // Cabal Pit's rider resolves with its mana (CR 605.3b)
@@ -1068,6 +1077,8 @@ func (s *State) fireFiltAbilityCast(k *prep, p uint8, st filtStep) {
 		s.fireManaAbilityCast(k, c, k.gen.restrRecOf(c).ab, p)
 	case st.gap:
 		s.fireViewAbilityCast(k, p, st.sl, s.manaPCGen(k, st.sl).manaAb)
+	case st.wide:
+		s.fireViewAbilityCast(k, p, st.sl, int8(s.widePairAb(k, st.sl, s.manaPCGen(k, st.sl))))
 	default:
 		s.fireViewAbilityCast(k, p, st.sl, s.manaAbForCol(k, st.sl, int(st.ans)))
 	}
@@ -1248,7 +1259,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if fs.fundColours(k, t, sl, pc, mask, funded, gapUsed) {
 						return true
 					}
-				} else if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(mask))}, funded+1, gapUsed) {
+				} else if fs.fundOne(k, t, sl, pc, mask, funded, gapUsed) {
 					return true
 				}
 			}
@@ -1279,6 +1290,17 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		fs.n--
 	}
 	return false
+}
+
+// fundOne taps the one-colour funding source sl for its census ability, then
+// for a gate-on pair's larger one: gorge's ability ask lists both and the
+// search takes them in turn (filtStep.wide).
+func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8, funded int, gapUsed bool) bool {
+	ans := uint8(bits.TrailingZeros8(mask))
+	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
+		return true
+	}
+	return t.widePairAb(k, sl, pc) >= 0 && fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: ans, wide: true}, funded+1, gapUsed)
 }
 
 // DebugFiltNoTrigSettle leaves a Taps trigger a filter-search step caused
