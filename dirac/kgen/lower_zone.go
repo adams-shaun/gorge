@@ -2802,6 +2802,33 @@ func (lc *lowerCtx) emblemStatic(ps *params, s cards.Static) error {
 	return nil
 }
 
+// emblemTrigDuration refuses an until-end-of-turn Effect's trigger whose
+// event the kernel's emblems do not listen to (an until-your-next-turn one
+// likewise): the effect leaves the command zone at cleanup, so it is the
+// kernel's EOT emblem, and both fire only for the events emblems listen to
+// (emblemTimedMode).
+func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next bool) error {
+	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil) {
+		return refuse("Effect triggers without a permanent duration")
+	}
+	return nil
+}
+
+// emblemExileLapse reads an Effect's ExileOnMoved$ rider: Battlefield lapses
+// the capture when the object leaves (kop.Emblem.CaptureLapse,
+// dirac/static_emblemcapture.go). Any other value, or the rider without a
+// capture, refuses.
+func emblemExileLapse(ps *params, hasCap bool) (bool, error) {
+	xm, ok := ps.get("ExileOnMoved")
+	if !ok {
+		return false, nil
+	}
+	if !hasCap || strings.TrimSpace(xm) != "Battlefield" {
+		return false, refuse("Effect ExileOnMoved$ %q", xm)
+	}
+	return true, nil
+}
+
 // emblem lowers a planeswalker emblem with one trigger (Kaito).
 func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.granted++
@@ -2834,12 +2861,8 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if eot && t.Mode == "TapsForMana" {
 		return effectTapExtraRefuse() // lower_tapextra.go
 	}
-	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil) {
-		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
-		// the command zone at cleanup) is the kernel's EOT emblem, and an
-		// until-your-next-turn one its next-turn emblem; both fire only for
-		// the events emblems listen to
-		return refuse("Effect triggers without a permanent duration")
+	if err := lc.emblemTrigDuration(t, eot, next); err != nil {
+		return err
 	}
 	if t.Effect == nil {
 		t.Effect = cards.ResolveSVar(lc.face.SVars, t.Params["Execute"])
@@ -2867,20 +2890,24 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 			capture, hasCap = lRef{Kind: rSelf}, true // the emblem remembers the Effect's source object
 		}
 	}
+	lapse, err := emblemExileLapse(ps, hasCap)
+	if err != nil {
+		return err
+	}
 	saved := len(lc.out.Abilities)
-	lc.capRem = hasCap && t.Mode == "DamageDealtOnce"
+	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
 	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
 	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked = false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemDmg = false, false, false, false, false
 	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
 		return refuse("emblem trigger lowering")
 	}
-	lapse := false
 	if t.Mode == "AttackerBlocked" {
 		// the capture ends as gorge forgets the object (lower_effeottrig.go)
 		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
@@ -2895,8 +2922,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 			return err
 		}
 	}
+	recipientCap := false
 	if hasCap && !player {
-		if err := emblemCaptureFilter(ab); err != nil {
+		if recipientCap, err = emblemCaptureFilter(ab); err != nil {
 			return err
 		}
 	}
@@ -2904,7 +2932,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		if err := emblemFiltersRefuse("Effect trigger", ab.Trigger.F, ab.Trigger.F2); err != nil {
 			return err
 		}
-		if err := eotCombatEmblemRefuse(ab); err != nil {
+		if err := eotCombatEmblemRefuse(ab, recipientCap); err != nil {
 			return err
 		}
 	}
