@@ -1417,8 +1417,19 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		// a watcher (opponent-source gated or not) or the plain self form
 		// (TfSelf, no gate: "becomes the target of a spell or ability")
 		selfPlain := !t.Watch && kt.Flags&kop.TfSelf != 0 && kt.Whose == kop.WhoseAny
-		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny)) {
+		if !selfPlain && !(t.Watch && (kt.Whose == kop.WhoseOpp || kt.Whose == kop.WhoseAny || t.SrcSpell && kt.Whose == kop.WhoseYou)) {
 			return kt, fmt.Errorf("BecomesTarget without Valiant")
+		}
+		if t.SrcSpell {
+			if !t.Watch {
+				return kt, fmt.Errorf("spell source on a non-watcher BecomesTarget")
+			}
+			kt.N = kop.TrigNSrcSpell
+			if t.SrcF != nil {
+				if kt.Filter2, err = cb.filter(t.SrcF, kop.ZoneStack); err != nil {
+					return kt, err
+				}
+			}
 		}
 		if t.SpellToo {
 			if kt.Flags&kop.TfSelf != 0 {

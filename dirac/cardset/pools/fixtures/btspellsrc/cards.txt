@@ -1,0 +1,16 @@
+# the BecomesTarget spell-source pool: Labyrinth Guardian (ValidSource$ Spell),
+# Stormchaser Drake (Spell.YouCtrl) and Opaline Sliver (Spell.OppCtrl) against
+# targeted spells and Prodigal Sorcerer's activated ping
+# (dirac/oracle/becomestarget_spellsource_lockstep_test.go)
+Labyrinth Guardian
+Stormchaser Drake
+Opaline Sliver
+Unsummon
+Shock
+Giant Growth
+Prodigal Sorcerer
+Grizzly Bears
+Island
+Mountain
+Forest
+Plains

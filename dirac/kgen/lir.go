@@ -948,6 +948,11 @@ type lTrigger struct {
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
 	// SpellToo: a creature spell its controller controls counts too.
 	Watch, SpellToo bool
+	// SrcSpell: BecomesTarget watcher whose ValidSource$ is a spell form
+	// (Spell[.YouCtrl|.OppCtrl|.<Type>], Instant,Sorcery); SrcF is its card
+	// filter when it names a type (kop.TrigNSrcSpell, Filter2).
+	SrcSpell bool
+	SrcF     *lFilter
 	// ByCreature: AttackerBlocked lowered from Mode$ AttackerBlockedByCreature,
 	// once per (attacker, blocker) pair; F reads the attacker, F2 the
 	// blocker, exactly one of them Card.Self; the trigger object is the
