@@ -105,6 +105,37 @@ func (s *State) manaRider(k *prep, sl Slot) {
 	}
 }
 
+// riderCensusFree reports whether rider ability a's cost is a bare tap, the
+// only rider gorge's unless census lists (rules unlessWindowUnits reads
+// pay.ManaFreeCost and the paid shapes; a counter removal is neither): a
+// depletion land or Gemstone Mine's "{T}, remove a counter" is left out of a
+// ward or unless window, so its pay is not offered on its account (CR 118.3).
+func riderCensusFree(a *kop.Ability) bool {
+	return a.Cost.Flags&^kop.CostTap == 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+}
+
+// riderWindowable is riderActivatable as windowPick takes the source: a
+// census window (a ward or unless window) also needs riderCensusFree.
+func (s *State) riderWindowable(k *prep, p uint8, sl Slot, a *kop.Ability, census bool) bool {
+	return s.riderActivatable(k, p, sl, a) && (!census || riderCensusFree(a))
+}
+
+// windowTapsDefer is scriptTapsDefer as windowPick takes it: a census window
+// leaves out the rider sources riderCensusFree rejects.
+func (s *State) windowTapsDefer(k *prep, p uint8, census bool) slotMask {
+	m := s.scriptTapsDefer(k, p)
+	if !census {
+		return m
+	}
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		if a, ok := s.riderAbilityOf(k, sl); ok && !riderCensusFree(a) {
+			m = m.andNot(slotBit(sl))
+		}
+	}
+	return m
+}
+
 // riderPotential reports whether the source at sl's first mana ability is a
 // bounded rider activation the potential walks count (gorge potentialManaFor:
 // every mana ability of every untapped source, so a trigger's own cost is
