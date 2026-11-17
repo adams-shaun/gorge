@@ -13,8 +13,11 @@ cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPRO
 pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse)$'
 files=(dirac/docs/support.md dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv)
 
-pr=$(gh pr list --head "$branch" --state open --json number,labels --jq '.[0] | select(.) | "\(.number) \([.labels[].name] | join(","))"')
-case " ${pr#* } " in *queued*) echo "regen-main: #${pr%% *} is in the merge queue; left alone"; exit 0 ;; esac
+pr=$(gh pr list --head "$branch" --state open --json number,labels,mergeable --jq '.[0] | select(.) | "\(.number) \(.mergeable) \([.labels[].name] | join(","))"')
+# An open regen PR that still merges is left alone: a push restarts its checks, and main moves more often than they
+# finish (11-17: #749 re-pushed every tick, its fast never ended). It carries a rise up to its own base; the next run
+# after it merges carries the rest. Only a conflicting one is rebuilt.
+case " $pr " in "  ") ;; *" CONFLICTING "*) ;; *) echo "regen-main: #${pr%% *} is open and merges; left alone"; exit 0 ;; esac
 
 git -C "$repo" fetch -q "$remote" main || { echo "regen-main: fetch failed"; exit 1; }
 wt=$main/.worktrees/regen-main
