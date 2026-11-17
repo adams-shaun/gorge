@@ -798,9 +798,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ReplacementEvent:  event, ReplacementParams: params,
 				Chosen: chosenSnap, ChosenBound: chosenBound,
 			}
-			if IsAsLongAsControlDuration(rawDur) {
-				ce.SourceIncarnation = effectHostIncarnation(h, c)
-			}
+			anchorLockHostIncarnation(h, c, rawDur, &ce)
 			if untilUntapsBind(h, c, rawDur, &ce) {
 				effectContinuous(h, ce)
 			}
