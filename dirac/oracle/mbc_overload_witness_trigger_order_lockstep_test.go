@@ -11,6 +11,8 @@ import (
 // finish paying. The gorge potential-play witness once refused the replay
 // there (its other-player walk passed only priority decisions), so gorge
 // never offered the overloaded cast the kernel offers.
+// The recording is pooled custom (the table its own decks need): the dr-mbc
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCDynachargeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "overload_witness_trigger_order")

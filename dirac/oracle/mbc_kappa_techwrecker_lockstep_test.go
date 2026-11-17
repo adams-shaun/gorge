@@ -8,6 +8,8 @@ import "testing"
 // counter is a new object the trigger's cost cannot take a counter from. The
 // gorge side read the counter off the same ObjID and offered to pay; the
 // choice is decline-only (decision 707 of dr-mbc-aabb pair 194).
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCKappaTechWreckerReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "trigger_subcounter_cost_source_bounced")
