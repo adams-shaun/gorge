@@ -399,7 +399,11 @@ func holdsNameChooser(decks [2][]*cards.Card) bool {
 	return holdsNameChooserN(decks[:])
 }
 
-// holdsNameChooserN is holdsNameChooser over any number of decks.
+// holdsNameChooserN is holdsNameChooser over any number of decks. A NameCard
+// the printed chains reach only through an Execute$ (Cabal Therapist: the
+// ImmediateTrigger's Execute$ holds an ability whose Execute$ is the NameCard)
+// is followed by name through the face's SVar table, capped like a sub-ability
+// chain: the ask is the same NameCard either way.
 func holdsNameChooserN(decks [][]*cards.Card) bool {
 	for _, d := range decks {
 		for _, c := range d {
@@ -410,27 +414,39 @@ func holdsNameChooserN(decks [][]*cards.Card) bool {
 				if f == nil {
 					continue
 				}
-				for _, t := range f.Triggers {
-					for a := t.Effect; a != nil; a = a.Sub {
+				seen := map[*cards.SA]bool{}
+				var walk func(a *cards.SA, depth int) bool
+				walk = func(a *cards.SA, depth int) bool {
+					for ; a != nil; a = a.Sub {
+						if seen[a] {
+							break
+						}
+						seen[a] = true
 						if a.API == "NameCard" {
 							return true
 						}
+						if depth <= maxNameChooserDepth {
+							if ex := strings.TrimSpace(a.ParamStr(cards.PKExecute)); ex != "" {
+								if n := cards.ResolveSVar(f.SVars, ex); n != nil && walk(n, depth+1) {
+									return true
+								}
+							}
+						}
 					}
+					return false
 				}
 				for _, r := range f.Repls {
-					for a := r.With; a != nil; a = a.Sub {
-						if a.API == "NameCard" {
-							return true
-						}
-					}
-				}
-				for _, ab := range f.Abilities {
-					if chainNamesCard(ab) {
+					if walk(r.With, 0) {
 						return true
 					}
 				}
-				for i := range f.Triggers {
-					if chainNamesCard(f.Triggers[i].Effect) {
+				for _, ab := range f.Abilities {
+					if walk(ab, 0) {
+						return true
+					}
+				}
+				for _, tr := range f.Triggers {
+					if walk(tr.Effect, 0) {
 						return true
 					}
 				}
@@ -440,16 +456,9 @@ func holdsNameChooserN(decks [][]*cards.Card) bool {
 	return false
 }
 
-// chainNamesCard reports whether an ability, or a SubAbility linked from it,
-// is a NameCard (a triggered one is Cheering Fanatic's attack trigger).
-func chainNamesCard(sa *cards.SA) bool {
-	for a := sa; a != nil; a = a.Sub {
-		if a.API == "NameCard" {
-			return true
-		}
-	}
-	return false
-}
+// maxNameChooserDepth caps the Execute$ chains holdsNameChooserN follows: the
+// cards package's own sub-ability nesting cap (engine/cards link.go).
+const maxNameChooserDepth = 32
 
 // NameUniverseFor is the name universe a gorge game over decks is dealt: the
 // registry's whole universe, except that a matchup holding a card that
