@@ -1436,6 +1436,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if a.AFlags&kop.AfLatent != 0 {
 					var gp pcard
 					gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
+					gp.manaOne = manaOneColour(a, gp.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen (availGrant's one-colour census, as the printed path's)
 					gp.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					gp.manaOne = manaOneColour(a, gp.manaN) // Nature's Embrace's "two mana of any one color": one colour for both (CR 106.1)
 					prepGrantCost(&gp, a)                   // {T} + pay N life, sacrifice this alone (mana_grantcost.go)

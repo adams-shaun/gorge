@@ -553,6 +553,11 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		s.addGrantUnits(a, mask, n)
 		if ng == 0 && pc.manaOne {
 			s.addOneColour(a, n)
+		} else if ng == 1 && s.g.availX&availHyp == 0 {
+			// a source whose only mana is one grant: its "N mana of any one color" is one colour
+			if gv := s.grantView(k.gen, gi[0], sl); gv.manaOne {
+				s.addOneColour(a, gv.manaN)
+			}
 		}
 		s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 		return
@@ -560,14 +565,32 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if s.g.availX&availWalk != 0 {
 		if own {
 			s.addGrantUnits(a, mask, n)
+			if pc.manaOne && s.g.availX&availHyp == 0 {
+				s.addOneColour(a, n) // the printed amount is one colour, whichever is chosen (availFor's census)
+			}
 		}
 		for i := 0; i < ng; i++ {
-			pc := s.grantView(k.gen, gi[i], sl)
-			s.addGrantUnits(a, s.srcMaskAt(pc, sl), pc.manaN)
+			gv := s.grantView(k.gen, gi[i], sl)
+			s.addGrantUnits(a, s.srcMaskAt(gv, sl), gv.manaN)
+			if gv.manaOne && s.g.availX&availHyp == 0 {
+				s.addOneColour(a, gv.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen
+			}
 		}
 		s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 		return
 	}
+	s.availGrantJoin(k, sl, pc, a, &gi, ng, own, mask, n)
+}
+
+// availGrantJoin is availGrant's census of a dual source's grants beside its
+// own ability: the tap is one ability of the join's colours and the larger
+// amount, so the units join (one unit of the larger amount, the colours
+// unioned), a printed or granted sacrifice-only part is a unit of its own
+// beside it, and a one-colour source (a printed manaOne ability or a grant's
+// "N mana of any one color") reads as one colour, whichever is chosen
+// (oneColourPays), as availFor's printed path does. gi holds the granted
+// abilities' indices, ng how many are live.
+func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGrants]int16, ng int, own bool, mask, n uint8) {
 	if !own {
 		mask, n = 0, 0
 	}
@@ -575,9 +598,11 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	// it is a unit of its own beside a tap grant's, and a tapped source still
 	// pays it, though not the tap grant (CR 602.2b, 605.1a).
 	var pMask, pN uint8
+	pOne := false
 	spawnNoTap := false
 	if own && k.sacOnlyMana && pc.manaSacOnly {
 		pMask, pN = mask, n
+		pOne = pc.manaOne
 		mask, n = 0, 0
 		spawnNoTap = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
 	}
@@ -585,7 +610,8 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	// mana of any one color") costs no {T}: the source taps for its other
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
-	var sMask, sN, oneN uint8
+	var sMask, sN uint8
+	sOne := false
 	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
 	tapsNot := false
 	if ownSac {
@@ -597,24 +623,39 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		sMask, sN, mask, n = mask, n, 0, 0
 		tapsNot = s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl)
 	}
+	// oneN: the amount of the one-colour source (a printed manaOne ability or
+	// a "N mana of any one color" grant) the joined units stand for: the units
+	// are one colour, whichever is chosen, and the census reads them so
+	// (oneColourPays), as availFor's printed path does.
+	oneN := uint8(0)
+	if own && pc.manaOne {
+		oneN = n
+	}
 	for i := 0; i < ng; i++ {
-		pc := s.grantView(k.gen, gi[i], sl)
-		if tapsNot && !pc.grantSac {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if tapsNot && !gv.grantSac {
 			continue
 		}
-		if pc.grantSac && s.grantSacLive(sl, pc) {
-			sMask |= s.srcMaskAt(pc, sl)
-			sN = max(sN, pc.manaN)
+		if gv.grantSac && s.grantSacLive(sl, gv) {
+			sMask |= s.srcMaskAt(gv, sl)
+			if gv.manaN > sN {
+				sN = gv.manaN
+			}
+			if gv.manaOne {
+				sOne = true
+			}
 			continue
 		}
 		if spawnNoTap {
 			continue // a tapped or summoning-sick Spawn cannot pay a granted {T} ability (CR 302.6)
 		}
-		mask |= s.srcMaskAt(pc, sl)
-		if pc.manaOne && pc.manaN >= n {
-			oneN = pc.manaN // the unit's amount is one granted ability's, all in one colour
+		mask |= s.srcMaskAt(gv, sl)
+		if gv.manaN > n {
+			n = gv.manaN
 		}
-		n = max(n, pc.manaN)
+		if gv.manaOne {
+			oneN = max(oneN, gv.manaN)
+		}
 	}
 	if mask == 0 {
 		mask, n, sMask, sN = sMask, sN, 0, 0
@@ -622,17 +663,23 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	}
 	if mask != 0 {
 		s.addGrantUnits(a, mask, n)
-		if oneN == n && oneN != 0 {
-			s.addOneColour(a, oneN) // as the plain path's manaOne unit: {U}{R} is not payable from one tap (CR 106.1)
+		if oneN == n && n > 1 && mask == uint8(kop.ColAny) {
+			s.addOneColour(a, n) // the joined units are one colour, whichever is chosen
 		}
 	}
 	if sMask != 0 {
 		s.addGrantUnits(a, sMask, sN)
+		if sOne && sN > 1 && sMask == uint8(kop.ColAny) {
+			s.addOneColour(a, sN) // the sacrificed grant's mana is one colour, whichever is chosen
+		}
 	}
 	if pMask != 0 {
 		s.addGrantUnits(a, pMask, pN)
+		if pOne && pN > 1 && pMask == uint8(kop.ColAny) {
+			s.addOneColour(a, pN) // the printed sacrifice-only amount is one colour, whichever is chosen
+		}
 	}
-	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
+	s.availGrantExtra(k, sl, pc, gi, ng, own, a)
 }
 
 // availGrantExtra adds the extra mana a tap of sl brings (mana_tapextra.go) to
