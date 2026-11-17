@@ -126,15 +126,20 @@ func (lc *lowerCtx) damageYouCost(c *lCost, parts []string, n int, t string) err
 // An activated ability's own cost lowers it into the Cost.Mill byte, an
 // UnlessCost$ into payInstr's CS=Mill instruction (gorge payUnlessCost mills
 // through the shared pay.PayMillCost behind the election, gated
-// pay.MillCostPayable; Deep Spawn). A mana ability's Mill<1> is a shape
-// kop.ManaAbilityHonoured does not list (gorge's manual window does pay it,
-// mana_activation.go over pay.ManaCostPayableFull, so the lowering is its own
-// kernel slice), and a trigger's own Cost$ Mill (Ashcoat of the Shadow Swarm)
-// parses here — costUnless — but payInstr refuses it: gorge's triggered-cost
-// window keeps the component decline-only (cumulative.go
-// triggeredCostComponentsPayable).
+// pay.MillCostPayable; Deep Spawn), and a mana ability's Mill<N> into the
+// Cost.Mill byte beside its {T} (Millikin): the head's Cost$ is parsed while
+// the ability is still classified akMana -- the reclassification reads the
+// parsed body (lower_stackmana.go stackManaAbility) -- and no CR 605.1a mana
+// ability's cost moves a library card (cards.IsManaAbilitySA's library gate),
+// so gorge resolves the whole ability on the stack as an ordinary activated
+// ability and its activation pays the mill through the same Cost.Mill arm
+// every activated ability pays (mana_window.go payAbilityCosts). A trigger's
+// own Cost$ Mill (Ashcoat of the Shadow Swarm) parses here — costUnless — but
+// payInstr refuses it: gorge's triggered-cost window keeps the component
+// decline-only (cumulative.go triggeredCostComponentsPayable).
 func (lc *lowerCtx) millCost(c *lCost, parts []string, n int, t string) error {
-	if !lc.actCost && !lc.unlessParse || len(parts) != 1 || n < 1 || c.MillN != 0 {
+	if !lc.actCost && !lc.unlessParse && (lc.ab == nil || lc.ab.Kind != akMana) ||
+		len(parts) != 1 || n < 1 || c.MillN != 0 {
 		return refuse("mill cost %q", t)
 	}
 	c.MillN = n
