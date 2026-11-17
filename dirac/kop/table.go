@@ -649,6 +649,15 @@ type CardDef struct {
 	// every ability; a Saga sets its reading and its writing chapters (The
 	// Measure of a Man: chapter III returns what chapter I exiled).
 	RemSeed, RemKeep uint32
+	// ImpPersist: the card keeps its Imprinted on the source (gorge's
+	// Object.Imprinted; dirac/zone_srcmem.go).
+	ImpPersist bool
+	// SrcMem: the card keeps its Remembered on the source (gorge's
+	// Object.Remembered; dirac/zone_srcmem.go).
+	SrcMem bool
+	// SmSeed: with SrcMem, the abilities (bit i = Abilities[i]) whose
+	// resolution starts with the kept set.
+	SmSeed uint32
 	// ExiledWith: the card reads the exiled-with source link (PredExiledWith
 	// or ExExiledWithN): its resolutions record the cards they exile
 	// (dirac/zone_exiledwith.go, genPrep.exwRec).
