@@ -100,6 +100,7 @@ Eidolon of Rhetoric
 Eivor, Battle-Ready
 Eldritch Evolution
 Elegant Edgecrafters
+Elvish Pathcutter
 Ember Swallower
 Endless One
 Energy Refractor
@@ -158,6 +159,7 @@ Hero of Oxid Ridge
 Hidden Herbalists
 Hieroglyphic Illumination
 Horned Troll
+Hour of Reckoning
 Hydrolash
 Hyperion's Atomic Vision
 Immolating Gyre
@@ -239,6 +241,7 @@ Ojutai's Breath
 Ominous Seas
 On the Trail
 Ondu Cleric
+Orbweaver Kumo
 Orcish Mechanics
 Orzhova, the Church of Deals
 Otherworldly Gaze

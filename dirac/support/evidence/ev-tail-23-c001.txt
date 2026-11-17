@@ -87,6 +87,7 @@ Crypt Angel
 Crypt Incursion
 Culling Sun
 Dark Withering
+Darkwatch Elves
 Daru Lancer
 Dauntless Aven
 Day's Undoing
@@ -96,6 +97,7 @@ Defender en-Vec
 Deflecting Swat
 Dense Canopy
 Deny the Divine
+Disrupting Scepter
 Doctor Jane Foster
 Doomed Dissenter
 Dragon's Eye Sentry
@@ -113,6 +115,7 @@ Ensnaring Bridge
 Ensouled Scimitar
 Entomber Exarch
 Eron the Relentless
+Exhibition Magician
 Experimental Synthesizer
 Explore
 Eyes of the Watcher
@@ -188,6 +191,7 @@ Intrepid Hero
 Invasion of Kylem
 Invasion of Mercadia
 Ion Storm
+Iridescent Drake
 Island
 Iwamori of the Open Fist
 Jeskai Windscout
@@ -210,6 +214,7 @@ Kuldotha Forgemaster
 Lash of the Balrog
 Leela, Sevateem Warrior
 Lens Flare
+Leonardo, the Balance
 Liliana's Specter
 Lim-Dûl's High Guard
 Linvala, Keeper of Silence
@@ -319,6 +324,7 @@ Siege Mastodon
 Siegehorn Ceratops
 Slither Blade
 Sliver Construct
+Smokestack
 Smuggler's Copter
 Solarion
 Somberwald Sage

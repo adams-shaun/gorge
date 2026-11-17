@@ -62,6 +62,7 @@ Deadly Insect
 Deadly Wanderings
 Death Speakers
 Deathleaper, Terror Weapon
+Debtor's Pulpit
 Deepwood Tantiv
 Defenestrate
 Descendant of Kiyomaro
@@ -72,6 +73,7 @@ Disciple of Freyalise
 Divine Smite
 Dragonborn Looter
 Dread Tiller
+Easterling Vanguard
 Ebony Treefolk
 Echoing Calm
 Eiganjo Castle
@@ -124,6 +126,7 @@ Hardened Scales
 Harpoon Sniper
 Haunted Crossroads
 Hellkite Igniter
+Hero's Resolve
 Horned Cheetah
 Horned Helm
 Hornet Cannon
@@ -142,6 +145,7 @@ Kjeldoran Pride
 Knights of Dol Amroth
 Kolvori, God of Kinship
 Kor Blademaster
+Kratos, Stoic Father
 Kuldotha Flamefiend
 Lady Spider, Maybelle Reilly
 Land Leeches
@@ -156,6 +160,7 @@ Lore Seeker
 MACH-1, Swooping Scoundrel
 Malevolent Awakening
 Malicious Advice
+Markov Dreadknight
 Marsh Hulk
 Marshaling Cry
 Meadowboon
@@ -203,6 +208,7 @@ Priest of Ancient Lore
 Psychotic Haze
 Purple Pentapus
 Putrid Imp
+Pyromantic Pilgrim
 Pyrrhic Blast
 Rag Dealer
 Raging Bull
@@ -239,6 +245,7 @@ Scurry Oak
 Sedraxis Specter
 Selfless Spirit
 Shagrat, Loot Bearer
+She-Hulk, Jennifer Walters
 Sheltering Landscape
 Shu Yun, the Silent Tempest
 Sigarda's Summons

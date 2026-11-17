@@ -1,4 +1,5 @@
 A-Goma Fada Vanguard
+A-Prosperous Thief
 A-The One Ring
 Aether Gale
 Afterlife
@@ -48,6 +49,7 @@ Call for Blood
 Call of the Herd
 Call the Bloodline
 Canal Monitor
+Canopy Surge
 Cantivore
 Cathartic Reunion
 Cathedral of War
@@ -97,6 +99,7 @@ Disrupt
 Draconic Lore
 Dragon Tyrant
 Dragonfly Suit
+Dromar, the Banisher
 Dross Crocodile
 Drowned
 Dunland Crebain
@@ -105,6 +108,7 @@ Ebon Praetor
 Eerie Interlude
 Electrostatic Bolt
 Elusive Spellfist
+Elvish Lyrist
 Emiel the Blessed
 Enchanted Carriage
 Enchantress's Presence
@@ -180,11 +184,13 @@ Havoc Demon
 Heart-Piercer Manticore
 Hearth Charm
 Heedless One
+Herbology Instructor
 Hermit Druid
 Hired Poisoner
 Hoar Shade
 Hoard-Smelter Dragon
 Hoarding Recluse
+Hobble
 Hollowhenge Overlord
 Hope Charm
 Horned Sliver
@@ -195,6 +201,7 @@ Ignite the Beacon
 Incursion Specialist
 Inner Fire
 Inquisitor's Ox
+Instrument of the Bards
 Iron Bully
 Iron-Barb Hellion
 Island
@@ -235,6 +242,7 @@ Merrow Commerce
 Mesmeric Trance
 Metropolis Reformer
 Might of the Old Ways
+Mind Shatter
 Mindblaze
 Mindshrieker
 Mirkwood Spider
@@ -245,6 +253,7 @@ Mountain
 Mox Emerald
 Munitions Expert
 Myrel, Shield of Argive
+Myriad Landscape
 Nacatl Outlander
 Nath's Buffoon
 Nebelgast Beguiler
@@ -255,6 +264,8 @@ Niblis of Dusk
 Nyxborn Brute
 Oakhame Adversary
 Oblivion's Hunger
+Oboro Envoy
+Obsessive Search
 Octomancer
 Ogre Errant
 Oketra's Last Mercy
@@ -315,6 +326,7 @@ Shard Convergence
 Sharpshooter Elf
 Shield Wall
 Siege Zombie
+Siegfried, Famed Swordsman
 Sigarda, Champion of Light
 Silent Sentinel
 Silumgar Sorcerer
@@ -341,6 +353,7 @@ Spearbreaker Behemoth
 Specter's Shroud
 Spell Crumple
 Spell Syphon
+Sphinx Mindbreaker
 Spire Tracer
 Spore Cloud
 Sprouting Vines
@@ -392,6 +405,7 @@ Turn to Slag
 Unesh, Criosphinx Sovereign
 Unyaro Bees
 Vampiric Dragon
+Vampirism
 Vanguard of Brimaz
 Venerable Knight
 Viashino Slasher

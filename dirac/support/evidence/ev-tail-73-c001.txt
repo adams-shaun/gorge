@@ -10,11 +10,13 @@ Agony Warp
 Akroan Phalanx
 Akroan Skyguard
 Akuta, Born of Ash
+Ambulatory Edifice
 Amy Rose
 Anara, Wolvid Familiar
 Ancient Stirrings
 Angelic Protector
 Appetite for Brains
+Arcbound Tracker
 Arm-Mounted Anchor
 Arrogant Poet
 Ashen Rider
@@ -34,9 +36,11 @@ Bold Impaler
 Bone Dragon
 Bonesplitter
 Boneyard Wurm
+Borrowed Malevolence
 Bottle Gnomes
 Brass Gnat
 Bringer of the White Dawn
+Bristling Hydra
 Burn the Impure
 Cabal Evangel
 Canopy Stalker
@@ -49,6 +53,7 @@ Chariot of the Sun
 Chasm Drake
 Chorus of the Tides
 Cinder Wall
+Cleansing Ray
 Cleaving Sliver
 Cleon, Merry Champion
 Clockwork Beetle
@@ -70,6 +75,7 @@ Curio Vendor
 Curse of Verbosity
 Dauntless Bodyguard
 Death's-Head Buzzard
+Deathspore Thallid
 Deep-Sea Terror
 Deepglow Skate
 Delusions of Mediocrity
@@ -125,6 +131,7 @@ Forgotten Cave
 Fortitude
 Fortress Crab
 Frilled Sandwalla
+Funeral March
 Fungal Plots
 Furtive Analyst
 Galazeth Prismari
@@ -195,12 +202,14 @@ Jhessian Thief
 Jodah's Avenger
 Judge of Currents
 Jund Battlemage
+Kalemne, Disciple of Iroas
 Kapsho Kitefins
 Kenrith, the Returned King
 Kin-Tree Invocation
 Kinjalli's Sunwing
 Kithkin Healer
 Kithkin Spellduster
+Koma's Faithful
 Kragma Warcaller
 Kudo, King Among Bears
 Labyrinth Adversary
@@ -216,6 +225,7 @@ Lunar Frenzy
 Lydia Frye
 Magmatic Sprinter
 Malanthrope
+Malevolent Awakening
 Malevolent Whispers
 Malfegor
 Malfunction
@@ -231,6 +241,7 @@ Mental Note
 Mightstone
 Mindbreak Trap
 Mindshrieker
+Mirran Mettle
 Mirri the Cursed
 Mirri's Guile
 Mischievous Chimera
@@ -245,12 +256,14 @@ Mountain Goat
 Murasa Behemoth
 Myrsmith
 Nantuko Mentor
+Necropolis Regent
 Nettle Drone
 Neurok Replica
 Night Out in Vegas
 Nimble Birdsticker
 Nomad Decoy
 Norwood Priestess
+Null Caller
 Nylea's Huntmaster
 Oathsworn Vampire
 Ogre Errant
@@ -260,6 +273,7 @@ Orc Sureshot
 Orcish Vandal
 Ordeal of Heliod
 Ordered Migration
+Orgg
 Outmaneuver
 Oversold Cemetery
 Pack Rat
@@ -267,6 +281,7 @@ Paradise Mantle
 Patagia Tiger
 Phantasmal Sphere
 Pheres-Band Warchief
+Phyrexian Crusader
 Pillage
 Pitfall Trap
 Plague Spitter
@@ -274,6 +289,7 @@ Plains
 Poison-Tip Archer
 Primal Surge
 Primal Whisperer
+Primeval Force
 Prizefight
 Protective Bubble
 Puca's Covenant
@@ -307,6 +323,7 @@ Scarwood Goblins
 Scavenged Weaponry
 Scour the Laboratory
 Scourge of Numai
+Screams of the Damned
 Scurry Oak
 Seafloor Oracle
 Searing Blood
@@ -315,6 +332,7 @@ Selfless Spirit
 Senate Courier
 Serra Aviary
 Shuri's Fabricator
+Sibsig Host
 Sidewinder Naga
 Sigarda's Imprisonment
 Silas Renn, Seeker Adept
@@ -326,9 +344,12 @@ Sivvi's Ruse
 Skirk Shaman
 Skittish Kavu
 Skulking Ghost
+Skullslither Worm
+Skullsnatcher
 Skyboon Evangelist
 Skyknight Vanguard
 Skyreach Manta
+Skyshroud Blessing
 Skyshroud Falcon
 Skysnare Spider
 Sly Spy
@@ -341,6 +362,7 @@ Sorcerous Sight
 Southern Paladin
 Spara's Headquarters
 Spawning Kraken
+Spelltithe Enforcer
 Spider-Man, Peter Parker
 Spirit Cairn
 Spiritual Sanctuary
@@ -374,6 +396,7 @@ Tar Pit Warrior
 Tarkir Duneshaper
 Taste for Mayhem
 Tectonic Break
+Tezzeret the Schemer
 The Stasis Coffin
 Thraben Charm
 Threads of Disloyalty
@@ -404,6 +427,7 @@ Vedalken Ghoul
 Verdurous Gearhulk
 Veteran Armorer
 Veteran Brawlers
+Vine Snare
 Violet Pall
 Virtus the Veiled
 Vital Splicer
@@ -419,6 +443,7 @@ Warclamp Mastiff
 Warhorn Blast
 Wei Strike Force
 Wicked Slumber
+Windcaller Aven
 Windstorm
 Wispweaver Angel
 Witch's Web

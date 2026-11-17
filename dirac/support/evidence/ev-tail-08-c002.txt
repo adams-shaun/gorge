@@ -13,6 +13,7 @@ Battle Sliver
 Benalish Missionary
 Blind-Spot Giant
 Blood Divination
+Blood Glutton
 Bolt of Keranos
 Cabal Inquisitor
 Cadira, Caller of the Small
@@ -81,6 +82,7 @@ Last Kiss
 Liliana's Triumph
 Lone Missionary
 Lucky the Pizza Dog
+M.O.D.O.K., Evil Intellect
 Magmaroth
 Magmatic Force
 Malakir Bloodwitch
@@ -101,6 +103,7 @@ O'aka, Traveling Merchant
 Overtaker
 Paradox Engine
 Pearled Unicorn
+Pernicious Deed
 Pious Wayfarer
 Pitchburn Devils
 Plains

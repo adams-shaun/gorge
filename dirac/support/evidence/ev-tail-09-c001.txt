@@ -3,33 +3,46 @@ A-Goggles of Night
 Abnormal Endurance
 Abyssal Hunter
 Agent of the Iron Throne
+Akroan Horse
 Alchemist's Retrieval
+Alirios, Enraptured
+Altar of Dementia
 Ambush
 Ancient Excavation
 Ant-Man, Elusive Avenger
+Arasta of the Endless Web
 Archon of Emeria
 Argothian Pixies
 Arisen Gorgon
+Ark of Blight
 Arms of Hadar
 Arwen's Gift
+Assembly-Worker
 Axelrod Gunnarson
 Balloon Peddler
 Barrage of Boulders
+Barrier of Bones
+Bayou
 Bitter Revelation
 Blood Fountain
 Blood Ogre
 Bloodfire Kavu
 Bob, Reluctant HYDRA Agent
+Bog Gnarr
 Bone Flute
+Boon Satyr
 Boon of the Spirit Realm
 Borrowed Hostility
+Brilliant Spectrum
 Brokers Veteran
 Broodbirth Viper
 Bull Rush
 Canal Monitor
 Carrion
+Castle Ardenvale
 Cateran Slaver
 Ceaseless Conflict
+Chill
 Chittering Dispatcher
 Citizen's Crowbar
 Cleric of the Forward Order
@@ -38,12 +51,15 @@ Concentrated Fire
 Conduit of Ruin
 Contagion
 Corporeal Projection
+Corpsehatch
 Corrupt Official
 Crash of Rhinos
 Creepy Puppeteer
 Crossway Vampire
 Crude Rampart
+Cybermat
 Cyclonic Rift
+Dakmor Scorpion
 Dakmor Sorceress
 Dark Prophecy
 Dawning Purist
@@ -54,14 +70,20 @@ Detective of the Month
 Disciple of Tevesh Szat
 Dolmen Gate
 Donate
+Dragon Blood
 Dragon Engine
 Dragon Tempest
+Drake-Skull Cameo
 Dream Stalker
 Earsplitting Rats
+Eiganjo Castle
 Electrostatic Bolt
 Electrostatic Field
+Elfhame Palace
 Enraged Killbot
 Erratic Visionary
+Etched Monstrosity
+Everythingamajig
 Evincar's Justice
 Explore
 Fallen Ferromancer
@@ -82,6 +104,7 @@ Footfall Crater
 Forerunner of the Heralds
 Forest
 Forgotten Sentinel
+Fortitude
 Foundry Screecher
 Freedom Fighter Recruit
 Frenzied Raptor
@@ -89,14 +112,19 @@ Frost Lynx
 Frost Walker
 Furnace Celebration
 Fyndhorn Pollen
+Gather Courage
+Gempalm Sorcerer
 Genku, Future Shaper
 Geralf's Masterpiece
+Ghastly Gloomhunter
 Ghost Lantern
 Ghostly Visit
 Giant Cockroach
+Giltgrove Stalker
 Gitaxian Probe
 Glasswing Grace
 Glimpse the Unthinkable
+Glinting Creeper
 Gloom Sower
 Goblin Berserker
 Goblin Grenadiers
@@ -111,15 +139,19 @@ Grotag Night-Runner
 Guul Draz Vampire
 Harpoon Sniper
 Hissing Miasma
+Hoarding Recluse
 Hollowhenge Spirit
 Hunter's Bow
 Hunting Wilds
+Icatian Store
+Ice Tunnel
 Igneous Elemental
 Ill-Tempered Loner
 Immortal Servitude
 Increasing Vengeance
 Indulgent Tormentor
 Inga Rune-Eyes
+Inscribed Tablet
 Ironhoof Ox
 Island
 Ixalli's Diviner
@@ -127,12 +159,14 @@ Jhovall Queen
 Jinxed Ring
 Jungle Wurm
 Kamahl, Heart of Krosa
+Kazarov, Sengir Pureblood
 Kelsinko Ranger
 Ken, Burning Brawler
 Kingfisher
 Koilos Roc
 Lady Orca
 Landbind Ritual
+Lattice-Blade Mantis
 Lay Bare
 Lifespark Spellbomb
 Lulu, Stern Guardian
@@ -140,14 +174,20 @@ Madcap Skills
 Magus of the Bazaar
 Marauding Dreadship
 Mask of Immolation
+Master's Guidance
 Melira, the Living Cure
 Mephitic Vapors
+Might of the Old Ways
+Mishra's Helix
 Mistral Charger
 Moat
 Monoskelion
+Moonlight Hunt
 Mossdog
 Mountain
 Muzzio, Visionary Architect
+Mwonvuli Ooze
+Necron Monolith
 Nemesis of Reason
 Neonate's Rush
 Nomads' Assembly
@@ -157,6 +197,7 @@ Okina Nightwatch
 Oko's Hospitality
 Old One Eye
 Onakke Ogre
+Oran-Rief Survivalist
 Outpost Siege
 Ozox, the Clattering King
 Pack Leader
@@ -169,6 +210,7 @@ Pit Keeper
 Pixie Queen
 Plains
 Pollywog Prodigy
+Prehistoric Turtlesaurus
 Primal Cocoon
 Prophetic Bolt
 Pterodon Knight
@@ -202,9 +244,11 @@ Safe Passage
 Saurian Symbiote
 Savage Hunger
 Scampering Scorcher
+Schema Thief
 Scourglass
 Sea Monster
 Security Detail
+Seed the Land
 Seize the Storm
 Seizures
 Serenity
@@ -212,6 +256,7 @@ Serra's Embrace
 Shadowstorm
 Sidisi's Faithful
 Sima Yi, Wei Field Marshal
+Sisterhood of Karn
 Skirk Outrider
 Skithiryx, the Blight Dragon
 Skyclave Pick-Axe
@@ -223,26 +268,34 @@ Soul Diviner
 Soul Salvage
 Species Gorger
 Spectral Adversary
+Splitting Slime
 Squall
 Stark's Ingenuity
+Steal Strength
 Stoic Rebuttal
+Stomper Cub
 Stone Drake
 Stonybrook Banneret
 Storm God's Oracle
 Stormscape Familiar
 Stronghold Rats
+Sudden Storm
+Sungrass Egg
 Swamp
 Sylvan Advocate
 Synchronized Strike
+Tablet of Compleation
 Tah-Crop Skirmisher
 Target Minotaur
 Taunting Sliver
 Temporal Spring
 Thassa's Rebuff
+Thriving Isle
 Tomb Robber
 Tome Scour
 Touch of Darkness
 Treasured Find
+Tresserhorn Sinks
 Turn to Frog
 Tymna the Weaver
 Ulamog, the Ceaseless Hunger
@@ -256,6 +309,7 @@ Vertigo
 Vial of Dragonfire
 Viashino Slasher
 Victual Sliver
+Vines of the Recluse
 Vithian Stinger
 Voice of All
 War Falcon
@@ -266,4 +320,5 @@ Wing Splicer
 Wingshield Agent
 Without Weakness
 Workshop Elders
+Wurmcoil Engine
 Yarok's Fenlurker

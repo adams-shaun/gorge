@@ -116,6 +116,7 @@ Geothermal Kami
 Ghitu Firebreathing
 Ghost Warden
 Gigantiform
+Gigantomancer
 Gitaxian Raptor
 Gixian Skullflayer
 Glimmervoid
@@ -150,6 +151,7 @@ Inertia Bubble
 Infectious Host
 Inkling Summoning
 Insatiable Appetite
+Inspirit, Flagship Vessel
 Into Thin Air
 Invasion of Kaladesh
 Island

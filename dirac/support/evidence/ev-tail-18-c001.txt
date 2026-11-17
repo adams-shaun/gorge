@@ -7,9 +7,12 @@ Aerial Volley
 Agoraphobia
 Ambition's Cost
 Ancient Copper Dragon
+Angler Drake
 April O'Neil, Human Element
 Ardent Soldier
 Asha's Favor
+Audacity
+Avatar of Might
 Aven Cloudchaser
 Aven Eternal
 Awaken the Bear
@@ -17,8 +20,10 @@ Azorius Signet
 Baird, Steward of Argive
 Balduvian Barbarians
 Bane's Invoker
+Baneslayer Angel
 Barbed Shocker
 Battle Mastery
+Beastmaster Ascension
 Befoul
 Bellowing Elk
 Benevolent Blessing
@@ -30,9 +35,11 @@ Blood-Toll Harpy
 Bloodcrusher of Khorne
 Bloodfire Dwarf
 Bloodrage Brawler
+Blossoming Calm
 Blue Elemental Blast
 Body of Knowledge
 Bojuka Brigand
+Bold Defense
 Bond of Passion
 Boom
 Boompile
@@ -46,6 +53,8 @@ Brinelin, the Moon Kraken
 Bronze Walrus
 Bronzeplate Boar
 Bugenhagen, Wise Elder
+Burning Sun's Avatar
+Cacophony Unleashed
 Calming Verse
 Capital Guard
 Carnage Interpreter
@@ -61,19 +70,23 @@ Colossal Might
 Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
+Consecrated by Blood
 Contaminated Aquifer
 Contentious Plan
+Crimson Caravaneer
 Crooked Custodian
 Crossover Collaboration
 Crosswinds
 Cryptbreaker
 Cunning Advisor
+Cut of the Profits
 Dagger Caster
 Daring Piracy
 Dark Favor
 Dauntless Onslaught
 Dawn of Hope
 Demonic Dread
+Deranged Hermit
 Desert Cerodon
 Desolation Twin
 Devastation Tide
@@ -90,14 +103,19 @@ Drumbellower
 Dune Beetle
 Dwarven Nomad
 Déjà Vu
+Eidolon of Astral Winds
 Emerald Medallion
 Emrakul's Hatcher
 Enthralling Victor
+Escaped Experiment
 Etched Familiar
 Ether Well
+Executioner's Capsule
+Exocrine
 Extinguish the Light
 Exultant Skymarcher
 Ezuri, Claw of Progress
+Falcon Abomination
 Falconer Adept
 Fallaji Archaeologist
 Fallow Earth
@@ -112,6 +130,7 @@ Flameblade Adept
 Flare
 Flicker
 Fodder Cannon
+Foratog
 Force of Vigor
 Forest
 Foul Play
@@ -125,11 +144,15 @@ Glass of the Guildpact
 Gleeful Arsonist
 Glimmerpost
 Glimpse of Nature
+Glorious Charge
 Gobhobbler Rats
 Goblin Bully
 Goblin Burrows
+Goblin Scouts
+Goblin Trashmaster
 Goblin Warchief
 Gods Willing
+Goldenglow Moth
 Golgari Rotwurm
 Gore Swine
 Grafted Wargear
@@ -138,7 +161,9 @@ Grove of the Guardian
 Guardians' Pledge
 Hammerhand
 Hammerhead Shark
+Hangarback Walker
 Heirs of Stromkirk
+Hero of the Pride
 Highland Lake
 Hinterland Drake
 Hooting Mandrills
@@ -147,6 +172,8 @@ Hour of Promise
 Howling Giant
 Howling Moon
 Imperial Lancer
+Imperial Oath
+Increasing Ambition
 Inferno Project
 Infinity Formula
 Innocent Traveler
@@ -160,11 +187,14 @@ Johnny, Combo Player
 Join the Maestros
 Jushi Apprentice
 Kazandu Refuge
+Kird Chieftain
 Kitesail Skirmisher
 Knight of Dusk's Shadow
 Krovikan Fetish
+Lance
 Lava Hounds
 Lavaborn Muse
+Leonin Abunas
 Lightning Runner
 Llanowar Augur
 Loam Dryad
@@ -173,6 +203,7 @@ Lookout's Dispersal
 Lord of the Pit
 Lotleth Giant
 Mage-Ring Bully
+Magnify
 Malevolent Whispers
 Malicious Intent
 Masked Blackguard
@@ -201,6 +232,7 @@ Ogre Arsonist
 On Wings of Gold
 Oracle of Tragedy
 Ornithopter
+Owlbear Shepherd
 Pain
 Painsmith
 Paragon of Open Graves
@@ -212,6 +244,7 @@ Penance Stare
 Penumbra Spider
 Pillar of War
 Pirate's Prize
+Pistus Strike
 Pith Driller
 Pitiless Vizier
 Plains
@@ -221,6 +254,7 @@ Prologue to Phyresis
 Protomatter Powder
 Psychic Spiral
 Psychotic Haze
+Pteron Ghost
 Pyretic Charge
 Pyroceratops
 Quandrix Campus
@@ -230,6 +264,7 @@ Rain of Blades
 Raphael, the Muscle
 Raptor Companion
 Ravenous Vampire
+Rebuff the Wicked
 Reef Shaman
 Relentless Assault
 Remand
@@ -240,6 +275,7 @@ Rite of the Raging Storm
 Rootwire Amalgam
 Rush of Inspiration
 Rusted Sentinel
+Ruthless Sniper
 Sabertooth Wyvern
 Sacred Guide
 Sage-Eye Avengers
@@ -252,20 +288,26 @@ Scent of Jasmine
 Scrapskin Drake
 Screaming Seahawk
 Seal of Strength
+Searing Light
 Seasoned Marshal
+Seismic Stomp
 Seller of Songbirds
 Sentinel
 Separatist Voidmage
 Sergeant-at-Arms
 Serpentine Kavu
+Serra's Blessing
 Serrated Scorpion
 Setessan Griffin
 Shadowfeed
 Shimmerdrift Vale
+Shinewend
 Shriekdiver
 Shrink
+Sigardian Savior
 Silverbeak Griffin
 Simian Grunts
+Sinister Gnarlbark
 Skarrgan Pit-Skulk
 Skirk Prospector
 Skyline Cascade
@@ -302,16 +344,19 @@ Swarmborn Giant
 Syr Faren, the Hengehammer
 Tajuru Blightblade
 Take Inventory
+Tattered Apparition
 Taunting Elf
 Taunting Sliver
 Tavern Brawler
 Telethopter
+Tempered Veteran
 Tenured Oilcaster
 The Fair Basilica
 The Frightful Four
 The Juzam Master
 The Reaver Cleaver
 Thirst
+Thopter Arrest
 Thor, Asgard's Avenger
 Thorn Mammoth
 Thoughtrender Lamia
@@ -327,6 +372,7 @@ Tuktuk Scrapper
 Tyrant's Machine
 Ulvenwald Observer
 Unchained Berserker
+Underworld Charger
 Unifying Theory
 Unlicensed Hearse
 Vandalize
@@ -334,6 +380,8 @@ Vault Skyward
 Vedalken Dismisser
 Vedalken Mesmerist
 Venomous Brutalizer
+Vesper Ghoul
+Vexing Bauble
 Vicious Offering
 Village Rites
 Virtus the Veiled
@@ -342,6 +390,7 @@ Voltaic Construct
 Voltaic Whip
 Wall of Distortion
 Wall of Hope
+War Elemental
 Warlord's Fury
 Warped Landscape
 Watcher in the Mist
@@ -353,7 +402,10 @@ Wily Goblin
 Winding Way
 Windrider Patrol
 Winged Portent
+Witty Roastmaster
 Xathrid Necromancer
 Young Pyromancer
 Zamriel, Seraph of Steel
+Zenith Seeker
+Zulaport Enforcer
 Zuri, Warrior of Wakanda

@@ -39,6 +39,7 @@ Blowfly Infestation
 Boros Recruit
 Bottomless Pit
 Bounding Krasis
+Bountiful Landscape
 Brink of Disaster
 Bronzebeak Moa
 Brotherhood Outcast
@@ -50,11 +51,13 @@ Captain of the Mists
 Captured Sunlight
 Carrion Beetles
 Cathar's Shield
+Chitterspitter
 Chromatic Sphere
 Cloak of Mists
 Cobalt Golem
 Conch Horn
 Conclave Naturalists
+Contested Cliffs
 Crimson Muckwader
 Cursed Flesh
 Daggersail Aeronaut
@@ -67,6 +70,7 @@ Deft Duelist
 Deliberate
 Demonic Taskmaster
 Destroy the Evidence
+Dinrova Horror
 Dispersing Orb
 Douser of Lights
 Dream Twist
@@ -75,6 +79,7 @@ Duergar Assailant
 Dwarven Armorer
 Dwarven Lieutenant
 Dwarven Weaponsmith
+Electrosiphon
 Elemental Mastery
 Elemental Uprising
 Elven Warhounds
@@ -93,6 +98,7 @@ Fabricate
 Fandaniel, Telophoroi Ascian
 Fang, Roku's Companion
 Ferropede
+Field of Ruin
 Fiend Binder
 Fight as One
 Finishing Blow
@@ -116,6 +122,7 @@ Ghoulcaller's Accomplice
 Giant Ladybug
 Giant Octopus
 Gift of Strands
+Glacial Floodplain
 Glint-Horn Buccaneer
 Glistening Deluge
 Goblin Dark-Dwellers
@@ -125,14 +132,17 @@ God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
 Grim Lavamancer
+Gruul Locket
 Guul Draz Specter
 Gyre Engineer
 Harsh Deceiver
 Hazoret's Undying Fury
 Hedge Troll
 Heir of Falkenrath
+Helvault
 Hidden Spider
 High Alert
+High Priest of Penance
 Hollowsage
 Honorable Scout
 Hornet Queen
@@ -148,6 +158,7 @@ Inquisitive Puppet
 Invoke Despair
 Island
 Jewel Thief
+Kangee, Sky Warden
 Krosan Constrictor
 Lagac Lizard
 Lamentation
@@ -192,6 +203,7 @@ Offalsnout
 Old Ghastbark
 Onyx Goblet
 Ornery Goblin
+Orzhov Keyrune
 Out of the Way
 Overload
 Pangosaur
@@ -205,6 +217,7 @@ Promise of Power
 Pygmy Kavu
 Python
 Rakdos the Defiler
+Rakdos, Lord of Riots
 Ravenous Baboons
 Realm Seekers
 Red Ghost, Intangible Genius
@@ -227,6 +240,7 @@ Sedraxis Alchemist
 Seek New Knowledge
 Serpentine Curve
 Serra Paladin
+Shadowstorm Vizier
 Shivan Hellkite
 Shorecomber Crab
 Shreds of Sanity
@@ -238,6 +252,7 @@ Skyclave Plunder
 Skyshroud Poacher
 Smother
 Snake Basket
+Soul Manipulation
 Soul of Mirrodin
 Southern Paladin
 Speaker of the Heavens
@@ -258,9 +273,11 @@ Survivor of Korlis
 Swamp
 Swiftgear Drake
 Swooping Lookout
+Sword of Sinew and Steel
 Sylvok Explorer
 Syphon Life
 Tail Slash
+Tainted Isle
 Tattermunge Maniac
 Teferi's Protege
 Temur Banner
@@ -285,6 +302,7 @@ Valiant Guard
 Vampire Lacerator
 Vedalken Infiltrator
 Vengeful Devil
+Venser's Journal
 Vertigo Spawn
 Veteran's Powerblade
 Viconia, Drow Apostate

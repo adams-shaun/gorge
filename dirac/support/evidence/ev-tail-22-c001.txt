@@ -13,6 +13,7 @@ Akki Scrapchomper
 Alabaster Kirin
 Albino Troll
 Amateur Hero
+Ancient Grudge
 Angelfire Ignition
 Arashin Cleric
 Arborback Stomper
@@ -63,6 +64,7 @@ Command the Storm
 Concentrate
 Conformer Shuriken
 Confront the Assault
+Consume the Meek
 Coral Merfolk
 Cragcrown Pathway
 Crash of Rhino Beetles
@@ -111,6 +113,7 @@ Fabled Hero
 Fairgrounds Warden
 Famished Foragers
 Farbog Explorer
+Fathom Fleet Boarder
 Field-Tested Frying Pan
 Fists of Ironwood
 Fleeting Image
@@ -129,11 +132,13 @@ Glistener Elf
 Gnawing Zombie
 Goblin Recruiter
 Goblin Swine-Rider
+Goblin Taskmaster
 Gorma, the Gullet
 Grave Defiler
 Gravedigger
 Gravity Well
 Greatsword of Tyr
+Grim Flayer
 Gríma Wormtongue
 Guardian of the Guildpact
 H.E.R.B.I.E., Lovable Robot
@@ -143,6 +148,7 @@ Hammerfist Giant
 Hancock, Ghoulish Mayor
 Heart-Piercer Manticore
 Higure, the Still Wind
+Hippo-Cows
 Homarid Warrior
 Honor the Fallen
 Hookhand Mariner
@@ -168,6 +174,7 @@ Ithilien Kingfisher
 Ixidor's Will
 Jeskai Student
 Jhessian Lookout
+Joel, Resolute Survivor
 Kabira Vindicator
 Kalastria Nightwatch
 Kami's Flare
@@ -215,6 +222,7 @@ Mirror Wall
 Misdirection
 Mist Dancer
 Mob
+Molder
 Moonglove Changeling
 More of That Strange Oil...
 Mountain
@@ -224,6 +232,7 @@ Mystic Visionary
 Narstad Scrapper
 Nath of the Gilt-Leaf
 Necrogen Scudder
+Necrotic Sliver
 Needlepeak Spider
 Neurok Prodigy
 Nezumi Shadow-Watcher
@@ -239,6 +248,7 @@ Oketra the True
 Ophidian Eye
 Orim's Cure
 Ornithopter of Paradise
+Orzhov Guildmage
 Oxidda Golem
 Palazzo Archers
 Parapet Watchers
@@ -363,6 +373,7 @@ Thorned Moloch
 Thran Forge
 Thud
 Thwart the Enemy
+Tolabow, Loch Rascal
 Toll of the Invasion
 Treacherous Werewolf
 Treefolk Seedlings
@@ -376,6 +387,7 @@ Unnatural Restoration
 Utility Knife
 Valakut Invoker
 Valor Singer
+Valorous Charge
 Venarian Glimmer
 Vengeful Rebirth
 Victim of Night
@@ -393,6 +405,7 @@ Warmind Infantry
 Waterspout Djinn
 Wavebreak Hippocamp
 Wavecrash Triton
+Whisperwood Elemental
 Wildfire Elemental
 Wings of Velis Vel
 Xander's Pact

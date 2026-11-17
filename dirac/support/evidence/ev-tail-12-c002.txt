@@ -2,20 +2,28 @@ A-Blood Artist
 A-Manticore
 Aang, Airbending Master
 Academy Rector
+Advance Scout
 Adverse Conditions
+Aether Spike
 Ajani Fells the Godsire
 Akki Scrapchomper
+Angelheart Vial
 Apocalypse Demon
 Apprentice Necromancer
 Arbor Colossus
+Arlinn's Wolf
 Asmira, Holy Avenger
+Assaultron Dominator
 Assert Authority
 Aven Sunstriker
+Azorius Cluestone
 Backwoods Survivalists
 Balustrade Spy
+Banefire
 Battle Hymn
 Birthing Boughs
 Birthing Ritual
+Blind-Spot Giant
 Bloodsworn Steward
 Bog Glider
 Bold Impaler
@@ -29,26 +37,35 @@ Catalyst Elemental
 Champion of Arashin
 Char
 Charismatic Vanguard
+Child of Gaea
 Chittering Rats
 Chocobo Knights
 Cinderbones
+Cloudthresher
 Compulsion
 Containment Protocol
 Count Nefaria
+Cunning Sparkmage
 Dawnglare Invoker
 Deathknell Berserker
 Deepwater Hypnotist
 Disentomb
 Dragonspark Reactor
+Drowned Rusalka
 Druid's Call
 Duskmantle Prowler
+Dwarven Grunt
 E. Honda, Sumo Champion
 Eagle of the Watch
+Elixir of Vitality
 Enduring Scalelord
 Enforcer Griffin
+Enlightened Tutor
 Enlistment Officer
 Excavation Technique
 Farsight Adept
+Feedback Bolt
+Feral Thallid
 Fire Imp
 Flesh to Dust
 Flower
@@ -58,12 +75,15 @@ Foresight
 Forest
 Funeral Longboat
 Garrison Griffin
+General Tazri
+Genesis
 Geralf's Masterpiece
 Geralf, Visionary Stitcher
 Geyserfield Stalker
 Glacial Stalker
 Gliding Licid
 Gloomwidow's Feast
+Glowrider
 Gnarled Mass
 Go for the Throat
 Goblin Marshal
@@ -74,31 +94,42 @@ Golem Artisan
 Ground Assault
 Growing Ranks
 Guardian Gladewalker
+Guardian of Ghirapur
+Gustcloak Harrier
 Gustcloak Savior
 Hand of Death
 Heliod's Emissary
+Hexgold Halberd
 Hickory Woodlot
 Hobgoblin Captain
 Holy Armor
 Hopeful Initiate
 Hornbash Mentor
 Hurloon Battle Hymn
+Hydra Omnivore
 Illusionist's Stratagem
 Impending Flux
 Increasing Devotion
 Ingenious Skaab
 Inspired Charge
+Intervene
 Into the Void
 Iron Man, Armored Avenger
 Irradiate
 Irreverent Revelers
 Island
 Jasmine Seer
+Jedit Ojanen of Efrava
+Jhoira, Ageless Innovator
+Kavu Climber
 Kaya's Ghostform
 Khenra Eternal
 Kinjalli's Sunwing
 Kjeldoran War Cry
+Knowing
+Kyren Glider
 Landroval, Horizon Witness
+Laurine, the Diversion
 Legion Loyalist
 Legion's Landing
 Legions to Ashes
@@ -107,18 +138,26 @@ Lich's Caress
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
+Manaplasm
 Mantle of Leadership
 Marchesa's Decree
 Mardu Shadowspear
+Marsh Flats
 Martyr of Dusk
 Maximize Altitude
 Medicine Bag
+Mishra's Self-Replicator
+Molten Nursery
 Molten Rain
+Moment of Truth
 Moriok Scavenger
 Mountain
+Mutilate
 Muzzio, Visionary Architect
 Nausea
 Nether Spirit
+Niblis of the Mist
+Nucklavee
 Nyxborn Triton
 Ominous Cemetery
 Oriq Loremage
@@ -127,19 +166,24 @@ Oswald Fiddlebender
 Owl Familiar
 Plague Spitter
 Plains
+Portent of Betrayal
 Primal Growth
+Prophetic Titan
 Pteramander
 Qasali Pridemage
 Quirion Dryad
 Ragefire
+Rain of Tears
 Rat Colony
 Rats of Rath
+Relic Robber
 Repair and Recharge
 Repository Skaab
 Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
+Rise to the Challenge
 Royal Warden
 Rude Awakening
 Rushwood Herbalist
@@ -147,6 +191,7 @@ Rusting Golem
 Sanguimancy
 Savannah Sage
 Scour All Possibilities
+Scourge of Valkas
 Security Blockade
 Seedling Charm
 Seismic Shudder
@@ -154,7 +199,10 @@ Seven-Tail Mentor
 Sheoldred, Whispering One
 Sifter Wurm
 Silverquill Apprentice
+Slimebind
 Slimy Piper
+Sliptide Serpent
+Sonic Assault
 Soul Shred
 Soul of Innistrad
 Spiritual Asylum
@@ -165,16 +213,22 @@ Steelshaper's Gift
 Stonebrow, Krosan Hero
 Storm of Souls
 Sudden Edict
+Sudden Spinnerets
 Sunhome Enforcer
+Surtland Frostpyre
 Swamp
 Swamp Mosquito
 Tamiyo's Epiphany
 Tana, the Bloodsower
 Thanos, Death's Consort
+The Circle of Loyalty
+Thundering Chariot
+Thundermare
 Thunderwolf Cavalry
 Tramway Station
 Tread Upon
 Treeshaker Chimera
+Tromp the Domains
 Underhanded Designs
 Undying Beast
 Unnatural Restoration

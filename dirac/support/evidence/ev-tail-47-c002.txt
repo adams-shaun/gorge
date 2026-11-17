@@ -1,4 +1,5 @@
 A-Dwarfhold Champion
+A-The Meathook Massacre
 A-Young Red Dragon
 Abandon the Post
 Abzan Skycaptain
@@ -6,11 +7,21 @@ Acidic Slime
 Acidic Sliver
 Aeronaut Cavalry
 Anaba Bodyguard
+Anafenza, Kin-Tree Spirit
 Angelic Protector
+Angelic Quartermaster
+Archers' Parapet
+Argothian Enchantress
+Argothian Sprite
+Armistice
 Armored Cancrix
+Arms of Hadar
+Army Ants
 Ashes to Ashes
+Aven Tactician
 Aven Wind Mage
 Barony Vampire
+Binding Mummy
 Blessed Wind
 Blisterstick Shaman
 Bloodlust Inciter
@@ -26,13 +37,18 @@ Capture of Jingzhou
 Cartouche of Solidarity
 Cephalid Scout
 Chainflail Centipede
+Chameleon Blur
 Chill of Foreboding
+Choking Sands
 Chosen by Heliod
 Cinderslash Ravager
+Clear the Stage
 Cloudchaser Eagle
 Conclave Sledge-Captain
 Conquer
 Consume Spirit
+Countermand
+Creative Technique
 Crucible of Fire
 Crumbling Vestige
 Crystal Chimes
@@ -53,18 +69,24 @@ Dire Fleet Interloper
 Dire Fleet Ravager
 Dirge of Dread
 Dirgur Nemesis
+Djinni Windseer
 Doom Cannon
 Dragonstalker
 Dread Return
 Dreadlight Monstrosity
 Drinker of Sorrow
 Drownyard Amalgam
+Eat to Extinction
+Electrostatic Infantry
 Elephant Guide
 Elvish Aberration
 Elvish Berserker
+Emberstrike Duo
 Energy Tap
 Environmental Sciences
+Erase
 Evolution Witness
+Expendable Troops
 Eyeless Watcher
 Fallen Ideal
 Fangblade Brigand
@@ -72,8 +94,11 @@ Feral Animist
 Festerhide Boar
 Field Creeper
 Fiendslayer Paladin
+Fiery Intervention
 Fire Nation Turret
 Fireblade Charger
+Fleshgrafter
+Force of Nature
 Forest
 Foul Familiar
 Fowl Play
@@ -86,10 +111,13 @@ Ghor-Clan Savage
 Giant Badger
 Gibbering Hyenas
 Gideon's Reproach
+Glissa Sunslayer
 Glistening Oil
 Go-Shintai of Boundless Vigor
 Goblin Masons
+Goblin Rabblemaster
 Gold-Forged Sentinel
+Golden Wish
 Grasping Scoundrel
 Grazilaxx, Illithid Scholar
 Grenzo, Havoc Raiser
@@ -99,27 +127,35 @@ Hag of Ceaseless Torment
 Harsh Deceiver
 Harvester of Souls
 Hazoret's Favor
+Heal
 Highland Berserker
+Holy Light
 Horn of Deafening
 Howling Banshee
+Hunting Drake
 Hurler Cyclops
 Ich-Tekik, Salvage Splicer
 Immolating Souleater
 Impending Doom
 Increasing Savagery
+Inkfathom Divers
 Insidious Will
+Inspiration
 Invisible Stalker
 Iona's Judgment
 Iron Man, Tony Stark
 Iron Star
 Island
+Jackal Familiar
 Jarad's Orders
 Jedit Ojanen of Efrava
 Judge Unworthy
 Jungle Lion
 Kaervek the Merciless
 Karplusan Wolverine
+Khalni Ambush
 Killmonger, Ruthless Usurper
+King of the Pride
 Kodama of the West Tree
 Kyren Negotiations
 Lae'zel, Vlaakith's Champion
@@ -127,22 +163,30 @@ Laurine, the Diversion
 Lethargy Trap
 Lignify
 Livonya Silone
+Lone Revenant
+Lotleth Troll
+Luminous Broodmoth
 Lurking Green Dragon
 Mage's Guile
+Magistrate's Scepter
 Makeshift Battalion
+Mantle of Tides
 Markov Crusader
+Memory Worm
 Meng Huo's Horde
 Mercy Killing
 Merfolk Mesmerist
 Midnight Covenant
 Might Weaver
 Minion Missile
+Mirko Vosk, Mind Drinker
 Mischief and Mayhem
 Mob Rule
 Mogg War Marshal
 Moment of Heroism
 Mordenkainen
 Mountain
+Multani's Acolyte
 Mutant's Prey
 Muxus, Goblin Grandee
 Myr Galvanizer
@@ -152,6 +196,8 @@ Natural Selection
 Nesting Wurm
 Nine-Ringed Bo
 Nourish
+Nurturing Presence
+Obsidian Obelisk
 Open the Vaults
 Origin of the Hidden Ones
 Oswald Fiddlebender
@@ -162,17 +208,22 @@ Painful Lesson
 Paupers' Cage
 Peggy Carter, Secret Agent
 Phyrexian Digester
+Pianna, Nomad Captain
 Piper of the Swarm
 Plains
 Plated Wurm
+Priest of the Blood Rite
 Pyromancer's Gauntlet
 Pyromania
+Radiant's Dragoons
 Rally the Forces
+Ramirez DePietro
 Ramosian Sky Marshal
 Realm-Cloaked Giant
 Reckoner Bankbuster
 Rend Spirit
 Renegade Map
+Renegade Silent
 Reparations
 Reservoir Kraken
 Resplendent Mentor
@@ -183,6 +234,7 @@ Rise to the Challenge
 Rockslide Sorcerer
 Rosethorn Halberd
 Ruthless Knave
+Saheeli's Artistry
 Sakura-Tribe Scout
 Sarpadian Simulacrum
 Savai Triome
@@ -190,12 +242,14 @@ Scrapyard Mongrel
 Screeching Buzzard
 Screeching Skaab
 Scute Mob
+Seal of Cleansing
 Searing Light
 Sentry of the Underworld
 Shadowbeast Sighting
 Shaman of the Great Hunt
 Shambling Strider
 Shivan Gorge
+Shoal Kraken
 Shockmaw Dragon
 Sigarda's Imprisonment
 Silver Myr
@@ -207,6 +261,8 @@ Skeletal Grimace
 Sky Diamond
 Skyknight Vanguard
 Skyshroud Elite
+Skywatcher Adept
+Sleeper's Guile
 Sleeper's Robe
 Slingbow Trap
 Sliver Construct
@@ -216,23 +272,29 @@ Somberwald Alpha
 Somberwald Vigilante
 Song of the Worldsoul
 Soul Shepherd
+Spaceshift
 Spark Harvest
 Sparkmage Apprentice
 Spawning Kraken
 Spectral Sliver
 Sphinx of Uthuun
+Spiketail Hatchling
 Spined Sliver
 Spring-Leaf Avenger
 Sprouting Goblin
 Squirrel Mob
+Startled Awake
 Stern Constable
 Stern Lesson
+Stir the Grave
 Stonehoof Chieftain
 Stormchaser Chimera
+Story Seeker
 Stronghold Confessor
 Sudden Impact
 Sulfurous Springs
 Sunder Shaman
+Sunder from Within
 Suspended Sentence
 Swamp
 Symbiotic Beast
@@ -249,20 +311,29 @@ Tezzeret's Ambition
 Thalakos Scout
 The Everforger
 The Hunger Tide Rises
+The Reality Chip
 Thirsting Shade
 Thornling
+Thundering Ceratok
 Tilling Treefolk
+Time Bomb
 Time of Ice
 Tin Street Dodger
 Titanic Bulvox
 Tranquility
+Trinket Mage
+Triskaidekaphile
 Tunneling Geopede
+Twinblade Slasher
 Two-Headed Dragon
 Tyrranax
+Vampire Champion
 Vaporkin
 Vastwood Fortification
 Vastwood Zendikon
 Vesperlark
+Veteran Explorer
+Viashino Sandstalker
 Viridian Shaman
 Vizzerdrix
 Volcanic Island
@@ -270,10 +341,14 @@ Voracious Vampire
 Vow of Wildness
 Voyage's End
 Walking Corpse
+Wandering Stream
 Wandering Treefolk
 Warbeast of Gorgoroth
 Warchanter Skald
+Warden of Evos Isle
 Warden of the Wall
+Warp Artifact
+Weary Prisoner
 Weaver of Currents
 Weldfast Wingsmith
 Whipcorder
@@ -282,6 +357,8 @@ White Tiger, Amulet Keeper
 Wicked Reward
 Wild Jhovall
 Witch Enchanter
+Woodfall Primus
 Wu Scout
+Youthful Knight
 Zhang Liao, Hero of Hefei
 Zhur-Taa Swine

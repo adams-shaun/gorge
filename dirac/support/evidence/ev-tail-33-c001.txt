@@ -231,6 +231,7 @@ Mass Hysteria
 Mawcor
 Maximize Altitude
 Memorial to Folly
+Metathran Aerostat
 Military Intelligence
 Mimic
 Mindless Conscription
@@ -246,6 +247,7 @@ Muster the Departed
 Myr Enforcer
 Mystery Key
 Mystic Might
+Naga Eternal
 Nath's Buffoon
 Nebelgast Beguiler
 Necrosynthesis
@@ -259,6 +261,7 @@ Olivia's Wrath
 Opal Champion
 Oran-Rief Recluse
 Ordeal of Erebos
+Outland Boar
 Overgrowth
 Pack's Disdain
 Pashalik Mons
@@ -419,6 +422,7 @@ Wild Griffin
 Willow Faerie
 Wilson, Refined Grizzly
 Winged Hive Tyrant
+Wingfold Pteron
 Winter Soldier, Bucky Barnes
 Witch's Cottage
 Wizened Cenn

@@ -18,6 +18,7 @@ Battle Cry Goblin
 Blessed Sanctuary
 Blightbelly Rat
 Blood Mist
+Blossoming Bogbeast
 Bond of Discipline
 Bonesplitter
 Borrowed Time
@@ -28,6 +29,7 @@ Butterbur, Bree Innkeeper
 Call the Cavalry
 Canoptek Spyder
 Canyon Wildcat
+Cast Out
 Cathar's Companion
 Caustic Crawler
 Celestial Regulator
@@ -47,6 +49,7 @@ Combat Thresher
 Commissar Severina Raine
 Conjurer's Bauble
 Coral Atoll
+Courage in Crisis
 Courier Hawk
 Court of Garenbrig
 Covert Operative
@@ -55,6 +58,7 @@ Criminal Enterprise
 Cruel Bargain
 Crypt Ghast
 Curse of Death's Hold
+Dakmor Ghoul
 Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
@@ -75,12 +79,16 @@ ED-E, Lonesome Eyebot
 Eccentric Pestfinder
 Eerie Interlude
 Elanor Gardner
+Emrakul's Influence
 Energy Flux
 Eternal Warrior
 Evolutionary Escalation
+Excavation Mole
+Eye Gouge
 Faceless Devourer
 Faerie Invaders
 Faerie Vandal
+Femeref Archers
 Fiend Binder
 Flare of Duplication
 Flood of Recollection
@@ -112,7 +120,9 @@ Hangarback Walker
 Heirs of Stromkirk
 High-Rise Sawjack
 Hollow Trees
+Horned Sliver
 Hungry Megasloth
+Indebted Samurai
 Indomitable Archangel
 Infernal Grasp
 Intangible Virtue
@@ -122,6 +132,7 @@ Island
 Jhovall Rider
 Joyous Respite
 Jungle Delver
+Justiciar's Portal
 Karametra's Favor
 Karok Wrangler
 Kels, Fight Fixer
@@ -165,18 +176,21 @@ Moss Kami
 Mossbeard Ancient
 Mountain
 Mountain Bandit
+Mournwhelk
 Mu Yanling, Sky Dancer
 Mudbutton Torchrunner
 Multani's Acolyte
 Multiversal Recruitment
 Myojin of Blooming Dawn
 Nacatl Savage
+Necrobite
 Night
 Nightveil Sprite
 Niveous Wisps
 Nurturing Licid
 Nylea, God of the Hunt
 Oath of the Grey Host
+Omen of the Dead
 Oread of Mountain's Blaze
 Overcharged Amalgam
 Overcome
@@ -204,10 +218,12 @@ Reito Lantern
 Remove Soul
 Renowned Weaponsmith
 Retributive Wand
+Returned Centaur
 Rhythmic Water Vortex
 Rimrock Knight
 Rockslide Ambush
 Root Snare
+Rosethorn Halberd
 Rottenheart Ghoul
 Rousing Refrain
 Runaway Carriage
@@ -236,12 +252,15 @@ Skywinder Drake
 Skywing Aven
 Slaughter Pact
 Slaughter Specialist
+Slithery Stalker
 Sly Requisitioner
 Smoke Bomb
+Soul Swallower
 Spear Spewer
 Spire Barrage
 Stature, Young Avenger
 Staunch Defenders
+Staunch-Hearted Warrior
 Steam Frigate
 Stone Retrieval Unit
 Storm Fleet Swashbuckler
@@ -259,6 +278,7 @@ Tattered Haunter
 Teachings of the Kirin
 Temmet, Vizier of Naktamun
 Teroh's Vanguard
+The Art of Tea
 The Mightstone and Weakstone
 Thing from the Deep
 Thirsting Bloodlord
@@ -267,10 +287,12 @@ Thrummingbird
 Thunder Strike
 Thunderscape Familiar
 Timberwatch Elf
+Torch Slinger
 Tormod's Crypt
 Torsten, Founder of Benalia
 Tracker's Instincts
 Twinscroll Shaman
+Tymaret, Chosen from Death
 Uncage the Menagerie
 Uncle Istvan
 Undercity Scrounger
@@ -285,6 +307,7 @@ Vampire Envoy
 Vampire's Zeal
 Vastwood Gorger
 Venser, Visionary Traveler
+Verdant Rebirth
 Volunteer Militia
 Wall of Lost Thoughts
 Warfire Javelineer
@@ -295,5 +318,6 @@ Weaponize the Monsters
 Wild Colos
 Wild Onslaught
 Woodland Sleuth
+Wretched Confluence
 Xathrid Slyblade
 Zhao, the Seething Flame

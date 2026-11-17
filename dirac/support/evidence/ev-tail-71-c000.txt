@@ -234,6 +234,7 @@ Llanowar Cavalry
 Llanowar Vanguard
 Lumbering Satyr
 Lumberknot
+Lórien Revealed
 Mage il-Vec
 Magma Jet
 Makeshift Munitions

@@ -3,14 +3,17 @@ A-Nael, Avizoa Aeronaut
 A-Psionic Snoop
 A-Thran Spider
 Aardvark Sloth
+Abzan Skycaptain
 Acolyte of Xathrid
 Adaptive Omnitool
 Adaptive Sporesinger
 Akiri, Line-Slinger
 Akroan Horse
+Akroma's Blessing
 Alchor's Tomb
 Alloy Myr
 Alluring Scent
+Alseid of Life's Bounty
 Ambush Party
 Ana Sanctuary
 Ancient Crab
@@ -26,6 +29,7 @@ Ashen Rider
 Ashnod's Transmogrant
 Atlas, Sizable Stooge
 Augury Raven
+Aura Blast
 Aven Fleetwing
 Aysen Bureaucrats
 Baffling End
@@ -92,6 +96,7 @@ Diviner's Lockbox
 Dreadhorde Invasion
 Drove of Elves
 Drown in Dreams
+Drunau Corpse Trawler
 Dusk Feaster
 Dutiful Return
 Earth Tremor
@@ -102,6 +107,7 @@ Ensoul Artifact
 Enthrall
 Evil Eye of Orms-by-Gore
 Evolving Adaptive
+Expendable Lackey
 Extinguish All Hope
 Eye Spy
 Faerie Duelist
@@ -150,6 +156,7 @@ Grindclock
 Groundskeeper
 Guardian Lions
 Gulping Scraptrap
+Gustrider Exuberant
 Guttural Response
 Hanweir Militia Captain
 Haradrim Spearmaster
@@ -161,6 +168,7 @@ Healer's Headdress
 Heir of Falkenrath
 Hellfire
 Hold at Bay
+Honor of the Pure
 Horned Troll
 Hound of Urabrask
 Huatli's Raptor
@@ -232,6 +240,7 @@ Mudbrawler Cohort
 Multani's Decree
 Murmuring Mystic
 Muse Drake
+Mystic Familiar
 Natural Obsolescence
 Naturalize
 Nemata, Grove Guardian
@@ -239,6 +248,7 @@ Nessian Courser
 Niblis of the Breath
 Nightveil Specter
 Noble Quarry
+Noble Templar
 Novice Occultist
 Oketra's Monument
 Old Stickfingers
@@ -246,13 +256,16 @@ Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
 Order of the Mirror
+Order of the White Shield
 Ordered Migration
 Orim, Samite Healer
 Oviya Pashiri, Sage Lifecrafter
 Owlin Spiralmancer
 Paragon of Eternal Wilds
 Pardic Wanderer
+Patagia Tiger
 Peacekeeper
+Perception Bobblehead
 Pharika's Mender
 Phyrexian Boon
 Phyrexian Negator
@@ -321,8 +334,10 @@ Smashing Success
 Smelt-Ward Minotaur
 Soaring Drake
 Soldier Replica
+Sorcerer's Wand
 Sorceress Queen
 Soul Partition
+Space Marine Scout
 Spark of Creativity
 Spectral Flight
 Spelleater Wolverine
@@ -368,6 +383,7 @@ Uncage the Menagerie
 Unlicensed Hearse
 Unmake
 Unworthy Dead
+Valiant Changeling
 Value Town
 Vampire Cutthroat
 Vanquish the Weak
@@ -390,6 +406,7 @@ Wanda's Vision
 Warmonger
 Weathered Wayfarer
 Welkin Tern
+Westgate Regent
 Whisper of the Dross
 Wight of Precinct Six
 Woebringer Demon

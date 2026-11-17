@@ -1,19 +1,25 @@
+A-Asari Captain
 Acquisition Octopus
 Act on Impulse
 Aerial Responder
 Aether Vial
+Agonizing Demise
 Al-abara's Carpet
 Aladdin
 Ancient Spider
+Angel's Mercy
 Angelic Ascension
 Ant-Man, Reformed Rogue
 Arbalest Engineers
 Ardent Electromancer
+Arlinn, Voice of the Pack
 Astarion, the Decadent
 Atarka Monument
+Audacious Infiltrator
 Aura of Dominion
 Avarice Amulet
 Awaken the Sky Tyrant
+Baird, Argivian Recruiter
 Basking Broodscale
 Bedlam
 Beskir Shieldmate
@@ -25,11 +31,14 @@ Blood-Chin Fanatic
 Branchsnap Lorian
 Brigone, Soldier of Meletis
 Burrenton Shield-Bearers
+Canopy Claws
 Canyon Wildcat
 Catapult Fodder
 Caustic Tar
 Chandra's Defeat
 Chasm Guide
+Cinder Hellion
+Cirith Ungol Patrol
 Cogwork Spy
 Collateral Damage
 Coma Veil
@@ -37,6 +46,7 @@ Composer of Spring
 Containment Breach
 Cragplate Baloth
 Curate
+Curious Pair
 Curse of Verbosity
 Dauthi Warlord
 Dega Sanctuary
@@ -46,11 +56,14 @@ Dragonlair Spider
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
+Duke Ulder Ravengard
 Eerie Soultender
 Elves of Deep Shadow
 Elvish Scout
+Elvish Warrior
 Emergence Zone
 Enthralling Victor
+Erkenbrand, Lord of Westfold
 Errant Doomsayers
 Evil Presence
 Exultant Skymarcher
@@ -73,6 +86,7 @@ Gate of the Black Dragon
 Gearsmith Prodigy
 Geosurge
 Giant Scorpion
+Gift of Estates
 Go-Shintai of Ancient Wars
 Goatnapper
 Goblin Piledriver
@@ -86,6 +100,9 @@ Heaven
 Herald of Torment
 Herbal Poultice
 Hidden Footblade
+Highland Berserker
+Hostile Minotaur
+Immersturm Raider
 In the Web of War
 Insatiable Appetite
 Invasion of Zendikar
@@ -94,11 +111,13 @@ Iron Man, Titan of Innovation
 Iron-Heart Chimera
 Ironclaw Buzzardiers
 Island
+Jagged Lightning
 Join the Maestros
 Kazandu Stomper
 Kefnet's Last Word
 Key to the City
 Kiln Walker
+Kithkin Greatheart
 Kitsune Riftwalker
 Kragma Butcher
 Krosan Colossus
@@ -106,8 +125,10 @@ Kytheon's Irregulars
 Landbind Ritual
 Landroval, Horizon Witness
 Larder Zombie
+Lavafume Invoker
 Lay Down Arms
 Life Chisel
+Liu Bei, Lord of Shu
 Looming Shade
 Lurking Nightstalker
 Mad Dog
@@ -115,14 +136,17 @@ Magus of the Order
 Masked Blackguard
 Meteoric Mace
 Might of the Old Ways
+Mirran Bardiche
 Mitotic Slime
 Moira, Urborg Haunt
 Mountain
+Natural Reclamation
 Nav Squad Commandos
 Needle Specter
 Night of Souls' Betrayal
 Norn's Inquisitor
 Oakhame Adversary
+Open Fire
 Owl Familiar
 Pallid Mycoderm
 Park Heights Maverick
@@ -138,11 +162,13 @@ Plover Knights
 Plundering Predator
 Pollenbright Druid
 Portable Hole
+Quest for the Goblin Lord
 Raffine's Informant
 Rage Nimbus
 Ratchet Bomb
 Rathi Intimidator
 Renegade Demon
+Renegade Wheelsmith
 Restrain
 Roc of Kher Ridges
 Rockslide Ambush
@@ -152,6 +178,8 @@ Ruthless Disposal
 Sage of the Unknowable
 Sagu Mauler
 Sai, Master Thopterist
+Sand Strangler
+Sandstone Warrior
 Sapphire Drake
 Scorching Missile
 Scour from Existence
@@ -166,9 +194,12 @@ Smell Fear
 Snarespinner
 Soul Swallower
 Specter of the Fens
+Sphere of Duty
 Sphinx's Tutelage
 Splendid Agony
+Stingmoggie
 Stingscourger
+Stoic Champion
 Stonebound Mentor
 Street Urchin
 Strike It Rich
@@ -176,13 +207,17 @@ Stronghold Zeppelin
 Suki, Kyoshi Captain
 Summary Judgment
 Sunfire Balm
+Superior Numbers
 Swamp
 Sygg, River Guide
 Sylvan Paradise
 Take into Custody
 Talara's Battalion
 Tapestry of the Ages
+Tenement Crasher
+Thalia's Lancers
 The Binding of the Titans
+The Immortal Weapons
 Thriving Isle
 Timberpack Wolf
 Tower of Calamities
@@ -194,6 +229,7 @@ Valiant Changeling
 Vedalken Engineer
 Vedalken Outlander
 Vessel of Malignity
+Veteran Cavalier
 Virulent Plague
 Wayward Giant
 Wetland Sambar

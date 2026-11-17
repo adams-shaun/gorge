@@ -132,6 +132,7 @@ Genestealer Locus
 Ghost-Lit Raider
 Gift of Granite
 Gift of Wrath
+Gilt-Blade Prowler
 Glistening Extractor
 Gobbling Ooze
 Goblin Artillery
@@ -217,6 +218,7 @@ Mirkwood Channeler
 Moira, Urborg Haunt
 Molten Rebuke
 Monastery Flock
+Monumental Corruption
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
@@ -334,6 +336,7 @@ Steam Spitter
 Steely Resolve
 Steppe Lynx
 Stitched Mangler
+Stolen Grain
 Stonewood Invocation
 Stream of Consciousness
 Strongarm Monk

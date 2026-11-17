@@ -2,6 +2,7 @@ A-Syndicate Infiltrator
 A-Young Blue Dragon
 Abattoir Ghoul
 Aegis Automaton
+Agadeem Occultist
 Akroan Sergeant
 Altar Golem
 Amulet of Vigor
@@ -11,14 +12,21 @@ Asylum Visitor
 Auger Spree
 Avatar of Might
 Banishing Slash
+Baron Sengir
+Baru, Wurmspeaker
 Bastion of Remembrance
 Blessed Light
 Blood Ogre
+Bloodline Necromancer
 Boon of Emrakul
+Broken Visage
+Bubble Matrix
 Butterbur, Bree Innkeeper
 Carrion Wall
+Chainer's Edict
 Chandra's Fury
 Charcoal Diamond
+Cinderbones
 Cliffhaven Sell-Sword
 Cogwork Archivist
 Colossal Majesty
@@ -28,20 +36,28 @@ Crumbling Colossus
 Daraja Griffin
 Deflection
 Devils' Playground
+Dirtwater Wraith
 Dragon Egg
+Dragonstorm
 Drifter il-Dal
 Dune Beetle
 Elvish Harbinger
+Endless Scream
 Faceless Devourer
 Feldon, Ronom Excavator
 Fetid Imp
 Field of Reality
+Filigree Attendant
 Flowstone Crusher
 Forest
+Foul Play
 Free from Flesh
 Frog-Squirrels
 Frontline Medic
 Furnace Scamp
+Futurist Sentinel
+Generous Patron
+Gluttonous Slug
 Gnoll War Band
 Gnome-Made Engine
 Hangar Scrounger
@@ -58,6 +74,7 @@ Lava Zombie
 Leonin Scimitar
 Liliana's Scrounger
 Lorehold Excavation
+Manabond
 Manglehorn
 Mental Misstep
 Merchant Scroll
@@ -70,6 +87,7 @@ Mortal's Ardor
 Mountain
 Mountain Bandit
 Mysterious Pathlighter
+Nimraiser Paladin
 Omen of the Sun
 Ore-Scale Guardian
 Oread of Mountain's Blaze
@@ -84,6 +102,7 @@ Primordial Ooze
 Prophetic Flamespeaker
 Rakka Mar
 Ravenous Baboons
+Reiver Demon
 Resourceful Return
 Ring of Three Wishes
 Ringwarden Owl
@@ -108,8 +127,10 @@ Skyclave Geopede
 Skylasher
 Slinking Skirge
 Smolder Initiate
+Snarling Warg
 Spark Trooper
 Spartan Veteran
+Spellskite
 Spinehorn Minotaur
 Steam Blast
 Steward of Valeron
@@ -124,6 +145,7 @@ Terror of the Fairgrounds
 The Destined White Mage
 Thing Swing
 Thorn Mammoth
+Thrasher Brute
 Tidespout Tyrant
 Tigereye Cameo
 Time of Heroes
@@ -132,5 +154,6 @@ Turn the Tide
 Turnabout
 Undercity Shade
 Valor of the Worthy
+Vampire Revenant
 Vivid Revival
 Vivisurgeon's Insight

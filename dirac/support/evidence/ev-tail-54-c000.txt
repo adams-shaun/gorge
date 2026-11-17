@@ -329,6 +329,7 @@ Setessan Champion
 Shadow of Mortality
 Shielded Aether Thief
 Shinka Gatekeeper
+Shipwreck Singer
 Shivan Fire
 Shivan Phoenix
 Shock Troops
@@ -360,6 +361,7 @@ Soul's Attendant
 Sphinx of New Prahv
 Spirit Bonds
 Spirit Weaver
+Spite
 Squire
 Staff of Nin
 Stalwart Aven

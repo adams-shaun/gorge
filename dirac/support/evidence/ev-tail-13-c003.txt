@@ -1,9 +1,11 @@
 A-Psionic Snoop
 Adaptive Sporesinger
+Akiri, Line-Slinger
 Ancient Crab
 Appetite for the Unnatural
 Arcane Denial
 Armed Assailant
+Armory Paladin
 Arvad of the Weatherlight
 Asgardian Inspiration
 Ashen Rider
@@ -12,8 +14,11 @@ Atlas, Sizable Stooge
 Augury Raven
 Aven Battle Priest
 Baffling End
+Basalt Gargoyle
+Bladewing the Risen
 Blaze
 Bloodsky Berserker
+Bloodtallow Candle
 Bog Raiders
 Bold Defense
 Bonders' Enclave
@@ -25,42 +30,62 @@ Cobblebrute
 Consign to the Pit
 Crackling Triton
 Cryptwailing
+Cursed Minotaur
 Dawntreader Elk
 Deadshot
 Deathreap Ritual
+Defiler of Souls
 Defiling Daemogoth
 Diregraf Colossus
 Dismember
 Disruptive Pitmage
 Dive Bomber
+Drunau Corpse Trawler
 Dusk Feaster
 Dutiful Return
+Earth Tremor
+Ecologist's Terrarium
 Elvish Pioneer
 Fatal Fumes
 Fire Prophecy
 Flamekin Harbinger
+Flameskull
 Flight Spellbomb
+Floriferous Vinewall
+Flurry of Horns
 Forest
+Ghost Warden
+Ghoulcaller's Bell
 Giant Caterpillar
+Gilded Scuttler
 Glaring Aegis
+Glen Elendra Archmage
 Glimmer Lens
 Go-Shintai of Lost Wisdom
 Goblin Champion
 Golden-Tail Disciple
+Gulping Scraptrap
 Hanweir Militia Captain
+Haradrim Spearmaster
 Haywire Mite
 Healer of the Glade
 Healer's Headdress
+Heir of Falkenrath
 Hold at Bay
+Horned Troll
 Hound of Urabrask
 Hydroelectric Specimen
 Hypnotic Specter
 Hypnotic Sprite
+Iceman and Firestar
+Index
 Inertia Bubble
 Insist
+Invasion of Innistrad
 Island
 Izzet Cluestone
 Jedit's Dragoons
+Jinxed Ring
 Kemba's Skyguard
 Kiki-Jiki, Mirror Breaker
 Kite Shield
@@ -70,12 +95,14 @@ Kyler, Sigardian Emissary
 Laboratory Brute
 Lead the Stampede
 Leafcrown Dryad
+Lembas
 Leonardo, Worldly Warrior
 Lizard Blades
 Lock and Load
 Mark of Mutiny
 Markov Purifier
 Merrow Commerce
+Might of Murasa
 Misfortune Teller
 Molten Blast
 Mountain
@@ -85,6 +112,7 @@ Novice Occultist
 Oketra's Monument
 Old Stickfingers
 One Dozen Eyes
+Order of the Mirror
 Orim, Samite Healer
 Pharika's Mender
 Phyrexian Vault
@@ -93,9 +121,11 @@ Pull Under
 Quest for the Gravelord
 Rabid Rats
 Rat King, Pale Piper
+Resounding Scream
 Retrieve
 Rocky Tar Pit
 Rupture
+Sabertooth Alley Cat
 Sanctum Custodian
 Saprazzan Cove
 Sea Legs
@@ -106,15 +136,23 @@ Shower of Coals
 Silent Skimmer
 Skeletal Kathari
 Skywatcher Adept
+Slaughter Cry
 Smelt-Ward Minotaur
 Soldier Replica
+Sorcerer's Wand
+Soul Partition
+Space Marine Scout
 Spark of Creativity
 Sphinx's Disciple
 Spike Rogue
 Squirrel Sovereign
+Stitcher's Apprentice
 Storm Entity
+Strength-Testing Hammer
 Swamp
 Tazeem Raptor
+The Scorpion God
+Thopter Assembly
 Thopter Spy Network
 Thriving Heath
 Throne of Empires
@@ -123,18 +161,24 @@ Tocatli Honor Guard
 Trained Jackal
 Tribute to Urborg
 Tribute to the World Tree
+Tzaangor Shaman
 Unlicensed Hearse
 Unmake
 Value Town
+Vedalken Plotter
 Vengeant Earth
 Vertigo
+Viashino Lashclaw
 Virulent Swipe
 Vitalize
 Vivien's Crocodile
 Wall of Razors
 Weathered Wayfarer
+Westgate Regent
+Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
+Words of Wisdom
 Wurmskin Forger
 Zephyr Scribe
 Zoetic Cavern

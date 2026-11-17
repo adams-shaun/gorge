@@ -1,16 +1,22 @@
 A-Celebrity Fencer
+A-Geology Enthusiast
 A-Imperial Subduer
 A-Tenured Inkcaster
 A-Uurg, Spawn of Turg
 Aberrant Researcher
+Absolute Grace
 Abu Ja'far
 Aether Figment
 Aliban's Tower
 Alpha Deathclaw
 Always Watching
 Amulet of Vigor
+Apostle of Purifying Light
 Appetite for the Unnatural
 Aqueous Form
+Arcane Flight
+Attunement
+Banewasp Affliction
 Bastion Protector
 Beacon of Immortality
 Blisterstick Shaman
@@ -29,14 +35,17 @@ Call to the Feast
 Canyon Lurkers
 Catacomb Slug
 Cavalry Pegasus
+Cazur, Ruthless Stalker
 Centaur Nurturer
 Chandra's Outburst
 Chaosphere
 Civil Servant
 Clarion Cathars
+Copperhoof Vorrac
 Corpse Churn
 Corrosive Mentor
 Dakmor Lancer
+Darkblast
 Dawn of Hope
 Deadeye Tormentor
 Death-Rattle Oni
@@ -45,6 +54,7 @@ Debtors' Transport
 Devastation Tide
 Devout Witness
 Dictate of Erebos
+Diplomatic Escort
 Dispense Justice
 Distress
 Drifting Shade
@@ -53,17 +63,21 @@ Dry Spell
 Dwarven Armory
 Dwarven Patrol
 Eidolon of Inspiration
+Elvish Branchbender
 Embereth Shieldbreaker
 Emberstrike Duo
 Embodiment of Fury
 Embraal Bruiser
+Empress Galina
 Enter the God-Eternals
 Era of Enlightenment
 Ettercap
 Excise the Imperfect
 Eyeblight Cullers
 Faith Healer
+Falkenrath Celebrants
 Fallaji Excavation
+Fallaji Vanguard
 Fanged Flames
 Field-Tested Frying Pan
 Fire Nation's Conquest
@@ -76,19 +90,27 @@ Fortifying Draught
 Furnace Spirit
 Ganax, Astral Hunter
 Ghoulraiser
+Gilded Pinions
 Gitaxian Anatomist
+Glimmer of Genius
 Glorious Anthem
+Gold Myr
+Golgari Locket
 Graceblade Artisan
 Grateful Apparition
 Grip of the Roil
+Grotag Bug-Catcher
 Gryffwing Cavalry
+Guardian of Vitu-Ghazi
 Guardians of Koilos
 Happy Hogan, Dauntless Driver
 Headsplitter
 Hedron Detonator
 Herald of the Dreadhorde
+Hero of Leina Tower
 Hibernation
 Homicidal Seclusion
+Hope Tender
 Horned Cheetah
 Horned Helm
 Hungering Hydra
@@ -99,15 +121,18 @@ Inner Sanctum
 Insatiable Gorgers
 Instill Infection
 Island
+Ixalli's Keeper
 Jagwasp Swarm
 Jhessian Infiltrator
 Jhoira's Toolbox
+Joint Exploration
 Joraga Visionary
 Kabuto Moth
 Kami of the Crescent Moon
 Kangee's Lieutenant
 Kardur's Vicious Return
 Kefnet's Last Word
+Kenku Artificer
 Kheru Bloodsucker
 Kranioceros
 Leonin Iconoclast
@@ -117,16 +142,23 @@ Livaan, Cultist of Tiamat
 Losheel, Clockwork Scholar
 Maestros Initiate
 Magma Phoenix
+Makeshift Mauler
 Manacles of Decay
 Marchesa's Smuggler
+Merchant of Secrets
+Minor Misstep
 Momentary Blink
 Moon-Circuit Hacker
 Mortis Dogs
+Mother Bear
 Mountain
 Mournwillow
+Murderous Redcap
 Mycoid Shepherd
 Nimble-Blade Khenra
+Ninth Bridge Patrol
 Norn's Disassembly
+Novice Knight
 Obelisk of Urd
 Observant Alseid
 Oko, Thief of Crowns
@@ -138,27 +170,38 @@ Perilous Forays
 Pick Up the Pace
 Pitiless Plunderer
 Plains
+Priests of Norn
 Primeval Herald
 Prison Sentence
 Prodigal Pyromancer
 Prodigal Sorcerer
+Profaner of the Dead
 Professor's Warning
+Proper Burial
+Protocol Knight
+Quakebringer
 Quest for Renewal
+Rakdos Shred-Freak
 Rapid Hybridization
 Reach Through Mists
 Reckless Brute
 Reinforced Ronin
 Reptilian Reflection
 Reservoir Kraken
+Resounding Silence
 Restless Apparition
 Rhys the Exiled
 Rotting Rats
+Run Out of Town
 Ruthless Cullblade
 Ruthless Invasion
 Safeguard
 Sage Aven
+Sarinth Steelseeker
 Scavenger Drake
 Scouring Swarm
+Scrap
+Sculpting Steel
 Seraph of the Sword
 Serpentine Ambush
 Serrated Scorpion
@@ -166,23 +209,31 @@ Shadows' Verdict
 Shang-Chi, Martial Mentor
 Shao Jun
 Shauku, Endbringer
+Shinen of Flight's Wings
 Shinka Gatekeeper
 Siegecraft
 Skitterskin
 Skybind
 Skyfire Kirin
 Slavering Nulls
+Spark of Creativity
 Spectral Force
 Spined Basher
 Spirit of the Spires
 Spontaneous Combustion
+Stark's Ingenuity
 Stern Constable
 Stitch in Time
 Stormclaw Rager
+Stream of Life
 Stromgald Crusader
 Swamp
+Sworn Defender
 Sylvan Ranger
 Talruum Minotaur
+Throne of Bone
+Thunderblust
+Tide Skimmer
 Tonic Peddler
 Tormented Soul
 Tormenting Voice
@@ -196,8 +247,12 @@ Underworld Sentinel
 Verdant Automaton
 Vile Requiem
 Vorrac Battlehorns
+Vorstclaw
 Vulshok Gauntlets
+Walker of the Wastes
 Wall of Fire
+Whip-Spine Drake
+Wilderness Hypnotist
 Winds of Rebuke
 Windswept Heath
 Winged Words

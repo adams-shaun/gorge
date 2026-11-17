@@ -1,9 +1,11 @@
 Abyssal Gatekeeper
+Acolyte of the Inferno
 Ainok Bond-Kin
 Ajani's Mantra
 Altar's Light
 Ancestral Memories
 Animating Faerie
+Applied Biomancy
 Arbalest Elite
 Arbor Armament
 Arboreal Alliance
@@ -11,6 +13,7 @@ Arcane Encyclopedia
 Archivist of Oghma
 Argivian Find
 Armored Pegasus
+Assault Zeppelid
 Auriok Salvagers
 Avatar of Will
 Aven Heartstabber
@@ -23,17 +26,22 @@ Bitter Reunion
 Blade Banish
 Blessings of Nature
 Bloody Betrayal
+Bontu's Monument
 Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Briarknit Kami
+Brightmare
 Brushwagg
 Buccaneer's Bravado
 Bygone Bishop
+Cabal Executioner
 Carnival
 Cenn's Heir
 Cerulean Wyvern
 Choke
+Cinderslash Ravager
 Citanul Woodreaders
 Claim of Erebos
 Clear Shot
@@ -45,9 +53,11 @@ Colossus, Steel Stalwart
 Conclave Cavalier
 Conclave Phalanx
 Confirm Suspicions
+Coral Colony
 Counterbalance
 Courier's Capsule
 Cowl Prowler
+Creeping Trailblazer
 Crown of Flames
 Cryptothrall
 Cyclopean Snare
@@ -60,6 +70,7 @@ Dega Disciple
 Demonic Appetite
 Devils' Playground
 Dire Fleet Neckbreaker
+Dirge of Dread
 Dismal Failure
 Doom Foretold
 Dragon Roost
@@ -67,9 +78,12 @@ Drana, Liberator of Malakir
 Drawn from Dreams
 Drift of Phantasms
 Dust Elemental
+Eiganjo Uprising
 Elvish Eulogist
 Elvish Vanguard
+Enchantress's Presence
 Endless One
+Enshrined Memories
 Entomb
 Ephemerate
 Eternal Thirst
@@ -78,8 +92,11 @@ Falkenrath Celebrants
 Fauna Shaman
 Fen Hauler
 Festering Newt
+Fiery Confluence
 Flicker of Fate
+Flowstone Infusion
 Fogwalker
+Font of Mythos
 Forest
 Fruitcake Elemental
 Fumarole
@@ -87,13 +104,16 @@ Funeral Longboat
 Furor of the Bitten
 Furyblade Vampire
 Galecaster Colossus
+Gather the Pack
 Gaze of Adamaro
+Geology Enthusiast
 Githzerai Monk
 Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin Chainwhirler
 Goblin King
+Goblinslide
 Golden Ratio
 Grave Bramble
 Graveyard Marshal
@@ -103,6 +123,7 @@ Grim Captain's Call
 Halcyon Glaze
 Half-Elf Monk
 Hallowed Respite
+Halsin, Emerald Archdruid
 Hamato Ninpō
 Hardy Outlander
 Harmattan Efreet
@@ -121,12 +142,14 @@ Impale
 Implement of Malice
 In Too Deep
 Invincible Hymn
+Iridescent Angel
 Island
 Jace, Memory Adept
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
 Kami of False Hope
+Kami of Restless Shadows
 Karplusan Strider
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
@@ -138,6 +161,7 @@ Land Tax
 Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
+Lore Seeker
 Loxodon Stalwart
 Maddening Wind
 Mantle of Webs
@@ -169,14 +193,20 @@ Narcolepsy
 Nesting Dragon
 Nezumi Bone-Reader
 Nightmare Shepherd
+Nimble Birdsticker
 Noxious Ghoul
 Nymris, Oona's Trickster
 Oakgnarl Warrior
 Ollenbock Escort
 Oona's Blackguard
 Orcish Artillery
+Pack Mastiff
 Palace Sentinels
+Pale Bears
+Pale Rider of Trostad
 Patrol Hound
+Peek
+Pestilent Haze
 Pheres-Band Tromper
 Phthisis
 Phyrexian Rebirth
@@ -192,6 +222,8 @@ Raphael, Fiendish Savior
 Reap What Is Sown
 Reshape the Earth
 Revoke Existence
+Rite of Belzenlok
+Roc Hunter
 Rootwalla
 Rural Recruit
 Saddled Rimestag
@@ -208,13 +240,17 @@ Servant of the Scale
 Shifting Ceratops
 Shu Defender
 Siege-Gang Commander
+Silvan Reveler
 Silver Drake
 Sire of Insanity
+Skitterbeam Battalion
 Slab Hammer
 Slag Strider
 Sliptide Serpent
 Sliversmith
+Smellerbee, Rebel Fighter
 Smite
+Soaring Hope
 Somberwald Stag
 Song of Serenity
 Soul Feast
@@ -228,6 +264,7 @@ Strange Augmentation
 Stream of Acid
 Stromkirk Condemned
 Summary Judgment
+Sun Droplet
 Sunlance
 Surge Conductor
 Swamp
@@ -237,21 +274,27 @@ Sylvan Shepherd
 Syphon Sliver
 Tamiyo, Inquisitive Student
 Teval's Judgment
+Thatcher Revolt
 The Battle of Bywater
+The Covert Blue Mage
 Thran Golem
 Tidehollow Sculler
 Tireless Provisioner
 Tome Shredder
 Torbran, Thane of Red Fell
+Trailblazer
 Trynn, Champion of Freedom
 Twisted Justice
+Tyvar Kell
 Ulgrotha Charm
 Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
+Urza, Prince of Kroog
 Vastwood Animist
 Vegetation Abomination
 Verdant Confluence
+Veteran Swordsmith
 Vorapede
 Vraan, Executioner Thane
 Vraska's Stoneglare
@@ -261,8 +304,10 @@ Wandering Wolf
 Warden of the First Tree
 Wei Ambush Force
 Wilson, Refined Grizzly
+Wirewood Symbiote
 Wolfcaller's Howl
 Word of Binding
+Yawgmoth's Vile Offering
 You Happen On a Glade
 Zephyr Spirit
 Zhalfirin Lancer

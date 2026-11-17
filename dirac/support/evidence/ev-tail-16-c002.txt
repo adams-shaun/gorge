@@ -3,11 +3,13 @@ Afterlife
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
+Angler Turtle
 Anoint with Affliction
 Arboreal Alliance
 Arcane Encyclopedia
 Armory of Iroas
 Artisan's Sorrow
+Asari Captain
 Avacyn and Griselbrand
 Aven Trooper
 Awakened Awareness
@@ -17,26 +19,35 @@ Battle Mammoth
 Beloved Chaplain
 Bhaal's Invoker
 Black Cat
+Black Lotus
+Black Widow, Deadly Hunter
 Blood Clock
 Blood Hound
 Bloodhunter Bat
 Border Patrol
+Boros Recruit
 Brazen Freebooter
+Bringer of the Green Dawn
 Bronze Cudgels
 Burn Down the House
 Burning Anger
 Cabal Ritual
 Call of the Herd
 Call the Bloodline
+Canal Monitor
 Cantivore
 Caustic Tar
+Chandra's Spitfire
+Charmbreaker Devils
 Chastise
+Chittering Skitterling
 Chrome Prowler
 Clay Statue
 Clergy en-Vec
 Coastal Hornclaw
 Coercive Impetus
 Conduit of Ruin
+Contagious Nim
 Courtly Provocateur
 Crippling Chill
 Daggerback Basilisk
@@ -48,11 +59,14 @@ Dauntless Survivor
 Dawntreader Elk
 Daxos, Blessed by the Sun
 Deadeye Brawler
+Deadly Alliance
 Defensive Stance
+Demon's Horn
 Descend upon the Sinful
 Desert Sandstorm
 Dimir Cluestone
 Dimir House Guard
+Dragon Tyrant
 Dunland Crebain
 Dusk's Landing
 Electrostatic Bolt
@@ -66,14 +80,17 @@ Exhume
 Eye Collector
 Ezzaroot Channeler
 Family's Favor
+Fathom Fleet Captain
 Favor of the Woods
 Ferocious Charge
 Fierce Retribution
 Fight to the Death
+Fire Drake
 Fires of Undeath
 Fleet-Footed Monk
 Flickerwisp
 Forced Adaptation
+Forced Landing
 Forest
 Foul Imp
 Foundry Champion
@@ -81,9 +98,11 @@ Fountain of Renewal
 Frenzied Raptor
 Frilled Sea Serpent
 Furnace Strider
+Garrison Cat
 Gathering Throng
 Ghirapur Gearcrafter
 Giant-Man, Gargantuan Genius
+Glissa, the Traitor
 Glowrider
 Gluttonous Cyclops
 Goblin Assault Team
@@ -93,25 +112,36 @@ Goblin Shortcutter
 Golden Egg
 Goring Warplow
 Grave Exchange
+Groundbreaker
 Growth Spasm
 Gryff's Boon
 Guardian Zendikon
 Guardian of Solitude
 Guardians of Koilos
+Hagra Crocodile
 Haunted Guardian
 Havoc Demon
 Heart-Piercer Manticore
 Hearth Charm
 Heedless One
+Herbology Instructor
 Hired Poisoner
 Hoard-Smelter Dragon
+Hobble
+Hollowhenge Overlord
 Hope Charm
 Hunter's Prowess
 Incursion Specialist
+Inner Fire
+Inquisitor's Ox
 Iron Bully
 Iron-Barb Hellion
 Island
 Iymrith, Desert Doom
+Jayemdae Tome
+Jokulhaups
+Jor Kadeen, the Prevailer
+Juniper Order Ranger
 Kaito's Pursuit
 Karoo
 Kazandu Nectarpot
@@ -119,8 +149,11 @@ Keldon Necropolis
 Knight Errant
 Kor Sky Climber
 Krenko, Tin Street Kingpin
+Krosan Cloudscraper
+Lavaborn Muse
 Lorehold Campus
 Madame Vastra
+Mana-Charged Dragon
 Mantle of the Wolf
 March from the Black Gate
 Marsh Lurker
@@ -130,11 +163,13 @@ Mesmeric Trance
 Methods of the Mighty
 Metropolis Reformer
 Might of the Old Ways
+Mind Shatter
 Mindleech Ghoul
 Mindshrieker
 Mirkwood Spider
 Mosscoat Goriak
 Mountain
+Munitions Expert
 Myrel, Shield of Argive
 Nevinyrral's Disk
 Niambi, Esteemed Speaker
@@ -146,6 +181,8 @@ Oboro Envoy
 Octomancer
 Ogre Errant
 Oketra's Last Mercy
+Orcish Bloodpainter
+Orcish Oriflamme
 Ordruun Commando
 Origin Spellbomb
 Orzhov Racketeers
@@ -153,6 +190,7 @@ Parish-Blade Trainee
 Peer into the Abyss
 Permission Denied
 Pestilent Cauldron
+Phyrexian Scriptures
 Plains
 Priest of the Crossing
 Provoke
@@ -160,7 +198,9 @@ Puncture Bolt
 Quicken
 Rancor
 Raven Clan War-Axe
+Recumbent Bliss
 Reduce to Ashes
+Renegade Firebrand
 Resolute Archangel
 Rishadan Brigand
 Ritual of the Machine
@@ -170,15 +210,22 @@ Rolling Thunder
 Rubblebelt Maaka
 Sai, Master Thopterist
 Sandblast
+Scab-Clan Berserker
+Schismotivate
+Scourge Devil
+Scourge of Geier Reach
 Scrapyard Mongrel
+Sea Hag
 Search Party Captain
 Secret Rendezvous
+Selvala's Charge
 Shield Wall
 Siege Zombie
 Sigarda, Champion of Light
 Silent Sentinel
 Silumgar Sorcerer
 Silver-Inlaid Dagger
+Silverback Ape
 Simian Simulacrum
 Sin Collector
 Sinister Starfish
@@ -196,6 +243,8 @@ Spell Crumple
 Spell Syphon
 Spire Tracer
 Spore Cloud
+Sprouting Vines
+Stalking Vengeance
 Star-Crowned Stag
 Stingscourger
 Stone Retrieval Unit
@@ -203,6 +252,7 @@ Stonybrook Angler
 Stormcaller of Keranos
 Strands of Undeath
 Strength of Cedars
+Sun-Crested Pterodon
 Sunspire Griffin
 Suntail Hawk
 Survey the Wreckage
@@ -213,7 +263,9 @@ Tarkir Charm
 Tarpan
 Thalakos Seer
 Thassa's Emissary
+The Marvelous Scientist
 Thermal Glider
+Thought Erasure
 Thranduil the Strategist
 Thrull Parasite
 Thunderfoot Baloth
@@ -223,20 +275,25 @@ Towashi Songshaper
 Trelasarra, Moon Dancer
 Tribute to Horobi
 Trickster's Talisman
+Tropical Storm
 Tuya Bearclaw
 Unesh, Criosphinx Sovereign
+Vanguard of Brimaz
 Venerable Knight
 Viper, Cruel Conspirator
+Visage of Bolas
 Vivify
 Voidwielder
 Voracious Wurm
 Vraska's Scorn
+Wall of Tanglecord
 War-Spike Changeling
 Warning
 Waterfront Bouncer
 Welkin Guide
 Wildest Dreams
 Wily Goblin
+Winged Boots
 Wishful Merfolk
 Woodland Mystic
 World Shaper

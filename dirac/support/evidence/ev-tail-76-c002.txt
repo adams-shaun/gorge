@@ -1,3 +1,4 @@
+A-Lantern of Revealing
 A-Vega, the Watcher
 Active Volcano
 Adventurous Impulse
@@ -5,6 +6,7 @@ Aether Meltdown
 Amrou Scout
 Ancestral Recall
 Anticipate
+Arboreal Grazer
 Armguard Familiar
 Arrester's Zeal
 Aspect of Gorgon
@@ -13,12 +15,16 @@ Awakening Zone
 Battle Squadron
 Beacon Hawk
 Bitter Downfall
+Black Widow, Daring Operative
 Blacksmith's Skill
 Blight Pile
 Blightbelly Rat
 Bojuka Brigand
 Break Through the Line
+Bumi, Eclectic Earthbender
 Carrion Screecher
+Clout of the Dominus
+Commencement of Festivities
 Commune with Dinosaurs
 Consuming Fervor
 Crash of Rhinos
@@ -29,11 +35,16 @@ Crush Contraband
 Dauthi Cutthroat
 Deathcurse Ogre
 Defiant Khenra
+Diabolic Intent
 Draconic Muralists
 Drowned Secrets
+Dutiful Attendant
+Dying to Serve
 Elvish Lookout
 Emergent Sequence
+Enigmatic Incarnation
 Epicure of Blood
+Ertai, Wizard Adept
 Essence Drain
 Excavating Anurid
 Feral Ferocity
@@ -42,6 +53,7 @@ First Volley
 Flamekin Herald
 Forest
 Frazzle
+Frenzy Sliver
 Gale Swooper
 Galion, Elvenking's Butler
 Galvanic Bombardment
@@ -49,6 +61,7 @@ Gladecover Scout
 Goblin Fire Fiend
 Goblin War Party
 Goliath Paladin
+Gurgling Anointer
 Hamlet Captain
 Hematite Talisman
 Herald of the Pantheon
@@ -62,10 +75,13 @@ Kami of Ancient Law
 Katara, Heroic Healer
 Kavu Predator
 Khalni Gem
+Kitsune Blademaster
 Kiyomaro, First to Stand
 Kuldotha Ringleader
 Lash of Thorns
 Lotho, Corrupt Shirriff
+Luminescent Rain
+Magmatic Sinkhole
 Magmaw
 Makindi Sliderunner
 Malakir Cullblade
@@ -79,9 +95,12 @@ Mizzium Mortars
 Moment of Defiance
 Mountain
 Murderous Rider
+Nantuko Cultivator
 Nephalia Smuggler
+Nocturnal Feeder
 Oathsworn Vampire
 Ojutai's Summons
+One With the Wind
 Panther Robot
 Plains
 Predation Steward
@@ -100,6 +119,7 @@ Sage Owl
 Scapegoat
 Scattered Thoughts
 Scornful Egotist
+Scrounger of Souls
 Scuttletide
 Searing Wind
 Shadow Sliver
@@ -111,8 +131,10 @@ Smite
 Snarling Wolf
 Spell Swindle
 Spidersilk Armor
+Stealth Mission
 Stitcher's Supplier
 Stone-Seeder Hierophant
+Subterfuge
 Suq'Ata Firewalker
 Swamp
 Sylvan Caryatid
@@ -126,16 +148,20 @@ Tokka & Rahzar, Unsupervised
 Tourach's Canticle
 Transpose
 Tuinvale Treefolk
+Unbreakable Bond
 Unliving Psychopath
 Valkyrie's Sword
 Vastwood Fortification
 Vedalken Archmage
 Verdant Crescendo
+Vial of Dragonfire
 Voltstorm Angel
 Vow of Duty
 Wall of Spears
 Wall of Torches
 Warmonger Hellkite
+Whipstitched Zombie
+Whirler Virtuoso
 White Sun's Twilight
 Wurmskin Forger
 Zuko's Offense

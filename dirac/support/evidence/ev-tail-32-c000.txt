@@ -26,6 +26,8 @@ Axgard Armory
 Banish from Edoras
 Barbed Batterfist
 Bazaar Trademage
+Blade Banish
+Blade Splicer
 Blasted Landscape
 Blood Age General
 Blood Rites
@@ -60,6 +62,7 @@ Conclave Mentor
 Copper Host Crusher
 Copper Myr
 Court Homunculus
+Court of Grace
 Curious Altisaur
 Cut
 Dakmor Plague

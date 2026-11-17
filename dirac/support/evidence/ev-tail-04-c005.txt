@@ -1,9 +1,11 @@
 A-Hullbreaker Horror
 A-Sunbathing Rootwalla
 Akiri, Line-Slinger
+Alley Evasion
 Alley Strangler
 Alpha Myr
 Anaba Shaman
+Anax and Cymede
 Andúril, Narsil Reforged
 Arbor Armament
 Arni Slays the Troll
@@ -11,6 +13,8 @@ Ashiok's Adept
 Atlantean Skirmisher
 Attended Socialite
 Atzocan Seer
+Avarax
+Backup Agent
 Balm of Restoration
 Banehound
 Banish from Edoras
@@ -21,8 +25,10 @@ Bestial Fury
 Big Bertha
 Birds of Paradise
 Bituminous Blast
+Blessed Hippogriff
 Blight Mound
 Bloated Contaminator
+Blood Servitor
 Blood Tithe
 Bloodline Pretender
 Bloodline Shaman
@@ -32,11 +38,14 @@ Browse
 Caligo Skin-Witch
 Canyon Jerboa
 Carapace Forger
+Castle Locthwain
 Catapult Fodder
 Caustic Rain
 Celestial Unicorn
 Centaur Chieftain
 Charging Badger
+Charging Griffin
+Childhood Horror
 Chimeric Idol
 Chorus of Might
 Chromatic Lantern
@@ -50,40 +59,53 @@ Collective Unconscious
 Compelling Deterrence
 Crawl from the Cellar
 Crown of Skemfar
+Darkwater Catacombs
 Deadly Wanderings
 Death-Greeter's Champion
 Deepwood Drummer
+Dega Disciple
 Demonic Collusion
 Desperate Castaways
 Devotee of Strength
 Devouring Swarm
 Diplomatic Escort
 Distract
+Divine Arrow
 Doomfall
 Douser of Lights
 Dragon Hatchling
 Dragonspeaker Shaman
 Duskshell Crawler
+Dwell on the Past
+Elenda, the Dusk Rose
 Embermage Goblin
+Energy Tap
 Enhanced Awareness
 Ephara's Dispersal
 Evolutionary Leap
 Exultant Cultist
+Feebleness
 Fierce Witchstalker
 Fire
 Fire Ants
 Flitterstep Eidolon
+Flood
+Flowstone Strike
 Forest
 Fyndhorn Brownie
 Gaea's Anthem
 Gather the Pack
 Glass Golem
 Goblin Gathering
+Golgari Death Swarm
 Gorgon's Head
+Greatsword of Tyr
 Greel's Caress
 Grim Affliction
 Grim Flowering
 Grotesque Demise
+Grove of the Burnwillows
+H.E.R.B.I.E., Lovable Robot
 Hammer of Nazahn
 Hardy Veteran
 Hatchery Spider
@@ -103,30 +125,43 @@ Jeskai Banner
 Jilt
 Jump
 Juvenile Gloomwidow
+Kami of Old Stone
 Kami of Transience
 Keskit, the Flesh Sculptor
 Knickknack Ouphe
+Krark-Clan Shaman
 Kurgadon
 Kyren Glider
 Larceny
+Law-Rune Enforcer
+Layla Hassan
 Leeching Licid
+Legion's Judgment
 Llanowar Loamspeaker
 Loathsome Chimera
 Locust Swarm
 Mage Duel
+Mana Tithe
 Metallic Sliver
 Might Sliver
 Might of Alara
+Minamo, School at Water's Edge
 Minion Reflector
 Mitotic Slime
 Moldgraf Millipede
+Mortality Spear
 Mortiphobia
 Mountain
 Myr Matrix
 Nahiri's Binding
 Necklace of Girion
+One Thousand Lashes
 Onyx Talisman
+Open the Armory
+Orazca Raptor
+Order
 Order of Midnight
+Otawara, Soaring City
 Outrider of Jhess
 Patient Rebuilding
 Phantom Wurm
@@ -138,44 +173,61 @@ Planar Gate
 Prakhata Pillar-Bug
 Profane Prayers
 Promise of Aclazotz
+Promise of Tomorrow
 Prophetic Titan
 Protect the Negotiators
 Pteron Ghost
+Puppet Master
 Purestrain Genestealer
 Ravenous Daggertooth
 Ravenous Gigamole
 Ravenous Vampire
 Razorclaw Bear
 Razorfin Hunter
+Retreat to Coralhelm
+Righteousness
 Ring of Valkas
+Riot Control
+Riptide Chimera
 Rise of Eagles
 River Kaijin
 Rolling Stones
 Rune Snag
 Rushwood Legate
 Sadistic Slash
+Sanctuary Cat
 Sarkhan's Scorn
+Scepter of Insight
 Screaming Fury
+Screaming Shield
+Servo Exhibition
 Settlement Blacksmith
 Shadow, Mysterious Assassin
 Sheoldred's Headcleaver
+Shields of Velis Vel
 Sigil of Myrkul
 Sigiled Sentinel
+Skittish Kavu
 Skrelv, Defector Mite
 Sleek Schooner
+Smoldering Spires
 Sound the Call
+Spellgorger Weird
 Spellstutter Sprite
 Spinehorn Minotaur
 Splendid Reclamation
 Spoils of Evil
 Squirrel Sanctuary
+Stall for Time
 Star Whale
 Starlight Invoker
 Stern Dismissal
 Storm Front
 Storm Seeker
+Stormcaller's Boon
 Sudden Impact
 Sun Sentinel
+Sun-Crowned Hunters
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
@@ -184,25 +236,32 @@ Tendrils of Corruption
 Territorial Kavu
 Thassa's Devourer
 The Blackstaff of Waterdeep
+The Thanos-Copter
 Think Tank
+Third Path Iconoclast
 Thran Foundry
 Tidal Wave
 Tishana's Wayfinder
 Tomb Robber
+Torbran, Thane of Red Fell
 Tower Defense
 Tower Winder
 Tranquility
 Tribute Mage
 Trigon of Mending
+Turbulent Crater
 Turn the Earth
 Underdark Explorer
 Unhallowed Phalanx
+Vampiric Feast
 Vault 87: Forced Evolution
+Victual Sliver
 Village Elder
 Vodalian Serpent
 Volcanic Salvo
 Voltaic Brawler
 Voracious Null
+Warpath Ghoul
 Wasteland Viper
 Watchful Automaton
 Watchful Blisterzoa

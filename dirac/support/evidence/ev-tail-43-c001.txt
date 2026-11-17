@@ -28,6 +28,7 @@ Blessings of Nature
 Blight Keeper
 Blistering Dieflyn
 Bloodscent
+Bloodshot Trainee
 Bloodthorn Taunter
 Boggart Loggers
 Bonded Construct
@@ -102,6 +103,7 @@ Farhaven Elf
 Fighting Drake
 Final Death
 Firehoof Cavalry
+Firemind Vessel
 Flametongue Yearling
 Flatline
 Fledgling Mawcor
@@ -152,6 +154,7 @@ Infernal Medusa
 Instruments of War
 Insubordination
 Invisible Woman
+Iona, Shield of Emeria
 Ironclad Slayer
 Ironshell Beetle
 Island
@@ -180,6 +183,7 @@ Llanowar Wastes
 Lofty Denial
 Loki's Scepter
 Long-Range Sensor
+Lucky Clover
 Lumengrid Warden
 Mad Prophet
 Maggot Therapy
@@ -206,6 +210,7 @@ Motivated Pony
 Mountain
 Mox Opal
 Murmuring Phantasm
+Mystic Remora
 Nahiri, Storm of Stone
 Nantuko Mentor
 Narset's Reversal

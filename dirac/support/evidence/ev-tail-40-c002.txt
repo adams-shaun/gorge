@@ -117,6 +117,7 @@ Futurist Sentinel
 Game-Trail Changeling
 Gavony Trapper
 Geist Snatch
+Generous Patron
 Ghost Lantern
 Glimpse of Nature
 Gluttonous Slug
@@ -226,6 +227,7 @@ Reiterate
 Reito Lantern
 Reiver Demon
 Relic Bane
+Relic Sloth
 Repercussion
 Rescue
 Resourceful Return

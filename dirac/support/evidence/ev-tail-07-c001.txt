@@ -1,3 +1,4 @@
+A-Capenna Express
 A-Kona, Rescue Beastie
 A-Leyline of Resonance
 A-Scout the Wilderness
@@ -16,6 +17,7 @@ Ambassador Laquatus
 Ambush Commander
 Ancestral Knowledge
 Angelic Observer
+Angrath, Captain of Chaos
 Answered Prayers
 Apocalypse
 April O'Neil, Human Element
@@ -58,6 +60,7 @@ Captain's Defense
 Carapace Forger
 Carrier Pigeons
 Carrion
+Castle Vantress
 Cavalier of Thorns
 Caves of Koilos
 Centaur Courser
@@ -122,6 +125,7 @@ Favor of the Overbeing
 Feeling of Dread
 Feral Prowler
 Feroz's Ban
+Fevered Suspicion
 Fierce Guardianship
 Fire
 Fire Dragon
@@ -140,6 +144,7 @@ Frostveil Ambush
 Frozen Aether
 Furyblade Vampire
 Gadrak, the Crown-Scourge
+Gallifrey Stands
 Gamekeeper
 Gargantos, the Endbringer
 Garrison Sergeant
@@ -391,6 +396,7 @@ Valko Indorian
 Vampire Bats
 Vernal Bloom
 Veteran Armorsmith
+Viashino Cutthroat
 Victor Mancha, Runaway
 Violent Outburst
 Violent Ultimatum
@@ -407,6 +413,7 @@ Wallop
 Wandering Treefolk
 War Screecher
 Warmonger
+Warped Researcher
 Waterfront District
 Wayward Servant
 Wellwisher

@@ -5,6 +5,7 @@ Advance Scout
 Amrou Scout
 Ancient Runes
 Angelic Overseer
+Arc Lightning
 Arcades Sabboth
 Ardbert, Warrior of Darkness
 Armor of Shadows
@@ -16,7 +17,9 @@ Baloth Prime
 Barrel Down Sokenzan
 Blade of the Bloodchief
 Bloodscale Prowler
+Boros Mastiff
 Boulder Salvo
+Brimstone Dragon
 Brindle Shoat
 Butch DeLoria, Tunnel Snake
 Candlelight Vigil

@@ -105,6 +105,7 @@ Hallowed Priest
 Hallowed Spiritkeeper
 Harbinger of the Hunt
 Harvesttide Infiltrator
+Haunted Cloak
 Heat Ray
 Heaven
 Hecatomb
@@ -244,6 +245,7 @@ Sultai Banner
 Surge Node
 Svyelun of Sea and Sky
 Swamp
+Tall as a Beanstalk
 Tendershoot Dryad
 Tezzeret's Gatebreaker
 Thicket Crasher

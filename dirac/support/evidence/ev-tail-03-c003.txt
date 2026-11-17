@@ -1,32 +1,44 @@
+Acolyte of the Inferno
 Animating Faerie
 Arbalest Elite
 Arbor Armament
+Arboreal Alliance
+Arcane Encyclopedia
 Archivist of Oghma
 Artillerize
 Ash Barrens
 Auriok Salvagers
+Avatar of Will
 Azorius Skyguard
+Azra Oddsmaker
 Battle Rampart
 Bitter Reunion
 Blade Banish
 Blessings of Nature
 Bloody Betrayal
 Bonebreaker Giant
+Boneyard Scourge
+Bontu's Monument
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Brightmare
 Buccaneer's Bravado
 Bygone Bishop
+Cabal Executioner
 Cenn's Heir
 Cerulean Wyvern
 Choke
+Cinderslash Ravager
 Citanul Woodreaders
+Claim of Erebos
 Clockwork Drawbridge
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
 Consulate Dreadnought
 Cowl Prowler
+Creeping Trailblazer
 Crown of Flames
 Crush Dissent
 Cryptothrall
@@ -42,22 +54,32 @@ Dire Fleet Neckbreaker
 Dragon Roost
 Drift of Phantasms
 Dust Elemental
+Eiganjo Uprising
 Elvish Eulogist
 Endless One
+Enshrined Memories
+Entomb
+Excise
 Falkenrath Celebrants
 Fauna Shaman
+Fen Hauler
 Flicker of Fate
 Fogwalker
+Font of Mythos
 Forest
+Fumarole
 Furor of the Bitten
+Gather the Pack
 Githzerai Monk
 Glissa Sunslayer
 Glyph Elemental
+Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin King
 Goggles of Night
 Golden Ratio
 Grave Bramble
+Graveyard Marshal
 Greater Forgeling
 Grim Captain's Call
 Halcyon Glaze
@@ -70,22 +92,31 @@ Haunted Angel
 Hedron Scrabbler
 Heliophial
 Hoar Shade
+Horned Kavu
 Howl from Beyond
 Hungry Mist
+Hunt the Hunter
 Immortal Servitude
+Impale
+Implement of Malice
 In Too Deep
 Invincible Hymn
 Island
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Kami of Restless Shadows
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
 Kor Castigator
+Kraul Raider
+Lamentation
 Leeching Licid
 Living Tempest
 Longshot, Rebel Bowman
+Lore Seeker
 Loxodon Stalwart
+March from the Black Gate
 Mavren Fein, Dusk Apostle
 Merciless Eviction
 Merfolk Seer
@@ -93,21 +124,26 @@ Metropolis Sprite
 Migratory Route
 Minion Missile
 Mirage Mockery
+Mirkwood Channeler
 Mirri, Cat Warrior
 Mirror-Sigil Sergeant
 Mnemonic Sliver
 Moor Fiend
 Mountain
 Munda, Ambush Leader
+Muzzle
 Narcolepsy
 Nezumi Bone-Reader
 Nightmare Shepherd
+Nimble Birdsticker
 Oko's Hospitality
 Ollenbock Escort
 Orcish Artillery
 Palace Sentinels
+Pale Bears
 Patrol Hound
 Permafrost Trap
+Pestilent Haze
 Phyrexian Rebirth
 Plains
 Predator, Flagship
@@ -117,41 +153,62 @@ Rakdos Signet
 Reap What Is Sown
 Reshape the Earth
 Revoke Existence
+Rite of Belzenlok
+Roc Hunter
 Rootwalla
 Samite Herbalist
 Sarinth Steelseeker
 Scroll of Griselbrand
+Scute Mob
 Servant of the Scale
 Shifting Ceratops
 Shinen of Stars' Light
 Shu Defender
 Silver Drake
+Skitterbeam Battalion
+Slab Hammer
 Sliptide Serpent
 Sliversmith
+Smellerbee, Rebel Fighter
 Smite
+Soaring Hope
 Somberwald Stag
 Spined Megalodon
 Spreading Rot
 Sprout
 Stalking Drone
 Start
+Strange Augmentation
 Stream of Acid
+Stromkirk Condemned
 Sunlance
 Surge Conductor
 Surveilling Sprite
 Swamp
 Sweet Oblivion
+Sylvan Safekeeper
 Syphon Sliver
+Thatcher Revolt
 The Battle of Bywater
 Thran Golem
+Tome Shredder
 Torbran, Thane of Red Fell
+Trailblazer
+Trynn, Champion of Freedom
 Twisted Justice
+Tyvar Kell
 Ulgrotha Charm
+Ulvenwald Observer
 Unlikely Alliance
 Vastwood Animist
+Veteran Swordsmith
 Voidslime
+Vorapede
 Vraan, Executioner Thane
+Wirewood Symbiote
 Wolfcaller's Howl
+Word of Binding
+Yawgmoth's Vile Offering
 Zephyr Spirit
 Zhalfirin Lancer
 Zuberi, Golden Feather

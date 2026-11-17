@@ -6,6 +6,7 @@ Alley Strangler
 Anvilwrought Raptor
 Apothecary Initiate
 Argivian Find
+Armored Cancrix
 Armored Skaab
 Awaken the Sky Tyrant
 Bandage
@@ -44,6 +45,7 @@ Forest
 Freed from the Real
 Frenzied Devils
 Fugitive Wizard
+Glamorous Grapplers
 Gluttonous Troll
 Gold-Forged Thopteryx
 Golem's Heart
@@ -61,6 +63,7 @@ Jedit Ojanen
 Jeering Homunculus
 Jewel Thief
 Jolted Awake
+Kaseto, Orochi Archmage
 Leaf Gilder
 Lightning Surge
 Lost Soul
@@ -83,20 +86,26 @@ Plague Mare
 Plains
 Pounce
 Pre-War Formalwear
+Putrefax
 Rats of Rath
+Ray of Enfeeblement
 Renewing Dawn
+Rhizome Lurcher
 Rule of Law
 Sanctum of Shattered Heights
 Seraph of the Masses
+Shadowheart, Dark Justiciar
 Shamble Back
 Simic Keyrune
 Sire of the Storm
+Soot Imp
 Soul Collector
 Soul's Grace
 Spellbound Dragon
 Splinter, the Mentor
 Spore Swarm
 Strangle
+Stronghold Taskmaster
 Sungrace Pegasus
 Suntail Hawk
 Swamp
@@ -117,3 +126,4 @@ Warlord's Fury
 Whispersilk Cloak
 Winged Sliver
 Wirewood Pride
+Zombie Cannibal

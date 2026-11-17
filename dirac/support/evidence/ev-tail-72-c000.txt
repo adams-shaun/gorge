@@ -101,6 +101,7 @@ Coursers' Accord
 Court of Ire
 Cradle of Vitality
 Creeping Tar Pit
+Cult Guildmage
 Cultbrand Cinder
 Curio Vendor
 Custodi Lich
@@ -180,6 +181,7 @@ Fresh-Faced Recruit
 Fugitive Wizard
 Galadriel, Gift-Giver
 Galvanic Key
+Gandalf the Grey
 Gargoyle Flock
 Geist of the Archives
 Gelectrode
@@ -224,6 +226,7 @@ Hostile Minotaur
 Hulking Goblin
 Hurloon Minotaur
 Iconic Shield
+Imotekh the Stormlord
 Imperial Lancer
 Implement of Improvement
 Inexorable Blob
@@ -276,6 +279,7 @@ Llanowar Sentinel
 Lord of Change
 Lumbering Satyr
 Lunar Frenzy
+Malakir Soothsayer
 Malfegor
 Manhole Cover
 Maralen of the Mornsong
@@ -296,6 +300,7 @@ Molderhulk
 Molten Ravager
 Molting Harpy
 Momentous Fall
+Monstrous Carabid
 Moonlit Scavengers
 Morkrut Behemoth
 Morphling
@@ -439,6 +444,7 @@ Sky Crier
 Skyboon Evangelist
 Skyline Scout
 Slippery Scoundrel
+Soul Diviner
 Southern Elephant
 Spellshock
 Spined Thopter

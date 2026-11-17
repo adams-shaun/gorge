@@ -26,6 +26,7 @@ Arachnoid Adaptation
 Aragorn and Arwen, Wed
 Arashin Foremost
 Arcade Gannon
+Arcbound Stinger
 Archangel Avacyn
 Archnemesis
 Archon of Falling Stars
@@ -200,6 +201,7 @@ Goblin Boom Keg
 Goblin Locksmith
 Goldmeadow Dodger
 Granite Grip
+Greel, Mind Raker
 Grim Physician
 Grizzled Leotau
 Grizzly Bears
