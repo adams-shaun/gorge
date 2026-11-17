@@ -14,16 +14,21 @@ import (
 // the triggered CanAttackDefender / CantBlockBy shapes the lowering accepts
 // and the AssignNoCombatDamage statics the kernel zeroes in the combat damage
 // step (Ophidian, Carrion Rats, Dwarven Vigilantes; the Rats' switched
-// ExileFromGrave unless asks every player). Opt and Rancor make Prismari
+// ExileFromGrave unless asks every player). Cloak of Confusion and Laccolith
+// Rig are the remembered-attacker AssignNoCombatDamage shape: their Effect
+// names RememberObjects$ TriggeredAttackerLKICopy rather than the effect's
+// source, so the emblem captures the attacker. Opt and Rancor make Prismari
 // Pledgemage's magecraft trigger and Steelclad Spirit's enchantment trigger
 // reachable, and Skyclave Squid's landfall fires off the lands.
 var keffectStaticDurationDeck = []cardset.Entry{
-	{Name: "Ophidian", Count: 4},
-	{Name: "Carrion Rats", Count: 4},
-	{Name: "Dwarven Vigilantes", Count: 4},
-	{Name: "Harvesttide Sentry", Count: 4},
+	{Name: "Ophidian", Count: 3},
+	{Name: "Carrion Rats", Count: 3},
+	{Name: "Dwarven Vigilantes", Count: 3},
+	{Name: "Harvesttide Sentry", Count: 3},
 	{Name: "Prismari Pledgemage", Count: 4},
 	{Name: "Steelclad Spirit", Count: 4},
+	{Name: "Cloak of Confusion", Count: 2},
+	{Name: "Laccolith Rig", Count: 2},
 	{Name: "Skyclave Squid", Count: 2},
 	{Name: "Nivix Cyclops", Count: 2},
 	{Name: "Opt", Count: 4},

@@ -419,7 +419,11 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		self := true
 		for _, c := range tr.F.Clauses {
 			if c.Flags&fSelf == 0 && c.Ctrl != whoYou {
-				return false
+				if !lc.enchantedByYouCtrl(c) {
+					return false
+				}
+				self = false
+				continue
 			}
 			self = self && c.Flags&fSelf != 0
 		}
@@ -429,6 +433,26 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		return true
 	case "AttackersDeclared":
 		return tr.Whose == whoYou
+	}
+	return false
+}
+
+// enchantedByYouCtrl reports whether c is the "enchanted creature" attacker
+// of an Aura whose printed Enchant word names only a creature its controller
+// controls. That attacker is then controlled by the Aura's controller, so
+// the defending player of its attack is the one opponent (Cloak of
+// Confusion's "defending player discards"; every other attacker's defending
+// player is not the trigger controller's opponent).
+func (lc *lowerCtx) enchantedByYouCtrl(c lClause) bool {
+	if c.Flags != fEnchantedBy || c.Ctrl != whoAny || c.Types != tCreature || lc.face == nil {
+		return false
+	}
+	for _, k := range lc.face.Keywords {
+		if cards.KeywordHead(k) != "Enchant" {
+			continue
+		}
+		spec, _, _ := strings.Cut(strings.TrimPrefix(k, "Enchant:"), ":")
+		return strings.TrimSpace(spec) == "Creature.YouCtrl"
 	}
 	return false
 }
