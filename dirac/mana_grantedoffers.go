@@ -1364,10 +1364,7 @@ func (g *grantSrch) visit(t *State) bool {
 		g.cheaper = cheap
 		return true
 	}
-	if g.nseen < len(g.seen) {
-		g.seen[g.nseen] = key
-		g.nseen++
-	}
+	g.remember(key)
 	sacd := g.sacrificed()
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
@@ -1537,6 +1534,9 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		g.sel = 0
 	}
+	if g.printedSacPass(t, sacd) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+		return true
+	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
 	// funding loop: the gaps first, then non-gaps while funding lasts).
 	for i := g.gapN; i < g.n && g.funded < g.funding; i++ {
@@ -1575,6 +1575,14 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// remember records key as a seen node, while the table has room.
+func (g *grantSrch) remember(key grantKey) {
+	if g.nseen < len(g.seen) {
+		g.seen[g.nseen] = key
+		g.nseen++
+	}
 }
 
 // playSourceGone: the searched activation's source left the battlefield on

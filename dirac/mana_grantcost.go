@@ -180,9 +180,6 @@ func (s *State) windowSacNow(k *prep, sl Slot) bool {
 // live sacrifice-only granted abilities, each a step sacrificing it (a
 // "choose a mana ability" ask when there are several).
 func (g *grantSrch) sacOnlyVisit(t *State, i int, sl Slot) bool {
-	if g.printedSacVisit(t, i, sl) { // the printed ability's answer comes first in the ask
-		return true
-	}
 	var gi [maxGrants]int16
 	var sac [maxGrants]int16
 	n := 0
@@ -209,11 +206,32 @@ func (g *grantSrch) sacOnlyVisit(t *State, i int, sl Slot) bool {
 	return false
 }
 
-// printedSacVisit is sacOnlyVisit's first step for the candidate's PRINTED
-// sacrifice-only mana ability (an Eldrazi Spawn's) when its granted {T} ability
-// is spent or unusable: the sacrifice costs no {T}, so gorge's search still
-// branches it after the token's tap floated its {G} (CR 605.3b, 602.2b), and
-// the node it charges counts against the same budget.
+// printedSacPass is visit's last gap step: each holder whose granted {T}
+// ability is spent or unusable still has its PRINTED sacrifice-only mana
+// ability (an Eldrazi Spawn's), which costs no {T}. Gorge's prefix search
+// branches it after the token's tap floated its mana (CR 605.3b, 602.2b) but
+// only once the node is not priced and the other gaps are tried: a node the
+// play is already payable at ends the line there, so a later gap (Gilanra's
+// {G}) is reached before this sacrifice and the node it charges counts against
+// the same budget.
+func (g *grantSrch) printedSacPass(t *State, sacd bool) bool {
+	for i := 0; i < g.gapN; i++ {
+		sl := g.cand[i]
+		if g.ng[i] == 0 || t.grantTapOK(g.k, sl) || g.tapx[i] && t.scriptTapX(g.k, g.p).has(sl) {
+			continue
+		}
+		if sacd && (!t.occ.has(sl) || t.perms[sl].obj != g.cobj[i]) {
+			continue // sacrificed by an earlier step
+		}
+		if g.printedSacVisit(t, i, sl) {
+			return true
+		}
+	}
+	return false
+}
+
+// printedSacVisit steps candidate i's printed sacrifice-only mana ability at
+// sl (printedSacPass's one branch).
 func (g *grantSrch) printedSacVisit(t *State, i int, sl Slot) bool {
 	ppc := t.manaPCGen(g.k, sl)
 	if !t.canSacOnlyNow(g.k, sl, ppc) || g.k.gen.anyCantAct && t.actForbidden(g.k, sl, true) {
