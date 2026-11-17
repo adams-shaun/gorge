@@ -1340,7 +1340,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		asksBefore := askCount(h)
 		unlessServed := false
 		if ActivationOf(sa).Unless() {
-			runBody, paid, unlessServed = unlessProceed(h, c, sa, preTargets)
+			runBody, paid, unlessServed = unlessProceed(h, c, sa, unlessOwnTargets(c, sa, preTargets))
 		}
 		// askCount catches the gate ask the host DEFERRED behind an
 		// already-suspended resolution (rules' Engine.Ask: a second shock
