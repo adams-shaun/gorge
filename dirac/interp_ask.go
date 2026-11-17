@@ -1988,7 +1988,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		}
 		ep := p
 		if z == kop.ZoneBattlefield {
-			ep = s.pickEntryPlayer(o, p) // zone_hiddenpick.go
+			ep = s.pickEntryPlayer(o, p, s.pickOrigin(k)) // zone_hiddenpick.go
 			if attach {
 				// AttachedTo$ on a search (kop.SrSearchAttach): the named
 				// bearer replaces the plain CR 303.4f enchant ask -- the Aura

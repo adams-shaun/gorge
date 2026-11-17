@@ -107,15 +107,31 @@ func (s *State) anyCand(k *prep) bool {
 	return d.N > 0
 }
 
+// pickOrigin is the zone the pick in progress comes from, read from the current
+// instruction as handGraveArm does: a moveFound driven outside a program
+// (kernel tests) has none, and gets ZoneNone, the flag-only entry player.
+func (s *State) pickOrigin(k *prep) kop.Zone {
+	if pr := s.prog(k); s.res.active && int(s.res.pc) < len(pr) {
+		return s.searchZone(k)
+	}
+	return kop.ZoneNone
+}
+
 // pickEntryPlayer is who a picked card o enters the battlefield under, p the
-// fetch player: graveexile enters a hidden pick under its owner unless
-// GainControl$ (SrUnderYourControl); a GainControl$ pick from a fetch
+// fetch player, from the pick's origin zone: a pick from a public zone spanning
+// every seat -- the game-wide exile pool (from=Exile, zone_exiledwithpick.go)
+// and graveexile (SrGraveExile) -- enters under the card's owner unless
+// GainControl$ (SrUnderYourControl), as gorge's settleChangeZoneMoveAs passes
+// o.Owner (Sengir Nosferatu's stolen Bat returns the exiled Nosferatu under
+// its owner, CR 610.3c's family); a GainControl$ pick from a fetch
 // player's graveyard (SrOwnZone, The Weaver King) enters under the resolving
-// controller, not the fetch player; else the fetch player.
-func (s *State) pickEntryPlayer(o Obj, p uint8) uint8 {
+// controller, not the fetch player; else the fetch player (the zones whose
+// owner owns every card in them: a library, a hand, the fetch player's own
+// graveyard).
+func (s *State) pickEntryPlayer(o Obj, p uint8, from kop.Zone) uint8 {
 	fl := s.g.pickF
 	ep := p
-	if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
+	if (from == kop.ZoneExile || fl&kop.SrGraveExile != 0) && fl&kop.SrUnderYourControl == 0 {
 		ep = s.objs[o].owner()
 	}
 	if fl&(kop.SrUnderYourControl|kop.SrOwnZone) == kop.SrUnderYourControl|kop.SrOwnZone {
