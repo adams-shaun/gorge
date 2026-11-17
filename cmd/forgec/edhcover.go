@@ -19,9 +19,11 @@ import (
 // The edhcover command measures gorge's playable coverage over Commander
 // decklists: every official precon MTGJSON lists and Archidekt's most-viewed
 // community decks, overall and per Commander bracket. scripts/edh_decks.py
-// fetches the lists into the gitignored .edh-decks/ and writes the committed
-// manifest, testdata/edh-manifest.tsv (ids, names, bracket, rank, source URL,
-// fetch date; no decklists, which are third-party content).
+// fetches the lists and writes two committed files under testdata/: the
+// manifest, edh-manifest.tsv (ids, names, bracket, rank, source URL, fetch
+// date), and edh-decks.jsonl, the stored decks themselves, one per line (source,
+// id, kind, commanders and the 99 card names). edhcover reads only those two,
+// so a measurement needs no network; the xengine commander diff reuses them.
 //
 // A card is playable by exactly the predicate `make report` and `make
 // coverage` use: Registry.Unsupported against effects.Supported() with
@@ -249,10 +251,62 @@ func readDiracSupported(supportDir string) (map[string]bool, error) {
 	return out, nil
 }
 
-// measureEDH measures rows' deck files under decksDir against
+// edhDecklist is one line of testdata/edh-decks.jsonl.
+type edhDecklist struct {
+	Source     string   `json:"source"`
+	ID         string   `json:"id"`
+	Kind       string   `json:"kind"`
+	Commanders []string `json:"commanders"`
+	Cards      []string `json:"cards"`
+}
+
+// readEDHDecklists indexes the stored decks by the path their manifest row
+// names, as repo-deck JSON (commanders first, names counted).
+func readEDHDecklists(r io.Reader) (map[string][]byte, error) {
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	out := map[string][]byte{}
+	for line := 1; sc.Scan(); line++ {
+		if strings.TrimSpace(sc.Text()) == "" {
+			continue
+		}
+		var l edhDecklist
+		if err := json.Unmarshal(sc.Bytes(), &l); err != nil {
+			return nil, fmt.Errorf("decklists line %d: %w", line, err)
+		}
+		var p string
+		switch l.Source {
+		case "mtgjson":
+			p = filepath.Join("precon", l.ID+".json")
+		case "archidekt":
+			p = filepath.Join("popular", "archidekt-"+l.ID+".json")
+		default:
+			return nil, fmt.Errorf("decklists line %d: unknown source %q", line, l.Source)
+		}
+		var entries []deck.Entry
+		idx := map[string]int{}
+		for _, n := range append(append([]string(nil), l.Commanders...), l.Cards...) {
+			if i, ok := idx[n]; ok {
+				entries[i].Count++
+				continue
+			}
+			idx[n] = len(entries)
+			entries = append(entries, deck.Entry{Name: n, Count: 1})
+		}
+		raw, err := json.Marshal(deck.File{Name: l.ID, Format: "commander", Cards: entries})
+		if err != nil {
+			return nil, err
+		}
+		out[p] = raw
+	}
+	return out, sc.Err()
+}
+
+// measureEDH measures rows' decks, as read returns them (os.ErrNotExist for a
+// deck it lacks), against
 // effects.Supported(); r.ShapeGate is the caller's. dirac is
 // readDiracSupported's set, nil to leave dirac's columns out.
-func measureEDH(r *cards.Registry, decksDir string, rows []edhRow, dirac map[string]bool) (edhReport, error) {
+func measureEDH(r *cards.Registry, read func(path string) ([]byte, error), rows []edhRow, dirac map[string]bool) (edhReport, error) {
 	sup := effects.Supported()
 	rep := edhReport{Dirac: dirac != nil}
 	playable := map[string]bool{}
@@ -261,7 +315,7 @@ func measureEDH(r *cards.Registry, decksDir string, rows []edhRow, dirac map[str
 	unresolved := map[string]bool{}
 	var decks []edhDeck
 	for _, row := range rows {
-		raw, err := os.ReadFile(filepath.Join(decksDir, row.path))
+		raw, err := read(row.path)
 		if os.IsNotExist(err) {
 			rep.Skipped = append(rep.Skipped, row.path)
 			continue
@@ -323,6 +377,9 @@ func measureEDH(r *cards.Registry, decksDir string, rows []edhRow, dirac map[str
 			for _, k := range d.keys {
 				cs[k] = true
 			}
+		}
+		if res.Decks == 0 {
+			continue // a list none of whose deck files are present (a precon-only CI fetch)
 		}
 		for k := range cs {
 			switch {
@@ -432,14 +489,14 @@ func renderEDH(rep edhReport, top int) string {
 		fmt.Fprintf(&b, "- %s\n", n)
 	}
 	if len(rep.Skipped) > 0 {
-		fmt.Fprintf(&b, "\n%d manifest decks have no deck file (run scripts/edh_decks.py fetch).\n", len(rep.Skipped))
+		fmt.Fprintf(&b, "\n%d manifest decks have no deck file (re-run scripts/edh_decks.py normalise).\n", len(rep.Skipped))
 	}
 	return b.String()
 }
 
-// edhCoverCmd measures the decks manifest names under decksDir and writes
-// edh.md (and edh.json) into outDir.
-func edhCoverCmd(dir, decksDir, manifest, diracSupport, outDir string, top int) error {
+// edhCoverCmd measures the decks manifest names, read from the decklists file,
+// and writes edh.md (and edh.json) into outDir.
+func edhCoverCmd(dir, decklists, manifest, diracSupport, outDir string, top int) error {
 	mf, err := os.Open(manifest)
 	if err != nil {
 		return err
@@ -458,7 +515,21 @@ func edhCoverCmd(dir, decksDir, manifest, diracSupport, outDir string, top int) 
 	if err != nil {
 		return err
 	}
-	rep, err := measureEDH(r, decksDir, rows, dirac)
+	df, err := os.Open(decklists)
+	if err != nil {
+		return err
+	}
+	stored, err := readEDHDecklists(df)
+	df.Close()
+	if err != nil {
+		return err
+	}
+	rep, err := measureEDH(r, func(p string) ([]byte, error) {
+		if raw, ok := stored[p]; ok {
+			return raw, nil
+		}
+		return nil, os.ErrNotExist
+	}, rows, dirac)
 	if err != nil {
 		return err
 	}

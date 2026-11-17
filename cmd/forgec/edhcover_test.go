@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -98,6 +99,29 @@ func TestReadDiracSupported(t *testing.T) {
 	}
 }
 
+func TestReadEDHDecklists(t *testing.T) {
+	t.Parallel()
+	got, err := readEDHDecklists(strings.NewReader(
+		`{"source":"mtgjson","id":"Good_C99","kind":"precon","commanders":["Boss"],"cards":["Mountain","Mountain","Sol Ring"]}` + "\n" +
+			`{"source":"archidekt","id":"7","kind":"popular","commanders":[],"cards":["Island"]}` + "\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := deck.Parse(got[filepath.Join("precon", "Good_C99.json")])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Cards) != 3 || f.Cards[0].Name != "Boss" || f.Cards[1].Count != 2 {
+		t.Errorf("cards = %+v", f.Cards)
+	}
+	if _, ok := got[filepath.Join("popular", "archidekt-7.json")]; !ok {
+		t.Errorf("archidekt deck not indexed: %v", got)
+	}
+	if _, err := readEDHDecklists(strings.NewReader(`{"source":"x","id":"1"}`)); err == nil {
+		t.Error("an unknown source was accepted")
+	}
+}
+
 func TestEDHPaperWithoutCard(t *testing.T) {
 	t.Parallel()
 	if edhPaper("A-Alrund's Epiphany", nil) {
@@ -137,7 +161,7 @@ func TestMeasureEDHOverCorpus(t *testing.T) {
 	}
 	old := r.ShapeGate
 	r.ShapeGate = etbCopyShapeGate
-	rep, err := measureEDH(r, dir, rows, map[string]bool{"lightning bolt": true, "mountain": true, "fire": true, "sol ring": true})
+	rep, err := measureEDH(r, func(p string) ([]byte, error) { return os.ReadFile(filepath.Join(dir, p)) }, rows, map[string]bool{"lightning bolt": true, "mountain": true, "fire": true, "sol ring": true})
 	r.ShapeGate = old
 	if err != nil {
 		t.Fatal(err)
@@ -151,6 +175,9 @@ func TestMeasureEDHOverCorpus(t *testing.T) {
 	lists := map[string]edhListResult{}
 	for _, l := range rep.Lists {
 		lists[l.Name] = l
+	}
+	if _, ok := lists["Archidekt bracket 4 top 100"]; ok {
+		t.Error("a list with no deck files was reported")
 	}
 	if l := lists["precon (all Commander Deck products)"]; l.Decks != 1 || l.DecksSupported != 1 || l.Cards != 3 || l.CardsSupported != 3 {
 		t.Errorf("precon = %+v", l)

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """edh_decks.py -- fetch Commander decklists into gorge's repo-deck JSON shape.
 
-Two corpora, both written under a gitignored directory (default
-.edh-decks), never committed: the decklists are third-party content.
+Two corpora, written under a gitignored directory (default .edh-decks). The
+decks as fetched are also stored in the committed
+cmd/forgec/testdata/edh-decks.jsonl (one deck per line: source, id, kind,
+commanders, and the non-commander card names repeated by count), which is what
+`forgec edhcover` and the xengine commander diff read.
 
   precon/   every official Commander precon MTGJSON lists (DeckList.json type
             "Commander Deck", every year), plus Commander's Arsenal and the
@@ -20,7 +23,7 @@ Usage (stdlib only, needs network):
 `fetch` caches every raw response under <out>/raw/ (a deck already cached is
 never fetched again) and then runs `normalise`, which rewrites precon/,
 popular/ and the committed manifest (cmd/forgec/testdata/edh-manifest.tsv by
-default: ids, names, bracket, rank, source URL and fetch date, no decklists).
+default: ids, names, bracket, rank, source URL and fetch date).
 Requests are paced (-interval seconds apart) with exponential backoff on 429
 and 5xx, honouring Retry-After. The User-Agent is generic.
 
@@ -46,6 +49,8 @@ ARCHIDEKT_EDH_FORMAT = 3
 
 # Box sets that are Commander products but not "Commander Deck" in MTGJSON.
 COLLECTION_CODES = {"CM1", "CC1", "CC2"}
+
+DECKLISTS = "cmd/forgec/testdata/edh-decks.jsonl"
 
 MANIFEST_HEADER = ["source", "id", "kind", "name", "commander", "bracket",
                    "overall_rank", "bracket_rank", "views", "cards", "released",
@@ -226,6 +231,22 @@ def deck_file(name, commanders, cards, notes):
     return d
 
 
+def decklist_line(source, id_, kind, d):
+    """One committed decklist: {source, id, kind, commanders, cards}. cards is the
+    non-commander card names, repeated by count (99 for a 100-card deck)."""
+    cmd = list(d.get("commanders") or ([d["commander"]] if d.get("commander") else []))
+    names = []
+    left = {n: 1 for n in cmd}  # each commander appears once among d["cards"]
+    for c in d["cards"]:
+        n, k = c["name"], c["count"]
+        if left.get(n):
+            left[n] -= 1
+            k -= 1
+        names += [n] * k
+    return json.dumps({"source": source, "id": str(id_), "kind": kind, "commanders": cmd, "cards": names},
+                      ensure_ascii=False, separators=(",", ":"))
+
+
 def slug(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-") or "deck"
 
@@ -259,16 +280,22 @@ def fetch(args):
     for row, _ in entries:
         cached(os.path.join(raw, "mtgjson", "decks", row["fileName"] + ".json"),
                lambda row=row: f.get_json(f"{MTGJSON}/decks/{row['fileName']}.json"))
-    ranks = {"fetched": today, "overall": archidekt_ranked(f, args.top), "brackets": {}}
-    for b in range(1, 6):
-        ranks["brackets"][str(b)] = archidekt_ranked(f, args.per_bracket, b)
+    rp = os.path.join(raw, "archidekt", "ranks.json")
+    ranks = load(rp) if os.path.exists(rp) else None
+    if ranks and ranks["fetched"] == today and len(ranks["overall"]) >= args.top and \
+            all(len(ranks["brackets"].get(str(b), [])) >= args.per_bracket for b in range(1, 6)):
+        print("archidekt: reusing today's ranks.json")  # an interrupted run resumes at the decks
+    else:
+        ranks = {"fetched": today, "overall": archidekt_ranked(f, args.top), "brackets": {}}
+        for b in range(1, 6):
+            ranks["brackets"][str(b)] = archidekt_ranked(f, args.per_bracket, b)
     print(f"archidekt: overall {len(ranks['overall'])}, brackets " +
           " ".join(f"{b}:{len(v)}" for b, v in ranks["brackets"].items()))
     write_json(os.path.join(raw, "archidekt", "ranks.json"), ranks)
-    ids = {r["id"] for r in ranks["overall"]}
-    for v in ranks["brackets"].values():
-        ids |= {r["id"] for r in v}
-    for n, i in enumerate(sorted(ids)):
+    # Overall rank order first, so an interrupted run has the top 100, then 500, whole.
+    ids = list(dict.fromkeys([r["id"] for r in ranks["overall"]] +
+                             [r["id"] for v in ranks["brackets"].values() for r in v]))
+    for n, i in enumerate(ids):
         cached(os.path.join(raw, "archidekt", "decks", f"{i}.json"),
                lambda i=i: (lambda d: d and trim_archidekt(d))(f.get_json(f"{ARCHIDEKT}/decks/{i}/")))
         if n % 100 == 99:
@@ -280,6 +307,7 @@ def fetch(args):
 def normalise(args):
     raw = os.path.join(args.out, "raw")
     rows = []
+    lists = []
     dl = load(os.path.join(raw, "mtgjson", "DeckList.json"))
     fetched = dl["meta"]["date"]
     entries = precon_entries(dl)
@@ -291,6 +319,7 @@ def normalise(args):
             continue
         d = mtgjson_deck(load(p), row, kind)
         write_json(os.path.join(args.out, "precon", row["fileName"] + ".json"), d)
+        lists.append(decklist_line("mtgjson", row["fileName"], kind, d))
         rows.append(["mtgjson", row["fileName"], kind, row["name"], " / ".join(d.get("commanders") or [d.get("commander", "")]),
                      "", "", "", "", sum(c["count"] for c in d["cards"]), row["releaseDate"],
                      f"{MTGJSON}/decks/{row['fileName']}.json", fetched])
@@ -315,6 +344,7 @@ def normalise(args):
             t = load(p)
             d = archidekt_deck(t)
             write_json(os.path.join(args.out, "popular", f"archidekt-{i}.json"), d)
+            lists.append(decklist_line("archidekt", i, "popular", d))
             rows.append(["archidekt", i, "popular", t["name"], " / ".join(d.get("commanders") or [d.get("commander", "")]),
                          t.get("edhBracket") or "", overall.get(i, ""), bracket_rank.get(i, ""),
                          t.get("viewCount") or summary[i]["views"], sum(c["count"] for c in d["cards"]), "",
@@ -324,6 +354,9 @@ def normalise(args):
         for r in rows:
             f.write("\t".join(tsv(v) for v in r) + "\n")
     print(f"manifest: {len(rows)} decks -> {args.manifest}")
+    with open(args.decklists, "w") as f:
+        f.write("\n".join(lists) + "\n")
+    print(f"decklists: {len(lists)} decks -> {args.decklists}")
 
 
 def main(argv=None):
@@ -331,6 +364,7 @@ def main(argv=None):
     ap.add_argument("cmd", choices=["fetch", "normalise"])
     ap.add_argument("-out", default=".edh-decks")
     ap.add_argument("-manifest", default="cmd/forgec/testdata/edh-manifest.tsv")
+    ap.add_argument("-decklists", default=DECKLISTS)
     ap.add_argument("-top", type=int, default=1000)
     ap.add_argument("-per-bracket", dest="per_bracket", type=int, default=100)
     ap.add_argument("-interval", type=float, default=1.0)

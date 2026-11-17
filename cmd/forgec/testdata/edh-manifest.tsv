@@ -1,0 +1,1003 @@
+source	id	kind	name	commander	bracket	overall_rank	bracket_rank	views	cards	released	url	fetched
+mtgjson	Counterpunch_CMD	precon	Counterpunch	Ghave, Guru of Spores					100	2011-06-17	https://mtgjson.com/api/v5/decks/Counterpunch_CMD.json	2026-11-17
+mtgjson	DevourForPower_CMD	precon	Devour for Power	The Mimeoplasm					100	2011-06-17	https://mtgjson.com/api/v5/decks/DevourForPower_CMD.json	2026-11-17
+mtgjson	HeavenlyInferno_CMD	precon	Heavenly Inferno	Kaalia of the Vast					100	2011-06-17	https://mtgjson.com/api/v5/decks/HeavenlyInferno_CMD.json	2026-11-17
+mtgjson	MirrorMastery_CMD	precon	Mirror Mastery	Riku of Two Reflections					100	2011-06-17	https://mtgjson.com/api/v5/decks/MirrorMastery_CMD.json	2026-11-17
+mtgjson	PoliticalPuppets_CMD	precon	Political Puppets	Zedruu the Greathearted					100	2011-06-17	https://mtgjson.com/api/v5/decks/PoliticalPuppets_CMD.json	2026-11-17
+mtgjson	CommanderSArsenal_CM1	collection	Commander's Arsenal						18	2012-10-23	https://mtgjson.com/api/v5/decks/CommanderSArsenal_CM1.json	2026-11-17
+mtgjson	EternalBargain_C13	precon	Eternal Bargain	Oloro, Ageless Ascetic					100	2013-11-01	https://mtgjson.com/api/v5/decks/EternalBargain_C13.json	2026-11-17
+mtgjson	EvasiveManeuvers_C13	precon	Evasive Maneuvers	Derevi, Empyrial Tactician					100	2013-11-01	https://mtgjson.com/api/v5/decks/EvasiveManeuvers_C13.json	2026-11-17
+mtgjson	MindSeize_C13	precon	Mind Seize	Jeleva, Nephalia's Scourge					100	2013-11-01	https://mtgjson.com/api/v5/decks/MindSeize_C13.json	2026-11-17
+mtgjson	NatureOfTheBeast_C13	precon	Nature of the Beast	Marath, Will of the Wild					100	2013-11-01	https://mtgjson.com/api/v5/decks/NatureOfTheBeast_C13.json	2026-11-17
+mtgjson	PowerHungry_C13	precon	Power Hungry	Prossh, Skyraider of Kher					100	2013-11-01	https://mtgjson.com/api/v5/decks/PowerHungry_C13.json	2026-11-17
+mtgjson	BuiltFromScratch_C14	precon	Built From Scratch	Daretti, Scrap Savant					100	2014-11-07	https://mtgjson.com/api/v5/decks/BuiltFromScratch_C14.json	2026-11-17
+mtgjson	ForgedInStone_C14	precon	Forged In Stone	Nahiri, the Lithomancer					100	2014-11-07	https://mtgjson.com/api/v5/decks/ForgedInStone_C14.json	2026-11-17
+mtgjson	GuidedByNature_C14	precon	Guided By Nature	Freyalise, Llanowar's Fury					100	2014-11-07	https://mtgjson.com/api/v5/decks/GuidedByNature_C14.json	2026-11-17
+mtgjson	PeerThroughTime_C14	precon	Peer Through Time	Teferi, Temporal Archmage					100	2014-11-07	https://mtgjson.com/api/v5/decks/PeerThroughTime_C14.json	2026-11-17
+mtgjson	SwornToDarkness_C14	precon	Sworn To Darkness	Ob Nixilis of the Black Oath					100	2014-11-07	https://mtgjson.com/api/v5/decks/SwornToDarkness_C14.json	2026-11-17
+mtgjson	CallTheSpirits_C15	precon	Call the Spirits	Daxos the Returned					100	2015-11-13	https://mtgjson.com/api/v5/decks/CallTheSpirits_C15.json	2026-11-17
+mtgjson	PlunderTheGraves_C15	precon	Plunder the Graves	Meren of Clan Nel Toth					100	2015-11-13	https://mtgjson.com/api/v5/decks/PlunderTheGraves_C15.json	2026-11-17
+mtgjson	SeizeControl_C15	precon	Seize Control	Mizzix of the Izmagnus					100	2015-11-13	https://mtgjson.com/api/v5/decks/SeizeControl_C15.json	2026-11-17
+mtgjson	SwellTheHost_C15	precon	Swell the Host	Ezuri, Claw of Progress					100	2015-11-13	https://mtgjson.com/api/v5/decks/SwellTheHost_C15.json	2026-11-17
+mtgjson	WadeIntoBattle_C15	precon	Wade into Battle	Kalemne, Disciple of Iroas					100	2015-11-13	https://mtgjson.com/api/v5/decks/WadeIntoBattle_C15.json	2026-11-17
+mtgjson	BreedLethality_C16	precon	Breed Lethality	Atraxa, Praetors' Voice					100	2016-11-11	https://mtgjson.com/api/v5/decks/BreedLethality_C16.json	2026-11-17
+mtgjson	EntropicUprising_C16	precon	Entropic Uprising	Yidris, Maelstrom Wielder					100	2016-11-11	https://mtgjson.com/api/v5/decks/EntropicUprising_C16.json	2026-11-17
+mtgjson	InventSuperiority_C16	precon	Invent Superiority	Breya, Etherium Shaper					100	2016-11-11	https://mtgjson.com/api/v5/decks/InventSuperiority_C16.json	2026-11-17
+mtgjson	OpenHostility_C16	precon	Open Hostility	Saskia the Unyielding					100	2016-11-11	https://mtgjson.com/api/v5/decks/OpenHostility_C16.json	2026-11-17
+mtgjson	StalwartUnity_C16	precon	Stalwart Unity	Kynaios and Tiro of Meletis					100	2016-11-11	https://mtgjson.com/api/v5/decks/StalwartUnity_C16.json	2026-11-17
+mtgjson	EvasiveManeuvers_CMA	precon	Evasive Maneuvers	Derevi, Empyrial Tactician					100	2017-06-09	https://mtgjson.com/api/v5/decks/EvasiveManeuvers_CMA.json	2026-11-17
+mtgjson	GuidedByNature_CMA	precon	Guided by Nature	Freyalise, Llanowar's Fury					100	2017-06-09	https://mtgjson.com/api/v5/decks/GuidedByNature_CMA.json	2026-11-17
+mtgjson	HeavenlyInferno_CMA	precon	Heavenly Inferno	Kaalia of the Vast					100	2017-06-09	https://mtgjson.com/api/v5/decks/HeavenlyInferno_CMA.json	2026-11-17
+mtgjson	PlunderTheGraves_CMA	precon	Plunder the Graves	Meren of Clan Nel Toth					100	2017-06-09	https://mtgjson.com/api/v5/decks/PlunderTheGraves_CMA.json	2026-11-17
+mtgjson	ArcaneWizardry_C17	precon	Arcane Wizardry	Inalla, Archmage Ritualist					100	2017-08-25	https://mtgjson.com/api/v5/decks/ArcaneWizardry_C17.json	2026-11-17
+mtgjson	DraconicDomination_C17	precon	Draconic Domination	The Ur-Dragon					100	2017-08-25	https://mtgjson.com/api/v5/decks/DraconicDomination_C17.json	2026-11-17
+mtgjson	FelineFerocity_C17	precon	Feline Ferocity	Arahbo, Roar of the World					100	2017-08-25	https://mtgjson.com/api/v5/decks/FelineFerocity_C17.json	2026-11-17
+mtgjson	VampiricBloodlust_C17	precon	Vampiric Bloodlust	Edgar Markov					100	2017-08-25	https://mtgjson.com/api/v5/decks/VampiricBloodlust_C17.json	2026-11-17
+mtgjson	BreedLethality_CM2	precon	Breed Lethality	Atraxa, Praetors' Voice					100	2018-06-08	https://mtgjson.com/api/v5/decks/BreedLethality_CM2.json	2026-11-17
+mtgjson	BuiltFromScratch_CM2	precon	Built From Scratch	Daretti, Scrap Savant					100	2018-06-08	https://mtgjson.com/api/v5/decks/BuiltFromScratch_CM2.json	2026-11-17
+mtgjson	DevourForPower_CM2	precon	Devour for Power	The Mimeoplasm					100	2018-06-08	https://mtgjson.com/api/v5/decks/DevourForPower_CM2.json	2026-11-17
+mtgjson	WadeIntoBattle_CM2	precon	Wade into Battle	Kalemne, Disciple of Iroas					100	2018-06-08	https://mtgjson.com/api/v5/decks/WadeIntoBattle_CM2.json	2026-11-17
+mtgjson	AdaptiveEnchantment_C18	precon	Adaptive Enchantment	Estrid, the Masked					100	2018-08-10	https://mtgjson.com/api/v5/decks/AdaptiveEnchantment_C18.json	2026-11-17
+mtgjson	ExquisiteInvention_C18	precon	Exquisite Invention	Saheeli, the Gifted					100	2018-08-10	https://mtgjson.com/api/v5/decks/ExquisiteInvention_C18.json	2026-11-17
+mtgjson	NatureSVengeance_C18	precon	Nature's Vengeance	Lord Windgrace					100	2018-08-10	https://mtgjson.com/api/v5/decks/NatureSVengeance_C18.json	2026-11-17
+mtgjson	SubjectiveReality_C18	precon	Subjective Reality	Aminatou, the Fateshifter					100	2018-08-10	https://mtgjson.com/api/v5/decks/SubjectiveReality_C18.json	2026-11-17
+mtgjson	FacelessMenace_C19	precon	Faceless Menace	Kadena, Slinking Sorcerer					100	2019-08-23	https://mtgjson.com/api/v5/decks/FacelessMenace_C19.json	2026-11-17
+mtgjson	MercilessRage_C19	precon	Merciless Rage	Anje Falkenrath					100	2019-08-23	https://mtgjson.com/api/v5/decks/MercilessRage_C19.json	2026-11-17
+mtgjson	MysticIntellect_C19	precon	Mystic Intellect	Sevinne, the Chronoclasm					100	2019-08-23	https://mtgjson.com/api/v5/decks/MysticIntellect_C19.json	2026-11-17
+mtgjson	PrimalGenesis_C19	precon	Primal Genesis	Ghired, Conclave Exile					100	2019-08-23	https://mtgjson.com/api/v5/decks/PrimalGenesis_C19.json	2026-11-17
+mtgjson	ArcaneMaelstrom_C20	precon	Arcane Maelstrom	Kalamax, the Stormsire					100	2020-04-17	https://mtgjson.com/api/v5/decks/ArcaneMaelstrom_C20.json	2026-11-17
+mtgjson	EnhancedEvolution_C20	precon	Enhanced Evolution	Otrimi, the Ever-Playful					100	2020-04-17	https://mtgjson.com/api/v5/decks/EnhancedEvolution_C20.json	2026-11-17
+mtgjson	RuthlessRegiment_C20	precon	Ruthless Regiment	Jirina Kudro					100	2020-04-17	https://mtgjson.com/api/v5/decks/RuthlessRegiment_C20.json	2026-11-17
+mtgjson	SymbioticSwarm_C20	precon	Symbiotic Swarm	Kathril, Aspect Warper					100	2020-04-17	https://mtgjson.com/api/v5/decks/SymbioticSwarm_C20.json	2026-11-17
+mtgjson	TimelessWisdom_C20	precon	Timeless Wisdom	Gavi, Nest Warden					100	2020-04-17	https://mtgjson.com/api/v5/decks/TimelessWisdom_C20.json	2026-11-17
+mtgjson	LandSWrath_ZNC	precon	Land's Wrath	Obuun, Mul Daya Ancestor					100	2020-09-25	https://mtgjson.com/api/v5/decks/LandSWrath_ZNC.json	2026-11-17
+mtgjson	SneakAttack_ZNC	precon	Sneak Attack	Anowon, the Ruin Thief					100	2020-09-25	https://mtgjson.com/api/v5/decks/SneakAttack_ZNC.json	2026-11-17
+mtgjson	ArmForBattle_CMR	precon	Arm for Battle	Wyleth, Soul of Steel					100	2020-11-20	https://mtgjson.com/api/v5/decks/ArmForBattle_CMR.json	2026-11-17
+mtgjson	ReapTheTides_CMR	precon	Reap the Tides	Aesi, Tyrant of Gyre Strait					100	2020-11-20	https://mtgjson.com/api/v5/decks/ReapTheTides_CMR.json	2026-11-17
+mtgjson	CommanderCollectionGreen_CC1	collection	Commander Collection: Green						8	2020-12-04	https://mtgjson.com/api/v5/decks/CommanderCollectionGreen_CC1.json	2026-11-17
+mtgjson	ElvenEmpire_KHC	precon	Elven Empire	Lathril, Blade of the Elves					100	2021-02-05	https://mtgjson.com/api/v5/decks/ElvenEmpire_KHC.json	2026-11-17
+mtgjson	PhantomPremonition_KHC	precon	Phantom Premonition	Ranar the Ever-Watchful					100	2021-02-05	https://mtgjson.com/api/v5/decks/PhantomPremonition_KHC.json	2026-11-17
+mtgjson	LoreholdLegacies_C21	precon	Lorehold Legacies	Osgir, the Reconstructor					100	2021-04-23	https://mtgjson.com/api/v5/decks/LoreholdLegacies_C21.json	2026-11-17
+mtgjson	PrismariPerformance_C21	precon	Prismari Performance	Zaffai, Thunder Conductor					100	2021-04-23	https://mtgjson.com/api/v5/decks/PrismariPerformance_C21.json	2026-11-17
+mtgjson	QuantumQuandrix_C21	precon	Quantum Quandrix	Adrix and Nev, Twincasters					100	2021-04-23	https://mtgjson.com/api/v5/decks/QuantumQuandrix_C21.json	2026-11-17
+mtgjson	SilverquillStatement_C21	precon	Silverquill Statement	Breena, the Demagogue					100	2021-04-23	https://mtgjson.com/api/v5/decks/SilverquillStatement_C21.json	2026-11-17
+mtgjson	WitherbloomWitchcraft_C21	precon	Witherbloom Witchcraft	Willowdusk, Essence Seer					100	2021-04-23	https://mtgjson.com/api/v5/decks/WitherbloomWitchcraft_C21.json	2026-11-17
+mtgjson	AuraOfCourage_AFC	precon	Aura of Courage	Galea, Kindler of Hope					100	2021-07-23	https://mtgjson.com/api/v5/decks/AuraOfCourage_AFC.json	2026-11-17
+mtgjson	DraconicRage_AFC	precon	Draconic Rage	Vrondiss, Rage of Ancients					100	2021-07-23	https://mtgjson.com/api/v5/decks/DraconicRage_AFC.json	2026-11-17
+mtgjson	DungeonsOfDeath_AFC	precon	Dungeons of Death	Sefris of the Hidden Ways					100	2021-07-23	https://mtgjson.com/api/v5/decks/DungeonsOfDeath_AFC.json	2026-11-17
+mtgjson	PlanarPortal_AFC	precon	Planar Portal	Prosper, Tome-Bound					100	2021-07-23	https://mtgjson.com/api/v5/decks/PlanarPortal_AFC.json	2026-11-17
+mtgjson	CovenCounters_MIC	precon	Coven Counters	Leinore, Autumn Sovereign					100	2021-09-24	https://mtgjson.com/api/v5/decks/CovenCounters_MIC.json	2026-11-17
+mtgjson	UndeadUnleashed_MIC	precon	Undead Unleashed	Wilhelt, the Rotcleaver					100	2021-09-24	https://mtgjson.com/api/v5/decks/UndeadUnleashed_MIC.json	2026-11-17
+mtgjson	SpiritSquadron_VOC	precon	Spirit Squadron	Millicent, Restless Revenant					100	2021-11-19	https://mtgjson.com/api/v5/decks/SpiritSquadron_VOC.json	2026-11-17
+mtgjson	VampiricBloodline_VOC	precon	Vampiric Bloodline	Strefan, Maurer Progenitor					100	2021-11-19	https://mtgjson.com/api/v5/decks/VampiricBloodline_VOC.json	2026-11-17
+mtgjson	CommanderCollectionBlack_CC2	collection	Commander Collection Black						8	2022-01-28	https://mtgjson.com/api/v5/decks/CommanderCollectionBlack_CC2.json	2026-11-17
+mtgjson	BuckleUp_NEC	precon	Buckle Up	Kotori, Pilot Prodigy					100	2022-02-18	https://mtgjson.com/api/v5/decks/BuckleUp_NEC.json	2026-11-17
+mtgjson	UpgradesUnleashed_NEC	precon	Upgrades Unleashed	Chishiro, the Shattered Blade					100	2022-02-18	https://mtgjson.com/api/v5/decks/UpgradesUnleashed_NEC.json	2026-11-17
+mtgjson	HeadsIWinTailsYouLose_SLD	precon	Heads I Win, Tails You Lose	Zndrsplt, Eye of Wisdom // Zndrsplt, Eye of Wisdom / Okaun, Eye of Chaos // Okaun, Eye of Chaos					100	2022-04-22	https://mtgjson.com/api/v5/decks/HeadsIWinTailsYouLose_SLD.json	2026-11-17
+mtgjson	BedeckedBrokers_NCC	precon	Bedecked Brokers	Perrie, the Pulverizer					100	2022-04-29	https://mtgjson.com/api/v5/decks/BedeckedBrokers_NCC.json	2026-11-17
+mtgjson	CabarettiCacophony_NCC	precon	Cabaretti Cacophony	Kitt Kanto, Mayhem Diva					100	2022-04-29	https://mtgjson.com/api/v5/decks/CabarettiCacophony_NCC.json	2026-11-17
+mtgjson	MaestrosMassacre_NCC	precon	Maestros Massacre	Anhelo, the Painter					100	2022-04-29	https://mtgjson.com/api/v5/decks/MaestrosMassacre_NCC.json	2026-11-17
+mtgjson	ObscuraOperation_NCC	precon	Obscura Operation	Kamiz, Obscura Oculus					100	2022-04-29	https://mtgjson.com/api/v5/decks/ObscuraOperation_NCC.json	2026-11-17
+mtgjson	RiveteersRampage_NCC	precon	Riveteers Rampage	Henzie "Toolbox" Torre					100	2022-04-29	https://mtgjson.com/api/v5/decks/RiveteersRampage_NCC.json	2026-11-17
+mtgjson	DraconicDissent_CLB	precon	Draconic Dissent	Firkraag, Cunning Instigator					100	2022-06-10	https://mtgjson.com/api/v5/decks/DraconicDissent_CLB.json	2026-11-17
+mtgjson	ExitFromExile_CLB	precon	Exit from Exile	Faldorn, Dread Wolf Herald					100	2022-06-10	https://mtgjson.com/api/v5/decks/ExitFromExile_CLB.json	2026-11-17
+mtgjson	MindFlayarrrs_CLB	precon	Mind Flayarrrs	Captain N'ghathrod					100	2022-06-10	https://mtgjson.com/api/v5/decks/MindFlayarrrs_CLB.json	2026-11-17
+mtgjson	PartyTime_CLB	precon	Party Time	Nalia de'Arnise					100	2022-06-10	https://mtgjson.com/api/v5/decks/PartyTime_CLB.json	2026-11-17
+mtgjson	LegendsLegacy_DMC	precon	Legends' Legacy	Dihada, Binder of Wills					100	2022-09-09	https://mtgjson.com/api/v5/decks/LegendsLegacy_DMC.json	2026-11-17
+mtgjson	Painbow_DMC	precon	Painbow	Jared Carthalion					100	2022-09-09	https://mtgjson.com/api/v5/decks/Painbow_DMC.json	2026-11-17
+mtgjson	ForcesOfTheImperiumCollectorSEdition_40K	precon	Forces of the Imperium Collector's Edition	Inquisitor Greyfax					100	2022-10-07	https://mtgjson.com/api/v5/decks/ForcesOfTheImperiumCollectorSEdition_40K.json	2026-11-17
+mtgjson	ForcesOfTheImperium_40K	precon	Forces of the Imperium	Inquisitor Greyfax					100	2022-10-07	https://mtgjson.com/api/v5/decks/ForcesOfTheImperium_40K.json	2026-11-17
+mtgjson	NecronDynastiesCollectorSEdition_40K	precon	Necron Dynasties Collector's Edition	Szarekh, the Silent King					100	2022-10-07	https://mtgjson.com/api/v5/decks/NecronDynastiesCollectorSEdition_40K.json	2026-11-17
+mtgjson	NecronDynasties_40K	precon	Necron Dynasties	Szarekh, the Silent King					100	2022-10-07	https://mtgjson.com/api/v5/decks/NecronDynasties_40K.json	2026-11-17
+mtgjson	TheRuinousPowersCollectorSEdition_40K	precon	The Ruinous Powers Collector's Edition	Abaddon the Despoiler					100	2022-10-07	https://mtgjson.com/api/v5/decks/TheRuinousPowersCollectorSEdition_40K.json	2026-11-17
+mtgjson	TheRuinousPowers_40K	precon	The Ruinous Powers	Abaddon the Despoiler					100	2022-10-07	https://mtgjson.com/api/v5/decks/TheRuinousPowers_40K.json	2026-11-17
+mtgjson	TyranidSwarmCollectorSEdition_40K	precon	Tyranid Swarm Collector's Edition	The Swarmlord					100	2022-10-07	https://mtgjson.com/api/v5/decks/TyranidSwarmCollectorSEdition_40K.json	2026-11-17
+mtgjson	TyranidSwarm_40K	precon	Tyranid Swarm	The Swarmlord					100	2022-10-07	https://mtgjson.com/api/v5/decks/TyranidSwarm_40K.json	2026-11-17
+mtgjson	MishraSBurnishedBanner_BRC	precon	Mishra's Burnished Banner	Mishra, Eminent One					100	2022-11-18	https://mtgjson.com/api/v5/decks/MishraSBurnishedBanner_BRC.json	2026-11-17
+mtgjson	UrzaSIronAlliance_BRC	precon	Urza's Iron Alliance	Urza, Chief Artificer					100	2022-11-18	https://mtgjson.com/api/v5/decks/UrzaSIronAlliance_BRC.json	2026-11-17
+mtgjson	ChaosIncarnate_SCD	precon	Chaos Incarnate	Kardur, Doomscourge					100	2022-12-02	https://mtgjson.com/api/v5/decks/ChaosIncarnate_SCD.json	2026-11-17
+mtgjson	DraconicDestruction_SCD	precon	Draconic Destruction	Atarka, World Render					100	2022-12-02	https://mtgjson.com/api/v5/decks/DraconicDestruction_SCD.json	2026-11-17
+mtgjson	FirstFlight_SCD	precon	First Flight	Isperia, Supreme Judge					100	2022-12-02	https://mtgjson.com/api/v5/decks/FirstFlight_SCD.json	2026-11-17
+mtgjson	GraveDanger_SCD	precon	Grave Danger	Gisa and Geralf					100	2022-12-02	https://mtgjson.com/api/v5/decks/GraveDanger_SCD.json	2026-11-17
+mtgjson	TokenTriumph_SCD	precon	Token Triumph	Emmara, Soul of the Accord					100	2022-12-02	https://mtgjson.com/api/v5/decks/TokenTriumph_SCD.json	2026-11-17
+mtgjson	CorruptingInfluence_ONC	precon	Corrupting Influence	Ixhel, Scion of Atraxa					100	2023-02-10	https://mtgjson.com/api/v5/decks/CorruptingInfluence_ONC.json	2026-11-17
+mtgjson	RebellionRising_ONC	precon	Rebellion Rising	Neyali, Suns' Vanguard					100	2023-02-10	https://mtgjson.com/api/v5/decks/RebellionRising_ONC.json	2026-11-17
+mtgjson	CallForBackup_MOC	precon	Call for Backup	Bright-Palm, Soul Awakener					100	2023-04-21	https://mtgjson.com/api/v5/decks/CallForBackup_MOC.json	2026-11-17
+mtgjson	CavalryCharge_MOC	precon	Cavalry Charge	Sidar Jabari of Zhalfir					100	2023-04-21	https://mtgjson.com/api/v5/decks/CavalryCharge_MOC.json	2026-11-17
+mtgjson	DivineConvocation_MOC	precon	Divine Convocation	Kasla, the Broken Halo					100	2023-04-21	https://mtgjson.com/api/v5/decks/DivineConvocation_MOC.json	2026-11-17
+mtgjson	GrowingThreat_MOC	precon	Growing Threat	Brimaz, Blight of Oreskos					100	2023-04-21	https://mtgjson.com/api/v5/decks/GrowingThreat_MOC.json	2026-11-17
+mtgjson	TinkerTime_MOC	precon	Tinker Time	Gimbal, Gremlin Prodigy					100	2023-04-21	https://mtgjson.com/api/v5/decks/TinkerTime_MOC.json	2026-11-17
+mtgjson	FromCuteToBrute_SLD	precon	From Cute to Brute	Esika, God of the Tree // The Prismatic Bridge					100	2023-05-08	https://mtgjson.com/api/v5/decks/FromCuteToBrute_SLD.json	2026-11-17
+mtgjson	ElvenCouncil_LTC	precon	Elven Council	Galadriel, Elven-Queen					100	2023-06-23	https://mtgjson.com/api/v5/decks/ElvenCouncil_LTC.json	2026-11-17
+mtgjson	FoodAndFellowship_LTC	precon	Food and Fellowship	Frodo, Adventurous Hobbit / Sam, Loyal Attendant					100	2023-06-23	https://mtgjson.com/api/v5/decks/FoodAndFellowship_LTC.json	2026-11-17
+mtgjson	RidersOfRohan_LTC	precon	Riders of Rohan	Éowyn, Shieldmaiden					100	2023-06-23	https://mtgjson.com/api/v5/decks/RidersOfRohan_LTC.json	2026-11-17
+mtgjson	TheHostsOfMordor_LTC	precon	The Hosts of Mordor	Sauron, Lord of the Rings					100	2023-06-23	https://mtgjson.com/api/v5/decks/TheHostsOfMordor_LTC.json	2026-11-17
+mtgjson	EldraziUnbound_CMM	precon	Eldrazi Unbound	Zhulodok, Void Gorger					100	2023-08-04	https://mtgjson.com/api/v5/decks/EldraziUnbound_CMM.json	2026-11-17
+mtgjson	EnduringEnchantments_CMM	precon	Enduring Enchantments	Anikthea, Hand of Erebos					100	2023-08-04	https://mtgjson.com/api/v5/decks/EnduringEnchantments_CMM.json	2026-11-17
+mtgjson	PlaneswalkerParty_CMM	precon	Planeswalker Party	Commodore Guff					100	2023-08-04	https://mtgjson.com/api/v5/decks/PlaneswalkerParty_CMM.json	2026-11-17
+mtgjson	SliverSwarm_CMM	precon	Sliver Swarm	Sliver Gravemother					100	2023-08-04	https://mtgjson.com/api/v5/decks/SliverSwarm_CMM.json	2026-11-17
+mtgjson	AngelsTheyReJustLikeUsButCoolerAndWithWings_SLD	precon	Angels: They're Just Like Us but Cooler and with Wings	Gisela, the Broken Blade // Brisela, Voice of Nightmares					100	2023-08-14	https://mtgjson.com/api/v5/decks/AngelsTheyReJustLikeUsButCoolerAndWithWings_SLD.json	2026-11-17
+mtgjson	FaeDominion_WOC	precon	Fae Dominion	Tegwyll, Duke of Splendor					100	2023-09-08	https://mtgjson.com/api/v5/decks/FaeDominion_WOC.json	2026-11-17
+mtgjson	VirtueAndValor_WOC	precon	Virtue and Valor	Ellivere of the Wild Court					100	2023-09-08	https://mtgjson.com/api/v5/decks/VirtueAndValor_WOC.json	2026-11-17
+mtgjson	BlastFromThePast_WHO	precon	Blast from the Past	The Fourth Doctor / Sarah Jane Smith					100	2023-10-13	https://mtgjson.com/api/v5/decks/BlastFromThePast_WHO.json	2026-11-17
+mtgjson	MastersOfEvil_WHO	precon	Masters of Evil	Davros, Dalek Creator					100	2023-10-13	https://mtgjson.com/api/v5/decks/MastersOfEvil_WHO.json	2026-11-17
+mtgjson	ParadoxPower_WHO	precon	Paradox Power	The Thirteenth Doctor / Yasmin Khan					100	2023-10-13	https://mtgjson.com/api/v5/decks/ParadoxPower_WHO.json	2026-11-17
+mtgjson	TimeyWimey_WHO	precon	Timey-Wimey	The Tenth Doctor / Rose Tyler					100	2023-10-13	https://mtgjson.com/api/v5/decks/TimeyWimey_WHO.json	2026-11-17
+mtgjson	AhoyMateys_LCC	precon	Ahoy Mateys	Admiral Brass, Unsinkable					100	2023-11-17	https://mtgjson.com/api/v5/decks/AhoyMateys_LCC.json	2026-11-17
+mtgjson	BloodRites_LCC	precon	Blood Rites	Clavileño, First of the Blessed					100	2023-11-17	https://mtgjson.com/api/v5/decks/BloodRites_LCC.json	2026-11-17
+mtgjson	ExplorersOfTheDeep_LCC	precon	Explorers of the Deep	Hakbal of the Surging Soul					100	2023-11-17	https://mtgjson.com/api/v5/decks/ExplorersOfTheDeep_LCC.json	2026-11-17
+mtgjson	VelociRampTor_LCC	precon	Veloci-Ramp-Tor	Pantlaza, Sun-Favored					100	2023-11-17	https://mtgjson.com/api/v5/decks/VelociRampTor_LCC.json	2026-11-17
+mtgjson	RainingCatsAndDogs_SLD	precon	Raining Cats and Dogs	Rin and Seri, Inseparable // Rin and Seri, Inseparable					100	2024-01-22	https://mtgjson.com/api/v5/decks/RainingCatsAndDogs_SLD.json	2026-11-17
+mtgjson	BlameGame_MKC	precon	Blame Game	Nelly Borca, Impulsive Accuser					100	2024-02-09	https://mtgjson.com/api/v5/decks/BlameGame_MKC.json	2026-11-17
+mtgjson	DeadlyDisguise_MKC	precon	Deadly Disguise	Kaust, Eyes of the Glade					100	2024-02-09	https://mtgjson.com/api/v5/decks/DeadlyDisguise_MKC.json	2026-11-17
+mtgjson	DeepClueSea_MKC	precon	Deep Clue Sea	Morska, Undersea Sleuth					100	2024-02-09	https://mtgjson.com/api/v5/decks/DeepClueSea_MKC.json	2026-11-17
+mtgjson	RevenantRecon_MKC	precon	Revenant Recon	Mirko, Obsessive Theorist					100	2024-02-09	https://mtgjson.com/api/v5/decks/RevenantRecon_MKC.json	2026-11-17
+mtgjson	HailCaesar_PIP	precon	Hail, Caesar	Caesar, Legion's Emperor					100	2024-03-08	https://mtgjson.com/api/v5/decks/HailCaesar_PIP.json	2026-11-17
+mtgjson	MutantMenace_PIP	precon	Mutant Menace	The Wise Mothman					100	2024-03-08	https://mtgjson.com/api/v5/decks/MutantMenace_PIP.json	2026-11-17
+mtgjson	Science_PIP	precon	Science!	Dr. Madison Li					100	2024-03-08	https://mtgjson.com/api/v5/decks/Science_PIP.json	2026-11-17
+mtgjson	ScrappySurvivors_PIP	precon	Scrappy Survivors	Dogmeat, Ever Loyal					100	2024-03-08	https://mtgjson.com/api/v5/decks/ScrappySurvivors_PIP.json	2026-11-17
+mtgjson	DesertBloom_OTC	precon	Desert Bloom	Yuma, Proud Protector					100	2024-04-19	https://mtgjson.com/api/v5/decks/DesertBloom_OTC.json	2026-11-17
+mtgjson	GrandLarceny_OTC	precon	Grand Larceny	Gonti, Canny Acquisitor					100	2024-04-19	https://mtgjson.com/api/v5/decks/GrandLarceny_OTC.json	2026-11-17
+mtgjson	MostWanted_OTC	precon	Most Wanted	Olivia, Opulent Outlaw					100	2024-04-19	https://mtgjson.com/api/v5/decks/MostWanted_OTC.json	2026-11-17
+mtgjson	QuickDraw_OTC	precon	Quick Draw	Stella Lee, Wild Card					100	2024-04-19	https://mtgjson.com/api/v5/decks/QuickDraw_OTC.json	2026-11-17
+mtgjson	CreativeEnergyCollectorSEdition_M3C	precon	Creative Energy Collector's Edition	Satya, Aetherflux Genius					100	2024-06-14	https://mtgjson.com/api/v5/decks/CreativeEnergyCollectorSEdition_M3C.json	2026-11-17
+mtgjson	CreativeEnergy_M3C	precon	Creative Energy	Satya, Aetherflux Genius					100	2024-06-14	https://mtgjson.com/api/v5/decks/CreativeEnergy_M3C.json	2026-11-17
+mtgjson	EldraziIncursionCollectorSEdition_M3C	precon	Eldrazi Incursion Collector's Edition	Ulalek, Fused Atrocity					100	2024-06-14	https://mtgjson.com/api/v5/decks/EldraziIncursionCollectorSEdition_M3C.json	2026-11-17
+mtgjson	EldraziIncursion_M3C	precon	Eldrazi Incursion	Ulalek, Fused Atrocity					100	2024-06-14	https://mtgjson.com/api/v5/decks/EldraziIncursion_M3C.json	2026-11-17
+mtgjson	GraveyardOverdriveCollectorSEdition_M3C	precon	Graveyard Overdrive Collector's Edition	Disa the Restless					100	2024-06-14	https://mtgjson.com/api/v5/decks/GraveyardOverdriveCollectorSEdition_M3C.json	2026-11-17
+mtgjson	GraveyardOverdrive_M3C	precon	Graveyard Overdrive	Disa the Restless					100	2024-06-14	https://mtgjson.com/api/v5/decks/GraveyardOverdrive_M3C.json	2026-11-17
+mtgjson	TrickyTerrainCollectorSEdition_M3C	precon	Tricky Terrain Collector's Edition	Omo, Queen of Vesuva					100	2024-06-14	https://mtgjson.com/api/v5/decks/TrickyTerrainCollectorSEdition_M3C.json	2026-11-17
+mtgjson	TrickyTerrain_M3C	precon	Tricky Terrain	Omo, Queen of Vesuva					100	2024-06-14	https://mtgjson.com/api/v5/decks/TrickyTerrain_M3C.json	2026-11-17
+mtgjson	AnimatedArmy_BLC	precon	Animated Army	Bello, Bard of the Brambles					100	2024-08-02	https://mtgjson.com/api/v5/decks/AnimatedArmy_BLC.json	2026-11-17
+mtgjson	FamilyMatters_BLC	precon	Family Matters	Zinnia, Valley's Voice					100	2024-08-02	https://mtgjson.com/api/v5/decks/FamilyMatters_BLC.json	2026-11-17
+mtgjson	PeaceOffering_BLC	precon	Peace Offering	Ms. Bumbleflower					100	2024-08-02	https://mtgjson.com/api/v5/decks/PeaceOffering_BLC.json	2026-11-17
+mtgjson	SquirreledAway_BLC	precon	Squirreled Away	Hazel of the Rootbloom					100	2024-08-02	https://mtgjson.com/api/v5/decks/SquirreledAway_BLC.json	2026-11-17
+mtgjson	DeathToll_DSC	precon	Death Toll	Winter, Cynical Opportunist					100	2024-09-27	https://mtgjson.com/api/v5/decks/DeathToll_DSC.json	2026-11-17
+mtgjson	EndlessPunishment_DSC	precon	Endless Punishment	Valgavoth, Harrower of Souls					100	2024-09-27	https://mtgjson.com/api/v5/decks/EndlessPunishment_DSC.json	2026-11-17
+mtgjson	JumpScare_DSC	precon	Jump Scare!	Zimone, Mystery Unraveler					100	2024-09-27	https://mtgjson.com/api/v5/decks/JumpScare_DSC.json	2026-11-17
+mtgjson	MiracleWorker_DSC	precon	Miracle Worker	Aminatou, Veil Piercer					100	2024-09-27	https://mtgjson.com/api/v5/decks/MiracleWorker_DSC.json	2026-11-17
+mtgjson	20WaysToWin_SLD	precon	20 Ways to Win	Go-Shintai of Life's Origin					100	2024-12-04	https://mtgjson.com/api/v5/decks/20WaysToWin_SLD.json	2026-11-17
+mtgjson	EternalMight_DRC	precon	Eternal Might	Temmet, Naktamun's Will					100	2025-02-14	https://mtgjson.com/api/v5/decks/EternalMight_DRC.json	2026-11-17
+mtgjson	LivingEnergy_DRC	precon	Living Energy	Saheeli, Radiant Creator					100	2025-02-14	https://mtgjson.com/api/v5/decks/LivingEnergy_DRC.json	2026-11-17
+mtgjson	AbzanArmor_TDC	precon	Abzan Armor	Felothar the Steadfast					100	2025-04-11	https://mtgjson.com/api/v5/decks/AbzanArmor_TDC.json	2026-11-17
+mtgjson	JeskaiStriker_TDC	precon	Jeskai Striker	Shiko and Narset, Unified					100	2025-04-11	https://mtgjson.com/api/v5/decks/JeskaiStriker_TDC.json	2026-11-17
+mtgjson	MarduSurge_TDC	precon	Mardu Surge	Zurgo Stormrender					100	2025-04-11	https://mtgjson.com/api/v5/decks/MarduSurge_TDC.json	2026-11-17
+mtgjson	SultaiArisen_TDC	precon	Sultai Arisen	Teval, the Balanced Scale					100	2025-04-11	https://mtgjson.com/api/v5/decks/SultaiArisen_TDC.json	2026-11-17
+mtgjson	TemurRoar_TDC	precon	Temur Roar	Eshki, Temur's Roar					100	2025-04-11	https://mtgjson.com/api/v5/decks/TemurRoar_TDC.json	2026-11-17
+mtgjson	EveryoneSInvited_SLD	precon	Everyone's Invited!	Morophon, the Boundless					100	2025-05-12	https://mtgjson.com/api/v5/decks/EveryoneSInvited_SLD.json	2026-11-17
+mtgjson	CounterBlitzCollectorSEditionFinalFantasyX_FIC	precon	Counter Blitz Collector's Edition (FINAL FANTASY X)	Tidus, Yuna's Guardian					100	2025-06-13	https://mtgjson.com/api/v5/decks/CounterBlitzCollectorSEditionFinalFantasyX_FIC.json	2026-11-17
+mtgjson	CounterBlitzFinalFantasyX_FIC	precon	Counter Blitz (FINAL FANTASY X)	Tidus, Yuna's Guardian					100	2025-06-13	https://mtgjson.com/api/v5/decks/CounterBlitzFinalFantasyX_FIC.json	2026-11-17
+mtgjson	LimitBreakCollectorSEditionFinalFantasyVii_FIC	precon	Limit Break Collector's Edition (FINAL FANTASY VII)	Cloud, Ex-SOLDIER					100	2025-06-13	https://mtgjson.com/api/v5/decks/LimitBreakCollectorSEditionFinalFantasyVii_FIC.json	2026-11-17
+mtgjson	LimitBreakFinalFantasyVii_FIC	precon	Limit Break (FINAL FANTASY VII)	Cloud, Ex-SOLDIER					100	2025-06-13	https://mtgjson.com/api/v5/decks/LimitBreakFinalFantasyVii_FIC.json	2026-11-17
+mtgjson	RevivalTranceCollectorSEditionFinalFantasyVi_FIC	precon	Revival Trance Collector's Edition (FINAL FANTASY VI)	Terra, Herald of Hope					100	2025-06-13	https://mtgjson.com/api/v5/decks/RevivalTranceCollectorSEditionFinalFantasyVi_FIC.json	2026-11-17
+mtgjson	RevivalTranceFinalFantasyVi_FIC	precon	Revival Trance (FINAL FANTASY VI)	Terra, Herald of Hope					100	2025-06-13	https://mtgjson.com/api/v5/decks/RevivalTranceFinalFantasyVi_FIC.json	2026-11-17
+mtgjson	ScionsSpellcraftCollectorSEditionFinalFantasyXiv_FIC	precon	Scions & Spellcraft Collector's Edition (FINAL FANTASY XIV)	Y'shtola, Night's Blessed					100	2025-06-13	https://mtgjson.com/api/v5/decks/ScionsSpellcraftCollectorSEditionFinalFantasyXiv_FIC.json	2026-11-17
+mtgjson	ScionsSpellcraftFinalFantasyXiv_FIC	precon	Scions & Spellcraft (FINAL FANTASY XIV)	Y'shtola, Night's Blessed					100	2025-06-13	https://mtgjson.com/api/v5/decks/ScionsSpellcraftFinalFantasyXiv_FIC.json	2026-11-17
+mtgjson	CounterIntelligence_EOC	precon	Counter Intelligence	Inspirit, Flagship Vessel					100	2025-08-01	https://mtgjson.com/api/v5/decks/CounterIntelligence_EOC.json	2026-11-17
+mtgjson	WorldShaper_EOC	precon	World Shaper	Hearthhull, the Worldseed					100	2025-08-01	https://mtgjson.com/api/v5/decks/WorldShaper_EOC.json	2026-11-17
+mtgjson	BlightCurse_ECC	precon	Blight Curse	Auntie Ool, Cursewretch					100	2026-01-23	https://mtgjson.com/api/v5/decks/BlightCurse_ECC.json	2026-11-17
+mtgjson	DanceOfTheElements_ECC	precon	Dance of the Elements	Ashling, the Limitless					100	2026-01-23	https://mtgjson.com/api/v5/decks/DanceOfTheElements_ECC.json	2026-11-17
+mtgjson	TurtlePower_TMC	precon	Turtle Power!	Heroes in a Half Shell					100	2026-03-06	https://mtgjson.com/api/v5/decks/TurtlePower_TMC.json	2026-11-17
+mtgjson	LoreholdSpirit_SOC	precon	Lorehold Spirit	Quintorius, History Chaser					100	2026-04-24	https://mtgjson.com/api/v5/decks/LoreholdSpirit_SOC.json	2026-11-17
+mtgjson	PrismariArtistry_SOC	precon	Prismari Artistry	Rootha, Mastering the Moment					100	2026-04-24	https://mtgjson.com/api/v5/decks/PrismariArtistry_SOC.json	2026-11-17
+mtgjson	QuandrixUnlimited_SOC	precon	Quandrix Unlimited	Zimone, Infinite Analyst					100	2026-04-24	https://mtgjson.com/api/v5/decks/QuandrixUnlimited_SOC.json	2026-11-17
+mtgjson	SilverquillInfluence_SOC	precon	Silverquill Influence	Killian, Decisive Mentor					100	2026-04-24	https://mtgjson.com/api/v5/decks/SilverquillInfluence_SOC.json	2026-11-17
+mtgjson	WitherbloomPestilence_SOC	precon	Witherbloom Pestilence	Dina, Essence Brewer					100	2026-04-24	https://mtgjson.com/api/v5/decks/WitherbloomPestilence_SOC.json	2026-11-17
+mtgjson	GoblinStorm_SLD	precon	Goblin Storm	Zada, Hedron Grinder					100	2026-05-18	https://mtgjson.com/api/v5/decks/GoblinStorm_SLD.json	2026-11-17
+mtgjson	AvengersAssembleCollectorSEdition_MSC	precon	Avengers Assemble Collector's Edition	Captain America, Team Leader					100	2026-06-26	https://mtgjson.com/api/v5/decks/AvengersAssembleCollectorSEdition_MSC.json	2026-11-17
+mtgjson	AvengersAssemble_MSC	precon	Avengers Assemble	Captain America, Team Leader					100	2026-06-26	https://mtgjson.com/api/v5/decks/AvengersAssemble_MSC.json	2026-11-17
+mtgjson	DoomPrevailsCollectorSEdition_MSC	precon	Doom Prevails Collector's Edition	Doctor Doom, King of Latveria					100	2026-06-26	https://mtgjson.com/api/v5/decks/DoomPrevailsCollectorSEdition_MSC.json	2026-11-17
+mtgjson	DoomPrevails_MSC	precon	Doom Prevails	Doctor Doom, King of Latveria					100	2026-06-26	https://mtgjson.com/api/v5/decks/DoomPrevails_MSC.json	2026-11-17
+mtgjson	TheFantasticFourCollectorSEdition_MSC	precon	The Fantastic Four Collector's Edition	Invisible Woman					100	2026-06-26	https://mtgjson.com/api/v5/decks/TheFantasticFourCollectorSEdition_MSC.json	2026-11-17
+mtgjson	TheFantasticFour_MSC	precon	The Fantastic Four	Invisible Woman					100	2026-06-26	https://mtgjson.com/api/v5/decks/TheFantasticFour_MSC.json	2026-11-17
+mtgjson	WakandaForeverCollectorSEdition_MSC	precon	Wakanda Forever Collector's Edition	T'Challa, the Black Panther					100	2026-06-26	https://mtgjson.com/api/v5/decks/WakandaForeverCollectorSEdition_MSC.json	2026-11-17
+mtgjson	WakandaForever_MSC	precon	Wakanda Forever	T'Challa, the Black Panther					100	2026-06-26	https://mtgjson.com/api/v5/decks/WakandaForever_MSC.json	2026-11-17
+mtgjson	HatsuneMiku_SLD	precon	Hatsune Miku	Trostani, Selesnya's Voice					100	2026-08-10	https://mtgjson.com/api/v5/decks/HatsuneMiku_SLD.json	2026-11-17
+mtgjson	OddsAndEnds_SLD	precon	Odds and Ends	Yennett, Cryptic Sovereign					100	2026-09-28	https://mtgjson.com/api/v5/decks/OddsAndEnds_SLD.json	2026-11-17
+mtgjson	CallingAllAngels_FDC	precon	Calling All Angels	Giada, Font of Hope					100	2026-10-02	https://mtgjson.com/api/v5/decks/CallingAllAngels_FDC.json	2026-11-17
+mtgjson	KeenEngineering_FDC	precon	Keen Engineering	Sai, Master Thopterist					100	2026-10-02	https://mtgjson.com/api/v5/decks/KeenEngineering_FDC.json	2026-11-17
+mtgjson	MultiverseReforged_FRC	precon	Multiverse Reforged	Jace, Multiverse Architect					100	2026-10-02	https://mtgjson.com/api/v5/decks/MultiverseReforged_FRC.json	2026-11-17
+mtgjson	ReignOfDragons_FDC	precon	Reign of Dragons	Lathliss, Dragon Queen					100	2026-10-02	https://mtgjson.com/api/v5/decks/ReignOfDragons_FDC.json	2026-11-17
+mtgjson	TramplesaurusRex_FDC	precon	Tramplesaurus Rex	Ghalta, Primal Hunger					100	2026-10-02	https://mtgjson.com/api/v5/decks/TramplesaurusRex_FDC.json	2026-11-17
+mtgjson	WretchedRanks_FDC	precon	Wretched Ranks	Ghoulcaller Gisa					100	2026-10-02	https://mtgjson.com/api/v5/decks/WretchedRanks_FDC.json	2026-11-17
+mtgjson	FederationFleetCollectorSEdition_TRC	precon	Federation Fleet Collector's Edition	Jean-Luc Picard, Luminary					100	2026-11-13	https://mtgjson.com/api/v5/decks/FederationFleetCollectorSEdition_TRC.json	2026-11-17
+mtgjson	FederationFleet_TRC	precon	Federation Fleet	Jean-Luc Picard, Luminary					100	2026-11-13	https://mtgjson.com/api/v5/decks/FederationFleet_TRC.json	2026-11-17
+mtgjson	KlingonFuryCollectorSEdition_TRC	precon	Klingon Fury Collector's Edition	Worf, Defiant Commander					100	2026-11-13	https://mtgjson.com/api/v5/decks/KlingonFuryCollectorSEdition_TRC.json	2026-11-17
+mtgjson	KlingonFury_TRC	precon	Klingon Fury	Worf, Defiant Commander					100	2026-11-13	https://mtgjson.com/api/v5/decks/KlingonFury_TRC.json	2026-11-17
+mtgjson	LandingPartyCollectorSEdition_TRC	precon	Landing Party Collector's Edition	Commander Spock					100	2026-11-13	https://mtgjson.com/api/v5/decks/LandingPartyCollectorSEdition_TRC.json	2026-11-17
+mtgjson	LandingParty_TRC	precon	Landing Party	Commander Spock					100	2026-11-13	https://mtgjson.com/api/v5/decks/LandingParty_TRC.json	2026-11-17
+mtgjson	WeAreTheBorgCollectorSEdition_TRC	precon	We Are the Borg Collector's Edition	The Borg Queen					100	2026-11-13	https://mtgjson.com/api/v5/decks/WeAreTheBorgCollectorSEdition_TRC.json	2026-11-17
+mtgjson	WeAreTheBorg_TRC	precon	We Are the Borg	The Borg Queen					100	2026-11-13	https://mtgjson.com/api/v5/decks/WeAreTheBorg_TRC.json	2026-11-17
+archidekt	7031486	popular	Buffs by Hans	Xyris, the Writhing Storm		1		437041	100		https://archidekt.com/decks/7031486	2026-11-17
+archidekt	1585124	popular	Baby Lasagna	Baba Lysaga, Night Witch	3	2	1	287971	100		https://archidekt.com/decks/1585124	2026-11-17
+archidekt	18520785	popular	Praise the Sun, Fire the Gun	Heliod, Sun-Crowned	4	3	1	222927	100		https://archidekt.com/decks/18520785	2026-11-17
+archidekt	6780851	popular	Radha's Explosive Vegetables	Radha, Heir to Keld	3	4	2	201906	100		https://archidekt.com/decks/6780851	2026-11-17
+archidekt	17597570	popular	nico	Nicol Bolas, the Ravager // Nicol Bolas, the Arisen		5		193952	100		https://archidekt.com/decks/17597570	2026-11-17
+archidekt	7097093	popular	House Always Wins	Mr. House, President and CEO		6		191906	100		https://archidekt.com/decks/7097093	2026-11-17
+archidekt	4143061	popular	Thrun SMASH	Thrun, Breaker of Silence		7		172090	100		https://archidekt.com/decks/4143061	2026-11-17
+archidekt	13106990	popular	Limit Break - Final Fantasy Commander	Cloud, Ex-SOLDIER		8		156430	100		https://archidekt.com/decks/13106990	2026-11-17
+archidekt	14397447	popular	World Shaper - Edge of Eternities Commander Deck	Szarel, Genesis Shepherd		9		153740	100		https://archidekt.com/decks/14397447	2026-11-17
+archidekt	9189744	popular	Endless Punishment - Duskmourn: House of Horror Commander	Valgavoth, Harrower of Souls		10		153008	100		https://archidekt.com/decks/9189744	2026-11-17
+archidekt	13107116	popular	Scions & Spellcraft - Final Fantasy Commander	Y'shtola, Night's Blessed		11		152453	100		https://archidekt.com/decks/13107116	2026-11-17
+archidekt	14420275	popular	Counter Intelligence - Edge of Eternities Commander Deck	Kilo, Apogee Mind		12		147564	100		https://archidekt.com/decks/14420275	2026-11-17
+archidekt	5280254	popular	JLK's Alela | Game Knights #64	Alela, Cunning Conqueror		13		146118	100		https://archidekt.com/decks/5280254	2026-11-17
+archidekt	13107079	popular	Counter Blitz - Final Fantasy Commander	Tidus, Yuna's Guardian		14		142618	100		https://archidekt.com/decks/13107079	2026-11-17
+archidekt	234654	popular	Syrah Konnor	Syr Konrad, the Grim	4	15	2	129598	100		https://archidekt.com/decks/234654	2026-11-17
+archidekt	1221862	popular	Upping the Average - Brudiclad, Telchor Engineer	Brudiclad, Telchor Engineer		16		126344	100		https://archidekt.com/decks/1221862	2026-11-17
+archidekt	4868475	popular	Lore Of The Rings (budget build)	Tom Bombadil		17		126260	100		https://archidekt.com/decks/4868475	2026-11-17
+archidekt	4221386	popular	Sharuum slide	Sharuum the Hegemon	3	18	3	125850	100		https://archidekt.com/decks/4221386	2026-11-17
+archidekt	6269535	popular	Corsairs of Chronology	Malcolm, Keen-Eyed Navigator / Francisco, Fowl Marauder		19		123944	90		https://archidekt.com/decks/6269535	2026-11-17
+archidekt	8497473	popular	Animated Army - Bloomburrow Commander	Bello, Bard of the Brambles		20		123247	100		https://archidekt.com/decks/8497473	2026-11-17
+archidekt	12028998	popular	Sultai Arisen - Tarkir: Dragonstorm Commander	Teval, the Balanced Scale		21		119892	100		https://archidekt.com/decks/12028998	2026-11-17
+archidekt	565636	popular	You Did This To Yourself	Ruhan of the Fomori		22		119643	100		https://archidekt.com/decks/565636	2026-11-17
+archidekt	25930423	popular	Knuck if you buck	Knuckles the Echidna	3	23	4	115133	99		https://archidekt.com/decks/25930423	2026-11-17
+archidekt	9115716	popular	Malfegor's Mudpit Melee	Malfegor	3	24	5	114927	100		https://archidekt.com/decks/9115716	2026-11-17
+archidekt	8460469	popular	Peace Offering - Bloomburrow Commander	Ms. Bumbleflower		25		113101	100		https://archidekt.com/decks/8460469	2026-11-17
+archidekt	17193994	popular	Fire Nation Attacks (Fire Lord Azula LOST PRECON)	Fire Lord Azula		26		112920	100		https://archidekt.com/decks/17193994	2026-11-17
+archidekt	4868553	popular	Lore Of The Rings Upgrade Build	Tom Bombadil		27		112614	100		https://archidekt.com/decks/4868553	2026-11-17
+archidekt	13106730	popular	Revival Trance - Final Fantasy Commander	Terra, Herald of Hope		28		111606	100		https://archidekt.com/decks/13106730	2026-11-17
+archidekt	18744715	popular	Blight Curse - Lorwyn Eclipsed Commander Deck	Auntie Ool, Cursewretch		29		110953	100		https://archidekt.com/decks/18744715	2026-11-17
+archidekt	4033	popular	Death is the Only Way to Live	Meren of Clan Nel Toth		30		110427	100		https://archidekt.com/decks/4033	2026-11-17
+archidekt	4779430	popular	(Big Simic) Aesi, Tyrant of Gyre Strait (Jason)	Aesi, Tyrant of Gyre Strait		31		110399	100		https://archidekt.com/decks/4779430	2026-11-17
+archidekt	8460587	popular	Squirreled Away - Bloomburrow Commander	Hazel of the Rootbloom		32		110182	100		https://archidekt.com/decks/8460587	2026-11-17
+archidekt	20105223	popular	Turtle Power! - Teenage Mutant Ninja Turtles Commander Deck	Heroes in a Half Shell		33		108014	100		https://archidekt.com/decks/20105223	2026-11-17
+archidekt	4486401	popular	Secret Commander - The Professor	Jon Irenicus, Shattered One		34		107795	100		https://archidekt.com/decks/4486401	2026-11-17
+archidekt	7858209	popular	Eldrazi Incursion - Modern Horizons 3 Commander	Ulalek, Fused Atrocity		35		106858	100		https://archidekt.com/decks/7858209	2026-11-17
+archidekt	12020252	popular	Mardu Surge - Tarkir: Dragonstorm Commander	Zurgo Stormrender		36		106716	100		https://archidekt.com/decks/12020252	2026-11-17
+archidekt	12124803	popular	Temur Roar - Tarkir: Dragonstorm Commander	Eshki, Temur's Roar		37		106412	100		https://archidekt.com/decks/12124803	2026-11-17
+archidekt	18744843	popular	Dance of the Elements - Lorwyn Eclipsed Commander Deck	Ashling, the Limitless		38		106388	100		https://archidekt.com/decks/18744843	2026-11-17
+archidekt	27936225	popular	Turn right tribal	Tsagan, Raider Warlord	3	39	6	106243	100		https://archidekt.com/decks/27936225	2026-11-17
+archidekt	21319521	popular	Witherbloom Pestilence - Secrets of Strixhaven	Dina, Essence Brewer		40		104712	100		https://archidekt.com/decks/21319521	2026-11-17
+archidekt	12242227	popular	oops! All lands	Arixmethes, Slumbering Isle		41		102200	100		https://archidekt.com/decks/12242227	2026-11-17
+archidekt	6834477	popular	Mutant Menace - Fallout	The Wise Mothman		42		102104	100		https://archidekt.com/decks/6834477	2026-11-17
+archidekt	12124776	popular	Abzan Armor - Tarkir: Dragonstorm Commander	Felothar the Steadfast		43		99729	100		https://archidekt.com/decks/12124776	2026-11-17
+archidekt	7394353	popular	Dollar Domination	Indominus Rex, Alpha		44		98251	100		https://archidekt.com/decks/7394353	2026-11-17
+archidekt	4973732	popular	Eldrazi Unbound - Commander Masters	Zhulodok, Void Gorger		45		98073	100		https://archidekt.com/decks/4973732	2026-11-17
+archidekt	24364891	popular	The Unity - Children of the Cathedral	The Master, Transcendent	2	46	1	95719	100		https://archidekt.com/decks/24364891	2026-11-17
+archidekt	7754713	popular	JLK's Ms. Bumbleflower | Game Knights #72	Ms. Bumbleflower		47		95678	100		https://archidekt.com/decks/7754713	2026-11-17
+archidekt	5149482	popular	Violet's Marrow-Gnawer | Game Knights #63	Marrow-Gnawer		48		94511	100		https://archidekt.com/decks/5149482	2026-11-17
+archidekt	3274244	popular	Necron Dynasties - Warhammer 40,000 Commander	Szarekh, the Silent King		49		93553	100		https://archidekt.com/decks/3274244	2026-11-17
+archidekt	23394508	popular	Doom Prevails - Marvel Super Heroes	Doctor Doom, King of Latveria		50		92880	100		https://archidekt.com/decks/23394508	2026-11-17
+archidekt	1904544	popular	Upping the Average - Wilhelt, the Rotcleaver	Wilhelt, the Rotcleaver		51		91950	100		https://archidekt.com/decks/1904544	2026-11-17
+archidekt	5775250	popular	Veloci-Ramp-Tor - The Lost Caverns of Ixalan Commander	Pantlaza, Sun-Favored		52		91927	100		https://archidekt.com/decks/5775250	2026-11-17
+archidekt	21319304	popular	Silverquill Influence - Secrets of Strixhaven	Killian, Decisive Mentor		53		90979	100		https://archidekt.com/decks/21319304	2026-11-17
+archidekt	5485798	popular	Prof's Hakbal | Game Knights #66	Hakbal of the Surging Soul		54		89890	100		https://archidekt.com/decks/5485798	2026-11-17
+archidekt	21319716	popular	Quandrix Unlimited - Secrets of Strixhaven	Zimone, Infinite Analyst		55		87881	100		https://archidekt.com/decks/21319716	2026-11-17
+archidekt	4693965	popular	Hosts of Mordor - Tales of Middle-earth Commander	Sauron, Lord of the Rings		56		87237	100		https://archidekt.com/decks/4693965	2026-11-17
+archidekt	6821707	popular	Hail, Caesar - Fallout	Caesar, Legion's Emperor		57		86821	100		https://archidekt.com/decks/6821707	2026-11-17
+archidekt	53783	popular	Queen Marchesa Control 1v1	Queen Marchesa		58		86065	100		https://archidekt.com/decks/53783	2026-11-17
+archidekt	4290428	popular	Biblically Accurate Beatdown	Liesa, Shroud of Dusk	3	59	7	86005	100		https://archidekt.com/decks/4290428	2026-11-17
+archidekt	12002085	popular	Jeskai Striker - Tarkir: Dragonstorm Commander	Shiko and Narset, Unified		60		85544	100		https://archidekt.com/decks/12002085	2026-11-17
+archidekt	1909492	popular	Wilhelter Skelter	Wilhelt, the Rotcleaver	3	61	8	85425	100		https://archidekt.com/decks/1909492	2026-11-17
+archidekt	4441982	popular	Yargle	Yargle and Multani		62		84924	99		https://archidekt.com/decks/4441982	2026-11-17
+archidekt	21319610	popular	Lorehold Spirit - Secrets of Strixhaven	Quintorius, History Chaser		63		84556	100		https://archidekt.com/decks/21319610	2026-11-17
+archidekt	8460543	popular	Family Matters - Bloomburrow Commander	Zinnia, Valley's Voice		64		84358	100		https://archidekt.com/decks/8460543	2026-11-17
+archidekt	696285	popular	Upping the Average - Kaalia of the Vast	Kaalia of the Vast		65		84060	100		https://archidekt.com/decks/696285	2026-11-17
+archidekt	21319431	popular	Prismari Artistry - Secrets of Strixhaven	Rootha, Mastering the Moment		66		82937	100		https://archidekt.com/decks/21319431	2026-11-17
+archidekt	4020290	popular	Counter Blessings - Build-Your-Own Precon	Ezuri, Stalker of Spheres		67		82716	100		https://archidekt.com/decks/4020290	2026-11-17
+archidekt	7817483	popular	$100ish (inflation) Sauron, The Dark Lord Spellslinger B2	Sauron, the Dark Lord	2	68	2	80731	100		https://archidekt.com/decks/7817483	2026-11-17
+archidekt	4693977	popular	Food and Fellowship - Tales of Middle-earth Commander	Sam, Loyal Attendant / Frodo, Adventurous Hobbit		69		80346	100		https://archidekt.com/decks/4693977	2026-11-17
+archidekt	5775230	popular	Explorers of the Deep - The Lost Caverns of Ixalan Commander	Hakbal of the Surging Soul		70		79165	100		https://archidekt.com/decks/5775230	2026-11-17
+archidekt	27840574	popular	Just let me resolve Bahamut	Y'shtola Rhul	3	71	9	78706	100		https://archidekt.com/decks/27840574	2026-11-17
+archidekt	6810925	popular	Scrappy Survivors - Fallout	Dogmeat, Ever Loyal		72		78096	100		https://archidekt.com/decks/6810925	2026-11-17
+archidekt	3062146	popular	Upping the Average - The Ur-Dragon Redux	The Ur-Dragon		73		77622	100		https://archidekt.com/decks/3062146	2026-11-17
+archidekt	9166525	popular	Miracle Worker - Duskmourn: House of Horror Commander	Aminatou, Veil Piercer		74		77567	100		https://archidekt.com/decks/9166525	2026-11-17
+archidekt	4748258	popular	Josh's Tom Bombadil | Game Knights #62	Tom Bombadil		75		77177	100		https://archidekt.com/decks/4748258	2026-11-17
+archidekt	12636151	popular	Deadpool Lost Precon	Deadpool, Trading Card		76		76619	100		https://archidekt.com/decks/12636151	2026-11-17
+archidekt	11054763	popular	Eternal Might - Aetherdrift Commander	Temmet, Naktamun's Will		77		76024	100		https://archidekt.com/decks/11054763	2026-11-17
+archidekt	9100212	popular	Inflated Value	The Jolly Balloon Man		78		75847	100		https://archidekt.com/decks/9100212	2026-11-17
+archidekt	5485783	popular	Voxy's Pantlaza | Game Knights #66	Pantlaza, Sun-Favored		79		75623	100		https://archidekt.com/decks/5485783	2026-11-17
+archidekt	5485771	popular	Josh's Mycotyrant | Game Knights #66	The Mycotyrant		80		74376	100		https://archidekt.com/decks/5485771	2026-11-17
+archidekt	3263022	popular	Tyranid Swarm - Warhammer 40,000 Commander	The Swarmlord		81		73821	100		https://archidekt.com/decks/3263022	2026-11-17
+archidekt	3887	popular	Reki, the History of Kamigawa: Legendfall	Reki, the History of Kamigawa	3	82	10	73360	100		https://archidekt.com/decks/3887	2026-11-17
+archidekt	26484365	popular	Multiverse Reforged - Reality Fracture	Jace, Multiverse Architect		83		72130	100		https://archidekt.com/decks/26484365	2026-11-17
+archidekt	2498709	popular	Upping the Average - Shorikai, Genesis Engine	Shorikai, Genesis Engine		84		72016	100		https://archidekt.com/decks/2498709	2026-11-17
+archidekt	5273567	popular	Heads I Win, Tails You Lose - Secret Lair Drop	Zndrsplt, Eye of Wisdom / Okaun, Eye of Chaos		85		71319	100		https://archidekt.com/decks/5273567	2026-11-17
+archidekt	4749224	popular	Jacob's Sauron Deck | Game Knights #62	Sauron, the Dark Lord		86		71125	100		https://archidekt.com/decks/4749224	2026-11-17
+archidekt	4693939	popular	Riders of Rohan - Tales of Middle-earth Commander	Éowyn, Shieldmaiden		87		70855	100		https://archidekt.com/decks/4693939	2026-11-17
+archidekt	5775225	popular	Blood Rites - The Lost Caverns of Ixalan Commander	Clavileño, First of the Blessed		88		70459	100		https://archidekt.com/decks/5775225	2026-11-17
+archidekt	24402297	popular	One Black Mana	Ashnod, Flesh Mechanist		89		70094	100		https://archidekt.com/decks/24402297	2026-11-17
+archidekt	4047	popular	Mimeoplastic	The Mimeoplasm	4	90	3	70001	100		https://archidekt.com/decks/4047	2026-11-17
+archidekt	6138800	popular	Arin's Voja | Game Knights #67	Voja, Jaws of the Conclave		91		69391	100		https://archidekt.com/decks/6138800	2026-11-17
+archidekt	23342365	popular	Avengers Assemble - Marvel Super Heroes	Captain America, Team Leader		92		69141	100		https://archidekt.com/decks/23342365	2026-11-17
+archidekt	23426916	popular	Wakanda Forever - Marvel Super Heroes	T'Challa, the Black Panther		93		69111	100		https://archidekt.com/decks/23426916	2026-11-17
+archidekt	96189	popular	Ayula Bearstorm	Ayula, Queen Among Bears		94		68944	100		https://archidekt.com/decks/96189	2026-11-17
+archidekt	6678905	popular	Aristocats Build Your Own Precon!	Bartolomé del Presidio		95		68274	101		https://archidekt.com/decks/6678905	2026-11-17
+archidekt	9189676	popular	Death Toll - Duskmourn: House of Horror Commander	Winter, Cynical Opportunist		96		68077	100		https://archidekt.com/decks/9189676	2026-11-17
+archidekt	3277787	popular	Forces of the Imperium - Warhammer 40,000 Commander	Inquisitor Greyfax		97		68059	100		https://archidekt.com/decks/3277787	2026-11-17
+archidekt	9150668	popular	Jump Scare! - Duskmourn: House of Horror Commander	Zimone, Mystery Unraveler		98		67532	100		https://archidekt.com/decks/9150668	2026-11-17
+archidekt	7261435	popular	Quick Draw - Outlaws of Thunder Junction Commander	Stella Lee, Wild Card		99		67184	100		https://archidekt.com/decks/7261435	2026-11-17
+archidekt	7858153	popular	Tricky Terrain - Modern Horizons 3 Commander	Omo, Queen of Vesuva		100		66915	100		https://archidekt.com/decks/7858153	2026-11-17
+archidekt	4255198	popular	Death and Metal ($100)	Imotekh the Stormlord		101		66030	100		https://archidekt.com/decks/4255198	2026-11-17
+archidekt	7261455	popular	Grand Larceny - Outlaws of Thunder Junction Commander	Gonti, Canny Acquisitor		102		65684	100		https://archidekt.com/decks/7261455	2026-11-17
+archidekt	14700137	popular	Shell's Kitchen - Ragost, Deft Gastronaut by Based Deck Department	Ragost, Deft Gastronaut		103		65204	100		https://archidekt.com/decks/14700137	2026-11-17
+archidekt	7097104	popular	BYOP Mr House	Mr. House, President and CEO		104		64510	100		https://archidekt.com/decks/7097104	2026-11-17
+archidekt	3949764	popular	Upping the Average - Atraxa Infect	Atraxa, Praetors' Voice		105		64325	100		https://archidekt.com/decks/3949764	2026-11-17
+archidekt	2073351	popular	Upping the Average - Edgar Markov Redux	Edgar Markov		106		64322	100		https://archidekt.com/decks/2073351	2026-11-17
+archidekt	4948515	popular	Sliver Swarm - Commander Masters	Sliver Gravemother		107		64130	100		https://archidekt.com/decks/4948515	2026-11-17
+archidekt	18646295	popular	Mini-Games Minotaur	Magar of the Magic Strings		108		64078	100		https://archidekt.com/decks/18646295	2026-11-17
+archidekt	6847581	popular	Goth Girl Tribal	Massacre Girl, Known Killer	3	109	11	63800	100		https://archidekt.com/decks/6847581	2026-11-17
+archidekt	6846971	popular	Science! - Fallout	Dr. Madison Li		110		63631	100		https://archidekt.com/decks/6846971	2026-11-17
+archidekt	17869907	popular	BDD's BUDGET Bracket 4 Azula Combo List	Fire Lord Azula	4	111	4	63584	100		https://archidekt.com/decks/17869907	2026-11-17
+archidekt	6584319	popular	Raining Cats and Dogs - Secret Lair Drop	Rin and Seri, Inseparable		112		63313	100		https://archidekt.com/decks/6584319	2026-11-17
+archidekt	3272854	popular	The Ruinous Powers - Warhammer 40,000 Commander	Abaddon the Despoiler		113		63202	100		https://archidekt.com/decks/3272854	2026-11-17
+archidekt	13765265	popular	Vivi Ornitier, semi-budget EDH	Vivi Ornitier		114		62779	100		https://archidekt.com/decks/13765265	2026-11-17
+archidekt	3487816	popular	Upping the Average - Ghyrson Starn, Kelermorph	Ghyrson Starn, Kelermorph		115		62542	100		https://archidekt.com/decks/3487816	2026-11-17
+archidekt	4694003	popular	Elven Council - Tales of Middle-earth Commander	Galadriel, Elven-Queen		116		62397	100		https://archidekt.com/decks/4694003	2026-11-17
+archidekt	1794593	popular	All Free EDH Sac Outlets	Atogatog		117		62029	350		https://archidekt.com/decks/1794593	2026-11-17
+archidekt	7858224	popular	Creative Energy - Modern Horizons 3 Commander	Satya, Aetherflux Genius		118		62025	100		https://archidekt.com/decks/7858224	2026-11-17
+archidekt	26550173	popular	Reign of Dragons - Foundations Commander	Lathliss, Dragon Queen		119		61890	100		https://archidekt.com/decks/26550173	2026-11-17
+archidekt	582352	popular	Upping the Average - Niv-Mizzet Parun	Niv-Mizzet, Parun		120		61823	100		https://archidekt.com/decks/582352	2026-11-17
+archidekt	1173110	popular	Upping the Average - Lathril, Blade of the Elves	Lathril, Blade of the Elves		121		61727	100		https://archidekt.com/decks/1173110	2026-11-17
+archidekt	2706304	popular	Upping the Average - Giada, Font of Hope	Giada, Font of Hope		122		61425	100		https://archidekt.com/decks/2706304	2026-11-17
+archidekt	7869831	popular	Graveyard Overdrive - Modern Horizons 3 Commander	Disa the Restless		123		61150	100		https://archidekt.com/decks/7869831	2026-11-17
+archidekt	5280232	popular	Jimmy's Brenard | Game Knights #64	Brenard, Ginger Sculptor		124		60942	100		https://archidekt.com/decks/5280232	2026-11-17
+archidekt	26550215	popular	Tramplesaurus Rex - Foundations Commander	Ghalta, Primal Hunger		125		60812	100		https://archidekt.com/decks/26550215	2026-11-17
+archidekt	1234196	popular	Upping the Average - Arcades, the Strategist	Arcades, the Strategist		126		60141	100		https://archidekt.com/decks/1234196	2026-11-17
+archidekt	2856931	popular	A "Commander" Commander Deck	Tana, the Bloodsower / Tymna the Weaver	2	127	3	60065	100		https://archidekt.com/decks/2856931	2026-11-17
+archidekt	7261488	popular	Most Wanted - Outlaws of Thunder Junction Commander	Olivia, Opulent Outlaw		128		60041	100		https://archidekt.com/decks/7261488	2026-11-17
+archidekt	22357696	popular	Goblin Storm - Secret Lair Commander	Zada, Hedron Grinder		129		59336	100		https://archidekt.com/decks/22357696	2026-11-17
+archidekt	26549829	popular	Calling All Angels - Foundations Commander	Giada, Font of Hope		130		58858	100		https://archidekt.com/decks/26549829	2026-11-17
+archidekt	23225604	popular	Posty's Elrond | Game Knights #87	Elrond, Moon-Reader		131		58618	100		https://archidekt.com/decks/23225604	2026-11-17
+archidekt	11035094	popular	Living Energy - Aetherdrift Commander	Saheeli, Radiant Creator		132		57252	100		https://archidekt.com/decks/11035094	2026-11-17
+archidekt	5273608	popular	Angels: They're Just Like Us, but Cooler and with Wings - Secret Lair Drop	Bruna, the Fading Light		133		56485	100		https://archidekt.com/decks/5273608	2026-11-17
+archidekt	2935156	popular	Upping the Average - Miirym, Sentinel Wyrm	Miirym, Sentinel Wyrm		134		55933	100		https://archidekt.com/decks/2935156	2026-11-17
+archidekt	13693093	popular	Everyone's Invited - Secret Lair Drop - WUBRG EDH Precon Decklist	Morophon, the Boundless		135		55635	100		https://archidekt.com/decks/13693093	2026-11-17
+archidekt	1605459	popular	Ardenn, Intrepid Archeologist/Esior, Wardwing Familiar: Suit Up	Esior, Wardwing Familiar / Ardenn, Intrepid Archaeologist	3	136	12	55555	100		https://archidekt.com/decks/1605459	2026-11-17
+archidekt	3658713	popular	Shorikai - Kyle Hill	Shorikai, Genesis Engine		137		55530	99		https://archidekt.com/decks/3658713	2026-11-17
+archidekt	7261423	popular	Desert Bloom - Outlaws of Thunder Junction Commander	Yuma, Proud Protector		138		55494	100		https://archidekt.com/decks/7261423	2026-11-17
+archidekt	15073736	popular	🧝‍♀️ It came from the woods | Lathril, Blade of the Elves	Lathril, Blade of the Elves	3	139	13	55448	100		https://archidekt.com/decks/15073736	2026-11-17
+archidekt	26550043	popular	Wretched Ranks - Foundations Commander	Ghoulcaller Gisa		140		55346	100		https://archidekt.com/decks/26550043	2026-11-17
+archidekt	2468303	popular	Upping the Average - Isshin, Two Heavens as One	Isshin, Two Heavens as One		141		54757	100		https://archidekt.com/decks/2468303	2026-11-17
+archidekt	4301639	popular	Burakos, Party of Four?	Burakos, Party Leader / Folk Hero	3	142	14	54596	100		https://archidekt.com/decks/4301639	2026-11-17
+archidekt	653916	popular	Upping the Average - Rin and Seri, Inseparable	Rin and Seri, Inseparable		143		54344	100		https://archidekt.com/decks/653916	2026-11-17
+archidekt	5969200	popular	4. Sgt. Pumper’s Lonely Hearts Club Band	Sergeant John Benton	4	144	5	53840	100		https://archidekt.com/decks/5969200	2026-11-17
+archidekt	2788668	popular	Mind Flayarrrs - Commander Legends: Battle for Baldur's Gate	Captain N'ghathrod		145		53522	100		https://archidekt.com/decks/2788668	2026-11-17
+archidekt	5485808	popular	Jimmy's Don Andres | Game Knights #66	Don Andres, the Renegade		146		53494	99		https://archidekt.com/decks/5485808	2026-11-17
+archidekt	5775210	popular	Ahoy Mateys - The Lost Caverns of Ixalan Commander	Admiral Brass, Unsinkable		147		53000	100		https://archidekt.com/decks/5775210	2026-11-17
+archidekt	4279849	popular	1. Life is a Scry-way	Trelasarra, Moon Dancer	3	148	15	52902	99		https://archidekt.com/decks/4279849	2026-11-17
+archidekt	5644579	popular	Timey-Wimey - Doctor Who	Rose Tyler / The Tenth Doctor		149		52738	100		https://archidekt.com/decks/5644579	2026-11-17
+archidekt	11044517	popular	JLK's Teval | Game Knights #77	Teval, the Balanced Scale		150		52598	100		https://archidekt.com/decks/11044517	2026-11-17
+archidekt	10470726	popular	STORM BUDGET	Storm, Force of Nature		151		52487	100		https://archidekt.com/decks/10470726	2026-11-17
+archidekt	3437086	popular	Draconic Destruction - Starter Commander Decks	Atarka, World Render		152		52392	100		https://archidekt.com/decks/3437086	2026-11-17
+archidekt	14918751	popular	Oops, All Jace!	Jace, Vryn's Prodigy // Jace, Telepath Unbound	1	153	1	52288	100		https://archidekt.com/decks/14918751	2026-11-17
+archidekt	4255191	popular	Death and Metal ($45)	Imotekh the Stormlord		154		52225	100		https://archidekt.com/decks/4255191	2026-11-17
+archidekt	5823682	popular	CZ 572 | "Veloci-Ramp-tor" Precon Upgrade	Pantlaza, Sun-Favored		155		52137	100		https://archidekt.com/decks/5823682	2026-11-17
+archidekt	4442570	popular	Yargle Upgrade	Yargle and Multani		156		52097	99		https://archidekt.com/decks/4442570	2026-11-17
+archidekt	8216504	popular	Rog/Reyhan Landless Turbo Suicide Engine	Rograkh, Son of Rohgahh / Reyhan, Last of the Abzan	5	157	1	52070	100		https://archidekt.com/decks/8216504	2026-11-17
+archidekt	4593413	popular	Dihada, Binder Full of Legends	Dihada, Binder of Wills	4	158	6	51852	100		https://archidekt.com/decks/4593413	2026-11-17
+archidekt	4972432	popular	Jimmy's Zhulodok | Extra Turns 38	Zhulodok, Void Gorger		159		51770	100		https://archidekt.com/decks/4972432	2026-11-17
+archidekt	138123	popular	Fuck Blue	Klothys, God of Destiny		160		51402	101		https://archidekt.com/decks/138123	2026-11-17
+archidekt	4956666	popular	Planeswalker Party - Commander Masters	Commodore Guff		161		51353	100		https://archidekt.com/decks/4956666	2026-11-17
+archidekt	15576694	popular	D&D	Riku of Many Paths		162		51255	100		https://archidekt.com/decks/15576694	2026-11-17
+archidekt	689005	popular	Upping the Average - Nekusar, the Mindrazer	Nekusar, the Mindrazer		163		51223	100		https://archidekt.com/decks/689005	2026-11-17
+archidekt	4914520	popular	Myriad Misfortunes (Budget Version)	Lynde, Cheerful Tormentor		164		51193	100		https://archidekt.com/decks/4914520	2026-11-17
+archidekt	4959133	popular	Enduring Enchantments - Commander Masters	Anikthea, Hand of Erebos		165		51147	100		https://archidekt.com/decks/4959133	2026-11-17
+archidekt	7127442	popular	Jimmy's Ulalek | Game Knights #70	Ulalek, Fused Atrocity		166		50823	100		https://archidekt.com/decks/7127442	2026-11-17
+archidekt	1066823	popular	Upping the Average - Omnath, Locus of Creation	Omnath, Locus of Creation		167		50792	100		https://archidekt.com/decks/1066823	2026-11-17
+archidekt	23366791	popular	The Fantastic Four - Marvel Super Heroes	Mister Fantastic		168		50781	100		https://archidekt.com/decks/23366791	2026-11-17
+archidekt	14804914	popular	Bracket 1 Progenitus	Progenitus	1	169	2	50665	100		https://archidekt.com/decks/14804914	2026-11-17
+archidekt	6527429	popular	Blame Game - Murders at Karlov Manor Commander	Nelly Borca, Impulsive Accuser		170		50538	100		https://archidekt.com/decks/6527429	2026-11-17
+archidekt	2753478	popular	Tovolar, Dire Overlord	Tovolar, Dire Overlord // Tovolar, the Midnight Scourge		171		50529	100		https://archidekt.com/decks/2753478	2026-11-17
+archidekt	7754646	popular	Olivia's Hazel | Game Knights #72	Hazel of the Rootbloom		172		50440	100		https://archidekt.com/decks/7754646	2026-11-17
+archidekt	4615680	popular	Equipment are the best mana rocks	Meria, Scholar of Antiquity	3	173	16	50397	100		https://archidekt.com/decks/4615680	2026-11-17
+archidekt	12319520	popular	Commander? I Hardly Know Her...	Blim, Comedic Genius		174		49995	100		https://archidekt.com/decks/12319520	2026-11-17
+archidekt	11796422	popular	Rocco's Flying Goats of Nostalgia (Exhibition - Bracket 1)	Rocco, Cabaretti Caterer	1	175	3	49828	101		https://archidekt.com/decks/11796422	2026-11-17
+archidekt	9464414	popular	Uncommon Fear	Arabella, Abandoned Doll		176		49772	100		https://archidekt.com/decks/9464414	2026-11-17
+archidekt	5072301	popular	Wilhelt, the Rotcleaver Bracket 4 Optimized Zombie Tribal Deck - Arthas Mijo [Primer]	Wilhelt, the Rotcleaver	4	177	7	49690	100		https://archidekt.com/decks/5072301	2026-11-17
+archidekt	4663756	popular	JLK's Shadowborn Apostle | Game Knights #18	Athreos, God of Passage		178		49597	100		https://archidekt.com/decks/4663756	2026-11-17
+archidekt	15828635	popular	bracket 1	Anax and Cymede & Kynaios and Tiro	1	179	4	49478	100		https://archidekt.com/decks/15828635	2026-11-17
+archidekt	9824356	popular	Mina and Denn's Landfill Deck	Mina and Denn, Wildborn		180		49305	100		https://archidekt.com/decks/9824356	2026-11-17
+archidekt	13511774	popular	$75 Lyse Hext Voltron Budget Build. Bracket 3	Lyse Hext	3	181	17	49138	100		https://archidekt.com/decks/13511774	2026-11-17
+archidekt	171880	popular	Sidisi, The Sultai One	Sidisi, Brood Tyrant	3	182	18	49118	100		https://archidekt.com/decks/171880	2026-11-17
+archidekt	4748029	popular	Jimmy's Samwise Gamgee | Game Knights #62	Samwise Gamgee		183		48899	100		https://archidekt.com/decks/4748029	2026-11-17
+archidekt	168900	popular	Grimmy's Zombies	Grimgrin, Corpse-Born		184		48548	100		https://archidekt.com/decks/168900	2026-11-17
+archidekt	1017047	popular	Upping the Average - Meren of Clan Nel Toth	Meren of Clan Nel Toth		185		48548	100		https://archidekt.com/decks/1017047	2026-11-17
+archidekt	5226431	popular	Fae Dominion - Wilds of Eldraine Commander	Tegwyll, Duke of Splendor		186		48538	100		https://archidekt.com/decks/5226431	2026-11-17
+archidekt	3437089	popular	Chaos Incarnate - Starter Commander Decks	Kardur, Doomscourge		187		48369	100		https://archidekt.com/decks/3437089	2026-11-17
+archidekt	5279788	popular	Kibler's Agatha | Game Knights 64	Agatha of the Vile Cauldron		188		48219	100		https://archidekt.com/decks/5279788	2026-11-17
+archidekt	171808	popular	Rakdos, Lord of Big Free Stuff	Rakdos, Lord of Riots	4	189	8	48083	100		https://archidekt.com/decks/171808	2026-11-17
+archidekt	4918885	popular	Gyome Invites You To Feast	Gyome, Master Chef		190		47595	100		https://archidekt.com/decks/4918885	2026-11-17
+archidekt	4486395	popular	Secret Commander - Rhystic Studies	Unesh, Criosphinx Sovereign		191		47560	100		https://archidekt.com/decks/4486395	2026-11-17
+archidekt	346983	popular	Titanium	Titania, Protector of Argoth	4	192	9	47532	100		https://archidekt.com/decks/346983	2026-11-17
+archidekt	4086276	popular	Spells Trouble - Build-Your-Own Precon	Raff, Weatherlight Stalwart		193		47119	100		https://archidekt.com/decks/4086276	2026-11-17
+archidekt	6442702	popular	Josh's Budget Jolrael | Extra Turns #45	Jolrael, Voice of Zhalfir		194		47107	100		https://archidekt.com/decks/6442702	2026-11-17
+archidekt	4914605	popular	Myriad Misfortunes (Upgrade)	Lynde, Cheerful Tormentor		195		47102	100		https://archidekt.com/decks/4914605	2026-11-17
+archidekt	8410002	popular	NinjaCharlie	Satoru Umezawa		196		47083	100		https://archidekt.com/decks/8410002	2026-11-17
+archidekt	6527454	popular	Revenant Recon - Murders at Karlov Manor Commander	Mirko, Obsessive Theorist		197		46993	100		https://archidekt.com/decks/6527454	2026-11-17
+archidekt	3983904	popular	Upping the Average - Urtet, Remnant of Memnarch	Urtet, Remnant of Memnarch		198		46924	100		https://archidekt.com/decks/3983904	2026-11-17
+archidekt	25004279	popular	Monarch	Garland, Royal Kidnapper		199		46758	100		https://archidekt.com/decks/25004279	2026-11-17
+archidekt	6527442	popular	Deep Clue Sea - Murders at Karlov Manor Commander	Morska, Undersea Sleuth		200		46638	100		https://archidekt.com/decks/6527442	2026-11-17
+archidekt	4803240	popular	Upping the Average - Tom Bombadil	Tom Bombadil		201		46519	100		https://archidekt.com/decks/4803240	2026-11-17
+archidekt	12041145	popular	Sultai Arisen - Upgraded	Teval, the Balanced Scale		202		46509	100		https://archidekt.com/decks/12041145	2026-11-17
+archidekt	17229792	popular	CZ 711 | Avatar Aang	Avatar Aang // Aang, Master of Elements		203		46484	100		https://archidekt.com/decks/17229792	2026-11-17
+archidekt	562172	popular	Phelddagrif & Keruga, Hippos in Love	Phelddagrif		204		46461	100		https://archidekt.com/decks/562172	2026-11-17
+archidekt	5259135	popular	Eriette of the Charmed Apple	Eriette of the Charmed Apple		205		46330	100		https://archidekt.com/decks/5259135	2026-11-17
+archidekt	8500075	popular	JLK's Niko | Game Knights #73	Niko, Light of Hope		206		46295	100		https://archidekt.com/decks/8500075	2026-11-17
+archidekt	2057849	popular	Upping the Average - Prosper, Tome-Bound	Prosper, Tome-Bound		207		45868	100		https://archidekt.com/decks/2057849	2026-11-17
+archidekt	7963239	popular	$100 ish Stella Lee, Wild Card Combo B4	Stella Lee, Wild Card	4	208	10	45803	100		https://archidekt.com/decks/7963239	2026-11-17
+archidekt	913410	popular	Thalisse You Could Do	Thalisse, Reverent Medium	3	209	19	45639	100		https://archidekt.com/decks/913410	2026-11-17
+archidekt	2223923	popular	Upping the Average - Muldrotha, the Gravetide Redux	Muldrotha, the Gravetide		210		45519	100		https://archidekt.com/decks/2223923	2026-11-17
+archidekt	829253	popular	Upping the Average - Queen Marchesa	Queen Marchesa		211		45513	100		https://archidekt.com/decks/829253	2026-11-17
+archidekt	592149	popular	Upping the Average - Gishath, Sun's Avatar	Kaheera, the Orphanguard / Gishath, Sun's Avatar		212		45430	101		https://archidekt.com/decks/592149	2026-11-17
+archidekt	12460858	popular	Ooopsies! All Commanders	Xenagos, God of Revels		213		45426	100		https://archidekt.com/decks/12460858	2026-11-17
+archidekt	3898562	popular	Corrupting Influence - Phyrexia: All Will Be One Commander	Ixhel, Scion of Atraxa		214		45083	100		https://archidekt.com/decks/3898562	2026-11-17
+archidekt	902474	popular	Fly, My Pretties - Mom's Deck	Kangee, Sky Warden		215		44908	100		https://archidekt.com/decks/902474	2026-11-17
+archidekt	3437080	popular	Grave Danger - Starter Commander Decks	Gisa and Geralf		216		44876	100		https://archidekt.com/decks/3437080	2026-11-17
+archidekt	4664167	popular	JLK's Elesh Norn | Game Knights #59	Elesh Norn, Mother of Machines		217		44807	100		https://archidekt.com/decks/4664167	2026-11-17
+archidekt	114994	popular	What's Yours is Mine	Lazav, Dimir Mastermind		218		44714	100		https://archidekt.com/decks/114994	2026-11-17
+archidekt	27814567	popular	We Are The Borg - Star Trek Commander	The Borg Queen		219		44662	100		https://archidekt.com/decks/27814567	2026-11-17
+archidekt	4918873	popular	Pew Pew	Ghyrson Starn, Kelermorph		220		44453	100		https://archidekt.com/decks/4918873	2026-11-17
+archidekt	25018363	popular	Hatsune Miku - Secret Lair Commander	Trostani, Selesnya's Voice		221		44436	100		https://archidekt.com/decks/25018363	2026-11-17
+archidekt	5644431	popular	Masters of Evil - Doctor Who	Davros, Dalek Creator		222		44369	100		https://archidekt.com/decks/5644431	2026-11-17
+archidekt	618507	popular	Upping the Average - Teysa Karlov	Teysa Karlov		223		44283	100		https://archidekt.com/decks/618507	2026-11-17
+archidekt	3245172	popular	Upping the Average - Jodah, the Unifier	Jodah, the Unifier		224		44223	101		https://archidekt.com/decks/3245172	2026-11-17
+archidekt	5226423	popular	Virtue and Valor - Wilds of Eldraine Commander	Ellivere of the Wild Court		225		44210	100		https://archidekt.com/decks/5226423	2026-11-17
+archidekt	3689944	popular	It's Just Reanimator Don't Worry About It	Vohar, Vodalian Desecrator	3	226	20	44161	100		https://archidekt.com/decks/3689944	2026-11-17
+archidekt	1781428	popular	All EDH Ramp	Esika, God of the Tree // The Prismatic Bridge		227		43912	1089		https://archidekt.com/decks/1781428	2026-11-17
+archidekt	5081211	popular	Your Consent Is Not Required	Zhulodok, Void Gorger		228		43876	100		https://archidekt.com/decks/5081211	2026-11-17
+archidekt	639285	popular	Upping the Average - Yuriko, the Tiger's Shadow	Yuriko, the Tiger's Shadow		229		43791	100		https://archidekt.com/decks/639285	2026-11-17
+archidekt	2181391	popular	Upping the Average - Chatterfang, Squirrel General	Chatterfang, Squirrel General		230		43631	100		https://archidekt.com/decks/2181391	2026-11-17
+archidekt	8975639	popular	Allie's Zaxara | Game Knights #74	Zaxara, the Exemplary		231		43482	100		https://archidekt.com/decks/8975639	2026-11-17
+archidekt	4664186	popular	JLK's Urtet | Game Knights #60	Urtet, Remnant of Memnarch		232		43421	100		https://archidekt.com/decks/4664186	2026-11-17
+archidekt	5422181	popular	Poison Poison Everywhere	Atraxa, Praetors' Voice		233		43410	100		https://archidekt.com/decks/5422181	2026-11-17
+archidekt	725550	popular	Upping the Average - Korvold, Fae-Cursed King	Korvold, Fae-Cursed King		234		43386	100		https://archidekt.com/decks/725550	2026-11-17
+archidekt	5860172	popular	Henzie	Henzie "Toolbox" Torre		235		43043	100		https://archidekt.com/decks/5860172	2026-11-17
+archidekt	3993	popular	Vela the Night-Clad: Intimidating Machinery	Vela the Night-Clad	3	236	21	42869	104		https://archidekt.com/decks/3993	2026-11-17
+archidekt	4688727	popular	porcupines (dmg redirection deck)	Queen Marchesa		237		42834	105		https://archidekt.com/decks/4688727	2026-11-17
+archidekt	13195893	popular	FFVII Limit Break | $30 Upgrade	Cloud, Ex-SOLDIER	2	238	4	42785	100		https://archidekt.com/decks/13195893	2026-11-17
+archidekt	8376777	popular	Jimmy's Zimone | Game Knights #73	Zimone, Mystery Unraveler	3	239	22	42614	100		https://archidekt.com/decks/8376777	2026-11-17
+archidekt	3437073	popular	Token Triumph - Starter Commander Decks	Emmara, Soul of the Accord		240		42485	100		https://archidekt.com/decks/3437073	2026-11-17
+archidekt	2743146	popular	Urza, Lord High Artificer	Urza, Lord High Artificer		241		42416	100		https://archidekt.com/decks/2743146	2026-11-17
+archidekt	7545966	popular	Shilgengar: Gotta Sac Angels to Make Angels	Shilgengar, Sire of Famine	3	242	23	42373	100		https://archidekt.com/decks/7545966	2026-11-17
+archidekt	638136	popular	When Elves Attack	Tyvar the Bellicose	4	243	11	42191	100		https://archidekt.com/decks/638136	2026-11-17
+archidekt	4959573	popular	JLK's Kykar | Extra Turns #38	Kykar, Wind's Fury		244		42093	100		https://archidekt.com/decks/4959573	2026-11-17
+archidekt	4303558	popular	Growing Threat - March of the Machine Commander	Brimaz, Blight of Oreskos		245		42084	100		https://archidekt.com/decks/4303558	2026-11-17
+archidekt	5984805	popular	Upping the Average - Pantlaza, Sun-Favored	Pantlaza, Sun-Favored		246		41521	101		https://archidekt.com/decks/5984805	2026-11-17
+archidekt	1395319	popular	Upping the Average - Veyran, Voice of Duality	Veyran, Voice of Duality		247		41393	100		https://archidekt.com/decks/1395319	2026-11-17
+archidekt	248272	popular	Brago Stax [Primer]	Brago, King Eternal		248		41214	100		https://archidekt.com/decks/248272	2026-11-17
+archidekt	6539789	popular	Rachel's LOTR Sauron | Extra Turns #47	Sauron, Lord of the Rings		249		40907	100		https://archidekt.com/decks/6539789	2026-11-17
+archidekt	3151312	popular	Upping the Average - Captain N'ghathrod	Captain N'ghathrod		250		40522	100		https://archidekt.com/decks/3151312	2026-11-17
+archidekt	4303568	popular	Cavalry Charge - March of the Machine Commander	Sidar Jabari of Zhalfir		251		40499	100		https://archidekt.com/decks/4303568	2026-11-17
+archidekt	59349	popular	Edgar Markov (Aggro/Combo) Vampire Tribal	Edgar Markov	4	252	12	40410	100		https://archidekt.com/decks/59349	2026-11-17
+archidekt	5149464	popular	JLK's Shorikai | Game Knights #63	Shorikai, Genesis Engine		253		40349	100		https://archidekt.com/decks/5149464	2026-11-17
+archidekt	2733887	popular	A Study In Slivers: Toolkit Sliver Commander	Sliver Overlord		254		40171	100		https://archidekt.com/decks/2733887	2026-11-17
+archidekt	3948	popular	Glissa, the Traitor: The Engine of Betrayal	Glissa, the Traitor	2	255	5	40156	100		https://archidekt.com/decks/3948	2026-11-17
+archidekt	13546643	popular	FFXIV Scions & Spellcraft | $30 Upgrade	Y'shtola, Night's Blessed	2	256	6	40097	100		https://archidekt.com/decks/13546643	2026-11-17
+archidekt	6527467	popular	Deadly Disguise - Murders at Karlov Manor Commander	Kaust, Eyes of the Glade		257		40090	100		https://archidekt.com/decks/6527467	2026-11-17
+archidekt	2788678	popular	Draconic Dissent - Commander Legends: Battle for Baldur's Gate	Firkraag, Cunning Instigator		258		39815	100		https://archidekt.com/decks/2788678	2026-11-17
+archidekt	3437083	popular	First Flight - Starter Commander Decks	Isperia, Supreme Judge		259		39791	100		https://archidekt.com/decks/3437083	2026-11-17
+archidekt	4020318	popular	Crabs	Charix, the Raging Isle		260		39684	100		https://archidekt.com/decks/4020318	2026-11-17
+archidekt	1041571	popular	Upping the Average - Alela, Artful Provocateur	Alela, Artful Provocateur		261		39480	100		https://archidekt.com/decks/1041571	2026-11-17
+archidekt	5280200	popular	Rachel's Gylwain | Game Knights #64	Gylwain, Casting Director		262		39409	100		https://archidekt.com/decks/5280200	2026-11-17
+archidekt	4145706	popular	Xyris the Writhing Storm	Xyris, the Writhing Storm		263		39339	100		https://archidekt.com/decks/4145706	2026-11-17
+archidekt	20969709	popular	Wick Snail Boom	Wick, the Whorled Mind		264		39296	100		https://archidekt.com/decks/20969709	2026-11-17
+archidekt	13868857	popular	Vincent Vengeful Atoner, $100 turn 5 wins, by Based Deck Department	Vincent, Vengeful Atoner	3	265	24	39260	100		https://archidekt.com/decks/13868857	2026-11-17
+archidekt	13001076	popular	Bracket 4 Sephiroth	Sephiroth, Fabled SOLDIER // Sephiroth, One-Winged Angel / Yawgmoth's Will / Mana Vault	4	266	13	39145	100		https://archidekt.com/decks/13001076	2026-11-17
+archidekt	1883985	popular	Upping the Average - Tovolar, Dire Overlord	Tovolar, Dire Overlord // Tovolar, the Midnight Scourge		267		39055	100		https://archidekt.com/decks/1883985	2026-11-17
+archidekt	15114910	popular	Ten Mana	Flubs, the Fool		268		39054	98		https://archidekt.com/decks/15114910	2026-11-17
+archidekt	2832773	popular	Upping the Average - Henzie "Toolbox" Torre	Henzie "Toolbox" Torre		269		39019	100		https://archidekt.com/decks/2832773	2026-11-17
+archidekt	10874739	popular	Rachel's Hashaton | Game Knights #76	Hashaton, Scarab's Fist		270		39006	100		https://archidekt.com/decks/10874739	2026-11-17
+archidekt	1782198	popular	Upping the Average - Atla Palani, Nest Tender	Atla Palani, Nest Tender		271		38901	100		https://archidekt.com/decks/1782198	2026-11-17
+archidekt	25038666	popular	Dwarven Legion	Dáin of the Ancient Halls	2	272	7	38842	100		https://archidekt.com/decks/25038666	2026-11-17
+archidekt	1727139	popular	TnT cEDH 2026 | Tymna Thrasios v4.24 | cEDH Midrange | Thrasios Tymna Primer | Infinite Mana Self-Mill (No Proxies)	Thrasios, Triton Hero / Tymna the Weaver	5	273	2	38795	100		https://archidekt.com/decks/1727139	2026-11-17
+archidekt	22552456	popular	Tide Pods ($51.71 Budget)	Yuna, Grand Summoner		274		38783	100		https://archidekt.com/decks/22552456	2026-11-17
+archidekt	3948982	popular	Upping the Average - Atraxa Superfriends	Atraxa, Praetors' Voice		275		38765	100		https://archidekt.com/decks/3948982	2026-11-17
+archidekt	365563	popular	Brago Blink	Brago, King Eternal		276		38723	103		https://archidekt.com/decks/365563	2026-11-17
+archidekt	2891830	popular	Upping the Average - Miirym, Sentinel Wyrm (Budget)	Miirym, Sentinel Wyrm		277		38707	100		https://archidekt.com/decks/2891830	2026-11-17
+archidekt	5565129	popular	War Doctor + Ryan	Ryan Sinclair / The War Doctor		278		38602	100		https://archidekt.com/decks/5565129	2026-11-17
+archidekt	7118798	popular	Midrange Eggs	Gerrard, Weatherlight Hero		279		38454	100		https://archidekt.com/decks/7118798	2026-11-17
+archidekt	7293972	popular	VinceDurdleFest	Abdel Adrian, Gorion's Ward / Candlekeep Sage		280		38256	100		https://archidekt.com/decks/7293972	2026-11-17
+archidekt	1743320	popular	I Think We Should See Other People	Karazikar, the Eye Tyrant	2	281	8	37957	100		https://archidekt.com/decks/1743320	2026-11-17
+archidekt	11779506	popular	Murph's Kuja | Extra Turns #60	Kuja, Genome Sorcerer // Trance Kuja, Fate Defied		282		37919	100		https://archidekt.com/decks/11779506	2026-11-17
+archidekt	8201055	popular	Ezio Only	Ezio Auditore da Firenze		283		37859	100		https://archidekt.com/decks/8201055	2026-11-17
+archidekt	2753504	popular	Isshin, Two Heavens as One	Isshin, Two Heavens as One		284		37770	100		https://archidekt.com/decks/2753504	2026-11-17
+archidekt	14074405	popular	Cut-Rate Commander | Kefka, Court Mage	Kefka, Court Mage // Kefka, Ruler of Ruin		285		37726	100		https://archidekt.com/decks/14074405	2026-11-17
+archidekt	5035210	popular	Glissacruiser	Glissa Sunslayer		286		37648	100		https://archidekt.com/decks/5035210	2026-11-17
+archidekt	25039073	popular	Elven Legacy	Thranduil, the Elvenking	2	287	9	37568	100		https://archidekt.com/decks/25039073	2026-11-17
+archidekt	1794493	popular	Upping the Average - Orvar, the All-Form	Orvar, the All-Form		288		37477	100		https://archidekt.com/decks/1794493	2026-11-17
+archidekt	4793659	popular	Upping the Average - Tom Bombadil (Budget)	Tom Bombadil		289		37374	100		https://archidekt.com/decks/4793659	2026-11-17
+archidekt	2817895	popular	I Win, You Lose	Jodah, Archmage Eternal		290		37107	100		https://archidekt.com/decks/2817895	2026-11-17
+archidekt	2209076	popular	Reap the Tides - Commander Legends	Aesi, Tyrant of Gyre Strait		291		37046	100		https://archidekt.com/decks/2209076	2026-11-17
+archidekt	6788602	popular	Upping the Average - Voja	Voja, Jaws of the Conclave		292		37005	100		https://archidekt.com/decks/6788602	2026-11-17
+archidekt	5644511	popular	Paradox Power - Doctor Who	Yasmin Khan / The Thirteenth Doctor		293		36918	100		https://archidekt.com/decks/5644511	2026-11-17
+archidekt	5273595	popular	From Cute to Brute - Secret Lair Drop	Esika, God of the Tree // The Prismatic Bridge		294		36846	100		https://archidekt.com/decks/5273595	2026-11-17
+archidekt	17967360	popular	One Green Mana	Oviya Pashiri, Sage Lifecrafter		295		36770	100		https://archidekt.com/decks/17967360	2026-11-17
+archidekt	3065762	popular	Ognis, the Dragon's Lash: Speed Kills	Ognis, the Dragon's Lash	2	296	10	36757	100		https://archidekt.com/decks/3065762	2026-11-17
+archidekt	4303576	popular	Call for Backup - March of the Machine Commander	Bright-Palm, Soul Awakener		297		36667	100		https://archidekt.com/decks/4303576	2026-11-17
+archidekt	2788666	popular	Party Time - Commander Legends: Battle for Baldur's Gate	Nalia de'Arnise		298		36384	100		https://archidekt.com/decks/2788666	2026-11-17
+archidekt	4303549	popular	Divine Convocation - March of the Machine Commander	Kasla, the Broken Halo		299		36328	100		https://archidekt.com/decks/4303549	2026-11-17
+archidekt	21131744	popular	Vanilla	Jasmine Boreal of the Seven		300		36221	100		https://archidekt.com/decks/21131744	2026-11-17
+archidekt	8529946	popular	CZ 622 | "Animated Army" Precon Upgrade	Bello, Bard of the Brambles		301		36092	100		https://archidekt.com/decks/8529946	2026-11-17
+archidekt	3496314	popular	Urza's Iron Alliance - The Brothers' War Commander	Urza, Chief Artificer		302		36022	100		https://archidekt.com/decks/3496314	2026-11-17
+archidekt	4593151	popular	Octavia & the Unbloctopuses	Octavia, Living Thesis	3	303	25	35976	100		https://archidekt.com/decks/4593151	2026-11-17
+archidekt	9539857	popular	Winter is Coming	Winter, Cynical Opportunist	3	304	26	35960	100		https://archidekt.com/decks/9539857	2026-11-17
+archidekt	12909909	popular	Aragorn, The Uniter Spellslinger Deck Bracket 2/3	Aragorn, the Uniter	3	305	27	35937	100		https://archidekt.com/decks/12909909	2026-11-17
+archidekt	13686965	popular	Bracket 2 Base  & Budget Vivi	Vivi Ornitier	2	306	11	35887	100		https://archidekt.com/decks/13686965	2026-11-17
+archidekt	4664210	popular	Kathleen's Slimefoot | Game Knights #61	Slimefoot and Squee		307		35849	100		https://archidekt.com/decks/4664210	2026-11-17
+archidekt	6539768	popular	Josh's LOTR Frodo & Sam | Extra Turns #47	Sam, Loyal Attendant / Frodo, Adventurous Hobbit		308		35837	100		https://archidekt.com/decks/6539768	2026-11-17
+archidekt	5005670	popular	2. Can't Block This	Ikra Shidiqi, the Usurper / Malcolm, Keen-Eyed Navigator	2	309	12	35831	100		https://archidekt.com/decks/5005670	2026-11-17
+archidekt	4634959	popular	Sauron the Dark Lord	Sauron, the Dark Lord		310		35815	100		https://archidekt.com/decks/4634959	2026-11-17
+archidekt	5823771	popular	CZ 573 | "Explorers of the Deep" Precon Upgrade	Hakbal of the Surging Soul		311		35671	100		https://archidekt.com/decks/5823771	2026-11-17
+archidekt	17456365	popular	JLK's Ashling | Game Knights #83	Ashling, the Limitless		312		35501	100		https://archidekt.com/decks/17456365	2026-11-17
+archidekt	22502752	popular	Gev	Gev, Scaled Scorch	4	313	14	35415	100		https://archidekt.com/decks/22502752	2026-11-17
+archidekt	1777280	popular	Zombies and Goth Girls	Ghoulcaller Gisa	3	314	28	35401	100		https://archidekt.com/decks/1777280	2026-11-17
+archidekt	4593623	popular	Hazezon: Desert Power	Hazezon, Shaper of Sand		315		35393	101		https://archidekt.com/decks/4593623	2026-11-17
+archidekt	15851958	popular	Peter Parker LOST PRECON	Peter Parker // Amazing Spider-Man		316		35307	100		https://archidekt.com/decks/15851958	2026-11-17
+archidekt	2425068	popular	Upping the Average - Isshin, Two Heavens as One (Budget)	Isshin, Two Heavens as One		317		35277	100		https://archidekt.com/decks/2425068	2026-11-17
+archidekt	14690797	popular	Jimmy's Green Goblin | Game Knights #80	Norman Osborn // Green Goblin		318		35196	100		https://archidekt.com/decks/14690797	2026-11-17
+archidekt	25468285	popular	Southern Lawyer	Vislor Turlough / The Second Doctor		319		35186	100		https://archidekt.com/decks/25468285	2026-11-17
+archidekt	24662123	popular	CZ 757 | Thranduil, the Elvenking	Thranduil, the Elvenking	3	320	29	35117	100		https://archidekt.com/decks/24662123	2026-11-17
+archidekt	3997	popular	Isperia, Supreme Judge: A Riddle of Sphinxes	Isperia, Supreme Judge	3	321	30	35089	100		https://archidekt.com/decks/3997	2026-11-17
+archidekt	15214112	popular	Golbez, Crystal Collector Combo (Bracket 2)	Golbez, Crystal Collector	2	322	13	34888	101		https://archidekt.com/decks/15214112	2026-11-17
+archidekt	5644280	popular	Blast from the Past - Doctor Who	Sarah Jane Smith / The Fourth Doctor		323		34849	100		https://archidekt.com/decks/5644280	2026-11-17
+archidekt	6144726	popular	Josh's Teysa | Game Knights #67	Teysa, Opulent Oligarch		324		34803	100		https://archidekt.com/decks/6144726	2026-11-17
+archidekt	3658736	popular	Prossh - Voxy	Prossh, Skyraider of Kher		325		34722	100		https://archidekt.com/decks/3658736	2026-11-17
+archidekt	4593603	popular	Galazeth Prismari: The Dragons Are Coming	Galazeth Prismari	3	326	31	34705	100		https://archidekt.com/decks/4593603	2026-11-17
+archidekt	4350424	popular	Joey's Budget Baba	Baba Lysaga, Night Witch		327		34668	100		https://archidekt.com/decks/4350424	2026-11-17
+archidekt	8529843	popular	CZ 621 | "Peace Offering" Precon Upgrade	Ms. Bumbleflower		328		34666	100		https://archidekt.com/decks/8529843	2026-11-17
+archidekt	24161244	popular	Matt's Dack | Game Knights #88	Dack Fayden, Helping Hand		329		34569	100		https://archidekt.com/decks/24161244	2026-11-17
+archidekt	7316357	popular	Quick Draw | Precon Upgrade	Stella Lee, Wild Card		330		34554	100		https://archidekt.com/decks/7316357	2026-11-17
+archidekt	2209067	popular	Elven Empire - Kaldheim Commander	Lathril, Blade of the Elves		331		34500	100		https://archidekt.com/decks/2209067	2026-11-17
+archidekt	3268179	popular	Prof's Brion Stoutarm	Brion Stoutarm		332		34464	100		https://archidekt.com/decks/3268179	2026-11-17
+archidekt	3624402	popular	Ambassador BloppityBlipBlip	Ambassador Blorpityblorpboop		333		34379	101		https://archidekt.com/decks/3624402	2026-11-17
+archidekt	7065240	popular	Sauron, the Dark Lord (Reanimator)	Sauron, the Dark Lord		334		34342	100		https://archidekt.com/decks/7065240	2026-11-17
+archidekt	5106957	popular	Upping the Average - Zhulodok, Void Gorger	Zhulodok, Void Gorger		335		34335	100		https://archidekt.com/decks/5106957	2026-11-17
+archidekt	2360211	popular	Buckle Up - Neon Dynasty Commander	Kotori, Pilot Prodigy		336		34333	100		https://archidekt.com/decks/2360211	2026-11-17
+archidekt	8533377	popular	Bracket 4- Baylen	Baylen, the Haymaker		337		34264	100		https://archidekt.com/decks/8533377	2026-11-17
+archidekt	2491562	popular	Upping the Average - Go-Shintai of Life's Origin	Go-Shintai of Life's Origin		338		34141	100		https://archidekt.com/decks/2491562	2026-11-17
+archidekt	4471573	popular	Upping the Average - Sidar Jabari of Zhalfir	Sidar Jabari of Zhalfir		339		34126	100		https://archidekt.com/decks/4471573	2026-11-17
+archidekt	4663984	popular	Post Malone's Merieke | Game Knights #45	Merieke Ri Berit		340		34086	100		https://archidekt.com/decks/4663984	2026-11-17
+archidekt	6146057	popular	Jimmy's Mirko | Game Knights #67	Mirko, Obsessive Theorist		341		34036	100		https://archidekt.com/decks/6146057	2026-11-17
+archidekt	16349317	popular	Sonic LOST PRECON	Sonic the Hedgehog		342		33878	100		https://archidekt.com/decks/16349317	2026-11-17
+archidekt	9872444	popular	CZ 643 | Foundations Commander Deck - Halana and Alena	Halana and Alena, Partners		343		33861	100		https://archidekt.com/decks/9872444	2026-11-17
+archidekt	2209043	popular	Undead Unleashed - Midnight Hunt Commander	Wilhelt, the Rotcleaver		344		33831	100		https://archidekt.com/decks/2209043	2026-11-17
+archidekt	2116878	popular	Wilhelt Zombies	Wilhelt, the Rotcleaver		345		33817	83		https://archidekt.com/decks/2116878	2026-11-17
+archidekt	2360208	popular	Upgrades Unleashed - Neon Dynasty Commander	Chishiro, the Shattered Blade		346		33800	100		https://archidekt.com/decks/2360208	2026-11-17
+archidekt	2584830	popular	Upping the Average - Hinata, Dawn-Crowned	Hinata, Dawn-Crowned		347		33715	100		https://archidekt.com/decks/2584830	2026-11-17
+archidekt	6856302	popular	JLK's Obeka | Game Knights #69	Obeka, Splitter of Seconds		348		33672	100		https://archidekt.com/decks/6856302	2026-11-17
+archidekt	2886541	popular	Jaheira, Friend of the Forest + Agent of the Iron Throne: Spawning Scions	Jaheira, Friend of the Forest / Agent of the Iron Throne	3	349	32	33621	100		https://archidekt.com/decks/2886541	2026-11-17
+archidekt	5710237	popular	Group Hellbent	Malfegor		350		33572	100		https://archidekt.com/decks/5710237	2026-11-17
+archidekt	2713146	popular	Dromoka, the Eternal: Count on Dragons	Dromoka, the Eternal	3	351	33	33537	100		https://archidekt.com/decks/2713146	2026-11-17
+archidekt	2340516	popular	Upping the Average - Umbris, Fear Manifest	Umbris, Fear Manifest		352		33533	100		https://archidekt.com/decks/2340516	2026-11-17
+archidekt	2209128	popular	Vampiric Bloodlust - Commander 2017	Edgar Markov		353		33529	100		https://archidekt.com/decks/2209128	2026-11-17
+archidekt	16258887	popular	The Earth Bending Machine	Toph, the First Metalbender		354		33473	100		https://archidekt.com/decks/16258887	2026-11-17
+archidekt	16139001	popular	JLK's Katara | Game Knights #82	Katara, the Fearless		355		33459	100		https://archidekt.com/decks/16139001	2026-11-17
+archidekt	168188	popular	Deg's Greater Skep Slivers	Sliver Overlord		356		33449	100		https://archidekt.com/decks/168188	2026-11-17
+archidekt	5433713	popular	My Little Pony Deck	Princess Twilight Sparkle		357		33440	100		https://archidekt.com/decks/5433713	2026-11-17
+archidekt	2788675	popular	Exit from Exile - Commander Legends: Battle for Baldur's Gate	Faldorn, Dread Wolf Herald		358		33435	100		https://archidekt.com/decks/2788675	2026-11-17
+archidekt	2320784	popular	Upping the Average - Obeka, Brute Chronologist	Obeka, Brute Chronologist		359		33377	100		https://archidekt.com/decks/2320784	2026-11-17
+archidekt	4036	popular	Yennett's Odd-yssey	Yennett, Cryptic Sovereign	3	360	34	33362	100		https://archidekt.com/decks/4036	2026-11-17
+archidekt	1711213	popular	Upping the Average - Volo, Guide to Monsters	Volo, Guide to Monsters		361		33355	100		https://archidekt.com/decks/1711213	2026-11-17
+archidekt	2464942	popular	Zurzoth Foils Your Plans	Zurzoth, Chaos Rider		362		33355	100		https://archidekt.com/decks/2464942	2026-11-17
+archidekt	74037	popular	Feather by Braden	Feather, the Redeemed		363		33286	101		https://archidekt.com/decks/74037	2026-11-17
+archidekt	2209040	popular	Vampiric Bloodline - Crimson Vow Commander	Strefan, Maurer Progenitor		364		33276	100		https://archidekt.com/decks/2209040	2026-11-17
+archidekt	2730394	popular	Tasha's Tasha Deck	Tasha, the Witch Queen		365		33258	100		https://archidekt.com/decks/2730394	2026-11-17
+archidekt	3144039	popular	Painbow - Dominaria United	Jared Carthalion		366		33253	100		https://archidekt.com/decks/3144039	2026-11-17
+archidekt	3144052	popular	Legends' Legacy - Dominaria United	Dihada, Binder of Wills		367		33176	100		https://archidekt.com/decks/3144052	2026-11-17
+archidekt	4129277	popular	Upping the Average - Urza, Chief Artificer	Urza, Chief Artificer		368		33176	100		https://archidekt.com/decks/4129277	2026-11-17
+archidekt	1135603	popular	Upping the Average - Syr Konrad, the Grim	Syr Konrad, the Grim		369		33143	100		https://archidekt.com/decks/1135603	2026-11-17
+archidekt	2743173	popular	Zur the Enchanter	Zur the Enchanter		370		33046	100		https://archidekt.com/decks/2743173	2026-11-17
+archidekt	1586927	popular	Upping the Average - Sythis, Harvest's Hand	Sythis, Harvest's Hand		371		33021	100		https://archidekt.com/decks/1586927	2026-11-17
+archidekt	4807732	popular	Second Breakfast - Hobbits and Food	Sam, Loyal Attendant / Frodo, Adventurous Hobbit		372		33016	98		https://archidekt.com/decks/4807732	2026-11-17
+archidekt	4664063	popular	Posty's Chishiro | Game Knights #51	Chishiro, the Shattered Blade		373		33014	100		https://archidekt.com/decks/4664063	2026-11-17
+archidekt	3859270	popular	Rebellion Rising - Phyrexia: All Will Be One Commander	Neyali, Suns' Vanguard		374		32995	100		https://archidekt.com/decks/3859270	2026-11-17
+archidekt	6520455	popular	Day9's Ojer Axonil - Ep. 107	Ojer Axonil, Deepest Might // Temple of Power		375		32992	100		https://archidekt.com/decks/6520455	2026-11-17
+archidekt	26549969	popular	Keen Engineering - Foundations Commander	Sai, Master Thopterist		376		32995	100		https://archidekt.com/decks/26549969	2026-11-17
+archidekt	4663796	popular	Ashlen's Kozilek I Game Knights #24	Kozilek, the Great Distortion		377		32843	100		https://archidekt.com/decks/4663796	2026-11-17
+archidekt	3135858	popular	Snitches Get Isshins	Isshin, Two Heavens as One	4	378	15	32796	100		https://archidekt.com/decks/3135858	2026-11-17
+archidekt	6184992	popular	Niv-Mizzet Parun (You'll still lose friends but with less power)	Niv-Mizzet, Parun		379		32725	100		https://archidekt.com/decks/6184992	2026-11-17
+archidekt	4948719	popular	JLK's Gyome, Master Chef	Gyome, Master Chef		380		32707	100		https://archidekt.com/decks/4948719	2026-11-17
+archidekt	4582739	popular	Vivi - Hyperfixation	Vivi Ornitier	5	381	3	32698	93		https://archidekt.com/decks/4582739	2026-11-17
+archidekt	3496328	popular	Mishra's Burnished Banner - The Brothers' War Commander	Mishra, Eminent One		382		32664	100		https://archidekt.com/decks/3496328	2026-11-17
+archidekt	22677224	popular	JLK's Smaug | Game Knights #87	Smaug, Wicked Worm		383		32616	100		https://archidekt.com/decks/22677224	2026-11-17
+archidekt	2262006	popular	Upping the Average - Ardenn, Intrepid Archaeologist & Rograkh, Son of Rohgahh	Rograkh, Son of Rohgahh / Ardenn, Intrepid Archaeologist		384		32584	100		https://archidekt.com/decks/2262006	2026-11-17
+archidekt	872380	popular	Upping the Average - Feather the Redeemed	Feather, the Redeemed		385		32539	100		https://archidekt.com/decks/872380	2026-11-17
+archidekt	4486418	popular	Secret Commander - Cosmanut Marcus	Breya, Etherium Shaper		386		32490	100		https://archidekt.com/decks/4486418	2026-11-17
+archidekt	4303515	popular	Tinker Time - March of the Machine Commander	Gimbal, Gremlin Prodigy		387		32483	100		https://archidekt.com/decks/4303515	2026-11-17
+archidekt	14875868	popular	Shell's Kitchen FULL FLAVOUR - Ragost, Deft Gastronaut by Based Deck Department	Ragost, Deft Gastronaut	2	388	14	32464	100		https://archidekt.com/decks/14875868	2026-11-17
+archidekt	2753491	popular	Runo Stormkirk - Sea Monsters	Runo Stromkirk // Krothuss, Lord of the Deep		389		32396	100		https://archidekt.com/decks/2753491	2026-11-17
+archidekt	3084055	popular	Hofri Spirit Tribal	Hofri Ghostforge		390		32391	100		https://archidekt.com/decks/3084055	2026-11-17
+archidekt	4811306	popular	Council of "You Did This To Yourself"	The Council of Four	2	391	15	32391	100		https://archidekt.com/decks/4811306	2026-11-17
+archidekt	2209123	popular	Draconic Domination - Commander 2017	The Ur-Dragon		392		32266	100		https://archidekt.com/decks/2209123	2026-11-17
+archidekt	4594920	popular	Mangara, Mono-White Good Stuff	Mangara, the Diplomat	3	393	35	32217	100		https://archidekt.com/decks/4594920	2026-11-17
+archidekt	9871877	popular	CZ 643 | Foundations Commander Deck - Ayli	Ayli, Eternal Pilgrim		394		32180	100		https://archidekt.com/decks/9871877	2026-11-17
+archidekt	5736500	popular	The Wise Mothman	The Wise Mothman		395		32180	99		https://archidekt.com/decks/5736500	2026-11-17
+archidekt	4663947	popular	Jacob's Koma | Game Knights #42	Koma, Cosmos Serpent		396		32164	100		https://archidekt.com/decks/4663947	2026-11-17
+archidekt	2685760	popular	Upping the Average - Giada, Font of Hope (Budget)	Giada, Font of Hope		397		32106	100		https://archidekt.com/decks/2685760	2026-11-17
+archidekt	993013	popular	Upping the Average - Anowon the Ruin Thief	Anowon, the Ruin Thief		398		32080	100		https://archidekt.com/decks/993013	2026-11-17
+archidekt	664751	popular	Upping the Average - Kenrith, the Returned King	Kenrith, the Returned King		399		31973	100		https://archidekt.com/decks/664751	2026-11-17
+archidekt	7717454	popular	Jimmy's Frodo and Sam | Extra Turns #49	Sam, Loyal Attendant / Frodo, Adventurous Hobbit		400		31927	100		https://archidekt.com/decks/7717454	2026-11-17
+archidekt	9466042	popular	Enchanting Hot Dog	Wildsear, Scouring Maw		401		31830	100		https://archidekt.com/decks/9466042	2026-11-17
+archidekt	13151743	popular	Tidus	Tidus, Yuna's Guardian		402		31800	100		https://archidekt.com/decks/13151743	2026-11-17
+archidekt	4663885	popular	JLK Scarab God | Game Knights #38	The Scarab God		403		31773	100		https://archidekt.com/decks/4663885	2026-11-17
+archidekt	6298071	popular	Krark's Copy Machine (Gambling Problem)	Krark, the Thumbless / Kydele, Chosen of Kruphix		404		31764	100		https://archidekt.com/decks/6298071	2026-11-17
+archidekt	2753446	popular	Vorinclex - Super Jerks	Vorinclex, Monstrous Raider		405		31708	100		https://archidekt.com/decks/2753446	2026-11-17
+archidekt	3044639	popular	$15 Group Hug	Gluntch, the Bestower		406		31620	100		https://archidekt.com/decks/3044639	2026-11-17
+archidekt	4616610	popular	Raggadragga's Spaghetti Kitchen	Raggadragga, Goreguts Boss	2	407	16	31543	100		https://archidekt.com/decks/4616610	2026-11-17
+archidekt	5823929	popular	CZ 576 | "Blood Rites" Precon Upgrade	Clavileño, First of the Blessed		408		31521	100		https://archidekt.com/decks/5823929	2026-11-17
+archidekt	16186430	popular	BDG's Bumi | Game Knights #82	Bumi, Unleashed		409		31500	100		https://archidekt.com/decks/16186430	2026-11-17
+archidekt	4749325	popular	Xolo's Theoden Deck | Game Knights #62	Théoden, King of Rohan		410		31475	100		https://archidekt.com/decks/4749325	2026-11-17
+archidekt	14868725	popular	Anti-Venom Buff Man	Anti-Venom, Horrifying Healer		411		31473	100		https://archidekt.com/decks/14868725	2026-11-17
+archidekt	96159	popular	Najeela Midrange cEDH Post Ban	Najeela, the Blade-Blossom		412		31467	99		https://archidekt.com/decks/96159	2026-11-17
+archidekt	17206288	popular	CZ 711 | Toph, Hardheaded Teacher	Toph, Hardheaded Teacher		413		31459	100		https://archidekt.com/decks/17206288	2026-11-17
+archidekt	11026555	popular	Eilidh's Felothar | Game Knights #77	Felothar the Steadfast		414		31403	100		https://archidekt.com/decks/11026555	2026-11-17
+archidekt	13327814	popular	FFX Counter Blitz | $30 Upgrade	Tidus, Yuna's Guardian		415		31375	100		https://archidekt.com/decks/13327814	2026-11-17
+archidekt	796226	popular	Upping the Average - Omnath, Locus of Rage	Omnath, Locus of Rage		416		31347	100		https://archidekt.com/decks/796226	2026-11-17
+archidekt	11650077	popular	Angels: Bracket 3 (Updated)	Giada, Font of Hope	3	417	36	31288	100		https://archidekt.com/decks/11650077	2026-11-17
+archidekt	5203097	popular	Orvar, The Infinite	Orvar, the All-Form		418		31244	100		https://archidekt.com/decks/5203097	2026-11-17
+archidekt	3428551	popular	Upping the Average - Myrkul, Lord of Bones	Myrkul, Lord of Bones		419		31103	100		https://archidekt.com/decks/3428551	2026-11-17
+archidekt	14795066	popular	ChekovKeepsItStrapped	Doc Aurlock, Grizzled Genius		420		31036	100		https://archidekt.com/decks/14795066	2026-11-17
+archidekt	4486380	popular	Secret Commander - Spice8Rack	Shirei, Shizo's Caretaker		421		30934	100		https://archidekt.com/decks/4486380	2026-11-17
+archidekt	4350457	popular	Tomer's Budget Minn	Minn, Wily Illusionist		422		30921	100		https://archidekt.com/decks/4350457	2026-11-17
+archidekt	5844763	popular	Breya 2.0	Breya, Etherium Shaper		423		30920	100		https://archidekt.com/decks/5844763	2026-11-17
+archidekt	15303015	popular	John’s Indominus Rex (played by JLK) Extra Turns 65	Indominus Rex, Alpha		424		30881	100		https://archidekt.com/decks/15303015	2026-11-17
+archidekt	4350447	popular	Alec's Budget Satoru	Satoru Umezawa		425		30859	100		https://archidekt.com/decks/4350447	2026-11-17
+archidekt	9660418	popular	Gruulfriends	Pia Nalaar, Chief Mechanic	1	426	5	30693	100		https://archidekt.com/decks/9660418	2026-11-17
+archidekt	5907939	popular	Pako & Haldan	Haldan, Avid Arcanist / Pako, Arcane Retriever		427		30616	100		https://archidekt.com/decks/5907939	2026-11-17
+archidekt	854121	popular	Upping the Average - The Ur-Dragon	The Ur-Dragon		428		30611	100		https://archidekt.com/decks/854121	2026-11-17
+archidekt	3811989	popular	Jon Irenicus, Shattered One	Jon Irenicus, Shattered One	3	429	37	30586	100		https://archidekt.com/decks/3811989	2026-11-17
+archidekt	24748413	popular	JLK's Kwia Vigorbloom | Game Knights #88	Kwia Vigorbloom		430		30569	100		https://archidekt.com/decks/24748413	2026-11-17
+archidekt	4244878	popular	Teysa Karlov	Teysa Karlov		431		30516	100		https://archidekt.com/decks/4244878	2026-11-17
+archidekt	10528161	popular	Hate Beats - Breena edition	Breena, the Demagogue		432		30512	100		https://archidekt.com/decks/10528161	2026-11-17
+archidekt	4664114	popular	Ladee's Lathril | Game Knights #55	Lathril, Blade of the Elves		433		30510	100		https://archidekt.com/decks/4664114	2026-11-17
+archidekt	4793200	popular	Olivia's Rin and Seri | Extra Turns #36	Rin and Seri, Inseparable		434		30498	100		https://archidekt.com/decks/4793200	2026-11-17
+archidekt	8820287	popular	"Bello There." - Raccooni Kenobi	Bello, Bard of the Brambles	3	435	38	30479	100		https://archidekt.com/decks/8820287	2026-11-17
+archidekt	20271194	popular	Danny's Zimone, Infinite Analyst | Game Knights #85	Zimone, Infinite Analyst		436		30479	100		https://archidekt.com/decks/20271194	2026-11-17
+archidekt	5364537	popular	Sakashima/Tormod/Gyruda	Sakashima of a Thousand Faces / Tormod, the Desecrator		437		30460	100		https://archidekt.com/decks/5364537	2026-11-17
+archidekt	3038338	popular	Upping the Average - The Ur-Dragon Redux (Budget)	The Ur-Dragon		438		30401	100		https://archidekt.com/decks/3038338	2026-11-17
+archidekt	22805626	popular	Rachel's Notary Hobbits | Game Knights #87	The Notary Hobbits		439		30371	100		https://archidekt.com/decks/22805626	2026-11-17
+archidekt	7102886	popular	G Crim Storm	Aeve, Progenitor Ooze		440		30359	100		https://archidekt.com/decks/7102886	2026-11-17
+archidekt	5149619	popular	Joe's Queen Marchesa | Game Knights #63	Queen Marchesa		441		30359	100		https://archidekt.com/decks/5149619	2026-11-17
+archidekt	25068923	popular	Goblin Horde	Bolg, Erebor's Reckoning	2	442	17	30340	100		https://archidekt.com/decks/25068923	2026-11-17
+archidekt	3690136	popular	Upping the Average - Okaun and Zndrsplt	Zndrsplt, Eye of Wisdom / Okaun, Eye of Chaos		443		30314	100		https://archidekt.com/decks/3690136	2026-11-17
+archidekt	7319967	popular	High Power Aristocrats Edgar Markov; Guide at the bottom	Edgar Markov	4	444	16	30260	100		https://archidekt.com/decks/7319967	2026-11-17
+archidekt	9338413	popular	Emry Evil Bubbles - Bracket 4: Optimized	Emry, Lurker of the Loch	4	445	17	30259	100		https://archidekt.com/decks/9338413	2026-11-17
+archidekt	1843466	popular	All EDH Tutors	Sliver Overlord		446		30257	540		https://archidekt.com/decks/1843466	2026-11-17
+archidekt	59989	popular	Gishath, Sun's Avatar - Dinosaur Kindred	Gishath, Sun's Avatar	2	447	18	30196	100		https://archidekt.com/decks/59989	2026-11-17
+archidekt	6012060	popular	Pantlaza Dino's	Pantlaza, Sun-Favored		448		30133	89		https://archidekt.com/decks/6012060	2026-11-17
+archidekt	715322	popular	Thromok, the Insatiable	Thromok the Insatiable	3	449	39	30107	100		https://archidekt.com/decks/715322	2026-11-17
+archidekt	11896625	popular	Budget Rocco	Rocco, Street Chef		450		30084	100		https://archidekt.com/decks/11896625	2026-11-17
+archidekt	2125573	popular	Upping the Average - Kyler, Sigardian Emissary	Kyler, Sigardian Emissary		451		30061	100		https://archidekt.com/decks/2125573	2026-11-17
+archidekt	5420063	popular	Pinkie Pie: Friendship is Murder	Pinkie Pie		452		30045	100		https://archidekt.com/decks/5420063	2026-11-17
+archidekt	1173058	popular	Upping the Average - Liesa, Shroud of Dusk (Budget)	Liesa, Shroud of Dusk		453		30018	100		https://archidekt.com/decks/1173058	2026-11-17
+archidekt	7916495	popular	CZ 612 | "Eldrazi Incursion" Precon Upgrade	Ulalek, Fused Atrocity		454		29979	100		https://archidekt.com/decks/7916495	2026-11-17
+archidekt	3258320	popular	Upping the Average - Jodah, the Unifier (Budget)	Jodah, the Unifier		455		29933	101		https://archidekt.com/decks/3258320	2026-11-17
+archidekt	4918879	popular	Shifty	Dromar, the Banisher		456		29885	100		https://archidekt.com/decks/4918879	2026-11-17
+archidekt	18108426	popular	BDD's Bracket 4 Azula Combo List	Fire Lord Azula	4	457	18	29866	100		https://archidekt.com/decks/18108426	2026-11-17
+archidekt	7778558	popular	JLK's Megatron | Extra Turns #49	Megatron, Tyrant // Megatron, Destructive Force		458		29780	100		https://archidekt.com/decks/7778558	2026-11-17
+archidekt	4336982	popular	Upping the Average - Slimefoot, the Stowaway	Slimefoot, the Stowaway		459		29711	100		https://archidekt.com/decks/4336982	2026-11-17
+archidekt	6843594	popular	Hail, Caesar | Precon Upgrade	Caesar, Legion's Emperor		460		29674	100		https://archidekt.com/decks/6843594	2026-11-17
+archidekt	7034967	popular	My Little Pony: Magic is Friendship	Rainbow Dash	1	461	6	29606	100		https://archidekt.com/decks/7034967	2026-11-17
+archidekt	24659968	popular	CZ 757 | The Great Goblin	The Great Goblin	3	462	40	29552	100		https://archidekt.com/decks/24659968	2026-11-17
+archidekt	5364618	popular	Zo-Zu the Punisher	Zo-Zu the Punisher		463		29515	100		https://archidekt.com/decks/5364618	2026-11-17
+archidekt	3658731	popular	Feather - Professor	Feather, the Redeemed		464		29461	100		https://archidekt.com/decks/3658731	2026-11-17
+archidekt	2307413	popular	Upping the Average - Arahbo, Roar of the World	Arahbo, Roar of the World		465		29303	101		https://archidekt.com/decks/2307413	2026-11-17
+archidekt	710511	popular	Kediss, Emberclaw Familiar/Kraum, Ludevic's Opus: Double Trouble	Kediss, Emberclaw Familiar / Kraum, Ludevic's Opus	4	466	19	29286	100		https://archidekt.com/decks/710511	2026-11-17
+archidekt	6540840	popular	Mia's Edgar | Extra Turns #48	Edgar Markov		467		29257	100		https://archidekt.com/decks/6540840	2026-11-17
+archidekt	7703512	popular	DrLupo's Wildsear | Game Knights #72	Wildsear, Scouring Maw		468		29230	99		https://archidekt.com/decks/7703512	2026-11-17
+archidekt	4044	popular	Reyshai	Reyhan, Last of the Abzan / Ishai, Ojutai Dragonspeaker	3	469	41	29133	100		https://archidekt.com/decks/4044	2026-11-17
+archidekt	2209039	popular	Spirit Squadron - Crimson Vow Commander	Millicent, Restless Revenant		470		29099	100		https://archidekt.com/decks/2209039	2026-11-17
+archidekt	2172726	popular	Obeka: Cheat and Copy (With Primer)	Obeka, Brute Chronologist	4	471	20	29077	100		https://archidekt.com/decks/2172726	2026-11-17
+archidekt	977358	popular	Upping the Average - Kalamax, the Stormsire	Kalamax, the Stormsire		472		29058	100		https://archidekt.com/decks/977358	2026-11-17
+archidekt	4116172	popular	Ich-Tekik, Salvage Splicer/Malcolm, Keen-Eyed Navigator: Grinding Golems	Malcolm, Keen-Eyed Navigator / Ich-Tekik, Salvage Splicer	3	473	42	28994	100		https://archidekt.com/decks/4116172	2026-11-17
+archidekt	7126846	popular	Andrew's Arna | Game Knights #70	Arna Kennerüd, Skycaptain		474		28986	100		https://archidekt.com/decks/7126846	2026-11-17
+archidekt	4664062	popular	Ladee's Isshin | Game Knights #51	Isshin, Two Heavens as One		475		28959	100		https://archidekt.com/decks/4664062	2026-11-17
+archidekt	11363581	popular	Where am I going, and how don't I get there?	Flubs, the Fool	2	476	19	28942	100		https://archidekt.com/decks/11363581	2026-11-17
+archidekt	3082032	popular	Tiny Arms, I know You're The One By Tappy	Gishath, Sun's Avatar		477		28893	101		https://archidekt.com/decks/3082032	2026-11-17
+archidekt	1413767	popular	Silumgar, the Drifting Death: Death From Above	Silumgar, the Drifting Death	2	478	20	28871	100		https://archidekt.com/decks/1413767	2026-11-17
+archidekt	4664116	popular	Ashlen's Ur-Dragon | Game Knights #55	The Ur-Dragon		479		28868	100		https://archidekt.com/decks/4664116	2026-11-17
+archidekt	6895024	popular	Mutant Menance | Precon Upgrade	The Wise Mothman		480		28847	100		https://archidekt.com/decks/6895024	2026-11-17
+archidekt	9298397	popular	Meren of Clan Nel Toth - Bracket 3	Meren of Clan Nel Toth	3	481	43	28815	100		https://archidekt.com/decks/9298397	2026-11-17
+archidekt	580194	popular	Arcades Sabboth // Kydelle-Livio (Cycling)	Livio, Oathsworn Sentinel / Kydele, Chosen of Kruphix	2	482	21	28769	100		https://archidekt.com/decks/580194	2026-11-17
+archidekt	4633766	popular	Deathdwellers call	Nethroi, Apex of Death		483		28669	101		https://archidekt.com/decks/4633766	2026-11-17
+archidekt	545848	popular	Norin the Wary - Killer of Kings	Norin the Wary		484		28639	100		https://archidekt.com/decks/545848	2026-11-17
+archidekt	6184027	popular	Niv-Mizzet Parun (You will lose your friends)	Niv-Mizzet, Parun		485		28514	100		https://archidekt.com/decks/6184027	2026-11-17
+archidekt	15859326	popular	Norman Osborn LOST PRECON	Norman Osborn // Green Goblin		486		28512	100		https://archidekt.com/decks/15859326	2026-11-17
+archidekt	20232204	popular	JLK's Witherbloom, the Balancer | Game Knights #85	Witherbloom, the Balancer		487		28509	100		https://archidekt.com/decks/20232204	2026-11-17
+archidekt	14586723	popular	Tapping Triggers ~ EDH Bracket 3 ~ Edge of Eternities	Kilo, Apogee Mind	3	488	44	28495	100		https://archidekt.com/decks/14586723	2026-11-17
+archidekt	4664145	popular	Prof's Mishra Deck | Game Knights #58	Mishra, Claimed by Gix		489		28493	100		https://archidekt.com/decks/4664145	2026-11-17
+archidekt	3888384	popular	Aveline de Grandpré: A Touch of Death	Aveline de Grandpré	2	490	22	28482	100		https://archidekt.com/decks/3888384	2026-11-17
+archidekt	1396424	popular	Upping the Average - Osgir, the Reconstructor	Osgir, the Reconstructor		491		28471	100		https://archidekt.com/decks/1396424	2026-11-17
+archidekt	10043421	popular	Rachel's Shilgengar | Extra Turns #54	Shilgengar, Sire of Famine		492		28463	100		https://archidekt.com/decks/10043421	2026-11-17
+archidekt	11453507	popular	Fractal Y'shtola, Copy Cat ~🐱🪞✨️	Y'shtola, Night's Blessed	5	493	4	28439	100		https://archidekt.com/decks/11453507	2026-11-17
+archidekt	8879328	popular	JLK's Heliod | Game Knights #74	Heliod, the Radiant Dawn // Heliod, the Warped Eclipse		494		28367	100		https://archidekt.com/decks/8879328	2026-11-17
+archidekt	3802035	popular	Upping the Average - Faldorn, Dread Wolf Herald	Faldorn, Dread Wolf Herald		495		28340	100		https://archidekt.com/decks/3802035	2026-11-17
+archidekt	6943638	popular	Fight The Good Fight	Three Dog, Galaxy News DJ		496		28330	100		https://archidekt.com/decks/6943638	2026-11-17
+archidekt	13431778	popular	"Bracket 2"	Azusa, Lost but Seeking		497		28278	100		https://archidekt.com/decks/13431778	2026-11-17
+archidekt	7474194	popular	Jonathan's Edward Kenway | Game Knights #71	Edward Kenway		498		28259	100		https://archidekt.com/decks/7474194	2026-11-17
+archidekt	63728	popular	Gishath, Big Boi's	Gishath, Sun's Avatar	4	499	21	28136	100		https://archidekt.com/decks/63728	2026-11-17
+archidekt	11130294	popular	Ketramose Blink	Ketramose, the New Dawn		500		28043	100		https://archidekt.com/decks/11130294	2026-11-17
+archidekt	4664061	popular	JLK's Shorikai | Game Knights #51	Shorikai, Genesis Engine		501		28038	100		https://archidekt.com/decks/4664061	2026-11-17
+archidekt	4663980	popular	JLK's Veyran | Game Knights #44	Veyran, Voice of Duality		502		28016	100		https://archidekt.com/decks/4663980	2026-11-17
+archidekt	2209158	popular	Guided by Nature - Commander 2014	Freyalise, Llanowar's Fury		503		27939	100		https://archidekt.com/decks/2209158	2026-11-17
+archidekt	4664115	popular	Murph's Yuriko | Game Knights #55	Yuriko, the Tiger's Shadow		504		27877	100		https://archidekt.com/decks/4664115	2026-11-17
+archidekt	4664128	popular	JLK's Tor Wauki | Game Knights #56	Tor Wauki the Younger		505		27859	100		https://archidekt.com/decks/4664128	2026-11-17
+archidekt	13152224	popular	Kaboomsday!	Shattergang Brothers		506		27845	100		https://archidekt.com/decks/13152224	2026-11-17
+archidekt	2209046	popular	Draconic Rage - Forgotten Realms Commander	Vrondiss, Rage of Ancients		507		27834	100		https://archidekt.com/decks/2209046	2026-11-17
+archidekt	311582	popular	Omnath, Locus of Explosions	Omnath, Locus of Rage	3	508	45	27825	100		https://archidekt.com/decks/311582	2026-11-17
+archidekt	5883051	popular	Explorers of the Deep Precon Decklist	Hakbal of the Surging Soul		509		27770	100		https://archidekt.com/decks/5883051	2026-11-17
+archidekt	2094622	popular	Upping the Average - Runo Stromkirk	Runo Stromkirk // Krothuss, Lord of the Deep		510		27736	100		https://archidekt.com/decks/2094622	2026-11-17
+archidekt	9319062	popular	Wubby's Nightmare	The Beamtown Bullies		511		27661	100		https://archidekt.com/decks/9319062	2026-11-17
+archidekt	7188651	popular	Mirko: It's Coming from Inside the House	Mirko, Obsessive Theorist		512		27653	100		https://archidekt.com/decks/7188651	2026-11-17
+archidekt	16350893	popular	Dr. Egg LOST PRECON	Dr. Eggman		513		27643	100		https://archidekt.com/decks/16350893	2026-11-17
+archidekt	3349441	popular	Krenko (Gobos)	Krenko, Mob Boss		514		27601	100		https://archidekt.com/decks/3349441	2026-11-17
+archidekt	5662629	popular	[cEDH] Sisay Soprano	Sisay, Weatherlight Captain	5	515	5	27600	100		https://archidekt.com/decks/5662629	2026-11-17
+archidekt	6635069	popular	Dragons and Doom	Rivaz of the Claw		516		27461	111		https://archidekt.com/decks/6635069	2026-11-17
+archidekt	10515779	popular	JLK's Captain Howler | Game Knights #76	Captain Howler, Sea Scourge		517		27459	100		https://archidekt.com/decks/10515779	2026-11-17
+archidekt	17560678	popular	Helga's Brothel	Helga, Skittish Seer	3	518	46	27408	102		https://archidekt.com/decks/17560678	2026-11-17
+archidekt	2270235	popular	Upping the Average - Obeka, Brute Chronologist (Budget)	Obeka, Brute Chronologist		519		27373	100		https://archidekt.com/decks/2270235	2026-11-17
+archidekt	2293977	popular	Kaalia Beast mode	Kaalia of the Vast	3	520	47	27362	95		https://archidekt.com/decks/2293977	2026-11-17
+archidekt	1	popular	Fun With Fungus	Thelon of Havenwood		521		27315	17		https://archidekt.com/decks/1	2026-11-17
+archidekt	16346115	popular	Shadow LOST PRECON	Shadow the Hedgehog		522		27308	100		https://archidekt.com/decks/16346115	2026-11-17
+archidekt	9721552	popular	Captain America, First Avenger	Captain America, First Avenger		523		27276	100		https://archidekt.com/decks/9721552	2026-11-17
+archidekt	3047743	popular	Krenko, Mob Boss	Krenko, Mob Boss	3	524	48	27270	100		https://archidekt.com/decks/3047743	2026-11-17
+archidekt	9872737	popular	CZ 643 | Foundations Commander Deck - Ovika	Ovika, Enigma Goliath		525		27188	100		https://archidekt.com/decks/9872737	2026-11-17
+archidekt	10524742	popular	Sygg Done Right	Sygg, River Cutthroat		526		27175	100		https://archidekt.com/decks/10524742	2026-11-17
+archidekt	21499538	popular	Zach's Ant-Man | Game Knights #86	The Astonishing Ant-Man		527		27142	100		https://archidekt.com/decks/21499538	2026-11-17
+archidekt	2472348	popular	Upping the Average - Go-Shintai of Life's Origin (Budget)	Go-Shintai of Life's Origin		528		27137	100		https://archidekt.com/decks/2472348	2026-11-17
+archidekt	3107061	popular	Upping the Average - Sefris of the Hidden Ways	Sefris of the Hidden Ways		529		27122	100		https://archidekt.com/decks/3107061	2026-11-17
+archidekt	4663802	popular	Graham's Ayula | BEAR FORCE ONE | Game Knights #27	Ayula, Queen Among Bears		530		27096	100		https://archidekt.com/decks/4663802	2026-11-17
+archidekt	2209063	popular	Silverquill Statement - Commander 2021	Breena, the Demagogue		531		27096	100		https://archidekt.com/decks/2209063	2026-11-17
+archidekt	4948730	popular	Craig's Miirym, Sentinel Wyrm	Miirym, Sentinel Wyrm		532		27063	100		https://archidekt.com/decks/4948730	2026-11-17
+archidekt	17039769	popular	Feet Tier List	Terra, Magical Adept // Esper Terra		533		27051	100		https://archidekt.com/decks/17039769	2026-11-17
+archidekt	3732212	popular	🪦 Miirym Dragons	Miirym, Sentinel Wyrm		534		27016	100		https://archidekt.com/decks/3732212	2026-11-17
+archidekt	5908414	popular	Samwise Gamgee	Samwise Gamgee		535		26998	100		https://archidekt.com/decks/5908414	2026-11-17
+archidekt	3361540	popular	Jodah the Unifier 5-Color Legendary Human Kindred High Power EDH	Jodah, the Unifier	4	536	22	26971	97		https://archidekt.com/decks/3361540	2026-11-17
+archidekt	8449574	popular	Ms. Bumbleflower Peace Offering Upgrade	Ms. Bumbleflower		537		26958	100		https://archidekt.com/decks/8449574	2026-11-17
+archidekt	313935	popular	Tramplesaurus Rex (Est. 2019)	Ghalta, Primal Hunger	3	538	49	26955	100		https://archidekt.com/decks/313935	2026-11-17
+archidekt	7541037	popular	Master And Commander	The Master, Transcendent		539		26942	100		https://archidekt.com/decks/7541037	2026-11-17
+archidekt	6749805	popular	Damen's Ranar | Extra Turns #44	Ranar the Ever-Watchful		540		26918	100		https://archidekt.com/decks/6749805	2026-11-17
+archidekt	2617771	popular	Bedecked Brokers - New Capenna Commander	Perrie, the Pulverizer		541		26911	100		https://archidekt.com/decks/2617771	2026-11-17
+archidekt	13390996	popular	Emry Evil Bubbles - Bracket 3: Upgraded	Emry, Lurker of the Loch	3	542	50	26859	100		https://archidekt.com/decks/13390996	2026-11-17
+archidekt	8530006	popular	CZ 624 | "Family Matters" Precon Upgrade	Zinnia, Valley's Voice		543		26843	100		https://archidekt.com/decks/8530006	2026-11-17
+archidekt	1542559	popular	Upping the Average - Adrix and Nev, Twincasters	Adrix and Nev, Twincasters		544		26839	100		https://archidekt.com/decks/1542559	2026-11-17
+archidekt	6541122	popular	Higher's cEDH Kinnan | Extra Turns #46	Kinnan, Bonder Prodigy		545		26811	100		https://archidekt.com/decks/6541122	2026-11-17
+archidekt	14687174	popular	[Bracket 3] Loot Control	Oskar, Rubbish Reclaimer	3	546	51	26807	100		https://archidekt.com/decks/14687174	2026-11-17
+archidekt	3384924	popular	cEDH Blue Farm, World Police 2026 | Tymna Kraum | Self-Mill | T+K v6.3 No Proxies	Kraum, Ludevic's Opus / Tymna the Weaver	5	547	6	26791	100		https://archidekt.com/decks/3384924	2026-11-17
+archidekt	9234495	popular	CZ 630 | "Endless Punishment" Precon Upgrade	Valgavoth, Harrower of Souls		548		26721	100		https://archidekt.com/decks/9234495	2026-11-17
+archidekt	11896601	popular	Budget Kardur	Kardur, Doomscourge		549		26711	100		https://archidekt.com/decks/11896601	2026-11-17
+archidekt	5988439	popular	Precon Upgrade Guide- Timey-Wimey - Timey-Wimey Precon Upgrade Deck	Rose Tyler / The Tenth Doctor		550		26709	99		https://archidekt.com/decks/5988439	2026-11-17
+archidekt	7007979	popular	Cut-Rate Commander | Mr. House, President and CEO	Mr. House, President and CEO		551		26691	100		https://archidekt.com/decks/7007979	2026-11-17
+archidekt	2209041	popular	Coven Counters - Midnight Hunt Commander	Leinore, Autumn Sovereign		552		26677	100		https://archidekt.com/decks/2209041	2026-11-17
+archidekt	15860406	popular	Gwen Stacy LOST PRECON	Gwen Stacy // Ghost-Spider		553		26624	100		https://archidekt.com/decks/15860406	2026-11-17
+archidekt	5952063	popular	Lathril Elfball	Lathril, Blade of the Elves	3	554	52	26547	91		https://archidekt.com/decks/5952063	2026-11-17
+archidekt	491872	popular	Upping the Average - Edgar Markov	Edgar Markov		555		26521	100		https://archidekt.com/decks/491872	2026-11-17
+archidekt	5702951	popular	Ladee's Shelob | Extra Turns #40	Shelob, Child of Ungoliant		556		26446	100		https://archidekt.com/decks/5702951	2026-11-17
+archidekt	914809	popular	Marchesa Aikido	Queen Marchesa		557		26366	100		https://archidekt.com/decks/914809	2026-11-17
+archidekt	9025453	popular	Zedruu Layers Matter	Zedruu the Greathearted		558		26346	100		https://archidekt.com/decks/9025453	2026-11-17
+archidekt	10424090	popular	Adam's Orthion (Played by Jimmy) | Game Knights #75	Orthion, Hero of Lavabrink		559		26339	100		https://archidekt.com/decks/10424090	2026-11-17
+archidekt	4594979	popular	Norin Goes to the Carnival, Comes Home, Goes Back to the Carnival...	Norin the Wary		560		26337	100		https://archidekt.com/decks/4594979	2026-11-17
+archidekt	6073395	popular	Syr Gwyn, Voltron Hero	Syr Gwyn, Hero of Ashvale		561		26312	100		https://archidekt.com/decks/6073395	2026-11-17
+archidekt	2753281	popular	Teysa Karlov	Teysa Karlov		562		26236	100		https://archidekt.com/decks/2753281	2026-11-17
+archidekt	6179941	popular	Jimmy's Pako and Haldan | Extra Turns #42	Haldan, Avid Arcanist / Pako, Arcane Retriever		563		26189	100		https://archidekt.com/decks/6179941	2026-11-17
+archidekt	13854904	popular	The Wandering Minstrel - A Deck Built Completely With Bulk	The Wandering Minstrel	2	564	23	26175	100		https://archidekt.com/decks/13854904	2026-11-17
+archidekt	554186	popular	Athreos, Shroud-Veiled: Down with the Sickness	Athreos, Shroud-Veiled	3	565	53	26171	100		https://archidekt.com/decks/554186	2026-11-17
+archidekt	4386	popular	Yuriko, the Tiger's Shadow	Yuriko, the Tiger's Shadow		566		26161	100		https://archidekt.com/decks/4386	2026-11-17
+archidekt	10547386	popular	The Pride of Hull Clade (Bracket 2, Slime Against Humanity)	The Pride of Hull Clade	2	567	24	26158	101		https://archidekt.com/decks/10547386	2026-11-17
+archidekt	13722104	popular	FFVI Revival Trance | $30 Upgrade	Terra, Herald of Hope		568		26137	100		https://archidekt.com/decks/13722104	2026-11-17
+archidekt	7933656	popular	Cirdan Chaos Politics	Círdan the Shipwright	3	569	54	26130	100		https://archidekt.com/decks/7933656	2026-11-17
+archidekt	2209083	popular	Arcane Maelstrom - Commander 2020	Kalamax, the Stormsire		570		26119	100		https://archidekt.com/decks/2209083	2026-11-17
+archidekt	5846975	popular	Blood Rites | Precon Upgrade | Budget Commander | Cut-Rate Commander	Clavileño, First of the Blessed		571		26117	100		https://archidekt.com/decks/5846975	2026-11-17
+archidekt	11748157	popular	[Bracket 4] Y'shtola, the Group Slug v3.0	Y'shtola, Night's Blessed	4	572	23	26078	94		https://archidekt.com/decks/11748157	2026-11-17
+archidekt	21421507	popular	JLK's Super-Skrull | Game Knights #86	Super-Skrull		573		26072	100		https://archidekt.com/decks/21421507	2026-11-17
+archidekt	15498342	popular	Caesar's Gang	Caesar, Legion's Emperor		574		26018	100		https://archidekt.com/decks/15498342	2026-11-17
+archidekt	3188140	popular	Chatterfang, Squirrel General	Chatterfang, Squirrel General	4	575	24	26016	99		https://archidekt.com/decks/3188140	2026-11-17
+archidekt	3994	popular	Djeru, With Eyes Open: Plainswalkers	Djeru, With Eyes Open	2	576	25	25999	100		https://archidekt.com/decks/3994	2026-11-17
+archidekt	8005914	popular	Eldrazi Incursion Upgrade Guide - Modern Horizons 3 - Eldrazi Incursion Non-Budget Upgrade	Ulalek, Fused Atrocity		577		25994	100		https://archidekt.com/decks/8005914	2026-11-17
+archidekt	1826225	popular	Tivash, Gloom Summoner: The Long Kiss Goodnight	Tivash, Gloom Summoner	2	578	26	25971	100		https://archidekt.com/decks/1826225	2026-11-17
+archidekt	2624023	popular	Riveteer Rampage - New Capenna Commander	Henzie "Toolbox" Torre		579		25955	100		https://archidekt.com/decks/2624023	2026-11-17
+archidekt	2209049	popular	Planar Portal - Forgotten Realms Commander	Prosper, Tome-Bound		580		25945	100		https://archidekt.com/decks/2209049	2026-11-17
+archidekt	13148121	popular	Sephiroth, Fabled SOLDIER - Final Fantasy Deck Tech - Sephiroth Does Indeed Commit Crimes	Sephiroth, Fabled SOLDIER // Sephiroth, One-Winged Angel		581		25942	100		https://archidekt.com/decks/13148121	2026-11-17
+archidekt	4731028	popular	I Like Bees	Jaheira, Friend of the Forest / Street Urchin		582		25876	100		https://archidekt.com/decks/4731028	2026-11-17
+archidekt	17074410	popular	Very Normal Bracket 2 Commander Deck	Obeka, Splitter of Seconds	2	583	27	25828	100		https://archidekt.com/decks/17074410	2026-11-17
+archidekt	4080282	popular	Marneus Calgar Souvenir Aristocrats	Marneus Calgar		584		25821	100		https://archidekt.com/decks/4080282	2026-11-17
+archidekt	1827191	popular	GROTHAMA!	Grothama, All-Devouring	2	585	28	25820	100		https://archidekt.com/decks/1827191	2026-11-17
+archidekt	15969628	popular	9.15.25_Mimeoplasm	The Mimeoplasm		586		25813	100		https://archidekt.com/decks/15969628	2026-11-17
+archidekt	293572	popular	Are We Human or Archaeomancer	Darien, King of Kjeldor	4	587	25	25721	100		https://archidekt.com/decks/293572	2026-11-17
+archidekt	61308	popular	Marchesa, The Black Rose *8*	Marchesa, the Black Rose	3	588	55	25672	100		https://archidekt.com/decks/61308	2026-11-17
+archidekt	1981883	popular	Upping the Average - Lynde, Cheerful Tormentor	Lynde, Cheerful Tormentor		589		25648	100		https://archidekt.com/decks/1981883	2026-11-17
+archidekt	8634643	popular	Ms. Bumbleflower Precon	Ms. Bumbleflower		590		25543	100		https://archidekt.com/decks/8634643	2026-11-17
+archidekt	5662899	popular	Budget Frog	Yargle and Multani		591		25517	100		https://archidekt.com/decks/5662899	2026-11-17
+archidekt	553122	popular	Upping the Average - Lord Windgrace	Lord Windgrace		592		25477	100		https://archidekt.com/decks/553122	2026-11-17
+archidekt	1078730	popular	Upping the Average - Omnath, Locus of Creation (Budget Version)	Omnath, Locus of Creation		593		25391	100		https://archidekt.com/decks/1078730	2026-11-17
+archidekt	17690355	popular	Atraxa Superfriends	Atraxa, Praetors' Voice		594		25382	100		https://archidekt.com/decks/17690355	2026-11-17
+archidekt	63860	popular	Eldrazi POPS - Animar	Animar, Soul of Elements		595		25338	99		https://archidekt.com/decks/63860	2026-11-17
+archidekt	2209090	popular	Symbiotic Swarm - Commander 2020	Kathril, Aspect Warper		596		25322	100		https://archidekt.com/decks/2209090	2026-11-17
+archidekt	8783251	popular	Animated Army | Precon Upgrade	Bello, Bard of the Brambles		597		25320	100		https://archidekt.com/decks/8783251	2026-11-17
+archidekt	6539797	popular	Murph's LOTR Eowyn | Extra Turns #47	Éowyn, Shieldmaiden		598		25304	100		https://archidekt.com/decks/6539797	2026-11-17
+archidekt	2173234	popular	Upping the Average - Chatterfang, Squirrel General (Budget)	Chatterfang, Squirrel General		599		25300	100		https://archidekt.com/decks/2173234	2026-11-17
+archidekt	2209066	popular	Witherbloom Witchcraft - Commander 2021	Willowdusk, Essence Seer		600		25288	100		https://archidekt.com/decks/2209066	2026-11-17
+archidekt	1932156	popular	Tetsuko	Tetsuko Umezawa, Fugitive	3	601	56	25284	100		https://archidekt.com/decks/1932156	2026-11-17
+archidekt	5565158	popular	Master, Multiplied	The Master, Multiplied		602		25246	100		https://archidekt.com/decks/5565158	2026-11-17
+archidekt	14303346	popular	Cut-Rate Commander | Lightning, Army of One	Lightning, Army of One		603		25246	100		https://archidekt.com/decks/14303346	2026-11-17
+archidekt	6541086	popular	Jimmy's cEDH Slicer | Extra Turns #46	Slicer, Hired Muscle // Slicer, High-Speed Antagonist		604		25236	100		https://archidekt.com/decks/6541086	2026-11-17
+archidekt	2217026	popular	Upping the Average - Muldrotha, the Gravetide Redux (Budget)	Muldrotha, the Gravetide		605		25192	100		https://archidekt.com/decks/2217026	2026-11-17
+archidekt	2659039	popular	Kneel for Monarchs	Rhoda, Geist Avenger / Timin, Youthful Geist	3	606	57	25176	99		https://archidekt.com/decks/2659039	2026-11-17
+archidekt	3937598	popular	Kibler's Meria Deck for Olivia	Meria, Scholar of Antiquity		607		25145	100		https://archidekt.com/decks/3937598	2026-11-17
+archidekt	2617761	popular	Maestros Massacre - New Capenna Commander	Anhelo, the Painter		608		25134	100		https://archidekt.com/decks/2617761	2026-11-17
+archidekt	3949182	popular	Upping the Average - Atraxa Superfriends (Budget)	Atraxa, Praetors' Voice		609		25098	100		https://archidekt.com/decks/3949182	2026-11-17
+archidekt	4701574	popular	Hobbit's Banquet	Frodo, Adventurous Hobbit / Sam, Loyal Attendant		610		25096	102		https://archidekt.com/decks/4701574	2026-11-17
+archidekt	5844545	popular	Queza, Augur of Agonies	Queza, Augur of Agonies	4	611	26	25091	100		https://archidekt.com/decks/5844545	2026-11-17
+archidekt	18857031	popular	All GAS No Breaks!	Ashling, Rekindled // Ashling, Rimebound		612		25091	100		https://archidekt.com/decks/18857031	2026-11-17
+archidekt	6070395	popular	Prosper, Tome Bound	Prosper, Tome-Bound		613		25054	100		https://archidekt.com/decks/6070395	2026-11-17
+archidekt	13079020	popular	bracket 2	Saheeli, Radiant Creator		614		25005	100		https://archidekt.com/decks/13079020	2026-11-17
+archidekt	2624062	popular	Cabaretti Cacophony - New Capenna Commander	Kitt Kanto, Mayhem Diva		615		24978	100		https://archidekt.com/decks/2624062	2026-11-17
+archidekt	4663879	popular	JLK's Tim Deck | Game Knights #35	Kydele, Chosen of Kruphix / Ludevic, Necro-Alchemist		616		24956	100		https://archidekt.com/decks/4663879	2026-11-17
+archidekt	11026336	popular	Prof's Shiko and Narset | Game Knights #77	Shiko and Narset, Unified		617		24935	100		https://archidekt.com/decks/11026336	2026-11-17
+archidekt	25083639	popular	uuuuuuuuugggggggggggguuuuuuuuuuuuuu	Uugguu, the Omniplasm	2	618	29	24930	100		https://archidekt.com/decks/25083639	2026-11-17
+archidekt	6482039	popular	5. Bring Out Your Dead	Tom, Bert, and William	3	619	58	24917	100		https://archidekt.com/decks/6482039	2026-11-17
+archidekt	10188373	popular	CZ 643 | Foundations Commander Deck - Ramos	Ramos, Dragon Engine		620		24899	100		https://archidekt.com/decks/10188373	2026-11-17
+archidekt	3937507	popular	Prof's Deck for Gavin	Ludevic, Necro-Alchemist / Sengir, the Dark Baron		621		24894	100		https://archidekt.com/decks/3937507	2026-11-17
+archidekt	7141903	popular	Rachel's Disa | Game Knights #70	Disa the Restless		622		24854	100		https://archidekt.com/decks/7141903	2026-11-17
+archidekt	3270238	popular	Callaphe, Beloved of the Sea: Hopelessly Devoted to Blue	Callaphe, Beloved of the Sea	3	623	59	24830	99		https://archidekt.com/decks/3270238	2026-11-17
+archidekt	12250877	popular	[Deadpool, Trading Card] MAXIMUM EFFORT!	The Master, Multiplied / Deadpool, Trading Card		624		24822	100		https://archidekt.com/decks/12250877	2026-11-17
+archidekt	10033510	popular	Ulalek, Fused Atrocity	Ulalek, Fused Atrocity		625		24776	101		https://archidekt.com/decks/10033510	2026-11-17
+archidekt	5565170	popular	The Seventh Doctor + Ace	Ace, Fearless Rebel / The Seventh Doctor		626		24724	100		https://archidekt.com/decks/5565170	2026-11-17
+archidekt	17417255	popular	Everything Changed When The Fire Nation Attacked (Fire Lord Zuko)	Fire Lord Zuko	2	627	30	24655	100		https://archidekt.com/decks/17417255	2026-11-17
+archidekt	93202	popular	Grixis Staples	Kess, Dissident Mage		628		24613	145		https://archidekt.com/decks/93202	2026-11-17
+archidekt	3587894	popular	Upping the Average - Yarok, the Desecrated	Yarok, the Desecrated		629		24562	100		https://archidekt.com/decks/3587894	2026-11-17
+archidekt	12091491	popular	CZ 664 | "Sultai Arisen" Precon Upgrade	Teval, the Balanced Scale		630		24484	100		https://archidekt.com/decks/12091491	2026-11-17
+archidekt	2592959	popular	Upping the Average - Hinata, Dawn Crowned (Budget)	Hinata, Dawn-Crowned		631		24471	100		https://archidekt.com/decks/2592959	2026-11-17
+archidekt	8395778	popular	Pantlaza, Sun-Favoured	Pantlaza, Sun-Favored		632		24411	100		https://archidekt.com/decks/8395778	2026-11-17
+archidekt	2209081	popular	Sneak Attack - Zendikar Rising Commander	Anowon, the Ruin Thief		633		24390	100		https://archidekt.com/decks/2209081	2026-11-17
+archidekt	9962172	popular	JLK's Iron Man | Extra Turns #56	Iron Man, Titan of Innovation		634		24330	100		https://archidekt.com/decks/9962172	2026-11-17
+archidekt	11342716	popular	The Eldrazi Menace	Zhulodok, Void Gorger		635		24283	100		https://archidekt.com/decks/11342716	2026-11-17
+archidekt	14529919	popular	"Battlecruiser" Magic (Inspirit, Flagship Vessel)	Inspirit, Flagship Vessel	3	636	60	24264	96		https://archidekt.com/decks/14529919	2026-11-17
+archidekt	4663886	popular	Jimmy's Kaalia | Game Knights #38	Kaalia of the Vast		637		24223	100		https://archidekt.com/decks/4663886	2026-11-17
+archidekt	4663982	popular	Jimmy's Asmoranomardicadaistinaculdacar | GK #45	Asmoranomardicadaistinaculdacar		638		24171	100		https://archidekt.com/decks/4663982	2026-11-17
+archidekt	4664166	popular	Ladee's Sheoldred Deck | Game Knights #59	Sheoldred, the Apocalypse		639		24122	100		https://archidekt.com/decks/4664166	2026-11-17
+archidekt	13814013	popular	Cut-Rate Commander | Choco, Seeker of Paradise	Choco, Seeker of Paradise		640		24116	100		https://archidekt.com/decks/13814013	2026-11-17
+archidekt	4683899	popular	Frodo and Sam	Sam, Loyal Attendant / Frodo, Adventurous Hobbit		641		24077	109		https://archidekt.com/decks/4683899	2026-11-17
+archidekt	2624045	popular	Obscura Operation - New Capenna Commander	Kamiz, Obscura Oculus		642		24058	100		https://archidekt.com/decks/2624045	2026-11-17
+archidekt	9192431	popular	The Room Where It Happens	Marina Vendrell	1	643	7	24015	100		https://archidekt.com/decks/9192431	2026-11-17
+archidekt	20123229	popular	"Turtle Power" Precon Upgrade Guide With ONLY TMNT Cards!	Donatello, the Brains / Leonardo, the Balance	3	644	61	23994	100		https://archidekt.com/decks/20123229	2026-11-17
+archidekt	11428593	popular	Phyrexian-flavored Subtheme Soup	Glissa, Herald of Predation	2	645	31	23967	100		https://archidekt.com/decks/11428593	2026-11-17
+archidekt	8423947	popular	Ify's The Lord of Pain | Game Knights #73	The Lord of Pain		646		23855	99		https://archidekt.com/decks/8423947	2026-11-17
+archidekt	8698281	popular	When the Air is Alternative	Altaïr Ibn-La'Ahad	3	647	62	23853	118		https://archidekt.com/decks/8698281	2026-11-17
+archidekt	2209086	popular	Enhanced Evolution - Commander 2020	Otrimi, the Ever-Playful		648		23852	100		https://archidekt.com/decks/2209086	2026-11-17
+archidekt	5739752	popular	Ghalta, Primal Hunger - Mono Green Stomp	Ghalta, Primal Hunger		649		23773	100		https://archidekt.com/decks/5739752	2026-11-17
+archidekt	11363735	popular	Haymaking Tokens	Baylen, the Haymaker		650		23732	100		https://archidekt.com/decks/11363735	2026-11-17
+archidekt	14522551	popular	CZ 685 | "World Shaper" Precon Upgrade	Szarel, Genesis Shepherd		651		23709	100		https://archidekt.com/decks/14522551	2026-11-17
+archidekt	4295242	popular	Upping the Average - Burakos + Folk Hero	Burakos, Party Leader / Folk Hero		652		23596	100		https://archidekt.com/decks/4295242	2026-11-17
+archidekt	8364353	popular	Flubs the Fool	Flubs, the Fool		653		23578	100		https://archidekt.com/decks/8364353	2026-11-17
+archidekt	6815029	popular	Sauron, the Dark Lord (Zombie Token)	Sauron, the Dark Lord		654		23548	100		https://archidekt.com/decks/6815029	2026-11-17
+archidekt	4074687	popular	Budget Baba	Baba Lysaga, Night Witch	2	655	32	23544	100		https://archidekt.com/decks/4074687	2026-11-17
+archidekt	17387321	popular	Rachel's Doran | Game Knights #83	Doran, Besieged by Time		656		23517	100		https://archidekt.com/decks/17387321	2026-11-17
+archidekt	20922093	popular	Selvala's Stampede	Selvala, Heart of the Wilds	4	657	27	23506	100		https://archidekt.com/decks/20922093	2026-11-17
+archidekt	14640405	popular	JLK's Amazing Spider-Man | Game Knights #80	Peter Parker // Amazing Spider-Man		658		23478	100		https://archidekt.com/decks/14640405	2026-11-17
+archidekt	8396326	popular	Frodo, Adventurous Hobbit & Sam, Loyal Attendant	Frodo, Adventurous Hobbit / Sam, Loyal Attendant		659		23451	100		https://archidekt.com/decks/8396326	2026-11-17
+archidekt	2209048	popular	Dungeons of Death - Forgotten Realms Commander	Sefris of the Hidden Ways		660		23447	100		https://archidekt.com/decks/2209048	2026-11-17
+archidekt	4183556	popular	Legend Tribal - SmallAnt	Kethis, the Hidden Hand		661		23440	100		https://archidekt.com/decks/4183556	2026-11-17
+archidekt	8423967	popular	Jarvis's Kona | Game Knights #73	Kona, Rescue Beastie		662		23422	99		https://archidekt.com/decks/8423967	2026-11-17
+archidekt	938153	popular	Upping the Average - Admiral Beckett Brass	Admiral Beckett Brass		663		23416	100		https://archidekt.com/decks/938153	2026-11-17
+archidekt	5714358	popular	3. Hungry Like the Sleuth	Sarah Jane Smith / The Fourth Doctor	3	664	63	23376	100		https://archidekt.com/decks/5714358	2026-11-17
+archidekt	24750891	popular	CZ 757 | Thorin, King of Durin's Folk	Thorin, King of Durin's Folk		665		23364	100		https://archidekt.com/decks/24750891	2026-11-17
+archidekt	15969437	popular	9.15.25_Teval	Teval, Arbiter of Virtue		666		23320	120		https://archidekt.com/decks/15969437	2026-11-17
+archidekt	2209072	popular	Phantom Premonition - Kaldheim Commander	Ranar the Ever-Watchful		667		23320	100		https://archidekt.com/decks/2209072	2026-11-17
+archidekt	3418575	popular	Upping the Average - Myrkul, Lord of Bones (Budget)	Myrkul, Lord of Bones		668		23312	100		https://archidekt.com/decks/3418575	2026-11-17
+archidekt	4050	popular	Poke	Gorm the Great / Virtus the Veiled	3	669	64	23293	100		https://archidekt.com/decks/4050	2026-11-17
+archidekt	5996567	popular	Toph, the First Metalbender	Toph, the First Metalbender	4	670	28	23283	100		https://archidekt.com/decks/5996567	2026-11-17
+archidekt	8330777	popular	The Ezio Project	Ezio Auditore da Firenze		671		23257	104		https://archidekt.com/decks/8330777	2026-11-17
+archidekt	10015826	popular	Black Panther, Wakandan King	Black Panther, Wakandan King		672		23248	108		https://archidekt.com/decks/10015826	2026-11-17
+archidekt	24632179	popular	Rachel's Codie | Game Knights #88	Codie, Ravenous Codex		673		23197	101		https://archidekt.com/decks/24632179	2026-11-17
+archidekt	3802180	popular	Breya Living in a Thopter Paradise	Breya, Etherium Shaper		674		23115	100		https://archidekt.com/decks/3802180	2026-11-17
+archidekt	4664184	popular	Rachel's Chiss-Goria | Game Knights #60	Chiss-Goria, Forge Tyrant		675		23103	100		https://archidekt.com/decks/4664184	2026-11-17
+archidekt	7994649	popular	Ulalek Eldrazi Tribal - Bracket 4: Optimized	Ulalek, Fused Atrocity	4	676	29	23091	100		https://archidekt.com/decks/7994649	2026-11-17
+archidekt	6874052	popular	CZ 593 | "Mutant Menace" Precon Upgrade	The Wise Mothman		677		23081	100		https://archidekt.com/decks/6874052	2026-11-17
+archidekt	23020008	popular	JLK's Gandalf | Extra Turns #74	Gandalf, Party Guest		678		23078	100		https://archidekt.com/decks/23020008	2026-11-17
+archidekt	782270	popular	Upping the Average - Aminatou, the Fateshifter	Aminatou, the Fateshifter		679		23071	100		https://archidekt.com/decks/782270	2026-11-17
+archidekt	2743089	popular	Zo-Zu the Punisher	Zo-Zu the Punisher		680		23066	100		https://archidekt.com/decks/2743089	2026-11-17
+archidekt	27859380	popular	Federation Fleet - Star Trek Commander	Jean-Luc Picard, Luminary		681		23068	100		https://archidekt.com/decks/27859380	2026-11-17
+archidekt	4664109	popular	Jake's Omnath | Extra Turns #25	Omnath, Locus of Creation		682		23054	100		https://archidekt.com/decks/4664109	2026-11-17
+archidekt	13146464	popular	Y'shtola Precon	Y'shtola, Night's Blessed		683		23022	100		https://archidekt.com/decks/13146464	2026-11-17
+archidekt	4051588	popular	Hope for all	Giada, Font of Hope		684		22951	100		https://archidekt.com/decks/4051588	2026-11-17
+archidekt	23158931	popular	M.I.L.F. (Man, I Love to Fish)	Neerdiv, Devious Diver	2	685	33	22949	100		https://archidekt.com/decks/23158931	2026-11-17
+archidekt	12512977	popular	Affinity for Everything!	Helga, Skittish Seer		686		22945	100		https://archidekt.com/decks/12512977	2026-11-17
+archidekt	4793137	popular	Jimmy's Brimaz | Extra Turns #36	Brimaz, Blight of Oreskos		687		22869	100		https://archidekt.com/decks/4793137	2026-11-17
+archidekt	5862185	popular	Carmen (B3)	Carmen, Cruel Skymarcher		688		22841	107		https://archidekt.com/decks/5862185	2026-11-17
+archidekt	2753527	popular	Lord Xander, the Collector	Lord Xander, the Collector		689		22828	100		https://archidekt.com/decks/2753527	2026-11-17
+archidekt	2209078	popular	Land's Wrath - Zendikar Rising Commander	Obuun, Mul Daya Ancestor		690		22821	100		https://archidekt.com/decks/2209078	2026-11-17
+archidekt	2209126	popular	Feline Ferocity - Commander 2017	Arahbo, Roar of the World		691		22775	100		https://archidekt.com/decks/2209126	2026-11-17
+archidekt	2209059	popular	Quantum Quandrix - Commander 2021	Adrix and Nev, Twincasters		692		22767	100		https://archidekt.com/decks/2209059	2026-11-17
+archidekt	3785304	popular	Umbris, Fear Manifest	Umbris, Fear Manifest		693		22749	100		https://archidekt.com/decks/3785304	2026-11-17
+archidekt	11450866	popular	Cloud, EX-Soldier	Cloud, Ex-SOLDIER		694		22744	98		https://archidekt.com/decks/11450866	2026-11-17
+archidekt	3880957	popular	🎞️ Shadowheart, Dark Justiciar // Acolyte of Bahamut (3)	Shadowheart, Dark Justiciar / Acolyte of Bahamut	3	695	65	22742	100		https://archidekt.com/decks/3880957	2026-11-17
+archidekt	7819371	popular	Ruby	Ruby, Daring Tracker		696		22704	100		https://archidekt.com/decks/7819371	2026-11-17
+archidekt	5823861	popular	CZ 574 | "Ahoy Mateys" Precon Upgrade	Admiral Brass, Unsinkable		697		22698	100		https://archidekt.com/decks/5823861	2026-11-17
+archidekt	5365148	popular	D's Rakdos, Lord of Riots	Rakdos, Lord of Riots		698		22677	100		https://archidekt.com/decks/5365148	2026-11-17
+archidekt	2679763	popular	Upping the Average - Jetmir, Nexus of Revels	Jetmir, Nexus of Revels		699		22659	100		https://archidekt.com/decks/2679763	2026-11-17
+archidekt	5907708	popular	Explorers of the Deep | Precon Upgrade | Budget Commander | Cut-Rate Commander	Hakbal of the Surging Soul		700		22609	100		https://archidekt.com/decks/5907708	2026-11-17
+archidekt	14285409	popular	Canon Shadow Deck	Shadow the Hedgehog		701		22609	100		https://archidekt.com/decks/14285409	2026-11-17
+archidekt	6539808	popular	Jake's LOTR Galadriel | Extra Turns #47	Galadriel of Lothlórien		702		22591	100		https://archidekt.com/decks/6539808	2026-11-17
+archidekt	7856702	popular	JLK's Glarb | Game Knights Live: Gen Con 2024	Glarb, Calamity's Augur		703		22582	100		https://archidekt.com/decks/7856702	2026-11-17
+archidekt	19195170	popular	BDD's Ashling, The Limitless Combo - Non Budget Bracket 3	Ashling, the Limitless	3	704	66	22580	100		https://archidekt.com/decks/19195170	2026-11-17
+archidekt	5811448	popular	Indominus Rex, Alpha	Indominus Rex, Alpha		705		22562	100		https://archidekt.com/decks/5811448	2026-11-17
+archidekt	10512376	popular	THE FLOCK	Rendmaw, Creaking Nest		706		22514	117		https://archidekt.com/decks/10512376	2026-11-17
+archidekt	2209044	popular	Aura of Courage - Forgotten Realms Commander	Galea, Kindler of Hope		707		22511	100		https://archidekt.com/decks/2209044	2026-11-17
+archidekt	95142	popular	Queen Marchesa	Queen Marchesa		708		22474	100		https://archidekt.com/decks/95142	2026-11-17
+archidekt	12513087	popular	Jon I-Rat-icus	Jon Irenicus, Shattered One		709		22457	100		https://archidekt.com/decks/12513087	2026-11-17
+archidekt	3268156	popular	Spice8Rack's Noyan Dar	Noyan Dar, Roil Shaper		710		22443	100		https://archidekt.com/decks/3268156	2026-11-17
+archidekt	5245	popular	Nekusar, The Mindrazer	Nekusar, the Mindrazer		711		22421	100		https://archidekt.com/decks/5245	2026-11-17
+archidekt	16185599	popular	Jimmy's Zuko | Game Knights #82	Fire Lord Zuko		712		22396	100		https://archidekt.com/decks/16185599	2026-11-17
+archidekt	9963809	popular	Jimmy's Captain America | Extra Turns #56	Captain America, First Avenger		713		22379	100		https://archidekt.com/decks/9963809	2026-11-17
+archidekt	8530067	popular	CZ 620 | "Squirreled Away" Precon Upgrade	Hazel of the Rootbloom		714		22328	100		https://archidekt.com/decks/8530067	2026-11-17
+archidekt	4663864	popular	Mitch's Kenrith | Extra Turns #04	Kenrith, the Returned King		715		22321	100		https://archidekt.com/decks/4663864	2026-11-17
+archidekt	1159827	popular	Upping the Average - Jorn, God of Winter	Jorn, God of Winter // Kaldring, the Rimestaff		716		22310	100		https://archidekt.com/decks/1159827	2026-11-17
+archidekt	3398951	popular	Squirrels go hard	Chatterfang, Squirrel General	4	717	30	22286	100		https://archidekt.com/decks/3398951	2026-11-17
+archidekt	5252071	popular	max salt score	Najeela, the Blade-Blossom		718		22266	100		https://archidekt.com/decks/5252071	2026-11-17
+archidekt	7165205	popular	Cut-Rate Commander | Massacre Girl, Known Killer	Massacre Girl, Known Killer		719		22254	100		https://archidekt.com/decks/7165205	2026-11-17
+archidekt	4020307	popular	Lord Windgrace	Lord Windgrace		720		22253	100		https://archidekt.com/decks/4020307	2026-11-17
+archidekt	11364791	popular	Let's draw some cards everyone!	Nekusar, the Mindrazer		721		22237	100		https://archidekt.com/decks/11364791	2026-11-17
+archidekt	16185550	popular	Rachel's Cabbage Merchant | Game Knights #82	The Cabbage Merchant		722		22218	100		https://archidekt.com/decks/16185550	2026-11-17
+archidekt	4291447	popular	Necron Dynasties (40k-Precon)	Trazyn the Infinite		723		22207	100		https://archidekt.com/decks/4291447	2026-11-17
+archidekt	4396541	popular	Phyrexian Praetor Tribal	Omnath, Locus of All		724		22127	100		https://archidekt.com/decks/4396541	2026-11-17
+archidekt	1715676	popular	Upping the Average - Volo, Guide to Monsters (Budget)	Volo, Guide to Monsters		725		22112	100		https://archidekt.com/decks/1715676	2026-11-17
+archidekt	3717838	popular	Steep Price to Pay	Dina, Soul Steeper	4	726	31	22110	100		https://archidekt.com/decks/3717838	2026-11-17
+archidekt	3061997	popular	Avacyn Stax and Taxes Fringe/Degenerate (No mana crypt  no Jlotus)	Avacyn, Angel of Hope		727		22092	100		https://archidekt.com/decks/3061997	2026-11-17
+archidekt	11619218	popular	Wrath of Dog	Yoshimaru, Ever Faithful / Anara, Wolvid Familiar	3	728	67	22086	100		https://archidekt.com/decks/11619218	2026-11-17
+archidekt	11467869	popular	Beyond Gloam's Veil || Y'shtola, Night's Blessed	Y'shtola, Night's Blessed	3	729	68	22083	100		https://archidekt.com/decks/11467869	2026-11-17
+archidekt	1334787	popular	Upping the Average - Liesa, Shroud of Dusk	Liesa, Shroud of Dusk		730		22060	100		https://archidekt.com/decks/1334787	2026-11-17
+archidekt	360884	popular	Lord Windgrace: Planeswalkers, Assemble! - ARCHIVED	Lord Windgrace		731		22058	100		https://archidekt.com/decks/360884	2026-11-17
+archidekt	8402460	popular	Éowyn, Shieldmaiden	Éowyn, Shieldmaiden		732		22054	99		https://archidekt.com/decks/8402460	2026-11-17
+archidekt	3601634	popular	Mill Madness	Phenax, God of Deception		733		22032	100		https://archidekt.com/decks/3601634	2026-11-17
+archidekt	6861452	popular	Light-Paws /// $30 High Power + (funny combos explained)	Light-Paws, Emperor's Voice	4	734	32	22019	100		https://archidekt.com/decks/6861452	2026-11-17
+archidekt	4664051	popular	JLK's Orvar | Extra Turns #19	Orvar, the All-Form		735		21996	100		https://archidekt.com/decks/4664051	2026-11-17
+archidekt	6829741	popular	Cut-Rate Commander | Judith, Carnage Connoisseur	Judith, Carnage Connoisseur		736		21936	100		https://archidekt.com/decks/6829741	2026-11-17
+archidekt	17474539	popular	B3 Lesson Storm 50€	Iroh, Grand Lotus	3	737	69	21919	100		https://archidekt.com/decks/17474539	2026-11-17
+archidekt	7995605	popular	Eldrazi Incursion | Precon Upgrade	Ulalek, Fused Atrocity		738		21890	100		https://archidekt.com/decks/7995605	2026-11-17
+archidekt	6541157	popular	Mia's Budget Baeloth | Extra Turns #45	Baeloth Barrityl, Entertainer / Noble Heritage		739		21765	100		https://archidekt.com/decks/6541157	2026-11-17
+archidekt	8380002	popular	Helga's Helpful House of Healthy Hugebois	Helga, Skittish Seer	4	740	33	21758	100		https://archidekt.com/decks/8380002	2026-11-17
+archidekt	17235508	popular	Toph: Who Needs Metalbending?	Toph, Hardheaded Teacher	4	741	34	21736	100		https://archidekt.com/decks/17235508	2026-11-17
+archidekt	9319084	popular	Bunny Fun Time	Baylen, the Haymaker		742		21735	100		https://archidekt.com/decks/9319084	2026-11-17
+archidekt	13139385	popular	CZ 675 | "Scions & Spellcraft" Precon Upgrade	Y'shtola, Night's Blessed		743		21734	100		https://archidekt.com/decks/13139385	2026-11-17
+archidekt	4663946	popular	Jimmy's Magda | Game Knights #42	Magda, Brazen Outlaw		744		21722	100		https://archidekt.com/decks/4663946	2026-11-17
+archidekt	3370911	popular	Giada Rocks the Spaghetti	Giada, Font of Hope	3	745	70	21704	100		https://archidekt.com/decks/3370911	2026-11-17
+archidekt	2766461	popular	The First Sliver	The First Sliver	4	746	35	21683	101		https://archidekt.com/decks/2766461	2026-11-17
+archidekt	23016151	popular	Rachel's Radagast | Extra Turns #74	Radagast of Rhosgobel		747		21680	100		https://archidekt.com/decks/23016151	2026-11-17
+archidekt	1952589	popular	Upping the Average - Ayula, Queen Among Bears	Ayula, Queen Among Bears		748		21675	100		https://archidekt.com/decks/1952589	2026-11-17
+archidekt	16289379	popular	Acetaminophen	Zinnia, Valley's Voice		749		21662	100		https://archidekt.com/decks/16289379	2026-11-17
+archidekt	7517435	popular	Ulalek, Fused Atrocity - EDH	Ulalek, Fused Atrocity		750		21657	118		https://archidekt.com/decks/7517435	2026-11-17
+archidekt	6103226	popular	Sea You Later	Hakbal of the Surging Soul	2	751	34	21656	100		https://archidekt.com/decks/6103226	2026-11-17
+archidekt	4350579	popular	Halana and Alena, Very Good Friends	Halana and Alena, Partners		752		21584	100		https://archidekt.com/decks/4350579	2026-11-17
+archidekt	864417	popular	Edgar Vamp Tribal	Edgar Markov		753		21545	100		https://archidekt.com/decks/864417	2026-11-17
+archidekt	477878	popular	Upping the Average - Muldrotha, the Gravetide	Muldrotha, the Gravetide		768		21363	100		https://archidekt.com/decks/477878	2026-11-17
+archidekt	561383	popular	Karador, Ghost Chieftain	Karador, Ghost Chieftain		805		20882	100		https://archidekt.com/decks/561383	2026-11-17
+archidekt	64661	popular	Winota Tribal Tokens	Winota, Joiner of Forces	3	853	79	20210	100		https://archidekt.com/decks/64661	2026-11-17
+archidekt	77022	popular	Oloro	Oloro, Ageless Ascetic		854		20195	100		https://archidekt.com/decks/77022	2026-11-17
+archidekt	110003	popular	Chain Veil Gideon (Mono White Landfall)	Djeru, With Eyes Open		874		19868	100		https://archidekt.com/decks/110003	2026-11-17
+archidekt	1351364	popular	Upping the Average - Torbran, Thane of Red Fell	Torbran, Thane of Red Fell		883		19701	100		https://archidekt.com/decks/1351364	2026-11-17
+archidekt	1060472	popular	Tergrid God of Winning	Tergrid, God of Fright // Tergrid's Lantern		897		19479	100		https://archidekt.com/decks/1060472	2026-11-17
+archidekt	60036	popular	Gobs of Goblins	Krenko, Mob Boss		899		19459	108		https://archidekt.com/decks/60036	2026-11-17
+archidekt	57903	popular	Maelstrom Wanderer Cascade of Value	Maelstrom Wanderer	4	923	43	19211	100		https://archidekt.com/decks/57903	2026-11-17
+archidekt	1273736	popular	Upping the Average - Talrand, Sky Summoner	Talrand, Sky Summoner		926		19173	100		https://archidekt.com/decks/1273736	2026-11-17
+archidekt	3918	popular	Kaalia of the Vast EDH Deck	Kaalia of the Vast		950		18833	100		https://archidekt.com/decks/3918	2026-11-17
+archidekt	95092	popular	Urza cEDH	Urza, Lord High Artificer		955		18775	100		https://archidekt.com/decks/95092	2026-11-17
+archidekt	239801	popular	Dockside Consultation	Kenrith, the Returned King		971		18551	98		https://archidekt.com/decks/239801	2026-11-17
+archidekt	78641	popular	Ghalta (Fast Combo Green)	Ghalta, Primal Hunger		972		18498	100		https://archidekt.com/decks/78641	2026-11-17
+archidekt	1249430	popular	Upping the Average - Alesha, Who Smiles at Death	Alesha, Who Smiles at Death		988		18378	100		https://archidekt.com/decks/1249430	2026-11-17
+archidekt	970281	popular	karlov of the Ghost council	Karlov of the Ghost Council	3	993	96	18340	114		https://archidekt.com/decks/970281	2026-11-17
+archidekt	1010839	popular	2 Shelob, Child of Ungoliant	Shelob, Child of Ungoliant	1		11	12582	100		https://archidekt.com/decks/1010839	2026-11-17
+archidekt	217651	popular	***** Meren Hulk (cEDH)	Meren of Clan Nel Toth	5		12	16958	102		https://archidekt.com/decks/217651	2026-11-17
+archidekt	310019	popular	Nissa: Just Lumra With Extra Steps	Nissa, Resurgent Animist	5		14	15602	99		https://archidekt.com/decks/310019	2026-11-17
+archidekt	464254	popular	Minecraft	The Ur-Dragon	1		21	7124	100		https://archidekt.com/decks/464254	2026-11-17
+archidekt	934660	popular	cEDH  Breya Combo	Breya, Etherium Shaper	5		25	12055	100		https://archidekt.com/decks/934660	2026-11-17
+archidekt	65004	popular	'93–'96 Merieke Ri Berit	Merieke Ri Berit	1		34	4922	100		https://archidekt.com/decks/65004	2026-11-17
+archidekt	691083	popular	EDH Lurrus 'Pet Deck'	Lurrus of the Dream-Den	1		35	4816	100		https://archidekt.com/decks/691083	2026-11-17
+archidekt	215454	popular	[B2] Naya Dinosaurs	Gishath, Sun's Avatar	2		51	15057	100		https://archidekt.com/decks/215454	2026-11-17
+archidekt	59957	popular	Mogis, God of Slaughter - Group Slug	Mogis, God of Slaughter	2		61	12846	100		https://archidekt.com/decks/59957	2026-11-17
+archidekt	643018	popular	Cat Dog - Stepdad's Deck	Rin and Seri, Inseparable	2		63	12458	100		https://archidekt.com/decks/643018	2026-11-17
+archidekt	59968	popular	Kastral, the Windcrested - Bird Kindred	Kastral, the Windcrested	2		64	12215	100		https://archidekt.com/decks/59968	2026-11-17
+archidekt	588971	popular	Rosheen Meanderer the 10th	Rosheen, Roaring Prophet	1		67	2993	100		https://archidekt.com/decks/588971	2026-11-17
+archidekt	749036	popular	Tayam's Torture Tetrahedron	Tayam, Luminous Enigma	4		67	14254	97		https://archidekt.com/decks/749036	2026-11-17
+archidekt	424210	popular	Yawgmoth, Thran Physician	Yawgmoth, Thran Physician	5		69	6004	100		https://archidekt.com/decks/424210	2026-11-17
+archidekt	856632	popular	MTGDS Certified™ 100th %ile hip- I like your deck, let me play it	Grenzo, Havoc Raiser	1		69	2899	100		https://archidekt.com/decks/856632	2026-11-17
+archidekt	1012121	popular	Temur Spellslinger - One Punch Kalamax, the Stormsire	Kalamax, the Stormsire	2		69	11381	100		https://archidekt.com/decks/1012121	2026-11-17
+archidekt	69012	popular	Barktooth Warbeard - Bearded Tribal - BR1	Barktooth Warbeard	1		72	2820	100		https://archidekt.com/decks/69012	2026-11-17
+archidekt	591010	popular	Derevi, Empyrial Tactician [No Rocks] [Retired]	Derevi, Empyrial Tactician	5		75	5726	100		https://archidekt.com/decks/591010	2026-11-17
+archidekt	296293	popular	Roon of the Hidden Realm - 11 Years of Flickery	Roon of the Hidden Realm	4		81	13038	100		https://archidekt.com/decks/296293	2026-11-17
+archidekt	88719	popular	(RETIRED) Nekusar's Wheel House	Nekusar, the Mindrazer	4		83	12915	100		https://archidekt.com/decks/88719	2026-11-17
+archidekt	273195	popular	Aurelia, the Warleader	Aurelia, the Warleader	4		85	12803	100		https://archidekt.com/decks/273195	2026-11-17
+archidekt	1064451	popular	My Little Pony	Princess Twilight Sparkle	1		86	2436	9		https://archidekt.com/decks/1064451	2026-11-17
+archidekt	567377	popular	Bridge of the Gods	Esika, God of the Tree // The Prismatic Bridge	2		97	9789	100		https://archidekt.com/decks/567377	2026-11-17
+archidekt	1279692	popular	Zaxara, the Exemplary [P:5.5][T:2][cmc:4][c:3.13][b:402][c]	Zaxara, the Exemplary	2		99	9766	100		https://archidekt.com/decks/1279692	2026-11-17

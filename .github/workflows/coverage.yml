@@ -5,7 +5,7 @@
 # .cards/ and throws it away with the runner.
 #
 # The tables are generated, NEVER committed. It publishes on the run page:
-# .coverage/summary.md plus the full .coverage/coverage.md as the job summary, and .coverage/ as the
+# .coverage/summary.md plus the full .coverage/coverage.md (and .coverage/edh.md, the Commander deck coverage) as the job summary, and .coverage/ as the
 # `card-coverage` artifact. Only counts and percentages are published, no card
 # text. It needs no secrets and only read access to the repository.
 name: card coverage
@@ -53,6 +53,12 @@ jobs:
             echo "---"
             echo
             cat .coverage/coverage.md
+            if [ -f .coverage/edh.md ]; then
+              echo
+              echo "---"
+              echo
+              cat .coverage/edh.md
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the tables

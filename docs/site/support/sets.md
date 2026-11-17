@@ -206,6 +206,14 @@ certifications.
    cards, including Un-sets and Alchemy. The roll-up counts each printing in
    each set. Both are correct. They answer different questions.
 
+## Commander decks
+
+How much of real Commander play the support covers: the official precons and
+the most-viewed public decks, measured by `forgec edhcover` (decklists are
+fetched by `scripts/edh_decks.py` and never committed).
+
+--8<-- "support/_generated_sets.md:edh"
+
 ## Corpus coverage at the pin
 
 [Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus) shows `make report`'s first lines. Every

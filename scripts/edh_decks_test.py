@@ -129,7 +129,14 @@ class ManifestTest(unittest.TestCase):
             edh_decks.write_json(os.path.join(raw, "archidekt", "decks", "7.json"),
                                  edh_decks.trim_archidekt(ArchidektTest.RAW))
             man = os.path.join(d, "m.tsv")
-            edh_decks.normalise(type("A", (), {"out": d, "manifest": man})())
+            dls = os.path.join(d, "decks.jsonl")
+            edh_decks.normalise(type("A", (), {"out": d, "manifest": man, "decklists": dls})())
+            with open(dls) as f:
+                lists = [json.loads(ln) for ln in f]
+            self.assertEqual(len(lists), 2)
+            self.assertEqual((lists[0]["source"], lists[0]["id"], lists[0]["commanders"]), ("mtgjson", "D_C99", ["C"]))
+            self.assertEqual(lists[0]["cards"], ["M"] * 99)  # the commander is not among the 99
+            self.assertEqual(lists[1]["source"], "archidekt")
             self.assertTrue(os.path.exists(os.path.join(d, "precon", "D_C99.json")))
             self.assertTrue(os.path.exists(os.path.join(d, "popular", "archidekt-7.json")))
             with open(man) as f:
