@@ -163,6 +163,8 @@ var ChooseKinds = []string{
 	"echo_action_pick", // gorge echoActionAsk's choose-exactly-N cards or lands an action echo cost pays
 	"changetext_from",  // gorge effChangeText's "from" word pick (CR 612; the option mode is the word index)
 	"changetext_to",    // and its "to" word pick
+	"aor_remove",       // AddOrRemoveCounter's remove arm (gorge "aor_remove:<kind>"; the mode is the counter kind)
+	"aor_put",          // AddOrRemoveCounter's put arm (gorge "aor_put:<kind>")
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.
