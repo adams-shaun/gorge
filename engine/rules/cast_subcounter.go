@@ -108,6 +108,24 @@ func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
 	return e.chainTargetsAvailable(pc.player, pc.card, exclude, sa, x, false, nil)
 }
 
+// castWindowUnitsReach is the source sum the X ceiling adds: each unit's best
+// main production, plus a unit's best no-tap self-sacrifice beside it (a
+// SECOND activation, CR 602.2b/605.1a; cast_window.go).
+func castWindowUnitsReach(units []windowManaUnit) int32 {
+	total := int32(0)
+	for _, u := range units {
+		most := int32(0)
+		for _, a := range u.Alts {
+			most = max(most, a.Mana().Total())
+		}
+		for _, a := range u.Extras {
+			most += max(0, a.Mana().Total())
+		}
+		total += most
+	}
+	return total
+}
+
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
 // max is the largest value the mana pool (crediting the best possible
 // Delve) and the sources CR 601.2g's window can still activate can pay: X is
@@ -232,20 +250,8 @@ func (e *Engine) xAsk() bool {
 			credit++
 		}
 	}
-	bound := pool.Total() + gy + credit + 1
 	units := e.castWindowUnits(pc)
-	for _, u := range units {
-		most := int32(0)
-		for _, a := range u.Alts {
-			most = max(most, a.Mana().Total())
-		}
-		// A unit's no-tap self-sacrifice beside its tap is a second
-		// activation (cast_window.go), so it raises the ceiling too.
-		for _, a := range u.Extras {
-			most += max(0, a.Mana().Total())
-		}
-		bound += most
-	}
+	bound := pool.Total() + gy + credit + 1 + castWindowUnitsReach(units)
 	// A reduction is mana the announced X can spend (CR 601.2f: the total
 	// cost is the mana cost with X's value, plus increases, minus
 	// reductions): the ceiling rises by the composed reductions at the

@@ -838,14 +838,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 	colours := pay.NewColourCap(cost, heldMana, rider, conv, asEval(e).PayLifeInsteadOfB(p), ordered)
 	best := make([]int32, len(ordered))
 	for i := range ordered {
-		for _, a := range ordered[i].Alts {
-			best[i] = max(best[i], a.Mana().Total())
-		}
-		// A unit with extras can add its best main production AND its best
-		// self-sacrifice production (two activations), so the cap adds them.
-		for _, a := range ordered[i].Extras {
-			best[i] += max(0, a.Mana().Total())
-		}
+		best[i] = castWindowUnitBest(ordered[i])
 	}
 	rank := make([]int, len(ordered))
 	for i := range rank {
@@ -964,28 +957,9 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 				used[i] = true
 				spentMask |= 1 << uint(i&63)
 				tryFee := func(afterFee, afterFeeSnow state.Mana) bool {
-					spent := manaSub(activationPool, afterFee)
-					snowSpent := manaSub(activationSnow, afterFeeSnow)
-					nextPool := pay.ManaAdd(manaSub(pool, spent), produced)
-					nextActivation := pay.ManaAdd(afterFee, produced)
-					if rec(nextPool, manaSub(spellSnow, snowSpent), nextActivation, afterFeeSnow,
-						lifeLeft-a.Life, next, remaining-1) {
-						return true
-					}
-					// The source may now take its no-tap self-sacrifice
-					// activation beside the tap (CR 602.2b, 605.1a); the
-					// extra is one-shot and carries no fee or life debit.
-					for _, x := range ordered[i].Extras {
-						if x.Fee() != 0 || x.Life != 0 {
-							continue
-						}
-						if rec(pay.ManaAdd(nextPool, x.Mana()), manaSub(spellSnow, snowSpent),
-							pay.ManaAdd(nextActivation, x.Mana()), afterFeeSnow,
-							lifeLeft-a.Life, next, remaining-2) {
-							return true
-						}
-					}
-					return false
+					return castWindowTryAlternative(ordered[i].Extras, rec,
+						pool, spellSnow, activationPool, activationSnow, produced,
+						lifeLeft-a.Life, next, remaining-1, afterFee, afterFeeSnow)
 				}
 				found := tryFee(activationFee.Pool, activationFee.Snow)
 				if !found && a.CostGeneric > 0 && manaCovers(activationPool, a.CostColored) {
@@ -1010,6 +984,48 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 		return false
 	}
 	return rec(spellPool, snow, free, snow, life, -1, budget), nodes
+}
+
+// castWindowUnitBest is a unit's largest possible production for the reach
+// cap: its best main alternative, plus its best no-tap self-sacrifice beside
+// it (a SECOND activation).
+func castWindowUnitBest(u windowManaUnit) int32 {
+	best := int32(0)
+	for _, a := range u.Alts {
+		best = max(best, a.Mana().Total())
+	}
+	for _, a := range u.Extras {
+		best += max(0, a.Mana().Total())
+	}
+	return best
+}
+
+// castWindowTryAlternative runs one unit alternative through the reach walk:
+// the activation's production, then (when the unit has them) each no-tap
+// self-sacrifice EXTRA activation that may follow it (CR 602.2b, 605.1a). The
+// extras are one-shot and free (the probe collects only self-sacrifice alts),
+// so each adds its production and one activation.
+func castWindowTryAlternative(extras []windowManaAlt,
+	rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool,
+	pool, spellSnow, activationPool, activationSnow, produced state.Mana, lifeLeft int32,
+	next, remaining int, afterFee, afterFeeSnow state.Mana) bool {
+	spent := manaSub(activationPool, afterFee)
+	snowSpent := manaSub(activationSnow, afterFeeSnow)
+	nextPool := pay.ManaAdd(manaSub(pool, spent), produced)
+	nextActivation := pay.ManaAdd(afterFee, produced)
+	if rec(nextPool, manaSub(spellSnow, snowSpent), nextActivation, afterFeeSnow, lifeLeft, next, remaining) {
+		return true
+	}
+	for _, x := range extras {
+		if x.Fee() != 0 || x.Life != 0 {
+			continue
+		}
+		if rec(pay.ManaAdd(nextPool, x.Mana()), manaSub(spellSnow, snowSpent),
+			pay.ManaAdd(nextActivation, x.Mana()), afterFeeSnow, lifeLeft, next, remaining-1) {
+			return true
+		}
+	}
+	return false
 }
 
 // castWindowTwins maps each unit to the nearest earlier unit the walk cannot
