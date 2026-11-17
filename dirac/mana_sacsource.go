@@ -679,6 +679,13 @@ func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
 	ob := &s.objs[Obj(a.Source())]
 	c, ab := ob.card, a.Mode()
 	switch {
+	case isGainedMode(ab):
+		// a gained ability (static_gainsof.go): the foreign permanent's card
+		host := &s.objs[Obj(a.Target())]
+		c, ab = host.card, ab&^gainedMode
+		if host.zone == kop.ZoneBattlefield {
+			c = s.cardAt(host.slot)
+		}
 	case ab&0x80 != 0:
 		host := &s.objs[Obj(a.Target())]
 		c, ab = host.card, ab&^0x80

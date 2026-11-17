@@ -109,7 +109,17 @@ func (s *State) sickTapTurnBound(k *prep, sl Slot, a Action) bool {
 		return false
 	}
 	c, ab := s.cardAt(sl), a.Mode()
-	if ab&0x80 != 0 {
+	if isGainedMode(ab) {
+		// a gained ability (static_gainsof.go): the foreign permanent's card
+		host := Obj(a.Target())
+		if int(host) >= int(s.nobj) {
+			return true
+		}
+		ab &^= gainedMode
+		if c = s.objs[host].card; s.objs[host].zone == kop.ZoneBattlefield {
+			c = s.cardAt(s.objs[host].slot)
+		}
+	} else if ab&0x80 != 0 {
 		host := Obj(a.Target())
 		if int(host) >= int(s.nobj) {
 			return true
