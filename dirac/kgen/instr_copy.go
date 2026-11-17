@@ -75,6 +75,16 @@ func (ic *instrCtx) opCloneCopy() error {
 			return err
 		}
 		ki.C = int16(i + 1)
+		if ic.ki.B.N&kop.CloneGrant != 0 {
+			// the grant-only record must be the pool record after the exceptions'
+			g, err := cb.override(cb.c.overrides[in.C])
+			if err != nil {
+				return err
+			}
+			if g != i+1 {
+				return fmt.Errorf("CloneCopy grant record %d does not follow the exceptions' %d", g, i)
+			}
+		}
 	}
 	if in.F != nil {
 		if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
