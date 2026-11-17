@@ -46,6 +46,7 @@ import "embed"
 //go:embed kw_affinity.go
 //go:embed kw_afflict.go
 //go:embed kw_afterlife.go
+//go:embed kw_amplify.go
 //go:embed kw_annihilator.go
 //go:embed kw_backup.go
 //go:embed kw_battle_cry.go
@@ -82,6 +83,7 @@ import "embed"
 //go:embed kw_haunt.go
 //go:embed kw_hideaway.go
 //go:embed kw_increment.go
+//go:embed kw_ingest.go
 //go:embed kw_jobselect.go
 //go:embed kw_levelup.go
 //go:embed kw_livingweapon.go
@@ -96,6 +98,7 @@ import "embed"
 //go:embed kw_partner_with.go
 //go:embed kw_persist.go
 //go:embed kw_prevent.go
+//go:embed kw_provoke.go
 //go:embed kw_prowess.go
 //go:embed kw_rampage.go
 //go:embed kw_ravenous.go

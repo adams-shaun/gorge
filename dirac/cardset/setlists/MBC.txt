@@ -513,6 +513,7 @@ Deep Analysis
 Deepchannel Mentor
 Deepwood Legate
 Defensive Formation
+Deftblade Elite
 Deglamer
 Delina, Wild Mage
 Demand Answers
@@ -1087,6 +1088,7 @@ Krark, the Thumbless
 Krark-Clan Ironworks
 Kraul Harpooner
 Krosan Tusker
+Krosan Vorine
 Krovikan Sorcerer
 Kuroki, Thief of Talents
 Kutzil, Malamet Exemplar

@@ -227,6 +227,18 @@ func HandSizeValueOK(raw string) (int, bool) {
 	return n, true
 }
 
+// HandSizeDeltaOK parses a RaiseMaxHandSize$ value: a signed integer
+// literal added to the maximum hand size (CR 402.2). ok is false for an
+// absent or non-integer value.
+func HandSizeDeltaOK(raw string) (int, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, false
+	}
+	n, err := strconv.Atoi(raw)
+	return n, err == nil
+}
+
 // UnlimitedHandSize is the value SetMaxHandSize$ Unlimited maps to on the
 // effects side of the shared grammar: far above any hand a game can assemble,
 // so the CR 514.1 discard never triggers. rules' maxHandSizeFor keeps its own

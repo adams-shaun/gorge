@@ -178,6 +178,17 @@ var expandedHeads = []string{
 	// creature's enters trigger and the haunted-creature-dies trigger
 	// (engine/cards/kw_haunt.go). Added after the split.
 	"Haunt",
+	// Ingest (CR 702.115a): a combat-damage-to-a-player trigger exiling that
+	// player's top card (engine/cards/kw_ingest.go). Added after the split.
+	"Ingest",
+	// Provoke (CR 702.39a): an optional Attacks trigger untapping a target
+	// creature the defending player controls and binding it to block
+	// (engine/cards/kw_provoke.go). Added after the split.
+	"Provoke",
+	// Amplify (CR 702.38a): an enters replacement revealing hand cards that
+	// share a creature type and putting N +1/+1 counters per card
+	// (engine/cards/kw_amplify.go). Added after the split.
+	"Amplify",
 	// Soulshift (CR 702.46a): an optional dies trigger returning a Spirit card
 	// with mana value N or less from the graveyard to hand
 	// (engine/cards/kw_soulshift.go). Added after the split.

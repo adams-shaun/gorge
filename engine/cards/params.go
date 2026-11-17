@@ -911,6 +911,11 @@ const (
 	// ValidKeyword$ <Landwalk:Type> on S:Mode$ IgnoreLandWalk, read by
 	// combat.landwalkIgnored. Appended: earlier ordinals stay stable.
 	PKValidKeyword
+	PKWerewolfTransformCondition
+	PKWerewolfUntransformCondition
+	PKRaiseMaxHandSize
+	PKDayTime
+	PKForgetObjects
 	// Haunt$ True on a ChangeZone (the K:Haunt expansion, CR 702.55b): the
 	// exiled card haunts the announced creature target. Read by effects'
 	// compileChangeZone. Appended: earlier ordinals stay stable.
@@ -1739,6 +1744,11 @@ var paramKeyNames = [paramKeyCount]string{
 	PKTopCardOfLibraryIs:               "TopCardOfLibraryIs",
 	PKRememberSource:                   "RememberSource",
 	PKValidKeyword:                     "ValidKeyword",
+	PKWerewolfTransformCondition:       "WerewolfTransformCondition",
+	PKWerewolfUntransformCondition:     "WerewolfUntransformCondition",
+	PKRaiseMaxHandSize:                 "RaiseMaxHandSize",
+	PKDayTime:                          "DayTime",
+	PKForgetObjects:                    "ForgetObjects",
 	PKHaunt:                            "Haunt",
 }
 

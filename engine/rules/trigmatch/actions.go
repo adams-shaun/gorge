@@ -933,10 +933,35 @@ func phaseTriggerMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	if t.ParamStr(cards.PKEcho) == "True" {
 		return e.EchoGateHolds(source)
 	}
+	// CR 603.4: the Innistrad werewolf intervening-ifs. The front face
+	// transforms "if no spells were cast last turn", the back face "if a
+	// player cast two or more spells last turn". Last turn's window is
+	// closed, so the trigger-time check is also the resolution-time answer.
+	// Forge's Trigger reads both as presence flags (hasParam).
+	if t.HasParam(cards.PKWerewolfTransformCondition) {
+		total, _ := SpellsCastLastTurn(e.Log().Events)
+		return total == 0
+	}
+	if t.HasParam(cards.PKWerewolfUntransformCondition) {
+		_, most := SpellsCastLastTurn(e.Log().Events)
+		return most >= 2
+	}
 	return true
 }
 
+// dayTimeChangesMatches implements Mode$ DayTimeChanges ("whenever day
+// becomes night or night becomes day", Brimstone Vandal): a DayNightChange
+// that switched an existing designation. The first designation of a game
+// (neither becoming day or night) is not a change of day to night or night
+// to day.
+func dayTimeChangesMatches(e Board, ev events.Event) bool {
+	return ev.Kind == events.DayNightChange && DayNightSwitched(e.Log().Events, ev)
+}
+
 func init() {
+	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return dayTimeChangesMatches(e, ev)
+	}, "DayTimeChanges")
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return commitCrimeMatches(e, t, source, ev)
 	}, "CommitCrime")
