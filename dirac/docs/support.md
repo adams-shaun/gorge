@@ -9,7 +9,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported | 4-seat |
 |---|---:|---:|---:|---:|---:|---:|
 | BIG | 30 | 27 | 0 | 2 | 25 | 25 |
-| BLB | 278 | 261 | 2 | 0 | 259 | 258 |
+| BLB | 278 | 261 | 1 | 1 | 259 | 258 |
 | DFT | 276 | 255 | 0 | 0 | 255 | 255 |
 | DSK | 276 | 252 | 4 | 2 | 246 | 246 |
 | ECL | 273 | 244 | 1 | 0 | 243 | 242 |
@@ -5051,7 +5051,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 |---|---:|
 | decision | 1 |
 | lockstep | 1 |
-| options | 4 |
+| options | 3 |
 | options-options | 3 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
