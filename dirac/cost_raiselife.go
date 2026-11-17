@@ -154,7 +154,7 @@ func (s *State) boardLifeTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 // autopay surface offers the cast only from the floating pool (CR 601.2f).
 func (s *State) boardManaTgtDep(k *prep, p uint8, c CardID, o Obj) bool {
 	found := false
-	s.eachStatic(k, func(stc statSrc) bool {
+	s.eachStaticG(k, func(stc statSrc) bool {
 		a := stc.a
 		if a.Kind != kop.AbStatic {
 			return true
