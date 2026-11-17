@@ -65,6 +65,12 @@ type payDesc struct {
 	class uint8
 	card  CardID
 	src   Slot
+	// subBound marks the trigger pay gate's descriptor (trigCostPotentialPays,
+	// gorge's resPayNeedsMana: Descriptor.SubCounterBound): only that gate reads
+	// a storage battery at its counters. The numTimes / X asks and the window's
+	// potential gate price a pdOther payment with the battery unbounded, as
+	// gorge's potentialManaFor does without the flag (mana_storesource.go).
+	subBound bool
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin

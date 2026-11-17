@@ -242,7 +242,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
-	other := payDesc{class: pdOther}
+	other := payDesc{class: pdOther, subBound: true}
 	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
 	}
@@ -276,6 +276,9 @@ func (s *State) anyManaSource(k *prep, p uint8, d *payDesc) bool {
 		pc := s.manaPCGen(k, sl)
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
+		}
+		if s.storeSourceCounts(k, p, sl) {
+			return true // a storage battery holding counters (mana_storesource.go)
 		}
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source: gorge's untappedManaSourceFor counts its activation (CR 605.3b)

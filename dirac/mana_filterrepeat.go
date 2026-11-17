@@ -117,35 +117,12 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	return n
 }
 
-// filtRepeatBound: a repeatable fee-only filter is the only reason gorge's
-// census is unrelaxable on p's board (filt are the live filters, unrelax any
-// other source that makes it so), and every filter makes one fixed colour. The
-// prefix search then runs on the plays gorge's potential walk lists, the
-// PotentialMana bound, which counts such a filter's mana once (its fee is
-// paid from the other sources' mana); an any-colour filter's bound is open
-// (every colour), the any-mana walk.
-func (s *State) filtRepeatBound(k *prep, p uint8, filt slotMask, unrelax bool) bool {
-	if unrelax || !s.filtRepeatIn(k, filt) || s.scriptGaps(k, p).any() || s.deadCtrMask(k, p).any() {
-		return false
-	}
-	var rep slotMask
-	for f := filt; f.any(); f = f.rest() {
-		sl := f.first()
-		if s.filtRepeat(k, sl) {
-			if ab := s.filtAb(k, sl); ab.ManaColors&(ab.ManaColors-1) != 0 {
-				return false // a choice of colours: an open bound
-			}
-			rep = rep.with(sl)
-		}
-	}
-	return s.filtRelaxable(k, filt.andNot(rep))
-}
-
 // scriptAnyWalk: the prefix search's candidates are the any-mana walk, not the
-// gaps walk. So when gorge's census is unrelaxable (not relax), except on a
-// board where a fixed-colour repeatable filter is the only gap
-// (filtRepeatBound): gorge's potential walk there is the PotentialMana bound,
-// which counts the filter's mana once.
+// gaps walk, when gorge's census is unrelaxable (not relax). A fixed-colour
+// repeatable fee-only filter (Agent of Stromgald's "{R}: Add {B}") is no
+// exception: gorge's PotentialMana bound lifts its colour unbounded (CR
+// 605.3a: it is activated again as long as its fee is paid, potential_repeat_fee.go),
+// so the potential walk lists what the any-mana walk does.
 func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bool) bool {
-	return !relax && !s.filtRepeatBound(k, p, filt, unrelax)
+	return !relax
 }

@@ -1758,8 +1758,23 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			done[sl] = 1 << pc.manaAb
 		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
-		if dynamic || !pc.manaMulti && (pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment && !pc.manaFixedChosen) {
-			open = s.potentialAnyColourUnit(k, sl, pc, dynamic, boundedAny, add, &anyFree) || open
+		if dynamic {
+			// gorge's potentialAmount prices an indeterminate Amount$
+			// unbounded in exactly the produced faces it names (CR 107.4a;
+			// rules potential.go addIndeterminatePotentialMana), never in a
+			// colour the ability does not make. An open production (any
+			// colour, or a chosen colour at a payment the bound only bounds)
+			// stays gorge's whole-pool open; a fixed one is unbounded in its
+			// own faces alone.
+			if potentialOpenProduction(pc, payment) {
+				open = true
+			} else {
+				add(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
+			}
+			continue
+		}
+		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
+			open = s.potentialAnyColourUnit(k, sl, pc, boundedAny, add, &anyFree) || open
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -1808,16 +1823,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				done[sl] |= 1 << j
 				progressed = true
 				if kop.StoreManaAb(ab) {
-					// A storage battery's potential: its announced X
-					// (Count$xPaid) is indeterminate to gorge's potentialAmount,
-					// which folds such a production unbounded in every colour
-					// (potentialUnbounded), while the census's live-counter read
-					// (mana_countercost.go storeGap) serves the exact gates. A
-					// battery with no counter still admits here: its cost
-					// announces X (pay ManaSubCounterXBound floors it at XMin 0),
-					// so gorge's walk prices the ability payable and folds it
-					// open.
-					open = true
+					// A storage battery's announced X (Count$xPaid) is indeterminate to
+					// gorge's potentialAmount, which folds it unbounded in every
+					// colour (potentialUnbounded) for the view and a cast. A trigger's
+					// own cost reads it at the counters it can remove, one mana each
+					// (rules potential_subcounter.go: pay ManaSubCounterXBound).
+					open = s.storePotential(open, sl, ab, d, add)
 					continue
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, add, &anyFree, &open) {
@@ -1852,8 +1863,8 @@ func (s *State) potentialDynamicSource(k *prep, sl Slot, pc *pcard, done *[MaxPe
 
 // potentialAnyColourUnit adds a fixed any-colour source in bounded mode as one
 // unit of any colour; it reports the unbounded case.
-func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, dynamic, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
-	if !boundedAny || dynamic {
+func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, boundedAny bool, add func(Slot, uint8, uint8), anyFree *int) bool {
+	if !boundedAny {
 		return true
 	}
 	mask, n := s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc)
@@ -1862,6 +1873,13 @@ func (s *State) potentialAnyColourUnit(k *prep, sl Slot, pc *pcard, dynamic, bou
 	}
 	add(sl, mask, n)
 	return false
+}
+
+// potentialOpenProduction reports whether a mana view's production is open:
+// any colour, or a chosen colour only where the bound bounds (no payment, the
+// choice not fixed), the shape availPotentialFor prices whole-pool open.
+func potentialOpenProduction(pc *pcard, payment bool) bool {
+	return pc.manaCol == kop.ColAny && !pc.manaChosen || pc.manaChosen && !payment && !pc.manaFixedChosen
 }
 
 // potentialRiderUnit is a rider source's unit in the potential walk.
@@ -1929,8 +1947,15 @@ func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny bool,
 		add(sl, 0x1f, 1)
 		return true
 	}
-	if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 {
+	if ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 {
 		*open = s.potentialExtraUnit(ab, sl, boundedAny, add, anyFree) || *open
+		return true
+	}
+	if ab.AFlags&kop.AfManaDynamic != 0 {
+		// an indeterminate Amount$ is unbounded in the produced faces it
+		// names (CR 107.4a; rules potential.go addIndeterminatePotentialMana),
+		// never in a colour the ability does not make
+		add(sl, uint8(ab.ManaColors), potentialOpenUnits)
 		return true
 	}
 	return false
@@ -1995,9 +2020,7 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	case int(k.ctrAb[c]) == j && kop.StoreManaAb(ab):
 		// a storage battery (Mage-Ring Network, Dwarven Hold): its cost
 		// announces X ("remove any number"), so gorge's walk prices the
-		// activation payable whatever the counters it holds (pay
-		// ManaSubCounterXBound floors the announced X at XMin 0) and folds the
-		// battery's production open (the fixpoint's StoreManaAb arm)
+		// activation payable (the fixpoint's StoreManaAb arm reads its mana)
 		return true
 	case k.tapMana && kop.TapXMana(ab) && int(k.tapXAb[c]) == j: // the first mana ability or a second beside a plain one (mana_tapanother.go tapXAbOf)
 		var cs [MaxPerm]Slot

@@ -88,7 +88,12 @@ func (e *Engine) PotentialMana(p state.PlayerID) state.Mana {
 // type or activate an ability of a creature of the chosen type" cannot fund Frenzied Goblin's triggered "you may pay
 // {R}", so the resolution-time pay ask (resPayNeedsMana) must not count it
 // (CR 106.6: the restriction limits what that mana is spent on).
+//
+// A payment marked SubCounterBound (the resolution-time pay gate) reads a
+// SubCounter<X> mana ability's Amount$ X at the counters it can remove
+// (potential_subcounter.go) instead of unbounded.
 func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) state.Mana {
+	counters := payment != nil && payment.SubCounterBound
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	// The decision's recorded priority walk, when its caller armed it
@@ -214,7 +219,14 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					// A payment's bound reads a Chosen source's colour.
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) && !addPotentialIdentityColours(e, &out, p, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
-							e.addPotentialManaOf(&out, ma)
+							prod := ma
+							if counters {
+								if bounded, ok := potentialSubCounterBounded(e, asPayer(e), p, id, ma); ok {
+									prod = bounded
+								}
+							}
+							e.addPotentialManaOf(&out, prod)
+							addPotentialRepeatable(e, &out, p, id, ma)
 							// A Condition-split ability adds its sub's production instead
 							// when the gate holds (mana_condsplit.go): count both.
 							if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
@@ -526,8 +538,12 @@ var potentialMembersVerify = derivedMemoVerifyFlag != ""
 // the listed colours, so it bounds each of them like a dual's two abilities;
 // pricing it unbounded in every colour offered a "pay {R}" no red source
 // could fund (CR 118.3). "Combo Any" stays open through producedOpenSet, and
-// any other Combo word (ColorIdentity, Chosen) keeps a non-colour rune.
-var potentialProducedStrip = strings.NewReplacer("{", "", "}", "", " ", "", "Combo", "")
+// any other Combo word (ColorIdentity, Chosen) keeps a non-colour rune. The
+// ColorID word (Cryptic Spires' "the circled colors") is stripped to nothing:
+// cards.ProducedCounts claims no mana for it, so the source adds none and
+// pricing it unbounded offered Eye of Vecna's "pay {2}" beside one untapped
+// Spires (CR 118.3).
+var potentialProducedStrip = strings.NewReplacer("{", "", "}", "", " ", "", "Combo", "", "ColorID", "")
 
 // addPotentialMana folds one mana ability into the potential accumulator. The
 // amount and production parsing mirrors AvailableMana's addAvailable (the
@@ -535,6 +551,14 @@ var potentialProducedStrip = strings.NewReplacer("{", "", "}", "", " ", "", "Com
 // one divergence: anything the executor cannot statically price -- an
 // alternative production or an indeterminate amount -- is UNBOUNDED here
 // rather than zero, because this bound must never lose an action.
+//
+// The unbounded claim is per produced face, not per slot: an ability whose
+// Produced$ names fixed colours can never make mana outside them (CR 107.4a),
+// so an indeterminate Amount$ prices those faces unbounded and the rest of
+// the vector at zero. Only an open production (Any / Chosen / an unknown
+// token) is unbounded in every slot. Pricing every slot unbounded offered a
+// "pay {G}" no produced face could fund (Fountain of Cho's {W}-per-storage-
+// counter, CR 118.3), the same defect the Combo strip below fixed.
 func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	mp := effects.ManaOf(ma)
 	amt, indeterminate := potentialAmount(mp)
@@ -556,7 +580,11 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 		}
 		return
 	}
-	if indeterminate || producedOpen(raw) {
+	if indeterminate {
+		addIndeterminatePotentialMana(m, raw)
+		return
+	}
+	if producedOpen(raw) {
 		for i := range m {
 			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
 		}
@@ -566,6 +594,23 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	for _, r := range s {
 		i := state.ManaIndex(byte(r))
 		m[i] = saturatingPotentialMana(m[i], amt)
+	}
+}
+
+// addIndeterminatePotentialMana prices an indeterminate Amount$'s production:
+// unbounded in every slot for an open production, unbounded in exactly the
+// fixed produced faces otherwise.
+func addIndeterminatePotentialMana(m *state.Mana, raw string) {
+	if producedOpen(raw) {
+		for i := range m {
+			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
+		}
+		return
+	}
+	s := potentialProducedStrip.Replace(raw)
+	for _, r := range s {
+		i := state.ManaIndex(byte(r))
+		m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
 	}
 }
 
@@ -591,7 +636,20 @@ func computePotentialManaAdd(mp *effects.ManaParams) potentialManaAdd {
 		}
 		return f
 	}
-	if indeterminate || producedOpen(raw) {
+	if indeterminate {
+		if producedOpen(raw) {
+			f.unbounded = true
+			return f
+		}
+		// Unbounded in exactly the fixed produced faces (CR 107.4a): the
+		// per-slot saturating add of potentialUnbounded reads the same as the
+		// unbounded flag would for those slots and leaves the rest at zero.
+		for _, r := range potentialProducedStrip.Replace(raw) {
+			f.add[state.ManaIndex(byte(r))] += int64(potentialUnbounded)
+		}
+		return f
+	}
+	if producedOpen(raw) {
 		f.unbounded = true
 		return f
 	}

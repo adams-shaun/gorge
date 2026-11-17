@@ -12,3 +12,14 @@ func TestMBCNyxbornWolfReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "bestow_restricted_granted_mana")
 }
+
+// CR 702.103b: a card cast for its bestow cost is an Aura spell, not a
+// creature spell, so mana that may be spent only on creature spells (Gwenna,
+// Eyes of Gaea's {T}) cannot pay the bestow cost. The player's only black
+// source was that Gwenna, and gorge offered the bestowed cast of Nyxborn
+// Eidolon priced as a creature card in hand (decision 158 of the recording;
+// dirac, which reads the bestowed spell as an Aura, withheld it).
+func TestMBCNyxbornEidolonReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReproNamed(t, "bestow_cast_restricted_mana_reads_an_aura_spell")
+}
