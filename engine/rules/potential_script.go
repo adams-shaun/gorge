@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -81,28 +80,14 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
-	search := func() *scriptSearch {
-		sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
-		if sr == nil {
-			return nil
-		}
-		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
-		sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
-		sr.passes = true
-		return sr
-	}
-	sr := search()
+	sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
 	if sr == nil {
 		return nil, false
 	}
+	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
+	sr.passes = true
 	script, found := sr.run(e)
-	if !found && sr.limited {
-		// The budget ran out in option order: redo it with the sources ranked.
-		if sr = search(); sr != nil {
-			sr.rankSources(e)
-			script, found = sr.run(e)
-		}
-	}
 	return script, found && len(script) > 0
 }
 
@@ -205,11 +190,7 @@ type scriptSearch struct {
 	limited   bool // the budget ran out
 	approx    bool // a branch assumed an answer it did not enumerate
 	seen      map[string]bool
-	// score is the branch-order preference per source, computed once at the
-	// root: a free source making a needed colour is tried before a paid
-	// filter's branches when the node budget is tight (see visit).
-	score map[state.ObjID]int
-	path  []ScriptStep
+	path      []ScriptStep
 	// pool is the live engine whose hypothetical-clone pool backs the
 	// search's nested witness checks (hypclone.go); set by run.
 	pool *Engine
@@ -228,57 +209,6 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
 	}
 	return sr
-}
-
-// rankSources scores each battlefield source for the branch order of a second
-// pass: the node budget (potentialScriptNodes) is spent in option order, so a
-// first pass that ran out of nodes is redone with a source that makes a needed
-// colour for free ahead of a paid filter's branches (Elven Chorus's granted
-// "{T}: Add one mana of any color." on two creatures behind Heap Gate's
-// "{1}, {T}" filter reached the bound before the two free taps: Emerald
-// Dragonfly, pair 66). The score is a branch-order preference only, applied
-// only after the unranked pass was budget-limited so every play the unranked
-// order already priced keeps its script; every option stays.
-func (sr *scriptSearch) rankSources(e *Engine) {
-	sr.score = make(map[state.ObjID]int, len(e.G.Zone(state.ZBattlefield, sr.p)))
-	for _, id := range e.G.Zone(state.ZBattlefield, sr.p) {
-		best := 0
-		for _, ma := range e.availableManaAbilitiesForWindow(sr.p, id, false) {
-			mf := e.manaStaticFor(sr.p, id, ma)
-			if mf.Amount <= 0 || mf.RestrictValid {
-				continue
-			}
-			sc := 0
-			if mf.Any {
-				for i := 0; i <= state.MC; i++ {
-					if sr.need[i] {
-						sc = 4
-						break
-					}
-				}
-				if sc == 0 {
-					sc = 2
-				}
-			} else {
-				for i, n := range mf.Counts {
-					if n > 0 && i <= state.MC && sr.need[i] {
-						sc = 3
-						break
-					}
-				}
-				if sc == 0 {
-					sc = 1
-				}
-			}
-			if !mf.FreeCost {
-				sc--
-			}
-			if sc > best {
-				best = sc
-			}
-		}
-		sr.score[id] = best
-	}
 }
 
 // scriptNeedReader is the read-only side of *Engine scriptNeedColours needs;
@@ -615,8 +545,11 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 		if !gap && sr.gapsOnly && funded >= sr.funding {
 			break
 		}
-		for _, oi := range scriptRankedActivations(d, gaps, gap, sr.score) {
-			opt := &d.Options[oi]
+		for i := range d.Options {
+			opt := &d.Options[i]
+			if opt.Kind != "activate" || scriptGap(gaps, opt.Obj) != gap {
+				continue
+			}
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
@@ -659,29 +592,6 @@ func scriptGap(gaps []state.ObjID, id state.ObjID) bool {
 		}
 	}
 	return false
-}
-
-// scriptRankedActivations is the search's activate options of one gap class
-// (gap true: an uncovered source; false: a covered one the prefix may fund a
-// fee with), stably sorted by the branch-order score visit precomputed. A
-// source that makes a needed colour for free is tried first; equal scores keep
-// the decision's own option order, so the walk stays deterministic.
-func scriptRankedActivations(d *decision.Decision, gaps []state.ObjID, gap bool, score map[state.ObjID]int) []int {
-	type ranked struct{ opt, score int }
-	var rs []ranked
-	for i := range d.Options {
-		if opt := &d.Options[i]; opt.Kind == "activate" && scriptGap(gaps, opt.Obj) == gap {
-			rs = append(rs, ranked{opt: i, score: score[opt.Obj]})
-		}
-	}
-	if len(rs) >= 2 {
-		sort.SliceStable(rs, func(a, b int) bool { return rs[a].score > rs[b].score })
-	}
-	out := make([]int, len(rs))
-	for i := range rs {
-		out[i] = rs[i].opt
-	}
-	return out
 }
 
 // scriptStepOf records answer in of d as a ScriptStep.
