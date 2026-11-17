@@ -756,10 +756,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		return t <= n
 	case kop.PredCMCLE, kop.PredCMCGE, kop.PredCMCEQ, kop.PredCMCLEV:
-		mv := s.cardMV(k, c, o, fd)
-		if ctx != nil {
-			mv += ctx.xmv
-		}
+		mv := s.cardMVIn(k, c, o, fd, ctx)
 		switch fl.Pred {
 		case kop.PredCMCLE:
 			return mv <= n

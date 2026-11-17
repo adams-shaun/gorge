@@ -29,6 +29,8 @@ func (s *State) freeQueued(o Obj) bool {
 //   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
 //   - C bit 8: the copy pays its mana cost; bit 9: a literal Amount$ A (the ask closes after A picks).
+//   - C bit 10 (freeSpellMV): the filter's mana-value bound is the ValidSA$ one, read on the spell
+//     cast: a split card counts its front half, not the sum of its halves.
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
 //     player target: that player's hand), or RefNone with F (P3/P4 filter
 //     population over the zone).
@@ -39,6 +41,9 @@ func (s *State) freeQueued(o Obj) bool {
 // and freeForget (ForgetPlayed). At two seats that is bit 0, bits 1-3 and
 // bits 4-7 of a byte.
 const (
+	// freeSpellMV is OpCastFree's C bit 10 (see the operands above).
+	freeSpellMV = 1 << 10
+
 	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
 	freeSeatMask  = 1<<freeSeatBits - 1
 	freeZoneShift = freeSeatBits
@@ -89,12 +94,20 @@ var (
 //go:noinline
 func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	zone := kop.Zone(in.C & 7)
+	// C bit 10 (a ValidSA$ cmc bound beside a Valid$ with none): the bound tests
+	// the spell cast, so a split card in the zone counts its front half (CR 601.3a)
+	var spellCtx *evalCtx
+	if in.C&freeSpellMV != 0 {
+		cx := s.ctxCur()
+		cx.spellMV = true
+		spellCtx = &cx
+	}
 	add := func(o Obj) bool {
 		ob := &s.objs[o]
 		if ob.zone != zone || k.cards[ob.card].land {
 			return true
 		}
-		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGen(k, in.F, ob.card, ob.owner(), e.ctrl, o) {
+		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
 			return true
 		}
 		// CR 601.2c: a spell whose mandatory targets cannot all be chosen is
