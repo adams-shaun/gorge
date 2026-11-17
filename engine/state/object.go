@@ -590,9 +590,14 @@ const (
 
 	// FlagAltCostPaid marks a cast that paid an S:Mode$ AlternativeCost
 	// static's alternative (Baleful Mastery's {1}{B}; Forge's
-	// Count$AltCost.<paid>.<unpaid>). Stamped only for a face whose SVars
-	// mention Count$AltCost (rules' faceWantsAltCost heads-safety gate). NOT a
-	// CastProvenanceFlag: CR 707.10 copies the alternative costs paid.
+	// Count$AltCost.<paid>.<unpaid>). That static stamps it only for a face
+	// whose SVars mention Count$AltCost (rules' faceWantsAltCost heads-safety
+	// gate). NOT a CastProvenanceFlag: CR 707.10 copies the alternative costs
+	// paid. It is also the bit of every alternative-cost keyword row with
+	// none of its own (the word is full): prowl and freerunning stamp it on
+	// faces that never mention Count$AltCost, and on a face carrying that
+	// keyword it reads "this keyword's cost was paid" (effects'
+	// altCostKeywordPaid; CR 118.9a allows one alternative cost).
 	FlagAltCostPaid
 )
 
