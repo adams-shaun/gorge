@@ -18,10 +18,11 @@ package kgen
 // to Owner. A per-referent line (Mode$ DamageDoneOnce, an object recipient
 // filter) carries the damaged object instead and stays refused.
 
-// dmgSourceIsTriggerObj reports whether a DamageDone line's kernel trigger
-// object is the damage source: not a per-referent line, no object recipient
-// filter.
+// dmgSourceIsTriggerObj reports whether a damage line's kernel trigger
+// object is the damage source: not a per-referent line. A recipient filter
+// does not change it: ddoLine (dirac/trig_damagedonce.go) applies the
+// filter and still queues the source for a plain line (Phyrexian
+// Obliterator's ValidTarget$ Card.Self).
 func dmgSourceIsTriggerObj(tr *lTrigger) bool {
-	return tr != nil && tr.Event == "DamageDone" && !tr.PerRef && !tr.Batch &&
-		(tr.F2 == nil || len(tr.F2.Clauses) == 0)
+	return tr != nil && (tr.Event == "DamageDone" || tr.Event == "DamageDealtOnce") && !tr.PerRef && !tr.Batch
 }

@@ -93,9 +93,14 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 // read that queue does not carry refuses by name. A line without the read
 // keeps the plain trigger.
 func (lc *lowerCtx) damageDoneSelfObjRef(tp *params, tr *lTrigger, t cards.Trigger) error {
-	if t.Mode != "DamageDone" || !tp.is("ValidSource", "Card.Self") || tr.F2 == nil ||
-		!(tr.F2.Players == 0 && len(tr.F2.Clauses) != 0 || selfPlayerRefShape(tr)) ||
-		!lc.ddoReadsTriggeredTarget(t.Effect) {
+	if t.Mode != "DamageDone" || tr.F2 == nil || !lc.ddoReadsTriggeredTarget(t.Effect) {
+		return nil
+	}
+	objF2 := tr.F2.Players == 0 && len(tr.F2.Clauses) != 0
+	// a host's attachment (Charisma, Sword of Kaldra) names one source object,
+	// which deals at most one damage event to a referent per batch, as Self
+	hostSrc := tp.is("ValidSource", "Card.AttachedBy") || tp.is("ValidSource", "Card.EquippedBy")
+	if !(tp.is("ValidSource", "Card.Self") && (objF2 || selfPlayerRefShape(tr)) || hostSrc && objF2) {
 		return nil
 	}
 	tr.Batch, tr.PerRef = true, true
