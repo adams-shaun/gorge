@@ -329,6 +329,12 @@ func (s *State) landSetGap(k *prep, sl Slot) bool {
 // (CR 602.2b) instead of trusting availLeavesOut's availFor premise.
 func (s *State) availTapsDeferIn(k *prep, p uint8, a *avail) {
 	s.availFor(k, p, a)
+	if s.g.availX&(availGaps|availAny|availWalk|availHyp) != 0 {
+		// those walks already count the plain gap sources (availScript's
+		// scriptTapsDefer arm; the potential walks' main loop, which skips
+		// no deferred source), so a second unit would double them
+		return
+	}
 	m := s.scriptTapsDeferPlain(k, p)
 	a.gapIn = m
 	for b := m; b.any(); b = b.rest() {

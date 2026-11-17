@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"math/bits"
 	"slices"
 	"strings"
 
@@ -86,6 +87,24 @@ func paymentPlanGapRows(e Engine, p state.PlayerID, u WindowUnit) []Alt {
 		if paymentPlanGapGate(e, payer, u.ID, alt) {
 			kept = append(kept, alt)
 		}
+	}
+	// The rows carry the source's flexibility as the census's last-resort
+	// rows do (appendUnitAlternatives): FlexAll is the number of distinct mana
+	// types over every kept row (key 5 in the relaxed passes, which phase 3
+	// reads), and Colours stays 0 -- a source with no normal alternative has
+	// none. Without it every gap source ranks as inflexible, so a source that
+	// makes two types (Turbulent Fen) is spent before a plain land, where the
+	// kernel's second pass taps in battlefield order.
+	var all uint8
+	for _, alt := range kept {
+		for i, n := range alt.Mana {
+			if n > 0 {
+				all |= 1 << i
+			}
+		}
+	}
+	for i := range kept {
+		kept[i].FlexAll = bits.OnesCount8(all)
 	}
 	return kept
 }
