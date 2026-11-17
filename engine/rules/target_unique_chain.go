@@ -126,7 +126,7 @@ func uniqueChainTargetsFeasible(e *Engine, p state.PlayerID, id, excludeSelf sta
 			continue
 		}
 		subExclude := excludeSelf
-		if sub.API == "Attach" {
+		if attachSelfDestination(sub) {
 			subExclude = id
 		}
 		slots = append(slots, uniqueTargetSlot{cands: e.legalTargetCandidates(p, id, subExclude, sub), need: need})
@@ -237,7 +237,7 @@ func uniqueChainViableCandidates(e *Engine, pc *pendingCast, links []*cards.SA, 
 			continue
 		}
 		var excludeSelf state.ObjID
-		if !pc.isAbility() || sub.API == "Attach" {
+		if !pc.isAbility() || attachSelfDestination(sub) {
 			excludeSelf = pc.card
 		}
 		pool := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sub)
