@@ -1062,6 +1062,14 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 				}
 			}
 			o.RememberedStackBase = 0
+			// The same CR 400.7 reset for the imprint association the leave
+			// arm keeps for leaves triggers. A stack entry was cleared when
+			// the spell went onto the stack and may carry cast-time imprints.
+			if o.Incarnation > 1 && enteredFrom != state.ZStack &&
+				!(o.Card != nil && o.Card.IsTransformingDFC() && o.FaceIdx != 0) {
+				o.Imprinted = nil
+				o.ImprintTokens = nil
+			}
 			// CR 400.7: a battlefield entry is a new object, so the cards
 			// the previous incarnation exiled are no longer its own -- except
 			// where the object continues: a spell becoming its permanent, and
@@ -1211,9 +1219,21 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Unlocked = false
 			o.CastDoor = false
 			o.LockedDoors = 0
+			// Imprinted / ImprintTokens are deliberately NOT reset here, like
+			// Remembered above: a leaves-the-battlefield trigger on the source
+			// (Parallax Nexus) reads "Defined$ Imprinted" after the fold, and
+			// CR 603.10a / 607.2a say it looks back at what the permanent
+			// had exiled. They reset at the next battlefield entry or when
+			// the object is moved onto the stack (below).
+			o.SeekFound = nil
+		}
+		// A recast / flashback begins a new object whose cast-time imprint
+		// writes come after this move, so the previous incarnation's stale
+		// association dies here (the stack-entry arm below cannot tell it
+		// from a cast-time write).
+		if !wasBattlefield && !wasStack && to == state.ZStack {
 			o.Imprinted = nil
 			o.ImprintTokens = nil
-			o.SeekFound = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
