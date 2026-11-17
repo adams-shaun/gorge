@@ -1134,3 +1134,22 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 	}
 	return true
 }
+
+// potentialRestrSeed seeds a potential payment pool with p's floating
+// restricted mana a non-spell payment may spend (restrPoolNonSpell): gorge's
+// potentialManaFor prices the pool pay.AvailableFor holds, whose PurposeOther
+// read admits every batch whose spend restriction bars only casting (CR
+// 106.6), so a CantCastNonArtifactSpells batch funds a trigger's own "you may
+// pay {1}" beside no untapped source. The spell class stays out on purpose: a
+// pool holding restricted mana is refused by the planner
+// (mana_restrictedsource.go's head comment).
+func (s *State) potentialRestrSeed(k *prep, p uint8, d *payDesc, pot *[kop.NumManaKinds]int) {
+	if k.gen == nil || d.class != pdOther {
+		return
+	}
+	var t [kop.NumManaKinds]uint8
+	s.rbUnits(p, s.restrPoolNonSpell(k, p), &t)
+	for c, n := range t {
+		(*pot)[c] += int(n)
+	}
+}
