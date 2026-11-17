@@ -87,6 +87,25 @@ func phyPlanHalf(cost kop.ManaCost) kop.ManaCost {
 	return half
 }
 
+// phyCastGateAffords is the offer gate's affordability read for p's cast of
+// card c at cost over cav: the printed cost when its own is affordable, else
+// — for a Phyrexian cost — the pip-free mana half alone, gorge pay.PlanManaHalf
+// (each pip's face is announced afterwards, CR 601.2b). A pip behind the
+// payer's life total (its two-life face above it, its colour face left
+// unfundable by the census the planner's lethal guard holds the pain out of)
+// does not withhold a plain cast the planner prices (dr-mbc-baab pair 141,
+// Porcelain Legionnaire at 1 life).
+func (s *State) phyCastGateAffords(cav *avail, cost *kop.ManaCost) bool {
+	if cav.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
+	if !cost.Phyrexian() {
+		return false
+	}
+	h := phyPlanHalf(*cost)
+	return cav.affords(&h, pipMaskOf(&h), 0)
+}
+
 // phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
 // settled, armed on the mana half; the manual window when none exists
 // (mana_phyrexian.go).

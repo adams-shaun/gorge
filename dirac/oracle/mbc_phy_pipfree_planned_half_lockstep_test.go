@@ -11,9 +11,9 @@ import "testing"
 // ({2}{W/P} = 3 units from a 2-unit census at 1 life, the pain land's colour
 // behind the planner's lethal guard), withholding a plain cast gorge's
 // planner prices (pair 141 of pool dr-mbc-baab, decision 432;
-// Porcelain Legionnaire). The exact name the brief asked for,
-// TestMBCPorcelainLegionnaireReprosLockstep, is taken by
-// mbc_phyrexian_pip_deferred_lockstep_test.go (a different pip cause).
+// Porcelain Legionnaire). The card-named test id
+// TestMBCPorcelainLegionnaireReprosLockstep is taken by
+// mbc_phyrexian_pip_deferred_lockstep_test.go, a different pip cause.
 func TestMBCPhyPipFreePlannedHalfReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "phy_pipfree_planned_half")

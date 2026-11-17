@@ -17,6 +17,18 @@ func (s *State) sorcerySpeed(p uint8) bool {
 	return p == s.active && (s.step == kop.StepMain1 || s.step == kop.StepMain2) && s.sp == 0 && s.cfgx&cfgxNoSorcery == 0
 }
 
+// castGateAffordable is the hand-cast offer gate's affordability read over
+// cav: the printed cost when its own is affordable (s.phyCastGateAffords,
+// mana_phyrexian.go: a Phyrexian cost's pip-free mana half alone, gorge pay.
+// PlanManaHalf, CR 601.2b), else the restricted-spend fallback (a restricted
+// source the spell may spend prices it, as gorge's planner's prefix search).
+func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
+	if s.phyCastGateAffords(cav, cost) {
+		return true
+	}
+	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
+}
+
 func (s *State) priorityOptions(k *prep, d *Decision) {
 	p := s.prio
 	pl := &s.pl[p]
@@ -153,15 +165,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		phyHalf, phyHalfOK := kop.ManaCost{}, false
-		if cost.Phyrexian() {
-			// gorge pay.PlanManaHalf: the cast planner prices the pip-free mana
-			// half alone (each pip's face is announced afterwards, CR 601.2b),
-			// so the offer reads affordable when the half alone is
-			phyHalf = phyPlanHalf(*cost)
-			phyHalfOK = cav.affords(&phyHalf, pipMaskOf(&phyHalf), 0)
-		}
-		if !cav.affords(cost, pipMaskOf(cost), 0) && !phyHalfOK && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)) {
+		if !s.castGateAffordable(k, p, c, o, cost, cav) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
