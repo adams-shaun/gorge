@@ -1122,7 +1122,9 @@ func proliferateOnce(h Host, c *Ctx, sa *cards.SA) {
 	var eligible []state.Target
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if o := g.Obj(id); o != nil && hasRealCounters(o.Counters) {
+			// CR 702.26b: a phased-out permanent is treated as though it does
+			// not exist, so a proliferate cannot choose it.
+			if o := g.Obj(id); o != nil && !o.PhasedOut && hasRealCounters(o.Counters) {
 				eligible = append(eligible, state.Target{Obj: id})
 			}
 		}
