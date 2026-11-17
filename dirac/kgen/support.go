@@ -121,6 +121,46 @@ func statusOf(c *lCard, s *supportLists) (cardset.Status, string) {
 	return cardset.StatusSupported, ""
 }
 
+// CardSupport is one card's support as the support page computes it: statusOf
+// after lowering and building, whether the lowering is two-seat only
+// (kop.CardDef.TwoSeat), and LIRKeysFor's key for the same lowering.
+type CardSupport struct {
+	Status  cardset.Status
+	TwoSeat bool
+	LIRKey  string
+}
+
+// SupportFor lowers and builds the named cards as TestSupportDocIsCurrent does
+// and returns each card's support. A card that records a lowering refusal still
+// has a LIR key, so a caller must read Status, not LIRKey, to know whether the
+// card lowered.
+func SupportFor(cardsDir string, names []string) (map[string]CardSupport, error) {
+	if len(names) == 0 {
+		return map[string]CardSupport{}, nil
+	}
+	p, err := loadCardNames(append([]string(nil), names...), cardsDir)
+	if err != nil {
+		return nil, err
+	}
+	lw := lowerPool(p)
+	// The key is the pre-build block, as LIRKeysFor computes it: buildPool
+	// appends build refusals, which dumpLIR would then hash.
+	keys := LIRKeys(append(append([]*lCard(nil), lw.cards...), lw.tokens...))
+	if _, _, _, err := buildPool(lw); err != nil {
+		return nil, err
+	}
+	s, err := embeddedSupport()
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]CardSupport, len(lw.cards))
+	for _, c := range lw.cards {
+		st, _ := statusOf(c, s)
+		out[c.Name] = CardSupport{Status: st, TwoSeat: c.TwoSeat, LIRKey: keys[c.Name]}
+	}
+	return out, nil
+}
+
 // parseRefusedRepro parses -repro: POOL:SURFACE:PAIR[:POLICY[:MULLIGANS]]. The seed is the
 // evidence corpus's, so a game is named by its pair.
 func parseRefusedRepro(s string) (cardset.RefusedRepro, error) {

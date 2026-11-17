@@ -67,22 +67,36 @@ type row struct {
 
 	// Context the -need file sorts on; not written to rows.tsv.
 	Plays    int
+	OwedUses int // hunt uses of the missing keys; 0 when the hunt has none
 	FourSeat bool
 	sets     []string
 }
 
+// lowerResult is one lowering pass: the cards' LIR keys and, when the caller
+// ran kgen's support path, each card's status.
+type lowerResult struct {
+	keys    map[string]string
+	support map[string]kgen.CardSupport
+}
+
+// lowerFunc lowers the named cards once.
+type lowerFunc func([]string) (lowerResult, error)
+
 // audit is the tests' entry point. It is pure and sorted by card name.
 // auditRows is the same function with the read errors main reports; audit is
-// the wrapper that keeps the tests' call shape.
+// the wrapper that keeps the tests' call shape. Its lir callback has no status,
+// so a key stands in for lowering; run always supplies kgen's status.
 func audit(fsys fs.FS, reg *cards.Registry, lir func([]string) map[string]string, o opts) []row {
-	rows, err := auditRows(fsys, reg, lir, o)
+	rows, err := auditRows(fsys, reg, func(names []string) (lowerResult, error) {
+		return lowerResult{keys: lir(names)}, nil
+	}, o)
 	if err != nil {
 		return nil
 	}
 	return rows
 }
 
-func auditRows(fsys fs.FS, reg *cards.Registry, lir func([]string) map[string]string, o opts) ([]row, error) {
+func auditRows(fsys fs.FS, reg *cards.Registry, lower lowerFunc, o opts) ([]row, error) {
 	ev, err := readEvidence(fsys)
 	if err != nil {
 		return nil, err
@@ -116,15 +130,19 @@ func auditRows(fsys fs.FS, reg *cards.Registry, lir func([]string) map[string]st
 		return nil, err
 	}
 
-	names := universe(reg, ev, ref, sc, legacy, hunt, xl, dx)
-	lirNow := lir(append([]string(nil), names...))
-	if lirNow == nil {
-		lirNow = map[string]string{}
+	names := universe(reg, ev, ref, sc, legacy, hunt, xl, dx, xm)
+	lr, err := lower(append([]string(nil), names...))
+	if err != nil {
+		return nil, err
+	}
+	if lr.keys == nil {
+		lr.keys = map[string]string{}
 	}
 	in := inputs{
 		reg:       reg,
 		supported: effects.Supported(),
-		lirNow:    lirNow,
+		lirNow:    lr.keys,
+		support:   lr.support,
 		ev:        ev,
 		ref:       ref,
 		sc:        sc,
@@ -147,6 +165,7 @@ type inputs struct {
 	reg       *cards.Registry
 	supported map[string]bool
 	lirNow    map[string]string
+	support   map[string]kgen.CardSupport // nil when only LIR keys are known
 	ev        *evidence
 	ref       map[string]*cardset.RefusedEntry
 	sc        map[string]sidecarRow
@@ -272,20 +291,26 @@ func readLegacy(fsys fs.FS) (map[string]bool, error) {
 	return out, nil
 }
 
-// huntRow is one row of the hunt's keys.tsv.
+// huntRow is the part of the hunt's keys.tsv one row needs: Status and Ctx
+// name the engine sides. compared/agreed are outcomes, not sides, so they are
+// not read.
 type huntRow struct {
-	Ctx, Card, Key           string
-	Uses                     int
-	Compared, Agreed, Status string
+	Ctx, Status string
 }
 
 type huntIndex struct {
 	g, x     map[string][]string
 	fourSeat map[string]bool
+	uses     map[string]map[string]int // card -> key -> hunt uses
 }
 
 func readHunt(file string) (*huntIndex, error) {
-	idx := &huntIndex{g: map[string][]string{}, x: map[string][]string{}, fourSeat: map[string]bool{}}
+	idx := &huntIndex{
+		g:        map[string][]string{},
+		x:        map[string][]string{},
+		fourSeat: map[string]bool{},
+		uses:     map[string]map[string]int{},
+	}
 	if file == "" {
 		return idx, nil
 	}
@@ -303,8 +328,7 @@ func readHunt(file string) (*huntIndex, error) {
 			continue
 		}
 		uses, _ := strconv.Atoi(rec["uses"])
-		h := huntRow{Ctx: rec["ctx"], Card: card, Key: key, Uses: uses,
-			Compared: rec["compared"], Agreed: rec["agreed"], Status: rec["status"]}
+		h := huntRow{Ctx: rec["ctx"], Status: rec["status"]}
 		g, x := keySides(h)
 		if g {
 			idx.g[card] = append(idx.g[card], key)
@@ -315,6 +339,16 @@ func readHunt(file string) (*huntIndex, error) {
 		if isFourSeatCtx(h.Ctx) {
 			idx.fourSeat[card] = true
 		}
+		// A key's uses are the card's, not the context's: the contexts that
+		// reached the key repeat the same number, so keep the largest.
+		if uses > 0 {
+			if idx.uses[card] == nil {
+				idx.uses[card] = map[string]int{}
+			}
+			if uses > idx.uses[card][key] {
+				idx.uses[card][key] = uses
+			}
+		}
 	}
 	for _, m := range []map[string][]string{idx.g, idx.x} {
 		for k := range m {
@@ -322,6 +356,30 @@ func readHunt(file string) (*huntIndex, error) {
 		}
 	}
 	return idx, nil
+}
+
+// owedUses is the hunt's uses for the card's missing keys. A missing key the
+// hunt does not record owes one use; ok is false when the hunt has no row for
+// the card.
+func (h *huntIndex) owedUses(card, missing string) (int, bool) {
+	uses := h.uses[card]
+	if uses == nil {
+		if f := firstFace(card); f != "" {
+			uses = h.uses[f]
+		}
+	}
+	if uses == nil {
+		return 0, false
+	}
+	n := 0
+	for _, key := range splitList(missing) {
+		if u, ok := uses[key]; ok {
+			n += u
+		} else {
+			n++
+		}
+	}
+	return n, true
 }
 
 // keySides reads the hunt row's engine columns from the status token. Only
@@ -561,7 +619,7 @@ func readXMageJSON(b []byte) (map[string]string, error) {
 // face, so a split card is one row. A card in no list (unverified or
 // not-lowered) still gets its row.
 func universe(reg *cards.Registry, ev *evidence, ref map[string]*cardset.RefusedEntry, sc map[string]sidecarRow,
-	legacy map[string]bool, hunt *huntIndex, xl *xledgerIndex, dx *diagnosedIndex) []string {
+	legacy map[string]bool, hunt *huntIndex, xl *xledgerIndex, dx *diagnosedIndex, xm map[string]string) []string {
 	seen := map[string]bool{}
 	add := func(n string) {
 		if n != "" {
@@ -606,6 +664,9 @@ func universe(reg *cards.Registry, ev *evidence, ref map[string]*cardset.Refused
 		for n := range dx.blame {
 			add(n)
 		}
+	}
+	for n := range xm {
+		add(n)
 	}
 	names := make([]string, 0, len(seen))
 	for n := range seen {
@@ -660,6 +721,9 @@ func buildRow(name string, in inputs) row {
 	if r.LIRNow != "-" && r.LIRCredit != "-" && r.LIRNow != r.LIRCredit {
 		r.Stale = 1
 	}
+	if cs, ok := supportFor(name, in.support); ok {
+		r.FourSeat = !cs.TwoSeat
+	}
 
 	r.DClaim = diracClaim(name, in, now)
 	r.DLists = dash(strings.Join(in.ev.listsFor(name), ","))
@@ -689,12 +753,32 @@ func buildRow(name string, in inputs) row {
 	}
 	r.GKeys = dash(strings.Join(in.hunt.g[name], ","))
 	r.XKeys = dash(strings.Join(in.hunt.x[name], ","))
-	r.FourSeat = in.hunt.fourSeat[name]
+	if in.hunt.fourSeat[name] {
+		r.FourSeat = true
+	}
+	if n, ok := in.hunt.owedUses(name, r.Missing); ok {
+		r.OwedUses = n
+	}
 	return r
 }
 
-// diracClaim is the support status one home: refused, then not lowered, then
-// unverified, then supported.
+// supportFor is kgen's status for a card, by its full name or, for a split
+// card, its first face.
+func supportFor(name string, m map[string]kgen.CardSupport) (kgen.CardSupport, bool) {
+	if cs, ok := m[name]; ok {
+		return cs, true
+	}
+	if f := firstFace(name); f != "" {
+		if cs, ok := m[f]; ok {
+			return cs, true
+		}
+	}
+	return kgen.CardSupport{}, false
+}
+
+// diracClaim is the support status one home: refused, then kgen's own status
+// (not lowered, refused, unverified, supported). Without a support map, as in
+// the fixture wrapper, a LIR key is the only lowering signal.
 func diracClaim(name string, in inputs, now string) string {
 	if _, ok := in.ref[name]; ok {
 		return "refused"
@@ -702,6 +786,18 @@ func diracClaim(name string, in inputs, now string) string {
 	if f := firstFace(name); f != "" {
 		if _, ok := in.ref[f]; ok {
 			return "refused"
+		}
+	}
+	if cs, ok := supportFor(name, in.support); ok {
+		switch cs.Status {
+		case cardset.StatusNotLowered:
+			return "not-lowered"
+		case cardset.StatusRefused:
+			return "refused"
+		case cardset.StatusUnverified:
+			return "unverified"
+		case cardset.StatusSupported:
+			return "supported"
 		}
 	}
 	if now == "" {
@@ -855,8 +951,9 @@ func writeRows(w io.Writer, rows []row) error {
 
 // writeNeed writes the hunt plan's need/<ctx>.tsv: the supported cards whose
 // missing keys are still owed, 4-seat cards first and then fewer plays first.
-// owed_uses is the number of owed keys: each is one use the evidence runs have
-// not yet exercised, so it counts the uses owed, not the plays the card had.
+// owed_uses is the hunt's uses of the owed keys when the hunt has a row for the
+// card; otherwise it is one use per owed key (the use the evidence has not yet
+// exercised).
 func writeNeed(w io.Writer, rows []row) error {
 	var need []row
 	for _, r := range rows {
@@ -878,7 +975,11 @@ func writeNeed(w io.Writer, rows []row) error {
 		return err
 	}
 	for i, r := range need {
-		if _, err := fmt.Fprintf(bw, "%s\t%s\t%d\t%d\n", r.Card, r.Missing, len(splitList(r.Missing)), i+1); err != nil {
+		owed := len(splitList(r.Missing))
+		if r.OwedUses > 0 {
+			owed = r.OwedUses
+		}
+		if _, err := fmt.Fprintf(bw, "%s\t%s\t%d\t%d\n", r.Card, r.Missing, owed, i+1); err != nil {
 			return err
 		}
 	}
@@ -1015,8 +1116,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	var lirErr error
-	lir := func(names []string) map[string]string {
+	lower := func(names []string) (lowerResult, error) {
 		load := make([]string, 0, len(names))
 		seen := map[string]bool{}
 		for _, n := range names {
@@ -1034,21 +1134,23 @@ func run(args []string) error {
 			}
 		}
 		if len(load) == 0 {
-			return nil
+			return lowerResult{keys: map[string]string{}}, nil
 		}
-		m, err := kgen.LIRKeysFor(*cardsDir, load)
+		support, err := kgen.SupportFor(*cardsDir, load)
 		if err != nil {
-			lirErr = fmt.Errorf("lowering keys: %w", err)
-			return nil
+			return lowerResult{}, fmt.Errorf("lowering: %w", err)
 		}
-		return m
+		keys := make(map[string]string, len(support))
+		for name, cs := range support {
+			if cs.LIRKey != "" {
+				keys[name] = cs.LIRKey
+			}
+		}
+		return lowerResult{keys: keys, support: support}, nil
 	}
-	rows, err := auditRows(os.DirFS(*root), reg, lir, o)
+	rows, err := auditRows(os.DirFS(*root), reg, lower, o)
 	if err != nil {
 		return err
-	}
-	if lirErr != nil {
-		return lirErr
 	}
 	wrote := false
 	if *out != "" {
