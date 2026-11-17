@@ -122,7 +122,13 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	}
 	s.ctrlM[si] = ctrl.andNot(hold)
 	paid = s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
-	s.ctrlM[si] = ctrl
+	// Restore the artifacts this payment withheld, not the whole saved mask: the
+	// plan behind tapForTry may have sacrificed an Eldrazi Scion (or another
+	// sacrifice source) to fund the cost, and removePerm cleared its control bit
+	// while its occupancy bit went with it. Putting the old mask back would leave
+	// the sacrificed source in ctrlM with no occupancy, and attackerOptions reads
+	// ctrlM without s.occ: a stale token would be offered as an attacker.
+	s.ctrlM[si] = s.ctrlM[si].or(hold.and(s.occ))
 	if paid {
 		return false, true
 	}
