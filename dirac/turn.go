@@ -419,7 +419,10 @@ func (s *State) finishCleanup(k *prep) {
 	}
 	if s.g.nfx > 0 {
 		// the until-end-of-turn one-shot losses end with ovLoseAllEOT above
-		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxLoseAll && r.r.eot() || r.kind == fxKwGrant })
+		s.dropFx(func(i int) bool {
+			r := &s.g.fx[i]
+			return r.kind == fxLoseAll && r.r.eot() || r.kind == fxKwGrant || r.kind == fxPrevGrant
+		})
 	}
 	if s.g.nfx > 0 {
 		s.cloneCleanup(k) // until-end-of-turn copies end (CR 514.2; copy_clone.go)

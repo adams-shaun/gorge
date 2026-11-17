@@ -592,7 +592,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			code = TCode(s.perms[fe.dst].obj)
 		}
 		ro.pnx = 0
-		if n = s.prevNextCands(k, code, true, &ro.cand, n, &ro.pnx); n < 0 {
+		if n = s.prevNextCands(k, code, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
 			return 0
 		}
 		ro.prev &^= ro.pnx
@@ -978,6 +978,18 @@ func (s *State) replOrderOptions(d *Decision) {
 			o := ro.cand[i]
 			if ro.pnx&(1<<i) != 0 {
 				o = s.g.prevCol[o].obj // a shield's option names its source
+			} else if ro.on && ro.prev&(1<<i) != 0 && ro.pcol&(1<<i) == 0 && ro.shld&(1<<i) == 0 {
+				// a granted combat-damage prevention is gorge's Effect: its
+				// option names the granting object, not the protected one
+				if o == s.perms[ro.askS].obj {
+					if gs := s.prevGrantSrc(ro.askS); gs != NoObj {
+						o = gs
+					}
+				} else if ro.askD != NoSlot && o == s.perms[ro.askD].obj {
+					if gs := s.prevGrantSrc(ro.askD); gs != NoObj {
+						o = gs
+					}
+				}
 			}
 			d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i))) // mode: gorge's scan index
 		}
@@ -1322,7 +1334,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	var pnx uint8
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
-		if c = s.prevNextCands(k, code, false, &cand, c, &pnx); c < 0 {
+		if c = s.prevNextCands(k, code, false, &cand, c, &pnx, prev); c < 0 {
 			return false
 		}
 		prev &^= pnx
