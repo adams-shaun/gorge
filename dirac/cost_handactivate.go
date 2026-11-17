@@ -35,6 +35,9 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 				// before the first land drop (legal.go's canActivate census)
 				continue
 			}
+			if !s.millRevealPayable(k, p, o, &a.Cost) {
+				continue // cost_millcost.go: CR 701.17b's library (a hand source pays its own reveal)
+			}
 			if a.Cost.Flags&kop.CostPayLife != 0 && int(pl.life) < lifeCostOwed(&a.Cost) {
 				continue // CR 119.4: Street Wraith's "Cycling-Pay 2 life" at 1 life
 			}

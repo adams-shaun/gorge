@@ -9,16 +9,29 @@ import (
 
 // The cost tokens costHand now lowers, locked against gorge: Abandon Hope's
 // announced-X Discard<X/Card/card> (the cast's X announced once, then that
-// many discard picks) and Vexing Devil's literal DamageYou<4> unless cost (the
-// resolving source deals 4 damage to the payer). The deck is only those two
-// spells and the basics that pay them, so every cast exercises an arm.
+// many discard picks), Vexing Devil's literal DamageYou<4> unless cost (the
+// resolving source deals 4 damage to the payer), Rot Farm Skeleton's
+// activated Mill<4> (the payer mills four from their own library's top to
+// return it from their graveyard) and the forecast family's activated
+// Reveal<1/CARDNAME> (Pride of the Clouds, Sky Hussar and Karlov's Crossbow:
+// the cost's only candidate is the source itself, CR 201.5, so a battlefield
+// copy can never pay it and the ability is withheld; gorge never offers these
+// abilities from the hand either — no ActivationZone$ Hand — so the forecast
+// costs stay unpayable on both engines and the offer gates must agree).
 func kcostTokensDecks() [2][]cardset.Entry {
 	d := []cardset.Entry{
-		{Name: "Abandon Hope", Count: 8},
-		{Name: "Vexing Devil", Count: 8},
-		{Name: "Swamp", Count: 10},
-		{Name: "Mountain", Count: 10},
+		{Name: "Abandon Hope", Count: 4},
+		{Name: "Vexing Devil", Count: 4},
+		{Name: "Rot Farm Skeleton", Count: 4},
+		{Name: "Pride of the Clouds", Count: 3},
+		{Name: "Sky Hussar", Count: 2},
+		{Name: "Karlov's Crossbow", Count: 2},
+		{Name: "Grizzly Bears", Count: 2},
+		{Name: "Swamp", Count: 6},
+		{Name: "Forest", Count: 3},
 		{Name: "Island", Count: 4},
+		{Name: "Mountain", Count: 4},
+		{Name: "Plains", Count: 2},
 	}
 	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }
@@ -48,6 +61,53 @@ func TestCostTokensLockstepMutationDamageYou(t *testing.T) {
 	if n == 0 {
 		t.Fatal("no seed diverged with the DamageYou sentinel dropped")
 	}
+}
+
+// TestCostTokensLockstepMutationMill: with the Mill cost byte dropped the
+// Skeleton returns from the graveyard without milling and a seed must
+// diverge (the libraries' sizes differ).
+func TestCostTokensLockstepMutationMill(t *testing.T) {
+	t.Parallel()
+	n := lockstepRun(t, "costtokens", kcostTokensDecks(), 60, false, kcostTokensDropMill)
+	if n == 0 {
+		t.Fatal("no seed diverged with the Mill cost byte dropped")
+	}
+}
+
+// TestCostTokensLockstepMutationReveal: with the RevealSelf byte dropped the
+// kernel offers the forecast ability on the battlefield, where gorge withholds
+// it (the cost's only candidate is the source itself, CR 201.5), and a seed
+// must diverge.
+func TestCostTokensLockstepMutationReveal(t *testing.T) {
+	t.Parallel()
+	n := lockstepRun(t, "costtokens", kcostTokensDecks(), 60, false, kcostTokensDropReveal)
+	if n == 0 {
+		t.Fatal("no seed diverged with the RevealSelf cost byte dropped")
+	}
+}
+
+func kcostTokensDropMill(tbl *kop.Table) {
+	cards := append([]kop.CardDef(nil), tbl.Cards...)
+	for i := range cards {
+		abs := append([]kop.Ability(nil), cards[i].Abilities...)
+		for j := range abs {
+			abs[j].Cost.Mill = 0
+		}
+		cards[i].Abilities = abs
+	}
+	tbl.Cards = cards
+}
+
+func kcostTokensDropReveal(tbl *kop.Table) {
+	cards := append([]kop.CardDef(nil), tbl.Cards...)
+	for i := range cards {
+		abs := append([]kop.Ability(nil), cards[i].Abilities...)
+		for j := range abs {
+			abs[j].Cost.RevealSelf = false
+		}
+		cards[i].Abilities = abs
+	}
+	tbl.Cards = cards
 }
 
 func kcostTokensDropDiscardX(tbl *kop.Table) {

@@ -3585,6 +3585,21 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if f&kop.CostPayEnergy != 0 {
 		s.payEnergy(e.ctrl, &a.Cost)
 	}
+	if a.Cost.Mill != 0 {
+		// Cost.Mill (CR 701.17b): the payer mills the count from their own
+		// library's top, where gorge's cast_commit pays it -- after the life
+		// and energy parts, before the draws (cost_millcost.go). The offer
+		// gates priced the library, so the count below is a guard only.
+		s.millCostPay(k, e.ctrl, int(a.Cost.Mill))
+	}
+	if a.Cost.RevealSelf {
+		// Cost.RevealSelf (the forecast family's Reveal<1/CARDNAME>, CR
+		// 702.54a): the cost's only candidate is the source itself (CR 201.5;
+		// cast_revealpick.go), so nothing moves: gorge settles it unasked
+		// (cast_asks.go revealCostAsk) and announces it as a Note only
+		// (cast_commit.go's EmitChoiceCosts). The offer gates priced the
+		// source's zone, so this arm is a guard only.
+	}
 	if f&kop.CostTapHost != 0 {
 		s.tapHostGen(k, e)
 	}

@@ -2849,6 +2849,14 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if err := lc.damageYouCost(&c, parts, n, t); err != nil { // lower_costtokenforms.go
 				return c, err
 			}
+		case "Mill":
+			if err := lc.millCost(&c, parts, n, t); err != nil { // lower_costtokenforms.go
+				return c, err
+			}
+		case "Reveal":
+			if err := lc.revealSelfCost(&c, parts, n, t); err != nil { // lower_costtokenforms.go
+				return c, err
+			}
 		default:
 			return c, refuse("cost token %q", t)
 		}
@@ -3225,6 +3233,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := handManaRefusal(ab.Kind, c); err != nil {
 			return err
 		}
+		lc.forecastParam(ps)
 		lc.unblockedOK = strings.TrimSpace(sa.Params["Keyword"]) == "Ninjutsu"
 		lc.actCost = ab.Kind == akActivated
 		cost, err := lc.costHand(c)
