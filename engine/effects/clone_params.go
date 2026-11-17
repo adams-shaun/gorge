@@ -181,6 +181,13 @@ func isCloneSA(sa *cards.SA) bool {
 	return sa != nil && sa.API == "Clone"
 }
 
+// IsCloneAPI is isCloneSA for a caller outside the package (rules' entry
+// replacement walk), so it dispatches without its own string compare.
+func IsCloneAPI(sa *cards.SA) bool { return isCloneSA(sa) }
+
+// IsGenericChoiceAPI is isGenericChoiceAPI for a caller outside the package.
+func IsGenericChoiceAPI(sa *cards.SA) bool { return isGenericChoiceAPI(sa) }
+
 // CloneOf returns sa's compiled Clone parameters: the configured record's
 // when it is bound to sa's Params map, else the front cache's entry for that
 // map, else a fresh compile stored in the front cache (ChangeZoneOf's
