@@ -46,6 +46,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	pl := &s.pl[p]
 	sorc := s.sorcerySpeed(p)
 	var av avail
+	// A cast prices a dynamic {T}, sacrifice source on the full surface
+	// (gorge's script route); the autopay surface drops a scripted plain cast
+	// (script_gen.go autopayDropsPlainCast).
+	av.dynSac = s.cfg&cfgGorgeAutopay == 0
 	haveAv := false
 	// faces: a table with built faces or a face-down card (one gate keeps
 	// the hand loop's registers as they were: facedown's perf blocker)
@@ -349,10 +353,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.offerPreparedCasts(k, d, p, sorc) // face_prepare.go
 	}
 	// activated abilities
-	// A dynamic {T}, sacrifice source (Lotus Blossom) is a census unit for an
-	// activated-ability offer -- gorge's potential planner activates it while
-	// paying -- but not for a cast: its cast planner never plans an
-	// indeterminate amount (avail.dynSac, gen.go dynamicManaCost).
 	dynWas := s.g.availX
 	if k.gen != nil && len(k.gen.varPC) != 0 {
 		av.dynSac = true
@@ -370,8 +370,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.anyRoom && sorc {
 			s.offerUnlocks(k, d, p) // CR 709.5e: special action (face_rooms.go)
 		}
-		s.g.availX = dynWas // the script walks below read their own modes
-		av.dynSac = false
+		s.g.availX = dynWas                    // the script walks below read their own modes
+		av.dynSac = s.cfg&cfgGorgeAutopay == 0 // the casts below price what the surface offers
 		haveAv = false
 		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
@@ -397,7 +397,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 // activateOffers appends p's printable activated abilities to d and reports
 // whether av was built. The walk's census carries dynSac when the table has
 // dynamic-amount variants (priorityOptions): an activated-ability offer
-// prices a dynamic {T}, sacrifice source, unlike a cast.
+// prices a dynamic {T}, sacrifice source on either surface, a cast on the full
+// surface (the autopay surface drops a scripted plain cast).
 func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *avail, haveAv bool) bool {
 	m := s.ctrlM[p]
 	for m.any() {
