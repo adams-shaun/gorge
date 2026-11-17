@@ -104,6 +104,12 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithFlashback), true
 	case "withInfect":
 		return int(kop.W7WithInfect), true
+	case "Snow":
+		// gorge hasType Snow: the printed supertype, never while face down
+		// (kop.W7Snow); TypeMask and FilterFlags2 have no bit left for it
+		return int(kop.W7Snow), true
+	case "nonSnow":
+		return int(kop.W7NonSnow), true
 	case "attackingSame":
 		// the source's own defender (gorge attackingSame; Kitesail
 		// Skirmisher). Read where a source slot exists: a spell's source is
@@ -372,4 +378,13 @@ func filterReadsNotBlocking(f *lFilter) bool {
 		}
 	}
 	return false
+}
+
+// cutNon is the word a non<word> property negates; nonSnow is no negation
+// but its own word (filterWordPred3, kop.W7NonSnow).
+func cutNon(p string) (string, bool) {
+	if p == "nonSnow" {
+		return "", false
+	}
+	return strings.CutPrefix(p, "non")
 }

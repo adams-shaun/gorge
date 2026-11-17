@@ -265,6 +265,10 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 // of wasCastRead are negated.
 var DebugWord9Flip bool
 
+// DebugSnowWordFlip is TestSnowFilterMutation's switch: the W7Snow and
+// W7NonSnow answers are negated.
+var DebugSnowWordFlip bool
+
 // wasCastSpentZero is PredWasCastEnter's PredN bit for CastSa
 // Spell.ManaSpent EQ0 (kgen wasCastSpentZero).
 const wasCastSpentZero = 8
@@ -366,8 +370,26 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// the source crewed this Vehicle this turn (gorge CrewedBySourceThisTurn);
 		// no source fails closed
 		ans = src != NoSlot && s.srcMarked(smCrewed, s.perms[sl].obj, src)
+	default:
+		ans = s.snowWordPerm(k, fl, sl)
 	}
 	return ans != DebugWord9Flip
+}
+
+// snowWordPerm is W7Snow and W7NonSnow on a battlefield permanent (false for
+// any other sub-kind): the printed Snow supertype; a face-down permanent has
+// only its face-down type words (CR 708.2) and is never snow.
+func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
+	n := fl.PredN & 0xff
+	if n != kop.W7Snow && n != kop.W7NonSnow {
+		return false
+	}
+	c := s.cardAt(sl)
+	snow := c != kop.NoCard && k.t.Cards[c].Snow && !s.faceDown(k, sl)
+	if n == kop.W7NonSnow {
+		return (c != kop.NoCard && !snow) != DebugSnowWordFlip
+	}
+	return snow != DebugSnowWordFlip
 }
 
 // wordCard3 is the sub-kinds on a card off the battlefield (fd: face down): withWarp reads
@@ -387,6 +409,10 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0
 	case kop.W7WithInfect:
 		ans = c != kop.NoCard && k.t.Cards[c].Infect
+	case kop.W7Snow:
+		ans = (c != kop.NoCard && k.t.Cards[c].Snow && !fd) != DebugSnowWordFlip
+	case kop.W7NonSnow:
+		ans = (c != kop.NoCard && !(k.t.Cards[c].Snow && !fd)) != DebugSnowWordFlip
 	case kop.W7FaceUpDisguise:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].MorphFamily == kop.MorphDisguise
 	case kop.W7NotBlocking:
