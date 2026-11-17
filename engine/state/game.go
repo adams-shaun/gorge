@@ -51,6 +51,15 @@ type Player struct {
 	LifeGainedThisTurn    int32
 	LifeLostThisTurn      int32
 	TokensCreatedThisTurn int32
+	// WasDealtDamageThisTurn is the seat-side twin of state.Object's flag of
+	// the same name: a positive Damage event dealt this seat damage since the
+	// last TurnChange, poison-replaced or not (the same read Forge's
+	// wasDealtDamageThisTurn player property takes on a player target --
+	// Needle Drop's ValidTgts$ Any.wasDealtDamageThisTurn). Folded only by
+	// events.Apply (foldDamage, beside the object recipient's record) and
+	// cleared at TurnChange with the other watchers, so a log-only replay
+	// rebuilds it exactly; clone copies it with the Player struct.
+	WasDealtDamageThisTurn bool
 	// AttackedPlayersThisTurn and AttackedPlaneswalkersThisTurn are the
 	// seat's attack watchers: bit d is set when a creature this seat
 	// controlled was declared attacking player d itself, or a planeswalker

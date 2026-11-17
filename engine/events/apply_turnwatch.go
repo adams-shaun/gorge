@@ -15,6 +15,7 @@ func resetTurnWatchers(p *state.Player) {
 	p.SpellsCastThisTurn = 0
 	p.LifeGainedThisTurn = 0
 	p.LifeLostThisTurn = 0
+	p.WasDealtDamageThisTurn = false
 	p.TokensCreatedThisTurn = 0
 	p.AttackedPlayersThisTurn = 0
 	p.AttackedPlaneswalkersThisTurn = 0

@@ -2306,10 +2306,13 @@ type genState struct {
 	// Unravel; gorge targetManaSpentLKI).
 	tgtSpent uint8
 	// turnF: per player this turn's facts (static_turnbits.go). Bit p: player p
-	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 7:
-	// the walk in progress is an unless / ward window (setUnlessWin,
-	// mana_window.go), set and cleared around it. Bits 4-6 are free. Cleared at the turn change. Taken from rsv.
-	turnF uint8
+	// flipped a coin. Bit 2+p: player p activated an Exhaust ability. Bit 4+p
+	// (turnDamagedShift): seat p was dealt positive damage this turn (gorge
+	// state.Player.WasDealtDamageThisTurn, plDmgMark). Bit 7: the walk in
+	// progress is an unless / ward window (setUnlessWin, mana_window.go), set
+	// and cleared around it. Bit 6 is free. Cleared at the turn change. Taken
+	// from rsv.
+	turnF turnFT
 	// dmgAmt: the positive damage each reader card's object (CardDef.DmgAmt)
 	// received this turn, o = Obj+1 (0 empty) and n saturating at 255
 	// (value_dmgamount.go). Written only under genPrep.anyDmgAmt; cleared at the
@@ -2357,6 +2360,20 @@ const (
 type dmgAmtRec struct {
 	o Obj
 	n uint8
+}
+
+// plDmgMark records that seat p was dealt n positive damage this turn, the
+// seat arm of gorge's wasDealtDamageThisTurn (state.Player.
+// WasDealtDamageThisTurn, events.foldDamage's seat record -- poison-replaced
+// or not, the same positive-only read dmgTurn's fold takes on objects). Every
+// player-damage fold calls it beside its life/poison fold; a paid life cost
+// never does (gorge: a life payment is no Damage event). Cleared at the turn
+// change beside dmgTurn (turn_gen.go). It lives in genState.turnF's free
+// bits, so State does not grow (TestStateLayoutPinned).
+func (s *State) plDmgMark(p uint8, n int) {
+	if n > 0 {
+		s.g.turnF |= turnDamagedMask(p)
+	}
 }
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).

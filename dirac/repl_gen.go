@@ -873,6 +873,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		s.noteDmgTaken(ro.apl, n)  // kw_bloodthirst.go
 		s.notePlDamaged(k, ro.apl) // value_oppsdamaged.go
 		s.loseLife(k, ro.apl, n)
+		s.plDmgMark(ro.apl, n) // the redirect's damage (gorge events.foldDamage at the new recipient)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
 		s.touchSl(sl)
@@ -924,6 +925,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		s.noteDmgTaken(CodeSeat(src.atk), n)  // kw_bloodthirst.go
 		s.notePlDamaged(k, CodeSeat(src.atk)) // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(src.atk), n)
+		s.plDmgMark(CodeSeat(src.atk), n) // the redirect's damage (gorge events.foldDamage at the new recipient)
 	} else {
 		sl := ev.dst
 		p := &s.perms[sl]
@@ -1357,6 +1359,7 @@ func (s *State) dealNC(k *prep) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
 		s.loseLife(k, CodeSeat(code), n)
+		s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	} else {
 		ob := &s.objs[code]
 		if ob.zone != kop.ZoneBattlefield {

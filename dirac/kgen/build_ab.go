@@ -378,11 +378,11 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		switch {
 		case f.Players == plBoth && len(f.Clauses) == 1 && f.Clauses[0] == (lClause{Types: tCreature | tPlaneswalker}):
 			ts.Kind = kop.TgtAny
-		case f.Players == plBoth && len(f.Clauses) == 1 && f.Clauses[0] == (lClause{Types: tPlaneswalker}):
+		case f.Players == plBoth && len(f.Clauses) == 1 && anyKeptObjectClause(f.Clauses[0]):
 			// "target player or planeswalker" (Boros Charm, Viashino
-			// Pyromancer): a player matches the player
-			// alternative, a permanent the planeswalker one. Same target
-			// walk as "any target", with the object clause as the filter.
+			// Pyromancer) and Any.wasDealtDamageThisTurn (Needle Drop): the
+			// "any target" walk with the object clause as the filter (see
+			// anyKeptObjectClause).
 			ts.Kind = kop.TgtAny
 			g := *f
 			g.Players = 0
@@ -2934,6 +2934,18 @@ func originMask(from string) int {
 		}
 	}
 	return m
+}
+
+// anyKeptObjectClause reports the one-clause object halves of a player-or-
+// permanent target that lower as the TgtAny walk with the clause kept as its
+// filter: a planeswalker alone ("target player or planeswalker": Boros Charm),
+// and a creature or planeswalker dealt damage this turn
+// (Any.wasDealtDamageThisTurn: Needle Drop), whose flag the seat arm reads
+// against the seat's per-turn damage record (legal.go targetOK,
+// genState.plDmgT) and the object arm against dmgTurn.
+func anyKeptObjectClause(c lClause) bool {
+	return c == (lClause{Types: tPlaneswalker}) ||
+		c == (lClause{Types: tCreature | tPlaneswalker, Flags: fWasDamaged})
 }
 
 // cantCounterRepl builds ReplSpellsCantBeCountered: the cast spell filter

@@ -151,6 +151,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		} else {
 			s.loseLife(k, p, m)
 		}
+		s.plDmgMark(p, m) // wasDealtDamageThisTurn's seat arm (gen.go)
 		s.res.lastDmg = int16(m)
 		if kw&kop.KwLifelink != 0 && !DebugDmgSrcPlNoLifelink {
 			s.gainLife(k, ctrl, m)

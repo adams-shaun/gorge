@@ -6,8 +6,15 @@ const MaxSeats = 2
 
 // turnExhaustShift is the first bit of a player's Exhaust-activation fact in
 // genState.turnF: bits 0-1 hold the coin flips, bits 2-3 the Exhaust
-// activations (4-7 stay free; static_turnbits.go).
-const turnExhaustShift = 2
+// activations, bits 4-5 the damage-dealt record (6-7 stay free;
+// static_turnbits.go).
+const (
+	turnExhaustShift = 2
+	turnDamagedShift = 4
+)
+
+// turnFT is genState.turnF's width.
+type turnFT = uint8
 
 // TCode is a target code: an Obj, a stack ability, a player or none, as an
 // Action's source and target fields and the stack's target records hold it.

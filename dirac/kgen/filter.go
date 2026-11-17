@@ -537,6 +537,17 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 			f.Players |= plBoth
 			f.Clauses = append(f.Clauses, lClause{Types: tCreature | tPlaneswalker})
 			continue
+		case "Any.wasDealtDamageThisTurn":
+			// gorge's Any.<props> head admits players too (the shared
+			// wasDealtDamageThisTurn word: MatchesPlayerSpecFrom's seat arm
+			// reads state.Player.WasDealtDamageThisTurn, the object arm
+			// state.Object's flag): the ONE target slot may name a seat dealt
+			// damage this turn as well as a creature or planeswalker dealt
+			// damage this turn, both judged by the same flag (legal.go
+			// targetOK; Needle Drop).
+			f.Players |= plBoth
+			f.Clauses = append(f.Clauses, lClause{Types: tCreature | tPlaneswalker, Flags: fWasDamaged})
+			continue
 		}
 		c, err := parseClause(alt, knownSub)
 		if err != nil {
