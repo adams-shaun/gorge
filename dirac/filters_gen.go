@@ -687,9 +687,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if f2&kop.F2ChosenType != 0 {
 			// a card filter reads the resolution's mid-resolution
 			// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
-			// static source's choice is handled by featCardMatch before
-			// the filter reaches here, so outside a resolution there is
-			// no choice to read
+			// static source's choice is read by matchMayPlayFilter for a
+			// may-play static, so outside a resolution there is no
+			// choice to read here
 			ch, ok := s.chosenTypeSub(NoSlot)
 			if !ok {
 				return false
