@@ -3398,5 +3398,9 @@ func init() {
 		// opponent's pay ask) and the "if tribute wasn't paid" trigger are
 		// expanded from the keyword line in cards/kw_tribute.go.
 		"kw:Tribute",
+		// Champion (CR 702.72): the exile-or-sacrifice enters trigger and the
+		// return on leaving are expanded from the keyword line in
+		// cards/kw_champion.go.
+		"kw:Champion",
 	)
 }
