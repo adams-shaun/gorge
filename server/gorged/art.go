@@ -105,6 +105,51 @@ type artCache struct {
 
 	mu       sync.Mutex
 	inflight map[string]chan struct{} // key -> closed when that key's fetch finishes
+
+	// bg tracks the fetches that outlive their caller (queueTextFill's
+	// fire-and-forget fill, boundedWait's detached run), and bgStop cancels
+	// them, so serve's shutdown (closeBackground) leaves nothing writing into
+	// the cache directory after it returns. A fill that settled the cache
+	// after shutdown raced a test's TempDir cleanup ("directory not empty").
+	bgMu     sync.Mutex
+	bgCtx    context.Context
+	bgStop   context.CancelFunc
+	bgClosed bool
+	bg       sync.WaitGroup
+}
+
+// background runs f in its own goroutine under the cache's lifetime: f's
+// context is cancelled by closeBackground, which waits for f to return. Once
+// the cache is closed, f does not run and background reports false.
+func (a *artCache) background(f func(context.Context)) bool {
+	a.bgMu.Lock()
+	if a.bgClosed {
+		a.bgMu.Unlock()
+		return false
+	}
+	if a.bgCtx == nil {
+		a.bgCtx, a.bgStop = context.WithCancel(context.Background())
+	}
+	ctx := a.bgCtx
+	a.bg.Add(1)
+	a.bgMu.Unlock()
+	go func() {
+		defer a.bg.Done()
+		f(ctx)
+	}()
+	return true
+}
+
+// closeBackground cancels every background fetch and waits for them to
+// return; no new one starts after it.
+func (a *artCache) closeBackground() {
+	a.bgMu.Lock()
+	a.bgClosed = true
+	if a.bgStop != nil {
+		a.bgStop()
+	}
+	a.bgMu.Unlock()
+	a.bg.Wait()
 }
 
 const artUserAgent = "gorge-art-cache/1 (+https://github.com/adams-shaun/gorge)"
@@ -445,7 +490,8 @@ type artResult struct {
 // boundedWait races run against the wait budget. The whole point is that the
 // outbound fetch is NOT cancelled when the budget expires — the caller's
 // connection is released with a 503 while the fetch keeps running detached
-// (context.WithoutCancel of the request's context, never cancelled) and
+// (context.WithoutCancel of the request's context, cancelled only by serve's
+// shutdown, closeBackground) and
 // settles the cache on disk for whoever asks next. The budget timer is armed
 // through afterFunc, this cache's clock seam, so a fake-clock test gets a
 // fake budget too. run must be safe to keep running after boundedWait has
@@ -455,12 +501,17 @@ func (a *artCache) boundedWait(ctx context.Context, run func(context.Context) (b
 	if a.waitBudget <= 0 {
 		return run(ctx)
 	}
-	fetchCtx := context.WithoutCancel(ctx)
 	done := make(chan artResult, 1)
-	go func() {
+	started := a.background(func(bgCtx context.Context) {
+		fetchCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
+		defer stop()
+		defer context.AfterFunc(bgCtx, stop)()
 		hit, err := run(fetchCtx)
 		done <- artResult{hit, err}
-	}()
+	})
+	if !started {
+		return false, errArtPending // the server is shutting down
+	}
 	fired := make(chan struct{})
 	stop := a.afterFunc(a.waitBudget, func() { close(fired) })
 	defer stop()
