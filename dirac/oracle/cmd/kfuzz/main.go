@@ -40,6 +40,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -105,6 +106,21 @@ func addMiniDecks(c *oracle.Corpus, pool []oracle.PoolDeck, n int) error {
 
 // runKernel is the side this run plays against, as a Repro records it.
 var runKernel string
+
+// synthFaceDownPolicy wraps pol with the face-down overlay for a synthetic
+// pool that holds both a Morph-family carrier and a triggered mana source. The
+// face-down cast and the turn-up are priced from the floating pool alone, so
+// only a floater can offer them; a pool without one keeps the base policy.
+// Eligibility reads the same compiled faces the runtime policy reads, so the
+// pool selection and the steering policy cannot disagree about what a floater
+// is.
+func synthFaceDownPolicy(synth string, reg *cards.Registry, set cardset.Set, pol func(uint64) oracle.Policy) func(uint64) oracle.Policy {
+	if synth == "" || !oracle.FaceDownSweepEligible(reg, set) {
+		return pol
+	}
+	base := pol
+	return func(seed uint64) oracle.Policy { return oracle.FaceDownPolicy(base(seed)) }
+}
 
 // kernelLabel names the side a run plays against: the synthetic pool, the
 // card set the fdn path plays, or the kernel flag itself.
@@ -279,8 +295,7 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "kfuzz: -cmd-mini needs -seats above 2, a positive card count and a pool, not -synth")
 		return 2
 	}
-	// synthGorge plays a synthetic pool's decks gorge against gorge, the
-	// harness check of a game of more than two seats.
+	// synthGorge plays a synthetic pool's decks gorge against gorge, a >2-seat harness check.
 	synthGorge := *synth != "" && *seats > 2 && explicit["kernel"] && *kernel == "gorge"
 	if *seats > 2 {
 		for _, name := range []string{"repro", "replay", "v2", "pairs-file", "coverage", "branches"} {
@@ -500,6 +515,7 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "kfuzz: -policy %q: want random, heuristic, explore or first\n", *policy)
 		return 2
 	}
+	pol = synthFaceDownPolicy(*synth, c.Reg, set, pol)
 	var mk oracle.SideFactory
 	switch *kernel {
 	case "gorge":
