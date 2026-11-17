@@ -45,6 +45,7 @@ var DebugRestrTypedFirst bool
 // artTag records that the mana source at sl added a unit of colour col to
 // p's pool. It is called after the unit is added.
 func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
+	s.snowTag(k, p, sl, col) // the snow half of the tag (mana_snow.go)
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
 		s.g.poolArt[SeatIx(p)] |= 1 << col
 		if k.cards[s.cardAt(sl)].castSrc&csTreasure != 0 {
@@ -58,17 +59,38 @@ func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 // treSync is the Treasure half of artSync. gorge spends a plain unit of a
 // colour before a Treasure's (pay.takeUnit), so after any spend the Treasure
 // units still floating in a slot are the fewest the slot's remaining units
-// can hold: min(tallied, left). Each one that went was spent, and when a spell
-// is being built that is the cast's Treasure-spend bit (bflTre, CR 601.2h).
-// The bit follows the spend, not the tap: a Treasure tapped (or sacrificed at
+// can hold: min(tallied, left). The slot's snow units go first too — after the
+// plain ones, before a Treasure's (pay.takeUnit spends plain, then typed, then
+// snow) — so when p's pool holds snow units (poolArtSnow) the clamp reads them
+// out first: min(tallied, left-Snow[left]). snowSync has clamped the tally to
+// the slot by the time this runs (artSync calls it first), so left-Snow does
+// not go under zero. Each one that went was spent, and when a spell is being
+// built that is the cast's Treasure-spend bit (bflTre, CR 601.2h). The bit
+// follows the spend, not the tap: a Treasure tapped (or sacrificed at
 // priority) whose mana still floats when the cast is paid did not pay for it.
 func (s *State) treSync(p uint8) {
-	t := &s.g.poolTre[SeatIx(p)]
+	i := SeatIx(p)
+	t := &s.g.poolTre[i]
+	var sx []uint8
+	if s.g.poolArt[i]&poolArtSnow != 0 {
+		sx = coldSnow.of(s)
+	}
 	for c := range t {
 		if t[c] == 0 {
 			continue
 		}
-		if left := min(t[c], s.pl[SeatIx(p)].pool[c]); left < t[c] {
+		left := s.pl[i].pool[c]
+		if sx != nil {
+			if n := sx[int(i)*kop.NumManaKinds+c]; n < left {
+				left -= n
+			} else {
+				left = 0
+			}
+		}
+		if left > t[c] {
+			left = t[c]
+		}
+		if left < t[c] {
 			t[c] = left
 			if s.buildLive() && s.bld().e.kind == seSpell {
 				s.bld().bfl |= bflTre
@@ -89,6 +111,7 @@ func (s *State) artSync(p uint8) {
 		}
 	}
 	s.g.poolArt[SeatIx(p)] = a
+	s.snowSync(p) // the snow half of the tag, before the Treasure clamp reads it (mana_snow.go)
 	s.treSync(p)
 	if s.g.defSrc[SeatIx(p)] != 0 && s.pl[SeatIx(p)].pool[s.defColOf(p)] == 0 {
 		s.g.defSrc[SeatIx(p)] = 0

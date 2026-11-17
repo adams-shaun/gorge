@@ -1,0 +1,140 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// Snow mana (CR 106.3, 107.4h): mana from a snow source is snow mana, and
+// only snow mana pays a {S} pip. gorge tags a unit snow when its source's
+// types hold Snow and no typed word (effects.ManaProducerTag; the typed word
+// wins) and keeps a parallel per-colour tally of the snow units,
+// state.Player.Snow, beside Player.Pool. The kernel keeps the same tally in
+// the cold region coldSnow — a State field would fail
+// TestNoNewFixedStateFields — clamped to its colour's remaining units the way
+// genState.poolTre is (mana_artifact.go treSync): gorge spends a plain unit of
+// a colour before a typed or snow one (pay/solve.go takeUnit), so after any
+// spend the snow units left in a colour are min(Snow[c], Pool[c]) and the
+// Treasure units left are min(Tre[c], Pool[c]-Snow[c]).
+//
+// The tag rides poolArtSnow, bit 7 of genState.poolArt: the bit is free (a
+// slot's colour bits are 0..5, poolArtRestr is 6) and a set bit makes
+// payFromPool's gate run artSync after any spend, which snowSyncs the tally,
+// at no new State byte. The memo keys that carry the byte (key.art) may keep
+// the bit: a state whose snow tally moved is a new state there, as a typed
+// tag's move is.
+
+// coldSnow is the pool's snow tally, per seat and colour, for a table whose
+// genPrep.anySnow is set: MaxSeats*kop.NumManaKinds bytes, no view.
+var coldSnow = newCold[uint8]("snow", func(g *genPrep) int {
+	if g.anySnow {
+		return MaxSeats * kop.NumManaKinds
+	}
+	return 0
+})
+
+// poolArtSnow marks, in poolArt, that p's pool holds a snow unit (snowTag).
+const poolArtSnow = 1 << 7
+
+// snowMana is the snow tag's precedence (prep.go's pcard.manaSnow): a card's
+// mana is snow when its types hold Snow and no typed word (CR 106.3, 205.4a;
+// gorge's ManaProducerTag, the typed word wins).
+func snowMana(c *kop.CardDef, typed bool) bool { return c.Snow && !typed }
+
+// DebugSnowTypedIsSnow lets a typed snow source tag snow — a source whose
+// types hold a typed word and Snow both (mutation testing only, ticket 03):
+// the lockstep must catch it.
+var DebugSnowTypedIsSnow bool
+
+func init() { genNeed(tableAnySnow) }
+
+// tableAnySnow reports whether any card's printed or ability cost asks {S}
+// (kop.ManaCost.Snow, CR 107.4h) or reads the snow spent (CardDef.SpentSnow,
+// Count$CastTotalManaSpent Snow): genPrep.anySnow, and with it the tally.
+func tableAnySnow(t *kop.Table) bool {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		if c.SpentSnow || c.Cost.Snow != 0 ||
+			c.SpellCost.Mana.Snow != 0 || c.AltAddCost.Mana.Snow != 0 || c.OptCost.Mana.Snow != 0 ||
+			c.KickerCost.Mana.Snow != 0 || c.FbCost.Mana.Snow != 0 || c.EscCost.Mana.Snow != 0 || c.EscBfCost.Mana.Snow != 0 {
+			return true
+		}
+		for j := range c.Abilities {
+			if c.Abilities[j].Cost.Mana.Snow != 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// snowAt is seat p's snow tally of colour c (0 when the table has no tally).
+func (s *State) snowAt(p uint8, c int) uint8 {
+	sx := coldSnow.of(s)
+	if sx == nil {
+		return 0
+	}
+	return sx[int(SeatIx(p))*kop.NumManaKinds+c]
+}
+
+// snowSetAt sets seat p's snow tally of colour c.
+func (s *State) snowSetAt(p uint8, c int, v uint8) {
+	if sx := coldSnow.of(s); sx != nil {
+		sx[int(SeatIx(p))*kop.NumManaKinds+c] = v
+	}
+}
+
+// snowClearAll empties every seat's tally, at a boundary that empties the pool
+// (endStep, finishCleanup, drainMana's every seat, persistEmpty, persistTurn).
+func (s *State) snowClearAll() {
+	if sx := coldSnow.of(s); sx != nil {
+		clear(sx)
+	}
+}
+
+// snowTag records that the mana source at sl added a unit of colour col to
+// p's pool and that the unit is snow (CR 106.3). The tag rides poolArtSnow, so
+// the next spend's artSync clamps the tally; the clamp reads the pool of the
+// unit just added, so a stale count above pool[col]-1 goes first. It is called
+// after the unit is added, from artTag.
+func (s *State) snowTag(k *prep, p uint8, sl Slot, col int) {
+	if k.gen == nil || !k.gen.anySnow {
+		return
+	}
+	pc := &k.cards[s.cardAt(sl)]
+	if !pc.manaSnow && !(DebugSnowTypedIsSnow && pc.manaTyped && k.t.Cards[s.cardAt(sl)].Snow) {
+		return
+	}
+	sx := coldSnow.of(s)
+	i := SeatIx(p)
+	n := &sx[int(i)*kop.NumManaKinds+col]
+	if left := s.pl[i].pool[col] - 1; *n > left {
+		*n = left
+	}
+	if *n < 255 {
+		*n++
+	}
+	s.g.poolArt[i] |= poolArtSnow
+}
+
+// snowSync clamps p's tally to the units its pool still holds and clears
+// poolArtSnow when every colour's tally is zero. gorge spends a plain unit of
+// a colour before a snow one (pay.takeUnit), so the tally of a colour is the
+// fewest the slot's remaining units can hold: min(tallied, left). artSync
+// calls it before treSync, so the Treasure half reads the snow units of a
+// slot out first.
+func (s *State) snowSync(p uint8) {
+	sx := coldSnow.of(s)
+	if sx == nil {
+		return
+	}
+	i := SeatIx(p)
+	any := false
+	for c := 0; c < kop.NumManaKinds; c++ {
+		n := &sx[int(i)*kop.NumManaKinds+c]
+		if pool := s.pl[i].pool[c]; *n > pool {
+			*n = pool
+		}
+		any = any || *n != 0
+	}
+	if !any {
+		s.g.poolArt[i] &^= poolArtSnow
+	}
+}

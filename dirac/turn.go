@@ -303,6 +303,7 @@ func (s *State) endStep(next kop.Step) {
 	}
 	s.g.poolArt = [MaxSeats]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
+	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -435,6 +436,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
 		s.g.poolArt = [MaxSeats]uint8{}
 		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
+		s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty
