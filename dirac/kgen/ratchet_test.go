@@ -20,9 +20,10 @@ import (
 // git log -p on that file is the pin history, and a commit says which cards it
 // moves.
 //
-// By default a fall fails and a rise passes: land re-measures the pins
-// (KGEN_REPIN=1), so a unit need not commit the table. DIRAC_PIN_STRICT=1, which
-// CI sets, makes every pin exact.
+// By default a fall fails and a rise passes, so a pull request or a merge-queue
+// batch need not commit the table (two PRs each +1 failed a batch on an exact
+// pin, 11-17). DIRAC_PIN_STRICT=1, which the nightly CI run sets, makes every pin
+// exact; KGEN_REPIN=1 re-measures them.
 //
 // The count is LOWER + BUILD (checkAcceptance runs buildPool): a card the LIR
 // pass accepts but `generate` refuses (counter kinds, cost shapes, filter
