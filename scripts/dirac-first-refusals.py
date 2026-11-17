@@ -37,6 +37,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 BASICS = {"Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes"}
 EVIDENCE_MIN_PLAYS = 3  # oracle.EvidenceMinPlays
@@ -45,6 +46,8 @@ DECK_CLEARED_PLAYS = 50
 REFUSED_DIR = "dirac/support/refused"
 EVIDENCE_DIR = "dirac/support/evidence"
 EVIDENCE_GAMES = "dirac/support/evidence-games.tsv"
+KEYS_DIR = "dirac/support/evidence-keys"  # one <pool>.tsv sidecar per evidence list, and LEGACY.txt
+KEYS_HEADER = "card\tlir16\tplays\tkeys\tunused\tbranches\tmissing_branches"
 EVIDENCE_FORMS = ("autopay.m0", "autopay.m1", "full.m0", "full.m1")  # the four runs a pool owes
 VERDICT = re.compile(
     r"^(\S+): (\d+) games \((\d+) refused-card, (\d+) refused-pair, (\d+) error\), (\d+) clean, "
@@ -54,6 +57,10 @@ VERDICT = re.compile(
 
 def root():
     return subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
+
+
+def path_pool(path):
+    return os.path.splitext(os.path.basename(path))[0]
 
 
 def run_files(out, suffix):
@@ -293,10 +300,12 @@ def pool_credit(out):
 
 
 def merged_coverage(out, only=None):
-    """card -> [plays, unused keys in every run, pools it was played in], over clean games only. A pool
-    with a run that did not pass, other than a synthetic one that finished with bad games only, counts
-    for nothing, and a card any counted pool's bad game holds is left out (pool_credit). With only,
-    count the named pools' own runs alone."""
+    """card -> [plays, unused keys in every run, pools it was played in, keys_total, branch uses, branch
+    owed], over clean games only. keys_total is the largest the runs report; uses and owed map a branch
+    key to its sum over the same runs (the run's .branches file, when it has one). A pool with a run that
+    did not pass, other than a synthetic one that finished with bad games only, counts for nothing, and
+    a card any counted pool's bad game holds is left out (pool_credit). With only, count the named
+    pools' own runs alone."""
     dirty, held = pool_credit(out)
     cards = {}
     for path in run_files(out, "coverage"):
@@ -306,16 +315,27 @@ def merged_coverage(out, only=None):
         with open(path) as f:
             next(f)
             for line in f:
-                card, cast, land, _, _, unused = line.rstrip("\n").split("\t")
+                card, cast, land, _, total, unused = line.rstrip("\n").split("\t")
                 if card in held:
                     continue
                 plays = int(cast) + int(land)
                 unused = set(filter(None, unused.split(",")))
-                c = cards.setdefault(card, [0, unused, set()])
+                c = cards.setdefault(card, [0, unused, set(), 0, collections.Counter(), collections.Counter()])
                 c[0] += plays
                 c[1] &= unused
+                c[3] = max(c[3], int(total))
                 if plays:
                     c[2].add(pool)
+        branches = path[:-len("coverage")] + "branches"
+        if not os.path.exists(branches):
+            continue
+        with open(branches) as f:
+            next(f)
+            for line in f:
+                card, key, uses, owed = line.rstrip("\n").split("\t")
+                if card in cards and card not in held:
+                    cards[card][4][key] += int(uses)
+                    cards[card][5][key] += int(owed)
     return cards
 
 
@@ -413,6 +433,90 @@ def tsv_rows(top, rows):
     return out
 
 
+def lir_keys(top, cards):
+    """card -> the 16-hex evidence key of its -lir CARD block, from one `kgen -lir-keys` call over cards.
+    DFR_LIR_KEYS names a card<TAB>key file that stands in for the call, for tests."""
+    cards = sorted(set(cards))
+    path = os.environ.get("DFR_LIR_KEYS")
+    if path:
+        with open(path) as f:
+            text = f.read()
+    elif not cards:
+        return {}
+    elif not os.access(os.path.join(top, "bin/kgen"), os.X_OK):
+        print("evidence: bin/kgen is not built; the sidecar's lir16 column stays empty", file=sys.stderr)
+        return {}
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            lst = os.path.join(tmp, "cards.txt")
+            with open(lst, "w") as f:
+                f.writelines(c + "\n" for c in cards)
+            r = subprocess.run([os.path.join(top, "bin/kgen"), "-lir-keys", "-card-list", lst, "-cards", ".cards"],
+                               cwd=top, capture_output=True, text=True)
+        if r.returncode:
+            refuse(f"kgen -lir-keys failed: {r.stderr.strip()}")
+        text = r.stdout
+    keys = {}
+    for line in text.splitlines():
+        card, _, key = line.partition("\t")
+        if key:
+            keys[card] = key
+    return keys
+
+
+def sidecar_rows(top, pool):
+    """card -> the sidecar's line for it, as the file has it now."""
+    path = os.path.join(top, KEYS_DIR, pool + ".tsv")
+    rows = {}
+    if os.path.exists(path):
+        with open(path) as f:
+            for line in f.read().splitlines()[1:]:
+                if line:
+                    rows[line.split("\t", 1)[0]] = line
+    return rows
+
+
+def sidecar_row(card, lir, cov):
+    plays, unused, _, total, uses, owed = cov
+    keys = f"{total - len(unused)}/{total}"
+    wanted = sorted(k for k in owed if owed[k] > 0)
+    missing = [k for k in wanted if not uses[k]]
+    return "\t".join([card, lir, str(plays), keys, ",".join(sorted(unused)),
+                      f"{len(wanted) - len(missing)}/{len(wanted)}", ",".join(missing)])
+
+
+def sidecars(top, lists, before, covs):
+    """pool -> the sidecar's lines for each written list: a card that was already on its list before
+    this write keeps the row it has (a card with no row stays legacy), and a card the list gains, or
+    regains after its list was removed, gets a current row."""
+    lir = lir_keys(top, {c for pool, names in lists.items() for c in names
+                         if c not in before.get(pool, ()) and c in covs[pool]})
+    files = {}
+    for pool, names in lists.items():
+        old = sidecar_rows(top, pool)
+        kept = before.get(pool, ())
+        rows = {c: old[c] for c in names if c in old and c in kept}
+        for c in names:
+            if c not in rows and c not in before.get(pool, ()) and c in covs[pool]:
+                rows[c] = sidecar_row(c, lir.get(c, ""), covs[pool][c])
+        files[pool] = [KEYS_HEADER] + [rows[c] for c in sorted(rows)]
+    return files
+
+
+def write_legacy(top):
+    """LEGACY.txt: the evidenced names no sidecar has a row for, sorted."""
+    names, keyed = set(), set()
+    for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
+        with open(path) as f:
+            names |= {n for n in f.read().splitlines() if n}
+    for path in glob.glob(os.path.join(top, KEYS_DIR, "*.tsv")):
+        keyed |= set(sidecar_rows(top, os.path.basename(path)[:-len(".tsv")]))
+    os.makedirs(os.path.join(top, KEYS_DIR), exist_ok=True)
+    with open(os.path.join(top, KEYS_DIR, "LEGACY.txt"), "w") as f:
+        f.writelines(n + "\n" for n in sorted(names - keyed))
+    print(f"evidence: {len(names - keyed)} legacy names")
+
+
 def write_evidence(top, out, pools=None):
     """A list per pool, of the cards it played that meet the floor over the whole corpus's clean games.
 
@@ -426,31 +530,44 @@ def write_evidence(top, out, pools=None):
     refusal names: the dirac gate refuses that landing, so the round must fail here, loudly."""
     refused = refused_names(top)
     lists = collections.defaultdict(list)
+    covs = {}
+    remove = []
     if pools is None:
-        for card, (plays, unused, ps) in sorted(merged_coverage(out).items()):
+        cov = merged_coverage(out)
+        before = {path_pool(p): set(existing_list(top, path_pool(p)))
+                  for p in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt"))}
+        for card, (plays, unused, ps, *_) in sorted(cov.items()):
             if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused:
                 for pool in ps:
                     lists[pool].append(card)
+        covs = {pool: cov for pool in lists}
         no_unrefused_drops(top, lists, ran_pools(out) & passed_pools(out), refused)
-        for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
-            os.remove(path)
+        remove = glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt"))
         rows = games_per_run(out)
         lines = [f"{pool}\t{games}" for pool, games in sorted(rows.items())]
     else:
         pools = list(pools)
+        before = {pool: set(existing_list(top, pool)) for pool in pools}
         require_pool_runs(out, pools)
         games = games_per_run(out)
         for pool in pools:
             if pool not in games:
                 refuse(f"{pool} has no verdict")
-            gained = [card for card, (plays, unused, _) in sorted(merged_coverage(out, {pool}).items())
+            covs[pool] = merged_coverage(out, {pool})
+            gained = [card for card, (plays, unused, *_) in sorted(covs[pool].items())
                       if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused]
             lists[pool] = sorted((set(existing_list(top, pool)) | set(gained)) - refused)
         no_unrefused_drops(top, lists, pools, refused)
         lines = tsv_rows(top, {p: games[p] for p in pools})
+    side = sidecars(top, lists, before, covs)
+    os.makedirs(os.path.join(top, KEYS_DIR), exist_ok=True)
+    for path in remove:
+        os.remove(path)
     for pool, names in lists.items():
         with open(os.path.join(top, EVIDENCE_DIR, pool + ".txt"), "w") as f:
             f.writelines(n + "\n" for n in names)
+        with open(os.path.join(top, KEYS_DIR, pool + ".tsv"), "w") as f:
+            f.writelines(l + "\n" for l in side[pool])
     print(f"evidence: {len(set(n for v in lists.values() for n in v))} cards in {len(lists)} lists")
     with open(os.path.join(top, EVIDENCE_GAMES), "w") as f:
         f.writelines(l + "\n" for l in lines)
@@ -498,8 +615,8 @@ def report(top, out):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["settle", "evidence", "report"])
-    p.add_argument("out")
+    p.add_argument("command", choices=["settle", "evidence", "report", "legacy-keys"])
+    p.add_argument("out", nargs="?", default=".", help="the run directory (not read by legacy-keys)")
     p.add_argument("--rounds", type=int, default=20)
     p.add_argument("--resume", action="store_true", help="settle: read the runs already in <out>/played-in")
     p.add_argument("--pools", nargs="+", metavar="P", help="evidence: write only these pools' lists and rows")
@@ -509,6 +626,8 @@ def main():
         settle(top, out, a.rounds, a.resume)
     elif a.command == "evidence":
         write_evidence(top, out, a.pools)
+    elif a.command == "legacy-keys":
+        write_legacy(top)
     else:
         report(top, out)
 
