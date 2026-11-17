@@ -9,7 +9,6 @@ CantSearchLibrary
 Double team
 Freerunning
 LimitSearchLibrary
-Modular
 MustBeBlockedBy Creature
 MustBeBlockedBy Creature.Dalek
 MustBeBlockedBy Creature.Eldrazi

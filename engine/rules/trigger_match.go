@@ -3384,5 +3384,8 @@ func init() {
 		// Graft (CR 702.57): the optional move-counter trigger is expanded
 		// from the keyword line in cards/kw_graft.go.
 		"kw:Graft",
+		// Modular (CR 702.43): the enters-with-counters replacement and the
+		// dies trigger are expanded from the keyword line in cards/kw_modular.go.
+		"kw:Modular",
 	)
 }
