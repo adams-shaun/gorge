@@ -142,6 +142,11 @@ func StaticZoneAdmitsStatic(st cards.Static, z state.Zone) bool {
 	return ez&effectZonesBlank != 0 || ez.Admits(z)
 }
 
+// cdaSelfAffected reports whether an Affected$ value scopes a CDA to its own
+// card: an absent key (Forge's self default for a printed CDA) and Card.Self
+// both name it. The parser trims static param values at the script boundary.
+func cdaSelfAffected(aff string) bool { return aff == "" || aff == "Card.Self" }
+
 // StaticCDAFlashAdmits reports whether st is a characteristic-defining
 // "this spell has flash" static (CharacteristicDefining$ True, self-scoped,
 // AddKeyword$ Flash) that applies in zone z: a CDA works in every zone (CR
@@ -153,7 +158,7 @@ func StaticCDAFlashAdmits(st cards.Static, z state.Zone) bool {
 	if st.ModeKind() != cards.StaticContinuous || st.ParamStr(cards.PKCharacteristicDefining) != "True" {
 		return false
 	}
-	if aff := st.ParamStr(cards.PKAffected); aff != "" && aff != "Card.Self" {
+	if !cdaSelfAffected(st.ParamStr(cards.PKAffected)) {
 		return false
 	}
 	if cards.KeywordHeadIDOf(st.ParamStr(cards.PKAddKeyword)) != KWFlash.ID {
@@ -199,7 +204,7 @@ func CDAPTStatic(h effects.Host, st cards.Static, ctx *effects.Ctx) (p, t int32,
 			return 0, 0, false, false
 		}
 	}
-	if aff := strings.TrimSpace(st.ParamStr(cards.PKAffected)); aff != "" && aff != "Card.Self" {
+	if !cdaSelfAffected(strings.TrimSpace(st.ParamStr(cards.PKAffected))) {
 		return 0, 0, false, false
 	}
 	// ExcludeZone$ narrows the claim's zones (Grist, the Hunger Tide): the CDA
