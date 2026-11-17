@@ -553,7 +553,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		f := s.prog(k)[r.pc].F
 		for i := 0; i < int(s.g.nlook); i++ {
 			o := s.resArm().look[i]
-			if s.g.lookSel&(1<<i) == 0 && s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), r.e.ctrl, o) && s.pickFits(k, f, o, true) {
+			if s.g.lookSel&(1<<i) == 0 && s.digPickable(k, f, o, r.e.ctrl) {
 				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 			}
 		}
