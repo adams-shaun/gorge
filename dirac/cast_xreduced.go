@@ -38,9 +38,15 @@ func (s *State) xReducedCeiling(k *prep, e *stackEntry, cost *kop.ManaCost, av *
 	return ceil
 }
 
-// xReducedPays reports whether av pays the spell being built at X = x.
+// xReducedPays reports whether av pays the spell being built at X = x. A cast
+// with delve may exile a graveyard card for each generic mana the cost carries
+// at that X (CR 702.66a), exactly the offer gate's credit (delveOfferCredit):
+// gorge's xAsk prices each announcement the same way.
 func (s *State) xReducedPays(k *prep, av *avail, x int) bool {
 	c := s.xHypoCost(k, x)
 	c = c.AtX(x)
+	if e := &s.bld().e; k.gen != nil && k.gen.anyDelve && e.kind == seSpell {
+		c = s.delveOfferCredit(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl), c)
+	}
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
