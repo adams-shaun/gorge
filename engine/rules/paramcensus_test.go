@@ -1600,6 +1600,11 @@ var stringMapParams = map[string]string{
 	// engine/effects/clone_etb_selector.go CloneETBSpendSelector reads the source
 	// face's SVar table by the fixed spend variable name, not card Params.
 	"effects:CloneETBSpendSelector:svars": "source-face SVars lookup for the ETB cast-spend selector, not a card Params map",
+	// engine/effects/clone_etb_selector.go cloneETBSVarBody: svars is the face's
+	// SVar table (a cards.SA's SVar: bodies), read by the NAME an own-P/T
+	// SetPower$/SetToughness$ setter spells (Hulking Metamorph's X/Y) -- an
+	// SVar-body lookup, not a card Params map.
+	"effects:cloneETBSVarBody:svars": "SVars table lookup by a Clone own-P/T setter name, not a card Params map",
 	// Goad-static helpers inspect map arguments copied from parsed SVar
 	// statics, not card SA Params; their callers classify the actual source.
 	"effects:goadStaticGrantReadable:params": "parsed Goad static-line Params map, not a card SA Params map",
