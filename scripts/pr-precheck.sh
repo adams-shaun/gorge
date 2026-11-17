@@ -47,6 +47,8 @@ fresh=$(grep -E '^dirac/.*_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sor
 if [ -n "$fresh" ]; then
   scratch=$(mktemp -d -p "${PRECHECK_FRESH_DIR:-$HOME/.cache}" pr-precheck-fresh.XXXXXX)
   git archive HEAD | tar -x -C "$scratch"
+  # a clone has a .git: testutil.SharedCorpusDir fails (not skips) where git cannot resolve a repository root
+  git -C "$scratch" init -q
   for pkg in $fresh; do
     rx=$(grep "^$pkg/[^/]*_test\.go$" <<<"$changed" | while read -r f; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
     [ -n "$rx" ] || continue
