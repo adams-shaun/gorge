@@ -954,6 +954,9 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// folds here as a pure function of the event-folded Game.DayNight.
 		if !wasBattlefield && g.DayNight == state.DayNightNight && entersTransformedAtNight(o) {
 			o.SetFaceIdx(1)
+			if o.CopyFaceBack != nil {
+				o.SwapCopyFaces() // a double-faced token copy shows its other edited face (CR 707.8a), as foldFlipFace does
+			}
 		}
 
 		// CR 400.7: a battlefield entry from another zone is a new object and
