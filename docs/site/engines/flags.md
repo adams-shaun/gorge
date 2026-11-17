@@ -15,16 +15,20 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 |---|---|---|---|
 | `-a` | string | none | bot policy name for seat 0 (default: heuristic) |
 | `-b` | string | none | bot policy name for seat 1 (default: heuristic) |
+| `-coverage` | string | none | append per-card coverage rows (seed card key used offered clean) to this file |
+| `-coverage-ctx` | string | none | free-text context written to the -coverage header (e.g. cmdr4, cmdr2, c60) |
 | `-cpuprofile` | string | none | write a CPU profile here |
 | `-deckdir` | string | none | read each -decks name from <deckdir>/<name>.json instead of the embedded repo decks |
 | `-decks` | string | none | comma-separated deck names (default: the first -seats of the repo decks) |
 | `-dir` | string | `.cards` | corpus directory (holds ir.gob.gz / cardsfolder) |
 | `-format` | string | `constructed` | game format: constructed or commander (40 life, commanders in the command zone) |
 | `-games` | int | `1` | number of games to play |
+| `-list-keys` | bool | `false` | print card<TAB>key for every card in the corpus and exit |
 | `-memprofile` | string | none | write an allocation profile here and print the run's allocation totals |
 | `-mulligans` | int | `0` | London mulligans each seat may take before turn 1 (default 0, none) |
 | `-policies` | string | none | comma-separated bot policy per seat, from seat 0; "-" or empty keeps a seat's default heuristic; overrides -a/-b |
 | `-sb-agent` | string | repeatable | register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable) |
+| `-schedule` | string | none | play the games of this file in one process, one a line, tab-separated: seed format seats decks policies mulligans (# and blank lines skipped; policies as -policies, - keeps the default); a line replays alone as: mtgsim -format F -seats N -decks D -policies P -mulligans M -games 1 -seed S (plus this run's -dir, -deckdir, -verify, -coverage); excludes -decks, -seed, -games, -a, -b, -policies |
 | `-seats` | int | `4` | number of seats |
 | `-seed` | uint64 | `0` | base seed; game i uses seed+i for both the engine and its bot |
 | `-shape` | string | none | write a JSON game-shape census to this file (game rows, then one aggregate) |
@@ -106,6 +110,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-four-seat` | bool | `false` | with -supported: a card a pod of three or more seats cannot hold (kop.CardPodLimited: StallTwoSeat at its start) is false |
 | `-layer-census` | bool | `false` | print the interim layer guard's reach (classified cards, refused pairs and deck pairs) instead of generating |
 | `-lir` | bool | `false` | print every card's lowered IR and refusals instead of generating |
+| `-lir-keys` | bool | `false` | print card<TAB>key for every card of -card-list (the evidence key: a hash of its -lir CARD block) instead of generating |
 | `-ops` | string | none | write this pool's OPS.md to -out instead of generating |
 | `-out` | string | none | output directory; with -ops, the output file |
 | `-pool` | string | `fdn` | pool name |
@@ -175,6 +180,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-allow-unverified` | bool | `false` | pool runs: play the cards the table does not refuse, unverified ones too, as -evidence does |
 | `-answerers` | string | `first,rand` | -v2 transcript: comma-separated scripted answerers (first, rand) |
 | `-autopay-surface` | bool | `false` | deprecated alias of -surface autopay |
+| `-branches` | string | none | write the run's per-card choice-branch TSV (oracle.Coverage.WriteBranchTSV: card, key, uses, owed) here; reporting only, the -coverage file is unchanged |
 | `-cards` | string | none | gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory) |
 | `-cmd-mini` | int | `0` | -seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the oracle's card table: -kernel gorge |
 | `-coverage` | string | none | write the run's per-card/per-ability coverage TSV (oracle.Coverage) here and print a coverage summary line |
@@ -206,6 +212,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-pairs` | int | `100` | deck pairs (one game each) |
 | `-pairs-file` | string | none | pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them |
 | `-pass-elision` | bool | `false` | elide priority decisions whose only option is pass (must match the kernel's) |
+| `-play-interaction-refused` | bool | `false` | pool runs: play the pairs the kernel's interaction guard refuses too, to observe the divergence or stall the refusal hides (diagnostic; evidence runs keep refusing) |
 | `-play-refused` | bool | `false` | pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does |
 | `-pods` | int | `0` | -seats above 2: pods to play (one game each; 0: -pairs) |
 | `-policy` | string | `random` | random, heuristic, explore (gorge's coverage-exploration bot, cmd/cardfuzz's) or first |
