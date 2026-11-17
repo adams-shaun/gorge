@@ -100,22 +100,22 @@ func (s *State) shieldN(sl Slot) int { return s.perms[sl].ctrN(s, int(kop.CtrShi
 
 // spendShield removes one SHIELD counter from sl (gorge: CounterChange
 // SHIELD -1; the kind stays listed at 0, as gorge's counter list keeps it).
-func (s *State) spendShield(sl Slot) {
+func (s *State) spendShield(k *prep, sl Slot) {
 	s.touchSl(sl)
 	p := &s.perms[sl]
 	p.seeCtr(s)
-	p.subCtrN(s, int(kop.CtrShield), 1)
+	s.subCtrFire(k, sl, int(kop.CtrShield), 1)
 }
 
 // shieldDestroy is the destruction half: true when sl held a SHIELD counter
 // and one was removed instead of the destruction.
 //
 //go:noinline
-func (s *State) shieldDestroy(sl Slot) bool {
+func (s *State) shieldDestroy(k *prep, sl Slot) bool {
 	if s.shieldN(sl) <= 0 {
 		return false
 	}
-	s.spendShield(sl)
+	s.spendShield(k, sl)
 	return true
 }
 
@@ -123,11 +123,11 @@ func (s *State) shieldDestroy(sl Slot) bool {
 // hit holding a SHIELD counter loses one instead and leaves hit.
 //
 //go:noinline
-func (s *State) shieldAll(hit slotMask) slotMask {
+func (s *State) shieldAll(k *prep, hit slotMask) slotMask {
 	var out slotMask
 	for m := hit; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.shieldDestroy(sl) {
+		if s.shieldDestroy(k, sl) {
 			continue
 		}
 		out = out.with(sl)
@@ -205,13 +205,13 @@ func (s *State) ncShieldSlot() Slot {
 // replNCPickShield spends the counter when the player picked the shield
 // candidate of a parked noncombat event. A non-shield prevention picked
 // first stops the event, so the shield is not spent.
-func (s *State) replNCPickShield(i int) {
+func (s *State) replNCPickShield(k *prep, i int) {
 	ro := &s.g.ro
 	if ro.shld&(1<<i) == 0 {
 		return
 	}
 	if sl := s.ncShieldSlot(); sl != NoSlot && s.shieldN(sl) > 0 {
-		s.spendShield(sl)
+		s.spendShield(k, sl)
 	}
 }
 
@@ -219,7 +219,7 @@ func (s *State) replNCPickShield(i int) {
 // pick: the shield is the last remaining candidate and applies
 // automatically, unless another prevention was picked first (then the
 // event already stopped and the shield never applies).
-func (s *State) replNCAutoShield() {
+func (s *State) replNCAutoShield(k *prep) {
 	ro := &s.g.ro
 	if ro.shld == 0 {
 		return
@@ -232,7 +232,7 @@ func (s *State) replNCAutoShield() {
 	for i := 0; i < int(ro.n); i++ {
 		if ro.shld&(1<<i) != 0 && ro.used&(1<<i) == 0 {
 			if sl := s.ncShieldSlot(); sl != NoSlot && s.shieldN(sl) > 0 {
-				s.spendShield(sl)
+				s.spendShield(k, sl)
 			}
 			return
 		}
@@ -249,7 +249,7 @@ func (s *State) shieldNC(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl 
 		s.capFull(StallShield)
 		return n
 	}
-	s.spendShield(sl)
+	s.spendShield(k, sl)
 	return 0
 }
 
@@ -269,7 +269,7 @@ func (s *State) shieldFrozen(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, ds
 		s.capFull(StallShield)
 		return true
 	}
-	s.spendShield(dst)
+	s.spendShield(k, dst)
 	return true
 }
 
@@ -308,7 +308,7 @@ func (s *State) shieldCombat(k *prep, r *dmgRec) {
 			continue // replOrderFreeze/replOrderCombat pose the ask
 		}
 		s.preventCombatEv(k, r, ev) // combat_prevention.go
-		s.spendShield(d)
+		s.spendShield(k, d)
 	}
 }
 
