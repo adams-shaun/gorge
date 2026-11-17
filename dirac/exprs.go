@@ -478,6 +478,10 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 		}
 		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
+		if r == kop.RefTriggerSource && e != nil && e.trigSA != 0 {
+			o := Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+			return s.objPT(k, o, s.slotIfSame(o, s.objs[o].ver))
+		}
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
 			o := e.trigObj
 			// Gorge evaluates it at resolution: the live power
@@ -606,6 +610,9 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
+		if r == kop.RefTriggerSource && e.trigSA != 0 {
+			return Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		}
 		return e.trigObj
 	case kop.RefAttached:
 		ob := &s.objs[e.obj]
@@ -656,7 +663,11 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		}
 		return 255
 	case kop.RefTriggerTgtCtrl:
-		// gorge TriggeredTargetController, read live (resolve.go playerRef)
+		// gorge TriggeredTargetController, read live (resolve.go playerRef).
+		// A BecomesTarget player half carries the targeted seat in btPl.
+		if e.btPl != 0 {
+			return e.btPl - 1
+		}
 		if o := e.trigObj; o != NoObj {
 			return s.ctrlOfObj(o)
 		}

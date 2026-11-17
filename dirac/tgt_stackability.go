@@ -65,6 +65,21 @@ func (s *State) stackTgtIdx(c TCode, sid uint8) int {
 	return -1
 }
 
+// stackSidIndex is the stack index of the ability entry with identity sid
+// (top down; -1 when it already left). A source's spell, or a trigger on the
+// same source above it, is never the entry sid names.
+func (s *State) stackSidIndex(sid uint8) int {
+	if sid == 0 {
+		return -1
+	}
+	for i := int(s.sp) - 1; i >= 0; i-- {
+		if e := &s.stack[i]; e.sid == sid && e.kind != seSpell {
+			return i
+		}
+	}
+	return -1
+}
+
 // stackTgtSelf is the stack index of the entry being built or resolving
 // (CR 115.5: it is not a legal target for itself), -1 for none. A spell the
 // resolving entry offers is not that entry: while the offer probes its targets

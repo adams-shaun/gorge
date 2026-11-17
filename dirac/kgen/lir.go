@@ -955,6 +955,14 @@ type lTrigger struct {
 	// filter when it names a type (kop.TrigNSrcSpell, Filter2).
 	SrcSpell bool
 	SrcF     *lFilter
+	// SrcAbility: BecomesTarget watcher whose ValidSource$ is Ability[.YouCtrl|
+	// .OppCtrl], so the targeting stack entry must be an ability
+	// (kop.TrigNSrcAbility).
+	SrcAbility bool
+	// PlayerAlt: F carries a player alternative (You / Player / Opponent).
+	// The builder emits it as an FPlayer chain entry (filterPlayerAlt) and
+	// the kernel's player walk matches it with castTargetsPlayer.
+	PlayerAlt bool
 	// ByCreature: AttackerBlocked lowered from Mode$ AttackerBlockedByCreature,
 	// once per (attacker, blocker) pair; F reads the attacker, F2 the
 	// blocker, exactly one of them Card.Self; the trigger object is the
@@ -1105,6 +1113,10 @@ type lMana struct {
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
+	// IdentityPotential: a Produced$ ColorIdentity source a rider or a cost
+	// beyond {T} kept out of the reflected shape; the potential walk still
+	// prices it at the commander identity (kop.Ability.ManaIdentityPotential)
+	IdentityPotential bool
 	// Rider is the rider the ability runs with its mana (kop.Ability.ManaRider;
 	// lower_manarider.go): none, deplete or each-opponent life.
 	Rider    int

@@ -19,6 +19,7 @@ import (
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -34,6 +35,8 @@ const (
 	altMadness
 	altBestow
 	altBlitz
+	altProwl
+	altFreerunning
 	altCastCount
 )
 
@@ -76,7 +79,22 @@ type altCastMode struct {
 	untargeted bool
 	// potential rows are priced by potentialModeBaseCost.
 	potential bool
+	// gate is the row's turn condition (altGateNone: always open).
+	gate altCastGate
 }
+
+// altCastGate names the turn condition a row's offer waits on.
+type altCastGate uint8
+
+const (
+	altGateNone altCastGate = iota
+	// altGateProwl: the caster dealt combat damage to a player this turn
+	// with a source sharing a creature type with the spell (CR 702.76a).
+	altGateProwl
+	// altGateFreerunning: the caster dealt combat damage to a player this
+	// turn with an Assassin or their commander (CR 702.173a).
+	altGateFreerunning
+)
 
 // altCastModes is the family, indexed by altCastID. Row order is the order
 // the hand and command-zone loops offer the modes, so it is part of the
@@ -90,6 +108,38 @@ var altCastModes = [altCastCount]altCastMode{
 	altMadness:   {id: altMadness, mode: "madness", head: "Madness", potential: true},
 	altBestow:    {id: altBestow, mode: "bestowed", head: "Bestow", flag: state.FlagBestowed, cost: altCostBestow, potential: true},
 	altBlitz:     {id: altBlitz, mode: "blitzed", head: "Blitz", flag: state.FlagBlitzed, cost: altCostBlitzInstance},
+	// Prowl and freerunning have no CastFlags bit of their own (the word is
+	// full): each stamps FlagAltCostPaid, the bit for "an alternative cost
+	// with no bit of its own was paid" (CR 118.9a allows one per cast). On a
+	// face carrying the keyword that bit therefore reads "this keyword's cost
+	// was paid" -- the prowled predicate and the Count$Freerunning head --
+	// because the S:Mode$ AlternativeCost stamp is withheld from every face
+	// that does not read Count$AltCost (faceWantsAltCost), and no Prowl or
+	// Freerunning face does (TestProwlFreerunningCardsAreSupported pins it).
+	altProwl:       {id: altProwl, mode: "prowled", head: "Prowl", flag: state.FlagAltCostPaid, ph: phProwl, handLoop: true, cmdLoop: true, potential: true, gate: altGateProwl},
+	altFreerunning: {id: altFreerunning, mode: "freerun", head: "Freerunning", flag: state.FlagAltCostPaid, ph: phFreerunning, handLoop: true, cmdLoop: true, potential: true, gate: altGateFreerunning},
+}
+
+// spellTypeLedger is the layer-4 table a prowl gate reads the spell's
+// types through (Engine's EffectiveTypes).
+type spellTypeLedger interface {
+	EffectiveTypes() []effects.ObjectTypes
+}
+
+// gateOpen reports whether row m's turn condition holds for caster p
+// casting spell id: prowl and freerunning read combatHitThisTurn.
+func (m *altCastMode) gateOpen(g *state.Game, h spellTypeLedger, p state.PlayerID, id state.ObjID) bool {
+	switch m.gate {
+	case altGateProwl:
+		o := g.Obj(id)
+		if o == nil {
+			return false
+		}
+		return combatHitThisTurn(g, p, prowlHit(damageSnapshotTypes(id, o, h.EffectiveTypes())))
+	case altGateFreerunning:
+		return combatHitThisTurn(g, p, freerunningHit(g, p))
+	}
+	return true
 }
 
 // altMode is row id's mode word.
@@ -141,11 +191,11 @@ func (m *altCastMode) faceCost(f *cards.Face, ff *walkFaceFacts) (Cost, bool) {
 	if ff == nil || !ff.keywordsCurrent(f) {
 		return m.faceCostRaw(f)
 	}
-	bit := uint8(1) << m.id
+	bit := uint16(1) << m.id
 	if ff.altCostMask&bit == 0 {
 		return Cost{}, false
 	}
-	c := ff.altCosts[bits.OnesCount8(ff.altCostMask&(bit-1))]
+	c := ff.altCosts[bits.OnesCount16(ff.altCostMask&(bit-1))]
 	return c.cost, c.ok
 }
 
