@@ -2018,6 +2018,9 @@ const StatExtraBlock StaticKind = 69
 // ManaConvert AnyType->AnyColor over a cast card matching Filter (Oath of Nissa).
 const StatAnyColorSpells StaticKind = 70
 
+// stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
+const StatNoCombatDamage StaticKind = 71
+
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
 

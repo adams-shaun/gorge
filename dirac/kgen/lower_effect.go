@@ -1061,6 +1061,14 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	} else {
 		in.Op = "UnlessPaid"
 	}
+	// UnlessPayer$ is read here, before fn: the node's own unread check
+	// must not name a key the unless wrapper consumes (Carrion Rats' DB$
+	// Effect static). The payer is still bound after the node, where the
+	// default's own target slot exists.
+	up := "TargetedController"
+	if p, ok := ps.get("UnlessPayer"); ok {
+		up = p
+	}
 	gate, whenPaid, err := unlessSubsMode(ps)
 	if err != nil {
 		return err
@@ -1074,12 +1082,9 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return err
 	}
 	// gorge unlessProceed (Forge's default): UnlessPayer$ defaults to
-	// TargetedController, the controller of the node's target -- read
-	// after the node so its own target slot exists.
-	up := "TargetedController"
-	if p, ok := ps.get("UnlessPayer"); ok {
-		up = p
-	}
+	// TargetedController, the controller of the node's target -- bound
+	// after the node so its own target slot exists (the key itself was
+	// read before fn, above).
 	if up == "ThisTargetedController" {
 		// gorge's unlessPayerTargetsCodes maps ThisTargetedController to the
 		// same selector code as TargetedController (effects/unless.go), so it

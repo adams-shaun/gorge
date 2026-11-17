@@ -17,6 +17,7 @@ func init() {
 	staticMode("MustAttack", (*staticCtx).modeMustAttack)
 	staticMode("UntapOtherPlayer", (*staticCtx).modeUntapOtherPlayer)
 	staticMode("CombatDamageToughness", (*staticCtx).modeCombatDamageToughness)
+	staticMode("AssignNoCombatDamage", (*staticCtx).modeAssignNoCombatDamage)
 	staticMode("ActivateAbilityAsIfHaste", (*staticCtx).modeActivateAbilityAsIfHaste)
 	staticMode("CantBeSuspected", (*staticCtx).modeActivateAbilityAsIfHaste)
 }
@@ -190,6 +191,25 @@ func (sc *staticCtx) modeCombatDamageToughness() ([]lStatic, bool, error) {
 	}
 	if sc.st.F == nil {
 		return nil, true, refuse("CombatDamageToughness without ValidCard$")
+	}
+	return nil, false, nil
+}
+
+// modeAssignNoCombatDamage lowers CR 510.1a's "assigns no combat damage"
+// (Ophidian, the Laccolith family): the ValidCard$ filter names the creature
+// whose assignment the kernel's combat damage step zeroes (gorge
+// effectCombatStatic's AssignNoCombatDamage restriction, read by
+// rules' combatDamageAmount).
+func (sc *staticCtx) modeAssignNoCombatDamage() ([]lStatic, bool, error) {
+	readF := sc.readF
+	var err error
+	sp := sc.sp
+	sp.consume("Description")
+	if sc.st.F, err = readF("ValidCard"); err != nil {
+		return nil, true, err
+	}
+	if sc.st.F == nil {
+		return nil, true, refuse("AssignNoCombatDamage without ValidCard$")
 	}
 	return nil, false, nil
 }
