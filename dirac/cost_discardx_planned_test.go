@@ -14,7 +14,7 @@ func kdiscardxScen(t *testing.T, cfg Config) (*scen, Obj) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Turbulent Dreams", Count: 1}, {Name: "Island", Count: 20},
 		{Name: "Mountain", Count: 20}}
-	set := cardsettest.Synth(t, "tail-26")
+	set := cardsettest.Set(t, "discardxplanned")
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
