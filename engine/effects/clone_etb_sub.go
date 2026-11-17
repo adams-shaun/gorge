@@ -198,9 +198,9 @@ func cloneETBCleanupOnly(link *cards.SA) bool {
 // SubAbility$ rider -- the copy's "enters with additional counters"
 // exception -- must not run either. False when no election was recorded:
 // that path keeps effClone's loud unimplemented-API fallback.
-func CloneETBNoCopy(g *state.Game, c *Ctx, sa *cards.SA) bool {
+func CloneETBNoCopy(g *state.Game, c *Ctx, sa *cards.SA, pt DerivedPTSource) bool {
 	if c == nil || sa == nil || !c.CloneEnter.ETB || !c.CloneEnter.ChoiceValid || !isCloneSA(sa) {
 		return false
 	}
-	return c.CloneEnter.Choice == 0 || !cloneETBTemplateLegal(g, c, CloneOf(sa))
+	return c.CloneEnter.Choice == 0 || !cloneETBTemplateLegal(g, c, CloneOf(sa), pt)
 }

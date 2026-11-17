@@ -1271,7 +1271,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	if ctx != nil && ctx.Layers.DerivedTypes == nil {
 		ctx.Layers = e.boardLayers()
 	}
-	if effects.CloneETBNoCopy(e.G, ctx, with) {
+	if effects.CloneETBNoCopy(e.G, ctx, with, e) {
 		return
 	}
 	// An Effect-created replacement body is a fresh parse (replacementBodySA)
