@@ -35,6 +35,9 @@ func gapGame(t *testing.T, sc SeatConfig, maxIntents int) (string, []Diag) {
 // seed, plays the same root index, so the two games are one game; and the
 // stop did fire, on decisions whose search then ran fewer simulations.
 func TestGapStopNeverChangesTheMove(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	sc := DefaultSeatConfig()
 	if sc.Search.Sims != 100 {
 		t.Fatalf("DefaultSeatConfig().Search.Sims = %d, want the hosted 100", sc.Search.Sims)

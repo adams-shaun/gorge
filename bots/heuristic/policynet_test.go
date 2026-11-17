@@ -362,6 +362,9 @@ func TestPolicyNetDelegatesOtherKinds(t *testing.T) {
 // (the engine is the attackers validator), and the intent stream must
 // differ from the default-vs-default one (the scored kinds reach the scorer).
 func TestPolicyNetPlaysWholeGamesLegalAndDistinct(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 2)
 	sc := randomCheckpoint(t, 77)
 	for _, seed := range []uint64{100, 101, 102, 103} {
@@ -905,6 +908,9 @@ func (c *countingSeat) Decide(ctx context.Context, v view.View, d decision.Decis
 // the scored path ANSWERED (a bot declaration with a block — a no-block bot
 // answer ties and delegates) and at least one in-shape target decision.
 func TestPolicyNetBlockersTargetsResidualReproducesTheBot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 2)
 	kinds := []decision.Kind{decision.KBlockers, decision.KTarget}
 	blockAnswered, blockCompared, targetInShape := 0, 0, 0
@@ -965,6 +971,9 @@ func TestPolicyNetBlockersTargetsResidualReproducesTheBot(t *testing.T) {
 // validator), reaches both new kinds, and plays a different stream from
 // the default bot (the scored kinds reach the scorer).
 func TestPolicyNetBlockersTargetsRandomHeadLegal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 2)
 	kinds := []decision.Kind{decision.KAttackers, decision.KBlockers, decision.KTarget}
 	seen := map[decision.Kind]int{}
@@ -994,6 +1003,9 @@ func TestPolicyNetBlockersTargetsRandomHeadLegal(t *testing.T) {
 // scorer's own on the recorded state and options; and the action space and
 // distribution shape follow the kind.
 func TestPolicyNetRecorderObservesWithoutChangingPlay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 2)
 	kinds := []decision.Kind{decision.KAttackers, decision.KPriority, decision.KBlockers, decision.KTarget}
 	seenKinds := map[decision.Kind]int{}
@@ -1094,6 +1106,9 @@ func TestPolicyNetSignAdmission(t *testing.T) {
 // as the default bot does over whole games (the residual prior's contract,
 // now without the auto vote's tie refusal).
 func TestPolicyNetSignAdmissionReproducesTheBotWithAZeroHead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 2)
 	m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
 	for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
@@ -1157,6 +1172,9 @@ func entityCheckpoint(t *testing.T, seed uint64, w float32) *policynet.Scorer {
 // entity-feature checkpoint drives the same path (its recorded scores
 // re-score bit for bit).
 func TestPolicyNetSamplingIsSeededLegalAndRecorded(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
+	}
 	names, decks := testutil.SampleDecks(t, 2)
 	kinds := []decision.Kind{decision.KAttackers, decision.KPriority, decision.KBlockers, decision.KTarget}
 	for _, arm := range []string{"mz-free", "entity"} {
