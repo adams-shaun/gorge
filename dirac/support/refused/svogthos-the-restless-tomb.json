@@ -10,5 +10,10 @@
     "policy": "random",
     "mulligans": 0,
     "file": "svogthos_green_only_from_candleguide_filter_search_unmodelled"
-  }
+  },
+  "evidence": [
+    "ev-tail-44-c000",
+    "ev-tail-70-c000",
+    "ev-tail-70-c020"
+  ]
 }
