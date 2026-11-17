@@ -2059,7 +2059,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			// script. The walk mirrors that, on the copy resolvePrefixStack
 			// runs (mana_sacsource.go).
 			resolve := t.playNeedsEmptyStack(k, a)
-			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve)
+			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p)
 			if found && t.npend != 0 {
 				t.resolvePrefixStack(k, t.sp, resolve)
 				if t.over {
