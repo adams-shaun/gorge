@@ -331,6 +331,22 @@ func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 // deterministic, appended after the fixed-production ones (pass 1) when it
 // is choice-shaped (paymentPlanManaUnitsOnlyCompute); want is that pass,
 // the caller's census-shape choice.
+// painCensusPass is the census pass (0 shared, 1 appended) a paired pain unit
+// sits on. gorge's census lists a source with a deterministic, free-cost
+// production in the shared census, at its battlefield position, and appends
+// the rest after: a choice-shaped ability, a tap-and-sacrifice one, an ability
+// that pays life (payment_plan.go paymentPlanManaUnitsOnlyCompute). A
+// pain-only source's shape is its own ability's, so a cost-of-life one
+// (Blightsoil Druid's {T}, Pay 1 life: pay.ManaFreeCost rejects PayLife) joins
+// the appended group, while a damage rider (Elves of Deep Shadow's Add {B}.
+// deals 1) is a free-cost unit in place.
+func painCensusPass(choice bool, pc *pcard) int {
+	if choice || pc.painOnly && pc.painLife {
+		return 1
+	}
+	return 0
+}
+
 // It reports whether the caller has nothing left to do for sl.
 //
 //go:noinline
