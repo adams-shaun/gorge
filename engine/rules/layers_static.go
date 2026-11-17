@@ -332,21 +332,42 @@ func libraryTopLook(lib []state.ObjID, ces []ContinuousEffect, matches func(stri
 	return false
 }
 
-// MayLookAtFaceDown reports whether p may look at the face-down exiled card
-// id right now through a live Continuous MayLookAt$ static (Praetor's
-// Grasp's Effect: "You may look at and play that card for as long as it
-// remains exiled", MayLookAt$ You over Card.IsRemembered in exile): the
-// static's Affected$ spec matches id and its controller is p (every
-// exile-zone MayLookAt$ value in the corpus is You or True, the static's
-// controller -- layers.go's MayLookAt branch). The controller is the default
-// looker; a MayPlayPlayer$ Exiler value (Shared Fate) names the player
-// recorded in Object.ExiledBy instead. The view's optional
-// MayLookAtFaceDown capability (engine/view/card.go mayLookFaceDown), so the
-// face is shown to exactly the seat the grant names (CR 406.3). A
-// read over active()'s sorted slice; the answer is boolean.
+// MayLookAtFaceDown reports whether p may look at the face-down object id
+// right now through a live Continuous MayLookAt$ static. Two zones:
+//   - a face-down exiled card (Praetor's Grasp's Effect: "you may look at and
+//     play that card for as long as it remains exiled", MayLookAt$ You over
+//     Card.IsRemembered in exile): the static's Affected$ spec matches id and
+//     its controller is p (every exile-zone MayLookAt$ value in the corpus is
+//     You or True, the static's controller -- layers.go's MayLookAt branch).
+//     The controller is the default looker; a MayPlayPlayer$ Exiler value
+//     (Shared Fate) names the player recorded in Object.ExiledBy instead.
+//   - a face-down BATTLEFIELD permanent (CR 708.5's effect exception: Found
+//     Footage's "you may look at face-down creatures your opponents control
+//     any time", MayLookAt$ You over Creature.faceDown+OppCtrl, AffectedZone$
+//     Battlefield): the grant must NAME Battlefield in its AffectedZone$ (a
+//     comma list such as Lens of Clarity's Library,Battlefield counts); any
+//     other scope -- a hand or library reveal, an empty zone, Any -- is not a
+//     look at a battlefield permanent.
+//
+// The view's optional MayLookAtFaceDown capability (engine/view/card.go
+// mayLookFaceDown) consults it, so the face is shown to exactly the seat the
+// grant names (CR 406.3, CR 708.5). A read over active()'s sorted slice; the
+// answer is boolean.
 func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZExile || !o.FaceDown {
+	if o == nil || !o.FaceDown {
+		return false
+	}
+	// Only an exile-scoped grant (or a scopeless one -- the Effect-delivered
+	// route sets AffectedZone Exile verbatim) can name a face-down exiled
+	// card, and only a grant naming the battlefield can show a face-down
+	// permanent there; the stack and the hidden zones have no look grant.
+	wantBattlefield := false
+	switch o.Zone {
+	case state.ZExile:
+	case state.ZBattlefield:
+		wantBattlefield = true
+	default:
 		return false
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
@@ -367,8 +388,17 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		// A printed static may grant a look at another zone (Enduring
 		// Renewal's hand reveal, Oracle of Mul Daya's library top): only an
 		// exile-scoped grant can name a face-down exiled card. The
-		// Effect-delivered route sets AffectedZone Exile.
-		if ce.AffectedZone != "" && ce.AffectedZone != "Exile" {
+		// Effect-delivered route sets AffectedZone Exile. On the battlefield
+		// the grant must NAME the battlefield (found_footage.txt's
+		// AffectedZone$ Battlefield; lens_of_clarity.txt's Library,Battlefield
+		// counts) -- the same zone scoping TestPrintedMayLookAtIsZoneScoped
+		// pins for exile.
+		if wantBattlefield {
+			zones, all, ok := effects.ParseZones(ce.AffectedZone)
+			if !ok || all || !slices.Contains(zones, state.ZBattlefield) {
+				continue
+			}
+		} else if ce.AffectedZone != "" && ce.AffectedZone != "Exile" {
 			continue
 		}
 		// An Effect-delivered grant (Praetor's Grasp's STPlay) names its cards

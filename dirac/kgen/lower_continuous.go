@@ -78,12 +78,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	//
 	// and the view-only face-down battlefield look
 	// (DSK Found Footage's printed static, MKM Lumbering Laundry's Effect
-	// static). Its readers are library-only (MayLookAtLibraryTop,
-	// layers_static.go:255-300), exile-only (MayLookAtFaceDown,
-	// layers_static.go:302-340: Zone != ZExile returns false), the seat view
-	// (engine/view/card.go:353-374, :522-538; view/view.go:66-72, :719) or
-	// the oracle runner's expectation read (engine/rules/oracle_run.go:
-	// 213-255); no event, decision or legality reader at the pin, so it too
+	// static). Its readers are the look reads (MayLookAtLibraryTop for the
+	// library top; MayLookAtFaceDown for exile and, since cr-g303, a
+	// face-down battlefield permanent whose grant names Battlefield), the
+	// seat view (engine/view/card.go) and the oracle runner's expectation
+	// read; no event, decision or legality reader changes state, so it too
 	// lowers to no static. faceDownLookOnly is the exact shape: any
 	// other MayLookAt$ spelling -- in particular one beside MayPlay$ --
 	// keeps the named refusal below.

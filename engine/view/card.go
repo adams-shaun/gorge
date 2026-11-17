@@ -365,10 +365,12 @@ type projector struct {
 	text  *textMemo
 	// perm is the projection's reusable index scratch (projScratch.perm).
 	perm *[]int32
-	// looker is ch's optional MayLookAt$ read over a face-down exiled card
+	// looker is ch's optional MayLookAt$ read over a face-down card
 	// (rules.Engine.MayLookAtFaceDown: a live Continuous MayLookAt$ static
-	// whose Affected$ spec matches the card names that seat), nil when ch
-	// lacks it -- the face is then shown only to the object's own looker.
+	// whose Affected$ spec matches the card and whose zone names it -- exile,
+	// or a battlefield permanent under CR 708.5's effect exception -- names
+	// that seat), nil when ch lacks it -- the face is then shown only to the
+	// object's own controller.
 	looker interface {
 		MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
 	}
@@ -632,7 +634,13 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 // mayLookFaceDown reports whether the viewer may see face-down o's face.
 //
 // On the battlefield and the stack the face is its controller's (CR 708.5,
-// 708.4). In exile (CR 406.3: a card "exiled face down" can't be examined by
+// 708.4) -- unless an effect allows another player to look at a face-down
+// battlefield permanent (CR 708.5's exception: Found Footage's "you may look
+// at face-down creatures your opponents control any time", Lumbering
+// Laundry's until-end-of-turn grant), through ch's optional
+// MayLookAtFaceDown.
+//
+// In exile (CR 406.3: a card "exiled face down" can't be examined by
 // any player except when instructions allow it) the face belongs to exactly
 // the seats that may look -- never its owner by default (Necropotence's
 // blind exile shows it to nobody):
@@ -649,7 +657,21 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 // CardView.canBeShownTo is the same rule.
 func (p *projector) mayLookFaceDown(o *state.Object, alsoVisible *seatSet) bool {
 	if o.Zone != state.ZExile {
-		return p.seesFor(o.Controller, alsoVisible)
+		if p.seesFor(o.Controller, alsoVisible) {
+			return true
+		}
+		// The controller-only default holds unless a live grant names the
+		// viewer; MayLookAtFaceDown scopes its answer to the object's zone,
+		// so a stack or hidden-zone face-down card is never widened.
+		if p.looker == nil {
+			return false
+		}
+		for s := range p.g.Players {
+			if seat := state.PlayerID(s); p.seesFor(seat, alsoVisible) && p.looker.MayLookAtFaceDown(seat, o.ID) {
+				return true
+			}
+		}
+		return false
 	}
 	if o.HasMayLook && p.seesFor(o.MayLookPlayer, alsoVisible) {
 		return true
