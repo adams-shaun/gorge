@@ -81,14 +81,28 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
-	sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
+	search := func() *scriptSearch {
+		sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
+		if sr == nil {
+			return nil
+		}
+		sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+		sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
+		sr.passes = true
+		return sr
+	}
+	sr := search()
 	if sr == nil {
 		return nil, false
 	}
-	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
-	sr.instance, sr.instanced = o.Cost, o.Kind == "cast"
-	sr.passes = true
 	script, found := sr.run(e)
+	if !found && sr.limited {
+		// The budget ran out in option order: redo it with the sources ranked.
+		if sr = search(); sr != nil {
+			sr.rankSources(e)
+			script, found = sr.run(e)
+		}
+	}
 	return script, found && len(script) > 0
 }
 
@@ -213,17 +227,24 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 	if altCost <= 0 {
 		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
 	}
-	// The node budget (potentialScriptNodes) is spent in option order; rank a
-	// source that makes a needed colour for free ahead of a paid filter's
-	// branches (Elven Chorus's granted "{T}: Add one mana of any color." on two
-	// creatures behind Heap Gate's "{1}, {T}" filter reached the bound before
-	// the two free taps: Emerald Dragonfly, pair 66). The score is a
-	// branch-order preference only; every option stays.
-	sr.score = make(map[state.ObjID]int, len(e.G.Zone(state.ZBattlefield, p)))
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+	return sr
+}
+
+// rankSources scores each battlefield source for the branch order of a second
+// pass: the node budget (potentialScriptNodes) is spent in option order, so a
+// first pass that ran out of nodes is redone with a source that makes a needed
+// colour for free ahead of a paid filter's branches (Elven Chorus's granted
+// "{T}: Add one mana of any color." on two creatures behind Heap Gate's
+// "{1}, {T}" filter reached the bound before the two free taps: Emerald
+// Dragonfly, pair 66). The score is a branch-order preference only, applied
+// only after the unranked pass was budget-limited so every play the unranked
+// order already priced keeps its script; every option stays.
+func (sr *scriptSearch) rankSources(e *Engine) {
+	sr.score = make(map[state.ObjID]int, len(e.G.Zone(state.ZBattlefield, sr.p)))
+	for _, id := range e.G.Zone(state.ZBattlefield, sr.p) {
 		best := 0
-		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
-			mf := e.manaStaticFor(p, id, ma)
+		for _, ma := range e.availableManaAbilitiesForWindow(sr.p, id, false) {
+			mf := e.manaStaticFor(sr.p, id, ma)
 			if mf.Amount <= 0 || mf.RestrictValid {
 				continue
 			}
@@ -258,7 +279,6 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 		}
 		sr.score[id] = best
 	}
-	return sr
 }
 
 // scriptNeedReader is the read-only side of *Engine scriptNeedColours needs;
