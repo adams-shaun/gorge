@@ -1,5 +1,6 @@
 +2 Mace
 Abrupt Decay
+Agent of Acquisitions
 Alluring Scent
 Anoint
 Archnemesis
@@ -82,6 +83,7 @@ Grim Physician
 Grizzly Bears
 Gruul Charm
 Guardian Gladewalker
+Gust of Wind
 Hand of Death
 Hapato's Might
 Harrowing Journey

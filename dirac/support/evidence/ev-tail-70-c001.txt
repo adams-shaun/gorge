@@ -201,6 +201,7 @@ Saurian Symbiote
 Saving Grasp
 Scion of Opulence
 Scrap
+Scrollshift
 Scythe Leopard
 Seashell Cameo
 Sedgemoor Witch
@@ -230,6 +231,7 @@ Spire Tracer
 Spiritmonger
 Staff of Zegon
 Start
+Steel of the Godhead
 Stonecloaker
 Summer Bloom
 Swamp

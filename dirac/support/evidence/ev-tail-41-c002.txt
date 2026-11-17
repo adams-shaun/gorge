@@ -1,9 +1,14 @@
 A-Luminarch Aspirant
+Akroan Jailer
 Akroma's Memorial
+Alabaster Host Sanctifier
 Alpha Kavu
 Angelic Gift
+Anje's Ravager
 Antagonize
+Arachnoform
 Ashcoat Bear
+Assassin's Ink
 Aurora Griffin
 Barbed Field
 Basri's Aegis
@@ -20,6 +25,8 @@ Borrowed Time
 Brotherhood Outcast
 Canoptek Spyder
 Canyon Wildcat
+Cast Out
+Cathar's Companion
 Caustic Crawler
 Celestial Regulator
 Cephalid Retainer
@@ -28,10 +35,13 @@ Chivalric Alliance
 Cloak of the Bat
 Commissar Severina Raine
 Courier Hawk
+Court of Garenbrig
 Crack the Earth
 Darksteel Axe
 Dauntless Cathar
 Dawn Gryff
+Daybreak Chaplain
+Death Frenzy
 Divine Sacrament
 Drag Down
 Dross Scorpion
@@ -40,10 +50,12 @@ ED-E, Lonesome Eyebot
 Eerie Interlude
 Elanor Gardner
 Empyreal Voyager
+Eternal Warrior
 Evolutionary Escalation
 Excavation Mole
 Eye Gouge
 Faerie Invaders
+Flaxen Intruder
 Flowstone Overseer
 Flutterfox
 Forest
@@ -54,6 +66,7 @@ Giant Ox
 Goblin Diplomats
 Goblin General
 Goblin War Party
+Grounded
 Heirs of Stromkirk
 Hill Giant Herdgorger
 Horned Sliver
@@ -70,12 +83,15 @@ Karok Wrangler
 Knight of Glory
 Kor Sky Climber
 Kris Mage
+Legion Conquistador
 Leyline of Vitality
+Lochmere Serpent
 Loxodon Lifechanter
 Magus of the Moat
 Manic Scribe
 Marble Diamond
 Marked by Honor
+Matsu-Tribe Sniper
 Meria's Outrider
 Mesa Lynx
 Mindwrack Liege
@@ -86,39 +102,52 @@ Morbid Hunger
 Mountain
 Mountain Bandit
 Mudbutton Torchrunner
+Murderous Compulsion
 Nacatl Savage
+Omen of the Dead
 Oread of Mountain's Blaze
 Overwhelming Stampede
 Panic Spellbomb
 Panicked Bystander
+Perimeter Patrol
 Plains
 Potion of Healing
 Propeller Pioneer
 Pure Reflection
+Pyroclastic Elemental
+Raksha Golden Cub
+Rakshasa Deathdealer
 Rampaging Ferocidon
+Rank and File
 Reckless Abandon
 Reito Lantern
+Sagittars' Volley
 Samite Pilgrim
 Sanctified Charge
+Scent of Ivy
 Scouting Trek
 Seal of Doom
 Searchlight Companion
 Seascape Aerialist
 Seedguide Ash
+Selesnya Eulogist
 Sensor Splicer
 Separatist Voidmage
 Shadow Glider
 Shamanic Revelation
 Sheltering Light
+Shred Memory
 Silver-Inlaid Dagger
 Skittering Monstrosity
 Skulltap
 Skywing Aven
 Slaughter Pact
 Smoke Bomb
+Soul Swallower
 Spell Contortion
 Spire Barrage
 Spontaneous Flight
+Springmantle Cleric
 Staunch Defenders
 Steam Frigate
 Stone Retrieval Unit
@@ -133,6 +162,7 @@ Swift Response
 Taoist Hermit
 Tattered Haunter
 Teachings of the Kirin
+Tel-Jilad Archers
 Temmet, Vizier of Naktamun
 Teroh's Vanguard
 The Art of Tea
@@ -143,16 +173,20 @@ Thrummingbird
 Thunder Strike
 Thunderscape Familiar
 Timberwatch Elf
+Torch Slinger
 Tormod's Crypt
 Tracker's Instincts
 Trustworthy Scout
 Tunneler Wurm
+Tymaret, Chosen from Death
 Unexpected Fangs
 Vampire's Zeal
 Venomthrope
 Venser, Visionary Traveler
+Verdant Field
 Violent Impact
 Warfire Javelineer
+Warren Soultrader
 Wild Colos
 Wild Onslaught
 Zhao, the Seething Flame

@@ -14,7 +14,9 @@ Blinding Drone
 Bob, Reluctant HYDRA Agent
 Bow of Nylea
 Breathstealer
+Brilliant Halo
 Bygone Bishop
+Cliff Threader
 Colossal Badger
 Courage in Crisis
 Crater Hellion
@@ -80,6 +82,7 @@ Munda, Ambush Leader
 Natural Selection
 Nature's Spiral
 Neck Snap
+Night
 Nim Lasher
 Nine-Ringed Bo
 Order of Leitbur
@@ -96,6 +99,7 @@ Rushwood Legate
 Saber Ants
 Scarwood Bandits
 Scent of Cinder
+Scissors Lizard
 Screeching Drake
 Seismic Stomp
 Shield-Wall Sentinel
@@ -103,6 +107,7 @@ Shipwreck Moray
 Shu Yun, the Silent Tempest
 Silvanus's Invoker
 Skirsdag Flayer
+Skyboon Evangelist
 Snooping Newsie
 Song of the Worldsoul
 Spark Harvest

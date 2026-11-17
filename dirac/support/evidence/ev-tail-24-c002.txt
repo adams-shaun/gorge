@@ -2,6 +2,7 @@ A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
 A-The One Ring
 Adamaro, First to Desire
+Aeromunculus
 Air Nomad Student
 Alaborn Veteran
 Ancestral Mask
@@ -10,6 +11,7 @@ Angel's Tomb
 Angrath's Rampage
 Annex Sentry
 Archdemon of Unx
+Archivist
 Armored Pegasus
 Arno Dorian
 Artificer's Intuition
@@ -59,9 +61,11 @@ Dimir Guildmage
 Dirgur Nemesis
 Disciple of Perdition
 Discontinuity
+Distemper of the Blood
 Diviner of Mist
 Doomsday
 Doubtless One
+Drake Stone
 Dredge
 Drinker of Sorrow
 Dust Bowl
@@ -88,19 +92,28 @@ Forest
 Forsaken Drifters
 Fortuitous Find
 Fracture
+Fungus Sliver
 Generous Visitor
+Getaway Car
 Glimmer Bairn
 Glint-Sleeve Artisan
 Gluttonous Troll
+Gnarlid Pack
 Go Blank
 Goblin Ringleader
+Golden Bear
 Griffin Dreamfinder
 Grim Hireling
 Grisly Spectacle
+Grixis Panorama
+Gruesome Realization
+Gruul War Plow
+Havenwood Wurm
 Herald of Slaanesh
 Hero of Bladehold
 Hero's Heirloom
 Heroic Teamwork
+Hivestone
 Hobblefiend
 Hordeling Outburst
 Horror of the Dim
@@ -112,6 +125,7 @@ Invisibility
 Iron Man, Futurist Paragon
 Island
 Izoni, Thousand-Eyed
+Jace's Ingenuity
 Jackdaw
 Jackhammer
 Jedit Ojanen
@@ -121,11 +135,14 @@ Khalni Garden
 Knotvine Paladin
 Korlessa, Scale Singer
 Lampad of Death's Vigil
+Lash of the Balrog
 Last Word
 Lava Spike
+Lethargy Trap
 Lightning Bolt
 Lightning Stormkin
 Llanowar Augur
+Llanowar Scout
 Long Road Home
 Lucas, the Sharpshooter
 Magefire Wings
@@ -135,6 +152,8 @@ Maritime Guard
 Marsh Viper
 Mass Manipulation
 Mausoleum Harpy
+Minamo Sightbender
+Mind Peel
 Misthollow Griffin
 Mnemonic Wall
 Mobile Garrison
@@ -142,6 +161,7 @@ Moldgraf Scavenger
 Momo, Rambunctious Rascal
 Mother Bear
 Mountain
+Nessian Wanderer
 Nighthawk Scavenger
 Nirkana Assassin
 Norwood Archers
@@ -172,6 +192,7 @@ Riot Ringleader
 Rip-Clan Crasher
 Rooftop Nuisance
 Sage of Lat-Nam
+Sage of Shaila's Claim
 Sage of the Unknowable
 Saheeli's Silverwing
 Sanctuary Raptor
@@ -180,14 +201,17 @@ Sanguinary Priest
 Satyr Piper
 Sealock Monster
 Seismic Elemental
+Sejiri Steppe
 Selesnya Sagittars
 Selfless Samurai
 Serra's Liturgy
 Shady Traveler
 Shorecomber Crab
+Shroofus Sproutsire
 Siegehorn Ceratops
 Sightless Ghoul
 Silk Net
+Skaab Wrangler
 Skophos Warleader
 Skyline Predator
 Smite the Monstrous
@@ -214,9 +238,11 @@ Strider Harness
 Sunlance
 Supply Drop
 Swamp
+Sword of the Chosen
 Sworn Companions
 Sworn Defender
 Sylvan Yeti
+Séance Board
 Tainted Pact
 Talisman of Impulse
 Talrand, Sky Summoner
@@ -240,7 +266,10 @@ Underworld Rage-Hound
 Undying Rage
 Untamed Kavu
 Vedalken Heretic
+View from Above
 Vile Deacon
+Vito, Thorn of the Dusk Rose
+Vivid Crag
 Vodalian Serpent
 Voyage's End
 Waterkin Shaman

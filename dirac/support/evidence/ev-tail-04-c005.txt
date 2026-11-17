@@ -1,5 +1,14 @@
+A-Hullbreaker Horror
+A-Sunbathing Rootwalla
 Akiri, Line-Slinger
+Alley Strangler
+Alpha Myr
+Anaba Shaman
+Andúril, Narsil Reforged
+Arbor Armament
+Arni Slays the Troll
 Ashiok's Adept
+Atlantean Skirmisher
 Attended Socialite
 Atzocan Seer
 Balm of Restoration
@@ -9,34 +18,53 @@ Basal Sliver
 Bearscape
 Benalish Honor Guard
 Bestial Fury
+Big Bertha
 Birds of Paradise
+Bituminous Blast
+Blight Mound
 Bloated Contaminator
+Blood Tithe
+Bloodline Pretender
 Bloodline Shaman
 Borrowed Grace
 Bramble Creeper
 Browse
 Caligo Skin-Witch
 Canyon Jerboa
+Carapace Forger
+Catapult Fodder
+Caustic Rain
 Celestial Unicorn
+Centaur Chieftain
+Charging Badger
+Chimeric Idol
+Chorus of Might
+Chromatic Lantern
 Churning Eddy
 Cleanfall
 Clear the Land
 Clear the Mind
 Cliffhaven Kitesail
 Clinging Mists
+Collective Unconscious
+Compelling Deterrence
 Crawl from the Cellar
 Crown of Skemfar
 Deadly Wanderings
 Death-Greeter's Champion
+Deepwood Drummer
 Demonic Collusion
 Desperate Castaways
 Devotee of Strength
+Devouring Swarm
 Diplomatic Escort
 Distract
 Doomfall
+Douser of Lights
 Dragon Hatchling
 Dragonspeaker Shaman
 Duskshell Crawler
+Embermage Goblin
 Enhanced Awareness
 Ephara's Dispersal
 Evolutionary Leap
@@ -44,14 +72,25 @@ Exultant Cultist
 Fierce Witchstalker
 Fire
 Fire Ants
+Flitterstep Eidolon
 Forest
 Fyndhorn Brownie
 Gaea's Anthem
 Gather the Pack
+Glass Golem
 Goblin Gathering
+Gorgon's Head
+Greel's Caress
+Grim Affliction
 Grim Flowering
+Grotesque Demise
+Hammer of Nazahn
 Hardy Veteran
+Hatchery Spider
+Havoc Devils
+Herd Baloth
 Hidden Path
+Honor the God-Pharaoh
 Hua Tuo, Honored Physician
 Hungry Flames
 Icy Manipulator
@@ -65,26 +104,44 @@ Jilt
 Jump
 Juvenile Gloomwidow
 Kami of Transience
+Keskit, the Flesh Sculptor
+Knickknack Ouphe
+Kurgadon
 Kyren Glider
+Larceny
 Leeching Licid
 Llanowar Loamspeaker
 Loathsome Chimera
+Locust Swarm
 Mage Duel
 Metallic Sliver
+Might Sliver
+Might of Alara
+Minion Reflector
+Mitotic Slime
+Moldgraf Millipede
 Mortiphobia
 Mountain
+Myr Matrix
 Nahiri's Binding
+Necklace of Girion
+Onyx Talisman
 Order of Midnight
 Outrider of Jhess
 Patient Rebuilding
+Phantom Wurm
+Pilgrim of the Ages
+Pit Scorpion
 Placid Rottentail
 Plains
 Planar Gate
 Prakhata Pillar-Bug
+Profane Prayers
 Promise of Aclazotz
 Prophetic Titan
 Protect the Negotiators
 Pteron Ghost
+Purestrain Genestealer
 Ravenous Daggertooth
 Ravenous Gigamole
 Ravenous Vampire
@@ -95,23 +152,37 @@ Rise of Eagles
 River Kaijin
 Rolling Stones
 Rune Snag
+Rushwood Legate
 Sadistic Slash
+Sarkhan's Scorn
+Screaming Fury
 Settlement Blacksmith
 Shadow, Mysterious Assassin
 Sheoldred's Headcleaver
 Sigil of Myrkul
+Sigiled Sentinel
 Skrelv, Defector Mite
+Sleek Schooner
 Sound the Call
 Spellstutter Sprite
+Spinehorn Minotaur
+Splendid Reclamation
 Spoils of Evil
 Squirrel Sanctuary
 Star Whale
+Starlight Invoker
+Stern Dismissal
 Storm Front
+Storm Seeker
+Sudden Impact
+Sun Sentinel
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
 Temporary Insanity
 Tendrils of Corruption
+Territorial Kavu
+Thassa's Devourer
 The Blackstaff of Waterdeep
 Think Tank
 Thran Foundry
@@ -119,14 +190,17 @@ Tidal Wave
 Tishana's Wayfinder
 Tomb Robber
 Tower Defense
+Tower Winder
 Tranquility
 Tribute Mage
 Trigon of Mending
+Turn the Earth
 Underdark Explorer
 Unhallowed Phalanx
 Vault 87: Forced Evolution
 Village Elder
 Vodalian Serpent
+Volcanic Salvo
 Voltaic Brawler
 Voracious Null
 Wasteland Viper
@@ -136,3 +210,4 @@ Weakstone's Subjugation
 Well of Life
 Windfall
 Worldfire
+Zerapa Minotaur

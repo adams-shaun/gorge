@@ -5,6 +5,8 @@ Aang, Airbending Master
 Abomination, World Ravager
 Abzan Runemark
 Ajani's Mantra
+Aku Djinn
+Angelic Purge
 Aurora Eidolon
 Aven Trooper
 Aven Windreader
@@ -14,8 +16,10 @@ Beastmaster's Magemark
 Betrayal
 Black Sun's Twilight
 Blindblast
+Blinding Mage
 Boggart Ram-Gang
 Boiling Blood
+Bounty of the Luxa
 Brainsurge
 Bramblecrush
 Brood Sliver
@@ -34,6 +38,7 @@ Colossal Dreadmaw
 Concordant Crossroads
 Constable of the Realm
 Constricting Tendrils
+Contortionist Troupe
 Curse of Predation
 Danitha Capashen, Paragon
 Dauntless Bodyguard
@@ -45,6 +50,7 @@ Deepwood Tantiv
 Defenestrate
 Descendant of Kiyomaro
 Devil Dinosaur
+Devoted Retainer
 Devouring Swarm
 Divine Smite
 Doom's Servo-Guards
@@ -57,9 +63,11 @@ Encroaching Wastes
 Endless Wurm
 Engineered Might
 Entish Restoration
+Esika's Chariot
 Eternal of Harsh Truths
 Euroakus
 Faithbearer Paladin
+Feeding Frenzy
 Ferocious Charge
 Field Marshal
 Fire Ambush
@@ -69,14 +77,19 @@ Forest
 Frightcrawler
 From the Rubble
 Frontier Mastodon
+Ghalma's Warden
 Ghoulcaller's Bell
+Gift of Paradise
 Glittering Wish
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Mountaineer
 Goblin Tinkerer
+God-Eternal Rhonas
 Golden Ratio
 Grindclock
+Griptide
 Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
@@ -93,6 +106,8 @@ Island
 Jhoira's Familiar
 Khenra Charioteer
 Kiora's Follower
+Kjeldoran Pride
+Knights of Dol Amroth
 Kor Blademaster
 Land Leeches
 Late to Dinner
@@ -100,9 +115,11 @@ Lava Axe
 Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
+Loamdragger Giant
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
 Mad Auntie
+Magmatic Core
 Malevolent Awakening
 Malicious Advice
 Marshaling Cry
@@ -133,11 +150,13 @@ Painwracker Oni
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
+Plague Fiend
 Plains
 Planar Portal
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Prey Upon
 Psychic Strike
 Psychotic Haze
 Pull from Tomorrow
@@ -146,24 +165,31 @@ Quicksilver Wall
 Quilled Slagwurm
 Rag Dealer
 Raging Kavu
+Rakshasa's Disdain
 Rally Maneuver
 Rancid Rats
 Razortooth Rats
+Reaper of the Wilds
+Reaping the Rewards
 Reaver Ambush
 Rekindled Flame
 Return to the Earth
 Reveille Squad
 Reverent Mantra
 Riddlekeeper
+Ring of Three Wishes
 Roc Hunter
 Rockshard Elemental
 Rundvelt Hordemaster
 Runeclaw Bear
 Sabertooth Nishoba
 Sacred Cat
+Samurai Enforcers
 Sanctify
+Sapphire Dragon
 Savai Thundermane
 Scrivener
+Seismic Mage
 Selfless Spirit
 Sheltering Landscape
 Sigarda's Summons
@@ -221,5 +247,6 @@ Waterkin Shaman
 Weapon Rack
 Wei Scout
 Weirding Shaman
+Western Paladin
 Whispers of the Muse
 Willow-Wind

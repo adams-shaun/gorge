@@ -2,11 +2,14 @@ A-Guide of Souls
 A-Plate Armor
 A-Social Climber
 A-Teferi, Time Raveler
+Aang, Airbending Master
 Abomination, World Ravager
 Absorb
 Abzan Runemark
 Ajani's Mantra
+Aku Djinn
 Alley Grifters
+Angelic Purge
 Aphotic Wisps
 Assassin Gauntlet
 Assault Strobe
@@ -47,6 +50,7 @@ Concordant Crossroads
 Confessor
 Constable of the Realm
 Constricting Tendrils
+Contortionist Troupe
 Curse of Predation
 Daemogoth Titan
 Danitha Capashen, Paragon
@@ -56,6 +60,7 @@ Death Speakers
 Deathleaper, Terror Weapon
 Defenestrate
 Descendant of Kiyomaro
+Devoted Retainer
 Devouring Swarm
 Disciple of Freyalise
 Divine Smite
@@ -71,8 +76,10 @@ Emeria Angel
 Encroaching Wastes
 Endless Wurm
 Entish Restoration
+Esika's Chariot
 Euroakus
 Fanatical Fever
+Feeding Frenzy
 Ferocious Charge
 Field Marshal
 Fire Ambush
@@ -85,18 +92,24 @@ Frontier Mastodon
 Fumarole
 Gaea's Bounty
 Gaze of Granite
+Ghalma's Warden
 Ghoulcaller's Bell
+Gift of Paradise
 Glittering Wish
 Gloomhunter
+Go-Shintai of Hidden Cruelty
 Goblin Arsonist
 Goblin Bushwhacker
 Goblin Tinkerer
+God-Eternal Rhonas
+Griptide
 Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
 Halberdier
 Hardened Scales
+Haunted Crossroads
 Horned Cheetah
 Horned Helm
 Hornet Cannon
@@ -110,6 +123,8 @@ Island
 Jhoira's Familiar
 Jinxed Idol
 Khenra Charioteer
+Kjeldoran Pride
+Knights of Dol Amroth
 Kor Blademaster
 Lady Spider, Maybelle Reilly
 Land Leeches
@@ -122,6 +137,7 @@ Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
 MACH-1, Swooping Scoundrel
+Magmatic Core
 Malevolent Awakening
 Malicious Advice
 Maniacal Rage
@@ -158,11 +174,13 @@ Paladin Danse, Steel Maverick
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
+Plague Fiend
 Plains
 Planar Portal
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Prey Upon
 Psychotic Haze
 Pull from Tomorrow
 Purple Pentapus
@@ -170,9 +188,12 @@ Putrid Imp
 Quilled Slagwurm
 Rag Dealer
 Raging Kavu
+Rakshasa's Disdain
 Rally Maneuver
 Rancid Rats
 Razortooth Rats
+Reaper of the Wilds
+Reaping the Rewards
 Reaver Ambush
 Rekindled Flame
 Relief Captain
@@ -180,6 +201,7 @@ Return to the Earth
 Reveille Squad
 Reverent Mantra
 Riddlekeeper
+Ring of Three Wishes
 Roar of the Crowd
 Roaring Slagwurm
 Roc Hunter
@@ -189,12 +211,17 @@ Runeclaw Bear
 Sabertooth Nishoba
 Sacred Cat
 Saheeli's Artistry
+Samurai Enforcers
 Sanctify
+Sapphire Dragon
 Savai Thundermane
 Scoria Wurm
 Scrapwork Cohort
 Scrivener
+Seismic Mage
 Selfless Spirit
+Shagrat, Loot Bearer
+Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
@@ -259,6 +286,7 @@ Waterkin Shaman
 Weapon Rack
 Wei Scout
 Weirding Shaman
+Western Paladin
 Willow-Wind
 Woodland Liege
 Zhalfirin Shapecraft

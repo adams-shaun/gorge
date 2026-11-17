@@ -1,3 +1,4 @@
+A-Llanowar Loamspeaker
 Abu Ja'far
 Accumulated Knowledge
 Acolyte of Affliction
@@ -9,12 +10,16 @@ Argothian Elder
 Augmenting Automaton
 Bane of Progress
 Beacon Hawk
+Blanchwood Treefolk
 Blitz of the Thunder-Raptor
+Bloodfire Infusion
 Bogardan Firefiend
+Boggart Forager
 Break of Day
 Briarhorn
 Ceremonious Rejection
 Chimeric Mass
+Cinder Pyromancer
 Cleansing Nova
 Cogwork Librarian
 Compulsory Rest
@@ -27,8 +32,12 @@ Dramatic Finale
 Drudge Spell
 Duchess, Wayward Tavernkeep
 Dungrove Elder
+Dwarven Strike Force
 Early Frost
 Eccentric Farmer
+Fantastic Elasticity
+Festival Crasher
+Fire at Will
 Fists of Ironwood
 Flamewright
 Forest
@@ -36,14 +45,19 @@ From Beyond
 Funeral Pyre
 Funeral Rites
 Gaea's Avenger
+Gate Hound
 Geyserfield Stalker
 Goblin Bomb
+Goblin Engineer
 Goblin Lore
 Goblin Soothsayer
 Grim Wanderer
 Grismold, the Dreadsower
 Hamato Ninpō
+Hellkite Punisher
 Hunted Horror
+Infernal Captor
+Inspired Insurgent
 Island
 Jarl of the Forsaken
 Kamber, the Plunderer
@@ -54,30 +68,42 @@ Kujar Seedsculptor
 Kurgadon
 Lagonna-Band Trailblazer
 Lethal Exploit
+Lightning Talons
 Llanowar Visionary
 Lucky Offering
+Mardu Warshrieker
 Mass Diminish
 Might of Murasa
 Mire Triton
 Mountain
+Murder of Crows
 Natural Obsolescence
 Nissa's Judgment
 Nullhide Ferox
 Ojutai's Command
 One-Clown Band
 Opportunity
+Oracle's Insight
 Pheres-Band Tromper
 Pixie Queen
 Plague Beetle
+Plague Witch
 Plains
+Power Plant Worker
 Prismari Pianist
 Prophet of Distortion
+Pyrostatic Pillar
+Quarrel's End
 Quirion Ranger
 Raffine's Silencer
 Rakdos Keyrune
 Ranger's Longbow
 Ransack the Lab
+Relic Runner
+Resolute Blademaster
 Ring of Renewal
+Rishadan Airship
+Riveteers Initiate
 Rooftop Bypass
 Runechanter's Pike
 Sanctuary Cat
@@ -95,6 +121,7 @@ Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
 Sudden Strength
+Sunder
 Surrak and Goreclaw
 Swamp
 Tainted Strike
@@ -114,7 +141,9 @@ Vigilance
 Vinelasher Kudzu
 Vivify
 Vodalian Arcanist
+Wailing Ghoul
 Wishcoin Crab
 Witness of Tomorrows
 Woolly Spider
 Yellow Scarves Cavalry
+Zealous Conscripts

@@ -92,6 +92,7 @@ Gruul Signet
 Guardian of Tazeem
 Gwyllion Hedge-Mage
 Hammerheim Deadeye
+Havengul Runebinder
 Hawkeye, Trick Shot
 Haystack
 Hearthfire Hobgoblin
@@ -121,6 +122,7 @@ Lossarnach Captain
 Lost Leonin
 Ludevic's Test Subject
 Magma Jet
+Merrow Grimeblotter
 Metalwork Colossus
 Midnight Scavengers
 Mind Games

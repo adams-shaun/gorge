@@ -43,6 +43,7 @@ Carrion Imp
 Celestial Regulator
 Centaur Healer
 Chains of Custody
+Chakra Meditation
 Chant of the Skifsang
 Cloudkill
 Collected Company
@@ -89,6 +90,7 @@ Flametongue Kavu
 Flaring Flame-Kin
 Fledgling Mawcor
 Floral Evoker
+Fog Elemental
 Forest
 Frilled Deathspitter
 Frog-Squirrels
@@ -147,6 +149,7 @@ Kalemne's Captain
 Karoo Meerkat
 Kavu Monarch
 Ken, Burning Brawler
+Kimoyo Beads
 Knight's Pledge
 Kolaghan's Command
 Kozilek's Unsealing
@@ -154,6 +157,7 @@ Krosan Reclamation
 Kuon, Ogre Ascendant
 Kyren Sniper
 Lotus Field
+Lotus-Eye Mystics
 Manamorphose
 Manhole Cover
 Mantis Engine
@@ -164,6 +168,7 @@ Mask of Immolation
 Master of Death
 Meloku the Clouded Mirror
 Mentor's Guidance
+Merfolk Secretkeeper
 Mind Flayer
 Minister of Inquiries
 Mirrorworks
@@ -174,6 +179,7 @@ Mithril Coat
 Moriok Rigger
 Mountain
 Mukotai Ambusher
+Narrow Escape
 Nemata, Grove Guardian
 Nezumi Bone-Reader
 Nezumi Informant
@@ -198,6 +204,7 @@ Rage-Scarred Berserker
 Raging Minotaur
 Rain of Thorns
 Raven's Run Dragoon
+Recruiter of the Guard
 Regathan Firecat
 Regrowth
 Rekindling Phoenix
@@ -263,6 +270,7 @@ Sunspring Expedition
 Swamp
 Swift Demise
 Sylvan Paradise
+Taigam's Scheming
 Talons of Wildwood
 Tanazir Quandrix
 Temmet, Vizier of Naktamun
@@ -276,15 +284,20 @@ Thrashing Wumpus
 Three Visits
 Throes of Chaos
 Thrull Champion
+Tidespout Tyrant
+Tireless Missionaries
 Tolarian Scholar
 Torch Courier
 Tragic Poet
+Tranquilize
+Twilight Drover
 Tymora's Invoker
 Tyvar, Jubilant Brawler
 Ulvenwald Mysteries
 Undertaker
 Unhallowed Pact
 Unyaro Bee Sting
+Ursine Fylgja
 Urza's Cave
 Valeron Outlander
 Vault of Whispers

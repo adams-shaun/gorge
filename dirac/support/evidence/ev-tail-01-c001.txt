@@ -134,6 +134,7 @@ Font of Fertility
 Forerunner of the Legion
 Forest
 Fortifying Draught
+Frontline Medic
 Fíli and Kíli, Joyous
 Gaea's Cradle
 Galvanic Arc
@@ -300,6 +301,7 @@ Recollect
 Recover
 Recycla-bird
 Reef Shaman
+Reinterpret
 Renegade Rallier
 Renowned Weaponsmith
 Rionya, Fire Dancer
@@ -398,6 +400,7 @@ Thriving Moor
 Thriving Skyclaw
 Thunderous Snapper
 Tithe Drinker
+Tizerus Charger
 Tolarian Serpent
 Torch Drake
 Torch Gauntlet

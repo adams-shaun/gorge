@@ -13,6 +13,7 @@ Akrasan Squire
 Akroan Crusader
 Angelic Field Marshal
 Angelic Renewal
+Appa, the Vigilant
 Aquatic Incursion
 Archaeomender
 Armor Thrull
@@ -40,6 +41,7 @@ Cacophony Scamp
 Caldera Pyremaw
 Cao Cao, Lord of Wei
 Caravan Escort
+Castle
 Chain Lightning
 Chakram Slinger
 Champion's Helm
@@ -48,6 +50,8 @@ Clutch of Undeath
 Cogwork Assembler
 Commissar Severina Raine
 Common Iguana
+Company Commander
+Conclave Guildmage
 Consuming Vapors
 Corpse Knight
 Corrupting Licid
@@ -81,6 +85,7 @@ Earthen Goo
 Eidolon of Rhetoric
 Eivor, Battle-Ready
 Ekthi, Contaminator Priest
+Elspeth, Undaunted Hero
 Emerge Unscathed
 Erratic Visionary
 Essence Feed
@@ -133,6 +138,7 @@ Horizon Chimera
 Horseshoe Crab
 Hound of the Farbogs
 Hydra's Growth
+Idol of Oblivion
 Implement of Ferocity
 Independent Troops
 Indigo Faerie
@@ -208,6 +214,7 @@ Preeminent Captain
 Primeval Force
 Prosper, Tome-Bound
 Prosperous Innkeeper
+Protector of Gondor
 Prowling Pangolin
 Psychic Spear
 Psychotrope Thallid
@@ -224,9 +231,11 @@ Reckless Charge
 Reckless Handling
 Reduce to Ashes
 Relic Barrier
+Renewed Faith
 Replenish
 Revelation of Power
 Rhox Oracle
+Rolling Thunder
 Rustrazor Butcher
 Samite Pilgrim
 Savage Conception
@@ -249,6 +258,7 @@ Slobad, Goblin Tinkerer
 Sol Grail
 Soul of Theros
 Spined Fluke
+Spirit Weaver
 Squee's Embrace
 Steam Blast
 Stormcrag Elemental
@@ -261,15 +271,18 @@ Tactical Advantage
 Tale of Katara and Toph
 Talons of Falkenrath
 Talons of Wildwood
+Task Force
 Tawnos's Wand
 Temmet, Vizier of Naktamun
 Tenza, Godo's Maul
 Territorial Allosaurus
 The Bears of Littjara
+The Bloodsky Massacre
 Thorn Thallid
 Throes of Chaos
 Thrór's Map
 Thunder Drake
+Thundering Sparkmage
 Thwart the Grave
 Titan Hunter
 Titan's Strength
@@ -285,6 +298,7 @@ Umbris, Fear Manifest
 Undercity Scavenger
 Undying Rage
 Unholy Hunger
+Unwilling Ingredient
 Urza's Cave
 Vampire Lacerator
 Venomcrawler

@@ -18,6 +18,7 @@ Angel of Light
 Angelic Benediction
 Angelic Rocket
 Aquus Steed
+Arch of Orazca
 Argent Dais
 Armillary Sphere
 Armored Wolf-Rider
@@ -26,6 +27,7 @@ Ascend from Avernus
 Auramancer
 Aven Fisher
 Aysen Highway
+Ballynock Cohort
 Baloth Packhunter
 Baneblade Scoundrel
 Banners Raised
@@ -44,6 +46,7 @@ Blightcaster
 Blighted Fen
 Blinding Light
 Blinking Spirit
+Blinkmoth Well
 Blood Curdle
 Bloodfire Colossus
 Blossoming Wreath
@@ -51,7 +54,9 @@ Blot Out the Sky
 Bog Elemental
 Bog Imp
 Bogardan Dragonheart
+Boggart Sprite-Chaser
 Bonehoard
+Brash Taunter
 Bronze Sable
 Bruna, the Fading Light
 Brutalizer Exarch
@@ -64,11 +69,13 @@ Case of the Shifting Visage
 Caustic Wasps
 Celestial Archon
 Ceremonious Rejection
+Chandra, the Firebrand
 Chitterspitter
 Chosen of Markov
 Chromescale Drake
 Clockwork Fox
 Cloud Dragon
+Cloud Spirit
 Cloudgoat Ranger
 Coastal Drake
 Coercive Recruiter
@@ -78,7 +85,9 @@ Coral Atoll
 Cosmic Epiphany
 Cosmic Larva
 Counsel of the Soratami
+Cragcrown Pathway
 Crazed Goblin
+Crosis's Catacombs
 Crushing Canopy
 Cunning Geysermage
 Curfew
@@ -133,6 +142,7 @@ Forest
 Forget
 Foxfire
 Frost Breath
+Frost Fair Lure Fish
 Frostburn Weird
 Gallantry
 Galvanic Juggernaut
@@ -146,6 +156,7 @@ Goblin Furrier
 Goblin Gardener
 Goblin Picker
 Goblin Shrine
+Golgari Rot Farm
 Grapeshot Catapult
 Grasping Thrull
 Grey Host Reinforcements
@@ -286,6 +297,7 @@ Pointed Discussion
 Pontiff of Blight
 Prison Realm
 Prodigal Sorcerer
+Prophetic Flamespeaker
 Prophetic Ravings
 Proteus Staff
 Radiant Purge
@@ -385,6 +397,7 @@ Teferi, Time Raveler
 Temporal Fissure
 Tempting Witch
 Terror of the Fairgrounds
+The Locust God
 The Mirari Conjecture
 Thornscape Familiar
 Tireless Tribe
