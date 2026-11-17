@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"sort"
@@ -2019,6 +2020,88 @@ func copyGrantedTriggerOf(o *state.Object, i int) bool {
 		}
 	}
 	return true
+}
+
+// addTriggerSigs is the matchup's AddTriggers$ trigger signatures: the
+// Params of every trigger line an AddTriggers$ SVar of any card of the
+// matchup names (the table covers every seat's deck and the sideboards),
+// keyed canonically (trigKey). Cached: Table and reg are fixed for the
+// matchup's life. A game can hold no card outside them, and an as-enters
+// copy's granted trigger is folded into its face from one of those lines
+// (CR 707.9b) whatever became of the granting card since, so the trigger's
+// provenance is a property of the matchup's cards, not of the battlefield.
+func (m *Matchup) addTriggerSigs() map[string]bool {
+	if m.addTrigSigs != nil || m.reg == nil {
+		return m.addTrigSigs
+	}
+	sigs := map[string]bool{}
+	for _, n := range m.Table {
+		c, ok := m.reg.Lookup(n)
+		if !ok {
+			continue
+		}
+		for _, f := range c.Faces {
+			for _, raw := range f.SVars {
+				if !strings.Contains(raw, "AddTriggers$") {
+					continue
+				}
+				for _, nm := range strings.Split(parseCloneParam(raw, "AddTriggers"), ",") {
+					if tr, ok := cards.ParseTriggerLine(f.SVars[strings.TrimSpace(nm)]); ok {
+						sigs[trigKey(tr.Params)] = true
+					}
+				}
+			}
+		}
+	}
+	m.addTrigSigs = sigs
+	return sigs
+}
+
+// trigKey is a canonical key for a trigger's Params: its pairs, sorted.
+func trigKey(p map[string]string) string {
+	var b strings.Builder
+	for i, k := range slices.Sorted(maps.Keys(p)) {
+		if i > 0 {
+			b.WriteByte(0x1f)
+		}
+		fmt.Fprintf(&b, "%s=%s", k, p[k])
+	}
+	return b.String()
+}
+
+// copyAddTriggerOf reports whether trigger i of o's face is one an as-enters
+// copy's Clone AddTriggers$ folded into the copy face (Phantasmal Image,
+// Copycrook, Progenitor Mimic; CR 707.9b, events foldCopyExcept): o is a copy
+// (its face is none of its printed card's) and the trigger's Params are an
+// AddTriggers$ line of a card of the matchup — the granting card may have
+// left the battlefield long since, so the battlefield is not asked. The
+// kernel lists it as a granted (latent) trigger, whose stack index is 255.
+func copyAddTriggerOf(m *Matchup, o *state.Object, i int) bool {
+	if m == nil || o == nil || o.Card == nil || o.Face() == nil || i < 0 || i >= len(o.Face().Triggers) {
+		return false
+	}
+	for _, f := range o.Card.Faces {
+		if f == o.Face() {
+			return false // the printed face itself
+		}
+	}
+	return m.addTriggerSigs()[trigKey(o.Face().Triggers[i].Params)]
+}
+
+// copyGrantedTriggerAt reports whether trigger i of o's face is one a copy
+// effect folded in: the Myriad expansion or a Clone AddTriggers$ trigger.
+func copyGrantedTriggerAt(m *Matchup, o *state.Object, i int) bool {
+	return copyGrantedTriggerOf(o, i) || copyAddTriggerOf(m, o, i)
+}
+
+// parseCloneParam reads "Key$ value" out of an SVar body line.
+func parseCloneParam(raw, key string) string {
+	for seg := range strings.SplitSeq(raw, "|") {
+		if k, v, ok := strings.Cut(seg, "$"); ok && strings.TrimSpace(k) == key {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
 }
 
 // copyGrantedAbilityOf is copyGrantedAbility over the object itself.

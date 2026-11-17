@@ -539,8 +539,8 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 				if st.Ability != 255 && copyGrantedAbilityOf(src, int(st.Ability)) {
 					st.Ability = 255 // an as-enters copy's AddAbilities$: the kernel's latent ability
 				}
-				if grantedTriggerOf(g, src, st.Ability) {
-					st.Ability = 255 // a copy's "except it has myriad" or a Clone's GainThisAbility$: the kernel's latent trigger
+				if grantedTriggerAt(m, g, src, st.Ability) {
+					st.Ability = 255 // a copy's "except it has myriad", a Clone AddTriggers$ or GainThisAbility$: the kernel's latent trigger
 				}
 			}
 		} else {
@@ -569,6 +569,18 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		p.Winner = int8(g.Winner)
 	}
 	return charErr
+}
+
+// grantedTriggerAt reports whether stack ability ab (0x80|i: trigger i of o's
+// face) is one the kernel lists as a granted (latent) trigger: an as-enters
+// copy's "except it has myriad" or Clone AddTriggers$ trigger
+// (copyGrantedTriggerOf, copyAddTriggerOf) or a trigger a Clone's
+// GainThisAbility$ kept on the copy (cloneKeptTriggerOf).
+func grantedTriggerAt(m *Matchup, g *state.Game, o *state.Object, ab uint8) bool {
+	if ab&0x80 == 0 || ab == 255 {
+		return false
+	}
+	return grantedTriggerOf(g, o, ab) || copyGrantedTriggerAt(m, o, int(ab&0x7F))
 }
 
 // seatFields points at seat s's per-seat Projection fields.

@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // As-enters copy grants over the copy layers (CR 707.9b, 707.3, 613.1a).
 //
 // A copy's AddAbilities$ (Mercurial Pretender) is one of its copiable values:
@@ -34,6 +36,8 @@ func (s *State) copyGrantRecs(sl Slot, out *[maxOvr]cgrantRef) (n int) {
 	}
 	for i := 0; i < int(s.g.nfx) && n < len(out); i++ {
 		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxOverride && r.r.idx != 0 && r.r.copyGrant() {
+			// a record stands for reps identical applications: a trigger
+			// grant kept twice (copyGrantPut) is two instances
 			for j := 0; j < r.r.reps() && n < len(out); j++ {
 				out[n] = cgrantRef{r.r.idx, r.r.src}
 				n++
@@ -43,13 +47,33 @@ func (s *State) copyGrantRecs(sl Slot, out *[maxOvr]cgrantRef) (n int) {
 	return n
 }
 
+// copyGrantOnce reports whether a copy of a copy has grant g once: an
+// ability grant is folded once (gorge hasAbilityLine, a keyword expansion's
+// idempotence), but an AddTriggers$ trigger is appended to the copy face
+// each time (gorge foldCopyExcept), so a copy of a copy of the same
+// exception has two instances (CR 707.3, 707.9b). The AddTriggers$ trigger
+// is the granted trigger with a program: Myriad's grant (lower_myriad.go) is
+// an Attacks trigger with none, kept once like a keyword.
+func (k *prep) copyGrantOnce(g cgrantRef) bool {
+	ov := &k.t.Overrides[g.idx-1]
+	for _, a := range ov.Grant {
+		if a == 0 {
+			continue
+		}
+		if ab := &k.t.Cards[g.src].Abilities[a-1]; ab.Kind == kop.AbTriggered && len(ab.Prog) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // copyGrantPut applies grant g to sl as an as-enters copy grant unless sl
 // already has that grant: a copy of a copy of the same exception has the
 // ability once, as gorge's fold keeps it once.
 func (s *State) copyGrantPut(k *prep, sl Slot, g cgrantRef) {
 	var have [maxOvr]cgrantRef
 	for i, n := 0, s.copyGrantRecs(sl, &have); i < n; i++ {
-		if have[i] == g {
+		if have[i] == g && k.copyGrantOnce(g) {
 			return
 		}
 	}
