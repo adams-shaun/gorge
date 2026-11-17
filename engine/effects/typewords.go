@@ -2,7 +2,10 @@ package effects
 
 // predicateTypeWords is the set of type/supertype/subtype words this engine can
 // place on a face. It is generated from the corpus Types lines (cardsfolder and
-// tokenscripts), which is the type vocabulary any live object can carry. A non<X>
+// tokenscripts), which is the type vocabulary any live object can carry, plus
+// the three words the corpus grants only through an ability's Types$ parameter
+// (Blinkmoth, Llama, Beserker -- a manland's Animate places them on the object's
+// layer-4 derived types, CR 613.1f, and no Types line carries them). A non<X>
 // predicate is evaluated as a type negation only when X is in this set; an X that is
 // neither here nor a colour name is an unknown predicate and fails closed (never
 // matches), instead of always matching as !hasType would when the word is not a type.
@@ -73,9 +76,11 @@ var predicateTypeWords = map[string]bool{
 	"Beholder":        true,
 	"Belenon":         true,
 	"Berserker":       true,
+	"Beserker":        true,
 	"Betazoid":        true,
 	"Bird":            true,
 	"Bison":           true,
+	"Blinkmoth":       true,
 	"Blood":           true,
 	"Boar":            true,
 	"Bobblehead":      true,
@@ -336,6 +341,7 @@ var predicateTypeWords = map[string]bool{
 	"Licid":           true,
 	"Liliana":         true,
 	"Lizard":          true,
+	"Llama":           true,
 	"Lobster":         true,
 	"Locus":           true,
 	"Lolth":           true,
