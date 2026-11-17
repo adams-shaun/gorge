@@ -120,11 +120,11 @@ func (e *stackEntry) markExiles(fizzled bool) bool {
 }
 
 // exiledByMark reports whether a resolved spell entry that left the stack for
-// exile did so through the plotting replacement and no other (a flashback or
-// free-cast exile is the card's own).
+// exile did so through the plotting replacement and no other (a flashback,
+// free-cast or paid play's exile is the card's own).
 func (e *stackEntry) exiledByMark() bool {
 	return e.kind == seSpell && e.remVer&spellExilePlot != 0 && e.flags&sfFlashback == 0 &&
-		!(e.flags&sfFree != 0 && e.flags&sfFreeGY != 0)
+		e.flags&sfFreeGY == 0
 }
 
 // markedPlot makes the card of entry e plotted once its resolution has put it
