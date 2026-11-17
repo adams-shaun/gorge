@@ -2037,32 +2037,14 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					continue
 				}
 				if ab.ManaIdentityPotential {
-					// a Produced$ ColorIdentity source a rider or a cost beyond {T}
-					// kept out of the planner's census (Path of Ancestry, Opal
-					// Palace): a payment's bound prices it at the controller's
-					// commander identity (gorge potential.go
-					// addPotentialIdentityColours), while the plain over-bound prices
-					// the ColorIdentity word unbounded in every colour (CR 903.4).
-					// No commander reads nothing, which adds no unit either way
-					// (gorge potentialIdentityEmpty).
-					if m := s.identityColours(k, s.perms[sl].ctrl); m != 0 {
-						if d == nil {
-							open = true
-						} else {
-							add(sl, uint8(m), max(ab.ManaN, 1))
-						}
-					}
+					open = s.identityPotentialAdd(k, sl, ab, d, open, add)
 					continue
 				}
 				if s.censusDynamicAb(k, sl, ab, &cen, fold) {
 					continue
 				}
 				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, add, &anyFree, &open) {
-					if cen.mergeTap(sl, ab) {
-						fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
-						continue
-					}
-					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+					cen.addOrMerge(sl, ab, add, fold)
 				}
 			}
 		}
@@ -2070,6 +2052,34 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 	s.potentialBuildAvail(a, &pot, open, boundedAny, anyFree)
 	if len(units) != 0 {
 		*units[0] = cen.units
+	}
+	return open
+}
+
+// addOrMerge adds ab's fixed production as a unit of its own, or, when the census
+// merges a repeat tap source into one already counted (mergeTap), folds it into
+// the pool alone, so it counts once as gorge's census does.
+func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, add, fold func(Slot, uint8, uint8)) {
+	if c.mergeTap(sl, ab) {
+		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		return
+	}
+	add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+}
+
+// identityPotentialAdd prices a Produced$ ColorIdentity source a rider or a cost
+// beyond {T} kept out of the planner's census (Path of Ancestry, Opal Palace): a
+// payment's bound prices it at the controller's commander identity (gorge
+// potential.go addPotentialIdentityColours), while the plain over-bound prices the
+// ColorIdentity word unbounded in every colour (CR 903.4). No commander reads
+// nothing, which adds no unit either way (gorge potentialIdentityEmpty). It
+// returns the walk's open flag.
+func (s *State) identityPotentialAdd(k *prep, sl Slot, ab *kop.Ability, d *payDesc, open bool, add func(Slot, uint8, uint8)) bool {
+	if m := s.identityColours(k, s.perms[sl].ctrl); m != 0 {
+		if d == nil {
+			return true
+		}
+		add(sl, uint8(m), max(ab.ManaN, 1))
 	}
 	return open
 }
