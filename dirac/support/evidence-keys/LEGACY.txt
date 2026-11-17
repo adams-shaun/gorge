@@ -12633,6 +12633,7 @@ Maze Rusher
 Maze Sentinel
 Maze Skullbomb
 Maze of Shadows
+Maze of Ith
 Maze's End
 Mazemind Tome
 Mazirek, Kraul Death Priest

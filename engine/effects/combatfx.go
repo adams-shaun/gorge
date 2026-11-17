@@ -465,12 +465,20 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 // end-of-combat step ends; a next-turn value (UntilYourNextTurn,
 // UntilTheEndOfYourNextTurn, CR 611.2b) is neither, so the grant gets the
 // UntilTurn boundary rules.AddContinuous computes from its Duration (the
-// lifetime Animate and Clone use); every other value ("", "UntilEndOfTurn", ...)
+// lifetime Animate and Clone use); AsLongAsControl (CR 611.2b) is neither and
+// is ended by rules on the source's departure, control change or phase-out;
+// every other value ("", "UntilEndOfTurn", ...)
 // keeps the historic UntilEOT default, dropped by end-of-turn cleanup.
 // The one-sentence rule: a resolution-created one-shot pump honours the
 // duration its script declared instead of being forced to end of turn.
 func durationTiming(dur string) (permanent bool, untilEOT bool) {
 	if IsNextTurnDuration(dur) || IsUntilYourNextUpkeepDuration(dur) {
+		return false, false
+	}
+	if IsAsLongAsControlDuration(dur) {
+		// CR 611.2b: "for as long as you control CARDNAME" outlives cleanup;
+		// rules ends it when the source leaves, changes controller or phases
+		// out (registerPumpEffects anchors it to the host).
 		return false, false
 	}
 	switch durationTimingCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
@@ -610,6 +618,20 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 	if untapHost != 0 {
 		untilEOT = false
 	}
+	// Duration$ AsLongAsControl ("for as long as you control CARDNAME", Aegis
+	// Angel): Forge applies nothing when the host is not a permanent the
+	// activator controls (checkValidDuration). The grant is anchored to the
+	// HOST through DurationSource -- Source is the pumped object -- and the
+	// pumped object's id plus the host's ride Remembered so effectMoveSweep
+	// ends it for good on either's battlefield departure (CR 400.7); rules'
+	// expireAsLongAsControl ends it on a control change or phase-out.
+	var durSource state.ObjID
+	if IsAsLongAsControlDuration(g.Duration) && c.Source != id {
+		if host := h.Game().Obj(c.Source); host == nil || host.Zone != state.ZBattlefield || host.Controller != c.Controller {
+			return
+		}
+		durSource = c.Source
+	}
 	// The move-driven lifetime of a Duration$ Permanent pump: when the pumped
 	// object leaves the zone it was pumped in, the grant ends (CR 400.7 -- it
 	// is a new object on return), via the same ExileOnMoved$/Remembered pair
@@ -625,12 +647,15 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 	var remembered []state.ObjID
 	if lr, lw := leaveExileLifetime(id, g.LeaveBattlefield); lw != "" {
 		exileOn, remembered = lw, lr
-	} else if permanent {
+	} else if permanent || durSource != 0 {
 		if o := h.Game().Obj(id); o != nil {
 			if w := ZoneWord(o.Zone); w != "" {
 				exileOn = w
 				remembered = []state.ObjID{id}
 			}
+		}
+		if durSource != 0 {
+			remembered = append(remembered, durSource)
 		}
 	}
 	if att != 0 || def != 0 || doublePower || doubleToughness {
@@ -639,7 +664,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
 			DoublePower: doublePower, DoubleToughness: doubleToughness,
-			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
@@ -650,7 +675,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubSwitch,
-			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
@@ -659,7 +684,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
-			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
