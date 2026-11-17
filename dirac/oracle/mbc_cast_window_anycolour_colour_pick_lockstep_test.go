@@ -14,6 +14,8 @@ import "testing"
 //
 // pool dr-mbc-bbaa (focus_00189_UG vs focus_00208_UR, full surface), pair 184
 // at land a2df03bb00; the recorded decks replay under the committed pool.
+// The recording is pooled custom (the table its own decks need): the synthetic
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCDwarvenHoldReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "cast_window_anycolour_colour_pick")

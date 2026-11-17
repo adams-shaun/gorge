@@ -11,6 +11,8 @@ import "testing"
 // search kept expanding the dead line, spent gorge's 160-node budget there
 // and dropped the activation gorge offers (dr-mbc-bbba pair 44, decision 863
 // of 863).
+// The recording is pooled custom (the table its own decks need): the dr-mbc
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCGenjuOfTheFieldsReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "activation_source_sacrificed_in_prefix_ends_the_search")
