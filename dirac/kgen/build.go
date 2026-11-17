@@ -1179,6 +1179,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.DiscardN > 0 {
 		set(kop.CostDiscard, c.DiscardN)
 	}
+	discardXCostPart(c, &out) // Discard<X/Spec>: CostDiscard with N 0, the announced X
 	if c.DiscardHand {
 		out.DiscardHand = true
 	}
@@ -1356,6 +1357,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		return out, fmt.Errorf("cost with two counted parts")
 	}
 	return out, nil
+}
+
+// discardXCostPart adds the Discard<X/Spec> part (CostDiscard with N 0, the
+// announced X) to a cost being built. It is a helper so cardBuilder.cost does
+// not grow a branch (codeshape).
+func discardXCostPart(c lCost, out *kop.Cost) {
+	if c.DiscardX {
+		out.Flags |= kop.CostDiscard
+		out.DiscardX = true
+	}
 }
 
 // lifeSharesCount sets out's PayLife part when c's PayLife<N> sits beside a

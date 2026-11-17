@@ -39,7 +39,17 @@ func (s *State) discardPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool 
 	} else if exclude != NoObj && s.objs[exclude].zone == kop.ZoneHand {
 		n--
 	}
-	return n >= int(c.N)
+	need := int(c.N)
+	if c.DiscardX {
+		// Discard<X/Spec>: the announced X (Cost.N stays 0). An offer
+		// before the announcement reads X = 0, which every hand pays.
+		if s.buildLive() {
+			need = int(uint8(s.bld().e.x))
+		} else {
+			need = 0
+		}
+	}
+	return n >= need
 }
 
 // discardTwoPayable is discardPayable's two-part walk.
@@ -79,4 +89,74 @@ func (s *State) discardPartTwo(c *kop.Cost) bool {
 		}
 	}
 	return n >= int(c.N)
+}
+
+// useDiscardX: some spell or ability costs an announced Discard<X/Spec>
+// (CostDiscard with Cost.N 0): the bsX gate poses the announced-only X ask
+// (cast.go, genneed.go).
+var useDiscardX = newGenUse(func(t *kop.Table) bool {
+	for i := range t.Cards {
+		if discardXCost(&t.Cards[i].SpellCost) {
+			return true
+		}
+		for j := range t.Cards[i].Abilities {
+			if discardXCost(&t.Cards[i].Abilities[j].Cost) {
+				return true
+			}
+		}
+	}
+	return false
+})
+
+// discardXCost reports whether c discards the announced X cards.
+func discardXCost(c *kop.Cost) bool {
+	return c != nil && c.DiscardX
+}
+
+// discardXBuilding reports whether the entry being built discards the
+// announced X.
+//
+//go:noinline
+func (s *State) discardXBuilding(k *prep) bool {
+	return discardXCost(s.buildPickCost(k))
+}
+
+// discardXClamp bounds the X ask of a Discard<X/Spec> cost being built by the
+// matching hand cards the payer can discard (CR 107.3, 601.2b; gorge xAsk
+// reads the announced part's candidates, the card being cast excluded).
+// Announced only (no {X} mana, cost.X == 0) the count is the bound, offered
+// only when X = 0 is payable by the same avail (mx >= 0), else gorge's
+// empty-range fallback offers X = 0 alone and the cast reverses; beside a
+// printed {X} the count caps the mana bound mx. Cost.N stays 0. X is a uint8.
+//
+//go:noinline
+func (s *State) discardXClamp(k *prep, cost *kop.ManaCost, mx int) int {
+	pc := s.buildPickCost(k)
+	if pc == nil || !pc.DiscardX {
+		return mx
+	}
+	e := &s.bld().e
+	exclude := NoObj
+	if e.kind == seSpell {
+		exclude = e.obj
+	}
+	n := int(s.pl[e.ctrl].handN)
+	if pc.Flags&kop.CostDiscardFiltered != 0 {
+		n = s.discardCandN(k, e.ctrl, pc.Filter, exclude)
+	} else if exclude != NoObj && s.objs[exclude].zone == kop.ZoneHand {
+		n--
+	}
+	if n < 0 {
+		n = 0
+	}
+	if n > 255 {
+		n = 255
+	}
+	if cost.X == 0 {
+		if mx < 0 {
+			return 0
+		}
+		return n
+	}
+	return min(mx, n)
 }

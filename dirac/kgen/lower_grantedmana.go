@@ -34,9 +34,9 @@ func grantedManaShape(ab *lAbility) string {
 		return ""
 	}
 	c := &ab.Cost
-	if !grantedManaCostShape(c) || c.Untap || c.Sac != nil || c.DiscardN > 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
+	if !grantedManaCostShape(c) || c.Untap || c.Sac != nil || c.DiscardN > 0 || c.DiscardX || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
 		c.TapN > 0 || c.TapHost || c.SacHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
-		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 {
+		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 || c.DamageYouN > 0 {
 		return "granted mana ability whose cost is not {T}"
 	}
 	m := &c.Mana

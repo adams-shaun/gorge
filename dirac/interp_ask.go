@@ -864,7 +864,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case payKindSacHost:
 			s.paySacHost(k)
 		case kop.PayDraw:
-			s.payDraw(s.g.pickP, int(s.g.pickLeft))
+			s.payDrawToken(k)
 		case payKindDamage, payKindPoison:
 			s.payResToken(k) // cost_restokens.go
 		case payKindAddCounter:
