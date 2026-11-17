@@ -23,7 +23,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // ChangeZoneTable$ True: the zone changes of every pass reach the batch
 // listeners ("one or more ...") once, after the last pass, so the loop runs
-// inside one batch and one entry hold, as execUnion's does.
+// inside one batch and one entry hold, as execUnion's does. Without it (C
+// kop.RepeatPlain) gorge opens no zone batch around the loop, so neither is
+// opened here: each pass's body is its own (Balan, Wandering Knight).
 //
 //go:noinline
 func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
@@ -37,11 +39,13 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 		return
 	}
 	prog := s.prog(k)
-	if k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen())
+	if in.C&kop.RepeatPlain == 0 {
+		if k.gen.anyBatch {
+			defer s.batchClose(s.batchOpen())
+		}
+		hr := s.holdOpen(k)
+		defer s.holdClose(k, hr)
 	}
-	hr := s.holdOpen(k)
-	defer s.holdClose(k, hr)
 	saveLoop := s.g.inLoop
 	s.g.inLoop = true
 	for i := 0; i < n && !s.over; i++ {

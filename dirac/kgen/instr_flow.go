@@ -63,7 +63,7 @@ func (ic *instrCtx) opBranch() error {
 func (ic *instrCtx) opRepeatEachCard() error {
 	ki := &ic.ki
 	in := &ic.in
-	ki.Op, ki.B = kop.OpRepeatEach, ic.skip() // act_repeatcards.go
+	ki.Op, ki.B, ki.C = kop.OpRepeatEach, ic.skip(), int16(in.C) // act_repeatcards.go; C RepeatPlain
 	if in.F != nil {
 		if err := ic.objFilter(zBattlefield); err != nil {
 			return err
