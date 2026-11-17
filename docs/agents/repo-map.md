@@ -45,7 +45,7 @@ has the API, the rules for code that touches `State`, and the import boundary.
 | `dirac` | The engine: state, `Step`/`Apply`, combat, stack, mulligans, projection, and the interpreter for the `kop` ops. | Start at `doc.go`. One `<topic>_<mechanic>.go` per mechanic; never append to a shared tail. |
 | `dirac/kop` | The card-effect vocabulary: `Table`, `CardDef`, `Ability`, `Instr` and the op enum the tables and interpreter share. | A new op or ext sub-op goes in its own `kop` file with an `init` name and an unused literal; never renumber. |
 | `dirac/cardset` | The engine-neutral `Set` interface and the loader of binary card tables (`ByName`, `Names`); imports `dirac/kop` and the root table key. | Loader in `load.go`; committed pool inputs under `cardset/pools/`. |
-| `dirac/vanilla` | A hand-written table of basic lands, vanilla creatures and simple spells, with synthetic decks; the small-table test bed. | This table only; keep it hand-written so `example_test.go` needs no generated tables. |
+| `dirac/vanilla` | A hand-written table of basic lands, vanilla creatures and simple spells, with synthetic decks; the small-table test bed. | This table only; keep it hand-written so `dirac/example_test.go` needs no generated tables. |
 | `dirac/feat` | The network feature encoder: a dirac position to the same `policynet` inputs gorge produces. | Encoder and its policynet parity tests. |
 | `dirac/crcoverage` | Test-only CR coverage audit, one file per CR chapter; `TestCRCoverageIsCurrent` checks every row against the code. | The affected rule's row, in the same change as the mechanic. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. | Mirror a gorge auto-pay change here; lockstep is the check. |
@@ -54,7 +54,7 @@ has the API, the rules for code that touches `State`, and the import boundary.
 | `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. | Lockstep and fuzz logic here; its commands live under `oracle/cmd`. |
 | `dirac/kgen` | Lowers gorge's card IR into `kop` tables. | A `names_<mechanic>.go` and/or `opsdoc_<mechanic>.go`; do not edit `names.go` or `opsdoc.go`. A new LIR op's kop form is a handler in its family's `instr_<family>.go` (or a new one) registered with `instrOp` in `init()`; `instr` in `build_ab.go` has no op switch. A new `api:` effect's lowering registers with `apiOp`/`apiPS` in an `api_<family>.go` `init()` (`lower_api.go`), not as a case of `api`; a static Mode$ body registers with `staticMode` in a `static_<family>.go` (`static_mode.go`). |
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. | The adapter; it reads gorge's types and never `engine/rules`, `engine/replay` or `dirac/oracle`. |
-| `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. | `translate.go`, `faces.go` and `names.go`; `chooseKinds` stays one shared list. |
+| `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. | `translate.go`, `faces.go` and `names.go`; `canon.ChooseKinds` stays one shared list. |
 | `dirac/support` | Which cards are supported: the `evidence` and `refused` lists. | Generated from evidence runs by `scripts/dirac-first-refusals.py`; never by hand. |
 
 | Command | What it is | Where a change goes |

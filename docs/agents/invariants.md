@@ -81,6 +81,9 @@ The engine is a pure function of `(Config, intents)`.
     deadlines);
   - measurement and developer CLIs that read the clock only to bound a run or
     report elapsed time (`cmd/enginebench`, `cmd/cardfuzz`, `cmd/paymirror`);
+  - the dirac lockstep tooling (`dirac/oracle` and its watchdog, `dirac/oracle/cmd/kfuzz`,
+    `dirac/oracle/cmd/khbot`, `dirac/oracle/cmd/ksbt`), `dirac/kgen` (build timing)
+    and `dirac/cmd/dplay` (a timed run): none reaches a game;
   - the draft-event runtime `draft/eventhost`, for its lobby, idle and pick
     timers (`Options.Now`, `Options.Clock`): the log records their outcome as
     entries, and replay never reads the clock;
@@ -167,7 +170,8 @@ bot that cheats is a product bug.
 - `TestNoExportLeaksAnEngineGame`.
 - The view redaction tests.
 - The closed hosted-policy vocabulary in `server/host/bot_policy.go`.
-- `azmcts.ErrClairvoyantRefused` unless `AllowClairvoyant()` was called.
+- `azmcts.NewSeat` refuses a clairvoyant world when `SeatConfig.Source` is nil;
+  `azredeal.Hosted()` leaves it nil.
 
 ### 6. Licensing boundary
 
@@ -249,8 +253,8 @@ new known-unsupported file is refused. A raise is a maintainer's decision.
 ### 9. Golden chain heads move only with a named cause
 
 `TestHeads` (`engine/rules/heads_test.go`) pins the hash-chain head of the
-deterministic acceptance games at 2/4/6/8 seats, one file per seat count:
-`engine/rules/testdata/heads/<seats>.txt` holds the hash and nothing else. The game
+deterministic acceptance games at 2/4/6/8 seats and the 4-seat Commander game (`cmd4`), one file per game:
+`engine/rules/testdata/heads/<seats>.txt` (`cmd4.txt` for Commander) holds the hash and nothing else. The game
 itself is non-test code (`engine/rules/acceptance_game.go`,
 `testutil.AcceptanceDecks` and `botpolicy.GameBot`), so `cmd/headdiff` plays
 exactly the game the goldens pin. A legitimate behaviour change moves them:
