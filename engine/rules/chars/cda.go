@@ -142,6 +142,40 @@ func StaticZoneAdmitsStatic(st cards.Static, z state.Zone) bool {
 	return ez&effectZonesBlank != 0 || ez.Admits(z)
 }
 
+// StaticCDAFlashAdmits reports whether st is a characteristic-defining
+// "this spell has flash" static (CharacteristicDefining$ True, self-scoped,
+// AddKeyword$ Flash) that applies in zone z: a CDA works in every zone (CR
+// 604.3) minus the zones its ExcludeZone$ names. The condition gates
+// (IsPresent$/CheckSVar$) are rechecked by the caller's walk.
+func StaticCDAFlashAdmits(st cards.Static, z state.Zone) bool {
+	// The parser trims every static param value at the script boundary
+	// (cards/parse.go), so the reads below need no TrimSpace.
+	if st.ModeKind() != cards.StaticContinuous || st.ParamStr(cards.PKCharacteristicDefining) != "True" {
+		return false
+	}
+	if aff := st.ParamStr(cards.PKAffected); aff != "" && aff != "Card.Self" {
+		return false
+	}
+	if cards.KeywordHeadIDOf(st.ParamStr(cards.PKAddKeyword)) != KWFlash.ID {
+		return false
+	}
+	c, ok := st.ParamCode(cards.PKExcludeZone)
+	excl := effects.ZoneList(c)
+	if ok && excl.OK() && (excl.All() || excl.Has(z)) {
+		return false
+	}
+	return true
+}
+
+// ContinuousStaticZoneAdmits is the per-static zone gate of the
+// Continuous-static walk: the source object's zone z admits the static
+// through its own EffectZone$/ExcludeZone$ keys, or because the static is a
+// characteristic-defining "this spell has flash" claim, which works in every
+// zone (CR 604.3; StaticCDAFlashAdmits).
+func ContinuousStaticZoneAdmits(st cards.Static, z state.Zone) bool {
+	return StaticZoneAdmitsStatic(st, z) || StaticCDAFlashAdmits(st, z)
+}
+
 func init() {
 	cards.RegisterParamCoder(cards.PKEffectZone, "chars.EffectZones", func(v string) uint16 { return uint16(EffectZonesOf(v)) })
 	cards.RegisterParamCoder(cards.PKExcludeZone, "effects.ZoneList", func(v string) uint16 { return uint16(effects.ZoneListOf(v)) })
