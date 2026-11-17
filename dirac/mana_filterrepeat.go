@@ -126,3 +126,84 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bool) bool {
 	return !relax
 }
+
+// windowFeeStalls: the payment window must not list the repeatable fee-only
+// filter at sl, because activating it cannot bring the owed cost closer to
+// paid. Its fee spends as much mana as it makes, so it only converts pool mana
+// into a colour of its own, and that helps exactly when the colour fills a
+// pip the pool still lacks (Bog Initiate's "{1}: Add {B}." against a generic
+// remainder, or a {B} the pool already holds, converts B into B forever).
+// gorge's feeOnlyConversionStalls is the same rule: the fee's pips are paid
+// first, then its generic part from the pool beyond the cost's pips, then any
+// mana; a hybrid pip, an any-type rider or no owed cost fails open.
+func (s *State) windowFeeStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, anyColor bool) bool {
+	if useful == nil || anyColor || useful.Hyb[0] != 0 || !s.filtRepeat(k, sl) {
+		return false
+	}
+	fee := s.filtRepeatCost(k, sl)
+	ab := s.filtAb(k, sl)
+	amount := int(ab.ManaN)
+	if amount > int(fee.Generic)+pipSum(&fee.Pips) {
+		return false
+	}
+	pool := s.pl[p].pool
+	if m := s.restrPoolAdmits(k, p); m != 0 {
+		s.rbUnits(p, m, &pool)
+	}
+	short := func(pool *[kop.NumManaKinds]uint8) (n int) {
+		for c := range pool {
+			if useful.Pips[c] > pool[c] {
+				n += int(useful.Pips[c] - pool[c])
+			}
+		}
+		return n
+	}
+	before := short(&pool)
+	for c := range pool {
+		if fee.Pips[c] > pool[c] {
+			return false
+		}
+		pool[c] -= fee.Pips[c]
+	}
+	for g := fee.Generic; g > 0; g-- {
+		spent := false
+		for c := range pool {
+			if pool[c] > useful.Pips[c] {
+				pool[c]--
+				spent = true
+				break
+			}
+		}
+		if spent {
+			continue
+		}
+		for c := range pool {
+			if pool[c] > 0 {
+				pool[c]--
+				spent = true
+				break
+			}
+		}
+		if !spent {
+			return false
+		}
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if uint8(ab.ManaColors)&(1<<c) == 0 {
+			continue
+		}
+		after := pool
+		after[c] += uint8(amount)
+		if short(&after) < before {
+			return false
+		}
+	}
+	return true
+}
+
+func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
+	for _, v := range p {
+		n += int(v)
+	}
+	return n
+}
