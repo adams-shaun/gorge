@@ -138,8 +138,11 @@ func PaymentOwed(c Cost, pool state.Mana) decision.PaymentCost {
 	return owed
 }
 
-// PlainOrSnowManaCounter admits a bare WUBRGC counter (or the empty default)
-// and a snow "S<colour>" counter; a typed-producer counter is not reversed.
+// PlainOrSnowManaCounter admits a bare WUBRGC counter (or the empty default),
+// a snow "S<colour>" counter and the composed "SArtifact<colour>" counter --
+// every form a single ManaUndo can reverse exactly (events.Apply's
+// applyManaAdd folds each back over the tallies it raised); a
+// typed-producer counter is not reversed.
 func PlainOrSnowManaCounter(c string) bool {
 	switch len(c) {
 	case 0:
@@ -149,16 +152,21 @@ func PlainOrSnowManaCounter(c string) bool {
 	case 2:
 		return c[0] == 'S' && strings.ContainsRune("WUBRGC", rune(c[1]))
 	}
-	return false
+	_, ok := state.SnowTypedCounter(c)
+	return ok
 }
 
-// ManaCounterSlot is the pool slot of a plain or snow ManaAdd counter.
+// ManaCounterSlot is the pool slot of a plain, snow or composed
+// snow-artifact ManaAdd counter.
 func ManaCounterSlot(c string) int {
 	switch len(c) {
 	case 1:
 		return state.ManaIndex(c[0])
 	case 2:
 		return state.ManaIndex(c[1])
+	}
+	if slot, ok := state.SnowTypedCounter(c); ok {
+		return slot
 	}
 	return state.MC
 }

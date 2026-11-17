@@ -163,22 +163,50 @@ func ManaSourceObserved(h Host, source state.ObjID) bool {
 	return o.Face().ReadsSpentManaSource()
 }
 
-// ManaProducerTag encodes producer provenance in one exclusive unit tag.
-// The Artifact bit composes with Treasure/Cave/Desert rather than replacing
-// their historical type: a Treasure Artifact emits ArtifactTreasure, while
-// Sol Ring emits Artifact. All mana producers use this same helper (effMana,
-// effManaReflected, and cumulative-upkeep AddMana). Snow/typed overlap is
-// unmeasured at the corpus pin and retains typed precedence.
+// ManaProducerCounter spells the ManaAdd Counter a producer's unit carries:
+// the tag and the snow bit compose instead of yielding to each other (CR
+// 107.4h with snow a supertype independent of the card types), so a snow
+// Artifact's unit is the composed "S<Tag><colour>" form (today only the
+// Artifact tag composes with snow — ManaProducerTag). events.Apply moves the
+// pool slot, Player.Snow, the typed tally and Player.SnowTyped together
+// through that one event. Every ManaAdd a mana producer emits spells its
+// counter through this one helper (effMana, effManaReflected,
+// cumulative-upkeep AddMana, and the plain fast path).
+func ManaProducerCounter(tag string, snow bool, colour string) string {
+	switch {
+	case tag != "" && snow:
+		return "S" + tag + colour
+	case tag != "":
+		return tag + colour
+	case snow:
+		return "S" + colour
+	}
+	return colour
+}
+
+// ManaProducerTag encodes producer provenance in one unit tag plus an
+// independent snow bit. The Artifact bit composes with Treasure/Cave/Desert
+// rather than replacing their historical type: a Treasure Artifact emits
+// ArtifactTreasure, while Sol Ring emits Artifact. Snow is a supertype
+// independent of the card types (CR 107.4h, 106.3), so it composes with the
+// tag instead of yielding to it: a Snow Artifact's unit is BOTH an Artifact
+// unit and a snow unit, the composed "SArtifact<colour>" ManaAdd counter.
+// Snow Treasure/Cave/Desert is unmeasured at the corpus pin and retains
+// typed precedence there. All mana producers use this same helper (effMana,
+// effManaReflected, cumulative-upkeep AddMana, and the plain fast path).
 func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 	o := h.Game().Obj(source)
 	if o == nil || o.Face() == nil {
 		return "", false
 	}
 	artifact := false
+	snowType := false
 	for _, t := range o.Face().Types {
 		if t == "Artifact" {
 			artifact = true
-			break
+		}
+		if t == "Snow" {
+			snowType = true
 		}
 	}
 	for _, tagWord := range state.TypedManaTags {
@@ -195,12 +223,10 @@ func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 		}
 	}
 	if artifact {
-		return "Artifact", false
+		return "Artifact", snowType
 	}
-	for _, t := range o.Face().Types {
-		if t == "Snow" {
-			return "", true
-		}
+	if snowType {
+		return "", true
 	}
 	return "", false
 }
@@ -447,6 +473,10 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// Prospecting). Artifact provenance composes with those tags in the
 	// per-unit counter; it never replaces the Treasure/Cave/Desert type or
 	// contributes a second pool unit. An untyped Artifact uses ArtifactC.
+	// A SNOW Artifact's unit is both provenances on one unit — the composed
+	// "SArtifact<colour>" counter moves Player.Snow, the artifact tally and
+	// Player.SnowTyped together — so it can pay a {S} pip and both
+	// Count$CastTotalManaSpent heads count it once.
 	tag, snow := ManaProducerTag(h, c.Source)
 	// TriggersWhenSpent$ is retained alongside any spend restriction: the
 	// ManaRestriction event encoding carries both the restriction and source
@@ -495,13 +525,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 					unitAmount *= ManaEachNum(mp, h, c, 1)
 				}
 			}
-			counter := string(r)
-			switch {
-			case tag != "":
-				counter = tag + counter
-			case snow:
-				counter = "S" + counter
-			}
+			counter := ManaProducerCounter(tag, snow, string(r))
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: counter, Amount: unitAmount}
 			if noCounter != "" {

@@ -915,7 +915,7 @@ func TestHybridPhyrexianCostsParseAndPay(t *testing.T) {
 	if len(pfirst.HybridPhyrexian) != 1 || pfirst.HybridPhyrexian[0] != (HybridPhyrexian{A: 'R', B: 'G'}) {
 		t.Fatalf("ParseCost(\"PRG\") = %+v, want one R/G/P hybrid-Phyrexian pip", pfirst)
 	}
-	if !poolCanPay(pfirst, pool(0, 0, 0, 1, 0, 0)) || !payable(pfirst, state.Mana{}, state.Mana{}, [7]state.Mana{}, 2) {
+	if !poolCanPay(pfirst, pool(0, 0, 0, 1, 0, 0)) || !payable(pfirst, state.Mana{}, state.Mana{}, [8]state.Mana{}, 2) {
 		t.Fatal("PRG must be payable by R or by two life")
 	}
 
@@ -924,29 +924,29 @@ func TestHybridPhyrexianCostsParseAndPay(t *testing.T) {
 		len(c.HybridPhyrexian) != 1 || c.HybridPhyrexian[0] != (HybridPhyrexian{A: 'G', B: 'W'}) {
 		t.Fatalf("ParseCost(\"1 G GWP W\") = %+v", c)
 	}
-	if !payable(c, pool(1, 0, 0, 0, 2, 1), state.Mana{}, [7]state.Mana{}, 0) {
+	if !payable(c, pool(1, 0, 0, 0, 2, 1), state.Mana{}, [8]state.Mana{}, 0) {
 		t.Fatal("W + GG + a green face + generic must pay the cost with no life")
 	}
 	// Two life pays the compleated face when no colour has a spare unit left
 	// for it: the colour pips take their own units, the pip goes to life, and
 	// the generic lands on the colourless unit.
-	pay, ok := resolveMana(c, pool(1, 0, 0, 0, 1, 1), state.Mana{}, [7]state.Mana{}, 10, nil)
+	pay, ok := resolveMana(c, pool(1, 0, 0, 0, 1, 1), state.Mana{}, [8]state.Mana{}, 10, nil)
 	if !ok || pay.LifeSpent != 2 {
 		t.Fatalf("W+G+C with life must pay the compleated pip with two life: %+v ok=%v", pay, ok)
 	}
-	if !payable(c, pool(1, 0, 0, 0, 1, 1), state.Mana{}, [7]state.Mana{}, 10) {
+	if !payable(c, pool(1, 0, 0, 0, 1, 1), state.Mana{}, [8]state.Mana{}, 10) {
 		t.Fatal("the same pool is payable with life offered")
 	}
-	if payable(c, pool(1, 0, 0, 0, 1, 1), state.Mana{}, [7]state.Mana{}, 1) {
+	if payable(c, pool(1, 0, 0, 0, 1, 1), state.Mana{}, [8]state.Mana{}, 1) {
 		t.Fatal("one life is not enough for the compleated face")
 	}
 	// Pool with no white at all, life offered: the pip goes to life.
 	c2 := ParseCost("GWP")
-	pay2, ok2 := resolveMana(c2, state.Mana{}, state.Mana{}, [7]state.Mana{}, 2, nil)
+	pay2, ok2 := resolveMana(c2, state.Mana{}, state.Mana{}, [8]state.Mana{}, 2, nil)
 	if !ok2 || pay2.LifeSpent != 2 {
 		t.Fatalf("GWP with an empty pool and 2 life = %+v ok=%v, want two life", pay2, ok2)
 	}
-	if !payable(c2, state.Mana{}, state.Mana{}, [7]state.Mana{}, 2) {
+	if !payable(c2, state.Mana{}, state.Mana{}, [8]state.Mana{}, 2) {
 		t.Fatal("GWP must be payable with exactly two life")
 	}
 	if poolCanPay(c2, state.Mana{}) {

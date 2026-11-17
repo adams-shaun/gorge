@@ -313,13 +313,7 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		if amount == 0 {
 			return
 		}
-		counter := color
-		switch {
-		case tag != "":
-			counter = tag + color
-		case snow:
-			counter = "S" + color
-		}
+		counter := ManaProducerCounter(tag, snow, color)
 		ev := events.Event{Kind: events.ManaAdd, Player: player, Counter: counter, Amount: amount}
 		if restriction != "" {
 			ev.Text = events.ManaRestrictionText(restriction, 0)

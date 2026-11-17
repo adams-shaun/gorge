@@ -167,7 +167,7 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 		}
 		pool = pay.ManaAdd(pool, step.Mana)
 	}
-	payment, ok := resolveManaWith(cost, pool, state.Mana{}, [7]state.Mana{}, e.G.Players[pc.player].Life, false, pipRider{}, nil)
+	payment, ok := resolveManaWith(cost, pool, state.Mana{}, [8]state.Mana{}, e.G.Players[pc.player].Life, false, pipRider{}, nil)
 	if !ok || pay.ManaAmount(payment.Pool) != plan.PoolAfter {
 		return paymentFallbackProductionChanged, units, pay.Alt{}, false
 	}

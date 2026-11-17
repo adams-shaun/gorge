@@ -682,7 +682,7 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // included (CR 601.2g-h), exactly as the pool-only feasibility check beside
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
-	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
 	return e.castWindowReachableAfter(cwDeadAfter, p, cost, spellPool, snow, typed, life, conv, rider, units)
 }
 
@@ -690,7 +690,7 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 // once its walk passes deadAfter nodes. A negative deadAfter is the plain walk,
 // with neither that memory nor the reach cap (a test compares the two).
 func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
-	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
 	// CR 119.8: under a CantChangeLife static no positive life may be paid,
 	// whether by the cost or by a PayLife source's activation.
 	if asEval(e).LifePaymentForbidden(p, pay.SASpell) {
@@ -844,7 +844,7 @@ func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost 
 				// gate can spend. Track the same spent colours in the spell
 				// pool; fees reduce that pool, they are not extra spell pips.
 				activationFee, feeOK := resolveMana((Cost{Generic: a.CostGeneric, Colored: a.CostColored}),
-					activationPool, activationSnow, [7]state.Mana{}, lifeLeft, nil)
+					activationPool, activationSnow, [8]state.Mana{}, lifeLeft, nil)
 
 				if !feeOK {
 					continue

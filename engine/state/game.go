@@ -121,6 +121,17 @@ type Player struct {
 	// Artifact, also here. Both are folded only by events.Apply.
 	ArtifactTyped [3]Mana
 
+	// SnowTyped parallels Pool slot for slot: SnowTyped[i] counts how many
+	// of the Pool[i] mana units are BOTH snow units (CR 107.4h) and
+	// Artifact-typed units — the overlap the two inclusive tallies above
+	// cannot name (a Snow Artifact's unit, the ManaAdd event's
+	// "SArtifact<colour>" Counter form). Each such unit appears once in
+	// Snow and once in TypedMana[TypedArtifact] and once here; ManaUnits
+	// subtracts it from both to keep the exclusive payment partition
+	// exhaustive. Folded only by events.Apply; SnowTyped[i] <=
+	// min(Snow[i], TypedMana[TypedArtifact][i]) always holds.
+	SnowTyped Mana
+
 	// PersistentMana parallels Pool slot for slot: PersistentMana[i] counts
 	// how many of the Pool[i] mana units carry PersistentMana$ True — mana
 	// that does not empty as steps and phases end (CR 500.4 with the
@@ -335,10 +346,10 @@ func (p *Player) AddCounter(kind string, n int32) {
 	}
 }
 
-// ManaUnits derives the exclusive payment partition from overlapping type
-// and Artifact-bit tallies without mutating state.
-func (p Player) ManaUnits() [7]Mana {
-	var units [7]Mana
+// ManaUnits derives the exclusive payment partition from overlapping type,
+// Artifact-bit and snow tallies without mutating state.
+func (p Player) ManaUnits() [8]Mana {
+	var units [8]Mana
 	for t := range p.TypedMana {
 		units[t] = p.TypedMana[t]
 	}
@@ -347,6 +358,14 @@ func (p Player) ManaUnits() [7]Mana {
 		for i := range units[t] {
 			units[t][i] -= p.ArtifactTyped[t][i]
 		}
+	}
+	// The snow-artifact overlap: a unit that is both a snow unit and an
+	// Artifact unit is counted in TypedMana[TypedArtifact] (inclusive) and
+	// in Snow; partition it out so the exclusive partition stays exhaustive
+	// and the payment solver consumes it once from the pool.
+	for i := range units[TypedArtifact] {
+		units[TypedSnowArtifact][i] = p.SnowTyped[i]
+		units[TypedArtifact][i] -= p.SnowTyped[i]
 	}
 	return units
 }

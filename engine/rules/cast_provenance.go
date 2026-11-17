@@ -474,7 +474,12 @@ func (e *Engine) castSpendWindow(obj state.ObjID) castSpendFacts {
 		case events.ManaAdd:
 			if ev.Amount < 0 && int(ev.Player) < len(acc) {
 				acc[ev.Player].spent += -ev.Amount
-				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
+				if _, ok := state.SnowTypedCounter(ev.Counter); ok {
+					// A composed snow-artifact unit's spend counts toward
+					// the artifact tag: it is an Artifact unit (and a snow
+					// one) spent once.
+					acc[ev.Player].tagged[state.TypedArtifact] += -ev.Amount
+				} else if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
 					base, artifact := state.ManaUnitTypes(tag)
 					acc[ev.Player].tagged[base] += -ev.Amount
 					if artifact && base != state.TypedArtifact {

@@ -59,11 +59,11 @@ func TestZeroDebitCastWindowSurvivesNegativeLife(t *testing.T) {
 	// Direct guard-site read at life -1: the window reaches the tapped
 	// target's repriced {1}{W} from an empty pool, and still refuses {4}{W}.
 	if !e.castWindowReachable(0, e.parseCost("1 W"), state.Mana{}, state.Mana{},
-		[7]state.Mana{}, -1, nil, pipRider{}, units) {
+		[8]state.Mana{}, -1, nil, pipRider{}, units) {
 		t.Fatal("castWindowReachable refused {1}{W} from the zero-debit {W}{W} window at life -1")
 	}
 	if e.castWindowReachable(0, e.parseCost("4 W"), state.Mana{}, state.Mana{},
-		[7]state.Mana{}, -1, nil, pipRider{}, units) {
+		[8]state.Mana{}, -1, nil, pipRider{}, units) {
 		t.Fatal("precondition: {4}{W} priced reachable from the {W}{W} window; the assertion is vacuous")
 	}
 

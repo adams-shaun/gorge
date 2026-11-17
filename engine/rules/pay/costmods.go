@@ -309,7 +309,7 @@ func ComposeFeasibleP(m *CostMods, c *Cost, taxGeneric, delve int32) Cost {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m CostMods) FeasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider PipRider, conv *Conv) bool {
+func (m CostMods) FeasibleAny(c Cost, pool, snow state.Mana, typed [8]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider PipRider, conv *Conv) bool {
 	return m.FeasibleAnyAvail(c, pool, snow, typed, life, taxGeneric, delve, bLifeOK, rider, conv, nil)
 }
 
@@ -321,7 +321,7 @@ func (m CostMods) FeasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana
 // cannot pay, so a caller pricing a cost with live announcement pips whose
 // availability depends on them passes the supplier; a caller with a fixed
 // pool passes nil and keeps FeasibleAny exactly.
-func (m CostMods) FeasibleAnyAvail(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider PipRider, conv *Conv, avail func(cost Cost) (state.Mana, [7]state.Mana)) bool {
+func (m CostMods) FeasibleAnyAvail(c Cost, pool, snow state.Mana, typed [8]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider PipRider, conv *Conv, avail func(cost Cost) (state.Mana, [8]state.Mana)) bool {
 	composed := func(c Cost) bool {
 		cc := m.ComposeFeasible(c, taxGeneric, delve)
 		p, t := pool, typed
