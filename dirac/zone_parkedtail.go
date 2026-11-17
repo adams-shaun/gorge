@@ -138,6 +138,7 @@ func (s *State) finishDigTail(k *prep) {
 			s.objs[rest[i]].ver++
 			pl.libTop(rest[i])
 		}
+		s.digWindowDone()
 		return
 	}
 	for i := 0; i < nr; i++ {
@@ -150,6 +151,19 @@ func (s *State) finishDigTail(k *prep) {
 			s.placeFrom(o, rz, false, kop.ZoneLibrary, false)
 		}
 	}
+	s.digWindowDone()
+}
+
+// digWindowDone drops the dig's look window: it is dead once the dig is done.
+// The reveal rode the move (gorge effDig's transient Note, no persistent
+// state), and every later reader of the taken cards goes through the
+// remembered set. Dropping it lets a chained OpCastFree park
+// (freeCastParkable), so the casts are made before the program's tail as
+// gorge's answer settle does -- a tail that gates on the remembered set
+// (Vaan, Street Thief's Treasure) otherwise ran before the play that empties
+// it.
+func (s *State) digWindowDone() {
+	s.g.nlook, s.g.lookSel = 0, 0
 }
 
 // digPick selects looked-at card o. The picks move in the order they were

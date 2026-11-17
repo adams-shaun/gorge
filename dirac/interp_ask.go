@@ -604,7 +604,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			}
 			d.add(MakeAction(AkChoose, TCode(s.g.free[i]), 0, 0))
 		}
-		d.add(MakeAction(AkDone, 0, 0, 0))
+		s.castFreeDoneOption(k, d)
 	case raGenChooseCard:
 		d.Sub = ChGenChooseCard
 		if c := s.prog(k)[r.pc].C; c == chooseAttachPick || c == chooseAttachPickOpt {

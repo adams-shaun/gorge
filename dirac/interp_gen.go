@@ -677,7 +677,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.freeP |= freeCopy // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
 		}
 		if in.C&256 != 0 {
-			s.g.freeP |= freePaid // the copy pays its mana cost (cast_exilegrant.go)
+			s.g.freeP |= freePaid // the copy (cast_exilegrant.go) or the play pays its mana cost (turn_gen.go's drain)
 		}
 		if in.C&16 != 0 {
 			// ForgetPlayed$ True: drop the card once its cast commits. The
