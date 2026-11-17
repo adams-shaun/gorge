@@ -20,6 +20,7 @@ func init() {
 	apiPS("ElementalBend", (*lowerCtx).elementalBend)
 	apiPS("TapOrUntap", (*lowerCtx).tapOrUntap)
 	apiPS("TapOrUntapAll", (*lowerCtx).tapOrUntapAll) // lower_tapuntap.go
+	apiPS("MustBlock", (*lowerCtx).mustBlockAPI)      // lower_mustblock.go
 }
 
 func (lc *lowerCtx) apiTap(sa *cards.SA, ps *params) error {
