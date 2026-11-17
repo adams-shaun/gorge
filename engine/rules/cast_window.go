@@ -304,6 +304,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			genericCost := int32(0)
 			var coloredCost state.Mana
 			free := pay.ManaFreeCost(cost)
+			freeTap := free && cost.Tap
 			post := false
 			switch {
 			case free:
@@ -389,7 +390,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					}
 					var single [6]int32
 					single[colour] = 1
-					alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost}
+					alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap}
 					if post {
 						postAlts = append(postAlts, alt)
 					} else {
@@ -398,7 +399,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				}
 				continue
 			}
-			alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost}
+			alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: coloredCost, FreeTap: freeTap}
 			if post {
 				postAlts = append(postAlts, alt)
 			} else {
@@ -406,7 +407,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			}
 		}
 		if len(postAlts) > 0 {
-			windowUnits = e.addCastWindowPostAlts(p, windowUnits, id, postAlts)
+			windowUnits = addCastWindowPostAlts(windowUnits, id, postAlts)
 		}
 	}
 	return windowUnits
@@ -711,11 +712,11 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, alt windowManaA
 }
 
 // addCastWindowPostAlts settles a source's no-tap self-sacrifice alternatives
-// (postAlts) after its whole ability list has been read: beside a tap
-// alternative they are Extras (a SECOND activation, CR 602.2b/605.1a); with no
-// tap activation they are the source's ordinary one-shot alternative and join
-// Alts.
-func (e *Engine) addCastWindowPostAlts(p state.PlayerID, units []windowManaUnit, id state.ObjID, postAlts []windowManaAlt) []windowManaUnit {
+// (postAlts) after its whole ability list has been read: beside a free tap
+// activation that leaves the source they are Extras (a SECOND activation, CR
+// 602.2b/605.1a); with no such tap activation they are the source's ordinary
+// one-shot alternative and join Alts.
+func addCastWindowPostAlts(units []windowManaUnit, id state.ObjID, postAlts []windowManaAlt) []windowManaUnit {
 	idx := -1
 	for i := range units {
 		if units[i].ID == id {
@@ -727,7 +728,7 @@ func (e *Engine) addCastWindowPostAlts(p state.PlayerID, units []windowManaUnit,
 		units = append(units, windowManaUnit{ID: id})
 		idx = len(units) - 1
 	}
-	if castWindowUnitTaps(e, p, units[idx]) {
+	if castWindowUnitFreeTap(units[idx]) {
 		units[idx].Extras = append(units[idx].Extras, postAlts...)
 		return units
 	}
@@ -735,11 +736,14 @@ func (e *Engine) addCastWindowPostAlts(p state.PlayerID, units []windowManaUnit,
 	return units
 }
 
-// castWindowUnitTaps reports whether the unit already carries a tap-required
-// activation, so a no-tap self-sacrifice is a second activation beside it.
-func castWindowUnitTaps(e *Engine, p state.PlayerID, u windowManaUnit) bool {
+// castWindowUnitFreeTap reports whether the unit already carries a free
+// tap-required activation that leaves the source on the battlefield, so a
+// no-tap self-sacrifice is a legal second activation beside it. A tap that
+// also sacrifices the source (Omni-Cheese Pizza's fee shape) is not: the
+// sacrifice would already have removed it.
+func castWindowUnitFreeTap(u windowManaUnit) bool {
 	for _, a := range u.Alts {
-		if a.Ma != nil && e.manaStaticFor(p, u.ID, a.Ma).Tap {
+		if a.FreeTap {
 			return true
 		}
 	}

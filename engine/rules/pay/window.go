@@ -92,6 +92,10 @@ type WindowAlt struct {
 	// cast-payment probe and paid by castWindowReachable from the pool the
 	// window has already accumulated.
 	CostColored state.Mana
+	// FreeTap marks a bare (or empty-cost) tap activation, so it leaves the
+	// source on the battlefield and a no-tap self-sacrifice ability may
+	// follow it (cast_window.go's Extras).
+	FreeTap bool
 }
 
 // Fee is the alt's activation fee as one mana count, generic and coloured.
