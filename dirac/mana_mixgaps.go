@@ -27,6 +27,7 @@ const (
 	otherTapXPlain // a second-ability tap-another source's plain first ability (tapXPlainDo)
 	otherCtr       // a counter-cost source's ability (mixCtr): the counter one, or plain {T} first
 	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
+	otherTapsDefer // a Taps-deferred gap (Grove of the Burnwillows' rider) beside a filter: the script search's answer ans (tapsDeferApply)
 	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
 )
 
@@ -202,6 +203,9 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 		}
 	}
 	m = m.or(s.chosenPairGaps(k, p)) // (a filter board only: mana_chosenfilter.go)
+	if s.scriptFilt(k, p).any() {
+		m = m.or(s.scriptTapsDefer(k, p)) // gorge's one prefix search activates a Taps-deferred gap beside the filters too (tapsDeferGap)
+	}
 	return m.andNot(s.scriptFilt(k, p))
 }
 
@@ -259,65 +263,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	}
 	switch {
 	case t.scriptAnyR(k, p).has(sl):
-		if !fs.tick() {
-			return false
-		}
-		c := t.cardAt(sl)
-		if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
-			off := uint8(0)
-			if t.wideSecond(k, sl) {
-				// the first tick was the "choose a mana ability" ask; the
-				// first ability's colours, then the allocation ask's node
-				// (mana_restrictedcombo.go)
-				if fs.wide2FirstColours(func(col uint8) bool { return try(otherStep{kind: otherAnyR, ans: col}) }) {
-					return true
-				}
-				if !fs.tick() {
-					return false
-				}
-				off = kop.NumManaKinds - 1
-			}
-			// the two-unit ask: gorge's 25 per-unit answers (scriptAnswers,
-			// unit-major W W, W U ... G G), those naming a colour the play
-			// announces first and engine order kept in each half (gorge's
-			// scriptOrderAnswers on the same ask: its W-subtree spent the
-			// search's budget before the first wanted pair). A mirrored pair (its
-			// second unit below its first) makes the pool its twin, earlier in
-			// the same half, made: it charges its node where gorge visits it and
-			// finds the state seen. off shifts the multiset answers past the
-			// first ability's colours when the gap is a second ability.
-			for half := 0; half < 2; half++ {
-				for a := 0; a < 5; a++ {
-					for b := 0; b < 5; b++ {
-						if (fs.need[a] || fs.need[b]) != (half == 0) {
-							continue
-						}
-						if b < a {
-							if !fs.tick() {
-								return false
-							}
-							continue
-						}
-						if try(otherStep{kind: otherAnyR, ans: off + wideAnswerIndex(a, b)}) {
-							return true
-						}
-					}
-				}
-			}
-			return false
-		}
-		// its printed first mana ability first: gorge's "choose a mana
-		// ability" ask has no ManaSymbol, so scriptOrderAnswers leaves it
-		// alone (on Cavern of Souls et al. answer 0 is the printed {C}).
-		// Then the colour ask (scriptDFS's six answers), gorge's
-		// scriptOrderAnswers on it: a colour the play announces first, the
-		// rest in engine order.
-		if anyRSteps(fs.need, func(ans uint8) bool {
-			return try(otherStep{kind: otherAnyR, ans: ans})
-		}, fs.tick) {
-			return true
-		}
-		return false
+		return fs.anyRGap(k, t, sl, try)
 	case t.scriptTapX(k, p).has(sl):
 		if k.tapXSecond(t.cardAt(sl)) {
 			// its ability ask (tapXAbilityAsk): the plain first ability, then
@@ -420,6 +366,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 				return true
 			}
 		}
+	case t.scriptTapsDefer(k, p).has(sl):
+		return fs.tapsDeferGap(k, t, sl, funded)
 	case t.canTapForMana(k, sl):
 		// several abilities: the "choose a mana ability" ask, one node, the
 		// printed ability's answers first (grantSrch.visit)
@@ -472,6 +420,91 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		}
 	}
 	return fs.riderOther(k, t, sl, funded, try)
+}
+
+// anyRGap branches any-colour restricted gap sl (scriptAnyR) on its answers at
+// a priority node, as the restricted-gap scripts' scriptDFS does. A wide
+// second ability (mana_restrictedcombo.go) answers the first ability's colours
+// and then its two-unit ask's multisets; a plain source answers its printed
+// first mana ability, then the colour ask's six answers (anyRSteps).
+func (fs *filtSearch) anyRGap(k *prep, t *State, sl Slot, try func(otherStep) bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	c := t.cardAt(sl)
+	if restrWideAnyMana(&k.t.Cards[c].Abilities[k.gen.anyR(c)]) {
+		off := uint8(0)
+		if t.wideSecond(k, sl) {
+			// the first tick was the "choose a mana ability" ask; the
+			// first ability's colours, then the allocation ask's node
+			// (mana_restrictedcombo.go)
+			if fs.wide2FirstColours(func(col uint8) bool { return try(otherStep{kind: otherAnyR, ans: col}) }) {
+				return true
+			}
+			if !fs.tick() {
+				return false
+			}
+			off = kop.NumManaKinds - 1
+		}
+		// the two-unit ask: gorge's 25 per-unit answers (scriptAnswers,
+		// unit-major W W, W U ... G G), those naming a colour the play
+		// announces first and engine order kept in each half (gorge's
+		// scriptOrderAnswers on the same ask: its W-subtree spent the
+		// search's budget before the first wanted pair). A mirrored pair (its
+		// second unit below its first) makes the pool its twin, earlier in
+		// the same half, made: it charges its node where gorge visits it and
+		// finds the state seen. off shifts the multiset answers past the
+		// first ability's colours when the gap is a second ability.
+		for half := 0; half < 2; half++ {
+			for a := 0; a < 5; a++ {
+				for b := 0; b < 5; b++ {
+					if (fs.need[a] || fs.need[b]) != (half == 0) {
+						continue
+					}
+					if b < a {
+						if !fs.tick() {
+							return false
+						}
+						continue
+					}
+					if try(otherStep{kind: otherAnyR, ans: off + wideAnswerIndex(a, b)}) {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	// its printed first mana ability first: gorge's "choose a mana
+	// ability" ask has no ManaSymbol, so scriptOrderAnswers leaves it
+	// alone (on Cavern of Souls et al. answer 0 is the printed {C}).
+	// Then the colour ask (scriptDFS's six answers), gorge's
+	// scriptOrderAnswers on it: a colour the play announces first, the
+	// rest in engine order.
+	if anyRSteps(fs.need, func(ans uint8) bool {
+		return try(otherStep{kind: otherAnyR, ans: ans})
+	}, fs.tick) {
+		return true
+	}
+	return false
+}
+
+// tapsDeferGap branches Taps-deferred gap sl (Grove of the Burnwillows' rider,
+// a depletion land) on its activation's answers at a priority node, as the
+// tap-another search's deferAsk does: deferGapAnswers of them in the script
+// search's order, the production ask a node when there are two or more.
+func (fs *filtSearch) tapsDeferGap(k *prep, t *State, sl Slot, funded int) bool {
+	n := t.deferGapAnswers(k, sl)
+	if n > 1 && !fs.tick() {
+		return false
+	}
+	for c := uint8(0); c < n; c++ {
+		st := filtStep{sl: sl, gap: true, act: fs.a, other: otherStep{kind: otherTapsDefer, ans: c}}
+		if fs.try(k, t, st, funded, true) {
+			return true
+		}
+	}
+	return false
 }
 
 // ctrOther branches counter-cost gap sl's answers at a priority node, as
@@ -549,6 +582,8 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.tapXPlainDo(k, p, st.sl, o.ans)
 	case otherChosen:
 		s.chosenGapDo(k, p, st.sl, o.plain)
+	case otherTapsDefer:
+		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
 	case otherCtr:
 		if o.plain {
 			// the plain first {T} ability's answer: the counters and the use
