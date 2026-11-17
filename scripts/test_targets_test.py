@@ -807,6 +807,20 @@ def test_repro_named_maps_a_recording_to_its_reader(repo):
     assert got == {}
 
 
+def test_census_selects_the_pin_and_registration_ratchets():
+    # 11-17 #611: TestGrantedKeywordHeadsAreRegisteredOrPinned matched no census word, so fast never ran it on the
+    # PR and it failed three Mergify batches. The pin ratchets must match, in the py selection and test-smart's C,
+    # and the lockstep farm replays (TestPinnedFarm*, minutes in ./dirac/oracle) must not.
+    sh = (HERE / "test-targets.sh").read_text()
+    c = [l for l in sh.splitlines() if l.startswith("C='Census|")][0][3:-1]
+    for rx in (tt.CENSUS, c):
+        for name in ("TestGrantedKeywordHeadsAreRegisteredOrPinned", "TestStateLayoutPinned",
+                     "TestEveryRepoDeckParamsAreRead", "TestNonAPIPrimitivesAreRegistered",
+                     "TestKnownUnsupportedFilesWellFormed", "TestCmd5SliceCleanOnlyGrows"):
+            assert re.search(rx, name), (rx, name)
+        assert not re.search(rx, "TestPinnedFarmWarpSpeed")
+
+
 def test_smart_step_3_names_the_guard_tests_and_finds_their_packages():
     sh = (HERE / "test-targets.sh").read_text()
     c = [l for l in sh.splitlines() if l.startswith("C='Census|")][0]
