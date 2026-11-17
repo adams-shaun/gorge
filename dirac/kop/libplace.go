@@ -23,6 +23,23 @@ const (
 	PlaceArmTop    = 0 // count the library placements that follow; they go to the top
 	PlaceArmBottom = 1 // the same, to the bottom
 	PlaceAsk       = 2 // order each owner's counted cards
+
+	// PlaceArmBottom is a multi-target ChangeZone to the bottom: its move op
+	// already appends each target at the bottom, so the ask needs no lift.
+	//
+	// PlaceArmSweepBottom is a ChangeZoneAll sweep to LibraryPosition$ -1:
+	// the sweep placed the group on top in move order, so the ask first lifts
+	// it to the bottom (gorge's MoveZone append).
+	PlaceArmSweepBottom = 3
+
+	// PlaceArmTopRandom / PlaceArmBottomRandom are a ChangeZoneAll sweep's
+	// RandomOrder$ True into a library: the moved set goes to the top or the
+	// bottom in gorge's Fisher-Yates order (Rand(i+1) from the last index
+	// down to 1, per owner in first-placed order), and no owner is asked.
+	// The arm still brackets the sweep so the ask instruction can end the
+	// placement tally.
+	PlaceArmTopRandom    = 4
+	PlaceArmBottomRandom = 5
 )
 
 func init() { extOpNames[ExtLibPlace] = "LibPlace" }

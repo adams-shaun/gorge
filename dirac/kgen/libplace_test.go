@@ -38,13 +38,19 @@ func libPlaceLowered(t *testing.T, root string) (refusals, ops []string) {
 
 // TestLibPlaceBrackets: gorge's CR 401.4 arrangement (effects.libraryPlacementOrder)
 // is posed for a ChangeZoneAll into a library and a multi-target ChangeZone to
-// its top or bottom, unless the order is random or the library is shuffled
-// afterwards; the move is bracketed by ExtLibPlace's arm (the position) and ask.
+// its top or bottom; a RandomOrder$ sweep is bracketed by the random arm and
+// asks nobody, and a Shuffle$ True sweep is not bracketed (its tail places).
 func TestLibPlaceBrackets(t *testing.T) {
 	tgts := "ValidTgts$ Card.YouOwn | TargetMin$ 0 | TargetMax$ 4 | Origin$ Graveyard | Destination$ Library"
 	for _, c := range []struct{ name, root, want string }{
 		{"sweep", "SP$ ChangeZoneAll | Cost$ B | Origin$ Graveyard | Destination$ Library | Shuffle$ False | ChangeType$ Card.YouCtrl",
 			"LibPlace/0 ChangeZoneAll LibPlace/2"},
+		{"sweep, bottom", "SP$ ChangeZoneAll | Cost$ B | Origin$ Graveyard | Destination$ Library | LibraryPosition$ -1 | ChangeType$ Card.YouCtrl",
+			"LibPlace/3 ChangeZoneAll LibPlace/2"},
+		{"sweep, top random", "SP$ ChangeZoneAll | Cost$ B | Origin$ Graveyard | Destination$ Library | LibraryPosition$ 0 | RandomOrder$ True | ChangeType$ Card.YouCtrl",
+			"LibPlace/4 ChangeZoneAll LibPlace/2"},
+		{"sweep, bottom random", "SP$ ChangeZoneAll | Cost$ B | Origin$ Graveyard | Destination$ Library | LibraryPosition$ -1 | RandomOrder$ True | ChangeType$ Card.YouCtrl",
+			"LibPlace/5 ChangeZoneAll LibPlace/2"},
 		{"targets, bottom", "SP$ ChangeZone | Cost$ B | " + tgts + " | LibraryPosition$ -1", "LibPlace/1 ToLibrary LibPlace/2"},
 		{"targets, top", "SP$ ChangeZone | Cost$ B | " + tgts + " | LibraryPosition$ 0", "LibPlace/0 ToLibrary LibPlace/2"},
 		{"targets, top by default", "SP$ ChangeZone | Cost$ B | " + tgts, "LibPlace/0 ToLibrary LibPlace/2"},
@@ -73,7 +79,7 @@ func TestLibPlaceBrackets(t *testing.T) {
 func TestLibPlaceRefusals(t *testing.T) {
 	tgts := "ValidTgts$ Card.YouOwn | TargetMin$ 0 | TargetMax$ 4 | Origin$ Graveyard | Destination$ Library"
 	for _, c := range []struct{ name, root, want string }{
-		{"sweep to the bottom", "SP$ ChangeZoneAll | Cost$ B | Origin$ Graveyard | Destination$ Library | LibraryPosition$ -1 | ChangeType$ Card.YouCtrl", "the top only"},
+		{"sweep to another position", "SP$ ChangeZoneAll | Cost$ B | Origin$ Graveyard | Destination$ Library | LibraryPosition$ 1 | ChangeType$ Card.YouCtrl", "only the top or the bottom"},
 		{"targets whose owner chooses top or bottom", "SP$ ChangeZone | Cost$ B | " + tgts + " | AlternativeDecider$ TargetedOwner | DestinationAlternative$ Library | LibraryPositionAlternative$ -1", "other than the top or bottom"},
 		{"remembered set", "SP$ ChangeZone | Cost$ B | Defined$ Remembered | Origin$ Graveyard | Destination$ Library", `Defined$ "Remembered" to a library`},
 		{"valid group", "SP$ ChangeZone | Cost$ B | Defined$ ValidHand Card.Red | Origin$ Hand | Destination$ Library", `to a library`},

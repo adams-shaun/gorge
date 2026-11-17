@@ -33,22 +33,100 @@ type libTally struct {
 	n             [MaxSeats]uint8
 }
 
+// czallArmRev marks a ChangeZoneAll battlefield (or zone-free) sweep's group
+// as reverse move order: leaveAll places each permanent on its owner's library
+// top as it leaves, so the group's top n is the reverse of gorge's move order.
+// The ExtLibPlace arm's lift and RandomOrder$ shuffle both read move order.
+func (s *State) czallArmRev(fl kop.Filter, z kop.Zone) {
+	if z != kop.ZoneLibrary || !s.res.active || s.resArm().plc.arm == 0 {
+		return
+	}
+	if fl.Zone == kop.ZoneNone || fl.Zone == kop.ZoneBattlefield {
+		s.resArm().plc.rev = 1
+	}
+}
+
 // libPlaceExt is OpExt ExtLibPlace; false: an ask is posed.
 func (s *State) libPlaceExt(k *prep, in *kop.Instr) bool {
 	switch in.C {
-	case kop.PlaceArmTop, kop.PlaceArmBottom:
+	case kop.PlaceArmTop, kop.PlaceArmBottom, kop.PlaceArmSweepBottom,
+		kop.PlaceArmTopRandom, kop.PlaceArmBottomRandom:
 		s.resArm().plc = libTally{arm: uint8(in.C) + 1}
 		return true
 	}
 	t := &s.resArm().plc
-	if t.arm == 1 {
+	switch t.arm {
+	case kop.PlaceArmTop + 1, kop.PlaceArmSweepBottom + 1:
+		// Ask each owner to arrange the group: lift their top n to the
+		// bottom in move order, where gorge's MoveZone appended them and
+		// where the ask's options are listed (gorge libraryPlacementOrder).
 		for i := 0; i < s.libPlaceOwners(); i++ {
 			seat := t.ord >> (2 * i) & 3
 			s.libPlaceLift(seat, s.libPlaceN(seat), t.rev != 0)
 		}
+		s.res.left = 0
+		return s.libPlaceNext()
+	case kop.PlaceArmBottom + 1:
+		// A multi-target ChangeZone to the bottom already appended each
+		// target at the bottom; the ask lists that group as it stands.
+		s.res.left = 0
+		return s.libPlaceNext()
+	case kop.PlaceArmTopRandom + 1:
+		// RandomOrder$ True, top: gorge's Fisher-Yates is over the set in
+		// move order, then the group goes on top in that order.
+		for i := 0; i < s.libPlaceOwners(); i++ {
+			seat := t.ord >> (2 * i) & 3
+			s.libPlaceRandomTop(seat, s.libPlaceN(seat), t.rev != 0)
+		}
+	case kop.PlaceArmBottomRandom + 1:
+		// RandomOrder$ True, bottom: lift the group to the bottom in move
+		// order (gorge's MoveZone append), then shuffle it there with the
+		// same draws gorge makes before its moves.
+		for i := 0; i < s.libPlaceOwners(); i++ {
+			seat := t.ord >> (2 * i) & 3
+			n := s.libPlaceN(seat)
+			s.libPlaceLift(seat, n, t.rev != 0)
+			s.libPlaceShuffleBottom(seat, n)
+		}
 	}
+	*t = libTally{}
 	s.res.left = 0
-	return s.libPlaceNext()
+	return true
+}
+
+// libPlaceRandomTop puts seat's group (the top n cards, in move order unless
+// rev) on top in gorge's RandomOrder$ order: a backward Fisher-Yates drawing
+// Rand(i+1) for i from n-1 down to 1 (gorge effChangeZoneAll's randomOrder
+// branch, the same draws dugBottom makes). Fewer than two cards draw nothing.
+func (s *State) libPlaceRandomTop(seat uint8, n int, rev bool) {
+	if n < 2 {
+		return
+	}
+	pl := &s.pl[seat]
+	lo := int(pl.libLo)
+	if rev {
+		for i, j := lo, lo+n-1; i < j; i, j = i+1, j-1 {
+			pl.lib[i], pl.lib[j] = pl.lib[j], pl.lib[i]
+		}
+	}
+	for i := n - 1; i > 0; i-- {
+		j := s.rng.IntN(i + 1)
+		pl.lib[lo+i], pl.lib[lo+j] = pl.lib[lo+j], pl.lib[lo+i]
+	}
+}
+
+// libPlaceShuffleBottom shuffles seat's group at the bottom of its library
+// with RandomOrder$'s backward Fisher-Yates, on the move order the lift left.
+func (s *State) libPlaceShuffleBottom(seat uint8, n int) {
+	if n < 2 {
+		return
+	}
+	pl := &s.pl[seat]
+	lo := int(pl.libHi) - n
+	for i := n - 1; i > 0; i-- {
+		j := s.rng.IntN(i + 1)
+		pl.lib[lo+i], pl.lib[lo+j] = pl.lib[lo+j], pl.lib[lo+i]
+	}
 }
 
 // libPlaceOwners is how many owners the tally has seen.
@@ -112,7 +190,8 @@ func (s *State) libPlaceLift(seat uint8, n int, rev bool) {
 func (s *State) libPlaceSettle(seat uint8, n int, order []Obj) {
 	pl := &s.pl[seat]
 	lo, hi := int(pl.libLo), int(pl.libHi)
-	if s.resArm().plc.arm == 2 {
+	switch s.resArm().plc.arm {
+	case kop.PlaceArmBottom + 1, kop.PlaceArmSweepBottom + 1:
 		copy(pl.lib[hi-n:hi], order)
 		return
 	}
