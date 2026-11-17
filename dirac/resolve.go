@@ -77,6 +77,7 @@ func (s *State) resolveTop(k *prep) {
 		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
+		s.srcMemSeed(k, &e) // its source's kept Remembered (zone_srcmemrem.go)
 		if k.gen.has(e.card, gfEnterRepl) {
 			s.seedEnterChosen(k, &e) // its source's as-enters chosen object (repl_choosecard.go)
 		}

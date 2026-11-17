@@ -20,7 +20,7 @@ func TestRememberCrossAbilityReaders(t *testing.T) {
 		{"Hoarding Dragon", false},    // ETB search-exile remembers; the dies trigger returns it: RemPersist, the dies form
 		{"Goblin Plate Mail", false},  // Amass RememberAmass$ + Attach Remembered
 		{"Generous Plunderer", false}, // Token RememberOriginalTokens$ + ImmediateTrigger TriggerAmount$ Remembered$Amount
-		{"Dance of Many", true},       // ETB copy remembers the token; Leaves triggers exile/watch it
+		{"Dance of Many", false},      // ETB copy remembers the token; the leaves triggers exile/watch it: SrcMem (lower_srcmem.go)
 		{"Grindstone", false},         // RepeatWhile over its own remembering mill
 		{"Sphinx's Tutelage", false},
 		{"Ancestral Blade", false}, // RememberTokens$ read later in its own chain
