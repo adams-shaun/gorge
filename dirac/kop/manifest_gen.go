@@ -2013,6 +2013,16 @@ const StatWitherDamage StaticKind = 68
 // StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model.
 const StatExtraBlock StaticKind = 69
 
+// StaticKind (dirac/manifest/StaticKind/StatOffZoneGrant)
+//
+// StatOffZoneGrant is a Continuous static's AffectedZone$ Hand/Graveyard/Library/All grant of subtypes (AddType$ ChosenType or a known subtype) or simple KwMask keywords (kgen lower_offzone.go): Filter matches the card in Zone (ZoneAny for All), AddSub/AddChosen/Kw are the grant. It is not a StatContinuous, so no battlefield reader (the layer walks, the keyword and subtype matchers) sees it; only the off-battlefield projection reads it live (featview.go featViewTypesOff, FeatGrantedOffRep).
+const StatOffZoneGrant StaticKind = 70
+
+// StaticKind (dirac/manifest/StaticKind/StatRetraceGrant)
+//
+// StatRetraceGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Retrace grant (Six, Deeproot Historian, Wrenn and Six's emblem; CR 702.81a): Filter matches the card in the graveyard and the ability's own Cost is the retrace additional cost (Discard<1/Land>). The kernel reads it live: the graveyard retrace offer and cast (kw_offkwgrant.go, kw_retrace.go) and the keyword projection.
+const StatRetraceGrant StaticKind = 71
+
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
 

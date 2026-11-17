@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatOffZoneGrant
+value: next
+status: active
+doc: StatOffZoneGrant is a Continuous static's AffectedZone$ Hand/Graveyard/Library/All grant of subtypes (AddType$ ChosenType or a known subtype) or simple KwMask keywords (kgen lower_offzone.go): Filter matches the card in Zone (ZoneAny for All), AddSub/AddChosen/Kw are the grant. It is not a StatContinuous, so no battlefield reader (the layer walks, the keyword and subtype matchers) sees it; only the off-battlefield projection reads it live (featview.go featViewTypesOff, FeatGrantedOffRep).

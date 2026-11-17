@@ -41,9 +41,11 @@ const retraceTgt uint8 = 1
 // and the oracle read the canonical mark through it).
 const FeatRetraceTgt = retraceTgt
 
-// retraceEntry reports whether the pending spell e is a retrace cast.
-func retraceEntry(cd *kop.CardDef, e *stackEntry) bool {
-	return cd.Retrace && e.trigPl == trigPlRetrace
+// retraceEntry reports whether the pending spell e is a retrace cast. The
+// mark is set by beginCast for a printed Retrace card and for a granted one
+// (kop.StatRetraceGrant; kw_offkwgrant.go), so it alone identifies the cast.
+func retraceEntry(e *stackEntry) bool {
+	return e.trigPl == trigPlRetrace
 }
 
 // DebugRetraceFree is the mutation switch (dirac/oracle TestRetraceMutation):
@@ -52,16 +54,63 @@ func retraceEntry(cd *kop.CardDef, e *stackEntry) bool {
 var DebugRetraceFree bool
 
 // retraceCost is the cast's pick cost: the additional discard-a-land cost
-// (gorge retraceExtra through the one definition the offer gate prices).
-func (s *State) retraceCost(k *prep, c CardID) *kop.Cost {
-	rc := &k.t.Cards[c].RetraceCost
+// (gorge retraceExtra through the one definition the offer gate prices). A
+// card without printed Retrace takes the granting static's own cost (Six's
+// grant builds the same Discard<1/Land>; kw_offkwgrant.go).
+func (s *State) retraceCost(k *prep, e *stackEntry) *kop.Cost {
 	if DebugRetraceFree {
 		return nil
 	}
-	if rc.Flags == 0 {
+	if k.t.Cards[e.card].Retrace {
+		if rc := &k.t.Cards[e.card].RetraceCost; rc.Flags != 0 {
+			return rc
+		}
 		return nil // never built (kgen refuses a Retrace card without its cost)
 	}
-	return rc
+	// the spell is on the stack by the time the pick cost is built, so the
+	// card is read as a card, wherever it lies (its graveyard filter is the
+	// grant's zone, but the object has left it): pass NoObj so the matcher
+	// skips the zone check, as fbStatic reads a flashback grant's card.
+	owner := s.objs[e.obj].owner()
+	if ab := s.offKwStatic(k, e.ctrl, owner, e.card, kop.ZoneGraveyard, NoObj); ab != nil && ab.Cost.Flags != 0 {
+		return &ab.Cost
+	}
+	return nil
+}
+
+// StallRetraceGrant: a StatRetraceGrant retrace offer on a card whose other
+// cast route the retrace walk does not price, or on a table with a beam me
+// up grant (the mode-2 target byte is a permission index there). The offer
+// is withheld rather than mispriced (kw_offkwgrant.go).
+const StallRetraceGrant = 182
+
+func init() { stallNames[StallRetraceGrant] = "retracegrant" }
+
+// retraceGrant is the StatRetraceGrant retrace static giving graveyard card o
+// its keyword now, or nil.
+func (s *State) retraceGrant(k *prep, o Obj) *kop.Ability {
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneGraveyard || k.t.Cards[ob.card].Retrace {
+		return nil
+	}
+	return s.offKwStatic(k, ob.owner(), ob.owner(), ob.card, kop.ZoneGraveyard, o)
+}
+
+// retraceLive reports whether graveyard card o, without printed Retrace, has
+// retrace a StatRetraceGrant static gives it now.
+func (s *State) retraceLive(k *prep, o Obj) bool {
+	return s.retraceGrant(k, o) != nil
+}
+
+// retraceGrantBarred reports whether a granted retrace cast is one the
+// kernel does not model: the card prints another graveyard-cast route (the
+// canon read is one mode-2 kind per card), or the table has a beam me up
+// grant (the target byte's permission index).
+func retraceGrantBarred(k *prep, c CardID) bool {
+	cd := &k.t.Cards[c]
+	return cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
+		cd.Convoke || cd.Improvise || cd.Delve || cd.Cost.X != 0 ||
+		k.gen != nil && k.gen.anyBeam
 }
 
 // offerRetraceCasts offers the graveyard casts of p's Retrace cards (gorge
@@ -80,7 +129,13 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 		c := s.objs[o].card
 		cd := &k.t.Cards[c]
 		if !cd.Retrace {
-			continue
+			if !s.retraceLive(k, o) {
+				continue
+			}
+			if retraceGrantBarred(k, c) {
+				s.capFull(StallRetraceGrant) // a granted cast the kernel does not model
+				continue
+			}
 		}
 		if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
 			continue
@@ -96,7 +151,13 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) {
 			continue
 		}
-		if rc := &k.t.Cards[c].RetraceCost; rc.Flags == 0 || !s.pickCostPayable(k, p, rc, o) {
+		rc := &k.t.Cards[c].RetraceCost
+		if !cd.Retrace {
+			if ab := s.retraceGrant(k, o); ab != nil {
+				rc = &ab.Cost
+			}
+		}
+		if rc.Flags == 0 || !s.pickCostPayable(k, p, rc, o) {
 			continue // the additional discard-a-land cost (CR 601.2h, 702.81a)
 		}
 		if s.castHeldOut(o) {
@@ -116,5 +177,6 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 // FeatRetraceCard reports whether o's card is a Retrace card (the oracle
 // canonicalises its retrace cast as gorge's "retrace" option).
 func (s *State) FeatRetraceCard(o Obj) bool {
-	return s.k().t.Cards[s.objs[o].card].Retrace
+	k := s.k()
+	return k.t.Cards[s.objs[o].card].Retrace || s.retraceLive(k, o)
 }

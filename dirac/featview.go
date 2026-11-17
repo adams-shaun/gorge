@@ -1039,7 +1039,7 @@ func (s *State) FeatManaGranted(o Obj) bool {
 func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all, setSub, ok bool) {
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
-		return 0, kop.SubMask{}, false, false, false
+		return s.featViewTypesOff(s.k(), o, ob)
 	}
 	const cardTypes = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantment | kop.TPlaneswalker |
 		kop.TInstant | kop.TSorcery | kop.TBattle | kop.TKindred
@@ -1111,6 +1111,46 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 		return 0, kop.SubMask{}, false, false, false
 	}
 	return types, subs, all, setSub, true
+}
+
+// featViewTypesOff is FeatViewTypes for a card off the battlefield: a
+// StatOffZoneGrant static (a Continuous one whose AffectedZone$ is the
+// card's zone, ZoneAny for All) may grant it subtypes or, for AddType$ ChosenType, the source's
+// chosen type (Leyline of Transformation; Ashes of the Fallen). Gorge
+// applies the layer-4 subtype grant in every zone (chars.StaticZoneAdmitsStatic);
+// the kernel's battlefield overrides do not reach here, so only the
+// subtype half is projected.
+func (s *State) featViewTypesOff(k *prep, o Obj, ob *object) (types kop.TypeMask, subs kop.SubMask, all, setSub, ok bool) {
+	if k.gen == nil {
+		return 0, kop.SubMask{}, false, false, false
+	}
+	c := ob.card
+	printed := k.t.Cards[c].Subtypes
+	subs = printed
+	s.eachStaticC(k, sclsOffKwG, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOffZoneGrant {
+			return true
+		}
+		if a.Static.Zone != kop.ZoneAny && a.Static.Zone != ob.zone {
+			return true
+		}
+		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, c, ob.owner(), st.ctrl, o, nil) {
+			return true
+		}
+		add := a.Static.AddSub
+		if a.Static.AddChosen && st.sl != NoSlot {
+			if ch := s.perms[st.sl].chosen; int(ch) < len(k.t.Subtypes) {
+				add = add.With(int(ch))
+			}
+		}
+		subs = subs.Or(add)
+		return true
+	})
+	if subs == printed {
+		return 0, kop.SubMask{}, false, false, false
+	}
+	return k.cards[c].types, subs, false, false, true
 }
 
 // FeatStaticKey fingerprints what the statics in play read beyond the
@@ -1471,18 +1511,41 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 		return 0, rep
 	}
 	k := s.k()
+	ob := &s.objs[o]
+	var granted kop.KwMask
+	if k.gen != nil && s.statM.any() {
+		// a StatOffZoneGrant keyword grant in the card's
+		// zone (ZoneAny for All), projected as a keyword bit
+		// (lower_offzone.go)
+		s.eachStaticC(k, sclsOffKwG, func(st statSrc) bool {
+			a := st.a
+			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOffZoneGrant || a.Static.Kw == 0 {
+				return true
+			}
+			if a.Static.Zone != kop.ZoneAny && a.Static.Zone != ob.zone {
+				return true
+			}
+			if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), st.ctrl, o, nil) {
+				return true
+			}
+			rep.add(granted, a.Static.Kw)
+			granted |= a.Static.Kw
+			return true
+		})
+	}
 	n := s.fbGrants(k, o)
 	if s.fbLive(k, o) {
 		n++ // a live static's grant (kw_fbgrant.go), listed after the stamped ones
 	}
 	if n == 0 {
-		return 0, rep
+		return granted, rep
 	}
 	if n > 1 {
 		bit := bits.TrailingZeros32(uint32(kop.KwFlashback))
 		rep[bit] = n - 1
 	}
-	return kop.KwFlashback, rep
+	granted |= kop.KwFlashback
+	return granted, rep
 }
 
 // seeCtr records the counter kinds p holds now (perm.cseen): called as

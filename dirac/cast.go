@@ -37,7 +37,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if k.gen != nil && k.gen.anyAftermath {
 		fl |= s.aftermathCastFlags(k, o, c, mode) // exiled leaving the stack (face_aftermath.go)
 	}
-	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && k.t.Cards[c].Retrace // kw_retrace.go
+	retrace := mode&2 != 0 && !mayhem && tgt == retraceTgt && (k.t.Cards[c].Retrace || s.retraceLive(k, o)) // kw_retrace.go, kw_offkwgrant.go
 	if mode&2 != 0 && !mayhem && !esc && !retrace {
 		fl |= sfFlashback
 		if two, _, g := s.fbInstances(k, p, o); two && g {
@@ -63,6 +63,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	}
 	if retrace {
 		e.trigPl = trigPlRetrace // the retrace cast's pick cost (kw_retrace.go)
+		if !k.t.Cards[c].Retrace {
+			RetraceGrantStats.Casts.Add(1) // a StatRetraceGrant retrace (kw_offkwgrant.go)
+		}
 	}
 	e.trigPl = miracleCastPl(k, c, mode, tgt, e.trigPl) // priced at the miracle cost from here on (kw_miracle.go)
 	if mode&castFaceDown != 0 {
@@ -2540,11 +2543,11 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			}
 			return own
 		}
-		if retraceEntry(cd, e) {
+		if retraceEntry(e) {
 			// the retrace cast's additional discard-a-land cost (CR 702.81a;
 			// kw_retrace.go). kgen refuses a Retrace card a spell additional
 			// cost, so the spell's own parts are empty here.
-			if rc := s.retraceCost(k, e.card); rc != nil {
+			if rc := s.retraceCost(k, e); rc != nil {
 				return rc
 			}
 		}

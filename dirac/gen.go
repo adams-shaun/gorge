@@ -1331,6 +1331,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatRetraceGrant, kop.StatOffZoneGrant:
+					g.offZoneGrantPrep(a, p) // kw_offkwgrant.go: the graveyard retrace offer
+					pc.hasStat = true        // scanned through statM (kw_offkwgrant.go, featview.go)
 				case kop.StatCantTgtGrave:
 					g.anyCantTgtGrave = true
 					pc.hasStat = true // scanned through statM (kw_canttgtgrave.go)

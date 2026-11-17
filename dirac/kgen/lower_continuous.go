@@ -119,24 +119,12 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
 	}
 	if az, ok := sp.get("AffectedZone"); ok {
-		if az == "Battlefield" {
-			// The default.
-		} else if az == "Stack" && !sp.is("MayPlay", "True") {
-			return nil, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
-		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback") {
-			return nil, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
-		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape") {
-			return nil, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
-		} else if az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp") {
-			return nil, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
-		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff) {
-			return nil, graveCountAsStatic(sp, st) // lower_escapegrant.go
-		} else if az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "" {
-			return nil, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
-		} else if az == "All" && offZonePTShape(sp, aff) {
-			return nil, offZonePTStatic(sp, st) // lower_offzonept.go
-		} else if !sp.is("MayPlay", "True") {
-			return nil, refuse("AffectedZone %q without MayPlay", az)
+		done, err := lc.affectedZone(sp, st, aff, az) // lower_offzone.go
+		if err != nil {
+			return nil, err
+		}
+		if done {
+			return nil, nil
 		}
 	}
 	if sp.is("MayPlay", "True") {

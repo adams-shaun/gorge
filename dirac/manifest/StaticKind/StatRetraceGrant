@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatRetraceGrant
+value: next
+status: active
+doc: StatRetraceGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Retrace grant (Six, Deeproot Historian, Wrenn and Six's emblem; CR 702.81a): Filter matches the card in the graveyard and the ability's own Cost is the retrace additional cost (Discard<1/Land>). The kernel reads it live: the graveyard retrace offer and cast (kw_offkwgrant.go, kw_retrace.go) and the keyword projection.

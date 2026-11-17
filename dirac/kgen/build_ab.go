@@ -45,7 +45,7 @@ func (cb *cardBuilder) abilities() error {
 	cb.out.stAddSub = make([][]uint8, len(d.Abilities))
 	for i, s := range c.Statics {
 		cb.node = fmt.Sprintf("static[%d] %s", i, s.Kind)
-		ka, add, err := cb.static(s)
+		ka, add, err := cb.staticFor(s)
 		if err != nil {
 			return bfail(cb.node, "%v", err)
 		}
@@ -90,7 +90,7 @@ func (cb *cardBuilder) abilities() error {
 			ke.Capture2 = r
 		}
 		for _, s := range e.Statics {
-			ka, add, err := cb.static(s)
+			ka, add, err := cb.staticFor(s)
 			if err != nil {
 				return bfail(cb.node, "%v", err)
 			}
@@ -1790,6 +1790,15 @@ func splitSelfClause(event string, f *lFilter) (self, selfCreature bool) {
 	return self, selfCreature
 }
 
+// staticFor dispatches the static kinds whose build is its own helper
+// (lower_offzone.go), else static.
+func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
+	if s.Kind == "RetraceGrant" {
+		return cb.offKwGrantAbility(s)
+	}
+	return cb.static(s)
+}
+
 // static builds a static ability and its granted subtypes.
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
@@ -1850,7 +1859,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "ActivationLimit":
 		st.Kind = kop.StatActivationLimit // static_turnbits.go
 	case "Continuous":
-		st.Kind = kop.StatContinuous
+		zone := continuousKind(st, s.Flags, s.Zone) // lower_offzone.go
 		if s.F != nil && s.F.Players != 0 {
 			// "You and <objects> you control have hexproof" (Captain America,
 			// Shalai, Sigarda): the controller half rides StYouHexproof (the
@@ -1863,7 +1872,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			st.StFlags |= kop.StYouHexproof
 		}
 		st.StFlags |= gyContStFlag(s.Flags)
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+		if st.Filter, err = filter(s.F, zone); err != nil {
 			return ka, nil, err
 		}
 		if err := amounts(s.Power, s.Tough); err != nil {

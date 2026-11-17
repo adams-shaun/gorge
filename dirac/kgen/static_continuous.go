@@ -31,6 +31,7 @@ func (sc *staticCtx) modeContinuous() ([]lStatic, bool, error) {
 		return nil, true, err // lower_selfkwaffected.go
 	}
 	sc.extra = sts
+	sc.allZoneTwin() // lower_offzone.go
 	if lure.Kind != "" && !lureOnly {
 		// the lure rides beside the other parts (Gift of the Deity's
 		// +1/+1): a second static over the same filter and condition

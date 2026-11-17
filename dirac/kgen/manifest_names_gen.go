@@ -1330,6 +1330,12 @@ func init() { enum[kop.StaticKind]("kop.StatWitherDamage", kop.StatWitherDamage)
 // dirac/manifest/StaticKind/StatExtraBlock
 func init() { enum[kop.StaticKind]("kop.StatExtraBlock", kop.StatExtraBlock) }
 
+// dirac/manifest/StaticKind/StatOffZoneGrant
+func init() { enum[kop.StaticKind]("kop.StatOffZoneGrant", kop.StatOffZoneGrant) }
+
+// dirac/manifest/StaticKind/StatRetraceGrant
+func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant) }
+
 // dirac/manifest/TrigEvent/TrigChaosEnsues
 func init() { enum[kop.TrigEvent]("kop.TrigChaosEnsues", kop.TrigChaosEnsues) }
 
