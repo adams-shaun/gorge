@@ -74,3 +74,35 @@ func TestCloneEnteringAsPrimalPlasmaChoosesAgain(t *testing.T) {
 		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
 	}
 }
+
+// CR 707.2 / 400.7: only an LKI copy (Identity Thief's Defined$ RememberedLKI)
+// reads the copiable values a card last had on the battlefield. Body Double
+// copies a Clone CARD in a graveyard, whose copiable values are the printed
+// ones, even though that Clone last died as a Grizzly Bears copy.
+func TestCopyOfGraveyardCloneReadsPrintedFaceNotLastCopy(t *testing.T) {
+	t.Parallel()
+	sc := oracleScenario{
+		Name: "body-double-graveyard-clone-printed",
+		CR:   []string{"707.2", "400.7"},
+		Why:  "Body Double copying a graveyard Clone that last died as Grizzly Bears is the printed 0/0 Clone, not a Bears",
+		Setup: map[string]oracleSeat{
+			"p0": {Battlefield: []string{"Grizzly Bears"}, Hand: []string{"Clone", "Lightning Bolt", "Body Double"}},
+		},
+		Steps: []oracleStep{
+			{Op: "cast", Seat: 0, Card: "p0:Clone", Mana: "CCCU"},
+			{Op: "resolve", Seat: 0, Answers: []oracleAnswer{{Kind: "choose", Pick: []string{"p0:Grizzly Bears"}}}},
+			{Op: "cast", Seat: 0, Card: "p0:Lightning Bolt", Mana: "R", Targets: []string{"p0:Clone"}},
+			{Op: "resolve", Seat: 0},
+			{Op: "cast", Seat: 0, Card: "p0:Body Double", Mana: "CCCCU"},
+			{Op: "resolve", Seat: 0, Answers: []oracleAnswer{{Kind: "choose", Pick: []string{"p0:Clone"}}}},
+		},
+		Expect: []oracleExpect{
+			{Card: "p0:Clone", Zone: "graveyard"},
+			{Card: "p0:Body Double", Zone: "graveyard"},
+		},
+	}
+	fails, tr, _ := runOracleScenario(testutil.CorpusRegistry(t), sc)
+	if len(fails) > 0 {
+		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
+	}
+}

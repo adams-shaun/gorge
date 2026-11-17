@@ -568,7 +568,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// One ClonePermanent event per (source, become) pair; the fold
 		// snapshots the source's printed face onto the become object.
 		ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
-			IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName}
+			IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName, From: cloneBasisZone(spec, c.CloneEnter.ETB)}
 		if chosenName != "" {
 			ev.Counter = "chosen-name"
 			ev.Text = chosenName
@@ -980,3 +980,15 @@ var cloneDurationCodes = state.NewStrCodes(
 	state.StrEntry[cloneDurationCode]{Key: "untilfacedown", Val: cloneDurationUntilEvent},
 	state.StrEntry[cloneDurationCode]{Key: "untiltargeteduntaps", Val: cloneDurationUntilEvent},
 )
+
+// cloneBasisZone is the ClonePermanent event's From: ZBattlefield when the
+// effect copies an LKI Defined$ source (RememberedLKI, Triggered...LKICopy),
+// meaning the copiable values it had on the battlefield (CR 707.2); the zero
+// zone otherwise, so a card in a graveyard or exile copies its printed face
+// (CR 400.7). An ETB copy's source is always a live battlefield object.
+func cloneBasisZone(spec string, etb bool) state.Zone {
+	if etb || !strings.Contains(spec, "LKI") {
+		return 0
+	}
+	return state.ZBattlefield
+}

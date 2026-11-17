@@ -523,8 +523,11 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		// had on the battlefield. Leaving the battlefield clears CopyFace
 		// (CR 400.7) and keeps the old basis in LeftCopyFace, so the printed
 		// face alone would drop a chosen P/T, type or keyword (Identity Thief
-		// copying a Primal Clay that chose 3/3 must be 3/3, not */*).
-		if src.CopyFace == nil && src.Zone != state.ZBattlefield && src.LeftCopyFace != nil {
+		// copying a Primal Clay that chose 3/3 must be 3/3, not */*). Only the
+		// effect asks for it (e.From == ZBattlefield, set by effClone for an
+		// LKI Defined$): a copy of a card in a graveyard or exile reads the
+		// printed values (CR 400.7), never the last battlefield copy.
+		if e.From == state.ZBattlefield && src.CopyFace == nil && src.Zone != state.ZBattlefield && src.LeftCopyFace != nil {
 			face = src.LeftCopyFace
 		}
 	}
