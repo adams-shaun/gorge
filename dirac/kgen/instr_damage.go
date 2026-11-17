@@ -73,7 +73,8 @@ func (ic *instrCtx) opSweepFrom() error {
 	ki := &ic.ki
 	in := &ic.in
 	// OpExt ExtSweepFrom over Obj, B the amount, C&1 the
-	// source's own slot excluded
+	// source's own slot excluded, C&2 each player after the creatures
+	// (a capturing emblem's DamageSource$ Remembered sweep)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtSweepFrom)), int16(in.C)
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
