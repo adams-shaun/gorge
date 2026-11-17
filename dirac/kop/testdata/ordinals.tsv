@@ -948,6 +948,7 @@ PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubMill	untyped int	17
 PayBSubSacHost	untyped int	7
+PayBSubSacRiders	untyped int	18
 PayBSubSacSelfMust	untyped int	4
 PayBSubStackSelf	untyped int	13
 PayBSubTapXVar	untyped int	16
@@ -989,7 +990,10 @@ PlExtLibrary	untyped int	512
 PlExtOpponents	untyped int	1
 PlExtPlayers	untyped int	0
 PlaceArmBottom	untyped int	1
+PlaceArmBottomRandom	untyped int	5
+PlaceArmSweepBottom	untyped int	3
 PlaceArmTop	untyped int	0
+PlaceArmTopRandom	untyped int	4
 PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1

@@ -8,6 +8,8 @@ import "testing"
 // counters (CR 702.26d) and its own rule-based type switches (CR 702.114e: an
 // attached bestow card is an Aura, not a creature) -- the kernel's projection
 // dropped the wall's -0/-1 counter and re-creaturized the Aura into a 1/2.
+// The recording is pooled custom (the table its own decks need): the dr-mbc
+// bucket it was found on re-cuts whenever the lowered card set moves.
 func TestMBCNyxbornHydraReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "mbc_phased_out_projection_counters_and_switches")

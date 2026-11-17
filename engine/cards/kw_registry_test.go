@@ -185,6 +185,9 @@ var expandedHeads = []string{
 	// share a creature type and putting N +1/+1 counters per card
 	// (engine/cards/kw_amplify.go). Added after the split.
 	"Amplify",
+	// Reinforce (CR 702.77a): a hand-zone discard-for-counters activation
+	// (engine/cards/kw_reinforce.go). Added after the split.
+	"Reinforce",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

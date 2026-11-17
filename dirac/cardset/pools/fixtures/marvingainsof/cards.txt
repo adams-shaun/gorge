@@ -1,0 +1,9 @@
+# GainsAbilitiesOf$ with the sharesNameWith Self filter (Marvin, Murderous
+# Mimic: all activated abilities of creatures its controller controls that do
+# not share its name), beside two non-mana ping creatures, plus basics
+# (dirac/oracle/gainsabilitiesofmarvin_lockstep_test.go)
+Island
+Marvin, Murderous Mimic
+Mountain
+Prodigal Pyromancer
+Prodigal Sorcerer
