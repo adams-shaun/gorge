@@ -1,0 +1,24 @@
+{
+  "card": "Maze of Ith",
+  "class": "lockstep",
+  "why": "gorge's CR 616.1 order ask over damage dealt to a shield-countered creature offers one option per Maze activation (each Effect's replacement has the Maze as its source) beside the shield, and the kernel holds the grant as a keyword bit on the recipient: it offers the recipient itself for the prevention and one candidate however many Mazes activated, so the menus differ (options options replacement decision, repl_gen.go replOrderCandsFz)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "maze_of_ith_prevention_beside_shield_ask_options"
+  },
+  "evidence": [
+    "ev-tail-57-c000",
+    "ev-tail-57-c001",
+    "ev-tail-66-c000",
+    "ev-tail-66-c001",
+    "ev-tail-66-c002",
+    "ev-tail-66-c003",
+    "ev-tail-66-c004",
+    "ev-tail-66-c005"
+  ]
+}
