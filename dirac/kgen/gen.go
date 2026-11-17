@@ -529,56 +529,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 			fmt.Fprintf(w, "    %2d %s\n", i, in)
 		}
 	}
-	for _, s := range c.Statics {
-		fmt.Fprintf(w, "  static %s F=%s F2=%s cond=%s P=%s T=%s kw=%v addsub=%v amount=%s zone=%d", s.Kind, s.F, s.F2, s.Cond, s.Power, s.Tough, s.Kw, s.AddSub, s.Amount, s.Zone)
-		if s.AddChosen {
-			fmt.Fprintf(w, " addchosen")
-		}
-		if s.ProtFrom != nil {
-			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
-		}
-		if s.ProtChosen {
-			fmt.Fprintf(w, " protchosen")
-		}
-		if s.ProtExc != nil {
-			fmt.Fprintf(w, " protexc=%s", s.ProtExc)
-		}
-		dumpStaticFilters(w, &s) // landwalk=, gainsof= (lower_gainsof.go)
-		if s.Evasion != 0 {
-			fmt.Fprintf(w, " evasion=%d", s.Evasion)
-		}
-		if s.Infect {
-			fmt.Fprintf(w, " infect")
-		}
-		if s.OutlivesLoss {
-			fmt.Fprintf(w, " outlivesloss")
-		}
-		if s.PwVsSrc != 0 {
-			fmt.Fprintf(w, " pwvs=%d", s.PwVsSrc)
-		}
-		if s.OvGate != 0 {
-			fmt.Fprintf(w, " ovgate=%d", s.OvGate)
-		}
-		if s.Kind == "CantPutCounter" {
-			fmt.Fprintf(w, " ctr=%d", s.Ctr)
-		}
-		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
-			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
-		}
-		if s.Kind == "WarpGrant" {
-			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
-		}
-		if s.Override != nil {
-			fmt.Fprintf(w, " %s", overrideString(s.Override))
-		}
-		if (s.Kind == "RaiseCost" || s.Kind == "CantBeCast" || s.Kind == "CantBeActivated") && len(s.Flags) > 0 {
-			fmt.Fprintf(w, " flags=%v", s.Flags)
-		}
-		if !s.Cost.Mana.None || s.Cost.Tap {
-			fmt.Fprintf(w, " cost=%s", costString(s.Cost))
-		}
-		fmt.Fprintln(w)
-	}
+	dumpStatics(w, c)
 	for _, r := range c.Repls {
 		dumpRepl(w, r) // lower_staticprevent.go
 		for i, in := range r.Prog {
@@ -617,6 +568,66 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	for _, r := range c.Refusals {
 		fmt.Fprintf(w, "  REFUSED %s: %s\n", r.Node, r.Reason)
+	}
+}
+
+// dumpStatics lists the card's statics, then the statics they grant
+func dumpStatics(w io.Writer, c *lCard) {
+	for _, s := range c.GrantedStatics {
+		fmt.Fprintf(w, "  granted-static %s F=%s cond=%s amount=%s\n", s.Kind, s.F, s.Cond, s.Amount)
+	}
+	for _, s := range c.Statics {
+		fmt.Fprintf(w, "  static %s F=%s F2=%s cond=%s P=%s T=%s kw=%v addsub=%v amount=%s zone=%d", s.Kind, s.F, s.F2, s.Cond, s.Power, s.Tough, s.Kw, s.AddSub, s.Amount, s.Zone)
+		if s.AddChosen {
+			fmt.Fprintf(w, " addchosen")
+		}
+		if s.ProtFrom != nil {
+			fmt.Fprintf(w, " protfrom=%s", s.ProtFrom)
+		}
+		if s.ProtChosen {
+			fmt.Fprintf(w, " protchosen")
+		}
+		if s.ProtExc != nil {
+			fmt.Fprintf(w, " protexc=%s", s.ProtExc)
+		}
+		dumpStaticFilters(w, &s) // landwalk=, gainsof= (lower_gainsof.go)
+		if s.Evasion != 0 {
+			fmt.Fprintf(w, " evasion=%d", s.Evasion)
+		}
+		if s.Infect {
+			fmt.Fprintf(w, " infect")
+		}
+		if s.OutlivesLoss {
+			fmt.Fprintf(w, " outlivesloss")
+		}
+		if s.GrantSt != 0 {
+			fmt.Fprintf(w, " grantst=%d", s.GrantSt)
+		}
+		if s.PwVsSrc != 0 {
+			fmt.Fprintf(w, " pwvs=%d", s.PwVsSrc)
+		}
+		if s.OvGate != 0 {
+			fmt.Fprintf(w, " ovgate=%d", s.OvGate)
+		}
+		if s.Kind == "CantPutCounter" {
+			fmt.Fprintf(w, " ctr=%d", s.Ctr)
+		}
+		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
+			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
+		}
+		if s.Kind == "WarpGrant" {
+			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
+		}
+		if s.Override != nil {
+			fmt.Fprintf(w, " %s", overrideString(s.Override))
+		}
+		if (s.Kind == "RaiseCost" || s.Kind == "CantBeCast" || s.Kind == "CantBeActivated") && len(s.Flags) > 0 {
+			fmt.Fprintf(w, " flags=%v", s.Flags)
+		}
+		if !s.Cost.Mana.None || s.Cost.Tap {
+			fmt.Fprintf(w, " cost=%s", costString(s.Cost))
+		}
+		fmt.Fprintln(w)
 	}
 }
 

@@ -48,7 +48,7 @@ func (s *State) maxHand(k *prep, p uint8) int {
 		return 7
 	}
 	max, found, emb, ts := 7, false, false, uint16(0)
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachStaticG(k, func(st statSrc) bool {
 		if st.a.Kind != kop.AbStatic || st.a.Static.Kind != kop.StatNoMaxHandSize {
 			return true
 		}
@@ -83,7 +83,11 @@ func (s *State) maxHand(k *prep, p uint8) int {
 			max, found, emb = v, true, emb || st.emb != 0
 			return true
 		}
-		if pt := s.layerTs(st.sl); !found || pt > ts {
+		tsl := st.sl
+		if st.gr {
+			tsl = st.gsrc // a granted static takes its grant's timestamp
+		}
+		if pt := s.layerTs(tsl); !found || pt > ts {
 			max, found, ts = v, true, pt
 		}
 		return true

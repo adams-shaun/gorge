@@ -132,6 +132,13 @@ type CardDef struct {
 	// World: the printed World supertype (CR 205.4a), read by the CR 704.5k
 	// world rule (kernel zone_worldrule.go). No corpus effect grants or removes it.
 	World bool
+	// Granted: the statics this card's Continuous statics grant their
+	// recipients (S:Mode$ Continuous | AddStaticAbility$ <SVar>; Static.GrantSt
+	// indexes it, 1-based). They are never the card's own: a walk of
+	// Abilities does not see them, and each reads the recipient as its
+	// source and that recipient's controller as "you" (kernel
+	// static_granted.go eachStaticG).
+	Granted []Ability
 	// Snow is the printed Snow supertype (CR 205.4a), read by the static
 	// damage preventions' ReplSPRecipSnow (Goblin Furrier). Printed only: a
 	// layer effect that adds or removes it is not read.
