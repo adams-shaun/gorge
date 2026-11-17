@@ -739,6 +739,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return err
 	}
+	// Every return below has stopped the HTTP servers, so no handler queues a
+	// fill after this cancels and waits out the ones in flight.
+	defer ac.closeBackground()
 	// The card catalog (the six printed facts, /cards/named) is served from
 	// the same art-cache records art.go keeps — one Scryfall named response
 	// feeds both the image and the text — and is routed here, ahead of

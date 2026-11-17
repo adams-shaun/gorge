@@ -88,10 +88,11 @@ func (a *artCache) readFacts(key string) (cardFacts, bool) {
 // request, not one per caller. It is fire-and-forget: the caller (Text)
 // never waits on it, and its context is independent of any request context
 // so a fetch a caller's original request has moved on from still finishes
-// and settles the cache for whoever asks next.
+// and settles the cache for whoever asks next. Only serve's shutdown
+// (closeBackground) cancels it, and waits for it to return.
 func (a *artCache) queueTextFill(name string) {
 	key := artKey(name)
-	go func() {
-		_, _ = a.ensureText(context.Background(), key, name)
-	}()
+	a.background(func(ctx context.Context) {
+		_, _ = a.ensureText(ctx, key, name)
+	})
 }
