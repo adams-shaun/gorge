@@ -139,7 +139,7 @@ func (s *State) umbraAll(k *prep, hit slotMask) slotMask {
 // pass runs once more; an umbra Aura joins die, to be destroyed with the
 // pass's other casualties.
 func (s *State) sbaSpare(k *prep, sl Slot, die *slotMask) bool {
-	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
+	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(k, sl) {
 		s.cfgx |= cfgxShieldPass // CR 122.1c: the counter goes instead, the damage stays marked for the next pass
 		return true
 	}
@@ -155,7 +155,7 @@ func (s *State) sbaSpare(k *prep, sl Slot, die *slotMask) bool {
 // living and the Aura is destroyed instead.
 func (s *State) shieldUmbraAll(k *prep, hit slotMask) slotMask {
 	if k.gen != nil && k.gen.anyRepl&rbShield != 0 {
-		hit = s.shieldAll(hit) // CR 122.1c
+		hit = s.shieldAll(k, hit) // CR 122.1c
 	}
 	return s.umbraAll(k, hit)
 }
