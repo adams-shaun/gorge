@@ -1236,6 +1236,8 @@ const ExtDigMultiple ExtOp = 35
 func init() { extOpNames[ExtDigMultiple] = "DigMultiple" }
 
 // api AddOrRemoveCounter (dirac/manifest/ExtOp/ExtAddOrRemoveCounter)
+//
+// ExtAddOrRemoveCounter: AddOrRemoveCounter (gorge effAddOrRemoveCounter): for the target or Defined$ object in Obj and the amount in B, pose gorge's remove-then-put election to the resolving controller for the named counter kind in C, or with C -1 for each counter kind the object holds; the put runs an ordinary OpPutCounter (replacements, the CR 616.1 order ask and CounterAddedOnce), the remove marks the kind seen and subtracts what the object holds. dirac/ctr_addorremove.go.
 const ExtAddOrRemoveCounter ExtOp = 36
 
 func init() { extOpNames[ExtAddOrRemoveCounter] = "AddOrRemoveCounter" }
