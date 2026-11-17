@@ -801,7 +801,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if IsAsLongAsControlDuration(rawDur) {
 				ce.SourceIncarnation = effectHostIncarnation(h, c)
 			}
-			effectContinuous(h, ce)
+			if untilUntapsBind(h, c, rawDur, &ce) {
+				effectContinuous(h, ce)
+			}
 			registered = true
 		} else if name != "" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -1579,17 +1581,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
 				ForgetCounter: forgetCounter, ImprintOnHost: imprintOnHost,
 			}
-			if untilUntapsDuration(rawDur) {
-				// CR 611.2b: "for as long as this remains tapped" is the
-				// activating host's tap, which Forge checks before creating
-				// the effect: a host already untapped starts nothing.
-				if host := h.Game().Obj(c.Source); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
-					registered = true
-					break
-				}
-				ce.Permanent = true
-				ce.UntilEOT = false
-				ce.UntilUntapOf = c.Source
+			if !untilUntapsBind(h, c, rawDur, &ce) {
+				registered = true
+				break
 			}
 			effectContinuous(h, ce)
 			registered = true
@@ -1882,4 +1876,23 @@ func monarchJailRemembered(g *state.Game, remembered, targets []state.Target) ([
 		}
 	}
 	return out, jailed
+}
+
+// untilUntapsBind applies a Duration$ UntilUntaps lifetime to ce (CR 611.2b,
+// "for as long as this remains tapped"): the activating host's tap, which Forge
+// checks before creating the effect. It reports false when the host is not a
+// tapped battlefield permanent, in which case nothing is to be registered;
+// otherwise the effect becomes permanent and ends when the host untaps. Any
+// other duration leaves ce untouched.
+func untilUntapsBind(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) bool {
+	if !untilUntapsDuration(rawDur) {
+		return true
+	}
+	if host := h.Game().Obj(c.Source); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
+		return false
+	}
+	ce.Permanent = true
+	ce.UntilEOT = false
+	ce.UntilUntapOf = c.Source
+	return true
 }
