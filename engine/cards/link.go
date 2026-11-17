@@ -89,6 +89,10 @@ var builtinSVars = map[string]string{
 	// Miracle's reveal trigger (CR 702.94a): rules asks its owner, as it
 	// resolves, whether to cast the revealed card from hand for the miracle cost.
 	"__kwMiracleCast": "DB$ MiracleCast",
+	// Siege defeat (CR 310.12b): the intrinsic "when the last defense counter is
+	// removed from this permanent, exile it, then you may cast it transformed
+	// without paying its mana cost" ability; rules resolves it (siege_defeat.go).
+	"__kwSiegeDefeat": "DB$ SiegeDefeat | Defined$ Self",
 	// Dash (CR 702): "returned from the battlefield to its owner's hand at
 	// the beginning of the next end step". The registered source is the
 	// dashed permanent itself, so Defined$ Self is it.

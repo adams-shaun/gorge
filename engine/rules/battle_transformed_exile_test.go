@@ -9,9 +9,9 @@ import (
 
 // TestTransformedBattleExiledGetsNoCastOffer: a Siege whose back face is on the
 // battlefield is that back-face permanent (CR 712.8), never a battle, so a spell
-// that exiles it (Excise the Imperfect) defeats nothing (CR 310.11) and queues
-// no transformed-cast offer. The exile feed used to read the face after Apply's
-// Move reset it to the front, and a back face carries no defense counters.
+// that exiles it (Excise the Imperfect) defeats nothing (CR 310.11): neither
+// the counter removal nor the exile puts a Siege defeat trigger (CR 310.12b)
+// on the stack, so no transformed-cast offer follows.
 func TestTransformedBattleExiledGetsNoCastOffer(t *testing.T) {
 	t.Parallel()
 	e, id := defeatedBoard(t, "Invasion of Pyrulea")
@@ -25,7 +25,7 @@ func TestTransformedBattleExiledGetsNoCastOffer(t *testing.T) {
 		t.Fatalf("precondition: the back face must be a non-battle with no defense counters")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZExile})
-	if len(e.defeatedCasts) != 0 {
-		t.Fatalf("exiling the transformed Siege queued %d cast offers, want none", len(e.defeatedCasts))
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("exiling the transformed Siege queued %d triggers, want no defeat trigger", len(e.pendingTriggers))
 	}
 }

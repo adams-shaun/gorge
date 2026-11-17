@@ -17,13 +17,6 @@ type engineParked struct {
 	// exile order and consumed before priority; it is plain replayable engine
 	// continuation state, not an inference from arbitrary exile cards.
 	suspendedCasts []state.ObjID `clone:"deep"`
-	// defeatedCasts is the CR 310.11 "may cast it transformed without paying
-	// its mana cost" offer for every battle the zero-defense SBA exiled
-	// (engine/rules/sba.go's battleZeroDefense). Fed by Engine.emit's battlefield→
-	// exile feed (the ONE home every defeat route shares), drained before
-	// priority by startDefeatedCast; plain replayable continuation state like
-	// suspendedCasts above.
-	defeatedCasts []state.ObjID `clone:"deep"`
 	// queuedPlays is the rest of an Amount$ Play answer (Etali, Primal
 	// Storm's "you may cast any number of spells from among them") whose
 	// earlier cast parked on its own question -- a target, an as-enters
