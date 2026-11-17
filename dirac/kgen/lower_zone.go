@@ -3115,6 +3115,9 @@ func (lc *lowerCtx) animate(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if err := lc.animateSelfAbilities(ps, o, obj); err != nil { // the plain Animate only: AnimateAll reads its own (animateAllGranted)
+		return err
+	}
 	if chosen && obj.Kind == rTarget {
 		// the chosen-colour op applies to ONE battlefield object (the
 		// kernel's OpOverride skips a ref off the battlefield, and one op
@@ -3335,9 +3338,6 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			}
 			o.AddKw = ks
 		}
-	}
-	if err := lc.animateSelfAbilities(ps, o, obj); err != nil {
-		return nil, "", false, err
 	}
 	if tr, ok := ps.get("Triggers"); ok {
 		idx, err := lc.latentTrigger(tr)
