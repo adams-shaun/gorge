@@ -415,6 +415,11 @@ func matchDynTapCost(t costTok) (groups, bool) {
 	return matchHeadCountSpecDesc(t, hTapXType, func(s string) bool { return s == "X" || s == "Any" })
 }
 
+// matchDynRevealCost is ^Reveal<X/([^/>]+)(?:/([^>]*))?>$ (dynRevealCost).
+func matchDynRevealCost(t costTok) (groups, bool) {
+	return matchHeadCountSpecDesc(t, hReveal, func(s string) bool { return s == "X" })
+}
+
 // matchUntapYTypeCost is ^untapYType<(\d+)/([^/>]+)(?:/([^>]*))?>$.
 func matchUntapYTypeCost(t costTok) (groups, bool) {
 	return matchHeadCountSpecDesc(t, hUntapYType, isDigits)
