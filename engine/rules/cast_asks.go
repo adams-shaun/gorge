@@ -166,15 +166,25 @@ func (e *Engine) revealCostAsk() bool {
 				e.abortCast(pc, "reveal cost no longer payable; cast aborted", true)
 				return true
 			}
-			if hi == 0 || (pre && hi == len(cands)) {
-				// Nothing to choose between: settle without a decision (X = 0 when
-				// the election would have announced it).
+			if hi == 0 {
+				// Nothing to reveal. When the election itself announced the
+				// count (no printed {X} and no announce-bearing part) the
+				// announcement is X = 0. A pre-announced X is already 0 and
+				// settles with no reveal at all: appending the candidates here
+				// would publish the payer's whole matching hand, the opposite
+				// of "reveal X = 0".
+				if !pre {
+					pc.x = 0
+				}
+				pc.RevealPart++
+				continue
+			}
+			if pre && hi == len(cands) {
+				// The pre-announced X already equals every candidate, so there
+				// is nothing to choose: reveal them all without a decision.
 				pc.Reveals = append(pc.Reveals, cands...)
 				for range cands {
 					pc.RevealHandArm = append(pc.RevealHandArm, true)
-				}
-				if !pre {
-					pc.x = 0
 				}
 				pc.RevealPart++
 				continue
