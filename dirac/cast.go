@@ -1611,7 +1611,7 @@ func (s *State) finishBuild(k *prep) {
 			s.tapRiderPlan(k, e) // (a lowered cast has no plan: its window below)
 		}
 		obsPool, obsOK := s.obsWinPool(e.ctrl)
-		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || e.trigPl == trigPlMadness || e.trigPl == trigPlMiracle {
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.madnessPlainPay(k, &e) || e.trigPl == trigPlMiracle {
 			// a free cast mid-resolution (Etali) pays the rest of its
 			// cost (Eaten Alive's {3}{B} part) through gorge's mana
 			// window, not the priority planner (pair 9954); a cost the
