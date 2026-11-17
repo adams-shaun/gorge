@@ -21,7 +21,7 @@ import (
 // identity is what (a) resolves the body's SVars (Amount$ X) against the
 // foreign face, not the recipient's, and (b) records the replayable
 // ManaActivate marker (IDs[0] = foreign card, Amount = index) that the
-// GainsAbilitiesLimitPerTurn$ cap counts (gainedActivationsThisTurn).
+// GainsAbilitiesLimitPerTurn$ cap counts (gainedActivationsUsed).
 type GainedManaRef struct {
 	From state.ObjID
 	Idx  int
