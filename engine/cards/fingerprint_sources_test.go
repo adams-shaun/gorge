@@ -81,6 +81,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"kw_backup.go":            {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_battle_cry.go":        {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_bushido.go":           {true, "keyword expansion registered at init; shapes compiled abilities"},
+	"kw_champion.go":          {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_cipher.go":            {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_class.go":             {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_conspire.go":          {true, "keyword expansion registered at init; shapes compiled abilities"},
