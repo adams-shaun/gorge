@@ -856,16 +856,6 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if cd.Cost.Hyb[0] == kop.HybTwobrid {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
-	if cd.HasModeCost && !mayPlay && !modalFloorZero(k, c) {
-		// a Spree or Tiered face whose cheapest mode still costs mana: the
-		// cast planner declines the shape ("shape:modal_cost") and the
-		// potential composition prices the printed cost only when a legal
-		// mode adds nothing (potentialModalCastFreeMode, potential_plan.go),
-		// so no plan witnesses it and no prefix search runs for it. A
-		// may-play cast is composed at its printed cost (that arm's mayplay
-		// case), so it keeps its own gate.
-		return false
-	}
 	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
 		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast
 		// planner; gorge keeps the composition's plan (potentialPlayVerdictShared)
@@ -987,6 +977,19 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// Sliver's any-colour mana) is a gap in the planner's census too, and no
 		// prefix search taps it (the availAny/availGaps rule above).
 		return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
+	}
+	if cd.HasModeCost && !mayPlay && !modalFloorZero(k, c) {
+		// a Spree or Tiered face whose cheapest mode still costs mana: the
+		// cast planner declines the shape ("shape:modal_cost") and the
+		// potential composition prices the cast only at its printed cost
+		// (potentialModeCastPlan), which is a witness just when the
+		// planner's census -- the printed sources and the pool, not a granted
+		// ability -- pays it; no free mode makes that price the cast's
+		// cheapest legal total (potentialModalCastFreeMode, potential_plan.go).
+		// A may-play cast is composed at its printed cost by that arm's own
+		// mayplay case, so it keeps its gate.
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
 	return true
 }
