@@ -1,0 +1,14 @@
+{
+  "card": "Dominate",
+  "class": "options-options",
+  "why": "gorge prices an {X} spell whose target is bounded by X (Creature.cmcLEX) against the potential-mana over-bound, which counts a two-colour land (Witherbloom Campus) in both colours, so it offers Dominate at 4 mana from Island, Island and the Campus; its payment planner then pays only X=0 and no creature has mana value 0, and the dual cast gorge lists is one it can never complete (CR 601.2b, 601.2c); dirac mirrors the offer and then opens the cast the harness floated mana for, tail-66 pair 1",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "dominate_x_bound_target_offered_past_a_dual_land"
+  }
+}
