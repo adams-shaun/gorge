@@ -222,15 +222,20 @@ type Payment struct {
 
 // takeUnit consumes one mana unit from slot i of rem/sn/typed, preferring a
 // PLAIN unit when one exists, then the typed units in their fixed
-// Treasure > Cave > Desert order, then a snow-ARTIFACT unit (its composed
-// consumption also leaves the Snow tally — a unit that is both), then the
-// artifact-only typed units, and a SNOW unit LAST so a snow unit stays
-// available for a later {S} Pip (typed units have no pips of their own, so
-// they go before snow but after plain); the backtracking search undoes the
-// choice if the rest of the cost cannot be paid that way. plain is the
-// slot's untagged remainder: the composed slot (TypedSnowArtifact) is part
-// of the inclusive Snow tally already subtracted below, so it is not
-// subtracted again here. Each tally is <= the pool by construction.
+// Treasure > Cave > Desert > Artifact > ArtifactTreasure > ArtifactCave >
+// ArtifactDesert order, and a SNOW unit LAST so a snow unit stays available
+// for a later {S} Pip (typed units have no pips of their own, so they go
+// before snow but after plain); the backtracking search undoes the choice
+// if the rest of the cost cannot be paid that way. At the Artifact stage a
+// composed snow-artifact unit is preferred over the artifact-only typed
+// one: its consumption moves the Snow tally with the pool, so every head
+// that counts this spend (the {S} and the artifact one) sees it leave — and
+// it is checked even when the exclusive artifact-only slot is empty, since
+// the partition can hold composed units with every Artifact unit of the
+// slot being snow. plain is the slot's untagged remainder: the composed
+// slot (TypedSnowArtifact) is part of the inclusive Snow tally already
+// subtracted below, so it is not subtracted again here. Each tally is <=
+// the pool by construction.
 func takeUnit(rem, sn *state.Mana, typed *[8]state.Mana, i int) {
 	plain := (*rem)[i] - (*sn)[i]
 	for t := 0; t < len(*typed); t++ {
@@ -243,28 +248,28 @@ func takeUnit(rem, sn *state.Mana, typed *[8]state.Mana, i int) {
 		(*rem)[i]--
 		return
 	}
-	for t := 0; t < state.TypedArtifact; t++ {
-		if (*typed)[t][i] > 0 {
-			(*rem)[i]--
-			(*typed)[t][i]--
-			return
+	for t := 0; t < len(*typed); t++ {
+		if t == state.TypedSnowArtifact || (*typed)[t][i] <= 0 {
+			continue
 		}
+		(*rem)[i]--
+		if t == state.TypedArtifact {
+			if (*typed)[state.TypedSnowArtifact][i] > 0 {
+				(*sn)[i]--
+				(*typed)[state.TypedSnowArtifact][i]--
+				return
+			}
+		}
+		(*typed)[t][i]--
+		return
 	}
-	// A composed snow-artifact unit is preferred over the artifact-only
-	// typed one: its consumption moves the Snow tally with the pool, so
-	// every head that counts this spend (the {S} and the artifact one) sees
-	// it leave. It is checked on its own because the exclusive partition
-	// can hold composed units with an empty artifact-only slot (every
-	// Artifact unit in the slot being snow).
+	// The walk above skips the composed slot; the artifact stage still
+	// consumes composed units that hold the slot's whole artifact tally
+	// (typed[Artifact] == 0, composed > 0).
 	if (*typed)[state.TypedSnowArtifact][i] > 0 {
 		(*rem)[i]--
 		(*sn)[i]--
 		(*typed)[state.TypedSnowArtifact][i]--
-		return
-	}
-	if (*typed)[state.TypedArtifact][i] > 0 {
-		(*rem)[i]--
-		(*typed)[state.TypedArtifact][i]--
 		return
 	}
 	(*rem)[i]--
