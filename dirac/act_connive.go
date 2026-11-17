@@ -6,10 +6,11 @@ import (
 
 // connive is OpConnive (gorge effConnive / conniveOnce, one conniver): a
 // conniver no longer on the battlefield connives nothing. Its controller
-// draws A, then discards A -- the whole hand when it holds no more, else
-// the raDiscard ask (gorge's KModes "discard", Min = Max = A). The nonland
-// cards in hand are counted before the discard (genState.conn) for
-// OpConniveCounters. It reports false when it suspended on the ask.
+// draws A -- the dredge ask posed before each card with a candidate
+// (kw_dredge.go) -- then discards A: the whole hand when it holds no more,
+// else the raDiscard ask (gorge's KModes "discard", Min = Max = A). The
+// nonland cards in hand are counted before the discard (genState.conn) for
+// OpConniveCounters. It reports false when it suspended on an ask.
 //
 //go:noinline
 func (s *State) connive(k *prep, in *kop.Instr) bool {
@@ -18,27 +19,43 @@ func (s *State) connive(k *prep, in *kop.Instr) bool {
 		return true // up to one target, and none chosen
 	}
 	p := s.lastKnownController(k, in.Obj)
-	n := s.value(k, in.A)
+	n := min(max(s.value(k, in.A), 0), 255) // the draw count and the res frame's left byte agree (OpDraw's clamp)
 	for i := 0; i < n; i++ {
+		if !s.dredgeResPose(k, p, dredgeResConnive, n-i) {
+			s.g.conn = uint8(n) // the tail's count, read on the ask's answer
+			return false        // the dredge ask is posed (kw_dredge.go)
+		}
 		s.draw(p)
 	}
+	return s.conniveTail(k, p, n, false)
+}
+
+// conniveTail is connive's discard half, after its draws (gorge
+// conniveOnce): the nonland hand count for OpConniveCounters, then the
+// discard. resume: called from the answered dredge ask, which continues the
+// program itself; false: the op is finishing in runProg, which goes on by
+// itself.
+func (s *State) conniveTail(k *prep, p uint8, n int, resume bool) bool {
 	pl := &s.pl[p]
 	s.g.conn = uint8(s.handNonland(k, p)) + 1
-	if n <= 0 || pl.handN == 0 {
-		return true
-	}
-	if int(pl.handN) <= n {
+	switch {
+	case n <= 0 || pl.handN == 0:
+	case int(pl.handN) <= n:
 		for pl.handN > 0 {
 			s.discardObj(k, pl.hand[0])
 		}
-		return true
+	default:
+		s.res.ask = raDiscard
+		s.res.peekI = 0
+		s.res.askP = p
+		s.res.left = uint8(n)
+		s.res.chosen = objWord(p)
+		return false
 	}
-	s.res.ask = raDiscard
-	s.res.peekI = 0
-	s.res.askP = p
-	s.res.left = uint8(n)
-	s.res.chosen = objWord(p)
-	return false
+	if resume {
+		s.continueRes(k, 0)
+	}
+	return true
 }
 
 // conniveCounters is OpConniveCounters: one +1/+1 counter on the conniver
