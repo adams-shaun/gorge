@@ -2688,14 +2688,40 @@ func filterCapturedRemembered(remembered, captured, delayedRemembered, persisten
 	if sameTargets(remembered, captured) && len(persistent) > 0 {
 		return copyTargets(persistent)
 	}
+	// A captured entry the written list holds is kept, but only its WRITTEN
+	// occurrence: the seeded one leads Remembered, so keeping it as well walks
+	// the object before the cards the body remembered (Brago exiles Vow of
+	// Flight and itself, then returns them: the list is [Vow, Brago] and
+	// Brago's own capture must not put it first).
+	seeded := make(map[state.Target]int, len(captured))
+	for _, t := range captured {
+		if containsTarget(persistent, t) && countTarget(remembered, t) > countTarget(captured, t) {
+			seeded[t]++
+		}
+	}
 	out := make([]state.Target, 0, len(remembered))
 	for _, t := range remembered {
 		if containsTarget(captured, t) && !containsTarget(persistent, t) {
 			continue
 		}
+		if seeded[t] > 0 {
+			seeded[t]--
+			continue
+		}
 		out = append(out, t)
 	}
 	return out
+}
+
+// countTarget is how many times t occurs in ts.
+func countTarget(ts []state.Target, t state.Target) int {
+	n := 0
+	for _, u := range ts {
+		if u == t {
+			n++
+		}
+	}
+	return n
 }
 
 // effectiveSourceRemembered is the ONE home of the pending-referent rule over
