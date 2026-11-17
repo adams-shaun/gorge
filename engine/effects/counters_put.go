@@ -1307,10 +1307,11 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 // bolster keyword action): the bolstering player -- the resolving controller;
 // every corpus carrier bolsters "creatures you control" -- chooses a creature
 // with the LEAST toughness among their creatures and puts N +1/+1 counters
-// on it. The toughness read is the CURRENT, layer-derived toughness
-// (CR 208.3/613: Host.Toughness, the same characteristic the layer walk,
-// combat damage and the SBAs read), so an anthem, an Aura or a pump moves
-// the election. A tie at the minimum
+// on it. The creature test and the toughness read are both CURRENT,
+// layer-derived characteristics (CR 613.1d/208.3/613: Host.IsCreature and
+// Host.Toughness, the same characteristics the layer walk, combat damage and
+// the SBAs read), so an animated land is a candidate (CR 701.39a) and an
+// anthem, an Aura or a pump moves the election. A tie at the minimum
 // is a real election (CR 701.39a's "choose"): a KChoose over the tied
 // creatures with the shared "counter_pick" decision shape, answered in place;
 // botpolicy's "counter_pick" arm takes the first option, so a
@@ -1327,7 +1328,7 @@ func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string) {
 	best := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
 		o := g.Obj(id)
-		if o == nil || o.Face() == nil || !hasType(o, "Creature") {
+		if o == nil || o.Face() == nil || !h.IsCreature(id) {
 			continue
 		}
 		// The election reads current toughness after every continuous effect
