@@ -26,14 +26,8 @@ func zoneOf(ps *params, key string, dflt int) (int, error) {
 // changeZone lowers api:ChangeZone: targeted moves, defined moves, and the
 // hidden-zone searches (library, or a graveyard choice without targeting).
 func (lc *lowerCtx) changeZoneMove(ps *params) error {
-	if err := libPlaceManyDefined(ps); err != nil { // lower_libplace.go
+	if done, err := lc.changeZoneDefinedSet(ps); done || err != nil {
 		return err
-	}
-	if done, err := lc.definedValidGraveyard(ps); done || err != nil {
-		return err
-	}
-	if _, ok := ps.m["DestAltSVar"]; ok {
-		return lc.czAltDest(ps) // lower_czaltdest.go
 	}
 	if isSelfAndChosen(ps) {
 		return lc.selfAndChosenExile(ps) // lower_selfchosen.go
@@ -270,17 +264,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		ps.consume("Imprint")
 	}
 	if ct, ok := ps.get("ChangeType"); ok {
-		ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest) // lower_partnerwith.go
+		tgtClaimed, tgtLib, err := lc.targetPlayerSearch(ps, origin, dest)
 		if err != nil {
 			return err
 		}
-		tgtLib := -1 // the target player's library searched by you (targetLibrarySearch)
-		if !ownSearch {
-			if tgtLib, err = lc.targetLibrarySearch(ps, origin); err != nil {
-				return err
-			}
-		}
-		if _, has := ps.m["ValidTgts"]; has && !ownSearch && tgtLib < 0 && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
+		if _, has := ps.m["ValidTgts"]; has && !tgtClaimed && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True") ||
 			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True")) {
 			return refuse("ChangeType$ with ValidTgts$")
@@ -385,13 +373,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				return err
 			}
 			// DefinedPlayer$: whose library is searched (lower_eachsearch.go)
-			obj, err := lc.searchOwner(ps, arm != nil)
-			if err != nil {
+			var obj lRef
+			if obj, flags, err = lc.libSearchOwner(ps, arm != nil, tgtLib, flags); err != nil {
 				return err
-			}
-			if tgtLib >= 0 {
-				obj = lRef{Kind: rTarget, N: tgtLib}
-				flags = append(flags, "ChooserYou")
 			}
 			// Optional$ True/You gates the search on the fetching player's
 			// yes/no before any pick (gorge zone_hand.go optionalConfirmMarker
@@ -5219,4 +5203,46 @@ func (lc *lowerCtx) animateSelfAbilities(ps *params, o *lOverride, obj lRef) err
 		return refuse("Animate Abilities$ %q: %d granted abilities", ab, n)
 	}
 	return nil
+}
+
+// changeZoneDefinedSet dispatches the ChangeZone shapes changeZoneMove hands
+// off before reading its own params: the many-card library placement
+// (lower_libplace.go), Defined$ ValidGraveyard (definedValidGraveyard) and
+// DestAltSVar$ (lower_czaltdest.go). done is false for any other shape.
+func (lc *lowerCtx) changeZoneDefinedSet(ps *params) (bool, error) {
+	if err := libPlaceManyDefined(ps); err != nil {
+		return true, err
+	}
+	if done, err := lc.definedValidGraveyard(ps); done || err != nil {
+		return true, err
+	}
+	if _, ok := ps.m["DestAltSVar"]; ok {
+		return true, lc.czAltDest(ps)
+	}
+	return false, nil
+}
+
+// targetPlayerSearch claims a ChangeType$ search's player target: the
+// targeted player's own library search (targetPlayerOwnSearch,
+// lower_partnerwith.go) or the target player's library searched by you
+// (targetLibrarySearch, whose slot it returns, -1 otherwise). claimed is
+// true when either read the ValidTgts$.
+func (lc *lowerCtx) targetPlayerSearch(ps *params, origin, dest int) (claimed bool, tgtLib int, err error) {
+	ownSearch, err := lc.targetPlayerOwnSearch(ps, origin, dest)
+	if err != nil || ownSearch {
+		return ownSearch, -1, err
+	}
+	tgtLib, err = lc.targetLibrarySearch(ps, origin)
+	return tgtLib >= 0, tgtLib, err
+}
+
+// libSearchOwner is the searched library's owner (searchOwner,
+// lower_eachsearch.go); a target player's library searched by you (tgtLib >=
+// 0, targetLibrarySearch) is that target's, with you choosing.
+func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []string) (lRef, []string, error) {
+	obj, err := lc.searchOwner(ps, arm)
+	if err != nil || tgtLib < 0 {
+		return obj, flags, err
+	}
+	return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
 }
