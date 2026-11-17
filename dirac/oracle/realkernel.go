@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -512,25 +513,59 @@ var _ Side = (*realSide)(nil)
 // (Corpus.Matchup) and the kernel table (set.Matchup) the SetSide adapter
 // plays.
 func SetMatchup(set cardset.Set, c *Corpus, a, b string, mulligans int) (*Matchup, *kop.Table, error) {
+	m, tbl, _, err := setMatchup(set, c, a, b, mulligans, false)
+	return m, tbl, err
+}
+
+// SetMatchupPlayRefused is SetMatchup for a diagnostic run: when the kernel's
+// interaction guard refuses the pair, it plays the pair anyway with the guards
+// skipped, and refused says which reason the guard gave it. refused is "" when
+// the pair was not refused and the table is SetMatchup's.
+func SetMatchupPlayRefused(set cardset.Set, c *Corpus, a, b string, mulligans int) (*Matchup, *kop.Table, string, error) {
+	return setMatchup(set, c, a, b, mulligans, true)
+}
+
+func setMatchup(set cardset.Set, c *Corpus, a, b string, mulligans int, playRefused bool) (*Matchup, *kop.Table, string, error) {
 	m, err := c.Matchup(a, b, mulligans)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	var es [2][]cardset.Entry
 	for s := 0; s < 2; s++ {
 		f, err := c.deckFile(m.Names[s])
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 		for _, e := range f.Cards {
 			es[s] = append(es[s], cardset.Entry{Name: e.Name, Count: e.Count})
 		}
 	}
-	tbl, _, _, err := set.Matchup(es[0], es[1])
+	tbl, refused, err := matchupTable(set, es, playRefused)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	return m, tbl, nil
+	return m, tbl, refused, nil
+}
+
+// matchupTable is the kernel table a pair plays on: set.Matchup or, when
+// playRefused asks for it and the interaction guard refuses, the same pair
+// with the guards skipped. refused is the guard's reason, "" when it did not
+// refuse.
+func matchupTable(set cardset.Set, es [2][]cardset.Entry, playRefused bool) (*kop.Table, string, error) {
+	tbl, _, _, err := set.Matchup(es[0], es[1])
+	if err != nil && playRefused {
+		var inter *cardset.InteractionRefusal
+		if errors.As(err, &inter) {
+			tbl, _, _, err = set.MatchupInert(es[0], es[1])
+			if err == nil {
+				return tbl, inter.Reason, nil
+			}
+		}
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	return tbl, "", nil
 }
 
 // SetMatchupN is SetMatchup for a pod of len(names) decks (2..MaxSeats): one
@@ -538,31 +573,52 @@ func SetMatchup(set cardset.Set, c *Corpus, a, b string, mulligans int) (*Matchu
 // table's decks (KernelMatchupN), seat s playing names[s], with its deck
 // files' commanders (Corpus.MatchupN). At two seats it is SetMatchup.
 func SetMatchupN(set cardset.Set, c *Corpus, names []string, mulligans int) (*Matchup, *kop.Table, error) {
+	m, tbl, _, err := setMatchupN(set, c, names, mulligans, false)
+	return m, tbl, err
+}
+
+// SetMatchupNPlayRefused is SetMatchupN for a diagnostic run, playing a pair
+// the interaction guard refuses (SetMatchupPlayRefused).
+func SetMatchupNPlayRefused(set cardset.Set, c *Corpus, names []string, mulligans int) (*Matchup, *kop.Table, string, error) {
+	return setMatchupN(set, c, names, mulligans, true)
+}
+
+func setMatchupN(set cardset.Set, c *Corpus, names []string, mulligans int, playRefused bool) (*Matchup, *kop.Table, string, error) {
 	if len(names) == 2 {
-		return SetMatchup(set, c, names[0], names[1], mulligans)
+		return setMatchup(set, c, names[0], names[1], mulligans, playRefused)
 	}
 	es := make([][]cardset.Entry, len(names))
 	for s, n := range names {
 		f, err := c.deckFile(n)
 		if err != nil {
-			return nil, nil, fmt.Errorf("deck %s: %w", n, err)
+			return nil, nil, "", fmt.Errorf("deck %s: %w", n, err)
 		}
 		for _, e := range f.Cards {
 			es[s] = append(es[s], cardset.Entry{Name: e.Name, Count: e.Count})
 		}
 	}
 	tbl, ids, err := set.MatchupN(es)
+	refused := ""
+	if err != nil && playRefused {
+		var inter *cardset.InteractionRefusal
+		if errors.As(err, &inter) {
+			tbl, ids, err = set.MatchupNInert(es)
+			if err == nil {
+				refused = inter.Reason
+			}
+		}
+	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	m, err := KernelMatchupN(c.Reg, tbl, names, ids, nil, mulligans)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	if err := c.readCommanders(m); err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	return m, tbl, nil
+	return m, tbl, refused, nil
 }
 
 // FDNMatchup is SetMatchup over the "fdn" set.
