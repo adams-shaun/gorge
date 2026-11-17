@@ -1,5 +1,6 @@
 A-Vega, the Watcher
 Active Volcano
+Adventurous Impulse
 Aether Meltdown
 Amrou Scout
 Ancestral Recall
@@ -7,22 +8,31 @@ Anticipate
 Armguard Familiar
 Arrester's Zeal
 Aspect of Gorgon
+Avenging Druid
+Awakening Zone
 Battle Squadron
 Beacon Hawk
 Bitter Downfall
+Blacksmith's Skill
 Blight Pile
+Blightbelly Rat
 Bojuka Brigand
 Break Through the Line
+Carrion Screecher
 Commune with Dinosaurs
 Consuming Fervor
+Crash of Rhinos
+Craw Wurm
 Crimson Manticore
 Cruel Edict
+Crush Contraband
 Dauthi Cutthroat
 Deathcurse Ogre
 Defiant Khenra
 Draconic Muralists
 Drowned Secrets
 Elvish Lookout
+Emergent Sequence
 Epicure of Blood
 Essence Drain
 Excavating Anurid
@@ -35,17 +45,20 @@ Frazzle
 Gale Swooper
 Galion, Elvenking's Butler
 Galvanic Bombardment
+Gladecover Scout
 Goblin Fire Fiend
 Goblin War Party
 Goliath Paladin
 Hamlet Captain
 Hematite Talisman
+Herald of the Pantheon
 Hobgoblin Dragoon
 Hookblade Veteran
 Icatian Lieutenant
 Infiltrator's Magemark
 Island
 Jaya's Firenado
+Kami of Ancient Law
 Katara, Heroic Healer
 Kavu Predator
 Khalni Gem
@@ -57,6 +70,7 @@ Magmaw
 Makindi Sliderunner
 Malakir Cullblade
 Manticore
+Maro
 Master of the Feast
 Merciless Resolve
 Mercurial Kite
@@ -71,10 +85,14 @@ Ojutai's Summons
 Panther Robot
 Plains
 Predation Steward
+Prickly Boggart
 Pyretic Ritual
+Ramirez DePietro, Pillager
 Ramosian Greatsword
+Ramses Overdark
 Rebel Salvo
 Renegade Troops
+Repulsor Bots
 Returned Reveler
 Rhonas the Indomitable
 Rishadan Footpad
@@ -88,10 +106,12 @@ Shadow Sliver
 Shimmerscale Drake
 Sky Cycle
 Skymarch Bloodletter
+Skywise Teachings
 Smite
 Snarling Wolf
 Spell Swindle
 Spidersilk Armor
+Stitcher's Supplier
 Stone-Seeder Hierophant
 Suq'Ata Firewalker
 Swamp
@@ -99,15 +119,20 @@ Sylvan Caryatid
 Terror
 Tezzeret's Ambition
 Tezzeret's Gambit
+The First Iroan Games
 The Shattered States Era
 Tocasia's Welcome
 Tokka & Rahzar, Unsupervised
 Tourach's Canticle
 Transpose
+Tuinvale Treefolk
 Unliving Psychopath
+Valkyrie's Sword
 Vastwood Fortification
 Vedalken Archmage
 Verdant Crescendo
+Voltstorm Angel
+Vow of Duty
 Wall of Spears
 Wall of Torches
 Warmonger Hellkite

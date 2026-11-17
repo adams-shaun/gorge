@@ -126,6 +126,7 @@ Gallant Cavalry
 Gemhide Sliver
 General Thunderbolt Ross
 Generous Pup
+Ghen, Arcanum Weaver
 Giant Ox
 Gideon's Battle Cry
 Gift of Growth
@@ -149,6 +150,7 @@ Halo Hunter
 Havoc
 Headstrong Brute
 Heedless One
+Heiko Yamazaki, the General
 Helldozer
 Hellraiser Goblin
 Hibernation Sliver
@@ -237,6 +239,7 @@ One-Clown Band
 Onyx Mage
 Oona's Gatewarden
 Oraxid
+Ostracize
 Ox Drover
 Oxidda Finisher
 Paradigm Shift
@@ -286,6 +289,7 @@ Revenge of Ravens
 Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
+Risona, Asari Commander
 River Merfolk
 Roar of Reclamation
 Robber Fly

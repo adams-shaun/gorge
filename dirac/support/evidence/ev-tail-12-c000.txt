@@ -78,6 +78,7 @@ Containment Protocol
 Coral Eel
 Count Nefaria
 Crashing Centaur
+Crater Elemental
 Crowded Crypt
 Cunning Sparkmage
 Dawnglare Invoker
@@ -98,6 +99,7 @@ Dwarven Grunt
 Dwarven Lieutenant
 E. Honda, Sumo Champion
 Eagle of the Watch
+Elixir of Vitality
 Emergency Weld
 Enduring Scalelord
 Enforcer Griffin
@@ -235,6 +237,7 @@ Nether Spirit
 Niblis of the Mist
 Nikara, Lair Scavenger
 Nissa, Worldwaker
+Nucklavee
 Nyxborn Triton
 Ominous Cemetery
 Ophiomancer
@@ -258,6 +261,7 @@ Possessed Centaur
 Power Armor
 Primal Growth
 Primordial Sage
+Prophetic Titan
 Prying Blade
 Pteramander
 Pyretic Prankster
@@ -277,6 +281,7 @@ Rats of Rath
 Ravenform
 Reclusive Taxidermist
 Relic Robber
+Repair and Recharge
 Repository Skaab
 Reprocess
 Rescind

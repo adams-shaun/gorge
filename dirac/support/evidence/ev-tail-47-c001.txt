@@ -2,6 +2,7 @@ A-Dwarfhold Champion
 A-Young Red Dragon
 Abandon the Post
 Abzan Skycaptain
+Acidic Slime
 Acidic Sliver
 Aeronaut Cavalry
 Anaba Bodyguard
@@ -189,6 +190,7 @@ Laurine, the Diversion
 Leonin Elder
 Lignify
 Lone Revenant
+Lotleth Troll
 Luminous Broodmoth
 Lurking Green Dragon
 Mage's Guile

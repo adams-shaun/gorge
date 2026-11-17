@@ -3,11 +3,16 @@ Aether Flash
 Ainok Tracker
 Akroan Hoplite
 Amphin Pathmage
+Angelic Curator
 Aria of Flame
+Artifact Ward
 Ashling the Pilgrim
 Augur of Bolas
 Avaricious Dragon
+Bad Moon
+Batterbone
 Blightbeetle
+Blistering Barrier
 Blurred Mongoose
 Bog Initiate
 Boon Reflection
@@ -25,12 +30,15 @@ Checkpoint Officer
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
+Cobblebrute
 Coiling Oracle
 Corpse Connoisseur
 Countryside Crusher
 Crash
+Cultist of the Absolute
 Dark Bargain
 Dauntless Aven
 Dauntless Unity
@@ -38,14 +46,18 @@ Depala, Pilot Exemplar
 Desert of the Indomitable
 Dimir Signet
 Disentomb
+Dismember
 Double Trouble
 Dragon Whelp
 Drake Haven
 Electrify
+Elemental Uprising
 Elenda, the Dusk Rose
 Elixir of Immortality
+Elvish Scrapper
 Elvish Visionary
 Enduring Bondwarden
+Enlightened Ascetic
 Ent's Fury
 Ever After
 Extinguish the Light
@@ -56,17 +68,24 @@ Feral Appetite
 Ferocious Pup
 Fevered Strength
 Feywild Visitor
+Fiery Mantle
+Flamecore Elemental
 Flames of the Firebrand
 Forest
 Fortified Rampart
 Frost Trickster
 Fungal Rebirth
 Garruk's Companion
+Garruk, Cursed Huntsman
 Geistblast
+Generous Stray
 Ghirapur Aether Grid
+Gibbering Barricade
 Glimmering Angel
+Gnat Alley Creeper
 Goblin Skycutter
 Graceful Restoration
+Great Desert Prospector
 Greater Good
 Hagra Constrictor
 Havengul Vampire
@@ -83,19 +102,38 @@ Inspired Fire
 Island
 Island of Wak-Wak
 Jaya, Venerated Firemage
+Kayla's Command
+Kazandu Blademaster
 Kiln Walker
+Kor Entanglers
+Kuldotha Rebirth
+Lantern of the Lost
+Lapis Lazuli Talisman
 Library
+Life
 Living Wish
+Magistrate's Veto
+Maned Serval
+Manic Scribe
 Manifold Key
 Manta Riders
+Mask of Law and Grace
+Mass Hysteria
+Merciless Eternal
+Merfolk Observer
 Mightstone's Animation
 Mindmelter
+Misery Charm
+Misery's Shadow
 Monologue Tax
 Moonwing Moth
+Motivated Pony
 Mountain
 Naiad of Hidden Coves
 Nico Minoru, Runaway
 Night Incarnate
+Nightshade Seer
+Nim Grotesque
 Ocular Halo
 Ogre Gatecrasher
 Outland Colossus
@@ -107,21 +145,31 @@ Pillaging Horde
 Pillarfield Ox
 Plains
 Poison Arrow
+Pooling Venom
 Prison Term
 Prowling Pangolin
+Psychomancer
 Pyknite
+Quantum Entanglement
 Quicksilver Fisher
 RMS Titanic
 Rain of Salt
 Raking Claws
 Rampaging Cyclops
+Ray of Dissolution
+Razorgrass Ambush
 Reaping the Rewards
 Red Death, Shipwrecker
+Refocus
 Relentless Rats
 Renari, Merchant of Marvels
+Resplendent Mentor
 Reverent Hoplite
+Rhystic Shield
 Righteous Fury
 Roc Charger
+Rocksteady, Mutant Marauder
+Rogue's Gloves
 Runebound Wolf
 Runner's Bane
 Sacred Fire
@@ -130,49 +178,66 @@ Sandstorm Eidolon
 Sarpadian Simulacrum
 Saruman the White
 Saw It Coming
+Scapeshift
 Scout the Borders
 Scroll of the Masters
 Search the Premises
+Sedge Scorpion
 Seething Pathblazer
 Selesnya Sanctuary
 Serendib Efreet
+Serpent-Blade Assailant
+Shalai, Voice of Plenty
+Shape the Sands
 Sigarda, Heron's Grace
 Silverquill Command
 Skemfar Elderhall
 Slippery Bogle
+Smelt
 So Shiny
 Soulshriek
 Spawn-Gang Commander
 Spire Garden
 Squadron Hawk
 Squallmonger
+Stinging Hivemaster
+Stone Catapult
 Stoneforge Acolyte
 Stonefury
 Storm Fleet Sprinter
 Stormchaser Mage
+Stormfront Pegasus
 Stump Stomp
 Sunken City
 Supply Caravan
+Supreme Will
 Survivor of the Unseen
 Swamp
 Swarm of Bloodflies
 Swell of Growth
+Symbiotic Elf
 Synod Sanctum
 Sythis, Harvest's Hand
 Tallyman of Nurgle
+Tamiyo's Logbook
 Tar Pitcher
 Teeterpeak Ambusher
+Terror Ballista
 Teysa, Envoy of Ghosts
 The Rack
 Thought Collapse
 Thundercloud Shaman
 Tide Skimmer
+Torment
 Touch of Brilliance
 Towering-Wave Mystic
 Tranquil Thicket
+Twisted Embrace
 Ultimate Magic: Holy
+Undertaker
 Underworld Coinsmith
 Vagrant Plowbeasts
+Vanquish the Weak
 Vault Guardsman
 Vector Asp
 Vengeful Dead
@@ -186,11 +251,15 @@ Wall of Essence
 Wall of Reverence
 Warlock Class
 Warpath
+Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
+Whiptongue Frog
+Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Willow-Wind
 Wing Puncture
 Wirewood Hivemaster
 Woodland Wanderer
@@ -198,4 +267,5 @@ Woodwraith Strangler
 Wose Pathfinder
 Wu Longbowman
 Xun Yu, Wei Advisor
+Zephyr Charge
 Zoologist

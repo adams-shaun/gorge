@@ -4,22 +4,29 @@ A-Oran-Rief Ooze
 A-Revel Ruiner
 Adeliz, the Cinder Wind
 Aether Spellbomb
+Akroan Skyguard
 Alms Beast
 Alpha Tyrranax
 Ambush Paratrooper
 Anaconda
 Anarchist
+Anowon, the Ruin Sage
 Anthousa, Setessan Hero
 Aphetto Alchemist
 Arcane Teachings
 Archfiend of Despair
+Argivian Phalanx
 Argothian Opportunist
 Argothian Treefolk
 Aria of Flame
 Armored Cancrix
 Armory Veteran
+Astarion's Thirst
 Auriok Transfixer
+Ayara, First of Locthwain
 Back in Town
+Battle Hurda
+Benalish Trapper
 Blessed Wine
 Blight Pile
 Blind Phantasm
@@ -33,6 +40,7 @@ Bounding Wolf
 Brain Weevil
 Brassclaw Orcs
 Brazen Buccaneers
+Breaker of Armies
 Bygone Marvels
 Cackling Imp
 Cagemail
@@ -58,8 +66,12 @@ Colossal Growth
 Combat Medic
 Conclave Tribunal
 Consider
+Cradle Guard
 Crocodile of the Crossing
+Dark-Dweller Oracle
+Darksteel Splicer
 Death-Hood Cobra
+Deathcap Cultivator
 Debt to the Kami
 Deepglow Skate
 Defense of the Heart
@@ -83,6 +95,7 @@ Dromosaur
 Drudge Sentinel
 Drudge Skeletons
 Duty-Bound Dead
+Dwarven Reinforcements
 Dwarven Song
 Earsplitting Rats
 Elena, Turk Recruit
@@ -90,6 +103,7 @@ Elite Guardmage
 Emerald Charm
 Endless Ranks of the Dead
 Esper Sentinel
+Essence Pulse
 Eternal Warrior
 Eviscerator
 Expedition Champion
@@ -118,6 +132,7 @@ Gustcloak Sentinel
 Hammer of Purphoros
 Heir of the Ancient Fang
 Heir of the Wilds
+Helionaut
 Herald of Secret Streams
 Holy Day
 Honor's Reward
@@ -125,37 +140,45 @@ Horribly Awry
 Howl of the Horde
 Hunting Grounds
 Immolation
+Impassioned Orator
 Incisor Steed
 Intimidator Initiate
 Introduction to Prophecy
 Irontread Crusher
 Island
 Jewel-Eyed Cobra
+Joraga Bard
 Jukai Trainee
 Kalonian Twingrove
 Karn, Silver Golem
+Karplusan Wolverine
 Karstoderm
 Kessig Wolf
 Kokusho, the Evening Star
 Lagonna-Band Elder
 Launch Mishap
 Leaping Master
+Ledev Guardian
 Lesser Gargadon
 Level Up
 Leyline of the Meek
 Lifeline
 Lightning Blow
+Longshot, Rebel Bowman
 Lorehold Pledgemage
 Lost in the Woods
 Lumengrid Gargoyle
+Mad Dog
 Magma Giant
 Marshal of Zhalfir
 Master Symmetrist
 Match the Odds
+Meditation Puzzle
 Merfolk Branchwalker
 Midnight Guard
 Might of Old Krosa
 Mind Peel
+Minion of the Mighty
 Mirrodin Avenged
 Mogg Salvage
 Moss Diamond
@@ -164,28 +187,39 @@ Mountain
 Murasa Rootgrazer
 Muscle Sliver
 N'Yami-Class Mother Ship
+Natural State
 Nearheath Stalker
 Netcaster Spider
 Nihil Spellbomb
 Nimble Trapfinder
 Nurturing Presence
+One with Death
 Ordeal of Heliod
+Orim, Samite Healer
 Orochi Eggwatcher
+Otherworldly Journey
 Panther Robot
+Phalanx Leader
+Phalanx Tactics
+Phyrexian Rager
 Pit Imp
 Placid Rottentail
 Plains
 Prophecy
+Protector of the Wastes
 Psionic Entity
 Pull from the Deep
+Putrefaction
 Qasali Slingers
 Quicksilver Wall
 Radiant Flames
 Raise the Alarm
+Rally Maneuver
 Rank Officer
 Ravenous Bloodseeker
 Reave Soul
 Renegade Troops
+Renounce the Guilds
 Resolute Watchdog
 Revenge of the Drowned
 Ring of Valkas
@@ -210,14 +244,18 @@ Second Breakfast
 Secure Detention
 Seek the Wilds
 Seizan, Perverter of Truth
+Sentry of the Underworld
 Shadow Stinger
 Shadow in the Warp
 Sharpshooter Elf
 Shield of Kaldra
 Shire Shirriff
+Sidisi's Pet
 Siege Wurm
+Sigrid, God-Favored
 Sisters of the Flame
 Skeletal Snake
+Skittering Cicada
 Sky Skiff
 Skyclave Geopede
 Skywinder Drake
@@ -240,9 +278,11 @@ Splinter Twin
 Spontaneous Generation
 Spore Frog
 Squallmonger
+Stab Wound
 Stalwart Shield-Bearers
 Steel of the Godhead
 Steelgaze Griffin
+Steward of Solidarity
 Storm Strike
 Stormwing Entity
 Strength of the Harvest
@@ -255,6 +295,7 @@ Take Up Arms
 Talas Air Ship
 Talas Explorer
 Talas Merchant
+Talon of Pain
 Tempered Sliver
 Tempest Harvester
 Terra Stomper
@@ -264,6 +305,7 @@ The Flux
 Thunderbreak Regent
 Thundercloud Shaman
 Tireless Hauler
+Tolarian Geyser
 Topple the Statue
 Torens, Fist of the Angels
 Toski, Bearer of Secrets
@@ -277,6 +319,9 @@ Unexplained Disappearance
 Urborg Stalker
 Veil of Birds
 Verdant Field
+Vessel of Malignity
+Victory's Envoy
+Vulpine Harvester
 Wake the Dragon
 Walking Wall
 Wall of Denial
@@ -284,11 +329,13 @@ Wall of One Thousand Cuts
 Wanderer's Twig
 Warbriar Blessing
 Warden of Geometries
+Warmth
 Weldfast Wingsmith
 Wellwisher
 Whipcorder
 Whirler Virtuoso
 White Tiger, Amulet Keeper
+Wing It
 Witness the End
 Yahenni, Undying Partisan
 Yavimaya Elder
