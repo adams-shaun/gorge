@@ -54,14 +54,17 @@ func (s *State) restrNonSpellKind(k *prep, kind uint8) bool {
 	return false
 }
 
-// plotRestrFallback: the plot action of p, which av does not pay, still
-// pays through p's restricted mana the restriction of which admits a
-// non-spell payment, or the restricted sources that admit one (pdOther).
-// A spell-only restriction (Villages, Giada, Kolvori, Courtyard's spell
-// half, Helga's float) funds nothing here.
+// restrOtherFallback: a non-spell payment (pdOther) of p, which av does not
+// pay, still pays through p's restricted mana the restriction of which
+// admits one, or the restricted sources that admit one (gorge's
+// AvailableFor, CR 106.6: pay.PurposeOther; the Powerstone's {C} funds an
+// Energy Flux unless, Hydraulic Helper's mana a ward). The plot action's
+// fallback and canPayGen's PayMana arm share it. A spell-only restriction
+// (Villages, Giada, Kolvori, Courtyard's spell half, Helga's float) funds
+// nothing here.
 //
 //go:noinline
-func (s *State) plotRestrFallback(k *prep, p uint8, cost *kop.ManaCost, av *avail) bool {
+func (s *State) restrOtherFallback(k *prep, p uint8, cost *kop.ManaCost, av *avail) bool {
 	t := *av
 	if m := s.restrPoolNonSpell(k, p); m != 0 {
 		s.restrAvailAdd(p, m, &t)
@@ -102,7 +105,7 @@ func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool 
 	}
 	var av avail
 	s.availWindowFor(k, p, &av)
-	return s.plotRestrFallback(k, p, cost, &av)
+	return s.restrOtherFallback(k, p, cost, &av)
 }
 
 // restrPoolSpecial is the mask of p's restricted mana batches (State.rb) whose
