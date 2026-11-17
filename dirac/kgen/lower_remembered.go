@@ -394,6 +394,12 @@ func (lc *lowerCtx) refuseCrossAbilityRemembered() {
 		lc.out.RemPersist, lc.out.RemSeed, lc.out.RemKeep = true, seed, keep
 		return
 	}
+	if seed, ok := lc.srcMemShape(); ok {
+		// the leaves trigger starts with the kept set, a watch trigger reads
+		// it beside the resolution's (lower_srcmem.go)
+		lc.out.SrcMem, lc.out.SmSeed = true, seed
+		return
+	}
 	c3c := false
 	for _, a := range lc.out.Abilities {
 		for _, in := range a.Prog {
