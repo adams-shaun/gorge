@@ -153,7 +153,15 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !cav.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)) {
+		phyHalf, phyHalfOK := kop.ManaCost{}, false
+		if cost.Phyrexian() {
+			// gorge pay.PlanManaHalf: the cast planner prices the pip-free mana
+			// half alone (each pip's face is announced afterwards, CR 601.2b),
+			// so the offer reads affordable when the half alone is
+			phyHalf = phyPlanHalf(*cost)
+			phyHalfOK = cav.affords(&phyHalf, pipMaskOf(&phyHalf), 0)
+		}
+		if !cav.affords(cost, pipMaskOf(cost), 0) && !phyHalfOK && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)

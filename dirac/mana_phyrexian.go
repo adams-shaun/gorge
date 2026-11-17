@@ -76,6 +76,17 @@ func (s *State) phyCastPlanSettles(k *prep, e *stackEntry, half, settled kop.Man
 // witness when every pip was paid with life, else gorge's manual CR 601.2g
 // window over the resolved cost.
 //
+// phyPlanHalf is gorge pay.PlanManaHalf (payment_plan.go): the cost without
+// its Phyrexian pips. A pip's colour face and its two-life face are both
+// answered afterwards by the CR 601.2b pip ask, so the cast planner prices
+// this half alone and the offer gate reads affordable when it alone is
+// payable.
+func phyPlanHalf(cost kop.ManaCost) kop.ManaCost {
+	half := cost
+	half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
+	return half
+}
+
 // phyAbilityMana pays a Phyrexian activation: the plan for the cost its pips
 // settled, armed on the mana half; the manual window when none exists
 // (mana_phyrexian.go).
