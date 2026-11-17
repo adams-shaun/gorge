@@ -542,6 +542,7 @@ Dissenter's Deliverance
 Distortion Strike
 Disturbed Burial
 Dive Down
+Divide by Zero
 Divination
 Dockside Chef
 Doomed Traveler
@@ -728,6 +729,7 @@ Fireblast
 Firecat Blitz
 Fireslinger
 Firewing Phoenix
+First Day of Class
 Fists of Flame
 Flame Elemental
 Flame Jab
