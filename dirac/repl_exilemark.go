@@ -325,13 +325,20 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 	// Defeated battles queue pre-sweep in gorge too, but they exile rather
 	// than move to a graveyard, so they never reach a grave-move ask here.
 	pre := (*die).or((*gy).andNot(*aur))
+	// Gorge takes a pass's asks in its family order (rules/sba.go,
+	// applySBABatch): the lethal-damage and zero-toughness creature
+	// casualties first, then the zero-loyalty walkers, then the unattached
+	// Auras, each family in seat order. Parking every graveyard-bound
+	// casualty in seat order instead asked p0's walker before p1's creature
+	// when both seats lost a permanent to different families in one pass.
+	dw := *die
+	wp := die.or(*pwz)
 	var order [MaxPerm]Slot
 	n := 0
-	for p := uint8(0); p < s.nSeats(); p++ {
-		if s.out(p) {
-			continue
+	for _, gm := range [4]slotMask{dw, pwz.andNot(dw), aur.andNot(wp), gy.andNot(wp.or(*aur))} {
+		for p := uint8(0); p < MaxSeats; p++ {
+			n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
 		}
-		n = s.battlefieldOrder(p, die.or(*gy).and(s.ctrlM[p]), order[:], n)
 	}
 	fresh := false
 	busy := s.parkedWaiting()
