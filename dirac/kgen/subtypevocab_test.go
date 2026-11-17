@@ -11,7 +11,7 @@ import (
 // TestNonCreatureSubtypeVocabKnown: a non-creature subtype no pool card
 // carries is still a filter word when the corpus's type vocabulary names it
 // and the kernel's table can hold it as a non-creature subtype. A word
-// outside that set (a supertype the kernel does not model, or a made-up
+// outside that set (a supertype the kernel lowers another way, or a made-up
 // word) stays unknown, so it cannot widen the changeling grant.
 func TestNonCreatureSubtypeVocabKnown(t *testing.T) {
 	_, cardsDir := testInputs(t)
