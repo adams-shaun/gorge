@@ -377,7 +377,15 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go)
 			}
 		} else if tx.any() && !(tapsDef.any() && !s.tapXRiderGaps(k, p).any()) && s.tapXBoard(k, p) {
-			if !s.tapXScriptOffered(k, a, p) {
+			if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
+				if stall != 0 {
+					// every route gave the play up and one of the search's lines
+					// ran into a rule gap the kernel stalls by name: declare it,
+					// not a dropped offer. The drop is final — grantCap ran
+					// before scriptOffers (legal.go) — and the search itself
+					// declares nothing (mana_tapanother.go tapXScript).
+					s.capFull(stall)
+				}
 				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
 			}
 		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
@@ -423,13 +431,19 @@ func (s *State) mergeBareGaps(k *prep, gaps *Decision, filt slotMask) {
 // (grantBesideTapXGaps), and a sacrifice-another source's (sacXBesideGrant) —
 // gorge's one prefix search activates every gap of the board, the grants
 // beside its census gaps (rules scriptSearch.visit; mana_granttapx.go,
-// mana_countercost.go, mana_grantsacx.go).
-func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) bool {
-	if s.tapXScript(k, a, p, false) {
-		return true
+// mana_countercost.go, mana_grantsacx.go). It reports the tap-another search's
+// latched stall (tapXScript) only when every route failed: a stall a later
+// route priced past must not reach the real state (the caller declares it
+// where it drops the play).
+func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) (bool, uint8) {
+	found, stall := s.tapXScript(k, a, p, false)
+	if found {
+		return true, 0
 	}
-	return s.grantBesideTapXGaps(k, a, p) ||
-		s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p)
+	if s.grantBesideTapXGaps(k, a, p) || s.sacXBesideGrant(k, p) && s.grantActScript(k, a, p) {
+		return true, 0
+	}
+	return false, stall
 }
 
 // autopayDropsPlainCast reports a plain cast the autopay surface leaves out of
@@ -811,8 +825,10 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			capSpent.add(a)
 			continue
 		}
-		if k.tapMana && hasOption(d, a) && s.tapXOffGrant(k, p) && s.tapXScript(k, a, p, false) {
-			continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
+		if k.tapMana && hasOption(d, a) && s.tapXOffGrant(k, p) {
+			if found, _ := s.tapXScript(k, a, p, false); found {
+				continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
+			}
 		}
 		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(k, a)) {
 			d.remove(a) // gorge's relaxed proof refuses the restricted grant: insufficient, never searched (mana_grantrelaxrestr.go)
@@ -824,13 +840,25 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
-			if (!s.tapXOffGrant(k, p) || !s.tapXScript(k, a, p, false)) && !s.scriptCtr(k, p).any() {
+			found, stall := false, uint8(0)
+			if s.tapXOffGrant(k, p) {
+				found, stall = s.tapXScript(k, a, p, false)
+			}
+			if !found && !s.scriptCtr(k, p).any() {
 				// Gorge's script search covers every census gap — granted units,
 				// tap-another-permanent gaps and counter-cost mana (Wall of Roots'
 				// counter beside Wrenn and Realmbreaker's grant) alike (CR 605.1a,
 				// 601.2g-h) — so the kernel drops the play only when no route
 				// prices it; a live counter-cost gap leaves the play to
 				// scriptOffers' counter-gap search (scriptDeadEnd).
+				if stall != 0 {
+					// the drop is final — capSpent keeps scriptOffers from
+					// repricing the play — and one of the tap-another search's
+					// lines ran into a rule gap the kernel stalls by name:
+					// declare it, not a dropped offer (mana_tapanother.go
+					// tapXScript declares nothing).
+					s.capFull(stall)
+				}
 				d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
 				// The play has had gorge's one prefix search (the grant search
 				// covers a grant board's filters with its grants,
@@ -976,8 +1004,10 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 	if !ok {
 		return
 	}
-	if s.tapXGrantBoard(k, p, a) && !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) && s.tapXScript(k, a, p, true) {
-		return // gorge's one prefix search takes the sacrifice-any source and the grants in battlefield order (mana_tapxgrant.go)
+	if s.tapXGrantBoard(k, p, a) && !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
+		if found, _ := s.tapXScript(k, a, p, true); found {
+			return // gorge's one prefix search takes the sacrifice-any source and the grants in battlefield order (mana_tapxgrant.go)
+		}
 	}
 	var g grantSrch
 	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) && g.np != 0 {

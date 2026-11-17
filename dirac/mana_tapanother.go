@@ -493,10 +493,14 @@ func tapXPairAt(n, qi int) (int, int) {
 
 // tapXScript runs gorge's prefix search (rules scriptSearch.visit under
 // potentialPrefixScript: gapsOnly, funding 0, potentialScriptNodes) for play
-// a of p: found. With apply it plays the found script on s.
+// a of p: found. With apply it plays the found script on s. When not found,
+// stall is the first rule-gap stall a failed line's fork latched (stallOf;
+// StallNone none): the search declares nothing — a caller that keeps searching
+// may still price the play, and the offer walk declares the stall only where
+// it drops it (tapXScriptOffered, scriptOffers, grantCap).
 //
 //go:noinline
-func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
+func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8) {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
@@ -524,20 +528,20 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	// for an activation: no gap of this search activates a grant, so none prices it
 	t.g.noGrant = true
 	if !rs.settle(k, t, false) || rs.n == 0 {
-		if rs.stall != 0 {
-			// every line failed and one ran into a rule gap the kernel stalls by
-			// name: declare it, not "no payment" (gorge asks the order the
-			// kernel cannot model; the play would be offered only its mana pays
-			// it). A found path is not this: tapXPlay replays it on s, and a
-			// stall on it latches there of its own (filtSearch's fs.spill).
-			s.capFull(rs.stall)
-		}
-		return false
+		// not found. A line that ran into a rule gap the kernel stalls by name
+		// (gorge asks the order the kernel cannot model; the play would be
+		// offered only its mana pays it) is reported to the caller, never
+		// declared here: the callers keep searching (tapXScriptOffered's
+		// fall-through beside the grants, grantCap's grantSearch) and may still
+		// price the play, and a budget-stopped search leaves later lines
+		// untried. A found path is not this: tapXPlay replays it on s, and a
+		// stall on it latches there of its own (filtSearch's fs.spill).
+		return false, rs.stall
 	}
 	if apply {
 		s.tapXPlay(k, p, rs.path[:rs.n])
 	}
-	return true
+	return true, 0
 }
 
 // tapXNext runs t to p's next decision, passing for the other player while a
@@ -757,10 +761,11 @@ func (rs *tapXSearch) tick() bool {
 	return true
 }
 
-// stallOf records the stall a failed line's fork latched (capFull) while the
-// line ran, the first one, so tapXScript declares it on the real state instead
-// of dropping the play as unpayable: the fork cannot go on (its next stepGen
-// ends the game), but the play could have been payable along it.
+// stallOf records the first stall a failed line's fork latched (capFull) while
+// the line ran, so the offer walk declares it on the real state where it drops
+// the play instead of reporting it unpayable: the fork cannot go on (its next
+// stepGen ends the game), but the play could have been payable along it, and a
+// caller that keeps searching may still price it.
 func (rs *tapXSearch) stallOf(c *State) {
 	if rs.stall == 0 {
 		rs.stall = c.g.stalled
