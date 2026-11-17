@@ -56,6 +56,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"control_static_probe.go": {false, "runtime query MayCarryControlStatic over compiled faces"},
 	"alone_keyword.go":        {true, "CR 506.5 alone-sentence keyword heads canonicalised during compile"},
 	"counter_keyword.go":      {true, "keyword-counter table reached from compile"},
+	"daytime.go":              {false, "runtime DayTime$ word codes (DayTimeOf); nothing compiled reads them"},
 	"doc.go":                  {false, "package documentation only"},
 	"equal.go":                {false, "typed deep equality for engine memo verification; runtime only"},
 	"face.go":                 {true, "Face derive (mana cost, CMC, word sets) runs during compile"},
