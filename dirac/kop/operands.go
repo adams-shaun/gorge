@@ -653,6 +653,11 @@ const (
 	PeekMayReveal             // the library's owner may reveal the top card if it matches F (RevealOptional$ + RevealValid$ + RememberRevealed$): ask yes/no, a yes remembers it
 )
 
+// RepeatPlain is OpRepeatEach's C bit for the plain per-card loop
+// (RepeatEach over cards without ChangeZoneTable$ True; gorge effRepeatEach
+// with zoneTable false): the loop opens no zone batch and no entry hold.
+const RepeatPlain = 1
+
 // OpGainControl riders (B.N).
 const (
 	GcUntap    = 1 << iota // untap it (Untap$ True; a stun counter is removed instead)
