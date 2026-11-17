@@ -261,7 +261,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if potential {
 			var pot avail
 			other := payDesc{class: pdOther}
-			s.availPotentialPay(k, p, &pot, &other)
+			s.availPotentialFor(k, p, &pot, &other, false)
 			if !pot.affords(cost, pipMaskOf(cost), 0) {
 				return false, held
 			}
@@ -309,6 +309,10 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
 				s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, &held)
+				continue
+			}
+			if s.anyDifferentAt(k, sl) {
+				s.windowAnyDifferentTap(k, p, sl, cost, useful, clamp, noOwed)
 				continue
 			}
 			if s.windowGapAnyColour(k, p, sl, cost, useful, clamp, noOwed) {
@@ -1069,10 +1073,6 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 // restricted source's mana beside it (State.rb, which the cost cannot spend).
 // held stays empty: the restricted mana never enters the pool.
 func (s *State) tapWindowGap(k *prep, p uint8, sl Slot, held *[kop.NumManaKinds]uint8) {
-	if s.anyDifferentAt(k, sl) {
-		s.windowAnyDifferentTap(k, sl) // Firemind Vessel's tap makes no mana (mana_anydifferent.go)
-		return
-	}
 	var into [kop.NumManaKinds]uint8
 	s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &into)
 }
@@ -1864,6 +1864,14 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // ability) its counters and mana, the ask's colour (ctrChainTap).
 func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) {
 	if ca.has(sl) {
+		if s.anyDifferentAt(k, sl) {
+			// an AnyDifferent source: c is a rank among its distinct-colour
+			// answers (anyDifferentAnswers), mapped to the odometer answer
+			n := max(int(s.anyDifferentAbilityAt(k, sl).ManaN), 1)
+			need := s.playNeed(k, a)
+			s.anyDifferentTap(k, p, sl, anyDifferentRank(n, &need, c))
+			return
+		}
 		s.caChainTap(k, p, a, sl, c) // a Combo Any source's colour ask (mana_comboany.go)
 		return
 	}
@@ -2102,7 +2110,13 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
 			case ca.has(order[j]):
-				nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
+				if s.anyDifferentAt(k, order[j]) {
+					// an AnyDifferent source's distinct-colour answers, not the
+					// Combo Any amount caAmount reads (mana_distinctcolours.go)
+					nch = uint8(anyDifferentAnswers(max(int(s.anyDifferentAbilityAt(k, order[j]).ManaN), 1)))
+				} else {
+					nch = uint8(caAnswerCount(s.caAmount(k, order[j]))) // the colour ask's answers (mana_comboany.go)
+				}
 			}
 			if path[j]+1 < nch {
 				path[j]++

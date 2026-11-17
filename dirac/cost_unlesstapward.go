@@ -100,7 +100,7 @@ func (s *State) applyWardManaLife(k *prep, a Action) {
 	n, l := wardML(r.e.trigAmt)
 	p := r.e.trigPl
 	c := kop.ManaCost{Generic: uint8(n)}
-	if a.Mode() == 1 && int(s.pl[p].life) >= l && (k.gen == nil || s.affordsFor(k, p, &c) || s.windowAffords(k, p, &c)) {
+	if a.Mode() == 1 && int(s.pl[p].life) >= l && (k.gen == nil || s.affordsFor(k, p, &c) || s.windowAffords(k, p, &c) || s.anyDifferentOpen(k, p)) {
 		if _, short := s.payWindow(k, p, &c, false); short {
 			if idx >= 0 {
 				s.wardCounterAt(k, idx) // the colours taken left the mana unpaid, so the life is not
