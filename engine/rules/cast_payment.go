@@ -382,6 +382,12 @@ func hasRemainingManaComponent(c Cost) bool {
 // payColor / payLife / payGeneric when every pip is settled.
 func (e *Engine) manaAsk() bool {
 	pc := e.cast
+	// A PayLifeInsteadOf:B grant makes each {B} a per-pip choice (CR 601.2h):
+	// before the first pip is announced the plain {B} pips become {B/P}.
+	if pc != nil && pc.PayIdx == 0 && pc.cost.Colored[state.ManaIndex('B')] > 0 &&
+		asEval(e).PayLifeInsteadOfB(pc.player) {
+		pc.cost = pay.AnnounceGrantedBlackPips(pc.cost)
+	}
 	if pc == nil || pc.PayIdx >= pc.cost.AnnPipCount() {
 		return false
 	}
