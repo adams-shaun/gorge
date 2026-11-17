@@ -54,10 +54,17 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
 			s.restrAvailAdd(p, m, &av) // floating restricted mana a non-spell payment may spend (CR 106.6; gorge AvailableFor)
 		}
-		// a restricted source whose restriction admits a non-spell payment (a
-		// Powerstone's {C}, CR 106.6) funds an unless cost too: gorge's
-		// PurposeOther descriptor admits it (restrSrcAffords asks only once av alone fails)
-		return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
+		if ok := av.affords(&c, pipMaskOf(&c), 0); ok {
+			return true
+		}
+		// A restricted source whose spend restriction admits a non-spell
+		// payment (the Powerstone's CantCastNonArtifactSpells) funds an
+		// unless, ward or trigger cost too: gorge's unless window lists the
+		// source (pay.UnlessRestrictionAdmitsOther, CR 106.6 -- the
+		// restriction bars casting a nonartifact spell, never the tax) and
+		// its payment window taps the source (payWindow), so the gate must
+		// count it or the ask offers decline only where gorge offers pay.
+		return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
 	case kop.PayDiscardHand:

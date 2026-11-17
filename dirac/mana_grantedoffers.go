@@ -1032,7 +1032,13 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 	g.sacx[n] = am.has(sl) && ng == 0 // a holder keeps the grant side (mana_grantsacx.go)
 	if ng > 0 {
 		g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
-		g.each[n], g.wide[n], g.tdef[n], g.ctr[n], g.store[n] = false, false, false, false, false
+		// A rider gap beside its grants (Rain of Filth's sacrifice mana on the
+		// rider land): its own production is no planner unit (availGrant counts
+		// the grant alone), so the search taps the rider beside the grants --
+		// first the rider step (gapBranch), then the grants' (visit), never
+		// both taps of one source (CR 605.1a).
+		g.tdef[n] = xm.has(sl) && !fm.has(sl) && !tm.has(sl)
+		g.each[n], g.wide[n], g.ctr[n], g.store[n] = false, false, false, false
 		return
 	}
 	g.dual[n] = (!tm.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && s.ownManaUsable(g.k, sl)
@@ -1126,6 +1132,13 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		return g.eachBranch(t, i, sl), true // its chosen colour, or its fee-paid colours (mana_granteach.go)
 	case g.def[i]:
 		return g.deferBranch(t, i, sl), true // its plain {R} (mana_grantdeferred.go)
+	case g.tdef[i] && g.ng[i] > 0:
+		// its rider step beside the grants (gapFlags): the step before the
+		// grants' own; failing it leaves the grant side to visit
+		if g.tapsDeferBranch(t, i, sl) {
+			return true, true
+		}
+		return false, false
 	case g.tdef[i]:
 		return g.tapsDeferBranch(t, i, sl), true // its rider or deferred tap (mana_granttapsdefer.go)
 	case g.store[i]:
