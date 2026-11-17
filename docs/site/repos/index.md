@@ -187,24 +187,29 @@ The repositories land work the same way, except where step 2 says otherwise:
 
 ```mermaid
 flowchart LR
-  pr["your branch<br/>or fork"] -->|"pull request,<br/>ci green"| develop["develop"]
-  develop -->|"promote PR,<br/>full CI gate"| main["main"]
+  pr["your branch<br/>or fork"] -->|"pull request:<br/>fast + lint green"| mq["merge queue"]
+  mq -->|"batch: full suite,<br/>ci-ok"| main["main"]
   main -->|"docs.yml"| site["this site"]
 ```
 
-1. Changes land on **`develop`**, through a pull request whose `ci` workflow
-   (lint, a sharded test run with the corpus fetched, the example agents and the
-   [wire matrix](../architecture/wires.md)) is green.
-2. Work reaches `main` through a promote pull request. In gorge the maintainers
-   stage landed changes and, every few changes, push a snapshot as a
-   `promote/land-<stamp>` branch and open a pull request to `main`. Its CI is
-   the full gate: the six test shards, the whole `dirac/oracle` in ten parts and
-   the wire matrix. The newest green one merges, older open ones close as
-   superseded, and `develop` then moves to the merged snapshot. gorge-compliance
-   snapshots `develop` to a `promote/develop-<stamp>` branch instead; it merges
-   when its checks are green.
-3. Merges use **a merge commit, not a squash**, so
-   `develop` and `main` keep sharing history. Nothing pushes `main` directly.
+1. Open pull requests against **`main`**, branching from `origin/main`
+   (`git worktree add ../gorge-myfix -b myfix origin/main`); `make pr` opens the
+   PR against origin's default branch, `main`. Mergify queues every non-draft PR
+   (no label, no approval) once its `fast` and `lint` checks pass. `fast` is
+   `scripts/ci-fast.sh`: the packages the diff touches, every package whose tests
+   import them, and the named test groups, run with `-short`. Mergify batches up
+   to 10 queued PRs on a `mergify/merge-queue/*` branch, where CI runs the full
+   suite once per batch: the six test shards plus `TestHeads`, `examples`,
+   `wire-matrix` and `dirac-slices` (and `browser`, which is not part of `ci-ok`).
+   The batch merges when `ci-ok` is green there; a red batch is split. A fix for
+   a red `main` goes on a `hotfix/*` branch (or carries the `hotfix` label); it is
+   batched first and may interrupt a running batch. The whole `dirac/oracle` runs
+   every 6 hours on `main` and on demand, never on a pull request or a batch.
+2. gorge-compliance still lands work on `develop` and snapshots it to a
+   `promote/develop-<stamp>` pull request to `main`; it merges when its checks
+   are green.
+3. Merges use **a merge commit, not a squash**, in both repositories, so
+   branches and `main` keep sharing history. Nothing pushes `main` directly.
 4. Pushes to `main` publish this site (`docs.yml`) and the card-coverage
    tables (`coverage.yml`, as a workflow artifact).
 
@@ -217,8 +222,7 @@ gorge first:
 sequenceDiagram
   participant G as gorge
   participant C as gorge-compliance
-  G->>G: PR to develop (keep the old API working if you can)
-  G->>G: develop → main
+  G->>G: PR to main, merged by the queue (keep the old API working if you can)
   C->>C: PR: GORGE_PIN + go.mod to the new commit
   C->>C: rerun audits, update targets, adopt the new API
   Note over G,C: the private companion bumps its own pin the same way
