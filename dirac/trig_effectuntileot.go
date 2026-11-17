@@ -70,9 +70,6 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			e := &k.t.Emblems[s.embIdx(pp, i)-1]
-			if !e.UntilEOT {
-				continue // a permanent emblem's combat damage trigger is not this code's (unverified against gorge)
-			}
 			// A player-captured emblem scopes "that player": the recipient must
 			// be the captured seat + 1. An object capture names the damage
 			// source, or, on the recipient-captured shape (ValidTarget$
