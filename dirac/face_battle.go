@@ -9,8 +9,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - the protector is perm.chosen = protChosen|seat (CR 310.10: in two
 //     players the sole opponent, gorge applySiegeProtector poses no ask);
 //   - an attacked battle is perm.atk = the battle's Obj, as a planeswalker;
-//   - the defeat queue is a mayPlay record with until = kop.DurDefeated
-//     (obj/ver = the exiled battle, ctrl = its owner).
+//   - the defeat is CR 310.12b's intrinsic Siege trigger: when the last
+//     defense counter goes, a kernel-native abSiegeDefeat trigger (the
+//     abMadness shape, no CardDef ability) is queued; as it resolves it exiles
+//     the Siege and asks its controller the transformed free cast
+//     (raDefeatCast, ChDefeatCast; gorge askSiegeDefeat).
 //
 // Everything is behind prep.anyBattle or merged into a mask a hot path
 // already tests.
@@ -63,33 +66,15 @@ var DebugBattleOwnProtector bool
 // counters (mutation testing only: the lockstep must catch it).
 var DebugBattleMarkDamage bool
 
-// DebugBattleNoDefeatAsk leaves a defeated battle in exile without queueing
-// its owner's transformed cast (mutation testing only).
+// DebugBattleNoDefeatAsk leaves a defeated battle in exile without asking its
+// controller the transformed cast (mutation testing only).
 var DebugBattleNoDefeatAsk bool
 
-// defeatPosed marks a DurDefeated record whose ask is on screen. It shares
-// mayPlay.kind with the play-permission riders, which no DurDefeated record
-// carries (ownWalkerRecord keeps it off every generic play surface).
-const defeatPosed uint8 = 1
-
-// defeatDeferred marks a record queued by an SBA that ran inside a step's
-// action or resolution (combat damage, a replacement tail, cleanup): gorge's
-// startDefeatedCast already ran at the top of that step, so the ask waits for
-// the next step. A record queued by the priority check itself is not marked.
-const defeatDeferred uint8 = 1 << 1
-
-// bflDefeatCast marks the build of a CR 310.11 transformed cast. The ask is
-// answered while the OTHER player holds priority (the owner already passed),
-// so gorge's stack push leaves that holder one pass from resolution; the
-// kernel's finishBuild would otherwise reset passes to 0 and ask the owner
-// again. Bit 8: bit 7 is bflTre since Thousand Moons Smithy (the two
-// shared bit 7 and a Treasure-paid cast took the defeat-cast path).
-const bflDefeatCast uint16 = 1 << 8
-
-// sfDefeatPass marks a CR 310.11 cast whose owner had already passed (the
-// other player held priority at the ask): finishBuild starts the pass count
-// at 1 so that holder's next pass resolves. stackEntry.flags bit 3 is free.
-const sfDefeatPass uint8 = 1 << 3
+// abSiegeDefeat marks the kernel-native Siege defeat trigger (CR 310.12b; no
+// CardDef ability): its source and trigger object are the Siege, which
+// resolveSiegeDefeat exiles. abCascade (cast.go) sits just below, so every ab
+// at or above it stays kernel-native.
+const abSiegeDefeat uint8 = 248
 
 // enterBattle gives the battle at sl its entry state after enterGen (which
 // resets perm.chosen): the protector (CR 310.10, the sole opponent in two
@@ -215,155 +200,140 @@ func (s *State) dmgCounters(k *prep, sl Slot, p *perm, n int) {
 			s.touchSl(sl)
 			return
 		}
+		had := p.ctrN(s, int(kop.CtrDefense))
 		p.subCtrN(s, int(kop.CtrDefense), n)
+		if had > 0 && n >= had {
+			s.queueSiegeDefeat(k, sl) // CR 310.12b: the last defense counter went
+		}
 		return
 	}
 	p.subCtrN(s, int(kop.CtrLoyalty), n)
 }
 
-// defeatedBattles is the set of face-up battles with no defense (gorge
-// battleZeroDefense: a printed-face Battle at 0 defense).
+// defeatedBattles is the set of face-up battles with no defense that the
+// state-based action puts into the graveyard (CR 704.5v; gorge
+// battleZeroDefense): a battle that is the source of a defeat trigger that has
+// not left the stack stays (siegePending).
 func (s *State) defeatedBattles(k *prep) (m slotMask) {
 	for q := s.occ; q.any(); q = q.rest() {
 		sl := q.first()
-		if s.typesAt(k, sl)&kop.TBattle != 0 && s.perms[sl].ctrN(s, int(kop.CtrDefense)) == 0 {
+		if s.typesAt(k, sl)&kop.TBattle != 0 && s.perms[sl].ctrN(s, int(kop.CtrDefense)) == 0 && !s.siegePending(s.perms[sl].obj) {
 			m = m.with(sl)
 		}
 	}
 	return m
 }
 
-// defeatQueue records the defeated battle o, just exiled, for its owner's
-// transformed-cast ask (CR 310.11; gorge defeatedCasts): only a 2-face
-// transforming card whose front face is the battle (gorge emit.go).
-func (s *State) defeatQueue(k *prep, o Obj) {
-	if DebugBattleNoDefeatAsk {
+// siegePending reports whether Siege o is the source of a defeat trigger that
+// has triggered and not yet left the stack: queued or on it (gorge
+// siegeDefeatPending keys on the object alone).
+func (s *State) siegePending(o Obj) bool {
+	for i := 0; i < int(s.npend); i++ {
+		if pt := &s.pend[i]; pt.ab == abSiegeDefeat && pt.obj == o {
+			return true
+		}
+	}
+	for i := 0; i < int(s.sp); i++ {
+		if e := &s.stack[i]; e.kind != seSpell && e.ab == abSiegeDefeat && e.obj == o {
+			return true
+		}
+	}
+	return false
+}
+
+// queueSiegeDefeat queues the defeat trigger of the Siege at sl, whose last
+// defense counter was just removed (gorge queueSiegeDefeat): only a 2-face
+// transforming card whose front face is the battle.
+func (s *State) queueSiegeDefeat(k *prep, sl Slot) {
+	p := &s.perms[sl]
+	cd := &k.t.Cards[p.card]
+	if cd.FaceMode != kop.FaceTransform || len(cd.Faces) != 2 || cd.Faces[0] != p.card {
 		return
 	}
-	ob := &s.objs[o]
+	s.enqueue(p.obj, s.objs[p.obj].ver, p.card, abSiegeDefeat, p.ctrl, p.obj, p.ctrl, 0)
+}
+
+// resolveCastTrigger resolves the kernel-native keyword triggers whose
+// resolution asks a cast: Madness (kw_madness.go), Miracle (kw_miracle.go) and
+// the Siege defeat. false: ab is none of them.
+func (s *State) resolveCastTrigger(k *prep, ab uint8) bool {
+	switch ab {
+	case abMadness:
+		s.resolveMadness(k)
+	case abMiracle:
+		s.resolveMiracle(k)
+	case abSiegeDefeat:
+		s.resolveSiegeDefeat(k)
+	default:
+		return false
+	}
+	return true
+}
+
+// resolveSiegeDefeat resolves the defeat trigger (gorge askSiegeDefeat): the
+// Siege is exiled, then its controller is asked whether to cast it
+// transformed without paying its mana cost. A Siege that is no longer the
+// permanent that triggered it does nothing; an exiled one whose cast a static
+// forbids, or whose back face has no legal target, is not offered.
+//
+//go:noinline
+func (s *State) resolveSiegeDefeat(k *prep) {
+	e := &s.res.e
+	ob := &s.objs[e.obj]
+	if ob.zone != kop.ZoneBattlefield || ob.ver != e.srcVer {
+		s.finishResolve(k, false)
+		return
+	}
+	s.leave(k, ob.slot, kop.ZoneExile, false)
 	cd := &k.t.Cards[ob.card]
-	if ob.zone != kop.ZoneExile || cd.FaceMode != kop.FaceTransform || len(cd.Faces) != 2 || cd.Faces[0] != ob.card {
+	if DebugBattleNoDefeatAsk || ob.zone != kop.ZoneExile || cd.FaceMode != kop.FaceTransform || len(cd.Faces) != 2 || cd.Faces[0] != ob.card {
+		s.finishResolve(k, false)
 		return
 	}
-	if s.mayFull() {
-		s.capFull(StallMayPlay)
+	if k.gen.anyCantCast && s.castForbiddenFree(k, e.ctrl, cd.Faces[0], e.obj) {
+		s.finishResolve(k, false) // gorge castRestrictedFree reads it front face up
 		return
 	}
-	kind := uint8(0)
-	if s.ctl != ctlPriority && s.ctl != ctlResolve {
-		// queued by an SBA inside a step action (combat damage, cleanup):
-		// gorge's step-head startDefeatedCast already ran, so this waits for
-		// the next step's head, after the priority round. A defeat queued by
-		// a resolution's SBA tail is asked before this step's priority.
-		kind = defeatDeferred
+	if !s.spellTargetsFeasible(k, cd.Faces[1], e.ctrl) {
+		s.finishResolve(k, false) // gorge asks only when the back face's targets exist
+		return
 	}
-	*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: ob.ver, ctrl: ob.owner(), until: kop.DurDefeated, kind: kind}
-	s.g.nmay++
+	s.res.ask, s.res.askP = raDefeatCast, e.ctrl
+	s.ctl = ctlResolve
 }
 
-// wakeDefeat clears the deferred mark on every queued record: gorge asks the
-// whole batch at one step head (or after a resolution), not one per step.
-func (s *State) wakeDefeat() {
-	for i := 0; i < int(s.g.nmay); i++ {
-		if s.mayAt(i).until == kop.DurDefeated {
-			s.mayAt(i).kind &^= defeatDeferred
-		}
-	}
+// defeatCastOptions fills the transformed-cast ask (gorge's KChoose
+// defeat_cast_yes / defeat_cast_no).
+//
+//kmanifest:askopts raDefeatCast
+func (s *State) defeatCastOptions(k *prep, d *Decision) {
+	d.Sub = ChDefeatCast
+	d.add(MakeAction(AkChoose, TCode(s.res.e.obj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(s.res.e.obj), 0, 0))
 }
 
-// firstDefeat is the index of the first DurDefeated record (gorge's
-// defeatedCasts queue order: records are appended in exile order), or -1.
-func (s *State) firstDefeat() int {
-	for i := 0; i < int(s.g.nmay); i++ {
-		if s.mayAt(i).until == kop.DurDefeated {
-			return i
-		}
+// defeatCastApply applies the ask's answer (gorge tapeSiegeDefeatAnswer): the
+// trigger leaves the stack, and a yes flips the exiled card to its back face
+// and casts it free (CR 310.12b/712), bypassing the timing gate, with the
+// priority holder the resolution left getting priority after (CR 117.3b).
+//
+//kmanifest:askapply raDefeatCast
+func (s *State) defeatCastApply(k *prep, a Action) {
+	s.res.ask = raNone
+	o, p := s.res.e.obj, s.res.e.ctrl
+	s.finishResolve(k, false)
+	if a.Mode() == 0 || s.objs[o].zone != kop.ZoneExile {
+		return // defeat_cast_no: it stays in exile, front face up
 	}
-	return -1
+	holder := s.prio
+	s.prio = p
+	s.turnFaceCast(k, o, 1)
+	s.beginCast(k, o, castFace|castFree, 0)
+	s.prio = holder
 }
 
 // dropMay removes may record i, keeping the queue order.
 func (s *State) dropMay(i int) {
 	s.mayShiftDown(i)
 	s.g.nmay--
-}
-
-// defeatAsk poses the owner's CR 310.11 transformed-cast ask for the first
-// queued defeated battle (gorge startDefeatedCast, turn.go): it skips stale
-// records and cards a static forbids or whose back face has no legal target.
-// It returns false when no ask is due, leaving control to the caller.
-func (s *State) defeatAsk(k *prep, d *Decision) bool {
-	for {
-		i := s.firstDefeat()
-		if i < 0 {
-			return false
-		}
-		r := *s.mayAt(i)
-		if r.kind&defeatDeferred != 0 {
-			return false // queued during this step: the next step's head asks
-		}
-		ob := &s.objs[r.obj]
-		cd := &k.t.Cards[ob.card]
-		if ob.zone != kop.ZoneExile || ob.ver != r.ver || cd.FaceMode != kop.FaceTransform || len(cd.Faces) != 2 || cd.Faces[0] != ob.card {
-			s.dropMay(i) // it changed zones or faces since (CR 400.7): no ask
-			continue
-		}
-		if k.gen.anyCantCast && s.castForbiddenFree(k, r.ctrl, cd.Faces[0], r.obj) {
-			s.dropMay(i) // gorge castRestrictedFree reads it front face up
-			continue
-		}
-		if !s.spellTargetsFeasible(k, cd.Faces[1], r.ctrl) {
-			s.dropMay(i) // gorge asks only when the back face's targets exist
-			continue
-		}
-		s.mayAt(i).kind = defeatPosed
-		s.g.ctlRet = s.ctl
-		s.ctl = ctlGenAsk
-		return s.genAskOptions(k, d)
-	}
-}
-
-// defeatPosedOptions fills the ask for the posed DurDefeated record.
-func (s *State) defeatPosedOptions(d *Decision) bool {
-	i := s.firstDefeat()
-	if i < 0 || s.mayAt(i).kind != defeatPosed {
-		return false
-	}
-	r := *s.mayAt(i)
-	d.Kind, d.Sub, d.Player = DkChoose, ChDefeatCast, r.ctrl
-	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 1))
-	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 0))
-	return true
-}
-
-// applyDefeat applies the posed ask's answer (gorge defeatedCastAnswer): the
-// record is consumed either way; yes flips the card to its back face and
-// casts it free (CR 310.11/712), bypassing the timing gate.
-func (s *State) applyDefeat(k *prep, a Action) bool {
-	i := s.firstDefeat()
-	if i < 0 || s.mayAt(i).kind != defeatPosed {
-		return false
-	}
-	r := *s.mayAt(i)
-	s.dropMay(i)
-	s.ctl = s.g.ctlRet
-	if a.Mode() == 0 {
-		return true // defeat_cast_no: it stays in exile, front face up
-	}
-	holder := s.prio
-	s.prio = r.ctrl
-	s.turnFaceCast(k, r.obj, 1)
-	s.beginCast(k, r.obj, castFace|castFree, 0)
-	s.bld().bfl |= bflDefeatCast
-	// The pass count at the ask is the count after the cast: when the other
-	// player had already passed (s.passes != 0), the holder's next pass
-	// resolves; when it was 0, the cast resets the count and both must pass.
-	if s.passes != 0 {
-		s.bld().e.flags |= sfDefeatPass
-	}
-	// The build still belongs to the caster (targets, payment); the priority
-	// holder at the ask gets priority back when the cast completes
-	// (finishBuild), as gorge's startDefeatedCast does.
-	s.g.holdPrio = holder
-	return true
 }

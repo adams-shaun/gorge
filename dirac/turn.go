@@ -689,8 +689,9 @@ func (s *State) sba(k *prep) bool {
 		wld = wld.and(gy) // a parked casualty left gy (exileOrderAsk)
 		var bat slotMask
 		if k.gen != nil && k.gen.anyBattle {
-			// CR 704.5v as gorge models it (battleZeroDefense): exiled in a
-			// batch of its own after the walkers (face_battle.go)
+			// CR 704.5v (gorge battleZeroDefense): binned in a batch of its
+			// own after the walkers, unless its defeat trigger is pending
+			// (face_battle.go)
 			bat = s.defeatedBattles(k)
 			gy = gy.or(bat)
 		}
@@ -784,7 +785,7 @@ func (s *State) sba(k *prep) bool {
 		// gorge's order (rules/sba.go): the creature casualties (lethal
 		// damage, zero toughness), then the world rule's losers, then
 		// planeswalkers with no loyalty, then
-		// defeated battles (to exile), then unattached Auras; within each, each seat's battlefield
+		// defeated battles (to the graveyard), then unattached Auras; within each, each seat's battlefield
 		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
 		n := 0
@@ -800,11 +801,7 @@ func (s *State) sba(k *prep) bool {
 		}
 		var zs [MaxPerm]kop.Zone
 		for i := 0; i < n; i++ {
-			if bat.has(order[i]) {
-				zs[i] = kop.ZoneExile // defeated, not destroyed: no dieZone
-			} else {
-				zs[i] = s.dieZone(k, order[i])
-			}
+			zs[i] = s.dieZone(k, order[i])
 		}
 		// the creature casualties (the order's first nd) are one zone batch
 		// (trig_casualtybatch.go); the rest stay outside it
@@ -823,11 +820,7 @@ func (s *State) sba(k *prep) bool {
 		}
 		cb.batchEnd(s)
 		for i := 0; i < n; i++ {
-			o := s.perms[order[i]].obj
 			s.removePerm(k, order[i], zs[i], false)
-			if bat.has(order[i]) {
-				s.defeatQueue(k, o) // CR 310.11 (face_battle.go)
-			}
 			if i+1 == nd {
 				cb.holdEnd(s, k)
 			}

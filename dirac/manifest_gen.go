@@ -7,6 +7,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ask (dirac/manifest/ask/raDredge)
 const raDredge uint8 = 146
 
+// ask (dirac/manifest/ask/raDefeatCast)
+//
+// the transformed free cast ask of a resolving Siege defeat trigger (CR 310.12b, ChDefeatCast; face_battle.go resolveSiegeDefeat)
+const raDefeatCast uint8 = 147
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -692,6 +697,9 @@ func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	switch s.res.ask {
+	case raDefeatCast:
+		s.defeatCastOptions(k, d) // face_battle.go
+		return true
 	case raDredge:
 		s.dredgeAskOptions(k, d) // kw_dredge.go
 		return true
@@ -705,6 +713,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 //go:noinline
 func (s *State) applyAskGen(k *prep, a Action) bool {
 	switch s.res.ask {
+	case raDefeatCast:
+		s.defeatCastApply(k, a) // face_battle.go
+		return true
 	case raDredge:
 		s.dredgeAskAnswer(k, a) // kw_dredge.go
 		return true
