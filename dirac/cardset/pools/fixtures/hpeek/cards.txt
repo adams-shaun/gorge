@@ -1,6 +1,10 @@
-# Harsh Deceiver's empty-library peek activation (dirac/oracle/mbc_harsh_deceiver_peek_activation_lockstep_test.go)
+# Harsh Deceiver's peek activation paid through a land a destroy-self "when
+# enchanted permanent becomes tapped" watcher (Brink of Disaster) sees
+# (dirac/oracle/mbc_harsh_deceiver_peek_activation_lockstep_test.go)
 Harsh Deceiver
 Plains
 Grizzly Bears
 Forest
 Codsworth, Handy Helper
+Brink of Disaster
+Scrubland

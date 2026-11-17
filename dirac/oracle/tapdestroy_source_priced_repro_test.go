@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// pair 488 of the tail-27 sweep (autopay surface, seed 6042300421767332857)
+// pair 527 of the tail-27 sweep (autopay surface, seed 6042300421767332857)
 // parted at decision 190, p1's upkeep: gorge offered [pass] while the kernel
 // offered [pass cast(#76{Tendrils of Corruption},-,0)]. p1's payment for the
 // {3}{B} instant is four untapped sources (Plains, Swamp, Contested Cliffs,
