@@ -17,6 +17,13 @@ const (
 	// Duration$ AsLongAsInPlay or UntilHostLeavesPlay: Somnophore, Tidebinder
 	// Mage, Origin of Iron Man). It ends only when the source or Obj leaves.
 	SkipUntapLockHostStep = 5
+
+	// SkipUntapLockUntapStep is the untap-step lock of SkipUntapLockHostStep that
+	// lasts only for as long as the source remains tapped (gorge Duration$
+	// UntilUntaps: Amber Prison, Ice Floe, Rust Tick). The source's first untap
+	// ends it for good, as does its departure; a retapped source never revives
+	// it (CR 611.2b).
+	SkipUntapLockUntapStep = 6
 )
 
 // SkipUntapPlayerCL is the OpSkipUntap C value for the player Obj's creatures
