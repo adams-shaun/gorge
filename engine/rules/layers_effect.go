@@ -830,6 +830,11 @@ func (e *Engine) expireUntilUntaps(host state.ObjID) {
 // re-evaluated per build) is not enough. Called after a ControlChange of src.
 // Like expireUntilUntaps it is an in-place rewrite of e.continuous that emits
 // no event; replay rebuilds it by re-executing the same registrations.
+//
+// Called after a PhaseOut too: a host-anchored (DurationSource) grant ends when
+// its host has phased out and does not return when it phases back in (Forge
+// ends "for as long as you control CARDNAME" on the host's phase-out; Aegis
+// Angel's pump). Other registrations keep their controller-only rule.
 func (e *Engine) expireAsLongAsControl(src state.ObjID) {
 	o := e.G.Obj(src)
 	if o == nil {
@@ -838,33 +843,8 @@ func (e *Engine) expireAsLongAsControl(src state.ObjID) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
-		if (ce.Source == src || ce.DurationSource == src) && ce.Controller != o.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
-			changed = true
-			continue
-		}
-		kept = append(kept, ce)
-	}
-	if !changed {
-		return
-	}
-	e.continuous = kept
-	e.continuousChanged()
-}
-
-// expireAsLongAsControlPhasedOut drops every host-anchored (DurationSource)
-// Duration$ AsLongAsControl grant whose host is src once src has phased out:
-// Forge ends "for as long as you control CARDNAME" on the host's phase-out
-// command, and the effect does not return when it phases back in (Aegis
-// Angel's pump). Called after a PhaseOut that phased src out; like
-// expireAsLongAsControl it emits no event.
-func (e *Engine) expireAsLongAsControlPhasedOut(src state.ObjID) {
-	if o := e.G.Obj(src); o == nil || !o.PhasedOut {
-		return
-	}
-	kept := e.continuous[:0]
-	changed := false
-	for _, ce := range e.continuous {
-		if ce.DurationSource == src && effects.IsAsLongAsControlDuration(ce.Duration) {
+		hostGone := ce.Controller != o.Controller || ce.DurationSource == src && o.PhasedOut
+		if (ce.Source == src || ce.DurationSource == src) && hostGone && effects.IsAsLongAsControlDuration(ce.Duration) {
 			changed = true
 			continue
 		}
