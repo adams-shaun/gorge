@@ -15,7 +15,7 @@ import (
 // the entering card's own printed face.
 func entryCloneBody(m replMatch) bool {
 	return m.repl != nil && m.repl.With != nil &&
-		m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With.API == "Clone"
+		m.repl.IsETBReplacementKeyword() && effects.IsCloneAPI(m.repl.With)
 }
 
 // applyInheritedEntryReplacements runs the as-enters replacements that the
@@ -41,14 +41,14 @@ func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev e
 	for i := range f.Repls {
 		r := &f.Repls[i]
 		if !replacementEventNameMatches(r.Event, "Moved") ||
-			r.ParamStr(cards.PKLayer) != "Copy" || r.With == nil {
+			!r.IsCopyLayer() || r.With == nil {
 			continue
 		}
 		m := replMatch{id: ev.Obj, face: f, repl: r}
 		if !e.replacementMatches(*r, ev.Obj, ev) {
 			continue
 		}
-		if !rebased && r.With.API == "GenericChoice" {
+		if !rebased && effects.IsGenericChoiceAPI(r.With) {
 			// The copied card's previous application of this SAME as-enters
 			// replacement lives on the copy basis (Primal Plasma's chosen
 			// 1/6 with defender). Re-base the entry onto the printed card the
