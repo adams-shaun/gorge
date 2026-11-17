@@ -2834,14 +2834,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "DestroyRegenerate":
 		rp.Kind = kop.ReplDestroyRegenerate // lower_destroyregen.go
 	case "ExileOnLeave":
-		rp.Kind = kop.ReplExileOnLeave
-		// the filter has no zone gate either way (ZoneBattlefield compiles to
-		// Zone none); C 1 = any zone, read by exileAnyN
-		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+		if err := buildExileOnLeave(cb, r, rp); err != nil {
 			return ka, err
-		}
-		if r.AnyZone {
-			rp.C = 1
 		}
 	case "OnePoison":
 		rp.Kind = kop.ReplOnePoison // lower_delayed.go
@@ -2939,6 +2933,30 @@ func flagsOf(cs string) map[string]string {
 		m[k] = v
 	}
 	return m
+}
+
+// buildExileOnLeave builds a dies-to-exile replacement: the filter has no
+// zone gate either way (ZoneBattlefield compiles to Zone none), C 1 is the
+// any-zone flag read by exileAnyN, and A carries the counter the exiled card
+// gets (kind in the low byte, count above it; dirac/repl_exilectr.go).
+func buildExileOnLeave(cb *cardBuilder, r lRepl, rp *kop.Repl) error {
+	rp.Kind = kop.ReplExileOnLeave
+	f, err := cb.filter(r.F, kop.ZoneBattlefield)
+	if err != nil {
+		return err
+	}
+	rp.Filter = f
+	if r.AnyZone {
+		rp.C = 1
+	}
+	if r.Ctr != "" {
+		k, err := counterKind(r.Ctr)
+		if err != nil {
+			return err
+		}
+		rp.A = int16(k) | int16(r.CtrN)<<8
+	}
+	return nil
 }
 
 // instr lowers one LIR instruction to its kop form: the operands every op

@@ -68,13 +68,17 @@ func ctrKindKw(k uint16) kop.KwMask {
 // sl, a permanent about to leave the battlefield for a graveyard. Each
 // matching source is a separate CR 616.1 replacement: gorge asks the
 // affected player to order two or more of them even when they agree on
-// Exile, and the kernel has no death order ask, so dieZone stalls.
-func (s *State) exileOnLeaveN(k *prep, sl Slot) int {
+// Exile, and the kernel has no death order ask, so dieZone stalls. The
+// second and third results are the counter a matching source leaves on the
+// exiled card (0 when none): dieZone reads them only when one source applies.
+func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8) {
 	g := k.gen
 	if g == nil || g.exileOnLeave == nil || g.anyRepl&rbExileOnLeave == 0 {
-		return 0
+		return 0, 0, 0
 	}
 	n := 0
+	var ctr kop.CounterKind
+	var ctrN uint8
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
 		// a seat that has left the game's effects no longer apply (CR 800.4a):
@@ -86,12 +90,15 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) int {
 		}
 		if s.matchPerm(k, g.exileOnLeave[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
 			n++
+			if kind, amount := exileCounterKind(k.t, s.cardAt(b), g.exileOnLeave[s.cardAt(b)]); kind != 0 {
+				ctr, ctrN = kind, amount
+			}
 		}
 	}
 	if n > 0 && g.anyExileAny && s.isCreature(k, sl) {
 		exileAnyDied() // repl_exileonleave.go
 	}
-	return n
+	return n, ctr, ctrN
 }
 
 // entryCounterSource reports whether the AddCounter replacement sourced at
