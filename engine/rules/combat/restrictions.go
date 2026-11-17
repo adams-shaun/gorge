@@ -525,7 +525,11 @@ func AttackBlocked(b Board, id state.ObjID, defender state.PlayerID, attacked st
 		// layer tables bound (LandSpecCtx binds them for any (you, source) pair), so
 		// "controlsIsland" sees a land that became an Island (Sealock Monster).
 		if spec := strings.TrimSpace(sv.ParamStr(cards.PKUnlessDefender)); spec != "" &&
-			effects.UnlessDefenderHolds(b.Game(), spec, defender, sv.Controller, b.LandSpecCtx(sv.Controller, sv.Source)) {
+			effects.UnlessDefenderHolds(b.Game(), spec, defender, sv.Controller, b.LandSpecCtx(sv.Controller, sv.Source),
+				func(objSpec string, oid state.ObjID) bool {
+					// Layer-aware: a pumped creature's derived power, not its printed one.
+					return b.MatchesSpec(objSpec, oid, sv.Source, sv.Controller, nil, nil, false)
+				}) {
 			continue
 		}
 		spec := sv.ParamStr(cards.PKValidCard)
