@@ -248,7 +248,7 @@ func anyRSteps(need [kop.NumManaKinds]bool, try func(uint8) bool, tick func() bo
 // handled: sl is one of them, found what its branch found.
 func (fs *filtSearch) otherOwnAsk(k *prep, t *State, sl Slot, funded int, try func(otherStep) bool) (found, handled bool) {
 	switch {
-	case k.gen.rs != nil && k.gen.rs.chosenPair && t.chosenPairSrc(k, t.cardAt(sl)):
+	case t.chosenPairGapSrc(k, sl):
 		return fs.chosenPairGap(t, sl, try), true
 	case k.gen.anyDeferred && k.gen.has(t.cardAt(sl), gfDeferred):
 		// a single fixed {R} ability: no ask node (deferBranch)
@@ -558,6 +558,11 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		return false
 	}
 	return try(otherStep{kind: otherCtr, col: -1})
+}
+
+// chosenPairGapSrc: gap sl is a chosen-colour pair source (mana_chosenfilter.go).
+func (s *State) chosenPairGapSrc(k *prep, sl Slot) bool {
+	return k.gen.rs != nil && k.gen.rs.chosenPair && s.chosenPairSrc(k, s.cardAt(sl))
 }
 
 // otherDo plays step st of a gap that is no filter.
