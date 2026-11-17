@@ -148,6 +148,28 @@ func PlanManaUnderRider(c Cost, r PipRider) Cost {
 	return c
 }
 
+// PlanManaUnderRiderPinned is the mana half a PINNED re-plan funds after the
+// folded plan's pool could not prove a coloured pip's payment: the fold
+// prices every pip generic, so the plan may tap a colourless-only source,
+// but "any color" never includes colourless (CR 107.4c) and the offer gate
+// rejects a pool with no coloured unit for a coloured pip. The pin holds the
+// plain coloured pips coloured -- merged on the one concrete colour pin --
+// so the plan must fund them from that colour's units, a coloured unit the
+// grant then lets pay the printed pip; the rider's other work (the
+// hybrid/twobrid/Phyrexian pips it folds, the {C} it keeps) is unchanged.
+// The caller pins under an AnyColor rider only: an AnyType rider lets even
+// colourless mana pay, so there the fold needs no re-plan.
+func PlanManaUnderRiderPinned(c Cost, r PipRider, pin int) Cost {
+	n := int32(0)
+	for i := 0; i+1 < len(c.Colored); i++ {
+		n += c.Colored[i]
+	}
+	c = PlanManaUnderRider(c, r)
+	c.Generic -= n
+	c.Colored[pin] = n
+	return c
+}
+
 func PlanCostDetail(c Cost) string {
 	switch {
 	case c.X != 0 || c.XMin != 0:
