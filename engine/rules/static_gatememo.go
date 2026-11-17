@@ -13,8 +13,9 @@ import (
 // Gate re-check for the staticEffects memo.
 //
 // A staticEffects build that encountered a gate-carrying Continuous static
-// (staticMemoGated: IsPresent$/IsPresent2$/Condition$/CheckSVar$/ClassBand$)
-// used to be refused every re-stamp but a layer-inert one, because a gate is
+// (staticMemoGated: IsPresent$/IsPresent2$/Condition$/CheckSVar$/ClassBand$/
+// TopCardOfLibraryIs$) used to be refused every re-stamp but a layer-inert
+// one, because a gate is
 // a read of arbitrary board state -- a life total, the active player, a
 // battlefield count -- that the static-quiet event kinds (staticQuietKinds)
 // do write. On a board carrying even one such static (a PlayerTurn Condition$
@@ -122,6 +123,12 @@ func (e *Engine) staticGateHolds(sv staticView) bool {
 // staticGateDep classifies a gate's read set (see the constants).
 func (e *Engine) staticGateDep(sv staticView) uint8 {
 	if sv.HasParam(cards.PKIsPresent) || sv.HasParam(cards.PKIsPresent2) || sv.HasParam(cards.PKClassBand) || sv.HasParam(cards.PKPhases) {
+		return staticGateDepAny
+	}
+	// The top card of the controller's library is rewritten by draws,
+	// shuffles and puts-on-top, not by any one field the dependency filter
+	// below tracks; re-check it on every admitted run.
+	if sv.HasParam(cards.PKTopCardOfLibraryIs) {
 		return staticGateDepAny
 	}
 	cond, hasCond := sv.Param(cards.PKCondition)
