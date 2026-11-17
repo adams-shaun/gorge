@@ -807,15 +807,15 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
 	}
 
-	// The live-object tally (state.Game.liveObjs): the shape (Card/Ability)
-	// does not change in a move, so the transition's two ends decide it — an
-	// object that left the tombstone (ZCeased, or the CR 113.7a ability's
-	// exile parking below) is live again, and one that entered either
-	// tombstone stopped being live. Kept in the same fold as o.Zone so a
-	// live game and a log-only replay derive the same count.
-	wasLive := enteredFrom != state.ZCeased && !(o.Card == nil && o.Ability != nil && enteredFrom != state.ZStack)
+	// The live-object tally (state.Game.liveObjs): only a card-shaped
+	// object is on it (AddObject does not count a nil Card, the CR 113.7a
+	// ability mint), so the transition's two zone ends decide the count — an
+	// object that left ZCeased is live again, and one that entered it stopped
+	// being live. Kept in the same fold as o.Zone so a live game and a
+	// log-only replay derive the same count.
+	wasLive := enteredFrom != state.ZCeased && o.Card != nil
 	o.Zone = to
-	isLive := to != state.ZCeased && !ceasedAbility
+	isLive := to != state.ZCeased && o.Card != nil
 	if isLive != wasLive {
 		if isLive {
 			g.NoteLiveObject()

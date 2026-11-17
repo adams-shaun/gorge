@@ -58,7 +58,7 @@ const (
 	// never-false-positive, not tight: the runaway diagnostic still names
 	// the span and the last event, which is where a debugger looks.
 	defaultRunawayEvents = 50000
-	// RunawayBigBoardObjs is the arena population at which a runaway
+	// RunawayBigBoardObjs is the live board population at which a runaway
 	// trip is a board too large to finish, not a stuck resolution: one
 	// combat damage step or token storm over a Krenko, Mob Boss board
 	// (a player who cannot lose, Herald of Eternal Dawn, keeps it going)
@@ -73,29 +73,31 @@ const (
 	// (LoopGuard.MaxObjs). The harnesses re-classify a game that tripped it
 	// through IsVolumeReason, so the string lives here and nowhere else.
 	ObjectCapReason = "object cap"
-	// DefaultMaxObjs is the live-object population the shared harness and
-	// host paths arm LoopGuard.MaxObjs with when the caller set no explicit
+	// DefaultMaxObjs is the live card-object population the shared harness
+	// and host paths arm LoopGuard.MaxObjs with when the caller set no explicit
 	// budget (rules.WithDefaultObjectCap). It is a VOLUME bound, not a
 	// bug detector: measured over 2100 ordinary games (1200 FDN-Limited
 	// pairs, 600 constructed repo-deck pairs, 300 4-seat Commander repo-deck
 	// games, a Krenko probe) the arena's end-of-game high-water (it is monotone,
 	// so end-of-game length IS the high-water) was 554 objects (Commander,
 	// 4 seats); the widest legitimate token board on record is a fuzz game's
-	// 1790 Goblins. 10000 sits ~18x above the measured ordinary
-	// maximum, equals RunawayBigBoardObjs (the same "this is volume, not a
-	// stuck resolution" population the runaway reason names), and
-	// bounds a Krenko, Mob Boss storm well under the GB-scale RSS an
+	// 1790 Goblins. 18000 sits ~32x above the measured ordinary maximum and
+	// still bounds a Krenko, Mob Boss storm well under the GB-scale RSS an
 	// unbounded one reaches (a measured 7.2 GB and climbing at 25127
-	// objects) while an ordinary game never comes within an order of
-	// magnitude of it. The cap is checked against the LIVE population
-	// (state.Game.LiveObjs, the objects that have not ceased to exist),
-	// which events.Apply maintains on the same per-event path: the arena's
-	// length also counts every ceased object, and a long storm game
-	// (thousands of resolved triggers and expired tokens) crosses
-	// DefaultMaxObjs several EVENTS -- often a whole turn -- before its live
-	// population does, aborting games that were one combat step from
-	// winning.
-	DefaultMaxObjs = RunawayBigBoardObjs
+	// objects). The extra 8000 over the historical 10000 is measured on the
+	// hunt's cmdr4 leg: the seed-78391 Scute Swarm storm's persistent board
+	// reaches just over 10000 before the winning combat step (the old
+	// 10000 cap fired on a trigger push with 87 pending triggers still to
+	// resolve into tokens), and a 10000 cap would abort that game one
+	// resolution short. The cap is checked against the persistent LIVE BOARD
+	// (state.Game.LiveObjs: every card-shaped object that has not ceased to
+	// exist), which events.Apply maintains on the same per-event path. It
+	// excludes CR 113.7a ability objects -- a pending trigger on the stack
+	// and its resolved exile parking -- because a storm queues thousands of
+	// them without growing the board; the arena's length also counts every
+	// ceased object. Both made the old arena-length basis abort games whose
+	// persistent board was far under the cap.
+	DefaultMaxObjs = 18000
 )
 
 // progressKinds are the events that prove the game is still moving: a
@@ -134,14 +136,14 @@ func (s *kindSet) has(k events.Kind) bool { return s[k>>6]&(1<<(k&63)) != 0 }
 // board-size budget cmd/cardfuzz derives from -max-objects). Zero means
 // off -- unlike the three thresholds above there is no default, so a nil
 // or zero Config arms nothing and every existing game is unchanged. When
-// set, the watcher aborts the moment the game's LIVE object population
-// (state.Game.LiveObjs, every object that has not ceased to exist --
-// events.Apply maintains the tally in the same fold that moves the object)
-// exceeds the cap: a harness cannot run a check between the decisions of
-// one resolution (a token-doubling storm mints thousands of objects inside
-// a single Submit with no decision to yield on), so the cap is checked on
-// the watcher's own per-event path, where it is one O(1) read of the
-// tally, not an arena walk. The caller re-classifies and renders the
+// set, the watcher aborts the moment the game's persistent LIVE BOARD
+// (state.Game.LiveObjs: every card-shaped object that has not ceased to
+// exist; events.Apply maintains the tally in the same fold that moves the
+// object) exceeds the cap: a harness cannot run a check between the
+// decisions of one resolution (a token-doubling storm mints thousands of
+// objects inside a single Submit with no decision to yield on), so the cap
+// is checked on the watcher's own per-event path, where it is one O(1) read
+// of the tally, not an arena walk. The caller re-classifies and renders the
 // record.
 type LoopGuard struct {
 	CycleEvents   int
@@ -236,8 +238,9 @@ type LivelockError struct {
 	// Cycle renders one period of the repeating events (nil for a runaway),
 	// earliest first.
 	Cycle []string
-	// Count and Cap are the LIVE object population and the cap that tripped
-	// the "object cap" abort (zeros for the other reasons).
+	// Count and Cap are the persistent live board (card-shaped objects) and
+	// the cap that tripped the "object cap" abort (zeros for the other
+	// reasons).
 	Count int
 	Cap   int
 }
@@ -249,11 +252,11 @@ func (e *LivelockError) Error() string {
 	case livelockReasonRepeatingCycle:
 		fmt.Fprintf(&b, "cycle of %d event(s) repeated %d time(s), events %d-%d", e.CycleLen, e.Repeats, e.FirstSeq, e.LastSeq)
 	case livelockReasonObjectCap:
-		fmt.Fprintf(&b, "the game holds %d live object(s), cap %d", e.Count, e.Cap)
+		fmt.Fprintf(&b, "the game holds %d live card object(s), cap %d", e.Count, e.Cap)
 	case livelockReasonTokenPlan:
 		fmt.Fprintf(&b, "the token-creation plan would hold %d mint(s), cap %d", e.Count, e.Cap)
 	case livelockReasonBigBoard:
-		fmt.Fprintf(&b, "%d event(s) with no decision, step or turn change, events %d-%d, the game holds %d live object(s)", e.QuietEvents, e.FirstSeq, e.LastSeq, e.Count)
+		fmt.Fprintf(&b, "%d event(s) with no decision, step or turn change, events %d-%d, the game holds %d live card object(s)", e.QuietEvents, e.FirstSeq, e.LastSeq, e.Count)
 	default:
 		fmt.Fprintf(&b, "%d event(s) with no decision, step or turn change, events %d-%d", e.QuietEvents, e.FirstSeq, e.LastSeq)
 	}
@@ -403,8 +406,8 @@ func newLivelockWatcherFromGuard(g LoopGuard, sigs []uint64, recent []livelockRe
 func (w *livelockWatcher) observe(ev events.Event) { w.observeFrom(&ev, 0, 0) }
 
 // observeFrom is observe with the engine's current damage source (the
-// e.damaging scratch the emit ran under) and the engine's current LIVE
-// object population (state.Game.LiveObjs). A Damage event's payload names only its RECIPIENT -- a
+// e.damaging scratch the emit ran under) and the engine's current persistent
+// live board (state.Game.LiveObjs). A Damage event's payload names only its RECIPIENT -- a
 // player hit carries no object at all -- so the combat damage step of a wide
 // board (1790 Goblin tokens from Krenko, Mob Boss, each dealing 1 to the
 // same player) logs hundreds of byte-identical
@@ -420,16 +423,17 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 	// budget checked on the engine's own per-event path: between two
 	// decisions a single resolution can mint thousands of objects (one
 	// Krenko, Mob Boss activation), and no decision-boundary check the
-	// harness runs can see inside it. nObjs is the LIVE population (state.
-	// Game.LiveObjs) -- one O(1) read at the emit site, maintained by the
-	// same folds that move the object -- so the cap fires within one event
-	// of the crossing -- well before any wall-clock budget the caller runs
-	// under -- instead of at the next decision, which may be hundreds of
-	// thousands of expensive events later. It deliberately excludes the
-	// ceased: a storm game's resolved triggers and expired tokens stay in
-	// the arena forever (it is monotone), and counting them there aborted
-	// games whose live board was still several events -- often a combat
-	// step that would have ended the game -- from the cap.
+	// harness runs can see inside it. nObjs is the persistent live board
+	// (state.Game.LiveObjs) -- one O(1) read at the emit site, maintained
+	// by the same folds that move the object -- so the cap fires within one
+	// event of the crossing -- well before any wall-clock budget the caller
+	// runs under -- instead of at the next decision, which may be hundreds
+	// of thousands of expensive events later. It deliberately excludes the
+	// ceased and every CR 113.7a ability object: a storm game's resolved
+	// triggers and expired tokens stay in the arena forever (it is
+	// monotone), and its pending triggers are transient bookkeeping, not
+	// board state; counting either aborted games whose persistent board was
+	// still far under the cap.
 	if w.guard.MaxObjs > 0 && nObjs > w.guard.MaxObjs {
 		panic(&LivelockError{
 			Reason: ObjectCapReason,

@@ -13,11 +13,11 @@ import (
 // LoopGuard.MaxObjs = rules.DefaultMaxObjs on every config that set no
 // explicit budget, and the value must sit far above every ordinary game's
 // arena (measured high-water 554) while still truncating the
-// documented Krenko, Mob Boss storm: a staged board 320 objects under the
-// default cap whose very next Krenko resolution (X = the number of Goblins
-// you control, so it mints far more than the remaining headroom) aborts
-// mid-resolution at exactly cap+1, with the watcher's own reason and the
-// minting event kind -- the same shape the explicit -max-objects proof
+// documented Krenko, Mob Boss storm: a staged board under the default cap
+// whose very next Krenko resolution (X = the number of Goblins you control,
+// so it mints more than the remaining headroom) aborts mid-resolution at
+// exactly cap+1, with the watcher's own reason and the minting event kind --
+// the same shape the explicit -max-objects proof
 // (TestKrenkoBoardCapFiresMidResolution) pins, at the default budget.
 func TestKrenkoBoardDefaultCapFiresMidResolution(t *testing.T) {
 	t.Parallel()
@@ -26,7 +26,7 @@ func TestKrenkoBoardDefaultCapFiresMidResolution(t *testing.T) {
 	if rules.WithDefaultObjectCap(nil).MaxObjs != rules.DefaultMaxObjs {
 		t.Fatalf("default arming produced %d, want %d", rules.WithDefaultObjectCap(nil).MaxObjs, rules.DefaultMaxObjs)
 	}
-	const goblins = 9600 // arena after staging 80 + 9600 = 9680 < 10000
+	const goblins = 9600 // arena after staging 80 + 9600 = 9680 < 18000
 	maxObjs := rules.DefaultMaxObjs
 	e, _, _, abilityIdx := krenkoFixture(t, goblins, maxObjs)
 	// Preconditions: the staged board is what the assertion depends on.

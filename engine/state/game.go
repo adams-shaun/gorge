@@ -415,16 +415,22 @@ type Game struct {
 	Players []Player
 	// Objs is a dense arena: Objs[i] has ID i+1, so ObjID 0 is "no object".
 	Objs []Object
-	// liveObjs is the count of arena objects that have NOT ceased to exist
-	// (every zone except ZCeased): one live object per object ever minted
-	// that is still somewhere in the game. AddObject counts a mint, and the
-	// zone folds count a ceasure and an un-ceasure (a ZCeased park coming
-	// back, events' move and the copy-park fold; Restart's own ceasure
-	// sweep), so a live game and a log-only replay derive the same value.
+	// liveObjs is the count of arena objects that have a card and have NOT
+	// ceased to exist (every zone except ZCeased): one live object per
+	// card-shaped object still somewhere in the game. A CR 113.7a ability
+	// object is minted with a nil Card -- both the pending trigger on the
+	// stack and its resolved exile parking -- so it is never counted: it is
+	// transient trigger bookkeeping, not board state, and a storm queues
+	// thousands of them without growing the persistent board. AddObject
+	// counts a card mint, and the zone folds count a ceasure and an
+	// un-ceasure (a ZCeased park coming back, events' move and the
+	// copy-park fold; Restart's own ceasure sweep), so a live game and a
+	// log-only replay derive the same value.
 	// It is the volume bound the livelock watcher's LoopGuard.MaxObjs
-	// measures: the arena's length also counts every ceased object, which
-	// on a long storm game (thousands of resolved triggers and expired
-	// tokens) exceeds the live population several times over.
+	// measures: the arena's length also counts every ceased object and
+	// every ability object, which on a long storm game (thousands of
+	// resolved triggers and expired tokens) exceeds the persistent board
+	// several times over.
 	// Written only by state.AddObject, the zone folds in events.Apply and
 	// Restart -- never by rules or effects. Clone copies it with the struct.
 	liveObjs int
@@ -1058,13 +1064,14 @@ func (g *Game) ClearPreparedSource() { g.preparedSources-- }
 // CrewedObjectsLive reports whether any object has recorded a crew pairing.
 func (g *Game) CrewedObjectsLive() bool { return g.crewedObjects != 0 }
 
-// NoteLiveObject counts one object's ceased-to-live transition (a ZCeased
-// park coming back), the tally LiveObjs reads. See the liveObjs field.
+// NoteLiveObject counts one card-shaped object's ceased-to-live transition
+// (a ZCeased park coming back), the tally LiveObjs reads. See the liveObjs
+// field.
 func (g *Game) NoteLiveObject() { g.liveObjs++ }
 
-// ClearLiveObject counts one object's live-to-ceased transition (a ZCeased
-// park or a CR 113.7a ability's exile parking), the tally LiveObjs reads.
-// See the liveObjs field.
+// ClearLiveObject counts one card-shaped object's live-to-ceased transition
+// (a ZCeased park), the tally LiveObjs reads. A CR 113.7a ability object is
+// never on the tally, pending or parked. See the liveObjs field.
 func (g *Game) ClearLiveObject() { g.liveObjs-- }
 
 // NoteCrewedObject tracks an object's empty-to-nonempty crew-list transition.
@@ -1073,9 +1080,10 @@ func (g *Game) NoteCrewedObject() { g.crewedObjects++ }
 // ClearCrewedObject tracks an object's nonempty-to-empty crew-list transition.
 func (g *Game) ClearCrewedObject() { g.crewedObjects-- }
 
-// LiveObjs is the number of arena objects that have not ceased to exist
-// (see the liveObjs field): the volume the livelock watcher's object cap
-// (rules.LoopGuard.MaxObjs) bounds.
+// LiveObjs is the number of card-shaped arena objects that have not ceased
+// to exist (see the liveObjs field): the persistent board, the volume the
+// livelock watcher's object cap (rules.LoopGuard.MaxObjs) bounds. A CR
+// 113.7a ability object (nil Card) is not counted, pending or parked.
 func (g *Game) LiveObjs() int { return g.liveObjs }
 
 func (g *Game) AddObject(card *cards.Card, owner PlayerID) *Object {
@@ -1083,7 +1091,11 @@ func (g *Game) AddObject(card *cards.Card, owner PlayerID) *Object {
 	o.SyncFace()
 	g.NextID++
 	g.Objs = append(g.Objs, o)
-	g.liveObjs++
+	// A nil card is the CR 113.7a ability mint (every Apply mint that passes
+	// nil); it is not a live board object, so the tally stays put.
+	if card != nil {
+		g.liveObjs++
+	}
 	return &g.Objs[len(g.Objs)-1]
 }
 

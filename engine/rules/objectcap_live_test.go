@@ -11,13 +11,16 @@ import (
 )
 
 // The livelock watcher's object cap (LoopGuard.MaxObjs) bounds the LIVE
-// object population -- state.Game.LiveObjs, every object that has not ceased
-// to exist -- not the arena's length. The arena also holds every ceased
-// object and every CR 113.7a ability object's exile parking forever (it is
-// monotone), and the hunt's cmdr4 leg caught the arena-length basis aborting
-// the Scute Swarm storm games (seed 78391: live 9797 against arena 10001)
-// on a stack of pending landfall triggers that were several events -- the
-// swarm army's winning combat step -- from ever being a too-large board.
+// board -- state.Game.LiveObjs, every card-shaped object that has not ceased
+// to exist -- not the arena's length. The arena is monotone: it also holds
+// every ceased object, every resolved trigger's exile parking, and every
+// pending trigger on the stack. The hunt's cmdr4 leg caught the arena-length
+// basis aborting the Scute Swarm storm games on a stack of pending landfall
+// triggers (seed 78391's abort: arena 10001 with 5654 pending triggers and
+// 2009 parked ones, so the persistent board was only 2134). The cap
+// therefore excludes a CR 113.7a ability object entirely -- pending or
+// parked -- because a storm queues thousands of them without growing the
+// persistent board.
 
 // stageObjs mints n fixture objects on the engine's arena and parks nCeased
 // of them in ZCeased, the direct fixture staging the state-based-action and
@@ -36,14 +39,14 @@ func stageObjs(t *testing.T, e *Engine, n, nCeased int) {
 	}
 }
 
-// countedLive is the reference the tally is checked against: an object that
-// has not ceased to exist (ZCeased, or a CR 113.7a face-less ability that
-// left the stack -- the exile parking a resolved trigger occupies forever).
+// countedLive is the reference the tally is checked against: a card-shaped
+// object that has not ceased to exist. A CR 113.7a ability object (nil
+// Card) is not board state, pending on the stack or parked in exile.
 func countedLive(g *state.Game) int {
 	n := 0
 	for i := range g.Objs {
 		o := &g.Objs[i]
-		if o.Zone != state.ZCeased && !(o.Card == nil && o.Ability != nil && o.Zone != state.ZStack) {
+		if o.Zone != state.ZCeased && o.Card != nil {
 			n++
 		}
 	}
@@ -103,7 +106,7 @@ func TestObjectCapCountsLiveNotTheArena(t *testing.T) {
 	if lle.Reason != ObjectCapReason || lle.Count != 101 || lle.Cap != 100 {
 		t.Errorf("abort = reason %q count %d cap %d, want object cap / 101 / 100", lle.Reason, lle.Count, lle.Cap)
 	}
-	if !strings.Contains(lle.Error(), "the game holds 101 live object(s), cap 100") {
+	if !strings.Contains(lle.Error(), "the game holds 101 live card object(s), cap 100") {
 		t.Errorf("diagnostic %q does not name the live count", lle.Error())
 	}
 	// A clone carries the same tally as its own field (host paths clone at
@@ -113,9 +116,56 @@ func TestObjectCapCountsLiveNotTheArena(t *testing.T) {
 	}
 }
 
+// TestObjectCapIgnoresThePendingTriggerStack replays seed 78391's shape at
+// fixture scale: the arena is far past the cap, but 500 pending CR 113.7a
+// trigger objects are on the stack while the card-shaped board is under it.
+// The watcher must not abort (the triggers are not board state); only the
+// board crossing the cap does.
+func TestObjectCapIgnoresThePendingTriggerStack(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{MaxObjs: 100})
+	stageObjs(t, e, 90, 0)
+	for i := 0; i < 500; i++ {
+		a := e.G.AddObject(nil, 0)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: a.ID, From: state.ZLibrary, To: state.ZStack})
+		a.Ability = &cards.SA{}
+	}
+	// Precondition: the arena is past the cap, the board is not.
+	if got := len(e.G.Objs); got != 590 {
+		t.Fatalf("arena = %d, want 590 (90 staged cards + 500 pending triggers)", got)
+	}
+	if got, ref := e.G.LiveObjs(), countedLive(e.G); got != 90 || ref != 90 {
+		t.Fatalf("live board = %d (reference %d), want 90 under cap 100", got, ref)
+	}
+	if lle := drivePattern(t, e, func(i int) events.Event {
+		return events.Event{Kind: events.Note, Obj: state.ObjID(1 + i%3), Text: "storm resolving"}
+	}, 5); lle != nil {
+		t.Fatalf("watcher aborted on an arena past the cap whose board is 90: %v", lle)
+	}
+	// The board itself crossing the cap still aborts.
+	stageObjs(t, e, 11, 0)
+	var lle *LivelockError
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				l, ok := r.(*LivelockError)
+				if !ok {
+					panic(r)
+				}
+				lle = l
+			}
+		}()
+		e.emit(events.Event{Kind: events.Note, Obj: 1, Text: "board crossing"})
+	}()
+	if lle == nil || lle.Count != 101 || lle.Cap != 100 {
+		t.Fatalf("board crossing: got %+v, want an object-cap abort at 101/100", lle)
+	}
+}
+
 // TestObjectCapLiveFoldIsTheMove pins the tally's maintenance through the
-// real event folds: a cease, the CR 113.7a ability parking, and the
-// under-card revival each move it by exactly one.
+// real event folds: a cease and the under-card revival each move it by
+// exactly one, while a CR 113.7a ability object never joins it -- pending on
+// the stack or parked in exile -- and a CR 727.1 restart sweep does not
+// clear a parked ability a second time.
 func TestObjectCapLiveFoldIsTheMove(t *testing.T) {
 	e := livelockTestEngine(t, &LoopGuard{MaxObjs: 3})
 	c := card(t, "Name:Filler\nTypes:Creature Construct\nOracle:x\n")
@@ -134,29 +184,40 @@ func TestObjectCapLiveFoldIsTheMove(t *testing.T) {
 	if got := e.G.LiveObjs(); got != 1 {
 		t.Fatalf("LiveObjs after the revival = %d, want 1", got)
 	}
-	// A CR 113.7a face-less ability leaving the stack ceases to exist even
-	// though its logged move is stack -> exile (the exile parking): off the
-	// tally. The ability field is set after the move, as Apply's own mint
-	// (foldTriggerPush) does.
+	// A CR 113.7a face-less ability is not a card object, so it never joins
+	// the tally: neither the pending trigger (the move to the stack) nor its
+	// logged stack -> exile parking. The ability field is set after the move,
+	// as Apply's own mint (foldTriggerPush) does.
 	a := e.G.AddObject(nil, 0)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: a.ID, From: state.ZLibrary, To: state.ZStack})
 	a.Ability = &cards.SA{}
-	if got := e.G.LiveObjs(); got != 2 {
-		t.Fatalf("LiveObjs with the ability on the stack = %d, want 2", got)
+	if got := e.G.LiveObjs(); got != 1 {
+		t.Fatalf("LiveObjs with the ability pending on the stack = %d, want 1 (a trigger is not board state)", got)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: a.ID, From: state.ZStack, To: state.ZExile})
 	if got := e.G.LiveObjs(); got != 1 {
-		t.Fatalf("LiveObjs after the ability parked = %d, want 1 (the resolved ability ceased)", got)
+		t.Fatalf("LiveObjs after the ability parked = %d, want 1 (the ability was never live)", got)
 	}
 	if got := countedLive(e.G); got != 1 {
 		t.Fatalf("the reference count = %d, want 1: the tally and the reference disagree", got)
+	}
+	// A CR 727.1 game restart ceases every remaining object in one sweep.
+	// The parked ability above is already off the tally, so the sweep must
+	// not clear it again; the card object o is re-dealt as a fresh library
+	// object (CR 727.2), which is the one live object left afterwards.
+	e.emit(events.Event{Kind: events.GameRestart, Amount: 40})
+	if a := e.G.Obj(a.ID); a == nil || a.Zone != state.ZCeased {
+		t.Fatalf("the restart left the parked ability in %v, want ZCeased (the sweep ran)", a)
+	}
+	if got, want := e.G.LiveObjs(), countedLive(e.G); got != want || want != 1 {
+		t.Fatalf("after GameRestart: LiveObjs = %d, the arena's live count = %d, want both 1 (a parked ability was cleared twice)", got, want)
 	}
 }
 
 // TestObjectCapLiveTracksTheAcceptanceGame is the tally's whole-game
 // invariant over a real corpus game: after every checked decision,
-// state.Game.LiveObjs equals the count of objects that have not ceased to
-// exist. It is what catches a mint or a cease fold the tally's
+// state.Game.LiveObjs equals the count of card-shaped objects that have not
+// ceased to exist. It is what catches a mint or a cease fold the tally's
 // maintenance misses, live and on a replay alike.
 func TestObjectCapLiveTracksTheAcceptanceGame(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

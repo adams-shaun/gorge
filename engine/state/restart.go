@@ -69,9 +69,17 @@ func (g *Game) Restart(life int32, keep []ObjID) {
 		}
 		id, owner, card := o.ID, o.Owner, o.Card
 		isCard := !o.IsToken && !o.IsCopy && o.Ability == nil && !dungeon[id] && card != nil
+		// A CR 113.7a ability object is never on the live-object tally --
+		// pending on the stack or parked in exile (AddObject does not count
+		// its nil Card) -- so the ceasure sweep must not clear it. Only a
+		// card-shaped object is on the tally; this is the same shape events'
+		// move fold uses.
+		onTally := card != nil
 		o.Zone = ZCeased
-		// The old object ceased: off the live-object tally (state.Game.liveObjs).
-		g.ClearLiveObject()
+		if onTally {
+			// The old object ceased: off the live-object tally (state.Game.liveObjs).
+			g.ClearLiveObject()
+		}
 		// A player who lost before the restart is not in the new game
 		// (CR 727.1, "All players in that game when it ended"), so their
 		// cards cease instead of being dealt into a library nobody owns.
