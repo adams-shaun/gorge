@@ -9,7 +9,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // live in CardDef.Granted, not Abilities, so no printed walk (eachStatic and
 // its siblings, the statM loops) ever sees one: only a reader that walks
 // eachStaticG does, and kgen lowers a granted kind only once its reader has
-// moved (grantedStaticKinds). Wired readers: StatNoMaxHandSize (maxHand).
+// moved (grantedStaticKinds). Wired readers: StatNoMaxHandSize (maxHand), StatCantSacrifice
+// (sacBlockedBy).
 //
 // Recursion: the recipient set is read at layerKw, below layer 6, exactly as
 // grantsBetween reads the recipients of a granted ability, and no characteristic
