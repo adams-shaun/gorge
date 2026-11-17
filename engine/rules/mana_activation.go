@@ -1491,7 +1491,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// ManaActivate marker, with IDs[0] naming the foreign card and Amount
 	// its face-local index (never a flat pile index -- activationUsedCount
 	// skips a marker carrying IDs), so the GainsAbilitiesLimitPerTurn$ cap's
-	// log scan (gainedActivationsThisTurn) counts a mana activation exactly
+	// log scan (gainedActivationsUsed) counts a mana activation exactly
 	// as it counts a GainedAbilityPush, and a replay re-derives the count.
 	// Emitted only for gained abilities, so no existing game's log changes.
 	if gained.Face != nil {
