@@ -2437,6 +2437,31 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	return lc.effectTargetStatic(ps, s, obj)
 }
 
+// mayPlayGraveLifetime turns an until-end-of-turn Effect-delivered may-play
+// grant over a remembered graveyard card into DurWhileGraveForget, the record
+// that survives the card's stay in the graveyard and is dropped when the card
+// leaves exile. Only ForgetOnMoved$ Exile qualifies: gorge's effectMoveSweep
+// prunes every other grant's remembered card the moment it leaves the grant's
+// zone (mayPlayRememberedLeftZone, CR 400.7: a new object), so a grant with no
+// ForgetOnMoved$ (Reezug, the Bonecobbler; Ichor Aberration) does not follow
+// the card back. A limited grant spends its use and an ExileOnMoved grant ends
+// with the move; both, like every other ForgetOnMoved$, keep the one-shot dur.
+func mayPlayGraveLifetime(ps, sp *params, zone int, zones []int, dur string) string {
+	if zone != zGraveyard || len(zones) != 1 || dur != "EOT" {
+		return dur
+	}
+	if v, ok := sp.get("MayPlayLimit"); ok && strings.TrimSpace(v) != "0" {
+		return dur
+	}
+	if _, endsOnMove := ps.get("ExileOnMoved"); endsOnMove {
+		return dur
+	}
+	if strings.TrimSpace(ps.str("ForgetOnMoved")) == "Exile" {
+		return "WhileGraveForget"
+	}
+	return dur
+}
+
 // effectTargetStatic lowers the one static s of a targeted (or remembered)
 // Effect over its resolved object obj.
 func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) error {
@@ -2633,6 +2658,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 				return refuse("Effect Duration %q", d)
 			}
 		}
+		dur = mayPlayGraveLifetime(ps, sp, zone, zones, dur)
 		ps.consume("ForgetOnMoved")
 		in := lInstr{Op: "MayPlay", Obj: obj, CS: dur}
 		fl := 0

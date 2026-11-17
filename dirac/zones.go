@@ -258,6 +258,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	default:
 		panic("kernel: place into unsupported zone")
 	}
+	if s.g.nmay > 0 && (z == kop.ZoneGraveyard || z == kop.ZoneExile) {
+		s.mayPersistMoved(o, z) // re-arm an effect-delivered graveyard grant
+	}
 	if s.g.enteredOn {
 		s.noteEnter(o, z, from, wasCreature)
 	}
