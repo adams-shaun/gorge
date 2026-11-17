@@ -12,10 +12,11 @@ import (
 // resolution that writes it (Dino DNA reads what another ability imprinted;
 // Journey to the Lost City and Sivriss, Nightmare Speaker write without a
 // same-chain Cleanup). The persisting shape lowers under CardDef.ImpPersist.
-// Mirror Golem stays refused: ForgetImprinted$ is outside that shape
-// (ticket 04).
+// The classic Imprint artifacts lower with it since ticket 04 (Mirror Golem
+// forgets, Duplicant replaces, Mirror of Life Trapping's TrigReturn picks
+// !IsImprinted).
 func TestImpPersistLowers(t *testing.T) {
-	for _, name := range []string{"Dino DNA", "Journey to the Lost City", "Sivriss, Nightmare Speaker", "Saproling Burst"} {
+	for _, name := range []string{"Dino DNA", "Journey to the Lost City", "Sivriss, Nightmare Speaker", "Saproling Burst", "Mirror Golem", "Mirror of Life Trapping", "Duplicant"} {
 		c := lowerCorpusCard(t, name)
 		if r := probeRefusals(c); r != "" {
 			t.Errorf("%s refused: %s", name, r)
@@ -24,8 +25,19 @@ func TestImpPersistLowers(t *testing.T) {
 			t.Errorf("%s lowered without CardDef.ImpPersist", name)
 		}
 	}
-	if r := probeRefusals(lowerCorpusCard(t, "Mirror Golem")); r == "" {
-		t.Errorf("Mirror Golem lowered; ForgetImprinted$ is outside the ImpPersist shape")
+}
+
+// TestImpForgetLowers: the four classic Imprint artifacts lower. Mirror
+// Golem's Pump forgets the imprinted list; Mirror of Life Trapping's exile
+// trigger filters its candidate with !IsImprinted; Duplicant's writer
+// ChangeZone clears the source's imprint before the move (ImprintLast$
+// replaces rather than appends).
+func TestImpForgetLowers(t *testing.T) {
+	for _, name := range []string{"Mirror Golem", "Mirror of Life Trapping", "Duplicant"} {
+		c := lowerCorpusCard(t, name)
+		if r := probeRefusals(c); r != "" {
+			t.Errorf("%s refused: %s", name, r)
+		}
 	}
 }
 

@@ -167,8 +167,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtChangeText:
 		return s.changeTextStart(k, in), true // act_changetext.go
-	case kop.ExtClearImprinted:
-		s.extClearImprinted(k) // zone_imprint.go
+	case kop.ExtClearImprinted, kop.ExtForgetImprinted:
+		s.imprintExt(k, in) // zone_imprint.go
 		return true, true
 	case kop.ExtDigImprint:
 		return true, true // read by the dig it follows (zone_digimprint.go)

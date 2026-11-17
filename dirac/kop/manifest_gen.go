@@ -2254,6 +2254,11 @@ const TrigUntapAll TrigEvent = 126
 // trig VisitAttraction (dirac/manifest/TrigEvent/TrigVisitAttraction)
 const TrigVisitAttraction TrigEvent = 127
 
+// trig ChangesZone Exile->Any (dirac/manifest/TrigEvent/TrigLeaveExile)
+//
+// "a card leaves the exile zone" (Mode$ ChangesZone Origin$ Exile, Destination$ Any: the imprint carriers' forget/cleanup lines, Mirror Golem's DBForget, Duplicant's imprinted-card DBCleanup). The kernel fires it in placeFromK while the card is still in exile (CR 603.10a look-back), so a filter read of the imprint association judges the candidate as it was there; no slot subscription (nSubEvents ends at TrigGiveGift) — the firing walk scans the battlefield like the other no-subscription events.
+const TrigLeaveExile TrigEvent = 128
+
 // TrigFlags5 (dirac/manifest/TrigFlags5/Tf5DmgNoContract)
 //
 // Tf5DmgNoContract: a combat DamageDone line's damaged player has no contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss Highwater; gorge state.Player.Counter("Contract"); kernel ctr_contract.go).

@@ -12,6 +12,7 @@ func init() {
 	instrOp("RememberSearcher", (*instrCtx).opRememberSearcher)
 	instrOp("RememberAll", (*instrCtx).opRememberAll)
 	instrOp("RememberImprinted", (*instrCtx).opRememberImprinted)
+	instrOp("ForgetImprinted", (*instrCtx).opForgetImprinted)
 }
 
 func (ic *instrCtx) opClearRemembered() error {
@@ -55,4 +56,10 @@ func (ic *instrCtx) opRememberImprinted() error {
 	ki := &ic.ki
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberImprinted)) // Tainted Pact
 	return nil
+}
+
+func (ic *instrCtx) opForgetImprinted() error {
+	ki := &ic.ki
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtForgetImprinted))
+	return nil // Obj is RefTriggerObj (build.go ref), gorge Pump ForgetImprinted$ TriggeredCard
 }
