@@ -79,6 +79,7 @@ import "embed"
 //go:embed kw_fortify.go
 //go:embed kw_graft.go
 //go:embed kw_gravestorm.go
+//go:embed kw_haunt.go
 //go:embed kw_hideaway.go
 //go:embed kw_increment.go
 //go:embed kw_jobselect.go

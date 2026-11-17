@@ -1855,6 +1855,11 @@ type Object struct {
 	// object that remembers nothing of the old one's exile. Folded by
 	// events.Apply from the same MoveZone, so replay rebuilds it.
 	ExiledWithInc uint32
+	// Haunting is the creature this exiled card haunts (CR 702.55b), 0 for
+	// none. events.Apply's Haunt fold is the only writer; it clears whenever
+	// this card moves zone, and when the haunted creature next enters the
+	// battlefield (a new object, CR 400.7, so the old haunt is over).
+	Haunting ObjID
 	// MayLookPlayer is the player a Dig's or ChangeZone's WithMayLook$ True
 	// authorises to look at this face-down exiled card (Forge's Card.mayLook),
 	// with HasMayLook distinguishing seat 0 from "nobody". It is state, not
@@ -2052,7 +2057,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [12]byte
+	_ [4]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed

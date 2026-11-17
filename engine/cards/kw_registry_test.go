@@ -174,6 +174,10 @@ var expandedHeads = []string{
 	// optional dies trigger moving the last-known count to a target artifact
 	// creature (engine/cards/kw_modular.go). Added after the split.
 	"Modular",
+	// Haunt (CR 702.55): the dies/resolved exile-haunting trigger, the
+	// creature's enters trigger and the haunted-creature-dies trigger
+	// (engine/cards/kw_haunt.go). Added after the split.
+	"Haunt",
 	// Soulshift (CR 702.46a): an optional dies trigger returning a Spirit card
 	// with mana value N or less from the graveyard to hand
 	// (engine/cards/kw_soulshift.go). Added after the split.

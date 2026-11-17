@@ -911,6 +911,10 @@ const (
 	// ValidKeyword$ <Landwalk:Type> on S:Mode$ IgnoreLandWalk, read by
 	// combat.landwalkIgnored. Appended: earlier ordinals stay stable.
 	PKValidKeyword
+	// Haunt$ True on a ChangeZone (the K:Haunt expansion, CR 702.55b): the
+	// exiled card haunts the announced creature target. Read by effects'
+	// compileChangeZone. Appended: earlier ordinals stay stable.
+	PKHaunt
 	paramKeyCount
 )
 
@@ -1735,6 +1739,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKTopCardOfLibraryIs:               "TopCardOfLibraryIs",
 	PKRememberSource:                   "RememberSource",
 	PKValidKeyword:                     "ValidKeyword",
+	PKHaunt:                            "Haunt",
 }
 
 // String is the key's Forge text.
