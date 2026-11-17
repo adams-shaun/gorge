@@ -243,7 +243,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// one pays (mana_filterrepeat.go).
 	repeatLive := s.filtRepeatIn(k, filt)
 	var any, gaps Decision
-	s.plainOptions(k, &gaps, availGaps)
+	s.gapsWalk(k, &gaps, filt)
 	s.mergeBareGaps(k, &gaps, filt)
 	src := &gaps
 	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
