@@ -1147,6 +1147,11 @@ func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 	if isPlayerOrNone(c) {
 		return !s.pl[CodeSeat(c)].lost
 	}
+	if isStackTarget(c) {
+		// a stack-ability pick is no object: it is found again by the
+		// identity recorded as its ver (targetStillLegal's slot-0 arm)
+		return s.stackTgtIdx(c, s.xtOf(e).ver[j]) >= 0
+	}
 	if s.objs[c].ver != s.xtOf(e).ver[j] {
 		return false
 	}
