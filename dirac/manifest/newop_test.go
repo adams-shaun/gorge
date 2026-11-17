@@ -116,6 +116,28 @@ func TestNewOpTouchesOnlyItsOwnFiles(t *testing.T) {
 		t.Fatalf("handlers: ext %d -> %d, ask %d -> %d; want one more of each", len(baseTree.Handlers.Ext), len(tree.Handlers.Ext), len(baseTree.Handlers.Ask), len(tree.Handlers.Ask))
 	}
 
+	// The real tree may hold value: next entries — a change can build and test
+	// before its code has a number, and landing assigns the final value. The
+	// demo entries resolve ahead of them (validate sorts by family and name)
+	// and would move their provisional values, so pin the real Next entries at
+	// the values Load resolved — the landing, not this test, moves one — and
+	// resolve the demo entries again on top of the pinned values.
+	nexts := map[string]int64{}
+	for _, e := range baseTree.Entries {
+		if e.Next {
+			e.Next = false
+			nexts[e.Path] = e.Value
+		}
+	}
+	for _, e := range tree.Entries {
+		if v, ok := nexts[e.Path]; ok {
+			e.Value, e.Next = v, false
+		}
+	}
+	if errs := tree.Validate(); len(errs) > 0 {
+		t.Fatalf("Validate: %v", errs)
+	}
+
 	// 2. Each generated file only gains lines, and the gained ones are the
 	// new entries' and handlers'.
 	before, err := Generate(baseTree)
