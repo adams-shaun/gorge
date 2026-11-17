@@ -101,6 +101,9 @@ func (s *State) drawMore(p uint8, ch drawChain) bool {
 	ch.sl[ch.n] = sel
 	ch.n++
 	for i := int16(0); i < ab.Repl.A && !s.over; i++ {
+		if s.dredgeBodyPose(k, p, ch, int(ab.Repl.A)-int(i)) {
+			return true // the body card's dredge ask is posed (kw_dredge.go)
+		}
 		s.drawExcl(p, ch)
 	}
 	return true
