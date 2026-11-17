@@ -16,7 +16,7 @@ import (
 // a standard-meta card edit this line, so two landings stack on it: the
 // mechanical re-pin is what lets the lander's re-pin step move it.
 const (
-	stdMetaSupportedPin, stdMetaRefusedPin = 449, 51
+	stdMetaSupportedPin, stdMetaRefusedPin = 450, 50
 )
 
 // stdMetaPinRow matches that const line; only the two numbers are replaced.

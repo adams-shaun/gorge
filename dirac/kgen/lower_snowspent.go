@@ -11,6 +11,9 @@ import "strings"
 // ask's bound (another spell's spend). Any other body is countValue's.
 func (lc *lowerCtx) castSpentCount(rest string, depth int) (lValue, error) {
 	snow := rest == "CastTotalManaSpent Snow"
+	if strings.HasPrefix(rest, "Adamant_") || strings.HasPrefix(rest, "Adamant.") {
+		return lc.adamantValue(rest) // lower_evoke.go
+	}
 	if !snow && rest != "CastTotalManaSpent" {
 		return lc.countValue(rest, depth)
 	}

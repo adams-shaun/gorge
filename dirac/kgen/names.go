@@ -176,7 +176,7 @@ func init() {
 		"kop.CtrComponent", kop.CtrComponent, "kop.CtrDescent", kop.CtrDescent, "kop.CtrM2M1", kop.CtrM2M1,
 		"kop.CtrAll", kop.CtrAll)
 	enum[kop.Whose]("kop.WhoseAny", kop.WhoseAny, "kop.WhoseYou", kop.WhoseYou, "kop.WhoseOpp", kop.WhoseOpp,
-		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive, "kop.WhoseChosen", kop.WhoseChosen)
+		"kop.WhoseEnchCtrl", kop.WhoseEnchCtrl, "kop.WhoseNonActive", kop.WhoseNonActive, "kop.WhoseChosen", kop.WhoseChosen, "kop.WhoseEnchanted", kop.WhoseEnchanted)
 	enum[kop.Step]("kop.StepUntap", kop.StepUntap, "kop.StepUpkeep", kop.StepUpkeep, "kop.StepDraw", kop.StepDraw,
 		"kop.StepMain1", kop.StepMain1, "kop.StepBeginCombat", kop.StepBeginCombat, "kop.StepAttackers", kop.StepAttackers,
 		"kop.StepBlockers", kop.StepBlockers, "kop.StepFirstStrikeDamage", kop.StepFirstStrikeDamage, "kop.StepDamage", kop.StepDamage,

@@ -53,3 +53,17 @@ func (s *State) defEnchanted(k *prep, l trigListener, def uint8) bool {
 	}
 	return k.cards[s.objs[p.obj].card].types&kop.TAura != 0
 }
+
+// dmgPlayerGateFails is a DamageDone listener's damaged-player gates in
+// fireDamageEvGen: each needs a to-player event and reads the damaged player
+// dpl. Attacked-you-last-turn (trig_atklastturn.go), no contract
+// (ctr_contract.go), and ValidTarget$ Player.EnchantedBy (defEnchanted).
+func (s *State) dmgPlayerGateFails(k *prep, l trigListener, t *kop.Trigger, toPlayer bool, dpl uint8) bool {
+	if t.Flags5&kop.Tf5DmgAttackedYouLastTurn != 0 && (!toPlayer || !s.attackedYouLastTurn(dpl, l.ctrl)) {
+		return true
+	}
+	if t.Flags5&kop.Tf5DmgNoContract != 0 && (!toPlayer || s.contracts(dpl) != 0) {
+		return true
+	}
+	return t.Whose == kop.WhoseEnchanted && (!toPlayer || !s.defEnchanted(k, l, dpl))
+}

@@ -31,15 +31,27 @@ func (lc *lowerCtx) refuseEvokeCombos() {
 	}
 }
 
-// adamantValue lowers the CastSA>Count$ body rest ("Adamant_2.Red.2.0",
-// or "Adamant.Red.2.0" for the keyword's standard three) read in a
-// self-ETB trigger's header (its CheckSVar$ intervening-if). Anywhere else
-// refuses: the kernel reads the cast's spend only for the entering
-// object (bound as the trigger is queued, kernel kw_evoke.go).
+// adamantValue lowers the CastSA>Count$ / Count$ body rest
+// ("Adamant_2.Red.2.0", or "Adamant.Red.2.0" for the keyword's standard
+// three) at the three sites where the kernel reads the cast's spend
+// exactly, all off the same stack-entry spend (stackEntry.spc):
+//
+//   - a self-ETB trigger's header (its CheckSVar$ intervening-if): bound as
+//     the trigger is queued (kernel kw_evoke.go evokeEnter);
+//   - a spell's own chain (Cauldron's Gift, Foreboding Fruit): the
+//     resolving spell entry's spend (gorge adamantSpendVector reads the
+//     spell object's ManaColorSpent; a copy was never cast and reads 0);
+//   - a self ETB replacement's CheckSVar$ (K:etbCounter ... Adamant$, the
+//     Throne of Eldraine Paladins): the resolving spell entering, the
+//     Count$Converge precedent (value_converge.go); a permanent entering
+//     any other way has no spell entry and reads 0.
+//
+// Anywhere else refuses.
 func (lc *lowerCtx) adamantValue(rest string) (lValue, error) {
-	tr := lc.adamantTrigger()
-	if tr == nil {
-		return lValue{}, refuse("CastSA>Count$%s outside a self-ETB trigger's CheckSVar$", rest)
+	spell := lc.ab != nil && lc.ab.Kind == akSpell && !lc.ab.Latent && lc.ab.Trigger == nil
+	repl := lc.replSelf && !lc.cloneRepl
+	if !spell && !repl && lc.adamantTrigger() == nil {
+		return lValue{}, refuse("Count$%s outside a spell, its self ETB replacement or a self-ETB trigger's CheckSVar$", rest)
 	}
 	n, tail := 3, ""
 	if t, ok := strings.CutPrefix(rest, "Adamant_"); ok {

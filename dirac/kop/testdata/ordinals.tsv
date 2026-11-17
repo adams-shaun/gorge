@@ -1200,6 +1200,8 @@ ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
 ReplPayBeforeETB	ReplKind	39
+ReplPrevSelfIfCounter	untyped int	2
+ReplPrevSelfRemoveDmg	untyped int	4
 ReplPrevSelfRemoveOne	untyped int	1
 ReplPrevToCombat	untyped int	2
 ReplPrevToCreature	untyped int	4
@@ -1701,6 +1703,7 @@ W7WithWarp	int16	11
 WhoseAny	Whose	0
 WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
+WhoseEnchanted	Whose	202
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2
 WhoseYou	Whose	1

@@ -57,6 +57,25 @@ func (lc *lowerCtx) sameNameT0Filter() (*lFilter, error) {
 	return &lFilter{Clauses: []lClause{{Types: tPermanent, CmpStat: cmpSameNameT0}}}, nil
 }
 
+// sameNameOtherSpec is the PumpAll / DamageAll ValidCards$ "each other
+// creature with the same name as that creature" (Echoing Decay, Homing
+// Lightning): gorge's sameNameContextBase reads the bare Targeted base with
+// Other as Forge's filterListByType does, the base rewritten to Card and the
+// first live object target made the source, so the spec is every card with
+// the target's name other than the target itself.
+const sameNameOtherSpec = "Targeted.sameName+Other"
+
+// sameNameT0OtherFilter lowers sameNameOtherSpec as one any-type clause
+// reading PredSameNameT0 with PredN 1 (State.sameNameT0: a permanent with
+// target 0's name, the target itself excluded). It needs exactly one object
+// target slot in the chain, as sameNameT0Filter does.
+func (lc *lowerCtx) sameNameT0OtherFilter() (*lFilter, error) {
+	if lc.ab == nil || len(lc.ab.Targets) != 1 || lc.ab.Targets[0].F == nil || lc.ab.Targets[0].F.Players != 0 || lc.ab.Targets[0].Zone != zBattlefield {
+		return nil, refuse("%s without one battlefield object target", sameNameOtherSpec)
+	}
+	return &lFilter{Clauses: []lClause{{CmpStat: cmpSameNameT0, CmpN: 1}}}, nil
+}
+
 // Two ChangeZoneAll ChangeType$ spellings of "the target and every other
 // card with its name". The graveyard one (Rat King, Verminister) lowers to
 // one PredSameNameT0 card clause; the Legions to Ashes one is the battlefield

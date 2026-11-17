@@ -83,7 +83,7 @@ func TestAnimateAllGrantManaUntilNextTurn(t *testing.T) {
 }
 
 // TestAnimateAllGrantManaRefused: the shapes the pair cannot carry refuse by
-// name; a single-object Animate keeps refusing Abilities$ as unread.
+// name; a single-object Animate keeps refusing an Abilities$ grant to another object.
 func TestAnimateAllGrantManaRefused(t *testing.T) {
 	const sv = "SVar:ABMana:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ B | SpellDescription$ probe sac.\n"
 	for _, tc := range []struct{ name, body, want string }{
@@ -91,7 +91,7 @@ func TestAnimateAllGrantManaRefused(t *testing.T) {
 		{"with a loss", "A:SP$ AnimateAll | ValidCards$ Creature.YouCtrl | Abilities$ ABMana | RemoveAllAbilities$ True | SpellDescription$ x.\n", "beside RemoveAllAbilities$"},
 		{"empty", "A:SP$ AnimateAll | ValidCards$ Creature.YouCtrl | Abilities$  | SpellDescription$ x.\n", "names no ability"},
 		{"unknown name", "A:SP$ AnimateAll | ValidCards$ Creature.YouCtrl | Abilities$ NoSuch | SpellDescription$ x.\n", "granted ability"},
-		{"single Animate", "A:SP$ Animate | Defined$ Self | Abilities$ ABMana | SpellDescription$ x.\n", "Animate Abilities$"},
+		{"single Animate", "A:SP$ Animate | ValidTgts$ Creature | Abilities$ ABMana | SpellDescription$ x.\n", "Animate Abilities$"},
 	} {
 		src := "Name:Refuse Probe\nManaCost:B\nTypes:Instant\n" + tc.body + sv
 		lc := lowerSynth(t, src)

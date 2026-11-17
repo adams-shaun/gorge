@@ -87,7 +87,7 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		return s.predPermKvf(k, fl, sl) // filter_valueheads.go
 	}
 	if fl.Pred == kop.PredSameNameT0 {
-		return s.sameNameT0(sl) // kw_madness.go
+		return s.sameNameT0(sl, fl.PredN == 1) // filter_samename.go
 	}
 	if fl.Pred == kop.PredCountersLT {
 		n := int(fl.PredN)
