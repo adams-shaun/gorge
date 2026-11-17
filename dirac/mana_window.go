@@ -1865,7 +1865,32 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 // Courtyard's c 0 is the "choose a mana ability" ask's printed ability (no
 // ManaSymbol): engine order there. A counter-cost gap (Vivid Grove's second
 // ability) its counters and mana, the ask's colour (ctrChainTap).
-func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+//
+// It reports whether the tap could be made. The only failure is a life-only
+// gap whose life cost a prefix's earlier activation has already spent: the
+// shared life total is no part of the search's state, so a branch can outrun
+// it. scriptDFS treats that as a failed branch and backtracks; falling
+// through to the ordinary gap path would tap a source with no census ability
+// (eachFee's each-colour index is -1).
+func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, anyR, tapsDef, ca slotMask, c int, spill *[kop.NumManaKinds]uint8) bool {
+	if _, life := s.lifeGapSource(k, sl); life {
+		if !s.isLifeGapAt(k, p, sl) {
+			return false
+		}
+		if s.lifeGapAnswers(k, sl) > 1 {
+			// one of any colour: the answer names a colour in the ask's
+			// scriptOrderAnswers order, which puts the play's announced
+			// colours first (lifeGapDo takes the engine-order colour)
+			var order [5]uint8
+			for i := range order {
+				order[i] = uint8(i)
+			}
+			needFirst(order[:], s.playNeed(k, a))
+			c = int(order[c])
+		}
+		s.lifeGapDo(k, p, sl, c) // pay the life, float the mana (mana_lifegap.go)
+		return true
+	}
 	if ca.has(sl) {
 		if s.anyDifferentAt(k, sl) {
 			// an AnyDifferent source: c is a rank among its distinct-colour
@@ -1873,20 +1898,21 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 			n := max(int(s.anyDifferentAbilityAt(k, sl).ManaN), 1)
 			need := s.playNeed(k, a)
 			s.anyDifferentTap(k, p, sl, anyDifferentRank(n, &need, c))
-			return
+			return true
 		}
 		s.caChainTap(k, p, a, sl, c) // a Combo Any source's colour ask (mana_comboany.go)
-		return
+		return true
 	}
 	if ctr.has(sl) {
 		s.ctrChainTap(k, p, a, sl, ctr, restr, c, &[kop.NumManaKinds]uint8{})
-		return
+		return true
 	}
 	if tapsDef.has(sl) && s.riderPlainFirst(k, sl) {
 		s.riderPlainGap(k, p, a, sl, c) // the plain first ability and the rider's colours are one ask (mana_rider.go)
-		return
+		return true
 	}
 	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+	return true
 }
 
 // scriptEngineAnswer maps the script search's answer index c of gap sl to
@@ -2028,7 +2054,8 @@ func (s *State) anyRAnswers(k *prep, sl Slot) uint8 {
 // replaying path's taps, so the play loop allocates nothing.
 func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, anyR, tapsDef, ca slotMask, path []uint8, dead *bool) (int, bool) {
 	var d Decision
-	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	life := s.lifeGapMask(k, p) // a life-only gap among the order (mana_lifegap.go)
+	depth := 0                  // gaps tapped at this node: order[:depth], answers path[:depth]
 	nodes := 0
 	// An activation's granted mana is the grant search's only for a play its
 	// walk lists (grantCap). A play the walk leaves off -- it needs a
@@ -2041,15 +2068,22 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 	// and Skerry's {U}{U} (CR 605.1a, 601.2g-h).
 	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
 	for {
+		replay := true
 		if depth > 0 {
-			if nodes++; (ctr.any() || ca.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter gaps' answers multiply)
+			if nodes++; (ctr.any() || ca.any() || life.any()) && nodes > potentialScriptNodes { // gorge's search budget: no script past it (the counter, Combo Any and life gaps' answers multiply)
 				return 0, false
 			}
 			t := s.fork()
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			for j := 0; j < depth; j++ {
-				t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill)
+				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill) {
+					// a life-only gap the path's earlier activation made
+					// unpayable: no state under this prefix can tap it, so
+					// fail the branch and backtrack (see scriptGapTap)
+					replay = false
+					break
+				}
 			}
 			t.hideDeferred(k, p, a, tapsDef)
 			t.restrOptions(k, &d, p)
@@ -2071,7 +2105,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			// script. The walk mirrors that, on the copy resolvePrefixStack
 			// runs (mana_sacsource.go).
 			resolve := t.playNeedsEmptyStack(k, a)
-			found := hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p, resolve)
+			found := replay && hasOption(&d, a) && (t.npend == 0 || depth == len(order) || !resolve) && !t.foreignPendAsks(k, p, resolve)
 			if found && t.npend != 0 {
 				t.resolvePrefixPlay(k, a, p, t.sp, resolve)
 				if t.over {
@@ -2094,7 +2128,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 			}
 			s.unfork()
 		}
-		if depth < len(order) { // the node's first child
+		if replay && depth < len(order) { // the node's first child
 			path[depth] = 0
 			depth++
 			continue
@@ -2112,6 +2146,8 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
+			case life.has(order[j]):
+				nch = s.lifeGapAnswers(k, order[j])
 			case ca.has(order[j]):
 				if s.anyDifferentAt(k, order[j]) {
 					// an AnyDifferent source's distinct-colour answers, not the
@@ -2156,7 +2192,7 @@ func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order 
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	var order [MaxPerm]Slot
-	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
+	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	dead := true
@@ -2176,7 +2212,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	}
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	var order [MaxPerm]Slot
-	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca)
+	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
 	var path [MaxPerm]uint8
 	var dead bool
