@@ -2397,7 +2397,7 @@ func (s *State) payPicks(k *prep) {
 				s.touchSl(ob.slot)
 				pp.seeCtr(s)
 				if c := int(uint8(f)); pp.ctrN(s, c) > 0 {
-					pp.subCtrN(s, c, 1)
+					s.subCtrFire(k, ob.slot, c, 1) // trig_counterremoved.go
 				}
 			}
 		}

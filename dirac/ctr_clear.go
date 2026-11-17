@@ -31,21 +31,21 @@ func (s *State) clearCounters(k *prep, in *kop.Instr) {
 	}
 	s.touchSl(sl)
 	p.seeCtr(s)
-	p.setCtrN(s, int(kop.CtrP1P1), 0)
+	s.clearCtrFire(k, sl, int(kop.CtrP1P1))
 	for again := true; again; {
 		again = false
 		for i := range p.ck {
 			if p.cn[i] != 0 && kop.CounterKind(p.ck[i]) != kop.CtrLevel {
 				// setCtrN may free the slot and shift the ones above it
 				// down: rescan from the first slot
-				p.setCtrN(s, int(p.ck[i]), 0)
+				s.clearCtrFire(k, sl, int(p.ck[i]))
 				again = true
 				break
 			}
 		}
 		for _, e := range s.ctrOverOf(p.obj, 0) {
 			if e.n != 0 && kop.CounterKind(e.kind) != kop.CtrLevel {
-				p.setCtrN(s, int(e.kind), 0)
+				s.clearCtrFire(k, sl, int(e.kind))
 				again = true
 				break
 			}
@@ -79,6 +79,6 @@ func (s *State) removeCounterAll(k *prep, in *kop.Instr) {
 		}
 		s.touchSl(sl)
 		p.seeCtr(s)
-		p.subCtrN(s, int(in.C), amt)
+		s.subCtrFire(k, sl, int(in.C), amt) // trig_counterremoved.go
 	}
 }

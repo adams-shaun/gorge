@@ -1034,6 +1034,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	if o == NoObj {
 		return TCode(NoTarget)
 	}
+	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
+		// the triggering permanent left and came back meanwhile: a new object
+		// (CR 400.7); the op's referent is none, as objRef resolves it
+		return TCode(NoTarget)
+	}
 	return TCode(o)
 }
 

@@ -110,7 +110,14 @@ func (cb *cardBuilder) abilities() error {
 			}
 			ke.Abilities = append(ke.Abilities, ka)
 		}
-		if len(e.Statics) == 0 {
+		for _, r := range e.Repls {
+			ka, err := cb.repl(r)
+			if err != nil {
+				return bfail(cb.node, "%v", err)
+			}
+			ke.Abilities = append(ke.Abilities, ka)
+		}
+		if len(e.Statics) == 0 && len(e.Repls) == 0 {
 			j, ok := cb.abMap[e.Trigger]
 			if !ok {
 				return bfail(cb.node, "emblem trigger %d not emitted", e.Trigger)
@@ -1164,6 +1171,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
+	"CounterRemoved": kop.TrigCounterRemoved, "CounterRemovedOnce": kop.TrigCounterRemovedOnce, // the card's own (lower_counterremoved.go; dirac/trig_counterremoved.go)
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
@@ -1332,6 +1340,13 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.N = int16(k)
 	}
+	if t.Event == "CounterRemoved" || t.Event == "CounterRemovedOnce" {
+		k, err := counterKind(t.Step)
+		if err != nil {
+			return kt, err
+		}
+		kt.N = int16(k)
+	}
 	if t.MinAttackers > 0 {
 		kt.N = trigCmpN(t.AtkCmp, t.MinAttackers)
 	}
@@ -1470,7 +1485,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 	}
 	if t.PerCounter {
-		if t.Event != "CounterAdded" {
+		if t.Event != "CounterAdded" && t.Event != "CounterRemoved" {
 			return kt, fmt.Errorf("PerCounter on a %s trigger", t.Event)
 		}
 		kt.Flags4 |= kop.Tf4PerCounter
@@ -1776,7 +1791,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	case zExile:
 		// "when this card becomes plotted": the plot action
 		// fires it from exile (kw_plot.go)
-		if t.Event != "BecomesPlotted" {
+		if t.Event != "BecomesPlotted" && t.Event != "CounterRemoved" && t.Event != "CounterRemovedOnce" {
 			return kt, fmt.Errorf("trigger zone %d", t.Zone)
 		}
 		kt.Zone = kop.ZoneExile

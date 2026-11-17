@@ -22,7 +22,7 @@ func TestMustBlockAPICarrierCensus(t *testing.T) {
 	}
 	sort.Strings(got)
 	want := []string{
-		"Auriok Siege Sled", "Avalanche Tusker", "Blaze of Glory", "Burning-Tree Bloodscale", "Crashing Boars", "Feral Contest", "Fighter Class", "Giant Ambush Beetle", "Grappling Hook", "Hunt Down", "Impetuous Devils", "Lineprancers", "Lurking Arynx", "Magnetic Web", "Maraleaf Rider", "Matsu-Tribe Decoy", "Monstrous Step", "Rampant Elephant", "Rimehorn Aurochs", "Sisters of Stone Death", "Tangle Angler", "Tolsimir, Midnight's Light", "Torchling", "Tower Above", "Trumpeting Armodon", "Turntimber Basilisk", "Vortex Elemental",
+		"Auriok Siege Sled", "Avalanche Tusker", "Blaze of Glory", "Brontotherium", "Burning-Tree Bloodscale", "Crashing Boars", "Crested Craghorn", "Deftblade Elite", "Feral Contest", "Feral Throwback", "Fighter Class", "Giant Ambush Beetle", "Goblin Grappler", "Grappling Hook", "Hunt Down", "Impetuous Devils", "Krosan Vorine", "Lineprancers", "Lowland Tracker", "Lurking Arynx", "Magnetic Web", "Maraleaf Rider", "Matsu-Tribe Decoy", "Monstrous Step", "Rampant Elephant", "Rimehorn Aurochs", "Sisters of Stone Death", "Swooping Talon", "Tangle Angler", "Tolsimir, Midnight's Light", "Torchling", "Tower Above", "Trumpeting Armodon", "Turntimber Basilisk", "Vortex Elemental",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("api:MustBlock carriers: got %q, want %q", got, want)

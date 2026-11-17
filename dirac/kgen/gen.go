@@ -565,6 +565,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 			}
 		}
 		fmt.Fprintf(w, "  emblem[%d] trigger=%d statics=%d%s\n", i, e.Trigger, len(e.Statics), eot)
+		for _, r := range e.Repls {
+			dumpRepl(w, r) // lower_staticprevent.go
+		}
 	}
 	for _, r := range c.Refusals {
 		fmt.Fprintf(w, "  REFUSED %s: %s\n", r.Node, r.Reason)

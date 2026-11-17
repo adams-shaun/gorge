@@ -161,12 +161,12 @@ const (
 	// structs holding a *Engine field (codeshape.Metrics.EngineSurface). It
 	// closes the side door of turning an Engine method into a free function
 	// or a wrapper struct's method.
-	engineSurface = 2739
+	engineSurface = 2728
 	// stringLiteralCompares is the ==/!= comparisons against a non-empty
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2776
+	stringLiteralCompares = 2775
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
 	rawBoolParamParses = 267

@@ -170,8 +170,10 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 }
 
 // phyWindowReach reports whether the payment's own pool, the untapped printed
-// sources, the restricted mana it may spend and the restricted sources whose
-// mana it admits reach cost. The check is the window's opening condition, not
+// sources, the deferred sources the window can tap (a TriggersWhenSpent$ mana
+// ability the planner's census omits, mana_deferred.go), the restricted mana it
+// may spend and the restricted sources whose mana it admits reach cost. The
+// check is the window's opening condition, not
 // the offer's: a colour face only a paid filter could make (pair 11's
 // Souleater beside School of the Unseen) leaves gorge's window unopened, so
 // the activation reverses with no taps; the filter never pays a pip the
@@ -179,6 +181,10 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 func (s *State) phyWindowReach(k *prep, p uint8, cost *kop.ManaCost) bool {
 	var av avail
 	s.availFor(k, p, &av)
+	// the planner's census omits a deferred source (Gilanra's {G}), but the
+	// window can tap it, and the pip ask that announced the face counted it
+	// (mana_deferred.go)
+	s.addDeferredUnits(k, p, &av)
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}

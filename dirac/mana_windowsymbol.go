@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // windowSymbolled is the colours of sl's "Choose a mana ability" ask that
 // carry a mana symbol, and whether the view mixes them with ability options
@@ -39,5 +43,42 @@ func (s *State) windowAbilityAskCol(k *prep, p uint8, useful *kop.ManaCost, sl S
 		}
 		useful = &u
 	}
+	if c, ok := s.windowComboFlatCol(k, p, useful, sl, pc); ok {
+		return c
+	}
 	return s.windowCol(k, p, useful, sl, pc, false, false)
+}
+
+// windowComboFlatCol is the colour a multi-ability source answers when one of
+// its own abilities is a printed multi-colour Combo (flattened into one
+// symbolled option per colour) beside abilities with no symbol (Gleaming
+// Bastion's {C}). The cast's classic window carries no ManaPayment, and the
+// oracle's derived demand (GorgeSide.windowOwed) names a pip only once the
+// generic is paid (PendingCastOwed with Generic == 0): while generic is still
+// owed, gorge's answer (payexec.WindowAnswer) takes the lowest symbolled
+// colour, though owedAbilitiesFirst lists the Combo first because of the pip
+// the cost owes (CR 601.2g). ok is false for a source with no such Combo, or
+// with the generic covered, whose answer stays the owed-first one.
+func (s *State) windowComboFlatCol(k *prep, p uint8, useful *kop.ManaCost, sl Slot, pc *pcard) (int, bool) {
+	cd := s.cardAt(sl)
+	if pc.blgFirst != 0 || !pc.manaMulti {
+		return 0, false // a granted basic land type's symbol-less options (windowSymbolled)
+	}
+	if _, decided := s.windowUseful(k, p, useful); decided {
+		return 0, false // the generic is covered: gorge's harness answers the pip the cost still owes
+	}
+	var flat uint8
+	for i := range k.t.Cards[cd].Abilities {
+		a := &k.t.Cards[cd].Abilities[i]
+		if a.Kind == kop.AbMana && a.AFlags&kop.AfManaChoice != 0 && a.ManaColors != kop.ColAny {
+			if m := uint8(a.ManaColors) & 0x1f; m&(m-1) != 0 {
+				flat |= m
+			}
+		}
+	}
+	flat &= s.windowOwnMask(k, sl)
+	if flat == 0 {
+		return 0, false
+	}
+	return bits.TrailingZeros8(flat), true
 }

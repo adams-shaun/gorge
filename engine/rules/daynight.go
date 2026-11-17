@@ -129,3 +129,14 @@ func (e *Engine) dayNightStateCheck(b *sbaBatch) {
 		b.add(events.Event{Kind: events.DayNightChange, Amount: int32(state.DayNightNight), Text: state.DayNightNight.String()})
 	}
 }
+
+// dayTimeCode is a designation's Forge DayTime$ code.
+func dayTimeCode(d state.DayNight) cards.DayTime {
+	switch d {
+	case state.DayNightDay:
+		return cards.DayTimeDay
+	case state.DayNightNight:
+		return cards.DayTimeNight
+	}
+	return cards.DayTimeNeither
+}

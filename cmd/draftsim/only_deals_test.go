@@ -14,7 +14,7 @@ import (
 // onlyDealsDigest is the digest (stdout and event logs) of the MBC -only run
 // below, recorded from the code before restrictSpec moved to setdata.Restrict.
 // Re-pinned when Reinforce (Swell of Courage) made one more MBC card playable.
-const onlyDealsDigest = "10f034a8b1b79e669564ea8d80401b6a9cf4c203ff42f2cff7a81ac6a4686c95"
+const onlyDealsDigest = "cefb5f35f4950d4609e99e1faa37c07aecbff7c2454d85925293cabf2070ff35"
 
 // TestOnlyDealsListedCardsOnly: an MBC -only event deals only listed names and
 // its output is the bytes it was before the restriction moved to setdata.

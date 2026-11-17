@@ -1103,8 +1103,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		} else if ok {
 			tr.Whose = whoYou
 		}
-	case "CounterPlayerAddedAll":
-		if err := lc.ctrPlayerAddedAll(tp, tr); err != nil {
+	case "CounterPlayerAddedAll", "CounterRemoved", "CounterRemovedOnce":
+		if err := lc.ctrRemovedOrPlayerAddedAll(tp, tr, t, readF); err != nil { // lower_counterremoved.go
 			return err
 		}
 	case "Untaps":
