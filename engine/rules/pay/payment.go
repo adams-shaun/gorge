@@ -396,6 +396,11 @@ type Descriptor struct {
 	// stack-side FlagBestowed provenance exists yet to make a RestrictValid$
 	// spell read see an Aura; the payment, made on the stack, does.
 	Bestowed bool
+	// SubCounterBound marks the resolution-time pay gate's descriptor
+	// (respay.go): the potential bound reads a SubCounter<X> mana ability's
+	// Amount$ X at the counters it can remove instead of unbounded
+	// (potential_subcounter.go).
+	SubCounterBound bool
 }
 
 // OnlyTagKnown reports whether tag names a modelled producer tag (the
@@ -863,22 +868,41 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	return e.MatchesSpellFrom("Card."+spec, d.ID, p, srcID)
 }
 
+// bestowedBarredWords and bestowedKeptWords are the spec words a bestowed
+// cast's Aura spell fails (it is no creature) and holds (it is an Aura and
+// nonCreature) outright.
+var (
+	bestowedBarredWords = []string{"Creature"}
+	bestowedKeptWords   = []string{"nonCreature", "Aura"}
+)
+
 // bestowedSpecMatches reads a RestrictValid$ spell spec the way the bestowed
 // cast will on the stack (CR 702.103b: the spell is an Aura and not a
 // creature): a Creature qualifier fails, nonCreature and Aura hold, and every
 // other qualifier reads the card as it is (it keeps its subtypes and colours).
 // The qualifiers are the spec's "+"- and "."-separated words.
 func bestowedSpecMatches(e Engine, p state.PlayerID, id state.ObjID, spec string, src state.ObjID) bool {
-	for _, q := range strings.FieldsFunc(spec, func(r rune) bool { return r == '+' || r == '.' }) {
-		switch q {
-		case "Creature":
-			return false
-		case "nonCreature", "Aura":
-		default:
-			// a bare type word is its own base; a qualifier-only word needs Card.
-			if !e.MatchesSpellFrom(q, id, p, src) && !e.MatchesSpellFrom("Card."+q, id, p, src) {
-				return false
+	for len(spec) > 0 {
+		q := spec
+		spec = ""
+		for i := 0; i < len(q); i++ {
+			if q[i] == '+' || q[i] == '.' {
+				q, spec = q[:i], q[i+1:]
+				break
 			}
+		}
+		if q == "" {
+			continue
+		}
+		if slices.Contains(bestowedBarredWords, q) {
+			return false
+		}
+		if slices.Contains(bestowedKeptWords, q) {
+			continue
+		}
+		// a bare type word is its own base; a qualifier-only word needs Card.
+		if !e.MatchesSpellFrom(q, id, p, src) && !e.MatchesSpellFrom("Card."+q, id, p, src) {
+			return false
 		}
 	}
 	return true

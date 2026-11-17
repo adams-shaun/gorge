@@ -16,7 +16,7 @@ func TestPotentialManaColorIDAddsNothing(t *testing.T) {
 	e := layerEngine(t)
 	e.G.SetZone(state.ZHand, 0, nil)
 	onBoard(t, e, 0, "Name:Circled Land\nTypes:Land\n"+
-		"A:AB$ Mana | Cost$ T | Produced$ Combo ColorID | SpellDescription$ Add one mana of either of the circled colors.\nOracle:x\n")
+		"A:AB$ Mana | Cost$ T | Produced$ Combo ColorID | SpellDescription$ Add one mana of a circled colour.\nOracle:x\n")
 	m := e.PotentialMana(0)
 	for i, n := range m {
 		if n != 0 {

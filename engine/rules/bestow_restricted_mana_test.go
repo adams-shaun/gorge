@@ -14,7 +14,7 @@ import (
 // keeps (an Enchantment spell) still pays it.
 func TestBestowOfferReadsTheSpellAsAnAura(t *testing.T) {
 	const bestowSrc = "Name:Bestow Fixture\nManaCost:1 B\nTypes:Enchantment Creature Spirit\nPT:2/1\nK:Bestow:4 B\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Enchanted | AddPower$ 2 | AddToughness$ 1 | Description$ Enchanted creature gets +2/+1.\nOracle:x\n"
+		"S:Mode$ Continuous | AffectedDefined$ Enchanted | AddPower$ 2 | AddToughness$ 1 | Description$ The creature this enchants gets +2/+1.\nOracle:x\n"
 	offered := func(t *testing.T, restrict string) bool {
 		t.Helper()
 		sourceSrc := "Name:Restricted Source\nManaCost:2\nTypes:Creature Elf\nPT:1/1\n" +

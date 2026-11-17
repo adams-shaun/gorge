@@ -88,14 +88,12 @@ func (e *Engine) PotentialMana(p state.PlayerID) state.Mana {
 // type or activate an ability of a creature of the chosen type" cannot fund Frenzied Goblin's triggered "you may pay
 // {R}", so the resolution-time pay ask (resPayNeedsMana) must not count it
 // (CR 106.6: the restriction limits what that mana is spent on).
+//
+// A payment marked SubCounterBound (the resolution-time pay gate) reads a
+// SubCounter<X> mana ability's Amount$ X at the counters it can remove
+// (potential_subcounter.go) instead of unbounded.
 func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) state.Mana {
-	return e.potentialManaCounted(p, payment, false)
-}
-
-// potentialManaCounted is potentialManaFor; counters reads a SubCounter<X>
-// mana ability's Amount$ X at the counters it can remove (the resolution-time
-// pay gate's bound, potential_subcounter.go) instead of unbounded.
-func (e *Engine) potentialManaCounted(p state.PlayerID, payment *paymentDescriptor, counters bool) state.Mana {
+	counters := payment != nil && payment.SubCounterBound
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	// The decision's recorded priority walk, when its caller armed it
@@ -223,12 +221,12 @@ func (e *Engine) potentialManaCounted(p state.PlayerID, payment *paymentDescript
 						if !addPotentialReflected(e, &out, p, id, ma) {
 							prod := ma
 							if counters {
-								if bounded, ok := potentialSubCounterBounded(e, p, id, ma); ok {
+								if bounded, ok := potentialSubCounterBounded(e, asPayer(e), p, id, ma); ok {
 									prod = bounded
 								}
 							}
 							e.addPotentialManaOf(&out, prod)
-							e.addPotentialRepeatable(&out, p, id, ma)
+							addPotentialRepeatable(e, &out, p, id, ma)
 							// A Condition-split ability adds its sub's production instead
 							// when the gate holds (mana_condsplit.go): count both.
 							if sub := condSplitLiveSub(e, p, id, ma); sub != nil {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -20,14 +21,15 @@ func TestPotentialManaSubCounterXIsBoundedByCounters(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: srcID, From: e.G.Obj(srcID).Zone, To: state.ZBattlefield})
 	e.pending = nil
 	e.Advance()
-	if got := e.potentialManaCounted(0, nil, true)[state.MW]; got != 0 {
+	gate := paymentDescriptor{Class: pay.PurposeOther, SubCounterBound: true}
+	if got := e.potentialManaFor(0, &gate)[state.MW]; got != 0 {
 		t.Fatalf("no counters: potential W = %d, want 0", got)
 	}
 	if got := e.PotentialMana(0)[state.MW]; got != potentialUnbounded {
 		t.Fatalf("precondition: the view's PotentialMana keeps the unbounded read, got %d", got)
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: srcID, Counter: "STORAGE", Amount: 2})
-	if got := e.potentialManaCounted(0, nil, true)[state.MW]; got != 2 {
+	if got := e.potentialManaFor(0, &gate)[state.MW]; got != 2 {
 		t.Fatalf("two counters: potential W = %d, want 2", got)
 	}
 }
