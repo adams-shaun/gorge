@@ -35,7 +35,7 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
 		return lc.skipUntapEffect(ps)
 	}
-	if ps.is("Duration", "AsLongAsControl") || ps.is("Duration", "AsLongAsInPlay") || ps.is("Duration", "UntilHostLeavesPlay") {
+	if ps.is("Duration", "AsLongAsControl") || ps.is("Duration", "AsLongAsInPlay") || ps.is("Duration", "UntilHostLeavesPlay") || ps.is("Duration", "UntilUntaps") {
 		if ok, err := lc.untapLockEffect(ps); ok || err != nil { // lower_untaplock.go
 			return err
 		}
