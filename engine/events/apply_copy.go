@@ -510,9 +510,23 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		// (CR 201.4b-f): copy THAT face.
 		if i, j, ok := g.NameUniverse.FaceByName(e.Text); ok {
 			face = g.NameUniverse.Card(i).Faces[j]
+		} else if card := g.NamedCard(e.Text); card != nil && len(card.Faces) > 0 {
+			// A game may carry the compiled corpus as NamedCorpus instead of
+			// the NameCard universe (the oracle harness does). The name a
+			// chosen-name copy names is the same immutable card there.
+			face = card.Faces[0]
 		}
 	} else if src = g.Obj(e.IDs[0]); src != nil {
 		face = src.CopiableFace()
+		// CR 707.2: a copy of an object's LAST KNOWN INFORMATION (Defined$
+		// RememberedLKI, TriggeredTargetLKICopy) reads the copiable values it
+		// had on the battlefield. Leaving the battlefield clears CopyFace
+		// (CR 400.7) and keeps the old basis in LeftCopyFace, so the printed
+		// face alone would drop a chosen P/T, type or keyword (Identity Thief
+		// copying a Primal Clay that chose 3/3 must be 3/3, not */*).
+		if src.CopyFace == nil && src.Zone != state.ZBattlefield && src.LeftCopyFace != nil {
+			face = src.LeftCopyFace
+		}
 	}
 	if face == nil {
 		return

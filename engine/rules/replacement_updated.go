@@ -4,9 +4,87 @@ import (
 	"strconv"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// entryCloneBody reports whether m is the "you may have this enter as a copy"
+// keyword replacement (K:ETBReplacement:Copy:...:  Clone, Spark Double).
+// Those bodies run AFTER the move, so the pre-move match collection saw only
+// the entering card's own printed face.
+func entryCloneBody(m replMatch) bool {
+	return m.repl != nil && m.repl.With != nil &&
+		m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With.API == "Clone"
+}
+
+// applyInheritedEntryReplacements runs the as-enters replacements that the
+// permanent's COPIABLE face gained from the entry copy just applied. CR
+// 707.5/707.6: when a permanent enters as a copy of a permanent whose copiable
+// values include an "as this enters" replacement (Primal Clay's Layer$ Copy
+// choice), that replacement applies to the entering copy and its controller
+// makes a fresh choice. The move itself already happened (ReplacementResult$
+// Updated), so only the copied line's body runs -- never the fold.
+func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev events.Event) {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield {
+		return
+	}
+	o := g.Obj(ev.Obj)
+	if o == nil || o.Zone != state.ZBattlefield || o.CopyFace == nil {
+		return
+	}
+	f := e.replacementFace(ev.Obj, ev)
+	if f == nil {
+		return
+	}
+	rebased := false
+	for i := range f.Repls {
+		r := &f.Repls[i]
+		if !replacementEventNameMatches(r.Event, "Moved") ||
+			r.ParamStr(cards.PKLayer) != "Copy" || r.With == nil {
+			continue
+		}
+		m := replMatch{id: ev.Obj, face: f, repl: r}
+		if !e.replacementMatches(*r, ev.Obj, ev) {
+			continue
+		}
+		if !rebased && r.With.API == "GenericChoice" {
+			// The copied card's previous application of this SAME as-enters
+			// replacement lives on the copy basis (Primal Plasma's chosen
+			// 1/6 with defender). Re-base the entry onto the printed card the
+			// choice belongs to before making the new choice, so a mode that
+			// does not grant the old keyword cannot inherit it (CR 707.5).
+			rebaseInheritedEntryCopy(e, g, ev.Obj, f.Name)
+			rebased = true
+		}
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, r.With, nil)
+	}
+}
+
+// inheritedEntryEngine is the narrow set of engine operations the inherited
+// as-enters replacement walk needs. A free function taking *Engine would be
+// an Engine method to codeshape's surface ratchet.
+type inheritedEntryEngine interface {
+	emit(events.Event) events.Event
+	replacementFace(state.ObjID, events.Event) *cards.Face
+	replacementMatches(cards.Repl, state.ObjID, events.Event) bool
+	replCtx(replMatch, events.Event) *effects.Ctx
+	runReplaceWith(*effects.Ctx, state.ObjID, *cards.SA, *events.Event)
+}
+
+// rebaseInheritedEntryCopy re-bases the entering copy onto the printed face of
+// the named card its copied as-enters replacement belongs to. It is a
+// chosen-name ClonePermanent, the existing event shape for "be this named
+// card's printed face", so the re-base is logged and replays identically.
+// A name with no printed card (a token or renamed copy) is left alone: there
+// is no printed basis to recover.
+func rebaseInheritedEntryCopy(e inheritedEntryEngine, g *state.Game, id state.ObjID, name string) {
+	card := g.NamedCard(name)
+	if card == nil || len(card.Faces) == 0 || card.Faces[0] == nil || card.Faces[0].Name == "" {
+		return
+	}
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: id, Counter: "chosen-name", Text: card.Faces[0].Name})
+}
 
 // replRedirect records one destination-changing move replacement in flight:
 // the move it replaced and the identities (replIdentity) of every
@@ -137,6 +215,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	// Engine.emit's own sweep point).
 	e.effectMoveSweep(ev)
 	e.finishSourceLifelinkLKI(ev, departing, link, controller)
+	entryCopied := false
 	for _, m := range matches {
 		if m.repl.With == nil {
 			continue
@@ -147,7 +226,13 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			// place the counters twice.
 			continue
 		}
+		if entryCloneBody(m) {
+			entryCopied = true
+		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+	}
+	if entryCopied {
+		applyInheritedEntryReplacements(e, e.G, stored)
 	}
 	settleAuraEntry(e, &stored) // CR 303.4f, as in the single-match branch
 	// Matched after every Updated body, as in the single-match branch.
@@ -298,6 +383,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		rc.emitted = true
 	}
 	chosen := rc.cands[selected]
+	entryCopied := rc.entryCopied || entryCloneBody(chosen)
 	if !bodyAbsorbed(rc.absorbed, chosen) {
 		e.runReplaceWith(e.replCtx(chosen, rc.ev), rc.ev.Obj, chosen.repl.With, nil)
 	}
@@ -313,6 +399,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 	if p, ok := e.moveAffectedPlayer(rc.ev); ok && !e.G.Players[p].Lost &&
 		len(remaining) > 1 && !updatedReplacementsCommute(remaining) {
 		rc.cands = remaining
+		rc.entryCopied = entryCopied
 		e.replChoices = append([]replChoice{rc}, e.replChoices...)
 		if e.pending == nil {
 			e.askReplacementChoice(p)
@@ -323,7 +410,13 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		if bodyAbsorbed(rc.absorbed, m) {
 			continue
 		}
+		if entryCloneBody(m) {
+			entryCopied = true
+		}
 		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
+	}
+	if entryCopied {
+		applyInheritedEntryReplacements(e, e.G, rc.stored)
 	}
 	settleAuraEntry(e, &rc.stored) // CR 303.4f, as in the synchronous composition
 	e.refreshEntryTriggerTables()
