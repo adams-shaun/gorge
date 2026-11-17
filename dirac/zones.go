@@ -661,6 +661,16 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	if k.gen != nil && k.gen.anyDelayDies && z == kop.ZoneGraveyard && s.g.ndp != 0 {
 		s.fireDiesProgs(p.obj, p.ctrl) // trig_delayeddies.go: after the dies/leaves triggers
 	}
+	// This member's leave has fired. A simultaneous departure fires every
+	// member's leave before any removePerm (leaveAll's batch and non-batch
+	// arms, the SBA casualty batch, the legend/Saga batch, flushSac,
+	// leaveTogether), so the source stays subscribed for the later members'
+	// moves; the mark lets objEventMatch drop its FromAnyGrave half there
+	// (CR 603.6c, 603.10). The member's own move is exempt (the mark is set
+	// after it). removePerm clears the mark as that member's removal begins;
+	// a removal fires no FromAnyGrave Dies event, so the marks still up on
+	// the later members are not read.
+	p.flags |= pfBatchGone
 }
 
 func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
@@ -669,6 +679,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	s.fireToGraveDies(k, sl, z) // the split's Dies half, before the move mutates the card (trig_tograve.go)
 	p := &s.perms[sl]
+	p.flags &^= pfBatchGone // the departure is over for this member (fireLeave)
 	o := p.obj
 	s.mSlClr(k, mechTappedTurn, sl) // the permanent leaves: its tapped-this-turn mark ends (filter_permmarks.go)
 	// a permanent that lost its abilities has no "from anywhere" line (CR 613.1f)

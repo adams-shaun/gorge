@@ -197,6 +197,7 @@ const (
 	pfLoyaltyUsed // a loyalty ability of this permanent was activated this turn
 	pfOnceGame    // a once-per-game ("activate only once") ability of this permanent was activated
 	pfDtMore      // a second deathtouch mark (gorge adds a "Deathtouched" counter per deathtouch damage event)
+	pfBatchGone   // the slot's leave has fired in a simultaneous departure still on the battlefield (zones.go fireLeave); removePerm clears it
 )
 
 // faceDown reports whether the permanent at sl is face down (CR 708.2;

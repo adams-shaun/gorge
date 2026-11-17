@@ -687,6 +687,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	var ka kop.Ability
 	ka.Kind = abKinds[a.Kind]
 	ka.SplitPrev = a.SplitPrev
+	ka.FromAnyGrave = a.FromAnyGrave
 	var err error
 	if a.Latent {
 		ka.AFlags |= kop.AfLatent

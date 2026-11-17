@@ -5052,7 +5052,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | decision | 1 |
 | lockstep | 1 |
 | options | 3 |
-| options-options | 3 |
+| options-options | 4 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Damage | 1 |
