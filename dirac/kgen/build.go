@@ -1861,8 +1861,8 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredMonoColor
 	case cmpSameNameT0:
 		kf.Pred = kop.PredSameNameT0
-	case cmpSameNameRem:
-		kf.Pred = kop.PredSameNameRem
+	case cmpSameNameRem, cmpSameNameSelf:
+		sameNamePred(&c, &kf)
 	case cmpAdventureCard:
 		kf.Pred = kop.PredAdventureCard
 	case cmpSolved:
@@ -2767,6 +2767,16 @@ func putsTimeCounters(d *kop.CardDef) bool {
 		}
 	}
 	return false
+}
+
+// sameNamePred maps the sharesNameWith compare kinds: Remembered has no
+// PredN, Self carries the ordinary ! negation in PredN.
+func sameNamePred(c *lClause, kf *kop.Filter) {
+	if c.CmpStat == cmpSameNameRem {
+		kf.Pred = kop.PredSameNameRem
+		return
+	}
+	kf.Pred, kf.PredN = kop.PredSameNameSelf, int16(c.CmpN)
 }
 
 // clauseSubtypes fills kf's subtype slots from the clause's Subtype,
