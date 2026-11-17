@@ -271,10 +271,11 @@ func TestCtrOverFullStalls(t *testing.T) {
 }
 
 // TestPermSize pins perm's size. The 16-bit counter kinds (ck) added three
-// bytes and the named spare byte one.
+// bytes, attack-version bookkeeping (atkVer) one and the P/T-switch mark
+// byte (spare) one.
 func TestPermSize(t *testing.T) {
 	var p perm
-	want := uintptr(60)
+	want := uintptr(64)
 	if got := unsafeSizeofPerm(&p); got != want {
 		t.Fatalf("perm is %d bytes, want %d", got, want)
 	}

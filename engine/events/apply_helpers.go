@@ -200,6 +200,7 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 		o.IsAttacking = false
 		o.IsBlocking = false
 		o.AttackingBattle = 0
+		o.AttackingBattleGen = 0
 		o.Band = 0
 		o.BlockedBy = nil
 		o.SummonSick = true

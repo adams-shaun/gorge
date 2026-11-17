@@ -224,12 +224,12 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 func (s *State) setEnterAttacker(k *prep, sl Slot, atk TCode) {
 	pp := &s.perms[sl]
 	if pp.flags&pfAttacking != 0 {
-		pp.atk = atk // already attacking (Kira's entry beside a token's own): no second slot
+		s.setAttackTarget(pp, atk) // already attacking (Kira's entry beside a token's own): no second slot
 		s.touchSl(sl)
 		return
 	}
 	pp.flags |= pfAttacking
-	pp.atk = atk
+	s.setAttackTarget(pp, atk)
 	pp.bord = objWord(s.nAttackers)
 	s.nAttackers++
 	s.touchSl(sl)

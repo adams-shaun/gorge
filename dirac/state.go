@@ -284,6 +284,13 @@ type perm struct {
 	// is general slot i (a seen slot keeps its kind at count 0), then
 	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched).
 	cseen uint8
+	// atkVer is the object version the attacker's target (atk) had when the
+	// attack was declared. A planeswalker or battle that left the
+	// battlefield and came back is a new object (CR 400.7), not the
+	// declared target, so it is no longer being attacked (CR 506.4c). Zero
+	// for a player or no target. The byte is written, not padding:
+	// ObjHash hashes every byte of perm.
+	atkVer uint8
 	// spare is the byte the 16-bit counter kinds (ck) left ahead of card,
 	// named so perm has no padding (ObjHash hashes every byte of it). Its
 	// one bit in use is spareSwitchPT (kw_kwmark.go).

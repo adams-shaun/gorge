@@ -2082,14 +2082,15 @@ func (e *Engine) dealDamagePass(pass bool) {
 // forward combat damage: the battle object when the creature is attacking a
 // battle (CR 310.7), else the defending player. Object.AttackingBattle is set
 // by events.Apply from the DeclareAttackers event and cleared with IsAttacking.
-// A battle that has left the battlefield since the declaration returns
-// ok=false, which the caller drops -- the recipient no longer exists, the same
+// A battle that has left the battlefield since the declaration (even one
+// that came back as a new object, CR 506.4c) returns ok=false, which the caller drops -- the recipient no longer exists, the same
 // no-assignment shape a departed defender leaves. The ok flag, not a zero
 // value, is the discriminator: seat 0 is a legal defending player, so
 // (player 0, object 0) is a real assignment and cannot mean "no recipient".
 func (e *Engine) combatDefenderTarget(a *state.Object) (state.PlayerID, state.ObjID, bool) {
 	if a.AttackingBattle != 0 {
-		if b := e.G.Obj(a.AttackingBattle); b != nil && b.Zone == state.ZBattlefield {
+		if b := e.G.Obj(a.AttackingBattle); b != nil && b.Zone == state.ZBattlefield &&
+			b.ZoneGen == a.AttackingBattleGen {
 			return 0, a.AttackingBattle, true
 		}
 		return 0, 0, false
