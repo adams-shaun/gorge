@@ -16,11 +16,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // The rules mirror gorge's and the RemPersist links' (zone_rememberpersist.go):
 //
-//   - the departure fold: a source that leaves the battlefield loses its
-//     Imprinted list (smDropImp, called by leaveGen), while its Remembered
-//     list stays for the leaves trigger that reads it;
+//   - the departure: a source that leaves the battlefield KEEPS its Imprinted
+//     list (gorge's wasBattlefield arm keeps Object.Imprinted for the leaves
+//     trigger that reads it), so leaveGen no longer folds it;
 //   - the re-entry wipe: a source entering the battlefield starts with empty
-//     lists (smClear at the enter, by the card that keeps them);
+//     lists (smDropImp at the enter, by the card that keeps them; zone_imprint.go
+//     impEnter);
 //   - the fire-time snapshot: a record is live while its source is on the
 //     battlefield at the stamped ver, and a resolving trigger also reads the
 //     records of the incarnation it fired from (srcVer == sver, or sver+1 for
@@ -172,7 +173,9 @@ func (s *State) smForget(o, src Obj, kinds uint8) {
 	}
 }
 
-// smDropImp is gorge's departure fold: src's Imprinted lists end.
+// smDropImp ends src's Imprinted lists: the battlefield-entry wipe
+// (zone_imprint.go impEnter), where every record is from an earlier
+// incarnation.
 func (s *State) smDropImp(src Obj) {
 	n := s.smDrop(func(r *smRec) bool { return r.src == src && r.fl&(smImp|smImpAny) != 0 })
 	if DebugSrcMemStats != nil {
