@@ -9,11 +9,13 @@ package tsgen
 import (
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -41,6 +43,14 @@ type Loader struct {
 // resolution, module-aware).
 func NewLoader() *Loader {
 	fset := token.NewFileSet()
+	// A binary built with -trimpath reports no GOROOT, so build.Default has
+	// none and the source importer cannot find the stdlib. Ask the go command
+	// instead; a normal build already has it and is left alone.
+	if build.Default.GOROOT == "" {
+		if out, err := exec.Command("go", "env", "GOROOT").Output(); err == nil {
+			build.Default.GOROOT = strings.TrimSpace(string(out))
+		}
+	}
 	return &Loader{fset: fset, imp: importer.ForCompiler(fset, "source", nil).(types.ImporterFrom)}
 }
 

@@ -242,6 +242,14 @@ func checkedPackage(t *testing.T, dir string) *types.Package {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if build.Default.GOROOT == "" {
+		// A -trimpath test binary knows no GOROOT unless its environment gives it one.
+		out, err := exec.Command("go", "env", "GOROOT").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		build.Default.GOROOT = strings.TrimSpace(string(out))
+	}
 	bp, err := build.ImportDir(abs, 0)
 	if err != nil {
 		t.Fatal(err)
