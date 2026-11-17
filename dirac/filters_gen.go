@@ -396,7 +396,16 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
 		s.availPotentialFor(k, p, &pot, &d)
 	} else {
-		s.availPotential(k, p, &pot)
+		// An activation's announced X is priced against the activation's own
+		// payment too: a source whose RestrictValid$ refuses the ability
+		// (Base Camp's party-only any-colour mana under Sequence Engine's
+		// artifact activation) adds nothing at any X. The unfiltered
+		// potential walk reads an open production as unlimited, which offered
+		// an X no usable source could pay (CR 106.6; gorge xBoundTargetPayable
+		// prices each announced X with offerCastableUsing and the ability's
+		// payment descriptor).
+		d := payDesc{class: pdAct, card: s.cardAt(src), src: src, instant: a.Cost.Flags&kop.CostSorcery == 0}
+		s.availPotentialFor(k, p, &pot, &d)
 	}
 	s.g.probe = probe{kind: probeAbility, src: src, ctrl: p}
 	if src == NoSlot {
