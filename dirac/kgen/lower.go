@@ -122,6 +122,8 @@ type lowerCtx struct {
 	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	stormTrig      int       // the K:Storm expansion trigger's index + 1: it lowers to nothing (lower_storm.go)
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
+	impPersist     bool      // the face keeps its Imprinted on the source (lower_imppersist.go)
+	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
@@ -406,6 +408,9 @@ func (lc *lowerCtx) lowerFace() {
 	lc.scanStorm() // lower_storm.go: K:Storm's expanded trigger, before the lines lower
 	// lower_imprintmox.go: the imprint-mox shape, before the lines lower
 	lc.imprintMox = lc.imprintMoxShape()
+	// lower_imppersist.go: the Imprinted list kept on the source
+	lc.impPersist, lc.impFoldExiled = lc.impPersistShape()
+	lc.out.ImpPersist = lc.impPersist
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
 	if lc.fuseAlt != nil {
@@ -2957,6 +2962,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	}
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
+		lc.foldImprintExiledWith(c)
 		if c.Flags&fNamedAsSource != 0 {
 			// every named<X> is a literal clause (gorge wordNamed ->
 			// sharesName reads the NAME, not the source; CR 201.2):
