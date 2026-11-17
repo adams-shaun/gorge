@@ -1120,6 +1120,9 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	ctx.Repl.Replaced = ev.Obj
 	if ro := e.G.Obj(ev.Obj); ro != nil {
 		ctx.Repl.ReplacedController, ctx.Repl.HasReplacedController = ro.Controller, true
+		if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ro.Zone == state.ZBattlefield {
+			ctx.Repl.ReplacedPower, ctx.Repl.ReplacedToughness, ctx.Repl.ReplacedPTValid = e.Power(ev.Obj), e.Toughness(ev.Obj), true
+		}
 	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		ctx.Repl.ExcludeFromBattlefieldCount = ev.Obj

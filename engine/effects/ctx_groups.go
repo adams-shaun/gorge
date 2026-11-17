@@ -121,6 +121,13 @@ type ReplacementInputs struct {
 	// HasReplacedController. Context, never persisted.
 	ReplacedController    state.PlayerID
 	HasReplacedController bool
+	// ReplacedPower/ReplacedToughness are the replaced battlefield object's
+	// derived P/T captured when the replacement matched, before the body's
+	// move cleared its counters and continuous effects (X:ReplacedCardLKI$
+	// CardPower, Ravenous Slime). Valid only with ReplacedPTValid. Context,
+	// never persisted.
+	ReplacedPower, ReplacedToughness int32
+	ReplacedPTValid                  bool
 	// ReplacedCards is the ordered plural batch a replaced INSTRUCTION was
 	// about (Defined$ ReplacedCards / ReplacedCards.<qual>): the cascade
 	// instruction's exiled cards, which Averna, the Chaos Bloom picks a land
