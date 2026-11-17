@@ -682,6 +682,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if s.selfGrantLive(k, p) {
 		m |= availHyp // no relaxed proof: gorge's census is not relaxable (mana_owncolours.go)
 	}
+	if s.storeOpenLive(k, p) {
+		m |= availAny // a storage battery folds gorge's potential walk open (mana_storeopen.go)
+	}
 	s.plainOptions(k, &walk, m)
 	// in gorge's potential walk order (walkKey: the hand, the permission
 	// casts, the graveyard in graveyard order with its flashbacks, the
