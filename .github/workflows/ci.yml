@@ -277,7 +277,12 @@ jobs:
           # The SpellBench and ManaBrew interface tests (build tags) run nightly only.
           if [ "${{ github.event_name }}" = schedule ]; then count=-count=1; tags="-tags=spellbench,manabrew"; fi
           if [ -z "$pkgs" ]; then echo "shard ${{ matrix.shard }} is empty"; exit 0; fi
-          go test $count $tags -timeout 20m -skip '^(TestHeads)$' $pkgs
+          # dirac/kgen runs uncached (-count=1): its tests open the corpus ~88 times, so go spent 190-300 s hashing those
+          # files for a test-result cache that never hit in a batch (0 of 6), against ~112 s of tests (11-17).
+          kgen=github.com/adams-shaun/gorge/dirac/kgen
+          rest=$(printf '%s\n' $pkgs | grep -vx "$kgen" || true)
+          if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest; fi
+          if printf '%s\n' $pkgs | grep -qx "$kgen"; then go test -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
       - name: Golden chain heads
         if: matrix.shard == 0
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules
