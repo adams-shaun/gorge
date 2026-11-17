@@ -2396,7 +2396,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken, // lower_bloodthirst.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
+	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

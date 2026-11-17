@@ -150,6 +150,7 @@ type lowerCtx struct {
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
+	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
 	trigBodyCost   bool      // the cost parser is reading a printed trigger's own body Cost$ (PayLife<X> by a value, lowerCtx.effect)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)

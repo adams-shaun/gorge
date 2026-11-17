@@ -80,6 +80,10 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		}
 		return lValue{}, fmt.Errorf("amount %q names no SVar", raw)
 	}
+	if v, sok := lc.srcRemValue(body); sok { // a token's CDA reads its remembered creator (lower_tokenrem.go)
+		v.Neg = neg
+		return v, nil
+	}
 	v, err := lc.svarValue(body, 0)
 	if err != nil {
 		return lValue{}, fmt.Errorf("SVar %s=%q: %w", raw, body, err)

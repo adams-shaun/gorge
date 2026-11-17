@@ -15,7 +15,7 @@ import (
 // Mirror Golem stays refused: ForgetImprinted$ is outside that shape
 // (ticket 04).
 func TestImpPersistLowers(t *testing.T) {
-	for _, name := range []string{"Dino DNA", "Journey to the Lost City", "Sivriss, Nightmare Speaker"} {
+	for _, name := range []string{"Dino DNA", "Journey to the Lost City", "Sivriss, Nightmare Speaker", "Saproling Burst"} {
 		c := lowerCorpusCard(t, name)
 		if r := probeRefusals(c); r != "" {
 			t.Errorf("%s refused: %s", name, r)
