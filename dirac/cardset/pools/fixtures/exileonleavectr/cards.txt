@@ -1,0 +1,10 @@
+# the counters-on-exiled-cards pool (dirac/oracle/exileonleave_rider_lockstep_test.go):
+# Dauthi Voidwalker and Draugr Necromancer exile a dying card with a VOID or
+# ICE counter, and read the counter in exile (a filtered ChooseCard and a
+# may-play static), beside removal, a vanilla creature and basics.
+Dauthi Voidwalker
+Draugr Necromancer
+Grizzly Bears
+Doom Blade
+Swamp
+Forest
