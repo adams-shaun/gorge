@@ -1589,6 +1589,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) (open 
 	for c := range pot {
 		pot[c] = int(s.pl[p].pool[c])
 	}
+	// A non-spell payment's potential pool starts from the floating restricted
+	// mana its restriction admits (potentialRestrSeed; a nil d is no payment).
+	s.potentialRestrSeed(k, p, d, &pot)
 	var own [MaxPerm][kop.NumManaKinds]int
 	var done [MaxPerm]uint16
 	add := func(sl Slot, mask uint8, n uint8) {
