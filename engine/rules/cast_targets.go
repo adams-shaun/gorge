@@ -344,17 +344,17 @@ func (e *Engine) targetAsk() bool {
 	// pushed at CR 602.2a), so the source permanent is still a legal target
 	// of its own ability.
 	// An attach ability (the Equip/Reconfigure expansion mints AB$ Attach;
-	// a spell SA may carry API$ Attach directly) can never target its own
-	// source permanent: CR 701.3a attaches an object to ANOTHER permanent,
+	// a spell SA may carry API$ Attach directly) whose Object$ is absent or
+	// Self fastens that source permanent, which is then an impossible
+	// destination (CR 301.5c: an Equipment can't equip itself; CR 701.3a),
 	// and effAttach refuses the self-attach at resolution. The pool and the
-	// resolution must agree, so the source is excluded AT THE ASK for an
-	// attach SA even though the Mother-of-Runes convention lets a generic
-	// activated ability target its own source. For Equip the exclusion is
-	// inert (an Equipment face does not match Creature specs); it is live
-	// exactly for Reconfigure, whose unattached form IS a creature and was
-	// offered itself here.
+	// resolution must agree, so the source is excluded AT THE ASK there even
+	// though the Mother-of-Runes convention lets a generic activated ability
+	// target its own source. The exclusion is inert for an Object$ naming a
+	// referent (ParentTarget, Remembered, ...): that object is what gets
+	// attached, and Brass Squire may attach its Equipment to itself.
 	var excludeSelf state.ObjID
-	if !pc.isAbility() || sa.API == "Attach" {
+	if !pc.isAbility() || attachSelfDestination(sa) {
 		excludeSelf = pc.card
 	}
 	candidates := e.castTargetCandidates(pc, excludeSelf, sa)
@@ -524,7 +524,7 @@ func (e *Engine) targetAsk() bool {
 	// The prompt keeps the source permanent's name for
 	// readability.
 	var src state.ObjID
-	if !pc.isAbility() || sa.API == "Attach" {
+	if !pc.isAbility() || attachSelfDestination(sa) {
 		src = pc.card
 	}
 	// CR 601.2c: TargetingPlayer$ names another player as the chooser for this
@@ -871,7 +871,7 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			continue
 		}
 		var excludeSelf state.ObjID
-		if !pc.isAbility() || sub.API == "Attach" {
+		if !pc.isAbility() || attachSelfDestination(sub) {
 			excludeSelf = pc.card
 		}
 		// CR 601.2c: a chained link's target whose legal set reads an EARLIER
