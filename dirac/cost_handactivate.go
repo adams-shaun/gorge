@@ -35,6 +35,9 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 				// before the first land drop (legal.go's canActivate census)
 				continue
 			}
+			if a.Cost.Flags&kop.CostPayLife != 0 && int(pl.life) < lifeCostOwed(&a.Cost) {
+				continue // CR 119.4: Street Wraith's "Cycling-Pay 2 life" at 1 life
+			}
 			pd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 			aff := av.affords(mana, pipMaskOf(mana), 0)
 			if !aff && s.rbAny(p) {
