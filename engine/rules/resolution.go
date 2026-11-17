@@ -185,8 +185,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	effects.SetSVars(ctx, svars)
 	// Carry the SA whose targeting the placement/announcement ask
-	// covered, exactly as resolveTop's first pass does.
+	// covered, exactly as resolveTop's first pass does: the bool marker and
+	// the SA together, or effects' chosenTargetsFor re-poses a placement
+	// target ask the chooser elected ZERO of (Tilling Treefolk's Min-0
+	// "return up to two target land cards" ask at the CR 603.5 yes re-asked
+	// the same pick as a choosecard, holding the ability on the stack while
+	// the kernel resolved it).
 	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
+		ctx.TargetsOffered = true
 		ctx.OfferedSA = offeredSA
 	}
 	// An accepted optional trigger may itself carry Cost$ (Mana Vault's "you
