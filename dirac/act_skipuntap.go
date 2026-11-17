@@ -39,7 +39,7 @@ func prepSkipUntap(t *kop.Table, g *genPrep) {
 // of a player's end with that player's next untap step.
 func (s *State) skipUntap(k *prep, in *kop.Instr) {
 	p := s.res.e.ctrl
-	if in.C == kop.SkipUntapLockStep || in.C == kop.SkipUntapLockAny {
+	if in.C == kop.SkipUntapLockStep || in.C == kop.SkipUntapLockAny || in.C == kop.SkipUntapLockHostStep {
 		s.untapLockAdd(k, in) // act_untaplock.go
 		return
 	}

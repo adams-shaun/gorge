@@ -6,8 +6,8 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// A source-bound untap lock (OpSkipUntap C kop.SkipUntapLockStep and
-// kop.SkipUntapLockAny): "it doesn't untap during its controller's untap
+// A source-bound untap lock (OpSkipUntap C kop.SkipUntapLockStep,
+// kop.SkipUntapLockAny and kop.SkipUntapLockHostStep): "it doesn't untap during its controller's untap
 // step", or "it can't become untapped", "for as long as you control
 // <this>" (Ty Lee, Chi Blocker; Spider-Woman, Secret Agent). gorge registers a
 // Duration$ AsLongAsControl Effect replacement over the remembered target.
@@ -29,7 +29,8 @@ const (
 	ulBytes      = maxUntapLock*int(unsafe.Sizeof(untapLock{})) + 1 // the table and its count: taken from rsv
 
 	ulAny  uint8 = 1 << 7 // the record is the any-event form
-	ulCtrl uint8 = ulAny - 1
+	ulHost uint8 = 1 << 6 // live while the source is on the battlefield, under any controller (bit 5 is kept free)
+	ulCtrl uint8 = 1<<5 - 1
 )
 
 // untapLock is one record.
@@ -37,6 +38,10 @@ type untapLock struct {
 	tgt, src Obj
 	ctrl     uint8 // the controlling player, with ulAny
 }
+
+// DebugNoUntapLockHost (TestUntapLockHostMutation): the ulHost records are
+// never live.
+var DebugNoUntapLockHost bool
 
 // StallUntapLock is a fifth source-bound untap lock at once (genState.ul;
 // act_untaplock.go).
@@ -64,6 +69,9 @@ func (s *State) untapLockAdd(k *prep, in *kop.Instr) {
 	if in.C == kop.SkipUntapLockAny {
 		r.ctrl |= ulAny
 	}
+	if in.C == kop.SkipUntapLockHostStep {
+		r.ctrl |= ulHost
+	}
 	for i := 0; i < int(s.g.nul); i++ {
 		if s.g.ul[i] == r {
 			return // one more of the same record changes nothing: both end together
@@ -79,10 +87,16 @@ func (s *State) untapLockAdd(k *prep, in *kop.Instr) {
 }
 
 // untapLockLive reports whether record r has its source: on the battlefield
-// under the player that made it.
+// under the player that made it, or under any player for a ulHost record.
 func (s *State) untapLockLive(r untapLock) bool {
 	src := &s.objs[r.src]
-	return src.zone == kop.ZoneBattlefield && s.perms[src.slot].ctrl == r.ctrl&ulCtrl
+	if src.zone != kop.ZoneBattlefield {
+		return false
+	}
+	if r.ctrl&ulHost != 0 && !DebugNoUntapLockHost {
+		return true // Duration$ AsLongAsInPlay: any controller
+	}
+	return r.ctrl&ulHost == 0 && s.perms[src.slot].ctrl == r.ctrl&ulCtrl
 }
 
 // untapLocked reports whether a live record locks object o; anyOnly asks for
@@ -125,5 +139,5 @@ func (s *State) untapLockLeft(o Obj) {
 //
 //go:noinline
 func (s *State) untapLockCtrlDrop(o Obj, to uint8) {
-	s.untapLockDrop(func(r untapLock) bool { return r.src == o && r.ctrl&ulCtrl != to })
+	s.untapLockDrop(func(r untapLock) bool { return r.src == o && r.ctrl&ulHost == 0 && r.ctrl&ulCtrl != to })
 }
