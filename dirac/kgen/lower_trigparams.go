@@ -130,17 +130,19 @@ func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
 			tr.CauseTarget = true
 		}
 	} else {
-		if v, ok := tp.m["ValidCause"]; ok && !tp.used["ValidCause"] && (mode == "LifeLost" || mode == "LifeLostAll") {
-			// gorge trigmatch/life.go lifeLossCauseMatches: the ValidCause$
-			// grammar of a LifeLost trigger is a comma list of
-			// SpellAbility alternatives, each optionally qualified .YouCtrl
-			// or .OppCtrl -- the loss was caused by a spell or ability the
-			// listener's controller does or doesn't control, resolving at
-			// the moment of the loss (gorge's Facts.Damaging). Combat
-			// damage is never a spell-or-ability cause, and a loss with no
-			// resolution in flight (a cost payment, a mana ability's cost)
-			// matches none, as the kernel's gate reads the resolving entry
-			// (kop.Tf4CauseSpellAb).
+		if v, ok := tp.m["ValidCause"]; ok && !tp.used["ValidCause"] &&
+			(mode == "LifeLost" || mode == "LifeLostAll" || mode == "TurnFaceUp") {
+			// gorge trigmatch/life.go lifeLossCauseMatches and
+			// turnFaceUpCauseAdmits: the ValidCause$ grammar of a LifeLost
+			// or TurnFaceUp trigger is a comma list of SpellAbility
+			// alternatives, each optionally qualified .YouCtrl or .OppCtrl
+			// -- the event was caused by a spell or ability the listener's
+			// controller does or doesn't control. For a LifeLost line that
+			// is the spell or ability resolving at the moment of the loss
+			// (gorge's Facts.Damaging); for a TurnFaceUp line it is the
+			// resolving turn-up effect, or the turn-face-up special action
+			// its controller takes when nothing is resolving. The kernel
+			// gate is kop.Tf4CauseSpellAb.
 			if n, err := lc.lifeLossCause(v); err != nil {
 				return err
 			} else {

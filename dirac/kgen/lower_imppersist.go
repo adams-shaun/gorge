@@ -26,6 +26,12 @@ func impWriterSA(sa *cards.SA) bool {
 		return true
 	}
 	p := sa.Params
+	if v, ok := p["ImprintCards"]; ok {
+		// Pump ImprintCards$ TriggeredCard: the trigger's object joins the
+		// source's Imprinted list (gorge imprint on the trigger body,
+		// effects/context.go; CounterAddedAll's sibling shapes do not use it).
+		return sa.API == "Pump" && strings.TrimSpace(v) == "TriggeredCard"
+	}
 	switch sa.API {
 	case "Token":
 		return strings.TrimSpace(p["ImprintTokens"]) == "True"
@@ -65,6 +71,8 @@ type impWalk struct {
 	imprinted     bool
 	clear         bool
 	branch        bool // the chain repeats or branches (RepeatEach, a RollDice result list)
+	sawImprint    bool // the walk saw an ImprintCards$ param
+	badImprint    bool // ... and it is not the Pump TriggeredCard shape kgen lowers
 }
 
 func newImpWalk(f *cards.Face) *impWalk {
@@ -134,8 +142,14 @@ func (w *impWalk) chain(sa *cards.SA) {
 			if k == "RepeatSubAbility" || k == "ResultSubAbilities" {
 				w.branch = true
 			}
-			if strings.Contains(v, "IsImprinted") || k == "Imprinted" {
+			if strings.Contains(v, "IsImprinted") || k == "Imprinted" || strings.Contains(v, "ImprintedSize") {
 				w.imprinted = true
+			}
+			if k == "ImprintCards" {
+				w.sawImprint = true
+				if sa.API != "Pump" || strings.TrimSpace(v) != "TriggeredCard" {
+					w.badImprint = true
+				}
 			}
 			if k == "Defined" && strings.Contains(v, "Imprinted") {
 				w.definedImp = true
@@ -208,7 +222,7 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 		return false, false
 	}
 	for _, bad := range []string{
-		"ImprintFound", "ImprintRevealed", "ImprintCards", "ImprintOnHost",
+		"ImprintFound", "ImprintRevealed", "ImprintOnHost",
 		"ImprintPlayed", "sharesNameWith Imprinted", "ImprintedLKI",
 	} {
 		if f.Mentions(bad) || f.MentionsParam(bad) {
@@ -251,6 +265,8 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 		}
 	}
 
+	badImprint := false // an ImprintCards$ spelling this change does not lower
+	sawImprint := false // any ImprintCards$ at all (so the face-level guard below can tell)
 	writers := 0
 	outside := false      // a reader or a ClearImprinted$ outside every writer's chain
 	writerBranch := false // a writer chain that repeats or branches
@@ -258,6 +274,7 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 	for _, a := range f.Abilities {
 		w := newImpWalk(f)
 		w.chain(a)
+		rememberImpWalk(w, &badImprint, &sawImprint)
 		if !w.writer {
 			outside = outside || w.reader || w.clear
 			continue
@@ -277,6 +294,7 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 	for i := range f.Triggers {
 		w := newImpWalk(f)
 		w.chain(f.Triggers[i].Effect)
+		rememberImpWalk(w, &badImprint, &sawImprint)
 		if !w.writer {
 			outside = outside || w.reader || w.clear
 			continue
@@ -295,6 +313,7 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 	for i := range f.Statics {
 		w := newImpWalk(f)
 		w.chain(w.svar(f.Statics[i].Params["AddAbility"]))
+		rememberImpWalk(w, &badImprint, &sawImprint)
 		if w.writer {
 			return false, false
 		}
@@ -303,12 +322,16 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 	for i := range f.Repls {
 		w := newImpWalk(f)
 		w.chain(f.Repls[i].With)
+		rememberImpWalk(w, &badImprint, &sawImprint)
 		if w.writer {
 			return false, false
 		}
 		outside = outside || w.reader || w.clear
 	}
 
+	if !imprintCardsSupported(f, badImprint, sawImprint) {
+		return false, false
+	}
 	_, _, digImprint := lc.impFacts()
 	if digImprint {
 		return false, false
@@ -321,4 +344,18 @@ func (lc *lowerCtx) impPersistShape() (persist, foldExiled bool) {
 	// uncleared writer with no reader outside its chain still refuses.
 	persist = outside || writerBranch
 	return persist, persist && !nonExileWrite
+}
+
+// rememberImpWalk folds a walk's ImprintCards facts into the face-level
+// counters impPersistShape checks once every chain has been walked.
+func rememberImpWalk(w *impWalk, bad, saw *bool) {
+	*bad = *bad || w.badImprint
+	*saw = *saw || w.sawImprint
+}
+
+// imprintCardsSupported reports whether every ImprintCards$ the face names is
+// the Pump TriggeredCard writer this change lowers (saw). A face-level mention
+// the walks did not reach stays unsupported.
+func imprintCardsSupported(f *cards.Face, bad, saw bool) bool {
+	return !bad && (!f.Mentions("ImprintCards") || saw)
 }

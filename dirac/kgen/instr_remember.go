@@ -13,6 +13,18 @@ func init() {
 	instrOp("RememberAll", (*instrCtx).opRememberAll)
 	instrOp("RememberImprinted", (*instrCtx).opRememberImprinted)
 	instrOp("ForgetImprinted", (*instrCtx).opForgetImprinted)
+	instrOp("ImprintTriggered", (*instrCtx).opImprintTriggered)
+}
+
+// opImprintTriggered emits the ExtRememberAll imprint arm: the trigger's
+// object (Obj RefTriggerObj) joins the resolution's imprinted set, and a
+// source that keeps its list records it (gorge Pump ImprintCards$ TriggeredCard,
+// effects/context.go imprint).
+func (ic *instrCtx) opImprintTriggered() error {
+	ki := &ic.ki
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberAll))
+	ki.C = kop.RememberAllImprint
+	return nil
 }
 
 func (ic *instrCtx) opClearRemembered() error {

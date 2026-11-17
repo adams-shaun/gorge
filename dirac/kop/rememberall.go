@@ -12,4 +12,10 @@ const ExtRememberAll ExtOp = 306
 // selector (Fumble's attachments).
 const RememberAllObjOrder = 1
 
+// RememberAllImprint (ExtRememberAll C): do not scan F; Obj names one object
+// (RefTriggerObj, the trigger's object) that joins the imprinted set instead,
+// gorge Pump ImprintCards$ TriggeredCard (effects/context.go imprint; the
+// source keeps it when CardDef.ImpPersist). Oblivious Bookworm.
+const RememberAllImprint = 2
+
 func init() { extOpNames[ExtRememberAll] = "RememberAll" }

@@ -59,22 +59,26 @@ const (
 
 // Tf4CauseSpellAb (Trigger.Flags4, bit 3, shared with Tf4NthFiltered: that
 // flag is set only on a SpellCast line and this one only on a LifeLost /
-// LifeLostAll line, so no trigger carries both; readers scope the bit by
-// event, as the Tf4PerCounter / Tf4DefEnch pair does): LifeLost / LifeLostAll, the line's ValidCause$
-// names a spell or ability (gorge trigmatch/life.go lifeLossCauseMatches:
-// the loss's cause is the spell or ability resolving right now, gorge's
-// Facts.Damaging set; combat damage and any loss with no resolution in
-// flight -- a cost payment, a mana ability -- match none). Trigger.N, when
-// nonzero, carries the cause's controller qualifier:
-// TrigNCauseSpellYouCtrl (the cause is controlled by the listener's
-// controller, ValidCause$ SpellAbility.YouCtrl) or
+// LifeLostAll / TurnFaceUp line, so no trigger carries both; readers scope
+// the bit by event, as the Tf4PerCounter / Tf4DefEnch pair does):
+// LifeLost / LifeLostAll / TurnFaceUp, the line's ValidCause$ names a spell
+// or ability (gorge trigmatch/life.go lifeLossCauseMatches and
+// cause_qualifiers.go turnFaceUpCauseAdmits). For a life loss the cause is
+// the spell or ability resolving right now, gorge's Facts.Damaging set;
+// combat damage and any loss with no resolution in flight -- a cost payment,
+// a mana ability -- match none. For a turn-up the cause is the resolving
+// turn-up effect's controller, or the controller taking the CR 708.6 special
+// action (no stack object). Trigger.N, when nonzero, carries the cause's
+// controller qualifier: TrigNCauseSpellYouCtrl (the cause is controlled by
+// the listener's controller, ValidCause$ SpellAbility.YouCtrl) or
 // TrigNCauseSpellOppCtrl (by someone else, SpellAbility.OppCtrl); N 0 is
 // any spell or ability (a bare SpellAbility$ alternative). Sahir, Visitor
-// in Darkness.
+// in Darkness; Growing Dread, Oblivious Bookworm.
 const Tf4CauseSpellAb TrigFlags4 = 1 << 3
 
-// Trigger.N of a TrigLifeLost trigger with Tf4CauseSpellAb: the ValidCause$
-// controller qualifier (gorge lifeLossCauseMatches's YouCtrl / OppCtrl).
+// Trigger.N of a TrigLifeLost or TrigTurnFaceUp trigger with
+// Tf4CauseSpellAb: the ValidCause$ controller qualifier (gorge
+// lifeLossCauseMatches's / turnFaceUpCauseAdmits's YouCtrl / OppCtrl).
 const (
 	TrigNCauseSpellYouCtrl int16 = 1
 	TrigNCauseSpellOppCtrl int16 = 2
