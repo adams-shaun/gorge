@@ -818,7 +818,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 				break
 			}
 			if ro.used&(1<<i) != 0 || !other {
-				s.spendShield(ro.askD)
+				s.spendShield(k, ro.askD)
 				n = 0
 			}
 			break
@@ -1030,7 +1030,7 @@ func (s *State) replOrderPick(a Action) bool {
 		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
-				s.replNCPickShield(int(i))
+				s.replNCPickShield(s.k(), int(i))
 			}
 			return false
 		}
@@ -1052,7 +1052,7 @@ func (s *State) replOrderPick(a Action) bool {
 			}
 		}
 		if left < 2 && !ro.on {
-			s.replNCAutoShield()
+			s.replNCAutoShield(s.k())
 			if s.g.nc.n == ncPend {
 				// gorge re-collects the rest after the last pick: the last
 				// remaining candidate applies automatically (a raise past
