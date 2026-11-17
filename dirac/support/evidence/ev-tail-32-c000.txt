@@ -1,3 +1,4 @@
+A-Elderleaf Mentor
 Abstruse Interference
 Advanced Hoverguard
 Advocate of the Beast
@@ -16,6 +17,7 @@ Apprentice Sorcerer
 Arashin Sovereign
 Archfiend of Sorrows
 Arctic Treeline
+Arena Athlete
 Ashling the Pilgrim
 Atarka Beastbreaker
 Attune with Aether
@@ -66,6 +68,7 @@ Dark Ritual
 Darksteel Brute
 Death-Hood Cobra
 Definitely Not a Turtle
+Dementia Bat
 Demonic Tutor
 Demystify
 Dormant Sliver
@@ -109,6 +112,7 @@ Flywheel Racer
 Footfall Crater
 Forest
 Forget
+Foul Orchard
 Fourth Bridge Prowler
 Frontline Devastator
 Garrison Griffin
@@ -126,6 +130,7 @@ Goblin Tutor
 Goliath, Mass Manipulator
 Griffin Protector
 Grip of Desolation
+Grollub
 Hall of Oracles
 Hallowed Healer
 Harmonic Sliver
@@ -190,6 +195,7 @@ Mire Blight
 Mirrodin Avenged
 Mirror Image
 Mistcutter Hydra
+Misthios's Fury
 Mistmeadow Skulk
 Monstrous Hound
 Mortician Beetle
@@ -198,6 +204,8 @@ Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
 Nephalia Smuggler
+Night Scythe
+Nimbus of the Isles
 Nocturnal Raid
 Nymris, Oona's Trickster
 Nyxborn Marauder
