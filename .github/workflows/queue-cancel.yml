@@ -1,0 +1,28 @@
+# Mergify deletes a merge-queue batch branch when it drops or rebuilds the batch (a hotfix jump, a
+# split, a red member), but GitHub keeps that branch's CI running to the end: on 11-17 two orphaned
+# batch runs held 2 of the 12 self-hosted runners in test (0) for results nothing reads. When a
+# mergify/merge-queue/* branch is deleted, cancel its runs that are still queued or in progress.
+name: queue-cancel
+
+on:
+  delete:
+
+permissions:
+  actions: write
+
+jobs:
+  cancel:
+    if: github.event.ref_type == 'branch' && startsWith(github.event.ref, 'mergify/merge-queue/')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Cancel the deleted batch branch's runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.ref }}
+        run: |
+          for s in queued in_progress waiting; do
+            gh run list -R "$GITHUB_REPOSITORY" --branch "$BRANCH" --status "$s" --json databaseId --jq '.[].databaseId'
+          done | sort -u | while read -r id; do
+            echo "cancel run $id ($BRANCH)"
+            gh run cancel "$id" -R "$GITHUB_REPOSITORY" || true
+          done
