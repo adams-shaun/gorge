@@ -1110,6 +1110,9 @@ func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
+// dirac/manifest/Pred/PredSameNameSelf
+func init() { enum[kop.Pred]("kop.PredSameNameSelf", kop.PredSameNameSelf) }
+
 // dirac/manifest/ReplKind/ReplBeginPhase
 func init() { enum[kop.ReplKind]("kop.ReplBeginPhase", kop.ReplBeginPhase) }
 
