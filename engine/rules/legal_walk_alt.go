@@ -323,7 +323,7 @@ func (w *legalWalk) commandZoneWalk() {
 		// offerCostFor applies the same tax beginCast later charges.
 		for i := range altCastModes {
 			ka := &altCastModes[i]
-			if !ka.cmdLoop {
+			if !ka.cmdLoop || !ka.gateOpen(w.e.G, w.e, p, id) {
 				continue
 			}
 			alt, ok := ka.faceCost(f, w.e.walkFaceFactsOf(f))
