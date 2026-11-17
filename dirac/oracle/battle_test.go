@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -472,8 +471,6 @@ func battleRun(t *testing.T, reg *cards.Registry, set cardset.Set, decks [2][]*c
 			for i := lo; i < len(evs); i++ {
 				t.Logf("EV %d %+v", i, evs[i])
 			}
-			rf := reflect.ValueOf(gs.E).Elem().FieldByName("defeatedCasts")
-			t.Logf("GORGE defeatedCasts len %d", rf.Len())
 		}
 		if gs := lead; gs != nil {
 			var gp Projection

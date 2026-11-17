@@ -26,11 +26,11 @@ func TestExiledBackFaceOfBattleGetsNoCastOffer(t *testing.T) {
 	if o.Zone != state.ZBattlefield || o.FaceIdx != 1 {
 		t.Fatalf("precondition: the cast resolved into zone %v face %d, want the battlefield as the back face", o.Zone, o.FaceIdx)
 	}
-	if got := battleDefenseBefore(o); got == 0 {
-		t.Fatal("a transformed battle with no defense counters reads as defeatable")
+	if isFaceUpSiege(o) {
+		t.Fatal("a transformed battle with no defense counters reads as a defeatable Siege")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZExile})
-	if len(e.defeatedCasts) != 0 {
-		t.Fatalf("exiling the back face queued %d cast offers, want none", len(e.defeatedCasts))
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("exiling the back face queued %d triggers, want none", len(e.pendingTriggers))
 	}
 }
