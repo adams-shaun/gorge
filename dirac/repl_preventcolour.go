@@ -32,31 +32,40 @@ func prepPrevCol(t *kop.Table, g *genPrep) {
 	}
 }
 
-// prevColHit reports whether the damage source (slot sl, else card c) has
-// a colour an Ext PreventColor record prevents this turn (CR 615.1a: the
-// source's colour as the damage would be dealt). Two or more such records
-// on one event are the CR 616.1 order ask (prevColCands).
+// prevColAt is the index (registration order) of the first record that
+// prevents the damage from the source (slot sl, else card c) to t this turn
+// (CR 615.1a: the source's colour as the damage would be dealt), -1 for none.
+// It does not read CR 615.12 (noPrev).
+func (s *State) prevColAt(k *prep, sl Slot, c CardID, t prevTgt, combat bool) int {
+	for i := range s.g.prevCol {
+		if s.prevRecHit(k, i, sl, c, t, combat) {
+			return i
+		}
+	}
+	return -1
+}
+
+// prevRecHit reports whether record i prevents the damage: an Ext
+// PreventColor record by the source's colour, a scoped one by its scope (a
+// scoped record's col filters its sources, a depleting shield's is its pool:
+// repl_prevnext.go).
+func (s *State) prevRecHit(k *prep, i int, sl Slot, c CardID, t prevTgt, combat bool) bool {
+	r := &s.g.prevCol[i]
+	if r.sc == 0 {
+		return r.col != 0 && !DebugNoPrevCol && s.srcColors(k, sl, c)&r.col != 0
+	}
+	var sc kop.ColorMask
+	if r.col != 0 {
+		sc = s.srcColors(k, sl, c) // only a colour-filtered record reads it
+	}
+	return s.prevScopeHit(k, r, sl, c, sc, t, combat)
+}
+
+// prevColHit reports whether a record prevents the damage (prevColAt) and the
+// damage can be prevented (CR 615.12). Two or more such records on one event
+// are the CR 616.1 order ask (prevColCands).
 func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
-	var m kop.ColorMask
-	for i := range s.g.prevCol {
-		if s.g.prevCol[i].sc == 0 {
-			m |= s.g.prevCol[i].col // a scoped record's col filters its sources, a depleting shield's is its pool (repl_prevnext.go)
-		}
-	}
-	if m != 0 && s.srcColors(k, sl, c)&m != 0 && !DebugNoPrevCol {
-		return !s.noPrev(k, combat) // CR 615.12
-	}
-	for i := range s.g.prevCol {
-		r := &s.g.prevCol[i]
-		var sc kop.ColorMask
-		if r.col != 0 {
-			sc = s.srcColors(k, sl, c) // only a colour-filtered record reads it
-		}
-		if r.sc != 0 && s.prevScopeHit(k, r, sl, c, sc, t, combat) {
-			return !s.noPrev(k, combat)
-		}
-	}
-	return false
+	return s.prevColAt(k, sl, c, t, combat) >= 0 && !s.noPrev(k, combat)
 }
 
 // DebugPrevColRecolor (TestStrandsLockstepRecolorMutation): a card

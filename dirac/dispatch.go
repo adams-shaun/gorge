@@ -767,6 +767,7 @@ func (s *State) applyAskStdmech(k *prep, a Action) bool {
 		s.capFull(StallPrevCol) // loud: never drop an effect
 	} else {
 		s.g.prevCol[free].obj, s.g.prevCol[free].col = o, col
+		s.g.prevX[free] = 0
 	}
 	s.continueRes(k, 0)
 	return true
