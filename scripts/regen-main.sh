@@ -10,8 +10,8 @@ branch=regen/main
 repo=$(git rev-parse --show-toplevel)
 main=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
-pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse)$'
-files=(dirac/docs/support.md dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv)
+pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse|TestRememberedSpanCensus)$'
+files=(dirac/docs/support.md dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv dirac/kgen/testdata/remspan.tsv)
 
 pr=$(gh pr list --head "$branch" --state open --json number,labels,mergeable --jq '.[0] | select(.) | "\(.number) \(.mergeable) \([.labels[].name] | join(","))"')
 # An open regen PR that still merges is left alone: a push restarts its checks, and main moves more often than they
