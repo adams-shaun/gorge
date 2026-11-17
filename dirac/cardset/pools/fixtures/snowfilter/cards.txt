@@ -1,0 +1,20 @@
+# the Snow filter pool: Skred's count of snow permanents you control, Chill to
+# the Bone's nonsnow creatures, Priest of the Haunted Edge's snow lands and
+# Abominable Treefolk's snow permanents, over snow and nonsnow basics and
+# creatures, for the oracle's constructed lockstep
+# (dirac/oracle/snowfilter_test.go)
+Skred
+Chill to the Bone
+Priest of the Haunted Edge
+Abominable Treefolk
+Boreal Druid
+Grizzly Bears
+Hill Giant
+Snow-Covered Mountain
+Snow-Covered Swamp
+Snow-Covered Forest
+Snow-Covered Island
+Mountain
+Swamp
+Forest
+Island
