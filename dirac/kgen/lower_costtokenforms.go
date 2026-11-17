@@ -205,6 +205,20 @@ func (lc *lowerCtx) forecastParam(ps *params) {
 	ps.consume("Forecast")
 }
 
+// drawRecipient is the Ref a Draw<N/Who> cost's cards go to. Draw<N/Player
+// .targetedBy> draws for the parent's targeted player, not the payer
+// (Tresserhorn's Lord): the kernel reads the recipient from the instruction's
+// W (interp_ask.go applyResolveGen); "" (Draw<N/You>) is rNone, the payer.
+func (lc *lowerCtx) drawRecipient(who string) (lRef, error) {
+	switch who {
+	case "":
+		return lRef{}, nil
+	case "Player.TriggeredPlayer":
+		return lc.defined("TriggeredPlayer")
+	}
+	return lc.defined("TargetedPlayer")
+}
+
 // resTokenInstr lowers the resolution-time tokens that are payments the
 // kernel performs as effects: Draw<N/Who> (a trigger's own or an unless cost;
 // the drawing player may be the parent's targeted or the triggered player),
@@ -225,21 +239,11 @@ func (lc *lowerCtx) resTokenInstr(c *lCost, in *lInstr, n int) (int, error) {
 		}
 		n++
 		in.CS, in.A = "Draw", cst(c.DrawN)
-		if c.DrawWho != "" {
-			// Draw<N/Player.targetedBy> draws for the parent's targeted
-			// player, not the payer (Tresserhorn's Lord): the kernel reads
-			// the recipient from the instruction's W (interp_ask.go
-			// applyResolveGen)
-			who := "TargetedPlayer"
-			if c.DrawWho == "Player.TriggeredPlayer" {
-				who = "TriggeredPlayer"
-			}
-			r, err := lc.defined(who)
-			if err != nil {
-				return n, err
-			}
-			in.W = r // the drawing player (cb.instr fills ki.W)
+		r, err := lc.drawRecipient(c.DrawWho)
+		if err != nil {
+			return n, err
 		}
+		in.W = r // the drawing player (cb.instr fills ki.W)
 	case c.DamageYouN > 0:
 		// an UnlessCost$ DamageYou<N> (gorge payUnlessDamageCost; CR
 		// 118.3): the resolving source deals the amount to the payer
