@@ -1047,8 +1047,9 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 		return false
 	}
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
-		s.genLost(k, sl) || pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
+		pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 ||
+		k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go), the same gate gapMask applies
 		return false
 	}
 	if k.gen.flags[c]&(gfEachCol|gfRestr) == gfRestr {
