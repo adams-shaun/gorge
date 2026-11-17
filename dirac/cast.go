@@ -1549,6 +1549,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
+	s.snowPreSpend(k, &e)
 	s.payPicks(k)
 	s.payBlightPicks(k)
 	if e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost {

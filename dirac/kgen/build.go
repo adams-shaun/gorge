@@ -1039,7 +1039,7 @@ func (cb *cardBuilder) record() error {
 	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
-	d.SpentSelf = c.SpentSelf
+	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
 	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the

@@ -1356,6 +1356,7 @@ type lCard struct {
 	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
+	SpentSnow      bool     // the card reads Count$CastTotalManaSpent Snow: the snow units its cast spent (CardDef.SpentSnow)
 	SpentSelf      bool     // the card reads Count$CastTotalManaSpent in a spell chain or a self-ETB trigger: gorge's planner declines its cast (CardDef.SpentSelf)
 	DmgAmt         bool     // the card reads Count$TotalDamageReceivedThisTurn (CardDef.DmgAmt)
 	CastBF         *lFilter // the card reads Count$LastStateBattlefieldWithFallback <spec> in a spell's own program (CardDef.CastBF)
