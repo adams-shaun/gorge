@@ -138,12 +138,35 @@ func (s *State) attackedTurn(k *prep, x *kop.Expr, ctx evalCtx) int {
 				if s.matchPermGen(k, x.F, ob.slot, ctx.ctrl, ctx.srcSl, layerFull) {
 					n++
 				}
-			} else if s.matchCardGen(k, x.F, ob.card, ob.owner(), ctx.ctrl, o) {
+			} else if s.attackedCardMatch(k, x.F, ob.card, ob.owner(), ctx, o) {
 				n++
 			}
 		}
 	}
 	return n
+}
+
+// attackedCardMatch is the card matcher for a marked attacker that has left
+// the battlefield, with the filter's Self / Other alternatives read against
+// the evaluation's source as gorge's matchesZoneSpecCtx does: a dead attacker
+// is not Card.Self of a Boast ability's source (CR 702.142a, 400.7).
+func (s *State) attackedCardMatch(k *prep, f kop.FilterID, c CardID, owner uint8, ctx evalCtx, o Obj) bool {
+	if f == 0 {
+		return true
+	}
+	if s.objs[o].of&ofCopy != 0 && s.g.tli&tliOn == 0 && s.copyCeased(k, o) {
+		return false // matchCardGenAt's ceased-copy read (CR 707.10h)
+	}
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := &k.t.Filters[f]
+		if fl.Flags&kop.FOther != 0 && o == ctx.src || fl.Flags&kop.FSelf != 0 && o != ctx.src {
+			continue
+		}
+		if s.matchCardOneAt(k, fl, c, owner, ctx.ctrl, o, nil) {
+			return true
+		}
+	}
+	return false
 }
 
 // noteCombatHits records the landed combat hits on players of one damage pass
