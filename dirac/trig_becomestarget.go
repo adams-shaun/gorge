@@ -19,6 +19,18 @@ import (
 // Never set in production.
 var DebugBtSelfOff bool
 
+// BtStats, when DebugBtStats is non-nil, counts the object-targeted
+// BecomesTarget triggers the games queued: the btWatchers walk's queues and
+// the plain self walk's (becameTarget's fireObjGen branch). The lockstep
+// tests read it to prove the games reached the walk; nothing else reads it.
+type BtStats struct {
+	Queues int
+}
+
+// DebugBtStats is the lockstep hook of the BecomesTarget walk. Never set in
+// production.
+var DebugBtStats *BtStats
+
 // btSelfOff reports whether listener ability a is the self form and the
 // mutation switch is on. TfSelf is the structural test: the trigger builder
 // sets it only when the whole filter is the bare self clause, so a future
@@ -55,6 +67,7 @@ func btSelfOff(a *kop.Ability) bool {
 //go:noinline
 func (s *State) btWatchers(k *prep, sl Slot, o Obj, e *stackEntry) {
 	ctrl := s.perms[sl].ctrl
+	n0 := s.npend
 	s.eachTrigger(k, kop.TrigBecomesTarget, func(l trigListener, a *kop.Ability) {
 		if a.Trig.N == kop.TrigNValiant {
 			return
@@ -74,6 +87,9 @@ func (s *State) btWatchers(k *prep, sl Slot, o Obj, e *stackEntry) {
 		}
 		s.objTrigGen(k, kop.TrigBecomesTarget, l, a, sl, o, tpl, 0)
 	})
+	if st := DebugBtStats; st != nil && s.npend > n0 {
+		st.Queues++
+	}
 }
 
 // btSpellTarget fires the Tf2SpellToo watchers for spell object o on the
