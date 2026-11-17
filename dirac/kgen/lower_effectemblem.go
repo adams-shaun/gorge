@@ -260,8 +260,8 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			break
 		}
 		// a body that is only the view-only face-down
-		// battlefield look lowers to no static (gorge's effEffect registers
-		// nothing for it: mayLookAtExileGrantFromLine accepts only Exile).
+		// battlefield look lowers to no static: gorge's effEffect registers a
+		// look-only grant, an information read the kernel has no static for.
 		// effectStaticEOT drops the empty static and, when the Effect has no
 		// other static, emits no CreateEmblem at all.
 		if faceDownLookOnly(s.Params) {
