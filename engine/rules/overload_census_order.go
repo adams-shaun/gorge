@@ -2,45 +2,39 @@ package rules
 
 import "github.com/adams-shaun/gorge/engine/state"
 
-// candidatesPlayersFrom reorders the player candidates of an overload census
-// into the given seat order (the controller's APNAP walk, CR 101.4), leaving
-// object candidates and the slots the players occupy where they were. Players
-// absent from order (dead seats) are dropped.
-func candidatesPlayersFrom(cands []targetCandidate, order []state.PlayerID) []targetCandidate {
-	byPlayer := make(map[state.PlayerID]targetCandidate, len(order))
-	for _, c := range cands {
-		if c.kind == "player" {
-			byPlayer[c.player] = c
+// overloadTargets turns an overload census into the resolution Ctx.Targets
+// list. Player targets are put in the given seat order (the controller's APNAP
+// walk, CR 101.4); object targets and the slots the players occupy stay where
+// they were. Players absent from order (dead seats) are dropped.
+func overloadTargets(cands []targetCandidate, order []state.PlayerID) []state.Target {
+	var all []state.Target
+	for _, cand := range cands {
+		if cand.kind == "player" {
+			all = append(all, state.Target{Player: cand.player, IsPlayer: true})
+		} else {
+			all = append(all, state.Target{Obj: cand.obj})
 		}
 	}
-	out := make([]targetCandidate, 0, len(cands))
+	byPlayer := make(map[state.PlayerID]bool, len(order))
+	for _, t := range all {
+		if t.IsPlayer {
+			byPlayer[t.Player] = true
+		}
+	}
+	out := make([]state.Target, 0, len(all))
 	next := 0
-	for _, c := range cands {
-		if c.kind != "player" {
-			out = append(out, c)
+	for _, t := range all {
+		if !t.IsPlayer {
+			out = append(out, t)
 			continue
 		}
 		for next < len(order) {
 			p := order[next]
 			next++
-			if pc, ok := byPlayer[p]; ok {
-				out = append(out, pc)
+			if byPlayer[p] {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
 				break
 			}
-		}
-	}
-	return out
-}
-
-// overloadTargets turns an overload census into the resolution Ctx.Targets
-// list, players in the controller's APNAP order.
-func overloadTargets(cands []targetCandidate, order []state.PlayerID) []state.Target {
-	var out []state.Target
-	for _, cand := range candidatesPlayersFrom(cands, order) {
-		if cand.kind == "player" {
-			out = append(out, state.Target{Player: cand.player, IsPlayer: true})
-		} else {
-			out = append(out, state.Target{Obj: cand.obj})
 		}
 	}
 	return out
