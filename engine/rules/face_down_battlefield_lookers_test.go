@@ -31,7 +31,9 @@ func faceDownOnBattlefield(t *testing.T, e *Engine, p state.PlayerID, name strin
 			if o == nil || o.Face() == nil || o.Face().Name != name {
 				continue
 			}
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: state.ZBattlefield, Counter: events.ManifestEntryCounter})
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p,
+				From: z, To: state.ZBattlefield,
+				Counter: events.ManifestEntryCounter, Secret: true})
 			return id
 		}
 	}

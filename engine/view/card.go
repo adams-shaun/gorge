@@ -365,10 +365,12 @@ type projector struct {
 	text  *textMemo
 	// perm is the projection's reusable index scratch (projScratch.perm).
 	perm *[]int32
-	// looker is ch's optional MayLookAt$ read over a face-down exiled card
+	// looker is ch's optional MayLookAt$ read over a face-down card
 	// (rules.Engine.MayLookAtFaceDown: a live Continuous MayLookAt$ static
-	// whose Affected$ spec matches the card names that seat), nil when ch
-	// lacks it -- the face is then shown only to the object's own looker.
+	// whose Affected$ spec matches the card and whose zone names it -- exile,
+	// or a battlefield permanent under CR 708.5's effect exception -- names
+	// that seat), nil when ch lacks it -- the face is then shown only to the
+	// object's own controller.
 	looker interface {
 		MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
 	}
