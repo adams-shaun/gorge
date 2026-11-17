@@ -11,7 +11,10 @@ import "testing"
 // offered seat 0 only "Don't pay" for Rhystic Syphon's Unless target player
 // pays {3} (decision 813 of tail-51 pair 40) while the kernel offered Pay;
 // seat 0 held the farm, a Plains and a Dwarven Mine untapped and could pay.
-func TestMBCUnlessOfferCountsDepletionFeeSourceReprosLockstep(t *testing.T) {
+// The test name follows the card named in the issue; the recording is named
+// for the measured cause (the issue's own pair-1 game is clean on this base,
+// and the class's live divergence was this unless-pay offer).
+func TestMBCShadeOfTrokairReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "unless_offer_counts_depletion_fee_source")
 }
