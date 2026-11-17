@@ -547,6 +547,15 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	if raw == "" {
 		raw = "C"
 	}
+	// Combo AnyDifferent ("Add N mana of different colors") is bounded: each
+	// colour appears at most Each$ times (once by default), never the open
+	// every-colour sentinel the unknown token used to grant. CR 106.1.
+	if each, ok := potentialAnyDifferentEach(mp, amt); ok {
+		for i := 0; i < 5; i++ {
+			m[i] = saturatingPotentialMana(m[i], each)
+		}
+		return
+	}
 	if indeterminate || producedOpen(raw) {
 		for i := range m {
 			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
@@ -575,6 +584,12 @@ func computePotentialManaAdd(mp *effects.ManaParams) potentialManaAdd {
 	raw := mp.Produced
 	if raw == "" {
 		raw = "C"
+	}
+	if each, ok := potentialAnyDifferentEach(mp, amt); ok {
+		for i := 0; i < 5; i++ {
+			f.add[i] = int64(each)
+		}
+		return f
 	}
 	if indeterminate || producedOpen(raw) {
 		f.unbounded = true
@@ -671,6 +686,31 @@ func potentialAmount(mp *effects.ManaParams) (int32, bool) {
 		return int32(v), false
 	}
 	return 0, true
+}
+
+// potentialAnyDifferentEach reports whether mp is a Produced$ Combo
+// AnyDifferent ability and, if so, how many mana of EACH chosen colour it
+// adds: Each$ when literal (default 1). The value is the per-colour cap, not
+// Amount$ (the number of different colours chosen); a non-literal Each$
+// falls back to Amount$ so the bound stays finite and never under-credits a
+// colour. ok is false for every other production.
+func potentialAnyDifferentEach(mp *effects.ManaParams, amt int32) (int32, bool) {
+	if !mp.AnyDifferent {
+		return 0, false
+	}
+	if !mp.Each.Present {
+		return 1, true
+	}
+	if !mp.EachIsLit {
+		if amt < 1 {
+			amt = 1
+		}
+		return amt, true
+	}
+	if mp.EachLit < 0 {
+		return 0, true
+	}
+	return int32(mp.EachLit), true
 }
 
 // PotentialActions is the view's per-seat projection of every play the seat

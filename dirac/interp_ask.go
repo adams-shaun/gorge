@@ -222,7 +222,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 // trigCostPotentialPays mirrors gorge's trigger-cost offer gate. gorge asks
 // whether the payer's potential mana can reach the cost (rules respay.go
 // resPayNeedsMana, potential.go potentialManaFor), an over-bound: a dual counts
-// once in each colour and an open production is unlimited. So a trigger's own mana
+// once in each colour and AnyDifferent one in each of WUBRG. So a trigger's own mana
 // cost can be offered when the sources cannot fund it: the payer elects pay, fails
 // the charge (CR 118.3) and declines. Only that ask gets the over-bound: an unless
 // cost, a ward, a cost inside an effect or a trigger body's own cost keeps the
@@ -237,10 +237,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 		return false
 	}
 	other := payDesc{class: pdOther}
-	if s.anyDifferentOpen(k, p) {
-		return true // Firemind Vessel: gorge's potential is unbounded in every colour (mana_anydifferent.go)
-	}
-	if !s.anyManaSource(k, p, &other) {
+	if !s.anyDifferentOpen(k, p) && !s.anyManaSource(k, p, &other) {
 		return false
 	}
 	c := s.numTimesCost(k, amt, pips)
@@ -1508,8 +1505,10 @@ func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	idx := s.wardedIndex(&r.e)
 	// A live tap-another-permanent source is a window source the census above
 	// leaves out (availFor counts no tap cost), so opening the window is what
-	// gorge does: it taps the plain sources and asks which permanent to tap.
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any()) {
+	// gorge does: it taps the plain sources and asks which permanent to tap. A
+	// Firemind Vessel is one too: its two distinct colours pay the ward
+	// (mana_distinctcolours.go).
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)) {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)

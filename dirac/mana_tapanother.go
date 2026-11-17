@@ -401,15 +401,15 @@ type tapXStep struct {
 }
 
 const (
-	tapXAct    uint8 = iota // an activation
-	tapXAnswer              // act answers the ask then pending
-	tapXPass                // p passes with a trigger of the path on the stack
-	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
-	tapXPlain               // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
-	tapXAnyR                // an any-colour restricted gap (a Flamebraider), col its scriptDFS answer (scriptGapTap)
-	tapXRider               // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
-	tapXDefer               // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
-	tapXDead                // a Firemind Vessel (AnyDifferent) taps for no mana: gorge's search activates it as a census gap (mana_anydifferent.go)
+	tapXAct          uint8 = iota // an activation
+	tapXAnswer                    // act answers the ask then pending
+	tapXPass                      // p passes with a trigger of the path on the stack
+	tapXEach                      // an each-colour gap (a Bloom Tender) taps for its colours
+	tapXPlain                     // a second-ability source answers its ability ask with its plain first ability (tapXPlainDo)
+	tapXAnyR                      // an any-colour restricted gap (a Flamebraider), col its scriptDFS answer (scriptGapTap)
+	tapXRider                     // a rider source activates its bounded rider ability (Sandstone Needle: mana_rider.go)
+	tapXDefer                     // a Taps-deferred gap (a depletion land) taps for its answer col; act is the searched play (mana_tapxdefer.go)
+	tapXAnyDifferent              // a Firemind Vessel (AnyDifferent) taps for N distinct colours: gorge's search activates it as a census gap
 )
 
 type tapXKey struct {
@@ -427,22 +427,22 @@ type tapXKey struct {
 }
 
 type tapXSearch struct {
-	a     Action
-	p     uint8
-	own   Slot // the source whose {T} is the play's own cost (NoSlot: none)
-	sac   bool // a sacrifice-another source is among the gaps (leftOwnZone reads srcObj)
-	src   Obj  // the searched ability's source (NoObj: a cast)
-	srcZ  kop.Zone
-	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
-	gaps  slotMask
-	def   slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
-	dead  slotMask               // the AnyDifferent sources among gaps: gorge's census lists them, they add no mana (anyDifferentGaps)
-	need  [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
-	nodes int
-	nseen int
-	seen  [potentialScriptNodes]tapXKey
-	n     int
-	path  [maxTapXPath]tapXStep
+	a       Action
+	p       uint8
+	own     Slot // the source whose {T} is the play's own cost (NoSlot: none)
+	sac     bool // a sacrifice-another source is among the gaps (leftOwnZone reads srcObj)
+	src     Obj  // the searched ability's source (NoObj: a cast)
+	srcZ    kop.Zone
+	sp0     uint8 // the stack at the root: only a deeper one is the path's to resolve
+	gaps    slotMask
+	def     slotMask               // the Taps-deferred gaps among gaps (tapXDeferGaps)
+	anyDiff slotMask               // the AnyDifferent sources among gaps: gorge's census lists them, they add N distinct colours
+	need    [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
+	nodes   int
+	nseen   int
+	seen    [potentialScriptNodes]tapXKey
+	n       int
+	path    [maxTapXPath]tapXStep
 }
 
 // DebugNoTapXOwnSkip keeps the answers that tap the play's own {T} source in
@@ -497,8 +497,8 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
 	rs.gaps = rs.gaps.or(rs.def)
-	rs.dead = s.anyDifferentGaps(k, p)
-	rs.gaps = rs.gaps.or(rs.dead)
+	rs.anyDiff = s.anyDifferentGaps(k, p)
+	rs.gaps = rs.gaps.or(rs.anyDiff)
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
@@ -568,7 +568,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer || st.kind == tapXDead {
+		if st.kind == tapXAct || st.kind == tapXEach || st.kind == tapXPlain || st.kind == tapXAnyR || st.kind == tapXRider || st.kind == tapXDefer || st.kind == tapXAnyDifferent {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -732,6 +732,28 @@ func (rs *tapXSearch) tick() bool {
 	return true
 }
 
+// anyDifferentStep branches a Firemind Vessel gap at a search node on its N
+// distinct colours; handled reports that the gap was one (found is the
+// branch's result).
+func (rs *tapXSearch) anyDifferentStep(k *prep, t *State, sl Slot) (found, handled bool) {
+	if !rs.anyDiff.has(sl) {
+		return false, false
+	}
+	if !rs.tick() { // the colour ask
+		return false, true
+	}
+	a := t.anyDifferentAbilityAt(k, sl)
+	n := max(int(a.ManaN), 1)
+	na := anyDifferentAnswers(n)
+	for r := 0; r < na; r++ {
+		ans := anyDifferentRank(n, &rs.need, r)
+		if rs.try(k, t, tapXStep{kind: tapXAnyDifferent, sl: sl, cand: NoSlot, cand2: NoSlot, col: uint8(ans)}) {
+			return true, true
+		}
+	}
+	return false, true
+}
+
 // tapXDo plays step st: the elected permanent taps first, then the source
 // (gorge commitManaDiscard: the tapXType picks, then the source's {T}), and
 // the chosen colour floats.
@@ -768,8 +790,9 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.tapXDeferDo(k, p, st)
 		return
 	}
-	if st.kind == tapXDead {
-		s.windowAnyDifferentTap(k, st.sl) // no mana, no ask (mana_anydifferent.go)
+	if st.kind == tapXAnyDifferent {
+		s.anyDifferentTap(k, p, st.sl, int(st.col))
+		s.sba(k)
 		return
 	}
 	if st.cand == NoSlot {
@@ -983,13 +1006,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		if !rs.gaps.has(sl) || sl == rs.own {
 			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 		}
-		if rs.dead.has(sl) {
-			// a Firemind Vessel: one activation, no ask and no mana; gorge's
-			// search taps it ahead of the later gap that funds the play
-			if t.anyDifferentAt(k, sl) && rs.try(k, t, tapXStep{kind: tapXDead, sl: sl, cand: NoSlot, cand2: NoSlot}) {
-				return true
-			}
-			continue
+		if found, handled := rs.anyDifferentStep(k, t, sl); handled {
+			return found
 		}
 		if rs.def.has(sl) {
 			if found, handled := rs.deferAsk(k, t, sl); handled {
