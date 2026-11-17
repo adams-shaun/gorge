@@ -14,37 +14,37 @@ import (
 // Brink of Disaster's "when enchanted permanent becomes tapped, destroy it"
 // trigger attached to the choice land.
 const tapDestroyTendrils = "Name:Tendr\nManaCost:3 B\nTypes:Instant\n" +
-	"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ X | SubAbility$ DBGainLife | SpellDescription$ x\n" +
-	"SVar:DBGainLife:DB$ GainLife | LifeAmount$ X\n" +
-	"SVar:X:Count$Valid Swamp.YouCtrl\n" +
+	"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ X | SubAbility$ DBGainX | SpellDescription$ x\n" +
+	"SVar:DBGainX:DB$ GainLife | LifeAmount$ X\n" +
+	"SVar:X:Count$Valid SwampS.YouCtrl\n" +
 	"Oracle:x\n"
 
 const tapDestroyCliffs = "Name:Cliffs\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Bank {C}.\n" +
 	"A:AB$ Pump | Cost$ R G T | ValidTgts$ Creature.Beast+YouCtrl | SubAbility$ ScratchFight | AILogic$ Fight | StackDescription$ None | SpellDescription$ x\n" +
 	"SVar:ScratchFight:DB$ Fight | Defined$ ParentTarget | ValidTgts$ Creature.OppCtrl\n" +
 	"Oracle:x\n"
 
 const tapDestroyIsle = "Name:Isle\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Bank {C}.\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ Combo U B | IsPresent$ Swamp.YouCtrl | SpellDescription$ Add {U} or {B}.\n" +
 	"Oracle:x\n"
 
 const tapDestroySwamp = "Name:SwampS\nManaCost:no cost\nTypes:Basic Land Swamp\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Bank {B}.\n" +
 	"Oracle:x\n"
 
 const tapDestroyPlains = "Name:PlainsS\nManaCost:no cost\nTypes:Basic Land Plains\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Add {W}.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Bank {W}.\n" +
 	"Oracle:x\n"
 
 const tapDestroyBeast = "Name:Beast\nManaCost:2 G\nTypes:Creature Beast\nPT:2/2\n" +
 	"Oracle:x\n"
 
 const tapDestroyBrink = "Name:BrinkD\nManaCost:2 B B\nTypes:Enchantment Aura\n" +
-	"K:Enchant:Creature,Land:creature or land\n" +
-	"T:Mode$ Taps | ValidCard$ Card.AttachedBy | Execute$ TrigDestroy | TriggerDescription$ When enchanted permanent becomes tapped, destroy it.\n" +
-	"SVar:TrigDestroy:DB$ Destroy | Defined$ TriggeredCardLKICopy\n" +
+	"K:Enchant:Creature,Land:either one\n" +
+	"T:Mode$ Taps | ValidCard$ Card.AttachedBy | Execute$ TrigBoom | TriggerDescription$ When enchanted permanent becomes tapped, destroy it.\n" +
+	"SVar:TrigBoom:DB$ Destroy | Defined$ TriggeredCardLKICopy\n" +
 	"Oracle:x\n"
 
 // tapDestroyGame seeds seat 0's deck with the named extra fixtures and

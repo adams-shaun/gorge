@@ -458,29 +458,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					return refuse("Taps ValidPlayer %q", vp)
 				}
 				// AttachedBy lowers to the same flag as EquippedBy
-				// (filter.go): the enchanted-permanent watcher. A body whose
-				// only effect is to destroy the tapped permanent itself
-				// (Brink of Disaster's, Cryoshatter's) is a post-payment
-				// consequence gorge's planner vets (pay
-				// PaymentPlanTapDestroySelfTrigger), so the source stays an
-				// ordinary unit (TapPlanOrdinary); an unvetted body defers, as
-				// gorge's planner defers any tap a non-damage watcher sees; a
-				// damage body (Psychic Venom's payer damage) has a payment
-				// tiering the kernel does not mirror yet, so it refuses.
-				tp8, pn := tapsPlanClass(t.Effect)
-				destroySelf := tp8 == kop.TapPlanDefer && tapsDestroySelf(t)
-				if destroySelf {
-					tp8 = kop.TapPlanOrdinary
-				}
-				att := strings.Contains(vc, "AttachedBy")
-				for _, c := range tr.F.Clauses {
-					ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
-					switch {
-					case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
-					case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer || destroySelf):
-					default:
-						return refuse("Taps ValidCard %q", vc)
-					}
+				// (filter.go): the enchanted-permanent watcher (tapsAttachedClass,
+				// tapsAttachedClauses).
+				tp8, pn, destroySelf := tapsAttachedClass(t)
+				if !tapsAttachedClauses(tr.F, vc, tp8, destroySelf) {
+					return refuse("Taps ValidCard %q", vc)
 				}
 				tr.TapPlan, tr.TapPainN = uint8(tp8), pn
 				break

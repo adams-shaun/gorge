@@ -439,8 +439,8 @@ func PaymentPlanTapDestroySelfTrigger(f *cards.Face, t cards.Trigger) bool {
 		return false
 	}
 	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
-		switch paymentPlanTapDestroyTriggerCodes.Code(string(k)) {
-		case paymentPlanTapDestroyTriggerKnown:
+		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDamageTriggerKnown:
 		default:
 			return false
 		}
@@ -453,15 +453,11 @@ func PaymentPlanTapDestroySelfTrigger(f *cards.Face, t cards.Trigger) bool {
 	if ref.Flags&params.RefCompound != 0 {
 		return false
 	}
-	switch ref.Text {
-	case "TriggeredCardLKICopy", "TriggeredCard":
-	default:
+	if txt := ref.Text; txt != "TriggeredCardLKICopy" && txt != "TriggeredCard" {
 		return false
 	}
 	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
-		switch k {
-		case "API", "Defined", "SpellDescription", "StackDescription":
-		default:
+		if k != "API" && k != "Defined" && k != "SpellDescription" && k != "StackDescription" {
 			return false
 		}
 	}
@@ -791,26 +787,16 @@ const (
 	paymentPlanTapDamageTriggerKnown paymentPlanTapDamageTriggerCode = iota + 1
 )
 
+// paymentPlanTapDamageTriggerCodes is the closed key set of the Taps-watcher
+// trigger rows the planner vets (the tap-damage row and, sharing it, the
+// destroy-self row: both watchers carry Mode$, ValidCard$, Execute$,
+// TriggerZones$ and TriggerDescription$ and nothing else).
 var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Mode", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Execute", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "TriggerZones", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "TriggerDescription", Val: paymentPlanTapDamageTriggerKnown},
-)
-
-type paymentPlanTapDestroyTriggerCode uint16
-
-const (
-	paymentPlanTapDestroyTriggerKnown paymentPlanTapDestroyTriggerCode = iota + 1
-)
-
-var paymentPlanTapDestroyTriggerCodes = state.NewStrCodes(
-	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "Mode", Val: paymentPlanTapDestroyTriggerKnown},
-	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDestroyTriggerKnown},
-	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "Execute", Val: paymentPlanTapDestroyTriggerKnown},
-	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "TriggerZones", Val: paymentPlanTapDestroyTriggerKnown},
-	state.StrEntry[paymentPlanTapDestroyTriggerCode]{Key: "TriggerDescription", Val: paymentPlanTapDestroyTriggerKnown},
 )
 
 // UnlessManaReachable reports whether pool plus one production alternative

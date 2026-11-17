@@ -59,7 +59,7 @@ dirac (*grantSrch).visit	274	105
 dirac (*tapXSearch).visit	229	65
 dirac arenaUses	114	58
 dirac prepare	208	116
-dirac prepareGen	1084	431
+dirac prepareGen	1078	431
 dirac/canon (*Translator).Action	422	156
 dirac/canon (*Translator).generatedChoose	345	115
 dirac/cardset (dataSet).matchup	395	127
@@ -83,7 +83,7 @@ dirac/kgen (*cardBuilder).record	628	186
 dirac/kgen (*cardBuilder).repl	226	91
 dirac/kgen (*cardBuilder).static	789	292
 dirac/kgen (*cardBuilder).target	305	183
-dirac/kgen (*cardBuilder).trigger	591	290
+dirac/kgen (*cardBuilder).trigger	564	290
 dirac/kgen (*instrCtx).opSearch	259	93
 dirac/kgen (*lClause).prop	563	149
 dirac/kgen (*lowerCtx).applyModifier	160	75

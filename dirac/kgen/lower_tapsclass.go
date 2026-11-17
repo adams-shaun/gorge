@@ -44,6 +44,43 @@ func tapsPlanClass(body *cards.SA) (kop.TapPlan, uint8) {
 	return kop.TapPlanDefer, 0
 }
 
+// tapsAttachedClass is the payment-planner class of the AttachedBy Taps
+// watcher: a body whose only effect is to destroy the tapped permanent itself
+// (Brink of Disaster's, Cryoshatter's) is a post-payment consequence gorge's
+// planner vets (pay PaymentPlanTapDestroySelfTrigger), so the source stays an
+// ordinary unit (kop.TapPlanOrdinary); an unvetted body defers, as gorge's
+// planner defers any tap a non-damage watcher sees; a damage body (Psychic
+// Venom's payer damage) has a payment tiering the kernel does not mirror yet,
+// so the caller refuses it.
+func tapsAttachedClass(t cards.Trigger) (kop.TapPlan, uint8, bool) {
+	tp8, pn := tapsPlanClass(t.Effect)
+	destroySelf := tp8 == kop.TapPlanDefer && tapsDestroySelf(t)
+	if destroySelf {
+		tp8 = kop.TapPlanOrdinary
+	}
+	return tp8, pn, destroySelf
+}
+
+// tapsAttachedClauses vets the clause table of a non-Self Taps watcher with no
+// ValidPlayer$: every clause is a plain ownerless one over your own creature
+// (Ctrl You, no flags, no AttachedBy) or, on the enchanted-permanent watcher
+// (any Ctrl, the EquippedBy flag), carries a plan the payment planner can
+// mirror — a deferring body or a vetted destroy-self one. An unvetted
+// AttachedBy body vetoes the lowering.
+func tapsAttachedClauses(f *lFilter, vc string, tp8 kop.TapPlan, destroySelf bool) bool {
+	att := strings.Contains(vc, "AttachedBy")
+	for _, c := range f.Clauses {
+		ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
+		switch {
+		case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
+		case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer || destroySelf):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // tapsDestroySelf mirrors gorge's planner recognizer (pay
 // PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` watcher: the trigger's
 // keys are the closed world's (Mode, ValidCard, Execute, TriggerZones naming
