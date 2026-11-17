@@ -365,11 +365,8 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{Kind: rTarget, N: t}, nil
 	}
-	if r, ok := lc.chosenPlayerDefined(v); ok {
-		return r, nil // lower_definedheads.go
-	}
-	if r, ok := lc.chosenPlayerEnterDefined(v); ok {
-		return r, nil // lower_chooseplayerenter.go
+	if r, ok, err := lc.playerRefDefined(v); ok || err != nil {
+		return r, err // lower_defineduniononplayers.go
 	}
 	switch v {
 	case "OppNonRememberedController":
@@ -933,6 +930,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 // node lowers one SA node (not its Sub).
 func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	if done, err := lc.putCounterUnion(sa, ps); done { // lower_definedheads.go
+		return err
+	}
+	if done, err := lc.definedPlayerUnion(sa, ps); done { // lower_defineduniononplayers.go
 		return err
 	}
 	at := len(lc.ab.Prog)
