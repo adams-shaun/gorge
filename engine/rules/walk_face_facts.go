@@ -67,9 +67,9 @@ type walkFaceFacts struct {
 	// faces carry no alt-cost keyword. altCostMask bit i marks that
 	// altCastModes[i] is present; the position of row id in altCosts is the
 	// population count of the mask's lower bits, so a face with none
-	// allocates nothing and pays only the 1-byte mask.
+	// allocates nothing and pays only the 2-byte mask.
 	altCosts    []altFaceCost
-	altCostMask uint8
+	altCostMask uint16
 	// impendingCount is the compiled N from K:Impending:N:cost, read under
 	// the same keyword-list identity guard as altCosts.
 	impendingCount int32
