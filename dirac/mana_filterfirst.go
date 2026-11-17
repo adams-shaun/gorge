@@ -167,15 +167,14 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		n += s.scriptDeferred(k, p).count()
 	}
 	if k.gen.anyManaRider {
-		// a bounded rider source (Peat Bog's {B}{B}): gorge's PotentialMana
-		// counts its production (availPotentialFor's rider arm), so a depletion
-		// land alone funds Gruul Signet's {1} (CR 605.3a)
-		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
-			if sl := b.first(); !s.canTapForMana(k, sl) && s.riderPotential(k, p, sl) {
-				a, _ := s.riderAbilityOf(k, sl)
-				n += max(int(a.ManaN), 1)
-			}
-		}
+		// a Taps-deferred rider gap's production (a depletion land's {G}{G},
+		// Peat Bog's {B}{B}): gorge's PotentialMana counts a bounded rider
+		// source (availPotentialFor's rider arm), so such a land alone funds a
+		// first-only filter's {1} fee (CR 605.3a). The count walks the same
+		// scriptTapsDefer census the gap search dispatches on
+		// (mana_filtertapsdefer.go), so a rider beside a plain first ability
+		// counts its rider production too.
+		n += s.filtRiderMana(k, p)
 	}
 	return n
 }
