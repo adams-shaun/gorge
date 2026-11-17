@@ -82,6 +82,27 @@ jobs:
           echo "tree ${tree:-unknown}: passed by a promote PR: $passed"
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
+  # Stage 1 of the pipeline: on the box, build the corpus and dirac's tables once for this tree (scripts/ci-corpus.sh
+  # keys them by FORGE_REF, engine/cards and dirac sources); the test stage's jobs then find them built. On a
+  # GitHub-hosted runner it does nothing: each hosted job restores .cards from the Actions cache.
+  prepare:
+    needs: prior
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: runner.environment == 'self-hosted'
+      - uses: actions/setup-go@v5
+        if: runner.environment == 'self-hosted'
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Corpus and tables for this tree
+        if: runner.environment == 'self-hosted'
+        run: |
+          bash scripts/ci-corpus.sh
+          flock "$HOME/gorge-cards/.lock" make dirac-tables
+
   lint:
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
@@ -115,8 +136,8 @@ jobs:
           key: gocache-lint-${{ github.sha }}
 
   test:
-    needs: prior
-    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
+    needs: [prior, prepare]
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
@@ -131,22 +152,26 @@ jobs:
       - name: Read the corpus pin
         id: pin
         run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
       - name: Restore the corpus
         id: corpus
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: .cards
           key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
           restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
       - name: Fetch and compile the corpus
-        if: steps.corpus.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && steps.corpus.outputs.cache-hit != 'true'
         run: make fetch-cards compile-cards
       - name: Refuse to run without the corpus
         run: |
           test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Save the corpus
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.corpus.outputs.cache-hit != 'true' && matrix.shard == 0
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.corpus.outputs.cache-hit != 'true' && matrix.shard == 0
         uses: actions/cache/save@v4
         with:
           path: .cards
@@ -159,7 +184,9 @@ jobs:
           key: gocache-test${{ matrix.shard }}-${{ github.sha }}
           restore-keys: gocache-test${{ matrix.shard }}-
       - name: Build dirac's card tables
-        run: make dirac-tables
+        run: |
+          # The box's runners share one .cards (ci-corpus.sh): build its tables under the same lock.
+          if [ "${{ runner.environment }}" = self-hosted ]; then flock "$HOME/gorge-cards/.lock" make dirac-tables; else make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
@@ -221,8 +248,8 @@ jobs:
 
   # Each engine / wire / consumer cell that has a test (docs/site/architecture/wires.md).
   wire-matrix:
-    needs: prior
-    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
+    needs: [prior, prepare]
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
@@ -237,22 +264,28 @@ jobs:
       - name: Read the corpus pin
         id: pin
         run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
       - name: Restore the corpus
         id: corpus
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: .cards
           key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
           restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
       - name: Fetch and compile the corpus
-        if: steps.corpus.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && steps.corpus.outputs.cache-hit != 'true'
         run: make fetch-cards compile-cards
       - name: Refuse to run without the corpus
         run: |
           test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Build dirac's card tables
-        run: make dirac-tables
+        run: |
+          # The box's runners share one .cards (ci-corpus.sh): build its tables under the same lock.
+          if [ "${{ runner.environment }}" = self-hosted ]; then flock "$HOME/gorge-cards/.lock" make dirac-tables; else make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Run the commit tier
@@ -267,8 +300,8 @@ jobs:
   # scripts/dirac-gate.sh, whose step 4 plays these same slices with kfuzz, and the oracle
   # job below plays the whole of dirac/oracle.
   dirac-slices:
-    needs: prior
-    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
+    needs: [prior, prepare]
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
@@ -279,15 +312,19 @@ jobs:
       - name: Read the corpus pin
         id: pin
         run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
       - name: Restore the corpus
         id: corpus
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v4
         with:
           path: .cards
           key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
           restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
       - name: Fetch and compile the corpus
-        if: steps.corpus.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && steps.corpus.outputs.cache-hit != 'true'
         run: make fetch-cards compile-cards
       - name: Refuse to run without the corpus
         run: |
@@ -301,7 +338,9 @@ jobs:
           key: gocache-dirac-slices-${{ github.sha }}
           restore-keys: gocache-dirac-slices-
       - name: Build dirac's card tables
-        run: make dirac-tables
+        run: |
+          # The box's runners share one .cards (ci-corpus.sh): build its tables under the same lock.
+          if [ "${{ runner.environment }}" = self-hosted ]; then flock "$HOME/gorge-cards/.lock" make dirac-tables; else make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Play the committed slices

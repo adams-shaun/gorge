@@ -2,43 +2,18 @@
 # ci_shard.sh <index> <count> -- print the Go packages CI shard <index> of
 # <count> runs, one per line.
 #
-# The heaviest packages each get a shard of their own (index 0..H-1 of the
-# HEAVY list below), measured on the post-merge suite: rules ~170 s, host
-# ~155 s. Every other package goes to one of the remaining
-# shards by a stable hash of its import path, so adding a package never
-# reshuffles the others. Rebalance HEAVY from the CI run times when a light
-# shard outgrows the heavy ones.
+# Shards are balanced on measured time: scripts/ci-pkg-times.tsv holds each package's seconds from a CI run
+# (scripts/ci-pkg-times.sh <run-id> refreshes it). Packages go heaviest first to the least-loaded shard (ties: lower
+# index, then import path), so the split is deterministic on every runner. A package with no measurement weighs
+# DEFAULT_WEIGHT seconds. 11-16: the old split (two heavy packages pinned, the rest by hash) gave shards of 72 s to
+# 269 s of package time; the slowest shard sets the PR's wall time.
 #
 # Shard index is 0-based. `ci_shard.sh all <count>` prints every package with
 # its shard, which is how the self-check in CI proves no package was dropped.
 set -euo pipefail
 idx=${1:?usage: ci_shard.sh <index|all> <count>}
 count=${2:?usage: ci_shard.sh <index|all> <count>}
-
-HEAVY=(
-	github.com/adams-shaun/gorge/engine/rules
-	github.com/adams-shaun/gorge/server/host
-)
-nheavy=${#HEAVY[@]}
-if [ "$count" -le "$nheavy" ]; then
-	echo "ci_shard.sh: need more than $nheavy shards, got $count" >&2
-	exit 2
-fi
-light=$((count - nheavy))
-
-shard_of() {
-	local p=$1 i
-	for i in "${!HEAVY[@]}"; do
-		if [ "${HEAVY[$i]}" = "$p" ]; then
-			echo "$i"
-			return
-		fi
-	done
-	# cksum is POSIX and deterministic across runners.
-	local h
-	h=$(printf '%s' "$p" | cksum | cut -d' ' -f1)
-	echo $((nheavy + h % light))
-}
+times=$(dirname "$0")/ci-pkg-times.tsv
 
 # Experimental, benchmark, training-tool, fuzz and external-adapter packages,
 # plus box-calibrated measurement ratchets (corpusheap's heap ceilings are
@@ -53,11 +28,20 @@ if [ "${CI_FULL:-0}" != 1 ]; then
 	pkgs=$(printf '%s\n' "$pkgs" | grep -Ev "$EXCLUDE")
 fi
 
-printf '%s\n' "$pkgs" | while read -r p; do
-	s=$(shard_of "$p")
-	if [ "$idx" = all ]; then
-		echo "$s $p"
-	elif [ "$s" = "$idx" ]; then
-		echo "$p"
-	fi
-done
+printf '%s\n' "$pkgs" | awk -F'\t' -v idx="$idx" -v count="$count" -v def="${DEFAULT_WEIGHT:-3}" '
+	FNR == NR { if ($0 !~ /^#/ && NF >= 2) w[$1] = $2; next }
+	{ n++; p[n] = $0; wt[n] = ($0 in w) ? w[$0] + 0 : def }
+	END {
+		for (i = 1; i <= n; i++) o[i] = i
+		for (i = 2; i <= n; i++) { k = o[i]; j = i - 1
+			while (j >= 1 && (wt[o[j]] < wt[k] || (wt[o[j]] == wt[k] && p[o[j]] > p[k]))) { o[j + 1] = o[j]; j-- }
+			o[j + 1] = k }
+		for (s = 0; s < count; s++) load[s] = 0
+		for (i = 1; i <= n; i++) { k = o[i]; b = 0
+			for (s = 1; s < count; s++) if (load[s] < load[b]) b = s
+			load[b] += wt[k]; sh[k] = b }
+		for (i = 1; i <= n; i++) {
+			if (idx == "all") print sh[i], p[i]
+			else if (sh[i] == idx) print p[i]
+		}
+	}' "$times" -
