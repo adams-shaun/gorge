@@ -1,0 +1,14 @@
+{
+  "card": "Relic of Sauron",
+  "class": "projection-Cards.Flags",
+  "why": "its {T}: Add two mana in any combination of {U}, {B} and/or {R} is a Combo source that makes two mana per tap, which gorge's payment planner leaves unpriced (unsupported census_incomplete): the autopay surface withholds every spell only its second mana pays for (Ashes to Ashes {1}{B}{B} over a Swamp, Blessed Wind) and taps other sources, while the kernel offers and taps the Relic; tail-47 pairs 0, 2 and 14 (the Relic's tap flags differ at pair 2)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "relic_of_sauron_two_unit_combo_unplanned"
+  }
+}
