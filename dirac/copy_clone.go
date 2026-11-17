@@ -298,6 +298,12 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		return
 	}
 	eot := in.B.N&kop.CloneEOT != 0
+	// GainThisAbility$: the grant-only override after the exceptions' (kgen
+	// refuses it beside an until-end-of-turn copy)
+	var grant uint8
+	if in.B.N&kop.CloneGrant != 0 && !eot {
+		grant = uint8(in.C) + 1
+	}
 	made := 0
 	// keptExc/keptN hold a self-copy's current exception override indices
 	// across cloneLayerPrep, which clears the slot's for the new layer.
@@ -363,15 +369,23 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 				s.copyExcPush(sl, uint8(in.C))
 			}
 			for j := 0; j < keptGrantN; j++ {
-				s.copyGrantPut(k, sl, keptGrant[j])
+				s.copyGrantAppend(k, sl, keptGrant[j])
 			}
 		} else {
 			s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 			s.copyGrantsAdd(k, sl, tmpl) // the template's AddAbilities$ (CR 707.3)
 		}
+		if grant != 0 {
+			// the copy keeps this ability (CR 707.9b), a granted one of the card
+			// whose ability resolved, once more for each copy it passed through
+			s.copyGrantAppend(k, sl, cgrantRef{grant, s.res.e.card})
+		}
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
 			s.clonePermNote(sl, s.perms[tmpl].obj, c, uint8(in.C), ts)
+			if grant != 0 {
+				s.clonePermGrantFrom(sl, grant, s.res.e.card)
+			}
 		}
 		if self {
 			// The layer's inherited exceptions stay beside it (fxCopySelf):
