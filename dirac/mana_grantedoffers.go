@@ -2147,6 +2147,9 @@ func restrAbOfGrant(k *prep, gi int16) *kop.Ability {
 // kicked, face-down or MayPlay cast, as gorge's scriptNeedColours leaves
 // it -- the search branches a colour ask on those first (grantSrch.branch).
 func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
+	if a.Kind() == AkPlot && a.Mode() == 0 {
+		return s.grantPlotCost(k, p, a)
+	}
 	if s.g.raiseO == 0 {
 		// the cast owes its permission's surcharge (Zero's {2}) once it is
 		// built; the search prices what the cast will pay (CR 601.2f, 118.8)
@@ -2308,14 +2311,6 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		}
 		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
 		return cost, ex, need, ok
-	case AkPlot:
-		if a.Mode() == 0 {
-			// the plot special action (CR 702.170a): gorge's walk lists it as a
-			// "plot" cast priced at its plot cost, a play of its own beside the
-			// card's plain cast, so the search funds that cost
-			c := s.objs[a.Source()].card
-			return s.adjustCost(k, p, c, Obj(a.Source()), k.t.Cards[c].PlotCost), ex, need, true
-		}
 	}
 	return cost, ex, need, false
 }
