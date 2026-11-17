@@ -11,7 +11,7 @@ import (
 // mindRakeSrc is the Mind Rake script, inline so the caster can be seat 1's
 // own deck card.
 const mindRakeSrc = "Name:Mind Rake\nManaCost:2 B\nTypes:Sorcery\n" +
-	"A:SP$ Discard | ValidTgts$ Player | NumCards$ 2 | Mode$ TgtChoose | SpellDescription$ Target player discards two cards.\n" +
+	"A:SP$ Discard | Mode$ TgtChoose | NumCards$ 2 | ValidTgts$ Player\n" +
 	"K:Overload:1 B\nOracle:x\n"
 
 // TestOverloadedDiscardAsksCasterFirst: an overloaded "each player discards"
