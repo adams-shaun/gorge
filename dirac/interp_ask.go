@@ -1511,7 +1511,7 @@ func (s *State) payWardN(k *prep, n uint8, pay bool) {
 	// gorge does: it taps the plain sources and asks which permanent to tap. A
 	// Firemind Vessel is one too: its two distinct colours pay the ward
 	// (mana_distinctcolours.go).
-	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)) {
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c) || s.windowFiltAffords(k, r.e.trigPl, &c) || s.nonSpellRestrAffords(k, r.e.trigPl, &c) || s.windowTapXLive(k, r.e.trigPl).any() || s.anyDifferentOpen(k, r.e.trigPl)) {
 		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
 		if paused {
 			return // a tap-another source's pick (mana_windowtapx.go)
