@@ -420,6 +420,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
 	spare := sparePool.Get()
 	cfg.Spare = spare
+	abandoned := false // the engine panicked out of a Submit (a bigboard stall)
 	e := rules.NewStartingPlayerChoice(cfg)
 	var observe func(*rules.Engine, *decision.Decision)
 	var probe *cardcov.Probe
@@ -448,7 +449,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	defer func() {
 		// Only a clean finish recycles: a game that failed or did not
 		// terminate has no trustworthy log shape to hand to the next game.
-		if ok {
+		if ok && !abandoned {
 			sparePool.Put(spare, e)
 		}
 	}()
@@ -489,6 +490,14 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	search := watchSearch(seed, policies)
 	defer search.stop()
 	n, err := driveMatch(e, seats, newSeatRoute(cfg, seats), observe)
+	if lle, isLL := err.(*rules.LivelockError); isLL && rules.IsVolumeReason(lle.Reason) {
+		// Degenerate volume (Scute Swarm doubling past the object cap), not
+		// a stuck resolution: a recorded bigboard stall, as testkit/bench
+		// records it. The engine died mid-Submit, so it is never recycled.
+		abandoned = true
+		finish(n, "bigboard")
+		return reportBigBoard(out, seed, len(names), n, lle, e, cfg, verify)
+	}
 	if err != nil {
 		status := "failed"
 		if _, ok := err.(*rules.LivelockError); ok {
