@@ -10,12 +10,25 @@ import (
 // planeswalker they control"), End the Festivities (gorge effDamageAll:
 // ValidCards$ over both battlefields, then ValidPlayers$, one batch).
 //
+// Bit 8 deals the damage to the player the instruction's Obj names (a target
+// slot, RefTarget0..4; gorge validPlayers' ValidPlayers$ Targeted) after the
+// permanents, and bit 16 scopes the permanents to that player's own (gorge
+// targetPlayerKindScope: a player-kind ValidTgts$ on the sweep). A target
+// that names no player sweeps no permanent under bit 16 and damages no one.
+//
 //go:noinline
 func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 	src := s.objRef(k, kop.RefSelf)
+	tseat := uint8(255)
+	if in.B.N&24 != 0 {
+		tseat = s.playerRef(k, in.Obj)
+	}
 	var hit slotMask
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
+		if in.B.N&16 != 0 && (tseat == 255 || !s.ctrlM[tseat].has(sl)) {
+			continue
+		}
 		if (in.B.N&4 != 0 || s.isCreature(k, sl)) && s.matchPerm(k, in.F, sl, ctrl, src) {
 			hit = hit.with(sl)
 		}
@@ -27,6 +40,15 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 		if NextSeat(ctrl) == s.active {
 			pl = 1
 		} else {
+			pl = 2
+		}
+	} else if in.B.N&8 != 0 && tseat != 255 {
+		switch {
+		case MaxSeats != 2:
+			pl = 1 << tseat
+		case tseat == s.active:
+			pl = 1
+		default:
 			pl = 2
 		}
 	}
@@ -52,6 +74,9 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 	}
 	if pl != 0 {
 		q := s.oppsFrom(ctrl)
+		if in.B.N&2 == 0 {
+			q = seatOne(tseat)
+		}
 		for i := uint8(0); i < q.n; i++ {
 			s.damageTo(k, PlayerCode(q.s[i]), n)
 		}

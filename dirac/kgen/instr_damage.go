@@ -92,6 +92,24 @@ func (ic *instrCtx) opDamageAll() error {
 		// "N damage to each opponent" (Grab the Prize's ValidPlayers$
 		// Player.Opponent; seat-exact: the kernel deals each opponent)
 		ki.Op, ki.Obj = kop.OpDealDamage, kop.RefEachOpponent
+	case in.F != nil && in.F.Players == 0 && in.Obj.Kind == rTarget:
+		// ValidPlayers$ Targeted (lower_damagealltargeted.go): B.N bit 8 the
+		// targeted player in Obj, bit 16 the sweep scoped to that player's
+		// permanents; bit 4 as below
+		ki.Op = kop.OpDamageAll
+		if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+			return err
+		}
+		b := int16(8)
+		if _, ok := ic.fl["Scope"]; ok {
+			b |= 16
+		}
+		for _, c := range in.F.Clauses {
+			if c.Types&(tPlaneswalker|tBattle) != 0 {
+				b |= 4
+			}
+		}
+		ki.B = kop.ValueRef{N: b}
 	case in.F != nil && in.F.Players == 0:
 		ki.Op = kop.OpDamageAll
 		if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
