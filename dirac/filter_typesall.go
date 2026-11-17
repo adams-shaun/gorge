@@ -153,7 +153,7 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 		return s.faceDownPred(k, sl) // filter_facedown.go
 	}
 	if fl.Pred == kop.PredWord7 {
-		return s.wordPerm(k, fl, sl) // filter_props.go
+		return s.wordPerm(k, fl, sl, NoSlot) // filter_props.go: the walk path has no filter source
 	}
 	if fl.Pred == kop.PredPowerGTBase {
 		return s.powerGTBase(k, sl) // filter_powerbase.go

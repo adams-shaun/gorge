@@ -149,5 +149,21 @@ func (lc *lowerCtx) copyExceptionsMyriad(ps *params, allowMyriad bool) (*lOverri
 		}
 		exc.RemoveLegendary, hasExc = true, true
 	}
+	if v, ok := ps.get("RemoveCardTypes"); ok {
+		// RemoveCardTypes$ True with RemoveSubTypes$ True replaces the copy's
+		// whole type line (Dino DNA's "6/6 green Dinosaur creature"): the
+		// AddTypes$ terms above are what remains, so the exception sets the
+		// card types and subtypes empty before the adds apply (build's
+		// HasTypes/HasSub, chars_gen's set-then-add).
+		sub, sok := ps.get("RemoveSubTypes")
+		if strings.TrimSpace(v) != "True" || !sok || strings.TrimSpace(sub) != "True" {
+			return nil, false, 0, refuse("CopyPermanent RemoveCardTypes %q RemoveSubTypes %q", v, sub)
+		}
+		exc.HasSetTypes, exc.SetTypes = true, 0
+		exc.HasSetSubtypes, exc.SetSubtypes = true, nil
+		hasExc = true
+	} else if v, ok := ps.get("RemoveSubTypes"); ok {
+		return nil, false, 0, refuse("CopyPermanent RemoveSubTypes %q without RemoveCardTypes$", v)
+	}
 	return &exc, hasExc, myriads, nil
 }

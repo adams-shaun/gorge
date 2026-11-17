@@ -824,7 +824,11 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return s.notF2Card(fl, o) // filter_negations.go
 		}
 		if fl.Pred == kop.PredWord7 {
-			return s.wordCard(k, fl, c, o, fd, ctrl) // filter_props.go
+			src := NoObj
+			if fl.PredN&0xff == kop.W7Imprinted {
+				src = s.cardFilterSrc(ctx) // filter_props.go: a source-persistent Imprinted read
+			}
+			return s.wordCardAt(k, fl, c, o, fd, ctrl, src)
 		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go

@@ -253,16 +253,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{Kind: rRemembered}, nil
 	case "Imprinted":
-		// DigUntil's ImprintFound$ chain (lower_digimprint.go): gorge
-		// effectRemembered reads the source's seek-found Imprint, which the
-		// kernel holds in the chosen set (DuImprintFound).
-		if lc.digImprintSetLive() { // lower_digimprintset.go
-			return lRef{Kind: rImprinted}, nil
-		}
-		if !lc.digImprintChosen {
-			return lRef{}, refuse("Defined$ Imprinted outside a DigUntil ImprintFound$")
-		}
-		return lRef{Kind: rChosen}, nil
+		return lc.definedImprinted()
 	case "Player.IsRemembered":
 		if lc.repeatPl == 0 {
 			return lRef{}, refuse("Defined$ %q outside a RepeatEach body", v)

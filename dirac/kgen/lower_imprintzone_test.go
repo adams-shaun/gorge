@@ -103,11 +103,13 @@ Oracle:probe
 	}
 }
 
-// TestImprintCrossAbilityRefuses: gorge's imprint persists on the source, the
-// kernel's set lasts one resolution, so a read in another ability than the
-// writer's stays refused by name (Oblivious Bookworm, Superior Foes of
-// Spider-Man, the probe below), and the card-level check refuses an ability
-// that reads the set without writing it.
+// TestImprintCrossAbilityRefuses: a read in another ability than the writer's
+// stays refused by name for a face the persistent-Imprinted shape does not
+// cover (Oblivious Bookworm, Superior Foes of Spider-Man), and the card-level
+// check refuses an ability that reads the set without writing it. The probe
+// below now lowers: the source keeps its Imprinted list (CardDef.ImpPersist),
+// so the activated reader reads what the enters trigger imprinted
+// (lower_imppersist.go).
 func TestImprintCrossAbilityRefuses(t *testing.T) {
 	for _, c := range []struct{ name, want string }{
 		{"Oblivious Bookworm", "Count$ImprintedSize"},
@@ -131,9 +133,8 @@ SVar:PrTok:DB$ Token | TokenScript$ w_1_1_ally | ImprintTokens$ True
 A:AB$ PutCounter | Cost$ T | Defined$ Imprinted | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ probe
 Oracle:probe
 `
-	rf := lowerScript(t, "Imprint Cross Probe", src)
-	if len(rf) == 0 || !strings.Contains(strings.Join(rf, "\n"), "Defined$ Imprinted") {
-		t.Errorf("the cross-ability read: refusals %v, want a Defined$ Imprinted refusal", rf)
+	if rf := lowerScript(t, "Imprint Cross Probe", src); len(rf) != 0 {
+		t.Errorf("the cross-ability read: refusals %v, want none (the source keeps its Imprinted)", rf)
 	}
 
 	lc := &lowerCtx{out: &lCard{Name: "x"}, name: "x"}
