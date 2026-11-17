@@ -748,7 +748,9 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 		// card being cast, whatever its filter says (cost_discardfiltered.go)
 		discardOK = s.discardPayable(k, p, ac, o)
 	}
-	if s.pickCostPayable(k, p, ac, NoObj) && discardOK && s.beholdPayable(k, p, c, o) {
+	// the card cast is on the stack when its exile cost is paid, so it is no
+	// fodder for it (Skaab Ruinator cast from the graveyard, CR 601.2h)
+	if s.pickCostPayable(k, p, ac, o) && discardOK && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	cd := &k.t.Cards[c]
