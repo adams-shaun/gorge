@@ -2457,21 +2457,26 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 // targeting: hexproof and shroud do not count, protection does, CR
 // 303.4f, 702.16c) into out, and returns their number.
 func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]TCode) int {
-	t := &k.t.Cards[c].Enchant
 	n := 0
 	for m := s.occ; m.any() && n < MaxOptions; m = m.rest() {
 		sl := m.first()
 		if s.objs[s.perms[sl].obj].of&ofPending != 0 {
 			continue
 		}
-		if s.matchPerm(k, t.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
-			!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
-			!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c)) {
+		if s.enchantHostOK(k, c, p, sl) {
 			out[n] = TCode(s.perms[sl].obj)
 			n++
 		}
 	}
 	return n
+}
+
+// enchantHostOK reports whether the permanent at sl is a host an Aura of
+// card c under p's control may enchant (enchantCands' per-permanent test).
+func (s *State) enchantHostOK(k *prep, c CardID, p uint8, sl Slot) bool {
+	return s.matchPerm(k, k.t.Cards[c].Enchant.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
+		!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
+		!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c))
 }
 
 // NoSubtypeIdx is a matchup filter's "absent subtype" sentinel minus one.
